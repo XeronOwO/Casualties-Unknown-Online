@@ -15,7 +15,9 @@ Full architecture blueprint: [`docs/architecture.md`](docs/architecture.md)
 ## Repository Layout
 
 ```
-src/CasualtiesUnknownOnline/   # BepInEx plugin project (net35, BepInEx 5.x) — currently template skeleton
+src/CasualtiesUnknownOnline/   # BepInEx plugin project (net452, BepInEx 5.x) — currently template skeleton
+references/                    # Game assemblies, gitignored, copied on demand (see references/README.md)
+reversing/                     # Reverse-engineering workspace, gitignored (see reversing/README.md)
 docs/architecture.md           # Architecture blueprint (full design, pitfalls, phases)
 CLAUDE.md                      # This file
 CLAUDE.local.md                # Local personal notes — gitignored, never commit

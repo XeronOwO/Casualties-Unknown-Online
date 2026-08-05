@@ -35,6 +35,13 @@ dotnet build src/CasualtiesUnknownOnline/CasualtiesUnknownOnline.csproj
 - Game assemblies (`references/`) are copyrighted and not in the repo — copy **on demand** from the game's `CasualtiesUnknown_Data\Managed\` per `references/README.md` (only the Game Adapter project may reference them; convention details in `docs/architecture.md`)
 - Packaged plugin DLL is deployed into the game's `BepInEx/plugins/` folder (path is machine-local — see `CLAUDE.local.md`)
 
+## Tech Decisions (binding)
+
+- **BepInEx 5.x, not 6** — the game's installed community mod ecosystem (KrokMP-derived mods, JustUnknownCharacters, …) is BepInEx-5-only; BepInEx 6 cannot load 5.x plugins, so switching would break every existing mod. Revisit only if the ecosystem migrates.
+- **net452 TFM** — BepInEx 5 supports net35+; net452 chosen for a richer BCL, proven on this game by JustUnknownCharacters. (The official BepInEx 6 guide targets netstandard2.0/net472, but that applies to BepInEx 6 plugins.)
+- **UnityEngine via NuGet `UnityEngine.Modules 5.6.0`** (template default, matches the game's Unity 5.6 era); **game assemblies via `references/` on demand** (see `references/README.md`). Official docs warn against referencing assemblies directly from the game folder — copy them into the project first, which is exactly what the references/ convention does.
+- **Plugin metadata**: `[BepInProcess("CasualtiesUnknown.exe")]` should be added once the plugin does anything game-specific; GUID is permanent — never change it after release. Logging tags (`[Network]` etc.) map to `Logger.CreateLogSource(tag)` sources, not string prefixes.
+
 ## Architecture in Brief
 
 Layered, dependency flows downward only:

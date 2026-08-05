@@ -94,7 +94,7 @@ Do not jump ahead: Phase 1 must not add inventory/combat/quests/saves. MVP expli
 
 ## Context Compression Protocol
 
-When the user says "compress" (or 压缩), do this before the context is compressed:
+When the user says "compress", do this before the context is compressed:
 
 1. Review the conversation for durable knowledge and persist it: update memory files (`~/.claude/projects/.../memory/`) and/or `CLAUDE.md`/`docs/` per the self-learning rule (convention 3).
 2. Produce a **compression prompt** for the user covering: project state (phase, what works, what doesn't), the current task and its status, decisions made, pending items, and pointers to where the details live (CLAUDE.md, CLAUDE.local.md, docs/, memory files).

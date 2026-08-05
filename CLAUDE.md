@@ -53,6 +53,7 @@ Non-negotiable design rules:
 - **Safe degradation**: capability detection at startup; grades `Compatible` / `CompatibleWithWarnings` / `Unsupported` / `CriticalFailure`. Never let a failed patch silently run.
 - **Prefer HarmonyX**; Mono.Cecil only when assembly structure must change. Feature-scan game APIs instead of hardcoding offsets/private fields.
 - **Host is the only save authority**; guests keep local settings only. Mod save data requires mod id/version/schema version + migration policy.
+- **KrokMP compatibility (reserved, not near-term)**: many community mods target the legacy KrokMP API; plan an optional compat adapter mapping KrokMP API → CUO API (API-level only, separate module, never pollutes CUO Core). Not before Phase 4 + real migration demand; catalog KrokMP's API surface during reversing (see `docs/architecture.md` §5.4).
 
 ## Development Phases (current: Phase 0 — feasibility)
 

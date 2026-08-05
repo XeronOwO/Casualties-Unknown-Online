@@ -6,7 +6,7 @@ namespace CasualtiesUnknownOnline
 	[BepInPlugin(MyPluginInfo.PLUGIN_GUID, MyPluginInfo.PLUGIN_NAME, MyPluginInfo.PLUGIN_VERSION)]
 	public class Plugin : BaseUnityPlugin
 	{
-		internal static new ManualLogSource Logger;
+		internal static new ManualLogSource Logger = null!;
 
 		private void Awake()
 		{

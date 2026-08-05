@@ -70,7 +70,7 @@ public class Plugin : BaseUnityPlugin
 			// forwards lifecycle notifications into ICuoService (architecture.md §5.5).
 			_services = CuoBootstrap.BuildServiceProvider(
 				Logger,
-				Path.Combine(Paths.BepInExRootPath, "CUO", "logs"),
+				Path.Combine(Paths.BepInExRootPath, "logs"),
 				legacyLogPath: Path.Combine(Paths.BepInExRootPath, "CUO.log"));
 
 			_log = _services.GetRequiredService<ILogger<Plugin>>();

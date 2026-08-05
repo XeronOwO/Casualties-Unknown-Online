@@ -281,6 +281,17 @@ Later (requires a full snapshot system): periodic full world snapshots, mod-stat
 ### Logging
 Tags: `[Framework] [Network] [Steam] [GameAdapter] [Mod:<modId>] [Entity] [Save] [Compatibility]`. Every session connection generates a Session ID so host and guest logs can be correlated.
 
+### Game DLL references (lib/ convention)
+
+Game assemblies are copyrighted and never committed. Keep them out of the repository:
+
+- Copy required DLLs from the game's `CasualtiesUnknown_Data\Managed\` (plus `BepInEx\core\0Harmony.dll`) into `lib/` before building
+- `lib/README.txt` documents the origin of each DLL
+- csproj references them via `<Reference><HintPath>..\lib\...</HintPath></Reference>` with `<Private>False</Private>` (compile-time only, never copied to output)
+- `.gitignore` excludes `lib/*.dll` but keeps `lib/README.txt`
+
+Only the **Game Adapter** layer may reference game assemblies — CUO Core never does. (Pattern proven in the earlier JustUnknownCharacters mod.)
+
 ## 10. Pitfalls
 
 1. **Treating LAN as plain UDP.** Steam Lobby / P2P / Networking Sockets ≠ traditional LAN broadcast. Steam-friend play → Lobby + Steam Networking. Fully-offline same-LAN → separate design (LAN discovery, local IP, no-Steam mode, auth, firewall hints, NAT/IPv6). Don't mix the two.
@@ -292,6 +303,7 @@ Tags: `[Framework] [Network] [Steam] [GameAdapter] [Mod:<modId>] [Entity] [Save]
 7. **No mod consistency checks** → host items guests lack, mismatched entity type numbers, divergent serialization, version-skewed results, instant guest crashes. Handshake + rejection must exist in the MVP.
 8. **Undefined failure modes** → define: Steam disconnect, guest dropout, host dropout, mod load failure, scene-switch timeout, corrupt snapshot, game version mismatch, mid-game join. Prefer "safe exit, no save pollution" over "best-effort recovery".
 9. **Ignoring legal/distribution risk** → game EULA (injection allowed? modified assembly redistribution?), anti-cheat triggers, Steamworks DLL redistribution, BepInEx (LGPL-2.1) and dependency licenses, original game assets inside mods, Steam Workshop / third-party hosting policies.
+10. **Harmony patch state leakage** → if a Prefix modifies the target instance's fields to bypass original logic (e.g. clears a filter to let the original method skip), the Postfix MUST restore the original values — even when empty — before returning. Otherwise the field stays corrupted for every other read (UI updates, later refreshes). Pattern: save in `__state` in Prefix, restore in Postfix, then run custom logic.
 
 ## 11. Development Phases
 

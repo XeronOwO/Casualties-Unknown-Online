@@ -25,11 +25,16 @@
   </ItemGroup>
 
   <!--
-    Game assemblies (e.g. Assembly-CSharp.dll) — gitignored, copied on demand from the
-    game install per references/README.md. Not referenced yet: the template builds fine
-    with UnityEngine.Modules from NuGet. Switch to local references when the Game Adapter
-    needs game-private types.
+    Game assemblies — gitignored, copied on demand from the game install (see references/README.md).
+    UnityEngine still comes from the UnityEngine.Modules NuGet package; Assembly-CSharp.dll is
+    referenced locally because NuGet cannot provide game-private types.
   -->
+  <ItemGroup>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>..\..\references\Assembly-CSharp.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework.TrimEnd(`0123456789`))' == 'net'">
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.2" PrivateAssets="all" />

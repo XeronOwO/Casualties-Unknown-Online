@@ -27,8 +27,9 @@ CLAUDE.local.md                # Local personal notes — gitignored, never comm
 dotnet build src/CasualtiesUnknownOnline/CasualtiesUnknownOnline.csproj
 ```
 
-- Target: `net35` (BepInEx 5 plugin requirement), `LangVersion` = `latest`
+- Target: `net452` (BepInEx 5 plugin requirement), `LangVersion` = `preview`, nullable enabled, warnings-as-errors
 - NuGet sources: nuget.org + `nuget.bepinex.dev` + `nuget.samboy.dev` (configured in csproj)
+- Game assemblies (`lib/`) are copyrighted and not in the repo — copy from the game's `CasualtiesUnknown_Data\Managed\` per `lib/README.txt` (only the Game Adapter project may reference them; convention details in `docs/architecture.md`)
 - Packaged plugin DLL is deployed into the game's `BepInEx/plugins/` folder (path is machine-local — see `CLAUDE.local.md`)
 
 ## Architecture in Brief
@@ -65,7 +66,7 @@ Do not jump ahead: Phase 1 must not add inventory/combat/quests/saves. MVP expli
 ## Engineering Conventions (binding)
 
 1. **English by default** — all code, comments, and committed docs are written in English. Exceptions: I18N artifacts (multi-language docs, resource files).
-2. **Modern idiomatic C#** — use the latest C# language features and idiomatic C# style; respect `LangVersion = latest`.
+2. **Modern idiomatic C#** — use the latest C# language features and idiomatic C# style; `LangVersion = preview`, nullable reference types enabled. Note: `net452`/BepInEx APIs lack nullability annotations — use `!` assertions at boundary calls instead of disabling the feature.
 3. **Self-learning mechanism** — when valuable, *generalizable* knowledge emerges during work (reusable workflows, non-obvious game-internals findings, hard-won conventions), record it in `CLAUDE.md`, `docs/`, or a project-level skill, and commit it with git. Be selective: the knowledge must have real reusability value beyond the moment — do not record random observations. Don't create project skills before actual workflows exist to distill them from.
 4. **Clean git hygiene** — commits never contain build artifacts/binaries, personal preferences, machine/environment specifics, or secrets. Route those through `.gitignore` (`CLAUDE.local.md` holds local-only notes).
 5. **Requirement triage** — when the user states a requirement, judge whether it is reusable and long-lived: personal/specific → record in `CLAUDE.local.md`, keep out of commits; shared/project-benefiting → record and commit (`CLAUDE.md`, docs, skills); **ambiguous → ask the user** whether it's personal or shared.
@@ -77,6 +78,7 @@ Do not jump ahead: Phase 1 must not add inventory/combat/quests/saves. MVP expli
 - Syncing all Transforms — fails on physics, parenting, animation, nav, rigidbodies, scene loads.
 - Over-reliance on hardcoded offsets/private fields — breaks on every game update; use feature scanning + per-version adapters.
 - Premature Mono.Cecil — prefer HarmonyX patches; preloader changes are hard to maintain and conflict-prone.
+- Harmony patch state leakage — a Prefix that clears an instance field to bypass logic must have its Postfix restore it (even when empty), or the game field stays corrupted.
 - Ignoring the main thread — network/Steam callbacks must not touch Unity APIs.
 - No mod consistency checks — implement handshake + manifest validation in the MVP.
 - Undefined failure modes — define behavior for: Steam disconnect, guest/host dropout, mod load failure, scene-switch timeout, corrupt snapshot, version mismatch, mid-game join. Prefer "safe exit, no save corruption" over "try to recover".

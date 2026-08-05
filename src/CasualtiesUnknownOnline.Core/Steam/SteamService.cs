@@ -66,15 +66,16 @@ public sealed class SteamService : IDisposable
 			return false;
 		}
 
-		if (!SteamAPI.Init())
+		if (SteamAPI.InitEx(out var initError) != ESteamAPIInitResult.k_ESteamAPIInitResult_OK)
 		{
-			_log.Error("SteamAPI.Init failed — is Steam running and logged in?");
+			_log.Error($"SteamAPI.InitEx failed: {initError}");
 			return false;
 		}
 
 		IsInitialized = true;
 		LocalSteamId = SteamUser.GetSteamID().m_SteamID;
-		_log.Info($"Steam initialized. Local SteamID: {LocalSteamId} ({SteamFriends.GetPersonaName()})");
+		var appId = SteamUtils.GetAppID().m_AppId;
+		_log.Info($"Steam initialized. AppID: {appId}, SteamID: {LocalSteamId} ({SteamFriends.GetPersonaName()})");
 
 		_lobbyCreated = Callback<LobbyCreated_t>.Create(OnLobbyCreated);
 		_lobbyEntered = Callback<LobbyEnter_t>.Create(OnLobbyEntered);

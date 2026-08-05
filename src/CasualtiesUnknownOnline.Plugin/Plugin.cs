@@ -59,6 +59,9 @@ public class Plugin : BaseUnityPlugin
 
 		try
 		{
+			// Multiplayer games must keep running when the window loses focus.
+			Application.runInBackground = true;
+
 			_targetLobbyId = Config.Bind("Session", "TargetLobbyId", "",
 				"Lobby ID to join with F9 (printed by the host on F8). Leave empty to host only.");
 			_steam = new SteamService();
@@ -73,7 +76,18 @@ public class Plugin : BaseUnityPlugin
 			Application.logMessageReceived += OnUnityLogMessage;
 
 			LogBridge.Log.Info($"Plugin {MyPluginInfo.PLUGIN_GUID} is loaded!");
-			LogBridge.Log.Info("CUO Phase 0 test keys: F8 = init Steam + create lobby, F9 = join lobby from config, F10 = ping first peer.");
+
+			// Initialize Steam at load time (same as KrokMP's CheckSteam on
+			// startup): the lobby UI later keys off IsInitialized.
+			if (_steam.Initialize())
+			{
+				_transport.IsSteamInitialized = true;
+				LogBridge.Log.Info("CUO Phase 0 test keys: F8 = create lobby, F9 = join lobby from config, F10 = ping first peer.");
+			}
+			else
+			{
+				LogBridge.Log.Warning("CUO: Steam not initialized — lobby features unavailable. F8 can retry.");
+			}
 		}
 		catch (Exception ex)
 		{
@@ -86,26 +100,34 @@ public class Plugin : BaseUnityPlugin
 		_steam?.RunCallbacks();
 		_transport?.Poll();
 
-		if (Input.GetKeyDown(KeyCode.F8))
+		if (_steam is { } steam)
 		{
-			if (_steam is { } steam && steam.Initialize())
+			if (Input.GetKeyDown(KeyCode.F8))
 			{
-				_transport!.IsSteamInitialized = true;
-				steam.CreateLobby();
+				// Retry path: if load-time init failed (Steam not running yet),
+				// F8 re-attempts initialization, then creates the lobby.
+				if (EnsureSteamReady(steam))
+					steam.CreateLobby();
+			}
+			else if (Input.GetKeyDown(KeyCode.F9))
+			{
+				if (EnsureSteamReady(steam) && ulong.TryParse(_targetLobbyId.Value, out var lobbyId))
+					steam.JoinLobby(lobbyId);
+			}
+			else if (Input.GetKeyDown(KeyCode.F10))
+			{
+				SendPing();
 			}
 		}
-		else if (Input.GetKeyDown(KeyCode.F9))
-		{
-			if (_steam is { } steam && steam.Initialize() && ulong.TryParse(_targetLobbyId.Value, out var lobbyId))
-			{
-				_transport!.IsSteamInitialized = true;
-				steam.JoinLobby(lobbyId);
-			}
-		}
-		else if (Input.GetKeyDown(KeyCode.F10))
-		{
-			SendPing();
-		}
+	}
+
+	private bool EnsureSteamReady(SteamService steam)
+	{
+		if (!steam.Initialize())
+			return false;
+
+		_transport!.IsSteamInitialized = true;
+		return true;
 	}
 
 	private void SendPing()

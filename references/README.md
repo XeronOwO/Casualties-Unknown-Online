@@ -26,6 +26,7 @@ Copy-Item "$managed\UnityEngine.dll"            .   # game's bundled UnityEngine
 Copy-Item "$managed\UnityEngine.CoreModule.dll" .   # Unity core module (same version as game)
 Copy-Item "$managed\netstandard.dll"            .   # Unity Mono compatibility layer
 Copy-Item "$bepinex\0Harmony.dll"               .   # Harmony (runtime copy lives in BepInEx/core)
+Copy-Item "$bepinex\plugins\KrokMP\steam_api64.dll" .  # Steam native lib (deployed via deploy.ps1)
 ```
 
 ## Origin table
@@ -37,6 +38,7 @@ Copy-Item "$bepinex\0Harmony.dll"               .   # Harmony (runtime copy live
 | `UnityEngine.CoreModule.dll` | `<game>\CasualtiesUnknown_Data\Managed\` |
 | `netstandard.dll` | `<game>\CasualtiesUnknown_Data\Managed\` |
 | `0Harmony.dll` | `<game>\BepInEx\core\` |
+| `steam_api64.dll` | `<game>\BepInEx\plugins\KrokMP\`(native,not a compile reference — deploy.ps1 ships it) |
 
 Keep the versions in sync with the game build you are developing against
 (see `CLAUDE.local.md` for this machine's game path).

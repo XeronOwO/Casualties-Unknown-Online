@@ -6,7 +6,7 @@ The base game ships without multiplayer. CUO adds Steam-based **Host + Guests** 
 
 ## Status
 
-**Early development — Phase 0 (feasibility).** The repository currently contains the BepInEx plugin skeleton; no networking code yet. See [`docs/architecture.md`](docs/architecture.md) for the full design.
+**Early development — Phase 1 (single player entity) upcoming.** Phase 0 (feasibility: Steam init, lobby create/join, P2P ping/pong) is complete and verified with dual Steam accounts. The framework infrastructure runs on Microsoft.Extensions (DI + `ILogger<T>`) with Minecraft-style rolling file logs. See [`docs/architecture.md`](docs/architecture.md) for the full design and phases.
 
 ## Architecture in Brief
 
@@ -14,7 +14,7 @@ The base game ships without multiplayer. CUO adds Steam-based **Host + Guests** 
 Mods → Mod Framework API → Multiplayer Runtime → Game Adapter → BepInEx / Unity / Steam
 ```
 
-- **Stable CUO Core**: network protocol, host/guest state machine, mod loading, serialization, tick/snapshot, logging, version negotiation.
+- **Stable CUO Runtime**: network protocol, host/guest state machine, mod loading, serialization, tick/snapshot, logging, version negotiation.
 - **Replaceable Game Adapter**: the only layer that knows the game's private types; one adapter per game build, with startup capability detection and safe degradation when a game update breaks compatibility.
 
 ## Build
@@ -22,10 +22,10 @@ Mods → Mod Framework API → Multiplayer Runtime → Game Adapter → BepInEx 
 Requires .NET SDK (see [`CLAUDE.md`](CLAUDE.md)).
 
 ```bash
-dotnet build src/CasualtiesUnknownOnline/CasualtiesUnknownOnline.csproj
+dotnet build CasualtiesUnknownOnline.slnx
 ```
 
-The plugin targets `net35` (BepInEx 5). The built DLL is deployed into the game's `BepInEx/plugins/` folder.
+All projects target `net48` (BepInEx 5 + the game's Mono runtime). Deployment into the game's `BepInEx/plugins/CUO/` folder is handled by `deploy.ps1`.
 
 ## Documentation
 

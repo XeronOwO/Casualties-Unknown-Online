@@ -269,7 +269,12 @@ point, not near-term work:
   API surface (the game dir contains community mod bundles) and record findings
   in `docs/` — this decides whether API-level compat is realistic at all.
 
-### Microsoft.Extensions as CUO Infrastructure (planned)
+### Microsoft.Extensions as CUO Infrastructure (landed 2026-08-06)
+
+> Status: projects split (`CUO.Abstractions` + `CUO.Runtime`, Core renamed);
+> DI + `ILogger<T>` + BepInEx/rolling-file providers live; `ICuoService` in
+> `CUO.Abstractions`. Still future: Options' BepInEx ConfigFile adapter,
+> `CUO.GameAdapter`, structured scopes.
 
 Adopt the Microsoft.Extensions stack as CUO's internal infrastructure, with a
 clear separation: *Microsoft.Extensions provides the plumbing; BepInEx/Unity
@@ -304,7 +309,7 @@ Mods never reference BepInEx, Steamworks, or the game's private assemblies
 directly — change surface stays concentrated in CUO.GameAdapter.
 
 Compatibility constraints (binding): pin conservative Microsoft.Extensions
-versions that support net452 (the 3.1.x line does); never take the latest
+versions that support net48 (the 3.1.x line does); never take the latest
 .NET-era packages; CUO owns and centralizes the Extensions DLLs — mods never
 ship their own; verify no clash with the game's bundled assemblies.
 

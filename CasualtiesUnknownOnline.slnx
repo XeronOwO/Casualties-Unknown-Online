@@ -1,4 +1,5 @@
 <Solution>
-  <Project Path="src/CasualtiesUnknownOnline.Core/CasualtiesUnknownOnline.Core.csproj" />
+  <Project Path="src/CasualtiesUnknownOnline.Abstractions/CasualtiesUnknownOnline.Abstractions.csproj" />
+  <Project Path="src/CasualtiesUnknownOnline.Runtime/CasualtiesUnknownOnline.Runtime.csproj" />
   <Project Path="src/CasualtiesUnknownOnline.Plugin/CasualtiesUnknownOnline.Plugin.csproj" />
 </Solution>

@@ -242,6 +242,33 @@ Mods do not get all permissions by default: `ReadGameState, WriteGameState, Spaw
 - Mod messages are rate-limited.
 - Host validates all mod command parameters.
 
+### KrokMP Compatibility Layer (future, reserved space)
+
+Many community mods target **KrokMP**, the legacy multiplayer mod. To let those
+mods run on CUO without rewrites, plan an optional compatibility adapter that
+maps the KrokMP public API onto the CUO Mod API. This is a reserved extension
+point, not near-term work:
+
+- **Trigger**: after Phase 4 stabilizes the native Mod API AND real migration
+  demand exists. No mapping is possible against a moving target — CUO's API
+  must exist first, and KrokMP's API surface must be reverse-engineered and
+  documented before any mapping is designed.
+- **Placement**: a separate optional module (`KrokMP.Compat`), never woven into
+  CUO Core. Loaded only when a legacy-style API call is detected.
+- **Scope**: API-level compatibility only — namespaces, types, method
+  signatures, events. Mods that deep-couple to KrokMP internals (Harmony
+  patches on its private implementation) are NOT a compat target.
+- **Constraints**:
+  - The compat adapter never changes the shape of the native CUO Mod API.
+  - Mapping tables are documented (KrokMP API → CUO API), not reverse-guessed.
+  - KrokMP design flaws are not inherited — mapping forwards the capability,
+    not the bugs ("learn, don't copy").
+  - A mod uses either the native API or the compat API, or declares mixed use
+    explicitly in its manifest.
+- **Feasibility input**: during Phase 0/1 reversing, catalog KrokMP's public
+  API surface (the game dir contains community mod bundles) and record findings
+  in `docs/` — this decides whether API-level compat is realistic at all.
+
 ## 6. Compatibility & Version Negotiation
 
 Handshake before play: Steam identity → framework protocol version → game version → mod ID list → mod versions → content hashes → network capability negotiation → admit to game.

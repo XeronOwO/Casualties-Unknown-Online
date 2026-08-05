@@ -22,6 +22,7 @@ public class Plugin : BaseUnityPlugin
 	private ConfigEntry<string> _targetLobbyId = null!;
 	private SteamService? _steam;
 	private SteamTransport? _transport;
+	private float _lastRttMs = -1f;
 
 	private void Awake()
 	{
@@ -99,10 +100,27 @@ public class Plugin : BaseUnityPlugin
 
 			case MsgPong when data.Length >= 9:
 				var sentTicks = BitConverter.ToInt64(data, 1);
-				var rttMs = (DateTime.UtcNow.Ticks - sentTicks) / 10_000.0;
-				Logger.LogInfo($"CUO: pong from {sender} — RTT {rttMs:F1} ms");
+				_lastRttMs = (DateTime.UtcNow.Ticks - sentTicks) / 10_000.0f;
+				Logger.LogInfo($"CUO: pong from {sender} — RTT {_lastRttMs:F1} ms");
 				break;
 		}
+	}
+
+	// Phase-0 test HUD (IMGUI, temporary): replace with real UI in later phases.
+	private void OnGUI()
+	{
+		var y = 10f;
+		Line("CUO Phase 0 — Steam: " + (_steam?.IsInitialized == true ? "initialized" : "not initialized"));
+		if (_steam?.IsInitialized == true)
+		{
+			Line($"SteamID: {_steam.LocalSteamId}");
+			Line($"Lobby: {_steam.CurrentLobbyId}  Members: {_steam.GetLobbyMembers().Length}");
+		}
+
+		Line(_lastRttMs >= 0f ? $"Last RTT: {_lastRttMs:F1} ms" : "No ping yet");
+		Line("F8 create lobby / F9 join from config / F10 ping peer");
+
+		void Line(string text) => GUI.Label(new Rect(10f, y, 900f, 20f), text);
 	}
 
 	// SteamManager guidance: never do Steamworks work in OnDestroy (execution

@@ -45,13 +45,30 @@ public sealed class SteamTransport
 					ref identity, (IntPtr)pData, (uint)data.Length, flags, 0);
 				if (result != EResult.k_EResultOK)
 				{
-					_log.Warning($"SendMessageToUser to {steamId} failed: {result}");
+					LogSendDiagnostics(steamId, ref identity, result);
 					return false;
 				}
 			}
 		}
 
 		return true;
+	}
+
+	// Diagnose why a P2P send failed: session connection state, end reason and
+	// debug string, plus the Steam Datagram Relay (SDR) availability.
+	private void LogSendDiagnostics(ulong steamId, ref SteamNetworkingIdentity identity, EResult result)
+	{
+		var state = SteamNetworkingMessages.GetSessionConnectionInfo(
+			ref identity, out var info, out _);
+
+		_log.Warning(
+			$"SendMessageToUser to {steamId} failed: {result}; " +
+			$"session state: {state}, end reason: {info.m_eEndReason}, debug: \"{info.m_szEndDebug}\"");
+
+		if (SteamNetworkingUtils.GetRelayNetworkStatus(out var relay) == ESteamNetworkingAvailability.k_ESteamNetworkingAvailability_Current)
+		{
+			_log.Warning($"SDR: any-relay avail: {relay.m_eAvailAnyRelay}, network-config avail: {relay.m_eAvailNetworkConfig}, debug: \"{relay.m_debugMsg}\"");
+		}
 	}
 
 	/// <summary>Drains incoming messages. Must run on the Unity main thread each frame.</summary>

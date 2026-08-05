@@ -83,7 +83,15 @@ public sealed class SteamService : IDisposable
 	}
 
 	/// <summary>Pumps Steam callbacks. Must be called on the Unity main thread every frame.</summary>
-	public void RunCallbacks() => SteamAPI.RunCallbacks();
+	public void RunCallbacks()
+	{
+		// Steamworks.NET throws "Callback dispatcher is not initialized" when
+		// called before SteamAPI.Init — guard so the per-frame pump is safe.
+		if (!IsInitialized)
+			return;
+
+		SteamAPI.RunCallbacks();
+	}
 
 	public void CreateLobby(int maxMembers = 8)
 	{

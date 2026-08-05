@@ -68,6 +68,10 @@ public class Plugin : BaseUnityPlugin
 			_transport = new SteamTransport();
 			_transport.MessageReceived += OnMessageReceived;
 
+			// Forward Unity log messages into CUO's own log so runtime errors
+			// (which BepInEx's DiskLogListener may not capture) are visible.
+			Application.logMessageReceived += OnUnityLogMessage;
+
 			LogBridge.Log.Info($"Plugin {MyPluginInfo.PLUGIN_GUID} is loaded!");
 			LogBridge.Log.Info("CUO Phase 0 test keys: F8 = init Steam + create lobby, F9 = join lobby from config, F10 = ping first peer.");
 		}
@@ -154,13 +158,33 @@ public class Plugin : BaseUnityPlugin
 		Line(_lastRttMs >= 0f ? $"Last RTT: {_lastRttMs:F1} ms" : "No ping yet");
 		Line("F8 create lobby / F9 join from config / F10 ping peer");
 
-		void Line(string text) => GUI.Label(new Rect(10f, y, 900f, 20f), text);
+		void Line(string text)
+		{
+			GUI.Label(new Rect(10f, y, 900f, 20f), text);
+			y += 20f;
+		}
+	}
+
+	private void OnUnityLogMessage(string message, string stackTrace, LogType type)
+	{
+		switch (type)
+		{
+			case LogType.Error:
+			case LogType.Exception:
+			case LogType.Assert:
+				LogBridge.Log.Error($"[Unity:{type}] {message}\n{stackTrace}");
+				break;
+			case LogType.Warning:
+				LogBridge.Log.Warning($"[Unity] {message}");
+				break;
+		}
 	}
 
 	// SteamManager guidance: never do Steamworks work in OnDestroy (execution
 	// order is not guaranteed); OnDisable is the safe teardown point.
 	private void OnDisable()
 	{
+		Application.logMessageReceived -= OnUnityLogMessage;
 		_steam?.Dispose();
 	}
 

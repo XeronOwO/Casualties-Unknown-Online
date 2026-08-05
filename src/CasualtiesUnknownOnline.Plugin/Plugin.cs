@@ -1,6 +1,8 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Reflection;
+using System.Runtime.InteropServices;
 using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
@@ -25,10 +27,32 @@ public class Plugin : BaseUnityPlugin
 	private SteamTransport? _transport;
 	private float _lastRttMs = -1f;
 
+	[DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+	private static extern IntPtr LoadLibrary(string lpFileName);
+
+	// Loads steam_api64.dll from this plugin's folder so DllImport in
+	// Steamworks.NET resolves it (DllImport only searches the exe dir,
+	// system dirs and PATH by default). Must run before any Steam call.
+	private static void PreloadNativeLibrary()
+	{
+		try
+		{
+			var dir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+			var path = Path.Combine(dir ?? "", "steam_api64.dll");
+			if (LoadLibrary(path) == IntPtr.Zero)
+				Logger.LogWarning($"CUO: LoadLibrary failed for {path} (Win32 error {Marshal.GetLastWin32Error()})");
+		}
+		catch (Exception ex)
+		{
+			Logger.LogWarning($"CUO: native library preload failed: {ex.Message}");
+		}
+	}
+
 	private void Awake()
 	{
 		// Plugin startup logic
 		Logger = base.Logger;
+		PreloadNativeLibrary();
 		LogBridge.Initialize(new CompositeLogger(
 			new BepInExLogSink(Logger),
 			new FileLogger(Path.Combine(Paths.BepInExRootPath, "CUO.log"))));

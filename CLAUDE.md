@@ -92,6 +92,14 @@ Do not jump ahead: Phase 1 must not add inventory/combat/quests/saves. MVP expli
 5. **Requirement triage** — when the user states a requirement, judge whether it is reusable and long-lived: personal/specific → record in `CLAUDE.local.md`, keep out of commits; shared/project-benefiting → record and commit (`CLAUDE.md`, docs, skills); **ambiguous → ask the user** whether it's personal or shared.
 6. **Architecture & maintainability first** — fix root causes, not symptoms; when fixing a problem, consider whether a better design exists; for risky or architecture-affecting changes, propose and get user consent before acting.
 
+## Context Compression Protocol
+
+When the user says "compress" (or 压缩), do this before the context is compressed:
+
+1. Review the conversation for durable knowledge and persist it: update memory files (`~/.claude/projects/.../memory/`) and/or `CLAUDE.md`/`docs/` per the self-learning rule (convention 3).
+2. Produce a **compression prompt** for the user covering: project state (phase, what works, what doesn't), the current task and its status, decisions made, pending items, and pointers to where the details live (CLAUDE.md, CLAUDE.local.md, docs/, memory files).
+3. Hand the prompt to the user — they run the compression and development continues in the next round.
+
 ## Known Pitfalls (details in docs/architecture.md)
 
 - Treating Steam P2P as plain LAN UDP — the two modes are different; don't mix them.

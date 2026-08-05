@@ -89,12 +89,18 @@ public class Plugin : BaseUnityPlugin
 		if (Input.GetKeyDown(KeyCode.F8))
 		{
 			if (_steam is { } steam && steam.Initialize())
+			{
+				_transport!.IsSteamInitialized = true;
 				steam.CreateLobby();
+			}
 		}
 		else if (Input.GetKeyDown(KeyCode.F9))
 		{
 			if (_steam is { } steam && steam.Initialize() && ulong.TryParse(_targetLobbyId.Value, out var lobbyId))
+			{
+				_transport!.IsSteamInitialized = true;
 				steam.JoinLobby(lobbyId);
+			}
 		}
 		else if (Input.GetKeyDown(KeyCode.F10))
 		{

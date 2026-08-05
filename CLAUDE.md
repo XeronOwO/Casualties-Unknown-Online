@@ -70,7 +70,9 @@ Non-negotiable design rules:
 - **Host is the only save authority**; guests keep local settings only. Mod save data requires mod id/version/schema version + migration policy.
 - **KrokMP compatibility (reserved, not near-term)**: many community mods target the legacy KrokMP API; plan an optional compat adapter mapping KrokMP API → CUO API (API-level only, separate module, never pollutes CUO Core). Not before Phase 4 + real migration demand; catalog KrokMP's API surface during reversing (see `docs/architecture.md` §5.4).
 
-## Development Phases (current: Phase 0 — feasibility)
+## Development Phases (current: Phase 1 — single player entity)
+
+**Phase 0 is COMPLETE** (verified 2026-08-05 with dual Steam accounts, host + sandboxed guest): BepInEx loads the plugin, Steam initializes at plugin load, lobby create/join works, ISteamNetworkingMessages ping/pong works end-to-end (RTT ~15-25ms on local loopback). Key finding: `k_EResultConnectFailed` is transient — the Steam P2P session establishes lazily (~30s); persistent retry is the correct strategy, not a transport failure. Phase-0 test keys live in Plugin.cs (F8/F9/F7) — remove when the real lobby UI lands.
 
 1. **Phase 0 — Feasibility**: BepInEx loads → Steam Lobby create/join → network ping/pong → SteamID readout → safe disconnect.
 2. **Phase 1 — Single player entity**: join/leave, position, heading, basic input, scene load state.

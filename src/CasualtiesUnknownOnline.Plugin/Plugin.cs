@@ -23,12 +23,14 @@ public class Plugin : BaseUnityPlugin
 	internal static new ManualLogSource Logger = null!;
 
 	private const float AutoPingIntervalSeconds = 5f;
+	private const float MemberLogIntervalSeconds = 10f;
 
 	private ConfigEntry<string> _targetLobbyId = null!;
 	private SteamService? _steam;
 	private SteamTransport? _transport;
 	private float _lastRttMs = -1f;
 	private float _nextAutoPingTime;
+	private float _nextMemberLogTime;
 
 	[DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
 	private static extern IntPtr LoadLibrary(string lpFileName);
@@ -85,7 +87,7 @@ public class Plugin : BaseUnityPlugin
 			if (_steam.Initialize())
 			{
 				_transport.IsSteamInitialized = true;
-				LogBridge.Log.Info("CUO Phase 0 test keys: F8 = create lobby, F9 = join lobby from config, F10 = ping first peer.");
+				LogBridge.Log.Info("CUO Phase 0 test keys: F8 = create lobby, F9 = join lobby from config, F7 = ping first peer.");
 			}
 			else
 			{
@@ -106,12 +108,22 @@ public class Plugin : BaseUnityPlugin
 		// Phase-0 auto-ping: while in a lobby with a peer, ping every few
 		// seconds without requiring key input (window focus breaks Input
 		// during dual-instance testing). Keeps connection diagnostics flowing.
-		if (_steam?.IsInitialized == true && _steam.CurrentLobbyId != 0
-			&& Time.unscaledTime >= _nextAutoPingTime)
+		if (_steam?.IsInitialized == true && _steam.CurrentLobbyId != 0)
 		{
-			_nextAutoPingTime = Time.unscaledTime + AutoPingIntervalSeconds;
-			if (_steam.GetLobbyMembers().Length > 1)
-				SendPing();
+			if (Time.unscaledTime >= _nextMemberLogTime)
+			{
+				_nextMemberLogTime = Time.unscaledTime + MemberLogIntervalSeconds;
+				var members = _steam.GetLobbyMembers();
+				LogBridge.Log.Info($"Lobby {_steam.CurrentLobbyId}: {members.Length} member(s)" +
+					(members.Length > 1 ? $" — peer {members.FirstOrDefault(m => m != _steam.LocalSteamId)}" : ""));
+			}
+
+			if (Time.unscaledTime >= _nextAutoPingTime)
+			{
+				_nextAutoPingTime = Time.unscaledTime + AutoPingIntervalSeconds;
+				if (_steam.GetLobbyMembers().Length > 1)
+					SendPing();
+			}
 		}
 
 		if (_steam is { } steam)
@@ -128,7 +140,7 @@ public class Plugin : BaseUnityPlugin
 				if (EnsureSteamReady(steam) && ulong.TryParse(_targetLobbyId.Value, out var lobbyId))
 					steam.JoinLobby(lobbyId);
 			}
-			else if (Input.GetKeyDown(KeyCode.F10))
+			else if (Input.GetKeyDown(KeyCode.F7))
 			{
 				SendPing();
 			}
@@ -198,7 +210,7 @@ public class Plugin : BaseUnityPlugin
 		}
 
 		Line(_lastRttMs >= 0f ? $"Last RTT: {_lastRttMs:F1} ms" : "No ping yet");
-		Line("F8 create lobby / F9 join from config / F10 ping peer");
+		Line("F8 create lobby / F9 join from config / F7 ping peer");
 
 		void Line(string text)
 		{

@@ -18,11 +18,18 @@ public sealed class SteamTransport
 	private readonly ILogger _log = LogBridge.Log;
 	private readonly IntPtr[] _receiveBuffer = new IntPtr[MaxMessagesPerPoll];
 
+	/// <summary>Set once Steam is initialized; guards Poll/SendTo against
+	/// Steamworks.NET's "Steamworks is not initialized" exception.</summary>
+	public bool IsSteamInitialized { get; set; }
+
 	/// <summary>Raised on the Unity main thread via <see cref="Poll"/>.</summary>
 	public event Action<ulong, byte[]>? MessageReceived;
 
 	public bool SendTo(ulong steamId, byte[] data, bool reliable)
 	{
+		if (!IsSteamInitialized)
+			return false;
+
 		var identity = new SteamNetworkingIdentity();
 		identity.SetSteamID64(steamId);
 
@@ -50,6 +57,9 @@ public sealed class SteamTransport
 	/// <summary>Drains incoming messages. Must run on the Unity main thread each frame.</summary>
 	public void Poll()
 	{
+		if (!IsSteamInitialized)
+			return;
+
 		int count;
 		while ((count = SteamNetworkingMessages.ReceiveMessagesOnChannel(0, _receiveBuffer, _receiveBuffer.Length)) > 0)
 		{

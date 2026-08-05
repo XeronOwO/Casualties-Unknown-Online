@@ -4,7 +4,9 @@
     <TargetFramework>net452</TargetFramework>
     <AssemblyName>CasualtiesUnknownOnline</AssemblyName>
     <Product>Casualties Unknown: Online</Product>
-    <Version>1.0.0</Version>
+    <Version>0.1.0</Version>
+    <BepInExPluginGuid>dev.xeronowo.cuo</BepInExPluginGuid>
+    <BepInExPluginName>Casualties Unknown: Online</BepInExPluginName>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>preview</LangVersion>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
@@ -24,10 +26,14 @@
     <PackageReference Include="UnityEngine.Modules" Version="5.6.0" IncludeAssets="compile" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\CasualtiesUnknownOnline.Core\CasualtiesUnknownOnline.Core.csproj" />
+  </ItemGroup>
+
   <!--
     Game assemblies — gitignored, copied on demand from the game install (see references/README.md).
-    UnityEngine still comes from the UnityEngine.Modules NuGet package; Assembly-CSharp.dll is
-    referenced locally because NuGet cannot provide game-private types.
+    Assembly-CSharp.dll is referenced locally because NuGet cannot provide game-private types;
+    UnityEngine comes from the UnityEngine.Modules NuGet package (verified compatible).
   -->
   <ItemGroup>
     <Reference Include="Assembly-CSharp">

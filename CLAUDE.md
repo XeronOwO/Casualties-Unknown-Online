@@ -19,6 +19,7 @@ src/CasualtiesUnknownOnline/   # BepInEx plugin project (net452, BepInEx 5.x) â€
 references/                    # Game assemblies, gitignored, copied on demand (see references/README.md)
 reversing/                     # Reverse-engineering workspace, gitignored (see reversing/README.md)
 docs/architecture.md           # Architecture blueprint (full design, pitfalls, phases)
+docs/krokmp-notes.md           # KrokMP reverse-engineering findings (API surface, feasibility)
 CLAUDE.md                      # This file
 CLAUDE.local.md                # Local personal notes â€” gitignored, never commit
 ```

@@ -23,7 +23,6 @@
     <PackageReference Include="BepInEx.Analyzers" Version="1.*" PrivateAssets="all" />
     <PackageReference Include="BepInEx.Core" Version="5.*" />
     <PackageReference Include="BepInEx.PluginInfoProps" Version="2.*" />
-    <PackageReference Include="UnityEngine.Modules" Version="5.6.0" IncludeAssets="compile" />
   </ItemGroup>
 
   <ItemGroup>
@@ -32,12 +31,42 @@
 
   <!--
     Game assemblies — gitignored, copied on demand from the game install (see references/README.md).
-    Assembly-CSharp.dll is referenced locally because NuGet cannot provide game-private types;
-    UnityEngine comes from the UnityEngine.Modules NuGet package (verified compatible).
+    UnityEngine modules are the game's own Unity 2022.3 builds: the template's
+    UnityEngine.Modules 5.6.0 NuGet package mismatched the runtime and Unity could
+    not instantiate the plugin script ("could not be instantiated" in Player.log).
+    Add more modules on demand when the compiler reports missing types.
   -->
   <ItemGroup>
     <Reference Include="Assembly-CSharp">
       <HintPath>..\..\references\Assembly-CSharp.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine">
+      <HintPath>..\..\references\UnityEngine.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>..\..\references\UnityEngine.CoreModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.SharedInternalsModule">
+      <HintPath>..\..\references\UnityEngine.SharedInternalsModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.SubsystemsModule">
+      <HintPath>..\..\references\UnityEngine.SubsystemsModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.InputLegacyModule">
+      <HintPath>..\..\references\UnityEngine.InputLegacyModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.IMGUIModule">
+      <HintPath>..\..\references\UnityEngine.IMGUIModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="netstandard">
+      <HintPath>..\..\references\netstandard.dll</HintPath>
       <Private>False</Private>
     </Reference>
   </ItemGroup>

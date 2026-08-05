@@ -191,13 +191,13 @@ public class Plugin : BaseUnityPlugin
 				var pong = (byte[])data.Clone();
 				pong[0] = MsgPong;
 				_transport!.SendTo(sender, pong, reliable: true);
-				Logger.LogInfo($"CUO: ping from {sender} — pong sent.");
+				LogBridge.Log.Info($"CUO: ping from {sender} — pong sent.");
 				break;
 
 			case MsgPong when data.Length >= 9:
 				var sentTicks = BitConverter.ToInt64(data, 1);
 				_lastRttMs = (DateTime.UtcNow.Ticks - sentTicks) / 10_000.0f;
-				Logger.LogInfo($"CUO: pong from {sender} — RTT {_lastRttMs:F1} ms");
+				LogBridge.Log.Info($"CUO: pong from {sender} — RTT {_lastRttMs:F1} ms");
 				break;
 		}
 	}

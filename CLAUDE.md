@@ -30,7 +30,10 @@ CLAUDE.local.md                # Local personal notes — gitignored, never comm
 
 ```bash
 dotnet build CasualtiesUnknownOnline.slnx
+dotnet format CasualtiesUnknownOnline.slnx   # MUST run before every commit
 ```
+
+- **`dotnet format` is mandatory before every commit** — keeps code conforming to `.editorconfig` (user requirement; proven workflow in the JustUnknownCharacters mod). With `TreatWarningsAsErrors` enabled, style violations fail the build once fixed into the codebase.
 
 - Target: `net452` (BepInEx 5 plugin requirement), `LangVersion` = `preview`, nullable enabled, warnings-as-errors
 - NuGet sources: nuget.org + `nuget.bepinex.dev` + `nuget.samboy.dev` (configured in csproj)

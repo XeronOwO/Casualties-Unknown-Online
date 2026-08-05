@@ -25,6 +25,23 @@ public sealed class SteamService : IDisposable
 
 	public ulong LocalSteamId { get; private set; }
 
+	/// <summary>Lobby this client currently hosts or joined, or 0 when none.</summary>
+	public ulong CurrentLobbyId { get; private set; }
+
+	/// <summary>SteamIDs of all current lobby members (including self), empty when not in a lobby.</summary>
+	public ulong[] GetLobbyMembers()
+	{
+		if (CurrentLobbyId == 0)
+			return Array.Empty<ulong>();
+
+		var lobby = new CSteamID(CurrentLobbyId);
+		var count = SteamMatchmaking.GetNumLobbyMembers(lobby);
+		var members = new ulong[count];
+		for (var i = 0; i < count; i++)
+			members[i] = SteamMatchmaking.GetLobbyMemberByIndex(lobby, i).m_SteamID;
+		return members;
+	}
+
 	/// <summary>Raised on the Unity main thread via <see cref="RunCallbacks"/>.</summary>
 	public event Action<ulong>? LobbyCreated;
 
@@ -36,6 +53,18 @@ public sealed class SteamService : IDisposable
 	{
 		if (IsInitialized)
 			return true;
+
+		if (!Packsize.Test())
+		{
+			_log.Error("Steamworks Packsize test failed — wrong Steamworks.NET platform build.");
+			return false;
+		}
+
+		if (!DllCheck.Test())
+		{
+			_log.Error("Steamworks DllCheck failed — steam_api64.dll version mismatch.");
+			return false;
+		}
 
 		if (!SteamAPI.Init())
 		{
@@ -73,6 +102,7 @@ public sealed class SteamService : IDisposable
 		if (callback.m_eResult == EResult.k_EResultOK)
 		{
 			var lobbyId = callback.m_ulSteamIDLobby;
+			CurrentLobbyId = lobbyId;
 			_log.Info($"Lobby created: {lobbyId}");
 			LobbyCreated?.Invoke(lobbyId);
 		}
@@ -85,6 +115,7 @@ public sealed class SteamService : IDisposable
 	private void OnLobbyEntered(LobbyEnter_t callback)
 	{
 		var lobbyId = callback.m_ulSteamIDLobby;
+		CurrentLobbyId = lobbyId;
 		_log.Info($"Entered lobby: {lobbyId}");
 		LobbyEntered?.Invoke(lobbyId);
 	}

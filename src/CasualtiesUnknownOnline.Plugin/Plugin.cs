@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Linq;
 using BepInEx;
 using BepInEx.Configuration;
@@ -28,19 +29,28 @@ public class Plugin : BaseUnityPlugin
 	{
 		// Plugin startup logic
 		Logger = base.Logger;
-		LogBridge.Initialize(new BepInExLogSink(Logger));
+		LogBridge.Initialize(new CompositeLogger(
+			new BepInExLogSink(Logger),
+			new FileLogger(Path.Combine(Paths.BepInExRootPath, "CUO.log"))));
 
-		_targetLobbyId = Config.Bind("Session", "TargetLobbyId", "",
-			"Lobby ID to join with F9 (printed by the host on F8). Leave empty to host only.");
-		_steam = new SteamService();
-		_steam.LobbyCreated += lobbyId => Logger.LogInfo($"CUO: lobby created: {lobbyId}");
-		_steam.LobbyEntered += lobbyId => Logger.LogInfo($"CUO: lobby entered: {lobbyId}");
+		try
+		{
+			_targetLobbyId = Config.Bind("Session", "TargetLobbyId", "",
+				"Lobby ID to join with F9 (printed by the host on F8). Leave empty to host only.");
+			_steam = new SteamService();
+			_steam.LobbyCreated += lobbyId => LogBridge.Log.Info($"Lobby created: {lobbyId}");
+			_steam.LobbyEntered += lobbyId => LogBridge.Log.Info($"Lobby entered: {lobbyId}");
 
-		_transport = new SteamTransport();
-		_transport.MessageReceived += OnMessageReceived;
+			_transport = new SteamTransport();
+			_transport.MessageReceived += OnMessageReceived;
 
-		Logger.LogInfo($"Plugin {MyPluginInfo.PLUGIN_GUID} is loaded!");
-		Logger.LogInfo("CUO Phase 0 test keys: F8 = init Steam + create lobby, F9 = join lobby from config, F10 = ping first peer.");
+			LogBridge.Log.Info($"Plugin {MyPluginInfo.PLUGIN_GUID} is loaded!");
+			LogBridge.Log.Info("CUO Phase 0 test keys: F8 = init Steam + create lobby, F9 = join lobby from config, F10 = ping first peer.");
+		}
+		catch (Exception ex)
+		{
+			LogBridge.Log.Error($"CUO startup failed: {ex}");
+		}
 	}
 
 	private void Update()

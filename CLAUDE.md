@@ -97,7 +97,7 @@ Do not jump ahead: Phase 1 must not add inventory/combat/quests/saves. MVP expli
 When the user says "compress", do this before the context is compressed:
 
 1. Review the conversation for durable knowledge and persist it: update memory files (`~/.claude/projects/.../memory/`) and/or `CLAUDE.md`/`docs/` per the self-learning rule (convention 3).
-2. Produce a **compression prompt** for the user covering: project state (phase, what works, what doesn't), the current task and its status, decisions made, pending items, and pointers to where the details live (CLAUDE.md, CLAUDE.local.md, docs/, memory files).
+2. Produce a **compression prompt** whose core is a session-cut instruction: which conversation turns to **keep** (recent operational turns, decision turns whose rationale isn't fully captured in files) and which to **drop** (turns fully persisted to memory/docs — files are the truth; repetitive debugging round-trips; documentation drafting). Add only a short pointer block (project state, current task, pointers) so the next round can continue.
 3. Hand the prompt to the user — they run the compression and development continues in the next round.
 
 ## Known Pitfalls (details in docs/architecture.md)

@@ -23,7 +23,14 @@
     <PackageReference Include="BepInEx.PluginInfoProps" Version="2.*" />
     <PackageReference Include="UnityEngine.Modules" Version="5.6.0" IncludeAssets="compile" />
   </ItemGroup>
-  
+
+  <!--
+    Game assemblies (e.g. Assembly-CSharp.dll) — gitignored, copied on demand from the
+    game install per references/README.md. Not referenced yet: the template builds fine
+    with UnityEngine.Modules from NuGet. Switch to local references when the Game Adapter
+    needs game-private types.
+  -->
+
   <ItemGroup Condition="'$(TargetFramework.TrimEnd(`0123456789`))' == 'net'">
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.2" PrivateAssets="all" />
   </ItemGroup>

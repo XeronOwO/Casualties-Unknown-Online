@@ -69,3 +69,6 @@ nunit-*.xml
 
 # Claude Code — local personal notes (never committed)
 CLAUDE.local.md
+
+# Game assemblies (copyrighted, see references/README.md)
+references/*.dll

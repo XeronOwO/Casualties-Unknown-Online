@@ -3,17 +3,18 @@
 Builds the CUO solution and deploys the plugin into the game's BepInEx/plugins/CUO/ folder.
 
 .DESCRIPTION
-Deploys the 4 runtime files (plugin, Core, Steamworks.NET, steam_api64.dll) into
+Deploys all build-output DLLs (plugin, Runtime, Abstractions, Microsoft.Extensions.*,
+System.*) plus Steamworks.NET.dll and steam_api64.dll from references/ into
 <game>/BepInEx/plugins/CUO/. Refuses to run while the game is running.
 
 .PARAMETER GameDir
 Path to the game installation. If omitted, reads the CUO_GAME_DIR environment variable.
 
 .EXAMPLE
-./deploy.ps1 -GameDir "E:\SteamLibrary\steamapps\common\Casualties Unknown Demo"
+./deploy.ps1 -GameDir "C:\path\to\game"
 
 .EXAMPLE
-$env:CUO_GAME_DIR = "E:\SteamLibrary\steamapps\common\Casualties Unknown Demo"
+$env:CUO_GAME_DIR = "C:\path\to\game"
 ./deploy.ps1
 #>
 param(
@@ -45,18 +46,31 @@ if ($LASTEXITCODE -ne 0) {
 $targetDir = Join-Path $GameDir "BepInEx\plugins\CUO"
 New-Item -ItemType Directory -Force -Path $targetDir | Out-Null
 
-# (destination, source) pairs. Steamworks.NET and steam_api64 are not build
-# outputs — they come from references/ (gitignored, see references/README.md).
-$files = @(
-    @("CasualtiesUnknownOnline.dll",       (Join-Path $PluginOut "CasualtiesUnknownOnline.dll")),
-    @("CasualtiesUnknownOnline.Core.dll",  (Join-Path $PluginOut "CasualtiesUnknownOnline.Core.dll")),
-    @("Steamworks.NET.dll",                (Join-Path $RepoRoot "references\Steamworks.NET.dll")),
-    @("steam_api64.dll",                   (Join-Path $RepoRoot "references\steam_api64.dll"))
+# Assemblies owned by the game's own BepInEx install (BepInEx/core) — never
+# deploy our copies (version conflicts). BepInEx.Core.targets already keeps
+# these out of build output; the list is a safety net against package layout changes.
+$bepinexOwned = @(
+    "BepInEx.dll", "BepInEx.Harmony.dll",
+    "Mono.Cecil.dll", "0Harmony.dll",
+    "MonoMod.RuntimeDetour.dll", "MonoMod.Utils.dll"
 )
 
-foreach ($pair in $files) {
-    $name = $pair[0]
-    $source = $pair[1]
+# Build-output DLLs: plugin + Runtime + Abstractions + Microsoft.Extensions.*
+# + System.* (normal NuGet packages, required in the game's Mono runtime).
+$dlls = Get-ChildItem -LiteralPath $PluginOut -Filter *.dll |
+    Where-Object { $bepinexOwned -notcontains $_.Name }
+if (-not $dlls) {
+    Write-Error "No DLLs found in $PluginOut — build produced nothing?"
+    exit 1
+}
+foreach ($dll in $dlls) {
+    Copy-Item -LiteralPath $dll.FullName -Destination (Join-Path $targetDir $dll.Name) -Force
+    Write-Host "  deployed $($dll.Name)"
+}
+
+# Steamworks.NET + steam_api64 are not NuGet packages — from references/.
+foreach ($name in @("Steamworks.NET.dll", "steam_api64.dll")) {
+    $source = Join-Path $RepoRoot "references\$name"
     if (-not (Test-Path $source)) {
         Write-Error "Missing source: $source — copy it into references/ per references/README.md."
         exit 1

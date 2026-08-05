@@ -17,7 +17,7 @@ only, never copied to output).
 From the game's root folder (replace the path with yours):
 
 ```powershell
-$game = "E:\SteamLibrary\steamapps\common\Casualties Unknown Demo"
+$game = "C:\path\to\game"
 $managed = "$game\CasualtiesUnknown_Data\Managed"
 $bepinex = "$game\BepInEx\core"
 

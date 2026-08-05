@@ -1,9 +1,11 @@
 using System;
 using System.Runtime.InteropServices;
-using CasualtiesUnknownOnline.Core.Logging;
+using CasualtiesUnknownOnline.Abstractions;
+using CasualtiesUnknownOnline.Runtime.Steam;
+using Microsoft.Extensions.Logging;
 using Steamworks;
 
-namespace CasualtiesUnknownOnline.Core.Networking;
+namespace CasualtiesUnknownOnline.Runtime.Networking;
 
 /// <summary>
 /// MVP transport over ISteamNetworkingMessages (reliable + unreliable
@@ -11,23 +13,26 @@ namespace CasualtiesUnknownOnline.Core.Networking;
 /// architecture's INetworkTransport abstraction lands when a second
 /// transport exists.
 /// </summary>
-public sealed class SteamTransport
+public sealed class SteamTransport : ICuoService
 {
 	private const int MaxMessagesPerPoll = 32;
 
-	private readonly ILogger _log = LogBridge.Log;
+	private readonly SteamService _steam;
+	private readonly ILogger<SteamTransport> _log;
 	private readonly IntPtr[] _receiveBuffer = new IntPtr[MaxMessagesPerPoll];
 
-	/// <summary>Set once Steam is initialized; guards Poll/SendTo against
-	/// Steamworks.NET's "Steamworks is not initialized" exception.</summary>
-	public bool IsSteamInitialized { get; set; }
+	public SteamTransport(SteamService steam, ILogger<SteamTransport> log)
+	{
+		_steam = steam;
+		_log = log;
+	}
 
 	/// <summary>Raised on the Unity main thread via <see cref="Poll"/>.</summary>
 	public event Action<ulong, byte[]>? MessageReceived;
 
 	public bool SendTo(ulong steamId, byte[] data, bool reliable)
 	{
-		if (!IsSteamInitialized)
+		if (!_steam.IsInitialized)
 			return false;
 
 		var identity = new SteamNetworkingIdentity();
@@ -61,20 +66,20 @@ public sealed class SteamTransport
 		var state = SteamNetworkingMessages.GetSessionConnectionInfo(
 			ref identity, out var info, out _);
 
-		_log.Warning(
+		_log.LogWarning(
 			$"SendMessageToUser to {steamId} failed: {result}; " +
 			$"session state: {state}, end reason: {info.m_eEndReason}, debug: \"{info.m_szEndDebug}\"");
 
 		if (SteamNetworkingUtils.GetRelayNetworkStatus(out var relay) == ESteamNetworkingAvailability.k_ESteamNetworkingAvailability_Current)
 		{
-			_log.Warning($"SDR: any-relay avail: {relay.m_eAvailAnyRelay}, network-config avail: {relay.m_eAvailNetworkConfig}, debug: \"{relay.m_debugMsg}\"");
+			_log.LogWarning($"SDR: any-relay avail: {relay.m_eAvailAnyRelay}, network-config avail: {relay.m_eAvailNetworkConfig}, debug: \"{relay.m_debugMsg}\"");
 		}
 	}
 
 	/// <summary>Drains incoming messages. Must run on the Unity main thread each frame.</summary>
 	public void Poll()
 	{
-		if (!IsSteamInitialized)
+		if (!_steam.IsInitialized)
 			return;
 
 		int count;
@@ -97,5 +102,23 @@ public sealed class SteamTransport
 
 		var sender = message.m_identityPeer.GetSteamID64();
 		MessageReceived?.Invoke(sender, data);
+	}
+
+	void ICuoService.Initialize()
+	{
+	}
+
+	void ICuoService.Start()
+	{
+	}
+
+	void ICuoService.Update() => Poll();
+
+	void ICuoService.Stop()
+	{
+	}
+
+	void ICuoService.Dispose()
+	{
 	}
 }

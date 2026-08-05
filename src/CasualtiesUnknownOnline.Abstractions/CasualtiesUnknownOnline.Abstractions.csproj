@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <AssemblyName>CasualtiesUnknownOnline.Abstractions</AssemblyName>
+    <Product>Casualties Unknown: Online Abstractions</Product>
+    <Version>0.1.0</Version>
+    <LangVersion>preview</LangVersion>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <Nullable>enable</Nullable>
+    <RootNamespace>CasualtiesUnknownOnline.Abstractions</RootNamespace>
+  </PropertyGroup>
+
+  <!--
+    CUO Abstractions: the ONLY assembly mods may reference (architecture.md §5.5).
+    Holds the framework's public API surface (ICuoService today; Mod API later).
+    Microsoft.Extensions.{DependencyInjection,Logging}.Abstractions + Options only —
+    must NEVER reference BepInEx, Steamworks, or game assemblies.
+  -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="3.1.32" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="3.1.32" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="3.1.32" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework.TrimEnd(`0123456789`))' == 'net'">
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.2" PrivateAssets="all" />
+  </ItemGroup>
+</Project>

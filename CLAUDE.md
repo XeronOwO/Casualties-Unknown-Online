@@ -6,7 +6,7 @@ Instructions for Claude Code and contributors working in this repository.
 
 **Casualties Unknown: Online (CUO)** — a multiplayer mod framework for the game *Casualties Unknown* (Demo), built on BepInEx. The base game ships with **no multiplayer support**; CUO adds Steam-based Host + Guests co-op (LAN / friends) by injecting a new multiplayer runtime and reorganizing the local-only game state into "host-authoritative simulation + guest input/state sync". Long-term ambition is a Forge-like mod ecosystem, but the immediate goal is a solid multiplayer core framework, not the full ecosystem.
 
-- Stable **CUO Core** (network protocol, host/guest state machine, mod loading, serialization, tick/snapshot, logging, version negotiation)
+- Stable **CUO Runtime** (network protocol, host/guest state machine, mod loading, serialization, tick/snapshot, logging, version negotiation)
 - Replaceable **Game Adapter** per game build (the only layer that knows the game's private types)
 - The game updates will NOT adapt to us — the adapter layer must absorb that churn.
 
@@ -15,8 +15,9 @@ Full architecture blueprint: [`docs/architecture.md`](docs/architecture.md)
 ## Repository Layout
 
 ```
-src/CasualtiesUnknownOnline.Core/    # CUO Core class library (net452) — network, session, logging; never references game or BepInEx
-src/CasualtiesUnknownOnline.Plugin/  # BepInEx 5 plugin entry (net452) — references Core, hosts the BepInEx log sink
+src/CasualtiesUnknownOnline.Abstractions/  # CUO Abstractions (net48) — public API surface (ICuoService today, Mod API later); M.E. Abstractions/Options only; the ONLY package mods may reference
+src/CasualtiesUnknownOnline.Runtime/  # CUO Runtime (net48) — DI + Logging + BepInEx integration + Steam networking (renamed from Core); never references game assemblies
+src/CasualtiesUnknownOnline.Plugin/  # BepInEx 5 plugin entry (net48) — thin lifecycle driver: DI container assembly + ICuoService forwarding
 CasualtiesUnknownOnline.slnx         # Solution (VS 2022)
 references/                    # Game assemblies, gitignored, copied on demand (see references/README.md)
 reversing/                     # Reverse-engineering workspace, gitignored (see reversing/README.md)
@@ -35,7 +36,7 @@ dotnet format CasualtiesUnknownOnline.slnx   # MUST run before every commit
 
 - **`dotnet format` is mandatory before every commit** — keeps code conforming to `.editorconfig` (user requirement; proven workflow in the JustUnknownCharacters mod). With `TreatWarningsAsErrors` enabled, style violations fail the build once fixed into the codebase.
 
-- Target: `net452` (BepInEx 5 plugin requirement), `LangVersion` = `preview`, nullable enabled, warnings-as-errors
+- Target: `net48` (BepInEx 5 plugin requirement), `LangVersion` = `preview`, nullable enabled, warnings-as-errors
 - NuGet sources: nuget.org + `nuget.bepinex.dev` + `nuget.samboy.dev` (configured in csproj)
 - Game assemblies (`references/`) are copyrighted and not in the repo — copy **on demand** from the game's `CasualtiesUnknown_Data\Managed\` per `references/README.md` (only the Game Adapter project may reference them; convention details in `docs/architecture.md`)
 - Packaged plugin DLL is deployed into the game's `BepInEx/plugins/` folder (path is machine-local — see `CLAUDE.local.md`)
@@ -46,8 +47,8 @@ dotnet format CasualtiesUnknownOnline.slnx   # MUST run before every commit
 - **net48 TFM** — the game's Mono runtime is .NET 4.x (mscorlib 4.0.0.0, `netstandard.dll` present); net48-targeted assemblies are verified to load in it (KrokMP's Steamworks.NET.dll is net48-targeted and runs fine). net48 was chosen over net452 because MSBuild drops references whose TFM exceeds the project's (MSB3274) — Steamworks.NET 2025.163 requires it. BepInEx 5 supports net48 plugins. Caveat: net48 target means we may only use BCL APIs the game's Mono actually implements — prefer conservative APIs.
 - **UnityEngine via NuGet `UnityEngine.Modules 5.6.0`** (template default, matches the game's Unity 5.6 era); **game assemblies via `references/` on demand** (see `references/README.md`). Official docs warn against referencing assemblies directly from the game folder — copy them into the project first, which is exactly what the references/ convention does.
 - **Plugin metadata**: `[BepInProcess("CasualtiesUnknown.exe")]` should be added once the plugin does anything game-specific; GUID is permanent — never change it after release. Logging tags (`[Network]` etc.) map to `Logger.CreateLogSource(tag)` sources, not string prefixes.
-- **Microsoft.Extensions as CUO infrastructure (planned)**: DI (`Microsoft.Extensions.DependencyInjection`) + `ILogger<T>` bridged to BepInEx logging + `Options` as config abstraction. Never the Generic Host / `BackgroundService` — BepInEx/Unity own the lifecycle; CUO receives lifecycle notifications via a small `ICuoService` interface (Initialize/Start/Update/Stop/Dispose). Package layering: `CUO.Abstractions` (Abstractions/Options only — this is all Mods may reference) → `CUO.Runtime` (DI+Logging+BepInEx integration) → `CUO.GameAdapter` (game refs + Harmony). Mods never reference BepInEx/Steamworks/game assemblies directly. Pin conservative Microsoft.Extensions versions compatible with net452 (3.1.x line supports net452); CUO owns the DLLs, mods never ship their own. See `docs/architecture.md` §5.5.
-- **Steamworks.NET**: referenced locally from `references/` (2025.163.0, taken from the KrokMP install — same DLL verified running in this game). Latest NuGet releases are netstandard2.1-only (incompatible with net452); direct DLL reference sidesteps the TFM check. The game has NO Steam integration of its own (verified by reversing) — CUO is the sole SteamAPI initializer, so no duplicate-init conflict.
+- **Microsoft.Extensions as CUO infrastructure (landed 2026-08-06, architecture.md §5.5)**: DI (`Microsoft.Extensions.DependencyInjection`) + `ILogger<T>` bridged to BepInEx logging + `Options` as config abstraction. Never the Generic Host / `BackgroundService` — BepInEx/Unity own the lifecycle; CUO receives lifecycle notifications via a small `ICuoService` interface (Initialize/Start/Update/Stop/Dispose) in `CUO.Abstractions`. Package layering: `CUO.Abstractions` (Abstractions/Options only — this is all Mods may reference) → `CUO.Runtime` (DI+Logging+BepInEx integration) → `CUO.GameAdapter` (game refs + Harmony, future). Mods never reference BepInEx/Steamworks/game assemblies directly. Pinned to **3.1.32** (net452-compatible line); verified transitive closure ships 6 `System.*` DLLs (Memory/Buffers/Numerics.Vectors/Unsafe/Tasks.Extensions/ComponentModel.Annotations) — CUO owns these DLLs centrally, mods never ship their own. Rolling file log at `<game>/BepInEx/CUO/logs/` (`latest.log` rotated to `yyyy-MM-dd-N.log.gz` on startup); `deploy.ps1` copies all build-output DLLs, never BepInEx-owned ones. Options' BepInEx ConfigFile adapter and `CUO.GameAdapter` still future.
+- **Steamworks.NET**: referenced locally from `references/` (2025.163.0, taken from the KrokMP install — same DLL verified running in this game). Latest NuGet releases are netstandard2.1-only (incompatible with net48); direct DLL reference sidesteps the TFM check. The game has NO Steam integration of its own (verified by reversing) — CUO is the sole SteamAPI initializer, so no duplicate-init conflict.
 
 ## Architecture in Brief
 
@@ -86,9 +87,9 @@ Do not jump ahead: Phase 1 must not add inventory/combat/quests/saves. MVP expli
 ## Engineering Conventions (binding)
 
 1. **English by default** — all code, comments, and committed docs are written in English. Exceptions: I18N artifacts (multi-language docs, resource files).
-2. **Modern idiomatic C#** — use the latest C# language features and idiomatic C# style; `LangVersion = preview`, nullable reference types enabled. Note: `net452`/BepInEx APIs lack nullability annotations — use `!` assertions at boundary calls instead of disabling the feature.
+2. **Modern idiomatic C#** — use the latest C# language features and idiomatic C# style; `LangVersion = preview`, nullable reference types enabled. Note: BepInEx APIs lack nullability annotations — use `!` assertions at boundary calls instead of disabling the feature. Prefer `var` unless the type must be written out (declaration-then-assignment, collection initializers); avoid fully-qualified names unless necessary (use `using` aliases instead).
 3. **Self-learning mechanism** — when valuable, *generalizable* knowledge emerges during work (reusable workflows, non-obvious game-internals findings, hard-won conventions), record it in `CLAUDE.md`, `docs/`, or a project-level skill, and commit it with git. Be selective: the knowledge must have real reusability value beyond the moment — do not record random observations. Don't create project skills before actual workflows exist to distill them from.
-4. **Clean git hygiene** — commits never contain build artifacts/binaries, personal preferences, machine/environment specifics, or secrets. Route those through `.gitignore` (`CLAUDE.local.md` holds local-only notes).
+4. **Clean git hygiene** — commits never contain build artifacts/binaries, personal preferences, machine/environment specifics, or secrets. Committed files (code, comments, docs, examples) must never contain real machine paths — no drive letters, usernames, or install roots like `E:\SteamLibrary\...`; use placeholders (`C:\path\to\game`, `<game-dir>`). Real paths live only in the gitignored `CLAUDE.local.md`. Route everything else through `.gitignore`.
 5. **Requirement triage** — when the user states a requirement, judge whether it is reusable and long-lived: personal/specific → record in `CLAUDE.local.md`, keep out of commits; shared/project-benefiting → record and commit (`CLAUDE.md`, docs, skills); **ambiguous → ask the user** whether it's personal or shared.
 6. **Architecture & maintainability first** — fix root causes, not symptoms; when fixing a problem, consider whether a better design exists; for risky or architecture-affecting changes, propose and get user consent before acting.
 
@@ -108,6 +109,7 @@ When the user says "compress", do this before the context is compressed:
 - Premature Mono.Cecil — prefer HarmonyX patches; preloader changes are hard to maintain and conflict-prone.
 - Harmony patch state leakage — a Prefix that clears an instance field to bypass logic must have its Postfix restore it (even when empty), or the game field stays corrupted.
 - Ignoring the main thread — network/Steam callbacks must not touch Unity APIs.
+- `System.Memory` hijacks `.Reverse()` — with `using System;`, `array.Reverse()` binds to `MemoryExtensions.Reverse(Span<T>, void)` instead of LINQ's `Enumerable.Reverse` (arrays convert implicitly to `Span<T>` and Span wins overload resolution). Symptom: CS1579 "foreach cannot operate on void". Use reverse-index loops or explicit `Enumerable.Reverse(...)`.
 - No mod consistency checks — implement handshake + manifest validation in the MVP.
 - Undefined failure modes — define behavior for: Steam disconnect, guest/host dropout, mod load failure, scene-switch timeout, corrupt snapshot, version mismatch, mid-game join. Prefer "safe exit, no save corruption" over "try to recover".
 - Licensing/legal — verify game EULA (injection allowed?), anti-cheat, Steamworks DLL redistribution, BepInEx (LGPL-2.1) and dependency licenses before any distribution.

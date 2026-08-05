@@ -1,8 +1,9 @@
 using System;
-using CasualtiesUnknownOnline.Core.Logging;
+using CasualtiesUnknownOnline.Abstractions;
+using Microsoft.Extensions.Logging;
 using Steamworks;
 
-namespace CasualtiesUnknownOnline.Core.Steam;
+namespace CasualtiesUnknownOnline.Runtime.Steam;
 
 /// <summary>
 /// Owns the Steam client API lifecycle for CUO. The game itself has no Steam
@@ -13,9 +14,11 @@ namespace CasualtiesUnknownOnline.Core.Steam;
 /// Steam APIs are encapsulated here; consumers only see <see cref="ulong"/>
 /// lobby/SteamIDs, never Steamworks types (abstraction rule in architecture.md).
 /// </remarks>
-public sealed class SteamService : IDisposable
+public sealed class SteamService : ICuoService
 {
-	private readonly ILogger _log = LogBridge.Log;
+	private readonly ILogger<SteamService> _log;
+
+	public SteamService(ILogger<SteamService> log) => _log = log;
 
 	private Callback<LobbyCreated_t>? _lobbyCreated;
 	private Callback<LobbyEnter_t>? _lobbyEntered;
@@ -56,26 +59,26 @@ public sealed class SteamService : IDisposable
 
 		if (!Packsize.Test())
 		{
-			_log.Error("Steamworks Packsize test failed — wrong Steamworks.NET platform build.");
+			_log.LogError("Steamworks Packsize test failed — wrong Steamworks.NET platform build.");
 			return false;
 		}
 
 		if (!DllCheck.Test())
 		{
-			_log.Error("Steamworks DllCheck failed — steam_api64.dll version mismatch.");
+			_log.LogError("Steamworks DllCheck failed — steam_api64.dll version mismatch.");
 			return false;
 		}
 
 		if (SteamAPI.InitEx(out var initError) != ESteamAPIInitResult.k_ESteamAPIInitResult_OK)
 		{
-			_log.Error($"SteamAPI.InitEx failed: {initError}");
+			_log.LogError($"SteamAPI.InitEx failed: {initError}");
 			return false;
 		}
 
 		IsInitialized = true;
 		LocalSteamId = SteamUser.GetSteamID().m_SteamID;
 		var appId = SteamUtils.GetAppID().m_AppId;
-		_log.Info($"Steam initialized. AppID: {appId}, SteamID: {LocalSteamId} ({SteamFriends.GetPersonaName()})");
+		_log.LogInformation($"Steam initialized. AppID: {appId}, SteamID: {LocalSteamId} ({SteamFriends.GetPersonaName()})");
 
 		_lobbyCreated = Callback<LobbyCreated_t>.Create(OnLobbyCreated);
 		_lobbyEntered = Callback<LobbyEnter_t>.Create(OnLobbyEntered);
@@ -96,13 +99,13 @@ public sealed class SteamService : IDisposable
 
 	public void CreateLobby(int maxMembers = 8)
 	{
-		_log.Info("Requesting lobby creation...");
+		_log.LogInformation("Requesting lobby creation...");
 		SteamMatchmaking.CreateLobby(ELobbyType.k_ELobbyTypePublic, maxMembers);
 	}
 
 	public void JoinLobby(ulong lobbyId)
 	{
-		_log.Info($"Requesting join of lobby {lobbyId}...");
+		_log.LogInformation($"Requesting join of lobby {lobbyId}...");
 		SteamMatchmaking.JoinLobby(new CSteamID(lobbyId));
 	}
 
@@ -112,12 +115,12 @@ public sealed class SteamService : IDisposable
 		{
 			var lobbyId = callback.m_ulSteamIDLobby;
 			CurrentLobbyId = lobbyId;
-			_log.Info($"Lobby created: {lobbyId}");
+			_log.LogInformation($"Lobby created: {lobbyId}");
 			LobbyCreated?.Invoke(lobbyId);
 		}
 		else
 		{
-			_log.Error($"Lobby creation failed: {callback.m_eResult}");
+			_log.LogError($"Lobby creation failed: {callback.m_eResult}");
 		}
 	}
 
@@ -125,14 +128,14 @@ public sealed class SteamService : IDisposable
 	{
 		var lobbyId = callback.m_ulSteamIDLobby;
 		CurrentLobbyId = lobbyId;
-		_log.Info($"Entered lobby: {lobbyId}");
+		_log.LogInformation($"Entered lobby: {lobbyId}");
 		LobbyEntered?.Invoke(lobbyId);
 	}
 
 	private void OnJoinRequested(GameLobbyJoinRequested_t callback)
 	{
 		var lobbyId = callback.m_steamIDLobby.m_SteamID;
-		_log.Info($"Join requested for lobby {lobbyId}");
+		_log.LogInformation($"Join requested for lobby {lobbyId}");
 		JoinRequested?.Invoke(lobbyId);
 	}
 
@@ -146,7 +149,21 @@ public sealed class SteamService : IDisposable
 		{
 			SteamAPI.Shutdown();
 			IsInitialized = false;
-			_log.Info("Steam API shut down.");
+			_log.LogInformation("Steam API shut down.");
 		}
 	}
+
+	void ICuoService.Initialize() => Initialize();
+
+	void ICuoService.Start()
+	{
+	}
+
+	void ICuoService.Update() => RunCallbacks();
+
+	void ICuoService.Stop()
+	{
+	}
+
+	void ICuoService.Dispose() => Dispose();
 }

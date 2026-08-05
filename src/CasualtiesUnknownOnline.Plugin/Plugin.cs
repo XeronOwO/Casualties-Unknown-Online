@@ -6,9 +6,12 @@ using System.Runtime.InteropServices;
 using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
-using CasualtiesUnknownOnline.Core.Logging;
-using CasualtiesUnknownOnline.Core.Networking;
-using CasualtiesUnknownOnline.Core.Steam;
+using CasualtiesUnknownOnline.Abstractions;
+using CasualtiesUnknownOnline.Runtime;
+using CasualtiesUnknownOnline.Runtime.Networking;
+using CasualtiesUnknownOnline.Runtime.Steam;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using UnityEngine;
 
 namespace CasualtiesUnknownOnline;
@@ -25,9 +28,12 @@ public class Plugin : BaseUnityPlugin
 	private const float AutoPingIntervalSeconds = 5f;
 	private const float MemberLogIntervalSeconds = 10f;
 
+	private ServiceProvider _services = null!;
+	private ICuoService[] _cuoServices = Array.Empty<ICuoService>();
+	private ILogger<Plugin> _log = null!;
+	private SteamService _steam = null!;
+	private SteamTransport _transport = null!;
 	private ConfigEntry<string> _targetLobbyId = null!;
-	private SteamService? _steam;
-	private SteamTransport? _transport;
 	private float _lastRttMs = -1f;
 	private float _nextAutoPingTime;
 	private float _nextMemberLogTime;
@@ -55,67 +61,79 @@ public class Plugin : BaseUnityPlugin
 
 	private void Awake()
 	{
-		// Plugin startup logic
 		Logger = base.Logger;
 		PreloadNativeLibrary();
-		LogBridge.Initialize(new CompositeLogger(
-			new BepInExLogSink(Logger),
-			new FileLogger(Path.Combine(Paths.BepInExRootPath, "CUO.log"))));
 
 		try
 		{
+			// DI owns construction; BepInEx/Unity own the lifecycle. The plugin
+			// forwards lifecycle notifications into ICuoService (architecture.md §5.5).
+			_services = CuoBootstrap.BuildServiceProvider(
+				Logger,
+				Path.Combine(Paths.BepInExRootPath, "CUO", "logs"),
+				legacyLogPath: Path.Combine(Paths.BepInExRootPath, "CUO.log"));
+
+			_log = _services.GetRequiredService<ILogger<Plugin>>();
+			_steam = _services.GetRequiredService<SteamService>();
+			_transport = _services.GetRequiredService<SteamTransport>();
+			_cuoServices = _services.GetServices<ICuoService>().ToArray();
+
 			// Multiplayer games must keep running when the window loses focus.
 			Application.runInBackground = true;
 
 			_targetLobbyId = Config.Bind("Session", "TargetLobbyId", "",
 				"Lobby ID to join with F9 (printed by the host on F8). Leave empty to host only.");
-			_steam = new SteamService();
-			_steam.LobbyCreated += lobbyId => LogBridge.Log.Info($"Lobby created: {lobbyId}");
-			_steam.LobbyEntered += lobbyId => LogBridge.Log.Info($"Lobby entered: {lobbyId}");
 
-			_transport = new SteamTransport();
+			// Wire events BEFORE Initialize — callbacks may fire immediately.
+			_steam.LobbyCreated += lobbyId => _log.LogInformation("Lobby created: {LobbyId}", lobbyId);
+			_steam.LobbyEntered += lobbyId => _log.LogInformation("Lobby entered: {LobbyId}", lobbyId);
 			_transport.MessageReceived += OnMessageReceived;
 
 			// Forward Unity log messages into CUO's own log so runtime errors
 			// (which BepInEx's DiskLogListener may not capture) are visible.
 			Application.logMessageReceived += OnUnityLogMessage;
 
-			LogBridge.Log.Info($"Plugin {MyPluginInfo.PLUGIN_GUID} is loaded!");
+			foreach (var service in _cuoServices)
+				RunLifecycle(service, "Initialize", s => s.Initialize());
+			foreach (var service in _cuoServices)
+				RunLifecycle(service, "Start", s => s.Start());
+
+			_log.LogInformation("Plugin {PluginGuid} is loaded!", MyPluginInfo.PLUGIN_GUID);
 
 			// Initialize Steam at load time (same as KrokMP's CheckSteam on
 			// startup): the lobby UI later keys off IsInitialized.
-			if (_steam.Initialize())
+			if (_steam.IsInitialized)
 			{
-				_transport.IsSteamInitialized = true;
-				LogBridge.Log.Info("CUO Phase 0 test keys: F8 = create lobby, F9 = join lobby from config, F7 = ping first peer.");
+				_log.LogInformation("CUO Phase 0 test keys: F8 = create lobby, F9 = join lobby from config, F7 = ping first peer.");
 			}
 			else
 			{
-				LogBridge.Log.Warning("CUO: Steam not initialized — lobby features unavailable. F8 can retry.");
+				_log.LogWarning("CUO: Steam not initialized — lobby features unavailable. F8 can retry.");
 			}
 		}
 		catch (Exception ex)
 		{
-			LogBridge.Log.Error($"CUO startup failed: {ex}");
+			Logger.LogError($"CUO startup failed: {ex}");
 		}
 	}
 
 	private void Update()
 	{
-		_steam?.RunCallbacks();
-		_transport?.Poll();
+		foreach (var service in _cuoServices)
+			RunLifecycle(service, "Update", s => s.Update());
 
 		// Phase-0 auto-ping: while in a lobby with a peer, ping every few
 		// seconds without requiring key input (window focus breaks Input
 		// during dual-instance testing). Keeps connection diagnostics flowing.
-		if (_steam?.IsInitialized == true && _steam.CurrentLobbyId != 0)
+		if (_steam.IsInitialized && _steam.CurrentLobbyId != 0)
 		{
 			if (Time.unscaledTime >= _nextMemberLogTime)
 			{
 				_nextMemberLogTime = Time.unscaledTime + MemberLogIntervalSeconds;
 				var members = _steam.GetLobbyMembers();
-				LogBridge.Log.Info($"Lobby {_steam.CurrentLobbyId}: {members.Length} member(s)" +
-					(members.Length > 1 ? $" — peer {members.FirstOrDefault(m => m != _steam.LocalSteamId)}" : ""));
+				_log.LogInformation("Lobby {LobbyId}: {MemberCount} member(s){Peer}",
+					_steam.CurrentLobbyId, members.Length,
+					members.Length > 1 ? $" — peer {members.FirstOrDefault(m => m != _steam.LocalSteamId)}" : "");
 			}
 
 			if (Time.unscaledTime >= _nextAutoPingTime)
@@ -147,35 +165,42 @@ public class Plugin : BaseUnityPlugin
 		}
 	}
 
-	private bool EnsureSteamReady(SteamService steam)
+	// Forwards one lifecycle stage to a service; a failing service is logged
+	// and never allowed to break the frame loop or the shutdown sequence.
+	private void RunLifecycle(ICuoService service, string stage, Action<ICuoService> call)
 	{
-		if (!steam.Initialize())
-			return false;
-
-		_transport!.IsSteamInitialized = true;
-		return true;
+		try
+		{
+			call(service);
+		}
+		catch (Exception ex)
+		{
+			_log.LogError(ex, "ICuoService.{Stage} failed for {ServiceType}", stage, service.GetType().Name);
+		}
 	}
+
+	private bool EnsureSteamReady(SteamService steam) => steam.Initialize();
 
 	private void SendPing()
 	{
-		if (_steam is not { IsInitialized: true } steam)
+		if (!_steam.IsInitialized)
 		{
-			LogBridge.Log.Warning("CUO: Steam not initialized — press F8 first.");
+			_log.LogWarning("CUO: Steam not initialized — press F8 first.");
 			return;
 		}
 
-		var target = steam.GetLobbyMembers().FirstOrDefault(m => m != steam.LocalSteamId);
+		var target = _steam.GetLobbyMembers().FirstOrDefault(m => m != _steam.LocalSteamId);
 		if (target == 0)
 		{
-			LogBridge.Log.Warning("CUO: no peer in the lobby to ping.");
+			_log.LogWarning("CUO: no peer in the lobby to ping.");
 			return;
 		}
 
 		var payload = new byte[9];
 		payload[0] = MsgPing;
 		BitConverter.GetBytes(DateTime.UtcNow.Ticks).CopyTo(payload, 1);
-		var sent = _transport!.SendTo(target, payload, reliable: true);
-		LogBridge.Log.Info(sent ? $"CUO: ping -> {target}" : $"CUO: ping to {target} FAILED");
+		var sent = _transport.SendTo(target, payload, reliable: true);
+		_log.LogInformation(sent ? "CUO: ping -> {Target}" : "CUO: ping to {Target} FAILED", target);
 	}
 
 	private void OnMessageReceived(ulong sender, byte[] data)
@@ -190,14 +215,14 @@ public class Plugin : BaseUnityPlugin
 				// computable on their side (pong needs the full 9-byte frame).
 				var pong = (byte[])data.Clone();
 				pong[0] = MsgPong;
-				_transport!.SendTo(sender, pong, reliable: true);
-				LogBridge.Log.Info($"CUO: ping from {sender} — pong sent.");
+				_transport.SendTo(sender, pong, reliable: true);
+				_log.LogInformation("CUO: ping from {Sender} — pong sent.", sender);
 				break;
 
 			case MsgPong when data.Length >= 9:
 				var sentTicks = BitConverter.ToInt64(data, 1);
 				_lastRttMs = (DateTime.UtcNow.Ticks - sentTicks) / 10_000.0f;
-				LogBridge.Log.Info($"CUO: pong from {sender} — RTT {_lastRttMs:F1} ms");
+				_log.LogInformation("CUO: pong from {Sender} — RTT {RttMs:F1} ms", sender, _lastRttMs);
 				break;
 		}
 	}
@@ -206,8 +231,8 @@ public class Plugin : BaseUnityPlugin
 	private void OnGUI()
 	{
 		var y = 10f;
-		Line("CUO Phase 0 — Steam: " + (_steam?.IsInitialized == true ? "initialized" : "not initialized"));
-		if (_steam?.IsInitialized == true)
+		Line("CUO Phase 0 — Steam: " + (_steam.IsInitialized ? "initialized" : "not initialized"));
+		if (_steam.IsInitialized)
 		{
 			Line($"SteamID: {_steam.LocalSteamId}");
 			Line($"Lobby: {_steam.CurrentLobbyId}  Members: {_steam.GetLobbyMembers().Length}");
@@ -230,10 +255,10 @@ public class Plugin : BaseUnityPlugin
 			case LogType.Error:
 			case LogType.Exception:
 			case LogType.Assert:
-				LogBridge.Log.Error($"[Unity:{type}] {message}\n{stackTrace}");
+				_log.LogError("[Unity:{Type}] {Message}\n{StackTrace}", type, message, stackTrace);
 				break;
 			case LogType.Warning:
-				LogBridge.Log.Warning($"[Unity] {message}");
+				_log.LogWarning("[Unity] {Message}", message);
 				break;
 		}
 	}
@@ -243,20 +268,18 @@ public class Plugin : BaseUnityPlugin
 	private void OnDisable()
 	{
 		Application.logMessageReceived -= OnUnityLogMessage;
-		_steam?.Dispose();
-	}
 
-	/// <summary>Bridges CUO Core's ILogger to BepInEx logging.</summary>
-	private sealed class BepInExLogSink : Core.Logging.ILogger
-	{
-		private readonly ManualLogSource _source;
+		// Stop then dispose in reverse registration order, then release the
+		// container — disposing the LoggerFactory flushes latest.log.
+		// NOTE: array.Reverse() would bind to System.MemoryExtensions.Reverse
+		// (Span, returns void) instead of LINQ's Enumerable.Reverse — System.Memory
+		// hijacks it. An explicit reverse-index loop avoids the ambiguity.
+		for (var i = _cuoServices.Length - 1; i >= 0; i--)
+			RunLifecycle(_cuoServices[i], "Stop", s => s.Stop());
+		for (var i = _cuoServices.Length - 1; i >= 0; i--)
+			RunLifecycle(_cuoServices[i], "Dispose", s => s.Dispose());
 
-		public BepInExLogSink(ManualLogSource source) => _source = source;
-
-		public void Info(string message) => _source.LogInfo(message);
-
-		public void Warning(string message) => _source.LogWarning(message);
-
-		public void Error(string message) => _source.LogError(message);
+		if (_services != null)
+			_services.Dispose();
 	}
 }

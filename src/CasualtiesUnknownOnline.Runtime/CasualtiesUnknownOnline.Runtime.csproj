@@ -1,0 +1,55 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <AssemblyName>CasualtiesUnknownOnline.Runtime</AssemblyName>
+    <Product>Casualties Unknown: Online Runtime</Product>
+    <Version>0.1.0</Version>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <LangVersion>preview</LangVersion>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <Nullable>enable</Nullable>
+    <RootNamespace>CasualtiesUnknownOnline.Runtime</RootNamespace>
+    <RestoreAdditionalProjectSources>
+      https://api.nuget.org/v3/index.json;
+      https://nuget.bepinex.dev/v3/index.json;
+      https://nuget.samboy.dev/v3/index.json
+    </RestoreAdditionalProjectSources>
+  </PropertyGroup>
+
+  <!--
+    CUO Runtime: DI + Logging + BepInEx integration + Steam networking (architecture.md §5.5).
+    Must NEVER reference game assemblies — dependency flows from
+    Plugin/GameAdapter down into Runtime, never the other way.
+  -->
+
+  <ItemGroup>
+    <ProjectReference Include="..\CasualtiesUnknownOnline.Abstractions\CasualtiesUnknownOnline.Abstractions.csproj" />
+  </ItemGroup>
+
+  <!--
+    Microsoft.Extensions 3.1.x (net48-compatible line) — CUO owns these DLLs;
+    mods never ship their own. BepInEx.Core only for the ManualLogSource bridge.
+  -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="3.1.32" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="3.1.32" />
+    <PackageReference Include="BepInEx.Core" Version="5.*" />
+  </ItemGroup>
+
+  <!--
+    Steamworks.NET 2025.163.0 — gitignored, copied from the KrokMP install
+    (see references/README.md). Latest NuGet releases are netstandard2.1-only,
+    incompatible with net452; direct reference sidesteps the TFM check.
+  -->
+  <ItemGroup>
+    <Reference Include="Steamworks.NET">
+      <HintPath>..\..\references\Steamworks.NET.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework.TrimEnd(`0123456789`))' == 'net'">
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.2" PrivateAssets="all" />
+  </ItemGroup>
+</Project>

@@ -72,3 +72,7 @@ CLAUDE.local.md
 
 # Game assemblies (copyrighted, see references/README.md)
 references/*.dll
+
+# Reverse-engineering workspace (decompiled sources, analysis artifacts)
+reversing/*
+!reversing/README.md

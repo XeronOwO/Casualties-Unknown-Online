@@ -15,7 +15,9 @@ Full architecture blueprint: [`docs/architecture.md`](docs/architecture.md)
 ## Repository Layout
 
 ```
-src/CasualtiesUnknownOnline/   # BepInEx plugin project (net452, BepInEx 5.x) — currently template skeleton
+src/CasualtiesUnknownOnline.Core/    # CUO Core class library (net452) — network, session, logging; never references game or BepInEx
+src/CasualtiesUnknownOnline.Plugin/  # BepInEx 5 plugin entry (net452) — references Core, hosts the BepInEx log sink
+CasualtiesUnknownOnline.slnx         # Solution (VS 2022)
 references/                    # Game assemblies, gitignored, copied on demand (see references/README.md)
 reversing/                     # Reverse-engineering workspace, gitignored (see reversing/README.md)
 docs/architecture.md           # Architecture blueprint (full design, pitfalls, phases)
@@ -27,7 +29,7 @@ CLAUDE.local.md                # Local personal notes — gitignored, never comm
 ## Build
 
 ```bash
-dotnet build src/CasualtiesUnknownOnline/CasualtiesUnknownOnline.csproj
+dotnet build CasualtiesUnknownOnline.slnx
 ```
 
 - Target: `net452` (BepInEx 5 plugin requirement), `LangVersion` = `preview`, nullable enabled, warnings-as-errors

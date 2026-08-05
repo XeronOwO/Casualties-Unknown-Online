@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net452</TargetFramework>
+    <AssemblyName>CasualtiesUnknownOnline.Core</AssemblyName>
+    <Product>Casualties Unknown: Online Core</Product>
+    <Version>0.1.0</Version>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <LangVersion>preview</LangVersion>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <Nullable>enable</Nullable>
+    <RootNamespace>CasualtiesUnknownOnline.Core</RootNamespace>
+  </PropertyGroup>
+
+  <!--
+    CUO Core: network protocol, host/guest state machine, session, logging.
+    Must NEVER reference game assemblies or BepInEx — dependency flows from
+    Plugin/GameAdapter down into Core, never the other way.
+  -->
+
+  <ItemGroup Condition="'$(TargetFramework.TrimEnd(`0123456789`))' == 'net'">
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.2" PrivateAssets="all" />
+  </ItemGroup>
+</Project>

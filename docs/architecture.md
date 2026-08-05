@@ -269,6 +269,45 @@ point, not near-term work:
   API surface (the game dir contains community mod bundles) and record findings
   in `docs/` — this decides whether API-level compat is realistic at all.
 
+### Microsoft.Extensions as CUO Infrastructure (planned)
+
+Adopt the Microsoft.Extensions stack as CUO's internal infrastructure, with a
+clear separation: *Microsoft.Extensions provides the plumbing; BepInEx/Unity
+own the lifecycle and main loop.*
+
+| Capability | Use | Notes |
+|---|---|---|
+| `DependencyInjection` | **yes — core architecture** | ServiceCollection → BuildServiceProvider at framework start |
+| `Logging.Abstractions` (`ILogger<T>`) | **yes** | bridged to BepInEx logging via one `BepInExLoggerProvider` (level mapping: Trace/Debug/Information/Warning/Error/Critical); structured scopes: SessionId, SteamId, ModId, GameBuild, Tick, EntityId |
+| `Options` | **yes** | BepInEx `ConfigFile` → configuration provider → `IOptions<T>`; users still see `BepInEx/config/<guid>.cfg` |
+| `Configuration` | optional | only as the BepInEx adapter above |
+| `Hosting` (Generic Host) | **no** | it would take over app lifecycle that Unity already owns |
+| `BackgroundService` | **no** | must not manage the Unity game loop |
+
+Lifecycle: BepInEx `Awake` → Initialize; game playable → Start; Unity
+`Update`/`FixedUpdate` → Update; unload/exit → Stop/Dispose. Implement a small
+`ICuoService` interface (Initialize/Start/Update/Stop/Dispose) and forward
+BepInEx/Unity lifecycle notifications into it. Never create scopes per frame;
+never register `MonoBehaviour`s as transient services.
+
+Package layering (the "who references what" contract):
+
+```
+CUO.Abstractions  ← Microsoft.Extensions.{DependencyInjection,Logging}.Abstractions + Options
+                       (the ONLY package mods may reference)
+CUO.Runtime       ← DI + Logging + BepInEx integration
+CUO.GameAdapter   ← game assembly references + HarmonyX
+CUO.Mod           ← references CUO.Abstractions only
+```
+
+Mods never reference BepInEx, Steamworks, or the game's private assemblies
+directly — change surface stays concentrated in CUO.GameAdapter.
+
+Compatibility constraints (binding): pin conservative Microsoft.Extensions
+versions that support net452 (the 3.1.x line does); never take the latest
+.NET-era packages; CUO owns and centralizes the Extensions DLLs — mods never
+ship their own; verify no clash with the game's bundled assemblies.
+
 ## 6. Compatibility & Version Negotiation
 
 Handshake before play: Steam identity → framework protocol version → game version → mod ID list → mod versions → content hashes → network capability negotiation → admit to game.

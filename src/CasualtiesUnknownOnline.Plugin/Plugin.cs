@@ -160,14 +160,14 @@ public class Plugin : BaseUnityPlugin
 	{
 		if (_steam is not { IsInitialized: true } steam)
 		{
-			Logger.LogWarning("CUO: Steam not initialized — press F8 first.");
+			LogBridge.Log.Warning("CUO: Steam not initialized — press F8 first.");
 			return;
 		}
 
 		var target = steam.GetLobbyMembers().FirstOrDefault(m => m != steam.LocalSteamId);
 		if (target == 0)
 		{
-			Logger.LogWarning("CUO: no peer in the lobby to ping.");
+			LogBridge.Log.Warning("CUO: no peer in the lobby to ping.");
 			return;
 		}
 
@@ -175,7 +175,7 @@ public class Plugin : BaseUnityPlugin
 		payload[0] = MsgPing;
 		BitConverter.GetBytes(DateTime.UtcNow.Ticks).CopyTo(payload, 1);
 		var sent = _transport!.SendTo(target, payload, reliable: true);
-		Logger.LogInfo(sent ? $"CUO: ping -> {target}" : $"CUO: ping to {target} FAILED");
+		LogBridge.Log.Info(sent ? $"CUO: ping -> {target}" : $"CUO: ping to {target} FAILED");
 	}
 
 	private void OnMessageReceived(ulong sender, byte[] data)
@@ -185,8 +185,12 @@ public class Plugin : BaseUnityPlugin
 
 		switch (data[0])
 		{
-			case MsgPing:
-				_transport!.SendTo(sender, new[] { MsgPong }, reliable: true);
+			case MsgPing when data.Length >= 9:
+				// Echo the sender's timestamp back in the pong so RTT is
+				// computable on their side (pong needs the full 9-byte frame).
+				var pong = (byte[])data.Clone();
+				pong[0] = MsgPong;
+				_transport!.SendTo(sender, pong, reliable: true);
 				Logger.LogInfo($"CUO: ping from {sender} — pong sent.");
 				break;
 

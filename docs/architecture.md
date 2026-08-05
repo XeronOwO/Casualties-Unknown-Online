@@ -281,14 +281,14 @@ Later (requires a full snapshot system): periodic full world snapshots, mod-stat
 ### Logging
 Tags: `[Framework] [Network] [Steam] [GameAdapter] [Mod:<modId>] [Entity] [Save] [Compatibility]`. Every session connection generates a Session ID so host and guest logs can be correlated.
 
-### Game DLL references (lib/ convention)
+### Game DLL references (references/ convention)
 
 Game assemblies are copyrighted and never committed. Keep them out of the repository:
 
-- Copy required DLLs from the game's `CasualtiesUnknown_Data\Managed\` (plus `BepInEx\core\0Harmony.dll`) into `lib/` before building
-- `lib/README.txt` documents the origin of each DLL
-- csproj references them via `<Reference><HintPath>..\lib\...</HintPath></Reference>` with `<Private>False</Private>` (compile-time only, never copied to output)
-- `.gitignore` excludes `lib/*.dll` but keeps `lib/README.txt`
+- Add a DLL **on demand** — only when code starts referencing types from it (copy commands in `references/README.md`)
+- `references/README.md` documents the origin of each DLL
+- csproj references them via `<Reference><HintPath>..\references\...</HintPath></Reference>` with `<Private>False</Private>` (compile-time only, never copied to output)
+- `.gitignore` excludes `references/*.dll` but keeps `references/README.md`
 
 Only the **Game Adapter** layer may reference game assemblies — CUO Core never does. (Pattern proven in the earlier JustUnknownCharacters mod.)
 

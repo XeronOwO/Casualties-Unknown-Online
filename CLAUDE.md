@@ -29,7 +29,7 @@ dotnet build src/CasualtiesUnknownOnline/CasualtiesUnknownOnline.csproj
 
 - Target: `net452` (BepInEx 5 plugin requirement), `LangVersion` = `preview`, nullable enabled, warnings-as-errors
 - NuGet sources: nuget.org + `nuget.bepinex.dev` + `nuget.samboy.dev` (configured in csproj)
-- Game assemblies (`lib/`) are copyrighted and not in the repo — copy from the game's `CasualtiesUnknown_Data\Managed\` per `lib/README.txt` (only the Game Adapter project may reference them; convention details in `docs/architecture.md`)
+- Game assemblies (`references/`) are copyrighted and not in the repo — copy **on demand** from the game's `CasualtiesUnknown_Data\Managed\` per `references/README.md` (only the Game Adapter project may reference them; convention details in `docs/architecture.md`)
 - Packaged plugin DLL is deployed into the game's `BepInEx/plugins/` folder (path is machine-local — see `CLAUDE.local.md`)
 
 ## Architecture in Brief

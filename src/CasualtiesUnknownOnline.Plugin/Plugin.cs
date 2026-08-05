@@ -22,10 +22,13 @@ public class Plugin : BaseUnityPlugin
 
 	internal static new ManualLogSource Logger = null!;
 
+	private const float AutoPingIntervalSeconds = 5f;
+
 	private ConfigEntry<string> _targetLobbyId = null!;
 	private SteamService? _steam;
 	private SteamTransport? _transport;
 	private float _lastRttMs = -1f;
+	private float _nextAutoPingTime;
 
 	[DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
 	private static extern IntPtr LoadLibrary(string lpFileName);
@@ -99,6 +102,17 @@ public class Plugin : BaseUnityPlugin
 	{
 		_steam?.RunCallbacks();
 		_transport?.Poll();
+
+		// Phase-0 auto-ping: while in a lobby with a peer, ping every few
+		// seconds without requiring key input (window focus breaks Input
+		// during dual-instance testing). Keeps connection diagnostics flowing.
+		if (_steam?.IsInitialized == true && _steam.CurrentLobbyId != 0
+			&& Time.unscaledTime >= _nextAutoPingTime)
+		{
+			_nextAutoPingTime = Time.unscaledTime + AutoPingIntervalSeconds;
+			if (_steam.GetLobbyMembers().Length > 1)
+				SendPing();
+		}
 
 		if (_steam is { } steam)
 		{

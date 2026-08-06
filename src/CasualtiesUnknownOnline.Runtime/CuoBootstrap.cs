@@ -1,6 +1,8 @@
+using System;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Logging;
 using CasualtiesUnknownOnline.Runtime.Networking;
+using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Steam;
 using ManualLogSource = BepInEx.Logging.ManualLogSource;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,7 +18,14 @@ namespace CasualtiesUnknownOnline.Runtime;
 /// </summary>
 public static class CuoBootstrap
 {
-	public static ServiceProvider BuildServiceProvider(ManualLogSource bepinExLogSource, string logDirectory, string? legacyLogPath = null)
+	/// <summary>
+	/// Builds the container. <paramref name="extraRegistrations"/> lets the plugin
+	/// register the Game Adapter implementation (CUO.GameAdapter references the
+	/// game, so the Runtime cannot reference it back).
+	/// </summary>
+	public static ServiceProvider BuildServiceProvider(
+		ManualLogSource bepinExLogSource, string logDirectory, string? legacyLogPath = null,
+		Action<IServiceCollection>? extraRegistrations = null)
 	{
 		var services = new ServiceCollection();
 
@@ -28,11 +37,16 @@ public static class CuoBootstrap
 		});
 
 		// Registration order determines GetServices<ICuoService>() order:
-		// SteamService before SteamTransport (transport reads steam readiness).
+		// SteamService before SteamTransport (transport reads steam readiness),
+		// SessionService last (it dispatches messages from the transport).
 		services.AddSingleton<SteamService>();
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<SteamService>());
 		services.AddSingleton<SteamTransport>();
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<SteamTransport>());
+		services.AddSingleton<SessionService>();
+		services.AddSingleton<ICuoService>(p => p.GetRequiredService<SessionService>());
+
+		extraRegistrations?.Invoke(services);
 
 		return services.BuildServiceProvider();
 	}

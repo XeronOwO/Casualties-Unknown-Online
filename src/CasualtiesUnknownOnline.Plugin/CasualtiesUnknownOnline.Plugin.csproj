@@ -27,6 +27,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\CasualtiesUnknownOnline.Runtime\CasualtiesUnknownOnline.Runtime.csproj" />
+    <ProjectReference Include="..\CasualtiesUnknownOnline.GameAdapter\CasualtiesUnknownOnline.GameAdapter.csproj" />
   </ItemGroup>
 
   <!--

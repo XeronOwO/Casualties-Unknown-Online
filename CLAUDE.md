@@ -16,7 +16,8 @@ Full architecture blueprint: [`docs/architecture.md`](docs/architecture.md)
 
 ```
 src/CasualtiesUnknownOnline.Abstractions/  # CUO Abstractions (net48) — public API surface (ICuoService today, Mod API later); M.E. Abstractions/Options only; the ONLY package mods may reference
-src/CasualtiesUnknownOnline.Runtime/  # CUO Runtime (net48) — DI + Logging + BepInEx integration + Steam networking (renamed from Core); never references game assemblies
+src/CasualtiesUnknownOnline.Runtime/  # CUO Runtime (net48) — DI + Logging + BepInEx integration + Steam networking + Session/protocol layer; never references game assemblies
+src/CasualtiesUnknownOnline.GameAdapter/  # CUO Game Adapter (net48) — the ONLY project referencing game assemblies; HarmonyX patches (input interception, body clones, world params)
 src/CasualtiesUnknownOnline.Plugin/  # BepInEx 5 plugin entry (net48) — thin lifecycle driver: DI container assembly + ICuoService forwarding
 CasualtiesUnknownOnline.slnx         # Solution (VS 2022)
 references/                    # Game assemblies, gitignored, copied on demand (see references/README.md)
@@ -49,6 +50,7 @@ dotnet format CasualtiesUnknownOnline.slnx   # MUST run before every commit
 - **Plugin metadata**: `[BepInProcess("CasualtiesUnknown.exe")]` should be added once the plugin does anything game-specific; GUID is permanent — never change it after release. Logging tags (`[Network]` etc.) map to `Logger.CreateLogSource(tag)` sources, not string prefixes.
 - **Microsoft.Extensions as CUO infrastructure (landed 2026-08-06, architecture.md §5.5)**: DI (`Microsoft.Extensions.DependencyInjection`) + `ILogger<T>` bridged to BepInEx logging + `Options` as config abstraction. Never the Generic Host / `BackgroundService` — BepInEx/Unity own the lifecycle; CUO receives lifecycle notifications via a small `ICuoService` interface (Initialize/Start/Update/Stop/Dispose) in `CUO.Abstractions`. Package layering: `CUO.Abstractions` (Abstractions/Options only — this is all Mods may reference) → `CUO.Runtime` (DI+Logging+BepInEx integration) → `CUO.GameAdapter` (game refs + Harmony, future). Mods never reference BepInEx/Steamworks/game assemblies directly. Pinned to **3.1.32** (net452-compatible line); verified transitive closure ships 6 `System.*` DLLs (Memory/Buffers/Numerics.Vectors/Unsafe/Tasks.Extensions/ComponentModel.Annotations) — CUO owns these DLLs centrally, mods never ship their own. Rolling file log at `<game>/BepInEx/logs/` (`latest.log` rotated to `yyyy-MM-dd-N.log.gz` on startup); `deploy.ps1` copies all build-output DLLs, never BepInEx-owned ones. Options' BepInEx ConfigFile adapter and `CUO.GameAdapter` still future.
 - **Steamworks.NET**: referenced locally from `references/` (2025.163.0, taken from the KrokMP install — same DLL verified running in this game). Latest NuGet releases are netstandard2.1-only (incompatible with net48); direct DLL reference sidesteps the TFM check. The game has NO Steam integration of its own (verified by reversing) — CUO is the sole SteamAPI initializer, so no duplicate-init conflict.
+- **HarmonyX (0Harmony 2.9.0)**: the game's BepInEx/core owns 0Harmony.dll 2.9.0 (BepInEx fork); nuget.org's `Lib.Harmony` stops at 2.4.2. Referenced directly from `references/` (same convention as Steamworks.NET) so compile-time = runtime version; never deployed (deploy.ps1 excludes it). Patches live in `CUO.GameAdapter` only.
 
 ## Architecture in Brief
 
@@ -71,7 +73,7 @@ Non-negotiable design rules:
 - **Host is the only save authority**; guests keep local settings only. Mod save data requires mod id/version/schema version + migration policy.
 - **KrokMP compatibility (reserved, not near-term)**: many community mods target the legacy KrokMP API; plan an optional compat adapter mapping KrokMP API → CUO API (API-level only, separate module, never pollutes CUO Core). Not before Phase 4 + real migration demand; catalog KrokMP's API surface during reversing (see `docs/architecture.md` §5.4).
 
-## Development Phases (current: Phase 1 — single player entity)
+## Development Phases (current: Phase 1 — single player entity, in progress)
 
 **Phase 0 is COMPLETE** (verified 2026-08-05 with dual Steam accounts, host + sandboxed guest): BepInEx loads the plugin, Steam initializes at plugin load, lobby create/join works, ISteamNetworkingMessages ping/pong works end-to-end (RTT ~15-25ms on local loopback). Key finding: `k_EResultConnectFailed` is transient — the Steam P2P session establishes lazily (~30s); persistent retry is the correct strategy, not a transport failure. Phase-0 test keys live in Plugin.cs (F8/F9/F7) — remove when the real lobby UI lands.
 

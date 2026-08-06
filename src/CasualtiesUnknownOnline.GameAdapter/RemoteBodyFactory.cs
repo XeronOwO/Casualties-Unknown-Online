@@ -1,0 +1,47 @@
+using CasualtiesUnknownOnline.Runtime.Session;
+using Microsoft.Extensions.Logging;
+using UnityEngine;
+using ILogger = Microsoft.Extensions.Logging.ILogger;
+
+namespace CasualtiesUnknownOnline.GameAdapter;
+
+/// <summary>
+/// Creates remote player bodies by cloning the scene's player character
+/// ("Experiment" GameObject — same template KrokMP uses). On the host the clone
+/// is simulated (driven by guest input); on the guest it is a render proxy that
+/// reflects host state. The clone spawns near the local player; a simulated
+/// clone settles onto terrain via its own physics, a render proxy is corrected
+/// by the host state stream.
+/// </summary>
+internal static class RemoteBodyFactory
+{
+	private const float SpawnXOffset = 3f;
+
+	public static Body? CreateRemoteBody(PlayerEntity remote, bool simulated, Vector2 anchor, ILogger log)
+	{
+		var template = GameObject.Find("Experiment");
+		if (template == null)
+		{
+			log.LogWarning("Remote body: \"Experiment\" player object not found in scene.");
+			return null;
+		}
+
+		var clone = Object.Instantiate(template);
+		clone.name = $"Character_{remote.SteamId:X}";
+		clone.SetActive(true);
+
+		var body = clone.GetComponentInChildren<Body>();
+		if (body == null)
+		{
+			Object.Destroy(clone);
+			log.LogWarning("Remote body: no Body component in \"Experiment\" clone.");
+			return null;
+		}
+
+		var spawn = new Vector2(anchor.x + SpawnXOffset, anchor.y);
+		body.transform.position = spawn;
+		body.targetLookPos = new Vector2(1000f, 460f);
+		clone.AddComponent<RemoteBodyDriver>().simulated = simulated;
+		return body;
+	}
+}

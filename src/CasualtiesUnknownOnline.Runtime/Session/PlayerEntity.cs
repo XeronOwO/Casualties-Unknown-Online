@@ -43,6 +43,9 @@ public sealed class PlayerEntity(ulong steamId, NetworkEntityId entityId, bool i
 
 	public bool JumpQueued { get; set; }
 
+	/// <summary>Host side: position the guest reported when entering the world — the clone's spawn anchor.</summary>
+	public NetVector2 ReportedSpawnPos { get; set; }
+
 	// ---- Render interpolation buffer (guest side only) ----
 	/// <summary>Previous authoritative values, for lerping between snapshots.</summary>
 	public NetVector2 PrevPosition { get; set; }

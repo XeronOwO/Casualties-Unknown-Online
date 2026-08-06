@@ -207,6 +207,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 		}
 
 		_remoteCloneBody.moveDir = new Vector2(remote.MoveDir.X, remote.MoveDir.Y);
+		_remoteCloneBody.targetLookPos = new Vector2(remote.LookInput.X, remote.LookInput.Y);
 		_remoteCloneBody.crouching = remote.Crouching;
 		if (remote.JumpQueued)
 		{
@@ -284,11 +285,15 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 	/// <summary>Guest side: input from the HandleInput patch → session.</summary>
 	internal void SubmitGuestInput(float moveX, float moveY, bool jump, bool crouch)
 	{
-		_session.SubmitLocalInput(new NetVector2(moveX, moveY), jump, crouch);
+		// Mouse world position drives the host-side clone's look (authoritative
+		// heading). Camera.main is the game's own camera — safe here, the patch
+		// runs inside PlayerCamera.Update.
+		var mouseWorld = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+		_session.SubmitLocalInput(new NetVector2(moveX, moveY), new NetVector2(mouseWorld.x, mouseWorld.y), jump, crouch);
 		if (++_guestInputLogCounter % 20 == 0)
 		{
-			_log.LogDebug("Guest input: move ({X:F1}, {Y:F1}) jump {Jump} crouch {Crouch}",
-				moveX, moveY, jump, crouch);
+			_log.LogDebug("Guest input: move ({X:F1}, {Y:F1}) look ({LX:F1}, {LY:F1}) jump {Jump}",
+				moveX, moveY, mouseWorld.x, mouseWorld.y, jump);
 		}
 	}
 

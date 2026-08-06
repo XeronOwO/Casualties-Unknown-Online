@@ -72,6 +72,7 @@ public sealed class SessionService : ICuoService
 	private uint _nextEntityCounter;
 
 	private NetVector2 _pendingMoveDir;
+	private NetVector2 _pendingLookPos;
 	private bool _pendingJump;
 	private bool _pendingCrouch;
 	private long _nextStateSendMs;
@@ -157,10 +158,11 @@ public sealed class SessionService : ICuoService
 		remote.Crouching = crouching;
 	}
 
-	/// <summary>Guest side: submit local input (direction + one-shot jump).</summary>
-	public void SubmitLocalInput(NetVector2 moveDir, bool jump, bool crouching)
+	/// <summary>Guest side: submit local input (direction + look target + one-shot jump).</summary>
+	public void SubmitLocalInput(NetVector2 moveDir, NetVector2 lookPos, bool jump, bool crouching)
 	{
 		_pendingMoveDir = moveDir;
+		_pendingLookPos = lookPos;
 		_pendingJump |= jump;
 		_pendingCrouch = crouching;
 	}
@@ -504,6 +506,7 @@ public sealed class SessionService : ICuoService
 
 		var flags = reader.ReadByte();
 		_remotePlayer.MoveDir = NetPacket.ReadVector2(reader);
+		_remotePlayer.LookInput = NetPacket.ReadVector2(reader);
 		_remotePlayer.JumpQueued = (flags & 0x01) != 0;
 		_remotePlayer.Crouching = (flags & 0x02) != 0;
 		InputReceived?.Invoke(_remotePlayer);
@@ -526,6 +529,10 @@ public sealed class SessionService : ICuoService
 			var flags = reader.ReadByte();
 
 			var target = entityId == _localPlayer.EntityId ? _localPlayer : _remotePlayer;
+			// Keep the previous snapshot for render interpolation on the guest.
+			target.PrevPosition = target.Position;
+			target.PrevLookPos = target.LookPos;
+			target.PrevVelocity = target.Velocity;
 			target.Position = position;
 			target.LookPos = lookPos;
 			target.Velocity = velocity;
@@ -534,6 +541,7 @@ public sealed class SessionService : ICuoService
 			target.Alive = (flags & 0x04) != 0;
 			target.Conscious = (flags & 0x08) != 0;
 			target.Crouching = (flags & 0x10) != 0;
+			target.StateReceivedMs = Environment.TickCount;
 		}
 		StateReceived?.Invoke(_localPlayer);
 	}
@@ -566,6 +574,7 @@ public sealed class SessionService : ICuoService
 		{
 			w.Write(flags);
 			NetPacket.WriteVector2(w, _pendingMoveDir);
+			NetPacket.WriteVector2(w, _pendingLookPos);
 		});
 	}
 

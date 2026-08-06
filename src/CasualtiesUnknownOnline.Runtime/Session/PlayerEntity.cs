@@ -38,7 +38,21 @@ public sealed class PlayerEntity(ulong steamId, NetworkEntityId entityId, bool i
 	// ---- Guest input (guest → host, consumed on the host's clone) ----
 	public NetVector2 MoveDir { get; set; }
 
+	/// <summary>Guest mouse world position — drives the clone's targetLookPos.</summary>
+	public NetVector2 LookInput { get; set; }
+
 	public bool JumpQueued { get; set; }
+
+	// ---- Render interpolation buffer (guest side only) ----
+	/// <summary>Previous authoritative values, for lerping between snapshots.</summary>
+	public NetVector2 PrevPosition { get; set; }
+
+	public NetVector2 PrevLookPos { get; set; }
+
+	public NetVector2 PrevVelocity { get; set; }
+
+	/// <summary>Environment.TickCount when the current snapshot arrived.</summary>
+	public int StateReceivedMs { get; set; }
 
 	/// <summary>Local scene state, exchanged via SceneState messages.</summary>
 	public bool InWorld { get; set; }

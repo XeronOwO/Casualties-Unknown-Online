@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using HarmonyLib;
-using UnityEngine;
 
 namespace CasualtiesUnknownOnline.GameAdapter;
 
@@ -15,10 +14,16 @@ internal static class HarmonyTraverse
 	{
 		var worldGen = Traverse.Create(typeof(WorldGeneration)).Field("runSettings");
 		if (worldGen.FieldExists() && worldGen.GetValue() is Dictionary<string, object> fromWorld)
+		{
 			return fromWorld;
+		}
+
 		var preRun = Traverse.Create(typeof(PreRunScript)).Field("runSettings");
 		if (preRun.FieldExists() && preRun.GetValue() is Dictionary<string, object> fromPreRun)
+		{
 			return fromPreRun;
+		}
+
 		return null;
 	}
 
@@ -26,13 +31,18 @@ internal static class HarmonyTraverse
 	{
 		var worldGen = Traverse.Create(typeof(WorldGeneration)).Field("runSettings");
 		if (worldGen.FieldExists())
+		{
 			worldGen.SetValue(settings);
+		}
 	}
 
 	public static bool IsGenerating()
 	{
-		if (WorldGeneration.world == null)
+		if (WorldGeneration.world is null)
+		{
 			return false;
+		}
+
 		var generating = Traverse.Create(WorldGeneration.world).Field("generatingWorld");
 		return generating.FieldExists() && generating.GetValue<bool>();
 	}

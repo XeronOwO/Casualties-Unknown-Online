@@ -34,7 +34,7 @@ public enum SceneStateType : byte
 public sealed class WorldStartParams
 {
 	// NOTE: plain set, not init — net48 lacks IsExternalInit.
-	public byte[] RandomState { get; set; } = Array.Empty<byte>();
+	public byte[] RandomState { get; set; } = [];
 
 	public byte BiomeOverride { get; set; }
 
@@ -168,7 +168,10 @@ public sealed class SessionService : ICuoService
 	{
 		_localPlayer.InWorld = state == SceneStateType.InWorld;
 		if (SessionActive)
+		{
 			Send(PeerSteamId(), NetMsg.SceneState, w => WriteSceneState(w, state, sceneName));
+		}
+
 		_log.LogInformation("Scene state: {State} ({SceneName})", state, sceneName);
 	}
 
@@ -177,7 +180,10 @@ public sealed class SessionService : ICuoService
 	{
 		_worldParams = parameters;
 		if (!SessionActive)
+		{
 			return;
+		}
+
 		Send(PeerSteamId(), NetMsg.WorldStartParams, w => WriteWorldParams(w, parameters));
 		_log.LogInformation("Published world params ({StateBytes} bytes) to {Peer}",
 			parameters.RandomState.Length, PeerSteamId());
@@ -186,10 +192,7 @@ public sealed class SessionService : ICuoService
 	/// <summary>Diagnostics: ping the peer (RTT recorded in <see cref="LastRttMs"/>).</summary>
 	public void RequestPing() => Send(PeerSteamId(), NetMsg.Ping, w => w.Write(DateTime.UtcNow.Ticks));
 
-	void ICuoService.Initialize()
-	{
-		_epoch = (ulong)DateTime.UtcNow.Ticks;
-	}
+	void ICuoService.Initialize() => _epoch = (ulong)DateTime.UtcNow.Ticks;
 
 	void ICuoService.Start()
 	{
@@ -248,7 +251,10 @@ public sealed class SessionService : ICuoService
 	private void OnLobbyEntered(ulong lobbyId)
 	{
 		if (Role == SessionRole.Host)
+		{
 			return; // our own lobby — the create callback already ran
+		}
+
 		Role = SessionRole.Guest;
 		HostSteamId = _steam.GetLobbyMembers().FirstOrDefault(m => m != _steam.LocalSteamId);
 		_log.LogInformation("Session role: Guest (lobby {LobbyId}, host {Host})", lobbyId, HostSteamId);
@@ -263,8 +269,10 @@ public sealed class SessionService : ICuoService
 
 	private void OnHandshake(ulong sender, BinaryReader reader)
 	{
-		if (Role != SessionRole.Host || _remotePlayer != null)
+		if (Role != SessionRole.Host || _remotePlayer is not null)
+		{
 			return;
+		}
 
 		var protocol = reader.ReadInt32();
 		ReadSceneState(reader, out var peerState, out _);
@@ -286,10 +294,12 @@ public sealed class SessionService : ICuoService
 		{
 			w.Write(ProtocolVersion.Current);
 			WriteSceneState(w, SceneStateForLocal());
-			w.Write(_worldParams != null);
+			w.Write(_worldParams is not null);
 		});
-		if (_worldParams != null)
+		if (_worldParams is not null)
+		{
 			Send(sender, NetMsg.WorldStartParams, w => WriteWorldParams(w, _worldParams));
+		}
 
 		_log.LogInformation("Handshake complete with {Peer}.", sender);
 		SessionActivated?.Invoke();
@@ -323,8 +333,11 @@ public sealed class SessionService : ICuoService
 	private void OnSceneState(ulong sender, BinaryReader reader)
 	{
 		ReadSceneState(reader, out var state, out var sceneName);
-		if (_remotePlayer == null)
+		if (_remotePlayer is null)
+		{
 			return;
+		}
+
 		var wasInWorld = _remotePlayer.InWorld;
 		_remotePlayer.InWorld = state == SceneStateType.InWorld;
 		_log.LogInformation("Peer {Peer} scene state: {State} ({SceneName})", sender, state, sceneName);
@@ -333,7 +346,9 @@ public sealed class SessionService : ICuoService
 			if (_remotePlayer.InWorld)
 			{
 				if (Role == SessionRole.Host)
+				{
 					MaybeStartEntitySync();
+				}
 			}
 			else if (Role == SessionRole.Host)
 			{
@@ -348,8 +363,11 @@ public sealed class SessionService : ICuoService
 	private void OnWorldStartParams(ulong sender, BinaryReader reader)
 	{
 		var parameters = ReadWorldParams(reader);
-		if (parameters == null)
+		if (parameters is null)
+		{
 			return;
+		}
+
 		_worldParams = parameters;
 		_log.LogInformation("Received world params ({StateBytes} bytes, loaded run: {LoadedRun}).",
 			parameters.RandomState.Length, parameters.LoadedRun);
@@ -359,10 +377,15 @@ public sealed class SessionService : ICuoService
 
 	private void MaybeStartEntitySync()
 	{
-		if (Role != SessionRole.Host || !SessionActive || _remotePlayer == null || EntitySyncActive)
+		if (Role != SessionRole.Host || !SessionActive || _remotePlayer is null || EntitySyncActive)
+		{
 			return;
+		}
+
 		if (!_localPlayer.InWorld || !_remotePlayer.InWorld)
+		{
 			return;
+		}
 
 		_remotePlayer.EntityId = AllocateEntityId();
 		EntitySyncActive = true;
@@ -383,8 +406,10 @@ public sealed class SessionService : ICuoService
 
 	private void OnPlayerJoin(ulong sender, BinaryReader reader)
 	{
-		if (Role != SessionRole.Guest || _remotePlayer == null)
+		if (Role != SessionRole.Guest || _remotePlayer is null)
+		{
 			return;
+		}
 
 		// [hostSteamId][hostEntityId][guestEntityId][hostPosition]
 		var hostSteamId = reader.ReadUInt64();
@@ -404,8 +429,10 @@ public sealed class SessionService : ICuoService
 
 	private void OnPlayerInput(ulong sender, BinaryReader reader)
 	{
-		if (Role != SessionRole.Host || _remotePlayer == null)
+		if (Role != SessionRole.Host || _remotePlayer is null)
+		{
 			return;
+		}
 
 		var flags = reader.ReadByte();
 		_remotePlayer.MoveDir = NetPacket.ReadVector2(reader);
@@ -416,8 +443,10 @@ public sealed class SessionService : ICuoService
 
 	private void OnPlayerState(ulong sender, BinaryReader reader)
 	{
-		if (Role != SessionRole.Guest || _remotePlayer == null)
+		if (Role != SessionRole.Guest || _remotePlayer is null)
+		{
 			return;
+		}
 
 		var count = reader.ReadByte();
 		for (var i = 0; i < count; i++)
@@ -443,8 +472,11 @@ public sealed class SessionService : ICuoService
 
 	private void BroadcastPlayerState()
 	{
-		if (_remotePlayer == null)
+		if (_remotePlayer is null)
+		{
 			return;
+		}
+
 		Send(PeerSteamId(), NetMsg.PlayerState, w =>
 		{
 			w.Write((byte)2);
@@ -455,8 +487,11 @@ public sealed class SessionService : ICuoService
 
 	private void SendPlayerInput()
 	{
-		if (_remotePlayer == null)
+		if (_remotePlayer is null)
+		{
 			return;
+		}
+
 		var flags = (byte)((_pendingJump ? 0x01 : 0) | (_pendingCrouch ? 0x02 : 0));
 		_pendingJump = false;
 		Send(_remotePlayer.SteamId, NetMsg.PlayerInput, w =>
@@ -485,11 +520,16 @@ public sealed class SessionService : ICuoService
 	private void CheckPeerPresence()
 	{
 		if (Role == SessionRole.None || !SessionActive)
+		{
 			return;
+		}
 
 		var nowMs = Environment.TickCount;
 		if (nowMs < _nextMemberCheckMs)
+		{
 			return;
+		}
+
 		_nextMemberCheckMs = nowMs + (long)(MemberCheckInterval * 1000f);
 
 		if (_steam.GetLobbyMembers().Length < 2)
@@ -502,15 +542,21 @@ public sealed class SessionService : ICuoService
 	private void EndEntitySync()
 	{
 		if (!EntitySyncActive)
+		{
 			return;
+		}
+
 		EntitySyncActive = false;
 		_log.LogInformation("Entity sync ended.");
 	}
 
 	private void EndSession()
 	{
-		if (!SessionActive && _remotePlayer == null)
+		if (!SessionActive && _remotePlayer is null)
+		{
 			return;
+		}
+
 		EndEntitySync();
 		_remotePlayer = null;
 		SessionActive = false;
@@ -525,7 +571,10 @@ public sealed class SessionService : ICuoService
 	private void OnMessage(ulong sender, byte[] frame)
 	{
 		if (frame.Length < 1)
+		{
 			return;
+		}
+
 		using var stream = new MemoryStream(frame, 1, frame.Length - 1);
 		using var reader = new BinaryReader(stream, Encoding.UTF8);
 		switch ((NetMsg)frame[0])
@@ -563,21 +612,30 @@ public sealed class SessionService : ICuoService
 	private ulong PeerSteamId()
 	{
 		if (Role == SessionRole.Host)
+		{
 			return _remotePlayer?.SteamId ?? 0;
+		}
+
 		return HostSteamId;
 	}
 
 	private void Send(ulong steamId, NetMsg msg, Action<BinaryWriter>? writePayload = null)
 	{
 		if (steamId == 0)
+		{
 			return;
+		}
+
 		_transport.SendTo(steamId, NetPacket.Encode(msg, writePayload), reliable: true);
 	}
 
 	private NetworkEntityId AllocateEntityId()
 	{
 		if (_localPlayer.EntityId.Counter == 0 && _localPlayer.EntityId.Epoch == 0)
+		{
 			_localPlayer.EntityId = new NetworkEntityId(_epoch, _nextEntityCounter++, generation: 0);
+		}
+
 		return new NetworkEntityId(_epoch, _nextEntityCounter++, generation: 0);
 	}
 
@@ -650,7 +708,7 @@ public sealed class SessionService : ICuoService
 
 	private static void WriteRunSettings(BinaryWriter w, Dictionary<string, object>? settings)
 	{
-		if (settings == null)
+		if (settings is null)
 		{
 			w.Write(0);
 			return;
@@ -688,7 +746,10 @@ public sealed class SessionService : ICuoService
 	{
 		var count = r.ReadInt32();
 		if (count == 0)
+		{
 			return null;
+		}
+
 		var settings = new Dictionary<string, object>(count);
 		for (var i = 0; i < count; i++)
 		{

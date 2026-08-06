@@ -10,13 +10,10 @@ namespace CasualtiesUnknownOnline.Runtime.Logging;
 /// LogOutput.log). Level mapping: Trace/Debug → LogDebug, Information → LogInfo,
 /// Warning → LogWarning, Error → LogError, Critical → LogFatal.
 /// </summary>
-public sealed class BepInExLoggerProvider : ILoggerProvider
+public sealed class BepInExLoggerProvider(ManualLogSource source) : ILoggerProvider
 {
-	private readonly ManualLogSource _source;
-	private readonly Dictionary<string, BepInExLogger> _loggers = new();
-
-	public BepInExLoggerProvider(ManualLogSource source) =>
-		_source = source ?? throw new ArgumentNullException(nameof(source));
+	private readonly ManualLogSource _source = source ?? throw new ArgumentNullException(nameof(source));
+	private readonly Dictionary<string, BepInExLogger> _loggers = [];
 
 	public ILogger CreateLogger(string categoryName)
 	{
@@ -36,25 +33,23 @@ public sealed class BepInExLoggerProvider : ILoggerProvider
 		// BepInEx owns the log source; nothing to release here.
 	}
 
-	private sealed class BepInExLogger : ILogger
+	private sealed class BepInExLogger(ManualLogSource source, string category) : ILogger
 	{
-		private readonly ManualLogSource _source;
-		private readonly string _category;
-
-		public BepInExLogger(ManualLogSource source, string category)
-		{
-			_source = source;
-			_category = category;
-		}
+		private readonly ManualLogSource _source = source;
+		private readonly string _category = category;
 
 		public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
 		{
 			if (!IsEnabled(logLevel))
+			{
 				return;
+			}
 
 			var message = $"[{_category}] {formatter(state, exception)}";
-			if (exception != null)
+			if (exception is not null)
+			{
 				message += "\n" + exception;
+			}
 
 			switch (logLevel)
 			{

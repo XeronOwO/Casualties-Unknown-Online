@@ -13,19 +13,13 @@ namespace CasualtiesUnknownOnline.Runtime.Networking;
 /// architecture's INetworkTransport abstraction lands when a second
 /// transport exists.
 /// </summary>
-public sealed class SteamTransport : ICuoService
+public sealed class SteamTransport(SteamService steam, ILogger<SteamTransport> log) : ICuoService
 {
 	private const int MaxMessagesPerPoll = 32;
 
-	private readonly SteamService _steam;
-	private readonly ILogger<SteamTransport> _log;
+	private readonly SteamService _steam = steam;
+	private readonly ILogger<SteamTransport> _log = log;
 	private readonly IntPtr[] _receiveBuffer = new IntPtr[MaxMessagesPerPoll];
-
-	public SteamTransport(SteamService steam, ILogger<SteamTransport> log)
-	{
-		_steam = steam;
-		_log = log;
-	}
 
 	/// <summary>Raised on the Unity main thread via <see cref="Poll"/>.</summary>
 	public event Action<ulong, byte[]>? MessageReceived;
@@ -33,7 +27,9 @@ public sealed class SteamTransport : ICuoService
 	public bool SendTo(ulong steamId, byte[] data, bool reliable)
 	{
 		if (!_steam.IsInitialized)
+		{
 			return false;
+		}
 
 		var identity = new SteamNetworkingIdentity();
 		identity.SetSteamID64(steamId);
@@ -80,7 +76,9 @@ public sealed class SteamTransport : ICuoService
 	public void Poll()
 	{
 		if (!_steam.IsInitialized)
+		{
 			return;
+		}
 
 		int count;
 		while ((count = SteamNetworkingMessages.ReceiveMessagesOnChannel(0, _receiveBuffer, _receiveBuffer.Length)) > 0)

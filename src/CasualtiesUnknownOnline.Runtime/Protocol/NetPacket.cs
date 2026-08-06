@@ -15,7 +15,7 @@ public static class NetPacket
 	{
 		using var stream = new MemoryStream();
 		stream.WriteByte((byte)msg);
-		if (writePayload != null)
+		if (writePayload is not null)
 		{
 			using var writer = new BinaryWriter(stream, Encoding.UTF8);
 			writePayload(writer);

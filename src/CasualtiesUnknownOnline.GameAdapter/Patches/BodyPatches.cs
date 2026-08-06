@@ -16,8 +16,11 @@ internal static class BodyPatches
 		private static bool Prefix(Body __instance)
 		{
 			var driver = __instance.GetComponent<RemoteBodyDriver>();
-			if (driver != null && !driver.simulated)
+			if (driver is not null && !driver.simulated)
+			{
 				return false; // render proxy: position/velocity come from the session
+			}
+
 			return true;
 		}
 	}
@@ -32,18 +35,31 @@ internal static class BodyPatches
 
 			var bodies = Object.FindObjectsOfType<Body>();
 			if (bodies.Length < 2)
+			{
 				return;
+			}
+
 			foreach (var other in bodies)
 			{
 				if (other == __instance)
+				{
 					continue;
+				}
+
 				var self = __instance.transform.parent?.GetComponentsInChildren<Collider2D>();
 				var otherColliders = other.transform.parent?.GetComponentsInChildren<Collider2D>();
-				if (self == null || otherColliders == null)
+				if (self is null || otherColliders is null)
+				{
 					continue;
+				}
+
 				foreach (var a in self)
+				{
 					foreach (var b in otherColliders)
+					{
 						Physics2D.IgnoreCollision(a, b, true);
+					}
+				}
 			}
 		}
 	}

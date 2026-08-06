@@ -9,7 +9,6 @@ using BepInEx.Logging;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
-using CasualtiesUnknownOnline.Runtime.Networking;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Steam;
 using Microsoft.Extensions.DependencyInjection;
@@ -26,7 +25,7 @@ public class Plugin : BaseUnityPlugin
 	internal static new ManualLogSource Logger = null!;
 
 	private ServiceProvider _services = null!;
-	private ICuoService[] _cuoServices = Array.Empty<ICuoService>();
+	private ICuoService[] _cuoServices = [];
 	private ILogger<Plugin> _log = null!;
 	private SteamService _steam = null!;
 	private SessionService _session = null!;
@@ -46,7 +45,9 @@ public class Plugin : BaseUnityPlugin
 			var dir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
 			var path = Path.Combine(dir ?? "", "steam_api64.dll");
 			if (LoadLibrary(path) == IntPtr.Zero)
+			{
 				Logger.LogWarning($"CUO: LoadLibrary failed for {path} (Win32 error {Marshal.GetLastWin32Error()})");
+			}
 		}
 		catch (Exception ex)
 		{
@@ -97,13 +98,21 @@ public class Plugin : BaseUnityPlugin
 			Application.logMessageReceived += OnUnityLogMessage;
 
 			foreach (var service in _cuoServices)
+			{
 				RunLifecycle(service, "Initialize", s => s.Initialize());
+			}
+
 			foreach (var service in _cuoServices)
+			{
 				RunLifecycle(service, "Start", s => s.Start());
+			}
 
 			_log.LogInformation("Plugin {PluginGuid} is loaded!", MyPluginInfo.PLUGIN_GUID);
-			if (_adapter != null)
+			if (_adapter is not null)
+			{
 				_log.LogInformation("Game Adapter: {Report}", _adapter.CapabilityReport);
+			}
+
 			if (_steam.IsInitialized)
 			{
 				_log.LogInformation("CUO Phase 1 test keys: F8 = create lobby, F9 = join lobby from config, F7 = ping peer.");
@@ -122,7 +131,9 @@ public class Plugin : BaseUnityPlugin
 	private void Update()
 	{
 		foreach (var service in _cuoServices)
+		{
 			RunLifecycle(service, "Update", s => s.Update());
+		}
 
 		if (_steam is { } steam)
 		{
@@ -131,12 +142,16 @@ public class Plugin : BaseUnityPlugin
 				// Retry path: if load-time init failed (Steam not running yet),
 				// F8 re-attempts initialization, then creates the lobby.
 				if (EnsureSteamReady(steam))
+				{
 					steam.CreateLobby();
+				}
 			}
 			else if (Input.GetKeyDown(KeyCode.F9))
 			{
 				if (EnsureSteamReady(steam) && ulong.TryParse(_targetLobbyId.Value, out var lobbyId))
+				{
 					steam.JoinLobby(lobbyId);
+				}
 			}
 			else if (Input.GetKeyDown(KeyCode.F7))
 			{
@@ -177,8 +192,11 @@ public class Plugin : BaseUnityPlugin
 		Line($"Session: {role}  handshake: {(_session.SessionActive ? "yes" : "no")}  "
 			+ $"entity sync: {(_session.EntitySyncActive ? "ON" : "off")}");
 		var remote = _session.RemotePlayer;
-		if (remote != null)
+		if (remote is not null)
+		{
 			Line($"Remote: {remote.SteamId:X}  pos: ({remote.Position.X:F1}, {remote.Position.Y:F1})  inWorld: {remote.InWorld}");
+		}
+
 		Line(_session.LastRttMs >= 0f ? $"Last RTT: {_session.LastRttMs:F1} ms" : "No ping yet");
 		Line("F8 create lobby / F9 join from config / F7 ping peer");
 
@@ -216,11 +234,15 @@ public class Plugin : BaseUnityPlugin
 		// (Span, returns void) instead of LINQ's Enumerable.Reverse — System.Memory
 		// hijacks it. An explicit reverse-index loop avoids the ambiguity.
 		for (var i = _cuoServices.Length - 1; i >= 0; i--)
+		{
 			RunLifecycle(_cuoServices[i], "Stop", s => s.Stop());
-		for (var i = _cuoServices.Length - 1; i >= 0; i--)
-			RunLifecycle(_cuoServices[i], "Dispose", s => s.Dispose());
+		}
 
-		if (_services != null)
-			_services.Dispose();
+		for (var i = _cuoServices.Length - 1; i >= 0; i--)
+		{
+			RunLifecycle(_cuoServices[i], "Dispose", s => s.Dispose());
+		}
+
+		_services?.Dispose();
 	}
 }

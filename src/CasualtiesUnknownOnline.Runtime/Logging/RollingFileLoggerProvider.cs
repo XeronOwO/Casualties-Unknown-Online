@@ -21,7 +21,7 @@ public sealed class RollingFileLoggerProvider : ILoggerProvider
 	private readonly object _sync = new();
 	private readonly string _directory;
 	private readonly string? _legacyLogPath;
-	private readonly Dictionary<string, RollingFileLogger> _loggers = new();
+	private readonly Dictionary<string, RollingFileLogger> _loggers = [];
 	private StreamWriter? _writer;
 	private bool _disabled;
 
@@ -79,8 +79,10 @@ public sealed class RollingFileLoggerProvider : ILoggerProvider
 
 	private void ArchiveLegacyLog()
 	{
-		if (_legacyLogPath == null || !File.Exists(_legacyLogPath))
+		if (_legacyLogPath is null || !File.Exists(_legacyLogPath))
+		{
 			return;
+		}
 
 		try
 		{
@@ -97,12 +99,17 @@ public sealed class RollingFileLoggerProvider : ILoggerProvider
 	{
 		var latest = Path.Combine(_directory, LatestLogFileName);
 		if (!File.Exists(latest))
+		{
 			return;
+		}
 
 		try
 		{
 			if (new FileInfo(latest).Length > 0)
+			{
 				CompressToGz(latest, FindAvailableArchiveName(DateTime.Now));
+			}
+
 			File.Delete(latest);
 		}
 		catch
@@ -117,7 +124,9 @@ public sealed class RollingFileLoggerProvider : ILoggerProvider
 		{
 			var path = Path.Combine(_directory, $"{date:yyyy-MM-dd}-{n}{ArchiveSuffix}");
 			if (!File.Exists(path))
+			{
 				return path;
+			}
 		}
 		return Path.Combine(_directory, $"{date:yyyy-MM-dd}-{Environment.TickCount}{ArchiveSuffix}");
 	}
@@ -136,8 +145,7 @@ public sealed class RollingFileLoggerProvider : ILoggerProvider
 		{
 			lock (_sync)
 			{
-				if (_writer != null)
-					_writer.WriteLine(line);
+				_writer?.WriteLine(line);
 			}
 		}
 		catch
@@ -146,27 +154,25 @@ public sealed class RollingFileLoggerProvider : ILoggerProvider
 		}
 	}
 
-	private sealed class RollingFileLogger : ILogger
+	private sealed class RollingFileLogger(RollingFileLoggerProvider provider, string category) : ILogger
 	{
-		private readonly RollingFileLoggerProvider _provider;
-		private readonly string _category;
-
-		public RollingFileLogger(RollingFileLoggerProvider provider, string category)
-		{
-			_provider = provider;
-			_category = category;
-		}
+		private readonly RollingFileLoggerProvider _provider = provider;
+		private readonly string _category = category;
 
 		public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
 		{
 			if (!IsEnabled(logLevel))
+			{
 				return;
+			}
 
 			// The default formatter does NOT include the exception — append it
 			// explicitly (ToString includes the stack trace).
 			var message = formatter(state, exception);
-			if (exception != null)
+			if (exception is not null)
+			{
 				message += "\n" + exception;
+			}
 
 			_provider.WriteLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] [{LevelCode(logLevel)}] [{_category}] {message}");
 		}

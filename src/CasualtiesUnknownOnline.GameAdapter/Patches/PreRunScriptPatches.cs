@@ -10,8 +10,5 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 [HarmonyPatch(typeof(PreRunScript), "StartRun")]
 internal static class PreRunScriptStartRunPatch
 {
-	private static void Postfix()
-	{
-		GameAdapter.Instance?.OnStartRun();
-	}
+	private static void Postfix() => GameAdapter.Instance?.OnStartRun();
 }

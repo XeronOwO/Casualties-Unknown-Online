@@ -16,8 +16,10 @@ internal static class PlayerCameraHandleInputPatch
 	private static bool Prefix(PlayerCamera __instance)
 	{
 		var adapter = GameAdapter.Instance;
-		if (adapter == null || !adapter.IsGuestMode)
+		if (adapter is null || !adapter.IsGuestMode)
+		{
 			return true; // host or single-player: original behavior
+		}
 
 		var moveX = (Input.GetKey(KeyBinds.GetBind("right")) ? 1f : 0f)
 			- (Input.GetKey(KeyBinds.GetBind("left")) ? 1f : 0f);

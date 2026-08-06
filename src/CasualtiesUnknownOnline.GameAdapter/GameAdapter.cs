@@ -29,7 +29,6 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 	private Body? _localBody;
 	private Body? _remoteCloneBody;
 	private bool _inWorld;
-	private bool _remoteCloneSimulated;
 
 	public GameAdapter(SessionService session, ILogger<GameAdapter> log)
 	{
@@ -132,60 +131,17 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 			return;
 		}
 
-		if (_session.Role == SessionRole.Host)
+		// Both sides: publish the local body's state (host → PlayerState
+		// broadcast, guest → PlayerStateReport to the host) and render the
+		// remote clone from the peer's reported state. NO remote-side
+		// simulation anywhere — each player simulates only its own body.
+		if (_localBody is not null)
 		{
-			if (_localBody is not null)
-			{
-				PublishBodyState(_localBody, _session.LocalPlayer, publishRemote: false);
-			}
+			PublishBodyState(_localBody);
+		}
 
-			if (_remoteCloneBody is not null && _remoteCloneSimulated)
-			{
-				PublishBodyState(_remoteCloneBody, _session.RemotePlayer!, publishRemote: true);
-			}
-		}
-		else
-		{
-			// Guest: the local body simulates itself with local input (feel =
-			// single-player); the host's clone is the authority and we render it.
-			SessionStatePump.Apply(_session.RemotePlayer, _remoteCloneBody);
-			ValidateLocalAgainstHost();
-		}
+		SessionStatePump.Apply(_session.RemotePlayer, _remoteCloneBody);
 	}
-
-	/// <summary>
-	/// Host-authority validation: the host's simulated clone is the reference.
-	/// The two simulations can never match exactly (input timing, physics
-	/// nondeterminism), so corrections must be invisible: small deviations
-	/// converge smoothly each frame (few % toward the host position — no snap),
-	/// and only a real divergence (cheat/desync, &gt; threshold) hard-snaps.
-	/// </summary>
-	private void ValidateLocalAgainstHost()
-	{
-		if (_localBody is null)
-		{
-			return;
-		}
-
-		var hostPos = new Vector2(_session.LocalPlayer.Position.X, _session.LocalPlayer.Position.Y);
-		var localPos = _localBody.transform.position;
-		var distance = Vector2.Distance(localPos, hostPos);
-		if (distance > HardCorrectionThreshold)
-		{
-			_localBody.transform.position = hostPos;
-			_log.LogWarning("Local body snapped to host position (deviation {Distance:F1}m).", distance);
-		}
-		else if (distance > SmoothCorrectionStart)
-		{
-			// Converge ~10% of the remaining deviation per frame — imperceptible
-			// over a second, keeps long-term drift bounded.
-			_localBody.transform.position = Vector2.Lerp(localPos, hostPos, 0.1f);
-		}
-	}
-
-	private const float HardCorrectionThreshold = 3f;
-
-	private const float SmoothCorrectionStart = 0.5f;
 
 	void ICuoService.Stop() => Uninstall();
 
@@ -198,7 +154,6 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 
 		_session.RemoteJoined -= OnRemoteJoined;
 		_session.RemoteLeft -= OnRemoteLeft;
-		_session.InputReceived -= OnInputReceived;
 		_session.SessionEnded -= OnSessionEnded;
 		_session.SessionActivated -= OnSessionActivated;
 		Instance = null;
@@ -212,7 +167,6 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 	{
 		_session.RemoteJoined += OnRemoteJoined;
 		_session.RemoteLeft += OnRemoteLeft;
-		_session.InputReceived += OnInputReceived;
 		_session.SessionEnded += OnSessionEnded;
 		_session.SessionActivated += OnSessionActivated;
 	}
@@ -236,17 +190,14 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 
 	private void OnRemoteJoined(PlayerEntity remote)
 	{
-		var simulated = _session.Role == SessionRole.Host;
-		_remoteCloneSimulated = simulated;
-		// Host: spawn the guest's clone at the guest's reported spawn point so
-		// both sides simulate from the same start (validation stays small).
+		// Host: spawn the guest's clone at the guest's reported spawn point.
 		// Guest: the host's clone renders at the host position from PlayerJoin.
-		var anchor = simulated
+		// Both are frozen render proxies fed by the peer's state reports.
+		var anchor = _session.Role == SessionRole.Host
 			? new Vector2(remote.ReportedSpawnPos.X, remote.ReportedSpawnPos.Y)
 			: new Vector2(remote.Position.X, remote.Position.Y);
-		_remoteCloneBody = RemoteBodyFactory.CreateRemoteBody(remote, simulated, anchor, _log);
-		_log.LogInformation("Remote body created for {SteamId} (simulated: {Simulated}).",
-			remote.SteamId, simulated);
+		_remoteCloneBody = RemoteBodyFactory.CreateRemoteBody(remote, anchor, _log);
+		_log.LogInformation("Remote body created for {SteamId}.", remote.SteamId);
 	}
 
 	private void OnRemoteLeft(PlayerEntity remote)
@@ -258,34 +209,6 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 		}
 		_log.LogInformation("Remote body destroyed for {SteamId}.", remote.SteamId);
 	}
-
-	private void OnInputReceived(PlayerEntity remote)
-	{
-		if (_remoteCloneBody is null || !_remoteCloneSimulated)
-		{
-			return;
-		}
-
-		_remoteCloneBody.moveDir = new Vector2(remote.MoveDir.X, remote.MoveDir.Y);
-		_remoteCloneBody.targetLookPos = new Vector2(remote.LookInput.X, remote.LookInput.Y);
-		_remoteCloneBody.crouching = remote.Crouching;
-		if (remote.JumpQueued)
-		{
-			remote.JumpQueued = false;
-			if (_remoteCloneBody.standing && _remoteCloneBody.conscious)
-			{
-				_remoteCloneBody.Jump();
-			}
-		}
-
-		if (++_inputLogCounter % 20 == 0)
-		{
-			_log.LogDebug("Remote input: move ({X:F1}, {Y:F1}) crouch {Crouch}",
-				remote.MoveDir.X, remote.MoveDir.Y, remote.Crouching);
-		}
-	}
-
-	private int _inputLogCounter;
 
 	private void OnSessionEnded()
 	{
@@ -323,44 +246,17 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 
 	// ---- State shuttling ----
 
-	private void PublishBodyState(Body body, PlayerEntity target, bool publishRemote)
+	private void PublishBodyState(Body body)
 	{
 		var pos = body.transform.position;
 		var look = body.targetLookPos;
 		var vel = body.rb.velocity;
-		var state = (
+		_session.PublishLocalState(
 			new NetVector2(pos.x, pos.y),
 			new NetVector2(look.x, look.y),
 			new NetVector2(vel.x, vel.y),
 			body.isRight, body.standing, body.alive, body.conscious, body.crouching);
-		if (publishRemote)
-		{
-			_session.PublishRemoteState(target, state.Item1, state.Item2, state.Item3,
-				state.Item4, state.Item5, state.Item6, state.Item7, state.Item8);
-		}
-		else
-		{
-			_session.PublishLocalState(state.Item1, state.Item2, state.Item3,
-				state.Item4, state.Item5, state.Item6, state.Item7, state.Item8);
-		}
 	}
-
-	/// <summary>Guest side: input from the HandleInput patch → session.</summary>
-	internal void SubmitGuestInput(float moveX, float moveY, bool jump, bool crouch)
-	{
-		// Mouse world position drives the host-side clone's look (authoritative
-		// heading). Camera.main is the game's own camera — safe here, the patch
-		// runs inside PlayerCamera.Update.
-		var mouseWorld = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-		_session.SubmitLocalInput(new NetVector2(moveX, moveY), new NetVector2(mouseWorld.x, mouseWorld.y), jump, crouch);
-		if (++_guestInputLogCounter % 20 == 0)
-		{
-			_log.LogDebug("Guest input: move ({X:F1}, {Y:F1}) look ({LX:F1}, {LY:F1}) jump {Jump}",
-				moveX, moveY, mouseWorld.x, mouseWorld.y, jump);
-		}
-	}
-
-	private int _guestInputLogCounter;
 
 	/// <summary>Gate from the StartRun patch — returns false to block the run start.</summary>
 	internal bool OnStartRun()

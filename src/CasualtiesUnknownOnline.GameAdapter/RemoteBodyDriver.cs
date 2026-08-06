@@ -3,11 +3,10 @@ using UnityEngine;
 namespace CasualtiesUnknownOnline.GameAdapter;
 
 /// <summary>
-/// Marks a Body as remote-managed. <see cref="simulated"/> is true on the host
-/// (the clone runs full physics driven by guest input) and false on the guest
-/// (render proxy — physics skipped, state written every frame).
+/// Marks a Body as remote-managed: a frozen render proxy. All its physics and
+/// game logic (FixedUpdate/Update) are skipped; only the session's reported
+/// state is written onto it each frame.
 /// </summary>
 internal sealed class RemoteBodyDriver : MonoBehaviour
 {
-	public bool simulated;
 }

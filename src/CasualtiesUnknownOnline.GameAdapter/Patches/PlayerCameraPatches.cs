@@ -30,15 +30,14 @@ internal static class PlayerCameraHandleInputPatch
 		var crouch = Input.GetKey(KeyBinds.GetBind("down"));
 
 		// Local simulation: the guest's body runs full physics with its own
-		// input (instant feel); the same input goes to the host for validation.
+		// input (instant single-player feel); the local state report goes to
+		// the host, which renders it — no host-side computation for this body.
 		__instance.body.moveDir = new Vector2(moveX, moveY);
 		__instance.body.crouching = crouch;
 		if (jump && __instance.body.standing && __instance.body.conscious)
 		{
 			__instance.body.Jump();
 		}
-
-		adapter.SubmitGuestInput(moveX, moveY, jump, crouch);
 
 		// View-only UI keys: replicate the original handling for the panels the
 		// guest is allowed to see. World interactions are intentionally absent.

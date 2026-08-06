@@ -25,7 +25,7 @@ Requires .NET SDK (see [`CLAUDE.md`](CLAUDE.md)).
 dotnet build CasualtiesUnknownOnline.slnx
 ```
 
-All projects target `net48` (BepInEx 5 + the game's Mono runtime). Deployment into the game's `BepInEx/plugins/CUO/` folder is handled by `deploy.ps1`.
+All projects target `net48` (BepInEx 5 + the game's Mono runtime). Deployment into the game's `BepInEx/plugins/CasualtiesUnknownOnline/` folder is handled by `deploy.ps1`.
 
 ## Documentation
 

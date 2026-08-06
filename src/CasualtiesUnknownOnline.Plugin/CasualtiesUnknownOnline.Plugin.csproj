@@ -5,7 +5,7 @@
     <AssemblyName>CasualtiesUnknownOnline</AssemblyName>
     <Product>Casualties Unknown: Online</Product>
     <Version>0.1.0</Version>
-    <BepInExPluginGuid>dev.xeronowo.cuo</BepInExPluginGuid>
+    <BepInExPluginGuid>CasualtiesUnknownOnline</BepInExPluginGuid>
     <BepInExPluginName>Casualties Unknown: Online</BepInExPluginName>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>preview</LangVersion>

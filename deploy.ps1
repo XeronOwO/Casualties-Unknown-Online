@@ -1,11 +1,11 @@
 <#
 .SYNOPSIS
-Builds the CUO solution and deploys the plugin into the game's BepInEx/plugins/CUO/ folder.
+Builds the CUO solution and deploys the plugin into the game's BepInEx/plugins/CasualtiesUnknownOnline/ folder.
 
 .DESCRIPTION
 Deploys all build-output DLLs (plugin, Runtime, Abstractions, Microsoft.Extensions.*,
 System.*) plus Steamworks.NET.dll and steam_api64.dll from references/ into
-<game>/BepInEx/plugins/CUO/. Refuses to run while the game is running.
+<game>/BepInEx/plugins/CasualtiesUnknownOnline/. Refuses to run while the game is running.
 
 .PARAMETER GameDir
 Path to the game installation. If omitted, reads the CUO_GAME_DIR environment variable.
@@ -43,7 +43,7 @@ if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
 
-$targetDir = Join-Path $GameDir "BepInEx\plugins\CUO"
+$targetDir = Join-Path $GameDir "BepInEx\plugins\CasualtiesUnknownOnline"
 New-Item -ItemType Directory -Force -Path $targetDir | Out-Null
 
 # Assemblies owned by the game's own BepInEx install (BepInEx/core) — never

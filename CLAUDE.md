@@ -94,6 +94,7 @@ Do not jump ahead: Phase 1 must not add inventory/combat/quests/saves. MVP expli
 4. **Clean git hygiene** — commits never contain build artifacts/binaries, personal preferences, machine/environment specifics, or secrets. Committed files (code, comments, docs, examples) must never contain real machine paths — no drive letters, usernames, or install roots like `E:\SteamLibrary\...`; use placeholders (`C:\path\to\game`, `<game-dir>`). Real paths live only in the gitignored `CLAUDE.local.md`. Route everything else through `.gitignore`.
 5. **Requirement triage** — when the user states a requirement, judge whether it is reusable and long-lived: personal/specific → record in `CLAUDE.local.md`, keep out of commits; shared/project-benefiting → record and commit (`CLAUDE.md`, docs, skills); **ambiguous → ask the user** whether it's personal or shared.
 6. **Architecture & maintainability first** — fix root causes, not symptoms; when fixing a problem, consider whether a better design exists; for risky or architecture-affecting changes, propose and get user consent before acting.
+7. **Evidence-based changes (user requirement)** — every change must be grounded in code: find the mechanism in the decompiled sources (`reversing/`, cite file:line) before touching it. Never fix by intuition/guesswork. When a mechanism is not understood, isolate and verify it (e.g. test a clone in single-player) instead of stacking network-test variables. A proposed fix must explain ALL observed symptoms, not just the surface one.
 
 ## Context Compression Protocol
 

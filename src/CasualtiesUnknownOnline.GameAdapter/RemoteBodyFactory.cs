@@ -53,6 +53,15 @@ internal static class RemoteBodyFactory
 			hinge.enabled = false;
 		}
 
+		// IKHandle.Update (IKHandle.cs:43-57) lerps targetPos to
+		// Camera.main.ScreenToWorldPoint(Input.mousePosition) and draws a
+		// LineRenderer toward it — a clone would draw "aim lines" at the LOCAL
+		// player's mouse. Disable: it is single-player interaction visuals.
+		foreach (var ik in clone.GetComponentsInChildren<IKHandle>())
+		{
+			ik.enabled = false;
+		}
+
 		return body;
 	}
 }

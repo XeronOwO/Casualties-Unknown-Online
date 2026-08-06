@@ -15,7 +15,7 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// </summary>
 internal static class RemoteBodyFactory
 {
-	public static Body? CreateRemoteBody(PlayerEntity remote, bool simulated, Vector2 anchor, ILogger log)
+	public static Body? CreateRemoteBody(PlayerEntity remote, Vector2 anchor, ILogger log)
 	{
 		var template = GameObject.Find("Experiment");
 		if (template is null)
@@ -38,23 +38,19 @@ internal static class RemoteBodyFactory
 
 		body.transform.position = anchor;
 		body.targetLookPos = new Vector2(1000f, 460f);
-		clone.AddComponent<RemoteBodyDriver>().simulated = simulated;
+		clone.AddComponent<RemoteBodyDriver>();
 
-		if (!simulated)
+		// Freeze ALL physics and joints — the limbs are separate
+		// Rigidbody2D+HingeJoint rigs that would otherwise keep simulating and
+		// convulse the proxy while the session overwrites the root transform.
+		foreach (var rb in clone.GetComponentsInChildren<Rigidbody2D>())
 		{
-			// Render proxy: freeze ALL physics, not just Body.FixedUpdate — the
-			// limbs are separate Rigidbody2D+HingeJoint rigs that would keep
-			// simulating and convulse the clone while the session overwrites the
-			// root transform every frame.
-			foreach (var rb in clone.GetComponentsInChildren<Rigidbody2D>())
-			{
-				rb.simulated = false;
-			}
+			rb.simulated = false;
+		}
 
-			foreach (var hinge in clone.GetComponentsInChildren<HingeJoint2D>())
-			{
-				hinge.enabled = false;
-			}
+		foreach (var hinge in clone.GetComponentsInChildren<HingeJoint2D>())
+		{
+			hinge.enabled = false;
 		}
 
 		return body;

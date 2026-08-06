@@ -13,16 +13,15 @@ internal static class BodyPatches
 	[HarmonyPatch(typeof(Body), "FixedUpdate")]
 	internal static class BodyFixedUpdatePatch
 	{
-		private static bool Prefix(Body __instance)
-		{
-			var driver = __instance.GetComponent<RemoteBodyDriver>();
-			if (driver is not null && !driver.simulated)
-			{
-				return false; // render proxy: position/velocity come from the session
-			}
+		private static bool Prefix(Body __instance) => __instance.GetComponent<RemoteBodyDriver>() is null;
+	}
 
-			return true;
-		}
+	[HarmonyPatch(typeof(Body), "Update")]
+	internal static class BodyUpdatePatch
+	{
+		// HandlePhysics/HandleVisuals in Update drive the limbs — a frozen proxy
+		// must skip them too, or it convulses while the session overwrites the root.
+		private static bool Prefix(Body __instance) => __instance.GetComponent<RemoteBodyDriver>() is null;
 	}
 
 	[HarmonyPatch(typeof(Body), "Start")]

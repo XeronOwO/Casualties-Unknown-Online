@@ -35,14 +35,6 @@ public sealed class PlayerEntity(ulong steamId, NetworkEntityId entityId, bool i
 
 	public bool Crouching { get; set; }
 
-	// ---- Guest input (guest → host, consumed on the host's clone) ----
-	public NetVector2 MoveDir { get; set; }
-
-	/// <summary>Guest mouse world position — drives the clone's targetLookPos.</summary>
-	public NetVector2 LookInput { get; set; }
-
-	public bool JumpQueued { get; set; }
-
 	/// <summary>Host side: position the guest reported when entering the world — the clone's spawn anchor.</summary>
 	public NetVector2 ReportedSpawnPos { get; set; }
 

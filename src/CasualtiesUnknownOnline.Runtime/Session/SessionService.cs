@@ -56,7 +56,7 @@ public sealed class WorldStartParams
 public sealed class SessionService : ICuoService
 {
 	private const float StateSendInterval = 0.05f; // 20 Hz authoritative snapshot
-	private const float InputSendInterval = 0.05f; // 20 Hz guest input
+	private const float ReportSendInterval = 0.05f; // 20 Hz guest state report
 	private const float PingInterval = 5f;
 	private const float MemberCheckInterval = 2f;
 	private const float HandshakeRetryInterval = 3f; // lazy Steam P2P sessions swallow early messages
@@ -71,12 +71,8 @@ public sealed class SessionService : ICuoService
 	private ulong _epoch;
 	private uint _nextEntityCounter;
 
-	private NetVector2 _pendingMoveDir;
-	private NetVector2 _pendingLookPos;
-	private bool _pendingJump;
-	private bool _pendingCrouch;
 	private long _nextStateSendMs;
-	private long _nextInputSendMs;
+	private long _nextReportSendMs;
 	private long _nextPingMs;
 	private long _nextMemberCheckMs;
 	private long _nextHandshakeRetryMs;
@@ -122,11 +118,8 @@ public sealed class SessionService : ICuoService
 
 	public event Action<PlayerEntity>? RemoteLeft;
 
-	/// <summary>Both sides: a PlayerState batch refreshed the local entity buffer.</summary>
+	/// <summary>Both sides: a state message refreshed the entity buffer (PlayerState on guest, PlayerStateReport on host).</summary>
 	public event Action<PlayerEntity>? StateReceived;
-
-	/// <summary>Host side: fresh input for the guest's clone was buffered.</summary>
-	public event Action<PlayerEntity>? InputReceived;
 
 	// ---- Local state submission (Game Adapter → session) ----
 
@@ -142,29 +135,6 @@ public sealed class SessionService : ICuoService
 		_localPlayer.Alive = alive;
 		_localPlayer.Conscious = conscious;
 		_localPlayer.Crouching = crouching;
-	}
-
-	/// <summary>Host side: state of the guest's simulated clone.</summary>
-	public void PublishRemoteState(PlayerEntity remote, NetVector2 position, NetVector2 lookPos, NetVector2 velocity,
-		bool isRight, bool standing, bool alive, bool conscious, bool crouching)
-	{
-		remote.Position = position;
-		remote.LookPos = lookPos;
-		remote.Velocity = velocity;
-		remote.IsRight = isRight;
-		remote.Standing = standing;
-		remote.Alive = alive;
-		remote.Conscious = conscious;
-		remote.Crouching = crouching;
-	}
-
-	/// <summary>Guest side: submit local input (direction + look target + one-shot jump).</summary>
-	public void SubmitLocalInput(NetVector2 moveDir, NetVector2 lookPos, bool jump, bool crouching)
-	{
-		_pendingMoveDir = moveDir;
-		_pendingLookPos = lookPos;
-		_pendingJump |= jump;
-		_pendingCrouch = crouching;
 	}
 
 	/// <summary>
@@ -247,10 +217,10 @@ public sealed class SessionService : ICuoService
 			MaybeStartEntitySync();
 		}
 
-		if (Role == SessionRole.Guest && EntitySyncActive && nowMs >= _nextInputSendMs)
+		if (Role == SessionRole.Guest && EntitySyncActive && nowMs >= _nextReportSendMs)
 		{
-			_nextInputSendMs = nowMs + (long)(InputSendInterval * 1000f);
-			SendPlayerInput();
+			_nextReportSendMs = nowMs + (long)(ReportSendInterval * 1000f);
+			SendPlayerStateReport();
 		}
 
 		CheckPeerPresence();
@@ -517,19 +487,16 @@ public sealed class SessionService : ICuoService
 		RemoteJoined?.Invoke(_remotePlayer);
 	}
 
-	private void OnPlayerInput(ulong sender, BinaryReader reader)
+	/// <summary>Guest → host: the guest's locally simulated state (host renders it, no host-side simulation).</summary>
+	private void OnPlayerStateReport(ulong sender, BinaryReader reader)
 	{
 		if (Role != SessionRole.Host || _remotePlayer is null)
 		{
 			return;
 		}
 
-		var flags = reader.ReadByte();
-		_remotePlayer.MoveDir = NetPacket.ReadVector2(reader);
-		_remotePlayer.LookInput = NetPacket.ReadVector2(reader);
-		_remotePlayer.JumpQueued = (flags & 0x01) != 0;
-		_remotePlayer.Crouching = (flags & 0x02) != 0;
-		InputReceived?.Invoke(_remotePlayer);
+		ReadEntityState(reader, _remotePlayer);
+		StateReceived?.Invoke(_remotePlayer);
 	}
 
 	private void OnPlayerState(ulong sender, BinaryReader reader)
@@ -543,27 +510,32 @@ public sealed class SessionService : ICuoService
 		for (var i = 0; i < count; i++)
 		{
 			var entityId = ReadEntityId(reader);
-			var position = NetPacket.ReadVector2(reader);
-			var lookPos = NetPacket.ReadVector2(reader);
-			var velocity = NetPacket.ReadVector2(reader);
-			var flags = reader.ReadByte();
-
 			var target = entityId == _localPlayer.EntityId ? _localPlayer : _remotePlayer;
-			// Keep the previous snapshot for render interpolation on the guest.
-			target.PrevPosition = target.Position;
-			target.PrevLookPos = target.LookPos;
-			target.PrevVelocity = target.Velocity;
-			target.Position = position;
-			target.LookPos = lookPos;
-			target.Velocity = velocity;
-			target.IsRight = (flags & 0x01) != 0;
-			target.Standing = (flags & 0x02) != 0;
-			target.Alive = (flags & 0x04) != 0;
-			target.Conscious = (flags & 0x08) != 0;
-			target.Crouching = (flags & 0x10) != 0;
-			target.StateReceivedMs = Environment.TickCount;
+			ReadEntityState(reader, target);
 		}
 		StateReceived?.Invoke(_localPlayer);
+	}
+
+	private static void ReadEntityState(BinaryReader reader, PlayerEntity target)
+	{
+		var position = NetPacket.ReadVector2(reader);
+		var lookPos = NetPacket.ReadVector2(reader);
+		var velocity = NetPacket.ReadVector2(reader);
+		var flags = reader.ReadByte();
+
+		// Keep the previous snapshot for render interpolation.
+		target.PrevPosition = target.Position;
+		target.PrevLookPos = target.LookPos;
+		target.PrevVelocity = target.Velocity;
+		target.Position = position;
+		target.LookPos = lookPos;
+		target.Velocity = velocity;
+		target.IsRight = (flags & 0x01) != 0;
+		target.Standing = (flags & 0x02) != 0;
+		target.Alive = (flags & 0x04) != 0;
+		target.Conscious = (flags & 0x08) != 0;
+		target.Crouching = (flags & 0x10) != 0;
+		target.StateReceivedMs = Environment.TickCount;
 	}
 
 	private void BroadcastPlayerState()
@@ -581,21 +553,15 @@ public sealed class SessionService : ICuoService
 		});
 	}
 
-	private void SendPlayerInput()
+	/// <summary>Guest side: broadcast the locally simulated state to the host (20 Hz).</summary>
+	private void SendPlayerStateReport()
 	{
 		if (_remotePlayer is null)
 		{
 			return;
 		}
 
-		var flags = (byte)((_pendingJump ? 0x01 : 0) | (_pendingCrouch ? 0x02 : 0));
-		_pendingJump = false;
-		Send(_remotePlayer.SteamId, NetMsg.PlayerInput, w =>
-		{
-			w.Write(flags);
-			NetPacket.WriteVector2(w, _pendingMoveDir);
-			NetPacket.WriteVector2(w, _pendingLookPos);
-		});
+		Send(_remotePlayer.SteamId, NetMsg.PlayerStateReport, w => WriteEntity(w, _localPlayer));
 	}
 
 	// ---- Ping / pong (diagnostics) ----
@@ -697,8 +663,8 @@ public sealed class SessionService : ICuoService
 			case NetMsg.PlayerJoin:
 				OnPlayerJoin(sender, reader);
 				break;
-			case NetMsg.PlayerInput:
-				OnPlayerInput(sender, reader);
+			case NetMsg.PlayerStateReport:
+				OnPlayerStateReport(sender, reader);
 				break;
 			case NetMsg.PlayerState:
 				OnPlayerState(sender, reader);

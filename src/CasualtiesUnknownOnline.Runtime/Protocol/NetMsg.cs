@@ -19,8 +19,8 @@ public enum NetMsg : byte
 	// Entities
 	PlayerJoin = 32,
 	PlayerLeave = 33,
-	PlayerInput = 34,
 	PlayerState = 35,
+	PlayerStateReport = 36, // guest → host: local authoritative position (no host-side simulation)
 }
 
 public static class ProtocolVersion

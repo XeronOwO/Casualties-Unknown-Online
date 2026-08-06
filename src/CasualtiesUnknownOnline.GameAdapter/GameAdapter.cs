@@ -190,6 +190,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 		_session.RemoteLeft -= OnRemoteLeft;
 		_session.InputReceived -= OnInputReceived;
 		_session.SessionEnded -= OnSessionEnded;
+		_session.SessionActivated -= OnSessionActivated;
 		Instance = null;
 	}
 
@@ -203,6 +204,24 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 		_session.RemoteLeft += OnRemoteLeft;
 		_session.InputReceived += OnInputReceived;
 		_session.SessionEnded += OnSessionEnded;
+		_session.SessionActivated += OnSessionActivated;
+	}
+
+	/// <summary>
+	/// Re-report the scene state (with position) once the handshake completes —
+	/// if we entered the world before connecting, the earlier report was not
+	/// sent (no session yet) and the host would spawn our clone at (0,0).
+	/// </summary>
+	private void OnSessionActivated()
+	{
+		if (!_inWorld || _localBody is null)
+		{
+			return;
+		}
+
+		var sceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+		var pos = new NetVector2(_localBody.transform.position.x, _localBody.transform.position.y);
+		_session.ReportSceneState(SceneStateType.InWorld, sceneName, pos);
 	}
 
 	private void OnRemoteJoined(PlayerEntity remote)
@@ -333,8 +352,25 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 
 	private int _guestInputLogCounter;
 
-	/// <summary>Called from the StartRun patch (see PreRunScriptPatches).</summary>
-	internal void OnStartRun()
+	/// <summary>Gate from the StartRun patch — returns false to block the run start.</summary>
+	internal bool OnStartRun()
+	{
+		if (_session.Role == SessionRole.Guest && _session.SessionActive && _session.WorldParams is null)
+		{
+			_log.LogWarning("Cannot start a run: host world params not received yet — retry in a few seconds.");
+			return false;
+		}
+
+		return true;
+	}
+
+	/// <summary>
+	/// Called at the WorldGeneration.GenerateWorld boundary — the true start of
+	/// generation. Host captures its RNG state (and any randomness consumed
+	/// before this point is baked in); guest restores the host's state so both
+	/// generate the identical world.
+	/// </summary>
+	internal void OnWorldGenerate()
 	{
 		if (_session.Role == SessionRole.Host || _session.Role == SessionRole.None)
 		{
@@ -343,6 +379,10 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 		else if (_session.WorldParams is not null)
 		{
 			ApplyWorldParams(_session.WorldParams);
+		}
+		else
+		{
+			_log.LogWarning("World generation started without host world params — world will not match!");
 		}
 	}
 }

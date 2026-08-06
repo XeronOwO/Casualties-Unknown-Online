@@ -107,7 +107,18 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 		_log.LogInformation("Applied host world params ({StateBytes} bytes).", parameters.RandomState.Length);
 	}
 
-	void ICuoService.Initialize() => BindToSession();
+	void ICuoService.Initialize()
+	{
+		BindToSession();
+		if (ProbeGame())
+		{
+			Install();
+		}
+		else
+		{
+			_log.LogError("Game Adapter probe failed — CUO multiplayer unavailable.");
+		}
+	}
 
 	void ICuoService.Start()
 	{

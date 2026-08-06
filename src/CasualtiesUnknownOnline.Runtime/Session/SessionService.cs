@@ -59,6 +59,7 @@ public sealed class SessionService : ICuoService
 	private const float InputSendInterval = 0.05f; // 20 Hz guest input
 	private const float PingInterval = 5f;
 	private const float MemberCheckInterval = 2f;
+	private const float HandshakeRetryInterval = 3f; // lazy Steam P2P sessions swallow early messages
 
 	private readonly SteamService _steam;
 	private readonly SteamTransport _transport;
@@ -77,6 +78,7 @@ public sealed class SessionService : ICuoService
 	private long _nextInputSendMs;
 	private long _nextPingMs;
 	private long _nextMemberCheckMs;
+	private long _nextHandshakeRetryMs;
 
 	public SessionService(SteamService steam, SteamTransport transport, ILogger<SessionService> log)
 	{
@@ -202,6 +204,7 @@ public sealed class SessionService : ICuoService
 	{
 		if (!SessionActive)
 		{
+			RetryHandshakeIfNeeded();
 			CheckPeerPresence();
 			return;
 		}
@@ -259,7 +262,10 @@ public sealed class SessionService : ICuoService
 		HostSteamId = _steam.GetLobbyMembers().FirstOrDefault(m => m != _steam.LocalSteamId);
 		_log.LogInformation("Session role: Guest (lobby {LobbyId}, host {Host})", lobbyId, HostSteamId);
 
-		// Kick off the handshake: protocol version + our scene state.
+		// Kick off the handshake: protocol version + our scene state. Retry
+		// periodically until acked (Steam P2P sessions establish lazily and
+		// swallow the first messages — retransmission also drives the session).
+		_nextHandshakeRetryMs = Environment.TickCount + (long)(HandshakeRetryInterval * 1000f);
 		Send(HostSteamId, NetMsg.Handshake, w =>
 		{
 			w.Write(ProtocolVersion.Current);
@@ -267,9 +273,31 @@ public sealed class SessionService : ICuoService
 		});
 	}
 
+	private void RetryHandshakeIfNeeded()
+	{
+		if (Role != SessionRole.Guest || HostSteamId == 0)
+		{
+			return;
+		}
+
+		var nowMs = Environment.TickCount;
+		if (nowMs < _nextHandshakeRetryMs)
+		{
+			return;
+		}
+
+		_nextHandshakeRetryMs = nowMs + (long)(HandshakeRetryInterval * 1000f);
+		Send(HostSteamId, NetMsg.Handshake, w =>
+		{
+			w.Write(ProtocolVersion.Current);
+			WriteSceneState(w, SceneStateForLocal());
+		});
+		_log.LogInformation("Retrying handshake with {Host}…", HostSteamId);
+	}
+
 	private void OnHandshake(ulong sender, BinaryReader reader)
 	{
-		if (Role != SessionRole.Host || _remotePlayer is not null)
+		if (Role != SessionRole.Host)
 		{
 			return;
 		}
@@ -283,13 +311,22 @@ public sealed class SessionService : ICuoService
 			return;
 		}
 
-		_remotePlayer = new PlayerEntity(sender, default, isLocal: false)
+		if (_remotePlayer is null)
 		{
-			InWorld = peerState == SceneStateType.InWorld,
-		};
-		SessionActive = true;
+			_remotePlayer = new PlayerEntity(sender, default, isLocal: false)
+			{
+				InWorld = peerState == SceneStateType.InWorld,
+			};
+			SessionActive = true;
+			_log.LogInformation("Handshake complete with {Peer}.", sender);
+			SessionActivated?.Invoke();
+			MaybeStartEntitySync();
+		}
 
-		// Ack: our protocol version, our scene state, and whether a run is started.
+		// Ack on every handshake, even repeats: the guest retransmits its
+		// handshake until it receives one (Steam P2P sessions establish lazily,
+		// first messages can be swallowed — Phase-0 finding). Same for world
+		// params, which are only sent once the session exists.
 		Send(sender, NetMsg.HandshakeAck, w =>
 		{
 			w.Write(ProtocolVersion.Current);
@@ -300,10 +337,6 @@ public sealed class SessionService : ICuoService
 		{
 			Send(sender, NetMsg.WorldStartParams, w => WriteWorldParams(w, _worldParams));
 		}
-
-		_log.LogInformation("Handshake complete with {Peer}.", sender);
-		SessionActivated?.Invoke();
-		MaybeStartEntitySync();
 	}
 
 	private void OnHandshakeAck(ulong sender, BinaryReader reader)

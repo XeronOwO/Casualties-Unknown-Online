@@ -76,3 +76,4 @@ references/*.dll
 # Reverse-engineering workspace (decompiled sources, analysis artifacts)
 reversing/*
 !reversing/README.md
+.mcp.json

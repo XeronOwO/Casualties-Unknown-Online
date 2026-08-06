@@ -216,7 +216,15 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 				_remoteCloneBody.Jump();
 			}
 		}
+
+		if (++_inputLogCounter % 20 == 0)
+		{
+			_log.LogDebug("Remote input: move ({X:F1}, {Y:F1}) crouch {Crouch}",
+				remote.MoveDir.X, remote.MoveDir.Y, remote.Crouching);
+		}
 	}
+
+	private int _inputLogCounter;
 
 	private void OnSessionEnded()
 	{
@@ -274,7 +282,17 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 	}
 
 	/// <summary>Guest side: input from the HandleInput patch → session.</summary>
-	internal void SubmitGuestInput(float moveX, float moveY, bool jump, bool crouch) => _session.SubmitLocalInput(new NetVector2(moveX, moveY), jump, crouch);
+	internal void SubmitGuestInput(float moveX, float moveY, bool jump, bool crouch)
+	{
+		_session.SubmitLocalInput(new NetVector2(moveX, moveY), jump, crouch);
+		if (++_guestInputLogCounter % 20 == 0)
+		{
+			_log.LogDebug("Guest input: move ({X:F1}, {Y:F1}) jump {Jump} crouch {Crouch}",
+				moveX, moveY, jump, crouch);
+		}
+	}
+
+	private int _guestInputLogCounter;
 
 	/// <summary>Called from the StartRun patch (see PreRunScriptPatches).</summary>
 	internal void OnStartRun()

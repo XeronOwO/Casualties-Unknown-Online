@@ -238,6 +238,15 @@ public sealed class SessionService : ICuoService
 			BroadcastPlayerState();
 		}
 
+		// Opportunistic entity-sync start: retried every frame (cheap, idempotent)
+		// instead of only on message arrival — the local InWorld flag is set by
+		// the Game Adapter's Update, which may run after a peer's InWorld message
+		// was already processed, and the sync would otherwise never start.
+		if (Role == SessionRole.Host && !EntitySyncActive)
+		{
+			MaybeStartEntitySync();
+		}
+
 		if (Role == SessionRole.Guest && EntitySyncActive && nowMs >= _nextInputSendMs)
 		{
 			_nextInputSendMs = nowMs + (long)(InputSendInterval * 1000f);

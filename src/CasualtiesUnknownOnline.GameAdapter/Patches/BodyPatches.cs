@@ -15,14 +15,10 @@ internal static class BodyPatches
 	{
 		private static bool Prefix(Body __instance) => __instance.GetComponent<RemoteBodyDriver>() is null;
 	}
-
-	[HarmonyPatch(typeof(Body), "Update")]
-	internal static class BodyUpdatePatch
-	{
-		// HandlePhysics/HandleVisuals in Update drive the limbs — a frozen proxy
-		// must skip them too, or it convulses while the session overwrites the root.
-		private static bool Prefix(Body __instance) => __instance.GetComponent<RemoteBodyDriver>() is null;
-	}
+	// NOTE: Body.Update intentionally runs on render proxies — HandleVisuals
+	// initializes the limb sprites and the animation system needs the update to
+	// drive walk/jump poses. Only the physics (FixedUpdate + rb.simulated=false)
+	// is frozen; the session overwrites the root transform each frame.
 
 	[HarmonyPatch(typeof(Body), "Start")]
 	internal static class BodyStartPatch

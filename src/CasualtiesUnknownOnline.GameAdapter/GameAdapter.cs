@@ -126,21 +126,44 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 	void ICuoService.Update()
 	{
 		UpdateSceneState();
-		if (!_session.EntitySyncActive)
-		{
-			return;
-		}
-
-		// Both sides: publish the local body's state (host → PlayerState
-		// broadcast, guest → PlayerStateReport to the host) and render the
-		// remote clone from the peer's reported state. NO remote-side
-		// simulation anywhere — each player simulates only its own body.
+		// Publish local state even before entity sync activates — the host's
+		// PlayerJoin carries the local position, which was (0,0) before sync
+		// because publishing only ran after activation.
 		if (_localBody is not null)
 		{
 			PublishBodyState(_localBody);
 		}
 
+		if (!_session.EntitySyncActive)
+		{
+			return;
+		}
+
+		// Both sides render the remote clone from the peer's reported state.
+		// NO remote-side simulation anywhere — each player simulates only its
+		// own body.
 		SessionStatePump.Apply(_session.RemotePlayer, _remoteCloneBody);
+		LogClonePosition();
+	}
+
+	private long _nextCloneLogMs;
+
+	/// <summary>Periodic clone diagnostics (1 Hz) — where the remote proxy actually is.</summary>
+	private void LogClonePosition()
+	{
+		var nowMs = Environment.TickCount;
+		if (nowMs < _nextCloneLogMs)
+		{
+			return;
+		}
+
+		_nextCloneLogMs = nowMs + 1000;
+		var pos = _remoteCloneBody?.transform.position ?? Vector3.zero;
+		var reported = _session.RemotePlayer is not null
+			? new Vector2(_session.RemotePlayer.Position.X, _session.RemotePlayer.Position.Y)
+			: Vector2.zero;
+		_log.LogDebug("Clone: at ({PX:F1}, {PY:F1}), reported ({RX:F1}, {RY:F1}), active {Active}",
+			pos.x, pos.y, reported.x, reported.y, _remoteCloneBody is not null && _remoteCloneBody.gameObject.activeInHierarchy);
 	}
 
 	void ICuoService.Stop() => Uninstall();

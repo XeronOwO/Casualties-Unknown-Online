@@ -92,6 +92,13 @@ public class Plugin : BaseUnityPlugin
 			// Wire events BEFORE Initialize — callbacks may fire immediately.
 			_steam.LobbyCreated += lobbyId => _log.LogInformation("Lobby created: {LobbyId}", lobbyId);
 			_steam.LobbyEntered += lobbyId => _log.LogInformation("Lobby entered: {LobbyId}", lobbyId);
+			// Steam friends "Join Game" (right-click → join) fires
+			// GameLobbyJoinRequested_t — auto-join, no TargetLobbyId config needed.
+			_steam.JoinRequested += lobbyId =>
+			{
+				_log.LogInformation("Join requested via Steam friends — joining lobby {LobbyId}.", lobbyId);
+				_steam.JoinLobby(lobbyId);
+			};
 
 			// Forward Unity log messages into CUO's own log so runtime errors
 			// (which BepInEx's DiskLogListener may not capture) are visible.

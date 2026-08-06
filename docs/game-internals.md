@@ -40,4 +40,19 @@ From `reversing/KrokMP/KrokoshaCasualtiesMP/` (full decompiled source):
 - **Camera/UI routing**: `PlayerCamera.main.body` is overridden (`BodyGetterOverrider`, `InvButton_get_body` patches) so local camera/UI target the local player's clone.
 - **Worldgen**: `Patched_GenerateWorld` / `Patched_WorldPlacePlayer` (via `HarmonyReversePatch`) replace the original coroutines; server drives world state, clients wait (`WorldChunkSync` tilemap sync etc.).
 
-CUO deliberately diverges: host-authoritative **input-driven** sync per `docs/architecture.md` §3 — the host simulates guest clone Bodies from guest input; guest clones render host state. MVP excludes client prediction/interpolation.
+## Clone & Render Chain (Phase 1 verified findings)
+
+Remote player clones are `Instantiate` of the scene `"Experiment"` GameObject (same template KrokMP uses). Per-clone component behavior, verified in the decompiled sources:
+
+- `Body.FixedUpdate` — physics. Render proxies skip it.
+- `Body.Update` → `HandleVisuals` (`Body.cs:3123+`) — drives limb poses from the Animator skeleton (`bodyAnimator`/`armsAnimator`) + local world queries (BoxCast for `grounded`); also `Random.Range` jitter (consumes RNG). **MUST run on proxies** or limb sprites stay uninitialized/invisible and no poses are driven.
+- `Limb.Update` (`Limb.cs:498+`) — shader params (`_SkinDamage` etc.), heal timers, infection checks (consumes `Random`); does NOT move limbs. Safe to leave running.
+- `IKHandle.Update` (`IKHandle.cs:40-57`) — lerps `targetPos` to `Camera.main.ScreenToWorldPoint(Input.mousePosition)` and draws `LineRenderer` toward it. Clones drew aim lines at the **local player's mouse** ("head looking at mouse" symptom) → disabled on clones.
+- `HingeJoint2D` on cloned limbs — disabled on proxies (physics frozen).
+- `Body.Awake` (`Body.cs:1048`) accesses `WorldGeneration.world.soundMixerGroup` — clones must be created after the world exists (they are: at `RemoteJoined`, which requires both sides InWorld).
+
+Render proxy recipe: frozen physics (`FixedUpdate` skipped, all `Rigidbody2D.simulated=false`, `HingeJoint2D` disabled, `IKHandle` disabled) + live `Body.Update` (animations/poses) + root transform written every frame from the peer's state report (with first-snapshot interpolation guard — see PlayerEntity.StateReceivedMs).
+
+## Sync Model (Phase 1 landed, user-mandated)
+
+Each player simulates **only its own body** locally; peer state is exchanged at 20 Hz (`PlayerState` host→guest, `PlayerStateReport` guest→host; both carry position/look/velocity/pose flags). The remote player is a frozen render clone fed by the state stream. "Host-authoritative" does **not** mean the host computes the guest's movement — guest movement is always local (user mandate: "移动必定是在本地计算的,主机只做校验"); authority covers world-state ownership (world-gen seed, saves, later: interactions), not per-frame player simulation. Previous attempt (host shadow-simulating the guest's clone) was reverted (`882a43d`).

@@ -146,10 +146,36 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 		}
 		else
 		{
-			SessionStatePump.Apply(_session.LocalPlayer, _localBody);
+			// Guest: the local body simulates itself with local input (feel =
+			// single-player); the host's clone is the authority and we render it.
 			SessionStatePump.Apply(_session.RemotePlayer, _remoteCloneBody);
+			ValidateLocalAgainstHost();
 		}
 	}
+
+	/// <summary>
+	/// Host-authority validation: the host's simulated clone is the reference.
+	/// Small deviations are ignored (local feel wins — inputs and physics run
+	/// on both sides); large ones snap the local body back (cheat/desync guard).
+	/// </summary>
+	private void ValidateLocalAgainstHost()
+	{
+		if (_localBody is null)
+		{
+			return;
+		}
+
+		var hostPos = _session.LocalPlayer.Position;
+		var localPos = _localBody.transform.position;
+		var distance = Vector2.Distance(localPos, new Vector2(hostPos.X, hostPos.Y));
+		if (distance > CorrectionThreshold)
+		{
+			_localBody.transform.position = new Vector2(hostPos.X, hostPos.Y);
+			_log.LogWarning("Local body corrected to host position (deviation {Distance:F1}m).", distance);
+		}
+	}
+
+	private const float CorrectionThreshold = 3f;
 
 	void ICuoService.Stop() => Uninstall();
 
@@ -183,8 +209,13 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 	{
 		var simulated = _session.Role == SessionRole.Host;
 		_remoteCloneSimulated = simulated;
-		_remoteCloneBody = RemoteBodyFactory.CreateRemoteBody(
-			remote, simulated, _localBody?.transform.position ?? Vector2.zero, _log);
+		// Host: spawn the guest's clone at the guest's reported spawn point so
+		// both sides simulate from the same start (validation stays small).
+		// Guest: the host's clone renders at the host position from PlayerJoin.
+		var anchor = simulated
+			? new Vector2(remote.ReportedSpawnPos.X, remote.ReportedSpawnPos.Y)
+			: new Vector2(remote.Position.X, remote.Position.Y);
+		_remoteCloneBody = RemoteBodyFactory.CreateRemoteBody(remote, simulated, anchor, _log);
 		_log.LogInformation("Remote body created for {SteamId} (simulated: {Simulated}).",
 			remote.SteamId, simulated);
 	}
@@ -255,7 +286,10 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 		_inWorld = inWorld;
 		_localBody = inWorld ? PlayerCamera.main!.body : null;
 		var sceneName = inWorld ? UnityEngine.SceneManagement.SceneManager.GetActiveScene().name : "PreGen";
-		_session.ReportSceneState(inWorld ? SceneStateType.InWorld : SceneStateType.InMenu, sceneName);
+		var pos = inWorld && _localBody is not null
+			? new NetVector2(_localBody.transform.position.x, _localBody.transform.position.y)
+			: (NetVector2?)null;
+		_session.ReportSceneState(inWorld ? SceneStateType.InWorld : SceneStateType.InMenu, sceneName, pos);
 	}
 
 	// ---- State shuttling ----

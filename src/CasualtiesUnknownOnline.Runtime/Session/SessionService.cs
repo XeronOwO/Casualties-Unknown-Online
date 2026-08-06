@@ -167,13 +167,19 @@ public sealed class SessionService : ICuoService
 		_pendingCrouch = crouching;
 	}
 
-	/// <summary>Either side: report the local scene state (menu / in world).</summary>
-	public void ReportSceneState(SceneStateType state, string sceneName)
+	/// <summary>
+	/// Either side: report the local scene state (menu / in world). The local
+	/// position is attached when entering the world — the host spawns the
+	/// guest's clone at the guest's actual spawn point, so both sides simulate
+	/// from the same start and validation corrections stay small.
+	/// </summary>
+	public void ReportSceneState(SceneStateType state, string sceneName, NetVector2? localPosition = null)
 	{
 		_localPlayer.InWorld = state == SceneStateType.InWorld;
 		if (SessionActive)
 		{
-			Send(PeerSteamId(), NetMsg.SceneState, w => WriteSceneState(w, state, sceneName));
+			Send(PeerSteamId(), NetMsg.SceneState,
+				w => WriteSceneState(w, state, sceneName, localPosition));
 		}
 
 		_log.LogInformation("Scene state: {State} ({SceneName})", state, sceneName);
@@ -340,7 +346,7 @@ public sealed class SessionService : ICuoService
 		}
 
 		var protocol = reader.ReadInt32();
-		ReadSceneState(reader, out var peerState, out _);
+		ReadSceneState(reader, out var peerState, out _, out _);
 		if (protocol != ProtocolVersion.Current)
 		{
 			_log.LogWarning("Peer {Peer} speaks protocol {PeerProtocol}; we speak {Current}. Rejecting.",
@@ -379,7 +385,7 @@ public sealed class SessionService : ICuoService
 	private void OnHandshakeAck(ulong sender, BinaryReader reader)
 	{
 		var protocol = reader.ReadInt32();
-		ReadSceneState(reader, out var hostState, out _);
+		ReadSceneState(reader, out var hostState, out _, out _);
 		_ = reader.ReadBoolean(); // host has world params — they arrive as their own message
 		if (protocol != ProtocolVersion.Current)
 		{
@@ -402,7 +408,7 @@ public sealed class SessionService : ICuoService
 
 	private void OnSceneState(ulong sender, BinaryReader reader)
 	{
-		ReadSceneState(reader, out var state, out var sceneName);
+		ReadSceneState(reader, out var state, out var sceneName, out var position);
 		if (_remotePlayer is null)
 		{
 			return;
@@ -410,6 +416,11 @@ public sealed class SessionService : ICuoService
 
 		var wasInWorld = _remotePlayer.InWorld;
 		_remotePlayer.InWorld = state == SceneStateType.InWorld;
+		if (position is not null)
+		{
+			_remotePlayer.ReportedSpawnPos = position.Value;
+		}
+
 		_log.LogInformation("Peer {Peer} scene state: {State} ({SceneName})", sender, state, sceneName);
 		if (wasInWorld != _remotePlayer.InWorld)
 		{
@@ -718,16 +729,21 @@ public sealed class SessionService : ICuoService
 
 	private SceneStateType SceneStateForLocal() => _localPlayer.InWorld ? SceneStateType.InWorld : SceneStateType.InMenu;
 
-	private static void WriteSceneState(BinaryWriter w, SceneStateType state, string? sceneName = null)
+	private static void WriteSceneState(BinaryWriter w, SceneStateType state, string? sceneName = null, NetVector2? position = null)
 	{
 		w.Write((byte)state);
 		w.Write(sceneName ?? "");
+		var pos = position ?? default;
+		NetPacket.WriteVector2(w, pos);
 	}
 
-	private static void ReadSceneState(BinaryReader r, out SceneStateType state, out string sceneName)
+	private static void ReadSceneState(BinaryReader r, out SceneStateType state, out string sceneName, out NetVector2? position)
 	{
 		state = (SceneStateType)r.ReadByte();
 		sceneName = r.ReadString();
+		var x = r.ReadSingle();
+		var y = r.ReadSingle();
+		position = new NetVector2(x, y);
 	}
 
 	private static void WriteEntityId(BinaryWriter w, NetworkEntityId id)

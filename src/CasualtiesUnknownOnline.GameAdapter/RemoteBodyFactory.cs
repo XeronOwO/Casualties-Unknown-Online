@@ -42,6 +42,24 @@ internal static class RemoteBodyFactory
 		body.transform.position = spawn;
 		body.targetLookPos = new Vector2(1000f, 460f);
 		clone.AddComponent<RemoteBodyDriver>().simulated = simulated;
+
+		if (!simulated)
+		{
+			// Render proxy: freeze ALL physics, not just Body.FixedUpdate — the
+			// limbs are separate Rigidbody2D+HingeJoint rigs that would keep
+			// simulating and convulse the clone while the session overwrites the
+			// root transform every frame.
+			foreach (var rb in clone.GetComponentsInChildren<Rigidbody2D>())
+			{
+				rb.simulated = false;
+			}
+
+			foreach (var hinge in clone.GetComponentsInChildren<HingeJoint2D>())
+			{
+				hinge.enabled = false;
+			}
+		}
+
 		return body;
 	}
 }

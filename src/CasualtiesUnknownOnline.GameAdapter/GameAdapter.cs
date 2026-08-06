@@ -155,8 +155,10 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 
 	/// <summary>
 	/// Host-authority validation: the host's simulated clone is the reference.
-	/// Small deviations are ignored (local feel wins — inputs and physics run
-	/// on both sides); large ones snap the local body back (cheat/desync guard).
+	/// The two simulations can never match exactly (input timing, physics
+	/// nondeterminism), so corrections must be invisible: small deviations
+	/// converge smoothly each frame (few % toward the host position — no snap),
+	/// and only a real divergence (cheat/desync, &gt; threshold) hard-snaps.
 	/// </summary>
 	private void ValidateLocalAgainstHost()
 	{
@@ -165,17 +167,25 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 			return;
 		}
 
-		var hostPos = _session.LocalPlayer.Position;
+		var hostPos = new Vector2(_session.LocalPlayer.Position.X, _session.LocalPlayer.Position.Y);
 		var localPos = _localBody.transform.position;
-		var distance = Vector2.Distance(localPos, new Vector2(hostPos.X, hostPos.Y));
-		if (distance > CorrectionThreshold)
+		var distance = Vector2.Distance(localPos, hostPos);
+		if (distance > HardCorrectionThreshold)
 		{
-			_localBody.transform.position = new Vector2(hostPos.X, hostPos.Y);
-			_log.LogWarning("Local body corrected to host position (deviation {Distance:F1}m).", distance);
+			_localBody.transform.position = hostPos;
+			_log.LogWarning("Local body snapped to host position (deviation {Distance:F1}m).", distance);
+		}
+		else if (distance > SmoothCorrectionStart)
+		{
+			// Converge ~10% of the remaining deviation per frame — imperceptible
+			// over a second, keeps long-term drift bounded.
+			_localBody.transform.position = Vector2.Lerp(localPos, hostPos, 0.1f);
 		}
 	}
 
-	private const float CorrectionThreshold = 3f;
+	private const float HardCorrectionThreshold = 3f;
+
+	private const float SmoothCorrectionStart = 0.5f;
 
 	void ICuoService.Stop() => Uninstall();
 

@@ -205,6 +205,7 @@ public sealed class SessionService : ICuoService
 		if (!SessionActive)
 		{
 			RetryHandshakeIfNeeded();
+			SendPreSessionKeepalive();
 			CheckPeerPresence();
 			return;
 		}
@@ -293,6 +294,33 @@ public sealed class SessionService : ICuoService
 			WriteSceneState(w, SceneStateForLocal());
 		});
 		_log.LogInformation("Retrying handshake with {Host}…", HostSteamId);
+	}
+
+	/// <summary>
+	/// Host side, pre-session: keep pinging the lobby peer. The Steam P2P
+	/// session only establishes with traffic from both directions (Phase-0
+	/// finding — the old auto-ping kept it alive); with the guest retrying the
+	/// handshake alone the messages never arrive.
+	/// </summary>
+	private void SendPreSessionKeepalive()
+	{
+		if (Role != SessionRole.Host)
+		{
+			return;
+		}
+
+		var nowMs = Environment.TickCount;
+		if (nowMs < _nextHandshakeRetryMs)
+		{
+			return;
+		}
+
+		_nextHandshakeRetryMs = nowMs + (long)(HandshakeRetryInterval * 1000f);
+		var peer = _steam.GetLobbyMembers().FirstOrDefault(m => m != _steam.LocalSteamId);
+		if (peer != 0)
+		{
+			Send(peer, NetMsg.Ping, w => w.Write(DateTime.UtcNow.Ticks));
+		}
 	}
 
 	private void OnHandshake(ulong sender, BinaryReader reader)

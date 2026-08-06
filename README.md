@@ -6,7 +6,7 @@ The base game ships without multiplayer. CUO adds Steam-based **Host + Guests** 
 
 ## Status
 
-**Early development — Phase 1 (single player entity) upcoming.** Phase 0 (feasibility: Steam init, lobby create/join, P2P ping/pong) is complete and verified with dual Steam accounts. The framework infrastructure runs on Microsoft.Extensions (DI + `ILogger<T>`) with Minecraft-style rolling file logs. See [`docs/architecture.md`](docs/architecture.md) for the full design and phases.
+**Early development — Phase 1 (single player entity) in progress.** Phase 0 (feasibility: Steam init, lobby create/join, P2P ping/pong) is complete and verified with dual Steam accounts. The framework infrastructure runs on Microsoft.Extensions (DI + `ILogger<T>`) with Minecraft-style rolling file logs. Phase 1 adds the wire protocol, session state machine and the Game Adapter layer (player entity sync: position/heading/input, world-start parameter sync for identical world generation). See [`docs/architecture.md`](docs/architecture.md) for the full design and phases.
 
 ## Architecture in Brief
 

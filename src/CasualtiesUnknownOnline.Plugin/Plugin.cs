@@ -8,11 +8,14 @@ using BepInEx.Configuration;
 using BepInEx.Logging;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime;
+using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Networking;
+using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Steam;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
+using GameAdapterImpl = CasualtiesUnknownOnline.GameAdapter.GameAdapter;
 
 namespace CasualtiesUnknownOnline;
 
@@ -20,23 +23,15 @@ namespace CasualtiesUnknownOnline;
 [BepInProcess("CasualtiesUnknown.exe")]
 public class Plugin : BaseUnityPlugin
 {
-	private const byte MsgPing = 0;
-	private const byte MsgPong = 1;
-
 	internal static new ManualLogSource Logger = null!;
-
-	private const float AutoPingIntervalSeconds = 5f;
-	private const float MemberLogIntervalSeconds = 10f;
 
 	private ServiceProvider _services = null!;
 	private ICuoService[] _cuoServices = Array.Empty<ICuoService>();
 	private ILogger<Plugin> _log = null!;
 	private SteamService _steam = null!;
-	private SteamTransport _transport = null!;
+	private SessionService _session = null!;
+	private IGameAdapter? _adapter;
 	private ConfigEntry<string> _targetLobbyId = null!;
-	private float _lastRttMs = -1f;
-	private float _nextAutoPingTime;
-	private float _nextMemberLogTime;
 
 	[DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
 	private static extern IntPtr LoadLibrary(string lpFileName);
@@ -68,14 +63,23 @@ public class Plugin : BaseUnityPlugin
 		{
 			// DI owns construction; BepInEx/Unity own the lifecycle. The plugin
 			// forwards lifecycle notifications into ICuoService (architecture.md §5.5).
+			// The Game Adapter registers itself last so it resolves last (it binds
+			// session events on Initialize).
 			_services = CuoBootstrap.BuildServiceProvider(
 				Logger,
 				Path.Combine(Paths.BepInExRootPath, "logs"),
-				legacyLogPath: Path.Combine(Paths.BepInExRootPath, "CUO.log"));
+				legacyLogPath: Path.Combine(Paths.BepInExRootPath, "CUO.log"),
+				extraRegistrations: services =>
+				{
+					services.AddSingleton<GameAdapterImpl>();
+					services.AddSingleton<IGameAdapter>(p => p.GetRequiredService<GameAdapterImpl>());
+					services.AddSingleton<ICuoService>(p => p.GetRequiredService<GameAdapterImpl>());
+				});
 
 			_log = _services.GetRequiredService<ILogger<Plugin>>();
 			_steam = _services.GetRequiredService<SteamService>();
-			_transport = _services.GetRequiredService<SteamTransport>();
+			_session = _services.GetRequiredService<SessionService>();
+			_adapter = _services.GetService<IGameAdapter>();
 			_cuoServices = _services.GetServices<ICuoService>().ToArray();
 
 			// Multiplayer games must keep running when the window loses focus.
@@ -87,7 +91,6 @@ public class Plugin : BaseUnityPlugin
 			// Wire events BEFORE Initialize — callbacks may fire immediately.
 			_steam.LobbyCreated += lobbyId => _log.LogInformation("Lobby created: {LobbyId}", lobbyId);
 			_steam.LobbyEntered += lobbyId => _log.LogInformation("Lobby entered: {LobbyId}", lobbyId);
-			_transport.MessageReceived += OnMessageReceived;
 
 			// Forward Unity log messages into CUO's own log so runtime errors
 			// (which BepInEx's DiskLogListener may not capture) are visible.
@@ -99,12 +102,11 @@ public class Plugin : BaseUnityPlugin
 				RunLifecycle(service, "Start", s => s.Start());
 
 			_log.LogInformation("Plugin {PluginGuid} is loaded!", MyPluginInfo.PLUGIN_GUID);
-
-			// Initialize Steam at load time (same as KrokMP's CheckSteam on
-			// startup): the lobby UI later keys off IsInitialized.
+			if (_adapter != null)
+				_log.LogInformation("Game Adapter: {Report}", _adapter.CapabilityReport);
 			if (_steam.IsInitialized)
 			{
-				_log.LogInformation("CUO Phase 0 test keys: F8 = create lobby, F9 = join lobby from config, F7 = ping first peer.");
+				_log.LogInformation("CUO Phase 1 test keys: F8 = create lobby, F9 = join lobby from config, F7 = ping peer.");
 			}
 			else
 			{
@@ -122,28 +124,6 @@ public class Plugin : BaseUnityPlugin
 		foreach (var service in _cuoServices)
 			RunLifecycle(service, "Update", s => s.Update());
 
-		// Phase-0 auto-ping: while in a lobby with a peer, ping every few
-		// seconds without requiring key input (window focus breaks Input
-		// during dual-instance testing). Keeps connection diagnostics flowing.
-		if (_steam.IsInitialized && _steam.CurrentLobbyId != 0)
-		{
-			if (Time.unscaledTime >= _nextMemberLogTime)
-			{
-				_nextMemberLogTime = Time.unscaledTime + MemberLogIntervalSeconds;
-				var members = _steam.GetLobbyMembers();
-				_log.LogInformation("Lobby {LobbyId}: {MemberCount} member(s){Peer}",
-					_steam.CurrentLobbyId, members.Length,
-					members.Length > 1 ? $" — peer {members.FirstOrDefault(m => m != _steam.LocalSteamId)}" : "");
-			}
-
-			if (Time.unscaledTime >= _nextAutoPingTime)
-			{
-				_nextAutoPingTime = Time.unscaledTime + AutoPingIntervalSeconds;
-				if (_steam.GetLobbyMembers().Length > 1)
-					SendPing();
-			}
-		}
-
 		if (_steam is { } steam)
 		{
 			if (Input.GetKeyDown(KeyCode.F8))
@@ -160,7 +140,7 @@ public class Plugin : BaseUnityPlugin
 			}
 			else if (Input.GetKeyDown(KeyCode.F7))
 			{
-				SendPing();
+				_session.RequestPing();
 			}
 		}
 	}
@@ -181,64 +161,25 @@ public class Plugin : BaseUnityPlugin
 
 	private bool EnsureSteamReady(SteamService steam) => steam.Initialize();
 
-	private void SendPing()
-	{
-		if (!_steam.IsInitialized)
-		{
-			_log.LogWarning("CUO: Steam not initialized — press F8 first.");
-			return;
-		}
-
-		var target = _steam.GetLobbyMembers().FirstOrDefault(m => m != _steam.LocalSteamId);
-		if (target == 0)
-		{
-			_log.LogWarning("CUO: no peer in the lobby to ping.");
-			return;
-		}
-
-		var payload = new byte[9];
-		payload[0] = MsgPing;
-		BitConverter.GetBytes(DateTime.UtcNow.Ticks).CopyTo(payload, 1);
-		var sent = _transport.SendTo(target, payload, reliable: true);
-		_log.LogInformation(sent ? "CUO: ping -> {Target}" : "CUO: ping to {Target} FAILED", target);
-	}
-
-	private void OnMessageReceived(ulong sender, byte[] data)
-	{
-		if (data.Length == 0)
-			return;
-
-		switch (data[0])
-		{
-			case MsgPing when data.Length >= 9:
-				// Echo the sender's timestamp back in the pong so RTT is
-				// computable on their side (pong needs the full 9-byte frame).
-				var pong = (byte[])data.Clone();
-				pong[0] = MsgPong;
-				_transport.SendTo(sender, pong, reliable: true);
-				_log.LogInformation("CUO: ping from {Sender} — pong sent.", sender);
-				break;
-
-			case MsgPong when data.Length >= 9:
-				var sentTicks = BitConverter.ToInt64(data, 1);
-				_lastRttMs = (DateTime.UtcNow.Ticks - sentTicks) / 10_000.0f;
-				_log.LogInformation("CUO: pong from {Sender} — RTT {RttMs:F1} ms", sender, _lastRttMs);
-				break;
-		}
-	}
-
-	// Phase-0 test HUD (IMGUI, temporary): replace with real UI in later phases.
+	// Phase-1 test HUD (IMGUI, temporary): replace with real UI in later phases.
 	private void OnGUI()
 	{
 		var y = 10f;
-		Line("CUO Phase 0 — Steam: " + (_steam.IsInitialized ? "initialized" : "not initialized"));
+		Line("CUO Phase 1 — Steam: " + (_steam.IsInitialized ? "initialized" : "not initialized"));
 		if (_steam.IsInitialized)
 		{
 			Line($"SteamID: {_steam.LocalSteamId}");
 			Line($"Lobby: {_steam.CurrentLobbyId}  Members: {_steam.GetLobbyMembers().Length}");
 		}
 
-		Line(_lastRttMs >= 0f ? $"Last RTT: {_lastRttMs:F1} ms" : "No ping yet");
+		var role = _session.Role == SessionRole.Host ? "HOST"
+			: _session.Role == SessionRole.Guest ? "GUEST" : "—";
+		Line($"Session: {role}  handshake: {(_session.SessionActive ? "yes" : "no")}  "
+			+ $"entity sync: {(_session.EntitySyncActive ? "ON" : "off")}");
+		var remote = _session.RemotePlayer;
+		if (remote != null)
+			Line($"Remote: {remote.SteamId:X}  pos: ({remote.Position.X:F1}, {remote.Position.Y:F1})  inWorld: {remote.InWorld}");
+		Line(_session.LastRttMs >= 0f ? $"Last RTT: {_session.LastRttMs:F1} ms" : "No ping yet");
 		Line("F8 create lobby / F9 join from config / F7 ping peer");
 
 		void Line(string text)

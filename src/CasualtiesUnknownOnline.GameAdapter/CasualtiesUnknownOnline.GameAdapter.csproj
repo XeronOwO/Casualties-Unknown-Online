@@ -2,39 +2,51 @@
 
   <PropertyGroup>
     <TargetFramework>net48</TargetFramework>
-    <AssemblyName>CasualtiesUnknownOnline</AssemblyName>
-    <Product>Casualties Unknown: Online</Product>
+    <AssemblyName>CasualtiesUnknownOnline.GameAdapter</AssemblyName>
+    <Product>Casualties Unknown: Online Game Adapter</Product>
     <Version>0.1.0</Version>
-    <BepInExPluginGuid>CasualtiesUnknownOnline</BepInExPluginGuid>
-    <BepInExPluginName>Casualties Unknown: Online</BepInExPluginName>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>preview</LangVersion>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <Nullable>enable</Nullable>
+    <RootNamespace>CasualtiesUnknownOnline.GameAdapter</RootNamespace>
     <RestoreAdditionalProjectSources>
       https://api.nuget.org/v3/index.json;
       https://nuget.bepinex.dev/v3/index.json;
       https://nuget.samboy.dev/v3/index.json
     </RestoreAdditionalProjectSources>
-    <RootNamespace>CasualtiesUnknownOnline</RootNamespace>
   </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="BepInEx.Analyzers" Version="1.*" PrivateAssets="all" />
-    <PackageReference Include="BepInEx.Core" Version="5.*" />
-    <PackageReference Include="BepInEx.PluginInfoProps" Version="2.*" />
-  </ItemGroup>
+  <!--
+    Game Adapter (architecture.md §4): the ONLY layer that references game
+    assemblies and patches the game. Implements IGameAdapter from the Runtime.
+  -->
 
   <ItemGroup>
     <ProjectReference Include="..\CasualtiesUnknownOnline.Runtime\CasualtiesUnknownOnline.Runtime.csproj" />
-    <ProjectReference Include="..\CasualtiesUnknownOnline.GameAdapter\CasualtiesUnknownOnline.GameAdapter.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BepInEx.Core" Version="5.*" />
   </ItemGroup>
 
   <!--
-    Game assemblies — gitignored, copied on demand from the game install (see references/README.md).
-    UnityEngine modules are the game's own Unity 2022.3 builds: the template's
-    UnityEngine.Modules 5.6.0 NuGet package mismatched the runtime and Unity could
-    not instantiate the plugin script ("could not be instantiated" in Player.log).
+    HarmonyX: the game's BepInEx/core owns 0Harmony.dll 2.9.0 — the BepInEx
+    fork (nuget's Lib.Harmony stops at 2.4.2). Reference the game's copy from
+    references/ (gitignored, same convention as Steamworks.NET) so compile-time
+    and runtime versions match. Never deploy it — BepInEx/core owns it.
+  -->
+  <ItemGroup>
+    <Reference Include="0Harmony">
+      <HintPath>..\..\references\0Harmony.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+
+  <!--
+    Game assemblies — gitignored, copied on demand from the game install (see
+    references/README.md). These are the game's own Unity 2022.3 builds; the
+    template's UnityEngine.Modules NuGet package mismatched the runtime.
     Add more modules on demand when the compiler reports missing types.
   -->
   <ItemGroup>
@@ -64,6 +76,14 @@
     </Reference>
     <Reference Include="UnityEngine.IMGUIModule">
       <HintPath>..\..\references\UnityEngine.IMGUIModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.Physics2DModule">
+      <HintPath>..\..\references\UnityEngine.Physics2DModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.AnimationModule">
+      <HintPath>..\..\references\UnityEngine.AnimationModule.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="netstandard">

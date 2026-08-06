@@ -7,8 +7,10 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 
 /// <summary>
 /// Applies a session entity's buffered state to a game Body. Used for render
-/// proxies (guest's own body and the remote clone on the guest side) — the
-/// body stops simulating locally and just reflects the host-authoritative state.
+/// proxies (the remote player's clone on either side) — the body's physics is
+/// frozen (FixedUpdate skipped, Rigidbody2D non-simulated) and it just reflects
+/// the peer's reported state. Body.Update still runs so visuals and animations
+/// (walk/jump poses from the synced velocity) keep working.
 ///
 /// Position/look/velocity are interpolated between the last two snapshots
 /// (20 Hz source) so the proxy moves smoothly instead of stepping; discrete

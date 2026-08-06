@@ -125,7 +125,8 @@ public sealed class SessionService : ICuoService
 
 	/// <summary>Host side: current authoritative state of the local body.</summary>
 	public void PublishLocalState(NetVector2 position, NetVector2 lookPos, NetVector2 velocity,
-		bool isRight, bool standing, bool alive, bool conscious, bool crouching)
+		bool isRight, bool standing, bool alive, bool conscious, bool crouching,
+		bool sitting = false, bool sleeping = false, bool climbing = false)
 	{
 		_localPlayer.Position = position;
 		_localPlayer.LookPos = lookPos;
@@ -135,6 +136,9 @@ public sealed class SessionService : ICuoService
 		_localPlayer.Alive = alive;
 		_localPlayer.Conscious = conscious;
 		_localPlayer.Crouching = crouching;
+		_localPlayer.Sitting = sitting;
+		_localPlayer.Sleeping = sleeping;
+		_localPlayer.Climbing = climbing;
 	}
 
 	/// <summary>
@@ -171,6 +175,28 @@ public sealed class SessionService : ICuoService
 
 	/// <summary>Diagnostics: ping the peer (RTT recorded in <see cref="LastRttMs"/>).</summary>
 	public void RequestPing() => Send(PeerSteamId(), NetMsg.Ping, w => w.Write(DateTime.UtcNow.Ticks));
+
+	/// <summary>
+	/// Report a locally-performed block damage (local compute) so the peer can
+	/// apply the same damage at the same world position (remote verify/sync).
+	/// </summary>
+	public void SendBlockDamaged(NetVector2 worldPos, float damage)
+	{
+		if (!SessionActive)
+		{
+			return;
+		}
+
+		Send(PeerSteamId(), NetMsg.BlockDamaged, w =>
+		{
+			w.Write(worldPos.X);
+			w.Write(worldPos.Y);
+			w.Write(damage);
+		});
+	}
+
+	/// <summary>The peer damaged a block — apply it locally (both directions).</summary>
+	public event Action<NetVector2, float>? BlockDamagedReceived;
 
 	void ICuoService.Initialize()
 	{
@@ -495,6 +521,11 @@ public sealed class SessionService : ICuoService
 			return;
 		}
 
+		// The report is written with WriteEntity (entity id + state); skipping
+		// the id desyncs the stream — the id bytes were being read as the
+		// position, producing astronomically wrong coordinates (observed:
+		// position -2.55e32 — the clone vanished).
+		_ = ReadEntityId(reader);
 		ReadEntityState(reader, _remotePlayer);
 		StateReceived?.Invoke(_remotePlayer);
 	}
@@ -523,10 +554,14 @@ public sealed class SessionService : ICuoService
 		var velocity = NetPacket.ReadVector2(reader);
 		var flags = reader.ReadByte();
 
-		// Keep the previous snapshot for render interpolation.
-		target.PrevPosition = target.Position;
-		target.PrevLookPos = target.LookPos;
-		target.PrevVelocity = target.Velocity;
+		// Keep the previous snapshot for render interpolation. The FIRST
+		// snapshot applies directly (Prev = current) — the buffer defaults are
+		// (0,0) and interpolating from them would slide the proxy in from the
+		// world origin.
+		var firstSnapshot = target.StateReceivedMs < 0;
+		target.PrevPosition = firstSnapshot ? position : target.Position;
+		target.PrevLookPos = firstSnapshot ? lookPos : target.LookPos;
+		target.PrevVelocity = firstSnapshot ? velocity : target.Velocity;
 		target.Position = position;
 		target.LookPos = lookPos;
 		target.Velocity = velocity;
@@ -535,6 +570,9 @@ public sealed class SessionService : ICuoService
 		target.Alive = (flags & 0x04) != 0;
 		target.Conscious = (flags & 0x08) != 0;
 		target.Crouching = (flags & 0x10) != 0;
+		target.Sitting = (flags & 0x20) != 0;
+		target.Sleeping = (flags & 0x40) != 0;
+		target.Climbing = (flags & 0x80) != 0;
 		target.StateReceivedMs = Environment.TickCount;
 	}
 
@@ -669,7 +707,17 @@ public sealed class SessionService : ICuoService
 			case NetMsg.PlayerState:
 				OnPlayerState(sender, reader);
 				break;
+			case NetMsg.BlockDamaged:
+				OnBlockDamaged(reader);
+				break;
 		}
+	}
+
+	private void OnBlockDamaged(BinaryReader reader)
+	{
+		var pos = new NetVector2(reader.ReadSingle(), reader.ReadSingle());
+		var damage = reader.ReadSingle();
+		BlockDamagedReceived?.Invoke(pos, damage);
 	}
 
 	private ulong PeerSteamId()
@@ -738,7 +786,8 @@ public sealed class SessionService : ICuoService
 		NetPacket.WriteVector2(w, entity.Velocity);
 		var flags = (byte)(
 			(entity.IsRight ? 0x01 : 0) | (entity.Standing ? 0x02 : 0) |
-			(entity.Alive ? 0x04 : 0) | (entity.Conscious ? 0x08 : 0) | (entity.Crouching ? 0x10 : 0));
+			(entity.Alive ? 0x04 : 0) | (entity.Conscious ? 0x08 : 0) | (entity.Crouching ? 0x10 : 0) |
+			(entity.Sitting ? 0x20 : 0) | (entity.Sleeping ? 0x40 : 0) | (entity.Climbing ? 0x80 : 0));
 		w.Write(flags);
 	}
 

@@ -21,6 +21,9 @@ public enum NetMsg : byte
 	PlayerLeave = 33,
 	PlayerState = 35,
 	PlayerStateReport = 36, // guest → host: local authoritative position (no host-side simulation)
+
+	// World mutations (local compute, remote verify/sync)
+	BlockDamaged = 40, // either side → peer: a block was damaged at world pos
 }
 
 public static class ProtocolVersion

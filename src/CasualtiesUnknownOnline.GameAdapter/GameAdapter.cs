@@ -179,6 +179,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 		_session.RemoteLeft -= OnRemoteLeft;
 		_session.SessionEnded -= OnSessionEnded;
 		_session.SessionActivated -= OnSessionActivated;
+		_session.BlockDamagedReceived -= OnRemoteBlockDamaged;
 		Instance = null;
 	}
 
@@ -192,6 +193,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 		_session.RemoteLeft += OnRemoteLeft;
 		_session.SessionEnded += OnSessionEnded;
 		_session.SessionActivated += OnSessionActivated;
+		_session.BlockDamagedReceived += OnRemoteBlockDamaged;
 	}
 
 	/// <summary>
@@ -242,6 +244,43 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 		}
 	}
 
+	// ---- Block damage sync (local compute, remote verify/sync) ----
+
+	private bool _applyingRemoteBlockDamage;
+
+	/// <summary>
+	/// Called from the DamageBlock patch after a LOCAL block damage was applied:
+	/// report it so the peer applies the same damage at the same world position.
+	/// </summary>
+	internal void OnBlockDamaged(Vector2 pos, float dmg)
+	{
+		if (_applyingRemoteBlockDamage || !_session.SessionActive)
+		{
+			return;
+		}
+
+		_session.SendBlockDamaged(new NetVector2(pos.x, pos.y), dmg);
+	}
+
+	/// <summary>The peer damaged a block — apply it locally (remote verify/sync).</summary>
+	private void OnRemoteBlockDamaged(NetVector2 pos, float dmg)
+	{
+		if (WorldGeneration.world is null)
+		{
+			return;
+		}
+
+		_applyingRemoteBlockDamage = true;
+		try
+		{
+			WorldGeneration.world.DamageBlock(new Vector2(pos.X, pos.Y), dmg);
+		}
+		finally
+		{
+			_applyingRemoteBlockDamage = false;
+		}
+	}
+
 	// ---- Scene state ----
 
 	private void UpdateSceneState()
@@ -274,11 +313,18 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 		var pos = body.transform.position;
 		var look = body.targetLookPos;
 		var vel = body.rb.velocity;
+		// Pose flags mirror the game's own pose rules:
+		// - sitting: idle sit condition (Body.cs:3162), minus movingAllowed
+		//   (private; sleeping is covered by the sleeping flag).
+		// - sleeping: Body.cs:3961.
+		// - climbing: currentClimbable (Body.cs:470).
+		var sitting = body.idleTime > 12f && !body.exercising;
 		_session.PublishLocalState(
 			new NetVector2(pos.x, pos.y),
 			new NetVector2(look.x, look.y),
 			new NetVector2(vel.x, vel.y),
-			body.isRight, body.standing, body.alive, body.conscious, body.crouching);
+			body.isRight, body.standing, body.alive, body.conscious, body.crouching,
+			sitting, body.sleeping, body.currentClimbable is not null);
 	}
 
 	/// <summary>Gate from the StartRun patch — returns false to block the run start.</summary>

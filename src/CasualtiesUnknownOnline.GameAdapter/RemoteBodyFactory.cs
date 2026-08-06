@@ -38,7 +38,20 @@ internal static class RemoteBodyFactory
 
 		body.transform.position = anchor;
 		body.targetLookPos = new Vector2(1000f, 460f);
-		clone.AddComponent<RemoteBodyDriver>();
+		// MUST go on the Body component's GameObject: the proxy-detection
+		// patches query GetComponent<RemoteBodyDriver>() on the Body (which is a
+		// CHILD of the root "Experiment" clone). On the root it was never found
+		// and the clone ran the full original simulation (HandleBody → Ragdoll
+		// → physics re-enabled → limbs falling).
+		body.gameObject.AddComponent<RemoteBodyDriver>();
+
+		// Visual-input fields the clone copies from the template at Instantiate
+		// time are stale (the simulation that would keep them current is skipped
+		// — Body.Update is replaced by the render-only patch). Zero the pose
+		// state so the clone stands: crouch amount, water/climb flags.
+		body.crouchAmount = 0f;
+		body.inWater = false;
+		body.currentClimbable = null;
 
 		// Freeze ALL physics and joints — the limbs are separate
 		// Rigidbody2D+HingeJoint rigs that would otherwise keep simulating and
@@ -51,6 +64,16 @@ internal static class RemoteBodyFactory
 		foreach (var hinge in clone.GetComponentsInChildren<HingeJoint2D>())
 		{
 			hinge.enabled = false;
+		}
+
+		// Disable ALL colliders on the proxy: it must never participate in
+		// physics — contacts/queries can re-activate frozen rigidbodies
+		// (observed: limb Rigidbody2D.simulated flipping back to true and
+		// gravity dragging the clone apart), and the proxy should be
+		// intangible anyway (players pass through it — BodyStartPatch).
+		foreach (var col in clone.GetComponentsInChildren<Collider2D>())
+		{
+			col.enabled = false;
 		}
 
 		// IKHandle.Update (IKHandle.cs:43-57) lerps targetPos to

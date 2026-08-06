@@ -9,4 +9,15 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// </summary>
 internal sealed class RemoteBodyDriver : MonoBehaviour
 {
+	/// <summary>Last applied sitting pose — sit clips play only on transitions.</summary>
+	public bool PrevSitting;
+
+	/// <summary>Last applied sleeping pose — lay-down clips play only on transitions.</summary>
+	public bool PrevSleeping;
+
+	/// <summary>Last applied lying pose (standing=false, not sleeping) — same transition rule.</summary>
+	public bool PrevLying;
+
+	/// <summary>Current climbing state — HandleVisuals overwrites the animator flag every frame.</summary>
+	public bool Climbing;
 }

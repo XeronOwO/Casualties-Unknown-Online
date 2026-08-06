@@ -35,6 +35,15 @@ public sealed class PlayerEntity(ulong steamId, NetworkEntityId entityId, bool i
 
 	public bool Crouching { get; set; }
 
+	/// <summary>True when the player is sitting (idle &gt; 12s, Body.cs:3162).</summary>
+	public bool Sitting { get; set; }
+
+	/// <summary>True when the player is lying down (sleeping / nap, Body.cs:2514).</summary>
+	public bool Sleeping { get; set; }
+
+	/// <summary>True when the player is climbing (currentClimbable, Body.cs:470).</summary>
+	public bool Climbing { get; set; }
+
 	/// <summary>Host side: position the guest reported when entering the world — the clone's spawn anchor.</summary>
 	public NetVector2 ReportedSpawnPos { get; set; }
 
@@ -47,10 +56,11 @@ public sealed class PlayerEntity(ulong steamId, NetworkEntityId entityId, bool i
 	public NetVector2 PrevVelocity { get; set; }
 
 	/// <summary>
-	/// Environment.TickCount when the current snapshot arrived. Initialized to
-	/// MinValue so the FIRST snapshot is applied directly (alpha clamps to 1)
-	/// instead of interpolating from (0,0) — otherwise the proxy visibly slides
-	/// from the world origin toward its real position.
+	/// Environment.TickCount when the current snapshot arrived. Stays MinValue
+	/// until the first snapshot: while negative, SessionStatePump keeps the
+	/// clone at its spawn anchor, and ReadEntityState applies the first
+	/// snapshot directly (Prev = current) instead of interpolating from the
+	/// buffer's (0,0) defaults.
 	/// </summary>
 	public int StateReceivedMs { get; set; } = int.MinValue;
 

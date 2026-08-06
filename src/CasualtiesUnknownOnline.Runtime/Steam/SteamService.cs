@@ -14,12 +14,9 @@ namespace CasualtiesUnknownOnline.Runtime.Steam;
 /// Steam APIs are encapsulated here; consumers only see <see cref="ulong"/>
 /// lobby/SteamIDs, never Steamworks types (abstraction rule in architecture.md).
 /// </remarks>
-public sealed class SteamService : ICuoService
+public sealed class SteamService(ILogger<SteamService> log) : ICuoService
 {
-	private readonly ILogger<SteamService> _log;
-
-	public SteamService(ILogger<SteamService> log) => _log = log;
-
+	private readonly ILogger<SteamService> _log = log;
 	private Callback<LobbyCreated_t>? _lobbyCreated;
 	private Callback<LobbyEnter_t>? _lobbyEntered;
 	private Callback<GameLobbyJoinRequested_t>? _joinRequested;
@@ -35,13 +32,18 @@ public sealed class SteamService : ICuoService
 	public ulong[] GetLobbyMembers()
 	{
 		if (CurrentLobbyId == 0)
-			return Array.Empty<ulong>();
+		{
+			return [];
+		}
 
 		var lobby = new CSteamID(CurrentLobbyId);
 		var count = SteamMatchmaking.GetNumLobbyMembers(lobby);
 		var members = new ulong[count];
 		for (var i = 0; i < count; i++)
+		{
 			members[i] = SteamMatchmaking.GetLobbyMemberByIndex(lobby, i).m_SteamID;
+		}
+
 		return members;
 	}
 
@@ -55,7 +57,9 @@ public sealed class SteamService : ICuoService
 	public bool Initialize()
 	{
 		if (IsInitialized)
+		{
 			return true;
+		}
 
 		if (!Packsize.Test())
 		{
@@ -92,7 +96,9 @@ public sealed class SteamService : ICuoService
 		// Steamworks.NET throws "Callback dispatcher is not initialized" when
 		// called before SteamAPI.Init — guard so the per-frame pump is safe.
 		if (!IsInitialized)
+		{
 			return;
+		}
 
 		SteamAPI.RunCallbacks();
 	}

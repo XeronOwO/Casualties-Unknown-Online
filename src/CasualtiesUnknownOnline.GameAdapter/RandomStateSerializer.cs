@@ -1,6 +1,5 @@
 using System;
 using System.Runtime.InteropServices;
-using UnityEngine;
 using Random = UnityEngine.Random;
 
 namespace CasualtiesUnknownOnline.GameAdapter;
@@ -21,7 +20,9 @@ internal static class RandomStateSerializer
 		unsafe
 		{
 			fixed (byte* p = bytes)
+			{
 				*(Random.State*)p = state;
+			}
 		}
 		return bytes;
 	}
@@ -29,11 +30,16 @@ internal static class RandomStateSerializer
 	public static Random.State Deserialize(byte[] bytes)
 	{
 		if (bytes.Length != Size)
+		{
 			throw new ArgumentException($"Random.State size mismatch: expected {Size}, got {bytes.Length}.");
+		}
+
 		unsafe
 		{
 			fixed (byte* p = bytes)
+			{
 				return *(Random.State*)p;
+			}
 		}
 	}
 }

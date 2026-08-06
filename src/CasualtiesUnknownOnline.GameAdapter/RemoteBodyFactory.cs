@@ -20,7 +20,7 @@ internal static class RemoteBodyFactory
 	public static Body? CreateRemoteBody(PlayerEntity remote, bool simulated, Vector2 anchor, ILogger log)
 	{
 		var template = GameObject.Find("Experiment");
-		if (template == null)
+		if (template is null)
 		{
 			log.LogWarning("Remote body: \"Experiment\" player object not found in scene.");
 			return null;
@@ -31,7 +31,7 @@ internal static class RemoteBodyFactory
 		clone.SetActive(true);
 
 		var body = clone.GetComponentInChildren<Body>();
-		if (body == null)
+		if (body is null)
 		{
 			Object.Destroy(clone);
 			log.LogWarning("Remote body: no Body component in \"Experiment\" clone.");

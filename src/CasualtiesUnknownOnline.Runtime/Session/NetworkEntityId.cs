@@ -8,18 +8,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session;
 /// session), a host allocation counter, and a generation (bumped on respawn).
 /// Phase 1 only has player entities, but the type is built complete now.
 /// </summary>
-public readonly struct NetworkEntityId : IEquatable<NetworkEntityId>
+public readonly struct NetworkEntityId(ulong epoch, uint counter, byte generation) : IEquatable<NetworkEntityId>
 {
-	public readonly ulong Epoch;
-	public readonly uint Counter;
-	public readonly byte Generation;
-
-	public NetworkEntityId(ulong epoch, uint counter, byte generation)
-	{
-		Epoch = epoch;
-		Counter = counter;
-		Generation = generation;
-	}
+	public readonly ulong Epoch = epoch;
+	public readonly uint Counter = counter;
+	public readonly byte Generation = generation;
 
 	public bool Equals(NetworkEntityId other) =>
 		Epoch == other.Epoch && Counter == other.Counter && Generation == other.Generation;

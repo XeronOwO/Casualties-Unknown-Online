@@ -5,14 +5,8 @@ namespace CasualtiesUnknownOnline.Runtime.Protocol;
 /// synced positions travel as NetVector2 and the Game Adapter converts to/from
 /// Unity's Vector2 at the boundary.
 /// </summary>
-public readonly struct NetVector2
+public readonly struct NetVector2(float x, float y)
 {
-	public readonly float X;
-	public readonly float Y;
-
-	public NetVector2(float x, float y)
-	{
-		X = x;
-		Y = y;
-	}
+	public readonly float X = x;
+	public readonly float Y = y;
 }

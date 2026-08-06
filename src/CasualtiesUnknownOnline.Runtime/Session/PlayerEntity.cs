@@ -7,16 +7,16 @@ namespace CasualtiesUnknownOnline.Runtime.Session;
 /// received/simulated values; the Game Adapter reads them to drive game objects
 /// and writes them from the authoritative simulation.
 /// </summary>
-public sealed class PlayerEntity
+public sealed class PlayerEntity(ulong steamId, NetworkEntityId entityId, bool isLocal)
 {
 	/// <summary>SteamID64 of the owning player.</summary>
-	public ulong SteamId { get; set; }
+	public ulong SteamId { get; set; } = steamId;
 
 	/// <summary>Assigned by the host during handshake / join.</summary>
-	public NetworkEntityId EntityId { get; set; }
+	public NetworkEntityId EntityId { get; set; } = entityId;
 
 	/// <summary>True when this entity is the local player's own body.</summary>
-	public bool IsLocal { get; }
+	public bool IsLocal { get; } = isLocal;
 
 	// ---- Latest authoritative state (host → all) ----
 	public NetVector2 Position { get; set; }
@@ -42,11 +42,4 @@ public sealed class PlayerEntity
 
 	/// <summary>Local scene state, exchanged via SceneState messages.</summary>
 	public bool InWorld { get; set; }
-
-	public PlayerEntity(ulong steamId, NetworkEntityId entityId, bool isLocal)
-	{
-		SteamId = steamId;
-		EntityId = entityId;
-		IsLocal = isLocal;
-	}
 }

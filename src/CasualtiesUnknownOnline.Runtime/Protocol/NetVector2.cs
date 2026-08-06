@@ -9,4 +9,6 @@ public readonly struct NetVector2(float x, float y)
 {
 	public readonly float X = x;
 	public readonly float Y = y;
+
+	public override string ToString() => $"({X:F1}, {Y:F1})";
 }

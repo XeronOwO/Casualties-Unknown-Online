@@ -194,7 +194,14 @@ public sealed class SessionService : ICuoService
 	/// <summary>Diagnostics: ping the peer (RTT recorded in <see cref="LastRttMs"/>).</summary>
 	public void RequestPing() => Send(PeerSteamId(), NetMsg.Ping, w => w.Write(DateTime.UtcNow.Ticks));
 
-	void ICuoService.Initialize() => _epoch = (ulong)DateTime.UtcNow.Ticks;
+	void ICuoService.Initialize()
+	{
+		_epoch = (ulong)DateTime.UtcNow.Ticks;
+		// Steam API init (SteamService.Initialize) runs before us in registration
+		// order — refresh the local SteamID captured at construction time (it was
+		// still 0 then, and guest input messages are sent to the host's SteamID).
+		_localPlayer.SteamId = _steam.LocalSteamId;
+	}
 
 	void ICuoService.Start()
 	{

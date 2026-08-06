@@ -46,8 +46,13 @@ public sealed class PlayerEntity(ulong steamId, NetworkEntityId entityId, bool i
 
 	public NetVector2 PrevVelocity { get; set; }
 
-	/// <summary>Environment.TickCount when the current snapshot arrived.</summary>
-	public int StateReceivedMs { get; set; }
+	/// <summary>
+	/// Environment.TickCount when the current snapshot arrived. Initialized to
+	/// MinValue so the FIRST snapshot is applied directly (alpha clamps to 1)
+	/// instead of interpolating from (0,0) — otherwise the proxy visibly slides
+	/// from the world origin toward its real position.
+	/// </summary>
+	public int StateReceivedMs { get; set; } = int.MinValue;
 
 	/// <summary>Local scene state, exchanged via SceneState messages.</summary>
 	public bool InWorld { get; set; }

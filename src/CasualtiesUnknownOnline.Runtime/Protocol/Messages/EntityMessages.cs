@@ -108,20 +108,34 @@ public sealed class EntityStateMsg
 	}
 }
 
-/// <summary>Host → guest: the authoritative batch of entity states (20 Hz).</summary>
+/// <summary>
+/// Host → guest: the authoritative batch of entity states (20 Hz). Sent
+/// unreliably — the stream is overwrite-semantics (newest wins), so drops are
+/// fine and the sequence number lets the receiver discard stale snapshots
+/// (the unreliable channel does not guarantee order).
+/// </summary>
 [ProtoContract]
 public sealed class PlayerStateMsg
 {
 	[ProtoMember(1)]
 	public List<EntityStateMsg> Entities { get; set; } = [];
+
+	[ProtoMember(2)]
+	public uint Seq { get; set; }
 }
 
-/// <summary>Guest → host: the guest's locally simulated state (no host-side simulation).</summary>
+/// <summary>
+/// Guest → host: the guest's locally simulated state (no host-side
+/// simulation). Same unreliable-stream semantics as <see cref="PlayerStateMsg"/>.
+/// </summary>
 [ProtoContract]
 public sealed class PlayerStateReportMsg
 {
 	[ProtoMember(1)]
 	public EntityStateMsg Entity { get; set; } = new();
+
+	[ProtoMember(2)]
+	public uint Seq { get; set; }
 }
 
 /// <summary>Host → guest: join confirmation with both entity ids and the host position (clone anchor).</summary>

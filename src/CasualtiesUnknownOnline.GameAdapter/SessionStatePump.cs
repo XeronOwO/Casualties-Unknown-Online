@@ -58,8 +58,13 @@ internal static class SessionStatePump
 		}
 
 		body.standing = entity.Standing;
-		// NOTE: Body.alive/conscious are get-only (private set) — Phase 1 render
-		// proxies are always alive; death states land with health sync (Phase 3).
+		// Body.alive/conscious are derived properties (brainHealth > 0, Body.cs:203)
+		// — the proxy's own simulation would keep them consistent locally, but we
+		// render death explicitly: alive=false forces the lying pose immediately
+		// (the peer's standing flag lags one snapshot behind its Ragdoll, so the
+		// proxy would otherwise stand "dead" for a few frames). The game itself has
+		// no respawn — death ends the run (menu → new run is the scene-switch
+		// flow, SessionStatePump needs nothing extra for it).
 		body.crouching = entity.Crouching;
 		body.sleeping = entity.Sleeping;
 		body.moveDir = Vector2.zero; // never let local physics drive a render proxy
@@ -89,10 +94,10 @@ internal static class SessionStatePump
 				}
 			}
 
-			// Lying (ragdoll/unconscious — standing=false without sleeping):
-			// the LayDown clip approximates the ragdoll pose on the proxy
-			// (real ragdoll is physics-driven, frozen here by design).
-			var lying = !entity.Standing && !entity.Sleeping;
+			// Lying (ragdoll/dead/unconscious — !standing without sleeping, or
+			// !alive): the LayDown clip approximates the ragdoll pose on the
+			// proxy (real ragdoll is physics-driven, frozen here by design).
+			var lying = (!entity.Standing || !entity.Alive) && !entity.Sleeping;
 			if (lying != driver.PrevLying)
 			{
 				driver.PrevLying = lying;

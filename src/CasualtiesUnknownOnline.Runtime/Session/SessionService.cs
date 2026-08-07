@@ -1,11 +1,10 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Text;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Networking;
 using CasualtiesUnknownOnline.Runtime.Protocol;
+using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Steam;
 using Microsoft.Extensions.Logging;
 
@@ -49,9 +48,9 @@ public sealed class WorldStartParams
 
 /// <summary>
 /// Session state machine: lobby → handshake (protocol/version) → scene-state
-/// exchange → entity sync (host-authoritative, architecture.md §3). Owns the
-/// wire protocol dispatch on top of SteamTransport and the player entity table.
-/// Phase 1 supports a single guest (first peer in the lobby).
+/// exchange → entity sync (local compute, remote verify/sync, architecture.md
+/// §3). Owns the wire protocol dispatch on top of SteamTransport and the player
+/// entity table. Phase 1 supports a single guest (first peer in the lobby).
 /// </summary>
 public sealed class SessionService : ICuoService
 {
@@ -152,8 +151,12 @@ public sealed class SessionService : ICuoService
 		_localPlayer.InWorld = state == SceneStateType.InWorld;
 		if (SessionActive)
 		{
-			Send(PeerSteamId(), NetMsg.SceneState,
-				w => WriteSceneState(w, state, sceneName, localPosition));
+			Send(PeerSteamId(), NetMsg.SceneState, new SceneStateMsg
+			{
+				State = (byte)state,
+				SceneName = sceneName,
+				Position = NetVector2Msg.From(localPosition ?? default),
+			});
 		}
 
 		_log.LogInformation("Scene state: {State} ({SceneName})", state, sceneName);
@@ -168,13 +171,13 @@ public sealed class SessionService : ICuoService
 			return;
 		}
 
-		Send(PeerSteamId(), NetMsg.WorldStartParams, w => WriteWorldParams(w, parameters));
+		Send(PeerSteamId(), NetMsg.WorldStartParams, WorldStartParamsMsg.From(parameters));
 		_log.LogInformation("Published world params ({StateBytes} bytes) to {Peer}",
 			parameters.RandomState.Length, PeerSteamId());
 	}
 
 	/// <summary>Diagnostics: ping the peer (RTT recorded in <see cref="LastRttMs"/>).</summary>
-	public void RequestPing() => Send(PeerSteamId(), NetMsg.Ping, w => w.Write(DateTime.UtcNow.Ticks));
+	public void RequestPing() => Send(PeerSteamId(), NetMsg.Ping, new PingMsg { Ticks = DateTime.UtcNow.Ticks });
 
 	/// <summary>
 	/// Report a locally-performed block damage (local compute) so the peer can
@@ -187,11 +190,10 @@ public sealed class SessionService : ICuoService
 			return;
 		}
 
-		Send(PeerSteamId(), NetMsg.BlockDamaged, w =>
+		Send(PeerSteamId(), NetMsg.BlockDamaged, new BlockDamagedMsg
 		{
-			w.Write(worldPos.X);
-			w.Write(worldPos.Y);
-			w.Write(damage);
+			Position = NetVector2Msg.From(worldPos),
+			Damage = damage,
 		});
 	}
 
@@ -287,11 +289,7 @@ public sealed class SessionService : ICuoService
 		// periodically until acked (Steam P2P sessions establish lazily and
 		// swallow the first messages — retransmission also drives the session).
 		_nextHandshakeRetryMs = Environment.TickCount + (long)(HandshakeRetryInterval * 1000f);
-		Send(HostSteamId, NetMsg.Handshake, w =>
-		{
-			w.Write(ProtocolVersion.Current);
-			WriteSceneState(w, SceneStateForLocal());
-		});
+		Send(HostSteamId, NetMsg.Handshake, CreateHandshakeMsg());
 	}
 
 	private void RetryHandshakeIfNeeded()
@@ -308,11 +306,7 @@ public sealed class SessionService : ICuoService
 		}
 
 		_nextHandshakeRetryMs = nowMs + (long)(HandshakeRetryInterval * 1000f);
-		Send(HostSteamId, NetMsg.Handshake, w =>
-		{
-			w.Write(ProtocolVersion.Current);
-			WriteSceneState(w, SceneStateForLocal());
-		});
+		Send(HostSteamId, NetMsg.Handshake, CreateHandshakeMsg());
 		_log.LogInformation("Retrying handshake with {Host}…", HostSteamId);
 	}
 
@@ -339,19 +333,19 @@ public sealed class SessionService : ICuoService
 		var peer = _steam.GetLobbyMembers().FirstOrDefault(m => m != _steam.LocalSteamId);
 		if (peer != 0)
 		{
-			Send(peer, NetMsg.Ping, w => w.Write(DateTime.UtcNow.Ticks));
+			Send(peer, NetMsg.Ping, new PingMsg { Ticks = DateTime.UtcNow.Ticks });
 		}
 	}
 
-	private void OnHandshake(ulong sender, BinaryReader reader)
+	private void OnHandshake(ulong sender, HandshakeMsg msg)
 	{
 		if (Role != SessionRole.Host)
 		{
 			return;
 		}
 
-		var protocol = reader.ReadInt32();
-		ReadSceneState(reader, out var peerState, out _, out _);
+		var protocol = msg.Protocol;
+		var peerState = (SceneStateType)msg.Scene.State;
 		if (protocol != ProtocolVersion.Current)
 		{
 			_log.LogWarning("Peer {Peer} speaks protocol {PeerProtocol}; we speak {Current}. Rejecting.",
@@ -375,23 +369,22 @@ public sealed class SessionService : ICuoService
 		// handshake until it receives one (Steam P2P sessions establish lazily,
 		// first messages can be swallowed — Phase-0 finding). Same for world
 		// params, which are only sent once the session exists.
-		Send(sender, NetMsg.HandshakeAck, w =>
+		Send(sender, NetMsg.HandshakeAck, new HandshakeAckMsg
 		{
-			w.Write(ProtocolVersion.Current);
-			WriteSceneState(w, SceneStateForLocal());
-			w.Write(_worldParams is not null);
+			Protocol = ProtocolVersion.Current,
+			Scene = CreateSceneStateMsg(),
+			HasWorldParams = _worldParams is not null,
 		});
 		if (_worldParams is not null)
 		{
-			Send(sender, NetMsg.WorldStartParams, w => WriteWorldParams(w, _worldParams));
+			Send(sender, NetMsg.WorldStartParams, WorldStartParamsMsg.From(_worldParams));
 		}
 	}
 
-	private void OnHandshakeAck(ulong sender, BinaryReader reader)
+	private void OnHandshakeAck(ulong sender, HandshakeAckMsg msg)
 	{
-		var protocol = reader.ReadInt32();
-		ReadSceneState(reader, out var hostState, out _, out _);
-		_ = reader.ReadBoolean(); // host has world params — they arrive as their own message
+		var protocol = msg.Protocol;
+		var hostState = (SceneStateType)msg.Scene.State;
 		if (protocol != ProtocolVersion.Current)
 		{
 			_log.LogWarning("Host {Host} speaks protocol {HostProtocol}; we speak {Current}. Ending session.",
@@ -411,22 +404,18 @@ public sealed class SessionService : ICuoService
 
 	// ---- Scene state ----
 
-	private void OnSceneState(ulong sender, BinaryReader reader)
+	private void OnSceneState(ulong sender, SceneStateMsg msg)
 	{
-		ReadSceneState(reader, out var state, out var sceneName, out var position);
 		if (_remotePlayer is null)
 		{
 			return;
 		}
 
 		var wasInWorld = _remotePlayer.InWorld;
-		_remotePlayer.InWorld = state == SceneStateType.InWorld;
-		if (position is not null)
-		{
-			_remotePlayer.ReportedSpawnPos = position.Value;
-		}
+		_remotePlayer.InWorld = msg.State == (byte)SceneStateType.InWorld;
+		_remotePlayer.ReportedSpawnPos = msg.Position.ToNetVector2();
 
-		_log.LogInformation("Peer {Peer} scene state: {State} ({SceneName})", sender, state, sceneName);
+		_log.LogInformation("Peer {Peer} scene state: {State} ({SceneName})", sender, (SceneStateType)msg.State, msg.SceneName);
 		if (wasInWorld != _remotePlayer.InWorld)
 		{
 			if (_remotePlayer.InWorld)
@@ -446,17 +435,11 @@ public sealed class SessionService : ICuoService
 
 	// ---- World params ----
 
-	private void OnWorldStartParams(ulong sender, BinaryReader reader)
+	private void OnWorldStartParams(ulong sender, WorldStartParamsMsg msg)
 	{
-		var parameters = ReadWorldParams(reader);
-		if (parameters is null)
-		{
-			return;
-		}
-
-		_worldParams = parameters;
+		_worldParams = msg.ToWorldStartParams();
 		_log.LogInformation("Received world params ({StateBytes} bytes, loaded run: {LoadedRun}).",
-			parameters.RandomState.Length, parameters.LoadedRun);
+			_worldParams.RandomState.Length, _worldParams.LoadedRun);
 	}
 
 	// ---- Entities ----
@@ -478,101 +461,73 @@ public sealed class SessionService : ICuoService
 
 		// Tell the guest: our entity id, their entity id, and our current position
 		// (spawn anchor for the remote clone).
-		Send(_remotePlayer.SteamId, NetMsg.PlayerJoin, w =>
+		Send(_remotePlayer.SteamId, NetMsg.PlayerJoin, new PlayerJoinMsg
 		{
-			w.Write(_localPlayer.SteamId);
-			WriteEntityId(w, _localPlayer.EntityId);
-			WriteEntityId(w, _remotePlayer.EntityId);
-			NetPacket.WriteVector2(w, _localPlayer.Position);
+			HostSteamId = _localPlayer.SteamId,
+			HostEntityId = NetworkEntityIdMsg.From(_localPlayer.EntityId),
+			GuestEntityId = NetworkEntityIdMsg.From(_remotePlayer.EntityId),
+			HostPosition = NetVector2Msg.From(_localPlayer.Position),
 		});
 		_log.LogInformation("PlayerJoin sent: local {Local} ({LocalId}), guest {Guest} ({GuestId}).",
 			_localPlayer.SteamId, _localPlayer.EntityId, _remotePlayer.SteamId, _remotePlayer.EntityId);
 		RemoteJoined?.Invoke(_remotePlayer);
 	}
 
-	private void OnPlayerJoin(ulong sender, BinaryReader reader)
+	private void OnPlayerJoin(ulong sender, PlayerJoinMsg msg)
 	{
 		if (Role != SessionRole.Guest || _remotePlayer is null)
 		{
 			return;
 		}
 
-		// [hostSteamId][hostEntityId][guestEntityId][hostPosition]
-		var hostSteamId = reader.ReadUInt64();
-		var hostEntityId = ReadEntityId(reader);
-		var guestEntityId = ReadEntityId(reader);
-		var hostPosition = NetPacket.ReadVector2(reader);
-
-		_localPlayer.EntityId = guestEntityId;
-		_remotePlayer.SteamId = hostSteamId; // backfill (session already knows it)
-		_remotePlayer.EntityId = hostEntityId;
-		_remotePlayer.Position = hostPosition;
+		_localPlayer.EntityId = msg.GuestEntityId.ToNetworkEntityId();
+		_remotePlayer.SteamId = msg.HostSteamId; // backfill (session already knows it)
+		_remotePlayer.EntityId = msg.HostEntityId.ToNetworkEntityId();
+		_remotePlayer.Position = msg.HostPosition.ToNetVector2();
 		EntitySyncActive = true;
 		_log.LogInformation("PlayerJoin received: local {Local}, host {Host} at {Position}.",
-			_localPlayer.EntityId, hostEntityId, hostPosition);
+			_localPlayer.EntityId, _remotePlayer.EntityId, _remotePlayer.Position);
 		RemoteJoined?.Invoke(_remotePlayer);
 	}
 
 	/// <summary>Guest → host: the guest's locally simulated state (host renders it, no host-side simulation).</summary>
-	private void OnPlayerStateReport(ulong sender, BinaryReader reader)
+	private void OnPlayerStateReport(ulong sender, PlayerStateReportMsg msg)
 	{
 		if (Role != SessionRole.Host || _remotePlayer is null)
 		{
 			return;
 		}
 
-		// The report is written with WriteEntity (entity id + state); skipping
-		// the id desyncs the stream — the id bytes were being read as the
-		// position, producing astronomically wrong coordinates (observed:
-		// position -2.55e32 — the clone vanished).
-		_ = ReadEntityId(reader);
-		ReadEntityState(reader, _remotePlayer);
+		ApplyEntityState(msg.Entity, _remotePlayer);
 		StateReceived?.Invoke(_remotePlayer);
 	}
 
-	private void OnPlayerState(ulong sender, BinaryReader reader)
+	private void OnPlayerState(ulong sender, PlayerStateMsg msg)
 	{
 		if (Role != SessionRole.Guest || _remotePlayer is null)
 		{
 			return;
 		}
 
-		var count = reader.ReadByte();
-		for (var i = 0; i < count; i++)
+		foreach (var entity in msg.Entities)
 		{
-			var entityId = ReadEntityId(reader);
-			var target = entityId == _localPlayer.EntityId ? _localPlayer : _remotePlayer;
-			ReadEntityState(reader, target);
+			var target = entity.Id.ToNetworkEntityId() == _localPlayer.EntityId ? _localPlayer : _remotePlayer;
+			ApplyEntityState(entity, target);
 		}
+
 		StateReceived?.Invoke(_localPlayer);
 	}
 
-	private static void ReadEntityState(BinaryReader reader, PlayerEntity target)
+	/// <summary>Applies a decoded entity state, preserving the first-snapshot rule
+	/// (Prev = current on the first report — the buffer defaults are (0,0) and
+	/// interpolating from them would slide the proxy in from the world origin).</summary>
+	private static void ApplyEntityState(EntityStateMsg msg, PlayerEntity target)
 	{
-		var position = NetPacket.ReadVector2(reader);
-		var lookPos = NetPacket.ReadVector2(reader);
-		var velocity = NetPacket.ReadVector2(reader);
-		var flags = reader.ReadByte();
-
-		// Keep the previous snapshot for render interpolation. The FIRST
-		// snapshot applies directly (Prev = current) — the buffer defaults are
-		// (0,0) and interpolating from them would slide the proxy in from the
-		// world origin.
 		var firstSnapshot = target.StateReceivedMs < 0;
-		target.PrevPosition = firstSnapshot ? position : target.Position;
-		target.PrevLookPos = firstSnapshot ? lookPos : target.LookPos;
-		target.PrevVelocity = firstSnapshot ? velocity : target.Velocity;
-		target.Position = position;
-		target.LookPos = lookPos;
-		target.Velocity = velocity;
-		target.IsRight = (flags & 0x01) != 0;
-		target.Standing = (flags & 0x02) != 0;
-		target.Alive = (flags & 0x04) != 0;
-		target.Conscious = (flags & 0x08) != 0;
-		target.Crouching = (flags & 0x10) != 0;
-		target.Sitting = (flags & 0x20) != 0;
-		target.Sleeping = (flags & 0x40) != 0;
-		target.Climbing = (flags & 0x80) != 0;
+		target.PrevPosition = firstSnapshot ? msg.Position.ToNetVector2() : target.Position;
+		target.PrevLookPos = firstSnapshot ? msg.LookPos.ToNetVector2() : target.LookPos;
+		target.PrevVelocity = firstSnapshot ? msg.Velocity.ToNetVector2() : target.Velocity;
+		msg.ApplyTo(target);
 		target.StateReceivedMs = Environment.TickCount;
 	}
 
@@ -583,11 +538,9 @@ public sealed class SessionService : ICuoService
 			return;
 		}
 
-		Send(PeerSteamId(), NetMsg.PlayerState, w =>
+		Send(PeerSteamId(), NetMsg.PlayerState, new PlayerStateMsg
 		{
-			w.Write((byte)2);
-			WriteEntity(w, _localPlayer);
-			WriteEntity(w, _remotePlayer);
+			Entities = [EntityStateMsg.From(_localPlayer), EntityStateMsg.From(_remotePlayer)],
 		});
 	}
 
@@ -599,22 +552,15 @@ public sealed class SessionService : ICuoService
 			return;
 		}
 
-		Send(_remotePlayer.SteamId, NetMsg.PlayerStateReport, w => WriteEntity(w, _localPlayer));
+		Send(_remotePlayer.SteamId, NetMsg.PlayerStateReport,
+			new PlayerStateReportMsg { Entity = EntityStateMsg.From(_localPlayer) });
 	}
 
 	// ---- Ping / pong (diagnostics) ----
 
-	private void OnPing(ulong sender, BinaryReader reader)
-	{
-		var ticks = reader.ReadInt64();
-		Send(sender, NetMsg.Pong, w => w.Write(ticks));
-	}
+	private void OnPing(ulong sender, PingMsg msg) => Send(sender, NetMsg.Pong, new PongMsg { Ticks = msg.Ticks });
 
-	private void OnPong(ulong sender, BinaryReader reader)
-	{
-		var sentTicks = reader.ReadInt64();
-		LastRttMs = (DateTime.UtcNow.Ticks - sentTicks) / 10_000f;
-	}
+	private void OnPong(ulong sender, PongMsg msg) => LastRttMs = (DateTime.UtcNow.Ticks - msg.Ticks) / 10_000f;
 
 	// ---- Peer presence ----
 
@@ -676,49 +622,42 @@ public sealed class SessionService : ICuoService
 			return;
 		}
 
-		using var stream = new MemoryStream(frame, 1, frame.Length - 1);
-		using var reader = new BinaryReader(stream, Encoding.UTF8);
 		switch ((NetMsg)frame[0])
 		{
 			case NetMsg.Ping:
-				OnPing(sender, reader);
+				OnPing(sender, NetPacket.DecodePayload<PingMsg>(frame));
 				break;
 			case NetMsg.Pong:
-				OnPong(sender, reader);
+				OnPong(sender, NetPacket.DecodePayload<PongMsg>(frame));
 				break;
 			case NetMsg.Handshake:
-				OnHandshake(sender, reader);
+				OnHandshake(sender, NetPacket.DecodePayload<HandshakeMsg>(frame));
 				break;
 			case NetMsg.HandshakeAck:
-				OnHandshakeAck(sender, reader);
+				OnHandshakeAck(sender, NetPacket.DecodePayload<HandshakeAckMsg>(frame));
 				break;
 			case NetMsg.SceneState:
-				OnSceneState(sender, reader);
+				OnSceneState(sender, NetPacket.DecodePayload<SceneStateMsg>(frame));
 				break;
 			case NetMsg.WorldStartParams:
-				OnWorldStartParams(sender, reader);
+				OnWorldStartParams(sender, NetPacket.DecodePayload<WorldStartParamsMsg>(frame));
 				break;
 			case NetMsg.PlayerJoin:
-				OnPlayerJoin(sender, reader);
+				OnPlayerJoin(sender, NetPacket.DecodePayload<PlayerJoinMsg>(frame));
 				break;
 			case NetMsg.PlayerStateReport:
-				OnPlayerStateReport(sender, reader);
+				OnPlayerStateReport(sender, NetPacket.DecodePayload<PlayerStateReportMsg>(frame));
 				break;
 			case NetMsg.PlayerState:
-				OnPlayerState(sender, reader);
+				OnPlayerState(sender, NetPacket.DecodePayload<PlayerStateMsg>(frame));
 				break;
 			case NetMsg.BlockDamaged:
-				OnBlockDamaged(reader);
+				OnBlockDamaged(NetPacket.DecodePayload<BlockDamagedMsg>(frame));
 				break;
 		}
 	}
 
-	private void OnBlockDamaged(BinaryReader reader)
-	{
-		var pos = new NetVector2(reader.ReadSingle(), reader.ReadSingle());
-		var damage = reader.ReadSingle();
-		BlockDamagedReceived?.Invoke(pos, damage);
-	}
+	private void OnBlockDamaged(BlockDamagedMsg msg) => BlockDamagedReceived?.Invoke(msg.Position.ToNetVector2(), msg.Damage);
 
 	private ulong PeerSteamId()
 	{
@@ -730,14 +669,14 @@ public sealed class SessionService : ICuoService
 		return HostSteamId;
 	}
 
-	private void Send(ulong steamId, NetMsg msg, Action<BinaryWriter>? writePayload = null)
+	private void Send(ulong steamId, NetMsg msg, object? payload = null)
 	{
 		if (steamId == 0)
 		{
 			return;
 		}
 
-		_transport.SendTo(steamId, NetPacket.Encode(msg, writePayload), reliable: true);
+		_transport.SendTo(steamId, NetPacket.Encode(msg, payload), reliable: true);
 	}
 
 	private NetworkEntityId AllocateEntityId()
@@ -752,141 +691,16 @@ public sealed class SessionService : ICuoService
 
 	private SceneStateType SceneStateForLocal() => _localPlayer.InWorld ? SceneStateType.InWorld : SceneStateType.InMenu;
 
-	private static void WriteSceneState(BinaryWriter w, SceneStateType state, string? sceneName = null, NetVector2? position = null)
+	private SceneStateMsg CreateSceneStateMsg() => new()
 	{
-		w.Write((byte)state);
-		w.Write(sceneName ?? "");
-		var pos = position ?? default;
-		NetPacket.WriteVector2(w, pos);
-	}
+		State = (byte)SceneStateForLocal(),
+		SceneName = "",
+		Position = new NetVector2Msg(),
+	};
 
-	private static void ReadSceneState(BinaryReader r, out SceneStateType state, out string sceneName, out NetVector2? position)
+	private HandshakeMsg CreateHandshakeMsg() => new()
 	{
-		state = (SceneStateType)r.ReadByte();
-		sceneName = r.ReadString();
-		var x = r.ReadSingle();
-		var y = r.ReadSingle();
-		position = new NetVector2(x, y);
-	}
-
-	private static void WriteEntityId(BinaryWriter w, NetworkEntityId id)
-	{
-		w.Write(id.Epoch);
-		w.Write(id.Counter);
-		w.Write(id.Generation);
-	}
-
-	private static NetworkEntityId ReadEntityId(BinaryReader r) => new(r.ReadUInt64(), r.ReadUInt32(), r.ReadByte());
-
-	private static void WriteEntity(BinaryWriter w, PlayerEntity entity)
-	{
-		WriteEntityId(w, entity.EntityId);
-		NetPacket.WriteVector2(w, entity.Position);
-		NetPacket.WriteVector2(w, entity.LookPos);
-		NetPacket.WriteVector2(w, entity.Velocity);
-		var flags = (byte)(
-			(entity.IsRight ? 0x01 : 0) | (entity.Standing ? 0x02 : 0) |
-			(entity.Alive ? 0x04 : 0) | (entity.Conscious ? 0x08 : 0) | (entity.Crouching ? 0x10 : 0) |
-			(entity.Sitting ? 0x20 : 0) | (entity.Sleeping ? 0x40 : 0) | (entity.Climbing ? 0x80 : 0));
-		w.Write(flags);
-	}
-
-	private static void WriteWorldParams(BinaryWriter w, WorldStartParams p)
-	{
-		w.Write(p.RandomState.Length);
-		w.Write(p.RandomState);
-		w.Write(p.BiomeOverride);
-		w.Write(p.BiomeDepth);
-		w.Write(p.TotalTraveled);
-		w.Write(p.LoadedRun);
-		WriteRunSettings(w, p.RunSettings);
-	}
-
-	private static WorldStartParams? ReadWorldParams(BinaryReader reader)
-	{
-		try
-		{
-			var state = reader.ReadBytes(reader.ReadInt32());
-			return new WorldStartParams
-			{
-				RandomState = state,
-				BiomeOverride = reader.ReadByte(),
-				BiomeDepth = reader.ReadByte(),
-				TotalTraveled = reader.ReadInt32(),
-				LoadedRun = reader.ReadBoolean(),
-				RunSettings = ReadRunSettings(reader),
-			};
-		}
-		catch (EndOfStreamException)
-		{
-			return null;
-		}
-	}
-
-	private static void WriteRunSettings(BinaryWriter w, Dictionary<string, object>? settings)
-	{
-		if (settings is null)
-		{
-			w.Write(0);
-			return;
-		}
-		w.Write(settings.Count);
-		foreach (var setting in settings)
-		{
-			w.Write(setting.Key);
-			switch (setting.Value)
-			{
-				case int i:
-					w.Write((byte)1);
-					w.Write(i);
-					break;
-				case float f:
-					w.Write((byte)2);
-					w.Write(f);
-					break;
-				case bool b:
-					w.Write((byte)3);
-					w.Write(b);
-					break;
-				case string s:
-					w.Write((byte)4);
-					w.Write(s);
-					break;
-				default:
-					w.Write((byte)0);
-					break;
-			}
-		}
-	}
-
-	private static Dictionary<string, object>? ReadRunSettings(BinaryReader r)
-	{
-		var count = r.ReadInt32();
-		if (count == 0)
-		{
-			return null;
-		}
-
-		var settings = new Dictionary<string, object>(count);
-		for (var i = 0; i < count; i++)
-		{
-			var key = r.ReadString();
-			switch (r.ReadByte())
-			{
-				case 1:
-					settings[key] = r.ReadInt32();
-					break;
-				case 2:
-					settings[key] = r.ReadSingle();
-					break;
-				case 3:
-					settings[key] = r.ReadBoolean();
-					break;
-				case 4:
-					settings[key] = r.ReadString();
-					break;
-			}
-		}
-		return settings;
-	}
+		Protocol = ProtocolVersion.Current,
+		Scene = CreateSceneStateMsg(),
+	};
 }

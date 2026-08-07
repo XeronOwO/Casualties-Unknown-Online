@@ -1,40 +1,31 @@
-using System;
 using System.IO;
-using System.Text;
+using ProtoBuf;
 
 namespace CasualtiesUnknownOnline.Runtime.Protocol;
 
 /// <summary>
 /// Frame encode/decode helpers over SteamTransport's raw byte payloads.
-/// A frame is [msgId:1] followed by a BinaryWriter payload (strings are
-/// length-prefixed UTF8, floats little-endian).
+/// A frame is [msgId:1] followed by a protobuf-net serialized [ProtoContract]
+/// message (Protocol/Messages/). Length is implicit (rest of the frame).
 /// </summary>
 public static class NetPacket
 {
-	public static byte[] Encode(NetMsg msg, Action<BinaryWriter>? writePayload = null)
+	public static byte[] Encode(NetMsg msg, object? payload = null)
 	{
 		using var stream = new MemoryStream();
 		stream.WriteByte((byte)msg);
-		if (writePayload is not null)
+		if (payload is not null)
 		{
-			using var writer = new BinaryWriter(stream, Encoding.UTF8);
-			writePayload(writer);
+			Serializer.Serialize(stream, payload);
 		}
+
 		return stream.ToArray();
 	}
 
-	public static void Decode(byte[] frame, Action<BinaryReader> readPayload)
+	/// <summary>Deserializes the payload of a received frame (skips the msgId byte).</summary>
+	public static T DecodePayload<T>(byte[] frame)
 	{
 		using var stream = new MemoryStream(frame, 1, frame.Length - 1);
-		using var reader = new BinaryReader(stream, Encoding.UTF8);
-		readPayload(reader);
-	}
-
-	public static NetVector2 ReadVector2(BinaryReader reader) => new(reader.ReadSingle(), reader.ReadSingle());
-
-	public static void WriteVector2(BinaryWriter writer, NetVector2 value)
-	{
-		writer.Write(value.X);
-		writer.Write(value.Y);
+		return Serializer.Deserialize<T>(stream);
 	}
 }

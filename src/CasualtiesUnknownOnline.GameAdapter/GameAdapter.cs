@@ -1,6 +1,7 @@
 using System;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Protocol;
+using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using HarmonyLib;
 using Microsoft.Extensions.Logging;
@@ -29,6 +30,11 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 	private Body? _localBody;
 	private Body? _remoteCloneBody;
 	private bool _inWorld;
+	private bool _remoteInWorld; // paused while the remote peer is in a menu/loading
+
+	private const float CharacterReportInterval = 1f; // guest → host character snapshot (1 Hz)
+	private long _nextCharacterReportMs;
+	private CharacterDataMsg? _pendingRestore; // guest side: host-sent restore, applied once the body exists
 
 	public GameAdapter(SessionService session, ILogger<GameAdapter> log)
 	{
@@ -132,6 +138,8 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 		if (_localBody is not null)
 		{
 			PublishBodyState(_localBody);
+			ReportCharacterDataIfDue();
+			TryApplyCharacterRestore();
 		}
 
 		if (!_session.EntitySyncActive)
@@ -142,6 +150,11 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 		// Both sides render the remote clone from the peer's reported state.
 		// NO remote-side simulation anywhere — each player simulates only its
 		// own body.
+		if (!_remoteInWorld)
+		{
+			return; // remote is in a menu/loading — clone stays paused
+		}
+
 		SessionStatePump.Apply(_session.RemotePlayer, _remoteCloneBody);
 		LogClonePosition();
 	}
@@ -176,10 +189,11 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 		}
 
 		_session.RemoteJoined -= OnRemoteJoined;
-		_session.RemoteLeft -= OnRemoteLeft;
+		_session.RemoteSceneChanged -= OnRemoteSceneChanged;
 		_session.SessionEnded -= OnSessionEnded;
 		_session.SessionActivated -= OnSessionActivated;
 		_session.BlockDamagedReceived -= OnRemoteBlockDamaged;
+		_session.CharacterDataReceived -= OnCharacterDataReceived;
 		Instance = null;
 	}
 
@@ -190,10 +204,11 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 	internal void BindToSession()
 	{
 		_session.RemoteJoined += OnRemoteJoined;
-		_session.RemoteLeft += OnRemoteLeft;
+		_session.RemoteSceneChanged += OnRemoteSceneChanged;
 		_session.SessionEnded += OnSessionEnded;
 		_session.SessionActivated += OnSessionActivated;
 		_session.BlockDamagedReceived += OnRemoteBlockDamaged;
+		_session.CharacterDataReceived += OnCharacterDataReceived;
 	}
 
 	/// <summary>
@@ -218,21 +233,30 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 		// Host: spawn the guest's clone at the guest's reported spawn point.
 		// Guest: the host's clone renders at the host position from PlayerJoin.
 		// Both are frozen render proxies fed by the peer's state reports.
-		var anchor = _session.Role == SessionRole.Host
-			? new Vector2(remote.ReportedSpawnPos.X, remote.ReportedSpawnPos.Y)
-			: new Vector2(remote.Position.X, remote.Position.Y);
-		_remoteCloneBody = RemoteBodyFactory.CreateRemoteBody(remote, anchor, _log);
-		_log.LogInformation("Remote body created for {SteamId}.", remote.SteamId);
+		// The clone survives menu round-trips (RemoteSceneChanged pauses it) —
+		// a re-join reuses it; position resumes via the state stream's Lerp.
+		if (_remoteCloneBody is null)
+		{
+			var anchor = _session.Role == SessionRole.Host
+				? new Vector2(remote.ReportedSpawnPos.X, remote.ReportedSpawnPos.Y)
+				: new Vector2(remote.Position.X, remote.Position.Y);
+			_remoteCloneBody = RemoteBodyFactory.CreateRemoteBody(remote, anchor, _log);
+			_log.LogInformation("Remote body created for {SteamId}.", remote.SteamId);
+		}
+		else
+		{
+			_log.LogInformation("Remote re-joined — clone reused for {SteamId}.", remote.SteamId);
+		}
+
+		_remoteInWorld = true;
 	}
 
-	private void OnRemoteLeft(PlayerEntity remote)
+	private void OnRemoteSceneChanged(bool inWorld)
 	{
-		if (_remoteCloneBody is not null)
-		{
-			UnityEngine.Object.Destroy(_remoteCloneBody.transform.parent.gameObject);
-			_remoteCloneBody = null;
-		}
-		_log.LogInformation("Remote body destroyed for {SteamId}.", remote.SteamId);
+		_remoteInWorld = inWorld;
+		_log.LogInformation(inWorld
+			? "Remote entered the world — clone resumes."
+			: "Remote not in world (menu or disconnected) — clone paused.");
 	}
 
 	private void OnSessionEnded()
@@ -278,6 +302,192 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 		finally
 		{
 			_applyingRemoteBlockDamage = false;
+		}
+	}
+
+	// ---- Character data (session-scoped save/restore, character-data-plan) ----
+
+	private void OnCharacterDataReceived(CharacterDataMsg data)
+	{
+		// May arrive before the local body exists (still loading the run) —
+		// apply once the game has spawned it (TryApplyCharacterRestore).
+		_pendingRestore = data;
+		_log.LogInformation("Received character restore ({Items} items).", data.Items.Count);
+	}
+
+	private void ReportCharacterDataIfDue()
+	{
+		var nowMs = Environment.TickCount;
+		if (nowMs < _nextCharacterReportMs)
+		{
+			return;
+		}
+
+		_nextCharacterReportMs = nowMs + (long)(CharacterReportInterval * 1000f);
+		_session.ReportCharacterData(CaptureCharacterData(_localBody!));
+	}
+
+	private void TryApplyCharacterRestore()
+	{
+		if (_pendingRestore is null)
+		{
+			return;
+		}
+
+		ApplyCharacterData(_localBody!, _pendingRestore);
+		_pendingRestore = null;
+	}
+
+	private static CharacterDataMsg CaptureCharacterData(Body body)
+	{
+		var skills = body.skills;
+		var msg = new CharacterDataMsg
+		{
+			Skills = new CharacterSkillsMsg
+			{
+				Strength = skills.STR,
+				Resistance = skills.RES,
+				Intelligence = skills.INT,
+				ExpStrength = skills.expSTR,
+				ExpResistance = skills.expRES,
+				ExpIntelligence = skills.expINT,
+			},
+			Health = new CharacterHealthMsg
+			{
+				BloodVolume = body.bloodVolume,
+				Hunger = body.hunger,
+				Thirst = body.thirst,
+				BrainHealth = body.brainHealth,
+				Consciousness = body.consciousness,
+				Temperature = body.temperature,
+				Alive = body.alive,
+				Conscious = body.conscious,
+			},
+			HandSlot = body.handSlot,
+		};
+
+		for (var i = 0; i < body.limbs.Length; i++)
+		{
+			var limb = body.limbs[i];
+			msg.Limbs.Add(new CharacterLimbMsg
+			{
+				Index = i,
+				SkinHealth = limb.skinHealth,
+				MuscleHealth = limb.muscleHealth,
+				Broken = limb.broken,
+				Dislocated = limb.dislocated,
+				Splinted = limb.splinted,
+				Infected = limb.infected,
+				InfectionAmount = limb.infectionAmount,
+				BleedAmount = limb.bleedAmount,
+				DisinfectionTime = limb.disinfectionTime,
+			});
+		}
+
+		for (var slot = 0; slot < body.slots.Length; slot++)
+		{
+			var item = body.GetItem(slot);
+			if (item is null)
+			{
+				continue;
+			}
+
+			msg.Items.Add(new CharacterItemMsg
+			{
+				ItemId = item.id,
+				Condition = item.condition,
+				SlotIndex = slot,
+			});
+		}
+
+		return msg;
+	}
+
+	private void ApplyCharacterData(Body body, CharacterDataMsg data)
+	{
+		_log.LogInformation("Applying character restore ({Items} items).", data.Items.Count);
+
+		// Wipe the fresh-run default state first: this new run already got its
+		// starting supplies (WorldGeneration.WorldPlacePlayer) and random vitals
+		// (Body.Start) — restoring on top would duplicate items and leave
+		// random hunger/thirst. Destroy (end-of-frame) is fine: the slots are
+		// immediately re-filled and the old children vanish one frame later.
+		for (var slot = 0; slot < body.slots.Length; slot++)
+		{
+			var holder = body.slots[slot].transform;
+			for (var i = holder.childCount - 1; i >= 0; i--)
+			{
+				UnityEngine.Object.Destroy(holder.GetChild(i).gameObject);
+			}
+		}
+
+		if (data.Skills is { } skills)
+		{
+			body.skills.STR = skills.Strength;
+			body.skills.RES = skills.Resistance;
+			body.skills.INT = skills.Intelligence;
+			body.skills.expSTR = skills.ExpStrength;
+			body.skills.expRES = skills.ExpResistance;
+			body.skills.expINT = skills.ExpIntelligence;
+			body.skills.UpdateExpBoundaries(); // min/max derive from STR/RES/INT (Skills.cs:61)
+		}
+
+		if (data.Health is { } health)
+		{
+			body.bloodVolume = health.BloodVolume;
+			body.hunger = health.Hunger;
+			body.thirst = health.Thirst;
+			body.brainHealth = health.BrainHealth;
+			body.consciousness = health.Consciousness;
+			body.temperature = health.Temperature;
+			// alive/conscious are derived properties (Body.cs:203/213) — no direct set.
+		}
+
+		foreach (var limbData in data.Limbs)
+		{
+			if (limbData.Index < 0 || limbData.Index >= body.limbs.Length)
+			{
+				continue;
+			}
+
+			var limb = body.limbs[limbData.Index];
+			limb.skinHealth = limbData.SkinHealth;
+			limb.muscleHealth = limbData.MuscleHealth;
+			limb.broken = limbData.Broken;
+			limb.dislocated = limbData.Dislocated;
+			limb.splinted = limbData.Splinted;
+			limb.infected = limbData.Infected;
+			limb.infectionAmount = limbData.InfectionAmount;
+			limb.bleedAmount = limbData.BleedAmount;
+			limb.disinfectionTime = limbData.DisinfectionTime;
+		}
+
+		foreach (var itemData in data.Items)
+		{
+			if (itemData.SlotIndex < 0 || itemData.SlotIndex >= body.slots.Length)
+			{
+				continue;
+			}
+
+			// Same spawn path as the game's save restore (SaveSystem.cs:304-329):
+			// instantiate the prefab by id, set condition, hand it to the slot.
+			var go = UnityEngine.Object.Instantiate((GameObject)Resources.Load(itemData.ItemId),
+				body.transform.position, Quaternion.identity);
+			var item = go.GetComponent<Item>();
+			if (item is null)
+			{
+				UnityEngine.Object.Destroy(go);
+				_log.LogWarning("Restore: {ItemId} has no Item component — skipped.", itemData.ItemId);
+				continue;
+			}
+
+			item.condition = itemData.Condition;
+			body.PickUpItem(item, itemData.SlotIndex, force: true);
+		}
+
+		if (data.HandSlot >= 0 && data.HandSlot < body.slots.Length)
+		{
+			body.handSlot = data.HandSlot;
 		}
 	}
 

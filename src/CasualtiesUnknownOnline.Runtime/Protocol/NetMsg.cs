@@ -2,7 +2,8 @@ namespace CasualtiesUnknownOnline.Runtime.Protocol;
 
 /// <summary>
 /// CUO wire message IDs. Frame format over SteamTransport: [msgId:1][payload],
-/// payload length is implicit (rest of the frame). Payloads are BinaryWriter-encoded.
+/// payload length is implicit (rest of the frame). Payloads are protobuf-net
+/// encoded (Protocol/Messages/).
 /// </summary>
 public enum NetMsg : byte
 {
@@ -21,6 +22,9 @@ public enum NetMsg : byte
 	PlayerLeave = 33,
 	PlayerState = 35,
 	PlayerStateReport = 36, // guest → host: local authoritative position (no host-side simulation)
+
+	// Character data (guest → host reports, host → guest restore on reconnect)
+	CharacterData = 37,
 
 	// World mutations (local compute, remote verify/sync)
 	BlockDamaged = 40, // either side → peer: a block was damaged at world pos

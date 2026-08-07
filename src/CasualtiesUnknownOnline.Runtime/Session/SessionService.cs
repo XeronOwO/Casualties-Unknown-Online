@@ -59,7 +59,6 @@ public sealed class SessionService : ICuoService
 	private const float PingInterval = 5f;
 	private const float MemberCheckInterval = 2f;
 	private const float HandshakeRetryInterval = 3f; // lazy Steam P2P sessions swallow early messages
-	private const float DisconnectGracePeriod = 300f; // host keeps the guest slot open this long for a reconnect
 
 	private readonly SteamService _steam;
 	private readonly SteamTransport _transport;
@@ -77,9 +76,6 @@ public sealed class SessionService : ICuoService
 	private long _nextPingMs;
 	private long _nextMemberCheckMs;
 	private long _nextHandshakeRetryMs;
-
-	private bool _peerDisconnected; // host side: guest vanished from the lobby
-	private long _peerDisconnectedAtMs = -1;
 
 	// Snapshot sequence for the unreliable state stream: the sender numbers
 	// every broadcast/report, the receiver drops anything at or below the last
@@ -408,14 +404,18 @@ public sealed class SessionService : ICuoService
 			{
 				InWorld = peerState == SceneStateType.InWorld,
 			};
+			// Cross-session restore: the in-memory character save outlives the
+			// session (kept per SteamID for the process lifetime) — a returning
+			// player gets it back even in a brand-new session.
+			SendSavedCharacter(sender);
 		}
 		else if (_remotePlayer.SteamId == sender)
 		{
-			// Reconnect from the same player: identity is the SteamID, so the
-			// slot held during the disconnect grace window is reused. The
-			// normal flow (session re-activation → scene re-report → entity
-			// sync) then re-establishes everything, character data included.
-			_peerDisconnected = false;
+			// Reconnect from the same player while the entity is still held
+			// (within the 2 s presence-check window, or a quick lobby round
+			// trip): identity is the SteamID — reuse the entity. The normal
+			// flow (session re-activation → scene re-report → entity sync)
+			// then re-establishes everything, character data included.
 			_remotePlayer.InWorld = peerState == SceneStateType.InWorld;
 			_log.LogInformation("Peer {Peer} reconnected — entity slot reused.", sender);
 			SendSavedCharacter(sender);
@@ -518,8 +518,7 @@ public sealed class SessionService : ICuoService
 
 	private void MaybeStartEntitySync()
 	{
-		if (Role != SessionRole.Host || !SessionActive || _remotePlayer is null || EntitySyncActive
-			|| _peerDisconnected)
+		if (Role != SessionRole.Host || !SessionActive || _remotePlayer is null || EntitySyncActive)
 		{
 			return;
 		}
@@ -724,39 +723,16 @@ public sealed class SessionService : ICuoService
 
 		_nextMemberCheckMs = nowMs + (long)(MemberCheckInterval * 1000f);
 
-		if (_steam.GetLobbyMembers().Length >= 2)
+		// Peer vanished from the lobby — end the session immediately (either
+		// role: host's guest is gone, or MVP guest's host is gone — no host
+		// migration). Reconnects are cheap: Role stays (it follows the lobby
+		// identity), the character save is kept per SteamID, and the next
+		// handshake rebuilds the session from scratch (new entity + restore).
+		if (_steam.GetLobbyMembers().Length < 2)
 		{
-			return; // peer present (or already back — the handshake reuses the slot)
-		}
-
-		// Peer vanished from the lobby. Host: keep the session (single-player
-		// can continue) and hold the guest's slot for a grace window so a
-		// dropped guest can rejoin and recover (character data, Phase 2 #6).
-		// Guest: the host is gone and MVP has no host migration — end it.
-		if (Role == SessionRole.Guest)
-		{
-			_log.LogWarning("Host left the lobby — ending session.");
+			_log.LogWarning("Peer left the lobby — ending session (save kept).");
 			EndSession();
-			return;
 		}
-
-		if (_peerDisconnected)
-		{
-			if (nowMs - _peerDisconnectedAtMs >= (long)(DisconnectGracePeriod * 1000f))
-			{
-				_log.LogWarning("Guest did not return within {GracePeriod:F0} s — ending session.", DisconnectGracePeriod);
-				EndSession();
-			}
-
-			return;
-		}
-
-		_peerDisconnected = true;
-		_peerDisconnectedAtMs = nowMs;
-		EndEntitySync();
-		RemoteSceneChanged?.Invoke(false);
-		_log.LogWarning("Guest left the lobby — holding the session for {GracePeriod:F0} s reconnect window.",
-			DisconnectGracePeriod);
 	}
 
 	private void EndEntitySync()
@@ -781,10 +757,11 @@ public sealed class SessionService : ICuoService
 		_remotePlayer = null;
 		SessionActive = false;
 		HostSteamId = 0;
-		Role = SessionRole.None;
-		_peerDisconnected = false;
-		_peerDisconnectedAtMs = -1;
-		_log.LogInformation("Session ended.");
+		// Role is NOT reset here: it follows the lobby identity (the lobby
+		// creator stays Host, a joiner stays Guest) — the session content is
+		// gone, but a returning guest's handshake is still accepted and rebuilds
+		// everything (new entity + character save restore).
+		_log.LogInformation("Session ended (role {Role} kept).", Role);
 		SessionEnded?.Invoke();
 	}
 

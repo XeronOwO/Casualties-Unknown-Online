@@ -35,8 +35,23 @@ internal interface IPatchBridge
 
 	bool OnGuestStartAttempt();
 
-	/// <summary>Host clicked start (StartRun/StartTutorial entry — BEFORE the transition animation): tell the guests to start following immediately.</summary>
-	void OnWorldJoinRequested();
+	/// <summary>
+	/// Host clicked start (StartRun/StartTutorial entry — BEFORE the transition
+	/// animation): tell the guests to start following immediately. isTutorial
+	/// tells them which run to start — the world params do not exist yet (they
+	/// are captured at the host's GenerateWorld boundary), so the entry kind
+	/// rides in the join message instead of the params.
+	/// </summary>
+	void OnWorldJoinRequested(bool isTutorial);
+
+	/// <summary>
+	/// Guest side, called by the world-gen wrapper before the generation
+	/// coroutine may consume any Random: false while the host's world params
+	/// have not arrived (the wrapper holds); applying them (idempotent — a
+	/// second call with the same params is a no-op) returns true. Host/solo:
+	/// always true — nothing to wait for.
+	/// </summary>
+	bool EnsureGuestWorldParams();
 
 	/// <summary>An inventory-internal move completed (SwapSlots/SwitchHands) — re-report the character snapshot immediately so the peer's clone updates in real time (the 1 Hz throttle alone reads as a 1-2 s delay).</summary>
 	void OnInventoryChanged();

@@ -62,7 +62,10 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	private readonly Dictionary<ulong, Body> _remoteClones = []; // member SteamId → render clone
 	private bool _inWorld;
 	private bool _worldJoinPending; // guest: the host's enter instruction arrived while the menu was still loading
+	private bool _worldJoinPendingTutorial; // guest: the entry kind carried by the WorldJoin message (params do not exist yet at the host's run-start entry)
 	private bool _startRunAuthorized; // set right before the WorldJoin-triggered StartRun, consumed by the gate
+	private WorldStartParams? _appliedWorldParams; // guest: the params instance whose Random.state is currently restored (a new instance = a new world/layer = re-apply)
+	private bool _guestParamsWaitLogged; // guest: the "generation holding for params" log fired for this wait
 	private bool _worldReadyReceived; // guest: the host released the start gate (or let us in as a late joiner)
 	private bool _gateFrozen; // the start gate holds us: world timeScale=0 + movingAllowed locked — restore both on release
 	private readonly List<Button> _blockedButtons = []; // guest-in-session: menu buttons that open the start screen / enter a world
@@ -534,10 +537,14 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 
 	/// <summary>Guest side: the host told us to enter the world (WorldJoin). The
 	/// menu may still be loading when it arrives (a right-click "Join Game"
-	/// launches a fresh process) — wait for PreRunScript, then start the run.</summary>
-	private void OnWorldJoin()
+	/// launches a fresh process) — wait for PreRunScript, then start the run.
+	/// The entry kind rides in the message: the world params do not exist yet at
+	/// the moment the host clicks start (they are captured at its GenerateWorld
+	/// boundary), so the biome read would misjudge a tutorial for a run.</summary>
+	private void OnWorldJoin(bool isTutorial)
 	{
 		_worldJoinPending = true;
+		_worldJoinPendingTutorial = isTutorial;
 		TryStartWorldJoin();
 	}
 
@@ -565,14 +572,12 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 
 		_worldJoinPending = false;
 		_startRunAuthorized = true; // the gate refuses unauthorised (manual) guest starts
-									// A tutorial world is followed via StartTutorial (it sets the tutorial
-									// flag and nulls runSettings itself, PreRunScript.cs:307-314); anything
-									// else via StartRun. The params already arrived before WorldJoin, so
-									// the biome tells us which world the host is generating.
-		var tutorial = _world.WorldParams?.BiomeOverride == (byte)WorldGeneration.OverrideSceneType.Tutorial;
+		var tutorial = _worldJoinPendingTutorial;
 		_log.LogInformation("World join received — starting {Run} to follow.", tutorial ? "the tutorial" : "a run");
 		if (tutorial)
 		{
+			// StartTutorial sets the tutorial flag and nulls runSettings itself
+			// (PreRunScript.cs:307-314).
 			PreRunScript.instance.StartTutorial();
 		}
 		else
@@ -2675,23 +2680,63 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 			// gone with the scene; the authoritative table starts empty again.
 			_items.ResetItems();
 		}
-		else if (_world.WorldParams is not null)
-		{
-			ApplyWorldParams(_world.WorldParams);
-		}
 		else
 		{
-			_log.LogWarning("World generation started without host world params — world will not match!");
+			// Guest: apply the params now, or hold (the generation wrapper
+			// waits for them before the coroutine consumes any Random). The
+			// host captures its params AT this boundary (anything the game
+			// consumed before it is baked in) — the guest must restore the
+			// exact same moment, so the application point cannot move earlier.
+			((IPatchBridge)this).EnsureGuestWorldParams();
 		}
 	}
 
-	/// <summary>Host clicked start — tell the members to start following IMMEDIATELY (their transition + loading begin together with ours, not one animation late). WorldJoin used to fire at generation start, which is a transition-animation late.</summary>
-	void IPatchBridge.OnWorldJoinRequested()
+	/// <summary>
+	/// Guest side, called before the generation coroutine may consume any
+	/// Random: false while the host's world params have not arrived (the
+	/// wrapper holds the coroutine — nothing random consumed yet); on arrival
+	/// restores them and returns true. Idempotent per params instance — a layer
+	/// switch delivers a new instance and re-applies. Host/solo: nothing to
+	/// wait for.
+	/// </summary>
+	bool IPatchBridge.EnsureGuestWorldParams()
+	{
+		if (_session.Role != SessionRole.Guest)
+		{
+			return true;
+		}
+
+		var parameters = _world.WorldParams;
+		if (parameters is null)
+		{
+			// The wrapper polls every frame — log the hold once per wait, so a
+			// held generation is observable without spamming the log.
+			if (!_guestParamsWaitLogged)
+			{
+				_guestParamsWaitLogged = true;
+				_log.LogInformation("World generation holding — host world params not arrived yet (fast guest transition).");
+			}
+
+			return false;
+		}
+
+		_guestParamsWaitLogged = false; // re-arm for the next world/layer
+		if (!ReferenceEquals(_appliedWorldParams, parameters))
+		{
+			ApplyWorldParams(parameters);
+			_appliedWorldParams = parameters;
+		}
+
+		return true;
+	}
+
+	/// <summary>Host clicked start — tell the members to start following IMMEDIATELY (their transition + loading begin together with ours, not one animation late). WorldJoin used to fire at generation start, which is a transition-animation late. The entry kind rides along — the world params are not captured until the host's GenerateWorld boundary, so the guest cannot derive tutorial/run from them yet.</summary>
+	void IPatchBridge.OnWorldJoinRequested(bool isTutorial)
 	{
 		if (_session.Role == SessionRole.Host && _session.SessionActive)
 		{
-			_log.LogInformation("[WorldJoin] sent at run-start entry — guests follow immediately.");
-			_world.SendWorldJoin();
+			_log.LogInformation("[WorldJoin] sent at run-start entry (tutorial: {Tutorial}) — guests follow immediately.", isTutorial);
+			_world.SendWorldJoin(isTutorial);
 		}
 	}
 

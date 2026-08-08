@@ -62,6 +62,21 @@ internal static class WorldGenRandomIsolation
 	/// Wrap the game's own GenerateWorld coroutine so the generation random
 	/// stream is sealed across every suspension point. The original coroutine
 	/// body is never replaced — only its stream is isolated.
+	///
+	/// Before the wrapped coroutine may consume any Random it holds until the
+	/// guest's world params are applied (the host sent WorldJoin at its run-start
+	/// entry, but the params are captured at ITS GenerateWorld boundary — a fast
+	/// guest transition can reach its own boundary first; starting the stream
+	/// without the restore would generate a different world). Host/solo apply
+	/// synchronously in the prefix, so the hold never engages.
 	/// </summary>
-	public static IEnumerator Wrap(IEnumerator generateWorld) => Drive(generateWorld);
+	public static IEnumerator Wrap(IEnumerator generateWorld, IPatchBridge adapter)
+	{
+		while (!adapter.EnsureGuestWorldParams())
+		{
+			yield return null;
+		}
+
+		yield return Drive(generateWorld);
+	}
 }

@@ -17,9 +17,9 @@ public interface IWorldControl
 
 	event Action<NetVector2, float>? BlockDamagedReceived;
 
-	void FireWorldJoinReceived();
+	void FireWorldJoinReceived(bool isTutorial);
 
-	event Action? WorldJoinReceived;
+	event Action<bool>? WorldJoinReceived;
 
 	/// <summary>
 	/// Report a locally-performed player attack on a building entity (local

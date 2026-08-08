@@ -25,6 +25,14 @@ public sealed class WorldStartParams
 
 	public Dictionary<string, object>? RunSettings { get; init; }
 
+	/// <summary>
+	/// True when the world is a tutorial — the guest must enter via StartTutorial
+	/// (it nulls runSettings itself, PreRunScript.cs:307-314). WorldGeneration.
+	/// OverrideSceneType.Tutorial == 1 (the adapter owns the only other read of
+	/// the enum; the Runtime never references game assemblies).
+	/// </summary>
+	public bool IsTutorial => BiomeOverride == 1;
+
 	/// <summary>Domain → wire; the reverse lives on <see cref="WorldStartParamsMsg"/>.</summary>
 	public WorldStartParamsMsg ToWorldStartParamsMsg() => new()
 	{

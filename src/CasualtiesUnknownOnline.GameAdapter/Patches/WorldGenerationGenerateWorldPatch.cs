@@ -1,4 +1,5 @@
 using System.Collections;
+using CasualtiesUnknownOnline.GameAdapter.WorldGen;
 using HarmonyLib;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Patches;

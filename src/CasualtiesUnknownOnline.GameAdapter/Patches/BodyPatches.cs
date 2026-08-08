@@ -1,5 +1,6 @@
 using System;
 using System.Reflection;
+using CasualtiesUnknownOnline.GameAdapter.Rendering;
 using HarmonyLib;
 using UnityEngine;
 

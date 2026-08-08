@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Reflection;
 using CasualtiesUnknownOnline.GameAdapter.Rendering;
 using HarmonyLib;
@@ -164,6 +165,37 @@ internal static class BodyPatches
 		// GetComponentInParent: the driver lives on the Body GameObject.
 		// == null: Unity object (a missing component is managed-null, same check).
 		private static bool Prefix(Limb __instance) => __instance.GetComponentInParent<RemoteBodyDriver>() == null;
+	}
+
+	[HarmonyPatch(typeof(Body), "Attack")]
+	internal static class BodyAttackPatch
+	{
+		// Player attacks damage building entities directly (Body.cs:1946 —
+		// health -=, the only player-vs-entity damage write, no game event to
+		// hook). Snapshot every entity's health before the attack; the postfix
+		// reports whoever lost health. FindObjectsOfType per swing is fine —
+		// attacks are low-frequency (1-2 Hz).
+		private static readonly List<(BuildingEntity, float)> HealthBefore = [];
+
+		private static void Prefix()
+		{
+			HealthBefore.Clear();
+			foreach (var entity in UnityEngine.Object.FindObjectsOfType<BuildingEntity>())
+			{
+				HealthBefore.Add((entity, entity.health));
+			}
+		}
+
+		private static void Postfix()
+		{
+			foreach (var (entity, before) in HealthBefore)
+			{
+				if (entity != null && entity.health < before) // Unity object — ==
+				{
+					PatchBridge.Impl?.OnBuildingEntityDamaged(entity, before - entity.health);
+				}
+			}
+		}
 	}
 
 	[HarmonyPatch(typeof(Body), "Start")]

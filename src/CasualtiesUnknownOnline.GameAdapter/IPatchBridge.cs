@@ -21,6 +21,9 @@ internal interface IPatchBridge
 
 	void OnBlockDamaged(Vector2 pos, float dmg);
 
+	/// <summary>A player's attack damaged a building entity (Body.cs:1946) — report it (the entity's health is local-only otherwise).</summary>
+	void OnBuildingEntityDamaged(BuildingEntity entity, float damage);
+
 	bool OnGuestStartAttempt();
 
 	// ---- World items (runtime-generated item entities) ----

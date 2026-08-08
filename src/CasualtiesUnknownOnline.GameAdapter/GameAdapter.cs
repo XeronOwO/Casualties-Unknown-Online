@@ -74,6 +74,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 
 	// ---- World items (runtime-generated item entities) ----
 	private bool _applyingRemoteItem; // reentry guard: remote applications must not report back
+	private bool _applyingRemoteBuildingDamage; // reentry guard: applying a remote entity hit must not re-report
 	private ulong _nextItemId = 1; // local instance-id counter — ids are (counter << 32 | account id), unique without host allocation
 	private readonly Dictionary<ulong, Vector2> _pickupOrigins = []; // itemId → world position at pickup (rollback target for a refused pickup)
 
@@ -408,6 +409,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_session.SessionEnded += OnSessionEnded;
 		_session.SessionActivated += OnSessionActivated;
 		_world.BlockDamagedReceived += OnRemoteBlockDamaged;
+		_world.BuildingEntityDamagedReceived += OnRemoteBuildingEntityDamaged;
 		_world.WorldJoinReceived += OnWorldJoin;
 		_world.BlockStateReceived += OnRemoteBlockState;
 		_world.BlockPlacedReceived += OnRemoteBlockPlaced;
@@ -602,6 +604,51 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		finally
 		{
 			_applyingRemoteBlockDamage = false;
+		}
+	}
+
+	/// <summary>
+	/// Called from the Body.Attack patch after the local attack damaged a
+	/// building entity (Body.cs:1946 — the only player-vs-entity damage write,
+	/// which otherwise stays local and the peer's copy of the entity never
+	/// loses health): report it, position-keyed (world entities are generated
+	/// deterministically, so both sides have the same object at the same place).
+	/// </summary>
+	void IPatchBridge.OnBuildingEntityDamaged(BuildingEntity entity, float damage)
+	{
+		if (_applyingRemoteBuildingDamage || !_session.SessionActive)
+		{
+			return;
+		}
+
+		var pos = entity.transform.position;
+		_world.SendBuildingEntityDamaged(new NetVector2(pos.x, pos.y), damage);
+	}
+
+	/// <summary>
+	/// A player's attack damaged a building entity — apply the damage to the
+	/// entity at the reported position. On the host this is what rolls the
+	/// entity's drops (drop execution is host-only, BuildingEntityPatches).
+	/// </summary>
+	private void OnRemoteBuildingEntityDamaged(NetVector2 pos, float damage)
+	{
+		_applyingRemoteBuildingDamage = true;
+		try
+		{
+			var hit = Physics2D.OverlapPoint(new Vector2(pos.X, pos.Y));
+			var entity = hit != null ? hit.GetComponent<BuildingEntity>() : null; // Unity object — ==
+			if (entity != null)
+			{
+				entity.health -= damage;
+			}
+			else
+			{
+				_log.LogWarning("Building entity damage at {Pos} — no entity there (moved or already gone).", pos);
+			}
+		}
+		finally
+		{
+			_applyingRemoteBuildingDamage = false;
 		}
 	}
 

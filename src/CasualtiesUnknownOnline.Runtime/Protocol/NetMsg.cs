@@ -40,4 +40,7 @@ public enum NetMsg : byte
 	ItemDestroy = 48, // guest → host: report; host → guest: broadcast relay (source excluded)
 	ItemReject = 49, // host → guest: arbitration refusal (e.g. pickup of an unknown item) — the guest rolls back
 	ItemSnapshot = 50, // host → guest: full world-item snapshot on world entry (late joiner / reconnect)
+
+	// World entities (player-attacked building entities — plants, crates, creatures)
+	BuildingEntityDamaged = 51, // guest → host: report (host applies + relays); host → guest: broadcast relay (source excluded)
 }

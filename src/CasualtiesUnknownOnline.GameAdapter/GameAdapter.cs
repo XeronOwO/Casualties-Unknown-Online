@@ -985,16 +985,33 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 	}
 
 	/// <summary>
-	/// Guest side, bound to a lobby: the start screen is host-only. The menu
-	/// buttons that open it or enter a world are disabled (interactable =
-	/// false — clicking does nothing, no flash); forcing the screen closed
-	/// every frame stays as a backstop for any non-button open path. The
-	/// buttons are scanned once and re-scanned when the scene rebuilds them
-	/// (Unity == null on destroyed ones).
+	/// Guest side, bound to a lobby: the start screen is host-only. The menu's
+	/// AdaptiveButtons (Play opens runSettingsScreen, Tutorial enters a world —
+	/// AdaptiveButton.cs, not UnityEngine.UI.Button) are disabled by disabling
+	/// the component (no click handling, no flash); the UnityEngine.UI.Button
+	/// entries are disabled via interactable, and forcing the screen closed
+	/// every frame stays as a backstop for any non-button open path.
 	/// </summary>
 	private void UpdateGuestMenuState()
 	{
 		var blocking = _session.Role == SessionRole.Guest && _session.HostSteamId != 0;
+
+		foreach (var ab in UnityEngine.Object.FindObjectsOfType<AdaptiveButton>())
+		{
+			if (ab == null) // Unity object — ==
+			{
+				continue;
+			}
+
+			if (ab.action is AdaptiveButton.MenuAction.Play or AdaptiveButton.MenuAction.Tutorial)
+			{
+				if (ab.enabled == blocking)
+				{
+					ab.enabled = !blocking;
+				}
+			}
+		}
+
 		if (!blocking)
 		{
 			// Lobby binding gone — restore anything we disabled (the menu may

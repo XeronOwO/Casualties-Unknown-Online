@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Reflection;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Session.Handlers;
@@ -7,38 +9,56 @@ using Microsoft.Extensions.Logging;
 namespace CasualtiesUnknownOnline.Runtime.Session;
 
 /// <summary>
-/// The receive dispatch: subscribes to the receiver's direction-valid frames
-/// and routes them to the per-message handlers with the handler context.
-/// SessionService does not take part in the receive path — the dispatcher is
-/// resolved after the session (and the entity/data domains it depends on) are
-/// built, so the handler context factories resolve safely; the constructor
-/// graph stays acyclic (abstract extraction, user rule).
+/// The receive dispatch: builds the msg → handler route table once at startup
+/// (each handler carries a <see cref="PacketHandlerAttribute"/>; the dictionary
+/// is read-only afterwards), subscribes to the receiver's direction-valid
+/// frames and routes them to the per-message handlers with the handler
+/// context — one O(1) lookup per frame. SessionService does not take part in
+/// the receive path: the dispatcher is resolved after the session (and the
+/// entity/data domains its context references) are built, so the handler
+/// context factories resolve safely; the constructor graph stays acyclic
+/// (abstract extraction, user rule).
 /// </summary>
 public sealed class PacketDispatcher : ICuoService
 {
 	private readonly PacketReceiver _receiver;
-	private readonly PacketRouter _router;
 	private readonly HandlerContext _context;
 	private readonly ILogger<PacketDispatcher> _log;
+	private readonly Dictionary<NetMsg, IPacketHandler> _routes = [];
 
-	public PacketDispatcher(
-		PacketReceiver receiver, PacketRouter router, HandlerContext context, ILogger<PacketDispatcher> log)
+	public PacketDispatcher(PacketReceiver receiver, IEnumerable<IPacketHandler> handlers,
+		HandlerContext context, ILogger<PacketDispatcher> log)
 	{
 		_receiver = receiver;
-		_router = router;
 		_context = context;
 		_log = log;
+		foreach (var handler in handlers)
+		{
+			var msg = handler.GetType().GetCustomAttribute<PacketHandlerAttribute>(inherit: false)?.Msg
+				?? throw new InvalidOperationException(
+					$"Packet handler {handler.GetType().Name} lacks a [PacketHandler] attribute.");
+			// Dictionary.TryAdd is netstandard2.1+ — net48 needs the two-step form.
+			if (_routes.ContainsKey(msg))
+			{
+				throw new InvalidOperationException($"Duplicate packet handler for {msg}.");
+			}
+
+			_routes.Add(msg, handler);
+		}
+
 		receiver.MessageArrived += OnMessageArrived;
 	}
 
 	private void OnMessageArrived(ulong sender, byte[] frame)
 	{
-		if (_router.TryDispatch(sender, frame, _context))
+		var msgId = (NetMsg)frame[0];
+		if (_routes.TryGetValue(msgId, out var handler))
 		{
+			handler.Process(sender, frame, _context);
 			return;
 		}
 
-		_log.LogWarning("No handler for {Msg} from {Sender}.", (NetMsg)frame[0], sender);
+		_log.LogWarning("No handler for {Msg} from {Sender}.", msgId, sender);
 	}
 
 	void ICuoService.Initialize()

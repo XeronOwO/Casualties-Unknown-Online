@@ -46,11 +46,11 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 
 	// ===== Report side (local compute) =====
 
-	public void SendItemSpawned(ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, float rotation)
+	public void SendItemSpawned(ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, float rotation, bool freshItemDrop)
 	{
 		if (_session.Role != SessionRole.Guest)
 		{
-			_worldItems[itemId] = new WorldItem(itemId, item, pos, vel, 0, rotation);
+			_worldItems[itemId] = new WorldItem(itemId, item, pos, vel, 0, rotation, freshItemDrop);
 		}
 
 		if (!_session.SessionActive)
@@ -65,6 +65,7 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 			Position = pos.ToNetVector2Msg(),
 			Velocity = vel.ToNetVector2Msg(),
 			Rotation = rotation,
+			FreshItemDrop = freshItemDrop,
 		};
 		if (_session.Role == SessionRole.Host)
 		{
@@ -103,7 +104,7 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 	{
 		if (_session.Role != SessionRole.Guest)
 		{
-			_worldItems[itemId] = new WorldItem(itemId, item, pos, NetVector2.Zero, parentItemId, rotation);
+			_worldItems[itemId] = new WorldItem(itemId, item, pos, NetVector2.Zero, parentItemId, rotation, false);
 		}
 
 		if (!_session.SessionActive)
@@ -154,13 +155,13 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 
 	// ===== Receive side (wire handlers) =====
 
-	public void FireItemSpawnedReceived(ulong sender, ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, float rotation)
+	public void FireItemSpawnedReceived(ulong sender, ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, float rotation, bool freshItemDrop)
 	{
 		if (_session.Role == SessionRole.Host)
 		{
 			if (!_worldItems.ContainsKey(itemId))
 			{
-				_worldItems[itemId] = new WorldItem(itemId, item, pos, vel, 0, rotation);
+				_worldItems[itemId] = new WorldItem(itemId, item, pos, vel, 0, rotation, freshItemDrop);
 				_session.BroadcastExcept(sender, NetMsg.ItemSpawn, new ItemSpawnMsg
 				{
 					ItemId = itemId,
@@ -168,6 +169,7 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 					Position = pos.ToNetVector2Msg(),
 					Velocity = vel.ToNetVector2Msg(),
 					Rotation = rotation,
+					FreshItemDrop = freshItemDrop,
 				});
 				_log.LogInformation("Item {ItemId} ({Type}) spawned by {Sender} — registered + relayed.", itemId, item.ItemId, sender);
 			}
@@ -175,7 +177,7 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 		}
 
 		// Host materializes the guest's item; guest materializes the host's relay.
-		ItemSpawned?.Invoke(new WorldItem(itemId, item, pos, vel, 0, rotation));
+		ItemSpawned?.Invoke(new WorldItem(itemId, item, pos, vel, 0, rotation, freshItemDrop));
 	}
 
 	public void FireItemPickedUpReceived(ulong sender, ulong itemId)
@@ -209,7 +211,7 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 	{
 		if (_session.Role == SessionRole.Host)
 		{
-			_worldItems[itemId] = new WorldItem(itemId, item, pos, NetVector2.Zero, parentItemId, rotation);
+			_worldItems[itemId] = new WorldItem(itemId, item, pos, NetVector2.Zero, parentItemId, rotation, false);
 			_session.BroadcastExcept(sender, NetMsg.ItemDrop, new ItemDropMsg
 			{
 				ItemId = itemId,
@@ -261,6 +263,31 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 		};
 		_sender.Send(targetSteamId, NetMsg.ItemSnapshot, msg);
 		_log.LogInformation("Sent world-item snapshot ({Count} items) to {Peer}.", _worldItems.Count, targetSteamId);
+	}
+
+	/// <summary>
+	/// Host only: periodically re-send the full table over the unreliable
+	/// channel — drops are harmless (the next tick overwrites; the receiver
+	/// reconciles), and settled items get their drifted positions re-aligned.
+	/// </summary>
+	public void SendPeriodicItemSnapshot()
+	{
+		if (_session.Role != SessionRole.Host || _worldItems.Count == 0 || !_session.SessionActive)
+		{
+			return;
+		}
+
+		var msg = new ItemSnapshotMsg
+		{
+			Entries = [.. _worldItems.Values.Select(w => w.ToSnapshotEntryMsg())],
+		};
+		foreach (var member in _session.Members)
+		{
+			if (member.Handshaken)
+			{
+				_sender.Send(member.SteamId, NetMsg.ItemSnapshot, msg, reliable: false);
+			}
+		}
 	}
 
 	public void ResetItems() => _worldItems.Clear();

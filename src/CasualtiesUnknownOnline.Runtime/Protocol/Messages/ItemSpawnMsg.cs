@@ -28,4 +28,7 @@ public sealed class ItemSpawnMsg
 
 	[ProtoMember(5)]
 	public float Rotation { get; set; } // z euler angle — spawns carry random rotations
+
+	[ProtoMember(6)]
+	public bool FreshItemDrop { get; set; } // the glowing floating pickup effect (FreshItemDrop.cs) — carries over to the remote spawn
 }

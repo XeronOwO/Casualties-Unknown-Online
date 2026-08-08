@@ -23,4 +23,7 @@ public sealed class ItemSnapshotEntryMsg
 
 	[ProtoMember(6)]
 	public float Rotation { get; set; } // z euler angle
+
+	[ProtoMember(7)]
+	public bool FreshItemDrop { get; set; } // the glowing floating pickup effect
 }

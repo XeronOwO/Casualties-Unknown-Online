@@ -386,16 +386,19 @@ public sealed class WorldService(ISessionControl session, PacketSender sender, I
 		}
 
 		var msg = new WorldJoinMsg { IsTutorial = isTutorial };
+		// Members already in the world ignore a re-send anyway, but the second
+		// caller (the host's world entry — members that joined mid-generation)
+		// targets exactly those that never received the entry WorldJoin.
 		foreach (var member in _session.Members)
 		{
-			if (member.Handshaken)
+			if (member.Handshaken && !member.InWorld)
 			{
 				_sender.Send(member.SteamId, NetMsg.WorldJoin, msg);
 			}
 		}
 
 		_log.LogInformation("World join sent to {Members} members (tutorial: {Tutorial}).",
-			_session.Members.Count(m => m.Handshaken), isTutorial);
+			_session.Members.Count(m => m.Handshaken && !m.InWorld), isTutorial);
 	}
 
 	/// <summary>Host side: capture and publish world-start parameters (run start).</summary>

@@ -26,4 +26,7 @@ public sealed class ItemDropMsg
 
 	[ProtoMember(5)]
 	public float Rotation { get; set; } // z euler angle (the slot's rotation when dropped)
+
+	[ProtoMember(6)]
+	public NetVector2Msg? Velocity { get; set; } // the item's velocity at the drop moment (a throw carries a big one)
 }

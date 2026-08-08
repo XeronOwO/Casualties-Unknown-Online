@@ -23,8 +23,8 @@ public interface IItemControl
 	/// <summary>An item was picked up locally (world → inventory) — drop it from the table (host/solo) and report/broadcast.</summary>
 	void SendItemPickedUp(ulong itemId);
 
-	/// <summary>An item was dropped/placed into the world locally (inventory → world/container) — record and report/broadcast. Vel is the item's velocity at the drop moment (a throw carries a big one).</summary>
-	void SendItemDropped(ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, ulong parentItemId, float rotation);
+	/// <summary>An item was dropped/placed into the world locally (inventory → world/container) — record and report/broadcast. Vel is the item's velocity at the drop moment (a throw carries a big one); ParentPos is the container's world position when ParentItemId is set (the receiver binds a local generation-time container by position).</summary>
+	void SendItemDropped(ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, ulong parentItemId, float rotation, NetVector2 parentPos = default);
 
 	/// <summary>A world item was destroyed locally — drop it from the table (host/solo) and report/broadcast.</summary>
 	void SendItemDestroyed(ulong itemId);
@@ -38,7 +38,7 @@ public interface IItemControl
 
 	void FireItemPickedUpReceived(ulong sender, ulong itemId);
 
-	void FireItemDroppedReceived(ulong sender, ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, ulong parentItemId, float rotation);
+	void FireItemDroppedReceived(ulong sender, ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, ulong parentItemId, float rotation, NetVector2 parentPos = default);
 
 	void FireItemDestroyedReceived(ulong sender, ulong itemId);
 
@@ -77,8 +77,8 @@ public interface IItemControl
 	/// <summary>An item left the world into someone's inventory — remove it (or roll a local pickup back).</summary>
 	event Action<ulong>? ItemPickedUp;
 
-	/// <summary>An item now lies in the world at Pos (or inside the container item ParentItemId) — move an existing object there or materialize it (Vel = drop-moment velocity, a throw's flight).</summary>
-	event Action<ulong, CharacterItemMsg, NetVector2, NetVector2, ulong, float>? ItemDropped;
+	/// <summary>An item now lies in the world at Pos (or inside the container item ParentItemId) — move an existing object there or materialize it (Vel = drop-moment velocity, a throw's flight; ParentPos = the container's position when it needs binding).</summary>
+	event Action<ulong, CharacterItemMsg, NetVector2, NetVector2, ulong, float, NetVector2>? ItemDropped;
 
 	/// <summary>An item was destroyed — remove it locally.</summary>
 	event Action<ulong>? ItemDestroyed;

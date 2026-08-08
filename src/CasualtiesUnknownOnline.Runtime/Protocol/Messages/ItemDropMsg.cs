@@ -29,4 +29,7 @@ public sealed class ItemDropMsg
 
 	[ProtoMember(6)]
 	public NetVector2Msg? Velocity { get; set; } // the item's velocity at the drop moment (a throw carries a big one)
+
+	[ProtoMember(7)]
+	public NetVector2Msg? ParentPosition { get; set; } // the container's world position when ParentItemId is set — the receiver binds a local generation-time container (which has no instance id yet) by position
 }

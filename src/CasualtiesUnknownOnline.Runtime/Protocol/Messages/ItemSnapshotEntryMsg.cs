@@ -26,4 +26,7 @@ public sealed class ItemSnapshotEntryMsg
 
 	[ProtoMember(7)]
 	public bool FreshItemDrop { get; set; } // the glowing floating pickup effect
+
+	[ProtoMember(8)]
+	public NetVector2Msg? ParentPosition { get; set; } // the container's world position when ParentItemId is set (binding by position for generation-time containers)
 }

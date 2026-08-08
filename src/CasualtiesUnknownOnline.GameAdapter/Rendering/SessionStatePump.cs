@@ -19,8 +19,6 @@ namespace CasualtiesUnknownOnline.GameAdapter.Rendering;
 /// </summary>
 internal static class SessionStatePump
 {
-	private const float SnapshotInterval = 0.05f; // matches SessionService state send interval
-
 	public static void Apply(PlayerEntity? entity, Body? body)
 	{
 		// NOTE: body is a Unity object — use == (operator overload) not is null;
@@ -38,9 +36,15 @@ internal static class SessionStatePump
 			return;
 		}
 
-		// Interpolate toward the latest snapshot over one snapshot interval.
+		// Interpolate toward the latest snapshot over the ACTUAL last snapshot
+		// interval: a fixed 0.05 s window overshoots and waits when the sender's
+		// throttle degrades (a low-frame-rate guest reports at uneven 33/66 ms
+		// intervals), which reads as stepping/jerk on the proxy. The adaptive
+		// window reaches the target exactly when the next snapshot lands.
 		var elapsed = (Environment.TickCount - entity.StateReceivedMs) / 1000f;
-		var alpha = Mathf.Clamp01(elapsed / SnapshotInterval);
+		var windowMs = entity.StateReceivedMs - entity.PrevStateMs;
+		var window = Mathf.Clamp(windowMs / 1000f, 0.02f, 0.5f);
+		var alpha = Mathf.Clamp01(elapsed / window);
 		var position = Vector2.Lerp(ToVector2(entity.PrevPosition), ToVector2(entity.Position), alpha);
 		var lookPos = Vector2.Lerp(ToVector2(entity.PrevLookPos), ToVector2(entity.LookPos), alpha);
 		var velocity = Vector2.Lerp(ToVector2(entity.PrevVelocity), ToVector2(entity.Velocity), alpha);

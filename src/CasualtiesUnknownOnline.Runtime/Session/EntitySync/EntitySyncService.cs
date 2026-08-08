@@ -240,11 +240,13 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 	internal void ApplyEntityState(EntityStateMsg msg, PlayerEntity target)
 	{
 		var firstSnapshot = target.StateReceivedMs < 0;
+		var now = Environment.TickCount;
+		target.PrevStateMs = firstSnapshot ? now : target.StateReceivedMs;
 		target.PrevPosition = firstSnapshot ? msg.Position.ToNetVector2() : target.Position;
 		target.PrevLookPos = firstSnapshot ? msg.LookPos.ToNetVector2() : target.LookPos;
 		target.PrevVelocity = firstSnapshot ? msg.Velocity.ToNetVector2() : target.Velocity;
 		msg.ApplyTo(target);
-		target.StateReceivedMs = Environment.TickCount;
+		target.StateReceivedMs = now;
 	}
 
 	// ---- Lifecycle ----

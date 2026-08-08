@@ -79,6 +79,10 @@
       <HintPath>..\..\references\UnityEngine.SubsystemsModule.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="UnityEngine.UI">
+      <HintPath>..\..\references\UnityEngine.UI.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="UnityEngine.InputLegacyModule">
       <HintPath>..\..\references\UnityEngine.InputLegacyModule.dll</HintPath>
       <Private>False</Private>

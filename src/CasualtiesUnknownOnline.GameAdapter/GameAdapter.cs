@@ -13,6 +13,7 @@ using HarmonyLib;
 using MapsterMapper;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
+using UnityEngine.UI;
 using IGameAdapter = CasualtiesUnknownOnline.Runtime.GameAdapter.IGameAdapter;
 using Random = UnityEngine.Random;
 
@@ -51,6 +52,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 	private bool _inWorld;
 	private bool _worldJoinPending; // guest: the host's enter instruction arrived while the menu was still loading
 	private bool _startRunAuthorized; // set right before the WorldJoin-triggered StartRun, consumed by the gate
+	private readonly List<Button> _blockedButtons = []; // guest-in-session: menu buttons that open the start screen / enter a world
 
 	private const float CharacterReportInterval = 1f; // guest → host character snapshot (1 Hz)
 	private long _nextCharacterReportMs;
@@ -958,10 +960,13 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 	}
 
 	/// <summary>Gate for every run-start entry (StartRun/LoadRun/StartTutorial) —
-	/// returns false to block. In a session a guest may only enter the world on
-	/// the host's instruction (WorldJoin): starting on its own would create a
-	/// world the host does not know. The WorldJoin path authorises its StartRun
-	/// call right before it; LoadRun/StartTutorial have no authorised path.</summary>
+	/// returns false to block. A guest may only enter the world on the host's
+	/// instruction (WorldJoin): starting on its own would create a world the
+	/// host does not know. The lock starts as soon as the guest joined a lobby
+	/// (HostSteamId set — before the handshake completes, so the Join-Game
+	/// wait window is covered) and lifts when the lobby binding is gone. The
+	/// WorldJoin path authorises its StartRun call right before it;
+	/// LoadRun/StartTutorial have no authorised path.</summary>
 	internal bool OnGuestStartAttempt()
 	{
 		if (_startRunAuthorized)
@@ -970,7 +975,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 			return true;
 		}
 
-		if (_session.Role == SessionRole.Guest && _session.SessionActive)
+		if (_session.Role == SessionRole.Guest && _session.HostSteamId != 0)
 		{
 			_log.LogWarning("A guest cannot start a run on its own — wait for the host to enter the world.");
 			return false;
@@ -980,16 +985,29 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 	}
 
 	/// <summary>
-	/// Guest side, in a session: the start screen (runSettingsScreen) is
-	/// host-only — force it closed every frame, so the guest cannot open or
-	/// operate it (the open action is wired in the scene's buttons, not in
-	/// script, so closing is the reliable side). The StartRun/LoadRun/
-	/// StartTutorial gates back this up.
+	/// Guest side, bound to a lobby: the start screen is host-only. The menu
+	/// buttons that open it or enter a world are disabled (interactable =
+	/// false — clicking does nothing, no flash); forcing the screen closed
+	/// every frame stays as a backstop for any non-button open path. The
+	/// buttons are scanned once and re-scanned when the scene rebuilds them
+	/// (Unity == null on destroyed ones).
 	/// </summary>
 	private void UpdateGuestMenuState()
 	{
-		if (_session.Role != SessionRole.Guest || !_session.SessionActive)
+		var blocking = _session.Role == SessionRole.Guest && _session.HostSteamId != 0;
+		if (!blocking)
 		{
+			// Lobby binding gone — restore anything we disabled (the menu may
+			// be reused for solo play) and drop the scan cache.
+			foreach (var btn in _blockedButtons)
+			{
+				if (btn != null && !btn.interactable) // Unity object — ==
+				{
+					btn.interactable = true;
+				}
+			}
+
+			_blockedButtons.Clear();
 			return;
 		}
 
@@ -999,9 +1017,51 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 			return;
 		}
 
+		EnsureBlockedButtons(pre);
+		foreach (var btn in _blockedButtons)
+		{
+			if (btn != null && btn.interactable) // Unity object — ==
+			{
+				btn.interactable = false;
+			}
+		}
+
 		if (pre.runSettingsScreen != null && pre.runSettingsScreen.activeSelf) // Unity object — ==
 		{
-			pre.runSettingsScreen.SetActive(false);
+			pre.runSettingsScreen.SetActive(false); // backstop: any non-button open path
+		}
+	}
+
+	private void EnsureBlockedButtons(PreRunScript pre)
+	{
+		// Cache validity: the menu scene rebuilds the buttons on reload — the
+		// cached list is dead once every entry is a destroyed object.
+		if (_blockedButtons.Count > 0 && _blockedButtons.Any(b => b != null))
+		{
+			return;
+		}
+
+		_blockedButtons.Clear();
+		foreach (var btn in UnityEngine.Object.FindObjectsOfType<Button>())
+		{
+			if (btn == null) // Unity object — ==
+			{
+				continue;
+			}
+
+			for (var i = 0; i < btn.onClick.GetPersistentEventCount(); i++)
+			{
+				var target = btn.onClick.GetPersistentTarget(i);
+				var method = btn.onClick.GetPersistentMethodName(i);
+				// The button that opens the start screen (scene-wired
+				// SetActive on runSettingsScreen) and the world entries.
+				if ((target is GameObject go && go == pre.runSettingsScreen)
+					|| (target is PreRunScript && method is "StartRun" or "LoadRun" or "StartTutorial"))
+				{
+					_blockedButtons.Add(btn);
+					break;
+				}
+			}
 		}
 	}
 

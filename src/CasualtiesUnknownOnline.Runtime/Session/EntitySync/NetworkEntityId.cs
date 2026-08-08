@@ -1,7 +1,7 @@
 using System;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 
-namespace CasualtiesUnknownOnline.Runtime.Session;
+namespace CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 
 /// <summary>
 /// Network entity ID per architecture.md §3: never use Unity instance IDs (they

@@ -6,7 +6,7 @@ using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using Microsoft.Extensions.Logging;
 
-namespace CasualtiesUnknownOnline.Runtime.Session;
+namespace CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 
 /// <summary>
 /// Entity-sync domain: the entity table, id allocation, the sync decisions and

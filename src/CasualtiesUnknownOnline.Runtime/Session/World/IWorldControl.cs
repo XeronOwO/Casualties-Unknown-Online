@@ -1,7 +1,7 @@
 using System;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 
-namespace CasualtiesUnknownOnline.Runtime.Session;
+namespace CasualtiesUnknownOnline.Runtime.Session.World;
 
 /// <summary>
 /// The world surface packet handlers operate on — implemented by WorldService.

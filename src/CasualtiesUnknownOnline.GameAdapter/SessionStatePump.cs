@@ -1,6 +1,6 @@
 using System;
 using CasualtiesUnknownOnline.Runtime.Protocol;
-using CasualtiesUnknownOnline.Runtime.Session;
+using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using UnityEngine;
 
 namespace CasualtiesUnknownOnline.GameAdapter;

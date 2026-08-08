@@ -1,6 +1,6 @@
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 
-namespace CasualtiesUnknownOnline.Runtime.Session;
+namespace CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 
 /// <summary>
 /// The character-data surface packet handlers operate on — implemented by

@@ -1004,10 +1004,26 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		}
 	}
 
-	/// <summary>Find an item by its instance id (Item.allItems — Item.cs:7211, the scene's item table).</summary>
+	/// <summary>
+	/// Find an item by its instance id. Item.allItems registers in Item.Start
+	/// (Item.cs:118) — ONE frame after Instantiate — so a message arriving in
+	/// the same frame as a materialization misses the table (observed: a pickup
+	/// relay 3 ms after the drop left the world phantom forever — "moving an
+	/// item makes a duplicate drop on the peer"). Fall back to a scene scan
+	/// (slow, but only on the miss path) to cover the not-yet-registered window.
+	/// </summary>
 	private static Item? FindWorldItem(ulong itemId)
 	{
 		foreach (var item in Item.allItems)
+		{
+			var idComp = item.GetComponent<ItemInstanceId>();
+			if (idComp != null && idComp.Id == itemId) // Unity object — ==
+			{
+				return item;
+			}
+		}
+
+		foreach (var item in UnityEngine.Object.FindObjectsOfType<Item>())
 		{
 			var idComp = item.GetComponent<ItemInstanceId>();
 			if (idComp != null && idComp.Id == itemId) // Unity object — ==

@@ -2559,9 +2559,18 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 			_characterData.ReportCharacterData(CaptureCharacterData(prevBody));
 		}
 
-		if (inWorld && _session.Role == SessionRole.Host && _world.StartStartGate())
+		if (inWorld && _session.Role == SessionRole.Host)
 		{
-			_log.LogInformation("Host entered the world — waiting for members before everyone starts.");
+			// Members that joined mid-generation never received the entry
+			// WorldJoin (it fires at the click moment, before they handshook) —
+			// invite them now that the world is up (only members not yet in the
+			// world are targeted; a re-send to an already-starting member is
+			// ignored by its run-start gate).
+			_world.SendWorldJoin(_world.WorldParams?.IsTutorial ?? false);
+			if (_world.StartStartGate())
+			{
+				_log.LogInformation("Host entered the world — waiting for members before everyone starts.");
+			}
 		}
 
 		var sceneName = inWorld ? UnityEngine.SceneManagement.SceneManager.GetActiveScene().name : "PreGen";

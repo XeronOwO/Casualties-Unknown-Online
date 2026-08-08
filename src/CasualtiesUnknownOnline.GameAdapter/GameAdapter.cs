@@ -62,8 +62,9 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	private readonly Dictionary<ulong, Body> _remoteClones = []; // member SteamId → render clone
 	private bool _inWorld;
 	private bool _worldJoinPending; // guest: the host's enter instruction arrived while the menu was still loading
-	private bool _worldJoinPendingTutorial; // guest: the entry kind carried by the WorldJoin message (params do not exist yet at the host's run-start entry)
+	private bool _worldJoinPendingTutorial; // guest: the entry kind carried by the WorldJoin message
 	private bool _startRunAuthorized; // set right before the WorldJoin-triggered StartRun, consumed by the gate
+	private bool _entryParamsCaptured; // host: params captured at the run-start entry — the first GenerateWorld must not re-capture (it would move the baseline and re-send, racing the guests' start)
 	private WorldStartParams? _appliedWorldParams; // guest: the params instance whose Random.state is currently restored (a new instance = a new world/layer = re-apply)
 	private bool _guestParamsWaitLogged; // guest: the "generation holding for params" log fired for this wait
 	private bool _worldReadyReceived; // guest: the host released the start gate (or let us in as a late joiner)
@@ -2675,7 +2676,18 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	{
 		if (_session.Role == SessionRole.Host || _session.Role == SessionRole.None)
 		{
-			CaptureWorldParams();
+			if (_entryParamsCaptured)
+			{
+				// First generation of a run that captured its params at the
+				// click moment — re-capturing here would move the baseline
+				// and re-send, racing the guests' already-started runs.
+				_entryParamsCaptured = false;
+			}
+			else
+			{
+				CaptureWorldParams(); // layer switch (or solo/load-run): capture at the boundary
+			}
+
 			// A new world layer is generating — the old layer's world items are
 			// gone with the scene; the authoritative table starts empty again.
 			_items.ResetItems();
@@ -2730,14 +2742,73 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		return true;
 	}
 
-	/// <summary>Host clicked start — tell the members to start following IMMEDIATELY (their transition + loading begin together with ours, not one animation late). WorldJoin used to fire at generation start, which is a transition-animation late. The entry kind rides along — the world params are not captured until the host's GenerateWorld boundary, so the guest cannot derive tutorial/run from them yet.</summary>
+	/// <summary>
+	/// Both sides: force Random.state back to the captured baseline right before
+	/// the generation coroutine starts. The host captured it at its run-start
+	/// entry — everything consumed between that moment and here (transition,
+	/// scene loading, WorldGeneration.Start) is overwritten, keeping the two
+	/// generation streams identical. Guest: the params were just applied by
+	/// <see cref="EnsureGuestWorldParams"/> — same value, idempotent.
+	/// </summary>
+	void IPatchBridge.ResetGenStreamToBaseline()
+	{
+		var parameters = _world.WorldParams;
+		if (parameters is null)
+		{
+			return;
+		}
+
+		Random.state = RandomStateSerializer.Deserialize(parameters.RandomState);
+		_log.LogInformation("Generation stream reset to captured baseline ({StateBytes} bytes).", parameters.RandomState.Length);
+	}
+
+	/// <summary>
+	/// Host clicked start — capture the world params AT THE CLICK MOMENT and
+	/// tell the members to start following immediately. The params are the
+	/// generation baseline: both sides force Random.state back to them at the
+	/// GenerateWorld boundary (ResetGenStreamToBaseline), so the guest holds
+	/// them in hand right away instead of racing the host's boundary. The
+	/// entry kind rides along for the guest's run choice (it cannot derive
+	/// tutorial/run from the params — they carry it by construction).
+	/// </summary>
 	void IPatchBridge.OnWorldJoinRequested(bool isTutorial)
 	{
 		if (_session.Role == SessionRole.Host && _session.SessionActive)
 		{
-			_log.LogInformation("[WorldJoin] sent at run-start entry (tutorial: {Tutorial}) — guests follow immediately.", isTutorial);
+			CaptureWorldParamsAtEntry(isTutorial);
 			_world.SendWorldJoin(isTutorial);
 		}
+	}
+
+	/// <summary>
+	/// Host only: capture + publish the world params at the run-start entry
+	/// (the click moment), BEFORE any run randomness is consumed — the
+	/// generation stream is force-reset to this baseline at the GenerateWorld
+	/// boundary, so capturing now is equivalent to capturing there, and the
+	/// guests get the params with zero waiting. Run settings come from the
+	/// menu (PreRunScript — WorldGeneration.runSettings is only assigned inside
+	/// StartRun); the tutorial nulls them itself (PreRunScript.cs:312). The
+	/// world-defining fields are all defaults at the entry: biomeOverride
+	/// follows the entry kind (tutorial or not — its other source is the
+	/// WorldGeneration.Awake tutorial flag, identical on both sides), depth and
+	/// traveled start at 0 (debugStartDepth is a debug-console value).
+	/// </summary>
+	private void CaptureWorldParamsAtEntry(bool isTutorial)
+	{
+		_world.ResetDamagedBlocks(); // the new run's damage table starts empty again
+
+		var randomState = RandomStateSerializer.Serialize(Random.state);
+		_world.PublishWorldParams(new WorldStartParams
+		{
+			RandomState = randomState,
+			RunSettings = isTutorial ? null : HarmonyTraverse.ReadPreRunRunSettings(),
+			BiomeOverride = isTutorial ? (byte)WorldGeneration.OverrideSceneType.Tutorial : (byte)WorldGeneration.OverrideSceneType.None,
+			BiomeDepth = 0,
+			TotalTraveled = 0,
+		});
+		_entryParamsCaptured = true;
+		_log.LogInformation("Captured world params at run-start entry ({StateBytes} bytes, tutorial: {Tutorial}).",
+			randomState.Length, isTutorial);
 	}
 
 	/// <summary>An inventory-internal move (SwapSlots/SwitchHands) finished — re-report the character snapshot right away (the 1 Hz throttle alone reads as a 1-2 s delay on the peer's clone).</summary>

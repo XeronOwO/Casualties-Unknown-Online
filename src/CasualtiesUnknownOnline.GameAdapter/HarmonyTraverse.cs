@@ -28,6 +28,18 @@ internal static class HarmonyTraverse
 		return null;
 	}
 
+	/// <summary>
+	/// The menu's run settings — PreRunScript only (WorldGeneration.runSettings
+	/// is assigned inside StartRun, after our entry hook). Correct at the
+	/// run-start entry; the WorldGeneration field is the layer-switch source
+	/// (<see cref="ReadRunSettings"/>).
+	/// </summary>
+	public static Dictionary<string, object>? ReadPreRunRunSettings()
+	{
+		var preRun = Traverse.Create(typeof(PreRunScript)).Field("runSettings");
+		return preRun.FieldExists() && preRun.GetValue() is Dictionary<string, object> settings ? settings : null;
+	}
+
 	public static void WriteRunSettings(Dictionary<string, object> settings)
 	{
 		var worldGen = Traverse.Create(typeof(WorldGeneration)).Field("runSettings");

@@ -600,6 +600,7 @@ public sealed class SessionService : ICuoService
 				if (Role == SessionRole.Host)
 				{
 					MaybeStartEntitySync();
+					BroadcastExcept(reporter, NetMsg.SceneState, msg); // relay: the other guests track the member too
 				}
 			}
 			else
@@ -607,6 +608,7 @@ public sealed class SessionService : ICuoService
 				if (Role == SessionRole.Host)
 				{
 					EndMemberSync(member);
+					BroadcastExcept(reporter, NetMsg.SceneState, msg); // relay
 				}
 				else if (reporter == HostSteamId)
 				{
@@ -1071,7 +1073,7 @@ public sealed class SessionService : ICuoService
 				OnCharacterData(sender, NetPacket.DecodePayload<CharacterDataMsg>(frame));
 				break;
 			case NetMsg.BlockDamaged:
-				OnBlockDamaged(NetPacket.DecodePayload<BlockDamagedMsg>(frame));
+				OnBlockDamaged(sender, NetPacket.DecodePayload<BlockDamagedMsg>(frame));
 				break;
 		}
 	}
@@ -1102,7 +1104,28 @@ public sealed class SessionService : ICuoService
 		}
 	}
 
-	private void OnBlockDamaged(BlockDamagedMsg msg) => BlockDamagedReceived?.Invoke(msg.Position.ToNetVector2(), msg.Damage);
+	/// <summary>
+	/// Block damage, star semantics (local compute → report → arbitrate → fan-out):
+	/// host: apply the report and relay it to the other members — the source is
+	/// excluded, it already applied locally. The Game Adapter's reentry guard
+	/// (_applyingRemoteBlockDamage) keeps the local application from echoing a
+	/// new report, so there is no loop. Arbitration is the silent tier: DamageBlock
+	/// is idempotent on already-broken blocks (air, health = 0 — verified in
+	/// WorldGeneration.cs:711-848), first-writer-wins is automatic.
+	/// Guest: the host's broadcast — apply it.
+	/// </summary>
+	private void OnBlockDamaged(ulong sender, BlockDamagedMsg msg)
+	{
+		if (Role == SessionRole.Host)
+		{
+			BlockDamagedReceived?.Invoke(msg.Position.ToNetVector2(), msg.Damage);
+			BroadcastExcept(sender, NetMsg.BlockDamaged, msg);
+		}
+		else
+		{
+			BlockDamagedReceived?.Invoke(msg.Position.ToNetVector2(), msg.Damage);
+		}
+	}
 
 	// ---- Broadcast helpers (star fan-out) ----
 

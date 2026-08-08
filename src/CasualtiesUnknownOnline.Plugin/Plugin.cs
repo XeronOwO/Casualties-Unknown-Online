@@ -298,12 +298,12 @@ public class Plugin : BaseUnityPlugin
 		}
 	}
 
-	/// <summary>Start-gate overlay: full-screen blackout while everyone loads (temporary IMGUI, like the HUD).</summary>
+	/// <summary>Start-gate overlay: the waiting text over the LIVE frozen world —
+	/// NO full-screen blackout (the gate freezes the world behind it, the world
+	/// is visible and reads as "waiting to start"; a black texture made the wait
+	/// read as a black screen, "the black-screen wait").</summary>
 	private void DrawWaitingOverlay()
 	{
-		GUI.color = Color.black;
-		GUI.DrawTexture(new Rect(0f, 0f, Screen.width, Screen.height), Texture2D.whiteTexture);
-		GUI.color = Color.white;
 		var style = new GUIStyle(GUI.skin.label) { fontSize = 28 };
 		GUI.Label(new Rect(0f, Screen.height * 0.4f, Screen.width, 60f), _adapter!.WaitingText, style);
 	}

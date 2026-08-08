@@ -225,7 +225,6 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_run.OnWorldGenerate();
 		if (_session.Role == SessionRole.Guest)
 		{
-			_gate.AttachKeepLoading();
 		}
 		else
 		{

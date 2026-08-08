@@ -55,9 +55,8 @@ public static class CuoBootstrap
 		services.AddSingleton<ISessionControl>(p => p.GetRequiredService<SessionService>());
 
 		// Packet handlers: every [PacketHandler]-marked class in the Runtime
-		// assembly (Session/Handlers/) is DI-registered; the router reads the
-		// attribute and builds the msg → handler dictionary at startup.
-		services.AddSingleton<PacketRouter>();
+		// assembly (Session/Handlers/) is DI-registered; the dispatcher reads
+		// the attribute and builds the msg → handler dictionary at startup.
 		foreach (var handlerType in typeof(CuoBootstrap).Assembly.GetTypes()
 			.Where(t => !t.IsAbstract && typeof(IPacketHandler).IsAssignableFrom(t)))
 		{
@@ -66,8 +65,8 @@ public static class CuoBootstrap
 
 		// Data plane: receive and send are independent mechanisms. The
 		// receiver binds the transport and validates directions; the sender is
-		// one Send primitive. The dispatcher routes received frames to the
-		// handlers with the per-message context.
+		// one Send primitive. The dispatcher builds the route table and routes
+		// received frames to the handlers with the per-message context.
 		services.AddSingleton<PacketReceiver>();
 		services.AddSingleton<PacketSender>();
 		services.AddSingleton(p => new HandlerContext(

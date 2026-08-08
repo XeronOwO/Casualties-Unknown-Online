@@ -1,6 +1,5 @@
 using System.Collections;
 using System.Collections.Generic;
-using System.Reflection;
 using Random = UnityEngine.Random;
 
 namespace CasualtiesUnknownOnline.GameAdapter;
@@ -17,12 +16,14 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// (WorldStartParams.RandomState) but the stream they continue from is
 /// polluted by frame-rate-dependent consumers in between.
 ///
-/// The fix is isolation, not a seed: Drive() runs a generation sub-coroutine
-/// and snapshots Random.state around every suspension, so the generation
-/// stream advances purely from generation code. Nested coroutines (e.g.
-/// WorldGenerateTerrain → WorldGenerateStructures, WorldGeneration.cs:2819)
-/// are driven recursively and need no wrapping of their own — their random
-/// consumption is a natural continuation of the outer segment.
+/// The fix is isolation, not a seed: Wrap() runs the game's own GenerateWorld
+/// coroutine (body untouched — loading UI, generatingWorld flag and future
+/// game updates inside it stay intact) and snapshots Random.state around every
+/// suspension, so the generation stream advances purely from generation code.
+/// Nested coroutines (e.g. WorldGenerateTerrain → WorldGenerateStructures,
+/// WorldGeneration.cs:2819) are driven recursively and need no wrapping of
+/// their own — their random consumption is a natural continuation of the
+/// outer segment.
 /// </summary>
 internal static class WorldGenRandomIsolation
 {
@@ -58,28 +59,9 @@ internal static class WorldGenRandomIsolation
 	}
 
 	/// <summary>
-	/// The GenerateWorld replacement: the same sub-steps in the same order as
-	/// WorldGeneration.GenerateWorld (WorldGeneration.cs:1534-1548), each
-	/// wrapped in Drive. The yield before UpdateWorld preserves the original
-	/// frame rhythm (1543). UpdateWorld itself is synchronous and consumes no
-	/// randomness (RandomizeTileTransforms is dead code).
+	/// Wrap the game's own GenerateWorld coroutine so the generation random
+	/// stream is sealed across every suspension point. The original coroutine
+	/// body is never replaced — only its stream is isolated.
 	/// </summary>
-	public static IEnumerator CreateIsolatedGenerateWorld(WorldGeneration world)
-	{
-		yield return Drive(Invoke(world, "WorldPreprocess"));
-		yield return Drive(Invoke(world, "WorldCreateBackground"));
-		yield return Drive(Invoke(world, "WorldGenerateTerrain"));
-		yield return Drive(Invoke(world, "WorldGenerateWorldBorders"));
-		yield return null;
-		world.UpdateWorld();
-		yield return Drive(Invoke(world, "WorldPlacePlayer"));
-		yield return Drive(Invoke(world, "WorldPlaceEntities"));
-		yield return Drive(Invoke(world, "FinishWorldGeneration"));
-	}
-
-	private static IEnumerator Invoke(WorldGeneration world, string method)
-	{
-		var mi = typeof(WorldGeneration).GetMethod(method, BindingFlags.Instance | BindingFlags.NonPublic);
-		return (IEnumerator)mi!.Invoke(world, null)!;
-	}
+	public static IEnumerator Wrap(IEnumerator generateWorld) => Drive(generateWorld);
 }

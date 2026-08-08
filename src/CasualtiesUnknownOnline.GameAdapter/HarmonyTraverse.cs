@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using HarmonyLib;
+using UnityEngine;
 
 namespace CasualtiesUnknownOnline.GameAdapter;
 
@@ -83,6 +84,18 @@ internal static class HarmonyTraverse
 	{
 		var field = Traverse.Create(world).Field("worldBlocks");
 		return field.FieldExists() ? field.GetValue<ushort[,]>() : null;
+	}
+
+	/// <summary>The world-generation loading screen (WorldGeneration.cs:4168) — kept visible while the start gate holds a guest, so the wait reads as "still loading" instead of a black screen.</summary>
+	public static GameObject? ReadLoadingObject()
+	{
+		if (WorldGeneration.world == null) // Unity object — ==
+		{
+			return null;
+		}
+
+		var field = Traverse.Create(WorldGeneration.world).Field("loadingObject");
+		return field.FieldExists() ? field.GetValue<GameObject>() : null;
 	}
 
 	public static int ReadBiomeOverride() => Convert.ToInt32(FieldOfWorld("biomeOverride")?.GetValue());

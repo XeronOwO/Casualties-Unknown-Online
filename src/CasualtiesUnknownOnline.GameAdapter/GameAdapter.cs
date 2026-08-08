@@ -67,6 +67,8 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	private bool _entryParamsCaptured; // host: params captured at the run-start entry — the first GenerateWorld must not re-capture (it would move the baseline and re-send, racing the guests' start)
 	private WorldStartParams? _appliedWorldParams; // guest: the params instance whose Random.state is currently restored (a new instance = a new world/layer = re-apply)
 	private bool _guestParamsWaitLogged; // guest: the "generation holding for params" log fired for this wait
+	private GameObject? _keptLoadingObject; // guest: the game's loading screen instance kept visible while the start gate holds (Unity object — == null when the scene switched)
+	private bool _keepLoadingLogged; // guest: the keep-loading log fired for this hold
 	private bool _worldReadyReceived; // guest: the host released the start gate (or let us in as a late joiner)
 	private bool _gateFrozen; // the start gate holds us: world timeScale=0 + movingAllowed locked — restore both on release
 	private readonly List<Button> _blockedButtons = []; // guest-in-session: menu buttons that open the start screen / enter a world
@@ -1791,6 +1793,11 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 			{
 				Traverse.Create(_localBody).Field("movingAllowed").SetValue(false);
 			}
+
+			if (_session.Role == SessionRole.Guest)
+			{
+				KeepLoadingScreenForGate();
+			}
 		}
 		else if (_gateFrozen)
 		{
@@ -1810,6 +1817,48 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 			// first and WaitingForReady never armed — the release branch never
 			// ran. Replay now that we are playing.
 			ReplayLifePodEffects();
+		}
+
+		// Gate released (any path) — drop the kept loading screen (only the
+		// instance we kept; a scene switch gives the game a fresh one).
+		if (!WaitingForReady && _keptLoadingObject != null) // Unity object — ==
+		{
+			HideLoadingScreenForGate();
+		}
+	}
+
+	/// <summary>
+	/// Guest: the world is generated but the host has not released the gate —
+	/// the game hides its loading screen at generation end (WorldGeneration.cs:
+	/// 3637), which would show a frozen black world behind the wait overlay.
+	/// Keep the loading screen up instead, so the wait reads as "still loading".
+	/// </summary>
+	private void KeepLoadingScreenForGate()
+	{
+		var loading = HarmonyTraverse.ReadLoadingObject();
+		if (loading == null) // Unity object — ==
+		{
+			return;
+		}
+
+		if (!_keepLoadingLogged)
+		{
+			_keepLoadingLogged = true;
+			_log.LogInformation("[Gate] keeping the loading screen up while waiting for the host.");
+		}
+
+		_keptLoadingObject = loading; // Unity object — == (a scene switch replaces it; the old one reads destroyed)
+		loading.SetActive(true);
+	}
+
+	private void HideLoadingScreenForGate()
+	{
+		var loading = _keptLoadingObject; // Unity object — ==
+		_keptLoadingObject = null;
+		_keepLoadingLogged = false;
+		if (loading != null) // Unity object — ==
+		{
+			loading.SetActive(false);
 		}
 	}
 

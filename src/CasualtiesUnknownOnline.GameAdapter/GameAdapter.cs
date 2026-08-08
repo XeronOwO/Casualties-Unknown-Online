@@ -102,8 +102,6 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	/// <summary>Guest-side input interception active (in a live session as guest).</summary>
 	internal bool IsGuestMode => _session.Role == SessionRole.Guest && _session.SessionActive;
 
-	bool IPatchBridge.IsGuestItemDropSuppressed => IsGuestMode;
-
 	bool IPatchBridge.IsSessionActive => _session.SessionActive;
 
 	bool IPatchBridge.IsReplayingLifePodSound => _replayingLifePodSound;
@@ -295,13 +293,19 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		// positions re-aligned by the receivers' next reconcile. The table
 		// entries are refreshed to the CURRENT item positions first — the
 		// spawn-time positions would pull settled items back into the air
-		// every tick.
+		// every tick. Guest-generated items keep the guest's settled reports
+		// (RefreshWorldItemStates only refreshes our own — generator authority).
 		if (IsHostMode && Environment.TickCount >= _nextItemSnapshotMs)
 		{
 			_nextItemSnapshotMs = Environment.TickCount + ItemSnapshotIntervalMs;
 			RefreshWorldItemStates();
 			_items.SendPeriodicItemSnapshot();
 		}
+
+		// Generator-side position authority (guest): items this side generated
+		// report their settled position once, so the table and the host's
+		// phantom align to the generator's physics.
+		UpdateItemSettleReports();
 
 		UpdateStartGate();
 		if (_worldJoinPending)
@@ -449,6 +453,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_items.ItemDropped += OnRemoteItemDropped;
 		_items.ItemDestroyed += OnRemoteItemDestroyed;
 		_items.ItemRejected += OnItemRejected;
+		_items.ItemSettledReceived += OnRemoteItemSettled;
 		_items.ItemSnapshotReceived += OnRemoteItemSnapshot;
 		_characterData.CharacterDataReceived += OnCharacterDataReceived;
 		_characterData.HostCharacterDataReceived += OnHostCharacterDataReceived;
@@ -619,7 +624,15 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_world.SendBlockDamaged(new NetVector2(pos.x, pos.y), dmg);
 	}
 
-	/// <summary>The peer damaged a block — apply it locally (remote verify/sync).</summary>
+	/// <summary>
+	/// The peer damaged a block — apply it locally (remote verify/sync). The
+	/// damage comes with ignoreLoot=true: DamageBlock rolls the block's drops
+	/// itself (WorldGeneration.cs:751) on the LOCAL Random stream, and the
+	/// damage is applied on BOTH sides (this stream) — the ATTACKER's side
+	/// already rolled locally (local compute) and reported the items, so a
+	/// remote application must not roll a second, independent drop. The
+	/// attacker's own call is a local DamageBlock with ignoreLoot=false.
+	/// </summary>
 	private void OnRemoteBlockDamaged(NetVector2 pos, float dmg)
 	{
 		if (WorldGeneration.world == null) // Unity object — ==
@@ -630,7 +643,8 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_applyingRemoteBlockDamage = true;
 		try
 		{
-			WorldGeneration.world.DamageBlock(new Vector2(pos.X, pos.Y), dmg);
+			WorldGeneration.world.DamageBlock(
+				WorldGeneration.world.WorldToBlockPos(new Vector2(pos.X, pos.Y)), dmg, true, false, true);
 		}
 		finally
 		{
@@ -658,8 +672,12 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 
 	/// <summary>
 	/// A player's attack damaged a building entity — apply the damage to the
-	/// entity at the reported position. On the host this is what rolls the
-	/// entity's drops (drop execution is host-only, BuildingEntityPatches).
+	/// entity at the reported position. A death applied HERE (via this message)
+	/// is a REMOTE death: the attacker's side rolls and reports the drops
+	/// (local compute — the entity's health is written on both sides, so both
+	/// reach zero; only the attacker rolls), so this side is marked with
+	/// RemoteEntityDeath and BuildingEntityUpdatePatch suppresses the roll —
+	/// it only removes the entity.
 	/// </summary>
 	private void OnRemoteBuildingEntityDamaged(NetVector2 pos, float damage)
 	{
@@ -671,6 +689,10 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 			if (entity != null)
 			{
 				entity.health -= damage;
+				if (entity.health < 0.5f)
+				{
+					entity.gameObject.AddComponent<RemoteEntityDeath>();
+				}
 			}
 			else
 			{
@@ -701,8 +723,9 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 
 	/// <summary>
 	/// A lockable entity was opened — apply the open (health = 0) to the entity
-	/// at the reported position. On the host this is what rolls the entity's
-	/// drops (drop execution is host-only, BuildingEntityPatches).
+	/// at the reported position. Like the damage path, a death applied here is
+	/// REMOTE: the opener's side rolls and reports the drops, this side is
+	/// marked and BuildingEntityUpdatePatch only removes the entity.
 	/// </summary>
 	private void OnRemoteBuildingEntityOpened(NetVector2 pos)
 	{
@@ -714,6 +737,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 			if (entity != null)
 			{
 				entity.health = 0f;
+				entity.gameObject.AddComponent<RemoteEntityDeath>();
 			}
 			else
 			{
@@ -875,21 +899,105 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		return true;
 	}
 
-	/// <summary>Host only: push the items' live state into the authoritative
-	/// table before the periodic keyframe — the entries otherwise hold the
-	/// spawn-time positions and the keyframe would yank settled items around.</summary>
-	private void RefreshWorldItemStates()
+	/// <summary>
+	/// Guest only: items this side generated (instance-id low bits = local
+	/// SteamId, see NextItemId) report their settled position once — the
+	/// authoritative table (and the host's phantom) align to the generator's
+	/// physics instead of the receiver-side drift ("item fell through the
+	/// world" / "pulled back to the host's spot" class of bugs). A moving item
+	/// re-arms (it may settle again); settled ones report exactly once.
+	/// </summary>
+	private long _nextSettleCheckMs;
+	private readonly HashSet<ulong> _settledReported = [];
+
+	private void UpdateItemSettleReports()
 	{
+		if (_session.Role != SessionRole.Guest || !_session.SessionActive)
+		{
+			return;
+		}
+
+		var nowMs = Environment.TickCount;
+		if (nowMs < _nextSettleCheckMs)
+		{
+			return;
+		}
+
+		_nextSettleCheckMs = nowMs + 500;
+		var me = (uint)_session.LocalSteamId;
 		foreach (var item in Item.allItems)
 		{
 			var idComp = item.GetComponent<ItemInstanceId>();
-			if (idComp != null) // Unity object — ==
+			if (idComp == null || (uint)(idComp.Id & 0xFFFFFFFF) != me || !IsWorldItem(item)) // Unity object — ==
 			{
-				_items.RefreshItemState(idComp.Id,
+				continue;
+			}
+
+			var speed = item.rb.velocity.magnitude;
+			if (speed > 0.3f)
+			{
+				_settledReported.Remove(idComp.Id); // moving again — it may settle later
+				continue;
+			}
+
+			if (speed < 0.05f && _settledReported.Add(idComp.Id))
+			{
+				_items.SendItemSettle(idComp.Id,
 					new NetVector2(item.transform.position.x, item.transform.position.y),
-					new NetVector2(item.rb.velocity.x, item.rb.velocity.y),
 					item.transform.eulerAngles.z);
 			}
+		}
+	}
+
+	/// <summary>
+	/// Host side: a guest's item settled — align the local phantom to the
+	/// generator's position (zero velocity + sleep so the local physics does
+	/// not push it back). The table entry was already updated by ItemService.
+	/// </summary>
+	private void OnRemoteItemSettled(ulong itemId, NetVector2 pos, float rotation)
+	{
+		_applyingRemoteItem = true;
+		try
+		{
+			var item = FindWorldItem(itemId);
+			if (item != null && item.rb != null) // Unity objects — ==
+			{
+				item.transform.position = new Vector3(pos.X, pos.Y, 0f);
+				item.transform.eulerAngles = new Vector3(0f, 0f, rotation);
+				item.rb.velocity = Vector2.zero;
+				item.rb.angularVelocity = 0f;
+				item.rb.Sleep();
+			}
+		}
+		finally
+		{
+			_applyingRemoteItem = false;
+		}
+	}
+
+	/// <summary>Host only: push the items' live state into the authoritative
+	/// table before the periodic keyframe — the entries otherwise hold the
+	/// spawn-time positions and the keyframe would yank settled items around.
+	/// Only items the host itself generated are refreshed from the local
+	/// physics: the guest's items are position-authoritative on the guest side
+	/// (the instance id's low 32 bits are the generator's SteamId — see
+	/// NextItemId), and their table entries keep the guest's settled reports
+	/// (ItemSettle) instead of the host-side phantom's drift.</summary>
+	private void RefreshWorldItemStates()
+	{
+		var me = (uint)_session.LocalSteamId;
+		foreach (var item in Item.allItems)
+		{
+			var idComp = item.GetComponent<ItemInstanceId>();
+			if (idComp == null || (uint)(idComp.Id & 0xFFFFFFFF) != me) // Unity object — ==; only our own items
+			{
+				continue;
+			}
+
+			_items.RefreshItemState(idComp.Id,
+				new NetVector2(item.transform.position.x, item.transform.position.y),
+				new NetVector2(item.rb.velocity.x, item.rb.velocity.y),
+				item.transform.eulerAngles.z);
 		}
 	}
 
@@ -938,12 +1046,11 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 
 		idComp = item.gameObject.AddComponent<ItemInstanceId>();
 		idComp.Id = NextItemId();
-		// The glowing floating pickup effect carries over. Host-side drops
-		// always carry it: drops are executed host-side (guests are
-		// suppressed), but the game's 8 ft proximity check uses the HOST
-		// player's distance — a guest who mined the entity (and stands next
-		// to the drop) would never see the glow on its own side otherwise.
-		var fresh = item.GetComponent<FreshItemDrop>() != null || IsHostMode;
+		// The glowing floating pickup effect carries over. Drops are executed
+		// on the ATTACKER's side (local compute), so the game's 8 ft proximity
+		// check (BuildingEntity.cs:74) already ran against the attacker's own
+		// distance — the component on the object is the truth.
+		var fresh = item.GetComponent<FreshItemDrop>() != null; // Unity object — ==
 		_items.SendItemSpawned(idComp.Id, CaptureItem(item, -1),
 			new NetVector2(item.transform.position.x, item.transform.position.y),
 			new NetVector2(item.rb.velocity.x, item.rb.velocity.y),

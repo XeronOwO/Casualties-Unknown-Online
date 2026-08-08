@@ -42,6 +42,8 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 
 	public event Action<ulong>? ItemRejected;
 
+	public event Action<ulong, NetVector2, float>? ItemSettledReceived;
+
 	public event Action<IReadOnlyList<WorldItem>>? ItemSnapshotReceived;
 
 	// ===== Report side (local compute) =====
@@ -153,6 +155,21 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 		}
 	}
 
+	public void SendItemSettle(ulong itemId, NetVector2 pos, float rotation)
+	{
+		if (_session.Role != SessionRole.Guest || !_session.SessionActive)
+		{
+			return;
+		}
+
+		_sender.Send(_session.HostSteamId, NetMsg.ItemSettle, new ItemSettleMsg
+		{
+			ItemId = itemId,
+			Position = pos.ToNetVector2Msg(),
+			Rotation = rotation,
+		});
+	}
+
 	// ===== Receive side (wire handlers) =====
 
 	public void FireItemSpawnedReceived(ulong sender, ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, float rotation, bool freshItemDrop)
@@ -246,6 +263,27 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 	{
 		_log.LogInformation("World-item snapshot received ({Count} items).", items.Count);
 		ItemSnapshotReceived?.Invoke(items);
+	}
+
+	public void FireItemSettleReceived(ulong sender, ulong itemId, NetVector2 pos, float rotation)
+	{
+		if (_session.Role != SessionRole.Host)
+		{
+			return;
+		}
+
+		if (!_worldItems.TryGetValue(itemId, out var w))
+		{
+			return; // already picked up/destroyed — nothing to align
+		}
+
+		// Generator-side position authority: the guest's physics settled the
+		// item, so the table follows the guest, not the host-side phantom's
+		// drift. The phantom itself is aligned by the adapter (ItemSettledReceived);
+		// the next periodic keyframe then re-aligns the other guests.
+		_worldItems[itemId] = w with { Pos = pos, Rotation = rotation };
+		_log.LogInformation("Item {ItemId} settled at ({X:F1}, {Y:F1}) — table aligned to the generator.", itemId, pos.X, pos.Y);
+		ItemSettledReceived?.Invoke(itemId, pos, rotation);
 	}
 
 	// ===== Host-only surface =====

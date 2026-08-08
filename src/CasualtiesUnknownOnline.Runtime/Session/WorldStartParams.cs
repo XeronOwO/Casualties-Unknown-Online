@@ -11,16 +11,15 @@ namespace CasualtiesUnknownOnline.Runtime.Session;
 /// </summary>
 public sealed class WorldStartParams
 {
-	// NOTE: plain set, not init — net48 lacks IsExternalInit.
-	public byte[] RandomState { get; set; } = [];
+	public byte[] RandomState { get; init; } = [];
 
-	public byte BiomeOverride { get; set; }
+	public byte BiomeOverride { get; init; }
 
-	public byte BiomeDepth { get; set; }
+	public byte BiomeDepth { get; init; }
 
-	public int TotalTraveled { get; set; }
+	public int TotalTraveled { get; init; }
 
-	public bool LoadedRun { get; set; }
+	public bool LoadedRun { get; init; }
 
-	public Dictionary<string, object>? RunSettings { get; set; }
+	public Dictionary<string, object>? RunSettings { get; init; }
 }

@@ -17,8 +17,9 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// Game Adapter for the current Casualties Unknown (Demo) build (architecture.md
 /// §4). The only layer that knows game types: it hooks input, freezes/simulates
 /// player bodies, clones remote players and captures/applies world-start
-/// parameters. The sync semantics live in the Runtime (SessionService); this
-/// class only shuttles state between game objects and the session.
+/// parameters. The sync semantics live in the Runtime domain services
+/// (SessionService / EntitySyncService / CharacterDataStore); this class only
+/// shuttles state between game objects and the domains.
 /// </summary>
 public sealed class GameAdapter : IGameAdapter, ICuoService
 {
@@ -26,6 +27,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 	public static GameAdapter? Instance { get; private set; }
 
 	private readonly SessionService _session;
+	private readonly EntitySyncService _entities;
 	private readonly CharacterDataStore _characterData;
 	private readonly ILogger<GameAdapter> _log;
 	private readonly IMapper _mapper;
@@ -39,9 +41,11 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 	private long _nextCharacterReportMs;
 	private CharacterDataMsg? _pendingRestore; // guest side: host-sent restore, applied once the body exists
 
-	public GameAdapter(SessionService session, CharacterDataStore characterData, ILogger<GameAdapter> log, IMapper mapper)
+	public GameAdapter(SessionService session, EntitySyncService entities, CharacterDataStore characterData,
+		ILogger<GameAdapter> log, IMapper mapper)
 	{
 		_session = session;
+		_entities = entities;
 		_characterData = characterData;
 		_log = log;
 		_mapper = mapper;
@@ -164,7 +168,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 			TryApplyCharacterRestore();
 		}
 
-		if (!_session.EntitySyncActive)
+		if (!_entities.EntitySyncActive)
 		{
 			return;
 		}
@@ -174,9 +178,9 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 		// Lazy per-member ensure: a roster join can arrive before the member's
 		// world exists (the menu scene has no "Experiment" template), and members
 		// can join mid-session — retrying every frame absorbs all ordering races.
-		foreach (var remote in _session.RemotePlayers)
+		foreach (var remote in _entities.RemotePlayers)
 		{
-			if (!remote.InWorld)
+			if (!_session.IsRemoteInWorld(remote.SteamId))
 			{
 				continue; // in a menu/loading — no clone
 			}
@@ -203,7 +207,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 
 	private Vector2 AnchorFor(PlayerEntity remote) =>
 		_session.Role == SessionRole.Host
-			? new Vector2(remote.ReportedSpawnPos.X, remote.ReportedSpawnPos.Y)
+			? new Vector2(_session.GetRemoteSpawnPos(remote.SteamId).X, _session.GetRemoteSpawnPos(remote.SteamId).Y)
 			: new Vector2(remote.Position.X, remote.Position.Y);
 
 	private long _nextCloneLogMs;
@@ -231,7 +235,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 			// == null on the Unity clone: a scene reload destroys it and
 			// reference-comparison (?.) would throw on access.
 			var pos = clone != null ? clone.transform.position : Vector3.zero;
-			var remote = _session.GetRemotePlayer(steamId);
+			var remote = _entities.GetRemotePlayer(steamId);
 			var reported = remote is not null
 				? new Vector2(remote.Position.X, remote.Position.Y)
 				: Vector2.zero;
@@ -255,7 +259,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 
 		_remoteClones.Clear();
 
-		_session.RemoteJoined -= OnRemoteJoined;
+		_entities.RemoteJoined -= OnRemoteJoined;
 		_session.RemoteSceneChanged -= OnRemoteSceneChanged;
 		_session.SessionEnded -= OnSessionEnded;
 		_session.SessionActivated -= OnSessionActivated;
@@ -270,7 +274,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 
 	internal void BindToSession()
 	{
-		_session.RemoteJoined += OnRemoteJoined;
+		_entities.RemoteJoined += OnRemoteJoined;
 		_session.RemoteSceneChanged += OnRemoteSceneChanged;
 		_session.SessionEnded += OnSessionEnded;
 		_session.SessionActivated += OnSessionActivated;
@@ -307,8 +311,8 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 		if (!inWorld)
 		{
 			// The member left the world: destroy its render clone — it carries
-			// no state (character data lives in the host's save dict; the
-			// entity buffer lives in SessionService), and the Update pump
+			// no state (character data lives in the host's save store; the
+			// entity buffer lives in EntitySyncService), and the Update pump
 			// rebuilds it when the member re-enters. NOTE: == null on Unity
 			// objects — a scene reload destroys the clone and reference
 			// comparison (is null / ?.) would miss it.
@@ -590,7 +594,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 		// - sleeping: Body.cs:3961.
 		// - climbing: currentClimbable (Body.cs:470).
 		var sitting = body.idleTime > 12f && !body.exercising;
-		_session.PublishLocalState(
+		_entities.PublishLocalState(
 			new NetVector2(pos.x, pos.y),
 			new NetVector2(look.x, look.y),
 			new NetVector2(vel.x, vel.y),

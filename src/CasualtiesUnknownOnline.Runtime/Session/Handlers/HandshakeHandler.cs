@@ -6,10 +6,12 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 
 /// <summary>Guest → host: protocol negotiation + member creation (new join or reconnect).</summary>
 [PacketHandler(NetMsg.Handshake)]
-public sealed class HandshakeHandler(SessionService session, CharacterDataStore store, ILogger<HandshakeHandler> log)
+public sealed class HandshakeHandler(SessionService session, CharacterDataStore store, EntitySyncService entities,
+	ILogger<HandshakeHandler> log)
 	: PacketHandlerBase<HandshakeMsg>(session)
 {
 	private readonly CharacterDataStore _store = store;
+	private readonly EntitySyncService _entities = entities;
 	private readonly ILogger<HandshakeHandler> _log = log;
 
 	protected override void Handle(ulong sender, HandshakeMsg msg)
@@ -40,7 +42,7 @@ public sealed class HandshakeHandler(SessionService session, CharacterDataStore 
 		if (!Session.TryGetMember(sender, out var member))
 		{
 			member = Session.GetOrCreateMember(sender);
-			member.Entity.InWorld = peerState == SceneStateType.InWorld;
+			member.InWorld = peerState == SceneStateType.InWorld;
 			// Cross-session restore: the in-memory character save outlives the
 			// session (kept per SteamID for the process lifetime) — a returning
 			// player gets it back even in a brand-new session.
@@ -48,13 +50,13 @@ public sealed class HandshakeHandler(SessionService session, CharacterDataStore 
 		}
 		else
 		{
-			// Reconnect from the same player while the entity is still held
+			// Reconnect from the same player while the member is still held
 			// (within the presence-check window, or a quick lobby round trip):
-			// identity is the SteamID — reuse the entity. The normal flow
+			// identity is the SteamID — reuse the presence. The normal flow
 			// (session re-activation → scene re-report → entity sync) then
 			// re-establishes everything, character data included.
-			member.Entity.InWorld = peerState == SceneStateType.InWorld;
-			_log.LogInformation("Peer {Peer} reconnected — entity reused.", sender);
+			member.InWorld = peerState == SceneStateType.InWorld;
+			_log.LogInformation("Peer {Peer} reconnected — presence reused.", sender);
 			_store.SendSavedCharacter(sender);
 		}
 
@@ -68,7 +70,7 @@ public sealed class HandshakeHandler(SessionService session, CharacterDataStore 
 			Session.FireSessionActivated();
 		}
 
-		Session.MaybeStartEntitySync();
+		_entities.MaybeStartEntitySync();
 
 		// Ack on every handshake, even repeats: the guest retransmits its
 		// handshake until it receives one (Steam P2P sessions establish lazily,

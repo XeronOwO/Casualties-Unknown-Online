@@ -21,6 +21,15 @@ public interface IWorldControl
 
 	event Action? WorldJoinReceived;
 
+	/// <summary>
+	/// Report a locally-performed player attack on a building entity (local
+	/// compute): guest → host as a report (the host applies the damage to its
+	/// own copy — which rolls the host-side entity drops — and relays), host →
+	/// guest as a broadcast relay. The entity is identified by world position
+	/// (world entities are generated deterministically on both sides).
+	/// </summary>
+	void SendBuildingEntityDamaged(NetVector2 pos, float damage);
+
 	/// <summary>Guest: a block was placed locally — report it to the host (host arbitrates + relays).</summary>
 	void SendBlockPlacedReport(int x, int y, ushort block);
 
@@ -30,6 +39,11 @@ public interface IWorldControl
 	void FireBlockPlacedReceived(ulong sender, int x, int y, ushort block);
 
 	event Action<ulong, int, int, ushort>? BlockPlacedReceived;
+
+	void FireBuildingEntityDamagedReceived(NetVector2 pos, float damage);
+
+	/// <summary>A player's attack damaged a building entity — apply the damage to the entity at Pos.</summary>
+	event Action<NetVector2, float>? BuildingEntityDamagedReceived;
 
 	/// <summary>Host only: everyone enters the world together — arm the start gate (waits for every guest's InWorld, or 30 s). Returns whether anyone is being waited on.</summary>
 	bool StartStartGate();

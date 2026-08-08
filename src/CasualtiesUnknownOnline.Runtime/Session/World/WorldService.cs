@@ -183,6 +183,42 @@ public sealed class WorldService(ISessionControl session, PacketSender sender, I
 	public void FireBlockPlacedReceived(ulong sender, int x, int y, ushort block) =>
 		BlockPlacedReceived?.Invoke(sender, x, y, block);
 
+	/// <summary>A player's attack damaged a building entity — apply the damage to the entity at Pos.</summary>
+	public event Action<NetVector2, float>? BuildingEntityDamagedReceived;
+
+	public void FireBuildingEntityDamagedReceived(NetVector2 pos, float damage) =>
+		BuildingEntityDamagedReceived?.Invoke(pos, damage);
+
+	/// <summary>
+	/// Report a locally-performed player attack on a building entity (local
+	/// compute): guest → host as a report (the host applies the damage to its
+	/// own copy — which is what rolls the host-side entity drops — and relays),
+	/// host → guest as a broadcast relay. The entity is identified by its world
+	/// position (world entities are generated deterministically, so both sides
+	/// have the same object at the same place).
+	/// </summary>
+	public void SendBuildingEntityDamaged(NetVector2 pos, float damage)
+	{
+		if (!_session.SessionActive)
+		{
+			return;
+		}
+
+		var msg = new BuildingEntityDamagedMsg
+		{
+			Position = pos.ToNetVector2Msg(),
+			Damage = damage,
+		};
+		if (_session.Role == SessionRole.Host)
+		{
+			_session.Broadcast(NetMsg.BuildingEntityDamaged, msg);
+		}
+		else
+		{
+			_sender.Send(_session.HostSteamId, NetMsg.BuildingEntityDamaged, msg);
+		}
+	}
+
 	/// <summary>
 	/// Guest side: a block was placed locally (local compute) — report it to
 	/// the host, which arbitrates (target must be air) and relays.

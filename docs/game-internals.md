@@ -29,6 +29,7 @@ Reverse-engineering findings on the game's structure, from dnSpy decompiles in `
 - World gen is **not deterministic** (`Random.Range` throughout; block gen uses `lehmer64` PRNG internally). `runSettings` presets (`normal`) drive difficulty knobs.
 - `SaveSystem` + `WorldSaveData` exist — a save file captures a run's world. `SaveSystem.loadedRun` / `ContinueRun` resume it.
 - World time: `WorldGeneration.TotalRunTime()`, `PlayerLayerDepthMeters()`, radiation line, earthquake cycle — all host-authoritative material (Phase 3+).
+- **World-defining fields verified (star-network Step 5)**: `WorldGeneration.totalTraveled` (public int, WorldGeneration.cs:4162), `biomeDepth` (public int, :4165), `biomeOverride` (public `OverrideSceneType` enum, :4237 — `{None, Tutorial, Debug}`, drives generation branches at :2631-2660 and dungeon/radiation logic at :861-866). All three are read/written via `HarmonyTraverse` (field-access pattern like `runSettings`). `WorldStartParams.LoadedRun` has **no backing field** on WorldGeneration (`PreRunScript.LoadRun`, PreRunScript.cs:294, is the save-flow entry — Phase 3 saves scope), so it stays false on the wire; guest generation otherwise matches via the restored `Random.state`.
 
 ## KrokMP's Approach (reference only, not to copy)
 

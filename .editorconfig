@@ -56,8 +56,13 @@ dotnet_diagnostic.IDE0017.severity = error
 dotnet_diagnostic.IDE0301.severity = error
 # Prefer collection initializers over repeated Add calls
 dotnet_diagnostic.IDE0028.severity = error
-# Simplify null checks with null propagation (?.)
-dotnet_diagnostic.IDE0031.severity = error
+# IDE0031 (simplify null checks to ?.) is DISABLED: for Unity objects (Body,
+# PlayerCamera, WorldGeneration, clones) null checks MUST use == null — the
+# operator overload detects scene-reload-destroyed objects, while ?. (reference
+# comparison) would throw MissingReferenceException on access. A global ?.
+# rewrite would turn those checks back into the unsafe form (see CLAUDE.md
+# convention #2 "Unity objects" exception).
+dotnet_diagnostic.IDE0031.severity = none
 # NOTE: is null / is not null over == null / != null is a documented convention
 # (CLAUDE.md) but NOT enforced here — IDE0041 is IDE-only, the CLI analyzers
 # never report it, so an editorconfig severity would be dead config.

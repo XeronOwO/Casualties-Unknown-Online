@@ -23,7 +23,9 @@ internal static class SessionStatePump
 
 	public static void Apply(PlayerEntity? entity, Body? body)
 	{
-		if (entity is null || body is null)
+		// NOTE: body is a Unity object — use == (operator overload) not is null;
+		// a scene reload destroys the clone and reference-comparison misses it.
+		if (entity is null || body == null)
 		{
 			return;
 		}

@@ -25,4 +25,7 @@ public sealed class ItemSpawnMsg
 
 	[ProtoMember(4)]
 	public NetVector2Msg Velocity { get; set; } = new();
+
+	[ProtoMember(5)]
+	public float Rotation { get; set; } // z euler angle — spawns carry random rotations
 }

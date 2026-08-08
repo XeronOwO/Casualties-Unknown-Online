@@ -36,7 +36,7 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 
 	public event Action<ulong>? ItemPickedUp;
 
-	public event Action<ulong, CharacterItemMsg, NetVector2, ulong>? ItemDropped;
+	public event Action<ulong, CharacterItemMsg, NetVector2, ulong, float>? ItemDropped;
 
 	public event Action<ulong>? ItemDestroyed;
 
@@ -46,11 +46,11 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 
 	// ===== Report side (local compute) =====
 
-	public void SendItemSpawned(ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel)
+	public void SendItemSpawned(ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, float rotation)
 	{
 		if (_session.Role != SessionRole.Guest)
 		{
-			_worldItems[itemId] = new WorldItem(itemId, item, pos, vel, 0);
+			_worldItems[itemId] = new WorldItem(itemId, item, pos, vel, 0, rotation);
 		}
 
 		if (!_session.SessionActive)
@@ -64,6 +64,7 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 			Item = item,
 			Position = pos.ToNetVector2Msg(),
 			Velocity = vel.ToNetVector2Msg(),
+			Rotation = rotation,
 		};
 		if (_session.Role == SessionRole.Host)
 		{
@@ -98,11 +99,11 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 		}
 	}
 
-	public void SendItemDropped(ulong itemId, CharacterItemMsg item, NetVector2 pos, ulong parentItemId)
+	public void SendItemDropped(ulong itemId, CharacterItemMsg item, NetVector2 pos, ulong parentItemId, float rotation)
 	{
 		if (_session.Role != SessionRole.Guest)
 		{
-			_worldItems[itemId] = new WorldItem(itemId, item, pos, NetVector2.Zero, parentItemId);
+			_worldItems[itemId] = new WorldItem(itemId, item, pos, NetVector2.Zero, parentItemId, rotation);
 		}
 
 		if (!_session.SessionActive)
@@ -116,6 +117,7 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 			Item = item,
 			Position = pos.ToNetVector2Msg(),
 			ParentItemId = parentItemId,
+			Rotation = rotation,
 		};
 		if (_session.Role == SessionRole.Host)
 		{
@@ -152,19 +154,20 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 
 	// ===== Receive side (wire handlers) =====
 
-	public void FireItemSpawnedReceived(ulong sender, ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel)
+	public void FireItemSpawnedReceived(ulong sender, ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, float rotation)
 	{
 		if (_session.Role == SessionRole.Host)
 		{
 			if (!_worldItems.ContainsKey(itemId))
 			{
-				_worldItems[itemId] = new WorldItem(itemId, item, pos, vel, 0);
+				_worldItems[itemId] = new WorldItem(itemId, item, pos, vel, 0, rotation);
 				_session.BroadcastExcept(sender, NetMsg.ItemSpawn, new ItemSpawnMsg
 				{
 					ItemId = itemId,
 					Item = item,
 					Position = pos.ToNetVector2Msg(),
 					Velocity = vel.ToNetVector2Msg(),
+					Rotation = rotation,
 				});
 				_log.LogInformation("Item {ItemId} ({Type}) spawned by {Sender} — registered + relayed.", itemId, item.ItemId, sender);
 			}
@@ -172,7 +175,7 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 		}
 
 		// Host materializes the guest's item; guest materializes the host's relay.
-		ItemSpawned?.Invoke(new WorldItem(itemId, item, pos, vel, 0));
+		ItemSpawned?.Invoke(new WorldItem(itemId, item, pos, vel, 0, rotation));
 	}
 
 	public void FireItemPickedUpReceived(ulong sender, ulong itemId)
@@ -202,21 +205,22 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 		ItemPickedUp?.Invoke(itemId);
 	}
 
-	public void FireItemDroppedReceived(ulong sender, ulong itemId, CharacterItemMsg item, NetVector2 pos, ulong parentItemId)
+	public void FireItemDroppedReceived(ulong sender, ulong itemId, CharacterItemMsg item, NetVector2 pos, ulong parentItemId, float rotation)
 	{
 		if (_session.Role == SessionRole.Host)
 		{
-			_worldItems[itemId] = new WorldItem(itemId, item, pos, NetVector2.Zero, parentItemId);
+			_worldItems[itemId] = new WorldItem(itemId, item, pos, NetVector2.Zero, parentItemId, rotation);
 			_session.BroadcastExcept(sender, NetMsg.ItemDrop, new ItemDropMsg
 			{
 				ItemId = itemId,
 				Item = item,
 				Position = pos.ToNetVector2Msg(),
 				ParentItemId = parentItemId,
+				Rotation = rotation,
 			});
 		}
 
-		ItemDropped?.Invoke(itemId, item, pos, parentItemId);
+		ItemDropped?.Invoke(itemId, item, pos, parentItemId, rotation);
 	}
 
 	public void FireItemDestroyedReceived(ulong sender, ulong itemId)

@@ -18,24 +18,24 @@ public interface IItemControl
 	// ===== Report side (the adapter's local compute reports here) =====
 
 	/// <summary>A runtime-generated item entered the world locally — record (host/solo) and report/broadcast.</summary>
-	void SendItemSpawned(ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel);
+	void SendItemSpawned(ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, float rotation);
 
 	/// <summary>An item was picked up locally (world → inventory) — drop it from the table (host/solo) and report/broadcast.</summary>
 	void SendItemPickedUp(ulong itemId);
 
 	/// <summary>An item was dropped/placed into the world locally (inventory → world/container) — record and report/broadcast.</summary>
-	void SendItemDropped(ulong itemId, CharacterItemMsg item, NetVector2 pos, ulong parentItemId);
+	void SendItemDropped(ulong itemId, CharacterItemMsg item, NetVector2 pos, ulong parentItemId, float rotation);
 
 	/// <summary>A world item was destroyed locally — drop it from the table (host/solo) and report/broadcast.</summary>
 	void SendItemDestroyed(ulong itemId);
 
 	// ===== Receive side (packet handlers surface the wire here) =====
 
-	void FireItemSpawnedReceived(ulong sender, ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel);
+	void FireItemSpawnedReceived(ulong sender, ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, float rotation);
 
 	void FireItemPickedUpReceived(ulong sender, ulong itemId);
 
-	void FireItemDroppedReceived(ulong sender, ulong itemId, CharacterItemMsg item, NetVector2 pos, ulong parentItemId);
+	void FireItemDroppedReceived(ulong sender, ulong itemId, CharacterItemMsg item, NetVector2 pos, ulong parentItemId, float rotation);
 
 	void FireItemDestroyedReceived(ulong sender, ulong itemId);
 
@@ -62,7 +62,7 @@ public interface IItemControl
 	event Action<ulong>? ItemPickedUp;
 
 	/// <summary>An item now lies in the world at Pos (or inside the container item ParentItemId) — move an existing object there or materialize it.</summary>
-	event Action<ulong, CharacterItemMsg, NetVector2, ulong>? ItemDropped;
+	event Action<ulong, CharacterItemMsg, NetVector2, ulong, float>? ItemDropped;
 
 	/// <summary>An item was destroyed — remove it locally.</summary>
 	event Action<ulong>? ItemDestroyed;

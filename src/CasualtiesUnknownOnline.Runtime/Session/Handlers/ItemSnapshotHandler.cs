@@ -21,7 +21,7 @@ public sealed class ItemSnapshotHandler(ILogger<ItemSnapshotHandler> log) : Pack
 		var items = new List<WorldItem>(msg.Entries.Count);
 		foreach (var entry in msg.Entries)
 		{
-			items.Add(new WorldItem(entry.ItemId, entry.Item, entry.Position.ToNetVector2(), entry.Velocity.ToNetVector2(), entry.ParentItemId));
+			items.Add(new WorldItem(entry.ItemId, entry.Item, entry.Position.ToNetVector2(), entry.Velocity.ToNetVector2(), entry.ParentItemId, entry.Rotation));
 		}
 
 		ctx.Items.FireItemSnapshotReceived(sender, items);

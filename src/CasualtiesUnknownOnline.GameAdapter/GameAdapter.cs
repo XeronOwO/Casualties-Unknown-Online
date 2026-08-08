@@ -31,6 +31,13 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 	/// <summary>Static access for Harmony patches (they have no DI).</summary>
 	public static GameAdapter? Instance { get; private set; }
 
+	/// <summary>
+	/// Set when the game was launched via a Steam friends "Join Game"
+	/// (+connect_lobby): the content-warning/intro screen is skipped so the
+	/// menu is usable immediately — the follow-host pump needs PreRunScript.
+	/// </summary>
+	public static bool SkipIntro { get; set; }
+
 	private readonly SessionService _session;
 	private readonly EntitySyncService _entities;
 	private readonly CharacterDataStore _characterData;

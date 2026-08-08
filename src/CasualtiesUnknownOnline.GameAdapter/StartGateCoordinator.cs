@@ -214,6 +214,13 @@ internal sealed class StartGateCoordinator(
 
 		_keptLoadingObject = loading; // Unity object — == (a scene switch replaces it; the old one reads destroyed)
 		loading.SetActive(true);
+		// The wait reads as a frozen moment, not a running animation: the
+		// ImageCycle sprite loop (unscaledDeltaTime — timeScale 0 does NOT stop
+		// it) is disabled while the gate holds.
+		foreach (var cycle in loading.GetComponentsInChildren<ImageCycle>(true))
+		{
+			cycle.enabled = false; // Unity object — == (GetComponentsInChildren on a destroyed parent)
+		}
 	}
 
 	private void HideLoadingScreenForGate()
@@ -222,6 +229,11 @@ internal sealed class StartGateCoordinator(
 		_keptLoadingObject = null;
 		if (loading != null) // Unity object — ==
 		{
+			foreach (var cycle in loading.GetComponentsInChildren<ImageCycle>(true))
+			{
+				cycle.enabled = true; // the animation resumes with the game
+			}
+
 			loading.SetActive(false); // the keeper's ShouldKeep reads Playing and stays quiet from now on
 		}
 	}

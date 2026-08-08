@@ -52,6 +52,11 @@ public sealed class SteamService(ILogger<SteamService> log) : ICuoService
 
 	public event Action<ulong>? LobbyEntered;
 
+	/// <summary>Raised when a lobby join attempt fails (lobby gone, full, ...).
+	/// The reason is a human-readable description — Steamworks types never
+	/// leave this class (abstraction rule in architecture.md).</summary>
+	public event Action<ulong, string>? LobbyJoinFailed;
+
 	public event Action<ulong>? JoinRequested;
 
 	public bool Initialize()
@@ -133,10 +138,38 @@ public sealed class SteamService(ILogger<SteamService> log) : ICuoService
 	private void OnLobbyEntered(LobbyEnter_t callback)
 	{
 		var lobbyId = callback.m_ulSteamIDLobby;
+		// Steamworks.NET ships this field as uint (not the enum) — cast once.
+		var response = (EChatRoomEnterResponse)callback.m_EChatRoomEnterResponse;
+		if (response != EChatRoomEnterResponse.k_EChatRoomEnterResponseSuccess)
+		{
+			// Failed joins still arrive as LobbyEnter_t — the response code
+			// carries the reason. Never fake an entered lobby on failure
+			// (SessionService would start a handshake against a dead lobby).
+			var reason = DescribeJoinFailure(response);
+			_log.LogError($"Failed to join lobby {lobbyId}: {reason}");
+			LobbyJoinFailed?.Invoke(lobbyId, reason);
+			return;
+		}
+
 		CurrentLobbyId = lobbyId;
 		_log.LogInformation($"Entered lobby: {lobbyId}");
 		LobbyEntered?.Invoke(lobbyId);
 	}
+
+	private static string DescribeJoinFailure(EChatRoomEnterResponse response) =>
+		response switch
+		{
+			EChatRoomEnterResponse.k_EChatRoomEnterResponseDoesntExist => "lobby does not exist (host may have left)",
+			EChatRoomEnterResponse.k_EChatRoomEnterResponseNotAllowed => "not allowed to join this lobby",
+			EChatRoomEnterResponse.k_EChatRoomEnterResponseFull => "lobby is full",
+			EChatRoomEnterResponse.k_EChatRoomEnterResponseBanned => "banned from this lobby",
+			EChatRoomEnterResponse.k_EChatRoomEnterResponseLimited => "account is limited and cannot join",
+			EChatRoomEnterResponse.k_EChatRoomEnterResponseCommunityBan => "a community ban prevents joining",
+			EChatRoomEnterResponse.k_EChatRoomEnterResponseMemberBlockedYou => "the host has blocked you",
+			EChatRoomEnterResponse.k_EChatRoomEnterResponseYouBlockedMember => "you blocked the host",
+			EChatRoomEnterResponse.k_EChatRoomEnterResponseRatelimitExceeded => "join rate limit exceeded",
+			_ => $"error ({response})",
+		};
 
 	private void OnJoinRequested(GameLobbyJoinRequested_t callback)
 	{

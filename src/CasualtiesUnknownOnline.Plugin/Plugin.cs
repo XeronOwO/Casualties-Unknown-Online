@@ -31,6 +31,8 @@ public class Plugin : BaseUnityPlugin
 	private SessionService _session = null!;
 	private IGameAdapter? _adapter;
 	private ConfigEntry<string> _targetLobbyId = null!;
+	private ulong? _pendingJoinLobbyId;
+	private string? _lastJoinError;
 
 	[DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
 	private static extern IntPtr LoadLibrary(string lpFileName);
@@ -94,15 +96,38 @@ public class Plugin : BaseUnityPlugin
 			_targetLobbyId = Config.Bind("Session", "TargetLobbyId", "",
 				"Lobby ID to join with F9 (printed by the host on F8). Leave empty to host only.");
 
+			// Steam friends "Join Game" with the game not running launches it
+			// with "+connect_lobby <id>" on the command line. GameLobbyJoinRequested_t
+			// also fires once Steam initializes, but the command line is
+			// timing-independent — join from it directly (consumed after Steam
+			// init below) and keep the callback as the already-running fallback.
+			_pendingJoinLobbyId = ParseConnectLobbyArg();
+			if (_pendingJoinLobbyId is not null)
+			{
+				_log.LogInformation("+connect_lobby {LobbyId} on the command line.", _pendingJoinLobbyId.Value);
+			}
+
 			// Wire events BEFORE Initialize — callbacks may fire immediately.
 			_steam.LobbyCreated += lobbyId => _log.LogInformation("Lobby created: {LobbyId}", lobbyId);
-			_steam.LobbyEntered += lobbyId => _log.LogInformation("Lobby entered: {LobbyId}", lobbyId);
+			_steam.LobbyEntered += lobbyId =>
+			{
+				_lastJoinError = null;
+				_log.LogInformation("Lobby entered: {LobbyId}", lobbyId);
+			};
 			// Steam friends "Join Game" (right-click → join) fires
 			// GameLobbyJoinRequested_t — auto-join, no TargetLobbyId config needed.
 			_steam.JoinRequested += lobbyId =>
 			{
 				_log.LogInformation("Join requested via Steam friends — joining lobby {LobbyId}.", lobbyId);
 				_steam.JoinLobby(lobbyId);
+			};
+			// Join failures (lobby gone, full, ...) surface on the test HUD;
+			// before this they were silent (LobbyEnter_t carries failures only
+			// in its response code, which we now surface).
+			_steam.LobbyJoinFailed += (lobbyId, reason) =>
+			{
+				_log.LogWarning("Lobby {LobbyId} join failed: {Reason}", lobbyId, reason);
+				_lastJoinError = $"Join {lobbyId} failed: {reason}";
 			};
 
 			// Forward Unity log messages into CUO's own log so runtime errors
@@ -112,6 +137,14 @@ public class Plugin : BaseUnityPlugin
 			foreach (var service in _cuoServices)
 			{
 				RunLifecycle(service, "Initialize", s => s.Initialize());
+			}
+
+			// Consume +connect_lobby now that Steam is up. If initialization
+			// failed, F8 retries it and joins the pending lobby then (Update).
+			if (_pendingJoinLobbyId is not null && _steam.IsInitialized)
+			{
+				_steam.JoinLobby(_pendingJoinLobbyId.Value);
+				_pendingJoinLobbyId = null;
 			}
 
 			foreach (var service in _cuoServices)
@@ -152,10 +185,19 @@ public class Plugin : BaseUnityPlugin
 			if (Input.GetKeyDown(KeyCode.F8))
 			{
 				// Retry path: if load-time init failed (Steam not running yet),
-				// F8 re-attempts initialization, then creates the lobby.
+				// F8 re-attempts initialization, then creates the lobby — or
+				// joins the +connect_lobby target that was pending.
 				if (EnsureSteamReady(steam))
 				{
-					steam.CreateLobby();
+					if (_pendingJoinLobbyId is { } pending)
+					{
+						_pendingJoinLobbyId = null;
+						steam.JoinLobby(pending);
+					}
+					else
+					{
+						steam.CreateLobby();
+					}
 				}
 			}
 			else if (Input.GetKeyDown(KeyCode.F9))
@@ -188,6 +230,25 @@ public class Plugin : BaseUnityPlugin
 
 	private bool EnsureSteamReady(SteamService steam) => steam.Initialize();
 
+	// Steam launches the game with "+connect_lobby <id>" when the user clicks
+	// a friend's "Join Game" while the game is not running. Parse the lobby ID
+	// from the command line so the join works without waiting for the
+	// GameLobbyJoinRequested_t callback (whose IPC delivery can lag or fail).
+	private static ulong? ParseConnectLobbyArg()
+	{
+		var args = Environment.GetCommandLineArgs();
+		for (var i = 0; i < args.Length - 1; i++)
+		{
+			if (string.Equals(args[i], "+connect_lobby", StringComparison.OrdinalIgnoreCase)
+				&& ulong.TryParse(args[i + 1], out var lobbyId))
+			{
+				return lobbyId;
+			}
+		}
+
+		return null;
+	}
+
 	// Phase-1 test HUD (IMGUI, temporary): replace with real UI in later phases.
 	private void OnGUI()
 	{
@@ -210,6 +271,11 @@ public class Plugin : BaseUnityPlugin
 		}
 
 		Line(_session.LastRttMs >= 0f ? $"Last RTT: {_session.LastRttMs:F1} ms" : "No ping yet");
+		if (_lastJoinError is not null)
+		{
+			Line(_lastJoinError);
+		}
+
 		Line("F8 create lobby / F9 join from config / F7 ping peer");
 
 		void Line(string text)

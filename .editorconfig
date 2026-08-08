@@ -72,6 +72,9 @@ dotnet_diagnostic.IDE0021.severity = error
 dotnet_diagnostic.IDE0290.severity = error
 # Prefer readonly fields
 dotnet_diagnostic.IDE0044.severity = error
+# Prefer switch expressions over switch statements / if-else chains (2026-08-08)
+csharp_style_prefer_switch_expression = true:error
+dotnet_diagnostic.IDE0066.severity = error
 
 # No underscore prefix required for fields (CLAUDE.md: game-binding fields keep
 # game naming; CUO code uses underscore-prefixed private fields)

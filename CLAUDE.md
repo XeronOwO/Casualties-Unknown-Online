@@ -97,6 +97,7 @@ Do not jump ahead: build Phase 3 modules one at a time on the star-network patte
 5. **Requirement triage** — when the user states a requirement, judge whether it is reusable and long-lived: personal/specific → record in `CLAUDE.local.md`, keep out of commits; shared/project-benefiting → record and commit (`CLAUDE.md`, docs, skills); **ambiguous → ask the user** whether it's personal or shared.
 6. **Architecture & maintainability first** — fix root causes, not symptoms; when fixing a problem, consider whether a better design exists; for risky or architecture-affecting changes, propose and get user consent before acting.
 7. **Evidence-based changes (user requirement)** — every change must be grounded in code: find the mechanism in the decompiled sources (`reversing/`, cite file:line) before touching it. Never fix by intuition/guesswork. When a mechanism is not understood, isolate and verify it (e.g. test a clone in single-player) instead of stacking network-test variables. A proposed fix must explain ALL observed symptoms, not just the surface one.
+8. **One top-level type per file (user requirement, 2026-08-08)** — a `.cs` file holds exactly one top-level type; the file name matches the type name. Nested types (private helpers like loggers, `MemberState`, Harmony patch classes nested in their container) are part of the container and stay. This was enforced by splitting the protocol message classes, session enums, packet handlers and world-gen patches into one-file-one-type.
 
 ## Context Compression Protocol
 

@@ -29,6 +29,7 @@ public class Plugin : BaseUnityPlugin
 	private ILogger<Plugin> _log = null!;
 	private SteamService _steam = null!;
 	private SessionService _session = null!;
+	private EntitySyncService _entities = null!;
 	private IGameAdapter? _adapter;
 	private ConfigEntry<string> _targetLobbyId = null!;
 	private ulong? _pendingJoinLobbyId;
@@ -87,6 +88,7 @@ public class Plugin : BaseUnityPlugin
 			_log = _services.GetRequiredService<ILogger<Plugin>>();
 			_steam = _services.GetRequiredService<SteamService>();
 			_session = _services.GetRequiredService<SessionService>();
+			_entities = _services.GetRequiredService<EntitySyncService>();
 			_adapter = _services.GetService<IGameAdapter>();
 			_cuoServices = _services.GetServices<ICuoService>().ToArray();
 
@@ -263,10 +265,11 @@ public class Plugin : BaseUnityPlugin
 		var role = _session.Role == SessionRole.Host ? "HOST"
 			: _session.Role == SessionRole.Guest ? "GUEST" : "—";
 		Line($"Session: {role}  handshake: {(_session.SessionActive ? "yes" : "no")}  "
-			+ $"entity sync: {(_session.EntitySyncActive ? "ON" : "off")}");
-		foreach (var remote in _session.RemotePlayers)
+			+ $"entity sync: {(_entities.EntitySyncActive ? "ON" : "off")}");
+		foreach (var remote in _entities.RemotePlayers)
 		{
-			Line($"Remote: {remote.SteamId:X}  pos: ({remote.Position.X:F1}, {remote.Position.Y:F1})  inWorld: {remote.InWorld}");
+			Line($"Remote: {remote.SteamId:X}  pos: ({remote.Position.X:F1}, {remote.Position.Y:F1})  "
+				+ $"inWorld: {_session.IsRemoteInWorld(remote.SteamId)}");
 		}
 
 		Line(_session.LastRttMs >= 0f ? $"Last RTT: {_session.LastRttMs:F1} ms" : "No ping yet");

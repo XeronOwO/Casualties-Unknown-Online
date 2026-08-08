@@ -25,7 +25,7 @@ public sealed class HandshakeAckHandler(SessionService session, ILogger<Handshak
 		}
 
 		var member = Session.GetOrCreateMember(sender);
-		member.Entity.InWorld = hostState == SceneStateType.InWorld;
+		member.InWorld = hostState == SceneStateType.InWorld;
 		member.Handshaken = true;
 
 		var wasActive = Session.SessionActive;

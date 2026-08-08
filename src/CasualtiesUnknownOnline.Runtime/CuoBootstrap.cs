@@ -40,7 +40,8 @@ public static class CuoBootstrap
 
 		// Registration order determines GetServices<ICuoService>() order:
 		// SteamService before SteamTransport (transport reads steam readiness),
-		// SessionService last (it owns the session state machine).
+		// SessionService before EntitySyncService (the entity domain reads the
+		// session's member presence — it runs after in the Update order).
 		services.AddSingleton<SteamService>();
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<SteamService>());
 		services.AddSingleton<SteamTransport>();
@@ -66,11 +67,11 @@ public static class CuoBootstrap
 		// Character-data domain: the SteamID-keyed save/restore (no pump, not
 		// an ICuoService — it only reacts to reports and handshakes).
 		services.AddSingleton<CharacterDataStore>();
-		// Sync stream: the 20 Hz state exchange + join announcements. It depends
-		// on the session (reads the member table), so it runs after the session
-		// in the Update order (registered last).
-		services.AddSingleton<EntitySyncStream>();
-		services.AddSingleton<ICuoService>(p => p.GetRequiredService<EntitySyncStream>());
+		// Entity-sync domain: the entity table, the sync decisions and the
+		// 20 Hz state exchange + join announcements. It reads the session's
+		// member presence, so it runs after the session in the Update order.
+		services.AddSingleton<EntitySyncService>();
+		services.AddSingleton<ICuoService>(p => p.GetRequiredService<EntitySyncService>());
 
 		extraRegistrations?.Invoke(services);
 

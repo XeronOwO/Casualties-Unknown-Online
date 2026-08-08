@@ -51,9 +51,6 @@ public sealed class PlayerEntity(ulong steamId, NetworkEntityId entityId, bool i
 	/// </summary>
 	public bool IsAttacking { get; set; }
 
-	/// <summary>Host side: position the guest reported when entering the world — the clone's spawn anchor.</summary>
-	public NetVector2 ReportedSpawnPos { get; set; }
-
 	// ---- Render interpolation buffer (guest side only) ----
 	/// <summary>Previous authoritative values, for lerping between snapshots.</summary>
 	public NetVector2 PrevPosition { get; set; }
@@ -70,7 +67,4 @@ public sealed class PlayerEntity(ulong steamId, NetworkEntityId entityId, bool i
 	/// buffer's (0,0) defaults.
 	/// </summary>
 	public int StateReceivedMs { get; set; } = int.MinValue;
-
-	/// <summary>Local scene state, exchanged via SceneState messages.</summary>
-	public bool InWorld { get; set; }
 }

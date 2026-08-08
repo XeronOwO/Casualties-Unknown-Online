@@ -43,6 +43,9 @@ public interface IWorldControl
 	/// <summary>Host only: true while the host itself must wait (frozen + overlay).</summary>
 	bool StartGateActive { get; }
 
+	/// <summary>Host only: seconds left until the gate force-releases (0 when not armed).</summary>
+	int StartGateRemainingMs { get; }
+
 	void FireWorldReadyReceived();
 
 	event Action? WorldReadyReceived;

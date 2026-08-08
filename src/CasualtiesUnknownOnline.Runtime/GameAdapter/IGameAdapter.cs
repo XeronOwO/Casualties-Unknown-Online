@@ -26,6 +26,9 @@ public interface IGameAdapter : IDisposable
 	/// <summary>True while the start gate holds this player (everyone loads together; frozen + overlay).</summary>
 	bool IsWaitingForReady { get; }
 
+	/// <summary>Overlay text while the gate holds: who we are waiting for and the force-start countdown.</summary>
+	string WaitingText { get; }
+
 	/// <summary>Host side: called at run start (PreRunScript.StartRun) — captures Random.state + run settings.</summary>
 	void CaptureWorldParams();
 

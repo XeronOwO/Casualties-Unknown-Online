@@ -97,11 +97,13 @@ public sealed class SessionService : ICuoService, ISessionControl
 
 	// ---- ISessionControl (the packet handlers' + domains' control surface) ----
 
-	ulong ISessionControl.LocalSteamId => _steam.LocalSteamId;
+	/// <summary>Our own SteamId (read-only query surface, like Role/HostSteamId).</summary>
+	public ulong LocalSteamId => _steam.LocalSteamId;
+
+	/// <summary>The member presence table (read-only; the table itself is owned internally).</summary>
+	public System.Collections.Generic.IEnumerable<MemberPresenceTable.MemberPresence> Members => _presence.Members;
 
 	SceneStateType ISessionControl.LocalSceneState => _state.LocalInWorld ? SceneStateType.InWorld : SceneStateType.InMenu;
-
-	System.Collections.Generic.IEnumerable<MemberPresenceTable.MemberPresence> ISessionControl.Members => _presence.Members;
 
 	bool ISessionControl.TryGetMember(ulong steamId, out MemberPresenceTable.MemberPresence member) =>
 		_presence.TryGetMember(steamId, out member);

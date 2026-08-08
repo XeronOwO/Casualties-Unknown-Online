@@ -108,6 +108,44 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 
 	bool IGameAdapter.IsWaitingForReady => WaitingForReady;
 
+	/// <summary>
+	/// Guest: when the host finished loading (its InWorld arrived via the
+	/// SceneState relay) — the anchor for the guest-side 30 s countdown.
+	/// </summary>
+	private long _hostInWorldSinceMs;
+
+	/// <summary>
+	/// Overlay text while the gate holds: who we are waiting for and the
+	/// force-start countdown. Host counts against the real gate (armed at its
+	/// world entry); guest counts 30 s from the host's InWorld relay (network
+	/// delay approximation of the host's own gate).
+	/// </summary>
+	string IGameAdapter.WaitingText
+	{
+		get
+		{
+			if (_session.Role == SessionRole.Host)
+			{
+				var waiting = _session.Members.Count(m => m.SteamId != _session.LocalSteamId && !m.InWorld);
+				return $"Waiting for {waiting} player(s) to load… ({_world.StartGateRemainingMs / 1000}s)";
+			}
+
+			if (!_session.IsRemoteInWorld(_session.HostSteamId))
+			{
+				return "Waiting for the host to load…";
+			}
+
+			var others = _session.Members.Count(m => m.SteamId != _session.LocalSteamId && m.SteamId != _session.HostSteamId && !m.InWorld);
+			if (others > 0)
+			{
+				var remaining = Math.Max(0, (int)(30 - (Environment.TickCount - _hostInWorldSinceMs) / 1000d));
+				return $"Waiting for {others} player(s)… ({remaining}s)";
+			}
+
+			return "Starting…";
+		}
+	}
+
 	public bool ProbeGame()
 	{
 		var playerCamera = typeof(PlayerCamera);
@@ -381,6 +419,11 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 
 	private void OnRemoteSceneChanged(ulong steamId, bool inWorld)
 	{
+		if (inWorld && steamId == _session.HostSteamId)
+		{
+			_hostInWorldSinceMs = Environment.TickCount; // guest countdown anchor: the host finished loading
+		}
+
 		if (!inWorld)
 		{
 			// The member left the world: destroy its render clone — it carries

@@ -305,7 +305,7 @@ public class Plugin : BaseUnityPlugin
 		GUI.DrawTexture(new Rect(0f, 0f, Screen.width, Screen.height), Texture2D.whiteTexture);
 		GUI.color = Color.white;
 		var style = new GUIStyle(GUI.skin.label) { fontSize = 28 };
-		GUI.Label(new Rect(0f, Screen.height * 0.4f, Screen.width, 60f), "Waiting for other players…", style);
+		GUI.Label(new Rect(0f, Screen.height * 0.4f, Screen.width, 60f), _adapter!.WaitingText, style);
 	}
 
 	private void OnUnityLogMessage(string message, string stackTrace, LogType type)

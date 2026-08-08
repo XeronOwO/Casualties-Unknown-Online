@@ -1,5 +1,5 @@
 using System;
-using System.Linq;
+using System.Collections.Generic;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
@@ -31,7 +31,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 	private Harmony? _harmony;
 
 	private Body? _localBody;
-	private Body? _remoteCloneBody; // single clone until Step 4 (per-member map)
+	private readonly Dictionary<ulong, Body> _remoteClones = []; // member SteamId → render clone
 	private bool _inWorld;
 
 	private const float CharacterReportInterval = 1f; // guest → host character snapshot (1 Hz)
@@ -151,22 +151,46 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 			return;
 		}
 
-		// Both sides render the remote clone from the peer's reported state.
-		// NO remote-side simulation anywhere — each player simulates only its
-		// own body. Single clone until Step 4 turns this into a per-member map.
-		var remote = _session.RemotePlayers.FirstOrDefault();
-		if (remote is null || !remote.InWorld)
+		// Both sides render remote clones from the reported states. NO remote-side
+		// simulation anywhere — each player simulates only its own body.
+		// Lazy per-member ensure: a roster join can arrive before the member's
+		// world exists (the menu scene has no "Experiment" template), and members
+		// can join mid-session — retrying every frame absorbs all ordering races.
+		foreach (var remote in _session.RemotePlayers)
 		{
-			return; // remote is in a menu/loading — clone stays paused
+			if (!remote.InWorld)
+			{
+				continue; // in a menu/loading — no clone
+			}
+
+			// == null on Unity objects — a scene reload destroys the clone and
+			// reference-comparison would miss it; retry creation next frame.
+			if (!_remoteClones.TryGetValue(remote.SteamId, out var clone) || clone == null)
+			{
+				clone = RemoteBodyFactory.CreateRemoteBody(remote, AnchorFor(remote), _log);
+				if (clone == null)
+				{
+					continue; // template unavailable — retry next frame
+				}
+
+				_remoteClones[remote.SteamId] = clone;
+				_log.LogInformation("Remote body created for {SteamId}.", remote.SteamId);
+			}
+
+			SessionStatePump.Apply(remote, clone);
 		}
 
-		SessionStatePump.Apply(remote, _remoteCloneBody);
 		LogClonePosition();
 	}
 
+	private Vector2 AnchorFor(PlayerEntity remote) =>
+		_session.Role == SessionRole.Host
+			? new Vector2(remote.ReportedSpawnPos.X, remote.ReportedSpawnPos.Y)
+			: new Vector2(remote.Position.X, remote.Position.Y);
+
 	private long _nextCloneLogMs;
 
-	/// <summary>Periodic clone diagnostics (1 Hz) — where the remote proxy actually is.</summary>
+	/// <summary>Periodic clone diagnostics (1 Hz) — where the remote proxies actually are.</summary>
 	private void LogClonePosition()
 	{
 		var nowMs = Environment.TickCount;
@@ -176,28 +200,42 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 		}
 
 		_nextCloneLogMs = nowMs + 1000;
-		// == null on the Unity clone: a scene reload destroys it and
-		// reference-comparison (?.) would throw on access.
-		var pos = _remoteCloneBody != null
-			? _remoteCloneBody.transform.position
-			: Vector3.zero;
-		var remote = _session.RemotePlayers.FirstOrDefault();
-		var reported = remote is not null
-			? new Vector2(remote.Position.X, remote.Position.Y)
-			: Vector2.zero;
-		_log.LogDebug("Clone: at ({PX:F1}, {PY:F1}), reported ({RX:F1}, {RY:F1}), active {Active}",
-			pos.x, pos.y, reported.x, reported.y, _remoteCloneBody != null && _remoteCloneBody.gameObject.activeInHierarchy);
+		if (_remoteClones.Count == 0)
+		{
+			return;
+		}
+
+		// KeyValuePair has no Deconstruct on net48 — iterate entries explicitly.
+		foreach (var entry in _remoteClones)
+		{
+			var steamId = entry.Key;
+			var clone = entry.Value;
+			// == null on the Unity clone: a scene reload destroys it and
+			// reference-comparison (?.) would throw on access.
+			var pos = clone != null ? clone.transform.position : Vector3.zero;
+			var remote = _session.GetRemotePlayer(steamId);
+			var reported = remote is not null
+				? new Vector2(remote.Position.X, remote.Position.Y)
+				: Vector2.zero;
+			_log.LogDebug("Clone {SteamId}: at ({PX:F1}, {PY:F1}), reported ({RX:F1}, {RY:F1}), active {Active}",
+				steamId, pos.x, pos.y, reported.x, reported.y, clone != null && clone.gameObject.activeInHierarchy);
+		}
 	}
 
 	void ICuoService.Stop() => Uninstall();
 
 	void ICuoService.Dispose()
 	{
-		// == null on the Unity clone (is null would miss a scene-reload-destroyed object).
-		if (_remoteCloneBody != null)
+		// == null on the Unity clones (is null would miss scene-reload-destroyed objects).
+		foreach (var clone in _remoteClones.Values)
 		{
-			UnityEngine.Object.Destroy(_remoteCloneBody.transform.parent.gameObject);
+			if (clone != null)
+			{
+				UnityEngine.Object.Destroy(clone.transform.parent.gameObject);
+			}
 		}
+
+		_remoteClones.Clear();
 
 		_session.RemoteJoined -= OnRemoteJoined;
 		_session.RemoteSceneChanged -= OnRemoteSceneChanged;
@@ -239,28 +277,12 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 		_session.ReportSceneState(SceneStateType.InWorld, sceneName, pos);
 	}
 
-	private void OnRemoteJoined(PlayerEntity remote)
-	{
-		// Host: spawn the guest's clone at the guest's reported spawn point.
-		// Guest: the host's clone renders at the host position from PlayerJoin.
-		// Both are frozen render proxies fed by the peer's state reports.
-		// Menu round-trips destroy the clone (RemoteSceneChanged) and rebuild
-		// it here — position resumes via the state stream's Lerp.
-		// NOTE: == null on Unity objects — a scene reload destroys the clone
-		// and reference-comparison (is null) would miss it.
-		if (_remoteCloneBody == null)
-		{
-			var anchor = _session.Role == SessionRole.Host
-				? new Vector2(remote.ReportedSpawnPos.X, remote.ReportedSpawnPos.Y)
-				: new Vector2(remote.Position.X, remote.Position.Y);
-			_remoteCloneBody = RemoteBodyFactory.CreateRemoteBody(remote, anchor, _log);
-			_log.LogInformation("Remote body created for {SteamId}.", remote.SteamId);
-		}
-		else
-		{
-			_log.LogInformation("Remote re-joined — clone reused for {SteamId}.", remote.SteamId);
-		}
-	}
+	private void OnRemoteJoined(PlayerEntity remote) =>
+		// Clone creation is handled by the per-frame lazy ensure in Update —
+		// the roster join can arrive before the member's world exists (the menu
+		// scene has no "Experiment" template), so event-driven creation would
+		// race. Log only; the pump creates and the anchor for host/guest differs.
+		_log.LogInformation("Remote joined (clone ensured by the Update pump): {SteamId}.", remote.SteamId);
 
 	private void OnRemoteSceneChanged(ulong steamId, bool inWorld)
 	{
@@ -268,17 +290,16 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 		{
 			// The member left the world: destroy its render clone — it carries
 			// no state (character data lives in the host's save dict; the
-			// entity buffer lives in SessionService), and a rejoin rebuilds it
-			// via RemoteJoined. Menu round-trips are rare, so the rebuild cost
-			// is irrelevant. NOTE: == null on Unity objects — a scene reload
-			// destroys the clone and reference-comparison (is null / ?.) would
-			// miss it; write the explicit check so the formatter keeps it
-			// (a bare call would be simplified back to ?.).
-			if (_remoteCloneBody != null)
+			// entity buffer lives in SessionService), and the Update pump
+			// rebuilds it when the member re-enters. NOTE: == null on Unity
+			// objects — a scene reload destroys the clone and reference
+			// comparison (is null / ?.) would miss it.
+			if (_remoteClones.TryGetValue(steamId, out var clone) && clone != null)
 			{
-				UnityEngine.Object.Destroy(_remoteCloneBody.transform.parent.gameObject);
-				_remoteCloneBody = null;
+				UnityEngine.Object.Destroy(clone.transform.parent.gameObject);
 			}
+
+			_remoteClones.Remove(steamId);
 
 			// The host leaving the world ends the world itself (host
 			// authority): a guest must not keep playing inside a world whose
@@ -300,7 +321,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 			// (the world belongs to the host — a guest sitting in the menu
 			// joins the run). StartRun is the game's own entry; guests without
 			// the basic course get the tutorial warning instead (its flow).
-			// The host's clone is rebuilt by RemoteJoined after the join flow.
+			// The host's clone is rebuilt by the Update pump after the join.
 			_log.LogInformation("Host entered the world — starting a run to follow.");
 			PreRunScript.instance.StartRun();
 		}
@@ -312,12 +333,16 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 
 	private void OnSessionEnded()
 	{
-		// == null on the Unity clone (is null would miss a scene-reload-destroyed object).
-		if (_remoteCloneBody != null)
+		// == null on the Unity clones (is null would miss scene-reload-destroyed objects).
+		foreach (var clone in _remoteClones.Values)
 		{
-			UnityEngine.Object.Destroy(_remoteCloneBody.transform.parent.gameObject);
-			_remoteCloneBody = null;
+			if (clone != null)
+			{
+				UnityEngine.Object.Destroy(clone.transform.parent.gameObject);
+			}
 		}
+
+		_remoteClones.Clear();
 	}
 
 	// ---- Block damage sync (local compute, remote verify/sync) ----

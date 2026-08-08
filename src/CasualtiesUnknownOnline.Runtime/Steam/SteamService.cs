@@ -203,6 +203,4 @@ public sealed class SteamService(ILogger<SteamService> log) : ICuoService
 	void ICuoService.Stop()
 	{
 	}
-
-	void ICuoService.Dispose() => Dispose();
 }

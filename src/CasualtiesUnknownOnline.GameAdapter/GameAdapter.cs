@@ -246,7 +246,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 
 	void ICuoService.Stop() => Uninstall();
 
-	void ICuoService.Dispose()
+	void IDisposable.Dispose()
 	{
 		// == null on the Unity clones (is null would miss scene-reload-destroyed objects).
 		foreach (var clone in _remoteClones.Values)
@@ -267,8 +267,6 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 		_characterData.CharacterDataReceived -= OnCharacterDataReceived;
 		Instance = null;
 	}
-
-	void IDisposable.Dispose() => ((ICuoService)this).Dispose();
 
 	// ---- Session wiring ----
 
@@ -635,4 +633,6 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 			_log.LogWarning("World generation started without host world params — world will not match!");
 		}
 	}
+
+	public void Dispose() => throw new NotImplementedException();
 }

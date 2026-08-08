@@ -1,3 +1,5 @@
+using System;
+
 namespace CasualtiesUnknownOnline.Abstractions;
 
 /// <summary>
@@ -5,8 +7,12 @@ namespace CasualtiesUnknownOnline.Abstractions;
 /// Microsoft.Extensions DI owns construction; BepInEx/Unity own the game loop —
 /// never run a loop inside a service, the plugin forwards Unity's per-frame
 /// Update into this interface (architecture.md §5.5).
+/// The interface is an <see cref="IDisposable"/>: the container disposes
+/// singleton services on provider dispose, so every implementation must be
+/// safe to dispose more than once (the plugin also drives the lifecycle
+/// explicitly in OnDisable).
 /// </summary>
-public interface ICuoService
+public interface ICuoService : IDisposable
 {
 	/// <summary>Called once after DI resolution, before <see cref="Start"/> (plugin Awake).</summary>
 	void Initialize();
@@ -19,10 +25,4 @@ public interface ICuoService
 
 	/// <summary>Called when the game is unloading, before <see cref="Dispose"/> (plugin OnDisable).</summary>
 	void Stop();
-
-	/// <summary>
-	/// Releases unmanaged resources. Must be safe to call more than once — the DI
-	/// container also disposes IDisposable singletons when the provider is disposed.
-	/// </summary>
-	void Dispose();
 }

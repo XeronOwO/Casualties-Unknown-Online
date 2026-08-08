@@ -62,7 +62,8 @@ internal interface IPatchBridge
 	/// </summary>
 	void OnItemThrown(Item item);
 
-	void OnItemLoadedIntoContainer(Item item);
+	/// <summary>An item was loaded into a container. WasWorldItem = it was part of the world before the load — a world item loaded into a body-side container (backpack) left the world (pickup semantics).</summary>
+	void OnItemLoadedIntoContainer(Item item, bool wasWorldItem);
 
 	void OnItemUnloadedFromContainer(Item item);
 

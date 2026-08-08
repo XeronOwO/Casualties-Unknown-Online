@@ -883,7 +883,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	}
 
 	/// <summary>True when the item's parent chain ends outside any inventory/body — it is part of the world.</summary>
-	private static bool IsWorldItem(Item item)
+	internal static bool IsWorldItem(Item item)
 	{
 		var t = item.transform;
 		while (t != null)
@@ -1206,7 +1206,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		}
 	}
 
-	void IPatchBridge.OnItemLoadedIntoContainer(Item item)
+	void IPatchBridge.OnItemLoadedIntoContainer(Item item, bool wasWorldItem)
 	{
 		if (_applyingRemoteItem)
 		{
@@ -1214,10 +1214,24 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		}
 
 		var itemId = EnsureItemId(item);
-		if (itemId == 0 || !IsWorldItem(item)) // inventory containers stay in the character data domain
+		if (itemId == 0)
 		{
-			_log.LogDebug("[ContainerLoad] skipped: {Type} id={ItemId} (isWorld {IsWorld}).",
-				item.id, itemId, IsWorldItem(item));
+			return;
+		}
+
+		if (!IsWorldItem(item))
+		{
+			// The item left the world into a BODY-side container (a backpack or
+			// held container — dragging a ground item into the bag in your
+			// inventory goes through LoadItem, NOT PickUpItem, so the world-item
+			// copy would stay on the peer: "still on the ground"). World →
+			// inventory is pickup semantics — report it.
+			if (wasWorldItem)
+			{
+				_log.LogInformation("[ContainerLoad] {Type} (id {ItemId}) left the world into a body container — pickup report.", item.id, itemId);
+				_items.SendItemPickedUp(itemId);
+			}
+
 			return;
 		}
 

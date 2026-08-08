@@ -16,12 +16,19 @@ internal static class ContainerItemPatches
 	internal static class ContainerLoadItemPatch
 	{
 		// Only a load that actually landed (LoadItem's CanHoldItem/distance guard
-		// can fail and leave the item untouched).
+		// can fail and leave the item untouched). WasWorldItem is captured in the
+		// prefix — dragging a GROUND item into a body-side container (a bag in
+		// your inventory) loads it without PickUpItem, so the world-item copy
+		// would stay on the peer unless the adapter knows it left the world.
+		private static bool _wasWorldItem;
+
+		private static void Prefix(Item item) => _wasWorldItem = GameAdapter.IsWorldItem(item);
+
 		private static void Postfix(Container __instance, Item item)
 		{
 			if (item.transform.parent == __instance.transform)
 			{
-				PatchBridge.Impl?.OnItemLoadedIntoContainer(item);
+				PatchBridge.Impl?.OnItemLoadedIntoContainer(item, _wasWorldItem);
 			}
 		}
 	}

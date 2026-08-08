@@ -99,10 +99,14 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	/// True while the start gate holds this player: host while it waits for the
 	/// guests' InWorld (StartGateActive), guest while in-world and the host has
 	/// not released the gate yet. Frozen (movingAllowed) + full-screen overlay.
+	/// Solo (no session) never waits — there is no gate and no WorldReady.
 	/// </summary>
-	internal bool WaitingForReady => _session.Role == SessionRole.Host
-		? _world.StartGateActive
-		: _inWorld && !_worldReadyReceived;
+	internal bool WaitingForReady => _session.Role switch
+	{
+		SessionRole.Host => _world.StartGateActive,
+		SessionRole.Guest => _inWorld && !_worldReadyReceived,
+		_ => false, // solo play — no session, no gate
+	};
 
 	bool IPatchBridge.IsWaitingForReady => WaitingForReady;
 
@@ -493,8 +497,20 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 
 		_worldJoinPending = false;
 		_startRunAuthorized = true; // the gate refuses unauthorised (manual) guest starts
-		_log.LogInformation("World join received — starting a run to follow.");
-		PreRunScript.instance.StartRun();
+									// A tutorial world is followed via StartTutorial (it sets the tutorial
+									// flag and nulls runSettings itself, PreRunScript.cs:307-314); anything
+									// else via StartRun. The params already arrived before WorldJoin, so
+									// the biome tells us which world the host is generating.
+		var tutorial = _world.WorldParams?.BiomeOverride == (byte)WorldGeneration.OverrideSceneType.Tutorial;
+		_log.LogInformation("World join received — starting {Run} to follow.", tutorial ? "the tutorial" : "a run");
+		if (tutorial)
+		{
+			PreRunScript.instance.StartTutorial();
+		}
+		else
+		{
+			PreRunScript.instance.StartRun();
+		}
 	}
 
 	private void OnSessionEnded()

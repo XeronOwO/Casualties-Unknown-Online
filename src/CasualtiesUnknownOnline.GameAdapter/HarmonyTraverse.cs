@@ -66,6 +66,13 @@ internal static class HarmonyTraverse
 		return field.FieldExists() ? field : null;
 	}
 
+	/// <summary>The world block table (private field, WorldGeneration.cs:4088).</summary>
+	public static ushort[,]? ReadWorldBlocks(WorldGeneration world)
+	{
+		var field = Traverse.Create(world).Field("worldBlocks");
+		return field.FieldExists() ? field.GetValue<ushort[,]>() : null;
+	}
+
 	public static int ReadBiomeOverride() => Convert.ToInt32(FieldOfWorld("biomeOverride")?.GetValue());
 
 	public static void WriteBiomeOverride(int value) =>

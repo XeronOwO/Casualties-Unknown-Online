@@ -21,8 +21,11 @@ public interface IWorldControl
 
 	event Action? WorldJoinReceived;
 
-	/// <summary>Host only: a block changed after generation (mined/destroyed/built) — record it in the damage table.</summary>
+	/// <summary>Host only: a block changed after generation (mined/destroyed/built) — upsert it into the damage table.</summary>
 	void ReportBlockState(int x, int y, ushort block);
+
+	/// <summary>Host only: a block was restored to its generated baseline — drop it from the damage table.</summary>
+	void RemoveBlockState(int x, int y);
 
 	/// <summary>Host only: a new world layer is generating — the damage table starts empty again.</summary>
 	void ResetDamagedBlocks();

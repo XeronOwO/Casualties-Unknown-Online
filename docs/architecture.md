@@ -165,6 +165,30 @@ Message envelope: protocol version, message type, session ID, sender SteamID, ti
 
 **Never use Unity instance IDs as network entity IDs** (process-local). Define `NetworkEntityId` = session epoch + host allocation counter + entity type/generation.
 
+> The "message envelope" sketched above predates the 2026-08-07 star-topology decision (pure star, **no envelope** — see CLAUDE.md "Wire transport"); the section below is the live model.
+
+### Star Topology & Arbitration Framework (landed 2026-08-08)
+
+Topology is a pure star, host-authoritative. Every message flows guest → host; the host arbitrates and decides the fan-out. No envelope: the transport supplies the sender, `SendTo` expresses the destination, `EntityId` inside the message expresses ownership, `Seq` in the state stream handles reordering.
+
+**Member table** (`SessionService._members`, key = SteamId — stable across reconnects): host holds one entry per guest; a guest holds the host plus roster entries for other guests, because the host broadcasts the full entity list (local + all synced members, `PlayerStateMsg.Entities`) and every side renders every member. Membership announcements are `PlayerJoin` in two modes on one wire shape — self-activation (`GuestSteamId` == receiver) and roster broadcast (`GuestSteamId` = another guest, with its spawn anchor). Members leave via `PlayerLeave` (host → guests) or the presence poll (host removes lobby-missing members individually).
+
+**Behavior packets (local compute → report → arbitrate → fan-out)**: a guest performs actions locally with full single-player feel, then reports the action; the host validates against the authoritative world state, applies it, and relays to the other members **excluding the source** (it already applied locally). The host's own actions are broadcast directly. Echo protection is layered: the adapter's reentry guard suppresses the local application from generating a new report, and the relay excludes the source.
+
+**Arbitration feedback tiers** — chosen by one rule: *does a rejected action leave the local view diverged from the host's truth?*
+
+| Operation | Local execution | Host judgment | Divergence on rejection | Tier |
+|---|---|---|---|---|
+| Block damage / mining | Applied immediately | Target state (already-broken blocks absorb idempotently — `DamageBlock` is safe on air, health = 0) | None — the block already looks broken | **Silent** (landed) |
+| Scene state | Applied immediately | State report; host only tracks the member | None | Silent (landed) |
+| Character data (1 Hz reports) | Normal gameplay | Numeric sync; host keeps the latest per SteamID | None — guest is the local truth | Silent (landed) |
+| Pickup / interaction (Phase 3) | Item enters the inventory immediately | **Unique ownership** (host world table, first-writer-wins) | **Diverged and not self-healing** (the state stream carries no inventory) | **Reject + correction packet** (item rollback + feedback sound) |
+| Placement / construction (Phase 3) | Structure spawned locally | Generation conflict (occupied / not placeable) | Diverged, not self-healing | Reject + correction (remove/replace) |
+| Combat damage (Phase 3) | Damage/anim applied | Target state + ownership mix | Partially diverged — health self-heals via the state stream | Silent + correction (health) / reject (ownership) |
+| World time (Phase 3) | Local time advances | **Authoritative write** (host is the only time source) | Self-healing — host periodically broadcasts the time | Silent + correction (time packet) |
+
+Anti-cheat is explicitly **out of scope** — arbitration is the host's natural job of owning a shared world, not policing. The silent tier is implemented; reject+correction packets land with the first real conflict scenario (pickup, Phase 3). Each operation's packet shape, rejection reason and correction payload are per-operation messages (no generic rejection envelope — consistent with the no-envelope rule).
+
 ## 4. Game Adapter — the Hard Part
 
 The difficulty is not Steam communication; it is identifying and controlling the game's internal state. Design one adapter per game build:

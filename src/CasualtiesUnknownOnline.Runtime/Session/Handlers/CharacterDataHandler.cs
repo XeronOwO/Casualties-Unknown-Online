@@ -18,10 +18,13 @@ public sealed class CharacterDataHandler(ILogger<CharacterDataHandler> log) : Pa
 		if (ctx.Session.Role == SessionRole.Host)
 		{
 			ctx.CharacterData.SaveCharacterData(sender, msg);
+			// Render the reporter's clone inventory (the adapter diff-applies
+			// the snapshot to the remote clone's slots).
+			ctx.CharacterData.FireCharacterDataReceived(sender, msg);
 			_log.LogDebug("Saved character data for {Peer} ({Items} items).", sender, msg.Items.Count);
 			return;
 		}
 
-		ctx.CharacterData.FireCharacterDataReceived(msg);
+		ctx.CharacterData.FireCharacterDataReceived(sender, msg);
 	}
 }

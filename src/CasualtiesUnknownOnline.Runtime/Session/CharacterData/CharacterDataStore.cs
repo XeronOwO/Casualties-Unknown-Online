@@ -53,11 +53,30 @@ public sealed class CharacterDataStore(ISessionControl session, PacketSender sen
 		}
 	}
 
+	/// <summary>Host: the latest report per SteamID (clone inventory rendering on body creation).</summary>
+	public CharacterDataMsg? GetSavedCharacter(ulong steamId) =>
+		_savedCharacters.TryGetValue(steamId, out var data) ? data : null;
+
+	/// <summary>Host only: broadcast the host's own snapshot — the guests render the host's clone inventory from it.</summary>
+	public void BroadcastHostCharacterData(CharacterDataMsg msg)
+	{
+		if (_session.Role != SessionRole.Host || !_session.SessionActive)
+		{
+			return;
+		}
+
+		_session.Broadcast(NetMsg.HostCharacterData, msg);
+	}
+
 	/// <summary>
-	/// Guest side: the host sent a saved character snapshot back (reconnect
-	/// restore) — apply it in the Game Adapter once the local body exists.
+	/// A character snapshot arrived — host side: a guest's 1 Hz report (render its
+	/// clone inventory); guest side: the host's reconnect restore (apply once the
+	/// local body exists).
 	/// </summary>
-	public event Action<CharacterDataMsg>? CharacterDataReceived;
+	public event Action<ulong, CharacterDataMsg>? CharacterDataReceived;
+
+	/// <summary>Guest: the host's own 1 Hz snapshot arrived — render its clone inventory (never apply).</summary>
+	public event Action<CharacterDataMsg>? HostCharacterDataReceived;
 
 	// ---- ICharacterDataControl (the packet handlers' control surface) ----
 
@@ -65,5 +84,13 @@ public sealed class CharacterDataStore(ISessionControl session, PacketSender sen
 
 	void ICharacterDataControl.SendSavedCharacter(ulong steamId) => SendSavedCharacter(steamId);
 
-	void ICharacterDataControl.FireCharacterDataReceived(CharacterDataMsg msg) => CharacterDataReceived?.Invoke(msg);
+	CharacterDataMsg? ICharacterDataControl.GetSavedCharacter(ulong steamId) => GetSavedCharacter(steamId);
+
+	void ICharacterDataControl.BroadcastHostCharacterData(CharacterDataMsg msg) => BroadcastHostCharacterData(msg);
+
+	void ICharacterDataControl.FireCharacterDataReceived(ulong sender, CharacterDataMsg msg) =>
+		CharacterDataReceived?.Invoke(sender, msg);
+
+	void ICharacterDataControl.FireHostCharacterDataReceived(CharacterDataMsg msg) =>
+		HostCharacterDataReceived?.Invoke(msg);
 }

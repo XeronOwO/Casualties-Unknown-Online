@@ -19,9 +19,13 @@ internal static class SoundPlayPatch
 {
 	private static bool Prefix(string clip)
 	{
-		if (clip == "lifePodHit" && PatchBridge.Impl is { IsWaitingForReady: true })
+		// Time.timeScale == 0 covers the gate-armed race (the sound can fire
+		// the frame the freeze lands, before the adapter's WaitingForReady
+		// flip is visible to the patch).
+		if (clip == "lifePodHit"
+			&& (PatchBridge.Impl is { IsWaitingForReady: true } || Time.timeScale == 0f))
 		{
-			PatchBridge.Impl.DeferLifePodSound();
+			PatchBridge.Impl?.DeferLifePodSound();
 			return false; // deferred until the start gate releases
 		}
 

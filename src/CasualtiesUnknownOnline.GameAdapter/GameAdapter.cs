@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
@@ -486,6 +488,10 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 		}
 
 		// Items: id ↔ ItemId is a rename, not a case variant — keep it manual.
+		// Capture is recursive: container contents ride inside the parent item
+		// (Contents), and [Saveable] component state (liquids, batteries, ammo,
+		// …) rides along — the wire form of the official save's SavedItem +
+		// component dictionaries (SaveSystem.SaveGame), so a restore is complete.
 		for (var slot = 0; slot < body.slots.Length; slot++)
 		{
 			var item = body.GetItem(slot);
@@ -494,12 +500,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 				continue;
 			}
 
-			msg.Items.Add(new CharacterItemMsg
-			{
-				ItemId = item.id,
-				Condition = item.condition,
-				SlotIndex = slot,
-			});
+			msg.Items.Add(CaptureItem(item, slot));
 		}
 
 		return msg;
@@ -554,30 +555,294 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 	{
 		foreach (var itemData in data.Items)
 		{
-			if (itemData.SlotIndex < 0 || itemData.SlotIndex >= body.slots.Length)
-			{
-				continue;
-			}
-
-			// Same spawn path as the game's save restore (SaveSystem.cs:304-329):
-			// instantiate the prefab by id, set condition, hand it to the slot.
-			var go = UnityEngine.Object.Instantiate((GameObject)Resources.Load(itemData.ItemId),
-				body.transform.position, Quaternion.identity);
-			var item = go.GetComponent<Item>();
-			if (item == null) // Unity object — ==
-			{
-				UnityEngine.Object.Destroy(go);
-				_log.LogWarning("Restore: {ItemId} has no Item component — skipped.", itemData.ItemId);
-				continue;
-			}
-
-			item.condition = itemData.Condition;
-			body.PickUpItem(item, itemData.SlotIndex, force: true);
+			RestoreItem(itemData, body);
 		}
 
 		if (data.HandSlot >= 0 && data.HandSlot < body.slots.Length)
 		{
 			body.handSlot = data.HandSlot;
+		}
+	}
+
+	// ---- Item capture/restore (complete state: SavedItem fields + [Saveable] components + container contents) ----
+
+	/// <summary>Recursively captures one item: the SavedItem fields (condition/
+	/// favourited/slot), the WaterContainerItem liquid stacks, the [Saveable]
+	/// component states and the container contents.</summary>
+	private CharacterItemMsg CaptureItem(Item item, int slotIndex)
+	{
+		var msg = new CharacterItemMsg
+		{
+			ItemId = item.id,
+			Condition = item.condition,
+			SlotIndex = slotIndex,
+			Favourited = item.favourited,
+			Liquids = CaptureLiquids(item),
+			Components = CaptureSaveableComponents(item),
+		};
+
+		var container = item.GetComponent<Container>();
+		if (container != null) // Unity object — ==
+		{
+			for (var i = 0; i < container.transform.childCount; i++)
+			{
+				var child = container.transform.GetChild(i).GetComponent<Item>();
+				if (child != null) // Unity object — ==
+				{
+					msg.Contents.Add(CaptureItem(child, slotIndex));
+				}
+			}
+		}
+
+		return msg;
+	}
+
+	/// <summary>The WaterContainerItem's liquid stacks. The stack field is
+	/// private (the public surface is query-only) — read by reflection;
+	/// LiquidStack itself is public with public fields.</summary>
+	private List<LiquidStackMsg> CaptureLiquids(Item item)
+	{
+		var water = item.GetComponent<WaterContainerItem>();
+		if (water == null) // Unity object — ==
+		{
+			return [];
+		}
+
+		var stackField = typeof(WaterContainerItem).GetField("stack",
+			BindingFlags.NonPublic | BindingFlags.Instance);
+		var stack = (List<LiquidStack>?)stackField?.GetValue(water);
+		return stack is null ? [] : [.. stack.Select(s => new LiquidStackMsg
+		{
+			LiquidId = s.liquidId,
+			Amount = s.amount,
+		})];
+	}
+
+	/// <summary>Snapshots every [Saveable] component's simple-typed state —
+	/// the wire form of the official save's per-item component dictionaries.
+	/// Unity-reference fields are never serialized; WaterContainerItem is
+	/// skipped (its state travels as Liquids).</summary>
+	private List<ComponentStateMsg> CaptureSaveableComponents(Item item)
+	{
+		var states = new List<ComponentStateMsg>();
+		foreach (var comp in item.GetComponents<Component>())
+		{
+			if (comp is WaterContainerItem) // Unity object — ==
+			{
+				continue; // handled by CaptureLiquids
+			}
+
+			if (comp.GetType().GetCustomAttribute<Saveable>(inherit: false) is null)
+			{
+				continue;
+			}
+
+			var fields = new List<ComponentFieldMsg>();
+			foreach (var field in comp.GetType().GetFields(
+				BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
+			{
+				if (field.IsStatic || field.IsInitOnly)
+				{
+					continue;
+				}
+
+				// Private state must be explicitly marked for serialization
+				// (the Unity serializer's rule, which the game relies on).
+				if (!field.IsPublic && field.GetCustomAttribute<SerializeField>() is null)
+				{
+					continue;
+				}
+
+				var kind = ComponentFieldKind(field.FieldType);
+				if (kind == 0)
+				{
+					continue; // unsupported kind (Unity references, custom types)
+				}
+
+				var value = field.GetValue(comp);
+				fields.Add(new ComponentFieldMsg
+				{
+					Name = field.Name,
+					Kind = kind,
+					FloatValue = kind == 1 ? (float)value! : 0f,
+					IntValue = kind == 2 ? (int)value! : 0,
+					BoolValue = kind == 3 && (bool)value!,
+					StringValue = kind == 4 ? (string)value! : "",
+					StringList = kind == 5 ? (List<string>)value! : [],
+				});
+			}
+
+			states.Add(new ComponentStateMsg { TypeName = comp.GetType().Name, Fields = fields });
+		}
+
+		return states;
+	}
+
+	private static int ComponentFieldKind(Type type)
+	{
+		if (type == typeof(float))
+		{
+			return 1;
+		}
+
+		if (type == typeof(int))
+		{
+			return 2;
+		}
+
+		if (type == typeof(bool))
+		{
+			return 3;
+		}
+
+		if (type == typeof(string))
+		{
+			return 4;
+		}
+
+		if (type == typeof(List<string>))
+		{
+			return 5;
+		}
+
+		return 0;
+	}
+
+	/// <summary>Restores one item (recursively): instantiate by id, apply the
+	/// SavedItem fields, the liquid stacks, the component states and the
+	/// container contents, then hand it to the slot — with the game's own
+	/// restore semantics (SaveSystem.cs:304-329): a non-empty slot takes the
+	/// item into its container instead of failing.</summary>
+	private void RestoreItem(CharacterItemMsg itemData, Body body)
+	{
+		if (itemData.SlotIndex < 0 || itemData.SlotIndex >= body.slots.Length)
+		{
+			return;
+		}
+
+		var go = UnityEngine.Object.Instantiate((GameObject)Resources.Load(itemData.ItemId),
+			body.transform.position, Quaternion.identity);
+		var item = go.GetComponent<Item>();
+		if (item == null) // Unity object — ==
+		{
+			UnityEngine.Object.Destroy(go);
+			_log.LogWarning("Restore: {ItemId} has no Item component — skipped.", itemData.ItemId);
+			return;
+		}
+
+		item.condition = itemData.Condition;
+		item.favourited = itemData.Favourited;
+		RestoreLiquids(item, itemData.Liquids);
+		RestoreComponentStates(item, itemData.Components);
+		RestoreContents(item, itemData.Contents);
+
+		if (body.HoldingItem(itemData.SlotIndex))
+		{
+			// The slot already holds something (a restored container) — the
+			// item goes inside it (SaveSystem semantics, Body.cs:1388 would
+			// silently refuse the slot otherwise).
+			body.GetItem(itemData.SlotIndex).GetComponent<Container>()?.LoadItem(item);
+		}
+		else
+		{
+			body.PickUpItem(item, itemData.SlotIndex, force: true);
+		}
+	}
+
+	private void RestoreLiquids(Item item, List<LiquidStackMsg> liquids)
+	{
+		if (liquids.Count == 0)
+		{
+			return;
+		}
+
+		var water = item.GetComponent<WaterContainerItem>();
+		if (water == null) // Unity object — ==
+		{
+			return;
+		}
+
+		foreach (var liquid in liquids)
+		{
+			water.AddLiquid(liquid.LiquidId, liquid.Amount);
+		}
+	}
+
+	private void RestoreComponentStates(Item item, List<ComponentStateMsg> states)
+	{
+		foreach (var state in states)
+		{
+			// Matched by type name: the capture side stores the component's
+			// simple name, restore finds the component with that name.
+			var comp = item.GetComponents<Component>()
+				.FirstOrDefault(c => c.GetType().Name == state.TypeName);
+			if (comp == null) // Unity object — == (FirstOrDefault on destroyed)
+			{
+				continue;
+			}
+
+			foreach (var field in state.Fields)
+			{
+				var target = comp.GetType().GetField(field.Name,
+					BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+				if (target is null || target.IsStatic || target.IsInitOnly)
+				{
+					continue;
+				}
+
+				switch (field.Kind)
+				{
+					case 1:
+						target.SetValue(comp, field.FloatValue);
+						break;
+					case 2:
+						target.SetValue(comp, field.IntValue);
+						break;
+					case 3:
+						target.SetValue(comp, field.BoolValue);
+						break;
+					case 4:
+						target.SetValue(comp, field.StringValue);
+						break;
+					case 5:
+						target.SetValue(comp, field.StringList);
+						break;
+				}
+			}
+		}
+	}
+
+	private void RestoreContents(Item containerItem, List<CharacterItemMsg> contents)
+	{
+		if (contents.Count == 0)
+		{
+			return;
+		}
+
+		var container = containerItem.GetComponent<Container>();
+		if (container == null) // Unity object — ==
+		{
+			return;
+		}
+
+		foreach (var childData in contents)
+		{
+			var go = UnityEngine.Object.Instantiate((GameObject)Resources.Load(childData.ItemId),
+				containerItem.transform.position, Quaternion.identity);
+			var child = go.GetComponent<Item>();
+			if (child == null) // Unity object — ==
+			{
+				UnityEngine.Object.Destroy(go);
+				_log.LogWarning("Restore: {ItemId} has no Item component — skipped.", childData.ItemId);
+				continue;
+			}
+
+			child.condition = childData.Condition;
+			child.favourited = childData.Favourited;
+			RestoreLiquids(child, childData.Liquids);
+			RestoreComponentStates(child, childData.Components);
+			RestoreContents(child, childData.Contents);
+			container.LoadItem(child);
 		}
 	}
 
@@ -599,7 +864,17 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 		}
 
 		_inWorld = inWorld;
+		var prevBody = _localBody; // Unity object — ==
 		_localBody = inWorld ? PlayerCamera.main!.body : null;
+		if (!inWorld && prevBody != null && _pendingRestore is null && !_restoreWipePending)
+		{
+			// Leaving the world (death, menu) — push a final snapshot so the
+			// host's save carries the state at the moment of leaving, not the
+			// last 1 Hz report (a death → re-enter cycle would otherwise
+			// restore the pre-death state).
+			_characterData.ReportCharacterData(CaptureCharacterData(prevBody));
+		}
+
 		var sceneName = inWorld ? UnityEngine.SceneManagement.SceneManager.GetActiveScene().name : "PreGen";
 		var pos = inWorld && _localBody != null // Unity object — ==
 			? new NetVector2(_localBody.transform.position.x, _localBody.transform.position.y)

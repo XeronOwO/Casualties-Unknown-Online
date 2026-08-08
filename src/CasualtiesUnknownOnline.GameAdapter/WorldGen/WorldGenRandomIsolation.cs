@@ -40,14 +40,26 @@ internal static class WorldGenRandomIsolation
 	/// plain yields (null, WaitForSeconds, WaitUntil) suspend through Unity
 	/// and the stream is restored before the sub-coroutine resumes.
 	/// </summary>
-	private static IEnumerator Drive(IEnumerator sub)
+	private static IEnumerator Drive(IEnumerator sub, IPatchBridge adapter, bool resetFirst)
 	{
+		if (resetFirst)
+		{
+			// First MoveNext of the TOP-level drive: reset the stream
+			// immediately before the first generation segment consumes any
+			// Random. The reset and the first consumption share one coroutine
+			// step — no frame boundary — so whatever the scene consumed in
+			// between (a nested-coroutine launch is NOT same-stack in Unity 5.6)
+			// is overwritten. Nested drives continue the stream and must not
+			// reset (their consumption is the outer segment's continuation).
+			adapter.ResetGenStreamToBaseline();
+		}
+
 		while (sub.MoveNext())
 		{
 			var current = sub.Current;
 			if (current is IEnumerator nested)
 			{
-				yield return Drive(nested);
+				yield return Drive(nested, adapter, resetFirst: false);
 			}
 			else
 			{
@@ -81,7 +93,10 @@ internal static class WorldGenRandomIsolation
 			yield return null;
 		}
 
-		adapter.ResetGenStreamToBaseline();
-		yield return Drive(generateWorld);
+		// The reset happens inside Drive's first step, not here — the launch of
+		// a nested coroutine is not same-stack, and a frame boundary between the
+		// reset and the first Random call would leak one frame of public-stream
+		// consumption into the generation start (divergent details).
+		yield return Drive(generateWorld, adapter, resetFirst: true);
 	}
 }

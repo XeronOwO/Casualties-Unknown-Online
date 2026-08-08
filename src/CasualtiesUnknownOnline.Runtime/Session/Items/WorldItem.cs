@@ -12,7 +12,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 /// of the containing world container item.
 /// </summary>
 public readonly record struct WorldItem(ulong ItemId, CharacterItemMsg Item, NetVector2 Pos, NetVector2 Vel,
-	ulong ParentItemId, float Rotation, bool FreshItemDrop, NetVector2 ParentPosition = default)
+	ulong ParentItemId, float Rotation, bool FreshItemDrop, NetVector2 ParentPosition = default, float AngularVelocity = 0f)
 {
 	public ItemSnapshotEntryMsg ToSnapshotEntryMsg() => new()
 	{
@@ -24,5 +24,6 @@ public readonly record struct WorldItem(ulong ItemId, CharacterItemMsg Item, Net
 		Rotation = Rotation,
 		FreshItemDrop = FreshItemDrop,
 		ParentPosition = ParentPosition.ToNetVector2Msg(),
+		AngularVelocity = AngularVelocity,
 	};
 }

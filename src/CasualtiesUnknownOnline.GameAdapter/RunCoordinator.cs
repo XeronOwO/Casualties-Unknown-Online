@@ -63,11 +63,30 @@ internal sealed class RunCoordinator(
 	/// <summary>Guest: when the host finished loading (its InWorld arrived via the SceneState relay) — the anchor for the guest-side 30 s countdown.</summary>
 	private long _hostInWorldSinceMs;
 
+	/// <summary>One-shot world fingerprint logged at world entry (peer log comparison).</summary>
+	private bool _worldFingerprintLogged;
+
 	/// <summary>The local body while in the world (Unity object — == null when scene-reload-destroyed).</summary>
 	internal Body? LocalBody => _localBody;
 
 	/// <summary>Guest: the world is generated and the gate holds (read by StartGateCoordinator).</summary>
 	internal bool GuestWaitingForReady => _phase == RunPhase.WaitingReady;
+
+	/// <summary>Guest: the run is actually playing — the loading screen is the game's own to hide again (read by StartGateCoordinator).</summary>
+	internal bool IsPlaying => _phase == RunPhase.Playing;
+
+	/// <summary>
+	/// The gate window — the finish-generation fade (WorldGeneration.cs:3620)
+	/// must not black out the wait. Guest: generation finished (or finishing)
+	/// but the gate still holds (the kept loading screen is underneath the
+	/// fade). Host: the fade fires while the loading screen is still up (it is
+	/// hidden at generation end, WorldGeneration.cs:3637 — the host's gate
+	/// wait would otherwise read as "black, then the wait"). The GlobalDark
+	/// patch skips the fade entirely inside this window.
+	/// </summary>
+	internal bool IsInGateWindow =>
+		(_session.Role == SessionRole.Guest && _phase is RunPhase.Generating or RunPhase.WaitingReady)
+		|| (_session.Role == SessionRole.Host && _session.SessionActive && HarmonyTraverse.IsLoadingVisible());
 
 	/// <summary>Guest: when the host finished loading — the countdown anchor (read by StartGateCoordinator).</summary>
 	internal long HostInWorldSinceMs => _hostInWorldSinceMs;
@@ -146,17 +165,18 @@ internal sealed class RunCoordinator(
 		_world.ResetDamagedBlocks(); // the new run's damage table starts empty again
 
 		var randomState = RandomStateSerializer.Serialize(Random.state);
+		var runSettings = isTutorial ? null : HarmonyTraverse.ReadPreRunRunSettings();
 		_world.PublishWorldParams(new WorldStartParams
 		{
 			RandomState = randomState,
-			RunSettings = isTutorial ? null : HarmonyTraverse.ReadPreRunRunSettings(),
+			RunSettings = runSettings,
 			BiomeOverride = isTutorial ? (byte)WorldGeneration.OverrideSceneType.Tutorial : (byte)WorldGeneration.OverrideSceneType.None,
 			BiomeDepth = 0,
 			TotalTraveled = 0,
 		});
 		_entryParamsCaptured = true;
-		_log.LogInformation("Captured world params at run-start entry ({StateBytes} bytes, tutorial: {Tutorial}).",
-			randomState.Length, isTutorial);
+		_log.LogInformation("Captured world params at run-start entry ({StateBytes} bytes, {SettingCount} settings, tutorial: {Tutorial}).",
+			randomState.Length, runSettings?.Count ?? 0, isTutorial);
 	}
 
 	/// <summary>Host side: capture + publish the world params at the GenerateWorld boundary (layer switches, solo, load-run — the entry capture does not apply).</summary>
@@ -261,7 +281,8 @@ internal sealed class RunCoordinator(
 		}
 
 		Random.state = RandomStateSerializer.Deserialize(parameters.RandomState);
-		_log.LogInformation("Generation stream reset to captured baseline ({StateBytes} bytes).", parameters.RandomState.Length);
+		_log.LogInformation("Generation stream reset to captured baseline ({StateBytes} bytes: {StateHex}).",
+			parameters.RandomState.Length, BitConverter.ToString(parameters.RandomState).Replace("-", ""));
 	}
 
 	/// <summary>
@@ -388,6 +409,12 @@ internal sealed class RunCoordinator(
 			_phase = RunPhase.Idle;
 		}
 
+		if (inWorld && !_worldFingerprintLogged)
+		{
+			_worldFingerprintLogged = true;
+			LogWorldFingerprint();
+		}
+
 		var prevBody = _localBody; // Unity object — ==
 		_localBody = inWorld ? PlayerCamera.main!.body : null;
 		if (!inWorld && prevBody != null)
@@ -424,6 +451,50 @@ internal sealed class RunCoordinator(
 			? new NetVector2(_localBody.transform.position.x, _localBody.transform.position.y)
 			: (NetVector2?)null;
 		_session.ReportSceneState(inWorld ? SceneStateType.InWorld : SceneStateType.InMenu, sceneName, pos);
+	}
+
+	/// <summary>
+	/// One-shot world fingerprint: FNV-1a over the block table, per-128-row
+	/// blocks + a total — the peer logs' fingerprints show whether the two
+	/// generated worlds match and, when they diverge, roughly where.
+	/// </summary>
+	private void LogWorldFingerprint()
+	{
+		var blocks = HarmonyTraverse.ReadWorldBlocks(WorldGeneration.world);
+		if (blocks is null) // Unity object — ==
+		{
+			return;
+		}
+
+		const ulong fnvBasis = 14695981039346656037UL;
+		const ulong fnvPrime = 1099511628211UL;
+		var width = blocks.GetLength(0);
+		var height = blocks.GetLength(1);
+		var blockHashes = new ulong[8];
+		for (var i = 0; i < blockHashes.Length; i++)
+		{
+			blockHashes[i] = fnvBasis;
+		}
+
+		var rowsPerBlock = Math.Max(1, height / 8);
+		var total = fnvBasis;
+		for (var y = 0; y < height; y++)
+		{
+			var b = Math.Min(7, y / rowsPerBlock);
+			for (var x = 0; x < width; x++)
+			{
+				var v = blocks[x, y];
+				total ^= v;
+				total *= fnvPrime;
+				blockHashes[b] ^= v;
+				blockHashes[b] *= fnvPrime;
+			}
+		}
+
+		_log.LogInformation(
+			"[WorldFingerprint] {W}x{H}: {B0:X16} {B1:X16} {B2:X16} {B3:X16} {B4:X16} {B5:X16} {B6:X16} {B7:X16} total {Total:X16}",
+			width, height, blockHashes[0], blockHashes[1], blockHashes[2], blockHashes[3],
+			blockHashes[4], blockHashes[5], blockHashes[6], blockHashes[7], total);
 	}
 
 	/// <summary>Guest side: the host released the start gate — start playing.</summary>

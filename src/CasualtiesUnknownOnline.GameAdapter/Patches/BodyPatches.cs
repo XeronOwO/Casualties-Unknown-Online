@@ -198,6 +198,31 @@ internal static class BodyPatches
 		}
 	}
 
+	[HarmonyPatch(typeof(Body), "WearWearable")]
+	internal static class WearWearablePatch
+	{
+		// An item went on a body part (mouth/hat/back…, Body.cs:1480) — the
+		// peer's clone shows it only after a snapshot, so re-report right away
+		// (the 1 Hz throttle alone reads as a delay on the peer's clone).
+		private static void Postfix() => PatchBridge.Impl?.OnInventoryChanged();
+	}
+
+	[HarmonyPatch(typeof(Body), "DropWearable")]
+	internal static class DropWearablePatch
+	{
+		// An item came off a body part (Body.cs:1521) — the peer's clone
+		// re-renders via the snapshot, AND the item just entered the world: it
+		// must join the item domain (instance id + drop report), or the peer
+		// never materializes it ("dropping a bag from the mouth — desynced on
+		// the peer"). DropWearable does NOT go through DropItem, so the normal
+		// drop hook never fires.
+		private static void Postfix(Item item)
+		{
+			PatchBridge.Impl?.OnInventoryChanged();
+			PatchBridge.Impl?.OnItemDropped(item);
+		}
+	}
+
 	[HarmonyPatch(typeof(Body), "Start")]
 	internal static class BodyStartPatch
 	{

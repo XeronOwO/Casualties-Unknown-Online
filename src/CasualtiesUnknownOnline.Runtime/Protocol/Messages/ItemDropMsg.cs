@@ -32,4 +32,7 @@ public sealed class ItemDropMsg
 
 	[ProtoMember(7)]
 	public NetVector2Msg? ParentPosition { get; set; } // the container's world position when ParentItemId is set — the receiver binds a local generation-time container (which has no instance id yet) by position
+
+	[ProtoMember(8)]
+	public float AngularVelocity { get; set; } // the item's spin at the drop moment — a rolling item's initial condition (same initial vectors → same simulation)
 }

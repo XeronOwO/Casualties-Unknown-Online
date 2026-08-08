@@ -213,6 +213,29 @@ public sealed class WorldService(ISessionControl session, PacketSender sender, I
 
 	public event Action<float, float>? EarthquakeStartReceived;
 
+	/// <summary>Guest: the host's keypad codes arrived (position-keyed Openables).</summary>
+	public event Action<IReadOnlyList<KeypadEntryMsg>>? KeypadCodeReceived;
+
+	public void FireKeypadCodeReceived(IReadOnlyList<KeypadEntryMsg> codes) => KeypadCodeReceived?.Invoke(codes);
+
+	/// <summary>Host only: broadcast the keypad codes (position-keyed Openables) to every synced member.</summary>
+	public void SendKeypadCodes(IReadOnlyList<KeypadEntryMsg> codes)
+	{
+		if (_session.Role != SessionRole.Host || !_session.SessionActive || codes.Count == 0)
+		{
+			return;
+		}
+
+		var msg = new KeypadCodeMsg { Codes = [.. codes] };
+		foreach (var member in _session.Members)
+		{
+			if (member.Handshaken)
+			{
+				_sender.Send(member.SteamId, NetMsg.KeypadCode, msg);
+			}
+		}
+	}
+
 	public void FireBlockStateReceived(IReadOnlyList<DamagedBlock> blocks) => BlockStateReceived?.Invoke(blocks);
 
 	/// <summary>Either side: a block was placed (report up / broadcast down share one message id).</summary>

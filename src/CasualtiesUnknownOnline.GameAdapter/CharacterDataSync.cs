@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CasualtiesUnknownOnline.GameAdapter.Rendering;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
@@ -31,6 +32,9 @@ internal sealed class CharacterDataSync(
 	/// <summary>SteamId → latest character snapshot: the remote clone's inventory rendering source.</summary>
 	private readonly Dictionary<ulong, CharacterDataMsg> _cloneData = [];
 
+	/// <summary>A clone's snapshot cache updated (SteamId) — the renderer re-renders that clone's carried items. Without this, the clone only rendered once at creation ("after the starting supplies, the peer never sees carried-item updates").</summary>
+	public event Action<ulong>? CloneSnapshotUpdated;
+
 	private CharacterDataMsg? _pendingRestore; // guest side: host-sent restore, applied once the body exists
 	private bool _restoreWipePending; // first pass wiped the slots (Destroy is end-of-frame) — items go in on the next frame
 	private const float CharacterReportInterval = 1f; // guest → host character snapshot (1 Hz)
@@ -59,6 +63,7 @@ internal sealed class CharacterDataSync(
 			// show what it is carrying; the new body renders on creation from
 			// this cache).
 			_cloneData[sender] = data;
+			CloneSnapshotUpdated?.Invoke(sender);
 			_log.LogInformation("[CloneRender] host: char data from {Sender} ({Count} items).", sender, data.Items.Count);
 			return;
 		}
@@ -73,15 +78,19 @@ internal sealed class CharacterDataSync(
 	private void OnHostCharacterDataReceived(CharacterDataMsg data)
 	{
 		_cloneData[_session.HostSteamId] = data;
+		CloneSnapshotUpdated?.Invoke(_session.HostSteamId);
 		_log.LogInformation("[CloneRender] guest: host char data ({Count} items).", data.Items.Count);
 	}
 
 	/// <summary>
-	/// Render a remote clone's inventory from its owner's character snapshot:
-	/// each slot shows the carried item's prefab (pure display — physics off,
-	/// non-interactive, no instance id). Diff per slot: keep matching items,
-	/// swap changed ones, destroy the emptied. Called by the clone renderer
-	/// when a clone appears and when a snapshot updates.
+	/// Render a remote clone's carried state from its owner's character
+	/// snapshot: each slot shows the carried item's prefab, and each worn item
+	/// (negative SlotIndex — limb-encoded) renders on the matching limb
+	/// (mouth/hat/back…, the game parents them there too, Body.cs:1508). Pure
+	/// display — physics off, non-interactive, no instance id. Every render
+	/// re-created from the snapshot: matching items stay, changed ones swap,
+	/// the emptied disappear. Called by the clone renderer when a clone appears
+	/// and when a snapshot updates.
 	/// </summary>
 	internal void ApplyCloneInventory(Body clone, CharacterDataMsg data)
 	{
@@ -94,48 +103,95 @@ internal sealed class CharacterDataSync(
 			}
 
 			var wanted = data.Items.FirstOrDefault(x => x.SlotIndex == slot.slot);
+			RenderItemInto(slot.transform, wanted, slot.spriteSortOrder, wearLimb: null);
+		}
 
+		for (var i = 0; i < clone.limbs.Length; i++)
+		{
+			var limb = clone.limbs[i];
+			if (limb == null) // Unity object — ==
+			{
+				continue;
+			}
+
+			var worn = data.Items.FirstOrDefault(x => x.SlotIndex == -(i + 2));
+			RenderItemInto(limb.transform, worn, 0, wearLimb: limb);
+		}
+	}
+
+	/// <summary>
+	/// Materialize one snapshot item into a render parent. Slot parents are
+	/// fully cleared (a slot only ever holds items); limb parents keep the
+	/// game's own children (bones/decorations) and clear only our previous
+	/// renders (RemoteCloneRender-marked).
+	/// </summary>
+	private static void RenderItemInto(Transform parent, CharacterItemMsg? wanted, int sortOrder, Limb? wearLimb)
+	{
+		if (wearLimb == null)
+		{
 			// Clear EVERY child, then materialize the wanted item: the diff
 			// used to inspect only GetChild(0), so a slot that accumulated
 			// more than one child (template leftover + render, or repeated
 			// renders) kept the strays — peers saw duplicate carried items
 			// appear after inventory shuffling.
-			for (var c = slot.transform.childCount - 1; c >= 0; c--)
+			for (var c = parent.childCount - 1; c >= 0; c--)
 			{
-				UnityEngine.Object.Destroy(slot.transform.GetChild(c).gameObject);
+				UnityEngine.Object.Destroy(parent.GetChild(c).gameObject);
 			}
+		}
+		else
+		{
+			for (var c = parent.childCount - 1; c >= 0; c--)
+			{
+				var child = parent.GetChild(c);
+				if (child.GetComponent<RemoteCloneRender>() != null) // Unity object — ==
+				{
+					UnityEngine.Object.Destroy(child.gameObject);
+				}
+			}
+		}
 
-			if (wanted is null)
-			{
-				continue;
-			}
+		if (wanted is null)
+		{
+			return;
+		}
 
-			var prefab = Resources.Load(wanted.ItemId);
-			if (prefab == null) // Unity object — ==
-			{
-				continue;
-			}
+		var prefab = Resources.Load(wanted.ItemId);
+		if (prefab == null) // Unity object — ==
+		{
+			return;
+		}
 
-			var obj = UnityEngine.Object.Instantiate(prefab, slot.transform) as GameObject;
-			obj!.transform.localPosition = Vector3.zero;
-			var item = obj.GetComponent<Item>();
-			obj.transform.localEulerAngles = new Vector3(0f, 0f, item.Stats.slotRotation);
-			if (item.rb != null) // Unity object — ==
-			{
-				item.rb.simulated = false; // pure display
-			}
+		var obj = UnityEngine.Object.Instantiate(prefab, parent) as GameObject;
+		obj!.transform.localPosition = Vector3.zero;
+		var item = obj.GetComponent<Item>();
+		obj.transform.localEulerAngles = wearLimb != null
+			? Vector3.zero // the game wears with identity rotation (Body.cs:1510)
+			: new Vector3(0f, 0f, item.Stats.slotRotation);
+		if (item.rb != null) // Unity object — ==
+		{
+			item.rb.simulated = false; // pure display
+		}
 
-			var col = obj.GetComponent<Collider2D>();
-			if (col != null) // Unity object — ==
-			{
-				col.enabled = false; // never pickable/blocking
-			}
+		var col = obj.GetComponent<Collider2D>();
+		if (col != null) // Unity object — ==
+		{
+			col.enabled = false; // never pickable/blocking
+		}
 
-			var sr = obj.GetComponent<SpriteRenderer>();
-			if (sr != null) // Unity object — ==
-			{
-				sr.sortingOrder = slot.spriteSortOrder;
-			}
+		var sr = obj.GetComponent<SpriteRenderer>();
+		if (sr != null) // Unity object — ==
+		{
+			// Wear order mirrors the game (Body.cs:1507): limb sprite order +
+			// the item's wearable visual offset.
+			sr.sortingOrder = wearLimb != null
+				? wearLimb.GetComponent<SpriteRenderer>().sortingOrder + item.Stats.wearableVisualOffset
+				: sortOrder;
+		}
+
+		if (wearLimb != null)
+		{
+			obj.AddComponent<RemoteCloneRender>(); // the marker the next pass clears (never the game's own children)
 		}
 	}
 
@@ -279,6 +335,25 @@ internal sealed class CharacterDataSync(
 			msg.Items.Add(ItemStateCodec.CaptureItem(item, slot));
 		}
 
+		// Wearables: items worn on body parts (mouth/hat/back/eyes… —
+		// WearWearable parents them to the limb, Body.cs:1508), which are NOT
+		// backpack slots — without this pass a worn item (e.g. a plastic chunk
+		// held in the mouth) shows on the peer's clone as "still carried".
+		// SlotIndex encodes the limb: -(limbIndex + 2) — negative, so it can
+		// never collide with a real slot.
+		for (var i = 0; i < body.limbs.Length; i++)
+		{
+			var limb = body.limbs[i].transform;
+			for (var c = 0; c < limb.childCount; c++)
+			{
+				var worn = limb.GetChild(c).GetComponent<Item>();
+				if (worn != null) // Unity object — ==
+				{
+					msg.Items.Add(ItemStateCodec.CaptureItem(worn, -(i + 2)));
+				}
+			}
+		}
+
 		return msg;
 	}
 
@@ -331,12 +406,63 @@ internal sealed class CharacterDataSync(
 	{
 		foreach (var itemData in data.Items)
 		{
-			ItemStateCodec.RestoreItem(itemData, body);
+			if (itemData.SlotIndex < 0)
+			{
+				RestoreWearable(itemData, body);
+			}
+			else
+			{
+				ItemStateCodec.RestoreItem(itemData, body);
+			}
 		}
 
 		if (data.HandSlot >= 0 && data.HandSlot < body.slots.Length)
 		{
 			body.handSlot = data.HandSlot;
+		}
+	}
+
+	/// <summary>
+	/// Restore a worn item onto its limb (mirrors WearWearable, Body.cs:1480:
+	/// parented to the limb, physics off, identity pose). The limb comes from
+	/// the captured negative SlotIndex — the restore path never had the item
+	/// in a backpack, so the game's slot-driven wear flow cannot run.
+	/// </summary>
+	private void RestoreWearable(CharacterItemMsg itemData, Body body)
+	{
+		var limbIndex = -itemData.SlotIndex - 2;
+		if (limbIndex < 0 || limbIndex >= body.limbs.Length)
+		{
+			_log.LogWarning("Restore: worn {ItemId} has limb index {Limb} out of range — skipped.", itemData.ItemId, limbIndex);
+			return;
+		}
+
+		var go = UnityEngine.Object.Instantiate((GameObject)Resources.Load(itemData.ItemId),
+			body.transform.position, Quaternion.identity);
+		var item = go.GetComponent<Item>();
+		if (item == null) // Unity object — ==
+		{
+			UnityEngine.Object.Destroy(go);
+			_log.LogWarning("Restore: {ItemId} has no Item component — skipped.", itemData.ItemId);
+			return;
+		}
+
+		item.condition = itemData.Condition;
+		item.favourited = itemData.Favourited;
+		ItemStateCodec.RestoreLiquids(item, itemData.Liquids);
+		ItemStateCodec.RestoreComponentStates(item, itemData.Components);
+		ItemStateCodec.RestoreContents(item, itemData.Contents);
+
+		var limb = body.limbs[limbIndex];
+		item.rb.simulated = false;
+		item.transform.SetParent(limb.transform);
+		item.transform.localScale = Vector3.one;
+		item.transform.localRotation = Quaternion.identity;
+		item.transform.localPosition = Vector3.zero;
+		var sr = item.GetComponent<SpriteRenderer>();
+		if (sr != null) // Unity object — ==
+		{
+			sr.sortingOrder = limb.GetComponent<SpriteRenderer>().sortingOrder + item.Stats.wearableVisualOffset;
 		}
 	}
 }

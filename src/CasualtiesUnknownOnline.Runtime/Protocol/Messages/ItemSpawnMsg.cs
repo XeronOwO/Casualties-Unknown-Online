@@ -31,4 +31,7 @@ public sealed class ItemSpawnMsg
 
 	[ProtoMember(6)]
 	public bool FreshItemDrop { get; set; } // the glowing floating pickup effect (FreshItemDrop.cs) — carries over to the remote spawn
+
+	[ProtoMember(7)]
+	public float AngularVelocity { get; set; } // the item's spin at the spawn moment (a rolling drop's initial condition)
 }

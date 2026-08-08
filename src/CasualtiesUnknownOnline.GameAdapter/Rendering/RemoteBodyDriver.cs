@@ -20,4 +20,10 @@ internal sealed class RemoteBodyDriver : MonoBehaviour
 
 	/// <summary>Current climbing state — HandleVisuals overwrites the animator flag every frame.</summary>
 	public bool Climbing;
+
+	/// <summary>Last snapshot arrival (TickCount) — snapshot-change detection for the arrival-interval estimate.</summary>
+	public long LastStateMs;
+
+	/// <summary>Exponentially-averaged snapshot arrival interval (seconds) — the interpolation window. A raw per-snapshot interval jitters on an unreliable channel (pauses, then jumps); the average keeps the window stable so the proxy glides instead of stepping.</summary>
+	public float AvgIntervalSec;
 }

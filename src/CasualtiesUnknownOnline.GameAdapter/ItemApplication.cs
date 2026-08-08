@@ -91,7 +91,7 @@ internal sealed class ItemApplication(
 		}
 	}
 
-	private void OnRemoteItemDropped(ulong itemId, CharacterItemMsg itemState, NetVector2 pos, NetVector2 vel, ulong parentItemId, float rotation, NetVector2 parentPos)
+	private void OnRemoteItemDropped(ulong itemId, CharacterItemMsg itemState, NetVector2 pos, NetVector2 vel, ulong parentItemId, float rotation, float angularVelocity, NetVector2 parentPos)
 	{
 		_applyingRemoteItem = true;
 		try
@@ -101,7 +101,7 @@ internal sealed class ItemApplication(
 			{
 				_log.LogInformation("[ItemDrop] {Type} (id {ItemId}) not present — materializing at ({X:F1},{Y:F1}), container {ContainerId}, parentPos ({PX:F1},{PY:F1}).",
 					itemState.ItemId, itemId, pos.X, pos.Y, parentItemId, parentPos.X, parentPos.Y);
-				SpawnWorldItem(new WorldItem(itemId, itemState, pos, vel, parentItemId, rotation, false, parentPos));
+				SpawnWorldItem(new WorldItem(itemId, itemState, pos, vel, parentItemId, rotation, false, parentPos, angularVelocity));
 			}
 			else
 			{
@@ -111,7 +111,7 @@ internal sealed class ItemApplication(
 				item.transform.position = new Vector3(pos.X, pos.Y, 0f);
 				item.transform.eulerAngles = new Vector3(0f, 0f, rotation);
 				item.rb.velocity = new Vector2(vel.X, vel.Y); // a throw: re-applied mid-flight
-				item.rb.angularVelocity = 0f;
+				item.rb.angularVelocity = angularVelocity; // the spin at the drop moment — same initial condition
 				if (parentItemId != 0)
 				{
 					BindToContainer(item, parentItemId, parentPos);
@@ -385,6 +385,7 @@ internal sealed class ItemApplication(
 					existing.transform.position = new Vector3(w.Pos.X, w.Pos.Y, 0f);
 					existing.transform.eulerAngles = new Vector3(0f, 0f, w.Rotation);
 					existing.rb.velocity = new Vector2(w.Vel.X, w.Vel.Y);
+					existing.rb.angularVelocity = w.AngularVelocity;
 
 					_log.LogInformation("[ItemBind] bound existing {Type} at ({X:F1}, {Y:F1}) to id {ItemId} (no materialization).",
 						w.Item.ItemId, w.Pos.X, w.Pos.Y, w.ItemId);
@@ -427,5 +428,6 @@ internal sealed class ItemApplication(
 		}
 
 		item.rb.velocity = new Vector2(w.Vel.X, w.Vel.Y);
+		item.rb.angularVelocity = w.AngularVelocity;
 	}
 }

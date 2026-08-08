@@ -51,4 +51,6 @@ public enum NetMsg : byte
 
 	// World events (host authority)
 	EarthquakeStart = 55, // host → guest: an earthquake began (Duration seconds) — guests show the effect and suppress their own independent quake (four independent quakes would strip the terrain)
+	ItemMove = 56, // host → guest (unreliable): moving world-item positions — the host's physics is the position authority, guests follow (drops bounce to different spots otherwise)
+	KeypadCode = 57, // host → guest: the keypad codes (airdrop crates etc.) — generated host-side at world entry (the game lazy-generates them per side on first use, Openable.cs:19, which would give every side its own code)
 }

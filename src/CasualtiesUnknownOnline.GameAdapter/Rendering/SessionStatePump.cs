@@ -36,14 +36,28 @@ internal static class SessionStatePump
 			return;
 		}
 
-		// Interpolate toward the latest snapshot over the ACTUAL last snapshot
-		// interval: a fixed 0.05 s window overshoots and waits when the sender's
-		// throttle degrades (a low-frame-rate guest reports at uneven 33/66 ms
-		// intervals), which reads as stepping/jerk on the proxy. The adaptive
-		// window reaches the target exactly when the next snapshot lands.
+		// Interpolate toward the latest snapshot over the EMA-averaged snapshot
+		// arrival interval: a fixed window overshoots and waits when the
+		// sender's throttle degrades (a low-frame-rate guest reports at uneven
+		// 33/66 ms intervals) — stepping/jerk on the proxy; the RAW per-snapshot
+		// interval jitters on an unreliable channel (a delayed tick doubles the
+		// window, then the next tick halves it — the proxy speeds up and stalls,
+		// reads as "stuttering" while the local game stays smooth). The average
+		// reaches the target smoothly and absorbs single-tick jitter.
+		body.TryGetComponent<RemoteBodyDriver>(out var driver); // == null: a missing component is managed-null — same check
 		var elapsed = (Environment.TickCount - entity.StateReceivedMs) / 1000f;
-		var windowMs = entity.StateReceivedMs - entity.PrevStateMs;
-		var window = Mathf.Clamp(windowMs / 1000f, 0.02f, 0.5f);
+		if (driver != null && entity.StateReceivedMs != driver.LastStateMs)
+		{
+			if (driver.LastStateMs > 0)
+			{
+				var interval = Mathf.Clamp((entity.StateReceivedMs - driver.LastStateMs) / 1000f, 0.02f, 0.5f);
+				driver.AvgIntervalSec = driver.AvgIntervalSec <= 0f ? interval : driver.AvgIntervalSec * 0.8f + interval * 0.2f;
+			}
+
+			driver.LastStateMs = entity.StateReceivedMs;
+		}
+
+		var window = driver != null && driver.AvgIntervalSec > 0f ? driver.AvgIntervalSec : 0.05f;
 		var alpha = Mathf.Clamp01(elapsed / window);
 		var position = Vector2.Lerp(ToVector2(entity.PrevPosition), ToVector2(entity.Position), alpha);
 		var lookPos = Vector2.Lerp(ToVector2(entity.PrevLookPos), ToVector2(entity.LookPos), alpha);
@@ -78,7 +92,7 @@ internal static class SessionStatePump
 		// Pose clips play only on transitions — the state machine picks the
 		// walk/stand clips back up via HandleVisuals once the peer changes pose
 		// (idle timer resets on movement, NapCoroutine plays the lay clips).
-		if (body.TryGetComponent<RemoteBodyDriver>(out var driver))
+		if (driver != null)
 		{
 			if (entity.Sitting != driver.PrevSitting)
 			{

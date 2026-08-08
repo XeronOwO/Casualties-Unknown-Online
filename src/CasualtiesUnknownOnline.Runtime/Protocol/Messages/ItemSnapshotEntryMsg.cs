@@ -29,4 +29,8 @@ public sealed class ItemSnapshotEntryMsg
 
 	[ProtoMember(8)]
 	public NetVector2Msg? ParentPosition { get; set; } // the container's world position when ParentItemId is set (binding by position for generation-time containers)
+
+	[ProtoMember(9)]
+	public float AngularVelocity { get; set; } // the item's spin (part of the initial condition for a rolled item)
+
 }

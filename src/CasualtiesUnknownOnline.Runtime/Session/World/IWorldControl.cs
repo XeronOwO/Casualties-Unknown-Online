@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Protocol;
+using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.World;
 
@@ -105,4 +106,12 @@ public interface IWorldControl
 	void FireEarthquakeStartReceived(float duration, float nextDelay);
 
 	event Action<float, float>? EarthquakeStartReceived;
+
+	/// <summary>Host only: broadcast the keypad codes (position-keyed Openables) — the game lazy-generates per side otherwise (two codes).</summary>
+	void SendKeypadCodes(IReadOnlyList<KeypadEntryMsg> codes);
+
+	/// <summary>Guest: the host's keypad codes arrived — write them onto the local Openables.</summary>
+	void FireKeypadCodeReceived(IReadOnlyList<KeypadEntryMsg> codes);
+
+	event Action<IReadOnlyList<KeypadEntryMsg>>? KeypadCodeReceived;
 }

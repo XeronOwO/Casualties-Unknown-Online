@@ -40,20 +40,19 @@ public static class CuoBootstrap
 
 		// Registration order determines GetServices<ICuoService>() order:
 		// SteamService before SteamTransport (transport reads steam readiness),
-		// SessionService before EntitySyncService (the entity domain reads the
-		// session's member presence — it runs after in the Update order).
+		// SessionService before EntitySyncService/PacketDispatcher (they read the
+		// session control surface — resolved after the session is built).
 		services.AddSingleton<SteamService>();
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<SteamService>());
 		services.AddSingleton<SteamTransport>();
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<SteamTransport>());
-		services.AddSingleton<SessionIdentity>();
-		// Shared session state + member presence: extracted from SessionService
-		// so the entity/data domains depend on these instead of the session
-		// itself (acyclic constructor graph).
-		services.AddSingleton<MemberPresenceTable>();
-		services.AddSingleton<SessionState>();
+
+		// Session owns its state (identity/flags/presence, created internally);
+		// consumers depend on the narrow ISessionControl surface, registered as
+		// a factory so it resolves after the session is built (acyclic graph).
 		services.AddSingleton<SessionService>();
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<SessionService>());
+		services.AddSingleton<ISessionControl>(p => p.GetRequiredService<SessionService>());
 
 		// Packet handlers: every [PacketHandler]-marked class in the Runtime
 		// assembly (Session/Handlers/) is DI-registered; the router reads the
@@ -67,18 +66,27 @@ public static class CuoBootstrap
 
 		// Data plane: receive and send are independent mechanisms. The
 		// receiver binds the transport and validates directions; the sender is
-		// one Send primitive. Both depend on SessionIdentity/transport only —
-		// the dependency graph is acyclic, plain constructor injection.
+		// one Send primitive. The dispatcher routes received frames to the
+		// handlers with the per-message context.
 		services.AddSingleton<PacketReceiver>();
 		services.AddSingleton<PacketSender>();
+		services.AddSingleton(p => new HandlerContext(
+			p.GetRequiredService<ISessionControl>(),
+			p.GetRequiredService<IEntitySyncControl>(),
+			p.GetRequiredService<ICharacterDataControl>()));
+		services.AddSingleton<PacketDispatcher>();
+		services.AddSingleton<ICuoService>(p => p.GetRequiredService<PacketDispatcher>());
+
+		// Entity-sync domain: the entity table, the sync decisions and the
+		// 20 Hz state exchange + join announcements. It reads the session's
+		// control surface, so it runs after the session in the Update order.
+		services.AddSingleton<EntitySyncService>();
+		services.AddSingleton<ICuoService>(p => p.GetRequiredService<EntitySyncService>());
+		services.AddSingleton<IEntitySyncControl>(p => p.GetRequiredService<EntitySyncService>());
 		// Character-data domain: the SteamID-keyed save/restore (no pump, not
 		// an ICuoService — it only reacts to reports and handshakes).
 		services.AddSingleton<CharacterDataStore>();
-		// Entity-sync domain: the entity table, the sync decisions and the
-		// 20 Hz state exchange + join announcements. It reads the session's
-		// member presence, so it runs after the session in the Update order.
-		services.AddSingleton<EntitySyncService>();
-		services.AddSingleton<ICuoService>(p => p.GetRequiredService<EntitySyncService>());
+		services.AddSingleton<ICharacterDataControl>(p => p.GetRequiredService<CharacterDataStore>());
 
 		extraRegistrations?.Invoke(services);
 

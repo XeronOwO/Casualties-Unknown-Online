@@ -12,15 +12,15 @@ namespace CasualtiesUnknownOnline.Runtime.Session;
 /// the host keeps the latest per SteamID and hands it back when the same
 /// player reconnects (the save outlives the session — character-data-plan).
 /// Not an ICuoService: it has no pump, it only reacts to reports and
-/// handshakes. Reads role/session-active from <see cref="SessionIdentity"/> and
-/// <see cref="SessionState"/> instead of depending on SessionService itself —
-/// acyclic constructor graph, abstract extraction (user rule).
+/// handshakes. Reads role/session-active through <see cref="ISessionControl"/>
+/// (resolved after the session is built) — acyclic constructor graph,
+/// abstract extraction (user rule).
 /// </summary>
-public sealed class CharacterDataStore(SessionIdentity identity, SessionState state, PacketSender sender,
+public sealed class CharacterDataStore(ISessionControl session, PacketSender sender,
 	ILogger<CharacterDataStore> log) : ICharacterDataControl
 {
-	private readonly SessionIdentity _identity = identity;
-	private readonly SessionState _state = state;
+	private readonly ISessionControl _session = session;
+
 	private readonly PacketSender _sender = sender;
 	private readonly ILogger<CharacterDataStore> _log = log;
 	private readonly Dictionary<ulong, CharacterDataMsg> _savedCharacters = []; // host: last report per SteamID
@@ -32,12 +32,12 @@ public sealed class CharacterDataStore(SessionIdentity identity, SessionState st
 	/// </summary>
 	public void ReportCharacterData(CharacterDataMsg msg)
 	{
-		if (_identity.Role != SessionRole.Guest || !_state.SessionActive)
+		if (_session.Role != SessionRole.Guest || !_session.SessionActive)
 		{
 			return;
 		}
 
-		_sender.Send(_identity.HostSteamId, NetMsg.CharacterData, msg);
+		_sender.Send(_session.HostSteamId, NetMsg.CharacterData, msg);
 	}
 
 	/// <summary>Host side: keep the latest report per SteamID (session-scoped save).</summary>

@@ -8,20 +8,20 @@ namespace CasualtiesUnknownOnline.Runtime.Session;
 /// <summary>
 /// The receive side of the data plane: binds the transport, validates the
 /// message direction for the current role and surfaces direction-valid frames
-/// as <see cref="MessageArrived"/>. The session subscribes and dispatches
-/// through the router (it owns the handler context); receive and send are
-/// independent mechanisms (PacketSender), user architecture rule.
+/// as <see cref="MessageArrived"/>. PacketDispatcher subscribes and routes;
+/// receive and send are independent mechanisms (PacketSender), user
+/// architecture rule. Depends on ISessionControl (role) only.
 /// </summary>
 public sealed class PacketReceiver : IDisposable
 {
 	private readonly SteamTransport _transport;
-	private readonly SessionIdentity _identity;
+	private readonly ISessionControl _session;
 	private readonly ILogger<PacketReceiver> _log;
 
-	public PacketReceiver(SteamTransport transport, SessionIdentity identity, ILogger<PacketReceiver> log)
+	public PacketReceiver(SteamTransport transport, ISessionControl session, ILogger<PacketReceiver> log)
 	{
 		_transport = transport;
-		_identity = identity;
+		_session = session;
 		_log = log;
 		transport.MessageReceived += OnTransportMessage;
 	}
@@ -40,7 +40,7 @@ public sealed class PacketReceiver : IDisposable
 		if (!IsValidDirection(msgId))
 		{
 			_log.LogWarning("Dropping {Msg} from {Sender}: illegal direction for role {Role}.",
-				msgId, sender, _identity.Role);
+				msgId, sender, _session.Role);
 			return;
 		}
 
@@ -54,9 +54,9 @@ public sealed class PacketReceiver : IDisposable
 	/// </summary>
 	private bool IsValidDirection(NetMsg msgId) => msgId switch
 	{
-		NetMsg.Handshake or NetMsg.PlayerStateReport => _identity.Role == SessionRole.Host,
+		NetMsg.Handshake or NetMsg.PlayerStateReport => _session.Role == SessionRole.Host,
 		NetMsg.HandshakeAck or NetMsg.WorldStartParams or NetMsg.PlayerJoin
-			or NetMsg.PlayerLeave or NetMsg.PlayerState => _identity.Role == SessionRole.Guest,
+			or NetMsg.PlayerLeave or NetMsg.PlayerState => _session.Role == SessionRole.Guest,
 		// Ping/Pong/SceneState/BlockDamaged/CharacterData: bidirectional —
 		// report up (guest → host) and broadcast down (host → guest)
 		// share one message id.

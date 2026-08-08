@@ -38,7 +38,7 @@ internal static class HarmonyTraverse
 
 	public static bool IsGenerating()
 	{
-		if (WorldGeneration.world is null)
+		if (WorldGeneration.world == null) // Unity object — == (is null misses destroyed)
 		{
 			return false;
 		}

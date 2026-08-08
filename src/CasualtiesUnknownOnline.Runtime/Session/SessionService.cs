@@ -468,6 +468,10 @@ public sealed class SessionService : ICuoService
 		SessionActive = true;
 		_log.LogInformation("Handshake complete with host {Host}.", sender);
 		SessionActivated?.Invoke();
+		// The ack carries the host's scene state — surface it like a regular
+		// scene change so a reconnecting guest follows the host into a world
+		// that is already running (Game Adapter auto-starts the run).
+		RemoteSceneChanged?.Invoke(hostState == SceneStateType.InWorld);
 	}
 
 	// ---- Scene state ----

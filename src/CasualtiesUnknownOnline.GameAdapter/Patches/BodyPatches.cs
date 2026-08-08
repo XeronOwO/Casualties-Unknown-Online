@@ -20,7 +20,8 @@ internal static class BodyPatches
 	internal static class BodyFixedUpdatePatch
 	{
 		// GetComponentInParent: the driver lives on the Body GameObject.
-		private static bool Prefix(Body __instance) => __instance.GetComponentInParent<RemoteBodyDriver>() is null;
+		// == null: Unity object (a missing component is managed-null, same check).
+		private static bool Prefix(Body __instance) => __instance.GetComponentInParent<RemoteBodyDriver>() == null;
 	}
 
 	[HarmonyPatch(typeof(Body), "Update")]
@@ -32,7 +33,7 @@ internal static class BodyPatches
 
 		private static bool Prefix(Body __instance)
 		{
-			if (__instance.GetComponentInParent<RemoteBodyDriver>() is null)
+			if (__instance.GetComponentInParent<RemoteBodyDriver>() == null) // Unity object — ==
 			{
 				return true; // local player: original behavior
 			}
@@ -95,7 +96,7 @@ internal static class BodyPatches
 			var origin = (Vector2)body.transform.position + body.col.offset;
 			body.grounded = Physics2D.BoxCast(
 				origin, probe, 0f, Vector2.down, distance,
-				LayerMask.GetMask("Ground")).collider is not null;
+				LayerMask.GetMask("Ground")).collider != null; // Unity object — ==
 		}
 
 		/// <summary>Crouch pose easing identical to the local player's
@@ -152,7 +153,8 @@ internal static class BodyPatches
 		// params from those numbers and consumes Random (Limb.cs:535) — none of
 		// it applies to a render clone (its vitals are not synced). Skip.
 		// GetComponentInParent: the driver lives on the Body GameObject.
-		private static bool Prefix(Limb __instance) => __instance.GetComponentInParent<RemoteBodyDriver>() is null;
+		// == null: Unity object (a missing component is managed-null, same check).
+		private static bool Prefix(Limb __instance) => __instance.GetComponentInParent<RemoteBodyDriver>() == null;
 	}
 
 	[HarmonyPatch(typeof(Body), "Start")]
@@ -178,7 +180,7 @@ internal static class BodyPatches
 
 				var self = __instance.transform.parent?.GetComponentsInChildren<Collider2D>();
 				var otherColliders = other.transform.parent?.GetComponentsInChildren<Collider2D>();
-				if (self is null || otherColliders is null)
+				if (self is null || otherColliders is null) // arrays — reference checks are fine
 				{
 					continue;
 				}

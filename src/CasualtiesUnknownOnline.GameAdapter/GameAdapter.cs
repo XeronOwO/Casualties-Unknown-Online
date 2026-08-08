@@ -135,7 +135,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 		// Publish local state even before entity sync activates — the host's
 		// PlayerJoin carries the local position, which was (0,0) before sync
 		// because publishing only ran after activation.
-		if (_localBody is not null)
+		if (_localBody != null) // Unity object — == (is null misses scene-reload-destroyed)
 		{
 			PublishBodyState(_localBody);
 			ReportCharacterDataIfDue();
@@ -171,19 +171,24 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 		}
 
 		_nextCloneLogMs = nowMs + 1000;
-		var pos = _remoteCloneBody?.transform.position ?? Vector3.zero;
+		// == null on the Unity clone: a scene reload destroys it and
+		// reference-comparison (?.) would throw on access.
+		var pos = _remoteCloneBody != null
+			? _remoteCloneBody.transform.position
+			: Vector3.zero;
 		var reported = _session.RemotePlayer is not null
 			? new Vector2(_session.RemotePlayer.Position.X, _session.RemotePlayer.Position.Y)
 			: Vector2.zero;
 		_log.LogDebug("Clone: at ({PX:F1}, {PY:F1}), reported ({RX:F1}, {RY:F1}), active {Active}",
-			pos.x, pos.y, reported.x, reported.y, _remoteCloneBody is not null && _remoteCloneBody.gameObject.activeInHierarchy);
+			pos.x, pos.y, reported.x, reported.y, _remoteCloneBody != null && _remoteCloneBody.gameObject.activeInHierarchy);
 	}
 
 	void ICuoService.Stop() => Uninstall();
 
 	void ICuoService.Dispose()
 	{
-		if (_remoteCloneBody is not null)
+		// == null on the Unity clone (is null would miss a scene-reload-destroyed object).
+		if (_remoteCloneBody != null)
 		{
 			UnityEngine.Object.Destroy(_remoteCloneBody.transform.parent.gameObject);
 		}
@@ -218,7 +223,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 	/// </summary>
 	private void OnSessionActivated()
 	{
-		if (!_inWorld || _localBody is null)
+		if (!_inWorld || _localBody == null) // Unity object — ==
 		{
 			return;
 		}
@@ -233,9 +238,11 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 		// Host: spawn the guest's clone at the guest's reported spawn point.
 		// Guest: the host's clone renders at the host position from PlayerJoin.
 		// Both are frozen render proxies fed by the peer's state reports.
-		// The clone survives menu round-trips (RemoteSceneChanged pauses it) —
+		// The clone survives menu round-trips (RemoteSceneChanged hides it) —
 		// a re-join reuses it; position resumes via the state stream's Lerp.
-		if (_remoteCloneBody is null)
+		// NOTE: == null on Unity objects — a scene reload destroys the clone
+		// and reference-comparison (is null) would miss it.
+		if (_remoteCloneBody == null)
 		{
 			var anchor = _session.Role == SessionRole.Host
 				? new Vector2(remote.ReportedSpawnPos.X, remote.ReportedSpawnPos.Y)
@@ -254,14 +261,55 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 	private void OnRemoteSceneChanged(bool inWorld)
 	{
 		_remoteInWorld = inWorld;
+
+		if (!inWorld)
+		{
+			// Remote left the world: destroy the render clone — it carries no
+			// state (character data lives in the host's save dict; the entity
+			// buffer lives in SessionService), and a rejoin rebuilds it via
+			// RemoteJoined. Menu round-trips are rare, so the rebuild cost is
+			// irrelevant. NOTE: == null on Unity objects — a scene reload
+			// destroys the clone and reference-comparison (is null / ?.) would
+			// miss it; write the explicit check so the formatter keeps it
+			// (a bare call would be simplified back to ?.).
+			if (_remoteCloneBody != null)
+			{
+				UnityEngine.Object.Destroy(_remoteCloneBody.transform.parent.gameObject);
+				_remoteCloneBody = null;
+			}
+
+			// Host leaving the world ends the world itself (host authority):
+			// a guest must not keep playing inside a world whose owner is
+			// gone — pull it back to the main menu. Only when we are actually
+			// in the world; after the load the normal UpdateSceneState flow
+			// re-reports InMenu to the host.
+			if (_session.Role == SessionRole.Guest && _inWorld && PlayerCamera.main != null)
+			{
+				_log.LogInformation("Host left the world — returning to main menu.");
+				PlayerCamera.main.ToMainMenu();
+			}
+		}
+		else if (_session.Role == SessionRole.Guest && !_inWorld
+			&& PreRunScript.instance != null)
+		{
+			// Host entering the world: the guest follows automatically (the
+			// world belongs to the host — a guest sitting in the menu joins
+			// the run). StartRun is the game's own entry; guests without the
+			// basic course get the tutorial warning instead (its flow). The
+			// host's clone is rebuilt by RemoteJoined after the join flow.
+			_log.LogInformation("Host entered the world — starting a run to follow.");
+			PreRunScript.instance.StartRun();
+		}
+
 		_log.LogInformation(inWorld
-			? "Remote entered the world — clone resumes."
-			: "Remote not in world (menu or disconnected) — clone paused.");
+			? "Remote entered the world — clone rebuilt on rejoin."
+			: "Remote not in world (menu or disconnected) — clone destroyed.");
 	}
 
 	private void OnSessionEnded()
 	{
-		if (_remoteCloneBody is not null)
+		// == null on the Unity clone (is null would miss a scene-reload-destroyed object).
+		if (_remoteCloneBody != null)
 		{
 			UnityEngine.Object.Destroy(_remoteCloneBody.transform.parent.gameObject);
 			_remoteCloneBody = null;
@@ -289,7 +337,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 	/// <summary>The peer damaged a block — apply it locally (remote verify/sync).</summary>
 	private void OnRemoteBlockDamaged(NetVector2 pos, float dmg)
 	{
-		if (WorldGeneration.world is null)
+		if (WorldGeneration.world == null) // Unity object — ==
 		{
 			return;
 		}
@@ -334,6 +382,16 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 			return;
 		}
 
+		// Apply only once world generation finished: the game hands out the
+		// starting supplies inside generation (WorldPlacePlayer), and the
+		// restore wipes the slots first — applying during generation would
+		// race that handout (observed: the default lantern ending up on the
+		// ground instead of in the restored inventory).
+		if (HarmonyTraverse.IsGenerating())
+		{
+			return;
+		}
+
 		ApplyCharacterData(_localBody!, _pendingRestore);
 		_pendingRestore = null;
 	}
@@ -355,13 +413,66 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 			Health = new CharacterHealthMsg
 			{
 				BloodVolume = body.bloodVolume,
+				BloodOxygen = body.bloodOxygen,
+				HeartRate = body.heartRate,
+				RespiratoryRate = body.respiratoryRate,
+				BloodPressure = body.bloodPressure,
+				BloodVesselSize = body.bloodVesselSize,
+				FibrillationProgress = body.fibrillationProgress,
+				FibrillationForced = body.fibrillationForced,
+				BloodViscosity = body.bloodViscosity,
+				Adrenaline = body.adrenaline,
+				CurAdrenaline = body.curAdrenaline,
 				Hunger = body.hunger,
 				Thirst = body.thirst,
+				Stamina = body.stamina,
+				Energy = body.energy,
+				Happiness = body.happiness,
+				WeightOffset = body.weightOffset,
 				BrainHealth = body.brainHealth,
 				Consciousness = body.consciousness,
-				Temperature = body.temperature,
 				Alive = body.alive,
 				Conscious = body.conscious,
+				Shock = body.shock,
+				SicknessAmount = body.sicknessAmount,
+				DesensitizedMult = body.desensitizedMult,
+				CorpsesSeen = body.corpsesSeen,
+				SepticShock = body.septicShock,
+				Disfigured = body.disfigured,
+				EyeGone = body.eyeGone,
+				BothEyesGone = body.bothEyesGone,
+				RadiationSickness = body.radiationSickness,
+				Caffeinated = body.caffeinated,
+				HearingLoss = body.hearingLoss,
+				InternalBleeding = body.internalBleeding,
+				Hemothorax = body.hemothorax,
+				PainShock = body.painShock,
+				TraumaAmount = body.traumaAmount,
+				Wetness = body.wetness,
+				BadSleepAmount = body.badSleepAmount,
+				GoodSleepTime = body.goodSleepTime,
+				SnowAmount = body.snowAmount,
+				Immunity = body.immunity,
+				AntibioticImmunityTime = body.antibioticImmunityTime,
+				TriedRollingLastStand = body.triedRollingLastStand,
+				SuccesfullyRolledLastStand = body.succesfullyRolledLastStand,
+				LastStandTime = body.lastStandTime,
+				Dirtyness = body.dirtyness,
+				BrainGrowSickness = body.brainGrowSickness,
+				UsedNeuralBooster = body.usedNeuralBooster,
+				ClawHealth = body.clawHealth,
+				ClawRegrowTime = body.clawRegrowTime,
+				HasPulmonaryEmbolism = body.hasPulmonaryEmbolism,
+				StrokeAmount = body.strokeAmount,
+				BloodPressureChangeFromMedicine = body.bloodPressureChangeFromMedicine,
+				VenomTotal = body.venomTotal,
+				VenomCurrent = body.venomCurrent,
+				MaxSpeed = body.maxSpeed,
+				JumpSpeed = body.jumpSpeed,
+				TemporarySlowdown = body.temporarySlowdown,
+				MoveForce = body.moveForce,
+				SlowdownAmount = body.slowdownAmount,
+				Temperature = body.temperature,
 			},
 			HandSlot = body.handSlot,
 		};
@@ -381,13 +492,22 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 				InfectionAmount = limb.infectionAmount,
 				BleedAmount = limb.bleedAmount,
 				DisinfectionTime = limb.disinfectionTime,
+				Pain = limb.pain,
+				DislocationTimer = limb.dislocationTimer,
+				BoneHealTimer = limb.boneHealTimer,
+				BlockedBleeding = limb.blockedBleeding,
+				Shrapnel = limb.shrapnel,
+				FurBloodAmount = limb.furBloodAmount,
+				BandageSlowAmount = limb.bandageSlowAmount,
+				SkinHealAmount = limb.skinHealAmount,
+				Dismembered = limb.dismembered,
 			});
 		}
 
 		for (var slot = 0; slot < body.slots.Length; slot++)
 		{
 			var item = body.GetItem(slot);
-			if (item is null)
+			if (item == null) // Unity object — ==
 			{
 				continue;
 			}
@@ -435,12 +555,65 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 		if (data.Health is { } health)
 		{
 			body.bloodVolume = health.BloodVolume;
+			body.bloodOxygen = health.BloodOxygen;
+			body.heartRate = health.HeartRate;
+			body.respiratoryRate = health.RespiratoryRate;
+			body.bloodPressure = health.BloodPressure;
+			body.bloodVesselSize = health.BloodVesselSize;
+			body.fibrillationProgress = health.FibrillationProgress;
+			body.fibrillationForced = health.FibrillationForced;
+			body.bloodViscosity = health.BloodViscosity;
+			body.adrenaline = health.Adrenaline;
+			body.curAdrenaline = health.CurAdrenaline;
 			body.hunger = health.Hunger;
 			body.thirst = health.Thirst;
+			body.stamina = health.Stamina;
+			body.energy = health.Energy;
+			body.happiness = health.Happiness;
+			body.weightOffset = health.WeightOffset;
 			body.brainHealth = health.BrainHealth;
 			body.consciousness = health.Consciousness;
-			body.temperature = health.Temperature;
 			// alive/conscious are derived properties (Body.cs:203/213) — no direct set.
+			body.shock = health.Shock;
+			body.sicknessAmount = health.SicknessAmount;
+			body.desensitizedMult = health.DesensitizedMult;
+			body.corpsesSeen = health.CorpsesSeen;
+			body.septicShock = health.SepticShock;
+			body.disfigured = health.Disfigured;
+			body.eyeGone = health.EyeGone;
+			body.bothEyesGone = health.BothEyesGone;
+			body.radiationSickness = health.RadiationSickness;
+			body.caffeinated = health.Caffeinated;
+			body.hearingLoss = health.HearingLoss;
+			body.internalBleeding = health.InternalBleeding;
+			body.hemothorax = health.Hemothorax;
+			body.painShock = health.PainShock;
+			body.traumaAmount = health.TraumaAmount;
+			body.wetness = health.Wetness;
+			body.badSleepAmount = health.BadSleepAmount;
+			body.goodSleepTime = health.GoodSleepTime;
+			body.snowAmount = health.SnowAmount;
+			body.immunity = health.Immunity;
+			body.antibioticImmunityTime = health.AntibioticImmunityTime;
+			body.triedRollingLastStand = health.TriedRollingLastStand;
+			body.succesfullyRolledLastStand = health.SuccesfullyRolledLastStand;
+			body.lastStandTime = health.LastStandTime;
+			body.dirtyness = health.Dirtyness;
+			body.brainGrowSickness = health.BrainGrowSickness;
+			body.usedNeuralBooster = health.UsedNeuralBooster;
+			body.clawHealth = health.ClawHealth;
+			body.clawRegrowTime = health.ClawRegrowTime;
+			body.hasPulmonaryEmbolism = health.HasPulmonaryEmbolism;
+			body.strokeAmount = health.StrokeAmount;
+			body.bloodPressureChangeFromMedicine = health.BloodPressureChangeFromMedicine;
+			body.venomTotal = health.VenomTotal;
+			body.venomCurrent = health.VenomCurrent;
+			body.maxSpeed = health.MaxSpeed;
+			body.jumpSpeed = health.JumpSpeed;
+			body.temporarySlowdown = health.TemporarySlowdown;
+			body.moveForce = health.MoveForce;
+			body.slowdownAmount = health.SlowdownAmount;
+			body.temperature = health.Temperature;
 		}
 
 		foreach (var limbData in data.Limbs)
@@ -460,6 +633,15 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 			limb.infectionAmount = limbData.InfectionAmount;
 			limb.bleedAmount = limbData.BleedAmount;
 			limb.disinfectionTime = limbData.DisinfectionTime;
+			limb.pain = limbData.Pain;
+			limb.dislocationTimer = limbData.DislocationTimer;
+			limb.boneHealTimer = limbData.BoneHealTimer;
+			limb.blockedBleeding = limbData.BlockedBleeding;
+			limb.shrapnel = limbData.Shrapnel;
+			limb.furBloodAmount = limbData.FurBloodAmount;
+			limb.bandageSlowAmount = limbData.BandageSlowAmount;
+			limb.skinHealAmount = limbData.SkinHealAmount;
+			limb.dismembered = limbData.Dismembered;
 		}
 
 		foreach (var itemData in data.Items)
@@ -474,7 +656,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 			var go = UnityEngine.Object.Instantiate((GameObject)Resources.Load(itemData.ItemId),
 				body.transform.position, Quaternion.identity);
 			var item = go.GetComponent<Item>();
-			if (item is null)
+			if (item == null) // Unity object — ==
 			{
 				UnityEngine.Object.Destroy(go);
 				_log.LogWarning("Restore: {ItemId} has no Item component — skipped.", itemData.ItemId);
@@ -495,11 +677,12 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 
 	private void UpdateSceneState()
 	{
-		var inWorld = PlayerCamera.main is not null && WorldGeneration.world is not null
+		// == null on Unity singletons (is null misses scene-reload-destroyed objects).
+		var inWorld = PlayerCamera.main != null && WorldGeneration.world != null
 			&& !HarmonyTraverse.IsGenerating();
 		if (inWorld == _inWorld)
 		{
-			if (inWorld && _localBody is null)
+			if (inWorld && _localBody == null) // Unity object — ==
 			{
 				_localBody = PlayerCamera.main!.body;
 			}
@@ -510,7 +693,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 		_inWorld = inWorld;
 		_localBody = inWorld ? PlayerCamera.main!.body : null;
 		var sceneName = inWorld ? UnityEngine.SceneManagement.SceneManager.GetActiveScene().name : "PreGen";
-		var pos = inWorld && _localBody is not null
+		var pos = inWorld && _localBody != null // Unity object — ==
 			? new NetVector2(_localBody.transform.position.x, _localBody.transform.position.y)
 			: (NetVector2?)null;
 		_session.ReportSceneState(inWorld ? SceneStateType.InWorld : SceneStateType.InMenu, sceneName, pos);
@@ -534,7 +717,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 			new NetVector2(look.x, look.y),
 			new NetVector2(vel.x, vel.y),
 			body.isRight, body.standing, body.alive, body.conscious, body.crouching,
-			sitting, body.sleeping, body.currentClimbable is not null);
+			sitting, body.sleeping, body.currentClimbable != null); // Unity object — ==
 	}
 
 	/// <summary>Gate from the StartRun patch — returns false to block the run start.</summary>

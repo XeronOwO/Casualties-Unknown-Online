@@ -269,6 +269,13 @@ public sealed class SessionService : ICuoService, ISessionControl
 	{
 		_identity.Role = SessionRole.Host;
 		_identity.HostSteamId = _steam.LocalSteamId;
+		// The host is authoritative from the moment the lobby exists — even
+		// before any guest handshakes. SessionActive gates world-gen isolation
+		// (IsWorldGenIsolated) and the world/entity domains: without it a host
+		// generating alone would run UNisolated generation (public-stream
+		// pollution), and a guest joining later would generate from the captured
+		// state and get a different world.
+		SessionActive = true;
 		_log.LogInformation("Session role: Host (lobby {LobbyId})", lobbyId);
 	}
 

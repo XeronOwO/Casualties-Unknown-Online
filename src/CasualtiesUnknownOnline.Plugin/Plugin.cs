@@ -72,6 +72,11 @@ public class Plugin : BaseUnityPlugin
 				legacyLogPath: Path.Combine(Paths.BepInExRootPath, "CUO.log"),
 				extraRegistrations: services =>
 				{
+					// Character-data mapping (Mapster). Mapster 6.0.0 core ships
+					// IMapper/Mapper — registered directly, no DI package needed
+					// (Mapster.DependencyInjection 10.x requires net6+).
+					services.AddSingleton<MapsterMapper.IMapper>(
+						new MapsterMapper.Mapper(Mapster.TypeAdapterConfig.GlobalSettings));
 					services.AddSingleton<GameAdapterImpl>();
 					services.AddSingleton<IGameAdapter>(p => p.GetRequiredService<GameAdapterImpl>());
 					services.AddSingleton<ICuoService>(p => p.GetRequiredService<GameAdapterImpl>());

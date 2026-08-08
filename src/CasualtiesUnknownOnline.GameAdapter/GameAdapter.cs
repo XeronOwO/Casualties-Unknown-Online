@@ -4,6 +4,7 @@ using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using HarmonyLib;
+using MapsterMapper;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
 using IGameAdapter = CasualtiesUnknownOnline.Runtime.GameAdapter.IGameAdapter;
@@ -25,6 +26,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 
 	private readonly SessionService _session;
 	private readonly ILogger<GameAdapter> _log;
+	private readonly IMapper _mapper;
 	private Harmony? _harmony;
 
 	private Body? _localBody;
@@ -36,10 +38,11 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 	private long _nextCharacterReportMs;
 	private CharacterDataMsg? _pendingRestore; // guest side: host-sent restore, applied once the body exists
 
-	public GameAdapter(SessionService session, ILogger<GameAdapter> log)
+	public GameAdapter(SessionService session, ILogger<GameAdapter> log, IMapper mapper)
 	{
 		_session = session;
 		_log = log;
+		_mapper = mapper;
 		Instance = this;
 	}
 
@@ -114,6 +117,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 
 	void ICuoService.Initialize()
 	{
+		CharacterDataMapper.Configure();
 		BindToSession();
 		if (ProbeGame())
 		{
@@ -396,114 +400,24 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 		_pendingRestore = null;
 	}
 
-	private static CharacterDataMsg CaptureCharacterData(Body body)
+	private CharacterDataMsg CaptureCharacterData(Body body)
 	{
-		var skills = body.skills;
 		var msg = new CharacterDataMsg
 		{
-			Skills = new CharacterSkillsMsg
-			{
-				Strength = skills.STR,
-				Resistance = skills.RES,
-				Intelligence = skills.INT,
-				ExpStrength = skills.expSTR,
-				ExpResistance = skills.expRES,
-				ExpIntelligence = skills.expINT,
-			},
-			Health = new CharacterHealthMsg
-			{
-				BloodVolume = body.bloodVolume,
-				BloodOxygen = body.bloodOxygen,
-				HeartRate = body.heartRate,
-				RespiratoryRate = body.respiratoryRate,
-				BloodPressure = body.bloodPressure,
-				BloodVesselSize = body.bloodVesselSize,
-				FibrillationProgress = body.fibrillationProgress,
-				FibrillationForced = body.fibrillationForced,
-				BloodViscosity = body.bloodViscosity,
-				Adrenaline = body.adrenaline,
-				CurAdrenaline = body.curAdrenaline,
-				Hunger = body.hunger,
-				Thirst = body.thirst,
-				Stamina = body.stamina,
-				Energy = body.energy,
-				Happiness = body.happiness,
-				WeightOffset = body.weightOffset,
-				BrainHealth = body.brainHealth,
-				Consciousness = body.consciousness,
-				Alive = body.alive,
-				Conscious = body.conscious,
-				Shock = body.shock,
-				SicknessAmount = body.sicknessAmount,
-				DesensitizedMult = body.desensitizedMult,
-				CorpsesSeen = body.corpsesSeen,
-				SepticShock = body.septicShock,
-				Disfigured = body.disfigured,
-				EyeGone = body.eyeGone,
-				BothEyesGone = body.bothEyesGone,
-				RadiationSickness = body.radiationSickness,
-				Caffeinated = body.caffeinated,
-				HearingLoss = body.hearingLoss,
-				InternalBleeding = body.internalBleeding,
-				Hemothorax = body.hemothorax,
-				PainShock = body.painShock,
-				TraumaAmount = body.traumaAmount,
-				Wetness = body.wetness,
-				BadSleepAmount = body.badSleepAmount,
-				GoodSleepTime = body.goodSleepTime,
-				SnowAmount = body.snowAmount,
-				Immunity = body.immunity,
-				AntibioticImmunityTime = body.antibioticImmunityTime,
-				TriedRollingLastStand = body.triedRollingLastStand,
-				SuccesfullyRolledLastStand = body.succesfullyRolledLastStand,
-				LastStandTime = body.lastStandTime,
-				Dirtyness = body.dirtyness,
-				BrainGrowSickness = body.brainGrowSickness,
-				UsedNeuralBooster = body.usedNeuralBooster,
-				ClawHealth = body.clawHealth,
-				ClawRegrowTime = body.clawRegrowTime,
-				HasPulmonaryEmbolism = body.hasPulmonaryEmbolism,
-				StrokeAmount = body.strokeAmount,
-				BloodPressureChangeFromMedicine = body.bloodPressureChangeFromMedicine,
-				VenomTotal = body.venomTotal,
-				VenomCurrent = body.venomCurrent,
-				MaxSpeed = body.maxSpeed,
-				JumpSpeed = body.jumpSpeed,
-				TemporarySlowdown = body.temporarySlowdown,
-				MoveForce = body.moveForce,
-				SlowdownAmount = body.slowdownAmount,
-				Temperature = body.temperature,
-			},
+			Skills = _mapper.Map<CharacterSkillsMsg>(body.skills),
+			Health = _mapper.Map<CharacterHealthMsg>(body),
 			HandSlot = body.handSlot,
 		};
 
+		// Limb has no Index field — Mapster maps the rest, the loop assigns it.
 		for (var i = 0; i < body.limbs.Length; i++)
 		{
-			var limb = body.limbs[i];
-			msg.Limbs.Add(new CharacterLimbMsg
-			{
-				Index = i,
-				SkinHealth = limb.skinHealth,
-				MuscleHealth = limb.muscleHealth,
-				Broken = limb.broken,
-				Dislocated = limb.dislocated,
-				Splinted = limb.splinted,
-				Infected = limb.infected,
-				InfectionAmount = limb.infectionAmount,
-				BleedAmount = limb.bleedAmount,
-				DisinfectionTime = limb.disinfectionTime,
-				Pain = limb.pain,
-				DislocationTimer = limb.dislocationTimer,
-				BoneHealTimer = limb.boneHealTimer,
-				BlockedBleeding = limb.blockedBleeding,
-				Shrapnel = limb.shrapnel,
-				FurBloodAmount = limb.furBloodAmount,
-				BandageSlowAmount = limb.bandageSlowAmount,
-				SkinHealAmount = limb.skinHealAmount,
-				Dismembered = limb.dismembered,
-			});
+			var limbMsg = _mapper.Map<CharacterLimbMsg>(body.limbs[i]);
+			limbMsg.Index = i;
+			msg.Limbs.Add(limbMsg);
 		}
 
+		// Items: id ↔ ItemId is a rename, not a case variant — keep it manual.
 		for (var slot = 0; slot < body.slots.Length; slot++)
 		{
 			var item = body.GetItem(slot);
@@ -543,77 +457,16 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 
 		if (data.Skills is { } skills)
 		{
-			body.skills.STR = skills.Strength;
-			body.skills.RES = skills.Resistance;
-			body.skills.INT = skills.Intelligence;
-			body.skills.expSTR = skills.ExpStrength;
-			body.skills.expRES = skills.ExpResistance;
-			body.skills.expINT = skills.ExpIntelligence;
+			_mapper.Map(skills, body.skills);
 			body.skills.UpdateExpBoundaries(); // min/max derive from STR/RES/INT (Skills.cs:61)
 		}
 
 		if (data.Health is { } health)
 		{
-			body.bloodVolume = health.BloodVolume;
-			body.bloodOxygen = health.BloodOxygen;
-			body.heartRate = health.HeartRate;
-			body.respiratoryRate = health.RespiratoryRate;
-			body.bloodPressure = health.BloodPressure;
-			body.bloodVesselSize = health.BloodVesselSize;
-			body.fibrillationProgress = health.FibrillationProgress;
-			body.fibrillationForced = health.FibrillationForced;
-			body.bloodViscosity = health.BloodViscosity;
-			body.adrenaline = health.Adrenaline;
-			body.curAdrenaline = health.CurAdrenaline;
-			body.hunger = health.Hunger;
-			body.thirst = health.Thirst;
-			body.stamina = health.Stamina;
-			body.energy = health.Energy;
-			body.happiness = health.Happiness;
-			body.weightOffset = health.WeightOffset;
-			body.brainHealth = health.BrainHealth;
-			body.consciousness = health.Consciousness;
-			// alive/conscious are derived properties (Body.cs:203/213) — no direct set.
-			body.shock = health.Shock;
-			body.sicknessAmount = health.SicknessAmount;
-			body.desensitizedMult = health.DesensitizedMult;
-			body.corpsesSeen = health.CorpsesSeen;
-			body.septicShock = health.SepticShock;
-			body.disfigured = health.Disfigured;
-			body.eyeGone = health.EyeGone;
-			body.bothEyesGone = health.BothEyesGone;
-			body.radiationSickness = health.RadiationSickness;
-			body.caffeinated = health.Caffeinated;
-			body.hearingLoss = health.HearingLoss;
-			body.internalBleeding = health.InternalBleeding;
-			body.hemothorax = health.Hemothorax;
-			body.painShock = health.PainShock;
-			body.traumaAmount = health.TraumaAmount;
-			body.wetness = health.Wetness;
-			body.badSleepAmount = health.BadSleepAmount;
-			body.goodSleepTime = health.GoodSleepTime;
-			body.snowAmount = health.SnowAmount;
-			body.immunity = health.Immunity;
-			body.antibioticImmunityTime = health.AntibioticImmunityTime;
-			body.triedRollingLastStand = health.TriedRollingLastStand;
-			body.succesfullyRolledLastStand = health.SuccesfullyRolledLastStand;
-			body.lastStandTime = health.LastStandTime;
-			body.dirtyness = health.Dirtyness;
-			body.brainGrowSickness = health.BrainGrowSickness;
-			body.usedNeuralBooster = health.UsedNeuralBooster;
-			body.clawHealth = health.ClawHealth;
-			body.clawRegrowTime = health.ClawRegrowTime;
-			body.hasPulmonaryEmbolism = health.HasPulmonaryEmbolism;
-			body.strokeAmount = health.StrokeAmount;
-			body.bloodPressureChangeFromMedicine = health.BloodPressureChangeFromMedicine;
-			body.venomTotal = health.VenomTotal;
-			body.venomCurrent = health.VenomCurrent;
-			body.maxSpeed = health.MaxSpeed;
-			body.jumpSpeed = health.JumpSpeed;
-			body.temporarySlowdown = health.TemporarySlowdown;
-			body.moveForce = health.MoveForce;
-			body.slowdownAmount = health.SlowdownAmount;
-			body.temperature = health.Temperature;
+			// Target-driven: only writable Body members that exist in the source
+			// are touched — alive/conscious (derived properties, Body.cs:203/213)
+			// are read-only and skipped automatically.
+			_mapper.Map(health, body);
 		}
 
 		foreach (var limbData in data.Limbs)
@@ -623,25 +476,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 				continue;
 			}
 
-			var limb = body.limbs[limbData.Index];
-			limb.skinHealth = limbData.SkinHealth;
-			limb.muscleHealth = limbData.MuscleHealth;
-			limb.broken = limbData.Broken;
-			limb.dislocated = limbData.Dislocated;
-			limb.splinted = limbData.Splinted;
-			limb.infected = limbData.Infected;
-			limb.infectionAmount = limbData.InfectionAmount;
-			limb.bleedAmount = limbData.BleedAmount;
-			limb.disinfectionTime = limbData.DisinfectionTime;
-			limb.pain = limbData.Pain;
-			limb.dislocationTimer = limbData.DislocationTimer;
-			limb.boneHealTimer = limbData.BoneHealTimer;
-			limb.blockedBleeding = limbData.BlockedBleeding;
-			limb.shrapnel = limbData.Shrapnel;
-			limb.furBloodAmount = limbData.FurBloodAmount;
-			limb.bandageSlowAmount = limbData.BandageSlowAmount;
-			limb.skinHealAmount = limbData.SkinHealAmount;
-			limb.dismembered = limbData.Dismembered;
+			_mapper.Map(limbData, body.limbs[limbData.Index]);
 		}
 
 		foreach (var itemData in data.Items)

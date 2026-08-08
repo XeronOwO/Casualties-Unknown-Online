@@ -46,6 +46,12 @@ internal interface IPatchBridge
 	/// <summary>True in a live session — the spawn landing sound is deferred until the start-gate release.</summary>
 	bool IsSessionActive { get; }
 
+	/// <summary>True when this side is the session host (earthquake authority, host-only drops).</summary>
+	bool IsHostMode { get; }
+
+	/// <summary>An earthquake just started in WorldGeneration.Update — the host broadcasts it (timing sync + the next delay; guests re-align their timer).</summary>
+	void OnEarthquakeStarted(float duration, float nextDelay);
+
 	/// <summary>True while the deferred spawn landing sound is being replayed — the Sound.Play patch must not defer it again.</summary>
 	bool IsReplayingLifePodSound { get; }
 

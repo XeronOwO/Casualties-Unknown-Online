@@ -7,11 +7,16 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 /// World-mutation capture on the SetBlock write path (the one post-generation
 /// write entry — mining, remote damage application, earthquakes, placement).
 /// Host: diff against the generated baseline (damage table, late-joiner full
-/// snapshot) + broadcast placements live. Guest: report local placements to
-/// the host (breaking SetBlock(0) is already covered by the BlockDamaged
-/// stream — only non-air writes are reported here). Generation itself is the
+/// snapshot) + broadcast the mutation live (air writes included — the quake
+/// breaks SetBlock(0) with per-side random, so without the relay the terrain
+/// diverges). Guest: report local mutations for arbitration (mining
+/// double-reports via BlockDamaged — idempotent). Generation itself is the
 /// baseline and is excluded via generatingWorld; SetBlockNoUpdate is
 /// generation-only and intentionally not hooked.
+/// QUAKE REGIONS are the UNION of every side's breaks: each side quakes on
+/// the synced timer and breaks its own nearby region; the air-write relay
+/// applies every side's breaks everywhere, and SetBlock(0) is idempotent —
+/// overlapping regions are computed exactly once (user mandate).
 /// </summary>
 [HarmonyPatch(typeof(WorldGeneration), "SetBlock")]
 internal static class WorldGenerationSetBlockPatch

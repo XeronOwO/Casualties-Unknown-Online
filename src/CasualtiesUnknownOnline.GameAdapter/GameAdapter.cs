@@ -1,5 +1,7 @@
 using System;
+using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
+using CasualtiesUnknownOnline.GameAdapter.WorldGen;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
@@ -33,6 +35,8 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	public static bool SkipIntro { get; set; }
 
 	private readonly SessionService _session;
+	private readonly ItemService _items;
+	private readonly EntitySyncService _entities;
 	private readonly ILogger<GameAdapter> _log;
 	private Harmony? _harmony;
 
@@ -51,11 +55,14 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		WorldService world, ItemService items, ILogger<GameAdapter> log, IMapper mapper, ILoggerFactory loggerFactory)
 	{
 		_session = session;
+		_items = items;
+		_entities = entities;
 		_log = log;
 		// Domains (state belongs to its owner; the coordinator forwards, never holds).
 		// Construction order follows the dependencies: itemWorld → positionSync,
 		// run → gate (the gate reads the run's phase machine).
 		ItemStateCodec.BindLog(log);
+		WorldGenRandomIsolation.Log = msg => _log.LogInformation(msg); // generation-stream segment fingerprints (peer log comparison)
 		_characterDataSync = new CharacterDataSync(session, characterData, mapper, loggerFactory.CreateLogger<CharacterDataSync>());
 		_renderer = new RemotePlayerRenderer(session, entities, _characterDataSync, loggerFactory.CreateLogger<RemotePlayerRenderer>());
 		_itemApplication = new ItemApplication(items, loggerFactory.CreateLogger<ItemApplication>());
@@ -84,6 +91,8 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	/// makes the captured Random.state reproducible, and therefore what makes
 	/// mid-session joining work.</summary>
 	bool IPatchBridge.IsWorldGenIsolated => true;
+
+	bool IPatchBridge.IsInGateWindow => _run.IsInGateWindow;
 
 	bool IPatchBridge.IsWaitingForReady => _gate.WaitingForReady;
 
@@ -195,7 +204,22 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 
 	// ---- IPatchBridge: one-line forwards to the owning domain ----
 
-	void IPatchBridge.OnWorldGenerate() => _run.OnWorldGenerate();
+	void IPatchBridge.OnWorldGenerate()
+	{
+		_run.OnWorldGenerate();
+		if (_session.Role == SessionRole.Guest)
+		{
+			_gate.AttachKeepLoading();
+		}
+		else
+		{
+			// A new world/layer is generating — the old layer's world items are
+			// gone with the scene; the authoritative table starts empty again
+			// (regression guard: this call lived inside the old GameAdapter's
+			// OnWorldGenerate and was lost in the domain split).
+			_items.ResetItems();
+		}
+	}
 
 	void IPatchBridge.OnBlockSet(Vector2Int pos, ushort block) => _worldEventSync.OnBlockSet(pos, block);
 
@@ -224,6 +248,62 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	void IPatchBridge.OnEarthquakeStarted(float duration, float nextDelay) =>
 		_worldEventSync.OnEarthquakeStarted(duration, nextDelay);
 
+	void IPatchBridge.OnEarthquakeEnded() =>
+		_log.LogInformation("[Earthquake] quake ended on this side.");
+
+	void IPatchBridge.OnDarkenSkipped() =>
+		_log.LogInformation("[Gate] fade skipped while the gate window holds.");
+
+	void IPatchBridge.OnPickupCheckFailed(string itemId, float distance, bool blocked) =>
+		_log.LogWarning("[PickupCheck] {Item} refused — distance {Distance:F1}, line-of-sight blocked {Blocked}.", itemId, distance, blocked);
+
+	void IPatchBridge.OnDragReleasedToWorld() =>
+		_log.LogWarning("[DragFlow] release fell through to the WORLD path (no UI target hit).");
+
+	void IPatchBridge.OnPickUpResult(string itemId, int slot, string home, Vector2 position) =>
+		_log.LogInformation("[PickUpResult] {Item} → {Home} (slot {Slot}) at ({X:F1},{Y:F1}).", itemId, home, slot, position.x, position.y);
+
+	bool IPatchBridge.ShouldApplyQuakeBreak(Vector2Int blockPos)
+	{
+		var world = WorldGeneration.world;
+		if (world == null || world.earthquakeTime <= 0f) // Unity object — ==; only quake breaks are gated (environment breaks pass)
+		{
+			return true;
+		}
+
+		// Numbering = SteamId order (globally consistent on every side). A
+		// break applies only when it is far (> 60 blocks) from every EARLIER
+		// numbered player — their region already covers it (their own breaks
+		// run, and the last-numbered player's region has no overlap left).
+		// Overlapping players therefore keep the total break rate at solo
+		// level ("two players standing together break faster" is fixed);
+		// separated players each keep the full solo rate.
+		var earlier = _session.Members
+			.Where(m => m.SteamId < _session.LocalSteamId)
+			.ToList();
+		if (earlier.Count == 0)
+		{
+			return true; // no earlier player — this side owns its region
+		}
+
+		foreach (var member in earlier)
+		{
+			var remote = _entities.GetRemotePlayer(member.SteamId);
+			if (remote is null)
+			{
+				continue;
+			}
+
+			var playerBlock = world.WorldToBlockPos(new Vector2(remote.Position.X, remote.Position.Y));
+			if (Vector2Int.Distance(blockPos, playerBlock) < 60)
+			{
+				return false; // covered by an earlier player — skip this break
+			}
+		}
+
+		return true;
+	}
+
 	void IPatchBridge.OnItemInstantiated(Item item) => _itemWorldSync.OnItemInstantiated(item);
 
 	void IPatchBridge.OnItemDestroyed(Item item) => _itemWorldSync.OnItemDestroyed(item);
@@ -232,9 +312,23 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 
 	void IPatchBridge.OnItemPickedUp(Item item) => _itemWorldSync.OnItemPickedUp(item);
 
-	void IPatchBridge.OnItemDropped(Item item) => _itemWorldSync.OnItemDropped(item);
+	void IPatchBridge.OnItemDropped(Item item)
+	{
+		_itemWorldSync.OnItemDropped(item);
+		if (_session.Role == SessionRole.Guest)
+		{
+			_positionSync.MarkLocalDrop(item); // the roll-out stays local — the host's materialization would yank it back to the drop point
+		}
+	}
 
-	void IPatchBridge.OnItemThrown(Item item) => _itemWorldSync.OnItemThrown(item);
+	void IPatchBridge.OnItemThrown(Item item)
+	{
+		_itemWorldSync.OnItemThrown(item);
+		if (_session.Role == SessionRole.Guest)
+		{
+			_positionSync.MarkLocalDrop(item);
+		}
+	}
 
 	void IPatchBridge.OnItemLoadedIntoContainer(Item item, bool wasWorldItem) =>
 		_itemWorldSync.OnItemLoadedIntoContainer(item, wasWorldItem);

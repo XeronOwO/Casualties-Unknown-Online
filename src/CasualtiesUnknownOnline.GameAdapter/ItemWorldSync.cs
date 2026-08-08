@@ -64,12 +64,45 @@ internal sealed class ItemWorldSync(
 		while (t != null)
 		{
 			// == null on Unity objects (a scene-reload-destroyed parent is not managed-null)
-			if (t.GetComponent<InventorySlot>() != null || t.GetComponent<Body>() != null)
+			// Limb: worn items are parented to the limb (WearWearable, Body.cs:1508)
+			// — they are character state, not world items.
+			if (t.GetComponent<InventorySlot>() != null || t.GetComponent<Body>() != null || t.GetComponent<Limb>() != null)
 			{
 				return false;
 			}
 
 			t = t.parent;
+		}
+
+		return true;
+	}
+
+	/// <summary>
+	/// True for a world item that is NOT inside another container — the
+	/// standalone-item collectors (spawn reports, position stream, keyframe)
+	/// must never treat container contents as independent items: a world bag's
+	/// contents travel WITH the bag (Contents travel inside the bag's carried
+	/// state), and a standalone duplicate would materialize on the peer and sit
+	/// stuck in the same spot ("a bag with dog food dropped — two items stuck
+	/// together"). The Container check rides the PARENT chain, starting above
+	/// the item itself — a bag IS a container, its own Container component must
+	/// not exclude it from the position stream, or the host never streams it
+	/// and the peer's copy free-simulates on its own physics ("dropping a bag
+	/// from the mouth — immediately desynced").
+	/// </summary>
+	internal static bool IsStandaloneWorldItem(Item item)
+	{
+		if (!IsWorldItem(item))
+		{
+			return false;
+		}
+
+		for (var t = item.transform.parent; t != null; t = t.parent)
+		{
+			if (t.GetComponent<Container>() != null) // Unity object — ==
+			{
+				return false;
+			}
 		}
 
 		return true;
@@ -92,7 +125,7 @@ internal sealed class ItemWorldSync(
 	/// </summary>
 	internal void OnItemInstantiated(Item item)
 	{
-		if (_application.IsApplyingRemote || HarmonyTraverse.IsGenerating() || !IsWorldItem(item))
+		if (_application.IsApplyingRemote || HarmonyTraverse.IsGenerating() || !IsStandaloneWorldItem(item))
 		{
 			return;
 		}
@@ -117,7 +150,7 @@ internal sealed class ItemWorldSync(
 			new NetVector2(item.transform.position.x, item.transform.position.y),
 			new NetVector2(item.rb.velocity.x, item.rb.velocity.y),
 			item.transform.eulerAngles.z,
-			fresh);
+			fresh, item.rb.angularVelocity);
 	}
 
 	internal void OnItemDestroyed(Item item)
@@ -153,6 +186,25 @@ internal sealed class ItemWorldSync(
 		var idComp = item.GetComponent<ItemInstanceId>();
 		if (idComp != null) // Unity object — ==
 		{
+			// A picked-up CONTAINER carries its contents out of the world: each
+			// content item that had an instance id leaves the world table too
+			// (without this, the entries linger as ghosts — the next keyframe
+			// materializes them again as standalone items, "the bag swallowed
+			// its contents / the dog food came back as a separate item").
+			var container = item.GetComponent<Container>();
+			if (container != null)
+			{
+				for (var i = 0; i < container.transform.childCount; i++)
+				{
+					var child = container.transform.GetChild(i).GetComponent<Item>();
+					var childId = child != null ? child.GetComponent<ItemInstanceId>() : null; // Unity objects — ==
+					if (childId != null && childId.Id != 0)
+					{
+						_items.SendItemPickedUp(childId.Id);
+					}
+				}
+			}
+
 			_items.SendItemPickedUp(idComp.Id);
 		}
 	}
@@ -167,10 +219,16 @@ internal sealed class ItemWorldSync(
 		var itemId = EnsureItemId(item);
 		if (itemId != 0)
 		{
+			// Diagnostic: how many contents rode along (a dropped bag must carry
+			// its contents — "the bag is empty after dropping" class of bugs).
+			var container = item.GetComponent<Container>();
+			_log.LogInformation("[ItemDropped] {Type} (id {ItemId}) at ({X:F1},{Y:F1}) — container contents {Contents}.",
+				item.id, itemId, item.transform.position.x, item.transform.position.y,
+				container != null ? container.transform.childCount : 0); // Unity object — ==
 			_items.SendItemDropped(itemId, ItemStateCodec.CaptureItem(item, -1),
 				new NetVector2(item.transform.position.x, item.transform.position.y),
 				new NetVector2(item.rb.velocity.x, item.rb.velocity.y),
-				0, item.transform.eulerAngles.z);
+				0, item.transform.eulerAngles.z, default, item.rb.angularVelocity);
 		}
 	}
 
@@ -191,7 +249,7 @@ internal sealed class ItemWorldSync(
 			_items.SendItemDropped(itemId, ItemStateCodec.CaptureItem(item, -1),
 				new NetVector2(item.transform.position.x, item.transform.position.y),
 				new NetVector2(item.rb.velocity.x, item.rb.velocity.y),
-				0, item.transform.eulerAngles.z);
+				0, item.transform.eulerAngles.z, default, item.rb.angularVelocity);
 		}
 	}
 
@@ -246,7 +304,7 @@ internal sealed class ItemWorldSync(
 					containerId = EnsureItemId(containerItem);
 					var containerPos = new NetVector2(containerItem.transform.position.x, containerItem.transform.position.y);
 					_items.SendItemSpawned(containerId, ItemStateCodec.CaptureItem(containerItem, -1), containerPos,
-						new NetVector2(0f, 0f), containerItem.transform.eulerAngles.z, false);
+						new NetVector2(0f, 0f), containerItem.transform.eulerAngles.z, false, 0f);
 				}
 				else
 				{
@@ -261,7 +319,7 @@ internal sealed class ItemWorldSync(
 		_items.SendItemDropped(itemId, ItemStateCodec.CaptureItem(item, -1),
 			new NetVector2(item.transform.position.x, item.transform.position.y),
 			new NetVector2(item.rb.velocity.x, item.rb.velocity.y),
-			containerId, item.transform.eulerAngles.z, parentPos);
+			containerId, item.transform.eulerAngles.z, parentPos, item.rb.angularVelocity);
 	}
 
 	internal void OnItemUnloadedFromContainer(Item item)
@@ -277,7 +335,7 @@ internal sealed class ItemWorldSync(
 			_items.SendItemDropped(itemId, ItemStateCodec.CaptureItem(item, -1),
 				new NetVector2(item.transform.position.x, item.transform.position.y),
 				new NetVector2(item.rb.velocity.x, item.rb.velocity.y),
-				0, item.transform.eulerAngles.z);
+				0, item.transform.eulerAngles.z, default, item.rb.angularVelocity);
 		}
 	}
 

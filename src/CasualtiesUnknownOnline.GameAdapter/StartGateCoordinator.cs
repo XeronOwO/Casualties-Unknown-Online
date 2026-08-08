@@ -40,7 +40,32 @@ internal sealed class StartGateCoordinator(
 
 	/// <summary>Guest: the game's loading screen instance kept visible while the start gate holds (Unity object — == null when the scene switched).</summary>
 	private GameObject? _keptLoadingObject;
-	private bool _keepLoadingLogged; // guest: the keep-loading log fired for this hold
+
+	/// <summary>
+	/// Guest, at the generation boundary: arm the loading-screen keeper. The
+	/// game hides its loading screen at generation end (WorldGeneration.cs:3637,
+	/// after the fade-out); the keeper lives on the world object and re-shows it
+	/// in LateUpdate — the same frame the coroutine hid it, before any render
+	/// (an OnDisable-based undo is rejected by Unity: "GameObject is already
+	/// being activated or deactivated").
+	/// </summary>
+	internal void AttachKeepLoading()
+	{
+		if (WorldGeneration.world == null) // Unity object — ==
+		{
+			return;
+		}
+
+		var keeper = WorldGeneration.world.gameObject.GetComponent<LoadingScreenKeeper>();
+		if (keeper == null) // Unity object — ==
+		{
+			keeper = WorldGeneration.world.gameObject.AddComponent<LoadingScreenKeeper>(); // generic AddComponent lives on GameObject in Unity 5.6
+		}
+
+		keeper.ShouldKeep = () => _session.Role == SessionRole.Guest && !_run.IsPlaying;
+		keeper.Loading = () => HarmonyTraverse.ReadLoadingObject();
+		keeper.OnFirstKeep = () => _log.LogInformation("[Gate] keeping the loading screen up while waiting for the host.");
+	}
 
 	internal bool WaitingForReady => _session.Role switch
 	{
@@ -170,7 +195,9 @@ internal sealed class StartGateCoordinator(
 	/// Guest: the world is generated but the host has not released the gate —
 	/// the game hides its loading screen at generation end (WorldGeneration.cs:
 	/// 3637), which would show a frozen black world behind the wait overlay.
-	/// Keep the loading screen up instead, so the wait reads as "still loading".
+	/// Keep the loading screen up instead, so the wait reads as "still loading"
+	/// (the LateUpdate keeper in AttachKeepLoading is the no-black-frame path;
+	/// this per-frame re-show is the belt-and-suspenders backstop).
 	/// </summary>
 	private void KeepLoadingScreenForGate()
 	{
@@ -178,12 +205,6 @@ internal sealed class StartGateCoordinator(
 		if (loading == null) // Unity object — ==
 		{
 			return;
-		}
-
-		if (!_keepLoadingLogged)
-		{
-			_keepLoadingLogged = true;
-			_log.LogInformation("[Gate] keeping the loading screen up while waiting for the host.");
 		}
 
 		_keptLoadingObject = loading; // Unity object — == (a scene switch replaces it; the old one reads destroyed)
@@ -194,10 +215,9 @@ internal sealed class StartGateCoordinator(
 	{
 		var loading = _keptLoadingObject; // Unity object — ==
 		_keptLoadingObject = null;
-		_keepLoadingLogged = false;
 		if (loading != null) // Unity object — ==
 		{
-			loading.SetActive(false);
+			loading.SetActive(false); // the keeper's ShouldKeep reads Playing and stays quiet from now on
 		}
 	}
 }

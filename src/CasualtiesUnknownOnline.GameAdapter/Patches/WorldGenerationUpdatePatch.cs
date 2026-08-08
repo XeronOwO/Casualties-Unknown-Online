@@ -37,5 +37,12 @@ internal static class WorldGenerationUpdatePatch
 		{
 			PatchBridge.Impl?.OnEarthquakeStarted(__instance.earthquakeTime, __instance.earthquakeDelay);
 		}
+
+		// A quake just ended — diagnostic for the "not simultaneous" report
+		// (peer log comparison shows how far the two sides' effect timings are).
+		if (__instance.earthquakeTime <= 0f && _prevEarthquakeTime > 0f)
+		{
+			PatchBridge.Impl?.OnEarthquakeEnded();
+		}
 	}
 }

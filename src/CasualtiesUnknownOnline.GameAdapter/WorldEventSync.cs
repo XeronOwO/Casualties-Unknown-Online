@@ -1,8 +1,11 @@
 using System.Collections.Generic;
+using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol;
+using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.GameAdapter.Items;
+using HarmonyLib;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
 
@@ -32,6 +35,9 @@ internal sealed class WorldEventSync(
 	/// <summary>The generated world snapshot the difference table diffs against (host/solo only).</summary>
 	private ushort[,]? _baseline;
 
+	/// <summary>Host: the keypad codes were generated + broadcast once per world entry.</summary>
+	private bool _keypadCodesSent;
+
 	internal void BindToSession()
 	{
 		_world.BlockDamagedReceived += OnRemoteBlockDamaged;
@@ -40,6 +46,7 @@ internal sealed class WorldEventSync(
 		_world.BlockStateReceived += OnRemoteBlockState;
 		_world.BlockPlacedReceived += OnRemoteBlockPlaced;
 		_world.EarthquakeStartReceived += OnEarthquakeStartReceived;
+		_world.KeypadCodeReceived += OnKeypadCodeReceived;
 	}
 
 	internal void Unbind()
@@ -50,6 +57,7 @@ internal sealed class WorldEventSync(
 		_world.BlockStateReceived -= OnRemoteBlockState;
 		_world.BlockPlacedReceived -= OnRemoteBlockPlaced;
 		_world.EarthquakeStartReceived -= OnEarthquakeStartReceived;
+		_world.KeypadCodeReceived -= OnKeypadCodeReceived;
 	}
 
 	private bool IsHostMode => _session.Role == SessionRole.Host && _session.SessionActive;
@@ -78,13 +86,14 @@ internal sealed class WorldEventSync(
 	}
 
 	/// <summary>
-	/// The peer damaged a block — apply it locally (remote verify/sync). The
-	/// damage comes with ignoreLoot=true: DamageBlock rolls the block's drops
-	/// itself (WorldGeneration.cs:751) on the LOCAL Random stream, and the
-	/// damage is applied on BOTH sides (this stream) — the ATTACKER's side
-	/// already rolled locally (local compute) and reported the items, so a
-	/// remote application must not roll a second, independent drop. The
-	/// attacker's own call is a local DamageBlock with ignoreLoot=false.
+	/// The peer damaged a block — apply it locally (remote verify/sync). Drops
+	/// are host-authoritative: the HOST's application rolls them (ignoreLoot=
+	/// false here on the host — its own Random stream decides what falls, and
+	/// the items broadcast through the item domain); the guest's application
+	/// never rolls (ignoreLoot=true — its local attacks are also force-no-roll
+	/// by WorldGenerationDamageBlockLootPatch). Rolling only on the host keeps
+	/// the dropped items' spawn state (what/where/velocity) identical on both
+	/// sides — independent rolls would draw from each side's own Random stream.
 	/// </summary>
 	private void OnRemoteBlockDamaged(NetVector2 pos, float dmg)
 	{
@@ -97,7 +106,8 @@ internal sealed class WorldEventSync(
 		try
 		{
 			WorldGeneration.world.DamageBlock(
-				WorldGeneration.world.WorldToBlockPos(new Vector2(pos.X, pos.Y)), dmg, true, false, true);
+				WorldGeneration.world.WorldToBlockPos(new Vector2(pos.X, pos.Y)), dmg, true, false,
+				_session.Role != SessionRole.Host);
 		}
 		finally
 		{
@@ -361,6 +371,92 @@ internal sealed class WorldEventSync(
 		_world.ResetDamagedBlocks();
 		_log.LogInformation("Captured world baseline ({Width}x{Height}) — the damage table now diffs against it.",
 			_baseline.GetLength(0), _baseline.GetLength(1));
+
+		if (IsHostMode && !_keypadCodesSent)
+		{
+			_keypadCodesSent = true;
+			SendKeypadCodesOnce();
+		}
+	}
+
+	/// <summary>
+	/// Host only: generate every keypad's code once (the game lazy-generates on
+	/// first use per side, Openable.cs:19 — every side would get its own code)
+	/// and broadcast them position-keyed. Runs at world entry, after the
+	/// generation completed (the Openables exist by then).
+	/// </summary>
+	private void SendKeypadCodesOnce()
+	{
+		var codes = new List<KeypadEntryMsg>();
+		foreach (var openable in UnityEngine.Object.FindObjectsOfType<Openable>())
+		{
+			if (!openable.isKeypad)
+			{
+				continue;
+			}
+
+			var codeField = Traverse.Create(openable).Field("code");
+			var existing = codeField.GetValue<string>();
+			if (string.IsNullOrEmpty(existing))
+			{
+				existing = KeypadMinigame.GenerateCode(); // host authority — its Random stream decides
+				codeField.SetValue(existing);
+			}
+
+			var pos = openable.transform.position;
+			codes.Add(new KeypadEntryMsg
+			{
+				Position = new NetVector2(pos.x, pos.y).ToNetVector2Msg(),
+				Code = existing,
+			});
+		}
+
+		if (codes.Count > 0)
+		{
+			_world.SendKeypadCodes(codes);
+		}
+
+		_log.LogInformation("[Keypad] generated {Count} keypad code(s) — broadcasting.", codes.Count);
+	}
+
+	/// <summary>
+	/// Guest side: the host's keypad codes arrived — write them onto the local
+	/// Openables (position-keyed: deterministic world entities sit at the same
+	/// place on both sides). A code already set (a local first use raced the
+	/// broadcast) is left alone.
+	/// </summary>
+	private void OnKeypadCodeReceived(IReadOnlyList<KeypadEntryMsg> codes)
+	{
+		if (codes.Count == 0)
+		{
+			return;
+		}
+
+		var applied = 0;
+		foreach (var openable in UnityEngine.Object.FindObjectsOfType<Openable>())
+		{
+			if (!openable.isKeypad)
+			{
+				continue;
+			}
+
+			var pos = openable.transform.position;
+			var match = codes.FirstOrDefault(c =>
+				Vector2.Distance(new Vector2(c.Position.X, c.Position.Y), new Vector2(pos.x, pos.y)) < 3f);
+			if (match is null)
+			{
+				continue;
+			}
+
+			var codeField = Traverse.Create(openable).Field("code");
+			if (string.IsNullOrEmpty(codeField.GetValue<string>()))
+			{
+				codeField.SetValue(match.Code);
+				applied++;
+			}
+		}
+
+		_log.LogInformation("[Keypad] applied {Applied} host keypad code(s).", applied);
 	}
 
 	/// <summary>

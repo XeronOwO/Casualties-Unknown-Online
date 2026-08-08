@@ -18,7 +18,7 @@ public sealed class ItemDropHandler(ILogger<ItemDropHandler> log) : PacketHandle
 	protected override void Handle(ulong sender, ItemDropMsg msg, HandlerContext ctx)
 	{
 		ctx.Items.FireItemDroppedReceived(sender, msg.ItemId, msg.Item, msg.Position.ToNetVector2(),
-			msg.Velocity?.ToNetVector2() ?? NetVector2.Zero, msg.ParentItemId, msg.Rotation,
+			msg.Velocity?.ToNetVector2() ?? NetVector2.Zero, msg.ParentItemId, msg.Rotation, msg.AngularVelocity,
 			msg.ParentPosition?.ToNetVector2() ?? NetVector2.Zero);
 		_log.LogInformation("Item drop {ItemId} ({Type}) from {Sender}.", msg.ItemId, msg.Item.ItemId, sender);
 	}

@@ -11,18 +11,19 @@ System.*) plus Steamworks.NET.dll and steam_api64.dll from references/ into
 Path to the game installation. If omitted, reads the CUO_GAME_DIR environment variable.
 
 .EXAMPLE
-./deploy.ps1 -GameDir "C:\path\to\game"
+./tools/deploy.ps1 -GameDir "C:\path\to\game"
 
 .EXAMPLE
 $env:CUO_GAME_DIR = "C:\path\to\game"
-./deploy.ps1
+./tools/deploy.ps1
 #>
 param(
     [string]$GameDir = $env:CUO_GAME_DIR
 )
 
 $ErrorActionPreference = "Stop"
-$RepoRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+# tools/deploy.ps1 — the repo root is one level up.
+$RepoRoot = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 $PluginOut = Join-Path $RepoRoot "src\CasualtiesUnknownOnline.Plugin\bin\Debug\net48"
 
 if ([string]::IsNullOrWhiteSpace($GameDir)) {

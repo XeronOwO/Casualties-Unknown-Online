@@ -20,13 +20,7 @@ internal static class HarmonyTraverse
 			return fromWorld;
 		}
 
-		var preRun = Traverse.Create(typeof(PreRunScript)).Field("runSettings");
-		if (preRun.FieldExists() && preRun.GetValue() is Dictionary<string, object> fromPreRun)
-		{
-			return fromPreRun;
-		}
-
-		return null;
+		return ReadPreRunRunSettings();
 	}
 
 	/// <summary>
@@ -34,10 +28,22 @@ internal static class HarmonyTraverse
 	/// is assigned inside StartRun, after our entry hook). Correct at the
 	/// run-start entry; the WorldGeneration field is the layer-switch source
 	/// (<see cref="ReadRunSettings"/>).
+	///
+	/// The field is an INSTANCE member (PreRunScript.cs:429) — it must be
+	/// traversed through the singleton. Traverse.Create(Type) reaches static
+	/// members only, and FieldExists()/GetValue() on an instance field with no
+	/// target silently fails (GetValue returns null), which made the captured
+	/// run settings always null — the guest generated with its own default
+	/// preset while the host played e.g. paradise (divergent worlds).
 	/// </summary>
 	public static Dictionary<string, object>? ReadPreRunRunSettings()
 	{
-		var preRun = Traverse.Create(typeof(PreRunScript)).Field("runSettings");
+		if (PreRunScript.instance == null) // Unity object — ==
+		{
+			return null;
+		}
+
+		var preRun = Traverse.Create(PreRunScript.instance).Field("runSettings");
 		return preRun.FieldExists() && preRun.GetValue() is Dictionary<string, object> settings ? settings : null;
 	}
 
@@ -96,6 +102,13 @@ internal static class HarmonyTraverse
 
 		var field = Traverse.Create(WorldGeneration.world).Field("loadingObject");
 		return field.FieldExists() ? field.GetValue<GameObject>() : null;
+	}
+
+	/// <summary>True while the generation loading screen is up — generation in progress or just finished (the finish fade, WorldGeneration.cs:3620, fires while it is still visible).</summary>
+	public static bool IsLoadingVisible()
+	{
+		var loading = ReadLoadingObject();
+		return loading != null && loading.activeSelf; // Unity object — ==
 	}
 
 	public static int ReadBiomeOverride() => Convert.ToInt32(FieldOfWorld("biomeOverride")?.GetValue());

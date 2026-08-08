@@ -36,7 +36,7 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 
 	public event Action<ulong>? ItemPickedUp;
 
-	public event Action<ulong, CharacterItemMsg, NetVector2, NetVector2, ulong, float, NetVector2>? ItemDropped;
+	public event Action<ulong, CharacterItemMsg, NetVector2, NetVector2, ulong, float, float, NetVector2>? ItemDropped;
 
 	public event Action<ulong>? ItemDestroyed;
 
@@ -46,13 +46,43 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 
 	public event Action<IReadOnlyList<WorldItem>>? ItemSnapshotReceived;
 
+	public event Action<IReadOnlyList<ItemMoveEntryMsg>>? ItemMoveReceived;
+
+	// ===== Host-authoritative position stream =====
+
+	/// <summary>
+	/// Host only: broadcast the moving world items' authoritative positions
+	/// (unreliable — drops are harmless, the next tick overwrites). The host's
+	/// physics is the position authority; the guests follow instead of
+	/// diverging on their own physics (settle reports align sleeping items,
+	/// this stream covers the ones still moving).
+	/// </summary>
+	public void SendItemMove(IReadOnlyList<ItemMoveEntryMsg> items)
+	{
+		if (_session.Role != SessionRole.Host || !_session.SessionActive || items.Count == 0)
+		{
+			return;
+		}
+
+		var msg = new ItemMoveMsg { Items = [.. items] };
+		foreach (var member in _session.Members)
+		{
+			if (member.Handshaken && member.SteamId != _session.LocalSteamId)
+			{
+				_sender.Send(member.SteamId, NetMsg.ItemMove, msg, reliable: false);
+			}
+		}
+	}
+
+	public void FireItemMoveReceived(IReadOnlyList<ItemMoveEntryMsg> items) => ItemMoveReceived?.Invoke(items);
+
 	// ===== Report side (local compute) =====
 
-	public void SendItemSpawned(ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, float rotation, bool freshItemDrop)
+	public void SendItemSpawned(ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, float rotation, bool freshItemDrop, float angularVelocity)
 	{
 		if (_session.Role != SessionRole.Guest)
 		{
-			_worldItems[itemId] = new WorldItem(itemId, item, pos, vel, 0, rotation, freshItemDrop);
+			_worldItems[itemId] = new WorldItem(itemId, item, pos, vel, 0, rotation, freshItemDrop, AngularVelocity: angularVelocity);
 		}
 
 		if (!_session.SessionActive)
@@ -102,11 +132,11 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 		}
 	}
 
-	public void SendItemDropped(ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, ulong parentItemId, float rotation, NetVector2 parentPos = default)
+	public void SendItemDropped(ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, ulong parentItemId, float rotation, NetVector2 parentPos = default, float angularVelocity = 0f)
 	{
 		if (_session.Role != SessionRole.Guest)
 		{
-			_worldItems[itemId] = new WorldItem(itemId, item, pos, vel, parentItemId, rotation, false, parentPos);
+			_worldItems[itemId] = new WorldItem(itemId, item, pos, vel, parentItemId, rotation, false, parentPos, angularVelocity);
 		}
 
 		if (!_session.SessionActive)
@@ -174,13 +204,13 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 
 	// ===== Receive side (wire handlers) =====
 
-	public void FireItemSpawnedReceived(ulong sender, ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, float rotation, bool freshItemDrop)
+	public void FireItemSpawnedReceived(ulong sender, ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, float rotation, bool freshItemDrop, float angularVelocity)
 	{
 		if (_session.Role == SessionRole.Host)
 		{
 			if (!_worldItems.ContainsKey(itemId))
 			{
-				_worldItems[itemId] = new WorldItem(itemId, item, pos, vel, 0, rotation, freshItemDrop);
+				_worldItems[itemId] = new WorldItem(itemId, item, pos, vel, 0, rotation, freshItemDrop, AngularVelocity: angularVelocity);
 				_session.BroadcastExcept(sender, NetMsg.ItemSpawn, new ItemSpawnMsg
 				{
 					ItemId = itemId,
@@ -196,7 +226,7 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 		}
 
 		// Host materializes the guest's item; guest materializes the host's relay.
-		ItemSpawned?.Invoke(new WorldItem(itemId, item, pos, vel, 0, rotation, freshItemDrop));
+		ItemSpawned?.Invoke(new WorldItem(itemId, item, pos, vel, 0, rotation, freshItemDrop, AngularVelocity: angularVelocity));
 	}
 
 	public void FireItemPickedUpReceived(ulong sender, ulong itemId)
@@ -226,24 +256,34 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 		ItemPickedUp?.Invoke(itemId);
 	}
 
-	public void FireItemDroppedReceived(ulong sender, ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, ulong parentItemId, float rotation, NetVector2 parentPos = default)
+	public void FireItemDroppedReceived(ulong sender, ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, ulong parentItemId, float rotation, float angularVelocity, NetVector2 parentPos = default)
 	{
 		if (_session.Role == SessionRole.Host)
 		{
-			_worldItems[itemId] = new WorldItem(itemId, item, pos, vel, parentItemId, rotation, false, parentPos);
-			_session.BroadcastExcept(sender, NetMsg.ItemDrop, new ItemDropMsg
+			// Idempotent: a duplicate report (the dropper's hook fired twice for
+			// one drop) must not re-broadcast — the receivers would materialize
+			// AND re-place the same item (observed: "not present — materializing"
+			// followed by "present — re-placing" for one drop).
+			var isDuplicate = _worldItems.TryGetValue(itemId, out var existing)
+				&& existing.Pos.X == pos.X && existing.Pos.Y == pos.Y && existing.Rotation == rotation;
+			_worldItems[itemId] = new WorldItem(itemId, item, pos, vel, parentItemId, rotation, false, parentPos, angularVelocity);
+			if (!isDuplicate)
 			{
-				ItemId = itemId,
-				Item = item,
-				Position = pos.ToNetVector2Msg(),
-				Velocity = vel.ToNetVector2Msg(),
-				ParentItemId = parentItemId,
-				Rotation = rotation,
-				ParentPosition = parentPos.ToNetVector2Msg(),
-			});
+				_session.BroadcastExcept(sender, NetMsg.ItemDrop, new ItemDropMsg
+				{
+					ItemId = itemId,
+					Item = item,
+					Position = pos.ToNetVector2Msg(),
+					Velocity = vel.ToNetVector2Msg(),
+					ParentItemId = parentItemId,
+					Rotation = rotation,
+					ParentPosition = parentPos.ToNetVector2Msg(),
+					AngularVelocity = angularVelocity,
+				});
+			}
 		}
 
-		ItemDropped?.Invoke(itemId, item, pos, vel, parentItemId, rotation, parentPos);
+		ItemDropped?.Invoke(itemId, item, pos, vel, parentItemId, rotation, angularVelocity, parentPos);
 	}
 
 	public void FireItemDestroyedReceived(ulong sender, ulong itemId)

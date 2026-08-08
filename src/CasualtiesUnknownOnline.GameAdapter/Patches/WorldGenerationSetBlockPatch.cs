@@ -16,10 +16,24 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 /// QUAKE REGIONS are the UNION of every side's breaks: each side quakes on
 /// the synced timer and breaks its own nearby region; the air-write relay
 /// applies every side's breaks everywhere, and SetBlock(0) is idempotent —
-/// overlapping regions are computed exactly once (user mandate).
+/// overlapping regions are computed exactly once (user mandate). The PREFIX
+/// gates quake breaks by the numbering-distance rule so overlapping players
+/// do not double the total break rate (see ShouldApplyQuakeBreak).
 /// </summary>
 [HarmonyPatch(typeof(WorldGeneration), "SetBlock")]
 internal static class WorldGenerationSetBlockPatch
 {
+	private static bool Prefix(Vector2Int pos, ushort block)
+	{
+		// Quake/environment breaks only (inside WorldGeneration.Update, air
+		// writes) — mining and placement are never gated.
+		if (block == 0 && WorldGenerationUpdatePatch.InUpdate && PatchBridge.Impl is { } bridge)
+		{
+			return bridge.ShouldApplyQuakeBreak(pos);
+		}
+
+		return true;
+	}
+
 	private static void Postfix(Vector2Int pos, ushort block) => PatchBridge.Impl?.OnBlockSet(pos, block);
 }

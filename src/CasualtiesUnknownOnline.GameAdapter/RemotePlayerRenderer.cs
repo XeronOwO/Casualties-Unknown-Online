@@ -34,12 +34,30 @@ internal sealed class RemotePlayerRenderer(
 	{
 		_entities.RemoteJoined += OnRemoteJoined;
 		_session.RemoteSceneChanged += OnRemoteSceneChanged;
+		_characterData.CloneSnapshotUpdated += OnCloneSnapshotUpdated;
 	}
 
 	internal void Unbind()
 	{
 		_entities.RemoteJoined -= OnRemoteJoined;
 		_session.RemoteSceneChanged -= OnRemoteSceneChanged;
+		_characterData.CloneSnapshotUpdated -= OnCloneSnapshotUpdated;
+	}
+
+	/// <summary>
+	/// A clone's snapshot cache updated — re-render its carried items (the
+	/// clone only renders at creation otherwise; a snapshot update never
+	/// touched it, so carried-item changes arrived but never showed).
+	/// </summary>
+	private void OnCloneSnapshotUpdated(ulong steamId)
+	{
+		// == null on Unity clones — a scene reload destroys the clone and
+		// reference-comparison would miss it (the lazy ensure rebuilds it).
+		if (_remoteClones.TryGetValue(steamId, out var clone) && clone != null
+			&& _characterData.CloneData.TryGetValue(steamId, out var data))
+		{
+			_characterData.ApplyCloneInventory(clone, data);
+		}
 	}
 
 	/// <summary>Session/entity ended — destroy every render clone.</summary>

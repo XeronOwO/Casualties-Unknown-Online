@@ -15,6 +15,9 @@ internal interface IPatchBridge
 
 	bool IsWaitingForReady { get; }
 
+	/// <summary>Guest: generation finished (or finishing) but the start gate still holds — the GlobalDark fade must not black out the kept loading screen.</summary>
+	bool IsInGateWindow { get; }
+
 	void OnWorldGenerate();
 
 	void OnBlockSet(Vector2Int pos, ushort block);
@@ -76,6 +79,32 @@ internal interface IPatchBridge
 
 	/// <summary>An earthquake just started in WorldGeneration.Update — the host broadcasts it (timing sync + the next delay; guests re-align their timer).</summary>
 	void OnEarthquakeStarted(float duration, float nextDelay);
+
+	/// <summary>An earthquake just ended in WorldGeneration.Update — diagnostic log (the "not simultaneous" report).</summary>
+	void OnEarthquakeEnded();
+
+	/// <summary>The GlobalDark fade was skipped because the gate window holds (diagnostic — the "black, then the wait" report).</summary>
+	void OnDarkenSkipped();
+
+	/// <summary>
+	/// An earthquake break (SetBlock(0) inside WorldGeneration.Update) — apply
+	/// or drop it. Quake rate is per-side (16/s each), so overlapping player
+	/// regions double the total ("two players standing together break faster").
+	/// The block is applied only when it is far (> 60 blocks) from every EARLIER
+	/// numbered player (SteamId order) — the region is already covered by them;
+	/// the last-numbered player's coverage is free of overlaps, keeping the
+	/// total break rate at solo level while separated players keep solo rate.
+	/// </summary>
+	bool ShouldApplyQuakeBreak(Vector2Int blockPos);
+
+	/// <summary>A drag-drop was refused by DoPickupCheck (distance / line-of-sight) — diagnostic for "cannot take items out of a ground container".</summary>
+	void OnPickupCheckFailed(string itemId, float distance, bool blocked);
+
+	/// <summary>A drag release fell through to the world path (TryPerformWorldActions) instead of a UI target — the "cannot take out of a ground container" diagnostic.</summary>
+	void OnDragReleasedToWorld();
+
+	/// <summary>PickUpItem ran — where the item ended up (slot / container / world): the takeout-flow outcome diagnostic.</summary>
+	void OnPickUpResult(string itemId, int slot, string home, Vector2 position);
 
 	/// <summary>True while the deferred spawn landing sound is being replayed — the Sound.Play patch must not defer it again.</summary>
 	bool IsReplayingLifePodSound { get; }

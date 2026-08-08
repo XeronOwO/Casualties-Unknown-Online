@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using Random = UnityEngine.Random;
@@ -29,9 +30,26 @@ internal static class WorldGenRandomIsolation
 {
 	private static readonly Stack<Random.State> _genStates = new();
 
-	private static void Save() => _genStates.Push(Random.state);
+	/// <summary>Diagnostics hook (bound by the adapter at construction) — generation-stream segment fingerprints for peer log comparison.</summary>
+	internal static Action<string>? Log;
+
+	private static int _segments;
+
+	private static void Save()
+	{
+		_genStates.Push(Random.state);
+		_segments++;
+		// Fingerprint every early segment (the divergence point is what matters),
+		// then sample the tail — a full 1024-column generation is ~40 segments.
+		if (Log is not null && (_segments <= 24 || _segments % 8 == 0))
+		{
+			Log($"[GenStream] segment {_segments}: {StateHex()}");
+		}
+	}
 
 	private static void Restore() => Random.state = _genStates.Pop();
+
+	private static string StateHex() => BitConverter.ToString(RandomStateSerializer.Serialize(Random.state)).Replace("-", "");
 
 	/// <summary>
 	/// Drive a generation sub-coroutine with the generation stream isolated
@@ -97,6 +115,8 @@ internal static class WorldGenRandomIsolation
 		// a nested coroutine is not same-stack, and a frame boundary between the
 		// reset and the first Random call would leak one frame of public-stream
 		// consumption into the generation start (divergent details).
+		_segments = 0;
 		yield return Drive(generateWorld, adapter, resetFirst: true);
+		Log?.Invoke($"[GenStream] done — {_segments} segments.");
 	}
 }

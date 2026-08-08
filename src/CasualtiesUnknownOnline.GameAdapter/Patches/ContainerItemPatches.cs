@@ -34,12 +34,17 @@ internal static class ContainerItemPatches
 		// dragged item unconditionally — PlayerCamera.cs:1567 — before loading
 		// it elsewhere), and the old Postfix reported the no-op as "unloaded
 		// into the world", which materialized a phantom drop on the peer.
-		private static void Prefix(Container __instance, Item item, ref bool wasInside) =>
-			wasInside = item.transform.parent == __instance.transform;
+		// The "was inside" state is carried in a static field (Harmony cannot
+		// inject a parameter the original method does not have — an unmatched
+		// parameter fails the WHOLE PatchAll).
+		private static bool _wasInside;
 
-		private static void Postfix(Container __instance, Item item, bool wasInside)
+		private static void Prefix(Container __instance, Item item) =>
+			_wasInside = item.transform.parent == __instance.transform;
+
+		private static void Postfix(Container __instance, Item item)
 		{
-			if (wasInside && item.transform.parent != __instance.transform)
+			if (_wasInside && item.transform.parent != __instance.transform)
 			{
 				PatchBridge.Impl?.OnItemUnloadedFromContainer(item);
 			}

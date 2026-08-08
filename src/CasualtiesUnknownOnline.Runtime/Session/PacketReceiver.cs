@@ -55,7 +55,7 @@ public sealed class PacketReceiver : IDisposable
 	private bool IsValidDirection(NetMsg msgId) => msgId switch
 	{
 		NetMsg.Handshake or NetMsg.PlayerStateReport => _session.Role == SessionRole.Host,
-		NetMsg.HandshakeAck or NetMsg.WorldStartParams or NetMsg.PlayerJoin
+		NetMsg.HandshakeAck or NetMsg.WorldStartParams or NetMsg.WorldJoin or NetMsg.PlayerJoin
 			or NetMsg.PlayerLeave or NetMsg.PlayerState => _session.Role == SessionRole.Guest,
 		// Ping/Pong/SceneState/BlockDamaged/CharacterData: bidirectional —
 		// report up (guest → host) and broadcast down (host → guest)

@@ -31,6 +31,36 @@ public sealed class WorldService(ISessionControl session, PacketSender sender, I
 	public void FireBlockDamagedReceived(NetVector2 pos, float damage) =>
 		BlockDamagedReceived?.Invoke(pos, damage);
 
+	/// <summary>Guest: the host told us to enter the world (its params are already in hand).</summary>
+	public event Action? WorldJoinReceived;
+
+	public void FireWorldJoinReceived() => WorldJoinReceived?.Invoke();
+
+	/// <summary>
+	/// Host side: tell the members to enter the world. Sent after the world
+	/// params (the guest's run-start gate then always passes) — the host owns
+	/// the timing: at handshake time when it is already in a world, and when it
+	/// enters the world itself.
+	/// </summary>
+	public void SendWorldJoin()
+	{
+		if (!_session.SessionActive)
+		{
+			return;
+		}
+
+		var msg = new WorldJoinMsg();
+		foreach (var member in _session.Members)
+		{
+			if (member.Handshaken)
+			{
+				_sender.Send(member.SteamId, NetMsg.WorldJoin, msg);
+			}
+		}
+
+		_log.LogInformation("World join sent to {Members} members.", _session.Members.Count(m => m.Handshaken));
+	}
+
 	/// <summary>Host side: capture and publish world-start parameters (run start).</summary>
 	public void PublishWorldParams(WorldStartParams parameters)
 	{

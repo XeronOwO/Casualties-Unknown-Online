@@ -49,7 +49,8 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 	private Body? _localBody;
 	private readonly Dictionary<ulong, Body> _remoteClones = []; // member SteamId → render clone
 	private bool _inWorld;
-	private bool _followHostPending; // guest: the host is in the world but the menu was still loading — retry StartRun
+	private bool _worldJoinPending; // guest: the host's enter instruction arrived while the menu was still loading
+	private bool _startRunAuthorized; // set right before the WorldJoin-triggered StartRun, consumed by the gate
 
 	private const float CharacterReportInterval = 1f; // guest → host character snapshot (1 Hz)
 	private long _nextCharacterReportMs;
@@ -174,9 +175,9 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 	void ICuoService.Update()
 	{
 		UpdateSceneState();
-		if (_followHostPending)
+		if (_worldJoinPending)
 		{
-			TryFollowHost();
+			TryStartWorldJoin();
 		}
 
 		// Publish local state even before entity sync activates — the host's
@@ -285,6 +286,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 		_session.SessionEnded -= OnSessionEnded;
 		_session.SessionActivated -= OnSessionActivated;
 		_world.BlockDamagedReceived -= OnRemoteBlockDamaged;
+		_world.WorldJoinReceived -= OnWorldJoin;
 		_characterData.CharacterDataReceived -= OnCharacterDataReceived;
 		Instance = null;
 	}
@@ -298,6 +300,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 		_session.SessionEnded += OnSessionEnded;
 		_session.SessionActivated += OnSessionActivated;
 		_world.BlockDamagedReceived += OnRemoteBlockDamaged;
+		_world.WorldJoinReceived += OnWorldJoin;
 		_characterData.CharacterDataReceived += OnCharacterDataReceived;
 	}
 
@@ -349,7 +352,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 			// flow re-reports InMenu to the host.
 			if (steamId == _session.HostSteamId && _session.Role == SessionRole.Guest)
 			{
-				_followHostPending = false; // a fresh "host entered" must re-arm the follow
+				_worldJoinPending = false; // a fresh "host entered" must re-arm the follow
 				if (_inWorld && PlayerCamera.main != null) // Unity object — ==
 				{
 					_log.LogInformation("Host left the world — returning to main menu.");
@@ -357,35 +360,24 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 				}
 			}
 		}
-		else if (steamId == _session.HostSteamId
-			&& _session.Role == SessionRole.Guest && !_inWorld)
-		{
-			// The host entering the world: the guest follows automatically
-			// (the world belongs to the host — a guest sitting in the menu
-			// joins the run). StartRun is the game's own entry; guests without
-			// the basic course get the tutorial warning instead (its flow).
-			// The menu may still be loading when this arrives (a right-click
-			// "Join Game" launches a fresh process) — PreRunScript.instance is
-			// null then, so retry every frame until it exists (the same
-			// lazy-ensure pattern as the remote clones).
-			_followHostPending = true;
-			TryFollowHost();
-		}
 
 		_log.LogInformation(inWorld
 			? "Remote entered the world — clone rebuilt on rejoin."
 			: "Remote not in world (menu or disconnected) — clone destroyed.");
 	}
 
-	/// <summary>
-	/// Guest side: start a run to follow the host once the menu is ready.
-	/// Retried every frame while pending — a right-click "Join Game" launches a
-	/// fresh process whose menu (PreRunScript) is still loading when the host's
-	/// in-world state arrives.
-	/// </summary>
-	private void TryFollowHost()
+	/// <summary>Guest side: the host told us to enter the world (WorldJoin). The
+	/// menu may still be loading when it arrives (a right-click "Join Game"
+	/// launches a fresh process) — wait for PreRunScript, then start the run.</summary>
+	private void OnWorldJoin()
 	{
-		if (!_followHostPending || _inWorld)
+		_worldJoinPending = true;
+		TryStartWorldJoin();
+	}
+
+	private void TryStartWorldJoin()
+	{
+		if (!_worldJoinPending || _inWorld)
 		{
 			return;
 		}
@@ -395,8 +387,9 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 			return;
 		}
 
-		_followHostPending = false;
-		_log.LogInformation("Host entered the world — starting a run to follow.");
+		_worldJoinPending = false;
+		_startRunAuthorized = true; // the gate refuses unauthorised (manual) guest starts
+		_log.LogInformation("World join received — starting a run to follow.");
 		PreRunScript.instance.StartRun();
 	}
 
@@ -927,6 +920,14 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 			_characterData.ReportCharacterData(CaptureCharacterData(prevBody));
 		}
 
+		if (inWorld && _session.Role == SessionRole.Host)
+		{
+			// The host entered the world: tell the members to follow (the world
+			// params were published during generation, so the guest gate
+			// passes). Guests already in the world ignore the instruction.
+			_world.SendWorldJoin();
+		}
+
 		var sceneName = inWorld ? UnityEngine.SceneManagement.SceneManager.GetActiveScene().name : "PreGen";
 		var pos = inWorld && _localBody != null // Unity object — ==
 			? new NetVector2(_localBody.transform.position.x, _localBody.transform.position.y)
@@ -955,16 +956,21 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 			sitting, body.sleeping, body.currentClimbable != null); // Unity object — ==
 	}
 
-	/// <summary>Gate from the StartRun patch — returns false to block the run start.</summary>
+	/// <summary>Gate from the StartRun patch — returns false to block the run start.
+	/// In a session a guest may only enter the world on the host's instruction
+	/// (WorldJoin): starting on its own would create a world the host does not
+	/// know. The WorldJoin path authorises its StartRun call right before it.</summary>
 	internal bool OnStartRun()
 	{
-		if (_session.Role == SessionRole.Guest && _session.SessionActive && _world.WorldParams is null)
+		if (_startRunAuthorized)
 		{
-			_log.LogWarning("Cannot start a run: host world params not received yet — retry in a few seconds.");
-			// Re-arm the follow pump: the world params follow the handshake ack
-			// (observed ~20 ms later), so a "Join Game" launch retries
-			// automatically once they arrive instead of being stuck in the menu.
-			_followHostPending = true;
+			_startRunAuthorized = false;
+			return true;
+		}
+
+		if (_session.Role == SessionRole.Guest && _session.SessionActive)
+		{
+			_log.LogWarning("A guest cannot start a run on its own — wait for the host to enter the world.");
 			return false;
 		}
 

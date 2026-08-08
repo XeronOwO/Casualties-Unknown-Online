@@ -1,14 +1,15 @@
+using System;
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 
 namespace CasualtiesUnknownOnline.Runtime.Session;
 
 /// <summary>
-/// The session control surface packet handlers operate on — implemented by
-/// SessionService. Handlers depend on this narrow interface instead of the
-/// concrete service, which keeps the constructor graph acyclic (the session's
-/// own constructor depends on the packet gateway; the gateway's router builds
-/// handlers — abstract extraction, user rule).
+/// The session control surface packet handlers, the entity/data domains and
+/// the receiver operate on — implemented by SessionService. Depends on this
+/// narrow interface instead of the concrete service: the interface is resolved
+/// lazily by the container after the session itself is built, which keeps the
+/// constructor graph acyclic (abstract extraction, user rule).
 /// </summary>
 public interface ISessionControl
 {
@@ -51,4 +52,10 @@ public interface ISessionControl
 	void FireRemoteSceneChanged(ulong steamId, bool inWorld);
 
 	void FireBlockDamagedReceived(NetVector2 pos, float damage);
+
+	/// <summary>Raised when a member is removed from the presence table (the entity domain cleans up on this).</summary>
+	event Action<ulong>? MemberRemoved;
+
+	/// <summary>Raised when the session ends (the entity domain tears down on this).</summary>
+	event Action? SessionEnded;
 }

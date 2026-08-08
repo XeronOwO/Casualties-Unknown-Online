@@ -3,7 +3,6 @@ using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
-using CasualtiesUnknownOnline.Runtime.Session.Handlers;
 using CasualtiesUnknownOnline.Runtime.Steam;
 using Microsoft.Extensions.Logging;
 
@@ -12,15 +11,15 @@ namespace CasualtiesUnknownOnline.Runtime.Session;
 /// <summary>
 /// Session state machine (control plane): lobby → handshake (protocol/version)
 /// → scene-state exchange (architecture.md §3). Owns the handshake lifecycle,
-/// the business-level send/receive APIs and the world/diagnostics surface; the
-/// member presence table and session flags live in <see cref="MemberPresenceTable"/>
-/// and <see cref="SessionState"/> (shared with the entity/data domains — the
-/// dependency graph stays acyclic, abstract extraction). The data plane
-/// (transport binding, direction validation, dispatch) lives in
-/// <see cref="PacketReceiver"/>/<see cref="PacketSender"/>; the entity buffers, ids and the 20 Hz state
-/// stream in <see cref="EntitySyncService"/>; the character save/restore in
-/// <see cref="CharacterDataStore"/>. Star topology: every message flows
-/// guest → host; the host arbitrates and decides the fan-out.
+/// the business-level send/receive APIs and the world/diagnostics surface.
+/// Its state is private: the lobby identity, the session flags and the member
+/// presence table are created here and exposed as a read-only surface —
+/// consumers depend on <see cref="ISessionControl"/>, not on the state
+/// objects (user rule: state belongs to the object that owns it). The data
+/// plane (PacketReceiver/PacketSender) and the dispatch (PacketDispatcher)
+/// are independent mechanisms; the entity/data domains hang off the session
+/// one-way. Star topology: every message flows guest → host; the host
+/// arbitrates and decides the fan-out.
 /// </summary>
 public sealed class SessionService : ICuoService, ISessionControl
 {
@@ -29,43 +28,27 @@ public sealed class SessionService : ICuoService, ISessionControl
 	private const float HandshakeRetryInterval = 3f; // lazy Steam P2P sessions swallow early messages
 
 	private readonly SteamService _steam;
-	private readonly SessionIdentity _identity;
-	private readonly PacketReceiver _receiver;
 	private readonly PacketSender _sender;
-	private readonly PacketRouter _router;
-	private readonly MemberPresenceTable _presence;
-	private readonly SessionState _state;
-	private readonly EntitySyncService _entities;
-	private readonly CharacterDataStore _characterData;
 	private readonly ILogger<SessionService> _log;
-	private readonly HandlerContext _handlerContext;
 
-	private WorldStartParams? _worldParams;
+	// Session-owned state — never registered as services (user rule: state
+	// belongs to the object that owns it; consumers get ISessionControl).
+	private readonly SessionIdentity _identity = new();
+	private readonly SessionState _state = new();
+	private readonly MemberPresenceTable _presence = new();
 
 	private long _nextPingMs;
 	private long _nextMemberCheckMs;
 	private long _nextHandshakeRetryMs;
 
-	public SessionService(
-		SteamService steam, SessionIdentity identity, PacketReceiver receiver, PacketSender sender, PacketRouter router,
-		MemberPresenceTable presence, SessionState state, EntitySyncService entities,
-		CharacterDataStore characterData, ILogger<SessionService> log)
+	public SessionService(SteamService steam, PacketSender sender, ILogger<SessionService> log)
 	{
 		_steam = steam;
-		_identity = identity;
-		_receiver = receiver;
 		_sender = sender;
-		_router = router;
-		_presence = presence;
-		_state = state;
-		_entities = entities;
-		_characterData = characterData;
 		_log = log;
-		_handlerContext = new HandlerContext(this, entities, characterData);
 
 		steam.LobbyCreated += OnLobbyCreated;
 		steam.LobbyEntered += OnLobbyEntered;
-		receiver.MessageArrived += OnMessageArrived;
 	}
 
 	public SessionRole Role => _identity.Role;
@@ -90,7 +73,32 @@ public sealed class SessionService : ICuoService, ISessionControl
 	public NetVector2 GetRemoteSpawnPos(ulong steamId) =>
 		_presence.TryGetMember(steamId, out var member) ? member.ReportedSpawnPos : default;
 
-	// ---- ISessionControl (the packet handlers' control surface) ----
+	/// <summary>Raised when the handshake completes and scene exchange can start (first member only).</summary>
+	public event Action? SessionActivated
+	{
+		add => _state.SessionActivated += value;
+		remove => _state.SessionActivated -= value;
+	}
+
+	/// <summary>Raised when the session ends (all members gone, lobby left, …).</summary>
+	public event Action? SessionEnded
+	{
+		add => _state.SessionEnded += value;
+		remove => _state.SessionEnded -= value;
+	}
+
+	/// <summary>
+	/// Raised when a member enters or leaves the world (inWorld=false pauses /
+	/// destroys the render clone; a member leaving the session reuses
+	/// inWorld=false so the clone teardown path is shared).
+	/// </summary>
+	public event Action<ulong, bool>? RemoteSceneChanged
+	{
+		add => _presence.RemoteSceneChanged += value;
+		remove => _presence.RemoteSceneChanged -= value;
+	}
+
+	// ---- ISessionControl (the packet handlers' + domains' control surface) ----
 
 	ulong ISessionControl.LocalSteamId => _steam.LocalSteamId;
 
@@ -148,6 +156,18 @@ public sealed class SessionService : ICuoService, ISessionControl
 	void ISessionControl.FireBlockDamagedReceived(NetVector2 pos, float damage) =>
 		BlockDamagedReceived?.Invoke(pos, damage);
 
+	event Action<ulong>? ISessionControl.MemberRemoved
+	{
+		add => _presence.MemberRemoved += value;
+		remove => _presence.MemberRemoved -= value;
+	}
+
+	event Action? ISessionControl.SessionEnded
+	{
+		add => _state.SessionEnded += value;
+		remove => _state.SessionEnded -= value;
+	}
+
 	// ---- Scene / world / diagnostics (Game Adapter → session) ----
 
 	/// <summary>
@@ -186,7 +206,7 @@ public sealed class SessionService : ICuoService, ISessionControl
 	/// <summary>Host side: capture and publish world-start parameters (run start).</summary>
 	public void PublishWorldParams(WorldStartParams parameters)
 	{
-		_worldParams = parameters;
+		WorldParams = parameters; // the handshake handlers read this when acking a new member
 		if (!SessionActive)
 		{
 			return;
@@ -276,7 +296,8 @@ public sealed class SessionService : ICuoService, ISessionControl
 		}
 
 		// The entity-sync decisions and the 20 Hz stream run in
-		// EntitySyncService.Update (registered after us).
+		// EntitySyncService.Update; the receive dispatch in PacketDispatcher
+		// (both registered after us).
 		CheckPeerPresence();
 	}
 
@@ -288,12 +309,7 @@ public sealed class SessionService : ICuoService, ISessionControl
 	{
 		_steam.LobbyCreated -= OnLobbyCreated;
 		_steam.LobbyEntered -= OnLobbyEntered;
-		_receiver.MessageArrived -= OnMessageArrived;
 	}
-
-	// ---- Data plane entry (the gateway validates direction, we dispatch) ----
-
-	private void OnMessageArrived(ulong sender, byte[] frame) => _router.TryDispatch(sender, frame, _handlerContext);
 
 	// ---- Lobby / handshake ----
 

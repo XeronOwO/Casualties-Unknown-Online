@@ -106,6 +106,11 @@ public class Plugin : BaseUnityPlugin
 			_pendingJoinLobbyId = ParseConnectLobbyArg();
 			if (_pendingJoinLobbyId is not null)
 			{
+				// Right-click "Join Game": the menu's content-warning/intro screen
+				// is skipped (the follow-host pump then starts the run as soon as
+				// PreRunScript exists instead of waiting for the player to click
+				// through the intro).
+				GameAdapterImpl.SkipIntro = true;
 				_log.LogInformation("+connect_lobby {LobbyId} on the command line.", _pendingJoinLobbyId.Value);
 			}
 

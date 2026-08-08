@@ -264,8 +264,7 @@ public class Plugin : BaseUnityPlugin
 			: _session.Role == SessionRole.Guest ? "GUEST" : "—";
 		Line($"Session: {role}  handshake: {(_session.SessionActive ? "yes" : "no")}  "
 			+ $"entity sync: {(_session.EntitySyncActive ? "ON" : "off")}");
-		var remote = _session.RemotePlayer;
-		if (remote is not null)
+		foreach (var remote in _session.RemotePlayers)
 		{
 			Line($"Remote: {remote.SteamId:X}  pos: ({remote.Position.X:F1}, {remote.Position.Y:F1})  inWorld: {remote.InWorld}");
 		}

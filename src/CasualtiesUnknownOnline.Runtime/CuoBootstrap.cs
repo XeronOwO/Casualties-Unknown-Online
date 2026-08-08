@@ -72,7 +72,8 @@ public static class CuoBootstrap
 		services.AddSingleton(p => new HandlerContext(
 			p.GetRequiredService<ISessionControl>(),
 			p.GetRequiredService<IEntitySyncControl>(),
-			p.GetRequiredService<ICharacterDataControl>()));
+			p.GetRequiredService<ICharacterDataControl>(),
+			p.GetRequiredService<IWorldControl>()));
 		services.AddSingleton<PacketDispatcher>();
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<PacketDispatcher>());
 
@@ -86,6 +87,10 @@ public static class CuoBootstrap
 		// an ICuoService — it only reacts to reports and handshakes).
 		services.AddSingleton<CharacterDataStore>();
 		services.AddSingleton<ICharacterDataControl>(p => p.GetRequiredService<CharacterDataStore>());
+		// World domain: world-start parameters + block-damage reports (no pump,
+		// not an ICuoService — it only reacts to calls and messages).
+		services.AddSingleton<WorldService>();
+		services.AddSingleton<IWorldControl>(p => p.GetRequiredService<WorldService>());
 
 		extraRegistrations?.Invoke(services);
 

@@ -25,8 +25,6 @@ public interface ISessionControl
 
 	SceneStateType LocalSceneState { get; }
 
-	WorldStartParams? WorldParams { get; set; }
-
 	float LastRttMs { get; }
 
 	IEnumerable<MemberPresenceTable.MemberPresence> Members { get; }
@@ -50,8 +48,6 @@ public interface ISessionControl
 	void FireSessionActivated();
 
 	void FireRemoteSceneChanged(ulong steamId, bool inWorld);
-
-	void FireBlockDamagedReceived(NetVector2 pos, float damage);
 
 	/// <summary>Raised when a member is removed from the presence table (the entity domain cleans up on this).</summary>
 	event Action<ulong>? MemberRemoved;

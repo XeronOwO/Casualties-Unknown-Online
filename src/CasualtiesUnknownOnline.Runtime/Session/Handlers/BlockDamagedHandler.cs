@@ -18,7 +18,7 @@ public sealed class BlockDamagedHandler : PacketHandlerBase<BlockDamagedMsg>
 	{
 		var pos = msg.Position.ToNetVector2();
 		var session = ctx.Session;
-		session.FireBlockDamagedReceived(pos, msg.Damage);
+		ctx.World.FireBlockDamagedReceived(pos, msg.Damage);
 		if (session.Role == SessionRole.Host)
 		{
 			session.BroadcastExcept(sender, NetMsg.BlockDamaged, msg);

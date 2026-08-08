@@ -58,9 +58,6 @@ public sealed class SessionService : ICuoService, ISessionControl
 
 	public ulong HostSteamId => _identity.HostSteamId;
 
-	/// <summary>Set by the world-params handler on the guest side.</summary>
-	public WorldStartParams? WorldParams { get; set; }
-
 	public float LastRttMs { get; private set; } = -1f;
 
 	/// <summary>Local scene state — true while the local player is in the world (the SceneState we last reported).</summary>
@@ -153,9 +150,6 @@ public sealed class SessionService : ICuoService, ISessionControl
 	void ISessionControl.FireRemoteSceneChanged(ulong steamId, bool inWorld) =>
 		_presence.FireRemoteSceneChanged(steamId, inWorld);
 
-	void ISessionControl.FireBlockDamagedReceived(NetVector2 pos, float damage) =>
-		BlockDamagedReceived?.Invoke(pos, damage);
-
 	event Action<ulong>? ISessionControl.MemberRemoved
 	{
 		add => _presence.MemberRemoved += value;
@@ -168,7 +162,7 @@ public sealed class SessionService : ICuoService, ISessionControl
 		remove => _state.SessionEnded -= value;
 	}
 
-	// ---- Scene / world / diagnostics (Game Adapter → session) ----
+	// ---- Scene / diagnostics (Game Adapter → session) ----
 
 	/// <summary>
 	/// Either side: report the local scene state (menu / in world). The local
@@ -203,25 +197,6 @@ public sealed class SessionService : ICuoService, ISessionControl
 		_log.LogInformation("Scene state: {State} ({SceneName})", state, sceneName);
 	}
 
-	/// <summary>Host side: capture and publish world-start parameters (run start).</summary>
-	public void PublishWorldParams(WorldStartParams parameters)
-	{
-		WorldParams = parameters; // the handshake handlers read this when acking a new member
-		if (!SessionActive)
-		{
-			return;
-		}
-
-		var msg = parameters.ToWorldStartParamsMsg();
-		foreach (var member in _presence.Members.Where(m => m.Handshaken))
-		{
-			_sender.Send(member.SteamId, NetMsg.WorldStartParams, msg);
-		}
-
-		_log.LogInformation("Published world params ({StateBytes} bytes) to {Members} members.",
-			parameters.RandomState.Length, _presence.Count);
-	}
-
 	/// <summary>
 	/// Diagnostics: ping the peer(s) (RTT recorded in <see cref="LastRttMs"/>;
 	/// host pings every member, guest pings the host).
@@ -241,36 +216,6 @@ public sealed class SessionService : ICuoService, ISessionControl
 			_sender.Send(HostSteamId, NetMsg.Ping, msg);
 		}
 	}
-
-	/// <summary>
-	/// Report a locally-performed block damage (local compute): guest → host as
-	/// a report (the host arbitrates and relays), host → broadcast to all synced
-	/// members (the source excluded on relay — it already applied locally).
-	/// </summary>
-	public void SendBlockDamaged(NetVector2 worldPos, float damage)
-	{
-		if (!SessionActive)
-		{
-			return;
-		}
-
-		var msg = new BlockDamagedMsg
-		{
-			Position = worldPos.ToNetVector2Msg(),
-			Damage = damage,
-		};
-		if (Role == SessionRole.Host)
-		{
-			((ISessionControl)this).Broadcast(NetMsg.BlockDamaged, msg);
-		}
-		else
-		{
-			_sender.Send(HostSteamId, NetMsg.BlockDamaged, msg);
-		}
-	}
-
-	/// <summary>Host: a guest reported damage (apply + relay). Guest: the host broadcast it.</summary>
-	public event Action<NetVector2, float>? BlockDamagedReceived;
 
 	void ICuoService.Initialize() => _identity.LocalSteamId = _steam.LocalSteamId;
 

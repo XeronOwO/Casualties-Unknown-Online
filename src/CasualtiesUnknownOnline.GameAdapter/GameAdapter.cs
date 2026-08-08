@@ -18,8 +18,8 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// §4). The only layer that knows game types: it hooks input, freezes/simulates
 /// player bodies, clones remote players and captures/applies world-start
 /// parameters. The sync semantics live in the Runtime domain services
-/// (SessionService / EntitySyncService / CharacterDataStore); this class only
-/// shuttles state between game objects and the domains.
+/// (SessionService / EntitySyncService / CharacterDataStore / WorldService);
+/// this class only shuttles state between game objects and the domains.
 /// </summary>
 public sealed class GameAdapter : IGameAdapter, ICuoService
 {
@@ -29,6 +29,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 	private readonly SessionService _session;
 	private readonly EntitySyncService _entities;
 	private readonly CharacterDataStore _characterData;
+	private readonly WorldService _world;
 	private readonly ILogger<GameAdapter> _log;
 	private readonly IMapper _mapper;
 	private Harmony? _harmony;
@@ -42,11 +43,12 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 	private CharacterDataMsg? _pendingRestore; // guest side: host-sent restore, applied once the body exists
 
 	public GameAdapter(SessionService session, EntitySyncService entities, CharacterDataStore characterData,
-		ILogger<GameAdapter> log, IMapper mapper)
+		WorldService world, ILogger<GameAdapter> log, IMapper mapper)
 	{
 		_session = session;
 		_entities = entities;
 		_characterData = characterData;
+		_world = world;
 		_log = log;
 		_mapper = mapper;
 		Instance = this;
@@ -104,7 +106,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 		var biomeOverride = (byte)HarmonyTraverse.ReadBiomeOverride();
 		var biomeDepth = (byte)HarmonyTraverse.ReadBiomeDepth();
 		var totalTraveled = HarmonyTraverse.ReadTotalTraveled();
-		_session.PublishWorldParams(new WorldStartParams
+		_world.PublishWorldParams(new WorldStartParams
 		{
 			RandomState = randomState,
 			RunSettings = runSettings,
@@ -263,7 +265,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 		_session.RemoteSceneChanged -= OnRemoteSceneChanged;
 		_session.SessionEnded -= OnSessionEnded;
 		_session.SessionActivated -= OnSessionActivated;
-		_session.BlockDamagedReceived -= OnRemoteBlockDamaged;
+		_world.BlockDamagedReceived -= OnRemoteBlockDamaged;
 		_characterData.CharacterDataReceived -= OnCharacterDataReceived;
 		Instance = null;
 	}
@@ -276,7 +278,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 		_session.RemoteSceneChanged += OnRemoteSceneChanged;
 		_session.SessionEnded += OnSessionEnded;
 		_session.SessionActivated += OnSessionActivated;
-		_session.BlockDamagedReceived += OnRemoteBlockDamaged;
+		_world.BlockDamagedReceived += OnRemoteBlockDamaged;
 		_characterData.CharacterDataReceived += OnCharacterDataReceived;
 	}
 
@@ -380,7 +382,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 			return;
 		}
 
-		_session.SendBlockDamaged(new NetVector2(pos.x, pos.y), dmg);
+		_world.SendBlockDamaged(new NetVector2(pos.x, pos.y), dmg);
 	}
 
 	/// <summary>The peer damaged a block — apply it locally (remote verify/sync).</summary>
@@ -603,7 +605,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 	/// <summary>Gate from the StartRun patch — returns false to block the run start.</summary>
 	internal bool OnStartRun()
 	{
-		if (_session.Role == SessionRole.Guest && _session.SessionActive && _session.WorldParams is null)
+		if (_session.Role == SessionRole.Guest && _session.SessionActive && _world.WorldParams is null)
 		{
 			_log.LogWarning("Cannot start a run: host world params not received yet — retry in a few seconds.");
 			return false;
@@ -624,9 +626,9 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 		{
 			CaptureWorldParams();
 		}
-		else if (_session.WorldParams is not null)
+		else if (_world.WorldParams is not null)
 		{
-			ApplyWorldParams(_session.WorldParams);
+			ApplyWorldParams(_world.WorldParams);
 		}
 		else
 		{

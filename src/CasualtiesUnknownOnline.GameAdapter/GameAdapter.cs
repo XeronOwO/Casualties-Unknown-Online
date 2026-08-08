@@ -634,10 +634,9 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 		return msg;
 	}
 
-	/// <summary>The WaterContainerItem's liquid stacks. The stack field is
-	/// private (the public surface is query-only) — read by reflection;
-	/// LiquidStack itself is public with public fields. A renamed/missing
-	/// field must fail loudly, not silently drop the liquids.</summary>
+	/// <summary>The WaterContainerItem's liquid stacks — a public field
+	/// (WaterContainerItem.cs:347), read directly for the round-trip symmetry
+	/// with the restore (a game rename is a compile error, not a silent drop).</summary>
 	private List<LiquidStackMsg> CaptureLiquids(Item item)
 	{
 		var water = item.GetComponent<WaterContainerItem>();
@@ -646,16 +645,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 			return [];
 		}
 
-		var stackField = typeof(WaterContainerItem).GetField("stack",
-			BindingFlags.NonPublic | BindingFlags.Instance);
-		if (stackField is null)
-		{
-			_log.LogWarning("WaterContainerItem.stack field not found — liquid sync disabled (game updated?).");
-			return [];
-		}
-
-		var stack = (List<LiquidStack>?)stackField.GetValue(water);
-		return stack is null ? [] : [.. stack.Select(s => new LiquidStackMsg
+		return [.. water.stack.Select(s => new LiquidStackMsg
 		{
 			LiquidId = s.liquidId,
 			Amount = s.amount,
@@ -804,16 +794,9 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 		// Rebuild the stack directly instead of AddLiquid-ing: the prefab's
 		// Awake already filled the default contents (WaterContainerItem.Awake),
 		// so an additive restore reads "full" again. The capture side reads the
-		// same field, so this round-trips exactly (including an empty stack).
-		var stackField = typeof(WaterContainerItem).GetField("stack",
-			BindingFlags.NonPublic | BindingFlags.Instance);
-		if (stackField is null)
-		{
-			_log.LogWarning("WaterContainerItem.stack field not found — liquid restore skipped (game updated?).");
-			return;
-		}
-
-		stackField.SetValue(water, liquids.Select(l => new LiquidStack(l.LiquidId, l.Amount)).ToList());
+		// same public field, so this round-trips exactly (including an empty
+		// stack).
+		water.stack = [.. liquids.Select(l => new LiquidStack(l.LiquidId, l.Amount))];
 	}
 
 	private void RestoreComponentStates(Item item, List<ComponentStateMsg> states)

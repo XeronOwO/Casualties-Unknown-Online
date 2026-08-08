@@ -14,4 +14,13 @@ public sealed class HandshakeAckMsg
 
 	[ProtoMember(3)]
 	public bool HasWorldParams { get; set; }
+
+	/// <summary>Static factory — same pattern as SceneStateMsg.From: the message
+	/// assembles itself from domain data, no service-level assembly.</summary>
+	public static HandshakeAckMsg From(int protocol, SceneStateMsg scene, bool hasWorldParams) => new()
+	{
+		Protocol = protocol,
+		Scene = scene,
+		HasWorldParams = hasWorldParams,
+	};
 }

@@ -75,6 +75,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	// ---- World items (runtime-generated item entities) ----
 	private bool _applyingRemoteItem; // reentry guard: remote applications must not report back
 	private bool _applyingRemoteBuildingDamage; // reentry guard: applying a remote entity hit must not re-report
+	private bool _deferredLifePodSound; // the spawn landing sound, deferred while the start gate holds
 
 	/// <summary>Periodic world-item keyframe: re-send the full table so physical drift self-heals.</summary>
 	private const int ItemSnapshotIntervalMs = 5000;
@@ -286,10 +287,14 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 
 		// Periodic world-item keyframes (host): re-send the full table
 		// (unreliable) so physical drift self-heals — settled items get their
-		// positions re-aligned by the receivers' next reconcile.
+		// positions re-aligned by the receivers' next reconcile. The table
+		// entries are refreshed to the CURRENT item positions first — the
+		// spawn-time positions would pull settled items back into the air
+		// every tick.
 		if (IsHostMode && Environment.TickCount >= _nextItemSnapshotMs)
 		{
 			_nextItemSnapshotMs = Environment.TickCount + ItemSnapshotIntervalMs;
+			RefreshWorldItemStates();
 			_items.SendPeriodicItemSnapshot();
 		}
 
@@ -788,6 +793,24 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		return true;
 	}
 
+	/// <summary>Host only: push the items' live state into the authoritative
+	/// table before the periodic keyframe — the entries otherwise hold the
+	/// spawn-time positions and the keyframe would yank settled items around.</summary>
+	private void RefreshWorldItemStates()
+	{
+		foreach (var item in Item.allItems)
+		{
+			var idComp = item.GetComponent<ItemInstanceId>();
+			if (idComp != null) // Unity object — ==
+			{
+				_items.RefreshItemState(idComp.Id,
+					new NetVector2(item.transform.position.x, item.transform.position.y),
+					new NetVector2(item.rb.velocity.x, item.rb.velocity.y),
+					item.transform.eulerAngles.z);
+			}
+		}
+	}
+
 	/// <summary>Find an item by its instance id (Item.allItems — Item.cs:7211, the scene's item table).</summary>
 	private static Item? FindWorldItem(ulong itemId)
 	{
@@ -1216,8 +1239,23 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 			{
 				Traverse.Create(_localBody).Field("movingAllowed").SetValue(true);
 			}
+
+			// The spawn landing sound was deferred while the gate held (it
+			// would play into the frozen world) — play it now, together with
+			// everyone else's release.
+			if (_deferredLifePodSound)
+			{
+				_deferredLifePodSound = false;
+				if (PlayerCamera.main != null && PlayerCamera.main.body != null) // Unity objects — ==
+				{
+					Sound.Play("lifePodHit", PlayerCamera.main.body.transform.position, true, false, null, 1f, 1f, false, false);
+				}
+			}
 		}
 	}
+
+	/// <summary>Deferred by the Sound.Play patch while the start gate holds (it would play into the frozen world).</summary>
+	void IPatchBridge.DeferLifePodSound() => _deferredLifePodSound = true;
 
 	/// <summary>Guest side: the host released the start gate — start playing.</summary>
 	private void OnRemoteWorldReady()

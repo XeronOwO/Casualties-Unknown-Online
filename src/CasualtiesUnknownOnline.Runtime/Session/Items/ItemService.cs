@@ -265,6 +265,17 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 		_log.LogInformation("Sent world-item snapshot ({Count} items) to {Peer}.", _worldItems.Count, targetSteamId);
 	}
 
+	/// <summary>Host only: the item's live state — the periodic keyframe must broadcast the CURRENT positions, not the spawn-time ones (the spawn position would pull settled items back into the air every tick).</summary>
+	public void RefreshItemState(ulong itemId, NetVector2 pos, NetVector2 vel, float rotation)
+	{
+		if (_session.Role == SessionRole.Guest || !_worldItems.TryGetValue(itemId, out var w))
+		{
+			return;
+		}
+
+		_worldItems[itemId] = w with { Pos = pos, Vel = vel, Rotation = rotation };
+	}
+
 	/// <summary>
 	/// Host only: periodically re-send the full table over the unreliable
 	/// channel — drops are harmless (the next tick overwrites; the receiver

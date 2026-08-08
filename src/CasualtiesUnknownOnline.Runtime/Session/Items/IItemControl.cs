@@ -18,7 +18,7 @@ public interface IItemControl
 	// ===== Report side (the adapter's local compute reports here) =====
 
 	/// <summary>A runtime-generated item entered the world locally — record (host/solo) and report/broadcast.</summary>
-	void SendItemSpawned(ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, float rotation);
+	void SendItemSpawned(ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, float rotation, bool freshItemDrop);
 
 	/// <summary>An item was picked up locally (world → inventory) — drop it from the table (host/solo) and report/broadcast.</summary>
 	void SendItemPickedUp(ulong itemId);
@@ -31,7 +31,7 @@ public interface IItemControl
 
 	// ===== Receive side (packet handlers surface the wire here) =====
 
-	void FireItemSpawnedReceived(ulong sender, ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, float rotation);
+	void FireItemSpawnedReceived(ulong sender, ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, float rotation, bool freshItemDrop);
 
 	void FireItemPickedUpReceived(ulong sender, ulong itemId);
 
@@ -49,6 +49,13 @@ public interface IItemControl
 
 	/// <summary>Host only: send the full world-item table to one member (on its world entry).</summary>
 	void SendItemSnapshot(ulong targetSteamId);
+
+	/// <summary>
+	/// Host only: periodically re-send the full table (unreliable) so physical
+	/// drift self-heals — the receiver aligns settled items on the next
+	/// reconcile (todo: periodic keyframes).
+	/// </summary>
+	void SendPeriodicItemSnapshot();
 
 	/// <summary>Host only: a new world layer is generating — the table starts empty again.</summary>
 	void ResetItems();

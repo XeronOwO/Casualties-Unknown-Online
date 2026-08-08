@@ -17,7 +17,7 @@ public sealed class ItemSpawnHandler(ILogger<ItemSpawnHandler> log) : PacketHand
 
 	protected override void Handle(ulong sender, ItemSpawnMsg msg, HandlerContext ctx)
 	{
-		ctx.Items.FireItemSpawnedReceived(sender, msg.ItemId, msg.Item, msg.Position.ToNetVector2(), msg.Velocity.ToNetVector2(), msg.Rotation);
+		ctx.Items.FireItemSpawnedReceived(sender, msg.ItemId, msg.Item, msg.Position.ToNetVector2(), msg.Velocity.ToNetVector2(), msg.Rotation, msg.FreshItemDrop);
 		_log.LogInformation("Item spawn {ItemId} ({Type}) from {Sender}.", msg.ItemId, msg.Item.ItemId, sender);
 	}
 }

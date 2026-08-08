@@ -75,6 +75,10 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	// ---- World items (runtime-generated item entities) ----
 	private bool _applyingRemoteItem; // reentry guard: remote applications must not report back
 	private bool _applyingRemoteBuildingDamage; // reentry guard: applying a remote entity hit must not re-report
+
+	/// <summary>Periodic world-item keyframe: re-send the full table so physical drift self-heals.</summary>
+	private const int ItemSnapshotIntervalMs = 5000;
+	private long _nextItemSnapshotMs;
 	private ulong _nextItemId = 1; // local instance-id counter — ids are (counter << 32 | account id), unique without host allocation
 	private readonly Dictionary<ulong, Vector2> _pickupOrigins = []; // itemId → world position at pickup (rollback target for a refused pickup)
 
@@ -278,6 +282,15 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 			// can diff against it (a solo game that opens a lobby later still
 			// needs the table relative to the seed world, not the current one).
 			TryCaptureWorldBaseline();
+		}
+
+		// Periodic world-item keyframes (host): re-send the full table
+		// (unreliable) so physical drift self-heals — settled items get their
+		// positions re-aligned by the receivers' next reconcile.
+		if (IsHostMode && Environment.TickCount >= _nextItemSnapshotMs)
+		{
+			_nextItemSnapshotMs = Environment.TickCount + ItemSnapshotIntervalMs;
+			_items.SendPeriodicItemSnapshot();
 		}
 
 		UpdateStartGate();
@@ -823,7 +836,8 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_items.SendItemSpawned(idComp.Id, CaptureItem(item, -1),
 			new NetVector2(item.transform.position.x, item.transform.position.y),
 			new NetVector2(item.rb.velocity.x, item.rb.velocity.y),
-			item.transform.eulerAngles.z);
+			item.transform.eulerAngles.z,
+			item.GetComponent<FreshItemDrop>() != null); // the glowing floating pickup effect carries over
 	}
 
 	void IPatchBridge.OnItemDestroyed(Item item)
@@ -985,7 +999,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 			var item = FindWorldItem(itemId);
 			if (item == null) // Unity object — ==; we never had it (it was in the dropper's inventory)
 			{
-				SpawnWorldItem(new WorldItem(itemId, itemState, pos, NetVector2.Zero, parentItemId, rotation));
+				SpawnWorldItem(new WorldItem(itemId, itemState, pos, NetVector2.Zero, parentItemId, rotation, false));
 			}
 			else
 			{
@@ -1096,9 +1110,18 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 
 			foreach (var w in items.Where(w => w.ParentItemId == 0))
 			{
-				if (FindWorldItem(w.ItemId) == null) // Unity object — ==
+				var item = FindWorldItem(w.ItemId);
+				if (item == null) // Unity object — ==
 				{
 					SpawnWorldItem(w);
+				}
+				else if (item.transform.parent == null && item.rb.velocity.magnitude < 0.1f
+					&& Vector2.Distance(item.transform.position, new Vector2(w.Pos.X, w.Pos.Y)) > 0.5f)
+				{
+					// Settled item drifted (independent physics) — re-align to
+					// the authoritative position (moving items skip; they
+					// converge on the next settle).
+					item.transform.position = new Vector3(w.Pos.X, w.Pos.Y, 0f);
 				}
 			}
 
@@ -1139,6 +1162,10 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		RestoreLiquids(item, w.Item.Liquids);
 		RestoreComponentStates(item, w.Item.Components);
 		RestoreContents(item, w.Item.Contents);
+		if (w.FreshItemDrop)
+		{
+			item.gameObject.AddComponent<FreshItemDrop>(); // the glowing floating pickup effect (self-destroys when the setting is off)
+		}
 
 		if (w.ParentItemId != 0)
 		{

@@ -38,35 +38,6 @@ internal sealed class StartGateCoordinator(
 	private long _worldReadyWaitMs;
 	private const int WorldReadyTimeoutMs = 60_000; // guest: force back to the menu if the host never releases the gate
 
-	/// <summary>Guest: the game's loading screen instance kept visible while the start gate holds (Unity object — == null when the scene switched).</summary>
-	private GameObject? _keptLoadingObject;
-
-	/// <summary>
-	/// Guest, at the generation boundary: arm the loading-screen keeper. The
-	/// game hides its loading screen at generation end (WorldGeneration.cs:3637,
-	/// after the fade-out); the keeper lives on the world object and re-shows it
-	/// in LateUpdate — the same frame the coroutine hid it, before any render
-	/// (an OnDisable-based undo is rejected by Unity: "GameObject is already
-	/// being activated or deactivated").
-	/// </summary>
-	internal void AttachKeepLoading()
-	{
-		if (WorldGeneration.world == null) // Unity object — ==
-		{
-			return;
-		}
-
-		var keeper = WorldGeneration.world.gameObject.GetComponent<LoadingScreenKeeper>();
-		if (keeper == null) // Unity object — ==
-		{
-			keeper = WorldGeneration.world.gameObject.AddComponent<LoadingScreenKeeper>(); // generic AddComponent lives on GameObject in Unity 5.6
-		}
-
-		keeper.ShouldKeep = () => _session.Role == SessionRole.Guest && !_run.IsPlaying;
-		keeper.Loading = () => HarmonyTraverse.ReadLoadingObject();
-		keeper.OnFirstKeep = () => _log.LogInformation("[Gate] keeping the loading screen up while waiting for the host.");
-	}
-
 	internal bool WaitingForReady => _session.Role switch
 	{
 		SessionRole.Host => _world.StartGateActive,
@@ -137,11 +108,11 @@ internal sealed class StartGateCoordinator(
 
 			if (_session.Role == SessionRole.Guest)
 			{
-				KeepLoadingScreenForGate();
-
-				// Safety valve: the host may never release the gate (a start
-				// the game refused after our entry hook, a dead process) —
-				// leave back to the menu instead of freezing forever.
+				// The game hides its loading screen at generation end and the
+				// world is live underneath — we deliberately do NOT keep it:
+				// the screen is a full-black panel, keeping it up is what read
+				// as "the black-screen wait" (the wait overlay text draws over
+				// the live frozen world instead).
 				if (_worldReadyWaitMs == 0)
 				{
 					_worldReadyWaitMs = Environment.TickCount;
@@ -167,7 +138,6 @@ internal sealed class StartGateCoordinator(
 			}
 
 			_worldReadyWaitMs = 0;
-			HideLoadingScreenForGate();
 			_lifePod.Replay();
 		}
 		else if (_lifePod.HasDeferredEffects)
@@ -177,47 +147,6 @@ internal sealed class StartGateCoordinator(
 			// first and WaitingForReady never armed — the release branch never
 			// ran. Replay now that we are playing.
 			_lifePod.Replay();
-		}
-
-		// Gate released (any path) — drop the kept loading screen (only the
-		// instance we kept; a scene switch gives the game a fresh one).
-		if (!WaitingForReady)
-		{
-			_worldReadyWaitMs = 0;
-			if (_keptLoadingObject != null) // Unity object — ==
-			{
-				HideLoadingScreenForGate();
-			}
-		}
-	}
-
-	/// <summary>
-	/// Guest: the world is generated but the host has not released the gate —
-	/// the game hides its loading screen at generation end (WorldGeneration.cs:
-	/// 3637), which would show a frozen black world behind the wait overlay.
-	/// Keep the loading screen up instead, so the wait reads as "still loading"
-	/// (the LateUpdate keeper in AttachKeepLoading is the no-black-frame path;
-	/// this per-frame re-show is the belt-and-suspenders backstop).
-	/// </summary>
-	private void KeepLoadingScreenForGate()
-	{
-		var loading = HarmonyTraverse.ReadLoadingObject();
-		if (loading == null) // Unity object — ==
-		{
-			return;
-		}
-
-		_keptLoadingObject = loading; // Unity object — == (a scene switch replaces it; the old one reads destroyed)
-		loading.SetActive(true);
-	}
-
-	private void HideLoadingScreenForGate()
-	{
-		var loading = _keptLoadingObject; // Unity object — ==
-		_keptLoadingObject = null;
-		if (loading != null) // Unity object — ==
-		{
-			loading.SetActive(false); // the keeper's ShouldKeep reads Playing and stays quiet from now on
 		}
 	}
 }

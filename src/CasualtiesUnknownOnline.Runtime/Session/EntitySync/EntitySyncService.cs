@@ -345,9 +345,10 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 	// ---- Sync decisions ----
 
 	/// <summary>Host side: allocate ids, register the member and announce the join
-	/// (self-activation + roster), then push the first snapshot so the clone
-	/// renders immediately instead of waiting up to one 20 Hz tick for the next
-	/// broadcast (same mechanism serves respawn/reconnect).</summary>
+	/// (self-activation + roster backfill + roster announce), then push the first
+	/// snapshot so the clone renders immediately instead of waiting up to one
+	/// 20 Hz tick for the next broadcast (same mechanism serves
+	/// respawn/reconnect).</summary>
 	private void StartMemberSync(MemberPresenceTable.MemberPresence presence)
 	{
 		var entity = new PlayerEntity(presence.SteamId, default, isLocal: false)
@@ -362,22 +363,39 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 		};
 		RemoteJoined?.Invoke(entity);
 
-		var joinMsg = new PlayerJoinMsg
-		{
-			HostSteamId = _localPlayer.SteamId,
-			HostEntityId = _localPlayer.EntityId.ToNetworkEntityIdMsg(),
-			HostPosition = _localPlayer.Position.ToNetVector2Msg(),
-			GuestSteamId = presence.SteamId,
-			GuestEntityId = entity.EntityId.ToNetworkEntityIdMsg(),
-			GuestPosition = presence.ReportedSpawnPos.ToNetVector2Msg(),
-		};
+		var joinMsg = BuildJoinMsg(presence.SteamId, entity.EntityId, presence.ReportedSpawnPos);
 		_sender.Send(presence.SteamId, NetMsg.PlayerJoin, joinMsg); // self-activation
-		BroadcastExcept(presence.SteamId, NetMsg.PlayerJoin, joinMsg); // roster: announce to the others
 		_log.LogInformation("PlayerJoin sent: local {Local} ({LocalId}), member {Guest} ({GuestId}).",
 			_localPlayer.SteamId, _localPlayer.EntityId, presence.SteamId, entity.EntityId);
 
+		// Roster backfill: the newcomer also needs every already-synced member —
+		// their PlayerJoin predates it, and state messages only update existing
+		// entity buffers, so without this it never learns they exist.
+		foreach (var existing in _entities.Values)
+		{
+			if (existing.SteamId == presence.SteamId)
+			{
+				continue;
+			}
+
+			var existingPresence = _session.GetOrCreateMember(existing.SteamId);
+			_sender.Send(presence.SteamId, NetMsg.PlayerJoin,
+				BuildJoinMsg(existing.SteamId, existing.Entity.EntityId, existingPresence.ReportedSpawnPos));
+		}
+
+		BroadcastExcept(presence.SteamId, NetMsg.PlayerJoin, joinMsg); // roster: announce to the others
 		BroadcastPlayerState();
 	}
+
+	private PlayerJoinMsg BuildJoinMsg(ulong guestSteamId, NetworkEntityId guestId, NetVector2 guestPosition) => new()
+	{
+		HostSteamId = _localPlayer.SteamId,
+		HostEntityId = _localPlayer.EntityId.ToNetworkEntityIdMsg(),
+		HostPosition = _localPlayer.Position.ToNetVector2Msg(),
+		GuestSteamId = guestSteamId,
+		GuestEntityId = guestId.ToNetworkEntityIdMsg(),
+		GuestPosition = guestPosition.ToNetVector2Msg(),
+	};
 
 	// ---- State stream ----
 

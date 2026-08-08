@@ -32,4 +32,12 @@ public enum NetMsg : byte
 	BlockDamaged = 40, // guest → host: report (host arbitrates); host → guest: broadcast relay (source excluded)
 	WorldBlockState = 41, // host → guest: full block-state snapshot (damage table) on world entry
 	BlockPlaced = 42, // guest → host: report (host arbitrates); host → guest: broadcast relay (source excluded)
+
+	// World items (runtime-generated item entities, local compute → host register → relay)
+	ItemSpawn = 45, // guest → host: report; host → guest: broadcast relay (source excluded)
+	ItemPickup = 46, // guest → host: report (host arbitrates — first-writer-wins); host → guest: broadcast of the winner
+	ItemDrop = 47, // guest → host: report; host → guest: broadcast relay (source excluded)
+	ItemDestroy = 48, // guest → host: report; host → guest: broadcast relay (source excluded)
+	ItemReject = 49, // host → guest: arbitration refusal (e.g. pickup of an unknown item) — the guest rolls back
+	ItemSnapshot = 50, // host → guest: full world-item snapshot on world entry (late joiner / reconnect)
 }

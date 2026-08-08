@@ -18,7 +18,15 @@ internal static class BodyItemPatches
 	{
 		private static void Prefix(Item item) => PatchBridge.Impl?.OnItemPickupStart(item);
 
-		private static void Postfix(Item item) => PatchBridge.Impl?.OnItemPickedUp(item);
+		// Only a pickup that actually landed (the guard clauses inside PickUpItem
+		// — slot capacity, distance — can fail and leave the item untouched).
+		private static void Postfix(Body __instance, Item item)
+		{
+			if (__instance.HoldingItem(item))
+			{
+				PatchBridge.Impl?.OnItemPickedUp(item);
+			}
+		}
 	}
 
 	[HarmonyPatch(typeof(Body), "DropItem", new Type[] { typeof(Item) })]

@@ -20,4 +20,7 @@ public sealed class ItemSnapshotEntryMsg
 
 	[ProtoMember(5)]
 	public ulong ParentItemId { get; set; } // 0 = the world, else the containing world container item's instance id
+
+	[ProtoMember(6)]
+	public float Rotation { get; set; } // z euler angle
 }

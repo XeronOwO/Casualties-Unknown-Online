@@ -23,4 +23,7 @@ public sealed class ItemDropMsg
 
 	[ProtoMember(4)]
 	public ulong ParentItemId { get; set; } // 0 = the world, else the containing world container item's instance id
+
+	[ProtoMember(5)]
+	public float Rotation { get; set; } // z euler angle (the slot's rotation when dropped)
 }

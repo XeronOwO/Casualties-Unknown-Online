@@ -11,7 +11,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 /// ParentItemId is 0 for items lying free in the world, else the instance id
 /// of the containing world container item.
 /// </summary>
-public readonly record struct WorldItem(ulong ItemId, CharacterItemMsg Item, NetVector2 Pos, NetVector2 Vel, ulong ParentItemId)
+public readonly record struct WorldItem(ulong ItemId, CharacterItemMsg Item, NetVector2 Pos, NetVector2 Vel, ulong ParentItemId, float Rotation)
 {
 	public ItemSnapshotEntryMsg ToSnapshotEntryMsg() => new()
 	{
@@ -20,5 +20,6 @@ public readonly record struct WorldItem(ulong ItemId, CharacterItemMsg Item, Net
 		Position = Pos.ToNetVector2Msg(),
 		Velocity = Vel.ToNetVector2Msg(),
 		ParentItemId = ParentItemId,
+		Rotation = Rotation,
 	};
 }

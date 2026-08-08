@@ -15,13 +15,28 @@ internal static class ContainerItemPatches
 	[HarmonyPatch(typeof(Container), "LoadItem")]
 	internal static class ContainerLoadItemPatch
 	{
-		private static void Postfix(Item item) => PatchBridge.Impl?.OnItemLoadedIntoContainer(item);
+		// Only a load that actually landed (LoadItem's CanHoldItem/distance guard
+		// can fail and leave the item untouched).
+		private static void Postfix(Container __instance, Item item)
+		{
+			if (item.transform.parent == __instance.transform)
+			{
+				PatchBridge.Impl?.OnItemLoadedIntoContainer(item);
+			}
+		}
 	}
 
 	[HarmonyPatch(typeof(Container), "UnloadItem")]
 	internal static class ContainerUnloadItemPatch
 	{
-		private static void Postfix(Item item) => PatchBridge.Impl?.OnItemUnloadedFromContainer(item);
+		// Only an unload that actually happened (the loop can miss the item).
+		private static void Postfix(Container __instance, Item item)
+		{
+			if (item.transform.parent != __instance.transform)
+			{
+				PatchBridge.Impl?.OnItemUnloadedFromContainer(item);
+			}
+		}
 	}
 
 	[HarmonyPatch(typeof(Container), "UnloadAllItems")]

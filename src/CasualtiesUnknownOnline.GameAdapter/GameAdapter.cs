@@ -748,10 +748,17 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	/// them); everything else gets an instance id and is reported. Solo play
 	/// records too (no broadcast) — a solo-turned-lobby host hands its
 	/// accumulated items to a joining guest via the snapshot.
+	/// An item that is already inside an inventory/container when Start runs is
+	/// NOT a world item: the game's own flow instantiates and picks up in the
+	/// same frame (the starting supplies, WorldGeneration.cs:1904-1912; use
+	/// transforms like the empty bottle, Item.cs:1442) and MonoBehaviour.Start
+	/// only fires on the NEXT frame — after generation finished, so the
+	/// IsGenerating guard alone would misclassify them as runtime spawns and
+	/// duplicate them for the peers.
 	/// </summary>
 	void IPatchBridge.OnItemInstantiated(Item item)
 	{
-		if (_applyingRemoteItem || HarmonyTraverse.IsGenerating())
+		if (_applyingRemoteItem || HarmonyTraverse.IsGenerating() || !IsWorldItem(item))
 		{
 			return;
 		}
@@ -766,7 +773,8 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		idComp.Id = NextItemId();
 		_items.SendItemSpawned(idComp.Id, CaptureItem(item, -1),
 			new NetVector2(item.transform.position.x, item.transform.position.y),
-			new NetVector2(item.rb.velocity.x, item.rb.velocity.y));
+			new NetVector2(item.rb.velocity.x, item.rb.velocity.y),
+			item.transform.eulerAngles.z);
 	}
 
 	void IPatchBridge.OnItemDestroyed(Item item)
@@ -817,7 +825,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		if (idComp != null) // Unity object — ==
 		{
 			_items.SendItemDropped(idComp.Id, CaptureItem(item, -1),
-				new NetVector2(item.transform.position.x, item.transform.position.y), 0);
+				new NetVector2(item.transform.position.x, item.transform.position.y), 0, item.transform.eulerAngles.z);
 		}
 	}
 
@@ -838,7 +846,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 			? item.transform.parent.GetComponent<ItemInstanceId>().Id
 			: 0;
 		_items.SendItemDropped(idComp.Id, CaptureItem(item, -1),
-			new NetVector2(item.transform.position.x, item.transform.position.y), containerId);
+			new NetVector2(item.transform.position.x, item.transform.position.y), containerId, item.transform.eulerAngles.z);
 	}
 
 	void IPatchBridge.OnItemUnloadedFromContainer(Item item)
@@ -852,7 +860,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		if (idComp != null) // Unity object — ==
 		{
 			_items.SendItemDropped(idComp.Id, CaptureItem(item, -1),
-				new NetVector2(item.transform.position.x, item.transform.position.y), 0);
+				new NetVector2(item.transform.position.x, item.transform.position.y), 0, item.transform.eulerAngles.z);
 		}
 	}
 
@@ -870,7 +878,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 			if (idComp != null) // Unity object — ==
 			{
 				_items.SendItemDropped(idComp.Id, CaptureItem(child!, -1),
-					new NetVector2(child!.transform.position.x, child.transform.position.y), 0);
+					new NetVector2(child!.transform.position.x, child.transform.position.y), 0, child.transform.eulerAngles.z);
 			}
 		}
 	}
@@ -920,7 +928,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		}
 	}
 
-	private void OnRemoteItemDropped(ulong itemId, CharacterItemMsg itemState, NetVector2 pos, ulong parentItemId)
+	private void OnRemoteItemDropped(ulong itemId, CharacterItemMsg itemState, NetVector2 pos, ulong parentItemId, float rotation)
 	{
 		_applyingRemoteItem = true;
 		try
@@ -928,12 +936,13 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 			var item = FindWorldItem(itemId);
 			if (item == null) // Unity object — ==; we never had it (it was in the dropper's inventory)
 			{
-				SpawnWorldItem(new WorldItem(itemId, itemState, pos, NetVector2.Zero, parentItemId));
+				SpawnWorldItem(new WorldItem(itemId, itemState, pos, NetVector2.Zero, parentItemId, rotation));
 			}
 			else
 			{
 				item.transform.SetParent(null);
 				item.transform.position = new Vector3(pos.X, pos.Y, 0f);
+				item.transform.eulerAngles = new Vector3(0f, 0f, rotation);
 				if (parentItemId != 0)
 				{
 					var parent = FindWorldItem(parentItemId);
@@ -1073,7 +1082,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 			return;
 		}
 
-		var obj = UnityEngine.Object.Instantiate(prefab, new Vector3(w.Pos.X, w.Pos.Y, 0f), Quaternion.identity) as GameObject;
+		var obj = UnityEngine.Object.Instantiate(prefab, new Vector3(w.Pos.X, w.Pos.Y, 0f), Quaternion.Euler(0f, 0f, w.Rotation)) as GameObject;
 		var item = obj!.GetComponent<Item>(); // the definition prefab carries Item — Instantiate succeeded, so it exists
 		item.condition = w.Item.Condition; // direct write, like the save restore (SaveSystem.cs:306) — SetCondition would drain water by ratio
 		item.favourited = w.Item.Favourited;

@@ -48,6 +48,15 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 	private Harmony? _harmony;
 
 	private Body? _localBody;
+
+	/// <summary>
+	/// Host only: a deep copy of worldBlocks taken when generation completes —
+	/// the generated baseline. The damage table diffs against it: a block whose
+	/// current state equals its baseline entry is not a difference (restored),
+	/// anything else is. Reset (re-captured) on every generation completion,
+	/// i.e. per world/layer.
+	/// </summary>
+	private ushort[,]? _baseline;
 	private readonly Dictionary<ulong, Body> _remoteClones = []; // member SteamId → render clone
 	private bool _inWorld;
 	private bool _worldJoinPending; // guest: the host's enter instruction arrived while the menu was still loading
@@ -193,6 +202,10 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 	{
 		UpdateSceneState();
 		UpdateGuestMenuState();
+		if (IsHostMode)
+		{
+			TryCaptureWorldBaseline();
+		}
 		if (_worldJoinPending)
 		{
 			TryStartWorldJoin();
@@ -466,8 +479,10 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 
 	/// <summary>
 	/// Called from the SetBlock patch after a host-side world mutation was
-	/// applied — record it in the damage table (the baseline is excluded:
-	/// generation-time SetBlock calls happen while generatingWorld is set).
+	/// applied — diff it against the generated baseline: equal to the baseline
+	/// (a placed block mined away, a default restored) removes the entry, anything
+	/// else upserts it. Generation-time SetBlock calls are excluded (they run
+	/// while generatingWorld is set and are the baseline itself).
 	/// </summary>
 	internal void OnBlockSet(Vector2Int pos, ushort block)
 	{
@@ -476,7 +491,55 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 			return;
 		}
 
-		_world.ReportBlockState(pos.x, pos.y, block);
+		if (_baseline is null)
+		{
+			TryCaptureWorldBaseline(); // generation may have just completed this frame
+			if (_baseline is null)
+			{
+				return; // still no baseline — nothing to diff against
+			}
+		}
+
+		if (block == _baseline[pos.x, pos.y])
+		{
+			_world.RemoveBlockState(pos.x, pos.y); // restored to baseline — no longer a difference
+		}
+		else
+		{
+			_world.ReportBlockState(pos.x, pos.y, block);
+		}
+	}
+
+	/// <summary>
+	/// Host only: snapshot worldBlocks the moment generation completes (the
+	/// generated baseline the difference table diffs against). Any generation
+	/// start resets the flag; a completed generation re-captures — per
+	/// world/layer, matching the table reset at CaptureWorldParams.
+	/// </summary>
+	private void TryCaptureWorldBaseline()
+	{
+		var world = WorldGeneration.world;
+		if (world == null || HarmonyTraverse.IsGenerating()) // Unity object — ==
+		{
+			_baseline = null;
+			return;
+		}
+
+		if (_baseline is not null)
+		{
+			return; // already captured for this generation
+		}
+
+		var blocks = HarmonyTraverse.ReadWorldBlocks(world);
+		if (blocks is null)
+		{
+			return;
+		}
+
+		_baseline = (ushort[,])blocks.Clone();
+		_world.ResetDamagedBlocks();
+		_log.LogInformation("Captured world baseline ({Width}x{Height}) — the damage table now diffs against it.",
+			_baseline.GetLength(0), _baseline.GetLength(1));
 	}
 
 	/// <summary>

@@ -23,11 +23,18 @@ public sealed class WorldService(ISessionControl session, PacketSender sender, I
 	private readonly PacketSender _sender = sender;
 	private readonly ILogger<WorldService> _log = log;
 
-	/// <summary>Host-side damage table: block-space position → current block id, for every block deviating from the generated baseline.</summary>
+	/// <summary>
+	/// Host-side block-difference table: block-space position → current block id,
+	/// for every block whose state deviates from the generated baseline (the
+	/// adapter's SetBlock hook diffs against the baseline snapshot and upserts
+	/// here, or removes the entry when a block is restored to it). The table is
+	/// exactly the "current vs baseline" difference — the full sync payload for
+	/// late joiners. Mined, destroyed, built and reverted blocks all land here.
+	/// </summary>
 	private readonly Dictionary<(int, int), ushort> _damagedBlocks = [];
 
 	/// <summary>Table cap — a fully-mined world would otherwise grow without bound.</summary>
-	private const int MaxDamagedBlocks = 8192;
+	private const int MaxDamagedBlocks = 65536;
 
 	/// <summary>World-start parameters: set by the host at run start, by the world-params handler on the guest.</summary>
 	public WorldStartParams? WorldParams { get; set; }
@@ -49,10 +56,9 @@ public sealed class WorldService(ISessionControl session, PacketSender sender, I
 	public void FireBlockStateReceived(IReadOnlyList<DamagedBlock> blocks) => BlockStateReceived?.Invoke(blocks);
 
 	/// <summary>
-	/// Host only: a block changed after generation (mined/destroyed/built —
-	/// the SetBlock write path, which damage application and earthquakes also
-	/// go through). Upserted into the damage table; re-joining guests get the
-	/// whole table as a snapshot on world entry.
+	/// Host only: a block now deviates from its generated baseline (mined,
+	/// destroyed, built — the SetBlock write path, which damage application
+	/// and earthquakes also go through) — upsert it into the difference table.
 	/// </summary>
 	public void ReportBlockState(int x, int y, ushort block)
 	{
@@ -67,6 +73,17 @@ public sealed class WorldService(ISessionControl session, PacketSender sender, I
 		}
 
 		_damagedBlocks[(x, y)] = block;
+	}
+
+	/// <summary>Host only: a block was restored to its generated baseline — it is no longer part of the difference.</summary>
+	public void RemoveBlockState(int x, int y)
+	{
+		if (_session.Role != SessionRole.Host || !_session.SessionActive)
+		{
+			return;
+		}
+
+		_damagedBlocks.Remove((x, y));
 	}
 
 	/// <summary>Host only: a new world layer is generating — the table starts empty again.</summary>

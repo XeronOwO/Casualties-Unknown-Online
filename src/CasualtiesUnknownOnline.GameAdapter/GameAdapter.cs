@@ -831,6 +831,32 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	/// immediately (local compute, zero pickup latency).</summary>
 	private ulong NextItemId() => (_nextItemId++ << 32) | (uint)_session.LocalSteamId;
 
+	/// <summary>
+	/// Return the item's instance id, allocating one when it does not have it
+	/// yet — a generation-time item (world-gen determinism covers it, no id)
+	/// that enters the world domain through a runtime act (dropped from an
+	/// inventory, unloaded from a container) needs an id so the peers can
+	/// materialize it. Returns 0 when the item is not eligible (still
+	/// generating).
+	/// </summary>
+	private ulong EnsureItemId(Item item)
+	{
+		var idComp = item.GetComponent<ItemInstanceId>();
+		if (idComp != null) // Unity object — ==
+		{
+			return idComp.Id;
+		}
+
+		if (HarmonyTraverse.IsGenerating())
+		{
+			return 0; // generation-time instantiation — the world-gen determinism covers it
+		}
+
+		idComp = item.gameObject.AddComponent<ItemInstanceId>();
+		idComp.Id = NextItemId();
+		return idComp.Id;
+	}
+
 	/// <summary>True when the item's parent chain ends outside any inventory/body — it is part of the world.</summary>
 	private static bool IsWorldItem(Item item)
 	{
@@ -982,10 +1008,10 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 			return;
 		}
 
-		var idComp = item.GetComponent<ItemInstanceId>();
-		if (idComp != null) // Unity object — ==
+		var itemId = EnsureItemId(item);
+		if (itemId != 0)
 		{
-			_items.SendItemDropped(idComp.Id, CaptureItem(item, -1),
+			_items.SendItemDropped(itemId, CaptureItem(item, -1),
 				new NetVector2(item.transform.position.x, item.transform.position.y), 0, item.transform.eulerAngles.z);
 		}
 	}
@@ -997,8 +1023,8 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 			return;
 		}
 
-		var idComp = item.GetComponent<ItemInstanceId>();
-		if (idComp == null || !IsWorldItem(item)) // Unity object — ==; inventory containers stay in the character data domain
+		var itemId = EnsureItemId(item);
+		if (itemId == 0 || !IsWorldItem(item)) // inventory containers stay in the character data domain
 		{
 			return;
 		}
@@ -1006,7 +1032,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		var containerId = item.transform.parent != null && item.transform.parent.GetComponent<ItemInstanceId>() != null
 			? item.transform.parent.GetComponent<ItemInstanceId>().Id
 			: 0;
-		_items.SendItemDropped(idComp.Id, CaptureItem(item, -1),
+		_items.SendItemDropped(itemId, CaptureItem(item, -1),
 			new NetVector2(item.transform.position.x, item.transform.position.y), containerId, item.transform.eulerAngles.z);
 	}
 
@@ -1017,10 +1043,10 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 			return;
 		}
 
-		var idComp = item.GetComponent<ItemInstanceId>();
-		if (idComp != null) // Unity object — ==
+		var itemId = EnsureItemId(item);
+		if (itemId != 0)
 		{
-			_items.SendItemDropped(idComp.Id, CaptureItem(item, -1),
+			_items.SendItemDropped(itemId, CaptureItem(item, -1),
 				new NetVector2(item.transform.position.x, item.transform.position.y), 0, item.transform.eulerAngles.z);
 		}
 	}
@@ -1035,11 +1061,16 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		for (var i = 0; i < container.transform.childCount; i++)
 		{
 			var child = container.transform.GetChild(i).GetComponent<Item>();
-			var idComp = child != null ? child.GetComponent<ItemInstanceId>() : null;
-			if (idComp != null) // Unity object — ==
+			if (child == null) // Unity object — ==
 			{
-				_items.SendItemDropped(idComp.Id, CaptureItem(child!, -1),
-					new NetVector2(child!.transform.position.x, child.transform.position.y), 0, child.transform.eulerAngles.z);
+				continue;
+			}
+
+			var itemId = EnsureItemId(child);
+			if (itemId != 0)
+			{
+				_items.SendItemDropped(itemId, CaptureItem(child, -1),
+					new NetVector2(child.transform.position.x, child.transform.position.y), 0, child.transform.eulerAngles.z);
 			}
 		}
 	}

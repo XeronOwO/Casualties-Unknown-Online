@@ -1,30 +1,53 @@
 using CasualtiesUnknownOnline.Runtime.Protocol;
+using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.GameAdapter.Items;
 using Microsoft.Extensions.Logging;
+using UnityEngine;
 
 namespace CasualtiesUnknownOnline.GameAdapter;
 
 /// <summary>
-/// World-item domain: runtime-generated item entities (drops, creature loot,
-/// use-spawned items) as synchronized game objects — instance ids, spawn/drop/
-/// pickup/container reports, the settle position authority, the periodic
-/// keyframe, the world-entry snapshot reconcile and the pickup rollback.
-/// Local compute → report → host relay/arbitration (the Runtime's ItemService
-/// owns the authoritative table; this class shuttles between the game objects
-/// and it).
+/// World-item report side: every way an item enters or leaves the world domain
+/// (drops, throws, container loads/unloads, pickups, destruction) funnels into
+/// one report here — instance-id allocation, the merged one-report-per-drop
+/// initial vectors and the snapshot-race protection marking. Local compute →
+/// report → host relay/arbitration (the Runtime's ItemService owns the
+/// authoritative table; this class shuttles between the game objects and it).
+/// The host position authority and the guest follow live in
+/// <see cref="ItemPositionAuthority"/> / <see cref="ItemPositionFollow"/>, the
+/// materialization side in <see cref="ItemApplication"/>.
 /// </summary>
 internal sealed class ItemWorldSync(
 	SessionService session,
 	ItemService items,
 	ItemApplication application,
+	DropProtectionGuard guard,
 	ILogger<ItemWorldSync> log)
 {
 	private readonly SessionService _session = session;
 	private readonly ItemService _items = items;
 	private readonly ItemApplication _application = application;
+	private readonly DropProtectionGuard _guard = guard;
 	private readonly ILogger<ItemWorldSync> _log = log;
+
+	internal void BindToSession()
+	{
+		_items.ItemSpawned += OnRemoteItemBecameWorld;
+		_items.ItemDropped += OnRemoteItemBecameWorld;
+	}
+
+	internal void Unbind()
+	{
+		_items.ItemSpawned -= OnRemoteItemBecameWorld;
+		_items.ItemDropped -= OnRemoteItemBecameWorld;
+	}
+
+	/// <summary>An item was materialized from a remote message (spawn/drop broadcast) — same snapshot-race protection as a local drop.</summary>
+	private void OnRemoteItemBecameWorld(WorldItem item) => _guard.Mark(item.ItemId);
+
+	private void OnRemoteItemBecameWorld(ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, ulong parentItemId, float rotation, float angularVelocity, NetVector2 parentPos) => _guard.Mark(itemId);
 
 	/// <summary>Instance-id counter: ids are (counter, account id) — globally unique per session without host allocation.</summary>
 	private ulong _nextItemId;
@@ -209,48 +232,121 @@ internal sealed class ItemWorldSync(
 		}
 	}
 
+	/// <summary>
+	/// A drop is buffered into ONE report carrying the COMPLETE initial
+	/// vectors. The game performs one drop as two calls — DropItem (the item
+	/// leaves the slot, velocity still 0) and, for throws, ThrowItem (sets the
+	/// flight velocity, Body.cs:1659-1661) — and DropWearable fires its own
+	/// hook too. Reporting each call separately made the host materialize a
+	/// zero-velocity ghost whose wrong trajectory entered the position stream
+	/// and yanked the dropper's own copy back ("dropped — immediately
+	/// desynced", "bounces back"). So the report waits: ThrowItem consumes it
+	/// immediately with the final velocity, otherwise the pump flushes it at
+	/// end of frame (a plain drop, velocity 0). One drop operation = one
+	/// report = one materialization from complete initial conditions.
+	/// </summary>
+	/// <summary>Frame the drop happened — the report waits one frame so the game's DropItem → ThrowItem sequence (one player input) has set the final velocity.</summary>
+	private (Item Item, Vector2 Pos, int Frame)? _pendingDrop;
+
 	internal void OnItemDropped(Item item)
 	{
-		if (_application.IsApplyingRemote)
+		if (_application.IsApplyingRemote || HarmonyTraverse.IsGenerating())
 		{
 			return;
 		}
 
 		var itemId = EnsureItemId(item);
-		if (itemId != 0)
+		if (itemId == 0)
 		{
-			// Diagnostic: how many contents rode along (a dropped bag must carry
-			// its contents — "the bag is empty after dropping" class of bugs).
-			var container = item.GetComponent<Container>();
-			_log.LogInformation("[ItemDropped] {Type} (id {ItemId}) at ({X:F1},{Y:F1}) — container contents {Contents}.",
-				item.id, itemId, item.transform.position.x, item.transform.position.y,
-				container != null ? container.transform.childCount : 0); // Unity object — ==
-			_items.SendItemDropped(itemId, ItemStateCodec.CaptureItem(item, -1),
-				new NetVector2(item.transform.position.x, item.transform.position.y),
-				new NetVector2(item.rb.velocity.x, item.rb.velocity.y),
-				0, item.transform.eulerAngles.z, default, item.rb.angularVelocity);
+			return;
 		}
+
+		if (_session.Role == SessionRole.Guest)
+		{
+			_guard.Mark(itemId); // the roll-out is local physics until the host's stream takes over — the reconcile must not kill the fresh copy
+		}
+
+		if (_pendingDrop is { } pending && pending.Item != item) // Unity objects — ==; two drops in one frame (rare) — flush the first first
+		{
+			FlushPendingDrop();
+		}
+
+		_pendingDrop = (item, (Vector2)item.transform.position, Time.frameCount); // the throw velocity lands a moment later (ThrowItem) — merge into one report
 	}
 
 	internal void OnItemThrown(Item item)
 	{
-		if (_application.IsApplyingRemote)
+		if (_application.IsApplyingRemote || HarmonyTraverse.IsGenerating())
 		{
 			return;
 		}
 
 		var itemId = EnsureItemId(item);
-		if (itemId != 0)
+		if (itemId == 0)
 		{
-			// The throw velocity is set AFTER the drop report (Body.cs:1659-1661)
-			// — this second report carries it; the peer's copy (already
-			// materialized by the first) gets re-placed with the flight
-			// velocity instead of dropping in place.
-			_items.SendItemDropped(itemId, ItemStateCodec.CaptureItem(item, -1),
-				new NetVector2(item.transform.position.x, item.transform.position.y),
-				new NetVector2(item.rb.velocity.x, item.rb.velocity.y),
-				0, item.transform.eulerAngles.z, default, item.rb.angularVelocity);
+			return;
 		}
+
+		if (_session.Role == SessionRole.Guest)
+		{
+			_guard.Mark(itemId);
+		}
+
+		if (_pendingDrop is { } pending && pending.Item == item) // Unity objects — ==
+		{
+			_pendingDrop = null;
+			SendDropReport(itemId, item, pending.Pos);
+			return;
+		}
+
+		// No matching pending drop — the pump already flushed it on a previous
+		// frame (a cross-frame DropItem → ThrowItem, rare) or a hook-order
+		// anomaly. Report alone anyway, or the item never enters the domain;
+		// the host's re-place covers the rare double report.
+		SendDropReport(itemId, item, (Vector2)item.transform.position);
+	}
+
+	/// <summary>Next frame: a drop that was not thrown (a plain drop, velocity ~0)
+	/// reports now. The one-frame wait is not a timing hack — the game performs
+	/// one drop as a DropItem → ThrowItem sequence within the player's input
+	/// frame, and the report must carry the FINAL velocity (a zero-velocity
+	/// report made the host materialize a ghost whose wrong trajectory yanked
+	/// the dropper's copy back — "dropped — immediately desynced"). An item
+	/// that meanwhile left the world (loaded into a container — that path
+	/// reported it) does not re-report.</summary>
+	internal void FlushPendingDrop()
+	{
+		if (_pendingDrop is not { } pending)
+		{
+			return;
+		}
+
+		if (Time.frameCount <= pending.Frame)
+		{
+			return; // the game may still be setting the throw velocity this frame
+		}
+
+		_pendingDrop = null;
+		if (pending.Item == null || !IsStandaloneWorldItem(pending.Item)) // Unity objects — ==; destroyed while pending, or no longer a standalone world item (the container-load path reported it)
+		{
+			return;
+		}
+
+		SendDropReport(EnsureItemId(pending.Item), pending.Item, pending.Pos);
+	}
+
+	private void SendDropReport(ulong itemId, Item item, Vector2 pos)
+	{
+		// Diagnostic: how many contents rode along (a dropped bag must carry
+		// its contents — "the bag is empty after dropping" class of bugs).
+		var container = item.GetComponent<Container>();
+		_log.LogInformation("[ItemDropped] {Type} (id {ItemId}) at ({X:F1},{Y:F1}), vel ({VX:F1},{VY:F1}) — container contents {Contents}.",
+			item.id, itemId, pos.x, pos.y, item.rb.velocity.x, item.rb.velocity.y,
+			container != null ? container.transform.childCount : 0); // Unity object — ==
+		_items.SendItemDropped(itemId, ItemStateCodec.CaptureItem(item, -1),
+			new NetVector2(pos.x, pos.y),
+			new NetVector2(item.rb.velocity.x, item.rb.velocity.y),
+			0, item.transform.eulerAngles.z, default, item.rb.angularVelocity);
 	}
 
 	internal void OnItemLoadedIntoContainer(Item item, bool wasWorldItem)
@@ -329,6 +425,11 @@ internal sealed class ItemWorldSync(
 			return;
 		}
 
+		if (_pendingDrop is { } pending && pending.Item == item) // Unity objects — ==; the unload report below IS this item's report — a later flush must not send it again
+		{
+			_pendingDrop = null;
+		}
+
 		var itemId = EnsureItemId(item);
 		if (itemId != 0)
 		{
@@ -360,7 +461,7 @@ internal sealed class ItemWorldSync(
 				_items.SendItemDropped(itemId, ItemStateCodec.CaptureItem(child, -1),
 					new NetVector2(child.transform.position.x, child.transform.position.y),
 					new NetVector2(child.rb.velocity.x, child.rb.velocity.y),
-					0, child.transform.eulerAngles.z);
+					0, child.transform.eulerAngles.z, default, child.rb.angularVelocity);
 			}
 		}
 	}

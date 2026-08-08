@@ -42,9 +42,11 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 
 	private readonly CharacterDataSync _characterDataSync;
 	private readonly RemotePlayerRenderer _renderer;
+	private readonly DropProtectionGuard _dropGuard;
 	private readonly ItemApplication _itemApplication;
 	private readonly ItemWorldSync _itemWorldSync;
-	private readonly ItemPositionSync _positionSync;
+	private readonly ItemPositionAuthority _itemPositionAuthority;
+	private readonly ItemPositionFollow _itemPositionFollow;
 	private readonly WorldEventSync _worldEventSync;
 	private readonly LifePodPresentation _lifePod;
 	private readonly RunCoordinator _run;
@@ -59,15 +61,18 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_entities = entities;
 		_log = log;
 		// Domains (state belongs to its owner; the coordinator forwards, never holds).
-		// Construction order follows the dependencies: itemWorld → positionSync,
-		// run → gate (the gate reads the run's phase machine).
+		// Construction order follows the dependencies: item domains (guard → world →
+		// application → authority/follow, one-way), run → gate (the gate reads the
+		// run's phase machine).
 		ItemStateCodec.BindLog(log);
 		WorldGenRandomIsolation.Log = msg => _log.LogInformation(msg); // generation-stream segment fingerprints (peer log comparison)
 		_characterDataSync = new CharacterDataSync(session, characterData, mapper, loggerFactory.CreateLogger<CharacterDataSync>());
 		_renderer = new RemotePlayerRenderer(session, entities, _characterDataSync, loggerFactory.CreateLogger<RemotePlayerRenderer>());
-		_itemApplication = new ItemApplication(items, loggerFactory.CreateLogger<ItemApplication>());
-		_itemWorldSync = new ItemWorldSync(session, items, _itemApplication, loggerFactory.CreateLogger<ItemWorldSync>());
-		_positionSync = new ItemPositionSync(session, items, _itemApplication, loggerFactory.CreateLogger<ItemPositionSync>());
+		_dropGuard = new DropProtectionGuard();
+		_itemApplication = new ItemApplication(items, _dropGuard, loggerFactory.CreateLogger<ItemApplication>());
+		_itemWorldSync = new ItemWorldSync(session, items, _itemApplication, _dropGuard, loggerFactory.CreateLogger<ItemWorldSync>());
+		_itemPositionAuthority = new ItemPositionAuthority(items);
+		_itemPositionFollow = new ItemPositionFollow(items, _dropGuard);
 		_worldEventSync = new WorldEventSync(session, world, loggerFactory.CreateLogger<WorldEventSync>());
 		_lifePod = new LifePodPresentation(loggerFactory.CreateLogger<LifePodPresentation>());
 		_guestMenu = new GuestMenuGuard(session, loggerFactory.CreateLogger<GuestMenuGuard>());
@@ -160,7 +165,16 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_guestMenu.Update();
 		_run.Update();
 		_gate.Update(_run.LocalBody);
-		_positionSync.Update();
+		_itemWorldSync.FlushPendingDrop(); // a drop that was not thrown reports at end of frame (one drop = one report)
+		if (IsHostMode)
+		{
+			_itemPositionAuthority.Update(); // the host's physics is the single position authority
+		}
+		else
+		{
+			_itemPositionFollow.Update(); // the guest copies are kinematic renders of it
+		}
+
 		_worldEventSync.Update();
 		_renderer.Update();
 	}
@@ -181,7 +195,8 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_characterDataSync.BindToSession();
 		_renderer.BindToSession();
 		_itemApplication.BindToSession();
-		_positionSync.BindToSession();
+		_itemWorldSync.BindToSession();
+		_itemPositionFollow.BindToSession();
 		_worldEventSync.BindToSession();
 		_run.BindToSession();
 	}
@@ -191,7 +206,8 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_characterDataSync.Unbind();
 		_renderer.Unbind();
 		_itemApplication.Unbind();
-		_positionSync.Unbind();
+		_itemWorldSync.Unbind();
+		_itemPositionFollow.Unbind();
 		_worldEventSync.Unbind();
 		_run.Unbind();
 	}
@@ -312,23 +328,9 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 
 	void IPatchBridge.OnItemPickedUp(Item item) => _itemWorldSync.OnItemPickedUp(item);
 
-	void IPatchBridge.OnItemDropped(Item item)
-	{
-		_itemWorldSync.OnItemDropped(item);
-		if (_session.Role == SessionRole.Guest)
-		{
-			_positionSync.MarkLocalDrop(item); // the roll-out stays local — the host's materialization would yank it back to the drop point
-		}
-	}
+	void IPatchBridge.OnItemDropped(Item item) => _itemWorldSync.OnItemDropped(item);
 
-	void IPatchBridge.OnItemThrown(Item item)
-	{
-		_itemWorldSync.OnItemThrown(item);
-		if (_session.Role == SessionRole.Guest)
-		{
-			_positionSync.MarkLocalDrop(item);
-		}
-	}
+	void IPatchBridge.OnItemThrown(Item item) => _itemWorldSync.OnItemThrown(item);
 
 	void IPatchBridge.OnItemLoadedIntoContainer(Item item, bool wasWorldItem) =>
 		_itemWorldSync.OnItemLoadedIntoContainer(item, wasWorldItem);

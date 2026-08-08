@@ -42,8 +42,6 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 
 	public event Action<ulong>? ItemRejected;
 
-	public event Action<ulong, NetVector2, float>? ItemSettledReceived;
-
 	public event Action<IReadOnlyList<WorldItem>>? ItemSnapshotReceived;
 
 	public event Action<IReadOnlyList<ItemMoveEntryMsg>>? ItemMoveReceived;
@@ -51,11 +49,11 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 	// ===== Host-authoritative position stream =====
 
 	/// <summary>
-	/// Host only: broadcast the moving world items' authoritative positions
+	/// Host only: broadcast EVERY world item's authoritative position
 	/// (unreliable — drops are harmless, the next tick overwrites). The host's
-	/// physics is the position authority; the guests follow instead of
-	/// diverging on their own physics (settle reports align sleeping items,
-	/// this stream covers the ones still moving).
+	/// physics is the single position authority; the guests' copies are
+	/// kinematic renders that follow this stream — nothing on their side
+	/// simulates, so nothing diverges.
 	/// </summary>
 	public void SendItemMove(IReadOnlyList<ItemMoveEntryMsg> items)
 	{
@@ -187,21 +185,6 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 		}
 	}
 
-	public void SendItemSettle(ulong itemId, NetVector2 pos, float rotation)
-	{
-		if (_session.Role != SessionRole.Guest || !_session.SessionActive)
-		{
-			return;
-		}
-
-		_sender.Send(_session.HostSteamId, NetMsg.ItemSettle, new ItemSettleMsg
-		{
-			ItemId = itemId,
-			Position = pos.ToNetVector2Msg(),
-			Rotation = rotation,
-		});
-	}
-
 	// ===== Receive side (wire handlers) =====
 
 	public void FireItemSpawnedReceived(ulong sender, ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, float rotation, bool freshItemDrop, float angularVelocity)
@@ -260,10 +243,10 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 	{
 		if (_session.Role == SessionRole.Host)
 		{
-			// Idempotent: a duplicate report (the dropper's hook fired twice for
-			// one drop) must not re-broadcast — the receivers would materialize
-			// AND re-place the same item (observed: "not present — materializing"
-			// followed by "present — re-placing" for one drop).
+			// Idempotent: a retransmitted report (Steam reliable resend) must not
+			// re-broadcast — the receivers would materialize AND re-place the
+			// same item (observed: "not present — materializing" followed by
+			// "present — re-placing" for one drop).
 			var isDuplicate = _worldItems.TryGetValue(itemId, out var existing)
 				&& existing.Pos.X == pos.X && existing.Pos.Y == pos.Y && existing.Rotation == rotation;
 			_worldItems[itemId] = new WorldItem(itemId, item, pos, vel, parentItemId, rotation, false, parentPos, angularVelocity);
@@ -309,27 +292,6 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 		ItemSnapshotReceived?.Invoke(items);
 	}
 
-	public void FireItemSettleReceived(ulong sender, ulong itemId, NetVector2 pos, float rotation)
-	{
-		if (_session.Role != SessionRole.Host)
-		{
-			return;
-		}
-
-		if (!_worldItems.TryGetValue(itemId, out var w))
-		{
-			return; // already picked up/destroyed — nothing to align
-		}
-
-		// Generator-side position authority: the guest's physics settled the
-		// item, so the table follows the guest, not the host-side phantom's
-		// drift. The phantom itself is aligned by the adapter (ItemSettledReceived);
-		// the next periodic keyframe then re-aligns the other guests.
-		_worldItems[itemId] = w with { Pos = pos, Rotation = rotation };
-		_log.LogInformation("Item {ItemId} settled at ({X:F1}, {Y:F1}) — table aligned to the generator.", itemId, pos.X, pos.Y);
-		ItemSettledReceived?.Invoke(itemId, pos, rotation);
-	}
-
 	// ===== Host-only surface =====
 
 	public void SendItemSnapshot(ulong targetSteamId)
@@ -345,19 +307,6 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 		};
 		_sender.Send(targetSteamId, NetMsg.ItemSnapshot, msg);
 		_log.LogInformation("Sent world-item snapshot ({Count} items) to {Peer}.", _worldItems.Count, targetSteamId);
-	}
-
-	/// <summary>Host only: the table's position for an item (a guest-generated item's settle report) — the host aligns its drifted phantom to it.</summary>
-	public bool TryGetItemPosition(ulong itemId, out NetVector2 pos)
-	{
-		if (_worldItems.TryGetValue(itemId, out var w))
-		{
-			pos = w.Pos;
-			return true;
-		}
-
-		pos = default;
-		return false;
 	}
 
 	/// <summary>Host only: the item's live state — the periodic keyframe must broadcast the CURRENT positions, not the spawn-time ones (the spawn position would pull settled items back into the air every tick).</summary>

@@ -105,6 +105,8 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 
 	bool IPatchBridge.IsSessionActive => _session.SessionActive;
 
+	bool IPatchBridge.IsHostMode => IsHostMode;
+
 	bool IPatchBridge.IsReplayingLifePodSound => _replayingLifePodSound;
 
 	/// <summary>
@@ -431,6 +433,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_world.BlockStateReceived -= OnRemoteBlockState;
 		_world.BlockPlacedReceived -= OnRemoteBlockPlaced;
 		_world.WorldReadyReceived -= OnRemoteWorldReady;
+		_world.EarthquakeStartReceived -= OnEarthquakeStartReceived;
 		_characterData.CharacterDataReceived -= OnCharacterDataReceived;
 		PatchBridge.Unbind(this);
 	}
@@ -450,6 +453,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_world.BlockStateReceived += OnRemoteBlockState;
 		_world.BlockPlacedReceived += OnRemoteBlockPlaced;
 		_world.WorldReadyReceived += OnRemoteWorldReady;
+		_world.EarthquakeStartReceived += OnEarthquakeStartReceived;
 		_items.ItemSpawned += OnRemoteItemSpawned;
 		_items.ItemPickedUp += OnRemoteItemPickedUp;
 		_items.ItemDropped += OnRemoteItemDropped;
@@ -754,17 +758,20 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 
 	/// <summary>
 	/// Called from the SetBlock patch after any world mutation (mining,
-	/// placement, remote application). Host/solo: diff against the generated
-	/// baseline (equal → removed from the difference table, otherwise
-	/// upserted) and broadcast placements live. Guest: report local
-	/// placements to the host — breaking SetBlock(0) is already covered by
-	/// the BlockDamaged stream, only non-air writes are placements. Remote
-	/// applications are guarded (they answer their own way); generation-time
-	/// SetBlock calls are the baseline itself and excluded.
+	/// placement, EARTHQUAKES, remote application). Host/solo: diff against the
+	/// generated baseline (equal → removed from the difference table, otherwise
+	/// upserted) and broadcast the mutation live — air writes included: the
+	/// earthquake (WorldGeneration.cs:895) and environment breaks SetBlock(0)
+	/// on each side with INDEPENDENT random, so without the air-write relay the
+	/// two sides' terrain diverges ("the item keeps being pulled back" — items
+	/// fall through holes that exist on one side only). Guest: report local
+	/// mutations for arbitration (mining double-reports via BlockDamaged —
+	/// idempotent). Remote applications are guarded (they answer their own
+	/// way); generation-time SetBlock calls are the baseline itself and excluded.
 	/// </summary>
 	void IPatchBridge.OnBlockSet(Vector2Int pos, ushort block)
 	{
-		if (_applyingRemoteBlockPlace || HarmonyTraverse.IsGenerating())
+		if (_applyingRemoteBlockDamage || _applyingRemoteBlockPlace || HarmonyTraverse.IsGenerating())
 		{
 			return;
 		}
@@ -795,9 +802,9 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 			}
 		}
 
-		if (block != 0 && _session.SessionActive)
+		if (_session.SessionActive)
 		{
-			// A placement in a live session: the source applied it locally
+			// A world mutation in a live session: the source applied it locally
 			// (local compute) — host broadcasts it, guest reports it for
 			// arbitration. Solo (no session) never sends.
 			if (_session.Role == SessionRole.Host)
@@ -812,9 +819,11 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	}
 
 	/// <summary>
-	/// A placement arrived: host arbitrates (the target must be air — the
-	/// game's own placement condition, Item.cs) — then applies, records the
-	/// difference and relays (source excluded); guest applies it directly.
+	/// A mutation arrived: host arbitrates — a PLACEMENT (block != 0) must land
+	/// on air (the game's own placement condition, Item.cs), an AIR write
+	/// (earthquake/environment break, block == 0) must land on something — then
+	/// applies, records the difference and relays (source excluded); guest
+	/// applies it directly.
 	/// </summary>
 	private void OnRemoteBlockPlaced(ulong sender, int x, int y, ushort block)
 	{
@@ -829,15 +838,17 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 			var pos = new Vector2Int(x, y);
 			if (IsHostMode)
 			{
-				if (WorldGeneration.world.GetBlock(pos) != 0)
+				if ((block == 0) == (WorldGeneration.world.GetBlock(pos) == 0))
 				{
-					_log.LogWarning("Rejected remote block placement at ({X},{Y}): target not air (arbitration — reject+correction tier pending).", x, y);
-					return; // target already occupied — first-writer-wins, no relay
+					// Placement onto occupied / break of air — first-writer-wins,
+					// no relay (the two sides' independent earthquakes racing the
+					// same spot: one wins, both apply the winner via the relay).
+					return;
 				}
 
 				WorldGeneration.world.SetBlock(pos, block);
-				_world.ReportBlockState(x, y, block); // the placement is a world difference too
-				_world.BroadcastBlockPlaced(sender, x, y, block); // the reporter already placed locally
+				_world.ReportBlockState(x, y, block); // the mutation is a world difference too
+				_world.BroadcastBlockPlaced(sender, x, y, block); // the reporter already applied locally
 			}
 			else
 			{
@@ -1835,6 +1846,29 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		}
 	}
 
+	/// <summary>An earthquake just started (detected in WorldGenerationUpdatePatch) — the HOST broadcasts it (quake timing is synced to the host: guests show the effect and re-align their timer, so every side shakes together and breaks its own nearby region; the regions union via the air-write relay, overlaps count once).</summary>
+	void IPatchBridge.OnEarthquakeStarted(float duration, float nextDelay)
+	{
+		if (IsHostMode && _session.SessionActive)
+		{
+			_log.LogInformation("[Earthquake] host quake started ({Duration:F1}s, next in {NextDelay:F0}s) — broadcasting.", duration, nextDelay);
+			_world.BroadcastEarthquakeStart(duration, nextDelay);
+		}
+	}
+
+	/// <summary>Guest side: an earthquake began (host timing) — show the effect (earthquakeTime drives the Update intensity ramp) and re-align the local quake timer to the host's next delay, so the next quake fires on all sides together.</summary>
+	private void OnEarthquakeStartReceived(float duration, float nextDelay)
+	{
+		if (WorldGeneration.world == null) // Unity object — ==
+		{
+			return;
+		}
+
+		WorldGeneration.world.earthquakeTime = duration;
+		WorldGeneration.world.earthquakeDelay = nextDelay;
+		_log.LogInformation("[Earthquake] guest: host quake ({Duration:F1}s) — showing effect, timer re-aligned ({NextDelay:F0}s).", duration, nextDelay);
+	}
+
 	/// <summary>Deferred by the Sound.Play patch while the start gate holds (it would play into the frozen world).</summary>
 	void IPatchBridge.DeferLifePodSound()
 	{
@@ -2685,4 +2719,5 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	}
 
 	public void Dispose() => throw new NotImplementedException();
+	public void OnEarthquakeStarted(float duration) => throw new NotImplementedException();
 }

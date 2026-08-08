@@ -175,6 +175,8 @@ public sealed class WorldService(ISessionControl session, PacketSender sender, I
 	/// <summary>Guest: the host's authoritative block-state snapshot arrived (world entry).</summary>
 	public event Action<IReadOnlyList<DamagedBlock>>? BlockStateReceived;
 
+	public event Action<float, float>? EarthquakeStartReceived;
+
 	public void FireBlockStateReceived(IReadOnlyList<DamagedBlock> blocks) => BlockStateReceived?.Invoke(blocks);
 
 	/// <summary>Either side: a block was placed (report up / broadcast down share one message id).</summary>
@@ -275,6 +277,22 @@ public sealed class WorldService(ISessionControl session, PacketSender sender, I
 
 		var msg = new BlockPlacedMsg { X = x, Y = y, Block = block };
 		_session.BroadcastExcept(excludeSteamId, NetMsg.BlockPlaced, msg);
+	}
+
+	public void BroadcastEarthquakeStart(float duration, float nextDelay)
+	{
+		if (_session.Role != SessionRole.Host || !_session.SessionActive)
+		{
+			return;
+		}
+
+		_session.Broadcast(NetMsg.EarthquakeStart, new EarthquakeStartMsg { Duration = duration, NextDelay = nextDelay });
+	}
+
+	public void FireEarthquakeStartReceived(float duration, float nextDelay)
+	{
+		_log.LogInformation("Earthquake started ({Duration:F1}s, next in {NextDelay:F0}s) — showing the effect, re-aligning the quake timer.", duration, nextDelay);
+		EarthquakeStartReceived?.Invoke(duration, nextDelay);
 	}
 
 	/// <summary>

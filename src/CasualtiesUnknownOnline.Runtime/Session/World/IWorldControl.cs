@@ -92,4 +92,12 @@ public interface IWorldControl
 	void FireBlockStateReceived(IReadOnlyList<DamagedBlock> blocks);
 
 	event Action<IReadOnlyList<DamagedBlock>>? BlockStateReceived;
+
+	/// <summary>Host only: an earthquake began — tell the guests to show the effect and re-align their quake timer (timing is synced to the host; every side still breaks its own region, the regions union via the air-write relay).</summary>
+	void BroadcastEarthquakeStart(float duration, float nextDelay);
+
+	/// <summary>Guest side: an earthquake began (host timing) — show the effect, re-align the local quake timer.</summary>
+	void FireEarthquakeStartReceived(float duration, float nextDelay);
+
+	event Action<float, float>? EarthquakeStartReceived;
 }

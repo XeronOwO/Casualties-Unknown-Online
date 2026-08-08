@@ -48,4 +48,7 @@ public enum NetMsg : byte
 
 	// Generator-side position authority (world items)
 	ItemSettle = 54, // guest → host: an item this side generated settled at Pos/Rotation — the table (and the host's phantom) align to the generator's physics
+
+	// World events (host authority)
+	EarthquakeStart = 55, // host → guest: an earthquake began (Duration seconds) — guests show the effect and suppress their own independent quake (four independent quakes would strip the terrain)
 }

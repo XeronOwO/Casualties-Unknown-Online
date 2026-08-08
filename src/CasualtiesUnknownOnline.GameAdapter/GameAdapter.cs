@@ -1297,6 +1297,11 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 				// PauseHandler's Update/TogglePause are patched off while the
 				// gate holds, so nothing restores the timescale.
 				Time.timeScale = 0f;
+				// Pause the audio too: a sound that started just before the
+				// freeze (the spawn landing sound) would otherwise keep
+				// playing into the frozen wait and read as a slowed, lowered
+				// groan. Clean pause; resume on release.
+				AudioListener.pause = true;
 				_gateFrozen = true;
 			}
 
@@ -1309,6 +1314,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		{
 			_gateFrozen = false;
 			Time.timeScale = 1f;
+			AudioListener.pause = false;
 			if (_localBody != null) // Unity object — ==
 			{
 				Traverse.Create(_localBody).Field("movingAllowed").SetValue(true);

@@ -45,6 +45,19 @@ public interface IWorldControl
 	/// <summary>A player's attack damaged a building entity — apply the damage to the entity at Pos.</summary>
 	event Action<NetVector2, float>? BuildingEntityDamagedReceived;
 
+	/// <summary>
+	/// Report a locally-opened lockable entity (instant-open/lockpick/keypad —
+	/// all write health = 0 directly): guest → host as a report (the host applies
+	/// the open to its copy, which rolls the host-side drops, and relays), host →
+	/// guest as a broadcast relay.
+	/// </summary>
+	void SendBuildingEntityOpened(NetVector2 pos);
+
+	void FireBuildingEntityOpenedReceived(NetVector2 pos);
+
+	/// <summary>A lockable entity was opened — apply the open (health = 0) to the entity at Pos.</summary>
+	event Action<NetVector2>? BuildingEntityOpenedReceived;
+
 	/// <summary>Host only: everyone enters the world together — arm the start gate (waits for every guest's InWorld, or 30 s). Returns whether anyone is being waited on.</summary>
 	bool StartStartGate();
 

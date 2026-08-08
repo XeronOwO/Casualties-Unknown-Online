@@ -76,6 +76,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	private bool _applyingRemoteItem; // reentry guard: remote applications must not report back
 	private bool _applyingRemoteBuildingDamage; // reentry guard: applying a remote entity hit must not re-report
 	private bool _deferredLifePodSound; // the spawn landing sound, deferred while the start gate holds
+	private bool _replayingLifePodSound; // true while the deferred sound is being replayed (bypasses the defer patch)
 
 	/// <summary>Periodic world-item keyframe: re-send the full table so physical drift self-heals.</summary>
 	private const int ItemSnapshotIntervalMs = 5000;
@@ -104,6 +105,8 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	bool IPatchBridge.IsGuestItemDropSuppressed => IsGuestMode;
 
 	bool IPatchBridge.IsSessionActive => _session.SessionActive;
+
+	bool IPatchBridge.IsReplayingLifePodSound => _replayingLifePodSound;
 
 	/// <summary>
 	/// World generation is ALWAYS wrapped with random-stream isolation
@@ -1211,13 +1214,16 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 					SpawnWorldItem(w);
 				}
 				else if (item.transform.parent == null && item.rb.velocity.magnitude < 0.1f
-					&& Vector2.Distance(item.transform.position, new Vector2(w.Pos.X, w.Pos.Y)) > 0.1f)
+					&& (Vector2.Distance(item.transform.position, new Vector2(w.Pos.X, w.Pos.Y)) > 0.1f
+						|| Mathf.Abs(Mathf.DeltaAngle(item.transform.eulerAngles.z, w.Rotation)) > 2f))
 				{
-					// Settled item drifted (independent physics) — re-align to
-					// the authoritative position and put the body to sleep: the
-					// re-position would otherwise be "corrected" back by the
-					// local physics, restarting the yank-roll loop.
+					// Settled item drifted (independent physics — position AND
+					// rotation) — re-align both to the authoritative state and
+					// put the body to sleep: the re-position would otherwise be
+					// "corrected" back by the local physics, restarting the
+					// yank-roll loop.
 					item.transform.position = new Vector3(w.Pos.X, w.Pos.Y, 0f);
+					item.transform.eulerAngles = new Vector3(0f, 0f, w.Rotation);
 					item.rb.velocity = Vector2.zero;
 					item.rb.angularVelocity = 0f;
 					item.rb.Sleep();
@@ -1318,14 +1324,24 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 
 			// The spawn landing sound was deferred while the gate held (it
 			// would play into the frozen world) — play it now, together with
-			// everyone else's release.
+			// everyone else's release. The replay flag keeps the Sound.Play
+			// patch from deferring it a second time (the session is still
+			// active at release).
 			if (_deferredLifePodSound)
 			{
 				_deferredLifePodSound = false;
 				_log.LogInformation("[Sound] deferred lifePodHit played at gate release.");
 				if (PlayerCamera.main != null && PlayerCamera.main.body != null) // Unity objects — ==
 				{
-					Sound.Play("lifePodHit", PlayerCamera.main.body.transform.position, true, false, null, 1f, 1f, false, false);
+					_replayingLifePodSound = true;
+					try
+					{
+						Sound.Play("lifePodHit", PlayerCamera.main.body.transform.position, true, false, null, 1f, 1f, false, false);
+					}
+					finally
+					{
+						_replayingLifePodSound = false;
+					}
 				}
 			}
 		}

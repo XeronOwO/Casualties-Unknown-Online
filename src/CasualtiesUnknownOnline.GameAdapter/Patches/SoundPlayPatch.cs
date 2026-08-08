@@ -23,7 +23,7 @@ internal static class SoundPlayPatch
 		// start-gate release: it plays at the very end of generation, before
 		// the gate freezes — WaitingForReady is not yet true there, so the
 		// session-wide check is the reliable window (solo play is untouched).
-		if (clip == "lifePodHit" && PatchBridge.Impl is { IsSessionActive: true })
+		if (clip == "lifePodHit" && PatchBridge.Impl is { IsSessionActive: true, IsReplayingLifePodSound: false })
 		{
 			PatchBridge.Impl?.DeferLifePodSound();
 			return false; // deferred until the start gate releases

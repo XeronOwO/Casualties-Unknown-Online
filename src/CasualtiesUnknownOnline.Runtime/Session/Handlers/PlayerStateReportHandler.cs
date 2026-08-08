@@ -6,15 +6,14 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 
 /// <summary>Guest → host: the guest's locally simulated state (host renders it, no host-side simulation).</summary>
 [PacketHandler(NetMsg.PlayerStateReport)]
-public sealed class PlayerStateReportHandler(SessionService session, EntitySyncService entities, ILogger<PlayerStateReportHandler> log)
-	: PacketHandlerBase<PlayerStateReportMsg>(session)
+public sealed class PlayerStateReportHandler(ILogger<PlayerStateReportHandler> log) : PacketHandlerBase<PlayerStateReportMsg>
 {
-	private readonly EntitySyncService _entities = entities;
 	private readonly ILogger<PlayerStateReportHandler> _log = log;
 
-	protected override void Handle(ulong sender, PlayerStateReportMsg msg)
+	protected override void Handle(ulong sender, PlayerStateReportMsg msg, HandlerContext ctx)
 	{
-		if (Session.Role != SessionRole.Host || !_entities.TryGetSynced(sender, out var member))
+		var entities = ctx.Entities;
+		if (ctx.Session.Role != SessionRole.Host || !entities.TryGetSynced(sender, out var member))
 		{
 			return;
 		}
@@ -38,7 +37,7 @@ public sealed class PlayerStateReportHandler(SessionService session, EntitySyncS
 			return;
 		}
 
-		EntitySyncService.ApplyEntityState(msg.Entity, member.Entity);
-		_entities.FireStateReceived(member.Entity);
+		entities.ApplyEntityState(msg.Entity, member.Entity);
+		entities.FireStateReceived(member.Entity);
 	}
 }

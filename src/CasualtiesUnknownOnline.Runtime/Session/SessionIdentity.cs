@@ -12,4 +12,7 @@ public sealed class SessionIdentity
 	public SessionRole Role { get; internal set; }
 
 	public ulong HostSteamId { get; internal set; }
+
+	/// <summary>Local SteamID64 — set once Steam initializes (SessionService.Initialize).</summary>
+	public ulong LocalSteamId { get; internal set; }
 }

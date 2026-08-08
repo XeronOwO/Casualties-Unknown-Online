@@ -6,17 +6,14 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 
 /// <summary>Guest → host: protocol negotiation + member creation (new join or reconnect).</summary>
 [PacketHandler(NetMsg.Handshake)]
-public sealed class HandshakeHandler(SessionService session, CharacterDataStore store, EntitySyncService entities,
-	ILogger<HandshakeHandler> log)
-	: PacketHandlerBase<HandshakeMsg>(session)
+public sealed class HandshakeHandler(ILogger<HandshakeHandler> log) : PacketHandlerBase<HandshakeMsg>
 {
-	private readonly CharacterDataStore _store = store;
-	private readonly EntitySyncService _entities = entities;
 	private readonly ILogger<HandshakeHandler> _log = log;
 
-	protected override void Handle(ulong sender, HandshakeMsg msg)
+	protected override void Handle(ulong sender, HandshakeMsg msg, HandlerContext ctx)
 	{
-		if (Session.Role != SessionRole.Host)
+		var session = ctx.Session;
+		if (session.Role != SessionRole.Host)
 		{
 			return;
 		}
@@ -32,21 +29,21 @@ public sealed class HandshakeHandler(SessionService session, CharacterDataStore 
 
 		// Star network: only lobby members may join — the lobby is the roster.
 		// A third player is no longer rejected, they become a new member.
-		if (!Session.IsLobbyMember(sender))
+		if (!session.IsLobbyMember(sender))
 		{
 			_log.LogWarning("Handshake from {Peer} ignored: not a lobby member.", sender);
 			return;
 		}
 
-		var wasActive = Session.SessionActive;
-		if (!Session.TryGetMember(sender, out var member))
+		var wasActive = session.SessionActive;
+		if (!session.TryGetMember(sender, out var member))
 		{
-			member = Session.GetOrCreateMember(sender);
+			member = session.GetOrCreateMember(sender);
 			member.InWorld = peerState == SceneStateType.InWorld;
 			// Cross-session restore: the in-memory character save outlives the
 			// session (kept per SteamID for the process lifetime) — a returning
 			// player gets it back even in a brand-new session.
-			_store.SendSavedCharacter(sender);
+			ctx.CharacterData.SendSavedCharacter(sender);
 		}
 		else
 		{
@@ -57,7 +54,7 @@ public sealed class HandshakeHandler(SessionService session, CharacterDataStore 
 			// re-establishes everything, character data included.
 			member.InWorld = peerState == SceneStateType.InWorld;
 			_log.LogInformation("Peer {Peer} reconnected — presence reused.", sender);
-			_store.SendSavedCharacter(sender);
+			ctx.CharacterData.SendSavedCharacter(sender);
 		}
 
 		member.Handshaken = true;
@@ -65,27 +62,27 @@ public sealed class HandshakeHandler(SessionService session, CharacterDataStore 
 		{
 			// Fire the session-level event once, on the first member — later
 			// members only take the member-level path.
-			Session.SessionActive = true;
+			session.SessionActive = true;
 			_log.LogInformation("Handshake complete with {Peer}.", sender);
-			Session.FireSessionActivated();
+			session.FireSessionActivated();
 		}
 
-		_entities.MaybeStartEntitySync();
+		ctx.Entities.MaybeStartEntitySync();
 
 		// Ack on every handshake, even repeats: the guest retransmits its
 		// handshake until it receives one (Steam P2P sessions establish lazily,
 		// first messages can be swallowed — Phase-0 finding). Same for world
 		// params, which are only sent once the session exists.
-		Session.Send(sender, NetMsg.HandshakeAck, new HandshakeAckMsg
+		session.Send(sender, NetMsg.HandshakeAck, new HandshakeAckMsg
 		{
 			Protocol = ProtocolVersion.Current,
-			Scene = new SceneStateMsg { State = (byte)Session.LocalSceneState },
-			HasWorldParams = Session.WorldParams is not null,
+			Scene = new SceneStateMsg { State = (byte)session.LocalSceneState },
+			HasWorldParams = session.WorldParams is not null,
 		});
-		var worldParams = Session.WorldParams;
+		var worldParams = session.WorldParams;
 		if (worldParams is not null)
 		{
-			Session.Send(sender, NetMsg.WorldStartParams, worldParams.ToWorldStartParamsMsg());
+			session.Send(sender, NetMsg.WorldStartParams, worldParams.ToWorldStartParamsMsg());
 		}
 	}
 }

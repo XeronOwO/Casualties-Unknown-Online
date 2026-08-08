@@ -12,19 +12,16 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// automatic. Guest: the host's broadcast — apply it.
 /// </summary>
 [PacketHandler(NetMsg.BlockDamaged)]
-public sealed class BlockDamagedHandler(SessionService session) : PacketHandlerBase<BlockDamagedMsg>(session)
+public sealed class BlockDamagedHandler : PacketHandlerBase<BlockDamagedMsg>
 {
-	protected override void Handle(ulong sender, BlockDamagedMsg msg)
+	protected override void Handle(ulong sender, BlockDamagedMsg msg, HandlerContext ctx)
 	{
 		var pos = msg.Position.ToNetVector2();
-		if (Session.Role == SessionRole.Host)
+		var session = ctx.Session;
+		session.FireBlockDamagedReceived(pos, msg.Damage);
+		if (session.Role == SessionRole.Host)
 		{
-			Session.FireBlockDamagedReceived(pos, msg.Damage);
-			Session.BroadcastExcept(sender, NetMsg.BlockDamaged, msg);
-		}
-		else
-		{
-			Session.FireBlockDamagedReceived(pos, msg.Damage);
+			session.BroadcastExcept(sender, NetMsg.BlockDamaged, msg);
 		}
 	}
 }

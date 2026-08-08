@@ -1,9 +1,9 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session.Handlers;
 using CasualtiesUnknownOnline.Runtime.Steam;
 using Microsoft.Extensions.Logging;
 
@@ -11,122 +11,143 @@ namespace CasualtiesUnknownOnline.Runtime.Session;
 
 /// <summary>
 /// Session state machine (control plane): lobby → handshake (protocol/version)
-/// → scene-state exchange (architecture.md §3). Owns the member presence table
-/// (who is in the session, in which scene) and the business-level send/receive
-/// APIs; the data plane (transport binding, direction validation, dispatch to
-/// the packet handlers) lives in <see cref="PacketGateway"/>. Entity buffers,
-/// ids and the 20 Hz state stream live in <see cref="EntitySyncService"/>; the
-/// character save/restore in <see cref="CharacterDataStore"/>. Star topology:
-/// every message flows guest → host; the host arbitrates and decides the fan-out.
+/// → scene-state exchange (architecture.md §3). Owns the handshake lifecycle,
+/// the business-level send/receive APIs and the world/diagnostics surface; the
+/// member presence table and session flags live in <see cref="MemberPresenceTable"/>
+/// and <see cref="SessionState"/> (shared with the entity/data domains — the
+/// dependency graph stays acyclic, abstract extraction). The data plane
+/// (transport binding, direction validation, dispatch) lives in
+/// <see cref="PacketGateway"/>; the entity buffers, ids and the 20 Hz state
+/// stream in <see cref="EntitySyncService"/>; the character save/restore in
+/// <see cref="CharacterDataStore"/>. Star topology: every message flows
+/// guest → host; the host arbitrates and decides the fan-out.
 /// </summary>
-public sealed class SessionService : ICuoService
+public sealed class SessionService : ICuoService, ISessionControl
 {
 	private const float PingInterval = 5f;
 	private const float MemberCheckInterval = 2f;
 	private const float HandshakeRetryInterval = 3f; // lazy Steam P2P sessions swallow early messages
 
-	/// <summary>
-	/// One remote peer's session presence. Host: one entry per guest. Guest: one
-	/// for the host plus roster entries for the other guests. Key = SteamId
-	/// (stable across reconnects). Scene state (InWorld/ReportedSpawnPos) is
-	/// session-scoped; the entity side (buffers, ids, sync state) is tracked by
-	/// <see cref="EntitySyncService"/>.
-	/// </summary>
-	internal sealed class MemberPresence
-	{
-		public ulong SteamId;
-		public bool Handshaken; // protocol handshake completed
-		public bool InWorld; // in the world (menu/loading = false)
-		public NetVector2 ReportedSpawnPos; // position reported when entering the world — the clone anchor
-		public float RttMs = -1f; // per-member ping diagnostics
-	}
-
 	private readonly SteamService _steam;
 	private readonly SessionIdentity _identity;
 	private readonly PacketGateway _gateway;
+	private readonly PacketRouter _router;
+	private readonly MemberPresenceTable _presence;
+	private readonly SessionState _state;
+	private readonly EntitySyncService _entities;
+	private readonly CharacterDataStore _characterData;
 	private readonly ILogger<SessionService> _log;
+	private readonly HandlerContext _handlerContext;
 
-	private readonly Dictionary<ulong, MemberPresence> _members = [];
 	private WorldStartParams? _worldParams;
-	private bool _localInWorld; // local scene state — the SceneState we last reported
 
 	private long _nextPingMs;
 	private long _nextMemberCheckMs;
 	private long _nextHandshakeRetryMs;
 
-	public SessionService(SteamService steam, SessionIdentity identity, PacketGateway gateway, ILogger<SessionService> log)
+	public SessionService(
+		SteamService steam, SessionIdentity identity, PacketGateway gateway, PacketRouter router,
+		MemberPresenceTable presence, SessionState state, EntitySyncService entities,
+		CharacterDataStore characterData, ILogger<SessionService> log)
 	{
 		_steam = steam;
 		_identity = identity;
 		_gateway = gateway;
+		_router = router;
+		_presence = presence;
+		_state = state;
+		_entities = entities;
+		_characterData = characterData;
 		_log = log;
+		_handlerContext = new HandlerContext(this, entities, characterData);
 
 		steam.LobbyCreated += OnLobbyCreated;
 		steam.LobbyEntered += OnLobbyEntered;
+		gateway.MessageArrived += OnGatewayMessage;
 	}
 
 	public SessionRole Role => _identity.Role;
 
 	/// <summary>True once the handshake completed (protocol versions agreed). Set by the handshake handlers.</summary>
-	public bool SessionActive { get; internal set; }
+	public bool SessionActive { get => _state.SessionActive; set => _state.SessionActive = value; }
 
 	public ulong HostSteamId => _identity.HostSteamId;
 
 	/// <summary>Set by the world-params handler on the guest side.</summary>
-	public WorldStartParams? WorldParams { get; internal set; }
+	public WorldStartParams? WorldParams { get; set; }
 
 	public float LastRttMs { get; private set; } = -1f;
 
 	/// <summary>Local scene state — true while the local player is in the world (the SceneState we last reported).</summary>
-	public bool LocalInWorld => _localInWorld;
+	public bool LocalInWorld => _state.LocalInWorld;
 
 	/// <summary>Remote member scene state — the Game Adapter's render loop uses it to clone only in-world members.</summary>
-	public bool IsRemoteInWorld(ulong steamId) => _members.TryGetValue(steamId, out var member) && member.InWorld;
+	public bool IsRemoteInWorld(ulong steamId) => _presence.TryGetMember(steamId, out var member) && member.InWorld;
 
 	/// <summary>The spawn position a member reported when entering the world — the host's clone anchor.</summary>
 	public NetVector2 GetRemoteSpawnPos(ulong steamId) =>
-		_members.TryGetValue(steamId, out var member) ? member.ReportedSpawnPos : default;
+		_presence.TryGetMember(steamId, out var member) ? member.ReportedSpawnPos : default;
 
-	// ---- Internal surface for the packet handlers (Session/Handlers/) ----
+	// ---- ISessionControl (the packet handlers' control surface) ----
 
-	internal ulong LocalSteamId => _steam.LocalSteamId;
+	ulong ISessionControl.LocalSteamId => _steam.LocalSteamId;
 
-	internal IEnumerable<MemberPresence> Members => _members.Values;
+	SceneStateType ISessionControl.LocalSceneState => _state.LocalInWorld ? SceneStateType.InWorld : SceneStateType.InMenu;
 
-	internal bool TryGetMember(ulong steamId, out MemberPresence member) =>
-		_members.TryGetValue(steamId, out member!);
+	System.Collections.Generic.IEnumerable<MemberPresenceTable.MemberPresence> ISessionControl.Members => _presence.Members;
 
-	internal bool IsLobbyMember(ulong steamId) => _steam.GetLobbyMembers().Contains(steamId);
+	bool ISessionControl.TryGetMember(ulong steamId, out MemberPresenceTable.MemberPresence member) =>
+		_presence.TryGetMember(steamId, out member);
 
-	/// <summary>Raised when the handshake completes and scene exchange can start (first member only).</summary>
-	public event Action? SessionActivated;
+	MemberPresenceTable.MemberPresence ISessionControl.GetOrCreateMember(ulong steamId) =>
+		_presence.GetOrCreateMember(steamId);
 
-	/// <summary>Raised when the session ends (all members gone, lobby left, …).</summary>
-	public event Action? SessionEnded;
+	bool ISessionControl.IsLobbyMember(ulong steamId) => _steam.GetLobbyMembers().Contains(steamId);
 
-	/// <summary>
-	/// Raised when a member enters or leaves the world (inWorld=false pauses /
-	/// destroys the render clone; a member leaving the session reuses
-	/// inWorld=false so the clone teardown path is shared). The SteamId routes
-	/// the event to the right clone.
-	/// </summary>
-	public event Action<ulong, bool>? RemoteSceneChanged;
+	void ISessionControl.Send(ulong steamId, NetMsg msg, object? payload, bool reliable) =>
+		_gateway.Send(steamId, msg, payload, reliable);
 
-	/// <summary>Raised when a member is removed from the presence table (left the
-	/// lobby, PlayerLeave, …). The entity domain subscribes to drop the member's
-	/// entity and announce the leave.</summary>
-	internal event Action<ulong>? MemberRemoved;
+	void ISessionControl.Broadcast(NetMsg msg, object payload)
+	{
+		foreach (var member in _presence.Members)
+		{
+			_gateway.Send(member.SteamId, msg, payload);
+		}
+	}
 
-	// ---- Event fires for the packet handlers (the events stay public — the
-	// Game Adapter subscribes from another assembly; handlers fire through these). ----
+	void ISessionControl.BroadcastExcept(ulong excludeSteamId, NetMsg msg, object payload)
+	{
+		foreach (var member in _presence.Members)
+		{
+			if (member.SteamId != excludeSteamId)
+			{
+				_gateway.Send(member.SteamId, msg, payload);
+			}
+		}
+	}
 
-	internal void FireSessionActivated() => SessionActivated?.Invoke();
+	void ISessionControl.RemoveGuestMember(ulong steamId)
+	{
+		_presence.Remove(steamId);
+		_presence.FireMemberRemoved(steamId);
+	}
 
-	internal void FireRemoteSceneChanged(ulong steamId, bool inWorld) => RemoteSceneChanged?.Invoke(steamId, inWorld);
+	void ISessionControl.RecordPong(ulong sender, long ticks)
+	{
+		LastRttMs = (DateTime.UtcNow.Ticks - ticks) / 10_000f;
+		if (_presence.TryGetMember(sender, out var member))
+		{
+			member.RttMs = LastRttMs;
+		}
+	}
 
-	internal void FireBlockDamagedReceived(NetVector2 pos, float damage) => BlockDamagedReceived?.Invoke(pos, damage);
+	void ISessionControl.FireSessionActivated() => _state.FireSessionActivated();
 
-	internal void FireMemberRemoved(ulong steamId) => MemberRemoved?.Invoke(steamId);
+	void ISessionControl.FireRemoteSceneChanged(ulong steamId, bool inWorld) =>
+		_presence.FireRemoteSceneChanged(steamId, inWorld);
+
+	void ISessionControl.FireBlockDamagedReceived(NetVector2 pos, float damage) =>
+		BlockDamagedReceived?.Invoke(pos, damage);
 
 	// ---- Scene / world / diagnostics (Game Adapter → session) ----
 
@@ -140,7 +161,7 @@ public sealed class SessionService : ICuoService
 	/// </summary>
 	public void ReportSceneState(SceneStateType state, string sceneName, NetVector2? localPosition = null)
 	{
-		_localInWorld = state == SceneStateType.InWorld;
+		_state.LocalInWorld = state == SceneStateType.InWorld;
 		if (SessionActive)
 		{
 			var msg = new SceneStateMsg
@@ -152,11 +173,11 @@ public sealed class SessionService : ICuoService
 			};
 			if (Role == SessionRole.Host)
 			{
-				Broadcast(NetMsg.SceneState, msg);
+				((ISessionControl)this).Broadcast(NetMsg.SceneState, msg);
 			}
 			else
 			{
-				Send(HostSteamId, NetMsg.SceneState, msg);
+				_gateway.Send(HostSteamId, NetMsg.SceneState, msg);
 			}
 		}
 
@@ -173,13 +194,13 @@ public sealed class SessionService : ICuoService
 		}
 
 		var msg = parameters.ToWorldStartParamsMsg();
-		foreach (var member in _members.Values.Where(m => m.Handshaken))
+		foreach (var member in _presence.Members.Where(m => m.Handshaken))
 		{
-			Send(member.SteamId, NetMsg.WorldStartParams, msg);
+			_gateway.Send(member.SteamId, NetMsg.WorldStartParams, msg);
 		}
 
 		_log.LogInformation("Published world params ({StateBytes} bytes) to {Members} members.",
-			parameters.RandomState.Length, _members.Count);
+			parameters.RandomState.Length, _presence.Count);
 	}
 
 	/// <summary>
@@ -191,14 +212,14 @@ public sealed class SessionService : ICuoService
 		var msg = PingMsg.Now;
 		if (Role == SessionRole.Host)
 		{
-			foreach (var member in _members.Values)
+			foreach (var member in _presence.Members)
 			{
-				Send(member.SteamId, NetMsg.Ping, msg);
+				_gateway.Send(member.SteamId, NetMsg.Ping, msg);
 			}
 		}
 		else
 		{
-			Send(HostSteamId, NetMsg.Ping, msg);
+			_gateway.Send(HostSteamId, NetMsg.Ping, msg);
 		}
 	}
 
@@ -221,20 +242,18 @@ public sealed class SessionService : ICuoService
 		};
 		if (Role == SessionRole.Host)
 		{
-			Broadcast(NetMsg.BlockDamaged, msg);
+			((ISessionControl)this).Broadcast(NetMsg.BlockDamaged, msg);
 		}
 		else
 		{
-			Send(HostSteamId, NetMsg.BlockDamaged, msg);
+			_gateway.Send(HostSteamId, NetMsg.BlockDamaged, msg);
 		}
 	}
 
 	/// <summary>Host: a guest reported damage (apply + relay). Guest: the host broadcast it.</summary>
 	public event Action<NetVector2, float>? BlockDamagedReceived;
 
-	void ICuoService.Initialize()
-	{
-	}
+	void ICuoService.Initialize() => _identity.LocalSteamId = _steam.LocalSteamId;
 
 	void ICuoService.Start()
 	{
@@ -270,7 +289,12 @@ public sealed class SessionService : ICuoService
 	{
 		_steam.LobbyCreated -= OnLobbyCreated;
 		_steam.LobbyEntered -= OnLobbyEntered;
+		_gateway.MessageArrived -= OnGatewayMessage;
 	}
+
+	// ---- Data plane entry (the gateway validates direction, we dispatch) ----
+
+	private void OnGatewayMessage(ulong sender, byte[] frame) => _router.TryDispatch(sender, frame, _handlerContext);
 
 	// ---- Lobby / handshake ----
 
@@ -296,7 +320,7 @@ public sealed class SessionService : ICuoService
 		// periodically until acked (Steam P2P sessions establish lazily and
 		// swallow the first messages — retransmission also drives the session).
 		_nextHandshakeRetryMs = Environment.TickCount + (long)(HandshakeRetryInterval * 1000f);
-		Send(HostSteamId, NetMsg.Handshake, CreateHandshakeMsg());
+		_gateway.Send(HostSteamId, NetMsg.Handshake, CreateHandshakeMsg());
 	}
 
 	private void RetryHandshakeIfNeeded()
@@ -313,7 +337,7 @@ public sealed class SessionService : ICuoService
 		}
 
 		_nextHandshakeRetryMs = nowMs + (long)(HandshakeRetryInterval * 1000f);
-		Send(HostSteamId, NetMsg.Handshake, CreateHandshakeMsg());
+		_gateway.Send(HostSteamId, NetMsg.Handshake, CreateHandshakeMsg());
 		_log.LogInformation("Retrying handshake with {Host}…", HostSteamId);
 	}
 
@@ -342,24 +366,12 @@ public sealed class SessionService : ICuoService
 		{
 			if (peer != _steam.LocalSteamId)
 			{
-				Send(peer, NetMsg.Ping, ping);
+				_gateway.Send(peer, NetMsg.Ping, ping);
 			}
 		}
 	}
 
 	// ---- Message handlers moved to Session/Handlers/ (HandshakeHandlers, SceneStateHandler, …) ----
-
-	// ---- Ping / pong (diagnostics) ----
-
-	/// <summary>Records the round-trip for the pong sender (per member).</summary>
-	internal void RecordPong(ulong sender, long ticks)
-	{
-		LastRttMs = (DateTime.UtcNow.Ticks - ticks) / 10_000f;
-		if (_members.TryGetValue(sender, out var member))
-		{
-			member.RttMs = LastRttMs;
-		}
-	}
 
 	// ---- Peer presence ----
 
@@ -387,7 +399,7 @@ public sealed class SessionService : ICuoService
 			// host stays in the lobby, ready for new joins. Reconnects are
 			// cheap: Role stays (lobby identity), the character save is kept
 			// per SteamID, and the next handshake rebuilds the member.
-			foreach (var memberId in _members.Keys.ToList())
+			foreach (var memberId in _presence.Members.Select(m => m.SteamId).ToList())
 			{
 				if (!lobbyMembers.Contains(memberId))
 				{
@@ -395,7 +407,7 @@ public sealed class SessionService : ICuoService
 				}
 			}
 
-			if (_members.Count == 0)
+			if (_presence.Count == 0)
 			{
 				_log.LogWarning("All members left the lobby — ending session (save kept).");
 				EndSession();
@@ -413,31 +425,24 @@ public sealed class SessionService : ICuoService
 	/// broadcasts the roster PlayerLeave and tears the clone down).</summary>
 	internal void RemoveMember(ulong steamId, string reason)
 	{
-		if (!_members.TryGetValue(steamId, out _))
+		if (!_presence.TryGetMember(steamId, out _))
 		{
 			return;
 		}
 
-		_members.Remove(steamId);
+		_presence.Remove(steamId);
 		_log.LogInformation("Member {Member} removed: {Reason}.", steamId, reason);
-		FireMemberRemoved(steamId);
-	}
-
-	/// <summary>Guest side: drop a roster member (no broadcast — only the host fans out).</summary>
-	internal void RemoveGuestMember(ulong steamId)
-	{
-		_members.Remove(steamId);
-		FireMemberRemoved(steamId);
+		_presence.FireMemberRemoved(steamId);
 	}
 
 	internal void EndSession()
 	{
-		if (!SessionActive && _members.Count == 0)
+		if (!SessionActive && _presence.Count == 0)
 		{
 			return;
 		}
 
-		_members.Clear();
+		_presence.Clear();
 		SessionActive = false;
 		_identity.HostSteamId = 0;
 		// Role is NOT reset here: it follows the lobby identity (the lobby
@@ -445,61 +450,13 @@ public sealed class SessionService : ICuoService
 		// gone, but a returning guest's handshake is still accepted and rebuilds
 		// everything (new member + character save restore).
 		_log.LogInformation("Session ended (role {Role} kept).", Role);
-		SessionEnded?.Invoke(); // the entity domain + the Game Adapter tear down on this
+		_state.FireSessionEnded(); // the entity domain + the Game Adapter tear down on this
 	}
-
-	// ---- Data plane (the PacketGateway owns transport binding + dispatch) ----
-
-	// ---- Broadcast helpers (star fan-out) ----
-
-	/// <summary>Send a message to every member (host side; no-op as guest — the only peer is the host).</summary>
-	internal void Broadcast(NetMsg msg, object payload)
-	{
-		foreach (var member in _members.Values)
-		{
-			Send(member.SteamId, msg, payload);
-		}
-	}
-
-	/// <summary>Broadcast to every member except one — relay semantics: the source already applied the change locally.</summary>
-	internal void BroadcastExcept(ulong excludeSteamId, NetMsg msg, object payload)
-	{
-		foreach (var member in _members.Values)
-		{
-			if (member.SteamId != excludeSteamId)
-			{
-				Send(member.SteamId, msg, payload);
-			}
-		}
-	}
-
-	internal MemberPresence GetOrCreateMember(ulong steamId)
-	{
-		if (!_members.TryGetValue(steamId, out var member))
-		{
-			member = new MemberPresence { SteamId = steamId };
-			_members[steamId] = member;
-		}
-
-		return member;
-	}
-
-	/// <summary>
-	/// Send a message through the gateway. Reliable by default — only the
-	/// 20 Hz state stream (PlayerState/PlayerStateReport) goes unreliable, where
-	/// overwrite semantics + snapshot sequence make drops harmless and avoid
-	/// head-of-line blocking of the newest snapshot behind retransmissions.
-	/// </summary>
-	internal void Send(ulong steamId, NetMsg msg, object? payload = null, bool reliable = true) =>
-		_gateway.Send(steamId, msg, payload, reliable);
-
-	/// <summary>Local scene state as a wire value — the handshake messages carry it
-	/// (assembled inline with an object initializer at the call site).</summary>
-	internal SceneStateType LocalSceneState => _localInWorld ? SceneStateType.InWorld : SceneStateType.InMenu;
 
 	private HandshakeMsg CreateHandshakeMsg() => new()
 	{
 		Protocol = ProtocolVersion.Current,
-		Scene = new SceneStateMsg { State = (byte)LocalSceneState },
+		Scene = new SceneStateMsg { State = (byte)(_state.LocalInWorld ? SceneStateType.InWorld : SceneStateType.InMenu) },
 	};
+	void ISessionControl.EndSession() => EndSession();
 }

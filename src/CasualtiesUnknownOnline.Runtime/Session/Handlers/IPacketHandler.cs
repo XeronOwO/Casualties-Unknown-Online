@@ -8,6 +8,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// </summary>
 public interface IPacketHandler
 {
-	/// <summary>Processes one received frame (already direction-validated by the session).</summary>
-	void Process(ulong sender, byte[] frame);
+	/// <summary>Processes one received frame (already direction-validated by the
+	/// gateway) with the control surfaces it needs.</summary>
+	void Process(ulong sender, byte[] frame, HandlerContext ctx);
 }

@@ -11,14 +11,15 @@ namespace CasualtiesUnknownOnline.Runtime.Session;
 /// <summary>
 /// Entity-sync domain: the entity table, id allocation, the sync decisions and
 /// the 20 Hz state exchange (host broadcast + guest report) with the join/leave
-/// announcements. SessionService (control plane) owns member presence — who is
-/// in the session and in which scene; this service owns what the members ARE in
-/// the world: entity buffers, entity ids, per-member sync state and the state
+/// announcements. SessionService (control plane) owns the handshake and the
+/// world/diagnostics surface; this service owns what the members ARE in the
+/// world: entity buffers, entity ids, per-member sync state and the state
 /// stream (throttling + snapshot seq, formerly EntitySyncStream, absorbed).
-/// Depends on SessionService (reads presence / local scene state) + PacketGateway
-/// (send) + SessionIdentity (role) — acyclic, plain constructor injection.
+/// Reads the shared <see cref="MemberPresenceTable"/> and <see cref="SessionState"/>
+/// instead of depending on SessionService itself — acyclic constructor graph,
+/// abstract extraction (user rule).
 /// </summary>
-public sealed class EntitySyncService : ICuoService
+public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 {
 	private const float StateSendInterval = 0.05f; // 20 Hz authoritative snapshot
 	private const float ReportSendInterval = 0.05f; // 20 Hz guest state report
@@ -30,14 +31,15 @@ public sealed class EntitySyncService : ICuoService
 	/// EntityId is re-allocated per join. Presence in this table IS the member's
 	/// sync state (host side: only synced members are tracked here).
 	/// </summary>
-	internal sealed class SyncedEntity
+	public sealed class SyncedEntity
 	{
 		public ulong SteamId;
 		public PlayerEntity Entity = null!; // state buffer (render source / report target)
 		public uint LastReportSeq; // host side: last applied PlayerStateReport seq
 	}
 
-	private readonly SessionService _session;
+	private readonly MemberPresenceTable _presence;
+	private readonly SessionState _state;
 	private readonly PacketGateway _gateway;
 	private readonly SessionIdentity _identity;
 	private readonly ILogger<EntitySyncService> _log;
@@ -57,17 +59,18 @@ public sealed class EntitySyncService : ICuoService
 	private uint _nextStateSeq; // host: PlayerState broadcasts
 	private uint _nextReportSeq; // guest: PlayerStateReport broadcasts
 
-	public EntitySyncService(SessionService session, PacketGateway gateway, SessionIdentity identity,
-		ILogger<EntitySyncService> log)
+	public EntitySyncService(MemberPresenceTable presence, SessionState state, PacketGateway gateway,
+		SessionIdentity identity, ILogger<EntitySyncService> log)
 	{
-		_session = session;
+		_presence = presence;
+		_state = state;
 		_gateway = gateway;
 		_identity = identity;
 		_log = log;
-		_localPlayer = new PlayerEntity(session.LocalSteamId, default, isLocal: true);
+		_localPlayer = new PlayerEntity(identity.LocalSteamId, default, isLocal: true);
 
-		session.MemberRemoved += OnMemberRemoved;
-		session.SessionEnded += OnSessionEnded;
+		presence.MemberRemoved += OnMemberRemoved;
+		state.SessionEnded += OnSessionEnded;
 	}
 
 	// ---- Public surface (Game Adapter + Plugin HUD) ----
@@ -115,9 +118,28 @@ public sealed class EntitySyncService : ICuoService
 	/// <summary>Both sides: a state message refreshed the entity buffer (PlayerState on guest, PlayerStateReport on host).</summary>
 	public event Action<PlayerEntity>? StateReceived;
 
-	// ---- Internal surface for the packet handlers (Session/Handlers/) ----
+	// ---- IEntitySyncControl (the packet handlers' control surface) ----
 
-	internal ulong LocalSteamId => _localPlayer.SteamId;
+	uint IEntitySyncControl.LastStateSeq { get => LastStateSeq; set => LastStateSeq = value; }
+
+	IEnumerable<SyncedEntity> IEntitySyncControl.Members => _entities.Values;
+
+	bool IEntitySyncControl.TryGetSynced(ulong steamId, out SyncedEntity member) =>
+		_entities.TryGetValue(steamId, out member!);
+
+	void IEntitySyncControl.ApplyEntityState(EntityStateMsg msg, PlayerEntity target) => ApplyEntityState(msg, target);
+
+	void IEntitySyncControl.FireStateReceived(PlayerEntity entity) => StateReceived?.Invoke(entity);
+
+	void IEntitySyncControl.ProcessPlayerJoin(PlayerJoinMsg msg) => ProcessPlayerJoin(msg);
+
+	void IEntitySyncControl.MaybeStartEntitySync() => MaybeStartEntitySync();
+
+	void IEntitySyncControl.EndMemberSync(ulong steamId) => EndMemberSync(steamId);
+
+	void IEntitySyncControl.EndEntitySync() => EndEntitySync();
+
+	// ---- Internal surface for the packet handlers (Session/Handlers/) ----
 
 	/// <summary>Guest side: last applied host snapshot seq (stream gate).</summary>
 	internal uint LastStateSeq { get; set; }
@@ -141,7 +163,7 @@ public sealed class EntitySyncService : ICuoService
 			_localPlayer.EntityId = msg.GuestEntityId.ToNetworkEntityId();
 			var hostEntity = UpsertEntity(msg.HostSteamId, msg.HostEntityId.ToNetworkEntityId());
 			hostEntity.Position = msg.HostPosition.ToNetVector2();
-			_session.GetOrCreateMember(msg.HostSteamId).InWorld = true; // the host is in the world with us
+			_presence.GetOrCreateMember(msg.HostSteamId).InWorld = true; // the host is in the world with us
 			_selfSyncActive = true;
 			LastStateSeq = 0; // the host's snapshot sequence restarts with this join
 			_log.LogInformation("PlayerJoin received: local {Local}, host {Host} at {Position}.",
@@ -150,7 +172,7 @@ public sealed class EntitySyncService : ICuoService
 			return;
 		}
 
-		var presence = _session.GetOrCreateMember(msg.GuestSteamId);
+		var presence = _presence.GetOrCreateMember(msg.GuestSteamId);
 		presence.InWorld = true;
 		presence.Handshaken = true;
 		var entity = UpsertEntity(msg.GuestSteamId, msg.GuestEntityId.ToNetworkEntityId());
@@ -165,15 +187,15 @@ public sealed class EntitySyncService : ICuoService
 	/// mid-session joiner starts on its own.</summary>
 	internal void MaybeStartEntitySync()
 	{
-		if (_identity.Role != SessionRole.Host || !_session.SessionActive)
+		if (_identity.Role != SessionRole.Host || !_state.SessionActive)
 		{
 			return;
 		}
 
-		foreach (var presence in _session.Members)
+		foreach (var presence in _presence.Members)
 		{
 			if (presence.Handshaken && !_entities.ContainsKey(presence.SteamId)
-				&& _session.LocalInWorld && presence.InWorld)
+				&& _state.LocalInWorld && presence.InWorld)
 			{
 				StartMemberSync(presence);
 			}
@@ -216,7 +238,7 @@ public sealed class EntitySyncService : ICuoService
 	/// <summary>Applies a decoded entity state, preserving the first-snapshot rule
 	/// (Prev = current on the first report — the buffer defaults are (0,0) and
 	/// interpolating from them would slide the proxy in from the world origin).</summary>
-	internal static void ApplyEntityState(EntityStateMsg msg, PlayerEntity target)
+	internal void ApplyEntityState(EntityStateMsg msg, PlayerEntity target)
 	{
 		var firstSnapshot = target.StateReceivedMs < 0;
 		target.PrevPosition = firstSnapshot ? msg.Position.ToNetVector2() : target.Position;
@@ -234,7 +256,7 @@ public sealed class EntitySyncService : ICuoService
 		// Steam API init (SteamService.Initialize) runs before us in registration
 		// order — refresh the local SteamID captured at construction time (it was
 		// still 0 then, and join/host messages carry it).
-		_localPlayer.SteamId = _session.LocalSteamId;
+		_localPlayer.SteamId = _identity.LocalSteamId;
 	}
 
 	void ICuoService.Start()
@@ -247,7 +269,7 @@ public sealed class EntitySyncService : ICuoService
 		// from state we no longer publish. The SceneState message we reported
 		// already told the peer — its own self-check (this same branch) ends its
 		// side, so both stop the stream without waiting for a round-trip.
-		if (EntitySyncActive && !_session.LocalInWorld)
+		if (EntitySyncActive && !_state.LocalInWorld)
 		{
 			EndEntitySync();
 		}
@@ -282,8 +304,8 @@ public sealed class EntitySyncService : ICuoService
 
 	void ICuoService.Dispose()
 	{
-		_session.MemberRemoved -= OnMemberRemoved;
-		_session.SessionEnded -= OnSessionEnded;
+		_presence.MemberRemoved -= OnMemberRemoved;
+		_state.SessionEnded -= OnSessionEnded;
 	}
 
 	// ---- Member lifecycle ----
@@ -309,7 +331,7 @@ public sealed class EntitySyncService : ICuoService
 			});
 		}
 
-		_session.FireRemoteSceneChanged(steamId, false);
+		_presence.FireRemoteSceneChanged(steamId, false);
 	}
 
 	/// <summary>Bulk teardown: the session ended (all members gone / host gone) —
@@ -327,7 +349,7 @@ public sealed class EntitySyncService : ICuoService
 	/// (self-activation + roster), then push the first snapshot so the clone
 	/// renders immediately instead of waiting up to one 20 Hz tick for the next
 	/// broadcast (same mechanism serves respawn/reconnect).</summary>
-	private void StartMemberSync(SessionService.MemberPresence presence)
+	private void StartMemberSync(MemberPresenceTable.MemberPresence presence)
 	{
 		var entity = new PlayerEntity(presence.SteamId, default, isLocal: false)
 		{

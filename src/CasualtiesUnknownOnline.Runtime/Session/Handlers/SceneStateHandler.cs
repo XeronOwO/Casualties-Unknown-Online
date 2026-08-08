@@ -11,19 +11,18 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// domain); the host leaving ends the guest's own sync.
 /// </summary>
 [PacketHandler(NetMsg.SceneState)]
-public sealed class SceneStateHandler(SessionService session, EntitySyncService entities, ILogger<SceneStateHandler> log)
-	: PacketHandlerBase<SceneStateMsg>(session)
+public sealed class SceneStateHandler(ILogger<SceneStateHandler> log) : PacketHandlerBase<SceneStateMsg>
 {
-	private readonly EntitySyncService _entities = entities;
 	private readonly ILogger<SceneStateHandler> _log = log;
 
-	protected override void Handle(ulong sender, SceneStateMsg msg)
+	protected override void Handle(ulong sender, SceneStateMsg msg, HandlerContext ctx)
 	{
+		var session = ctx.Session;
 		// The reporter is msg.SteamId when the host relays another member's
 		// change; the sender itself otherwise (msg.SteamId is stamped by the
 		// reporter in SessionService.ReportSceneState).
 		var reporter = msg.SteamId != 0 ? msg.SteamId : sender;
-		if (!Session.TryGetMember(reporter, out var member))
+		if (!session.TryGetMember(reporter, out var member))
 		{
 			return;
 		}
@@ -40,26 +39,26 @@ public sealed class SceneStateHandler(SessionService session, EntitySyncService 
 			// re-activates the same entity.
 			if (member.InWorld)
 			{
-				Session.FireRemoteSceneChanged(reporter, true);
-				if (Session.Role == SessionRole.Host)
+				session.FireRemoteSceneChanged(reporter, true);
+				if (session.Role == SessionRole.Host)
 				{
-					_entities.MaybeStartEntitySync();
-					Session.BroadcastExcept(reporter, NetMsg.SceneState, msg); // relay: the other guests track the member too
+					ctx.Entities.MaybeStartEntitySync();
+					session.BroadcastExcept(reporter, NetMsg.SceneState, msg); // relay: the other guests track the member too
 				}
 			}
 			else
 			{
-				if (Session.Role == SessionRole.Host)
+				if (session.Role == SessionRole.Host)
 				{
-					_entities.EndMemberSync(reporter);
-					Session.BroadcastExcept(reporter, NetMsg.SceneState, msg); // relay
+					ctx.Entities.EndMemberSync(reporter);
+					session.BroadcastExcept(reporter, NetMsg.SceneState, msg); // relay
 				}
-				else if (reporter == Session.HostSteamId)
+				else if (reporter == session.HostSteamId)
 				{
-					_entities.EndEntitySync(); // the host left the world — our sync ends
+					ctx.Entities.EndEntitySync(); // the host left the world — our sync ends
 				}
 
-				Session.FireRemoteSceneChanged(reporter, false);
+				session.FireRemoteSceneChanged(reporter, false);
 			}
 		}
 	}

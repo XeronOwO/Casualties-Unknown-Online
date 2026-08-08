@@ -32,12 +32,12 @@ public sealed class PacketRouter
 	}
 
 	/// <summary>Dispatches the frame to its handler; false when no handler is registered for the message id.</summary>
-	public bool TryDispatch(ulong sender, byte[] frame)
+	public bool TryDispatch(ulong sender, byte[] frame, HandlerContext ctx)
 	{
 		var msgId = (NetMsg)frame[0];
 		if (_routes.TryGetValue(msgId, out var handler))
 		{
-			handler.Process(sender, frame);
+			handler.Process(sender, frame, ctx);
 			return true;
 		}
 

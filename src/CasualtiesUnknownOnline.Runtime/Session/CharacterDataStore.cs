@@ -12,12 +12,15 @@ namespace CasualtiesUnknownOnline.Runtime.Session;
 /// the host keeps the latest per SteamID and hands it back when the same
 /// player reconnects (the save outlives the session — character-data-plan).
 /// Not an ICuoService: it has no pump, it only reacts to reports and
-/// handshakes. Depends on SessionService (role/session-active gates) and
-/// PacketGateway (send) — acyclic, plain constructor injection.
+/// handshakes. Reads role/session-active from <see cref="SessionIdentity"/> and
+/// <see cref="SessionState"/> instead of depending on SessionService itself —
+/// acyclic constructor graph, abstract extraction (user rule).
 /// </summary>
-public sealed class CharacterDataStore(SessionService session, PacketGateway gateway, ILogger<CharacterDataStore> log)
+public sealed class CharacterDataStore(SessionIdentity identity, SessionState state, PacketGateway gateway,
+	ILogger<CharacterDataStore> log) : ICharacterDataControl
 {
-	private readonly SessionService _session = session;
+	private readonly SessionIdentity _identity = identity;
+	private readonly SessionState _state = state;
 	private readonly PacketGateway _gateway = gateway;
 	private readonly ILogger<CharacterDataStore> _log = log;
 	private readonly Dictionary<ulong, CharacterDataMsg> _savedCharacters = []; // host: last report per SteamID
@@ -29,12 +32,12 @@ public sealed class CharacterDataStore(SessionService session, PacketGateway gat
 	/// </summary>
 	public void ReportCharacterData(CharacterDataMsg msg)
 	{
-		if (_session.Role != SessionRole.Guest || !_session.SessionActive)
+		if (_identity.Role != SessionRole.Guest || !_state.SessionActive)
 		{
 			return;
 		}
 
-		_gateway.Send(_session.HostSteamId, NetMsg.CharacterData, msg);
+		_gateway.Send(_identity.HostSteamId, NetMsg.CharacterData, msg);
 	}
 
 	/// <summary>Host side: keep the latest report per SteamID (session-scoped save).</summary>
@@ -56,5 +59,11 @@ public sealed class CharacterDataStore(SessionService session, PacketGateway gat
 	/// </summary>
 	public event Action<CharacterDataMsg>? CharacterDataReceived;
 
-	internal void FireCharacterDataReceived(CharacterDataMsg msg) => CharacterDataReceived?.Invoke(msg);
+	// ---- ICharacterDataControl (the packet handlers' control surface) ----
+
+	void ICharacterDataControl.SaveCharacterData(ulong steamId, CharacterDataMsg msg) => SaveCharacterData(steamId, msg);
+
+	void ICharacterDataControl.SendSavedCharacter(ulong steamId) => SendSavedCharacter(steamId);
+
+	void ICharacterDataControl.FireCharacterDataReceived(CharacterDataMsg msg) => CharacterDataReceived?.Invoke(msg);
 }

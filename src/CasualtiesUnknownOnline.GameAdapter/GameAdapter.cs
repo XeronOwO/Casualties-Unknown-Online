@@ -1232,22 +1232,24 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		var containerItem = item.transform.parent != null ? item.transform.parent.GetComponent<Item>() : null;
 		ulong containerId = 0;
 		var parentPos = new NetVector2(0f, 0f);
-		if (containerItem != null && IsWorldItem(containerItem)) // Unity object — ==
+		if (containerItem != null) // Unity object — ==; the container position always travels (the receiver binds a local generation-time container by position)
 		{
-			var containerIdComp = containerItem.GetComponent<ItemInstanceId>();
-			if (containerIdComp == null) // Unity object — ==; first use of a generation-time container
-			{
-				containerId = EnsureItemId(containerItem);
-				var containerPos = new NetVector2(containerItem.transform.position.x, containerItem.transform.position.y);
-				_items.SendItemSpawned(containerId, CaptureItem(containerItem, -1), containerPos,
-					new NetVector2(0f, 0f), containerItem.transform.eulerAngles.z, false);
-			}
-			else
-			{
-				containerId = containerIdComp.Id;
-			}
-
 			parentPos = new NetVector2(containerItem.transform.position.x, containerItem.transform.position.y);
+			if (IsWorldItem(containerItem))
+			{
+				var containerIdComp = containerItem.GetComponent<ItemInstanceId>();
+				if (containerIdComp == null) // Unity object — ==; first use of a generation-time container
+				{
+					containerId = EnsureItemId(containerItem);
+					var containerPos = new NetVector2(containerItem.transform.position.x, containerItem.transform.position.y);
+					_items.SendItemSpawned(containerId, CaptureItem(containerItem, -1), containerPos,
+						new NetVector2(0f, 0f), containerItem.transform.eulerAngles.z, false);
+				}
+				else
+				{
+					containerId = containerIdComp.Id;
+				}
+			}
 		}
 
 		_log.LogInformation("[ContainerLoad] {Type} (id {ItemId}) into container {ContainerId} ({ContainerType}) at ({X:F1},{Y:F1}), parentPos ({PX:F1},{PY:F1}).",
@@ -1396,8 +1398,12 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 
 		// Generation-time container not bound yet — find it by position and
 		// stamp the originator's id onto it (idempotent: already bound to a
-		// different id → not ours, keep looking).
-		foreach (var container in UnityEngine.Object.FindObjectsOfType<Container>())
+		// different id → not ours, keep looking). The position tolerance is
+		// generous: the container may have been nudged by physics since the
+		// report; a lone unbound container of the same type is accepted as a
+		// fallback.
+		var candidates = UnityEngine.Object.FindObjectsOfType<Container>();
+		foreach (var container in candidates)
 		{
 			var containerItem = container.GetComponent<Item>();
 			if (containerItem == null) // Unity object — ==
@@ -1405,7 +1411,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 				continue;
 			}
 
-			if (Vector2.Distance(container.transform.position, new Vector2(parentPos.X, parentPos.Y)) > 1.5f)
+			if (Vector2.Distance(container.transform.position, new Vector2(parentPos.X, parentPos.Y)) > 3f)
 			{
 				continue;
 			}
@@ -1424,6 +1430,29 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 
 			_log.LogInformation("[ItemBind] container {ContainerId} bound by position ({X:F1},{Y:F1}) — loading {Type} into it.",
 				parentItemId, parentPos.X, parentPos.Y, item.id);
+			container.LoadItem(item);
+			return;
+		}
+
+		// Fallback: a lone unbound container of the same definition anywhere —
+		// the position report may be stale (the container moved after the
+		// report was sent).
+		foreach (var container in candidates)
+		{
+			var containerItem = container.GetComponent<Item>();
+			if (containerItem == null || containerItem.id != item.id) // Unity object — ==
+			{
+				continue;
+			}
+
+			if (containerItem.GetComponent<ItemInstanceId>() != null) // Unity object — ==; already bound
+			{
+				continue;
+			}
+
+			containerItem.gameObject.AddComponent<ItemInstanceId>().Id = parentItemId;
+			_log.LogInformation("[ItemBind] container {ContainerId} bound as the lone {Type} (stale position {X:F1},{Y:F1}).",
+				parentItemId, item.id, parentPos.X, parentPos.Y);
 			container.LoadItem(item);
 			return;
 		}
@@ -1600,6 +1629,14 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 					{
 						existing.gameObject.AddComponent<FreshItemDrop>();
 					}
+
+					// Align the bound object to the reported state — the
+					// generation-time object sits where the world-gen put it,
+					// which may differ from the originator's current spot
+					// ("item in the wrong place / overlapping" class of bugs).
+					existing.transform.position = new Vector3(w.Pos.X, w.Pos.Y, 0f);
+					existing.transform.eulerAngles = new Vector3(0f, 0f, w.Rotation);
+					existing.rb.velocity = new Vector2(w.Vel.X, w.Vel.Y);
 
 					_log.LogInformation("[ItemBind] bound existing {Type} at ({X:F1}, {Y:F1}) to id {ItemId} (no materialization).",
 						w.Item.ItemId, w.Pos.X, w.Pos.Y, w.ItemId);

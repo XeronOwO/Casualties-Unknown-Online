@@ -59,7 +59,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	private bool _worldJoinPending; // guest: the host's enter instruction arrived while the menu was still loading
 	private bool _startRunAuthorized; // set right before the WorldJoin-triggered StartRun, consumed by the gate
 	private bool _worldReadyReceived; // guest: the host released the start gate (or let us in as a late joiner)
-	private bool _movementFrozenForGate; // we locked movingAllowed for the start gate — restore it on release
+	private bool _gateFrozen; // the start gate holds us: world timeScale=0 + movingAllowed locked — restore both on release
 	private readonly List<Button> _blockedButtons = []; // guest-in-session: menu buttons that open the start screen / enter a world
 
 	private const float CharacterReportInterval = 1f; // guest → host character snapshot (1 Hz)
@@ -466,6 +466,20 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		}
 
 		_remoteClones.Clear();
+
+		// The session is gone — the start gate can never release us (no
+		// WorldReady will come). Restore the world and local movement now,
+		// not on some later frame.
+		_worldReadyReceived = true;
+		if (_gateFrozen)
+		{
+			_gateFrozen = false;
+			Time.timeScale = 1f;
+			if (_localBody != null) // Unity object — ==
+			{
+				Traverse.Create(_localBody).Field("movingAllowed").SetValue(true);
+			}
+		}
 	}
 
 	// ---- Block damage sync (local compute, remote verify/sync) ----
@@ -614,15 +628,25 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 
 		if (WaitingForReady)
 		{
+			if (!_gateFrozen)
+			{
+				// True pause: the world must not simulate behind the overlay
+				// (earthquake timers, temperature/radiation, liquids, NPCs).
+				// PauseHandler's Update/TogglePause are patched off while the
+				// gate holds, so nothing restores the timescale.
+				Time.timeScale = 0f;
+				_gateFrozen = true;
+			}
+
 			if (_localBody != null) // Unity object — ==
 			{
 				Traverse.Create(_localBody).Field("movingAllowed").SetValue(false);
-				_movementFrozenForGate = true;
 			}
 		}
-		else if (_movementFrozenForGate)
+		else if (_gateFrozen)
 		{
-			_movementFrozenForGate = false;
+			_gateFrozen = false;
+			Time.timeScale = 1f;
 			if (_localBody != null) // Unity object — ==
 			{
 				Traverse.Create(_localBody).Field("movingAllowed").SetValue(true);

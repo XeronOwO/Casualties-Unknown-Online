@@ -1102,6 +1102,9 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		// check (BuildingEntity.cs:74) already ran against the attacker's own
 		// distance — the component on the object is the truth.
 		var fresh = item.GetComponent<FreshItemDrop>() != null; // Unity object — ==
+		_log.LogInformation("[ItemSpawned] local {Type} (id {ItemId}) reported at ({X:F1},{Y:F1}), vel ({VX:F1},{VY:F1}), fresh {Fresh}.",
+			item.id, idComp.Id, item.transform.position.x, item.transform.position.y,
+			item.rb.velocity.x, item.rb.velocity.y, fresh);
 		_items.SendItemSpawned(idComp.Id, CaptureItem(item, -1),
 			new NetVector2(item.transform.position.x, item.transform.position.y),
 			new NetVector2(item.rb.velocity.x, item.rb.velocity.y),
@@ -1213,6 +1216,8 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		var itemId = EnsureItemId(item);
 		if (itemId == 0 || !IsWorldItem(item)) // inventory containers stay in the character data domain
 		{
+			_log.LogDebug("[ContainerLoad] skipped: {Type} id={ItemId} (isWorld {IsWorld}).",
+				item.id, itemId, IsWorldItem(item));
 			return;
 		}
 
@@ -1245,6 +1250,9 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 			parentPos = new NetVector2(containerItem.transform.position.x, containerItem.transform.position.y);
 		}
 
+		_log.LogInformation("[ContainerLoad] {Type} (id {ItemId}) into container {ContainerId} ({ContainerType}) at ({X:F1},{Y:F1}), parentPos ({PX:F1},{PY:F1}).",
+			item.id, itemId, containerId, containerItem?.id ?? "none",
+			item.transform.position.x, item.transform.position.y, parentPos.X, parentPos.Y);
 		_items.SendItemDropped(itemId, CaptureItem(item, -1),
 			new NetVector2(item.transform.position.x, item.transform.position.y),
 			new NetVector2(item.rb.velocity.x, item.rb.velocity.y),
@@ -1344,10 +1352,14 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 			var item = FindWorldItem(itemId);
 			if (item == null) // Unity object — ==; we never had it (it was in the dropper's inventory)
 			{
+				_log.LogInformation("[ItemDrop] {Type} (id {ItemId}) not present — materializing at ({X:F1},{Y:F1}), container {ContainerId}, parentPos ({PX:F1},{PY:F1}).",
+					itemState.ItemId, itemId, pos.X, pos.Y, parentItemId, parentPos.X, parentPos.Y);
 				SpawnWorldItem(new WorldItem(itemId, itemState, pos, vel, parentItemId, rotation, false, parentPos));
 			}
 			else
 			{
+				_log.LogInformation("[ItemDrop] {Type} (id {ItemId}) present — re-placing at ({X:F1},{Y:F1}), container {ContainerId}.",
+					itemState.ItemId, itemId, pos.X, pos.Y, parentItemId);
 				item.transform.SetParent(null);
 				item.transform.position = new Vector3(pos.X, pos.Y, 0f);
 				item.transform.eulerAngles = new Vector3(0f, 0f, rotation);
@@ -1377,6 +1389,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		var parent = FindWorldItem(parentItemId);
 		if (parent != null && parent.GetComponent<Container>() != null) // Unity objects — ==
 		{
+			_log.LogInformation("[ItemBind] container {ContainerId} found — loading {Type} into it.", parentItemId, item.id);
 			parent.GetComponent<Container>()?.LoadItem(item); // the game's own load semantics (position, physics, visibility)
 			return;
 		}
@@ -1409,6 +1422,8 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 				idComp.Id = parentItemId;
 			}
 
+			_log.LogInformation("[ItemBind] container {ContainerId} bound by position ({X:F1},{Y:F1}) — loading {Type} into it.",
+				parentItemId, parentPos.X, parentPos.Y, item.id);
 			container.LoadItem(item);
 			return;
 		}
@@ -1599,6 +1614,8 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 			}
 		}
 
+		_log.LogInformation("[ItemSpawn] materializing {Type} (id {ItemId}) at ({X:F1},{Y:F1}), vel ({VX:F1},{VY:F1}), container {ContainerId}.",
+			w.Item.ItemId, w.ItemId, w.Pos.X, w.Pos.Y, w.Vel.X, w.Vel.Y, w.ParentItemId);
 		var prefab = Resources.Load(w.Item.ItemId);
 		if (prefab == null) // Unity object — ==
 		{

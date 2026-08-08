@@ -5,53 +5,19 @@ using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Networking;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session.Handlers;
 using CasualtiesUnknownOnline.Runtime.Steam;
 using Microsoft.Extensions.Logging;
 
 namespace CasualtiesUnknownOnline.Runtime.Session;
 
-public enum SessionRole
-{
-	None,
-	Host,
-	Guest,
-}
-
-public enum SceneStateType : byte
-{
-	InMenu = 0,
-	InWorld = 1,
-}
-
-/// <summary>
-/// World-start parameters captured by the host at run start and applied by
-/// guests before their own world generation. The game's world gen is fully
-/// non-deterministic (no seed, Unity global Random everywhere) — restoring the
-/// host's Random.state plus run settings is the only way to produce the same
-/// world on both sides (see docs/game-internals.md).
-/// </summary>
-public sealed class WorldStartParams
-{
-	// NOTE: plain set, not init — net48 lacks IsExternalInit.
-	public byte[] RandomState { get; set; } = [];
-
-	public byte BiomeOverride { get; set; }
-
-	public byte BiomeDepth { get; set; }
-
-	public int TotalTraveled { get; set; }
-
-	public bool LoadedRun { get; set; }
-
-	public Dictionary<string, object>? RunSettings { get; set; }
-}
-
 /// <summary>
 /// Session state machine: lobby → handshake (protocol/version) → scene-state
 /// exchange → entity sync (local compute, remote verify/sync, architecture.md
-/// §3). Owns the wire protocol dispatch on top of SteamTransport and the
-/// member table. Star topology: every message flows guest → host; the host
-/// arbitrates and decides the fan-out (pure star, no envelope).
+/// §3). Owns the wire protocol dispatch (via the packet handlers in
+/// Session/Handlers/) on top of SteamTransport and the member table. Star
+/// topology: every message flows guest → host; the host arbitrates and decides
+/// the fan-out (pure star, no envelope).
 /// </summary>
 public sealed class SessionService : ICuoService
 {
@@ -67,7 +33,7 @@ public sealed class SessionService : ICuoService
 	/// broadcasts the full entity list, so every side renders every member.
 	/// Key = SteamId (stable across reconnects); EntityId is re-allocated per join.
 	/// </summary>
-	private sealed class MemberState
+	internal sealed class MemberState
 	{
 		public ulong SteamId;
 		public PlayerEntity Entity = null!; // remote render buffer
@@ -99,7 +65,6 @@ public sealed class SessionService : ICuoService
 	// applied one (the unreliable channel can reorder and duplicate).
 	private uint _nextStateSeq; // host: PlayerState broadcasts
 	private uint _nextReportSeq; // guest: PlayerStateReport broadcasts
-	private uint _lastStateSeq; // guest: last applied host snapshot seq
 	private bool _entitySyncActive; // guest: self sync state (host derives per member)
 
 	public SessionService(SteamService steam, SteamTransport transport, ILogger<SessionService> log)
@@ -116,8 +81,8 @@ public sealed class SessionService : ICuoService
 
 	public SessionRole Role { get; private set; }
 
-	/// <summary>True once the handshake completed (protocol versions agreed).</summary>
-	public bool SessionActive { get; private set; }
+	/// <summary>True once the handshake completed (protocol versions agreed). Set by the handshake handlers.</summary>
+	public bool SessionActive { get; internal set; }
 
 	/// <summary>
 	/// True while entity sync is active. Host: any member in sync (each member
@@ -140,9 +105,28 @@ public sealed class SessionService : ICuoService
 	public PlayerEntity? GetRemotePlayer(ulong steamId) =>
 		_members.TryGetValue(steamId, out var member) ? member.Entity : null;
 
-	public WorldStartParams? WorldParams => _worldParams;
+	/// <summary>Set by the world-params handler on the guest side.</summary>
+	public WorldStartParams? WorldParams { get; internal set; }
 
 	public float LastRttMs { get; private set; } = -1f;
+
+	// ---- Internal surface for the packet handlers (Session/Handlers/) ----
+
+	internal ulong LocalSteamId => _localPlayer.SteamId;
+
+	/// <summary>Guest side: last applied host snapshot seq (stream gate).</summary>
+	internal uint LastStateSeq { get; set; }
+
+	internal IEnumerable<MemberState> Members => _members.Values;
+
+	internal bool TryGetMember(ulong steamId, out MemberState member) =>
+		_members.TryGetValue(steamId, out member!);
+
+	internal bool IsLobbyMember(ulong steamId) => _steam.GetLobbyMembers().Contains(steamId);
+
+	internal void SetEntitySyncActive(bool active) => _entitySyncActive = active;
+
+	internal void ResetLastStateSeq() => LastStateSeq = 0;
 
 	/// <summary>Raised when the handshake completes and scene exchange can start (first member only).</summary>
 	public event Action? SessionActivated;
@@ -163,6 +147,21 @@ public sealed class SessionService : ICuoService
 
 	/// <summary>Both sides: a state message refreshed the entity buffer (PlayerState on guest, PlayerStateReport on host).</summary>
 	public event Action<PlayerEntity>? StateReceived;
+
+	// ---- Event fires for the packet handlers (the events stay public — the
+	// Game Adapter subscribes from another assembly; handlers fire through these). ----
+
+	internal void FireSessionActivated() => SessionActivated?.Invoke();
+
+	internal void FireRemoteJoined(PlayerEntity entity) => RemoteJoined?.Invoke(entity);
+
+	internal void FireRemoteSceneChanged(ulong steamId, bool inWorld) => RemoteSceneChanged?.Invoke(steamId, inWorld);
+
+	internal void FireStateReceived(PlayerEntity entity) => StateReceived?.Invoke(entity);
+
+	internal void FireBlockDamagedReceived(NetVector2 pos, float damage) => BlockDamagedReceived?.Invoke(pos, damage);
+
+	internal void FireCharacterDataReceived(CharacterDataMsg msg) => CharacterDataReceived?.Invoke(msg);
 
 	// ---- Local state submission (Game Adapter → session) ----
 
@@ -457,177 +456,7 @@ public sealed class SessionService : ICuoService
 		}
 	}
 
-	private void OnHandshake(ulong sender, HandshakeMsg msg)
-	{
-		if (Role != SessionRole.Host)
-		{
-			return;
-		}
-
-		var protocol = msg.Protocol;
-		var peerState = (SceneStateType)msg.Scene.State;
-		if (protocol != ProtocolVersion.Current)
-		{
-			_log.LogWarning("Peer {Peer} speaks protocol {PeerProtocol}; we speak {Current}. Rejecting.",
-				sender, protocol, ProtocolVersion.Current);
-			return;
-		}
-
-		// Star network: only lobby members may join — the lobby is the roster.
-		// A third player is no longer rejected, they become a new member.
-		if (!_steam.GetLobbyMembers().Contains(sender))
-		{
-			_log.LogWarning("Handshake from {Peer} ignored: not a lobby member.", sender);
-			return;
-		}
-
-		var wasActive = SessionActive;
-		if (!_members.TryGetValue(sender, out var member))
-		{
-			member = new MemberState
-			{
-				SteamId = sender,
-				Entity = new PlayerEntity(sender, default, isLocal: false)
-				{
-					InWorld = peerState == SceneStateType.InWorld,
-				},
-			};
-			_members[sender] = member;
-			// Cross-session restore: the in-memory character save outlives the
-			// session (kept per SteamID for the process lifetime) — a returning
-			// player gets it back even in a brand-new session.
-			SendSavedCharacter(sender);
-		}
-		else
-		{
-			// Reconnect from the same player while the entity is still held
-			// (within the presence-check window, or a quick lobby round trip):
-			// identity is the SteamID — reuse the entity. The normal flow
-			// (session re-activation → scene re-report → entity sync) then
-			// re-establishes everything, character data included.
-			member.Entity.InWorld = peerState == SceneStateType.InWorld;
-			_log.LogInformation("Peer {Peer} reconnected — entity reused.", sender);
-			SendSavedCharacter(sender);
-		}
-
-		member.Handshaken = true;
-		if (!wasActive)
-		{
-			// Fire the session-level event once, on the first member — later
-			// members only take the member-level path below.
-			SessionActive = true;
-			_log.LogInformation("Handshake complete with {Peer}.", sender);
-			SessionActivated?.Invoke();
-		}
-
-		MaybeStartEntitySync();
-
-		// Ack on every handshake, even repeats: the guest retransmits its
-		// handshake until it receives one (Steam P2P sessions establish lazily,
-		// first messages can be swallowed — Phase-0 finding). Same for world
-		// params, which are only sent once the session exists.
-		Send(sender, NetMsg.HandshakeAck, new HandshakeAckMsg
-		{
-			Protocol = ProtocolVersion.Current,
-			Scene = CreateSceneStateMsg(),
-			HasWorldParams = _worldParams is not null,
-		});
-		if (_worldParams is not null)
-		{
-			Send(sender, NetMsg.WorldStartParams, WorldStartParamsMsg.From(_worldParams));
-		}
-	}
-
-	private void OnHandshakeAck(ulong sender, HandshakeAckMsg msg)
-	{
-		var protocol = msg.Protocol;
-		var hostState = (SceneStateType)msg.Scene.State;
-		if (protocol != ProtocolVersion.Current)
-		{
-			_log.LogWarning("Host {Host} speaks protocol {HostProtocol}; we speak {Current}. Ending session.",
-				sender, protocol, ProtocolVersion.Current);
-			EndSession();
-			return;
-		}
-
-		// Upsert: a repeated ack (retransmission / reconnect) must not rebuild
-		// the entity — that would reset the interpolation buffer and teleport
-		// the clone back to its spawn anchor.
-		var member = GetOrCreateMember(sender);
-		member.Entity.InWorld = hostState == SceneStateType.InWorld;
-		member.Handshaken = true;
-
-		var wasActive = SessionActive;
-		SessionActive = true;
-		if (!wasActive)
-		{
-			_log.LogInformation("Handshake complete with host {Host}.", sender);
-			SessionActivated?.Invoke();
-		}
-
-		// The ack carries the host's scene state — surface it like a regular
-		// scene change so a reconnecting guest follows the host into a world
-		// that is already running (Game Adapter auto-starts the run).
-		RemoteSceneChanged?.Invoke(sender, hostState == SceneStateType.InWorld);
-	}
-
-	// ---- Scene state ----
-
-	private void OnSceneState(ulong sender, SceneStateMsg msg)
-	{
-		// The reporter is msg.SteamId when the host relays another member's
-		// change; the sender itself otherwise (msg.SteamId is stamped by the
-		// reporter in ReportSceneState).
-		var reporter = msg.SteamId != 0 ? msg.SteamId : sender;
-		if (!_members.TryGetValue(reporter, out var member))
-		{
-			return;
-		}
-
-		var wasInWorld = member.Entity.InWorld;
-		member.Entity.InWorld = msg.State == (byte)SceneStateType.InWorld;
-		member.Entity.ReportedSpawnPos = msg.Position.ToNetVector2();
-
-		_log.LogInformation("Peer {Peer} scene state: {State} ({SceneName})", reporter, (SceneStateType)msg.State, msg.SceneName);
-		if (wasInWorld != member.Entity.InWorld)
-		{
-			// Either side pauses when a member leaves the world: the member's
-			// state stream stops and the render clone is torn down; re-entering
-			// re-activates the same entity.
-			if (member.Entity.InWorld)
-			{
-				RemoteSceneChanged?.Invoke(reporter, true);
-				if (Role == SessionRole.Host)
-				{
-					MaybeStartEntitySync();
-					BroadcastExcept(reporter, NetMsg.SceneState, msg); // relay: the other guests track the member too
-				}
-			}
-			else
-			{
-				if (Role == SessionRole.Host)
-				{
-					EndMemberSync(member);
-					BroadcastExcept(reporter, NetMsg.SceneState, msg); // relay
-				}
-				else if (reporter == HostSteamId)
-				{
-					EndEntitySync(); // the host left the world — our sync ends
-				}
-
-				RemoteSceneChanged?.Invoke(reporter, false);
-			}
-		}
-	}
-
-	// ---- World params ----
-
-	private void OnWorldStartParams(ulong sender, WorldStartParamsMsg msg)
-	{
-		_worldParams = msg.ToWorldStartParams();
-		_log.LogInformation("Received world params ({StateBytes} bytes, loaded run: {LoadedRun}).",
-			_worldParams.RandomState.Length, _worldParams.LoadedRun);
-	}
+	// ---- Message handlers moved to Session/Handlers/ (HandshakeHandlers, SceneStateHandler, …) ----
 
 	// ---- Entities ----
 
@@ -636,7 +465,7 @@ public sealed class SessionService : ICuoService
 	/// world (idempotent, retried every frame). Members sync independently — a
 	/// mid-session joiner starts on its own.
 	/// </summary>
-	private void MaybeStartEntitySync()
+	internal void MaybeStartEntitySync()
 	{
 		if (Role != SessionRole.Host || !SessionActive)
 		{
@@ -681,128 +510,10 @@ public sealed class SessionService : ICuoService
 		BroadcastPlayerState();
 	}
 
-	/// <summary>Guest side: self-activation (the host assigned our id) or a roster
-	/// announcement (another member joined — upsert with its spawn anchor).</summary>
-	private void OnPlayerJoin(ulong sender, PlayerJoinMsg msg)
-	{
-		if (Role != SessionRole.Guest)
-		{
-			return;
-		}
-
-		if (msg.GuestSteamId == _localPlayer.SteamId)
-		{
-			_localPlayer.EntityId = msg.GuestEntityId.ToNetworkEntityId();
-			var host = GetOrCreateMember(msg.HostSteamId);
-			host.Entity.SteamId = msg.HostSteamId; // backfill (session already knows it)
-			host.Entity.EntityId = msg.HostEntityId.ToNetworkEntityId();
-			host.Entity.Position = msg.HostPosition.ToNetVector2();
-			_entitySyncActive = true;
-			_lastStateSeq = 0; // host's snapshot sequence restarts with this join
-			_log.LogInformation("PlayerJoin received: local {Local}, host {Host} at {Position}.",
-				_localPlayer.EntityId, host.Entity.EntityId, host.Entity.Position);
-			RemoteJoined?.Invoke(host.Entity);
-		}
-		else
-		{
-			var member = GetOrCreateMember(msg.GuestSteamId);
-			member.Entity.EntityId = msg.GuestEntityId.ToNetworkEntityId();
-			member.Entity.Position = msg.GuestPosition.ToNetVector2();
-			member.Entity.InWorld = true;
-			member.Handshaken = true;
-			_log.LogInformation("Roster join: member {Guest} ({GuestId}) at {Position}.",
-				msg.GuestSteamId, member.Entity.EntityId, member.Entity.Position);
-			RemoteJoined?.Invoke(member.Entity);
-		}
-	}
-
-	/// <summary>Guest side: the host announced a member left — drop it (clone teardown via RemoteSceneChanged).</summary>
-	private void OnPlayerLeave(ulong sender, PlayerLeaveMsg msg)
-	{
-		if (Role != SessionRole.Guest || msg.SteamId == _localPlayer.SteamId)
-		{
-			return;
-		}
-
-		if (!_members.TryGetValue(msg.SteamId, out var member))
-		{
-			return;
-		}
-
-		_members.Remove(msg.SteamId);
-		_log.LogInformation("Member {Member} left (PlayerLeave).", msg.SteamId);
-		RemoteSceneChanged?.Invoke(msg.SteamId, false);
-	}
-
-	/// <summary>Guest → host: the guest's locally simulated state (host renders it, no host-side simulation).</summary>
-	private void OnPlayerStateReport(ulong sender, PlayerStateReportMsg msg)
-	{
-		if (Role != SessionRole.Host || !_members.TryGetValue(sender, out var member))
-		{
-			return;
-		}
-
-		// Unreliable stream: drop stale snapshots (reordered or duplicate).
-		// Each member has its own sequence space — the counter lives on the member.
-		if (msg.Seq <= member.LastReportSeq)
-		{
-			return;
-		}
-
-		member.LastReportSeq = msg.Seq;
-
-		// Ownership check: the report must carry the member's own entity id —
-		// an id we allocated to the member (or stale) means a misbehaving peer.
-		var reportedId = msg.Entity.Id.ToNetworkEntityId();
-		if (reportedId != member.Entity.EntityId)
-		{
-			_log.LogWarning("Dropping report from {Sender}: entity {Id} is not the member's {Expected}.",
-				sender, reportedId, member.Entity.EntityId);
-			return;
-		}
-
-		ApplyEntityState(msg.Entity, member.Entity);
-		StateReceived?.Invoke(member.Entity);
-	}
-
-	private void OnPlayerState(ulong sender, PlayerStateMsg msg)
-	{
-		if (Role != SessionRole.Guest)
-		{
-			return;
-		}
-
-		// Unreliable stream: drop stale snapshots (reordered or duplicate).
-		// The broadcast stream has a single source (the host).
-		if (msg.Seq <= _lastStateSeq)
-		{
-			return;
-		}
-
-		_lastStateSeq = msg.Seq;
-
-		foreach (var entity in msg.Entities)
-		{
-			var id = entity.Id.ToNetworkEntityId();
-			var target = id == _localPlayer.EntityId ? _localPlayer
-				: _members.Values.FirstOrDefault(m => m.Entity.EntityId == id)?.Entity;
-			if (target is null)
-			{
-				_log.LogWarning("Dropping entity state {Id} from {Sender}: no member with that entity id.",
-					id, sender);
-				continue;
-			}
-
-			ApplyEntityState(entity, target);
-		}
-
-		StateReceived?.Invoke(_localPlayer);
-	}
-
 	/// <summary>Applies a decoded entity state, preserving the first-snapshot rule
 	/// (Prev = current on the first report — the buffer defaults are (0,0) and
 	/// interpolating from them would slide the proxy in from the world origin).</summary>
-	private static void ApplyEntityState(EntityStateMsg msg, PlayerEntity target)
+	internal static void ApplyEntityState(EntityStateMsg msg, PlayerEntity target)
 	{
 		var firstSnapshot = target.StateReceivedMs < 0;
 		target.PrevPosition = firstSnapshot ? msg.Position.ToNetVector2() : target.Position;
@@ -864,20 +575,11 @@ public sealed class SessionService : ICuoService
 
 	// ---- Character data (session-scoped save/restore) ----
 
-	private void OnCharacterData(ulong sender, CharacterDataMsg msg)
-	{
-		if (Role == SessionRole.Host)
-		{
-			_savedCharacters[sender] = msg;
-			_log.LogDebug("Saved character data for {Peer} ({Items} items).", sender, msg.Items.Count);
-			return;
-		}
-
-		CharacterDataReceived?.Invoke(msg);
-	}
+	/// <summary>Host side: keep the latest report per SteamID (session-scoped save).</summary>
+	internal void SaveCharacterData(ulong steamId, CharacterDataMsg msg) => _savedCharacters[steamId] = msg;
 
 	/// <summary>Host side: hand the saved character data back to a reconnecting player.</summary>
-	private void SendSavedCharacter(ulong steamId)
+	internal void SendSavedCharacter(ulong steamId)
 	{
 		if (_savedCharacters.TryGetValue(steamId, out var data))
 		{
@@ -888,11 +590,10 @@ public sealed class SessionService : ICuoService
 
 	// ---- Ping / pong (diagnostics) ----
 
-	private void OnPing(ulong sender, PingMsg msg) => Send(sender, NetMsg.Pong, new PongMsg { Ticks = msg.Ticks });
-
-	private void OnPong(ulong sender, PongMsg msg)
+	/// <summary>Records the round-trip for the pong sender (per member).</summary>
+	internal void RecordPong(ulong sender, long ticks)
 	{
-		LastRttMs = (DateTime.UtcNow.Ticks - msg.Ticks) / 10_000f;
+		LastRttMs = (DateTime.UtcNow.Ticks - ticks) / 10_000f;
 		if (_members.TryGetValue(sender, out var member))
 		{
 			member.RttMs = LastRttMs;
@@ -948,7 +649,7 @@ public sealed class SessionService : ICuoService
 	}
 
 	/// <summary>Host side: drop a member (sync off, roster PlayerLeave, clone teardown).</summary>
-	private void RemoveMember(ulong steamId, string reason)
+	internal void RemoveMember(ulong steamId, string reason)
 	{
 		if (!_members.TryGetValue(steamId, out var member))
 		{
@@ -965,11 +666,18 @@ public sealed class SessionService : ICuoService
 			SteamId = steamId,
 			EntityId = NetworkEntityIdMsg.From(member.Entity.EntityId),
 		});
-		RemoteSceneChanged?.Invoke(steamId, false);
+		FireRemoteSceneChanged(steamId, false);
+	}
+
+	/// <summary>Guest side: drop a roster member (no broadcast — only the host fans out).</summary>
+	internal void RemoveGuestMember(ulong steamId)
+	{
+		_members.Remove(steamId);
+		FireRemoteSceneChanged(steamId, false);
 	}
 
 	/// <summary>Host side: end one member's entity sync (its stream stops, its clone is torn down).</summary>
-	private void EndMemberSync(MemberState member)
+	internal void EndMemberSync(MemberState member)
 	{
 		if (!member.EntitySync)
 		{
@@ -981,7 +689,7 @@ public sealed class SessionService : ICuoService
 	}
 
 	/// <summary>End entity sync for every member (host) or the self sync (guest).</summary>
-	private void EndEntitySync()
+	internal void EndEntitySync()
 	{
 		if (Role == SessionRole.Host)
 		{
@@ -1002,7 +710,7 @@ public sealed class SessionService : ICuoService
 		_log.LogInformation("Entity sync ended.");
 	}
 
-	private void EndSession()
+	internal void EndSession()
 	{
 		if (!SessionActive && _members.Count == 0)
 		{
@@ -1023,6 +731,15 @@ public sealed class SessionService : ICuoService
 
 	// ---- Wire helpers ----
 
+	private PacketRouter? _router;
+
+	/// <summary>
+	/// Attaches the packet router (built from the DI-registered handlers).
+	/// Called by CuoBootstrap right after the container is built, before any
+	/// ICuoService.Initialize runs — messages are only pumped from Update.
+	/// </summary>
+	internal void AttachRouter(PacketRouter router) => _router = router;
+
 	private void OnMessage(ulong sender, byte[] frame)
 	{
 		if (frame.Length < 1)
@@ -1037,45 +754,13 @@ public sealed class SessionService : ICuoService
 			return;
 		}
 
-		switch (msgId)
+		// O(1) dictionary route to the per-message handler (Session/Handlers/).
+		if (_router is not null && _router.TryDispatch(sender, frame))
 		{
-			case NetMsg.Ping:
-				OnPing(sender, NetPacket.DecodePayload<PingMsg>(frame));
-				break;
-			case NetMsg.Pong:
-				OnPong(sender, NetPacket.DecodePayload<PongMsg>(frame));
-				break;
-			case NetMsg.Handshake:
-				OnHandshake(sender, NetPacket.DecodePayload<HandshakeMsg>(frame));
-				break;
-			case NetMsg.HandshakeAck:
-				OnHandshakeAck(sender, NetPacket.DecodePayload<HandshakeAckMsg>(frame));
-				break;
-			case NetMsg.SceneState:
-				OnSceneState(sender, NetPacket.DecodePayload<SceneStateMsg>(frame));
-				break;
-			case NetMsg.WorldStartParams:
-				OnWorldStartParams(sender, NetPacket.DecodePayload<WorldStartParamsMsg>(frame));
-				break;
-			case NetMsg.PlayerJoin:
-				OnPlayerJoin(sender, NetPacket.DecodePayload<PlayerJoinMsg>(frame));
-				break;
-			case NetMsg.PlayerLeave:
-				OnPlayerLeave(sender, NetPacket.DecodePayload<PlayerLeaveMsg>(frame));
-				break;
-			case NetMsg.PlayerStateReport:
-				OnPlayerStateReport(sender, NetPacket.DecodePayload<PlayerStateReportMsg>(frame));
-				break;
-			case NetMsg.PlayerState:
-				OnPlayerState(sender, NetPacket.DecodePayload<PlayerStateMsg>(frame));
-				break;
-			case NetMsg.CharacterData:
-				OnCharacterData(sender, NetPacket.DecodePayload<CharacterDataMsg>(frame));
-				break;
-			case NetMsg.BlockDamaged:
-				OnBlockDamaged(sender, NetPacket.DecodePayload<BlockDamagedMsg>(frame));
-				break;
+			return;
 		}
+
+		_log.LogWarning("No handler for {Msg} from {Sender}.", msgId, sender);
 	}
 
 	/// <summary>
@@ -1083,54 +768,21 @@ public sealed class SessionService : ICuoService
 	/// else means a misbehaving peer or a stale message from a previous
 	/// session — drop it instead of processing.
 	/// </summary>
-	private bool IsValidDirection(NetMsg msgId)
+	private bool IsValidDirection(NetMsg msgId) => msgId switch
 	{
-		switch (msgId)
-		{
-			case NetMsg.Handshake:
-			case NetMsg.PlayerStateReport:
-				return Role == SessionRole.Host;
-			case NetMsg.HandshakeAck:
-			case NetMsg.WorldStartParams:
-			case NetMsg.PlayerJoin:
-			case NetMsg.PlayerLeave:
-			case NetMsg.PlayerState:
-				return Role == SessionRole.Guest;
-			default:
-				// Ping/Pong/SceneState/BlockDamaged/CharacterData: bidirectional —
-				// report up (guest → host) and broadcast down (host → guest)
-				// share one message id.
-				return true;
-		}
-	}
-
-	/// <summary>
-	/// Block damage, star semantics (local compute → report → arbitrate → fan-out):
-	/// host: apply the report and relay it to the other members — the source is
-	/// excluded, it already applied locally. The Game Adapter's reentry guard
-	/// (_applyingRemoteBlockDamage) keeps the local application from echoing a
-	/// new report, so there is no loop. Arbitration is the silent tier: DamageBlock
-	/// is idempotent on already-broken blocks (air, health = 0 — verified in
-	/// WorldGeneration.cs:711-848), first-writer-wins is automatic.
-	/// Guest: the host's broadcast — apply it.
-	/// </summary>
-	private void OnBlockDamaged(ulong sender, BlockDamagedMsg msg)
-	{
-		if (Role == SessionRole.Host)
-		{
-			BlockDamagedReceived?.Invoke(msg.Position.ToNetVector2(), msg.Damage);
-			BroadcastExcept(sender, NetMsg.BlockDamaged, msg);
-		}
-		else
-		{
-			BlockDamagedReceived?.Invoke(msg.Position.ToNetVector2(), msg.Damage);
-		}
-	}
+		NetMsg.Handshake or NetMsg.PlayerStateReport => Role == SessionRole.Host,
+		NetMsg.HandshakeAck or NetMsg.WorldStartParams or NetMsg.PlayerJoin
+			or NetMsg.PlayerLeave or NetMsg.PlayerState => Role == SessionRole.Guest,
+		// Ping/Pong/SceneState/BlockDamaged/CharacterData: bidirectional —
+		// report up (guest → host) and broadcast down (host → guest)
+		// share one message id.
+		_ => true,
+	};
 
 	// ---- Broadcast helpers (star fan-out) ----
 
 	/// <summary>Send a message to every member (host side; no-op as guest — the only peer is the host).</summary>
-	private void Broadcast(NetMsg msg, object payload)
+	internal void Broadcast(NetMsg msg, object payload)
 	{
 		foreach (var member in _members.Values)
 		{
@@ -1139,7 +791,7 @@ public sealed class SessionService : ICuoService
 	}
 
 	/// <summary>Broadcast to every member except one — relay semantics: the source already applied the change locally.</summary>
-	private void BroadcastExcept(ulong excludeSteamId, NetMsg msg, object payload)
+	internal void BroadcastExcept(ulong excludeSteamId, NetMsg msg, object payload)
 	{
 		foreach (var member in _members.Values)
 		{
@@ -1150,7 +802,7 @@ public sealed class SessionService : ICuoService
 		}
 	}
 
-	private MemberState GetOrCreateMember(ulong steamId)
+	internal MemberState GetOrCreateMember(ulong steamId)
 	{
 		if (!_members.TryGetValue(steamId, out var member))
 		{
@@ -1171,7 +823,7 @@ public sealed class SessionService : ICuoService
 	/// semantics + snapshot sequence make drops harmless and avoid head-of-line
 	/// blocking of the newest snapshot behind retransmissions.
 	/// </summary>
-	private void Send(ulong steamId, NetMsg msg, object? payload = null, bool reliable = true)
+	internal void Send(ulong steamId, NetMsg msg, object? payload = null, bool reliable = true)
 	{
 		if (steamId == 0)
 		{
@@ -1193,7 +845,7 @@ public sealed class SessionService : ICuoService
 
 	private SceneStateType SceneStateForLocal() => _localPlayer.InWorld ? SceneStateType.InWorld : SceneStateType.InMenu;
 
-	private SceneStateMsg CreateSceneStateMsg() => new()
+	internal SceneStateMsg CreateSceneStateMsg() => new()
 	{
 		State = (byte)SceneStateForLocal(),
 		SceneName = "",

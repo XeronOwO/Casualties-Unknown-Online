@@ -1,8 +1,10 @@
 using System;
+using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Logging;
 using CasualtiesUnknownOnline.Runtime.Networking;
 using CasualtiesUnknownOnline.Runtime.Session;
+using CasualtiesUnknownOnline.Runtime.Session.Handlers;
 using CasualtiesUnknownOnline.Runtime.Steam;
 using ManualLogSource = BepInEx.Logging.ManualLogSource;
 using Microsoft.Extensions.DependencyInjection;
@@ -46,8 +48,23 @@ public static class CuoBootstrap
 		services.AddSingleton<SessionService>();
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<SessionService>());
 
+		// Packet handlers: every [PacketHandler]-marked class in the Runtime
+		// assembly (Session/Handlers/) is DI-registered; the router reads the
+		// attribute and builds the msg → handler dictionary at startup.
+		services.AddSingleton<PacketRouter>();
+		foreach (var handlerType in typeof(CuoBootstrap).Assembly.GetTypes()
+			.Where(t => !t.IsAbstract && typeof(IPacketHandler).IsAssignableFrom(t)))
+		{
+			services.AddSingleton(typeof(IPacketHandler), handlerType);
+		}
+
 		extraRegistrations?.Invoke(services);
 
-		return services.BuildServiceProvider();
+		var provider = services.BuildServiceProvider();
+		// Attach the router before any lifecycle runs: messages are only pumped
+		// from Update, but the first frames may arrive very early.
+		provider.GetRequiredService<SessionService>()
+			.AttachRouter(provider.GetRequiredService<PacketRouter>());
+		return provider;
 	}
 }

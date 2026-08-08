@@ -938,11 +938,17 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 
 		idComp = item.gameObject.AddComponent<ItemInstanceId>();
 		idComp.Id = NextItemId();
+		// The glowing floating pickup effect carries over. Host-side drops
+		// always carry it: drops are executed host-side (guests are
+		// suppressed), but the game's 8 ft proximity check uses the HOST
+		// player's distance — a guest who mined the entity (and stands next
+		// to the drop) would never see the glow on its own side otherwise.
+		var fresh = item.GetComponent<FreshItemDrop>() != null || IsHostMode;
 		_items.SendItemSpawned(idComp.Id, CaptureItem(item, -1),
 			new NetVector2(item.transform.position.x, item.transform.position.y),
 			new NetVector2(item.rb.velocity.x, item.rb.velocity.y),
 			item.transform.eulerAngles.z,
-			item.GetComponent<FreshItemDrop>() != null); // the glowing floating pickup effect carries over
+			fresh);
 	}
 
 	void IPatchBridge.OnItemDestroyed(Item item)
@@ -1500,26 +1506,21 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 				continue;
 			}
 
-			var existing = slot.transform.childCount > 0 ? slot.transform.GetChild(0).GetComponent<Item>() : null;
 			var wanted = data.Items.FirstOrDefault(x => x.SlotIndex == slot.slot);
+
+			// Clear EVERY child, then materialize the wanted item: the diff
+			// used to inspect only GetChild(0), so a slot that accumulated
+			// more than one child (template leftover + render, or repeated
+			// renders) kept the strays — peers saw duplicate carried items
+			// appear after inventory shuffling.
+			for (var c = slot.transform.childCount - 1; c >= 0; c--)
+			{
+				UnityEngine.Object.Destroy(slot.transform.GetChild(c).gameObject);
+			}
+
 			if (wanted is null)
 			{
-				if (existing != null) // Unity object — ==
-				{
-					UnityEngine.Object.Destroy(existing.gameObject);
-				}
-
 				continue;
-			}
-
-			if (existing != null && existing.id == wanted.ItemId) // Unity object — ==
-			{
-				continue; // already showing the right item
-			}
-
-			if (existing != null) // Unity object — ==
-			{
-				UnityEngine.Object.Destroy(existing.gameObject);
 			}
 
 			var prefab = Resources.Load(wanted.ItemId);

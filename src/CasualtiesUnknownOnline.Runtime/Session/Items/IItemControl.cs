@@ -23,8 +23,8 @@ public interface IItemControl
 	/// <summary>An item was picked up locally (world → inventory) — drop it from the table (host/solo) and report/broadcast.</summary>
 	void SendItemPickedUp(ulong itemId);
 
-	/// <summary>An item was dropped/placed into the world locally (inventory → world) — record and report/broadcast.</summary>
-	void SendItemDropped(ulong itemId, CharacterItemMsg item, NetVector2 pos);
+	/// <summary>An item was dropped/placed into the world locally (inventory → world/container) — record and report/broadcast.</summary>
+	void SendItemDropped(ulong itemId, CharacterItemMsg item, NetVector2 pos, ulong parentItemId);
 
 	/// <summary>A world item was destroyed locally — drop it from the table (host/solo) and report/broadcast.</summary>
 	void SendItemDestroyed(ulong itemId);
@@ -35,7 +35,7 @@ public interface IItemControl
 
 	void FireItemPickedUpReceived(ulong sender, ulong itemId);
 
-	void FireItemDroppedReceived(ulong sender, ulong itemId, CharacterItemMsg item, NetVector2 pos);
+	void FireItemDroppedReceived(ulong sender, ulong itemId, CharacterItemMsg item, NetVector2 pos, ulong parentItemId);
 
 	void FireItemDestroyedReceived(ulong sender, ulong itemId);
 
@@ -61,8 +61,8 @@ public interface IItemControl
 	/// <summary>An item left the world into someone's inventory — remove it (or roll a local pickup back).</summary>
 	event Action<ulong>? ItemPickedUp;
 
-	/// <summary>An item now lies in the world at Pos — move an existing object there or materialize it.</summary>
-	event Action<ulong, CharacterItemMsg, NetVector2>? ItemDropped;
+	/// <summary>An item now lies in the world at Pos (or inside the container item ParentItemId) — move an existing object there or materialize it.</summary>
+	event Action<ulong, CharacterItemMsg, NetVector2, ulong>? ItemDropped;
 
 	/// <summary>An item was destroyed — remove it locally.</summary>
 	event Action<ulong>? ItemDestroyed;

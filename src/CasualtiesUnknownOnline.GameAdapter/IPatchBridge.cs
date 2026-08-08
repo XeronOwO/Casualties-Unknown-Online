@@ -22,4 +22,23 @@ internal interface IPatchBridge
 	void OnBlockDamaged(Vector2 pos, float dmg);
 
 	bool OnGuestStartAttempt();
+
+	// ---- World items (runtime-generated item entities) ----
+
+	void OnItemInstantiated(Item item);
+
+	void OnItemDestroyed(Item item);
+
+	/// <summary>Prefix of Body.PickUpItem — remember the world position (rollback target for a refused pickup).</summary>
+	void OnItemPickupStart(Item item);
+
+	void OnItemPickedUp(Item item);
+
+	void OnItemDropped(Item item);
+
+	void OnItemLoadedIntoContainer(Item item);
+
+	void OnItemUnloadedFromContainer(Item item);
+
+	void OnContainerUnloadedAll(Container container);
 }

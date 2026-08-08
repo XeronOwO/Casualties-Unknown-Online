@@ -7,6 +7,7 @@ using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
+using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using HarmonyLib;
@@ -40,6 +41,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	private readonly EntitySyncService _entities;
 	private readonly CharacterDataStore _characterData;
 	private readonly WorldService _world;
+	private readonly ItemService _items;
 	private readonly ILogger<GameAdapter> _log;
 	private readonly IMapper _mapper;
 	private Harmony? _harmony;
@@ -67,13 +69,19 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	private CharacterDataMsg? _pendingRestore; // guest side: host-sent restore, applied once the body exists
 	private bool _restoreWipePending; // first pass wiped the slots (Destroy is end-of-frame) — items go in on the next frame
 
+	// ---- World items (runtime-generated item entities) ----
+	private bool _applyingRemoteItem; // reentry guard: remote applications must not report back
+	private ulong _nextItemId = 1; // local instance-id counter — ids are (counter << 32 | account id), unique without host allocation
+	private readonly Dictionary<ulong, Vector2> _pickupOrigins = []; // itemId → world position at pickup (rollback target for a refused pickup)
+
 	public GameAdapter(SessionService session, EntitySyncService entities, CharacterDataStore characterData,
-		WorldService world, ILogger<GameAdapter> log, IMapper mapper)
+		WorldService world, ItemService items, ILogger<GameAdapter> log, IMapper mapper)
 	{
 		_session = session;
 		_entities = entities;
 		_characterData = characterData;
 		_world = world;
+		_items = items;
 		_log = log;
 		_mapper = mapper;
 		PatchBridge.Bind(this); // the only static seam — Harmony patches read the narrow surface, never this instance
@@ -399,6 +407,12 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_world.BlockStateReceived += OnRemoteBlockState;
 		_world.BlockPlacedReceived += OnRemoteBlockPlaced;
 		_world.WorldReadyReceived += OnRemoteWorldReady;
+		_items.ItemSpawned += OnRemoteItemSpawned;
+		_items.ItemPickedUp += OnRemoteItemPickedUp;
+		_items.ItemDropped += OnRemoteItemDropped;
+		_items.ItemDestroyed += OnRemoteItemDestroyed;
+		_items.ItemRejected += OnItemRejected;
+		_items.ItemSnapshotReceived += OnRemoteItemSnapshot;
 		_characterData.CharacterDataReceived += OnCharacterDataReceived;
 	}
 
@@ -682,6 +696,399 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		{
 			_applyingRemoteBlockPlace = false;
 		}
+	}
+
+	// ---- World items (runtime-generated item entities, local compute → report → relay) ----
+
+	/// <summary>Instance ids are (local counter, account id) — globally unique per
+	/// session without host allocation, so the spawner applies its item
+	/// immediately (local compute, zero pickup latency).</summary>
+	private ulong NextItemId() => (_nextItemId++ << 32) | (uint)_session.LocalSteamId;
+
+	/// <summary>True when the item's parent chain ends outside any inventory/body — it is part of the world.</summary>
+	private static bool IsWorldItem(Item item)
+	{
+		var t = item.transform;
+		while (t != null)
+		{
+			// == null on Unity objects (a scene-reload-destroyed parent is not managed-null)
+			if (t.GetComponent<InventorySlot>() != null || t.GetComponent<Body>() != null)
+			{
+				return false;
+			}
+
+			t = t.parent;
+		}
+
+		return true;
+	}
+
+	/// <summary>Find an item by its instance id (Item.allItems — Item.cs:7211, the scene's item table).</summary>
+	private static Item? FindWorldItem(ulong itemId)
+	{
+		foreach (var item in Item.allItems)
+		{
+			var idComp = item.GetComponent<ItemInstanceId>();
+			if (idComp != null && idComp.Id == itemId) // Unity object — ==
+			{
+				return item;
+			}
+		}
+
+		return null;
+	}
+
+	/// <summary>
+	/// Called from the Item.Start patch after a runtime-generated item appeared
+	/// (drops, creature loot, use-spawned items — every instantiation lands
+	/// here). Generation-time items are skipped (world-gen determinism covers
+	/// them); everything else gets an instance id and is reported. Solo play
+	/// records too (no broadcast) — a solo-turned-lobby host hands its
+	/// accumulated items to a joining guest via the snapshot.
+	/// </summary>
+	void IPatchBridge.OnItemInstantiated(Item item)
+	{
+		if (_applyingRemoteItem || HarmonyTraverse.IsGenerating())
+		{
+			return;
+		}
+
+		var idComp = item.GetComponent<ItemInstanceId>();
+		if (idComp != null) // Unity object — ==; remote application attached it first — already synced
+		{
+			return;
+		}
+
+		idComp = item.gameObject.AddComponent<ItemInstanceId>();
+		idComp.Id = NextItemId();
+		_items.SendItemSpawned(idComp.Id, CaptureItem(item, -1),
+			new NetVector2(item.transform.position.x, item.transform.position.y),
+			new NetVector2(item.rb.velocity.x, item.rb.velocity.y));
+	}
+
+	void IPatchBridge.OnItemDestroyed(Item item)
+	{
+		if (_applyingRemoteItem || HarmonyTraverse.IsGenerating())
+		{
+			return;
+		}
+
+		var idComp = item.GetComponent<ItemInstanceId>();
+		if (idComp != null) // Unity object — ==
+		{
+			_items.SendItemDestroyed(idComp.Id);
+		}
+	}
+
+	void IPatchBridge.OnItemPickupStart(Item item)
+	{
+		var idComp = item.GetComponent<ItemInstanceId>();
+		if (idComp != null && _pickupOrigins.Count < 256) // Unity object — ==; bounded, oldest overwritten
+		{
+			_pickupOrigins[idComp.Id] = item.transform.position;
+		}
+	}
+
+	void IPatchBridge.OnItemPickedUp(Item item)
+	{
+		if (_applyingRemoteItem)
+		{
+			return;
+		}
+
+		var idComp = item.GetComponent<ItemInstanceId>();
+		if (idComp != null) // Unity object — ==
+		{
+			_items.SendItemPickedUp(idComp.Id);
+		}
+	}
+
+	void IPatchBridge.OnItemDropped(Item item)
+	{
+		if (_applyingRemoteItem)
+		{
+			return;
+		}
+
+		var idComp = item.GetComponent<ItemInstanceId>();
+		if (idComp != null) // Unity object — ==
+		{
+			_items.SendItemDropped(idComp.Id, CaptureItem(item, -1),
+				new NetVector2(item.transform.position.x, item.transform.position.y), 0);
+		}
+	}
+
+	void IPatchBridge.OnItemLoadedIntoContainer(Item item)
+	{
+		if (_applyingRemoteItem)
+		{
+			return;
+		}
+
+		var idComp = item.GetComponent<ItemInstanceId>();
+		if (idComp == null || !IsWorldItem(item)) // Unity object — ==; inventory containers stay in the character data domain
+		{
+			return;
+		}
+
+		var containerId = item.transform.parent != null && item.transform.parent.GetComponent<ItemInstanceId>() != null
+			? item.transform.parent.GetComponent<ItemInstanceId>().Id
+			: 0;
+		_items.SendItemDropped(idComp.Id, CaptureItem(item, -1),
+			new NetVector2(item.transform.position.x, item.transform.position.y), containerId);
+	}
+
+	void IPatchBridge.OnItemUnloadedFromContainer(Item item)
+	{
+		if (_applyingRemoteItem)
+		{
+			return;
+		}
+
+		var idComp = item.GetComponent<ItemInstanceId>();
+		if (idComp != null) // Unity object — ==
+		{
+			_items.SendItemDropped(idComp.Id, CaptureItem(item, -1),
+				new NetVector2(item.transform.position.x, item.transform.position.y), 0);
+		}
+	}
+
+	void IPatchBridge.OnContainerUnloadedAll(Container container)
+	{
+		if (_applyingRemoteItem)
+		{
+			return;
+		}
+
+		for (var i = 0; i < container.transform.childCount; i++)
+		{
+			var child = container.transform.GetChild(i).GetComponent<Item>();
+			var idComp = child != null ? child.GetComponent<ItemInstanceId>() : null;
+			if (idComp != null) // Unity object — ==
+			{
+				_items.SendItemDropped(idComp.Id, CaptureItem(child!, -1),
+					new NetVector2(child!.transform.position.x, child.transform.position.y), 0);
+			}
+		}
+	}
+
+	/// <summary>A world item now exists on a remote side — materialize it locally (full state: condition + components + contents).</summary>
+	private void OnRemoteItemSpawned(WorldItem worldItem)
+	{
+		_applyingRemoteItem = true;
+		try
+		{
+			SpawnWorldItem(worldItem);
+		}
+		finally
+		{
+			_applyingRemoteItem = false;
+		}
+	}
+
+	/// <summary>
+	/// A world item left the world into someone's inventory. We never receive
+	/// the broadcast of our own successful pickup (the source is excluded), so
+	/// this is either someone else taking it (remove our copy) or our own
+	/// optimistic pickup losing the race (the winner's broadcast — roll it back
+	/// into the world).
+	/// </summary>
+	private void OnRemoteItemPickedUp(ulong itemId)
+	{
+		_applyingRemoteItem = true;
+		try
+		{
+			var item = FindWorldItem(itemId);
+			if (item != null) // Unity object — ==
+			{
+				if (IsWorldItem(item))
+				{
+					UnityEngine.Object.Destroy(item.gameObject);
+				}
+				else
+				{
+					RollbackPickup(item, itemId);
+				}
+			}
+		}
+		finally
+		{
+			_applyingRemoteItem = false;
+		}
+	}
+
+	private void OnRemoteItemDropped(ulong itemId, CharacterItemMsg itemState, NetVector2 pos, ulong parentItemId)
+	{
+		_applyingRemoteItem = true;
+		try
+		{
+			var item = FindWorldItem(itemId);
+			if (item == null) // Unity object — ==; we never had it (it was in the dropper's inventory)
+			{
+				SpawnWorldItem(new WorldItem(itemId, itemState, pos, NetVector2.Zero, parentItemId));
+			}
+			else
+			{
+				item.transform.SetParent(null);
+				item.transform.position = new Vector3(pos.X, pos.Y, 0f);
+				if (parentItemId != 0)
+				{
+					var parent = FindWorldItem(parentItemId);
+					if (parent != null) // Unity object — ==
+					{
+						item.transform.SetParent(parent.transform);
+					}
+				}
+			}
+		}
+		finally
+		{
+			_applyingRemoteItem = false;
+		}
+	}
+
+	private void OnRemoteItemDestroyed(ulong itemId)
+	{
+		_applyingRemoteItem = true;
+		try
+		{
+			var item = FindWorldItem(itemId);
+			if (item != null) // Unity object — ==
+			{
+				UnityEngine.Object.Destroy(item.gameObject);
+			}
+		}
+		finally
+		{
+			_applyingRemoteItem = false;
+		}
+	}
+
+	/// <summary>The host refused our pickup — take the item back out of the inventory and put it back where it was picked up.</summary>
+	private void OnItemRejected(ulong itemId)
+	{
+		_applyingRemoteItem = true;
+		try
+		{
+			var item = FindWorldItem(itemId);
+			if (item != null) // Unity object — ==
+			{
+				RollbackPickup(item, itemId);
+			}
+		}
+		finally
+		{
+			_applyingRemoteItem = false;
+		}
+	}
+
+	/// <summary>
+	/// A refused pickup or a lost race — the item leaves the inventory back
+	/// into the world, at the position it was picked up from.
+	/// </summary>
+	private void RollbackPickup(Item item, ulong itemId)
+	{
+		var body = PlayerCamera.main != null ? PlayerCamera.main.body : null;
+		if (body != null && body.HoldingItem(item)) // Unity object — ==
+		{
+			body.DropItem(item);
+		}
+		else if (item.transform.parent != null)
+		{
+			item.transform.SetParent(null); // mid-drag or inside a container — free it
+			item.rb.simulated = true;
+		}
+
+		if (_pickupOrigins.TryGetValue(itemId, out var origin))
+		{
+			item.transform.position = origin;
+			_pickupOrigins.Remove(itemId);
+		}
+	}
+
+	/// <summary>
+	/// The authoritative world-item snapshot arrived (world entry): reconcile —
+	/// destroy local world items missing from the snapshot, materialize the
+	/// snapshot's items (world first, then container contents — the parent
+	/// objects must exist).
+	/// </summary>
+	private void OnRemoteItemSnapshot(IReadOnlyList<WorldItem> items)
+	{
+		_applyingRemoteItem = true;
+		try
+		{
+			var snapshot = items.ToDictionary(w => w.ItemId);
+
+			foreach (var item in Item.allItems.ToList()) // copy: destroying while iterating
+			{
+				var idComp = item.GetComponent<ItemInstanceId>();
+				if (idComp == null || !IsWorldItem(item)) // Unity object — ==; inventory items are character data
+				{
+					continue;
+				}
+
+				if (!snapshot.ContainsKey(idComp.Id))
+				{
+					UnityEngine.Object.Destroy(item.gameObject);
+				}
+			}
+
+			foreach (var w in items.Where(w => w.ParentItemId == 0))
+			{
+				if (FindWorldItem(w.ItemId) == null) // Unity object — ==
+				{
+					SpawnWorldItem(w);
+				}
+			}
+
+			foreach (var w in items.Where(w => w.ParentItemId != 0))
+			{
+				if (FindWorldItem(w.ItemId) == null) // Unity object — ==
+				{
+					SpawnWorldItem(w);
+				}
+			}
+		}
+		finally
+		{
+			_applyingRemoteItem = false;
+		}
+	}
+
+	/// <summary>
+	/// Materialize a world item from its carried state: instantiate the
+	/// definition prefab, restore condition/components/liquids/contents, attach
+	/// the instance id and place it (into its container when the parent exists).
+	/// The Item.Start hook sees the already-attached id and does not re-report.
+	/// </summary>
+	private void SpawnWorldItem(WorldItem w)
+	{
+		var prefab = Resources.Load(w.Item.ItemId);
+		if (prefab == null) // Unity object — ==
+		{
+			_log.LogWarning("Cannot materialize item {ItemId}: definition '{Type}' not found.", w.ItemId, w.Item.ItemId);
+			return;
+		}
+
+		var obj = UnityEngine.Object.Instantiate(prefab, new Vector3(w.Pos.X, w.Pos.Y, 0f), Quaternion.identity) as GameObject;
+		var item = obj!.GetComponent<Item>(); // the definition prefab carries Item — Instantiate succeeded, so it exists
+		item.condition = w.Item.Condition; // direct write, like the save restore (SaveSystem.cs:306) — SetCondition would drain water by ratio
+		item.favourited = w.Item.Favourited;
+		item.gameObject.AddComponent<ItemInstanceId>().Id = w.ItemId;
+		RestoreLiquids(item, w.Item.Liquids);
+		RestoreComponentStates(item, w.Item.Components);
+		RestoreContents(item, w.Item.Contents);
+
+		if (w.ParentItemId != 0)
+		{
+			var parent = FindWorldItem(w.ParentItemId);
+			if (parent != null) // Unity object — ==
+			{
+				item.transform.SetParent(parent.transform);
+			}
+		}
+
+		item.rb.velocity = new Vector2(w.Vel.X, w.Vel.Y);
 	}
 
 	/// <summary>
@@ -1409,6 +1816,9 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		if (_session.Role == SessionRole.Host || _session.Role == SessionRole.None)
 		{
 			CaptureWorldParams();
+			// A new world layer is generating — the old layer's world items are
+			// gone with the scene; the authoritative table starts empty again.
+			_items.ResetItems();
 			if (_session.Role == SessionRole.Host)
 			{
 				// Generation is starting — tell the members to start loading at

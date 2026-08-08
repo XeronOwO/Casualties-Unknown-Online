@@ -20,4 +20,7 @@ public sealed class ItemDropMsg
 
 	[ProtoMember(3)]
 	public NetVector2Msg Position { get; set; } = new();
+
+	[ProtoMember(4)]
+	public ulong ParentItemId { get; set; } // 0 = the world, else the containing world container item's instance id
 }

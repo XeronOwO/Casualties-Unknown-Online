@@ -78,9 +78,9 @@ public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandl
 		{
 			Protocol = ProtocolVersion.Current,
 			Scene = new SceneStateMsg { State = (byte)session.LocalSceneState },
-			HasWorldParams = session.WorldParams is not null,
+			HasWorldParams = ctx.World.WorldParams is not null,
 		});
-		var worldParams = session.WorldParams;
+		var worldParams = ctx.World.WorldParams;
 		if (worldParams is not null)
 		{
 			_sender.Send(sender, NetMsg.WorldStartParams, worldParams.ToWorldStartParamsMsg());

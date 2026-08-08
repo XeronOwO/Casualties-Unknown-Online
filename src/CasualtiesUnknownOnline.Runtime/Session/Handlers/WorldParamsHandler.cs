@@ -12,8 +12,9 @@ public sealed class WorldParamsHandler(ILogger<WorldParamsHandler> log) : Packet
 
 	protected override void Handle(ulong sender, WorldStartParamsMsg msg, HandlerContext ctx)
 	{
-		ctx.Session.WorldParams = msg.ToWorldStartParams();
+		var worldParams = msg.ToWorldStartParams();
+		ctx.World.WorldParams = worldParams;
 		_log.LogInformation("Received world params ({StateBytes} bytes, loaded run: {LoadedRun}).",
-			ctx.Session.WorldParams.RandomState.Length, ctx.Session.WorldParams.LoadedRun);
+			worldParams.RandomState.Length, worldParams.LoadedRun);
 	}
 }

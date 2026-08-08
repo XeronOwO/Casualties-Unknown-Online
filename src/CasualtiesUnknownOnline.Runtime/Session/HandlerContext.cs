@@ -6,11 +6,14 @@ namespace CasualtiesUnknownOnline.Runtime.Session;
 /// router — handlers never depend on the concrete services at construction
 /// time (that would create the session ↔ gateway ↔ router ↔ handlers cycle).
 /// </summary>
-public sealed class HandlerContext(ISessionControl session, IEntitySyncControl entities, ICharacterDataControl characterData)
+public sealed class HandlerContext(ISessionControl session, IEntitySyncControl entities,
+	ICharacterDataControl characterData, IWorldControl world)
 {
 	public ISessionControl Session { get; } = session;
 
 	public IEntitySyncControl Entities { get; } = entities;
 
 	public ICharacterDataControl CharacterData { get; } = characterData;
+
+	public IWorldControl World { get; } = world;
 }

@@ -30,6 +30,9 @@ internal interface IPatchBridge
 	/// <summary>The spawn landing sound is deferred while the start gate holds — play it when the gate releases.</summary>
 	void DeferLifePodSound();
 
+	/// <summary>The spawn landing camera shake is deferred while the start gate holds — replay it at release.</summary>
+	void DeferLifePodShake();
+
 	bool OnGuestStartAttempt();
 
 	// ---- World items (runtime-generated item entities) ----

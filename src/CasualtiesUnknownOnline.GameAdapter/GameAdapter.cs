@@ -77,6 +77,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	private bool _applyingRemoteBuildingDamage; // reentry guard: applying a remote entity hit must not re-report
 	private bool _deferredLifePodSound; // the spawn landing sound, deferred while the start gate holds
 	private bool _replayingLifePodSound; // true while the deferred sound is being replayed (bypasses the defer patch)
+	private bool _deferredLifePodShake; // the spawn landing camera shake (Invoke runs on real time — it fires into the frozen wait and is lost)
 
 	/// <summary>Periodic world-item keyframe: re-send the full table so physical drift self-heals.</summary>
 	private const int ItemSnapshotIntervalMs = 5000;
@@ -1664,27 +1665,53 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 				Traverse.Create(_localBody).Field("movingAllowed").SetValue(true);
 			}
 
-			// The spawn landing sound was deferred while the gate held (it
-			// would play into the frozen world) — play it now, together with
-			// everyone else's release. The replay flag keeps the Sound.Play
-			// patch from deferring it a second time (the session is still
-			// active at release).
-			if (_deferredLifePodSound)
+			ReplayLifePodEffects();
+		}
+		else if (_deferredLifePodSound || _deferredLifePodShake)
+		{
+			// Deferred but never held by a gate: the 30 s force-start released
+			// the host BEFORE this side finished loading, so WorldReady arrived
+			// first and WaitingForReady never armed — the release branch never
+			// ran. Replay now that we are playing.
+			ReplayLifePodEffects();
+		}
+	}
+
+	/// <summary>
+	/// The spawn landing presentation (sound + camera shake, WorldGeneration.cs:
+	/// 3671-3674) was deferred while the start gate held (both would play into
+	/// the frozen world — the shake's Invoke even runs on real time and is lost
+	/// before the release). Replay both together at release. The replay flag
+	/// keeps the Sound.Play patch from deferring it a second time (the session
+	/// is still active at release).
+	/// </summary>
+	private void ReplayLifePodEffects()
+	{
+		if (_deferredLifePodSound)
+		{
+			_deferredLifePodSound = false;
+			_log.LogInformation("[Sound] deferred lifePodHit played.");
+			if (PlayerCamera.main != null && PlayerCamera.main.body != null) // Unity objects — ==
 			{
-				_deferredLifePodSound = false;
-				_log.LogInformation("[Sound] deferred lifePodHit played at gate release.");
-				if (PlayerCamera.main != null && PlayerCamera.main.body != null) // Unity objects — ==
+				_replayingLifePodSound = true;
+				try
 				{
-					_replayingLifePodSound = true;
-					try
-					{
-						Sound.Play("lifePodHit", PlayerCamera.main.body.transform.position, true, false, null, 1f, 1f, false, false);
-					}
-					finally
-					{
-						_replayingLifePodSound = false;
-					}
+					Sound.Play("lifePodHit", PlayerCamera.main.body.transform.position, true, false, null, 1f, 1f, false, false);
 				}
+				finally
+				{
+					_replayingLifePodSound = false;
+				}
+			}
+		}
+
+		if (_deferredLifePodShake)
+		{
+			_deferredLifePodShake = false;
+			_log.LogInformation("[FX] deferred LifePodShake played.");
+			if (PlayerCamera.main != null) // Unity object — ==
+			{
+				PlayerCamera.main.LifePodShake();
 			}
 		}
 	}
@@ -1694,6 +1721,13 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	{
 		_log.LogInformation("[Sound] lifePodHit deferred (gate holds or timeScale 0).");
 		_deferredLifePodSound = true;
+	}
+
+	/// <summary>Deferred by the LifePodShake patch while the start gate holds (the Invoke fires into the frozen wait).</summary>
+	void IPatchBridge.DeferLifePodShake()
+	{
+		_log.LogInformation("[FX] LifePodShake deferred (gate holds).");
+		_deferredLifePodShake = true;
 	}
 
 	/// <summary>Guest side: the host released the start gate — start playing.</summary>

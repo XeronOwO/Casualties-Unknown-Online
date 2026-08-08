@@ -1181,6 +1181,27 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		}
 	}
 
+	void IPatchBridge.OnItemThrown(Item item)
+	{
+		if (_applyingRemoteItem)
+		{
+			return;
+		}
+
+		var itemId = EnsureItemId(item);
+		if (itemId != 0)
+		{
+			// The throw velocity is set AFTER the drop report (Body.cs:1659-1661)
+			// — this second report carries it; the peer's copy (already
+			// materialized by the first) gets re-placed with the flight
+			// velocity instead of dropping in place.
+			_items.SendItemDropped(itemId, CaptureItem(item, -1),
+				new NetVector2(item.transform.position.x, item.transform.position.y),
+				new NetVector2(item.rb.velocity.x, item.rb.velocity.y),
+				0, item.transform.eulerAngles.z);
+		}
+	}
+
 	void IPatchBridge.OnItemLoadedIntoContainer(Item item)
 	{
 		if (_applyingRemoteItem)

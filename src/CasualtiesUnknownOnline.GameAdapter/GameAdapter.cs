@@ -63,6 +63,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	private bool _inWorld;
 	private bool _worldJoinPending; // guest: the host's enter instruction arrived while the menu was still loading
 	private bool _worldJoinPendingTutorial; // guest: the entry kind carried by the WorldJoin message
+	private bool _worldJoinStarted; // guest: a run is already being followed — duplicate WorldJoin (retried handshake) is ignored
 	private bool _startRunAuthorized; // set right before the WorldJoin-triggered StartRun, consumed by the gate
 	private bool _entryParamsCaptured; // host: params captured at the run-start entry — the first GenerateWorld must not re-capture (it would move the baseline and re-send, racing the guests' start)
 	private WorldStartParams? _appliedWorldParams; // guest: the params instance whose Random.state is currently restored (a new instance = a new world/layer = re-apply)
@@ -545,9 +546,18 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	/// launches a fresh process) — wait for PreRunScript, then start the run.
 	/// The entry kind rides in the message: the world params do not exist yet at
 	/// the moment the host clicks start (they are captured at its GenerateWorld
-	/// boundary), so the biome read would misjudge a tutorial for a run.</summary>
+	/// boundary), so the biome read would misjudge a tutorial for a run.
+	/// Duplicate WorldJoin (a retried handshake answers each retry with a fresh
+	/// copy) must not restart the run — a second StartRun starts a second
+	/// WaitLoad/LoadScene coroutine over the first, corrupting the loading
+	/// flow and diverging the generated world.</summary>
 	private void OnWorldJoin(bool isTutorial)
 	{
+		if (_worldJoinStarted)
+		{
+			return; // already following a run — duplicate instruction ignored
+		}
+
 		_worldJoinPending = true;
 		_worldJoinPendingTutorial = isTutorial;
 		TryStartWorldJoin();
@@ -576,6 +586,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		}
 
 		_worldJoinPending = false;
+		_worldJoinStarted = true; // the run is now being followed — later duplicates are ignored
 		_startRunAuthorized = true; // the gate refuses unauthorised (manual) guest starts
 		var tutorial = _worldJoinPendingTutorial;
 		_log.LogInformation("World join received — starting {Run} to follow.", tutorial ? "the tutorial" : "a run");
@@ -2571,6 +2582,11 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		}
 
 		_inWorld = inWorld;
+		if (!inWorld)
+		{
+			_worldJoinStarted = false; // leaving the world (death, menu) — a future WorldJoin may follow a new run
+		}
+
 		var prevBody = _localBody; // Unity object — ==
 		_localBody = inWorld ? PlayerCamera.main!.body : null;
 		if (!inWorld && prevBody != null && _pendingRestore is null && !_restoreWipePending)

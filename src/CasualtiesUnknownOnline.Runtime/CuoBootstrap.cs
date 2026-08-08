@@ -40,11 +40,12 @@ public static class CuoBootstrap
 
 		// Registration order determines GetServices<ICuoService>() order:
 		// SteamService before SteamTransport (transport reads steam readiness),
-		// SessionService last (it dispatches messages from the transport).
+		// SessionService last (it owns the session state machine).
 		services.AddSingleton<SteamService>();
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<SteamService>());
 		services.AddSingleton<SteamTransport>();
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<SteamTransport>());
+		services.AddSingleton<SessionIdentity>();
 		services.AddSingleton<SessionService>();
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<SessionService>());
 
@@ -58,17 +59,13 @@ public static class CuoBootstrap
 			services.AddSingleton(typeof(IPacketHandler), handlerType);
 		}
 
-		// Data plane: the gateway binds the transport and dispatches (it also
-		// injects SessionService, so it is registered after — no cycle).
+		// Data plane: the gateway binds the transport and dispatches. It
+		// depends on SessionIdentity (not SessionService) — the dependency
+		// graph is acyclic, plain constructor injection everywhere.
 		services.AddSingleton<PacketGateway>();
 
 		extraRegistrations?.Invoke(services);
 
-		var provider = services.BuildServiceProvider();
-		// Attach the gateway before any lifecycle runs: messages are only
-		// pumped from Update, but the first frames may arrive very early.
-		provider.GetRequiredService<SessionService>()
-			.AttachGateway(provider.GetRequiredService<PacketGateway>());
-		return provider;
+		return services.BuildServiceProvider();
 	}
 }

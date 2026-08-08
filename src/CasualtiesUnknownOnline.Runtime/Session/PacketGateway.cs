@@ -12,19 +12,21 @@ namespace CasualtiesUnknownOnline.Runtime.Session;
 /// the control plane — it maintains the session and exposes business-level
 /// send/receive APIs; every message it sends goes through <see cref="Send"/>,
 /// every received frame arrives here and is routed to its packet handler.
+/// Depends on <see cref="SessionIdentity"/> (not SessionService) so the
+/// dependency graph stays acyclic and plain constructor injection works.
 /// </summary>
 public sealed class PacketGateway : IDisposable
 {
 	private readonly SteamTransport _transport;
-	private readonly SessionService _session;
+	private readonly SessionIdentity _identity;
 	private readonly PacketRouter _router;
 	private readonly ILogger<PacketGateway> _log;
 
 	public PacketGateway(
-		SteamTransport transport, SessionService session, PacketRouter router, ILogger<PacketGateway> log)
+		SteamTransport transport, SessionIdentity identity, PacketRouter router, ILogger<PacketGateway> log)
 	{
 		_transport = transport;
-		_session = session;
+		_identity = identity;
 		_router = router;
 		_log = log;
 		transport.MessageReceived += OnMessage;
@@ -57,7 +59,7 @@ public sealed class PacketGateway : IDisposable
 		if (!IsValidDirection(msgId))
 		{
 			_log.LogWarning("Dropping {Msg} from {Sender}: illegal direction for role {Role}.",
-				msgId, sender, _session.Role);
+				msgId, sender, _identity.Role);
 			return;
 		}
 
@@ -77,9 +79,9 @@ public sealed class PacketGateway : IDisposable
 	/// </summary>
 	private bool IsValidDirection(NetMsg msgId) => msgId switch
 	{
-		NetMsg.Handshake or NetMsg.PlayerStateReport => _session.Role == SessionRole.Host,
+		NetMsg.Handshake or NetMsg.PlayerStateReport => _identity.Role == SessionRole.Host,
 		NetMsg.HandshakeAck or NetMsg.WorldStartParams or NetMsg.PlayerJoin
-			or NetMsg.PlayerLeave or NetMsg.PlayerState => _session.Role == SessionRole.Guest,
+			or NetMsg.PlayerLeave or NetMsg.PlayerState => _identity.Role == SessionRole.Guest,
 		// Ping/Pong/SceneState/BlockDamaged/CharacterData: bidirectional —
 		// report up (guest → host) and broadcast down (host → guest)
 		// share one message id.

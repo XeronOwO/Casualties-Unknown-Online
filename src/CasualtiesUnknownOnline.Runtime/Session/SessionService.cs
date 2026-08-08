@@ -42,6 +42,8 @@ public sealed class SessionService : ICuoService
 	}
 
 	private readonly SteamService _steam;
+	private readonly SessionIdentity _identity;
+	private readonly PacketGateway _gateway;
 	private readonly ILogger<SessionService> _log;
 
 	private readonly PlayerEntity _localPlayer;
@@ -64,9 +66,11 @@ public sealed class SessionService : ICuoService
 	private uint _nextReportSeq; // guest: PlayerStateReport broadcasts
 	private bool _entitySyncActive; // guest: self sync state (host derives per member)
 
-	public SessionService(SteamService steam, ILogger<SessionService> log)
+	public SessionService(SteamService steam, SessionIdentity identity, PacketGateway gateway, ILogger<SessionService> log)
 	{
 		_steam = steam;
+		_identity = identity;
+		_gateway = gateway;
 		_log = log;
 		_localPlayer = new PlayerEntity(steam.LocalSteamId, default, isLocal: true);
 
@@ -74,7 +78,7 @@ public sealed class SessionService : ICuoService
 		steam.LobbyEntered += OnLobbyEntered;
 	}
 
-	public SessionRole Role { get; private set; }
+	public SessionRole Role => _identity.Role;
 
 	/// <summary>True once the handshake completed (protocol versions agreed). Set by the handshake handlers.</summary>
 	public bool SessionActive { get; internal set; }
@@ -89,7 +93,7 @@ public sealed class SessionService : ICuoService
 		? _members.Values.Any(m => m.EntitySync)
 		: _entitySyncActive;
 
-	public ulong HostSteamId { get; private set; }
+	public ulong HostSteamId => _identity.HostSteamId;
 
 	public PlayerEntity LocalPlayer => _localPlayer;
 
@@ -379,21 +383,21 @@ public sealed class SessionService : ICuoService
 
 	private void OnLobbyCreated(ulong lobbyId)
 	{
-		Role = SessionRole.Host;
-		HostSteamId = _steam.LocalSteamId;
+		_identity.Role = SessionRole.Host;
+		_identity.HostSteamId = _steam.LocalSteamId;
 		_log.LogInformation("Session role: Host (lobby {LobbyId})", lobbyId);
 	}
 
 	private void OnLobbyEntered(ulong lobbyId)
 	{
-		if (Role == SessionRole.Host)
+		if (_identity.Role == SessionRole.Host)
 		{
 			return; // our own lobby — the create callback already ran
 		}
 
-		Role = SessionRole.Guest;
-		HostSteamId = _steam.GetLobbyMembers().FirstOrDefault(m => m != _steam.LocalSteamId);
-		_log.LogInformation("Session role: Guest (lobby {LobbyId}, host {Host})", lobbyId, HostSteamId);
+		_identity.Role = SessionRole.Guest;
+		_identity.HostSteamId = _steam.GetLobbyMembers().FirstOrDefault(m => m != _steam.LocalSteamId);
+		_log.LogInformation("Session role: Guest (lobby {LobbyId}, host {Host})", lobbyId, _identity.HostSteamId);
 
 		// Kick off the handshake: protocol version + our scene state. Retry
 		// periodically until acked (Steam P2P sessions establish lazily and
@@ -714,7 +718,7 @@ public sealed class SessionService : ICuoService
 		EndEntitySync();
 		_members.Clear();
 		SessionActive = false;
-		HostSteamId = 0;
+		_identity.HostSteamId = 0;
 		// Role is NOT reset here: it follows the lobby identity (the lobby
 		// creator stays Host, a joiner stays Guest) — the session content is
 		// gone, but a returning guest's handshake is still accepted and rebuilds
@@ -724,16 +728,6 @@ public sealed class SessionService : ICuoService
 	}
 
 	// ---- Data plane (the PacketGateway owns transport binding + dispatch) ----
-
-	private PacketGateway? _gateway;
-
-	/// <summary>
-	/// Attaches the packet gateway (owns the transport subscription, direction
-	/// validation and dispatch to the packet handlers). Called by CuoBootstrap
-	/// right after the container is built, before any ICuoService.Initialize
-	/// runs — messages are only pumped from Update.
-	/// </summary>
-	internal void AttachGateway(PacketGateway gateway) => _gateway = gateway;
 
 	// ---- Broadcast helpers (star fan-out) ----
 
@@ -780,7 +774,7 @@ public sealed class SessionService : ICuoService
 	/// head-of-line blocking of the newest snapshot behind retransmissions.
 	/// </summary>
 	internal void Send(ulong steamId, NetMsg msg, object? payload = null, bool reliable = true) =>
-		_gateway?.Send(steamId, msg, payload, reliable);
+		_gateway.Send(steamId, msg, payload, reliable);
 
 	private NetworkEntityId AllocateEntityId()
 	{

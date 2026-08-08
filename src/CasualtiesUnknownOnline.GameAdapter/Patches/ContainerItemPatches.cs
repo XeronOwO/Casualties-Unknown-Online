@@ -29,10 +29,17 @@ internal static class ContainerItemPatches
 	[HarmonyPatch(typeof(Container), "UnloadItem")]
 	internal static class ContainerUnloadItemPatch
 	{
-		// Only an unload that actually happened (the loop can miss the item).
-		private static void Postfix(Container __instance, Item item)
+		// Only an unload that actually happened: UnloadItem is a no-op when the
+		// item is not inside this container (the drag-drop path calls it on the
+		// dragged item unconditionally — PlayerCamera.cs:1567 — before loading
+		// it elsewhere), and the old Postfix reported the no-op as "unloaded
+		// into the world", which materialized a phantom drop on the peer.
+		private static void Prefix(Container __instance, Item item, ref bool wasInside) =>
+			wasInside = item.transform.parent == __instance.transform;
+
+		private static void Postfix(Container __instance, Item item, bool wasInside)
 		{
-			if (item.transform.parent != __instance.transform)
+			if (wasInside && item.transform.parent != __instance.transform)
 			{
 				PatchBridge.Impl?.OnItemUnloadedFromContainer(item);
 			}

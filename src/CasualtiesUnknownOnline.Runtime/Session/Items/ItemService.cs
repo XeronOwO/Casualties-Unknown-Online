@@ -36,7 +36,7 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 
 	public event Action<ulong>? ItemPickedUp;
 
-	public event Action<ulong, CharacterItemMsg, NetVector2, NetVector2, ulong, float>? ItemDropped;
+	public event Action<ulong, CharacterItemMsg, NetVector2, NetVector2, ulong, float, NetVector2>? ItemDropped;
 
 	public event Action<ulong>? ItemDestroyed;
 
@@ -102,11 +102,11 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 		}
 	}
 
-	public void SendItemDropped(ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, ulong parentItemId, float rotation)
+	public void SendItemDropped(ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, ulong parentItemId, float rotation, NetVector2 parentPos = default)
 	{
 		if (_session.Role != SessionRole.Guest)
 		{
-			_worldItems[itemId] = new WorldItem(itemId, item, pos, vel, parentItemId, rotation, false);
+			_worldItems[itemId] = new WorldItem(itemId, item, pos, vel, parentItemId, rotation, false, parentPos);
 		}
 
 		if (!_session.SessionActive)
@@ -122,6 +122,7 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 			Velocity = vel.ToNetVector2Msg(),
 			ParentItemId = parentItemId,
 			Rotation = rotation,
+			ParentPosition = parentPos.ToNetVector2Msg(),
 		};
 		if (_session.Role == SessionRole.Host)
 		{
@@ -225,11 +226,11 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 		ItemPickedUp?.Invoke(itemId);
 	}
 
-	public void FireItemDroppedReceived(ulong sender, ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, ulong parentItemId, float rotation)
+	public void FireItemDroppedReceived(ulong sender, ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, ulong parentItemId, float rotation, NetVector2 parentPos = default)
 	{
 		if (_session.Role == SessionRole.Host)
 		{
-			_worldItems[itemId] = new WorldItem(itemId, item, pos, vel, parentItemId, rotation, false);
+			_worldItems[itemId] = new WorldItem(itemId, item, pos, vel, parentItemId, rotation, false, parentPos);
 			_session.BroadcastExcept(sender, NetMsg.ItemDrop, new ItemDropMsg
 			{
 				ItemId = itemId,
@@ -238,10 +239,11 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 				Velocity = vel.ToNetVector2Msg(),
 				ParentItemId = parentItemId,
 				Rotation = rotation,
+				ParentPosition = parentPos.ToNetVector2Msg(),
 			});
 		}
 
-		ItemDropped?.Invoke(itemId, item, pos, vel, parentItemId, rotation);
+		ItemDropped?.Invoke(itemId, item, pos, vel, parentItemId, rotation, parentPos);
 	}
 
 	public void FireItemDestroyedReceived(ulong sender, ulong itemId)

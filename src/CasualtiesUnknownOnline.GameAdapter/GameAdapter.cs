@@ -1163,13 +1163,24 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 			return;
 		}
 
-		var containerId = item.transform.parent != null && item.transform.parent.GetComponent<ItemInstanceId>() != null
-			? item.transform.parent.GetComponent<ItemInstanceId>().Id
-			: 0;
+		// A WORLD container (a trash bag on the ground, generation-time — no
+		// instance id) becomes an item-domain object on first use: it gets an
+		// id here, and the item's drop message carries the container's position
+		// so the peers can bind their local (also generation-time, id-less)
+		// container by position and place the item inside it.
+		var containerItem = item.transform.parent != null ? item.transform.parent.GetComponent<Item>() : null;
+		ulong containerId = 0;
+		var parentPos = new NetVector2(0f, 0f);
+		if (containerItem != null && IsWorldItem(containerItem)) // Unity object — ==
+		{
+			containerId = EnsureItemId(containerItem);
+			parentPos = new NetVector2(containerItem.transform.position.x, containerItem.transform.position.y);
+		}
+
 		_items.SendItemDropped(itemId, CaptureItem(item, -1),
 			new NetVector2(item.transform.position.x, item.transform.position.y),
 			new NetVector2(item.rb.velocity.x, item.rb.velocity.y),
-			containerId, item.transform.eulerAngles.z);
+			containerId, item.transform.eulerAngles.z, parentPos);
 	}
 
 	void IPatchBridge.OnItemUnloadedFromContainer(Item item)
@@ -1257,7 +1268,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		}
 	}
 
-	private void OnRemoteItemDropped(ulong itemId, CharacterItemMsg itemState, NetVector2 pos, NetVector2 vel, ulong parentItemId, float rotation)
+	private void OnRemoteItemDropped(ulong itemId, CharacterItemMsg itemState, NetVector2 pos, NetVector2 vel, ulong parentItemId, float rotation, NetVector2 parentPos)
 	{
 		_applyingRemoteItem = true;
 		try
@@ -1265,7 +1276,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 			var item = FindWorldItem(itemId);
 			if (item == null) // Unity object — ==; we never had it (it was in the dropper's inventory)
 			{
-				SpawnWorldItem(new WorldItem(itemId, itemState, pos, vel, parentItemId, rotation, false));
+				SpawnWorldItem(new WorldItem(itemId, itemState, pos, vel, parentItemId, rotation, false, parentPos));
 			}
 			else
 			{
@@ -1276,17 +1287,62 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 				item.rb.angularVelocity = 0f;
 				if (parentItemId != 0)
 				{
-					var parent = FindWorldItem(parentItemId);
-					if (parent != null) // Unity object — ==
-					{
-						item.transform.SetParent(parent.transform);
-					}
+					BindToContainer(item, parentItemId, parentPos);
 				}
 			}
 		}
 		finally
 		{
 			_applyingRemoteItem = false;
+		}
+	}
+
+	/// <summary>
+	/// Place an item inside its world container: the container's instance id
+	/// (parentItemId) was allocated by the ORIGINATOR (possibly a generation-time
+	/// container on first use — trash bags have no id until then), so the local
+	/// container may not have it yet — bind it by the carried position, mirroring
+	/// the game's LoadItem semantics (position + physics off + visibility).
+	/// </summary>
+	private static void BindToContainer(Item item, ulong parentItemId, NetVector2 parentPos)
+	{
+		var parent = FindWorldItem(parentItemId);
+		if (parent != null && parent.GetComponent<Container>() != null) // Unity objects — ==
+		{
+			parent.GetComponent<Container>()?.LoadItem(item); // the game's own load semantics (position, physics, visibility)
+			return;
+		}
+
+		// Generation-time container not bound yet — find it by position and
+		// stamp the originator's id onto it (idempotent: already bound to a
+		// different id → not ours, keep looking).
+		foreach (var container in UnityEngine.Object.FindObjectsOfType<Container>())
+		{
+			var containerItem = container.GetComponent<Item>();
+			if (containerItem == null) // Unity object — ==
+			{
+				continue;
+			}
+
+			if (Vector2.Distance(container.transform.position, new Vector2(parentPos.X, parentPos.Y)) > 1.5f)
+			{
+				continue;
+			}
+
+			var idComp = containerItem.GetComponent<ItemInstanceId>();
+			if (idComp != null && idComp.Id != parentItemId) // Unity object — ==; bound to a different container
+			{
+				continue;
+			}
+
+			if (idComp == null) // Unity object — ==
+			{
+				idComp = containerItem.gameObject.AddComponent<ItemInstanceId>();
+				idComp.Id = parentItemId;
+			}
+
+			container.LoadItem(item);
+			return;
 		}
 	}
 
@@ -1444,11 +1500,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 
 		if (w.ParentItemId != 0)
 		{
-			var parent = FindWorldItem(w.ParentItemId);
-			if (parent != null) // Unity object — ==
-			{
-				item.transform.SetParent(parent.transform);
-			}
+			BindToContainer(item, w.ParentItemId, w.ParentPosition);
 		}
 
 		item.rb.velocity = new Vector2(w.Vel.X, w.Vel.Y);

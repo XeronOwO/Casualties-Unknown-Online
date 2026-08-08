@@ -95,6 +95,8 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	/// <summary>Guest-side input interception active (in a live session as guest).</summary>
 	internal bool IsGuestMode => _session.Role == SessionRole.Guest && _session.SessionActive;
 
+	bool IPatchBridge.IsGuestItemDropSuppressed => IsGuestMode;
+
 	/// <summary>
 	/// World generation is ALWAYS wrapped with random-stream isolation
 	/// (WorldGenRandomIsolation): solo or session, the generation stream

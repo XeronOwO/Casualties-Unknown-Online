@@ -25,6 +25,14 @@ internal interface IPatchBridge
 
 	// ---- World items (runtime-generated item entities) ----
 
+	/// <summary>
+	/// Guest in a live session: BuildingEntity's destroy-drop branch (BuildingEntity.cs:56-121)
+	/// is suppressed — the entity's health is reduced on BOTH sides by the BlockDamaged
+	/// stream, so both would roll drops independently (two different items). Only the host
+	/// rolls and reports them; the guest just destroys the entity.
+	/// </summary>
+	bool IsGuestItemDropSuppressed { get; }
+
 	void OnItemInstantiated(Item item);
 
 	void OnItemDestroyed(Item item);

@@ -1371,7 +1371,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	/// container may not have it yet — bind it by the carried position, mirroring
 	/// the game's LoadItem semantics (position + physics off + visibility).
 	/// </summary>
-	private static void BindToContainer(Item item, ulong parentItemId, NetVector2 parentPos)
+	private void BindToContainer(Item item, ulong parentItemId, NetVector2 parentPos)
 	{
 		var parent = FindWorldItem(parentItemId);
 		if (parent != null && parent.GetComponent<Container>() != null) // Unity objects — ==
@@ -1411,6 +1411,9 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 			container.LoadItem(item);
 			return;
 		}
+
+		_log.LogWarning("[ItemBind] container {ParentItemId} for {Type} not found at ({X:F1}, {Y:F1}) — item stays where it is.",
+			parentItemId, item.id, parentPos.X, parentPos.Y);
 	}
 
 	private void OnRemoteItemDestroyed(ulong itemId)
@@ -1481,6 +1484,9 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	private void OnRemoteItemSnapshot(IReadOnlyList<WorldItem> items)
 	{
 		_applyingRemoteItem = true;
+		var killed = 0;
+		var spawned = 0;
+		var aligned = 0;
 		try
 		{
 			var snapshot = items.ToDictionary(w => w.ItemId);
@@ -1496,6 +1502,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 				if (!snapshot.ContainsKey(idComp.Id))
 				{
 					KillRemoteItem(item);
+					killed++;
 				}
 			}
 
@@ -1505,6 +1512,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 				if (item == null) // Unity object — ==
 				{
 					SpawnWorldItem(w);
+					spawned++;
 				}
 				else if (item.transform.parent == null && item.rb.velocity.magnitude < 0.1f
 					&& (Vector2.Distance(item.transform.position, new Vector2(w.Pos.X, w.Pos.Y)) > 0.1f
@@ -1520,6 +1528,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 					item.rb.velocity = Vector2.zero;
 					item.rb.angularVelocity = 0f;
 					item.rb.Sleep();
+					aligned++;
 				}
 			}
 
@@ -1528,12 +1537,19 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 				if (FindWorldItem(w.ItemId) == null) // Unity object — ==
 				{
 					SpawnWorldItem(w);
+					spawned++;
 				}
 			}
 		}
 		finally
 		{
 			_applyingRemoteItem = false;
+		}
+
+		if (killed > 0 || spawned > 0 || aligned > 0)
+		{
+			_log.LogInformation("[Reconcile] {Count} items: killed {Killed}, spawned {Spawned}, aligned {Aligned}.",
+				items.Count, killed, spawned, aligned);
 		}
 	}
 
@@ -1568,6 +1584,9 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 					{
 						existing.gameObject.AddComponent<FreshItemDrop>();
 					}
+
+					_log.LogInformation("[ItemBind] bound existing {Type} at ({X:F1}, {Y:F1}) to id {ItemId} (no materialization).",
+						w.Item.ItemId, w.Pos.X, w.Pos.Y, w.ItemId);
 				}
 
 				if (w.ParentItemId != 0)

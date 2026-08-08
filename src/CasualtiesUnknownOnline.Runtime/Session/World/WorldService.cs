@@ -126,6 +126,11 @@ public sealed class WorldService(ISessionControl session, PacketSender sender, I
 	/// <summary>Host only: true while the host itself must wait (frozen + overlay).</summary>
 	public bool StartGateActive => _startGate is not null;
 
+	/// <summary>Host only: milliseconds left until the gate force-releases (0 when not armed).</summary>
+	public int StartGateRemainingMs => _startGate is null
+		? 0
+		: Math.Max(0, StartGateTimeoutMs - (int)(Environment.TickCount - _startGateArmedMs));
+
 	/// <summary>Host only: release the start gate to everyone.</summary>
 	private void SendWorldReady()
 	{

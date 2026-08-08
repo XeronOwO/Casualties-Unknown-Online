@@ -33,7 +33,7 @@ public sealed class WorldStartParams
 		BiomeDepth = BiomeDepth,
 		TotalTraveled = TotalTraveled,
 		LoadedRun = LoadedRun,
-		RunSettings = (RunSettings ?? []).Select(kv => new SettingEntryMsg
+		RunSettings = [.. (RunSettings ?? []).Select(kv => new SettingEntryMsg
 		{
 			Key = kv.Key,
 			Kind = kv.Value switch
@@ -48,6 +48,6 @@ public sealed class WorldStartParams
 			FloatValue = kv.Value is float f ? f : 0f,
 			BoolValue = kv.Value is bool b && b,
 			StringValue = kv.Value as string ?? "",
-		}).ToList(),
+		})],
 	};
 }

@@ -55,6 +55,39 @@ public sealed class WorldService(ISessionControl session, PacketSender sender, I
 
 	public void FireBlockStateReceived(IReadOnlyList<DamagedBlock> blocks) => BlockStateReceived?.Invoke(blocks);
 
+	/// <summary>Either side: a block was placed (report up / broadcast down share one message id).</summary>
+	public event Action<ulong, int, int, ushort>? BlockPlacedReceived;
+
+	public void FireBlockPlacedReceived(ulong sender, int x, int y, ushort block) =>
+		BlockPlacedReceived?.Invoke(sender, x, y, block);
+
+	/// <summary>
+	/// Guest side: a block was placed locally (local compute) — report it to
+	/// the host, which arbitrates (target must be air) and relays.
+	/// </summary>
+	public void SendBlockPlacedReport(int x, int y, ushort block)
+	{
+		if (!_session.SessionActive)
+		{
+			return;
+		}
+
+		_sender.Send(_session.HostSteamId, NetMsg.BlockPlaced,
+			new BlockPlacedMsg { X = x, Y = y, Block = block });
+	}
+
+	/// <summary>Host side: broadcast a placed block (source excluded — it already applied locally).</summary>
+	public void BroadcastBlockPlaced(ulong excludeSteamId, int x, int y, ushort block)
+	{
+		if (!_session.SessionActive)
+		{
+			return;
+		}
+
+		var msg = new BlockPlacedMsg { X = x, Y = y, Block = block };
+		_session.BroadcastExcept(excludeSteamId, NetMsg.BlockPlaced, msg);
+	}
+
 	/// <summary>
 	/// Host only: a block now deviates from its generated baseline (mined,
 	/// destroyed, built — the SetBlock write path, which damage application

@@ -21,6 +21,16 @@ public interface IWorldControl
 
 	event Action? WorldJoinReceived;
 
+	/// <summary>Guest: a block was placed locally — report it to the host (host arbitrates + relays).</summary>
+	void SendBlockPlacedReport(int x, int y, ushort block);
+
+	/// <summary>Host only: broadcast a placed block (source excluded — it already placed locally).</summary>
+	void BroadcastBlockPlaced(ulong excludeSteamId, int x, int y, ushort block);
+
+	void FireBlockPlacedReceived(ulong sender, int x, int y, ushort block);
+
+	event Action<ulong, int, int, ushort>? BlockPlacedReceived;
+
 	/// <summary>Host only: a block changed after generation (mined/destroyed/built) — upsert it into the damage table.</summary>
 	void ReportBlockState(int x, int y, ushort block);
 

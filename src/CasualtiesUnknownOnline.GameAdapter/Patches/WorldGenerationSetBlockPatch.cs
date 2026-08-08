@@ -4,24 +4,17 @@ using UnityEngine;
 namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 
 /// <summary>
-/// Host-side damage-table capture: every post-generation SetBlock is a world
-/// mutation (mining/destruction, remote damage application, earthquakes,
-/// building) — record it so re-joining guests get the full accumulated state
-/// (late-joiner full snapshot, architecture.md). Generation itself is the
+/// World-mutation capture on the SetBlock write path (the one post-generation
+/// write entry — mining, remote damage application, earthquakes, placement).
+/// Host: diff against the generated baseline (damage table, late-joiner full
+/// snapshot) + broadcast placements live. Guest: report local placements to
+/// the host (breaking SetBlock(0) is already covered by the BlockDamaged
+/// stream — only non-air writes are reported here). Generation itself is the
 /// baseline and is excluded via generatingWorld; SetBlockNoUpdate is
 /// generation-only and intentionally not hooked.
 /// </summary>
 [HarmonyPatch(typeof(WorldGeneration), "SetBlock")]
 internal static class WorldGenerationSetBlockPatch
 {
-	private static void Postfix(Vector2Int pos, ushort block)
-	{
-		var adapter = GameAdapter.Instance;
-		if (adapter == null || !adapter.IsHostMode)
-		{
-			return;
-		}
-
-		adapter.OnBlockSet(pos, block);
-	}
+	private static void Postfix(Vector2Int pos, ushort block) => GameAdapter.Instance?.OnBlockSet(pos, block);
 }

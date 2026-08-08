@@ -16,7 +16,8 @@ internal static class BodyItemPatches
 	/// <summary>
 	/// Guard while Body.SwapSlots re-parents items between slots (the drag UI):
 	/// it internally drops and picks up both items, but nothing left the world —
-	/// the reports would be false "placed"/"picked up" broadcasts.
+	/// the reports would be false "placed"/"picked up" broadcasts. SwitchHands
+	/// (Body.cs:1113) is the same internal drop+pick pair and shares the guard.
 	/// </summary>
 	[HarmonyPatch(typeof(Body), "SwapSlots")]
 	internal static class SwapSlotsPatch
@@ -26,6 +27,17 @@ internal static class BodyItemPatches
 		private static void Prefix() => Swapping = true;
 
 		private static void Postfix() => Swapping = false;
+	}
+
+	/// <summary>SwitchHands drops both hands and picks them back (Body.cs:1113-1133) — an internal swap, not world events; same guard as SwapSlots.</summary>
+	[HarmonyPatch(typeof(Body), "SwitchHands")]
+	internal static class SwitchHandsPatch
+	{
+		internal static bool Switching { get; private set; }
+
+		private static void Prefix() => Switching = true;
+
+		private static void Postfix() => Switching = false;
 	}
 
 	[HarmonyPatch(typeof(Body), "PickUpItem")]
@@ -38,7 +50,7 @@ internal static class BodyItemPatches
 		// slot-to-slot moves (SwapSlots) are inventory-internal, not world events.
 		private static void Postfix(Body __instance, Item item)
 		{
-			if (!SwapSlotsPatch.Swapping && __instance.HoldingItem(item))
+			if (!SwapSlotsPatch.Swapping && !SwitchHandsPatch.Switching && __instance.HoldingItem(item))
 			{
 				PatchBridge.Impl?.OnItemPickedUp(item);
 			}
@@ -60,7 +72,7 @@ internal static class BodyItemPatches
 	{
 		private static void Prefix(Body __instance, Item item)
 		{
-			if (!SwapSlotsPatch.Swapping && __instance.HoldingItem(item))
+			if (!SwapSlotsPatch.Swapping && !SwitchHandsPatch.Switching && __instance.HoldingItem(item))
 			{
 				PatchBridge.Impl?.OnItemDropped(item);
 			}

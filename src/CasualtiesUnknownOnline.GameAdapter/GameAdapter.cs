@@ -1216,9 +1216,13 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	/// <summary>
 	/// A world item left the world into someone's inventory. We never receive
 	/// the broadcast of our own successful pickup (the source is excluded), so
-	/// this is either someone else taking it (remove our copy) or our own
-	/// optimistic pickup losing the race (the winner's broadcast — roll it back
-	/// into the world).
+	/// this is someone else taking it — remove our world copy (if we still
+	/// have one). An item that is NOT a world item on this side (inside an
+	/// inventory) is left untouched: this side owns that copy already, the
+	/// peer took its own — rolling it back would yank the item out of this
+	/// side's inventory ("a duplicate fell out of the hand" — the item id
+	/// matched the local carried item via a leftover world phantom).
+	/// A lost optimistic-pickup race rolls back through ItemReject, never here.
 	/// </summary>
 	private void OnRemoteItemPickedUp(ulong itemId)
 	{
@@ -1226,16 +1230,9 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		try
 		{
 			var item = FindWorldItem(itemId);
-			if (item != null) // Unity object — ==
+			if (item != null && IsWorldItem(item)) // Unity objects — ==
 			{
-				if (IsWorldItem(item))
-				{
-					KillRemoteItem(item);
-				}
-				else
-				{
-					RollbackPickup(item, itemId);
-				}
+				KillRemoteItem(item);
 			}
 		}
 		finally

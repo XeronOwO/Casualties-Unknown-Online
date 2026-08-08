@@ -302,7 +302,11 @@ public sealed class EntitySyncService : ICuoService
 		_entities.Remove(steamId);
 		if (_identity.Role == SessionRole.Host)
 		{
-			BroadcastExcept(steamId, NetMsg.PlayerLeave, PlayerLeaveMsg.From(steamId, member.Entity.EntityId));
+			BroadcastExcept(steamId, NetMsg.PlayerLeave, new PlayerLeaveMsg
+			{
+				SteamId = steamId,
+				EntityId = member.Entity.EntityId.ToNetworkEntityIdMsg(),
+			});
 		}
 
 		_session.FireRemoteSceneChanged(steamId, false);
@@ -337,8 +341,15 @@ public sealed class EntitySyncService : ICuoService
 		};
 		RemoteJoined?.Invoke(entity);
 
-		var joinMsg = PlayerJoinMsg.From(_localPlayer.SteamId, _localPlayer.EntityId, _localPlayer.Position,
-			presence.SteamId, entity.EntityId, presence.ReportedSpawnPos);
+		var joinMsg = new PlayerJoinMsg
+		{
+			HostSteamId = _localPlayer.SteamId,
+			HostEntityId = _localPlayer.EntityId.ToNetworkEntityIdMsg(),
+			HostPosition = _localPlayer.Position.ToNetVector2Msg(),
+			GuestSteamId = presence.SteamId,
+			GuestEntityId = entity.EntityId.ToNetworkEntityIdMsg(),
+			GuestPosition = presence.ReportedSpawnPos.ToNetVector2Msg(),
+		};
 		_gateway.Send(presence.SteamId, NetMsg.PlayerJoin, joinMsg); // self-activation
 		BroadcastExcept(presence.SteamId, NetMsg.PlayerJoin, joinMsg); // roster: announce to the others
 		_log.LogInformation("PlayerJoin sent: local {Local} ({LocalId}), member {Guest} ({GuestId}).",
@@ -358,7 +369,11 @@ public sealed class EntitySyncService : ICuoService
 			return;
 		}
 
-		var payload = PlayerStateMsg.From(++_nextStateSeq, BuildEntityList(synced));
+		var payload = new PlayerStateMsg
+		{
+			Seq = ++_nextStateSeq,
+			Entities = BuildEntityList(synced),
+		};
 		foreach (var member in synced)
 		{
 			_gateway.Send(member.SteamId, NetMsg.PlayerState, payload, reliable: false);
@@ -385,7 +400,11 @@ public sealed class EntitySyncService : ICuoService
 		}
 
 		_gateway.Send(_identity.HostSteamId, NetMsg.PlayerStateReport,
-			PlayerStateReportMsg.From(++_nextReportSeq, _localPlayer.ToEntityStateMsg()), reliable: false);
+			new PlayerStateReportMsg
+			{
+				Seq = ++_nextReportSeq,
+				Entity = _localPlayer.ToEntityStateMsg(),
+			}, reliable: false);
 	}
 
 	/// <summary>Upsert a remote entity buffer (id updated on rejoin; the buffer is

@@ -8,5 +8,5 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 public sealed class PingHandler(SessionService session) : PacketHandlerBase<PingMsg>(session)
 {
 	protected override void Handle(ulong sender, PingMsg msg) =>
-		Session.Send(sender, NetMsg.Pong, PongMsg.From(msg.Ticks));
+		Session.Send(sender, NetMsg.Pong, new PongMsg { Ticks = msg.Ticks });
 }

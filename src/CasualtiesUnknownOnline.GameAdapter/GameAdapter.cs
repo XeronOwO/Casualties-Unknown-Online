@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
@@ -30,9 +31,8 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 	private Harmony? _harmony;
 
 	private Body? _localBody;
-	private Body? _remoteCloneBody;
+	private Body? _remoteCloneBody; // single clone until Step 4 (per-member map)
 	private bool _inWorld;
-	private bool _remoteInWorld; // paused while the remote peer is in a menu/loading
 
 	private const float CharacterReportInterval = 1f; // guest → host character snapshot (1 Hz)
 	private long _nextCharacterReportMs;
@@ -153,13 +153,14 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 
 		// Both sides render the remote clone from the peer's reported state.
 		// NO remote-side simulation anywhere — each player simulates only its
-		// own body.
-		if (!_remoteInWorld)
+		// own body. Single clone until Step 4 turns this into a per-member map.
+		var remote = _session.RemotePlayers.FirstOrDefault();
+		if (remote is null || !remote.InWorld)
 		{
 			return; // remote is in a menu/loading — clone stays paused
 		}
 
-		SessionStatePump.Apply(_session.RemotePlayer, _remoteCloneBody);
+		SessionStatePump.Apply(remote, _remoteCloneBody);
 		LogClonePosition();
 	}
 
@@ -180,8 +181,9 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 		var pos = _remoteCloneBody != null
 			? _remoteCloneBody.transform.position
 			: Vector3.zero;
-		var reported = _session.RemotePlayer is not null
-			? new Vector2(_session.RemotePlayer.Position.X, _session.RemotePlayer.Position.Y)
+		var remote = _session.RemotePlayers.FirstOrDefault();
+		var reported = remote is not null
+			? new Vector2(remote.Position.X, remote.Position.Y)
 			: Vector2.zero;
 		_log.LogDebug("Clone: at ({PX:F1}, {PY:F1}), reported ({RX:F1}, {RY:F1}), active {Active}",
 			pos.x, pos.y, reported.x, reported.y, _remoteCloneBody != null && _remoteCloneBody.gameObject.activeInHierarchy);
@@ -242,8 +244,8 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 		// Host: spawn the guest's clone at the guest's reported spawn point.
 		// Guest: the host's clone renders at the host position from PlayerJoin.
 		// Both are frozen render proxies fed by the peer's state reports.
-		// The clone survives menu round-trips (RemoteSceneChanged hides it) —
-		// a re-join reuses it; position resumes via the state stream's Lerp.
+		// Menu round-trips destroy the clone (RemoteSceneChanged) and rebuild
+		// it here — position resumes via the state stream's Lerp.
 		// NOTE: == null on Unity objects — a scene reload destroys the clone
 		// and reference-comparison (is null) would miss it.
 		if (_remoteCloneBody == null)
@@ -258,21 +260,17 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 		{
 			_log.LogInformation("Remote re-joined — clone reused for {SteamId}.", remote.SteamId);
 		}
-
-		_remoteInWorld = true;
 	}
 
-	private void OnRemoteSceneChanged(bool inWorld)
+	private void OnRemoteSceneChanged(ulong steamId, bool inWorld)
 	{
-		_remoteInWorld = inWorld;
-
 		if (!inWorld)
 		{
-			// Remote left the world: destroy the render clone — it carries no
-			// state (character data lives in the host's save dict; the entity
-			// buffer lives in SessionService), and a rejoin rebuilds it via
-			// RemoteJoined. Menu round-trips are rare, so the rebuild cost is
-			// irrelevant. NOTE: == null on Unity objects — a scene reload
+			// The member left the world: destroy its render clone — it carries
+			// no state (character data lives in the host's save dict; the
+			// entity buffer lives in SessionService), and a rejoin rebuilds it
+			// via RemoteJoined. Menu round-trips are rare, so the rebuild cost
+			// is irrelevant. NOTE: == null on Unity objects — a scene reload
 			// destroys the clone and reference-comparison (is null / ?.) would
 			// miss it; write the explicit check so the formatter keeps it
 			// (a bare call would be simplified back to ?.).
@@ -282,25 +280,27 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 				_remoteCloneBody = null;
 			}
 
-			// Host leaving the world ends the world itself (host authority):
-			// a guest must not keep playing inside a world whose owner is
-			// gone — pull it back to the main menu. Only when we are actually
-			// in the world; after the load the normal UpdateSceneState flow
-			// re-reports InMenu to the host.
-			if (_session.Role == SessionRole.Guest && _inWorld && PlayerCamera.main != null)
+			// The host leaving the world ends the world itself (host
+			// authority): a guest must not keep playing inside a world whose
+			// owner is gone — pull it back to the main menu. Only when we are
+			// actually in the world; after the load the normal UpdateSceneState
+			// flow re-reports InMenu to the host.
+			if (steamId == _session.HostSteamId
+				&& _session.Role == SessionRole.Guest && _inWorld && PlayerCamera.main != null)
 			{
 				_log.LogInformation("Host left the world — returning to main menu.");
 				PlayerCamera.main.ToMainMenu();
 			}
 		}
-		else if (_session.Role == SessionRole.Guest && !_inWorld
+		else if (steamId == _session.HostSteamId
+			&& _session.Role == SessionRole.Guest && !_inWorld
 			&& PreRunScript.instance != null)
 		{
-			// Host entering the world: the guest follows automatically (the
-			// world belongs to the host — a guest sitting in the menu joins
-			// the run). StartRun is the game's own entry; guests without the
-			// basic course get the tutorial warning instead (its flow). The
-			// host's clone is rebuilt by RemoteJoined after the join flow.
+			// The host entering the world: the guest follows automatically
+			// (the world belongs to the host — a guest sitting in the menu
+			// joins the run). StartRun is the game's own entry; guests without
+			// the basic course get the tutorial warning instead (its flow).
+			// The host's clone is rebuilt by RemoteJoined after the join flow.
 			_log.LogInformation("Host entered the world — starting a run to follow.");
 			PreRunScript.instance.StartRun();
 		}

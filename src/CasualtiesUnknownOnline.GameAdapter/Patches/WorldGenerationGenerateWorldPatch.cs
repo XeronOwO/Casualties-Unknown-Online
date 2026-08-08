@@ -10,30 +10,23 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 /// (scene loading, menu/update-time randomness) is already baked into the
 /// captured state, so host and guest continue from identical RNG streams.
 ///
-/// In a live session the original coroutine is replaced with the
-/// random-stream-isolated version (WorldGenRandomIsolation) — the captured
-/// state stays identical on both sides across every cross-frame yield instead
-/// of being polluted by the public stream. Single-player (no session) keeps
-/// the original coroutine untouched.
+/// In a live session the returned coroutine is wrapped (never replaced) by
+/// WorldGenRandomIsolation: the game's own coroutine body — loading UI,
+/// generatingWorld flag, step order — stays exactly as shipped, only its
+/// random stream is sealed across every yield. Single-player (no session)
+/// keeps the original coroutine untouched.
 /// </summary>
 [HarmonyPatch(typeof(WorldGeneration), "GenerateWorld")]
 internal static class WorldGenerationGenerateWorldPatch
 {
-	private static bool Prefix(WorldGeneration __instance, ref IEnumerator __result)
+	private static void Prefix() => GameAdapter.Instance?.OnWorldGenerate(); // host: capture + publish params; guest: apply the host's
+
+	private static void Postfix(ref IEnumerator __result)
 	{
 		var adapter = GameAdapter.Instance;
-		if (adapter == null)
+		if (adapter is { IsWorldGenIsolated: true } && __result is not null)
 		{
-			return true;
+			__result = WorldGenRandomIsolation.Wrap(__result);
 		}
-
-		adapter.OnWorldGenerate(); // host: capture + publish params; guest: apply the host's
-		if (adapter.IsWorldGenIsolated)
-		{
-			__result = WorldGenRandomIsolation.CreateIsolatedGenerateWorld(__instance);
-			return false;
-		}
-
-		return true;
 	}
 }

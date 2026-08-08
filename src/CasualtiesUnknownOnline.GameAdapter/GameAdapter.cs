@@ -223,11 +223,8 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	void IPatchBridge.OnWorldGenerate()
 	{
 		_run.OnWorldGenerate();
-		if (_session.Role == SessionRole.Guest)
-		{
-			_gate.AttachKeepLoading();
-		}
-		else
+		_gate.AttachKeepLoading(); // both roles: while the gate waits for the others, the loading animation keeps playing
+		if (_session.Role != SessionRole.Guest)
 		{
 			// A new world/layer is generating — the old layer's world items are
 			// gone with the scene; the authoritative table starts empty again

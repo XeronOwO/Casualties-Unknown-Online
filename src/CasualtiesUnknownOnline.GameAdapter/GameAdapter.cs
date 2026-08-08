@@ -1301,6 +1301,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 			if (_deferredLifePodSound)
 			{
 				_deferredLifePodSound = false;
+				_log.LogInformation("[Sound] deferred lifePodHit played at gate release.");
 				if (PlayerCamera.main != null && PlayerCamera.main.body != null) // Unity objects — ==
 				{
 					Sound.Play("lifePodHit", PlayerCamera.main.body.transform.position, true, false, null, 1f, 1f, false, false);
@@ -1310,7 +1311,11 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	}
 
 	/// <summary>Deferred by the Sound.Play patch while the start gate holds (it would play into the frozen world).</summary>
-	void IPatchBridge.DeferLifePodSound() => _deferredLifePodSound = true;
+	void IPatchBridge.DeferLifePodSound()
+	{
+		_log.LogInformation("[Sound] lifePodHit deferred (gate holds or timeScale 0).");
+		_deferredLifePodSound = true;
+	}
 
 	/// <summary>Guest side: the host released the start gate — start playing.</summary>
 	private void OnRemoteWorldReady()
@@ -1384,7 +1389,9 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 			// show what it is carrying; the new body renders on creation from
 			// this cache).
 			_cloneData[sender] = data;
-			if (_remoteClones.TryGetValue(sender, out var clone) && clone != null) // Unity object — ==
+			var hasClone = _remoteClones.TryGetValue(sender, out var clone) && clone != null; // Unity object — ==
+			_log.LogInformation("[CloneRender] host: char data from {Sender} ({Count} items), clone exists: {HasClone}", sender, data.Items.Count, hasClone);
+			if (clone != null) // Unity object — ==
 			{
 				ApplyCloneInventory(clone, data);
 			}
@@ -1401,7 +1408,9 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	private void OnHostCharacterDataReceived(CharacterDataMsg data)
 	{
 		_cloneData[_session.HostSteamId] = data;
-		if (_remoteClones.TryGetValue(_session.HostSteamId, out var clone) && clone != null) // Unity object — ==
+		var hasClone = _remoteClones.TryGetValue(_session.HostSteamId, out var clone) && clone != null; // Unity object — ==
+		_log.LogInformation("[CloneRender] guest: host char data ({Count} items), clone exists: {HasClone}", data.Items.Count, hasClone);
+		if (clone != null) // Unity object — ==
 		{
 			ApplyCloneInventory(clone, data);
 		}
@@ -1415,6 +1424,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	/// </summary>
 	private void ApplyCloneInventory(Body clone, CharacterDataMsg data)
 	{
+		_log.LogInformation("[CloneRender] apply {Count} items to clone slots ({Slots} slots).", data.Items.Count, clone.slots.Length);
 		foreach (var slot in clone.slots)
 		{
 			if (slot == null) // Unity object — ==
@@ -1491,10 +1501,12 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		if (_session.Role == SessionRole.Host)
 		{
 			// Host → guests: their clones of the host render its carried items.
+			_log.LogInformation("[CloneRender] host broadcasting char data ({Count} items).", data.Items.Count);
 			_characterData.BroadcastHostCharacterData(data);
 		}
 		else
 		{
+			_log.LogInformation("[CloneRender] guest reporting char data ({Count} items).", data.Items.Count);
 			_characterData.ReportCharacterData(data);
 		}
 	}

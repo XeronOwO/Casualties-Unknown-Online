@@ -43,6 +43,10 @@ public sealed class SceneStateHandler(ILogger<SceneStateHandler> log) : PacketHa
 				if (session.Role == SessionRole.Host)
 				{
 					ctx.Entities.MaybeStartEntitySync();
+					// Re-entering the world is a fresh run — hand the saved
+					// character data back (the handshake restore only covers
+					// reconnects; a death → menu → re-enter never re-handshakes).
+					ctx.CharacterData.SendSavedCharacter(reporter);
 					session.BroadcastExcept(reporter, NetMsg.SceneState, msg); // relay: the other guests track the member too
 				}
 			}

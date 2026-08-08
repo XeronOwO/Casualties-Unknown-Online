@@ -6,24 +6,24 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 
 /// <summary>Host → guest: a synced member left — drop it (clone teardown via RemoteSceneChanged).</summary>
 [PacketHandler(NetMsg.PlayerLeave)]
-public sealed class PlayerLeaveHandler(SessionService session, ILogger<PlayerLeaveHandler> log)
-	: PacketHandlerBase<PlayerLeaveMsg>(session)
+public sealed class PlayerLeaveHandler(ILogger<PlayerLeaveHandler> log) : PacketHandlerBase<PlayerLeaveMsg>
 {
 	private readonly ILogger<PlayerLeaveHandler> _log = log;
 
-	protected override void Handle(ulong sender, PlayerLeaveMsg msg)
+	protected override void Handle(ulong sender, PlayerLeaveMsg msg, HandlerContext ctx)
 	{
-		if (Session.Role != SessionRole.Guest || msg.SteamId == Session.LocalSteamId)
+		var session = ctx.Session;
+		if (session.Role != SessionRole.Guest || msg.SteamId == session.LocalSteamId)
 		{
 			return;
 		}
 
-		if (!Session.TryGetMember(msg.SteamId, out _))
+		if (!session.TryGetMember(msg.SteamId, out _))
 		{
 			return; // unknown member: nothing to drop
 		}
 
 		_log.LogInformation("Member {Member} left (PlayerLeave).", msg.SteamId);
-		Session.RemoveGuestMember(msg.SteamId);
+		session.RemoveGuestMember(msg.SteamId);
 	}
 }

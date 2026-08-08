@@ -47,6 +47,11 @@ public static class CuoBootstrap
 		services.AddSingleton<SteamTransport>();
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<SteamTransport>());
 		services.AddSingleton<SessionIdentity>();
+		// Shared session state + member presence: extracted from SessionService
+		// so the entity/data domains depend on these instead of the session
+		// itself (acyclic constructor graph).
+		services.AddSingleton<MemberPresenceTable>();
+		services.AddSingleton<SessionState>();
 		services.AddSingleton<SessionService>();
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<SessionService>());
 

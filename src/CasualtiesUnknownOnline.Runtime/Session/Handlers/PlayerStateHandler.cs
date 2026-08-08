@@ -7,33 +7,32 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 
 /// <summary>Host → guest: the authoritative entity batch (unreliable stream, seq gate).</summary>
 [PacketHandler(NetMsg.PlayerState)]
-public sealed class PlayerStateHandler(SessionService session, EntitySyncService entities, ILogger<PlayerStateHandler> log)
-	: PacketHandlerBase<PlayerStateMsg>(session)
+public sealed class PlayerStateHandler(ILogger<PlayerStateHandler> log) : PacketHandlerBase<PlayerStateMsg>
 {
-	private readonly EntitySyncService _entities = entities;
 	private readonly ILogger<PlayerStateHandler> _log = log;
 
-	protected override void Handle(ulong sender, PlayerStateMsg msg)
+	protected override void Handle(ulong sender, PlayerStateMsg msg, HandlerContext ctx)
 	{
-		if (Session.Role != SessionRole.Guest)
+		var entities = ctx.Entities;
+		if (ctx.Session.Role != SessionRole.Guest)
 		{
 			return;
 		}
 
 		// Unreliable stream: drop stale snapshots (reordered or duplicate).
 		// The broadcast stream has a single source (the host).
-		if (msg.Seq <= _entities.LastStateSeq)
+		if (msg.Seq <= entities.LastStateSeq)
 		{
 			return;
 		}
 
-		_entities.LastStateSeq = msg.Seq;
+		entities.LastStateSeq = msg.Seq;
 
 		foreach (var entity in msg.Entities)
 		{
 			var id = entity.Id.ToNetworkEntityId();
-			var target = id == _entities.LocalPlayer.EntityId ? _entities.LocalPlayer
-				: _entities.Members.FirstOrDefault(m => m.Entity.EntityId == id)?.Entity;
+			var target = id == entities.LocalPlayer.EntityId ? entities.LocalPlayer
+				: entities.Members.FirstOrDefault(m => m.Entity.EntityId == id)?.Entity;
 			if (target is null)
 			{
 				_log.LogWarning("Dropping entity state {Id} from {Sender}: no member with that entity id.",
@@ -41,9 +40,9 @@ public sealed class PlayerStateHandler(SessionService session, EntitySyncService
 				continue;
 			}
 
-			EntitySyncService.ApplyEntityState(entity, target);
+			entities.ApplyEntityState(entity, target);
 		}
 
-		_entities.FireStateReceived(_entities.LocalPlayer);
+		entities.FireStateReceived(entities.LocalPlayer);
 	}
 }

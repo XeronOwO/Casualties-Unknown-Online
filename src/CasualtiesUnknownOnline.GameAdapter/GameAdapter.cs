@@ -29,6 +29,8 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 	private readonly SessionService _session;
 	private readonly EntitySyncService _entities;
 	private readonly CharacterDataStore _characterData;
+	private readonly MemberPresenceTable _presence;
+	private readonly SessionState _state;
 	private readonly ILogger<GameAdapter> _log;
 	private readonly IMapper _mapper;
 	private Harmony? _harmony;
@@ -42,11 +44,13 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 	private CharacterDataMsg? _pendingRestore; // guest side: host-sent restore, applied once the body exists
 
 	public GameAdapter(SessionService session, EntitySyncService entities, CharacterDataStore characterData,
-		ILogger<GameAdapter> log, IMapper mapper)
+		MemberPresenceTable presence, SessionState state, ILogger<GameAdapter> log, IMapper mapper)
 	{
 		_session = session;
 		_entities = entities;
 		_characterData = characterData;
+		_presence = presence;
+		_state = state;
 		_log = log;
 		_mapper = mapper;
 		Instance = this;
@@ -260,9 +264,9 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 		_remoteClones.Clear();
 
 		_entities.RemoteJoined -= OnRemoteJoined;
-		_session.RemoteSceneChanged -= OnRemoteSceneChanged;
-		_session.SessionEnded -= OnSessionEnded;
-		_session.SessionActivated -= OnSessionActivated;
+		_presence.RemoteSceneChanged -= OnRemoteSceneChanged;
+		_state.SessionEnded -= OnSessionEnded;
+		_state.SessionActivated -= OnSessionActivated;
 		_session.BlockDamagedReceived -= OnRemoteBlockDamaged;
 		_characterData.CharacterDataReceived -= OnCharacterDataReceived;
 		Instance = null;
@@ -275,9 +279,9 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 	internal void BindToSession()
 	{
 		_entities.RemoteJoined += OnRemoteJoined;
-		_session.RemoteSceneChanged += OnRemoteSceneChanged;
-		_session.SessionEnded += OnSessionEnded;
-		_session.SessionActivated += OnSessionActivated;
+		_presence.RemoteSceneChanged += OnRemoteSceneChanged;
+		_state.SessionEnded += OnSessionEnded;
+		_state.SessionActivated += OnSessionActivated;
 		_session.BlockDamagedReceived += OnRemoteBlockDamaged;
 		_characterData.CharacterDataReceived += OnCharacterDataReceived;
 	}

@@ -3,12 +3,10 @@ using HarmonyLib;
 namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 
 /// <summary>
-/// Run-start gate: StartRun is the "begin a new run" entry. A guest whose
-/// handshake is still pending has no host world params yet — starting anyway
-/// would generate a random world that cannot match the host's. Block the start
-/// and tell them to retry; once connected, world params arrive and the gate
-/// opens (capture/apply itself happens at WorldGeneration.GenerateWorld, the
-/// true generation boundary).
+/// Run-start gates: StartRun/LoadRun/StartTutorial are the three ways to enter
+/// a world. In a session only the host may do so — a guest's world must follow
+/// the host's (WorldJoin is the only entry); starting on its own would create
+/// a world the host does not know.
 /// </summary>
 [HarmonyPatch(typeof(PreRunScript), "StartRun")]
 internal static class PreRunScriptStartRunPatch
@@ -16,6 +14,26 @@ internal static class PreRunScriptStartRunPatch
 	private static bool Prefix()
 	{
 		var adapter = GameAdapter.Instance;
-		return adapter is null || adapter.OnStartRun();
+		return adapter is null || adapter.OnGuestStartAttempt();
+	}
+}
+
+[HarmonyPatch(typeof(PreRunScript), "LoadRun")]
+internal static class PreRunScriptLoadRunPatch
+{
+	private static bool Prefix()
+	{
+		var adapter = GameAdapter.Instance;
+		return adapter is null || adapter.OnGuestStartAttempt();
+	}
+}
+
+[HarmonyPatch(typeof(PreRunScript), "StartTutorial")]
+internal static class PreRunScriptStartTutorialPatch
+{
+	private static bool Prefix()
+	{
+		var adapter = GameAdapter.Instance;
+		return adapter is null || adapter.OnGuestStartAttempt();
 	}
 }

@@ -1,5 +1,6 @@
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
+using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 
 namespace CasualtiesUnknownOnline.Runtime.Session;
@@ -11,7 +12,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session;
 /// time (that would create the session ↔ gateway ↔ router ↔ handlers cycle).
 /// </summary>
 public sealed class HandlerContext(ISessionControl session, IEntitySyncControl entities,
-	ICharacterDataControl characterData, IWorldControl world)
+	ICharacterDataControl characterData, IWorldControl world, IItemControl items)
 {
 	public ISessionControl Session { get; } = session;
 
@@ -20,4 +21,6 @@ public sealed class HandlerContext(ISessionControl session, IEntitySyncControl e
 	public ICharacterDataControl CharacterData { get; } = characterData;
 
 	public IWorldControl World { get; } = world;
+
+	public IItemControl Items { get; } = items;
 }

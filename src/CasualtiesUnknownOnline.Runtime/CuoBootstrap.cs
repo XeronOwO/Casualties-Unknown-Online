@@ -5,6 +5,7 @@ using CasualtiesUnknownOnline.Runtime.Logging;
 using CasualtiesUnknownOnline.Runtime.Networking;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
+using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.Handlers;
@@ -76,7 +77,8 @@ public static class CuoBootstrap
 			p.GetRequiredService<ISessionControl>(),
 			p.GetRequiredService<IEntitySyncControl>(),
 			p.GetRequiredService<ICharacterDataControl>(),
-			p.GetRequiredService<IWorldControl>()));
+			p.GetRequiredService<IWorldControl>(),
+			p.GetRequiredService<IItemControl>()));
 		services.AddSingleton<PacketDispatcher>();
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<PacketDispatcher>());
 
@@ -94,6 +96,10 @@ public static class CuoBootstrap
 		// not an ICuoService — it only reacts to calls and messages).
 		services.AddSingleton<WorldService>();
 		services.AddSingleton<IWorldControl>(p => p.GetRequiredService<WorldService>());
+		// Item domain: the authoritative world-item table + pickup arbitration
+		// (no pump, not an ICuoService — it only reacts to calls and messages).
+		services.AddSingleton<ItemService>();
+		services.AddSingleton<IItemControl>(p => p.GetRequiredService<ItemService>());
 
 		extraRegistrations?.Invoke(services);
 

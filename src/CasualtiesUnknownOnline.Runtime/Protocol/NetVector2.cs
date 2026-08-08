@@ -9,6 +9,8 @@ namespace CasualtiesUnknownOnline.Runtime.Protocol;
 /// </summary>
 public readonly struct NetVector2(float x, float y)
 {
+	public static NetVector2 Zero { get; } = new(0f, 0f);
+
 	public readonly float X = x;
 	public readonly float Y = y;
 

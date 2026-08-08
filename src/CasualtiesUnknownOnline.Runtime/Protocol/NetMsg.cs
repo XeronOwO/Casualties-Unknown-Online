@@ -18,20 +18,20 @@ public enum NetMsg : byte
 	WorldStartParams = 19,
 
 	// Entities
-	PlayerJoin = 32,
-	PlayerLeave = 33,
-	PlayerState = 35,
+	PlayerJoin = 32, // host → guest: self-activation + roster announcement
+	PlayerLeave = 33, // host → guest: a synced member left the session
+	PlayerState = 35, // host → guest: authoritative entity batch (unreliable stream)
 	PlayerStateReport = 36, // guest → host: local authoritative position (no host-side simulation)
 
 	// Character data (guest → host reports, host → guest restore on reconnect)
 	CharacterData = 37,
 
 	// World mutations (local compute, remote verify/sync)
-	BlockDamaged = 40, // either side → peer: a block was damaged at world pos
+	BlockDamaged = 40, // guest → host: report (host arbitrates); host → guest: broadcast relay (source excluded)
 }
 
 public static class ProtocolVersion
 {
 	/// <summary>Bumped on any breaking wire change.</summary>
-	public const int Current = 1;
+	public const int Current = 2; // v2: PlayerJoin roster fields, PlayerLeave active, SceneState relay id
 }

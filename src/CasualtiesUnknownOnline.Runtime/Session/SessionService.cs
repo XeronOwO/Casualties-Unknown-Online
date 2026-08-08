@@ -808,6 +808,12 @@ public sealed class SessionService : ICuoService
 			case NetMsg.PlayerJoin:
 				OnPlayerJoin(sender, NetPacket.DecodePayload<PlayerJoinMsg>(frame));
 				break;
+			case NetMsg.PlayerLeave:
+				// Star-network Step 1: wire + direction gate only; membership
+				// handling lands with the member-table refactor (Step 2c).
+				_log.LogInformation("Member {Member} left (PlayerLeave received).",
+					NetPacket.DecodePayload<PlayerLeaveMsg>(frame).SteamId);
+				break;
 			case NetMsg.PlayerStateReport:
 				OnPlayerStateReport(sender, NetPacket.DecodePayload<PlayerStateReportMsg>(frame));
 				break;

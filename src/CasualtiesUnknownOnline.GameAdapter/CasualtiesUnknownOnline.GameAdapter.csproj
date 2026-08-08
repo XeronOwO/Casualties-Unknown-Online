@@ -29,6 +29,14 @@
 
   <ItemGroup>
     <PackageReference Include="BepInEx.Core" Version="5.*" />
+    <!--
+      Mapster 6.0.0 (7.x is net6+-only — NU1202 on net48): maps the full
+      character-data surface (Body/Limb fields ↔ CharacterDataMsg,
+      SaveSystem-aligned). Field names differ only in case except Skills
+      (STR→Strength etc.), configured explicitly in CharacterDataMapper.cs.
+      emit-based like protobuf-net — smoke-tested at runtime.
+    -->
+    <PackageReference Include="Mapster" Version="6.0.0" />
   </ItemGroup>
 
   <!--

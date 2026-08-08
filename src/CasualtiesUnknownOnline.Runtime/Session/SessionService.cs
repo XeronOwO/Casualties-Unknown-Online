@@ -36,6 +36,7 @@ public sealed class SessionService : ICuoService, ISessionControl
 	private readonly SessionIdentity _identity = new();
 	private readonly SessionState _state = new();
 	private readonly MemberPresenceTable _presence = new();
+	private bool _hadMembers; // a lobby with no members ever is normal (host alone); only "had members, now none" ends the session
 
 	private long _nextPingMs;
 	private long _nextMemberCheckMs;
@@ -108,8 +109,11 @@ public sealed class SessionService : ICuoService, ISessionControl
 	bool ISessionControl.TryGetMember(ulong steamId, out MemberPresenceTable.MemberPresence member) =>
 		_presence.TryGetMember(steamId, out member);
 
-	MemberPresenceTable.MemberPresence ISessionControl.GetOrCreateMember(ulong steamId) =>
-		_presence.GetOrCreateMember(steamId);
+	MemberPresenceTable.MemberPresence ISessionControl.GetOrCreateMember(ulong steamId)
+	{
+		_hadMembers = true; // a presence-check "all left" only fires after someone actually joined
+		return _presence.GetOrCreateMember(steamId);
+	}
 
 	bool ISessionControl.IsLobbyMember(ulong steamId) => _steam.GetLobbyMembers().Contains(steamId);
 
@@ -394,7 +398,7 @@ public sealed class SessionService : ICuoService, ISessionControl
 				}
 			}
 
-			if (_presence.Count == 0)
+			if (_presence.Count == 0 && _hadMembers)
 			{
 				_log.LogWarning("All members left the lobby — ending session (save kept).");
 				EndSession();
@@ -429,6 +433,7 @@ public sealed class SessionService : ICuoService, ISessionControl
 			return;
 		}
 
+		_hadMembers = false; // a fresh session must not inherit the "had members" flag
 		_presence.Clear();
 		SessionActive = false;
 		_identity.HostSteamId = 0;

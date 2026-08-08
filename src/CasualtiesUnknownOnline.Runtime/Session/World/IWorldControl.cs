@@ -13,6 +13,11 @@ public interface IWorldControl
 {
 	WorldStartParams? WorldParams { get; set; }
 
+	/// <summary>Host only: a run started (click moment) but the host is not in the world yet — mid-generation handshakes may follow immediately.</summary>
+	bool HostRunPending { get; }
+
+	void SetHostRunPending(bool pending);
+
 	void FireBlockDamagedReceived(NetVector2 pos, float damage);
 
 	event Action<NetVector2, float>? BlockDamagedReceived;

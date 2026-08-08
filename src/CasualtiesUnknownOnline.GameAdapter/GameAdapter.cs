@@ -901,11 +901,15 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 
 	/// <summary>
 	/// Guest only: items this side generated (instance-id low bits = local
-	/// SteamId, see NextItemId) report their settled position once — the
+	/// SteamId, see NextItemId) report their SETTLED position once — the
 	/// authoritative table (and the host's phantom) align to the generator's
 	/// physics instead of the receiver-side drift ("item fell through the
-	/// world" / "pulled back to the host's spot" class of bugs). A moving item
-	/// re-arms (it may settle again); settled ones report exactly once.
+	/// world" / "pulled back to the host's spot" class of bugs). "Settled" is
+	/// the rigidbody's own sleep state — a velocity threshold re-armed on
+	/// every roll-and-stop cycle and re-sent the same item dozens of times,
+	/// yanking the host's phantom around (observed in the settle log spam).
+	/// Sleeping is a stable terminal state: report exactly once, re-arm when
+	/// the body wakes (kicked/picked up).
 	/// </summary>
 	private long _nextSettleCheckMs;
 	private readonly HashSet<ulong> _settledReported = [];
@@ -933,14 +937,13 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 				continue;
 			}
 
-			var speed = item.rb.velocity.magnitude;
-			if (speed > 0.3f)
+			if (!item.rb.IsSleeping() || item.rb.velocity.magnitude > 0.1f)
 			{
-				_settledReported.Remove(idComp.Id); // moving again — it may settle later
+				_settledReported.Remove(idComp.Id); // awake or creeping — it may settle later
 				continue;
 			}
 
-			if (speed < 0.05f && _settledReported.Add(idComp.Id))
+			if (_settledReported.Add(idComp.Id))
 			{
 				_items.SendItemSettle(idComp.Id,
 					new NetVector2(item.transform.position.x, item.transform.position.y),
@@ -1125,7 +1128,9 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		if (itemId != 0)
 		{
 			_items.SendItemDropped(itemId, CaptureItem(item, -1),
-				new NetVector2(item.transform.position.x, item.transform.position.y), 0, item.transform.eulerAngles.z);
+				new NetVector2(item.transform.position.x, item.transform.position.y),
+				new NetVector2(item.rb.velocity.x, item.rb.velocity.y),
+				0, item.transform.eulerAngles.z);
 		}
 	}
 
@@ -1146,7 +1151,9 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 			? item.transform.parent.GetComponent<ItemInstanceId>().Id
 			: 0;
 		_items.SendItemDropped(itemId, CaptureItem(item, -1),
-			new NetVector2(item.transform.position.x, item.transform.position.y), containerId, item.transform.eulerAngles.z);
+			new NetVector2(item.transform.position.x, item.transform.position.y),
+			new NetVector2(item.rb.velocity.x, item.rb.velocity.y),
+			containerId, item.transform.eulerAngles.z);
 	}
 
 	void IPatchBridge.OnItemUnloadedFromContainer(Item item)
@@ -1160,7 +1167,9 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		if (itemId != 0)
 		{
 			_items.SendItemDropped(itemId, CaptureItem(item, -1),
-				new NetVector2(item.transform.position.x, item.transform.position.y), 0, item.transform.eulerAngles.z);
+				new NetVector2(item.transform.position.x, item.transform.position.y),
+				new NetVector2(item.rb.velocity.x, item.rb.velocity.y),
+				0, item.transform.eulerAngles.z);
 		}
 	}
 
@@ -1183,7 +1192,9 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 			if (itemId != 0)
 			{
 				_items.SendItemDropped(itemId, CaptureItem(child, -1),
-					new NetVector2(child.transform.position.x, child.transform.position.y), 0, child.transform.eulerAngles.z);
+					new NetVector2(child.transform.position.x, child.transform.position.y),
+					new NetVector2(child.rb.velocity.x, child.rb.velocity.y),
+					0, child.transform.eulerAngles.z);
 			}
 		}
 	}
@@ -1233,7 +1244,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		}
 	}
 
-	private void OnRemoteItemDropped(ulong itemId, CharacterItemMsg itemState, NetVector2 pos, ulong parentItemId, float rotation)
+	private void OnRemoteItemDropped(ulong itemId, CharacterItemMsg itemState, NetVector2 pos, NetVector2 vel, ulong parentItemId, float rotation)
 	{
 		_applyingRemoteItem = true;
 		try
@@ -1241,13 +1252,15 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 			var item = FindWorldItem(itemId);
 			if (item == null) // Unity object — ==; we never had it (it was in the dropper's inventory)
 			{
-				SpawnWorldItem(new WorldItem(itemId, itemState, pos, NetVector2.Zero, parentItemId, rotation, false));
+				SpawnWorldItem(new WorldItem(itemId, itemState, pos, vel, parentItemId, rotation, false));
 			}
 			else
 			{
 				item.transform.SetParent(null);
 				item.transform.position = new Vector3(pos.X, pos.Y, 0f);
 				item.transform.eulerAngles = new Vector3(0f, 0f, rotation);
+				item.rb.velocity = new Vector2(vel.X, vel.Y); // a throw: re-applied mid-flight
+				item.rb.angularVelocity = 0f;
 				if (parentItemId != 0)
 				{
 					var parent = FindWorldItem(parentItemId);

@@ -36,7 +36,7 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 
 	public event Action<ulong>? ItemPickedUp;
 
-	public event Action<ulong, CharacterItemMsg, NetVector2, ulong, float>? ItemDropped;
+	public event Action<ulong, CharacterItemMsg, NetVector2, NetVector2, ulong, float>? ItemDropped;
 
 	public event Action<ulong>? ItemDestroyed;
 
@@ -102,11 +102,11 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 		}
 	}
 
-	public void SendItemDropped(ulong itemId, CharacterItemMsg item, NetVector2 pos, ulong parentItemId, float rotation)
+	public void SendItemDropped(ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, ulong parentItemId, float rotation)
 	{
 		if (_session.Role != SessionRole.Guest)
 		{
-			_worldItems[itemId] = new WorldItem(itemId, item, pos, NetVector2.Zero, parentItemId, rotation, false);
+			_worldItems[itemId] = new WorldItem(itemId, item, pos, vel, parentItemId, rotation, false);
 		}
 
 		if (!_session.SessionActive)
@@ -119,6 +119,7 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 			ItemId = itemId,
 			Item = item,
 			Position = pos.ToNetVector2Msg(),
+			Velocity = vel.ToNetVector2Msg(),
 			ParentItemId = parentItemId,
 			Rotation = rotation,
 		};
@@ -224,22 +225,23 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 		ItemPickedUp?.Invoke(itemId);
 	}
 
-	public void FireItemDroppedReceived(ulong sender, ulong itemId, CharacterItemMsg item, NetVector2 pos, ulong parentItemId, float rotation)
+	public void FireItemDroppedReceived(ulong sender, ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, ulong parentItemId, float rotation)
 	{
 		if (_session.Role == SessionRole.Host)
 		{
-			_worldItems[itemId] = new WorldItem(itemId, item, pos, NetVector2.Zero, parentItemId, rotation, false);
+			_worldItems[itemId] = new WorldItem(itemId, item, pos, vel, parentItemId, rotation, false);
 			_session.BroadcastExcept(sender, NetMsg.ItemDrop, new ItemDropMsg
 			{
 				ItemId = itemId,
 				Item = item,
 				Position = pos.ToNetVector2Msg(),
+				Velocity = vel.ToNetVector2Msg(),
 				ParentItemId = parentItemId,
 				Rotation = rotation,
 			});
 		}
 
-		ItemDropped?.Invoke(itemId, item, pos, parentItemId, rotation);
+		ItemDropped?.Invoke(itemId, item, pos, vel, parentItemId, rotation);
 	}
 
 	public void FireItemDestroyedReceived(ulong sender, ulong itemId)

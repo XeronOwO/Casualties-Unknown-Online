@@ -90,27 +90,43 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 
 	public void CaptureWorldParams()
 	{
-		// Host side: snapshot what defines a run before generation consumes the RNG.
+		// Host side: snapshot what defines a run before generation consumes the
+		// RNG. The world-defining fields (biome override/depth, total traveled)
+		// were dead on the wire until this step — now captured with the RNG state.
 		var randomState = RandomStateSerializer.Serialize(Random.state);
 		var runSettings = HarmonyTraverse.ReadRunSettings();
+		var biomeOverride = (byte)HarmonyTraverse.ReadBiomeOverride();
+		var biomeDepth = (byte)HarmonyTraverse.ReadBiomeDepth();
+		var totalTraveled = HarmonyTraverse.ReadTotalTraveled();
 		_session.PublishWorldParams(new WorldStartParams
 		{
 			RandomState = randomState,
 			RunSettings = runSettings,
+			BiomeOverride = biomeOverride,
+			BiomeDepth = biomeDepth,
+			TotalTraveled = totalTraveled,
+			// LoadedRun: no backing game field (PreRunScript.LoadRun is the
+			// save-load flow — Phase 3 saves scope) — stays false on the wire.
 		});
-		_log.LogInformation("Captured world params ({StateBytes} bytes, {SettingCount} settings).",
-			randomState.Length, runSettings?.Count ?? 0);
+		_log.LogInformation("Captured world params ({StateBytes} bytes, {SettingCount} settings, "
+			+ "biome {Biome}/{Depth}, traveled {Traveled}).",
+			randomState.Length, runSettings?.Count ?? 0, biomeOverride, biomeDepth, totalTraveled);
 	}
 
 	public void ApplyWorldParams(WorldStartParams parameters)
 	{
-		// Guest side: restore the host's RNG state + run settings so local world
-		// generation produces the same world (docs/game-internals.md).
+		// Guest side: restore the host's RNG state + run settings + world-defining
+		// fields so local world generation produces the same world
+		// (docs/game-internals.md).
 		Random.state = RandomStateSerializer.Deserialize(parameters.RandomState);
 		if (parameters.RunSettings is not null)
 		{
 			HarmonyTraverse.WriteRunSettings(parameters.RunSettings);
 		}
+
+		HarmonyTraverse.WriteBiomeOverride(parameters.BiomeOverride);
+		HarmonyTraverse.WriteBiomeDepth(parameters.BiomeDepth);
+		HarmonyTraverse.WriteTotalTraveled(parameters.TotalTraveled);
 
 		_log.LogInformation("Applied host world params ({StateBytes} bytes).", parameters.RandomState.Length);
 	}

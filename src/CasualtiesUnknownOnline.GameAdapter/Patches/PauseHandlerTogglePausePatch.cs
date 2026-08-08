@@ -10,12 +10,6 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 /// menu under our overlay (and let the player quit). While the gate holds,
 /// both are skipped; the release restores the normal flow.
 /// </summary>
-[HarmonyPatch(typeof(PauseHandler), "Update")]
-internal static class PauseHandlerUpdatePatch
-{
-	private static bool Prefix() => PatchBridge.Impl is not { IsWaitingForReady: true };
-}
-
 [HarmonyPatch(typeof(PauseHandler), "TogglePause")]
 internal static class PauseHandlerTogglePausePatch
 {

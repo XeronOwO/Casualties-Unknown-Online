@@ -22,7 +22,7 @@ internal static class ContainerItemPatches
 		// would stay on the peer unless the adapter knows it left the world.
 		private static bool _wasWorldItem;
 
-		private static void Prefix(Item item) => _wasWorldItem = GameAdapter.IsWorldItem(item);
+		private static void Prefix(Item item) => _wasWorldItem = ItemWorldSync.IsWorldItem(item);
 
 		private static void Postfix(Container __instance, Item item)
 		{

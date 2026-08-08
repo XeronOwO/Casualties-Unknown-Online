@@ -1,0 +1,161 @@
+using System;
+using System.Collections.Generic;
+using CasualtiesUnknownOnline.Runtime.Session;
+using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
+using Microsoft.Extensions.Logging;
+using UnityEngine;
+
+using CasualtiesUnknownOnline.GameAdapter.Rendering;
+
+namespace CasualtiesUnknownOnline.GameAdapter;
+
+/// <summary>
+/// Remote-player rendering: the per-member render clones (physics off,
+/// animations on, fed by the state stream) and the local body's state
+/// publishing (the stream's source side). NO remote-side simulation anywhere —
+/// each player simulates only its own body. Reads the character-data domain's
+/// snapshot cache for the clones' carried-item rendering.
+/// </summary>
+internal sealed class RemotePlayerRenderer(
+	SessionService session,
+	EntitySyncService entities,
+	CharacterDataSync characterData,
+	ILogger<RemotePlayerRenderer> log)
+{
+	private readonly SessionService _session = session;
+	private readonly EntitySyncService _entities = entities;
+	private readonly CharacterDataSync _characterData = characterData;
+	private readonly ILogger<RemotePlayerRenderer> _log = log;
+
+	private readonly Dictionary<ulong, Body> _remoteClones = [];
+	private long _nextCloneLogMs;
+
+	internal void BindToSession()
+	{
+		_entities.RemoteJoined += OnRemoteJoined;
+		_session.RemoteSceneChanged += OnRemoteSceneChanged;
+	}
+
+	internal void Unbind()
+	{
+		_entities.RemoteJoined -= OnRemoteJoined;
+		_session.RemoteSceneChanged -= OnRemoteSceneChanged;
+	}
+
+	/// <summary>Session/entity ended — destroy every render clone.</summary>
+	internal void DestroyAllClones()
+	{
+		// == null on the Unity clones (is null would miss scene-reload-destroyed objects).
+		foreach (var clone in _remoteClones.Values)
+		{
+			if (clone != null)
+			{
+				UnityEngine.Object.Destroy(clone.transform.parent.gameObject);
+			}
+		}
+
+		_remoteClones.Clear();
+	}
+
+	/// <summary>Pump: lazy per-member clone ensure + state application + 1 Hz diagnostics.</summary>
+	internal void Update()
+	{
+		// Lazy per-member ensure: a roster join can arrive before the member's
+		// world exists (the menu scene has no "Experiment" template), and members
+		// can join mid-session — retrying every frame absorbs all ordering races.
+		foreach (var remote in _entities.RemotePlayers)
+		{
+			if (!_session.IsRemoteInWorld(remote.SteamId))
+			{
+				continue; // in a menu/loading — no clone
+			}
+
+			// == null on Unity objects — a scene reload destroys the clone and
+			// reference-comparison would miss it; retry creation next frame.
+			if (!_remoteClones.TryGetValue(remote.SteamId, out var clone) || clone == null)
+			{
+				clone = RemoteBodyFactory.CreateRemoteBody(remote, AnchorFor(remote), _log);
+				if (clone == null)
+				{
+					continue; // template unavailable — retry next frame
+				}
+
+				_remoteClones[remote.SteamId] = clone;
+				_log.LogInformation("Remote body created for {SteamId}.", remote.SteamId);
+				// Render its carried items from the latest snapshot (a fresh
+				// report follows within 1 s at the latest).
+				if (_characterData.CloneData.TryGetValue(remote.SteamId, out var data))
+				{
+					_characterData.ApplyCloneInventory(clone, data);
+				}
+			}
+
+			SessionStatePump.Apply(remote, clone);
+		}
+
+		LogClonePosition();
+	}
+
+	private Vector2 AnchorFor(PlayerEntity remote) =>
+		_session.Role == SessionRole.Host
+			? new Vector2(_session.GetRemoteSpawnPos(remote.SteamId).X, _session.GetRemoteSpawnPos(remote.SteamId).Y)
+			: new Vector2(remote.Position.X, remote.Position.Y);
+
+	/// <summary>Periodic clone diagnostics (1 Hz) — where the remote proxies actually are.</summary>
+	private void LogClonePosition()
+	{
+		var nowMs = Environment.TickCount;
+		if (nowMs < _nextCloneLogMs)
+		{
+			return;
+		}
+
+		_nextCloneLogMs = nowMs + 1000;
+		if (_remoteClones.Count == 0)
+		{
+			return;
+		}
+
+		// KeyValuePair has no Deconstruct on net48 — iterate entries explicitly.
+		foreach (var entry in _remoteClones)
+		{
+			var steamId = entry.Key;
+			var clone = entry.Value;
+			// == null on the Unity clone: a scene reload destroys it and
+			// reference-comparison (?.) would throw on access.
+			var pos = clone != null ? clone.transform.position : Vector3.zero;
+			var remote = _entities.GetRemotePlayer(steamId);
+			var reported = remote is not null
+				? new Vector2(remote.Position.X, remote.Position.Y)
+				: Vector2.zero;
+			_log.LogDebug("Clone {SteamId}: at ({PX:F1}, {PY:F1}), reported ({RX:F1}, {RY:F1}), active {Active}",
+				steamId, pos.x, pos.y, reported.x, reported.y, clone != null && clone.gameObject.activeInHierarchy);
+		}
+	}
+
+	private void OnRemoteJoined(PlayerEntity remote) =>
+		// Clone creation is handled by the per-frame lazy ensure in Update —
+		// the roster join can arrive before the member's world exists (the menu
+		// scene has no "Experiment" template), so event-driven creation would
+		// race. Log only; the pump creates and the anchor for host/guest differs.
+		_log.LogInformation("Remote joined (clone ensured by the Update pump): {SteamId}.", remote.SteamId);
+
+	/// <summary>
+	/// A member's in-world state flipped: leave → destroy its render clone (it
+	/// carries no state; the Update pump rebuilds it on re-entry). The host
+	/// leaving the world also ends the world itself — the run coordinator
+	/// handles pulling a guest back to the menu.
+	/// </summary>
+	private void OnRemoteSceneChanged(ulong steamId, bool inWorld)
+	{
+		if (!inWorld && _remoteClones.TryGetValue(steamId, out var clone) && clone != null) // Unity object — ==
+		{
+			UnityEngine.Object.Destroy(clone.transform.parent.gameObject);
+			_remoteClones.Remove(steamId);
+		}
+
+		_log.LogInformation(inWorld
+			? "Remote entered the world — clone rebuilt on rejoin."
+			: "Remote not in world (menu or disconnected) — clone destroyed.");
+	}
+}

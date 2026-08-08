@@ -33,6 +33,7 @@ CLAUDE.local.md                # Local personal notes — gitignored, never comm
 ```bash
 dotnet build CasualtiesUnknownOnline.slnx
 dotnet format CasualtiesUnknownOnline.slnx   # MUST run before every commit
+powershell -File tools/check-architecture.ps1   # MUST pass before every commit (architecture gate: ≤600-line classes, ≤5 state bools, one top-level type per file — a failing class must be split/state-machine'd BEFORE further changes)
 ```
 
 - **`dotnet format` is mandatory before every commit** — keeps code conforming to `.editorconfig` (user requirement; proven workflow in the JustUnknownCharacters mod). With `TreatWarningsAsErrors` enabled, style violations fail the build once fixed into the codebase.

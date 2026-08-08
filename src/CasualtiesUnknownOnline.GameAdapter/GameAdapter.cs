@@ -961,6 +961,10 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 		if (_session.Role == SessionRole.Guest && _session.SessionActive && _world.WorldParams is null)
 		{
 			_log.LogWarning("Cannot start a run: host world params not received yet — retry in a few seconds.");
+			// Re-arm the follow pump: the world params follow the handshake ack
+			// (observed ~20 ms later), so a "Join Game" launch retries
+			// automatically once they arrive instead of being stuck in the menu.
+			_followHostPending = true;
 			return false;
 		}
 

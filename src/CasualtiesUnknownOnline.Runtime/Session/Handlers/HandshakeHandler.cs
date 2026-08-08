@@ -79,9 +79,10 @@ public sealed class HandshakeHandler(SessionService session, CharacterDataStore 
 		Session.Send(sender, NetMsg.HandshakeAck, HandshakeAckMsg.From(
 			ProtocolVersion.Current, SceneStateMsg.From(Session.LocalSceneState, "", default),
 			Session.WorldParams is not null));
-		if (Session.WorldParams is not null)
+		var worldParams = Session.WorldParams;
+		if (worldParams is not null)
 		{
-			Session.Send(sender, NetMsg.WorldStartParams, WorldStartParamsMsg.From(Session.WorldParams));
+			Session.Send(sender, NetMsg.WorldStartParams, worldParams.ToWorldStartParamsMsg());
 		}
 	}
 }

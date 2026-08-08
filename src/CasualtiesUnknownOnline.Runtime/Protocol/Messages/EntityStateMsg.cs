@@ -30,20 +30,8 @@ public sealed class EntityStateMsg
 	[ProtoMember(6)]
 	public uint ExtendedFlags { get; set; }
 
-	public static EntityStateMsg From(PlayerEntity entity) => new()
-	{
-		Id = NetworkEntityIdMsg.From(entity.EntityId),
-		Position = NetVector2Msg.From(entity.Position),
-		LookPos = NetVector2Msg.From(entity.LookPos),
-		Velocity = NetVector2Msg.From(entity.Velocity),
-		Flags = (byte)(
-			(entity.IsRight ? 0x01 : 0) | (entity.Standing ? 0x02 : 0) |
-			(entity.Alive ? 0x04 : 0) | (entity.Conscious ? 0x08 : 0) | (entity.Crouching ? 0x10 : 0) |
-			(entity.Sitting ? 0x20 : 0) | (entity.Sleeping ? 0x40 : 0) | (entity.Climbing ? 0x80 : 0)),
-		ExtendedFlags = entity.IsAttacking ? 0x01u : 0u,
-	};
-
-	/// <summary>Applies the state onto a live entity buffer (values + flags).</summary>
+	/// <summary>Domain → wire lives in <see cref="EntityStateMsgExtensions"/>;
+	/// this applies the wire state back onto a live entity buffer (values + flags).</summary>
 	public void ApplyTo(PlayerEntity target)
 	{
 		target.Position = Position.ToNetVector2();

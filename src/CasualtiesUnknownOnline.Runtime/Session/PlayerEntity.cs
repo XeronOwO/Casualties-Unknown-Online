@@ -1,4 +1,5 @@
 using CasualtiesUnknownOnline.Runtime.Protocol;
+using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 
 namespace CasualtiesUnknownOnline.Runtime.Session;
 
@@ -67,4 +68,19 @@ public sealed class PlayerEntity(ulong steamId, NetworkEntityId entityId, bool i
 	/// buffer's (0,0) defaults.
 	/// </summary>
 	public int StateReceivedMs { get; set; } = int.MinValue;
+
+	/// <summary>Domain → wire: the entity state snapshot; the reverse applies via
+	/// <see cref="EntityStateMsg.ApplyTo"/>.</summary>
+	public EntityStateMsg ToEntityStateMsg() => new()
+	{
+		Id = EntityId.ToNetworkEntityIdMsg(),
+		Position = Position.ToNetVector2Msg(),
+		LookPos = LookPos.ToNetVector2Msg(),
+		Velocity = Velocity.ToNetVector2Msg(),
+		Flags = (byte)(
+			(IsRight ? 0x01 : 0) | (Standing ? 0x02 : 0) |
+			(Alive ? 0x04 : 0) | (Conscious ? 0x08 : 0) | (Crouching ? 0x10 : 0) |
+			(Sitting ? 0x20 : 0) | (Sleeping ? 0x40 : 0) | (Climbing ? 0x80 : 0)),
+		ExtendedFlags = IsAttacking ? 0x01u : 0u,
+	};
 }

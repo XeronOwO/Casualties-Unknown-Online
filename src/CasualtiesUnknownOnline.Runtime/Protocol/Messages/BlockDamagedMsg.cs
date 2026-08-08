@@ -16,7 +16,7 @@ public sealed class BlockDamagedMsg
 	/// assembles itself from domain data, no service-level assembly.</summary>
 	public static BlockDamagedMsg From(NetVector2 position, float damage) => new()
 	{
-		Position = NetVector2Msg.From(position),
+		Position = position.ToNetVector2Msg(),
 		Damage = damage,
 	};
 }

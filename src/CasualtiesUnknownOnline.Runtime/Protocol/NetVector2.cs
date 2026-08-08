@@ -1,3 +1,5 @@
+using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+
 namespace CasualtiesUnknownOnline.Runtime.Protocol;
 
 /// <summary>
@@ -9,6 +11,9 @@ public readonly struct NetVector2(float x, float y)
 {
 	public readonly float X = x;
 	public readonly float Y = y;
+
+	/// <summary>Domain → wire; the reverse lives on <see cref="NetVector2Msg"/>.</summary>
+	public NetVector2Msg ToNetVector2Msg() => new(X, Y);
 
 	public override string ToString() => $"({X:F1}, {Y:F1})";
 }

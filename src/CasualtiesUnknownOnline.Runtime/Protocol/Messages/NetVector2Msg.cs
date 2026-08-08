@@ -23,7 +23,6 @@ public sealed class NetVector2Msg
 	[ProtoMember(2)]
 	public float Y { get; set; }
 
-	public static NetVector2Msg From(NetVector2 v) => new(v.X, v.Y);
-
+	/// <summary>Wire → domain; the reverse lives in <see cref="NetVector2MsgExtensions"/>.</summary>
 	public NetVector2 ToNetVector2() => new(X, Y);
 }

@@ -27,7 +27,6 @@ public sealed class NetworkEntityIdMsg
 	[ProtoMember(3)]
 	public uint Generation { get; set; }
 
-	public static NetworkEntityIdMsg From(NetworkEntityId id) => new(id.Epoch, id.Counter, id.Generation);
-
+	/// <summary>Wire → domain; the reverse lives in <see cref="NetworkEntityIdMsgExtensions"/>.</summary>
 	public NetworkEntityId ToNetworkEntityId() => new(Epoch, Counter, (byte)Generation);
 }

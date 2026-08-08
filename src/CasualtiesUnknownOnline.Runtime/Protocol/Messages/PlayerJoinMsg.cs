@@ -42,10 +42,10 @@ public sealed class PlayerJoinMsg
 		ulong guestSteamId, NetworkEntityId guestEntityId, NetVector2 guestPosition) => new()
 		{
 			HostSteamId = hostSteamId,
-			HostEntityId = NetworkEntityIdMsg.From(hostEntityId),
-			HostPosition = NetVector2Msg.From(hostPosition),
+			HostEntityId = hostEntityId.ToNetworkEntityIdMsg(),
+			HostPosition = hostPosition.ToNetVector2Msg(),
 			GuestSteamId = guestSteamId,
-			GuestEntityId = NetworkEntityIdMsg.From(guestEntityId),
-			GuestPosition = NetVector2Msg.From(guestPosition),
+			GuestEntityId = guestEntityId.ToNetworkEntityIdMsg(),
+			GuestPosition = guestPosition.ToNetVector2Msg(),
 		};
 }

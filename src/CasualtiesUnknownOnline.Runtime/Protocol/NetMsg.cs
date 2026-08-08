@@ -29,4 +29,5 @@ public enum NetMsg : byte
 
 	// World mutations (local compute, remote verify/sync)
 	BlockDamaged = 40, // guest → host: report (host arbitrates); host → guest: broadcast relay (source excluded)
+	WorldBlockState = 41, // host → guest: full block-state snapshot (damage table) on world entry
 }

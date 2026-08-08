@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
@@ -22,6 +23,12 @@ public sealed class WorldService(ISessionControl session, PacketSender sender, I
 	private readonly PacketSender _sender = sender;
 	private readonly ILogger<WorldService> _log = log;
 
+	/// <summary>Host-side damage table: block-space position → current block id, for every block deviating from the generated baseline.</summary>
+	private readonly Dictionary<(int, int), ushort> _damagedBlocks = [];
+
+	/// <summary>Table cap — a fully-mined world would otherwise grow without bound.</summary>
+	private const int MaxDamagedBlocks = 8192;
+
 	/// <summary>World-start parameters: set by the host at run start, by the world-params handler on the guest.</summary>
 	public WorldStartParams? WorldParams { get; set; }
 
@@ -35,6 +42,51 @@ public sealed class WorldService(ISessionControl session, PacketSender sender, I
 	public event Action? WorldJoinReceived;
 
 	public void FireWorldJoinReceived() => WorldJoinReceived?.Invoke();
+
+	/// <summary>Guest: the host's authoritative block-state snapshot arrived (world entry).</summary>
+	public event Action<IReadOnlyList<DamagedBlock>>? BlockStateReceived;
+
+	public void FireBlockStateReceived(IReadOnlyList<DamagedBlock> blocks) => BlockStateReceived?.Invoke(blocks);
+
+	/// <summary>
+	/// Host only: a block changed after generation (mined/destroyed/built —
+	/// the SetBlock write path, which damage application and earthquakes also
+	/// go through). Upserted into the damage table; re-joining guests get the
+	/// whole table as a snapshot on world entry.
+	/// </summary>
+	public void ReportBlockState(int x, int y, ushort block)
+	{
+		if (_session.Role != SessionRole.Host || !_session.SessionActive)
+		{
+			return;
+		}
+
+		if (_damagedBlocks.Count >= MaxDamagedBlocks && !_damagedBlocks.ContainsKey((x, y)))
+		{
+			return; // cap reached — stop tracking new entries rather than grow unbounded
+		}
+
+		_damagedBlocks[(x, y)] = block;
+	}
+
+	/// <summary>Host only: a new world layer is generating — the table starts empty again.</summary>
+	public void ResetDamagedBlocks() => _damagedBlocks.Clear();
+
+	/// <summary>Host only: send the full damage table to one member (on its world entry).</summary>
+	public void SendBlockStateSnapshot(ulong targetSteamId)
+	{
+		if (_session.Role != SessionRole.Host || _damagedBlocks.Count == 0)
+		{
+			return;
+		}
+
+		var msg = new BlockStateMsg
+		{
+			Blocks = [.. _damagedBlocks.Select(kv => new BlockStateEntryMsg { X = kv.Key.Item1, Y = kv.Key.Item2, Block = kv.Value })],
+		};
+		_sender.Send(targetSteamId, NetMsg.WorldBlockState, msg);
+		_log.LogInformation("Sent block-state snapshot ({Count} blocks) to {Peer}.", _damagedBlocks.Count, targetSteamId);
+	}
 
 	/// <summary>
 	/// Host side: tell the members to enter the world. Sent after the world

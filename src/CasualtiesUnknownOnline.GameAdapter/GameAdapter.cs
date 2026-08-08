@@ -84,6 +84,9 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 	/// </summary>
 	internal bool IsWorldGenIsolated => _session.SessionActive;
 
+	/// <summary>Host in a live session: authoritative world mutations (damage table capture).</summary>
+	internal bool IsHostMode => _session.Role == SessionRole.Host && _session.SessionActive;
+
 	public bool ProbeGame()
 	{
 		var playerCamera = typeof(PlayerCamera);
@@ -123,6 +126,10 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 
 	public void CaptureWorldParams()
 	{
+		// Host side: a new world (or layer) is generating — the damage table
+		// starts empty again; mutations during generation are the baseline.
+		_world.ResetDamagedBlocks();
+
 		// Host side: snapshot what defines a run before generation consumes the
 		// RNG. The world-defining fields (biome override/depth, total traveled)
 		// were dead on the wire until this step — now captured with the RNG state.
@@ -298,6 +305,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 		_session.SessionActivated -= OnSessionActivated;
 		_world.BlockDamagedReceived -= OnRemoteBlockDamaged;
 		_world.WorldJoinReceived -= OnWorldJoin;
+		_world.BlockStateReceived -= OnRemoteBlockState;
 		_characterData.CharacterDataReceived -= OnCharacterDataReceived;
 		Instance = null;
 	}
@@ -312,6 +320,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 		_session.SessionActivated += OnSessionActivated;
 		_world.BlockDamagedReceived += OnRemoteBlockDamaged;
 		_world.WorldJoinReceived += OnWorldJoin;
+		_world.BlockStateReceived += OnRemoteBlockState;
 		_characterData.CharacterDataReceived += OnCharacterDataReceived;
 	}
 
@@ -453,6 +462,41 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 		{
 			_applyingRemoteBlockDamage = false;
 		}
+	}
+
+	/// <summary>
+	/// Called from the SetBlock patch after a host-side world mutation was
+	/// applied — record it in the damage table (the baseline is excluded:
+	/// generation-time SetBlock calls happen while generatingWorld is set).
+	/// </summary>
+	internal void OnBlockSet(Vector2Int pos, ushort block)
+	{
+		if (HarmonyTraverse.IsGenerating())
+		{
+			return;
+		}
+
+		_world.ReportBlockState(pos.x, pos.y, block);
+	}
+
+	/// <summary>
+	/// Guest side: the host's authoritative block-state snapshot — apply the
+	/// accumulated mutations to our freshly generated world (the snapshot only
+	/// arrives after our InWorld report, i.e. after generation finished).
+	/// </summary>
+	private void OnRemoteBlockState(IReadOnlyList<DamagedBlock> blocks)
+	{
+		if (WorldGeneration.world == null || HarmonyTraverse.IsGenerating()) // Unity object — ==
+		{
+			return;
+		}
+
+		foreach (var block in blocks)
+		{
+			WorldGeneration.world.SetBlock(new Vector2Int(block.X, block.Y), block.Block);
+		}
+
+		_log.LogInformation("Applied host block-state snapshot ({Count} blocks).", blocks.Count);
 	}
 
 	// ---- Character data (session-scoped save/restore, character-data-plan) ----

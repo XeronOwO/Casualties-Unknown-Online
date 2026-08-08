@@ -47,6 +47,10 @@ public sealed class SceneStateHandler(ILogger<SceneStateHandler> log) : PacketHa
 					// character data back (the handshake restore only covers
 					// reconnects; a death → menu → re-enter never re-handshakes).
 					ctx.CharacterData.SendSavedCharacter(reporter);
+					// The member's generation just finished — hand it the full
+					// block-state snapshot (damage table) so it sees the world
+					// as it is now, not as the baseline regenerated it.
+					ctx.World.SendBlockStateSnapshot(reporter);
 					session.BroadcastExcept(reporter, NetMsg.SceneState, msg); // relay: the other guests track the member too
 				}
 			}

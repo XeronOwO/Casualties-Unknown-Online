@@ -175,6 +175,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 	void ICuoService.Update()
 	{
 		UpdateSceneState();
+		UpdateGuestMenuState();
 		if (_worldJoinPending)
 		{
 			TryStartWorldJoin();
@@ -956,11 +957,12 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 			sitting, body.sleeping, body.currentClimbable != null); // Unity object — ==
 	}
 
-	/// <summary>Gate from the StartRun patch — returns false to block the run start.
-	/// In a session a guest may only enter the world on the host's instruction
-	/// (WorldJoin): starting on its own would create a world the host does not
-	/// know. The WorldJoin path authorises its StartRun call right before it.</summary>
-	internal bool OnStartRun()
+	/// <summary>Gate for every run-start entry (StartRun/LoadRun/StartTutorial) —
+	/// returns false to block. In a session a guest may only enter the world on
+	/// the host's instruction (WorldJoin): starting on its own would create a
+	/// world the host does not know. The WorldJoin path authorises its StartRun
+	/// call right before it; LoadRun/StartTutorial have no authorised path.</summary>
+	internal bool OnGuestStartAttempt()
 	{
 		if (_startRunAuthorized)
 		{
@@ -975,6 +977,32 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 		}
 
 		return true;
+	}
+
+	/// <summary>
+	/// Guest side, in a session: the start screen (runSettingsScreen) is
+	/// host-only — force it closed every frame, so the guest cannot open or
+	/// operate it (the open action is wired in the scene's buttons, not in
+	/// script, so closing is the reliable side). The StartRun/LoadRun/
+	/// StartTutorial gates back this up.
+	/// </summary>
+	private void UpdateGuestMenuState()
+	{
+		if (_session.Role != SessionRole.Guest || !_session.SessionActive)
+		{
+			return;
+		}
+
+		var pre = PreRunScript.instance;
+		if (pre == null) // Unity object — == (menu not loaded)
+		{
+			return;
+		}
+
+		if (pre.runSettingsScreen != null && pre.runSettingsScreen.activeSelf) // Unity object — ==
+		{
+			pre.runSettingsScreen.SetActive(false);
+		}
 	}
 
 	/// <summary>

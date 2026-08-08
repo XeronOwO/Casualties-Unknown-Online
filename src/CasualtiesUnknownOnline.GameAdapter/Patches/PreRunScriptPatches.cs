@@ -11,29 +11,17 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 [HarmonyPatch(typeof(PreRunScript), "StartRun")]
 internal static class PreRunScriptStartRunPatch
 {
-	private static bool Prefix()
-	{
-		var adapter = GameAdapter.Instance;
-		return adapter is null || adapter.OnGuestStartAttempt();
-	}
+	private static bool Prefix() => PatchBridge.Impl is null || PatchBridge.Impl.OnGuestStartAttempt();
 }
 
 [HarmonyPatch(typeof(PreRunScript), "LoadRun")]
 internal static class PreRunScriptLoadRunPatch
 {
-	private static bool Prefix()
-	{
-		var adapter = GameAdapter.Instance;
-		return adapter is null || adapter.OnGuestStartAttempt();
-	}
+	private static bool Prefix() => PatchBridge.Impl is null || PatchBridge.Impl.OnGuestStartAttempt();
 }
 
 [HarmonyPatch(typeof(PreRunScript), "StartTutorial")]
 internal static class PreRunScriptStartTutorialPatch
 {
-	private static bool Prefix()
-	{
-		var adapter = GameAdapter.Instance;
-		return adapter is null || adapter.OnGuestStartAttempt();
-	}
+	private static bool Prefix() => PatchBridge.Impl is null || PatchBridge.Impl.OnGuestStartAttempt();
 }

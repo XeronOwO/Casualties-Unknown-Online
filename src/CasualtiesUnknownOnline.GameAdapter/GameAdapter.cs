@@ -27,11 +27,8 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// (SessionService / EntitySyncService / CharacterDataStore / WorldService);
 /// this class only shuttles state between game objects and the domains.
 /// </summary>
-public sealed class GameAdapter : IGameAdapter, ICuoService
+public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 {
-	/// <summary>Static access for Harmony patches (they have no DI).</summary>
-	public static GameAdapter? Instance { get; private set; }
-
 	/// <summary>
 	/// Set when the game was launched via a Steam friends "Join Game"
 	/// (+connect_lobby): the content-warning/intro screen is skipped so the
@@ -77,7 +74,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 		_world = world;
 		_log = log;
 		_mapper = mapper;
-		Instance = this;
+		PatchBridge.Bind(this); // the only static seam — Harmony patches read the narrow surface, never this instance
 	}
 
 	public string CapabilityReport { get; private set; } = "Not probed";
@@ -86,12 +83,12 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 	internal bool IsGuestMode => _session.Role == SessionRole.Guest && _session.SessionActive;
 
 	/// <summary>
-	/// In a live session world generation is replaced with the random-stream
-	/// isolated version (WorldGenRandomIsolation) so host and guest generate
-	/// identical worlds from the same captured Random.state. Single-player
-	/// (no session) keeps the game's original generation untouched.
+	/// In a live session world generation is wrapped with the random-stream
+	/// isolation (WorldGenRandomIsolation) so host and guest generate identical
+	/// worlds from the same captured Random.state. Single-player (no session)
+	/// keeps the game's original generation untouched.
 	/// </summary>
-	internal bool IsWorldGenIsolated => _session.SessionActive;
+	bool IPatchBridge.IsWorldGenIsolated => _session.SessionActive;
 
 	/// <summary>Host in a live session: authoritative world mutations (damage table capture).</summary>
 	internal bool IsHostMode => _session.Role == SessionRole.Host && _session.SessionActive;
@@ -321,7 +318,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 		_world.BlockStateReceived -= OnRemoteBlockState;
 		_world.BlockPlacedReceived -= OnRemoteBlockPlaced;
 		_characterData.CharacterDataReceived -= OnCharacterDataReceived;
-		Instance = null;
+		PatchBridge.Unbind(this);
 	}
 
 	// ---- Session wiring ----
@@ -453,7 +450,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 	/// Called from the DamageBlock patch after a LOCAL block damage was applied:
 	/// report it so the peer applies the same damage at the same world position.
 	/// </summary>
-	internal void OnBlockDamaged(Vector2 pos, float dmg)
+	void IPatchBridge.OnBlockDamaged(Vector2 pos, float dmg)
 	{
 		if (_applyingRemoteBlockDamage || !_session.SessionActive)
 		{
@@ -492,7 +489,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 	/// applications are guarded (they answer their own way); generation-time
 	/// SetBlock calls are the baseline itself and excluded.
 	/// </summary>
-	internal void OnBlockSet(Vector2Int pos, ushort block)
+	void IPatchBridge.OnBlockSet(Vector2Int pos, ushort block)
 	{
 		if (_applyingRemoteBlockPlace || !_session.SessionActive || HarmonyTraverse.IsGenerating())
 		{
@@ -1129,7 +1126,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 	/// wait window is covered) and lifts when the lobby binding is gone. The
 	/// WorldJoin path authorises its StartRun call right before it;
 	/// LoadRun/StartTutorial have no authorised path.</summary>
-	internal bool OnGuestStartAttempt()
+	bool IPatchBridge.OnGuestStartAttempt()
 	{
 		if (_startRunAuthorized)
 		{
@@ -1250,7 +1247,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 	/// before this point is baked in); guest restores the host's state so both
 	/// generate the identical world.
 	/// </summary>
-	internal void OnWorldGenerate()
+	void IPatchBridge.OnWorldGenerate()
 	{
 		if (_session.Role == SessionRole.Host || _session.Role == SessionRole.None)
 		{

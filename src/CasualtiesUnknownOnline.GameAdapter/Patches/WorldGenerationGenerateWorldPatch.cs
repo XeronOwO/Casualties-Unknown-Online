@@ -19,11 +19,11 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 [HarmonyPatch(typeof(WorldGeneration), "GenerateWorld")]
 internal static class WorldGenerationGenerateWorldPatch
 {
-	private static void Prefix() => GameAdapter.Instance?.OnWorldGenerate(); // host: capture + publish params; guest: apply the host's
+	private static void Prefix() => PatchBridge.Impl?.OnWorldGenerate(); // host: capture + publish params; guest: apply the host's
 
 	private static void Postfix(ref IEnumerator __result)
 	{
-		var adapter = GameAdapter.Instance;
+		var adapter = PatchBridge.Impl;
 		if (adapter is { IsWorldGenIsolated: true } && __result is not null)
 		{
 			__result = WorldGenRandomIsolation.Wrap(__result);

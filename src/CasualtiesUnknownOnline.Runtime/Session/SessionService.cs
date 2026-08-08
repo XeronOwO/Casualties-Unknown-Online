@@ -447,10 +447,13 @@ public sealed class SessionService : ICuoService
 		}
 
 		_nextHandshakeRetryMs = nowMs + (long)(HandshakeRetryInterval * 1000f);
-		var peer = _steam.GetLobbyMembers().FirstOrDefault(m => m != _steam.LocalSteamId);
-		if (peer != 0)
+		var ping = new PingMsg { Ticks = DateTime.UtcNow.Ticks };
+		foreach (var peer in _steam.GetLobbyMembers())
 		{
-			Send(peer, NetMsg.Ping, new PingMsg { Ticks = DateTime.UtcNow.Ticks });
+			if (peer != _steam.LocalSteamId)
+			{
+				Send(peer, NetMsg.Ping, ping);
+			}
 		}
 	}
 
@@ -911,16 +914,56 @@ public sealed class SessionService : ICuoService
 
 		_nextMemberCheckMs = nowMs + (long)(MemberCheckInterval * 1000f);
 
-		// Peer vanished from the lobby — end the session immediately (either
-		// role: host's guest is gone, or MVP guest's host is gone — no host
-		// migration). Reconnects are cheap: Role stays (it follows the lobby
-		// identity), the character save is kept per SteamID, and the next
-		// handshake rebuilds the session from scratch (new entity + restore).
-		if (_steam.GetLobbyMembers().Length < 2)
+		var lobbyMembers = _steam.GetLobbyMembers();
+		if (Role == SessionRole.Host)
 		{
-			_log.LogWarning("Peer left the lobby — ending session (save kept).");
+			// Remove members that vanished from the lobby (each member is
+			// tracked individually — a 3-person lobby losing one guest keeps
+			// the other). End the session once the last member is gone; the
+			// host stays in the lobby, ready for new joins. Reconnects are
+			// cheap: Role stays (lobby identity), the character save is kept
+			// per SteamID, and the next handshake rebuilds the member.
+			foreach (var memberId in _members.Keys.ToList())
+			{
+				if (!lobbyMembers.Contains(memberId))
+				{
+					RemoveMember(memberId, "left the lobby");
+				}
+			}
+
+			if (_members.Count == 0)
+			{
+				_log.LogWarning("All members left the lobby — ending session (save kept).");
+				EndSession();
+			}
+		}
+		else if (!lobbyMembers.Contains(HostSteamId))
+		{
+			// The host is gone — no host migration in the MVP.
+			_log.LogWarning("Host left the lobby — ending session (save kept).");
 			EndSession();
 		}
+	}
+
+	/// <summary>Host side: drop a member (sync off, roster PlayerLeave, clone teardown).</summary>
+	private void RemoveMember(ulong steamId, string reason)
+	{
+		if (!_members.TryGetValue(steamId, out var member))
+		{
+			return;
+		}
+
+		EndMemberSync(member);
+		_members.Remove(steamId);
+		_log.LogInformation("Member {Member} removed: {Reason}.", steamId, reason);
+
+		// Tell the other guests to drop the member's clone too.
+		BroadcastExcept(steamId, NetMsg.PlayerLeave, new PlayerLeaveMsg
+		{
+			SteamId = steamId,
+			EntityId = NetworkEntityIdMsg.From(member.Entity.EntityId),
+		});
+		RemoteSceneChanged?.Invoke(steamId, false);
 	}
 
 	/// <summary>Host side: end one member's entity sync (its stream stops, its clone is torn down).</summary>

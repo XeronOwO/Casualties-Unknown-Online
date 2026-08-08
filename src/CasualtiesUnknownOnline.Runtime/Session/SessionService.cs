@@ -17,7 +17,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session;
 /// and <see cref="SessionState"/> (shared with the entity/data domains — the
 /// dependency graph stays acyclic, abstract extraction). The data plane
 /// (transport binding, direction validation, dispatch) lives in
-/// <see cref="PacketGateway"/>; the entity buffers, ids and the 20 Hz state
+/// <see cref="PacketReceiver"/>/<see cref="PacketSender"/>; the entity buffers, ids and the 20 Hz state
 /// stream in <see cref="EntitySyncService"/>; the character save/restore in
 /// <see cref="CharacterDataStore"/>. Star topology: every message flows
 /// guest → host; the host arbitrates and decides the fan-out.
@@ -30,7 +30,8 @@ public sealed class SessionService : ICuoService, ISessionControl
 
 	private readonly SteamService _steam;
 	private readonly SessionIdentity _identity;
-	private readonly PacketGateway _gateway;
+	private readonly PacketReceiver _receiver;
+	private readonly PacketSender _sender;
 	private readonly PacketRouter _router;
 	private readonly MemberPresenceTable _presence;
 	private readonly SessionState _state;
@@ -46,13 +47,14 @@ public sealed class SessionService : ICuoService, ISessionControl
 	private long _nextHandshakeRetryMs;
 
 	public SessionService(
-		SteamService steam, SessionIdentity identity, PacketGateway gateway, PacketRouter router,
+		SteamService steam, SessionIdentity identity, PacketReceiver receiver, PacketSender sender, PacketRouter router,
 		MemberPresenceTable presence, SessionState state, EntitySyncService entities,
 		CharacterDataStore characterData, ILogger<SessionService> log)
 	{
 		_steam = steam;
 		_identity = identity;
-		_gateway = gateway;
+		_receiver = receiver;
+		_sender = sender;
 		_router = router;
 		_presence = presence;
 		_state = state;
@@ -63,7 +65,7 @@ public sealed class SessionService : ICuoService, ISessionControl
 
 		steam.LobbyCreated += OnLobbyCreated;
 		steam.LobbyEntered += OnLobbyEntered;
-		gateway.MessageArrived += OnGatewayMessage;
+		receiver.MessageArrived += OnMessageArrived;
 	}
 
 	public SessionRole Role => _identity.Role;
@@ -104,14 +106,11 @@ public sealed class SessionService : ICuoService, ISessionControl
 
 	bool ISessionControl.IsLobbyMember(ulong steamId) => _steam.GetLobbyMembers().Contains(steamId);
 
-	void ISessionControl.Send(ulong steamId, NetMsg msg, object? payload, bool reliable) =>
-		_gateway.Send(steamId, msg, payload, reliable);
-
 	void ISessionControl.Broadcast(NetMsg msg, object payload)
 	{
 		foreach (var member in _presence.Members)
 		{
-			_gateway.Send(member.SteamId, msg, payload);
+			_sender.Send(member.SteamId, msg, payload);
 		}
 	}
 
@@ -121,7 +120,7 @@ public sealed class SessionService : ICuoService, ISessionControl
 		{
 			if (member.SteamId != excludeSteamId)
 			{
-				_gateway.Send(member.SteamId, msg, payload);
+				_sender.Send(member.SteamId, msg, payload);
 			}
 		}
 	}
@@ -177,7 +176,7 @@ public sealed class SessionService : ICuoService, ISessionControl
 			}
 			else
 			{
-				_gateway.Send(HostSteamId, NetMsg.SceneState, msg);
+				_sender.Send(HostSteamId, NetMsg.SceneState, msg);
 			}
 		}
 
@@ -196,7 +195,7 @@ public sealed class SessionService : ICuoService, ISessionControl
 		var msg = parameters.ToWorldStartParamsMsg();
 		foreach (var member in _presence.Members.Where(m => m.Handshaken))
 		{
-			_gateway.Send(member.SteamId, NetMsg.WorldStartParams, msg);
+			_sender.Send(member.SteamId, NetMsg.WorldStartParams, msg);
 		}
 
 		_log.LogInformation("Published world params ({StateBytes} bytes) to {Members} members.",
@@ -214,12 +213,12 @@ public sealed class SessionService : ICuoService, ISessionControl
 		{
 			foreach (var member in _presence.Members)
 			{
-				_gateway.Send(member.SteamId, NetMsg.Ping, msg);
+				_sender.Send(member.SteamId, NetMsg.Ping, msg);
 			}
 		}
 		else
 		{
-			_gateway.Send(HostSteamId, NetMsg.Ping, msg);
+			_sender.Send(HostSteamId, NetMsg.Ping, msg);
 		}
 	}
 
@@ -246,7 +245,7 @@ public sealed class SessionService : ICuoService, ISessionControl
 		}
 		else
 		{
-			_gateway.Send(HostSteamId, NetMsg.BlockDamaged, msg);
+			_sender.Send(HostSteamId, NetMsg.BlockDamaged, msg);
 		}
 	}
 
@@ -289,12 +288,12 @@ public sealed class SessionService : ICuoService, ISessionControl
 	{
 		_steam.LobbyCreated -= OnLobbyCreated;
 		_steam.LobbyEntered -= OnLobbyEntered;
-		_gateway.MessageArrived -= OnGatewayMessage;
+		_receiver.MessageArrived -= OnMessageArrived;
 	}
 
 	// ---- Data plane entry (the gateway validates direction, we dispatch) ----
 
-	private void OnGatewayMessage(ulong sender, byte[] frame) => _router.TryDispatch(sender, frame, _handlerContext);
+	private void OnMessageArrived(ulong sender, byte[] frame) => _router.TryDispatch(sender, frame, _handlerContext);
 
 	// ---- Lobby / handshake ----
 
@@ -320,7 +319,7 @@ public sealed class SessionService : ICuoService, ISessionControl
 		// periodically until acked (Steam P2P sessions establish lazily and
 		// swallow the first messages — retransmission also drives the session).
 		_nextHandshakeRetryMs = Environment.TickCount + (long)(HandshakeRetryInterval * 1000f);
-		_gateway.Send(HostSteamId, NetMsg.Handshake, CreateHandshakeMsg());
+		_sender.Send(HostSteamId, NetMsg.Handshake, CreateHandshakeMsg());
 	}
 
 	private void RetryHandshakeIfNeeded()
@@ -337,7 +336,7 @@ public sealed class SessionService : ICuoService, ISessionControl
 		}
 
 		_nextHandshakeRetryMs = nowMs + (long)(HandshakeRetryInterval * 1000f);
-		_gateway.Send(HostSteamId, NetMsg.Handshake, CreateHandshakeMsg());
+		_sender.Send(HostSteamId, NetMsg.Handshake, CreateHandshakeMsg());
 		_log.LogInformation("Retrying handshake with {Host}…", HostSteamId);
 	}
 
@@ -366,7 +365,7 @@ public sealed class SessionService : ICuoService, ISessionControl
 		{
 			if (peer != _steam.LocalSteamId)
 			{
-				_gateway.Send(peer, NetMsg.Ping, ping);
+				_sender.Send(peer, NetMsg.Ping, ping);
 			}
 		}
 	}

@@ -6,8 +6,9 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 
 /// <summary>Guest → host: protocol negotiation + member creation (new join or reconnect).</summary>
 [PacketHandler(NetMsg.Handshake)]
-public sealed class HandshakeHandler(ILogger<HandshakeHandler> log) : PacketHandlerBase<HandshakeMsg>
+public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandler> log) : PacketHandlerBase<HandshakeMsg>
 {
+	private readonly PacketSender _sender = sender;
 	private readonly ILogger<HandshakeHandler> _log = log;
 
 	protected override void Handle(ulong sender, HandshakeMsg msg, HandlerContext ctx)
@@ -73,7 +74,7 @@ public sealed class HandshakeHandler(ILogger<HandshakeHandler> log) : PacketHand
 		// handshake until it receives one (Steam P2P sessions establish lazily,
 		// first messages can be swallowed — Phase-0 finding). Same for world
 		// params, which are only sent once the session exists.
-		session.Send(sender, NetMsg.HandshakeAck, new HandshakeAckMsg
+		_sender.Send(sender, NetMsg.HandshakeAck, new HandshakeAckMsg
 		{
 			Protocol = ProtocolVersion.Current,
 			Scene = new SceneStateMsg { State = (byte)session.LocalSceneState },
@@ -82,7 +83,7 @@ public sealed class HandshakeHandler(ILogger<HandshakeHandler> log) : PacketHand
 		var worldParams = session.WorldParams;
 		if (worldParams is not null)
 		{
-			session.Send(sender, NetMsg.WorldStartParams, worldParams.ToWorldStartParamsMsg());
+			_sender.Send(sender, NetMsg.WorldStartParams, worldParams.ToWorldStartParamsMsg());
 		}
 	}
 }

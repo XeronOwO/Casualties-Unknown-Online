@@ -6,23 +6,19 @@ using Microsoft.Extensions.Logging;
 namespace CasualtiesUnknownOnline.Runtime.Session;
 
 /// <summary>
-/// Data-plane gateway: owns the transport binding and the wire handling
-/// (frame encode/decode, direction validation). SessionService is the control
-/// plane — it maintains the session and exposes business-level send/receive
-/// APIs; every message it sends goes through <see cref="Send"/>. Direction-
-/// valid received frames are surfaced as <see cref="MessageArrived"/> and the
-/// session dispatches them through the router (the gateway does not depend on
-/// the router/handlers, so the constructor graph stays acyclic — abstract
-/// extraction, user rule).
+/// The receive side of the data plane: binds the transport, validates the
+/// message direction for the current role and surfaces direction-valid frames
+/// as <see cref="MessageArrived"/>. The session subscribes and dispatches
+/// through the router (it owns the handler context); receive and send are
+/// independent mechanisms (PacketSender), user architecture rule.
 /// </summary>
-public sealed class PacketGateway : IDisposable
+public sealed class PacketReceiver : IDisposable
 {
 	private readonly SteamTransport _transport;
 	private readonly SessionIdentity _identity;
-	private readonly ILogger<PacketGateway> _log;
+	private readonly ILogger<PacketReceiver> _log;
 
-	public PacketGateway(
-		SteamTransport transport, SessionIdentity identity, ILogger<PacketGateway> log)
+	public PacketReceiver(SteamTransport transport, SessionIdentity identity, ILogger<PacketReceiver> log)
 	{
 		_transport = transport;
 		_identity = identity;
@@ -30,27 +26,8 @@ public sealed class PacketGateway : IDisposable
 		transport.MessageReceived += OnTransportMessage;
 	}
 
-	/// <summary>
-	/// Raised for every direction-valid frame (sender SteamId + raw frame). The
-	/// session subscribes and dispatches through the router.
-	/// </summary>
+	/// <summary>Raised for every direction-valid frame (sender SteamId + raw frame).</summary>
 	public event Action<ulong, byte[]>? MessageArrived;
-
-	/// <summary>
-	/// Send a message. Reliable by default — only the 20 Hz state stream
-	/// (PlayerState/PlayerStateReport) goes unreliable, where overwrite
-	/// semantics + snapshot sequence make drops harmless and avoid head-of-line
-	/// blocking of the newest snapshot behind retransmissions.
-	/// </summary>
-	public void Send(ulong steamId, NetMsg msg, object? payload = null, bool reliable = true)
-	{
-		if (steamId == 0)
-		{
-			return;
-		}
-
-		_transport.SendTo(steamId, NetPacket.Encode(msg, payload), reliable);
-	}
 
 	private void OnTransportMessage(ulong sender, byte[] frame)
 	{

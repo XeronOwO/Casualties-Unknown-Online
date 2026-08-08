@@ -40,7 +40,7 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 
 	private readonly MemberPresenceTable _presence;
 	private readonly SessionState _state;
-	private readonly PacketGateway _gateway;
+	private readonly PacketSender _sender;
 	private readonly SessionIdentity _identity;
 	private readonly ILogger<EntitySyncService> _log;
 
@@ -59,12 +59,12 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 	private uint _nextStateSeq; // host: PlayerState broadcasts
 	private uint _nextReportSeq; // guest: PlayerStateReport broadcasts
 
-	public EntitySyncService(MemberPresenceTable presence, SessionState state, PacketGateway gateway,
+	public EntitySyncService(MemberPresenceTable presence, SessionState state, PacketSender sender,
 		SessionIdentity identity, ILogger<EntitySyncService> log)
 	{
 		_presence = presence;
 		_state = state;
-		_gateway = gateway;
+		_sender = sender;
 		_identity = identity;
 		_log = log;
 		_localPlayer = new PlayerEntity(identity.LocalSteamId, default, isLocal: true);
@@ -372,7 +372,7 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 			GuestEntityId = entity.EntityId.ToNetworkEntityIdMsg(),
 			GuestPosition = presence.ReportedSpawnPos.ToNetVector2Msg(),
 		};
-		_gateway.Send(presence.SteamId, NetMsg.PlayerJoin, joinMsg); // self-activation
+		_sender.Send(presence.SteamId, NetMsg.PlayerJoin, joinMsg); // self-activation
 		BroadcastExcept(presence.SteamId, NetMsg.PlayerJoin, joinMsg); // roster: announce to the others
 		_log.LogInformation("PlayerJoin sent: local {Local} ({LocalId}), member {Guest} ({GuestId}).",
 			_localPlayer.SteamId, _localPlayer.EntityId, presence.SteamId, entity.EntityId);
@@ -398,7 +398,7 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 		};
 		foreach (var member in synced)
 		{
-			_gateway.Send(member.SteamId, NetMsg.PlayerState, payload, reliable: false);
+			_sender.Send(member.SteamId, NetMsg.PlayerState, payload, reliable: false);
 		}
 	}
 
@@ -421,7 +421,7 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 			return;
 		}
 
-		_gateway.Send(_identity.HostSteamId, NetMsg.PlayerStateReport,
+		_sender.Send(_identity.HostSteamId, NetMsg.PlayerStateReport,
 			new PlayerStateReportMsg
 			{
 				Seq = ++_nextReportSeq,
@@ -464,7 +464,7 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 		{
 			if (member.SteamId != excludeSteamId)
 			{
-				_gateway.Send(member.SteamId, msg, payload);
+				_sender.Send(member.SteamId, msg, payload);
 			}
 		}
 	}

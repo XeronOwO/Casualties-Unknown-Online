@@ -26,13 +26,13 @@ public sealed class SceneStateMsg
 	[ProtoMember(4)]
 	public ulong SteamId { get; set; }
 
-	/// <summary>Static factory — same pattern as EntityStateMsg.From: the message
-	/// assembles itself from domain data, no service-level assembly.</summary>
+	/// <summary>Static factory — assembles the message from its multi-source data
+	/// (single-source conversions live as To methods on the domain types).</summary>
 	public static SceneStateMsg From(SceneStateType state, string sceneName, NetVector2 position, ulong steamId = 0) => new()
 	{
 		State = (byte)state,
 		SceneName = sceneName,
-		Position = NetVector2Msg.From(position),
+		Position = position.ToNetVector2Msg(),
 		SteamId = steamId,
 	};
 }

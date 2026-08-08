@@ -18,6 +18,6 @@ public sealed class PlayerLeaveMsg
 	public static PlayerLeaveMsg From(ulong steamId, NetworkEntityId entityId) => new()
 	{
 		SteamId = steamId,
-		EntityId = NetworkEntityIdMsg.From(entityId),
+		EntityId = entityId.ToNetworkEntityIdMsg(),
 	};
 }

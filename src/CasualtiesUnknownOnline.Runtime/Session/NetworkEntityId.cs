@@ -1,4 +1,5 @@
 using System;
+using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 
 namespace CasualtiesUnknownOnline.Runtime.Session;
 
@@ -30,6 +31,9 @@ public readonly struct NetworkEntityId(ulong epoch, uint counter, byte generatio
 	public static bool operator ==(NetworkEntityId left, NetworkEntityId right) => left.Equals(right);
 
 	public static bool operator !=(NetworkEntityId left, NetworkEntityId right) => !left.Equals(right);
+
+	/// <summary>Domain → wire; the reverse lives on <see cref="NetworkEntityIdMsg"/>.</summary>
+	public NetworkEntityIdMsg ToNetworkEntityIdMsg() => new(Epoch, Counter, Generation);
 
 	public override string ToString() => $"{Epoch:X}:{Counter}:{Generation}";
 }

@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using System.Linq;
+using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 
 namespace CasualtiesUnknownOnline.Runtime.Session;
 
@@ -22,4 +24,30 @@ public sealed class WorldStartParams
 	public bool LoadedRun { get; init; }
 
 	public Dictionary<string, object>? RunSettings { get; init; }
+
+	/// <summary>Domain → wire; the reverse lives on <see cref="WorldStartParamsMsg"/>.</summary>
+	public WorldStartParamsMsg ToWorldStartParamsMsg() => new()
+	{
+		RandomState = RandomState,
+		BiomeOverride = BiomeOverride,
+		BiomeDepth = BiomeDepth,
+		TotalTraveled = TotalTraveled,
+		LoadedRun = LoadedRun,
+		RunSettings = (RunSettings ?? []).Select(kv => new SettingEntryMsg
+		{
+			Key = kv.Key,
+			Kind = kv.Value switch
+			{
+				int => 1,
+				float => 2,
+				bool => 3,
+				string => 4,
+				_ => 0,
+			},
+			IntValue = kv.Value is int i ? i : 0,
+			FloatValue = kv.Value is float f ? f : 0f,
+			BoolValue = kv.Value is bool b && b,
+			StringValue = kv.Value as string ?? "",
+		}).ToList(),
+	};
 }

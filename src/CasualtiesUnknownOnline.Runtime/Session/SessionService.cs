@@ -166,7 +166,7 @@ public sealed class SessionService : ICuoService
 			return;
 		}
 
-		var msg = WorldStartParamsMsg.From(parameters);
+		var msg = parameters.ToWorldStartParamsMsg();
 		foreach (var member in _members.Values.Where(m => m.Handshaken))
 		{
 			Send(member.SteamId, NetMsg.WorldStartParams, msg);

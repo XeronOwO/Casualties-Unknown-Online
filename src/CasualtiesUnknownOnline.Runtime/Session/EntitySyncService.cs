@@ -367,10 +367,10 @@ public sealed class EntitySyncService : ICuoService
 
 	private List<EntityStateMsg> BuildEntityList(List<SyncedEntity> synced)
 	{
-		var list = new List<EntityStateMsg>(synced.Count + 1) { EntityStateMsg.From(_localPlayer) };
+		var list = new List<EntityStateMsg>(synced.Count + 1) { _localPlayer.ToEntityStateMsg() };
 		foreach (var member in synced)
 		{
-			list.Add(EntityStateMsg.From(member.Entity));
+			list.Add(member.Entity.ToEntityStateMsg());
 		}
 
 		return list;
@@ -385,7 +385,7 @@ public sealed class EntitySyncService : ICuoService
 		}
 
 		_gateway.Send(_identity.HostSteamId, NetMsg.PlayerStateReport,
-			PlayerStateReportMsg.From(++_nextReportSeq, EntityStateMsg.From(_localPlayer)), reliable: false);
+			PlayerStateReportMsg.From(++_nextReportSeq, _localPlayer.ToEntityStateMsg()), reliable: false);
 	}
 
 	/// <summary>Upsert a remote entity buffer (id updated on rejoin; the buffer is

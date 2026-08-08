@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Session;
 using ProtoBuf;
 
@@ -27,31 +26,7 @@ public sealed class WorldStartParamsMsg
 	[ProtoMember(6)]
 	public List<SettingEntryMsg> RunSettings { get; set; } = [];
 
-	public static WorldStartParamsMsg From(WorldStartParams p) => new()
-	{
-		RandomState = p.RandomState,
-		BiomeOverride = p.BiomeOverride,
-		BiomeDepth = p.BiomeDepth,
-		TotalTraveled = p.TotalTraveled,
-		LoadedRun = p.LoadedRun,
-		RunSettings = (p.RunSettings ?? []).Select(kv => new SettingEntryMsg
-		{
-			Key = kv.Key,
-			Kind = kv.Value switch
-			{
-				int => 1,
-				float => 2,
-				bool => 3,
-				string => 4,
-				_ => 0,
-			},
-			IntValue = kv.Value is int i ? i : 0,
-			FloatValue = kv.Value is float f ? f : 0f,
-			BoolValue = kv.Value is bool b && b,
-			StringValue = kv.Value as string ?? "",
-		}).ToList(),
-	};
-
+	/// <summary>Wire → domain; the reverse lives in <see cref="WorldStartParamsMsgExtensions"/>.</summary>
 	public WorldStartParams ToWorldStartParams()
 	{
 		var settings = new Dictionary<string, object>(RunSettings.Count);

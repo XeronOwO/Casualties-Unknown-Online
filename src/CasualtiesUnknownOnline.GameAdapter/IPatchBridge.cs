@@ -53,6 +53,16 @@ internal interface IPatchBridge
 	/// </summary>
 	bool EnsureGuestWorldParams();
 
+	/// <summary>
+	/// Called by the world-gen wrapper immediately before the generation
+	/// coroutine starts: both sides force Random.state back to the captured
+	/// baseline. The host captured it at its run-start entry (the click moment)
+	/// — everything the game consumed between that moment and here (transition,
+	/// scene loading) is overwritten, so both sides' generation streams start
+	/// from the same state. Guest: the params were just applied, same value.
+	/// </summary>
+	void ResetGenStreamToBaseline();
+
 	/// <summary>An inventory-internal move completed (SwapSlots/SwitchHands) — re-report the character snapshot immediately so the peer's clone updates in real time (the 1 Hz throttle alone reads as a 1-2 s delay).</summary>
 	void OnInventoryChanged();
 

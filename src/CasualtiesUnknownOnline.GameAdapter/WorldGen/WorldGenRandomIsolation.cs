@@ -64,11 +64,15 @@ internal static class WorldGenRandomIsolation
 	/// body is never replaced — only its stream is isolated.
 	///
 	/// Before the wrapped coroutine may consume any Random it holds until the
-	/// guest's world params are applied (the host sent WorldJoin at its run-start
-	/// entry, but the params are captured at ITS GenerateWorld boundary — a fast
-	/// guest transition can reach its own boundary first; starting the stream
-	/// without the restore would generate a different world). Host/solo apply
-	/// synchronously in the prefix, so the hold never engages.
+	/// guest's world params are applied (a layer switch generates before the
+	/// host's new params arrive), then resets the stream to the captured
+	/// baseline — BOTH sides generate from the state captured at the host's
+	/// run-start entry (the click moment): everything consumed in between
+	/// (transition, scene loading) is overwritten, so both generation streams
+	/// start from the same state. The reset and the coroutine launch happen in
+	/// the same coroutine step — no frame boundary, nothing can consume Random
+	/// in between. Host/solo apply synchronously in the prefix, so the hold
+	/// never engages.
 	/// </summary>
 	public static IEnumerator Wrap(IEnumerator generateWorld, IPatchBridge adapter)
 	{
@@ -77,6 +81,7 @@ internal static class WorldGenRandomIsolation
 			yield return null;
 		}
 
+		adapter.ResetGenStreamToBaseline();
 		yield return Drive(generateWorld);
 	}
 }

@@ -2,7 +2,7 @@ using System;
 using System.Runtime.InteropServices;
 using Random = UnityEngine.Random;
 
-namespace CasualtiesUnknownOnline.GameAdapter;
+namespace CasualtiesUnknownOnline.GameAdapter.WorldGen;
 
 /// <summary>
 /// Binary serialization of UnityEngine.Random.State. The struct is a sequential

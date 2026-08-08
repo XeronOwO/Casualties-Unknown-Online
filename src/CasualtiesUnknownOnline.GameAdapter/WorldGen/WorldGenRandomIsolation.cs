@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Random = UnityEngine.Random;
 
-namespace CasualtiesUnknownOnline.GameAdapter;
+namespace CasualtiesUnknownOnline.GameAdapter.WorldGen;
 
 /// <summary>
 /// Makes the world-generation random stream deterministic across peers.

@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace CasualtiesUnknownOnline.GameAdapter;
+namespace CasualtiesUnknownOnline.GameAdapter.Items;
 
 /// <summary>
 /// Holds a runtime world item's CUO instance id — (local counter, spawner

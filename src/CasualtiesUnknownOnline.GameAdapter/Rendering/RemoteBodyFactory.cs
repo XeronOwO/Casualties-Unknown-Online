@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 using UnityEngine;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
 
-namespace CasualtiesUnknownOnline.GameAdapter;
+namespace CasualtiesUnknownOnline.GameAdapter.Rendering;
 
 /// <summary>
 /// Creates remote player bodies by cloning the scene's player character

@@ -42,6 +42,9 @@ internal interface IPatchBridge
 	/// </summary>
 	bool IsGuestItemDropSuppressed { get; }
 
+	/// <summary>True in a live session — the spawn landing sound is deferred until the start-gate release.</summary>
+	bool IsSessionActive { get; }
+
 	void OnItemInstantiated(Item item);
 
 	void OnItemDestroyed(Item item);

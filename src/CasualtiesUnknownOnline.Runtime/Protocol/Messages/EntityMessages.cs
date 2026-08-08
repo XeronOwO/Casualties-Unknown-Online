@@ -79,6 +79,13 @@ public sealed class EntityStateMsg
 	[ProtoMember(5)]
 	public byte Flags { get; set; }
 
+	// Extended pose bits. The 8 bit positions of Flags are FROZEN forever —
+	// future pose/state details (attacking, dismembered, bleeding, ...) go here.
+	// Assigned bits are never reused: 0x01 = IsAttacking (reserved, consumed
+	// when attack-animation sync lands).
+	[ProtoMember(6)]
+	public uint ExtendedFlags { get; set; }
+
 	public static EntityStateMsg From(PlayerEntity entity) => new()
 	{
 		Id = NetworkEntityIdMsg.From(entity.EntityId),
@@ -89,6 +96,7 @@ public sealed class EntityStateMsg
 			(entity.IsRight ? 0x01 : 0) | (entity.Standing ? 0x02 : 0) |
 			(entity.Alive ? 0x04 : 0) | (entity.Conscious ? 0x08 : 0) | (entity.Crouching ? 0x10 : 0) |
 			(entity.Sitting ? 0x20 : 0) | (entity.Sleeping ? 0x40 : 0) | (entity.Climbing ? 0x80 : 0)),
+		ExtendedFlags = entity.IsAttacking ? 0x01u : 0u,
 	};
 
 	/// <summary>Applies the state onto a live entity buffer (values + flags).</summary>
@@ -105,6 +113,7 @@ public sealed class EntityStateMsg
 		target.Sitting = (Flags & 0x20) != 0;
 		target.Sleeping = (Flags & 0x40) != 0;
 		target.Climbing = (Flags & 0x80) != 0;
+		target.IsAttacking = (ExtendedFlags & 0x01u) != 0;
 	}
 }
 
@@ -138,7 +147,15 @@ public sealed class PlayerStateReportMsg
 	public uint Seq { get; set; }
 }
 
-/// <summary>Host → guest: join confirmation with both entity ids and the host position (clone anchor).</summary>
+/// <summary>
+/// Host → guest: join confirmation / roster announcement. Two modes on the
+/// same wire shape — self-activation (GuestSteamId == the receiving guest;
+/// the classic confirm-with-ids) and roster broadcast (GuestSteamId = another
+/// guest; other members learn the new member's identity and spawn anchor).
+/// The roster mode is what makes the star topology render every member on
+/// every side without an envelope (membership = SteamId, world identity =
+/// EntityId, kept in sync by this message).
+/// </summary>
 [ProtoContract]
 public sealed class PlayerJoinMsg
 {
@@ -153,4 +170,23 @@ public sealed class PlayerJoinMsg
 
 	[ProtoMember(4)]
 	public NetVector2Msg HostPosition { get; set; } = new();
+
+	/// <summary>The joining guest's SteamId (roster mode; self-activation when equal to the receiver's).</summary>
+	[ProtoMember(5)]
+	public ulong GuestSteamId { get; set; }
+
+	/// <summary>The joining guest's reported spawn anchor (roster mode).</summary>
+	[ProtoMember(6)]
+	public NetVector2Msg GuestPosition { get; set; } = new();
+}
+
+/// <summary>Host → guest: a synced member left the session — remove the member and its clone.</summary>
+[ProtoContract]
+public sealed class PlayerLeaveMsg
+{
+	[ProtoMember(1)]
+	public ulong SteamId { get; set; }
+
+	[ProtoMember(2)]
+	public NetworkEntityIdMsg EntityId { get; set; } = new();
 }

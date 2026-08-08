@@ -44,6 +44,13 @@ public sealed class PlayerEntity(ulong steamId, NetworkEntityId entityId, bool i
 	/// <summary>True when the player is climbing (currentClimbable, Body.cs:470).</summary>
 	public bool Climbing { get; set; }
 
+	/// <summary>
+	/// True while the player performs an attack swing (ExtendedFlags 0x01).
+	/// Wire-reserved in the star-network refactor; consumed when attack-animation
+	/// sync lands (the clone drives armsAnimator.Play("ArmsSwing")).
+	/// </summary>
+	public bool IsAttacking { get; set; }
+
 	/// <summary>Host side: position the guest reported when entering the world — the clone's spawn anchor.</summary>
 	public NetVector2 ReportedSpawnPos { get; set; }
 

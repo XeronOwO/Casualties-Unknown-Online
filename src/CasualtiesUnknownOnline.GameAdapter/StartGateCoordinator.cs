@@ -62,12 +62,13 @@ internal sealed class StartGateCoordinator(
 			keeper = WorldGeneration.world.gameObject.AddComponent<LoadingScreenKeeper>(); // generic AddComponent lives on GameObject in Unity 5.6
 		}
 
-		// Keep while the gate itself holds — NOT !IsPlaying: the host never
-		// receives a WorldReady for itself, so its run phase never reaches
-		// Playing and a !IsPlaying-based keep would re-show the loading screen
-		// forever over a running game ("the loading screen stays glued on top,
-		// the player can already act").
-		keeper.ShouldKeep = () => WaitingForReady;
+		// Keep from the moment the game hides its loading screen (generation
+		// finished) until the run actually starts — the loading frame stays
+		// continuously visible, no hide/re-show gap ("a flash before the frozen
+		// frame appears"). The host's phase reaches Playing via
+		// MarkPlayingForHost on gate release, so !IsPlaying is safe on both
+		// roles (solo play has no session and never arms the keeper).
+		keeper.ShouldKeep = () => _session.SessionActive && !_run.IsPlaying;
 		keeper.Loading = () => HarmonyTraverse.ReadLoadingObject();
 		keeper.OnFirstKeep = () => _log.LogInformation("[Gate] keeping the loading screen up while waiting for the host.");
 	}
@@ -172,6 +173,11 @@ internal sealed class StartGateCoordinator(
 			}
 
 			_worldReadyWaitMs = 0;
+			if (_session.Role == SessionRole.Host)
+			{
+				_run.MarkPlayingForHost(); // the keeper's !IsPlaying gate releases the loading screen (the host never gets a WorldReady for itself)
+			}
+
 			HideLoadingScreenForGate();
 			_lifePod.Replay();
 		}

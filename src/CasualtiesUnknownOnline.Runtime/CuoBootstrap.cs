@@ -58,13 +58,17 @@ public static class CuoBootstrap
 			services.AddSingleton(typeof(IPacketHandler), handlerType);
 		}
 
+		// Data plane: the gateway binds the transport and dispatches (it also
+		// injects SessionService, so it is registered after — no cycle).
+		services.AddSingleton<PacketGateway>();
+
 		extraRegistrations?.Invoke(services);
 
 		var provider = services.BuildServiceProvider();
-		// Attach the router before any lifecycle runs: messages are only pumped
-		// from Update, but the first frames may arrive very early.
+		// Attach the gateway before any lifecycle runs: messages are only
+		// pumped from Update, but the first frames may arrive very early.
 		provider.GetRequiredService<SessionService>()
-			.AttachRouter(provider.GetRequiredService<PacketRouter>());
+			.AttachGateway(provider.GetRequiredService<PacketGateway>());
 		return provider;
 	}
 }

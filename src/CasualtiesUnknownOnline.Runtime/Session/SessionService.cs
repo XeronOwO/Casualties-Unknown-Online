@@ -2,22 +2,20 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
-using CasualtiesUnknownOnline.Runtime.Networking;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
-using CasualtiesUnknownOnline.Runtime.Session.Handlers;
 using CasualtiesUnknownOnline.Runtime.Steam;
 using Microsoft.Extensions.Logging;
 
 namespace CasualtiesUnknownOnline.Runtime.Session;
 
 /// <summary>
-/// Session state machine: lobby → handshake (protocol/version) → scene-state
-/// exchange → entity sync (local compute, remote verify/sync, architecture.md
-/// §3). Owns the wire protocol dispatch (via the packet handlers in
-/// Session/Handlers/) on top of SteamTransport and the member table. Star
-/// topology: every message flows guest → host; the host arbitrates and decides
-/// the fan-out (pure star, no envelope).
+/// Session state machine (control plane): lobby → handshake (protocol/version)
+/// → scene-state exchange → entity sync (local compute, remote verify/sync,
+/// architecture.md §3). Owns the member table and the business-level send/receive
+/// APIs; the data plane (transport binding, direction validation, dispatch to
+/// the packet handlers) lives in <see cref="PacketGateway"/>. Star topology:
+/// every message flows guest → host; the host arbitrates and decides the fan-out.
 /// </summary>
 public sealed class SessionService : ICuoService
 {
@@ -44,7 +42,6 @@ public sealed class SessionService : ICuoService
 	}
 
 	private readonly SteamService _steam;
-	private readonly SteamTransport _transport;
 	private readonly ILogger<SessionService> _log;
 
 	private readonly PlayerEntity _localPlayer;
@@ -67,14 +64,12 @@ public sealed class SessionService : ICuoService
 	private uint _nextReportSeq; // guest: PlayerStateReport broadcasts
 	private bool _entitySyncActive; // guest: self sync state (host derives per member)
 
-	public SessionService(SteamService steam, SteamTransport transport, ILogger<SessionService> log)
+	public SessionService(SteamService steam, ILogger<SessionService> log)
 	{
 		_steam = steam;
-		_transport = transport;
 		_log = log;
 		_localPlayer = new PlayerEntity(steam.LocalSteamId, default, isLocal: true);
 
-		transport.MessageReceived += OnMessage;
 		steam.LobbyCreated += OnLobbyCreated;
 		steam.LobbyEntered += OnLobbyEntered;
 	}
@@ -376,7 +371,6 @@ public sealed class SessionService : ICuoService
 
 	void ICuoService.Dispose()
 	{
-		_transport.MessageReceived -= OnMessage;
 		_steam.LobbyCreated -= OnLobbyCreated;
 		_steam.LobbyEntered -= OnLobbyEntered;
 	}
@@ -729,55 +723,17 @@ public sealed class SessionService : ICuoService
 		SessionEnded?.Invoke();
 	}
 
-	// ---- Wire helpers ----
+	// ---- Data plane (the PacketGateway owns transport binding + dispatch) ----
 
-	private PacketRouter? _router;
-
-	/// <summary>
-	/// Attaches the packet router (built from the DI-registered handlers).
-	/// Called by CuoBootstrap right after the container is built, before any
-	/// ICuoService.Initialize runs — messages are only pumped from Update.
-	/// </summary>
-	internal void AttachRouter(PacketRouter router) => _router = router;
-
-	private void OnMessage(ulong sender, byte[] frame)
-	{
-		if (frame.Length < 1)
-		{
-			return;
-		}
-
-		var msgId = (NetMsg)frame[0];
-		if (!IsValidDirection(msgId))
-		{
-			_log.LogWarning("Dropping {Msg} from {Sender}: illegal direction for role {Role}.", msgId, sender, Role);
-			return;
-		}
-
-		// O(1) dictionary route to the per-message handler (Session/Handlers/).
-		if (_router is not null && _router.TryDispatch(sender, frame))
-		{
-			return;
-		}
-
-		_log.LogWarning("No handler for {Msg} from {Sender}.", msgId, sender);
-	}
+	private PacketGateway? _gateway;
 
 	/// <summary>
-	/// One-way messages must arrive at the role they were sent to. Anything
-	/// else means a misbehaving peer or a stale message from a previous
-	/// session — drop it instead of processing.
+	/// Attaches the packet gateway (owns the transport subscription, direction
+	/// validation and dispatch to the packet handlers). Called by CuoBootstrap
+	/// right after the container is built, before any ICuoService.Initialize
+	/// runs — messages are only pumped from Update.
 	/// </summary>
-	private bool IsValidDirection(NetMsg msgId) => msgId switch
-	{
-		NetMsg.Handshake or NetMsg.PlayerStateReport => Role == SessionRole.Host,
-		NetMsg.HandshakeAck or NetMsg.WorldStartParams or NetMsg.PlayerJoin
-			or NetMsg.PlayerLeave or NetMsg.PlayerState => Role == SessionRole.Guest,
-		// Ping/Pong/SceneState/BlockDamaged/CharacterData: bidirectional —
-		// report up (guest → host) and broadcast down (host → guest)
-		// share one message id.
-		_ => true,
-	};
+	internal void AttachGateway(PacketGateway gateway) => _gateway = gateway;
 
 	// ---- Broadcast helpers (star fan-out) ----
 
@@ -818,20 +774,13 @@ public sealed class SessionService : ICuoService
 	}
 
 	/// <summary>
-	/// Send a message. Reliable by default — only the 20 Hz state stream
-	/// (PlayerState/PlayerStateReport) goes unreliable, where overwrite
-	/// semantics + snapshot sequence make drops harmless and avoid head-of-line
-	/// blocking of the newest snapshot behind retransmissions.
+	/// Send a message through the gateway. Reliable by default — only the
+	/// 20 Hz state stream (PlayerState/PlayerStateReport) goes unreliable, where
+	/// overwrite semantics + snapshot sequence make drops harmless and avoid
+	/// head-of-line blocking of the newest snapshot behind retransmissions.
 	/// </summary>
-	internal void Send(ulong steamId, NetMsg msg, object? payload = null, bool reliable = true)
-	{
-		if (steamId == 0)
-		{
-			return;
-		}
-
-		_transport.SendTo(steamId, NetPacket.Encode(msg, payload), reliable);
-	}
+	internal void Send(ulong steamId, NetMsg msg, object? payload = null, bool reliable = true) =>
+		_gateway?.Send(steamId, msg, payload, reliable);
 
 	private NetworkEntityId AllocateEntityId()
 	{

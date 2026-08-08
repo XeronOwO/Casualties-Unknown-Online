@@ -15,4 +15,8 @@ public interface IWorldControl
 	void FireBlockDamagedReceived(NetVector2 pos, float damage);
 
 	event Action<NetVector2, float>? BlockDamagedReceived;
+
+	void FireWorldJoinReceived();
+
+	event Action? WorldJoinReceived;
 }

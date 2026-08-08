@@ -86,14 +86,16 @@ public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandl
 			// Params go whenever they exist: a member joining mid-generation
 			// needs them the moment the host's world-entry re-invite arrives.
 			_sender.Send(sender, NetMsg.WorldStartParams, worldParams.ToWorldStartParamsMsg());
-			// The explicit enter instruction ONLY when the host is in a world
-			// right now (order matters: params first, then the join — the
-			// guest's run-start gate passes once the params are in hand; the
-			// host owns the timing). Host in the menu (it captured the params
-			// for an earlier run, or is still generating): no join — the guest
-			// would enter a world whose host is not there and wait for a start
-			// gate that never arms.
-			if (session.LocalSceneState == SceneStateType.InWorld)
+			// The explicit enter instruction when the host is in a world right
+			// now, OR mid-generation (HostRunPending — the click-moment invite
+			// went out before this member handshook; following immediately
+			// starts its loading in parallel with the host's instead of a whole
+			// generation late). Host in the menu (it captured the params for an
+			// earlier run): no join — the guest would enter a world whose host
+			// is not there and wait for a start gate that never arms. Order
+			// matters: params first, then the join (the guest's run-start gate
+			// passes once the params are in hand; the host owns the timing).
+			if (session.LocalSceneState == SceneStateType.InWorld || ctx.World.HostRunPending)
 			{
 				_sender.Send(sender, NetMsg.WorldJoin, new WorldJoinMsg { IsTutorial = worldParams.IsTutorial });
 			}

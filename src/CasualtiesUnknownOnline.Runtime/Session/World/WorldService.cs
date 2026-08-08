@@ -36,6 +36,16 @@ public sealed class WorldService(ISessionControl session, PacketSender sender, I
 	/// <summary>Table cap — a fully-mined world would otherwise grow without bound.</summary>
 	private const int MaxDamagedBlocks = 65536;
 
+	/// <summary>
+	/// Host only: a run is in progress but the host has not entered the world
+	/// yet (click moment → world entry). A handshake during this window may
+	/// follow immediately — waiting for the world-entry re-invite would start
+	/// the guest's loading a whole host generation late.
+	/// </summary>
+	public bool HostRunPending { get; private set; }
+
+	public void SetHostRunPending(bool pending) => HostRunPending = pending;
+
 	/// <summary>Host only: the armed start gate — SteamIds still loading, armed at world entry. Everyone starts playing together (or after 30 s).</summary>
 	private HashSet<ulong>? _startGate;
 	private long _startGateArmedMs;

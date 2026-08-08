@@ -69,6 +69,8 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	private bool _guestParamsWaitLogged; // guest: the "generation holding for params" log fired for this wait
 	private GameObject? _keptLoadingObject; // guest: the game's loading screen instance kept visible while the start gate holds (Unity object — == null when the scene switched)
 	private bool _keepLoadingLogged; // guest: the keep-loading log fired for this hold
+	private long _worldReadyWaitMs; // guest: when the WorldReady wait began (0 = not waiting) — safety-valve timeout
+	private const int WorldReadyTimeoutMs = 60_000; // guest: force back to the menu if the host never releases the gate
 	private bool _worldReadyReceived; // guest: the host released the start gate (or let us in as a late joiner)
 	private bool _gateFrozen; // the start gate holds us: world timeScale=0 + movingAllowed locked — restore both on release
 	private readonly List<Button> _blockedButtons = []; // guest-in-session: menu buttons that open the start screen / enter a world
@@ -1797,6 +1799,23 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 			if (_session.Role == SessionRole.Guest)
 			{
 				KeepLoadingScreenForGate();
+
+				// Safety valve: the host may never release the gate (a start
+				// the game refused after our entry hook, a dead process) —
+				// leave back to the menu instead of freezing forever.
+				if (_worldReadyWaitMs == 0)
+				{
+					_worldReadyWaitMs = Environment.TickCount;
+				}
+				else if (Environment.TickCount - _worldReadyWaitMs > WorldReadyTimeoutMs)
+				{
+					_worldReadyWaitMs = 0;
+					_log.LogWarning("WorldReady never arrived within {Timeout}s — back to the menu.", WorldReadyTimeoutMs / 1000);
+					if (PlayerCamera.main != null) // Unity object — ==
+					{
+						PlayerCamera.main.ToMainMenu();
+					}
+				}
 			}
 		}
 		else if (_gateFrozen)
@@ -1821,9 +1840,13 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 
 		// Gate released (any path) — drop the kept loading screen (only the
 		// instance we kept; a scene switch gives the game a fresh one).
-		if (!WaitingForReady && _keptLoadingObject != null) // Unity object — ==
+		if (!WaitingForReady)
 		{
-			HideLoadingScreenForGate();
+			_worldReadyWaitMs = 0;
+			if (_keptLoadingObject != null) // Unity object — ==
+			{
+				HideLoadingScreenForGate();
+			}
 		}
 	}
 
@@ -2561,6 +2584,9 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 
 		if (inWorld && _session.Role == SessionRole.Host)
 		{
+			// The run is now actually in the world — the world-entry condition
+			// (LocalSceneState == InWorld) takes over for later handshakes.
+			_world.SetHostRunPending(false);
 			// Members that joined mid-generation never received the entry
 			// WorldJoin (it fires at the click moment, before they handshook) —
 			// invite them now that the world is up (only members not yet in the
@@ -2834,6 +2860,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		if (_session.Role == SessionRole.Host && _session.SessionActive)
 		{
 			CaptureWorldParamsAtEntry(isTutorial);
+			_world.SetHostRunPending(true); // mid-generation handshakes may follow immediately
 			_world.SendWorldJoin(isTutorial);
 		}
 	}

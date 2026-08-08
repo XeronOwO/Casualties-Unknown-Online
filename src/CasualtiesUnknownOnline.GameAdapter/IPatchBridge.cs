@@ -24,6 +24,9 @@ internal interface IPatchBridge
 	/// <summary>A player's attack damaged a building entity (Body.cs:1946) — report it (the entity's health is local-only otherwise).</summary>
 	void OnBuildingEntityDamaged(BuildingEntity entity, float damage);
 
+	/// <summary>A lockable entity was opened (health = 0 write path — Openable/lockpick/keypad) — report it.</summary>
+	void OnBuildingEntityOpened(BuildingEntity entity);
+
 	/// <summary>The spawn landing sound is deferred while the start gate holds — play it when the gate releases.</summary>
 	void DeferLifePodSound();
 

@@ -189,6 +189,37 @@ public sealed class WorldService(ISessionControl session, PacketSender sender, I
 	public void FireBuildingEntityDamagedReceived(NetVector2 pos, float damage) =>
 		BuildingEntityDamagedReceived?.Invoke(pos, damage);
 
+	/// <summary>A lockable entity was opened — apply the open (health = 0) to the entity at Pos.</summary>
+	public event Action<NetVector2>? BuildingEntityOpenedReceived;
+
+	public void FireBuildingEntityOpenedReceived(NetVector2 pos) =>
+		BuildingEntityOpenedReceived?.Invoke(pos);
+
+	/// <summary>
+	/// Report a locally-opened lockable entity (instant-open/lockpick/keypad —
+	/// all write health = 0 directly, Openable.cs:12 / LockpingMinigame.cs:129 /
+	/// KeypadMinigame.cs:138): guest → host as a report (the host applies the
+	/// open to its copy — which rolls the host-side drops — and relays), host →
+	/// guest as a broadcast relay.
+	/// </summary>
+	public void SendBuildingEntityOpened(NetVector2 pos)
+	{
+		if (!_session.SessionActive)
+		{
+			return;
+		}
+
+		var msg = new BuildingEntityOpenedMsg { Position = pos.ToNetVector2Msg() };
+		if (_session.Role == SessionRole.Host)
+		{
+			_session.Broadcast(NetMsg.BuildingEntityOpened, msg);
+		}
+		else
+		{
+			_sender.Send(_session.HostSteamId, NetMsg.BuildingEntityOpened, msg);
+		}
+	}
+
 	/// <summary>
 	/// Report a locally-performed player attack on a building entity (local
 	/// compute): guest → host as a report (the host applies the damage to its

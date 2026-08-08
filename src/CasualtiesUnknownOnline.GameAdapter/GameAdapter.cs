@@ -428,6 +428,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_session.SessionActivated += OnSessionActivated;
 		_world.BlockDamagedReceived += OnRemoteBlockDamaged;
 		_world.BuildingEntityDamagedReceived += OnRemoteBuildingEntityDamaged;
+		_world.BuildingEntityOpenedReceived += OnRemoteBuildingEntityOpened;
 		_world.WorldJoinReceived += OnWorldJoin;
 		_world.BlockStateReceived += OnRemoteBlockState;
 		_world.BlockPlacedReceived += OnRemoteBlockPlaced;
@@ -662,6 +663,49 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 			else
 			{
 				_log.LogWarning("Building entity damage at {Pos} — no entity there (moved or already gone).", pos);
+			}
+		}
+		finally
+		{
+			_applyingRemoteBuildingDamage = false;
+		}
+	}
+
+	/// <summary>
+	/// Called from the Openable/lockpick/keypad patches after a lockable entity
+	/// was opened locally (all three paths write health = 0 directly) — report
+	/// it, position-keyed like the entity damage.
+	/// </summary>
+	void IPatchBridge.OnBuildingEntityOpened(BuildingEntity entity)
+	{
+		if (_applyingRemoteBuildingDamage || !_session.SessionActive)
+		{
+			return;
+		}
+
+		var pos = entity.transform.position;
+		_world.SendBuildingEntityOpened(new NetVector2(pos.x, pos.y));
+	}
+
+	/// <summary>
+	/// A lockable entity was opened — apply the open (health = 0) to the entity
+	/// at the reported position. On the host this is what rolls the entity's
+	/// drops (drop execution is host-only, BuildingEntityPatches).
+	/// </summary>
+	private void OnRemoteBuildingEntityOpened(NetVector2 pos)
+	{
+		_applyingRemoteBuildingDamage = true;
+		try
+		{
+			var hit = Physics2D.OverlapPoint(new Vector2(pos.X, pos.Y));
+			var entity = hit != null ? hit.GetComponent<BuildingEntity>() : null; // Unity object — ==
+			if (entity != null)
+			{
+				entity.health = 0f;
+			}
+			else
+			{
+				_log.LogWarning("Building entity open at {Pos} — no entity there (moved or already gone).", pos);
 			}
 		}
 		finally

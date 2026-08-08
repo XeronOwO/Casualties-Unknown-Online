@@ -96,17 +96,23 @@ internal static class BodyItemPatches
 	/// A throw's drop report fired in the DropItem prefix — before ThrowItem
 	/// set the throw velocity (Body.cs:1659-1661) — so the peer's copy dropped
 	/// in place. Re-report with the real flight velocity after ThrowItem ran.
+	/// The item is captured in the prefix (Harmony cannot inject a parameter
+	/// the original method does not have — an unmatched parameter fails the
+	/// WHOLE PatchAll).
 	/// </summary>
 	[HarmonyPatch(typeof(Body), "ThrowItem")]
 	internal static class ThrowItemPatch
 	{
-		private static void Prefix(Body __instance, ref Item thrown) => thrown = __instance.GetItem(__instance.handSlot);
+		private static Item? _thrown;
 
-		private static void Postfix(Item thrown)
+		private static void Prefix(Body __instance) => _thrown = __instance.GetItem(__instance.handSlot);
+
+		private static void Postfix()
 		{
-			if (thrown != null) // Unity object — ==
+			if (_thrown != null) // Unity object — ==
 			{
-				PatchBridge.Impl?.OnItemThrown(thrown);
+				PatchBridge.Impl?.OnItemThrown(_thrown);
+				_thrown = null;
 			}
 		}
 	}

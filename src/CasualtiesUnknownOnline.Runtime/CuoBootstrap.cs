@@ -63,6 +63,9 @@ public static class CuoBootstrap
 		// depends on SessionIdentity (not SessionService) — the dependency
 		// graph is acyclic, plain constructor injection everywhere.
 		services.AddSingleton<PacketGateway>();
+		// Character-data domain: the SteamID-keyed save/restore (no pump, not
+		// an ICuoService — it only reacts to reports and handshakes).
+		services.AddSingleton<CharacterDataStore>();
 		// Sync stream: the 20 Hz state exchange + join announcements. It depends
 		// on the session (reads the member table), so it runs after the session
 		// in the Update order (registered last).

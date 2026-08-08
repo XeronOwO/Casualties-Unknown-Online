@@ -19,11 +19,11 @@ internal static class SoundPlayPatch
 {
 	private static bool Prefix(string clip)
 	{
-		// Time.timeScale == 0 covers the gate-armed race (the sound can fire
-		// the frame the freeze lands, before the adapter's WaitingForReady
-		// flip is visible to the patch).
-		if (clip == "lifePodHit"
-			&& (PatchBridge.Impl is { IsWaitingForReady: true } || Time.timeScale == 0f))
+		// In a live session the spawn landing sound is deferred until the
+		// start-gate release: it plays at the very end of generation, before
+		// the gate freezes — WaitingForReady is not yet true there, so the
+		// session-wide check is the reliable window (solo play is untouched).
+		if (clip == "lifePodHit" && PatchBridge.Impl is { IsSessionActive: true })
 		{
 			PatchBridge.Impl?.DeferLifePodSound();
 			return false; // deferred until the start gate releases

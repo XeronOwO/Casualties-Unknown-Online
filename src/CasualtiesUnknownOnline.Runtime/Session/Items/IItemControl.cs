@@ -29,9 +29,6 @@ public interface IItemControl
 	/// <summary>A world item was destroyed locally — drop it from the table (host/solo) and report/broadcast.</summary>
 	void SendItemDestroyed(ulong itemId);
 
-	/// <summary>Guest only: an item this side GENERATED settled — report its position so the table and the host's phantom align to the generator's physics.</summary>
-	void SendItemSettle(ulong itemId, NetVector2 pos, float rotation);
-
 	// ===== Receive side (packet handlers surface the wire here) =====
 
 	void FireItemSpawnedReceived(ulong sender, ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, float rotation, bool freshItemDrop, float angularVelocity);
@@ -48,9 +45,6 @@ public interface IItemControl
 	/// <summary>Guest side: the authoritative world-item snapshot arrived — reconcile locally.</summary>
 	void FireItemSnapshotReceived(ulong sender, IReadOnlyList<WorldItem> items);
 
-	/// <summary>Host side: a guest's generated item settled — update the table entry (generator-side position authority) and align the local phantom.</summary>
-	void FireItemSettleReceived(ulong sender, ulong itemId, NetVector2 pos, float rotation);
-
 	/// <summary>Guest side: the host's physics moved items — surface them for the local follow.</summary>
 	void FireItemMoveReceived(IReadOnlyList<ItemMoveEntryMsg> items);
 
@@ -61,9 +55,6 @@ public interface IItemControl
 
 	/// <summary>Host only: the item's live state (position/velocity/rotation) — the periodic keyframe must broadcast the CURRENT positions, not the spawn-time ones.</summary>
 	void RefreshItemState(ulong itemId, NetVector2 pos, NetVector2 vel, float rotation);
-
-	/// <summary>Host only: the table's position for an item (a guest-generated item's settle report) — the host aligns its drifted phantom to it.</summary>
-	bool TryGetItemPosition(ulong itemId, out NetVector2 pos);
 
 	/// <summary>
 	/// Host only: periodically re-send the full table (unreliable) so physical
@@ -91,9 +82,6 @@ public interface IItemControl
 
 	/// <summary>An item was destroyed — remove it locally.</summary>
 	event Action<ulong>? ItemDestroyed;
-
-	/// <summary>Host side: a guest's generated item settled — align the local phantom to the generator's position.</summary>
-	event Action<ulong, NetVector2, float>? ItemSettledReceived;
 
 	/// <summary>Guest side: the host's physics moved items — follow (apply the authoritative positions).</summary>
 	event Action<IReadOnlyList<ItemMoveEntryMsg>>? ItemMoveReceived;

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
@@ -11,15 +12,17 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// <summary>
 /// Remote world-item application: everything a received message does to the
 /// local scene — materialize (or bind a generation-time object), re-place,
-/// bind containers, kill and roll back. Owns the "applying remote" guard: the
-/// local-report hooks (ItemWorldSync) read it so a remote application never
-/// echoes back as a local report.
+/// bind containers, kill, roll back and the snapshot reconcile. Owns the
+/// "applying remote" guard: the local-report hooks (ItemWorldSync) read it so
+/// a remote application never echoes back as a local report.
 /// </summary>
 internal sealed class ItemApplication(
 	ItemService items,
+	DropProtectionGuard guard,
 	ILogger<ItemApplication> log)
 {
 	private readonly ItemService _items = items;
+	private readonly DropProtectionGuard _guard = guard;
 	private readonly ILogger<ItemApplication> _log = log;
 
 	/// <summary>Reentry guard: remote applications must not echo back as local reports (the hooks see the same game-object mutations).</summary>
@@ -38,6 +41,7 @@ internal sealed class ItemApplication(
 		_items.ItemDropped += OnRemoteItemDropped;
 		_items.ItemDestroyed += OnRemoteItemDestroyed;
 		_items.ItemRejected += OnItemRejected;
+		_items.ItemSnapshotReceived += OnRemoteItemSnapshot;
 	}
 
 	internal void Unbind()
@@ -47,6 +51,7 @@ internal sealed class ItemApplication(
 		_items.ItemDropped -= OnRemoteItemDropped;
 		_items.ItemDestroyed -= OnRemoteItemDestroyed;
 		_items.ItemRejected -= OnItemRejected;
+		_items.ItemSnapshotReceived -= OnRemoteItemSnapshot;
 	}
 
 	/// <summary>A world item now exists on a remote side — materialize it locally (full state: condition + components + contents).</summary>
@@ -138,6 +143,75 @@ internal sealed class ItemApplication(
 		finally
 		{
 			_applyingRemoteItem = false;
+		}
+	}
+
+	/// <summary>
+	/// The authoritative world-item snapshot arrived (world entry): reconcile —
+	/// destroy local world items missing from the snapshot, materialize the
+	/// snapshot's items (world first, then container contents — the parent
+	/// objects must exist).
+	/// </summary>
+	private void OnRemoteItemSnapshot(IReadOnlyList<WorldItem> items)
+	{
+		var killed = 0;
+		var spawned = 0;
+		var snapshot = items.ToDictionary(w => w.ItemId);
+
+		foreach (var item in Item.allItems.ToList()) // copy: destroying while iterating
+		{
+			var idComp = item.GetComponent<ItemInstanceId>();
+			if (idComp == null || !ItemWorldSync.IsWorldItem(item)) // Unity object — ==; inventory items are character data
+			{
+				continue;
+			}
+
+			if (!snapshot.ContainsKey(idComp.Id))
+			{
+				// Snapshot-race guard: a fresh local drop registered AFTER the
+				// keyframe was generated is not in it yet — killing it would
+				// loop (destroy → ItemDestroy report → the host deletes the
+				// table entry → the next keyframe misses it → reconcile kills
+				// it again, forever).
+				if (_guard.IsProtected(idComp.Id))
+				{
+					continue;
+				}
+
+				KillRemoteItem(item);
+				_guard.Remove(idComp.Id);
+				killed++;
+			}
+		}
+
+		// POSITION is aligned continuously by the 10 Hz position stream (every
+		// item, sleeping included) — the reconcile does NOT place anything:
+		// a 5 s direct placement after the stream already lerped the copy there
+		// would be a jump, and if the copy drifted again it would be yanked
+		// back every keyframe ("bounces back every few seconds"). Only the
+		// missing ones are materialized here (the snapshot-race window).
+		foreach (var w in items.Where(w => w.ParentItemId == 0))
+		{
+			if (FindWorldItem(w.ItemId) == null) // Unity object — ==
+			{
+				SpawnWorldItem(w);
+				spawned++;
+			}
+		}
+
+		foreach (var w in items.Where(w => w.ParentItemId != 0))
+		{
+			if (FindWorldItem(w.ItemId) == null) // Unity object — ==
+			{
+				SpawnWorldItem(w);
+				spawned++;
+			}
+		}
+
+		if (killed > 0 || spawned > 0)
+		{
+			_log.LogInformation("[Reconcile] {Count} items: killed {Killed}, spawned {Spawned}.",
+				items.Count, killed, spawned);
 		}
 	}
 

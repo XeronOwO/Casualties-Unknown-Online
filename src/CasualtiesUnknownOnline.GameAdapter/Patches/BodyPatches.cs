@@ -211,16 +211,12 @@ internal static class BodyPatches
 	internal static class DropWearablePatch
 	{
 		// An item came off a body part (Body.cs:1521) — the peer's clone
-		// re-renders via the snapshot, AND the item just entered the world: it
-		// must join the item domain (instance id + drop report), or the peer
-		// never materializes it ("dropping a bag from the mouth — desynced on
-		// the peer"). DropWearable does NOT go through DropItem, so the normal
-		// drop hook never fires.
-		private static void Postfix(Item item)
-		{
-			PatchBridge.Impl?.OnInventoryChanged();
-			PatchBridge.Impl?.OnItemDropped(item);
-		}
+		// re-renders via the snapshot. The drop report (item domain entry +
+		// instance id) is NOT duplicated here: the guarded Prefix in
+		// BodyItemPatches already fires it into the merged drop report (one
+		// drop = one report), and a second report here would materialize and
+		// re-place the same item ("dropped — immediately desynced").
+		private static void Postfix(Item item) => PatchBridge.Impl?.OnInventoryChanged();
 	}
 
 	[HarmonyPatch(typeof(Body), "Start")]

@@ -633,7 +633,8 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 
 	/// <summary>The WaterContainerItem's liquid stacks. The stack field is
 	/// private (the public surface is query-only) — read by reflection;
-	/// LiquidStack itself is public with public fields.</summary>
+	/// LiquidStack itself is public with public fields. A renamed/missing
+	/// field must fail loudly, not silently drop the liquids.</summary>
 	private List<LiquidStackMsg> CaptureLiquids(Item item)
 	{
 		var water = item.GetComponent<WaterContainerItem>();
@@ -644,7 +645,13 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 
 		var stackField = typeof(WaterContainerItem).GetField("stack",
 			BindingFlags.NonPublic | BindingFlags.Instance);
-		var stack = (List<LiquidStack>?)stackField?.GetValue(water);
+		if (stackField is null)
+		{
+			_log.LogWarning("WaterContainerItem.stack field not found — liquid sync disabled (game updated?).");
+			return [];
+		}
+
+		var stack = (List<LiquidStack>?)stackField.GetValue(water);
 		return stack is null ? [] : [.. stack.Select(s => new LiquidStackMsg
 		{
 			LiquidId = s.liquidId,
@@ -797,7 +804,13 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 		// same field, so this round-trips exactly (including an empty stack).
 		var stackField = typeof(WaterContainerItem).GetField("stack",
 			BindingFlags.NonPublic | BindingFlags.Instance);
-		stackField?.SetValue(water, liquids.Select(l => new LiquidStack(l.LiquidId, l.Amount)).ToList());
+		if (stackField is null)
+		{
+			_log.LogWarning("WaterContainerItem.stack field not found — liquid restore skipped (game updated?).");
+			return;
+		}
+
+		stackField.SetValue(water, liquids.Select(l => new LiquidStack(l.LiquidId, l.Amount)).ToList());
 	}
 
 	private void RestoreComponentStates(Item item, List<ComponentStateMsg> states)

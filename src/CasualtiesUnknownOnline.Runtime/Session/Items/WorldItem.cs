@@ -5,11 +5,13 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 
 /// <summary>
 /// One entry in the authoritative world-item table: a runtime-generated item
-/// currently in the world (not inside an inventory/container — those live in
-/// the character data domain). Item carries the full item state (the
+/// currently in the world (not inside a player's inventory — those live in the
+/// character data domain). Item carries the full item state (the
 /// character-save shape) so any receiver can materialize the object exactly.
+/// ParentItemId is 0 for items lying free in the world, else the instance id
+/// of the containing world container item.
 /// </summary>
-public readonly record struct WorldItem(ulong ItemId, CharacterItemMsg Item, NetVector2 Pos, NetVector2 Vel)
+public readonly record struct WorldItem(ulong ItemId, CharacterItemMsg Item, NetVector2 Pos, NetVector2 Vel, ulong ParentItemId)
 {
 	public ItemSnapshotEntryMsg ToSnapshotEntryMsg() => new()
 	{
@@ -17,5 +19,6 @@ public readonly record struct WorldItem(ulong ItemId, CharacterItemMsg Item, Net
 		Item = Item,
 		Position = Pos.ToNetVector2Msg(),
 		Velocity = Vel.ToNetVector2Msg(),
+		ParentItemId = ParentItemId,
 	};
 }

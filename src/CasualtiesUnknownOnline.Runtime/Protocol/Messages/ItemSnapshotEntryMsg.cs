@@ -17,4 +17,7 @@ public sealed class ItemSnapshotEntryMsg
 
 	[ProtoMember(4)]
 	public NetVector2Msg Velocity { get; set; } = new();
+
+	[ProtoMember(5)]
+	public ulong ParentItemId { get; set; } // 0 = the world, else the containing world container item's instance id
 }

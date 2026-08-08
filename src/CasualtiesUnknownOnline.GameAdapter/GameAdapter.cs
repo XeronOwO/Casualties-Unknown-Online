@@ -1005,6 +1005,37 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	}
 
 	/// <summary>
+	/// Find a generation-time (id-less) item of the same definition near Pos —
+	/// the materialization bind target. Only items outside any inventory count
+	/// (world-gen determinism put them there on every side).
+	/// </summary>
+	private static Item? FindExistingAt(NetVector2 pos, string itemId)
+	{
+		var target = new Vector2(pos.X, pos.Y);
+		foreach (var item in Item.allItems)
+		{
+			if (item.id != itemId || !IsWorldItem(item)) // Unity object — ==
+			{
+				continue;
+			}
+
+			if (item.GetComponent<ItemInstanceId>() != null) // Unity object — ==; already an item-domain object
+			{
+				continue;
+			}
+
+			if (Vector2.Distance(item.transform.position, target) > 1.5f)
+			{
+				continue;
+			}
+
+			return item;
+		}
+
+		return null;
+	}
+
+	/// <summary>
 	/// Find an item by its instance id. Item.allItems registers in Item.Start
 	/// (Item.cs:118) — ONE frame after Instantiate — so a message arriving in
 	/// the same frame as a materialization misses the table (observed: a pickup
@@ -1167,13 +1198,28 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		// instance id) becomes an item-domain object on first use: it gets an
 		// id here, and the item's drop message carries the container's position
 		// so the peers can bind their local (also generation-time, id-less)
-		// container by position and place the item inside it.
+		// container by position and place the item inside it. A container that
+		// just entered the domain is REGISTERED (spawn report): the peers bind
+		// their local copy instead of materializing, and the table entry keeps
+		// the snapshot reconcile from killing the bound local container.
 		var containerItem = item.transform.parent != null ? item.transform.parent.GetComponent<Item>() : null;
 		ulong containerId = 0;
 		var parentPos = new NetVector2(0f, 0f);
 		if (containerItem != null && IsWorldItem(containerItem)) // Unity object — ==
 		{
-			containerId = EnsureItemId(containerItem);
+			var containerIdComp = containerItem.GetComponent<ItemInstanceId>();
+			if (containerIdComp == null) // Unity object — ==; first use of a generation-time container
+			{
+				containerId = EnsureItemId(containerItem);
+				var containerPos = new NetVector2(containerItem.transform.position.x, containerItem.transform.position.y);
+				_items.SendItemSpawned(containerId, CaptureItem(containerItem, -1), containerPos,
+					new NetVector2(0f, 0f), containerItem.transform.eulerAngles.z, false);
+			}
+			else
+			{
+				containerId = containerIdComp.Id;
+			}
+
 			parentPos = new NetVector2(containerItem.transform.position.x, containerItem.transform.position.y);
 		}
 
@@ -1478,6 +1524,40 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	/// </summary>
 	private void SpawnWorldItem(WorldItem w)
 	{
+		// A generation-time object may already exist at this spot (world-gen
+		// determinism puts the same objects on every side): bind the instance
+		// id to it instead of materializing a duplicate — a second copy would
+		// also be killed by the next snapshot reconcile (one table entry, two
+		// scene objects) and a generation-time container that was already
+		// bound must NOT be re-materialized either ("items overlapping").
+		var existing = FindExistingAt(w.Pos, w.Item.ItemId);
+		if (existing != null) // Unity object — ==
+		{
+			var existingId = existing.GetComponent<ItemInstanceId>();
+			if (existingId == null || existingId.Id == w.ItemId) // Unity object — ==; ours or still unbound
+			{
+				if (existingId == null) // Unity object — ==
+				{
+					existingId = existing.gameObject.AddComponent<ItemInstanceId>();
+					existingId.Id = w.ItemId;
+					existing.condition = w.Item.Condition; // match the originator's carried state
+					RestoreLiquids(existing, w.Item.Liquids);
+					RestoreComponentStates(existing, w.Item.Components);
+					if (w.FreshItemDrop)
+					{
+						existing.gameObject.AddComponent<FreshItemDrop>();
+					}
+				}
+
+				if (w.ParentItemId != 0)
+				{
+					BindToContainer(existing, w.ParentItemId, w.ParentPosition);
+				}
+
+				return;
+			}
+		}
+
 		var prefab = Resources.Load(w.Item.ItemId);
 		if (prefab == null) // Unity object — ==
 		{

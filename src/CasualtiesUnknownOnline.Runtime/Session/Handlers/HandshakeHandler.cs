@@ -6,9 +6,10 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 
 /// <summary>Guest → host: protocol negotiation + member creation (new join or reconnect).</summary>
 [PacketHandler(NetMsg.Handshake)]
-public sealed class HandshakeHandler(SessionService session, ILogger<HandshakeHandler> log)
+public sealed class HandshakeHandler(SessionService session, CharacterDataStore store, ILogger<HandshakeHandler> log)
 	: PacketHandlerBase<HandshakeMsg>(session)
 {
+	private readonly CharacterDataStore _store = store;
 	private readonly ILogger<HandshakeHandler> _log = log;
 
 	protected override void Handle(ulong sender, HandshakeMsg msg)
@@ -43,7 +44,7 @@ public sealed class HandshakeHandler(SessionService session, ILogger<HandshakeHa
 			// Cross-session restore: the in-memory character save outlives the
 			// session (kept per SteamID for the process lifetime) — a returning
 			// player gets it back even in a brand-new session.
-			Session.SendSavedCharacter(sender);
+			_store.SendSavedCharacter(sender);
 		}
 		else
 		{
@@ -54,7 +55,7 @@ public sealed class HandshakeHandler(SessionService session, ILogger<HandshakeHa
 			// re-establishes everything, character data included.
 			member.Entity.InWorld = peerState == SceneStateType.InWorld;
 			_log.LogInformation("Peer {Peer} reconnected — entity reused.", sender);
-			Session.SendSavedCharacter(sender);
+			_store.SendSavedCharacter(sender);
 		}
 
 		member.Handshaken = true;

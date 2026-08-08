@@ -47,7 +47,6 @@ public sealed class SessionService : ICuoService
 	private readonly PlayerEntity _localPlayer;
 	private readonly Dictionary<ulong, MemberState> _members = [];
 	private WorldStartParams? _worldParams;
-	private readonly Dictionary<ulong, CharacterDataMsg> _savedCharacters = []; // host: last report per SteamID
 	private ulong _epoch;
 	private uint _nextEntityCounter;
 
@@ -154,8 +153,6 @@ public sealed class SessionService : ICuoService
 
 	internal void FireBlockDamagedReceived(NetVector2 pos, float damage) => BlockDamagedReceived?.Invoke(pos, damage);
 
-	internal void FireCharacterDataReceived(CharacterDataMsg msg) => CharacterDataReceived?.Invoke(msg);
-
 	// ---- Local state submission (Game Adapter → session) ----
 
 	/// <summary>Host side: current authoritative state of the local body.</summary>
@@ -249,21 +246,6 @@ public sealed class SessionService : ICuoService
 	}
 
 	/// <summary>
-	/// Guest side: report the local character snapshot to the host (1-2 Hz,
-	/// driven by the Game Adapter). The host keeps the latest per SteamID and
-	/// hands it back when the same player reconnects.
-	/// </summary>
-	public void ReportCharacterData(CharacterDataMsg msg)
-	{
-		if (Role != SessionRole.Guest || !SessionActive)
-		{
-			return;
-		}
-
-		Send(HostSteamId, NetMsg.CharacterData, msg);
-	}
-
-	/// <summary>
 	/// Report a locally-performed block damage (local compute): guest → host as
 	/// a report (the host arbitrates and relays), host → broadcast to all synced
 	/// members (the source excluded on relay — it already applied locally).
@@ -292,12 +274,6 @@ public sealed class SessionService : ICuoService
 
 	/// <summary>Host: a guest reported damage (apply + relay). Guest: the host broadcast it.</summary>
 	public event Action<NetVector2, float>? BlockDamagedReceived;
-
-	/// <summary>
-	/// Guest side: the host sent a saved character snapshot back (reconnect
-	/// restore) — apply it in the Game Adapter once the local body exists.
-	/// </summary>
-	public event Action<CharacterDataMsg>? CharacterDataReceived;
 
 	void ICuoService.Initialize()
 	{
@@ -487,21 +463,6 @@ public sealed class SessionService : ICuoService
 		target.PrevVelocity = firstSnapshot ? msg.Velocity.ToNetVector2() : target.Velocity;
 		msg.ApplyTo(target);
 		target.StateReceivedMs = Environment.TickCount;
-	}
-
-	// ---- Character data (session-scoped save/restore) ----
-
-	/// <summary>Host side: keep the latest report per SteamID (session-scoped save).</summary>
-	internal void SaveCharacterData(ulong steamId, CharacterDataMsg msg) => _savedCharacters[steamId] = msg;
-
-	/// <summary>Host side: hand the saved character data back to a reconnecting player.</summary>
-	internal void SendSavedCharacter(ulong steamId)
-	{
-		if (_savedCharacters.TryGetValue(steamId, out var data))
-		{
-			Send(steamId, NetMsg.CharacterData, data);
-			_log.LogInformation("Sent saved character data to {Peer} ({Items} items).", steamId, data.Items.Count);
-		}
 	}
 
 	// ---- Ping / pong (diagnostics) ----

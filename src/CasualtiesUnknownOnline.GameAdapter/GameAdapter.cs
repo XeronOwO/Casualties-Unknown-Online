@@ -26,6 +26,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 	public static GameAdapter? Instance { get; private set; }
 
 	private readonly SessionService _session;
+	private readonly CharacterDataStore _characterData;
 	private readonly ILogger<GameAdapter> _log;
 	private readonly IMapper _mapper;
 	private Harmony? _harmony;
@@ -38,9 +39,10 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 	private long _nextCharacterReportMs;
 	private CharacterDataMsg? _pendingRestore; // guest side: host-sent restore, applied once the body exists
 
-	public GameAdapter(SessionService session, ILogger<GameAdapter> log, IMapper mapper)
+	public GameAdapter(SessionService session, CharacterDataStore characterData, ILogger<GameAdapter> log, IMapper mapper)
 	{
 		_session = session;
+		_characterData = characterData;
 		_log = log;
 		_mapper = mapper;
 		Instance = this;
@@ -258,7 +260,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 		_session.SessionEnded -= OnSessionEnded;
 		_session.SessionActivated -= OnSessionActivated;
 		_session.BlockDamagedReceived -= OnRemoteBlockDamaged;
-		_session.CharacterDataReceived -= OnCharacterDataReceived;
+		_characterData.CharacterDataReceived -= OnCharacterDataReceived;
 		Instance = null;
 	}
 
@@ -273,7 +275,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 		_session.SessionEnded += OnSessionEnded;
 		_session.SessionActivated += OnSessionActivated;
 		_session.BlockDamagedReceived += OnRemoteBlockDamaged;
-		_session.CharacterDataReceived += OnCharacterDataReceived;
+		_characterData.CharacterDataReceived += OnCharacterDataReceived;
 	}
 
 	/// <summary>
@@ -417,7 +419,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 		}
 
 		_nextCharacterReportMs = nowMs + (long)(CharacterReportInterval * 1000f);
-		_session.ReportCharacterData(CaptureCharacterData(_localBody!));
+		_characterData.ReportCharacterData(CaptureCharacterData(_localBody!));
 	}
 
 	private void TryApplyCharacterRestore()

@@ -300,6 +300,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		{
 			_nextItemSnapshotMs = Environment.TickCount + ItemSnapshotIntervalMs;
 			RefreshWorldItemStates();
+			AlignGuestCopies(); // the phantoms first, so the keyframe broadcasts the truth
 			_items.SendPeriodicItemSnapshot();
 		}
 
@@ -901,6 +902,41 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	}
 
 	/// <summary>
+	/// Host only, before the keyframe: align SLEEPING phantoms of guest-generated
+	/// items to the table (their settle reports) — the phantom's own physics
+	/// diverges from the generator's (different start tick) and nothing else
+	/// ever pulls it back ("the item is at the wrong spot").
+	/// </summary>
+	private void AlignGuestCopies()
+	{
+		var me = (uint)_session.LocalSteamId;
+		foreach (var item in Item.allItems)
+		{
+			var idComp = item.GetComponent<ItemInstanceId>();
+			if (idComp == null || (uint)(idComp.Id & 0xFFFFFFFF) == me || !IsWorldItem(item)) // Unity object — ==
+			{
+				continue;
+			}
+
+			if (!item.rb.IsSleeping() || item.rb.velocity.magnitude > 0.1f)
+			{
+				continue; // moving — leave it alone
+			}
+
+			if (_items.TryGetItemPosition(idComp.Id, out var pos)
+				&& Vector2.Distance(item.transform.position, new Vector2(pos.X, pos.Y)) > 0.5f)
+			{
+				item.transform.position = new Vector3(pos.X, pos.Y, 0f);
+				item.rb.velocity = Vector2.zero;
+				item.rb.angularVelocity = 0f;
+				item.rb.Sleep();
+				_log.LogInformation("[ItemBind] aligned guest phantom {ItemId} to the table ({X:F1},{Y:F1}).",
+					idComp.Id, pos.X, pos.Y);
+			}
+		}
+	}
+
+	/// <summary>
 	/// Guest only: items this side generated (instance-id low bits = local
 	/// SteamId, see NextItemId) report their SETTLED position once — the
 	/// authoritative table (and the host's phantom) align to the generator's
@@ -913,7 +949,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	/// the body wakes (kicked/picked up).
 	/// </summary>
 	private long _nextSettleCheckMs;
-	private readonly HashSet<ulong> _settledReported = [];
+	private readonly Dictionary<ulong, Vector2> _settledReported = []; // id → last reported settle position
 
 	private void UpdateItemSettleReports()
 	{
@@ -938,18 +974,31 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 				continue;
 			}
 
-			if (!item.rb.IsSleeping() || item.rb.velocity.magnitude > 0.1f)
+			var speed = item.rb.velocity.magnitude;
+			if (!item.rb.IsSleeping() || speed > 0.1f)
 			{
-				_settledReported.Remove(idComp.Id); // awake or creeping — it may settle later
+				_settledReported.Remove(idComp.Id); // awake or moving — it may settle later
 				continue;
 			}
 
-			if (_settledReported.Add(idComp.Id))
+			// Re-report when a SLEEPING item drifted from its last reported
+			// spot: sleeping bodies still creep under micro-collisions (a
+			// player walking past pushes without waking them), the table went
+			// stale, and the keyframe pulled the item back to the OLD spot —
+			// physics shoved it out again, forever ('item keeps bouncing',
+			// observed: reconcile aligned 2-6 items every keyframe for
+			// minutes). The table now always follows the item's current spot,
+			// so the keyframe's pull lands exactly where the item already is.
+			var pos = item.transform.position;
+			if (_settledReported.TryGetValue(idComp.Id, out var last) && Vector2.Distance(last, pos) < 0.5f)
 			{
-				_items.SendItemSettle(idComp.Id,
-					new NetVector2(item.transform.position.x, item.transform.position.y),
-					item.transform.eulerAngles.z);
+				continue; // still at the reported spot — nothing new
 			}
+
+			_settledReported[idComp.Id] = pos;
+			_items.SendItemSettle(idComp.Id,
+				new NetVector2(pos.x, pos.y),
+				item.transform.eulerAngles.z);
 		}
 	}
 

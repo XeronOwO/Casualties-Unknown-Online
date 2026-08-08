@@ -307,6 +307,19 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 		_log.LogInformation("Sent world-item snapshot ({Count} items) to {Peer}.", _worldItems.Count, targetSteamId);
 	}
 
+	/// <summary>Host only: the table's position for an item (a guest-generated item's settle report) — the host aligns its drifted phantom to it.</summary>
+	public bool TryGetItemPosition(ulong itemId, out NetVector2 pos)
+	{
+		if (_worldItems.TryGetValue(itemId, out var w))
+		{
+			pos = w.Pos;
+			return true;
+		}
+
+		pos = default;
+		return false;
+	}
+
 	/// <summary>Host only: the item's live state — the periodic keyframe must broadcast the CURRENT positions, not the spawn-time ones (the spawn position would pull settled items back into the air every tick).</summary>
 	public void RefreshItemState(ulong itemId, NetVector2 pos, NetVector2 vel, float rotation)
 	{

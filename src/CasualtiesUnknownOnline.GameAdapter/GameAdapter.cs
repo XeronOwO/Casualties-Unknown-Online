@@ -44,6 +44,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 	private const float CharacterReportInterval = 1f; // guest → host character snapshot (1 Hz)
 	private long _nextCharacterReportMs;
 	private CharacterDataMsg? _pendingRestore; // guest side: host-sent restore, applied once the body exists
+	private bool _restoreWipePending; // first pass wiped the slots (Destroy is end-of-frame) — items go in on the next frame
 
 	public GameAdapter(SessionService session, EntitySyncService entities, CharacterDataStore characterData,
 		WorldService world, ILogger<GameAdapter> log, IMapper mapper)
@@ -419,6 +420,11 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 
 	private void ReportCharacterDataIfDue()
 	{
+		if (_pendingRestore is not null || _restoreWipePending)
+		{
+			return; // restoring: a fresh-run snapshot would overwrite the host's saved character data
+		}
+
 		var nowMs = Environment.TickCount;
 		if (nowMs < _nextCharacterReportMs)
 		{
@@ -446,8 +452,20 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 			return;
 		}
 
-		ApplyCharacterData(_localBody!, _pendingRestore);
-		_pendingRestore = null;
+		if (_restoreWipePending)
+		{
+			// Second pass (next frame): the wipe's Destroy ran at the end of
+			// the previous frame, so the slots are actually empty now and
+			// PickUpItem succeeds — it silently refuses a non-empty slot
+			// (Body.cs:1388), which stranded the restored items on the ground.
+			ApplyRestoredItems(_localBody!, _pendingRestore);
+			_pendingRestore = null;
+			_restoreWipePending = false;
+			return;
+		}
+
+		ApplyRestoredStatsAndWipe(_localBody!, _pendingRestore);
+		_restoreWipePending = true;
 	}
 
 	private CharacterDataMsg CaptureCharacterData(Body body)
@@ -487,15 +505,17 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 		return msg;
 	}
 
-	private void ApplyCharacterData(Body body, CharacterDataMsg data)
+	private void ApplyRestoredStatsAndWipe(Body body, CharacterDataMsg data)
 	{
 		_log.LogInformation("Applying character restore ({Items} items).", data.Items.Count);
 
 		// Wipe the fresh-run default state first: this new run already got its
 		// starting supplies (WorldGeneration.WorldPlacePlayer) and random vitals
 		// (Body.Start) — restoring on top would duplicate items and leave
-		// random hunger/thirst. Destroy (end-of-frame) is fine: the slots are
-		// immediately re-filled and the old children vanish one frame later.
+		// random hunger/thirst. Destroy is end-of-frame; the items are re-added
+		// on the next frame (TryApplyCharacterRestore's second pass), so the
+		// slots are actually empty when PickUpItem runs — it silently refuses
+		// a non-empty slot (Body.cs:1388) and the item would be stranded.
 		for (var slot = 0; slot < body.slots.Length; slot++)
 		{
 			var holder = body.slots[slot].transform;
@@ -528,7 +548,10 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 
 			_mapper.Map(limbData, body.limbs[limbData.Index]);
 		}
+	}
 
+	private void ApplyRestoredItems(Body body, CharacterDataMsg data)
+	{
 		foreach (var itemData in data.Items)
 		{
 			if (itemData.SlotIndex < 0 || itemData.SlotIndex >= body.slots.Length)

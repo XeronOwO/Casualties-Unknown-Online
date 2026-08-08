@@ -45,21 +45,38 @@ internal static class BodyItemPatches
 		}
 	}
 
+	/// <summary>
+	/// Prefix + guard: the drag-drop path (PlayerCamera.cs:1623) calls DropItem
+	/// with the dragged item ALREADY un-slotted (HoldingItem false) — DropItem is
+	/// a no-op then, but the old Postfix reported a drop anyway. The peer
+	/// materialized an item that was never dropped, and when the follow-up
+	/// PickUpItem failed (DoPickupCheck sight/distance) the phantom never left
+	/// ("extra item that does not disappear"). Report only real drops; the
+	/// no-op call runs (harmless) without a report. The position read is the
+	/// slot position, identical to the post-drop one (DropItem only re-parents).
+	/// </summary>
 	[HarmonyPatch(typeof(Body), "DropItem", new Type[] { typeof(Item) })]
 	internal static class DropItemPatch
 	{
-		private static void Postfix(Item item)
+		private static void Prefix(Body __instance, Item item)
 		{
-			if (!SwapSlotsPatch.Swapping)
+			if (!SwapSlotsPatch.Swapping && __instance.HoldingItem(item))
 			{
 				PatchBridge.Impl?.OnItemDropped(item);
 			}
 		}
 	}
 
+	/// <summary>Same guard for DropWearable — its GetWearable check can no-op (not worn), which the old Postfix reported as a drop.</summary>
 	[HarmonyPatch(typeof(Body), "DropWearable")]
 	internal static class DropWearablePatch
 	{
-		private static void Postfix(Item item) => PatchBridge.Impl?.OnItemDropped(item);
+		private static void Prefix(Body __instance, Item item)
+		{
+			if (__instance.GetWearable(item.id) != null) // Unity object — ==
+			{
+				PatchBridge.Impl?.OnItemDropped(item);
+			}
+		}
 	}
 }

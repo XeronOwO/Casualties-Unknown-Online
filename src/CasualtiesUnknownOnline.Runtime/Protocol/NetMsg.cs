@@ -45,4 +45,7 @@ public enum NetMsg : byte
 	// World entities (player-attacked building entities — plants, crates, creatures)
 	BuildingEntityDamaged = 51, // guest → host: report (host applies + relays); host → guest: broadcast relay (source excluded)
 	BuildingEntityOpened = 52, // guest → host: a crate/lock was opened (health = 0 write path); host → guest: broadcast relay (source excluded)
+
+	// Generator-side position authority (world items)
+	ItemSettle = 54, // guest → host: an item this side generated settled at Pos/Rotation — the table (and the host's phantom) align to the generator's physics
 }

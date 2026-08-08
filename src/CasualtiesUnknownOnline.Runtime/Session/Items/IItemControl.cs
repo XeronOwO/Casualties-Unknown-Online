@@ -29,6 +29,9 @@ public interface IItemControl
 	/// <summary>A world item was destroyed locally — drop it from the table (host/solo) and report/broadcast.</summary>
 	void SendItemDestroyed(ulong itemId);
 
+	/// <summary>Guest only: an item this side GENERATED settled — report its position so the table and the host's phantom align to the generator's physics.</summary>
+	void SendItemSettle(ulong itemId, NetVector2 pos, float rotation);
+
 	// ===== Receive side (packet handlers surface the wire here) =====
 
 	void FireItemSpawnedReceived(ulong sender, ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, float rotation, bool freshItemDrop);
@@ -44,6 +47,9 @@ public interface IItemControl
 
 	/// <summary>Guest side: the authoritative world-item snapshot arrived — reconcile locally.</summary>
 	void FireItemSnapshotReceived(ulong sender, IReadOnlyList<WorldItem> items);
+
+	/// <summary>Host side: a guest's generated item settled — update the table entry (generator-side position authority) and align the local phantom.</summary>
+	void FireItemSettleReceived(ulong sender, ulong itemId, NetVector2 pos, float rotation);
 
 	// ===== Host-only surface =====
 
@@ -76,6 +82,9 @@ public interface IItemControl
 
 	/// <summary>An item was destroyed — remove it locally.</summary>
 	event Action<ulong>? ItemDestroyed;
+
+	/// <summary>Host side: a guest's generated item settled — align the local phantom to the generator's position.</summary>
+	event Action<ulong, NetVector2, float>? ItemSettledReceived;
 
 	/// <summary>The host refused our pickup — take the item back out of the inventory.</summary>
 	event Action<ulong>? ItemRejected;

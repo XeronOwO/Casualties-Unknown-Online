@@ -27,6 +27,7 @@ public enum NetMsg : byte
 
 	// Character data (guest → host reports, host → guest restore on reconnect)
 	CharacterData = 37,
+	HostCharacterData = 53, // host → guest: the host's own 1 Hz character snapshot (clone inventory rendering)
 
 	// World mutations (local compute, remote verify/sync)
 	BlockDamaged = 40, // guest → host: report (host arbitrates); host → guest: broadcast relay (source excluded)

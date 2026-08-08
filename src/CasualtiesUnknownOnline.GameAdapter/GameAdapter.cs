@@ -343,6 +343,12 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 
 				_remoteClones[remote.SteamId] = clone;
 				_log.LogInformation("Remote body created for {SteamId}.", remote.SteamId);
+				// Render its carried items from the latest snapshot (a fresh
+				// report follows within 1 s at the latest).
+				if (_cloneData.TryGetValue(remote.SteamId, out var data))
+				{
+					ApplyCloneInventory(clone, data);
+				}
 			}
 
 			SessionStatePump.Apply(remote, clone);
@@ -440,6 +446,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_items.ItemRejected += OnItemRejected;
 		_items.ItemSnapshotReceived += OnRemoteItemSnapshot;
 		_characterData.CharacterDataReceived += OnCharacterDataReceived;
+		_characterData.HostCharacterDataReceived += OnHostCharacterDataReceived;
 	}
 
 	/// <summary>
@@ -1183,12 +1190,16 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 					SpawnWorldItem(w);
 				}
 				else if (item.transform.parent == null && item.rb.velocity.magnitude < 0.1f
-					&& Vector2.Distance(item.transform.position, new Vector2(w.Pos.X, w.Pos.Y)) > 0.5f)
+					&& Vector2.Distance(item.transform.position, new Vector2(w.Pos.X, w.Pos.Y)) > 0.1f)
 				{
 					// Settled item drifted (independent physics) — re-align to
-					// the authoritative position (moving items skip; they
-					// converge on the next settle).
+					// the authoritative position and put the body to sleep: the
+					// re-position would otherwise be "corrected" back by the
+					// local physics, restarting the yank-roll loop.
 					item.transform.position = new Vector3(w.Pos.X, w.Pos.Y, 0f);
+					item.rb.velocity = Vector2.zero;
+					item.rb.angularVelocity = 0f;
+					item.rb.Sleep();
 				}
 			}
 
@@ -1360,14 +1371,106 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_log.LogInformation("Applied host block-state snapshot ({Count} blocks).", blocks.Count);
 	}
 
-	// ---- Character data (session-scoped save/restore, character-data-plan) ----
+	// ---- Character data (session-scoped save/restore + clone inventory rendering) ----
 
-	private void OnCharacterDataReceived(CharacterDataMsg data)
+	/// <summary>SteamId → latest character snapshot: the remote clone's inventory rendering source.</summary>
+	private readonly Dictionary<ulong, CharacterDataMsg> _cloneData = [];
+
+	private void OnCharacterDataReceived(ulong sender, CharacterDataMsg data)
 	{
+		if (_session.Role == SessionRole.Host)
+		{
+			// A guest's 1 Hz report — render its clone's inventory (the slots
+			// show what it is carrying; the new body renders on creation from
+			// this cache).
+			_cloneData[sender] = data;
+			if (_remoteClones.TryGetValue(sender, out var clone) && clone != null) // Unity object — ==
+			{
+				ApplyCloneInventory(clone, data);
+			}
+			return;
+		}
+
 		// May arrive before the local body exists (still loading the run) —
 		// apply once the game has spawned it (TryApplyCharacterRestore).
 		_pendingRestore = data;
 		_log.LogInformation("Received character restore ({Items} items).", data.Items.Count);
+	}
+
+	/// <summary>Guest side: the host's own 1 Hz snapshot — render its clone's inventory (never applied to the local body).</summary>
+	private void OnHostCharacterDataReceived(CharacterDataMsg data)
+	{
+		_cloneData[_session.HostSteamId] = data;
+		if (_remoteClones.TryGetValue(_session.HostSteamId, out var clone) && clone != null) // Unity object — ==
+		{
+			ApplyCloneInventory(clone, data);
+		}
+	}
+
+	/// <summary>
+	/// Render a remote clone's inventory from its owner's character snapshot:
+	/// each slot shows the carried item's prefab (pure display — physics off,
+	/// non-interactive, no instance id). Diff per slot: keep matching items,
+	/// swap changed ones, destroy the emptied.
+	/// </summary>
+	private void ApplyCloneInventory(Body clone, CharacterDataMsg data)
+	{
+		foreach (var slot in clone.slots)
+		{
+			if (slot == null) // Unity object — ==
+			{
+				continue;
+			}
+
+			var existing = slot.transform.childCount > 0 ? slot.transform.GetChild(0).GetComponent<Item>() : null;
+			var wanted = data.Items.FirstOrDefault(x => x.SlotIndex == slot.slot);
+			if (wanted is null)
+			{
+				if (existing != null) // Unity object — ==
+				{
+					UnityEngine.Object.Destroy(existing.gameObject);
+				}
+
+				continue;
+			}
+
+			if (existing != null && existing.id == wanted.ItemId) // Unity object — ==
+			{
+				continue; // already showing the right item
+			}
+
+			if (existing != null) // Unity object — ==
+			{
+				UnityEngine.Object.Destroy(existing.gameObject);
+			}
+
+			var prefab = Resources.Load(wanted.ItemId);
+			if (prefab == null) // Unity object — ==
+			{
+				continue;
+			}
+
+			var obj = UnityEngine.Object.Instantiate(prefab, slot.transform) as GameObject;
+			obj!.transform.localPosition = Vector3.zero;
+			var item = obj.GetComponent<Item>();
+			obj.transform.localEulerAngles = new Vector3(0f, 0f, item.Stats.slotRotation);
+			if (item.rb != null) // Unity object — ==
+			{
+				item.rb.simulated = false; // pure display
+			}
+
+			var col = obj.GetComponent<Collider2D>();
+			if (col != null) // Unity object — ==
+			{
+				col.enabled = false; // never pickable/blocking
+			}
+
+			var sr = obj.GetComponent<SpriteRenderer>();
+			if (sr != null) // Unity object — ==
+			{
+				sr.sortingOrder = slot.spriteSortOrder;
+			}
+		}
 	}
 
 	private void ReportCharacterDataIfDue()
@@ -1384,7 +1487,16 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		}
 
 		_nextCharacterReportMs = nowMs + (long)(CharacterReportInterval * 1000f);
-		_characterData.ReportCharacterData(CaptureCharacterData(_localBody!));
+		var data = CaptureCharacterData(_localBody!);
+		if (_session.Role == SessionRole.Host)
+		{
+			// Host → guests: their clones of the host render its carried items.
+			_characterData.BroadcastHostCharacterData(data);
+		}
+		else
+		{
+			_characterData.ReportCharacterData(data);
+		}
 	}
 
 	private void TryApplyCharacterRestore()

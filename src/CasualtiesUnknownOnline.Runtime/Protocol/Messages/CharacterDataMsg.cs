@@ -30,4 +30,15 @@ public sealed class CharacterDataMsg
 
 	[ProtoMember(5)]
 	public int HandSlot { get; set; } = -1; // -1 = don't touch
+
+	/// <summary>Static factory — same pattern as SceneStateMsg.From: the message
+	/// assembles itself from domain data, no service-level assembly. The
+	/// game-object mapping (Mapster) happens at the call site — the adapter
+	/// supplies the already-mapped sub-messages.</summary>
+	public static CharacterDataMsg From(CharacterSkillsMsg? skills, CharacterHealthMsg? health, int handSlot) => new()
+	{
+		Skills = skills,
+		Health = health,
+		HandSlot = handSlot,
+	};
 }

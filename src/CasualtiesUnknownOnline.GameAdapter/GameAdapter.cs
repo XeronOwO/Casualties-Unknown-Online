@@ -449,12 +449,10 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 
 	private CharacterDataMsg CaptureCharacterData(Body body)
 	{
-		var msg = new CharacterDataMsg
-		{
-			Skills = _mapper.Map<CharacterSkillsMsg>(body.skills),
-			Health = _mapper.Map<CharacterHealthMsg>(body),
-			HandSlot = body.handSlot,
-		};
+		var msg = CharacterDataMsg.From(
+			_mapper.Map<CharacterSkillsMsg>(body.skills),
+			_mapper.Map<CharacterHealthMsg>(body),
+			body.handSlot);
 
 		// Limb has no Index field — Mapster maps the rest, the loop assigns it.
 		for (var i = 0; i < body.limbs.Length; i++)
@@ -473,12 +471,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 				continue;
 			}
 
-			msg.Items.Add(new CharacterItemMsg
-			{
-				ItemId = item.id,
-				Condition = item.condition,
-				SlotIndex = slot,
-			});
+			msg.Items.Add(CharacterItemMsg.From(item.id, item.condition, slot));
 		}
 
 		return msg;

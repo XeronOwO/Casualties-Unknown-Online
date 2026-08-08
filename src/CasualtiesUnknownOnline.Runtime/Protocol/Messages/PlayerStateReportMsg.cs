@@ -14,4 +14,12 @@ public sealed class PlayerStateReportMsg
 
 	[ProtoMember(2)]
 	public uint Seq { get; set; }
+
+	/// <summary>Static factory — same pattern as SceneStateMsg.From: the message
+	/// assembles itself from domain data, no service-level assembly.</summary>
+	public static PlayerStateReportMsg From(uint seq, EntityStateMsg entity) => new()
+	{
+		Seq = seq,
+		Entity = entity,
+	};
 }

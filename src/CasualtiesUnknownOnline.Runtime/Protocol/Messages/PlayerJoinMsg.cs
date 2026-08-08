@@ -1,3 +1,4 @@
+using CasualtiesUnknownOnline.Runtime.Session;
 using ProtoBuf;
 
 namespace CasualtiesUnknownOnline.Runtime.Protocol.Messages;
@@ -33,4 +34,18 @@ public sealed class PlayerJoinMsg
 	/// <summary>The joining guest's reported spawn anchor (roster mode).</summary>
 	[ProtoMember(6)]
 	public NetVector2Msg GuestPosition { get; set; } = new();
+
+	/// <summary>Static factory — same pattern as SceneStateMsg.From: the message
+	/// assembles itself from domain data, no service-level assembly. Host side
+	/// comes first, then the joining guest.</summary>
+	public static PlayerJoinMsg From(ulong hostSteamId, NetworkEntityId hostEntityId, NetVector2 hostPosition,
+		ulong guestSteamId, NetworkEntityId guestEntityId, NetVector2 guestPosition) => new()
+		{
+			HostSteamId = hostSteamId,
+			HostEntityId = NetworkEntityIdMsg.From(hostEntityId),
+			HostPosition = NetVector2Msg.From(hostPosition),
+			GuestSteamId = guestSteamId,
+			GuestEntityId = NetworkEntityIdMsg.From(guestEntityId),
+			GuestPosition = NetVector2Msg.From(guestPosition),
+		};
 }

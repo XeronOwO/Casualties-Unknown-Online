@@ -182,7 +182,7 @@ public sealed class SessionService : ICuoService
 	/// </summary>
 	public void RequestPing()
 	{
-		var msg = new PingMsg { Ticks = DateTime.UtcNow.Ticks };
+		var msg = PingMsg.Now;
 		if (Role == SessionRole.Host)
 		{
 			foreach (var member in _members.Values)
@@ -327,7 +327,7 @@ public sealed class SessionService : ICuoService
 		}
 
 		_nextHandshakeRetryMs = nowMs + (long)(HandshakeRetryInterval * 1000f);
-		var ping = new PingMsg { Ticks = DateTime.UtcNow.Ticks };
+		var ping = PingMsg.Now;
 		foreach (var peer in _steam.GetLobbyMembers())
 		{
 			if (peer != _steam.LocalSteamId)

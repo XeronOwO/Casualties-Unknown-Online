@@ -76,12 +76,9 @@ public sealed class HandshakeHandler(SessionService session, CharacterDataStore 
 		// handshake until it receives one (Steam P2P sessions establish lazily,
 		// first messages can be swallowed — Phase-0 finding). Same for world
 		// params, which are only sent once the session exists.
-		Session.Send(sender, NetMsg.HandshakeAck, new HandshakeAckMsg
-		{
-			Protocol = ProtocolVersion.Current,
-			Scene = SceneStateMsg.From(Session.LocalSceneState, "", default),
-			HasWorldParams = Session.WorldParams is not null,
-		});
+		Session.Send(sender, NetMsg.HandshakeAck, HandshakeAckMsg.From(
+			ProtocolVersion.Current, SceneStateMsg.From(Session.LocalSceneState, "", default),
+			Session.WorldParams is not null));
 		if (Session.WorldParams is not null)
 		{
 			Session.Send(sender, NetMsg.WorldStartParams, WorldStartParamsMsg.From(Session.WorldParams));

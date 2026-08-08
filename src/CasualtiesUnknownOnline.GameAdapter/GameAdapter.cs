@@ -922,10 +922,29 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		}
 
 		var idComp = item.GetComponent<ItemInstanceId>();
-		if (idComp != null) // Unity object — ==
+		if (idComp != null && idComp.Id != 0) // Unity object — ==; remote deletions zero the id (see KillRemoteItem)
 		{
 			_items.SendItemDestroyed(idComp.Id);
 		}
+	}
+
+	/// <summary>
+	/// Remove an item object as a REMOTE application: zero its instance id
+	/// immediately, then Destroy. UnityEngine.Object.Destroy is deferred to
+	/// end-of-frame, so the OnDestroy hook fires AFTER the reentry guard has
+	/// been restored — without zeroing the id first, every remote deletion
+	/// would echo back as a local destroy report and kill the peer's own copy
+	/// (observed: picking up an item destroyed it on the picker's side too).
+	/// </summary>
+	private static void KillRemoteItem(Item item)
+	{
+		var idComp = item.GetComponent<ItemInstanceId>();
+		if (idComp != null) // Unity object — ==
+		{
+			idComp.Id = 0;
+		}
+
+		UnityEngine.Object.Destroy(item.gameObject);
 	}
 
 	void IPatchBridge.OnItemPickupStart(Item item)
@@ -1051,7 +1070,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 			{
 				if (IsWorldItem(item))
 				{
-					UnityEngine.Object.Destroy(item.gameObject);
+					KillRemoteItem(item);
 				}
 				else
 				{
@@ -1104,7 +1123,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 			var item = FindWorldItem(itemId);
 			if (item != null) // Unity object — ==
 			{
-				UnityEngine.Object.Destroy(item.gameObject);
+				KillRemoteItem(item);
 			}
 		}
 		finally
@@ -1178,7 +1197,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 
 				if (!snapshot.ContainsKey(idComp.Id))
 				{
-					UnityEngine.Object.Destroy(item.gameObject);
+					KillRemoteItem(item);
 				}
 			}
 

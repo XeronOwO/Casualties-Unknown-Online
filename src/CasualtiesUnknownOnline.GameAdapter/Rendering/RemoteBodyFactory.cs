@@ -1,3 +1,4 @@
+using CasualtiesUnknownOnline.GameAdapter.Items;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
@@ -59,6 +60,17 @@ internal static class RemoteBodyFactory
 		foreach (var rb in clone.GetComponentsInChildren<Rigidbody2D>())
 		{
 			rb.simulated = false;
+		}
+
+		// Strip instance ids from the clone's carried items (the template may
+		// carry the local player's runtime items, copied by the Instantiate):
+		// the clone is a render proxy — its items must never be found by the
+		// world-item lookup (a pickup/drop of the original would otherwise
+		// roll back or move the clone's copy instead of materializing the
+		// real item). The clone's item DISPLAY is a presentation-domain todo.
+		foreach (var idComp in clone.GetComponentsInChildren<ItemInstanceId>())
+		{
+			Object.Destroy(idComp);
 		}
 
 		foreach (var hinge in clone.GetComponentsInChildren<HingeJoint2D>())

@@ -50,6 +50,9 @@ public interface IItemControl
 	/// <summary>Host only: send the full world-item table to one member (on its world entry).</summary>
 	void SendItemSnapshot(ulong targetSteamId);
 
+	/// <summary>Host only: the item's live state (position/velocity/rotation) — the periodic keyframe must broadcast the CURRENT positions, not the spawn-time ones.</summary>
+	void RefreshItemState(ulong itemId, NetVector2 pos, NetVector2 vel, float rotation);
+
 	/// <summary>
 	/// Host only: periodically re-send the full table (unreliable) so physical
 	/// drift self-heals — the receiver aligns settled items on the next

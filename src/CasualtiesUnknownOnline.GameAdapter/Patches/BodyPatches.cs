@@ -35,6 +35,14 @@ internal static class BodyPatches
 		{
 			if (__instance.GetComponentInParent<RemoteBodyDriver>() == null) // Unity object — ==
 			{
+				// Local player: while the start gate holds us, lock movement
+				// (the game's own movingAllowed — Body.cs:4322) every frame;
+				// the release restores it in GameAdapter.UpdateStartGate.
+				if (PatchBridge.Impl is { IsWaitingForReady: true })
+				{
+					HarmonyLib.Traverse.Create(__instance).Field("movingAllowed").SetValue(false);
+				}
+
 				return true; // local player: original behavior
 			}
 

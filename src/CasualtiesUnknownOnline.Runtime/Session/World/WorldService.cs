@@ -36,8 +36,125 @@ public sealed class WorldService(ISessionControl session, PacketSender sender, I
 	/// <summary>Table cap — a fully-mined world would otherwise grow without bound.</summary>
 	private const int MaxDamagedBlocks = 65536;
 
+	/// <summary>Host only: the armed start gate — SteamIds still loading, armed at world entry. Everyone starts playing together (or after 30 s).</summary>
+	private HashSet<ulong>? _startGate;
+	private long _startGateArmedMs;
+
+	/// <summary>Start-gate fallback: force the start if a guest is still loading after this long.</summary>
+	private const int StartGateTimeoutMs = 30_000;
+
 	/// <summary>World-start parameters: set by the host at run start, by the world-params handler on the guest.</summary>
 	public WorldStartParams? WorldParams { get; set; }
+
+	/// <summary>Guest: the host released the start gate — start playing (or, for a late joiner, enter directly).</summary>
+	public event Action? WorldReadyReceived;
+
+	public void FireWorldReadyReceived() => WorldReadyReceived?.Invoke();
+
+	/// <summary>
+	/// Host only: arm the start gate at world entry — every handshaken guest
+	/// must report InWorld before anyone starts playing, or 30 s elapse
+	/// (the slow ones finish on their own). Returns whether anyone is being
+	/// waited on (no guests: nothing to wait for).
+	/// </summary>
+	public bool StartStartGate()
+	{
+		if (_session.Role != SessionRole.Host || !_session.SessionActive)
+		{
+			return false;
+		}
+
+		var waiting = _session.Members.Where(m => m.Handshaken && m.SteamId != _session.LocalSteamId).Select(m => m.SteamId).ToHashSet();
+		if (waiting.Count == 0)
+		{
+			_startGate = null;
+			return false;
+		}
+
+		_startGate = waiting;
+		_startGateArmedMs = Environment.TickCount;
+		_log.LogInformation("Start gate armed — waiting for {Count} member(s) to finish loading.", waiting.Count);
+		return true;
+	}
+
+	/// <summary>
+	/// Host only: a member finished loading. Gate armed → drop it from the
+	/// wait list; when the list empties, release everyone at once. Gate not
+	/// armed → the game already started, the late joiner enters directly.
+	/// </summary>
+	public void NotifyMemberInWorld(ulong steamId)
+	{
+		if (_session.Role != SessionRole.Host || !_session.SessionActive)
+		{
+			return;
+		}
+
+		if (_startGate is null)
+		{
+			SendWorldReadyTo(steamId); // late joiner: the game is running — pass it in directly
+			return;
+		}
+
+		_startGate.Remove(steamId);
+		if (_startGate.Count == 0)
+		{
+			_startGate = null;
+			SendWorldReady();
+			_log.LogInformation("Start gate released — everyone is in the world.");
+		}
+	}
+
+	/// <summary>Host only: driver pump — the gate forces the start after 30 s (slow loaders finish on their own).</summary>
+	public void MaybeForceStartGate()
+	{
+		if (_startGate is not { Count: > 0 })
+		{
+			return;
+		}
+
+		if (Environment.TickCount - _startGateArmedMs <= StartGateTimeoutMs)
+		{
+			return;
+		}
+
+		_log.LogWarning("Start gate forced after {Timeout} s — still waiting for {Count} member(s); they join when they finish loading.",
+			StartGateTimeoutMs / 1000, _startGate.Count);
+		_startGate = null;
+		SendWorldReady();
+	}
+
+	/// <summary>Host only: true while the host itself must wait (frozen + overlay).</summary>
+	public bool StartGateActive => _startGate is not null;
+
+	/// <summary>Host only: release the start gate to everyone.</summary>
+	private void SendWorldReady()
+	{
+		if (!_session.SessionActive)
+		{
+			return;
+		}
+
+		var msg = new WorldReadyMsg();
+		foreach (var member in _session.Members)
+		{
+			if (member.Handshaken)
+			{
+				_sender.Send(member.SteamId, NetMsg.WorldReady, msg);
+			}
+		}
+	}
+
+	/// <summary>Host only: release one member (late joiner).</summary>
+	private void SendWorldReadyTo(ulong steamId)
+	{
+		if (!_session.SessionActive)
+		{
+			return;
+		}
+
+		_sender.Send(steamId, NetMsg.WorldReady, new WorldReadyMsg());
+		_log.LogInformation("Start gate pass — {Peer} enters directly (game already running).", steamId);
+	}
 
 	/// <summary>Host: a guest reported damage (apply + relay). Guest: the host broadcast it.</summary>
 	public event Action<NetVector2, float>? BlockDamagedReceived;

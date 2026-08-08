@@ -16,7 +16,8 @@ public enum NetMsg : byte
 	HandshakeAck = 17,
 	SceneState = 18,
 	WorldStartParams = 19,
-	WorldJoin = 20, // host → guest: enter the world (sent after the params — the host owns the timing)
+	WorldJoin = 20, // host → guest: start loading the world (sent at generation start, after the params — the host owns the timing)
+	WorldReady = 21, // host → guest: everyone finished loading — start playing (start-gate release / late-joiner pass)
 
 	// Entities
 	PlayerJoin = 32, // host → guest: self-activation + roster announcement

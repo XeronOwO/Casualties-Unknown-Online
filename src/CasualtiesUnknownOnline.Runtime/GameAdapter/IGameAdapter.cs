@@ -23,6 +23,9 @@ public interface IGameAdapter : IDisposable
 	/// <summary>Uninstalls Harmony patches.</summary>
 	void Uninstall();
 
+	/// <summary>True while the start gate holds this player (everyone loads together; frozen + overlay).</summary>
+	bool IsWaitingForReady { get; }
+
 	/// <summary>Host side: called at run start (PreRunScript.StartRun) — captures Random.state + run settings.</summary>
 	void CaptureWorldParams();
 

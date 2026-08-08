@@ -58,6 +58,8 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	private bool _inWorld;
 	private bool _worldJoinPending; // guest: the host's enter instruction arrived while the menu was still loading
 	private bool _startRunAuthorized; // set right before the WorldJoin-triggered StartRun, consumed by the gate
+	private bool _worldReadyReceived; // guest: the host released the start gate (or let us in as a late joiner)
+	private bool _movementFrozenForGate; // we locked movingAllowed for the start gate — restore it on release
 	private readonly List<Button> _blockedButtons = []; // guest-in-session: menu buttons that open the start screen / enter a world
 
 	private const float CharacterReportInterval = 1f; // guest → host character snapshot (1 Hz)
@@ -92,6 +94,19 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 
 	/// <summary>Host in a live session: authoritative world mutations (damage table capture).</summary>
 	internal bool IsHostMode => _session.Role == SessionRole.Host && _session.SessionActive;
+
+	/// <summary>
+	/// True while the start gate holds this player: host while it waits for the
+	/// guests' InWorld (StartGateActive), guest while in-world and the host has
+	/// not released the gate yet. Frozen (movingAllowed) + full-screen overlay.
+	/// </summary>
+	internal bool WaitingForReady => _session.Role == SessionRole.Host
+		? _world.StartGateActive
+		: _inWorld && !_worldReadyReceived;
+
+	bool IPatchBridge.IsWaitingForReady => WaitingForReady;
+
+	bool IGameAdapter.IsWaitingForReady => WaitingForReady;
 
 	public bool ProbeGame()
 	{
@@ -203,6 +218,8 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		{
 			TryCaptureWorldBaseline();
 		}
+
+		UpdateStartGate();
 		if (_worldJoinPending)
 		{
 			TryStartWorldJoin();
@@ -317,6 +334,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_world.WorldJoinReceived -= OnWorldJoin;
 		_world.BlockStateReceived -= OnRemoteBlockState;
 		_world.BlockPlacedReceived -= OnRemoteBlockPlaced;
+		_world.WorldReadyReceived -= OnRemoteWorldReady;
 		_characterData.CharacterDataReceived -= OnCharacterDataReceived;
 		PatchBridge.Unbind(this);
 	}
@@ -333,6 +351,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_world.WorldJoinReceived += OnWorldJoin;
 		_world.BlockStateReceived += OnRemoteBlockState;
 		_world.BlockPlacedReceived += OnRemoteBlockPlaced;
+		_world.WorldReadyReceived += OnRemoteWorldReady;
 		_characterData.CharacterDataReceived += OnCharacterDataReceived;
 	}
 
@@ -411,6 +430,16 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	{
 		if (!_worldJoinPending || _inWorld)
 		{
+			return;
+		}
+
+		if (HarmonyTraverse.IsGenerating())
+		{
+			// The host re-broadcast WorldJoin (its layer switch re-runs
+			// GenerateWorld) while our own generation is running — we are
+			// already loading. Our layer switch is our own ContinueRun, never
+			// the host's instruction.
+			_worldJoinPending = false;
 			return;
 		}
 
@@ -569,6 +598,43 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		{
 			_applyingRemoteBlockPlace = false;
 		}
+	}
+
+	/// <summary>
+	/// Start-gate pump: the host forces the gate after 30 s (slow loaders
+	/// finish on their own); both sides freeze the local player's movement
+	/// while the gate holds and restore it on release.
+	/// </summary>
+	private void UpdateStartGate()
+	{
+		if (IsHostMode && _world.StartGateActive)
+		{
+			_world.MaybeForceStartGate();
+		}
+
+		if (WaitingForReady)
+		{
+			if (_localBody != null) // Unity object — ==
+			{
+				Traverse.Create(_localBody).Field("movingAllowed").SetValue(false);
+				_movementFrozenForGate = true;
+			}
+		}
+		else if (_movementFrozenForGate)
+		{
+			_movementFrozenForGate = false;
+			if (_localBody != null) // Unity object — ==
+			{
+				Traverse.Create(_localBody).Field("movingAllowed").SetValue(true);
+			}
+		}
+	}
+
+	/// <summary>Guest side: the host released the start gate — start playing.</summary>
+	private void OnRemoteWorldReady()
+	{
+		_worldReadyReceived = true;
+		_log.LogInformation("World ready — start playing.");
 	}
 
 	/// <summary>
@@ -1082,12 +1148,9 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 			_characterData.ReportCharacterData(CaptureCharacterData(prevBody));
 		}
 
-		if (inWorld && _session.Role == SessionRole.Host)
+		if (inWorld && _session.Role == SessionRole.Host && _world.StartStartGate())
 		{
-			// The host entered the world: tell the members to follow (the world
-			// params were published during generation, so the guest gate
-			// passes). Guests already in the world ignore the instruction.
-			_world.SendWorldJoin();
+			_log.LogInformation("Host entered the world — waiting for members before everyone starts.");
 		}
 
 		var sceneName = inWorld ? UnityEngine.SceneManagement.SceneManager.GetActiveScene().name : "PreGen";
@@ -1252,6 +1315,13 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		if (_session.Role == SessionRole.Host || _session.Role == SessionRole.None)
 		{
 			CaptureWorldParams();
+			if (_session.Role == SessionRole.Host)
+			{
+				// Generation is starting — tell the members to start loading at
+				// the same time (everyone generates in parallel; the start gate
+				// releases them together once all have finished).
+				_world.SendWorldJoin();
+			}
 		}
 		else if (_world.WorldParams is not null)
 		{

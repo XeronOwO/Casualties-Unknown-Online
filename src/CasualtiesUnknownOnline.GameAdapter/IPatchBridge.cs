@@ -51,6 +51,14 @@ internal interface IPatchBridge
 
 	void OnItemDropped(Item item);
 
+	/// <summary>
+	/// An item was THROWN (Body.ThrowItem): the drop report fired in the
+	/// DropItem prefix — BEFORE ThrowItem set the throw velocity (Body.cs:
+	/// 1659-1661) — so a second report carrying the real flight velocity keeps
+	/// the peer's copy flying instead of dropping in place.
+	/// </summary>
+	void OnItemThrown(Item item);
+
 	void OnItemLoadedIntoContainer(Item item);
 
 	void OnItemUnloadedFromContainer(Item item);

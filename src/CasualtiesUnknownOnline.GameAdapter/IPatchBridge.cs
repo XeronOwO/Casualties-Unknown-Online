@@ -13,6 +13,8 @@ internal interface IPatchBridge
 {
 	bool IsWorldGenIsolated { get; }
 
+	bool IsWaitingForReady { get; }
+
 	void OnWorldGenerate();
 
 	void OnBlockSet(Vector2Int pos, ushort block);

@@ -51,6 +51,9 @@ public sealed class SceneStateHandler(ILogger<SceneStateHandler> log) : PacketHa
 					// block-state snapshot (damage table) so it sees the world
 					// as it is now, not as the baseline regenerated it.
 					ctx.World.SendBlockStateSnapshot(reporter);
+					// Start gate: everyone enters together — or, if the game
+					// already started, let this late joiner pass directly.
+					ctx.World.NotifyMemberInWorld(reporter);
 					session.BroadcastExcept(reporter, NetMsg.SceneState, msg); // relay: the other guests track the member too
 				}
 			}

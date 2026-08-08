@@ -259,6 +259,12 @@ public class Plugin : BaseUnityPlugin
 	// Phase-1 test HUD (IMGUI, temporary): replace with real UI in later phases.
 	private void OnGUI()
 	{
+		if (_adapter is { IsWaitingForReady: true })
+		{
+			DrawWaitingOverlay();
+			return; // the HUD is hidden behind the gate overlay
+		}
+
 		var y = 10f;
 		Line("CUO Phase 1 — Steam: " + (_steam.IsInitialized ? "initialized" : "not initialized"));
 		if (_steam.IsInitialized)
@@ -290,6 +296,16 @@ public class Plugin : BaseUnityPlugin
 			GUI.Label(new Rect(10f, y, 900f, 20f), text);
 			y += 20f;
 		}
+	}
+
+	/// <summary>Start-gate overlay: full-screen blackout while everyone loads (temporary IMGUI, like the HUD).</summary>
+	private void DrawWaitingOverlay()
+	{
+		GUI.color = Color.black;
+		GUI.DrawTexture(new Rect(0f, 0f, Screen.width, Screen.height), Texture2D.whiteTexture);
+		GUI.color = Color.white;
+		var style = new GUIStyle(GUI.skin.label) { fontSize = 28 };
+		GUI.Label(new Rect(0f, Screen.height * 0.4f, Screen.width, 60f), "Waiting for other players…", style);
 	}
 
 	private void OnUnityLogMessage(string message, string stackTrace, LogType type)

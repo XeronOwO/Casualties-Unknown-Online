@@ -28,6 +28,21 @@ public sealed class SteamService(ILogger<SteamService> log) : ICuoService
 	/// <summary>Lobby this client currently hosts or joined, or 0 when none.</summary>
 	public ulong CurrentLobbyId { get; private set; }
 
+	/// <summary>
+	/// SteamID of the lobby owner — the authority in a star network. Never
+	/// guessed from the member list (with 3+ members "first non-self" is not
+	/// necessarily the owner); the lobby API answers this directly.
+	/// </summary>
+	public ulong GetLobbyOwner()
+	{
+		if (CurrentLobbyId == 0)
+		{
+			return 0;
+		}
+
+		return SteamMatchmaking.GetLobbyOwner(new CSteamID(CurrentLobbyId)).m_SteamID;
+	}
+
 	/// <summary>SteamIDs of all current lobby members (including self), empty when not in a lobby.</summary>
 	public ulong[] GetLobbyMembers()
 	{

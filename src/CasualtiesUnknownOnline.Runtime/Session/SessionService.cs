@@ -273,7 +273,9 @@ public sealed class SessionService : ICuoService, ISessionControl
 		}
 
 		_identity.Role = SessionRole.Guest;
-		_identity.HostSteamId = _steam.GetLobbyMembers().FirstOrDefault(m => m != _steam.LocalSteamId);
+		// The host is the lobby owner, not "first member other than me" — with
+		// 3+ members that guess picks the wrong peer and the handshake dies.
+		_identity.HostSteamId = _steam.GetLobbyOwner();
 		_log.LogInformation("Session role: Guest (lobby {LobbyId}, host {Host})", lobbyId, _identity.HostSteamId);
 
 		// Kick off the handshake: protocol version + our scene state. Retry

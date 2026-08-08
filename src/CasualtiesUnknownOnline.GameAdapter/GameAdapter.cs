@@ -319,6 +319,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 		_world.BlockDamagedReceived -= OnRemoteBlockDamaged;
 		_world.WorldJoinReceived -= OnWorldJoin;
 		_world.BlockStateReceived -= OnRemoteBlockState;
+		_world.BlockPlacedReceived -= OnRemoteBlockPlaced;
 		_characterData.CharacterDataReceived -= OnCharacterDataReceived;
 		Instance = null;
 	}
@@ -334,6 +335,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 		_world.BlockDamagedReceived += OnRemoteBlockDamaged;
 		_world.WorldJoinReceived += OnWorldJoin;
 		_world.BlockStateReceived += OnRemoteBlockState;
+		_world.BlockPlacedReceived += OnRemoteBlockPlaced;
 		_characterData.CharacterDataReceived += OnCharacterDataReceived;
 	}
 
@@ -444,6 +446,9 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 
 	private bool _applyingRemoteBlockDamage;
 
+	/// <summary>Reentry guard while applying a remote block placement (suppresses the SetBlock hook's own report/broadcast).</summary>
+	private bool _applyingRemoteBlockPlace;
+
 	/// <summary>
 	/// Called from the DamageBlock patch after a LOCAL block damage was applied:
 	/// report it so the peer applies the same damage at the same world position.
@@ -478,35 +483,94 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 	}
 
 	/// <summary>
-	/// Called from the SetBlock patch after a host-side world mutation was
-	/// applied — diff it against the generated baseline: equal to the baseline
-	/// (a placed block mined away, a default restored) removes the entry, anything
-	/// else upserts it. Generation-time SetBlock calls are excluded (they run
-	/// while generatingWorld is set and are the baseline itself).
+	/// Called from the SetBlock patch after any world mutation (mining,
+	/// placement, remote application). Host: diff against the generated
+	/// baseline (equal → removed from the difference table, otherwise
+	/// upserted) and broadcast placements live. Guest: report local
+	/// placements to the host — breaking SetBlock(0) is already covered by
+	/// the BlockDamaged stream, only non-air writes are placements. Remote
+	/// applications are guarded (they answer their own way); generation-time
+	/// SetBlock calls are the baseline itself and excluded.
 	/// </summary>
 	internal void OnBlockSet(Vector2Int pos, ushort block)
 	{
-		if (HarmonyTraverse.IsGenerating())
+		if (_applyingRemoteBlockPlace || !_session.SessionActive || HarmonyTraverse.IsGenerating())
 		{
 			return;
 		}
 
-		if (_baseline is null)
+		if (IsHostMode)
 		{
-			TryCaptureWorldBaseline(); // generation may have just completed this frame
 			if (_baseline is null)
 			{
-				return; // still no baseline — nothing to diff against
+				TryCaptureWorldBaseline(); // generation may have just completed this frame
+				if (_baseline is null)
+				{
+					return; // still no baseline — nothing to diff against
+				}
+			}
+
+			if (block == _baseline[pos.x, pos.y])
+			{
+				_world.RemoveBlockState(pos.x, pos.y); // restored to baseline — no longer a difference
+			}
+			else
+			{
+				_world.ReportBlockState(pos.x, pos.y, block);
 			}
 		}
 
-		if (block == _baseline[pos.x, pos.y])
+		if (block != 0)
 		{
-			_world.RemoveBlockState(pos.x, pos.y); // restored to baseline — no longer a difference
+			// A placement: the source applied it locally (local compute) —
+			// host broadcasts it, guest reports it for arbitration.
+			if (IsHostMode)
+			{
+				_world.BroadcastBlockPlaced(0, pos.x, pos.y, block);
+			}
+			else
+			{
+				_world.SendBlockPlacedReport(pos.x, pos.y, block);
+			}
 		}
-		else
+	}
+
+	/// <summary>
+	/// A placement arrived: host arbitrates (the target must be air — the
+	/// game's own placement condition, Item.cs) — then applies, records the
+	/// difference and relays (source excluded); guest applies it directly.
+	/// </summary>
+	private void OnRemoteBlockPlaced(ulong sender, int x, int y, ushort block)
+	{
+		if (WorldGeneration.world == null) // Unity object — ==
 		{
-			_world.ReportBlockState(pos.x, pos.y, block);
+			return;
+		}
+
+		_applyingRemoteBlockPlace = true;
+		try
+		{
+			var pos = new Vector2Int(x, y);
+			if (IsHostMode)
+			{
+				if (WorldGeneration.world.GetBlock(pos) != 0)
+				{
+					_log.LogWarning("Rejected remote block placement at ({X},{Y}): target not air (arbitration — reject+correction tier pending).", x, y);
+					return; // target already occupied — first-writer-wins, no relay
+				}
+
+				WorldGeneration.world.SetBlock(pos, block);
+				_world.ReportBlockState(x, y, block); // the placement is a world difference too
+				_world.BroadcastBlockPlaced(sender, x, y, block); // the reporter already placed locally
+			}
+			else
+			{
+				WorldGeneration.world.SetBlock(pos, block);
+			}
+		}
+		finally
+		{
+			_applyingRemoteBlockPlace = false;
 		}
 	}
 

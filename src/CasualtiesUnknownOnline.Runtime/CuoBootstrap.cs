@@ -63,6 +63,11 @@ public static class CuoBootstrap
 		// depends on SessionIdentity (not SessionService) — the dependency
 		// graph is acyclic, plain constructor injection everywhere.
 		services.AddSingleton<PacketGateway>();
+		// Sync stream: the 20 Hz state exchange + join announcements. It depends
+		// on the session (reads the member table), so it runs after the session
+		// in the Update order (registered last).
+		services.AddSingleton<EntitySyncStream>();
+		services.AddSingleton<ICuoService>(p => p.GetRequiredService<EntitySyncStream>());
 
 		extraRegistrations?.Invoke(services);
 

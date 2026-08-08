@@ -19,8 +19,6 @@ namespace CasualtiesUnknownOnline.Runtime.Session;
 /// </summary>
 public sealed class SessionService : ICuoService
 {
-	private const float StateSendInterval = 0.05f; // 20 Hz authoritative snapshot
-	private const float ReportSendInterval = 0.05f; // 20 Hz guest state report
 	private const float PingInterval = 5f;
 	private const float MemberCheckInterval = 2f;
 	private const float HandshakeRetryInterval = 3f; // lazy Steam P2P sessions swallow early messages
@@ -53,17 +51,10 @@ public sealed class SessionService : ICuoService
 	private ulong _epoch;
 	private uint _nextEntityCounter;
 
-	private long _nextStateSendMs;
-	private long _nextReportSendMs;
 	private long _nextPingMs;
 	private long _nextMemberCheckMs;
 	private long _nextHandshakeRetryMs;
 
-	// Snapshot sequence for the unreliable state stream: the sender numbers
-	// every broadcast/report, the receiver drops anything at or below the last
-	// applied one (the unreliable channel can reorder and duplicate).
-	private uint _nextStateSeq; // host: PlayerState broadcasts
-	private uint _nextReportSeq; // guest: PlayerStateReport broadcasts
 	private bool _entitySyncActive; // guest: self sync state (host derives per member)
 
 	public SessionService(SteamService steam, SessionIdentity identity, PacketGateway gateway, ILogger<SessionService> log)
@@ -146,6 +137,9 @@ public sealed class SessionService : ICuoService
 
 	/// <summary>Both sides: a state message refreshed the entity buffer (PlayerState on guest, PlayerStateReport on host).</summary>
 	public event Action<PlayerEntity>? StateReceived;
+
+	/// <summary>Host side: a member's sync state just flipped on — the sync stream sends the join packets.</summary>
+	internal event Action<MemberState>? MemberSyncStarted;
 
 	// ---- Event fires for the packet handlers (the events stay public — the
 	// Game Adapter subscribes from another assembly; handlers fire through these). ----
@@ -344,26 +338,15 @@ public sealed class SessionService : ICuoService
 			EndEntitySync();
 		}
 
-		if (Role == SessionRole.Host && EntitySyncActive && nowMs >= _nextStateSendMs)
-		{
-			_nextStateSendMs = nowMs + (long)(StateSendInterval * 1000f);
-			BroadcastPlayerState();
-		}
-
 		// Opportunistic entity-sync start: retried every frame (cheap, idempotent)
 		// instead of only on message arrival — the local InWorld flag is set by
 		// the Game Adapter's Update, which may run after a peer's InWorld message
 		// was already processed, and the sync would otherwise never start. Runs
 		// unconditionally (per member, each starts on its own conditions).
+		// The 20 Hz state-stream send/report throttling lives in EntitySyncStream.
 		if (Role == SessionRole.Host)
 		{
 			MaybeStartEntitySync();
-		}
-
-		if (Role == SessionRole.Guest && EntitySyncActive && nowMs >= _nextReportSendMs)
-		{
-			_nextReportSendMs = nowMs + (long)(ReportSendInterval * 1000f);
-			SendPlayerStateReport();
 		}
 
 		CheckPeerPresence();
@@ -479,33 +462,18 @@ public sealed class SessionService : ICuoService
 		}
 	}
 
-	/// <summary>Host side: allocate ids, announce the member (self-activation +
-	/// roster), and push the first snapshot so the clone renders immediately.</summary>
+	/// <summary>
+	/// Host side: allocate ids and flip the member's sync state — the packet
+	/// assembly and sending (PlayerJoin self-activation + roster + first
+	/// snapshot) are EntitySyncStream's job, driven by <see cref="MemberSyncStarted"/>.
+	/// </summary>
 	private void StartMemberSync(MemberState member)
 	{
 		member.Entity.EntityId = AllocateEntityId();
 		member.EntitySync = true;
 		member.LastReportSeq = 0; // the member re-joins with a fresh sequence space
-
-		var joinMsg = new PlayerJoinMsg
-		{
-			HostSteamId = _localPlayer.SteamId,
-			HostEntityId = NetworkEntityIdMsg.From(_localPlayer.EntityId),
-			GuestSteamId = member.SteamId,
-			GuestEntityId = NetworkEntityIdMsg.From(member.Entity.EntityId),
-			HostPosition = NetVector2Msg.From(_localPlayer.Position),
-			GuestPosition = NetVector2Msg.From(member.Entity.ReportedSpawnPos),
-		};
-		Send(member.SteamId, NetMsg.PlayerJoin, joinMsg); // self-activation
-		BroadcastExcept(member.SteamId, NetMsg.PlayerJoin, joinMsg); // roster: announce to the others
-		_log.LogInformation("PlayerJoin sent: local {Local} ({LocalId}), member {Guest} ({GuestId}).",
-			_localPlayer.SteamId, _localPlayer.EntityId, member.SteamId, member.Entity.EntityId);
 		RemoteJoined?.Invoke(member.Entity);
-
-		// Immediate full snapshot right after PlayerJoin — the guest's clone
-		// renders the very first frame instead of waiting up to one 20 Hz tick
-		// for the next broadcast (same mechanism serves respawn/reconnect).
-		BroadcastPlayerState();
+		MemberSyncStarted?.Invoke(member);
 	}
 
 	/// <summary>Applies a decoded entity state, preserving the first-snapshot rule
@@ -519,56 +487,6 @@ public sealed class SessionService : ICuoService
 		target.PrevVelocity = firstSnapshot ? msg.Velocity.ToNetVector2() : target.Velocity;
 		msg.ApplyTo(target);
 		target.StateReceivedMs = Environment.TickCount;
-	}
-
-	/// <summary>Host side: broadcast the authoritative snapshot (local + every synced member) to all synced members.</summary>
-	private void BroadcastPlayerState()
-	{
-		var synced = _members.Values.Where(m => m.EntitySync).ToList();
-		if (synced.Count == 0)
-		{
-			return;
-		}
-
-		var payload = new PlayerStateMsg
-		{
-			Seq = ++_nextStateSeq,
-			Entities = BuildEntityList(),
-		};
-		foreach (var member in synced)
-		{
-			Send(member.SteamId, NetMsg.PlayerState, payload, reliable: false);
-		}
-	}
-
-	private List<EntityStateMsg> BuildEntityList()
-	{
-		var list = new List<EntityStateMsg> { EntityStateMsg.From(_localPlayer) };
-		foreach (var member in _members.Values)
-		{
-			if (member.EntitySync)
-			{
-				list.Add(EntityStateMsg.From(member.Entity));
-			}
-		}
-
-		return list;
-	}
-
-	/// <summary>Guest side: report the locally simulated state to the host (20 Hz).</summary>
-	private void SendPlayerStateReport()
-	{
-		if (Role != SessionRole.Guest || HostSteamId == 0)
-		{
-			return;
-		}
-
-		Send(HostSteamId, NetMsg.PlayerStateReport,
-			new PlayerStateReportMsg
-			{
-				Seq = ++_nextReportSeq,
-				Entity = EntityStateMsg.From(_localPlayer),
-			}, reliable: false);
 	}
 
 	// ---- Character data (session-scoped save/restore) ----

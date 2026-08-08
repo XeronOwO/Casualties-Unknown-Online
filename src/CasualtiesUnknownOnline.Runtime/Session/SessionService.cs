@@ -143,13 +143,7 @@ public sealed class SessionService : ICuoService
 		_localInWorld = state == SceneStateType.InWorld;
 		if (SessionActive)
 		{
-			var msg = new SceneStateMsg
-			{
-				State = (byte)state,
-				SceneName = sceneName,
-				Position = NetVector2Msg.From(localPosition ?? default),
-				SteamId = _steam.LocalSteamId,
-			};
+			var msg = SceneStateMsg.From(state, sceneName, localPosition ?? default, _steam.LocalSteamId);
 			if (Role == SessionRole.Host)
 			{
 				Broadcast(NetMsg.SceneState, msg);
@@ -214,11 +208,7 @@ public sealed class SessionService : ICuoService
 			return;
 		}
 
-		var msg = new BlockDamagedMsg
-		{
-			Position = NetVector2Msg.From(worldPos),
-			Damage = damage,
-		};
+		var msg = BlockDamagedMsg.From(worldPos, damage);
 		if (Role == SessionRole.Host)
 		{
 			Broadcast(NetMsg.BlockDamaged, msg);
@@ -493,18 +483,13 @@ public sealed class SessionService : ICuoService
 	internal void Send(ulong steamId, NetMsg msg, object? payload = null, bool reliable = true) =>
 		_gateway.Send(steamId, msg, payload, reliable);
 
-	private SceneStateType SceneStateForLocal() => _localInWorld ? SceneStateType.InWorld : SceneStateType.InMenu;
-
-	internal SceneStateMsg CreateSceneStateMsg() => new()
-	{
-		State = (byte)SceneStateForLocal(),
-		SceneName = "",
-		Position = new NetVector2Msg(),
-	};
+	/// <summary>Local scene state as a wire value — the handshake messages carry it
+	/// (the assembly itself lives in SceneStateMsg.From).</summary>
+	internal SceneStateType LocalSceneState => _localInWorld ? SceneStateType.InWorld : SceneStateType.InMenu;
 
 	private HandshakeMsg CreateHandshakeMsg() => new()
 	{
 		Protocol = ProtocolVersion.Current,
-		Scene = CreateSceneStateMsg(),
+		Scene = SceneStateMsg.From(LocalSceneState, "", default),
 	};
 }

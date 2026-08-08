@@ -1,3 +1,4 @@
+using CasualtiesUnknownOnline.Runtime.Session;
 using ProtoBuf;
 
 namespace CasualtiesUnknownOnline.Runtime.Protocol.Messages;
@@ -24,4 +25,14 @@ public sealed class SceneStateMsg
 	/// <summary>Reporter SteamId (host relay stamps it; 0 when sent by the reporter itself).</summary>
 	[ProtoMember(4)]
 	public ulong SteamId { get; set; }
+
+	/// <summary>Static factory — same pattern as EntityStateMsg.From: the message
+	/// assembles itself from domain data, no service-level assembly.</summary>
+	public static SceneStateMsg From(SceneStateType state, string sceneName, NetVector2 position, ulong steamId = 0) => new()
+	{
+		State = (byte)state,
+		SceneName = sceneName,
+		Position = NetVector2Msg.From(position),
+		SteamId = steamId,
+	};
 }

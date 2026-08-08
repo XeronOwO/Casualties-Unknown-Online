@@ -508,6 +508,12 @@ internal sealed class RunCoordinator(
 		_log.LogInformation("World ready — start playing.");
 	}
 
+	/// <summary>Host side: the start gate released — the host never receives a
+	/// WorldReady for itself, so its phase would otherwise never leave
+	/// Generating (the loading-screen keeper's !IsPlaying gate would keep the
+	/// loading screen up over a running game).</summary>
+	internal void MarkPlayingForHost() => _phase = RunPhase.Playing;
+
 	// ---- Session wiring ----
 
 	/// <summary>

@@ -225,10 +225,15 @@ public sealed class SessionService : ICuoService, ISessionControl
 
 	void ICuoService.Update()
 	{
+		// Host: keep warming up lobby peers that have not handshaken yet — a
+		// Steam P2P session only establishes with traffic from both directions
+		// (Phase-0 finding), and the periodic ping only covers presence members.
+		// Without this a late joiner never gets host→guest traffic and its
+		// handshake dies (5003 connect timeout).
+		SendPeerWarmup();
 		if (!SessionActive)
 		{
 			RetryHandshakeIfNeeded();
-			SendPreSessionKeepalive();
 			CheckPeerPresence();
 			return;
 		}
@@ -304,12 +309,14 @@ public sealed class SessionService : ICuoService, ISessionControl
 	}
 
 	/// <summary>
-	/// Host side, pre-session: keep pinging the lobby peer. The Steam P2P
-	/// session only establishes with traffic from both directions (Phase-0
-	/// finding — the old auto-ping kept it alive); with the guest retrying the
-	/// handshake alone the messages never arrive.
+	/// Host side: keep pinging lobby peers that have not completed a handshake
+	/// yet. The Steam P2P session only establishes with traffic from both
+	/// directions (Phase-0 finding); with the guest retrying the handshake
+	/// alone the messages never arrive. Runs regardless of session state — a
+	/// member joining mid-session needs the same warm-up traffic as one joining
+	/// pre-session.
 	/// </summary>
-	private void SendPreSessionKeepalive()
+	private void SendPeerWarmup()
 	{
 		if (Role != SessionRole.Host)
 		{
@@ -326,10 +333,19 @@ public sealed class SessionService : ICuoService, ISessionControl
 		var ping = PingMsg.Now;
 		foreach (var peer in _steam.GetLobbyMembers())
 		{
-			if (peer != _steam.LocalSteamId)
+			if (peer == _steam.LocalSteamId)
 			{
-				_sender.Send(peer, NetMsg.Ping, ping);
+				continue;
 			}
+
+			// Established members are kept alive by the periodic ping — warming
+			// up only the un-handshaken ones keeps the join window covered.
+			if (_presence.TryGetMember(peer, out var member) && member.Handshaken)
+			{
+				continue;
+			}
+
+			_sender.Send(peer, NetMsg.Ping, ping);
 		}
 	}
 

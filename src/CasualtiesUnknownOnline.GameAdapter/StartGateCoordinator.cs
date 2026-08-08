@@ -62,7 +62,12 @@ internal sealed class StartGateCoordinator(
 			keeper = WorldGeneration.world.gameObject.AddComponent<LoadingScreenKeeper>(); // generic AddComponent lives on GameObject in Unity 5.6
 		}
 
-		keeper.ShouldKeep = () => _session.SessionActive && !_run.IsPlaying; // both roles while the gate waits (solo play has no gate)
+		// Keep while the gate itself holds — NOT !IsPlaying: the host never
+		// receives a WorldReady for itself, so its run phase never reaches
+		// Playing and a !IsPlaying-based keep would re-show the loading screen
+		// forever over a running game ("the loading screen stays glued on top,
+		// the player can already act").
+		keeper.ShouldKeep = () => WaitingForReady;
 		keeper.Loading = () => HarmonyTraverse.ReadLoadingObject();
 		keeper.OnFirstKeep = () => _log.LogInformation("[Gate] keeping the loading screen up while waiting for the host.");
 	}

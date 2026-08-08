@@ -26,7 +26,14 @@ internal static class BodyItemPatches
 
 		private static void Prefix() => Swapping = true;
 
-		private static void Postfix() => Swapping = false;
+		// An inventory-internal move — no world events, but the peer's clone
+		// must re-render in real time (the 1 Hz character throttle alone reads
+		// as a 1-2 s delay).
+		private static void Postfix()
+		{
+			Swapping = false;
+			PatchBridge.Impl?.OnInventoryChanged();
+		}
 	}
 
 	/// <summary>SwitchHands drops both hands and picks them back (Body.cs:1113-1133) — an internal swap, not world events; same guard as SwapSlots.</summary>
@@ -37,7 +44,11 @@ internal static class BodyItemPatches
 
 		private static void Prefix() => Switching = true;
 
-		private static void Postfix() => Switching = false;
+		private static void Postfix()
+		{
+			Switching = false;
+			PatchBridge.Impl?.OnInventoryChanged();
+		}
 	}
 
 	[HarmonyPatch(typeof(Body), "PickUpItem")]

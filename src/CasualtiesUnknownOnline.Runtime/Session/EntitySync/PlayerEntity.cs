@@ -69,6 +69,9 @@ public sealed class PlayerEntity(ulong steamId, NetworkEntityId entityId, bool i
 	/// </summary>
 	public int StateReceivedMs { get; set; } = int.MinValue;
 
+	/// <summary>Time of the PREVIOUS snapshot (ms) — the render interpolation window adapts to the ACTUAL snapshot cadence (a low-frame-rate sender degrades the 20 Hz throttle to uneven intervals).</summary>
+	public int PrevStateMs { get; set; } = int.MinValue;
+
 	/// <summary>Domain → wire: the entity state snapshot; the reverse applies via
 	/// <see cref="EntityStateMsg.ApplyTo"/>.</summary>
 	public EntityStateMsg ToEntityStateMsg() => new()

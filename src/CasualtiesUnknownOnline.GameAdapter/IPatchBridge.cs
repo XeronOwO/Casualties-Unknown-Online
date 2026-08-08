@@ -35,6 +35,12 @@ internal interface IPatchBridge
 
 	bool OnGuestStartAttempt();
 
+	/// <summary>Host clicked start (StartRun/StartTutorial entry — BEFORE the transition animation): tell the guests to start following immediately.</summary>
+	void OnWorldJoinRequested();
+
+	/// <summary>An inventory-internal move completed (SwapSlots/SwitchHands) — re-report the character snapshot immediately so the peer's clone updates in real time (the 1 Hz throttle alone reads as a 1-2 s delay).</summary>
+	void OnInventoryChanged();
+
 	// ---- World items (runtime-generated item entities) ----
 
 	/// <summary>True in a live session — the spawn landing sound is deferred until the start-gate release.</summary>

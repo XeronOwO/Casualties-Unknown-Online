@@ -1573,15 +1573,17 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 					SpawnWorldItem(w);
 					spawned++;
 				}
-				else if (item.transform.parent == null && item.rb.velocity.magnitude < 0.1f
-					&& (Vector2.Distance(item.transform.position, new Vector2(w.Pos.X, w.Pos.Y)) > 0.1f
+				else if (item.transform.parent == null && item.rb.IsSleeping()
+					&& (Vector2.Distance(item.transform.position, new Vector2(w.Pos.X, w.Pos.Y)) > 0.5f
 						|| Mathf.Abs(Mathf.DeltaAngle(item.transform.eulerAngles.z, w.Rotation)) > 2f))
 				{
-					// Settled item drifted (independent physics — position AND
-					// rotation) — re-align both to the authoritative state and
-					// put the body to sleep: the re-position would otherwise be
-					// "corrected" back by the local physics, restarting the
-					// yank-roll loop.
+					// A SLEEPING item drifted from the authoritative state —
+					// re-align both and put the body to sleep (the re-position
+					// would otherwise be "corrected" back by the local physics,
+					// restarting the yank-roll loop). Only sleeping bodies are
+					// aligned: creeping items (0.05-0.1 velocity, awake) were
+					// pulled every keyframe and visibly stepped/jumped together
+					// ("items suddenly overlapping / clumping").
 					item.transform.position = new Vector3(w.Pos.X, w.Pos.Y, 0f);
 					item.transform.eulerAngles = new Vector3(0f, 0f, w.Rotation);
 					item.rb.velocity = Vector2.zero;
@@ -2589,13 +2591,6 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 			// A new world layer is generating — the old layer's world items are
 			// gone with the scene; the authoritative table starts empty again.
 			_items.ResetItems();
-			if (_session.Role == SessionRole.Host)
-			{
-				// Generation is starting — tell the members to start loading at
-				// the same time (everyone generates in parallel; the start gate
-				// releases them together once all have finished).
-				_world.SendWorldJoin();
-			}
 		}
 		else if (_world.WorldParams is not null)
 		{
@@ -2604,6 +2599,39 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		else
 		{
 			_log.LogWarning("World generation started without host world params — world will not match!");
+		}
+	}
+
+	/// <summary>Host clicked start — tell the members to start following IMMEDIATELY (their transition + loading begin together with ours, not one animation late). WorldJoin used to fire at generation start, which is a transition-animation late.</summary>
+	void IPatchBridge.OnWorldJoinRequested()
+	{
+		if (_session.Role == SessionRole.Host && _session.SessionActive)
+		{
+			_log.LogInformation("[WorldJoin] sent at run-start entry — guests follow immediately.");
+			_world.SendWorldJoin();
+		}
+	}
+
+	/// <summary>An inventory-internal move (SwapSlots/SwitchHands) finished — re-report the character snapshot right away (the 1 Hz throttle alone reads as a 1-2 s delay on the peer's clone).</summary>
+	void IPatchBridge.OnInventoryChanged()
+	{
+		if (_localBody != null && _session.SessionActive && _pendingRestore is null && !_restoreWipePending) // Unity object — ==
+		{
+			_log.LogInformation("[CloneRender] inventory changed — immediate re-report.");
+			ForceReportCharacterData();
+		}
+	}
+
+	private void ForceReportCharacterData()
+	{
+		var data = CaptureCharacterData(_localBody!);
+		if (_session.Role == SessionRole.Host)
+		{
+			_characterData.BroadcastHostCharacterData(data);
+		}
+		else
+		{
+			_characterData.ReportCharacterData(data);
 		}
 	}
 

@@ -25,7 +25,7 @@ public sealed class SessionService : ICuoService, ISessionControl
 {
 	private const float PingInterval = 5f;
 	private const float MemberCheckInterval = 2f;
-	private const float HandshakeRetryInterval = 3f; // lazy Steam P2P sessions swallow early messages
+	private const float HandshakeRetryInterval = 1f; // lazy Steam P2P sessions swallow early messages — retry fast so a cold-session join handshakes well before the host clicks start
 
 	private readonly SteamService _steam;
 	private readonly PacketSender _sender;

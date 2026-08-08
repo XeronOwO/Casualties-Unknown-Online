@@ -305,7 +305,7 @@ public sealed class SessionService : ICuoService, ISessionControl
 	{
 	}
 
-	void ICuoService.Dispose()
+	void IDisposable.Dispose()
 	{
 		_steam.LobbyCreated -= OnLobbyCreated;
 		_steam.LobbyEntered -= OnLobbyEntered;

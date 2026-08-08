@@ -301,7 +301,7 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 	{
 	}
 
-	void ICuoService.Dispose()
+	void IDisposable.Dispose()
 	{
 		_session.MemberRemoved -= OnMemberRemoved;
 		_session.SessionEnded -= OnSessionEnded;

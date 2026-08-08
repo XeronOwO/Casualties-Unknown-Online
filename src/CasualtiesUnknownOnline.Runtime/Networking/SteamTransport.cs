@@ -116,7 +116,7 @@ public sealed class SteamTransport(SteamService steam, ILogger<SteamTransport> l
 	{
 	}
 
-	void ICuoService.Dispose()
+	void IDisposable.Dispose()
 	{
 	}
 }

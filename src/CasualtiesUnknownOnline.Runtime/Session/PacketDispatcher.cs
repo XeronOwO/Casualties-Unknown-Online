@@ -1,3 +1,4 @@
+using System;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Session.Handlers;
@@ -56,5 +57,5 @@ public sealed class PacketDispatcher : ICuoService
 	{
 	}
 
-	void ICuoService.Dispose() => _receiver.MessageArrived -= OnMessageArrived;
+	void IDisposable.Dispose() => _receiver.MessageArrived -= OnMessageArrived;
 }

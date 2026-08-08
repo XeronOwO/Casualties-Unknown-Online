@@ -15,5 +15,5 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 	new Type[] { typeof(Vector2), typeof(float), typeof(bool), typeof(bool) })]
 internal static class WorldGenerationDamageBlockPatch
 {
-	private static void Postfix(Vector2 pos, float dmg) => GameAdapter.Instance?.OnBlockDamaged(pos, dmg);
+	private static void Postfix(Vector2 pos, float dmg) => PatchBridge.Impl?.OnBlockDamaged(pos, dmg);
 }

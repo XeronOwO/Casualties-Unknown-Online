@@ -16,5 +16,5 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 [HarmonyPatch(typeof(WorldGeneration), "SetBlock")]
 internal static class WorldGenerationSetBlockPatch
 {
-	private static void Postfix(Vector2Int pos, ushort block) => GameAdapter.Instance?.OnBlockSet(pos, block);
+	private static void Postfix(Vector2Int pos, ushort block) => PatchBridge.Impl?.OnBlockSet(pos, block);
 }

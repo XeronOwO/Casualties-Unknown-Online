@@ -307,19 +307,15 @@ public class Plugin : BaseUnityPlugin
 	{
 		Application.logMessageReceived -= OnUnityLogMessage;
 
-		// Stop then dispose in reverse registration order, then release the
-		// container — disposing the LoggerFactory flushes latest.log.
+		// Stop in reverse registration order, then release the container — it
+		// disposes every IDisposable singleton it created (ICuoService :
+		// IDisposable), and disposing the LoggerFactory flushes latest.log.
 		// NOTE: array.Reverse() would bind to System.MemoryExtensions.Reverse
 		// (Span, returns void) instead of LINQ's Enumerable.Reverse — System.Memory
 		// hijacks it. An explicit reverse-index loop avoids the ambiguity.
 		for (var i = _cuoServices.Length - 1; i >= 0; i--)
 		{
 			RunLifecycle(_cuoServices[i], "Stop", s => s.Stop());
-		}
-
-		for (var i = _cuoServices.Length - 1; i >= 0; i--)
-		{
-			RunLifecycle(_cuoServices[i], "Dispose", s => s.Dispose());
 		}
 
 		_services?.Dispose();

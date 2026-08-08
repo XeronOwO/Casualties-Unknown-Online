@@ -42,6 +42,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 	private Body? _localBody;
 	private readonly Dictionary<ulong, Body> _remoteClones = []; // member SteamId → render clone
 	private bool _inWorld;
+	private bool _followHostPending; // guest: the host is in the world but the menu was still loading — retry StartRun
 
 	private const float CharacterReportInterval = 1f; // guest → host character snapshot (1 Hz)
 	private long _nextCharacterReportMs;
@@ -166,6 +167,11 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 	void ICuoService.Update()
 	{
 		UpdateSceneState();
+		if (_followHostPending)
+		{
+			TryFollowHost();
+		}
+
 		// Publish local state even before entity sync activates — the host's
 		// PlayerJoin carries the local position, which was (0,0) before sync
 		// because publishing only ran after activation.
@@ -334,29 +340,57 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 			// owner is gone — pull it back to the main menu. Only when we are
 			// actually in the world; after the load the normal UpdateSceneState
 			// flow re-reports InMenu to the host.
-			if (steamId == _session.HostSteamId
-				&& _session.Role == SessionRole.Guest && _inWorld && PlayerCamera.main != null)
+			if (steamId == _session.HostSteamId && _session.Role == SessionRole.Guest)
 			{
-				_log.LogInformation("Host left the world — returning to main menu.");
-				PlayerCamera.main.ToMainMenu();
+				_followHostPending = false; // a fresh "host entered" must re-arm the follow
+				if (_inWorld && PlayerCamera.main != null) // Unity object — ==
+				{
+					_log.LogInformation("Host left the world — returning to main menu.");
+					PlayerCamera.main.ToMainMenu();
+				}
 			}
 		}
 		else if (steamId == _session.HostSteamId
-			&& _session.Role == SessionRole.Guest && !_inWorld
-			&& PreRunScript.instance != null)
+			&& _session.Role == SessionRole.Guest && !_inWorld)
 		{
 			// The host entering the world: the guest follows automatically
 			// (the world belongs to the host — a guest sitting in the menu
 			// joins the run). StartRun is the game's own entry; guests without
 			// the basic course get the tutorial warning instead (its flow).
-			// The host's clone is rebuilt by the Update pump after the join.
-			_log.LogInformation("Host entered the world — starting a run to follow.");
-			PreRunScript.instance.StartRun();
+			// The menu may still be loading when this arrives (a right-click
+			// "Join Game" launches a fresh process) — PreRunScript.instance is
+			// null then, so retry every frame until it exists (the same
+			// lazy-ensure pattern as the remote clones).
+			_followHostPending = true;
+			TryFollowHost();
 		}
 
 		_log.LogInformation(inWorld
 			? "Remote entered the world — clone rebuilt on rejoin."
 			: "Remote not in world (menu or disconnected) — clone destroyed.");
+	}
+
+	/// <summary>
+	/// Guest side: start a run to follow the host once the menu is ready.
+	/// Retried every frame while pending — a right-click "Join Game" launches a
+	/// fresh process whose menu (PreRunScript) is still loading when the host's
+	/// in-world state arrives.
+	/// </summary>
+	private void TryFollowHost()
+	{
+		if (!_followHostPending || _inWorld)
+		{
+			return;
+		}
+
+		if (PreRunScript.instance == null) // Unity object — == (menu still loading)
+		{
+			return;
+		}
+
+		_followHostPending = false;
+		_log.LogInformation("Host entered the world — starting a run to follow.");
+		PreRunScript.instance.StartRun();
 	}
 
 	private void OnSessionEnded()
@@ -751,21 +785,19 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 
 	private void RestoreLiquids(Item item, List<LiquidStackMsg> liquids)
 	{
-		if (liquids.Count == 0)
-		{
-			return;
-		}
-
 		var water = item.GetComponent<WaterContainerItem>();
 		if (water == null) // Unity object — ==
 		{
 			return;
 		}
 
-		foreach (var liquid in liquids)
-		{
-			water.AddLiquid(liquid.LiquidId, liquid.Amount);
-		}
+		// Rebuild the stack directly instead of AddLiquid-ing: the prefab's
+		// Awake already filled the default contents (WaterContainerItem.Awake),
+		// so an additive restore reads "full" again. The capture side reads the
+		// same field, so this round-trips exactly (including an empty stack).
+		var stackField = typeof(WaterContainerItem).GetField("stack",
+			BindingFlags.NonPublic | BindingFlags.Instance);
+		stackField?.SetValue(water, liquids.Select(l => new LiquidStack(l.LiquidId, l.Amount)).ToList());
 	}
 
 	private void RestoreComponentStates(Item item, List<ComponentStateMsg> states)

@@ -85,12 +85,14 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	internal bool IsGuestMode => _session.Role == SessionRole.Guest && _session.SessionActive;
 
 	/// <summary>
-	/// In a live session world generation is wrapped with the random-stream
-	/// isolation (WorldGenRandomIsolation) so host and guest generate identical
-	/// worlds from the same captured Random.state. Single-player (no session)
-	/// keeps the game's original generation untouched.
+	/// World generation is ALWAYS wrapped with random-stream isolation
+	/// (WorldGenRandomIsolation): solo or session, the generation stream
+	/// advances purely from generation code. A solo-generated world is
+	/// therefore reproducible — a guest joining later restores the captured
+	/// Random.state (CaptureWorldParams runs for Role=None too) and generates
+	/// the identical world, which is what makes mid-session joining work.
 	/// </summary>
-	bool IPatchBridge.IsWorldGenIsolated => _session.SessionActive;
+	bool IPatchBridge.IsWorldGenIsolated => true;
 
 	/// <summary>Host in a live session: authoritative world mutations (damage table capture).</summary>
 	internal bool IsHostMode => _session.Role == SessionRole.Host && _session.SessionActive;
@@ -256,8 +258,11 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	{
 		UpdateSceneState();
 		UpdateGuestMenuState();
-		if (IsHostMode)
+		if (_session.Role != SessionRole.Guest)
 		{
+			// Host or solo: capture the generated baseline so the damage table
+			// can diff against it (a solo game that opens a lobby later still
+			// needs the table relative to the seed world, not the current one).
 			TryCaptureWorldBaseline();
 		}
 
@@ -583,7 +588,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 
 	/// <summary>
 	/// Called from the SetBlock patch after any world mutation (mining,
-	/// placement, remote application). Host: diff against the generated
+	/// placement, remote application). Host/solo: diff against the generated
 	/// baseline (equal → removed from the difference table, otherwise
 	/// upserted) and broadcast placements live. Guest: report local
 	/// placements to the host — breaking SetBlock(0) is already covered by
@@ -593,12 +598,17 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	/// </summary>
 	void IPatchBridge.OnBlockSet(Vector2Int pos, ushort block)
 	{
-		if (_applyingRemoteBlockPlace || !_session.SessionActive || HarmonyTraverse.IsGenerating())
+		if (_applyingRemoteBlockPlace || HarmonyTraverse.IsGenerating())
 		{
 			return;
 		}
 
-		if (IsHostMode)
+		// Host OR solo: diff against the generated baseline (equal → removed
+		// from the difference table, otherwise upserted). Solo tracking is
+		// what lets a solo game that opens a lobby later hand its accumulated
+		// world changes to a joining guest (the guest regenerates the seed
+		// world and applies the table). Guests do not track — they only apply.
+		if (_session.Role != SessionRole.Guest)
 		{
 			if (_baseline is null)
 			{
@@ -619,15 +629,16 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 			}
 		}
 
-		if (block != 0)
+		if (block != 0 && _session.SessionActive)
 		{
-			// A placement: the source applied it locally (local compute) —
-			// host broadcasts it, guest reports it for arbitration.
-			if (IsHostMode)
+			// A placement in a live session: the source applied it locally
+			// (local compute) — host broadcasts it, guest reports it for
+			// arbitration. Solo (no session) never sends.
+			if (_session.Role == SessionRole.Host)
 			{
 				_world.BroadcastBlockPlaced(0, pos.x, pos.y, block);
 			}
-			else
+			else if (_session.Role == SessionRole.Guest)
 			{
 				_world.SendBlockPlacedReport(pos.x, pos.y, block);
 			}

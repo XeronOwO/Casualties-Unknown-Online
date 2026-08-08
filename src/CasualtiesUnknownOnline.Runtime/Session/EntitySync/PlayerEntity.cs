@@ -1,7 +1,7 @@
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 
-namespace CasualtiesUnknownOnline.Runtime.Session;
+namespace CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 
 /// <summary>
 /// Session-side abstraction of one player entity. Buffers hold the latest

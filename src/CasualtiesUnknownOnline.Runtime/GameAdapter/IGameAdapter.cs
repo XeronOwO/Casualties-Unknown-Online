@@ -1,5 +1,5 @@
 using System;
-using CasualtiesUnknownOnline.Runtime.Session;
+using CasualtiesUnknownOnline.Runtime.Session.World;
 
 namespace CasualtiesUnknownOnline.Runtime.GameAdapter;
 

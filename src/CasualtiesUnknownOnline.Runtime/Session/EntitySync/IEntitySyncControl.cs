@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 
-namespace CasualtiesUnknownOnline.Runtime.Session;
+namespace CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 
 /// <summary>
 /// The entity-sync surface packet handlers operate on — implemented by

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Protocol;
+using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 
 namespace CasualtiesUnknownOnline.Runtime.Session;
 

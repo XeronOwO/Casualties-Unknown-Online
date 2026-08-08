@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 
-namespace CasualtiesUnknownOnline.Runtime.Session;
+namespace CasualtiesUnknownOnline.Runtime.Session.World;
 
 /// <summary>
 /// World-start parameters captured by the host at run start and applied by

@@ -59,6 +59,9 @@ public interface IItemControl
 	/// <summary>Host only: the item's live state (position/velocity/rotation) — the periodic keyframe must broadcast the CURRENT positions, not the spawn-time ones.</summary>
 	void RefreshItemState(ulong itemId, NetVector2 pos, NetVector2 vel, float rotation);
 
+	/// <summary>Host only: the table's position for an item (a guest-generated item's settle report) — the host aligns its drifted phantom to it.</summary>
+	bool TryGetItemPosition(ulong itemId, out NetVector2 pos);
+
 	/// <summary>
 	/// Host only: periodically re-send the full table (unreliable) so physical
 	/// drift self-heals — the receiver aligns settled items on the next

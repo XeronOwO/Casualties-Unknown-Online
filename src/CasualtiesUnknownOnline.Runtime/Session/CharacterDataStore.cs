@@ -16,12 +16,12 @@ namespace CasualtiesUnknownOnline.Runtime.Session;
 /// <see cref="SessionState"/> instead of depending on SessionService itself —
 /// acyclic constructor graph, abstract extraction (user rule).
 /// </summary>
-public sealed class CharacterDataStore(SessionIdentity identity, SessionState state, PacketGateway gateway,
+public sealed class CharacterDataStore(SessionIdentity identity, SessionState state, PacketSender sender,
 	ILogger<CharacterDataStore> log) : ICharacterDataControl
 {
 	private readonly SessionIdentity _identity = identity;
 	private readonly SessionState _state = state;
-	private readonly PacketGateway _gateway = gateway;
+	private readonly PacketSender _sender = sender;
 	private readonly ILogger<CharacterDataStore> _log = log;
 	private readonly Dictionary<ulong, CharacterDataMsg> _savedCharacters = []; // host: last report per SteamID
 
@@ -37,7 +37,7 @@ public sealed class CharacterDataStore(SessionIdentity identity, SessionState st
 			return;
 		}
 
-		_gateway.Send(_identity.HostSteamId, NetMsg.CharacterData, msg);
+		_sender.Send(_identity.HostSteamId, NetMsg.CharacterData, msg);
 	}
 
 	/// <summary>Host side: keep the latest report per SteamID (session-scoped save).</summary>
@@ -48,7 +48,7 @@ public sealed class CharacterDataStore(SessionIdentity identity, SessionState st
 	{
 		if (_savedCharacters.TryGetValue(steamId, out var data))
 		{
-			_gateway.Send(steamId, NetMsg.CharacterData, data);
+			_sender.Send(steamId, NetMsg.CharacterData, data);
 			_log.LogInformation("Sent saved character data to {Peer} ({Items} items).", steamId, data.Items.Count);
 		}
 	}

@@ -65,10 +65,12 @@ public static class CuoBootstrap
 			services.AddSingleton(typeof(IPacketHandler), handlerType);
 		}
 
-		// Data plane: the gateway binds the transport and dispatches. It
-		// depends on SessionIdentity (not SessionService) — the dependency
-		// graph is acyclic, plain constructor injection everywhere.
-		services.AddSingleton<PacketGateway>();
+		// Data plane: receive and send are independent mechanisms. The
+		// receiver binds the transport and validates directions; the sender is
+		// one Send primitive. Both depend on SessionIdentity/transport only —
+		// the dependency graph is acyclic, plain constructor injection.
+		services.AddSingleton<PacketReceiver>();
+		services.AddSingleton<PacketSender>();
 		// Character-data domain: the SteamID-keyed save/restore (no pump, not
 		// an ICuoService — it only reacts to reports and handshakes).
 		services.AddSingleton<CharacterDataStore>();

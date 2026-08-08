@@ -36,8 +36,6 @@ public interface ISessionControl
 
 	bool IsLobbyMember(ulong steamId);
 
-	void Send(ulong steamId, NetMsg msg, object? payload = null, bool reliable = true);
-
 	void Broadcast(NetMsg msg, object payload);
 
 	void BroadcastExcept(ulong excludeSteamId, NetMsg msg, object payload);

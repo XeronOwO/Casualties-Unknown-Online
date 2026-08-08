@@ -25,7 +25,7 @@ internal static class PreRunScriptStartRunPatch
 			return false;
 		}
 
-		PatchBridge.Impl.OnWorldJoinRequested();
+		PatchBridge.Impl.OnWorldJoinRequested(isTutorial: false);
 		return true;
 	}
 }
@@ -51,7 +51,7 @@ internal static class PreRunScriptStartTutorialPatch
 			return false;
 		}
 
-		PatchBridge.Impl.OnWorldJoinRequested();
+		PatchBridge.Impl.OnWorldJoinRequested(isTutorial: true);
 		return true;
 	}
 }

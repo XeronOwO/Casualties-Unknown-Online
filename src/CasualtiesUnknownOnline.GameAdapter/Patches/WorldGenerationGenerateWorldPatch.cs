@@ -27,7 +27,7 @@ internal static class WorldGenerationGenerateWorldPatch
 		var adapter = PatchBridge.Impl;
 		if (adapter is { IsWorldGenIsolated: true } && __result is not null)
 		{
-			__result = WorldGenRandomIsolation.Wrap(__result);
+			__result = WorldGenRandomIsolation.Wrap(__result, adapter);
 		}
 	}
 }

@@ -87,7 +87,7 @@ public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandl
 			// The host is already in a world — order matters: params first,
 			// then the explicit enter instruction (the guest's run-start gate
 			// passes once the params are in hand; the host owns the timing).
-			_sender.Send(sender, NetMsg.WorldJoin, new WorldJoinMsg());
+			_sender.Send(sender, NetMsg.WorldJoin, new WorldJoinMsg { IsTutorial = worldParams.IsTutorial });
 		}
 	}
 }

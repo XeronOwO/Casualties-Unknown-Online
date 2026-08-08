@@ -40,6 +40,15 @@ public sealed class WorldService(ISessionControl session, PacketSender sender, I
 	private HashSet<ulong>? _startGate;
 	private long _startGateArmedMs;
 
+	/// <summary>
+	/// Host only: the gate was released (everyone started, or the 30 s fallback
+	/// fired). Distinguishes "never armed" (host still generating — an early
+	/// InWorld report must NOT pass the member through; the host's arm checks
+	/// everyone's InWorld itself) from "released" (game running — a later
+	/// InWorld is a late joiner and passes directly).
+	/// </summary>
+	private bool _gateReleased;
+
 	/// <summary>Start-gate fallback: force the start if a guest is still loading after this long.</summary>
 	private const int StartGateTimeoutMs = 30_000;
 
@@ -53,9 +62,11 @@ public sealed class WorldService(ISessionControl session, PacketSender sender, I
 
 	/// <summary>
 	/// Host only: arm the start gate at world entry — every handshaken guest
-	/// must report InWorld before anyone starts playing, or 30 s elapse
-	/// (the slow ones finish on their own). Returns whether anyone is being
-	/// waited on (no guests: nothing to wait for).
+	/// still loading must report InWorld before anyone starts playing, or 30 s
+	/// elapse (the slow ones finish on their own). Members already InWorld
+	/// (they finished while the host was still generating — their early report
+	/// arrived before the arm and was held) are not waited on. Returns whether
+	/// anyone is being waited on (no guests: nothing to wait for).
 	/// </summary>
 	public bool StartStartGate()
 	{
@@ -64,10 +75,17 @@ public sealed class WorldService(ISessionControl session, PacketSender sender, I
 			return false;
 		}
 
-		var waiting = _session.Members.Where(m => m.Handshaken && m.SteamId != _session.LocalSteamId).Select(m => m.SteamId).ToHashSet();
+		_gateReleased = false;
+		var waiting = _session.Members
+			.Where(m => m.Handshaken && !m.InWorld && m.SteamId != _session.LocalSteamId)
+			.Select(m => m.SteamId).ToHashSet();
 		if (waiting.Count == 0)
 		{
+			// Everyone is already in the world (or there is no one) — no
+			// waiting: release everyone right away so the game starts together
+			// at the host's own loading moment.
 			_startGate = null;
+			SendWorldReady();
 			return false;
 		}
 
@@ -79,8 +97,10 @@ public sealed class WorldService(ISessionControl session, PacketSender sender, I
 
 	/// <summary>
 	/// Host only: a member finished loading. Gate armed → drop it from the
-	/// wait list; when the list empties, release everyone at once. Gate not
-	/// armed → the game already started, the late joiner enters directly.
+	/// wait list; when the list empties, release everyone at once. Gate never
+	/// armed (the host is still generating) → hold the report: the host's arm
+	/// checks every member's InWorld itself. Gate released (game running) →
+	/// the late joiner enters directly.
 	/// </summary>
 	public void NotifyMemberInWorld(ulong steamId)
 	{
@@ -91,8 +111,12 @@ public sealed class WorldService(ISessionControl session, PacketSender sender, I
 
 		if (_startGate is null)
 		{
-			SendWorldReadyTo(steamId); // late joiner: the game is running — pass it in directly
-			return;
+			if (_gateReleased)
+			{
+				SendWorldReadyTo(steamId); // late joiner: the game is running — pass it in directly
+			}
+
+			return; // never armed: the host's StartStartGate reads the member's InWorld itself
 		}
 
 		_startGate.Remove(steamId);
@@ -120,6 +144,7 @@ public sealed class WorldService(ISessionControl session, PacketSender sender, I
 		_log.LogWarning("Start gate forced after {Timeout} s — still waiting for {Count} member(s); they join when they finish loading.",
 			StartGateTimeoutMs / 1000, _startGate.Count);
 		_startGate = null;
+		_gateReleased = true;
 		SendWorldReady();
 	}
 
@@ -139,6 +164,7 @@ public sealed class WorldService(ISessionControl session, PacketSender sender, I
 			return;
 		}
 
+		_gateReleased = true;
 		var msg = new WorldReadyMsg();
 		foreach (var member in _session.Members)
 		{
@@ -167,10 +193,10 @@ public sealed class WorldService(ISessionControl session, PacketSender sender, I
 	public void FireBlockDamagedReceived(NetVector2 pos, float damage) =>
 		BlockDamagedReceived?.Invoke(pos, damage);
 
-	/// <summary>Guest: the host told us to enter the world (its params are already in hand).</summary>
-	public event Action? WorldJoinReceived;
+	/// <summary>Guest: the host told us to enter the world — isTutorial = follow StartTutorial (it nulls runSettings itself), else StartRun.</summary>
+	public event Action<bool>? WorldJoinReceived;
 
-	public void FireWorldJoinReceived() => WorldJoinReceived?.Invoke();
+	public void FireWorldJoinReceived(bool isTutorial) => WorldJoinReceived?.Invoke(isTutorial);
 
 	/// <summary>Guest: the host's authoritative block-state snapshot arrived (world entry).</summary>
 	public event Action<IReadOnlyList<DamagedBlock>>? BlockStateReceived;
@@ -346,19 +372,20 @@ public sealed class WorldService(ISessionControl session, PacketSender sender, I
 	}
 
 	/// <summary>
-	/// Host side: tell the members to enter the world. Sent after the world
-	/// params (the guest's run-start gate then always passes) — the host owns
-	/// the timing: at handshake time when it is already in a world, and when it
-	/// enters the world itself.
+	/// Host side: tell the members to enter the world. Sent at run-start entry
+	/// (the host clicks start — the guest starts its transition immediately,
+	/// BEFORE the world params exist; the guest's generation boundary waits for
+	/// them) and at handshake time when the host is already in a world (there
+	/// the params arrive first, ordered before the join).
 	/// </summary>
-	public void SendWorldJoin()
+	public void SendWorldJoin(bool isTutorial)
 	{
 		if (!_session.SessionActive)
 		{
 			return;
 		}
 
-		var msg = new WorldJoinMsg();
+		var msg = new WorldJoinMsg { IsTutorial = isTutorial };
 		foreach (var member in _session.Members)
 		{
 			if (member.Handshaken)
@@ -367,7 +394,8 @@ public sealed class WorldService(ISessionControl session, PacketSender sender, I
 			}
 		}
 
-		_log.LogInformation("World join sent to {Members} members.", _session.Members.Count(m => m.Handshaken));
+		_log.LogInformation("World join sent to {Members} members (tutorial: {Tutorial}).",
+			_session.Members.Count(m => m.Handshaken), isTutorial);
 	}
 
 	/// <summary>Host side: capture and publish world-start parameters (run start).</summary>

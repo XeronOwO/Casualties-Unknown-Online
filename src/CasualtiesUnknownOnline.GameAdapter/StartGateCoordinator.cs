@@ -62,7 +62,7 @@ internal sealed class StartGateCoordinator(
 			keeper = WorldGeneration.world.gameObject.AddComponent<LoadingScreenKeeper>(); // generic AddComponent lives on GameObject in Unity 5.6
 		}
 
-		keeper.ShouldKeep = () => _session.Role == SessionRole.Guest && !_run.IsPlaying;
+		keeper.ShouldKeep = () => _session.SessionActive && !_run.IsPlaying; // both roles while the gate waits (solo play has no gate)
 		keeper.Loading = () => HarmonyTraverse.ReadLoadingObject();
 		keeper.OnFirstKeep = () => _log.LogInformation("[Gate] keeping the loading screen up while waiting for the host.");
 	}
@@ -135,10 +135,10 @@ internal sealed class StartGateCoordinator(
 				Traverse.Create(localBody).Field("movingAllowed").SetValue(false);
 			}
 
+			KeepLoadingScreenForGate(); // both roles: the loading animation keeps playing while the gate waits
+
 			if (_session.Role == SessionRole.Guest)
 			{
-				KeepLoadingScreenForGate();
-
 				// Safety valve: the host may never release the gate (a start
 				// the game refused after our entry hook, a dead process) —
 				// leave back to the menu instead of freezing forever.

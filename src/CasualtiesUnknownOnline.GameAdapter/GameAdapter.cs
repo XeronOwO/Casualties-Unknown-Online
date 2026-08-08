@@ -76,6 +76,14 @@ public sealed class GameAdapter : IGameAdapter, ICuoService
 	/// <summary>Guest-side input interception active (in a live session as guest).</summary>
 	internal bool IsGuestMode => _session.Role == SessionRole.Guest && _session.SessionActive;
 
+	/// <summary>
+	/// In a live session world generation is replaced with the random-stream
+	/// isolated version (WorldGenRandomIsolation) so host and guest generate
+	/// identical worlds from the same captured Random.state. Single-player
+	/// (no session) keeps the game's original generation untouched.
+	/// </summary>
+	internal bool IsWorldGenIsolated => _session.SessionActive;
+
 	public bool ProbeGame()
 	{
 		var playerCamera = typeof(PlayerCamera);

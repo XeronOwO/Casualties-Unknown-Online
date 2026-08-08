@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using BepInEx;
@@ -90,7 +89,7 @@ public class Plugin : BaseUnityPlugin
 			_session = _services.GetRequiredService<SessionService>();
 			_entities = _services.GetRequiredService<EntitySyncService>();
 			_adapter = _services.GetService<IGameAdapter>();
-			_cuoServices = _services.GetServices<ICuoService>().ToArray();
+			_cuoServices = [.. _services.GetServices<ICuoService>()];
 
 			// Multiplayer games must keep running when the window loses focus.
 			Application.runInBackground = true;

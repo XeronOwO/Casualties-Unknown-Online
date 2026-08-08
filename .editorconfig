@@ -74,6 +74,8 @@ dotnet_diagnostic.IDE0290.severity = error
 dotnet_diagnostic.IDE0044.severity = error
 # Remove unread private members (2026-08-08) — dead fields must not survive
 dotnet_diagnostic.IDE0052.severity = error
+# Prefer collection expressions (C# 12, pure compile-time on net48)
+dotnet_diagnostic.IDE0305.severity = error
 # Prefer switch expressions over switch statements / if-else chains (2026-08-08)
 csharp_style_prefer_switch_expression = true:error
 dotnet_diagnostic.IDE0066.severity = error

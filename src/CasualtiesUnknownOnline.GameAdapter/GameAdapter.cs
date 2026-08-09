@@ -47,6 +47,8 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	private readonly DropProtectionGuard _dropGuard;
 	private readonly ItemApplication _itemApplication;
 	private readonly ItemWorldSync _itemWorldSync;
+	private readonly PickupSync _pickupSync;
+	private readonly ContainerItemSync _containerSync;
 	private readonly OperationTrace _operationTrace;
 	private readonly ItemPositionAuthority _itemPositionAuthority;
 	private readonly ItemPositionFollow _itemPositionFollow;
@@ -77,7 +79,10 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_operationTrace = new OperationTrace(loggerFactory.CreateLogger<OperationTrace>());
 		var itemReports = new ItemReportCommitter(items, _operationTrace, loggerFactory.CreateLogger<ItemReportCommitter>());
 		var itemIds = new ItemIdAllocator(session);
-		_itemWorldSync = new ItemWorldSync(session, items, _itemApplication, _dropGuard, _operationTrace, itemReports, itemIds, loggerFactory.CreateLogger<ItemWorldSync>());
+		var itemDropState = new ItemDropState();
+		_itemWorldSync = new ItemWorldSync(session, items, _dropGuard, itemDropState, _operationTrace, itemReports, itemIds, loggerFactory.CreateLogger<ItemWorldSync>());
+		_pickupSync = new PickupSync(items, _itemApplication, itemDropState, itemIds, _operationTrace, itemReports);
+		_containerSync = new ContainerItemSync(items, itemDropState, itemIds, _operationTrace, itemReports, loggerFactory.CreateLogger<ContainerItemSync>());
 		_itemPositionAuthority = new ItemPositionAuthority(items);
 		_itemPositionFollow = new ItemPositionFollow(items, _dropGuard);
 		_worldEventSync = new WorldEventSync(session, world, _operationTrace, loggerFactory.CreateLogger<WorldEventSync>());
@@ -343,18 +348,18 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 
 	void IPatchBridge.OnItemDestroyed(Item item) => _itemWorldSync.OnItemDestroyed(item);
 
-	void IPatchBridge.OnItemPickupStart(Item item) => _itemWorldSync.OnItemPickupStart(item);
+	void IPatchBridge.OnItemPickupStart(Item item) => _pickupSync.OnPickupStart(item);
 
-	void IPatchBridge.OnItemPickedUp(Item item) => _itemWorldSync.OnItemPickedUp(item);
+	void IPatchBridge.OnItemPickedUp(Item item) => _pickupSync.OnPickedUp(item);
 
 	void IPatchBridge.OnItemDropped(Item item) => _itemWorldSync.OnItemDropped(item);
 
 	void IPatchBridge.OnItemThrown(Item item) => _itemWorldSync.OnItemThrown(item);
 
 	void IPatchBridge.OnItemLoadedIntoContainer(Item item, bool wasWorldItem) =>
-		_itemWorldSync.OnItemLoadedIntoContainer(item, wasWorldItem);
+		_containerSync.OnLoadedIntoContainer(item, wasWorldItem);
 
-	void IPatchBridge.OnItemUnloadedFromContainer(Item item) => _itemWorldSync.OnItemUnloadedFromContainer(item);
+	void IPatchBridge.OnItemUnloadedFromContainer(Item item) => _containerSync.OnUnloadedFromContainer(item);
 
-	void IPatchBridge.OnContainerUnloadedAll(Container container) => _itemWorldSync.OnContainerUnloadedAll(container);
+	void IPatchBridge.OnContainerUnloadedAll(Container container) => _containerSync.OnUnloadedAll(container);
 }

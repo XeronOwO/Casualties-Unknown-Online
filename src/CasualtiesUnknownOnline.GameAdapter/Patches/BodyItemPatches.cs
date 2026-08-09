@@ -18,24 +18,20 @@ internal static class BodyItemPatches
 	/// it internally drops and picks up both items, but nothing left the world —
 	/// the reports would be false "placed"/"picked up" broadcasts. SwitchHands
 	/// (Body.cs:1113) is the same internal drop+pick pair and shares the origin.
-	/// The scope holder is a static field only because Prefix/Postfix are two
-	/// separate callbacks — the step-6 patch slimming moves it to __state.
+	/// The scope crosses Prefix → Postfix via Harmony __state (per-call state,
+	/// never a static field — Harmony does not dispose it, the postfix does).
 	/// </summary>
 	[HarmonyPatch(typeof(Body), "SwapSlots")]
 	internal static class SwapSlotsPatch
 	{
-		// step-6 fodder: becomes "out IDisposable __state" with the patch slimming
-		private static IDisposable? _swapScope;
-
-		private static void Prefix() => _swapScope = CallContext.Enter(CallContext.Origin.InternalReorder);
+		private static void Prefix(out IDisposable __state) => __state = CallContext.Enter(CallContext.Origin.InternalReorder);
 
 		// An inventory-internal move — no world events, but the peer's clone
 		// must re-render in real time (the 1 Hz character throttle alone reads
 		// as a 1-2 s delay).
-		private static void Postfix()
+		private static void Postfix(IDisposable __state)
 		{
-			_swapScope?.Dispose();
-			_swapScope = null;
+			__state.Dispose();
 			PatchBridge.Impl?.OnInventoryChanged();
 		}
 	}
@@ -44,15 +40,11 @@ internal static class BodyItemPatches
 	[HarmonyPatch(typeof(Body), "SwitchHands")]
 	internal static class SwitchHandsPatch
 	{
-		// step-6 fodder: becomes "out IDisposable __state" with the patch slimming
-		private static IDisposable? _switchScope;
+		private static void Prefix(out IDisposable __state) => __state = CallContext.Enter(CallContext.Origin.InternalReorder);
 
-		private static void Prefix() => _switchScope = CallContext.Enter(CallContext.Origin.InternalReorder);
-
-		private static void Postfix()
+		private static void Postfix(IDisposable __state)
 		{
-			_switchScope?.Dispose();
-			_switchScope = null;
+			__state.Dispose();
 			PatchBridge.Impl?.OnInventoryChanged();
 		}
 	}
@@ -114,23 +106,18 @@ internal static class BodyItemPatches
 	/// A throw's drop report fired in the DropItem prefix — before ThrowItem
 	/// set the throw velocity (Body.cs:1659-1661) — so the peer's copy dropped
 	/// in place. Re-report with the real flight velocity after ThrowItem ran.
-	/// The item is captured in the prefix (Harmony cannot inject a parameter
-	/// the original method does not have — an unmatched parameter fails the
-	/// WHOLE PatchAll).
+	/// The item crosses Prefix → Postfix via Harmony __state (per-call state).
 	/// </summary>
 	[HarmonyPatch(typeof(Body), "ThrowItem")]
 	internal static class ThrowItemPatch
 	{
-		private static Item? _thrown;
+		private static void Prefix(Body __instance, out Item __state) => __state = __instance.GetItem(__instance.handSlot);
 
-		private static void Prefix(Body __instance) => _thrown = __instance.GetItem(__instance.handSlot);
-
-		private static void Postfix()
+		private static void Postfix(Item __state)
 		{
-			if (_thrown != null) // Unity object — ==
+			if (__state != null) // Unity object — ==
 			{
-				PatchBridge.Impl?.OnItemThrown(_thrown);
-				_thrown = null;
+				PatchBridge.Impl?.OnItemThrown(__state);
 			}
 		}
 	}

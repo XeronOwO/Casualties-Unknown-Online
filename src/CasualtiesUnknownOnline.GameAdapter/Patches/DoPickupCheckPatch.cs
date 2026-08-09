@@ -16,14 +16,11 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 [HarmonyPatch(typeof(Body), "DoPickupCheck")]
 internal static class DoPickupCheckPatch
 {
-	private static float _distance;
-	private static bool _blocked;
-
-	private static bool Prefix(Body __instance, Item item, ref bool __result)
+	private static bool Prefix(Body __instance, Item item, ref bool __result, out (float Distance, bool Blocked) __state)
 	{
 		var pos = item.transform.position;
-		_distance = Vector2.Distance(pos, __instance.transform.position);
-		_blocked = Physics2D.Linecast(__instance.transform.position, pos, LayerMask.GetMask("Ground"));
+		__state = (Vector2.Distance(pos, __instance.transform.position),
+			Physics2D.Linecast(__instance.transform.position, pos, LayerMask.GetMask("Ground")));
 
 		var camera = PlayerCamera.main;
 		if (camera != null && camera.currentContainer != null // Unity objects — ==; an open container UI
@@ -36,11 +33,11 @@ internal static class DoPickupCheckPatch
 		return true;
 	}
 
-	private static void Postfix(Item item, bool __result)
+	private static void Postfix(Item item, bool __result, (float Distance, bool Blocked) __state)
 	{
 		if (!__result && PatchBridge.Impl is { } bridge && bridge.IsSessionActive)
 		{
-			bridge.OnPickupCheckFailed(item.id, _distance, _blocked);
+			bridge.OnPickupCheckFailed(item.id, __state.Distance, __state.Blocked);
 		}
 	}
 }

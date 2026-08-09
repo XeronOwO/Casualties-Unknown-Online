@@ -17,18 +17,18 @@ internal static class ContainerItemPatches
 	{
 		// Only a load that actually landed (LoadItem's CanHoldItem/distance guard
 		// can fail and leave the item untouched). WasWorldItem is captured in the
-		// prefix — dragging a GROUND item into a body-side container (a bag in
-		// your inventory) loads it without PickUpItem, so the world-item copy
-		// would stay on the peer unless the adapter knows it left the world.
-		private static bool _wasWorldItem;
+		// prefix (carried to the postfix via Harmony __state — per-call state,
+		// never a static field): dragging a GROUND item into a body-side
+		// container (a bag in your inventory) loads it without PickUpItem, so
+		// the world-item copy would stay on the peer unless the adapter knows it
+		// left the world.
+		private static void Prefix(Item item, out bool __state) => __state = ItemWorldSync.IsWorldItem(item);
 
-		private static void Prefix(Item item) => _wasWorldItem = ItemWorldSync.IsWorldItem(item);
-
-		private static void Postfix(Container __instance, Item item)
+		private static void Postfix(Container __instance, Item item, bool __state)
 		{
 			if (item.transform.parent == __instance.transform)
 			{
-				PatchBridge.Impl?.OnItemLoadedIntoContainer(item, _wasWorldItem);
+				PatchBridge.Impl?.OnItemLoadedIntoContainer(item, __state);
 			}
 		}
 	}
@@ -41,17 +41,13 @@ internal static class ContainerItemPatches
 		// dragged item unconditionally — PlayerCamera.cs:1567 — before loading
 		// it elsewhere), and the old Postfix reported the no-op as "unloaded
 		// into the world", which materialized a phantom drop on the peer.
-		// The "was inside" state is carried in a static field (Harmony cannot
-		// inject a parameter the original method does not have — an unmatched
-		// parameter fails the WHOLE PatchAll).
-		private static bool _wasInside;
+		// The "was inside" state crosses Prefix → Postfix via Harmony __state.
+		private static void Prefix(Container __instance, Item item, out bool __state) =>
+			__state = item.transform.parent == __instance.transform;
 
-		private static void Prefix(Container __instance, Item item) =>
-			_wasInside = item.transform.parent == __instance.transform;
-
-		private static void Postfix(Container __instance, Item item)
+		private static void Postfix(Container __instance, Item item, bool __state)
 		{
-			if (_wasInside && item.transform.parent != __instance.transform)
+			if (__state && item.transform.parent != __instance.transform)
 			{
 				PatchBridge.Impl?.OnItemUnloadedFromContainer(item);
 			}

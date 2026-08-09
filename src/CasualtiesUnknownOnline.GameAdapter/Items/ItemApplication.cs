@@ -3,11 +3,10 @@ using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
-using CasualtiesUnknownOnline.GameAdapter.Items;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
 
-namespace CasualtiesUnknownOnline.GameAdapter;
+namespace CasualtiesUnknownOnline.GameAdapter.Items;
 
 /// <summary>
 /// Remote world-item application: everything a received message does to the

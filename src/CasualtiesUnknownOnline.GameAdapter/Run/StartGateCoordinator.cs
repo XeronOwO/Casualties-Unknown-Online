@@ -1,6 +1,7 @@
 using System;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.World;
+using CasualtiesUnknownOnline.GameAdapter.World;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
 
@@ -10,7 +11,7 @@ using HarmonyLib;
 
 using Random = UnityEngine.Random; // System.Random vs UnityEngine.Random ambiguity — the game's jitter uses the Unity stream
 
-namespace CasualtiesUnknownOnline.GameAdapter;
+namespace CasualtiesUnknownOnline.GameAdapter.Run;
 
 /// <summary>
 /// Start-gate presentation: the "everyone loads together" wait — host forces

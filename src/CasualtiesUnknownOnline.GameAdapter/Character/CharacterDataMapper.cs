@@ -1,7 +1,7 @@
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using Mapster;
 
-namespace CasualtiesUnknownOnline.GameAdapter;
+namespace CasualtiesUnknownOnline.GameAdapter.Character;
 
 /// <summary>
 /// Mapster configuration for the character-data surface (character-data-plan):

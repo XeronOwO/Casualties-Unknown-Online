@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace CasualtiesUnknownOnline.GameAdapter;
+namespace CasualtiesUnknownOnline.GameAdapter.Run;
 
 /// <summary>
 /// Guest menu lock: while a guest is bound to a lobby the start screen is

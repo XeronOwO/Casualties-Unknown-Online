@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace CasualtiesUnknownOnline.GameAdapter;
+namespace CasualtiesUnknownOnline.GameAdapter.Items;
 
 /// <summary>
 /// Snapshot-race guard for freshly dropped/materialized world items: a fresh

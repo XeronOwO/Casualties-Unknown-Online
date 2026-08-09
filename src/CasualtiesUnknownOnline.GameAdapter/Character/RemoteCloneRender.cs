@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace CasualtiesUnknownOnline.GameAdapter.Rendering;
+namespace CasualtiesUnknownOnline.GameAdapter.Character;
 
 /// <summary>
 /// Marks an item object as a clone-inventory render. Slot renders live inside

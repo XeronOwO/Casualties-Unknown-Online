@@ -4,7 +4,7 @@ using CasualtiesUnknownOnline.GameAdapter.WorldGen;
 using Microsoft.Extensions.Logging;
 using Random = UnityEngine.Random;
 
-namespace CasualtiesUnknownOnline.GameAdapter;
+namespace CasualtiesUnknownOnline.GameAdapter.World;
 
 /// <summary>
 /// The world-start parameters domain: capture the generation baseline (RNG

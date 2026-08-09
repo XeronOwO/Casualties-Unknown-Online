@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using CasualtiesUnknownOnline.GameAdapter.Rendering;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
@@ -9,7 +8,9 @@ using MapsterMapper;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
 
-namespace CasualtiesUnknownOnline.GameAdapter;
+using CasualtiesUnknownOnline.GameAdapter.Items;
+
+namespace CasualtiesUnknownOnline.GameAdapter.Character;
 
 /// <summary>
 /// Character-data domain: the session-scoped save/restore (host stores the

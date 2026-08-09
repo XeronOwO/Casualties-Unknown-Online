@@ -3,11 +3,10 @@ using CommitStatus = CasualtiesUnknownOnline.GameAdapter.Items.ItemReportCommitt
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
-using CasualtiesUnknownOnline.GameAdapter.Items;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
 
-namespace CasualtiesUnknownOnline.GameAdapter;
+namespace CasualtiesUnknownOnline.GameAdapter.Items;
 
 /// <summary>
 /// World-item report side: every way an item enters or leaves the world domain

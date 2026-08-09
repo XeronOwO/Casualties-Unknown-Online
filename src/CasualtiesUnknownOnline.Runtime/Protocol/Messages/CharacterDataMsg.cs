@@ -8,7 +8,10 @@ namespace CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 /// the guest reports it periodically (1-2 Hz), the host keeps the latest per
 /// SteamID and hands it back when the same player reconnects, so the guest can
 /// rebuild its character after the game spawned a fresh default one.
-/// One message serves both directions (report and restore).
+/// One message serves both directions (report and restore); the host also
+/// relays a guest's report to the OTHER guests (OwnerSteamId set) so every
+/// side renders that guest's clone inventory — without the relay a guest can
+/// never see what another guest carries or wears.
 /// The field set mirrors the game's own save system (SaveSystem's [JsonProperty]
 /// reflection over Body and Limb, Body.cs:3779+ / Limb.cs:656+) so a restore is
 /// complete — deliberately no piecemeal additions later.
@@ -30,4 +33,13 @@ public sealed class CharacterDataMsg
 
 	[ProtoMember(5)]
 	public int HandSlot { get; set; } = -1; // -1 = don't touch
+
+	/// <summary>
+	/// 0 = ownerless (host-originated restore); otherwise the SteamId of the
+	/// character this snapshot belongs to — the host sets it when relaying a
+	/// guest's report to the other guests (the transport's sender is the host
+	/// on the receiving side, so the original owner has to ride in the payload).
+	/// </summary>
+	[ProtoMember(6)]
+	public ulong OwnerSteamId { get; set; }
 }

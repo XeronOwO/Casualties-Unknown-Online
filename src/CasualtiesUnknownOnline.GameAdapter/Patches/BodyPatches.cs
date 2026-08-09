@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using CasualtiesUnknownOnline.GameAdapter.Character;
+using CasualtiesUnknownOnline.GameAdapter.Items;
 using HarmonyLib;
 using UnityEngine;
 
@@ -202,7 +203,39 @@ internal static class BodyPatches
 		// An item went on a body part (mouth/hat/back…, Body.cs:1480) — the
 		// peer's clone shows it only after a snapshot, so re-report right away
 		// (the 1 Hz throttle alone reads as a delay on the peer's clone).
-		private static void Postfix() => PatchBridge.Impl?.OnInventoryChanged();
+		// Wearing is ALSO the one item-left-the-world path that never reaches
+		// PickUpItem: the touch auto-wear (Body.cs:527) and the radial-menu
+		// drag (PlayerCamera.cs:1642) call WearWearable directly, so a world
+		// item worn straight off the ground stayed in the world table and the
+		// host's same-spot item was never removed ("worn — still on the
+		// ground"; a late joiner could even pick up the ghost and wear it too
+		// — one item id live in four places). The world-item verdict must be
+		// captured in the PREFIX, before the wear re-parents the item (after
+		// SetParent(limb) the IsWorldItem chain read false), together with the
+		// ground position for the id-less generation-time binding.
+		private static void Prefix(Item item, out bool __state)
+		{
+			__state = ItemWorldSync.IsWorldItem(item);
+			if (__state)
+			{
+				PatchBridge.Impl?.OnItemPickupStart(item); // the ground position, before the wear re-parents the item
+			}
+		}
+
+		private static void Postfix(Item item, bool __state)
+		{
+			PatchBridge.Impl?.OnInventoryChanged();
+			// Report only a wear that actually landed: the item is parented to
+			// a limb (Body.cs:1508). Failed paths (already worn, limb missing,
+			// DoPickupCheck fail) never move the item — it stays a world item,
+			// no report. The drop-out-of-slot → wear-in sequence is a
+			// body-internal reorder and cancels inside the pickup sync (same
+			// as a re-pick) — reusing OnItemPickedUp buys all of that.
+			if (__state && item.transform.parent != null && item.transform.parent.GetComponent<Limb>() != null) // Unity objects — ==
+			{
+				PatchBridge.Impl?.OnItemPickedUp(item);
+			}
+		}
 	}
 
 	[HarmonyPatch(typeof(Body), "DropWearable")]

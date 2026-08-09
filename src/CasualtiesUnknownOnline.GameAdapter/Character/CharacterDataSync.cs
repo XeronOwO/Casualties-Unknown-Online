@@ -69,8 +69,20 @@ internal sealed class CharacterDataSync(
 			return;
 		}
 
-		// May arrive before the local body exists (still loading the run) —
-		// apply once the game has spawned it (TryApplyCharacterRestore).
+		// The host relays the OTHER guests' reports (OwnerSteamId stamped) —
+		// render that guest's clone inventory on this side too; without the
+		// relay a guest could never see what another guest carries/wears.
+		if (data.OwnerSteamId != 0 && data.OwnerSteamId != _session.LocalSteamId)
+		{
+			_cloneData[data.OwnerSteamId] = data;
+			CloneSnapshotUpdated?.Invoke(data.OwnerSteamId);
+			_log.LogInformation("[CloneRender] guest: char data relay of {Owner} ({Count} items).", data.OwnerSteamId, data.Items.Count);
+			return;
+		}
+
+		// Our own report echoed back by the host (restore path) — may arrive
+		// before the local body exists (still loading the run); apply once the
+		// game has spawned it (TryApplyCharacterRestore).
 		_pendingRestore = data;
 		_log.LogInformation("Received character restore ({Items} items).", data.Items.Count);
 	}

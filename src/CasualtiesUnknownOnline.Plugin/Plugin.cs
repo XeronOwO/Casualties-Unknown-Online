@@ -92,6 +92,9 @@ public class Plugin : BaseUnityPlugin
 			_adapter = _services.GetService<IGameAdapter>();
 			_cuoServices = [.. _services.GetServices<ICuoService>()];
 
+			// Publish the container on the static diagnostics seam (HotRepl etc.).
+			CuoBootstrap.Services = _services;
+
 			// Multiplayer games must keep running when the window loses focus.
 			Application.runInBackground = true;
 

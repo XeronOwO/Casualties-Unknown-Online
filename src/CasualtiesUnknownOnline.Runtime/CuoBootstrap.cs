@@ -25,6 +25,15 @@ namespace CasualtiesUnknownOnline.Runtime;
 public static class CuoBootstrap
 {
 	/// <summary>
+	/// The built container (set by the plugin after BuildServiceProvider; null
+	/// before). A read-only diagnostics seam for runtime tools (HotRepl etc.) —
+	/// business code must keep using constructor injection; this only answers
+	/// "what is the running service graph" (same pattern as PatchBridge.Impl:
+	/// the static seam is a query, never a state store).
+	/// </summary>
+	public static IServiceProvider? Services { get; set; }
+
+	/// <summary>
 	/// Builds the container. <paramref name="extraRegistrations"/> lets the plugin
 	/// register the Game Adapter implementation (CUO.GameAdapter references the
 	/// game, so the Runtime cannot reference it back).

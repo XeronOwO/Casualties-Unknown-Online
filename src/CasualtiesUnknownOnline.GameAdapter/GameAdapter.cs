@@ -49,6 +49,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	private readonly RemotePlayerRenderer _renderer;
 	private readonly DropProtectionGuard _dropGuard;
 	private readonly ItemApplication _itemApplication;
+	private readonly ItemReconcile _itemReconcile;
 	private readonly ItemWorldSync _itemWorldSync;
 	private readonly PickupSync _pickupSync;
 	private readonly ContainerItemSync _containerSync;
@@ -64,6 +65,8 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	private readonly WorldParamsService _worldParams;
 	private readonly StartGateCoordinator _gate;
 	private readonly GuestMenuGuard _guestMenu;
+	private readonly GeneratedItemAuthority _genItemAuthority;
+	private readonly GeneratedItemApplication _genItemApplication;
 
 	public GameAdapter(SessionService session, EntitySyncService entities, CharacterDataStore characterData,
 		WorldService world, ItemService items, ILogger<GameAdapter> log, IMapper mapper, ILoggerFactory loggerFactory)
@@ -81,7 +84,8 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_characterDataSync = new CharacterDataSync(session, characterData, mapper, loggerFactory.CreateLogger<CharacterDataSync>());
 		_renderer = new RemotePlayerRenderer(session, entities, _characterDataSync, loggerFactory.CreateLogger<RemotePlayerRenderer>());
 		_dropGuard = new DropProtectionGuard();
-		_itemApplication = new ItemApplication(items, _dropGuard, loggerFactory.CreateLogger<ItemApplication>());
+		_itemApplication = new ItemApplication(items, loggerFactory.CreateLogger<ItemApplication>());
+		_itemReconcile = new ItemReconcile(items, _itemApplication, _dropGuard, loggerFactory.CreateLogger<ItemReconcile>());
 		_operationTrace = new OperationTrace(loggerFactory.CreateLogger<OperationTrace>());
 		var itemReports = new ItemReportCommitter(items, _operationTrace, loggerFactory.CreateLogger<ItemReportCommitter>());
 		var itemIds = new ItemIdAllocator(session);
@@ -94,6 +98,8 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_itemSlotSync = new ItemSlotSync(items, loggerFactory.CreateLogger<ItemSlotSync>());
 		_itemPositionAuthority = new ItemPositionAuthority(items);
 		_itemPositionFollow = new ItemPositionFollow(items, _dropGuard);
+		_genItemAuthority = new GeneratedItemAuthority(session, items, itemIds, loggerFactory.CreateLogger<GeneratedItemAuthority>());
+		_genItemApplication = new GeneratedItemApplication(items, _itemApplication, loggerFactory.CreateLogger<GeneratedItemApplication>());
 		_blockBreakSync = new BlockBreakSync(session, world, items, blockBreakState, _operationTrace, loggerFactory.CreateLogger<BlockBreakSync>());
 		_worldEventSync = new WorldEventSync(session, world, _blockBreakSync, _operationTrace, loggerFactory.CreateLogger<WorldEventSync>());
 		_lifePod = new LifePodPresentation(loggerFactory.CreateLogger<LifePodPresentation>());
@@ -202,6 +208,8 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_guestMenu.Update();
 		_run.Update();
 		_gate.Update(_run.LocalBody);
+		_genItemAuthority.Update(); // host/solo: publish the generation-time items when the generation finished
+		_genItemApplication.Update(); // guest: apply the host's generation snapshot once the local generation finished
 		_itemWorldSync.FlushPendingDrop(); // a drop that was not thrown reports at end of frame (one drop = one report)
 		_blockBreakSync.FlushPendingBlockBreak(); // a break's drops fold in one frame after the break — the break + drops go out as ONE message
 		if (IsHostMode)
@@ -234,10 +242,12 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_characterDataSync.BindToSession();
 		_renderer.BindToSession();
 		_itemApplication.BindToSession();
+		_itemReconcile.BindToSession();
 		_itemWorldSync.BindToSession();
 		_itemPositionFollow.BindToSession();
 		_worldEventSync.BindToSession();
 		_run.BindToSession();
+		_genItemApplication.BindToSession();
 	}
 
 	private void UnbindFromSession()
@@ -245,12 +255,14 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_characterDataSync.Unbind();
 		_renderer.Unbind();
 		_itemApplication.Unbind();
+		_itemReconcile.Unbind();
 		_itemWorldSync.Unbind();
 		_itemWorldSync.ResetPending(); // session ended — a pending drop cannot resolve anymore
 		_blockBreakSync.ResetPending(); // a pending break's drops are gone with the world
 		_itemPositionFollow.Unbind();
 		_worldEventSync.Unbind();
 		_run.Unbind();
+		_genItemApplication.Unbind();
 	}
 
 	// ---- IGameAdapter ----

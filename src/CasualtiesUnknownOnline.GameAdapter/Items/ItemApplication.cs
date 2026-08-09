@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
@@ -11,17 +10,16 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 /// <summary>
 /// Remote world-item application: everything a received message does to the
 /// local scene — materialize (or bind a generation-time object), re-place,
-/// bind containers, kill, roll back and the snapshot reconcile. Owns the
-/// "applying remote" guard: the local-report hooks (ItemWorldSync) read it so
-/// a remote application never echoes back as a local report.
+/// bind containers, kill, roll back and apply corrections. The snapshot
+/// reconcile lives in <see cref="ItemReconcile"/>. Owns the "applying remote"
+/// guard: the local-report hooks (ItemWorldSync) read it so a remote
+/// application never echoes back as a local report.
 /// </summary>
 internal sealed class ItemApplication(
 	ItemService items,
-	DropProtectionGuard guard,
 	ILogger<ItemApplication> log)
 {
 	private readonly ItemService _items = items;
-	private readonly DropProtectionGuard _guard = guard;
 	private readonly ILogger<ItemApplication> _log = log;
 
 	/// <summary>Pickup origin cache (id → world position) — the rollback target for a refused pickup (the pickup-start hook fills it).</summary>
@@ -34,7 +32,6 @@ internal sealed class ItemApplication(
 		_items.ItemDropped += OnRemoteItemDropped;
 		_items.ItemDestroyed += OnRemoteItemDestroyed;
 		_items.ItemRejected += OnItemRejected;
-		_items.ItemSnapshotReceived += OnRemoteItemSnapshot;
 		_items.ItemCorrectionReceived += OnItemCorrection;
 	}
 
@@ -45,7 +42,6 @@ internal sealed class ItemApplication(
 		_items.ItemDropped -= OnRemoteItemDropped;
 		_items.ItemDestroyed -= OnRemoteItemDestroyed;
 		_items.ItemRejected -= OnItemRejected;
-		_items.ItemSnapshotReceived -= OnRemoteItemSnapshot;
 		_items.ItemCorrectionReceived -= OnItemCorrection;
 	}
 
@@ -117,93 +113,6 @@ internal sealed class ItemApplication(
 			if (item != null) // Unity object — ==
 			{
 				KillRemoteItem(item);
-			}
-		}
-	}
-
-	/// <summary>
-	/// The authoritative world-item snapshot arrived (world entry): reconcile —
-	/// destroy local world items missing from the snapshot, materialize the
-	/// snapshot's items (world first, then container contents — the parent
-	/// objects must exist).
-	/// Runs inside a RemoteApply scope like every other remote application — the
-	/// parity is neutral by design (KillRemoteItem zeroes ids and SpawnWorldItem
-	/// attaches them before Item.Start runs, so the local-report hooks observe
-	/// the same things with or without the scope), and it makes "every remote
-	/// mutation carries its call identity" an invariant rather than a habit.
-	/// </summary>
-	private void OnRemoteItemSnapshot(IReadOnlyList<WorldItem> items)
-	{
-		using (CallContext.Enter(CallContext.Origin.RemoteApply))
-		{
-			var killed = 0;
-			var spawned = 0;
-			var snapshot = items.ToDictionary(w => w.ItemId);
-
-			foreach (var item in Item.allItems.ToList()) // copy: destroying while iterating
-			{
-				var idComp = item.GetComponent<ItemInstanceId>();
-				// STANDALONE, not just world: a container's contents (a bag's
-				// carried items) have an id but NO independent table entry — the
-				// entry travels INSIDE the container's Contents. With IsWorldItem
-				// here the keyframe killed them as stale ("put an item in the
-				// legpouch, dropped it — the host sees it inside, the guest's
-				// copy is empty"), which also later fed the "equip the empty
-				// pouch → the item is swallowed" chain (the host's container
-				// copy with the real contents gets deleted by the pickup).
-				// Inventory items are character data (IsStandaloneWorldItem is
-				// false on the Body chain).
-				if (idComp == null || !ItemWorldSync.IsStandaloneWorldItem(item)) // Unity object — ==
-				{
-					continue;
-				}
-
-				if (!snapshot.ContainsKey(idComp.Id))
-				{
-					// Snapshot-race guard: a fresh local drop registered AFTER the
-					// keyframe was generated is not in it yet — killing it would
-					// loop (destroy → ItemDestroy report → the host deletes the
-					// table entry → the next keyframe misses it → reconcile kills
-					// it again, forever).
-					if (_guard.IsProtected(idComp.Id))
-					{
-						continue;
-					}
-
-					KillRemoteItem(item);
-					_guard.Remove(idComp.Id);
-					killed++;
-				}
-			}
-
-			// POSITION is aligned continuously by the 10 Hz position stream (every
-			// item, sleeping included) — the reconcile does NOT place anything:
-			// a 5 s direct placement after the stream already lerped the copy there
-			// would be a jump, and if the copy drifted again it would be yanked
-			// back every keyframe ("bounces back every few seconds"). Only the
-			// missing ones are materialized here (the snapshot-race window).
-			foreach (var w in items.Where(w => w.ParentItemId == 0))
-			{
-				if (FindWorldItem(w.ItemId) == null) // Unity object — ==
-				{
-					SpawnWorldItem(w);
-					spawned++;
-				}
-			}
-
-			foreach (var w in items.Where(w => w.ParentItemId != 0))
-			{
-				if (FindWorldItem(w.ItemId) == null) // Unity object — ==
-				{
-					SpawnWorldItem(w);
-					spawned++;
-				}
-			}
-
-			if (killed > 0 || spawned > 0)
-			{
-				_log.LogInformation("[Reconcile] {Count} items: killed {Killed}, spawned {Spawned}.",
-					items.Count, killed, spawned);
 			}
 		}
 	}

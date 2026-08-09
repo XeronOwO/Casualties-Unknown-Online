@@ -56,4 +56,7 @@ public enum NetMsg : byte
 	ItemCorrection = 59, // host → guest: authoritative item state (the guest's last action-report evidence diverged) — applied via the restore machinery, no location fields
 	ItemUse = 60, // guest → host: an item was used (digest evidence) — the host validates state and corrects
 	ItemSlot = 61, // guest → host: an item moved slots (id + new slot) — the host updates its record and corrects
+
+	// World items (generation-time — host authority: the host assigns the ids and distributes the full set)
+	WorldItemsSnapshot = 62, // host → guest: the generation-time world items (ground + starting supplies) with host-assigned ids — the guests bind their local copies to the host's ids or materialize the host's version
 }

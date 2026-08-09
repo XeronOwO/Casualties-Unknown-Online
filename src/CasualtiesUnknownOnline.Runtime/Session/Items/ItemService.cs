@@ -47,6 +47,8 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 
 	public event Action<IReadOnlyList<WorldItem>>? ItemSnapshotReceived;
 
+	public event Action<IReadOnlyList<ItemSnapshotEntryMsg>>? WorldItemsSnapshotReceived;
+
 	public event Action<IReadOnlyList<ItemMoveEntryMsg>>? ItemMoveReceived;
 
 	public event Action<CharacterItemMsg>? ItemCorrectionReceived
@@ -474,14 +476,15 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 		_log.LogInformation("Sent world-item snapshot ({Count} items) to {Peer}.", _worldItems.Count, targetSteamId);
 	}
 
-	/// <summary>Host only: the item's live state — the periodic keyframe must broadcast the CURRENT positions, not the spawn-time ones (the spawn position would pull settled items back into the air every tick).</summary>
-	public void RefreshItemState(ulong itemId, NetVector2 pos, NetVector2 vel, float rotation)
+	/// <summary>Host only: the item's live state — the periodic keyframe must broadcast the CURRENT positions and condition, not the spawn-time ones (the spawn position would pull settled items back into the air every tick; a stale condition would re-align the peers' decay to the wrong value).</summary>
+	public void RefreshItemState(ulong itemId, NetVector2 pos, NetVector2 vel, float rotation, float condition)
 	{
 		if (_session.Role == SessionRole.Guest || !_worldItems.TryGetValue(itemId, out var w))
 		{
 			return;
 		}
 
+		w.Item.Condition = condition;
 		_worldItems[itemId] = w with { Pos = pos, Vel = vel, Rotation = rotation };
 	}
 
@@ -507,4 +510,48 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 	}
 
 	public void ResetItems() => _worldItems.Clear();
+
+	/// <summary>
+	/// Host only: the generation finished — the host assigned an id to every
+	/// generation-time item (ground items + the starting supplies) and hands the
+	/// full set over. Registered silently into the table (no ItemSpawned event —
+	/// the local copies already exist; only the guests need to bind or
+	/// materialize) and broadcast as ONE reliable snapshot — the guests bind
+	/// their local copies to the host's ids or materialize the host's version.
+	/// After this the items are ordinary table entries: the position stream, the
+	/// periodic keyframe, the pickup arbitration and the late-joiner snapshot
+	/// all cover them.
+	/// </summary>
+	public void PublishGeneratedItems(IReadOnlyList<ItemSnapshotEntryMsg> entries)
+	{
+		if (_session.Role == SessionRole.Guest || entries.Count == 0)
+		{
+			return;
+		}
+
+		var registered = 0;
+		foreach (var entry in entries)
+		{
+			// A carried entry (starting supplies, SlotIndex >= 0) has NO table
+			// entry — it lives in a backpack until a drop brings it into the
+			// world (the drop report registers it then, the standard path).
+			if (entry.SlotIndex >= 0 || _worldItems.ContainsKey(entry.ItemId))
+			{
+				continue;
+			}
+
+			_worldItems[entry.ItemId] = new WorldItem(entry.ItemId, entry.Item,
+				entry.Position.ToNetVector2(), entry.Velocity.ToNetVector2(),
+				entry.ParentItemId, entry.Rotation, entry.FreshItemDrop);
+			registered++;
+		}
+
+		_session.Broadcast(NetMsg.WorldItemsSnapshot, new WorldItemsSnapshotMsg { Items = [.. entries] });
+		_log.LogInformation("Published generation items ({Count} entries, {Registered} registered): {World} ground, {Carried} carried.",
+			entries.Count, registered,
+			entries.Count(e => e.SlotIndex < 0), entries.Count(e => e.SlotIndex >= 0));
+	}
+
+	public void FireWorldItemsSnapshotReceived(ulong sender, IReadOnlyList<ItemSnapshotEntryMsg> items) =>
+		WorldItemsSnapshotReceived?.Invoke(items);
 }

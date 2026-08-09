@@ -43,7 +43,7 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 
 	public event Action<ulong>? ItemDestroyed;
 
-	public event Action<ulong>? ItemRejected;
+	public event Action<ulong, ItemRejectMsg.Reason>? ItemRejected;
 
 	public event Action<IReadOnlyList<WorldItem>>? ItemSnapshotReceived;
 
@@ -246,19 +246,31 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 	{
 		if (_session.Role == SessionRole.Host)
 		{
-			if (!_worldItems.TryGetValue(itemId, out var entry) || !_worldItems.Remove(itemId))
+			if (!_worldItems.TryGetValue(itemId, out var entry))
 			{
 				// Not in the table: the spawn report is still in flight (the
 				// pickup won the race) or a faster writer already took it —
-				// refuse; the requester rolls its local pickup back.
-				_sender.Send(sender, NetMsg.ItemReject, new ItemRejectMsg
+				// refuse; the requester rolls its local pickup back. EXCEPT:
+				// an id that travels INSIDE a container entry (a bag's picked-up
+				// contents are reported separately, PickupSync, but have no
+				// independent world-table entry) is not unknown — accept
+				// silently, the container's own transfer carries it (refusing
+				// yanked each content back out of the picker's bag — "picked up
+				// a bag with contents, it came back empty").
+				if (!_arbitration.IsContainedInEntry(itemId, _worldItems))
 				{
-					ItemId = itemId,
-					Rejection = ItemRejectMsg.Reason.UnknownItem,
-				});
-				_log.LogWarning("Item pickup {ItemId} from {Sender} refused — not in the world-item table.", itemId, sender);
+					_sender.Send(sender, NetMsg.ItemReject, new ItemRejectMsg
+					{
+						ItemId = itemId,
+						Rejection = ItemRejectMsg.Reason.UnknownItem,
+					});
+					_log.LogWarning("Item pickup {ItemId} from {Sender} refused — not in the world-item table.", itemId, sender);
+				}
+
 				return;
 			}
+
+			_worldItems.Remove(itemId);
 
 			// Accept-with-correction: the transfer happens from OUR entry (the
 			// picker's claim never replaces it), the picker's evidence is only
@@ -322,11 +334,80 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 		ItemDestroyed?.Invoke(itemId);
 	}
 
-	public void FireItemRejectReceived(ulong sender, ulong itemId)
+	public void FireItemRejectReceived(ulong sender, ulong itemId, ItemRejectMsg.Reason reason)
 	{
-		_log.LogWarning("Item pickup {ItemId} rejected by the host ({Reason}) — rolling back.", itemId, sender);
-		ItemRejected?.Invoke(itemId);
+		_log.LogWarning("Item {ItemId} rejected by the host ({Reason}) — rolling back.", itemId, reason);
+		ItemRejected?.Invoke(itemId, reason);
 	}
+
+	// ===== Block-break drops (one message, one verdict — the break's drops ride BlockDamagedMsg) =====
+
+	/// <summary>
+	/// Host/solo: record the drops of a LOCALLY broken block into the
+	/// authoritative table (the wire report itself goes through
+	/// WorldService.SendBlockDamaged — the drops travel with the break, not as
+	/// standalone spawn reports). The local drop objects already exist — this
+	/// only registers, never materializes. Guests have no table and never call.
+	/// </summary>
+	public void RegisterBlockDrops(IReadOnlyList<BlockDropEntryMsg> drops)
+	{
+		if (_session.Role == SessionRole.Guest || drops.Count == 0)
+		{
+			return;
+		}
+
+		foreach (var drop in drops)
+		{
+			if (!_worldItems.ContainsKey(drop.ItemId))
+			{
+				_worldItems[drop.ItemId] = ToWorldItem(drop);
+			}
+		}
+	}
+
+	/// <summary>
+	/// A break with drops was APPLIED (host: the report's break was accepted —
+	/// the sender's BlockPlaced already broke the block on this side; guest: the
+	/// host's accepted relay arrived): register (host only) and materialize
+	/// every drop. The breaker itself is excluded from the relay and never
+	/// arrives here — its local drops are the original, already on the ground.
+	/// </summary>
+	public void FireBlockDropsReceived(ulong sender, IReadOnlyList<BlockDropEntryMsg> drops)
+	{
+		if (drops.Count == 0)
+		{
+			return;
+		}
+
+		foreach (var drop in drops)
+		{
+			if (_session.Role == SessionRole.Host && !_worldItems.ContainsKey(drop.ItemId))
+			{
+				_worldItems[drop.ItemId] = ToWorldItem(drop);
+			}
+
+			ItemSpawned?.Invoke(ToWorldItem(drop));
+		}
+	}
+
+	/// <summary>
+	/// Host only: refuse a reported break's drops (the break was already applied
+	/// by another report — first-writer-wins) — the reporter destroys its local
+	/// drops (BlockAlreadyBroken) and the world never sees them.
+	/// </summary>
+	public void SendItemReject(ulong targetSteamId, ulong itemId, ItemRejectMsg.Reason reason)
+	{
+		if (_session.Role != SessionRole.Host || !_session.SessionActive)
+		{
+			return;
+		}
+
+		_sender.Send(targetSteamId, NetMsg.ItemReject, new ItemRejectMsg { ItemId = itemId, Rejection = reason });
+	}
+
+	private static WorldItem ToWorldItem(BlockDropEntryMsg drop) => new(
+		drop.ItemId, drop.Item, drop.Position.ToNetVector2(), drop.Velocity.ToNetVector2(),
+		0, drop.Rotation, drop.FreshItemDrop, AngularVelocity: drop.AngularVelocity);
 
 	public void FireItemCorrectionReceived(ulong sender, CharacterItemMsg item)
 	{

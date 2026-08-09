@@ -23,7 +23,20 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 internal static class CallContext
 {
 	/// <summary>Who is mutating the scene right now.</summary>
-	internal enum Origin { LocalAction, RemoteApply, InternalReorder }
+	internal enum Origin
+	{
+		/// <summary>Plain game-code calls — the default when no scope is open.</summary>
+		LocalAction,
+
+		/// <summary>A remote message is being applied.</summary>
+		RemoteApply,
+
+		/// <summary>An inventory-internal reorder (no world-meaningful move).</summary>
+		InternalReorder,
+
+		/// <summary>Inside a local DamageBlock roll — Utils.Create calls in this scope are block drops (marked with DropOrigin, folded into the pending break report).</summary>
+		DamageBlockOrigin,
+	}
 
 	/// <summary>Stack bound — real nesting is 2-3 levels (remote apply → container load → hooks).</summary>
 	private const int MaxDepth = 16;

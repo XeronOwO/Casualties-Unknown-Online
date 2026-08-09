@@ -45,8 +45,17 @@ public interface IItemControl
 
 	void FireItemDestroyedReceived(ulong sender, ulong itemId);
 
-	/// <summary>Guest side: the host refused an arbitration — roll the local pickup back.</summary>
-	void FireItemRejectReceived(ulong sender, ulong itemId);
+	/// <summary>Guest side: the host refused an arbitration — roll back (UnknownItem = a refused pickup, BlockAlreadyBroken = a refused block break's drops to destroy).</summary>
+	void FireItemRejectReceived(ulong sender, ulong itemId, ItemRejectMsg.Reason reason);
+
+	/// <summary>Host/solo: record the drops of a LOCALLY broken block into the authoritative table (the report travels inside BlockDamagedMsg — never a standalone spawn report).</summary>
+	void RegisterBlockDrops(IReadOnlyList<BlockDropEntryMsg> drops);
+
+	/// <summary>A break with drops was applied — register (host only) and materialize every drop.</summary>
+	void FireBlockDropsReceived(ulong sender, IReadOnlyList<BlockDropEntryMsg> drops);
+
+	/// <summary>Host only: refuse a reported break's drops (the break was already applied — first-writer-wins) — the reporter destroys its local drops.</summary>
+	void SendItemReject(ulong targetSteamId, ulong itemId, ItemRejectMsg.Reason reason);
 
 	/// <summary>Guest side: the authoritative world-item snapshot arrived — reconcile locally.</summary>
 	void FireItemSnapshotReceived(ulong sender, IReadOnlyList<WorldItem> items);
@@ -107,8 +116,8 @@ public interface IItemControl
 	/// <summary>Guest side: the host's physics moved items — follow (apply the authoritative positions).</summary>
 	event Action<IReadOnlyList<ItemMoveEntryMsg>>? ItemMoveReceived;
 
-	/// <summary>The host refused our pickup — take the item back out of the inventory.</summary>
-	event Action<ulong>? ItemRejected;
+	/// <summary>The host refused an item arbitration — roll back (UnknownItem = pickup, BlockAlreadyBroken = block-break drops to destroy).</summary>
+	event Action<ulong, ItemRejectMsg.Reason>? ItemRejected;
 
 	/// <summary>The authoritative snapshot arrived — reconcile the local world items against it.</summary>
 	event Action<IReadOnlyList<WorldItem>>? ItemSnapshotReceived;

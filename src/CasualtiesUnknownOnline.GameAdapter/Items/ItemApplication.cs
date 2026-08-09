@@ -273,13 +273,29 @@ internal sealed class ItemApplication(
 		}
 	}
 
-	/// <summary>The host refused our pickup — take the item back out of the inventory and put it back where it was picked up.</summary>
-	private void OnItemRejected(ulong itemId)
+	/// <summary>
+	/// The host refused an item arbitration: UnknownItem — our pickup lost a
+	/// race, take the item back out of the inventory to where it was picked up;
+	/// BlockAlreadyBroken — our block break's drops were refused (another report
+	/// of the same break won first-writer-wins), destroy the local drops: they
+	/// were never picked up, there is no ground position to roll back to.
+	/// </summary>
+	private void OnItemRejected(ulong itemId, ItemRejectMsg.Reason reason)
 	{
 		using (CallContext.Enter(CallContext.Origin.RemoteApply))
 		{
 			var item = FindWorldItem(itemId);
-			if (item != null) // Unity object — ==
+			if (item == null) // Unity object — ==
+			{
+				return;
+			}
+
+			if (reason == ItemRejectMsg.Reason.BlockAlreadyBroken)
+			{
+				KillRemoteItem(item);
+				_log.LogInformation("[ItemReject] block drop {ItemId} ({Type}) refused — destroying the local copy.", itemId, item.id);
+			}
+			else
 			{
 				RollbackPickup(item, itemId);
 			}
@@ -393,19 +409,29 @@ internal sealed class ItemApplication(
 	}
 
 	/// <summary>
-	/// Remove an item object as a REMOTE application: zero its instance id
+	/// Remove an item object as a REMOTE application: zero its instance id(s)
 	/// immediately, then Destroy. UnityEngine.Object.Destroy is deferred to
 	/// end-of-frame, so the OnDestroy hook fires AFTER the reentry guard has
-	/// been restored — without zeroing the id first, every remote deletion
+	/// been restored — without zeroing the ids first, every remote deletion
 	/// would echo back as a local destroy report and kill the peer's own copy
 	/// (observed: picking up an item destroyed it on the picker's side too).
+	/// The whole SUBTREE is zeroed, contents included: a destroyed container
+	/// takes its contents with it (Unity destroys children with the parent),
+	/// and a child's id still set would report ITS destruction the same way —
+	/// the picker's just-picked-up content vanished right after the pickup
+	/// (the deferred destroy of a remote-killed bag re-reported each carried
+	/// item as locally destroyed; the peer then deleted the content it had
+	/// just received).
 	/// </summary>
 	internal static void KillRemoteItem(Item item)
 	{
-		var idComp = item.GetComponent<ItemInstanceId>();
-		if (idComp != null) // Unity object — ==
+		foreach (var child in item.GetComponentsInChildren<Item>(true)) // the root is included — zeroing twice is harmless
 		{
-			idComp.Id = 0;
+			var childId = child.GetComponent<ItemInstanceId>();
+			if (childId != null) // Unity object — ==
+			{
+				childId.Id = 0;
+			}
 		}
 
 		UnityEngine.Object.Destroy(item.gameObject);
@@ -497,9 +523,17 @@ internal sealed class ItemApplication(
 				{
 					existingId = existing.gameObject.AddComponent<ItemInstanceId>();
 					existingId.Id = w.ItemId;
-					existing.condition = w.Item.Condition; // match the originator's carried state
-					ItemStateCodec.RestoreLiquids(existing, w.Item.Liquids);
-					ItemStateCodec.RestoreComponentStates(existing, w.Item.Components);
+					// Restore = exact rebuild (the bind target is the peer's
+					// generation-time object, but its state must become the
+					// originator's): condition/liquids/components AND contents.
+					// The contents were previously never restored here — a
+					// generation-time container that the originator loaded items
+					// into and dropped came out EMPTY on the peer ("host put a
+					// water bottle in the trash bag, dropped it — the guest
+					// picked up an empty bag"). ApplyAuthoritativeState matches
+					// contents by id so the container's own generation-time
+					// contents are not duplicated.
+					ApplyAuthoritativeState(existing, w.Item);
 					if (w.FreshItemDrop)
 					{
 						existing.gameObject.AddComponent<FreshItemDrop>();

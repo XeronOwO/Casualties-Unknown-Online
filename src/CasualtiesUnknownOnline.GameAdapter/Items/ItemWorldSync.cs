@@ -22,6 +22,7 @@ internal sealed class ItemWorldSync(
 	ItemService items,
 	DropProtectionGuard guard,
 	ItemDropState dropState,
+	PendingBlockBreak breakState,
 	OperationTrace trace,
 	ItemReportCommitter reports,
 	ItemIdAllocator ids,
@@ -31,6 +32,7 @@ internal sealed class ItemWorldSync(
 	private readonly ItemService _items = items;
 	private readonly DropProtectionGuard _guard = guard;
 	private readonly ItemDropState _dropState = dropState;
+	private readonly PendingBlockBreak _breakState = breakState;
 	private readonly OperationTrace _trace = trace;
 	private readonly ItemReportCommitter _reports = reports;
 	private readonly ItemIdAllocator _ids = ids;
@@ -117,6 +119,12 @@ internal sealed class ItemWorldSync(
 	/// them); everything else gets an instance id and is reported. Solo play
 	/// records too (no broadcast) — a solo-turned-lobby host hands its
 	/// accumulated items to a joining guest via the snapshot.
+	/// A BLOCK DROP (DropOrigin marker — created inside a local DamageBlock
+	/// roll) is not reported standalone: it folds into the pending break report
+	/// (one message, one verdict — the break's drops travel inside
+	/// BlockDamagedMsg). The position is the marker's spawn value — a DETERMINED
+	/// position (the Create call's argument), where physics may have bounced the
+	/// transform by now.
 	/// An item already inside an inventory/container when Start runs is NOT a
 	/// world item: the game instantiates and picks up in the same frame (the
 	/// starting supplies, WorldGeneration.cs:1904-1912) and MonoBehaviour.Start
@@ -142,6 +150,31 @@ internal sealed class ItemWorldSync(
 		// The glowing floating pickup effect carries over (the proximity check
 		// already ran on the attacker's side — the component is the truth).
 		var fresh = item.GetComponent<FreshItemDrop>() != null; // Unity object — ==
+		var dropOrigin = item.GetComponent<DropOrigin>(); // Unity object — ==
+		if (dropOrigin != null) // Unity object — ==
+		{
+			// A block drop: fold into the pending break report (the break postfix
+			// held it this frame; the flush at end of NEXT frame sends both).
+			if (_breakState.TryAddDrop(new BlockDropEntryMsg
+			{
+				ItemId = itemId,
+				Item = ItemStateCodec.CaptureItem(item, -1),
+				Position = new NetVector2(dropOrigin.SpawnPosition.x, dropOrigin.SpawnPosition.y).ToNetVector2Msg(),
+				Velocity = new NetVector2(item.rb.velocity.x, item.rb.velocity.y).ToNetVector2Msg(),
+				Rotation = item.transform.eulerAngles.z,
+				FreshItemDrop = fresh,
+				AngularVelocity = item.rb.angularVelocity,
+			}))
+			{
+				_trace.End(op, itemId, "OnItemInstantiated", "Committed", "DropCaptured");
+				return;
+			}
+
+			// No break pending (the world left / session ended between the break
+			// and this frame) — fall through to the standalone report; the item
+			// still enters the domain, the session gate handles the rest.
+		}
+
 		_log.LogInformation("[ItemSpawned] local {Type} (id {ItemId}) reported at ({X:F1},{Y:F1}), vel ({VX:F1},{VY:F1}), fresh {Fresh}.",
 			item.id, itemId, item.transform.position.x, item.transform.position.y,
 			item.rb.velocity.x, item.rb.velocity.y, fresh);

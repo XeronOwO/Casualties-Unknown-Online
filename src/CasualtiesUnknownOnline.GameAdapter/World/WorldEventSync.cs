@@ -13,20 +13,25 @@ using UnityEngine;
 namespace CasualtiesUnknownOnline.GameAdapter.World;
 
 /// <summary>
-/// World-event domain: block damage/placement, building-entity damage/open,
-/// earthquakes (host timing) and the generated-baseline difference table —
-/// local compute → report → host relay/arbitration, position-keyed. Owns the
+/// World-event domain: block placement + the generated-baseline difference
+/// table, building-entity damage/open, earthquakes (host timing — guests never
+/// trigger, they only receive) and the keypad codes. Block DAMAGE + the block
+/// break arbitration live in <see cref="BlockBreakSync"/> (the break's drops
+/// are one message with the break — split for the 600-line gate). Local
+/// compute → report → host relay/arbitration, position-keyed. Owns the
 /// deferred spawn-landing presentation (sound + camera shake) that the start
 /// gate must not play into the frozen world.
 /// </summary>
 internal sealed class WorldEventSync(
 	SessionService session,
 	WorldService world,
+	BlockBreakSync blockBreaks,
 	OperationTrace trace,
 	ILogger<WorldEventSync> log)
 {
 	private readonly SessionService _session = session;
 	private readonly WorldService _world = world;
+	private readonly BlockBreakSync _blockBreaks = blockBreaks;
 	private readonly OperationTrace _trace = trace;
 	private readonly ILogger<WorldEventSync> _log = log;
 
@@ -41,7 +46,7 @@ internal sealed class WorldEventSync(
 
 	internal void BindToSession()
 	{
-		_world.BlockDamagedReceived += OnRemoteBlockDamaged;
+		_world.BlockDamagedReceived += _blockBreaks.OnRemoteBlockDamaged;
 		_world.BuildingEntityDamagedReceived += OnRemoteBuildingEntityDamaged;
 		_world.BuildingEntityOpenedReceived += OnRemoteBuildingEntityOpened;
 		_world.BlockStateReceived += OnRemoteBlockState;
@@ -52,7 +57,7 @@ internal sealed class WorldEventSync(
 
 	internal void Unbind()
 	{
-		_world.BlockDamagedReceived -= OnRemoteBlockDamaged;
+		_world.BlockDamagedReceived -= _blockBreaks.OnRemoteBlockDamaged;
 		_world.BuildingEntityDamagedReceived -= OnRemoteBuildingEntityDamaged;
 		_world.BuildingEntityOpenedReceived -= OnRemoteBuildingEntityOpened;
 		_world.BlockStateReceived -= OnRemoteBlockState;
@@ -93,49 +98,6 @@ internal sealed class WorldEventSync(
 					_world.SendBlockStateSnapshot(member.SteamId);
 				}
 			}
-		}
-	}
-
-	/// <summary>
-	/// Called from the DamageBlock patch after a LOCAL block damage was applied:
-	/// report it so the peer applies the same damage at the same world position.
-	/// </summary>
-	internal void OnBlockDamaged(Vector2 pos, float dmg)
-	{
-		if (IsRemoteApply || !_session.SessionActive)
-		{
-			return;
-		}
-
-		// Player-driven (mining, building damage — the DamageBlock hook fires
-		// AFTER the local write applied, so the commit is verified by its call
-		// point). Quake/environment breaks go through SetBlock, not here.
-		_world.SendBlockDamaged(new NetVector2(pos.x, pos.y), dmg);
-		_trace.End(_trace.NextOperationId(), 0, "OnBlockDamaged", "Committed(1)", "Damage");
-	}
-
-	/// <summary>
-	/// The peer damaged a block — apply it locally (remote verify/sync). Drops
-	/// are host-authoritative: the HOST's application rolls them (ignoreLoot=
-	/// false here on the host — its own Random stream decides what falls, and
-	/// the items broadcast through the item domain); the guest's application
-	/// never rolls (ignoreLoot=true — its local attacks are also force-no-roll
-	/// by WorldGenerationDamageBlockLootPatch). Rolling only on the host keeps
-	/// the dropped items' spawn state (what/where/velocity) identical on both
-	/// sides — independent rolls would draw from each side's own Random stream.
-	/// </summary>
-	private void OnRemoteBlockDamaged(NetVector2 pos, float dmg)
-	{
-		if (WorldGeneration.world == null) // Unity object — ==
-		{
-			return;
-		}
-
-		using (CallContext.Enter(CallContext.Origin.RemoteApply))
-		{
-			WorldGeneration.world.DamageBlock(
-				WorldGeneration.world.WorldToBlockPos(new Vector2(pos.X, pos.Y)), dmg, true, false,
-				_session.Role != SessionRole.Host);
 		}
 	}
 
@@ -306,7 +268,10 @@ internal sealed class WorldEventSync(
 	/// on air (the game's own placement condition, Item.cs), an AIR write
 	/// (earthquake/environment break, block == 0) must land on something — then
 	/// applies, records the difference and relays (source excluded); guest
-	/// applies it directly.
+	/// applies it directly. An APPLIED air write also records the sender's
+	/// break for the drops arbitration: when that sender's BlockDamaged report
+	/// (the drops carrier) arrives later, the record proves the break was the
+	/// first writer (see _recentBroken).
 	/// </summary>
 	private void OnRemoteBlockPlaced(ulong sender, int x, int y, ushort block)
 	{
@@ -331,6 +296,12 @@ internal sealed class WorldEventSync(
 				WorldGeneration.world.SetBlock(pos, block);
 				_world.ReportBlockState(x, y, block); // the mutation is a world difference too
 				_world.BroadcastBlockPlaced(sender, x, y, block); // the reporter already applied locally
+				if (block == 0)
+				{
+					// A player break (its BlockDamaged report follows) — or a
+					// quake/environment write (expires unused in BlockBreakSync).
+					_blockBreaks.OnRemoteAirWriteApplied(sender, pos);
+				}
 			}
 			else
 			{
@@ -344,9 +315,12 @@ internal sealed class WorldEventSync(
 	/// HOST broadcasts it (quake timing is synced to the host: guests show the
 	/// effect and re-align their timer, so every side shakes together and
 	/// breaks its own nearby region; the regions union via the air-write relay,
-	/// overlaps count once). A GUEST-side quake start (its own timer won the
-	/// first-quake race before any host broadcast aligned it) is telemetry only
-	/// — logged, never broadcast. Reset the per-quake counters either way.
+	/// overlaps count once). A GUEST never starts one: its timer is frozen by
+	/// the patch's Prefix (WorldGenerationUpdatePatch), so a start observed
+	/// here is either the host's broadcast landing mid-frame (frame order) or
+	/// a freeze leak — never canceled (canceling a broadcast-driven quake is
+	/// "started then ended"; the freeze is the guard). Solo play (no session)
+	/// quakes normally.
 	/// </summary>
 	internal void OnEarthquakeStarted(float duration, float nextDelay)
 	{
@@ -355,9 +329,13 @@ internal sealed class WorldEventSync(
 			_log.LogInformation("[Earthquake] host quake started ({Duration:F1}s, next in {NextDelay:F0}s) — broadcasting.", duration, nextDelay);
 			_world.BroadcastEarthquakeStart(duration, nextDelay);
 		}
+		else if (_session.SessionActive)
+		{
+			_log.LogInformation("[Earthquake] guest quake start observed ({Duration:F1}s) — timer frozen, host broadcast drives it.", duration);
+		}
 		else
 		{
-			_log.LogInformation("[Earthquake] local quake started on this side ({Duration:F1}s, next in {NextDelay:F0}s) — NOT broadcasting (only the host does).", duration, nextDelay);
+			_log.LogInformation("[Earthquake] local quake started on this side ({Duration:F1}s, next in {NextDelay:F0}s) — solo, no session.", duration, nextDelay);
 		}
 	}
 

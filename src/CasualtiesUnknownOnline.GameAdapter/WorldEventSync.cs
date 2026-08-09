@@ -5,6 +5,7 @@ using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.GameAdapter.Items;
+using CasualtiesUnknownOnline.GameAdapter.Patches;
 using HarmonyLib;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
@@ -21,10 +22,12 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 internal sealed class WorldEventSync(
 	SessionService session,
 	WorldService world,
+	OperationTrace trace,
 	ILogger<WorldEventSync> log)
 {
 	private readonly SessionService _session = session;
 	private readonly WorldService _world = world;
+	private readonly OperationTrace _trace = trace;
 	private readonly ILogger<WorldEventSync> _log = log;
 
 	/// <summary>True while a remote world mutation is being applied — the local-report hooks must stay silent (call identity lives in CallContext, not bools).</summary>
@@ -104,7 +107,11 @@ internal sealed class WorldEventSync(
 			return;
 		}
 
+		// Player-driven (mining, building damage — the DamageBlock hook fires
+		// AFTER the local write applied, so the commit is verified by its call
+		// point). Quake/environment breaks go through SetBlock, not here.
 		_world.SendBlockDamaged(new NetVector2(pos.x, pos.y), dmg);
+		_trace.End(_trace.NextOperationId(), 0, "OnBlockDamaged", "Committed(1)", "Damage");
 	}
 
 	/// <summary>
@@ -148,6 +155,7 @@ internal sealed class WorldEventSync(
 
 		var pos = entity.transform.position;
 		_world.SendBuildingEntityDamaged(new NetVector2(pos.x, pos.y), damage);
+		_trace.End(_trace.NextOperationId(), 0, "OnBuildingEntityDamaged", "Committed(1)", "EntityDamage");
 	}
 
 	/// <summary>
@@ -194,6 +202,7 @@ internal sealed class WorldEventSync(
 
 		var pos = entity.transform.position;
 		_world.SendBuildingEntityOpened(new NetVector2(pos.x, pos.y));
+		_trace.End(_trace.NextOperationId(), 0, "OnBuildingEntityOpened", "Committed(1)", "Open");
 	}
 
 	/// <summary>
@@ -238,6 +247,16 @@ internal sealed class WorldEventSync(
 		if (IsRemoteApply || HarmonyTraverse.IsGenerating())
 		{
 			return;
+		}
+
+		// Trace only the PLAYER-driven writes: mining and placement (the postfix
+		// verified the write landed — GetBlock == block). Quake/environment
+		// breaks fire inside WorldGeneration.Update at 16/s per side — the
+		// [Earthquake] summary lines cover those; a per-break trace would drown
+		// the log.
+		if (_session.SessionActive && !WorldGenerationUpdatePatch.InUpdate)
+		{
+			_trace.End(_trace.NextOperationId(), 0, "OnBlockSet", "Committed(1)", "BlockSet");
 		}
 
 		// Host OR solo: diff against the generated baseline (equal → removed

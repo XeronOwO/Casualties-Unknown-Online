@@ -79,7 +79,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_itemWorldSync = new ItemWorldSync(session, items, _itemApplication, _dropGuard, _operationTrace, itemReports, loggerFactory.CreateLogger<ItemWorldSync>());
 		_itemPositionAuthority = new ItemPositionAuthority(items);
 		_itemPositionFollow = new ItemPositionFollow(items, _dropGuard);
-		_worldEventSync = new WorldEventSync(session, world, loggerFactory.CreateLogger<WorldEventSync>());
+		_worldEventSync = new WorldEventSync(session, world, _operationTrace, loggerFactory.CreateLogger<WorldEventSync>());
 		_lifePod = new LifePodPresentation(loggerFactory.CreateLogger<LifePodPresentation>());
 		_guestMenu = new GuestMenuGuard(session, loggerFactory.CreateLogger<GuestMenuGuard>());
 		_worldParams = new WorldParamsService(world, loggerFactory.CreateLogger<WorldParamsService>());

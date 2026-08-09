@@ -80,11 +80,11 @@ internal interface IPatchBridge
 	/// <summary>An earthquake just started in WorldGeneration.Update — the host broadcasts it (timing sync + the next delay; guests re-align their timer).</summary>
 	void OnEarthquakeStarted(float duration, float nextDelay);
 
-	/// <summary>An earthquake just ended in WorldGeneration.Update — diagnostic log (the "not simultaneous" report).</summary>
-	void OnEarthquakeEnded();
-
 	/// <summary>The GlobalDark fade was skipped because the gate window holds (diagnostic — the "black, then the wait" report).</summary>
 	void OnDarkenSkipped();
+
+	/// <summary>True while a remote block-placement/break is being applied — the SetBlock gate must not swallow remote breaks (they already passed the source's gate).</summary>
+	bool IsApplyingRemoteBlockPlace { get; }
 
 	/// <summary>
 	/// An earthquake break (SetBlock(0) inside WorldGeneration.Update) — apply

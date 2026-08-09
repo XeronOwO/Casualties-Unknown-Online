@@ -17,7 +17,7 @@ public sealed class ItemRejectHandler(ILogger<ItemRejectHandler> log) : PacketHa
 
 	protected override void Handle(ulong sender, ItemRejectMsg msg, HandlerContext ctx)
 	{
-		ctx.Items.FireItemRejectReceived(sender, msg.ItemId);
+		ctx.Items.FireItemRejectReceived(sender, msg.ItemId, msg.Rejection);
 		_log.LogWarning("Item {ItemId} rejected ({Reason}) by the host {Sender}.", msg.ItemId, msg.Rejection, sender);
 	}
 }

@@ -131,6 +131,31 @@ public sealed class ItemArbitration(ISessionControl session, PacketSender sender
 		ItemCorrectionReceived?.Invoke(item);
 	}
 
+	/// <summary>
+	/// True when the id appears inside any world-table entry's contents
+	/// (recursive) — the item travels INSIDE a container entry, not as an
+	/// independent world item. A pickup report of that id is then not "unknown":
+	/// the container's own transfer carries the item, and refusing it would
+	/// yank the content out of the picker's bag (a bag with contents picked up
+	/// came back empty — the host's refusal rolled each content back into the
+	/// world).
+	/// </summary>
+	public bool IsContainedInEntry(ulong itemId, IReadOnlyDictionary<ulong, WorldItem> worldItems)
+	{
+		foreach (var entry in worldItems.Values)
+		{
+			if (ContentsContain(entry.Item, itemId))
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	private static bool ContentsContain(CharacterItemMsg item, ulong itemId) =>
+		item.Contents.Any(c => c.InstanceId == itemId || ContentsContain(c, itemId));
+
 	// ===== Host-only surface =====
 
 	public void SendCorrection(ulong targetSteamId, CharacterItemMsg item)

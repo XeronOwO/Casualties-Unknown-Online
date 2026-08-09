@@ -19,9 +19,16 @@ public interface IWorldControl
 
 	void SetHostRunPending(bool pending);
 
-	void FireBlockDamagedReceived(NetVector2 pos, float damage);
+	/// <summary>Host: a guest reported damage (sender = the reporter; drops ride the break — the host arbitrates). Guest: the host broadcast it.</summary>
+	void FireBlockDamagedReceived(ulong sender, NetVector2 pos, float damage, IReadOnlyList<BlockDropEntryMsg>? drops);
 
-	event Action<NetVector2, float>? BlockDamagedReceived;
+	event Action<ulong, NetVector2, float, IReadOnlyList<BlockDropEntryMsg>?>? BlockDamagedReceived;
+
+	/// <summary>Report a locally-performed block damage (drops = the break's drops, null/empty = damage only): guest → host report, host → broadcast to all synced members.</summary>
+	void SendBlockDamaged(NetVector2 worldPos, float damage, IReadOnlyList<BlockDropEntryMsg>? drops);
+
+	/// <summary>Host only: relay an ACCEPTED guest break report to the other members (source excluded).</summary>
+	void BroadcastBlockDamaged(ulong excludeSteamId, NetVector2 worldPos, float damage, IReadOnlyList<BlockDropEntryMsg>? drops);
 
 	void FireWorldJoinReceived(bool isTutorial);
 

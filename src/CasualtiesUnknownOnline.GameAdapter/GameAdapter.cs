@@ -57,6 +57,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	private readonly OperationTrace _operationTrace;
 	private readonly ItemPositionAuthority _itemPositionAuthority;
 	private readonly ItemPositionFollow _itemPositionFollow;
+	private readonly BlockBreakSync _blockBreakSync;
 	private readonly WorldEventSync _worldEventSync;
 	private readonly LifePodPresentation _lifePod;
 	private readonly RunCoordinator _run;
@@ -85,14 +86,16 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		var itemReports = new ItemReportCommitter(items, _operationTrace, loggerFactory.CreateLogger<ItemReportCommitter>());
 		var itemIds = new ItemIdAllocator(session);
 		var itemDropState = new ItemDropState();
-		_itemWorldSync = new ItemWorldSync(session, items, _dropGuard, itemDropState, _operationTrace, itemReports, itemIds, loggerFactory.CreateLogger<ItemWorldSync>());
+		var blockBreakState = new PendingBlockBreak();
+		_itemWorldSync = new ItemWorldSync(session, items, _dropGuard, itemDropState, blockBreakState, _operationTrace, itemReports, itemIds, loggerFactory.CreateLogger<ItemWorldSync>());
 		_pickupSync = new PickupSync(items, _itemApplication, itemDropState, itemIds, _operationTrace, itemReports);
 		_containerSync = new ContainerItemSync(items, itemDropState, itemIds, _operationTrace, itemReports, loggerFactory.CreateLogger<ContainerItemSync>());
 		_itemUseSync = new ItemUseSync(items, loggerFactory.CreateLogger<ItemUseSync>());
 		_itemSlotSync = new ItemSlotSync(items, loggerFactory.CreateLogger<ItemSlotSync>());
 		_itemPositionAuthority = new ItemPositionAuthority(items);
 		_itemPositionFollow = new ItemPositionFollow(items, _dropGuard);
-		_worldEventSync = new WorldEventSync(session, world, _operationTrace, loggerFactory.CreateLogger<WorldEventSync>());
+		_blockBreakSync = new BlockBreakSync(session, world, items, blockBreakState, _operationTrace, loggerFactory.CreateLogger<BlockBreakSync>());
+		_worldEventSync = new WorldEventSync(session, world, _blockBreakSync, _operationTrace, loggerFactory.CreateLogger<WorldEventSync>());
 		_lifePod = new LifePodPresentation(loggerFactory.CreateLogger<LifePodPresentation>());
 		_guestMenu = new GuestMenuGuard(session, loggerFactory.CreateLogger<GuestMenuGuard>());
 		_worldParams = new WorldParamsService(world, loggerFactory.CreateLogger<WorldParamsService>());
@@ -200,6 +203,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_run.Update();
 		_gate.Update(_run.LocalBody);
 		_itemWorldSync.FlushPendingDrop(); // a drop that was not thrown reports at end of frame (one drop = one report)
+		_blockBreakSync.FlushPendingBlockBreak(); // a break's drops fold in one frame after the break — the break + drops go out as ONE message
 		if (IsHostMode)
 		{
 			_itemPositionAuthority.Update(); // the host's physics is the single position authority
@@ -210,6 +214,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		}
 
 		_worldEventSync.Update();
+		_blockBreakSync.Update(); // expire break records without a consuming drops report
 		_renderer.Update();
 	}
 
@@ -242,6 +247,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_itemApplication.Unbind();
 		_itemWorldSync.Unbind();
 		_itemWorldSync.ResetPending(); // session ended — a pending drop cannot resolve anymore
+		_blockBreakSync.ResetPending(); // a pending break's drops are gone with the world
 		_itemPositionFollow.Unbind();
 		_worldEventSync.Unbind();
 		_run.Unbind();
@@ -268,12 +274,13 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 			// OnWorldGenerate and was lost in the domain split).
 			_items.ResetItems();
 			_itemWorldSync.ResetPending(); // a pending drop's item is gone with the old layer
+			_blockBreakSync.ResetPending(); // a pending break's drops are gone with the old layer
 		}
 	}
 
 	void IPatchBridge.OnBlockSet(Vector2Int pos, ushort block) => _worldEventSync.OnBlockSet(pos, block);
 
-	void IPatchBridge.OnBlockDamaged(Vector2 pos, float dmg) => _worldEventSync.OnBlockDamaged(pos, dmg);
+	void IPatchBridge.OnBlockDamaged(Vector2 pos, float dmg) => _blockBreakSync.OnBlockDamaged(pos, dmg);
 
 	void IPatchBridge.OnBuildingEntityDamaged(BuildingEntity entity, float damage) =>
 		_worldEventSync.OnBuildingEntityDamaged(entity, damage);

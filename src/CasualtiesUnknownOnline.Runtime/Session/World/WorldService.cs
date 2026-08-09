@@ -205,11 +205,16 @@ public sealed class WorldService(ISessionControl session, PacketSender sender, I
 		_log.LogInformation("Start gate pass — {Peer} enters directly (game already running).", steamId);
 	}
 
-	/// <summary>Host: a guest reported damage (apply + relay). Guest: the host broadcast it.</summary>
-	public event Action<NetVector2, float>? BlockDamagedReceived;
+	/// <summary>
+	/// Host: a guest reported damage — apply + relay (the drops ride the message,
+	/// the host arbitrates the break: first-writer-wins, the loser's drops are
+	/// refused). Guest: the host's broadcast — apply. Drops are null/empty when
+	/// the damage did not break the block.
+	/// </summary>
+	public event Action<ulong, NetVector2, float, IReadOnlyList<BlockDropEntryMsg>?>? BlockDamagedReceived;
 
-	public void FireBlockDamagedReceived(NetVector2 pos, float damage) =>
-		BlockDamagedReceived?.Invoke(pos, damage);
+	public void FireBlockDamagedReceived(ulong sender, NetVector2 pos, float damage, IReadOnlyList<BlockDropEntryMsg>? drops) =>
+		BlockDamagedReceived?.Invoke(sender, pos, damage, drops);
 
 	/// <summary>Guest: the host told us to enter the world — isTutorial = follow StartTutorial (it nulls runSettings itself), else StartRun.</summary>
 	public event Action<bool>? WorldJoinReceived;
@@ -465,9 +470,11 @@ public sealed class WorldService(ISessionControl session, PacketSender sender, I
 	/// <summary>
 	/// Report a locally-performed block damage (local compute): guest → host as
 	/// a report (the host arbitrates and relays), host → broadcast to all synced
-	/// members (the source excluded on relay — it already applied locally).
+	/// members (the source excluded on relay — it already applied locally). A
+	/// BREAK's drops ride the same message — the break and its drops get one
+	/// arbitration verdict.
 	/// </summary>
-	public void SendBlockDamaged(NetVector2 worldPos, float damage)
+	public void SendBlockDamaged(NetVector2 worldPos, float damage, IReadOnlyList<BlockDropEntryMsg>? drops)
 	{
 		if (!_session.SessionActive)
 		{
@@ -478,6 +485,7 @@ public sealed class WorldService(ISessionControl session, PacketSender sender, I
 		{
 			Position = worldPos.ToNetVector2Msg(),
 			Damage = damage,
+			Drops = drops is { Count: > 0 } ? [.. drops] : null,
 		};
 		if (_session.Role == SessionRole.Host)
 		{
@@ -487,5 +495,28 @@ public sealed class WorldService(ISessionControl session, PacketSender sender, I
 		{
 			_sender.Send(_session.HostSteamId, NetMsg.BlockDamaged, msg);
 		}
+	}
+
+	/// <summary>
+	/// Host only: relay an ACCEPTED guest break report (damage + drops) to the
+	/// other members — the source is excluded, it already applied locally; the
+	/// host's own application happened before this call. The host applies the
+	/// guest's damage and drops itself via the same receive path (its own
+	/// verdict: the break record it took when applying the guest's BlockPlaced).
+	/// </summary>
+	public void BroadcastBlockDamaged(ulong excludeSteamId, NetVector2 worldPos, float damage, IReadOnlyList<BlockDropEntryMsg>? drops)
+	{
+		if (_session.Role != SessionRole.Host || !_session.SessionActive)
+		{
+			return;
+		}
+
+		var msg = new BlockDamagedMsg
+		{
+			Position = worldPos.ToNetVector2Msg(),
+			Damage = damage,
+			Drops = drops is { Count: > 0 } ? [.. drops] : null,
+		};
+		_session.BroadcastExcept(excludeSteamId, NetMsg.BlockDamaged, msg);
 	}
 }

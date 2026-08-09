@@ -20,6 +20,9 @@ public interface ICharacterDataControl
 	/// <summary>Host only: broadcast the host's own character snapshot (the guests render the host's clone inventory from it).</summary>
 	void BroadcastHostCharacterData(CharacterDataMsg msg);
 
+	/// <summary>Host only: relay a guest's report to the other guests (OwnerSteamId stamped, source excluded) — their clones of the reporter render its carried state.</summary>
+	void RelayCharacterData(ulong ownerSteamId, CharacterDataMsg msg);
+
 	void FireCharacterDataReceived(ulong sender, CharacterDataMsg msg);
 
 	/// <summary>Guest: the host's own character snapshot arrived — render its clone inventory (never apply to the local body).</summary>

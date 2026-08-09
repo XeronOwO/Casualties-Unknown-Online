@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
+using CasualtiesUnknownOnline.GameAdapter.Items;
 using CasualtiesUnknownOnline.GameAdapter.WorldGen;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
@@ -45,6 +46,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	private readonly DropProtectionGuard _dropGuard;
 	private readonly ItemApplication _itemApplication;
 	private readonly ItemWorldSync _itemWorldSync;
+	private readonly OperationTrace _operationTrace;
 	private readonly ItemPositionAuthority _itemPositionAuthority;
 	private readonly ItemPositionFollow _itemPositionFollow;
 	private readonly WorldEventSync _worldEventSync;
@@ -70,7 +72,8 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_renderer = new RemotePlayerRenderer(session, entities, _characterDataSync, loggerFactory.CreateLogger<RemotePlayerRenderer>());
 		_dropGuard = new DropProtectionGuard();
 		_itemApplication = new ItemApplication(items, _dropGuard, loggerFactory.CreateLogger<ItemApplication>());
-		_itemWorldSync = new ItemWorldSync(session, items, _itemApplication, _dropGuard, loggerFactory.CreateLogger<ItemWorldSync>());
+		_operationTrace = new OperationTrace(loggerFactory.CreateLogger<OperationTrace>());
+		_itemWorldSync = new ItemWorldSync(session, items, _itemApplication, _dropGuard, _operationTrace, loggerFactory.CreateLogger<ItemWorldSync>());
 		_itemPositionAuthority = new ItemPositionAuthority(items);
 		_itemPositionFollow = new ItemPositionFollow(items, _dropGuard);
 		_worldEventSync = new WorldEventSync(session, world, loggerFactory.CreateLogger<WorldEventSync>());

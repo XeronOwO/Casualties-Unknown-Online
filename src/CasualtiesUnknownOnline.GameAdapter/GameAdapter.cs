@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.GameAdapter.Items;
+using CasualtiesUnknownOnline.GameAdapter.Patches;
 using CasualtiesUnknownOnline.GameAdapter.WorldGen;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
@@ -128,7 +129,21 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		{
 			_harmony = new Harmony("CasualtiesUnknownOnline.GameAdapter");
 			_harmony.PatchAll(typeof(GameAdapter).Assembly);
-			_log.LogInformation("Game Adapter patches installed.");
+
+			// Never let a failed patch silently run: verify every patch class
+			// actually landed on its target (a game update that breaks a target
+			// must fail loud — a silently missing hook is how sync bugs hide).
+			var missing = PatchInventory.VerifyMissing(_harmony);
+			if (missing.Count > 0)
+			{
+				_log.LogError("Game Adapter patch verification FAILED — {Count} targets not applied: {Missing}",
+					missing.Count, string.Join(", ", missing));
+				_harmony.UnpatchSelf();
+				_harmony = null;
+				return false;
+			}
+
+			_log.LogInformation("Game Adapter patches installed and verified ({Count} targets).", PatchInventory.CountTargets());
 			return true;
 		}
 		catch (Exception ex)

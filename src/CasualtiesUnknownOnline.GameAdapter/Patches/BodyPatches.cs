@@ -175,20 +175,18 @@ internal static class BodyPatches
 		// hook). Snapshot every entity's health before the attack; the postfix
 		// reports whoever lost health. FindObjectsOfType per swing is fine —
 		// attacks are low-frequency (1-2 Hz).
-		private static readonly List<(BuildingEntity, float)> HealthBefore = [];
-
-		private static void Prefix()
+		private static void Prefix(out List<(BuildingEntity, float)> __state)
 		{
-			HealthBefore.Clear();
+			__state = [];
 			foreach (var entity in UnityEngine.Object.FindObjectsOfType<BuildingEntity>())
 			{
-				HealthBefore.Add((entity, entity.health));
+				__state.Add((entity, entity.health));
 			}
 		}
 
-		private static void Postfix()
+		private static void Postfix(List<(BuildingEntity, float)> __state)
 		{
-			foreach (var (entity, before) in HealthBefore)
+			foreach (var (entity, before) in __state)
 			{
 				if (entity != null && entity.health < before) // Unity object — ==
 				{

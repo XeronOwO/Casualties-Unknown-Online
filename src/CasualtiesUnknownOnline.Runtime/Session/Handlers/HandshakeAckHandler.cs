@@ -5,10 +5,13 @@ using Microsoft.Extensions.Logging;
 namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 
 /// <summary>Host → guest: handshake completion. Upserts the host member (a repeated
-/// ack must not rebuild the entity — that would reset the interpolation buffer).</summary>
+/// ack must not rebuild the entity — that would reset the interpolation buffer).
+/// Answers with the AckAck leg (HandshakeAckAckMsg): the host only counts the
+/// member as handshaken once it receives it (HandshakeAckAckHandler).</summary>
 [PacketHandler(NetMsg.HandshakeAck)]
-public sealed class HandshakeAckHandler(ILogger<HandshakeAckHandler> log) : PacketHandlerBase<HandshakeAckMsg>
+public sealed class HandshakeAckHandler(PacketSender sender, ILogger<HandshakeAckHandler> log) : PacketHandlerBase<HandshakeAckMsg>
 {
+	private readonly PacketSender _sender = sender;
 	private readonly ILogger<HandshakeAckHandler> _log = log;
 
 	protected override void Handle(ulong sender, HandshakeAckMsg msg, HandlerContext ctx)
@@ -40,5 +43,12 @@ public sealed class HandshakeAckHandler(ILogger<HandshakeAckHandler> log) : Pack
 		// scene change so a reconnecting guest follows the host into a world
 		// that is already running (Game Adapter auto-starts the run).
 		session.FireRemoteSceneChanged(sender, hostState == SceneStateType.InWorld);
+
+		// Third leg of the handshake: the host marks us Handshaken only on this
+		// arrival — the start gate's wait list then holds only members whose
+		// connection actually completed (a lost ack keeps a guest retrying
+		// forever; without this leg the host would wait 30 s at its gate for a
+		// member that is not even loading).
+		_sender.Send(sender, NetMsg.HandshakeAckAck, new HandshakeAckAckMsg());
 	}
 }

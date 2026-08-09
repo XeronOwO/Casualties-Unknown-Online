@@ -53,12 +53,28 @@ public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandl
 			// identity is the SteamID — reuse the presence. The normal flow
 			// (session re-activation → scene re-report → entity sync) then
 			// re-establishes everything, character data included.
+			// A repeat handshake from a member we already CONFIRMED means the
+			// process restarted (reconnect); from an unconfirmed one it means
+			// the ack never reached it — the guest is retrying, and the start
+			// gate must NOT wait on it (Handshaken stays false until the
+			// end-to-end AckAck arrives, HandshakeAckAckHandler).
+			if (member.Handshaken)
+			{
+				_log.LogInformation("Peer {Peer} reconnected — presence reused.", sender);
+			}
+			else
+			{
+				_log.LogWarning("Peer {Peer} is retrying its handshake — the previous ack was not delivered.", sender);
+			}
+
 			member.InWorld = peerState == SceneStateType.InWorld;
-			_log.LogInformation("Peer {Peer} reconnected — presence reused.", sender);
 			ctx.CharacterData.SendSavedCharacter(sender);
 		}
 
-		member.Handshaken = true;
+		// NOT Handshaken yet: the member only counts as handshaken once its
+		// end-to-end AckAck arrives (HandshakeAckAckHandler) — a lost ack (lazy
+		// Steam P2P session, cert errors) otherwise keeps a guest retrying while
+		// the host treats it as connected and waits for it at the start gate.
 		if (!wasActive)
 		{
 			// Fire the session-level event once, on the first member — later

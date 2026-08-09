@@ -93,7 +93,15 @@ public sealed class WorldService(ISessionControl session, PacketSender sender, I
 		{
 			// Everyone is already in the world (or there is no one) — no
 			// waiting: release everyone right away so the game starts together
-			// at the host's own loading moment.
+			// at the host's own loading moment. (Handshaken now means the
+			// handshake completed end-to-end — HandshakeAckAck — so a member
+			// whose ack never arrived is not waited on: the host starts, and
+			// the guest enters as a late joiner once its connection completes.)
+			if (_session.Members.Any(m => m.SteamId != _session.LocalSteamId))
+			{
+				_log.LogInformation("No confirmed members waiting — releasing the start gate immediately.");
+			}
+
 			_startGate = null;
 			SendWorldReady();
 			return false;

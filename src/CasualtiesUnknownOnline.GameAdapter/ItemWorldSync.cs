@@ -25,6 +25,7 @@ internal sealed class ItemWorldSync(
 	DropProtectionGuard guard,
 	OperationTrace trace,
 	ItemReportCommitter reports,
+	ItemIdAllocator ids,
 	ILogger<ItemWorldSync> log)
 {
 	private readonly SessionService _session = session;
@@ -33,6 +34,7 @@ internal sealed class ItemWorldSync(
 	private readonly DropProtectionGuard _guard = guard;
 	private readonly OperationTrace _trace = trace;
 	private readonly ItemReportCommitter _reports = reports;
+	private readonly ItemIdAllocator _ids = ids;
 	private readonly ILogger<ItemWorldSync> _log = log;
 
 	/// <summary>True while a remote message is being applied — the local-report hooks must stay silent (call identity lives in CallContext, not a bool).</summary>
@@ -55,36 +57,8 @@ internal sealed class ItemWorldSync(
 
 	private void OnRemoteItemBecameWorld(ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, ulong parentItemId, float rotation, float angularVelocity, NetVector2 parentPos) => _guard.Mark(itemId);
 
-	/// <summary>Instance-id counter: ids are (counter, account id) — globally unique per session without host allocation.</summary>
-	private ulong _nextItemId;
-
-	private ulong NextItemId() => (_nextItemId++ << 32) | (uint)_session.LocalSteamId;
-
-	/// <summary>
-	/// Return the item's instance id, allocating one when it does not have it
-	/// yet — a generation-time item (world-gen determinism covers it, no id)
-	/// that enters the world domain through a runtime act (dropped from an
-	/// inventory, unloaded from a container) needs an id so the peers can
-	/// materialize it. Returns 0 when the item is not eligible (still
-	/// generating).
-	/// </summary>
-	internal ulong EnsureItemId(Item item)
-	{
-		var idComp = item.GetComponent<ItemInstanceId>();
-		if (idComp != null) // Unity object — ==
-		{
-			return idComp.Id;
-		}
-
-		if (HarmonyTraverse.IsGenerating())
-		{
-			return 0; // generation-time instantiation — the world-gen determinism covers it
-		}
-
-		idComp = item.gameObject.AddComponent<ItemInstanceId>();
-		idComp.Id = NextItemId();
-		return idComp.Id;
-	}
+	/// <summary>Instance-id allocation (ids are (counter, account id) — see ItemIdAllocator).</summary>
+	internal ulong EnsureItemId(Item item) => _ids.EnsureId(item);
 
 	/// <summary>True when the item's parent chain ends outside any inventory/body — it is part of the world.</summary>
 	internal static bool IsWorldItem(Item item)
@@ -144,13 +118,11 @@ internal sealed class ItemWorldSync(
 	/// them); everything else gets an instance id and is reported. Solo play
 	/// records too (no broadcast) — a solo-turned-lobby host hands its
 	/// accumulated items to a joining guest via the snapshot.
-	/// An item that is already inside an inventory/container when Start runs is
-	/// NOT a world item: the game's own flow instantiates and picks up in the
-	/// same frame (the starting supplies, WorldGeneration.cs:1904-1912; use
-	/// transforms like the empty bottle, Item.cs:1442) and MonoBehaviour.Start
-	/// only fires on the NEXT frame — after generation finished, so the
-	/// IsGenerating guard alone would misclassify them as runtime spawns and
-	/// duplicate them for the peers.
+	/// An item already inside an inventory/container when Start runs is NOT a
+	/// world item: the game instantiates and picks up in the same frame (the
+	/// starting supplies, WorldGeneration.cs:1904-1912) and MonoBehaviour.Start
+	/// fires on the NEXT frame — after generation, so the IsGenerating guard
+	/// alone would misclassify them as runtime spawns and duplicate them.
 	/// </summary>
 	internal void OnItemInstantiated(Item item)
 	{
@@ -167,9 +139,7 @@ internal sealed class ItemWorldSync(
 			return;
 		}
 
-		idComp = item.gameObject.AddComponent<ItemInstanceId>();
-		idComp.Id = NextItemId();
-		var itemId = idComp.Id;
+		var itemId = _ids.Allocate(item);
 		// The glowing floating pickup effect carries over (the proximity check
 		// already ran on the attacker's side — the component is the truth).
 		var fresh = item.GetComponent<FreshItemDrop>() != null; // Unity object — ==
@@ -196,10 +166,8 @@ internal sealed class ItemWorldSync(
 			return;
 		}
 
-		// A pending drop of a DESTROYED item is cancelled — without this the
-		// pending state lingered until the next drop overwrote it (the flush's
-		// Unity == check caught it, but the op trace then showed a permanent
-		// begin-without-end and the state could never resolve on its own).
+		// A pending drop of a DESTROYED item is cancelled — it used to linger
+		// until the next drop overwrote it (a permanent begin-without-end).
 		if (_dropState.TryCancel(item, out var cancelledOp))
 		{
 			_trace.End(cancelledOp, OperationTrace.IdOf(item), "OnItemDestroyed", "Cancelled", "Destroyed");
@@ -232,6 +200,9 @@ internal sealed class ItemWorldSync(
 		}
 	}
 
+	/// <summary>The pickup-start position of the last PickUpItem call — explicit state passed between the pickup-start and picked-up hooks (CLAUDE.md #9): still on the ground HERE, the picked-up hook runs after the re-parent. Id-less generation-time items have no PickupOrigins key — this covers them.</summary>
+	private (Item Item, Vector2 Pos)? _lastPickupStart;
+
 	internal void OnItemPickupStart(Item item)
 	{
 		var idComp = item.GetComponent<ItemInstanceId>();
@@ -239,6 +210,8 @@ internal sealed class ItemWorldSync(
 		{
 			_application.PickupOrigins[idComp.Id] = item.transform.position;
 		}
+
+		_lastPickupStart = (item, item.transform.position); // the ground position, before the pickup re-parents the item
 	}
 
 	internal void OnItemPickedUp(Item item)
@@ -301,7 +274,34 @@ internal sealed class ItemWorldSync(
 		}
 		else
 		{
-			_trace.End(op, 0, "OnItemPickedUp", "Skipped", "NoId");
+			// A GENERATION-TIME item (no id — world-gen determinism covers it)
+			// left the world through a pickup/wear: the peer's scene holds the
+			// same generation-time object, and without an id it can neither bind
+			// nor delete it — "the worn item still lies on the ground on the
+			// peer's side". Allocate the id and report spawn-then-pickup: the
+			// spawn binds the peer's same-spot object (SpawnWorldItem →
+			// FindExistingAt), the pickup removes it (OnRemoteItemPickedUp).
+			var id = EnsureItemId(item);
+			if (id != 0)
+			{
+				var startPos = _lastPickupStart is { } start && start.Item == item // Unity object — ==
+					? start.Pos
+					: (Vector2)item.transform.position;
+				_reports.CommitReport(id, op, "OnItemPickedUp", CommitStatus.Committed,
+					() =>
+					{
+						_items.SendItemSpawned(id, ItemStateCodec.CaptureItem(item, -1),
+							new NetVector2(startPos.x, startPos.y), new NetVector2(0f, 0f),
+							item.transform.eulerAngles.z, false, 0f);
+						_items.SendItemPickedUp(id);
+						return 2;
+					},
+					"Pickup", "GenerationItem");
+			}
+			else
+			{
+				_trace.End(op, 0, "OnItemPickedUp", "Skipped", "NoId");
+			}
 		}
 	}
 

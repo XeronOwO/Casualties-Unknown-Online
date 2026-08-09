@@ -43,9 +43,13 @@ public sealed class SceneStateHandler(ILogger<SceneStateHandler> log) : PacketHa
 				if (session.Role == SessionRole.Host)
 				{
 					ctx.Entities.MaybeStartEntitySync();
-					// Re-entering the world is a fresh run — hand the saved
-					// character data back (the handshake restore only covers
-					// reconnects; a death → menu → re-enter never re-handshakes).
+					// Re-entering the world (death → menu → re-enter) — hand the
+					// saved character data back; the handshake restore only covers
+					// reconnects. The save belongs to the CURRENT run: a new run
+					// clears the save table at the host's click (RunCoordinator →
+					// CharacterDataSync), so this hands back nothing on a fresh
+					// run — its starting supplies stay ("started paradise, got
+					// the previous run's emergency light" is gone).
 					ctx.CharacterData.SendSavedCharacter(reporter);
 					// The member's generation just finished — hand it the full
 					// block-state snapshot (damage table) so it sees the world

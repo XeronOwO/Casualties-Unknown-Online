@@ -31,6 +31,15 @@ if ([string]::IsNullOrWhiteSpace($GameDir)) {
     exit 1
 }
 
+# Sandboxie paths (e.g. E:\Sandbox\Steam1\drive\...) are a redirection layer —
+# the sandbox instance reads through to the host's game directory, so deploying
+# there is both redundant and a way to corrupt the sandbox copy. This guard is
+# the hard gate: deploy to the real game directory only.
+if ($GameDir -match "sandbox") {
+    Write-Error "GameDir '$GameDir' looks like a sandbox path. Sandbox instances read through to the host's game directory — deploy to the real game directory only."
+    exit 1
+}
+
 $gameProc = Get-Process -Name CasualtiesUnknown -ErrorAction SilentlyContinue
 if ($gameProc) {
     Write-Error "The game is running (PID $($gameProc.Id -join ', ')). Close it before deploying."

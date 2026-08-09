@@ -83,9 +83,6 @@ internal interface IPatchBridge
 	/// <summary>The GlobalDark fade was skipped because the gate window holds (diagnostic — the "black, then the wait" report).</summary>
 	void OnDarkenSkipped();
 
-	/// <summary>True while a remote block-placement/break is being applied — the SetBlock gate must not swallow remote breaks (they already passed the source's gate).</summary>
-	bool IsApplyingRemoteBlockPlace { get; }
-
 	/// <summary>
 	/// An earthquake break (SetBlock(0) inside WorldGeneration.Update) — apply
 	/// or drop it. Quake rate is per-side (16/s each), so overlapping player

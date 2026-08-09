@@ -112,6 +112,57 @@ Do not jump ahead: build Phase 3 modules one at a time on the star-network patte
     - **Every operation is recoverable as a complete trace** — `OperationTrace` op=.. item=.. origin=.. result=.. events=[..] (begin/end balanced; tools/extract-itemtrace.ps1 diffs traces between sides/steps).
     Gate-driven seams: split a class when the 600-line gate or a second consumer demands it — never preemptively (ItemDropState and ItemReportCommitter split for exactly those reasons).
 
+## Delivery Quality Gate (binding, user mandate 2026-08-10)
+
+**Why this exists**: repeated "paper review passes, runtime fails" cycles. The layer-modifier sync shipped with the decision synchronized but WITHOUT checking the modifier's `Initialize` side effects (Flooded's `PlaceLiquids` rolls 600 random liquid positions, WorldGeneration.cs:1514-1525 — every side landed different liquids). Rules existed in this file and were not followed. This gate makes "don't assume" a process hard-stop, not an intention.
+
+### Principle 0 — No self-assumption (applies to every step)
+
+- Words "I think", "should be", "theoretically", "probably fine" are red flags: if they appear, the work is NOT done.
+- Every claim needs: a source reference (`file:line` from `reversing/`) OR runtime evidence (logs, hotrepl assertions). No reference, no evidence — no claim.
+- **Adversarial self-check before touching anything**: "in which situation does my plan break?" — if no counter-example comes to mind, the mechanism is not understood. Go back to reading.
+- The runtime is the judge, never the plan. A plan that "reads correctly" is unproven until the runtime shows it.
+
+### Step 1 — Mechanism completeness inventory (BEFORE any change)
+
+List EVERY mechanism the change touches, one by one, each with evidence or explicit "unverified":
+
+- Protocol/messages: fields, timing, idempotency, channel (reliable/unreliable).
+- Game mechanics: decompiled reference (`file:line`) + **complete side-effect table** (the modifier lesson: check not just the decision — check every side effect the touched call produces; the 11 `LayerModifier.Initialize` implementations were enumerated one by one).
+- Random stream / determinism: every consumption point, isolation boundaries, suspension points.
+- Lifecycle: event subscriptions, constructor dependencies, bind/unbind symmetry.
+- Runtime behavior: peer differences, frame-rate dependence, timing windows.
+
+Unverified items are NOT optional: the plan must either cover them or explicitly degrade (recorded, not silent).
+
+### Step 2 — Complete plan delivery (BEFORE deployment, user reviews)
+
+A deployable change requires, as a single deliverable:
+
+1. **Fact sheet**: all evidence (including the adversarial self-check result).
+2. **Design**: why this shape, boundaries, failure degradation.
+3. **Verification design**: how the runtime proves it (diagnostic logs, peer log comparison, hotrepl assertions) — "user looks at the screen" is never the sole acceptance.
+4. **Self-check table**: mechanism × change × evidence, every cell filled. All boxes checked = deployable. Any box unchecked = not deployable.
+
+The user approves the plan before deployment. No approval, no deployment, no implementation (except investigation-only changes).
+
+### Step 3 — One deployment, one verification target
+
+- One deployment verifies ONE target. Verification failure → back to Step 1 (re-inventory), never a patch stacked on a patch.
+- Forbidden: "deploy and see, patch later". Forbidden: "this looks fine, ship it".
+- Deploy to the real game directory only (`tools/deploy.ps1` hard-rejects sandbox paths).
+
+### Step 4 — Post-delivery structure review (same standing as "build passes")
+
+- Every class touched this round: size (600-line gate), responsibility, state bools.
+- Dead/obsolete mechanisms are deleted in the same round — never left co-existing (masked divergence is how sync bugs hide).
+
+### Hard order
+
+1. understand → 2. mechanism inventory → 3. adversarial self-check → 4. plan + self-check table → 5. user approval → 6. implement → 7. build + format + architecture gate → 8. deploy → 9. runtime verification → 10. structure review → 11. commit.
+
+Skipping any step = non-conforming delivery.
+
 ## Context Compression Protocol
 
 When the user says "compress", do this before the context is compressed:

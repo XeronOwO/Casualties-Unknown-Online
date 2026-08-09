@@ -26,8 +26,14 @@ internal static class WorldGenerationSetBlockPatch
 	private static bool Prefix(Vector2Int pos, ushort block)
 	{
 		// Quake/environment breaks only (inside WorldGeneration.Update, air
-		// writes) — mining and placement are never gated.
-		if (block == 0 && WorldGenerationUpdatePatch.InUpdate && PatchBridge.Impl is { } bridge)
+		// writes) — mining and placement are never gated. A REMOTE application
+		// (a peer's break being applied here) must pass unconditionally: it
+		// already passed the source side's gate, and the local gate would
+		// otherwise swallow host-broadcast breaks whenever this side's Update
+		// frame happens to be running (which, during a quake, is every frame —
+		// "the guest's broken blocks are a subset of the host's").
+		if (block == 0 && WorldGenerationUpdatePatch.InUpdate && PatchBridge.Impl is { } bridge
+			&& !bridge.IsApplyingRemoteBlockPlace)
 		{
 			return bridge.ShouldApplyQuakeBreak(pos);
 		}
@@ -35,5 +41,21 @@ internal static class WorldGenerationSetBlockPatch
 		return true;
 	}
 
-	private static void Postfix(Vector2Int pos, ushort block) => PatchBridge.Impl?.OnBlockSet(pos, block);
+	/// <summary>
+	/// Report only writes that actually landed. The PREFIX gate (ShouldApplyQuakeBreak)
+	/// can return false — a quake break inside an earlier player's region is
+	/// swallowed and SetBlock never runs — but Harmony still runs this postfix.
+	/// Reporting a swallowed write made the HOST apply a break that never happened
+	/// on this side (host: empty, this side: still solid — "the guest's breaks
+	/// are a proper subset of the host's"). The landed check reads the table the
+	/// write just touched: swallowed writes leave the original block, landed
+	/// writes equal the requested block (same-value SetBlock stays idempotent).
+	/// </summary>
+	private static void Postfix(Vector2Int pos, ushort block)
+	{
+		if (WorldGeneration.world.GetBlock(pos) == block) // Unity object — ==; the write landed
+		{
+			PatchBridge.Impl?.OnBlockSet(pos, block);
+		}
+	}
 }

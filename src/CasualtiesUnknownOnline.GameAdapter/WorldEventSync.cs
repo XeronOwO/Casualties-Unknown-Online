@@ -32,6 +32,9 @@ internal sealed class WorldEventSync(
 	private bool _applyingRemoteBlockPlace;
 	private bool _applyingRemoteBuildingDamage;
 
+	/// <summary>While true, a remote break is being applied — the SetBlock gate (WorldGenerationSetBlockPatch) must pass it unconditionally (it already passed the source side's gate).</summary>
+	internal bool ApplyingRemoteBlockPlace => _applyingRemoteBlockPlace;
+
 	/// <summary>The generated world snapshot the difference table diffs against (host/solo only).</summary>
 	private ushort[,]? _baseline;
 
@@ -62,12 +65,36 @@ internal sealed class WorldEventSync(
 
 	private bool IsHostMode => _session.Role == SessionRole.Host && _session.SessionActive;
 
-	/// <summary>Pump: capture the generated baseline once generation completes (host/solo — the difference table's reference).</summary>
+	/// <summary>
+	/// Pump: capture the generated baseline once generation completes (host/solo
+	/// — the difference table's reference), and periodically re-send the damage
+	/// table to in-world members. The lazy Steam P2P session establishes up to
+	/// ~30 s after world entry — world-mutation broadcasts sent in that window
+	/// are silently dropped (the handshake retries cover the handshake; the
+	/// BlockPlaced relay has no retry), so the guest's world keeps the generated
+	/// blocks where the host broke them ("the guest's breaks are a subset of the
+	/// host's", points appearing right after world entry). The resend is
+	/// idempotent (same-value SetBlock) and small (only deviated blocks).
+	/// </summary>
+	private float _lastSnapshotResend;
+
 	internal void Update()
 	{
 		if (_session.Role != SessionRole.Guest)
 		{
 			TryCaptureWorldBaseline();
+		}
+
+		if (IsHostMode && _session.SessionActive && Time.unscaledTime - _lastSnapshotResend > 60f)
+		{
+			_lastSnapshotResend = Time.unscaledTime;
+			foreach (var member in _session.Members)
+			{
+				if (member.InWorld)
+				{
+					_world.SendBlockStateSnapshot(member.SteamId);
+				}
+			}
 		}
 	}
 
@@ -318,13 +345,25 @@ internal sealed class WorldEventSync(
 		}
 	}
 
-	/// <summary>An earthquake just started (detected in WorldGenerationUpdatePatch) — the HOST broadcasts it (quake timing is synced to the host: guests show the effect and re-align their timer, so every side shakes together and breaks its own nearby region; the regions union via the air-write relay, overlaps count once).</summary>
+	/// <summary>
+	/// An earthquake just started (detected in WorldGenerationUpdatePatch). The
+	/// HOST broadcasts it (quake timing is synced to the host: guests show the
+	/// effect and re-align their timer, so every side shakes together and
+	/// breaks its own nearby region; the regions union via the air-write relay,
+	/// overlaps count once). A GUEST-side quake start (its own timer won the
+	/// first-quake race before any host broadcast aligned it) is telemetry only
+	/// — logged, never broadcast. Reset the per-quake counters either way.
+	/// </summary>
 	internal void OnEarthquakeStarted(float duration, float nextDelay)
 	{
 		if (IsHostMode && _session.SessionActive)
 		{
 			_log.LogInformation("[Earthquake] host quake started ({Duration:F1}s, next in {NextDelay:F0}s) — broadcasting.", duration, nextDelay);
 			_world.BroadcastEarthquakeStart(duration, nextDelay);
+		}
+		else
+		{
+			_log.LogInformation("[Earthquake] local quake started on this side ({Duration:F1}s, next in {NextDelay:F0}s) — NOT broadcasting (only the host does).", duration, nextDelay);
 		}
 	}
 

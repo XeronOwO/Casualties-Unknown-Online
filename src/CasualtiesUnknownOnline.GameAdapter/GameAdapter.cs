@@ -236,6 +236,8 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 
 	void IPatchBridge.OnBlockSet(Vector2Int pos, ushort block) => _worldEventSync.OnBlockSet(pos, block);
 
+	bool IPatchBridge.IsApplyingRemoteBlockPlace => _worldEventSync.ApplyingRemoteBlockPlace;
+
 	void IPatchBridge.OnBlockDamaged(Vector2 pos, float dmg) => _worldEventSync.OnBlockDamaged(pos, dmg);
 
 	void IPatchBridge.OnBuildingEntityDamaged(BuildingEntity entity, float damage) =>
@@ -260,9 +262,6 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 
 	void IPatchBridge.OnEarthquakeStarted(float duration, float nextDelay) =>
 		_worldEventSync.OnEarthquakeStarted(duration, nextDelay);
-
-	void IPatchBridge.OnEarthquakeEnded() =>
-		_log.LogInformation("[Earthquake] quake ended on this side.");
 
 	void IPatchBridge.OnDarkenSkipped() =>
 		_log.LogInformation("[Gate] fade skipped while the gate window holds.");

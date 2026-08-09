@@ -210,6 +210,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_renderer.Unbind();
 		_itemApplication.Unbind();
 		_itemWorldSync.Unbind();
+		_itemWorldSync.ResetPending(); // session ended — a pending drop cannot resolve anymore
 		_itemPositionFollow.Unbind();
 		_worldEventSync.Unbind();
 		_run.Unbind();
@@ -234,6 +235,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 			// (regression guard: this call lived inside the old GameAdapter's
 			// OnWorldGenerate and was lost in the domain split).
 			_items.ResetItems();
+			_itemWorldSync.ResetPending(); // a pending drop's item is gone with the old layer
 		}
 	}
 

@@ -217,10 +217,10 @@ internal sealed class ItemWorldSync(
 				},
 				"Destroyed");
 		}
-		else
-		{
-			_trace.End(op, OperationTrace.IdOf(item), "OnItemDestroyed", "Skipped", "NoId");
-		}
+		// else: a domain-less item (generation-time, restored, decayed) — its
+		// destruction is an ordinary event, not a player operation; no trace.
+		// (The old "Skipped/NoId" line flooded the log on every corpse-loot /
+		// clearing destroy.)
 	}
 
 	/// <summary>The world was left (scene switch / session end) — a pending drop cannot resolve anymore; cancel it so the operation trace stays balanced.</summary>

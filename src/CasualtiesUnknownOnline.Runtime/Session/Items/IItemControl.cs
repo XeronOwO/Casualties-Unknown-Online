@@ -60,6 +60,9 @@ public interface IItemControl
 	/// <summary>Guest side: the authoritative world-item snapshot arrived — reconcile locally.</summary>
 	void FireItemSnapshotReceived(ulong sender, IReadOnlyList<WorldItem> items);
 
+	/// <summary>Guest side: the host's generation-time item snapshot arrived — bind local copies to the host's ids, materialize the host's version, destroy host-unknown locals.</summary>
+	void FireWorldItemsSnapshotReceived(ulong sender, IReadOnlyList<ItemSnapshotEntryMsg> items);
+
 	/// <summary>Guest side: the host's physics moved items — surface them for the local follow.</summary>
 	void FireItemMoveReceived(IReadOnlyList<ItemMoveEntryMsg> items);
 
@@ -83,8 +86,8 @@ public interface IItemControl
 	/// <summary>Host only: the items a guest currently owns (the transfer table — where the host moved world-table entries as the guest's actions took them). The reconnect restore merges these into the character snapshot.</summary>
 	IReadOnlyList<WorldItem> GetTransferredItems(ulong steamId);
 
-	/// <summary>Host only: the item's live state (position/velocity/rotation) — the periodic keyframe must broadcast the CURRENT positions, not the spawn-time ones.</summary>
-	void RefreshItemState(ulong itemId, NetVector2 pos, NetVector2 vel, float rotation);
+	/// <summary>Host only: the item's live state (position/velocity/rotation/condition) — the periodic keyframe must broadcast the CURRENT state, not the spawn-time one (stale positions yank settled items around; a stale condition re-aligns the peers' decay to the wrong value).</summary>
+	void RefreshItemState(ulong itemId, NetVector2 pos, NetVector2 vel, float rotation, float condition);
 
 	/// <summary>
 	/// Host only: periodically re-send the full table (unreliable) so physical
@@ -95,6 +98,9 @@ public interface IItemControl
 
 	/// <summary>Host only: a new world layer is generating — the table starts empty again.</summary>
 	void ResetItems();
+
+	/// <summary>Host only: the generation finished — register the generation-time items (host-assigned ids, ground + starting supplies) into the table and broadcast them as one snapshot (the guests bind their local copies or materialize the host's version).</summary>
+	void PublishGeneratedItems(IReadOnlyList<ItemSnapshotEntryMsg> entries);
 
 	/// <summary>Host only: broadcast the moving world items' authoritative positions (unreliable — the host's physics is the position authority, the guests follow).</summary>
 	void SendItemMove(IReadOnlyList<ItemMoveEntryMsg> items);
@@ -121,6 +127,9 @@ public interface IItemControl
 
 	/// <summary>The authoritative snapshot arrived — reconcile the local world items against it.</summary>
 	event Action<IReadOnlyList<WorldItem>>? ItemSnapshotReceived;
+
+	/// <summary>The host's generation-time item snapshot arrived — the adapter binds local copies / materializes / destroys the host-unknown ones.</summary>
+	event Action<IReadOnlyList<ItemSnapshotEntryMsg>>? WorldItemsSnapshotReceived;
 
 	/// <summary>Guest side: the host's authoritative item state arrived (our action-report evidence diverged) — the adapter applies it (materialize missing contents, fix state, fix slot).</summary>
 	event Action<CharacterItemMsg>? ItemCorrectionReceived;

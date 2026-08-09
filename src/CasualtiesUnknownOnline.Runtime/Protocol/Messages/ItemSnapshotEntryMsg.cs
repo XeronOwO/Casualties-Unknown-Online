@@ -33,4 +33,8 @@ public sealed class ItemSnapshotEntryMsg
 	[ProtoMember(9)]
 	public float AngularVelocity { get; set; } // the item's spin (part of the initial condition for a rolled item)
 
+	/// <summary>Carried-entry marker (generation snapshot only): >= 0 = the item sits in a player's backpack slot (the starting supplies — bound by slot, never materialized); -1 = a world item.</summary>
+	[ProtoMember(10)]
+	public int SlotIndex { get; set; } = -1;
+
 }

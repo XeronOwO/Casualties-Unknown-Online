@@ -113,7 +113,8 @@ internal sealed class ItemPositionAuthority(ItemService items)
 			_items.RefreshItemState(idComp.Id,
 				new NetVector2(item.transform.position.x, item.transform.position.y),
 				new NetVector2(item.rb.velocity.x, item.rb.velocity.y),
-				item.transform.eulerAngles.z);
+				item.transform.eulerAngles.z,
+				item.condition); // decay advances on the host too — the keyframe carries the CURRENT condition or the peers re-align to a stale one
 		}
 	}
 }

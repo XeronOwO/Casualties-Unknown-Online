@@ -117,24 +117,11 @@ public sealed class SessionService : ICuoService, ISessionControl
 
 	bool ISessionControl.IsLobbyMember(ulong steamId) => _steam.GetLobbyMembers().Contains(steamId);
 
-	void ISessionControl.Broadcast(NetMsg msg, object payload)
-	{
-		foreach (var member in _presence.Members)
-		{
-			_sender.Send(member.SteamId, msg, payload);
-		}
-	}
+	void ISessionControl.Broadcast(NetMsg msg, object payload) =>
+		_sender.SendToAll(_presence.Members.Select(m => m.SteamId), msg, payload);
 
-	void ISessionControl.BroadcastExcept(ulong excludeSteamId, NetMsg msg, object payload)
-	{
-		foreach (var member in _presence.Members)
-		{
-			if (member.SteamId != excludeSteamId)
-			{
-				_sender.Send(member.SteamId, msg, payload);
-			}
-		}
-	}
+	void ISessionControl.BroadcastExcept(ulong excludeSteamId, NetMsg msg, object payload) =>
+		_sender.SendToAll(_presence.Members.Select(m => m.SteamId), msg, payload, excludeSteamId: excludeSteamId);
 
 	void ISessionControl.RemoveGuestMember(ulong steamId)
 	{

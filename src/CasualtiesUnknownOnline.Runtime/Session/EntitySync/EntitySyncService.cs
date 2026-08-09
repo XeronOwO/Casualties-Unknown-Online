@@ -415,10 +415,7 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 			Seq = ++_nextStateSeq,
 			Entities = BuildEntityList(synced),
 		};
-		foreach (var member in synced)
-		{
-			_sender.Send(member.SteamId, NetMsg.PlayerState, payload, reliable: false);
-		}
+		_sender.SendToAll(synced.Select(m => m.SteamId), NetMsg.PlayerState, payload, reliable: false);
 	}
 
 	private List<EntityStateMsg> BuildEntityList(List<SyncedEntity> synced)

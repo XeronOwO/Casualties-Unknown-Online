@@ -72,13 +72,9 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 		}
 
 		var msg = new ItemMoveMsg { Items = [.. items] };
-		foreach (var member in _session.Members)
-		{
-			if (member.Handshaken && member.SteamId != _session.LocalSteamId)
-			{
-				_sender.Send(member.SteamId, NetMsg.ItemMove, msg, reliable: false);
-			}
-		}
+		_sender.SendToAll(
+			_session.Members.Where(m => m.Handshaken && m.SteamId != _session.LocalSteamId).Select(m => m.SteamId),
+			NetMsg.ItemMove, msg, reliable: false);
 	}
 
 	public void FireItemMoveReceived(IReadOnlyList<ItemMoveEntryMsg> items) => ItemMoveReceived?.Invoke(items);
@@ -424,13 +420,9 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 		{
 			Entries = [.. _worldItems.Values.Select(w => w.ToSnapshotEntryMsg())],
 		};
-		foreach (var member in _session.Members)
-		{
-			if (member.Handshaken)
-			{
-				_sender.Send(member.SteamId, NetMsg.ItemSnapshot, msg, reliable: false);
-			}
-		}
+		_sender.SendToAll(
+			_session.Members.Where(m => m.Handshaken).Select(m => m.SteamId),
+			NetMsg.ItemSnapshot, msg, reliable: false);
 	}
 
 	public void ResetItems() => _worldItems.Clear();

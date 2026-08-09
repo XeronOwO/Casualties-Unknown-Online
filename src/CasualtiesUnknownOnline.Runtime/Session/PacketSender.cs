@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Networking;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 
@@ -28,5 +29,25 @@ public sealed class PacketSender(SteamTransport transport)
 		}
 
 		_transport.SendTo(steamId, NetPacket.Encode(msg, payload), reliable);
+	}
+
+	/// <summary>
+	/// Encode ONCE and send the same frame to every peer (the fan-out path —
+	/// the 10 Hz item stream and the 20 Hz state stream used to pay N
+	/// serializations for N recipients; the encode cost is linear in the
+	/// payload, so a 100-item move batch with three guests serialized three
+	/// times). The shared byte[] is safe to reuse: SteamTransport.SendTo copies
+	/// it synchronously (fixed + SendMessageToUser call).
+	/// </summary>
+	public void SendToAll(IEnumerable<ulong> steamIds, NetMsg msg, object? payload, bool reliable = true, ulong? excludeSteamId = null)
+	{
+		var frame = NetPacket.Encode(msg, payload);
+		foreach (var steamId in steamIds)
+		{
+			if (steamId != 0 && steamId != excludeSteamId)
+			{
+				_transport.SendTo(steamId, frame, reliable);
+			}
+		}
 	}
 }

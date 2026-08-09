@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using CasualtiesUnknownOnline.GameAdapter.Items;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
@@ -138,8 +139,19 @@ internal sealed class GeneratedItemAuthority(
 			return; // the Clear edge (a layer switch clears before generating) — nothing to publish
 		}
 
+		// The layer modifier the host's world rolled at generation finish — the
+		// world definition, riding the snapshot (the modifier decision reads the
+		// random stream AFTER the darken-wait suspension, which the isolation
+		// does not restore, so every side rolls its own — the host's is
+		// authoritative). The decision's random start rides along so the guests
+		// replay the draws before Initialize (identical world effects).
+		var modifierIndex = LayerModifier.availableModifiers.FirstOrDefault(m => m.active)?.modifierIndex ?? -1;
+		_items.LayerModifierIndex = modifierIndex;
+		_items.LayerModifierRandomState = modifierIndex >= 0 ? LayerModifierApplyPatch.LastEntryState : null;
+
 		_items.PublishGeneratedItems(entries);
-		_log.LogInformation("[GenItems] host published {Ground} ground + {Carried} carried items.", ground, carried);
+		_log.LogInformation("[GenItems] host published {Ground} ground + {Carried} carried items (modifier {Modifier}).",
+			ground, carried, _items.LayerModifierIndex);
 	}
 
 	/// <summary>Allocate the host's id (the host's counter — ids can never collide with a guest's) and capture the full state.</summary>

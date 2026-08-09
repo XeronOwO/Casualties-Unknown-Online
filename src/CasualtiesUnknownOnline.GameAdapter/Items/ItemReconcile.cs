@@ -40,7 +40,9 @@ internal sealed class ItemReconcile(
 	/// the same things with or without the scope), and it makes "every remote
 	/// mutation carries its call identity" an invariant rather than a habit.
 	/// </summary>
-	private void OnRemoteItemSnapshot(IReadOnlyList<WorldItem> items)
+	// The layer modifier rides the snapshot — LayerModifierSync applies it
+	// (its own subscription); this domain only consumes the item entries.
+	private void OnRemoteItemSnapshot(IReadOnlyList<WorldItem> items, int layerModifierIndex, byte[]? layerModifierRandomState)
 	{
 		using (CallContext.Enter(CallContext.Origin.RemoteApply))
 		{

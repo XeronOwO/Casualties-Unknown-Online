@@ -38,7 +38,9 @@ internal sealed class GeneratedItemApplication(
 
 	internal void Unbind() => _items.WorldItemsSnapshotReceived -= OnWorldItemsSnapshot;
 
-	private void OnWorldItemsSnapshot(IReadOnlyList<ItemSnapshotEntryMsg> items) => _pending = [.. items];
+	// The layer modifier rides the snapshot — LayerModifierSync applies it
+	// (its own subscription); this domain only consumes the item entries.
+	private void OnWorldItemsSnapshot(IReadOnlyList<ItemSnapshotEntryMsg> items, int layerModifierIndex, byte[]? layerModifierRandomState) => _pending = [.. items];
 
 	/// <summary>Pump: apply the held snapshot once the local generation finished.</summary>
 	internal void Update()

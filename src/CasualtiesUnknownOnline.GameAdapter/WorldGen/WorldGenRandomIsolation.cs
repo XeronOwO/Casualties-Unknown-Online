@@ -34,20 +34,35 @@ internal static class WorldGenRandomIsolation
 	internal static Action<string>? Log;
 
 	private static int _segments;
+	private static string? _lastSavedHex;
 
 	private static void Save()
 	{
 		_genStates.Push(Random.state);
 		_segments++;
+		_lastSavedHex = StateHex();
 		// Fingerprint every early segment (the divergence point is what matters),
 		// then sample the tail — a full 1024-column generation is ~40 segments.
 		if (Log is not null && (_segments <= 24 || _segments % 8 == 0))
 		{
-			Log($"[GenStream] segment {_segments}: {StateHex()}");
+			Log($"[GenStream] segment {_segments}: {_lastSavedHex}");
 		}
 	}
 
-	private static void Restore() => Random.state = _genStates.Pop();
+	private static void Restore()
+	{
+		// Diagnostics (layer-modifier hunt): the state BEFORE the restore is the
+		// polluted public stream (real-time consumers ran during the yield), the
+		// popped value is the saved segment state. If the restore does not land
+		// on the saved state, the save/restore pairing is off.
+		var before = StateHex();
+		Random.state = _genStates.Pop();
+		if (Log is not null)
+		{
+			Log($"[GenStream] restore before={before} after={StateHex()} expect={_lastSavedHex}");
+		}
+		_lastSavedHex = null;
+	}
 
 	private static string StateHex() => BitConverter.ToString(RandomStateSerializer.Serialize(Random.state)).Replace("-", "");
 

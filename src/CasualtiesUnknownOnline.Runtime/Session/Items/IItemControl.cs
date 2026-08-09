@@ -57,11 +57,11 @@ public interface IItemControl
 	/// <summary>Host only: refuse a reported break's drops (the break was already applied — first-writer-wins) — the reporter destroys its local drops.</summary>
 	void SendItemReject(ulong targetSteamId, ulong itemId, ItemRejectMsg.Reason reason);
 
-	/// <summary>Guest side: the authoritative world-item snapshot arrived — reconcile locally.</summary>
-	void FireItemSnapshotReceived(ulong sender, IReadOnlyList<WorldItem> items);
+	/// <summary>Guest side: the authoritative world-item snapshot arrived — reconcile locally. LayerModifierIndex/LayerModifierRandomState ride along (the world's current modifier and its decision's random start, -1/null = none).</summary>
+	void FireItemSnapshotReceived(ulong sender, IReadOnlyList<WorldItem> items, int layerModifierIndex, byte[]? layerModifierRandomState);
 
-	/// <summary>Guest side: the host's generation-time item snapshot arrived — bind local copies to the host's ids, materialize the host's version, destroy host-unknown locals.</summary>
-	void FireWorldItemsSnapshotReceived(ulong sender, IReadOnlyList<ItemSnapshotEntryMsg> items);
+	/// <summary>Guest side: the host's generation-time item snapshot arrived — bind local copies to the host's ids, materialize the host's version, destroy host-unknown locals. LayerModifierIndex/LayerModifierRandomState ride along (the host's rolled layer modifier and its decision's random start, -1/null = none).</summary>
+	void FireWorldItemsSnapshotReceived(ulong sender, IReadOnlyList<ItemSnapshotEntryMsg> items, int layerModifierIndex, byte[]? layerModifierRandomState);
 
 	/// <summary>Guest side: the host's physics moved items — surface them for the local follow.</summary>
 	void FireItemMoveReceived(IReadOnlyList<ItemMoveEntryMsg> items);
@@ -99,8 +99,11 @@ public interface IItemControl
 	/// <summary>Host only: a new world layer is generating — the table starts empty again.</summary>
 	void ResetItems();
 
-	/// <summary>Host only: the generation finished — register the generation-time items (host-assigned ids, ground + starting supplies) into the table and broadcast them as one snapshot (the guests bind their local copies or materialize the host's version).</summary>
+	/// <summary>Host only: the generation finished — register the generation-time items (host-assigned ids, ground + starting supplies) into the table and broadcast them as one snapshot (the guests bind their local copies or materialize the host's version). The current layer modifier (LayerModifierIndex) rides along.</summary>
 	void PublishGeneratedItems(IReadOnlyList<ItemSnapshotEntryMsg> entries);
+
+	/// <summary>Host side: the world's current layer modifier (index into the game's LayerModifier.availableModifiers, -1 = none) — rides the world-item snapshots so a world entry outside a generation still receives it. A projection of world state: the adapter refreshes it when a generation finishes.</summary>
+	int LayerModifierIndex { get; set; }
 
 	/// <summary>Host only: broadcast the moving world items' authoritative positions (unreliable — the host's physics is the position authority, the guests follow).</summary>
 	void SendItemMove(IReadOnlyList<ItemMoveEntryMsg> items);
@@ -125,11 +128,11 @@ public interface IItemControl
 	/// <summary>The host refused an item arbitration — roll back (UnknownItem = pickup, BlockAlreadyBroken = block-break drops to destroy).</summary>
 	event Action<ulong, ItemRejectMsg.Reason>? ItemRejected;
 
-	/// <summary>The authoritative snapshot arrived — reconcile the local world items against it.</summary>
-	event Action<IReadOnlyList<WorldItem>>? ItemSnapshotReceived;
+	/// <summary>The authoritative snapshot arrived — reconcile the local world items against it (the layer modifier + its random start ride along).</summary>
+	event Action<IReadOnlyList<WorldItem>, int, byte[]?>? ItemSnapshotReceived;
 
-	/// <summary>The host's generation-time item snapshot arrived — the adapter binds local copies / materializes / destroys the host-unknown ones.</summary>
-	event Action<IReadOnlyList<ItemSnapshotEntryMsg>>? WorldItemsSnapshotReceived;
+	/// <summary>The host's generation-time item snapshot arrived — the adapter binds local copies / materializes / destroys the host-unknown ones (the layer modifier + its random start ride along).</summary>
+	event Action<IReadOnlyList<ItemSnapshotEntryMsg>, int, byte[]?>? WorldItemsSnapshotReceived;
 
 	/// <summary>Guest side: the host's authoritative item state arrived (our action-report evidence diverged) — the adapter applies it (materialize missing contents, fix state, fix slot).</summary>
 	event Action<CharacterItemMsg>? ItemCorrectionReceived;

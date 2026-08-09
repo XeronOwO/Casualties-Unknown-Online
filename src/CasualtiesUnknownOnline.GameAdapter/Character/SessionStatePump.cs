@@ -3,7 +3,7 @@ using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using UnityEngine;
 
-namespace CasualtiesUnknownOnline.GameAdapter.Rendering;
+namespace CasualtiesUnknownOnline.GameAdapter.Character;
 
 /// <summary>
 /// Applies a session entity's buffered state to a game Body. Used for render

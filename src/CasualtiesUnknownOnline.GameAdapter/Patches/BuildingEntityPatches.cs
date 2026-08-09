@@ -1,6 +1,7 @@
-using CasualtiesUnknownOnline.GameAdapter.Items;
 using HarmonyLib;
 using UnityEngine;
+
+using CasualtiesUnknownOnline.GameAdapter.World;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 

@@ -10,7 +10,7 @@ using HarmonyLib;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
 
-namespace CasualtiesUnknownOnline.GameAdapter;
+namespace CasualtiesUnknownOnline.GameAdapter.World;
 
 /// <summary>
 /// World-event domain: block damage/placement, building-entity damage/open,

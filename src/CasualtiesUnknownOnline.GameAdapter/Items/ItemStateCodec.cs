@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 using UnityEngine;
 using Log = Microsoft.Extensions.Logging.ILogger;
 
-namespace CasualtiesUnknownOnline.GameAdapter;
+namespace CasualtiesUnknownOnline.GameAdapter.Items;
 
 /// <summary>
 /// Item ↔ wire-form state codec: the complete item state — SavedItem fields

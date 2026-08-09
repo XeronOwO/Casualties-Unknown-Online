@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace CasualtiesUnknownOnline.GameAdapter.Items;
+namespace CasualtiesUnknownOnline.GameAdapter.World;
 
 /// <summary>
 /// Marks a BuildingEntity that died from a REMOTE hit (the peer's damage

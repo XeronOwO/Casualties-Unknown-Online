@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace CasualtiesUnknownOnline.GameAdapter;
+namespace CasualtiesUnknownOnline.GameAdapter.Run;
 
 /// <summary>
 /// Keeps the generation loading screen visible while the start gate holds.

@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging;
 
-namespace CasualtiesUnknownOnline.GameAdapter;
+namespace CasualtiesUnknownOnline.GameAdapter.World;
 
 /// <summary>
 /// The spawn-landing presentation (sound + camera shake, WorldGeneration.cs:

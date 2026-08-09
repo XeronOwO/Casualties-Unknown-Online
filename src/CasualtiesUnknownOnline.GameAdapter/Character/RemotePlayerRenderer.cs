@@ -5,9 +5,7 @@ using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
 
-using CasualtiesUnknownOnline.GameAdapter.Rendering;
-
-namespace CasualtiesUnknownOnline.GameAdapter;
+namespace CasualtiesUnknownOnline.GameAdapter.Character;
 
 /// <summary>
 /// Remote-player rendering: the per-member render clones (physics off,

@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace CasualtiesUnknownOnline.GameAdapter.Rendering;
+namespace CasualtiesUnknownOnline.GameAdapter.Character;
 
 /// <summary>
 /// Marks a Body as remote-managed: a frozen render proxy. All its physics and

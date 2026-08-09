@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
-using CasualtiesUnknownOnline.GameAdapter.Rendering;
+using CasualtiesUnknownOnline.GameAdapter.Character;
 using HarmonyLib;
 using UnityEngine;
 

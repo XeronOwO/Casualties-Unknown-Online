@@ -1,5 +1,7 @@
 using HarmonyLib;
 
+using CasualtiesUnknownOnline.GameAdapter.Items;
+
 namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 
 /// <summary>

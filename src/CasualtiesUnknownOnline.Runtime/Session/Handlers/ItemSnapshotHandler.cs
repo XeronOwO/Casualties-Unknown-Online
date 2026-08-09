@@ -24,7 +24,7 @@ public sealed class ItemSnapshotHandler(ILogger<ItemSnapshotHandler> log) : Pack
 			items.Add(new WorldItem(entry.ItemId, entry.Item, entry.Position.ToNetVector2(), entry.Velocity.ToNetVector2(), entry.ParentItemId, entry.Rotation, entry.FreshItemDrop));
 		}
 
-		ctx.Items.FireItemSnapshotReceived(sender, items);
-		_log.LogInformation("World-item snapshot ({Count} items) from {Sender}.", items.Count, sender);
+		ctx.Items.FireItemSnapshotReceived(sender, items, msg.LayerModifierIndex, msg.LayerModifierRandomState);
+		_log.LogInformation("World-item snapshot ({Count} items, modifier {Modifier}) from {Sender}.", items.Count, msg.LayerModifierIndex, sender);
 	}
 }

@@ -67,6 +67,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	private readonly GuestMenuGuard _guestMenu;
 	private readonly GeneratedItemAuthority _genItemAuthority;
 	private readonly GeneratedItemApplication _genItemApplication;
+	private readonly LayerModifierSync _layerModifierSync;
 
 	public GameAdapter(SessionService session, EntitySyncService entities, CharacterDataStore characterData,
 		WorldService world, ItemService items, ILogger<GameAdapter> log, IMapper mapper, ILoggerFactory loggerFactory)
@@ -81,6 +82,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		// run's phase machine).
 		ItemStateCodec.BindLog(log);
 		WorldGenRandomIsolation.Log = msg => _log.LogInformation(msg); // generation-stream segment fingerprints (peer log comparison)
+		LayerModifierApplyPatch.Log = msg => _log.LogInformation(msg); // layer-modifier decision trace (diagnostic)
 		_characterDataSync = new CharacterDataSync(session, characterData, mapper, loggerFactory.CreateLogger<CharacterDataSync>());
 		_renderer = new RemotePlayerRenderer(session, entities, _characterDataSync, loggerFactory.CreateLogger<RemotePlayerRenderer>());
 		_dropGuard = new DropProtectionGuard();
@@ -100,6 +102,8 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_itemPositionFollow = new ItemPositionFollow(items, _dropGuard);
 		_genItemAuthority = new GeneratedItemAuthority(session, items, itemIds, loggerFactory.CreateLogger<GeneratedItemAuthority>());
 		_genItemApplication = new GeneratedItemApplication(items, _itemApplication, loggerFactory.CreateLogger<GeneratedItemApplication>());
+		_layerModifierSync = new LayerModifierSync(items, loggerFactory.CreateLogger<LayerModifierSync>());
+		LayerModifierApplyPatch.IsModifierAuthority = () => _session.Role != SessionRole.Guest; // the host/solo side rolls the world's modifier; guests apply the host's
 		_blockBreakSync = new BlockBreakSync(session, world, items, blockBreakState, _operationTrace, loggerFactory.CreateLogger<BlockBreakSync>());
 		_worldEventSync = new WorldEventSync(session, world, _blockBreakSync, _operationTrace, loggerFactory.CreateLogger<WorldEventSync>());
 		_lifePod = new LifePodPresentation(loggerFactory.CreateLogger<LifePodPresentation>());
@@ -248,6 +252,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_worldEventSync.BindToSession();
 		_run.BindToSession();
 		_genItemApplication.BindToSession();
+		_layerModifierSync.BindToSession();
 	}
 
 	private void UnbindFromSession()
@@ -263,6 +268,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_worldEventSync.Unbind();
 		_run.Unbind();
 		_genItemApplication.Unbind();
+		_layerModifierSync.Unbind();
 	}
 
 	// ---- IGameAdapter ----

@@ -18,7 +18,7 @@ public sealed class WorldItemsSnapshotHandler(ILogger<WorldItemsSnapshotHandler>
 
 	protected override void Handle(ulong sender, WorldItemsSnapshotMsg msg, HandlerContext ctx)
 	{
-		ctx.Items.FireWorldItemsSnapshotReceived(sender, msg.Items);
-		_log.LogInformation("Generation-item snapshot ({Count} items) from {Sender}.", msg.Items.Count, sender);
+		ctx.Items.FireWorldItemsSnapshotReceived(sender, msg.Items, msg.LayerModifierIndex, msg.LayerModifierRandomState);
+		_log.LogInformation("Generation-item snapshot ({Count} items, modifier {Modifier}) from {Sender}.", msg.Items.Count, msg.LayerModifierIndex, sender);
 	}
 }

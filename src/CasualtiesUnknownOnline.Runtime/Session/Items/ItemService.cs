@@ -45,9 +45,9 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 
 	public event Action<ulong, ItemRejectMsg.Reason>? ItemRejected;
 
-	public event Action<IReadOnlyList<WorldItem>>? ItemSnapshotReceived;
+	public event Action<IReadOnlyList<WorldItem>, int, byte[]?>? ItemSnapshotReceived;
 
-	public event Action<IReadOnlyList<ItemSnapshotEntryMsg>>? WorldItemsSnapshotReceived;
+	public event Action<IReadOnlyList<ItemSnapshotEntryMsg>, int, byte[]?>? WorldItemsSnapshotReceived;
 
 	public event Action<IReadOnlyList<ItemMoveEntryMsg>>? ItemMoveReceived;
 
@@ -441,13 +441,30 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 		_arbitration.RecordSlot(sender, itemId, slotIndex);
 	}
 
-	public void FireItemSnapshotReceived(ulong sender, IReadOnlyList<WorldItem> items)
+	public void FireItemSnapshotReceived(ulong sender, IReadOnlyList<WorldItem> items, int layerModifierIndex, byte[]? layerModifierRandomState)
 	{
 		_log.LogInformation("World-item snapshot received ({Count} items).", items.Count);
-		ItemSnapshotReceived?.Invoke(items);
+		ItemSnapshotReceived?.Invoke(items, layerModifierIndex, layerModifierRandomState);
 	}
 
 	// ===== Host-only surface =====
+
+	/// <summary>
+	/// The world's current layer modifier (index into LayerModifier.availableModifiers,
+	/// -1 = none), riding the world-item snapshots so a world entry outside a
+	/// generation (solo→lobby conversion, mid-session join) still receives the
+	/// host's modifier. The values are a projection of the world state — the
+	/// adapter refreshes them when a generation finishes (GeneratedItemAuthority).
+	/// The modifier itself is applied by the adapter's LayerModifierSync.
+	/// </summary>
+	public int LayerModifierIndex { get; set; } = -1;
+
+	/// <summary>The random stream state at the entry of the host's modifier
+	/// decision (non-null when a modifier was rolled) — rides alongside
+	/// <see cref="LayerModifierIndex"/> so the guests replay the decision draws
+	/// before the modifier's Initialize (identical world effects, see
+	/// WorldItemsSnapshotMsg.LayerModifierRandomState).</summary>
+	public byte[]? LayerModifierRandomState { get; set; }
 
 	public void SendItemCorrection(ulong targetSteamId, CharacterItemMsg item)
 	{
@@ -471,6 +488,8 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 		var msg = new ItemSnapshotMsg
 		{
 			Entries = [.. _worldItems.Values.Select(w => w.ToSnapshotEntryMsg())],
+			LayerModifierIndex = LayerModifierIndex,
+			LayerModifierRandomState = LayerModifierRandomState,
 		};
 		_sender.Send(targetSteamId, NetMsg.ItemSnapshot, msg);
 		_log.LogInformation("Sent world-item snapshot ({Count} items) to {Peer}.", _worldItems.Count, targetSteamId);
@@ -503,6 +522,8 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 		var msg = new ItemSnapshotMsg
 		{
 			Entries = [.. _worldItems.Values.Select(w => w.ToSnapshotEntryMsg())],
+			LayerModifierIndex = LayerModifierIndex,
+			LayerModifierRandomState = LayerModifierRandomState,
 		};
 		_sender.SendToAll(
 			_session.Members.Where(m => m.Handshaken).Select(m => m.SteamId),
@@ -546,12 +567,16 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 			registered++;
 		}
 
-		_session.Broadcast(NetMsg.WorldItemsSnapshot, new WorldItemsSnapshotMsg { Items = [.. entries] });
-		_log.LogInformation("Published generation items ({Count} entries, {Registered} registered): {World} ground, {Carried} carried.",
+		_session.Broadcast(NetMsg.WorldItemsSnapshot, new WorldItemsSnapshotMsg
+		{
+			Items = [.. entries],
+			LayerModifierIndex = LayerModifierIndex,
+		});
+		_log.LogInformation("Published generation items ({Count} entries, {Registered} registered): {World} ground, {Carried} carried — modifier {Modifier}.",
 			entries.Count, registered,
-			entries.Count(e => e.SlotIndex < 0), entries.Count(e => e.SlotIndex >= 0));
+			entries.Count(e => e.SlotIndex < 0), entries.Count(e => e.SlotIndex >= 0), LayerModifierIndex);
 	}
 
-	public void FireWorldItemsSnapshotReceived(ulong sender, IReadOnlyList<ItemSnapshotEntryMsg> items) =>
-		WorldItemsSnapshotReceived?.Invoke(items);
+	public void FireWorldItemsSnapshotReceived(ulong sender, IReadOnlyList<ItemSnapshotEntryMsg> items, int layerModifierIndex, byte[]? layerModifierRandomState) =>
+		WorldItemsSnapshotReceived?.Invoke(items, layerModifierIndex, layerModifierRandomState);
 }

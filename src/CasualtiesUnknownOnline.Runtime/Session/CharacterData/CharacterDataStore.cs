@@ -50,6 +50,16 @@ public sealed class CharacterDataStore(ISessionControl session, PacketSender sen
 	/// <summary>Host side: keep the latest report per SteamID (session-scoped save).</summary>
 	internal void SaveCharacterData(ulong steamId, CharacterDataMsg msg) => _savedCharacters[steamId] = msg;
 
+	/// <summary>
+	/// Host only: a NEW run started (the host clicked start) — the saved
+	/// character data belongs to the run that produced it: a fresh run starts
+	/// fresh characters, the previous run's saves are void (a stale restore
+	/// would wipe the new run's starting supplies — "started paradise, got the
+	/// previous run's emergency light"). Same-run re-entries (death → menu →
+	/// re-enter) find their save still in the table and restore normally.
+	/// </summary>
+	public void ClearSavedCharacters() => _savedCharacters.Clear();
+
 	/// <summary>Host side: hand the saved character data back to a reconnecting player, with the item arbitration's transfer table merged over it.</summary>
 	internal void SendSavedCharacter(ulong steamId)
 	{

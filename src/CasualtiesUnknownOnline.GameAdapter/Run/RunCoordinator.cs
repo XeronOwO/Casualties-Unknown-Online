@@ -136,6 +136,7 @@ internal sealed class RunCoordinator(
 		if (_session.Role == SessionRole.Host && _session.SessionActive)
 		{
 			_params.CaptureAtEntry(isTutorial); // the generation baseline — captured at the click moment, before any run randomness is consumed
+			_characterData.ClearSavedCharacters(); // a NEW run — the previous run's saved characters are void (a stale restore would wipe the new run's starting supplies)
 			_world.SetHostRunPending(true); // mid-generation handshakes may follow immediately
 			_world.SendWorldJoin(isTutorial);
 		}

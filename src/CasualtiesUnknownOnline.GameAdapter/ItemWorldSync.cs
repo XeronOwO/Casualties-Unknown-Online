@@ -34,6 +34,9 @@ internal sealed class ItemWorldSync(
 	private readonly OperationTrace _trace = trace;
 	private readonly ILogger<ItemWorldSync> _log = log;
 
+	/// <summary>True while a remote message is being applied — the local-report hooks must stay silent (call identity lives in CallContext, not a bool).</summary>
+	private bool IsRemoteApply => CallContext.Current == CallContext.Origin.RemoteApply;
+
 	internal void BindToSession()
 	{
 		_items.ItemSpawned += OnRemoteItemBecameWorld;
@@ -150,7 +153,7 @@ internal sealed class ItemWorldSync(
 	/// </summary>
 	internal void OnItemInstantiated(Item item)
 	{
-		if (_application.IsApplyingRemote || HarmonyTraverse.IsGenerating() || !IsStandaloneWorldItem(item))
+		if (IsRemoteApply || HarmonyTraverse.IsGenerating() || !IsStandaloneWorldItem(item))
 		{
 			return;
 		}
@@ -184,7 +187,7 @@ internal sealed class ItemWorldSync(
 
 	internal void OnItemDestroyed(Item item)
 	{
-		if (_application.IsApplyingRemote || HarmonyTraverse.IsGenerating())
+		if (IsRemoteApply || HarmonyTraverse.IsGenerating())
 		{
 			return;
 		}
@@ -213,7 +216,7 @@ internal sealed class ItemWorldSync(
 
 	internal void OnItemPickedUp(Item item)
 	{
-		if (_application.IsApplyingRemote)
+		if (IsRemoteApply)
 		{
 			return;
 		}
@@ -286,7 +289,7 @@ internal sealed class ItemWorldSync(
 
 	internal void OnItemDropped(Item item)
 	{
-		if (_application.IsApplyingRemote || HarmonyTraverse.IsGenerating())
+		if (IsRemoteApply || HarmonyTraverse.IsGenerating())
 		{
 			return;
 		}
@@ -315,7 +318,7 @@ internal sealed class ItemWorldSync(
 
 	internal void OnItemThrown(Item item)
 	{
-		if (_application.IsApplyingRemote || HarmonyTraverse.IsGenerating())
+		if (IsRemoteApply || HarmonyTraverse.IsGenerating())
 		{
 			return;
 		}
@@ -407,7 +410,7 @@ internal sealed class ItemWorldSync(
 
 	internal void OnItemLoadedIntoContainer(Item item, bool wasWorldItem)
 	{
-		if (_application.IsApplyingRemote)
+		if (IsRemoteApply)
 		{
 			return;
 		}
@@ -495,7 +498,7 @@ internal sealed class ItemWorldSync(
 
 	internal void OnItemUnloadedFromContainer(Item item)
 	{
-		if (_application.IsApplyingRemote)
+		if (IsRemoteApply)
 		{
 			return;
 		}
@@ -520,7 +523,7 @@ internal sealed class ItemWorldSync(
 
 	internal void OnContainerUnloadedAll(Container container)
 	{
-		if (_application.IsApplyingRemote)
+		if (IsRemoteApply)
 		{
 			return;
 		}

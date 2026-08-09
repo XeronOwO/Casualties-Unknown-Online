@@ -14,39 +14,45 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 internal static class BodyItemPatches
 {
 	/// <summary>
-	/// Guard while Body.SwapSlots re-parents items between slots (the drag UI):
+	/// Scope while Body.SwapSlots re-parents items between slots (the drag UI):
 	/// it internally drops and picks up both items, but nothing left the world —
 	/// the reports would be false "placed"/"picked up" broadcasts. SwitchHands
-	/// (Body.cs:1113) is the same internal drop+pick pair and shares the guard.
+	/// (Body.cs:1113) is the same internal drop+pick pair and shares the origin.
+	/// The scope holder is a static field only because Prefix/Postfix are two
+	/// separate callbacks — the step-6 patch slimming moves it to __state.
 	/// </summary>
 	[HarmonyPatch(typeof(Body), "SwapSlots")]
 	internal static class SwapSlotsPatch
 	{
-		internal static bool Swapping { get; private set; }
+		// step-6 fodder: becomes "out IDisposable __state" with the patch slimming
+		private static IDisposable? _swapScope;
 
-		private static void Prefix() => Swapping = true;
+		private static void Prefix() => _swapScope = CallContext.Enter(CallContext.Origin.InternalReorder);
 
 		// An inventory-internal move — no world events, but the peer's clone
 		// must re-render in real time (the 1 Hz character throttle alone reads
 		// as a 1-2 s delay).
 		private static void Postfix()
 		{
-			Swapping = false;
+			_swapScope?.Dispose();
+			_swapScope = null;
 			PatchBridge.Impl?.OnInventoryChanged();
 		}
 	}
 
-	/// <summary>SwitchHands drops both hands and picks them back (Body.cs:1113-1133) — an internal swap, not world events; same guard as SwapSlots.</summary>
+	/// <summary>SwitchHands drops both hands and picks them back (Body.cs:1113-1133) — an internal swap, not world events; same origin scope as SwapSlots.</summary>
 	[HarmonyPatch(typeof(Body), "SwitchHands")]
 	internal static class SwitchHandsPatch
 	{
-		internal static bool Switching { get; private set; }
+		// step-6 fodder: becomes "out IDisposable __state" with the patch slimming
+		private static IDisposable? _switchScope;
 
-		private static void Prefix() => Switching = true;
+		private static void Prefix() => _switchScope = CallContext.Enter(CallContext.Origin.InternalReorder);
 
 		private static void Postfix()
 		{
-			Switching = false;
+			_switchScope?.Dispose();
+			_switchScope = null;
 			PatchBridge.Impl?.OnInventoryChanged();
 		}
 	}
@@ -58,10 +64,11 @@ internal static class BodyItemPatches
 
 		// Only a pickup that actually landed (the guard clauses inside PickUpItem
 		// — slot capacity, distance — can fail and leave the item untouched);
-		// slot-to-slot moves (SwapSlots) are inventory-internal, not world events.
+		// slot-to-slot moves (SwapSlots/SwitchHands) are inventory-internal
+		// reorders, not world events — their scope tells us, no static flags.
 		private static void Postfix(Body __instance, Item item)
 		{
-			if (!SwapSlotsPatch.Swapping && !SwitchHandsPatch.Switching && __instance.HoldingItem(item))
+			if (CallContext.Current != CallContext.Origin.InternalReorder && __instance.HoldingItem(item))
 			{
 				PatchBridge.Impl?.OnItemPickedUp(item);
 			}
@@ -83,7 +90,7 @@ internal static class BodyItemPatches
 	{
 		private static void Prefix(Body __instance, Item item)
 		{
-			if (!SwapSlotsPatch.Swapping && !SwitchHandsPatch.Switching && __instance.HoldingItem(item))
+			if (CallContext.Current != CallContext.Origin.InternalReorder && __instance.HoldingItem(item))
 			{
 				PatchBridge.Impl?.OnItemDropped(item);
 			}

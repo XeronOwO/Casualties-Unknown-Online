@@ -25,12 +25,6 @@ internal sealed class ItemApplication(
 	private readonly DropProtectionGuard _guard = guard;
 	private readonly ILogger<ItemApplication> _log = log;
 
-	/// <summary>Reentry guard: remote applications must not echo back as local reports (the hooks see the same game-object mutations).</summary>
-	private bool _applyingRemoteItem;
-
-	/// <summary>True while a remote application mutates the scene — the local-report hooks must stay silent.</summary>
-	internal bool IsApplyingRemote => _applyingRemoteItem;
-
 	/// <summary>Pickup origin cache (id → world position) — the rollback target for a refused pickup (the pickup-start hook fills it).</summary>
 	internal readonly Dictionary<ulong, Vector2> PickupOrigins = [];
 
@@ -57,14 +51,9 @@ internal sealed class ItemApplication(
 	/// <summary>A world item now exists on a remote side — materialize it locally (full state: condition + components + contents).</summary>
 	private void OnRemoteItemSpawned(WorldItem worldItem)
 	{
-		_applyingRemoteItem = true;
-		try
+		using (CallContext.Enter(CallContext.Origin.RemoteApply))
 		{
 			SpawnWorldItem(worldItem);
-		}
-		finally
-		{
-			_applyingRemoteItem = false;
 		}
 	}
 
@@ -81,8 +70,7 @@ internal sealed class ItemApplication(
 	/// </summary>
 	private void OnRemoteItemPickedUp(ulong itemId)
 	{
-		_applyingRemoteItem = true;
-		try
+		using (CallContext.Enter(CallContext.Origin.RemoteApply))
 		{
 			var item = FindWorldItem(itemId);
 			if (item != null && ItemWorldSync.IsWorldItem(item)) // Unity objects — ==
@@ -90,16 +78,11 @@ internal sealed class ItemApplication(
 				KillRemoteItem(item);
 			}
 		}
-		finally
-		{
-			_applyingRemoteItem = false;
-		}
 	}
 
 	private void OnRemoteItemDropped(ulong itemId, CharacterItemMsg itemState, NetVector2 pos, NetVector2 vel, ulong parentItemId, float rotation, float angularVelocity, NetVector2 parentPos)
 	{
-		_applyingRemoteItem = true;
-		try
+		using (CallContext.Enter(CallContext.Origin.RemoteApply))
 		{
 			var item = FindWorldItem(itemId);
 			if (item == null) // Unity object — ==; we never had it (it was in the dropper's inventory)
@@ -123,26 +106,17 @@ internal sealed class ItemApplication(
 				}
 			}
 		}
-		finally
-		{
-			_applyingRemoteItem = false;
-		}
 	}
 
 	private void OnRemoteItemDestroyed(ulong itemId)
 	{
-		_applyingRemoteItem = true;
-		try
+		using (CallContext.Enter(CallContext.Origin.RemoteApply))
 		{
 			var item = FindWorldItem(itemId);
 			if (item != null) // Unity object — ==
 			{
 				KillRemoteItem(item);
 			}
-		}
-		finally
-		{
-			_applyingRemoteItem = false;
 		}
 	}
 
@@ -151,85 +125,88 @@ internal sealed class ItemApplication(
 	/// destroy local world items missing from the snapshot, materialize the
 	/// snapshot's items (world first, then container contents — the parent
 	/// objects must exist).
+	/// Runs inside a RemoteApply scope like every other remote application — the
+	/// parity is neutral by design (KillRemoteItem zeroes ids and SpawnWorldItem
+	/// attaches them before Item.Start runs, so the local-report hooks observe
+	/// the same things with or without the scope), and it makes "every remote
+	/// mutation carries its call identity" an invariant rather than a habit.
 	/// </summary>
 	private void OnRemoteItemSnapshot(IReadOnlyList<WorldItem> items)
 	{
-		var killed = 0;
-		var spawned = 0;
-		var snapshot = items.ToDictionary(w => w.ItemId);
-
-		foreach (var item in Item.allItems.ToList()) // copy: destroying while iterating
+		using (CallContext.Enter(CallContext.Origin.RemoteApply))
 		{
-			var idComp = item.GetComponent<ItemInstanceId>();
-			if (idComp == null || !ItemWorldSync.IsWorldItem(item)) // Unity object — ==; inventory items are character data
-			{
-				continue;
-			}
+			var killed = 0;
+			var spawned = 0;
+			var snapshot = items.ToDictionary(w => w.ItemId);
 
-			if (!snapshot.ContainsKey(idComp.Id))
+			foreach (var item in Item.allItems.ToList()) // copy: destroying while iterating
 			{
-				// Snapshot-race guard: a fresh local drop registered AFTER the
-				// keyframe was generated is not in it yet — killing it would
-				// loop (destroy → ItemDestroy report → the host deletes the
-				// table entry → the next keyframe misses it → reconcile kills
-				// it again, forever).
-				if (_guard.IsProtected(idComp.Id))
+				var idComp = item.GetComponent<ItemInstanceId>();
+				if (idComp == null || !ItemWorldSync.IsWorldItem(item)) // Unity object — ==; inventory items are character data
 				{
 					continue;
 				}
 
-				KillRemoteItem(item);
-				_guard.Remove(idComp.Id);
-				killed++;
-			}
-		}
+				if (!snapshot.ContainsKey(idComp.Id))
+				{
+					// Snapshot-race guard: a fresh local drop registered AFTER the
+					// keyframe was generated is not in it yet — killing it would
+					// loop (destroy → ItemDestroy report → the host deletes the
+					// table entry → the next keyframe misses it → reconcile kills
+					// it again, forever).
+					if (_guard.IsProtected(idComp.Id))
+					{
+						continue;
+					}
 
-		// POSITION is aligned continuously by the 10 Hz position stream (every
-		// item, sleeping included) — the reconcile does NOT place anything:
-		// a 5 s direct placement after the stream already lerped the copy there
-		// would be a jump, and if the copy drifted again it would be yanked
-		// back every keyframe ("bounces back every few seconds"). Only the
-		// missing ones are materialized here (the snapshot-race window).
-		foreach (var w in items.Where(w => w.ParentItemId == 0))
-		{
-			if (FindWorldItem(w.ItemId) == null) // Unity object — ==
+					KillRemoteItem(item);
+					_guard.Remove(idComp.Id);
+					killed++;
+				}
+			}
+
+			// POSITION is aligned continuously by the 10 Hz position stream (every
+			// item, sleeping included) — the reconcile does NOT place anything:
+			// a 5 s direct placement after the stream already lerped the copy there
+			// would be a jump, and if the copy drifted again it would be yanked
+			// back every keyframe ("bounces back every few seconds"). Only the
+			// missing ones are materialized here (the snapshot-race window).
+			foreach (var w in items.Where(w => w.ParentItemId == 0))
 			{
-				SpawnWorldItem(w);
-				spawned++;
+				if (FindWorldItem(w.ItemId) == null) // Unity object — ==
+				{
+					SpawnWorldItem(w);
+					spawned++;
+				}
 			}
-		}
 
-		foreach (var w in items.Where(w => w.ParentItemId != 0))
-		{
-			if (FindWorldItem(w.ItemId) == null) // Unity object — ==
+			foreach (var w in items.Where(w => w.ParentItemId != 0))
 			{
-				SpawnWorldItem(w);
-				spawned++;
+				if (FindWorldItem(w.ItemId) == null) // Unity object — ==
+				{
+					SpawnWorldItem(w);
+					spawned++;
+				}
 			}
-		}
 
-		if (killed > 0 || spawned > 0)
-		{
-			_log.LogInformation("[Reconcile] {Count} items: killed {Killed}, spawned {Spawned}.",
-				items.Count, killed, spawned);
+			if (killed > 0 || spawned > 0)
+			{
+				_log.LogInformation("[Reconcile] {Count} items: killed {Killed}, spawned {Spawned}.",
+					items.Count, killed, spawned);
+			}
 		}
 	}
 
 	/// <summary>The host refused our pickup — take the item back out of the inventory and put it back where it was picked up.</summary>
 	private void OnItemRejected(ulong itemId)
 	{
-		_applyingRemoteItem = true;
-		try
+		using (CallContext.Enter(CallContext.Origin.RemoteApply))
 		{
 			var item = FindWorldItem(itemId);
 			if (item != null) // Unity object — ==
 			{
 				RollbackPickup(item, itemId);
 			}
-		}
-		finally
-		{
-			_applyingRemoteItem = false;
 		}
 	}
 

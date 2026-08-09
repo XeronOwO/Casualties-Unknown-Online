@@ -27,13 +27,8 @@ internal sealed class WorldEventSync(
 	private readonly WorldService _world = world;
 	private readonly ILogger<WorldEventSync> _log = log;
 
-	/// <summary>Reentry guards: remote applications must not echo back as local reports.</summary>
-	private bool _applyingRemoteBlockDamage;
-	private bool _applyingRemoteBlockPlace;
-	private bool _applyingRemoteBuildingDamage;
-
-	/// <summary>While true, a remote break is being applied — the SetBlock gate (WorldGenerationSetBlockPatch) must pass it unconditionally (it already passed the source side's gate).</summary>
-	internal bool ApplyingRemoteBlockPlace => _applyingRemoteBlockPlace;
+	/// <summary>True while a remote world mutation is being applied — the local-report hooks must stay silent (call identity lives in CallContext, not bools).</summary>
+	private bool IsRemoteApply => CallContext.Current == CallContext.Origin.RemoteApply;
 
 	/// <summary>The generated world snapshot the difference table diffs against (host/solo only).</summary>
 	private ushort[,]? _baseline;
@@ -104,7 +99,7 @@ internal sealed class WorldEventSync(
 	/// </summary>
 	internal void OnBlockDamaged(Vector2 pos, float dmg)
 	{
-		if (_applyingRemoteBlockDamage || !_session.SessionActive)
+		if (IsRemoteApply || !_session.SessionActive)
 		{
 			return;
 		}
@@ -129,16 +124,11 @@ internal sealed class WorldEventSync(
 			return;
 		}
 
-		_applyingRemoteBlockDamage = true;
-		try
+		using (CallContext.Enter(CallContext.Origin.RemoteApply))
 		{
 			WorldGeneration.world.DamageBlock(
 				WorldGeneration.world.WorldToBlockPos(new Vector2(pos.X, pos.Y)), dmg, true, false,
 				_session.Role != SessionRole.Host);
-		}
-		finally
-		{
-			_applyingRemoteBlockDamage = false;
 		}
 	}
 
@@ -151,7 +141,7 @@ internal sealed class WorldEventSync(
 	/// </summary>
 	internal void OnBuildingEntityDamaged(BuildingEntity entity, float damage)
 	{
-		if (_applyingRemoteBuildingDamage || !_session.SessionActive)
+		if (IsRemoteApply || !_session.SessionActive)
 		{
 			return;
 		}
@@ -171,8 +161,7 @@ internal sealed class WorldEventSync(
 	/// </summary>
 	private void OnRemoteBuildingEntityDamaged(NetVector2 pos, float damage)
 	{
-		_applyingRemoteBuildingDamage = true;
-		try
+		using (CallContext.Enter(CallContext.Origin.RemoteApply))
 		{
 			var hit = Physics2D.OverlapPoint(new Vector2(pos.X, pos.Y));
 			var entity = hit != null ? hit.GetComponent<BuildingEntity>() : null; // Unity object — ==
@@ -189,10 +178,6 @@ internal sealed class WorldEventSync(
 				_log.LogWarning("Building entity damage at {Pos} — no entity there (moved or already gone).", pos);
 			}
 		}
-		finally
-		{
-			_applyingRemoteBuildingDamage = false;
-		}
 	}
 
 	/// <summary>
@@ -202,7 +187,7 @@ internal sealed class WorldEventSync(
 	/// </summary>
 	internal void OnBuildingEntityOpened(BuildingEntity entity)
 	{
-		if (_applyingRemoteBuildingDamage || !_session.SessionActive)
+		if (IsRemoteApply || !_session.SessionActive)
 		{
 			return;
 		}
@@ -219,8 +204,7 @@ internal sealed class WorldEventSync(
 	/// </summary>
 	private void OnRemoteBuildingEntityOpened(NetVector2 pos)
 	{
-		_applyingRemoteBuildingDamage = true;
-		try
+		using (CallContext.Enter(CallContext.Origin.RemoteApply))
 		{
 			var hit = Physics2D.OverlapPoint(new Vector2(pos.X, pos.Y));
 			var entity = hit != null ? hit.GetComponent<BuildingEntity>() : null; // Unity object — ==
@@ -233,10 +217,6 @@ internal sealed class WorldEventSync(
 			{
 				_log.LogWarning("Building entity open at {Pos} — no entity there (moved or already gone).", pos);
 			}
-		}
-		finally
-		{
-			_applyingRemoteBuildingDamage = false;
 		}
 	}
 
@@ -255,7 +235,7 @@ internal sealed class WorldEventSync(
 	/// </summary>
 	internal void OnBlockSet(Vector2Int pos, ushort block)
 	{
-		if (_applyingRemoteBlockDamage || _applyingRemoteBlockPlace || HarmonyTraverse.IsGenerating())
+		if (IsRemoteApply || HarmonyTraverse.IsGenerating())
 		{
 			return;
 		}
@@ -316,8 +296,7 @@ internal sealed class WorldEventSync(
 			return;
 		}
 
-		_applyingRemoteBlockPlace = true;
-		try
+		using (CallContext.Enter(CallContext.Origin.RemoteApply))
 		{
 			var pos = new Vector2Int(x, y);
 			if (IsHostMode)
@@ -338,10 +317,6 @@ internal sealed class WorldEventSync(
 			{
 				WorldGeneration.world.SetBlock(pos, block);
 			}
-		}
-		finally
-		{
-			_applyingRemoteBlockPlace = false;
 		}
 	}
 

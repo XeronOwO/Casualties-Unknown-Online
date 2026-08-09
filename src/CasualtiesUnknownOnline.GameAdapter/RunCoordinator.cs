@@ -437,6 +437,18 @@ internal sealed class RunCoordinator(
 			{
 				_log.LogInformation("Host entered the world — waiting for members before everyone starts.");
 			}
+			else
+			{
+				// Nobody to wait for (no end-to-end handshaken member — the
+				// handshake may still be failing): the run starts at once. The
+				// gate-release path (MarkPlayingForHost, StartGateCoordinator)
+				// only runs when a gate was actually ARMED, so without this the
+				// host's phase would stay Generating forever and the
+				// loading-screen keeper (ShouldKeep = SessionActive && !IsPlaying)
+				// would pin the loading screen over a running game.
+				MarkPlayingForHost();
+				_log.LogInformation("Host entered the world — no one to wait for, starting immediately.");
+			}
 		}
 
 		if (inWorld && _session.Role == SessionRole.Guest && _phase is RunPhase.Starting or RunPhase.Generating)

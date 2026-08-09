@@ -206,6 +206,20 @@ internal sealed class ItemWorldSync(
 			return;
 		}
 
+		// The item re-entered an inventory — a pending drop of it is cancelled
+		// and NOT reported: the same-frame drag sequence (PlayerCamera.cs:1623
+		// DropItem + 1629 PickUpItem — a body-internal reorder) dropped the
+		// item from a slot and re-picked it in one player input. The drop got
+		// an instance id (EnsureItemId) but the item never entered the world
+		// table, so reporting the pickup made the host refuse the unknown id
+		// and roll the item back out of the inventory ("dragged from a slot to
+		// the hand — immediately dropped, forever unpickable").
+		if (_pendingDrop is { } picked && picked.Item == item) // Unity objects — ==
+		{
+			_pendingDrop = null;
+			return;
+		}
+
 		var idComp = item.GetComponent<ItemInstanceId>();
 		if (idComp != null) // Unity object — ==
 		{
@@ -326,12 +340,22 @@ internal sealed class ItemWorldSync(
 			return; // the game may still be setting the throw velocity this frame
 		}
 
-		_pendingDrop = null;
-		if (pending.Item == null || !IsStandaloneWorldItem(pending.Item)) // Unity objects — ==; destroyed while pending, or no longer a standalone world item (the container-load path reported it)
+		// The item is still attached to the body (a drag-to-hand re-picked it
+		// within the drop frame) — the drop did not happen, so the report must
+		// wait: keep the pending drop and report when the item is truly free in
+		// the world. Clearing here made a drag-to-hand sequence (DropItem +
+		// PickUpItem in one player input, PlayerCamera.cs:1623/1628) swallow
+		// the pending drop forever — the item then fell out later (a second
+		// drop) with its id allocated but never reported, leaving a world item
+		// invisible to the host ("dropped flashlight — host sees nothing, the
+		// guest cannot pick it up"). A re-pick into an inventory cancels it
+		// (OnItemPickedUp/OnItemLoadedIntoContainer clear the pending drop).
+		if (pending.Item == null || !IsStandaloneWorldItem(pending.Item)) // Unity objects — ==; destroyed while pending
 		{
 			return;
 		}
 
+		_pendingDrop = null;
 		SendDropReport(EnsureItemId(pending.Item), pending.Item, pending.Pos);
 	}
 
@@ -354,6 +378,13 @@ internal sealed class ItemWorldSync(
 		if (_application.IsApplyingRemote)
 		{
 			return;
+		}
+
+		// The item entered a container — a pending drop of it is cancelled (it
+		// was re-placed, not dropped; the container path reports its own move).
+		if (_pendingDrop is { } loaded && loaded.Item == item) // Unity objects — ==
+		{
+			_pendingDrop = null;
 		}
 
 		var itemId = EnsureItemId(item);

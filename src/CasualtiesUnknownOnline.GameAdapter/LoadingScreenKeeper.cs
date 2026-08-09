@@ -30,22 +30,42 @@ internal sealed class LoadingScreenKeeper : MonoBehaviour
 
 	private void LateUpdate()
 	{
-		if (ShouldKeep is null || !ShouldKeep())
+		if (ShouldKeep is null)
 		{
 			return;
 		}
 
 		var loading = Loading?.Invoke();
-		if (loading == null || loading.activeSelf) // Unity object — ==
+		if (ShouldKeep())
 		{
-			return;
-		}
+			if (loading == null || loading.activeSelf) // Unity object — ==
+			{
+				return;
+			}
 
-		loading.SetActive(true);
-		if (!_kept)
+			loading.SetActive(true);
+			if (!_kept)
+			{
+				_kept = true;
+				OnFirstKeep?.Invoke();
+			}
+		}
+		else if (_kept)
 		{
-			_kept = true;
-			OnFirstKeep?.Invoke();
+			// Symmetric hand-back: the keeper pulled the loading screen up (the
+			// game had already hidden it at generation end) and is the only
+			// writer since — on release it must go back down, nobody else does.
+			// (The gate path closes its own kept object in StartGateCoordinator;
+			// the no-gate path — host starting with nobody to wait for, or the
+			// session ending mid-world — has no other closer, this is it. A
+			// scene switch's own loading is never touched: ShouldKeep stays
+			// true across it, and the game hides its own loading at generation
+			// end, so closing here only ever hands back what we pulled up.)
+			_kept = false;
+			if (loading != null && loading.activeSelf) // Unity object — ==
+			{
+				loading.SetActive(false);
+			}
 		}
 	}
 }

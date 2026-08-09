@@ -1,4 +1,5 @@
 using CasualtiesUnknownOnline.Runtime.Protocol;
+using CommitStatus = CasualtiesUnknownOnline.GameAdapter.Items.ItemReportCommitter.CommitStatus;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
@@ -13,10 +14,8 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// (drops, throws, container loads/unloads, pickups, destruction) funnels into
 /// one report here — instance-id allocation, the merged one-report-per-drop
 /// initial vectors and the snapshot-race protection marking. Local compute →
-/// report → host relay/arbitration (the Runtime's ItemService owns the
-/// authoritative table; this class shuttles between the game objects and it).
-/// The host position authority and the guest follow live in
-/// <see cref="ItemPositionAuthority"/> / <see cref="ItemPositionFollow"/>, the
+/// report → host relay/arbitration; the drop state machine and report commit
+/// live in <see cref="ItemDropState"/> / <see cref="ItemReportCommitter"/>, the
 /// materialization side in <see cref="ItemApplication"/>.
 /// </summary>
 internal sealed class ItemWorldSync(
@@ -25,6 +24,7 @@ internal sealed class ItemWorldSync(
 	ItemApplication application,
 	DropProtectionGuard guard,
 	OperationTrace trace,
+	ItemReportCommitter reports,
 	ILogger<ItemWorldSync> log)
 {
 	private readonly SessionService _session = session;
@@ -32,6 +32,7 @@ internal sealed class ItemWorldSync(
 	private readonly ItemApplication _application = application;
 	private readonly DropProtectionGuard _guard = guard;
 	private readonly OperationTrace _trace = trace;
+	private readonly ItemReportCommitter _reports = reports;
 	private readonly ILogger<ItemWorldSync> _log = log;
 
 	/// <summary>True while a remote message is being applied — the local-report hooks must stay silent (call identity lives in CallContext, not a bool).</summary>
@@ -169,20 +170,23 @@ internal sealed class ItemWorldSync(
 		idComp = item.gameObject.AddComponent<ItemInstanceId>();
 		idComp.Id = NextItemId();
 		var itemId = idComp.Id;
-		// The glowing floating pickup effect carries over. Drops are executed
-		// on the ATTACKER's side (local compute), so the game's 8 ft proximity
-		// check (BuildingEntity.cs:74) already ran against the attacker's own
-		// distance — the component on the object is the truth.
+		// The glowing floating pickup effect carries over (the proximity check
+		// already ran on the attacker's side — the component is the truth).
 		var fresh = item.GetComponent<FreshItemDrop>() != null; // Unity object — ==
 		_log.LogInformation("[ItemSpawned] local {Type} (id {ItemId}) reported at ({X:F1},{Y:F1}), vel ({VX:F1},{VY:F1}), fresh {Fresh}.",
 			item.id, itemId, item.transform.position.x, item.transform.position.y,
 			item.rb.velocity.x, item.rb.velocity.y, fresh);
-		_items.SendItemSpawned(itemId, ItemStateCodec.CaptureItem(item, -1),
-			new NetVector2(item.transform.position.x, item.transform.position.y),
-			new NetVector2(item.rb.velocity.x, item.rb.velocity.y),
-			item.transform.eulerAngles.z,
-			fresh, item.rb.angularVelocity);
-		_trace.End(op, itemId, "OnItemInstantiated", "Reported", "Instantiated");
+		_reports.CommitReport(itemId, op, "OnItemInstantiated", CommitStatus.Committed,
+			() =>
+			{
+				_items.SendItemSpawned(itemId, ItemStateCodec.CaptureItem(item, -1),
+					new NetVector2(item.transform.position.x, item.transform.position.y),
+					new NetVector2(item.rb.velocity.x, item.rb.velocity.y),
+					item.transform.eulerAngles.z,
+					fresh, item.rb.angularVelocity);
+				return 1;
+			},
+			"Instantiated");
 	}
 
 	internal void OnItemDestroyed(Item item)
@@ -205,8 +209,13 @@ internal sealed class ItemWorldSync(
 		var idComp = item.GetComponent<ItemInstanceId>();
 		if (idComp != null && idComp.Id != 0) // Unity object — ==; remote deletions zero the id (see KillRemoteItem)
 		{
-			_items.SendItemDestroyed(idComp.Id);
-			_trace.End(op, idComp.Id, "OnItemDestroyed", "Reported", "Destroyed");
+			_reports.CommitReport(idComp.Id, op, "OnItemDestroyed", CommitStatus.Committed,
+				() =>
+				{
+					_items.SendItemDestroyed(idComp.Id);
+					return 1;
+				},
+				"Destroyed");
 		}
 		else
 		{
@@ -259,28 +268,36 @@ internal sealed class ItemWorldSync(
 		{
 			// A picked-up CONTAINER carries its contents out of the world: each
 			// content item that had an instance id leaves the world table too
-			// (without this, the entries linger as ghosts — the next keyframe
-			// materializes them again as standalone items, "the bag swallowed
-			// its contents / the dog food came back as a separate item").
-			var msgs = 0;
-			var container = item.GetComponent<Container>();
-			if (container != null)
-			{
-				for (var i = 0; i < container.transform.childCount; i++)
+			// (without this, the entries linger as ghosts — "the bag swallowed
+			// its contents / the dog food came back as a separate item"). The
+			// landed check is Indeterminate (report still goes out), not
+			// Rejected: a pickup ending with the item STILL a world item is
+			// suspicious, but PickUpItem's landing variants are not fully
+			// enumerated — observe first, tighten later.
+			var status = IsWorldItem(item) ? CommitStatus.Indeterminate : CommitStatus.Committed;
+			_reports.CommitReport(idComp.Id, op, "OnItemPickedUp", status,
+				() =>
 				{
-					var child = container.transform.GetChild(i).GetComponent<Item>();
-					var childId = child != null ? child.GetComponent<ItemInstanceId>() : null; // Unity objects — ==
-					if (childId != null && childId.Id != 0)
+					var msgs = 0;
+					var container = item.GetComponent<Container>();
+					if (container != null)
 					{
-						_items.SendItemPickedUp(childId.Id);
-						msgs++;
+						for (var i = 0; i < container.transform.childCount; i++)
+						{
+							var child = container.transform.GetChild(i).GetComponent<Item>();
+							var childId = child != null ? child.GetComponent<ItemInstanceId>() : null; // Unity objects — ==
+							if (childId != null && childId.Id != 0)
+							{
+								_items.SendItemPickedUp(childId.Id);
+								msgs++;
+							}
+						}
 					}
-				}
-			}
 
-			_items.SendItemPickedUp(idComp.Id);
-			msgs++;
-			_trace.End(op, idComp.Id, "OnItemPickedUp", $"Reported({msgs})", "Pickup");
+					_items.SendItemPickedUp(idComp.Id);
+					return msgs + 1;
+				},
+				"Pickup");
 		}
 		else
 		{
@@ -353,8 +370,17 @@ internal sealed class ItemWorldSync(
 
 		if (_dropState.TryConsumeByThrow(item, out var thrown))
 		{
-			SendDropReport(itemId, item, thrown.Pos);
-			_trace.End(thrown.Op, itemId, "OnItemThrown", "Reported", "Drop", "Throw");
+			// Landed check: a throw with the item NOT a standalone world item
+			// (re-attached mid-flight — an inventory-internal sequence) never
+			// left the world; reporting it would materialize a phantom drop.
+			var status = IsStandaloneWorldItem(item) ? CommitStatus.Committed : CommitStatus.Rejected;
+			_reports.CommitReport(itemId, thrown.Op, "OnItemThrown", status,
+				() =>
+				{
+					_reports.SendDropReport(itemId, item, thrown.Pos);
+					return 1;
+				},
+				"Drop", "Throw");
 			return;
 		}
 
@@ -363,18 +389,21 @@ internal sealed class ItemWorldSync(
 		// anomaly. Report alone anyway, or the item never enters the domain;
 		// the host's re-place covers the rare double report.
 		var op = _trace.NextOperationId();
-		SendDropReport(itemId, item, (Vector2)item.transform.position);
-		_trace.End(op, itemId, "OnItemThrown", "Reported", "Throw");
+		var throwStatus = IsStandaloneWorldItem(item) ? CommitStatus.Committed : CommitStatus.Rejected;
+		_reports.CommitReport(itemId, op, "OnItemThrown", throwStatus,
+			() =>
+			{
+				_reports.SendDropReport(itemId, item, (Vector2)item.transform.position);
+				return 1;
+			},
+			"Throw");
 	}
 
 	/// <summary>Next frame: a drop that was not thrown (a plain drop, velocity ~0)
-	/// reports now. The one-frame wait is not a timing hack — the game performs
-	/// one drop as a DropItem → ThrowItem sequence within the player's input
-	/// frame, and the report must carry the FINAL velocity (a zero-velocity
-	/// report made the host materialize a ghost whose wrong trajectory yanked
-	/// the dropper's copy back — "dropped — immediately desynced"). An item
-	/// that meanwhile left the world (loaded into a container — that path
-	/// reported it) does not re-report.</summary>
+	/// reports now — the one-frame wait lets the game's DropItem → ThrowItem
+	/// sequence set the FINAL velocity (a zero-velocity report materialized a
+	/// ghost on the host, "dropped — immediately desynced"). An item that
+	/// meanwhile left the world does not re-report.</summary>
 	internal void FlushPendingDrop()
 	{
 		if (!_dropState.TryFlush(out var flushed))
@@ -382,22 +411,16 @@ internal sealed class ItemWorldSync(
 			return; // no pending drop, or still waiting — the throw velocity may still land this frame, or the item is destroyed / still attached to the body (drag-to-hand re-pick). A pending drop that stays pending (destroyed, never freed, world left) shows up as a begin-without-end in the item trace — the baseline asserts on that leak.
 		}
 
-		SendDropReport(EnsureItemId(flushed.Item), flushed.Item, flushed.Pos);
-		_trace.End(flushed.Op, OperationTrace.IdOf(flushed.Item), "FlushPendingDrop", "Reported", "Drop", "Flush");
-	}
-
-	private void SendDropReport(ulong itemId, Item item, Vector2 pos)
-	{
-		// Diagnostic: how many contents rode along (a dropped bag must carry
-		// its contents — "the bag is empty after dropping" class of bugs).
-		var container = item.GetComponent<Container>();
-		_log.LogInformation("[ItemDropped] {Type} (id {ItemId}) at ({X:F1},{Y:F1}), vel ({VX:F1},{VY:F1}) — container contents {Contents}.",
-			item.id, itemId, pos.x, pos.y, item.rb.velocity.x, item.rb.velocity.y,
-			container != null ? container.transform.childCount : 0); // Unity object — ==
-		_items.SendItemDropped(itemId, ItemStateCodec.CaptureItem(item, -1),
-			new NetVector2(pos.x, pos.y),
-			new NetVector2(item.rb.velocity.x, item.rb.velocity.y),
-			0, item.transform.eulerAngles.z, default, item.rb.angularVelocity);
+		// TryFlush already verified the item is a standalone world item — the
+		// commit is Committed by construction.
+		var itemId = EnsureItemId(flushed.Item);
+		_reports.CommitReport(itemId, flushed.Op, "FlushPendingDrop", CommitStatus.Committed,
+			() =>
+			{
+				_reports.SendDropReport(itemId, flushed.Item, flushed.Pos);
+				return 1;
+			},
+			"Drop", "Flush");
 	}
 
 	internal void OnItemLoadedIntoContainer(Item item, bool wasWorldItem)
@@ -432,8 +455,13 @@ internal sealed class ItemWorldSync(
 			if (wasWorldItem)
 			{
 				_log.LogInformation("[ContainerLoad] {Type} (id {ItemId}) left the world into a body container — pickup report.", item.id, itemId);
-				_items.SendItemPickedUp(itemId);
-				_trace.End(op, itemId, "OnItemLoadedIntoContainer", "Reported", "Pickup");
+				_reports.CommitReport(itemId, op, "OnItemLoadedIntoContainer", CommitStatus.Committed,
+					() =>
+					{
+						_items.SendItemPickedUp(itemId);
+						return 1;
+					},
+					"Pickup");
 			}
 			else
 			{
@@ -479,12 +507,16 @@ internal sealed class ItemWorldSync(
 		_log.LogInformation("[ContainerLoad] {Type} (id {ItemId}) into container {ContainerId} ({ContainerType}) at ({X:F1},{Y:F1}), parentPos ({PX:F1},{PY:F1}).",
 			item.id, itemId, containerId, containerItem?.id ?? "none",
 			item.transform.position.x, item.transform.position.y, parentPos.X, parentPos.Y);
-		_items.SendItemDropped(itemId, ItemStateCodec.CaptureItem(item, -1),
-			new NetVector2(item.transform.position.x, item.transform.position.y),
-			new NetVector2(item.rb.velocity.x, item.rb.velocity.y),
-			containerId, item.transform.eulerAngles.z, parentPos, item.rb.angularVelocity);
-		msgs++;
-		_trace.End(op, itemId, "OnItemLoadedIntoContainer", $"Reported({msgs})", "ContainerLoad");
+		_reports.CommitReport(itemId, op, "OnItemLoadedIntoContainer", CommitStatus.Committed,
+			() =>
+			{
+				_items.SendItemDropped(itemId, ItemStateCodec.CaptureItem(item, -1),
+					new NetVector2(item.transform.position.x, item.transform.position.y),
+					new NetVector2(item.rb.velocity.x, item.rb.velocity.y),
+					containerId, item.transform.eulerAngles.z, parentPos, item.rb.angularVelocity);
+				return msgs + 1; // msgs = the container spawn above (0 or 1), +1 for the drop itself
+			},
+			"ContainerLoad");
 	}
 
 	internal void OnItemUnloadedFromContainer(Item item)
@@ -502,12 +534,22 @@ internal sealed class ItemWorldSync(
 		var itemId = EnsureItemId(item);
 		if (itemId != 0)
 		{
+			// Landed check: an unload that ends with the item STILL inside an
+			// inventory/container (the unload was intercepted — the container
+			// path reports its own moves) never left the world; reporting it
+			// would materialize a phantom drop on the peer.
+			var status = IsWorldItem(item) ? CommitStatus.Committed : CommitStatus.Rejected;
 			var op = _trace.NextOperationId();
-			_items.SendItemDropped(itemId, ItemStateCodec.CaptureItem(item, -1),
-				new NetVector2(item.transform.position.x, item.transform.position.y),
-				new NetVector2(item.rb.velocity.x, item.rb.velocity.y),
-				0, item.transform.eulerAngles.z, default, item.rb.angularVelocity);
-			_trace.End(op, itemId, "OnItemUnloadedFromContainer", "Reported", "Unload");
+			_reports.CommitReport(itemId, op, "OnItemUnloadedFromContainer", status,
+				() =>
+				{
+					_items.SendItemDropped(itemId, ItemStateCodec.CaptureItem(item, -1),
+						new NetVector2(item.transform.position.x, item.transform.position.y),
+						new NetVector2(item.rb.velocity.x, item.rb.velocity.y),
+						0, item.transform.eulerAngles.z, default, item.rb.angularVelocity);
+					return 1;
+				},
+				"Unload");
 		}
 	}
 
@@ -529,12 +571,23 @@ internal sealed class ItemWorldSync(
 			var itemId = EnsureItemId(child);
 			if (itemId != 0)
 			{
+				// Landed check per child: an unload-all that ends with the child
+				// STILL parented to the container (re-parented mid-loop — the
+				// container path reports its own moves) never spilled; reporting
+				// it would materialize a phantom drop on the peer ("the spilled
+				// item stayed in the container on the other side").
+				var status = child.transform.parent != container.transform ? CommitStatus.Committed : CommitStatus.Rejected;
 				var op = _trace.NextOperationId();
-				_items.SendItemDropped(itemId, ItemStateCodec.CaptureItem(child, -1),
-					new NetVector2(child.transform.position.x, child.transform.position.y),
-					new NetVector2(child.rb.velocity.x, child.rb.velocity.y),
-					0, child.transform.eulerAngles.z, default, child.rb.angularVelocity);
-				_trace.End(op, itemId, "OnContainerUnloadedAll", "Reported", "Spill");
+				_reports.CommitReport(itemId, op, "OnContainerUnloadedAll", status,
+					() =>
+					{
+						_items.SendItemDropped(itemId, ItemStateCodec.CaptureItem(child, -1),
+							new NetVector2(child.transform.position.x, child.transform.position.y),
+							new NetVector2(child.rb.velocity.x, child.rb.velocity.y),
+							0, child.transform.eulerAngles.z, default, child.rb.angularVelocity);
+						return 1;
+					},
+					"Spill");
 			}
 			else
 			{

@@ -20,8 +20,14 @@ public interface IItemControl
 	/// <summary>A runtime-generated item entered the world locally — record (host/solo) and report/broadcast.</summary>
 	void SendItemSpawned(ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, float rotation, bool freshItemDrop, float angularVelocity);
 
-	/// <summary>An item was picked up locally (world → inventory) — drop it from the table (host/solo) and report/broadcast.</summary>
-	void SendItemPickedUp(ulong itemId);
+	/// <summary>An item was picked up locally (world → inventory) — drop it from the table (host/solo) and report/broadcast. Evidence (digest form) rides the guest report for the host's accept-with-correction check.</summary>
+	void SendItemPickedUp(ulong itemId, CharacterItemMsg? evidence = null);
+
+	/// <summary>Guest only: an item was used locally (Body.UseItem) — report the used state (digest evidence) so the host validates and corrects.</summary>
+	void SendItemUse(ulong itemId, CharacterItemMsg item);
+
+	/// <summary>Guest only: an item moved slots locally (SwapSlots / SwitchHands) — report the new slot so the host's record stays in sync.</summary>
+	void SendItemSlot(ulong itemId, int slotIndex);
 
 	/// <summary>An item was dropped/placed into the world locally (inventory → world/container) — record and report/broadcast. Vel is the item's velocity at the drop moment (a throw carries a big one); ParentPos is the container's world position when ParentItemId is set (the receiver binds a local generation-time container by position).</summary>
 	void SendItemDropped(ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, ulong parentItemId, float rotation, NetVector2 parentPos = default, float angularVelocity = 0f);
@@ -33,7 +39,7 @@ public interface IItemControl
 
 	void FireItemSpawnedReceived(ulong sender, ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, float rotation, bool freshItemDrop, float angularVelocity);
 
-	void FireItemPickedUpReceived(ulong sender, ulong itemId);
+	void FireItemPickedUpReceived(ulong sender, ulong itemId, CharacterItemMsg? evidence);
 
 	void FireItemDroppedReceived(ulong sender, ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, ulong parentItemId, float rotation, float angularVelocity, NetVector2 parentPos = default);
 
@@ -48,10 +54,25 @@ public interface IItemControl
 	/// <summary>Guest side: the host's physics moved items — surface them for the local follow.</summary>
 	void FireItemMoveReceived(IReadOnlyList<ItemMoveEntryMsg> items);
 
+	/// <summary>Guest side: the host's authoritative item state arrived (our action-report evidence diverged) — apply it via the restore machinery.</summary>
+	void FireItemCorrectionReceived(ulong sender, CharacterItemMsg item);
+
+	/// <summary>An item was used locally (Body.UseItem) — report the used state (digest evidence) so the host validates and corrects.</summary>
+	void FireItemUseReceived(ulong sender, ulong itemId, CharacterItemMsg item);
+
+	/// <summary>An item moved slots locally (SwapSlots / SwitchHands) — report the new slot so the host's record stays in sync.</summary>
+	void FireItemSlotReceived(ulong sender, ulong itemId, int slotIndex);
+
 	// ===== Host-only surface =====
 
 	/// <summary>Host only: send the full world-item table to one member (on its world entry).</summary>
 	void SendItemSnapshot(ulong targetSteamId);
+
+	/// <summary>Host only: send one guest the authoritative state of an item (its action-report evidence diverged) — accept-with-correction, never a rejection.</summary>
+	void SendItemCorrection(ulong targetSteamId, CharacterItemMsg item);
+
+	/// <summary>Host only: the items a guest currently owns (the transfer table — where the host moved world-table entries as the guest's actions took them). The reconnect restore merges these into the character snapshot.</summary>
+	IReadOnlyList<WorldItem> GetTransferredItems(ulong steamId);
 
 	/// <summary>Host only: the item's live state (position/velocity/rotation) — the periodic keyframe must broadcast the CURRENT positions, not the spawn-time ones.</summary>
 	void RefreshItemState(ulong itemId, NetVector2 pos, NetVector2 vel, float rotation);
@@ -91,4 +112,7 @@ public interface IItemControl
 
 	/// <summary>The authoritative snapshot arrived — reconcile the local world items against it.</summary>
 	event Action<IReadOnlyList<WorldItem>>? ItemSnapshotReceived;
+
+	/// <summary>Guest side: the host's authoritative item state arrived (our action-report evidence diverged) — the adapter applies it (materialize missing contents, fix state, fix slot).</summary>
+	event Action<CharacterItemMsg>? ItemCorrectionReceived;
 }

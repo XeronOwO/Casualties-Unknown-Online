@@ -28,11 +28,15 @@ internal static class BodyItemPatches
 
 		// An inventory-internal move — no world events, but the peer's clone
 		// must re-render in real time (the 1 Hz character throttle alone reads
-		// as a 1-2 s delay).
-		private static void Postfix(IDisposable __state)
+		// as a 1-2 s delay), and the host's transfer-table record must follow
+		// the new slots (the slot report is id + slot — power-idempotent, the
+		// host's record ends at the latest).
+		private static void Postfix(Body __instance, IDisposable __state, int slot1, int slot2)
 		{
 			__state.Dispose();
 			PatchBridge.Impl?.OnInventoryChanged();
+			PatchBridge.Impl?.OnSlotMoved(__instance, slot1, "Swap");
+			PatchBridge.Impl?.OnSlotMoved(__instance, slot2, "Swap");
 		}
 	}
 
@@ -42,10 +46,12 @@ internal static class BodyItemPatches
 	{
 		private static void Prefix(out IDisposable __state) => __state = CallContext.Enter(CallContext.Origin.InternalReorder);
 
-		private static void Postfix(IDisposable __state)
+		private static void Postfix(Body __instance, IDisposable __state)
 		{
 			__state.Dispose();
 			PatchBridge.Impl?.OnInventoryChanged();
+			PatchBridge.Impl?.OnSlotMoved(__instance, 0, "Hands");
+			PatchBridge.Impl?.OnSlotMoved(__instance, 1, "Hands");
 		}
 	}
 

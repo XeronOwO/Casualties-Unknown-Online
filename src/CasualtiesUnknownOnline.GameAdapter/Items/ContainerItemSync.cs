@@ -68,7 +68,7 @@ internal sealed class ContainerItemSync(
 				_reports.CommitReport(itemId, op, "OnItemLoadedIntoContainer", CommitStatus.Committed,
 					() =>
 					{
-						_items.SendItemPickedUp(itemId);
+						_items.SendItemPickedUp(itemId, ItemStateCodec.CaptureDigest(item));
 						return 1;
 					},
 					"Pickup");

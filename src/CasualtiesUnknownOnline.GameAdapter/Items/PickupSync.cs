@@ -38,6 +38,27 @@ internal sealed class PickupSync(
 	/// <summary>The pickup-start position of the last PickUpItem call — still on the ground HERE, the picked-up hook runs after the re-parent. Id-less generation-time items have no PickupOrigins key — this covers them.</summary>
 	private (Item Item, Vector2 Pos)? _lastPickupStart;
 
+	/// <summary>The Body.slots index the item sits in (the item's parent is the slot's transform, Body.cs:1350), or -1 when it is not in a body slot (worn, in a container, still in the world).</summary>
+	private static int SlotIndexOf(Item item)
+	{
+		var body = PlayerCamera.main != null ? PlayerCamera.main.body : null;
+		if (body == null) // Unity object — ==
+		{
+			return -1;
+		}
+
+		for (var i = 0; i < body.slots.Length; i++)
+		{
+			if (body.slots[i].transform.childCount > 0
+				&& body.slots[i].transform.GetChild(0).GetComponent<Item>() == item) // Unity objects — ==
+			{
+				return i;
+			}
+		}
+
+		return -1;
+	}
+
 	internal void OnPickupStart(Item item)
 	{
 		var idComp = item.GetComponent<ItemInstanceId>();
@@ -96,13 +117,20 @@ internal sealed class PickupSync(
 							var childId = child != null ? child.GetComponent<ItemInstanceId>() : null; // Unity objects — ==
 							if (childId != null && childId.Id != 0)
 							{
-								_items.SendItemPickedUp(childId.Id);
+								// Each carried content leaves the world too — its
+								// digest rides the report (the host checks the
+								// contents it claimed against its own entry).
+								_items.SendItemPickedUp(childId.Id, ItemStateCodec.CaptureDigest(child!)); // childId non-null ⇒ child non-null
 								msgs++;
 							}
 						}
 					}
 
-					_items.SendItemPickedUp(idComp.Id);
+					// The slot rides the evidence (a carried item's slot is the
+					// owner's local fact — the host adopts it into the transfer
+					// table; the reconnect restore needs a real slot or the
+					// item would not restore).
+					_items.SendItemPickedUp(idComp.Id, ItemStateCodec.CaptureDigest(item, SlotIndexOf(item)));
 					return msgs + 1;
 				},
 				"Pickup");
@@ -128,7 +156,7 @@ internal sealed class PickupSync(
 						_items.SendItemSpawned(id, ItemStateCodec.CaptureItem(item, -1),
 							new NetVector2(startPos.x, startPos.y), new NetVector2(0f, 0f),
 							item.transform.eulerAngles.z, false, 0f);
-						_items.SendItemPickedUp(id);
+						_items.SendItemPickedUp(id, ItemStateCodec.CaptureDigest(item, SlotIndexOf(item)));
 						return 2;
 					},
 					"Pickup", "GenerationItem");

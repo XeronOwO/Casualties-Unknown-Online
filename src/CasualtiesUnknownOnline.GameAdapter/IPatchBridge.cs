@@ -131,4 +131,10 @@ internal interface IPatchBridge
 	void OnItemUnloadedFromContainer(Item item);
 
 	void OnContainerUnloadedAll(Container container);
+
+	/// <summary>An item was USED (Body.UseItemInHand / Body.UseItem — the use action ran) — report the post-use digest so the host validates and corrects.</summary>
+	void OnItemUsed(Item item);
+
+	/// <summary>One slot's occupant changed through a slot move (SwapSlots/SwitchHands) — report the item's new slot so the host's record stays current.</summary>
+	void OnSlotMoved(Body body, int slot, string origin);
 }

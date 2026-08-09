@@ -32,6 +32,9 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 	/// </summary>
 	private readonly Dictionary<ulong, WorldItem> _worldItems = [];
 
+	/// <summary>The ownership arbitration domain (transfer table + evidence checks) — its state belongs to it, this service forwards the wire reports.</summary>
+	private readonly ItemArbitration _arbitration = new(session, sender, log);
+
 	public event Action<WorldItem>? ItemSpawned;
 
 	public event Action<ulong>? ItemPickedUp;
@@ -45,6 +48,12 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 	public event Action<IReadOnlyList<WorldItem>>? ItemSnapshotReceived;
 
 	public event Action<IReadOnlyList<ItemMoveEntryMsg>>? ItemMoveReceived;
+
+	public event Action<CharacterItemMsg>? ItemCorrectionReceived
+	{
+		add => _arbitration.ItemCorrectionReceived += value;
+		remove => _arbitration.ItemCorrectionReceived -= value;
+	}
 
 	// ===== Host-authoritative position stream =====
 
@@ -107,7 +116,7 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 		}
 	}
 
-	public void SendItemPickedUp(ulong itemId)
+	public void SendItemPickedUp(ulong itemId, CharacterItemMsg? evidence = null)
 	{
 		if (_session.Role != SessionRole.Guest)
 		{
@@ -119,7 +128,10 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 			return;
 		}
 
-		var msg = new ItemPickupMsg { ItemId = itemId };
+		// The digest evidence rides the guest's report only (host-side pickups
+		// are the host's own authority — nothing to check, and the broadcast to
+		// the other guests carries no Item).
+		var msg = new ItemPickupMsg { ItemId = itemId, Item = _session.Role == SessionRole.Guest ? evidence : null };
 		if (_session.Role == SessionRole.Host)
 		{
 			_session.Broadcast(NetMsg.ItemPickup, msg);
@@ -128,6 +140,28 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 		{
 			_sender.Send(_session.HostSteamId, NetMsg.ItemPickup, msg);
 		}
+	}
+
+	/// <summary>Guest only: an item was used locally — report the used state (digest evidence) so the host validates and corrects. Host-side uses are the host's own authority, never reported.</summary>
+	public void SendItemUse(ulong itemId, CharacterItemMsg item)
+	{
+		if (_session.Role != SessionRole.Guest || !_session.SessionActive)
+		{
+			return;
+		}
+
+		_sender.Send(_session.HostSteamId, NetMsg.ItemUse, new ItemUseMsg { ItemId = itemId, Item = item });
+	}
+
+	/// <summary>Guest only: an item moved slots locally — report the new slot so the host's record stays in sync. Host-side moves are the host's own authority, never reported.</summary>
+	public void SendItemSlot(ulong itemId, int slotIndex)
+	{
+		if (_session.Role != SessionRole.Guest || !_session.SessionActive)
+		{
+			return;
+		}
+
+		_sender.Send(_session.HostSteamId, NetMsg.ItemSlot, new ItemSlotMsg { ItemId = itemId, SlotIndex = slotIndex });
 	}
 
 	public void SendItemDropped(ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, ulong parentItemId, float rotation, NetVector2 parentPos = default, float angularVelocity = 0f)
@@ -212,11 +246,11 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 		ItemSpawned?.Invoke(new WorldItem(itemId, item, pos, vel, 0, rotation, freshItemDrop, AngularVelocity: angularVelocity));
 	}
 
-	public void FireItemPickedUpReceived(ulong sender, ulong itemId)
+	public void FireItemPickedUpReceived(ulong sender, ulong itemId, CharacterItemMsg? evidence)
 	{
 		if (_session.Role == SessionRole.Host)
 		{
-			if (!_worldItems.Remove(itemId))
+			if (!_worldItems.TryGetValue(itemId, out var entry) || !_worldItems.Remove(itemId))
 			{
 				// Not in the table: the spawn report is still in flight (the
 				// pickup won the race) or a faster writer already took it —
@@ -230,8 +264,13 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 				return;
 			}
 
+			// Accept-with-correction: the transfer happens from OUR entry (the
+			// picker's claim never replaces it), the picker's evidence is only
+			// compared afterwards — divergence syncs, never blocks.
+			_arbitration.CheckAndTransferToGuest(sender, itemId, entry, evidence);
+
 			_session.BroadcastExcept(sender, NetMsg.ItemPickup, new ItemPickupMsg { ItemId = itemId });
-			_log.LogInformation("Item {ItemId} picked up by {Sender} — relayed.", itemId, sender);
+			_log.LogInformation("Item {ItemId} picked up by {Sender} — transferred + relayed.", itemId, sender);
 		}
 
 		// The winner's local removal; on the losing guests this event rolls
@@ -243,6 +282,13 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 	{
 		if (_session.Role == SessionRole.Host)
 		{
+			// The drop leaves the transfer table — the carried item is now a
+			// world item. The full item IS the evidence (materialization
+			// payload, so the host already has everything to compare) —
+			// checked against the entry BEFORE it leaves, the divergence is
+			// synced with the drop itself.
+			_arbitration.CheckAndUnloadFromGuest(sender, itemId, item);
+
 			// Idempotent: a retransmitted report (Steam reliable resend) must not
 			// re-broadcast — the receivers would materialize AND re-place the
 			// same item (observed: "not present — materializing" followed by
@@ -286,6 +332,36 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 		ItemRejected?.Invoke(itemId);
 	}
 
+	public void FireItemCorrectionReceived(ulong sender, CharacterItemMsg item)
+	{
+		if (_session.Role != SessionRole.Guest)
+		{
+			return; // host-side corrections make no sense — the host is the source
+		}
+
+		_arbitration.FireCorrectionReceived(item);
+	}
+
+	public void FireItemUseReceived(ulong sender, ulong itemId, CharacterItemMsg evidence)
+	{
+		if (_session.Role != SessionRole.Host || !_session.SessionActive)
+		{
+			return;
+		}
+
+		_arbitration.CheckUseEvidence(sender, itemId, evidence);
+	}
+
+	public void FireItemSlotReceived(ulong sender, ulong itemId, int slotIndex)
+	{
+		if (_session.Role != SessionRole.Host || !_session.SessionActive)
+		{
+			return;
+		}
+
+		_arbitration.RecordSlot(sender, itemId, slotIndex);
+	}
+
 	public void FireItemSnapshotReceived(ulong sender, IReadOnlyList<WorldItem> items)
 	{
 		_log.LogInformation("World-item snapshot received ({Count} items).", items.Count);
@@ -293,6 +369,18 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 	}
 
 	// ===== Host-only surface =====
+
+	public void SendItemCorrection(ulong targetSteamId, CharacterItemMsg item)
+	{
+		if (_session.Role != SessionRole.Host || !_session.SessionActive)
+		{
+			return;
+		}
+
+		_arbitration.SendCorrection(targetSteamId, item);
+	}
+
+	public IReadOnlyList<WorldItem> GetTransferredItems(ulong steamId) => _arbitration.GetTransferredItems(steamId);
 
 	public void SendItemSnapshot(ulong targetSteamId)
 	{

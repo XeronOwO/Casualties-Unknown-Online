@@ -8,6 +8,8 @@ using System.Linq;
 
 using HarmonyLib;
 
+using Random = UnityEngine.Random; // System.Random vs UnityEngine.Random ambiguity — the game's jitter uses the Unity stream
+
 namespace CasualtiesUnknownOnline.GameAdapter;
 
 /// <summary>
@@ -141,7 +143,8 @@ internal sealed class StartGateCoordinator(
 				Traverse.Create(localBody).Field("movingAllowed").SetValue(false);
 			}
 
-			KeepLoadingScreenForGate(); // both roles: the loading animation keeps playing while the gate waits
+			KeepLoadingScreenForGate(); // both roles: the loading screen stays up while the gate waits
+			AnimateLoadingForGate(); // ... and keeps its loading jitter, so the wait reads as "still loading"
 
 			if (_session.Role == SessionRole.Guest)
 			{
@@ -220,13 +223,39 @@ internal sealed class StartGateCoordinator(
 
 		_keptLoadingObject = loading; // Unity object — == (a scene switch replaces it; the old one reads destroyed)
 		loading.SetActive(true);
-		// The wait reads as a frozen moment, not a running animation: the
-		// ImageCycle sprite loop (unscaledDeltaTime — timeScale 0 does NOT stop
-		// it) is disabled while the gate holds.
-		foreach (var cycle in loading.GetComponentsInChildren<ImageCycle>(true))
+		// The wait reads as "still loading": the game's own jitter animation
+		// (the gen figures) is mirrored by AnimateLoadingForGate, which runs
+		// with this keep. Pure presentation — the world stays frozen because
+		// every scaled-time logic, coroutine and physics step is stopped by
+		// timeScale 0.
+	}
+
+	/// <summary>
+	/// First-layer loading jitter while the gate holds. The game only animates
+	/// its gen figures while generatingWorld is true (WorldGeneration.cs:943-947:
+	/// GenPod/GenCharacter jitter horizontally, the Image figure bobs vertically);
+	/// once generation finishes the figures freeze forever. Mirror that jitter
+	/// so the kept loading screen keeps reading as "still loading". Other layers
+	/// are static during loading too (a fixed sit figure, WorldGeneration.cs:
+	/// 960-961), so only the first layer animates — matching the loading phase.
+	/// </summary>
+	private void AnimateLoadingForGate()
+	{
+		if (HarmonyTraverse.ReadBiomeDepth() != 0 || HarmonyTraverse.ReadBiomeOverride() != 0)
 		{
-			cycle.enabled = false; // Unity object — == (GetComponentsInChildren on a destroyed parent)
+			return; // not the first layer — the loading phase is static here too (WorldGeneration.cs:939)
 		}
+
+		var genRects = HarmonyTraverse.ReadGenRects();
+		if (genRects == null || genRects[1] == null || genRects[2] == null || genRects[4] == null) // Unity objects — ==
+		{
+			return;
+		}
+
+		var offset = new Vector2(Random.Range(-9f, 0f), 0f);
+		genRects[1].anchoredPosition = offset; // GenPod
+		genRects[2].anchoredPosition = offset; // GenCharacter
+		genRects[4].anchoredPosition = new Vector2(0f, Random.Range(-genRects[4].sizeDelta.y * 0.4f, genRects[4].sizeDelta.y * 0.4f)); // Image
 	}
 
 	private void HideLoadingScreenForGate()
@@ -235,12 +264,11 @@ internal sealed class StartGateCoordinator(
 		_keptLoadingObject = null;
 		if (loading != null) // Unity object — ==
 		{
-			foreach (var cycle in loading.GetComponentsInChildren<ImageCycle>(true))
-			{
-				cycle.enabled = true; // the animation resumes with the game
-			}
-
-			loading.SetActive(false); // the keeper's ShouldKeep reads Playing and stays quiet from now on
+			// The keeper's ShouldKeep reads Playing and stays quiet from now on.
+			// (The animation is never disabled anymore — it just goes with the
+			// screen. This keeps the symmetric close for whichever code armed
+			// the screen: the keeper path and the gate path share this close.)
+			loading.SetActive(false);
 		}
 	}
 }

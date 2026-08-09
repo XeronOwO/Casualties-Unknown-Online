@@ -111,6 +111,13 @@ internal static class HarmonyTraverse
 		return loading != null && loading.activeSelf; // Unity object — ==
 	}
 
+	/// <summary>The loading-screen jitter figures (WorldGeneration.cs:4243) — the game only animates them while generatingWorld is true (WorldGeneration.cs:943-947), so the start-gate wait mirrors that jitter to keep the kept screen alive.</summary>
+	public static RectTransform[]? ReadGenRects()
+	{
+		var field = Traverse.Create(WorldGeneration.world).Field("genRects");
+		return field.FieldExists() ? field.GetValue<RectTransform[]>() : null;
+	}
+
 	public static int ReadBiomeOverride() => Convert.ToInt32(FieldOfWorld("biomeOverride")?.GetValue());
 
 	public static void WriteBiomeOverride(int value) =>

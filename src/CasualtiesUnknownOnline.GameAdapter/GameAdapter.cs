@@ -73,7 +73,8 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_dropGuard = new DropProtectionGuard();
 		_itemApplication = new ItemApplication(items, _dropGuard, loggerFactory.CreateLogger<ItemApplication>());
 		_operationTrace = new OperationTrace(loggerFactory.CreateLogger<OperationTrace>());
-		_itemWorldSync = new ItemWorldSync(session, items, _itemApplication, _dropGuard, _operationTrace, loggerFactory.CreateLogger<ItemWorldSync>());
+		var itemReports = new ItemReportCommitter(items, _operationTrace, loggerFactory.CreateLogger<ItemReportCommitter>());
+		_itemWorldSync = new ItemWorldSync(session, items, _itemApplication, _dropGuard, _operationTrace, itemReports, loggerFactory.CreateLogger<ItemWorldSync>());
 		_itemPositionAuthority = new ItemPositionAuthority(items);
 		_itemPositionFollow = new ItemPositionFollow(items, _dropGuard);
 		_worldEventSync = new WorldEventSync(session, world, loggerFactory.CreateLogger<WorldEventSync>());

@@ -35,6 +35,7 @@ internal sealed class ItemApplication(
 		_items.ItemDestroyed += OnRemoteItemDestroyed;
 		_items.ItemRejected += OnItemRejected;
 		_items.ItemSnapshotReceived += OnRemoteItemSnapshot;
+		_items.ItemCorrectionReceived += OnItemCorrection;
 	}
 
 	internal void Unbind()
@@ -45,6 +46,7 @@ internal sealed class ItemApplication(
 		_items.ItemDestroyed -= OnRemoteItemDestroyed;
 		_items.ItemRejected -= OnItemRejected;
 		_items.ItemSnapshotReceived -= OnRemoteItemSnapshot;
+		_items.ItemCorrectionReceived -= OnItemCorrection;
 	}
 
 	/// <summary>A world item now exists on a remote side — materialize it locally (full state: condition + components + contents).</summary>
@@ -141,7 +143,17 @@ internal sealed class ItemApplication(
 			foreach (var item in Item.allItems.ToList()) // copy: destroying while iterating
 			{
 				var idComp = item.GetComponent<ItemInstanceId>();
-				if (idComp == null || !ItemWorldSync.IsWorldItem(item)) // Unity object — ==; inventory items are character data
+				// STANDALONE, not just world: a container's contents (a bag's
+				// carried items) have an id but NO independent table entry — the
+				// entry travels INSIDE the container's Contents. With IsWorldItem
+				// here the keyframe killed them as stale ("put an item in the
+				// legpouch, dropped it — the host sees it inside, the guest's
+				// copy is empty"), which also later fed the "equip the empty
+				// pouch → the item is swallowed" chain (the host's container
+				// copy with the real contents gets deleted by the pickup).
+				// Inventory items are character data (IsStandaloneWorldItem is
+				// false on the Body chain).
+				if (idComp == null || !ItemWorldSync.IsStandaloneWorldItem(item)) // Unity object — ==
 				{
 					continue;
 				}
@@ -192,6 +204,71 @@ internal sealed class ItemApplication(
 			{
 				_log.LogInformation("[Reconcile] {Count} items: killed {Killed}, spawned {Spawned}.",
 					items.Count, killed, spawned);
+			}
+		}
+	}
+
+	/// <summary>
+	/// The host's authoritative item state arrived (our last action-report
+	/// evidence diverged): apply the top-level state (condition/liquids/
+	/// components), materialize contents missing on this side (with their
+	/// instance ids — a corrected content must stay findable by id) and recurse
+	/// into the contents already here. Slot is deliberately NOT applied: a
+	/// guest's slot layout is its local fact (the host only records it), so the
+	/// correction's slot would be stale by construction. Runs inside a
+	/// RemoteApply scope like every remote application — the materialization's
+	/// own hooks stay silent.
+	/// </summary>
+	private void OnItemCorrection(CharacterItemMsg item)
+	{
+		using (CallContext.Enter(CallContext.Origin.RemoteApply))
+		{
+			var target = FindWorldItem(item.InstanceId);
+			if (target == null) // Unity object — ==
+			{
+				_log.LogWarning("[ItemCorrection] {Type} (Instance {InstanceId}) not found locally — ignored.", item.ItemId, item.InstanceId);
+				return;
+			}
+
+			ApplyAuthoritativeState(target, item);
+			_log.LogInformation("[ItemCorrection] applied authoritative state to {Type} (Instance {InstanceId}).", item.ItemId, item.InstanceId);
+		}
+	}
+
+	/// <summary>Recursive authoritative-state apply: the top-level fields, then per-content (recurse into an existing one, materialize a missing one with its id).</summary>
+	private static void ApplyAuthoritativeState(Item target, CharacterItemMsg authoritative)
+	{
+		target.condition = authoritative.Condition;
+		target.favourited = authoritative.Favourited;
+		ItemStateCodec.RestoreLiquids(target, authoritative.Liquids);
+		ItemStateCodec.RestoreComponentStates(target, authoritative.Components);
+
+		var container = target.GetComponent<Container>();
+		if (container == null || authoritative.Contents.Count == 0) // Unity object — ==
+		{
+			return;
+		}
+
+		var children = new Dictionary<ulong, Item>();
+		for (var i = 0; i < container.transform.childCount; i++)
+		{
+			var child = container.transform.GetChild(i).GetComponent<Item>();
+			var idComp = child != null ? child.GetComponent<ItemInstanceId>() : null; // Unity objects — ==
+			if (idComp != null && idComp.Id != 0)
+			{
+				children[idComp.Id] = child!; // idComp non-null ⇒ child non-null
+			}
+		}
+
+		foreach (var childData in authoritative.Contents)
+		{
+			if (childData.InstanceId != 0 && children.TryGetValue(childData.InstanceId, out var child))
+			{
+				ApplyAuthoritativeState(child!, childData); // found ⇒ non-null
+			}
+			else
+			{
+				ItemStateCodec.RestoreContent(target, container, childData);
 			}
 		}
 	}

@@ -25,13 +25,14 @@ internal static class ItemStateCodec
 	/// <summary>Late-bound logger (the domains pass theirs in once at startup).</summary>
 	internal static void BindLog(Log log) => _log = log;
 
-	/// <summary>Recursively captures one item: the SavedItem fields (condition/
-	/// favourited/slot), the WaterContainerItem liquid stacks, the [Saveable]
-	/// component states and the container contents.</summary>
+	/// <summary>Recursively captures one item: the instance id, the SavedItem
+	/// fields (condition/favourited/slot), the WaterContainerItem liquid stacks,
+	/// the [Saveable] component states and the container contents.</summary>
 	internal static CharacterItemMsg CaptureItem(Item item, int slotIndex)
 	{
 		var msg = new CharacterItemMsg
 		{
+			InstanceId = item.GetComponent<ItemInstanceId>()?.Id ?? 0, // Unity object — ?. (0 = unbound generation-time item)
 			ItemId = item.id,
 			Condition = item.condition,
 			SlotIndex = slotIndex,
@@ -49,6 +50,48 @@ internal static class ItemStateCodec
 				if (child != null) // Unity object — ==
 				{
 					msg.Contents.Add(CaptureItem(child, slotIndex));
+				}
+			}
+		}
+
+		return msg;
+	}
+
+	/// <summary>
+	/// The digest form of an item — the action-report evidence: full top-level
+	/// state (condition/liquids/components/favourited) but the contents as
+	/// INSTANCE IDS ONLY (existence, never their state — that travels when the
+	/// content itself is acted on, the recursive principle). Light on the wire
+	/// and exactly the surface the host's evidence check compares. The slot
+	/// rides the evidence so the host's transfer-table entry gets a real slot
+	/// at pickup (a carried item's slot is its owner's local fact — the host
+	/// adopts it, never corrects it).
+	/// </summary>
+	internal static CharacterItemMsg CaptureDigest(Item item, int slotIndex = -1)
+	{
+		var msg = new CharacterItemMsg
+		{
+			InstanceId = item.GetComponent<ItemInstanceId>()?.Id ?? 0,
+			ItemId = item.id,
+			Condition = item.condition,
+			SlotIndex = slotIndex,
+			Favourited = item.favourited,
+			Liquids = CaptureLiquids(item),
+			Components = CaptureSaveableComponents(item),
+		};
+
+		var container = item.GetComponent<Container>();
+		if (container != null) // Unity object — ==
+		{
+			for (var i = 0; i < container.transform.childCount; i++)
+			{
+				var child = container.transform.GetChild(i).GetComponent<Item>();
+				if (child != null) // Unity object — ==
+				{
+					msg.Contents.Add(new CharacterItemMsg
+					{
+						InstanceId = child.GetComponent<ItemInstanceId>()?.Id ?? 0,
+					});
 				}
 			}
 		}
@@ -280,22 +323,39 @@ internal static class ItemStateCodec
 
 		foreach (var childData in contents)
 		{
-			var go = UnityEngine.Object.Instantiate((GameObject)Resources.Load(childData.ItemId),
-				containerItem.transform.position, Quaternion.identity);
-			var child = go.GetComponent<Item>();
-			if (child == null) // Unity object — ==
-			{
-				UnityEngine.Object.Destroy(go);
-				_log?.LogWarning("Restore: {ItemId} has no Item component — skipped.", childData.ItemId);
-				continue;
-			}
-
-			child.condition = childData.Condition;
-			child.favourited = childData.Favourited;
-			RestoreLiquids(child, childData.Liquids);
-			RestoreComponentStates(child, childData.Components);
-			RestoreContents(child, childData.Contents);
-			container.LoadItem(child);
+			RestoreContent(containerItem, container, childData);
 		}
+	}
+
+	/// <summary>
+	/// Materializes ONE content item into a container (the shared step of the
+	/// bulk restore and the correction apply): instantiate by definition,
+	/// restore the state, attach the instance id (a correction-addressed item
+	/// must be findable by id afterwards — "the corrected contents vanished on
+	/// the next action") and load it with the game's own semantics.
+	/// </summary>
+	internal static void RestoreContent(Item containerItem, Container container, CharacterItemMsg childData)
+	{
+		var go = UnityEngine.Object.Instantiate((GameObject)Resources.Load(childData.ItemId),
+			containerItem.transform.position, Quaternion.identity);
+		var child = go.GetComponent<Item>();
+		if (child == null) // Unity object — ==
+		{
+			UnityEngine.Object.Destroy(go);
+			_log?.LogWarning("Restore: {ItemId} has no Item component — skipped.", childData.ItemId);
+			return;
+		}
+
+		child.condition = childData.Condition;
+		child.favourited = childData.Favourited;
+		if (childData.InstanceId != 0)
+		{
+			child.gameObject.AddComponent<ItemInstanceId>().Id = childData.InstanceId;
+		}
+
+		RestoreLiquids(child, childData.Liquids);
+		RestoreComponentStates(child, childData.Components);
+		RestoreContents(child, childData.Contents);
+		container.LoadItem(child);
 	}
 }

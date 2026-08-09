@@ -187,19 +187,26 @@ The session layer is domain-split (landed 2026-08-08): `SessionService` owns the
 
 **Item state sync (complete, landed 2026-08-08)**: `CharacterItemMsg` is the wire form of the official save's `SavedItem` + `[Saveable]` component dictionaries (SaveSystem.SaveGame): condition/favourited/slot, recursive container contents (restored with the game's own semantics — a non-empty slot takes the item into its container, SaveSystem.cs:304-329), `WaterContainerItem` liquid stacks, and a generic `[Saveable]` component snapshot (public/SerializeField simple fields; Unity references never serialized). Restore is exact-rebuild, never additive — the prefab's Awake fills the defaults (WaterContainerItem.Awake), so adding on top reads "full" again.
 
-**Arbitration feedback tiers** — chosen by one rule: *does a rejected action leave the local view diverged from the host's truth?*
+**Arbitration feedback tiers** — chosen by one rule: *does a rejected action leave the local view diverged from the host's truth?* The host executes every accepted action with **its own authoritative data** (its world table is the entity's state; the guest's report only names the action and carries evidence — the host never adopts the guest's asserted payload wholesale). A correction is **not** the consequence of a rejection: it is a data-sync tool for "action valid, guest's stored data wrong", and it never blocks the action.
+
+Three tiers, decided by two independent checks:
+
+| Check | Question | Answer decides |
+|---|---|---|
+| **Action validity** | Does the action make sense against the host's world (entity exists, operation possible)? | **Accept vs Reject** |
+| **Data correctness** | Does the guest's reported evidence match the host's state? | **Correction packet vs none** (never affects accept/reject) |
 
 | Operation | Local execution | Host judgment | Divergence on rejection | Tier |
 |---|---|---|---|---|
 | Block damage / mining | Applied immediately | Target state (already-broken blocks absorb idempotently — `DamageBlock` is safe on air, health = 0) | None — the block already looks broken | **Silent** (landed) |
 | Scene state | Applied immediately | State report; host only tracks the member | None | Silent (landed) |
 | Character data (1 Hz reports) | Normal gameplay | Numeric sync; host keeps the latest per SteamID | None — guest is the local truth | Silent (landed) |
-| Pickup / interaction (Phase 3) | Item enters the inventory immediately | **Unique ownership** (host world table, first-writer-wins) | **Diverged and not self-healing** (the state stream carries no inventory) | **Reject + correction packet** (item rollback + feedback sound) |
+| Pickup / interaction (Phase 3) | Item enters the inventory immediately | **Unique ownership** (host world table, first-writer-wins) + evidence check | **Diverged and not self-healing** (the state stream carries no inventory) | **Accept; + correction when the guest's evidence differs** (wrong contents/state — the host executes from its own table entry and re-sends the true state). **Reject only for invalid actions** (unknown id, not a world item — item rollback + feedback sound) |
 | Placement / construction (Phase 3) | Structure spawned locally | Generation conflict (occupied / not placeable) | Diverged, not self-healing | Reject + correction (remove/replace) |
 | Combat damage (Phase 3) | Damage/anim applied | Target state + ownership mix | Partially diverged — health self-heals via the state stream | Silent + correction (health) / reject (ownership) |
 | World time (Phase 3) | Local time advances | **Authoritative write** (host is the only time source) | Self-healing — host periodically broadcasts the time | Silent + correction (time packet) |
 
-Anti-cheat is explicitly **out of scope** — arbitration is the host's natural job of owning a shared world, not policing. The silent tier is implemented; reject+correction packets land with the first real conflict scenario (pickup, Phase 3). Each operation's packet shape, rejection reason and correction payload are per-operation messages (no generic rejection envelope — consistent with the no-envelope rule).
+Anti-cheat is explicitly **out of scope** — arbitration is the host's natural job of owning a shared world, not policing. The silent tier is implemented; the pickup tier (accept-with-correction + reject-for-invalid) lands with the first real conflict scenario (pickup, Phase 3): the pickup report carries the full item evidence (`CaptureItem`, symmetric with the drop report), the host validates evidence against its world-table entry, executes the transfer (world table → the picker's character data) from **its own entry** — never waiting on the guest's later 1 Hz report to carry the data across — and sends a correction packet when the guest's evidence diverged. Each operation's packet shape, rejection reason and correction payload are per-operation messages (no generic rejection envelope — consistent with the no-envelope rule).
 
 ## 4. Game Adapter — the Hard Part
 

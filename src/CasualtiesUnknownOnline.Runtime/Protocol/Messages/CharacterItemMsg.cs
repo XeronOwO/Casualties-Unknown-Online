@@ -15,24 +15,28 @@ namespace CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 [ProtoContract]
 public sealed class CharacterItemMsg
 {
+	/// <summary>Instance identity — the primary key, always first. 0 = no id (unbound/generation-time). The id follows the item through world ↔ inventory transfers (never re-allocated), which is what lets the host's arbitration target the exact instance.</summary>
 	[ProtoMember(1)]
-	public string ItemId { get; set; } = ""; // definition id (ItemInfo.GlobalItems key)
+	public ulong InstanceId { get; set; }
 
 	[ProtoMember(2)]
-	public float Condition { get; set; }
+	public string ItemId { get; set; } = ""; // definition id (ItemInfo.GlobalItems key)
 
 	[ProtoMember(3)]
-	public int SlotIndex { get; set; } // index into Body.slots (parent's slot for container contents)
+	public float Condition { get; set; }
 
 	[ProtoMember(4)]
-	public bool Favourited { get; set; }
+	public int SlotIndex { get; set; } // index into Body.slots (parent's slot for container contents)
 
 	[ProtoMember(5)]
-	public List<ComponentStateMsg> Components { get; set; } = [];
+	public bool Favourited { get; set; }
 
 	[ProtoMember(6)]
-	public List<CharacterItemMsg> Contents { get; set; } = []; // items inside a Container, recursive
+	public List<ComponentStateMsg> Components { get; set; } = [];
 
 	[ProtoMember(7)]
+	public List<CharacterItemMsg> Contents { get; set; } = []; // items inside a Container, recursive
+
+	[ProtoMember(8)]
 	public List<LiquidStackMsg> Liquids { get; set; } = []; // WaterContainerItem stacks
 }

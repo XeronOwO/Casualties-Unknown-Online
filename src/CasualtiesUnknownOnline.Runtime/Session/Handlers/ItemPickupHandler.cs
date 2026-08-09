@@ -6,10 +6,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 
 /// <summary>
 /// An item left the world into a player's inventory: guest → host as a report
-/// (the host arbitrates — first-writer-wins against the table — and broadcasts
-/// the winner, source excluded; a refused pickup gets an ItemReject back) and
-/// host → guest as the winner broadcast (the other guests remove the item from
-/// their world).
+/// (the host arbitrates — first-writer-wins against the table, the transfer
+/// happens from the host's OWN entry, and the picker's digest evidence is
+/// checked afterwards — accept-with-correction; a refused pickup gets an
+/// ItemReject back) and host → guest as the winner broadcast (the other guests
+/// remove the item from their world).
 /// </summary>
 [PacketHandler(NetMsg.ItemPickup)]
 public sealed class ItemPickupHandler(ILogger<ItemPickupHandler> log) : PacketHandlerBase<ItemPickupMsg>
@@ -18,7 +19,7 @@ public sealed class ItemPickupHandler(ILogger<ItemPickupHandler> log) : PacketHa
 
 	protected override void Handle(ulong sender, ItemPickupMsg msg, HandlerContext ctx)
 	{
-		ctx.Items.FireItemPickedUpReceived(sender, msg.ItemId);
+		ctx.Items.FireItemPickedUpReceived(sender, msg.ItemId, msg.Item);
 		_log.LogInformation("Item pickup {ItemId} from {Sender}.", msg.ItemId, sender);
 	}
 }

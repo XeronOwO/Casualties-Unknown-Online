@@ -192,6 +192,15 @@ internal sealed class ItemWorldSync(
 			return;
 		}
 
+		// A pending drop of a DESTROYED item is cancelled — without this the
+		// pending state lingered until the next drop overwrote it (the flush's
+		// Unity == check caught it, but the op trace then showed a permanent
+		// begin-without-end and the state could never resolve on its own).
+		if (_dropState.TryCancel(item, out var cancelledOp))
+		{
+			_trace.End(cancelledOp, OperationTrace.IdOf(item), "OnItemDestroyed", "Cancelled", "Destroyed");
+		}
+
 		var op = _trace.NextOperationId();
 		var idComp = item.GetComponent<ItemInstanceId>();
 		if (idComp != null && idComp.Id != 0) // Unity object — ==; remote deletions zero the id (see KillRemoteItem)
@@ -202,6 +211,15 @@ internal sealed class ItemWorldSync(
 		else
 		{
 			_trace.End(op, OperationTrace.IdOf(item), "OnItemDestroyed", "Skipped", "NoId");
+		}
+	}
+
+	/// <summary>The world was left (scene switch / session end) — a pending drop cannot resolve anymore; cancel it so the operation trace stays balanced.</summary>
+	internal void ResetPending()
+	{
+		if (_dropState.TryReset(out var op))
+		{
+			_trace.End(op, 0, "ResetPending", "Cancelled", "WorldLeft");
 		}
 	}
 
@@ -229,10 +247,9 @@ internal sealed class ItemWorldSync(
 		// table, so reporting the pickup made the host refuse the unknown id
 		// and roll the item back out of the inventory ("dragged from a slot to
 		// the hand — immediately dropped, forever unpickable").
-		if (_pendingDrop is { } picked && picked.Item == item) // Unity objects — ==
+		if (_dropState.TryCancel(item, out var pickedOp))
 		{
-			_pendingDrop = null;
-			_trace.End(picked.Op, OperationTrace.IdOf(item), "OnItemPickedUp", "Cancelled", "RePick");
+			_trace.End(pickedOp, OperationTrace.IdOf(item), "OnItemPickedUp", "Cancelled", "RePick");
 			return;
 		}
 
@@ -284,8 +301,8 @@ internal sealed class ItemWorldSync(
 	/// end of frame (a plain drop, velocity 0). One drop operation = one
 	/// report = one materialization from complete initial conditions.
 	/// </summary>
-	/// <summary>Frame the drop happened — the report waits one frame so the game's DropItem → ThrowItem sequence (one player input) has set the final velocity. The op id links the pending state to its operation trace.</summary>
-	private (Item Item, Vector2 Pos, int Frame, long Op)? _pendingDrop;
+	/// <summary>The drop-operation state machine — all pending read/write points live in this one owner (see ItemDropState).</summary>
+	private readonly ItemDropState _dropState = new();
 
 	internal void OnItemDropped(Item item)
 	{
@@ -307,13 +324,13 @@ internal sealed class ItemWorldSync(
 			_guard.Mark(itemId); // the roll-out is local physics until the host's stream takes over — the reconcile must not kill the fresh copy
 		}
 
-		if (_pendingDrop is { } pending && pending.Item != item) // Unity objects — ==; two drops in one frame (rare) — flush the first first
+		if (_dropState.Current == ItemDropState.Phase.Dropped && !_dropState.IsPendingFor(item)) // two drops in one frame (rare) — flush the first first
 		{
 			FlushPendingDrop();
 		}
 
 		_trace.Begin(op, itemId, "OnItemDropped", "Drop");
-		_pendingDrop = (item, (Vector2)item.transform.position, Time.frameCount, op); // the throw velocity lands a moment later (ThrowItem) — merge into one report
+		_dropState.EnterDrop(item, (Vector2)item.transform.position, op); // the throw velocity lands a moment later (ThrowItem) — merge into one report
 	}
 
 	internal void OnItemThrown(Item item)
@@ -334,11 +351,10 @@ internal sealed class ItemWorldSync(
 			_guard.Mark(itemId);
 		}
 
-		if (_pendingDrop is { } pending && pending.Item == item) // Unity objects — ==
+		if (_dropState.TryConsumeByThrow(item, out var thrown))
 		{
-			_pendingDrop = null;
-			SendDropReport(itemId, item, pending.Pos);
-			_trace.End(pending.Op, itemId, "OnItemThrown", "Reported", "Drop", "Throw");
+			SendDropReport(itemId, item, thrown.Pos);
+			_trace.End(thrown.Op, itemId, "OnItemThrown", "Reported", "Drop", "Throw");
 			return;
 		}
 
@@ -361,37 +377,13 @@ internal sealed class ItemWorldSync(
 	/// reported it) does not re-report.</summary>
 	internal void FlushPendingDrop()
 	{
-		if (_pendingDrop is not { } pending)
+		if (!_dropState.TryFlush(out var flushed))
 		{
-			return;
+			return; // no pending drop, or still waiting — the throw velocity may still land this frame, or the item is destroyed / still attached to the body (drag-to-hand re-pick). A pending drop that stays pending (destroyed, never freed, world left) shows up as a begin-without-end in the item trace — the baseline asserts on that leak.
 		}
 
-		if (Time.frameCount <= pending.Frame)
-		{
-			return; // still pending — the game may still be setting the throw velocity this frame
-		}
-
-		// The item is still attached to the body (a drag-to-hand re-picked it
-		// within the drop frame) — the drop did not happen, so the report must
-		// wait: keep the pending drop and report when the item is truly free in
-		// the world. Clearing here made a drag-to-hand sequence (DropItem +
-		// PickUpItem in one player input, PlayerCamera.cs:1623/1628) swallow
-		// the pending drop forever — the item then fell out later (a second
-		// drop) with its id allocated but never reported, leaving a world item
-		// invisible to the host ("dropped flashlight — host sees nothing, the
-		// guest cannot pick it up"). A re-pick into an inventory cancels it
-		// (OnItemPickedUp/OnItemLoadedIntoContainer clear the pending drop).
-		// A pending drop that stays pending (destroyed, never freed, world
-		// left) shows up as a begin-without-end in the item trace — the
-		// baseline asserts on that leak.
-		if (pending.Item == null || !IsStandaloneWorldItem(pending.Item)) // Unity objects — ==; destroyed while pending
-		{
-			return;
-		}
-
-		_pendingDrop = null;
-		SendDropReport(EnsureItemId(pending.Item), pending.Item, pending.Pos);
-		_trace.End(pending.Op, OperationTrace.IdOf(pending.Item), "FlushPendingDrop", "Reported", "Drop", "Flush");
+		SendDropReport(EnsureItemId(flushed.Item), flushed.Item, flushed.Pos);
+		_trace.End(flushed.Op, OperationTrace.IdOf(flushed.Item), "FlushPendingDrop", "Reported", "Drop", "Flush");
 	}
 
 	private void SendDropReport(ulong itemId, Item item, Vector2 pos)
@@ -417,10 +409,9 @@ internal sealed class ItemWorldSync(
 
 		// The item entered a container — a pending drop of it is cancelled (it
 		// was re-placed, not dropped; the container path reports its own move).
-		if (_pendingDrop is { } loaded && loaded.Item == item) // Unity objects — ==
+		if (_dropState.TryCancel(item, out var loadedOp))
 		{
-			_pendingDrop = null;
-			_trace.End(loaded.Op, OperationTrace.IdOf(item), "OnItemLoadedIntoContainer", "Cancelled", "LoadedIntoContainer");
+			_trace.End(loadedOp, OperationTrace.IdOf(item), "OnItemLoadedIntoContainer", "Cancelled", "LoadedIntoContainer");
 		}
 
 		var itemId = EnsureItemId(item);
@@ -503,10 +494,9 @@ internal sealed class ItemWorldSync(
 			return;
 		}
 
-		if (_pendingDrop is { } pending && pending.Item == item) // Unity objects — ==; the unload report below IS this item's report — a later flush must not send it again
+		if (_dropState.TryCancel(item, out var unloadedOp)) // the unload report below IS this item's report — a later flush must not send it again
 		{
-			_pendingDrop = null;
-			_trace.End(pending.Op, OperationTrace.IdOf(item), "OnItemUnloadedFromContainer", "Cancelled", "UnloadedReported");
+			_trace.End(unloadedOp, OperationTrace.IdOf(item), "OnItemUnloadedFromContainer", "Cancelled", "UnloadedReported");
 		}
 
 		var itemId = EnsureItemId(item);

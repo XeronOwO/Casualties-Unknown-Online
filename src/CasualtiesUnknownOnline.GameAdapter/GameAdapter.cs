@@ -53,6 +53,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	private readonly WorldEventSync _worldEventSync;
 	private readonly LifePodPresentation _lifePod;
 	private readonly RunCoordinator _run;
+	private readonly WorldParamsService _worldParams;
 	private readonly StartGateCoordinator _gate;
 	private readonly GuestMenuGuard _guestMenu;
 
@@ -81,7 +82,8 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_worldEventSync = new WorldEventSync(session, world, loggerFactory.CreateLogger<WorldEventSync>());
 		_lifePod = new LifePodPresentation(loggerFactory.CreateLogger<LifePodPresentation>());
 		_guestMenu = new GuestMenuGuard(session, loggerFactory.CreateLogger<GuestMenuGuard>());
-		_run = new RunCoordinator(session, world, entities, _characterDataSync, _guestMenu, loggerFactory.CreateLogger<RunCoordinator>());
+		_worldParams = new WorldParamsService(world, loggerFactory.CreateLogger<WorldParamsService>());
+		_run = new RunCoordinator(session, world, entities, _characterDataSync, _guestMenu, _worldParams, loggerFactory.CreateLogger<RunCoordinator>());
 		_gate = new StartGateCoordinator(session, world, _lifePod, _run, loggerFactory.CreateLogger<StartGateCoordinator>());
 		PatchBridge.Bind(this); // the only static seam — Harmony patches read the narrow surface, never this instance
 	}
@@ -234,9 +236,10 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 
 	// ---- IGameAdapter ----
 
-	void IGameAdapter.CaptureWorldParams() => _run.CaptureWorldParams();
+	void IGameAdapter.CaptureWorldParams() => _worldParams.CaptureAtBoundary();
 
-	void IGameAdapter.ApplyWorldParams(WorldStartParams parameters) => _run.ApplyWorldParams(parameters);
+	void IGameAdapter.ApplyWorldParams(WorldStartParams parameters) => _worldParams.Apply(parameters);
+
 
 	// ---- IPatchBridge: one-line forwards to the owning domain ----
 
@@ -275,9 +278,9 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 
 	void IPatchBridge.OnInventoryChanged() => _characterDataSync.ReportInventoryChanged(_run.LocalBody);
 
-	bool IPatchBridge.EnsureGuestWorldParams() => _run.EnsureGuestWorldParams();
+	bool IPatchBridge.EnsureGuestWorldParams() => _worldParams.EnsureGuestApplied();
 
-	void IPatchBridge.ResetGenStreamToBaseline() => _run.ResetGenStreamToBaseline();
+	void IPatchBridge.ResetGenStreamToBaseline() => _worldParams.ResetGenStreamToBaseline();
 
 	void IPatchBridge.OnEarthquakeStarted(float duration, float nextDelay) =>
 		_worldEventSync.OnEarthquakeStarted(duration, nextDelay);

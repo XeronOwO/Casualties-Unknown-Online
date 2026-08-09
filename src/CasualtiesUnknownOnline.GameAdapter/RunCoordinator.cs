@@ -3,11 +3,8 @@ using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using Microsoft.Extensions.Logging;
-using Random = UnityEngine.Random;
 
 using System;
-
-using CasualtiesUnknownOnline.GameAdapter.WorldGen;
 
 namespace CasualtiesUnknownOnline.GameAdapter;
 
@@ -27,6 +24,7 @@ internal sealed class RunCoordinator(
 	EntitySyncService entities,
 	CharacterDataSync characterData,
 	GuestMenuGuard guestMenu,
+	WorldParamsService worldParams,
 	ILogger<RunCoordinator> log)
 {
 	/// <summary>Guest run-follow phases — one enum replaces the scattered booleans (pending/started/ready/frozen).</summary>
@@ -45,6 +43,7 @@ internal sealed class RunCoordinator(
 	private readonly EntitySyncService _entities = entities;
 	private readonly CharacterDataSync _characterData = characterData;
 	private readonly GuestMenuGuard _guestMenu = guestMenu;
+	private readonly WorldParamsService _params = worldParams;
 	private readonly ILogger<RunCoordinator> _log = log;
 
 	private RunPhase _phase = RunPhase.Idle;
@@ -52,13 +51,6 @@ internal sealed class RunCoordinator(
 
 	private bool _inWorld;
 	private Body? _localBody; // Unity object — == (scene-reload check)
-
-	/// <summary>Host: params captured at the run-start entry — the first GenerateWorld must not re-capture.</summary>
-	private bool _entryParamsCaptured;
-
-	/// <summary>Guest: the params instance whose Random.state is currently restored (a new instance = a new world/layer = re-apply).</summary>
-	private WorldStartParams? _appliedWorldParams;
-	private bool _guestParamsWaitLogged; // guest: the "generation holding for params" log fired for this wait
 
 	/// <summary>Guest: when the host finished loading (its InWorld arrived via the SceneState relay) — the anchor for the guest-side 30 s countdown.</summary>
 	private long _hostInWorldSinceMs;
@@ -141,180 +133,29 @@ internal sealed class RunCoordinator(
 	{
 		if (_session.Role == SessionRole.Host && _session.SessionActive)
 		{
-			CaptureWorldParamsAtEntry(isTutorial);
+			_params.CaptureAtEntry(isTutorial); // the generation baseline — captured at the click moment, before any run randomness is consumed
 			_world.SetHostRunPending(true); // mid-generation handshakes may follow immediately
 			_world.SendWorldJoin(isTutorial);
 		}
 	}
 
 	/// <summary>
-	/// Host only: capture + publish the world params at the run-start entry
-	/// (the click moment), BEFORE any run randomness is consumed — the
-	/// generation stream is force-reset to this baseline at the GenerateWorld
-	/// boundary, so capturing now is equivalent to capturing there, and the
-	/// guests get the params with zero waiting. Run settings come from the
-	/// menu (PreRunScript — WorldGeneration.runSettings is only assigned inside
-	/// StartRun); the tutorial nulls them itself (PreRunScript.cs:312). The
-	/// world-defining fields are all defaults at the entry: biomeOverride
-	/// follows the entry kind (tutorial or not — its other source is the
-	/// WorldGeneration.Awake tutorial flag, identical on both sides), depth and
-	/// traveled start at 0 (debugStartDepth is a debug-console value).
-	/// </summary>
-	private void CaptureWorldParamsAtEntry(bool isTutorial)
-	{
-		_world.ResetDamagedBlocks(); // the new run's damage table starts empty again
-
-		var randomState = RandomStateSerializer.Serialize(Random.state);
-		var runSettings = isTutorial ? null : HarmonyTraverse.ReadPreRunRunSettings();
-		_world.PublishWorldParams(new WorldStartParams
-		{
-			RandomState = randomState,
-			RunSettings = runSettings,
-			BiomeOverride = isTutorial ? (byte)WorldGeneration.OverrideSceneType.Tutorial : (byte)WorldGeneration.OverrideSceneType.None,
-			BiomeDepth = 0,
-			TotalTraveled = 0,
-		});
-		_entryParamsCaptured = true;
-		_log.LogInformation("Captured world params at run-start entry ({StateBytes} bytes, {SettingCount} settings, tutorial: {Tutorial}).",
-			randomState.Length, runSettings?.Count ?? 0, isTutorial);
-	}
-
-	/// <summary>Host side: capture + publish the world params at the GenerateWorld boundary (layer switches, solo, load-run — the entry capture does not apply).</summary>
-	internal void CaptureWorldParams()
-	{
-		// Host side: a new world (or layer) is generating — the damage table
-		// starts empty again; mutations during generation are the baseline.
-		_world.ResetDamagedBlocks();
-
-		// Host side: snapshot what defines a run before generation consumes the
-		// RNG. The world-defining fields (biome override/depth, total traveled)
-		// were dead on the wire until this step — now captured with the RNG state.
-		var randomState = RandomStateSerializer.Serialize(Random.state);
-		var runSettings = HarmonyTraverse.ReadRunSettings();
-		var biomeOverride = (byte)HarmonyTraverse.ReadBiomeOverride();
-		var biomeDepth = (byte)HarmonyTraverse.ReadBiomeDepth();
-		var totalTraveled = HarmonyTraverse.ReadTotalTraveled();
-		_world.PublishWorldParams(new WorldStartParams
-		{
-			RandomState = randomState,
-			RunSettings = runSettings,
-			BiomeOverride = biomeOverride,
-			BiomeDepth = biomeDepth,
-			TotalTraveled = totalTraveled,
-			// LoadedRun: no backing game field (PreRunScript.LoadRun is the
-			// save-load flow — Phase 3 saves scope) — stays false on the wire.
-		});
-		_log.LogInformation("Captured world params ({StateBytes} bytes, {SettingCount} settings, "
-			+ "biome {Biome}/{Depth}, traveled {Traveled}).",
-			randomState.Length, runSettings?.Count ?? 0, biomeOverride, biomeDepth, totalTraveled);
-	}
-
-	/// <summary>Guest side: restore the host's RNG state + run settings + world-defining fields so local world generation produces the same world.</summary>
-	internal void ApplyWorldParams(WorldStartParams parameters)
-	{
-		Random.state = RandomStateSerializer.Deserialize(parameters.RandomState);
-		if (parameters.RunSettings is not null)
-		{
-			HarmonyTraverse.WriteRunSettings(parameters.RunSettings);
-		}
-
-		HarmonyTraverse.WriteBiomeOverride(parameters.BiomeOverride);
-		HarmonyTraverse.WriteBiomeDepth(parameters.BiomeDepth);
-		HarmonyTraverse.WriteTotalTraveled(parameters.TotalTraveled);
-
-		_log.LogInformation("Applied host world params ({StateBytes} bytes).", parameters.RandomState.Length);
-	}
-
-	/// <summary>
-	/// Guest side, called before the generation coroutine may consume any
-	/// Random: false while the host's world params have not arrived (the
-	/// wrapper holds the coroutine — nothing random consumed yet); on arrival
-	/// restores them and returns true. Idempotent per params instance — a layer
-	/// switch delivers a new instance and re-applies. Host/solo: nothing to
-	/// wait for.
-	/// </summary>
-	internal bool EnsureGuestWorldParams()
-	{
-		if (_session.Role != SessionRole.Guest)
-		{
-			return true;
-		}
-
-		var parameters = _world.WorldParams;
-		if (parameters is null)
-		{
-			// The wrapper polls every frame — log the hold once per wait, so a
-			// held generation is observable without spamming the log.
-			if (!_guestParamsWaitLogged)
-			{
-				_guestParamsWaitLogged = true;
-				_log.LogInformation("World generation holding — host world params not arrived yet (fast guest transition).");
-			}
-
-			return false;
-		}
-
-		_guestParamsWaitLogged = false; // re-arm for the next world/layer
-		if (!ReferenceEquals(_appliedWorldParams, parameters))
-		{
-			ApplyWorldParams(parameters);
-			_appliedWorldParams = parameters;
-		}
-
-		return true;
-	}
-
-	/// <summary>
-	/// Both sides: force Random.state back to the captured baseline right before
-	/// the generation coroutine starts. The host captured it at its run-start
-	/// entry — everything consumed between that moment and here (transition,
-	/// scene loading, WorldGeneration.Start) is overwritten, keeping the two
-	/// generation streams identical. Guest: the params were just applied by
-	/// <see cref="EnsureGuestWorldParams"/> — same value, idempotent.
-	/// </summary>
-	internal void ResetGenStreamToBaseline()
-	{
-		var parameters = _world.WorldParams;
-		if (parameters is null)
-		{
-			return;
-		}
-
-		Random.state = RandomStateSerializer.Deserialize(parameters.RandomState);
-		_log.LogInformation("Generation stream reset to captured baseline ({StateBytes} bytes: {StateHex}).",
-			parameters.RandomState.Length, BitConverter.ToString(parameters.RandomState).Replace("-", ""));
-	}
-
-	/// <summary>
 	/// Called at the WorldGeneration.GenerateWorld boundary — the true start of
-	/// generation. Host captures its RNG state (and any randomness consumed
-	/// before this point is baked in); guest restores the host's state so both
-	/// generate the identical world.
+	/// generation. Host: consume the entry capture or capture at the boundary
+	/// (anything the game consumed before this point is baked in). Guest:
+	/// restore the host's params now, or hold (the generation wrapper waits for
+	/// them before the coroutine consumes any Random) — the application point
+	/// cannot move earlier because the host captures AT this boundary.
 	/// </summary>
 	internal void OnWorldGenerate()
 	{
 		if (_session.Role == SessionRole.Host || _session.Role == SessionRole.None)
 		{
-			if (_entryParamsCaptured)
-			{
-				// First generation of a run that captured its params at the
-				// click moment — re-capturing here would move the baseline
-				// and re-send, racing the guests' already-started runs.
-				_entryParamsCaptured = false;
-			}
-			else
-			{
-				CaptureWorldParams(); // layer switch (or solo/load-run): capture at the boundary
-			}
+			_params.OnGenerateBoundary();
 		}
 		else
 		{
-			// Guest: apply the params now, or hold (the generation wrapper
-			// waits for them before the coroutine consumes any Random). The
-			// host captures its params AT this boundary (anything the game
-			// consumed before it is baked in) — the guest must restore the
-			// exact same moment, so the application point cannot move earlier.
-			EnsureGuestWorldParams();
+			_params.EnsureGuestApplied();
 			if (_phase == RunPhase.Starting)
 			{
 				_phase = RunPhase.Generating;

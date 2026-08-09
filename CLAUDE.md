@@ -137,6 +137,8 @@ Unverified items are NOT optional: the plan must either cover them or explicitly
 
 ### Step 2 — Complete plan delivery (BEFORE deployment, user reviews)
 
+**Self-critical review BEFORE the user reviews (user mandate 2026-08-10)**: before the plan reaches the user, read it as an adversary — hunt your own holes, the unverified mechanisms, the edge cases, the "I assumed" spots; fix what you find and list what remains IN the deliverable. The user's review is a second pair of eyes, never the first: a plan the user has to pick apart (the layer-modifier lesson — the user saw the Initialize side effects the deliverable had not) is a non-conforming deliverable.
+
 A deployable change requires, as a single deliverable:
 
 1. **Fact sheet**: all evidence (including the adversarial self-check result).

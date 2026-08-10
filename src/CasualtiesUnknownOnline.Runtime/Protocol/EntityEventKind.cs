@@ -18,7 +18,7 @@ public enum EntityEventKind : byte
 	CactusHit = 6, // cactus: a body bumped it
 	JumpPadLaunched = 7, // jumppad: launched something
 	StalactiteDropped = 8, // stalactite: dropped off the ceiling (one-shot)
-	GeyserActivated = 9, // geyser: rumble → liquid eruption (Extra = liquidType)
+	GeyserActivated = 9, // geyser: rumble → liquid eruption (the liquid type is a generation-time initial condition — GeyserStateSnapshot; Extra unused)
 	SoundCannonFired = 10, // soundcannon: fired (one-shot spent)
 	TurretFired = 11, // turret: shot a beam (visual only)
 	TurretSelfDestructed = 12, // turret: health < 350 countdown finished — explosion + destroyed

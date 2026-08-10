@@ -73,4 +73,7 @@ public enum NetMsg : byte
 
 	// World entity creation (runtime, outside generation — the spawn command)
 	EntitySpawned = 68, // bidirectional: the creating side reports (keeps its local copy); the host creates its own and relays (source excluded) — items ride the item domain, entities ride this
+
+	// World entity initial conditions (host authority)
+	GeyserStateSnapshot = 69, // host → guest: the geysers' liquid types — rolled per-side at generation from the PUBLIC random stream (GeyserScript.cs:12, outside the isolated generation stream), so the host's roll is the authority; world entry + 60 s re-send, idempotent
 }

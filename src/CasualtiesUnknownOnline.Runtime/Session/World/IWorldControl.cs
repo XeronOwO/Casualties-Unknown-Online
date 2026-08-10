@@ -122,6 +122,14 @@ public interface IWorldControl
 
 	event Action<IReadOnlyList<KeypadEntryMsg>>? KeypadCodeReceived;
 
+	/// <summary>Host only: broadcast the geyser liquid types (position-keyed GeyserScripts — rolled per-side at generation from the public random stream, the host's roll is the authority).</summary>
+	void SendGeyserStateSnapshot(IReadOnlyList<GeyserStateEntryMsg> geysers);
+
+	/// <summary>Guest: the host's geyser liquid types arrived — write them onto the local GeyserScripts.</summary>
+	void FireGeyserStateReceived(IReadOnlyList<GeyserStateEntryMsg> geysers);
+
+	event Action<IReadOnlyList<GeyserStateEntryMsg>>? GeyserStateReceived;
+
 	/// <summary>
 	/// Report a locally-triggered world entity event (a trap fired — local
 	/// compute): guest → host as a report (the host applies the event to its own

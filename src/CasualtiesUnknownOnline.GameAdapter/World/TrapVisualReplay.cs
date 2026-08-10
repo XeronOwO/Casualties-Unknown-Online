@@ -63,7 +63,7 @@ internal sealed class TrapVisualReplay(ILogger<TrapVisualReplay> log)
 				ReplayState<StalactiteDropper>(position, kind, TrapStateActions.ApplyStalactite);
 				break;
 			case EntityEventKind.GeyserActivated:
-				ReplayState<GeyserScript>(position, kind, g => TrapStateActions.ApplyGeyser(g, extra));
+				ReplayState<GeyserScript>(position, kind, TrapStateActions.ApplyGeyser);
 				break;
 			case EntityEventKind.SoundCannonFired:
 				ReplayState<SoundCannon>(position, kind, TrapStateActions.ApplySoundCannon);

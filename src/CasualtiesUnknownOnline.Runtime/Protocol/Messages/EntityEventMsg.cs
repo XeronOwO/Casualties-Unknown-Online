@@ -25,8 +25,10 @@ public sealed class EntityEventMsg
 	public NetVector2Msg Position { get; set; } = new();
 
 	/// <summary>
-	/// Kind-specific data. Only GeyserActivated uses it (liquidType 1/2 — never
-	/// 0, so the protobuf zero-omission cannot bite); 0 otherwise.
+	/// Kind-specific data. LifepodHeatChanged = heatState 0/1/2, ScrapEaterProgress
+	/// = the progress %, BatteryInserted = the slot. The geyser's liquid type
+	/// used to ride here but is now a generation-time initial condition
+	/// (GeyserStateSnapshot, #128). 0 when the kind carries nothing.
 	/// </summary>
 	[ProtoMember(3)]
 	public byte Extra { get; set; }

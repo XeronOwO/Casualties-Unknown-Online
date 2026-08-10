@@ -185,8 +185,12 @@ internal static class TrapStateActions
 
 	/// <summary>Geyser (repeatable — the game's OWN cooldown gate is the check:
 	/// TryRumble returns while rumbling or within 10 s of an activation, so a
-	/// duplicate event is dropped by the game's state machine). The liquid type
-	/// is NOT part of the event: it was bound at generation time by the host
+	/// duplicate event is dropped by the game's state machine). The event
+	/// arrives at the RUMBLE START (the report rides the true event start,
+	/// 2026-08-10): re-running TryRumble replays the 1 s forewarning (sound +
+	/// shake) in sync with the trigger side, and both sides' Updates erupt
+	/// together — this is the sync, not a re-rumble. The liquid type is NOT
+	/// part of the event: it was bound at generation time by the host
 	/// (GeyserStateSnapshot, #128) — the spout just runs.</summary>
 	internal static bool ApplyGeyser(GeyserScript geyser)
 	{

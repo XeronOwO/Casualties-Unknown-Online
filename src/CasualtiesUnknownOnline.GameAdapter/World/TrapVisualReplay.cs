@@ -26,10 +26,29 @@ internal sealed class TrapVisualReplay(ILogger<TrapVisualReplay> log)
 			case EntityEventKind.MineExploded:
 				ReplayMineExplosion(position);
 				break;
+			case EntityEventKind.ShuttleDoorOpened:
+				ReplayShuttleDoorOpened(position);
+				break;
 			default:
 				_log.LogWarning("[TrapEvent] no replay action for {Kind}.", kind);
 				break;
 		}
+	}
+
+	/// <summary>The host's door opened (a body entered the trigger there) —
+	/// activate the local copy: the entity's own Update drives the door
+	/// animation, same prefab and same start moment on both sides.</summary>
+	private void ReplayShuttleDoorOpened(Vector2 position)
+	{
+		var door = TrapEffectApplier.FindTrap<ShuttleStartOpen>(position);
+		if (door == null) // Unity object — ==
+		{
+			_log.LogInformation("[TrapEvent] shuttle door at {Pos} already gone — visual only.", position);
+			return;
+		}
+
+		Traverse.Create(door).Field("activated").SetValue(true);
+		_log.LogInformation("[TrapEvent] replayed shuttle door open at {Pos}.", position);
 	}
 
 	private void ReplayMineExplosion(Vector2 position)

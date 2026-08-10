@@ -28,4 +28,5 @@ public enum EntityEventKind : byte
 	BananaPlantSlip = 16, // banana plant: someone slipped on it
 	GrabberGrabbed = 17, // grabber plant: grabbed a body
 	BearTrapReleased = 18, // beartrap released its caught limb (the clamp is reversible)
+	ShuttleDoorOpened = 19, // life-pod shuttle door: a body entered the trigger — the doors open (ShuttleStartOpen; a pure animation entity, not a BuildingEntity)
 }

@@ -6,31 +6,51 @@ using UnityEngine;
 namespace CasualtiesUnknownOnline.GameAdapter.World;
 
 /// <summary>
-/// Host executor for explosion-family trap events: a guest-triggered explosion
-/// must also happen on the HOST's world (the host's real body gets hurt, the
-/// crater forms, the host's copy of the trap dies). Runs inside the host's
-/// receive path for a remote event: find the trap, mark it exploded (so its
-/// OnDestroy cannot chain-explode a second time), kill it as a REMOTE death
-/// (no drop roll — the guest's side rolled and reported them), then explode
-/// with the trap's literal parameters. The host's own trigger never passes
-/// through here — its explosion ran naturally, this domain only relays that
-/// event.
+/// Host executor for entity events (a guest-triggered event must also happen
+/// on the HOST's world). Explosion family: a guest-triggered explosion must
+/// hurt the host's real body, form the crater and kill the host's copy of the
+/// trap — find the trap, mark it exploded (so its OnDestroy cannot chain-
+/// explode a second time), kill it as a REMOTE death (no drop roll — the
+/// guest's side rolled and reported them), then explode with the trap's
+/// literal parameters. State family: apply the transition to the host's copy
+/// (e.g. the shuttle door opens), the entity's own animation drives the rest.
+/// The host's own trigger never passes through here — it ran naturally, this
+/// domain only applies what a remote side triggered.
 /// </summary>
 internal sealed class TrapEffectApplier(ILogger<TrapEffectApplier> log)
 {
 	private readonly ILogger<TrapEffectApplier> _log = log;
 
-	internal void ApplyExplosion(EntityEventKind kind, Vector2 position)
+	internal void ApplyEvent(EntityEventKind kind, Vector2 position, byte extra)
 	{
 		switch (kind)
 		{
 			case EntityEventKind.MineExploded:
 				ApplyMineExplosion(position);
 				break;
+			case EntityEventKind.ShuttleDoorOpened:
+				ApplyShuttleDoorOpened(position);
+				break;
 			default:
 				_log.LogWarning("[TrapEvent] no host executor for {Kind}.", kind);
 				break;
 		}
+	}
+
+	/// <summary>A body entered the shuttle-door trigger on the guest's side —
+	/// open the host's copy too (activated = true; the entity's own Update
+	/// drives the door animation, same prefab on both sides).</summary>
+	private void ApplyShuttleDoorOpened(Vector2 position)
+	{
+		var door = FindTrap<ShuttleStartOpen>(position);
+		if (door == null) // Unity object — ==
+		{
+			_log.LogInformation("[TrapEvent] shuttle door at {Pos} already gone — effect skipped.", position);
+			return;
+		}
+
+		Traverse.Create(door).Field("activated").SetValue(true);
+		_log.LogInformation("[TrapEvent] host applied shuttle door open at {Pos}.", position);
 	}
 
 	private void ApplyMineExplosion(Vector2 position)

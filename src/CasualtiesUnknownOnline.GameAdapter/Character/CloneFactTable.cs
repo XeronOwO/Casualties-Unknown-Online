@@ -1,0 +1,264 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using Microsoft.Extensions.Logging;
+
+namespace CasualtiesUnknownOnline.GameAdapter.Character;
+
+/// <summary>
+/// The carried-fact table per remote owner (SteamId → the latest character
+/// snapshot) with the snapshot-divergence monitor: every carried move MUST
+/// arrive as an event (use/slot/wear/pickup/drop); a snapshot that carries a
+/// move the fact table never saw means the event chain missed it and the 1 Hz
+/// snapshot covered it up — user rule, that is a logic gap and must be loud.
+/// Events apply immediately (ApplyCarriedSync / ApplyCarriedInventory /
+/// RemoveCarriedItem); snapshots apply after the divergence check (and the 1 Hz
+/// snapshot replaces the table wholesale, which is why the event merges only
+/// need to cover the window before it). The table is CUO's own sync fact —
+/// "which items CUO tracks" is ours, "where the item is" is the game's.
+/// Split out of CharacterDataSync when the 600-line gate demanded it.
+/// </summary>
+internal sealed class CloneFactTable(ILogger log)
+{
+	private readonly ILogger _log = log;
+
+	/// <summary>SteamId → latest character snapshot: the remote clone's inventory rendering source.</summary>
+	private readonly Dictionary<ulong, CharacterDataMsg> _cloneData = [];
+
+	/// <summary>A clone's snapshot cache updated (SteamId) — the renderer re-renders that clone's carried items. Without this, the clone only rendered once at creation ("after the starting supplies, the peer never sees carried-item updates").</summary>
+	public event Action<ulong>? CloneSnapshotUpdated;
+
+	/// <summary>Read-only view for the clone renderer: latest snapshot per SteamId.</summary>
+	internal IReadOnlyDictionary<ulong, CharacterDataMsg> CloneData => _cloneData;
+
+	/// <summary>
+	/// A carried item's authoritative fact changed (host broadcast — a use
+	/// flipped its state, a slot move re-homed it, a pickup brought it in):
+	/// update the owner's fact-table entry by instance id and re-render the
+	/// clone immediately — the 1 Hz snapshot stays as the fallback. An event
+	/// the snapshot has not seen yet is skipped (its slot is unknown then —
+	/// SlotKnown=false, or the whole item is coming on the next snapshot).
+	/// SlotKnown=false keeps the fact table's existing slot: the event's -1 is
+	/// "not in any slot or limb", never a real slot.
+	/// </summary>
+	internal void ApplyCarriedSync(ulong owner, CharacterItemMsg item, bool slotKnown)
+	{
+		if (!_cloneData.TryGetValue(owner, out var data))
+		{
+			_log.LogInformation("[CarriedSync] no snapshot for owner {Owner} yet — the 1 Hz snapshot will carry the change.", owner);
+			return;
+		}
+
+		var idx = data.Items.FindIndex(i => i.InstanceId == item.InstanceId);
+		if (idx < 0)
+		{
+			if (!slotKnown)
+			{
+				_log.LogInformation("[CarriedSync] {Type} (id {ItemId}) not in {Owner}'s snapshot and slot unknown — the 1 Hz snapshot will carry the change.", item.ItemId, item.InstanceId, owner);
+				return;
+			}
+
+			// A freshly picked-up item — append it (the clone renders it in its
+			// slot; a worn item's limb encoding matches the wear loop).
+			data.Items.Add(item);
+			_log.LogInformation("[CarriedSync] added {Type} (id {ItemId}) to {Owner}'s snapshot — re-rendering the clone.", item.ItemId, item.InstanceId, owner);
+		}
+		else
+		{
+			if (!slotKnown)
+			{
+				// A use whose slot could not be resolved (or a world entry) —
+				// the item's place in the snapshot is unchanged.
+				item.SlotIndex = data.Items[idx].SlotIndex;
+			}
+
+			data.Items[idx] = item;
+			_log.LogInformation("[CarriedSync] applied {Type} (id {ItemId}) to {Owner}'s snapshot — re-rendering the clone.", item.ItemId, item.InstanceId, owner);
+		}
+
+		CloneSnapshotUpdated?.Invoke(owner);
+	}
+
+	/// <summary>
+	/// The owner's starting supplies with self-assigned ids arrived (the guest
+	/// reports its carried inventory once its generation finished): merge them
+	/// into its fact table — the clone renders the supplies immediately and the
+	/// snapshot divergence check sees the entries as already-known instead of a
+	/// phantom pickup (the id binding happens between the guest's early id-less
+	/// snapshots and its self-assignment; without the merge, every binding read
+	/// as "a new carried item without an event"). The owner's 1 Hz snapshot
+	/// replaces the table wholesale afterwards, so the merge only needs to cover
+	/// the window before it.
+	/// </summary>
+	internal void ApplyCarriedInventory(ulong owner, IReadOnlyList<CharacterItemMsg> items)
+	{
+		if (_cloneData.TryGetValue(owner, out var data))
+		{
+			foreach (var item in items)
+			{
+				var idx = data.Items.FindIndex(i => i.InstanceId == item.InstanceId);
+				if (idx >= 0)
+				{
+					data.Items[idx] = item; // a 1 Hz snapshot already carried it — the self-assigned id is the binding
+				}
+				else
+				{
+					data.Items.Add(item);
+				}
+			}
+		}
+		else
+		{
+			// No snapshot yet (the report rides ahead of the guest's first 1 Hz
+			// snapshot) — seed the fact table so the merge above happens then.
+			_cloneData[owner] = new CharacterDataMsg { OwnerSteamId = owner, Items = [.. items] };
+		}
+
+		_log.LogInformation("[CarriedSync] merged {Count} starting supplies into {Owner}'s snapshot.", items.Count, owner);
+		CloneSnapshotUpdated?.Invoke(owner);
+	}
+
+	/// <summary>
+	/// A carried item left an inventory into the world (the ItemDropped event —
+	/// fired locally by the dropper and on every receiving side): remove it
+	/// from every owner's fact table, top-level or nested in a container's
+	/// contents. World-side drops (a container's spill) match nothing — harmless.
+	/// </summary>
+	internal void RemoveCarriedItem(ulong itemId)
+	{
+		foreach (var owner in _cloneData.Keys)
+		{
+			var data = _cloneData[owner];
+			if (data.Items.RemoveAll(i => i.InstanceId == itemId) > 0)
+			{
+				_log.LogInformation("[CarriedSync] removed {ItemId} from {Owner}'s snapshot — re-rendering the clone.", itemId, owner);
+				CloneSnapshotUpdated?.Invoke(owner);
+				continue;
+			}
+
+			foreach (var entry in data.Items)
+			{
+				if (RemoveNested(entry, itemId))
+				{
+					_log.LogInformation("[CarriedSync] removed {ItemId} from {Owner}'s snapshot contents — re-rendering the clone.", itemId, owner);
+					CloneSnapshotUpdated?.Invoke(owner);
+					break;
+				}
+			}
+		}
+	}
+
+	private static bool RemoveNested(CharacterItemMsg entry, ulong itemId)
+	{
+		foreach (var content in entry.Contents)
+		{
+			// The remove exits the loop immediately — no collection-modified
+			// hazard from the foreach.
+			if (content.InstanceId == itemId || RemoveNested(content, itemId))
+			{
+				entry.Contents.Remove(content);
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/// <summary>Store one owner's snapshot and re-render its clone, after the
+	/// divergence check — every carried move MUST arrive as an event (use/slot/
+	/// pickup/wear/drop); a snapshot that carries a move the fact table never
+	/// saw means the event chain missed it and the 1 Hz snapshot covered it up.
+	/// User rule: an event that relies on the timed snapshot is a logic gap and
+	/// must be loud. (A move whose event is still in flight trips the warning
+	/// too — the slot diverged from the fact table — which is exactly the trace
+	/// you want when hunting a missed event.)</summary>
+	internal void ApplySnapshot(ulong owner, CharacterDataMsg data)
+	{
+		if (_cloneData.TryGetValue(owner, out var prev))
+		{
+			WarnOnDivergence(owner, prev, data);
+		}
+
+		_cloneData[owner] = data;
+		CloneSnapshotUpdated?.Invoke(owner);
+	}
+
+	/// <summary>Instance-matched comparison between the fact table (event-driven)
+	/// and the incoming snapshot — every carried fact that changes through
+	/// operations must arrive as an event (use/slot/wear/pickup/drop); a
+	/// snapshot carrying a change the fact table never saw means the event chain
+	/// missed it and the 1 Hz snapshot covered it up. User rule: an event that
+	/// relies on the timed snapshot is a logic gap and must be loud. Compared
+	/// signals: new entries (a pickup without an event), vanished entries (a
+	/// drop without an event), the slot (moves/wears) and the flashlight state
+	/// (uses) — the carried facts that change exclusively through operations.
+	/// Condition is NOT compared (decay moves it on its own, every snapshot
+	/// would false-positive), and neither are ammo/charges (their drains ride
+	/// operations that are local-compute by design — the snapshot is their
+	/// legitimate channel). A change whose event is still in flight trips the
+	/// warning too — exactly the trace you want when hunting a missed event.
+	/// The arbitration's corrections do NOT cover this: they compare a REPORT
+	/// against the authoritative record — a report that never arrives has
+	/// nothing to correct, so the snapshot compare is the only observer.</summary>
+	private void WarnOnDivergence(ulong owner, CharacterDataMsg prev, CharacterDataMsg next)
+	{
+		foreach (var item in next.Items)
+		{
+			if (item.InstanceId == 0)
+			{
+				continue; // unbound — nothing to compare against
+			}
+
+			var old = prev.Items.FirstOrDefault(i => i.InstanceId == item.InstanceId);
+			if (old is null)
+			{
+				// The fact table never saw this carried item — it entered the
+				// inventory without a pickup event (the arbitration's correction
+				// only fires when the report arrives; a missing report has
+				// nothing to correct, the snapshot carried it silently). The
+				// starting supplies are exempt: their self-assigned ids merge
+				// into the fact table the moment the guest's carried-inventory
+				// report arrives (ApplyCarriedInventory) — a snapshot racing it
+				// still reads as an id binding, which is a known, logged channel.
+				_log.LogWarning("[CharSync] divergence for {Owner}'s {Type} (id {ItemId}): a new carried item the fact table never saw — a pickup without an event sync (the 1 Hz snapshot carried it).",
+					owner, item.ItemId, item.InstanceId);
+				continue;
+			}
+
+			if (old.SlotIndex != item.SlotIndex)
+			{
+				_log.LogWarning("[CharSync] divergence for {Owner}'s {Type} (id {ItemId}): slot {Old} → {New} — a carried move without an event sync (the 1 Hz snapshot carried it).",
+					owner, item.ItemId, item.InstanceId, old.SlotIndex, item.SlotIndex);
+			}
+
+			if (UseState(old) != UseState(item))
+			{
+				_log.LogWarning("[CharSync] divergence for {Owner}'s {Type} (id {ItemId}): flashlight state {Old} → {New} — a use without an event sync (the 1 Hz snapshot carried it).",
+					owner, item.ItemId, item.InstanceId, UseState(old), UseState(item));
+			}
+		}
+
+		// A carried item the snapshot no longer has — it left the inventory
+		// without a drop event (same correction-blind spot as the pickup).
+		foreach (var old in prev.Items)
+		{
+			if (old.InstanceId == 0 || next.Items.Any(i => i.InstanceId == old.InstanceId))
+			{
+				continue;
+			}
+
+			_log.LogWarning("[CharSync] divergence for {Owner}'s {Type} (id {ItemId}): left the inventory without an event sync (the 1 Hz snapshot carried it).",
+				owner, old.ItemId, old.InstanceId);
+		}
+	}
+
+	/// <summary>The CustomItemBehaviour.state value (flashlight modes — the
+	/// carried state that changes exclusively through uses), or 0 when the item
+	/// has no such component.</summary>
+	private static int UseState(CharacterItemMsg item)
+	{
+		var behaviour = item.Components.FirstOrDefault(c => c.TypeName == nameof(CustomItemBehaviour));
+		return behaviour?.Fields.FirstOrDefault(f => f.Name == "state")?.IntValue ?? 0;
+	}
+}

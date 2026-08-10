@@ -63,8 +63,15 @@ public sealed class ItemService : IItemControl
 	/// <summary>The id counter high-water mark arrived: host records it (the reconnect grant point), guest applies it (resume from counter + 1).</summary>
 	public void FireItemIdWatermarkReceived(ulong sender, ulong counter) => _idCoordinator.FireItemIdWatermarkReceived(sender, counter);
 
-	/// <summary>Host only: a guest's carried inventory with self-assigned ids arrived — register it in the guest's transfer table (its use/slot reports then arbitrate normally).</summary>
+	/// <summary>Host only: a guest's carried inventory with self-assigned ids arrived — register it in the guest's transfer table (its use/slot reports then arbitrate normally) and surface the fact-table entries.</summary>
 	public void FireCarriedInventoryReceived(ulong sender, IReadOnlyList<CharacterItemMsg> items) => _idCoordinator.FireCarriedInventoryReceived(sender, items);
+
+	/// <summary>Host side: a guest's self-assigned carried inventory arrived — the adapter merges it into the guest's fact table.</summary>
+	public event Action<ulong, IReadOnlyList<CharacterItemMsg>>? CarriedInventoryReceived
+	{
+		add => _idCoordinator.CarriedInventoryReceived += value;
+		remove => _idCoordinator.CarriedInventoryReceived -= value;
+	}
 
 	public event Action<WorldItem>? ItemSpawned;
 

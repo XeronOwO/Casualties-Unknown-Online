@@ -137,4 +137,7 @@ internal interface IPatchBridge
 
 	/// <summary>One slot's occupant changed through a slot move (SwapSlots/SwitchHands) — report the item's new slot so the host's record stays current.</summary>
 	void OnSlotMoved(Body body, int slot, string origin);
+
+	/// <summary>An item was worn straight from the inventory (WearWearable — hand/backpack → limb) — a slot-move report with the limb wear encoding as the new slot, so the peers' clones re-home it immediately.</summary>
+	void OnItemWorn(Item item);
 }

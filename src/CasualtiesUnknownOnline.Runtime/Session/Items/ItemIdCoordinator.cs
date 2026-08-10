@@ -101,7 +101,7 @@ public sealed class ItemIdCoordinator
 		_sender.Send(_session.HostSteamId, NetMsg.CarriedInventory, new CarriedInventoryMsg { Items = [.. items] });
 	}
 
-	/// <summary>Host only: a guest's carried inventory with self-assigned ids arrived — register it in the guest's transfer table (its use/slot reports then arbitrate normally).</summary>
+	/// <summary>Host only: a guest's carried inventory with self-assigned ids arrived — register it in the guest's transfer table (its use/slot reports then arbitrate normally) and surface the fact-table entries (the host's clone of the guest renders the supplies immediately, and the snapshot divergence check sees the entries as already-known instead of a phantom pickup).</summary>
 	public void FireCarriedInventoryReceived(ulong sender, IReadOnlyList<CharacterItemMsg> items)
 	{
 		if (_session.Role != SessionRole.Host || !_session.SessionActive)
@@ -110,5 +110,9 @@ public sealed class ItemIdCoordinator
 		}
 
 		_arbitration.RegisterCarried(sender, items);
+		CarriedInventoryReceived?.Invoke(sender, items);
 	}
+
+	/// <summary>Host side: a guest's self-assigned carried inventory arrived — the adapter merges it into the guest's fact table (clone render + snapshot divergence baseline).</summary>
+	public event Action<ulong, IReadOnlyList<CharacterItemMsg>>? CarriedInventoryReceived;
 }

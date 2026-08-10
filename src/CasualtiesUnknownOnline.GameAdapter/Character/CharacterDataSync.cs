@@ -23,19 +23,22 @@ internal sealed class CharacterDataSync(
 	CharacterDataStore characterData,
 	IMapper mapper,
 	CloneInventoryRenderer inventoryRenderer,
+	CloneFactTable factTable,
 	ILogger<CharacterDataSync> log)
 {
 	private readonly SessionService _session = session;
 	private readonly CharacterDataStore _characterData = characterData;
 	private readonly IMapper _mapper = mapper;
 	private readonly CloneInventoryRenderer _inventoryRenderer = inventoryRenderer;
+	private readonly CloneFactTable _factTable = factTable;
 	private readonly ILogger<CharacterDataSync> _log = log;
 
-	/// <summary>SteamId → latest character snapshot: the remote clone's inventory rendering source.</summary>
-	private readonly Dictionary<ulong, CharacterDataMsg> _cloneData = [];
-
 	/// <summary>A clone's snapshot cache updated (SteamId) — the renderer re-renders that clone's carried items. Without this, the clone only rendered once at creation ("after the starting supplies, the peer never sees carried-item updates").</summary>
-	public event Action<ulong>? CloneSnapshotUpdated;
+	public event Action<ulong>? CloneSnapshotUpdated
+	{
+		add => _factTable.CloneSnapshotUpdated += value;
+		remove => _factTable.CloneSnapshotUpdated -= value;
+	}
 
 	private CharacterDataMsg? _pendingRestore; // guest side: host-sent restore, applied once the body exists
 	private bool _restoreWipePending; // first pass wiped the slots (Destroy is end-of-frame) — items go in on the next frame
@@ -43,101 +46,16 @@ internal sealed class CharacterDataSync(
 	private long _nextCharacterReportMs;
 
 	/// <summary>Read-only view for the clone renderer: latest snapshot per SteamId.</summary>
-	internal IReadOnlyDictionary<ulong, CharacterDataMsg> CloneData => _cloneData;
+	internal IReadOnlyDictionary<ulong, CharacterDataMsg> CloneData => _factTable.CloneData;
 
-	/// <summary>
-	/// A carried item's authoritative fact changed (host broadcast — a use
-	/// flipped its state, a slot move re-homed it, a pickup brought it in):
-	/// update the owner's fact-table entry by instance id and re-render the
-	/// clone immediately — the 1 Hz snapshot stays as the fallback. An event
-	/// the snapshot has not seen yet is skipped (its slot is unknown then —
-	/// SlotKnown=false, or the whole item is coming on the next snapshot).
-	/// SlotKnown=false keeps the fact table's existing slot: the event's -1 is
-	/// "not in any slot or limb", never a real slot.
-	/// </summary>
-	internal void ApplyCarriedSync(ulong owner, CharacterItemMsg item, bool slotKnown)
-	{
-		if (!_cloneData.TryGetValue(owner, out var data))
-		{
-			_log.LogInformation("[CarriedSync] no snapshot for owner {Owner} yet — the 1 Hz snapshot will carry the change.", owner);
-			return;
-		}
+	/// <summary>Carried-fact event (the owner's fact-table entry updates and the clone re-renders immediately) — the fact table lives in CloneFactTable.</summary>
+	internal void ApplyCarriedSync(ulong owner, CharacterItemMsg item, bool slotKnown) => _factTable.ApplyCarriedSync(owner, item, slotKnown);
 
-		var idx = data.Items.FindIndex(i => i.InstanceId == item.InstanceId);
-		if (idx < 0)
-		{
-			if (!slotKnown)
-			{
-				_log.LogInformation("[CarriedSync] {Type} (id {ItemId}) not in {Owner}'s snapshot and slot unknown — the 1 Hz snapshot will carry the change.", item.ItemId, item.InstanceId, owner);
-				return;
-			}
+	/// <summary>The owner's starting supplies with self-assigned ids arrived — merged into its fact table (clone render + snapshot divergence baseline).</summary>
+	internal void ApplyCarriedInventory(ulong owner, IReadOnlyList<CharacterItemMsg> items) => _factTable.ApplyCarriedInventory(owner, items);
 
-			// A freshly picked-up item — append it (the clone renders it in its
-			// slot; a worn item's limb encoding matches the wear loop).
-			data.Items.Add(item);
-			_log.LogInformation("[CarriedSync] added {Type} (id {ItemId}) to {Owner}'s snapshot — re-rendering the clone.", item.ItemId, item.InstanceId, owner);
-		}
-		else
-		{
-			if (!slotKnown)
-			{
-				// A use whose slot could not be resolved (or a world entry) —
-				// the item's place in the snapshot is unchanged.
-				item.SlotIndex = data.Items[idx].SlotIndex;
-			}
-
-			data.Items[idx] = item;
-			_log.LogInformation("[CarriedSync] applied {Type} (id {ItemId}) to {Owner}'s snapshot — re-rendering the clone.", item.ItemId, item.InstanceId, owner);
-		}
-
-		CloneSnapshotUpdated?.Invoke(owner);
-	}
-
-	/// <summary>
-	/// A carried item left an inventory into the world (the ItemDropped event —
-	/// fired locally by the dropper and on every receiving side): remove it
-	/// from every owner's fact table, top-level or nested in a container's
-	/// contents. World-side drops (a container's spill) match nothing — harmless.
-	/// </summary>
-	internal void RemoveCarriedItem(ulong itemId)
-	{
-		foreach (var owner in _cloneData.Keys)
-		{
-			var data = _cloneData[owner];
-			if (data.Items.RemoveAll(i => i.InstanceId == itemId) > 0)
-			{
-				_log.LogInformation("[CarriedSync] removed {ItemId} from {Owner}'s snapshot — re-rendering the clone.", itemId, owner);
-				CloneSnapshotUpdated?.Invoke(owner);
-				continue;
-			}
-
-			foreach (var entry in data.Items)
-			{
-				if (RemoveNested(entry, itemId))
-				{
-					_log.LogInformation("[CarriedSync] removed {ItemId} from {Owner}'s snapshot contents — re-rendering the clone.", itemId, owner);
-					CloneSnapshotUpdated?.Invoke(owner);
-					break;
-				}
-			}
-		}
-	}
-
-	private static bool RemoveNested(CharacterItemMsg entry, ulong itemId)
-	{
-		foreach (var content in entry.Contents)
-		{
-			// The remove exits the loop immediately — no collection-modified
-			// hazard from the foreach.
-			if (content.InstanceId == itemId || RemoveNested(content, itemId))
-			{
-				entry.Contents.Remove(content);
-				return true;
-			}
-		}
-
-		return false;
-	}
+	/// <summary>A carried item left into the world — it leaves the owner's fact table (top-level or nested in a container's contents).</summary>
+	internal void RemoveCarriedItem(ulong itemId) => _factTable.RemoveCarriedItem(itemId);
 
 	internal void BindToSession()
 	{
@@ -158,8 +76,7 @@ internal sealed class CharacterDataSync(
 			// A guest's 1 Hz report — render its clone's inventory (the slots
 			// show what it is carrying; the new body renders on creation from
 			// this cache).
-			_cloneData[sender] = data;
-			CloneSnapshotUpdated?.Invoke(sender);
+			_factTable.ApplySnapshot(sender, data);
 			_log.LogInformation("[CloneRender] host: char data from {Sender} ({Count} items).", sender, data.Items.Count);
 			return;
 		}
@@ -169,8 +86,7 @@ internal sealed class CharacterDataSync(
 		// relay a guest could never see what another guest carries/wears.
 		if (data.OwnerSteamId != 0 && data.OwnerSteamId != _session.LocalSteamId)
 		{
-			_cloneData[data.OwnerSteamId] = data;
-			CloneSnapshotUpdated?.Invoke(data.OwnerSteamId);
+			_factTable.ApplySnapshot(data.OwnerSteamId, data);
 			_log.LogInformation("[CloneRender] guest: char data relay of {Owner} ({Count} items).", data.OwnerSteamId, data.Items.Count);
 			return;
 		}
@@ -185,8 +101,7 @@ internal sealed class CharacterDataSync(
 	/// <summary>Guest side: the host's own 1 Hz snapshot — render its clone's inventory (never applied to the local body).</summary>
 	private void OnHostCharacterDataReceived(CharacterDataMsg data)
 	{
-		_cloneData[_session.HostSteamId] = data;
-		CloneSnapshotUpdated?.Invoke(_session.HostSteamId);
+		_factTable.ApplySnapshot(_session.HostSteamId, data);
 		_log.LogInformation("[CloneRender] guest: host char data ({Count} items).", data.Items.Count);
 	}
 

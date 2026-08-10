@@ -29,7 +29,8 @@ internal sealed class PickupSync(
 	ItemDropState dropState,
 	ItemIdAllocator ids,
 	OperationTrace trace,
-	ItemReportCommitter reports)
+	ItemReportCommitter reports,
+	ItemSlotSync slotSync)
 {
 	private readonly ItemService _items = items;
 	private readonly ISessionControl _session = session;
@@ -38,6 +39,7 @@ internal sealed class PickupSync(
 	private readonly ItemIdAllocator _ids = ids;
 	private readonly OperationTrace _trace = trace;
 	private readonly ItemReportCommitter _reports = reports;
+	private readonly ItemSlotSync _slotSync = slotSync;
 
 	/// <summary>True while a remote message is being applied — local reports must stay silent (call identity lives in CallContext).</summary>
 	private bool IsRemoteApply => CallContext.Current == CallContext.Origin.RemoteApply;
@@ -74,6 +76,13 @@ internal sealed class PickupSync(
 		if (_dropState.TryCancel(item, out var pickedOp))
 		{
 			_trace.End(pickedOp, OperationTrace.IdOf(item), "OnItemPickedUp", "Cancelled", "RePick");
+			// The drag-to-slot sequence (PlayerCamera.cs:1623 DropItem + 1629
+			// PickUpItem) is a body-internal reorder — the drop report is
+			// cancelled above — but the MOVE itself still must reach the peers:
+			// the carried-fact report re-homes their clones the moment it lands
+			// (before this the 1 Hz character snapshot carried it — a visible
+			// delay, caught by the divergence monitor).
+			_slotSync.OnItemRehomed(item);
 			return;
 		}
 

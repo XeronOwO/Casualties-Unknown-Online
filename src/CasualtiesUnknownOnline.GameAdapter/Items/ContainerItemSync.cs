@@ -75,7 +75,14 @@ internal sealed class ContainerItemSync(
 			}
 			else
 			{
+				// A move INSIDE the carried inventory (a backpack's contents
+				// shifted between container/slot/hand): no event sync exists —
+				// the 1 Hz character snapshot carries it. A deliberate gap
+				// (the clone render does not show container contents), but a
+				// warning keeps the fallback observable — user rule: an event
+				// that relies on the timed snapshot must be loud about it.
 				_trace.End(op, itemId, "OnItemLoadedIntoContainer", "Skipped", "BodyInternal");
+				_log.LogWarning("[ContainerLoad] {Type} (id {ItemId}) moved inside a body container — no event sync, the 1 Hz character snapshot carries it.", item.id, itemId);
 			}
 
 			return;

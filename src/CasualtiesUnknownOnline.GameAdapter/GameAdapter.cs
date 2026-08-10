@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.GameAdapter.Character;
@@ -47,6 +48,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	private readonly ILogger<GameAdapter> _log;
 	private Harmony? _harmony;
 
+	private readonly CloneFactTable _factTable;
 	private readonly CharacterDataSync _characterDataSync;
 	private readonly RemotePlayerRenderer _renderer;
 	private readonly DropProtectionGuard _dropGuard;
@@ -87,8 +89,10 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		ItemStateCodec.BindLog(log);
 		WorldGenRandomIsolation.Log = msg => _log.LogInformation(msg); // generation-stream segment fingerprints (peer log comparison)
 		LayerModifierApplyPatch.Log = msg => _log.LogInformation(msg); // layer-modifier decision trace (diagnostic)
+		_factTable = new CloneFactTable(loggerFactory.CreateLogger<CloneFactTable>());
 		_characterDataSync = new CharacterDataSync(session, characterData, mapper,
 			new CloneInventoryRenderer(loggerFactory.CreateLogger<CloneInventoryRenderer>()),
+			_factTable,
 			loggerFactory.CreateLogger<CharacterDataSync>());
 		_renderer = new RemotePlayerRenderer(session, entities, _characterDataSync, loggerFactory.CreateLogger<RemotePlayerRenderer>());
 		_dropGuard = new DropProtectionGuard();
@@ -100,10 +104,10 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		var itemDropState = new ItemDropState();
 		var blockBreakState = new PendingBlockBreak();
 		_itemWorldSync = new ItemWorldSync(session, items, _dropGuard, itemDropState, blockBreakState, _operationTrace, itemReports, _itemIds, loggerFactory.CreateLogger<ItemWorldSync>());
-		_pickupSync = new PickupSync(items, session, _itemApplication, itemDropState, _itemIds, _operationTrace, itemReports);
+		_itemSlotSync = new ItemSlotSync(items, session, _itemIds, loggerFactory.CreateLogger<ItemSlotSync>());
+		_pickupSync = new PickupSync(items, session, _itemApplication, itemDropState, _itemIds, _operationTrace, itemReports, _itemSlotSync);
 		_containerSync = new ContainerItemSync(items, itemDropState, _itemIds, _operationTrace, itemReports, loggerFactory.CreateLogger<ContainerItemSync>());
 		_itemUseSync = new ItemUseSync(items, session, _itemIds, loggerFactory.CreateLogger<ItemUseSync>());
-		_itemSlotSync = new ItemSlotSync(items, session, _itemIds, loggerFactory.CreateLogger<ItemSlotSync>());
 		_itemPositionAuthority = new ItemPositionAuthority(items);
 		_itemPositionFollow = new ItemPositionFollow(items, _dropGuard);
 		_genItemAuthority = new GeneratedItemAuthority(session, items, _itemIds, loggerFactory.CreateLogger<GeneratedItemAuthority>());
@@ -266,6 +270,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_items.ItemCarriedSyncReceived += OnItemCarriedSync; // the owner's clone re-renders the moment a carried fact changes
 		_items.ItemDropped += OnCarriedItemDropped; // a carried item leaving into the world leaves the fact table (recursive)
 		_items.ItemIdWatermarkReceived += OnItemIdWatermark; // the host granted the id counter — resume from watermark + 1
+		_items.CarriedInventoryReceived += OnCarriedInventory; // a guest's starting supplies with self-assigned ids — seed the fact table (clone render + divergence baseline)
 	}
 
 	private void UnbindFromSession()
@@ -285,6 +290,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_items.ItemCarriedSyncReceived -= OnItemCarriedSync;
 		_items.ItemDropped -= OnCarriedItemDropped;
 		_items.ItemIdWatermarkReceived -= OnItemIdWatermark;
+		_items.CarriedInventoryReceived -= OnCarriedInventory;
 	}
 
 	/// <summary>Carried-fact event: the owner's fact-table entry updates and the clone re-renders immediately.</summary>
@@ -293,6 +299,10 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 
 	/// <summary>The host granted the item-id counter (join/reconnect): resume from watermark + 1 — the crashed-and-rejoined counter must not reuse ids the host still holds.</summary>
 	private void OnItemIdWatermark(ulong counter) => _itemIds.SetWatermark(counter);
+
+	/// <summary>A guest's starting supplies with self-assigned ids arrived — seed its fact table so the clone renders them and the snapshot divergence check knows them.</summary>
+	private void OnCarriedInventory(ulong owner, IReadOnlyList<CharacterItemMsg> items) =>
+		_characterDataSync.ApplyCarriedInventory(owner, items);
 
 	/// <summary>ItemDropped: a carried item left into the world — it leaves the owner's fact table (top-level or nested in a container's contents).</summary>
 	private void OnCarriedItemDropped(ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, ulong parentItemId, float rotation, float angularVelocity, NetVector2 parentPos) =>
@@ -425,4 +435,6 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	void IPatchBridge.OnItemUsed(Item item) => _itemUseSync.OnItemUsed(item);
 
 	void IPatchBridge.OnSlotMoved(Body body, int slot, string origin) => _itemSlotSync.OnSlotMoved(body, slot, origin);
+
+	void IPatchBridge.OnItemWorn(Item item) => _itemSlotSync.OnItemWorn(item);
 }

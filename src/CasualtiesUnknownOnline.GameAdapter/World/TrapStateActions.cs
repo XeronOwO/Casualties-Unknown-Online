@@ -150,6 +150,142 @@ internal static class TrapStateActions
 		return true;
 	}
 
+	/// <summary>Spikestabber: run the one-shot Stab() — the game's own anim/sound/
+	/// activated; the CheckStab frame callback then hurts the local real bodies
+	/// above, exactly like the trigger side.</summary>
+	internal static bool ApplySpike(SpikeStabberScript spike)
+	{
+		if (Traverse.Create(spike).Field("activated").GetValue<bool>())
+		{
+			return false; // already consumed — a duplicate event
+		}
+
+		spike.Stab();
+		return true;
+	}
+
+	/// <summary>Stalactite: run the one-shot Drop() — the spike falls; its
+	/// DamagingCrate hurts whatever it lands on (the local real bodies).</summary>
+	internal static bool ApplyStalactite(StalactiteDropper dropper)
+	{
+		if (Traverse.Create(dropper).Field("dropped").GetValue<bool>())
+		{
+			return false; // already consumed — a duplicate event
+		}
+
+		dropper.Drop();
+		return true;
+	}
+
+	/// <summary>Geyser (repeatable — the game's OWN cooldown gate is the check:
+	/// TryRumble returns while rumbling or within 10 s of an activation, so a
+	/// duplicate event is dropped by the game's state machine). The liquidType
+	/// is written first so the spout matches the trigger side.</summary>
+	internal static bool ApplyGeyser(GeyserScript geyser, byte liquidType)
+	{
+		Traverse.Create(geyser).Field("liquidType").SetValue((int)liquidType);
+		geyser.TryRumble();
+		return true;
+	}
+
+	/// <summary>Sound cannon: consume the one-shot spent + cancel the charge
+	/// (the deafening blast is the local player's UI — it happened on the
+	/// triggering side; the peers' copies must stop charging and stay spent).</summary>
+	internal static bool ApplySoundCannon(SoundCannon cannon)
+	{
+		if (Traverse.Create(cannon).Field("spent").GetValue<bool>())
+		{
+			return false; // already consumed — a duplicate event
+		}
+
+		Traverse.Create(cannon).Field("spent").SetValue(true);
+		Traverse.Create(cannon).Field("charging").SetValue(false);
+		return true;
+	}
+
+	/// <summary>Cave-tick nest: consume the one-shot started — stop the particles
+	/// and kill the nest (the 16 spiders spawn on the TRIGGERING side only, an
+	/// AI-domain gap).</summary>
+	internal static bool ApplyCaveTicks(CaveTickSpawner nest)
+	{
+		if (Traverse.Create(nest).Field("started").GetValue<bool>())
+		{
+			return false; // already consumed — a duplicate event
+		}
+
+		Traverse.Create(nest).Field("started").SetValue(true);
+		var particles = nest.GetComponent<ParticleSystem>();
+		if (particles != null) // Unity object — ==
+		{
+			particles.Stop(false, ParticleSystemStopBehavior.StopEmittingAndClear);
+		}
+
+		Object.Destroy(nest.gameObject, 10f);
+		Sound.Play("caveticks", Vector2.zero, true, false, null, 0.7f, 1f, false, false);
+		return true;
+	}
+
+	/// <summary>Fragile crystal: consume the break — glass sound + health = 0 as a
+	/// REMOTE death (the drops rolled on the triggering side). The position key
+	/// already located the crystal (CrystalEffect is a plain class, not a
+	/// component — the CrystalBehaviour carries the transform); the health
+	/// check drops duplicates.</summary>
+	internal static bool ApplyCrystalFragile(CrystalBehaviour crystal)
+	{
+		if (crystal.build.health < 0.5f)
+		{
+			return false; // already consumed — a duplicate event
+		}
+
+		Sound.Play("glass", crystal.transform.position, false, true, null, 1f, 1f, false, false);
+		crystal.build.health = 0f;
+		crystal.gameObject.AddComponent<RemoteEntityDeath>();
+		return true;
+	}
+
+	/// <summary>Beartrap CLAMPED (repeatable — the activated flag is the current-
+	/// clamp mark, cleared on release): close the visual (closeSprite + sound +
+	/// shake + the child teeth). The clamp's limb damage happened on the
+	/// triggering side (its OWN limb is clamped); the peers see the closed trap.</summary>
+	internal static bool ApplyBearTrapClamped(BearTrap trap)
+	{
+		if (Traverse.Create(trap).Field("activated").GetValue<bool>())
+		{
+			return false; // already clamped — a duplicate event
+		}
+
+		Traverse.Create(trap).Field("activated").SetValue(true);
+		Sound.Play("beartrap", trap.transform.position, false, false, null, 1f, 1f, false, false);
+		trap.GetComponent<SpriteRenderer>().sprite = trap.closeSprite;
+		if (trap.transform.childCount > 0)
+		{
+			Object.Destroy(trap.transform.GetChild(0).gameObject);
+		}
+
+		PlayerCamera.main.shaker.Shake(50f);
+		return true;
+	}
+
+	/// <summary>Beartrap RELEASED (the caught body stood up on the trigger side):
+	/// restore the visual (origSprite + unlatch sound).</summary>
+	internal static bool ApplyBearTrapReleased(BearTrap trap)
+	{
+		if (!Traverse.Create(trap).Field("activated").GetValue<bool>())
+		{
+			return false; // already open — a duplicate event
+		}
+
+		Traverse.Create(trap).Field("activated").SetValue(false);
+		Sound.Play("beartrapunlatch", trap.transform.position, false, true, null, 1f, 1f, false, false);
+		var orig = Traverse.Create(trap).Field("origSprite").GetValue<Sprite>();
+		if (orig != null) // Unity object — ==
+		{
+			trap.GetComponent<SpriteRenderer>().sprite = orig;
+		}
+
+		return true;
+	}
+
 	/// <summary>Backgroundify every reinforceddoor near a position (shared by the
 	/// bio terminal and the scrap eater unlocks).</summary>
 	private static void BackgroundifyNearbyDoors(Vector2 position, float radius)

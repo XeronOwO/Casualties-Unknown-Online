@@ -158,13 +158,13 @@ Blinding/Irradiated) are excluded: each side's body is simulated locally.
 | CrystalShy | missing (low) | position-swap event |
 | CrystalEMP | missing (low) | black visual only (battery drain already rides the item domain) |
 | CrystalGravity/Kinetic | excluded | local physics |
-| CrystalDripping | missing (med) | rides the fluid domain |
+| CrystalDripping | covered | rides the fluid domain (guest writes stopped, host streams) |
 
 ## Fluid world grid
 
 | entity | sync | path |
 |---|---|---|
-| FluidManager / OilPipeScript / LifepodPump / CrystalDripping | missing (med) | separate project: whole-grid diff or chunk-summary sync; until then accepted as a visual drift (drowning/slip checks follow the local grid) |
+| FluidManager / OilPipeScript / LifepodPump / CrystalDripping | covered | fluid domain (#130): host simulates every member's viewport (deduplicated bands), guest writes stopped; 10 Hz diff + 1 Hz full absolute RLE regions over FluidRegion; drink via FluidInteraction report → host clears → relay |
 
 ## Environment
 

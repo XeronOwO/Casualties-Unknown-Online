@@ -499,5 +499,11 @@ internal sealed class ItemApplication(
 
 		item.rb.velocity = new Vector2(w.Vel.X, w.Vel.Y);
 		item.rb.angularVelocity = w.AngularVelocity;
+		// The game's throw sets continuous collision detection (Body.cs:1664) —
+		// a Discrete materialization misses fast wall hits and the item tunnels
+		// INTO the wall, which the host's position stream then pins on every
+		// guest ("thrown item through the wall, stuck inside"). Same for a fast
+		// roll-out; the extra cost is one item.
+		item.rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
 	}
 }

@@ -168,7 +168,10 @@ internal sealed class GeneratedItemAuthority(
 			Velocity = new NetVector2(vel.x, vel.y).ToNetVector2Msg(),
 			Rotation = item.transform.eulerAngles.z,
 			FreshItemDrop = false,
-			SlotIndex = slotIndex,
+			// Wire encoding is slotIndex + 1 (0 = world item) — protobuf-net omits
+			// 0-valued ints, and backpack slot 0 is a valid raw index (see
+			// ItemSnapshotEntryMsg.SlotIndex).
+			SlotIndex = slotIndex + 1,
 		};
 	}
 }

@@ -33,8 +33,11 @@ public sealed class ItemSnapshotEntryMsg
 	[ProtoMember(9)]
 	public float AngularVelocity { get; set; } // the item's spin (part of the initial condition for a rolled item)
 
-	/// <summary>Carried-entry marker (generation snapshot only): >= 0 = the item sits in a player's backpack slot (the starting supplies — bound by slot, never materialized); -1 = a world item.</summary>
+	/// <summary>Carried-entry marker (generation snapshot only). Wire encoding:
+	/// slotIndex + 1, 0 = a world item (NOT the raw index — protobuf-net omits
+	/// 0-valued ints, and a starting supply in backpack slot 0 has raw index 0:
+	/// a raw-encoded slot-0 item would arrive as a world item).</summary>
 	[ProtoMember(10)]
-	public int SlotIndex { get; set; } = -1;
+	public int SlotIndex { get; set; }
 
 }

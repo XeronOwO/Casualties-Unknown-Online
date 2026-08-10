@@ -118,9 +118,11 @@ internal static class ItemStateCodec
 	}
 
 	/// <summary>Snapshots every [Saveable] component's simple-typed state —
-	/// the wire form of the official save's per-item component dictionaries.
-	/// Unity-reference fields are never serialized; WaterContainerItem is
-	/// skipped (its state travels as Liquids).</summary>
+	/// the wire form of the official save's per-item component dictionaries —
+	/// plus the state whitelist: components the official save does not persist
+	/// but multiplayer syncs (CustomItemBehaviour — the flashlight's on/off
+	/// state). Unity-reference fields are never serialized; WaterContainerItem
+	/// is skipped (its state travels as Liquids).</summary>
 	private static List<ComponentStateMsg> CaptureSaveableComponents(Item item)
 	{
 		var states = new List<ComponentStateMsg>();
@@ -131,7 +133,13 @@ internal static class ItemStateCodec
 				continue; // handled by CaptureLiquids
 			}
 
-			if (comp.GetType().GetCustomAttribute<Saveable>(inherit: false) is null)
+			// The state whitelist: components the official save does not persist
+			// but multiplayer syncs (CustomItemBehaviour.state — flashlight
+			// modes). The field rules below only admit public simple-typed
+			// fields, so state (int) travels while the object[] data and the
+			// Item reference stay out.
+			if (comp.GetType().GetCustomAttribute<Saveable>(inherit: false) is null
+				&& comp is not CustomItemBehaviour)
 			{
 				continue;
 			}
@@ -274,6 +282,7 @@ internal static class ItemStateCodec
 				.FirstOrDefault(c => c.GetType().Name == state.TypeName);
 			if (comp == null) // Unity object — == (FirstOrDefault on destroyed)
 			{
+				_log?.LogWarning("Restore: component {Type} not found on {Item} — its state is skipped.", state.TypeName, item.id);
 				continue;
 			}
 

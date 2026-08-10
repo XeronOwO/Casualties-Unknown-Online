@@ -140,6 +140,40 @@ internal sealed class CharacterDataSync(
 	/// </summary>
 	private static void RenderItemInto(Transform parent, CharacterItemMsg? wanted, int sortOrder, Limb? wearLimb)
 	{
+		// A matching render stays — the 1 Hz rebuild used to recreate every clone
+		// every second: a freshly Instantiated clone starts at the prefab's
+		// default orientation and gets yanked toward the mouse on the next frame
+		// (CustomItemBehaviour points hand-slot items at the local mouse), which
+		// reads as a strobe — the light's visual position jumps once per second.
+		// Keeping the matching clone removes the per-second jump entirely; its
+		// component state is still refreshed from the snapshot below, so the
+		// flashlight mode follows ≤1 s behind. Limb parents: only match renders
+		// we own (RemoteCloneRender), never the game's own children.
+		if (wanted != null)
+		{
+			var matches = parent.GetComponentsInChildren<Item>(true)
+				.Where(i => i.id == wanted.ItemId
+					&& (wearLimb == null || i.GetComponent<RemoteCloneRender>() != null)).ToArray();
+			if (matches.Length > 0)
+			{
+				// Keep the first; destroy any further copies — the reason the
+				// old diff (GetChild(0)-only) was abandoned was stray duplicates
+				// accumulating in a slot; the incremental path must not resurrect
+				// them.
+				for (var i = 1; i < matches.Length; i++)
+				{
+					UnityEngine.Object.Destroy(matches[i].gameObject);
+				}
+
+				if (wanted.Components is { Count: > 0 })
+				{
+					ItemStateCodec.RestoreComponentStates(matches[0], wanted.Components);
+				}
+
+				return;
+			}
+		}
+
 		if (wearLimb == null)
 		{
 			// Clear EVERY child, then materialize the wanted item: the diff
@@ -178,6 +212,34 @@ internal sealed class CharacterDataSync(
 		var obj = UnityEngine.Object.Instantiate(prefab, parent) as GameObject;
 		obj!.transform.localPosition = Vector3.zero;
 		var item = obj.GetComponent<Item>();
+
+		// Apply the snapshot's component state so the clone shows the owner's
+		// real state (CustomItemBehaviour.state — flashlight modes). The prefab
+		// Light2D starts with its author-time light: set its enabled to what the
+		// restored state says BEFORE the first Update — a rebuilt clone then
+		// never shows one wrong frame (the 1 Hz rebuild used to strobe the light
+		// when the owner was off; forcing it off strobed a black frame when the
+		// owner was on). LightItem/CustomItemBehaviour drive from next frame on
+		// (enabled = shouldEnable && !inContainer, intensity = state).
+		if (wanted.Components is { Count: > 0 })
+		{
+			ItemStateCodec.RestoreComponentStates(item, wanted.Components);
+		}
+
+		var modeState = item.GetComponent<CustomItemBehaviour>() != null
+			? item.GetComponent<CustomItemBehaviour>().state
+			: 0;
+		// Light2D lives in the URP runtime assembly (not referenced here) —
+		// matched by name, same convention as RestoreComponentStates.
+		foreach (var light in obj.GetComponentsInChildren<Behaviour>(true))
+		{
+			if (light.GetType().Name == "Light2D")
+			{
+				light.enabled = modeState != 0;
+			}
+		}
+
+
 		obj.transform.localEulerAngles = wearLimb != null
 			? Vector3.zero // the game wears with identity rotation (Body.cs:1510)
 			: new Vector3(0f, 0f, item.Stats.slotRotation);
@@ -324,7 +386,9 @@ internal sealed class CharacterDataSync(
 		{
 			Skills = _mapper.Map<CharacterSkillsMsg>(body.skills),
 			Health = _mapper.Map<CharacterHealthMsg>(body),
-			HandSlot = body.handSlot,
+			// Wire encoding is handSlot + 1 (0 = none) — protobuf-net omits
+			// 0-valued ints, and hand slot 0 is valid (see CharacterDataMsg.HandSlot).
+			HandSlot = body.handSlot + 1,
 		};
 
 		// Limb has no Index field — Mapster maps the rest, the loop assigns it.
@@ -432,9 +496,10 @@ internal sealed class CharacterDataSync(
 			}
 		}
 
-		if (data.HandSlot >= 0 && data.HandSlot < body.slots.Length)
+		var handSlot = data.HandSlot - 1; // wire encoding: handSlot + 1
+		if (handSlot >= 0 && handSlot < body.slots.Length)
 		{
-			body.handSlot = data.HandSlot;
+			body.handSlot = handSlot;
 		}
 	}
 

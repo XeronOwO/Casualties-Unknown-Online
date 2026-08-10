@@ -488,7 +488,10 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 		var msg = new ItemSnapshotMsg
 		{
 			Entries = [.. _worldItems.Values.Select(w => w.ToSnapshotEntryMsg())],
-			LayerModifierIndex = LayerModifierIndex,
+			// Wire encoding is modifierIndex + 1 (0 = none) — protobuf-net omits
+			// 0-valued ints, and Foggy's raw index IS 0 (see
+			// WorldItemsSnapshotMsg.LayerModifierIndex).
+			LayerModifierIndex = LayerModifierIndex + 1,
 			LayerModifierRandomState = LayerModifierRandomState,
 		};
 		_sender.Send(targetSteamId, NetMsg.ItemSnapshot, msg);
@@ -522,7 +525,8 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 		var msg = new ItemSnapshotMsg
 		{
 			Entries = [.. _worldItems.Values.Select(w => w.ToSnapshotEntryMsg())],
-			LayerModifierIndex = LayerModifierIndex,
+			// Wire encoding is modifierIndex + 1 (0 = none) — see SendItemSnapshot.
+			LayerModifierIndex = LayerModifierIndex + 1,
 			LayerModifierRandomState = LayerModifierRandomState,
 		};
 		_sender.SendToAll(
@@ -570,7 +574,9 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 		_session.Broadcast(NetMsg.WorldItemsSnapshot, new WorldItemsSnapshotMsg
 		{
 			Items = [.. entries],
-			LayerModifierIndex = LayerModifierIndex,
+			// Wire encoding is modifierIndex + 1 (0 = none) — see SendItemSnapshot.
+			LayerModifierIndex = LayerModifierIndex + 1,
+			LayerModifierRandomState = LayerModifierRandomState,
 		});
 		_log.LogInformation("Published generation items ({Count} entries, {Registered} registered): {World} ground, {Carried} carried — modifier {Modifier}.",
 			entries.Count, registered,

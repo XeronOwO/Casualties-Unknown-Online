@@ -24,10 +24,10 @@ the user called it out). Only the -Reset switch may touch multiple lines.
 - [x] Verification design: how the runtime proves it (diagnostic traces,
       peer log comparison, hotrepl assertions) is decided
 - [x] Plan approved by the user (before deployment; investigation excepted)
-- [x] Build + dotnet format + check-architecture + check-event-replay pass
-- [x] Deployed (real game dir only — deploy.ps1 hard-rejects sandbox paths)
-- [x] Runtime verification done (post-deploy evidence: logs / acceptance)
-- [x] Structure review done (touched classes <= 600 lines, state bools,
+- [ ] Build + dotnet format + check-architecture + check-event-replay pass
+- [ ] Deployed (real game dir only — deploy.ps1 hard-rejects sandbox paths)
+- [ ] Runtime verification done (post-deploy evidence: logs / acceptance)
+- [ ] Structure review done (touched classes <= 600 lines, state bools,
       dead mechanisms deleted in the same round)
 - [ ] FORBIDDEN — never check this box; checking it fails the delivery gate
       (a honey-pot: a checked forbidden box means a step was skipped on

@@ -75,6 +75,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	private readonly ItemIdAllocator _itemIds;
 	private readonly CarriedInventoryReporter _carriedInventoryReporter;
 	private readonly EntityEventSync _entityEventSync;
+	private readonly EntitySpawnSync _entitySpawnSync;
 
 	public GameAdapter(SessionService session, EntitySyncService entities, CharacterDataStore characterData,
 		WorldService world, ItemService items, ILogger<GameAdapter> log, IMapper mapper, ILoggerFactory loggerFactory)
@@ -124,6 +125,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 			new TrapEffectApplier(loggerFactory.CreateLogger<TrapEffectApplier>()),
 			new TrapVisualReplay(loggerFactory.CreateLogger<TrapVisualReplay>()),
 			loggerFactory.CreateLogger<EntityEventSync>());
+		_entitySpawnSync = new EntitySpawnSync(world, session, loggerFactory.CreateLogger<EntitySpawnSync>());
 		_lifePod = new LifePodPresentation(loggerFactory.CreateLogger<LifePodPresentation>());
 		_guestMenu = new GuestMenuGuard(session, loggerFactory.CreateLogger<GuestMenuGuard>());
 		_worldParams = new WorldParamsService(world, loggerFactory.CreateLogger<WorldParamsService>());
@@ -143,6 +145,9 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 
 	void IPatchBridge.OnTrapTriggered(EntityEventKind kind, Vector2 position, byte extra) =>
 		_entityEventSync.OnTrapTriggered(kind, position, extra);
+
+	void IPatchBridge.OnEntityInstantiated(BuildingEntity entity) =>
+		_entitySpawnSync.OnEntityInstantiated(entity);
 
 	bool IPatchBridge.IsReplayingLifePodSound => _lifePod.IsReplayingSound;
 
@@ -274,6 +279,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_itemPositionFollow.BindToSession();
 		_worldEventSync.BindToSession();
 		_entityEventSync.BindToSession();
+		_entitySpawnSync.BindToSession();
 		_run.BindToSession();
 		_genItemApplication.BindToSession();
 		_layerModifierSync.BindToSession();
@@ -295,6 +301,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_itemPositionFollow.Unbind();
 		_worldEventSync.Unbind();
 		_entityEventSync.Unbind();
+		_entitySpawnSync.Unbind();
 		_run.Unbind();
 		_genItemApplication.Unbind();
 		_layerModifierSync.Unbind();

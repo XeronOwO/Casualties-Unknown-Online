@@ -96,7 +96,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 			loggerFactory.CreateLogger<CharacterDataSync>());
 		_renderer = new RemotePlayerRenderer(session, entities, _characterDataSync, loggerFactory.CreateLogger<RemotePlayerRenderer>());
 		_dropGuard = new DropProtectionGuard();
-		_itemApplication = new ItemApplication(items, loggerFactory.CreateLogger<ItemApplication>());
+		_itemApplication = new ItemApplication(items, session, loggerFactory.CreateLogger<ItemApplication>());
 		_itemReconcile = new ItemReconcile(items, _itemApplication, _dropGuard, loggerFactory.CreateLogger<ItemReconcile>());
 		_operationTrace = new OperationTrace(loggerFactory.CreateLogger<OperationTrace>());
 		var itemReports = new ItemReportCommitter(items, _operationTrace, loggerFactory.CreateLogger<ItemReportCommitter>());

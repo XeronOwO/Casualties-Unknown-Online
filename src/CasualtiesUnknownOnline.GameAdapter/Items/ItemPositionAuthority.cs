@@ -10,11 +10,12 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 /// <summary>
 /// Host-side world-item position authority: the host's physics is the single
 /// simulation. Its 10 Hz position stream (EVERY standalone world item,
-/// sleeping included) drives the guests' kinematic copies, and the 5 s
-/// keyframe refreshes the authoritative table before re-sending it. No state
-/// on the guest side — the guest pump is <see cref="ItemPositionFollow"/>.
-/// The host's role gate lives in the caller (GameAdapter dispatches by
-/// session mode); ItemService re-checks on send.
+/// sleeping included) feeds the guests' local simulations — they simulate the
+/// same trajectory and the stream soft-corrects (velocity sync + snap past a
+/// threshold, see <see cref="ItemPositionFollow"/>). The 5 s keyframe
+/// refreshes the authoritative table before re-sending it. The host's role
+/// gate lives in the caller (GameAdapter dispatches by session mode);
+/// ItemService re-checks on send.
 /// </summary>
 internal sealed class ItemPositionAuthority(ItemService items)
 {
@@ -26,6 +27,13 @@ internal sealed class ItemPositionAuthority(ItemService items)
 	/// <summary>Settled items re-align every Nth tick (1 Hz at 10 Hz tick rate) — the stream is the dominant bandwidth consumer and a settled item's payload is identical every tick, so 10 Hz re-sends the same bytes nine times out of ten.</summary>
 	private const int SettledIntervalTicks = 10;
 	private int _settledTick;
+
+	/// <summary>Items currently at rest on the host. A motion→rest EDGE forces one
+	/// immediate tick: the guest's copy simulates locally and stops by itself,
+	/// but its final resting spot must converge on the authority's — waiting for
+	/// the 1 Hz round would leave the end state open for up to a second. After
+	/// the edge the item rides the 1 Hz re-align round like every other.</summary>
+	private readonly HashSet<ulong> _settledItems = [];
 
 	private const int ItemSnapshotIntervalMs = 5000; // periodic world-item keyframe (unreliable)
 	private long _nextItemSnapshotMs;
@@ -70,12 +78,21 @@ internal sealed class ItemPositionAuthority(ItemService items)
 			}
 
 			// At rest: velocity below the noise floor AND no spin. The guest
-			// copy is a kinematic render — it cannot drift by itself, so the
-			// 1 Hz re-align only has to catch host-side nudges.
+			// copy simulates locally and stops by itself, so the 1 Hz re-align
+			// only has to close the residual gap (and catch host-side nudges).
+			// The motion→rest edge forces one immediate tick (see _settledItems).
 			var settled = item.rb.velocity.sqrMagnitude < 0.01f && Mathf.Abs(item.rb.angularVelocity) < 0.1f;
-			if (settled && !settledRound)
+			if (settled)
 			{
-				continue;
+				var edge = _settledItems.Add(idComp.Id);
+				if (!edge && !settledRound)
+				{
+					continue;
+				}
+			}
+			else
+			{
+				_settledItems.Remove(idComp.Id);
 			}
 
 			var pos = item.transform.position;

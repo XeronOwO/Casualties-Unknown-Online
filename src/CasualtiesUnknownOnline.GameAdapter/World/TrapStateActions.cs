@@ -353,6 +353,11 @@ internal static class TrapStateActions
 	/// beam is a local LineRenderer — recorded gap.</summary>
 	internal static bool ApplyTurretFired(TurretScript turret)
 	{
+		// The trigger side's full engagement chain: the warning (turretsee,
+		// TurretScript.cs:69 — 2D) then the shot (rifleshot, TurretScript.cs:45).
+		// The peer hears the whole chain, not just the blast (silent-host test
+		// proved the warning was missing on the replay side).
+		Sound.Play("turretsee", turret.transform.position, true, false, null, 1f, 1f, false, false);
 		Sound.Play("rifleshot", turret.transform.position, true, false, null, 1f, 1f, false, false);
 
 		// The fire visuals: the muzzle particle burst (TurretScript.cs:44) and
@@ -377,12 +382,16 @@ internal static class TrapStateActions
 			Object.Destroy(tracer, 0.05f);
 		}
 
-		// Consume the fire state on the peer's copy: timeSinceFired = 0 +
-		// didShoot = true start its 15 s reload (TurretScript.cs:30-53), so a
-		// peer walking into range gets beeped but NOT shot during the reload,
-		// matching the triggering side.
+		// Consume the fire state on the peer's copy — the FULL post-fire state
+		// of the triggering side (TurretScript.cs:40-53): timeSinceFired = 0 +
+		// didShoot = true start the 15 s reload, and didBeep = true pins the
+		// Update into the beep branch so the discovery branch (turretsee
+		// warning, TurretScript.cs:55-76) never runs during the reload — a
+		// cooldown turret is silent, exactly like single-player. Without
+		// didBeep the peer's copy would warn but not fire: the observed bug.
 		Traverse.Create(turret).Property("timeSinceFired").SetValue(0f);
 		Traverse.Create(turret).Field("didShoot").SetValue(true);
+		Traverse.Create(turret).Field("didBeep").SetValue(true);
 		return true;
 	}
 

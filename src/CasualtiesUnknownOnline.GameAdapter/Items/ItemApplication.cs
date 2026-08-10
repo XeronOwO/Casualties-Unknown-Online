@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
@@ -27,6 +28,14 @@ internal sealed class ItemApplication(
 
 	/// <summary>Pickup origin cache (id → world position) — the rollback target for a refused pickup (the pickup-start hook fills it).</summary>
 	internal readonly Dictionary<ulong, Vector2> PickupOrigins = [];
+
+	/// <summary>Items materialized THIS frame (item → frameCount): a remote kill
+	/// arriving in the same frame destroys before Start ran, and a component
+	/// that initializes in Start (FreshItemDrop's outline, observed NRE) then
+	/// walks uninitialized fields in OnDestroy. The kill is deferred one frame
+	/// so Start completes. Entries are removed on kill; pickup-path leftovers
+	/// are a handful of ints per run, acceptable.</summary>
+	private readonly Dictionary<Item, int> _materializedFrame = [];
 
 	internal void BindToSession()
 	{
@@ -335,8 +344,24 @@ internal sealed class ItemApplication(
 	/// item as locally destroyed; the peer then deleted the content it had
 	/// just received).
 	/// </summary>
-	internal static void KillRemoteItem(Item item)
+	internal void KillRemoteItem(Item item)
 	{
+		// A kill in the same frame as the materialization destroys before
+		// Start ran (observed: FreshItemDrop.OnDestroy NRE on the guest — the
+		// outline is created in Start). Defer one frame; the next frame the
+		// id is zeroed and the object destroyed with its components complete.
+		if (_materializedFrame.TryGetValue(item, out var frame) && frame == Time.frameCount)
+		{
+			item.StartCoroutine(KillNextFrame(item));
+			return;
+		}
+
+		KillNow(item);
+	}
+
+	private void KillNow(Item item)
+	{
+		_materializedFrame.Remove(item);
 		foreach (var child in item.GetComponentsInChildren<Item>(true)) // the root is included — zeroing twice is harmless
 		{
 			var childId = child.GetComponent<ItemInstanceId>();
@@ -347,6 +372,15 @@ internal sealed class ItemApplication(
 		}
 
 		UnityEngine.Object.Destroy(item.gameObject);
+	}
+
+	private IEnumerator KillNextFrame(Item item)
+	{
+		yield return null;
+		if (item != null) // Unity object — ==
+		{
+			KillNow(item);
+		}
 	}
 
 	/// <summary>
@@ -494,6 +528,10 @@ internal sealed class ItemApplication(
 		{
 			item.gameObject.AddComponent<FreshItemDrop>(); // the glowing floating pickup effect (self-destroys when the setting is off)
 		}
+
+		// A same-frame remote kill would destroy before Start ran (the
+		// FreshItemDrop NRE) — KillRemoteItem defers one frame via this entry.
+		_materializedFrame[item] = Time.frameCount;
 
 		if (w.ParentItemId != 0)
 		{

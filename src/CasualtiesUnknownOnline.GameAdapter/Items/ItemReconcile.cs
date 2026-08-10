@@ -80,7 +80,7 @@ internal sealed class ItemReconcile(
 						continue;
 					}
 
-					ItemApplication.KillRemoteItem(item);
+					_app.KillRemoteItem(item);
 					_guard.Remove(idComp.Id);
 					killed++;
 				}

@@ -35,6 +35,7 @@ dotnet build CasualtiesUnknownOnline.slnx
 dotnet format CasualtiesUnknownOnline.slnx   # MUST run before every commit
 powershell -File tools/check-architecture.ps1   # MUST pass before every commit (architecture gate: ≤600-line classes, ≤5 state bools, one top-level type per file — a failing class must be split/state-machine'd BEFORE further changes)
 powershell -File tools/check-event-replay.ps1   # MUST pass before every commit (event-replay gate: docs/event-replay-matrix.csv — every event's replay side audited per mechanism; empty cells, bare commas, bare gaps all fail; touching an event mechanism means updating its row in the same commit)
+powershell -File tools/check-delivery.ps1   # MUST pass before every commit (delivery gate: docs/delivery-checklist.md — every delivery-cycle box checked; cycle completes → check-delivery.ps1 -Reset for the next cycle)
 ```
 
 - **`dotnet format` is mandatory before every commit** — keeps code conforming to `.editorconfig` (user requirement; proven workflow in the JustUnknownCharacters mod). With `TreatWarningsAsErrors` enabled, style violations fail the build once fixed into the codebase.
@@ -167,6 +168,8 @@ The user approves the plan before deployment. No approval, no deployment, no imp
 1. understand → 2. mechanism inventory → 3. adversarial self-check → 4. plan + self-check table → 5. user approval → 6. implement → 7. build + format + architecture gate → 8. deploy → 9. runtime verification → 10. structure review → 11. commit.
 
 Skipping any step = non-conforming delivery.
+
+**Executable form (user mandate 2026-08-10)**: `docs/delivery-checklist.md` + `tools/check-delivery.ps1` turn this prose into a fail-able gate — the checklist boxes mirror the steps (including whole-family audit: fixing one mechanism means aligning the whole family, the turret-fire/geyser lesson); the script refuses the commit while any box is unchecked and resets the checklist (`-Reset`) when a cycle completes. The event-replay matrix gate (Build) is the per-mechanism audit underneath; the delivery checklist is the process discipline above it.
 
 ## Context Compression Protocol
 

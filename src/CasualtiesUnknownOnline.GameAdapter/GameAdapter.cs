@@ -149,12 +149,8 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	void IPatchBridge.OnTrapTriggered(EntityEventKind kind, Vector2 position, byte extra) =>
 		_entityEventSync.OnTrapTriggered(kind, position, extra);
 
-	void IPatchBridge.OnEntityInstantiated(BuildingEntity entity)
-	{
-		_entitySpawnSync.OnEntityInstantiated(entity); // the spawn-channel report (runtime creations)
-		_geyserStateSync.OnEntityInstantiated(entity); // a runtime geyser's liquid type (host authority, #128)
-		_worldEventSync.OnEntityInstantiated(entity); // a runtime keypad's code (host authority, #128 follow-up)
-	}
+	void IPatchBridge.OnEntityInstantiated(BuildingEntity entity) =>
+		_entitySpawnSync.OnEntityInstantiated(entity); // the spawn-channel report (runtime creations; creation-time data rides the same message, #128)
 
 	/// <summary>
 	/// Patches whose target types are INTERNAL to the game assembly (no compile-
@@ -308,6 +304,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 
 		_worldEventSync.Update();
 		_geyserStateSync.Update(); // host/solo: capture + broadcast the geysers' liquid types once the generation finished
+		_entitySpawnSync.Update(); // the creation channel's deferred reports (a geyser's type, after its child Start) and carried-data applications
 		_blockBreakSync.Update(); // expire break records without a consuming drops report
 		_renderer.Update();
 	}

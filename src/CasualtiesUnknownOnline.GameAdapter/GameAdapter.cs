@@ -395,6 +395,20 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	{
 		_run.OnWorldGenerate();
 		_gate.AttachKeepLoading(); // both roles: while the gate waits for the others, the loading animation keeps playing
+								   // The tutorial/debug layers skip the game's ResetLayerModifiers
+								   // (WorldGeneration.cs:3280-3283 — it only runs for biomeOverride == None),
+								   // so the previous layer's modifier keeps its static active state: a run
+								   // with a modifier followed by the tutorial showed no banner (the tutorial
+								   // never rolls one, WorldGeneration.cs:3626-3628) but the modifier's
+								   // effects still ran. Clear it on EVERY side — the modifier instances are
+								   // process-static (LayerModifier.availableModifiers), one set per game;
+								   // the guest's active was set by the snapshot path.
+		if (WorldGeneration.world != null && HarmonyTraverse.ReadBiomeOverride() != 0) // Unity object — ==; 0 = None
+		{
+			WorldGeneration.world.ResetLayerModifiers();
+			_log.LogInformation("[LayerMod] non-none layer — cleared the previous layer's residual modifiers.");
+		}
+
 		if (_session.Role != SessionRole.Guest)
 		{
 			// A new world/layer is generating — the old layer's world items are

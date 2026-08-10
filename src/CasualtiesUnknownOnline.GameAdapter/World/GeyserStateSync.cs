@@ -105,7 +105,11 @@ internal sealed class GeyserStateSync(IWorldControl world, ISessionControl sessi
 
 	/// <summary>A recorded creation is read once Start has run (a frame after
 	/// the instantiation): broadcast its type as a single-entry snapshot
-	/// (position-keyed; the guest's application matches by position, idempotent).</summary>
+	/// (position-keyed; the guest's application matches by position, idempotent).
+	/// Only the DUE entries leave the queue — an entry younger than the Start
+	/// wait must survive the frame (the old code cleared the whole queue every
+	/// frame, so no entry ever reached the wait: the runtime geyser's type was
+	/// never broadcast — the observed guest-side desync).</summary>
 	private void FlushPending()
 	{
 		if (_pending.Count == 0)
@@ -135,7 +139,7 @@ internal sealed class GeyserStateSync(IWorldControl world, ISessionControl sessi
 			_log.LogInformation("[GeyserSnapshot] runtime geyser at ({X:F1},{Y:F1}) — type broadcast.", p.x, p.y);
 		}
 
-		_pending.Clear();
+		_pending.RemoveAll(p => Time.frameCount - p.AtFrame >= 2);
 	}
 
 	private void SendFullSet()

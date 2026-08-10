@@ -136,9 +136,10 @@ internal static class TrapStateActions
 		return true;
 	}
 
-	/// <summary>Battery charger used: consume the firstTime mp3 gift (the insert
-	/// itself rides the item domain — the battery IS a world item, its
-	/// position/condition sync there; only the one-shot gift needs the event).</summary>
+	/// <summary>Battery charger used: consume the firstTime mp3 gift and replay
+	/// the insert sound (the insert itself rides the item domain — the battery
+	/// IS a world item, its position/condition sync there; only the one-shot
+	/// gift and the sound need the event).</summary>
 	internal static bool ApplyBattery(BatteryRecharger recharger)
 	{
 		if (!Traverse.Create(recharger).Field("firstTime").GetValue<bool>())
@@ -147,6 +148,7 @@ internal static class TrapStateActions
 		}
 
 		Traverse.Create(recharger).Field("firstTime").SetValue(false);
+		Sound.Play("batteryinsert", recharger.transform.position, false, true, null, 1f, 1f, false, false);
 		return true;
 	}
 
@@ -188,9 +190,12 @@ internal static class TrapStateActions
 		return true;
 	}
 
-	/// <summary>Sound cannon: consume the one-shot spent + cancel the charge
-	/// (the deafening blast is the local player's UI — it happened on the
-	/// triggering side; the peers' copies must stop charging and stay spent).</summary>
+	/// <summary>Sound cannon: consume the one-shot spent + cancel the charge,
+	/// and replay the blast sound — sonarouch is a 2D GLOBAL sound
+	/// (SoundCannon.cs:64), so the peers hear the blast at any distance. The
+	/// blast DAMAGE is not replayed: it is the trigger-side player's
+	/// single-target effect and rides the CharacterData report. The deafening
+	/// UI (hearing loss etc.) happened on the triggering side.</summary>
 	internal static bool ApplySoundCannon(SoundCannon cannon)
 	{
 		if (Traverse.Create(cannon).Field("spent").GetValue<bool>())
@@ -200,6 +205,7 @@ internal static class TrapStateActions
 
 		Traverse.Create(cannon).Field("spent").SetValue(true);
 		Traverse.Create(cannon).Field("charging").SetValue(false);
+		Sound.Play("sonarouch", cannon.transform.position, true, false, null, 1f, 1f, false, true);
 		return true;
 	}
 
@@ -348,6 +354,33 @@ internal static class TrapStateActions
 	internal static bool ApplyTurretFired(TurretScript turret)
 	{
 		Sound.Play("rifleshot", turret.transform.position, true, false, null, 1f, 1f, false, false);
+
+		// The fire visuals: the muzzle particle burst (TurretScript.cs:44) and
+		// the tracer line (TurretScript.Shoot, TurretScript.cs:202-205 — pure
+		// visual, self-destructs in 0.05 s). The fireSprite skin is driven by
+		// timeSinceFired < 2 f in the game's own Update (TurretScript.cs:26) —
+		// setting it to 0 above already shows it for 2 s.
+		var particles = turret.GetComponentInChildren<ParticleSystem>();
+		if (particles != null) // Unity object — ==
+		{
+			particles.Play();
+		}
+
+		var tracer = Object.Instantiate(Resources.Load("Special/TurretLine"), Vector2.zero, Quaternion.identity) as GameObject;
+		if (tracer != null) // Unity object — ==
+		{
+			var line = tracer.GetComponent<LineRenderer>();
+			var pos = turret.barrel != null ? (Vector2)turret.barrel.position : (Vector2)turret.transform.position; // Unity object — ==
+			var end = pos + (Vector2)(turret.transform.right * turret.transform.localScale.x) * 200f;
+			line.SetPosition(0, pos);
+			line.SetPosition(1, end);
+			Object.Destroy(tracer, 0.05f);
+		}
+
+		// Consume the fire state on the peer's copy: timeSinceFired = 0 +
+		// didShoot = true start its 15 s reload (TurretScript.cs:30-53), so a
+		// peer walking into range gets beeped but NOT shot during the reload,
+		// matching the triggering side.
 		Traverse.Create(turret).Property("timeSinceFired").SetValue(0f);
 		Traverse.Create(turret).Field("didShoot").SetValue(true);
 		return true;

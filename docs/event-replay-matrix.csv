@@ -1,0 +1,26 @@
+kind,sound-trigger,sound-replay,visual-trigger,visual-replay,state-consumption,status,notes
+MineExploded,explosion-fivepiece(sound 2D)+tinnitus(local-audio segment),fivepiece+tinnitus (ExplosionBodyEffect),particle/blastmark/shake/chained blasts,fivepiece+body-segment,exploded+health0+RemoteEntityDeath,covered,0.8s press visual recorded gap
+TurretSelfDestructed,explosion-fivepiece+tinnitus,host natural (CreateExplosion) / guest fivepiece+tinnitus,particle/blastmark/shake,fivepiece+body-segment+collider-disable,health0+RemoteEntityDeath,covered,
+TurretFired,rifleshot(2D)+turretsee-beep,sound ok,fireSprite-2s+ParticleSystem+TurretLine-tracer,particle+tracer MISSING (fireSprite driven by timeSinceFired=0),didShoot+timeSinceFired=0 (15s reload),covered,particle+TurretLine tracer missing (Shoot 202-205); fix: GetComponentInChildren<ParticleSystem>().Play() + TurretLine LineRenderer two points + 0.05s destroy; beep is per-side natural on approach
+GeyserActivated,geyserrumble(3D)+geyseractivate(3D),TryRumble() ok (byte fix),rumble shake+spout,TryRumble() ok,liquidType+cooldown gate,covered,liquid grid = fluid domain
+SpikeStabbed,loudStab(3D)+this.sound,Stab() runs game sound,stab animation,Stab() runs game anim,activated,covered,
+BearTrapClamped,beartrap(3D)+gore(limb),beartrap ok,closeSprite+teeth-destroy,ok,activated,covered,gore is the clamped player's own limb
+BearTrapReleased,beartrapunlatch(3D),ok,origSprite restore,ok,activated=false,covered,
+StalactiteDropped,stalactitefall(3D)+glass,Drop() runs game sound,fall animation,Drop() runs game anim,dropped,covered,
+SoundCannonFired,sonarcharge(2D charge)+sonarouch(2D blast)+tinnitus,blast sound MISSING,charge-rotate (child),n/a (charging cancelled),spent+charging=false,covered,blast sonarouch 2D-global replay added (identical to SoundCannon.cs:64); damage NOT replayed (trigger-side single-target rides CharacterData)
+CaveTicksSpawned,caveticks(2D) ok,ok,particles-stop+nest-destroy,ok,started,covered,spiders trigger-side only (AI domain)
+CrystalFragileBroken,glass(3D) ok,ok,crystal vanish (health0),ok+RemoteDeath,health<0.5,covered,
+CrystalElectricShocked,zap(3D)+Shake200,ok,ring-anim (Update natural),ok,cooldown gate,covered,
+BarbedFenceHit,fence(3D) ok,ok,hitSprite transition,ok,none (instant),covered,
+CoilShocked,zap(3D)+light-flash+Shake,ok,light flash,SetLightIntensity ok,cooldown gate,covered,
+CactusHit,gore at player (DoGoreSound),gore1-5 at cactus (3D),player-knockback (local),none,none,covered,sound position differs per-side semantics
+JumpPadLaunched,jumppad(3D)+light+Shake,ok,light flash,ok,cooldown gate,covered,
+BananaPlantSlip,plantslip(3D) ok,ok,none,none,none,covered,
+GrabberGrabbed,scream (player-side),none (trace point),ragdoll (player-side)+tendril Update,none,none,excluded,each side's own body
+ShuttleDoorOpened,shuttleNotice+shuttleOpen(3D at 2s),activated=true drives Update natural,door-lift anim,ok,activated,covered,
+LifepodHeatChanged,button-sound (interaction layer),ToggleHeatState runs game path,sprite+description,ok,heatState,covered,
+LifepodShowerActivated,none,ActivateShower runs game path,shower anim,ok,activated,covered,
+BioTerminalUnlocked,beep(3D) ok,ok,Backgroundify+doors,ok,collider-disabled,covered,
+ScrapEaterProgress,beep(3D) ok,ok,progress+unlock,ok,progress+unlocked,covered,
+MedStationHealed,medicalstation(3D),ok,laser-heal anim,HealAnimation copied ok,didHeal,covered,
+BatteryInserted,batteryinsert(3D),sound MISSING,battery-vanish (item domain use),item domain,firstTime,covered,insert sound batteryinsert 3D replay added (identical to BatteryRecharger.cs:67)

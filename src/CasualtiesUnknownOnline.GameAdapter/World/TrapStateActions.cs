@@ -185,11 +185,11 @@ internal static class TrapStateActions
 
 	/// <summary>Geyser (repeatable — the game's OWN cooldown gate is the check:
 	/// TryRumble returns while rumbling or within 10 s of an activation, so a
-	/// duplicate event is dropped by the game's state machine). The liquidType
-	/// is written first so the spout matches the trigger side.</summary>
-	internal static bool ApplyGeyser(GeyserScript geyser, byte liquidType)
+	/// duplicate event is dropped by the game's state machine). The liquid type
+	/// is NOT part of the event: it was bound at generation time by the host
+	/// (GeyserStateSnapshot, #128) — the spout just runs.</summary>
+	internal static bool ApplyGeyser(GeyserScript geyser)
 	{
-		Traverse.Create(geyser).Field("liquidType").SetValue(liquidType); // byte — exact type; a SetValue(int) cast throws ArgumentException (reflection does not narrow)
 		geyser.TryRumble();
 		return true;
 	}

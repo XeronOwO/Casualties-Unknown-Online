@@ -77,6 +77,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	private readonly CarriedInventoryReporter _carriedInventoryReporter;
 	private readonly EntityEventSync _entityEventSync;
 	private readonly EntitySpawnSync _entitySpawnSync;
+	private readonly GeyserStateSync _geyserStateSync;
 
 	public GameAdapter(SessionService session, EntitySyncService entities, CharacterDataStore characterData,
 		WorldService world, ItemService items, ILogger<GameAdapter> log, IMapper mapper, ILoggerFactory loggerFactory)
@@ -127,6 +128,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 			new TrapVisualReplay(loggerFactory.CreateLogger<TrapVisualReplay>()),
 			loggerFactory.CreateLogger<EntityEventSync>());
 		_entitySpawnSync = new EntitySpawnSync(world, session, loggerFactory.CreateLogger<EntitySpawnSync>());
+		_geyserStateSync = new GeyserStateSync(world, session, loggerFactory.CreateLogger<GeyserStateSync>());
 		_lifePod = new LifePodPresentation(loggerFactory.CreateLogger<LifePodPresentation>());
 		_guestMenu = new GuestMenuGuard(session, loggerFactory.CreateLogger<GuestMenuGuard>());
 		_worldParams = new WorldParamsService(world, loggerFactory.CreateLogger<WorldParamsService>());
@@ -147,8 +149,12 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	void IPatchBridge.OnTrapTriggered(EntityEventKind kind, Vector2 position, byte extra) =>
 		_entityEventSync.OnTrapTriggered(kind, position, extra);
 
-	void IPatchBridge.OnEntityInstantiated(BuildingEntity entity) =>
-		_entitySpawnSync.OnEntityInstantiated(entity);
+	void IPatchBridge.OnEntityInstantiated(BuildingEntity entity)
+	{
+		_entitySpawnSync.OnEntityInstantiated(entity); // the spawn-channel report (runtime creations)
+		_geyserStateSync.OnEntityInstantiated(entity); // a runtime geyser's liquid type (host authority, #128)
+		_worldEventSync.OnEntityInstantiated(entity); // a runtime keypad's code (host authority, #128 follow-up)
+	}
 
 	/// <summary>
 	/// Patches whose target types are INTERNAL to the game assembly (no compile-
@@ -301,6 +307,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		}
 
 		_worldEventSync.Update();
+		_geyserStateSync.Update(); // host/solo: capture + broadcast the geysers' liquid types once the generation finished
 		_blockBreakSync.Update(); // expire break records without a consuming drops report
 		_renderer.Update();
 	}
@@ -327,6 +334,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_worldEventSync.BindToSession();
 		_entityEventSync.BindToSession();
 		_entitySpawnSync.BindToSession();
+		_geyserStateSync.BindToSession();
 		_run.BindToSession();
 		_genItemApplication.BindToSession();
 		_layerModifierSync.BindToSession();
@@ -349,6 +357,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_worldEventSync.Unbind();
 		_entityEventSync.Unbind();
 		_entitySpawnSync.Unbind();
+		_geyserStateSync.Unbind();
 		_run.Unbind();
 		_genItemApplication.Unbind();
 		_layerModifierSync.Unbind();

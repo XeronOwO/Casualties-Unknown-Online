@@ -41,9 +41,6 @@ internal sealed class WorldEventSync(
 	/// <summary>The generated world snapshot the difference table diffs against (host/solo only).</summary>
 	private ushort[,]? _baseline;
 
-	/// <summary>Host: the keypad codes were generated + broadcast once per world entry.</summary>
-	private bool _keypadCodesSent;
-
 	internal void BindToSession()
 	{
 		_world.BlockDamagedReceived += _blockBreaks.OnRemoteBlockDamaged;
@@ -99,6 +96,8 @@ internal sealed class WorldEventSync(
 					_world.SendTrapStateSnapshot(member.SteamId); // the one-shot trap consumptions ride the same world-entry resend (idempotent)
 				}
 			}
+
+			SendKeypadCodes(); // re-send the full set (idempotent — set codes are left alone) — covers the lazy-session swallow window and keypads created after the first send (the airdrop/command case, #128 follow-up)
 		}
 	}
 
@@ -384,20 +383,24 @@ internal sealed class WorldEventSync(
 		_log.LogInformation("Captured world baseline ({Width}x{Height}) — the damage table now diffs against it.",
 			_baseline.GetLength(0), _baseline.GetLength(1));
 
-		if (IsHostMode && !_keypadCodesSent)
+		if (IsHostMode)
 		{
-			_keypadCodesSent = true;
-			SendKeypadCodesOnce();
+			SendKeypadCodes(); // TryCaptureWorldBaseline runs once per generation — the first send happens here, the 60 s cycle re-sends
 		}
 	}
 
 	/// <summary>
-	/// Host only: generate every keypad's code once (the game lazy-generates on
-	/// first use per side, Openable.cs:19 — every side would get its own code)
-	/// and broadcast them position-keyed. Runs at world entry, after the
-	/// generation completed (the Openables exist by then).
+	/// Host only: generate every keypad's code (the game lazy-generates on first
+	/// use per side, Openable.cs:19 — every side would get its own code) and
+	/// broadcast them position-keyed. Runs at world entry (after the generation
+	/// completed — the Openables exist by then) and re-runs on the 60 s cycle:
+	/// the re-send covers the lazy Steam P2P session's swallow window and
+	/// keypads created after the first send (the airdrop/command case, #128
+	/// follow-up — created keypads are broadcast immediately by
+	/// <see cref="OnEntityInstantiated"/>, this is the fallback). Idempotent:
+	/// the receiver leaves an already-set code alone.
 	/// </summary>
-	private void SendKeypadCodesOnce()
+	private void SendKeypadCodes()
 	{
 		var codes = new List<KeypadEntryMsg>();
 		foreach (var openable in UnityEngine.Object.FindObjectsOfType<Openable>())
@@ -407,19 +410,11 @@ internal sealed class WorldEventSync(
 				continue;
 			}
 
-			var codeField = Traverse.Create(openable).Field("code");
-			var existing = codeField.GetValue<string>();
-			if (string.IsNullOrEmpty(existing))
-			{
-				existing = KeypadMinigame.GenerateCode(); // host authority — its Random stream decides
-				codeField.SetValue(existing);
-			}
-
 			var pos = openable.transform.position;
 			codes.Add(new KeypadEntryMsg
 			{
 				Position = new NetVector2(pos.x, pos.y).ToNetVector2Msg(),
-				Code = existing,
+				Code = EnsureKeypadCode(openable),
 			});
 		}
 
@@ -427,8 +422,51 @@ internal sealed class WorldEventSync(
 		{
 			_world.SendKeypadCodes(codes);
 		}
+	}
 
-		_log.LogInformation("[Keypad] generated {Count} keypad code(s) — broadcasting.", codes.Count);
+	/// <summary>Host only: a keypad created at RUNTIME (outside generation — the
+	/// spawn command, an airdrop): its code would lazy-generate per side on
+	/// first use (Openable.cs:19), so the host generates/reads the code now and
+	/// broadcasts it position-keyed — the peers' first use then shows the same
+	/// code. The RemoteApply replay copy is exactly the copy whose code counts,
+	/// so no RemoteApply filter here (the generating side keeps its own copy;
+	/// both need the same code).</summary>
+	internal void OnEntityInstantiated(BuildingEntity entity)
+	{
+		if (!IsHostMode || HarmonyTraverse.IsGenerating())
+		{
+			return;
+		}
+
+		var openable = entity.GetComponent<Openable>();
+		if (openable == null || !openable.isKeypad) // Unity object — ==
+		{
+			return;
+		}
+
+		var pos = openable.transform.position;
+		_world.SendKeypadCodes([new KeypadEntryMsg
+		{
+			Position = new NetVector2(pos.x, pos.y).ToNetVector2Msg(),
+			Code = EnsureKeypadCode(openable),
+		}]);
+		_log.LogInformation("[Keypad] runtime keypad at ({X:F1},{Y:F1}) — code broadcast.", pos.x, pos.y);
+	}
+
+	/// <summary>Read the Openable's code, generating it host-side if unset (the
+	/// host's Random stream decides — same authority as the game's lazy
+	/// generation).</summary>
+	private static string EnsureKeypadCode(Openable openable)
+	{
+		var codeField = Traverse.Create(openable).Field("code");
+		var existing = codeField.GetValue<string>();
+		if (string.IsNullOrEmpty(existing))
+		{
+			existing = KeypadMinigame.GenerateCode(); // host authority — its Random stream decides
+			codeField.SetValue(existing);
+		}
+
+		return existing;
 	}
 
 	/// <summary>

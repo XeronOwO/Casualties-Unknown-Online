@@ -64,7 +64,7 @@ internal sealed class TrapEffectApplier(ILogger<TrapEffectApplier> log)
 				ApplyState<StalactiteDropper>(position, kind, TrapStateActions.ApplyStalactite);
 				break;
 			case EntityEventKind.GeyserActivated:
-				ApplyState<GeyserScript>(position, kind, g => TrapStateActions.ApplyGeyser(g, extra));
+				ApplyState<GeyserScript>(position, kind, TrapStateActions.ApplyGeyser);
 				break;
 			case EntityEventKind.SoundCannonFired:
 				ApplyState<SoundCannon>(position, kind, TrapStateActions.ApplySoundCannon);

@@ -232,6 +232,29 @@ public sealed class WorldService(ISessionControl session, PacketSender sender, I
 
 	public void FireKeypadCodeReceived(IReadOnlyList<KeypadEntryMsg> codes) => KeypadCodeReceived?.Invoke(codes);
 
+	/// <summary>Guest: the host's geyser liquid types arrived (position-keyed GeyserScripts).</summary>
+	public event Action<IReadOnlyList<GeyserStateEntryMsg>>? GeyserStateReceived;
+
+	public void FireGeyserStateReceived(IReadOnlyList<GeyserStateEntryMsg> geysers) => GeyserStateReceived?.Invoke(geysers);
+
+	/// <summary>Host only: broadcast the geyser liquid types (position-keyed GeyserScripts — the host's generation-time rolls are the authority) to every synced member.</summary>
+	public void SendGeyserStateSnapshot(IReadOnlyList<GeyserStateEntryMsg> geysers)
+	{
+		if (_session.Role != SessionRole.Host || !_session.SessionActive || geysers.Count == 0)
+		{
+			return;
+		}
+
+		var msg = new GeyserStateSnapshotMsg { Geysers = [.. geysers] };
+		foreach (var member in _session.Members)
+		{
+			if (member.Handshaken)
+			{
+				_sender.Send(member.SteamId, NetMsg.GeyserStateSnapshot, msg);
+			}
+		}
+	}
+
 	// ---- World entity channels (events + runtime creation + consumptions) —
 	// implemented by EntityEventChannel (extracted at the 600-line gate) ----
 

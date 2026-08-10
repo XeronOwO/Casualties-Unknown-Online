@@ -1,9 +1,12 @@
 # Delivery Checklist
 
 Every delivery cycle runs through this checklist. The gate
-(`tools/check-delivery.ps1`) refuses the commit while any box is unchecked;
-when the cycle completes (deployed + runtime-verified), reset it
-(`check-delivery.ps1 -Reset`) so the next cycle starts clean.
+(`tools/check-delivery.ps1`) runs before the cycle's FINAL commit (the
+accepted cycle — deployed + runtime-verified, all boxes checked) and refuses
+it while any box is unchecked. Intermediate commits (fix → commit → deploy →
+acceptance → re-fix loop) run only the code gates. When the final commit
+lands, reset the checklist (`check-delivery.ps1 -Reset`) so the next cycle
+starts clean.
 
 - [ ] Mechanism inventory: every touched mechanism has evidence (decompiled
       file:line or runtime log) or is explicitly marked unverified

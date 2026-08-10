@@ -35,7 +35,7 @@ dotnet build CasualtiesUnknownOnline.slnx
 dotnet format CasualtiesUnknownOnline.slnx   # MUST run before every commit
 powershell -File tools/check-architecture.ps1   # MUST pass before every commit (architecture gate: ≤600-line classes, ≤5 state bools, one top-level type per file — a failing class must be split/state-machine'd BEFORE further changes)
 powershell -File tools/check-event-replay.ps1   # MUST pass before every commit (event-replay gate: docs/event-replay-matrix.csv — every event's replay side audited per mechanism; empty cells, bare commas, bare gaps all fail; touching an event mechanism means updating its row in the same commit)
-powershell -File tools/check-delivery.ps1   # MUST pass before every commit (delivery gate: docs/delivery-checklist.md — every delivery-cycle box checked; cycle completes → check-delivery.ps1 -Reset for the next cycle)
+powershell -File tools/check-delivery.ps1   # MUST pass before the cycle's FINAL commit (delivery gate: docs/delivery-checklist.md — every delivery-cycle box checked, including deployed + runtime-verified; intermediate commits run only the code gates above, the final commit of an accepted cycle runs this; then check-delivery.ps1 -Reset for the next cycle)
 ```
 
 - **`dotnet format` is mandatory before every commit** — keeps code conforming to `.editorconfig` (user requirement; proven workflow in the JustUnknownCharacters mod). With `TreatWarningsAsErrors` enabled, style violations fail the build once fixed into the codebase.

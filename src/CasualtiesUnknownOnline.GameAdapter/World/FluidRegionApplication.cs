@@ -36,12 +36,14 @@ internal sealed class FluidRegionApplication(ILogger<FluidRegionApplication> log
 			var count = cells[i + 1];
 			for (var c = 0; c < count && pos < total; c++, pos++)
 			{
-				if (value != 0)
-				{
-					var x = msg.OriginX + pos % width;
-					var y = msg.OriginY + pos / width;
-					fluid.fluid[Mathf.Clamp(x, 0, (int)world.width - 1), Mathf.Clamp(y, 0, (int)world.height - 1)] = value;
-				}
+				// EVERY cell is written, zero runs included — a region is an
+				// absolute snapshot, so a mid-region zero run (liquid flowed
+				// away) MUST clear the cell; skipping zeros (the pre-fix bug)
+				// left the old liquid in place and the guest's fluid kept
+				// growing — the observed "the guest's water is visibly more".
+				var x = msg.OriginX + pos % width;
+				var y = msg.OriginY + pos / width;
+				fluid.fluid[Mathf.Clamp(x, 0, (int)world.width - 1), Mathf.Clamp(y, 0, (int)world.height - 1)] = value;
 			}
 		}
 

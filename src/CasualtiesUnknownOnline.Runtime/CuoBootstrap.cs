@@ -103,7 +103,8 @@ public static class CuoBootstrap
 		services.AddSingleton<ICharacterDataControl>(p => p.GetRequiredService<CharacterDataStore>());
 		// World domain: world-start parameters + block-damage reports (no pump,
 		// not an ICuoService — it only reacts to calls and messages).
-		services.AddSingleton<TrapConsumptionRegistry>(); // the one-shot trap-consumption table the world service owns
+		services.AddSingleton<TrapConsumptionRegistry>(); // the one-shot trap-consumption table
+		services.AddSingleton<EntityEventChannel>(); // the entity event/creation channels + the consumption registry
 		services.AddSingleton<WorldService>();
 		services.AddSingleton<IWorldControl>(p => p.GetRequiredService<WorldService>());
 		// Item domain: the authoritative world-item table + pickup arbitration

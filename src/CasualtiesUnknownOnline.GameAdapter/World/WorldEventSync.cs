@@ -424,39 +424,13 @@ internal sealed class WorldEventSync(
 		}
 	}
 
-	/// <summary>Host only: a keypad created at RUNTIME (outside generation — the
-	/// spawn command, an airdrop): its code would lazy-generate per side on
-	/// first use (Openable.cs:19), so the host generates/reads the code now and
-	/// broadcasts it position-keyed — the peers' first use then shows the same
-	/// code. The RemoteApply replay copy is exactly the copy whose code counts,
-	/// so no RemoteApply filter here (the generating side keeps its own copy;
-	/// both need the same code).</summary>
-	internal void OnEntityInstantiated(BuildingEntity entity)
-	{
-		if (!IsHostMode || HarmonyTraverse.IsGenerating())
-		{
-			return;
-		}
-
-		var openable = entity.GetComponent<Openable>();
-		if (openable == null || !openable.isKeypad) // Unity object — ==
-		{
-			return;
-		}
-
-		var pos = openable.transform.position;
-		_world.SendKeypadCodes([new KeypadEntryMsg
-		{
-			Position = new NetVector2(pos.x, pos.y).ToNetVector2Msg(),
-			Code = EnsureKeypadCode(openable),
-		}]);
-		_log.LogInformation("[Keypad] runtime keypad at ({X:F1},{Y:F1}) — code broadcast.", pos.x, pos.y);
-	}
-
 	/// <summary>Read the Openable's code, generating it host-side if unset (the
 	/// host's Random stream decides — same authority as the game's lazy
-	/// generation).</summary>
-	private static string EnsureKeypadCode(Openable openable)
+	/// generation). Internal: the runtime-creation channel (EntitySpawnSync)
+	/// generates a created keypad's code at relay time and carries it in the
+	/// EntitySpawnedMsg (#128 — one message per operation; the code is
+	/// creation-time data, the game lazy-generates it per side otherwise).</summary>
+	internal static string EnsureKeypadCode(Openable openable)
 	{
 		var codeField = Traverse.Create(openable).Field("code");
 		var existing = codeField.GetValue<string>();

@@ -19,9 +19,12 @@ namespace CasualtiesUnknownOnline.GameAdapter.World;
 /// </summary>
 internal static class TrapStateActions
 {
-	/// <summary>Shuttle door: activate — the entity's own Update drives the door
-	/// animation from the same start moment on both sides (ShuttleStartOpen.cs:
-	/// 14-41, same prefab).</summary>
+	/// <summary>Shuttle door: activate + replay the TRIGGER sound (shuttleNotice,
+	/// ShuttleStartOpen.cs:53 — the collision-only sound the peers never hear),
+	/// then the entity's own Update drives the door animation and the moving
+	/// sound (shuttleOpen at 2 s, ShuttleStartOpen.cs:26-30) from the same start
+	/// moment on both sides. The 50 % talk is the trigger-side player's local
+	/// UI, not replayed.</summary>
 	internal static bool ApplyShuttleDoor(ShuttleStartOpen door)
 	{
 		if (Traverse.Create(door).Field("activated").GetValue<bool>())
@@ -30,6 +33,7 @@ internal static class TrapStateActions
 		}
 
 		Traverse.Create(door).Field("activated").SetValue(true);
+		Sound.Play("shuttleNotice", door.transform.position, false, false, null, 1f, 1f, false, false);
 		return true;
 	}
 

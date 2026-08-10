@@ -353,18 +353,37 @@ internal static class TrapStateActions
 	/// beam is a local LineRenderer — recorded gap.</summary>
 	internal static bool ApplyTurretFired(TurretScript turret)
 	{
-		// The trigger side's full engagement chain: the warning (turretsee,
-		// TurretScript.cs:69 — 2D) then the shot (rifleshot, TurretScript.cs:45).
-		// The peer hears the whole chain, not just the blast (silent-host test
-		// proved the warning was missing on the replay side).
+		// The trigger side's engagement chain, replayed with its TIMING: at
+		// t = 0 the warning (turretsee, TurretScript.cs:69 — 2D) — the trigger
+		// side's discovery moment; at t = 0.5 s the shot (rifleshot, :45) +
+		// particle burst (:44) + tracer (Shoot :202-205) — the trigger side's
+		// beepTime >= 0.5 s firing moment. The FULL post-fire state is set
+		// immediately (timeSinceFired = 0 + didShoot = true start the 15 s
+		// reload, didBeep = true pins the discovery branch off), so the 0.5 s
+		// window is silent like single-player and the game's own Update can
+		// never fire a REAL shot at the local player (the `!didShoot` guard).
 		Sound.Play("turretsee", turret.transform.position, true, false, null, 1f, 1f, false, false);
-		Sound.Play("rifleshot", turret.transform.position, true, false, null, 1f, 1f, false, false);
+		Traverse.Create(turret).Property("timeSinceFired").SetValue(0f);
+		Traverse.Create(turret).Field("didShoot").SetValue(true);
+		Traverse.Create(turret).Field("didBeep").SetValue(true);
+		turret.StartCoroutine(DelayedFireVisuals(turret));
+		return true;
+	}
 
-		// The fire visuals: the muzzle particle burst (TurretScript.cs:44) and
-		// the tracer line (TurretScript.Shoot, TurretScript.cs:202-205 — pure
-		// visual, self-destructs in 0.05 s). The fireSprite skin is driven by
-		// timeSinceFired < 2 f in the game's own Update (TurretScript.cs:26) —
-		// setting it to 0 above already shows it for 2 s.
+	/// <summary>The shot visual 0.5 s after the warning — the trigger side's
+	/// beepTime firing moment (TurretScript.cs:40). Pure visual (no Shoot() —
+	/// the shot's damage is the trigger-side player's single-target effect).
+	/// The fireSprite skin needs no work: timeSinceFired = 0 shows it for 2 s
+	/// in the game's own Update (TurretScript.cs:26).</summary>
+	private static IEnumerator DelayedFireVisuals(TurretScript turret)
+	{
+		yield return new WaitForSeconds(0.5f);
+		if (turret == null) // Unity object — ==
+		{
+			yield break; // destroyed while the delay ran
+		}
+
+		Sound.Play("rifleshot", turret.transform.position, true, false, null, 1f, 1f, false, false);
 		var particles = turret.GetComponentInChildren<ParticleSystem>();
 		if (particles != null) // Unity object — ==
 		{
@@ -381,18 +400,6 @@ internal static class TrapStateActions
 			line.SetPosition(1, end);
 			Object.Destroy(tracer, 0.05f);
 		}
-
-		// Consume the fire state on the peer's copy — the FULL post-fire state
-		// of the triggering side (TurretScript.cs:40-53): timeSinceFired = 0 +
-		// didShoot = true start the 15 s reload, and didBeep = true pins the
-		// Update into the beep branch so the discovery branch (turretsee
-		// warning, TurretScript.cs:55-76) never runs during the reload — a
-		// cooldown turret is silent, exactly like single-player. Without
-		// didBeep the peer's copy would warn but not fire: the observed bug.
-		Traverse.Create(turret).Property("timeSinceFired").SetValue(0f);
-		Traverse.Create(turret).Field("didShoot").SetValue(true);
-		Traverse.Create(turret).Field("didBeep").SetValue(true);
-		return true;
 	}
 
 	/// <summary>Write the private Light2D field's intensity through reflection

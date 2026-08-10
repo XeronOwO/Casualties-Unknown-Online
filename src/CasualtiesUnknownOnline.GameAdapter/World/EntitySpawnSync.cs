@@ -35,6 +35,11 @@ internal sealed class EntitySpawnSync(IWorldControl world, ISessionControl sessi
 	/// </summary>
 	internal void OnEntityInstantiated(BuildingEntity entity)
 	{
+		if (entity.GetComponent<SpawnReplayMarker>() != null) // Unity object — ==; a replay of this channel must not re-report
+		{
+			return;
+		}
+
 		if (CallContext.Current == CallContext.Origin.RemoteApply || !_session.SessionActive || HarmonyTraverse.IsGenerating())
 		{
 			return;
@@ -73,22 +78,38 @@ internal sealed class EntitySpawnSync(IWorldControl world, ISessionControl sessi
 			}
 
 			created.transform.eulerAngles = new Vector3(0f, 0f, msg.Rotation);
+			created.gameObject.AddComponent<SpawnReplayMarker>(); // its Start must not re-report (scope check cannot see it — Start runs later)
 			_log.LogInformation("[EntitySpawn] created {Id} at {Pos}.", msg.Id, pos);
 		}
 	}
 
 	/// <summary>A same-id entity within the matching radius already exists (a
-	/// repeated report, or a naturally-matching entity covers the position).</summary>
+	/// repeated report — the same position's float noise — or a naturally-
+	/// matching entity covers the position). The radius is 1, not 3: a 3 m
+	/// radius absorbed consecutive spawns of the same entity (the observed
+	/// bug — three spawned turrets ~1-2 m apart, only the first reached the
+	/// peer).</summary>
 	private static bool AlreadyExists(string id, Vector2 pos)
 	{
 		foreach (var entity in Object.FindObjectsOfType<BuildingEntity>())
 		{
-			if (entity.id == id && Vector2.Distance(entity.transform.position, pos) < 3f)
+			if (entity.id == id && Vector2.Distance(entity.transform.position, pos) < 1f)
 			{
 				return true;
 			}
 		}
 
 		return false;
+	}
+
+	/// <summary>Marker on an entity the local side created as a REPLAY of the
+	/// spawn channel — its Start must not re-report. The RemoteApply scope is
+	/// synchronous (using-dispose), but Start runs later, so the scope check
+	/// in <see cref="OnEntityInstantiated"/> alone cannot see the create —
+	/// without the marker the peer's replay re-reported itself as a new local
+	/// creation (a dirty echo; the host's idempotency swallowed it, but the
+	/// noise muddies the audit).</summary>
+	private sealed class SpawnReplayMarker : MonoBehaviour
+	{
 	}
 }

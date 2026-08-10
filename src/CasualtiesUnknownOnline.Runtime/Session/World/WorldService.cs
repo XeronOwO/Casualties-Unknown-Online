@@ -274,8 +274,8 @@ public sealed class WorldService(ISessionControl session, PacketSender sender, I
 		_session.BroadcastExcept(excludeSteamId, NetMsg.EntityEvent, msg);
 	}
 
-	/// <summary>Host only: record a one-shot trap consumption (position-keyed).</summary>
-	public void ReportTrapConsumed(EntityEventKind kind, float x, float y) => _trapConsumption.Report(kind, x, y);
+	/// <summary>Host only: record a one-shot trap consumption (position-keyed; Extra rides along for progress-carrying events).</summary>
+	public void ReportTrapConsumed(EntityEventKind kind, float x, float y, byte extra) => _trapConsumption.Report(kind, x, y, extra);
 
 	/// <summary>Host only: send the one-shot trap consumptions to one member (on its world entry).</summary>
 	public void SendTrapStateSnapshot(ulong targetSteamId) => _trapConsumption.SendSnapshot(targetSteamId);

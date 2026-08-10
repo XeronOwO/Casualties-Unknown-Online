@@ -1,7 +1,9 @@
+using System;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using HarmonyLib;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace CasualtiesUnknownOnline.GameAdapter.World;
 
@@ -29,7 +31,25 @@ internal sealed class TrapEffectApplier(ILogger<TrapEffectApplier> log)
 				ApplyMineExplosion(position);
 				break;
 			case EntityEventKind.ShuttleDoorOpened:
-				ApplyShuttleDoorOpened(position);
+				ApplyState<ShuttleStartOpen>(position, kind, TrapStateActions.ApplyShuttleDoor);
+				break;
+			case EntityEventKind.LifepodHeatChanged:
+				ApplyState<LifepodController>(position, kind, c => TrapStateActions.ApplyHeat(c, extra));
+				break;
+			case EntityEventKind.LifepodShowerActivated:
+				ApplyState<LifepodController>(position, kind, TrapStateActions.ApplyShower);
+				break;
+			case EntityEventKind.BioTerminalUnlocked:
+				ApplyState<BioTerminalScript>(position, kind, TrapStateActions.ApplyBioTerminal);
+				break;
+			case EntityEventKind.ScrapEaterProgress:
+				ApplyState<ScrapEaterScript>(position, kind, e => TrapStateActions.ApplyScrapEater(e, extra));
+				break;
+			case EntityEventKind.MedStationHealed:
+				ApplyState<MedStationScript>(position, kind, TrapStateActions.ApplyMedStation);
+				break;
+			case EntityEventKind.BatteryInserted:
+				ApplyState<BatteryRecharger>(position, kind, TrapStateActions.ApplyBattery);
 				break;
 			default:
 				_log.LogWarning("[TrapEvent] no host executor for {Kind}.", kind);
@@ -37,20 +57,35 @@ internal sealed class TrapEffectApplier(ILogger<TrapEffectApplier> log)
 		}
 	}
 
-	/// <summary>A body entered the shuttle-door trigger on the guest's side —
-	/// open the host's copy too (activated = true; the entity's own Update
-	/// drives the door animation, same prefab on both sides).</summary>
-	private void ApplyShuttleDoorOpened(Vector2 position)
+	/// <summary>A state-family event: apply the shared action to the host's
+	/// entity at the position (the transition itself; the entity animates).</summary>
+	private void ApplyState<T>(Vector2 position, EntityEventKind kind, Action<T> action) where T : Component
 	{
-		var door = FindTrap<ShuttleStartOpen>(position);
-		if (door == null) // Unity object — ==
+		var entity = FindTrap<T>(position);
+		if (entity == null) // Unity object — ==
 		{
-			_log.LogInformation("[TrapEvent] shuttle door at {Pos} already gone — effect skipped.", position);
+			_log.LogInformation("[TrapEvent] {Kind} at {Pos} already gone — effect skipped.", kind, position);
 			return;
 		}
 
-		Traverse.Create(door).Field("activated").SetValue(true);
-		_log.LogInformation("[TrapEvent] host applied shuttle door open at {Pos}.", position);
+		action(entity);
+		_log.LogInformation("[TrapEvent] host applied {Kind} at {Pos}.", kind, position);
+	}
+
+	/// <summary>Find the trap at a world position (world entities are generated
+	/// deterministically, so the position IS the identity; the 3-unit radius
+	/// tolerates the cell-centre snapshot keys).</summary>
+	internal static T? FindTrap<T>(Vector2 position) where T : Component
+	{
+		foreach (var trap in Object.FindObjectsOfType<T>())
+		{
+			if (Vector2.Distance(trap.transform.position, position) < 3f)
+			{
+				return trap;
+			}
+		}
+
+		return null;
 	}
 
 	private void ApplyMineExplosion(Vector2 position)
@@ -73,21 +108,5 @@ internal sealed class TrapEffectApplier(ILogger<TrapEffectApplier> log)
 
 		WorldGeneration.CreateExplosion(new ExplosionParams { position = position + Vector2.up }); // natural consequences: host body damage, crater (rides the SetBlock relay), building damage (rides the CreateExplosion diff)
 		_log.LogInformation("[TrapEvent] host applied mine explosion at {Pos}.", position);
-	}
-
-	/// <summary>Find the trap at a world position (world entities are generated
-	/// deterministically, so the position IS the identity; the 3-unit radius
-	/// tolerates the cell-centre snapshot keys).</summary>
-	internal static T? FindTrap<T>(Vector2 position) where T : Component
-	{
-		foreach (var trap in Object.FindObjectsOfType<T>())
-		{
-			if (Vector2.Distance(trap.transform.position, position) < 3f)
-			{
-				return trap;
-			}
-		}
-
-		return null;
 	}
 }

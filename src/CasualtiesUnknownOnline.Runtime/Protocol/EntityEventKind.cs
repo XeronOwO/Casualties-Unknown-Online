@@ -29,4 +29,10 @@ public enum EntityEventKind : byte
 	GrabberGrabbed = 17, // grabber plant: grabbed a body
 	BearTrapReleased = 18, // beartrap released its caught limb (the clamp is reversible)
 	ShuttleDoorOpened = 19, // life-pod shuttle door: a body entered the trigger — the doors open (ShuttleStartOpen; a pure animation entity, not a BuildingEntity)
+	LifepodHeatChanged = 20, // life-pod heat button (LifepodButton type 0) — Extra = heatState 0/1/2; repeatable
+	LifepodShowerActivated = 21, // life-pod shower button (LifepodButton type 1) — one-shot activated
+	BioTerminalUnlocked = 22, // blood terminal unlocked (Backgroundify: terminal + nearby reinforceddoors) — one-shot
+	ScrapEaterProgress = 23, // scrap eater fed — Extra = progress % (0-100; 100 = unlocked, Backgroundify + doors) — one-shot at 100
+	MedStationHealed = 24, // med station triggered (didHeal + laser anim + heal) — one-shot
+	BatteryInserted = 25, // battery charger used — Extra = slot; the insert itself rides the item domain (the battery IS a world item), this syncs the firstTime mp3 consumption — one-shot
 }

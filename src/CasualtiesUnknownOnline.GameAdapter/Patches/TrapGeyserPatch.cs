@@ -15,5 +15,5 @@ internal static class TrapGeyserPatch
 {
 	private static void Postfix(GeyserScript __instance) =>
 		PatchBridge.Impl?.OnTrapTriggered(EntityEventKind.GeyserActivated, __instance.transform.position,
-			(byte)Traverse.Create(__instance).Field("liquidType").GetValue<int>());
+			Traverse.Create(__instance).Field("liquidType").GetValue<byte>()); // byte, not int — a GetValue<int> cast throws InvalidCastException and kills the report
 }

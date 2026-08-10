@@ -379,6 +379,18 @@ internal sealed class RunCoordinator(
 	/// </summary>
 	private void OnSessionActivated()
 	{
+		// The session ended when the last member left the lobby (the host kept
+		// playing in its world); a reconnect re-activates it while we are still
+		// in the world — resume playing. Without this the phase stays Idle:
+		// the loading-screen keeper (!IsPlaying gate) pins the loading screen
+		// over the running game and nothing ever releases it (the late joiner
+		// is passed in directly, which never touches the host's phase).
+		if (_session.Role == SessionRole.Host && _phase == RunPhase.Idle && _inWorld)
+		{
+			_phase = RunPhase.Playing;
+			_log.LogInformation("Reconnect — the host is still in the world, resuming playing.");
+		}
+
 		if (!_inWorld || _localBody == null) // Unity object — ==
 		{
 			return;

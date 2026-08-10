@@ -78,6 +78,32 @@ internal sealed class TrapEffectApplier(ILogger<TrapEffectApplier> log)
 			case EntityEventKind.TurretSelfDestructed:
 				ApplyTurretSelfDestructed(position);
 				break;
+			case EntityEventKind.BarbedFenceHit:
+				ApplyState<BarbedFence>(position, kind, TrapStateActions.ApplyBarbedFence);
+				break;
+			case EntityEventKind.CoilShocked:
+				ApplyState<CoilScript>(position, kind, TrapStateActions.ApplyCoil);
+				break;
+			case EntityEventKind.CactusHit:
+				ApplyState<CactusScript>(position, kind, TrapStateActions.ApplyCactus);
+				break;
+			case EntityEventKind.JumpPadLaunched:
+				ApplyState<JumpPadScript>(position, kind, TrapStateActions.ApplyJumpPad);
+				break;
+			case EntityEventKind.BananaPlantSlip:
+				ApplyState<BananaPlantSlip>(position, kind, TrapStateActions.ApplyBananaSlip);
+				break;
+			case EntityEventKind.CrystalElectricShocked:
+				ApplyState<CrystalBehaviour>(position, kind, TrapStateActions.ApplyCrystalElectric);
+				break;
+			case EntityEventKind.TurretFired:
+				ApplyState<TurretScript>(position, kind, TrapStateActions.ApplyTurretFired);
+				break;
+			case EntityEventKind.GrabberGrabbed:
+				// The grab's visuals are the player-side ragdoll/scream (each
+				// side's own body); the tendril animation is Update-driven
+				// everywhere — nothing to apply, the trace line is the record.
+				break;
 			default:
 				_log.LogWarning("[TrapEvent] no host executor for {Kind}.", kind);
 				break;

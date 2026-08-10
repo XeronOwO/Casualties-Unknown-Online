@@ -166,14 +166,33 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		}
 
 		var touched = fragileType.GetMethod("Touched", BindingFlags.Public | BindingFlags.Instance);
-		if (touched == null)
+		if (touched != null)
+		{
+			_harmony!.Patch(touched, postfix: new HarmonyMethod(typeof(TrapCrystalPatch).GetMethod(
+				nameof(TrapCrystalPatch.Postfix), BindingFlags.Static | BindingFlags.NonPublic)));
+		}
+		else
 		{
 			_log.LogError("Dynamic patch method CrystalFragile.Touched not found — the fragile-crystal break sync is off.");
+		}
+
+		var electricType = typeof(CrystalEffect).Assembly.GetType("CrystalElectric");
+		if (electricType == null)
+		{
+			_log.LogError("Dynamic patch target CrystalElectric not found — the electric-crystal shock sync is off.");
 			return;
 		}
 
-		_harmony!.Patch(touched, postfix: new HarmonyMethod(typeof(TrapCrystalPatch).GetMethod(
-			nameof(TrapCrystalPatch.Postfix), BindingFlags.Static | BindingFlags.NonPublic)));
+		var shock = electricType.GetMethod("Shock", BindingFlags.Public | BindingFlags.Instance);
+		if (shock != null)
+		{
+			_harmony!.Patch(shock, postfix: new HarmonyMethod(typeof(TrapCrystalPatch).GetMethod(
+				nameof(TrapCrystalPatch.ElectricShockPostfix), BindingFlags.Static | BindingFlags.NonPublic)));
+		}
+		else
+		{
+			_log.LogError("Dynamic patch method CrystalElectric.Shock not found — the electric-crystal shock sync is off.");
+		}
 	}
 
 	bool IPatchBridge.IsReplayingLifePodSound => _lifePod.IsReplayingSound;

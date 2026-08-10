@@ -286,6 +286,82 @@ internal static class TrapStateActions
 		return true;
 	}
 
+	// ---- Visual family (repeatable — the game's own cooldown gates are the
+	// checks; a duplicate application is a harmless re-sound/re-sprite) ----
+
+	/// <summary>Barbed fence hit: hitSprite + fence sound.</summary>
+	internal static bool ApplyBarbedFence(BarbedFence fence)
+	{
+		fence.GetComponent<SpriteRenderer>().sprite = fence.hitSprite;
+		Sound.Play("fence", fence.transform.position, false, true, null, 1f, 1f, false, false);
+		return true;
+	}
+
+	/// <summary>Coil shock: zap + light flash (the intensity decays back on its
+	/// own) + shake.</summary>
+	internal static bool ApplyCoil(CoilScript coil)
+	{
+		SetLightIntensity(coil, 1f);
+		Sound.Play("zap", coil.transform.position, false, true, null, 1f, 1f, false, false);
+		PlayerCamera.main.shaker.Shake(200f);
+		return true;
+	}
+
+	/// <summary>Cactus hit: the gore sound (the cactus's own self-damage stays
+	/// local, a recorded small divergence).</summary>
+	internal static bool ApplyCactus(CactusScript cactus)
+	{
+		Sound.Play($"gore{Random.Range(1, 6)}", cactus.transform.position, false, true, null, 1f, 1f, false, false);
+		return true;
+	}
+
+	/// <summary>Jump pad launch: light flash + jumppad sound + shake.</summary>
+	internal static bool ApplyJumpPad(JumpPadScript pad)
+	{
+		SetLightIntensity(pad, 1f);
+		Sound.Play("jumppad", pad.transform.position, false, true, null, 1f, 1f, false, false);
+		PlayerCamera.main.shaker.Shake(70f);
+		return true;
+	}
+
+	/// <summary>Banana slip: the plantslip sound.</summary>
+	internal static bool ApplyBananaSlip(BananaPlantSlip plant)
+	{
+		Sound.Play("plantslip", plant.transform.position, false, true, null, 1f, 1f, false, false);
+		return true;
+	}
+
+	/// <summary>Electric crystal shock: zap + shake (the ring animation runs on
+	/// the crystal's own Update everywhere).</summary>
+	internal static bool ApplyCrystalElectric(CrystalBehaviour crystal)
+	{
+		Sound.Play("zap", crystal.transform.position, false, true, null, 1f, 1f, false, false);
+		PlayerCamera.main.shaker.Shake(200f);
+		return true;
+	}
+
+	/// <summary>Turret fired: the rifleshot sound (the tracer beam is a local
+	/// LineRenderer — recorded gap).</summary>
+	internal static bool ApplyTurretFired(TurretScript turret)
+	{
+		Sound.Play("rifleshot", turret.transform.position, true, false, null, 1f, 1f, false, false);
+		return true;
+	}
+
+	/// <summary>Write the private Light2D field's intensity through reflection
+	/// (the Light2D type lives in the URP assembly — not in the reference graph;
+	/// the game's own Update decays the intensity back).</summary>
+	private static void SetLightIntensity(Component owner, float intensity)
+	{
+		var light = Traverse.Create(owner).Field("light").GetValue();
+		if (light == null)
+		{
+			return;
+		}
+
+		Traverse.Create(light).Property("intensity").SetValue(intensity);
+	}
+
 	/// <summary>Backgroundify every reinforceddoor near a position (shared by the
 	/// bio terminal and the scrap eater unlocks).</summary>
 	private static void BackgroundifyNearbyDoors(Vector2 position, float radius)

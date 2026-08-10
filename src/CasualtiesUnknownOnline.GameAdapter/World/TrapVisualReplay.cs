@@ -50,6 +50,33 @@ internal sealed class TrapVisualReplay(ILogger<TrapVisualReplay> log)
 			case EntityEventKind.BatteryInserted:
 				ReplayState<BatteryRecharger>(position, kind, TrapStateActions.ApplyBattery);
 				break;
+			case EntityEventKind.SpikeStabbed:
+				ReplayState<SpikeStabberScript>(position, kind, TrapStateActions.ApplySpike);
+				break;
+			case EntityEventKind.BearTrapClamped:
+				ReplayState<BearTrap>(position, kind, TrapStateActions.ApplyBearTrapClamped);
+				break;
+			case EntityEventKind.BearTrapReleased:
+				ReplayState<BearTrap>(position, kind, TrapStateActions.ApplyBearTrapReleased);
+				break;
+			case EntityEventKind.StalactiteDropped:
+				ReplayState<StalactiteDropper>(position, kind, TrapStateActions.ApplyStalactite);
+				break;
+			case EntityEventKind.GeyserActivated:
+				ReplayState<GeyserScript>(position, kind, g => TrapStateActions.ApplyGeyser(g, extra));
+				break;
+			case EntityEventKind.SoundCannonFired:
+				ReplayState<SoundCannon>(position, kind, TrapStateActions.ApplySoundCannon);
+				break;
+			case EntityEventKind.CaveTicksSpawned:
+				ReplayState<CaveTickSpawner>(position, kind, TrapStateActions.ApplyCaveTicks);
+				break;
+			case EntityEventKind.CrystalFragileBroken:
+				ReplayState<CrystalBehaviour>(position, kind, TrapStateActions.ApplyCrystalFragile);
+				break;
+			case EntityEventKind.TurretSelfDestructed:
+				ReplayTurretSelfDestructed(position);
+				break;
 			default:
 				_log.LogWarning("[TrapEvent] no replay action for {Kind}.", kind);
 				break;
@@ -95,24 +122,9 @@ internal sealed class TrapVisualReplay(ILogger<TrapVisualReplay> log)
 			return;
 		}
 
-		// Pure-visual five-piece (WorldGeneration.cs:3965-3970): sound, particle,
-		// blastmark on the closest chunk, shake. Nothing here touches the world.
-		Sound.Play(param.sound, Vector2.zero, true, false, null, 1f, 1f, false, false);
-		Object.Instantiate(Resources.Load("Special/ExplosionParticle"), pos, Quaternion.identity);
-		// The blastmark without a chunk parent (the game parents it to the
-		// closest chunk, WorldGeneration.cs:3967-3969, which pulls the
-		// Tilemap/GridLayout modules into the reference graph — a pure visual
-		// difference, no state).
-		var blastmark = Object.Instantiate(Resources.Load("Special/blastmark"), pos, Quaternion.identity) as GameObject;
-		if (blastmark != null) // Unity object — ==
-		{
-			blastmark.transform.eulerAngles = new Vector3(0f, 0f, Random.value * 360f);
-		}
-
-		PlayerCamera.main.shaker.Shake(param.range * 20f);
-
-		// The real-body segment: the replaying player near the blast is hurt
-		// exactly like the game would hurt them (ExplosionBodyEffect).
+		// The pure-visual five-piece + the real-body segment: the replaying
+		// player near the blast is hurt exactly like the game would hurt them.
+		ReplayExplosionVisual(param);
 		ExplosionBodyEffect.ApplyToLocalBodies(param);
 
 		// Consume the entity: exploded = true FIRST (the game's OnDestroy then
@@ -130,5 +142,56 @@ internal sealed class TrapVisualReplay(ILogger<TrapVisualReplay> log)
 		}
 
 		_log.LogInformation("[TrapEvent] replayed mine explosion at {Pos}.", position);
+	}
+
+	/// <summary>The turret self-destructed (on the host or another guest): replay
+	/// the explosion with the turret's own parameters — pure-visual five-piece +
+	/// real-body effect + remote-death consumption. The health &lt; 0.5 check is
+	/// the consumption mark (already dead = a duplicate, dropped).</summary>
+	private void ReplayTurretSelfDestructed(Vector2 position)
+	{
+		var turret = TrapEffectApplier.FindTrap<TurretScript>(position);
+		var build = turret != null ? Traverse.Create(turret).Field("build").GetValue<BuildingEntity>() : null; // Unity object — ==
+		if (build != null && build.health < 0.5f) // Unity object — ==
+		{
+			_log.LogWarning("[TrapEvent] turret at {Pos} already dead — duplicate dropped.", position);
+			return;
+		}
+
+		var param = TrapEffectApplier.TurretExplosionParams(position);
+		ReplayExplosionVisual(param);
+		ExplosionBodyEffect.ApplyToLocalBodies(param);
+
+		if (turret != null) // Unity object — ==
+		{
+			build!.health = 0f;
+			turret.gameObject.AddComponent<RemoteEntityDeath>();
+			var collider = turret.GetComponent<Collider2D>();
+			if (collider != null) // Unity object — ==
+			{
+				collider.enabled = false;
+			}
+		}
+
+		_log.LogInformation("[TrapEvent] replayed turret self-destruct at {Pos}.", position);
+	}
+
+	/// <summary>The pure-visual explosion five-piece (WorldGeneration.cs:3965-3970)
+	/// — shared by the mine and turret replays.</summary>
+	private void ReplayExplosionVisual(ExplosionParams param)
+	{
+		Sound.Play(param.sound, Vector2.zero, true, false, null, 1f, 1f, false, false);
+		Object.Instantiate(Resources.Load("Special/ExplosionParticle"), param.position, Quaternion.identity);
+		// The blastmark without a chunk parent (the game parents it to the
+		// closest chunk, WorldGeneration.cs:3967-3969, which pulls the
+		// Tilemap/GridLayout modules into the reference graph — a pure visual
+		// difference, no state).
+		var blastmark = Object.Instantiate(Resources.Load("Special/blastmark"), param.position, Quaternion.identity) as GameObject;
+		if (blastmark != null) // Unity object — ==
+		{
+			blastmark.transform.eulerAngles = new Vector3(0f, 0f, Random.value * 360f);
+		}
+
+		PlayerCamera.main.shaker.Shake(param.range * 20f);
 	}
 }

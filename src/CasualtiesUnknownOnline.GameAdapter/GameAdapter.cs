@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.GameAdapter.Character;
 using CasualtiesUnknownOnline.GameAdapter.Items;
@@ -149,6 +150,32 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	void IPatchBridge.OnEntityInstantiated(BuildingEntity entity) =>
 		_entitySpawnSync.OnEntityInstantiated(entity);
 
+	/// <summary>
+	/// Patches whose target types are INTERNAL to the game assembly (no compile-
+	/// time reference possible): reflect the type and patch the method directly.
+	/// The postfix methods live in the Patches namespace; the adapter owns the
+	/// Harmony instance so it can install them beside PatchAll.
+	/// </summary>
+	private void InstallDynamicPatches()
+	{
+		var fragileType = typeof(CrystalEffect).Assembly.GetType("CrystalFragile");
+		if (fragileType == null)
+		{
+			_log.LogError("Dynamic patch target CrystalFragile not found — the fragile-crystal break sync is off.");
+			return;
+		}
+
+		var touched = fragileType.GetMethod("Touched", BindingFlags.Public | BindingFlags.Instance);
+		if (touched == null)
+		{
+			_log.LogError("Dynamic patch method CrystalFragile.Touched not found — the fragile-crystal break sync is off.");
+			return;
+		}
+
+		_harmony!.Patch(touched, postfix: new HarmonyMethod(typeof(TrapCrystalPatch).GetMethod(
+			nameof(TrapCrystalPatch.Postfix), BindingFlags.Static | BindingFlags.NonPublic)));
+	}
+
 	bool IPatchBridge.IsReplayingLifePodSound => _lifePod.IsReplayingSound;
 
 	/// <summary>Generation is isolated unconditionally (solo too) — that is what
@@ -183,6 +210,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		{
 			_harmony = new Harmony("CasualtiesUnknownOnline.GameAdapter");
 			_harmony.PatchAll(typeof(GameAdapter).Assembly);
+			InstallDynamicPatches();
 
 			// Never let a failed patch silently run: verify every patch class
 			// actually landed on its target (a game update that breaks a target

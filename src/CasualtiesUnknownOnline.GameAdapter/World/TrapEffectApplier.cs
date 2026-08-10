@@ -51,6 +51,33 @@ internal sealed class TrapEffectApplier(ILogger<TrapEffectApplier> log)
 			case EntityEventKind.BatteryInserted:
 				ApplyState<BatteryRecharger>(position, kind, TrapStateActions.ApplyBattery);
 				break;
+			case EntityEventKind.SpikeStabbed:
+				ApplyState<SpikeStabberScript>(position, kind, TrapStateActions.ApplySpike);
+				break;
+			case EntityEventKind.BearTrapClamped:
+				ApplyState<BearTrap>(position, kind, TrapStateActions.ApplyBearTrapClamped);
+				break;
+			case EntityEventKind.BearTrapReleased:
+				ApplyState<BearTrap>(position, kind, TrapStateActions.ApplyBearTrapReleased);
+				break;
+			case EntityEventKind.StalactiteDropped:
+				ApplyState<StalactiteDropper>(position, kind, TrapStateActions.ApplyStalactite);
+				break;
+			case EntityEventKind.GeyserActivated:
+				ApplyState<GeyserScript>(position, kind, g => TrapStateActions.ApplyGeyser(g, extra));
+				break;
+			case EntityEventKind.SoundCannonFired:
+				ApplyState<SoundCannon>(position, kind, TrapStateActions.ApplySoundCannon);
+				break;
+			case EntityEventKind.CaveTicksSpawned:
+				ApplyState<CaveTickSpawner>(position, kind, TrapStateActions.ApplyCaveTicks);
+				break;
+			case EntityEventKind.CrystalFragileBroken:
+				ApplyState<CrystalBehaviour>(position, kind, TrapStateActions.ApplyCrystalFragile);
+				break;
+			case EntityEventKind.TurretSelfDestructed:
+				ApplyTurretSelfDestructed(position);
+				break;
 			default:
 				_log.LogWarning("[TrapEvent] no host executor for {Kind}.", kind);
 				break;
@@ -126,4 +153,44 @@ internal sealed class TrapEffectApplier(ILogger<TrapEffectApplier> log)
 		WorldGeneration.CreateExplosion(new ExplosionParams { position = position + Vector2.up }); // natural consequences: host body damage, crater (rides the SetBlock relay), building damage (rides the CreateExplosion diff)
 		_log.LogInformation("[TrapEvent] host applied mine explosion at {Pos}.", position);
 	}
+
+	/// <summary>The turret self-destructed on the guest's side — repeat it on the
+	/// host's world with the turret's own parameters (TurretScript.cs:89-101).
+	/// The health &lt; 0.5 check is the consumption mark (already dead = a
+	/// duplicate, dropped).</summary>
+	private void ApplyTurretSelfDestructed(Vector2 position)
+	{
+		var turret = FindTrap<TurretScript>(position);
+		var build = turret != null ? Traverse.Create(turret).Field("build").GetValue<BuildingEntity>() : null; // Unity object — ==
+		if (build == null || build.health < 0.5f) // Unity object — ==
+		{
+			_log.LogInformation("[TrapEvent] turret at {Pos} already gone/dead — effect skipped.", position);
+			return;
+		}
+
+		// Remote death: no drop roll — the guest's side rolled and reported them.
+		build.health = 0f;
+		turret!.gameObject.AddComponent<RemoteEntityDeath>();
+		var collider = turret.GetComponent<Collider2D>();
+		if (collider != null) // Unity object — ==
+		{
+			collider.enabled = false; // the game disables it before its own explosion (TurretScript.cs:99)
+		}
+
+		WorldGeneration.CreateExplosion(TurretExplosionParams(turret.transform.position));
+		_log.LogInformation("[TrapEvent] host applied turret self-destruct at {Pos}.", position);
+	}
+
+	/// <summary>The turret's literal explosion parameters (TurretScript.cs:93-100) — shared with the replay side.</summary>
+	internal static ExplosionParams TurretExplosionParams(Vector2 position) => new()
+	{
+		position = position,
+		range = 9f,
+		structuralDamage = 200f,
+		boneBreakChance = 0f,
+		dislocationChance = 0.05f,
+		muscleDamage = new RangeF(0f, 35f),
+		velocity = 15f,
+		disfigureChance = 0.2f,
+	};
 }

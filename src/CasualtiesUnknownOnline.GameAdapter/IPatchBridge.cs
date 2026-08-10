@@ -39,6 +39,10 @@ internal interface IPatchBridge
 	/// </summary>
 	void OnTrapTriggered(EntityEventKind kind, Vector2 position, byte extra);
 
+	/// <summary>A world entity started outside world generation (the spawn command)
+	/// — a runtime creation: report it so the peers create the same entity at the same place.</summary>
+	void OnEntityInstantiated(BuildingEntity entity);
+
 	/// <summary>The spawn landing sound is deferred while the start gate holds — play it when the gate releases.</summary>
 	void DeferLifePodSound();
 

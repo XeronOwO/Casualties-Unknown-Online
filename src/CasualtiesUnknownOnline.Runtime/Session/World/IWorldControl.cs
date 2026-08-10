@@ -140,6 +140,21 @@ public interface IWorldControl
 	/// <summary>Host only: record a one-shot trap consumption (position-keyed; Extra rides along for progress-carrying events).</summary>
 	void ReportTrapConsumed(EntityEventKind kind, float x, float y, byte extra);
 
+	/// <summary>
+	/// Report a runtime world-entity creation (outside generation — the spawn
+	/// command): guest → host as a report (the host creates its own copy and
+	/// relays), host → broadcast to all synced members.
+	/// </summary>
+	void SendEntitySpawned(EntitySpawnedMsg msg);
+
+	/// <summary>Host only: relay an accepted entity creation to the other members (source excluded — it already created locally).</summary>
+	void BroadcastEntitySpawned(ulong excludeSteamId, EntitySpawnedMsg msg);
+
+	void FireEntitySpawnedReceived(ulong sender, EntitySpawnedMsg msg);
+
+	/// <summary>An entity-creation report arrived — the receiver creates its own copy (host: then relays; guest: remote apply).</summary>
+	event Action<ulong, EntitySpawnedMsg>? EntitySpawnedReceived;
+
 	/// <summary>Host only: send the one-shot trap consumptions to one member (on its world entry).</summary>
 	void SendTrapStateSnapshot(ulong targetSteamId);
 

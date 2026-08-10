@@ -277,6 +277,47 @@ public sealed class WorldService(ISessionControl session, PacketSender sender, I
 	/// <summary>Host only: record a one-shot trap consumption (position-keyed; Extra rides along for progress-carrying events).</summary>
 	public void ReportTrapConsumed(EntityEventKind kind, float x, float y, byte extra) => _trapConsumption.Report(kind, x, y, extra);
 
+	// ---- World entity creation (runtime, outside generation) ----
+
+	/// <summary>An entity-creation report arrived — the receiver creates its own copy (host: then relays; guest: remote apply).</summary>
+	public event Action<ulong, EntitySpawnedMsg>? EntitySpawnedReceived;
+
+	public void FireEntitySpawnedReceived(ulong sender, EntitySpawnedMsg msg) => EntitySpawnedReceived?.Invoke(sender, msg);
+
+	/// <summary>
+	/// Report a runtime world-entity creation (outside generation — the spawn
+	/// command): guest → host as a report (the host creates its own copy and
+	/// relays), host → broadcast to all synced members. Same shape as
+	/// SendEntityEvent: the creating side keeps its local copy.
+	/// </summary>
+	public void SendEntitySpawned(EntitySpawnedMsg msg)
+	{
+		if (!_session.SessionActive)
+		{
+			return;
+		}
+
+		if (_session.Role == SessionRole.Host)
+		{
+			_session.Broadcast(NetMsg.EntitySpawned, msg);
+		}
+		else
+		{
+			_sender.Send(_session.HostSteamId, NetMsg.EntitySpawned, msg);
+		}
+	}
+
+	/// <summary>Host only: relay an accepted entity creation to the other members (source excluded — it already created locally).</summary>
+	public void BroadcastEntitySpawned(ulong excludeSteamId, EntitySpawnedMsg msg)
+	{
+		if (_session.Role != SessionRole.Host || !_session.SessionActive)
+		{
+			return;
+		}
+
+		_session.BroadcastExcept(excludeSteamId, NetMsg.EntitySpawned, msg);
+	}
+
 	/// <summary>Host only: send the one-shot trap consumptions to one member (on its world entry).</summary>
 	public void SendTrapStateSnapshot(ulong targetSteamId) => _trapConsumption.SendSnapshot(targetSteamId);
 

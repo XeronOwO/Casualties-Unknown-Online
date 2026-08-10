@@ -70,4 +70,7 @@ public enum NetMsg : byte
 	// World entity events (traps/mechanisms — local compute → report → host applies → relay, replay on the receivers)
 	EntityEvent = 66, // bidirectional: guest → host report of a triggered trap event; host → guest broadcast relay (source excluded — the host applies the event to its own world first)
 	TrapStateSnapshot = 67, // host → guest: the one-shot trap consumptions so far (world entry, sent alongside the block-state snapshot)
+
+	// World entity creation (runtime, outside generation — the spawn command)
+	EntitySpawned = 68, // bidirectional: the creating side reports (keeps its local copy); the host creates its own and relays (source excluded) — items ride the item domain, entities ride this
 }

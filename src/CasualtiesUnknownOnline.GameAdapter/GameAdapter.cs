@@ -70,6 +70,8 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	private readonly GeneratedItemAuthority _genItemAuthority;
 	private readonly GeneratedItemApplication _genItemApplication;
 	private readonly LayerModifierSync _layerModifierSync;
+	private readonly ItemIdAllocator _itemIds;
+	private readonly CarriedInventoryReporter _carriedInventoryReporter;
 
 	public GameAdapter(SessionService session, EntitySyncService entities, CharacterDataStore characterData,
 		WorldService world, ItemService items, ILogger<GameAdapter> log, IMapper mapper, ILoggerFactory loggerFactory)
@@ -94,19 +96,20 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_itemReconcile = new ItemReconcile(items, _itemApplication, _dropGuard, loggerFactory.CreateLogger<ItemReconcile>());
 		_operationTrace = new OperationTrace(loggerFactory.CreateLogger<OperationTrace>());
 		var itemReports = new ItemReportCommitter(items, _operationTrace, loggerFactory.CreateLogger<ItemReportCommitter>());
-		var itemIds = new ItemIdAllocator(session);
+		_itemIds = new ItemIdAllocator(session, items); // ids are (counter, SteamId) — the counter reports the high-water mark and resumes from the host's grant on join/reconnect
 		var itemDropState = new ItemDropState();
 		var blockBreakState = new PendingBlockBreak();
-		_itemWorldSync = new ItemWorldSync(session, items, _dropGuard, itemDropState, blockBreakState, _operationTrace, itemReports, itemIds, loggerFactory.CreateLogger<ItemWorldSync>());
-		_pickupSync = new PickupSync(items, session, _itemApplication, itemDropState, itemIds, _operationTrace, itemReports);
-		_containerSync = new ContainerItemSync(items, itemDropState, itemIds, _operationTrace, itemReports, loggerFactory.CreateLogger<ContainerItemSync>());
-		_itemUseSync = new ItemUseSync(items, session, loggerFactory.CreateLogger<ItemUseSync>());
-		_itemSlotSync = new ItemSlotSync(items, session, loggerFactory.CreateLogger<ItemSlotSync>());
+		_itemWorldSync = new ItemWorldSync(session, items, _dropGuard, itemDropState, blockBreakState, _operationTrace, itemReports, _itemIds, loggerFactory.CreateLogger<ItemWorldSync>());
+		_pickupSync = new PickupSync(items, session, _itemApplication, itemDropState, _itemIds, _operationTrace, itemReports);
+		_containerSync = new ContainerItemSync(items, itemDropState, _itemIds, _operationTrace, itemReports, loggerFactory.CreateLogger<ContainerItemSync>());
+		_itemUseSync = new ItemUseSync(items, session, _itemIds, loggerFactory.CreateLogger<ItemUseSync>());
+		_itemSlotSync = new ItemSlotSync(items, session, _itemIds, loggerFactory.CreateLogger<ItemSlotSync>());
 		_itemPositionAuthority = new ItemPositionAuthority(items);
 		_itemPositionFollow = new ItemPositionFollow(items, _dropGuard);
-		_genItemAuthority = new GeneratedItemAuthority(session, items, itemIds, loggerFactory.CreateLogger<GeneratedItemAuthority>());
+		_genItemAuthority = new GeneratedItemAuthority(session, items, _itemIds, loggerFactory.CreateLogger<GeneratedItemAuthority>());
 		_genItemApplication = new GeneratedItemApplication(items, _itemApplication, loggerFactory.CreateLogger<GeneratedItemApplication>());
 		_layerModifierSync = new LayerModifierSync(items, loggerFactory.CreateLogger<LayerModifierSync>());
+		_carriedInventoryReporter = new CarriedInventoryReporter(session, items, _itemIds, loggerFactory.CreateLogger<CarriedInventoryReporter>());
 		LayerModifierApplyPatch.IsModifierAuthority = () => _session.Role != SessionRole.Guest; // the host/solo side rolls the world's modifier; guests replay it locally and fall back to the snapshot
 		LayerModifierApplyPatch.ReportLocalDecision = _layerModifierSync.OnLocalDecision; // the guest's local replay — the adapter defers Initialize until the generation finished
 		_blockBreakSync = new BlockBreakSync(session, world, items, blockBreakState, _operationTrace, loggerFactory.CreateLogger<BlockBreakSync>());
@@ -220,6 +223,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_genItemAuthority.Update(); // host/solo: publish the generation-time items when the generation finished
 		_genItemApplication.Update(); // guest: apply the host's generation snapshot once the local generation finished
 		_layerModifierSync.Update(); // guest: apply the host's layer modifier once the local generation finished
+		_carriedInventoryReporter.Update(); // guest: report the carried inventory with self-assigned ids once the local generation finished
 		_itemWorldSync.FlushPendingDrop(); // a drop that was not thrown reports at end of frame (one drop = one report)
 		_blockBreakSync.FlushPendingBlockBreak(); // a break's drops fold in one frame after the break — the break + drops go out as ONE message
 		if (IsHostMode)
@@ -261,6 +265,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_layerModifierSync.BindToSession();
 		_items.ItemCarriedSyncReceived += OnItemCarriedSync; // the owner's clone re-renders the moment a carried fact changes
 		_items.ItemDropped += OnCarriedItemDropped; // a carried item leaving into the world leaves the fact table (recursive)
+		_items.ItemIdWatermarkReceived += OnItemIdWatermark; // the host granted the id counter — resume from watermark + 1
 	}
 
 	private void UnbindFromSession()
@@ -279,11 +284,15 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_layerModifierSync.Unbind();
 		_items.ItemCarriedSyncReceived -= OnItemCarriedSync;
 		_items.ItemDropped -= OnCarriedItemDropped;
+		_items.ItemIdWatermarkReceived -= OnItemIdWatermark;
 	}
 
 	/// <summary>Carried-fact event: the owner's fact-table entry updates and the clone re-renders immediately.</summary>
 	private void OnItemCarriedSync(ulong owner, CharacterItemMsg item, bool slotKnown) =>
 		_characterDataSync.ApplyCarriedSync(owner, item, slotKnown);
+
+	/// <summary>The host granted the item-id counter (join/reconnect): resume from watermark + 1 — the crashed-and-rejoined counter must not reuse ids the host still holds.</summary>
+	private void OnItemIdWatermark(ulong counter) => _itemIds.SetWatermark(counter);
 
 	/// <summary>ItemDropped: a carried item left into the world — it leaves the owner's fact table (top-level or nested in a container's contents).</summary>
 	private void OnCarriedItemDropped(ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, ulong parentItemId, float rotation, float angularVelocity, NetVector2 parentPos) =>

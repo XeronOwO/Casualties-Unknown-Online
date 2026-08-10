@@ -59,6 +59,14 @@ public sealed class MemberPresenceTable
 	public event Action<ulong>? MemberRemoved;
 
 	/// <summary>
+	/// Raised when a member's handshake completes (Handshaken flips true — every
+	/// time, reconnects included: the presence table is stable across reconnects,
+	/// so a rejoin re-fires it). The item domain subscribes to grant the id
+	/// watermark on the host.
+	/// </summary>
+	public event Action<ulong>? MemberAdded;
+
+	/// <summary>
 	/// Raised when a member enters or leaves the world (inWorld=false pauses /
 	/// destroys the render clone; a member leaving the session reuses
 	/// inWorld=false so the clone teardown path is shared). The SteamId routes
@@ -67,6 +75,8 @@ public sealed class MemberPresenceTable
 	public event Action<ulong, bool>? RemoteSceneChanged;
 
 	public void FireMemberRemoved(ulong steamId) => MemberRemoved?.Invoke(steamId);
+
+	public void FireMemberAdded(ulong steamId) => MemberAdded?.Invoke(steamId);
 
 	public void FireRemoteSceneChanged(ulong steamId, bool inWorld) => RemoteSceneChanged?.Invoke(steamId, inWorld);
 }

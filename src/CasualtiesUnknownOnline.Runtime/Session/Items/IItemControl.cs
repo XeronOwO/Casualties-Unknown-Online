@@ -75,6 +75,21 @@ public interface IItemControl
 	/// <summary>An item moved slots locally (SwapSlots / SwitchHands) — report the new slot so the host's record stays in sync. The digest evidence rides along (the host broadcasts it when it has no transfer-table entry).</summary>
 	void FireItemSlotReceived(ulong sender, ulong itemId, int slotIndex, CharacterItemMsg item);
 
+	/// <summary>Guest only: an item-instance id was allocated locally — report the counter high-water mark so the host can grant it back on a reconnect (a crashed-and-rejoined counter restarts from zero and would reuse ids the host still holds).</summary>
+	void SendItemIdWatermark(ulong counter);
+
+	/// <summary>Guest only: the carried inventory with self-assigned ids (the local generation finished) — the host registers it in the guest's transfer table.</summary>
+	void SendCarriedInventory(IReadOnlyList<CharacterItemMsg> items);
+
+	/// <summary>Host only: grant a member's id watermark (its allocations may resume from counter + 1).</summary>
+	void GrantItemIdWatermark(ulong targetSteamId, ulong counter);
+
+	/// <summary>The id counter high-water mark arrived: host records it, guest applies it (resume from counter + 1).</summary>
+	void FireItemIdWatermarkReceived(ulong sender, ulong counter);
+
+	/// <summary>A guest's carried inventory with self-assigned ids arrived (its local generation finished) — the host registers it in the guest's transfer table.</summary>
+	void FireCarriedInventoryReceived(ulong sender, IReadOnlyList<CharacterItemMsg> items);
+
 	/// <summary>The authoritative fact of one carried item arrived (host → guest): a use flipped its state, a slot move re-homed it, a pickup brought it in — update the owner's fact table entry and re-render the clone. SlotKnown = false means keep the fact table's existing slot.</summary>
 	void FireItemCarriedSyncReceived(ulong sender, ulong ownerSteamId, CharacterItemMsg item, bool slotKnown);
 
@@ -145,4 +160,7 @@ public interface IItemControl
 
 	/// <summary>The authoritative fact of one carried item changed (host broadcast: use/slot move/pickup) — the adapter updates the owner's per-player fact table and re-renders the clone. Fired on the guests from the wire and on the host directly (its own arbitration decisions).</summary>
 	event Action<ulong, CharacterItemMsg, bool>? ItemCarriedSyncReceived;
+
+	/// <summary>Guest side: the host granted the id counter high-water mark (join/reconnect) — the adapter resumes the allocator from counter + 1.</summary>
+	event Action<ulong>? ItemIdWatermarkReceived;
 }

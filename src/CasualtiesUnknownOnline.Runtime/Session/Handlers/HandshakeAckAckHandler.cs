@@ -33,6 +33,7 @@ public sealed class HandshakeAckAckHandler(ILogger<HandshakeAckAckHandler> log) 
 		}
 
 		member.Handshaken = true;
+		session.FireMemberAdded(sender); // the item domain grants the id watermark on this (reconnects included)
 		ctx.Entities.MaybeStartEntitySync(); // a confirmed member may be ready for its entity stream
 		_log.LogInformation("Handshake confirmed end-to-end with {Peer}.", sender);
 	}

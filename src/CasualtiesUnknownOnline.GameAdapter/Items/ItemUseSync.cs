@@ -16,10 +16,11 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 /// (its local object IS the fact) — it broadcasts the full carried item
 /// instead, so the peers' clones of the host flip the moment the use lands.
 /// </summary>
-internal sealed class ItemUseSync(ItemService items, ISessionControl session, ILogger<ItemUseSync> log)
+internal sealed class ItemUseSync(ItemService items, ISessionControl session, ItemIdAllocator ids, ILogger<ItemUseSync> log)
 {
 	private readonly ItemService _items = items;
 	private readonly ISessionControl _session = session;
+	private readonly ItemIdAllocator _ids = ids;
 	private readonly ILogger<ItemUseSync> _log = log;
 
 	internal void OnItemUsed(Item item)
@@ -27,7 +28,21 @@ internal sealed class ItemUseSync(ItemService items, ISessionControl session, IL
 		var idComp = item.GetComponent<ItemInstanceId>();
 		if (idComp == null || idComp.Id == 0) // Unity object — ==; unbound items have no table entry to arbitrate
 		{
-			return;
+			// A starting supply may still be id-less — the host assigns lazily
+			// on first domain entry (the id must travel with the fact broadcast
+			// or the receiver cannot match the instance); the guests' supplies
+			// were self-assigned at generation finish (CarriedInventoryReporter).
+			if (_session.Role != SessionRole.Host)
+			{
+				return;
+			}
+
+			if (_ids.EnsureId(item) == 0)
+			{
+				return; // still generating — no allocation possible
+			}
+
+			idComp = item.GetComponent<ItemInstanceId>();
 		}
 
 		if (_session.Role == SessionRole.Host && _session.SessionActive)
@@ -36,7 +51,7 @@ internal sealed class ItemUseSync(ItemService items, ISessionControl session, IL
 			// resolves the hand slot or the wear limb; -1 = unresolvable, the
 			// receiver keeps the fact table's slot).
 			_items.SendItemCarriedSync(_session.LocalSteamId, ItemStateCodec.CaptureItem(item, ItemStateCodec.SlotOf(item)));
-			_log.LogInformation("[ItemUsed] {Type} (id {ItemId}) — host fact broadcast.", item.id, idComp.Id);
+			_log.LogInformation("[ItemUsed] {Type} (id {ItemId}) — host fact broadcast.", item.id, idComp!.Id);
 			return;
 		}
 

@@ -137,8 +137,8 @@ public interface IWorldControl
 	/// <summary>An entity event arrived — the receiver applies it (host: to its own world; guest: replay).</summary>
 	event Action<ulong, EntityEventMsg>? EntityEventReceived;
 
-	/// <summary>Host only: record a one-shot trap consumption (position-keyed).</summary>
-	void ReportTrapConsumed(EntityEventKind kind, float x, float y);
+	/// <summary>Host only: record a one-shot trap consumption (position-keyed; Extra rides along for progress-carrying events).</summary>
+	void ReportTrapConsumed(EntityEventKind kind, float x, float y, byte extra);
 
 	/// <summary>Host only: send the one-shot trap consumptions to one member (on its world entry).</summary>
 	void SendTrapStateSnapshot(ulong targetSteamId);

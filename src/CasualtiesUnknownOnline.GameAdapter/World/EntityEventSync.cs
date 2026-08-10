@@ -74,7 +74,13 @@ internal sealed class EntityEventSync(IWorldControl world, ISessionControl sessi
 			_log.LogInformation("[TrapEvent] kind={Kind} pos=({X:F1},{Y:F1}) origin=HostApply from {Sender}.",
 				msg.Kind, pos.X, pos.Y, sender);
 			_applier.ApplyEvent(msg.Kind, new Vector2(pos.X, pos.Y), msg.Extra);
-			_world.ReportTrapConsumed(msg.Kind, pos.X, pos.Y); // one-shot consumptions, position-keyed (the late-joiner snapshot)
+			if (IsOneShotConsumption(msg.Kind))
+			{
+				// One-shot consumptions are position-keyed for the late-joiner
+				// snapshot. Repeatable events (clamps, fences, heat toggles, ...)
+				// are NOT recorded — each side's copy re-arms naturally.
+				_world.ReportTrapConsumed(msg.Kind, pos.X, pos.Y, msg.Extra);
+			}
 			_world.BroadcastEntityEvent(sender, msg);
 		}
 		else
@@ -89,6 +95,19 @@ internal sealed class EntityEventSync(IWorldControl world, ISessionControl sessi
 			}
 		}
 	}
+
+	/// <summary>One-shot consumptions land in the late-joiner snapshot; repeatable events do not (each side's copy re-arms naturally, the vanilla behaviour).</summary>
+	private static bool IsOneShotConsumption(EntityEventKind kind) => kind switch
+	{
+		EntityEventKind.MineExploded or EntityEventKind.SpikeStabbed or EntityEventKind.StalactiteDropped
+			or EntityEventKind.SoundCannonFired or EntityEventKind.TurretSelfDestructed
+			or EntityEventKind.CrystalFragileBroken or EntityEventKind.CaveTicksSpawned
+			or EntityEventKind.ShuttleDoorOpened or EntityEventKind.LifepodShowerActivated
+			or EntityEventKind.BioTerminalUnlocked or EntityEventKind.MedStationHealed
+			or EntityEventKind.ScrapEaterProgress or EntityEventKind.BatteryInserted
+			=> true,
+		_ => false,
+	};
 
 	private void OnTrapStateReceived(IReadOnlyList<EntityEventMsg> consumed) =>
 		// Late joiner: consume every one-shot consumption against the local

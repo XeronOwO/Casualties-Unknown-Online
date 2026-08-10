@@ -24,10 +24,10 @@ public sealed class TrapConsumptionRegistry(ISessionControl session, PacketSende
 
 	private const int MaxConsumptions = 65536; // cap, mirroring the damaged-blocks table
 
-	private readonly Dictionary<(int, int), EntityEventKind> _consumed = [];
+	private readonly Dictionary<(int, int), (EntityEventKind Kind, byte Extra)> _consumed = [];
 
-	/// <summary>Host only: record a one-shot consumption at a world position (integer key — the position is identity, sub-unit drift is noise).</summary>
-	public void Report(EntityEventKind kind, float x, float y)
+	/// <summary>Host only: record a one-shot consumption at a world position (integer key — the position is identity, sub-unit drift is noise). Extra rides along (ScrapEaterProgress = the progress %).</summary>
+	public void Report(EntityEventKind kind, float x, float y, byte extra)
 	{
 		var key = ((int)Math.Floor(x), (int)Math.Floor(y));
 		if (_consumed.Count >= MaxConsumptions && !_consumed.ContainsKey(key))
@@ -35,7 +35,7 @@ public sealed class TrapConsumptionRegistry(ISessionControl session, PacketSende
 			return;
 		}
 
-		_consumed[key] = kind;
+		_consumed[key] = (kind, extra);
 	}
 
 	/// <summary>Host only: a new world layer is generating — the table starts empty again.</summary>
@@ -53,7 +53,8 @@ public sealed class TrapConsumptionRegistry(ISessionControl session, PacketSende
 		{
 			Consumed = [.. _consumed.Select(kv => new EntityEventMsg
 			{
-				Kind = kv.Value,
+				Kind = kv.Value.Kind,
+				Extra = kv.Value.Extra,
 				// The integer key's cell centre — the receiver's entity lookup
 				// tolerates sub-cell drift and the 3-unit matching radius.
 				Position = new NetVector2Msg(kv.Key.Item1 + 0.5f, kv.Key.Item2 + 0.5f),

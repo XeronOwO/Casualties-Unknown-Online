@@ -1,7 +1,10 @@
+using System;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using HarmonyLib;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
+using Object = UnityEngine.Object;
+using Random = UnityEngine.Random;
 
 namespace CasualtiesUnknownOnline.GameAdapter.World;
 
@@ -27,7 +30,25 @@ internal sealed class TrapVisualReplay(ILogger<TrapVisualReplay> log)
 				ReplayMineExplosion(position);
 				break;
 			case EntityEventKind.ShuttleDoorOpened:
-				ReplayShuttleDoorOpened(position);
+				ReplayState<ShuttleStartOpen>(position, kind, TrapStateActions.ApplyShuttleDoor);
+				break;
+			case EntityEventKind.LifepodHeatChanged:
+				ReplayState<LifepodController>(position, kind, c => TrapStateActions.ApplyHeat(c, extra));
+				break;
+			case EntityEventKind.LifepodShowerActivated:
+				ReplayState<LifepodController>(position, kind, TrapStateActions.ApplyShower);
+				break;
+			case EntityEventKind.BioTerminalUnlocked:
+				ReplayState<BioTerminalScript>(position, kind, TrapStateActions.ApplyBioTerminal);
+				break;
+			case EntityEventKind.ScrapEaterProgress:
+				ReplayState<ScrapEaterScript>(position, kind, e => TrapStateActions.ApplyScrapEater(e, extra));
+				break;
+			case EntityEventKind.MedStationHealed:
+				ReplayState<MedStationScript>(position, kind, TrapStateActions.ApplyMedStation);
+				break;
+			case EntityEventKind.BatteryInserted:
+				ReplayState<BatteryRecharger>(position, kind, TrapStateActions.ApplyBattery);
 				break;
 			default:
 				_log.LogWarning("[TrapEvent] no replay action for {Kind}.", kind);
@@ -35,20 +56,19 @@ internal sealed class TrapVisualReplay(ILogger<TrapVisualReplay> log)
 		}
 	}
 
-	/// <summary>The host's door opened (a body entered the trigger there) —
-	/// activate the local copy: the entity's own Update drives the door
-	/// animation, same prefab and same start moment on both sides.</summary>
-	private void ReplayShuttleDoorOpened(Vector2 position)
+	/// <summary>A state-family replay: run the shared action on the local entity
+	/// at the position (the transition itself; the entity animates).</summary>
+	private void ReplayState<T>(Vector2 position, EntityEventKind kind, Action<T> action) where T : Component
 	{
-		var door = TrapEffectApplier.FindTrap<ShuttleStartOpen>(position);
-		if (door == null) // Unity object — ==
+		var entity = TrapEffectApplier.FindTrap<T>(position);
+		if (entity == null) // Unity object — ==
 		{
-			_log.LogInformation("[TrapEvent] shuttle door at {Pos} already gone — visual only.", position);
+			_log.LogInformation("[TrapEvent] {Kind} at {Pos} already gone — visual only.", kind, position);
 			return;
 		}
 
-		Traverse.Create(door).Field("activated").SetValue(true);
-		_log.LogInformation("[TrapEvent] replayed shuttle door open at {Pos}.", position);
+		action(entity);
+		_log.LogInformation("[TrapEvent] replayed {Kind} at {Pos}.", kind, position);
 	}
 
 	private void ReplayMineExplosion(Vector2 position)

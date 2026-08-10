@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
@@ -17,9 +18,11 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 /// </summary>
 internal sealed class ItemApplication(
 	ItemService items,
+	ISessionControl session,
 	ILogger<ItemApplication> log)
 {
 	private readonly ItemService _items = items;
+	private readonly ISessionControl _session = session;
 	private readonly ILogger<ItemApplication> _log = log;
 
 	/// <summary>Pickup origin cache (id → world position) — the rollback target for a refused pickup (the pickup-start hook fills it).</summary>
@@ -499,11 +502,24 @@ internal sealed class ItemApplication(
 
 		item.rb.velocity = new Vector2(w.Vel.X, w.Vel.Y);
 		item.rb.angularVelocity = w.AngularVelocity;
-		// The game's throw sets continuous collision detection (Body.cs:1664) —
-		// a Discrete materialization misses fast wall hits and the item tunnels
-		// INTO the wall, which the host's position stream then pins on every
-		// guest ("thrown item through the wall, stuck inside"). Same for a fast
-		// roll-out; the extra cost is one item.
-		item.rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+		if (_session.Role == SessionRole.Guest)
+		{
+			// The guest's world items are kinematic renders from birth — a
+			// dynamic materialization would simulate locally until the position
+			// stream takes over: the same non-authoritative window as a local
+			// roll-out (see ItemWorldSync.OnItemDropped), then a yank-back when
+			// the stream arrives. Frozen at the reported spot = the host's
+			// simulation start, same phase.
+			item.rb.bodyType = RigidbodyType2D.Kinematic;
+		}
+		else
+		{
+			// The game's throw sets continuous collision detection (Body.cs:1664) —
+			// a Discrete materialization misses fast wall hits and the item
+			// tunnels INTO the wall, which the host's position stream then pins
+			// on every guest ("thrown item through the wall, stuck inside").
+			// Same for a fast roll-out; the extra cost is one item.
+			item.rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+		}
 	}
 }

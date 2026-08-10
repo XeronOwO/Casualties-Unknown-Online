@@ -249,7 +249,23 @@ internal sealed class ItemWorldSync(
 
 		if (_session.Role == SessionRole.Guest)
 		{
-			_guard.Mark(itemId); // the roll-out is local physics until the host's stream takes over — the reconcile must not kill the fresh copy
+			_guard.Mark(itemId); // the frozen copy must not be killed by the reconcile before the host's stream takes over
+
+			// Freeze the item at the drop spot — NO local simulation until the
+			// host's stream arrives. A local roll-out is a NON-authoritative
+			// world interaction (it can trip a landmine the host's item never
+			// touches) and it diverges from the host's trajectory: the report
+			// travels for the latency, the host starts simulating from the drop
+			// spot, and a local copy that already rolled gets yanked back
+			// THROUGH the wall ("thrown item through the wall"). The frozen item
+			// plays the host's simulation from the same spot — same phase, no
+			// rewind. The throw report reads rb.velocity AFTER ThrowItem ran; the
+			// kinematic body keeps the assigned property values. DropItem does
+			// not move the item (Body.cs:1441-1451), so the drop spot IS the
+			// reported position.
+			item.rb.bodyType = RigidbodyType2D.Kinematic;
+			item.rb.velocity = Vector2.zero;
+			item.rb.angularVelocity = 0f;
 		}
 
 		if (_dropState.Current == ItemDropState.Phase.Dropped && !_dropState.IsPendingFor(item)) // two drops in one frame (rare) — flush the first first

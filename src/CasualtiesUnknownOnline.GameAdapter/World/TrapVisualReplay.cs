@@ -57,8 +57,10 @@ internal sealed class TrapVisualReplay(ILogger<TrapVisualReplay> log)
 	}
 
 	/// <summary>A state-family replay: run the shared action on the local entity
-	/// at the position (the transition itself; the entity animates).</summary>
-	private void ReplayState<T>(Vector2 position, EntityEventKind kind, Action<T> action) where T : Component
+	/// at the position (the transition itself; the entity animates). The action
+	/// reports whether it APPLIED — a false (the local copy already consumed the
+	/// one-shot: the two-trigger race) is DROPPED with a trace.</summary>
+	private void ReplayState<T>(Vector2 position, EntityEventKind kind, Func<T, bool> action) where T : Component
 	{
 		var entity = TrapEffectApplier.FindTrap<T>(position);
 		if (entity == null) // Unity object — ==
@@ -67,14 +69,31 @@ internal sealed class TrapVisualReplay(ILogger<TrapVisualReplay> log)
 			return;
 		}
 
-		action(entity);
-		_log.LogInformation("[TrapEvent] replayed {Kind} at {Pos}.", kind, position);
+		if (action(entity))
+		{
+			_log.LogInformation("[TrapEvent] replayed {Kind} at {Pos}.", kind, position);
+		}
+		else
+		{
+			_log.LogWarning("[TrapEvent] {Kind} at {Pos} already consumed locally — duplicate dropped.", kind, position);
+		}
 	}
 
 	private void ReplayMineExplosion(Vector2 position)
 	{
 		var pos = position + Vector2.up; // the mine's explosion point (MineScript.cs:35-38)
 		var param = new ExplosionParams { position = pos };
+
+		// The consumption check comes FIRST: the local copy may have already
+		// exploded (the two-trigger race — both guests tripped the same mine;
+		// the local explosion already played AND already hurt the local body;
+		// this duplicate relay must be dropped, never replayed).
+		var mine = TrapEffectApplier.FindTrap<MineScript>(position);
+		if (mine != null && Traverse.Create(mine).Field("exploded").GetValue<bool>()) // Unity object — ==
+		{
+			_log.LogWarning("[TrapEvent] mine at {Pos} already exploded locally — duplicate dropped.", position);
+			return;
+		}
 
 		// Pure-visual five-piece (WorldGeneration.cs:3965-3970): sound, particle,
 		// blastmark on the closest chunk, shake. Nothing here touches the world.
@@ -99,17 +118,17 @@ internal sealed class TrapVisualReplay(ILogger<TrapVisualReplay> log)
 		// Consume the entity: exploded = true FIRST (the game's OnDestroy then
 		// skips its chain explosion), killed as a REMOTE death (no drop roll —
 		// the trigger side rolled and reported them).
-		var mine = TrapEffectApplier.FindTrap<MineScript>(position);
-		if (mine != null) // Unity object — ==
+		if (mine != null)
 		{
 			Traverse.Create(mine).Field("exploded").SetValue(true);
 			mine.build.health = 0f;
 			mine.gameObject.AddComponent<RemoteEntityDeath>();
-			_log.LogInformation("[TrapEvent] replayed mine explosion at {Pos}.", position);
 		}
 		else
 		{
 			_log.LogInformation("[TrapEvent] mine at {Pos} already gone — visual only.", position);
 		}
+
+		_log.LogInformation("[TrapEvent] replayed mine explosion at {Pos}.", position);
 	}
 }

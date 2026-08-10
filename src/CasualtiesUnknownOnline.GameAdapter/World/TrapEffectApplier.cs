@@ -58,8 +58,10 @@ internal sealed class TrapEffectApplier(ILogger<TrapEffectApplier> log)
 	}
 
 	/// <summary>A state-family event: apply the shared action to the host's
-	/// entity at the position (the transition itself; the entity animates).</summary>
-	private void ApplyState<T>(Vector2 position, EntityEventKind kind, Action<T> action) where T : Component
+	/// entity at the position (the transition itself; the entity animates).
+	/// The action reports whether it APPLIED — a false (the host's copy already
+	/// consumed the one-shot: the two-trigger race) is DROPPED with a trace.</summary>
+	private void ApplyState<T>(Vector2 position, EntityEventKind kind, Func<T, bool> action) where T : Component
 	{
 		var entity = FindTrap<T>(position);
 		if (entity == null) // Unity object — ==
@@ -68,8 +70,14 @@ internal sealed class TrapEffectApplier(ILogger<TrapEffectApplier> log)
 			return;
 		}
 
-		action(entity);
-		_log.LogInformation("[TrapEvent] host applied {Kind} at {Pos}.", kind, position);
+		if (action(entity))
+		{
+			_log.LogInformation("[TrapEvent] host applied {Kind} at {Pos}.", kind, position);
+		}
+		else
+		{
+			_log.LogWarning("[TrapEvent] {Kind} at {Pos} already consumed locally — duplicate dropped.", kind, position);
+		}
 	}
 
 	/// <summary>Find the trap at a world position (world entities are generated
@@ -94,6 +102,15 @@ internal sealed class TrapEffectApplier(ILogger<TrapEffectApplier> log)
 		if (mine == null) // Unity object — == (already gone — a repeat event, or it died naturally)
 		{
 			_log.LogInformation("[TrapEvent] mine at {Pos} already gone — effect skipped, relay only.", position);
+			return;
+		}
+
+		// The consumption check: the host's copy may have already exploded (the
+		// host tripped the same mine itself — its explosion ran naturally) —
+		// this duplicate report is dropped, only the relay flows.
+		if (Traverse.Create(mine).Field("exploded").GetValue<bool>())
+		{
+			_log.LogWarning("[TrapEvent] mine at {Pos} already exploded locally — duplicate dropped, relay only.", position);
 			return;
 		}
 

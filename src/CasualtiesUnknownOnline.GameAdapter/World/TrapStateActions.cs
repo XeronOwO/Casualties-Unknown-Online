@@ -9,58 +9,93 @@ namespace CasualtiesUnknownOnline.GameAdapter.World;
 /// application runs on the host (TrapEffectApplier) and on the replaying
 /// guests (TrapVisualReplay): find the entity at the event position, apply the
 /// transition, the entity's own Update/animation drives the rest. Each action
-/// is idempotent (a repeated event is a no-op) and mirrors the game's own
-/// code path for the transition (the trigger side ran the original).
+/// mirrors the game's own code path for the transition (the trigger side ran
+/// the original) and returns whether it APPLIED — false means the local copy
+/// already consumed the one-shot transition (a duplicate event — the
+/// two-trigger race: two guests trip the same mine/shower/terminal almost
+/// simultaneously; both report, both receive the other's relay; the receiver
+/// must DROP what it already did locally, never re-apply it). The caller logs
+/// the drop (留痕 — a duplicate that reaches the apply step is evidence).
 /// </summary>
 internal static class TrapStateActions
 {
 	/// <summary>Shuttle door: activate — the entity's own Update drives the door
 	/// animation from the same start moment on both sides (ShuttleStartOpen.cs:
 	/// 14-41, same prefab).</summary>
-	internal static void ApplyShuttleDoor(ShuttleStartOpen door) =>
+	internal static bool ApplyShuttleDoor(ShuttleStartOpen door)
+	{
+		if (Traverse.Create(door).Field("activated").GetValue<bool>())
+		{
+			return false; // already consumed — a duplicate event
+		}
+
 		Traverse.Create(door).Field("activated").SetValue(true);
+		return true;
+	}
 
 	/// <summary>Heat button: toggle the controller's heat state until it matches
 	/// the trigger side's (ToggleHeatState cycles 0→1→2→0 and writes heater/
-	/// desiredTemp/enabled/sprite/description — the game's own write path).</summary>
-	internal static void ApplyHeat(LifepodController controller, byte target)
+	/// desiredTemp/enabled/sprite/description — the game's own write path).
+	/// Repeatable — every toggle applies.</summary>
+	internal static bool ApplyHeat(LifepodController controller, byte target)
 	{
 		var guard = 0;
 		while (controller.heatState != target && guard++ < 4)
 		{
 			controller.ToggleHeatState();
 		}
+
+		return true;
 	}
 
 	/// <summary>Shower button: activate (ActivateShower → shower.Activate + the
-	/// disinfect sprite; Activate is idempotent — a repeated event is a no-op;
-	/// the shower's own Update cleanses the local real body for 3 s).</summary>
-	internal static void ApplyShower(LifepodController controller) => controller.ActivateShower();
+	/// disinfect sprite; the shower's own Update cleanses the local real body
+	/// for 3 s). The shower's activated flag is the consumption mark.</summary>
+	internal static bool ApplyShower(LifepodController controller)
+	{
+		if (controller.shower != null && controller.shower.activated) // Unity object — ==
+		{
+			return false; // already consumed — a duplicate event
+		}
+
+		controller.ActivateShower();
+		return true;
+	}
 
 	/// <summary>Blood terminal unlocked: Backgroundify the terminal and every
 	/// reinforceddoor in a 6 m radius (BioTerminalScript.cs:33-43, minus the
-	/// blood consumption — that already happened on the trigger side).</summary>
-	internal static void ApplyBioTerminal(BioTerminalScript terminal)
+	/// blood consumption — that already happened on the trigger side). The
+	/// terminal's disabled collider is the consumption mark.</summary>
+	internal static bool ApplyBioTerminal(BioTerminalScript terminal)
 	{
 		var building = terminal.GetComponent<BuildingEntity>(); // the private field's value (BioTerminalScript.Start)
 		if (building != null) // Unity object — ==
 		{
+			var collider = building.GetComponent<Collider2D>();
+			if (collider != null && !collider.enabled) // Unity object — ==
+			{
+				return false; // already consumed — a duplicate event
+			}
+
 			building.Backgroundify();
 		}
 
 		Sound.Play("beep", terminal.transform.position, false, true, null, 1f, 1f, false, false);
 		BackgroundifyNearbyDoors(terminal.transform.position, 6f);
+		return true;
 	}
 
 	/// <summary>Scrap eater fed: write the progress (the Update writes the
 	/// description from scrapAmount every frame); at 100 % run the unlock
-	/// (Backgroundify + the 2 m doors + beep — ScrapEaterScript.cs:27-39).</summary>
-	internal static void ApplyScrapEater(ScrapEaterScript eater, byte progress)
+	/// (Backgroundify + the 2 m doors + beep — ScrapEaterScript.cs:27-39).
+	/// A PROGRESS event always applies (every feed reports the new gauge);
+	/// the unlock part is idempotent (Backgroundify re-runs are no-ops).</summary>
+	internal static bool ApplyScrapEater(ScrapEaterScript eater, byte progress)
 	{
 		eater.scrapAmount = progress / 100f * ScrapEaterScript.target;
 		if (progress < 100)
 		{
-			return;
+			return true;
 		}
 
 		if (eater.build != null) // Unity object — ==
@@ -70,6 +105,7 @@ internal static class TrapStateActions
 
 		Sound.Play("beep", eater.transform.position, false, true, null, 1f, 1f, false, false);
 		BackgroundifyNearbyDoors(eater.transform.position, 2f);
+		return true;
 	}
 
 	/// <summary>Med station triggered: mark didHeal + sound + Backgroundify
@@ -77,11 +113,11 @@ internal static class TrapStateActions
 	/// gets the same treatment as the trigger side's (the laser anim + heal —
 	/// copied from HealBody, MedStationScript.cs:32-61; the station is a shared
 	/// one-shot, both sides' players in it benefit together).</summary>
-	internal static void ApplyMedStation(MedStationScript station)
+	internal static bool ApplyMedStation(MedStationScript station)
 	{
 		if (Traverse.Create(station).Field("didHeal").GetValue<bool>())
 		{
-			return; // already consumed — a repeated event is a no-op
+			return false; // already consumed — a duplicate event
 		}
 
 		Traverse.Create(station).Field("didHeal").SetValue(true);
@@ -96,13 +132,23 @@ internal static class TrapStateActions
 		{
 			station.StartCoroutine(HealAnimation(station, body));
 		}
+
+		return true;
 	}
 
 	/// <summary>Battery charger used: consume the firstTime mp3 gift (the insert
 	/// itself rides the item domain — the battery IS a world item, its
 	/// position/condition sync there; only the one-shot gift needs the event).</summary>
-	internal static void ApplyBattery(BatteryRecharger recharger) =>
+	internal static bool ApplyBattery(BatteryRecharger recharger)
+	{
+		if (!Traverse.Create(recharger).Field("firstTime").GetValue<bool>())
+		{
+			return false; // already consumed — a duplicate event
+		}
+
 		Traverse.Create(recharger).Field("firstTime").SetValue(false);
+		return true;
+	}
 
 	/// <summary>Backgroundify every reinforceddoor near a position (shared by the
 	/// bio terminal and the scrap eater unlocks).</summary>

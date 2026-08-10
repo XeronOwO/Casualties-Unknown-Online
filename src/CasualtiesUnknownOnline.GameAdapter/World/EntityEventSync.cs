@@ -17,10 +17,12 @@ namespace CasualtiesUnknownOnline.GameAdapter.World;
 /// sides, so the trap's transform position IS its identity (same pattern as
 /// the building-entity damage/open events).
 /// </summary>
-internal sealed class EntityEventSync(IWorldControl world, ISessionControl session, ILogger<EntityEventSync> log)
+internal sealed class EntityEventSync(IWorldControl world, ISessionControl session, TrapEffectApplier applier, TrapVisualReplay replay, ILogger<EntityEventSync> log)
 {
 	private readonly IWorldControl _world = world;
 	private readonly ISessionControl _session = session;
+	private readonly TrapEffectApplier _applier = applier;
+	private readonly TrapVisualReplay _replay = replay;
 	private readonly ILogger<EntityEventSync> _log = log;
 
 	internal void BindToSession()
@@ -65,19 +67,26 @@ internal sealed class EntityEventSync(IWorldControl world, ISessionControl sessi
 		if (_session.Role == SessionRole.Host)
 		{
 			// The host applies the event to its own world first (the
-			// TrapEffectApplier — destroy the host's copy, roll its drops,
-			// explode, diff the building damage) and relays afterwards.
+			// TrapEffectApplier — destroy the host's copy, explode with the
+			// trap's parameters; the building damage rides the CreateExplosion
+			// diff) and relays afterwards. NOT inside RemoteApply: the host's
+			// consequences must flow out (the crater rides the SetBlock relay).
 			_log.LogInformation("[TrapEvent] kind={Kind} pos=({X:F1},{Y:F1}) origin=HostApply from {Sender}.",
 				msg.Kind, pos.X, pos.Y, sender);
+			_applier.ApplyExplosion(msg.Kind, new Vector2(pos.X, pos.Y));
 			_world.ReportTrapConsumed(msg.Kind, pos.X, pos.Y); // one-shot consumptions, position-keyed (the late-joiner snapshot)
 			_world.BroadcastEntityEvent(sender, msg);
 		}
 		else
 		{
-			// The host's relay — replay the event (pure visual + real-body
-			// effects + entity state). The replay registry lands with the
-			// TrapVisualReplay step; until then this log line is the trace.
-			_log.LogInformation("[TrapEvent] kind={Kind} pos=({X:F1},{Y:F1}) origin=Replay.", msg.Kind, pos.X, pos.Y);
+			// The host's relay — replay the event: pure visual + real-body
+			// effects + entity consumption. RemoteApply: the replay must never
+			// re-report (the trap patches check the origin).
+			using (CallContext.Enter(CallContext.Origin.RemoteApply))
+			{
+				_log.LogInformation("[TrapEvent] kind={Kind} pos=({X:F1},{Y:F1}) origin=Replay.", msg.Kind, pos.X, pos.Y);
+				_replay.Replay(msg.Kind, new Vector2(pos.X, pos.Y), msg.Extra);
+			}
 		}
 	}
 

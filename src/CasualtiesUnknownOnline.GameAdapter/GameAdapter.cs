@@ -120,7 +120,10 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		MineScriptPatches.ShouldShieldItems = () => _session.Role == SessionRole.Guest; // a locally simulated item must not trip a mine on the guest side (the trigger checks only !isKinematic)
 		_blockBreakSync = new BlockBreakSync(session, world, items, blockBreakState, _operationTrace, loggerFactory.CreateLogger<BlockBreakSync>());
 		_worldEventSync = new WorldEventSync(session, world, _blockBreakSync, _operationTrace, loggerFactory.CreateLogger<WorldEventSync>());
-		_entityEventSync = new EntityEventSync(world, session, loggerFactory.CreateLogger<EntityEventSync>());
+		_entityEventSync = new EntityEventSync(world, session,
+			new TrapEffectApplier(loggerFactory.CreateLogger<TrapEffectApplier>()),
+			new TrapVisualReplay(loggerFactory.CreateLogger<TrapVisualReplay>()),
+			loggerFactory.CreateLogger<EntityEventSync>());
 		_lifePod = new LifePodPresentation(loggerFactory.CreateLogger<LifePodPresentation>());
 		_guestMenu = new GuestMenuGuard(session, loggerFactory.CreateLogger<GuestMenuGuard>());
 		_worldParams = new WorldParamsService(world, loggerFactory.CreateLogger<WorldParamsService>());

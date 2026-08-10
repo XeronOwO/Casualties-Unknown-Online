@@ -105,7 +105,7 @@ public sealed class EntityEventChannel(ISessionControl session, PacketSender sen
 
 	// ---- World fluid grid (host authority, #129) ----
 
-	/// <summary>Host only: stream an absolute RLE fluid-grid region to one member (the host simulates the world fluid alone; the guest applies it onto its local grid and the game's own renderer draws it).</summary>
+	/// <summary>Host only: stream an absolute RLE fluid-grid region to one member (the host simulates the world fluid alone; the guest applies it onto its local grid and the game's own renderer draws it). Unreliable: every region is an absolute overwrite, so a lost one is healed by the next (a reliable stream would queue the newest snapshot behind retransmissions — head-of-line blocking).</summary>
 	public void SendFluidRegion(ulong targetSteamId, FluidRegionMsg msg)
 	{
 		if (_session.Role != SessionRole.Host || !_session.SessionActive)
@@ -113,7 +113,7 @@ public sealed class EntityEventChannel(ISessionControl session, PacketSender sen
 			return;
 		}
 
-		_sender.Send(targetSteamId, NetMsg.FluidRegion, msg);
+		_sender.Send(targetSteamId, NetMsg.FluidRegion, msg, reliable: false);
 	}
 
 	/// <summary>Guest: the host's fluid region arrived — apply it onto the local grid.</summary>

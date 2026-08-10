@@ -205,6 +205,10 @@ internal sealed class FluidSimulationAuthority(
 		{
 			var id = pair.Key;
 			var anchor = pair.Value; // net48: KeyValuePair has no Deconstruct
+			if (id == _session.LocalSteamId)
+			{
+				continue; // the host's own viewport is not streamed to itself (Steam has no self-connection — thousands of failed sends and direction drops)
+			}
 
 			if (!_views.TryGetValue(id, out var view))
 			{

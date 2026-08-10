@@ -78,6 +78,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	private readonly EntityEventSync _entityEventSync;
 	private readonly EntitySpawnSync _entitySpawnSync;
 	private readonly GeyserStateSync _geyserStateSync;
+	private readonly FluidWorldSync _fluidSync;
 
 	public GameAdapter(SessionService session, EntitySyncService entities, CharacterDataStore characterData,
 		WorldService world, ItemService items, ILogger<GameAdapter> log, IMapper mapper, ILoggerFactory loggerFactory)
@@ -129,6 +130,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 			loggerFactory.CreateLogger<EntityEventSync>());
 		_entitySpawnSync = new EntitySpawnSync(world, session, loggerFactory.CreateLogger<EntitySpawnSync>());
 		_geyserStateSync = new GeyserStateSync(world, session, loggerFactory.CreateLogger<GeyserStateSync>());
+		_fluidSync = new FluidWorldSync(world, session, entities, loggerFactory);
 		_lifePod = new LifePodPresentation(loggerFactory.CreateLogger<LifePodPresentation>());
 		_guestMenu = new GuestMenuGuard(session, loggerFactory.CreateLogger<GuestMenuGuard>());
 		_worldParams = new WorldParamsService(world, loggerFactory.CreateLogger<WorldParamsService>());
@@ -194,6 +196,19 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		else
 		{
 			_log.LogError("Dynamic patch method CrystalElectric.Shock not found — the electric-crystal shock sync is off.");
+		}
+
+		// CrystalDripping (internal — the drip's fluid writes are the host's, #129).
+		var drippingType = typeof(CrystalEffect).Assembly.GetType("CrystalDripping");
+		var dripUpdate = drippingType?.GetMethod("Update", BindingFlags.Public | BindingFlags.Instance);
+		if (dripUpdate != null)
+		{
+			_harmony!.Patch(dripUpdate, prefix: new HarmonyMethod(typeof(CrystalDrippingPatch).GetMethod(
+				nameof(CrystalDrippingPatch.Prefix), BindingFlags.Static | BindingFlags.NonPublic)));
+		}
+		else
+		{
+			_log.LogError("Dynamic patch target CrystalDripping not found — the guest-side drip suppression is off.");
 		}
 	}
 
@@ -305,6 +320,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_worldEventSync.Update();
 		_geyserStateSync.Update(); // host/solo: capture + broadcast the geysers' liquid types once the generation finished
 		_entitySpawnSync.Update(); // the creation channel's deferred reports (a geyser's type, after its child Start) and carried-data applications
+		_fluidSync.Update(); // host: stream the members' fluid viewports (10 Hz diff + 1 Hz full)
 		_blockBreakSync.Update(); // expire break records without a consuming drops report
 		_renderer.Update();
 	}
@@ -332,6 +348,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_entityEventSync.BindToSession();
 		_entitySpawnSync.BindToSession();
 		_geyserStateSync.BindToSession();
+		_fluidSync.BindToSession();
 		_run.BindToSession();
 		_genItemApplication.BindToSession();
 		_layerModifierSync.BindToSession();
@@ -355,6 +372,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_entityEventSync.Unbind();
 		_entitySpawnSync.Unbind();
 		_geyserStateSync.Unbind();
+		_fluidSync.Unbind();
 		_run.Unbind();
 		_genItemApplication.Unbind();
 		_layerModifierSync.Unbind();
@@ -522,4 +540,8 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	void IPatchBridge.OnSlotMoved(Body body, int slot, string origin) => _itemSlotSync.OnSlotMoved(body, slot, origin);
 
 	void IPatchBridge.OnItemWorn(Item item) => _itemSlotSync.OnItemWorn(item);
+
+	void IPatchBridge.OnFluidFixedUpdate() => _fluidSync.OnFluidFixedUpdate();
+
+	void IPatchBridge.OnFluidDrinkReported(Vector2Int pos) => _fluidSync.OnDrinkReported(pos);
 }

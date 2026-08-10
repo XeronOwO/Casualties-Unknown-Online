@@ -258,11 +258,7 @@ public sealed class WorldService(ISessionControl session, PacketSender sender, I
 	// ---- World entity channels (events + runtime creation + consumptions) —
 	// implemented by EntityEventChannel (extracted at the 600-line gate) ----
 
-	public event Action<ulong, EntityEventMsg>? EntityEventReceived
-	{
-		add => _eventChannel.EntityEventReceived += value;
-		remove => _eventChannel.EntityEventReceived -= value;
-	}
+	public event Action<ulong, EntityEventMsg>? EntityEventReceived { add => _eventChannel.EntityEventReceived += value; remove => _eventChannel.EntityEventReceived -= value; }
 
 	public void FireEntityEventReceived(ulong sender, EntityEventMsg msg) => _eventChannel.FireEntityEventReceived(sender, msg);
 
@@ -272,11 +268,7 @@ public sealed class WorldService(ISessionControl session, PacketSender sender, I
 
 	public void ReportTrapConsumed(EntityEventKind kind, float x, float y, byte extra) => _eventChannel.ReportTrapConsumed(kind, x, y, extra);
 
-	public event Action<ulong, EntitySpawnedMsg>? EntitySpawnedReceived
-	{
-		add => _eventChannel.EntitySpawnedReceived += value;
-		remove => _eventChannel.EntitySpawnedReceived -= value;
-	}
+	public event Action<ulong, EntitySpawnedMsg>? EntitySpawnedReceived { add => _eventChannel.EntitySpawnedReceived += value; remove => _eventChannel.EntitySpawnedReceived -= value; }
 
 	public void FireEntitySpawnedReceived(ulong sender, EntitySpawnedMsg msg) => _eventChannel.FireEntitySpawnedReceived(sender, msg);
 
@@ -286,13 +278,23 @@ public sealed class WorldService(ISessionControl session, PacketSender sender, I
 
 	public void SendTrapStateSnapshot(ulong targetSteamId) => _eventChannel.SendTrapStateSnapshot(targetSteamId);
 
-	public event Action<IReadOnlyList<EntityEventMsg>>? TrapStateReceived
-	{
-		add => _eventChannel.TrapStateReceived += value;
-		remove => _eventChannel.TrapStateReceived -= value;
-	}
+	public event Action<IReadOnlyList<EntityEventMsg>>? TrapStateReceived { add => _eventChannel.TrapStateReceived += value; remove => _eventChannel.TrapStateReceived -= value; }
 
 	public void FireTrapStateReceived(IReadOnlyList<EntityEventMsg> consumed) => _eventChannel.FireTrapStateReceived(consumed);
+
+	public void SendFluidRegion(ulong targetSteamId, FluidRegionMsg msg) => _eventChannel.SendFluidRegion(targetSteamId, msg);
+
+	public event Action<FluidRegionMsg>? FluidRegionReceived { add => _eventChannel.FluidRegionReceived += value; remove => _eventChannel.FluidRegionReceived -= value; }
+
+	public void FireFluidRegionReceived(FluidRegionMsg msg) => _eventChannel.FireFluidRegionReceived(msg);
+
+	public void SendFluidInteraction(FluidInteractionMsg msg) => _eventChannel.SendFluidInteraction(msg);
+
+	public void BroadcastFluidInteraction(ulong excludeSteamId, FluidInteractionMsg msg) => _eventChannel.BroadcastFluidInteraction(excludeSteamId, msg);
+
+	public event Action<ulong, FluidInteractionMsg>? FluidInteractionReceived { add => _eventChannel.FluidInteractionReceived += value; remove => _eventChannel.FluidInteractionReceived -= value; }
+
+	public void FireFluidInteractionReceived(ulong sender, FluidInteractionMsg msg) => _eventChannel.FireFluidInteractionReceived(sender, msg);
 
 	/// <summary>Host only: broadcast the keypad codes (position-keyed Openables) to every synced member.</summary>
 	public void SendKeypadCodes(IReadOnlyList<KeypadEntryMsg> codes)

@@ -153,4 +153,10 @@ internal interface IPatchBridge
 
 	/// <summary>An item was worn straight from the inventory (WearWearable — hand/backpack → limb) — a slot-move report with the limb wear encoding as the new slot, so the peers' clones re-home it immediately.</summary>
 	void OnItemWorn(Item item);
+
+	/// <summary>A fluid fixed-update tick — the session replaces the game's per-side simulation (host: the multi-member pass over every member's viewport; guest: nothing — the grid only changes through the streamed regions).</summary>
+	void OnFluidFixedUpdate();
+
+	/// <summary>The local player drank (DrinkLiquid ran with the full local effect) — report the consumed cell (guest → host; host → broadcast).</summary>
+	void OnFluidDrinkReported(Vector2Int pos);
 }

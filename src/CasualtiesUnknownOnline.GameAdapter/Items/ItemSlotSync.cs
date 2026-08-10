@@ -29,6 +29,29 @@ internal sealed class ItemSlotSync(ItemService items, ISessionControl session, I
 			return;
 		}
 
+		ReportCarried(item, slot, origin);
+	}
+
+	/// <summary>
+	/// An item was worn straight from the inventory (WearWearable — the radial
+	/// menu's center drop): it moved from a slot to a limb, the same carried-fact
+	/// report with the limb wear encoding (ItemStateCodec.SlotOf, -(limbIndex + 2))
+	/// as the new slot — the peers' clones re-home it the moment the wear lands.
+	/// The world-item wear path reports a pickup instead (WearWearablePatch
+	/// decides by its captured IsWorldItem verdict).
+	/// </summary>
+	internal void OnItemWorn(Item item) => ReportCarried(item, ItemStateCodec.SlotOf(item), "Wear");
+
+	/// <summary>
+	/// An item was re-homed by the drag-to-slot sequence (PlayerCamera.cs:1623
+	/// DropItem + 1629 PickUpItem — the pickup sync cancels the pending drop as
+	/// a body-internal reorder, but the move itself still needs the carried-fact
+	/// report; before this the character snapshot carried it at 1 Hz).
+	/// </summary>
+	internal void OnItemRehomed(Item item) => ReportCarried(item, ItemStateCodec.SlotOf(item), "Drag");
+
+	private void ReportCarried(Item item, int slot, string origin)
+	{
 		var idComp = item.GetComponent<ItemInstanceId>();
 		if (idComp == null || idComp.Id == 0) // Unity object — ==; no table entry to record
 		{

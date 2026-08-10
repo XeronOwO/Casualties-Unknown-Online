@@ -231,9 +231,21 @@ internal static class BodyPatches
 			// no report. The drop-out-of-slot → wear-in sequence is a
 			// body-internal reorder and cancels inside the pickup sync (same
 			// as a re-pick) — reusing OnItemPickedUp buys all of that.
-			if (__state && item.transform.parent != null && item.transform.parent.GetComponent<Limb>() != null) // Unity objects — ==
+			// A wear STRAIGHT FROM THE INVENTORY (hand/backpack → limb, the
+			// radial menu's center drop) is a slot-move, not a pickup — it
+			// reports through the carried-fact chain with the limb wear
+			// encoding (OnItemWorn); the peer's clone re-homes it the moment
+			// the wear lands instead of waiting for the character snapshot.
+			if (item.transform.parent != null && item.transform.parent.GetComponent<Limb>() != null) // Unity objects — ==
 			{
-				PatchBridge.Impl?.OnItemPickedUp(item);
+				if (__state)
+				{
+					PatchBridge.Impl?.OnItemPickedUp(item);
+				}
+				else
+				{
+					PatchBridge.Impl?.OnItemWorn(item);
+				}
 			}
 		}
 	}

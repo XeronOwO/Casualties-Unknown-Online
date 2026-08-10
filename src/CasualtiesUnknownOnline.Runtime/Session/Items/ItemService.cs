@@ -34,6 +34,8 @@ public sealed class ItemService : IItemControl
 	private readonly ItemArbitration _arbitration;
 	private readonly ItemCarriedSyncService _carriedSync;
 	private readonly ItemSnapshotService _snapshots;
+	private readonly ItemIdCoordinator _idCoordinator;
+	private readonly BlockDropSync _blockDrops;
 
 	public ItemService(ISessionControl session, PacketSender sender, ILogger<ItemService> log)
 	{
@@ -43,7 +45,26 @@ public sealed class ItemService : IItemControl
 		_arbitration = new(session, sender, log);
 		_carriedSync = new(session, sender, log);
 		_snapshots = new(session, sender, () => _worldItems.Values, log);
+		_idCoordinator = new ItemIdCoordinator(session, sender, _arbitration, log);
+		_blockDrops = new BlockDropSync(session, this);
 	}
+
+	// ===== Item-id coordination (watermarks + carried inventory) — the state lives in ItemIdCoordinator =====
+
+	/// <summary>Guest only: an item-instance id was allocated locally — report the counter high-water mark (the host grants it back on a reconnect).</summary>
+	public void SendItemIdWatermark(ulong counter) => _idCoordinator.SendItemIdWatermark(counter);
+
+	/// <summary>Guest only: the carried inventory with self-assigned ids (the local generation finished) — the host registers it in the guest's transfer table.</summary>
+	public void SendCarriedInventory(IReadOnlyList<CharacterItemMsg> items) => _idCoordinator.SendCarriedInventory(items);
+
+	/// <summary>Host only: grant a member's id watermark (its allocations may resume from counter + 1 — 0 = it never allocated).</summary>
+	public void GrantItemIdWatermark(ulong targetSteamId, ulong counter) => _idCoordinator.GrantItemIdWatermark(targetSteamId, counter);
+
+	/// <summary>The id counter high-water mark arrived: host records it (the reconnect grant point), guest applies it (resume from counter + 1).</summary>
+	public void FireItemIdWatermarkReceived(ulong sender, ulong counter) => _idCoordinator.FireItemIdWatermarkReceived(sender, counter);
+
+	/// <summary>Host only: a guest's carried inventory with self-assigned ids arrived — register it in the guest's transfer table (its use/slot reports then arbitrate normally).</summary>
+	public void FireCarriedInventoryReceived(ulong sender, IReadOnlyList<CharacterItemMsg> items) => _idCoordinator.FireCarriedInventoryReceived(sender, items);
 
 	public event Action<WorldItem>? ItemSpawned;
 
@@ -79,6 +100,12 @@ public sealed class ItemService : IItemControl
 	{
 		add => _carriedSync.ItemCarriedSyncReceived += value;
 		remove => _carriedSync.ItemCarriedSyncReceived -= value;
+	}
+
+	public event Action<ulong>? ItemIdWatermarkReceived
+	{
+		add => _idCoordinator.ItemIdWatermarkReceived += value;
+		remove => _idCoordinator.ItemIdWatermarkReceived -= value;
 	}
 
 	// ===== Host-authoritative position stream =====
@@ -379,55 +406,13 @@ public sealed class ItemService : IItemControl
 		ItemRejected?.Invoke(itemId, reason);
 	}
 
-	// ===== Block-break drops (one message, one verdict — the break's drops ride BlockDamagedMsg) =====
+	// ===== Block-break drops (one message, one verdict — the break's drops ride BlockDamagedMsg) — the chain lives in BlockDropSync =====
 
-	/// <summary>
-	/// Host/solo: record the drops of a LOCALLY broken block into the
-	/// authoritative table (the wire report itself goes through
-	/// WorldService.SendBlockDamaged — the drops travel with the break, not as
-	/// standalone spawn reports). The local drop objects already exist — this
-	/// only registers, never materializes. Guests have no table and never call.
-	/// </summary>
-	public void RegisterBlockDrops(IReadOnlyList<BlockDropEntryMsg> drops)
-	{
-		if (_session.Role == SessionRole.Guest || drops.Count == 0)
-		{
-			return;
-		}
+	/// <summary>Host/solo: record the drops of a LOCALLY broken block into the authoritative table.</summary>
+	public void RegisterBlockDrops(IReadOnlyList<BlockDropEntryMsg> drops) => _blockDrops.RegisterBlockDrops(drops);
 
-		foreach (var drop in drops)
-		{
-			if (!_worldItems.ContainsKey(drop.ItemId))
-			{
-				_worldItems[drop.ItemId] = ToWorldItem(drop);
-			}
-		}
-	}
-
-	/// <summary>
-	/// A break with drops was APPLIED (host: the report's break was accepted —
-	/// the sender's BlockPlaced already broke the block on this side; guest: the
-	/// host's accepted relay arrived): register (host only) and materialize
-	/// every drop. The breaker itself is excluded from the relay and never
-	/// arrives here — its local drops are the original, already on the ground.
-	/// </summary>
-	public void FireBlockDropsReceived(ulong sender, IReadOnlyList<BlockDropEntryMsg> drops)
-	{
-		if (drops.Count == 0)
-		{
-			return;
-		}
-
-		foreach (var drop in drops)
-		{
-			if (_session.Role == SessionRole.Host && !_worldItems.ContainsKey(drop.ItemId))
-			{
-				_worldItems[drop.ItemId] = ToWorldItem(drop);
-			}
-
-			ItemSpawned?.Invoke(ToWorldItem(drop));
-		}
-	}
+	/// <summary>A break with drops was APPLIED — register (host only) and materialize every drop.</summary>
+	public void FireBlockDropsReceived(ulong sender, IReadOnlyList<BlockDropEntryMsg> drops) => _blockDrops.FireBlockDropsReceived(sender, drops);
 
 	/// <summary>
 	/// Host only: refuse a reported break's drops (the break was already applied
@@ -444,9 +429,21 @@ public sealed class ItemService : IItemControl
 		_sender.Send(targetSteamId, NetMsg.ItemReject, new ItemRejectMsg { ItemId = itemId, Rejection = reason });
 	}
 
-	private static WorldItem ToWorldItem(BlockDropEntryMsg drop) => new(
-		drop.ItemId, drop.Item, drop.Position.ToNetVector2(), drop.Velocity.ToNetVector2(),
-		0, drop.Rotation, drop.FreshItemDrop, AngularVelocity: drop.AngularVelocity);
+	/// <summary>Host/solo: register a world item into the table when absent — the
+	/// block-break drop domain asks, the table state belongs here.</summary>
+	internal bool RegisterWorldItemIfAbsent(ulong itemId, WorldItem item)
+	{
+		if (_worldItems.ContainsKey(itemId))
+		{
+			return false;
+		}
+
+		_worldItems[itemId] = item;
+		return true;
+	}
+
+	/// <summary>Surface the ItemSpawned event for the block-break drop domain (an event can only be invoked from its declaring class).</summary>
+	internal void FireItemSpawned(WorldItem item) => ItemSpawned?.Invoke(item);
 
 	public void FireItemCorrectionReceived(ulong sender, CharacterItemMsg item)
 	{
@@ -467,8 +464,9 @@ public sealed class ItemService : IItemControl
 
 		// The adopted state broadcasts as the carried-fact event (the peers'
 		// clones of the user show the flipped state — a flashlight mode — the
-		// moment the use lands). A starting-supply item has no transfer-table
-		// entry (it never passed a pickup) — the guest's own report IS the fact
+		// moment the use lands). Defensive fallback: an item with no
+		// transfer-table entry yet (the guest's carried-inventory report is
+		// still in flight, or it was lost) — the guest's own report IS the fact
 		// then (the same unconditional-adoption logic), broadcast as-is.
 		var authoritative = _arbitration.CheckUseEvidence(sender, itemId, evidence) ?? evidence;
 		PublishCarriedSync(sender, authoritative);
@@ -482,10 +480,11 @@ public sealed class ItemService : IItemControl
 		}
 
 		// The recorded slot broadcasts as the carried-fact event (the peers'
-		// clones of the mover re-home the item the moment the move lands). A
-		// starting-supply item has no transfer-table entry (it never passed a
-		// pickup) — the report's digest evidence is the fact then, broadcast
-		// as-is (its slot is the new one, SlotKnown).
+		// clones of the mover re-home the item the moment the move lands).
+		// Defensive fallback: an item with no transfer-table entry yet (the
+		// carried-inventory report in flight or lost) — the report's digest
+		// evidence is the fact then, broadcast as-is (its slot is the new one,
+		// SlotKnown).
 		var authoritative = _arbitration.RecordSlot(sender, itemId, slotIndex) ?? item;
 		PublishCarriedSync(sender, authoritative);
 	}

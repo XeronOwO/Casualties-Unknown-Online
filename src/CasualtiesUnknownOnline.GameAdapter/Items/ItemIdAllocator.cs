@@ -1,4 +1,5 @@
 using CasualtiesUnknownOnline.Runtime.Session;
+using CasualtiesUnknownOnline.Runtime.Session.Items;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Items;
 
@@ -6,18 +7,41 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 /// Instance-id allocation for the item domain: ids are (counter, account id) —
 /// globally unique per session without host allocation. EnsureId stamps an
 /// ItemInstanceId component on the object, returning 0 when the item is not
-/// eligible (still generating — the world-gen determinism covers those). Split
-/// out of ItemWorldSync (gate-driven — the report-side class keeps growing
-/// with every pickup/drop path fix).
+/// eligible (still generating — the world-gen determinism covers those). Every
+/// allocation advances the counter and reports the high-water mark to the host
+/// (guest side); the host grants it back on join/reconnect — a crashed-and-
+/// rejoined guest's counter restarts from zero and would otherwise reuse ids
+/// the host's tables still hold. Split out of ItemWorldSync (gate-driven — the
+/// report-side class keeps growing with every pickup/drop path fix).
 /// </summary>
-internal sealed class ItemIdAllocator(SessionService session)
+internal sealed class ItemIdAllocator(SessionService session, ItemService items)
 {
 	private readonly SessionService _session = session;
+	private readonly ItemService _items = items;
 
 	/// <summary>Instance-id counter: ids are (counter, account id) — globally unique per session without host allocation.</summary>
 	private ulong _nextItemId;
 
-	private ulong Next() => (_nextItemId++ << 32) | (uint)_session.LocalSteamId;
+	private ulong Next()
+	{
+		var id = (_nextItemId++ << 32) | (uint)_session.LocalSteamId;
+		// The counter advanced — report the high-water mark (guest side; the
+		// host's own allocations need no report — it IS the watermark
+		// authority). SendItemIdWatermark guards on role + session active.
+		_items.SendItemIdWatermark(_nextItemId - 1);
+		return id;
+	}
+
+	/// <summary>Resume the counter from the host's grant (join/reconnect): the
+	/// crashed-and-rejoined counter must not reuse ids the host still holds.
+	/// Only ever raises — a late duplicate grant must not move it back.</summary>
+	internal void SetWatermark(ulong counter)
+	{
+		if (counter >= _nextItemId)
+		{
+			_nextItemId = counter + 1;
+		}
+	}
 
 	/// <summary>
 	/// Return the item's instance id, allocating one when it does not have it

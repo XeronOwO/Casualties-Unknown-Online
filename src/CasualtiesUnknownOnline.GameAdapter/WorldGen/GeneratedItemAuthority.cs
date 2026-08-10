@@ -86,12 +86,17 @@ internal sealed class GeneratedItemAuthority(
 
 		var entries = new List<ItemSnapshotEntryMsg>();
 		var ground = 0;
-		var carried = 0;
 
 		// Ground items: every standalone world item without an id is a
 		// generation-time item (runtime drops/throws got ids the moment they
 		// entered the domain). Container contents ride inside their parent's
-		// Contents — never enumerated independently.
+		// Contents — never enumerated independently. The starting supplies are
+		// NOT enumerated anymore: every side self-assigns its own ids (the id
+		// space is per-SteamId, ItemIdAllocator) and the guests report their
+		// carried inventory to the host's transfer table (CarriedInventoryReporter)
+		// — the old host-distributed carried ids gave every side the SAME ids
+		// for different objects (a drop collided with another side's backpack
+		// copy).
 		foreach (var item in Item.allItems)
 		{
 			if (item.GetComponent<ItemInstanceId>() != null) // Unity object — ==; already in the domain
@@ -106,32 +111,6 @@ internal sealed class GeneratedItemAuthority(
 
 			entries.Add(BuildEntry(item, slotIndex: -1));
 			ground++;
-		}
-
-		// Starting supplies: the host's own backpack at the generation-finished
-		// moment (the game hands them out inside generation,
-		// WorldGeneration.WorldPlacePlayer:1904-1913). Bound by slot — the
-		// guests' copies sit in the same slots (same runSettings, isolated
-		// stream). Only here, before any play can change the inventory.
-		var body = PlayerCamera.main?.body; // Unity object — ==
-		if (body != null)
-		{
-			for (var slot = 0; slot < body.slots.Length; slot++)
-			{
-				var item = body.GetItem(slot);
-				if (item == null) // Unity object — ==
-				{
-					continue;
-				}
-
-				if (item.GetComponent<ItemInstanceId>() != null) // Unity object — ==
-				{
-					continue;
-				}
-
-				entries.Add(BuildEntry(item, slot));
-				carried++;
-			}
 		}
 
 		if (entries.Count == 0)
@@ -150,8 +129,8 @@ internal sealed class GeneratedItemAuthority(
 		_items.LayerModifierRandomState = modifierIndex >= 0 ? LayerModifierApplyPatch.LastEntryState : null;
 
 		_items.PublishGeneratedItems(entries);
-		_log.LogInformation("[GenItems] host published {Ground} ground + {Carried} carried items (modifier {Modifier}).",
-			ground, carried, _items.LayerModifierIndex);
+		_log.LogInformation("[GenItems] host published {Ground} ground items (modifier {Modifier}).",
+			ground, _items.LayerModifierIndex);
 	}
 
 	/// <summary>Allocate the host's id (the host's counter — ids can never collide with a guest's) and capture the full state.</summary>

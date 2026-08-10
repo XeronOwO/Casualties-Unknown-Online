@@ -167,6 +167,36 @@ public sealed class ItemArbitration(ISessionControl session, PacketSender sender
 	private static bool ContentsContain(CharacterItemMsg item, ulong itemId) =>
 		item.Contents.Any(c => c.InstanceId == itemId || ContentsContain(c, itemId));
 
+	/// <summary>
+	/// Host only: a guest's carried inventory with self-assigned ids arrived
+	/// (its local generation finished — the starting supplies and worn items).
+	/// Registered in the transfer table so the guest's use/slot reports
+	/// arbitrate normally — the authoritative record the accept-with-correction
+	/// path checks against (the guest's own report was the fact source before
+	/// this, through the no-entry fallback). Idempotent: a re-report overwrites.
+	/// </summary>
+	public void RegisterCarried(ulong guest, IReadOnlyList<CharacterItemMsg> items)
+	{
+		if (!_transferred.TryGetValue(guest, out var owned))
+		{
+			_transferred[guest] = owned = [];
+		}
+
+		var registered = 0;
+		foreach (var item in items)
+		{
+			if (item.InstanceId == 0)
+			{
+				continue; // unbound — nothing to register
+			}
+
+			owned[item.InstanceId] = new WorldItem(item.InstanceId, item, default, default, 0, 0f, false);
+			registered++;
+		}
+
+		_log.LogInformation("Registered {Registered}/{Count} carried items of {Guest} in the transfer table.", registered, items.Count, guest);
+	}
+
 	// ===== Host-only surface =====
 
 	public void SendCorrection(ulong targetSteamId, CharacterItemMsg item)

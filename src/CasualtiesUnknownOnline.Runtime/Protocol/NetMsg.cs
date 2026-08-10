@@ -62,4 +62,8 @@ public enum NetMsg : byte
 
 	// Carried-item facts (host → guest events: use flipped state, slot move, pickup — the receiver updates the per-player fact table and re-renders the clone immediately; the 1 Hz character snapshot stays as the fallback)
 	ItemCarriedSync = 63, // host → guest: one carried item's authoritative state (OwnerSteamId + full fact + SlotKnown) — a use/slot move/pickup broadcast; leaving an inventory travels ItemDrop
+
+	// Item id coordination (guest → host reports / host → guest grants)
+	ItemIdWatermark = 64, // bidirectional: guest → host the counter it allocated up to; host → guest the grant it must resume from (a crashed-and-rejoined guest's counter restarts — the grant keeps its new ids from colliding with the old ones the host still holds)
+	CarriedInventory = 65, // guest → host: the guest's carried inventory with self-assigned ids (generation finished) — the host registers it in the guest's transfer table
 }

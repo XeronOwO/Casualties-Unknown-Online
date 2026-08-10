@@ -12,11 +12,13 @@ namespace CasualtiesUnknownOnline.GameAdapter.WorldGen;
 /// snapshot. Ground items are bound to the host's ids — the geometry-identical
 /// local copy (isolated stream) gets the id, a divergent one (corpse-loot
 /// rolls that ran on the real stream, WorldGeneration.cs:3625 suspension
-/// period) is replaced by the host's materialization; carried entries bind the
-/// starting supplies by slot; local ground items the host does not know are
-/// destroyed. After the application every world item on this side carries a
-/// host-assigned id — the pickup race (two sides, two ids, one object) is
-/// structurally gone.
+/// period) is replaced by the host's materialization; local ground items the
+/// host does not know are destroyed. After the application every world item on
+/// this side carries a host-assigned id — the pickup race (two sides, two ids,
+/// one object) is structurally gone. The starting supplies are NOT in the
+/// snapshot anymore: every side self-assigns its own ids (the id space is
+/// per-SteamId, ItemIdAllocator) and the guests report their carried inventory
+/// to the host's transfer table (CarriedInventoryReporter).
 ///
 /// The snapshot is held back until the local generation finished: applying
 /// earlier would materialize the host's items on top of the local copies that
@@ -64,23 +66,10 @@ internal sealed class GeneratedItemApplication(
 			var materialized = 0;
 			foreach (var entry in entries)
 			{
-				// Wire encoding: slotIndex + 1, 0 = a world item (protobuf-net
-				// omits 0-valued ints — see ItemSnapshotEntryMsg.SlotIndex).
-				if (entry.SlotIndex > 0)
-				{
-					if (TryBindCarried(entry))
-					{
-						bound++;
-					}
-					else
-					{
-						_log.LogWarning("[GenItems] carried entry slot {Slot} ({Type}) has no matching local item — skipped.",
-							entry.SlotIndex - 1, entry.Item.ItemId);
-					}
-
-					continue;
-				}
-
+				// Ground-only now: the starting supplies are no longer distributed
+				// with host-assigned ids — every side self-assigns its own (the id
+				// space is per-SteamId) and the guests report their carried
+				// inventory to the host (CarriedInventoryReporter).
 				ground++;
 				var w = new WorldItem(entry.ItemId, entry.Item,
 					entry.Position.ToNetVector2(), entry.Velocity.ToNetVector2(),
@@ -121,32 +110,5 @@ internal sealed class GeneratedItemApplication(
 			_log.LogInformation("[GenItems] applied {Count} entries: {Bound} bound, {Materialized} materialized ({Ground} ground) — destroyed {Destroyed} host-unknown locals.",
 				entries.Count, bound, materialized, ground, destroyed);
 		}
-	}
-
-	/// <summary>Bind the host's id to the local starting supply in the same slot (the guest's slot layout matches the host's — same runSettings, isolated stream).</summary>
-	private static bool TryBindCarried(ItemSnapshotEntryMsg entry)
-	{
-		var body = PlayerCamera.main?.body; // Unity object — ==
-		var slotIndex = entry.SlotIndex - 1; // wire encoding: slotIndex + 1
-		if (body == null || slotIndex < 0 || slotIndex >= body.slots.Length) // Unity object — ==
-		{
-			return false;
-		}
-
-		var slot = body.slots[slotIndex];
-		for (var c = 0; c < slot.transform.childCount; c++)
-		{
-			var item = slot.transform.GetChild(c).GetComponent<Item>();
-			if (item == null || item.GetComponent<ItemInstanceId>() != null) // Unity objects — ==
-			{
-				continue;
-			}
-
-			var idComp = item.gameObject.AddComponent<ItemInstanceId>();
-			idComp.Id = entry.ItemId;
-			return true;
-		}
-
-		return false;
 	}
 }

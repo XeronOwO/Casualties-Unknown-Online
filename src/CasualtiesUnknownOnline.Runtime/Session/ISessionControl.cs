@@ -49,8 +49,14 @@ public interface ISessionControl
 
 	void FireRemoteSceneChanged(ulong steamId, bool inWorld);
 
+	/// <summary>Raise the MemberAdded event (the handshake handlers fire it when a member's handshake completes).</summary>
+	void FireMemberAdded(ulong steamId);
+
 	/// <summary>Raised when a member is removed from the presence table (the entity domain cleans up on this).</summary>
 	event Action<ulong>? MemberRemoved;
+
+	/// <summary>Raised when a member's handshake completes (reconnects included — the item domain grants the id watermark on this).</summary>
+	event Action<ulong>? MemberAdded;
 
 	/// <summary>Raised when the session ends (the entity domain tears down on this).</summary>
 	event Action? SessionEnded;

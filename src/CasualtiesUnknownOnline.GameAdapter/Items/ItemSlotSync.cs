@@ -13,10 +13,11 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 /// authority — it broadcasts the full carried item instead, so the peers'
 /// clones of the host re-home the item the moment the move lands.
 /// </summary>
-internal sealed class ItemSlotSync(ItemService items, ISessionControl session, ILogger<ItemSlotSync> log)
+internal sealed class ItemSlotSync(ItemService items, ISessionControl session, ItemIdAllocator ids, ILogger<ItemSlotSync> log)
 {
 	private readonly ItemService _items = items;
 	private readonly ISessionControl _session = session;
+	private readonly ItemIdAllocator _ids = ids;
 	private readonly ILogger<ItemSlotSync> _log = log;
 
 	/// <summary>Report the occupant of one slot after a slot move (SwapSlots/SwitchHands). An empty or unbound slot is skipped.</summary>
@@ -31,17 +32,30 @@ internal sealed class ItemSlotSync(ItemService items, ISessionControl session, I
 		var idComp = item.GetComponent<ItemInstanceId>();
 		if (idComp == null || idComp.Id == 0) // Unity object — ==; no table entry to record
 		{
-			return;
+			// A starting supply may still be id-less — the host assigns lazily
+			// on first domain entry (the id must travel with the fact broadcast);
+			// the guests' supplies were self-assigned at generation finish.
+			if (_session.Role != SessionRole.Host)
+			{
+				return;
+			}
+
+			if (_ids.EnsureId(item) == 0)
+			{
+				return; // still generating — no allocation possible
+			}
+
+			idComp = item.GetComponent<ItemInstanceId>();
 		}
 
 		if (_session.Role == SessionRole.Host && _session.SessionActive)
 		{
 			_items.SendItemCarriedSync(_session.LocalSteamId, ItemStateCodec.CaptureItem(item, slot));
-			_log.LogInformation("[SlotMoved] {Type} (id {ItemId}) → slot {Slot} ({Origin}) — host fact broadcast.", item.id, idComp.Id, slot, origin);
+			_log.LogInformation("[SlotMoved] {Type} (id {ItemId}) → slot {Slot} ({Origin}) — host fact broadcast.", item.id, idComp!.Id, slot, origin);
 			return;
 		}
 
-		_items.SendItemSlot(idComp.Id, slot, ItemStateCodec.CaptureDigest(item, slot));
+		_items.SendItemSlot(idComp!.Id, slot, ItemStateCodec.CaptureDigest(item, slot));
 		_log.LogInformation("[SlotMoved] {Type} (id {ItemId}) → slot {Slot} ({Origin}) reported.", item.id, idComp.Id, slot, origin);
 	}
 }

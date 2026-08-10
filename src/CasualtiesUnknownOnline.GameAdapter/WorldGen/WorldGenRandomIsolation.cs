@@ -36,11 +36,22 @@ internal static class WorldGenRandomIsolation
 	private static int _segments;
 	private static string? _lastSavedHex;
 
+	/// <summary>The random stream state at the most recent segment start. The
+	/// layer-modifier decision (ApplyLayerModifiers, WorldGeneration.cs:3729)
+	/// runs AFTER the FINAL segment restore — no further save/restore pair
+	/// exists there, so the world's frame-level draws between that restore and
+	/// the decision leak into the public stream per-side (frame-rate dependent;
+	/// observed 123-151 ms windows at 10-20 fps). Rewinding the decision to
+	/// this state makes the roll a pure function of the segment start, which is
+	/// fingerprint-identical on every side.</summary>
+	internal static Random.State? LastSegmentStart { get; private set; }
+
 	private static void Save()
 	{
 		_genStates.Push(Random.state);
 		_segments++;
 		_lastSavedHex = StateHex();
+		LastSegmentStart = Random.state;
 		// Fingerprint every early segment (the divergence point is what matters),
 		// then sample the tail — a full 1024-column generation is ~40 segments.
 		if (Log is not null && (_segments <= 24 || _segments % 8 == 0))
@@ -131,6 +142,7 @@ internal static class WorldGenRandomIsolation
 		// reset and the first Random call would leak one frame of public-stream
 		// consumption into the generation start (divergent details).
 		_segments = 0;
+		LastSegmentStart = null; // a new generation — the first Save records the new layer's segment start
 		yield return Drive(generateWorld, adapter, resetFirst: true);
 		Log?.Invoke($"[GenStream] done — {_segments} segments.");
 	}

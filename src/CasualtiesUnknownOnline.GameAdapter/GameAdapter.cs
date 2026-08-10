@@ -103,7 +103,8 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_genItemAuthority = new GeneratedItemAuthority(session, items, itemIds, loggerFactory.CreateLogger<GeneratedItemAuthority>());
 		_genItemApplication = new GeneratedItemApplication(items, _itemApplication, loggerFactory.CreateLogger<GeneratedItemApplication>());
 		_layerModifierSync = new LayerModifierSync(items, loggerFactory.CreateLogger<LayerModifierSync>());
-		LayerModifierApplyPatch.IsModifierAuthority = () => _session.Role != SessionRole.Guest; // the host/solo side rolls the world's modifier; guests apply the host's
+		LayerModifierApplyPatch.IsModifierAuthority = () => _session.Role != SessionRole.Guest; // the host/solo side rolls the world's modifier; guests replay it locally and fall back to the snapshot
+		LayerModifierApplyPatch.ReportLocalDecision = _layerModifierSync.OnLocalDecision; // the guest's local replay — the adapter defers Initialize until the generation finished
 		_blockBreakSync = new BlockBreakSync(session, world, items, blockBreakState, _operationTrace, loggerFactory.CreateLogger<BlockBreakSync>());
 		_worldEventSync = new WorldEventSync(session, world, _blockBreakSync, _operationTrace, loggerFactory.CreateLogger<WorldEventSync>());
 		_lifePod = new LifePodPresentation(loggerFactory.CreateLogger<LifePodPresentation>());

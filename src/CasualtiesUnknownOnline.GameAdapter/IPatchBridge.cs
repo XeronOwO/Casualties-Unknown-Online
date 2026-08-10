@@ -1,3 +1,4 @@
+using CasualtiesUnknownOnline.Runtime.Protocol;
 using UnityEngine;
 
 namespace CasualtiesUnknownOnline.GameAdapter;
@@ -29,6 +30,14 @@ internal interface IPatchBridge
 
 	/// <summary>A lockable entity was opened (health = 0 write path — Openable/lockpick/keypad) — report it.</summary>
 	void OnBuildingEntityOpened(BuildingEntity entity);
+
+	/// <summary>
+	/// A trap/mechanism event fired (the trap's own trigger transition — the
+	/// patch verified it). The local effect already ran (original behaviour):
+	/// report (guest) or broadcast (host). Position-keyed: the entity's
+	/// transform position.
+	/// </summary>
+	void OnTrapTriggered(EntityEventKind kind, Vector2 position, byte extra);
 
 	/// <summary>The spawn landing sound is deferred while the start gate holds — play it when the gate releases.</summary>
 	void DeferLifePodSound();

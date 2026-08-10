@@ -365,13 +365,19 @@ internal static class TrapStateActions
 		// t = 0 the warning (turretsee, TurretScript.cs:69 — 2D) — the trigger
 		// side's discovery moment; at t = 0.5 s the shot (rifleshot, :45) +
 		// particle burst (:44) + tracer (Shoot :202-205) — the trigger side's
-		// beepTime >= 0.5 s firing moment. The FULL post-fire state is set
-		// immediately (timeSinceFired = 0 + didShoot = true start the 15 s
-		// reload, didBeep = true pins the discovery branch off), so the 0.5 s
-		// window is silent like single-player and the game's own Update can
-		// never fire a REAL shot at the local player (the `!didShoot` guard).
+		// beepTime >= 0.5 s firing moment. The post-fire STATE is set
+		// immediately (didShoot = true start the 15 s reload, didBeep = true
+		// pins the discovery branch off — the 0.5 s window is silent like
+		// single-player and the game's own Update can never fire a REAL shot,
+		// the `!didShoot` guard). timeSinceFired = 3 s, NOT 0: the fire skin and
+		// lamp are driven by it (fireSprite while < 2 s, fireLight 80 - *300,
+		// TurretScript.cs:26-28) and must light at the FIRING moment — the
+		// 0.5 s coroutine sets 0 there, together with the shot visuals (setting
+		// 0 at the warning lit them 0.5 s early, the observed glitch). 3 s
+		// keeps the sprite off (> 2), the lamp off (80 - 900 < 0) and the
+		// reload reset at bay (timeSinceFired > 15 is not reached).
 		Sound.Play("turretsee", turret.transform.position, true, false, null, 1f, 1f, false, false);
-		Traverse.Create(turret).Property("timeSinceFired").SetValue(0f);
+		Traverse.Create(turret).Property("timeSinceFired").SetValue(3f);
 		Traverse.Create(turret).Field("didShoot").SetValue(true);
 		Traverse.Create(turret).Field("didBeep").SetValue(true);
 		turret.StartCoroutine(DelayedFireVisuals(turret));
@@ -381,8 +387,9 @@ internal static class TrapStateActions
 	/// <summary>The shot visual 0.5 s after the warning — the trigger side's
 	/// beepTime firing moment (TurretScript.cs:40). Pure visual (no Shoot() —
 	/// the shot's damage is the trigger-side player's single-target effect).
-	/// The fireSprite skin needs no work: timeSinceFired = 0 shows it for 2 s
-	/// in the game's own Update (TurretScript.cs:26).</summary>
+	/// timeSinceFired = 0 lands HERE, at the firing moment — the fireSprite
+	/// skin and the fireLamp are driven by it (TurretScript.cs:26-28) and must
+	/// light when the trigger side's shot does, not at the warning.</summary>
 	private static IEnumerator DelayedFireVisuals(TurretScript turret)
 	{
 		yield return new WaitForSeconds(0.5f);
@@ -391,6 +398,7 @@ internal static class TrapStateActions
 			yield break; // destroyed while the delay ran
 		}
 
+		Traverse.Create(turret).Property("timeSinceFired").SetValue(0f); // the firing moment: fire skin + lamp + shot visuals together
 		Sound.Play("rifleshot", turret.transform.position, true, false, null, 1f, 1f, false, false);
 		var particles = turret.GetComponentInChildren<ParticleSystem>();
 		if (particles != null) // Unity object — ==

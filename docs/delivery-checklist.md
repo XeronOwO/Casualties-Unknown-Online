@@ -29,3 +29,6 @@ the user called it out). Only the -Reset switch may touch multiple lines.
 - [ ] Runtime verification done (post-deploy evidence: logs / acceptance)
 - [ ] Structure review done (touched classes <= 600 lines, state bools,
       dead mechanisms deleted in the same round)
+- [ ] FORBIDDEN — never check this box; checking it fails the delivery gate
+      (a honey-pot: a checked forbidden box means a step was skipped on
+      purpose, which is exactly what the gate exists to catch)

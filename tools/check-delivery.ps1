@@ -34,13 +34,26 @@ if ($Reset) {
 
 $unchecked = @()
 $checked = 0
+$forbiddenChecked = @()
 foreach ($line in Get-Content $checklist -Encoding UTF8) {
     if ($line -match '^\s*- \[ \]') {
+        if ($line -match 'FORBIDDEN') { continue } # honey-pot: never a task, only a trap — an unchecked forbidden box is not an incomplete step
         $unchecked += $line.Trim()
     }
     elseif ($line -match '^\s*- \[x\]') {
         $checked++
+        if ($line -match 'FORBIDDEN') {
+            $forbiddenChecked += $line.Trim()
+        }
     }
+}
+
+if ($forbiddenChecked.Count -gt 0) {
+    Write-Host "Delivery gate FAILED - FORBIDDEN box(es) checked:" -ForegroundColor Red
+    foreach ($item in $forbiddenChecked) {
+        Write-Host "  - $item" -ForegroundColor Red
+    }
+    exit 1
 }
 
 if ($unchecked.Count -gt 0) {

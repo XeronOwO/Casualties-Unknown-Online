@@ -1,0 +1,76 @@
+using CasualtiesUnknownOnline.Runtime.Protocol;
+using HarmonyLib;
+using Microsoft.Extensions.Logging;
+using UnityEngine;
+
+namespace CasualtiesUnknownOnline.GameAdapter.World;
+
+/// <summary>
+/// Guest-side replay of a trap event (the host's relay): the pure-visual
+/// explosion five-piece (sound/particle/blastmark/shake — WorldGeneration.cs:
+/// 3965-3970, the no-side-effect part), the real-body effect segment
+/// (ExplosionBodyEffect — standing near a replayed blast hurts), and the
+/// entity consumption (exploded = true + health = 0 + RemoteEntityDeath — the
+/// destroy happens through the existing remote-death path: no drop roll, no
+/// local crater). Never calls CreateExplosion itself — the crater rides the
+/// SetBlock relay and a local call would double-blast the local world.
+/// </summary>
+internal sealed class TrapVisualReplay(ILogger<TrapVisualReplay> log)
+{
+	private readonly ILogger<TrapVisualReplay> _log = log;
+
+	internal void Replay(EntityEventKind kind, Vector2 position, byte extra)
+	{
+		switch (kind)
+		{
+			case EntityEventKind.MineExploded:
+				ReplayMineExplosion(position);
+				break;
+			default:
+				_log.LogWarning("[TrapEvent] no replay action for {Kind}.", kind);
+				break;
+		}
+	}
+
+	private void ReplayMineExplosion(Vector2 position)
+	{
+		var pos = position + Vector2.up; // the mine's explosion point (MineScript.cs:35-38)
+		var param = new ExplosionParams { position = pos };
+
+		// Pure-visual five-piece (WorldGeneration.cs:3965-3970): sound, particle,
+		// blastmark on the closest chunk, shake. Nothing here touches the world.
+		Sound.Play(param.sound, Vector2.zero, true, false, null, 1f, 1f, false, false);
+		Object.Instantiate(Resources.Load("Special/ExplosionParticle"), pos, Quaternion.identity);
+		// The blastmark without a chunk parent (the game parents it to the
+		// closest chunk, WorldGeneration.cs:3967-3969, which pulls the
+		// Tilemap/GridLayout modules into the reference graph — a pure visual
+		// difference, no state).
+		var blastmark = Object.Instantiate(Resources.Load("Special/blastmark"), pos, Quaternion.identity) as GameObject;
+		if (blastmark != null) // Unity object — ==
+		{
+			blastmark.transform.eulerAngles = new Vector3(0f, 0f, Random.value * 360f);
+		}
+
+		PlayerCamera.main.shaker.Shake(param.range * 20f);
+
+		// The real-body segment: the replaying player near the blast is hurt
+		// exactly like the game would hurt them (ExplosionBodyEffect).
+		ExplosionBodyEffect.ApplyToLocalBodies(param);
+
+		// Consume the entity: exploded = true FIRST (the game's OnDestroy then
+		// skips its chain explosion), killed as a REMOTE death (no drop roll —
+		// the trigger side rolled and reported them).
+		var mine = TrapEffectApplier.FindTrap<MineScript>(position);
+		if (mine != null) // Unity object — ==
+		{
+			Traverse.Create(mine).Field("exploded").SetValue(true);
+			mine.build.health = 0f;
+			mine.gameObject.AddComponent<RemoteEntityDeath>();
+			_log.LogInformation("[TrapEvent] replayed mine explosion at {Pos}.", position);
+		}
+		else
+		{
+			_log.LogInformation("[TrapEvent] mine at {Pos} already gone — visual only.", position);
+		}
+	}
+}

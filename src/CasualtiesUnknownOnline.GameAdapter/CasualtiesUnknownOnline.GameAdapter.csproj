@@ -103,6 +103,10 @@
       <HintPath>..\..\references\UnityEngine.AnimationModule.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="UnityEngine.TilemapModule">
+      <HintPath>..\..\references\UnityEngine.TilemapModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="netstandard">
       <HintPath>..\..\references\netstandard.dll</HintPath>
       <Private>False</Private>

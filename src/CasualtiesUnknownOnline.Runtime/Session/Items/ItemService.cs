@@ -17,12 +17,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 /// determinism covers them. No pump: it only reacts to calls and messages (not
 /// an ICuoService, like WorldService).
 /// </summary>
-public sealed class ItemService(ISessionControl session, PacketSender sender, ILogger<ItemService> log)
-	: IItemControl
+public sealed class ItemService : IItemControl
 {
-	private readonly ISessionControl _session = session;
-	private readonly PacketSender _sender = sender;
-	private readonly ILogger<ItemService> _log = log;
+	private readonly ISessionControl _session;
+	private readonly PacketSender _sender;
+	private readonly ILogger<ItemService> _log;
 
 	/// <summary>
 	/// The authoritative world-item table: instance id → item. Recorded on the
@@ -32,8 +31,19 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 	/// </summary>
 	private readonly Dictionary<ulong, WorldItem> _worldItems = [];
 
-	/// <summary>The ownership arbitration domain (transfer table + evidence checks) — its state belongs to it, this service forwards the wire reports.</summary>
-	private readonly ItemArbitration _arbitration = new(session, sender, log);
+	private readonly ItemArbitration _arbitration;
+	private readonly ItemCarriedSyncService _carriedSync;
+	private readonly ItemSnapshotService _snapshots;
+
+	public ItemService(ISessionControl session, PacketSender sender, ILogger<ItemService> log)
+	{
+		_session = session;
+		_sender = sender;
+		_log = log;
+		_arbitration = new(session, sender, log);
+		_carriedSync = new(session, sender, log);
+		_snapshots = new(session, sender, () => _worldItems.Values, log);
+	}
 
 	public event Action<WorldItem>? ItemSpawned;
 
@@ -45,9 +55,17 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 
 	public event Action<ulong, ItemRejectMsg.Reason>? ItemRejected;
 
-	public event Action<IReadOnlyList<WorldItem>, int, byte[]?>? ItemSnapshotReceived;
+	public event Action<IReadOnlyList<WorldItem>, int, byte[]?>? ItemSnapshotReceived
+	{
+		add => _snapshots.ItemSnapshotReceived += value;
+		remove => _snapshots.ItemSnapshotReceived -= value;
+	}
 
-	public event Action<IReadOnlyList<ItemSnapshotEntryMsg>, int, byte[]?>? WorldItemsSnapshotReceived;
+	public event Action<IReadOnlyList<ItemSnapshotEntryMsg>, int, byte[]?>? WorldItemsSnapshotReceived
+	{
+		add => _snapshots.WorldItemsSnapshotReceived += value;
+		remove => _snapshots.WorldItemsSnapshotReceived -= value;
+	}
 
 	public event Action<IReadOnlyList<ItemMoveEntryMsg>>? ItemMoveReceived;
 
@@ -55,6 +73,12 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 	{
 		add => _arbitration.ItemCorrectionReceived += value;
 		remove => _arbitration.ItemCorrectionReceived -= value;
+	}
+
+	public event Action<ulong, CharacterItemMsg, bool>? ItemCarriedSyncReceived
+	{
+		add => _carriedSync.ItemCarriedSyncReceived += value;
+		remove => _carriedSync.ItemCarriedSyncReceived -= value;
 	}
 
 	// ===== Host-authoritative position stream =====
@@ -80,6 +104,16 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 	}
 
 	public void FireItemMoveReceived(IReadOnlyList<ItemMoveEntryMsg> items) => ItemMoveReceived?.Invoke(items);
+
+	// ===== Carried-item facts (host → guest events: use/slot move/pickup) — the wire surface lives in ItemCarriedSyncService =====
+
+	public void SendItemCarriedSync(ulong ownerSteamId, CharacterItemMsg item) => _carriedSync.SendItemCarriedSync(ownerSteamId, item);
+
+	public void FireItemCarriedSyncReceived(ulong sender, ulong ownerSteamId, CharacterItemMsg item, bool slotKnown)
+		=> _carriedSync.FireItemCarriedSyncReceived(sender, ownerSteamId, item, slotKnown);
+
+	/// <summary>Host only: an arbitration adopted/recorded a carried item's new fact — apply it locally and broadcast it to the peers.</summary>
+	private void PublishCarriedSync(ulong ownerSteamId, CharacterItemMsg item) => _carriedSync.Publish(ownerSteamId, item);
 
 	// ===== Report side (local compute) =====
 
@@ -152,14 +186,14 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 	}
 
 	/// <summary>Guest only: an item moved slots locally — report the new slot so the host's record stays in sync. Host-side moves are the host's own authority, never reported.</summary>
-	public void SendItemSlot(ulong itemId, int slotIndex)
+	public void SendItemSlot(ulong itemId, int slotIndex, CharacterItemMsg item)
 	{
 		if (_session.Role != SessionRole.Guest || !_session.SessionActive)
 		{
 			return;
 		}
 
-		_sender.Send(_session.HostSteamId, NetMsg.ItemSlot, new ItemSlotMsg { ItemId = itemId, SlotIndex = slotIndex });
+		_sender.Send(_session.HostSteamId, NetMsg.ItemSlot, new ItemSlotMsg { ItemId = itemId, SlotIndex = slotIndex, Item = item });
 	}
 
 	public void SendItemDropped(ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, ulong parentItemId, float rotation, NetVector2 parentPos = default, float angularVelocity = 0f)
@@ -276,8 +310,11 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 
 			// Accept-with-correction: the transfer happens from OUR entry (the
 			// picker's claim never replaces it), the picker's evidence is only
-			// compared afterwards — divergence syncs, never blocks.
-			_arbitration.CheckAndTransferToGuest(sender, itemId, entry, evidence);
+			// compared afterwards — divergence syncs, never blocks. The adopted
+			// entry then broadcasts as the carried-fact event (the peers' clones
+			// of the picker show the item the moment it lands in its slot).
+			var authoritative = _arbitration.CheckAndTransferToGuest(sender, itemId, entry, evidence);
+			PublishCarriedSync(sender, authoritative);
 
 			_session.BroadcastExcept(sender, NetMsg.ItemPickup, new ItemPickupMsg { ItemId = itemId });
 			_log.LogInformation("Item {ItemId} picked up by {Sender} — transferred + relayed.", itemId, sender);
@@ -428,43 +465,49 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 			return;
 		}
 
-		_arbitration.CheckUseEvidence(sender, itemId, evidence);
+		// The adopted state broadcasts as the carried-fact event (the peers'
+		// clones of the user show the flipped state — a flashlight mode — the
+		// moment the use lands). A starting-supply item has no transfer-table
+		// entry (it never passed a pickup) — the guest's own report IS the fact
+		// then (the same unconditional-adoption logic), broadcast as-is.
+		var authoritative = _arbitration.CheckUseEvidence(sender, itemId, evidence) ?? evidence;
+		PublishCarriedSync(sender, authoritative);
 	}
 
-	public void FireItemSlotReceived(ulong sender, ulong itemId, int slotIndex)
+	public void FireItemSlotReceived(ulong sender, ulong itemId, int slotIndex, CharacterItemMsg item)
 	{
 		if (_session.Role != SessionRole.Host || !_session.SessionActive)
 		{
 			return;
 		}
 
-		_arbitration.RecordSlot(sender, itemId, slotIndex);
+		// The recorded slot broadcasts as the carried-fact event (the peers'
+		// clones of the mover re-home the item the moment the move lands). A
+		// starting-supply item has no transfer-table entry (it never passed a
+		// pickup) — the report's digest evidence is the fact then, broadcast
+		// as-is (its slot is the new one, SlotKnown).
+		var authoritative = _arbitration.RecordSlot(sender, itemId, slotIndex) ?? item;
+		PublishCarriedSync(sender, authoritative);
 	}
 
 	public void FireItemSnapshotReceived(ulong sender, IReadOnlyList<WorldItem> items, int layerModifierIndex, byte[]? layerModifierRandomState)
-	{
-		_log.LogInformation("World-item snapshot received ({Count} items).", items.Count);
-		ItemSnapshotReceived?.Invoke(items, layerModifierIndex, layerModifierRandomState);
-	}
+		=> _snapshots.FireItemSnapshotReceived(sender, items, layerModifierIndex, layerModifierRandomState);
 
 	// ===== Host-only surface =====
 
-	/// <summary>
-	/// The world's current layer modifier (index into LayerModifier.availableModifiers,
-	/// -1 = none), riding the world-item snapshots so a world entry outside a
-	/// generation (solo→lobby conversion, mid-session join) still receives the
-	/// host's modifier. The values are a projection of the world state — the
-	/// adapter refreshes them when a generation finishes (GeneratedItemAuthority).
-	/// The modifier itself is applied by the adapter's LayerModifierSync.
-	/// </summary>
-	public int LayerModifierIndex { get; set; } = -1;
+	/// <summary>The world's current layer modifier projection — rides the snapshots (see ItemSnapshotService).</summary>
+	public int LayerModifierIndex
+	{
+		get => _snapshots.LayerModifierIndex;
+		set => _snapshots.LayerModifierIndex = value;
+	}
 
-	/// <summary>The random stream state at the entry of the host's modifier
-	/// decision (non-null when a modifier was rolled) — rides alongside
-	/// <see cref="LayerModifierIndex"/> so the guests replay the decision draws
-	/// before the modifier's Initialize (identical world effects, see
-	/// WorldItemsSnapshotMsg.LayerModifierRandomState).</summary>
-	public byte[]? LayerModifierRandomState { get; set; }
+	/// <summary>The modifier decision's random start — rides the snapshots (see ItemSnapshotService).</summary>
+	public byte[]? LayerModifierRandomState
+	{
+		get => _snapshots.LayerModifierRandomState;
+		set => _snapshots.LayerModifierRandomState = value;
+	}
 
 	public void SendItemCorrection(ulong targetSteamId, CharacterItemMsg item)
 	{
@@ -478,25 +521,7 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 
 	public IReadOnlyList<WorldItem> GetTransferredItems(ulong steamId) => _arbitration.GetTransferredItems(steamId);
 
-	public void SendItemSnapshot(ulong targetSteamId)
-	{
-		if (_session.Role != SessionRole.Host || _worldItems.Count == 0)
-		{
-			return;
-		}
-
-		var msg = new ItemSnapshotMsg
-		{
-			Entries = [.. _worldItems.Values.Select(w => w.ToSnapshotEntryMsg())],
-			// Wire encoding is modifierIndex + 1 (0 = none) — protobuf-net omits
-			// 0-valued ints, and Foggy's raw index IS 0 (see
-			// WorldItemsSnapshotMsg.LayerModifierIndex).
-			LayerModifierIndex = LayerModifierIndex + 1,
-			LayerModifierRandomState = LayerModifierRandomState,
-		};
-		_sender.Send(targetSteamId, NetMsg.ItemSnapshot, msg);
-		_log.LogInformation("Sent world-item snapshot ({Count} items) to {Peer}.", _worldItems.Count, targetSteamId);
-	}
+	public void SendItemSnapshot(ulong targetSteamId) => _snapshots.SendItemSnapshot(targetSteamId);
 
 	/// <summary>Host only: the item's live state — the periodic keyframe must broadcast the CURRENT positions and condition, not the spawn-time ones (the spawn position would pull settled items back into the air every tick; a stale condition would re-align the peers' decay to the wrong value).</summary>
 	public void RefreshItemState(ulong itemId, NetVector2 pos, NetVector2 vel, float rotation, float condition)
@@ -510,29 +535,8 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 		_worldItems[itemId] = w with { Pos = pos, Vel = vel, Rotation = rotation };
 	}
 
-	/// <summary>
-	/// Host only: periodically re-send the full table over the unreliable
-	/// channel — drops are harmless (the next tick overwrites; the receiver
-	/// reconciles), and settled items get their drifted positions re-aligned.
-	/// </summary>
-	public void SendPeriodicItemSnapshot()
-	{
-		if (_session.Role != SessionRole.Host || _worldItems.Count == 0 || !_session.SessionActive)
-		{
-			return;
-		}
-
-		var msg = new ItemSnapshotMsg
-		{
-			Entries = [.. _worldItems.Values.Select(w => w.ToSnapshotEntryMsg())],
-			// Wire encoding is modifierIndex + 1 (0 = none) — see SendItemSnapshot.
-			LayerModifierIndex = LayerModifierIndex + 1,
-			LayerModifierRandomState = LayerModifierRandomState,
-		};
-		_sender.SendToAll(
-			_session.Members.Where(m => m.Handshaken).Select(m => m.SteamId),
-			NetMsg.ItemSnapshot, msg, reliable: false);
-	}
+	/// <summary>Host only: periodically re-send the full table (unreliable) — see ItemSnapshotService.</summary>
+	public void SendPeriodicItemSnapshot() => _snapshots.SendPeriodicItemSnapshot();
 
 	public void ResetItems() => _worldItems.Clear();
 
@@ -583,6 +587,6 @@ public sealed class ItemService(ISessionControl session, PacketSender sender, IL
 			entries.Count(e => e.SlotIndex < 0), entries.Count(e => e.SlotIndex >= 0), LayerModifierIndex);
 	}
 
-	public void FireWorldItemsSnapshotReceived(ulong sender, IReadOnlyList<ItemSnapshotEntryMsg> items, int layerModifierIndex, byte[]? layerModifierRandomState) =>
-		WorldItemsSnapshotReceived?.Invoke(items, layerModifierIndex, layerModifierRandomState);
+	public void FireWorldItemsSnapshotReceived(ulong sender, IReadOnlyList<ItemSnapshotEntryMsg> items, int layerModifierIndex, byte[]? layerModifierRandomState)
+		=> _snapshots.FireWorldItemsSnapshotReceived(sender, items, layerModifierIndex, layerModifierRandomState);
 }

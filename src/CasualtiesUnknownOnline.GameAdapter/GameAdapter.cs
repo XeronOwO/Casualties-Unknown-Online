@@ -8,6 +8,8 @@ using CasualtiesUnknownOnline.GameAdapter.Run;
 using CasualtiesUnknownOnline.GameAdapter.World;
 using CasualtiesUnknownOnline.GameAdapter.WorldGen;
 using CasualtiesUnknownOnline.Runtime.Session;
+using CasualtiesUnknownOnline.Runtime.Protocol;
+using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
@@ -83,7 +85,9 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		ItemStateCodec.BindLog(log);
 		WorldGenRandomIsolation.Log = msg => _log.LogInformation(msg); // generation-stream segment fingerprints (peer log comparison)
 		LayerModifierApplyPatch.Log = msg => _log.LogInformation(msg); // layer-modifier decision trace (diagnostic)
-		_characterDataSync = new CharacterDataSync(session, characterData, mapper, loggerFactory.CreateLogger<CharacterDataSync>());
+		_characterDataSync = new CharacterDataSync(session, characterData, mapper,
+			new CloneInventoryRenderer(loggerFactory.CreateLogger<CloneInventoryRenderer>()),
+			loggerFactory.CreateLogger<CharacterDataSync>());
 		_renderer = new RemotePlayerRenderer(session, entities, _characterDataSync, loggerFactory.CreateLogger<RemotePlayerRenderer>());
 		_dropGuard = new DropProtectionGuard();
 		_itemApplication = new ItemApplication(items, loggerFactory.CreateLogger<ItemApplication>());
@@ -94,10 +98,10 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		var itemDropState = new ItemDropState();
 		var blockBreakState = new PendingBlockBreak();
 		_itemWorldSync = new ItemWorldSync(session, items, _dropGuard, itemDropState, blockBreakState, _operationTrace, itemReports, itemIds, loggerFactory.CreateLogger<ItemWorldSync>());
-		_pickupSync = new PickupSync(items, _itemApplication, itemDropState, itemIds, _operationTrace, itemReports);
+		_pickupSync = new PickupSync(items, session, _itemApplication, itemDropState, itemIds, _operationTrace, itemReports);
 		_containerSync = new ContainerItemSync(items, itemDropState, itemIds, _operationTrace, itemReports, loggerFactory.CreateLogger<ContainerItemSync>());
-		_itemUseSync = new ItemUseSync(items, loggerFactory.CreateLogger<ItemUseSync>());
-		_itemSlotSync = new ItemSlotSync(items, loggerFactory.CreateLogger<ItemSlotSync>());
+		_itemUseSync = new ItemUseSync(items, session, loggerFactory.CreateLogger<ItemUseSync>());
+		_itemSlotSync = new ItemSlotSync(items, session, loggerFactory.CreateLogger<ItemSlotSync>());
 		_itemPositionAuthority = new ItemPositionAuthority(items);
 		_itemPositionFollow = new ItemPositionFollow(items, _dropGuard);
 		_genItemAuthority = new GeneratedItemAuthority(session, items, itemIds, loggerFactory.CreateLogger<GeneratedItemAuthority>());
@@ -255,6 +259,8 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_run.BindToSession();
 		_genItemApplication.BindToSession();
 		_layerModifierSync.BindToSession();
+		_items.ItemCarriedSyncReceived += OnItemCarriedSync; // the owner's clone re-renders the moment a carried fact changes
+		_items.ItemDropped += OnCarriedItemDropped; // a carried item leaving into the world leaves the fact table (recursive)
 	}
 
 	private void UnbindFromSession()
@@ -271,7 +277,17 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_run.Unbind();
 		_genItemApplication.Unbind();
 		_layerModifierSync.Unbind();
+		_items.ItemCarriedSyncReceived -= OnItemCarriedSync;
+		_items.ItemDropped -= OnCarriedItemDropped;
 	}
+
+	/// <summary>Carried-fact event: the owner's fact-table entry updates and the clone re-renders immediately.</summary>
+	private void OnItemCarriedSync(ulong owner, CharacterItemMsg item, bool slotKnown) =>
+		_characterDataSync.ApplyCarriedSync(owner, item, slotKnown);
+
+	/// <summary>ItemDropped: a carried item left into the world — it leaves the owner's fact table (top-level or nested in a container's contents).</summary>
+	private void OnCarriedItemDropped(ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, ulong parentItemId, float rotation, float angularVelocity, NetVector2 parentPos) =>
+		_characterDataSync.RemoveCarriedItem(itemId);
 
 	// ---- IGameAdapter ----
 

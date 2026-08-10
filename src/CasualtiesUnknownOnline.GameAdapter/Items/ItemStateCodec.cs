@@ -25,6 +25,46 @@ internal static class ItemStateCodec
 	/// <summary>Late-bound logger (the domains pass theirs in once at startup).</summary>
 	internal static void BindLog(Log log) => _log = log;
 
+	/// <summary>
+	/// The slot or limb the item sits in on the local body: slot indices 0..n,
+	/// worn items encode the limb as -(limbIndex + 2) (the character snapshot's
+	/// wear encoding, CharacterDataSync), or -1 when it is in neither (in a
+	/// container, still in the world, unknown). The game's own Body.SlotOf
+	/// returns 0 for "not found" (Body.cs:1333-1343) — 0 is a legal slot, so the
+	/// lookup must verify identity instead of trusting the returned index.
+	/// </summary>
+	internal static int SlotOf(Item item)
+	{
+		var body = PlayerCamera.main != null ? PlayerCamera.main.body : null;
+		if (body == null) // Unity object — ==
+		{
+			return -1;
+		}
+
+		for (var i = 0; i < body.slots.Length; i++)
+		{
+			if (body.slots[i].transform.childCount > 0
+				&& body.slots[i].transform.GetChild(0).GetComponent<Item>() == item) // Unity objects — ==
+			{
+				return i;
+			}
+		}
+
+		for (var i = 0; i < body.limbs.Length; i++)
+		{
+			var limb = body.limbs[i].transform;
+			for (var c = 0; c < limb.childCount; c++)
+			{
+				if (limb.GetChild(c).GetComponent<Item>() == item) // Unity object — ==
+				{
+					return -(i + 2);
+				}
+			}
+		}
+
+		return -1;
+	}
+
 	/// <summary>Recursively captures one item: the instance id, the SavedItem
 	/// fields (condition/favourited/slot), the WaterContainerItem liquid stacks,
 	/// the [Saveable] component states and the container contents.</summary>

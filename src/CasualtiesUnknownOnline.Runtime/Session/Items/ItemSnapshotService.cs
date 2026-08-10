@@ -1,0 +1,104 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using CasualtiesUnknownOnline.Runtime.Protocol;
+using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using Microsoft.Extensions.Logging;
+
+namespace CasualtiesUnknownOnline.Runtime.Session.Items;
+
+/// <summary>
+/// The world-item snapshot surface (host → guest): the full-table snapshots —
+/// one-shot on world entry (late joiner / reconnect) and the periodic keyframe
+/// over the unreliable channel (drops are harmless — the next tick overwrites;
+/// settled items get their drifted positions re-aligned) — plus the layer
+/// modifier projection that rides them. Read-only over the table (injected as
+/// a narrow delegate, the table state stays with ItemService — user rule:
+/// state belongs to its owner); PublishGeneratedItems stays with the table.
+/// Split out of ItemService when the 600-line gate demanded it.
+/// </summary>
+public sealed class ItemSnapshotService(
+	ISessionControl session,
+	PacketSender sender,
+	Func<IReadOnlyCollection<WorldItem>> worldItems,
+	ILogger log)
+{
+	private readonly ISessionControl _session = session;
+	private readonly PacketSender _sender = sender;
+	private readonly Func<IReadOnlyCollection<WorldItem>> _worldItems = worldItems;
+	private readonly ILogger _log = log;
+
+	/// <summary>
+	/// The world's current layer modifier (index into LayerModifier.availableModifiers,
+	/// -1 = none), riding the world-item snapshots so a world entry outside a
+	/// generation (solo→lobby conversion, mid-session join) still receives the
+	/// host's modifier. The values are a projection of the world state — the
+	/// adapter refreshes them when a generation finishes (GeneratedItemAuthority).
+	/// The modifier itself is applied by the adapter's LayerModifierSync.
+	/// </summary>
+	public int LayerModifierIndex { get; set; } = -1;
+
+	/// <summary>The random stream state at the entry of the host's modifier
+	/// decision (non-null when a modifier was rolled) — rides alongside
+	/// <see cref="LayerModifierIndex"/> so the guests replay the decision draws
+	/// before the modifier's Initialize (identical world effects, see
+	/// WorldItemsSnapshotMsg.LayerModifierRandomState).</summary>
+	public byte[]? LayerModifierRandomState { get; set; }
+
+	public event Action<IReadOnlyList<WorldItem>, int, byte[]?>? ItemSnapshotReceived;
+
+	public event Action<IReadOnlyList<ItemSnapshotEntryMsg>, int, byte[]?>? WorldItemsSnapshotReceived;
+
+	public void FireItemSnapshotReceived(ulong sender, IReadOnlyList<WorldItem> items, int layerModifierIndex, byte[]? layerModifierRandomState)
+	{
+		_log.LogInformation("World-item snapshot received ({Count} items).", items.Count);
+		ItemSnapshotReceived?.Invoke(items, layerModifierIndex, layerModifierRandomState);
+	}
+
+	public void FireWorldItemsSnapshotReceived(ulong sender, IReadOnlyList<ItemSnapshotEntryMsg> items, int layerModifierIndex, byte[]? layerModifierRandomState)
+		=> WorldItemsSnapshotReceived?.Invoke(items, layerModifierIndex, layerModifierRandomState);
+
+	public void SendItemSnapshot(ulong targetSteamId)
+	{
+		if (_session.Role != SessionRole.Host || _worldItems().Count == 0)
+		{
+			return;
+		}
+
+		var msg = new ItemSnapshotMsg
+		{
+			Entries = [.. _worldItems().Select(w => w.ToSnapshotEntryMsg())],
+			// Wire encoding is modifierIndex + 1 (0 = none) — protobuf-net omits
+			// 0-valued ints, and Foggy's raw index IS 0 (see
+			// WorldItemsSnapshotMsg.LayerModifierIndex).
+			LayerModifierIndex = LayerModifierIndex + 1,
+			LayerModifierRandomState = LayerModifierRandomState,
+		};
+		_sender.Send(targetSteamId, NetMsg.ItemSnapshot, msg);
+		_log.LogInformation("Sent world-item snapshot ({Count} items) to {Peer}.", _worldItems().Count, targetSteamId);
+	}
+
+	/// <summary>
+	/// Host only: periodically re-send the full table over the unreliable
+	/// channel — drops are harmless (the next tick overwrites; the receiver
+	/// reconciles), and settled items get their drifted positions re-aligned.
+	/// </summary>
+	public void SendPeriodicItemSnapshot()
+	{
+		if (_session.Role != SessionRole.Host || _worldItems().Count == 0 || !_session.SessionActive)
+		{
+			return;
+		}
+
+		var msg = new ItemSnapshotMsg
+		{
+			Entries = [.. _worldItems().Select(w => w.ToSnapshotEntryMsg())],
+			// Wire encoding is modifierIndex + 1 (0 = none) — see SendItemSnapshot.
+			LayerModifierIndex = LayerModifierIndex + 1,
+			LayerModifierRandomState = LayerModifierRandomState,
+		};
+		_sender.SendToAll(
+			_session.Members.Where(m => m.Handshaken).Select(m => m.SteamId),
+			NetMsg.ItemSnapshot, msg, reliable: false);
+	}
+}

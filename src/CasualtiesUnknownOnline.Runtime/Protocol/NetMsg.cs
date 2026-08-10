@@ -59,4 +59,7 @@ public enum NetMsg : byte
 
 	// World items (generation-time — host authority: the host assigns the ids and distributes the full set)
 	WorldItemsSnapshot = 62, // host → guest: the generation-time world items (ground + starting supplies) with host-assigned ids — the guests bind their local copies to the host's ids or materialize the host's version
+
+	// Carried-item facts (host → guest events: use flipped state, slot move, pickup — the receiver updates the per-player fact table and re-renders the clone immediately; the 1 Hz character snapshot stays as the fallback)
+	ItemCarriedSync = 63, // host → guest: one carried item's authoritative state (OwnerSteamId + full fact + SlotKnown) — a use/slot move/pickup broadcast; leaving an inventory travels ItemDrop
 }

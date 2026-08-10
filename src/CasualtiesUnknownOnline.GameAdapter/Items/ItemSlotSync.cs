@@ -1,3 +1,4 @@
+using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using Microsoft.Extensions.Logging;
 
@@ -8,11 +9,14 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 /// (Body.SwapSlots / Body.SwitchHands — the internal drop+pick pair that the
 /// reorder scope already keeps silent). The guest's slot layout is its local
 /// fact; the report exists so the host's transfer-table record stays current
-/// for corrections and the reconnect merge.
+/// for corrections and the reconnect merge. The host's OWN moves are its own
+/// authority — it broadcasts the full carried item instead, so the peers'
+/// clones of the host re-home the item the moment the move lands.
 /// </summary>
-internal sealed class ItemSlotSync(ItemService items, ILogger<ItemSlotSync> log)
+internal sealed class ItemSlotSync(ItemService items, ISessionControl session, ILogger<ItemSlotSync> log)
 {
 	private readonly ItemService _items = items;
+	private readonly ISessionControl _session = session;
 	private readonly ILogger<ItemSlotSync> _log = log;
 
 	/// <summary>Report the occupant of one slot after a slot move (SwapSlots/SwitchHands). An empty or unbound slot is skipped.</summary>
@@ -30,7 +34,14 @@ internal sealed class ItemSlotSync(ItemService items, ILogger<ItemSlotSync> log)
 			return;
 		}
 
-		_items.SendItemSlot(idComp.Id, slot);
+		if (_session.Role == SessionRole.Host && _session.SessionActive)
+		{
+			_items.SendItemCarriedSync(_session.LocalSteamId, ItemStateCodec.CaptureItem(item, slot));
+			_log.LogInformation("[SlotMoved] {Type} (id {ItemId}) → slot {Slot} ({Origin}) — host fact broadcast.", item.id, idComp.Id, slot, origin);
+			return;
+		}
+
+		_items.SendItemSlot(idComp.Id, slot, ItemStateCodec.CaptureDigest(item, slot));
 		_log.LogInformation("[SlotMoved] {Type} (id {ItemId}) → slot {Slot} ({Origin}) reported.", item.id, idComp.Id, slot, origin);
 	}
 }

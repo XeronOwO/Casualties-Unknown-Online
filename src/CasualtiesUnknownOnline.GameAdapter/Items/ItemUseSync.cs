@@ -1,3 +1,4 @@
+using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using Microsoft.Extensions.Logging;
 
@@ -11,11 +12,14 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 /// transfer-table entry, adopts a matching evidence (the guest is the fact
 /// source for its own body) and sends an ItemCorrection when it diverges.
 /// Usage itself is never rejected — this report exists so wrong stored state
-/// heals on the next ordinary action.
+/// heals on the next ordinary action. The host's OWN use needs no arbitration
+/// (its local object IS the fact) — it broadcasts the full carried item
+/// instead, so the peers' clones of the host flip the moment the use lands.
 /// </summary>
-internal sealed class ItemUseSync(ItemService items, ILogger<ItemUseSync> log)
+internal sealed class ItemUseSync(ItemService items, ISessionControl session, ILogger<ItemUseSync> log)
 {
 	private readonly ItemService _items = items;
+	private readonly ISessionControl _session = session;
 	private readonly ILogger<ItemUseSync> _log = log;
 
 	internal void OnItemUsed(Item item)
@@ -23,6 +27,16 @@ internal sealed class ItemUseSync(ItemService items, ILogger<ItemUseSync> log)
 		var idComp = item.GetComponent<ItemInstanceId>();
 		if (idComp == null || idComp.Id == 0) // Unity object — ==; unbound items have no table entry to arbitrate
 		{
+			return;
+		}
+
+		if (_session.Role == SessionRole.Host && _session.SessionActive)
+		{
+			// The host's own fact — broadcast the full carried item (SlotOf
+			// resolves the hand slot or the wear limb; -1 = unresolvable, the
+			// receiver keeps the fact table's slot).
+			_items.SendItemCarriedSync(_session.LocalSteamId, ItemStateCodec.CaptureItem(item, ItemStateCodec.SlotOf(item)));
+			_log.LogInformation("[ItemUsed] {Type} (id {ItemId}) — host fact broadcast.", item.id, idComp.Id);
 			return;
 		}
 

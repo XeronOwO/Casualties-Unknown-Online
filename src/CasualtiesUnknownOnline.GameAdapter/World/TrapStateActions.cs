@@ -183,7 +183,7 @@ internal static class TrapStateActions
 	/// is written first so the spout matches the trigger side.</summary>
 	internal static bool ApplyGeyser(GeyserScript geyser, byte liquidType)
 	{
-		Traverse.Create(geyser).Field("liquidType").SetValue((int)liquidType);
+		Traverse.Create(geyser).Field("liquidType").SetValue(liquidType); // byte — exact type; a SetValue(int) cast throws ArgumentException (reflection does not narrow)
 		geyser.TryRumble();
 		return true;
 	}
@@ -340,11 +340,16 @@ internal static class TrapStateActions
 		return true;
 	}
 
-	/// <summary>Turret fired: the rifleshot sound (the tracer beam is a local
-	/// LineRenderer — recorded gap).</summary>
+	/// <summary>Turret fired: the rifleshot sound, then consume the fire state on
+	/// the peer's copy — timeSinceFired = 0 + didShoot = true start its 15 s
+	/// reload (TurretScript.cs:30-53), so a peer walking into range gets beeped
+	/// but NOT shot during the reload, matching the triggering side. The tracer
+	/// beam is a local LineRenderer — recorded gap.</summary>
 	internal static bool ApplyTurretFired(TurretScript turret)
 	{
 		Sound.Play("rifleshot", turret.transform.position, true, false, null, 1f, 1f, false, false);
+		Traverse.Create(turret).Property("timeSinceFired").SetValue(0f);
+		Traverse.Create(turret).Field("didShoot").SetValue(true);
 		return true;
 	}
 

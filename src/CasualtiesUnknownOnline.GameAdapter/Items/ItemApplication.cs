@@ -504,12 +504,13 @@ internal sealed class ItemApplication(
 		item.rb.angularVelocity = w.AngularVelocity;
 		if (_session.Role == SessionRole.Guest)
 		{
-			// The guest's world items are kinematic renders from birth — a
+			// The guest's world items are frozen (kinematic) from birth — a
 			// dynamic materialization would simulate locally until the position
 			// stream takes over: the same non-authoritative window as a local
 			// roll-out (see ItemWorldSync.OnItemDropped), then a yank-back when
 			// the stream arrives. Frozen at the reported spot = the host's
-			// simulation start, same phase.
+			// simulation start, same phase; ItemPositionFollow switches it to
+			// local physics on the first stream tick.
 			item.rb.bodyType = RigidbodyType2D.Kinematic;
 		}
 		else

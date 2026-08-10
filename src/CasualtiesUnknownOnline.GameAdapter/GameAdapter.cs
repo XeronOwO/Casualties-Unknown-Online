@@ -109,13 +109,14 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_containerSync = new ContainerItemSync(items, itemDropState, _itemIds, _operationTrace, itemReports, loggerFactory.CreateLogger<ContainerItemSync>());
 		_itemUseSync = new ItemUseSync(items, session, _itemIds, loggerFactory.CreateLogger<ItemUseSync>());
 		_itemPositionAuthority = new ItemPositionAuthority(items);
-		_itemPositionFollow = new ItemPositionFollow(items, _dropGuard);
+		_itemPositionFollow = new ItemPositionFollow(items, _dropGuard, session, loggerFactory.CreateLogger<ItemPositionFollow>());
 		_genItemAuthority = new GeneratedItemAuthority(session, items, _itemIds, loggerFactory.CreateLogger<GeneratedItemAuthority>());
 		_genItemApplication = new GeneratedItemApplication(items, _itemApplication, loggerFactory.CreateLogger<GeneratedItemApplication>());
 		_layerModifierSync = new LayerModifierSync(items, loggerFactory.CreateLogger<LayerModifierSync>());
 		_carriedInventoryReporter = new CarriedInventoryReporter(session, items, _itemIds, loggerFactory.CreateLogger<CarriedInventoryReporter>());
 		LayerModifierApplyPatch.IsModifierAuthority = () => _session.Role != SessionRole.Guest; // the host/solo side rolls the world's modifier; guests replay it locally and fall back to the snapshot
 		LayerModifierApplyPatch.ReportLocalDecision = _layerModifierSync.OnLocalDecision; // the guest's local replay — the adapter defers Initialize until the generation finished
+		MineScriptPatches.ShouldShieldItems = () => _session.Role == SessionRole.Guest; // a locally simulated item must not trip a mine on the guest side (the trigger checks only !isKinematic)
 		_blockBreakSync = new BlockBreakSync(session, world, items, blockBreakState, _operationTrace, loggerFactory.CreateLogger<BlockBreakSync>());
 		_worldEventSync = new WorldEventSync(session, world, _blockBreakSync, _operationTrace, loggerFactory.CreateLogger<WorldEventSync>());
 		_lifePod = new LifePodPresentation(loggerFactory.CreateLogger<LifePodPresentation>());
@@ -236,7 +237,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		}
 		else
 		{
-			_itemPositionFollow.Update(); // the guest copies are kinematic renders of it
+			_itemPositionFollow.Update(); // the guest copies simulate locally (ground-layer isolation), soft-corrected by the host's stream
 		}
 
 		_worldEventSync.Update();

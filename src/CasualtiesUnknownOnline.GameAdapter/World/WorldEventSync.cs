@@ -96,6 +96,7 @@ internal sealed class WorldEventSync(
 				if (member.InWorld)
 				{
 					_world.SendBlockStateSnapshot(member.SteamId);
+					_world.SendTrapStateSnapshot(member.SteamId); // the one-shot trap consumptions ride the same world-entry resend (idempotent)
 				}
 			}
 		}

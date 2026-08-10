@@ -37,6 +37,11 @@ internal sealed class ItemPositionFollow(ItemService items, DropProtectionGuard 
 	/// host's state (clearing local inertia); within it the local physics runs free.</summary>
 	private const float SnapDistance = 3f;
 
+	/// <summary>A settled copy (the host's settled criterion) with a residual gap
+	/// larger than this eases toward the host's spot — the final rest state must
+	/// converge, the 1 Hz settled stream feeds it until it does.</summary>
+	private const float SettleSnapDistance = 0.05f;
+
 	private readonly ItemService _items = items;
 	private readonly DropProtectionGuard _guard = guard;
 	private readonly SessionService _session = session;
@@ -89,20 +94,46 @@ internal sealed class ItemPositionFollow(ItemService items, DropProtectionGuard 
 			}
 
 			var rb = item.rb;
-			// Soft correction: the host's velocity is authoritative — the local
-			// physics continues from it every tick. Position within the snap
-			// threshold is left to the local simulation (continuous rotation
-			// included); past it the copy hard-snaps to the host's state.
-			rb.velocity = t.Vel;
-			rb.angularVelocity = t.AngVel;
+			// Settled (the host's own settled criterion, ItemPositionAuthority):
+			// velocity sync is a no-op (0 = 0) and the snap threshold would never
+			// fire — the final resting spot would stay diverged forever. The
+			// settled state MUST converge: ease the residual gap away (the 1 Hz
+			// settled stream keeps feeding it until it closes).
+			var settled = t.Vel.sqrMagnitude < 0.01f && Mathf.Abs(t.AngVel) < 0.1f;
 			var dist = Vector2.Distance(item.transform.position, t.Pos);
-			if (dist > SnapDistance)
+			if (settled)
 			{
-				item.transform.position = new Vector3(t.Pos.x, t.Pos.y, 0f);
-				item.transform.eulerAngles = new Vector3(0f, 0f, t.Rot);
+				rb.velocity = Vector2.zero; // the local physics stopped too — kill any residual drift
+				rb.angularVelocity = 0f;
+				if (dist > SettleSnapDistance)
+				{
+					var k = Mathf.Clamp01(Time.deltaTime * 12f); // ease — no visible jump on a "stationary" item
+					item.transform.position = Vector3.Lerp(item.transform.position, new Vector3(t.Pos.x, t.Pos.y, 0f), k);
+					var rot = Mathf.LerpAngle(item.transform.eulerAngles.z, t.Rot, k);
+					item.transform.eulerAngles = new Vector3(0f, 0f, rot);
+					if (dist > 0.5f)
+					{
+						_log.LogInformation("[ItemPhysics] settle {Id} d={Dist:F2}.", key, dist); // > 0.5 = a real divergence, worth tuning on
+					}
+				}
+			}
+			else
+			{
+				// Soft correction while moving: the host's velocity is
+				// authoritative — the local physics continues from it every tick.
+				// Position within the snap threshold is left to the local
+				// simulation (continuous rotation included); past it the copy
+				// hard-snaps to the host's state.
 				rb.velocity = t.Vel;
 				rb.angularVelocity = t.AngVel;
-				_log.LogInformation("[ItemPhysics] snap {Id} d={Dist:F1}.", key, dist);
+				if (dist > SnapDistance)
+				{
+					item.transform.position = new Vector3(t.Pos.x, t.Pos.y, 0f);
+					item.transform.eulerAngles = new Vector3(0f, 0f, t.Rot);
+					rb.velocity = t.Vel;
+					rb.angularVelocity = t.AngVel;
+					_log.LogInformation("[ItemPhysics] snap {Id} d={Dist:F1}.", key, dist);
+				}
 			}
 		}
 	}

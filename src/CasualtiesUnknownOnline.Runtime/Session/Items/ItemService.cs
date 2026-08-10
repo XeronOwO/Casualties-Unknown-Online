@@ -23,13 +23,8 @@ public sealed class ItemService : IItemControl
 	private readonly PacketSender _sender;
 	private readonly ILogger<ItemService> _log;
 
-	/// <summary>
-	/// The authoritative world-item table: instance id → item. Recorded on the
-	/// host and in solo play (Role != Guest — a solo-turned-lobby host keeps
-	/// its table so a late joiner sees the same world), broadcast only while the
-	/// session is active.
-	/// </summary>
-	private readonly Dictionary<ulong, WorldItem> _worldItems = [];
+	/// <summary>The authoritative world-item table (instance id → item) — the state lives in WorldItemTable.</summary>
+	private readonly WorldItemTable _worldTable = new();
 
 	private readonly ItemArbitration _arbitration;
 	private readonly ItemCarriedSyncService _carriedSync;
@@ -44,7 +39,7 @@ public sealed class ItemService : IItemControl
 		_log = log;
 		_arbitration = new(session, sender, log);
 		_carriedSync = new(session, sender, log);
-		_snapshots = new(session, sender, () => _worldItems.Values, log);
+		_snapshots = new(session, sender, () => (IReadOnlyCollection<WorldItem>)_worldTable.Items.Values, log);
 		_idCoordinator = new ItemIdCoordinator(session, sender, _arbitration, log);
 		_blockDrops = new BlockDropSync(session, this);
 	}
@@ -155,7 +150,7 @@ public sealed class ItemService : IItemControl
 	{
 		if (_session.Role != SessionRole.Guest)
 		{
-			_worldItems[itemId] = new WorldItem(itemId, item, pos, vel, 0, rotation, freshItemDrop, AngularVelocity: angularVelocity);
+			_worldTable.Set(itemId, new WorldItem(itemId, item, pos, vel, 0, rotation, freshItemDrop, AngularVelocity: angularVelocity));
 		}
 
 		if (!_session.SessionActive)
@@ -186,7 +181,7 @@ public sealed class ItemService : IItemControl
 	{
 		if (_session.Role != SessionRole.Guest)
 		{
-			_worldItems.Remove(itemId); // the picker took it — it is inventory data now
+			_worldTable.Remove(itemId); // the picker took it — it is inventory data now
 		}
 
 		if (!_session.SessionActive)
@@ -234,7 +229,7 @@ public sealed class ItemService : IItemControl
 	{
 		if (_session.Role != SessionRole.Guest)
 		{
-			_worldItems[itemId] = new WorldItem(itemId, item, pos, vel, parentItemId, rotation, false, parentPos, angularVelocity);
+			_worldTable.Set(itemId, new WorldItem(itemId, item, pos, vel, parentItemId, rotation, false, parentPos, angularVelocity));
 		}
 
 		if (!_session.SessionActive)
@@ -266,7 +261,7 @@ public sealed class ItemService : IItemControl
 	{
 		if (_session.Role != SessionRole.Guest)
 		{
-			_worldItems.Remove(itemId);
+			_worldTable.Remove(itemId);
 		}
 
 		if (!_session.SessionActive)
@@ -291,9 +286,9 @@ public sealed class ItemService : IItemControl
 	{
 		if (_session.Role == SessionRole.Host)
 		{
-			if (!_worldItems.ContainsKey(itemId))
+			if (!_worldTable.ContainsKey(itemId))
 			{
-				_worldItems[itemId] = new WorldItem(itemId, item, pos, vel, 0, rotation, freshItemDrop, AngularVelocity: angularVelocity);
+				_worldTable.Set(itemId, new WorldItem(itemId, item, pos, vel, 0, rotation, freshItemDrop, AngularVelocity: angularVelocity));
 				_session.BroadcastExcept(sender, NetMsg.ItemSpawn, new ItemSpawnMsg
 				{
 					ItemId = itemId,
@@ -316,7 +311,7 @@ public sealed class ItemService : IItemControl
 	{
 		if (_session.Role == SessionRole.Host)
 		{
-			if (!_worldItems.TryGetValue(itemId, out var entry))
+			if (!_worldTable.TryGetValue(itemId, out var entry))
 			{
 				// Not in the table: the spawn report is still in flight (the
 				// pickup won the race) or a faster writer already took it —
@@ -327,7 +322,7 @@ public sealed class ItemService : IItemControl
 				// silently, the container's own transfer carries it (refusing
 				// yanked each content back out of the picker's bag — "picked up
 				// a bag with contents, it came back empty").
-				if (!_arbitration.IsContainedInEntry(itemId, _worldItems))
+				if (!_arbitration.IsContainedInEntry(itemId, _worldTable.Items))
 				{
 					_sender.Send(sender, NetMsg.ItemReject, new ItemRejectMsg
 					{
@@ -340,7 +335,7 @@ public sealed class ItemService : IItemControl
 				return;
 			}
 
-			_worldItems.Remove(itemId);
+			_worldTable.Remove(itemId);
 
 			// Accept-with-correction: the transfer happens from OUR entry (the
 			// picker's claim never replaces it), the picker's evidence is only
@@ -374,9 +369,9 @@ public sealed class ItemService : IItemControl
 			// re-broadcast — the receivers would materialize AND re-place the
 			// same item (observed: "not present — materializing" followed by
 			// "present — re-placing" for one drop).
-			var isDuplicate = _worldItems.TryGetValue(itemId, out var existing)
+			var isDuplicate = _worldTable.TryGetValue(itemId, out var existing)
 				&& existing.Pos.X == pos.X && existing.Pos.Y == pos.Y && existing.Rotation == rotation;
-			_worldItems[itemId] = new WorldItem(itemId, item, pos, vel, parentItemId, rotation, false, parentPos, angularVelocity);
+			_worldTable.Set(itemId, new WorldItem(itemId, item, pos, vel, parentItemId, rotation, false, parentPos, angularVelocity));
 			if (!isDuplicate)
 			{
 				_session.BroadcastExcept(sender, NetMsg.ItemDrop, new ItemDropMsg
@@ -400,7 +395,7 @@ public sealed class ItemService : IItemControl
 	{
 		if (_session.Role == SessionRole.Host)
 		{
-			_worldItems.Remove(itemId);
+			_worldTable.Remove(itemId);
 			_session.BroadcastExcept(sender, NetMsg.ItemDestroy, new ItemDestroyMsg { ItemId = itemId });
 		}
 
@@ -437,17 +432,8 @@ public sealed class ItemService : IItemControl
 	}
 
 	/// <summary>Host/solo: register a world item into the table when absent — the
-	/// block-break drop domain asks, the table state belongs here.</summary>
-	internal bool RegisterWorldItemIfAbsent(ulong itemId, WorldItem item)
-	{
-		if (_worldItems.ContainsKey(itemId))
-		{
-			return false;
-		}
-
-		_worldItems[itemId] = item;
-		return true;
-	}
+	/// block-break drop domain asks, the table state belongs to WorldItemTable.</summary>
+	internal bool RegisterWorldItemIfAbsent(ulong itemId, WorldItem item) => _worldTable.RegisterIfAbsent(itemId, item);
 
 	/// <summary>Surface the ItemSpawned event for the block-break drop domain (an event can only be invoked from its declaring class).</summary>
 	internal void FireItemSpawned(WorldItem item) => ItemSpawned?.Invoke(item);
@@ -532,19 +518,19 @@ public sealed class ItemService : IItemControl
 	/// <summary>Host only: the item's live state — the periodic keyframe must broadcast the CURRENT positions and condition, not the spawn-time ones (the spawn position would pull settled items back into the air every tick; a stale condition would re-align the peers' decay to the wrong value).</summary>
 	public void RefreshItemState(ulong itemId, NetVector2 pos, NetVector2 vel, float rotation, float condition)
 	{
-		if (_session.Role == SessionRole.Guest || !_worldItems.TryGetValue(itemId, out var w))
+		if (_session.Role == SessionRole.Guest || !_worldTable.TryGetValue(itemId, out var w))
 		{
 			return;
 		}
 
 		w.Item.Condition = condition;
-		_worldItems[itemId] = w with { Pos = pos, Vel = vel, Rotation = rotation };
+		_worldTable.Set(itemId, w with { Pos = pos, Vel = vel, Rotation = rotation });
 	}
 
 	/// <summary>Host only: periodically re-send the full table (unreliable) — see ItemSnapshotService.</summary>
 	public void SendPeriodicItemSnapshot() => _snapshots.SendPeriodicItemSnapshot();
 
-	public void ResetItems() => _worldItems.Clear();
+	public void ResetItems() => _worldTable.Clear();
 
 	/// <summary>
 	/// Host only: the generation finished — the host assigned an id to every
@@ -567,17 +553,21 @@ public sealed class ItemService : IItemControl
 		var registered = 0;
 		foreach (var entry in entries)
 		{
-			// A carried entry (starting supplies, SlotIndex >= 0) has NO table
-			// entry — it lives in a backpack until a drop brings it into the
-			// world (the drop report registers it then, the standard path).
-			if (entry.SlotIndex >= 0 || _worldItems.ContainsKey(entry.ItemId))
+			// A carried entry (starting supplies, SlotIndex > 0 — the wire
+			// encoding of a backpack slot is slotIndex + 1, see
+			// ItemSnapshotEntryMsg.SlotIndex) has NO table entry — it lives in
+			// a backpack until a drop brings it into the world (the drop report
+			// registers it then, the standard path). SlotIndex 0 IS a world
+			// item: protobuf-net omits the 0-valued wire field, so the encoded
+			// -1 + 1 arrives as 0 — never treat 0 as a slot.
+			if (entry.SlotIndex > 0 || _worldTable.ContainsKey(entry.ItemId))
 			{
 				continue;
 			}
 
-			_worldItems[entry.ItemId] = new WorldItem(entry.ItemId, entry.Item,
+			_worldTable.Set(entry.ItemId, new WorldItem(entry.ItemId, entry.Item,
 				entry.Position.ToNetVector2(), entry.Velocity.ToNetVector2(),
-				entry.ParentItemId, entry.Rotation, entry.FreshItemDrop);
+				entry.ParentItemId, entry.Rotation, entry.FreshItemDrop));
 			registered++;
 		}
 
@@ -590,7 +580,7 @@ public sealed class ItemService : IItemControl
 		});
 		_log.LogInformation("Published generation items ({Count} entries, {Registered} registered): {World} ground, {Carried} carried — modifier {Modifier}.",
 			entries.Count, registered,
-			entries.Count(e => e.SlotIndex < 0), entries.Count(e => e.SlotIndex >= 0), LayerModifierIndex);
+			entries.Count(e => e.SlotIndex == 0), entries.Count(e => e.SlotIndex > 0), LayerModifierIndex);
 	}
 
 	public void FireWorldItemsSnapshotReceived(ulong sender, IReadOnlyList<ItemSnapshotEntryMsg> items, int layerModifierIndex, byte[]? layerModifierRandomState)

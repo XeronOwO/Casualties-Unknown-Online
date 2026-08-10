@@ -26,8 +26,8 @@ public interface IItemControl
 	/// <summary>Guest only: an item was used locally (Body.UseItem) — report the used state (digest evidence) so the host validates and corrects.</summary>
 	void SendItemUse(ulong itemId, CharacterItemMsg item);
 
-	/// <summary>Guest only: an item moved slots locally (SwapSlots / SwitchHands) — report the new slot so the host's record stays in sync.</summary>
-	void SendItemSlot(ulong itemId, int slotIndex);
+	/// <summary>Guest only: an item moved slots locally (SwapSlots / SwitchHands) — report the new slot so the host's record stays in sync. The digest evidence rides along (the host broadcasts it as the carried-fact event when it has no transfer-table entry — a starting-supply item).</summary>
+	void SendItemSlot(ulong itemId, int slotIndex, CharacterItemMsg item);
 
 	/// <summary>An item was dropped/placed into the world locally (inventory → world/container) — record and report/broadcast. Vel is the item's velocity at the drop moment (a throw carries a big one); ParentPos is the container's world position when ParentItemId is set (the receiver binds a local generation-time container by position).</summary>
 	void SendItemDropped(ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, ulong parentItemId, float rotation, NetVector2 parentPos = default, float angularVelocity = 0f);
@@ -72,8 +72,11 @@ public interface IItemControl
 	/// <summary>An item was used locally (Body.UseItem) — report the used state (digest evidence) so the host validates and corrects.</summary>
 	void FireItemUseReceived(ulong sender, ulong itemId, CharacterItemMsg item);
 
-	/// <summary>An item moved slots locally (SwapSlots / SwitchHands) — report the new slot so the host's record stays in sync.</summary>
-	void FireItemSlotReceived(ulong sender, ulong itemId, int slotIndex);
+	/// <summary>An item moved slots locally (SwapSlots / SwitchHands) — report the new slot so the host's record stays in sync. The digest evidence rides along (the host broadcasts it when it has no transfer-table entry).</summary>
+	void FireItemSlotReceived(ulong sender, ulong itemId, int slotIndex, CharacterItemMsg item);
+
+	/// <summary>The authoritative fact of one carried item arrived (host → guest): a use flipped its state, a slot move re-homed it, a pickup brought it in — update the owner's fact table entry and re-render the clone. SlotKnown = false means keep the fact table's existing slot.</summary>
+	void FireItemCarriedSyncReceived(ulong sender, ulong ownerSteamId, CharacterItemMsg item, bool slotKnown);
 
 	// ===== Host-only surface =====
 
@@ -85,6 +88,9 @@ public interface IItemControl
 
 	/// <summary>Host only: the items a guest currently owns (the transfer table — where the host moved world-table entries as the guest's actions took them). The reconnect restore merges these into the character snapshot.</summary>
 	IReadOnlyList<WorldItem> GetTransferredItems(ulong steamId);
+
+	/// <summary>Host only: broadcast one carried item's authoritative fact (use/slot move/pickup) to every guest except its owner — the peers update the owner's fact table and re-render the clone immediately (reliable; the 1 Hz snapshot is the fallback).</summary>
+	void SendItemCarriedSync(ulong ownerSteamId, CharacterItemMsg item);
 
 	/// <summary>Host only: the item's live state (position/velocity/rotation/condition) — the periodic keyframe must broadcast the CURRENT state, not the spawn-time one (stale positions yank settled items around; a stale condition re-aligns the peers' decay to the wrong value).</summary>
 	void RefreshItemState(ulong itemId, NetVector2 pos, NetVector2 vel, float rotation, float condition);
@@ -136,4 +142,7 @@ public interface IItemControl
 
 	/// <summary>Guest side: the host's authoritative item state arrived (our action-report evidence diverged) — the adapter applies it (materialize missing contents, fix state, fix slot).</summary>
 	event Action<CharacterItemMsg>? ItemCorrectionReceived;
+
+	/// <summary>The authoritative fact of one carried item changed (host broadcast: use/slot move/pickup) — the adapter updates the owner's per-player fact table and re-renders the clone. Fired on the guests from the wire and on the host directly (its own arbitration decisions).</summary>
+	event Action<ulong, CharacterItemMsg, bool>? ItemCarriedSyncReceived;
 }

@@ -43,15 +43,19 @@ public sealed class ItemArbitration(ISessionControl session, PacketSender sender
 	/// <summary>
 	/// Host only: a pickup was accepted — the entry (taken from the world table
 	/// by the caller) becomes the picker's owned item. The picker's evidence is
-	/// checked against it first; divergence syncs, never blocks.
+	/// checked against it first; divergence syncs, never blocks. Returns the
+	/// authoritative carried item (the transfer-table entry, slot adopted from
+	/// the evidence) — the caller broadcasts it as the carried-fact event.
 	/// </summary>
-	public void CheckAndTransferToGuest(ulong guest, ulong itemId, WorldItem entry, CharacterItemMsg? evidence)
+	public CharacterItemMsg CheckAndTransferToGuest(ulong guest, ulong itemId, WorldItem entry, CharacterItemMsg? evidence)
 	{
 		CheckEvidence(guest, itemId, entry.Item, evidence);
 		// The evidence carries the slot the picker's item landed in — adopted
 		// (a carried item's slot is its owner's local fact, never corrected);
 		// the reconnect restore needs a real slot or the item would not restore.
-		if (evidence is { SlotIndex: >= 0 })
+		// -1 is the only meaningless slot (not in any slot or limb); the limb
+		// wear encodings (≤ -2) are real slots, adopted like the backpack ones.
+		if (evidence is { SlotIndex: not -1 })
 		{
 			entry.Item.SlotIndex = evidence.SlotIndex;
 		}
@@ -62,6 +66,7 @@ public sealed class ItemArbitration(ISessionControl session, PacketSender sender
 		}
 
 		owned[itemId] = entry;
+		return entry.Item;
 	}
 
 	/// <summary>
@@ -87,9 +92,10 @@ public sealed class ItemArbitration(ISessionControl session, PacketSender sender
 	/// evidence can never match, the correction bounces the guest's action.
 	/// Pickup/drop evidence still goes through CheckEvidence (a pickup is not a
 	/// state change — a correction there converges the picker onto the host's
-	/// record); a use is exactly the opposite.
+	/// record); a use is exactly the opposite. Returns the adopted authoritative
+	/// item (null when untracked — no entry to arbitrate against).
 	/// </summary>
-	public void CheckUseEvidence(ulong guest, ulong itemId, CharacterItemMsg evidence)
+	public CharacterItemMsg? CheckUseEvidence(ulong guest, ulong itemId, CharacterItemMsg evidence)
 	{
 		if (!_transferred.TryGetValue(guest, out var owned) || !owned.TryGetValue(itemId, out var entry))
 		{
@@ -98,7 +104,7 @@ public sealed class ItemArbitration(ISessionControl session, PacketSender sender
 			// yet). Log and leave; the character-data snapshot path still
 			// carries the state.
 			_log.LogWarning("Item use {ItemId} from {Guest} — no transfer-table entry, not arbitrated.", itemId, guest);
-			return;
+			return null;
 		}
 
 		entry.Item.Condition = evidence.Condition;
@@ -107,24 +113,26 @@ public sealed class ItemArbitration(ISessionControl session, PacketSender sender
 		entry.Item.Components = evidence.Components;
 
 		_log.LogInformation("Item {ItemId} used by {Guest}.", itemId, guest);
+		return entry.Item;
 	}
 
 	/// <summary>
 	/// Host only: an item moved slots — the guest's own slot layout is its
 	/// local fact, recorded, never corrected (the slot rides in the
-	/// authoritative item for the reconnect merge).
+	/// authoritative item for the reconnect merge). Returns the updated
+	/// authoritative item (null when untracked).
 	/// </summary>
-	public void RecordSlot(ulong guest, ulong itemId, int slotIndex)
+	public CharacterItemMsg? RecordSlot(ulong guest, ulong itemId, int slotIndex)
 	{
 		if (_transferred.TryGetValue(guest, out var owned) && owned.TryGetValue(itemId, out var entry))
 		{
 			entry.Item.SlotIndex = slotIndex;
 			_log.LogInformation("Item {ItemId} moved to slot {Slot} by {Guest}.", itemId, slotIndex, guest);
+			return entry.Item;
 		}
-		else
-		{
-			_log.LogWarning("Item slot {ItemId} from {Guest} — no transfer-table entry, not tracked.", itemId, guest);
-		}
+
+		_log.LogWarning("Item slot {ItemId} from {Guest} — no transfer-table entry, not tracked.", itemId, guest);
+		return null;
 	}
 
 	/// <summary>Guest side: the host's authoritative item state arrived — surface it for the adapter to apply.</summary>

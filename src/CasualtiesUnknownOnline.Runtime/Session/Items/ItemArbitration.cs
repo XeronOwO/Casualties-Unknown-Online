@@ -79,9 +79,15 @@ public sealed class ItemArbitration(ISessionControl session, PacketSender sender
 	}
 
 	/// <summary>
-	/// Host only: an item was used — a matching evidence is ADOPTED (the guest
-	/// is the fact source for its own body; the host's record is one action
-	/// behind), a diverging one is corrected back to the host's record.
+	/// Host only: an item was used — the guest is the fact source for its own
+	/// body (the host's record is one action behind), so the used item's state
+	/// is adopted UNCONDITIONALLY. A use changes the item's state by definition
+	/// (a flashlight mode ++, a bite of food), so comparing the evidence against
+	/// the host's one-action-behind record would correct every use back — the
+	/// evidence can never match, the correction bounces the guest's action.
+	/// Pickup/drop evidence still goes through CheckEvidence (a pickup is not a
+	/// state change — a correction there converges the picker onto the host's
+	/// record); a use is exactly the opposite.
 	/// </summary>
 	public void CheckUseEvidence(ulong guest, ulong itemId, CharacterItemMsg evidence)
 	{
@@ -95,13 +101,10 @@ public sealed class ItemArbitration(ISessionControl session, PacketSender sender
 			return;
 		}
 
-		if (CheckEvidence(guest, itemId, entry.Item, evidence))
-		{
-			entry.Item.Condition = evidence.Condition;
-			entry.Item.Favourited = evidence.Favourited;
-			entry.Item.Liquids = evidence.Liquids;
-			entry.Item.Components = evidence.Components;
-		}
+		entry.Item.Condition = evidence.Condition;
+		entry.Item.Favourited = evidence.Favourited;
+		entry.Item.Liquids = evidence.Liquids;
+		entry.Item.Components = evidence.Components;
 
 		_log.LogInformation("Item {ItemId} used by {Guest}.", itemId, guest);
 	}

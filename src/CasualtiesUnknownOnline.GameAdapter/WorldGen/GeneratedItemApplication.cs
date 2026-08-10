@@ -64,7 +64,9 @@ internal sealed class GeneratedItemApplication(
 			var materialized = 0;
 			foreach (var entry in entries)
 			{
-				if (entry.SlotIndex >= 0)
+				// Wire encoding: slotIndex + 1, 0 = a world item (protobuf-net
+				// omits 0-valued ints — see ItemSnapshotEntryMsg.SlotIndex).
+				if (entry.SlotIndex > 0)
 				{
 					if (TryBindCarried(entry))
 					{
@@ -73,7 +75,7 @@ internal sealed class GeneratedItemApplication(
 					else
 					{
 						_log.LogWarning("[GenItems] carried entry slot {Slot} ({Type}) has no matching local item — skipped.",
-							entry.SlotIndex, entry.Item.ItemId);
+							entry.SlotIndex - 1, entry.Item.ItemId);
 					}
 
 					continue;
@@ -125,12 +127,13 @@ internal sealed class GeneratedItemApplication(
 	private static bool TryBindCarried(ItemSnapshotEntryMsg entry)
 	{
 		var body = PlayerCamera.main?.body; // Unity object — ==
-		if (body == null || entry.SlotIndex < 0 || entry.SlotIndex >= body.slots.Length) // Unity object — ==
+		var slotIndex = entry.SlotIndex - 1; // wire encoding: slotIndex + 1
+		if (body == null || slotIndex < 0 || slotIndex >= body.slots.Length) // Unity object — ==
 		{
 			return false;
 		}
 
-		var slot = body.slots[entry.SlotIndex];
+		var slot = body.slots[slotIndex];
 		for (var c = 0; c < slot.transform.childCount; c++)
 		{
 			var item = slot.transform.GetChild(c).GetComponent<Item>();

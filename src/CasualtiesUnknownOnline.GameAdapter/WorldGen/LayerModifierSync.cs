@@ -34,6 +34,15 @@ internal sealed class LayerModifierSync(ItemService items, ILogger<LayerModifier
 	/// liquids, a re-run would flood again).</summary>
 	private int _applied = -1;
 
+	/// <summary>A snapshot that arrived while the world was still generating —
+	/// applying then would run Initialize mid-generation (Flooded would place
+	/// liquids into a world the generator is still writing). Deferred until the
+	/// pump sees the generation finished, same pattern as
+	/// GeneratedItemApplication.</summary>
+	private int _pendingIndex = -1;
+	private byte[]? _pendingState;
+	private bool _pendingForce;
+
 	internal void BindToSession()
 	{
 		_items.WorldItemsSnapshotReceived += OnWorldItemsSnapshot;
@@ -46,16 +55,31 @@ internal sealed class LayerModifierSync(ItemService items, ILogger<LayerModifier
 		_items.ItemSnapshotReceived -= OnItemSnapshot;
 	}
 
+	/// <summary>Pump: apply a snapshot that arrived during generation.</summary>
+	internal void Update()
+	{
+		if (_pendingIndex < 0 || HarmonyTraverse.IsGenerating())
+		{
+			return;
+		}
+
+		Apply(_pendingIndex, _pendingState, _pendingForce);
+		_pendingIndex = -1;
+		_pendingState = null;
+	}
+
 	private void OnWorldItemsSnapshot(IReadOnlyList<ItemSnapshotEntryMsg> items, int layerModifierIndex, byte[]? layerModifierRandomState) => Apply(layerModifierIndex, layerModifierRandomState, force: true);
 
 	private void OnItemSnapshot(IReadOnlyList<WorldItem> items, int layerModifierIndex, byte[]? layerModifierRandomState) => Apply(layerModifierIndex, layerModifierRandomState, force: false);
 
-	private void Apply(int index, byte[]? randomState, bool force)
+	private void Apply(int encodedIndex, byte[]? randomState, bool force)
 	{
-		if (index < 0 || index >= LayerModifier.availableModifiers.Length)
+		if (encodedIndex <= 0 || encodedIndex > LayerModifier.availableModifiers.Length)
 		{
-			return; // none / out of range — never touch a modifier state we cannot name
+			return; // 0 = none; the wire encoding is modifierIndex + 1 (protobuf-net omits 0-valued ints — Foggy's raw index is 0)
 		}
+
+		var index = encodedIndex - 1;
 
 		if (!force && index == _applied)
 		{
@@ -66,6 +90,14 @@ internal sealed class LayerModifierSync(ItemService items, ILogger<LayerModifier
 		if (world == null) // Unity object — ==
 		{
 			return;
+		}
+
+		if (HarmonyTraverse.IsGenerating())
+		{
+			_pendingIndex = index;
+			_pendingState = randomState;
+			_pendingForce = force;
+			return; // applied by the pump once generation ends
 		}
 
 		if (randomState is not null)
@@ -97,5 +129,21 @@ internal sealed class LayerModifierSync(ItemService items, ILogger<LayerModifier
 		AccessTools.Field(typeof(WorldGeneration), "layerDescription")?.SetValue(world, Locale.GetOther("layermodifier" + index + "dsc"));
 		_applied = index;
 		_log.LogInformation("[LayerMod] applied host modifier {Index}.", index);
+
+		// The entry banner was built at generation finish reading layerPrefix
+		// (WorldGeneration.cs:3648) — the snapshot usually arrives after it, so
+		// the guest's banner lacks the modifier name. Re-show the banner with it
+		// (the game's own build, WorldGeneration.cs:3640-3665).
+		if (world.loadingObject == null || !world.loadingObject.activeSelf) // Unity object — ==; hidden = banner already shown
+		{
+			var prefix = AccessTools.Field(typeof(WorldGeneration), "layerPrefix")?.GetValue(world) as string;
+			var description = AccessTools.Field(typeof(WorldGeneration), "layerDescription")?.GetValue(world) as string;
+			var text = Locale.GetOther("layer") + " " + (world.biomeDepth + 1) + "\n<color=\"orange\">" + prefix + "</color> " + world.biomeTitles[world.biomeDepth];
+			PlayerCamera.main.DoAlert(text, true);
+			if (!string.IsNullOrEmpty(description))
+			{
+				PlayerCamera.main.StartCoroutine(PlayerCamera.main.DoAlertDelayed("<color=\"orange\">" + description + "</color>", false, 6f));
+			}
+		}
 	}
 }

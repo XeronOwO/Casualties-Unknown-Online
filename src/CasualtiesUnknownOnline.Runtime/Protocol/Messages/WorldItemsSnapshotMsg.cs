@@ -11,8 +11,9 @@ namespace CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 /// per-item race would let two sides allocate two ids for the same object
 /// (the pickup race: "generated item picked up by two players — duplicate
 /// copies"). The receiver binds its local copies to the host's ids
-/// (ItemSnapshotEntryMsg.SlotIndex &gt;= 0 = a backpack-slot carried item,
-/// bound by slot — the starting supplies) or materializes the host's version;
+/// (ItemSnapshotEntryMsg.SlotIndex &gt; 0, wire-encoded slotIndex + 1 = a
+/// backpack-slot carried item, bound by slot — the starting supplies) or
+/// materializes the host's version;
 /// local copies the host does not know (per-side random spawns, e.g. the
 /// corpse-loot rolls that run on the real stream) are destroyed. World-gen
 /// determinism keeps the ground layout identical on every side — the ids are
@@ -26,15 +27,17 @@ public sealed class WorldItemsSnapshotMsg
 	public List<ItemSnapshotEntryMsg> Items { get; set; } = [];
 
 	/// <summary>The layer modifier the host's world rolled at generation finish
-	/// (ApplyLayerModifiers, WorldGeneration.cs:3729 — an index into
-	/// LayerModifier.availableModifiers, -1 = none). The modifier decision reads
-	/// the random stream AFTER the darken-wait suspension, which the isolation
-	/// does not restore (the suspension's real-stream draws leak into it), so
-	/// every side rolls its own modifier — the host's decision is the world
-	/// definition and travels with the generation snapshot; the guests apply it
-	/// and skip their own local roll.</summary>
+	/// (ApplyLayerModifiers, WorldGeneration.cs:3729). Wire encoding:
+	/// modifierIndex + 1, 0 = none — NOT the raw index, because protobuf-net
+	/// omits int fields whose value is 0 (the default), and the raw index of
+	/// Foggy IS 0: a raw-encoded Foggy arrived as "none" on the other side.
+	/// The modifier decision reads the random stream AFTER the darken-wait
+	/// suspension, which the isolation does not restore (the suspension's
+	/// real-stream draws leak into it), so every side rolls its own modifier —
+	/// the host's decision is the world definition and travels with the
+	/// generation snapshot; the guests apply it and skip their own local roll.</summary>
 	[ProtoMember(2)]
-	public int LayerModifierIndex { get; set; } = -1;
+	public int LayerModifierIndex { get; set; }
 
 	/// <summary>The random stream state at the entry of the host's modifier
 	/// decision (ApplyLayerModifiers' first draw), non-null when a modifier was

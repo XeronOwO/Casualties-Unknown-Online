@@ -214,6 +214,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_gate.Update(_run.LocalBody);
 		_genItemAuthority.Update(); // host/solo: publish the generation-time items when the generation finished
 		_genItemApplication.Update(); // guest: apply the host's generation snapshot once the local generation finished
+		_layerModifierSync.Update(); // guest: apply the host's layer modifier once the local generation finished
 		_itemWorldSync.FlushPendingDrop(); // a drop that was not thrown reports at end of frame (one drop = one report)
 		_blockBreakSync.FlushPendingBlockBreak(); // a break's drops fold in one frame after the break — the break + drops go out as ONE message
 		if (IsHostMode)

@@ -32,7 +32,7 @@ public sealed class CharacterDataMsg
 	public List<CharacterItemMsg> Items { get; set; } = [];
 
 	[ProtoMember(5)]
-	public int HandSlot { get; set; } = -1; // -1 = don't touch
+	public int HandSlot { get; set; } // wire encoding: handSlot + 1, 0 = none — NOT the raw index (protobuf-net omits 0-valued ints, and hand slot 0 is a valid raw index)
 
 	/// <summary>
 	/// 0 = ownerless (host-originated restore); otherwise the SteamId of the

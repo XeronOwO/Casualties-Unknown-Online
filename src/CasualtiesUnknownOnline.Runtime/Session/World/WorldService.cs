@@ -16,12 +16,13 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 /// <see cref="PacketSender"/>. No pump: it only reacts to calls and messages
 /// (not an ICuoService, like CharacterDataStore).
 /// </summary>
-public sealed class WorldService(ISessionControl session, PacketSender sender, ILogger<WorldService> log)
+public sealed class WorldService(ISessionControl session, PacketSender sender, ILogger<WorldService> log, TrapConsumptionRegistry trapConsumption)
 	: IWorldControl
 {
 	private readonly ISessionControl _session = session;
 	private readonly PacketSender _sender = sender;
 	private readonly ILogger<WorldService> _log = log;
+	private readonly TrapConsumptionRegistry _trapConsumption = trapConsumption;
 
 	/// <summary>
 	/// Host-side block-difference table: block-space position → current block id,
@@ -231,6 +232,59 @@ public sealed class WorldService(ISessionControl session, PacketSender sender, I
 
 	public void FireKeypadCodeReceived(IReadOnlyList<KeypadEntryMsg> codes) => KeypadCodeReceived?.Invoke(codes);
 
+	// ---- World entity events (traps/mechanisms) ----
+
+	/// <summary>An entity event arrived — the receiver applies it (host: to its own world; guest: replay).</summary>
+	public event Action<ulong, EntityEventMsg>? EntityEventReceived;
+
+	public void FireEntityEventReceived(ulong sender, EntityEventMsg msg) => EntityEventReceived?.Invoke(sender, msg);
+
+	/// <summary>
+	/// Report a locally-triggered entity event (a trap fired on this side, local
+	/// compute): guest → host as a report (the host applies the event to its own
+	/// world — the mine destroys the host's copy and rolls the host-side drops —
+	/// and relays), host → broadcast to all synced members. Same shape as
+	/// SendBlockDamaged: the host owns the world consequences.
+	/// </summary>
+	public void SendEntityEvent(EntityEventMsg msg)
+	{
+		if (!_session.SessionActive)
+		{
+			return;
+		}
+
+		if (_session.Role == SessionRole.Host)
+		{
+			_session.Broadcast(NetMsg.EntityEvent, msg);
+		}
+		else
+		{
+			_sender.Send(_session.HostSteamId, NetMsg.EntityEvent, msg);
+		}
+	}
+
+	/// <summary>Host only: relay an accepted entity event to the other members (source excluded — it already applied locally).</summary>
+	public void BroadcastEntityEvent(ulong excludeSteamId, EntityEventMsg msg)
+	{
+		if (_session.Role != SessionRole.Host || !_session.SessionActive)
+		{
+			return;
+		}
+
+		_session.BroadcastExcept(excludeSteamId, NetMsg.EntityEvent, msg);
+	}
+
+	/// <summary>Host only: record a one-shot trap consumption (position-keyed).</summary>
+	public void ReportTrapConsumed(EntityEventKind kind, float x, float y) => _trapConsumption.Report(kind, x, y);
+
+	/// <summary>Host only: send the one-shot trap consumptions to one member (on its world entry).</summary>
+	public void SendTrapStateSnapshot(ulong targetSteamId) => _trapConsumption.SendSnapshot(targetSteamId);
+
+	/// <summary>Guest: the host's trap-consumption snapshot arrived — consume each entry (idempotent).</summary>
+	public event Action<IReadOnlyList<EntityEventMsg>>? TrapStateReceived;
+
+	public void FireTrapStateReceived(IReadOnlyList<EntityEventMsg> consumed) => TrapStateReceived?.Invoke(consumed);
+
 	/// <summary>Host only: broadcast the keypad codes (position-keyed Openables) to every synced member.</summary>
 	public void SendKeypadCodes(IReadOnlyList<KeypadEntryMsg> codes)
 	{
@@ -398,8 +452,12 @@ public sealed class WorldService(ISessionControl session, PacketSender sender, I
 		_damagedBlocks.Remove((x, y));
 	}
 
-	/// <summary>Host only: a new world layer is generating — the table starts empty again.</summary>
-	public void ResetDamagedBlocks() => _damagedBlocks.Clear();
+	/// <summary>Host only: a new world layer is generating — the tables start empty again (block difference + one-shot trap consumptions share the lifecycle).</summary>
+	public void ResetDamagedBlocks()
+	{
+		_damagedBlocks.Clear();
+		_trapConsumption.Reset();
+	}
 
 	/// <summary>Host only: send the full damage table to one member (on its world entry).</summary>
 	public void SendBlockStateSnapshot(ulong targetSteamId)

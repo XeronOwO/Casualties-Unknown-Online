@@ -66,4 +66,8 @@ public enum NetMsg : byte
 	// Item id coordination (guest → host reports / host → guest grants)
 	ItemIdWatermark = 64, // bidirectional: guest → host the counter it allocated up to; host → guest the grant it must resume from (a crashed-and-rejoined guest's counter restarts — the grant keeps its new ids from colliding with the old ones the host still holds)
 	CarriedInventory = 65, // guest → host: the guest's carried inventory with self-assigned ids (generation finished) — the host registers it in the guest's transfer table
+
+	// World entity events (traps/mechanisms — local compute → report → host applies → relay, replay on the receivers)
+	EntityEvent = 66, // bidirectional: guest → host report of a triggered trap event; host → guest broadcast relay (source excluded — the host applies the event to its own world first)
+	TrapStateSnapshot = 67, // host → guest: the one-shot trap consumptions so far (world entry, sent alongside the block-state snapshot)
 }

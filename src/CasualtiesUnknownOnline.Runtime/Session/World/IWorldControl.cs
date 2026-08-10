@@ -121,4 +121,30 @@ public interface IWorldControl
 	void FireKeypadCodeReceived(IReadOnlyList<KeypadEntryMsg> codes);
 
 	event Action<IReadOnlyList<KeypadEntryMsg>>? KeypadCodeReceived;
+
+	/// <summary>
+	/// Report a locally-triggered world entity event (a trap fired — local
+	/// compute): guest → host as a report (the host applies the event to its own
+	/// world and relays), host → broadcast to all synced members.
+	/// </summary>
+	void SendEntityEvent(EntityEventMsg msg);
+
+	/// <summary>Host only: relay an accepted entity event to the other members (source excluded — it already applied locally).</summary>
+	void BroadcastEntityEvent(ulong excludeSteamId, EntityEventMsg msg);
+
+	void FireEntityEventReceived(ulong sender, EntityEventMsg msg);
+
+	/// <summary>An entity event arrived — the receiver applies it (host: to its own world; guest: replay).</summary>
+	event Action<ulong, EntityEventMsg>? EntityEventReceived;
+
+	/// <summary>Host only: record a one-shot trap consumption (position-keyed).</summary>
+	void ReportTrapConsumed(EntityEventKind kind, float x, float y);
+
+	/// <summary>Host only: send the one-shot trap consumptions to one member (on its world entry).</summary>
+	void SendTrapStateSnapshot(ulong targetSteamId);
+
+	void FireTrapStateReceived(IReadOnlyList<EntityEventMsg> consumed);
+
+	/// <summary>Guest: the host's trap-consumption snapshot arrived — consume each entry (idempotent).</summary>
+	event Action<IReadOnlyList<EntityEventMsg>>? TrapStateReceived;
 }

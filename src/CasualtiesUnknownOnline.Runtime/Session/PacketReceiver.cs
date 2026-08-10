@@ -58,7 +58,7 @@ public sealed class PacketReceiver : IDisposable
 		NetMsg.HandshakeAck or NetMsg.WorldStartParams or NetMsg.WorldJoin or NetMsg.WorldReady
 			or NetMsg.PlayerJoin or NetMsg.PlayerLeave or NetMsg.PlayerState or NetMsg.WorldBlockState
 			or NetMsg.ItemReject or NetMsg.ItemSnapshot or NetMsg.HostCharacterData or NetMsg.EarthquakeStart
-			or NetMsg.ItemMove or NetMsg.KeypadCode
+			or NetMsg.ItemMove or NetMsg.KeypadCode or NetMsg.TrapStateSnapshot
 			=> _session.Role == SessionRole.Guest,
 		// Ping/Pong/SceneState/BlockDamaged/CharacterData/ItemSpawn/ItemPickup/
 		// ItemDrop/ItemDestroy: bidirectional — report up (guest → host) and

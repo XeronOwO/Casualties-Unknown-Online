@@ -252,17 +252,20 @@ internal sealed class ItemWorldSync(
 			_guard.Mark(itemId); // the frozen copy must not be killed by the reconcile before the host's stream takes over
 
 			// Freeze the item at the drop spot — NO local simulation until the
-			// host's stream arrives. A local roll-out is a NON-authoritative
-			// world interaction (it can trip a landmine the host's item never
-			// touches) and it diverges from the host's trajectory: the report
-			// travels for the latency, the host starts simulating from the drop
-			// spot, and a local copy that already rolled gets yanked back
-			// THROUGH the wall ("thrown item through the wall"). The frozen item
-			// plays the host's simulation from the same spot — same phase, no
-			// rewind. The throw report reads rb.velocity AFTER ThrowItem ran; the
-			// kinematic body keeps the assigned property values. DropItem does
-			// not move the item (Body.cs:1441-1451), so the drop spot IS the
-			// reported position.
+			// host's stream arrives (ItemPositionFollow switches it to local
+			// physics on its first tick). Without the freeze the copy diverges
+			// from the host's trajectory: the report travels for the latency,
+			// the host starts simulating from the drop spot, and a local copy
+			// that already rolled gets yanked back THROUGH the wall ("thrown
+			// item through the wall"). The frozen item plays the host's
+			// simulation from the same spot — same phase, no rewind. (The
+			// landmine argument from the earlier kinematic design is gone: the
+			// layer isolation + MineScriptPatches shield items from tripping
+			// mines, so local physics in the playback phase is safe.) The throw
+			// report reads rb.velocity AFTER ThrowItem ran; the kinematic body
+			// keeps the assigned property values. DropItem does not move the
+			// item (Body.cs:1441-1451), so the drop spot IS the reported
+			// position.
 			item.rb.bodyType = RigidbodyType2D.Kinematic;
 			item.rb.velocity = Vector2.zero;
 			item.rb.angularVelocity = 0f;

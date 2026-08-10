@@ -1,5 +1,6 @@
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
+using Microsoft.Extensions.Logging;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Items;
 
@@ -14,10 +15,11 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 /// the host's tables still hold. Split out of ItemWorldSync (gate-driven — the
 /// report-side class keeps growing with every pickup/drop path fix).
 /// </summary>
-internal sealed class ItemIdAllocator(SessionService session, ItemService items)
+internal sealed class ItemIdAllocator(SessionService session, ItemService items, ILogger<ItemIdAllocator> log)
 {
 	private readonly SessionService _session = session;
 	private readonly ItemService _items = items;
+	private readonly ILogger<ItemIdAllocator> _log = log;
 
 	/// <summary>Instance-id counter: ids are (counter, account id) — globally unique per session without host allocation.</summary>
 	private ulong _nextItemId;
@@ -41,6 +43,8 @@ internal sealed class ItemIdAllocator(SessionService session, ItemService items)
 		{
 			_nextItemId = counter + 1;
 		}
+
+		_log.LogInformation("[IdWatermark] set counter {Counter} (resuming at {Next}).", counter, _nextItemId);
 	}
 
 	/// <summary>

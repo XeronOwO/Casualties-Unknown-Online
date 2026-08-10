@@ -100,7 +100,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_itemReconcile = new ItemReconcile(items, _itemApplication, _dropGuard, loggerFactory.CreateLogger<ItemReconcile>());
 		_operationTrace = new OperationTrace(loggerFactory.CreateLogger<OperationTrace>());
 		var itemReports = new ItemReportCommitter(items, _operationTrace, loggerFactory.CreateLogger<ItemReportCommitter>());
-		_itemIds = new ItemIdAllocator(session, items); // ids are (counter, SteamId) — the counter reports the high-water mark and resumes from the host's grant on join/reconnect
+		_itemIds = new ItemIdAllocator(session, items, loggerFactory.CreateLogger<ItemIdAllocator>()); // ids are (counter, SteamId) — the counter reports the high-water mark and resumes from the host's grant on join/reconnect
 		var itemDropState = new ItemDropState();
 		var blockBreakState = new PendingBlockBreak();
 		_itemWorldSync = new ItemWorldSync(session, items, _dropGuard, itemDropState, blockBreakState, _operationTrace, itemReports, _itemIds, loggerFactory.CreateLogger<ItemWorldSync>());

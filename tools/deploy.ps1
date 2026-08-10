@@ -46,6 +46,28 @@ if ($gameProc) {
     exit 1
 }
 
+# Second line of defence: a loaded plugin DLL is held open by the game process,
+# so a locked file in the deploy target is the ground truth that a game
+# instance (possibly one the process check could not name) is still running.
+# Covers launch-transient states and leftover instances.
+function Test-FileLocked([string]$path) {
+    if (-not (Test-Path -LiteralPath $path)) { return $false }
+    try {
+        $fs = [System.IO.File]::Open($path, 'Open', 'ReadWrite', 'None')
+        $fs.Close()
+        return $false
+    } catch {
+        return $true
+    }
+}
+$targetDir = Join-Path $GameDir "BepInEx\plugins\CasualtiesUnknownOnline"
+$locked = Get-ChildItem -LiteralPath $targetDir -Filter *.dll -ErrorAction SilentlyContinue |
+    Where-Object { Test-FileLocked $_.FullName }
+if ($locked) {
+    Write-Error "Plugin DLLs are locked: $($locked.Name -join ', '). The game (or a leftover instance) is holding them. Close it before deploying."
+    exit 1
+}
+
 Write-Host "Building solution..."
 dotnet build (Join-Path $RepoRoot "CasualtiesUnknownOnline.slnx") --verbosity quiet
 if ($LASTEXITCODE -ne 0) {
@@ -74,7 +96,12 @@ if (-not $dlls) {
     exit 1
 }
 foreach ($dll in $dlls) {
-    Copy-Item -LiteralPath $dll.FullName -Destination (Join-Path $targetDir $dll.Name) -Force
+    try {
+        Copy-Item -LiteralPath $dll.FullName -Destination (Join-Path $targetDir $dll.Name) -Force
+    } catch {
+        Write-Error "Failed to deploy $($dll.Name) — the target is locked, so the game (or a leftover instance, or a scanner) is holding it. Close the game and retry."
+        exit 1
+    }
     Write-Host "  deployed $($dll.Name)"
 }
 

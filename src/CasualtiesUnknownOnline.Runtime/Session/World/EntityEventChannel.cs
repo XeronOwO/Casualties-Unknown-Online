@@ -103,6 +103,63 @@ public sealed class EntityEventChannel(ISessionControl session, PacketSender sen
 		_session.BroadcastExcept(excludeSteamId, NetMsg.EntitySpawned, msg);
 	}
 
+	// ---- World fluid grid (host authority, #129) ----
+
+	/// <summary>Host only: stream an absolute RLE fluid-grid region to one member (the host simulates the world fluid alone; the guest applies it onto its local grid and the game's own renderer draws it).</summary>
+	public void SendFluidRegion(ulong targetSteamId, FluidRegionMsg msg)
+	{
+		if (_session.Role != SessionRole.Host || !_session.SessionActive)
+		{
+			return;
+		}
+
+		_sender.Send(targetSteamId, NetMsg.FluidRegion, msg);
+	}
+
+	/// <summary>Guest: the host's fluid region arrived — apply it onto the local grid.</summary>
+	public event Action<FluidRegionMsg>? FluidRegionReceived;
+
+	public void FireFluidRegionReceived(FluidRegionMsg msg) => FluidRegionReceived?.Invoke(msg);
+
+	/// <summary>
+	/// Report a locally-performed fluid interaction (drinking — the cell was
+	/// consumed): guest → host as a report (the host executes on its own grid —
+	/// the authority — and relays), host → broadcast to all synced members.
+	/// Same shape as SendEntityEvent.
+	/// </summary>
+	public void SendFluidInteraction(FluidInteractionMsg msg)
+	{
+		if (!_session.SessionActive)
+		{
+			return;
+		}
+
+		if (_session.Role == SessionRole.Host)
+		{
+			_session.Broadcast(NetMsg.FluidInteraction, msg);
+		}
+		else
+		{
+			_sender.Send(_session.HostSteamId, NetMsg.FluidInteraction, msg);
+		}
+	}
+
+	/// <summary>Host only: relay an executed fluid interaction to the other members (source excluded — it already applied locally).</summary>
+	public void BroadcastFluidInteraction(ulong excludeSteamId, FluidInteractionMsg msg)
+	{
+		if (_session.Role != SessionRole.Host || !_session.SessionActive)
+		{
+			return;
+		}
+
+		_session.BroadcastExcept(excludeSteamId, NetMsg.FluidInteraction, msg);
+	}
+
+	/// <summary>A fluid interaction arrived — the receiver applies it (host: to its own grid, then relays; guest: clear the cell).</summary>
+	public event Action<ulong, FluidInteractionMsg>? FluidInteractionReceived;
+
+	public void FireFluidInteractionReceived(ulong sender, FluidInteractionMsg msg) => FluidInteractionReceived?.Invoke(sender, msg);
+
 	// ---- One-shot trap consumptions (the late-joiner snapshot) ----
 
 	/// <summary>Host only: record a one-shot trap consumption (position-keyed; Extra rides along for progress-carrying events).</summary>

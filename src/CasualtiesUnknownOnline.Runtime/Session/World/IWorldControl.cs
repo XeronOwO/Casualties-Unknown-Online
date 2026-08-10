@@ -170,4 +170,27 @@ public interface IWorldControl
 
 	/// <summary>Guest: the host's trap-consumption snapshot arrived — consume each entry (idempotent).</summary>
 	event Action<IReadOnlyList<EntityEventMsg>>? TrapStateReceived;
+
+	/// <summary>Host only: stream an absolute RLE fluid-grid region to one member (the host simulates the world fluid alone — the guests render the streamed regions).</summary>
+	void SendFluidRegion(ulong targetSteamId, FluidRegionMsg msg);
+
+	/// <summary>Guest: the host's fluid region arrived — apply it onto the local grid.</summary>
+	void FireFluidRegionReceived(FluidRegionMsg msg);
+
+	event Action<FluidRegionMsg>? FluidRegionReceived;
+
+	/// <summary>
+	/// Report a locally-performed fluid interaction (drinking — the cell was
+	/// consumed): guest → host as a report (the host executes on its own grid
+	/// and relays), host → broadcast to all synced members.
+	/// </summary>
+	void SendFluidInteraction(FluidInteractionMsg msg);
+
+	/// <summary>Host only: relay an executed fluid interaction to the other members (source excluded — it already applied locally).</summary>
+	void BroadcastFluidInteraction(ulong excludeSteamId, FluidInteractionMsg msg);
+
+	void FireFluidInteractionReceived(ulong sender, FluidInteractionMsg msg);
+
+	/// <summary>A fluid interaction arrived — the receiver applies it (host: to its own grid, then relays; guest: clear the cell).</summary>
+	event Action<ulong, FluidInteractionMsg>? FluidInteractionReceived;
 }

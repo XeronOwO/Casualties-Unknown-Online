@@ -15,6 +15,19 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 /// </summary>
 internal static class TrapCrystalPatch
 {
+	/// <summary>Electric crystal Shock postfix — installed dynamically with
+	/// Postfix (CrystalElectric is internal too). The zap + shake replay the
+	/// visible state; the electric damage hits the triggering side's body.</summary>
+	internal static void ElectricShockPostfix(object __instance)
+	{
+		if (__instance is not CrystalEffect crystal)
+		{
+			return;
+		}
+
+		PatchBridge.Impl?.OnTrapTriggered(EntityEventKind.CrystalElectricShocked, crystal.crystal.transform.position, 0);
+	}
+
 	internal static void Postfix(object __instance)
 	{
 		if (__instance is not CrystalEffect crystal)

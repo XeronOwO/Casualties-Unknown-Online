@@ -77,6 +77,32 @@ internal sealed class TrapVisualReplay(ILogger<TrapVisualReplay> log)
 			case EntityEventKind.TurretSelfDestructed:
 				ReplayTurretSelfDestructed(position);
 				break;
+			case EntityEventKind.BarbedFenceHit:
+				ReplayState<BarbedFence>(position, kind, TrapStateActions.ApplyBarbedFence);
+				break;
+			case EntityEventKind.CoilShocked:
+				ReplayState<CoilScript>(position, kind, TrapStateActions.ApplyCoil);
+				break;
+			case EntityEventKind.CactusHit:
+				ReplayState<CactusScript>(position, kind, TrapStateActions.ApplyCactus);
+				break;
+			case EntityEventKind.JumpPadLaunched:
+				ReplayState<JumpPadScript>(position, kind, TrapStateActions.ApplyJumpPad);
+				break;
+			case EntityEventKind.BananaPlantSlip:
+				ReplayState<BananaPlantSlip>(position, kind, TrapStateActions.ApplyBananaSlip);
+				break;
+			case EntityEventKind.CrystalElectricShocked:
+				ReplayState<CrystalBehaviour>(position, kind, TrapStateActions.ApplyCrystalElectric);
+				break;
+			case EntityEventKind.TurretFired:
+				ReplayState<TurretScript>(position, kind, TrapStateActions.ApplyTurretFired);
+				break;
+			case EntityEventKind.GrabberGrabbed:
+				// The grab's visuals are the player-side ragdoll/scream (each
+				// side's own body); the tendril animation is Update-driven
+				// everywhere — nothing to replay, the trace line is the record.
+				break;
 			default:
 				_log.LogWarning("[TrapEvent] no replay action for {Kind}.", kind);
 				break;

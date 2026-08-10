@@ -73,7 +73,7 @@ internal sealed class EntityEventSync(IWorldControl world, ISessionControl sessi
 			// consequences must flow out (the crater rides the SetBlock relay).
 			_log.LogInformation("[TrapEvent] kind={Kind} pos=({X:F1},{Y:F1}) origin=HostApply from {Sender}.",
 				msg.Kind, pos.X, pos.Y, sender);
-			_applier.ApplyExplosion(msg.Kind, new Vector2(pos.X, pos.Y));
+			_applier.ApplyEvent(msg.Kind, new Vector2(pos.X, pos.Y), msg.Extra);
 			_world.ReportTrapConsumed(msg.Kind, pos.X, pos.Y); // one-shot consumptions, position-keyed (the late-joiner snapshot)
 			_world.BroadcastEntityEvent(sender, msg);
 		}

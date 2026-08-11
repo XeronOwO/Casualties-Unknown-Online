@@ -193,4 +193,23 @@ public interface IWorldControl
 
 	/// <summary>A fluid interaction arrived — the receiver applies it (host: to its own grid, then relays; guest: clear the cell).</summary>
 	event Action<ulong, FluidInteractionMsg>? FluidInteractionReceived;
+
+	/// <summary>Host only: send one trader's authoritative state to one member (world entry, the 5 s fallback).</summary>
+	void SendTraderState(ulong targetSteamId, TraderStateMsg msg);
+
+	/// <summary>Host only: broadcast one trader's authoritative state to every member (an interaction just changed it — the acting side included, its local state was provisional).</summary>
+	void BroadcastTraderState(TraderStateMsg msg);
+
+	/// <summary>Guest: a trader's authoritative state arrived — apply the full overwrite.</summary>
+	void FireTraderStateReceived(TraderStateMsg msg);
+
+	event Action<TraderStateMsg>? TraderStateReceived;
+
+	/// <summary>Report a locally-executed trader interaction (guest → host — the host executes the trader-side change and broadcasts the state).</summary>
+	void SendTraderAction(TraderActionMsg msg);
+
+	/// <summary>Host: a guest's trader interaction arrived — execute the trader-side change and broadcast the state.</summary>
+	void FireTraderActionReceived(ulong sender, TraderActionMsg msg);
+
+	event Action<ulong, TraderActionMsg>? TraderActionReceived;
 }

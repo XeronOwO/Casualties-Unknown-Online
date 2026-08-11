@@ -16,13 +16,14 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 /// <see cref="PacketSender"/>. No pump: it only reacts to calls and messages
 /// (not an ICuoService, like CharacterDataStore).
 /// </summary>
-public sealed class WorldService(ISessionControl session, PacketSender sender, ILogger<WorldService> log, EntityEventChannel eventChannel)
+public sealed partial class WorldService(ISessionControl session, PacketSender sender, ILogger<WorldService> log, EntityEventChannel eventChannel, TradeChannel tradeChannel)
 	: IWorldControl
 {
 	private readonly ISessionControl _session = session;
 	private readonly PacketSender _sender = sender;
 	private readonly ILogger<WorldService> _log = log;
 	private readonly EntityEventChannel _eventChannel = eventChannel;
+	private readonly TradeChannel _tradeChannel = tradeChannel;
 
 	/// <summary>
 	/// Host-side block-difference table: block-space position → current block id,
@@ -256,45 +257,8 @@ public sealed class WorldService(ISessionControl session, PacketSender sender, I
 	}
 
 	// ---- World entity channels (events + runtime creation + consumptions) —
-	// implemented by EntityEventChannel (extracted at the 600-line gate) ----
-
-	public event Action<ulong, EntityEventMsg>? EntityEventReceived { add => _eventChannel.EntityEventReceived += value; remove => _eventChannel.EntityEventReceived -= value; }
-
-	public void FireEntityEventReceived(ulong sender, EntityEventMsg msg) => _eventChannel.FireEntityEventReceived(sender, msg);
-
-	public void SendEntityEvent(EntityEventMsg msg) => _eventChannel.SendEntityEvent(msg);
-
-	public void BroadcastEntityEvent(ulong excludeSteamId, EntityEventMsg msg) => _eventChannel.BroadcastEntityEvent(excludeSteamId, msg);
-
-	public void ReportTrapConsumed(EntityEventKind kind, float x, float y, byte extra) => _eventChannel.ReportTrapConsumed(kind, x, y, extra);
-
-	public event Action<ulong, EntitySpawnedMsg>? EntitySpawnedReceived { add => _eventChannel.EntitySpawnedReceived += value; remove => _eventChannel.EntitySpawnedReceived -= value; }
-
-	public void FireEntitySpawnedReceived(ulong sender, EntitySpawnedMsg msg) => _eventChannel.FireEntitySpawnedReceived(sender, msg);
-
-	public void SendEntitySpawned(EntitySpawnedMsg msg) => _eventChannel.SendEntitySpawned(msg);
-
-	public void BroadcastEntitySpawned(ulong excludeSteamId, EntitySpawnedMsg msg) => _eventChannel.BroadcastEntitySpawned(excludeSteamId, msg);
-
-	public void SendTrapStateSnapshot(ulong targetSteamId) => _eventChannel.SendTrapStateSnapshot(targetSteamId);
-
-	public event Action<IReadOnlyList<EntityEventMsg>>? TrapStateReceived { add => _eventChannel.TrapStateReceived += value; remove => _eventChannel.TrapStateReceived -= value; }
-
-	public void FireTrapStateReceived(IReadOnlyList<EntityEventMsg> consumed) => _eventChannel.FireTrapStateReceived(consumed);
-
-	public void SendFluidRegion(ulong targetSteamId, FluidRegionMsg msg) => _eventChannel.SendFluidRegion(targetSteamId, msg);
-
-	public event Action<FluidRegionMsg>? FluidRegionReceived { add => _eventChannel.FluidRegionReceived += value; remove => _eventChannel.FluidRegionReceived -= value; }
-
-	public void FireFluidRegionReceived(FluidRegionMsg msg) => _eventChannel.FireFluidRegionReceived(msg);
-
-	public void SendFluidInteraction(FluidInteractionMsg msg) => _eventChannel.SendFluidInteraction(msg);
-
-	public void BroadcastFluidInteraction(ulong excludeSteamId, FluidInteractionMsg msg) => _eventChannel.BroadcastFluidInteraction(excludeSteamId, msg);
-
-	public event Action<ulong, FluidInteractionMsg>? FluidInteractionReceived { add => _eventChannel.FluidInteractionReceived += value; remove => _eventChannel.FluidInteractionReceived -= value; }
-
-	public void FireFluidInteractionReceived(ulong sender, FluidInteractionMsg msg) => _eventChannel.FireFluidInteractionReceived(sender, msg);
+	// implemented by EntityEventChannel and TradeChannel — see
+	// WorldService.Channels.cs (split at the 600-line gate) ----
 
 	/// <summary>Host only: broadcast the keypad codes (position-keyed Openables) to every synced member.</summary>
 	public void SendKeypadCodes(IReadOnlyList<KeypadEntryMsg> codes)

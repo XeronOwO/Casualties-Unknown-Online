@@ -80,4 +80,8 @@ public enum NetMsg : byte
 	// World fluid grid (host authority — the host simulates the world fluid alone, the guests render the streamed regions)
 	FluidRegion = 70, // host → guest (unreliable stream): an absolute RLE snapshot of a grid region around the member — 10 Hz changed-box diff + 1 Hz full-viewport fallback
 	FluidInteraction = 71, // bidirectional: guest → host report of a consumed cell (drinking); host → guest broadcast relay (source excluded — the host executes on its own grid first)
+
+	// Trade (host authority — the trader's state is host-computed, the acting side's local effects stay local)
+	TraderState = 72, // host → guest: a trader's full authoritative state + stock — on every interaction, on world entry, and every 5 s (unreliable fallback); a full overwrite
+	TraderAction = 73, // guest → host: a locally-executed trader interaction (purchase/give/haggle/threaten/hug/move/meet) — the host executes the trader-side change and broadcasts the state
 }

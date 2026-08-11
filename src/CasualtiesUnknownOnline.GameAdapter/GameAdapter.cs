@@ -79,6 +79,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	private readonly EntitySpawnSync _entitySpawnSync;
 	private readonly GeyserStateSync _geyserStateSync;
 	private readonly FluidWorldSync _fluidSync;
+	private readonly TradeStateSync _tradeSync;
 
 	public GameAdapter(SessionService session, EntitySyncService entities, CharacterDataStore characterData,
 		WorldService world, ItemService items, ILogger<GameAdapter> log, IMapper mapper, ILoggerFactory loggerFactory)
@@ -131,6 +132,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_entitySpawnSync = new EntitySpawnSync(world, session, loggerFactory.CreateLogger<EntitySpawnSync>());
 		_geyserStateSync = new GeyserStateSync(world, session, loggerFactory.CreateLogger<GeyserStateSync>());
 		_fluidSync = new FluidWorldSync(world, session, entities, loggerFactory);
+		_tradeSync = new TradeStateSync(world, session, new TradeExecutor(), loggerFactory.CreateLogger<TradeStateSync>());
 		_lifePod = new LifePodPresentation(loggerFactory.CreateLogger<LifePodPresentation>());
 		_guestMenu = new GuestMenuGuard(session, loggerFactory.CreateLogger<GuestMenuGuard>());
 		_worldParams = new WorldParamsService(world, loggerFactory.CreateLogger<WorldParamsService>());
@@ -321,6 +323,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_geyserStateSync.Update(); // host/solo: capture + broadcast the geysers' liquid types once the generation finished
 		_entitySpawnSync.Update(); // the creation channel's deferred reports (a geyser's type, after its child Start) and carried-data applications
 		_fluidSync.Update(); // host: stream the members' fluid viewports (10 Hz diff + 1 Hz full)
+		_tradeSync.Update(); // host: the 5 s trader-state fallback broadcast
 		_blockBreakSync.Update(); // expire break records without a consuming drops report
 		_renderer.Update();
 	}
@@ -349,6 +352,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_entitySpawnSync.BindToSession();
 		_geyserStateSync.BindToSession();
 		_fluidSync.BindToSession();
+		_tradeSync.BindToSession();
 		_run.BindToSession();
 		_genItemApplication.BindToSession();
 		_layerModifierSync.BindToSession();
@@ -373,6 +377,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_entitySpawnSync.Unbind();
 		_geyserStateSync.Unbind();
 		_fluidSync.Unbind();
+		_tradeSync.Unbind();
 		_run.Unbind();
 		_genItemApplication.Unbind();
 		_layerModifierSync.Unbind();
@@ -544,4 +549,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	void IPatchBridge.OnFluidFixedUpdate() => _fluidSync.OnFluidFixedUpdate();
 
 	void IPatchBridge.OnFluidDrinkReported(Vector2Int pos) => _fluidSync.OnDrinkReported(pos);
+
+	void IPatchBridge.OnTraderActionReported(TraderScript trader, TraderActionKind action, string itemId, int itemValue, Item? purchaseItem) =>
+		_tradeSync.OnTraderActionReported(trader, action, itemId, itemValue, purchaseItem);
 }

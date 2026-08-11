@@ -139,9 +139,9 @@ trap's sound/sprite/light.
 
 | entity | trigger | sync | path |
 |---|---|---|---|
-| TraderScript | field | **missing (high — the largest gameplay gap)** | trade domain: host-authoritative inventory/reputation snapshot + guest-request → host-arbitrate → broadcast; otherwise both sides have independent merchants — buying a gun on one side leaves it buyable on the other (item duplication), killing drops only on the killer's side |
+| TraderScript | field | covered | trade domain (#132): the trader state is host-authoritative — host-computed overwrites (TraderState, every interaction + world entry + 5 s fallback), the acting side runs the game method in full (its player-side effects are immediate) and reports (TraderAction); a rejected concurrent purchase rolls the locally-bought item back |
 | Talker | field | missing (med) | SpeechMsg (entity key + text id) — clone-side bubble replay; remote clones otherwise show no dialogue and self-trigger their own |
-| LampScript | collide | missing | part of the trade domain (LightBroken → reputation) |
+| LampScript | collide | covered | trade domain (#132): LightBroken's flat reputation -40 is deterministic — it runs on both sides from the broadcasted base (the lamp's destruction is synced by the building-entity damage) |
 
 ## Crystals (CrystalBehaviour family)
 

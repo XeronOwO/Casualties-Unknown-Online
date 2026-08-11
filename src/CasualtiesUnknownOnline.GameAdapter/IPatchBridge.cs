@@ -159,4 +159,13 @@ internal interface IPatchBridge
 
 	/// <summary>The local player drank (DrinkLiquid ran with the full local effect) — report the consumed cell (guest → host; host → broadcast).</summary>
 	void OnFluidDrinkReported(Vector2Int pos);
+
+	/// <summary>
+	/// A trader interaction ran locally (the full game method — the acting
+	/// player's effects are already applied): report it (guest → host, the host
+	/// executes the trader-side change) or broadcast the state (host — already
+	/// authoritative). Purchase carries the locally-created item (the rollback
+	/// hold for a rejected purchase).
+	/// </summary>
+	void OnTraderActionReported(TraderScript trader, TraderActionKind action, string itemId, int itemValue, Item? purchaseItem);
 }

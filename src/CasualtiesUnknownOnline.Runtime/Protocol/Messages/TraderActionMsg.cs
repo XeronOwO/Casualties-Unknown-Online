@@ -32,12 +32,38 @@ public sealed class TraderActionMsg
 	public int ItemValue { get; set; }
 
 	/// <summary>
-	/// MeetPlayer: the acting player's reputation modifier (the game reads the
-	/// player's body state — INT, dirtiness, the held gun, mindWipe, brain
-	/// health, happiness, hearing, bleeding; TraderScript.cs:113-137). A
-	/// deterministic function of the acting player's own body, computed on the
-	/// acting side — the host rolls only the random base.
+	/// MeetPlayer: the acting player's reputation modifier chain (the game reads
+	/// the player's body state — INT, dirtiness, the held gun, mindWipe, brain
+	/// health, happiness, hearing; TraderScript.cs:113-137). A deterministic
+	/// function of the acting player's own body, computed on the acting side —
+	/// the host rolls only the random base. The chain contains ONE
+	/// multiplicative step (mindWipe's ×0.7 lands mid-chain, on
+	/// base + <see cref="ReputationOffset"/>), so the pre-scale additions,
+	/// the scale and the post-scale additions travel separately:
+	/// reputation = (base + Offset) × Scale + PostOffset.
 	/// </summary>
 	[ProtoMember(5)]
 	public float ReputationOffset { get; set; }
+
+	[ProtoMember(6)]
+	public float ReputationScale { get; set; } = 1f;
+
+	[ProtoMember(7)]
+	public float ReputationPostOffset { get; set; }
+
+	/// <summary>
+	/// Acting-player state bits the trader's methods read from the player's
+	/// body: bit0 Bleeding (MeetPlayer's bandage stock entry,
+	/// totalBleedSpeed &gt; 0.001), bit1 HasGun (MeetPlayer's hostility bump and
+	/// Threaten's success lerp), bit2 Dirty (TryHug's failure gate,
+	/// dirtyness &gt; 50). Computed on the acting side.
+	/// </summary>
+	[ProtoMember(8)]
+	public byte PlayerFlags { get; set; }
+
+	public const byte FlagBleeding = 1;
+
+	public const byte FlagHasGun = 2;
+
+	public const byte FlagDirty = 4;
 }

@@ -54,12 +54,14 @@ public sealed class PacketReceiver : IDisposable
 	/// </summary>
 	private bool IsValidDirection(NetMsg msgId) => msgId switch
 	{
-		NetMsg.Handshake or NetMsg.PlayerStateReport or NetMsg.HandshakeAckAck => _session.Role == SessionRole.Host,
+		NetMsg.Handshake or NetMsg.PlayerStateReport or NetMsg.HandshakeAckAck
+			or NetMsg.TraderAction
+			=> _session.Role == SessionRole.Host,
 		NetMsg.HandshakeAck or NetMsg.WorldStartParams or NetMsg.WorldJoin or NetMsg.WorldReady
 			or NetMsg.PlayerJoin or NetMsg.PlayerLeave or NetMsg.PlayerState or NetMsg.WorldBlockState
 			or NetMsg.ItemReject or NetMsg.ItemSnapshot or NetMsg.HostCharacterData or NetMsg.EarthquakeStart
 			or NetMsg.ItemMove or NetMsg.KeypadCode or NetMsg.TrapStateSnapshot or NetMsg.GeyserStateSnapshot
-			or NetMsg.FluidRegion
+			or NetMsg.FluidRegion or NetMsg.TraderState
 			=> _session.Role == SessionRole.Guest,
 		// Ping/Pong/SceneState/BlockDamaged/CharacterData/ItemSpawn/ItemPickup/
 		// ItemDrop/ItemDestroy: bidirectional — report up (guest → host) and

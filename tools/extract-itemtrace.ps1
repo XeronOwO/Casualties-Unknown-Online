@@ -1,6 +1,12 @@
 # Extracts the [ItemTrace] operation lines from a CUO log — the regression
 # diff gate for the item-sync refactor: after each step, run the same gesture
 # battery on both sides and diff the traces (host vs guest, or new vs baseline).
+# The same script normalizes the SIMULATION's trace: ReplayRunner emits
+# SimTraces/{file}.trace with the same [ItemTrace] prefix (test output
+# directory), so running this on the simulation output and diffing it against
+# the game's real trace of the same gesture sequence is the simulation-fidelity
+# check (the ps1 drops origin/item — the simulation has no hook chain; the
+# result/events sequences line up).
 #
 # Usage:
 #   powershell -File tools/extract-itemtrace.ps1 -Log <path-to-latest.log>

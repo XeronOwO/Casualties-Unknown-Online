@@ -1,0 +1,24 @@
+# provenance: 81dd26a — the guest's RLE apply cleared only the TAIL, so a zero
+# run in the middle of a region left the old liquid in place and the guest's
+# fluid grew without bound ("the guest's water is visibly more"). The region is
+# an ABSOLUTE snapshot of its rectangle (FluidRleCodec.Decode): EVERY cell is
+# written, zero runs included; the uncovered tail is cleared. The first region
+# carries the exact bug shape — a mid-region zero run ([10,2, 0,1, 20,1] over
+# 4 cells) — and the replay asserts the guest's applied grid, which runs the
+# real decoder: a decode regression breaks this file instead of silently
+# replaying the old bug. The overwrite and partial-clear steps lock the
+# absolute-overwrite semantics (an uncovered cell keeps its value).
+# Mechanism: FluidRegionMsg (NetMsg 70, unreliable), FluidRleCodec.cs.
+@0 fluid g1 0 0 4 1 10 2 0 1 20 1
+@33 expect fluid g1 0 0 10 within 500
+@33 expect fluid g1 1 0 10 within 500
+@33 expect fluid g1 2 0 0 within 500
+@33 expect fluid g1 3 0 20 within 500
+@33 fluid g1 0 0 4 1 5 4
+@66 expect fluid g1 0 0 5 within 500
+@66 expect fluid g1 3 0 5 within 500
+@66 fluid g1 0 0 2 1 0 2
+@99 expect fluid g1 0 0 0 within 500
+@99 expect fluid g1 1 0 0 within 500
+@99 expect fluid g1 2 0 5 within 500
+@99 expect fluid g1 3 0 5 within 500

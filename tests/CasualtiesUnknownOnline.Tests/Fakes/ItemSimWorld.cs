@@ -137,6 +137,10 @@ internal sealed class ItemSimWorld : IDisposable
 	/// <summary>How many frames of one message type the node has received so far (cumulative).</summary>
 	internal int ReceivedCount(TestNode node, NetMsg msg) => Received(node).Count(r => r.Msg == msg);
 
+	/// <summary>How many frames of ANY message type the node has received so far
+	/// (cumulative) — the SimTrace "Committed(n)" message-count surface.</summary>
+	internal int ReceivedTotal(TestNode node) => Received(node).Count;
+
 	private List<(NetMsg Msg, byte[] Frame)> Received(TestNode node)
 	{
 		if (node == G1)

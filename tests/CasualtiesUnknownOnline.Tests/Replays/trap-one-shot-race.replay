@@ -1,0 +1,20 @@
+# provenance: the one-shot consumption race family (the entity-domain
+# DoubleTriggerRace scenarios, EntityEventBehaviorTests) — two guests trigger
+# the SAME one-shot entity (MineExploded) in the same frame. The host executor
+# consumes exactly once (the per-entity guard, the production TrapEffectApplier
+# shape: EntityEventProfiles.IsOneShotConsumption + guard.Add); each guest's
+# replay side executes exactly once (the relays cross, source-excluded: g1's
+# trigger replays on g2, g2's on g1). A retransmission of an already-consumed
+# trigger is relayed unconditionally (the message layer is not the guard — the
+# guard lives on the consuming side) and dropped by both guards.
+# Mechanism: TrapConsumptionRegistry.cs, EntityEventSync.cs (the executor's
+# per-entity one-shot guard).
+@0 event g1 MineExploded 10 20
+@0 event g2 MineExploded 10 20
+@33 expect executed MineExploded 1 within 500
+@33 expect replayed g1 MineExploded 1 within 500
+@33 expect replayed g2 MineExploded 1 within 500
+@33 event g1 MineExploded 10 20
+@66 expect executed MineExploded 1 within 500
+@66 expect replayed g1 MineExploded 1 within 500
+@66 expect replayed g2 MineExploded 1 within 500

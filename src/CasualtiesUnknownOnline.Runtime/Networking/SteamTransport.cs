@@ -10,14 +10,14 @@ namespace CasualtiesUnknownOnline.Runtime.Networking;
 /// <summary>
 /// MVP transport over ISteamNetworkingMessages (reliable + unreliable
 /// messages, no connection handles). Single channel (0) for now; the
-/// architecture's INetworkTransport abstraction lands when a second
-/// transport exists.
+/// INetworkTransport surface it implements is shared with the test suite's
+/// FakeTransport (the second transport the abstraction was waiting for).
 /// </summary>
-public sealed class SteamTransport(SteamService steam, ILogger<SteamTransport> log) : ICuoService
+public sealed class SteamTransport(ISteamService steam, ILogger<SteamTransport> log) : ICuoService, INetworkTransport
 {
 	private const int MaxMessagesPerPoll = 32;
 
-	private readonly SteamService _steam = steam;
+	private readonly ISteamService _steam = steam;
 	private readonly ILogger<SteamTransport> _log = log;
 	private readonly IntPtr[] _receiveBuffer = new IntPtr[MaxMessagesPerPoll];
 

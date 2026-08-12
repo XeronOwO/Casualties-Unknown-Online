@@ -11,9 +11,9 @@ namespace CasualtiesUnknownOnline.Runtime.Session;
 /// and instead of the session (receive/send are independent mechanisms,
 /// user architecture rule).
 /// </summary>
-public sealed class PacketSender(SteamTransport transport)
+public sealed class PacketSender(INetworkTransport transport)
 {
-	private readonly SteamTransport _transport = transport;
+	private readonly INetworkTransport _transport = transport;
 
 	/// <summary>
 	/// Send a message. Reliable by default — only the 20 Hz state stream

@@ -27,7 +27,7 @@ public sealed class SessionService : ICuoService, ISessionControl
 	private const float MemberCheckInterval = 2f;
 	private const float HandshakeRetryInterval = 1f; // lazy Steam P2P sessions swallow early messages — retry fast so a cold-session join handshakes well before the host clicks start
 
-	private readonly SteamService _steam;
+	private readonly ISteamService _steam;
 	private readonly PacketSender _sender;
 	private readonly ILogger<SessionService> _log;
 
@@ -42,7 +42,7 @@ public sealed class SessionService : ICuoService, ISessionControl
 	private long _nextMemberCheckMs;
 	private long _nextHandshakeRetryMs;
 
-	public SessionService(SteamService steam, PacketSender sender, ILogger<SessionService> log)
+	public SessionService(ISteamService steam, PacketSender sender, ILogger<SessionService> log)
 	{
 		_steam = steam;
 		_sender = sender;

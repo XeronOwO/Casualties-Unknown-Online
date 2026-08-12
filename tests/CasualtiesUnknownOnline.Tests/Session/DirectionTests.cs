@@ -1,0 +1,99 @@
+using CasualtiesUnknownOnline.Runtime.Protocol;
+using CasualtiesUnknownOnline.Runtime.Session;
+using CasualtiesUnknownOnline.Tests.Fakes;
+using Microsoft.Extensions.DependencyInjection;
+using Xunit;
+
+namespace CasualtiesUnknownOnline.Tests.Session;
+
+/// <summary>
+/// The one-way direction table (PacketReceiver.IsValidDirection): a one-way
+/// message arriving at the wrong role is dropped before any handler runs.
+/// These rows lock the table — a message added without its direction rule
+/// fails here when the direction is wrong.
+/// </summary>
+public class DirectionTests
+{
+	private const ulong HostId = 1001;
+	private const ulong GuestId = 2001;
+	private const ulong LobbyId = 9001;
+
+	public static TheoryData<NetMsg> GuestToHostMessages => new()
+	{
+		NetMsg.Handshake,
+		NetMsg.PlayerStateReport,
+		NetMsg.HandshakeAckAck,
+		NetMsg.TraderAction,
+	};
+
+	public static TheoryData<NetMsg> HostToGuestMessages => new()
+	{
+		NetMsg.HandshakeAck,
+		NetMsg.WorldStartParams,
+		NetMsg.WorldJoin,
+		NetMsg.WorldReady,
+		NetMsg.PlayerJoin,
+		NetMsg.PlayerLeave,
+		NetMsg.PlayerState,
+		NetMsg.WorldBlockState,
+		NetMsg.ItemReject,
+		NetMsg.ItemSnapshot,
+		NetMsg.HostCharacterData,
+		NetMsg.EarthquakeStart,
+		NetMsg.ItemMove,
+		NetMsg.KeypadCode,
+		NetMsg.TrapStateSnapshot,
+		NetMsg.GeyserStateSnapshot,
+		NetMsg.FluidRegion,
+		NetMsg.TraderState,
+	};
+
+	public static TheoryData<NetMsg> BidirectionalMessages => new()
+	{
+		NetMsg.Ping,
+		NetMsg.Pong,
+		NetMsg.SceneState,
+		NetMsg.BlockDamaged,
+		NetMsg.CharacterData,
+		NetMsg.ItemSpawn,
+		NetMsg.ItemPickup,
+		NetMsg.ItemDrop,
+		NetMsg.ItemDestroy,
+	};
+
+	[Theory]
+	[MemberData(nameof(GuestToHostMessages))]
+	public void GuestToHost_AllowedOnHost_RejectedOnGuest(NetMsg msg)
+	{
+		var (host, guest) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		var hostReceiver = host.Services.GetRequiredService<PacketReceiver>();
+		var guestReceiver = guest.Services.GetRequiredService<PacketReceiver>();
+
+		Assert.True(hostReceiver.IsValidDirection(msg), $"{msg} must be valid at the host");
+		Assert.False(guestReceiver.IsValidDirection(msg), $"{msg} must be dropped at the guest");
+	}
+
+	[Theory]
+	[MemberData(nameof(HostToGuestMessages))]
+	public void HostToGuest_AllowedOnGuest_RejectedOnHost(NetMsg msg)
+	{
+		var (host, guest) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		var hostReceiver = host.Services.GetRequiredService<PacketReceiver>();
+		var guestReceiver = guest.Services.GetRequiredService<PacketReceiver>();
+
+		Assert.True(guestReceiver.IsValidDirection(msg), $"{msg} must be valid at the guest");
+		Assert.False(hostReceiver.IsValidDirection(msg), $"{msg} must be dropped at the host");
+	}
+
+	[Theory]
+	[MemberData(nameof(BidirectionalMessages))]
+	public void Bidirectional_AllowedOnBothSides(NetMsg msg)
+	{
+		var (host, guest) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		var hostReceiver = host.Services.GetRequiredService<PacketReceiver>();
+		var guestReceiver = guest.Services.GetRequiredService<PacketReceiver>();
+
+		Assert.True(hostReceiver.IsValidDirection(msg), $"{msg} must be valid at the host");
+		Assert.True(guestReceiver.IsValidDirection(msg), $"{msg} must be valid at the guest");
+	}
+}

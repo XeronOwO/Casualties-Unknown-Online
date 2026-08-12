@@ -56,17 +56,20 @@ public sealed class PacketReceiver : IDisposable
 	internal bool IsValidDirection(NetMsg msgId) => msgId switch
 	{
 		NetMsg.Handshake or NetMsg.PlayerStateReport or NetMsg.HandshakeAckAck
-			or NetMsg.TraderAction
+			or NetMsg.TraderAction or NetMsg.ItemUse or NetMsg.ItemSlot or NetMsg.CarriedInventory
 			=> _session.Role == SessionRole.Host,
 		NetMsg.HandshakeAck or NetMsg.WorldStartParams or NetMsg.WorldJoin or NetMsg.WorldReady
 			or NetMsg.PlayerJoin or NetMsg.PlayerLeave or NetMsg.PlayerState or NetMsg.WorldBlockState
 			or NetMsg.ItemReject or NetMsg.ItemSnapshot or NetMsg.HostCharacterData or NetMsg.EarthquakeStart
 			or NetMsg.ItemMove or NetMsg.KeypadCode or NetMsg.TrapStateSnapshot or NetMsg.GeyserStateSnapshot
 			or NetMsg.FluidRegion or NetMsg.TraderState
+			or NetMsg.ItemCorrection or NetMsg.WorldItemsSnapshot or NetMsg.ItemCarriedSync
 			=> _session.Role == SessionRole.Guest,
 		// Ping/Pong/SceneState/BlockDamaged/CharacterData/ItemSpawn/ItemPickup/
-		// ItemDrop/ItemDestroy: bidirectional — report up (guest → host) and
-		// broadcast down (host → guest) share one message id.
+		// ItemDrop/ItemDestroy/ItemIdWatermark/EntityEvent/EntitySpawned/
+		// FluidInteraction/BlockPlaced/BuildingEntityDamaged/BuildingEntityOpened:
+		// bidirectional — report up (guest → host) and broadcast down (host →
+		// guest) share one message id.
 		_ => true,
 	};
 

@@ -28,6 +28,25 @@
   <ItemGroup>
     <!-- net48 matches the tested assemblies (same TFM, zero compatibility risk) -->
     <ProjectReference Include="..\..\src\CasualtiesUnknownOnline.Runtime\CasualtiesUnknownOnline.Runtime.csproj" />
+    <!-- Phase-3 contract tests: GameAdapter.dll is loaded REFLECTIVELY (never
+         compile-referenced — it binds Unity/game assemblies), so only its
+         build output is copied here (ExcludeAssets="compile" — no type
+         references leak into the test compile). -->
+    <ProjectReference Include="..\..\src\CasualtiesUnknownOnline.GameAdapter\CasualtiesUnknownOnline.GameAdapter.csproj"
+                      ExcludeAssets="compile" Private="true" />
+  </ItemGroup>
+
+  <!-- The reflection host for the contract tests: the game assemblies (from
+       references/, gitignored — see references/README.md) must sit beside the
+       test output. netstandard.dll rides along — the Unity game assemblies
+       reference the netstandard 2.1 facade (Unity's compatibility layer), which
+       net48 does not provide. steam_api64.dll (native, unrelated) is excluded.
+       MISSING references are a test FAILURE (the contract test names them),
+       never a silent skip. -->
+  <ItemGroup>
+    <None Include="..\..\references\*.dll"
+          Exclude="..\..\references\steam_api64.dll"
+          CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework.TrimEnd(`0123456789`))' == 'net'">

@@ -1,8 +1,7 @@
-using System;
 using System.Collections.Generic;
-using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.DependencyInjection;
@@ -11,92 +10,24 @@ using Xunit;
 namespace CasualtiesUnknownOnline.Tests.World;
 
 /// <summary>
-/// Phase-2 entity-event simulations over a THREE-node star (host + two guests):
-/// the relay topology (source excluded, the other members get exactly one
-/// copy), the host-side one-shot consumption (the TrapConsumptionRegistry — the
-/// late-joiner snapshot's fact source — and the per-entity duplicate guard the
-/// production executor applies), the runtime-spawn relay, and the fluid
-/// channel's unreliable absolute-region semantics (a lost region is healed by
-/// the next one; the interaction relay excludes the source).
+/// Phase-2 entity-event simulations over a THREE-node star: the fixed,
+/// kind-specific deep scenarios (the relay topology, the one-shot
+/// consumption facts, the snapshot lifecycle, the spawn relay and the fluid
+/// channel's unreliable absolute-region semantics). The world construction
+/// and the host-executor shell are shared (EntityEventSimWorld); the
+/// phase-5 combinatorial suite (EntityEventBehaviorTests) covers every kind
+/// against the generic scenario families.
 /// </summary>
 public class EntityEventSimulationTests
 {
-	private const ulong HostId = 1001;
-	private const ulong G1Id = 2001;
-	private const ulong G2Id = 3001;
-	private const ulong LobbyId = 9001;
-
-	/// <summary>Mutable execution counter — the record's snapshot value would never advance.</summary>
-	private sealed class ExecutionCounter
-	{
-		internal int Value;
-	}
-
-	private sealed record SimWorld(SimulationDriver Driver, TestNode Host, TestNode G1, TestNode G2, List<EntityEventMsg> G1Events, List<EntityEventMsg> G2Events, ExecutionCounter HostExecutions);
-
-	/// <summary>
-	/// Three fully-handshaken nodes. The host executor (the production
-	/// TrapEffectApplier's shape): an event arrives → the one-shot consumption is
-	/// recorded (TrapConsumptionRegistry — the real Runtime service) unless the
-	/// per-entity duplicate guard rejects it. The RELAY is not the executor's
-	/// job: the EntityEventHandler relays automatically (BroadcastExcept, source
-	/// excluded) — the executor only applies to the host's own world.
-	/// </summary>
-	private static SimWorld CreateWorld()
-	{
-		var clock = new FakeClock();
-		var network = new FakeNetwork(clock: clock);
-		var hostSteam = new FakeSteamService(HostId) { LobbyOwner = HostId, LobbyMembers = [HostId] };
-		var g1Steam = new FakeSteamService(G1Id) { LobbyOwner = HostId, LobbyMembers = [HostId, G1Id, G2Id] };
-		var g2Steam = new FakeSteamService(G2Id) { LobbyOwner = HostId, LobbyMembers = [HostId, G1Id, G2Id] };
-		var host = TestNode.Create(HostId, network, hostSteam, clock);
-		var g1 = TestNode.Create(G1Id, network, g1Steam, clock);
-		var g2 = TestNode.Create(G2Id, network, g2Steam, clock);
-		host.Steam.FireLobbyCreated(LobbyId);
-		host.Steam.LobbyMembers = [HostId, G1Id, G2Id];
-		g1.Steam.FireLobbyEntered(LobbyId);
-		g2.Steam.FireLobbyEntered(LobbyId);
-		var driver = new SimulationDriver(clock, network, host, g1, g2);
-		driver.TickUntil(
-			() => host.Session.Members.Count(m => m.Handshaken) == 2 && g1.Session.Members.Any(m => m.Handshaken) && g2.Session.Members.Any(m => m.Handshaken),
-			maxMs: 5000);
-
-		var g1Events = new List<EntityEventMsg>();
-		var g2Events = new List<EntityEventMsg>();
-		g1.Services.GetRequiredService<IWorldControl>().EntityEventReceived += (_, msg) => g1Events.Add(msg);
-		g2.Services.GetRequiredService<IWorldControl>().EntityEventReceived += (_, msg) => g2Events.Add(msg);
-
-		var world = host.Services.GetRequiredService<IWorldControl>();
-		var registry = host.Services.GetRequiredService<TrapConsumptionRegistry>();
-		var executed = new HashSet<(EntityEventKind Kind, int X, int Y)>(); // the per-entity one-shot guard
-		var hostExecutions = new ExecutionCounter();
-		world.EntityEventReceived += (_, msg) =>
-		{
-			var key = ((int)Math.Floor(msg.Position.X), (int)Math.Floor(msg.Position.Y));
-			if (EntityEventProfiles.IsOneShotConsumption(msg.Kind) && !executed.Add((msg.Kind, key.Item1, key.Item2)))
-			{
-				return; // duplicate — the production per-entity guard drops the re-execution
-			}
-
-			hostExecutions.Value++; // a consumption actually executed
-			registry.Report(msg.Kind, msg.Position.X, msg.Position.Y, msg.Extra);
-		};
-
-		return new SimWorld(driver, host, g1, g2, g1Events, g2Events, hostExecutions);
-	}
-
-	private static EntityEventMsg Event(EntityEventKind kind, float x, float y, byte extra = 0) =>
-		new() { Kind = kind, Position = new NetVector2Msg(x, y), Extra = extra };
-
 	[Fact]
 	public void GuestTrigger_RelayedToOtherGuest_SourceExcluded()
 	{
-		var w = CreateWorld();
-
-		w.G1.Services.GetRequiredService<IWorldControl>().SendEntityEvent(Event(EntityEventKind.MineExploded, 10f, 20f));
+		var w = EntityEventSimWorld.Create();
+		w.Trigger(w.G1, EntityEventKind.MineExploded, 10f, 20f);
 
 		Assert.True(w.G2Events.Count == 1,
-			$"the other guest must get exactly one copy, got {w.G2Events.Count} (host executed {w.HostExecutions} time(s))");
+			$"the other guest must get exactly one copy, got {w.G2Events.Count} (host executed {w.HostExecutions.Value} time(s))");
 		Assert.True(w.G2Events[0].Kind == EntityEventKind.MineExploded, "the relay carries the event");
 		Assert.True(w.G2Events[0].Position.X == 10f && w.G2Events[0].Position.Y == 20f, "the position key rides through");
 		Assert.Empty(w.G1Events);
@@ -105,9 +36,8 @@ public class EntityEventSimulationTests
 	[Fact]
 	public void HostTrigger_BroadcastToEveryGuest()
 	{
-		var w = CreateWorld();
-
-		w.Host.Services.GetRequiredService<IWorldControl>().SendEntityEvent(Event(EntityEventKind.SpikeStabbed, 5f, 5f));
+		var w = EntityEventSimWorld.Create();
+		w.Trigger(w.Host, EntityEventKind.SpikeStabbed, 5f, 5f);
 
 		Assert.True(w.G1Events.Count == 1 && w.G2Events.Count == 1, $"both guests must get one copy (g1: {w.G1Events.Count}, g2: {w.G2Events.Count})");
 	}
@@ -115,10 +45,9 @@ public class EntityEventSimulationTests
 	[Fact]
 	public void DuplicateReport_GuardDropsTheSecondExecution_ConsumptionStaysOne()
 	{
-		var w = CreateWorld();
-
-		w.G1.Services.GetRequiredService<IWorldControl>().SendEntityEvent(Event(EntityEventKind.MineExploded, 10f, 20f));
-		w.G1.Services.GetRequiredService<IWorldControl>().SendEntityEvent(Event(EntityEventKind.MineExploded, 10f, 20f)); // a retransmit
+		var w = EntityEventSimWorld.Create();
+		w.Trigger(w.G1, EntityEventKind.MineExploded, 10f, 20f);
+		w.Trigger(w.G1, EntityEventKind.MineExploded, 10f, 20f); // a retransmit
 
 		// The handler relays unconditionally (the message layer is not the guard —
 		// the relayed duplicate is what the guests' own replay guards consume).
@@ -129,16 +58,14 @@ public class EntityEventSimulationTests
 	[Fact]
 	public void OneShotConsumption_SnapshotCarriesTheLatest()
 	{
-		var w = CreateWorld();
-		var channel = w.Host.Services.GetRequiredService<EntityEventChannel>();
+		var w = EntityEventSimWorld.Create();
 		var g1Consumed = new List<IReadOnlyList<EntityEventMsg>>();
 		w.G1.Services.GetRequiredService<EntityEventChannel>().TrapStateReceived += list => g1Consumed.Add(list);
 
 		// The same one-shot entity progresses (ScrapEaterProgress carries the %).
-		channel.ReportTrapConsumed(EntityEventKind.ScrapEaterProgress, 30f, 40f, extra: 25);
-		channel.ReportTrapConsumed(EntityEventKind.ScrapEaterProgress, 30f, 40f, extra: 50); // overwrites
-
-		channel.SendTrapStateSnapshot(G1Id);
+		w.HostChannel.ReportTrapConsumed(EntityEventKind.ScrapEaterProgress, 30f, 40f, extra: 25);
+		w.HostChannel.ReportTrapConsumed(EntityEventKind.ScrapEaterProgress, 30f, 40f, extra: 50); // overwrites
+		w.HostChannel.SendTrapStateSnapshot(w.G1.SteamId);
 
 		Assert.True(g1Consumed.Count == 1, "the snapshot must arrive");
 		Assert.True(g1Consumed[0].Count == 1, $"one consumed entity, got {g1Consumed[0].Count}");
@@ -149,23 +76,47 @@ public class EntityEventSimulationTests
 	[Fact]
 	public void OneShotConsumption_ResetClears_NewWorldStartsEmpty()
 	{
-		var w = CreateWorld();
-		var channel = w.Host.Services.GetRequiredService<EntityEventChannel>();
-
-		channel.ReportTrapConsumed(EntityEventKind.MineExploded, 10f, 20f, extra: 0);
-		channel.ResetConsumptions(); // a new layer is generating
+		var w = EntityEventSimWorld.Create();
+		w.Trigger(w.G1, EntityEventKind.MineExploded, 10f, 20f);
+		w.HostChannel.ResetConsumptions(); // a new layer is generating
 
 		var g2Consumed = new List<IReadOnlyList<EntityEventMsg>>();
 		w.G2.Services.GetRequiredService<EntityEventChannel>().TrapStateReceived += list => g2Consumed.Add(list);
-		channel.SendTrapStateSnapshot(G2Id);
+		w.HostChannel.SendTrapStateSnapshot(w.G2.SteamId);
 
 		Assert.True(g2Consumed.Count == 0, "an empty consumption table sends nothing");
 	}
 
 	[Fact]
+	public void TrapStateSnapshot_LateJoinerConsumesEveryEntry()
+	{
+		var w = EntityEventSimWorld.Create();
+		w.HostChannel.ReportTrapConsumed(EntityEventKind.MineExploded, 10f, 20f, extra: 0);
+		w.HostChannel.ReportTrapConsumed(EntityEventKind.BioTerminalUnlocked, 30f, 40f, extra: 0);
+
+		w.HostChannel.SendTrapStateSnapshot(w.G1.SteamId);
+
+		// The late joiner replays every entry against its regenerated world
+		// (the snapshot-consumption step) — two consumed entities, two replays.
+		Assert.True(w.G1Replays.Value == 2, $"the late joiner must consume every entry, got {w.G1Replays.Value}");
+	}
+
+	[Fact]
+	public void TrapStateSnapshot_DuplicateSnapshot_ConsumesOnce()
+	{
+		var w = EntityEventSimWorld.Create();
+		w.HostChannel.ReportTrapConsumed(EntityEventKind.MineExploded, 10f, 20f, extra: 0);
+
+		w.HostChannel.SendTrapStateSnapshot(w.G1.SteamId);
+		w.HostChannel.SendTrapStateSnapshot(w.G1.SteamId); // the 60 s re-send
+
+		Assert.True(w.G1Replays.Value == 1, $"a duplicate snapshot must not re-consume, got {w.G1Replays.Value}");
+	}
+
+	[Fact]
 	public void EntitySpawned_RelayedExcludingSource()
 	{
-		var w = CreateWorld();
+		var w = EntityEventSimWorld.Create();
 		var spawns = new List<EntitySpawnedMsg>();
 		w.G2.Services.GetRequiredService<IWorldControl>().EntitySpawnedReceived += (_, msg) => spawns.Add(msg);
 
@@ -183,15 +134,14 @@ public class EntityEventSimulationTests
 	[Fact]
 	public void FluidRegion_LostUnreliableRegion_HealedByTheNextAbsoluteOverwrite()
 	{
-		var w = CreateWorld();
+		var w = EntityEventSimWorld.Create();
 		var regions = new List<FluidRegionMsg>();
 		w.G1.Services.GetRequiredService<EntityEventChannel>().FluidRegionReceived += msg => regions.Add(msg);
-		w.Driver.Network.SetFaults(HostId, G1Id, new LinkFaults { UnreliableDropRate = 0.5 }); // the unreliable stream loses ~half
+		w.Driver.Network.SetFaults(w.Host.SteamId, w.G1.SteamId, new LinkFaults { UnreliableDropRate = 0.5 }); // the unreliable stream loses ~half
 
-		var channel = w.Host.Services.GetRequiredService<EntityEventChannel>();
 		for (byte seq = 1; seq <= 10; seq++)
 		{
-			channel.SendFluidRegion(G1Id, new FluidRegionMsg { Seq = seq, OriginX = 0, OriginY = 0, Width = 4, Height = 1, Cells = [seq, 4] });
+			w.HostChannel.SendFluidRegion(w.G1.SteamId, new FluidRegionMsg { Seq = seq, OriginX = 0, OriginY = 0, Width = 4, Height = 1, Cells = [seq, 4] });
 		}
 
 		// Whatever the loss pattern, the ABSOLUTE-overwrite semantics converge:
@@ -204,9 +154,55 @@ public class EntityEventSimulationTests
 	}
 
 	[Fact]
+	public void MineExplosion_CrossDomainMessageStorm_ReachesTheGuest()
+	{
+		// The most complex interaction in the game: ONE mine explosion rides
+		// FOUR sync channels at once. The shell replays the host executor's
+		// side-effect surface (TrapEffectApplier.ApplyMineExplosion's shape):
+		// the crater (SetBlock → the BlockPlaced channel), the drops (the item
+		// domain registers + relays) and the EntityEvent itself — every
+		// consequence must reach the other guest, source excluded.
+		var w = EntityEventSimWorld.Create();
+		var g2Blocks = new List<(int X, int Y, ushort Block)>();
+		var g2Drops = new List<ulong>();
+		w.G2.Services.GetRequiredService<IWorldControl>().BlockPlacedReceived += (_, x, y, block) => g2Blocks.Add((x, y, block));
+		w.G2.Transport.MessageReceived += (_, frame) =>
+		{
+			if ((NetMsg)frame[0] == NetMsg.ItemSpawn)
+			{
+				g2Drops.Add(NetPacket.DecodePayload<ItemSpawnMsg>(frame).ItemId);
+			}
+		};
+
+		w.HostExecuted += msg =>
+		{
+			if (msg.Kind != EntityEventKind.MineExploded)
+			{
+				return;
+			}
+
+			// The explosion's side effects, exactly the channels the production
+			// executor's consequences ride.
+			var world = w.Host.Services.GetRequiredService<IWorldControl>();
+			world.BroadcastBlockPlaced(w.Host.SteamId, 10, 11, 42); // the crater (SetBlock consequence)
+			w.Host.Services.GetRequiredService<ItemService>().SendItemSpawned(
+				500, new CharacterItemMsg { ItemId = "dropped_ore", Condition = 1f },
+				new NetVector2(10f, 20f), new NetVector2(1f, 2f), 0f, false, 0f); // the drops
+		};
+
+		w.Trigger(w.G1, EntityEventKind.MineExploded, 10f, 20f);
+
+		Assert.True(w.G2Events.Count == 1, $"the EntityEvent relay reaches the other guest, got {w.G2Events.Count}");
+		Assert.True(g2Blocks.Count == 1 && g2Blocks[0] == (10, 11, (ushort)42),
+			$"the crater rides the BlockPlaced channel, got [{string.Join(",", g2Blocks)}]");
+		Assert.True(g2Drops.Count == 1 && g2Drops[0] == 500,
+			$"the drops ride the item domain, got [{string.Join(",", g2Drops)}]");
+	}
+
+	[Fact]
 	public void FluidInteraction_RelayedExcludingSource()
 	{
-		var w = CreateWorld();
+		var w = EntityEventSimWorld.Create();
 		var drinks = new List<FluidInteractionMsg>();
 		w.G2.Services.GetRequiredService<IWorldControl>().FluidInteractionReceived += (_, msg) => drinks.Add(msg);
 

@@ -1,6 +1,6 @@
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session.World;
 using Microsoft.Extensions.Logging;
-using UnityEngine;
 
 namespace CasualtiesUnknownOnline.GameAdapter.World;
 
@@ -9,8 +9,9 @@ namespace CasualtiesUnknownOnline.GameAdapter.World;
 /// onto the local grid. Every region is an ABSOLUTE RLE snapshot of its
 /// rectangle — each cell in the rectangle is covered (trailing zero runs are
 /// omitted, the decoder clears the rest), so an apply is idempotent and a lost
-/// message is healed by the next one. The game's own renderer (RenderFluids)
-/// draws the applied grid unchanged.
+/// message is healed by the next one. The DECODE is the pure FluidRleCodec
+/// (tested); this class only binds it to the game grid. The game's own
+/// renderer (RenderFluids) draws the applied grid unchanged.
 /// </summary>
 internal sealed class FluidRegionApplication(ILogger<FluidRegionApplication> log)
 {
@@ -25,36 +26,11 @@ internal sealed class FluidRegionApplication(ILogger<FluidRegionApplication> log
 			return;
 		}
 
-		var width = msg.Width;
-		var height = msg.Height;
-		var cells = msg.Cells;
-		var total = width * height;
-		var pos = 0;
-		for (var i = 0; i + 1 < cells.Length && pos < total; i += 2)
-		{
-			var value = cells[i];
-			var count = cells[i + 1];
-			for (var c = 0; c < count && pos < total; c++, pos++)
-			{
-				// EVERY cell is written, zero runs included — a region is an
-				// absolute snapshot, so a mid-region zero run (liquid flowed
-				// away) MUST clear the cell; skipping zeros (the pre-fix bug)
-				// left the old liquid in place and the guest's fluid kept
-				// growing — the observed "the guest's water is visibly more".
-				var x = msg.OriginX + pos % width;
-				var y = msg.OriginY + pos / width;
-				fluid.fluid[Mathf.Clamp(x, 0, (int)world.width - 1), Mathf.Clamp(y, 0, (int)world.height - 1)] = value;
-			}
-		}
+		FluidRleCodec.Decode(
+			msg.Cells, msg.Width, msg.Height, msg.OriginX, msg.OriginY,
+			(int)world.width, (int)world.height,
+			(x, y, value) => fluid.fluid[x, y] = value);
 
-		// The uncovered tail (the omitted trailing zero runs) = cleared cells.
-		for (; pos < total; pos++)
-		{
-			var x = msg.OriginX + pos % width;
-			var y = msg.OriginY + pos / width;
-			fluid.fluid[Mathf.Clamp(x, 0, (int)world.width - 1), Mathf.Clamp(y, 0, (int)world.height - 1)] = 0;
-		}
-
-		_log.LogInformation("[Fluid] applied=(x={X},y={Y},w={W},h={H}) seq={Seq}.", msg.OriginX, msg.OriginY, width, height, msg.Seq);
+		_log.LogInformation("[Fluid] applied=(x={X},y={Y},w={W},h={H}) seq={Seq}.", msg.OriginX, msg.OriginY, msg.Width, msg.Height, msg.Seq);
 	}
 }

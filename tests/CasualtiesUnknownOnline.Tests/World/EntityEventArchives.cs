@@ -1,0 +1,52 @@
+using System.Collections.Generic;
+using System.Linq;
+using CasualtiesUnknownOnline.Runtime.Protocol;
+
+namespace CasualtiesUnknownOnline.Tests.World;
+
+/// <summary>
+/// The shared entity-event kind archive — the declared truth for EVERY kind:
+/// one-shot (a consumption recorded for the late-joiner snapshot, duplicate-
+/// guarded per entity) vs repeatable (each side's copy re-arms naturally).
+/// The single source for the profile tests (cross-checked against the
+/// Runtime EntityEventProfiles table) and the phase-5 combinatorial behavior
+/// tests (the [Theory] data source — a new kind automatically runs every
+/// scenario family). One row per enum value, deliberately classified, the
+/// comments carrying the reasoning.
+/// </summary>
+internal static class EntityEventArchives
+{
+	internal static readonly (EntityEventKind Kind, bool OneShot)[] Declared =
+	[
+		(EntityEventKind.MineExploded, true), // landmine — destroyed + consumed
+		(EntityEventKind.SpikeStabbed, true), // spikestabber one-shot activated
+		(EntityEventKind.BearTrapClamped, false), // clamp is reversible
+		(EntityEventKind.BarbedFenceHit, false), // repeatable hit
+		(EntityEventKind.CoilShocked, false), // repeatable shock
+		(EntityEventKind.CactusHit, false), // repeatable bump
+		(EntityEventKind.JumpPadLaunched, false), // repeatable launch
+		(EntityEventKind.StalactiteDropped, true), // one-shot drop
+		(EntityEventKind.GeyserActivated, false), // repeatable eruption
+		(EntityEventKind.SoundCannonFired, true), // one-shot spent
+		(EntityEventKind.TurretFired, false), // repeatable beam
+		(EntityEventKind.TurretSelfDestructed, true), // destroyed + consumed
+		(EntityEventKind.CrystalElectricShocked, false), // repeatable shock
+		(EntityEventKind.CrystalFragileBroken, true), // broken + consumed
+		(EntityEventKind.CaveTicksSpawned, true), // hatched + consumed
+		(EntityEventKind.BananaPlantSlip, false), // repeatable slip
+		(EntityEventKind.GrabberGrabbed, false), // repeatable grab
+		(EntityEventKind.BearTrapReleased, false), // the release half of the clamp
+		(EntityEventKind.ShuttleDoorOpened, true), // the doors open once
+		(EntityEventKind.LifepodHeatChanged, false), // heat state toggles
+		(EntityEventKind.LifepodShowerActivated, true), // one-shot activated
+		(EntityEventKind.BioTerminalUnlocked, true), // one-shot unlock
+		(EntityEventKind.ScrapEaterProgress, true), // one-shot at 100
+		(EntityEventKind.MedStationHealed, true), // one-shot heal
+		(EntityEventKind.BatteryInserted, true), // one-shot firstTime consumption
+	];
+
+	/// <summary>The archive kinds, one row per value — the combinatorial data source.</summary>
+	internal static IEnumerable<EntityEventKind> AllKinds => Declared.Select(row => row.Kind);
+
+	internal static bool IsOneShot(EntityEventKind kind) => Declared.Single(row => row.Kind == kind).OneShot;
+}

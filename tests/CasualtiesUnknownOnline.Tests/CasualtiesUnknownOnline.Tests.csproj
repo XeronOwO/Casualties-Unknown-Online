@@ -56,6 +56,12 @@
     <None Include="Replays\*.replay" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <!-- The event-replay matrix audit data (the check-event-replay gate's
+       source) — a test asserts its integrity (ReplayMatrixDataTests). -->
+  <ItemGroup>
+    <None Include="..\..\docs\event-replay-matrix.csv" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <ItemGroup Condition="'$(TargetFramework.TrimEnd(`0123456789`))' == 'net'">
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.2" PrivateAssets="all" />
   </ItemGroup>

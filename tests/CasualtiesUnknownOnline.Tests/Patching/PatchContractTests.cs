@@ -23,56 +23,14 @@ public class PatchContractTests
 {
 	private static readonly string BaseDir = AppDomain.CurrentDomain.BaseDirectory;
 
-	/// <summary>The reflection host must resolve every assembly the adapter
-	/// binds to — the game DLLs (references/), Harmony, and the adapter's own
-	/// output. Any missing file fails the load (with the copy instructions),
-	/// never silently skips.</summary>
-	private static readonly string[] RequiredDlls =
-	[
-		"Assembly-CSharp.dll", "UnityEngine.dll", "UnityEngine.CoreModule.dll",
-		"UnityEngine.SharedInternalsModule.dll", "UnityEngine.SubsystemsModule.dll",
-		"UnityEngine.UI.dll", "UnityEngine.InputLegacyModule.dll",
-		"UnityEngine.AudioModule.dll", "UnityEngine.IMGUIModule.dll",
-		"UnityEngine.Physics2DModule.dll", "UnityEngine.AnimationModule.dll",
-		"UnityEngine.TilemapModule.dll", "UnityEngine.ParticleSystemModule.dll",
-		"0Harmony.dll", "CasualtiesUnknownOnline.GameAdapter.dll",
-	];
-
-	private static Assembly? _game;
-
-	private static Assembly? _adapter;
-
-	private static void EnsureLoaded()
-	{
-		if (_adapter != null)
-		{
-			return;
-		}
-
-		var missing = RequiredDlls.Where(f => !File.Exists(Path.Combine(BaseDir, f))).ToList();
-		if (missing.Count > 0)
-		{
-			Assert.True(false, "Contract-test prerequisites missing — copy them per references/README.md (from the game's Managed/BepInEx folders into references/, then rebuild): "
-				+ string.Join(", ", missing));
-		}
-
-		AppDomain.CurrentDomain.AssemblyResolve += (_, args) =>
-		{
-			var name = new AssemblyName(args.Name).Name;
-			var path = Path.Combine(BaseDir, name + ".dll");
-			return File.Exists(path) ? Assembly.LoadFrom(path) : null;
-		};
-
-		_game = Assembly.LoadFrom(Path.Combine(BaseDir, "Assembly-CSharp.dll"));
-		_adapter = Assembly.LoadFrom(Path.Combine(BaseDir, "CasualtiesUnknownOnline.GameAdapter.dll"));
-	}
-
 	/// <summary>The adapter's own contract extraction — the single source of
-	/// facts the runtime verification and these tests share.</summary>
+	/// facts the runtime verification and these tests share. The reflection
+	/// host is the shared GameAssemblyHost (the game DLLs beside the test
+	/// output; missing references are a FAILURE with the copy instructions,
+	/// never a silent skip).</summary>
 	private static List<PatchContract> BuildContracts()
 	{
-		EnsureLoaded();
-		var inventory = _adapter!.GetType("CasualtiesUnknownOnline.GameAdapter.Patches.PatchInventory")
+		var inventory = GameAssemblyHost.Adapter.GetType("CasualtiesUnknownOnline.GameAdapter.Patches.PatchInventory")
 			?? throw new InvalidOperationException("PatchInventory type not found in the adapter assembly.");
 		var build = inventory.GetMethod("BuildContracts", BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
 			?? throw new InvalidOperationException("PatchInventory.BuildContracts not found.");
@@ -83,7 +41,7 @@ public class PatchContractTests
 	/// semantics: exact argument types first, name-only fallback.</summary>
 	private static MethodInfo? Resolve(PatchContract contract)
 	{
-		var type = _game!.GetType(contract.TargetType);
+		var type = GameAssemblyHost.Game.GetType(contract.TargetType);
 		if (type == null)
 		{
 			return null;
@@ -139,7 +97,7 @@ public class PatchContractTests
 			}
 		}
 
-		return _game!.GetType(name, throwOnError: false)
+		return GameAssemblyHost.Game.GetType(name, throwOnError: false)
 			?? throw new InvalidOperationException($"Contract parameter type '{name}' not found.");
 	}
 
@@ -149,7 +107,7 @@ public class PatchContractTests
 		var contracts = BuildContracts();
 		// Harmony declares the attribute as `class HarmonyPatch : Attribute` —
 		// the CLR name has NO "Attribute" suffix.
-		var attributed = _adapter!.GetTypes().Count(t =>
+		var attributed = GameAssemblyHost.Adapter.GetTypes().Count(t =>
 			t.GetCustomAttributesData().Any(a => a.AttributeType.FullName == "HarmonyLib.HarmonyPatch"));
 
 		Assert.True(contracts.Count == attributed + 3,

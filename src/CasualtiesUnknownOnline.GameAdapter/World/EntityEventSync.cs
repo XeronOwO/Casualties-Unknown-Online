@@ -96,8 +96,22 @@ internal sealed class EntityEventSync(IWorldControl world, ISessionControl sessi
 		}
 	}
 
-	private void OnTrapStateReceived(IReadOnlyList<EntityEventMsg> consumed) =>
+	private void OnTrapStateReceived(IReadOnlyList<EntityEventMsg> consumed)
+	{
 		// Late joiner: consume every one-shot consumption against the local
-		// deterministic world (idempotent). Wired with the snapshot step.
+		// deterministic world — the entity is found by its position key (the
+		// regenerated world has the identical entities), its state machine runs
+		// (the consumption markers make the replay idempotent — a duplicate
+		// entry is dropped by the per-entity guard). RemoteApply: the replays
+		// must never re-report (the trap patches check the origin).
 		_log.LogInformation("[TrapSnapshot] received {Count} consumed.", consumed.Count);
+		using (CallContext.Enter(CallContext.Origin.RemoteApply))
+		{
+			foreach (var msg in consumed)
+			{
+				var pos = msg.Position.ToNetVector2();
+				_replay.Replay(msg.Kind, new Vector2(pos.X, pos.Y), msg.Extra);
+			}
+		}
+	}
 }

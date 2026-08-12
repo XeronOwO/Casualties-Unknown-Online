@@ -148,4 +148,44 @@ public class SessionSimulationTests
 
 		Assert.True(Handshaken(host, guest), $"seed {seed}: the handshake must converge once the link stabilises");
 	}
+
+	[Fact]
+	public void Host_WarmsUpUnhandshakenLobbyPeers()
+	{
+		// 09ccc87: the lazy P2P session only establishes with traffic from BOTH
+		// directions — a guest retrying the handshake alone never arrives. The
+		// host pings lobby peers that have not completed a handshake (the
+		// SendPeerWarmup pump, every retry interval).
+		var (network, host, guest) = HandshakeTests.CreateHostAndGuest();
+		host.Steam.FireLobbyCreated(LobbyId);
+		host.Steam.LobbyMembers = [HostId, GuestId]; // the guest is IN the lobby but never entered/handshook
+
+		var pings = 0;
+		guest.Transport.MessageReceived += (_, frame) =>
+		{
+			if ((Runtime.Protocol.NetMsg)frame[0] == CasualtiesUnknownOnline.Runtime.Protocol.NetMsg.Ping)
+			{
+				pings++;
+			}
+		};
+
+		var driver = new SimulationDriver(guest.Clock, network, host, guest);
+		driver.Tick(3500); // more than one retry interval (3 s)
+
+		Assert.True(pings > 0, "the host must warm up the un-handshaken lobby peer with pings");
+	}
+
+	[Fact]
+	public void LocalSteamId_NonZero_AfterInitialize()
+	{
+		// 12b30a8: the SteamId was snapshotted in the constructor — before the
+		// Steam init — and read 0 (the guest's input all vanished). The entity
+		// SteamId is now taken after the Initialize phase; the TestNode drives
+		// the same lifecycle, so the local id must be the real one.
+		var (host, guest) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+
+		Assert.True(host.Session.LocalSteamId == HostId, $"host's local id must be {HostId}, got {host.Session.LocalSteamId}");
+		Assert.True(guest.Session.LocalSteamId == GuestId, $"guest's local id must be {GuestId}, got {guest.Session.LocalSteamId}");
+		Assert.True(host.Session.LocalSteamId != 0 && guest.Session.LocalSteamId != 0, "the id must never be the pre-init 0");
+	}
 }

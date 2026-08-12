@@ -1,4 +1,5 @@
 using System.Collections;
+using CasualtiesUnknownOnline.Runtime.Session.World;
 using HarmonyLib;
 using UnityEngine;
 
@@ -361,25 +362,21 @@ internal static class TrapStateActions
 	/// beam is a local LineRenderer — recorded gap.</summary>
 	internal static bool ApplyTurretFired(TurretScript turret)
 	{
-		// The trigger side's engagement chain, replayed with its TIMING: at
-		// t = 0 the warning (turretsee, TurretScript.cs:69 — 2D) — the trigger
-		// side's discovery moment; at t = 0.5 s the shot (rifleshot, :45) +
-		// particle burst (:44) + tracer (Shoot :202-205) — the trigger side's
-		// beepTime >= 0.5 s firing moment. The post-fire STATE is set
-		// immediately (didShoot = true start the 15 s reload, didBeep = true
-		// pins the discovery branch off — the 0.5 s window is silent like
-		// single-player and the game's own Update can never fire a REAL shot,
-		// the `!didShoot` guard). timeSinceFired = 3 s, NOT 0: the fire skin and
-		// lamp are driven by it (fireSprite while < 2 s, fireLight 80 - *300,
-		// TurretScript.cs:26-28) and must light at the FIRING moment — the
-		// 0.5 s coroutine sets 0 there, together with the shot visuals (setting
-		// 0 at the warning lit them 0.5 s early, the observed glitch). 3 s
-		// keeps the sprite off (> 2), the lamp off (80 - 900 < 0) and the
-		// reload reset at bay (timeSinceFired > 15 is not reached).
+		// The timeline decision (warning → 3 s / firing → 0 s / 15 s reload) is
+		// the pure TurretReplayTimeline — the #131 timing fix, locked by tests;
+		// this method only binds it to the game fields and plays the sounds.
+		// At t = 0 the warning (turretsee, TurretScript.cs:69 — 2D) — the
+		// trigger side's discovery moment; the post-fire STATE is set
+		// immediately (didShoot starts the 15 s reload, didBeep pins the
+		// discovery branch off — the 0.5 s window is silent like single-player
+		// and the game's own Update can never fire a REAL shot, the `!didShoot`
+		// guard). timeSinceFired = 3 s at the warning keeps the fire skin/lamp
+		// dark until the 0.5 s coroutine sets 0 at the firing moment.
+		var timeline = TurretReplayTimeline.OnWarning();
 		Sound.Play("turretsee", turret.transform.position, true, false, null, 1f, 1f, false, false);
-		Traverse.Create(turret).Property("timeSinceFired").SetValue(3f);
-		Traverse.Create(turret).Field("didShoot").SetValue(true);
-		Traverse.Create(turret).Field("didBeep").SetValue(true);
+		Traverse.Create(turret).Property("timeSinceFired").SetValue(timeline.TimeSinceFired);
+		Traverse.Create(turret).Field("didShoot").SetValue(timeline.DidShoot);
+		Traverse.Create(turret).Field("didBeep").SetValue(timeline.DidBeep);
 		turret.StartCoroutine(DelayedFireVisuals(turret));
 		return true;
 	}
@@ -398,7 +395,7 @@ internal static class TrapStateActions
 			yield break; // destroyed while the delay ran
 		}
 
-		Traverse.Create(turret).Property("timeSinceFired").SetValue(0f); // the firing moment: fire skin + lamp + shot visuals together
+		Traverse.Create(turret).Property("timeSinceFired").SetValue(TurretReplayTimeline.FiringTimeSinceFired); // the firing moment: fire skin + lamp + shot visuals together
 		Sound.Play("rifleshot", turret.transform.position, true, false, null, 1f, 1f, false, false);
 		var particles = turret.GetComponentInChildren<ParticleSystem>();
 		if (particles != null) // Unity object — ==

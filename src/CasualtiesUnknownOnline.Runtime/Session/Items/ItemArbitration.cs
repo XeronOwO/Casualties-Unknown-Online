@@ -49,7 +49,7 @@ public sealed class ItemArbitration(ISessionControl session, PacketSender sender
 	/// </summary>
 	public CharacterItemMsg CheckAndTransferToGuest(ulong guest, ulong itemId, WorldItem entry, CharacterItemMsg? evidence)
 	{
-		CheckEvidence(guest, itemId, entry.Item, evidence);
+		ApplyVerdict(guest, itemId, entry.Item, CheckEvidence(itemId, entry.Item, evidence));
 		// The evidence carries the slot the picker's item landed in — adopted
 		// (a carried item's slot is its owner's local fact, never corrected);
 		// the reconnect restore needs a real slot or the item would not restore.
@@ -78,7 +78,7 @@ public sealed class ItemArbitration(ISessionControl session, PacketSender sender
 	{
 		if (_transferred.TryGetValue(guest, out var owned) && owned.TryGetValue(itemId, out var transferred))
 		{
-			CheckEvidence(guest, itemId, transferred.Item, evidence);
+			ApplyVerdict(guest, itemId, transferred.Item, CheckEvidence(itemId, transferred.Item, evidence));
 			owned.Remove(itemId);
 		}
 	}
@@ -215,25 +215,21 @@ public sealed class ItemArbitration(ISessionControl session, PacketSender sender
 	// ===== Evidence check (host only) =====
 
 	/// <summary>
-	/// Compare the action-report evidence against the authoritative entry and
-	/// sync the divergence — accept-with-correction: the action is never
-	/// blocked, only its evidence is checked. Returns true when the evidence
-	/// matches (or is absent — a legacy report has nothing to check).
-	/// Divergence handling: the guest claims content ids the host does not
-	/// have → each is destroyed with a one-shot ItemDestroy (never corrected
-	/// back — they are not ours); anything else (top-level state, missing
-	/// contents) → the whole authoritative entry is sent as one correction
-	/// (the guest's apply materializes missing contents and fixes state).
-	/// Only what the digest CLAIMS is compared: an empty nested Contents level
-	/// means "no claim" (the digest shape stops at ids), never "empty
-	/// contents" — that is what keeps a one-level digest from reading as
-	/// missing against a two-level authoritative entry.
+	/// Compare the action-report evidence against the authoritative entry —
+	/// PURE (no state, no sends, no logging): input message + entry, output the
+	/// decision (<see cref="EvidenceVerdict"/>). The side effects the verdict
+	/// demands run in <see cref="ApplyVerdict"/>. Accept-with-correction: the
+	/// action is never blocked, only its evidence is checked. Only what the
+	/// digest CLAIMS is compared: an empty nested Contents level means "no
+	/// claim" (the digest shape stops at ids), never "empty contents" — that is
+	/// what keeps a one-level digest from reading as missing against a
+	/// two-level authoritative entry.
 	/// </summary>
-	private bool CheckEvidence(ulong guest, ulong itemId, CharacterItemMsg authoritative, CharacterItemMsg? evidence)
+	internal static EvidenceVerdict CheckEvidence(ulong itemId, CharacterItemMsg authoritative, CharacterItemMsg? evidence)
 	{
 		if (evidence == null)
 		{
-			return true;
+			return EvidenceVerdict.Match;
 		}
 
 		// The authoritative entry's primary key must always be the table key —
@@ -243,24 +239,33 @@ public sealed class ItemArbitration(ISessionControl session, PacketSender sender
 
 		var matched = TopLevelMatches(evidence, authoritative);
 		var missing = !ContentsMatch(evidence, authoritative, out var extra);
-		if (extra.Count > 0)
-		{
-			foreach (var id in extra)
-			{
-				_sender.Send(guest, NetMsg.ItemDestroy, new ItemDestroyMsg { ItemId = id });
-			}
+		return EvidenceVerdict.From(matched && !missing, extra);
+	}
 
-			_log.LogWarning("Item {ItemId} evidence of {Guest} claims unknown contents [{Extra}] — destroying.", itemId, guest, string.Join(", ", extra));
+	/// <summary>
+	/// Execute a verdict's side effects: the guest claims content ids the host
+	/// does not have → each is destroyed with a one-shot ItemDestroy (never
+	/// corrected back — they are not ours); top-level state or missing contents
+	/// → the whole authoritative entry is sent as one correction (the guest's
+	/// apply materializes missing contents and fixes state).
+	/// </summary>
+	private void ApplyVerdict(ulong guest, ulong itemId, CharacterItemMsg authoritative, EvidenceVerdict verdict)
+	{
+		foreach (var id in verdict.ExtraContentIds)
+		{
+			_sender.Send(guest, NetMsg.ItemDestroy, new ItemDestroyMsg { ItemId = id });
 		}
 
-		if (!matched || missing)
+		if (verdict.ExtraContentIds.Count > 0)
+		{
+			_log.LogWarning("Item {ItemId} evidence of {Guest} claims unknown contents [{Extra}] — destroying.", itemId, guest, string.Join(", ", verdict.ExtraContentIds));
+		}
+
+		if (verdict.NeedsCorrection)
 		{
 			SendCorrection(guest, authoritative);
 			_log.LogInformation("Item {ItemId} evidence of {Guest} diverged — correction sent.", itemId, guest);
-			return false;
 		}
-
-		return true;
 	}
 
 	/// <summary>Top-level state: condition (tolerance), favourited, liquid stacks and [Saveable] component states. Contents are compared separately (id sets).</summary>

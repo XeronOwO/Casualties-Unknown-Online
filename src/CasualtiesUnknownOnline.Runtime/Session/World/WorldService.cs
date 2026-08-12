@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Time;
 using Microsoft.Extensions.Logging;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.World;
@@ -16,11 +17,12 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 /// <see cref="PacketSender"/>. No pump: it only reacts to calls and messages
 /// (not an ICuoService, like CharacterDataStore).
 /// </summary>
-public sealed partial class WorldService(ISessionControl session, PacketSender sender, ILogger<WorldService> log, EntityEventChannel eventChannel, TradeChannel tradeChannel)
+public sealed partial class WorldService(ISessionControl session, PacketSender sender, ITimeSource time, ILogger<WorldService> log, EntityEventChannel eventChannel, TradeChannel tradeChannel)
 	: IWorldControl
 {
 	private readonly ISessionControl _session = session;
 	private readonly PacketSender _sender = sender;
+	private readonly ITimeSource _time = time;
 	private readonly ILogger<WorldService> _log = log;
 	private readonly EntityEventChannel _eventChannel = eventChannel;
 	private readonly TradeChannel _tradeChannel = tradeChannel;
@@ -110,7 +112,7 @@ public sealed partial class WorldService(ISessionControl session, PacketSender s
 		}
 
 		_startGate = waiting;
-		_startGateArmedMs = Environment.TickCount;
+		_startGateArmedMs = _time.NowMs;
 		_log.LogInformation("Start gate armed — waiting for {Count} member(s) to finish loading.", waiting.Count);
 		return true;
 	}
@@ -156,7 +158,7 @@ public sealed partial class WorldService(ISessionControl session, PacketSender s
 			return;
 		}
 
-		if (Environment.TickCount - _startGateArmedMs <= StartGateTimeoutMs)
+		if (_time.NowMs - _startGateArmedMs <= StartGateTimeoutMs)
 		{
 			return;
 		}
@@ -174,7 +176,7 @@ public sealed partial class WorldService(ISessionControl session, PacketSender s
 	/// <summary>Host only: milliseconds left until the gate force-releases (0 when not armed).</summary>
 	public int StartGateRemainingMs => _startGate is null
 		? 0
-		: Math.Max(0, StartGateTimeoutMs - (int)(Environment.TickCount - _startGateArmedMs));
+		: Math.Max(0, StartGateTimeoutMs - (int)(_time.NowMs - _startGateArmedMs));
 
 	/// <summary>Host only: release the start gate to everyone.</summary>
 	private void SendWorldReady()

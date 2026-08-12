@@ -4,6 +4,7 @@ using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Time;
 using Microsoft.Extensions.Logging;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.EntitySync;
@@ -42,6 +43,8 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 
 	private readonly PacketSender _sender;
 
+	private readonly ITimeSource _time;
+
 	private readonly ILogger<EntitySyncService> _log;
 
 	private readonly PlayerEntity _localPlayer;
@@ -59,11 +62,13 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 	private uint _nextStateSeq; // host: PlayerState broadcasts
 	private uint _nextReportSeq; // guest: PlayerStateReport broadcasts
 
-	public EntitySyncService(ISessionControl session, PacketSender sender, ILogger<EntitySyncService> log)
+	public EntitySyncService(ISessionControl session, PacketSender sender, ITimeSource time, ILogger<EntitySyncService> log)
 	{
 		_session = session;
 
 		_sender = sender;
+
+		_time = time;
 
 		_log = log;
 		_localPlayer = new PlayerEntity(session.LocalSteamId, default, isLocal: true);
@@ -240,7 +245,7 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 	internal void ApplyEntityState(EntityStateMsg msg, PlayerEntity target)
 	{
 		var firstSnapshot = target.StateReceivedMs < 0;
-		var now = Environment.TickCount;
+		var now = (int)_time.NowMs; // the interpolation buffer's ms stamps (GameAdapter's SessionStatePump diffs them against Environment.TickCount)
 		target.PrevStateMs = firstSnapshot ? now : target.StateReceivedMs;
 		target.PrevPosition = firstSnapshot ? msg.Position.ToNetVector2() : target.Position;
 		target.PrevLookPos = firstSnapshot ? msg.LookPos.ToNetVector2() : target.LookPos;
@@ -253,7 +258,7 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 
 	void ICuoService.Initialize()
 	{
-		_epoch = (ulong)DateTime.UtcNow.Ticks;
+		_epoch = (ulong)_time.UtcNowTicks;
 		// Steam API init (SteamService.Initialize) runs before us in registration
 		// order — refresh the local SteamID captured at construction time (it was
 		// still 0 then, and join/host messages carry it).
@@ -285,7 +290,7 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 			MaybeStartEntitySync();
 		}
 
-		var nowMs = Environment.TickCount;
+		var nowMs = _time.NowMs;
 		if (_session.Role == SessionRole.Host && EntitySyncActive && nowMs >= _nextStateSendMs)
 		{
 			_nextStateSendMs = nowMs + (long)(StateSendInterval * 1000f);

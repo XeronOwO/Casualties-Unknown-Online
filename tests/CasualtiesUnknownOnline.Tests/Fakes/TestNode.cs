@@ -6,6 +6,7 @@ using CasualtiesUnknownOnline.Runtime;
 using CasualtiesUnknownOnline.Runtime.Networking;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Steam;
+using CasualtiesUnknownOnline.Runtime.Time;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -20,11 +21,12 @@ namespace CasualtiesUnknownOnline.Tests.Fakes;
 /// </summary>
 internal sealed class TestNode : IDisposable
 {
-	private TestNode(ulong steamId, FakeSteamService steam, FakeTransport transport, ServiceProvider services)
+	private TestNode(ulong steamId, FakeSteamService steam, FakeTransport transport, FakeClock clock, ServiceProvider services)
 	{
 		SteamId = steamId;
 		Steam = steam;
 		Transport = transport;
+		Clock = clock;
 		Services = services;
 		Session = services.GetRequiredService<SessionService>();
 	}
@@ -35,13 +37,17 @@ internal sealed class TestNode : IDisposable
 
 	internal FakeTransport Transport { get; }
 
+	/// <summary>The virtual clock this node runs on — the shared simulation clock (its network and its domain services read the same instance).</summary>
+	internal FakeClock Clock { get; }
+
 	internal ServiceProvider Services { get; }
 
 	internal SessionService Session { get; }
 
-	internal static TestNode Create(ulong steamId, FakeNetwork network, FakeSteamService steam)
+	internal static TestNode Create(ulong steamId, FakeNetwork network, FakeSteamService steam, FakeClock? clock = null)
 	{
 		var transport = new FakeTransport(steamId, network);
+		clock ??= new FakeClock();
 		var logDirectory = Path.Combine(Path.GetTempPath(), "cuo-tests", $"node-{steamId}");
 		var services = CuoBootstrap.BuildServiceProvider(
 			new ManualLogSource("test"),
@@ -50,14 +56,19 @@ internal sealed class TestNode : IDisposable
 			{
 				s.Replace(ServiceDescriptor.Singleton<INetworkTransport>(transport));
 				s.Replace(ServiceDescriptor.Singleton<ISteamService>(steam));
+				s.Replace(ServiceDescriptor.Singleton<ITimeSource>(clock));
 				// The real SteamService/SteamTransport registrations stay in the
 				// graph but must never initialize (they would touch Steamworks).
-				// Replace the lifecycle entry with the fake; the transport's
-				// lifecycle entry is harmless (all members are no-ops).
+				// Replace BOTH lifecycle entries with the fakes — the full
+				// ICuoService pump drives every Update in registration order, and
+				// SteamTransport.Update polls Steamworks (FileNotFoundException in
+				// a test host without the DLLs). Each Replace swaps the FIRST
+				// remaining match: the SteamService entry, then the transport's.
 				s.Replace(ServiceDescriptor.Singleton(_ => (ICuoService)steam));
+				s.Replace(ServiceDescriptor.Singleton(_ => (ICuoService)transport));
 			});
 
-		var node = new TestNode(steamId, steam, transport, services);
+		var node = new TestNode(steamId, steam, transport, clock, services);
 		foreach (var svc in services.GetServices<ICuoService>())
 		{
 			svc.Initialize(); // the plugin's Awake order — registration order
@@ -79,20 +90,29 @@ internal sealed class TestNode : IDisposable
 	/// </summary>
 	internal static (TestNode Host, TestNode Guest) CreatePair(ulong hostId, ulong guestId, ulong lobbyId)
 	{
-		var network = new FakeNetwork();
+		var clock = new FakeClock();
+		var network = new FakeNetwork(clock: clock);
 		var hostSteam = new FakeSteamService(hostId) { LobbyOwner = hostId, LobbyMembers = [hostId] };
 		var guestSteam = new FakeSteamService(guestId) { LobbyOwner = hostId, LobbyMembers = [hostId, guestId] };
-		var host = Create(hostId, network, hostSteam);
-		var guest = Create(guestId, network, guestSteam);
+		var host = Create(hostId, network, hostSteam, clock);
+		var guest = Create(guestId, network, guestSteam, clock);
 		host.Steam.FireLobbyCreated(lobbyId);
 		host.Steam.LobbyMembers = [hostId, guestId]; // the guest joined the lobby
 		guest.Steam.FireLobbyEntered(lobbyId);
 		return (host, guest);
 	}
 
-	/// <summary>The session's per-frame pump — driven explicitly by the tests (the fake
-	/// network delivers synchronously, so only time-driven logic needs it).</summary>
-	internal void Update() => ((ICuoService)Session).Update();
+	/// <summary>The session's per-frame pump — every ICuoService in registration
+	/// order, exactly the production Plugin.Update loop (the domain pumps — the
+	/// entity stream's 20 Hz throttle, the world gate, the session presence
+	/// check — live in their own Update methods).</summary>
+	internal void Update()
+	{
+		foreach (var svc in Services.GetServices<ICuoService>())
+		{
+			svc.Update();
+		}
+	}
 
 	public void Dispose()
 	{

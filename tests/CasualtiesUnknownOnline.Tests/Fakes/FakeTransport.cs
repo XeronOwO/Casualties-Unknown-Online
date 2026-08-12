@@ -24,6 +24,8 @@ internal sealed class FakeTransport : INetworkTransport, ICuoService
 
 	internal ulong SteamId { get; }
 
+	internal FakeNetwork Network => _network;
+
 	public event Action<ulong, byte[]>? MessageReceived;
 
 	public bool SendTo(ulong steamId, byte[] data, bool reliable) => _network.Route(SteamId, steamId, data, reliable);

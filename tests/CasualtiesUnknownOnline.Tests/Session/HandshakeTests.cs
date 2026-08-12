@@ -1,5 +1,4 @@
 using System.Linq;
-using System.Threading;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Tests.Fakes;
 using Xunit;
@@ -19,11 +18,12 @@ public class HandshakeTests
 
 	internal static (FakeNetwork Network, TestNode Host, TestNode Guest) CreateHostAndGuest()
 	{
-		var network = new FakeNetwork();
+		var clock = new FakeClock();
+		var network = new FakeNetwork(clock: clock);
 		var hostSteam = new FakeSteamService(HostId) { LobbyOwner = HostId, LobbyMembers = [HostId] };
 		var guestSteam = new FakeSteamService(GuestId) { LobbyOwner = HostId, LobbyMembers = [HostId, GuestId] };
-		var host = TestNode.Create(HostId, network, hostSteam);
-		var guest = TestNode.Create(GuestId, network, guestSteam);
+		var host = TestNode.Create(HostId, network, hostSteam, clock);
+		var guest = TestNode.Create(GuestId, network, guestSteam, clock);
 		return (network, host, guest);
 	}
 
@@ -75,7 +75,7 @@ public class HandshakeTests
 		Assert.Empty(host.Session.Members);
 
 		network.Register(host.Transport); // the P2P session establishes
-		Thread.Sleep(1100); // past the 1 s handshake retry interval
+		guest.Clock.Advance(1100); // past the 1 s handshake retry interval (virtual time — same clock as the network and the host)
 		guest.Update(); // RetryHandshakeIfNeeded re-sends
 
 		Assert.True(host.Session.Members.Single(m => m.SteamId == GuestId).Handshaken);

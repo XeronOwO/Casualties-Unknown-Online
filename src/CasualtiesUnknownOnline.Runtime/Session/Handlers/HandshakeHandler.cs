@@ -1,3 +1,7 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using Microsoft.Extensions.Logging;
@@ -33,6 +37,19 @@ public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandl
 		if (!session.IsLobbyMember(sender))
 		{
 			_log.LogWarning("Handshake from {Peer} ignored: not a lobby member.", sender);
+			return;
+		}
+
+		// Mod-list consistency (Phase 4 Mod API): the host validates the
+		// member's declared mods against its own BEFORE the member is created —
+		// a rejected member never enters the roster. Two deliberate windows:
+		// discovery pending (the first frame has not run yet — the guest's 1 s
+		// retry is checked then; production handshakes take seconds anyway, the
+		// lazy Steam P2P session, so this window is practically unreachable)
+		// and an old client's null list (treated as empty — but cross-version
+		// sessions are refused by the protocol gate above anyway).
+		if (!CheckModConsistency(sender, msg, ctx))
+		{
 			return;
 		}
 
@@ -116,5 +133,87 @@ public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandl
 				_sender.Send(sender, NetMsg.WorldJoin, new WorldJoinMsg { IsTutorial = worldParams.IsTutorial });
 			}
 		}
+	}
+
+	/// <summary>
+	/// The Phase 4 Mod API consistency check: the host's discovered mods vs the
+	/// member's declared list. Policy (mirroring architecture.md §6):
+	/// RequiresAllPlayers/Synchronized/Authoritative missing on either side, or
+	/// version-unequal, → reject (the host cannot arbitrate state the member
+	/// lacks or claims with a different version); HostOnly is host-side only (a
+	/// guest lacking it passes); ClientOnly/Cosmetic differences pass (local
+	/// surfaces). A malformed guest list (empty/duplicated id, Unspecified or
+	/// unknown NetworkMode) is rejected. Discovery pending → "not checked yet"
+	/// refusal (the guest's 1 s handshake retry is then checked properly).
+	/// </summary>
+	private bool CheckModConsistency(ulong sender, HandshakeMsg msg, HandlerContext ctx)
+	{
+		var mods = ctx.Mods;
+		if (!mods.IsDiscoveryComplete)
+		{
+			_log.LogWarning("Handshake from {Peer} ignored: mod discovery pending (the first frame has not run yet) — the retry is checked.", sender);
+			return false;
+		}
+
+		var host = mods.CurrentModManifests;
+		var guest = msg.Mods ?? []; // null = an old client's missing field — treated as an empty list
+
+		// Shape: the member's list must be well-formed (empty/duplicated id,
+		// Unspecified or unknown NetworkMode are all garbage in).
+		var guestIds = new HashSet<string>(StringComparer.Ordinal);
+		foreach (var info in guest)
+		{
+			if (string.IsNullOrWhiteSpace(info.Id) || !guestIds.Add(info.Id))
+			{
+				_log.LogWarning("Handshake from {Peer} rejected: malformed mod list (empty or duplicated id).", sender);
+				return false;
+			}
+
+			if (info.NetworkMode == NetworkMode.Unspecified || !Enum.IsDefined(typeof(NetworkMode), info.NetworkMode))
+			{
+				_log.LogWarning("Handshake from {Peer} rejected: mod {Id} declares {Mode} — not a valid NetworkMode.", sender, info.Id, (int)info.NetworkMode);
+				return false;
+			}
+		}
+
+		// Host has, member lacks or version-unequal: the state-bearing modes
+		// reject; local-surface modes pass (HostOnly is host-side only).
+		foreach (var hostMod in host)
+		{
+			var guestInfo = guest.FirstOrDefault(g => g.Id == hostMod.Id);
+			if (guestInfo is null)
+			{
+				if (hostMod.NetworkMode is NetworkMode.RequiresAllPlayers or NetworkMode.Synchronized or NetworkMode.Authoritative)
+				{
+					_log.LogWarning("Handshake from {Peer} rejected: {Id} ({Mode}) is required and missing on the member.", sender, hostMod.Id, hostMod.NetworkMode);
+					return false;
+				}
+
+				continue;
+			}
+
+			if (guestInfo.Version != hostMod.Version
+				&& hostMod.NetworkMode is NetworkMode.RequiresAllPlayers or NetworkMode.Synchronized or NetworkMode.Authoritative)
+			{
+				_log.LogWarning("Handshake from {Peer} rejected: {Id} version {Member} ≠ host {Host} ({Mode}).",
+					sender, hostMod.Id, guestInfo.Version, hostMod.Version, hostMod.NetworkMode);
+				return false;
+			}
+		}
+
+		// Member claims a state-bearing mod the host does not run — the host
+		// cannot arbitrate it, so it cannot be admitted.
+		foreach (var guestInfo in guest)
+		{
+			if (host.All(h => h.Id != guestInfo.Id)
+				&& guestInfo.NetworkMode is NetworkMode.RequiresAllPlayers or NetworkMode.Synchronized or NetworkMode.Authoritative)
+			{
+				_log.LogWarning("Handshake from {Peer} rejected: {Id} claims {Mode} but the host does not run it — the host cannot arbitrate it.",
+					sender, guestInfo.Id, guestInfo.NetworkMode);
+				return false;
+			}
+		}
+
+		return true;
 	}
 }

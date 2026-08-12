@@ -72,6 +72,7 @@ public class DirectionTests
 		NetMsg.EntityEvent,
 		NetMsg.EntitySpawned,
 		NetMsg.FluidInteraction,
+		NetMsg.ModMessage,
 	};
 
 	[Theory]

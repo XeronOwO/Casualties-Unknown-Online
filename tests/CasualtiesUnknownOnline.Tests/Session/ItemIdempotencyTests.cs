@@ -27,9 +27,11 @@ public class ItemIdempotencyTests
 		var hostSteam = new FakeSteamService(HostId) { LobbyOwner = HostId, LobbyMembers = [HostId] };
 		var guest1Steam = new FakeSteamService(Guest1Id) { LobbyOwner = HostId, LobbyMembers = [HostId, Guest1Id, Guest2Id] };
 		var guest2Steam = new FakeSteamService(Guest2Id) { LobbyOwner = HostId, LobbyMembers = [HostId, Guest1Id, Guest2Id] };
-		var host = TestNode.Create(HostId, network, hostSteam);
-		var guest1 = TestNode.Create(Guest1Id, network, guest1Steam);
-		var guest2 = TestNode.Create(Guest2Id, network, guest2Steam);
+		// pumpFirstFrame: the mod discovery scan must run before any handshake
+		// (a handshake arriving before it is refused as "mod check pending").
+		var host = TestNode.Create(HostId, network, hostSteam, pumpFirstFrame: true);
+		var guest1 = TestNode.Create(Guest1Id, network, guest1Steam, pumpFirstFrame: true);
+		var guest2 = TestNode.Create(Guest2Id, network, guest2Steam, pumpFirstFrame: true);
 		host.Steam.FireLobbyCreated(LobbyId);
 		host.Steam.LobbyMembers = [HostId, Guest1Id, Guest2Id]; // both guests joined the lobby
 		guest1.Steam.FireLobbyEntered(LobbyId);

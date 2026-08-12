@@ -1,0 +1,52 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <AssemblyName>CasualtiesUnknownOnline.ModExample</AssemblyName>
+    <Product>Casualties Unknown: Online Mod Example</Product>
+    <Version>0.1.0</Version>
+    <LangVersion>preview</LangVersion>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <Nullable>enable</Nullable>
+    <RestoreAdditionalProjectSources>
+      https://api.nuget.org/v3/index.json;
+      https://nuget.bepinex.dev/v3/index.json;
+      https://nuget.samboy.dev/v3/index.json
+    </RestoreAdditionalProjectSources>
+    <RootNamespace>CasualtiesUnknownOnline.ModExample</RootNamespace>
+  </PropertyGroup>
+
+  <!--
+    The reference set a CUO MOD ships with: BepInEx.Core for the plugin SHELL
+    (the loading mechanism — BepInEx owns plugin discovery) + CUO.Abstractions
+    for all business logic. NEVER BepInEx APIs in business code, NEVER the game
+    assemblies, NEVER CUO.Runtime (architecture.md §5.5: mods reference
+    Abstractions only). This example project doubles as the two-process
+    runtime verification target for the Phase 4 Mod API.
+  -->
+  <ItemGroup>
+    <PackageReference Include="BepInEx.Core" Version="5.*" />
+    <ProjectReference Include="..\CasualtiesUnknownOnline.Abstractions\CasualtiesUnknownOnline.Abstractions.csproj" />
+  </ItemGroup>
+
+  <!--
+    UnityEngine modules (the game's own 2022.3 builds, references/ convention):
+    the BepInEx shell derives from BaseUnityPlugin (a MonoBehaviour) — the
+    compile-time shape only, business code never touches Unity types.
+  -->
+  <ItemGroup>
+    <Reference Include="UnityEngine">
+      <HintPath>..\..\references\UnityEngine.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>..\..\references\UnityEngine.CoreModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework.TrimEnd(`0123456789`))' == 'net'">
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.2" PrivateAssets="all" />
+  </ItemGroup>
+</Project>

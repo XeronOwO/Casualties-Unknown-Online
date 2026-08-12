@@ -87,4 +87,11 @@ public enum NetMsg : byte
 
 	// Speech (the Talker domain — the bubble text is DATA: the speaking side applied localization + random + distortion, the receiver only displays)
 	SpeechMsg = 74, // bidirectional: guest → host report of a spoken bubble; host → guest broadcast relay (the source excluded for players — a trader's bubble is host-broadcast)
+
+	// Mod messages (Phase 4 Mod API — the shared mod-message frame: the payload
+	// carries the sending mod's id + a raw payload; the receiving side routes by
+	// id to the locally-loaded mod, unknown ids are dropped with a log. Report/
+	// 定向 semantics, star topology, NO auto-relay — a guest's report reaches the
+	// host's copy of the mod only; broadcasting is the host-side mod's explicit call)
+	ModMessage = 75, // bidirectional: guest → host report; host → guest directed/broadcast
 }

@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
@@ -38,18 +37,19 @@ internal sealed class BlockBreakSync(
 	private readonly ILogger<BlockBreakSync> _log = log;
 
 	/// <summary>
-	/// Host: block-break arbitration records — a guest's air-write
-	/// (BlockPlaced, SetBlock(0)) that the host APPLIED proves that guest's
-	/// break is the first writer for that cell; the record is consumed when
-	/// that guest's BlockDamaged report (the drops carrier) arrives. The
-	/// BlockPlaced necessarily precedes the BlockDamaged (both reliable, same
-	/// source — the break report waits a frame for the drops), so the block is
-	/// ALREADY air when the drops arrive and a GetBlock check can never tell
-	/// first-writer from second-writer ("the block is gone" is true for both) —
-	/// the record does. Entries without a BlockDamaged (quake/environment air
-	/// writes) expire.
+	/// Host: block-break arbitration — a guest's air-write (BlockPlaced,
+	/// SetBlock(0)) that the host APPLIED proves that guest's break is the
+	/// first writer for that cell; the record is consumed when that guest's
+	/// BlockDamaged report (the drops carrier) arrives. The BlockPlaced
+	/// necessarily precedes the BlockDamaged (both reliable, same source — the
+	/// break report waits a frame for the drops), so the block is ALREADY air
+	/// when the drops arrive and a GetBlock check can never tell first-writer
+	/// from second-writer ("the block is gone" is true for both) — the record
+	/// does. The table and the one-shot accept decision live in the pure
+	/// BlockBreakArbitration machine (Runtime); this side feeds the game
+	/// inputs (cell coordinates, Time.unscaledTime).
 	/// </summary>
-	private readonly Dictionary<(ulong Sender, Vector2Int Cell), float> _recentBroken = [];
+	private readonly BlockBreakArbitration _arbitration = new();
 
 	private const float RecentBrokenTtl = 3f;
 	private float _lastBrokenCleanup;
@@ -59,19 +59,16 @@ internal sealed class BlockBreakSync(
 
 	private bool IsHostMode => _session.Role == SessionRole.Host && _session.SessionActive;
 
-	/// <summary>Pump: expire break records without a consuming BlockDamaged (quake/environment air writes, a breaker that disconnected mid-operation).</summary>
+	/// <summary>Pump: expire break records without a consuming BlockDamaged (quake/environment air writes, a breaker that disconnected mid-operation). The 1 s throttle is this side's cost guard — the expiry decision lives in the machine.</summary>
 	internal void Update()
 	{
-		if (_recentBroken.Count == 0 || Time.unscaledTime - _lastBrokenCleanup <= 1f)
+		if (_arbitration.Count == 0 || Time.unscaledTime - _lastBrokenCleanup <= 1f)
 		{
 			return;
 		}
 
 		_lastBrokenCleanup = Time.unscaledTime;
-		foreach (var stale in _recentBroken.Where(kv => Time.unscaledTime - kv.Value > RecentBrokenTtl).ToList())
-		{
-			_recentBroken.Remove(stale.Key);
-		}
+		_arbitration.PurgeStale(Time.unscaledTime, RecentBrokenTtl);
 	}
 
 	/// <summary>
@@ -173,7 +170,7 @@ internal sealed class BlockBreakSync(
 				{
 					// A BREAK with drops: first-writer-wins on the sender's
 					// applied air-write record.
-					if (_recentBroken.Remove((sender, cell)))
+					if (_arbitration.TryAccept(sender, cell.x, cell.y))
 					{
 						_items.FireBlockDropsReceived(sender, drops);
 						_world.BroadcastBlockDamaged(sender, pos, dmg, drops);
@@ -223,5 +220,5 @@ internal sealed class BlockBreakSync(
 	/// record proves the break was the first writer.
 	/// </summary>
 	internal void OnRemoteAirWriteApplied(ulong sender, Vector2Int cell) =>
-		_recentBroken[(sender, cell)] = Time.unscaledTime;
+		_arbitration.RecordAppliedAirWrite(sender, cell.x, cell.y, Time.unscaledTime);
 }

@@ -114,6 +114,7 @@ public static class CuoBootstrap
 		services.AddSingleton<TrapConsumptionRegistry>(); // the one-shot trap-consumption table
 		services.AddSingleton<EntityEventChannel>(); // the entity event/creation channels + the consumption registry
 		services.AddSingleton<TradeChannel>(); // the trader state/action channel (trade domain)
+		services.AddSingleton<SpeechChannel>(); // the speech-bubble channel (the Talker domain)
 		services.AddSingleton<WorldService>();
 		services.AddSingleton<IWorldControl>(p => p.GetRequiredService<WorldService>());
 		// Item domain: the authoritative world-item table + pickup arbitration

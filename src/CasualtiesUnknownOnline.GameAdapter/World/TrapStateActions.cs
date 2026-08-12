@@ -355,6 +355,57 @@ internal static class TrapStateActions
 		return true;
 	}
 
+	/// <summary>Metamorphic crystal triggered (the death rides BuildingEntityDamaged,
+	/// the drops ride the item domain — this syncs the remaining observables):
+	/// the white screen flash + the laugh, exactly the trigger side's path
+	/// (CrystalMetamorphic.cs:25, :32). Re-applying is harmless — the death
+	/// consumption is what guards duplicates.</summary>
+	internal static bool ApplyCrystalMetamorphic(CrystalBehaviour crystal)
+	{
+		PlayerCamera.main.StartCoroutine("FlashBrief");
+		Sound.Play("crystalenemylaugh", crystal.transform.position, false, true, null, 1f, 1f, false, false);
+		return true;
+	}
+
+	/// <summary>Shy crystal swapped: re-run the trigger side's scan — the first
+	/// other crystal within 64 units (CrystalShy.cs:17-30) — and swap the
+	/// positions, the observerlaugh the swap's audible cue. The scan order has
+	/// no formal guarantee, but the crystals are generation-static and the world
+	/// is deterministic (recorded in the entity-features matrix).</summary>
+	internal static bool ApplyCrystalShy(CrystalBehaviour crystal)
+	{
+		foreach (var collider in Physics2D.OverlapCircleAll(crystal.transform.position, 64f, LayerMask.GetMask("Ground")))
+		{
+			if (collider.GetComponent<CrystalBehaviour>() != null) // Unity object — ==
+			{
+				var target = collider.transform;
+				var self = crystal.transform;
+				var targetPos = target.position;
+				var targetRot = target.rotation;
+				var selfPos = self.position;
+				var selfRot = self.rotation;
+				target.SetPositionAndRotation(selfPos, selfRot);
+				self.SetPositionAndRotation(targetPos, targetRot);
+				Sound.Play("observerlaugh", self.position, false, true, null, 1f, 1f, false, false);
+				break;
+			}
+		}
+
+		return true;
+	}
+
+	/// <summary>EMP crystal activated (the battery drain rides the item domain):
+	/// the white flash + the crystalemp sound + the shake — the darkening runs on
+	/// the crystal's own Update once it is white (CrystalEMP.cs:54-64), so the
+	/// black-state transition is what the update drives afterwards.</summary>
+	internal static bool ApplyCrystalEMP(CrystalBehaviour crystal)
+	{
+		crystal.SetColor(Color.white);
+		Sound.Play("crystalemp", crystal.transform.position, false, true, null, 1f, 1f, false, false);
+		PlayerCamera.main.shaker.Shake(200f);
+		return true;
+	}
+
 	/// <summary>Turret fired: the rifleshot sound, then consume the fire state on
 	/// the peer's copy — timeSinceFired = 0 + didShoot = true start its 15 s
 	/// reload (TurretScript.cs:30-53), so a peer walking into range gets beeped

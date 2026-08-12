@@ -48,5 +48,5 @@ public class EntityEventProfilesTests
 	[Fact]
 	public void OneShotCount_Matches() =>
 		// The count is an audit line: a classification change must be deliberate.
-		Assert.Equal(13, Declared.Count(row => row.OneShot));
+		Assert.Equal(17, Declared.Count(row => row.OneShot));
 }

@@ -99,6 +99,18 @@ internal sealed class TrapEffectApplier(ILogger<TrapEffectApplier> log)
 			case EntityEventKind.TurretFired:
 				ApplyState<TurretScript>(position, kind, TrapStateActions.ApplyTurretFired);
 				break;
+			case EntityEventKind.CrystalUnstableExploded:
+				ApplyCrystalUnstableExplosion(position);
+				break;
+			case EntityEventKind.CrystalMetamorphicTriggered:
+				ApplyState<CrystalBehaviour>(position, kind, TrapStateActions.ApplyCrystalMetamorphic);
+				break;
+			case EntityEventKind.CrystalShySwapped:
+				ApplyState<CrystalBehaviour>(position, kind, TrapStateActions.ApplyCrystalShy);
+				break;
+			case EntityEventKind.CrystalEMPActivated:
+				ApplyState<CrystalBehaviour>(position, kind, TrapStateActions.ApplyCrystalEMP);
+				break;
 			case EntityEventKind.GrabberGrabbed:
 				// The grab's visuals are the player-side ragdoll/scream (each
 				// side's own body); the tendril animation is Update-driven
@@ -218,5 +230,46 @@ internal sealed class TrapEffectApplier(ILogger<TrapEffectApplier> log)
 		muscleDamage = new RangeF(0f, 35f),
 		velocity = 15f,
 		disfigureChance = 0.2f,
+	};
+
+	/// <summary>The unstable crystal exploded on the guest's side — repeat it on
+	/// the host's world with the crystal's own parameters (CrystalUnstable.cs:
+	/// 51-61). The health &lt; 0.5 check is the consumption mark (the host's copy
+	/// already exploded — the two-trigger race, or the host touched it itself
+	/// and its 5 s timer ran naturally; the relay still flows).</summary>
+	private void ApplyCrystalUnstableExplosion(Vector2 position)
+	{
+		var crystal = FindTrap<CrystalBehaviour>(position);
+		if (crystal == null) // Unity object — ==
+		{
+			_log.LogInformation("[TrapEvent] unstable crystal at {Pos} already gone — effect skipped, relay only.", position);
+			return;
+		}
+
+		if (crystal.build.health < 0.5f)
+		{
+			_log.LogWarning("[TrapEvent] unstable crystal at {Pos} already destroyed — duplicate dropped, relay only.", position);
+			return;
+		}
+
+		// Remote death: no drop roll — the guest's side rolled and reported them.
+		crystal.build.health = 0f;
+		crystal.gameObject.AddComponent<RemoteEntityDeath>();
+
+		WorldGeneration.CreateExplosion(CrystalUnstableExplosionParams(position, crystal.crystalSize));
+		_log.LogInformation("[TrapEvent] host applied unstable-crystal explosion at {Pos}.", position);
+	}
+
+	/// <summary>The unstable crystal's literal explosion parameters (CrystalUnstable.cs:51-61) — shared with the replay side.</summary>
+	internal static ExplosionParams CrystalUnstableExplosionParams(Vector2 position, float crystalSize) => new()
+	{
+		position = position,
+		range = 16f * Mathf.Lerp(crystalSize, 1f, 0.5f),
+		structuralDamage = 1000f * crystalSize,
+		boneBreakChance = 0.1f * crystalSize,
+		dislocationChance = 0.05f * crystalSize,
+		muscleDamage = new RangeF(0f, 30f * crystalSize),
+		velocity = 20f * crystalSize,
+		disfigureChance = 0.05f * crystalSize,
 	};
 }

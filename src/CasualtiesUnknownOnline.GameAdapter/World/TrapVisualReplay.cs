@@ -98,6 +98,18 @@ internal sealed class TrapVisualReplay(ILogger<TrapVisualReplay> log)
 			case EntityEventKind.TurretFired:
 				ReplayState<TurretScript>(position, kind, TrapStateActions.ApplyTurretFired);
 				break;
+			case EntityEventKind.CrystalUnstableExploded:
+				ReplayCrystalUnstableExplosion(position);
+				break;
+			case EntityEventKind.CrystalMetamorphicTriggered:
+				ReplayState<CrystalBehaviour>(position, kind, TrapStateActions.ApplyCrystalMetamorphic);
+				break;
+			case EntityEventKind.CrystalShySwapped:
+				ReplayState<CrystalBehaviour>(position, kind, TrapStateActions.ApplyCrystalShy);
+				break;
+			case EntityEventKind.CrystalEMPActivated:
+				ReplayState<CrystalBehaviour>(position, kind, TrapStateActions.ApplyCrystalEMP);
+				break;
 			case EntityEventKind.GrabberGrabbed:
 				// The grab's visuals are the player-side ragdoll/scream (each
 				// side's own body); the tendril animation is Update-driven
@@ -200,6 +212,39 @@ internal sealed class TrapVisualReplay(ILogger<TrapVisualReplay> log)
 		}
 
 		_log.LogInformation("[TrapEvent] replayed turret self-destruct at {Pos}.", position);
+	}
+
+	/// <summary>The unstable crystal exploded (on the host or another guest):
+	/// replay the explosion with the crystal's own parameters — pure-visual
+	/// five-piece + real-body effect + remote-death consumption. The health
+	/// &lt; 0.5 check is the consumption mark (already dead = a duplicate, dropped);
+	/// the 5 s pre-explosion ticking is a recorded gap (the trigger side's own
+	/// experience — same as the mine's 0.8 s press visual).</summary>
+	private void ReplayCrystalUnstableExplosion(Vector2 position)
+	{
+		var crystal = TrapEffectApplier.FindTrap<CrystalBehaviour>(position);
+		if (crystal != null && crystal.build.health < 0.5f) // Unity object — ==
+		{
+			_log.LogWarning("[TrapEvent] unstable crystal at {Pos} already dead — duplicate dropped.", position);
+			return;
+		}
+
+		var size = crystal != null ? crystal.crystalSize : 1f; // Unity object — ==
+		var param = TrapEffectApplier.CrystalUnstableExplosionParams(position, size);
+		ReplayExplosionVisual(param);
+		ExplosionBodyEffect.ApplyToLocalBodies(param);
+
+		if (crystal != null) // Unity object — ==
+		{
+			crystal.build.health = 0f;
+			crystal.gameObject.AddComponent<RemoteEntityDeath>();
+		}
+		else
+		{
+			_log.LogInformation("[TrapEvent] unstable crystal at {Pos} already gone — visual only.", position);
+		}
+
+		_log.LogInformation("[TrapEvent] replayed unstable-crystal explosion at {Pos}.", position);
 	}
 
 	/// <summary>The pure-visual explosion five-piece (WorldGeneration.cs:3965-3970)

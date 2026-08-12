@@ -67,9 +67,9 @@ public sealed class PacketReceiver : IDisposable
 			=> _session.Role == SessionRole.Guest,
 		// Ping/Pong/SceneState/BlockDamaged/CharacterData/ItemSpawn/ItemPickup/
 		// ItemDrop/ItemDestroy/ItemIdWatermark/EntityEvent/EntitySpawned/
-		// FluidInteraction/BlockPlaced/BuildingEntityDamaged/BuildingEntityOpened:
-		// bidirectional — report up (guest → host) and broadcast down (host →
-		// guest) share one message id.
+		// FluidInteraction/BlockPlaced/BuildingEntityDamaged/BuildingEntityOpened/
+		// SpeechMsg: bidirectional — report up (guest → host) and broadcast down
+		// (host → guest) share one message id.
 		_ => true,
 	};
 

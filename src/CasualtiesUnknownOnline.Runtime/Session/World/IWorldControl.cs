@@ -212,4 +212,15 @@ public interface IWorldControl
 	void FireTraderActionReceived(ulong sender, TraderActionMsg msg);
 
 	event Action<ulong, TraderActionMsg>? TraderActionReceived;
+
+	/// <summary>Guest: report a locally-spoken player bubble to the host.</summary>
+	void SendSpeech(SpeechMsg msg);
+
+	/// <summary>Host only: fan out a bubble (0 = every member — a trader bubble; else the source excluded — a player bubble).</summary>
+	void BroadcastSpeech(ulong excludeSteamId, SpeechMsg msg);
+
+	/// <summary>A bubble arrived: a player's report on the host, a relay on the guests.</summary>
+	void FireSpeechReceived(ulong sender, SpeechMsg msg);
+
+	event Action<ulong, SpeechMsg>? SpeechReceived;
 }

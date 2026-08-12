@@ -22,7 +22,7 @@ internal sealed class ItemWorldSync(
 	ItemService items,
 	DropProtectionGuard guard,
 	ItemDropState dropState,
-	PendingBlockBreak breakState,
+	BlockBreakPendingState breakState,
 	OperationTrace trace,
 	ItemReportCommitter reports,
 	ItemIdAllocator ids,
@@ -32,7 +32,7 @@ internal sealed class ItemWorldSync(
 	private readonly ItemService _items = items;
 	private readonly DropProtectionGuard _guard = guard;
 	private readonly ItemDropState _dropState = dropState;
-	private readonly PendingBlockBreak _breakState = breakState;
+	private readonly BlockBreakPendingState _breakState = breakState;
 	private readonly OperationTrace _trace = trace;
 	private readonly ItemReportCommitter _reports = reports;
 	private readonly ItemIdAllocator _ids = ids;

@@ -49,6 +49,13 @@
           CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <!-- Phase-4 replay archive: every *.replay file ships with the test output —
+       each file is one automated scenario (ReplayTests enumerates the folder,
+       a missing file is a test failure, never a skip). -->
+  <ItemGroup>
+    <None Include="Replays\*.replay" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <ItemGroup Condition="'$(TargetFramework.TrimEnd(`0123456789`))' == 'net'">
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.2" PrivateAssets="all" />
   </ItemGroup>

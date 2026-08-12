@@ -1,0 +1,21 @@
+# Phase-4 replay archive — drop idempotency: a duplicated drop report (Steam
+# reliable retransmission style, injected with the dup fault) must NOT
+# re-broadcast — the receivers would materialize AND re-place the same item.
+# G2 sees exactly one ItemDrop frame.
+#
+# Mechanism: FireItemDroppedReceived's duplicate guard — same itemId + same
+#            position + same rotation = silent (ItemService.cs:372-375)
+# Observed once live: "not present — materializing" followed by
+# "present — re-placing" for one drop (the bug this guard fixed).
+# Known boundary (recorded 2026-08-12): the guard cannot distinguish a
+# retransmission from a genuine re-drop at the SAME spot — a pick-drop-pick
+# at one exact position would be swallowed. The replay injection drops at
+# (10,10) (ItemSimWorld.Drop) so the first drop never collides with the
+# spawn spot (0,0).
+
+@0 spawn g1 42 test_item 1.0
+@33 expect host_table 42 within 500
+@33 fault g1 host dup
+@33 drop g1 42 test_item 1.0
+@66 expect host_table 42 within 500
+@66 expect received g2 ItemDrop 1

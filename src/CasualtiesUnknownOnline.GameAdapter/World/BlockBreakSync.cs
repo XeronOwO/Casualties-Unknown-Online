@@ -25,14 +25,14 @@ internal sealed class BlockBreakSync(
 	SessionService session,
 	WorldService world,
 	ItemService items,
-	PendingBlockBreak breakState,
+	BlockBreakPendingState breakState,
 	OperationTrace trace,
 	ILogger<BlockBreakSync> log)
 {
 	private readonly SessionService _session = session;
 	private readonly WorldService _world = world;
 	private readonly ItemService _items = items;
-	private readonly PendingBlockBreak _breakState = breakState;
+	private readonly BlockBreakPendingState _breakState = breakState;
 	private readonly OperationTrace _trace = trace;
 	private readonly ILogger<BlockBreakSync> _log = log;
 
@@ -104,7 +104,7 @@ internal sealed class BlockBreakSync(
 		// — hold the report: the drops' Item.Start folds in NEXT frame, the
 		// frame-end flush then sends the break + drops as ONE message.
 		_trace.Begin(op, 0, "OnBlockDamaged", "Break");
-		_breakState.EnterBreak(pos, dmg, op);
+		_breakState.EnterBreak(pos.x, pos.y, dmg, op, Time.frameCount);
 	}
 
 	/// <summary>
@@ -116,7 +116,7 @@ internal sealed class BlockBreakSync(
 	/// </summary>
 	internal void FlushPendingBlockBreak()
 	{
-		if (!_breakState.TryFlush(out var flushed))
+		if (!_breakState.TryFlush(Time.frameCount, out var flushed))
 		{
 			return;
 		}
@@ -126,7 +126,7 @@ internal sealed class BlockBreakSync(
 			_items.RegisterBlockDrops(flushed.Drops);
 		}
 
-		_world.SendBlockDamaged(new NetVector2(flushed.Pos.x, flushed.Pos.y), flushed.Dmg, flushed.Drops);
+		_world.SendBlockDamaged(new NetVector2(flushed.PosX, flushed.PosY), flushed.Dmg, flushed.Drops);
 		_trace.End(flushed.Op, 0, "FlushPendingBlockBreak", $"Committed({flushed.Drops.Count})", "Break", "Drop");
 	}
 

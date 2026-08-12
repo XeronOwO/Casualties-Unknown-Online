@@ -20,11 +20,14 @@ namespace CasualtiesUnknownOnline.Tests.Replays;
 internal static class ReplayParser
 {
 	private static readonly string[] Actions =
-		["spawn", "pickup", "drop", "use", "slot", "destroy", "fault", "clearfault", "expect", "expect_no_reject"];
+		["spawn", "pickup", "drop", "use", "slot", "destroy", "fault", "clearfault", "expect", "expect_no_reject",
+			"event", "snapshot", "fluid"];
 
 	// Minimum argument counts per action (node alias excluded — the parser
 	// validates aliases, the runner converts them). Expect lines have at least
-	// the assertion kind; their full shape is semantic.
+	// the assertion kind; their full shape is semantic. The entity/fluid
+	// actions' trailing arguments (event's optional extra, fluid's RLE run
+	// list) are validated semantically by the runner.
 	private static readonly Dictionary<string, int> MinArgs = new()
 	{
 		["spawn"] = 4, // node itemId type condition
@@ -37,6 +40,9 @@ internal static class ReplayParser
 		["clearfault"] = 2,
 		["expect"] = 2, // kind ...
 		["expect_no_reject"] = 1,
+		["event"] = 4, // node kind x y [extra]
+		["snapshot"] = 1, // to
+		["fluid"] = 3, // to x y [w h runs...]
 	};
 
 	private static readonly string[] NodeAliases = ["host", "g1", "g2"];

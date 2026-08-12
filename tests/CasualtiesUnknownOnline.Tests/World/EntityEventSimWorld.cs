@@ -18,14 +18,20 @@ namespace CasualtiesUnknownOnline.Tests.World;
 /// records into the real TrapConsumptionRegistry, the relay is the
 /// EntityEventHandler's own — the executor never relays). Shared by the
 /// hand-written entity-event simulations and the phase-5 combinatorial
-/// behavior tests (the archive drives both).
+/// behavior tests (the archive drives both); the phase-A1 replay runner
+/// drives it too (the event/snapshot/fluid actions and the replayed/executed/
+/// fluid assertions — the replay files' entity/fluid bug fossils).
 /// </summary>
-internal sealed class EntityEventSimWorld
+internal sealed class EntityEventSimWorld : IDisposable
 {
 	private const ulong HostId = 1001;
 	private const ulong G1Id = 2001;
 	private const ulong G2Id = 3001;
 	private const ulong LobbyId = 9001;
+
+	/// <summary>The applied-fluid grid is unbounded in the simulation (the world
+	/// grid's clamp semantics are the pure codec's, locked by FluidRleCodecTests).</summary>
+	private const int FluidGridSize = 10000;
 
 	/// <summary>Mutable execution counter — a record's captured value would never advance.</summary>
 	internal sealed class ExecutionCounter
@@ -33,28 +39,38 @@ internal sealed class EntityEventSimWorld
 		internal int Value;
 	}
 
+	/// <summary>A guest's observed surface: the events it received, its replay
+	/// executions (total + per kind), the fluid regions it applied (the
+	/// ABSOLUTE-overwrite grid) and the trap-state snapshots it consumed.</summary>
+	private sealed class NodeSurface
+	{
+		internal List<EntityEventMsg> Events = [];
+		internal ExecutionCounter Replays = new();
+		internal Dictionary<EntityEventKind, int> ReplaysByKind = [];
+		internal Dictionary<(int X, int Y), byte> FluidCells = [];
+		internal ExecutionCounter FluidRegions = new();
+		internal List<IReadOnlyList<EntityEventMsg>> Snapshots = [];
+	}
+
+	private readonly NodeSurface _g1Surface = new();
+	private readonly NodeSurface _g2Surface = new();
+
 	private EntityEventSimWorld(
 		SimulationDriver driver,
 		TestNode host,
 		TestNode g1,
 		TestNode g2,
-		List<EntityEventMsg> g1Events,
-		List<EntityEventMsg> g2Events,
 		ExecutionCounter hostExecutions,
-		HashSet<(EntityEventKind Kind, int X, int Y)> guard,
-		ExecutionCounter g1Replays,
-		ExecutionCounter g2Replays)
+		Dictionary<EntityEventKind, int> hostExecutionsByKind,
+		HashSet<(EntityEventKind Kind, int X, int Y)> guard)
 	{
 		Driver = driver;
 		Host = host;
 		G1 = g1;
 		G2 = g2;
-		G1Events = g1Events;
-		G2Events = g2Events;
 		HostExecutions = hostExecutions;
+		HostExecutionsByKind = hostExecutionsByKind;
 		Guard = guard;
-		G1Replays = g1Replays;
-		G2Replays = g2Replays;
 	}
 
 	internal SimulationDriver Driver { get; }
@@ -66,23 +82,26 @@ internal sealed class EntityEventSimWorld
 	internal TestNode G2 { get; }
 
 	/// <summary>The events G1 received (cumulative — the replay surface).</summary>
-	internal List<EntityEventMsg> G1Events { get; }
+	internal List<EntityEventMsg> G1Events => _g1Surface.Events;
 
 	/// <summary>The events G2 received (cumulative — the replay surface).</summary>
-	internal List<EntityEventMsg> G2Events { get; }
+	internal List<EntityEventMsg> G2Events => _g2Surface.Events;
 
 	/// <summary>How many times the host executor actually executed a consumption.</summary>
 	internal ExecutionCounter HostExecutions { get; }
+
+	/// <summary>The host executor's executions per kind (the executed-assertion surface).</summary>
+	internal Dictionary<EntityEventKind, int> HostExecutionsByKind { get; }
 
 	/// <summary>The per-entity one-shot guard (the production executor's shape) — exposed for the duplicate scenarios.</summary>
 	internal HashSet<(EntityEventKind Kind, int X, int Y)> Guard { get; }
 
 	/// <summary>How many times G1's replay side actually executed (the production
 	/// TrapVisualReplay's shape — relays AND snapshot consumptions both replay).</summary>
-	internal ExecutionCounter G1Replays { get; }
+	internal ExecutionCounter G1Replays => _g1Surface.Replays;
 
 	/// <summary>How many times G2's replay side actually executed.</summary>
-	internal ExecutionCounter G2Replays { get; }
+	internal ExecutionCounter G2Replays => _g2Surface.Replays;
 
 	/// <summary>Fired after the host executor ACTUALLY executed a consumption
 	/// (the per-entity guard passed) — the cross-domain shells hook here to
@@ -94,6 +113,57 @@ internal sealed class EntityEventSimWorld
 
 	/// <summary>The host's event channel (snapshot send/reset surface).</summary>
 	internal EntityEventChannel HostChannel => Host.Services.GetRequiredService<EntityEventChannel>();
+
+	public void Dispose()
+	{
+		Host.Dispose();
+		G1.Dispose();
+		G2.Dispose();
+	}
+
+	/// <summary>Resolve a replay-file node alias ("host"/"g1"/"g2").</summary>
+	internal TestNode Node(string alias) => alias switch
+	{
+		"host" => Host,
+		"g1" => G1,
+		"g2" => G2,
+		_ => throw new ArgumentException($"unknown node alias '{alias}' (host/g1/g2)"),
+	};
+
+	/// <summary>How many times the node's replay side executed one kind (guards passed).</summary>
+	internal int ReplaysOf(TestNode node, EntityEventKind kind) => CountOf(Surface(node).ReplaysByKind, kind);
+
+	/// <summary>How many times the host executor executed one kind (guards passed).</summary>
+	internal int HostExecutionsOf(EntityEventKind kind) => CountOf(HostExecutionsByKind, kind);
+
+	private static int CountOf(Dictionary<EntityEventKind, int> byKind, EntityEventKind kind) =>
+		byKind.TryGetValue(kind, out var count) ? count : 0;
+
+	/// <summary>The node's applied-fluid value at a cell — the LAST arrived
+	/// region's absolute overwrite (0 = never covered / cleared).</summary>
+	internal byte FluidCell(TestNode node, int x, int y) => Surface(node).FluidCells.TryGetValue((x, y), out var value) ? value : (byte)0;
+
+	/// <summary>How many fluid regions the node has applied (the SimTrace "Committed(n)" surface).</summary>
+	internal int FluidRegions(TestNode node) => Surface(node).FluidRegions.Value;
+
+	/// <summary>The trap-state snapshots the node has received (each snapshot's
+	/// entries = the late-joiner consumptions — the SimTrace "Committed(n)" surface).</summary>
+	internal List<IReadOnlyList<EntityEventMsg>> Snapshots(TestNode node) => Surface(node).Snapshots;
+
+	private NodeSurface Surface(TestNode node)
+	{
+		if (node == G1)
+		{
+			return _g1Surface;
+		}
+
+		if (node == G2)
+		{
+			return _g2Surface;
+		}
+
+		throw new ArgumentException("only g1/g2 surfaces are recorded", nameof(node));
+	}
 
 	internal static EntityEventSimWorld Create()
 	{
@@ -114,17 +184,14 @@ internal sealed class EntityEventSimWorld
 			() => host.Session.Members.Count(m => m.Handshaken) == 2 && g1.Session.Members.Any(m => m.Handshaken) && g2.Session.Members.Any(m => m.Handshaken),
 			maxMs: 5000);
 
-		var g1Events = new List<EntityEventMsg>();
-		var g2Events = new List<EntityEventMsg>();
-		g1.Services.GetRequiredService<IWorldControl>().EntityEventReceived += (_, msg) => g1Events.Add(msg);
-		g2.Services.GetRequiredService<IWorldControl>().EntityEventReceived += (_, msg) => g2Events.Add(msg);
-
 		var registry = host.Services.GetRequiredService<TrapConsumptionRegistry>();
 		var guard = new HashSet<(EntityEventKind Kind, int X, int Y)>(); // the per-entity one-shot guard
 		var hostExecutions = new ExecutionCounter();
-		var g1Replays = new ExecutionCounter();
-		var g2Replays = new ExecutionCounter();
-		var world = new EntityEventSimWorld(driver, host, g1, g2, g1Events, g2Events, hostExecutions, guard, g1Replays, g2Replays);
+		var hostExecutionsByKind = new Dictionary<EntityEventKind, int>();
+		var world = new EntityEventSimWorld(driver, host, g1, g2, hostExecutions, hostExecutionsByKind, guard);
+
+		g1.Services.GetRequiredService<IWorldControl>().EntityEventReceived += (_, msg) => world._g1Surface.Events.Add(msg);
+		g2.Services.GetRequiredService<IWorldControl>().EntityEventReceived += (_, msg) => world._g2Surface.Events.Add(msg);
 
 		host.Services.GetRequiredService<IWorldControl>().EntityEventReceived += (_, msg) =>
 		{
@@ -135,6 +202,7 @@ internal sealed class EntityEventSimWorld
 			}
 
 			hostExecutions.Value++; // a consumption actually executed
+			hostExecutionsByKind[msg.Kind] = CountOf(hostExecutionsByKind, msg.Kind) + 1;
 			registry.Report(msg.Kind, msg.Position.X, msg.Position.Y, msg.Extra);
 			world.HostExecuted?.Invoke(msg);
 		};
@@ -143,27 +211,47 @@ internal sealed class EntityEventSimWorld
 		// the snapshot-consumption step): relays replay; the late-joiner
 		// snapshot consumes every entry. The per-entity guard makes both
 		// idempotent — a duplicate entry never re-executes.
-		AttachReplayShell(g1, g1Replays);
-		AttachReplayShell(g2, g2Replays);
+		AttachReplayShell(g1, world._g1Surface);
+		AttachReplayShell(g2, world._g2Surface);
+
+		// The guests' applied-fluid surface (the production FluidWorldSync →
+		// FluidRegionApplication shape): every arrived region ABSOLUTELY
+		// overwrites its rectangle through the real RLE decoder — a decoder
+		// regression (81dd26a's mid-region zero run) breaks the replay
+		// assertions instead of silently replaying the old bug.
+		AttachFluidSurface(g1, world._g1Surface);
+		AttachFluidSurface(g2, world._g2Surface);
 
 		return world;
 	}
 
-	private static void AttachReplayShell(TestNode guest, ExecutionCounter replays)
+	private static void AttachReplayShell(TestNode guest, NodeSurface surface)
 	{
 		var world = guest.Services.GetRequiredService<IWorldControl>();
 		var guard = new HashSet<(EntityEventKind Kind, int X, int Y)>();
-		world.EntityEventReceived += (_, msg) => ReplayOnce(msg, guard, replays);
+		world.EntityEventReceived += (_, msg) => ReplayOnce(msg, guard, surface);
 		world.TrapStateReceived += consumed =>
 		{
+			surface.Snapshots.Add(consumed);
 			foreach (var msg in consumed)
 			{
-				ReplayOnce(msg, guard, replays);
+				ReplayOnce(msg, guard, surface);
 			}
 		};
 	}
 
-	private static void ReplayOnce(EntityEventMsg msg, HashSet<(EntityEventKind Kind, int X, int Y)> guard, ExecutionCounter replays)
+	private static void AttachFluidSurface(TestNode guest, NodeSurface surface)
+	{
+		guest.Services.GetRequiredService<EntityEventChannel>().FluidRegionReceived += msg =>
+		{
+			surface.FluidRegions.Value++;
+			FluidRleCodec.Decode(
+				msg.Cells, msg.Width, msg.Height, msg.OriginX, msg.OriginY, FluidGridSize, FluidGridSize,
+				(x, y, value) => surface.FluidCells[(x, y)] = value);
+		};
+	}
+
+	private static void ReplayOnce(EntityEventMsg msg, HashSet<(EntityEventKind Kind, int X, int Y)> guard, NodeSurface surface)
 	{
 		var key = ((int)Math.Floor(msg.Position.X), (int)Math.Floor(msg.Position.Y));
 		if (EntityEventProfiles.IsOneShotConsumption(msg.Kind) && !guard.Add((msg.Kind, key.Item1, key.Item2)))
@@ -171,7 +259,8 @@ internal sealed class EntityEventSimWorld
 			return; // duplicate — the receiving-side replay guard drops it
 		}
 
-		replays.Value++;
+		surface.Replays.Value++;
+		surface.ReplaysByKind[msg.Kind] = CountOf(surface.ReplaysByKind, msg.Kind) + 1;
 	}
 
 	/// <summary>One trigger report from the given node (the game-side SendEntityEvent surface).</summary>

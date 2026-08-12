@@ -52,6 +52,9 @@ public class ReplayParserTests
 	[InlineData("@0 nuke g1 42\n", ":1: unknown action 'nuke'")]
 	[InlineData("@0 spawn g1 42\n", ":1: 'spawn' needs at least 4 argument")]
 	[InlineData("@0 spawn g2x 42 t 1.0\n", ":1: 'spawn' — unknown node 'g2x'")]
+	[InlineData("@0 event g1 MineExploded 10\n", ":1: 'event' needs at least 4 argument")]
+	[InlineData("@0 snapshot g2x\n", ":1: 'snapshot' — unknown node 'g2x'")]
+	[InlineData("@0 fluid g2x 0 0\n", ":1: 'fluid' — unknown node 'g2x'")]
 	[InlineData("", "no replay steps")]
 	public void MalformedShapesFailWithSourceLine(string text, string expectedFragment)
 	{

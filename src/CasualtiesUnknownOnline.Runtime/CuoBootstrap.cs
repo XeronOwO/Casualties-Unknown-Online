@@ -4,6 +4,7 @@ using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Logging;
 using CasualtiesUnknownOnline.Runtime.Networking;
 using CasualtiesUnknownOnline.Runtime.Session;
+using CasualtiesUnknownOnline.Runtime.Time;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Session.World;
@@ -55,6 +56,11 @@ public static class CuoBootstrap
 		// SteamService before SteamTransport (transport reads steam readiness),
 		// SessionService before EntitySyncService/PacketDispatcher (they read the
 		// session control surface — resolved after the session is built).
+		// The clock (ITimeSource) is a pure reading point — the domain services
+		// derive their throttles/timeouts from it; tests replace it with a
+		// virtual clock.
+		services.AddSingleton<SystemTimeSource>();
+		services.AddSingleton<ITimeSource>(p => p.GetRequiredService<SystemTimeSource>());
 		services.AddSingleton<SteamService>();
 		services.AddSingleton<ISteamService>(p => p.GetRequiredService<SteamService>());
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<SteamService>());

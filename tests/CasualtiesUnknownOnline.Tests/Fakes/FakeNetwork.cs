@@ -14,14 +14,16 @@ internal sealed class FakeNetwork
 	private readonly List<QueuedMessage> _queued = [];
 	private readonly Dictionary<(ulong From, ulong To), LinkFaults> _faults = [];
 	private readonly Random _random;
-	private long _nowMs;
+	private readonly FakeClock _clock;
 
-	internal FakeNetwork(int seed = 12345)
+	internal FakeNetwork(int seed = 12345, FakeClock? clock = null)
 	{
 		_random = new Random(seed);
+		_clock = clock ?? new FakeClock();
 	}
 
-	internal long NowMs => _nowMs;
+	/// <summary>The virtual now — the network's schedule and the domain services' clocks are one and the same when a FakeClock is shared.</summary>
+	internal long NowMs => _clock.NowMs;
 
 	internal void Register(FakeTransport peer) => _peers[peer.SteamId] = peer;
 
@@ -29,10 +31,13 @@ internal sealed class FakeNetwork
 
 	internal void SetFaults(ulong from, ulong to, LinkFaults faults) => _faults[(from, to)] = faults;
 
+	/// <summary>Clear the injected faults on a link (the connection healed).</summary>
+	internal void ClearFaults(ulong from, ulong to) => _faults.Remove((from, to));
+
 	/// <summary>Advance the virtual clock and deliver every message that came due.</summary>
 	internal void Advance(long ms)
 	{
-		_nowMs += ms;
+		_clock.Advance(ms);
 		FlushDue();
 	}
 
@@ -60,7 +65,7 @@ internal sealed class FakeNetwork
 			return true; // sent, never delivered — unreliable loss
 		}
 
-		var deliverAt = faults?.DelayMs > 0 ? _nowMs + faults.DelayMs : _nowMs;
+		var deliverAt = faults?.DelayMs > 0 ? _clock.NowMs + faults.DelayMs : _clock.NowMs;
 		Queue(deliverAt, from, to, data);
 		if (faults?.Duplicate == true)
 		{
@@ -94,7 +99,7 @@ internal sealed class FakeNetwork
 		for (var i = 0; i < _queued.Count; i++)
 		{
 			var msg = _queued[i];
-			if (msg.DeliverAtMs <= _nowMs)
+			if (msg.DeliverAtMs <= _clock.NowMs)
 			{
 				_queued.RemoveAt(i--);
 				Deliver(msg.From, msg.To, msg.Data);

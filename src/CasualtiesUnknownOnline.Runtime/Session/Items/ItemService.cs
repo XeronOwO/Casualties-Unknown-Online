@@ -435,6 +435,9 @@ public sealed class ItemService : IItemControl
 	/// block-break drop domain asks, the table state belongs to WorldItemTable.</summary>
 	internal bool RegisterWorldItemIfAbsent(ulong itemId, WorldItem item) => _worldTable.RegisterIfAbsent(itemId, item);
 
+	/// <summary>Read-only query: is the item in the authoritative world table (tests + diagnostics).</summary>
+	internal bool IsWorldItemRegistered(ulong itemId) => _worldTable.ContainsKey(itemId);
+
 	/// <summary>Surface the ItemSpawned event for the block-break drop domain (an event can only be invoked from its declaring class).</summary>
 	internal void FireItemSpawned(WorldItem item) => ItemSpawned?.Invoke(item);
 

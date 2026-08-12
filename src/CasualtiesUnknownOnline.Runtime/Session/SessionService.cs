@@ -4,6 +4,7 @@ using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Steam;
+using CasualtiesUnknownOnline.Runtime.Time;
 using Microsoft.Extensions.Logging;
 
 namespace CasualtiesUnknownOnline.Runtime.Session;
@@ -29,6 +30,7 @@ public sealed class SessionService : ICuoService, ISessionControl
 
 	private readonly ISteamService _steam;
 	private readonly PacketSender _sender;
+	private readonly ITimeSource _time;
 	private readonly ILogger<SessionService> _log;
 
 	// Session-owned state — never registered as services (user rule: state
@@ -42,10 +44,11 @@ public sealed class SessionService : ICuoService, ISessionControl
 	private long _nextMemberCheckMs;
 	private long _nextHandshakeRetryMs;
 
-	public SessionService(ISteamService steam, PacketSender sender, ILogger<SessionService> log)
+	public SessionService(ISteamService steam, PacketSender sender, ITimeSource time, ILogger<SessionService> log)
 	{
 		_steam = steam;
 		_sender = sender;
+		_time = time;
 		_log = log;
 
 		steam.LobbyCreated += OnLobbyCreated;
@@ -131,7 +134,7 @@ public sealed class SessionService : ICuoService, ISessionControl
 
 	void ISessionControl.RecordPong(ulong sender, long ticks)
 	{
-		LastRttMs = (DateTime.UtcNow.Ticks - ticks) / 10_000f;
+		LastRttMs = (_time.UtcNowTicks - ticks) / 10_000f;
 		if (_presence.TryGetMember(sender, out var member))
 		{
 			member.RttMs = LastRttMs;
@@ -204,7 +207,7 @@ public sealed class SessionService : ICuoService, ISessionControl
 	/// </summary>
 	public void RequestPing()
 	{
-		var msg = PingMsg.Now;
+		var msg = PingMsg.At(_time.UtcNowTicks);
 		if (Role == SessionRole.Host)
 		{
 			foreach (var member in _presence.Members)
@@ -239,7 +242,7 @@ public sealed class SessionService : ICuoService, ISessionControl
 			return;
 		}
 
-		var nowMs = Environment.TickCount;
+		var nowMs = _time.NowMs;
 		if (nowMs >= _nextPingMs)
 		{
 			_nextPingMs = nowMs + (long)(PingInterval * 1000f);
@@ -294,7 +297,7 @@ public sealed class SessionService : ICuoService, ISessionControl
 		// Kick off the handshake: protocol version + our scene state. Retry
 		// periodically until acked (Steam P2P sessions establish lazily and
 		// swallow the first messages — retransmission also drives the session).
-		_nextHandshakeRetryMs = Environment.TickCount + (long)(HandshakeRetryInterval * 1000f);
+		_nextHandshakeRetryMs = _time.NowMs + (long)(HandshakeRetryInterval * 1000f);
 		_sender.Send(HostSteamId, NetMsg.Handshake, CreateHandshakeMsg());
 	}
 
@@ -305,7 +308,7 @@ public sealed class SessionService : ICuoService, ISessionControl
 			return;
 		}
 
-		var nowMs = Environment.TickCount;
+		var nowMs = _time.NowMs;
 		if (nowMs < _nextHandshakeRetryMs)
 		{
 			return;
@@ -331,14 +334,14 @@ public sealed class SessionService : ICuoService, ISessionControl
 			return;
 		}
 
-		var nowMs = Environment.TickCount;
+		var nowMs = _time.NowMs;
 		if (nowMs < _nextHandshakeRetryMs)
 		{
 			return;
 		}
 
 		_nextHandshakeRetryMs = nowMs + (long)(HandshakeRetryInterval * 1000f);
-		var ping = PingMsg.Now;
+		var ping = PingMsg.At(_time.UtcNowTicks);
 		foreach (var peer in _steam.GetLobbyMembers())
 		{
 			if (peer == _steam.LocalSteamId)
@@ -368,7 +371,7 @@ public sealed class SessionService : ICuoService, ISessionControl
 			return;
 		}
 
-		var nowMs = Environment.TickCount;
+		var nowMs = _time.NowMs;
 		if (nowMs < _nextMemberCheckMs)
 		{
 			return;

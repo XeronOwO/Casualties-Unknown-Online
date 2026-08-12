@@ -17,7 +17,7 @@ public class HandshakeTests
 	private const ulong GuestId = 2001;
 	private const ulong LobbyId = 9001;
 
-	private static (FakeNetwork Network, TestNode Host, TestNode Guest) CreateHostAndGuest()
+	internal static (FakeNetwork Network, TestNode Host, TestNode Guest) CreateHostAndGuest()
 	{
 		var network = new FakeNetwork();
 		var hostSteam = new FakeSteamService(HostId) { LobbyOwner = HostId, LobbyMembers = [HostId] };

@@ -1,5 +1,6 @@
 using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session.World;
 using HarmonyLib;
 using UnityEngine;
 
@@ -12,12 +13,10 @@ namespace CasualtiesUnknownOnline.GameAdapter.World;
 /// guest: the acting side already ran it in full (its player-side effects —
 /// exp, bitten limbs, the pushed ragdoll, the bought item landing in its own
 /// inventory — are immediate), and re-running would double-roll the random
-/// consumption and create the bought item into the wrong inventory. Each
-/// ExecuteXxx reproduces only the trader-state lines of the game method
-/// (sources cited); the random consumptions happen HERE, once, on the host's
-/// stream. A purchase that no longer resolves (the stock was concurrently
-/// consumed) returns false — the coordinator broadcasts the state with the
-/// rejection marker so the acting side rolls its item back.
+/// consumption and create the bought item into the wrong inventory. The state
+/// transitions themselves live in the pure <see cref="TradeStockMachine"/>
+/// (Runtime, tested); this class maps TraderScript ↔ the stock DTO, draws the
+/// random values and applies the result — a thin shell.
 /// </summary>
 internal sealed class TradeExecutor
 {
@@ -26,24 +25,13 @@ internal sealed class TradeExecutor
 	/// carried; the random base and the bandage stock entry land here.</summary>
 	internal void ExecuteMeetPlayer(TraderScript trader, TraderActionMsg msg)
 	{
-		trader.startedConvo = true;
-		trader.reputation = (Random.Range(75f, 135f) + msg.ReputationOffset) * msg.ReputationScale + msg.ReputationPostOffset;
-		if ((msg.PlayerFlags & TraderActionMsg.FlagHasGun) != 0)
-		{
-			trader.hostility += 50f;
-		}
-
-		if ((msg.PlayerFlags & TraderActionMsg.FlagBleeding) != 0)
-		{
-			Traverse.Create(trader).Field("freeDressing").SetValue(true);
-			trader.items.Add(new TraderItem
-			{
-				id = "bandage",
-				preference = TraderScript.TraderItemPreference.Indifferent,
-				value = Item.GetItem("bandage").value,
-			});
-			trader.items = [.. trader.items.OrderBy(x => (int)x.preference)]; // the game's OrderBy (TraderScript.cs:151) — the list order is the UI order
-		}
+		var state = Read(trader);
+		var bandageValue = Item.GetItem("bandage").value; // read once — used only by the bleeding branch
+		Write(trader, TradeStockMachine.MeetPlayer(state,
+			Random.Range(75f, 135f),
+			msg.ReputationOffset, msg.ReputationScale, msg.ReputationPostOffset,
+			msg.PlayerFlags,
+			bandageValue));
 	}
 
 	/// <summary>TryPurchase (TraderScript.cs:747-804): validate against the stock,
@@ -51,46 +39,17 @@ internal sealed class TradeExecutor
 	/// created its copy; a second one would land in the wrong inventory).</summary>
 	internal bool ExecutePurchase(TraderScript trader, string itemId)
 	{
-		var fields = Traverse.Create(trader);
-		if (fields.Field("build").GetValue<BuildingEntity>().health < 200f)
-		{
-			return false;
-		}
-
-		var item = trader.items.FirstOrDefault(i => i.id == itemId);
+		var state = Read(trader);
+		var item = trader.items.FirstOrDefault(i => i.id == itemId); // the game's own entry — ItemPrice reads its preference/info
 		if (item == null)
 		{
 			return false;
 		}
 
 		var price = trader.ItemPrice(item);
-		if (trader.valueGiven < price)
-		{
-			trader.reputation -= 2f; // the game's refusal penalty (TraderScript.cs:800) — the acting side already paid it locally, this keeps the authoritative value in step
-			return false;
-		}
-
-		trader.valueGiven -= price;
-		if (price > 0)
-		{
-			if (item.preference == TraderScript.TraderItemPreference.WantsTrade)
-			{
-				trader.reputation += 7f;
-			}
-			else if (item.preference == TraderScript.TraderItemPreference.Indifferent)
-			{
-				trader.reputation += 4f;
-			}
-		}
-
-		if (fields.Field("freeAmount").GetValue<int>() > 0)
-		{
-			fields.Field("freeAmount").SetValue(fields.Field("freeAmount").GetValue<int>() - 1);
-		}
-
-		fields.Field("freeDressing").SetValue(false);
-		trader.items.Remove(item);
-		return true;
+		var (accepted, result) = TradeStockMachine.TryPurchase(state, itemId, price);
+		Write(trader, result);
+		return accepted;
 	}
 
 	/// <summary>GiveItem (TraderScript.cs:604-639): credit the value — the item
@@ -100,15 +59,10 @@ internal sealed class TradeExecutor
 	/// concurrent give — the overwrite restores the authoritative total).</summary>
 	internal bool ExecuteGiveItem(TraderScript trader, int value)
 	{
-		if (value <= 0 || trader.totalValueGiven >= TraderScript.MAX_VALUE_GIVEN)
-		{
-			return false;
-		}
-
-		var capped = System.Math.Min(value, TraderScript.MAX_VALUE_GIVEN - trader.totalValueGiven);
-		trader.valueGiven = System.Math.Min(trader.valueGiven + capped, TraderScript.MAX_VALUE_GIVEN);
-		trader.totalValueGiven = System.Math.Min(trader.totalValueGiven + capped, TraderScript.MAX_VALUE_GIVEN);
-		return capped > 0;
+		var state = Read(trader);
+		var (accepted, result) = TradeStockMachine.TryGiveItem(state, value);
+		Write(trader, result);
+		return accepted;
 	}
 
 	/// <summary>TryHaggle (TraderScript.cs:220-265): the reputation roll and the
@@ -116,20 +70,11 @@ internal sealed class TradeExecutor
 	/// already happened on the acting side.</summary>
 	internal void ExecuteHaggle(TraderScript trader)
 	{
-		if (trader.character != 2)
-		{
-			trader.haggleAmount += 1f;
-			trader.reputation += Random.Range(-25f, 25f) / trader.haggleAmount;
-			return;
-		}
-
-		if (trader.totalValueGiven < TraderScript.MAX_VALUE_GIVEN)
-		{
-			trader.reputation += Random.Range(20f, 28f);
-			var bite = Random.Range(6, 11);
-			trader.valueGiven = System.Math.Min(trader.valueGiven + bite, TraderScript.MAX_VALUE_GIVEN);
-			trader.totalValueGiven = System.Math.Min(trader.totalValueGiven + bite, TraderScript.MAX_VALUE_GIVEN);
-		}
+		var state = Read(trader);
+		Write(trader, TradeStockMachine.Haggle(state,
+			Random.Range(-25f, 25f),
+			Random.Range(20f, 28f),
+			Random.Range(6, 11)));
 	}
 
 	/// <summary>Threaten (TraderScript.cs:517-545): reputation cut, then the
@@ -137,27 +82,8 @@ internal sealed class TradeExecutor
 	/// held gun lerps the roll toward success).</summary>
 	internal void ExecuteThreaten(TraderScript trader, bool hasGun)
 	{
-		trader.reputation *= 0.3f;
-		var num = Random.value;
-		if (hasGun)
-		{
-			num = Mathf.Lerp(num, 1f, 0.25f);
-		}
-
-		if (trader.character == 2)
-		{
-			num *= 0.5f;
-		}
-
-		if (num > 0.6f && trader.reputation > 30f)
-		{
-			var fields = Traverse.Create(trader);
-			fields.Field("freeAmount").SetValue(fields.Field("freeAmount").GetValue<int>() + Random.Range(2, 4));
-		}
-		else if (num <= 0.3f)
-		{
-			trader.hostility = 100f;
-		}
+		var state = Read(trader);
+		Write(trader, TradeStockMachine.Threaten(state, hasGun, Random.value, Random.Range(2, 4)));
 	}
 
 	/// <summary>TryHug (TraderScript.cs:448-481): the reputation gate and the
@@ -165,41 +91,71 @@ internal sealed class TradeExecutor
 	/// side).</summary>
 	internal void ExecuteHug(TraderScript trader, bool dirty)
 	{
-		var fields = Traverse.Create(trader);
-		var didHug = fields.Field("didHug").GetValue<bool>();
-		if (trader.reputation < trader.minHugReputation || dirty)
-		{
-			if (!didHug)
-			{
-				trader.reputation -= 8f;
-				fields.Field("didHug").SetValue(true);
-			}
-		}
-		else if (!didHug && trader.character != 2)
-		{
-			trader.reputation += 5f;
-			fields.Field("didHug").SetValue(true);
-		}
-
-		if (trader.reputation < 30f)
-		{
-			trader.hostility = 100f;
-		}
+		var state = Read(trader);
+		Write(trader, TradeStockMachine.Hug(state, dirty));
 	}
 
 	/// <summary>AskToMove (TraderScript.cs:89-104): the reputation gate and the
 	/// move flag — the destination is deterministic (the move range's midpoint,
-	/// TraderScript.cs:99-103), so every side's trader walks to the same spot.</summary>
+	/// TraderScript.cs:99-103), computed here against the trader's own range.</summary>
 	internal void ExecuteMoveTo(TraderScript trader)
 	{
-		if (trader.reputation < 70f)
+		var state = Read(trader);
+		var result = TradeStockMachine.MoveTo(state);
+		Write(trader, result);
+		if (result.DidMove)
 		{
-			trader.reputation -= 3f;
-			return;
+			Traverse.Create(trader).Field("desiredPos").SetValue(new Vector2((trader.MoveRange.min + trader.MoveRange.max) * 0.5f, trader.transform.position.y));
 		}
+	}
 
-		trader.reputation -= 1f;
-		trader.didMove = true;
-		Traverse.Create(trader).Field("desiredPos").SetValue(new Vector2((trader.MoveRange.min + trader.MoveRange.max) * 0.5f, trader.transform.position.y));
+	private static TradeStockState Read(TraderScript trader)
+	{
+		var fields = Traverse.Create(trader);
+		return new TradeStockState
+		{
+			Reputation = trader.reputation,
+			Hostility = trader.hostility,
+			ValueGiven = trader.valueGiven,
+			TotalValueGiven = trader.totalValueGiven,
+			FreeAmount = fields.Field("freeAmount").GetValue<int>(),
+			FreeDressing = fields.Field("freeDressing").GetValue<bool>(),
+			DidHug = fields.Field("didHug").GetValue<bool>(),
+			StartedConvo = trader.startedConvo,
+			DidMove = trader.didMove,
+			HaggleAmount = trader.haggleAmount,
+			Character = trader.character,
+			BuildHealth = fields.Field("build").GetValue<BuildingEntity>().health,
+			MinHugReputation = trader.minHugReputation,
+			Items = [.. trader.items.Select(i => new TraderItemMsg
+			{
+				Id = i.id,
+				Value = i.value,
+				Preference = (byte)i.preference,
+				Bought = i.bought,
+			})],
+		};
+	}
+
+	private static void Write(TraderScript trader, TradeStockState state)
+	{
+		var fields = Traverse.Create(trader);
+		trader.reputation = state.Reputation;
+		trader.hostility = state.Hostility;
+		trader.valueGiven = (int)state.ValueGiven;
+		trader.totalValueGiven = (int)state.TotalValueGiven;
+		fields.Field("freeAmount").SetValue(state.FreeAmount);
+		fields.Field("freeDressing").SetValue(state.FreeDressing);
+		fields.Field("didHug").SetValue(state.DidHug);
+		trader.startedConvo = state.StartedConvo;
+		trader.didMove = state.DidMove;
+		trader.haggleAmount = state.HaggleAmount;
+		trader.items = [.. state.Items.Select(i => new TraderItem
+		{
+			id = i.Id,
+			value = i.Value,
+			preference = (TraderScript.TraderItemPreference)i.Preference,
+			bought = i.Bought,
+		})];
 	}
 }

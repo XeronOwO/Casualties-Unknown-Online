@@ -82,6 +82,7 @@ public class ItemSimulationTests
 		var items = w.Items;
 		var rng = new Random(seed);
 		var spawned = new List<ulong>();
+		var ownedByG1 = new HashSet<ulong>(); // successfully transferred pickups — a repeated claim is idempotent
 		ulong nextId = 100;
 
 		for (var step = 0; step < 30; step++)
@@ -98,24 +99,32 @@ public class ItemSimulationTests
 			}
 			else if (roll < 0.75 && spawned.Count > 0)
 			{
-				// Pick a table-present item (25 %): the host either transfers it
-				// (a reject would contradict a present entry) or — if another
-				// pick already took it — the reject must reach the reporter.
+				// Pick a table-present item (25 %): the transfer must land.
 				var id = spawned[rng.Next(spawned.Count)];
 				w.Pickup(w.G1, id, Item());
 				w.Driver.Tick(33);
 				Assert.False(items.IsWorldItemRegistered(id), $"seed {seed} step {step}: pickup {id} must leave the table");
+				ownedByG1.Add(id);
 			}
 			else if (roll < 0.9 && spawned.Count > 0)
 			{
 				// Pick up an item that may already be gone (15 % — the racy
-				// reporter): whatever the host decides, the response reaches G1.
+				// reporter): present → transfer; gone AND never owned → reject;
+				// gone but ALREADY OURS → the duplicate report is silently
+				// idempotent (a reject would roll the winner's own pickup back).
 				var id = spawned[rng.Next(spawned.Count)];
 				var before = w.Rejects(w.G1).Count;
 				var wasRegistered = items.IsWorldItemRegistered(id);
+				var wasOwned = ownedByG1.Contains(id);
 				w.Pickup(w.G1, id, Item());
 				w.Driver.Tick(33);
-				if (!wasRegistered)
+				if (wasRegistered)
+				{
+					ownedByG1.Add(id);
+					Assert.True(w.Rejects(w.G1).Count == before,
+						$"seed {seed} step {step}: a claim on a present item {id} must transfer, not reject");
+				}
+				else if (!wasOwned)
 				{
 					Assert.True(w.Rejects(w.G1).Count > before,
 						$"seed {seed} step {step}: a claim on a gone item {id} must come back as a reject");

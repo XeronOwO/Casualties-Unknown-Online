@@ -1,0 +1,16 @@
+# Phase-4 replay archive — the spawn-report-in-flight race: the pickup wins
+# the race against its own spawn report (the pickup lands while the spawn
+# report is still on the wire) — refused with exactly one UnknownItem reject,
+# then the late spawn report registers idempotently. End state: the item is
+# back in the world, nobody owns it.
+#
+# Fossil of: ItemRaceTests.SpawnPickupInflight_PickupArrivesFirst_...
+# Mechanism: the branch ItemService.cs:314-318 was written for — "the spawn
+#            report is still in flight (the pickup won the race)"
+
+@0 pickup g1 42 test_item 1.0
+@0 fault g1 host delay=300
+@0 spawn g1 42 test_item 1.0
+@33 expect reject g1 42 within 500
+@33 expect received g1 ItemReject 1
+@333 expect host_table 42 within 500

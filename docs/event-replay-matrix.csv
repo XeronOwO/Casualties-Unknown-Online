@@ -11,6 +11,10 @@ SoundCannonFired,sonarcharge(2D charge)+sonarouch(2D blast)+tinnitus,blast sound
 CaveTicksSpawned,caveticks(2D) ok,ok,particles-stop+nest-destroy,ok,started,covered,spiders trigger-side only (AI domain)
 CrystalFragileBroken,glass(3D) ok,ok,crystal vanish (health0),ok+RemoteDeath,health<0.5,covered,
 CrystalElectricShocked,zap(3D)+Shake200,ok,ring-anim (Update natural),ok,cooldown gate,covered,
+CrystalUnstableExploded,crystaltick (5s tick)+explosion-fivepiece,explosion-fivepiece+tinnitus,5s ticking glow/shake+explosion,particle/blastmark/shake+body-segment,health0+RemoteEntityDeath,covered,5s pre-explosion ticking gap (same as the mine press visual)
+CrystalMetamorphicTriggered,crystalenemylaugh,ok,FlashBrief,FlashBrief,activated latch,covered,death rides BuildingEntityDamaged + drops ride the item domain
+CrystalShySwapped,observerlaugh,ok,position swap,re-scan swap,activated latch,covered,scan order has no formal guarantee (generation-static crystals)
+CrystalEMPActivated,crystalemp,ok,white flash+Shake200+darken,white flash+Shake200 (darken runs natural),activated latch,covered,battery drain rides the item domain
 BarbedFenceHit,fence(3D) ok,ok,hitSprite transition,ok,none (instant),covered,
 CoilShocked,zap(3D)+light-flash+Shake,ok,light flash,SetLightIntensity ok,cooldown gate,covered,
 CactusHit,gore at player (DoGoreSound),gore1-5 at cactus (3D),player-knockback (local),none,none,covered,sound position differs per-side semantics

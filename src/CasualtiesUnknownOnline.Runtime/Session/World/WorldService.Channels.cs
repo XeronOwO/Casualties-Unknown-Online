@@ -65,4 +65,12 @@ public sealed partial class WorldService
 	public event Action<ulong, TraderActionMsg>? TraderActionReceived { add => _tradeChannel.TraderActionReceived += value; remove => _tradeChannel.TraderActionReceived -= value; }
 
 	public void FireTraderActionReceived(ulong sender, TraderActionMsg msg) => _tradeChannel.FireTraderActionReceived(sender, msg);
+
+	public void SendSpeech(SpeechMsg msg) => _speechChannel.SendSpeech(msg);
+
+	public void BroadcastSpeech(ulong excludeSteamId, SpeechMsg msg) => _speechChannel.BroadcastSpeech(excludeSteamId, msg);
+
+	public event Action<ulong, SpeechMsg>? SpeechReceived { add => _speechChannel.SpeechReceived += value; remove => _speechChannel.SpeechReceived -= value; }
+
+	public void FireSpeechReceived(ulong sender, SpeechMsg msg) => _speechChannel.FireSpeechReceived(sender, msg);
 }

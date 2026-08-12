@@ -17,7 +17,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 /// <see cref="PacketSender"/>. No pump: it only reacts to calls and messages
 /// (not an ICuoService, like CharacterDataStore).
 /// </summary>
-public sealed partial class WorldService(ISessionControl session, PacketSender sender, ITimeSource time, ILogger<WorldService> log, EntityEventChannel eventChannel, TradeChannel tradeChannel)
+public sealed partial class WorldService(ISessionControl session, PacketSender sender, ITimeSource time, ILogger<WorldService> log, EntityEventChannel eventChannel, TradeChannel tradeChannel, SpeechChannel speechChannel)
 	: IWorldControl
 {
 	private readonly ISessionControl _session = session;
@@ -26,6 +26,7 @@ public sealed partial class WorldService(ISessionControl session, PacketSender s
 	private readonly ILogger<WorldService> _log = log;
 	private readonly EntityEventChannel _eventChannel = eventChannel;
 	private readonly TradeChannel _tradeChannel = tradeChannel;
+	private readonly SpeechChannel _speechChannel = speechChannel;
 
 	/// <summary>
 	/// Host-side block-difference table: block-space position → current block id,

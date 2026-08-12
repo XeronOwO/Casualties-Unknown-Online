@@ -80,6 +80,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	private readonly GeyserStateSync _geyserStateSync;
 	private readonly FluidWorldSync _fluidSync;
 	private readonly TradeStateSync _tradeSync;
+	private readonly SpeechSync _speechSync;
 
 	public GameAdapter(SessionService session, EntitySyncService entities, CharacterDataStore characterData,
 		WorldService world, ItemService items, ILogger<GameAdapter> log, IMapper mapper, ILoggerFactory loggerFactory)
@@ -133,6 +134,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_geyserStateSync = new GeyserStateSync(world, session, loggerFactory.CreateLogger<GeyserStateSync>());
 		_fluidSync = new FluidWorldSync(world, session, entities, loggerFactory);
 		_tradeSync = new TradeStateSync(world, session, new TradeExecutor(), loggerFactory.CreateLogger<TradeStateSync>());
+		_speechSync = new SpeechSync(world, session, loggerFactory.CreateLogger<SpeechSync>());
 		_lifePod = new LifePodPresentation(loggerFactory.CreateLogger<LifePodPresentation>());
 		_guestMenu = new GuestMenuGuard(session, loggerFactory.CreateLogger<GuestMenuGuard>());
 		_worldParams = new WorldParamsService(world, loggerFactory.CreateLogger<WorldParamsService>());
@@ -212,6 +214,31 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		{
 			_log.LogError("Dynamic patch target CrystalDripping not found — the guest-side drip suppression is off.");
 		}
+
+		// The phase-B crystal family (internal classes — the same dynamic rule):
+		// the unstable crystal's 5 s explosion, the metamorphic touch, the shy
+		// swap and the EMP. Each installs the latch-rise prefix/postfix pair.
+		InstallCrystalFamilyPatch("CrystalUnstable", "Update", "UnstableUpdatePrefix", "UnstableUpdatePostfix");
+		InstallCrystalFamilyPatch("CrystalMetamorphic", "Touched", "MetamorphicTouchedPrefix", "MetamorphicTouchedPostfix");
+		InstallCrystalFamilyPatch("CrystalShy", "Touched", "ShyTouchedPrefix", "ShyTouchedPostfix");
+		InstallCrystalFamilyPatch("CrystalEMP", "TryEMP", "EmpTryEMPPrefix", "EmpTryEMPPostfix");
+	}
+
+	/// <summary>Install a crystal-family latch-rise pair (prefix + postfix) onto
+	/// an internal game type's method — the phase-B family helper.</summary>
+	private void InstallCrystalFamilyPatch(string typeName, string methodName, string prefixName, string postfixName)
+	{
+		var type = typeof(CrystalEffect).Assembly.GetType(typeName);
+		var method = type?.GetMethod(methodName, BindingFlags.Public | BindingFlags.Instance);
+		if (method == null)
+		{
+			_log.LogError("Dynamic patch target {Type}.{Method} not found — the crystal sync is off.", typeName, methodName);
+			return;
+		}
+
+		var prefix = typeof(TrapCrystalPatch).GetMethod(prefixName, BindingFlags.Static | BindingFlags.NonPublic);
+		var postfix = typeof(TrapCrystalPatch).GetMethod(postfixName, BindingFlags.Static | BindingFlags.NonPublic);
+		_harmony!.Patch(method, prefix: new HarmonyMethod(prefix), postfix: new HarmonyMethod(postfix));
 	}
 
 	bool IPatchBridge.IsReplayingLifePodSound => _lifePod.IsReplayingSound;
@@ -353,6 +380,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_geyserStateSync.BindToSession();
 		_fluidSync.BindToSession();
 		_tradeSync.BindToSession();
+		_speechSync.BindToSession();
 		_run.BindToSession();
 		_genItemApplication.BindToSession();
 		_layerModifierSync.BindToSession();
@@ -378,6 +406,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_geyserStateSync.Unbind();
 		_fluidSync.Unbind();
 		_tradeSync.Unbind();
+		_speechSync.Unbind();
 		_run.Unbind();
 		_genItemApplication.Unbind();
 		_layerModifierSync.Unbind();
@@ -552,4 +581,6 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 
 	void IPatchBridge.OnTraderActionReported(TraderScript trader, TraderActionKind action, string itemId, int itemValue, Item? purchaseItem) =>
 		_tradeSync.OnTraderActionReported(trader, action, itemId, itemValue, purchaseItem);
+
+	void IPatchBridge.OnSpeechReported(Talker talker, string text) => _speechSync.OnSpeechReported(talker, text);
 }

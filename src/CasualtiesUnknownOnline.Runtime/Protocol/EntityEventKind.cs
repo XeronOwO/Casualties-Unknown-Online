@@ -35,4 +35,8 @@ public enum EntityEventKind : byte
 	ScrapEaterProgress = 23, // scrap eater fed — Extra = progress % (0-100; 100 = unlocked, Backgroundify + doors) — one-shot at 100
 	MedStationHealed = 24, // med station triggered (didHeal + laser anim + heal) — one-shot
 	BatteryInserted = 25, // battery charger used — Extra = slot; the insert itself rides the item domain (the battery IS a world item), this syncs the firstTime mp3 consumption — one-shot
+	CrystalUnstableExploded = 26, // unstable crystal: touched → 5 s ticking → explosion + destroyed (CrystalUnstable.cs:40-64; the 5 s pre-explosion ticking is a recorded replay gap, same as the mine's 0.8 s press) — one-shot
+	CrystalMetamorphicTriggered = 27, // metamorphic crystal: touched → FlashBrief + health = 0 + drops + laugh (CrystalMetamorphic.cs:16-35; the death rides BuildingEntityDamaged, the drops ride the item domain — this syncs the flash/laugh consumption) — one-shot
+	CrystalShySwapped = 28, // shy crystal: touched → swaps positions with the first other crystal in range (CrystalShy.cs:8-33; the swap is a real world-state change) — one-shot
+	CrystalEMPActivated = 29, // EMP crystal: touched → battery drain + white flash + shake (CrystalEMP.cs:14-35; the battery effects ride the item domain, the darkening runs on the crystal's own Update) — one-shot
 }

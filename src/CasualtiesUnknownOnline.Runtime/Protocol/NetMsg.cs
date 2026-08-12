@@ -84,4 +84,7 @@ public enum NetMsg : byte
 	// Trade (host authority — the trader's state is host-computed, the acting side's local effects stay local)
 	TraderState = 72, // host → guest: a trader's full authoritative state + stock — on every interaction, on world entry, and every 5 s (unreliable fallback); a full overwrite
 	TraderAction = 73, // guest → host: a locally-executed trader interaction (purchase/give/haggle/threaten/hug/move/meet) — the host executes the trader-side change and broadcasts the state
+
+	// Speech (the Talker domain — the bubble text is DATA: the speaking side applied localization + random + distortion, the receiver only displays)
+	SpeechMsg = 74, // bidirectional: guest → host report of a spoken bubble; host → guest broadcast relay (the source excluded for players — a trader's bubble is host-broadcast)
 }

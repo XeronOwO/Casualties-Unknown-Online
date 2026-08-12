@@ -43,6 +43,10 @@ internal static class EntityEventArchives
 		(EntityEventKind.ScrapEaterProgress, true), // one-shot at 100
 		(EntityEventKind.MedStationHealed, true), // one-shot heal
 		(EntityEventKind.BatteryInserted, true), // one-shot firstTime consumption
+		(EntityEventKind.CrystalUnstableExploded, true), // destroyed by its own explosion — one-shot
+		(EntityEventKind.CrystalMetamorphicTriggered, true), // activated latch — one-shot
+		(EntityEventKind.CrystalShySwapped, true), // activated latch — one-shot
+		(EntityEventKind.CrystalEMPActivated, true), // activated latch — one-shot
 	];
 
 	/// <summary>The archive kinds, one row per value — the combinatorial data source.</summary>

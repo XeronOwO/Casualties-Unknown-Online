@@ -29,6 +29,10 @@ internal static class EntityEventProfiles
 		EntityEventKind.MedStationHealed,
 		EntityEventKind.ScrapEaterProgress,
 		EntityEventKind.BatteryInserted,
+		EntityEventKind.CrystalUnstableExploded,
+		EntityEventKind.CrystalMetamorphicTriggered,
+		EntityEventKind.CrystalShySwapped,
+		EntityEventKind.CrystalEMPActivated,
 	];
 
 	internal static bool IsOneShotConsumption(EntityEventKind kind) => OneShotConsumptions.Contains(kind);

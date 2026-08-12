@@ -15,7 +15,9 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 /// threshold, see <see cref="ItemPositionFollow"/>). The 5 s keyframe
 /// refreshes the authoritative table before re-sending it. The host's role
 /// gate lives in the caller (GameAdapter dispatches by session mode);
-/// ItemService re-checks on send.
+/// ItemService re-checks on send. The settled throttle (which items ride the
+/// 1 Hz round — <see cref="SettledStreamThrottle"/>) is pure; this class is
+/// the scene-read shell.
 /// </summary>
 internal sealed class ItemPositionAuthority(ItemService items)
 {
@@ -24,19 +26,10 @@ internal sealed class ItemPositionAuthority(ItemService items)
 	private const int ItemMoveIntervalMs = 100; // position stream (unreliable, 10 Hz)
 	private long _nextItemMoveMs;
 
-	/// <summary>Settled items re-align every Nth tick (1 Hz at 10 Hz tick rate) — the stream is the dominant bandwidth consumer and a settled item's payload is identical every tick, so 10 Hz re-sends the same bytes nine times out of ten.</summary>
-	private const int SettledIntervalTicks = 10;
-	private int _settledTick;
-
-	/// <summary>Items currently at rest on the host. A motion→rest EDGE forces one
-	/// immediate tick: the guest's copy simulates locally and stops by itself,
-	/// but its final resting spot must converge on the authority's — waiting for
-	/// the 1 Hz round would leave the end state open for up to a second. After
-	/// the edge the item rides the 1 Hz re-align round like every other.</summary>
-	private readonly HashSet<ulong> _settledItems = [];
-
 	private const int ItemSnapshotIntervalMs = 5000; // periodic world-item keyframe (unreliable)
 	private long _nextItemSnapshotMs;
+
+	private readonly SettledStreamThrottle _throttle = new();
 
 	internal void Update()
 	{
@@ -68,7 +61,7 @@ internal sealed class ItemPositionAuthority(ItemService items)
 	private void SendMovingItemMoves()
 	{
 		var entries = new List<ItemMoveEntryMsg>();
-		var settledRound = ++_settledTick % SettledIntervalTicks == 0;
+		_throttle.BeginPump();
 		foreach (var item in Item.allItems)
 		{
 			var idComp = item.GetComponent<ItemInstanceId>();
@@ -80,19 +73,12 @@ internal sealed class ItemPositionAuthority(ItemService items)
 			// At rest: velocity below the noise floor AND no spin. The guest
 			// copy simulates locally and stops by itself, so the 1 Hz re-align
 			// only has to close the residual gap (and catch host-side nudges).
-			// The motion→rest edge forces one immediate tick (see _settledItems).
-			var settled = item.rb.velocity.sqrMagnitude < 0.01f && Mathf.Abs(item.rb.angularVelocity) < 0.1f;
-			if (settled)
+			// The motion→rest edge forces one immediate tick (the throttle's
+			// first send for a settled id).
+			var settled = ItemMotionState.IsSettled(item.rb.velocity.sqrMagnitude, Mathf.Abs(item.rb.angularVelocity));
+			if (!_throttle.ShouldSend(idComp.Id, settled))
 			{
-				var edge = _settledItems.Add(idComp.Id);
-				if (!edge && !settledRound)
-				{
-					continue;
-				}
-			}
-			else
-			{
-				_settledItems.Remove(idComp.Id);
+				continue;
 			}
 
 			var pos = item.transform.position;

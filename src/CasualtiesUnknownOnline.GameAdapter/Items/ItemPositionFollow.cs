@@ -23,6 +23,8 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 /// are isolated away by the layer matrix: Item (7) collides ONLY with Ground
 /// (6); pickup queries (OverlapPoint, PlayerCamera.cs:1423) ignore the matrix,
 /// so pickup still works. Host side: no isolation, original game physics.
+/// The DECISIONS (settled / ease / snap — <see cref="ItemFollowDecision"/>) are
+/// pure; this class is the scene-write shell.
 /// </summary>
 internal sealed class ItemPositionFollow(ItemService items, DropProtectionGuard guard, SessionService session, ILogger<ItemPositionFollow> log)
 {
@@ -33,23 +35,12 @@ internal sealed class ItemPositionFollow(ItemService items, DropProtectionGuard 
 	/// <summary>Ground layer — the tilemap collider (WorldGeneration.cs:3827-3839).</summary>
 	private const int GroundLayer = 6;
 
-	/// <summary>Position divergence beyond this many units hard-snaps the copy to the
-	/// host's state (clearing local inertia); within it the local physics runs free.</summary>
-	private const float SnapDistance = 3f;
-
-	/// <summary>A settled copy (the host's settled criterion) with a residual gap
-	/// larger than this eases toward the host's spot — the final rest state must
-	/// converge, the 1 Hz settled stream feeds it until it does.</summary>
-	private const float SettleSnapDistance = 0.05f;
-
 	private readonly ItemService _items = items;
 	private readonly DropProtectionGuard _guard = guard;
 	private readonly SessionService _session = session;
 	private readonly ILogger<ItemPositionFollow> _log = log;
 
-	/// <summary>id → the host's authoritative move target. Played=false means the
-	/// copy is still frozen (kinematic, no stream yet) — never pumped.</summary>
-	private readonly Dictionary<ulong, MoveTarget> _followTargets = [];
+	private readonly ItemFollowDecision _follow = new();
 
 	/// <summary>The layer isolation is applied while guest + session active — state-driven edge (idempotent).</summary>
 	private bool _isolationApplied;
@@ -59,19 +50,19 @@ internal sealed class ItemPositionFollow(ItemService items, DropProtectionGuard 
 	internal void Unbind()
 	{
 		_items.ItemMoveReceived -= OnRemoteItemMove;
-		_followTargets.Clear();
+		_follow.Clear();
 		RestoreLayerIsolation();
 	}
 
 	internal void Update()
 	{
 		UpdateLayerIsolation();
-		if (_followTargets.Count == 0)
+		if (_follow.Count == 0)
 		{
 			return;
 		}
 
-		foreach (var key in _followTargets.Keys.ToList()) // copy — removed while iterating
+		foreach (var key in _follow.Keys.ToList()) // copy — removed while iterating
 		{
 			var item = ItemApplication.FindWorldItem(key);
 			// Unity object — ==. Gone (picked up/destroyed), not yet materialized,
@@ -82,38 +73,34 @@ internal sealed class ItemPositionFollow(ItemService items, DropProtectionGuard 
 			// after picking things up).
 			if (item == null || !ItemWorldSync.IsStandaloneWorldItem(item))
 			{
-				_followTargets.Remove(key);
+				_follow.Remove(key);
 				_guard.Remove(key);
 				continue;
 			}
 
-			var t = _followTargets[key];
-			if (!t.Played)
+			var d = _follow.Decide(key, item.transform.position.x, item.transform.position.y, item.transform.eulerAngles.z, Time.deltaTime);
+			if (d.Mode == FollowMode.Frozen)
 			{
-				continue; // frozen — waiting for its first stream tick (same-phase start)
+				continue; // no target — not yet streamed
 			}
 
 			var rb = item.rb;
-			// Settled (the host's own settled criterion, ItemPositionAuthority):
-			// velocity sync is a no-op (0 = 0) and the snap threshold would never
-			// fire — the final resting spot would stay diverged forever. The
-			// settled state MUST converge: ease the residual gap away (the 1 Hz
-			// settled stream keeps feeding it until it closes).
-			var settled = t.Vel.sqrMagnitude < 0.01f && Mathf.Abs(t.AngVel) < 0.1f;
-			var dist = Vector2.Distance(item.transform.position, t.Pos);
-			if (settled)
+			if (d.Mode == FollowMode.Settled)
 			{
-				rb.velocity = Vector2.zero; // the local physics stopped too — kill any residual drift
+				// The host's velocity is zero — the local physics stopped too;
+				// kill any residual drift, then ease the residual gap away (the
+				// 1 Hz settled stream keeps feeding the target until it closes).
+				rb.velocity = Vector2.zero;
 				rb.angularVelocity = 0f;
-				if (dist > SettleSnapDistance)
+				if (d.EaseToTarget)
 				{
-					var k = Mathf.Clamp01(Time.deltaTime * 12f); // ease — no visible jump on a "stationary" item
-					item.transform.position = Vector3.Lerp(item.transform.position, new Vector3(t.Pos.x, t.Pos.y, 0f), k);
-					var rot = Mathf.LerpAngle(item.transform.eulerAngles.z, t.Rot, k);
+					var k = d.EaseK; // ease — no visible jump on a "stationary" item
+					item.transform.position = Vector3.Lerp(item.transform.position, new Vector3(d.TargetX, d.TargetY, 0f), k);
+					var rot = Mathf.LerpAngle(item.transform.eulerAngles.z, d.TargetRot, k);
 					item.transform.eulerAngles = new Vector3(0f, 0f, rot);
-					if (dist > 0.5f)
+					if (d.LogDivergence)
 					{
-						_log.LogInformation("[ItemPhysics] settle {Id} d={Dist:F2}.", key, dist); // > 0.5 = a real divergence, worth tuning on
+						_log.LogInformation("[ItemPhysics] settle {Id} d={Dist:F2}.", key, d.Dist); // > 0.5 = a real divergence, worth tuning on
 					}
 				}
 			}
@@ -124,15 +111,13 @@ internal sealed class ItemPositionFollow(ItemService items, DropProtectionGuard 
 				// Position within the snap threshold is left to the local
 				// simulation (continuous rotation included); past it the copy
 				// hard-snaps to the host's state.
-				rb.velocity = t.Vel;
-				rb.angularVelocity = t.AngVel;
-				if (dist > SnapDistance)
+				rb.velocity = new Vector2(d.VelX, d.VelY);
+				rb.angularVelocity = d.AngVel;
+				if (d.HardSnap)
 				{
-					item.transform.position = new Vector3(t.Pos.x, t.Pos.y, 0f);
-					item.transform.eulerAngles = new Vector3(0f, 0f, t.Rot);
-					rb.velocity = t.Vel;
-					rb.angularVelocity = t.AngVel;
-					_log.LogInformation("[ItemPhysics] snap {Id} d={Dist:F1}.", key, dist);
+					item.transform.position = new Vector3(d.TargetX, d.TargetY, 0f);
+					item.transform.eulerAngles = new Vector3(0f, 0f, d.TargetRot);
+					_log.LogInformation("[ItemPhysics] snap {Id} d={Dist:F1}.", key, d.Dist);
 				}
 			}
 		}
@@ -145,18 +130,10 @@ internal sealed class ItemPositionFollow(ItemService items, DropProtectionGuard 
 	{
 		foreach (var e in items)
 		{
-			if (!_followTargets.TryGetValue(e.ItemId, out var t))
+			if (_follow.UpdateTarget(e.ItemId, e.X, e.Y, e.VelX, e.VelY, e.Rotation, e.AngularVelocity))
 			{
-				t = new MoveTarget();
-				_followTargets[e.ItemId] = t;
 				StartLocalPhysics(e.ItemId, e);
 			}
-
-			t.Pos = new Vector2(e.X, e.Y);
-			t.Vel = new Vector2(e.VelX, e.VelY);
-			t.Rot = e.Rotation;
-			t.AngVel = e.AngularVelocity;
-			t.Played = true;
 		}
 	}
 
@@ -237,17 +214,5 @@ internal sealed class ItemPositionFollow(ItemService items, DropProtectionGuard 
 				Physics2D.IgnoreLayerCollision(ItemLayer, i, false);
 			}
 		}
-	}
-
-	/// <summary>id → the host's authoritative move target (position/velocity/rotation);
-	/// the pump eases toward it every frame. Played=false = still frozen (kinematic,
-	/// no stream yet) — never pumped.</summary>
-	private sealed class MoveTarget
-	{
-		public Vector2 Pos;
-		public Vector2 Vel;
-		public float Rot;
-		public float AngVel;
-		public bool Played;
 	}
 }

@@ -118,7 +118,7 @@ public class ItemArbitrationFlowTests
 	}
 
 	[Fact]
-	public void DuplicatePickupReport_SecondPickupRejected()
+	public void DuplicatePickupReport_RetransmitIsSilentlyIdempotent()
 	{
 		var (_, guest, received) = CreateSession();
 		SpawnItem(guest, 42, Item());
@@ -127,9 +127,10 @@ public class ItemArbitrationFlowTests
 		received.Clear();
 		ReportPickup(guest, 42, Item()); // a retransmit would re-report the same pickup
 
-		// The item is no longer in the world table — the second pickup is
-		// unknown (the one-shot operation already ran; the retransmit cannot
-		// double-execute).
-		Assert.Contains(received, r => r.Msg == NetMsg.ItemReject);
+		// The item is no longer in the world table, but the sender ALREADY owns
+		// it (the transfer table) — a rejection would roll the winner's own
+		// successful pickup back, so the duplicate is silent. The one-shot
+		// operation cannot double-execute either way (the world-table check).
+		Assert.DoesNotContain(received, r => r.Msg == NetMsg.ItemReject);
 	}
 }

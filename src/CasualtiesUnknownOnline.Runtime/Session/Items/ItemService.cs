@@ -322,7 +322,12 @@ public sealed class ItemService : IItemControl
 				// silently, the container's own transfer carries it (refusing
 				// yanked each content back out of the picker's bag — "picked up
 				// a bag with contents, it came back empty").
-				if (!_arbitration.IsContainedInEntry(itemId, _worldTable.Items))
+				// EXCEPT the picker's OWN duplicate report (reliable
+				// retransmission): the transfer already took the item out of the
+				// table, the sender owns it — a rejection would roll the winner's
+				// own successful pickup back (the same idempotency family as the
+				// spawn/drop duplicate guards).
+				if (!_arbitration.IsContainedInEntry(itemId, _worldTable.Items) && !_arbitration.IsTransferredToGuest(sender, itemId))
 				{
 					_sender.Send(sender, NetMsg.ItemReject, new ItemRejectMsg
 					{

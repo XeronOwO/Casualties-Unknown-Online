@@ -94,15 +94,38 @@ internal sealed class FakeNetwork
 
 	private void FlushDue()
 	{
-		// FIFO per instant: same-instant messages arrive in send order (the
-		// reliable channel's ordering; different DelayMs values produce reorder).
-		for (var i = 0; i < _queued.Count; i++)
+		// Deliver in DUE order (earliest deliverAt first), NOT queue order — a
+		// message with an earlier deliverAt that was queued later must arrive
+		// before a later-due one queued earlier (the real network delivers in
+		// arrival order; a single queue-order scan delivers the later-due one
+		// first when both became due by the flush's clock). Messages with the
+		// SAME deliverAt arrive in send order (the reliable channel's FIFO).
+		// Found by the reordered-arrival race test: sender order ≠ arrival
+		// order only holds when due order wins.
+		while (true)
 		{
-			var msg = _queued[i];
-			if (msg.DeliverAtMs <= _clock.NowMs)
+			var earliest = long.MaxValue;
+			for (var i = 0; i < _queued.Count; i++)
 			{
-				_queued.RemoveAt(i--);
-				Deliver(msg.From, msg.To, msg.Data);
+				if (_queued[i].DeliverAtMs <= _clock.NowMs && _queued[i].DeliverAtMs < earliest)
+				{
+					earliest = _queued[i].DeliverAtMs;
+				}
+			}
+
+			if (earliest == long.MaxValue)
+			{
+				return;
+			}
+
+			for (var i = 0; i < _queued.Count; i++)
+			{
+				if (_queued[i].DeliverAtMs == earliest)
+				{
+					var msg = _queued[i];
+					_queued.RemoveAt(i--);
+					Deliver(msg.From, msg.To, msg.Data);
+				}
 			}
 		}
 	}

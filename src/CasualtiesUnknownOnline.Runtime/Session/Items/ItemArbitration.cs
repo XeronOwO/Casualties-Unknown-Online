@@ -38,6 +38,16 @@ public sealed class ItemArbitration(ISessionControl session, PacketSender sender
 	/// <summary>Guest side: the host's authoritative item state arrived (our action-report evidence diverged) — the adapter applies it.</summary>
 	public event Action<CharacterItemMsg>? ItemCorrectionReceived;
 
+	/// <summary>
+	/// Host only: whether the item is currently recorded as owned by the guest
+	/// (the transfer table). The duplicate-pickup-report guard: a pickup report
+	/// for an item the sender ALREADY owns is a retransmission (the transfer
+	/// took the item out of the world table), never a rejection — the same
+	/// idempotency family as the spawn/drop duplicate guards.
+	/// </summary>
+	public bool IsTransferredToGuest(ulong guest, ulong itemId) =>
+		_transferred.TryGetValue(guest, out var owned) && owned.ContainsKey(itemId);
+
 	// ===== Action entry points (ItemService forwards the wire reports here) =====
 
 	/// <summary>

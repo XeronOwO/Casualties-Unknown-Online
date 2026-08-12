@@ -1,8 +1,16 @@
+using System.Collections.Generic;
 using ProtoBuf;
 
 namespace CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 
-/// <summary>Guest → host: protocol version + local scene state.</summary>
+/// <summary>
+/// Guest → host: protocol version + local scene state + the guest's declared
+/// mod list (Phase 4 Mod API consistency check — the host validates the
+/// members' lists against its own before admitting them). The list is null
+/// for an old client that never sends it — the host treats null as an empty
+/// list (the protocol version gate rejects cross-version sessions anyway,
+/// since this field is a behavioral change: ProtocolVersion 3).
+/// </summary>
 [ProtoContract]
 public sealed class HandshakeMsg
 {
@@ -11,4 +19,7 @@ public sealed class HandshakeMsg
 
 	[ProtoMember(2)]
 	public SceneStateMsg Scene { get; set; } = new();
+
+	[ProtoMember(3)]
+	public List<ModInfoMsg>? Mods { get; set; }
 }

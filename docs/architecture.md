@@ -285,6 +285,19 @@ Mods do not get all permissions by default: `ReadGameState, WriteGameState, Spaw
 - Mod messages are rate-limited.
 - Host validates all mod command parameters.
 
+### Phase 4 first-round status (landed 2026-08-13)
+
+The core skeleton is live: mod discovery (BepInEx plugin shell + `[CuoMod]`
+scan on the first update frame — BepInEx 5 loads plugins one by one,
+load-then-Awake, verified by IL and the game log), the `ICuoMod` lifecycle
+with per-mod exception isolation, the manifest (`[CuoMod]` is the single
+source; `NetworkMode` Unspecified is rejected — fail-closed), mod network
+messages (NetMsg 75, opaque payload, report/定向 star semantics, 64 KiB
+policy cap), session events (bind-time snapshot semantics), and the handshake
+consistency check (ProtocolVersion 3). Binding contract: `docs/mod-api.md`.
+Not yet landed: content registration, custom entities, host commands, UI,
+mod-state saves, dependency ordering, the full permission model below.
+
 ### KrokMP Compatibility Layer (future, reserved space)
 
 Many community mods target **KrokMP**, the legacy multiplayer mod. To let those

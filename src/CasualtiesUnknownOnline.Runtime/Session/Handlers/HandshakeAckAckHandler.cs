@@ -32,8 +32,20 @@ public sealed class HandshakeAckAckHandler(ILogger<HandshakeAckAckHandler> log) 
 			return;
 		}
 
+		// Fire only on the handshake→confirmed EDGE: a retried handshake cycle
+		// (lazy P2P sessions swallow frames, the guest retries, the host acks
+		// every repeat) re-delivers the AckAck — the member is already
+		// Handshaken, and re-firing MemberAdded would duplicate every
+		// readiness subscriber (the item domain's id-watermark grant, the
+		// Mod API's PlayerJoined). The edge is "the member first became
+		// handshaken", exactly once.
+		var wasHandshaken = member.Handshaken;
 		member.Handshaken = true;
-		session.FireMemberAdded(sender); // the item domain grants the id watermark on this (reconnects included)
+		if (!wasHandshaken)
+		{
+			session.FireMemberAdded(sender); // the item domain grants the id watermark on this (reconnects included)
+		}
+
 		ctx.Entities.MaybeStartEntitySync(); // a confirmed member may be ready for its entity stream
 		_log.LogInformation("Handshake confirmed end-to-end with {Peer}.", sender);
 	}

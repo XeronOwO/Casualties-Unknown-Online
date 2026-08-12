@@ -3,6 +3,7 @@ using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session.Mods;
 using CasualtiesUnknownOnline.Runtime.Steam;
 using CasualtiesUnknownOnline.Runtime.Time;
 using Microsoft.Extensions.Logging;
@@ -32,6 +33,7 @@ public sealed class SessionService : ICuoService, ISessionControl
 	private readonly PacketSender _sender;
 	private readonly ITimeSource _time;
 	private readonly ILogger<SessionService> _log;
+	private readonly IModListProvider _modListProvider;
 
 	// Session-owned state — never registered as services (user rule: state
 	// belongs to the object that owns it; consumers get ISessionControl).
@@ -44,11 +46,13 @@ public sealed class SessionService : ICuoService, ISessionControl
 	private long _nextMemberCheckMs;
 	private long _nextHandshakeRetryMs;
 
-	public SessionService(ISteamService steam, PacketSender sender, ITimeSource time, ILogger<SessionService> log)
+	public SessionService(ISteamService steam, PacketSender sender, ITimeSource time,
+		IModListProvider modListProvider, ILogger<SessionService> log)
 	{
 		_steam = steam;
 		_sender = sender;
 		_time = time;
+		_modListProvider = modListProvider;
 		_log = log;
 
 		steam.LobbyCreated += OnLobbyCreated;
@@ -447,6 +451,12 @@ public sealed class SessionService : ICuoService, ISessionControl
 	{
 		Protocol = ProtocolVersion.Current,
 		Scene = new SceneStateMsg { State = (byte)(_state.LocalInWorld ? SceneStateType.InWorld : SceneStateType.InMenu) },
+		// The declared mod list (Phase 4 Mod API consistency check — the host
+		// validates it before admitting the guest). Empty while the first-frame
+		// discovery has not run yet: a guest joining during its own Awake sends
+		// its first handshake with an empty list, the 1 s retry carries the
+		// real one (and a host without requirements accepts the empty list).
+		Mods = _modListProvider.CurrentModInfos(),
 	};
 	void ISessionControl.EndSession() => EndSession();
 }

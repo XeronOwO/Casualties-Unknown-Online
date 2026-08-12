@@ -44,7 +44,9 @@ internal sealed class TestNode : IDisposable
 
 	internal SessionService Session { get; }
 
-	internal static TestNode Create(ulong steamId, FakeNetwork network, FakeSteamService steam, FakeClock? clock = null)
+	internal static TestNode Create(ulong steamId, FakeNetwork network, FakeSteamService steam,
+		FakeClock? clock = null, bool pumpFirstFrame = false,
+		Action<IServiceCollection>? extraRegistrations = null)
 	{
 		var transport = new FakeTransport(steamId, network);
 		clock ??= new FakeClock();
@@ -66,6 +68,7 @@ internal sealed class TestNode : IDisposable
 				// remaining match: the SteamService entry, then the transport's.
 				s.Replace(ServiceDescriptor.Singleton(_ => (ICuoService)steam));
 				s.Replace(ServiceDescriptor.Singleton(_ => (ICuoService)transport));
+				extraRegistrations?.Invoke(s); // the test's overrides (e.g. stub mod control surfaces) — last, so they win
 			});
 
 		var node = new TestNode(steamId, steam, transport, clock, services);
@@ -77,6 +80,15 @@ internal sealed class TestNode : IDisposable
 		foreach (var svc in services.GetServices<ICuoService>())
 		{
 			svc.Start();
+		}
+
+		if (pumpFirstFrame)
+		{
+			// The first update frame — the mod discovery scan (BepInEx loads
+			// plugins one by one, so discovery must run after every plugin's
+			// Awake; a handshake arriving BEFORE it is refused as "mod check
+			// pending", so standard handshake setups pump it first).
+			node.Update();
 		}
 
 		return node;
@@ -94,8 +106,8 @@ internal sealed class TestNode : IDisposable
 		var network = new FakeNetwork(clock: clock);
 		var hostSteam = new FakeSteamService(hostId) { LobbyOwner = hostId, LobbyMembers = [hostId] };
 		var guestSteam = new FakeSteamService(guestId) { LobbyOwner = hostId, LobbyMembers = [hostId, guestId] };
-		var host = Create(hostId, network, hostSteam, clock);
-		var guest = Create(guestId, network, guestSteam, clock);
+		var host = Create(hostId, network, hostSteam, clock, pumpFirstFrame: true);
+		var guest = Create(guestId, network, guestSteam, clock, pumpFirstFrame: true);
 		host.Steam.FireLobbyCreated(lobbyId);
 		host.Steam.LobbyMembers = [hostId, guestId]; // the guest joined the lobby
 		guest.Steam.FireLobbyEntered(lobbyId);

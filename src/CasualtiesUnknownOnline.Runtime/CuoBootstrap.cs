@@ -10,6 +10,7 @@ using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.Handlers;
+using CasualtiesUnknownOnline.Runtime.Session.Mods;
 using CasualtiesUnknownOnline.Runtime.Steam;
 using ManualLogSource = BepInEx.Logging.ManualLogSource;
 using Microsoft.Extensions.DependencyInjection;
@@ -71,6 +72,9 @@ public static class CuoBootstrap
 		// Session owns its state (identity/flags/presence, created internally);
 		// consumers depend on the narrow ISessionControl surface, registered as
 		// a factory so it resolves after the session is built (acyclic graph).
+		// The session also reads the mod domain for the handshake list — the
+		// IModListProvider factory resolves the registry (built later, no cycle:
+		// the registry only depends on the logger).
 		services.AddSingleton<SessionService>();
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<SessionService>());
 		services.AddSingleton<ISessionControl>(p => p.GetRequiredService<SessionService>());
@@ -95,7 +99,8 @@ public static class CuoBootstrap
 			p.GetRequiredService<IEntitySyncControl>(),
 			p.GetRequiredService<ICharacterDataControl>(),
 			p.GetRequiredService<IWorldControl>(),
-			p.GetRequiredService<IItemControl>()));
+			p.GetRequiredService<IItemControl>(),
+			p.GetRequiredService<IModsControl>()));
 		services.AddSingleton<PacketDispatcher>();
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<PacketDispatcher>());
 
@@ -121,6 +126,16 @@ public static class CuoBootstrap
 		// (no pump, not an ICuoService — it only reacts to calls and messages).
 		services.AddSingleton<ItemService>();
 		services.AddSingleton<IItemControl>(p => p.GetRequiredService<ItemService>());
+		// Mod domain (Phase 4 Mod API): discovery registry (pure), the message
+		// channel and the coordinator (an ICuoService — registered after the
+		// session it reads; the session's IModListProvider resolves the registry
+		// lazily, so this order is safe).
+		services.AddSingleton<ModRegistry>();
+		services.AddSingleton<IModListProvider>(p => p.GetRequiredService<ModRegistry>());
+		services.AddSingleton<ModChannel>();
+		services.AddSingleton<ModService>();
+		services.AddSingleton<IModsControl>(p => p.GetRequiredService<ModService>());
+		services.AddSingleton<ICuoService>(p => p.GetRequiredService<ModService>());
 
 		extraRegistrations?.Invoke(services);
 

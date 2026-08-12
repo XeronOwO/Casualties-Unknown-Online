@@ -14,7 +14,7 @@ namespace CasualtiesUnknownOnline.Runtime.Steam;
 /// Steam APIs are encapsulated here; consumers only see <see cref="ulong"/>
 /// lobby/SteamIDs, never Steamworks types (abstraction rule in architecture.md).
 /// </remarks>
-public sealed class SteamService(ILogger<SteamService> log) : ICuoService
+public sealed class SteamService(ILogger<SteamService> log) : ICuoService, ISteamService
 {
 	private readonly ILogger<SteamService> _log = log;
 	private Callback<LobbyCreated_t>? _lobbyCreated;

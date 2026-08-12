@@ -56,8 +56,10 @@ public static class CuoBootstrap
 		// SessionService before EntitySyncService/PacketDispatcher (they read the
 		// session control surface — resolved after the session is built).
 		services.AddSingleton<SteamService>();
+		services.AddSingleton<ISteamService>(p => p.GetRequiredService<SteamService>());
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<SteamService>());
 		services.AddSingleton<SteamTransport>();
+		services.AddSingleton<INetworkTransport>(p => p.GetRequiredService<SteamTransport>());
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<SteamTransport>());
 
 		// Session owns its state (identity/flags/presence, created internally);
@@ -105,6 +107,7 @@ public static class CuoBootstrap
 		// not an ICuoService — it only reacts to calls and messages).
 		services.AddSingleton<TrapConsumptionRegistry>(); // the one-shot trap-consumption table
 		services.AddSingleton<EntityEventChannel>(); // the entity event/creation channels + the consumption registry
+		services.AddSingleton<TradeChannel>(); // the trader state/action channel (trade domain)
 		services.AddSingleton<WorldService>();
 		services.AddSingleton<IWorldControl>(p => p.GetRequiredService<WorldService>());
 		// Item domain: the authoritative world-item table + pickup arbitration

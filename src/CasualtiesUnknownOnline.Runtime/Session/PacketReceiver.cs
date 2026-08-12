@@ -14,11 +14,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session;
 /// </summary>
 public sealed class PacketReceiver : IDisposable
 {
-	private readonly SteamTransport _transport;
+	private readonly INetworkTransport _transport;
 	private readonly ISessionControl _session;
 	private readonly ILogger<PacketReceiver> _log;
 
-	public PacketReceiver(SteamTransport transport, ISessionControl session, ILogger<PacketReceiver> log)
+	public PacketReceiver(INetworkTransport transport, ISessionControl session, ILogger<PacketReceiver> log)
 	{
 		_transport = transport;
 		_session = session;
@@ -50,9 +50,10 @@ public sealed class PacketReceiver : IDisposable
 	/// <summary>
 	/// One-way messages must arrive at the role they were sent to. Anything
 	/// else means a misbehaving peer or a stale message from a previous
-	/// session — drop it instead of processing.
+	/// session — drop it instead of processing. Internal so the test suite
+	/// locks the direction table (CUO.Tests via InternalsVisibleTo).
 	/// </summary>
-	private bool IsValidDirection(NetMsg msgId) => msgId switch
+	internal bool IsValidDirection(NetMsg msgId) => msgId switch
 	{
 		NetMsg.Handshake or NetMsg.PlayerStateReport or NetMsg.HandshakeAckAck
 			or NetMsg.TraderAction

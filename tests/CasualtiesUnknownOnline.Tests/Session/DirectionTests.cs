@@ -24,6 +24,9 @@ public class DirectionTests
 		NetMsg.PlayerStateReport,
 		NetMsg.HandshakeAckAck,
 		NetMsg.TraderAction,
+		NetMsg.ItemUse,
+		NetMsg.ItemSlot,
+		NetMsg.CarriedInventory,
 	};
 
 	public static TheoryData<NetMsg> HostToGuestMessages => new()
@@ -46,6 +49,9 @@ public class DirectionTests
 		NetMsg.GeyserStateSnapshot,
 		NetMsg.FluidRegion,
 		NetMsg.TraderState,
+		NetMsg.ItemCorrection,
+		NetMsg.WorldItemsSnapshot,
+		NetMsg.ItemCarriedSync,
 	};
 
 	public static TheoryData<NetMsg> BidirectionalMessages => new()
@@ -59,6 +65,13 @@ public class DirectionTests
 		NetMsg.ItemPickup,
 		NetMsg.ItemDrop,
 		NetMsg.ItemDestroy,
+		NetMsg.BlockPlaced,
+		NetMsg.BuildingEntityDamaged,
+		NetMsg.BuildingEntityOpened,
+		NetMsg.ItemIdWatermark,
+		NetMsg.EntityEvent,
+		NetMsg.EntitySpawned,
+		NetMsg.FluidInteraction,
 	};
 
 	[Theory]

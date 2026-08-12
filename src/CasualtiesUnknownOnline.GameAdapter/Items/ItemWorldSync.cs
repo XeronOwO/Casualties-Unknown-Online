@@ -277,7 +277,7 @@ internal sealed class ItemWorldSync(
 		}
 
 		_trace.Begin(op, itemId, "OnItemDropped", "Drop");
-		_dropState.EnterDrop(item, (Vector2)item.transform.position, op); // the throw velocity lands a moment later (ThrowItem) — merge into one report
+		_dropState.EnterDrop(itemId, item, (Vector2)item.transform.position, op); // the throw velocity lands a moment later (ThrowItem) — merge into one report
 	}
 
 	internal void OnItemThrown(Item item)

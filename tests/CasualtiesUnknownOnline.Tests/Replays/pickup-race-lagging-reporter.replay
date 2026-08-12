@@ -1,0 +1,17 @@
+# Phase-4 replay archive — the lagging reporter: G2's claim travels a
+# congested link (300 ms injected delay); G1's claim lands while the item is
+# still in the table and wins; G2's delayed claim arrives AFTER the transfer
+# — refused. The winner never sees a reject.
+#
+# Fossil of: ItemSimulationTests.PickupRace_LaggingReporter_Loses
+# Mechanism: the transfer removed the item from the table (ItemService.cs:338),
+#            so the delayed claim hits the "not in the table" branch (:325-333)
+
+@0 spawn g1 42 test_item 1.0
+@33 expect host_table 42 within 500
+@33 fault g2 host delay=300
+@33 pickup g2 42 test_item 1.0
+@33 pickup g1 42 test_item 1.0
+@66 expect_no_reject g1
+@366 expect reject g2 42 within 500
+@366 expect no_host_table 42 within 500

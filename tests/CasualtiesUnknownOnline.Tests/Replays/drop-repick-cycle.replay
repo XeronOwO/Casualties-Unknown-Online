@@ -1,0 +1,20 @@
+# Phase-4 replay archive — drop-repick cycle: an item is picked up (leaves
+# the world table), dropped again (re-registers), then claimed by two guests
+# in the same frame — first-writer-wins holds after a drop re-registered the
+# item ("I dropped it, someone else picked it up, I reach for it again" —
+# the loser rolls back).
+#
+# Mechanism: FireItemDroppedReceived re-registers the item (ItemService.cs:374);
+#            the pickup race is the same first-writer-wins (ItemService.cs:310-355)
+
+@0 spawn g1 42 test_item 1.0
+@33 expect host_table 42 within 500
+@33 pickup g1 42 test_item 1.0
+@66 expect no_host_table 42 within 500
+@66 drop g1 42 test_item 1.0
+@99 expect host_table 42 within 500
+@99 pickup g1 42 test_item 1.0
+@99 pickup g2 42 test_item 1.0
+@132 expect reject g2 42 within 500
+@132 expect_no_reject g1
+@132 expect no_host_table 42 within 500

@@ -1,0 +1,16 @@
+# Phase-4 replay archive — pickup race: two guests claim the same world item
+# in the same frame; the host's first-writer-wins arbitration transfers it to
+# exactly one of them (G1, whose claim lands first) and the loser's claim
+# comes back as an ItemReject (UnknownItem — the item already left the table).
+#
+# Fossil of: ItemSimulationTests.PickupRace_TwoGuests_OneWinner_OneReject
+# Mechanism: FireItemPickedUpReceived — not in the table → reject
+#            (Runtime/Session/Items/ItemService.cs:325-333)
+
+@0 spawn g1 42 test_item 1.0
+@33 expect host_table 42 within 500
+@33 pickup g1 42 test_item 1.0
+@33 pickup g2 42 test_item 1.0
+@66 expect reject g2 42 within 500
+@66 expect_no_reject g1
+@66 expect no_host_table 42 within 500

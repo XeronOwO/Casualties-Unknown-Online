@@ -20,7 +20,19 @@ internal static class ItemPatches
 	[HarmonyPatch(typeof(Item), "OnDestroy")]
 	internal static class ItemOnDestroyPatch
 	{
-		private static void Postfix(Item __instance) => PatchBridge.Impl?.OnItemDestroyed(__instance);
+		private static void Postfix(Item __instance)
+		{
+			// A crafting material's destroy is part of the craft: the in-scope
+			// destroy is silenced by the scope, and the END-OF-FRAME destroy
+			// (Unity defers Object.Destroy past the scope) is silenced by the
+			// coordinator's destroy-claim set — the fact rode the craft report.
+			if (CallContext.Current == CallContext.Origin.Craft || PatchBridge.Impl?.ShouldSuppressDestroy(__instance) == true)
+			{
+				return;
+			}
+
+			PatchBridge.Impl?.OnItemDestroyed(__instance);
+		}
 	}
 
 	/// <summary>

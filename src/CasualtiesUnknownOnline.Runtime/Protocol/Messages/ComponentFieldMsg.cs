@@ -17,7 +17,7 @@ public sealed class ComponentFieldMsg
 	public string Name { get; set; } = "";
 
 	[ProtoMember(2)]
-	public int Kind { get; set; } // 1=float 2=int 3=bool 4=string 5=List<string>
+	public int Kind { get; set; } // 1=float 2=int 3=bool 4=string 5=List<string> 6=enum (stored as its underlying int — IntValue)
 
 	[ProtoMember(3)]
 	public float FloatValue { get; set; }

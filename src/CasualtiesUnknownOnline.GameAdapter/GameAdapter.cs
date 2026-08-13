@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.GameAdapter.Character;
 using CasualtiesUnknownOnline.GameAdapter.Items;
@@ -81,9 +80,11 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	private readonly FluidWorldSync _fluidSync;
 	private readonly TradeStateSync _tradeSync;
 	private readonly SpeechSync _speechSync;
+	private readonly CraftingSync _craftingSync;
+	private readonly RecipeUnlockApply _recipeUnlockApply;
 
 	public GameAdapter(SessionService session, EntitySyncService entities, CharacterDataStore characterData,
-		WorldService world, ItemService items, ILogger<GameAdapter> log, IMapper mapper, ILoggerFactory loggerFactory)
+		WorldService world, ItemService items, ICraftControl craft, ILogger<GameAdapter> log, IMapper mapper, ILoggerFactory loggerFactory)
 	{
 		_session = session;
 		_items = items;
@@ -135,6 +136,8 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_fluidSync = new FluidWorldSync(world, session, entities, loggerFactory);
 		_tradeSync = new TradeStateSync(world, session, new TradeExecutor(), loggerFactory.CreateLogger<TradeStateSync>());
 		_speechSync = new SpeechSync(world, session, loggerFactory.CreateLogger<SpeechSync>());
+		_craftingSync = new CraftingSync(craft, _itemIds, itemReports, _operationTrace, loggerFactory.CreateLogger<CraftingSync>());
+		_recipeUnlockApply = new RecipeUnlockApply(craft, loggerFactory.CreateLogger<RecipeUnlockApply>());
 		_lifePod = new LifePodPresentation(loggerFactory.CreateLogger<LifePodPresentation>());
 		_guestMenu = new GuestMenuGuard(session, loggerFactory.CreateLogger<GuestMenuGuard>());
 		_worldParams = new WorldParamsService(world, loggerFactory.CreateLogger<WorldParamsService>());
@@ -158,88 +161,12 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	void IPatchBridge.OnEntityInstantiated(BuildingEntity entity) =>
 		_entitySpawnSync.OnEntityInstantiated(entity); // the spawn-channel report (runtime creations; creation-time data rides the same message, #128)
 
-	/// <summary>
-	/// Patches whose target types are INTERNAL to the game assembly (no compile-
-	/// time reference possible): reflect the type and patch the method directly.
-	/// The postfix methods live in the Patches namespace; the adapter owns the
-	/// Harmony instance so it can install them beside PatchAll.
-	/// </summary>
-	private void InstallDynamicPatches()
-	{
-		var fragileType = typeof(CrystalEffect).Assembly.GetType("CrystalFragile");
-		if (fragileType == null)
-		{
-			_log.LogError("Dynamic patch target CrystalFragile not found — the fragile-crystal break sync is off.");
-			return;
-		}
-
-		var touched = fragileType.GetMethod("Touched", BindingFlags.Public | BindingFlags.Instance);
-		if (touched != null)
-		{
-			_harmony!.Patch(touched, postfix: new HarmonyMethod(typeof(TrapCrystalPatch).GetMethod(
-				nameof(TrapCrystalPatch.Postfix), BindingFlags.Static | BindingFlags.NonPublic)));
-		}
-		else
-		{
-			_log.LogError("Dynamic patch method CrystalFragile.Touched not found — the fragile-crystal break sync is off.");
-		}
-
-		var electricType = typeof(CrystalEffect).Assembly.GetType("CrystalElectric");
-		if (electricType == null)
-		{
-			_log.LogError("Dynamic patch target CrystalElectric not found — the electric-crystal shock sync is off.");
-			return;
-		}
-
-		var shock = electricType.GetMethod("Shock", BindingFlags.Public | BindingFlags.Instance);
-		if (shock != null)
-		{
-			_harmony!.Patch(shock, postfix: new HarmonyMethod(typeof(TrapCrystalPatch).GetMethod(
-				nameof(TrapCrystalPatch.ElectricShockPostfix), BindingFlags.Static | BindingFlags.NonPublic)));
-		}
-		else
-		{
-			_log.LogError("Dynamic patch method CrystalElectric.Shock not found — the electric-crystal shock sync is off.");
-		}
-
-		// CrystalDripping (internal — the drip's fluid writes are the host's, #129).
-		var drippingType = typeof(CrystalEffect).Assembly.GetType("CrystalDripping");
-		var dripUpdate = drippingType?.GetMethod("Update", BindingFlags.Public | BindingFlags.Instance);
-		if (dripUpdate != null)
-		{
-			_harmony!.Patch(dripUpdate, prefix: new HarmonyMethod(typeof(CrystalDrippingPatch).GetMethod(
-				nameof(CrystalDrippingPatch.Prefix), BindingFlags.Static | BindingFlags.NonPublic)));
-		}
-		else
-		{
-			_log.LogError("Dynamic patch target CrystalDripping not found — the guest-side drip suppression is off.");
-		}
-
-		// The phase-B crystal family (internal classes — the same dynamic rule):
-		// the unstable crystal's 5 s explosion, the metamorphic touch, the shy
-		// swap and the EMP. Each installs the latch-rise prefix/postfix pair.
-		InstallCrystalFamilyPatch("CrystalUnstable", "Update", "UnstableUpdatePrefix", "UnstableUpdatePostfix");
-		InstallCrystalFamilyPatch("CrystalMetamorphic", "Touched", "MetamorphicTouchedPrefix", "MetamorphicTouchedPostfix");
-		InstallCrystalFamilyPatch("CrystalShy", "Touched", "ShyTouchedPrefix", "ShyTouchedPostfix");
-		InstallCrystalFamilyPatch("CrystalEMP", "TryEMP", "EmpTryEMPPrefix", "EmpTryEMPPostfix");
-	}
-
-	/// <summary>Install a crystal-family latch-rise pair (prefix + postfix) onto
-	/// an internal game type's method — the phase-B family helper.</summary>
-	private void InstallCrystalFamilyPatch(string typeName, string methodName, string prefixName, string postfixName)
-	{
-		var type = typeof(CrystalEffect).Assembly.GetType(typeName);
-		var method = type?.GetMethod(methodName, BindingFlags.Public | BindingFlags.Instance);
-		if (method == null)
-		{
-			_log.LogError("Dynamic patch target {Type}.{Method} not found — the crystal sync is off.", typeName, methodName);
-			return;
-		}
-
-		var prefix = typeof(TrapCrystalPatch).GetMethod(prefixName, BindingFlags.Static | BindingFlags.NonPublic);
-		var postfix = typeof(TrapCrystalPatch).GetMethod(postfixName, BindingFlags.Static | BindingFlags.NonPublic);
-		_harmony!.Patch(method, prefix: new HarmonyMethod(prefix), postfix: new HarmonyMethod(postfix));
-	}
+	/// <summary>Patches whose target types are INTERNAL to the game assembly (no
+	/// compile-time reference possible) — the installer reflects the type and
+	/// patches the method directly (DynamicPatchInstaller, split out at the
+	/// 600-line gate); the adapter owns the Harmony instance so it installs
+	/// them beside PatchAll.</summary>
+	private void InstallDynamicPatches() => DynamicPatchInstaller.Install(_harmony!, _log);
 
 	bool IPatchBridge.IsReplayingLifePodSound => _lifePod.IsReplayingSound;
 
@@ -381,6 +308,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_fluidSync.BindToSession();
 		_tradeSync.BindToSession();
 		_speechSync.BindToSession();
+		_recipeUnlockApply.BindToSession();
 		_run.BindToSession();
 		_genItemApplication.BindToSession();
 		_layerModifierSync.BindToSession();
@@ -407,6 +335,8 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_fluidSync.Unbind();
 		_tradeSync.Unbind();
 		_speechSync.Unbind();
+		_recipeUnlockApply.Unbind();
+		_craftingSync.ResetPending(); // the destroy claims die with the scene
 		_run.Unbind();
 		_genItemApplication.Unbind();
 		_layerModifierSync.Unbind();
@@ -569,7 +499,24 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 
 	void IPatchBridge.OnContainerUnloadedAll(Container container) => _containerSync.OnUnloadedAll(container);
 
-	void IPatchBridge.OnItemUsed(Item item) => _itemUseSync.OnItemUsed(item);
+	void IPatchBridge.OnItemUsed(Item item)
+	{
+		_itemUseSync.OnItemUsed(item);
+		_craftingSync.OnItemUsed(item); // a blueprint use unlocks its recipe (the unlock fact — the destruction rides the use digest)
+	}
+
+	object? IPatchBridge.OnCraftBegin(Recipe recipe) => _craftingSync.OnCraftBegin(recipe);
+
+	void IPatchBridge.OnCraftEnd(object? state) => _craftingSync.OnCraftEnd(state);
+
+	object? IPatchBridge.OnCombineBegin(Body body, Item it1, Item it2) => _craftingSync.OnCombineBegin(body, it1, it2);
+
+	void IPatchBridge.OnCombineEnd(object? state) => _craftingSync.OnCombineEnd(state);
+
+	void IPatchBridge.OnLiquidTransferFinished(WaterContainerItem transferTo, WaterContainerItem transferFrom) =>
+		_craftingSync.OnLiquidTransferFinished(transferTo, transferFrom);
+
+	bool IPatchBridge.ShouldSuppressDestroy(Item item) => _craftingSync.ShouldSuppressDestroy(item);
 
 	void IPatchBridge.OnSlotMoved(Body body, int slot, string origin) => _itemSlotSync.OnSlotMoved(body, slot, origin);
 

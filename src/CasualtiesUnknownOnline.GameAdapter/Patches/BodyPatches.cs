@@ -236,7 +236,11 @@ internal static class BodyPatches
 			// reports through the carried-fact chain with the limb wear
 			// encoding (OnItemWorn); the peer's clone re-homes it the moment
 			// the wear lands instead of waiting for the character snapshot.
-			if (item.transform.parent != null && item.transform.parent.GetComponent<Limb>() != null) // Unity objects — ==
+			// A wearable craft product wears during the craft — its fact rides
+			// the ONE craft report (OnInventoryChanged still fires above: the
+			// character snapshot baseline must re-report).
+			if (CallContext.Current != CallContext.Origin.Craft
+				&& item.transform.parent != null && item.transform.parent.GetComponent<Limb>() != null) // Unity objects — ==
 			{
 				if (__state)
 				{

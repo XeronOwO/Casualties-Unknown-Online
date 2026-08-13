@@ -13,7 +13,8 @@ namespace CasualtiesUnknownOnline.Runtime.Session;
 /// time (that would create the session ↔ gateway ↔ router ↔ handlers cycle).
 /// </summary>
 public sealed class HandlerContext(ISessionControl session, IEntitySyncControl entities,
-	ICharacterDataControl characterData, IWorldControl world, IItemControl items, IModsControl mods)
+	ICharacterDataControl characterData, IWorldControl world, IItemControl items, IModsControl mods,
+	ICraftControl craft)
 {
 	public ISessionControl Session { get; } = session;
 
@@ -27,4 +28,7 @@ public sealed class HandlerContext(ISessionControl session, IEntitySyncControl e
 
 	/// <summary>The mod domain (Phase 4 Mod API): message routing + the discovery state the handshake check reads.</summary>
 	public IModsControl Mods { get; } = mods;
+
+	/// <summary>The crafting domain: the one-operation-one-report apply + the recipe-unlock surface.</summary>
+	public ICraftControl Craft { get; } = craft;
 }

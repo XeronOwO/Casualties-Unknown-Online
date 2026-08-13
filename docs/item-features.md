@@ -233,6 +233,44 @@ CustomItemBehaviour.cs:40-98, 221-229, 327-335, 472-484), autozoomgoggles
 zoom assist (52-60), scubadivinggear wetness drain (339-347), blindfold
 (493-501), roselight light intensity = condition (205-210).
 
+## Crafting (the operation surfaces, landed 2026-08-13)
+
+The crafting family syncs as OPERATIONS — one operation = one `CraftReportMsg`
+carrying the complete terminal state (consumed/changed materials + products);
+the host classifies each entry against its world/transfer tables, applies and
+relays the whole report (source excluded). Details in CLAUDE.md ("Crafting
+domain"). Per-surface notes:
+
+- **Recipe.TryMake** (the crafting menu, PlayerCamera.TryCraft → Recipe.cs:172):
+  materials = inventory + 10 m floor items (Recipe.cs:107-135); the material
+  disposition comes from the recipe data (`destroyItem && !isLiquid`); the
+  liquid RESULT merges into an existing container with no new item
+  (RecipeResult.cs:36-49) — the coordinator's liquid-fingerprint diff turns
+  that container into a Changed entry; the deny path (no materials) reports
+  nothing. The first-craft bonus (happiness +1, INT exp) and the fail-branch
+  injuries ride the 1 Hz CharacterData snapshot (accepted latency).
+- **Body.CombineItems** (drag-combine, Body.cs:1254): gun/mag and mag/round
+  loads destroy the dragged item (its end-of-frame OnDestroy rides the
+  destroy-claim set); the condition merge changes both items; a refused load
+  or a full-condition no-op commits NOTHING (the per-branch terminal-change
+  verification). The water branch opens the interactive LiquidTransfer UI
+  instead — no report until `LiquidTransfer.Finish` (cancel = nothing).
+- **Blueprint use** (Item.cs:4279): the blueprint's own destruction rides the
+  existing use digest; the UNLOCK (`Recipes.recipes[idx].INT = 0`) rides
+  `RecipeUnlockMsg` — every side applies it to its per-process static.
+- **Enum component fields (codec kind 6)**: `GunScript.roundInChamber` and the
+  ammo/firing-mode enums now ride the component digest (stored as the
+  underlying int). The gun's live state (hasMag/roundsInMag/racked/safe —
+  public bool/int) was already covered; the enum was silently dropped before
+  this round (the CraftCodecContractTests kind-table now guards it).
+- **Recorded gaps**: gun firing/racking has no reports (a stale chamber record
+  corrects on the next drop — the report only makes records fresher); the
+  container-material spill (UnloadAllItems children) deliberately rides the
+  container-item domain (real new world items); noautopickup products ride the
+  item domain's spawn path; mindwipe's recipe-static reset (entity domain);
+  save-restore recipe INT divergence (multiplayer has no save-load path);
+  Heater cooker (meat→steak) stays its own item-domain TODO.
+
 ## Known state gaps (documented, not part of #89)
 
 - **CustomItemBehaviour.data** — see [payload](#payload—customitembbehaviourdata);

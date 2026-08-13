@@ -94,4 +94,11 @@ public enum NetMsg : byte
 	// 定向 semantics, star topology, NO auto-relay — a guest's report reaches the
 	// host's copy of the mod only; broadcasting is the host-side mod's explicit call)
 	ModMessage = 75, // bidirectional: guest → host report; host → guest directed/broadcast
+
+	// Crafting (the crafting domain — ONE crafting operation = ONE report carrying
+	// its complete terminal state: the consumed/changed materials and the products.
+	// The host applies per entry and relays the WHOLE report — never decomposed
+	// into per-entry broadcasts, so one-operation-one-report holds end-to-end)
+	CraftReport = 76, // bidirectional: guest → host report; host → guest broadcast relay (source excluded)
+	RecipeUnlock = 77, // bidirectional: guest → host report of a blueprint unlock; host → guest broadcast relay (source excluded)
 }

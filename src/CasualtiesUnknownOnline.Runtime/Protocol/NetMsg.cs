@@ -101,4 +101,8 @@ public enum NetMsg : byte
 	// into per-entry broadcasts, so one-operation-one-report holds end-to-end)
 	CraftReport = 76, // bidirectional: guest → host report; host → guest broadcast relay (source excluded)
 	RecipeUnlock = 77, // bidirectional: guest → host report of a blueprint unlock; host → guest broadcast relay (source excluded)
+
+	// Opened lockable entities (the late-joiner snapshot — an open is a one-shot
+	// write with no re-open, so a rejoin must learn the opens from the host)
+	OpenedEntitiesSnapshot = 78, // host → guest: the opened entities' positions so far (world entry, sent alongside the block-state and trap-state snapshots)
 }

@@ -230,6 +230,9 @@ internal sealed class CharacterDataSync(
 			// Wire encoding is handSlot + 1 (0 = none) — protobuf-net omits
 			// 0-valued ints, and hand slot 0 is valid (see CharacterDataMsg.HandSlot).
 			HandSlot = body.handSlot + 1,
+			// The reconnect restore returns the character to its LEAVE spot, not
+			// the fresh world's landing spot.
+			Position = new NetVector2Msg(body.transform.position.x, body.transform.position.y),
 		};
 
 		// Limb has no Index field — Mapster maps the rest, the loop assigns it.
@@ -281,6 +284,16 @@ internal sealed class CharacterDataSync(
 	private void ApplyRestoredStatsAndWipe(Body body, CharacterDataMsg data)
 	{
 		_log.LogInformation("Applying character restore ({Items} items).", data.Items.Count);
+
+		if (data.Position is { } pos)
+		{
+			// The disconnect spot — applied before the wipe (the position has no
+			// Destroy semantics to wait for). Zero velocity: the body must not
+			// keep the fresh spawn's momentum into the restored spot.
+			body.transform.position = new Vector3(pos.X, pos.Y, 0f);
+			body.rb.velocity = Vector2.zero;
+			_log.LogInformation("Character restore position: ({X:F1},{Y:F1}).", pos.X, pos.Y);
+		}
 
 		// Wipe the fresh-run default state first: this new run already got its
 		// starting supplies (WorldGeneration.WorldPlacePlayer) and random vitals
@@ -367,6 +380,14 @@ internal sealed class CharacterDataSync(
 			UnityEngine.Object.Destroy(go);
 			_log.LogWarning("Restore: {ItemId} has no Item component — skipped.", itemData.ItemId);
 			return;
+		}
+
+		if (itemData.InstanceId != 0)
+		{
+			// Identity restore — same rationale as ItemStateCodec.RestoreItem:
+			// the reconnect-merge ids keep the restored item the SAME instance
+			// the host knows (an id-less restore reads as a runtime spawn).
+			item.gameObject.AddComponent<ItemInstanceId>().Id = itemData.InstanceId;
 		}
 
 		item.condition = itemData.Condition;

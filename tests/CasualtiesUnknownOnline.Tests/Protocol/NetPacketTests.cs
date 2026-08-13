@@ -50,6 +50,24 @@ public class NetPacketTests
 	}
 
 	[Fact]
+	public void CharacterData_PositionField_RoundTrips()
+	{
+		// The reconnect restore's leave-spot field (ProtoMember 7): a null
+		// position (old-version sender) stays null, a real one round-trips
+		// exactly — the restore's position apply depends on it.
+		var msg = new CharacterDataMsg { Position = new NetVector2Msg(12.5f, -34.25f) };
+
+		var decoded = NetPacket.DecodePayload<CharacterDataMsg>(NetPacket.Encode(NetMsg.CharacterData, msg));
+
+		Assert.NotNull(decoded.Position);
+		Assert.Equal(12.5f, decoded.Position.X);
+		Assert.Equal(-34.25f, decoded.Position.Y);
+
+		var without = NetPacket.DecodePayload<CharacterDataMsg>(NetPacket.Encode(NetMsg.CharacterData, new CharacterDataMsg()));
+		Assert.Null(without.Position); // the null claim must survive the wire (message field — omitted, decodes to null)
+	}
+
+	[Fact]
 	public void CraftReport_ZeroValueEnums_RoundTripTransparently()
 	{
 		// The craft wire discipline: Kind=Craft and Disposition=Destroyed are

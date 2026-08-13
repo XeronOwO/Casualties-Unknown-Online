@@ -55,6 +55,15 @@ public sealed class SceneStateHandler(ILogger<SceneStateHandler> log) : PacketHa
 					// block-state snapshot (damage table) so it sees the world
 					// as it is now, not as the baseline regenerated it.
 					ctx.World.SendBlockStateSnapshot(reporter);
+					// Same for the one-shot trap consumptions — the world-entry
+					// send used to ride only the 60 s periodic resend, so a
+					// rejoin saw already-triggered traps fire up to a minute
+					// late (observed: a spent spike trap re-triggered).
+					ctx.World.SendTrapStateSnapshot(reporter);
+					// And the opened lockable entities — an open is a one-shot
+					// write with no re-open, so a rejoin must learn the opens
+					// from the host (observed: the pod door closed again).
+					ctx.World.SendOpenedEntitiesSnapshot(reporter);
 					// Same for the world items: the runtime-generated drops and
 					// placed items the member could not have regenerated.
 					ctx.Items.SendItemSnapshot(reporter);

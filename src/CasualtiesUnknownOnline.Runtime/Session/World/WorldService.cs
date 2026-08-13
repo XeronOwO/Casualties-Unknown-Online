@@ -298,8 +298,15 @@ public sealed partial class WorldService(ISessionControl session, PacketSender s
 	/// <summary>A lockable entity was opened — apply the open (health = 0) to the entity at Pos.</summary>
 	public event Action<NetVector2>? BuildingEntityOpenedReceived;
 
-	public void FireBuildingEntityOpenedReceived(NetVector2 pos) =>
+	public void FireBuildingEntityOpenedReceived(NetVector2 pos)
+	{
+		if (_session.Role == SessionRole.Host)
+		{
+			_eventChannel.ReportOpenedEntity(pos.X, pos.Y); // a guest's accepted open — recorded for the late-joiner snapshot
+		}
+
 		BuildingEntityOpenedReceived?.Invoke(pos);
+	}
 
 	/// <summary>
 	/// Report a locally-opened lockable entity (instant-open/lockpick/keypad —
@@ -318,6 +325,7 @@ public sealed partial class WorldService(ISessionControl session, PacketSender s
 		var msg = new BuildingEntityOpenedMsg { Position = pos.ToNetVector2Msg() };
 		if (_session.Role == SessionRole.Host)
 		{
+			_eventChannel.ReportOpenedEntity(pos.X, pos.Y); // the host's own open — recorded for the late-joiner snapshot
 			_session.Broadcast(NetMsg.BuildingEntityOpened, msg);
 		}
 		else
@@ -430,11 +438,12 @@ public sealed partial class WorldService(ISessionControl session, PacketSender s
 		_damagedBlocks.Remove((x, y));
 	}
 
-	/// <summary>Host only: a new world layer is generating — the tables start empty again (block difference + one-shot trap consumptions share the lifecycle).</summary>
+	/// <summary>Host only: a new world layer is generating — the tables start empty again (block difference + one-shot trap consumptions + opened entities share the lifecycle).</summary>
 	public void ResetDamagedBlocks()
 	{
 		_damagedBlocks.Clear();
 		_eventChannel.ResetConsumptions();
+		_eventChannel.ResetOpenedEntities();
 	}
 
 	/// <summary>Host only: send the full damage table to one member (on its world entry).</summary>

@@ -52,6 +52,7 @@ public class DirectionTests
 		NetMsg.ItemCorrection,
 		NetMsg.WorldItemsSnapshot,
 		NetMsg.ItemCarriedSync,
+		NetMsg.OpenedEntitiesSnapshot,
 	};
 
 	public static TheoryData<NetMsg> BidirectionalMessages => new()

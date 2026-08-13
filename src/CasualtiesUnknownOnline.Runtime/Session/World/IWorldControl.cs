@@ -171,6 +171,17 @@ public interface IWorldControl
 	/// <summary>Guest: the host's trap-consumption snapshot arrived — consume each entry (idempotent).</summary>
 	event Action<IReadOnlyList<EntityEventMsg>>? TrapStateReceived;
 
+	/// <summary>Host only: record an opened lockable entity at a world position (the late-joiner snapshot's source).</summary>
+	void ReportOpenedEntity(float x, float y);
+
+	/// <summary>Host only: send the opened entities' positions to one member (on its world entry).</summary>
+	void SendOpenedEntitiesSnapshot(ulong targetSteamId);
+
+	/// <summary>Guest: the host's opened-entities snapshot arrived — apply each open (idempotent).</summary>
+	void FireOpenedEntitiesSnapshotReceived(IReadOnlyList<NetVector2Msg> positions);
+
+	event Action<IReadOnlyList<NetVector2Msg>>? OpenedEntitiesSnapshotReceived;
+
 	/// <summary>Host only: stream an absolute RLE fluid-grid region to one member (the host simulates the world fluid alone — the guests render the streamed regions).</summary>
 	void SendFluidRegion(ulong targetSteamId, FluidRegionMsg msg);
 

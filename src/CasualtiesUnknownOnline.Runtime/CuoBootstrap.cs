@@ -118,7 +118,8 @@ public static class CuoBootstrap
 		// World domain: world-start parameters + block-damage reports (no pump,
 		// not an ICuoService — it only reacts to calls and messages).
 		services.AddSingleton<TrapConsumptionRegistry>(); // the one-shot trap-consumption table
-		services.AddSingleton<EntityEventChannel>(); // the entity event/creation channels + the consumption registry
+		services.AddSingleton<OpenedEntityRegistry>(); // the opened lockable-entity table (the late-joiner snapshot's source)
+		services.AddSingleton<EntityEventChannel>(); // the entity event/creation channels + the consumption/opened registries
 		services.AddSingleton<TradeChannel>(); // the trader state/action channel (trade domain)
 		services.AddSingleton<SpeechChannel>(); // the speech-bubble channel (the Talker domain)
 		services.AddSingleton<WorldService>();

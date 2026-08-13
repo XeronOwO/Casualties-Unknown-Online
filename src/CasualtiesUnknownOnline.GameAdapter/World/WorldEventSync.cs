@@ -50,6 +50,7 @@ internal sealed class WorldEventSync(
 		_world.BlockPlacedReceived += OnRemoteBlockPlaced;
 		_world.EarthquakeStartReceived += OnEarthquakeStartReceived;
 		_world.KeypadCodeReceived += OnKeypadCodeReceived;
+		_world.OpenedEntitiesSnapshotReceived += OnOpenedEntitiesSnapshot;
 	}
 
 	internal void Unbind()
@@ -61,6 +62,7 @@ internal sealed class WorldEventSync(
 		_world.BlockPlacedReceived -= OnRemoteBlockPlaced;
 		_world.EarthquakeStartReceived -= OnEarthquakeStartReceived;
 		_world.KeypadCodeReceived -= OnKeypadCodeReceived;
+		_world.OpenedEntitiesSnapshotReceived -= OnOpenedEntitiesSnapshot;
 	}
 
 	private bool IsHostMode => _session.Role == SessionRole.Host && _session.SessionActive;
@@ -94,6 +96,7 @@ internal sealed class WorldEventSync(
 				{
 					_world.SendBlockStateSnapshot(member.SteamId);
 					_world.SendTrapStateSnapshot(member.SteamId); // the one-shot trap consumptions ride the same world-entry resend (idempotent)
+					_world.SendOpenedEntitiesSnapshot(member.SteamId); // same for the opened entities (idempotent)
 				}
 			}
 
@@ -189,6 +192,22 @@ internal sealed class WorldEventSync(
 				_log.LogWarning("Building entity open at {Pos} — no entity there (moved or already gone).", pos);
 			}
 		}
+	}
+
+	/// <summary>
+	/// The host's opened-entities snapshot arrived (world entry / the 60 s
+	/// resend) — apply every open through the SAME application as the live
+	/// relay (health = 0 + the remote-death mark). Idempotent by construction:
+	/// an already-open entity's health is 0 again.
+	/// </summary>
+	private void OnOpenedEntitiesSnapshot(IReadOnlyList<NetVector2Msg> positions)
+	{
+		foreach (var pos in positions)
+		{
+			OnRemoteBuildingEntityOpened(new NetVector2(pos.X, pos.Y));
+		}
+
+		_log.LogInformation("Opened-entities snapshot applied ({Count} positions).", positions.Count);
 	}
 
 	/// <summary>

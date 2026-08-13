@@ -282,6 +282,16 @@ internal static class ItemStateCodec
 			return;
 		}
 
+		if (itemData.InstanceId != 0)
+		{
+			// Identity restore (exact rebuild): the reconnect-merge items carry
+			// their transfer-table ids — an id-less restore instantiation reads
+			// as a runtime spawn (reported with a NEW id the host never saw →
+			// UnknownItem reject → rollback pulled the restored item back out;
+			// the trashbag vanished and its contents landed on the ground).
+			item.gameObject.AddComponent<ItemInstanceId>().Id = itemData.InstanceId;
+		}
+
 		item.condition = itemData.Condition;
 		item.favourited = itemData.Favourited;
 		RestoreLiquids(item, itemData.Liquids);

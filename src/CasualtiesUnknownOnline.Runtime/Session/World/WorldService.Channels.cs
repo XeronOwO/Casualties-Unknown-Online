@@ -38,6 +38,14 @@ public sealed partial class WorldService
 
 	public void FireTrapStateReceived(IReadOnlyList<EntityEventMsg> consumed) => _eventChannel.FireTrapStateReceived(consumed);
 
+	public void ReportOpenedEntity(float x, float y) => _eventChannel.ReportOpenedEntity(x, y);
+
+	public void SendOpenedEntitiesSnapshot(ulong targetSteamId) => _eventChannel.SendOpenedEntitiesSnapshot(targetSteamId);
+
+	public event Action<IReadOnlyList<NetVector2Msg>>? OpenedEntitiesSnapshotReceived { add => _eventChannel.OpenedEntitiesSnapshotReceived += value; remove => _eventChannel.OpenedEntitiesSnapshotReceived -= value; }
+
+	public void FireOpenedEntitiesSnapshotReceived(IReadOnlyList<NetVector2Msg> positions) => _eventChannel.FireOpenedEntitiesSnapshotReceived(positions);
+
 	public void SendFluidRegion(ulong targetSteamId, FluidRegionMsg msg) => _eventChannel.SendFluidRegion(targetSteamId, msg);
 
 	public event Action<FluidRegionMsg>? FluidRegionReceived { add => _eventChannel.FluidRegionReceived += value; remove => _eventChannel.FluidRegionReceived -= value; }

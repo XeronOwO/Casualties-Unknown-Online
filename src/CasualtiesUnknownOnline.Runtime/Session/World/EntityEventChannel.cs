@@ -14,11 +14,12 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 /// everything else: report up (guest → host), the host applies to its own
 /// world and relays (BroadcastExcept — the source already applied locally).
 /// </summary>
-public sealed class EntityEventChannel(ISessionControl session, PacketSender sender, TrapConsumptionRegistry trapConsumption)
+public sealed class EntityEventChannel(ISessionControl session, PacketSender sender, TrapConsumptionRegistry trapConsumption, OpenedEntityRegistry openedEntities)
 {
 	private readonly ISessionControl _session = session;
 	private readonly PacketSender _sender = sender;
 	private readonly TrapConsumptionRegistry _trapConsumption = trapConsumption;
+	private readonly OpenedEntityRegistry _openedEntities = openedEntities;
 
 	// ---- World entity events (traps/mechanisms) ----
 
@@ -175,4 +176,20 @@ public sealed class EntityEventChannel(ISessionControl session, PacketSender sen
 	public event Action<IReadOnlyList<EntityEventMsg>>? TrapStateReceived;
 
 	public void FireTrapStateReceived(IReadOnlyList<EntityEventMsg> consumed) => TrapStateReceived?.Invoke(consumed);
+
+	// ---- Opened lockable entities (the late-joiner snapshot) ----
+
+	/// <summary>Host only: record an opened entity at a world position.</summary>
+	public void ReportOpenedEntity(float x, float y) => _openedEntities.Report(x, y);
+
+	/// <summary>Host only: send the opened positions to one member (on its world entry).</summary>
+	public void SendOpenedEntitiesSnapshot(ulong targetSteamId) => _openedEntities.SendSnapshot(targetSteamId);
+
+	/// <summary>Host only: a new world layer is generating — the opens start empty again.</summary>
+	public void ResetOpenedEntities() => _openedEntities.Reset();
+
+	/// <summary>Guest: the host's opened-entities snapshot arrived — apply each open (idempotent).</summary>
+	public event Action<IReadOnlyList<NetVector2Msg>>? OpenedEntitiesSnapshotReceived;
+
+	public void FireOpenedEntitiesSnapshotReceived(IReadOnlyList<NetVector2Msg> positions) => OpenedEntitiesSnapshotReceived?.Invoke(positions);
 }

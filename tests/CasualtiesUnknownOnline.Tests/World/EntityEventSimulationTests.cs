@@ -114,6 +114,36 @@ public class EntityEventSimulationTests
 	}
 
 	[Fact]
+	public void OpenedEntity_SnapshotCarriesEveryDistinctPosition()
+	{
+		var w = EntityEventSimWorld.Create();
+		var g1Opened = new List<IReadOnlyList<NetVector2Msg>>();
+		w.G1.Services.GetRequiredService<EntityEventChannel>().OpenedEntitiesSnapshotReceived += list => g1Opened.Add(list);
+
+		w.HostChannel.ReportOpenedEntity(10.2f, 20.8f);
+		w.HostChannel.ReportOpenedEntity(30f, 40f);
+		w.HostChannel.ReportOpenedEntity(10.7f, 20.1f); // the same cell — idempotent
+		w.HostChannel.SendOpenedEntitiesSnapshot(w.G1.SteamId);
+
+		Assert.True(g1Opened.Count == 1, "the snapshot must arrive");
+		Assert.True(g1Opened[0].Count == 2, $"two distinct cells, got {g1Opened[0].Count}");
+	}
+
+	[Fact]
+	public void OpenedEntity_ResetClears_NewWorldStartsEmpty()
+	{
+		var w = EntityEventSimWorld.Create();
+		w.HostChannel.ReportOpenedEntity(10f, 20f);
+		w.HostChannel.ResetOpenedEntities(); // a new layer is generating
+
+		var g2Opened = new List<IReadOnlyList<NetVector2Msg>>();
+		w.G2.Services.GetRequiredService<EntityEventChannel>().OpenedEntitiesSnapshotReceived += list => g2Opened.Add(list);
+		w.HostChannel.SendOpenedEntitiesSnapshot(w.G2.SteamId);
+
+		Assert.True(g2Opened.Count == 0, "an empty opened table sends nothing");
+	}
+
+	[Fact]
 	public void EntitySpawned_RelayedExcludingSource()
 	{
 		var w = EntityEventSimWorld.Create();

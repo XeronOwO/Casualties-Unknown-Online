@@ -42,4 +42,14 @@ public sealed class CharacterDataMsg
 	/// </summary>
 	[ProtoMember(6)]
 	public ulong OwnerSteamId { get; set; }
+
+	/// <summary>
+	/// The body's world position at capture — a reconnect restores the
+	/// character where it LEFT, not where the fresh world placed it (observed:
+	/// rejoin spawned at the landing spot instead of the disconnect spot).
+	/// Null = an old-version sender or no position claim (the restore then
+	/// leaves the body where it is).
+	/// </summary>
+	[ProtoMember(7)]
+	public NetVector2Msg? Position { get; set; }
 }

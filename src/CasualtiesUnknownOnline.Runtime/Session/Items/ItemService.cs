@@ -16,7 +16,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 /// members. Generation-time items never enter the table — world-gen
 /// determinism covers them. No pump (not an ICuoService, like WorldService).
 /// </summary>
-public sealed class ItemService : IItemControl
+public sealed class ItemService : IItemControl, IItemActionWorldAccess
 {
 	private readonly ISessionControl _session;
 	private readonly PacketSender _sender;
@@ -27,6 +27,7 @@ public sealed class ItemService : IItemControl
 
 	private readonly ItemArbitration _arbitration;
 	private readonly ItemCarriedSyncService _carriedSync;
+	private readonly ItemActionSync _itemActionSync;
 	private readonly ItemSnapshotService _snapshots;
 	private readonly ItemIdCoordinator _idCoordinator;
 	private readonly BlockDropSync _blockDrops;
@@ -38,6 +39,7 @@ public sealed class ItemService : IItemControl
 		_log = log;
 		_arbitration = arbitration; // DI-registered — the crafting domain composes the same instance (RemoveTransferred/AdoptEvidence/RegisterCarried)
 		_carriedSync = new(session, sender, log);
+		_itemActionSync = new(session, sender, arbitration, this, log); // the use/slot action flows — this is their narrow world access (abstract extraction)
 		_snapshots = new(session, sender, () => (IReadOnlyCollection<WorldItem>)_worldTable.Items.Values, log);
 		_idCoordinator = new ItemIdCoordinator(session, sender, _arbitration, log);
 		_blockDrops = new BlockDropSync(session, this);
@@ -192,26 +194,10 @@ public sealed class ItemService : IItemControl
 	}
 
 	/// <summary>Guest only: an item was used locally — report the used state (digest evidence) so the host validates and corrects. Host-side uses are the host's own authority, never reported.</summary>
-	public void SendItemUse(ulong itemId, CharacterItemMsg item)
-	{
-		if (_session.Role != SessionRole.Guest || !_session.SessionActive)
-		{
-			return;
-		}
-
-		_sender.Send(_session.HostSteamId, NetMsg.ItemUse, new ItemUseMsg { ItemId = itemId, Item = item });
-	}
+	public void SendItemUse(ulong itemId, CharacterItemMsg item) => _itemActionSync.SendItemUse(itemId, item);
 
 	/// <summary>Guest only: an item moved slots locally — report the new slot so the host's record stays in sync. Host-side moves are the host's own authority, never reported.</summary>
-	public void SendItemSlot(ulong itemId, int slotIndex, CharacterItemMsg item)
-	{
-		if (_session.Role != SessionRole.Guest || !_session.SessionActive)
-		{
-			return;
-		}
-
-		_sender.Send(_session.HostSteamId, NetMsg.ItemSlot, new ItemSlotMsg { ItemId = itemId, SlotIndex = slotIndex, Item = item });
-	}
+	public void SendItemSlot(ulong itemId, int slotIndex, CharacterItemMsg item) => _itemActionSync.SendItemSlot(itemId, slotIndex, item);
 
 	public void SendItemDropped(ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, ulong parentItemId, float rotation, NetVector2 parentPos = default, float angularVelocity = 0f)
 	{
@@ -444,33 +430,9 @@ public sealed class ItemService : IItemControl
 		_arbitration.FireCorrectionReceived(item);
 	}
 
-	public void FireItemUseReceived(ulong sender, ulong itemId, CharacterItemMsg evidence)
-	{
-		if (_session.Role != SessionRole.Host || !_session.SessionActive)
-		{
-			return;
-		}
+	public void FireItemUseReceived(ulong sender, ulong itemId, CharacterItemMsg evidence) => _itemActionSync.FireItemUseReceived(sender, itemId, evidence);
 
-		// The adopted state broadcasts as the carried-fact event; an item with no
-		// transfer-table entry yet (the carried-inventory report in flight or
-		// lost) falls back to the guest's own report as the fact, broadcast as-is.
-		var authoritative = _arbitration.CheckUseEvidence(sender, itemId, evidence) ?? evidence;
-		PublishCarriedSync(sender, authoritative);
-	}
-
-	public void FireItemSlotReceived(ulong sender, ulong itemId, int slotIndex, CharacterItemMsg item)
-	{
-		if (_session.Role != SessionRole.Host || !_session.SessionActive)
-		{
-			return;
-		}
-
-		// The recorded slot broadcasts as the carried-fact event; an untracked
-		// item falls back to the report's digest evidence (its slot is the new
-		// one, SlotKnown), broadcast as-is.
-		var authoritative = _arbitration.RecordSlot(sender, itemId, slotIndex) ?? item;
-		PublishCarriedSync(sender, authoritative);
-	}
+	public void FireItemSlotReceived(ulong sender, ulong itemId, int slotIndex, CharacterItemMsg item) => _itemActionSync.FireItemSlotReceived(sender, itemId, slotIndex, item);
 
 	public void FireItemSnapshotReceived(ulong sender, IReadOnlyList<WorldItem> items, int layerModifierIndex, byte[]? layerModifierRandomState)
 		=> _snapshots.FireItemSnapshotReceived(sender, items, layerModifierIndex, layerModifierRandomState);
@@ -500,6 +462,9 @@ public sealed class ItemService : IItemControl
 
 		_arbitration.SendCorrection(targetSteamId, item);
 	}
+
+	/// <summary>Host only: correct every OTHER member's copy of a used world item — the user's own copy IS the fact.</summary>
+	public void SendWorldItemCorrection(ulong exceptSteamId, CharacterItemMsg item) => _itemActionSync.SendWorldItemCorrection(exceptSteamId, item);
 
 	public IReadOnlyList<WorldItem> GetTransferredItems(ulong steamId) => _arbitration.GetTransferredItems(steamId);
 
@@ -597,4 +562,14 @@ public sealed class ItemService : IItemControl
 
 	// Role-agnostic local correction apply (the wire entry stays guest-only) — the craft domain's world-Changed entries reach the host's own scene copy through this.
 	internal void FireCorrectionLocal(CharacterItemMsg item) => _arbitration.FireCorrectionReceived(item);
+
+	// ===== IItemActionWorldAccess (explicit — the narrow surface the action flows compose) =====
+
+	bool IItemActionWorldAccess.IsWorldItem(ulong itemId) => IsWorldItemRegistered(itemId);
+
+	void IItemActionWorldAccess.UpdateWorldItemState(ulong itemId, CharacterItemMsg state) => UpdateWorldItemState(itemId, state);
+
+	void IItemActionWorldAccess.PublishCarriedSyncFor(ulong owner, CharacterItemMsg item) => PublishCarriedSyncFor(owner, item);
+
+	void IItemActionWorldAccess.FireCorrectionLocal(CharacterItemMsg item) => FireCorrectionLocal(item);
 }

@@ -34,4 +34,13 @@ public interface IGameAdapter : IDisposable
 
 	/// <summary>Guest side: called right before world generation — applies the host's world params.</summary>
 	void ApplyWorldParams(WorldStartParams parameters);
+
+	/// <summary>
+	/// The game is quitting (Unity's OnApplicationQuit — broadcast before the
+	/// scene unloads). The teardown must engage BEFORE the unload: the world
+	/// items' OnDestroy then fires while the session still reads as alive, and
+	/// reporting each as a player-operation destroy wiped the host's world
+	/// copies (#191).
+	/// </summary>
+	void OnApplicationQuit();
 }

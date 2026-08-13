@@ -47,11 +47,24 @@ internal sealed class ItemUseSync(ItemService items, ISessionControl session, It
 
 		if (_session.Role == SessionRole.Host && _session.SessionActive)
 		{
+			var capture = ItemStateCodec.CaptureItem(item, ItemStateCodec.SlotOf(item));
+			if (ItemWorldSync.IsWorldItem(item))
+			{
+				// A WORLD item used in place (a ground canister): the local copy
+				// IS the fact — the peers' world copies adopt it via the
+				// correction path (#194; the carried-fact broadcast below never
+				// touched the world copies, so the two sides' canisters diverged
+				// permanently).
+				_items.SendWorldItemCorrection(_session.LocalSteamId, capture);
+				_log.LogInformation("[ItemUsed] {Type} (id {ItemId}) — world item, peers corrected.", item.id, idComp!.Id);
+				return;
+			}
+
 			// The host's own fact — broadcast the full carried item (SlotOf
 			// resolves the hand slot or the wear limb; -1 = unresolvable, the
 			// receiver keeps the fact table's slot).
-			_items.SendItemCarriedSync(_session.LocalSteamId, ItemStateCodec.CaptureItem(item, ItemStateCodec.SlotOf(item)));
-			_log.LogInformation("[ItemUsed] {Type} (id {ItemId}) — host fact broadcast.", item.id, idComp!.Id);
+			_items.SendItemCarriedSync(_session.LocalSteamId, capture);
+			_log.LogInformation("[ItemUsed] {Type} (id {ItemId}) — host fact broadcast.", item.id, idComp.Id);
 			return;
 		}
 

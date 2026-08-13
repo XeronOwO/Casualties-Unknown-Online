@@ -3,6 +3,7 @@ using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
+using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -113,8 +114,53 @@ public class ItemArbitrationFlowTests
 		var sender = guest.Services.GetRequiredService<PacketSender>();
 		sender.Send(HostId, NetMsg.ItemUse, new ItemUseMsg { ItemId = 777, Item = Item() });
 
-		// No transfer-table entry — the guest's report is the fact source, never corrected.
+		// No transfer-table entry and not a world item — the guest's report is the fact source, never corrected.
 		Assert.DoesNotContain(received, r => r.Msg == NetMsg.ItemCorrection);
+	}
+
+	[Fact]
+	public void ClearTransferred_NewRun_EmptiesTheTransferTable()
+	{
+		var (host, guest, _) = CreateSession();
+		var arbitration = host.Services.GetRequiredService<ItemArbitration>();
+		SpawnItem(guest, 42, Item());
+		ReportPickup(guest, 42, Item()); // the pickup transfers the entry
+
+		arbitration.ClearTransferred();
+
+		Assert.Empty(arbitration.GetTransferredItems(GuestId));
+	}
+
+	[Fact]
+	public void ClearTransferred_LeavesTheWorldTableIntact()
+	{
+		var (host, guest, _) = CreateSession();
+		var items = host.Services.GetRequiredService<ItemService>();
+		SpawnItem(guest, 42, Item());
+
+		host.Services.GetRequiredService<ItemArbitration>().ClearTransferred();
+
+		// A NEW run clears only the carried records — the world items of the old
+		// world are the OLD world's, they leave with its scene (ItemService.ResetItems
+		// resets the table at generation). The transfer table holds inventory facts,
+		// the world table holds world facts — the clear must not conflate them.
+		Assert.True(items.IsWorldItemRegistered(42));
+	}
+
+	[Fact]
+	public void ClearTransferred_TransferAfterwards_StillArbitrates()
+	{
+		var (host, guest, received) = CreateSession();
+		var arbitration = host.Services.GetRequiredService<ItemArbitration>();
+		arbitration.ClearTransferred();
+
+		SpawnItem(guest, 43, Item());
+		ReportPickup(guest, 43, Item());
+
+		// The new run's first pickup transfers normally — the clear is a reset,
+		// not a shutdown.
+		Assert.Contains(arbitration.GetTransferredItems(GuestId), w => w.Item.InstanceId == 43);
+		Assert.DoesNotContain(received, r => r.Msg == NetMsg.ItemReject);
 	}
 
 	[Fact]

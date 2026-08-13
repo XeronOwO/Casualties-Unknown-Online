@@ -1,6 +1,7 @@
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
+using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.GameAdapter.Character;
 using CasualtiesUnknownOnline.GameAdapter.World;
@@ -27,6 +28,7 @@ internal sealed class RunCoordinator(
 	CharacterDataSync characterData,
 	GuestMenuGuard guestMenu,
 	WorldParamsService worldParams,
+	ItemArbitration arbitration,
 	ILogger<RunCoordinator> log)
 {
 	/// <summary>Guest run-follow phases — one enum replaces the scattered booleans (pending/started/ready/frozen).</summary>
@@ -46,6 +48,7 @@ internal sealed class RunCoordinator(
 	private readonly CharacterDataSync _characterData = characterData;
 	private readonly GuestMenuGuard _guestMenu = guestMenu;
 	private readonly WorldParamsService _params = worldParams;
+	private readonly ItemArbitration _arbitration = arbitration;
 	private readonly ILogger<RunCoordinator> _log = log;
 
 	private RunPhase _phase = RunPhase.Idle;
@@ -137,6 +140,7 @@ internal sealed class RunCoordinator(
 		{
 			_params.CaptureAtEntry(isTutorial); // the generation baseline — captured at the click moment, before any run randomness is consumed
 			_characterData.ClearSavedCharacters(); // a NEW run — the previous run's saved characters are void (a stale restore would wipe the new run's starting supplies)
+			_arbitration.ClearTransferred(); // a NEW run — the previous run's transfer entries are void (a stale entry would resurrect the old run's items on reconnect restore, #192)
 			_world.SetHostRunPending(true); // mid-generation handshakes may follow immediately
 			_world.SendWorldJoin(isTutorial);
 		}

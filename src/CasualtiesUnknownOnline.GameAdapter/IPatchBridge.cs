@@ -21,6 +21,9 @@ internal interface IPatchBridge
 
 	void OnWorldGenerate();
 
+	/// <summary>SceneManager.LoadScene(string) prefix — the old scene unloads inside the load: engage the destroy-report suppression BEFORE the teardown destroys (#191).</summary>
+	void OnSceneLoadBegin();
+
 	void OnBlockSet(Vector2Int pos, ushort block);
 
 	void OnBlockDamaged(Vector2 pos, float dmg);

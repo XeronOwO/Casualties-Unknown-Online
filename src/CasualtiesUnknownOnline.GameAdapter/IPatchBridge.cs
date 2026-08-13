@@ -49,6 +49,33 @@ internal interface IPatchBridge
 	/// <summary>The spawn landing camera shake is deferred while the start gate holds — replay it at release.</summary>
 	void DeferLifePodShake();
 
+	/// <summary>
+	/// Recipe.TryMake prefix: open the craft operation scope and snapshot the
+	/// materials (null when the recipe has no matching materials — the game
+	/// plays the Deny sound and nothing is consumed; no scope, no report). The
+	/// returned state crosses to OnCraftEnd via Harmony __state.
+	/// </summary>
+	object? OnCraftBegin(Recipe recipe);
+
+	/// <summary>Recipe.TryMake postfix: build ONE CraftReportMsg from the operation's terminal state (materials' post-state, liquid-container diffs, inventory-diff products) and commit it.</summary>
+	void OnCraftEnd(object? state);
+
+	/// <summary>
+	/// Body.CombineItems prefix: open the combine scope and snapshot the
+	/// pre-state (conditions + the water-branch decision). The returned state
+	/// crosses to OnCombineEnd via Harmony __state.
+	/// </summary>
+	object? OnCombineBegin(Body body, Item it1, Item it2);
+
+	/// <summary>Body.CombineItems postfix: verify the terminal change (a refused load or a full-condition no-op commits nothing) and commit ONE Combine report.</summary>
+	void OnCombineEnd(object? state);
+
+	/// <summary>LiquidTransfer.Finish ran (the transfer UI confirmed) — commit ONE LiquidTransfer report with both containers' post-state.</summary>
+	void OnLiquidTransferFinished(WaterContainerItem transferTo, WaterContainerItem transferFrom);
+
+	/// <summary>A craft-claimed destroyed item's end-of-frame OnDestroy must not report (its fact rode the craft report) — true consumes the claim.</summary>
+	bool ShouldSuppressDestroy(Item item);
+
 	bool OnGuestStartAttempt();
 
 	/// <summary>

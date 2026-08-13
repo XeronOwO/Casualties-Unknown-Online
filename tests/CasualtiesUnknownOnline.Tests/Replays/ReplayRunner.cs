@@ -83,6 +83,9 @@ internal static class ReplayRunner
 			case "destroy":
 				ExecuteItemOperation(world, step, simTrace);
 				break;
+			case "craft":
+				ExecuteCraft(world, step, simTrace);
+				break;
 			case "fault":
 				ApplyFault(world.Driver, world.Node, step);
 				break;
@@ -160,6 +163,94 @@ internal static class ReplayRunner
 			var newFrames = (world.ReceivedTotal(node) - beforeFrames) + (world.ReceivedTotal(OtherGuest(world, node)) - beforeOthersFrames);
 			simTrace.End(op, itemId, action, newFrames > 0 ? $"Committed({newFrames})" : "Skipped", action);
 		}
+	}
+
+	/// <summary>One crafting operation (the one-operation-one-report convention):
+	/// the complete terminal state as one CraftReportMsg. Grammar:
+	/// entries = "d:&lt;id&gt;" (destroyed) | "c:&lt;id&gt;:&lt;cond&gt;" (changed), "|"-joined,
+	/// "-" = none; products = "p:&lt;id&gt;:&lt;type&gt;:&lt;cond&gt;", "|"-joined, "-" = none.
+	/// The trace's item id is 0 (an operation, not an item — the entity-actions
+	/// precedent) and the result is the relay surface (frames on either wire).</summary>
+	private static void ExecuteCraft(ItemSimWorld world, ReplayStep step, SimTrace simTrace)
+	{
+		var node = world.Node(step.Args[0]);
+		var kind = step.Args[1] switch
+		{
+			"craft" => CraftOperationKind.Craft,
+			"combine" => CraftOperationKind.Combine,
+			"liquid" => CraftOperationKind.LiquidTransfer,
+			_ => throw new InvalidOperationException($"unknown craft kind '{step.Args[1]}' (craft/combine/liquid)"),
+		};
+		var msg = new CraftReportMsg { Kind = kind, Entries = CraftEntries(step, 2), Products = CraftProducts(step, 3) };
+
+		var beforeFrames = world.ReceivedTotal(node) + world.ReceivedTotal(OtherGuest(world, node));
+		var op = simTrace.Begin(0, "craft", "Craft");
+		world.Craft(node, msg);
+		var newFrames = (world.ReceivedTotal(node) - beforeFrames) + (world.ReceivedTotal(OtherGuest(world, node)) - beforeFrames);
+		simTrace.End(op, 0, "craft", newFrames > 0 ? $"Committed({newFrames})" : "Skipped", "Craft");
+	}
+
+	private static List<CraftEntryMsg> CraftEntries(ReplayStep step, int index)
+	{
+		if (step.Args[index] == "-")
+		{
+			return [];
+		}
+
+		var entries = new List<CraftEntryMsg>();
+		foreach (var part in step.Args[index].Split('|'))
+		{
+			var p = part.Split(':');
+			entries.Add(p[0] switch
+			{
+				"d" => new CraftEntryMsg
+				{
+					Disposition = CraftEntryDisposition.Destroyed,
+					Item = new CharacterItemMsg { InstanceId = ulong.Parse(p[1]), ItemId = "material" },
+				},
+				"c" => new CraftEntryMsg
+				{
+					Disposition = CraftEntryDisposition.Changed,
+					Item = new CharacterItemMsg
+					{
+						InstanceId = ulong.Parse(p[1]),
+						ItemId = "material",
+						Condition = float.Parse(p[2], NumberStyles.Float, CultureInfo.InvariantCulture),
+					},
+				},
+				_ => throw new InvalidOperationException($"unknown craft entry '{part}' (d:<id>|c:<id>:<cond>)"),
+			});
+		}
+
+		return entries;
+	}
+
+	private static List<CharacterItemMsg> CraftProducts(ReplayStep step, int index)
+	{
+		if (step.Args[index] == "-")
+		{
+			return [];
+		}
+
+		var products = new List<CharacterItemMsg>();
+		foreach (var part in step.Args[index].Split('|'))
+		{
+			var p = part.Split(':');
+			if (p[0] != "p")
+			{
+				throw new InvalidOperationException($"unknown craft product '{part}' (p:<id>:<type>:<cond>)");
+			}
+
+			products.Add(new CharacterItemMsg
+			{
+				InstanceId = ulong.Parse(p[1]),
+				ItemId = p[2],
+				Condition = float.Parse(p[3], NumberStyles.Float, CultureInfo.InvariantCulture),
+				SlotIndex = 3,
+			});
+		}
+
+		return products;
 	}
 
 	private static TestNode OtherGuest(ItemSimWorld world, TestNode node) => node == world.G1 ? world.G2 : world.G1;

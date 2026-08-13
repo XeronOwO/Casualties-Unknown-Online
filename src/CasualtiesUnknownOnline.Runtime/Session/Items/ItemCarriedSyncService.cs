@@ -66,4 +66,8 @@ public sealed class ItemCarriedSyncService(
 		ItemCarriedSyncReceived?.Invoke(ownerSteamId, item, item.SlotIndex != -1);
 		SendItemCarriedSync(ownerSteamId, item);
 	}
+
+	/// <summary>Apply a carried fact locally only (no broadcast — the caller's own relay already carries it to the peers; one operation = one message): this side's clone of the owner re-renders.</summary>
+	public void PublishLocal(ulong ownerSteamId, CharacterItemMsg item)
+		=> ItemCarriedSyncReceived?.Invoke(ownerSteamId, item, item.SlotIndex != -1);
 }

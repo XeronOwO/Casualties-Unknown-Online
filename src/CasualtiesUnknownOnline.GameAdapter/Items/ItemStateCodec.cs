@@ -212,7 +212,7 @@ internal static class ItemStateCodec
 					Name = field.Name,
 					Kind = kind,
 					FloatValue = kind == 1 ? (float)value! : 0f,
-					IntValue = kind == 2 ? (int)value! : 0,
+					IntValue = kind is 2 or 6 ? Convert.ToInt32(value) : 0, // 6 = enum — boxed enums unbox via Convert, never (int)value
 					BoolValue = kind == 3 && (bool)value!,
 					StringValue = kind == 4 ? (string)value! : "",
 					StringList = kind == 5 ? (List<string>)value! : [],
@@ -250,6 +250,11 @@ internal static class ItemStateCodec
 		if (type == typeof(List<string>))
 		{
 			return 5;
+		}
+
+		if (type.IsEnum)
+		{
+			return 6; // stored as its underlying int (GunScript.roundInChamber etc. — mutable enum state the digest must carry)
 		}
 
 		return 0;
@@ -351,6 +356,9 @@ internal static class ItemStateCodec
 						break;
 					case 5:
 						target.SetValue(comp, field.StringList);
+						break;
+					case 6: // enum — the wire stored its underlying int; box it back to the field's type
+						target.SetValue(comp, Enum.ToObject(target.FieldType, field.IntValue));
 						break;
 				}
 			}

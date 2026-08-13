@@ -63,10 +63,14 @@ internal static class BodyItemPatches
 		// Only a pickup that actually landed (the guard clauses inside PickUpItem
 		// — slot capacity, distance — can fail and leave the item untouched);
 		// slot-to-slot moves (SwapSlots/SwitchHands) are inventory-internal
-		// reorders, not world events — their scope tells us, no static flags.
+		// reorders, not world events — their scope tells us, no static flags. A
+		// Craft scope silences the report too: a product's pickup rides the ONE
+		// craft report (the coordinator's inventory diff), never a per-call one.
 		private static void Postfix(Body __instance, Item item)
 		{
-			if (CallContext.Current != CallContext.Origin.InternalReorder && __instance.HoldingItem(item))
+			if (CallContext.Current != CallContext.Origin.InternalReorder
+				&& CallContext.Current != CallContext.Origin.Craft
+				&& __instance.HoldingItem(item))
 			{
 				PatchBridge.Impl?.OnItemPickedUp(item);
 			}
@@ -88,7 +92,9 @@ internal static class BodyItemPatches
 	{
 		private static void Prefix(Body __instance, Item item)
 		{
-			if (CallContext.Current != CallContext.Origin.InternalReorder && __instance.HoldingItem(item))
+			if (CallContext.Current != CallContext.Origin.InternalReorder
+				&& CallContext.Current != CallContext.Origin.Craft // a destroyed material's DropItem (RecipeItem.cs:182) — its fact rides the craft report
+				&& __instance.HoldingItem(item))
 			{
 				PatchBridge.Impl?.OnItemDropped(item);
 			}

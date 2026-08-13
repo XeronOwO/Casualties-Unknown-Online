@@ -19,11 +19,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 /// rejects. Split out of ItemService when the 600-line gate demanded it — its
 /// state (the transfer table) belongs here, ItemService forwards.
 /// </summary>
-public sealed class ItemArbitration(ISessionControl session, PacketSender sender, ILogger log)
+public sealed class ItemArbitration(ISessionControl session, PacketSender sender, ILogger<ItemArbitration> log)
 {
 	private readonly ISessionControl _session = session;
 	private readonly PacketSender _sender = sender;
-	private readonly ILogger _log = log;
+	private readonly ILogger<ItemArbitration> _log = log;
 
 	/// <summary>
 	/// The transfer table (host only): which items each guest currently owns.
@@ -105,7 +105,18 @@ public sealed class ItemArbitration(ISessionControl session, PacketSender sender
 	/// record); a use is exactly the opposite. Returns the adopted authoritative
 	/// item (null when untracked — no entry to arbitrate against).
 	/// </summary>
-	public CharacterItemMsg? CheckUseEvidence(ulong guest, ulong itemId, CharacterItemMsg evidence)
+	public CharacterItemMsg? CheckUseEvidence(ulong guest, ulong itemId, CharacterItemMsg evidence) =>
+		AdoptEvidence(guest, itemId, evidence, "used");
+
+	/// <summary>
+	/// Host only: adopt an action-report evidence over the transfer-table entry
+	/// — the shared shape of the use path and the crafting domain's Changed
+	/// entries (a craft/combine changes the item's state by definition, so
+	/// comparing would correct the operation back; the sender is the fact source
+	/// for its own inventory). Returns the adopted authoritative item (null when
+	/// untracked — no entry to arbitrate against).
+	/// </summary>
+	public CharacterItemMsg? AdoptEvidence(ulong guest, ulong itemId, CharacterItemMsg evidence, string origin)
 	{
 		if (!_transferred.TryGetValue(guest, out var owned) || !owned.TryGetValue(itemId, out var entry))
 		{
@@ -113,7 +124,7 @@ public sealed class ItemArbitration(ISessionControl session, PacketSender sender
 			// the transfer table (e.g. the reconnect restore has not merged
 			// yet). Log and leave; the character-data snapshot path still
 			// carries the state.
-			_log.LogWarning("Item use {ItemId} from {Guest} — no transfer-table entry, not arbitrated.", itemId, guest);
+			_log.LogWarning("Item {Origin} {ItemId} from {Guest} — no transfer-table entry, not arbitrated.", origin, itemId, guest);
 			return null;
 		}
 
@@ -122,8 +133,26 @@ public sealed class ItemArbitration(ISessionControl session, PacketSender sender
 		entry.Item.Liquids = evidence.Liquids;
 		entry.Item.Components = evidence.Components;
 
-		_log.LogInformation("Item {ItemId} used by {Guest}.", itemId, guest);
+		_log.LogInformation("Item {ItemId} {Origin} by {Guest}.", itemId, origin, guest);
 		return entry.Item;
+	}
+
+	/// <summary>
+	/// Host only: an item was destroyed while owned (consumed as a crafting
+	/// material, loaded into a mag, decayed to zero) — it leaves the transfer
+	/// table. Without this the ghost entry outlives the item: the reconnect
+	/// restore merge resurrects a destroyed item into the guest's inventory.
+	/// Idempotent (absent = no-op); returns whether an entry was removed.
+	/// </summary>
+	public bool RemoveTransferred(ulong guest, ulong itemId)
+	{
+		if (_transferred.TryGetValue(guest, out var owned) && owned.Remove(itemId))
+		{
+			_log.LogInformation("Item {ItemId} destroyed while owned by {Guest} — removed from the transfer table.", itemId, guest);
+			return true;
+		}
+
+		return false;
 	}
 
 	/// <summary>
@@ -339,6 +368,7 @@ public sealed class ItemArbitration(ISessionControl session, PacketSender sender
 		3 => e.BoolValue == a.BoolValue,
 		4 => e.StringValue == a.StringValue,
 		5 => e.StringList.SequenceEqual(a.StringList),
+		6 => e.IntValue == a.IntValue, // enum — stored as its underlying int (ItemStateCodec kind 6)
 		_ => false,
 	};
 

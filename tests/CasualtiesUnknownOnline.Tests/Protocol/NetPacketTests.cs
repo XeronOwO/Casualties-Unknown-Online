@@ -48,4 +48,53 @@ public class NetPacketTests
 		Assert.Equal(0, decoded.Protocol);
 		Assert.NotNull(decoded.Scene);
 	}
+
+	[Fact]
+	public void CraftReport_ZeroValueEnums_RoundTripTransparently()
+	{
+		// The craft wire discipline: Kind=Craft and Disposition=Destroyed are
+		// zero (omitted on the wire by protobuf) — the omission must decode
+		// back to the SAME semantic defaults (the default enum value is the
+		// semantic default).
+		var msg = new CraftReportMsg
+		{
+			Kind = CraftOperationKind.Craft,
+			Entries =
+			[
+				new CraftEntryMsg
+				{
+					Disposition = CraftEntryDisposition.Destroyed,
+					Item = new CharacterItemMsg { InstanceId = 42, ItemId = "cloth", Condition = 0.5f },
+				},
+				new CraftEntryMsg
+				{
+					Disposition = CraftEntryDisposition.Changed,
+					Item = new CharacterItemMsg { InstanceId = 43, ItemId = "knife", Condition = 0.6f },
+				},
+			],
+			Products = [new CharacterItemMsg { InstanceId = 44, ItemId = "bandage", Condition = 1f, SlotIndex = 3 }],
+		};
+
+		var decoded = NetPacket.DecodePayload<CraftReportMsg>(NetPacket.Encode(NetMsg.CraftReport, msg));
+
+		Assert.Equal(CraftOperationKind.Craft, decoded.Kind);
+		Assert.Equal(2, decoded.Entries.Count);
+		Assert.Equal(CraftEntryDisposition.Destroyed, decoded.Entries[0].Disposition);
+		Assert.Equal(42ul, decoded.Entries[0].Item.InstanceId);
+		Assert.Equal(CraftEntryDisposition.Changed, decoded.Entries[1].Disposition);
+		Assert.Equal(0.6f, decoded.Entries[1].Item.Condition);
+		Assert.Single(decoded.Products);
+		Assert.Equal(44ul, decoded.Products[0].InstanceId);
+		Assert.Equal(3, decoded.Products[0].SlotIndex);
+	}
+
+	[Fact]
+	public void RecipeUnlock_IndexZero_RoundTrips()
+	{
+		// RecipeIndex 0 is a VALID index (blueprints roll Range(0, Count)) —
+		// protobuf omits it on the wire, and the omission decodes back to 0.
+		var decoded = NetPacket.DecodePayload<RecipeUnlockMsg>(NetPacket.Encode(NetMsg.RecipeUnlock, new RecipeUnlockMsg { RecipeIndex = 0 }));
+
+		Assert.Equal(0, decoded.RecipeIndex);
+	}
 }

@@ -28,7 +28,10 @@ internal static class ContainerItemPatches
 
 		private static void Postfix(Container __instance, Item item, bool __state)
 		{
-			if (item.transform.parent == __instance.transform)
+			// A product loading into a surface container during a craft (the
+			// AutoPickUpItem container path) rides the ONE craft report — the
+			// coordinator's inventory diff sees it.
+			if (CallContext.Current != CallContext.Origin.Craft && item.transform.parent == __instance.transform)
 			{
 				PatchBridge.Impl?.OnItemLoadedIntoContainer(item, __state);
 			}

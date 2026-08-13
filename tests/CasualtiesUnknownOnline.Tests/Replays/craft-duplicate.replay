@@ -1,0 +1,17 @@
+# Phase-4 replay archive — crafting: a Steam-reliable retransmit re-applies
+# the same craft report. Every apply step is idempotent by construction (the
+# table removals no-op, the product registration overwrites — the adopt model,
+# never a reject): the state lands once and the losing reporter sees no
+# rejection. The relay re-sends on the duplicate (no op-id to dedupe against —
+# accepted; the apply idempotency is what this locks).
+#
+# Fossil of: CraftSyncSimulationTests.GuestCraft_DuplicateReport_IsIdempotent
+# Mechanism: CraftSyncService.FireCraftReportReceived — idempotent applies; RemoveTransferred/RegisterCarried overwrite
+#            (Runtime/Session/Items/CraftSyncService.cs)
+
+@0 spawn g1 42 cloth 1.0
+@33 pickup g1 42 cloth 1.0
+@66 craft g1 craft d:42 p:44:bandage:1.0
+@99 craft g1 craft d:42 p:44:bandage:1.0
+@132 expect received g2 CraftReport 2 within 500
+@132 expect_no_reject g1

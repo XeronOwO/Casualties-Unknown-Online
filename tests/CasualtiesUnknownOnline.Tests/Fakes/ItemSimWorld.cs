@@ -119,6 +119,13 @@ internal sealed class ItemSimWorld : IDisposable
 	internal void Slot(TestNode guest, ulong itemId, int slotIndex, CharacterItemMsg item) =>
 		Send(guest, NetMsg.ItemSlot, new ItemSlotMsg { ItemId = itemId, SlotIndex = slotIndex, Item = item });
 
+	/// <summary>One crafting operation's complete terminal state (the one-operation-one-report convention).</summary>
+	internal void Craft(TestNode guest, CraftReportMsg msg) => Send(guest, NetMsg.CraftReport, msg);
+
+	/// <summary>A blueprint use unlocked a recipe.</summary>
+	internal void Unlock(TestNode guest, int recipeIndex) =>
+		Send(guest, NetMsg.RecipeUnlock, new RecipeUnlockMsg { RecipeIndex = recipeIndex });
+
 	private static void Send(TestNode guest, NetMsg msg, object payload)
 	{
 		var sender = guest.Services.GetRequiredService<PacketSender>();
@@ -129,6 +136,10 @@ internal sealed class ItemSimWorld : IDisposable
 
 	/// <summary>Whether the host's world-item table currently holds the item.</summary>
 	internal bool HostTable(ulong itemId) => Items.IsWorldItemRegistered(itemId);
+
+	/// <summary>Whether the host's transfer table records the item as owned by the guest (the carried-record surface the craft domain mutates).</summary>
+	internal bool TransferredOf(TestNode guest, ulong itemId) =>
+		Items.GetTransferredItems(guest.SteamId).Any(w => w.Item.InstanceId == itemId);
 
 	/// <summary>The rejects the node has received so far (cumulative — the assertion is "ever received").</summary>
 	internal List<ItemRejectMsg> Rejects(TestNode node) =>

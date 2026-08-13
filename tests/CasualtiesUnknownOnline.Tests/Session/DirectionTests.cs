@@ -73,6 +73,8 @@ public class DirectionTests
 		NetMsg.EntitySpawned,
 		NetMsg.FluidInteraction,
 		NetMsg.ModMessage,
+		NetMsg.CraftReport,
+		NetMsg.RecipeUnlock,
 	};
 
 	[Theory]

@@ -100,7 +100,8 @@ public static class CuoBootstrap
 			p.GetRequiredService<ICharacterDataControl>(),
 			p.GetRequiredService<IWorldControl>(),
 			p.GetRequiredService<IItemControl>(),
-			p.GetRequiredService<IModsControl>()));
+			p.GetRequiredService<IModsControl>(),
+			p.GetRequiredService<ICraftControl>()));
 		services.AddSingleton<PacketDispatcher>();
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<PacketDispatcher>());
 
@@ -124,8 +125,16 @@ public static class CuoBootstrap
 		services.AddSingleton<IWorldControl>(p => p.GetRequiredService<WorldService>());
 		// Item domain: the authoritative world-item table + pickup arbitration
 		// (no pump, not an ICuoService — it only reacts to calls and messages).
+		// ItemArbitration is DI-registered so the crafting domain composes the
+		// same transfer table (RemoveTransferred/AdoptEvidence/RegisterCarried).
+		services.AddSingleton<ItemArbitration>();
 		services.AddSingleton<ItemService>();
 		services.AddSingleton<IItemControl>(p => p.GetRequiredService<ItemService>());
+		// Crafting domain: the one-operation-one-report apply + the recipe
+		// unlock (no pump, not an ICuoService — it only reacts to calls and
+		// messages; ItemService's crafting seams are its world-table gateway).
+		services.AddSingleton<CraftSyncService>();
+		services.AddSingleton<ICraftControl>(p => p.GetRequiredService<CraftSyncService>());
 		// Mod domain (Phase 4 Mod API): discovery registry (pure), the message
 		// channel and the coordinator (an ICuoService — registered after the
 		// session it reads; the session's IModListProvider resolves the registry

@@ -14,8 +14,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 /// the star-network pattern: the spawner applies locally, the host arbitrates
 /// (pickups are first-writer-wins against the table) and relays to the other
 /// members. Generation-time items never enter the table — world-gen
-/// determinism covers them. No pump: it only reacts to calls and messages (not
-/// an ICuoService, like WorldService).
+/// determinism covers them. No pump (not an ICuoService, like WorldService).
 /// </summary>
 public sealed class ItemService : IItemControl
 {
@@ -32,33 +31,28 @@ public sealed class ItemService : IItemControl
 	private readonly ItemIdCoordinator _idCoordinator;
 	private readonly BlockDropSync _blockDrops;
 
-	public ItemService(ISessionControl session, PacketSender sender, ILogger<ItemService> log)
+	public ItemService(ISessionControl session, PacketSender sender, ItemArbitration arbitration, ILogger<ItemService> log)
 	{
 		_session = session;
 		_sender = sender;
 		_log = log;
-		_arbitration = new(session, sender, log);
+		_arbitration = arbitration; // DI-registered — the crafting domain composes the same instance (RemoveTransferred/AdoptEvidence/RegisterCarried)
 		_carriedSync = new(session, sender, log);
 		_snapshots = new(session, sender, () => (IReadOnlyCollection<WorldItem>)_worldTable.Items.Values, log);
 		_idCoordinator = new ItemIdCoordinator(session, sender, _arbitration, log);
 		_blockDrops = new BlockDropSync(session, this);
 	}
 
-	// ===== Item-id coordination (watermarks + carried inventory) — the state lives in ItemIdCoordinator =====
+	// ===== Item-id coordination (watermarks + carried inventory) — the state and the docs live in ItemIdCoordinator =====
 
-	/// <summary>Guest only: an item-instance id was allocated locally — report the counter high-water mark (the host grants it back on a reconnect).</summary>
 	public void SendItemIdWatermark(ulong counter) => _idCoordinator.SendItemIdWatermark(counter);
 
-	/// <summary>Guest only: the carried inventory with self-assigned ids (the local generation finished) — the host registers it in the guest's transfer table.</summary>
 	public void SendCarriedInventory(IReadOnlyList<CharacterItemMsg> items) => _idCoordinator.SendCarriedInventory(items);
 
-	/// <summary>Host only: grant a member's id watermark (its allocations may resume from counter + 1 — 0 = it never allocated).</summary>
 	public void GrantItemIdWatermark(ulong targetSteamId, ulong counter) => _idCoordinator.GrantItemIdWatermark(targetSteamId, counter);
 
-	/// <summary>The id counter high-water mark arrived: host records it (the reconnect grant point), guest applies it (resume from counter + 1).</summary>
 	public void FireItemIdWatermarkReceived(ulong sender, ulong counter) => _idCoordinator.FireItemIdWatermarkReceived(sender, counter);
 
-	/// <summary>Host only: a guest's carried inventory with self-assigned ids arrived — register it in the guest's transfer table (its use/slot reports then arbitrate normally) and surface the fact-table entries.</summary>
 	public void FireCarriedInventoryReceived(ulong sender, IReadOnlyList<CharacterItemMsg> items) => _idCoordinator.FireCarriedInventoryReceived(sender, items);
 
 	/// <summary>Host side: a guest's self-assigned carried inventory arrived — the adapter merges it into the guest's fact table.</summary>
@@ -112,13 +106,7 @@ public sealed class ItemService : IItemControl
 
 	// ===== Host-authoritative position stream =====
 
-	/// <summary>
-	/// Host only: broadcast EVERY world item's authoritative position
-	/// (unreliable — drops are harmless, the next tick overwrites). The host's
-	/// physics is the single position authority; the guests' copies are
-	/// kinematic renders that follow this stream — nothing on their side
-	/// simulates, so nothing diverges.
-	/// </summary>
+	/// <summary>Host only: broadcast EVERY world item's authoritative position (unreliable — drops are harmless, the next tick overwrites; the host's physics is the single position authority, the guests' copies are kinematic renders that follow).</summary>
 	public void SendItemMove(IReadOnlyList<ItemMoveEntryMsg> items)
 	{
 		if (_session.Role != SessionRole.Host || !_session.SessionActive || items.Count == 0)
@@ -463,12 +451,9 @@ public sealed class ItemService : IItemControl
 			return;
 		}
 
-		// The adopted state broadcasts as the carried-fact event (the peers'
-		// clones of the user show the flipped state — a flashlight mode — the
-		// moment the use lands). Defensive fallback: an item with no
-		// transfer-table entry yet (the guest's carried-inventory report is
-		// still in flight, or it was lost) — the guest's own report IS the fact
-		// then (the same unconditional-adoption logic), broadcast as-is.
+		// The adopted state broadcasts as the carried-fact event; an item with no
+		// transfer-table entry yet (the carried-inventory report in flight or
+		// lost) falls back to the guest's own report as the fact, broadcast as-is.
 		var authoritative = _arbitration.CheckUseEvidence(sender, itemId, evidence) ?? evidence;
 		PublishCarriedSync(sender, authoritative);
 	}
@@ -480,12 +465,9 @@ public sealed class ItemService : IItemControl
 			return;
 		}
 
-		// The recorded slot broadcasts as the carried-fact event (the peers'
-		// clones of the mover re-home the item the moment the move lands).
-		// Defensive fallback: an item with no transfer-table entry yet (the
-		// carried-inventory report in flight or lost) — the report's digest
-		// evidence is the fact then, broadcast as-is (its slot is the new one,
-		// SlotKnown).
+		// The recorded slot broadcasts as the carried-fact event; an untracked
+		// item falls back to the report's digest evidence (its slot is the new
+		// one, SlotKnown), broadcast as-is.
 		var authoritative = _arbitration.RecordSlot(sender, itemId, slotIndex) ?? item;
 		PublishCarriedSync(sender, authoritative);
 	}
@@ -540,17 +522,7 @@ public sealed class ItemService : IItemControl
 
 	public void ResetItems() => _worldTable.Clear();
 
-	/// <summary>
-	/// Host only: the generation finished — the host assigned an id to every
-	/// generation-time item (ground items + the starting supplies) and hands the
-	/// full set over. Registered silently into the table (no ItemSpawned event —
-	/// the local copies already exist; only the guests need to bind or
-	/// materialize) and broadcast as ONE reliable snapshot — the guests bind
-	/// their local copies to the host's ids or materialize the host's version.
-	/// After this the items are ordinary table entries: the position stream, the
-	/// periodic keyframe, the pickup arbitration and the late-joiner snapshot
-	/// all cover them.
-	/// </summary>
+	/// <summary>Host only: the generation finished — the host assigned ids to the generation-time items and hands the full set over. Registered silently (no ItemSpawned event — the local copies exist) and broadcast as ONE reliable snapshot (see GeneratedItemAuthority/Application).</summary>
 	public void PublishGeneratedItems(IReadOnlyList<ItemSnapshotEntryMsg> entries)
 	{
 		if (_session.Role == SessionRole.Guest || entries.Count == 0)
@@ -593,4 +565,36 @@ public sealed class ItemService : IItemControl
 
 	public void FireWorldItemsSnapshotReceived(ulong sender, IReadOnlyList<ItemSnapshotEntryMsg> items, int layerModifierIndex, byte[]? layerModifierRandomState)
 		=> _snapshots.FireWorldItemsSnapshotReceived(sender, items, layerModifierIndex, layerModifierRandomState);
+
+	// ===== Crafting-domain seams — the craft apply (CraftSyncService) composes these; it cannot live
+	// here: this file sits at the 600-line architecture gate. Role-agnostic where possible (the craft
+	// relay applies on the host AND on the guests — their world tables are empty, the event is the point).
+
+	// Local world-table removal, no wire send (the craft relay carries the fact): table remove + the adapter's ItemDestroyed event.
+	internal void RemoveWorldItemLocal(ulong itemId)
+	{
+		_worldTable.Remove(itemId);
+		ItemDestroyed?.Invoke(itemId);
+	}
+
+	// Host only: adopt a changed world item's state into the table entry (the craft report's world-Changed evidence — the use path's adopt field set).
+	internal void UpdateWorldItemState(ulong itemId, CharacterItemMsg state)
+	{
+		if (_session.Role == SessionRole.Host && _worldTable.TryGetValue(itemId, out var w))
+		{
+			w.Item.Condition = state.Condition;
+			w.Item.Favourited = state.Favourited;
+			w.Item.Liquids = state.Liquids;
+			w.Item.Components = state.Components;
+		}
+	}
+
+	// Publish one carried item's adopted fact (local event + host broadcast — the broadcast self-guards host-only, so one method serves both roles).
+	internal void PublishCarriedSyncFor(ulong owner, CharacterItemMsg item) => PublishCarriedSync(owner, item);
+
+	// Local-only carried-fact apply (the craft relay already carries the fact — one operation = one message).
+	internal void PublishCarriedSyncLocal(ulong owner, CharacterItemMsg item) => _carriedSync.PublishLocal(owner, item);
+
+	// Role-agnostic local correction apply (the wire entry stays guest-only) — the craft domain's world-Changed entries reach the host's own scene copy through this.
+	internal void FireCorrectionLocal(CharacterItemMsg item) => _arbitration.FireCorrectionReceived(item);
 }

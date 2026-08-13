@@ -156,6 +156,26 @@ public sealed class ItemArbitration(ISessionControl session, PacketSender sender
 	}
 
 	/// <summary>
+	/// Host only: a NEW run started — the previous run's transfer entries are
+	/// void (they belonged to the old world's items). Without this the stale
+	/// entries outlive the run: the reconnect restore merge resurrects the old
+	/// run's items into the new run's inventory (observed: the sandbox run's
+	/// rifle mags landed on the floor of the next run, and the restore
+	/// overwrote the new run's starting supplies — #192).
+	/// </summary>
+	public void ClearTransferred()
+	{
+		if (_session.Role != SessionRole.Host)
+		{
+			return;
+		}
+
+		var entries = _transferred.Values.Sum(owned => owned.Count);
+		_transferred.Clear();
+		_log.LogInformation("New run — cleared the transfer table ({Entries} entries).", entries);
+	}
+
+	/// <summary>
 	/// Host only: an item moved slots — the guest's own slot layout is its
 	/// local fact, recorded, never corrected (the slot rides in the
 	/// authoritative item for the reconnect merge). Returns the updated

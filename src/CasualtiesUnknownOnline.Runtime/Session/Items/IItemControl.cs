@@ -101,6 +101,9 @@ public interface IItemControl
 	/// <summary>Host only: send one guest the authoritative state of an item (its action-report evidence diverged) — accept-with-correction, never a rejection.</summary>
 	void SendItemCorrection(ulong targetSteamId, CharacterItemMsg item);
 
+	/// <summary>Host only: correct every OTHER member's copy of a used world item (drinking from a ground canister, #194) — the user's own copy IS the fact, every peer's copy adopts it via the standard correction path.</summary>
+	void SendWorldItemCorrection(ulong exceptSteamId, CharacterItemMsg item);
+
 	/// <summary>Host only: the items a guest currently owns (the transfer table — where the host moved world-table entries as the guest's actions took them). The reconnect restore merges these into the character snapshot.</summary>
 	IReadOnlyList<WorldItem> GetTransferredItems(ulong steamId);
 

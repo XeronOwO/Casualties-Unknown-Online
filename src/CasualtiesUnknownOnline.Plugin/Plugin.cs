@@ -326,6 +326,12 @@ public class Plugin : BaseUnityPlugin
 		}
 	}
 
+	// Unity broadcasts OnApplicationQuit BEFORE the scene teardown — the world
+	// items' OnDestroy would otherwise report as player-operation destroys
+	// while the session still looks alive (the echo wiped the host's world
+	// items when a guest quit, #191).
+	private void OnApplicationQuit() => _adapter?.OnApplicationQuit();
+
 	// SteamManager guidance: never do Steamworks work in OnDestroy (execution
 	// order is not guaranteed); OnDisable is the safe teardown point.
 	private void OnDisable()

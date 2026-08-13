@@ -42,6 +42,24 @@ internal sealed class ItemWorldSync(
 	/// <summary>True while a remote message is being applied — the local-report hooks must stay silent (call identity lives in CallContext, not a bool).</summary>
 	private bool IsRemoteApply => CallContext.Current == CallContext.Origin.RemoteApply;
 
+	/// <summary>
+	/// True while the world is being torn down (scene unload at game quit /
+	/// menu return / layer switch). A destroy during teardown is the teardown
+	/// itself, never a player operation to report — the echo wiped the host's
+	/// world items when a guest quit the game (#191: 70/637 destroy reports in
+	/// one teardown, the session still looked alive). Engaged BEFORE the scene
+	/// load starts (SceneLoadPatches — the unload happens inside LoadScene)
+	/// and on ApplicationQuit; reset on the world-entry edge (GameAdapter's
+	/// update pump).
+	/// </summary>
+	private bool _suppressDestroys;
+
+	/// <summary>Engage the teardown suppression — the old scene's destroys stay silent.</summary>
+	internal void SuppressDestroys() => _suppressDestroys = true;
+
+	/// <summary>Disengage — the new world's real destroys report again.</summary>
+	internal void ResetDestroySuppression() => _suppressDestroys = false;
+
 	internal void BindToSession()
 	{
 		_items.ItemSpawned += OnRemoteItemBecameWorld;
@@ -194,7 +212,7 @@ internal sealed class ItemWorldSync(
 
 	internal void OnItemDestroyed(Item item)
 	{
-		if (IsRemoteApply || HarmonyTraverse.IsGenerating())
+		if (IsRemoteApply || HarmonyTraverse.IsGenerating() || _suppressDestroys)
 		{
 			return;
 		}

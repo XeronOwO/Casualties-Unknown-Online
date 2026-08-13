@@ -38,10 +38,14 @@ public class PatchContractTests
 	}
 
 	/// <summary>The test-side resolver, mirroring the runtime's AccessTools
-	/// semantics: exact argument types first, name-only fallback.</summary>
+	/// semantics: exact argument types first, name-only fallback. The target
+	/// type may live OUTSIDE the game assembly (a UnityEngine type — the
+	/// SceneManager scene-load patch): any loaded assembly first, then the
+	/// module DLL beside the test output (the Unity modules are split
+	/// assemblies; the game's references load them on demand).</summary>
 	private static MethodInfo? Resolve(PatchContract contract)
 	{
-		var type = GameAssemblyHost.Game.GetType(contract.TargetType);
+		var type = GameAssemblyHost.Game.GetType(contract.TargetType) ?? ResolveExternalType(contract.TargetType);
 		if (type == null)
 		{
 			return null;
@@ -61,6 +65,34 @@ public class PatchContractTests
 
 		return type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static)
 			.FirstOrDefault(m => m.Name == contract.MethodName);
+	}
+
+	/// <summary>A contract target type that lives outside the game assembly
+	/// (a UnityEngine type — the SceneManager patch): every loaded assembly
+	/// first (the game's own references load the Unity modules on demand),
+	/// then the module DLLs beside the test output (UnityEngine*.dll — the
+	/// type's module may be any of the split assemblies).</summary>
+	private static Type? ResolveExternalType(string name)
+	{
+		foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+		{
+			var found = assembly.GetType(name, throwOnError: false);
+			if (found != null)
+			{
+				return found;
+			}
+		}
+
+		foreach (var file in Directory.GetFiles(BaseDir, name.Split('.')[0] + "*.dll"))
+		{
+			var found = Assembly.LoadFrom(file).GetType(name, throwOnError: false);
+			if (found != null)
+			{
+				return found;
+			}
+		}
+
+		return null;
 	}
 
 	/// <summary>Resolve a contract parameter type: system types via the global

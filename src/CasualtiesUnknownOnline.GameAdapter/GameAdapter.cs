@@ -82,9 +82,11 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	private readonly SpeechSync _speechSync;
 	private readonly CraftingSync _craftingSync;
 	private readonly RecipeUnlockApply _recipeUnlockApply;
+	private Body? _lastLocalBody; // Unity object — == (the world-entry edge for the destroy-suppression reset)
 
 	public GameAdapter(SessionService session, EntitySyncService entities, CharacterDataStore characterData,
-		WorldService world, ItemService items, ICraftControl craft, ILogger<GameAdapter> log, IMapper mapper, ILoggerFactory loggerFactory)
+		WorldService world, ItemService items, ICraftControl craft, ItemArbitration arbitration,
+		ILogger<GameAdapter> log, IMapper mapper, ILoggerFactory loggerFactory)
 	{
 		_session = session;
 		_items = items;
@@ -141,7 +143,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_lifePod = new LifePodPresentation(loggerFactory.CreateLogger<LifePodPresentation>());
 		_guestMenu = new GuestMenuGuard(session, loggerFactory.CreateLogger<GuestMenuGuard>());
 		_worldParams = new WorldParamsService(world, loggerFactory.CreateLogger<WorldParamsService>());
-		_run = new RunCoordinator(session, world, entities, _characterDataSync, _guestMenu, _worldParams, loggerFactory.CreateLogger<RunCoordinator>());
+		_run = new RunCoordinator(session, world, entities, _characterDataSync, _guestMenu, _worldParams, arbitration, loggerFactory.CreateLogger<RunCoordinator>());
 		_gate = new StartGateCoordinator(session, world, _lifePod, _run, loggerFactory.CreateLogger<StartGateCoordinator>());
 		PatchBridge.Bind(this); // the only static seam — Harmony patches read the narrow surface, never this instance
 	}
@@ -257,6 +259,18 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	{
 		_guestMenu.Update();
 		_run.Update();
+
+		// World-entry edge: the teardown of the PREVIOUS scene finished (its
+		// destroys were suppressed, #191) — the new world's real destroys report
+		// again. The edge rides the local body (null in any menu scene; Unity
+		// object — ==).
+		var localBody = _run.LocalBody;
+		if (localBody != null && _lastLocalBody == null) // Unity objects — ==
+		{
+			_itemWorldSync.ResetDestroySuppression();
+		}
+
+		_lastLocalBody = localBody;
 		_gate.Update(_run.LocalBody);
 		_genItemAuthority.Update(); // host/solo: publish the generation-time items when the generation finished
 		_genItemApplication.Update(); // guest: apply the host's generation snapshot once the local generation finished
@@ -417,6 +431,10 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	bool IPatchBridge.OnGuestStartAttempt() => _guestMenu.OnGuestStartAttempt();
 
 	void IPatchBridge.OnWorldJoinRequested(bool isTutorial) => _run.OnWorldJoinRequested(isTutorial);
+
+	void IPatchBridge.OnSceneLoadBegin() => _itemWorldSync.SuppressDestroys();
+
+	void IGameAdapter.OnApplicationQuit() => _itemWorldSync.SuppressDestroys();
 
 	void IPatchBridge.OnInventoryChanged() => _characterDataSync.ReportInventoryChanged(_run.LocalBody);
 

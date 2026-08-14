@@ -47,6 +47,9 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 	/// <summary>Raised after a 20 Hz batch is applied (the Game Adapter drives the frozen render copies from the buffered state on this).</summary>
 	public event Action? EnemyStateReceived;
 
+	/// <summary>Raised when an enemy bite arrives (report or relay) — the Game Adapter applies the post-bite limb/body state to the victim's clone.</summary>
+	public event Action<ulong, EnemyBiteMsg>? EnemyBiteReceived;
+
 	// ---- Public surface (Game Adapter) ----
 
 	/// <summary>All enemy buffers (host: authoritative; guest: received).</summary>
@@ -57,6 +60,37 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 
 	/// <summary>Host side: allocate the next enemy id (the host assigns ids in the deterministic EnemySpawnArbitration order).</summary>
 	public NetworkEntityId AllocateEnemyId() => new(_epoch, _nextEnemyCounter++, 0);
+
+	/// <summary>
+	/// Report/broadcast an enemy bite: a guest reports its own bite to the host
+	/// (the victim is the reporter); the host broadcasts its own bite to every
+	/// guest (its body is already damaged locally). Reliable — a lost event
+	/// self-heals on the next 1 Hz character snapshot, but the event itself must
+	/// arrive to remove the use latency (the trigger rides the event, never the
+	/// snapshot).
+	/// </summary>
+	public void SendEnemyBite(EnemyBiteMsg msg)
+	{
+		if (!_session.SessionActive)
+		{
+			return;
+		}
+
+		if (_session.Role == SessionRole.Host)
+		{
+			_sender.SendToAll(
+				_session.Members.Where(m => m.Handshaken && m.SteamId != _session.LocalSteamId).Select(m => m.SteamId),
+				NetMsg.EnemyBite, msg, reliable: true);
+		}
+		else
+		{
+			_sender.Send(_session.HostSteamId, NetMsg.EnemyBite, msg);
+		}
+	}
+
+	/// <summary>An enemy bite arrived (report or relay) — surface it for the Game Adapter to apply.</summary>
+	public void FireEnemyBiteReceived(ulong sender, EnemyBiteMsg msg)
+		=> EnemyBiteReceived?.Invoke(sender, msg);
 
 	/// <summary>Host side: publish the authoritative enemy states (the Game Adapter captures the simulated enemies and overwrites the buffer each tick).</summary>
 	public void PublishEnemyStates(IEnumerable<EnemyEntity> states)

@@ -238,7 +238,7 @@ zoom assist (52-60), scubadivinggear wetness drain (339-347), blindfold
 The crafting family syncs as OPERATIONS — one operation = one `CraftReportMsg`
 carrying the complete terminal state (consumed/changed materials + products);
 the host classifies each entry against its world/transfer tables, applies and
-relays the whole report (source excluded). Details in CLAUDE.md ("Crafting
+relays the whole report (source excluded). Details in docs/tech-decisions.md ("Crafting
 domain"). Per-surface notes:
 
 - **Recipe.TryMake** (the crafting menu, PlayerCamera.TryCraft → Recipe.cs:172):

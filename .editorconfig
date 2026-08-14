@@ -20,7 +20,7 @@ indent_size = 4
 
 # ---- Style rules (severity: error, enforced in build) ----
 
-# Prefer `var` where the type is apparent (CLAUDE.md convention #2)
+# Prefer `var` where the type is apparent (AGENTS.md convention #2)
 csharp_style_var_for_built_in_types = true:error
 csharp_style_var_when_type_is_apparent = true:error
 csharp_style_var_elsewhere = true:error
@@ -42,7 +42,7 @@ dotnet_style_prefer_simplified_interpolation = true:error
 
 # ---- IDE diagnostics (severity: error) ----
 
-# No fully-qualified names where a using/alias suffices (CLAUDE.md convention #2)
+# No fully-qualified names where a using/alias suffices (AGENTS.md convention #2)
 dotnet_diagnostic.IDE0001.severity = error
 # Prefer `var` (IDE0007) and forbid explicit types when var is possible (IDE0008)
 dotnet_diagnostic.IDE0007.severity = error
@@ -60,11 +60,11 @@ dotnet_diagnostic.IDE0028.severity = error
 # PlayerCamera, WorldGeneration, clones) null checks MUST use == null — the
 # operator overload detects scene-reload-destroyed objects, while ?. (reference
 # comparison) would throw MissingReferenceException on access. A global ?.
-# rewrite would turn those checks back into the unsafe form (see CLAUDE.md
+# rewrite would turn those checks back into the unsafe form (see AGENTS.md
 # convention #2 "Unity objects" exception).
 dotnet_diagnostic.IDE0031.severity = none
 # NOTE: is null / is not null over == null / != null is a documented convention
-# (CLAUDE.md) but NOT enforced here — IDE0041 is IDE-only, the CLI analyzers
+# (AGENTS.md) but NOT enforced here — IDE0041 is IDE-only, the CLI analyzers
 # never report it, so an editorconfig severity would be dead config.
 # Constructors use block bodies, not expression bodies
 dotnet_diagnostic.IDE0021.severity = error
@@ -80,6 +80,6 @@ dotnet_diagnostic.IDE0305.severity = error
 csharp_style_prefer_switch_expression = true:error
 dotnet_diagnostic.IDE0066.severity = error
 
-# No underscore prefix required for fields (CLAUDE.md: game-binding fields keep
+# No underscore prefix required for fields (AGENTS.md: game-binding fields keep
 # game naming; CUO code uses underscore-prefixed private fields)
 dotnet_diagnostic.IDE1006.severity = none

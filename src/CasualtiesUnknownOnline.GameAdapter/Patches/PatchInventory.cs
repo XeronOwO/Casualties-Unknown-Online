@@ -10,7 +10,7 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 /// <summary>
 /// Patch-install verification: after PatchAll, walk every [HarmonyPatch] type
 /// in this assembly, resolve its target method and assert the harmony instance
-/// actually patched it ("Never let a failed patch silently run" — CLAUDE.md
+/// actually patched it ("Never let a failed patch silently run" — AGENTS.md
 /// safe degradation; BodyPatches' AccessTools throw is the same idea). A game
 /// update that breaks a patch target fails loud with the culprit list instead
 /// of silently running unpatched — a silently missing hook is how sync bugs

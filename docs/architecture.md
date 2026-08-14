@@ -1,6 +1,6 @@
 # CUO Architecture Blueprint
 
-> Companion document to `CLAUDE.md`. This is the design reference: architecture, technical stack, sync model, specs, and pitfalls. It is a blueprint, not a code map — implement incrementally per the development phases.
+> Companion document to `AGENTS.md`. This is the design reference: architecture, technical stack, sync model, specs, and pitfalls. It is a blueprint, not a code map — implement incrementally per the development phases.
 
 ## 1. Overall Architecture
 
@@ -165,7 +165,7 @@ Message envelope: protocol version, message type, session ID, sender SteamID, ti
 
 **Never use Unity instance IDs as network entity IDs** (process-local). Define `NetworkEntityId` = session epoch + host allocation counter + entity type/generation.
 
-> The "message envelope" sketched above predates the 2026-08-07 star-topology decision (pure star, **no envelope** — see CLAUDE.md "Wire transport"); the section below is the live model.
+> The "message envelope" sketched above predates the 2026-08-07 star-topology decision (pure star, **no envelope** — see docs/tech-decisions.md "Wire transport"); the section below is the live model.
 
 ### Star Topology & Arbitration Framework (landed 2026-08-08)
 

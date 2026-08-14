@@ -6,7 +6,7 @@ The base game ships without multiplayer. CUO adds Steam-based **Host + Guests** 
 
 ## Status
 
-**Early development — Phase 1 (single player entity) in progress.** Phase 0 (feasibility: Steam init, lobby create/join, P2P ping/pong) is complete and verified with dual Steam accounts. The framework infrastructure runs on Microsoft.Extensions (DI + `ILogger<T>`) with Minecraft-style rolling file logs. Phase 1 adds the wire protocol, session state machine and the Game Adapter layer (player entity sync: position/heading/input, world-start parameter sync for identical world generation). See [`docs/architecture.md`](docs/architecture.md) for the full design and phases.
+**Active development — Phase 4 (Mod API) first round landed.** Phases 0–3 (feasibility, single-player entity sync, entity lifecycle, game core loop) are complete and runtime-verified. Phase 4's core skeleton (discovery / lifecycle / manifest / mod messages / handshake consistency) has landed; remaining are content registration, custom entities, host commands, UI, and mod-state saves. See [`docs/architecture.md`](docs/architecture.md) for the full design and phases, and [`docs/tech-decisions.md`](docs/tech-decisions.md) for the landed decisions.
 
 ## Architecture in Brief
 
@@ -19,7 +19,7 @@ Mods → Mod Framework API → Multiplayer Runtime → Game Adapter → BepInEx 
 
 ## Build
 
-Requires .NET SDK (see [`CLAUDE.md`](CLAUDE.md)).
+Requires .NET SDK (see [`AGENTS.md`](AGENTS.md)).
 
 ```bash
 dotnet build CasualtiesUnknownOnline.slnx
@@ -29,8 +29,10 @@ All projects target `net48` (BepInEx 5 + the game's Mono runtime). Deployment in
 
 ## Documentation
 
-- [`CLAUDE.md`](CLAUDE.md) — project conventions and instructions for AI-assisted development
+- [`AGENTS.md`](AGENTS.md) — project conventions and instructions for AI-assisted development
 - [`docs/architecture.md`](docs/architecture.md) — architecture blueprint, technical specs, pitfalls, and development phases
+- [`docs/tech-decisions.md`](docs/tech-decisions.md) — landed binding decisions
+- [`docs/mod-api.md`](docs/mod-api.md) — Phase 4 Mod API contract
 
 ## License
 

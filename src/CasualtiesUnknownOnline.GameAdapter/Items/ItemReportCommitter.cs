@@ -13,7 +13,7 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 /// (Committed, or Indeterminate when the game state was too ambiguous to
 /// verify — the report still goes out, marked as evidence for the next bug
 /// hunt). "Report only after a verified commit" is a code path, not a comment
-/// (CLAUDE.md #9 — a postfix once reported a swallowed write that never
+/// (AGENTS.md #9 — a postfix once reported a swallowed write that never
 /// happened). The drop report itself (SendDropReport) lives here too.
 /// </summary>
 internal sealed class ItemReportCommitter(

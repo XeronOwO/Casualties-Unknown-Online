@@ -79,6 +79,12 @@ drop-then-pickup view offset determined game-native (CUO never writes the item t
     BuildingEntity.cs:50-55, re-toggles `bodyType` to Dynamic when the chunk renders + `timeScale ≤ 5`,
     so the freeze relies entirely on the EnemyPatches, not the Static rb). A guest-side bite driver
     (CUO owns the 5 s cooldown) is the deferred fix — accept-first, no strict validation.
+  - **Enemy targeting is host-only (known limitation)**: the host's enemy AI targets the host's body
+    alone — `SpiderHandler.Update`'s `OverlapCircle` (SpiderHandler.cs:71) only sees the host's body
+    because the guest clones' colliders are disabled (`RemoteBodyFactory`). So enemies chase the host;
+    guests are only bitten when they walk near the host's spider. Fixing "guests are attacked" needs the
+    enemy to see guests (distance-based targeting or re-enabled clone colliders) — separate from the
+    cooldown fix above.
   - Runtime cave-tick nest spawn (16 ticks spawn on the triggering side only,
     EntityEventKind.CaveTicksSpawned).
   - cave-tick/shadecrawler/wallbiter prefab script mapping (Unity asset, needs a runtime component

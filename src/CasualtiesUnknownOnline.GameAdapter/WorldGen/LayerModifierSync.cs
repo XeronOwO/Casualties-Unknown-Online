@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
+using CasualtiesUnknownOnline.Runtime.Session.World;
 using HarmonyLib;
 using Microsoft.Extensions.Logging;
 using Random = UnityEngine.Random;
@@ -104,18 +105,23 @@ internal sealed class LayerModifierSync(ItemService items, ILogger<LayerModifier
 			return;
 		}
 
-		if (_localDecided && _localIndex >= 0 && _localIndex != _applied)
+		var next = LayerModifierDecide.NextApply(_localDecided, _localIndex, _applied, _pendingIndex);
+		if (next is not { } choice)
+		{
+			return;
+		}
+
+		if (choice.UseLocal)
 		{
 			RunInitialize(_localIndex, _localState, resendBanner: false);
+			return;
 		}
-		else if (_pendingIndex >= 0 && _pendingIndex != _applied)
-		{
-			var index = _pendingIndex;
-			var state = _pendingState;
-			_pendingIndex = -1;
-			_pendingState = null;
-			ApplySnapshot(index, state);
-		}
+
+		var index = _pendingIndex;
+		var state = _pendingState;
+		_pendingIndex = -1;
+		_pendingState = null;
+		ApplySnapshot(index, state);
 	}
 
 	private void OnWorldItemsSnapshot(IReadOnlyList<ItemSnapshotEntryMsg> items, int layerModifierIndex, byte[]? layerModifierRandomState)
@@ -140,12 +146,15 @@ internal sealed class LayerModifierSync(ItemService items, ILogger<LayerModifier
 
 	private void ApplyIndex(int index, byte[]? randomState)
 	{
-		if (_localDecided && index != _localIndex)
+		var decision = LayerModifierDecide.OnSnapshot(
+			_localDecided, _localIndex, _localEntryState, index, randomState, _applied, HarmonyTraverse.IsGenerating());
+
+		if (decision.IndexDisagrees)
 		{
 			_log.LogWarning("[LayerMod] snapshot index {Snapshot} disagrees with the local replay {Local} — applying the host's (authoritative).", index, _localIndex);
 		}
 
-		if (_localEntryState is not null && randomState is not null && !_localEntryState.AsSpan().SequenceEqual(randomState))
+		if (decision.BaselineDiverged)
 		{
 			// The snapshot carries the host's decision-entry state (the rewound
 			// segment start) — it must be bit-identical to the guest's local
@@ -157,19 +166,19 @@ internal sealed class LayerModifierSync(ItemService items, ILogger<LayerModifier
 				BitConverter.ToString(_localEntryState).Replace("-", ""), BitConverter.ToString(randomState).Replace("-", ""));
 		}
 
-		if (index == _applied)
+		switch (decision.Next)
 		{
-			return; // idempotent — the snapshot of the layer's own roll (already applied via the local replay) or a periodic repeat
+			case LayerModifierDecision.Action.Apply:
+				ApplySnapshot(index, randomState);
+				break;
+			case LayerModifierDecision.Action.Pending:
+				_pendingIndex = index; // applied by the pump once generation ends
+				_pendingState = randomState;
+				break;
 		}
 
-		if (HarmonyTraverse.IsGenerating())
-		{
-			_pendingIndex = index;
-			_pendingState = randomState;
-			return; // applied by the pump once generation ends
-		}
-
-		ApplySnapshot(index, randomState);
+		// Drop = idempotent — the snapshot of the layer's own roll (already
+		// applied via the local replay) or a periodic repeat.
 	}
 
 	/// <summary>Snapshot path (no local replay — world entry outside a

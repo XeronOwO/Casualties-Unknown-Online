@@ -182,6 +182,17 @@ public interface IWorldControl
 
 	event Action<IReadOnlyList<NetVector2Msg>>? OpenedEntitiesSnapshotReceived;
 
+	/// <summary>Host only: record one generated trap entity (the adapter's scanner reports it on the generation-finished edge).</summary>
+	void ReportTrapLayout(EntityEventKind kind, float x, float y, string prefabName);
+
+	/// <summary>Host only: send the trap layout to one member (on its world entry).</summary>
+	void SendTrapLayoutSnapshot(ulong targetSteamId);
+
+	/// <summary>Guest: the host's trap layout arrived — align the local world (materialize missing, destroy surplus).</summary>
+	void FireTrapLayoutReceived(IReadOnlyList<TrapLayoutEntryMsg> entries);
+
+	event Action<IReadOnlyList<TrapLayoutEntryMsg>>? TrapLayoutReceived;
+
 	/// <summary>Host only: stream an absolute RLE fluid-grid region to one member (the host simulates the world fluid alone — the guests render the streamed regions).</summary>
 	void SendFluidRegion(ulong targetSteamId, FluidRegionMsg msg);
 

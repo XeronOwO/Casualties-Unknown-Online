@@ -1,5 +1,7 @@
 using System;
+using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol;
+using CasualtiesUnknownOnline.Runtime.Session.World;
 using HarmonyLib;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
@@ -22,7 +24,7 @@ internal sealed class TrapVisualReplay(ILogger<TrapVisualReplay> log)
 {
 	private readonly ILogger<TrapVisualReplay> _log = log;
 
-	internal void Replay(EntityEventKind kind, Vector2 position, byte extra)
+	internal void Replay(EntityEventKind kind, Vector2 position, byte extra, float elapsedSeconds = 0f)
 	{
 		switch (kind)
 		{
@@ -30,7 +32,7 @@ internal sealed class TrapVisualReplay(ILogger<TrapVisualReplay> log)
 				ReplayMineExplosion(position);
 				break;
 			case EntityEventKind.ShuttleDoorOpened:
-				ReplayState<ShuttleStartOpen>(position, kind, TrapStateActions.ApplyShuttleDoor);
+				ReplayShuttleDoor(position, elapsedSeconds);
 				break;
 			case EntityEventKind.LifepodHeatChanged:
 				ReplayState<LifepodController>(position, kind, c => TrapStateActions.ApplyHeat(c, extra));
@@ -51,7 +53,7 @@ internal sealed class TrapVisualReplay(ILogger<TrapVisualReplay> log)
 				ReplayState<BatteryRecharger>(position, kind, TrapStateActions.ApplyBattery);
 				break;
 			case EntityEventKind.SpikeStabbed:
-				ReplayState<SpikeStabberScript>(position, kind, TrapStateActions.ApplySpike);
+				ReplaySpike(position, elapsedSeconds);
 				break;
 			case EntityEventKind.BearTrapClamped:
 				ReplayState<BearTrap>(position, kind, TrapStateActions.ApplyBearTrapClamped);
@@ -130,7 +132,7 @@ internal sealed class TrapVisualReplay(ILogger<TrapVisualReplay> log)
 		var entity = TrapEffectApplier.FindTrap<T>(position);
 		if (entity == null) // Unity object — ==
 		{
-			_log.LogInformation("[TrapEvent] {Kind} at {Pos} already gone — visual only.", kind, position);
+			LogGoneWithNearest<T>(kind, position);
 			return;
 		}
 
@@ -141,6 +143,94 @@ internal sealed class TrapVisualReplay(ILogger<TrapVisualReplay> log)
 		else
 		{
 			_log.LogWarning("[TrapEvent] {Kind} at {Pos} already consumed locally — duplicate dropped.", kind, position);
+		}
+	}
+
+	/// <summary>
+	/// The shuttle door's replay — an ANIMATION-DRIVEN one-shot: activated +
+	/// progress accumulate 2 s (pre-warning), then the doors lerp up over the
+	/// next seconds and the script destroys itself at progress > 10. A late
+	/// joiner must land at the CURRENT state: the snapshot's elapsed is the
+	/// anchor — progress = elapsed puts the doors exactly where the host's are
+	/// (elapsed > 10 → the doors sit at the top and the script destroys itself
+	/// on the first Update, exactly like the host's already-gone door).
+	/// </summary>
+	private void ReplayShuttleDoor(Vector2 position, float elapsedSeconds)
+	{
+		var door = TrapEffectApplier.FindTrap<ShuttleStartOpen>(position);
+		if (door == null) // Unity object — ==
+		{
+			LogGoneWithNearest<ShuttleStartOpen>(EntityEventKind.ShuttleDoorOpened, position);
+			return;
+		}
+
+		if (Traverse.Create(door).Field("activated").GetValue<bool>())
+		{
+			_log.LogWarning("[TrapEvent] ShuttleDoorOpened at {Pos} already consumed locally — duplicate dropped.", position);
+			return;
+		}
+
+		// The state, jumped to the elapsed point — no sounds (the host's door
+		// is not re-playing its opening either).
+		var state = ShuttleDoorReplayState.FromElapsed(elapsedSeconds);
+		Traverse.Create(door).Field("activated").SetValue(true);
+		Traverse.Create(door).Field("progress").SetValue(state.Progress);
+		Traverse.Create(door).Field("playedSound").SetValue(state.PlayedSound);
+		Traverse.Create(door).Field("didTalk").SetValue(state.DidTalk);
+
+		_log.LogInformation("[TrapEvent] replayed ShuttleDoorOpened at {Pos} at elapsed {Elapsed:F1} s.", position, elapsedSeconds);
+	}
+
+	/// <summary>
+	/// The spike's replay: activated + the stab animation jumped to its END
+	/// (the host's spike stabbed long ago — re-running Stab() would play the
+	/// sound and the animation over the late joiner's head). The stab-hit
+	/// sprite (CheckStab's victim sprite) is NOT restored — the snapshot
+	/// carries no hit record; the spike still reads as spent.
+	/// </summary>
+	private void ReplaySpike(Vector2 position, float elapsedSeconds)
+	{
+		var spike = TrapEffectApplier.FindTrap<SpikeStabberScript>(position);
+		if (spike == null) // Unity object — ==
+		{
+			LogGoneWithNearest<SpikeStabberScript>(EntityEventKind.SpikeStabbed, position);
+			return;
+		}
+
+		if (Traverse.Create(spike).Field("activated").GetValue<bool>())
+		{
+			_log.LogWarning("[TrapEvent] SpikeStabbed at {Pos} already consumed locally — duplicate dropped.", position);
+			return;
+		}
+
+		Traverse.Create(spike).Field("activated").SetValue(true);
+		spike.GetComponent<Animator>().Play("SpikeStab", -1, 1f); // the animation's END frame — the spent state
+		spike.GetComponent<BuildingEntity>().description = Locale.GetBuilding("spikestabberdscused");
+		_log.LogInformation("[TrapEvent] replayed SpikeStabbed at {Pos} at elapsed {Elapsed:F1} s.", position, elapsedSeconds);
+	}
+
+	/// <summary>
+	/// A snapshot's position key found NO entity of the expected kind — the
+	/// regenerated world has no such trap there (generation divergence: the
+	/// trap layout is per-side random) or the entity is gone. Report the
+	/// NEAREST same-kind entity's position — the divergence diagnostic (the
+	/// fingerprinted blocks are identical; the entity layout is not covered by
+	/// any fingerprint).
+	/// </summary>
+	private void LogGoneWithNearest<T>(EntityEventKind kind, Vector2 position) where T : Component
+	{
+		var nearest = UnityEngine.Object.FindObjectsOfType<T>()
+			.Select(t => (Trap: t, Distance: Vector2.Distance(t.transform.position, position)))
+			.OrderBy(x => x.Distance)
+			.FirstOrDefault();
+		if (nearest.Trap != null) // Unity object — ==
+		{
+			_log.LogWarning("[TrapEvent] {Kind} at {Pos} has no entity — nearest {Type} at ({X:F1},{Y:F1}), {Dist:F1} away (generation divergence?).",
+				kind, position, typeof(T).Name, nearest.Trap.transform.position.x, nearest.Trap.transform.position.y, nearest.Distance);
+		}
+		else
+		{
+			_log.LogInformation("[TrapEvent] {Kind} at {Pos} already gone — no {Type} anywhere.", kind, position, typeof(T).Name);
 		}
 	}
 

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CommitStatus = CasualtiesUnknownOnline.GameAdapter.Items.ItemReportCommitter.CommitStatus;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
@@ -59,6 +60,28 @@ internal sealed class ItemWorldSync(
 
 	/// <summary>Disengage — the new world's real destroys report again.</summary>
 	internal void ResetDestroySuppression() => _suppressDestroys = false;
+
+	/// <summary>The Item.Update diagnostic's dedupe set — one report per broken object (the menu-scene NRE burst hunt).</summary>
+	private readonly HashSet<Item> _brokenUpdateReports = [];
+
+	/// <summary>
+	/// An item's Update is about to NRE (rb null — Awake's GetComponent found no
+	/// Rigidbody2D — or no WorldGeneration.world): name the culprit once per
+	/// object. The game's Item.Update then throws per frame until the object
+	/// dies — the report shows WHAT lives in a scene without its world.
+	/// </summary>
+	internal void OnBrokenItemUpdate(Item item, string reason)
+	{
+		if (!_brokenUpdateReports.Add(item))
+		{
+			return; // Unity object — reference equality; the report is once per object
+		}
+
+		_log.LogWarning("[BrokenItemUpdate] {Type} '{ItemId}' ({Reason}) in '{Scene}' at ({X:F1},{Y:F1}) — Item.Update NREs every frame while it lives.",
+			item.name, item.id, reason,
+			UnityEngine.SceneManagement.SceneManager.GetActiveScene().name,
+			item.transform.position.x, item.transform.position.y);
+	}
 
 	internal void BindToSession()
 	{

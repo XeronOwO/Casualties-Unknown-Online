@@ -32,4 +32,15 @@ public sealed class EntityEventMsg
 	/// </summary>
 	[ProtoMember(3)]
 	public byte Extra { get; set; }
+
+	/// <summary>
+	/// How long ago the event fired — the late-joiner snapshot's replay anchor.
+	/// 0 on live events (the transition just happened); the trap-state snapshot
+	/// carries the true elapsed so a state-family replay lands at the CURRENT
+	/// state instead of re-running the whole animation (a door opened minutes
+	/// ago replays as already open, not as opening — and one that opened 4 s
+	/// ago replays mid-animation).
+	/// </summary>
+	[ProtoMember(4)]
+	public float ElapsedSeconds { get; set; }
 }

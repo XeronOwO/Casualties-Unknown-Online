@@ -151,6 +151,9 @@ internal interface IPatchBridge
 
 	void OnItemInstantiated(Item item);
 
+	/// <summary>Item.Update's nullable dereference is about to throw (rb null / no WorldGeneration.world) — the diagnostic report, deduped by the domain (the menu-scene NRE burst hunt).</summary>
+	void OnBrokenItemUpdate(Item item, string reason);
+
 	void OnItemDestroyed(Item item);
 
 	/// <summary>Prefix of Body.PickUpItem — remember the world position (rollback target for a refused pickup).</summary>

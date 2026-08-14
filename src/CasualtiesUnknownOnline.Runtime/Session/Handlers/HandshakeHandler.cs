@@ -88,6 +88,17 @@ public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandl
 			ctx.CharacterData.SendSavedCharacter(sender);
 		}
 
+		// A member (re)entering while already InWorld never fires the
+		// SceneStateHandler InWorld edge — its scene state was restored here
+		// from the handshake report — so the world snapshots fan out here too.
+		// Without this a reconnect got the character save but a stale world
+		// (observed live: the spent spike not shown, the shuttle door closed
+		// again, the trashbag contents regressed).
+		if (member.InWorld)
+		{
+			ctx.SendWorldStateToMember(sender);
+		}
+
 		// NOT Handshaken yet: the member only counts as handshaken once its
 		// end-to-end AckAck arrives (HandshakeAckAckHandler) — a lost ack (lazy
 		// Steam P2P session, cert errors) otherwise keeps a guest retrying while

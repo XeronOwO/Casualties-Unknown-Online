@@ -444,6 +444,7 @@ public sealed partial class WorldService(ISessionControl session, PacketSender s
 		_damagedBlocks.Clear();
 		_eventChannel.ResetConsumptions();
 		_eventChannel.ResetOpenedEntities();
+		_eventChannel.ResetTrapLayouts();
 	}
 
 	/// <summary>Host only: send the full damage table to one member (on its world entry).</summary>

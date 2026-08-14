@@ -105,4 +105,9 @@ public enum NetMsg : byte
 	// Opened lockable entities (the late-joiner snapshot — an open is a one-shot
 	// write with no re-open, so a rejoin must learn the opens from the host)
 	OpenedEntitiesSnapshot = 78, // host → guest: the opened entities' positions so far (world entry, sent alongside the block-state and trap-state snapshots)
+
+	// The host's authoritative trap layout (the generated trap entities'
+	// positions — the game's entity distribution runs physics queries the
+	// random-stream isolation does not cover, so the sides' layouts diverge)
+	TrapLayoutSnapshot = 79, // host → guest: the layout entries (world entry, sent alongside the block-state / trap-state / opened-entities snapshots)
 }

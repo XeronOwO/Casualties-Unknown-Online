@@ -1,3 +1,5 @@
+using System;
+using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Tests.Fakes;
@@ -53,6 +55,7 @@ public class DirectionTests
 		NetMsg.WorldItemsSnapshot,
 		NetMsg.ItemCarriedSync,
 		NetMsg.OpenedEntitiesSnapshot,
+		NetMsg.TrapLayoutSnapshot,
 	};
 
 	public static TheoryData<NetMsg> BidirectionalMessages => new()
@@ -76,6 +79,7 @@ public class DirectionTests
 		NetMsg.ModMessage,
 		NetMsg.CraftReport,
 		NetMsg.RecipeUnlock,
+		NetMsg.SpeechMsg,
 	};
 
 	[Theory]
@@ -112,5 +116,27 @@ public class DirectionTests
 
 		Assert.True(hostReceiver.IsValidDirection(msg), $"{msg} must be valid at the host");
 		Assert.True(guestReceiver.IsValidDirection(msg), $"{msg} must be valid at the guest");
+	}
+
+	/// <summary>
+	/// The classification-completeness guard: every NetMsg value must appear in
+	/// exactly one direction list. Without this, a new message (or a forgotten
+	/// one — observed: SpeechMsg was bidirectional but unlisted, silently
+	/// falling into IsValidDirection's default-true) never gets its direction
+	/// locked, and a one-way message could regress to bidirectional.
+	/// </summary>
+	[Fact]
+	public void EveryNetMsg_IsExplicitlyClassified()
+	{
+		var all = Enum.GetValues(typeof(NetMsg)).Cast<NetMsg>().ToHashSet();
+		var classified = GuestToHostMessages
+			.Concat(HostToGuestMessages)
+			.Concat(BidirectionalMessages)
+			.Select(row => (NetMsg)row[0])
+			.ToHashSet();
+
+		var missing = all.Except(classified).ToList();
+		Assert.True(missing.Count == 0,
+			$"every NetMsg must be explicitly classified as g2h / h2g / bidirectional; missing: [{string.Join(", ", missing)}]");
 	}
 }

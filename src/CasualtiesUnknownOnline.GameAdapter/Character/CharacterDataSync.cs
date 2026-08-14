@@ -42,6 +42,7 @@ internal sealed class CharacterDataSync(
 
 	private CharacterDataMsg? _pendingRestore; // guest side: host-sent restore, applied once the body exists
 	private bool _restoreWipePending; // first pass wiped the slots (Destroy is end-of-frame) — items go in on the next frame
+	private readonly RestorePositionGate _positionGate = new(); // the restore's position lands ONCE per body (a re-sent restore must not teleport it again)
 	private const float CharacterReportInterval = 1f; // guest → host character snapshot (1 Hz)
 	private long _nextCharacterReportMs;
 
@@ -95,6 +96,10 @@ internal sealed class CharacterDataSync(
 		// before the local body exists (still loading the run); apply once the
 		// game has spawned it (TryApplyCharacterRestore).
 		_pendingRestore = data;
+		// The position applies on the body's first frame (TryApplyCharacterRestore)
+		// — the gate is NOT reset here: a re-sent restore (the handshake and the
+		// InWorld edge both send the saved character) must not reapply the position
+		// to the same body (observed live: a 0.5 s double teleport).
 		_log.LogInformation("Received character restore ({Items} items).", data.Items.Count);
 	}
 
@@ -177,6 +182,10 @@ internal sealed class CharacterDataSync(
 		{
 			_characterData.ReportCharacterData(CaptureCharacterData(prevBody));
 		}
+
+		// The body left the world — the next body's restore position applies
+		// again (the gate reset lives HERE, not on restore arrival).
+		_positionGate.OnBodyLeft();
 	}
 
 	private void TryApplyCharacterRestore(Body body)
@@ -186,9 +195,15 @@ internal sealed class CharacterDataSync(
 			return;
 		}
 
-		// Apply only once world generation finished: the game hands out the
-		// starting supplies inside generation (WorldPlacePlayer), and the
-		// restore wipes the slots first — applying during generation would
+		// The position applies on the body's FIRST frame — before the
+		// generation guard, so a fresh spawn never visibly sits at the landing
+		// spot and then jumps (observed: rejoin spawned at the landing spot,
+		// then teleported to the disconnect spot when the full restore ran).
+		ApplyPendingPosition(body);
+
+		// The ITEMS apply only once world generation finished: the game hands
+		// out the starting supplies inside generation (WorldPlacePlayer), and
+		// the restore wipes the slots first — applying during generation would
 		// race that handout (observed: the default lantern ending up on the
 		// ground instead of in the restored inventory).
 		if (HarmonyTraverse.IsGenerating())
@@ -281,19 +296,48 @@ internal sealed class CharacterDataSync(
 		return msg;
 	}
 
+	/// <summary>
+	/// Apply the pending restore's position once the body exists — the FIRST
+	/// frame it exists, generation or not (see TryApplyCharacterRestore).
+	/// Returns whether a position was applied. Zero velocity: the body must
+	/// not keep the fresh spawn's momentum into the restored spot.
+	/// </summary>
+	/// <summary>
+	/// Apply only the pending restore's position — the run coordinator calls this
+	/// on the body's first frame, BEFORE reporting the scene state, so the host
+	/// spawns the clone at the restored spot (ReportedSpawnPos) instead of the
+	/// landing spot and then teleporting it (observed: the host saw the
+	/// reconnecting guest's clone jump). The stats wipe + items stay on their own
+	/// two-frame rhythm (TryApplyCharacterRestore); the position gate keeps this
+	/// idempotent.
+	/// </summary>
+	internal void ApplyPendingPositionOnly(Body body)
+	{
+		if (_pendingRestore is null)
+		{
+			return;
+		}
+
+		ApplyPendingPosition(body);
+	}
+
+	private bool ApplyPendingPosition(Body body)
+	{
+		if (!_positionGate.ShouldApplyPosition || _pendingRestore?.Position is not { } pos)
+		{
+			return false;
+		}
+
+		_positionGate.MarkPositionApplied();
+		body.transform.position = new Vector3(pos.X, pos.Y, 0f);
+		body.rb.velocity = Vector2.zero;
+		_log.LogInformation("Character restore position applied at spawn: ({X:F1},{Y:F1}).", pos.X, pos.Y);
+		return true;
+	}
+
 	private void ApplyRestoredStatsAndWipe(Body body, CharacterDataMsg data)
 	{
 		_log.LogInformation("Applying character restore ({Items} items).", data.Items.Count);
-
-		if (data.Position is { } pos)
-		{
-			// The disconnect spot — applied before the wipe (the position has no
-			// Destroy semantics to wait for). Zero velocity: the body must not
-			// keep the fresh spawn's momentum into the restored spot.
-			body.transform.position = new Vector3(pos.X, pos.Y, 0f);
-			body.rb.velocity = Vector2.zero;
-			_log.LogInformation("Character restore position: ({X:F1},{Y:F1}).", pos.X, pos.Y);
-		}
 
 		// Wipe the fresh-run default state first: this new run already got its
 		// starting supplies (WorldGeneration.WorldPlacePlayer) and random vitals

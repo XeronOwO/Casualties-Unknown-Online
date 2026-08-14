@@ -145,6 +145,10 @@ internal sealed class ItemSimWorld : IDisposable
 	internal List<ItemRejectMsg> Rejects(TestNode node) =>
 		[.. Received(node).Where(r => r.Msg == NetMsg.ItemReject).Select(r => NetPacket.DecodePayload<ItemRejectMsg>(r.Frame))];
 
+	/// <summary>The id-watermark grants the node has received so far (cumulative — the rejoin grant is the assertion surface).</summary>
+	internal List<ItemIdWatermarkMsg> Watermarks(TestNode node) =>
+		[.. Received(node).Where(r => r.Msg == NetMsg.ItemIdWatermark).Select(r => NetPacket.DecodePayload<ItemIdWatermarkMsg>(r.Frame))];
+
 	/// <summary>How many frames of one message type the node has received so far (cumulative).</summary>
 	internal int ReceivedCount(TestNode node, NetMsg msg) => Received(node).Count(r => r.Msg == msg);
 

@@ -25,6 +25,7 @@ public class CharacterDataStoreTests
 	{
 		OwnerSteamId = owner,
 		Items = [new CharacterItemMsg { ItemId = "flashlight", Condition = 1f }],
+		Position = new NetVector2Msg(12.5f, 34.75f),
 	};
 
 	[Fact]
@@ -67,6 +68,52 @@ public class CharacterDataStoreTests
 
 			Assert.True(received.Count == 1, $"the saved snapshot must reach the reconnecting guest, got {received.Count}");
 			Assert.Equal("flashlight", received[0].Items[0].ItemId);
+		}
+	}
+
+	[Fact]
+	public void SendSavedCharacter_PositionSurvivesTheSaveRoundTrip()
+	{
+		// The reconnect restore returns the character to its LEAVE spot — the
+		// position must survive the save table untouched (the host's table is
+		// the only copy between the disconnect and the reconnect).
+		var (host, guest) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		using (host)
+		using (guest)
+		{
+			var received = new List<CharacterDataMsg>();
+			guest.Services.GetRequiredService<CharacterDataStore>().CharacterDataReceived += (_, msg) => received.Add(msg);
+
+			host.Services.GetRequiredService<CharacterDataStore>().SaveCharacterData(GuestId, Snapshot(GuestId));
+			host.Services.GetRequiredService<ICharacterDataControl>().SendSavedCharacter(GuestId);
+
+			Assert.True(received.Count == 1, $"the saved snapshot must reach the reconnecting guest, got {received.Count}");
+			var position = received[0].Position;
+			Assert.NotNull(position);
+			Assert.Equal(12.5f, position.X);
+			Assert.Equal(34.75f, position.Y);
+		}
+	}
+
+	[Fact]
+	public void SendSavedCharacter_NullPositionPassesThrough()
+	{
+		// An old sender (pre-Position protocol) saved no position — the restore
+		// claims none and the game spawns at the fresh world's landing spot.
+		var (host, guest) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		using (host)
+		using (guest)
+		{
+			var received = new List<CharacterDataMsg>();
+			guest.Services.GetRequiredService<CharacterDataStore>().CharacterDataReceived += (_, msg) => received.Add(msg);
+
+			var snapshot = Snapshot(GuestId);
+			snapshot.Position = null;
+			host.Services.GetRequiredService<CharacterDataStore>().SaveCharacterData(GuestId, snapshot);
+			host.Services.GetRequiredService<ICharacterDataControl>().SendSavedCharacter(GuestId);
+
+			Assert.True(received.Count == 1, $"the saved snapshot must reach the reconnecting guest, got {received.Count}");
+			Assert.Null(received[0].Position);
 		}
 	}
 }

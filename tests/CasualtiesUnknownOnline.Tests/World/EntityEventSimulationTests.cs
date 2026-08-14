@@ -3,6 +3,7 @@ using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Session.World;
+using CasualtiesUnknownOnline.Runtime.Time;
 using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -141,6 +142,39 @@ public class EntityEventSimulationTests
 		w.HostChannel.SendOpenedEntitiesSnapshot(w.G2.SteamId);
 
 		Assert.True(g2Opened.Count == 0, "an empty opened table sends nothing");
+	}
+
+	[Fact]
+	public void Snapshot_ElapsedCarriesTheTriggerAge()
+	{
+		// The rejoin scenario (user-verified): the host's shuttle door opened,
+		// MINUTES pass, the guest rejoins — the snapshot must carry how long
+		// ago, so the door's replay lands at the CURRENT state (already open /
+		// gone) instead of re-running the 10 s opening animation from zero.
+		var w = EntityEventSimWorld.Create();
+		var clock = (FakeClock)w.Host.Services.GetRequiredService<ITimeSource>();
+		w.HostChannel.ReportTrapConsumed(EntityEventKind.ShuttleDoorOpened, 0f, 496f, extra: 0);
+		clock.Advance(7_500); // 7.5 s later — the door's animation is mid-flight
+
+		var g1Consumed = new List<IReadOnlyList<EntityEventMsg>>();
+		w.G1.Services.GetRequiredService<EntityEventChannel>().TrapStateReceived += list => g1Consumed.Add(list);
+		w.HostChannel.SendTrapStateSnapshot(w.G1.SteamId);
+
+		Assert.True(g1Consumed.Count == 1, "the snapshot must arrive");
+		Assert.True(g1Consumed[0][0].ElapsedSeconds > 7.4f && g1Consumed[0][0].ElapsedSeconds < 7.6f,
+			$"the elapsed must ride the snapshot (7.5 s), got {g1Consumed[0][0].ElapsedSeconds}");
+	}
+
+	[Fact]
+	public void Snapshot_ElapsedZero_ForLiveEvents()
+	{
+		// A live event's ElapsedSeconds is 0 (the transition just happened) —
+		// the replay runs the full transition, the original behaviour.
+		var w = EntityEventSimWorld.Create();
+		w.Trigger(w.G1, EntityEventKind.SpikeStabbed, 10f, 20f);
+
+		Assert.True(w.G2Events.Count == 1, "the relay must arrive");
+		Assert.True(w.G2Events[0].ElapsedSeconds == 0f, $"a live event carries no elapsed, got {w.G2Events[0].ElapsedSeconds}");
 	}
 
 	[Fact]

@@ -17,6 +17,8 @@ namespace CasualtiesUnknownOnline.Runtime.Steam;
 public sealed class SteamService(ILogger<SteamService> log) : ICuoService, ISteamService
 {
 	private readonly ILogger<SteamService> _log = log;
+
+	private readonly LobbyLifecycle _lobby = new();
 	private Callback<LobbyCreated_t>? _lobbyCreated;
 	private Callback<LobbyEnter_t>? _lobbyEntered;
 	private Callback<GameLobbyJoinRequested_t>? _joinRequested;
@@ -26,7 +28,7 @@ public sealed class SteamService(ILogger<SteamService> log) : ICuoService, IStea
 	public ulong LocalSteamId { get; private set; }
 
 	/// <summary>Lobby this client currently hosts or joined, or 0 when none.</summary>
-	public ulong CurrentLobbyId { get; private set; }
+	public ulong CurrentLobbyId => _lobby.CurrentLobbyId;
 
 	/// <summary>
 	/// SteamID of the lobby owner — the authority in a star network. Never
@@ -125,6 +127,16 @@ public sealed class SteamService(ILogger<SteamService> log) : ICuoService, IStea
 
 	public void CreateLobby(int maxMembers = 8)
 	{
+		// Steam requires leaving the current lobby before a fresh create — a
+		// re-create without leaving strands the old lobby (the host's friends
+		// keep joining the dead lobby; observed live on F8 re-create).
+		if (_lobby.MustLeaveBeforeCreate)
+		{
+			_log.LogInformation("Leaving current lobby {Lobby} before creating a new one.", _lobby.CurrentLobbyId);
+			SteamMatchmaking.LeaveLobby(new CSteamID(_lobby.CurrentLobbyId));
+			_lobby.OnLobbyLeft();
+		}
+
 		_log.LogInformation("Requesting lobby creation...");
 		SteamMatchmaking.CreateLobby(ELobbyType.k_ELobbyTypePublic, maxMembers);
 	}
@@ -140,7 +152,7 @@ public sealed class SteamService(ILogger<SteamService> log) : ICuoService, IStea
 		if (callback.m_eResult == EResult.k_EResultOK)
 		{
 			var lobbyId = callback.m_ulSteamIDLobby;
-			CurrentLobbyId = lobbyId;
+			_lobby.OnLobbyAcquired(lobbyId);
 			_log.LogInformation($"Lobby created: {lobbyId}");
 			LobbyCreated?.Invoke(lobbyId);
 		}
@@ -166,7 +178,7 @@ public sealed class SteamService(ILogger<SteamService> log) : ICuoService, IStea
 			return;
 		}
 
-		CurrentLobbyId = lobbyId;
+		_lobby.OnLobbyAcquired(lobbyId);
 		_log.LogInformation($"Entered lobby: {lobbyId}");
 		LobbyEntered?.Invoke(lobbyId);
 	}

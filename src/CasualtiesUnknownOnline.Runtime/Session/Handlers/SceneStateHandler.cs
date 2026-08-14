@@ -51,22 +51,10 @@ public sealed class SceneStateHandler(ILogger<SceneStateHandler> log) : PacketHa
 					// run — its starting supplies stay ("started paradise, got
 					// the previous run's emergency light" is gone).
 					ctx.CharacterData.SendSavedCharacter(reporter);
-					// The member's generation just finished — hand it the full
-					// block-state snapshot (damage table) so it sees the world
-					// as it is now, not as the baseline regenerated it.
-					ctx.World.SendBlockStateSnapshot(reporter);
-					// Same for the one-shot trap consumptions — the world-entry
-					// send used to ride only the 60 s periodic resend, so a
-					// rejoin saw already-triggered traps fire up to a minute
-					// late (observed: a spent spike trap re-triggered).
-					ctx.World.SendTrapStateSnapshot(reporter);
-					// And the opened lockable entities — an open is a one-shot
-					// write with no re-open, so a rejoin must learn the opens
-					// from the host (observed: the pod door closed again).
-					ctx.World.SendOpenedEntitiesSnapshot(reporter);
-					// Same for the world items: the runtime-generated drops and
-					// placed items the member could not have regenerated.
-					ctx.Items.SendItemSnapshot(reporter);
+					// The full world-state backfill (block damage, trap
+					// consumptions, opened entities, trap layout, world items) —
+					// see HandlerContext.SendWorldStateToMember.
+					ctx.SendWorldStateToMember(reporter);
 					// Start gate: everyone enters together — or, if the game
 					// already started, let this late joiner pass directly.
 					ctx.World.NotifyMemberInWorld(reporter);

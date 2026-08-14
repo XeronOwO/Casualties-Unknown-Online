@@ -71,6 +71,8 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	private readonly GuestMenuGuard _guestMenu;
 	private readonly GeneratedItemAuthority _genItemAuthority;
 	private readonly GeneratedItemApplication _genItemApplication;
+	private readonly TrapLayoutScanner _trapLayoutScanner;
+	private readonly TrapLayoutApplication _trapLayoutApplication;
 	private readonly LayerModifierSync _layerModifierSync;
 	private readonly ItemIdAllocator _itemIds;
 	private readonly CarriedInventoryReporter _carriedInventoryReporter;
@@ -122,6 +124,8 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_itemPositionFollow = new ItemPositionFollow(items, _dropGuard, session, loggerFactory.CreateLogger<ItemPositionFollow>());
 		_genItemAuthority = new GeneratedItemAuthority(session, items, _itemIds, loggerFactory.CreateLogger<GeneratedItemAuthority>());
 		_genItemApplication = new GeneratedItemApplication(items, _itemApplication, loggerFactory.CreateLogger<GeneratedItemApplication>());
+		_trapLayoutScanner = new TrapLayoutScanner(session, world, loggerFactory.CreateLogger<TrapLayoutScanner>());
+		_trapLayoutApplication = new TrapLayoutApplication(world, loggerFactory.CreateLogger<TrapLayoutApplication>());
 		_layerModifierSync = new LayerModifierSync(items, loggerFactory.CreateLogger<LayerModifierSync>());
 		_carriedInventoryReporter = new CarriedInventoryReporter(session, items, _itemIds, loggerFactory.CreateLogger<CarriedInventoryReporter>());
 		LayerModifierApplyPatch.IsModifierAuthority = () => _session.Role != SessionRole.Guest; // the host/solo side rolls the world's modifier; guests replay it locally and fall back to the snapshot
@@ -274,6 +278,8 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_gate.Update(_run.LocalBody);
 		_genItemAuthority.Update(); // host/solo: publish the generation-time items when the generation finished
 		_genItemApplication.Update(); // guest: apply the host's generation snapshot once the local generation finished
+		_trapLayoutScanner.Update(); // host: report the generated trap layout on the same falling edge
+		_trapLayoutApplication.Update(); // guest: apply a deferred layout snapshot once the local generation finished
 		_layerModifierSync.Update(); // guest: apply the host's layer modifier once the local generation finished
 		_carriedInventoryReporter.Update(); // guest: report the carried inventory with self-assigned ids once the local generation finished
 		_itemWorldSync.FlushPendingDrop(); // a drop that was not thrown reports at end of frame (one drop = one report)
@@ -325,6 +331,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_recipeUnlockApply.BindToSession();
 		_run.BindToSession();
 		_genItemApplication.BindToSession();
+		_trapLayoutApplication.BindToSession();
 		_layerModifierSync.BindToSession();
 		_items.ItemCarriedSyncReceived += OnItemCarriedSync; // the owner's clone re-renders the moment a carried fact changes
 		_items.ItemDropped += OnCarriedItemDropped; // a carried item leaving into the world leaves the fact table (recursive)
@@ -353,6 +360,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_craftingSync.ResetPending(); // the destroy claims die with the scene
 		_run.Unbind();
 		_genItemApplication.Unbind();
+		_trapLayoutApplication.Unbind();
 		_layerModifierSync.Unbind();
 		_items.ItemCarriedSyncReceived -= OnItemCarriedSync;
 		_items.ItemDropped -= OnCarriedItemDropped;
@@ -499,6 +507,8 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	}
 
 	void IPatchBridge.OnItemInstantiated(Item item) => _itemWorldSync.OnItemInstantiated(item);
+
+	void IPatchBridge.OnBrokenItemUpdate(Item item, string reason) => _itemWorldSync.OnBrokenItemUpdate(item, reason);
 
 	void IPatchBridge.OnItemDestroyed(Item item) => _itemWorldSync.OnItemDestroyed(item);
 

@@ -70,12 +70,15 @@ drop-then-pickup view offset determined game-native (CUO never writes the item t
   drives them from the batch (`EnemySyncCoordinator`). Remaining enemy interaction work:
   - RESOLVED (d4fcc6a): the guest's local attack drop flash-reverted on the next host batch —
     `EnemyHealthReconcile` (pure pending-delta machine) preserves the drop until the host applies it.
-  - **Bite damage (enemy → player)**: the guest's frozen copy bites once per contact — `biteCooldown`
-    never decrements because the freeze patch skips `SpiderHandler.Update` (the decrement lives there).
-    The `rb.bodyType = Static` freeze is NOT a usable alternative: `BuildingEntity.Update`
-    (BuildingEntity.cs:50-55) re-toggles `bodyType` to Dynamic when the chunk renders + `timeScale ≤ 5`,
-    so the freeze relies entirely on the EnemyPatches, not the Static rb. Repeated-bite cooldown + host
-    arbitration are deferred (accept-first standard — no strict validation, get the feature working).
+  - RESOLVED (33b49ab + b10ef93): the bite now travels as a dedicated `EnemyBite` event (report +
+    relay + clone apply) instead of riding the 1 Hz snapshot — `EnemyBiteMsg` (limb + venom/adrenaline/
+    happiness), `EnemyBitePatches` (DamageLimb postfix), `EnemySyncCoordinator.ReportEnemyBite`,
+    `CloneFactTable.ApplyEnemyBite`. Remaining: the guest's frozen copy bites ONCE per contact —
+    `biteCooldown` never decrements because the freeze patch skips `SpiderHandler.Update` (the decrement
+    lives there); the `rb.bodyType = Static` freeze is NOT a usable alternative (`BuildingEntity.Update`,
+    BuildingEntity.cs:50-55, re-toggles `bodyType` to Dynamic when the chunk renders + `timeScale ≤ 5`,
+    so the freeze relies entirely on the EnemyPatches, not the Static rb). A guest-side bite driver
+    (CUO owns the 5 s cooldown) is the deferred fix — accept-first, no strict validation.
   - Runtime cave-tick nest spawn (16 ticks spawn on the triggering side only,
     EntityEventKind.CaveTicksSpawned).
   - cave-tick/shadecrawler/wallbiter prefab script mapping (Unity asset, needs a runtime component

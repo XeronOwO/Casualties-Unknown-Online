@@ -38,14 +38,12 @@ shuttle-door closed after reconnect; trashbag-contents regression; double positi
 - #118 Steam P2P cert error (transient self-heal on idle — recorded, not investigated).
 - Heater cooker meat→steak conversion (item domain).
 - TutorialHandler claw double-give in the tutorial world (tutorial domain).
-- Trade domain #132: implemented but acceptance deferred — pending simulation coverage.
-- World-entry snapshot-group consistency: `GeyserStateSnapshot` and `KeypadCode` both claim "world entry"
-  (NetMsg.cs:57/78) but only ride the 60 s periodic resend, not the world-entry fan-out
-  (`HandlerContext.SendWorldStateToMember` has just the 5 snapshots) — a reconnect waits up to 60 s
-  for geyser liquid types / keypad codes (same class as the fixed #3/#5/#6 snapshots). The data
-  source lives in the Game Adapter (enumerates Unity `GeyserScript`/`Openable`), so fixing needs an
-  architecture pass: a reconnect hook on `RemoteSceneChanged(inWorld=true)` or sink the data into a
-  Runtime registry.
+- Trade domain #132: implemented — simulation coverage landed (`TradeSimulationTests`,
+  `TradeStockMachineTests`); the acceptance only lacks a dual-side runtime pass.
+- RESOLVED (1ceec3e): world-entry snapshot-group consistency — `GeyserStateSnapshot` and `KeypadCode`
+  now re-fan-out on member world-entry via the `RemoteSceneChanged(inWorld=true)` signal (the Game
+  Adapter owns the data and re-broadcasts on the signal; `HandlerContext.SendWorldStateToMember`
+  keeps the 5 Runtime snapshots).
 
 ## Character / presentation / combat
 

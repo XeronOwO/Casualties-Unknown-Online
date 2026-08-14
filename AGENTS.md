@@ -42,6 +42,7 @@ dotnet test CasualtiesUnknownOnline.slnx   # MUST pass before every commit (incl
 dotnet format CasualtiesUnknownOnline.slnx   # MUST run before every commit
 powershell -File tools/check-architecture.ps1   # MUST pass before every commit (≤600-line classes, ≤5 state bools, one top-level type per file)
 powershell -File tools/check-event-replay.ps1   # MUST pass before every commit (docs/event-replay-matrix.csv — touching an event mechanism means updating its row in the same commit)
+powershell -File tools/check-entity-event-dispatch.ps1   # MUST pass before every commit (every EntityEventKind dispatched in TrapEntityScan + TrapEffectApplier + TrapVisualReplay — a new kind forgotten in one table fails this gate)
 powershell -File tools/check-delivery.ps1   # MUST pass before the cycle's FINAL commit (docs/delivery-checklist.md; then -Reset for the next cycle)
 ```
 

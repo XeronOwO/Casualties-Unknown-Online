@@ -31,6 +31,15 @@ internal interface IPatchBridge
 	/// <summary>A player's attack damaged a building entity (Body.cs:1946) — report it (the entity's health is local-only otherwise).</summary>
 	void OnBuildingEntityDamaged(BuildingEntity entity, float damage);
 
+	/// <summary>
+	/// The local player swung — <c>Body.Attack</c> (Body.cs:1887, conscious +
+	/// off-cooldown + doAttackAnim) or <c>Body.ThrowItem</c> (Body.cs:1665, with
+	/// an item). Both play the one-shot <c>ArmsSwing</c> clip, which the peer's
+	/// render clone must replay. Report the swing so it rides the IsAttacking
+	/// snapshot flag (the clone plays ArmsSwing on the flag's rising edge).
+	/// </summary>
+	void OnArmSwing();
+
 	/// <summary>A lockable entity was opened (health = 0 write path — Openable/lockpick/keypad) — report it.</summary>
 	void OnBuildingEntityOpened(BuildingEntity entity);
 

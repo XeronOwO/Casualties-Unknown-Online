@@ -18,6 +18,9 @@ internal sealed class RemoteBodyDriver : MonoBehaviour
 	/// <summary>Last applied lying pose (standing=false, not sleeping) — same transition rule.</summary>
 	public bool PrevLying;
 
+	/// <summary>Last applied attack-swing flag — the ArmsSwing clip plays only on the flag's rising edge.</summary>
+	public bool PrevAttacking;
+
 	/// <summary>Current climbing state — HandleVisuals overwrites the animator flag every frame.</summary>
 	public bool Climbing;
 

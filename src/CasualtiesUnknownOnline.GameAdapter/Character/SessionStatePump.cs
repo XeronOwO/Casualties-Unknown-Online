@@ -129,6 +129,20 @@ internal static class SessionStatePump
 			}
 
 			driver.Climbing = entity.Climbing;
+
+			// Attack swing: replay the ArmsSwing clip once per rising flag edge —
+			// the same one-shot the local player plays on attack/throw (Body.cs:
+			// 1887, 1665). The IsAttacking flag is held for the swing's span by
+			// the sender (AttackSwingState), so the edge is delivered reliably
+			// even over the unreliable 20 Hz stream.
+			if (entity.IsAttacking != driver.PrevAttacking)
+			{
+				driver.PrevAttacking = entity.IsAttacking;
+				if (entity.IsAttacking)
+				{
+					body.armsAnimator.Play("ArmsSwing", -1, 0f);
+				}
+			}
 		}
 	}
 

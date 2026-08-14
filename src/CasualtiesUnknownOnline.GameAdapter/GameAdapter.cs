@@ -429,6 +429,8 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	void IPatchBridge.OnBuildingEntityDamaged(BuildingEntity entity, float damage) =>
 		_worldEventSync.OnBuildingEntityDamaged(entity, damage);
 
+	void IPatchBridge.OnArmSwing() => _entities.MarkLocalAttackSwing();
+
 	void IPatchBridge.OnBuildingEntityOpened(BuildingEntity entity) =>
 		_worldEventSync.OnBuildingEntityOpened(entity);
 

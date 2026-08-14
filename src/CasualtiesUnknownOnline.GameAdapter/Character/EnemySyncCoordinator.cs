@@ -29,6 +29,7 @@ internal sealed class EnemySyncCoordinator(
 	private readonly Dictionary<BuildingEntity, NetworkEntityId> _idByEntity = [];
 	private readonly Dictionary<NetworkEntityId, BuildingEntity> _entityById = [];
 	private bool _mappingEstablished;
+	private bool _guestFrozen; // guest: animals frozen at generation finish (before they move, so the pairing uses the spawn positions)
 
 	internal void BindToSession()
 	{
@@ -40,13 +41,26 @@ internal sealed class EnemySyncCoordinator(
 	{
 		_enemies.EnemySnapshotReceived -= OnEnemySnapshotReceived;
 		_enemies.EnemyStateReceived -= OnEnemyStateReceived;
+		_idByEntity.Clear();
+		_entityById.Clear();
+		_mappingEstablished = false;
+		_guestFrozen = false;
 	}
 
 	internal void Update()
 	{
-		if (_session.Role == SessionRole.Host && _session.SessionActive)
+		if (!_session.SessionActive)
+		{
+			return;
+		}
+
+		if (_session.Role == SessionRole.Host)
 		{
 			CaptureHostEnemies();
+		}
+		else
+		{
+			FreezeOnGenerationComplete();
 		}
 	}
 
@@ -116,7 +130,35 @@ internal sealed class EnemySyncCoordinator(
 	private static List<BuildingEntity> FindAnimals() =>
 		[.. UnityEngine.Object.FindObjectsOfType<BuildingEntity>().Where(e => e.animal)];
 
-	// ---- Guest: bind + freeze on the world-entry snapshot ----
+	// ---- Guest: freeze at generation finish, then bind on the snapshot ----
+
+	/// <summary>
+	/// Freeze the guest's animal copies the moment generation finishes — BEFORE
+	/// their AI moves them. The pairing key is the spawn position, so the copies
+	/// must still be at their spawn spots when the host's snapshot arrives;
+	/// freezing early also stops the guest from simulating (host-authoritative).
+	/// </summary>
+	private void FreezeOnGenerationComplete()
+	{
+		if (_guestFrozen || HarmonyTraverse.IsGenerating())
+		{
+			return;
+		}
+
+		var animals = FindAnimals();
+		if (animals.Count == 0)
+		{
+			return; // generation not finished yet (or a menu scene)
+		}
+
+		foreach (var entity in animals)
+		{
+			Freeze(entity);
+		}
+
+		_guestFrozen = true;
+		_log.LogInformation("[Enemy] guest froze {Count} enemy copies at generation finish (before they move).", animals.Count);
+	}
 
 	private void OnEnemySnapshotReceived()
 	{

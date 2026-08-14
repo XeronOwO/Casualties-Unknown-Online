@@ -14,7 +14,7 @@ so keep anything sensitive/derived inside and never stage it.
 
 ## Decompiling the game assembly
 
-With dnSpy.Console (path in `CLAUDE.local.md` on the dev machine):
+With dnSpy.Console (path in `AGENTS.local.md` on the dev machine):
 
 ```bash
 dnSpy.Console.exe -o reversing/Assembly-CSharp --project references/Assembly-CSharp.dll

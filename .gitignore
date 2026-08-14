@@ -67,7 +67,8 @@ nunit-*.xml
 .idea/
 .vscode/
 
-# Claude Code — local personal notes (never committed)
+# DeepSeek Harness — local personal notes (never committed)
+AGENTS.local.md
 CLAUDE.local.md
 
 # Game assemblies (copyrighted, see references/README.md)

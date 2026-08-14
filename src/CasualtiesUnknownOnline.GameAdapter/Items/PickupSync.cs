@@ -16,7 +16,7 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 /// determinism covers it) is bound and removed on the peer via
 /// spawn-then-pickup. The pickup-start hook records the ground position
 /// explicitly — the picked-up hook runs after the re-parent moved the item
-/// (CLAUDE.md #9: explicit state between hooks, never scene inference). The
+/// (AGENTS.md #9: explicit state between hooks, never scene inference). The
 /// HOST's own pickups need no arbitration (its local object IS the fact) — it
 /// broadcasts the full carried item alongside, so the peers' clones of the
 /// host show the item the moment it lands (worn items carry the limb encoding,

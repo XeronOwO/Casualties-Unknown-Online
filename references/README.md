@@ -52,7 +52,7 @@ Copy-Item "$bepinex\plugins\KrokMP\steam_api64.dll" .  # Steam native lib (deplo
 | `steam_api64.dll` | `<game>\BepInEx\plugins\KrokMP\`(native,not a compile reference — deploy.ps1 ships it) |
 
 Keep the versions in sync with the game build you are developing against
-(see `CLAUDE.local.md` for this machine's game path).
+(see `AGENTS.local.md` for this machine's game path).
 
 ## After a game update
 

@@ -84,11 +84,12 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	private readonly SpeechSync _speechSync;
 	private readonly CraftingSync _craftingSync;
 	private readonly RecipeUnlockApply _recipeUnlockApply;
+	private readonly EnemySyncCoordinator _enemySync;
 	private Body? _lastLocalBody; // Unity object — == (the world-entry edge for the destroy-suppression reset)
 
 	public GameAdapter(SessionService session, EntitySyncService entities, CharacterDataStore characterData,
 		WorldService world, ItemService items, ICraftControl craft, ItemArbitration arbitration,
-		ILogger<GameAdapter> log, IMapper mapper, ILoggerFactory loggerFactory)
+		EnemySyncService enemies, ILogger<GameAdapter> log, IMapper mapper, ILoggerFactory loggerFactory)
 	{
 		_session = session;
 		_items = items;
@@ -144,6 +145,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_speechSync = new SpeechSync(world, session, loggerFactory.CreateLogger<SpeechSync>());
 		_craftingSync = new CraftingSync(craft, _itemIds, itemReports, _operationTrace, loggerFactory.CreateLogger<CraftingSync>());
 		_recipeUnlockApply = new RecipeUnlockApply(craft, loggerFactory.CreateLogger<RecipeUnlockApply>());
+		_enemySync = new EnemySyncCoordinator(session, enemies, loggerFactory.CreateLogger<EnemySyncCoordinator>());
 		_lifePod = new LifePodPresentation(loggerFactory.CreateLogger<LifePodPresentation>());
 		_guestMenu = new GuestMenuGuard(session, loggerFactory.CreateLogger<GuestMenuGuard>());
 		_worldParams = new WorldParamsService(world, loggerFactory.CreateLogger<WorldParamsService>());
@@ -300,6 +302,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_tradeSync.Update(); // host: the 5 s trader-state fallback broadcast
 		_blockBreakSync.Update(); // expire break records without a consuming drops report
 		_renderer.Update();
+		_enemySync.Update(); // host: capture + publish the simulated enemies; guest: (event-driven bind/apply)
 	}
 
 	void ICuoService.Stop() => Uninstall();
@@ -329,6 +332,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_tradeSync.BindToSession();
 		_speechSync.BindToSession();
 		_recipeUnlockApply.BindToSession();
+		_enemySync.BindToSession();
 		_run.BindToSession();
 		_genItemApplication.BindToSession();
 		_trapLayoutApplication.BindToSession();
@@ -357,6 +361,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_tradeSync.Unbind();
 		_speechSync.Unbind();
 		_recipeUnlockApply.Unbind();
+		_enemySync.Unbind();
 		_craftingSync.ResetPending(); // the destroy claims die with the scene
 		_run.Unbind();
 		_genItemApplication.Unbind();

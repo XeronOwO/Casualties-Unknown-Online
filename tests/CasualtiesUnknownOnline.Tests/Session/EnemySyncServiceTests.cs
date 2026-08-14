@@ -41,7 +41,7 @@ public class EnemySyncServiceTests
 
 		var g1Enemies = w.G1.Services.GetRequiredService<EnemySyncService>();
 		var received = 0;
-		g1Enemies.EnemyStateReceived += () => received++;
+		g1Enemies.EnemySnapshotReceived += () => received++;
 
 		w.G1.Session.ReportSceneState(SceneStateType.InWorld, "SampleScene");
 		w.Driver.Tick(33);
@@ -58,7 +58,7 @@ public class EnemySyncServiceTests
 		using var w = ItemSimWorld.Create();
 		var g1Enemies = w.G1.Services.GetRequiredService<EnemySyncService>();
 		var received = 0;
-		g1Enemies.EnemyStateReceived += () => received++;
+		g1Enemies.EnemySnapshotReceived += () => received++;
 
 		w.G1.Session.ReportSceneState(SceneStateType.InWorld, "SampleScene");
 		w.Driver.Tick(33);

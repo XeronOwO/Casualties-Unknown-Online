@@ -30,6 +30,8 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 	private uint _nextEnemySeq; // host: EnemyState broadcast seq
 	private long _nextStateSendMs;
 	private uint _lastEnemyStateSeq; // guest: last applied seq (the unreliable-stream gate)
+	private ulong _epoch; // host: the enemy-id epoch (set on Initialize)
+	private uint _nextEnemyCounter; // host: enemy-id allocation counter
 
 	public EnemySyncService(ISessionControl session, PacketSender sender, ITimeSource time)
 	{
@@ -39,7 +41,10 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 		session.SessionEnded += OnSessionEnded;
 	}
 
-	/// <summary>Raised after a snapshot/batch is applied (the Game Adapter re-applies the buffered state to the render copies on this).</summary>
+	/// <summary>Raised after the full world-entry snapshot is applied (the Game Adapter binds its local enemy copies to the host's ids on this).</summary>
+	public event Action? EnemySnapshotReceived;
+
+	/// <summary>Raised after a 20 Hz batch is applied (the Game Adapter drives the frozen render copies from the buffered state on this).</summary>
 	public event Action? EnemyStateReceived;
 
 	// ---- Public surface (Game Adapter) ----
@@ -49,6 +54,9 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 
 	public EnemyEntity? GetEnemy(NetworkEntityId id) =>
 		_enemies.TryGetValue(id, out var entity) ? entity : null;
+
+	/// <summary>Host side: allocate the next enemy id (the host assigns ids in the deterministic EnemySpawnArbitration order).</summary>
+	public NetworkEntityId AllocateEnemyId() => new(_epoch, _nextEnemyCounter++, 0);
 
 	/// <summary>Host side: publish the authoritative enemy states (the Game Adapter captures the simulated enemies and overwrites the buffer each tick).</summary>
 	public void PublishEnemyStates(IEnumerable<EnemyEntity> states)
@@ -70,13 +78,9 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 
 	void IEnemySyncControl.SendEnemySnapshot(ulong steamId) => SendEnemySnapshot(steamId);
 
-	void IEnemySyncControl.FireEnemyStateReceived() => EnemyStateReceived?.Invoke();
-
 	// ---- ICuoService ----
 
-	void ICuoService.Initialize()
-	{
-	}
+	void ICuoService.Initialize() => _epoch = (ulong)_time.UtcNowTicks;
 
 	void ICuoService.Start()
 	{
@@ -135,13 +139,13 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 
 	// ---- Apply (guest) ----
 
-	private void ApplyEnemyState(EnemyStateBatchMsg msg) => Replace(msg.Enemies);
+	private void ApplyEnemyState(EnemyStateBatchMsg msg) => Replace(msg.Enemies, EnemyStateReceived);
 
-	private void ApplyEnemySnapshot(EnemySnapshotMsg msg) => Replace(msg.Enemies);
+	private void ApplyEnemySnapshot(EnemySnapshotMsg msg) => Replace(msg.Enemies, EnemySnapshotReceived);
 
 	/// <summary>Full-overwrite semantics: the host's batch IS the whole enemy set —
 	/// a disappeared enemy (destroyed, off-screen) must drop out, not linger.</summary>
-	private void Replace(IEnumerable<EnemyStateMsg> states)
+	private void Replace(IEnumerable<EnemyStateMsg> states, Action? notify)
 	{
 		_enemies.Clear();
 		foreach (var state in states)
@@ -151,7 +155,7 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 			_enemies[entity.EntityId] = entity;
 		}
 
-		EnemyStateReceived?.Invoke();
+		notify?.Invoke();
 	}
 
 	private void OnSessionEnded()

@@ -21,15 +21,18 @@ internal sealed class EnemySpawnArbitration
 	/// <summary>Max allowed distance between a paired host/guest spawn position (world units) — only absorbs float jitter, not a real divergence.</summary>
 	internal const float PairTolerance = 0.5f;
 
-	/// <summary>Deterministic allocation order: (x, y) ascending. Both sides' generated positions are identical, so both orders are identical.</summary>
+	/// <summary>The deterministic allocation/pairing key: (x, y) ascending. Both sides' generated positions are identical, so both orders are identical. The Game Adapter sorts its animal entities with this same key.</summary>
+	internal static int Compare(NetVector2 a, NetVector2 b)
+	{
+		var byX = a.X.CompareTo(b.X);
+		return byX != 0 ? byX : a.Y.CompareTo(b.Y);
+	}
+
+	/// <summary>Deterministic allocation order: (x, y) ascending (see <see cref="Compare"/>).</summary>
 	internal static IReadOnlyList<NetVector2> Order(IEnumerable<NetVector2> positions)
 	{
 		var ordered = positions.ToList();
-		ordered.Sort((a, b) =>
-		{
-			var byX = a.X.CompareTo(b.X);
-			return byX != 0 ? byX : a.Y.CompareTo(b.Y);
-		});
+		ordered.Sort(Compare);
 		return ordered;
 	}
 

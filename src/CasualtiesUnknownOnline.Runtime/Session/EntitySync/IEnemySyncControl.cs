@@ -21,7 +21,4 @@ public interface IEnemySyncControl
 
 	/// <summary>Host side: send the full enemy snapshot to one member (world entry / reconnect).</summary>
 	void SendEnemySnapshot(ulong steamId);
-
-	/// <summary>Raise the enemy-state-received notification (the Game Adapter re-applies on this).</summary>
-	void FireEnemyStateReceived();
 }

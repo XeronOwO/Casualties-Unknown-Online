@@ -80,6 +80,8 @@ public class GameFieldContractTests
 		("WorldGeneration", "biomeDepth", Kind.Field, typeof(int), "the biome depth (HarmonyTraverse.ReadBiomeDepth)"),
 		("WorldGeneration", "totalTraveled", Kind.Field, typeof(int), "the total-traveled counter (HarmonyTraverse.ReadTotalTraveled)"),
 		("PreRunScript", "runSettings", Kind.Field, typeof(Dictionary<string, object>), "instance — the menu's run settings (HarmonyTraverse.ReadPreRunRunSettings)"),
+		// Enemy sync.
+		("SpiderHandler", "biteCooldown", Kind.Field, typeof(float), "the bite gate decremented by RemoteEnemyDriver (the freeze patch skips SpiderHandler.Update, SpiderHandler.cs:39)"),
 		// Character/item bodies.
 		("Body", "movingAllowed", Kind.Field, typeof(bool), "the start-gate freeze (StartGateCoordinator, BodyPatches)"),
 		("LiquidAffect", "rb", Kind.Field, "UnityEngine.Rigidbody2D", "the one-time backfill when a frozen item goes dynamic (ItemPositionFollow)"),

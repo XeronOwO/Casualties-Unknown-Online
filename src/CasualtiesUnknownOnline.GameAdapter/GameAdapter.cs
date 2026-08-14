@@ -100,6 +100,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		// application → authority/follow, one-way), run → gate (the gate reads the
 		// run's phase machine).
 		ItemStateCodec.BindLog(log);
+		RemoteEnemyDriver.BindLog(log); // the frozen spider's bite-cooldown driver (AddComponent-created, outside DI)
 		WorldGenRandomIsolation.Log = msg => _log.LogInformation(msg); // generation-stream segment fingerprints (peer log comparison)
 		LayerModifierApplyPatch.Log = msg => _log.LogInformation(msg); // layer-modifier decision trace (diagnostic)
 		_factTable = new CloneFactTable(loggerFactory.CreateLogger<CloneFactTable>());

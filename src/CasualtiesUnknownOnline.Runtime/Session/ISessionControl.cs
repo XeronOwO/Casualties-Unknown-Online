@@ -47,6 +47,9 @@ public interface ISessionControl
 
 	void FireSessionActivated();
 
+	/// <summary>Raised when a remote member's in-world state flips to entered — the Game Adapter re-fans-out its world-entry state (geyser types, keypad codes) on entry.</summary>
+	event Action<ulong, bool>? RemoteSceneChanged;
+
 	void FireRemoteSceneChanged(ulong steamId, bool inWorld);
 
 	/// <summary>Raise the MemberAdded event (the handshake handlers fire it when a member's handshake completes).</summary>

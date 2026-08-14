@@ -97,6 +97,11 @@ public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandl
 		if (member.InWorld)
 		{
 			ctx.SendWorldStateToMember(sender);
+			// The Game Adapter's world-entry state (geyser liquid types, keypad
+			// codes) lives in the Unity scene, so it cannot ride the Runtime
+			// snapshot group — tell it the member (re)entered so it re-fans-out
+			// immediately instead of waiting up to 60 s for its periodic cycle.
+			ctx.Session.FireRemoteSceneChanged(sender, true);
 		}
 
 		// NOT Handshaken yet: the member only counts as handshaken once its

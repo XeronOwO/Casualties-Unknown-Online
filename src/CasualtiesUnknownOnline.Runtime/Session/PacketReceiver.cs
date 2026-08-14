@@ -65,6 +65,7 @@ public sealed class PacketReceiver : IDisposable
 			or NetMsg.FluidRegion or NetMsg.TraderState
 			or NetMsg.ItemCorrection or NetMsg.WorldItemsSnapshot or NetMsg.ItemCarriedSync
 			or NetMsg.OpenedEntitiesSnapshot or NetMsg.TrapLayoutSnapshot
+			or NetMsg.EnemyState or NetMsg.EnemySnapshot
 			=> _session.Role == SessionRole.Guest,
 		// Ping/Pong/SceneState/BlockDamaged/CharacterData/ItemSpawn/ItemPickup/
 		// ItemDrop/ItemDestroy/ItemIdWatermark/EntityEvent/EntitySpawned/

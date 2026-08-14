@@ -101,7 +101,8 @@ public static class CuoBootstrap
 			p.GetRequiredService<IWorldControl>(),
 			p.GetRequiredService<IItemControl>(),
 			p.GetRequiredService<IModsControl>(),
-			p.GetRequiredService<ICraftControl>()));
+			p.GetRequiredService<ICraftControl>(),
+			p.GetRequiredService<IEnemySyncControl>()));
 		services.AddSingleton<PacketDispatcher>();
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<PacketDispatcher>());
 
@@ -111,6 +112,12 @@ public static class CuoBootstrap
 		services.AddSingleton<EntitySyncService>();
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<EntitySyncService>());
 		services.AddSingleton<IEntitySyncControl>(p => p.GetRequiredService<EntitySyncService>());
+		// Enemy-sync domain: host-authoritative enemy snapshots (the host
+		// publishes the simulated enemies, this broadcasts at 20 Hz + the
+		// world-entry full snapshot; the guest receives for its render copies).
+		services.AddSingleton<EnemySyncService>();
+		services.AddSingleton<ICuoService>(p => p.GetRequiredService<EnemySyncService>());
+		services.AddSingleton<IEnemySyncControl>(p => p.GetRequiredService<EnemySyncService>());
 		// Character-data domain: the SteamID-keyed save/restore (no pump, not
 		// an ICuoService — it only reacts to reports and handshakes).
 		services.AddSingleton<CharacterDataStore>();

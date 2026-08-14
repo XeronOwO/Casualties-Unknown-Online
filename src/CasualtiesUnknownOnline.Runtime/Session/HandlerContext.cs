@@ -14,7 +14,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session;
 /// </summary>
 public sealed class HandlerContext(ISessionControl session, IEntitySyncControl entities,
 	ICharacterDataControl characterData, IWorldControl world, IItemControl items, IModsControl mods,
-	ICraftControl craft)
+	ICraftControl craft, IEnemySyncControl enemies)
 {
 	public ISessionControl Session { get; } = session;
 
@@ -31,6 +31,9 @@ public sealed class HandlerContext(ISessionControl session, IEntitySyncControl e
 
 	/// <summary>The crafting domain: the one-operation-one-report apply + the recipe-unlock surface.</summary>
 	public ICraftControl Craft { get; } = craft;
+
+	/// <summary>The enemy-sync domain (host-authoritative enemy snapshots).</summary>
+	public IEnemySyncControl Enemies { get; } = enemies;
 
 	/// <summary>
 	/// Host side: hand one member the full world-state snapshots — the
@@ -49,7 +52,9 @@ public sealed class HandlerContext(ISessionControl session, IEntitySyncControl e
 	///   runs physics queries the random isolation does not cover, so the
 	///   member's layout diverges — the host's scene is the authority);
 	/// - world-items: runtime drops and placed items the member could not
-	///   have regenerated.
+	///   have regenerated;
+	/// - enemies: the host's authoritative enemy ids + presentation state (the
+	///   member binds its locally generated enemy copies to the host's ids).
 	/// </summary>
 	public void SendWorldStateToMember(ulong steamId)
 	{
@@ -58,5 +63,6 @@ public sealed class HandlerContext(ISessionControl session, IEntitySyncControl e
 		World.SendOpenedEntitiesSnapshot(steamId);
 		World.SendTrapLayoutSnapshot(steamId);
 		Items.SendItemSnapshot(steamId);
+		Enemies.SendEnemySnapshot(steamId);
 	}
 }

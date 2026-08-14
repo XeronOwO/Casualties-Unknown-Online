@@ -216,4 +216,9 @@ internal interface IPatchBridge
 	/// (host — a player bubble to the other members, a trader bubble to every
 	/// member).</summary>
 	void OnSpeechReported(Talker talker, string text);
+
+	/// <summary>An enemy bit the LOCAL player (SpiderHandler.DamageLimb ran on the
+	/// local body) — capture the post-bite limb/body state and report it (guest →
+	/// host) or broadcast it (host) as the dedicated EnemyBite event.</summary>
+	void OnEnemyBite(Limb limb);
 }

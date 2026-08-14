@@ -165,6 +165,41 @@ internal sealed class CloneFactTable(ILogger log)
 		return false;
 	}
 
+	/// <summary>
+	/// An enemy bite arrived (the dedicated event — never the 1 Hz snapshot):
+	/// update the victim's fact-table entry (the bitten limb + the body's
+	/// venom/adrenaline/happiness, exact rebuild) and re-render its clone. A
+	/// victim with no snapshot yet is skipped — the next snapshot carries it.
+	/// </summary>
+	internal void ApplyEnemyBite(EnemyBiteMsg msg)
+	{
+		if (!_cloneData.TryGetValue(msg.VictimSteamId, out var data))
+		{
+			_log.LogInformation("[EnemyBite] no snapshot for victim {Victim} yet — the 1 Hz snapshot will carry the bite.", msg.VictimSteamId);
+			return;
+		}
+
+		var idx = data.Limbs.FindIndex(l => l.Index == msg.Limb.Index);
+		if (idx >= 0)
+		{
+			data.Limbs[idx] = msg.Limb;
+		}
+		else
+		{
+			data.Limbs.Add(msg.Limb);
+		}
+
+		if (data.Health is { } health)
+		{
+			health.VenomTotal = msg.VenomTotal;
+			health.Adrenaline = msg.Adrenaline;
+			health.Happiness = msg.Happiness;
+		}
+
+		_log.LogInformation("[EnemyBite] applied to {Victim}'s limb {Limb}.", msg.VictimSteamId, msg.Limb.Index);
+		CloneSnapshotUpdated?.Invoke(msg.VictimSteamId);
+	}
+
 	/// <summary>Store one owner's snapshot and re-render its clone, after the
 	/// divergence check — every carried move MUST arrive as an event (use/slot/
 	/// pickup/wear/drop); a snapshot that carries a move the fact table never

@@ -60,7 +60,13 @@ drop-then-pickup view offset determined game-native (CUO never writes the item t
 - Block HP progressive sync (currently only the break instant is synced).
 - Death-pose / limb / bleed / mining presentation-state sync.
 - Configurable state-stream frequency (currently hard-coded 20 Hz).
-- NPC position/state sync (host-simulated + snapshot; late-joiner full snapshot).
+- NPC position/state sync — CORE LANDED (docs/enemy-sync.md): host-authoritative enemy simulation
+  + 20 Hz `EnemyState` snapshot + late-joiner `EnemySnapshot` fan-out; the guest freezes its copies
+  at generation finish (`RemoteEnemyDriver` + `EnemyPatches` for SpiderHandler/CrystalEnemy) and
+  drives them from the batch (`EnemySyncCoordinator`). Remaining: enemy attack side-effects (bite
+  damage to players — host arbitration + event), the runtime cave-tick nest spawn (16 ticks spawn on
+  the triggering side only, EntityEventKind.CaveTicksSpawned), and the cave-tick/shadecrawler/wallbiter
+  prefab script mapping (Unity asset, needs a runtime component check to extend the freeze list).
 - Online UI (create/join room, player status, nameplates + off-screen arrows).
 - Command system + permission model (host-authoritative, host can authorize guests).
 - Damage events (environment damage local — `ExplosionBodyEffect` rolls it locally and the result rides

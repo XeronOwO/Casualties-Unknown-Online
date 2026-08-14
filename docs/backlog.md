@@ -30,8 +30,12 @@ drop-then-pickup view offset determined game-native (CUO never writes the item t
 
 ## Item / entity domain
 
-- #89 use-event sync: `ItemComponentSyncMsg` broadcast + `RenderItemIdentity` matching to remove
-  the 1 Hz use latency (design decided, not implemented).
+- #89 use-event sync: RESOLVED (ffeefc2 + 0be0d19) — the `ItemCarriedSync` full-fact event
+  (use/slot/pickup, host broadcast → clone re-render → component-state refresh) already removes
+  the 1 Hz use latency for carried items; world-item use rides #194's correction broadcast. The
+  lighter `ItemComponentSyncMsg` + `RenderItemIdentity` variant named in the original design was
+  superseded — the full-fact broadcast is correct (matching renders are kept, only component
+  state refreshes), and a component-only message would be a pure wire-size optimization.
 - #87 loading-screen wait info (bottom-right, to be redesigned).
 - #119 held light direction on remote clones (points at the local mouse).
 - #122 GameAdapter assembly (re-evaluated 2026-08-14): the pre-migration "collapse ~25 hand-wired

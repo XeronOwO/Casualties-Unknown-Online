@@ -279,10 +279,11 @@ domain"). Per-surface notes:
   no `[Saveable]`) — a fired hook is local-only.
 - **WatchScript** timers (WatchScript.cs:130-148) — local-only, low risk.
 - **AutoPump.worn** (AutoPump.cs:56) — local-only, low risk.
-- **Peer-view rendering**: `CharacterDataSync.RenderItemInto` (CharacterDataSync.cs:
-  141-209) instantiates by prefab and never applies component state — another
-  player's held flashlight always renders in its prefab-default mode. Display
-  path only; separate verification target.
+- **Peer-view rendering**: the clone renderer (`CloneInventoryRenderer.RenderItemInto`,
+  split out of `CharacterDataSync` at the 600-line gate) instantiates by prefab AND applies the
+  snapshot's component state (`RestoreComponentStates` + the `Light2D` enabled sync) — a remote
+  player's held flashlight now renders in its real mode. Display path only; the render application
+  itself has no L0 test face (GameAdapter).
 - **World-item component state on keyframes**: the 5 s periodic snapshot
   refreshes condition/position only (ItemPositionAuthority.cs:103-119) —
   component state of a world item stays at its last report time until

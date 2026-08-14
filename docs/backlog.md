@@ -34,7 +34,12 @@ drop-then-pickup view offset determined game-native (CUO never writes the item t
   the 1 Hz use latency (design decided, not implemented).
 - #87 loading-screen wait info (bottom-right, to be redesigned).
 - #119 held light direction on remote clones (points at the local mouse).
-- #122 GameAdapter assembler (`AdapterDomain`, no DI — collapse ~25 hand-wired fields to 1).
+- #122 GameAdapter assembly (re-evaluated 2026-08-14): the pre-migration "collapse ~25 hand-wired
+  fields to 1" is NOT a mechanical DI collapse — the hand-wired `new`s are state-belongs-to-its-owner
+  (the domain objects own their state; they are not DI services), and the domain logic already sank
+  out of the old AdapterDomain into ItemWorldSync/CharacterDataSync/etc. The coordinator stays a
+  thin forwarder. Left only as a possible readability grouping of the ~40 constructor `new`s by
+  domain — no mechanical factory, per the "no mechanical refactor" rule.
 - #118 Steam P2P cert error (transient self-heal on idle — recorded, not investigated).
 - Heater cooker meat→steak conversion (item domain).
 - TutorialHandler claw double-give in the tutorial world (tutorial domain).

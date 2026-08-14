@@ -56,6 +56,8 @@ public class DirectionTests
 		NetMsg.ItemCarriedSync,
 		NetMsg.OpenedEntitiesSnapshot,
 		NetMsg.TrapLayoutSnapshot,
+		NetMsg.EnemyState,
+		NetMsg.EnemySnapshot,
 	};
 
 	public static TheoryData<NetMsg> BidirectionalMessages => new()

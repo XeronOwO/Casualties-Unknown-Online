@@ -110,4 +110,10 @@ public enum NetMsg : byte
 	// positions — the game's entity distribution runs physics queries the
 	// random-stream isolation does not cover, so the sides' layouts diverge)
 	TrapLayoutSnapshot = 79, // host → guest: the layout entries (world entry, sent alongside the block-state / trap-state / opened-entities snapshots)
+
+	// Enemies/NPCs (host authority — the host simulates the AI + physics, the
+	// guests render the frozen copies from the snapshot; same pattern as the
+	// player entity stream)
+	EnemyState = 80, // host → guest (unreliable): the authoritative enemy-state batch (20 Hz, seq-gated)
+	EnemySnapshot = 81, // host → guest: the full enemy snapshot (world entry / late joiner — ids + spawn positions for binding)
 }

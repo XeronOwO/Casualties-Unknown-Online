@@ -146,6 +146,12 @@ client prediction, full anti-cheat.
     (`CallContext.Enter`); network reports happen only after a verified commit (`CommitReport`); CUO never
     mirrors game-authoritative state long-term; every operation is recoverable as a complete `OperationTrace`.
     Split a class only when the 600-line gate or a second consumer demands it.
+11. **Triggers use dedicated events; sync is only fallback/replay** — a discrete trigger (a use, a slot
+    move, a bite, a block break) travels as a DEDICATED event message (one operation = one message), never
+    by riding the periodic snapshot stream (1 Hz character / 20 Hz state). The periodic stream has exactly
+    two roles: (a) fallback — self-heal a lost event, and the divergence monitor warns when a change
+    arrives only via the stream (the event chain missed it); (b) host→guest replay — the full
+    world/character state on entry or reconnect. Never design a trigger to depend on the snapshot.
 
 ## Delivery Quality Gate (binding, user mandate 2026-08-10)
 

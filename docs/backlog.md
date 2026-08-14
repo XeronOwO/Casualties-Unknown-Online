@@ -73,12 +73,18 @@ drop-then-pickup view offset determined game-native (CUO never writes the item t
   - RESOLVED (33b49ab + b10ef93): the bite now travels as a dedicated `EnemyBite` event (report +
     relay + clone apply) instead of riding the 1 Hz snapshot — `EnemyBiteMsg` (limb + venom/adrenaline/
     happiness), `EnemyBitePatches` (DamageLimb postfix), `EnemySyncCoordinator.ReportEnemyBite`,
-    `CloneFactTable.ApplyEnemyBite`. Remaining: the guest's frozen copy bites ONCE per contact —
-    `biteCooldown` never decrements because the freeze patch skips `SpiderHandler.Update` (the decrement
-    lives there); the `rb.bodyType = Static` freeze is NOT a usable alternative (`BuildingEntity.Update`,
-    BuildingEntity.cs:50-55, re-toggles `bodyType` to Dynamic when the chunk renders + `timeScale ≤ 5`,
-    so the freeze relies entirely on the EnemyPatches, not the Static rb). A guest-side bite driver
-    (CUO owns the 5 s cooldown) is the deferred fix — accept-first, no strict validation.
+    `CloneFactTable.ApplyEnemyBite`.
+  - RESOLVED (5799623): the guest's frozen copy bit ONCE and never again — `biteCooldown` never
+    decremented because the freeze patch skips `SpiderHandler.Update` (the decrement lives there,
+    SpiderHandler.cs:39). `RemoteEnemyDriver` (guest-only, added by `EnemySyncCoordinator.Freeze`) now
+    owns that decrement — its own Update replicates Update:39 every frame, so the frozen copy re-bites
+    on the game's own 5 s gate; the field is guarded by a `GameFieldContractTests` row. The
+    `rb.bodyType = Static` freeze remains a no-op (`BuildingEntity.Update`, BuildingEntity.cs:50-55,
+    re-toggles `bodyType` to Dynamic when the chunk renders + `timeScale ≤ 5`), so the freeze still
+    relies entirely on EnemyPatches, not the Static rb. Related edge (deferred): a thrown item that hits
+    the frozen spider sets `stunTime` via `AnimalHit` (SpiderHandler.cs:264), which is ALSO frozen
+    (Update:40 skipped) and would permanently re-gate the bite — that path rides the unsynced
+    item-vs-enemy damage, out of scope until item-vs-enemy attacks are synced.
   - **Enemy targeting is host-only (known limitation)**: the host's enemy AI targets the host's body
     alone — `SpiderHandler.Update`'s `OverlapCircle` (SpiderHandler.cs:71) only sees the host's body
     because the guest clones' colliders are disabled (`RemoteBodyFactory`). So enemies chase the host;

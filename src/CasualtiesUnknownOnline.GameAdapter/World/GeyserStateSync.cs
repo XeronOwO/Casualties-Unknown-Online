@@ -38,9 +38,28 @@ internal sealed class GeyserStateSync(IWorldControl world, ISessionControl sessi
 	private bool _sentOnce;
 	private float _lastResend;
 
-	internal void BindToSession() => _world.GeyserStateReceived += OnGeyserStateReceived;
+	internal void BindToSession()
+	{
+		_world.GeyserStateReceived += OnGeyserStateReceived;
+		_session.RemoteSceneChanged += OnRemoteSceneChanged;
+	}
 
-	internal void Unbind() => _world.GeyserStateReceived -= OnGeyserStateReceived;
+	internal void Unbind()
+	{
+		_world.GeyserStateReceived -= OnGeyserStateReceived;
+		_session.RemoteSceneChanged -= OnRemoteSceneChanged;
+	}
+
+	/// <summary>A member (re)entered the world — re-broadcast the geyser liquid
+	/// types so a reconnect gets them immediately instead of waiting up to 60 s
+	/// for the periodic cycle (idempotent — same-value SetValue on the guest).</summary>
+	private void OnRemoteSceneChanged(ulong steamId, bool inWorld)
+	{
+		if (inWorld && _session.Role == SessionRole.Host && _session.SessionActive && WorldGeneration.world != null) // Unity object — ==
+		{
+			SendFullSet();
+		}
+	}
 
 	internal void Update()
 	{

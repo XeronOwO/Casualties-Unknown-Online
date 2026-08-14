@@ -51,6 +51,7 @@ internal sealed class WorldEventSync(
 		_world.EarthquakeStartReceived += OnEarthquakeStartReceived;
 		_world.KeypadCodeReceived += OnKeypadCodeReceived;
 		_world.OpenedEntitiesSnapshotReceived += OnOpenedEntitiesSnapshot;
+		_session.RemoteSceneChanged += OnRemoteSceneChanged;
 	}
 
 	internal void Unbind()
@@ -63,6 +64,18 @@ internal sealed class WorldEventSync(
 		_world.EarthquakeStartReceived -= OnEarthquakeStartReceived;
 		_world.KeypadCodeReceived -= OnKeypadCodeReceived;
 		_world.OpenedEntitiesSnapshotReceived -= OnOpenedEntitiesSnapshot;
+		_session.RemoteSceneChanged -= OnRemoteSceneChanged;
+	}
+
+	/// <summary>A member (re)entered the world — re-broadcast the keypad codes so
+	/// a reconnect gets them immediately instead of waiting up to 60 s for the
+	/// periodic cycle (idempotent — an already-set code is left alone).</summary>
+	private void OnRemoteSceneChanged(ulong steamId, bool inWorld)
+	{
+		if (inWorld && IsHostMode && WorldGeneration.world != null) // Unity object — ==
+		{
+			SendKeypadCodes();
+		}
 	}
 
 	private bool IsHostMode => _session.Role == SessionRole.Host && _session.SessionActive;

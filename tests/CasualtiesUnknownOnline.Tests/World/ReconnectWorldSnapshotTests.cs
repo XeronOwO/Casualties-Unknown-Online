@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
@@ -72,6 +73,26 @@ public class ReconnectWorldSnapshotTests
 		Assert.True(w.ReceivedCount(w.G1, NetMsg.OpenedEntitiesSnapshot) >= 2, $"reconnect: opened entities, got {w.ReceivedCount(w.G1, NetMsg.OpenedEntitiesSnapshot)}");
 		Assert.True(w.ReceivedCount(w.G1, NetMsg.WorldBlockState) >= 2, $"reconnect: block state, got {w.ReceivedCount(w.G1, NetMsg.WorldBlockState)}");
 		Assert.True(w.ReceivedCount(w.G1, NetMsg.ItemSnapshot) >= 2, $"reconnect: world items, got {w.ReceivedCount(w.G1, NetMsg.ItemSnapshot)}");
+	}
+
+	[Fact]
+	public void GuestReconnects_WhileStillInWorld_FiresRemoteSceneChangedForTheAdapter()
+	{
+		using var w = ItemSimWorld.Create();
+
+		// g1 enters the world once.
+		w.G1.Session.ReportSceneState(SceneStateType.InWorld, "SampleScene");
+		w.Driver.Tick(50);
+
+		// Subscribe AFTER the first entry — the reconnect must fire the entry
+		// signal again so the Game Adapter re-fans-out its world-entry state
+		// (geyser liquid types, keypad codes) instead of waiting up to 60 s.
+		var entered = new List<ulong>();
+		w.Host.Session.RemoteSceneChanged += (id, inWorld) => { if (inWorld) { entered.Add(id); } };
+
+		ReconnectGuestStillInWorld(w);
+
+		Assert.Contains(w.G1.SteamId, entered);
 	}
 
 	private static void ReconnectGuestStillInWorld(ItemSimWorld w)

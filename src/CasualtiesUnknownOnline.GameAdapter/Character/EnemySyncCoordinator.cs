@@ -1,8 +1,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol;
+using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
+using MapsterMapper;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
 
@@ -15,15 +17,21 @@ namespace CasualtiesUnknownOnline.GameAdapter.Character;
 /// presentation state. Guest: binds its locally generated copies to the host's
 /// ids on the world-entry snapshot (position pairing) and drives the frozen
 /// copies from the 20 Hz batch. No enemy simulation on the guest — same
-/// pattern as the player render clones (RemoteBodyDriver).
+/// pattern as the player render clones (RemoteBodyDriver). Also the enemy-bite
+/// side: reports the local victim's post-bite state (EnemyBite event) and
+/// applies the received bites to the victim's clone.
 /// </summary>
 internal sealed class EnemySyncCoordinator(
 	SessionService session,
 	EnemySyncService enemies,
+	IMapper mapper,
+	CharacterDataSync characterData,
 	ILogger<EnemySyncCoordinator> log)
 {
 	private readonly SessionService _session = session;
 	private readonly EnemySyncService _enemies = enemies;
+	private readonly IMapper _mapper = mapper;
+	private readonly CharacterDataSync _characterData = characterData;
 	private readonly ILogger<EnemySyncCoordinator> _log = log;
 
 	private readonly Dictionary<BuildingEntity, NetworkEntityId> _idByEntity = [];
@@ -36,12 +44,14 @@ internal sealed class EnemySyncCoordinator(
 	{
 		_enemies.EnemySnapshotReceived += OnEnemySnapshotReceived;
 		_enemies.EnemyStateReceived += OnEnemyStateReceived;
+		_enemies.EnemyBiteReceived += OnEnemyBiteReceived;
 	}
 
 	internal void Unbind()
 	{
 		_enemies.EnemySnapshotReceived -= OnEnemySnapshotReceived;
 		_enemies.EnemyStateReceived -= OnEnemyStateReceived;
+		_enemies.EnemyBiteReceived -= OnEnemyBiteReceived;
 		_idByEntity.Clear();
 		_entityById.Clear();
 		_healthReconcile.Clear();
@@ -263,5 +273,55 @@ internal sealed class EnemySyncCoordinator(
 		}
 
 		reconcile.RecordLocalDamage(damage);
+	}
+
+	// ---- Enemy bite (the dedicated trigger — never the 1 Hz snapshot) ----
+
+	/// <summary>
+	/// The local player was bitten (the game's DamageLimb already ran on the
+	/// local body): capture the post-bite terminal state and send it as the
+	/// dedicated EnemyBite event — guest → host report, host → guest broadcast
+	/// (accept-first, no distance/legitimacy validation).
+	/// </summary>
+	internal void ReportEnemyBite(Limb limb)
+	{
+		if (!_session.SessionActive || limb.body == null) // Unity object — ==
+		{
+			return;
+		}
+
+		var body = limb.body;
+		var limbIndex = LimbIndexOf(body, limb);
+		if (limbIndex < 0)
+		{
+			return; // not a limb of the local body — nothing to report
+		}
+
+		var limbMsg = _mapper.Map<CharacterLimbMsg>(limb);
+		limbMsg.Index = limbIndex;
+
+		_enemies.SendEnemyBite(new EnemyBiteMsg
+		{
+			VictimSteamId = _session.LocalSteamId,
+			Limb = limbMsg,
+			VenomTotal = body.venomTotal,
+			Adrenaline = body.adrenaline,
+			Happiness = body.happiness,
+		});
+	}
+
+	private void OnEnemyBiteReceived(ulong sender, EnemyBiteMsg msg) => _characterData.ApplyEnemyBite(msg);
+
+	private static int LimbIndexOf(Body body, Limb limb)
+	{
+		for (var i = 0; i < body.limbs.Length; i++)
+		{
+			if (body.limbs[i] == limb) // Unity object — ==
+			{
+				return i;
+			}
+		}
+
+		return -1;
 	}
 }

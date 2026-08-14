@@ -145,7 +145,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_speechSync = new SpeechSync(world, session, loggerFactory.CreateLogger<SpeechSync>());
 		_craftingSync = new CraftingSync(craft, _itemIds, itemReports, _operationTrace, loggerFactory.CreateLogger<CraftingSync>());
 		_recipeUnlockApply = new RecipeUnlockApply(craft, loggerFactory.CreateLogger<RecipeUnlockApply>());
-		_enemySync = new EnemySyncCoordinator(session, enemies, loggerFactory.CreateLogger<EnemySyncCoordinator>());
+		_enemySync = new EnemySyncCoordinator(session, enemies, mapper, _characterDataSync, loggerFactory.CreateLogger<EnemySyncCoordinator>());
 		_lifePod = new LifePodPresentation(loggerFactory.CreateLogger<LifePodPresentation>());
 		_guestMenu = new GuestMenuGuard(session, loggerFactory.CreateLogger<GuestMenuGuard>());
 		_worldParams = new WorldParamsService(world, loggerFactory.CreateLogger<WorldParamsService>());
@@ -438,6 +438,8 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	}
 
 	void IPatchBridge.OnArmSwing() => _entities.MarkLocalAttackSwing();
+
+	void IPatchBridge.OnEnemyBite(Limb limb) => _enemySync.ReportEnemyBite(limb);
 
 	void IPatchBridge.OnBuildingEntityOpened(BuildingEntity entity) =>
 		_worldEventSync.OnBuildingEntityOpened(entity);

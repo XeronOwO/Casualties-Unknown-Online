@@ -14,12 +14,13 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 /// everything else: report up (guest → host), the host applies to its own
 /// world and relays (BroadcastExcept — the source already applied locally).
 /// </summary>
-public sealed class EntityEventChannel(ISessionControl session, PacketSender sender, TrapConsumptionRegistry trapConsumption, OpenedEntityRegistry openedEntities)
+public sealed class EntityEventChannel(ISessionControl session, PacketSender sender, TrapConsumptionRegistry trapConsumption, OpenedEntityRegistry openedEntities, TrapLayoutRegistry trapLayout)
 {
 	private readonly ISessionControl _session = session;
 	private readonly PacketSender _sender = sender;
 	private readonly TrapConsumptionRegistry _trapConsumption = trapConsumption;
 	private readonly OpenedEntityRegistry _openedEntities = openedEntities;
+	private readonly TrapLayoutRegistry _trapLayout = trapLayout;
 
 	// ---- World entity events (traps/mechanisms) ----
 
@@ -192,4 +193,20 @@ public sealed class EntityEventChannel(ISessionControl session, PacketSender sen
 	public event Action<IReadOnlyList<NetVector2Msg>>? OpenedEntitiesSnapshotReceived;
 
 	public void FireOpenedEntitiesSnapshotReceived(IReadOnlyList<NetVector2Msg> positions) => OpenedEntitiesSnapshotReceived?.Invoke(positions);
+
+	// ---- Trap layout (host authority — the generated trap entities' positions) ----
+
+	/// <summary>Host only: record one generated trap entity (the adapter's scanner reports it on the generation-finished edge).</summary>
+	public void ReportTrapLayout(EntityEventKind kind, float x, float y, string prefabName) => _trapLayout.Report(kind, x, y, prefabName);
+
+	/// <summary>Host only: send the layout to one member (on its world entry).</summary>
+	public void SendTrapLayoutSnapshot(ulong targetSteamId) => _trapLayout.SendSnapshot(targetSteamId);
+
+	/// <summary>Host only: a new world layer is generating — the layout starts empty again.</summary>
+	public void ResetTrapLayouts() => _trapLayout.Reset();
+
+	/// <summary>Guest: the host's trap layout arrived — align the local world (materialize missing, destroy surplus).</summary>
+	public event Action<IReadOnlyList<TrapLayoutEntryMsg>>? TrapLayoutReceived;
+
+	public void FireTrapLayoutReceived(IReadOnlyList<TrapLayoutEntryMsg> entries) => TrapLayoutReceived?.Invoke(entries);
 }

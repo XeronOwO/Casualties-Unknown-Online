@@ -110,7 +110,7 @@ internal sealed class EntityEventSync(IWorldControl world, ISessionControl sessi
 			foreach (var msg in consumed)
 			{
 				var pos = msg.Position.ToNetVector2();
-				_replay.Replay(msg.Kind, new Vector2(pos.X, pos.Y), msg.Extra);
+				_replay.Replay(msg.Kind, new Vector2(pos.X, pos.Y), msg.Extra, msg.ElapsedSeconds);
 			}
 		}
 	}

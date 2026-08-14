@@ -40,7 +40,6 @@ public sealed class SessionService : ICuoService, ISessionControl
 	private readonly SessionIdentity _identity = new();
 	private readonly SessionState _state = new();
 	private readonly MemberPresenceTable _presence = new();
-	private bool _hadMembers; // a lobby with no members ever is normal (host alone); only "had members, now none" ends the session
 
 	private long _nextPingMs;
 	private long _nextMemberCheckMs;
@@ -116,11 +115,8 @@ public sealed class SessionService : ICuoService, ISessionControl
 	bool ISessionControl.TryGetMember(ulong steamId, out MemberPresenceTable.MemberPresence member) =>
 		_presence.TryGetMember(steamId, out member);
 
-	MemberPresenceTable.MemberPresence ISessionControl.GetOrCreateMember(ulong steamId)
-	{
-		_hadMembers = true; // a presence-check "all left" only fires after someone actually joined
-		return _presence.GetOrCreateMember(steamId);
-	}
+	MemberPresenceTable.MemberPresence ISessionControl.GetOrCreateMember(ulong steamId) =>
+		_presence.GetOrCreateMember(steamId);
 
 	bool ISessionControl.IsLobbyMember(ulong steamId) => _steam.GetLobbyMembers().Contains(steamId);
 
@@ -388,22 +384,20 @@ public sealed class SessionService : ICuoService, ISessionControl
 		{
 			// Remove members that vanished from the lobby (each member is
 			// tracked individually — a 3-person lobby losing one guest keeps
-			// the other). End the session once the last member is gone; the
-			// host stays in the lobby, ready for new joins. Reconnects are
-			// cheap: Role stays (lobby identity), the character save is kept
-			// per SteamID, and the next handshake rebuilds the member.
+			// the other). The session itself CONTINUES — the host may be
+			// playing alone, and the next guest handshakes into the SAME
+			// session (ending it here would be irreversible: SessionActive
+			// only re-arms on OnLobbyCreated, so a guest leaving would kill
+			// the lobby the host still holds — observed: the guest quit, the
+			// host's session ended, and the rejoining guest could never
+			// handshake back in). Only the host's own absence ends the
+			// session (the guest branch below).
 			foreach (var memberId in _presence.Members.Select(m => m.SteamId).ToList())
 			{
 				if (!lobbyMembers.Contains(memberId))
 				{
 					RemoveMember(memberId, "left the lobby");
 				}
-			}
-
-			if (_presence.Count == 0 && _hadMembers)
-			{
-				_log.LogWarning("All members left the lobby — ending session (save kept).");
-				EndSession();
 			}
 		}
 		else if (!lobbyMembers.Contains(HostSteamId))
@@ -435,7 +429,6 @@ public sealed class SessionService : ICuoService, ISessionControl
 			return;
 		}
 
-		_hadMembers = false; // a fresh session must not inherit the "had members" flag
 		_presence.Clear();
 		SessionActive = false;
 		_identity.HostSteamId = 0;

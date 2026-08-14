@@ -65,6 +65,18 @@ internal sealed class PickupSync(
 			return;
 		}
 
+		// The item left the world into an inventory/hand — if it was still
+		// frozen (Kinematic: the guest-side drop froze it and the host's stream
+		// never arrived before this pickup), restore Dynamic so a later drop
+		// simulates physics again. The game's PickUpItem only toggles
+		// rb.simulated (Body.cs:1398) and never restores the body type, so a
+		// frozen re-dropped item would stay Kinematic and hang in mid-air
+		// (found while auditing the unconscious drop → pickup round).
+		if (item.rb.bodyType == RigidbodyType2D.Kinematic)
+		{
+			item.rb.bodyType = RigidbodyType2D.Dynamic;
+		}
+
 		// The item re-entered an inventory — a pending drop of it is cancelled
 		// and NOT reported: the same-frame drag sequence (PlayerCamera.cs:1623
 		// DropItem + 1629 PickUpItem — a body-internal reorder) dropped the

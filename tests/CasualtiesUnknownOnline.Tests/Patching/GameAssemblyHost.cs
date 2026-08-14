@@ -39,6 +39,41 @@ internal static class GameAssemblyHost
 
 	internal static Assembly Adapter => AdapterLazy.Value;
 
+	/// <summary>Resolve a type by name for the contract tables: the game assembly
+	/// first, then every loaded assembly (the game's references load the Unity
+	/// modules on demand), then the module DLLs beside the test output
+	/// (UnityEngine*.dll — the type's module may be any of the split assemblies).
+	/// Nested types use the "+" form ("WorldGeneration+OverrideSceneType").</summary>
+	internal static Type? ResolveType(string name)
+	{
+		_ = Game; // ensure the host + the AssemblyResolve fallback are up
+		var found = Game.GetType(name, throwOnError: false);
+		if (found != null)
+		{
+			return found;
+		}
+
+		foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+		{
+			found = assembly.GetType(name, throwOnError: false);
+			if (found != null)
+			{
+				return found;
+			}
+		}
+
+		foreach (var file in Directory.GetFiles(BaseDir, "UnityEngine*.dll"))
+		{
+			found = Assembly.LoadFrom(file).GetType(name, throwOnError: false);
+			if (found != null)
+			{
+				return found;
+			}
+		}
+
+		return null;
+	}
+
 	private static Assembly Load(string? specific = null)
 	{
 		var missing = RequiredDlls.Where(f => !File.Exists(Path.Combine(BaseDir, f))).ToList();

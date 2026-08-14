@@ -46,6 +46,14 @@ public sealed partial class WorldService
 
 	public void FireOpenedEntitiesSnapshotReceived(IReadOnlyList<NetVector2Msg> positions) => _eventChannel.FireOpenedEntitiesSnapshotReceived(positions);
 
+	public void ReportTrapLayout(EntityEventKind kind, float x, float y, string prefabName) => _eventChannel.ReportTrapLayout(kind, x, y, prefabName);
+
+	public void SendTrapLayoutSnapshot(ulong targetSteamId) => _eventChannel.SendTrapLayoutSnapshot(targetSteamId);
+
+	public event Action<IReadOnlyList<TrapLayoutEntryMsg>>? TrapLayoutReceived { add => _eventChannel.TrapLayoutReceived += value; remove => _eventChannel.TrapLayoutReceived -= value; }
+
+	public void FireTrapLayoutReceived(IReadOnlyList<TrapLayoutEntryMsg> entries) => _eventChannel.FireTrapLayoutReceived(entries);
+
 	public void SendFluidRegion(ulong targetSteamId, FluidRegionMsg msg) => _eventChannel.SendFluidRegion(targetSteamId, msg);
 
 	public event Action<FluidRegionMsg>? FluidRegionReceived { add => _eventChannel.FluidRegionReceived += value; remove => _eventChannel.FluidRegionReceived -= value; }

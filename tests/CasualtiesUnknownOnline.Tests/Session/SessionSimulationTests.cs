@@ -71,8 +71,44 @@ public class SessionSimulationTests
 		host.Clock.Advance(200);
 		host.Update();
 
-		Assert.False(host.Session.SessionActive, "2.1 s after the change the check fired and ended the session");
+		// A guest leaving removes the MEMBER — the session itself CONTINUES
+		// (the host may be playing alone; ending it here was irreversible:
+		// SessionActive only re-arms on OnLobbyCreated, so the re-joining
+		// guest could never handshake back in — observed live).
+		Assert.True(host.Session.SessionActive, "a guest leaving must NOT end the host's session");
 		Assert.Empty(host.Session.Members);
+	}
+
+	[Fact]
+	public void Host_GuestLeavesThenRejoins_SameSessionHandshakesBack()
+	{
+		// The observed chain: the guest quit, the host's session ended, the
+		// rejoining guest could never handshake back in ("lobby 无效").
+		// The fix keeps the session alive — the rejoin handshakes into it.
+		var (host, guest) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+
+		// The guest vanishes from the lobby — the host removes the member.
+		host.Steam.LobbyMembers = [HostId];
+		guest.Steam.LobbyMembers = [GuestId];
+		host.Clock.Advance(2100);
+		host.Update();
+		Assert.True(host.Session.SessionActive, "the host's session survives the guest's exit");
+		Assert.Empty(host.Session.Members);
+
+		// The guest returns: the lobby membership restores, the rejoin flow
+		// fires the lobby-entered callback again, the handshake rebuilds —
+		// into the SAME still-active session.
+		host.Steam.LobbyMembers = [HostId, GuestId];
+		guest.Steam.LobbyMembers = [HostId, GuestId];
+		guest.Steam.FireLobbyEntered(LobbyId);
+		guest.Update();
+		host.Clock.Advance(2100);
+		host.Update();
+		guest.Clock.Advance(2100);
+		guest.Update();
+
+		Assert.True(Handshaken(host, guest), "the rejoining guest must handshake back into the surviving session");
+		Assert.True(host.Session.SessionActive, "the session stays active through the whole cycle");
 	}
 
 	[Fact]

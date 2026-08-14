@@ -31,4 +31,32 @@ public sealed class HandlerContext(ISessionControl session, IEntitySyncControl e
 
 	/// <summary>The crafting domain: the one-operation-one-report apply + the recipe-unlock surface.</summary>
 	public ICraftControl Craft { get; } = craft;
+
+	/// <summary>
+	/// Host side: hand one member the full world-state snapshots — the
+	/// world-entry fan-out. SceneStateHandler's InWorld edge and the reconnect
+	/// handshake (a member still InWorld) both call this: the handshake
+	/// restores <c>member.InWorld</c> from the peer's scene report and thus
+	/// never fires the edge, so the snapshots must fan out there too.
+	/// Each snapshot is a late-joiner/reconnect backfill:
+	/// - block-state: the damage table, so the member sees the world as it is
+	///   now, not as the baseline regenerated it;
+	/// - trap-state: one-shot trap consumptions (used to ride only the 60 s
+	///   periodic resend — a rejoin saw spent traps fire up to a minute late);
+	/// - opened-entities: one-shot opens (an open has no re-open — a rejoin
+	///   must learn them from the host; observed: the pod door closed again);
+	/// - trap-layout: the generated trap positions (the entity distribution
+	///   runs physics queries the random isolation does not cover, so the
+	///   member's layout diverges — the host's scene is the authority);
+	/// - world-items: runtime drops and placed items the member could not
+	///   have regenerated.
+	/// </summary>
+	public void SendWorldStateToMember(ulong steamId)
+	{
+		World.SendBlockStateSnapshot(steamId);
+		World.SendTrapStateSnapshot(steamId);
+		World.SendOpenedEntitiesSnapshot(steamId);
+		World.SendTrapLayoutSnapshot(steamId);
+		Items.SendItemSnapshot(steamId);
+	}
 }

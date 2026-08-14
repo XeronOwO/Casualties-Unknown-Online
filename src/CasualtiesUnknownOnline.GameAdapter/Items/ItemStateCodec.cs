@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session.Items;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
 using Log = Microsoft.Extensions.Logging.ILogger;
@@ -200,8 +201,8 @@ internal static class ItemStateCodec
 					continue;
 				}
 
-				var kind = ComponentFieldKind(field.FieldType);
-				if (kind == 0)
+				var kind = SaveableFieldKind.Of(field.FieldType);
+				if (kind == SaveableFieldKind.Unsupported)
 				{
 					continue; // unsupported kind (Unity references, custom types)
 				}
@@ -211,11 +212,11 @@ internal static class ItemStateCodec
 				{
 					Name = field.Name,
 					Kind = kind,
-					FloatValue = kind == 1 ? (float)value! : 0f,
-					IntValue = kind is 2 or 6 ? Convert.ToInt32(value) : 0, // 6 = enum — boxed enums unbox via Convert, never (int)value
-					BoolValue = kind == 3 && (bool)value!,
-					StringValue = kind == 4 ? (string)value! : "",
-					StringList = kind == 5 ? (List<string>)value! : [],
+					FloatValue = kind == SaveableFieldKind.Float ? (float)value! : 0f,
+					IntValue = kind is SaveableFieldKind.Int or SaveableFieldKind.Enum ? Convert.ToInt32(value) : 0, // enum — boxed enums unbox via Convert, never (int)value
+					BoolValue = kind == SaveableFieldKind.Bool && (bool)value!,
+					StringValue = kind == SaveableFieldKind.String ? (string)value! : "",
+					StringList = kind == SaveableFieldKind.StringList ? (List<string>)value! : [],
 				});
 			}
 
@@ -223,41 +224,6 @@ internal static class ItemStateCodec
 		}
 
 		return states;
-	}
-
-	private static int ComponentFieldKind(Type type)
-	{
-		if (type == typeof(float))
-		{
-			return 1;
-		}
-
-		if (type == typeof(int))
-		{
-			return 2;
-		}
-
-		if (type == typeof(bool))
-		{
-			return 3;
-		}
-
-		if (type == typeof(string))
-		{
-			return 4;
-		}
-
-		if (type == typeof(List<string>))
-		{
-			return 5;
-		}
-
-		if (type.IsEnum)
-		{
-			return 6; // stored as its underlying int (GunScript.roundInChamber etc. — mutable enum state the digest must carry)
-		}
-
-		return 0;
 	}
 
 	/// <summary>Restores one item (recursively): instantiate by id, apply the

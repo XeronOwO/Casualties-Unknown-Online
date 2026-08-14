@@ -270,6 +270,16 @@ internal sealed class RunCoordinator(
 			_characterData.NotifyBodyLeft(prevBody);
 		}
 
+		if (inWorld && _localBody != null) // Unity object — ==
+		{
+			// Apply the restore position BEFORE reporting the spawn position —
+			// the host spawns the clone at ReportedSpawnPos, so reporting the
+			// pre-restore landing spot made the host's clone appear there and
+			// then jump (observed: the reconnecting guest's clone teleported on
+			// the host's screen). The position gate (#7) keeps this idempotent.
+			_characterData.ApplyPendingPositionOnly(_localBody);
+		}
+
 		if (inWorld && _session.Role == SessionRole.Host)
 		{
 			// The run is now actually in the world — the world-entry condition

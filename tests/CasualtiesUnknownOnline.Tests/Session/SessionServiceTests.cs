@@ -79,8 +79,14 @@ public class SessionServiceTests
 	}
 
 	[Fact]
-	public void HostPresence_LastGuestLeavesLobby_EndsSession()
+	public void HostPresence_LastGuestLeavesLobby_SessionContinues()
 	{
+		// The observed chain (2026-08-14): a guest quitting ended the HOST's
+		// session ("Members 0, lobby 无效"), and the re-joining guest could
+		// never handshake back in — EndSession is irreversible (SessionActive
+		// only re-arms on OnLobbyCreated). A guest leaving removes the member;
+		// the session continues (the host may be playing alone, and the next
+		// guest joins the SAME session).
 		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId);
 		var ended = 0;
 		host.Session.SessionEnded += () => ended++;
@@ -89,8 +95,8 @@ public class SessionServiceTests
 		host.Update(); // the 2 s presence check — the first pump runs it immediately
 
 		Assert.Empty(host.Session.Members);
-		Assert.False(host.Session.SessionActive);
-		Assert.True(1 == ended, "a lobby that had members and now has none ends the session (host stays, ready for new joins)");
+		Assert.True(host.Session.SessionActive);
+		Assert.True(0 == ended, "a guest leaving must never end the host's session");
 	}
 
 	[Fact]

@@ -118,6 +118,8 @@ internal static class BodyItemPatches
 	/// A throw's drop report fired in the DropItem prefix — before ThrowItem
 	/// set the throw velocity (Body.cs:1659-1661) — so the peer's copy dropped
 	/// in place. Re-report with the real flight velocity after ThrowItem ran.
+	/// ThrowItem also plays the ArmsSwing clip (Body.cs:1665) — the swing is
+	/// reported so the peer's clone replays it (IsAttacking snapshot flag).
 	/// The item crosses Prefix → Postfix via Harmony __state (per-call state).
 	/// </summary>
 	[HarmonyPatch(typeof(Body), "ThrowItem")]
@@ -127,8 +129,9 @@ internal static class BodyItemPatches
 
 		private static void Postfix(Item __state)
 		{
-			if (__state != null) // Unity object — ==
+			if (__state != null) // Unity object — == (a throw only runs with an item, Body.cs:1654)
 			{
+				PatchBridge.Impl?.OnArmSwing();
 				PatchBridge.Impl?.OnItemThrown(__state);
 			}
 		}

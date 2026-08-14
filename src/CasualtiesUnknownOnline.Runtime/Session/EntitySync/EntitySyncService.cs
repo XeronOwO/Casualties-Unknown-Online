@@ -48,6 +48,10 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 	private readonly ILogger<EntitySyncService> _log;
 
 	private readonly PlayerEntity _localPlayer;
+
+	/// <summary>The local swing-presentation window (state belongs to its owner — this service owns the local player's presentation state).</summary>
+	private readonly AttackSwingState _attackSwing = new();
+
 	private readonly Dictionary<ulong, SyncedEntity> _entities = [];
 	private ulong _epoch;
 	private uint _nextEntityCounter;
@@ -114,7 +118,11 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 		_localPlayer.Sitting = sitting;
 		_localPlayer.Sleeping = sleeping;
 		_localPlayer.Climbing = climbing;
+		_localPlayer.IsAttacking = _attackSwing.IsAttacking;
 	}
+
+	/// <summary>The local player swung (Body.Attack or Body.ThrowItem — both play ArmsSwing) — mark the swing so the peers' clones replay the animation via the IsAttacking snapshot flag.</summary>
+	public void MarkLocalAttackSwing() => _attackSwing.MarkAttack(_time.NowMs);
 
 	/// <summary>Raised when a member's entity sync starts (host: that guest; guest: host or a roster member).</summary>
 	public event Action<PlayerEntity>? RemoteJoined;
@@ -218,6 +226,7 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 	/// <summary>End entity sync for every member (host) or the self sync (guest).</summary>
 	internal void EndEntitySync()
 	{
+		_attackSwing.Reset(); // the swing cannot outlive the world (either role, either branch)
 		if (_session.Role == SessionRole.Host)
 		{
 			if (_entities.Count == 0)
@@ -271,6 +280,10 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 
 	void ICuoService.Update()
 	{
+		// The swing window ticks unconditionally — even a solo swing (no sync
+		// active) must expire so a later lobby open never re-sends a stale flag.
+		_attackSwing.Tick(_time.NowMs);
+
 		// Either side leaving the world ends the sync: the peer renders our clone
 		// from state we no longer publish. The SceneState message we reported
 		// already told the peer — its own self-check (this same branch) ends its
@@ -347,6 +360,7 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 	{
 		_entities.Clear();
 		_selfSyncActive = false;
+		_attackSwing.Reset();
 	}
 
 	// ---- Sync decisions ----

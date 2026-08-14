@@ -171,23 +171,41 @@ internal static class BodyPatches
 	[HarmonyPatch(typeof(Body), "Attack")]
 	internal static class BodyAttackPatch
 	{
-		// Player attacks damage building entities directly (Body.cs:1946 —
-		// health -=, the only player-vs-entity damage write, no game event to
-		// hook). Snapshot every entity's health before the attack; the postfix
-		// reports whoever lost health. FindObjectsOfType per swing is fine —
-		// attacks are low-frequency (1-2 Hz).
-		private static void Prefix(out List<(BuildingEntity, float)> __state)
+		// Per-call state: whether the swing runs (the original's guard, Body.cs:
+		// 1843 + 1885 — conscious, off-cooldown, and doAttackAnim) and every
+		// entity's pre-attack health. Player attacks damage building entities
+		// directly (Body.cs:1946 — health -=, the only player-vs-entity damage
+		// write, no game event to hook); the postfix reports whoever lost health.
+		// FindObjectsOfType per swing is fine — attacks are low-frequency (1-2 Hz).
+		private sealed class AttackState
 		{
-			__state = [];
+			internal bool WillRun;
+			internal List<(BuildingEntity, float)> Entities = [];
+		}
+
+		private static void Prefix(Body __instance, AttackInfo atk, out AttackState __state)
+		{
+			// A postfix can't tell a real swing from a no-op: attackCooldown is
+			// also > 0 for a no-op while a previous cooldown is still active.
+			// Capture the exact guard the original checks (Body.cs:1843, 1885).
+			__state = new AttackState
+			{
+				WillRun = __instance.conscious && __instance.attackCooldown <= 0f && atk.doAttackAnim,
+			};
 			foreach (var entity in UnityEngine.Object.FindObjectsOfType<BuildingEntity>())
 			{
-				__state.Add((entity, entity.health));
+				__state.Entities.Add((entity, entity.health));
 			}
 		}
 
-		private static void Postfix(List<(BuildingEntity, float)> __state)
+		private static void Postfix(AttackState __state)
 		{
-			foreach (var (entity, before) in __state)
+			if (__state.WillRun)
+			{
+				PatchBridge.Impl?.OnArmSwing();
+			}
+
+			foreach (var (entity, before) in __state.Entities)
 			{
 				if (entity != null && entity.health < before) // Unity object — ==
 				{

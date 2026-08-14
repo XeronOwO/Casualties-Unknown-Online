@@ -28,6 +28,13 @@ public class TradeSimulationTests
 	private const ulong GuestId = 2001;
 	private const ulong LobbyId = 9001;
 
+	/// <summary>The valid trader actions the random sequence draws from — derived
+	/// from the enum so a new <see cref="TraderActionKind"/> is automatically
+	/// exercised (a hand-written count silently missed MoveTo=7 and drew the
+	/// invalid 0; the coverage guard locks this pool to the full enum).</summary>
+	internal static readonly TraderActionKind[] RandomActionKinds =
+		(TraderActionKind[])Enum.GetValues(typeof(TraderActionKind));
+
 	private sealed record SimSession(TestNode Host, TestNode Guest, SimTraderHost Trader, List<TraderStateMsg> Received, Func<int> ReceivedCount, List<TraderStateMsg> HostBroadcasts);
 
 	private static TradeStockState InitialState() => new()
@@ -244,7 +251,7 @@ public class TradeSimulationTests
 
 	private static TraderActionMsg RandomAction(Random rng, SimTraderHost trader)
 	{
-		var kind = (TraderActionKind)rng.Next(7);
+		var kind = RandomActionKinds[rng.Next(RandomActionKinds.Length)];
 		var msg = new TraderActionMsg
 		{
 			Action = kind,

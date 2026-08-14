@@ -28,6 +28,7 @@ internal sealed class EnemySyncCoordinator(
 
 	private readonly Dictionary<BuildingEntity, NetworkEntityId> _idByEntity = [];
 	private readonly Dictionary<NetworkEntityId, BuildingEntity> _entityById = [];
+	private readonly Dictionary<NetworkEntityId, EnemyHealthReconcile> _healthReconcile = [];
 	private bool _mappingEstablished;
 	private bool _guestFrozen; // guest: animals frozen at generation finish (before they move, so the pairing uses the spawn positions)
 
@@ -43,6 +44,7 @@ internal sealed class EnemySyncCoordinator(
 		_enemies.EnemyStateReceived -= OnEnemyStateReceived;
 		_idByEntity.Clear();
 		_entityById.Clear();
+		_healthReconcile.Clear();
 		_mappingEstablished = false;
 		_guestFrozen = false;
 	}
@@ -223,10 +225,43 @@ internal sealed class EnemySyncCoordinator(
 		}
 	}
 
-	private static void Apply(BuildingEntity entity, EnemyEntity state)
+	private void Apply(BuildingEntity entity, EnemyEntity state)
 	{
 		entity.transform.position = new Vector3(state.Position.X, state.Position.Y, entity.transform.position.z);
 		entity.transform.rotation = Quaternion.Euler(0f, 0f, state.Rotation);
-		entity.health = state.Health;
+		// A local attack drops this copy's health for immediate feedback, but the
+		// host's batch does not yet include the in-flight report — reconciling
+		// against the pending local damage keeps that drop visible instead of
+		// flashing back up for one round-trip.
+		entity.health = _healthReconcile.TryGetValue(state.EntityId, out var reconcile)
+			? reconcile.Reconcile(state.Health)
+			: state.Health;
+	}
+
+	/// <summary>
+	/// A local attack damaged a frozen enemy copy (Body.Attack → the copy's
+	/// health dropped before the report reaches the host): record the damage as
+	/// pending so the next host batch does not revert it. Host side and untracked
+	/// entities (non-enemies, or before the snapshot binding) are a no-op.
+	/// </summary>
+	internal void RecordLocalAttack(BuildingEntity entity, float damage)
+	{
+		if (_session.Role != SessionRole.Guest || damage <= 0f)
+		{
+			return;
+		}
+
+		if (!_idByEntity.TryGetValue(entity, out var id))
+		{
+			return;
+		}
+
+		if (!_healthReconcile.TryGetValue(id, out var reconcile))
+		{
+			reconcile = new EnemyHealthReconcile();
+			_healthReconcile[id] = reconcile;
+		}
+
+		reconcile.RecordLocalDamage(damage);
 	}
 }

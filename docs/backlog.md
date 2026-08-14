@@ -6,10 +6,9 @@ or lower-priority items gathered during the Claude Code → DeepSeek Harness mig
 
 ## Current bugs (highest priority)
 
-The seven 2026-08-14 validation-feedback items are tracked as project todos (see the `dtodo`
-list). They are: unconscious drop-then-pickup view offset; F8 lobby re-create residue (#205);
-reconnect spike not shown (TrapLayoutSnapshot link break); host-side guest reconnect teleport;
-shuttle-door closed after reconnect; trashbag-contents regression; double position-restore apply.
+None open. The seven 2026-08-14 validation-feedback items are all closed (session todo list,
+marked done): six fixed with L0 regression tests across b4b324b..1ceec3e, and the unconscious
+drop-then-pickup view offset determined game-native (CUO never writes the item transform).
 
 ## Phase 4 Mod API remaining
 
@@ -20,7 +19,8 @@ shuttle-door closed after reconnect; trashbag-contents regression; double positi
 
 - Guest that created its own lobby then joins the host via Steam friends does not follow the
   host into a run (WorldJoin follow broken) — lobby-domain refactor.
-- F8 lobby re-create residue: old lobby not destroyed before creating a new one (#205).
+- RESOLVED (b4b324b): F8 lobby re-create residue — `SteamService.CreateLobby` now leaves the old
+  lobby (`LobbyLifecycle`/`SteamMatchmaking.LeaveLobby`) before creating a new one.
 
 ## World time flow
 

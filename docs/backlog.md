@@ -52,7 +52,11 @@ drop-then-pickup view offset determined game-native (CUO never writes the item t
 
 ## Character / presentation / combat
 
-- Attack animation sync (ArmsSwing etc.).
+- RESOLVED: attack/throw swing animation sync — `Body.Attack` (Body.cs:1887) and `Body.ThrowItem`
+  (Body.cs:1665) mark the local swing (`AttackSwingState`), which rides the `IsAttacking`
+  ExtendedFlags bit on the 20 Hz entity snapshot; the peer's clone replays `ArmsSwing` on the flag's
+  rising edge (`SessionStatePump`). The procedural attackRot/armOffset lean and the weapon slash
+  effect are not synced (weapon-specific presentation, separate from the swing clip).
 - Block HP progressive sync (currently only the break instant is synced).
 - Death-pose / limb / bleed / mining presentation-state sync.
 - Configurable state-stream frequency (currently hard-coded 20 Hz).
@@ -75,3 +79,6 @@ drop-then-pickup view offset determined game-native (CUO never writes the item t
 - BepInEx `ConfigFile` → `IOptionsMonitor<T>` adapter (bridge `ConfigEntry.SettingChanged` to
   `OnChange`); trigger: Phase 4 Mod API or when config entries appear in bulk. Standalone JSON only
   when structured/nested/array config is needed.
+- Runtime logging levels: the mod now logs a lot at Info — use the level hierarchy so normal play
+  stays quiet (Info/Warning/Error only) while a local dev can raise Debug to diagnose, without
+  affecting other players. Depends on the config hot-reload foundation (the entry above).

@@ -116,4 +116,5 @@ public enum NetMsg : byte
 	// player entity stream)
 	EnemyState = 80, // host → guest (unreliable): the authoritative enemy-state batch (20 Hz, seq-gated)
 	EnemySnapshot = 81, // host → guest: the full enemy snapshot (world entry / late joiner — ids + spawn positions for binding)
+	EnemyBite = 82, // bidirectional: guest → host report (the victim's local bite already applied); host → guest broadcast relay (source excluded) — an enemy bit a player, carrying the post-bite limb + body state
 }

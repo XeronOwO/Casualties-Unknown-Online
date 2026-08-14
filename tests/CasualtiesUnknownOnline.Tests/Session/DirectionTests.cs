@@ -82,6 +82,7 @@ public class DirectionTests
 		NetMsg.CraftReport,
 		NetMsg.RecipeUnlock,
 		NetMsg.SpeechMsg,
+		NetMsg.EnemyBite,
 	};
 
 	[Theory]

@@ -21,4 +21,7 @@ public interface IEnemySyncControl
 
 	/// <summary>Host side: send the full enemy snapshot to one member (world entry / reconnect).</summary>
 	void SendEnemySnapshot(ulong steamId);
+
+	/// <summary>An enemy bit a player (report or relay) — surface the post-bite limb/body state for the Game Adapter to apply to the victim's clone.</summary>
+	void FireEnemyBiteReceived(ulong sender, EnemyBiteMsg msg);
 }

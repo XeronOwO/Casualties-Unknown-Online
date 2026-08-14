@@ -59,7 +59,9 @@ drop-then-pickup view offset determined game-native (CUO never writes the item t
 - NPC position/state sync (host-simulated + snapshot; late-joiner full snapshot).
 - Online UI (create/join room, player status, nameplates + off-screen arrows).
 - Command system + permission model (host-authoritative, host can authorize guests).
-- Damage events (environment damage local; player-vs-player local-compute → host arbitrate → broadcast).
+- Damage events (environment damage local — `ExplosionBodyEffect` rolls it locally and the result rides
+  the 1 Hz character snapshot; player-vs-player is OUT OF SCOPE: the base game has no PvP mechanic, the
+  KrokMP mod added it as an extra, and CUO prioritizes the base game loop).
 - Character sound / block sound sync.
 - Direct player interaction (view/take items, carry, view vitals, heal).
 - Periodic keyframe self-healing (partially implemented; extend to remaining domains).

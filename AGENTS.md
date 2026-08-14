@@ -68,6 +68,13 @@ Non-negotiable design rules:
   with full single-player feel; results are exchanged as sync data for the peer to apply and verify. The
   host NEVER simulates the guest's per-frame behavior. "Host authority" is limited to global world-state
   ownership (seed, saves, rulings, anti-cheat). Never gate gameplay behind missing sync.
+- **Accept-first sync arbitration (user mandate)**: the host trusts a guest's reports first — adopt and
+  relay, never blocking the player's action. Correct only on an OBVIOUS conflict (a race: two guests claim
+  the same item; an item/enemy was already picked up/killed before the report arrived; an entity vanished)
+  — and a correction never blocks the player. No strict validation (collision-box / angle / distance
+  checks) and no anti-cheat (a guest hiding damage or over-reporting it) — those are LOW priority; get the
+  feature working first, and let loss/races self-heal via the 1 Hz snapshot and the next message. This is
+  the existing `accept-with-correction` pattern (ItemArbitration), now the standard for EVERY sync domain.
 - **Sync semantics, not Transforms**: synchronize game-semantic state, not raw Transform/GameObject state.
 - **Custom network entity IDs**: Unity instance IDs are process-local; use `NetworkEntityId` (epoch + host
   allocation counter + generation).

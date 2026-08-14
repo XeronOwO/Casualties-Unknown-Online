@@ -16,6 +16,7 @@ Mods → Mod Framework API → Multiplayer Runtime → Game Adapter → BepInEx 
 
 - **Stable CUO Runtime**: network protocol, host/guest state machine, mod loading, serialization, tick/snapshot, logging, version negotiation.
 - **Replaceable Game Adapter**: the only layer that knows the game's private types; one adapter per game build, with startup capability detection and safe degradation when a game update breaks compatibility.
+- **Accept-first sync arbitration**: the host trusts each guest's reports first (adopt and relay, never blocking the player's action) and corrects only on obvious conflicts such as races; strict validation and anti-cheat are deliberately low priority until the feature set is complete.
 
 ## Build
 

@@ -61,6 +61,9 @@ internal sealed class CharacterDataSync(
 	/// <summary>An enemy bite arrived (report or relay) — update the victim's fact-table entry (limb + body fields) and re-render its clone.</summary>
 	internal void ApplyEnemyBite(EnemyBiteMsg msg) => _factTable.ApplyEnemyBite(msg);
 
+	/// <summary>A crystal lunge arrived (report or relay) — update the victim's fact-table entry (limb + adrenaline/stamina) and re-render its clone.</summary>
+	internal void ApplyEnemyLunge(EnemyLungeMsg msg) => _factTable.ApplyEnemyLunge(msg);
+
 	internal void BindToSession()
 	{
 		_characterData.CharacterDataReceived += OnCharacterDataReceived;

@@ -24,4 +24,16 @@ public interface IEnemySyncControl
 
 	/// <summary>An enemy bit a player (report or relay) — surface the post-bite limb/body state for the Game Adapter to apply to the victim's clone.</summary>
 	void FireEnemyBiteReceived(ulong sender, EnemyBiteMsg msg);
+
+	/// <summary>Host side: order one member to apply an enemy attack locally (the host's collision callbacks cannot reach a collider-less remote clone).</summary>
+	void SendEnemyAttack(EnemyAttackMsg msg);
+
+	/// <summary>A host-ordered enemy attack arrived at the victim — surface it for the Game Adapter to apply locally.</summary>
+	void FireEnemyAttackReceived(EnemyAttackMsg msg);
+
+	/// <summary>Report/broadcast a crystal-lunge terminal state (the same star semantics as EnemyBite).</summary>
+	void SendEnemyLunge(EnemyLungeMsg msg);
+
+	/// <summary>A crystal-lunge terminal state arrived (report or relay) — surface it for the Game Adapter to apply to the victim's clone.</summary>
+	void FireEnemyLungeReceived(ulong sender, EnemyLungeMsg msg);
 }

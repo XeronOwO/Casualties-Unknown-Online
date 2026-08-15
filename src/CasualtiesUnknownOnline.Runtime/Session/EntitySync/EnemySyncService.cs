@@ -5,6 +5,7 @@ using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Time;
+using Microsoft.Extensions.Logging;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 
@@ -25,6 +26,7 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 	private readonly ISessionControl _session;
 	private readonly PacketSender _sender;
 	private readonly ITimeSource _time;
+	private readonly ILogger<EnemySyncService> _log;
 
 	private readonly Dictionary<NetworkEntityId, EnemyEntity> _enemies = [];
 	private uint _nextEnemySeq; // host: EnemyState broadcast seq
@@ -33,11 +35,12 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 	private ulong _epoch; // host: the enemy-id epoch (set on Initialize)
 	private uint _nextEnemyCounter; // host: enemy-id allocation counter
 
-	public EnemySyncService(ISessionControl session, PacketSender sender, ITimeSource time)
+	public EnemySyncService(ISessionControl session, PacketSender sender, ITimeSource time, ILogger<EnemySyncService> log)
 	{
 		_session = session;
 		_sender = sender;
 		_time = time;
+		_log = log;
 		session.SessionEnded += OnSessionEnded;
 	}
 
@@ -49,6 +52,12 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 
 	/// <summary>Raised when an enemy bite arrives (report or relay) — the Game Adapter applies the post-bite limb/body state to the victim's clone.</summary>
 	public event Action<ulong, EnemyBiteMsg>? EnemyBiteReceived;
+
+	/// <summary>Raised on the victim's side when a host-ordered enemy attack arrives — the Game Adapter applies it to the local body and reports the terminal state.</summary>
+	public event Action<EnemyAttackMsg>? EnemyAttackReceived;
+
+	/// <summary>Raised when a crystal-lunge terminal state arrives (report or relay) — the Game Adapter applies the post-lunge limb/body state to the victim's clone.</summary>
+	public event Action<ulong, EnemyLungeMsg>? EnemyLungeReceived;
 
 	// ---- Public surface (Game Adapter) ----
 
@@ -92,6 +101,61 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 	public void FireEnemyBiteReceived(ulong sender, EnemyBiteMsg msg)
 		=> EnemyBiteReceived?.Invoke(sender, msg);
 
+	/// <summary>
+	/// Host side: order one member to apply an enemy attack locally. The remote
+	/// clone has no colliders, so the host's own collision callback can never
+	/// reach the guest — the host simulation decides, the victim applies and
+	/// reports the terminal state. Reliable: the command is one-shot.
+	/// </summary>
+	public void SendEnemyAttack(EnemyAttackMsg msg)
+	{
+		if (!_session.SessionActive || _session.Role != SessionRole.Host)
+		{
+			return;
+		}
+
+		var target = _session.Members.FirstOrDefault(m =>
+			m.SteamId == msg.VictimSteamId && m.Handshaken && m.InWorld);
+		if (target == null)
+		{
+			_log.LogWarning("[EnemyAttack] victim {Victim} is not an in-world member — command dropped.", msg.VictimSteamId);
+			return;
+		}
+
+		_sender.Send(msg.VictimSteamId, NetMsg.EnemyAttack, msg, reliable: true);
+	}
+
+	/// <summary>A host-ordered enemy attack arrived at the victim — surface it for the Game Adapter to apply locally.</summary>
+	public void FireEnemyAttackReceived(EnemyAttackMsg msg) => EnemyAttackReceived?.Invoke(msg);
+
+	/// <summary>
+	/// Report/broadcast a crystal-lunge terminal state (the same star semantics
+	/// as EnemyBite): a guest reports its locally-applied lunge to the host; the
+	/// host broadcasts its own lunge to every guest.
+	/// </summary>
+	public void SendEnemyLunge(EnemyLungeMsg msg)
+	{
+		if (!_session.SessionActive)
+		{
+			return;
+		}
+
+		if (_session.Role == SessionRole.Host)
+		{
+			_sender.SendToAll(
+				_session.Members.Where(m => m.Handshaken && m.SteamId != _session.LocalSteamId).Select(m => m.SteamId),
+				NetMsg.EnemyLunge, msg, reliable: true);
+		}
+		else
+		{
+			_sender.Send(_session.HostSteamId, NetMsg.EnemyLunge, msg);
+		}
+	}
+
+	/// <summary>A crystal-lunge terminal state arrived (report or relay) — surface it for the Game Adapter to apply.</summary>
+	public void FireEnemyLungeReceived(ulong sender, EnemyLungeMsg msg)
+		=> EnemyLungeReceived?.Invoke(sender, msg);
+
 	/// <summary>Host side: publish the authoritative enemy states (the Game Adapter captures the simulated enemies and overwrites the buffer each tick).</summary>
 	public void PublishEnemyStates(IEnumerable<EnemyEntity> states)
 	{
@@ -111,6 +175,14 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 	void IEnemySyncControl.ApplyEnemySnapshot(EnemySnapshotMsg msg) => ApplyEnemySnapshot(msg);
 
 	void IEnemySyncControl.SendEnemySnapshot(ulong steamId) => SendEnemySnapshot(steamId);
+
+	void IEnemySyncControl.SendEnemyAttack(EnemyAttackMsg msg) => SendEnemyAttack(msg);
+
+	void IEnemySyncControl.FireEnemyAttackReceived(EnemyAttackMsg msg) => FireEnemyAttackReceived(msg);
+
+	void IEnemySyncControl.SendEnemyLunge(EnemyLungeMsg msg) => SendEnemyLunge(msg);
+
+	void IEnemySyncControl.FireEnemyLungeReceived(ulong sender, EnemyLungeMsg msg) => FireEnemyLungeReceived(sender, msg);
 
 	// ---- ICuoService ----
 

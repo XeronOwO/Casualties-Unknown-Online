@@ -74,25 +74,29 @@ drop-then-pickup view offset determined game-native (CUO never writes the item t
     relay + clone apply) instead of riding the 1 Hz snapshot — `EnemyBiteMsg` (limb + venom/adrenaline/
     happiness), `EnemyBitePatches` (DamageLimb postfix), `EnemySyncCoordinator.ReportEnemyBite`,
     `CloneFactTable.ApplyEnemyBite`.
-  - RESOLVED (5799623): the guest's frozen copy bit ONCE and never again — `biteCooldown` never
-    decremented because the freeze patch skips `SpiderHandler.Update` (the decrement lives there,
-    SpiderHandler.cs:39). `RemoteEnemyDriver` (guest-only, added by `EnemySyncCoordinator.Freeze`) now
-    owns that decrement — its own Update replicates Update:39 every frame, so the frozen copy re-bites
-    on the game's own 5 s gate; the field is guarded by a `GameFieldContractTests` row. The
-    `rb.bodyType = Static` freeze remains a no-op (`BuildingEntity.Update`, BuildingEntity.cs:50-55,
-    re-toggles `bodyType` to Dynamic when the chunk renders + `timeScale ≤ 5`), so the freeze still
-    relies entirely on EnemyPatches, not the Static rb. Related edge (deferred): a thrown item that hits
-    the frozen spider sets `stunTime` via `AnimalHit` (SpiderHandler.cs:264), which is ALSO frozen
-    (Update:40 skipped) and would permanently re-gate the bite — that path rides the unsynced
-    item-vs-enemy damage, out of scope until item-vs-enemy attacks are synced.
-  - **Enemy targeting is host-only (known limitation)**: the host's enemy AI targets the host's body
-    alone — `SpiderHandler.Update`'s `OverlapCircle` (SpiderHandler.cs:71) only sees the host's body
-    because the guest clones' colliders are disabled (`RemoteBodyFactory`). So enemies chase the host;
-    guests are only bitten when they walk near the host's spider. Fixing "guests are attacked" needs the
-    enemy to see guests (distance-based targeting or re-enabled clone colliders) — separate from the
-    cooldown fix above.
+  - SUPERSEDED (5799623): the old guest-side `RemoteEnemyDriver` cooldown ticker was removed when
+    multiplayer targeting landed — frozen spider collision callbacks are now skipped entirely, and the
+    host's `EnemyCombatDirector` is the single bite-apply path (it reads/writes `biteCooldown` on the
+    host spider, guarded by `GameFieldContractTests`). The `rb.bodyType = Static` freeze remains a
+    no-op (`BuildingEntity.Update`, BuildingEntity.cs:50-55, re-toggles `bodyType` to Dynamic when the
+    chunk renders + `timeScale ≤ 5`), so the freeze still relies entirely on EnemyPatches, not the
+    Static rb. Related edge (deferred): a thrown item that hits the frozen spider sets `stunTime` via
+    `AnimalHit` (SpiderHandler.cs:264), which is ALSO frozen (Update:40 skipped) and would permanently
+    re-gate the bite — that path rides the unsynced item-vs-enemy damage, out of scope until
+    item-vs-enemy attacks are synced.
+  - **RESOLVED (enemy-targeting + host-ordered attacks)**: enemies now see every in-world player —
+    `EnemyCombatDirector` makes SpiderHandler target the nearest player inside `seeDistance` on the
+    game's own moveTime-expiry edge and resolves `CrystalEnemy.body` to the nearest player body within
+    its 64-unit close radius; no clone collider is re-enabled. Host-ordered `EnemyAttack` (83) +
+    `EnemyLunge` (84) apply spider bites and crystal lunges to remote victims locally, with the
+    terminal state reported back. Frozen spider collision callbacks are now skipped so one attack has
+    exactly one apply path. Remaining enemy-interaction gaps:
   - Runtime cave-tick nest spawn (16 ticks spawn on the triggering side only,
     EntityEventKind.CaveTicksSpawned).
+  - ElderThornback/Xaloris/GrabberPlant proximity side effects still read
+    `PlayerCamera.main.body` and apply to the local body only — dedicated event chains needed.
+  - Host-local CrystalEnemy lunge still rides the 1 Hz character snapshot (no dedicated
+    terminal-state report for the native host-body hit yet).
   - cave-tick/shadecrawler/wallbiter prefab script mapping (Unity asset, needs a runtime component
     check to extend the freeze list).
 - Online UI (create/join room, player status, nameplates + off-screen arrows).

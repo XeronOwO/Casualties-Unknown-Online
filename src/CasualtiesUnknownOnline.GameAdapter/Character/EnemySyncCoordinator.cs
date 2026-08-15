@@ -45,6 +45,8 @@ internal sealed class EnemySyncCoordinator(
 		_enemies.EnemySnapshotReceived += OnEnemySnapshotReceived;
 		_enemies.EnemyStateReceived += OnEnemyStateReceived;
 		_enemies.EnemyBiteReceived += OnEnemyBiteReceived;
+		_enemies.EnemyAttackReceived += OnEnemyAttackReceived;
+		_enemies.EnemyLungeReceived += OnEnemyLungeReceived;
 	}
 
 	internal void Unbind()
@@ -52,6 +54,8 @@ internal sealed class EnemySyncCoordinator(
 		_enemies.EnemySnapshotReceived -= OnEnemySnapshotReceived;
 		_enemies.EnemyStateReceived -= OnEnemyStateReceived;
 		_enemies.EnemyBiteReceived -= OnEnemyBiteReceived;
+		_enemies.EnemyAttackReceived -= OnEnemyAttackReceived;
+		_enemies.EnemyLungeReceived -= OnEnemyLungeReceived;
 		_idByEntity.Clear();
 		_entityById.Clear();
 		_healthReconcile.Clear();
@@ -75,6 +79,10 @@ internal sealed class EnemySyncCoordinator(
 			FreezeOnGenerationComplete();
 		}
 	}
+
+	/// <summary>Host side: the id of one captured enemy (the combat director resolves the EnemyAttack sender id).</summary>
+	internal bool TryGetHostEnemyId(BuildingEntity entity, out NetworkEntityId id) =>
+		_idByEntity.TryGetValue(entity, out id);
 
 	// ---- Host capture ----
 
@@ -273,6 +281,152 @@ internal sealed class EnemySyncCoordinator(
 		}
 
 		reconcile.RecordLocalDamage(damage);
+	}
+
+	// ---- Host-ordered enemy attacks (the dedicated command — never the snapshot) ----
+
+	private void OnEnemyAttackReceived(EnemyAttackMsg msg)
+	{
+		if (!_session.SessionActive || _session.Role != SessionRole.Guest)
+		{
+			return;
+		}
+
+		if (!_entityById.TryGetValue(msg.EnemyId.ToNetworkEntityId(), out var entity) || entity == null) // Unity object — ==
+		{
+			_log.LogWarning("[Enemy] attack {Kind} arrived for unknown enemy {Enemy} — the snapshot binding may not have arrived yet; command dropped.",
+				msg.Kind, msg.EnemyId.ToNetworkEntityId());
+			return;
+		}
+
+		switch (msg.Kind)
+		{
+			case EnemyAttackKind.SpiderBite:
+				ApplyHostSpiderBite(entity, msg);
+				break;
+			case EnemyAttackKind.CrystalLunge:
+				ApplyHostCrystalLunge(entity, msg);
+				break;
+			default:
+				_log.LogWarning("[Enemy] unknown attack kind {Kind} for enemy {Enemy} — dropped.", msg.Kind, msg.EnemyId.ToNetworkEntityId());
+				break;
+		}
+	}
+
+	/// <summary>
+	/// Apply the host-ordered spider bite to the LOCAL body using the frozen
+	/// copy's own SpiderHandler (same prefab values, same DamageLimb virtual
+	/// dispatch). Replicates CheckForLimbDamage's non-collision side effects
+	/// (SpiderHandler.cs:148-160) around DamageLimb; the EnemyBitePatches
+	/// postfix on DamageLimb reports the post-bite terminal state back to the
+	/// host — the command and its report are the dedicated event chain.
+	/// </summary>
+	private void ApplyHostSpiderBite(BuildingEntity entity, EnemyAttackMsg msg)
+	{
+		var spider = entity.GetComponentInChildren<SpiderHandler>();
+		var body = LocalBody();
+		if (spider == null || body == null) // Unity objects — ==
+		{
+			_log.LogWarning("[Enemy] spider bite {Enemy} could not be applied — attacker/victim body missing.", msg.EnemyId.ToNetworkEntityId());
+			return;
+		}
+
+		var limb = SelectLimb(body, msg.LimbIndex, entity.transform.position);
+		if (limb == null)
+		{
+			_log.LogWarning("[Enemy] spider bite {Enemy} has no non-dismembered limb — dropped.", msg.EnemyId.ToNetworkEntityId());
+			return;
+		}
+
+		Sound.Play(spider.biteSound, entity.transform.position, false, true, null, 1f, 1f, false, false);
+		limb.body.eyeScareTime = 5f;
+		limb.body.talker.Talk(Locale.GetCharacter("hitbycreature"), null, false, true);
+		limb.body.happiness -= spider.happinessLoss;
+		spider.PlayThreatMusic();
+		spider.DamageLimb(limb); // the EnemyBite report fires from the DamageLimb postfix
+		if (spider.hitConnected)
+		{
+			foreach (var connected in limb.connectedLimbs)
+			{
+				spider.DamageLimb(connected);
+			}
+		}
+
+		_log.LogInformation("[Enemy] applied host spider bite {Enemy} to local limb {Limb}.", msg.EnemyId.ToNetworkEntityId(), limb);
+	}
+
+	/// <summary>
+	/// Apply the host-ordered crystal lunge to the LOCAL body, reproducing
+	/// CrystalEnemy.Lunge's player-damage branch exactly
+	/// (CrystalEnemy.cs:143-156): closest non-dismembered limb, the same
+	/// armor-reduced damage constants and body reactions. The post-lunge
+	/// terminal state is reported as the dedicated EnemyLunge event.
+	/// </summary>
+	private void ApplyHostCrystalLunge(BuildingEntity entity, EnemyAttackMsg msg)
+	{
+		var crystal = entity.GetComponentInChildren<CrystalEnemy>();
+		var body = LocalBody();
+		if (crystal == null || body == null) // Unity objects — ==
+		{
+			_log.LogWarning("[Enemy] crystal lunge {Enemy} could not be applied — attacker/victim body missing.", msg.EnemyId.ToNetworkEntityId());
+			return;
+		}
+
+		var limb = SelectLimb(body, msg.LimbIndex, entity.transform.position);
+		if (limb == null)
+		{
+			_log.LogWarning("[Enemy] crystal lunge {Enemy} has no non-dismembered limb — dropped.", msg.EnemyId.ToNetworkEntityId());
+			return;
+		}
+
+		var armorReduction = limb.GetArmorReduction();
+		limb.DamageWearables(0.4f);
+		limb.muscleHealth -= 35f / armorReduction;
+		limb.skinHealth -= 50f / armorReduction;
+		limb.pain += 60f / armorReduction;
+		limb.bleedAmount += 15f / armorReduction;
+		body.adrenaline += 70f;
+		body.stamina = 100f;
+		body.eyePanicTime = 0.5f;
+		body.Scream();
+		body.Ragdoll();
+		body.DoGoreSound();
+		Sound.Play("crystalenemylaugh", entity.transform.position, true, true, null, 1f, 1f, false, false);
+
+		var limbIndex = LimbIndexOf(body, limb);
+		var limbMsg = _mapper.Map<CharacterLimbMsg>(limb);
+		limbMsg.Index = limbIndex;
+		_enemies.SendEnemyLunge(new EnemyLungeMsg
+		{
+			VictimSteamId = _session.LocalSteamId,
+			Limb = limbMsg,
+			Adrenaline = body.adrenaline,
+			Stamina = body.stamina,
+		});
+		_log.LogInformation("[Enemy] applied host crystal lunge {Enemy} to local limb {Limb}.", msg.EnemyId.ToNetworkEntityId(), limbIndex);
+	}
+
+	private void OnEnemyLungeReceived(ulong sender, EnemyLungeMsg msg) => _characterData.ApplyEnemyLunge(msg);
+
+	private static Limb? SelectLimb(Body body, int limbIndex, Vector3 enemyPosition)
+	{
+		if (limbIndex >= 0 && limbIndex < body.limbs.Length)
+		{
+			var indexed = body.limbs[limbIndex];
+			if (indexed != null && !indexed.dismembered) // Unity object — ==
+			{
+				return indexed;
+			}
+		}
+
+		var closest = body.GetClosestLimb(enemyPosition);
+		return closest != null && !closest.dismembered ? closest : null; // Unity object — ==
+	}
+
+	private static Body? LocalBody()
+	{
+		var playerCamera = PlayerCamera.main;
+		return playerCamera != null ? playerCamera.body : null; // Unity objects — ==
 	}
 
 	// ---- Enemy bite (the dedicated trigger — never the 1 Hz snapshot) ----

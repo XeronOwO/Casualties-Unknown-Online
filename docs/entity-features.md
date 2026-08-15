@@ -115,7 +115,7 @@ trap's sound/sprite/light.
 | CrystalFragile | collide | yes | destroy + drops |
 | CaveTickSpawner | trigger | yes | nest destroy + particles + sound (the 16 spiders ride EntitySpawned + EnemyRuntimeSpawn binding; late joiner materializes via EnemySnapshot.RuntimeSpawns) |
 | BananaPlantSlip | trigger | repeatable | plantslip sound |
-| GrabberPlant | detect | repeatable | scream sound |
+| GrabberPlant | detect | repeatable | scream bubble + ragdoll (speech / entity-state streams) + EnemyEffectMsg terminal state |
 
 ## Lifepod interior
 
@@ -174,7 +174,8 @@ Blinding/Irradiated) are excluded: each side's body is simulated locally.
 | SurvivorNote | missing (low) | slowmo on the reading side only (time-scale divergence) |
 | TutorialHandler | missing (med-low) | tutorial domain decision (claw items double-given) |
 | GrapplingHook | excluded | visual-only (rope is a local projection) |
-| Climbable/BounceShroom/GeigeFruit/Leadbush/Campfire/WaterPusher/ItemLock/Radioactive/Xaloris | excluded | local body / local physics / marker-only |
+| Climbable/BounceShroom/GeigeFruit/Leadbush/Campfire/WaterPusher/ItemLock/Radioactive | excluded | local body / local physics / marker-only |
+| XalorisScript | covered | EnemyEffectMsg septic tick (0.5 s edge) |
 
 ## Buildings
 
@@ -187,6 +188,9 @@ Blinding/Irradiated) are excluded: each side's body is simulated locally.
 
 ## Creatures
 
-Enemy AI (SpiderHandler/CaveTicks/ElderThornback/CrystalEnemy) is excluded —
-the AI domain is a separate future project; their damage/state rides the
-character-data channel where it reaches players.
+Enemy AI is covered by the host-authoritative enemy-sync domain
+(`docs/enemy-sync.md`): positions/health ride `EnemyState`/`EnemySnapshot`,
+attacks ride `EnemyAttack`/`EnemyBite`/`EnemyLunge`, and the proximity side
+effects of ElderThornback/Xaloris/GrabberPlant ride `EnemyEffectMsg`.
+Recorded local-presentation gaps: `LookTarget` gaze/scare and the `Heater`
+temperature field on `xaloris`.

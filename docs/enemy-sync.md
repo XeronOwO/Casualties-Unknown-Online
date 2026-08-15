@@ -1,6 +1,6 @@
 # NPC / Enemy Synchronization — Design
 
-Status: **landed** — host-authoritative enemy sync, multiplayer targeting and host-ordered attacks are in; remaining gaps are listed in §6 and `backlog.md`.
+Status: **landed** — host-authoritative enemy sync, multiplayer targeting, host-ordered attacks and the dedicated enemy-proximity effect events are in; the previously listed remaining enemy-interaction gaps are closed (see §6).
 
 ## 1. Current state & problem
 
@@ -17,6 +17,15 @@ scripts. There is **no shared enemy base class**; the only shared anchor is the 
   (CrystalEnemy.cs:44-112) + physics chase in `FixedUpdate` (CrystalEnemy.cs:169-191).
 - Others: `DroneScript`, `GrabberPlant`, `ElderThornbackBehaviour`, `ScrapEaterScript`, `Vomiter`,
   `XalorisScript`, `CaveTicks` — each a `MonoBehaviour` with its own `Update`/`FixedUpdate`/`Rigidbody2D`.
+
+**Prefab component mapping (runtime-verified 2026-08-15 via HotRepl `Resources.Load` +
+`GetComponents<MonoBehaviour>`)**: `cavetick`, `shadecrawler`, `wallbiter`, `thornbackyoung`,
+`overgrowntick` and `snowstrider` all carry `SpiderHandler`; `thornbackelder` carries
+`SpiderHandlerTBE` + `ElderThornbackBehaviour`; `crystalenemy` carries `CrystalEnemy`;
+`grabberplant` carries `GrabberPlant` + `IKHandle`; `xaloris` carries `XalorisScript` + `Heater`.
+Every moving script is therefore already covered by `EnemyPatches` (SpiderHandler.Update/FixedUpdate
+are inherited by `SpiderHandlerTBE`; CrystalEnemy has its own patches) — no freeze-list extension
+was needed. `LookTarget` and `Heater` remain recorded local-presentation fields.
 
 **Non-deterministic**: movement is random numbers + Unity physics, so two sides simulating
 independently inevitably diverge (and can damage different players independently).
@@ -154,14 +163,14 @@ applies the game's own damage path locally and reports the post-attack terminal 
    trigger) — now covered by the EntitySpawned channel + runtime id binding + late-joiner
    materialization; a future second runtime enemy prefab must reuse the same path and its prefab must
    carry the same `BuildingEntity.id` facts.
-5. **Proximity side effects stay local-first** — `ElderThornbackBehaviour` (horror/stamina),
-   `XalorisScript` (septic shock) and `GrabberPlant` (tendril grab) read
-   `PlayerCamera.main.body` and mutate that body directly. They are not part of the
-   move-toward-player family this page covers; they are tracked in `backlog.md` until they get
-   dedicated event chains.
-6. **Host-local crystal lunge still rides the 1 Hz snapshot** — the native host-body hit has no
-   dedicated terminal-state report yet (remote victims report `EnemyLunge`; the host-local path
-   is the same pre-existing snapshot fallback). Tracked in `backlog.md`.
+5. **Proximity side effects are now event-synced** — `ElderThornbackBehaviour` (horror tick +
+   defeat reward), `XalorisScript` (septic tick) and `GrabberPlant` (grab) each report their
+   post-effect terminal state as the dedicated `EnemyEffectMsg` (NetMsg 85); the host merges the
+   terminal state into the saved character immediately and relays. `LookTarget` gaze/scare and the
+   `Heater` temperature field stay local-presentation, recorded in `backlog.md`.
+6. **Host-local crystal lunge now has a dedicated report** — `CrystalEnemyLungePatch` captures a
+   pre-lunge limb trace, the native hit runs unchanged, and the postfix reports `EnemyLungeMsg`
+   only after the pre/post limb diff verifies the actual write.
 
 ## 7. Implementation order
 
@@ -173,3 +182,5 @@ applies the game's own damage path locally and reports the post-attack terminal 
 5. Simulation + contract tests + gates.
 6. Multiplayer targeting + host-ordered attacks (`EnemyCombatDirector`, `EnemyAttack` /
    `EnemyLunge` protocol) + tests + gates.
+7. Enemy-proximity side-effect events (`EnemyProximitySync`, `EnemyEffectMsg`) + the host-local
+   lunge verified terminal-state report + tests + gates.

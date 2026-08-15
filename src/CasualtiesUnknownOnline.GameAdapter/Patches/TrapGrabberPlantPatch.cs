@@ -1,16 +1,15 @@
-using CasualtiesUnknownOnline.Runtime.Protocol;
 using UnityEngine;
 using HarmonyLib;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 
 /// <summary>
-/// Grabber plant → GrabberGrabbed (repeatable — every 5 s): the tendrils
-/// grabbed a body (GrabberPlant.cs — the grab + scream are the LOCAL player's
-/// interaction; the plant's own animation is Update-driven on every side).
-/// The event is a trace point: there is nothing to replay — the grab's visuals
-/// are the player-side ragdoll/scream (each side's own body) and the tendril
-/// animation runs naturally everywhere.
+/// Grabber plant → EnemyEffectMsg.GrabberGrabbed (repeatable — every 5 s):
+/// the tendrils grabbed the LOCAL body (GrabberPlant.cs:75-90 — the grab's
+/// ragdoll/scream ride the entity-state stream and the speech domain; the
+/// tendril animation is Update-driven on every side). The verified no-grab →
+/// grab transition reports the post-grab shock/eye-panic terminal state as the
+/// dedicated enemy-effect event, never the 1 Hz snapshot.
 /// </summary>
 [HarmonyPatch(typeof(GrabberPlant), "Update")]
 internal static class TrapGrabberPlantPatch
@@ -25,6 +24,11 @@ internal static class TrapGrabberPlantPatch
 			return; // not the no-grab → grab transition
 		}
 
-		PatchBridge.Impl?.OnTrapTriggered(EntityEventKind.GrabberGrabbed, __instance.transform.position, 0);
+		var playerCamera = PlayerCamera.main;
+		var body = playerCamera != null ? playerCamera.body : null;
+		if (body != null) // Unity object — ==
+		{
+			PatchBridge.Impl?.OnGrabberGrabbed(body);
+		}
 	}
 }

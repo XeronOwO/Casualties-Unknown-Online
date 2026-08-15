@@ -60,6 +60,9 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 	/// <summary>Raised when a crystal-lunge terminal state arrives (report or relay) — the Game Adapter applies the post-lunge limb/body state to the victim's clone.</summary>
 	public event Action<ulong, EnemyLungeMsg>? EnemyLungeReceived;
 
+	/// <summary>Raised when an enemy-proximity side effect arrives (report or relay) — the Game Adapter applies the post-effect body state to the victim's clone.</summary>
+	public event Action<ulong, EnemyEffectMsg>? EnemyEffectReceived;
+
 	// ---- Public surface (Game Adapter) ----
 
 	/// <summary>All enemy buffers (host: authoritative; guest: received).</summary>
@@ -160,6 +163,36 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 	public void FireEnemyLungeReceived(ulong sender, EnemyLungeMsg msg)
 		=> EnemyLungeReceived?.Invoke(sender, msg);
 
+	/// <summary>
+	/// Report/broadcast an enemy-proximity side effect (ElderThornback horror,
+	/// Xaloris septic tick, GrabberPlant grab — the same star semantics as
+	/// EnemyBite): a guest reports its own effect to the host; the host
+	/// broadcasts its own effect to every guest. Reliable — the event carries
+	/// the post-effect terminal state, never a delta.
+	/// </summary>
+	public void SendEnemyEffect(EnemyEffectMsg msg)
+	{
+		if (!_session.SessionActive)
+		{
+			return;
+		}
+
+		if (_session.Role == SessionRole.Host)
+		{
+			_sender.SendToAll(
+				_session.Members.Where(m => m.Handshaken && m.SteamId != _session.LocalSteamId).Select(m => m.SteamId),
+				NetMsg.EnemyEffect, msg, reliable: true);
+		}
+		else
+		{
+			_sender.Send(_session.HostSteamId, NetMsg.EnemyEffect, msg);
+		}
+	}
+
+	/// <summary>An enemy-proximity side effect arrived (report or relay) — surface it for the Game Adapter to apply.</summary>
+	public void FireEnemyEffectReceived(ulong sender, EnemyEffectMsg msg)
+		=> EnemyEffectReceived?.Invoke(sender, msg);
+
 	/// <summary>Host side: publish the authoritative enemy states (the Game Adapter captures the simulated enemies and overwrites the buffer each tick).</summary>
 	public void PublishEnemyStates(IEnumerable<EnemyEntity> states)
 	{
@@ -195,6 +228,10 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 	void IEnemySyncControl.SendEnemyLunge(EnemyLungeMsg msg) => SendEnemyLunge(msg);
 
 	void IEnemySyncControl.FireEnemyLungeReceived(ulong sender, EnemyLungeMsg msg) => FireEnemyLungeReceived(sender, msg);
+
+	void IEnemySyncControl.SendEnemyEffect(EnemyEffectMsg msg) => SendEnemyEffect(msg);
+
+	void IEnemySyncControl.FireEnemyEffectReceived(ulong sender, EnemyEffectMsg msg) => FireEnemyEffectReceived(sender, msg);
 
 	// ---- ICuoService ----
 

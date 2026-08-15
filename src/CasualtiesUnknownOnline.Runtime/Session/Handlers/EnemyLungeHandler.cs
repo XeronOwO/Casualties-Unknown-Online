@@ -19,6 +19,11 @@ public sealed class EnemyLungeHandler(ILogger<EnemyLungeHandler> log) : PacketHa
 
 	protected override void Handle(ulong sender, EnemyLungeMsg msg, HandlerContext ctx)
 	{
+		if (ctx.Session.Role == SessionRole.Host)
+		{
+			ctx.CharacterData.ApplyEnemyLunge(msg);
+		}
+
 		ctx.Enemies.FireEnemyLungeReceived(sender, msg);
 		if (ctx.Session.Role == SessionRole.Host)
 		{

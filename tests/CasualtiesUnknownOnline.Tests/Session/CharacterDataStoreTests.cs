@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Tests.Fakes;
@@ -115,5 +116,49 @@ public class CharacterDataStoreTests
 			Assert.True(received.Count == 1, $"the saved snapshot must reach the reconnecting guest, got {received.Count}");
 			Assert.Null(received[0].Position);
 		}
+	}
+
+	[Fact]
+	public void ApplyEnemyBite_MergesTheTerminalStateIntoTheSavedSnapshot()
+	{
+		using var host = TestNode.CreatePair(HostId, GuestId, LobbyId).Host;
+		var store = host.Services.GetRequiredService<CharacterDataStore>();
+		store.SaveCharacterData(GuestId, Snapshot(GuestId));
+
+		store.ApplyEnemyBite(new EnemyBiteMsg
+		{
+			VictimSteamId = GuestId,
+			Limb = new CharacterLimbMsg { Index = 0, Pain = 12f, SkinHealth = 80f },
+			VenomTotal = 3f,
+			Adrenaline = 75f,
+			Happiness = -0.75f,
+		});
+
+		var saved = store.GetSavedCharacter(GuestId)!;
+		Assert.True(saved.Limbs.Count == 1, "the event must add the bitten limb to the saved snapshot");
+		Assert.Equal(12f, saved.Limbs[0].Pain);
+		Assert.Equal(3f, saved.Health!.VenomTotal);
+		Assert.Equal(-0.75f, saved.Health!.Happiness);
+	}
+
+	[Fact]
+	public void ApplyEnemyEffect_MergesOnlyTheKindFieldsIntoTheSavedSnapshot()
+	{
+		using var host = TestNode.CreatePair(HostId, GuestId, LobbyId).Host;
+		var store = host.Services.GetRequiredService<CharacterDataStore>();
+		store.SaveCharacterData(GuestId, Snapshot(GuestId));
+
+		store.ApplyEnemyEffect(new EnemyEffectMsg
+		{
+			VictimSteamId = GuestId,
+			Kind = EnemyEffectKind.GrabberGrabbed,
+			Shock = 20f,
+			EyePanicTime = 0.5f,
+		});
+
+		var saved = store.GetSavedCharacter(GuestId)!;
+		Assert.Equal(20f, saved.Health!.Shock);
+		Assert.Equal(0.5f, saved.Health!.EyePanicTime);
+		Assert.Equal(0f, saved.Health!.SepticShock); // untouched — this kind carries no septic state
 	}
 }

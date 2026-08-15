@@ -4,8 +4,10 @@ namespace CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 
 /// <summary>
 /// Full Body physiological/status state (SaveSystem's [JsonProperty] set,
-/// Body.cs:3779+). Alive/Conscious are derived properties (Body.cs:203/213) —
-/// reported for diagnostics, never restored.
+/// Body.cs:3779+) plus the enemy-proximity presentation fields CUO syncs
+/// outside the vanilla save set (horrified/focused/eye panic). Alive/Conscious
+/// are derived properties (Body.cs:203/213) — reported for diagnostics, never
+/// restored.
 /// </summary>
 [ProtoContract]
 public sealed class CharacterHealthMsg
@@ -197,4 +199,15 @@ public sealed class CharacterHealthMsg
 
 	[ProtoMember(6)]
 	public float Temperature { get; set; }
+
+	// Enemy-proximity presentation fields (not in the vanilla SaveSystem set —
+	// synced by EnemyEffectMsg and the 1 Hz snapshot fallback).
+	[ProtoMember(62)]
+	public float HorrifiedLevel { get; set; }
+
+	[ProtoMember(63)]
+	public float FocusedLevel { get; set; }
+
+	[ProtoMember(64)]
+	public float EyePanicTime { get; set; }
 }

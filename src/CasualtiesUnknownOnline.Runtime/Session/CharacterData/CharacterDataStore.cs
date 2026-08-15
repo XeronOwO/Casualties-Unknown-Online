@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using Microsoft.Extensions.Logging;
 
@@ -49,6 +50,38 @@ public sealed class CharacterDataStore(ISessionControl session, PacketSender sen
 
 	/// <summary>Host side: keep the latest report per SteamID (session-scoped save).</summary>
 	internal void SaveCharacterData(ulong steamId, CharacterDataMsg msg) => _savedCharacters[steamId] = msg;
+
+	/// <summary>
+	/// Host side: merge an enemy bite's post-bite terminal state into the
+	/// victim's saved snapshot immediately — a disconnect before the next 1 Hz
+	/// report must still restore the bite (the dedicated event is the trigger;
+	/// the snapshot is only the fallback).
+	/// </summary>
+	public void ApplyEnemyBite(EnemyBiteMsg msg)
+	{
+		if (_savedCharacters.TryGetValue(msg.VictimSteamId, out var data))
+		{
+			EnemyTerminalStateApplier.ApplyBite(data, msg);
+		}
+	}
+
+	/// <summary>Host side: the EnemyBite mirror for a crystal-lunge terminal state.</summary>
+	public void ApplyEnemyLunge(EnemyLungeMsg msg)
+	{
+		if (_savedCharacters.TryGetValue(msg.VictimSteamId, out var data))
+		{
+			EnemyTerminalStateApplier.ApplyLunge(data, msg);
+		}
+	}
+
+	/// <summary>Host side: the EnemyBite mirror for an enemy-proximity side effect.</summary>
+	public void ApplyEnemyEffect(EnemyEffectMsg msg)
+	{
+		if (_savedCharacters.TryGetValue(msg.VictimSteamId, out var data))
+		{
+			EnemyTerminalStateApplier.ApplyEffect(data, msg);
+		}
+	}
 
 	/// <summary>
 	/// Host only: a NEW run started (the host clicked start) — the saved
@@ -184,4 +217,10 @@ public sealed class CharacterDataStore(ISessionControl session, PacketSender sen
 
 	void ICharacterDataControl.FireHostCharacterDataReceived(CharacterDataMsg msg) =>
 		HostCharacterDataReceived?.Invoke(msg);
+
+	void ICharacterDataControl.ApplyEnemyBite(EnemyBiteMsg msg) => ApplyEnemyBite(msg);
+
+	void ICharacterDataControl.ApplyEnemyLunge(EnemyLungeMsg msg) => ApplyEnemyLunge(msg);
+
+	void ICharacterDataControl.ApplyEnemyEffect(EnemyEffectMsg msg) => ApplyEnemyEffect(msg);
 }

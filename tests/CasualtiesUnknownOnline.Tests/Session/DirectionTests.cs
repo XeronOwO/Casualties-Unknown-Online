@@ -85,6 +85,7 @@ public class DirectionTests
 		NetMsg.SpeechMsg,
 		NetMsg.EnemyBite,
 		NetMsg.EnemyLunge,
+		NetMsg.EnemyEffect,
 	};
 
 	[Theory]

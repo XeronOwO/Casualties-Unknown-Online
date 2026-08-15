@@ -119,4 +119,5 @@ public enum NetMsg : byte
 	EnemyBite = 82, // bidirectional: guest → host report (the victim's local bite already applied); host → guest broadcast relay (source excluded) — an enemy bit a player, carrying the post-bite limb + body state
 	EnemyAttack = 83, // host → guest: the host's enemy simulation decided an attack on a remote player (the victim applies it locally and reports the terminal state)
 	EnemyLunge = 84, // bidirectional: guest → host report (the victim's local lunge already applied); host → guest broadcast relay (source excluded) — a crystal lunge hit a player, carrying the post-lunge limb + body state
+	EnemyEffect = 85, // bidirectional: guest → host report (the victim's local proximity effect already applied); host → guest broadcast relay (source excluded) — ElderThornback/Xaloris/GrabberPlant proximity side effects, carrying the post-effect body state
 }

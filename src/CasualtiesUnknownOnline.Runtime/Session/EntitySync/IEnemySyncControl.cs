@@ -36,4 +36,10 @@ public interface IEnemySyncControl
 
 	/// <summary>A crystal-lunge terminal state arrived (report or relay) — surface it for the Game Adapter to apply to the victim's clone.</summary>
 	void FireEnemyLungeReceived(ulong sender, EnemyLungeMsg msg);
+
+	/// <summary>Report/broadcast an enemy-proximity side effect terminal state (the same star semantics as EnemyBite).</summary>
+	void SendEnemyEffect(EnemyEffectMsg msg);
+
+	/// <summary>An enemy-proximity side effect arrived (report or relay) — surface it for the Game Adapter to apply to the victim's clone.</summary>
+	void FireEnemyEffectReceived(ulong sender, EnemyEffectMsg msg);
 }

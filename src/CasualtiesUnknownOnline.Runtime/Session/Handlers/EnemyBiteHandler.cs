@@ -19,6 +19,11 @@ public sealed class EnemyBiteHandler(ILogger<EnemyBiteHandler> log) : PacketHand
 
 	protected override void Handle(ulong sender, EnemyBiteMsg msg, HandlerContext ctx)
 	{
+		if (ctx.Session.Role == SessionRole.Host)
+		{
+			ctx.CharacterData.ApplyEnemyBite(msg);
+		}
+
 		ctx.Enemies.FireEnemyBiteReceived(sender, msg);
 		if (ctx.Session.Role == SessionRole.Host)
 		{

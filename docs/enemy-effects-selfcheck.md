@@ -71,3 +71,19 @@ temperature-field low-priority item.
 - **Runtime smoke**: deploy to the real game directory only (`deploy.ps1` hard-rejects sandbox
   paths); start the real game once; `BepInEx/LogOutput.log` must show all patch targets installed
   and no CUO patch error.
+
+## Closeout record
+
+- Code gates: `dotnet build` 0 warnings/0 errors; `dotnet test` **661/661 green**;
+  `dotnet format` clean; check-architecture / check-event-replay /
+  check-entity-event-dispatch all passed.
+- Deploy smoke (real game dir, post-deploy): `Game Adapter patches installed and verified
+  (104 targets)` in `BepInEx/LogOutput.log` — the 3 new enemy-proximity patch classes installed
+  with the rest of the patch set and no CUO patch error. The
+  `System.ComponentModel.DataAnnotations` TypeLoadException in the same log is the pre-existing
+  HotRepl-side error (present in the previous 101-target smoke log too, stack entirely inside
+  HotRepl/NJsonSchema).
+- Structure review: `GameAdapter` split into `GameAdapter.Enemy.cs` partial at the 600-line gate;
+  all touched classes <= 600 lines and architecture gate passed.
+- Delivery checklist: all real boxes checked line-by-line; the forbidden box remained unchecked;
+  checklist reset for the next cycle.

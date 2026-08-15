@@ -95,12 +95,18 @@ drop-then-pickup view offset determined game-native (CUO never writes the item t
     generic `EntitySpawned` channel; the guest freezes each runtime animal at Start, live 20 Hz batches
     bind the unbound host ids by position (`EnemyRuntimeSpawnArbitration`), and the world-entry
     `EnemySnapshot.RuntimeSpawns` materializes the copies for a late joiner.
-  - ElderThornback/Xaloris/GrabberPlant proximity side effects still read
-    `PlayerCamera.main.body` and apply to the local body only — dedicated event chains needed.
-  - Host-local CrystalEnemy lunge still rides the 1 Hz character snapshot (no dedicated
-    terminal-state report for the native host-body hit yet).
-  - cave-tick/shadecrawler/wallbiter prefab script mapping (Unity asset, needs a runtime component
-    check to extend the freeze list).
+  - **RESOLVED (ProtocolVersion 9)**: enemy-proximity side effects travel as the dedicated
+    `EnemyEffectMsg` (NetMsg 85) — ElderThornback horror tick/defeat, Xaloris septic tick and
+    GrabberPlant grab each report their post-effect terminal state; the host merges bite/lunge/effect
+    terminal states into the saved character immediately instead of waiting for the 1 Hz snapshot.
+  - **RESOLVED**: the host-local CrystalEnemy lunge reports `EnemyLungeMsg` through the verified
+    pre/post limb trace (`CrystalEnemyLungePatch` + `CrystalLungeTrace`) — no more 1 Hz fallback
+    for the native host-body hit.
+  - **RESOLVED (runtime component check)**: `cavetick`/`shadecrawler`/`wallbiter`/`thornbackyoung`/
+    `overgrowntick`/`snowstrider` carry `SpiderHandler`; `thornbackelder` carries `SpiderHandlerTBE`
+    + `ElderThornbackBehaviour`; `grabberplant`/`xaloris` are static traps. The existing freeze
+    patches already cover every moving script, so no freeze-list extension is needed (evidence in
+    `docs/enemy-sync.md` §1).
 - Online UI (create/join room, player status, nameplates + off-screen arrows).
 - Command system + permission model (host-authoritative, host can authorize guests).
 - Damage events (environment damage local — `ExplosionBodyEffect` rolls it locally and the result rides

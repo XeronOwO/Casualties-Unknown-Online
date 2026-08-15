@@ -226,3 +226,25 @@ batches bind unbound runtime ids to the EntitySpawned-created copies by sorted p
 all-or-nothing (`EnemyRuntimeSpawnArbitration`). A v7 peer neither binds runtime ids nor materializes
 late-join runtime copies, so the version gate refuses mixed sessions instead of silently degrading
 enemy spawn sync.
+
+## 17. Enemy proximity effects + host-local lunge report (ProtocolVersion 9)
+
+The remaining enemy-interaction gaps are closed with the same star-shaped dedicated-event pattern
+as `EnemyBite` / `EnemyLunge`:
+
+- **Prefab freeze surface** — runtime component check confirmed every moving enemy prefab carries
+  `SpiderHandler` / `SpiderHandlerTBE` / `CrystalEnemy`, all already frozen by `EnemyPatches`;
+  no freeze extension needed.
+- **`EnemyEffectMsg` (NetMsg 85, bidirectional)** — `ElderHorrorTick / ElderHorrorDefeat /
+  XalorisSepticTick / GrabberGrabbed` carry the post-effect terminal state; `EnemyProximitySync`
+  reports on the game's own verified transition edges (`timeChecked`, `lastTime`, `grabBody`).
+  `EntityEventKind.GrabberGrabbed` is retained ONLY as the trap-layout identity key.
+- **Host save-merge** — `EnemyTerminalStateApplier` (pure) applies bite/lunge/effect terminal state
+  to a `CharacterDataMsg`; the host's `CharacterDataStore` merges events into `_savedCharacters`
+  immediately, so a disconnect before the next 1 Hz snapshot no longer loses the last event.
+  `CharacterHealthMsg` gained `HorrifiedLevel / FocusedLevel / EyePanicTime` (ProtoMember 62-64).
+- **Host-local CrystalEnemy lunge** — `CrystalEnemyLungePatch` passes a pre-lunge limb trace
+  through Harmony `__state`; the native `Lunge` still applies the hit, and the postfix reports
+  `EnemyLungeMsg` only after the pre/post limb diff verifies the actual write (verified commit).
+- ProtocolVersion 8→9: a v8 peer would drop `EnemyEffect` and the save-merge, so mixed-version
+  sessions are refused instead of silently degrading enemy-effect sync.

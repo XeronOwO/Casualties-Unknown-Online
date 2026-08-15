@@ -21,12 +21,11 @@ dual-open acceptance.
 
 ## Explicitly out of scope (recorded, not silent)
 
-- `ElderThornbackBehaviour` / `XalorisScript` / `GrabberPlant` proximity side effects still read
-  `PlayerCamera.main.body` and mutate the local body only — tracked in `docs/backlog.md`.
-- Host-local `CrystalEnemy` hits still ride the 1 Hz character snapshot (no dedicated
-  host-local lunge report yet) — tracked in `docs/backlog.md`.
-- `cave-tick` / `shadecrawler` / `wallbiter` prefab script mapping needs a runtime component check
-  — tracked in `docs/backlog.md`.
+- `LookTarget` local gaze/scare and the `Heater` temperature field on `xaloris` remain local
+  presentation — tracked in `docs/backlog.md`.
+- The previously out-of-scope enemy-proximity effects, the host-local `CrystalEnemy` lunge report
+  and the prefab script-mapping runtime check were closed in the next delivery cycle
+  (`docs/enemy-effects-selfcheck.md`).
 
 ## Verification design
 

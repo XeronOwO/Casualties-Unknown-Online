@@ -168,8 +168,17 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	void IPatchBridge.OnTrapTriggered(EntityEventKind kind, Vector2 position, byte extra) =>
 		_entityEventSync.OnTrapTriggered(kind, position, extra);
 
-	void IPatchBridge.OnEntityInstantiated(BuildingEntity entity) =>
+	void IPatchBridge.OnEntityInstantiated(BuildingEntity entity)
+	{
+		// Enemy copies freeze at their spawn position before any AI/physics
+		// moves them; the generic spawn channel then reports the creation.
+		if (entity.animal)
+		{
+			_enemySync.OnAnimalInstantiated(entity);
+		}
+
 		_entitySpawnSync.OnEntityInstantiated(entity); // the spawn-channel report (runtime creations; creation-time data rides the same message, #128)
+	}
 
 	/// <summary>Patches whose target types are INTERNAL to the game assembly (no
 	/// compile-time reference possible) — the installer reflects the type and

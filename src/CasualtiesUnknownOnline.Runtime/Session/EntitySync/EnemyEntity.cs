@@ -27,6 +27,12 @@ public sealed class EnemyEntity(NetworkEntityId entityId)
 	/// <summary>True while the enemy presents a stunned/stuck pose (SpiderHandler.stunTime &gt; 0, CrystalEnemy.stuck).</summary>
 	public bool Stunned { get; set; }
 
+	/// <summary>The prefab id (BuildingEntity.id) the receiving side must instantiate when it has no local copy of a runtime-created enemy.</summary>
+	public string PrefabId { get; set; } = string.Empty;
+
+	/// <summary>True when this enemy was created at RUNTIME (outside generation) — the late-joiner snapshot carries it as an EnemySpawnEntryMsg so a fresh member can materialize the copy.</summary>
+	public bool RuntimeSpawned { get; set; }
+
 	/// <summary>Domain → wire; the reverse applies via <see cref="EnemyStateMsg.ApplyTo"/>.</summary>
 	public EnemyStateMsg ToEnemyStateMsg() => new()
 	{
@@ -36,5 +42,14 @@ public sealed class EnemyEntity(NetworkEntityId entityId)
 		Rotation = Rotation,
 		Health = Health,
 		PresentationFlags = Stunned ? EnemyStateMsg.FlagStunned : 0u,
+	};
+
+	/// <summary>The runtime-spawn backfill entry (only meaningful when <see cref="RuntimeSpawned"/> is true).</summary>
+	public EnemySpawnEntryMsg ToEnemySpawnEntryMsg() => new()
+	{
+		Id = EntityId.ToNetworkEntityIdMsg(),
+		PrefabId = PrefabId,
+		Position = Position.ToNetVector2Msg(),
+		Rotation = Rotation,
 	};
 }

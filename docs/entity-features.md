@@ -113,7 +113,7 @@ trap's sound/sprite/light.
 | TurretScript | detect | repeatable | tracers + gunshot; self-destruct = explosion family |
 | CrystalElectric | collide | repeatable | zap + shake |
 | CrystalFragile | collide | yes | destroy + drops |
-| CaveTickSpawner | trigger | yes | nest destroy + particles + sound (the 16 spiders exist only on the trigger side — AI-domain gap) |
+| CaveTickSpawner | trigger | yes | nest destroy + particles + sound (the 16 spiders ride EntitySpawned + EnemyRuntimeSpawn binding; late joiner materializes via EnemySnapshot.RuntimeSpawns) |
 | BananaPlantSlip | trigger | repeatable | plantslip sound |
 | GrabberPlant | detect | repeatable | scream sound |
 

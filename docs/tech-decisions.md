@@ -211,3 +211,18 @@ terminal state (`EnemyBite` existing, `EnemyLunge` NetMsg 84 new). Frozen spider
 are skipped on the guest so one attack has exactly one apply path (the old frozen-copy bite would race
 the host command). Accept-first: the host decides the hit by nearest-along-ray/distance, never by
 strict collision validation.
+
+## 16. Runtime enemy spawn binding (ProtocolVersion 8)
+
+The cave-tick nest spawns 16 `cavetick` enemies at RUNTIME on the triggering side only
+(`CaveTickSpawner.cs:41-52`; prefab evidence: `cavetick` = BuildingEntity animal + SpiderHandler). The
+generic `BuildingEntity.Start` → `EntitySpawned` channel already creates the copies on the peers, so the
+gap was identity, not creation. Fix: the guest freezes every runtime animal copy at its Start
+(`EnemySyncCoordinator.OnAnimalInstantiated`) before AI/physics move it; the host marks every enemy id
+allocated after the initial deterministic mapping as runtime; `EnemySnapshotMsg.RuntimeSpawns`
+(ProtoMember 2, id + prefab + current position/rotation) backfills a late joiner, which matches existing
+copies by prefab/position or materializes them with `Utils.Create` + `SpawnReplayMarker`. Live 20 Hz
+batches bind unbound runtime ids to the EntitySpawned-created copies by sorted position,
+all-or-nothing (`EnemyRuntimeSpawnArbitration`). A v7 peer neither binds runtime ids nor materializes
+late-join runtime copies, so the version gate refuses mixed sessions instead of silently degrading
+enemy spawn sync.

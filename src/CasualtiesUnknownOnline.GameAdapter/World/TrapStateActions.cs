@@ -219,8 +219,8 @@ internal static class TrapStateActions
 	}
 
 	/// <summary>Cave-tick nest: consume the one-shot started — stop the particles
-	/// and kill the nest (the 16 spiders spawn on the TRIGGERING side only, an
-	/// AI-domain gap).</summary>
+	/// and kill the nest (the 16 spiders ride the EntitySpawned channel + runtime
+	/// enemy binding).</summary>
 	internal static bool ApplyCaveTicks(CaveTickSpawner nest)
 	{
 		if (Traverse.Create(nest).Field("started").GetValue<bool>())

@@ -115,7 +115,7 @@ public enum NetMsg : byte
 	// guests render the frozen copies from the snapshot; same pattern as the
 	// player entity stream)
 	EnemyState = 80, // host → guest (unreliable): the authoritative enemy-state batch (20 Hz, seq-gated)
-	EnemySnapshot = 81, // host → guest: the full enemy snapshot (world entry / late joiner — ids + spawn positions for binding)
+	EnemySnapshot = 81, // host → guest: the full enemy snapshot (world entry / late joiner — ids + spawn positions for binding + RuntimeSpawns for materializing runtime-created enemies)
 	EnemyBite = 82, // bidirectional: guest → host report (the victim's local bite already applied); host → guest broadcast relay (source excluded) — an enemy bit a player, carrying the post-bite limb + body state
 	EnemyAttack = 83, // host → guest: the host's enemy simulation decided an attack on a remote player (the victim applies it locally and reports the terminal state)
 	EnemyLunge = 84, // bidirectional: guest → host report (the victim's local lunge already applied); host → guest broadcast relay (source excluded) — a crystal lunge hit a player, carrying the post-lunge limb + body state

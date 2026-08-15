@@ -276,14 +276,4 @@ internal sealed class EntitySpawnSync(IWorldControl world, ISessionControl sessi
 		return null;
 	}
 
-	/// <summary>Marker on an entity the local side created as a REPLAY of the
-	/// spawn channel — its Start must not re-report. The RemoteApply scope is
-	/// synchronous (using-dispose), but Start runs later, so the scope check
-	/// in <see cref="OnEntityInstantiated"/> alone cannot see the create —
-	/// without the marker the peer's replay re-reported itself as a new local
-	/// creation (a dirty echo; the host's idempotency swallowed it, but the
-	/// noise muddies the audit).</summary>
-	private sealed class SpawnReplayMarker : MonoBehaviour
-	{
-	}
 }

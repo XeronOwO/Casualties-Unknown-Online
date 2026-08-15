@@ -24,7 +24,7 @@ public enum EntityEventKind : byte
 	TurretSelfDestructed = 12, // turret: health < 350 countdown finished — explosion + destroyed
 	CrystalElectricShocked = 13, // electric crystal: shocked a toucher
 	CrystalFragileBroken = 14, // fragile crystal: broken (one-shot)
-	CaveTicksSpawned = 15, // cave-tick nest: hatched (one-shot; the spiders exist only on the triggering side)
+	CaveTicksSpawned = 15, // cave-tick nest: hatched (one-shot; the spiders ride the EntitySpawned channel + runtime enemy binding)
 	BananaPlantSlip = 16, // banana plant: someone slipped on it
 	GrabberGrabbed = 17, // grabber plant: grabbed a body
 	BearTrapReleased = 18, // beartrap released its caught limb (the clamp is reversible)

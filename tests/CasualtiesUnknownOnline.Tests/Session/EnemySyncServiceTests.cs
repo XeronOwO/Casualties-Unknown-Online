@@ -51,6 +51,39 @@ public class EnemySyncServiceTests
 		Assert.NotNull(g1Enemies.GetEnemy(new NetworkEntityId(1, 0, 0)));
 		Assert.Equal(new NetVector2(30f, 40f), g1Enemies.GetEnemy(new NetworkEntityId(1, 1, 0))!.Position);
 	}
+	[Fact]
+	public void WorldEntry_RuntimeSpawnFacts_RideTheSnapshot()
+	{
+		using var w = ItemSimWorld.Create();
+		var hostEnemies = w.Host.Services.GetRequiredService<EnemySyncService>();
+		hostEnemies.PublishEnemyStates(
+		[
+			Enemy(0, 10f, 20f),
+			new EnemyEntity(new NetworkEntityId(1, 1, 0))
+			{
+				Position = new NetVector2(30f, 40f),
+				Velocity = new NetVector2(1f, 2f),
+				Rotation = 33f,
+				Health = 15f,
+				PrefabId = "cavetick",
+				RuntimeSpawned = true,
+			},
+		]);
+
+		var g1Enemies = w.G1.Services.GetRequiredService<EnemySyncService>();
+		var received = 0;
+		g1Enemies.EnemySnapshotReceived += () => received++;
+		w.G1.Session.ReportSceneState(SceneStateType.InWorld, "SampleScene");
+		w.Driver.Tick(33);
+
+		Assert.True(received > 0, "the snapshot must arrive");
+		var spawn = Assert.Single(g1Enemies.RuntimeSpawns);
+		Assert.Equal(new NetworkEntityId(1, 1, 0), spawn.Id.ToNetworkEntityId());
+		Assert.Equal("cavetick", spawn.PrefabId);
+		Assert.Equal(new NetVector2(30f, 40f), spawn.Position.ToNetVector2());
+		Assert.Equal(33f, spawn.Rotation);
+	}
+
 
 	[Fact]
 	public void WorldEntry_NoEnemies_SendsNothing()

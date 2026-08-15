@@ -21,7 +21,7 @@ namespace CasualtiesUnknownOnline.GameAdapter.Character;
 /// side: reports the local victim's post-bite state (EnemyBite event) and
 /// applies the received bites to the victim's clone.
 /// </summary>
-internal sealed class EnemySyncCoordinator(
+internal sealed partial class EnemySyncCoordinator(
 	SessionService session,
 	EnemySyncService enemies,
 	IMapper mapper,
@@ -37,6 +37,8 @@ internal sealed class EnemySyncCoordinator(
 	private readonly Dictionary<BuildingEntity, NetworkEntityId> _idByEntity = [];
 	private readonly Dictionary<NetworkEntityId, BuildingEntity> _entityById = [];
 	private readonly Dictionary<NetworkEntityId, EnemyHealthReconcile> _healthReconcile = [];
+	private readonly HashSet<NetworkEntityId> _runtimeEnemyIds = []; // host: ids allocated after the initial deterministic mapping (runtime spawns)
+	private readonly HashSet<BuildingEntity> _runtimeAnimalCopies = []; // guest: animals created at runtime (never the generated baseline — the pairing must not steal a generated copy)
 	private bool _mappingEstablished;
 	private bool _guestFrozen; // guest: animals frozen at generation finish (before they move, so the pairing uses the spawn positions)
 
@@ -59,6 +61,8 @@ internal sealed class EnemySyncCoordinator(
 		_idByEntity.Clear();
 		_entityById.Clear();
 		_healthReconcile.Clear();
+		_runtimeEnemyIds.Clear();
+		_runtimeAnimalCopies.Clear();
 		_mappingEstablished = false;
 		_guestFrozen = false;
 	}
@@ -84,6 +88,24 @@ internal sealed class EnemySyncCoordinator(
 	internal bool TryGetHostEnemyId(BuildingEntity entity, out NetworkEntityId id) =>
 		_idByEntity.TryGetValue(entity, out id);
 
+	/// <summary>
+	/// Patch-bridge entry: an animal BuildingEntity started OUTSIDE world
+	/// generation on the guest — a runtime spawn (local trigger or the peer's
+	/// relay). Freeze it immediately at its spawn position so the runtime
+	/// position pairing sees it before its AI/physics can move it; the host's
+	/// 20 Hz state then drives the frozen copy.
+	/// </summary>
+	internal void OnAnimalInstantiated(BuildingEntity entity)
+	{
+		if (!_session.SessionActive || _session.Role != SessionRole.Guest || HarmonyTraverse.IsGenerating())
+		{
+			return;
+		}
+
+		_runtimeAnimalCopies.Add(entity);
+		Freeze(entity);
+	}
+
 	// ---- Host capture ----
 
 	private void CaptureHostEnemies()
@@ -94,13 +116,14 @@ internal sealed class EnemySyncCoordinator(
 		var states = new List<EnemyEntity>(animals.Count);
 		foreach (var entity in animals)
 		{
-			states.Add(Capture(entity, _idByEntity[entity]));
+			var id = _idByEntity[entity];
+			states.Add(Capture(entity, id, _runtimeEnemyIds.Contains(id)));
 		}
 
 		_enemies.PublishEnemyStates(states);
 	}
 
-	/// <summary>Assign ids on the first capture in the deterministic (x, y) order; later captures keep the mapping and give fresh ids only to newly spawned enemies.</summary>
+	/// <summary>Assign ids on the first capture in the deterministic (x, y) order; later captures keep the mapping and give fresh ids only to newly spawned enemies (marked runtime — the late-joiner snapshot materializes them).</summary>
 	private void EnsureMapping(List<BuildingEntity> animals)
 	{
 		if (_mappingEstablished)
@@ -109,7 +132,9 @@ internal sealed class EnemySyncCoordinator(
 			{
 				if (!_idByEntity.ContainsKey(entity))
 				{
-					Bind(entity, _enemies.AllocateEnemyId());
+					var id = _enemies.AllocateEnemyId();
+					Bind(entity, id, runtimeSpawn: true);
+					_log.LogInformation("[Enemy] host bound runtime spawn {Id} (prefab {Prefab}).", id, entity.id);
 				}
 			}
 
@@ -122,19 +147,23 @@ internal sealed class EnemySyncCoordinator(
 			.ToList();
 		foreach (var entity in sorted)
 		{
-			Bind(entity, _enemies.AllocateEnemyId());
+			Bind(entity, _enemies.AllocateEnemyId(), runtimeSpawn: false);
 		}
 
 		_mappingEstablished = true;
 	}
 
-	private void Bind(BuildingEntity entity, NetworkEntityId id)
+	private void Bind(BuildingEntity entity, NetworkEntityId id, bool runtimeSpawn)
 	{
 		_idByEntity[entity] = id;
 		_entityById[id] = entity;
+		if (runtimeSpawn)
+		{
+			_runtimeEnemyIds.Add(id);
+		}
 	}
 
-	private static EnemyEntity Capture(BuildingEntity entity, NetworkEntityId id)
+	private static EnemyEntity Capture(BuildingEntity entity, NetworkEntityId id, bool runtimeSpawn)
 	{
 		var rb = entity.GetComponent<Rigidbody2D>();
 		return new EnemyEntity(id)
@@ -144,6 +173,8 @@ internal sealed class EnemySyncCoordinator(
 			Rotation = entity.transform.eulerAngles.z,
 			Health = entity.health,
 			Stunned = false, // presentation flags land once the per-enemy stun state is wired (SpiderHandler.stunTime etc.)
+			PrefabId = entity.id,
+			RuntimeSpawned = runtimeSpawn,
 		};
 	}
 
@@ -182,65 +213,55 @@ internal sealed class EnemySyncCoordinator(
 
 	private void OnEnemySnapshotReceived()
 	{
-		var animals = FindAnimals();
 		var hostStates = _enemies.Enemies.ToList();
 		if (hostStates.Count == 0)
 		{
 			return;
 		}
 
+		var runtimeSpawns = _enemies.RuntimeSpawns.ToList();
+		var runtimeIds = new HashSet<NetworkEntityId>(runtimeSpawns.Select(s => s.Id.ToNetworkEntityId()));
+		MaterializeRuntimeSpawns(runtimeSpawns);
+
+		// The runtime copies are bound/materialized; what remains is the
+		// deterministic generation baseline — pair it exactly like before.
 		var comparer = Comparer<NetVector2>.Create(EnemySpawnArbitration.Compare);
-		var hostSorted = hostStates.OrderBy(e => e.Position, comparer).ToList();
-		var guestSorted = animals
+		var generatedHost = hostStates
+			.Where(s => !runtimeIds.Contains(s.EntityId))
+			.OrderBy(s => s.Position, comparer)
+			.ToList();
+		var generatedGuest = FindAnimals()
+			.Where(e => !_runtimeAnimalCopies.Contains(e)
+				&& !(_idByEntity.TryGetValue(e, out var boundId) && runtimeIds.Contains(boundId)))
 			.OrderBy(e => new NetVector2(e.transform.position.x, e.transform.position.y), comparer)
 			.ToList();
 
-		var hostPositions = hostSorted.Select(e => e.Position).ToList();
-		var guestPositions = guestSorted.Select(e => new NetVector2(e.transform.position.x, e.transform.position.y)).ToList();
-		if (!EnemySpawnArbitration.TryPair(hostPositions, guestPositions, out _))
+		var generatedPaired = generatedHost.Count == 0 && generatedGuest.Count == 0;
+		if (!generatedPaired)
 		{
-			_log.LogWarning("[Enemy] spawn pairing failed ({Host} host vs {Guest} guest enemies) — enemy copies stay local (generation divergence).",
-				hostSorted.Count, guestSorted.Count);
-			return;
-		}
-
-		for (var i = 0; i < hostSorted.Count; i++)
-		{
-			var id = hostSorted[i].EntityId;
-			var entity = guestSorted[i];
-			Bind(entity, id);
-			Freeze(entity);
-		}
-
-		_mappingEstablished = true;
-		_log.LogInformation("[Enemy] bound {Count} enemy copies to the host ids.", hostSorted.Count);
-	}
-
-	private static void Freeze(BuildingEntity entity)
-	{
-		if (entity.GetComponent<RemoteEnemyDriver>() == null) // Unity object — ==
-		{
-			entity.gameObject.AddComponent<RemoteEnemyDriver>();
-		}
-
-		var rb = entity.GetComponent<Rigidbody2D>();
-		if (rb != null)
-		{
-			rb.bodyType = RigidbodyType2D.Static; // no physics simulation on the guest copy
-		}
-	}
-
-	// ---- Guest: drive the frozen copies from the batch ----
-
-	private void OnEnemyStateReceived()
-	{
-		foreach (var state in _enemies.Enemies)
-		{
-			if (_entityById.TryGetValue(state.EntityId, out var entity) && entity != null) // Unity object — ==
+			var hostPositions = generatedHost.Select(e => e.Position).ToList();
+			var guestPositions = generatedGuest.Select(e => new NetVector2(e.transform.position.x, e.transform.position.y)).ToList();
+			generatedPaired = EnemySpawnArbitration.TryPair(hostPositions, guestPositions, out _);
+			if (generatedPaired)
 			{
-				Apply(entity, state);
+				for (var i = 0; i < generatedHost.Count; i++)
+				{
+					Bind(generatedGuest[i], generatedHost[i].EntityId, runtimeSpawn: false);
+					Freeze(generatedGuest[i]);
+				}
 			}
 		}
+
+		if (!generatedPaired)
+		{
+			_log.LogWarning("[Enemy] generation spawn pairing failed ({Host} host vs {Guest} guest generated enemies) — generated copies stay local (generation divergence); runtime spawns are still bound.",
+				generatedHost.Count, generatedGuest.Count);
+		}
+
+		_mappingEstablished = generatedPaired;
+		ApplyAllStates();
+		_log.LogInformation("[Enemy] snapshot applied: {Generated} generated bound, {Runtime} runtime spawns, mapping={Mapping}.",
+			generatedPaired ? generatedHost.Count : 0, runtimeSpawns.Count, _mappingEstablished);
 	}
 
 	private void Apply(BuildingEntity entity, EnemyEntity state)

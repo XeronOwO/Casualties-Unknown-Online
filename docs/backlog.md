@@ -91,8 +91,10 @@ drop-then-pickup view offset determined game-native (CUO never writes the item t
     `EnemyLunge` (84) apply spider bites and crystal lunges to remote victims locally, with the
     terminal state reported back. Frozen spider collision callbacks are now skipped so one attack has
     exactly one apply path. Remaining enemy-interaction gaps:
-  - Runtime cave-tick nest spawn (16 ticks spawn on the triggering side only,
-    EntityEventKind.CaveTicksSpawned).
+  - RESOLVED (ProtocolVersion 8): runtime cave-tick nest spawn — the 16 `cavetick` creations ride the
+    generic `EntitySpawned` channel; the guest freezes each runtime animal at Start, live 20 Hz batches
+    bind the unbound host ids by position (`EnemyRuntimeSpawnArbitration`), and the world-entry
+    `EnemySnapshot.RuntimeSpawns` materializes the copies for a late joiner.
   - ElderThornback/Xaloris/GrabberPlant proximity side effects still read
     `PlayerCamera.main.body` and apply to the local body only — dedicated event chains needed.
   - Host-local CrystalEnemy lunge still rides the 1 Hz character snapshot (no dedicated

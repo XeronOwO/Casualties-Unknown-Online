@@ -1,6 +1,6 @@
 # NPC / Enemy Synchronization — Design
 
-Status: **proposal** (awaiting review before implementation).
+Status: **landed** — host-authoritative enemy sync, multiplayer targeting and host-ordered attacks are in; remaining gaps are listed in §6 and `backlog.md`.
 
 ## 1. Current state & problem
 
@@ -28,11 +28,14 @@ distributed with `isTrap=true` — plus a runtime spawner (`CaveTickSpawner.cs:4
 
 ### What CUO already covers
 
+- Enemy position / velocity / rotation / health ride the host-authoritative 20 Hz `EnemyState`
+  stream, with a full `EnemySnapshot` on world entry; the guest freezes its locally generated copies
+  and drives them from the stream (`EnemySyncCoordinator` + `RemoteEnemyDriver` + `EnemyPatches`).
 - Enemy health changes are synced (`BodyAttackPatch` → `OnBuildingEntityDamaged` →
   `OnRemoteBuildingEntityDamaged` applies `entity.health -= damage`; `RemoteEntityDeath` suppresses
   the remote drop roll).
-- **Not synced**: enemy position / rotation / animation / AI-visible state. Each side simulates its
-  own copy, so enemies visibly diverge.
+- Enemy targeting and attacks on remote players are synced through `EnemyCombatDirector` +
+  `EnemyAttack`/`EnemyBite`/`EnemyLunge` (§3.6-3.7).
 
 ## 2. Goal
 
@@ -67,7 +70,40 @@ snapshot and consistent death/spawn.
 - Host fans out the full enemy snapshot on member world-entry (same pattern as
   `HandlerContext.SendWorldStateToMember`).
 
-### 3.5 Spawn / death
+### 3.6 Multiplayer targeting (the host-only limitation fix)
+
+The game's enemy AI discovers players through physics queries / `PlayerCamera.main.body`, which
+only see the LOCAL body — remote render clones have every collider disabled (`RemoteBodyFactory`,
+by design). A host-side `EnemyCombatDirector` resolves the missing targeting without re-enabling
+clone colliders:
+
+- `SpiderHandler.Update` recomputes its move target on the `moveTime` expiry edge
+  (SpiderHandler.cs:95); the patch replaces the single-player `OverlapCircle` result with the
+  nearest in-world player inside `seeDistance` (SpiderHandler.cs:71).
+- `CrystalEnemy.body` (the private property the whole AI reads, CrystalEnemy.cs:15) resolves to
+  the nearest in-world player body inside the game's own 64-unit `close` radius
+  (CrystalEnemy.cs:25).
+- The nearest player wins on both sides — host body + every remote position from the 20 Hz entity
+  stream. No clone collider is re-enabled, so the known physics pitfalls stay closed.
+
+### 3.7 Host-ordered attacks (remote clones have no colliders)
+
+Because the host's collision callbacks can never touch a remote clone, an enemy that reaches a
+remote player gets a one-shot `EnemyAttack` command (host → guest, NetMsg 83). The victim's side
+applies the game's own damage path locally and reports the post-attack terminal state:
+
+- Spider bite: host arbitrates inside the 1.5-unit chase-stop radius (SpiderHandler.cs:125) and
+  mirrors the post-bite retreat/cooldown (SpiderHandler.cs:146-151); the guest calls its frozen
+  copy's `DamageLimb` (virtual — `SpiderHandlerTBE` included) and the existing `EnemyBite`
+  report carries the terminal state back.
+- Crystal lunge: host arbitrates the player first along the lunge ray before the first ground hit
+  (CrystalEnemy.Lunge, CrystalEnemy.cs:133-168); the guest applies the same armor-reduced damage
+  constants and reports the terminal state through the new `EnemyLunge` event (NetMsg 84).
+- Frozen spider collision callbacks are skipped on the guest (`OnCollisionStay2D` /
+  `OnCollisionEnter2D`): the old frozen-copy bite path would race the host command and
+  double-apply one attack. One attack = one apply path.
+
+### 3.8 Spawn / death
 
 - Death: extend the existing BuildingEntity health sync to animal entities (`RemoteEntityDeath`
   already suppresses the remote roll).
@@ -101,11 +137,22 @@ snapshot and consistent death/spawn.
 3. **Unity physics determinism**: the guest never simulates enemy physics (frozen + snapshot-driven)
    — same as the player clone, so no determinism risk.
 4. **Runtime spawn** (`CaveTickSpawner`) is a new generation-side surface (16 caveticks on trigger).
+5. **Proximity side effects stay local-first** — `ElderThornbackBehaviour` (horror/stamina),
+   `XalorisScript` (septic shock) and `GrabberPlant` (tendril grab) read
+   `PlayerCamera.main.body` and mutate that body directly. They are not part of the
+   move-toward-player family this page covers; they are tracked in `backlog.md` until they get
+   dedicated event chains.
+6. **Host-local crystal lunge still rides the 1 Hz snapshot** — the native host-body hit has no
+   dedicated terminal-state report yet (remote victims report `EnemyLunge`; the host-local path
+   is the same pre-existing snapshot fallback). Tracked in `backlog.md`.
 
 ## 7. Implementation order
 
 1. Domain + protocol (`EnemySpawnArbitration`, `EnemyStateMsg`) + pure-logic tests.
-2. Host-side snapshot capture + broadcast (extend `EntitySyncService`).
-3. Guest-side freeze (patch enemy scripts) + snapshot-driven rendering.
+2. Host-side snapshot capture + broadcast.
+3. Guest-side freeze (patch enemy scripts, now including spider collision callbacks) +
+   snapshot-driven rendering.
 4. Late-joiner full snapshot + spawn/death events.
 5. Simulation + contract tests + gates.
+6. Multiplayer targeting + host-ordered attacks (`EnemyCombatDirector`, `EnemyAttack` /
+   `EnemyLunge` protocol) + tests + gates.

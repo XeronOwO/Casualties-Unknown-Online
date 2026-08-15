@@ -200,6 +200,40 @@ internal sealed class CloneFactTable(ILogger log)
 		CloneSnapshotUpdated?.Invoke(msg.VictimSteamId);
 	}
 
+	/// <summary>
+	/// A crystal lunge arrived (the dedicated event — never the 1 Hz snapshot):
+	/// update the victim's fact-table entry (the hit limb + adrenaline/stamina,
+	/// exact rebuild) and re-render its clone. A victim with no snapshot yet is
+	/// skipped — the next snapshot carries it.
+	/// </summary>
+	internal void ApplyEnemyLunge(EnemyLungeMsg msg)
+	{
+		if (!_cloneData.TryGetValue(msg.VictimSteamId, out var data))
+		{
+			_log.LogInformation("[EnemyLunge] no snapshot for victim {Victim} yet — the 1 Hz snapshot will carry the lunge.", msg.VictimSteamId);
+			return;
+		}
+
+		var idx = data.Limbs.FindIndex(l => l.Index == msg.Limb.Index);
+		if (idx >= 0)
+		{
+			data.Limbs[idx] = msg.Limb;
+		}
+		else
+		{
+			data.Limbs.Add(msg.Limb);
+		}
+
+		if (data.Health is { } health)
+		{
+			health.Adrenaline = msg.Adrenaline;
+			health.Stamina = msg.Stamina;
+		}
+
+		_log.LogInformation("[EnemyLunge] applied to {Victim}'s limb {Limb}.", msg.VictimSteamId, msg.Limb.Index);
+		CloneSnapshotUpdated?.Invoke(msg.VictimSteamId);
+	}
+
 	/// <summary>Store one owner's snapshot and re-render its clone, after the
 	/// divergence check — every carried move MUST arrive as an event (use/slot/
 	/// pickup/wear/drop); a snapshot that carries a move the fact table never

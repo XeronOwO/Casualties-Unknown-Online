@@ -85,6 +85,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	private readonly CraftingSync _craftingSync;
 	private readonly RecipeUnlockApply _recipeUnlockApply;
 	private readonly EnemySyncCoordinator _enemySync;
+	private readonly EnemyCombatDirector _enemyCombat;
 	private Body? _lastLocalBody; // Unity object — == (the world-entry edge for the destroy-suppression reset)
 
 	public GameAdapter(SessionService session, EntitySyncService entities, CharacterDataStore characterData,
@@ -100,7 +101,6 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		// application → authority/follow, one-way), run → gate (the gate reads the
 		// run's phase machine).
 		ItemStateCodec.BindLog(log);
-		RemoteEnemyDriver.BindLog(log); // the frozen spider's bite-cooldown driver (AddComponent-created, outside DI)
 		WorldGenRandomIsolation.Log = msg => _log.LogInformation(msg); // generation-stream segment fingerprints (peer log comparison)
 		LayerModifierApplyPatch.Log = msg => _log.LogInformation(msg); // layer-modifier decision trace (diagnostic)
 		_factTable = new CloneFactTable(loggerFactory.CreateLogger<CloneFactTable>());
@@ -147,6 +147,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_craftingSync = new CraftingSync(craft, _itemIds, itemReports, _operationTrace, loggerFactory.CreateLogger<CraftingSync>());
 		_recipeUnlockApply = new RecipeUnlockApply(craft, loggerFactory.CreateLogger<RecipeUnlockApply>());
 		_enemySync = new EnemySyncCoordinator(session, enemies, mapper, _characterDataSync, loggerFactory.CreateLogger<EnemySyncCoordinator>());
+		_enemyCombat = new EnemyCombatDirector(session, entities, enemies, _enemySync, _renderer, loggerFactory.CreateLogger<EnemyCombatDirector>());
 		_lifePod = new LifePodPresentation(loggerFactory.CreateLogger<LifePodPresentation>());
 		_guestMenu = new GuestMenuGuard(session, loggerFactory.CreateLogger<GuestMenuGuard>());
 		_worldParams = new WorldParamsService(world, loggerFactory.CreateLogger<WorldParamsService>());
@@ -304,6 +305,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_blockBreakSync.Update(); // expire break records without a consuming drops report
 		_renderer.Update();
 		_enemySync.Update(); // host: capture + publish the simulated enemies; guest: (event-driven bind/apply)
+		_enemyCombat.Update(); // host: enemy combat decisions (target guidance rides the patch callbacks; bite arbitration here)
 	}
 
 	void ICuoService.Stop() => Uninstall();
@@ -441,6 +443,12 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	void IPatchBridge.OnArmSwing() => _entities.MarkLocalAttackSwing();
 
 	void IPatchBridge.OnEnemyBite(Limb limb) => _enemySync.ReportEnemyBite(limb);
+
+	void IPatchBridge.OnSpiderTargetDecided(SpiderHandler spider) => _enemyCombat.OnSpiderTargetDecided(spider);
+
+	void IPatchBridge.OnCrystalEnemyBodyResolved(CrystalEnemy enemy, ref Body body) => _enemyCombat.ResolveCrystalTargetBody(enemy, ref body);
+
+	void IPatchBridge.OnCrystalLunge(CrystalEnemy enemy) => _enemyCombat.OnCrystalLunge(enemy);
 
 	void IPatchBridge.OnBuildingEntityOpened(BuildingEntity entity) =>
 		_worldEventSync.OnBuildingEntityOpened(entity);

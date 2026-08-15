@@ -58,6 +58,24 @@ internal sealed class RemotePlayerRenderer(
 		}
 	}
 
+	/// <summary>
+	/// The live render clone for one remote member, or null. Unity object — the
+	/// caller must use == null (a scene reload destroys the clone and a managed
+	/// reference would miss it). The enemy combat director uses the clone to
+	/// resolve which limb a host-ordered attack should hit.
+	/// </summary>
+	internal bool TryGetRemoteBody(ulong steamId, out Body body)
+	{
+		if (_remoteClones.TryGetValue(steamId, out var clone) && clone != null)
+		{
+			body = clone;
+			return true;
+		}
+
+		body = null!;
+		return false;
+	}
+
 	/// <summary>Session/entity ended — destroy every render clone.</summary>
 	internal void DestroyAllClones()
 	{

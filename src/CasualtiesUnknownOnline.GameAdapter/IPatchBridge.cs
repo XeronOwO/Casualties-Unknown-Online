@@ -221,4 +221,13 @@ internal interface IPatchBridge
 	/// local body) — capture the post-bite limb/body state and report it (guest →
 	/// host) or broadcast it (host) as the dedicated EnemyBite event.</summary>
 	void OnEnemyBite(Limb limb);
+
+	/// <summary>A spider just recomputed its move target (host side) — the combat director replaces the single-player OverlapCircle result with the nearest in-world player.</summary>
+	void OnSpiderTargetDecided(SpiderHandler spider);
+
+	/// <summary>CrystalEnemy.body getter resolved (host side) — the combat director may replace the local body with the nearest remote player body.</summary>
+	void OnCrystalEnemyBodyResolved(CrystalEnemy enemy, ref Body body);
+
+	/// <summary>CrystalEnemy.Lunge is starting (host side) — the combat director orders the remote victim to apply the lunge when the game's raycast cannot see the collider-less clone.</summary>
+	void OnCrystalLunge(CrystalEnemy enemy);
 }

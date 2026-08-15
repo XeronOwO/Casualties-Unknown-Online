@@ -58,6 +58,7 @@ public class DirectionTests
 		NetMsg.TrapLayoutSnapshot,
 		NetMsg.EnemyState,
 		NetMsg.EnemySnapshot,
+		NetMsg.EnemyAttack,
 	};
 
 	public static TheoryData<NetMsg> BidirectionalMessages => new()
@@ -83,6 +84,7 @@ public class DirectionTests
 		NetMsg.RecipeUnlock,
 		NetMsg.SpeechMsg,
 		NetMsg.EnemyBite,
+		NetMsg.EnemyLunge,
 	};
 
 	[Theory]

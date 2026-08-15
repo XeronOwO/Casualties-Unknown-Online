@@ -196,3 +196,18 @@ loading screen stuck). Deleted the block and `_hadMembers`: a vanished member is
 CONTINUES; only the host's own absence ends it. Two tests had locked the WRONG semantics and were rewritten.
 Lesson: a test that locks "what the implementation does" instead of "what the semantics should be" is a
 liability, not a guard.
+
+## 15. Multiplayer enemy targeting + host-ordered attacks (ProtocolVersion 7)
+
+The game's enemy AI discovers players through physics queries / `PlayerCamera.main.body`, which only
+see the LOCAL body — remote render clones have every collider disabled by design
+(`RemoteBodyFactory`, evidence: contacts re-activate frozen rigidbodies). Rather than re-enable clone
+colliders (route B, known physics pitfalls), the host-side `EnemyCombatDirector` resolves targets by
+distance: SpiderHandler on its own `moveTime` expiry edge (SpiderHandler.cs:95) and
+`CrystalEnemy.body` inside its 64-unit close radius (CrystalEnemy.cs:25). Since the host's collision
+callbacks still cannot touch a remote clone, attacks on remote players travel as the one-shot
+`EnemyAttack` command (NetMsg 83) — the victim applies the game's damage path locally and reports the
+terminal state (`EnemyBite` existing, `EnemyLunge` NetMsg 84 new). Frozen spider collision callbacks
+are skipped on the guest so one attack has exactly one apply path (the old frozen-copy bite would race
+the host command). Accept-first: the host decides the hit by nearest-along-ray/distance, never by
+strict collision validation.

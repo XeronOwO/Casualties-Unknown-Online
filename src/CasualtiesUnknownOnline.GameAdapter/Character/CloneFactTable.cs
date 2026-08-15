@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using Microsoft.Extensions.Logging;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Character;
@@ -179,23 +180,7 @@ internal sealed class CloneFactTable(ILogger log)
 			return;
 		}
 
-		var idx = data.Limbs.FindIndex(l => l.Index == msg.Limb.Index);
-		if (idx >= 0)
-		{
-			data.Limbs[idx] = msg.Limb;
-		}
-		else
-		{
-			data.Limbs.Add(msg.Limb);
-		}
-
-		if (data.Health is { } health)
-		{
-			health.VenomTotal = msg.VenomTotal;
-			health.Adrenaline = msg.Adrenaline;
-			health.Happiness = msg.Happiness;
-		}
-
+		EnemyTerminalStateApplier.ApplyBite(data, msg);
 		_log.LogInformation("[EnemyBite] applied to {Victim}'s limb {Limb}.", msg.VictimSteamId, msg.Limb.Index);
 		CloneSnapshotUpdated?.Invoke(msg.VictimSteamId);
 	}
@@ -214,23 +199,27 @@ internal sealed class CloneFactTable(ILogger log)
 			return;
 		}
 
-		var idx = data.Limbs.FindIndex(l => l.Index == msg.Limb.Index);
-		if (idx >= 0)
-		{
-			data.Limbs[idx] = msg.Limb;
-		}
-		else
-		{
-			data.Limbs.Add(msg.Limb);
-		}
-
-		if (data.Health is { } health)
-		{
-			health.Adrenaline = msg.Adrenaline;
-			health.Stamina = msg.Stamina;
-		}
-
+		EnemyTerminalStateApplier.ApplyLunge(data, msg);
 		_log.LogInformation("[EnemyLunge] applied to {Victim}'s limb {Limb}.", msg.VictimSteamId, msg.Limb.Index);
+		CloneSnapshotUpdated?.Invoke(msg.VictimSteamId);
+	}
+
+	/// <summary>
+	/// An enemy-proximity side effect arrived (the dedicated event — never the
+	/// 1 Hz snapshot): update the victim's fact-table entry (the kind-specific
+	/// body fields, exact rebuild) and re-render its clone. A victim with no
+	/// snapshot yet is skipped — the next snapshot carries the effect.
+	/// </summary>
+	internal void ApplyEnemyEffect(EnemyEffectMsg msg)
+	{
+		if (!_cloneData.TryGetValue(msg.VictimSteamId, out var data))
+		{
+			_log.LogInformation("[EnemyEffect] no snapshot for victim {Victim} yet — the 1 Hz snapshot will carry the effect.", msg.VictimSteamId);
+			return;
+		}
+
+		EnemyTerminalStateApplier.ApplyEffect(data, msg);
+		_log.LogInformation("[EnemyEffect] applied {Kind} to {Victim}.", msg.Kind, msg.VictimSteamId);
 		CloneSnapshotUpdated?.Invoke(msg.VictimSteamId);
 	}
 

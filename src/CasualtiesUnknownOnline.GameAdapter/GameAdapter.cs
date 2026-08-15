@@ -33,7 +33,7 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// ItemWorldSync / CharacterDataSync / WorldEventSync / RunCoordinator /
 /// RemotePlayerRenderer (each one responsibility, state owned internally).
 /// </summary>
-public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
+public sealed partial class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 {
 	/// <summary>
 	/// Set when the game was launched via a Steam friends "Join Game"
@@ -86,6 +86,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	private readonly RecipeUnlockApply _recipeUnlockApply;
 	private readonly EnemySyncCoordinator _enemySync;
 	private readonly EnemyCombatDirector _enemyCombat;
+	private readonly EnemyProximitySync _enemyProximity;
 	private Body? _lastLocalBody; // Unity object — == (the world-entry edge for the destroy-suppression reset)
 
 	public GameAdapter(SessionService session, EntitySyncService entities, CharacterDataStore characterData,
@@ -148,6 +149,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_recipeUnlockApply = new RecipeUnlockApply(craft, loggerFactory.CreateLogger<RecipeUnlockApply>());
 		_enemySync = new EnemySyncCoordinator(session, enemies, mapper, _characterDataSync, loggerFactory.CreateLogger<EnemySyncCoordinator>());
 		_enemyCombat = new EnemyCombatDirector(session, entities, enemies, _enemySync, _renderer, loggerFactory.CreateLogger<EnemyCombatDirector>());
+		_enemyProximity = new EnemyProximitySync(session, enemies, _characterDataSync, loggerFactory.CreateLogger<EnemyProximitySync>());
 		_lifePod = new LifePodPresentation(loggerFactory.CreateLogger<LifePodPresentation>());
 		_guestMenu = new GuestMenuGuard(session, loggerFactory.CreateLogger<GuestMenuGuard>());
 		_worldParams = new WorldParamsService(world, loggerFactory.CreateLogger<WorldParamsService>());
@@ -345,6 +347,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_speechSync.BindToSession();
 		_recipeUnlockApply.BindToSession();
 		_enemySync.BindToSession();
+		_enemyProximity.BindToSession();
 		_run.BindToSession();
 		_genItemApplication.BindToSession();
 		_trapLayoutApplication.BindToSession();
@@ -374,6 +377,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 		_speechSync.Unbind();
 		_recipeUnlockApply.Unbind();
 		_enemySync.Unbind();
+		_enemyProximity.Unbind();
 		_craftingSync.ResetPending(); // the destroy claims die with the scene
 		_run.Unbind();
 		_genItemApplication.Unbind();
@@ -450,14 +454,6 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IPatchBridge
 	}
 
 	void IPatchBridge.OnArmSwing() => _entities.MarkLocalAttackSwing();
-
-	void IPatchBridge.OnEnemyBite(Limb limb) => _enemySync.ReportEnemyBite(limb);
-
-	void IPatchBridge.OnSpiderTargetDecided(SpiderHandler spider) => _enemyCombat.OnSpiderTargetDecided(spider);
-
-	void IPatchBridge.OnCrystalEnemyBodyResolved(CrystalEnemy enemy, ref Body body) => _enemyCombat.ResolveCrystalTargetBody(enemy, ref body);
-
-	void IPatchBridge.OnCrystalLunge(CrystalEnemy enemy) => _enemyCombat.OnCrystalLunge(enemy);
 
 	void IPatchBridge.OnBuildingEntityOpened(BuildingEntity entity) =>
 		_worldEventSync.OnBuildingEntityOpened(entity);

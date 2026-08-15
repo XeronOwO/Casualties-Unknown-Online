@@ -228,6 +228,26 @@ internal interface IPatchBridge
 	/// <summary>CrystalEnemy.body getter resolved (host side) — the combat director may replace the local body with the nearest remote player body.</summary>
 	void OnCrystalEnemyBodyResolved(CrystalEnemy enemy, ref Body body);
 
-	/// <summary>CrystalEnemy.Lunge is starting (host side) — the combat director orders the remote victim to apply the lunge when the game's raycast cannot see the collider-less clone.</summary>
-	void OnCrystalLunge(CrystalEnemy enemy);
+	/// <summary>
+	/// CrystalEnemy.Lunge is starting (host side). Returns a Harmony __state for
+	/// the local-victim case (the pre-lunge limb trace — the postfix verifies
+	/// the actual limb write and then reports EnemyLungeMsg), or null when the
+	/// host ordered a remote victim / no victim is along the ray.
+	/// </summary>
+	object? OnCrystalLungeBegin(CrystalEnemy enemy);
+
+	/// <summary>CrystalEnemy.Lunge just finished (host side) — verify the native hit on the local body and report the post-lunge terminal state when the limb diff confirms it.</summary>
+	void OnCrystalLungeEnd(object? state);
+
+	/// <summary>ElderThornbackBehaviour.Update ran its 1 s proximity tick on the local body — report the post-tick terminal state.</summary>
+	void OnElderHorrorTick(Body body);
+
+	/// <summary>ElderThornbackBehaviour.OnDestroy rewarded the local player — report the post-reward terminal state.</summary>
+	void OnElderHorrorDefeat(Body body);
+
+	/// <summary>XalorisScript.OnWillRenderObject ran its 0.5 s septic tick on the local body — report the post-tick septic shock.</summary>
+	void OnXalorisSepticTick(Body body);
+
+	/// <summary>GrabberPlant.Update grabbed the local body — report the post-grab terminal state.</summary>
+	void OnGrabberGrabbed(Body body);
 }

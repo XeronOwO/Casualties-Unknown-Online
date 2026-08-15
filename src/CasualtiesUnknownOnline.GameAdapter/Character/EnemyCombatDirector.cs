@@ -131,18 +131,22 @@ internal sealed class EnemyCombatDirector(
 	/// clone the game's RaycastAll cannot see it (no collider), so the host
 	/// decides the hit here — nearest player along the lunge ray before the
 	/// first ground hit — and orders the victim to apply the lunge locally.
+	/// When the selected victim is the LOCAL body, the native raycast applies
+	/// the hit and this returns the pre-lunge limb trace for the postfix, so
+	/// the terminal state can leave as the dedicated EnemyLunge event (verified
+	/// commit: the postfix reports only the limb whose write it confirms).
 	/// </summary>
-	internal void OnCrystalLunge(CrystalEnemy crystal)
+	internal object? OnCrystalLungeBegin(CrystalEnemy crystal)
 	{
 		if (!_session.SessionActive || _session.Role != SessionRole.Host)
 		{
-			return;
+			return null;
 		}
 
 		var building = crystal.GetComponentInParent<BuildingEntity>();
 		if (building == null || !_enemySync.TryGetHostEnemyId(building, out var enemyId)) // Unity object — ==
 		{
-			return;
+			return null;
 		}
 
 		var origin = new Vector2(crystal.transform.position.x, crystal.transform.position.y);
@@ -151,21 +155,51 @@ internal sealed class EnemyCombatDirector(
 		var fact = EnemyCombatArbitration.SelectLungeVictim(
 			Facts(), ToNetVector2(origin), ToNetVector2(direction), groundDistance, CrystalRayTolerance);
 		var target = FindTarget(fact);
-		if (target is null || target.SteamId == _session.LocalSteamId)
+		if (target is null)
 		{
-			return; // no player in the ray, or the local body — the game's own raycast handles that natively
+			return null; // no player in the ray — nothing to order or report
 		}
 
-		var limbIndex = SelectLimbIndex(target, origin);
-		_enemies.SendEnemyAttack(new EnemyAttackMsg
+		if (target.SteamId != _session.LocalSteamId)
 		{
-			EnemyId = enemyId.ToNetworkEntityIdMsg(),
-			VictimSteamId = target.SteamId,
-			Kind = EnemyAttackKind.CrystalLunge,
-			LimbIndex = limbIndex,
-		});
-		_log.LogInformation("[Enemy] host crystal {Enemy} lunge ordered on {Victim} limb {Limb}.",
-			enemyId, target.SteamId, limbIndex);
+			var limbIndex = SelectLimbIndex(target, origin);
+			_enemies.SendEnemyAttack(new EnemyAttackMsg
+			{
+				EnemyId = enemyId.ToNetworkEntityIdMsg(),
+				VictimSteamId = target.SteamId,
+				Kind = EnemyAttackKind.CrystalLunge,
+				LimbIndex = limbIndex,
+			});
+			_log.LogInformation("[Enemy] host crystal {Enemy} lunge ordered on {Victim} limb {Limb}.",
+				enemyId, target.SteamId, limbIndex);
+			return null;
+		}
+
+		var body = LocalBody();
+		return body != null ? CrystalLungeTrace.Capture(body) : null; // Unity object — ==; the native raycast handles the local hit
+	}
+
+	/// <summary>
+	/// CrystalEnemy.Lunge just finished on the host. The native method already
+	/// applied the damage to the local body; the pre/post limb diff identifies
+	/// the limb the game actually hit (it picks a random non-dismembered limb)
+	/// and reports its post-lunge terminal state. No diff = no report.
+	/// </summary>
+	internal void OnCrystalLungeEnd(object? state)
+	{
+		if (state is not CrystalLungeTrace trace)
+		{
+			return;
+		}
+
+		var changed = trace.FindChangedLimb();
+		if (changed == null) // Unity object — ==
+		{
+			_log.LogInformation("[Enemy] host-local crystal lunge produced no limb diff — no EnemyLunge report.");
+			return;
+		}
+
+		_enemySync.ReportLocalCrystalLunge(changed);
 	}
 
 	// ---- Spider bite (the host's collision callback can never touch a remote clone) ----
@@ -337,5 +371,79 @@ internal sealed class EnemyCombatDirector(
 		internal Body? Body { get; } = body;
 
 		internal EnemyTargetFact ToFact() => new(SteamId, new NetVector2(Position.x, Position.y));
+	}
+
+	/// <summary>
+	/// The Harmony __state crossing CrystalEnemy.Lunge: the local body and its
+	/// pre-lunge limb values. The postfix finds the one limb the native hit
+	/// actually changed (the game's RaycastAll picks a random non-dismembered
+	/// limb, CrystalEnemy.cs:137-144) — report only after that verified write.
+	/// </summary>
+	private sealed class CrystalLungeTrace
+	{
+		private readonly Body _body;
+		private readonly float[] _skin;
+		private readonly float[] _muscle;
+		private readonly float[] _pain;
+		private readonly float[] _bleed;
+
+		private CrystalLungeTrace(Body body, float[] skin, float[] muscle, float[] pain, float[] bleed)
+		{
+			_body = body;
+			_skin = skin;
+			_muscle = muscle;
+			_pain = pain;
+			_bleed = bleed;
+		}
+
+		internal static CrystalLungeTrace? Capture(Body body)
+		{
+			var skin = new float[body.limbs.Length];
+			var muscle = new float[body.limbs.Length];
+			var pain = new float[body.limbs.Length];
+			var bleed = new float[body.limbs.Length];
+			for (var i = 0; i < body.limbs.Length; i++)
+			{
+				var limb = body.limbs[i];
+				if (limb == null) // Unity object — ==
+				{
+					return null;
+				}
+
+				skin[i] = limb.skinHealth;
+				muscle[i] = limb.muscleHealth;
+				pain[i] = limb.pain;
+				bleed[i] = limb.bleedAmount;
+			}
+
+			return new CrystalLungeTrace(body, skin, muscle, pain, bleed);
+		}
+
+		internal Limb? FindChangedLimb()
+		{
+			if (_body == null) // Unity object — ==
+			{
+				return null;
+			}
+
+			for (var i = 0; i < _body.limbs.Length && i < _skin.Length; i++)
+			{
+				var limb = _body.limbs[i];
+				if (limb == null) // Unity object — ==
+				{
+					continue;
+				}
+
+				if (limb.skinHealth != _skin[i]
+					|| limb.muscleHealth != _muscle[i]
+					|| limb.pain != _pain[i]
+					|| limb.bleedAmount != _bleed[i])
+				{
+					return limb;
+				}
+			}
+
+			return null;
+		}
 	}
 }

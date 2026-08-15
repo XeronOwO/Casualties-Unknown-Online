@@ -202,6 +202,38 @@ public class PatchContractTests
 			$"enemy-combat patch surface is incomplete ({missing.Count}):\n" + string.Join("\n", missing));
 	}
 
+	/// <summary>
+	/// The enemy-proximity + host-local-lunge patch surface: every hook the
+	/// dedicated EnemyEffect / host-local EnemyLunge chains depend on must
+	/// exist. A regression that deletes one hook fails here before the game
+	/// launches.
+	/// </summary>
+	[Fact]
+	public void EnemyProximityPatchSet_IsComplete()
+	{
+		var contracts = BuildContracts();
+		var expected = new[]
+		{
+			("ElderThornbackBehaviour", "Update"),
+			("ElderThornbackBehaviour", "OnDestroy"),
+			("XalorisScript", "OnWillRenderObject"),
+			("GrabberPlant", "Update"),
+			("CrystalEnemy", "Lunge"),
+		};
+		var missing = new List<string>();
+		foreach (var (type, method) in expected)
+		{
+			var count = contracts.Count(c => c.TargetType == type && c.MethodName == method);
+			if (count == 0)
+			{
+				missing.Add($"{type}.{method}");
+			}
+		}
+
+		Assert.True(missing.Count == 0,
+			$"enemy-proximity patch surface is incomplete ({missing.Count}):\n" + string.Join("\n", missing));
+	}
+
 	// ---- PatchContractChecker verdict unit tests	}
 
 	// ---- PatchContractChecker verdict unit tests (against this assembly's own methods) ----

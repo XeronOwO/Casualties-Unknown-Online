@@ -27,4 +27,13 @@ public interface ICharacterDataControl
 
 	/// <summary>Guest: the host's own character snapshot arrived — render its clone inventory (never apply to the local body).</summary>
 	void FireHostCharacterDataReceived(CharacterDataMsg msg);
+
+	/// <summary>Host side: merge an enemy bite's post-bite terminal state into the victim's saved snapshot.</summary>
+	void ApplyEnemyBite(EnemyBiteMsg msg);
+
+	/// <summary>Host side: merge a crystal-lunge terminal state into the victim's saved snapshot.</summary>
+	void ApplyEnemyLunge(EnemyLungeMsg msg);
+
+	/// <summary>Host side: merge an enemy-proximity side effect terminal state into the victim's saved snapshot.</summary>
+	void ApplyEnemyEffect(EnemyEffectMsg msg);
 }

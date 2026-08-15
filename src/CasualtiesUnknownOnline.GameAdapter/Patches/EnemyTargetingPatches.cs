@@ -49,6 +49,10 @@ internal static class EnemyTargetingPatches
 	[HarmonyPatch(typeof(CrystalEnemy), "Lunge")]
 	internal static class CrystalEnemyLungePatch
 	{
-		private static void Prefix(CrystalEnemy __instance) => PatchBridge.Impl?.OnCrystalLunge(__instance);
+		private static void Prefix(CrystalEnemy __instance, out object? __state) =>
+			__state = PatchBridge.Impl?.OnCrystalLungeBegin(__instance);
+
+		private static void Postfix(object? __state) =>
+			PatchBridge.Impl?.OnCrystalLungeEnd(__state);
 	}
 }

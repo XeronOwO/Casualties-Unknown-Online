@@ -414,9 +414,39 @@ internal sealed partial class EnemySyncCoordinator(
 		body.DoGoreSound();
 		Sound.Play("crystalenemylaugh", entity.transform.position, true, true, null, 1f, 1f, false, false);
 
+		SendLocalCrystalLunge(body, limb, "applied host crystal lunge to local limb {Limb}");
+		_log.LogInformation("[Enemy] applied host crystal lunge {Enemy} to local limb {Limb}.", msg.EnemyId.ToNetworkEntityId(), LimbIndexOf(body, limb));
+	}
+
+	private void OnEnemyLungeReceived(ulong sender, EnemyLungeMsg msg) => _characterData.ApplyEnemyLunge(msg);
+
+	/// <summary>
+	/// The host's own crystal hit the host body natively (CrystalEnemy.Lunge ran
+	/// on the real collider) — the verified post-lunge limb arrives from the
+	/// EnemyCombatDirector's pre/post trace and leaves here as the dedicated
+	/// EnemyLunge event, never the 1 Hz snapshot.
+	/// </summary>
+	internal void ReportLocalCrystalLunge(Limb limb)
+	{
+		if (!_session.SessionActive || limb.body == null) // Unity object — ==
+		{
+			return;
+		}
+
+		var body = limb.body;
 		var limbIndex = LimbIndexOf(body, limb);
+		if (limbIndex < 0)
+		{
+			return; // not a limb of the local body — nothing to report
+		}
+
+		SendLocalCrystalLunge(body, limb, "reported host-local crystal lunge on local limb {Limb}");
+	}
+
+	private void SendLocalCrystalLunge(Body body, Limb limb, string message)
+	{
 		var limbMsg = _mapper.Map<CharacterLimbMsg>(limb);
-		limbMsg.Index = limbIndex;
+		limbMsg.Index = LimbIndexOf(body, limb);
 		_enemies.SendEnemyLunge(new EnemyLungeMsg
 		{
 			VictimSteamId = _session.LocalSteamId,
@@ -424,10 +454,8 @@ internal sealed partial class EnemySyncCoordinator(
 			Adrenaline = body.adrenaline,
 			Stamina = body.stamina,
 		});
-		_log.LogInformation("[Enemy] applied host crystal lunge {Enemy} to local limb {Limb}.", msg.EnemyId.ToNetworkEntityId(), limbIndex);
+		_log.LogInformation("[Enemy] " + message + ".", limbMsg.Index);
 	}
-
-	private void OnEnemyLungeReceived(ulong sender, EnemyLungeMsg msg) => _characterData.ApplyEnemyLunge(msg);
 
 	private static Limb? SelectLimb(Body body, int limbIndex, Vector3 enemyPosition)
 	{

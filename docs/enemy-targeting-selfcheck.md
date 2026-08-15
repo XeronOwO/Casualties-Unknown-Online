@@ -39,3 +39,13 @@ dual-open acceptance.
   must carry both the freeze and the target-guidance patch classes.
 - **Runtime smoke**: deploy + start the real game once; `LogOutput.log` must show all 101 patch
   targets installed and no CUO patch error.
+
+## Closeout record
+
+- Code gates: `dotnet build` 0 warnings/0 errors; `dotnet test` **636/636 green**;
+  `dotnet format` clean; check-architecture / check-event-replay /
+  check-entity-event-dispatch all passed.
+- Deploy smoke (real game dir, post-deploy): `Game Adapter patches installed and verified
+  (101 targets)` in `BepInEx/LogOutput.log` — the new SpiderHandler/CrystalEnemy target and
+  attack-command hooks installed with the rest of the patch set.
+- Delivery checklist: all real boxes checked line-by-line; the forbidden box remains unchecked.

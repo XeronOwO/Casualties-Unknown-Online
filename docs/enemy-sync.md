@@ -114,6 +114,8 @@ applies the game's own damage path locally and reports the post-attack terminal 
 
 - `EnemySpawnArbitration` (pure machine): deterministic id assignment/matching for animal entities +
   runtime-spawn id arbitration.
+- `EnemyCombatArbitration` (pure machine): nearest-player selection, spider-bite gate/range and
+  crystal-lunge ray-before-ground decisions — the host judgment is L0-tested without Unity.
 - `EnemyStateCodec` (pure): snapshot roundtrip (position/velocity/rotation/health/presentation flags)
   with a reflection completeness guard over the presentation-flag bits.
 - Death/spawn arbitration (pure): first-writer-wins for enemy death, spawn-event id allocation.
@@ -121,7 +123,10 @@ applies the game's own damage path locally and reports the post-attack terminal 
 ## 5. Tests
 
 - Pure logic: `EnemySpawnArbitration` deterministic assignment/matching; `EnemyStateMsg` roundtrip
-  (reflection completeness); death/spawn arbitration.
+  (reflection completeness); death/spawn arbitration; `EnemyCombatArbitration` nearest/bite/lunge-ray
+  decisions (multi-dimensional L0 coverage replaces manual dual-open acceptance of the decision layer).
+- Wire simulation: host-ordered `EnemyAttack` reaches only the victim and fires the apply seam;
+  `EnemyLunge` report relays like `EnemyBite`.
 - Simulation: FakeTransport host-simulated enemies + guest-applied snapshots converge to the host
   position.
 - Contract: freeze-patch contracts for every enemy AI script (existence + signature + param names) —

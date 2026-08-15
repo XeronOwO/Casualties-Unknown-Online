@@ -159,6 +159,51 @@ public class PatchContractTests
 			$"broken patch contracts against the game assembly ({violations.Count}):\n" + string.Join("\n", violations));
 	}
 
+	/// <summary>
+	/// The enemy-combat patch surface is the replacement for dual-open manual
+	/// acceptance of the hook layer: every patch the host-ordered attack chain
+	/// depends on must exist, and SpiderHandler.Update must carry BOTH the
+	/// guest freeze prefix and the host target-guidance prefix/postfix. A
+	/// regression that deletes one hook fails here before the game launches.
+	/// </summary>
+	[Fact]
+	public void EnemyCombatPatchSet_IsComplete()
+	{
+		var contracts = BuildContracts();
+		var expected = new[]
+		{
+			("SpiderHandler", "DamageLimb"),
+			("SpiderHandlerTBE", "DamageLimb"),
+			("SpiderHandler", "FixedUpdate"),
+			("SpiderHandler", "OnCollisionStay2D"),
+			("SpiderHandler", "OnCollisionEnter2D"),
+			("CrystalEnemy", "Update"),
+			("CrystalEnemy", "FixedUpdate"),
+			("CrystalEnemy", "get_body"),
+			("CrystalEnemy", "Lunge"),
+		};
+		var missing = new List<string>();
+		foreach (var (type, method) in expected)
+		{
+			var count = contracts.Count(c => c.TargetType == type && c.MethodName == method);
+			if (count == 0)
+			{
+				missing.Add($"{type}.{method}");
+			}
+		}
+
+		var updateCount = contracts.Count(c => c.TargetType == "SpiderHandler" && c.MethodName == "Update");
+		if (updateCount < 2)
+		{
+			missing.Add($"SpiderHandler.Update (freeze + target guidance) — got {updateCount} patch class(es)");
+		}
+
+		Assert.True(missing.Count == 0,
+			$"enemy-combat patch surface is incomplete ({missing.Count}):\n" + string.Join("\n", missing));
+	}
+
+	// ---- PatchContractChecker verdict unit tests	}
+
 	// ---- PatchContractChecker verdict unit tests (against this assembly's own methods) ----
 
 	private static MethodInfo FixtureMethod(string name) =>

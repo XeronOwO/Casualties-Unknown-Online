@@ -280,6 +280,18 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 
 	void ICuoService.Update()
 	{
+		// Steam init may have succeeded on a LATER retry (the F8 path after a
+		// startup init failure) — the local entity's SteamId was snapshotted
+		// from the session at Initialize and would otherwise stay 0, so the
+		// self-activation PlayerJoin never matches and the host's state stream
+		// is dropped as "no member with that entity id" (observed 2026-08-15
+		// in the sandbox guest whose Steam client started after the plugin).
+		if (_localPlayer.SteamId != _session.LocalSteamId)
+		{
+			_localPlayer.SteamId = _session.LocalSteamId;
+			_log.LogInformation("Entity sync local SteamId refreshed to {SteamId} (late Steam init).", _localPlayer.SteamId);
+		}
+
 		// The swing window ticks unconditionally — even a solo swing (no sync
 		// active) must expire so a later lobby open never re-sends a stale flag.
 		_attackSwing.Tick(_time.NowMs);

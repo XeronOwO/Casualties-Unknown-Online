@@ -189,6 +189,14 @@ Details in `docs/architecture.md` §10. Key ones:
 - Ignoring the main thread — network/Steam callbacks must not touch Unity APIs.
 - `System.Memory` hijacks `.Reverse()` — `array.Reverse()` binds to `MemoryExtensions.Reverse(Span<T>, void)`;
   use reverse-index loops or explicit `Enumerable.Reverse(...)`.
+- Lobby identity must follow the ACTUAL lobby, not process history — a client that once hosted and
+  later joins a friend's lobby must become a Guest (leave current lobby first; `LobbyLeft` tears the
+  old session down before the new handshake).
+- A Steam receive batch is all-or-nothing: one handler exception loses every later message in the
+  same `ReceiveMessagesOnChannel` batch — catch per message, release in `finally` (WorldReady was
+  lost behind a throwing enemy-snapshot packet for the full start-gate timeout).
+- Late Steam init (F8 retry after a failed load-time init) must refresh downstream snapshots —
+  the local entity's SteamId was captured as 0 and the self-activation PlayerJoin never matched.
 - Undefined failure modes — define behavior for disconnect/dropout/mod-load-failure/version-mismatch/etc.
 - Licensing/legal — verify game EULA, anti-cheat, Steamworks DLL redistribution, and dependency licenses
   before any distribution.

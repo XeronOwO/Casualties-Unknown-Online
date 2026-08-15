@@ -26,6 +26,9 @@ public interface IGameAdapter : IDisposable
 	/// <summary>True while the start gate holds this player (everyone loads together; frozen + overlay).</summary>
 	bool IsWaitingForReady { get; }
 
+	/// <summary>True while the local player is in a world or one is generating — lobby switches are refused in that window (menu-only switch policy).</summary>
+	bool IsInWorldOrGenerating { get; }
+
 	/// <summary>Overlay text while the gate holds: who we are waiting for and the force-start countdown.</summary>
 	string WaitingText { get; }
 

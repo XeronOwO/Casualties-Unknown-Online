@@ -23,14 +23,27 @@ namespace CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 /// <see cref="IItemControl"/> — acyclic constructor graph (ItemService never
 /// depends on this store), abstract extraction (user rule).
 /// </summary>
-public sealed class CharacterDataStore(ISessionControl session, PacketSender sender,
-	ILogger<CharacterDataStore> log, IItemControl items) : ICharacterDataControl
+public sealed class CharacterDataStore : ICharacterDataControl, IDisposable
 {
-	private readonly ISessionControl _session = session;
+	private readonly ISessionControl _session;
+	private readonly PacketSender _sender;
+	private readonly ILogger<CharacterDataStore> _log;
+	private readonly IItemControl _items;
+	public CharacterDataStore(ISessionControl session, PacketSender sender,
+		ILogger<CharacterDataStore> log, IItemControl items)
+	{
+		_session = session;
+		_sender = sender;
+		_log = log;
+		_items = items;
 
-	private readonly PacketSender _sender = sender;
-	private readonly ILogger<CharacterDataStore> _log = log;
-	private readonly IItemControl _items = items;
+		// Saved characters are SESSION-scoped: the host session survives a
+		// guest leaving (that reconnect restore still works), but a real
+		// session end (host exit / lobby switch) must not leak the old run's
+		// saves into the next lobby.
+		session.SessionEnded += OnSessionEnded;
+	}
+
 	private readonly Dictionary<ulong, CharacterDataMsg> _savedCharacters = []; // host: last report per SteamID
 
 	/// <summary>
@@ -92,6 +105,13 @@ public sealed class CharacterDataStore(ISessionControl session, PacketSender sen
 	/// re-enter) find their save still in the table and restore normally.
 	/// </summary>
 	public void ClearSavedCharacters() => _savedCharacters.Clear();
+
+	/// <summary>Session ended: the in-memory saves die with the session (the new run captures its own).</summary>
+	public void ResetForSessionEnd() => _savedCharacters.Clear();
+
+	private void OnSessionEnded() => ResetForSessionEnd();
+
+	public void Dispose() => _session.SessionEnded -= OnSessionEnded;
 
 	/// <summary>Host side: hand the saved character data back to a reconnecting player, with the item arbitration's transfer table merged over it.</summary>
 	internal void SendSavedCharacter(ulong steamId)

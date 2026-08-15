@@ -41,6 +41,9 @@ public sealed class SessionService : ICuoService, ISessionControl
 	private readonly SessionState _state = new();
 	private readonly MemberPresenceTable _presence = new();
 
+	/// <summary>The lobby this client currently hosts or joined (0 = none) — tracked here so a real lobby change is distinguishable from a duplicate Steam callback.</summary>
+	private ulong _currentLobbyId;
+
 	private long _nextPingMs;
 	private long _nextMemberCheckMs;
 	private long _nextHandshakeRetryMs;
@@ -56,6 +59,7 @@ public sealed class SessionService : ICuoService, ISessionControl
 
 		steam.LobbyCreated += OnLobbyCreated;
 		steam.LobbyEntered += OnLobbyEntered;
+		steam.LobbyLeft += OnLobbyLeft;
 	}
 
 	public SessionRole Role => _identity.Role;
@@ -263,12 +267,24 @@ public sealed class SessionService : ICuoService, ISessionControl
 	{
 		_steam.LobbyCreated -= OnLobbyCreated;
 		_steam.LobbyEntered -= OnLobbyEntered;
+		_steam.LobbyLeft -= OnLobbyLeft;
 	}
 
 	// ---- Lobby / handshake ----
 
 	private void OnLobbyCreated(ulong lobbyId)
 	{
+		if (IsCurrentHost(lobbyId))
+		{
+			return; // duplicate create callback — the first one already armed the session
+		}
+
+		if (_currentLobbyId != lobbyId)
+		{
+			TeardownSession(leaveLobby: true);
+		}
+
+		_currentLobbyId = lobbyId;
 		_identity.Role = SessionRole.Host;
 		_identity.HostSteamId = _steam.LocalSteamId;
 		// The host is authoritative from the moment the lobby exists — even
@@ -281,19 +297,78 @@ public sealed class SessionService : ICuoService, ISessionControl
 		_log.LogInformation("Session role: Host (lobby {LobbyId})", lobbyId);
 	}
 
+	private void OnLobbyLeft(ulong lobbyId)
+	{
+		_log.LogInformation("Left lobby {LobbyId} — lobby identity ends with it.", lobbyId);
+		TeardownSession(leaveLobby: true);
+		// Role follows the ACTUAL lobby state: with no lobby there is no
+		// identity. EndSession (same-lobby outage/rejoin) still keeps Role.
+		_identity.Role = SessionRole.None;
+	}
+
 	private void OnLobbyEntered(ulong lobbyId)
 	{
-		if (_identity.Role == SessionRole.Host)
+		var owner = _steam.GetLobbyOwner();
+		if (owner == 0)
 		{
-			return; // our own lobby — the create callback already ran
+			_log.LogWarning("Entered lobby {LobbyId} but Steam reported no owner — session not started.", lobbyId);
+			return;
 		}
 
-		_identity.Role = SessionRole.Guest;
+		if (owner == _steam.LocalSteamId)
+		{
+			// Our own lobby. The normal create flow already ran OnLobbyCreated
+			// and LobbyEnter_t follows it — a no-op. If the create callback was
+			// missed (or a duplicate arrives after EndSession), re-arm host
+			// identity by owner, never by the previous Role guess.
+			if (IsCurrentHost(lobbyId))
+			{
+				return;
+			}
+
+			if (_currentLobbyId != lobbyId)
+			{
+				TeardownSession(leaveLobby: true);
+			}
+
+			_currentLobbyId = lobbyId;
+			_identity.Role = SessionRole.Host;
+			_identity.HostSteamId = owner;
+			SessionActive = true;
+			_log.LogInformation("Session role: Host (own lobby {LobbyId})", lobbyId);
+			return;
+		}
+
 		// The host is the lobby owner, not "first member other than me" — with
 		// 3+ members that guess picks the wrong peer and the handshake dies.
-		_identity.HostSteamId = _steam.GetLobbyOwner();
-		_log.LogInformation("Session role: Guest (lobby {LobbyId}, host {Host})", lobbyId, _identity.HostSteamId);
+		var sameSession = _currentLobbyId == lobbyId
+			&& Role == SessionRole.Guest
+			&& HostSteamId == owner
+			&& SessionActive;
+		if (!sameSession)
+		{
+			if (_currentLobbyId != lobbyId)
+			{
+				TeardownSession(leaveLobby: true);
+			}
 
+			_currentLobbyId = lobbyId;
+			_identity.Role = SessionRole.Guest;
+			_identity.HostSteamId = owner;
+			_log.LogInformation("Session role: Guest (lobby {LobbyId}, host {Host})", lobbyId, owner);
+		}
+
+		KickHandshake();
+	}
+
+	private bool IsCurrentHost(ulong lobbyId) =>
+		_currentLobbyId == lobbyId
+		&& _identity.Role == SessionRole.Host
+		&& _identity.HostSteamId == _steam.LocalSteamId
+		&& SessionActive;
+
+	private void KickHandshake()
+	{
 		// Kick off the handshake: protocol version + our scene state. Retry
 		// periodically until acked (Steam P2P sessions establish lazily and
 		// swallow the first messages — retransmission also drives the session).
@@ -429,15 +504,49 @@ public sealed class SessionService : ICuoService, ISessionControl
 			return;
 		}
 
-		_presence.Clear();
+		TeardownSession(leaveLobby: false);
+	}
+
+	/// <summary>
+	/// Tear the session content down (presence, active flag, host id) and fire
+	/// the teardown events exactly once when content existed. The Role is NOT
+	/// reset here: <see cref="EndSession"/> models a same-lobby outage (a
+	/// returning host rebuilds the session), while a real lobby change goes
+	/// through <see cref="OnLobbyLeft"/>, which additionally drops the Role to
+	/// None before the new lobby assigns the next identity.
+	/// </summary>
+	private void TeardownSession(bool leaveLobby)
+	{
+		var hadSession = SessionActive || _presence.Count > 0 || _identity.HostSteamId != 0;
+
+		// Stop every send FIRST — the teardown events below run game code
+		// (ToMainMenu / clone destruction) that must not report into a dead
+		// session and must not race a fresh session's first frames.
 		SessionActive = false;
+
+		// Fire each member's in-world=false edge BEFORE clearing the table:
+		// the run coordinator uses HostSteamId to pull a guest out of a world
+		// whose host is gone, and the renderer destroys that member's clone.
+		foreach (var member in _presence.Members.ToList())
+		{
+			_presence.FireRemoteSceneChanged(member.SteamId, false);
+		}
+
+		_presence.Clear();
 		_identity.HostSteamId = 0;
-		// Role is NOT reset here: it follows the lobby identity (the lobby
-		// creator stays Host, a joiner stays Guest) — the session content is
-		// gone, but a returning guest's handshake is still accepted and rebuilds
-		// everything (new member + character save restore).
-		_log.LogInformation("Session ended (role {Role} kept).", Role);
-		_state.FireSessionEnded(); // the entity domain + the Game Adapter tear down on this
+		_nextHandshakeRetryMs = 0;
+		if (leaveLobby)
+		{
+			_currentLobbyId = 0;
+		}
+
+		if (hadSession)
+		{
+			// Role is intentionally still the OLD role here: the entity/enemy
+			// domains branch on it to tear their side down correctly.
+			_log.LogInformation("Session ended (role {Role} kept).", Role);
+			_state.FireSessionEnded(); // the entity domain + the Game Adapter tear down on this
+		}
 	}
 
 	private HandshakeMsg CreateHandshakeMsg() => new()

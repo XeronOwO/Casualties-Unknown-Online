@@ -15,7 +15,7 @@ public class LobbyLifecycleTests
 	public void FreshLifecycle_HasNoLobbyToLeave()
 	{
 		var lobby = new LobbyLifecycle();
-		Assert.False(lobby.MustLeaveBeforeCreate, "no lobby yet — nothing to leave");
+		Assert.False(lobby.IsInLobby, "no lobby yet — nothing to leave");
 		Assert.True(lobby.CurrentLobbyId == 0, "the current lobby id starts at 0");
 	}
 
@@ -26,7 +26,7 @@ public class LobbyLifecycleTests
 		lobby.OnLobbyAcquired(9001);
 
 		Assert.True(lobby.CurrentLobbyId == 9001, "the lobby is now current");
-		Assert.True(lobby.MustLeaveBeforeCreate, "a re-create must first leave the current lobby");
+		Assert.True(lobby.IsInLobby, "a re-create must first leave the current lobby");
 	}
 
 	[Fact]
@@ -37,6 +37,6 @@ public class LobbyLifecycleTests
 		lobby.OnLobbyLeft();
 
 		Assert.True(lobby.CurrentLobbyId == 0, "no current lobby after leaving");
-		Assert.False(lobby.MustLeaveBeforeCreate, "a fresh create no longer needs a leave");
+		Assert.False(lobby.IsInLobby, "a fresh create no longer needs a leave");
 	}
 }

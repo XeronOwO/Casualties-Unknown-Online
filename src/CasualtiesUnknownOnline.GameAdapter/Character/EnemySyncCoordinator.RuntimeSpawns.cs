@@ -66,6 +66,16 @@ internal sealed partial class EnemySyncCoordinator
 		}
 
 		var pos = new Vector2(spawn.Position.X, spawn.Position.Y);
+		// Utils.Create calls Object.Instantiate directly — a missing prefab THROWS
+		// there, it never returns null (observed 2026-08-15: one snapshot packet
+		// killed the rest of the Steam receive batch). Guard the load first.
+		if (Resources.Load(spawn.PrefabId) == null) // Unity object — ==
+		{
+			_log.LogWarning("[Enemy] cannot materialize runtime spawn {Id} (prefab {Prefab}) — Resources.Load returned nothing.",
+				id, spawn.PrefabId);
+			return;
+		}
+
 		var createdGo = Utils.Create(spawn.PrefabId, pos, 0f);
 		if (createdGo == null) // Unity object — == (unknown prefab — the sender's prefab set differs)
 		{

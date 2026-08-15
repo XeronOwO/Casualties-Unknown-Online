@@ -33,6 +33,9 @@ internal sealed class CloneFactTable(ILogger log)
 	/// <summary>Read-only view for the clone renderer: latest snapshot per SteamId.</summary>
 	internal IReadOnlyDictionary<ulong, CharacterDataMsg> CloneData => _cloneData;
 
+	/// <summary>Session ended: the fact table is session-scoped — stale owners/items must never render into the next lobby's clones.</summary>
+	internal void Clear() => _cloneData.Clear();
+
 	/// <summary>
 	/// A carried item's authoritative fact changed (host broadcast — a use
 	/// flipped its state, a slot move re-homed it, a pickup brought it in):

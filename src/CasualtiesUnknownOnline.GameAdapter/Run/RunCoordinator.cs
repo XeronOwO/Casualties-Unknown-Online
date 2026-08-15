@@ -66,6 +66,9 @@ internal sealed class RunCoordinator(
 	/// <summary>The local body while in the world (Unity object — == null when scene-reload-destroyed).</summary>
 	internal Body? LocalBody => _localBody;
 
+	/// <summary>A world exists or is generating — the lobby-switch guard's window (menu-only lobby switches).</summary>
+	internal bool IsInWorldOrGenerating => _inWorld || HarmonyTraverse.IsGenerating();
+
 	/// <summary>Guest: the world is generated and the gate holds (read by StartGateCoordinator).</summary>
 	internal bool GuestWaitingForReady => _phase == RunPhase.WaitingReady;
 
@@ -440,10 +443,26 @@ internal sealed class RunCoordinator(
 		}
 	}
 
-	/// <summary>The session is gone — the run-follow ends (the gate presentation
-	/// restores itself on its next pump; the render clone teardown lives in
-	/// RemotePlayerRenderer).</summary>
-	private void OnSessionEnded() => _phase = RunPhase.Idle;
+	/// <summary>
+	/// The session is gone — the run-follow ends and every run-scoped flag dies
+	/// with it. A former HOST that was still in its world returns to the main
+	/// menu here (a guest is pulled by the host's RemoteSceneChanged false edge
+	/// above); a follow instruction for the NEXT lobby may already be pending,
+	/// and the pump retries it once the menu transition completes.
+	/// </summary>
+	private void OnSessionEnded()
+	{
+		_phase = RunPhase.Idle;
+		_joinIsTutorial = false;
+		_hostInWorldSinceMs = 0;
+		_worldFingerprintLogged = false;
+		_params.ResetForSessionEnd();
+		if (_inWorld && PlayerCamera.main != null) // Unity object — ==
+		{
+			_log.LogInformation("Session ended while in the world — returning to main menu.");
+			PlayerCamera.main.ToMainMenu();
+		}
+	}
 
 	// ---- State shuttling ----
 

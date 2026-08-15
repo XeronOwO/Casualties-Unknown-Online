@@ -146,6 +146,19 @@ internal sealed class WorldParamsService(
 		return true;
 	}
 
+	/// <summary>
+	/// Session ended: every capture/apply marker is session-scoped. The next
+	/// host run captures new params; the next guest follow applies the new
+	/// host's params (reference identity distinguishes them, but a dead
+	/// marker must never consume the next run's capture).
+	/// </summary>
+	internal void ResetForSessionEnd()
+	{
+		_entryParamsCaptured = false;
+		_appliedWorldParams = null;
+		_guestParamsWaitLogged = false;
+	}
+
 	/// <summary>Guest side: restore the host's RNG state + run settings + world-defining fields so local world generation produces the same world.</summary>
 	internal void Apply(WorldStartParams parameters)
 	{

@@ -15,7 +15,7 @@ internal sealed class FakeSteamService(ulong localSteamId) : ISteamService, ICuo
 {
 	public bool IsInitialized { get; } = true;
 
-	public ulong LocalSteamId { get; } = localSteamId;
+	public ulong LocalSteamId { get; internal set; } = localSteamId;
 
 	internal ulong LobbyOwner { get; set; }
 
@@ -25,6 +25,8 @@ internal sealed class FakeSteamService(ulong localSteamId) : ISteamService, ICuo
 
 	public event Action<ulong>? LobbyEntered;
 
+	public event Action<ulong>? LobbyLeft;
+
 	public ulong GetLobbyOwner() => LobbyOwner;
 
 	public ulong[] GetLobbyMembers() => LobbyMembers;
@@ -32,6 +34,8 @@ internal sealed class FakeSteamService(ulong localSteamId) : ISteamService, ICuo
 	internal void FireLobbyCreated(ulong lobbyId) => LobbyCreated?.Invoke(lobbyId);
 
 	internal void FireLobbyEntered(ulong lobbyId) => LobbyEntered?.Invoke(lobbyId);
+
+	internal void FireLobbyLeft(ulong lobbyId) => LobbyLeft?.Invoke(lobbyId);
 
 	void ICuoService.Initialize()
 	{

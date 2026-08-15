@@ -202,6 +202,8 @@ public sealed partial class GameAdapter : IGameAdapter, ICuoService, IPatchBridg
 
 	bool IGameAdapter.IsWaitingForReady => _gate.WaitingForReady;
 
+	bool IGameAdapter.IsInWorldOrGenerating => _run.IsInWorldOrGenerating;
+
 	string IGameAdapter.WaitingText => _gate.WaitingText;
 
 	public bool ProbeGame()
@@ -349,6 +351,7 @@ public sealed partial class GameAdapter : IGameAdapter, ICuoService, IPatchBridg
 		_enemySync.BindToSession();
 		_enemyProximity.BindToSession();
 		_run.BindToSession();
+		_session.SessionEnded += OnSessionEnded;
 		_genItemApplication.BindToSession();
 		_trapLayoutApplication.BindToSession();
 		_layerModifierSync.BindToSession();
@@ -380,6 +383,7 @@ public sealed partial class GameAdapter : IGameAdapter, ICuoService, IPatchBridg
 		_enemyProximity.Unbind();
 		_craftingSync.ResetPending(); // the destroy claims die with the scene
 		_run.Unbind();
+		_session.SessionEnded -= OnSessionEnded;
 		_genItemApplication.Unbind();
 		_trapLayoutApplication.Unbind();
 		_layerModifierSync.Unbind();

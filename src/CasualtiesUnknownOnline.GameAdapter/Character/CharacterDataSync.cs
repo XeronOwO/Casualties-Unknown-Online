@@ -184,6 +184,19 @@ internal sealed class CharacterDataSync(
 	/// <summary>Host side: a NEW run started (the host clicked start) — the previous run's saved characters are void (see CharacterDataStore.ClearSavedCharacters).</summary>
 	internal void ClearSavedCharacters() => _characterData.ClearSavedCharacters();
 
+	/// <summary>
+	/// Session ended: a pending restore belongs to the dead session and must
+	/// never apply to the next lobby's body; the clone fact table is likewise
+	/// session-scoped. The position gate resets when the current body leaves
+	/// (death/menu), so it is not touched here.
+	/// </summary>
+	internal void ResetSessionState()
+	{
+		_pendingRestore = null;
+		_restoreWipePending = false;
+		_factTable.Clear();
+	}
+
 	/// <summary>Leaving the world (death, menu) — push a final snapshot so the host's save carries the state at the moment of leaving, not the last 1 Hz report (a death → re-enter cycle would otherwise restore the pre-death state).</summary>
 	internal void NotifyBodyLeft(Body prevBody)
 	{

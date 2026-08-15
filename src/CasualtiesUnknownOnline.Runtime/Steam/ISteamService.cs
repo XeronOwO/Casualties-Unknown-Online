@@ -25,4 +25,7 @@ public interface ISteamService
 	event Action<ulong>? LobbyCreated;
 
 	event Action<ulong>? LobbyEntered;
+
+	/// <summary>Raised when the client left the current lobby (before a new create/join request — the session layer tears down on this).</summary>
+	event Action<ulong>? LobbyLeft;
 }

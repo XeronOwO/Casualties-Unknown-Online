@@ -248,3 +248,30 @@ as `EnemyBite` / `EnemyLunge`:
   `EnemyLungeMsg` only after the pre/post limb diff verifies the actual write (verified commit).
 - ProtocolVersion 8→9: a v8 peer would drop `EnemyEffect` and the save-merge, so mixed-version
   sessions are refused instead of silently degrading enemy-effect sync.
+
+## 18. Lobby-domain lifecycle refactor (2026-08-15)
+
+The lobby identity used to be process-lifetime: `SessionService.OnLobbyEntered` returned early when
+the client had ever hosted (`Role == Host`), so a player who first hosted and then joined a friend
+never became a Guest and never followed the host's run. The lobby identity is now a state machine:
+
+- **Role follows the actual lobby** — `None` when in no lobby (`LobbyLeft`), `Host` on
+  `LobbyCreated` / entering one's own lobby, `Guest` on entering someone else's lobby. `EndSession`
+  still keeps the role for same-lobby outage/rejoin; only a real `LobbyLeft` drops it.
+- **Explicit leave-before-acquire** — both `JoinLobby` and `CreateLobby` leave the current lobby
+  first and fire `LobbyLeft` on `ISteamService`; the official JoinLobby docs do not promise an
+  automatic leave, so CUO no longer depends on one.
+- **Session teardown is complete** — `SessionService.TeardownSession` stops sends, fires each
+  member's `RemoteSceneChanged(false)` edge, clears presence, and fires `SessionEnded` once; the
+  world/item/character/entity/enemy/adapter domains reset their session-scoped state on that event.
+- **Menu-only switch policy** — `LobbySwitchGuard` (pure) refuses lobby changes while a world is
+  running or generating, except the existing solo-in-world -> host-lobby conversion. The guard lives
+  in the Plugin (F8/F9/Steam-friend join request), so the session layer never sees a half-switched
+  run. No wire change: ProtocolVersion stays 9.
+- **Late Steam init** — `EntitySyncService.Update` refreshes the local entity's SteamId every frame;
+  the F8 retry path after a startup `SteamAPI.InitEx` failure used to leave it 0 and the
+  self-activation `PlayerJoin` never matched ("no member with that entity id").
+- **Steam receive batch is all-or-nothing** — `SteamTransport.Poll` now catches per-message handler
+  exceptions and releases each message in a `finally`; one throwing snapshot used to kill every
+  later message in the same received batch (observed: `WorldReady` was lost for the full 60 s gate
+  timeout because an enemy-snapshot materialization threw before it in the same poll batch).

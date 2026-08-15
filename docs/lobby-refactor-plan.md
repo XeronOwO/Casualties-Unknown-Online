@@ -1,4 +1,4 @@
-# Lobby-Domain Refactor — Plan (pending user approval)
+# Lobby-Domain Refactor — Plan (implemented 2026-08-15)
 
 Goal: make the lobby identity a real state machine. Today a client that hosted
 its own lobby and later joins another player's lobby stays `SessionRole.Host`

@@ -5,9 +5,10 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 
 /// <summary>
 /// Cave-tick nest → CaveTicksSpawned (one-shot): a limb/body entered and the
-/// nest started (CaveTickSpawner.cs:18-38 — the 16 spiders spawn over 1.6 s on
-/// the TRIGGERING side only, an AI-domain gap; the nest itself stops its
-/// particles and dies). The event consumes the nest on the peers.
+/// nest started (CaveTickSpawner.cs:18-38 — the 16 spiders spawn over 1.6 s
+/// and ride the EntitySpawned channel + EnemySyncCoordinator runtime binding;
+/// the nest itself stops its particles and dies). The event consumes the nest
+/// on the peers.
 /// </summary>
 [HarmonyPatch(typeof(CaveTickSpawner), "OnTriggerEnter2D")]
 internal static class TrapCaveTickSpawnerPatch

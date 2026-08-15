@@ -29,6 +29,7 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 	private readonly ILogger<EnemySyncService> _log;
 
 	private readonly Dictionary<NetworkEntityId, EnemyEntity> _enemies = [];
+	private IReadOnlyList<EnemySpawnEntryMsg> _runtimeSpawns = [];
 	private uint _nextEnemySeq; // host: EnemyState broadcast seq
 	private long _nextStateSendMs;
 	private uint _lastEnemyStateSeq; // guest: last applied seq (the unreliable-stream gate)
@@ -63,6 +64,9 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 
 	/// <summary>All enemy buffers (host: authoritative; guest: received).</summary>
 	public IEnumerable<EnemyEntity> Enemies => _enemies.Values;
+
+	/// <summary>Runtime-spawn facts carried by the last applied enemy snapshot (guest) or published by the host (its authoritative set).</summary>
+	public IReadOnlyList<EnemySpawnEntryMsg> RuntimeSpawns => _runtimeSpawns;
 
 	public EnemyEntity? GetEnemy(NetworkEntityId id) =>
 		_enemies.TryGetValue(id, out var entity) ? entity : null;
@@ -159,11 +163,19 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 	/// <summary>Host side: publish the authoritative enemy states (the Game Adapter captures the simulated enemies and overwrites the buffer each tick).</summary>
 	public void PublishEnemyStates(IEnumerable<EnemyEntity> states)
 	{
+		var published = states.ToList();
 		_enemies.Clear();
-		foreach (var state in states)
+		foreach (var state in published)
 		{
 			_enemies[state.EntityId] = state;
 		}
+
+		_runtimeSpawns =
+		[
+			.. published
+				.Where(e => e.RuntimeSpawned && e.PrefabId.Length > 0)
+				.Select(e => e.ToEnemySpawnEntryMsg()),
+		];
 	}
 
 	// ---- IEnemySyncControl (the packet handlers' control surface) ----
@@ -239,6 +251,12 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 		var payload = new EnemySnapshotMsg
 		{
 			Enemies = [.. _enemies.Values.Select(e => e.ToEnemyStateMsg())],
+			RuntimeSpawns =
+			[
+				.. _enemies.Values
+					.Where(e => e.RuntimeSpawned && e.PrefabId.Length > 0)
+					.Select(e => e.ToEnemySpawnEntryMsg()),
+			],
 		};
 		_sender.Send(steamId, NetMsg.EnemySnapshot, payload);
 	}
@@ -247,7 +265,11 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 
 	private void ApplyEnemyState(EnemyStateBatchMsg msg) => Replace(msg.Enemies, EnemyStateReceived);
 
-	private void ApplyEnemySnapshot(EnemySnapshotMsg msg) => Replace(msg.Enemies, EnemySnapshotReceived);
+	private void ApplyEnemySnapshot(EnemySnapshotMsg msg)
+	{
+		_runtimeSpawns = msg.RuntimeSpawns;
+		Replace(msg.Enemies, EnemySnapshotReceived);
+	}
 
 	/// <summary>Full-overwrite semantics: the host's batch IS the whole enemy set —
 	/// a disappeared enemy (destroyed, off-screen) must drop out, not linger.</summary>
@@ -267,6 +289,7 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 	private void OnSessionEnded()
 	{
 		_enemies.Clear();
+		_runtimeSpawns = [];
 		_nextEnemySeq = 0;
 		_lastEnemyStateSeq = 0;
 		_nextStateSendMs = 0;

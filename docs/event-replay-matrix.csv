@@ -8,7 +8,7 @@ BearTrapClamped,beartrap(3D)+gore(limb),beartrap ok,closeSprite+teeth-destroy,ok
 BearTrapReleased,beartrapunlatch(3D),ok,origSprite restore,ok,activated=false,covered,
 StalactiteDropped,stalactitefall(3D)+glass,Drop() runs game sound,fall animation,Drop() runs game anim,dropped,covered,
 SoundCannonFired,sonarcharge(2D charge)+sonarouch(2D blast)+tinnitus,blast sound MISSING,charge-rotate (child),n/a (charging cancelled),spent+charging=false,covered,blast sonarouch 2D-global replay added (identical to SoundCannon.cs:64); damage NOT replayed (trigger-side single-target rides CharacterData)
-CaveTicksSpawned,caveticks(2D) ok,ok,particles-stop+nest-destroy,ok,started,covered,spiders trigger-side only (AI domain)
+CaveTicksSpawned,caveticks(2D) ok,ok,particles-stop+nest-destroy,ok,started,covered,spiders ride EntitySpawned + EnemyRuntimeSpawn binding; late joiner materializes via EnemySnapshot.RuntimeSpawns
 CrystalFragileBroken,glass(3D) ok,ok,crystal vanish (health0),ok+RemoteDeath,health<0.5,covered,
 CrystalElectricShocked,zap(3D)+Shake200,ok,ring-anim (Update natural),ok,cooldown gate,covered,
 CrystalUnstableExploded,crystaltick (5s tick)+explosion-fivepiece,explosion-fivepiece+tinnitus,5s ticking glow/shake+explosion,particle/blastmark/shake+body-segment,health0+RemoteEntityDeath,covered,5s pre-explosion ticking gap (same as the mine press visual)

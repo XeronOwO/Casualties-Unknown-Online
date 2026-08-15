@@ -97,4 +97,24 @@ public class EnemyStateRoundtripTests
 
 		Assert.False(entity.Stunned);
 	}
+
+	[Fact]
+	public void EnemySpawnEntry_Roundtrip_FromEntity()
+	{
+		var source = new EnemyEntity(new NetworkEntityId(7, 3, 1))
+		{
+			Position = new NetVector2(11f, -22f),
+			Rotation = 180f,
+			PrefabId = "cavetick",
+			RuntimeSpawned = true,
+		};
+
+		var msg = source.ToEnemySpawnEntryMsg();
+
+		Assert.Equal(source.EntityId, msg.Id.ToNetworkEntityId());
+		Assert.Equal(source.PrefabId, msg.PrefabId);
+		Assert.Equal(source.Position, msg.Position.ToNetVector2());
+		Assert.Equal(source.Rotation, msg.Rotation);
+	}
+
 }

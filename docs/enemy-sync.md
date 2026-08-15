@@ -107,13 +107,21 @@ applies the game's own damage path locally and reports the post-attack terminal 
 
 - Death: extend the existing BuildingEntity health sync to animal entities (`RemoteEntityDeath`
   already suppresses the remote roll).
-- Runtime spawn (`CaveTickSpawner`): sync the spawn event (16 caveticks + ids + positions), reusing
-  the `OnEntityInstantiated` runtime-creation channel.
+- Runtime spawn (`CaveTickSpawner`): the 16 `cavetick` creations already ride the generic
+  `OnEntityInstantiated` → `EntitySpawned` channel (prefab id + position + rotation). The guest
+  freezes each runtime animal copy at its Start (`OnAnimalInstantiated`, before AI/physics move it);
+  the host marks every id allocated after the initial deterministic mapping as a runtime spawn and
+  carries those facts in `EnemySnapshot.RuntimeSpawns` (id + prefab + current position/rotation).
+  Live 20 Hz batches bind the unbound runtime ids to the EntitySpawned-created copies by position
+  (`EnemyRuntimeSpawnArbitration.TryPairByPosition`, all-or-nothing); a late joiner materializes the
+  missing copies from the snapshot facts (`MatchRuntimeSpawns` + `Utils.Create`) and binds them to the
+  host ids.
 
 ## 4. Domain modelization (testable judgment into Runtime)
 
-- `EnemySpawnArbitration` (pure machine): deterministic id assignment/matching for animal entities +
-  runtime-spawn id arbitration.
+- `EnemySpawnArbitration` (pure machine): deterministic id assignment/matching for animal entities.
+- `EnemyRuntimeSpawnArbitration` (pure machine): runtime-spawn position pairing for the live 20 Hz
+  bind and same-prefab nearest matching / materialization-list judgment for the late-joiner snapshot.
 - `EnemyCombatArbitration` (pure machine): nearest-player selection, spider-bite gate/range and
   crystal-lunge ray-before-ground decisions — the host judgment is L0-tested without Unity.
 - `EnemyStateCodec` (pure): snapshot roundtrip (position/velocity/rotation/health/presentation flags)
@@ -122,9 +130,10 @@ applies the game's own damage path locally and reports the post-attack terminal 
 
 ## 5. Tests
 
-- Pure logic: `EnemySpawnArbitration` deterministic assignment/matching; `EnemyStateMsg` roundtrip
-  (reflection completeness); death/spawn arbitration; `EnemyCombatArbitration` nearest/bite/lunge-ray
-  decisions (multi-dimensional L0 coverage replaces manual dual-open acceptance of the decision layer).
+- Pure logic: `EnemySpawnArbitration` deterministic assignment/matching; `EnemyRuntimeSpawnArbitration`
+  runtime-spawn pairing/materialization decisions; `EnemyStateMsg`/`EnemySpawnEntryMsg` roundtrips;
+  `EnemyCombatArbitration` nearest/bite/lunge-ray decisions (multi-dimensional L0 coverage replaces
+  manual dual-open acceptance of the decision layer).
 - Wire simulation: host-ordered `EnemyAttack` reaches only the victim and fires the apply seam;
   `EnemyLunge` report relays like `EnemyBite`.
 - Simulation: FakeTransport host-simulated enemies + guest-applied snapshots converge to the host
@@ -141,7 +150,10 @@ applies the game's own damage path locally and reports the post-attack terminal 
    (bites, drops) ride the existing damage/event paths — no double-sync.
 3. **Unity physics determinism**: the guest never simulates enemy physics (frozen + snapshot-driven)
    — same as the player clone, so no determinism risk.
-4. **Runtime spawn** (`CaveTickSpawner`) is a new generation-side surface (16 caveticks on trigger).
+4. **Runtime spawn** (`CaveTickSpawner`) is the new generation-side surface (16 caveticks on
+   trigger) — now covered by the EntitySpawned channel + runtime id binding + late-joiner
+   materialization; a future second runtime enemy prefab must reuse the same path and its prefab must
+   carry the same `BuildingEntity.id` facts.
 5. **Proximity side effects stay local-first** — `ElderThornbackBehaviour` (horror/stamina),
    `XalorisScript` (septic shock) and `GrabberPlant` (tendril grab) read
    `PlayerCamera.main.body` and mutate that body directly. They are not part of the

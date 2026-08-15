@@ -84,6 +84,55 @@ public class EnemyAttackSyncTests
 	}
 
 	[Fact]
+	public void HostCommand_FiresTheApplyEventOnTheVictimGuest()
+	{
+		using var w = ItemSimWorld.Create();
+		var hostEnemies = w.Host.Services.GetRequiredService<EnemySyncService>();
+		var victimEnemies = w.G1.Services.GetRequiredService<EnemySyncService>();
+		foreach (var member in w.Host.Session.Members)
+		{
+			member.InWorld = true;
+		}
+
+		var applied = 0;
+		victimEnemies.EnemyAttackReceived += msg =>
+		{
+			if (msg.Kind == EnemyAttackKind.SpiderBite && msg.VictimSteamId == w.G1.SteamId)
+			{
+				applied++;
+			}
+		};
+
+		hostEnemies.SendEnemyAttack(Attack());
+
+		w.Driver.Tick(33);
+
+		Assert.True(applied == 1, "the command must reach the victim's Game Adapter seam (EnemyAttackReceived)");
+	}
+
+	[Fact]
+	public void HostCommand_IsDroppedWhenTheVictimIsNotInWorld()
+	{
+		using var w = ItemSimWorld.Create();
+		var hostEnemies = w.Host.Services.GetRequiredService<EnemySyncService>();
+
+		hostEnemies.SendEnemyAttack(Attack());
+
+		w.Driver.Tick(33);
+
+		Assert.True(w.ReceivedCount(w.G1, NetMsg.EnemyAttack) == 0, "a menu/loading victim cannot receive an in-world attack");
+	}
+
+	[Fact]
+	public void EnemyLunge_LimbIndexZero_IsAValidFirstLimb_AndRoundTrips()
+	{
+		var decoded = NetPacket.DecodePayload<EnemyLungeMsg>(
+			NetPacket.Encode(NetMsg.EnemyLunge, Lunge(limbIndex: 0)));
+
+		Assert.Equal(0, decoded.Limb.Index);
+	}
+
+	[Fact]
 	public void EnemyLunge_RoundTripsThePostLungeState()
 	{
 		var source = Lunge();

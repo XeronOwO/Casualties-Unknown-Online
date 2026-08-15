@@ -92,7 +92,8 @@ internal sealed class EnemyCombatDirector(
 			return;
 		}
 
-		var target = NearestTarget(spider.transform.position, spider.seeDistance);
+		var target = FindTarget(EnemyCombatArbitration.SelectNearest(
+			Facts(), ToNetVector2(spider.transform.position), spider.seeDistance));
 		if (target is null)
 		{
 			return;
@@ -114,13 +115,13 @@ internal sealed class EnemyCombatDirector(
 			return;
 		}
 
-		var target = BuildCandidates()
-			.Where(c => c.Body != null && Vector2.Distance(crystal.transform.position, c.Position) <= CrystalCloseRange)
-			.OrderBy(c => Vector2.Distance(crystal.transform.position, c.Position))
-			.FirstOrDefault();
-		if (target?.Body != null)
+		var fact = EnemyCombatArbitration.SelectNearest(
+			BuildCandidates().Where(c => c.Body != null).Select(c => c.ToFact()),
+			ToNetVector2(crystal.transform.position),
+			CrystalCloseRange);
+		if (fact is { } selected && FindTarget(selected)?.Body is { } targetBody)
 		{
-			body = target.Body;
+			body = targetBody;
 		}
 	}
 
@@ -147,7 +148,9 @@ internal sealed class EnemyCombatDirector(
 		var origin = new Vector2(crystal.transform.position.x, crystal.transform.position.y);
 		var direction = new Vector2(crystal.transform.up.x, crystal.transform.up.y);
 		var groundDistance = FirstGroundDistance(origin, direction, crystal.transform);
-		var target = FirstTargetAlongRay(origin, direction, groundDistance);
+		var fact = EnemyCombatArbitration.SelectLungeVictim(
+			Facts(), ToNetVector2(origin), ToNetVector2(direction), groundDistance, CrystalRayTolerance);
+		var target = FindTarget(fact);
 		if (target is null || target.SteamId == _session.LocalSteamId)
 		{
 			return; // no player in the ray, or the local body — the game's own raycast handles that natively
@@ -180,15 +183,13 @@ internal sealed class EnemyCombatDirector(
 			return;
 		}
 
-		if ((float)BiteCooldownField.GetValue(spider) > 0f || spider.stunTime > 0f)
+		var cooldown = (float)BiteCooldownField.GetValue(spider);
+		var fact = EnemyCombatArbitration.SelectBiteVictim(
+			Facts(), ToNetVector2(spider.transform.position), SpiderBiteRange, cooldown, spider.stunTime, _session.LocalSteamId);
+		var target = FindTarget(fact);
+		if (target is null)
 		{
-			return; // the game's own cooldown/stun gates (SpiderHandler.cs:138)
-		}
-
-		var target = NearestTarget(spider.transform.position, SpiderBiteRange);
-		if (target is null || target.SteamId == _session.LocalSteamId)
-		{
-			return; // no remote player in bite range; a local victim rides the native collision path
+			return; // cooldown/stun closed, nobody in bite range, or the local body rides the native collision path
 		}
 
 		var building = spider.GetComponentInParent<BuildingEntity>();
@@ -219,49 +220,27 @@ internal sealed class EnemyCombatDirector(
 
 	// ---- Target resolution ----
 
-	private EnemyTarget? NearestTarget(Vector2 from, float maxDistance)
+	private EnemyTarget? FindTarget(EnemyTargetFact? fact)
 	{
-		EnemyTarget? best = null;
-		var bestDistance = maxDistance;
+		if (fact is not { } selected)
+		{
+			return null;
+		}
+
 		foreach (var candidate in BuildCandidates())
 		{
-			var distance = Vector2.Distance(from, candidate.Position);
-			if (distance <= bestDistance)
+			if (candidate.SteamId == selected.SteamId)
 			{
-				best = candidate;
-				bestDistance = distance;
+				return candidate;
 			}
 		}
 
-		return best;
+		return null;
 	}
 
-	private EnemyTarget? FirstTargetAlongRay(Vector2 origin, Vector2 direction, float groundDistance)
-	{
-		EnemyTarget? best = null;
-		var bestT = groundDistance;
-		foreach (var candidate in BuildCandidates())
-		{
-			var to = candidate.Position - origin;
-			var alongRay = Vector2.Dot(to, direction);
-			if (alongRay <= 0f || alongRay >= bestT)
-			{
-				continue;
-			}
+	private IEnumerable<EnemyTargetFact> Facts() => BuildCandidates().Select(c => c.ToFact());
 
-			// 2D cross product magnitude = perpendicular distance (direction is normalized).
-			var perpendicular = Mathf.Abs(to.x * direction.y - to.y * direction.x);
-			if (perpendicular > CrystalRayTolerance)
-			{
-				continue;
-			}
-
-			best = candidate;
-			bestT = alongRay;
-		}
-
-		return best;
-	}
+	private static NetVector2 ToNetVector2(Vector2 value) => new(value.x, value.y);
 
 	private float FirstGroundDistance(Vector2 origin, Vector2 direction, Transform self)
 	{
@@ -356,5 +335,7 @@ internal sealed class EnemyCombatDirector(
 		internal Vector2 Position { get; } = position;
 
 		internal Body? Body { get; } = body;
+
+		internal EnemyTargetFact ToFact() => new(SteamId, new NetVector2(Position.x, Position.y));
 	}
 }

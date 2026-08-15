@@ -17,16 +17,34 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 /// <see cref="PacketSender"/>. No pump: it only reacts to calls and messages
 /// (not an ICuoService, like CharacterDataStore).
 /// </summary>
-public sealed partial class WorldService(ISessionControl session, PacketSender sender, ITimeSource time, ILogger<WorldService> log, EntityEventChannel eventChannel, TradeChannel tradeChannel, SpeechChannel speechChannel)
-	: IWorldControl
+public sealed partial class WorldService : IWorldControl, IDisposable
 {
-	private readonly ISessionControl _session = session;
-	private readonly PacketSender _sender = sender;
-	private readonly ITimeSource _time = time;
-	private readonly ILogger<WorldService> _log = log;
-	private readonly EntityEventChannel _eventChannel = eventChannel;
-	private readonly TradeChannel _tradeChannel = tradeChannel;
-	private readonly SpeechChannel _speechChannel = speechChannel;
+	private readonly ISessionControl _session;
+	private readonly PacketSender _sender;
+	private readonly ITimeSource _time;
+	private readonly ILogger<WorldService> _log;
+	private readonly EntityEventChannel _eventChannel;
+	private readonly TradeChannel _tradeChannel;
+	private readonly SpeechChannel _speechChannel;
+
+	public WorldService(ISessionControl session, PacketSender sender, ITimeSource time,
+		ILogger<WorldService> log, EntityEventChannel eventChannel,
+		TradeChannel tradeChannel, SpeechChannel speechChannel)
+	{
+		_session = session;
+		_sender = sender;
+		_time = time;
+		_log = log;
+		_eventChannel = eventChannel;
+		_tradeChannel = tradeChannel;
+		_speechChannel = speechChannel;
+
+		// Session-scoped world state dies with the session: a lobby switch or
+		// host exit must never leak a start gate, pending-run flag, params or
+		// damage table into the next session. The host session survives a
+		// guest leaving, so same-session reconnects keep their state.
+		session.SessionEnded += OnSessionEnded;
+	}
 
 	/// <summary>
 	/// Host-side block-difference table: block-space position → current block id,
@@ -446,6 +464,7 @@ public sealed partial class WorldService(ISessionControl session, PacketSender s
 		_eventChannel.ResetOpenedEntities();
 		_eventChannel.ResetTrapLayouts();
 	}
+
 
 	/// <summary>Host only: send the full damage table to one member (on its world entry).</summary>
 	public void SendBlockStateSnapshot(ulong targetSteamId)

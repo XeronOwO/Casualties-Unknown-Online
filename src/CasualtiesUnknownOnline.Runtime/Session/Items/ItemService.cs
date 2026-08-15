@@ -16,7 +16,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 /// members. Generation-time items never enter the table — world-gen
 /// determinism covers them. No pump (not an ICuoService, like WorldService).
 /// </summary>
-public sealed class ItemService : IItemControl, IItemActionWorldAccess
+public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposable
 {
 	private readonly ISessionControl _session;
 	private readonly PacketSender _sender;
@@ -43,6 +43,12 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess
 		_snapshots = new(session, sender, () => (IReadOnlyCollection<WorldItem>)_worldTable.Items.Values, log);
 		_idCoordinator = new ItemIdCoordinator(session, sender, _arbitration, log);
 		_blockDrops = new BlockDropSync(session, this);
+
+		// The item domain is session-scoped: a lobby switch must never carry a
+		// world/transfer table, watermark or modifier projection into the new
+		// lobby. The host session survives a guest leaving, so reconnect
+		// recovery keeps its state.
+		session.SessionEnded += OnSessionEnded;
 	}
 
 	// ===== Item-id coordination (watermarks + carried inventory) — the state and the docs live in ItemIdCoordinator =====
@@ -486,6 +492,19 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess
 	public void SendPeriodicItemSnapshot() => _snapshots.SendPeriodicItemSnapshot();
 
 	public void ResetItems() => _worldTable.Clear();
+
+	/// <summary>Session ended: every session-scoped item table dies with it.</summary>
+	public void ResetSessionState()
+	{
+		_worldTable.Clear();
+		_arbitration.ResetForSessionEnd();
+		_idCoordinator.ResetForSessionEnd();
+		_snapshots.ResetForSessionEnd();
+	}
+
+	private void OnSessionEnded() => ResetSessionState();
+
+	public void Dispose() => _session.SessionEnded -= OnSessionEnded;
 
 	/// <summary>Host only: the generation finished — the host assigned ids to the generation-time items and hands the full set over. Registered silently (no ItemSpawned event — the local copies exist) and broadcast as ONE reliable snapshot (see GeneratedItemAuthority/Application).</summary>
 	public void PublishGeneratedItems(IReadOnlyList<ItemSnapshotEntryMsg> entries)

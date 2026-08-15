@@ -3,9 +3,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session;
 /// <summary>
 /// The client's lobby identity, decoupled from the session state machine so
 /// data-plane components (PacketReceiver's direction validation) can depend on
-/// it without a dependency cycle. Role follows the lobby (creator = Host,
-/// joiner = Guest) and is NEVER cleared by EndSession; HostSteamId is cleared
-/// when the session ends.
+/// it without a dependency cycle. Role follows the ACTUAL lobby state:
+/// creator = Host, joiner = Guest, no lobby = None (OnLobbyLeft). It is
+/// deliberately NOT cleared by EndSession — that method models a same-lobby
+/// outage, where the identity survives for a rejoin. HostSteamId is cleared
+/// when the session content ends.
 /// </summary>
 public sealed class SessionIdentity
 {

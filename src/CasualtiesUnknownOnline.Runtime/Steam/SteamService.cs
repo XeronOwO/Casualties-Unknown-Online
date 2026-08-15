@@ -69,6 +69,9 @@ public sealed class SteamService(ILogger<SteamService> log) : ICuoService, IStea
 
 	public event Action<ulong>? LobbyEntered;
 
+	/// <summary>Raised when the client left its current lobby (explicit leave-before-create/join) — the session layer tears down on this.</summary>
+	public event Action<ulong>? LobbyLeft;
+
 	/// <summary>Raised when a lobby join attempt fails (lobby gone, full, ...).
 	/// The reason is a human-readable description — Steamworks types never
 	/// leave this class (abstraction rule in architecture.md).</summary>
@@ -127,24 +130,40 @@ public sealed class SteamService(ILogger<SteamService> log) : ICuoService, IStea
 
 	public void CreateLobby(int maxMembers = 8)
 	{
-		// Steam requires leaving the current lobby before a fresh create — a
-		// re-create without leaving strands the old lobby (the host's friends
-		// keep joining the dead lobby; observed live on F8 re-create).
-		if (_lobby.MustLeaveBeforeCreate)
-		{
-			_log.LogInformation("Leaving current lobby {Lobby} before creating a new one.", _lobby.CurrentLobbyId);
-			SteamMatchmaking.LeaveLobby(new CSteamID(_lobby.CurrentLobbyId));
-			_lobby.OnLobbyLeft();
-		}
-
+		LeaveCurrentLobbyFor("creating a new one");
 		_log.LogInformation("Requesting lobby creation...");
 		SteamMatchmaking.CreateLobby(ELobbyType.k_ELobbyTypePublic, maxMembers);
 	}
 
 	public void JoinLobby(ulong lobbyId)
 	{
+		// The official JoinLobby docs do not promise an automatic leave of the
+		// previous lobby — leave explicitly so a lobby switch can never strand
+		// the old lobby or deliver two memberships (the create path already
+		// learned this live on F8 re-create).
+		LeaveCurrentLobbyFor($"joining lobby {lobbyId}");
 		_log.LogInformation($"Requesting join of lobby {lobbyId}...");
 		SteamMatchmaking.JoinLobby(new CSteamID(lobbyId));
+	}
+
+	/// <summary>
+	/// Leave the current lobby before acquiring another one. Steam's LeaveLobby
+	/// takes effect immediately on the client side (official docs); the other
+	/// members are notified via LobbyChatUpdate. The session layer hears the
+	/// leave through <see cref="LobbyLeft"/> before the new lobby exists.
+	/// </summary>
+	private void LeaveCurrentLobbyFor(string reason)
+	{
+		if (!_lobby.IsInLobby)
+		{
+			return;
+		}
+
+		var previousLobbyId = _lobby.CurrentLobbyId;
+		_log.LogInformation("Leaving current lobby {Lobby} before {Reason}.", previousLobbyId, reason);
+		SteamMatchmaking.LeaveLobby(new CSteamID(previousLobbyId));
+		_lobby.OnLobbyLeft();
+		LobbyLeft?.Invoke(previousLobbyId);
 	}
 
 	private void OnLobbyCreated(LobbyCreated_t callback)

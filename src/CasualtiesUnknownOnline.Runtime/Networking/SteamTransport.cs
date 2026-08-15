@@ -85,8 +85,26 @@ public sealed class SteamTransport(ISteamService steam, ILogger<SteamTransport> 
 		{
 			for (var i = 0; i < count; i++)
 			{
-				HandleMessage(_receiveBuffer[i]);
-				SteamNetworkingMessage_t.Release(_receiveBuffer[i]);
+				var message = _receiveBuffer[i];
+				try
+				{
+					HandleMessage(message);
+				}
+				catch (Exception ex)
+				{
+					// One malformed/unappliable packet must never kill the rest of
+					// the batch: Steam removes the whole received array from its
+					// queue up front, so a throw here would silently lose every
+					// message after the bad one. Observed 2026-08-15: an enemy
+					// snapshot's null-prefab materialization threw before the
+					// WorldReady that followed it in the same poll batch, and the
+					// guest sat at the start gate for the full 60 s timeout.
+					_log.LogError(ex, "SteamTransport: one received message failed — continuing with the rest of the batch.");
+				}
+				finally
+				{
+					SteamNetworkingMessage_t.Release(message);
+				}
 			}
 		}
 	}

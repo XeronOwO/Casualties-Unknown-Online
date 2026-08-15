@@ -156,6 +156,20 @@ public sealed class ItemArbitration(ISessionControl session, PacketSender sender
 	}
 
 	/// <summary>
+	/// Session ended (host exit, lobby switch): the transfer table is
+	/// session-scoped — entries never leak into another lobby's run. The host
+	/// session survives a guest leaving, so same-session reconnect merges keep
+	/// their table. Unlike <see cref="ClearTransferred"/> this has no role
+	/// gate: the session is already inactive when the teardown event fires.
+	/// </summary>
+	public void ResetForSessionEnd()
+	{
+		var entries = _transferred.Values.Sum(owned => owned.Count);
+		_transferred.Clear();
+		_log.LogInformation("Session ended — cleared the transfer table ({Entries} entries).", entries);
+	}
+
+	/// <summary>
 	/// Host only: a NEW run started — the previous run's transfer entries are
 	/// void (they belonged to the old world's items). Without this the stale
 	/// entries outlive the run: the reconnect restore merge resurrects the old

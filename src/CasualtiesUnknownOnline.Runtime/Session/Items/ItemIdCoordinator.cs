@@ -90,6 +90,9 @@ public sealed class ItemIdCoordinator
 		ItemIdWatermarkReceived?.Invoke(counter);
 	}
 
+	/// <summary>Session ended: id watermarks are session-scoped — a new lobby's host records fresh grants from the new handshakes.</summary>
+	public void ResetForSessionEnd() => _watermarks.Clear();
+
 	/// <summary>Guest only: the carried inventory with self-assigned ids (the local generation finished) — the host registers it in the guest's transfer table.</summary>
 	public void SendCarriedInventory(IReadOnlyList<CharacterItemMsg> items)
 	{

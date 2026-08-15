@@ -129,7 +129,10 @@ public class Plugin : BaseUnityPlugin
 			_steam.JoinRequested += lobbyId =>
 			{
 				_log.LogInformation("Join requested via Steam friends — joining lobby {LobbyId}.", lobbyId);
-				_steam.JoinLobby(lobbyId);
+				if (CanSwitchLobbyForJoin())
+				{
+					_steam.JoinLobby(lobbyId);
+				}
 			};
 			// Join failures (lobby gone, full, ...) surface on the test HUD;
 			// before this they were silent (LobbyEnter_t carries failures only
@@ -153,7 +156,11 @@ public class Plugin : BaseUnityPlugin
 			// failed, F8 retries it and joins the pending lobby then (Update).
 			if (_pendingJoinLobbyId is not null && _steam.IsInitialized)
 			{
-				_steam.JoinLobby(_pendingJoinLobbyId.Value);
+				if (CanSwitchLobbyForJoin())
+				{
+					_steam.JoinLobby(_pendingJoinLobbyId.Value);
+				}
+
 				_pendingJoinLobbyId = null;
 			}
 
@@ -202,9 +209,12 @@ public class Plugin : BaseUnityPlugin
 					if (_pendingJoinLobbyId is { } pending)
 					{
 						_pendingJoinLobbyId = null;
-						steam.JoinLobby(pending);
+						if (CanSwitchLobbyForJoin())
+						{
+							steam.JoinLobby(pending);
+						}
 					}
-					else
+					else if (CanSwitchLobbyForCreate())
 					{
 						steam.CreateLobby();
 					}
@@ -212,7 +222,9 @@ public class Plugin : BaseUnityPlugin
 			}
 			else if (Input.GetKeyDown(KeyCode.F9))
 			{
-				if (EnsureSteamReady(steam) && ulong.TryParse(_targetLobbyId.Value, out var lobbyId))
+				if (EnsureSteamReady(steam)
+					&& CanSwitchLobbyForJoin()
+					&& ulong.TryParse(_targetLobbyId.Value, out var lobbyId))
 				{
 					steam.JoinLobby(lobbyId);
 				}
@@ -239,6 +251,37 @@ public class Plugin : BaseUnityPlugin
 	}
 
 	private bool EnsureSteamReady(SteamService steam) => steam.Initialize();
+
+	/// <summary>Join policy: a lobby join always changes identity, so any active world/generation blocks it. The reason is visible on the test HUD.</summary>
+	private bool CanSwitchLobbyForJoin()
+	{
+		if (_adapter is not { IsInWorldOrGenerating: true })
+		{
+			return true;
+		}
+
+		_lastJoinError = "Return to the main menu before switching lobby.";
+		_log.LogWarning("Lobby join refused: a world is running or generating.");
+		return false;
+	}
+
+	/// <summary>Create policy: menu is always allowed; in a world only the solo->host conversion is (no session, no identity change away from another host).</summary>
+	private bool CanSwitchLobbyForCreate()
+	{
+		if (_adapter is not { IsInWorldOrGenerating: true })
+		{
+			return true;
+		}
+
+		if (LobbySwitchGuard.CanCreateLobby(_session.Role, _session.SessionActive, worldFlowActive: true))
+		{
+			return true;
+		}
+
+		_lastJoinError = "Return to the main menu before switching lobby.";
+		_log.LogWarning("Lobby create refused: a sessioned world is running or generating.");
+		return false;
+	}
 
 	// Steam launches the game with "+connect_lobby <id>" when the user clicks
 	// a friend's "Join Game" while the game is not running. Parse the lobby ID

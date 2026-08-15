@@ -17,8 +17,14 @@ drop-then-pickup view offset determined game-native (CUO never writes the item t
 
 ## Lobby domain
 
-- Guest that created its own lobby then joins the host via Steam friends does not follow the
-  host into a run (WorldJoin follow broken) — lobby-domain refactor.
+- RESOLVED (2026-08-15, lobby-domain refactor): the lobby identity is now a real state machine.
+  `SteamService.JoinLobby`/`CreateLobby` both leave the current lobby first and fire `LobbyLeft`;
+  `SessionService` tears the old session down, drops the role with the lobby, and rebinds as
+  Guest/Host on the entered/created lobby before re-handshaking. The original repro (guest hosts
+  its own lobby, then joins the host via Steam friends) is runtime-verified end-to-end: role
+  switched to Guest, handshake confirmed, and the guest followed the host's run with a matching
+  world fingerprint and `WorldReady` on time. Lobby switches while a world is running/generating
+  are refused by `LobbySwitchGuard` (menu-only policy; the solo-in-world -> host conversion stays).
 - RESOLVED (b4b324b): F8 lobby re-create residue — `SteamService.CreateLobby` now leaves the old
   lobby (`LobbyLifecycle`/`SteamMatchmaking.LeaveLobby`) before creating a new one.
 

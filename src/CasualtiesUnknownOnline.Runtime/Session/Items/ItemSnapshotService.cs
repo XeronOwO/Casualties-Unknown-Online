@@ -48,6 +48,13 @@ public sealed class ItemSnapshotService(
 	public event Action<IReadOnlyList<WorldItem>, int, byte[]?>? ItemSnapshotReceived;
 
 	public event Action<IReadOnlyList<ItemSnapshotEntryMsg>, int, byte[]?>? WorldItemsSnapshotReceived;
+	/// <summary>Session ended: the layer-modifier projection belongs to the previous world — the next run publishes its own.</summary>
+	public void ResetForSessionEnd()
+	{
+		LayerModifierIndex = -1;
+		LayerModifierRandomState = null;
+	}
+
 
 	public void FireItemSnapshotReceived(ulong sender, IReadOnlyList<WorldItem> items, int layerModifierIndex, byte[]? layerModifierRandomState)
 	{

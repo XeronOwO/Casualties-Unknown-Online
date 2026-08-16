@@ -9,10 +9,12 @@ using Microsoft.Extensions.Logging;
 namespace CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 
 /// <summary>
-/// Character-data domain: the session-scoped character save/restore, keyed by
-/// SteamId. Guests report their snapshot (1 Hz, driven by the Game Adapter);
-/// the host keeps the latest per SteamID and hands it back when the same
-/// player reconnects (the save outlives the session — character-data-plan).
+/// Character-data domain: the SteamID-keyed character save/restore. Guests
+/// report their snapshot (1 Hz, driven by the Game Adapter); the host keeps
+/// the latest per SteamID in memory and in the disk store, and hands it back
+/// when the same player reconnects. The disk copy survives a host restart;
+/// memory remains session-scoped (cleared on session end) while the file stays
+/// until a NEW run voids it (`ClearSavedCharacters`).
 /// The reconnect restore merges the item arbitration's transfer table (the
 /// host's authoritative record of what the guest owns) over the guest's last
 /// report — the host's data wins where they disagree, and items the guest
@@ -29,22 +31,32 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable
 	private readonly PacketSender _sender;
 	private readonly ILogger<CharacterDataStore> _log;
 	private readonly IItemControl _items;
+	private readonly CharacterDataFileStore _persistence;
+	private readonly Dictionary<ulong, CharacterDataMsg> _savedCharacters; // host: last report per SteamID
+
 	public CharacterDataStore(ISessionControl session, PacketSender sender,
-		ILogger<CharacterDataStore> log, IItemControl items)
+		ILogger<CharacterDataStore> log, IItemControl items, CharacterDataFileStore persistence)
 	{
 		_session = session;
 		_sender = sender;
 		_log = log;
 		_items = items;
+		_persistence = persistence;
 
-		// Saved characters are SESSION-scoped: the host session survives a
-		// guest leaving (that reconnect restore still works), but a real
-		// session end (host exit / lobby switch) must not leak the old run's
-		// saves into the next lobby.
+		// Load the persisted table at construction — a host restart/continue-run
+		// restores reconnecting guests from this file. A missing/disabled file is
+		// an empty table; a corrupt/unknown-version file degrades to empty (the
+		// store logs the reason). There is deliberately NO later lazy reload:
+		// after a session end the old run's identity is unknown, so only a new
+		// process start (the restart/continue-run path) may reload the disk copy.
+		_persistence.TryLoad(out _savedCharacters);
+
+		// Memory is SESSION-scoped: the host session survives a guest leaving
+		// (that reconnect restore still works), but a real session end (host
+		// exit / lobby switch) clears the active table. The disk copy is the
+		// persistence layer and deliberately survives this reset.
 		session.SessionEnded += OnSessionEnded;
 	}
-
-	private readonly Dictionary<ulong, CharacterDataMsg> _savedCharacters = []; // host: last report per SteamID
 
 	/// <summary>
 	/// Guest side: report the local character snapshot to the host (1-2 Hz,
@@ -61,8 +73,12 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable
 		_sender.Send(_session.HostSteamId, NetMsg.CharacterData, msg);
 	}
 
-	/// <summary>Host side: keep the latest report per SteamID (session-scoped save).</summary>
-	internal void SaveCharacterData(ulong steamId, CharacterDataMsg msg) => _savedCharacters[steamId] = msg;
+	/// <summary>Host side: keep the latest report per SteamID in memory and on disk.</summary>
+	internal void SaveCharacterData(ulong steamId, CharacterDataMsg msg)
+	{
+		_savedCharacters[steamId] = msg;
+		PersistTable();
+	}
 
 	/// <summary>
 	/// Host side: merge an enemy bite's post-bite terminal state into the
@@ -75,6 +91,7 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable
 		if (_savedCharacters.TryGetValue(msg.VictimSteamId, out var data))
 		{
 			EnemyTerminalStateApplier.ApplyBite(data, msg);
+			PersistTable();
 		}
 	}
 
@@ -84,6 +101,7 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable
 		if (_savedCharacters.TryGetValue(msg.VictimSteamId, out var data))
 		{
 			EnemyTerminalStateApplier.ApplyLunge(data, msg);
+			PersistTable();
 		}
 	}
 
@@ -93,6 +111,7 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable
 		if (_savedCharacters.TryGetValue(msg.VictimSteamId, out var data))
 		{
 			EnemyTerminalStateApplier.ApplyEffect(data, msg);
+			PersistTable();
 		}
 	}
 
@@ -102,11 +121,29 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable
 	/// fresh characters, the previous run's saves are void (a stale restore
 	/// would wipe the new run's starting supplies — "started paradise, got the
 	/// previous run's emergency light"). Same-run re-entries (death → menu →
-	/// re-enter) find their save still in the table and restore normally.
+	/// re-enter) find their save still in the table and restore normally. The
+	/// disk copy is deleted too: a process restart must not resurrect it.
 	/// </summary>
-	public void ClearSavedCharacters() => _savedCharacters.Clear();
+	public void ClearSavedCharacters()
+	{
+		_savedCharacters.Clear();
 
-	/// <summary>Session ended: the in-memory saves die with the session (the new run captures its own).</summary>
+		// Write the empty-table tombstone BEFORE deleting: if the delete fails,
+		// the current file already reads as an empty new run — the old run can
+		// never be resurrected by a later restart. If both writes fail, the
+		// store logs the explicit degradation and this process stays empty.
+		if (!_persistence.Save([]))
+		{
+			_log.LogWarning("Character-data disk tombstone write failed — if the old file survives, a restart may reload it.");
+		}
+
+		if (!_persistence.Delete())
+		{
+			_log.LogWarning("Character-data disk delete failed after the tombstone write — the file may remain, but it reads as empty.");
+		}
+	}
+
+	/// <summary>Session ended: the in-memory saves die with the session; the disk copy survives for a host restart / continue-run.</summary>
 	public void ResetForSessionEnd() => _savedCharacters.Clear();
 
 	private void OnSessionEnded() => ResetForSessionEnd();
@@ -121,6 +158,20 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable
 			MergeTransferredItems(steamId, data);
 			_sender.Send(steamId, NetMsg.CharacterData, data);
 			_log.LogInformation("Sent saved character data to {Peer} ({Items} items).", steamId, data.Items.Count);
+		}
+	}
+
+	/// <summary>Persist the full in-memory table after a verified mutation. A failed write keeps the in-memory save working for this process.</summary>
+	private void PersistTable()
+	{
+		if (!_persistence.IsEnabled)
+		{
+			return;
+		}
+
+		if (!_persistence.Save(_savedCharacters))
+		{
+			_log.LogWarning("Character-data disk save failed — the in-memory save keeps working for this process.");
 		}
 	}
 

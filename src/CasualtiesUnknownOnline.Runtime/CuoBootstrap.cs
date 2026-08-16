@@ -41,9 +41,12 @@ public static class CuoBootstrap
 	/// Builds the container. <paramref name="extraRegistrations"/> lets the plugin
 	/// register the Game Adapter implementation (CUO.GameAdapter references the
 	/// game, so the Runtime cannot reference it back).
+	/// <paramref name="characterDataFile"/> is the optional host character-data
+	/// disk file; null (the test composition default) keeps the store in-memory only.
 	/// </summary>
 	public static ServiceProvider BuildServiceProvider(
 		ManualLogSource bepinExLogSource, string logDirectory, string? legacyLogPath = null,
+		string? characterDataFile = null,
 		Action<IServiceCollection>? extraRegistrations = null)
 	{
 		var services = new ServiceCollection();
@@ -135,8 +138,12 @@ public static class CuoBootstrap
 		services.AddSingleton<EnemySyncService>();
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<EnemySyncService>());
 		services.AddSingleton<IEnemySyncControl>(p => p.GetRequiredService<EnemySyncService>());
-		// Character-data domain: the SteamID-keyed save/restore (no pump, not
-		// an ICuoService — it only reacts to reports and handshakes).
+		// Character-data domain: the SteamID-keyed save/restore with its disk
+		// store (no pump, not an ICuoService — it only reacts to reports and
+		// handshakes). A null characterDataFile keeps the store in-memory-only
+		// (the test composition default).
+		services.AddSingleton(p => new CharacterDataFileStore(
+			characterDataFile, p.GetRequiredService<ILogger<CharacterDataFileStore>>()));
 		services.AddSingleton<CharacterDataStore>();
 		services.AddSingleton<ICharacterDataControl>(p => p.GetRequiredService<CharacterDataStore>());
 		// World domain: world-start parameters + block-damage reports (no pump,

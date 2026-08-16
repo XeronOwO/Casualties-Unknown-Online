@@ -6,7 +6,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 
 /// <summary>
 /// Character data: guest → host as a 1 Hz report (host saves per SteamID,
-/// session-scoped) relayed to the other guests (their clones of the reporter
+/// memory + disk) relayed to the other guests (their clones of the reporter
 /// render its carried state), host → guest as a reconnect restore.
 /// </summary>
 [PacketHandler(NetMsg.CharacterData)]

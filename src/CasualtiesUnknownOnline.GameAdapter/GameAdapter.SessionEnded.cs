@@ -15,6 +15,7 @@ public sealed partial class GameAdapter
 		_blockBreakSync.ResetPending();
 		_craftingSync.ResetPending();
 		_heaterCookSync.Reset();
+		_gate.ResetSessionState();
 		_renderer.DestroyAllClones();
 	}
 }

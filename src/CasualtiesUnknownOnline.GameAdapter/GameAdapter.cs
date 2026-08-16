@@ -202,6 +202,8 @@ public sealed partial class GameAdapter : IGameAdapter, ICuoService, IPatchBridg
 
 	bool IPatchBridge.IsWaitingForReady => _gate.WaitingForReady;
 
+	bool IPatchBridge.TryDeferStartGateAlert(string text, bool important) => _gate.DeferAlert(text, important);
+
 	bool IGameAdapter.IsWaitingForReady => _gate.WaitingForReady;
 
 	bool IGameAdapter.IsInWorldOrGenerating => _run.IsInWorldOrGenerating;

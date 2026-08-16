@@ -26,6 +26,7 @@ Copy-Item "$managed\UnityEngine.dll"            .   # game's bundled UnityEngine
 Copy-Item "$managed\UnityEngine.CoreModule.dll" .   # Unity core module (same version as game)
 Copy-Item "$managed\UnityEngine.Physics2DModule.dll" .   # Physics2D/Rigidbody2D (Game Adapter)
 Copy-Item "$managed\UnityEngine.AnimationModule.dll"  .   # HingeJoint/anim helpers (Game Adapter)
+Copy-Item "$managed\UnityEngine.TextRenderingModule.dll" .  # TextAnchor (Plugin wait-overlay GUI)
 Copy-Item "$managed\netstandard.dll"            .   # Unity Mono compatibility layer
 Copy-Item "$bepinex\0Harmony.dll"               .   # HarmonyX fork 2.9.0 (runtime copy lives in BepInEx/core)
 Copy-Item "$bepinex\plugins\KrokMP\steam_api64.dll" .  # Steam native lib (deployed via deploy.ps1)
@@ -47,6 +48,7 @@ Copy-Item "$bepinex\plugins\KrokMP\steam_api64.dll" .  # Steam native lib (deplo
 | `UnityEngine.CoreModule.dll` | `<game>\CasualtiesUnknown_Data\Managed\` |
 | `UnityEngine.Physics2DModule.dll` | `<game>\CasualtiesUnknown_Data\Managed\` |
 | `UnityEngine.AnimationModule.dll` | `<game>\CasualtiesUnknown_Data\Managed\` |
+| `UnityEngine.TextRenderingModule.dll` | `<game>\CasualtiesUnknown_Data\Managed\` |
 | `netstandard.dll` | `<game>\CasualtiesUnknown_Data\Managed\` |
 | `0Harmony.dll` | `<game>\BepInEx\core\`(HarmonyX fork 2.9.0 — not on NuGet as 0Harmony) |
 | `steam_api64.dll` | `<game>\BepInEx\plugins\KrokMP\`(native,not a compile reference — deploy.ps1 ships it) |

@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Text;
+using CasualtiesUnknownOnline.Runtime.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace CasualtiesUnknownOnline.Runtime.Logging;
 
@@ -12,6 +14,8 @@ namespace CasualtiesUnknownOnline.Runtime.Logging;
 /// on startup the previous session's log is compressed to a timestamped
 /// <c>yyyy-MM-dd-N.log.gz</c>. Pure BCL — no BepInEx dependency, so it also
 /// serves a future dedicated server. Never throws — logging must not crash.
+/// The configurable minimum level is enforced here so hot reload affects the
+/// file sink without rebuilding the logging factory.
 /// </summary>
 public sealed class RollingFileLoggerProvider : ILoggerProvider
 {
@@ -21,6 +25,7 @@ public sealed class RollingFileLoggerProvider : ILoggerProvider
 	private readonly object _sync = new();
 	private readonly string _directory;
 	private readonly string? _legacyLogPath;
+	private readonly IOptionsMonitor<LoggingOptions> _options;
 	private readonly Dictionary<string, RollingFileLogger> _loggers = [];
 	private StreamWriter? _writer;
 	private bool _disabled;
@@ -30,10 +35,12 @@ public sealed class RollingFileLoggerProvider : ILoggerProvider
 	/// pre-rollover BepInEx/CUO.log) archived into <paramref name="logDirectory"/>
 	/// once, so history is not lost during the cutover.
 	/// </summary>
-	public RollingFileLoggerProvider(string logDirectory, string? legacyLogPath = null)
+	public RollingFileLoggerProvider(string logDirectory, string? legacyLogPath,
+		IOptionsMonitor<LoggingOptions> options)
 	{
 		_directory = logDirectory ?? throw new ArgumentNullException(nameof(logDirectory));
 		_legacyLogPath = legacyLogPath;
+		_options = options ?? throw new ArgumentNullException(nameof(options));
 
 		try
 		{
@@ -171,13 +178,16 @@ public sealed class RollingFileLoggerProvider : ILoggerProvider
 			var message = formatter(state, exception);
 			if (exception is not null)
 			{
-				message += "\n" + exception;
+				message += Environment.NewLine + exception;
 			}
 
 			_provider.WriteLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] [{LevelCode(logLevel)}] [{_category}] {message}");
 		}
 
-		public bool IsEnabled(LogLevel logLevel) => logLevel != LogLevel.None && _provider.IsEnabled;
+		public bool IsEnabled(LogLevel logLevel) =>
+			logLevel != LogLevel.None
+			&& _provider.IsEnabled
+			&& logLevel >= _provider._options.CurrentValue.MinimumLevel;
 
 		public IDisposable BeginScope<TState>(TState state) => NullScope.Instance;
 

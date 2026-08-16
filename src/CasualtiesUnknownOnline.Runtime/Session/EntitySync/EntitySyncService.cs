@@ -2,16 +2,19 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
+using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Time;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 
 /// <summary>
 /// Entity-sync domain: the entity table, id allocation, the sync decisions and
-/// the 20 Hz state exchange (host broadcast + guest report) with the join/leave
+/// the configured state exchange (host broadcast + guest report, default
+/// 20 Hz) with the join/leave
 /// announcements. SessionService (control plane) owns the handshake and the
 /// world/diagnostics surface; this service owns what the members ARE in the
 /// world: entity buffers, entity ids, per-member sync state and the state
@@ -22,9 +25,6 @@ namespace CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 /// </summary>
 public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 {
-	private const float StateSendInterval = 0.05f; // 20 Hz authoritative snapshot
-	private const float ReportSendInterval = 0.05f; // 20 Hz guest state report
-
 	/// <summary>
 	/// One member's entity-sync state. Host: one entry per synced guest. Guest:
 	/// the host plus roster members (the host broadcasts the full entity list, so
@@ -44,6 +44,8 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 	private readonly PacketSender _sender;
 
 	private readonly ITimeSource _time;
+
+	private readonly IOptionsMonitor<StateStreamOptions> _stateStreamOptions;
 
 	private readonly ILogger<EntitySyncService> _log;
 
@@ -66,13 +68,16 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 	private uint _nextStateSeq; // host: PlayerState broadcasts
 	private uint _nextReportSeq; // guest: PlayerStateReport broadcasts
 
-	public EntitySyncService(ISessionControl session, PacketSender sender, ITimeSource time, ILogger<EntitySyncService> log)
+	public EntitySyncService(ISessionControl session, PacketSender sender, ITimeSource time,
+		IOptionsMonitor<StateStreamOptions> stateStreamOptions, ILogger<EntitySyncService> log)
 	{
 		_session = session;
 
 		_sender = sender;
 
 		_time = time;
+
+		_stateStreamOptions = stateStreamOptions;
 
 		_log = log;
 		_localPlayer = new PlayerEntity(session.LocalSteamId, default, isLocal: true);
@@ -122,7 +127,11 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 	}
 
 	/// <summary>The local player swung (Body.Attack or Body.ThrowItem — both play ArmsSwing) — mark the swing so the peers' clones replay the animation via the IsAttacking snapshot flag.</summary>
-	public void MarkLocalAttackSwing() => _attackSwing.MarkAttack(_time.NowMs);
+	public void MarkLocalAttackSwing()
+	{
+		ConfigureSwingHold();
+		_attackSwing.MarkAttack(_time.NowMs);
+	}
 
 	/// <summary>Raised when a member's entity sync starts (host: that guest; guest: host or a roster member).</summary>
 	public event Action<PlayerEntity>? RemoteJoined;
@@ -278,6 +287,16 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 	{
 	}
 
+	/// <summary>
+	/// Keep the attack-swing flag held for six stream ticks (never shorter than
+	/// the 300 ms clip) at the currently configured cadence.
+	/// </summary>
+	private void ConfigureSwingHold()
+	{
+		var intervalMs = Math.Max(1L, (long)(_stateStreamOptions.CurrentValue.SendIntervalSeconds * 1000f));
+		_attackSwing.SetStreamHoldMs(intervalMs * 6);
+	}
+
 	void ICuoService.Update()
 	{
 		// Steam init may have succeeded on a LATER retry (the F8 path after a
@@ -294,6 +313,9 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 
 		// The swing window ticks unconditionally — even a solo swing (no sync
 		// active) must expire so a later lobby open never re-sends a stale flag.
+		// Its hold follows the configured stream cadence (six ticks, at least the
+		// clip span) so the rising edge survives drops at any frequency.
+		ConfigureSwingHold();
 		_attackSwing.Tick(_time.NowMs);
 
 		// Either side leaving the world ends the sync: the peer renders our clone
@@ -315,16 +337,17 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 			MaybeStartEntitySync();
 		}
 
+		var intervalSeconds = _stateStreamOptions.CurrentValue.SendIntervalSeconds;
 		var nowMs = _time.NowMs;
 		if (_session.Role == SessionRole.Host && EntitySyncActive && nowMs >= _nextStateSendMs)
 		{
-			_nextStateSendMs = nowMs + (long)(StateSendInterval * 1000f);
+			_nextStateSendMs = nowMs + (long)(intervalSeconds * 1000f);
 			BroadcastPlayerState();
 		}
 
 		if (_session.Role == SessionRole.Guest && EntitySyncActive && nowMs >= _nextReportSendMs)
 		{
-			_nextReportSendMs = nowMs + (long)(ReportSendInterval * 1000f);
+			_nextReportSendMs = nowMs + (long)(intervalSeconds * 1000f);
 			SendPlayerStateReport();
 		}
 	}

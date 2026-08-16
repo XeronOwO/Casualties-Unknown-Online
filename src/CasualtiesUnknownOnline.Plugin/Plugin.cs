@@ -7,13 +7,17 @@ using BepInEx.Configuration;
 using BepInEx.Logging;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime;
+using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Steam;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using UnityEngine;
+using MelLogLevel = Microsoft.Extensions.Logging.LogLevel;
 using GameAdapterImpl = CasualtiesUnknownOnline.GameAdapter.GameAdapter;
 
 namespace CasualtiesUnknownOnline;
@@ -75,6 +79,31 @@ public class Plugin : BaseUnityPlugin
 				legacyLogPath: Path.Combine(Paths.BepInExRootPath, "CUO.log"),
 				extraRegistrations: services =>
 				{
+					// BepInEx ConfigFile → IOptionsMonitor bridge: the plugin owns
+					// the ConfigEntry declarations, the Runtime owns the options
+					// snapshots and the hot-reload monitor. Invalid/out-of-range
+					// values are clamped by BepInEx (range) or by the defensive
+					// parser below (log level falls back to Information).
+					var stateStreamHz = Config.Bind("Sync", "StateStreamHz",
+						StateStreamOptions.DefaultStateStreamHz,
+						new ConfigDescription(
+							"Player/enemy state snapshot frequency in Hz (higher = smoother, more bandwidth).",
+							new AcceptableValueRange<int>(StateStreamOptions.MinStateStreamHz, StateStreamOptions.MaxStateStreamHz)));
+					var minimumLevel = Config.Bind("Logging", "MinimumLevel", "Information",
+						new ConfigDescription(
+							"Minimum CUO log level written to BepInEx and latest.log. Information keeps normal play quiet.",
+							new AcceptableValueList<string>(new[] { "Information", "Trace", "Debug", "Warning", "Error", "Critical", "None" })));
+					services.Replace(ServiceDescriptor.Singleton<IOptionsMonitor<StateStreamOptions>>(
+						new BepInExOptionsMonitor<StateStreamOptions>(
+							Config,
+							() => new StateStreamOptions { StateStreamHz = stateStreamHz.Value },
+							stateStreamHz.Definition)));
+					services.Replace(ServiceDescriptor.Singleton<IOptionsMonitor<LoggingOptions>>(
+						new BepInExOptionsMonitor<LoggingOptions>(
+							Config,
+							() => new LoggingOptions { MinimumLevel = ParseLogLevel(minimumLevel.Value) },
+							minimumLevel.Definition)));
+
 					// Character-data mapping (Mapster). Mapster 6.0.0 core ships
 					// IMapper/Mapper — registered directly, no DI package needed
 					// (Mapster.DependencyInjection 10.x requires net6+).
@@ -282,6 +311,12 @@ public class Plugin : BaseUnityPlugin
 		_log.LogWarning("Lobby create refused: a sessioned world is running or generating.");
 		return false;
 	}
+
+	private static MelLogLevel ParseLogLevel(string text) =>
+		Enum.TryParse(text, ignoreCase: true, out MelLogLevel level)
+		&& Enum.IsDefined(typeof(MelLogLevel), level)
+			? level
+			: MelLogLevel.Information;
 
 	// Steam launches the game with "+connect_lobby <id>" when the user clicks
 	// a friend's "Join Game" while the game is not running. Parse the lobby ID

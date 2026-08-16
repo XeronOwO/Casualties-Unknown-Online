@@ -99,6 +99,33 @@ public class TransportTests
 	}
 
 	[Fact]
+	public void HandlerSends_DoNotReenterTheFlushingBatch()
+	{
+		// SteamTransport.Poll drains a batch without a handler's own sends being
+		// delivered back into the SAME poll. A nested FlushDue from a handler's
+		// no-delay send would deliver B inside A's handler (A,C,B) and corrupt
+		// every test that reasons about whole-handler atomicity.
+		var (network, host, guest) = CreatePair();
+		network.SetFaults(Host, Guest, new LinkFaults { DelayMs = 100 });
+		var delivered = new List<byte>();
+		guest.MessageReceived += (_, frame) =>
+		{
+			delivered.Add(frame[0]);
+			if (frame[0] == 1)
+			{
+				guest.SendTo(Host, new[] { (byte)3 }, reliable: true); // guest echoes inside A's handler
+			}
+		};
+		host.MessageReceived += (_, frame) => delivered.Add(frame[0]);
+
+		host.SendTo(Guest, new[] { (byte)1 }, reliable: true); // A
+		host.SendTo(Guest, new[] { (byte)2 }, reliable: true); // B (same due time, queued before the echo)
+		network.Advance(100);
+
+		Assert.Equal(new byte[] { 1, 2, 3 }, delivered); // A completes, then B, then the echo
+	}
+
+	[Fact]
 	public void DifferentDelays_ProduceReorder()
 	{
 		var (network, host, guest) = CreatePair();

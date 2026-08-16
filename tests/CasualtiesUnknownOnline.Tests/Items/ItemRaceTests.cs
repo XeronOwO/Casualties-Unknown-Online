@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Tests.Fakes;
 using Xunit;
 
@@ -49,22 +50,47 @@ public class ItemRaceTests
 	}
 
 	[Fact]
-	public void SpawnPickupInflight_PickupArrivesFirst_RejectedThenSpawnRegisters()
+	public void SpawnPickupInflight_PickupArrivesFirst_SettlesWhenTheSpawnLands()
 	{
-		// The branch ItemService.cs:314-318 was written for: the pickup wins the
-		// race against its own spawn report — refused (UnknownItem, the picker
-		// rolls back), then the spawn report lands and registers idempotently.
-		// End state: the item is back in the world, nobody owns it.
+		// The old branch ItemService.cs:314-318 refused the pickup immediately
+		// and left the late spawn in the world for a manual re-pickup. The
+		// pending-pickup queue now holds the claim until the spawn report lands
+		// (within the 500 ms hold), then settles the SAME transfer the normal
+		// spawn-first path would have produced — no reject, no rollback.
 		using var w = ItemSimWorld.Create();
 		w.Pickup(w.G1, 42, Item()); // clean link — lands immediately, the item is not in the table yet
 		w.Driver.Network.SetFaults(w.G1.SteamId, w.Host.SteamId, new LinkFaults { DelayMs = 300 });
-		w.Spawn(w.G1, 42, Item()); // delayed — lands after the pickup was refused
-		w.Driver.Tick(33); // the pickup was processed (reject on the way back)
-		w.Driver.Tick(300); // the spawn report lands
+		w.Spawn(w.G1, 42, Item()); // delayed — lands while the claim is still held
+		w.Driver.Tick(33); // the pickup is queued, no reject yet
+		Assert.Empty(w.Rejects(w.G1));
+		w.Driver.Tick(300); // the spawn report lands and settles the queue
 
-		Assert.True(w.Rejects(w.G1).Any(r => r.ItemId == 42), "the in-flight pickup must be refused (item not in the table yet)");
-		Assert.True(w.HostTable(42), "the late spawn report must register idempotently");
+		Assert.Empty(w.Rejects(w.G1));
+		Assert.False(w.HostTable(42), "the settled claim transferred the item out of the world table");
+		Assert.True(w.TransferredOf(w.G1, 42), "the picker owns the item exactly like the spawn-first path");
+	}
+
+	[Fact]
+	public void SpawnPickupInflight_SpawnArrivesAfterTheHold_RejectedThenSpawnRegisters()
+	{
+		// The queue is bounded: when the registration never arrives inside the
+		// hold window the claim gets the late UnknownItem reject, and the even
+		// later spawn report registers idempotently (end state: item back in the
+		// world, nobody owns it — the old immediate-reject shape, only delayed).
+		using var w = ItemSimWorld.Create();
+		w.Pickup(w.G1, 42, Item());
+		w.Driver.Network.SetFaults(w.G1.SteamId, w.Host.SteamId, new LinkFaults { DelayMs = 700 });
+		w.Spawn(w.G1, 42, Item());
+		w.Driver.Tick(33);
+		w.Driver.Tick(600); // the 500 ms hold expires before the 700 ms spawn lands
+
+		Assert.True(w.Rejects(w.G1).Any(r => r.ItemId == 42), "the unconfirmed claim must be rejected after the hold");
 		Assert.True(w.Rejects(w.G1).Count == 1, $"exactly one reject, got {w.Rejects(w.G1).Count}");
+		Assert.False(w.HostTable(42), "the item has not registered yet");
+
+		w.Driver.Tick(100); // the late spawn report lands
+		Assert.True(w.HostTable(42), "the late spawn report must register idempotently");
+		Assert.True(w.Rejects(w.G1).Count == 1, "the late spawn does not produce a second reject");
 	}
 
 	[Fact]
@@ -130,12 +156,15 @@ public class ItemRaceTests
 		// The strongest race check: a random lifecycle (spawn/pickup/destroy/
 		// drop by G1) over a jittered link (random delay, occasional duplicate)
 		// whose host-table end state and reject stream must EXACTLY match an
-		// oracle that replays the actual delivery order — whatever the wire
-		// did, every message's effect is the effect of its delivery position.
+		// oracle that replays the actual delivery order PLUS the pending-pickup
+		// hold window (500 ms) at the actual pump ticks — whatever the wire did,
+		// every message's effect is the effect of its delivery position and the
+		// bounded queue is part of that contract.
 		using var w = ItemSimWorld.Create();
 		var rng = new Random(seed);
-		var delivered = new List<(ulong ItemId, NetMsg Msg)>();
-		w.Host.Transport.MessageReceived += (_, frame) => delivered.Add(Decode((NetMsg)frame[0], frame));
+		var delivered = new List<(long Ms, ulong ItemId, NetMsg Msg)>();
+		var pumpTicks = new List<long>();
+		w.Host.Transport.MessageReceived += (_, frame) => delivered.Add((w.Driver.NowMs, Decode((NetMsg)frame[0], frame).ItemId, Decode((NetMsg)frame[0], frame).Msg));
 		ulong nextId = 100;
 
 		for (var step = 0; step < 40; step++)
@@ -172,42 +201,60 @@ public class ItemRaceTests
 			}
 
 			w.Driver.Tick(33);
+			pumpTicks.Add(w.Driver.NowMs);
 		}
 
 		w.Driver.Tick(1000); // every in-flight message landed (max delay 600 ms)
+		pumpTicks.Add(w.Driver.NowMs);
 
 		// Oracle: replay the delivery order with the same decisions the host
-		// makes (world-table presence, transfer ownership, the duplicate guard).
+		// makes — world-table presence, transfer ownership, the duplicate guard,
+		// spawn/drop registration settling the first queued claim, and the
+		// per-pump expiry of every unconfirmed claim after the 500 ms hold.
 		var oracleWorld = new HashSet<ulong>();
 		var oracleOwned = new HashSet<ulong>(); // transferred to G1
 		var oracleRejects = new List<ulong>();
-		foreach (var (itemId, msg) in delivered)
-		{
-			switch (msg)
-			{
-				case NetMsg.ItemSpawn:
-					oracleWorld.Add(itemId);
-					break;
-				case NetMsg.ItemPickup:
-					if (oracleWorld.Remove(itemId))
-					{
-						oracleOwned.Add(itemId);
-					}
-					else if (!oracleOwned.Contains(itemId))
-					{
-						oracleRejects.Add(itemId);
-					}
+		var oracleQueue = new List<(ulong ItemId, long QueuedAtMs)>();
+		var eventIndex = 0;
 
-					break;
-				case NetMsg.ItemDrop:
-					oracleWorld.Add(itemId);
-					oracleOwned.Remove(itemId);
-					break;
-				case NetMsg.ItemDestroy:
-					oracleWorld.Remove(itemId);
-					break;
+		foreach (var now in pumpTicks)
+		{
+			while (eventIndex < delivered.Count && delivered[eventIndex].Ms <= now)
+			{
+				var (_, itemId, msg) = delivered[eventIndex++];
+				switch (msg)
+				{
+					case NetMsg.ItemSpawn:
+						SettleSpawn(itemId, oracleWorld, oracleOwned, oracleRejects, oracleQueue);
+						break;
+					case NetMsg.ItemPickup:
+						if (oracleWorld.Remove(itemId))
+						{
+							oracleOwned.Add(itemId);
+						}
+						else if (oracleOwned.Contains(itemId) || oracleQueue.Any(q => q.ItemId == itemId))
+						{
+							// The sender's own retransmit, or a duplicate claim while one is queued — silent.
+						}
+						else
+						{
+							oracleQueue.Add((itemId, now));
+						}
+
+						break;
+					case NetMsg.ItemDrop:
+						SettleDrop(itemId, oracleWorld, oracleOwned, oracleRejects, oracleQueue);
+						break;
+					case NetMsg.ItemDestroy:
+						oracleWorld.Remove(itemId);
+						break;
+				}
 			}
+
+			ExpireQueue(now, oracleWorld, oracleOwned, oracleRejects, oracleQueue);
 		}
+
+		Assert.Equal(delivered.Count, eventIndex); // the final flush landed every in-flight message
 
 		foreach (var id in oracleWorld)
 		{
@@ -223,6 +270,74 @@ public class ItemRaceTests
 		actualRejects.Sort();
 		oracleRejects.Sort();
 		Assert.Equal(oracleRejects, actualRejects);
+	}
+
+	/// <summary>The oracle's spawn edge: the first queued claim for the item settles (first-writer-wins), later queued claims lose; otherwise the item registers.</summary>
+	private static void SettleSpawn(ulong itemId, HashSet<ulong> world, HashSet<ulong> owned, List<ulong> rejects, List<(ulong ItemId, long QueuedAtMs)> queue)
+	{
+		var index = queue.FindIndex(q => q.ItemId == itemId);
+		if (index < 0)
+		{
+			world.Add(itemId);
+			return;
+		}
+
+		queue.RemoveAt(index);
+		world.Remove(itemId);
+		owned.Add(itemId);
+		RejectQueuedLosers(itemId, rejects, queue);
+	}
+
+	/// <summary>The oracle's drop edge: the drop leaves G1's transfer entry and registers the item; a queued claim settles exactly like the spawn edge.</summary>
+	private static void SettleDrop(ulong itemId, HashSet<ulong> world, HashSet<ulong> owned, List<ulong> rejects, List<(ulong ItemId, long QueuedAtMs)> queue)
+	{
+		owned.Remove(itemId);
+		var index = queue.FindIndex(q => q.ItemId == itemId);
+		if (index < 0)
+		{
+			world.Add(itemId);
+			return;
+		}
+
+		queue.RemoveAt(index);
+		world.Remove(itemId);
+		owned.Add(itemId);
+		RejectQueuedLosers(itemId, rejects, queue);
+	}
+
+	private static void RejectQueuedLosers(ulong itemId, List<ulong> rejects, List<(ulong ItemId, long QueuedAtMs)> queue)
+	{
+		for (var i = queue.Count - 1; i >= 0; i--)
+		{
+			if (queue[i].ItemId == itemId)
+			{
+				queue.RemoveAt(i);
+				rejects.Add(itemId);
+			}
+		}
+	}
+
+	/// <summary>The oracle's per-pump expiry edge: a queued claim that outlives the hold rejects, unless its item registered through a non-settling path — then it transfers.</summary>
+	private static void ExpireQueue(long now, HashSet<ulong> world, HashSet<ulong> owned, List<ulong> rejects, List<(ulong ItemId, long QueuedAtMs)> queue)
+	{
+		for (var i = queue.Count - 1; i >= 0; i--)
+		{
+			if (now - queue[i].QueuedAtMs < PendingPickupQueue.DefaultHoldMs)
+			{
+				continue;
+			}
+
+			var itemId = queue[i].ItemId;
+			queue.RemoveAt(i);
+			if (world.Remove(itemId))
+			{
+				owned.Add(itemId);
+			}
+			else
+			{
+				rejects.Add(itemId);
+			}
+		}
 	}
 
 	private static (ulong ItemId, NetMsg Msg) Decode(NetMsg msg, byte[] frame) =>

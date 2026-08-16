@@ -99,8 +99,12 @@ public class ItemArbitrationFlowTests
 	[Fact]
 	public void Pickup_UnknownItem_Rejected()
 	{
-		var (_, guest, received) = CreateSession();
+		var (host, guest, received) = CreateSession();
 		ReportPickup(guest, 9999, Item());
+
+		// The pending-pickup hold is the bounded waiting edge — the claim must
+		// end in exactly one late UnknownItem reject, never a silent drop.
+		new SimulationDriver(guest.Clock, guest.Transport.Network, host, guest).Tick(600);
 
 		var frame = received.Single(r => r.Msg == NetMsg.ItemReject).Frame;
 		var reject = NetPacket.DecodePayload<ItemRejectMsg>(frame);

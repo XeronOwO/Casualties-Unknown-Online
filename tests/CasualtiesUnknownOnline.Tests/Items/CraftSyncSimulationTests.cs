@@ -154,6 +154,7 @@ public class CraftSyncSimulationTests
 		w.Craft(w.G1, new CraftReportMsg { Entries = [Destroyed(42)] });
 		w.Pickup(w.G2, 42, WorldItem(42)); // the losing pickup after the craft consumed the item
 		w.Driver.Tick(33);
+		w.Driver.Tick(600); // the unknown claim waits out the bounded pending-pickup hold, then rejects
 
 		Assert.False(w.HostTable(42));
 		var reject = Assert.Single(w.Rejects(w.G2));

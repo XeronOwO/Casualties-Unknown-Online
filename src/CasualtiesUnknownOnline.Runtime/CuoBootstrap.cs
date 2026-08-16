@@ -138,12 +138,15 @@ public static class CuoBootstrap
 		services.AddSingleton<WorldService>();
 		services.AddSingleton<IWorldControl>(p => p.GetRequiredService<WorldService>());
 		// Item domain: the authoritative world-item table + pickup arbitration
-		// (no pump, not an ICuoService — it only reacts to calls and messages).
+		// (ItemService itself reacts to calls and messages; the pending-pickup
+		// hold window's expiry edge is the tiny PendingPickupPump below).
 		// ItemArbitration is DI-registered so the crafting domain composes the
 		// same transfer table (RemoveTransferred/AdoptEvidence/RegisterCarried).
 		services.AddSingleton<ItemArbitration>();
 		services.AddSingleton<ItemService>();
 		services.AddSingleton<IItemControl>(p => p.GetRequiredService<ItemService>());
+		services.AddSingleton<PendingPickupPump>();
+		services.AddSingleton<ICuoService>(p => p.GetRequiredService<PendingPickupPump>());
 		// Crafting domain: the one-operation-one-report apply + the recipe
 		// unlock (no pump, not an ICuoService — it only reacts to calls and
 		// messages; ItemService's crafting seams are its world-table gateway).

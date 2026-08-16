@@ -275,3 +275,31 @@ never became a Guest and never followed the host's run. The lobby identity is no
   exceptions and releases each message in a `finally`; one throwing snapshot used to kill every
   later message in the same received batch (observed: `WorldReady` was lost for the full 60 s gate
   timeout because an enemy-snapshot materialization threw before it in the same poll batch).
+
+
+## 19. Mod API second round — permissions, host commands, dependencies, SemVer (ProtocolVersion 10)
+
+- **Permission model** — `ModPermission` flags on `[CuoMod]` default to None (nothing implicit);
+  `ModPermissionPolicy` rejects unknown bits and host/state permissions on ClientOnly/Cosmetic.
+  Live enforcement: `SendNetworkMessage` gates `IModNetwork` send+receive, `RegisterCommand`/
+  `ExecuteHostAction` gate `IModCommands`. Handshake carries the flags; state-bearing modes
+  require exact flag equality.
+- **Host commands** — `IModCommands.Register`/`TryExecute`, execution ONLY on the host's mod copy.
+  Guest→host `ModCommandRequest` (NetMsg 86) → host validation (shape caps, handshaken member,
+  registration, permissions, per-guest token bucket 4/s burst 8) → execution → directed
+  `ModCommandResult` (NetMsg 87) settles the guest callback by request id. Pending callbacks are
+  settled on SessionEnded/Dispose. Handler output cap 32 KiB, error cap 4 KiB.
+- **Dependency ordering** — `[CuoMod].Dependencies`; discovery rejects missing/self/duplicate/
+  cycle/transitive-rejected targets and returns a stable Kahn topological order; Stop/Dispose run
+  in reverse order. Runtime load skips a dependent when its dependency failed to load.
+- **SemVer** — strict SemVer 2.0.0 parser/precedence (`SemanticVersion`); discovery rejects
+  non-SemVer versions; state-bearing handshakes compare precedence (build metadata ignored).
+  Same-id NetworkMode mismatch is now rejected when either side is state-bearing (a first-round
+  matrix gap).
+- **Rate limits** — token buckets per sender: mod messages 20/s burst 40; command requests 4/s
+  burst 8 (`ModRateLimitPolicy`/`ModRateLimiter`, virtual-clock testable).
+- **ProtocolVersion 9→10** — v9 peers drop the permission flags and command messages, so mixed
+  versions are refused instead of silently degrading.
+- Binding contract: `docs/mod-api.md`; two-process runtime verified with host + Steam1 sandbox
+  (permissions discovered, handshake end-to-end, guest→host `echo`/`whoami` results success,
+  host-local command output, mod-message report).

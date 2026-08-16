@@ -15,6 +15,12 @@ public interface IModsControl
 	/// <summary>A mod frame arrived — route it to the local mod with that id (unknown ids are dropped with a log).</summary>
 	void FireModMessageReceived(ulong sender, ModMessageMsg msg);
 
+	/// <summary>A guest's host-command request arrived — validate and execute on the host's mod copy (Phase 4b).</summary>
+	void FireModCommandRequestReceived(ulong sender, ModCommandRequestMsg msg);
+
+	/// <summary>A host's command result arrived — settle the guest's pending callback by ModId + RequestId.</summary>
+	void FireModCommandResultReceived(ulong sender, ModCommandResultMsg msg);
+
 	/// <summary>The discovered mods (empty before discovery ran — a "pending" handshake check refuses until this flips).</summary>
 	IReadOnlyList<ModManifest> CurrentModManifests { get; }
 

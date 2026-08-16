@@ -211,6 +211,14 @@ public class ModLifecycleTests
 		{
 		}
 
+		public void FireModCommandRequestReceived(ulong sender, Runtime.Protocol.Messages.ModCommandRequestMsg msg)
+		{
+		}
+
+		public void FireModCommandResultReceived(ulong sender, Runtime.Protocol.Messages.ModCommandResultMsg msg)
+		{
+		}
+
 		public IReadOnlyList<ModManifest> CurrentModManifests => _manifests;
 
 		public bool IsDiscoveryComplete => true;

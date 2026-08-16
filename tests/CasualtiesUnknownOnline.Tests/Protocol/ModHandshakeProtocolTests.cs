@@ -23,7 +23,7 @@ public class ModHandshakeProtocolTests
 			Protocol = ProtocolVersion.Current,
 			Mods =
 			[
-				new ModInfoMsg { Id = "mod.a", Version = "1.2.3", NetworkMode = NetworkMode.RequiresAllPlayers },
+				new ModInfoMsg { Id = "mod.a", Version = "1.2.3", NetworkMode = NetworkMode.RequiresAllPlayers, Permissions = ModPermission.SendNetworkMessage },
 				new ModInfoMsg { Id = "mod.b", Version = "0.9.0", NetworkMode = NetworkMode.ClientOnly },
 			],
 		};
@@ -35,6 +35,7 @@ public class ModHandshakeProtocolTests
 		Assert.Equal("mod.a", decoded.Mods[0].Id);
 		Assert.Equal("1.2.3", decoded.Mods[0].Version);
 		Assert.Equal(NetworkMode.RequiresAllPlayers, decoded.Mods[0].NetworkMode);
+		Assert.Equal(ModPermission.SendNetworkMessage, decoded.Mods[0].Permissions);
 		Assert.Equal(NetworkMode.ClientOnly, decoded.Mods[1].NetworkMode);
 	}
 
@@ -60,4 +61,37 @@ public class ModHandshakeProtocolTests
 		Assert.Equal("mod.a", decoded.ModId);
 		Assert.Equal(payload, decoded.Payload);
 	}
+	[Fact]
+	public void ModCommandFrames_RoundTripExactly()
+	{
+		var request = new ModCommandRequestMsg
+		{
+			RequestId = 77,
+			ModId = "mod.a",
+			Name = "echo",
+			Arguments = ["a", "b"],
+		};
+		var decodedRequest = NetPacket.DecodePayload<ModCommandRequestMsg>(NetPacket.Encode(NetMsg.ModCommandRequest, request));
+		Assert.Equal(77u, decodedRequest.RequestId);
+		Assert.Equal("mod.a", decodedRequest.ModId);
+		Assert.Equal("echo", decodedRequest.Name);
+		Assert.Equal(2, decodedRequest.Arguments.Count);
+		Assert.Equal("a", decodedRequest.Arguments[0]);
+		Assert.Equal("b", decodedRequest.Arguments[1]);
+
+		var result = new ModCommandResultMsg
+		{
+			RequestId = 77,
+			ModId = "mod.a",
+			Name = "echo",
+			Success = true,
+			Output = "a b",
+		};
+		var decodedResult = NetPacket.DecodePayload<ModCommandResultMsg>(NetPacket.Encode(NetMsg.ModCommandResult, result));
+		Assert.Equal(77u, decodedResult.RequestId);
+		Assert.True(decodedResult.Success);
+		Assert.Equal("a b", decodedResult.Output);
+		Assert.Equal("", decodedResult.Error);
+	}
+
 }

@@ -92,7 +92,7 @@ Non-negotiable design rules:
 
 ## Development Phases
 
-Current: **Phase 4 Mod API** first round landed (see `docs/mod-api.md`); Phase 3 core loop largely landed.
+Current: **Phase 4 Mod API** second round landed (permissions, host commands, dependency ordering, SemVer — see `docs/mod-api.md`); Phase 3 core loop largely landed.
 
 1. **Phase 0 — Feasibility** — COMPLETE (BepInEx loads, Steam lobby/ping end-to-end; `k_EResultConnectFailed`
    is transient, persistent retry is correct).
@@ -102,8 +102,8 @@ Current: **Phase 4 Mod API** first round landed (see `docs/mod-api.md`); Phase 3
    character save/restore).
 4. **Phase 3 — Game core loop** — largely landed (star network, item/world/entity/crafting domains; see
    `docs/tech-decisions.md`).
-5. **Phase 4 — Public Mod API** — first round landed; remaining: content registration, custom entities,
-   host commands, UI, mod-state saves, dependency ordering, full §5 permission model.
+5. **Phase 4 — Public Mod API** — first two rounds landed; remaining: content registration, custom
+   entities, UI, mod-state saves.
 6. **Phase 5 — Tooling & ecosystem** — future (mod manager, auto-install, crash reports, host migration,
    dedicated server).
 

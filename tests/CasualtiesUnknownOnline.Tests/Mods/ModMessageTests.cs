@@ -163,4 +163,53 @@ public class ModMessageTests
 
 		Assert.Equal([(HostId, new byte[] { 7 })], Echo(host).Received);
 	}
+	[Fact]
+	public void ModWithoutSendNetworkMessage_SendIsRefused()
+	{
+		var w = CreateThreeNode();
+		var frames = RecordInbound(w.Host);
+		var mod = (TestPermissionlessCommandMod)w.G1.Services.GetRequiredService<ModService>()
+			.LoadedMods.Single(m => m is TestPermissionlessCommandMod);
+
+		mod.Context!.Network.SendToHost([1, 2, 3]);
+
+		Assert.Empty(frames);
+	}
+
+	[Fact]
+	public void ModWithoutSendNetworkMessage_InboundFrameIsDropped()
+	{
+		var w = CreateThreeNode();
+		var hostMod = (TestPermissionlessCommandMod)w.Host.Services.GetRequiredService<ModService>()
+			.LoadedMods.Single(m => m is TestPermissionlessCommandMod);
+		var frames = RecordInbound(w.Host);
+
+		w.G1.Services.GetRequiredService<ModChannel>().SendToHost("test.commands.noperm", [9]);
+
+		Assert.Single(frames); // the frame arrived at the transport -- the mod domain dropped it before the event
+		Assert.Empty(hostMod.Received);
+	}
+
+	[Fact]
+	public void ModMessageFloodOverBurst_IsDropped()
+	{
+		var w = CreateThreeNode();
+		var channel = w.G1.Services.GetRequiredService<ModChannel>();
+		var hostEcho = Echo(w.Host);
+
+		for (var i = 0; i < ModRateLimitPolicy.ModMessageBurst + 1; i++)
+		{
+			channel.SendToHost("test.echo", [1]);
+		}
+
+		Assert.Equal(ModRateLimitPolicy.ModMessageBurst, hostEcho.Received.Count);
+	}
+
+	private static System.Collections.Generic.List<(ulong Sender, byte[] Frame)> RecordInbound(TestNode node)
+	{
+		var frames = new System.Collections.Generic.List<(ulong Sender, byte[] Frame)>();
+		node.Transport.MessageReceived += (sender, frame) => frames.Add((sender, frame));
+		return frames;
+	}
+
 }

@@ -24,11 +24,26 @@ public sealed class CuoModAttribute(string id, string displayName, string versio
 
 	public string DisplayName { get; } = displayName;
 
-	/// <summary>Exact string version, compared by equality in the handshake.</summary>
+	/// <summary>SemVer version (major.minor.patch[-prerelease][+build]) — discovery rejects non-SemVer strings, and state-bearing handshakes compare it by precedence.</summary>
 	public string Version { get; } = version;
 
 	/// <summary>The mod's network contract — see <see cref="NetworkMode"/>.</summary>
 	public NetworkMode NetworkMode { get; set; }
+
+	/// <summary>
+	/// The capabilities the mod declares. Defaults to
+	/// <see cref="ModPermission.None"/>: nothing is granted implicitly, and
+	/// unknown bits or host/state permissions on a local-only network mode are
+	/// rejected at discovery.
+	/// </summary>
+	public ModPermission Permissions { get; set; }
+
+	/// <summary>
+	/// The mod ids this mod depends on (loaded after them, in topological
+	/// order). Empty by default. Missing targets, self-dependencies,
+	/// duplicated declarations and dependency cycles are rejected at discovery.
+	/// </summary>
+	public string[] Dependencies { get; set; } = [];
 
 	public string? Description { get; set; }
 }

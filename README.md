@@ -6,7 +6,7 @@ The base game ships without multiplayer. CUO adds Steam-based **Host + Guests** 
 
 ## Status
 
-**Active development — Phase 4 (Mod API) first round landed.** Phases 0–3 (feasibility, single-player entity sync, entity lifecycle, game core loop) are complete and runtime-verified. Phase 4's core skeleton (discovery / lifecycle / manifest / mod messages / handshake consistency) has landed; remaining are content registration, custom entities, host commands, UI, and mod-state saves. See [`docs/architecture.md`](docs/architecture.md) for the full design and phases, and [`docs/tech-decisions.md`](docs/tech-decisions.md) for the landed decisions.
+**Active development — Phase 4 (Mod API) second round landed.** Phases 0–3 (feasibility, single-player entity sync, entity lifecycle, game core loop) are complete and runtime-verified. Phase 4 has landed the core skeleton (discovery / lifecycle / manifest / mod messages / handshake consistency) plus the permission model, host commands, dependency ordering, and SemVer versions; remaining are content registration, custom entities, UI, and mod-state saves. See [`docs/architecture.md`](docs/architecture.md) for the full design and phases, [`docs/tech-decisions.md`](docs/tech-decisions.md) for the landed decisions, and [`docs/mod-api.md`](docs/mod-api.md) for the binding Mod API contract.
 
 ## Architecture in Brief
 

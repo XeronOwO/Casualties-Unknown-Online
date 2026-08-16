@@ -57,6 +57,7 @@ public sealed class PacketReceiver : IDisposable
 	{
 		NetMsg.Handshake or NetMsg.PlayerStateReport or NetMsg.HandshakeAckAck
 			or NetMsg.TraderAction or NetMsg.ItemUse or NetMsg.ItemSlot or NetMsg.CarriedInventory
+			or NetMsg.ModCommandRequest
 			=> _session.Role == SessionRole.Host,
 		NetMsg.HandshakeAck or NetMsg.WorldStartParams or NetMsg.WorldJoin or NetMsg.WorldReady
 			or NetMsg.PlayerJoin or NetMsg.PlayerLeave or NetMsg.PlayerState or NetMsg.WorldBlockState
@@ -66,7 +67,9 @@ public sealed class PacketReceiver : IDisposable
 			or NetMsg.ItemCorrection or NetMsg.WorldItemsSnapshot or NetMsg.ItemCarriedSync
 			or NetMsg.OpenedEntitiesSnapshot or NetMsg.TrapLayoutSnapshot
 			or NetMsg.EnemyState or NetMsg.EnemySnapshot or NetMsg.EnemyAttack
+			or NetMsg.ModCommandResult
 			=> _session.Role == SessionRole.Guest,
+		// ModCommandRequest is guest→host only; ModCommandResult is host→guest only.
 		// Ping/Pong/SceneState/BlockDamaged/CharacterData/ItemSpawn/ItemPickup/
 		// ItemDrop/ItemDestroy/ItemIdWatermark/EntityEvent/EntitySpawned/
 		// FluidInteraction/BlockPlaced/BuildingEntityDamaged/BuildingEntityOpened/

@@ -293,7 +293,7 @@ Mods do not get all permissions by default: `ReadGameState, WriteGameState, Spaw
 - Mod messages are rate-limited.
 - Host validates all mod command parameters.
 
-### Phase 4 first-round status (landed 2026-08-13)
+### Phase 4 status (first round landed 2026-08-13; second round landed 2026-08-16)
 
 The core skeleton is live: mod discovery (BepInEx plugin shell + `[CuoMod]`
 scan on the first update frame — BepInEx 5 loads plugins one by one,
@@ -302,9 +302,13 @@ with per-mod exception isolation, the manifest (`[CuoMod]` is the single
 source; `NetworkMode` Unspecified is rejected — fail-closed), mod network
 messages (NetMsg 75, opaque payload, report/定向 star semantics, 64 KiB
 policy cap), session events (bind-time snapshot semantics), and the handshake
-consistency check (ProtocolVersion 3). Binding contract: `docs/mod-api.md`.
-Not yet landed: content registration, custom entities, host commands, UI,
-mod-state saves, dependency ordering, the full permission model below.
+consistency check. The second round landed the full permission model
+(`ModPermission` declaration + live enforcement + handshake equality), host
+commands (NetMsg 86/87, host-authoritative execution, per-sender rate limits),
+dependency ordering (topological load, missing/cycle/transitive rejection),
+and strict SemVer versions (ProtocolVersion 10). Binding contract:
+`docs/mod-api.md`.
+Not yet landed: content registration, custom entities, UI, mod-state saves.
 
 ### KrokMP Compatibility Layer (future, reserved space)
 

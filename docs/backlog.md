@@ -184,9 +184,15 @@ lands, never bolted on afterwards.
   backfills world entry / reconnect / 60 s resend; the guest writes the host health and marks
   deaths `RemoteEntityDeath` so no duplicate drop roll happens. See
   `docs/building-entity-health-selfcheck.md`; 767 tests green.
-- Runtime random supply refresh (phase-1 memory, unresolved question): it is not verified
-  whether any supplies spawn independently of world generation. If such a mechanism exists it
-  needs host-authoritative spawn + broadcast (the #110 pattern); investigate before assuming.
+- RESOLVED (2026-08-16, docs-only): runtime random supply refresh — a full decompiled-source
+  sweep (194 `Instantiate`/`Utils.Create` sites) found NO world-level random/timed supply
+  refresh. The only repeating runtime item creation is `Body`'s unconscious droppings loop
+  (fixed 1000 s, not a supply), and every one-shot runtime item path already funnels into the
+  generic host-authoritative `ItemSpawn` channel (report → host register/arbitrate → broadcast)
+  — the #110 contingency named in the question already exists (`ItemPatches` →
+  `ItemWorldSync.OnItemInstantiated` → `ItemService.SendItemSpawned`/`HandleHostSpawnReport` →
+  `ItemSpawnHandler`). Console commands recorded as a local-only debug boundary; `LoadRun` stays
+  in the Phase 3 saves scope. See `docs/runtime-supply-refresh-audit.md`.
 - High-frequency small drops (shell casings etc.): observe message volume before optimizing —
   batch/rate-limit only if it actually hurts.
 - RESOLVED (c6b7d92): Geyser replay duplicate report — the report now rides `TryRumble`'s

@@ -41,6 +41,9 @@ public sealed class SessionService : ICuoService, ISessionControl
 	private readonly SessionState _state = new();
 	private readonly MemberPresenceTable _presence = new();
 
+	/// <summary>Per-peer warm-up backoff — a peer whose Steam P2P session is broken must not be pinged every retry interval forever (the offline-member `k_EResultConnectFailed` noise).</summary>
+	private readonly PeerWarmupBackoff _warmupBackoff = new();
+
 	/// <summary>The lobby this client currently hosts or joined (0 = none) — tracked here so a real lobby change is distinguishable from a duplicate Steam callback.</summary>
 	private ulong _currentLobbyId;
 
@@ -431,7 +434,19 @@ public sealed class SessionService : ICuoService, ISessionControl
 				continue;
 			}
 
-			_sender.Send(peer, NetMsg.Ping, ping);
+			if (!_warmupBackoff.ShouldSend(peer, nowMs))
+			{
+				continue; // a recent failure streak is still backing off — do not hammer the broken session
+			}
+
+			if (_sender.TrySend(peer, NetMsg.Ping, ping))
+			{
+				_warmupBackoff.RecordSuccess(peer);
+			}
+			else
+			{
+				_warmupBackoff.RecordFailure(peer, nowMs);
+			}
 		}
 	}
 
@@ -538,6 +553,7 @@ public sealed class SessionService : ICuoService, ISessionControl
 		if (leaveLobby)
 		{
 			_currentLobbyId = 0;
+			_warmupBackoff.Reset(); // the failure history belongs to the old lobby — the next lobby starts clean
 		}
 
 		if (hadSession)

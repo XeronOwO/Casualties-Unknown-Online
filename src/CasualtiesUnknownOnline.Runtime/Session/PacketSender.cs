@@ -22,13 +22,22 @@ public sealed class PacketSender(INetworkTransport transport)
 	/// blocking of the newest snapshot behind retransmissions.
 	/// </summary>
 	public void Send(ulong steamId, NetMsg msg, object? payload = null, bool reliable = true)
+		=> TrySend(steamId, msg, payload, reliable);
+
+	/// <summary>
+	/// Send like <see cref="Send"/>, but report the transport's verdict
+	/// (false = the frame never reached the network — peer gone, link down,
+	/// Steam P2P session failed). The host's peer warm-up pump uses this to
+	/// back off instead of hammering an unreachable peer every interval.
+	/// </summary>
+	public bool TrySend(ulong steamId, NetMsg msg, object? payload = null, bool reliable = true)
 	{
 		if (steamId == 0)
 		{
-			return;
+			return false;
 		}
 
-		_transport.SendTo(steamId, NetPacket.Encode(msg, payload), reliable);
+		return _transport.SendTo(steamId, NetPacket.Encode(msg, payload), reliable);
 	}
 
 	/// <summary>

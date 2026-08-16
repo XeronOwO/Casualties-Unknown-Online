@@ -81,3 +81,14 @@ the 2026-08-09 trigger condition for the config foundation is met.
 | Wire compatibility | no protocol change | NetMsg.cs / ProtocolVersion.cs unchanged |
 | Structure | all touched classes under 600-line gate | tools/check-architecture.ps1 |
 | Test suite | 839 green (21 new) | dotnet test |
+
+## Delivery evidence (2026-08-16)
+
+- Deployed to the real game dir via `tools/deploy.ps1` (the only allowed path);
+  the new `Microsoft.Extensions.Options.dll` dependency rode the build-output copy.
+- Per the user's zero-manual-acceptance rule (2026-08-16), runtime verification is
+  marked from the L0 simulation + static evidence above plus the successful real-dir
+  deploy — **no manual acceptance**.
+- Final gates: build green, `dotnet format` run, `check-architecture` /
+  `check-event-replay` / `check-entity-event-dispatch` / `check-delivery` all passed;
+  839 tests green.

@@ -53,9 +53,21 @@ lands, never bolted on afterwards.
   Diagnostic order from memory: check the local proxy first (Clash on localhost:7890 has
   triggered `4003 Bad cert` / `5008 rendezvous timeout` probabilistically), then the Steam
   client state, then the Steamworks.NET wrapper.
-- Offline-member P2P noise (memory 2026-08-14): a log sweep showed ~40
-  `k_EResultConnectFailed` per minute for a member that was already removed. Candidate fix:
-  stop the entity state stream for removed members.
+- Offline-member P2P noise: RESOLVED (2026-08-16, no protocol bump). Log
+  correlation first cleared the candidate hypothesis: the entity state stream
+  already stops for a removed member (`EntitySyncService.OnMemberRemoved`,
+  EntitySyncService.cs:371-389). The real sender was the host's
+  `SendPeerWarmup` pump — a fixed 1 s ping to every un-handshaken lobby peer,
+  which keeps failing while the peer's Steam P2P session is broken/restarting
+  (host `2026-08-10-24.log.gz`: member removed 15:52:24, then 1/s
+  `ConnectFailed` bursts at 15:52:45-54 and 15:53:11-15; the sandbox guest
+  `2026-08-10-33.log.gz` re-entered the same lobby un-handshaken at
+  15:52:39-42). The pump now uses `PacketSender.TrySend` (the transport
+  verdict that used to be discarded) and a pure `PeerWarmupBackoff` machine:
+  failures double the retry delay 1 s → 2 s → … → 10 s cap, one success
+  resets the peer, and a lobby change clears all history. Healthy peers keep
+  the exact 1 s cadence; the guest-side handshake retry is intentionally
+  unchanged. See `docs/warmup-backoff-selfcheck.md`; 894 tests green.
 
 ## World generation / determinism
 

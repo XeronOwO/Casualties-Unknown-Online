@@ -53,10 +53,11 @@ members and already stop on removal.
 ## 4. Verification design
 
 - L0 simulation: 5 pure-machine tests + 2 full-stack fake-network simulations
-  (broken link backoff schedule and healthy-link cadence preservation).
+  (broken link backoff schedule and healthy-link cadence preservation) — all
+  green; full suite 894 tests green (887 baseline + 7 new).
 - Static evidence: decompiled/log evidence in §1 plus the unchanged-path
   citations above.
 - Runtime evidence: development-period rule — L0 simulation + static evidence,
-  no manual acceptance (user 2026-08-16 mandate). Post-deploy smoke is limited
-  to the deploy.ps1 copy to the real game dir; the next real dual-side pass
-  can compare ConnectFailed warning density but is not required now.
+  no manual acceptance (user 2026-08-16 mandate). The cycle deployed to the
+  real game dir via deploy.ps1; the next real dual-side pass can compare
+  ConnectFailed warning density but is not required now.

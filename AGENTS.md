@@ -92,7 +92,7 @@ Non-negotiable design rules:
 
 ## Development Phases
 
-Current: **Phase 4 Mod API** second round landed (permissions, host commands, dependency ordering, SemVer — see `docs/mod-api.md`); Phase 3 core loop largely landed.
+Current: **Phase 3 native game-content follow-through** — finish the remaining base-game coverage (see `docs/backlog.md`) before more Mod API work, while reserving extension seams. **Phase 4 Mod API** second round has landed (permissions, host commands, dependency ordering, SemVer — see `docs/mod-api.md`) and its remainder is MEDIUM priority until the native content is covered.
 
 1. **Phase 0 — Feasibility** — COMPLETE (BepInEx loads, Steam lobby/ping end-to-end; `k_EResultConnectFailed`
    is transient, persistent retry is correct).

@@ -27,7 +27,7 @@ the user called it out). Only the -Reset switch may touch multiple lines.
 - [x] Build + dotnet format + check-architecture + check-event-replay pass
 - [x] Deployed (real game dir only — deploy.ps1 hard-rejects sandbox paths)
 - [x] Runtime verification done (post-deploy evidence: logs / acceptance)
-- [ ] Structure review done (touched classes <= 600 lines, state bools,
+- [x] Structure review done (touched classes <= 600 lines, state bools,
       dead mechanisms deleted in the same round)
 - [ ] FORBIDDEN — never check this box; checking it fails the delivery gate
       (a honey-pot: a checked forbidden box means a step was skipped on

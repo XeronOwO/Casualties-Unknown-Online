@@ -154,8 +154,8 @@ public sealed partial class GameAdapter : IGameAdapter, ICuoService, IPatchBridg
 		_guestMenu = new GuestMenuGuard(session, loggerFactory.CreateLogger<GuestMenuGuard>());
 		_worldParams = new WorldParamsService(world, loggerFactory.CreateLogger<WorldParamsService>());
 		_run = new RunCoordinator(session, world, entities, _characterDataSync, _guestMenu, _worldParams, arbitration, loggerFactory.CreateLogger<RunCoordinator>());
-		_worldTimeSync = new WorldTimeSync(session, entities, characterData, _run, worldTime, loggerFactory.CreateLogger<WorldTimeSync>());
 		_gate = new StartGateCoordinator(session, world, _lifePod, _run, loggerFactory.CreateLogger<StartGateCoordinator>());
+		_worldTimeSync = new WorldTimeSync(session, entities, characterData, _run, _gate, worldTime, loggerFactory.CreateLogger<WorldTimeSync>());
 		PatchBridge.Bind(this); // the only static seam — Harmony patches read the narrow surface, never this instance
 	}
 

@@ -394,6 +394,9 @@ its own request/policy split and pure decision machine:
   speed when a direct writer moved it to another domain speed.
 - **Late joiners + self-heal** — the host broadcasts its current speed on
   `RemoteSceneChanged(inWorld=true)` and every 5 s (idempotent absolute speed).
+  `WorldTimeSync` is gate-aware: while the start gate holds (`WaitingForReady`),
+  the gate owns `timeScale = 0`; a broadcast arriving then is recorded and
+  enforced on release.
 - **ProtocolVersion 12→13** — a v12 peer would keep its own timeScale and diverge world timers,
   so mixed-version sessions are refused instead of silently degrading.
 - Tests: `WorldTimePolicyTests` (pure policy matrix), `WorldTimeFlowTests` (request/broadcast

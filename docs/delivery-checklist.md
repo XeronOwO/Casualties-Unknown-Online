@@ -8,10 +8,11 @@ acceptance → re-fix loop) run only the code gates. When the final commit
 lands, reset the checklist (`check-delivery.ps1 -Reset`) so the next cycle
 starts clean.
 
-**Operating rule (user mandate 2026-08-10)**: boxes are checked ONE LINE AT A
-TIME with the Edit tool as each step completes — the checkmarks ride their
-step's intermediate commit into git history, which is the audit trail
-(which commit checked which box). BULK checking (sed / scripts / a single
+**Operating rule (user mandates 2026-08-10 / 2026-08-16)**: boxes are checked ONE LINE AT A
+TIME with the Edit tool as each step completes. The checkbox edits do NOT get
+their own commit per checkbox — fold the checklist changes into the normal
+work commits (implementation/docs/verification steps). The process record is
+the line-by-line Edit sequence, not one commit per box. BULK checking (sed / scripts / a single
 catch-up pass) is FORBIDDEN: it fabricates the process record and voids the
 gate (observed: the cycle was bulk-checked, never committed, then reset —
 the user called it out). Only the -Reset switch may touch multiple lines.

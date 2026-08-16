@@ -1,6 +1,6 @@
 # Character-data disk persistence — delivery fact sheet
 
-Status: implemented — build + format + architecture/event-replay/entity-dispatch gates green, 877 tests green (L0). Deployment and structure review are the remaining boxes.
+Status: delivered — build + format + architecture/event-replay/entity-dispatch gates green, 877 tests green (L0), deployed to the real game dir via deploy.ps1, runtime verification = L0 simulation + static evidence (no manual acceptance), structure review done.
 
 Cycle: character-data disk persistence (backlog `Persistence` — "Character data
 disk persistence (currently in-memory, lost on host exit)").
@@ -142,3 +142,18 @@ evidence, marked `no manual acceptance`.
 | 6 | DI / plugin path | New optional bootstrap parameter + BepInEx config-path default | Build + `TestNode` path tests + Plugin compile |
 | 7 | Protocol / Game Adapter | No change | `ProtocolVersion.cs` unchanged in the diff; Runtime csproj has no game references |
 | 8 | Degraded disk (corrupt/unknown version/IO failure) | Warning + continue in-memory, never crash startup | Corrupt-file test + wrong-version test + save-failure policy test |
+## 5. Post-delivery evidence (runtime verification = L0 + static)
+
+- `dotnet test CasualtiesUnknownOnline.slnx` — **877/877 green** after the
+  final build (development-period rule: no manual acceptance).
+- `dotnet build` — 0 warnings, 0 errors (warnings-as-errors);
+  `dotnet format` clean; `check-architecture`, `check-event-replay` and
+  `check-entity-event-dispatch` all passed.
+- `tools/deploy.ps1 -GameDir "E:\SteamLibrary\steamapps\common\Casualties Unknown Demo"`
+  completed: all 25 build-output DLLs + Steamworks.NET/steam_api64 deployed to
+  the real game directory; the script's process/lock gates prove no game was
+  running during deployment.
+- Static diff: `ProtocolVersion.cs` unchanged (15); no Harmony patch, no game
+  assembly reference, no GameAdapter source change; the new file format is
+  host-local and never travels the wire.
+

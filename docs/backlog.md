@@ -95,7 +95,12 @@ lands, never bolted on afterwards.
 - #87 loading-screen wait info (bottom-right, to be redesigned). The layer-title popup is
   built immediately after `loadingObject` hides (`WorldGeneration.cs:3637`/3640-3659), so it
   can play out invisibly during the host's start-gate wait — fold into the same redesign.
-- #119 held light direction on remote clones (points at the local mouse).
+- RESOLVED (held-light-direction cycle): #119 held light direction on remote clones —
+  `CustomItemBehaviour.Update` aims flashlight/emergencylight/rangefinder at the LOCAL mouse
+  (CustomItemBehaviour.cs:439/512/526); a clone body now re-aims those three hand-slot items at the
+  peer's synced `LookPos` via `HeldItemDirectionPatch` (Postfix, `RemoteBodyDriver` + first-snapshot
+  gate), the only three local-mouse item-orientation call sites in the game. See
+  `docs/held-light-direction-selfcheck.md`.
 - #193 clone shooting direction / recoil (deferred from the 2026-08-13 fix-round plan): no
   log evidence yet — the next step is a hotrepl runtime check comparing the 20 Hz state-stream
   `LookPos` against what the clone renders, then decide whether weapon direction/recoil needs

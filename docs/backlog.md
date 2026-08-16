@@ -109,9 +109,17 @@ lands, never bolted on afterwards.
   still ride the 1 Hz snapshot (visible impact is zero until opening another player's
   inventory exists; a `[CharSync]` warning is already logged). When direct player interaction
   lands, design nested-content events instead of extending the snapshot.
-- In-flight pickup reject friction (phase-1 memory): a pickup report that beats its spawn
-  report is still refused as `UnknownItem` and rolled back; consider a short host-side queue
-  instead of relying on the sender's retry.
+- In-flight pickup reject friction: RESOLVED (2026-08-16, no protocol bump) — a pickup
+  report that beats its spawn/drop registration now waits in `PendingPickupQueue` for a
+  bounded 500 ms hold instead of being refused immediately. A registration that confirms
+  the item settles the first queued claim through the normal accept-with-correction
+  transfer (later queued claims lose with `ItemReject`), a registration that makes the
+  claim a container content resolves it silently, and `PendingPickupPump` sends exactly
+  one late `UnknownItem` reject when the hold expires. Obvious first-writer conflicts
+  (the item already transferred to another guest) still reject immediately. The fake
+  network's re-entrant flush was fixed along the way (handlers may not deliver a later-due
+  frame into the middle of the current handler — the production poll-batch shape).
+  See `docs/pickup-inflight-selfcheck.md`; 818 tests green.
 - Picking up a generation-time item leaves the peer's own copy behind (low frequency,
   accepted): the id is assigned on drop/container-exit, not on the pickup path — revisit only
   if the duplicate becomes observable.

@@ -434,3 +434,33 @@ unconsumed would spawn a SECOND set on its own collision/attack. Closeout:
   `GameFieldContractTests` locks `CrystalBehaviour.effects` + `CrystalMimic.activated`;
   `PatchContractTests` locks the two `CrystalBehaviour` dispatcher patches and the now-complete
   7-entry dynamic patch inventory.
+
+## 24. In-flight pickup queue — bounded hold instead of immediate UnknownItem reject
+
+A pickup report that beat its own spawn report used to be refused immediately, which rolled
+back the picker's local pickup and left the late spawn in the world for a manual re-pickup.
+The old branch conflated that in-flight race with the obvious first-writer conflict. The
+host-side arbitration is now three-way:
+
+- **Known item** — the normal transfer (`CompleteAcceptedPickup`, the extracted single path).
+- **Obvious conflict** — the item is already in any guest's transfer table
+  (`ItemArbitration.IsTransferredToAnyGuest`) → immediate `UnknownItem` reject (the pending
+  queue is not for completed transfers).
+- **Registration still in flight** — claim waits in `PendingPickupQueue` for **500 ms**
+  (pure state; `PendingPickupPump` is the per-frame expiry edge). A spawn/drop registration
+  that confirms the item settles the first queued claim through the normal transfer and
+  rejects later queued claims (first-writer-wins); a registration that makes the claim a
+  container content resolves it silently (the container transfer carries it). Expiry sends
+  exactly one late `UnknownItem` reject, or transfers if the item registered through a
+  non-settling path.
+- **No wire change, no ProtocolVersion bump** — the queue is host-local timing; every
+  message involved already existed. A mixed-version session stays compatible.
+- **Test-harness correction** — `FakeNetwork.FlushDue` re-entered from a handler's no-delay
+  send and delivered a later-due frame in the middle of the current handler (A,C,B instead
+  of the production poll-batch A,B,C). Nested flushes are skipped now; the outer flush
+  drains everything due. This locked the whole-handler atomicity the queue reasoning
+  depends on.
+- Tests: pure `PendingPickupQueueTests`; settle-inside-hold and timeout simulations in
+  `ItemRaceTests`; the jittered random-lifecycle oracle now models the queue + pump ticks;
+  two replay fossils (`pickup-spawn-inflight.replay`, `pickup-spawn-inflight-timeout.replay`);
+  `TransportTests.HandlerSends_DoNotReenterTheFlushingBatch`. 818 tests green.

@@ -113,6 +113,13 @@ that cannot be parsed is a FAILURE, never a skip. Every run also emits a `SimTra
 real logs via `tools/extract-itemtrace.ps1`. Later extended to the entity/fluid domain (`event` /
 `snapshot` / `fluid` actions).
 
+The real-log vs simulation diff automation landed 2026-08-16:
+`tools/compare-itemtrace.ps1` resolves a replay's SimTrace (or regenerates it with `-Refresh`),
+normalizes real log (plain or `.log.gz`) and SimTrace through the same begin-event/result/events
+surface, matches the expected sequence inside a whole-session log (`-Contiguous` / `-Strict` /
+`-NoBegins` variants) and enforces the begin-without-end leak contract. See
+`docs/simtrace-diff-selfcheck.md`; 887 tests green (9 new script-contract tests).
+
 ## 8. Entity-event behavior suite (landed 2026-08-12, Phase 5)
 
 The 25 entity-event kinds are behaviorally homogeneous, so coverage is a DATA-DRIVEN cross-product:

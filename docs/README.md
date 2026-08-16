@@ -24,6 +24,7 @@ Map of this repository's documentation. Start with [architecture.md](architectur
 - [delivery-checklist.md](delivery-checklist.md) — the delivery-quality-gate checklist (paired with `tools/check-delivery.ps1`).
 - [backlog.md](backlog.md) — deferred and future work, grouped by domain.
 - `event-replay-matrix.csv` — the per-mechanism replay audit (paired with `tools/check-event-replay.ps1`).
+- `tools/compare-itemtrace.ps1` — real-log vs replay SimTrace diff automation (whole-session subsequence matching, gzip logs, leak contract; see `simtrace-diff-selfcheck.md`).
 
 ## Conventions
 

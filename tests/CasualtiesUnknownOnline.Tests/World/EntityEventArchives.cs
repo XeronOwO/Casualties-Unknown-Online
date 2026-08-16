@@ -47,6 +47,7 @@ internal static class EntityEventArchives
 		(EntityEventKind.CrystalMetamorphicTriggered, true), // activated latch — one-shot
 		(EntityEventKind.CrystalShySwapped, true), // activated latch — one-shot
 		(EntityEventKind.CrystalEMPActivated, true), // activated latch — one-shot
+		(EntityEventKind.CrystalMimicTriggered, true), // activated latch — one-shot (the crystalenemy spawns ride EntitySpawned)
 	];
 
 	/// <summary>The archive kinds, one row per value — the combinatorial data source.</summary>

@@ -224,9 +224,14 @@ lands, never bolted on afterwards.
     + `ElderThornbackBehaviour`; `grabberplant`/`xaloris` are static traps. The existing freeze
     patches already cover every moving script, so no freeze-list extension is needed (evidence in
     `docs/enemy-sync.md` §1).
-- CrystalMimic runtime spawn (entity-features matrix "excluded — AI domain"): the
-  CrystalEnemy it spawns does not ride the runtime enemy-spawn channel. Re-evaluate against
-  `EnemySnapshot.RuntimeSpawns` now that runtime enemy-spawn binding exists.
+- RESOLVED (2026-08-16, ProtocolVersion 14): CrystalMimic runtime spawn — the re-evaluation
+  confirmed the spawned CrystalEnemy already rides `EntitySpawned` + `EnemySyncCoordinator`
+  runtime binding and `EnemySnapshot.RuntimeSpawns` for late joiners; the missing one-shot latch
+  now travels as `CrystalMimicTriggered` (EntityEventKind 30) with host apply / guest replay /
+  late-joiner TrapStateSnapshot consumption. The same round fixed two event-channel family bugs:
+  host-triggered one-shot consumptions are recorded for late joiners, and EntityEvent/
+  EntitySpawned relays no longer double-broadcast (the adapter domain is the single relay owner).
+  See `docs/crystal-mimic-selfcheck.md`; enemy SetColor remains a recorded presentation gap.
 - Online UI (create/join room, player status, nameplates + off-screen arrows).
 - RESOLVED (2026-08-16): command system + permission model — `ModPermission` declaration
   + live enforcement, host-authoritative `IModCommands` (NetMsg 86/87), host mod authorizes

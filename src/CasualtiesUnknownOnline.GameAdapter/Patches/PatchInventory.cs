@@ -62,6 +62,10 @@ internal static class PatchInventory
 		// (object __instance / no parameters) carry no name-matching parameters.
 		contracts.Add(new PatchContract("TrapCrystalPatch (dynamic)", "CrystalFragile", "Touched", [], []));
 		contracts.Add(new PatchContract("TrapCrystalPatch (dynamic)", "CrystalElectric", "Shock", [], []));
+		contracts.Add(new PatchContract("TrapCrystalPatch (dynamic)", "CrystalUnstable", "Update", [], []));
+		contracts.Add(new PatchContract("TrapCrystalPatch (dynamic)", "CrystalMetamorphic", "Touched", [], []));
+		contracts.Add(new PatchContract("TrapCrystalPatch (dynamic)", "CrystalShy", "Touched", [], []));
+		contracts.Add(new PatchContract("TrapCrystalPatch (dynamic)", "CrystalEMP", "TryEMP", [], []));
 		contracts.Add(new PatchContract("CrystalDrippingPatch (dynamic)", "CrystalDripping", "Update", [], []));
 
 		return contracts;

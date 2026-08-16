@@ -193,19 +193,26 @@ internal sealed class EntityEventSimWorld : IDisposable
 		g1.Services.GetRequiredService<IWorldControl>().EntityEventReceived += (_, msg) => world._g1Surface.Events.Add(msg);
 		g2.Services.GetRequiredService<IWorldControl>().EntityEventReceived += (_, msg) => world._g2Surface.Events.Add(msg);
 
-		host.Services.GetRequiredService<IWorldControl>().EntityEventReceived += (_, msg) =>
+		host.Services.GetRequiredService<IWorldControl>().EntityEventReceived += (sender, msg) =>
 		{
 			var key = ((int)Math.Floor(msg.Position.X), (int)Math.Floor(msg.Position.Y));
-			if (EntityEventProfiles.IsOneShotConsumption(msg.Kind) && !guard.Add((msg.Kind, key.Item1, key.Item2)))
+			if (!EntityEventProfiles.IsOneShotConsumption(msg.Kind) || guard.Add((msg.Kind, key.Item1, key.Item2)))
 			{
-				return; // duplicate — the production per-entity guard drops the re-execution
+				hostExecutions.Value++; // a consumption actually executed
+				hostExecutionsByKind[msg.Kind] = CountOf(hostExecutionsByKind, msg.Kind) + 1;
+				registry.Report(msg.Kind, msg.Position.X, msg.Position.Y, msg.Extra);
+				world.HostExecuted?.Invoke(msg);
 			}
 
-			hostExecutions.Value++; // a consumption actually executed
-			hostExecutionsByKind[msg.Kind] = CountOf(hostExecutionsByKind, msg.Kind) + 1;
-			registry.Report(msg.Kind, msg.Position.X, msg.Position.Y, msg.Extra);
-			world.HostExecuted?.Invoke(msg);
+			// The production EntityEventSync relays unconditionally after the
+			// host apply (the receiving side's replay guard drops duplicates).
+			world.HostChannel.BroadcastEntityEvent(sender, msg);
 		};
+
+		// The production EntitySpawnSync shell: the host creates its copy and
+		// is the single relay owner (the handler only surfaces the message).
+		host.Services.GetRequiredService<IWorldControl>().EntitySpawnedReceived += (_, msg) =>
+			world.HostChannel.SendEntitySpawned(msg);
 
 		// The guests' replay shells (the production TrapVisualReplay's shape +
 		// the snapshot-consumption step): relays replay; the late-joiner

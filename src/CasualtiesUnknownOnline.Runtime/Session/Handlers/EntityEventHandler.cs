@@ -5,11 +5,10 @@ using Microsoft.Extensions.Logging;
 namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 
 /// <summary>
-/// A trap/mechanism event fired, star semantics (local compute → report →
-/// apply → fan-out): the host applies the event to its own world (the
-/// TrapEffectApplier — an exploding mine destroys the host's copy and rolls
-/// the host-side drops) and relays to the other members (the source excluded,
-/// it already applied locally). Guest: the host's relay — replay the event.
+/// A trap/mechanism event fired: the handler only surfaces the message. The
+/// apply + relay live in the adapter's EntityEventSync (host applies to its
+/// own world, records one-shot consumptions and broadcasts to the other
+/// members) — a handler-level broadcast here would send a second copy.
 /// </summary>
 [PacketHandler(NetMsg.EntityEvent)]
 public sealed class EntityEventHandler(ILogger<EntityEventHandler> log)
@@ -20,10 +19,6 @@ public sealed class EntityEventHandler(ILogger<EntityEventHandler> log)
 	protected override void Handle(ulong sender, EntityEventMsg msg, HandlerContext ctx)
 	{
 		ctx.World.FireEntityEventReceived(sender, msg);
-		if (ctx.Session.Role == SessionRole.Host)
-		{
-			ctx.Session.BroadcastExcept(sender, NetMsg.EntityEvent, msg);
-		}
 
 		_log.LogInformation("[TrapEvent] kind={Kind} pos={Pos} from {Sender}.", msg.Kind, msg.Position, sender);
 	}

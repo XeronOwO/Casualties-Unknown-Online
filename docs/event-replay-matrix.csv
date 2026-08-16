@@ -13,6 +13,7 @@ CrystalFragileBroken,glass(3D) ok,ok,crystal vanish (health0),ok+RemoteDeath,hea
 CrystalElectricShocked,zap(3D)+Shake200,ok,ring-anim (Update natural),ok,cooldown gate,covered,
 CrystalUnstableExploded,crystaltick (5s tick)+explosion-fivepiece,explosion-fivepiece+tinnitus,5s ticking glow/shake+explosion,particle/blastmark/shake+body-segment,health0+RemoteEntityDeath,covered,5s pre-explosion ticking gap (same as the mine press visual)
 CrystalMetamorphicTriggered,crystalenemylaugh,ok,FlashBrief,FlashBrief,activated latch,covered,death rides BuildingEntityDamaged + drops ride the item domain
+CrystalMimicTriggered,observerlaugh 2D (CrystalMimic.cs:29/43 args),observerlaugh 2D (live relay; silent on late-joiner snapshot),pulse stops via activated latch + spawned crystalenemies,pulse stops; spawned enemies ride EntitySpawned,activated latch (one-shot); enemies ride EnemyRuntimeSpawn,covered,spawns ride EntitySpawned + EnemySyncCoordinator runtime binding; late joiner consumes the mimic via TrapStateSnapshot and materializes enemies from EnemySnapshot.RuntimeSpawns; enemy SetColor is trigger-side local (recorded gap)
 CrystalShySwapped,observerlaugh,ok,position swap,re-scan swap,activated latch,covered,scan order has no formal guarantee (generation-static crystals)
 CrystalEMPActivated,crystalemp,ok,white flash+Shake200+darken,white flash+Shake200 (darken runs natural),activated latch,covered,battery drain rides the item domain
 BarbedFenceHit,fence(3D) ok,ok,hitSprite transition,ok,none (instant),covered,

@@ -106,6 +106,12 @@ internal sealed class TrapVisualReplay(ILogger<TrapVisualReplay> log)
 			case EntityEventKind.CrystalMetamorphicTriggered:
 				ReplayState<CrystalBehaviour>(position, kind, TrapStateActions.ApplyCrystalMetamorphic);
 				break;
+			case EntityEventKind.CrystalMimicTriggered:
+				// Live relay: consume the latch + play the original 2D laugh.
+				// Late-joiner snapshot (ElapsedSeconds > 0): latch only — an old
+				// laugh must not fire over the joining player.
+				ReplayState<CrystalBehaviour>(position, kind, c => TrapStateActions.ApplyCrystalMimic(c, playSound: elapsedSeconds <= 0f));
+				break;
 			case EntityEventKind.CrystalShySwapped:
 				ReplayState<CrystalBehaviour>(position, kind, TrapStateActions.ApplyCrystalShy);
 				break;

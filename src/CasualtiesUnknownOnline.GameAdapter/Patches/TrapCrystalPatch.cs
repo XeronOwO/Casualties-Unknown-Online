@@ -44,6 +44,51 @@ internal static class TrapCrystalPatch
 		PatchBridge.Impl?.OnTrapTriggered(EntityEventKind.CrystalFragileBroken, crystal.crystal.transform.position, 0);
 	}
 
+	// ---- CrystalMimic (the dispatcher-level latch observation). CrystalMimic
+	// is internal, but the PUBLIC dispatchers CrystalBehaviour.OnCollisionEnter2D
+	// and BuildingHit are the exact entry points that invoke every effect
+	// (CrystalBehaviour.cs:74-88); observing the mimic's activated false→true
+	// edge there keeps this patch fully attributed (no dynamic target) while the
+	// actual spawn reports ride the generic EntitySpawned channel. ----
+
+	/// <summary>Mimic Touched — the touch flipped the activated latch (the
+	/// observerlaugh + crystalenemy spawns ran; CrystalMimic.cs:23-35).</summary>
+	[HarmonyPatch(typeof(CrystalBehaviour), "OnCollisionEnter2D")]
+	internal static class MimicTouchedPatch
+	{
+		private static void Prefix(CrystalBehaviour __instance, out bool __state) =>
+			__state = CrystalMimicAccess.IsActivated(__instance);
+
+		private static void Postfix(CrystalBehaviour __instance, bool __state)
+		{
+			if (__state || !CrystalMimicAccess.IsActivated(__instance))
+			{
+				return; // not the touch that activated the mimic (or no mimic on this crystal)
+			}
+
+			PatchBridge.Impl?.OnTrapTriggered(EntityEventKind.CrystalMimicTriggered, __instance.transform.position, 0);
+		}
+	}
+
+	/// <summary>Mimic Hit — an attack flipped the activated latch (the same
+	/// observerlaugh + crystalenemy spawns; CrystalMimic.cs:38-49).</summary>
+	[HarmonyPatch(typeof(CrystalBehaviour), "BuildingHit")]
+	internal static class MimicHitPatch
+	{
+		private static void Prefix(CrystalBehaviour __instance, out bool __state) =>
+			__state = CrystalMimicAccess.IsActivated(__instance);
+
+		private static void Postfix(CrystalBehaviour __instance, bool __state)
+		{
+			if (__state || !CrystalMimicAccess.IsActivated(__instance))
+			{
+				return; // not the attack that activated the mimic (or no mimic on this crystal)
+			}
+
+			PatchBridge.Impl?.OnTrapTriggered(EntityEventKind.CrystalMimicTriggered, __instance.transform.position, 0);
+		}
+	}
+
 	// ---- The phase-B crystal family (all INTERNAL classes — installed
 	// dynamically by GameAdapter.InstallDynamicPatches, same rule as the two
 	// above: an override cannot be intercepted through the base class). The

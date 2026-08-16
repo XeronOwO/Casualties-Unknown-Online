@@ -291,7 +291,7 @@ domain"). Per-surface notes:
 
 ## Runtime item spawn surface (audit 2026-08-16)
 
-Every runtime item creation — building/block drops, unloads, use-action
+Every gameplay runtime item creation — building/block drops, unloads, use-action
 results, cook/trade/craft products, the unconscious droppings loop — funnels
 into one of two sinks: standalone world items ride the generic
 host-authoritative `ItemSpawn` channel, and items picked up in the same call

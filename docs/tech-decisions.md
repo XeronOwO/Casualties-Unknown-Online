@@ -355,6 +355,10 @@ attacker and 1× on the peers. Closeout:
 - **`BlockDamagedMsg.MetalBonus` (ProtoMember 4)** — raw damage + source bonus flag; every apply
   path passes the flag into the receiver's own `DamageBlock`, which multiplies identically on the
   same generated block type. The pending-break state carries it through the one-frame drops hold.
+  A damage-only report against an already-air cell is ignored before `DamageBlock` (air health is
+  0 — WorldGeneration.cs:315-322 — so the old path created a transient air `BlockDamage` and
+  played hit sounds/particles); an accepted break relay's drops still materialize on an
+  already-air guest cell.
 - **ProtocolVersion 11→12** — a v11 peer would drop NetMsg 89 and apply the wrong metallic
   multiplier, so mixed-version sessions are refused instead of silently degrading.
 - Tests: registry semantics (`BlockDamageRegistryTests`), direction table, wire round-trips

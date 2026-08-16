@@ -30,6 +30,7 @@ public class DirectionTests
 		NetMsg.ItemSlot,
 		NetMsg.CarriedInventory,
 		NetMsg.ModCommandRequest,
+		NetMsg.WorldTimeRequest,
 	};
 
 	public static TheoryData<NetMsg> HostToGuestMessages => new()
@@ -63,6 +64,7 @@ public class DirectionTests
 		NetMsg.EnemySnapshot,
 		NetMsg.EnemyAttack,
 		NetMsg.ModCommandResult,
+		NetMsg.WorldTime,
 	};
 
 	public static TheoryData<NetMsg> BidirectionalMessages => new()

@@ -365,3 +365,37 @@ attacker and 1× on the peers. Closeout:
   (origin cell / damage 0 and `MetalBonus = true`), pending-state bonus preservation, the
   accepted-break relay bonus preservation, and the world-entry/reconnect snapshot groups extended
   from six to seven snapshots.
+
+## 22. World-time flow — host-authoritative fast-forward + all-unconscious sleep (ProtocolVersion 13)
+
+`Time.timeScale` is process-global world state, so per-side fast-forward/sleep would run each
+world at a different rate. KrokMP's server-relay shape was reviewed as reference only; CUO uses
+its own request/policy split and pure decision machine:
+
+- **`WorldTimeSpeed` (Normal/Fast/SuperFast/UnconsciousFast/DyingFast)** — Slowmo and Paused are
+  deliberately NOT wire speeds; they remain local-only presentation semantics.
+- **Guest intents are requests, never local writes** — `PlayerCameraSetTimeScalePatch` routes
+  Normal/Fast/SuperFast to `WorldTimeRequest` (NetMsg 90); the host answers with `WorldTime`
+  (NetMsg 91). UnconsciousFast/DyingFast local calls are swallowed (host-owned). Slowmo/Paused
+  and forced local transitions stay local-only.
+- **Sleep acceleration is host-computed, all-unconscious only** —
+  `PlayerCameraHandleUnconsciousScreenPatch` opens a `WorldTimeSleepLocal` CallContext scope, so
+  the vanilla black-screen 25×/3.5× SetTimeScale calls never run in a session. `WorldTimePolicy`
+  (pure) accelerates only when every in-world ALIVE player has `consciousness <= 20`; any
+  `brainDying` player limits the session to 3.5× (DyingFast), otherwise 25× (UnconsciousFast).
+  Dead players are ignored; an unobserved (just-joined) player blocks acceleration.
+- **Movement gate** — `WorldTimePolicy` treats any conscious player above 0.5 m/s (squared
+  threshold 0.25) as moving and returns Normal; the request is CLEARED (the
+  `WorldTimeDecision.NextRequested` field), so a fast-forward never re-applies itself after the
+  blocking condition ends. The policy uses the host's 20 Hz velocity buffers plus the 1 Hz
+  character snapshots for exact consciousness/blood pressure.
+- **Direct-write adoption / enforcement** — the host pump maps actual `Time.timeScale` back into
+  the domain (quake-start reset, console) and broadcasts; the guest pump enforces the last host
+  speed when a direct writer moved it to another domain speed.
+- **Late joiners + self-heal** — the host broadcasts its current speed on
+  `RemoteSceneChanged(inWorld=true)` and every 5 s (idempotent absolute speed).
+- **ProtocolVersion 12→13** — a v12 peer would keep its own timeScale and diverge world timers,
+  so mixed-version sessions are refused instead of silently degrading.
+- Tests: `WorldTimePolicyTests` (pure policy matrix), `WorldTimeFlowTests` (request/broadcast
+  over the real wire), direction-table rows, protobuf zero-omission round-trip, and
+  `PatchContractTests` re-verifies both new PlayerCamera patches against the game assembly.

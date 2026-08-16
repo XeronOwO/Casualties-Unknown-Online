@@ -31,7 +31,9 @@ fast-forward / sleep-acceleration). ProtocolVersion 13, NetMsg 90/91.
   applied speed, the per-member state capture (local Body health + 20 Hz
   velocity buffers + the host's 1 Hz CharacterData store for guest
   consciousness/blood pressure), the host policy pump, the 5 s resend and the
-  world-entry fan-out.
+  world-entry fan-out. It never touches timeScale while the start gate holds
+  (the gate owns the load freeze); a broadcast that arrives during the gate is
+  recorded and enforced on release.
 - Harmony adapters are thin:
   - `PlayerCameraSetTimeScalePatch` — prefix routes every SetTimeScale
     through the bridge unless it is a CUO apply or a suppressed sleep-local

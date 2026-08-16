@@ -28,6 +28,7 @@ internal sealed class WorldTimeSync(
 	EntitySyncService entities,
 	CharacterDataStore characterData,
 	RunCoordinator run,
+	StartGateCoordinator gate,
 	IWorldTimeControl worldTime,
 	ILogger<WorldTimeSync> log)
 {
@@ -35,6 +36,7 @@ internal sealed class WorldTimeSync(
 	private readonly EntitySyncService _entities = entities;
 	private readonly CharacterDataStore _characterData = characterData;
 	private readonly RunCoordinator _run = run;
+	private readonly StartGateCoordinator _gate = gate;
 	private readonly IWorldTimeControl _worldTime = worldTime;
 	private readonly ILogger<WorldTimeSync> _log = log;
 
@@ -66,9 +68,9 @@ internal sealed class WorldTimeSync(
 	/// <summary>Pump: host policy + direct-write adoption + the 5 s resend; guest enforcement of the last host speed.</summary>
 	internal void Update()
 	{
-		if (!_session.SessionActive || _run.LocalBody == null) // Unity object — ==
+		if (!_session.SessionActive || _run.LocalBody == null || _gate.WaitingForReady) // Unity object — ==
 		{
-			return;
+			return; // the start gate owns timeScale 0 while everyone loads — world time must not touch it
 		}
 
 		if (IsHostMode)
@@ -184,7 +186,10 @@ internal sealed class WorldTimeSync(
 		}
 
 		_appliedSpeed = Normalize(speed);
-		ApplyLocalTime(_appliedSpeed);
+		if (!_gate.WaitingForReady)
+		{
+			ApplyLocalTime(_appliedSpeed); // during the start gate the gate owns timeScale 0; Update enforces the host speed on release
+		}
 	}
 
 	private void OnRemoteSceneChanged(ulong steamId, bool inWorld)
@@ -212,9 +217,9 @@ internal sealed class WorldTimeSync(
 	/// </summary>
 	private void TryApplyPolicy()
 	{
-		if (_run.LocalBody == null) // Unity object — ==
+		if (_run.LocalBody == null || _gate.WaitingForReady) // Unity object — ==
 		{
-			return;
+			return; // the start gate owns timeScale 0 while everyone loads
 		}
 
 		var decision = WorldTimePolicy.Decide(_requestedSpeed, CapturePlayerStates());

@@ -17,7 +17,7 @@ drop-then-pickup view offset determined game-native (CUO never writes the item t
 Finish every remaining base-game domain before returning to the Mod API remainder. Proposed
 order (the bullets live in the sections below — no duplicate copies):
 1. Item / entity domain open items (excluding entries explicitly marked accepted).
-2. Character / presentation / combat open items, including Online UI and sound sync.
+2. Character / presentation / combat open items, including Online UI and the remaining high-frequency sound slice.
 3. Persistence + Config.
 4. Tooling / testing debt.
 World consistency and world time flow are code-complete; their only residual is the final
@@ -323,7 +323,22 @@ lands, never bolted on afterwards.
 - Damage events (environment damage local — `ExplosionBodyEffect` rolls it locally and the result rides
   the 1 Hz character snapshot; player-vs-player is OUT OF SCOPE: the base game has no PvP mechanic, the
   KrokMP mod added it as an extra, and CUO prioritizes the base game loop).
-- Character sound / block sound sync.
+- RESOLVED (2026-08-16, ProtocolVersion 17): character / block / building-hit action
+  sounds — attack/throw/exert sounds now travel as one dedicated `CharacterSoundMsg`
+  (NetMsg 94, star relay) carrying the EXACT clip captured from the real `Sound.Play` call
+  inside the `CharacterAttack` / `CharacterThrow` / `CharacterExert` call-identity scopes,
+  and replay on the owner's remote clone under `RemoteApply` (`FollowOwner` re-parents to the
+  clone). Block hit/break sounds needed no new code: every `BlockDamaged` receiver already
+  applies through `WorldGeneration.DamageBlock(hitSound: true)`, which plays the game's own
+  block sounds — recorded as evidence instead of staying an open question. Remote
+  building-entity hit sounds replay on the existing `BuildingEntityDamaged` relay by playing
+  the local entity's own `hitSound` (one operation = one message). See
+  `docs/character-sound-selfcheck.md`; 947 tests green (L0 simulation + reflective patch
+  surface + static evidence, no manual acceptance).
+- High-frequency/continuous character sounds (footsteps Body.cs:1169-1185, landing impacts
+  Body.cs:2729-2737, speech blips, other per-frame/per-step sounds): the natural next slice of
+  the sound domain — keep local-only until a deliberate sound-frequency pass (do not event
+  every footstep without volume evidence).
 - Direct player interaction (view/take items, carry, view vitals, heal).
 - Periodic keyframe self-healing (partially implemented; extend to remaining domains). Before
   any snapshot stream switches to an unreliable channel, event-version numbers are required —

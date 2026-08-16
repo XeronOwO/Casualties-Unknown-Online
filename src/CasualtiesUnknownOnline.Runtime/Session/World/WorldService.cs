@@ -26,10 +26,12 @@ public sealed partial class WorldService : IWorldControl, IDisposable
 	private readonly EntityEventChannel _eventChannel;
 	private readonly TradeChannel _tradeChannel;
 	private readonly SpeechChannel _speechChannel;
+	private readonly BlockDamageRegistry _blockDamageRegistry;
 
 	public WorldService(ISessionControl session, PacketSender sender, ITimeSource time,
 		ILogger<WorldService> log, EntityEventChannel eventChannel,
-		TradeChannel tradeChannel, SpeechChannel speechChannel)
+		TradeChannel tradeChannel, SpeechChannel speechChannel,
+		BlockDamageRegistry blockDamageRegistry)
 	{
 		_session = session;
 		_sender = sender;
@@ -38,6 +40,7 @@ public sealed partial class WorldService : IWorldControl, IDisposable
 		_eventChannel = eventChannel;
 		_tradeChannel = tradeChannel;
 		_speechChannel = speechChannel;
+		_blockDamageRegistry = blockDamageRegistry;
 
 		// Session-scoped world state dies with the session: a lobby switch or
 		// host exit must never leak a start gate, pending-run flag, params or
@@ -232,12 +235,13 @@ public sealed partial class WorldService : IWorldControl, IDisposable
 	/// Host: a guest reported damage — apply + relay (the drops ride the message,
 	/// the host arbitrates the break: first-writer-wins, the loser's drops are
 	/// refused). Guest: the host's broadcast — apply. Drops are null/empty when
-	/// the damage did not break the block.
+	/// the damage did not break the block. MetalBonus preserves the game's
+	/// ×10 metallic-block multiplier (WorldGeneration.cs:715).
 	/// </summary>
-	public event Action<ulong, NetVector2, float, IReadOnlyList<BlockDropEntryMsg>?>? BlockDamagedReceived;
+	public event Action<ulong, NetVector2, float, bool, IReadOnlyList<BlockDropEntryMsg>?>? BlockDamagedReceived;
 
-	public void FireBlockDamagedReceived(ulong sender, NetVector2 pos, float damage, IReadOnlyList<BlockDropEntryMsg>? drops) =>
-		BlockDamagedReceived?.Invoke(sender, pos, damage, drops);
+	public void FireBlockDamagedReceived(ulong sender, NetVector2 pos, float damage, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops) =>
+		BlockDamagedReceived?.Invoke(sender, pos, damage, metalBonus, drops);
 
 	/// <summary>Guest: the host told us to enter the world — isTutorial = follow StartTutorial (it nulls runSettings itself), else StartRun.</summary>
 	public event Action<bool>? WorldJoinReceived;
@@ -460,6 +464,7 @@ public sealed partial class WorldService : IWorldControl, IDisposable
 	public void ResetDamagedBlocks()
 	{
 		_damagedBlocks.Clear();
+		_blockDamageRegistry.Reset();
 		_eventChannel.ResetConsumptions();
 		_eventChannel.ResetOpenedEntities();
 		_eventChannel.ResetBuildingEntityHealth();
@@ -538,9 +543,10 @@ public sealed partial class WorldService : IWorldControl, IDisposable
 	/// a report (the host arbitrates and relays), host → broadcast to all synced
 	/// members (the source excluded on relay — it already applied locally). A
 	/// BREAK's drops ride the same message — the break and its drops get one
-	/// arbitration verdict.
+	/// arbitration verdict. MetalBonus rides raw: the receiver applies the
+	/// game's own metallic multiplier to its identical generated block.
 	/// </summary>
-	public void SendBlockDamaged(NetVector2 worldPos, float damage, IReadOnlyList<BlockDropEntryMsg>? drops)
+	public void SendBlockDamaged(NetVector2 worldPos, float damage, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops)
 	{
 		if (!_session.SessionActive)
 		{
@@ -551,6 +557,7 @@ public sealed partial class WorldService : IWorldControl, IDisposable
 		{
 			Position = worldPos.ToNetVector2Msg(),
 			Damage = damage,
+			MetalBonus = metalBonus,
 			Drops = drops is { Count: > 0 } ? [.. drops] : null,
 		};
 		if (_session.Role == SessionRole.Host)
@@ -570,7 +577,7 @@ public sealed partial class WorldService : IWorldControl, IDisposable
 	/// guest's damage and drops itself via the same receive path (its own
 	/// verdict: the break record it took when applying the guest's BlockPlaced).
 	/// </summary>
-	public void BroadcastBlockDamaged(ulong excludeSteamId, NetVector2 worldPos, float damage, IReadOnlyList<BlockDropEntryMsg>? drops)
+	public void BroadcastBlockDamaged(ulong excludeSteamId, NetVector2 worldPos, float damage, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops)
 	{
 		if (_session.Role != SessionRole.Host || !_session.SessionActive)
 		{
@@ -581,6 +588,7 @@ public sealed partial class WorldService : IWorldControl, IDisposable
 		{
 			Position = worldPos.ToNetVector2Msg(),
 			Damage = damage,
+			MetalBonus = metalBonus,
 			Drops = drops is { Count: > 0 } ? [.. drops] : null,
 		};
 		_session.BroadcastExcept(excludeSteamId, NetMsg.BlockDamaged, msg);

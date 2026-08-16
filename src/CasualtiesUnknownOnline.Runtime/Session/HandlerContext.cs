@@ -50,6 +50,9 @@ public sealed class HandlerContext(ISessionControl session, IEntitySyncControl e
 	///   must learn them from the host; observed: the pod door closed again);
 	/// - building-entity health: current damage/destroy state (a rejoin would
 	///   otherwise regenerate destroyed plants/crates at full health);
+	/// - block damage: current accumulated BlockDamage.damage (a rejoin would
+	///   otherwise regenerate partially-mined blocks at full HP and break them
+	///   later — the live delta chain only covers members that were present);
 	/// - trap-layout: the generated trap positions (the entity distribution
 	///   runs physics queries the random isolation does not cover, so the
 	///   member's layout diverges — the host's scene is the authority);
@@ -61,6 +64,7 @@ public sealed class HandlerContext(ISessionControl session, IEntitySyncControl e
 	public void SendWorldStateToMember(ulong steamId)
 	{
 		World.SendBlockStateSnapshot(steamId);
+		World.SendBlockDamageSnapshot(steamId);
 		World.SendTrapStateSnapshot(steamId);
 		World.SendOpenedEntitiesSnapshot(steamId);
 		World.SendBuildingEntityHealthSnapshot(steamId);

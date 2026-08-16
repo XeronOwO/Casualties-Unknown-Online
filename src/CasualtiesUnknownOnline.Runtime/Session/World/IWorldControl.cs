@@ -19,16 +19,16 @@ public interface IWorldControl
 
 	void SetHostRunPending(bool pending);
 
-	/// <summary>Host: a guest reported damage (sender = the reporter; drops ride the break — the host arbitrates). Guest: the host broadcast it.</summary>
-	void FireBlockDamagedReceived(ulong sender, NetVector2 pos, float damage, IReadOnlyList<BlockDropEntryMsg>? drops);
+	/// <summary>Host: a guest reported damage (sender = the reporter; drops ride the break — the host arbitrates; MetalBonus preserves the ×10 metallic multiplier). Guest: the host broadcast it.</summary>
+	void FireBlockDamagedReceived(ulong sender, NetVector2 pos, float damage, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops);
 
-	event Action<ulong, NetVector2, float, IReadOnlyList<BlockDropEntryMsg>?>? BlockDamagedReceived;
+	event Action<ulong, NetVector2, float, bool, IReadOnlyList<BlockDropEntryMsg>?>? BlockDamagedReceived;
 
 	/// <summary>Report a locally-performed block damage (drops = the break's drops, null/empty = damage only): guest → host report, host → broadcast to all synced members.</summary>
-	void SendBlockDamaged(NetVector2 worldPos, float damage, IReadOnlyList<BlockDropEntryMsg>? drops);
+	void SendBlockDamaged(NetVector2 worldPos, float damage, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops);
 
 	/// <summary>Host only: relay an ACCEPTED guest break report to the other members (source excluded).</summary>
-	void BroadcastBlockDamaged(ulong excludeSteamId, NetVector2 worldPos, float damage, IReadOnlyList<BlockDropEntryMsg>? drops);
+	void BroadcastBlockDamaged(ulong excludeSteamId, NetVector2 worldPos, float damage, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops);
 
 	void FireWorldJoinReceived(bool isTutorial);
 
@@ -101,6 +101,20 @@ public interface IWorldControl
 
 	/// <summary>Host only: send the full damage table to one member (on its world entry).</summary>
 	void SendBlockStateSnapshot(ulong targetSteamId);
+
+	/// <summary>Host only: record the block's current accumulated damage at a block cell (the late-joiner snapshot's fact source).</summary>
+	void ReportBlockDamage(int x, int y, float damage);
+
+	/// <summary>Host only: the block broke or was air-written away — its partial damage is gone.</summary>
+	void RemoveBlockDamage(int x, int y);
+
+	/// <summary>Host only: send the partial block-damage records to one member (on its world entry).</summary>
+	void SendBlockDamageSnapshot(ulong targetSteamId);
+
+	/// <summary>Guest: the host's partial block-damage snapshot arrived — apply each entry absolutely (world entry / 60 s resend).</summary>
+	void FireBlockDamageSnapshotReceived(IReadOnlyList<BlockDamageEntryMsg> entries);
+
+	event Action<IReadOnlyList<BlockDamageEntryMsg>>? BlockDamageSnapshotReceived;
 
 	void FireBlockStateReceived(IReadOnlyList<DamagedBlock> blocks);
 

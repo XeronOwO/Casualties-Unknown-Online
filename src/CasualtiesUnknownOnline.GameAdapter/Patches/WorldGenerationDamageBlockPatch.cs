@@ -26,11 +26,11 @@ internal static class WorldGenerationDamageBlockPatch
 	private static void Prefix(out IDisposable? __state) =>
 		__state = CallContext.Enter(CallContext.Origin.DamageBlockOrigin);
 
-	private static void Postfix(IDisposable? __state, Vector2 pos, float dmg)
+	private static void Postfix(IDisposable? __state, Vector2 pos, float dmg, bool bonusMetal)
 	{
 		try
 		{
-			PatchBridge.Impl?.OnBlockDamaged(pos, dmg);
+			PatchBridge.Impl?.OnBlockDamaged(pos, dmg, bonusMetal);
 		}
 		finally
 		{

@@ -131,4 +131,10 @@ public enum NetMsg : byte
 	// position-keyed relay, but a late joiner regenerates every entity at full
 	// health, so it must learn the host's current entity health)
 	BuildingEntityHealthSnapshot = 88, // host → guest: current building-entity health records (world entry / 60 s resend)
+
+	// Partially-damaged blocks (the late-joiner snapshot — the live BlockDamaged
+	// relay is delta-based, but a late joiner regenerates every block with zero
+	// accumulated BlockDamage, so it must learn the host's current damage; a
+	// broken block rides WorldBlockState instead)
+	BlockDamageSnapshot = 89, // host → guest: current partial block-damage records (world entry / 60 s resend)
 }

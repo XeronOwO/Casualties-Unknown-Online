@@ -44,6 +44,7 @@ internal sealed class WorldEventSync(
 	internal void BindToSession()
 	{
 		_world.BlockDamagedReceived += _blockBreaks.OnRemoteBlockDamaged;
+		_world.BlockDamageSnapshotReceived += _blockBreaks.OnBlockDamageSnapshot;
 		_world.BuildingEntityDamagedReceived += OnRemoteBuildingEntityDamaged;
 		_world.BuildingEntityOpenedReceived += OnRemoteBuildingEntityOpened;
 		_world.BlockStateReceived += OnRemoteBlockState;
@@ -58,6 +59,7 @@ internal sealed class WorldEventSync(
 	internal void Unbind()
 	{
 		_world.BlockDamagedReceived -= _blockBreaks.OnRemoteBlockDamaged;
+		_world.BlockDamageSnapshotReceived -= _blockBreaks.OnBlockDamageSnapshot;
 		_world.BuildingEntityDamagedReceived -= OnRemoteBuildingEntityDamaged;
 		_world.BuildingEntityOpenedReceived -= OnRemoteBuildingEntityOpened;
 		_world.BlockStateReceived -= OnRemoteBlockState;
@@ -110,6 +112,7 @@ internal sealed class WorldEventSync(
 				if (member.InWorld)
 				{
 					_world.SendBlockStateSnapshot(member.SteamId);
+					_world.SendBlockDamageSnapshot(member.SteamId); // the partial block damage rides the same world-entry resend (idempotent absolute set)
 					_world.SendTrapStateSnapshot(member.SteamId); // the one-shot trap consumptions ride the same world-entry resend (idempotent)
 					_world.SendOpenedEntitiesSnapshot(member.SteamId); // same for the opened entities (idempotent)
 					_world.SendBuildingEntityHealthSnapshot(member.SteamId); // same for the damaged building entities (idempotent)
@@ -327,6 +330,14 @@ internal sealed class WorldEventSync(
 
 		if (_session.SessionActive)
 		{
+			// An air write ends any partial damage at that cell — a broken
+			// block is the block-state snapshot's semantic, never the
+			// partial-damage snapshot's.
+			if (block == 0)
+			{
+				_blockBreaks.OnBlockAirWrite(pos);
+			}
+
 			// A world mutation in a live session: the source applied it locally
 			// (local compute) — host broadcasts it, guest reports it for
 			// arbitration. Solo (no session) never sends.
@@ -378,6 +389,7 @@ internal sealed class WorldEventSync(
 				{
 					// A player break (its BlockDamaged report follows) — or a
 					// quake/environment write (expires unused in BlockBreakSync).
+					_blockBreaks.OnBlockAirWrite(pos);
 					_blockBreaks.OnRemoteAirWriteApplied(sender, pos);
 				}
 			}

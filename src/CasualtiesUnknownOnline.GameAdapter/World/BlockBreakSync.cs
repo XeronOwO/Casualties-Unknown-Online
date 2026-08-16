@@ -11,15 +11,16 @@ using UnityEngine;
 namespace CasualtiesUnknownOnline.GameAdapter.World;
 
 /// <summary>
-/// The block-break sync chain (split from WorldEventSync — the 600-line gate):
-/// local breaks hold their report one frame for the drops (PendingBlockBreak),
-/// then go out as ONE BlockDamagedMsg carrying the break + drops; the host
-/// arbitrates first-writer-wins (the record of the sender's APPLIED air-write —
-/// a GetBlock check is useless, the block is air for the loser too) and the
-/// accepted relay materializes the drops on the other sides. One deep module:
-/// the report hold, the arbitration record, the flush and the drops' fate
-/// (register/refuse) live here — the DamageBlock/SetBlock patches and the
-/// world domain are thin adapters to it.
+/// The block-damage sync chain (split from WorldEventSync — the 600-line gate):
+/// local damage reports immediately while the block survives, local breaks hold
+/// their report one frame for the drops (PendingBlockBreak), then go out as ONE
+/// BlockDamagedMsg carrying the break + drops; the host arbitrates
+/// first-writer-wins (the record of the sender's APPLIED air-write — a GetBlock
+/// check is useless, the block is air for the loser too) and the accepted relay
+/// materializes the drops on the other sides. One deep module: the report hold,
+/// the arbitration record, the flush, the drops' fate (register/refuse) and the
+/// partial block-damage snapshot (host record + guest absolute apply) live here
+/// — the DamageBlock/SetBlock patches and the world domain are thin adapters.
 /// </summary>
 internal sealed class BlockBreakSync(
 	SessionService session,
@@ -54,6 +55,9 @@ internal sealed class BlockBreakSync(
 	private const float RecentBrokenTtl = 3f;
 	private float _lastBrokenCleanup;
 
+	/// <summary>The game's own blockDamages cap — a snapshot must never push the guest's list past it (WorldGeneration.cs:732-737).</summary>
+	private const int GameBlockDamageCap = 128;
+
 	/// <summary>True while a remote world mutation is being applied — the local-report hooks must stay silent (call identity lives in CallContext, not bools).</summary>
 	private bool IsRemoteApply => CallContext.Current == CallContext.Origin.RemoteApply;
 
@@ -73,12 +77,15 @@ internal sealed class BlockBreakSync(
 
 	/// <summary>
 	/// Called from the DamageBlock patch after a LOCAL block damage was applied:
-	/// report it so the peer applies the same damage at the same world position.
-	/// A BREAK is not reported immediately — it waits one frame so the drops'
-	/// Item.Start folds into the pending break (one message, one verdict), and
-	/// the frame-end flush sends it.
+	/// report it so the peer applies the same damage at the same world position
+	/// (raw damage + MetalBonus — the receiver's own DamageBlock applies the
+	/// same metallic multiplier to the same generated block). The host also
+	/// records the post-write accumulated BlockDamage.damage for the
+	/// late-joiner snapshot. A BREAK is not reported immediately — it waits one
+	/// frame so the drops' Item.Start folds into the pending break (one
+	/// message, one verdict), and the frame-end flush sends it.
 	/// </summary>
-	internal void OnBlockDamaged(Vector2 pos, float dmg)
+	internal void OnBlockDamaged(Vector2 pos, float dmg, bool bonusMetal)
 	{
 		if (IsRemoteApply || !_session.SessionActive)
 		{
@@ -91,28 +98,32 @@ internal sealed class BlockBreakSync(
 			return;
 		}
 
+		var cell = world.WorldToBlockPos(pos);
 		var op = _trace.NextOperationId();
-		if (world.GetBlock(world.WorldToBlockPos(pos)) != 0)
+		if (world.GetBlock(cell) != 0)
 		{
-			// Damage only (the block survived) — report it immediately.
-			_world.SendBlockDamaged(new NetVector2(pos.x, pos.y), dmg, null);
+			// Damage only (the block survived) — report it immediately and
+			// record the post-write absolute damage (the snapshot's fact).
+			_world.SendBlockDamaged(new NetVector2(pos.x, pos.y), dmg, bonusMetal, null);
+			ReportBlockDamageFromGame(world, cell);
 			_trace.End(op, 0, "OnBlockDamaged", "Committed(1)", "Damage");
 			return;
 		}
 
 		// The block broke (SetBlock(0) ran inside the roll, WorldGeneration.cs:839)
-		// — hold the report: the drops' Item.Start folds in NEXT frame, the
-		// frame-end flush then sends the break + drops as ONE message.
+		// — its partial damage is gone, and the report holds one frame so the
+		// drops' Item.Start folds in (break + drops = ONE message, one verdict).
+		_world.RemoveBlockDamage(cell.x, cell.y);
 		_trace.Begin(op, 0, "OnBlockDamaged", "Break");
-		_breakState.EnterBreak(pos.x, pos.y, dmg, op, Time.frameCount);
+		_breakState.EnterBreak(pos.x, pos.y, dmg, bonusMetal, op, Time.frameCount);
 	}
 
 	/// <summary>
 	/// Frame-end flush of a pending break: register the drops (host/solo — the
 	/// authoritative table must know them before the periodic keyframe) and
-	/// send ONE BlockDamagedMsg carrying the break + all drops. The local drop
-	/// objects are the original (never materialized again); the peers
-	/// materialize from the message.
+	/// send ONE BlockDamagedMsg carrying the break + all drops + MetalBonus.
+	/// The local drop objects are the original (never materialized again); the
+	/// peers materialize from the message.
 	/// </summary>
 	internal void FlushPendingBlockBreak()
 	{
@@ -126,7 +137,7 @@ internal sealed class BlockBreakSync(
 			_items.RegisterBlockDrops(flushed.Drops);
 		}
 
-		_world.SendBlockDamaged(new NetVector2(flushed.PosX, flushed.PosY), flushed.Dmg, flushed.Drops);
+		_world.SendBlockDamaged(new NetVector2(flushed.PosX, flushed.PosY), flushed.Dmg, flushed.MetalBonus, flushed.Drops);
 		_trace.End(flushed.Op, 0, "FlushPendingBlockBreak", $"Committed({flushed.Drops.Count})", "Break", "Drop");
 	}
 
@@ -148,12 +159,15 @@ internal sealed class BlockBreakSync(
 	/// loser too). Accepted → the drops register + materialize + relay (source
 	/// excluded — the breaker already has the originals). Refused → every drop
 	/// gets an ItemReject and the breaker destroys its local copy. A damage-only
-	/// report applies the damage and relays while the block still stands.
+	/// report applies the damage and relays while the block still stands; the
+	/// host then records its post-apply absolute damage for the snapshot.
 	/// Guest: the host's broadcast — apply the damage; a break's drops
 	/// materialize. No side ever rolls: the drops are the breaker's local
-	/// compute, carried by the message.
+	/// compute, carried by the message. MetalBonus rides raw on both sides so
+	/// the game's own metallic multiplier (WorldGeneration.cs:715) is applied
+	/// identically everywhere.
 	/// </summary>
-	internal void OnRemoteBlockDamaged(ulong sender, NetVector2 pos, float dmg, IReadOnlyList<BlockDropEntryMsg>? drops)
+	internal void OnRemoteBlockDamaged(ulong sender, NetVector2 pos, float dmg, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops)
 	{
 		var world = WorldGeneration.world;
 		if (world == null) // Unity object — ==
@@ -166,6 +180,7 @@ internal sealed class BlockBreakSync(
 			var cell = world.WorldToBlockPos(new Vector2(pos.X, pos.Y));
 			if (IsHostMode)
 			{
+
 				if (drops is { Count: > 0 } && world.GetBlock(cell) == 0)
 				{
 					// A BREAK with drops: first-writer-wins on the sender's
@@ -173,7 +188,7 @@ internal sealed class BlockBreakSync(
 					if (_arbitration.TryAccept(sender, cell.x, cell.y))
 					{
 						_items.FireBlockDropsReceived(sender, drops);
-						_world.BroadcastBlockDamaged(sender, pos, dmg, drops);
+						_world.BroadcastBlockDamaged(sender, pos, dmg, metalBonus, drops);
 						_log.LogInformation("[BlockBreak] {Sender}'s break at ({X},{Y}) accepted — {Count} drop(s) registered + relayed.",
 							sender, cell.x, cell.y, drops.Count);
 					}
@@ -195,17 +210,22 @@ internal sealed class BlockBreakSync(
 				// damage — a no-op on an already-broken block. The relay only
 				// goes out while the block still stands: a broken block's
 				// damage is meaningless elsewhere.
-				world.DamageBlock(cell, dmg, true, false, true);
+				world.DamageBlock(cell, dmg, true, metalBonus, true);
 				if (world.GetBlock(cell) != 0)
 				{
-					_world.BroadcastBlockDamaged(sender, pos, dmg, null);
+					ReportBlockDamageFromGame(world, cell);
+					_world.BroadcastBlockDamaged(sender, pos, dmg, metalBonus, null);
+				}
+				else
+				{
+					_world.RemoveBlockDamage(cell.x, cell.y);
 				}
 
 				return;
 			}
 
 			// Guest: the host's broadcast — apply.
-			world.DamageBlock(cell, dmg, true, false, true);
+			world.DamageBlock(cell, dmg, true, metalBonus, true);
 			if (drops is { Count: > 0 })
 			{
 				_items.FireBlockDropsReceived(sender, drops);
@@ -221,4 +241,91 @@ internal sealed class BlockBreakSync(
 	/// </summary>
 	internal void OnRemoteAirWriteApplied(ulong sender, Vector2Int cell) =>
 		_arbitration.RecordAppliedAirWrite(sender, cell.x, cell.y, Time.unscaledTime);
+
+	/// <summary>
+	/// Any applied air write (local or remote) invalidates the cell's partial
+	/// damage — a broken block is carried by the block-state snapshot, never by
+	/// the partial-damage snapshot.
+	/// </summary>
+	internal void OnBlockAirWrite(Vector2Int cell) => _world.RemoveBlockDamage(cell.x, cell.y);
+
+	/// <summary>
+	/// The host's partial block-damage snapshot arrived (world entry / the
+	/// 60 s resend) — apply every entry as an ABSOLUTE set: find or create the
+	/// cell's BlockDamage, write the host's accumulated damage and refresh the
+	/// crack sprite. Idempotent by construction (writing the same damage again
+	/// is a no-op), and it never rides DamageBlock: an additive delta could go
+	/// negative when this side already mined further, and a damage ≥ health
+	/// must not break the block here (a break is the block-state snapshot's
+	/// semantic, not this backfill's).
+	/// </summary>
+	internal void OnBlockDamageSnapshot(IReadOnlyList<BlockDamageEntryMsg> entries)
+	{
+		var world = WorldGeneration.world;
+		if (world == null) // Unity object — ==
+		{
+			return;
+		}
+
+		var applied = 0;
+		foreach (var entry in entries)
+		{
+			var cell = new Vector2Int(entry.X, entry.Y);
+			var block = world.GetBlock(cell);
+			if (block == 0)
+			{
+				continue; // already broken — the block-state snapshot owns it
+			}
+
+			var blockHealth = world.GetBlockInfo(block).health;
+			if (entry.Damage <= 0f || entry.Damage >= blockHealth)
+			{
+				_log.LogWarning("Block-damage snapshot at ({X},{Y}): damage {Damage} outside a surviving block's range ({Health} hp) — skipped.",
+					cell.x, cell.y, entry.Damage, blockHealth);
+				continue;
+			}
+
+			var blockDamage = world.GetBlockDamage(cell);
+			if (blockDamage == null)
+			{
+				if (world.blockDamages.Count >= GameBlockDamageCap)
+				{
+					_log.LogWarning("Block-damage snapshot at ({X},{Y}): the game's {Cap}-entry blockDamages list is full — skipped.",
+						cell.x, cell.y, GameBlockDamageCap);
+					continue;
+				}
+
+				blockDamage = new BlockDamage { pos = cell, damage = entry.Damage };
+				world.blockDamages.Add(blockDamage);
+			}
+			else
+			{
+				blockDamage.damage = entry.Damage;
+			}
+
+			blockDamage.UpdateSprite();
+			applied++;
+		}
+
+		_log.LogInformation("Block-damage snapshot applied ({Applied}/{Count} cells).", applied, entries.Count);
+	}
+
+	/// <summary>
+	/// Host record: read the game's own post-write BlockDamage state and store
+	/// it as the snapshot fact. A survived block always has an entry (the
+	/// game creates it before the cap-eviction branch, WorldGeneration.cs:
+	/// 720-737); if it is gone, the cell's partial damage is gone with it.
+	/// </summary>
+	private void ReportBlockDamageFromGame(WorldGeneration world, Vector2Int cell)
+	{
+		var blockDamage = world.GetBlockDamage(cell);
+		if (blockDamage != null && world.GetBlock(cell) != 0)
+		{
+			_world.ReportBlockDamage(cell.x, cell.y, blockDamage.damage);
+		}
+		else
+		{
+			_world.RemoveBlockDamage(cell.x, cell.y);
+		}
+	}
 }

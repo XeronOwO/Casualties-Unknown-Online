@@ -26,23 +26,27 @@ public class WorldEntrySnapshotTests
 		hostWorld.ReportTrapConsumed(EntityEventKind.MineExploded, 10f, 20f, extra: 0);
 		hostWorld.ReportOpenedEntity(30f, 40f);
 		hostWorld.ReportBuildingEntityHealth(50f, 60f, 25f);
+		hostWorld.ReportBlockDamage(12, 34, 80f);
 
 		var g1Traps = new List<IReadOnlyList<EntityEventMsg>>();
 		var g1Opened = new List<IReadOnlyList<NetVector2Msg>>();
 		var g1Health = new List<IReadOnlyList<BuildingEntityHealthEntryMsg>>();
+		var g1BlockDamage = new List<IReadOnlyList<BlockDamageEntryMsg>>();
 		w.G1.Services.GetRequiredService<EntityEventChannel>().TrapStateReceived += list => g1Traps.Add(list);
 		w.G1.Services.GetRequiredService<EntityEventChannel>().OpenedEntitiesSnapshotReceived += list => g1Opened.Add(list);
 		w.G1.Services.GetRequiredService<EntityEventChannel>().BuildingEntityHealthSnapshotReceived += list => g1Health.Add(list);
+		w.G1.Services.GetRequiredService<IWorldControl>().BlockDamageSnapshotReceived += list => g1BlockDamage.Add(list);
 
 		w.G1.Session.ReportSceneState(SceneStateType.InWorld, "SampleScene");
 		w.Driver.Tick(33);
 
 		// The world-entry fan-out sends ALL the world-state snapshots — the
-		// trap, opened and entity-health sends must not wait for the 60 s
-		// periodic resend.
+		// trap, opened, entity-health and block-damage sends must not wait for
+		// the 60 s periodic resend.
 		Assert.Single(g1Traps);
 		Assert.Single(g1Opened);
 		Assert.Single(g1Health);
+		Assert.Single(g1BlockDamage);
 		Assert.True(w.ReceivedCount(w.G1, NetMsg.WorldBlockState) >= 0, "the block-state snapshot rides the same edge");
 	}
 
@@ -53,9 +57,11 @@ public class WorldEntrySnapshotTests
 		var g1Traps = new List<IReadOnlyList<EntityEventMsg>>();
 		var g1Opened = new List<IReadOnlyList<NetVector2Msg>>();
 		var g1Health = new List<IReadOnlyList<BuildingEntityHealthEntryMsg>>();
+		var g1BlockDamage = new List<IReadOnlyList<BlockDamageEntryMsg>>();
 		w.G1.Services.GetRequiredService<EntityEventChannel>().TrapStateReceived += list => g1Traps.Add(list);
 		w.G1.Services.GetRequiredService<EntityEventChannel>().OpenedEntitiesSnapshotReceived += list => g1Opened.Add(list);
 		w.G1.Services.GetRequiredService<EntityEventChannel>().BuildingEntityHealthSnapshotReceived += list => g1Health.Add(list);
+		w.G1.Services.GetRequiredService<IWorldControl>().BlockDamageSnapshotReceived += list => g1BlockDamage.Add(list);
 
 		w.G1.Session.ReportSceneState(SceneStateType.InWorld, "SampleScene");
 		w.Driver.Tick(33);
@@ -63,5 +69,6 @@ public class WorldEntrySnapshotTests
 		Assert.Empty(g1Traps);
 		Assert.Empty(g1Opened);
 		Assert.Empty(g1Health);
+		Assert.Empty(g1BlockDamage);
 	}
 }

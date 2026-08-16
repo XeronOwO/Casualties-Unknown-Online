@@ -1,6 +1,6 @@
 # Character-data disk persistence — delivery fact sheet
 
-Status: implemented — the self-review found a menu-handshake staging hazard after the first deploy; the host-in-world restore gate is folded into the same cycle. Build + format + architecture/event-replay/entity-dispatch gates green, 878 tests green (L0). Re-deploy and final close are the remaining boxes.
+Status: delivered — the self-review found a menu-handshake staging hazard after the first deploy; the host-in-world restore gate is folded into the same cycle, re-deployed, and the cycle is closed. Build + format + architecture/event-replay/entity-dispatch gates green, 878 tests green (L0), runtime verification = L0 simulation + static evidence (no manual acceptance), structure review done.
 
 Cycle: character-data disk persistence (backlog `Persistence` — "Character data
 disk persistence (currently in-memory, lost on host exit)").
@@ -147,8 +147,12 @@ evidence, marked `no manual acceptance`.
 | 8 | Degraded disk (corrupt/unknown version/IO failure) | Warning + continue in-memory, never crash startup | Corrupt-file test + wrong-version test + save-failure policy test |
 ## 5. Post-delivery evidence (runtime verification = L0 + static)
 
-- `dotnet test CasualtiesUnknownOnline.slnx` — **877/877 green** after the
-  final build (development-period rule: no manual acceptance).
+- `dotnet test CasualtiesUnknownOnline.slnx` — **878/878 green** after the
+  final build (development-period rule: no manual acceptance), including the
+  menu-no-restore staging-hazard gate. The first deploy's self-review found
+  that a menu handshake could stage a previous run's save; the gate was folded
+  into the same cycle and the plugin was re-deployed, not stacked as a
+  post-cycle patch.
 - `dotnet build` — 0 warnings, 0 errors (warnings-as-errors);
   `dotnet format` clean; `check-architecture`, `check-event-replay` and
   `check-entity-event-dispatch` all passed.
@@ -159,9 +163,9 @@ evidence, marked `no manual acceptance`.
 - Static diff: `ProtocolVersion.cs` unchanged (15); no Harmony patch, no game
   assembly reference, no GameAdapter source change; the new file format is
   host-local and never travels the wire.
-- Structure review: `CharacterDataStore` 296 lines / `CharacterDataFileStore`
-  182 / `CharacterDataFile` 35 (all under the 600-line gate); zero new
-  expression-state bools; one top-level type per file (gate passed). The
-  interim lazy-reload approach was removed in the same round — no dead
-  mechanism was left behind.
+- Structure review: `CharacterDataStore` 309 lines / `CharacterDataFileStore`
+  177 / `CharacterDataFile` 35 (all under the 600-line gate); test files 306 /
+  192; zero new expression-state bools; one top-level type per file (gate
+  passed). The interim lazy-reload approach was removed in the same round —
+  no dead mechanism was left behind.
 

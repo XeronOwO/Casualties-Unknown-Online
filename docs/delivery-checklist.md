@@ -16,7 +16,7 @@ catch-up pass) is FORBIDDEN: it fabricates the process record and voids the
 gate (observed: the cycle was bulk-checked, never committed, then reset —
 the user called it out). Only the -Reset switch may touch multiple lines.
 
-- [ ] Mechanism inventory: every touched mechanism has evidence (decompiled
+- [x] Mechanism inventory: every touched mechanism has evidence (decompiled
       file:line or runtime log) or is explicitly marked unverified
 - [ ] Whole-family audit: fixing one mechanism, the whole family was aligned
       one by one (no piecemeal fixes — the turret-fire/geyser lesson)

@@ -140,7 +140,7 @@ internal sealed class WorldTimeSync(
 			return;
 		}
 
-		if (_run.LocalBody == null) // Unity object — == (menu-only SetTimeScale resets must not leak a request into the next world)
+		if (_run.LocalBody == null || _gate.WaitingForReady) // Unity object — == (menu/gate timeScale writes must not leak a request)
 		{
 			return;
 		}
@@ -169,6 +169,12 @@ internal sealed class WorldTimeSync(
 		if (!_session.TryGetMember(sender, out var member) || !member.Handshaken || !member.InWorld)
 		{
 			_log.LogWarning("[WorldTime] refused request from {Sender} (not an in-world member).", sender);
+			return;
+		}
+
+		if (_gate.WaitingForReady)
+		{
+			_log.LogInformation("[WorldTime] ignored {Speed} request from {Sender} — the start gate owns the world clock.", speed, sender);
 			return;
 		}
 

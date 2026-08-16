@@ -59,12 +59,13 @@ lands, never bolted on afterwards.
 
 ## World generation / determinism
 
-- Post-generation random-consumer divergence (memory `layer-modifier-sync`): drill holes
-  (block 35) consume the shared random stream after segment 19 and were observed to diverge
-  with no visible symptom; the layer-modifier fix (32fd0eb) reset the modifier decision to the
-  segment start, but the later consumers were never audited. Audit every post-generation
-  `Random` consumer and bind it to the same baseline/segment-start rule or record the accepted
-  divergence explicitly.
+- Post-generation random-consumer divergence: AUDITED (see `docs/worldgen-determinism-audit.md`)
+  — block 35 (`GenerateOres`) runs inside the isolated `WorldGenerateTerrain` coroutine
+  (WorldGeneration.cs:1534-1547, 2734/2939/3067, 3718); no unpatched synchronized-state
+  consumer was found. Remaining per-side `Start` randomness is either covered by the
+  item/enemy/fluid/entity-event domains or accepted as visual/timing (grabber tendril phase,
+  spike light phase, stalactite drop timing, sky/rain visuals). Runtime confirmation: compare
+  `[GenStream]` + `[WorldFingerprint]` host/guest logs at the next dual-side pass.
 
 ## Known game-native issues (not CUO)
 

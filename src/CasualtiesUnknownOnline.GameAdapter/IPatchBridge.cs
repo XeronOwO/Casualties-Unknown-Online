@@ -19,6 +19,14 @@ internal interface IPatchBridge
 	/// <summary>Guest: generation finished (or finishing) but the start gate still holds — the GlobalDark fade must not black out the kept loading screen.</summary>
 	bool IsInGateWindow { get; }
 
+	/// <summary>
+	/// PlayerCamera.DoAlert is about to show a popup while the start-gate
+	/// window holds (the layer title at generation end, its delayed
+	/// description) — queue it and return true to skip the original; false
+	/// lets the popup show normally.
+	/// </summary>
+	bool TryDeferStartGateAlert(string text, bool important);
+
 	void OnWorldGenerate();
 
 	/// <summary>SceneManager.LoadScene(string) prefix — the old scene unloads inside the load: engage the destroy-report suppression BEFORE the teardown destroys (#191).</summary>

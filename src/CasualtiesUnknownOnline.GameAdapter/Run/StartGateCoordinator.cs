@@ -44,6 +44,9 @@ internal sealed class StartGateCoordinator(
 	/// <summary>Guest: the game's loading screen instance kept visible while the start gate holds (Unity object — == null when the scene switched).</summary>
 	private GameObject? _keptLoadingObject;
 
+	/// <summary>PlayerCamera.DoAlert popups suppressed while the start-gate window holds, replayed in order after the release.</summary>
+	private readonly StartGateAlertQueue _alerts = new();
+
 	/// <summary>
 	/// Guest, at the generation boundary: arm the loading-screen keeper. The
 	/// game hides its loading screen at generation end (WorldGeneration.cs:3637,
@@ -114,6 +117,28 @@ internal sealed class StartGateCoordinator(
 			return "Starting…";
 		}
 	}
+
+	/// <summary>
+	/// PlayerCamera.DoAlert entry — true when the popup was queued instead of
+	/// shown (the prefix returns false and skips the original). The window is
+	/// RunCoordinator's start-gate alert span: the layer-title popup fires at
+	/// generation end (WorldGeneration.cs:3640-3659), one frame BEFORE the
+	/// world-entry edge arms the host's gate, so a plain "gate active" check
+	/// would miss it.
+	/// </summary>
+	internal bool DeferAlert(string text, bool important)
+	{
+		if (!_run.IsStartGateAlertWindow)
+		{
+			return false;
+		}
+
+		_log.LogInformation("[Gate] deferring alert '{Alert}' until the gate release.", text);
+		return _alerts.TryDefer(text, important);
+	}
+
+	/// <summary>Session ended — the queued popups belong to the dead run and must not replay into the next lobby.</summary>
+	internal void ResetSessionState() => _alerts.Clear();
 
 	/// <summary>
 	/// Start-gate pump: the host forces the gate after 30 s (slow loaders
@@ -203,6 +228,35 @@ internal sealed class StartGateCoordinator(
 			{
 				HideLoadingScreenForGate();
 			}
+		}
+
+		// Deferred DoAlert popups (the layer title, its delayed description)
+		// replay once the run is actually playing. A window that closed without
+		// playing (world left, session ended) discards them instead.
+		ReplayDeferredAlerts();
+	}
+
+	/// <summary>Replay the popups captured during the wait, in capture order. The
+	/// original PlayerCamera.DoAlert now runs normally — the alert window is
+	/// closed (IsPlaying), so the patch does not re-queue them.</summary>
+	private void ReplayDeferredAlerts()
+	{
+		if (_run.IsStartGateAlertWindow || !_alerts.HasPending)
+		{
+			return;
+		}
+
+		var alerts = _alerts.TakeAll();
+		if (!_run.IsPlaying || PlayerCamera.main == null) // Unity object — ==
+		{
+			_log.LogDebug("[Gate] dropped {Count} deferred alert(s) — the run is no longer playing.", alerts.Count);
+			return;
+		}
+
+		foreach (var alert in alerts)
+		{
+			_log.LogInformation("[Gate] replaying deferred alert '{Alert}' (important {Important}).", alert.Text, alert.Important);
+			PlayerCamera.main.DoAlert(alert.Text, alert.Important);
 		}
 	}
 

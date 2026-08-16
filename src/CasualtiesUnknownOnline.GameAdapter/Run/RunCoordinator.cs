@@ -53,6 +53,7 @@ internal sealed class RunCoordinator(
 
 	private RunPhase _phase = RunPhase.Idle;
 	private bool _joinIsTutorial; // the entry kind carried by the WorldJoin message
+	private bool _hostStartGateAlertPending; // host: generation boundary → gate release — DoAlert popups in this span are deferred
 
 	private bool _inWorld;
 	private Body? _localBody; // Unity object — == (scene-reload check)
@@ -87,6 +88,18 @@ internal sealed class RunCoordinator(
 	internal bool IsInGateWindow =>
 		(_session.Role == SessionRole.Guest && _phase is RunPhase.Generating or RunPhase.WaitingReady)
 		|| (_session.Role == SessionRole.Host && _session.SessionActive && HarmonyTraverse.IsLoadingVisible());
+
+	/// <summary>
+	/// The start-gate alert window — PlayerCamera.DoAlert popups are deferred
+	/// here and replayed when the run is playing. Host: a local latch covers
+	/// the generation boundary through gate release, including the moment the
+	/// layer-title popup is built (WorldGeneration.cs:3640-3659) BEFORE the
+	/// world-entry edge arms the gate. Guest: the follow phases Generating +
+	/// WaitingReady cover the same span on the follower side.
+	/// </summary>
+	internal bool IsStartGateAlertWindow =>
+		(_session.Role == SessionRole.Guest && _phase is RunPhase.Generating or RunPhase.WaitingReady)
+		|| (_session.Role == SessionRole.Host && _hostStartGateAlertPending);
 
 	/// <summary>Guest: when the host finished loading — the countdown anchor (read by StartGateCoordinator).</summary>
 	internal long HostInWorldSinceMs => _hostInWorldSinceMs;
@@ -161,6 +174,11 @@ internal sealed class RunCoordinator(
 	{
 		if (_session.Role == SessionRole.Host || _session.Role == SessionRole.None)
 		{
+			if (_session.Role == SessionRole.Host)
+			{
+				_hostStartGateAlertPending = true; // the layer-title DoAlert at generation end must wait for the gate release
+			}
+
 			_params.OnGenerateBoundary();
 		}
 		else
@@ -258,6 +276,7 @@ internal sealed class RunCoordinator(
 			// future WorldJoin may follow a new run, and the gate can never
 			// release us here.
 			_phase = RunPhase.Idle;
+			_hostStartGateAlertPending = false; // a stale deferred layer-title must not replay into the menu
 		}
 
 		if (inWorld && !_worldFingerprintLogged)
@@ -384,8 +403,13 @@ internal sealed class RunCoordinator(
 	/// <summary>Host side: the start gate released — the host never receives a
 	/// WorldReady for itself, so its phase would otherwise never leave
 	/// Generating (the loading-screen keeper's !IsPlaying gate would keep the
-	/// loading screen up over a running game).</summary>
-	internal void MarkPlayingForHost() => _phase = RunPhase.Playing;
+	/// loading screen up over a running game). Also closes the start-gate alert
+	/// window: StartGateCoordinator replays the deferred popups on the next pump.</summary>
+	internal void MarkPlayingForHost()
+	{
+		_phase = RunPhase.Playing;
+		_hostStartGateAlertPending = false;
+	}
 
 	// ---- Session wiring ----
 
@@ -454,6 +478,7 @@ internal sealed class RunCoordinator(
 	{
 		_phase = RunPhase.Idle;
 		_joinIsTutorial = false;
+		_hostStartGateAlertPending = false;
 		_hostInWorldSinceMs = 0;
 		_worldFingerprintLogged = false;
 		_params.ResetForSessionEnd();

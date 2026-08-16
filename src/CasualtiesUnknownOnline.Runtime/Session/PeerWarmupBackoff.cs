@@ -16,7 +16,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session;
 /// in from the caller (the session's <c>ITimeSource.NowMs</c>), no wall
 /// clock and no transport dependency, which keeps the policy L0-testable.
 /// </summary>
-public sealed class PeerWarmupBackoff
+internal sealed class PeerWarmupBackoff
 {
 	public const long DefaultInitialDelayMs = 1_000;
 	public const long DefaultMaxDelayMs = 10_000;

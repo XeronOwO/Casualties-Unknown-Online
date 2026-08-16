@@ -1,0 +1,20 @@
+# Phase-4 replay archive — block break: the first-writer-wins arbitration.
+# G1's applied air-write is recorded, so its break (the drops carrier) is the
+# first writer and the host accepts it exactly once: the drops register in
+# the authoritative item table and the break relays to the other guest.
+# G2's same-cell break has no record (its own air-write would have been
+# refused as already-broken) — its drops come back as one ItemReject.
+#
+# Fossil of: BlockBreakSimulationTests.FirstBreak_AcceptedAndRelayed_RepeatRefused
+# Mechanism: BlockBreakArbitration.TryAccept (one-shot per sender/cell),
+#            ItemService.FireBlockDropsReceived / SendItemReject
+#            (Runtime/Session/World/BlockBreakArbitration.cs)
+
+@0 airwrite g1 5 7
+@0 break g1 5 7 drops=77:ore
+@0 break g2 5 7 drops=88:ore
+@33 expect block_accepted 1 within 500
+@33 expect block_accepted_by g1 1
+@33 expect block_received g2 BlockDamaged 1
+@33 expect block_reject g2 ItemReject 1
+@33 expect block_registered 77

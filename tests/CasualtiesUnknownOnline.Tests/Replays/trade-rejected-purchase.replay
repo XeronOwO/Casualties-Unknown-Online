@@ -1,0 +1,14 @@
+# Phase-4 replay archive — trade domain: a purchase the host cannot fill (the
+# rifle costs 100, the opening credit is 50). The acting side already ran the
+# game method locally, so the authoritative overwrite must carry the
+# rejection marker (Purchase) — the guest applies the marker and rolls its
+# provisional copy back; the rifle stays in stock and the reputation penalty
+# is part of the converged state.
+#
+# Fossil of: TradeSimulationTests.Purchase_BeyondCredit_RejectedMarkerArrives
+# Mechanism: TradeStockMachine.TryPurchase -> TraderStateMsg.RejectedAction
+
+@0 trade g1 purchase item=rifle
+@33 expect trade_received g1 1 within 1000
+@33 expect trade_rejected g1 purchase
+@33 expect trade_converged g1

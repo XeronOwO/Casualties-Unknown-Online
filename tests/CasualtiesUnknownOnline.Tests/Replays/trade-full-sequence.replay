@@ -1,0 +1,32 @@
+# Phase-4 replay archive — trade domain: every trader interaction kind in one
+# gesture sequence (meet with the reputation modifier chain, purchase, give,
+# haggle, threaten, hug, move). Each action is one report; the host executes
+# the real TradeStockMachine and broadcasts a full authoritative overwrite,
+# and the guest must converge after EVERY step. The delayed-trade sibling
+# covers fault injection; this file locks the no-fault sequence.
+#
+# Fossil of: TradeSimulationTests.FullInteractionSequence_ConvergesAfterEveryStep
+# Mechanism: TradeChannel.SendTraderAction -> host TradeStockMachine ->
+#            TradeChannel.BroadcastTraderState (full overwrite)
+
+@0 trade g1 meet offset=-5 scale=0.7 post=3
+@33 expect trade_received g1 1 within 1000
+@33 expect trade_converged g1
+@33 trade g1 purchase item=bandage
+@66 expect trade_received g1 2 within 1000
+@66 expect trade_converged g1
+@66 trade g1 give value=20
+@99 expect trade_received g1 3 within 1000
+@99 expect trade_converged g1
+@99 trade g1 haggle
+@132 expect trade_received g1 4 within 1000
+@132 expect trade_converged g1
+@132 trade g1 threaten
+@165 expect trade_received g1 5 within 1000
+@165 expect trade_converged g1
+@165 trade g1 hug
+@198 expect trade_received g1 6 within 1000
+@198 expect trade_converged g1
+@198 trade g1 move
+@231 expect trade_received g1 7 within 1000
+@231 expect trade_converged g1

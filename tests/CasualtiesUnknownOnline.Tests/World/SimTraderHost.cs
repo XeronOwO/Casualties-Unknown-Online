@@ -26,6 +26,33 @@ internal sealed class SimTraderHost
 		_random = new Random(seed);
 	}
 
+	/// <summary>
+	/// The default trader fixture shared by the hand-written simulations and
+	/// the replay corpus — one source, so the two suites cannot drift apart.
+	/// </summary>
+	internal static TradeStockState CreateDefaultState() => new()
+	{
+		Reputation = 100f,
+		Hostility = 0f,
+		ValueGiven = 50f, // enough for the cheap items, not the expensive one
+		TotalValueGiven = 10f,
+		FreeAmount = 0,
+		FreeDressing = false,
+		DidHug = false,
+		StartedConvo = false,
+		DidMove = false,
+		HaggleAmount = 0f,
+		Character = 0,
+		BuildHealth = 1000f,
+		MinHugReputation = 20f,
+		Items =
+		[
+			new TraderItemMsg { Id = "bandage", Value = 10, Preference = 0 }, // WantsTrade — the +7 rep purchase
+			new TraderItemMsg { Id = "knife", Value = 20, Preference = 1 }, // Indifferent — the +4 rep purchase
+			new TraderItemMsg { Id = "rifle", Value = 100, Preference = 2 }, // WantsKeep — too expensive for the initial credit
+		],
+	};
+
 	/// <summary>The authoritative state — what the host broadcasts after every action.</summary>
 	internal TradeStockState State { get; private set; }
 

@@ -21,7 +21,7 @@ internal static class ReplayParser
 {
 	private static readonly string[] Actions =
 		["spawn", "pickup", "drop", "use", "slot", "destroy", "fault", "clearfault", "expect", "expect_no_reject",
-			"craft", "event", "snapshot", "fluid"];
+			"craft", "event", "snapshot", "fluid", "airwrite", "break", "trade"];
 
 	// Minimum argument counts per action (node alias excluded — the parser
 	// validates aliases, the runner converts them). Expect lines have at least
@@ -44,6 +44,9 @@ internal static class ReplayParser
 		["event"] = 4, // node kind x y [extra]
 		["snapshot"] = 1, // to
 		["fluid"] = 3, // to x y [w h runs...]
+		["airwrite"] = 3, // node x y
+		["break"] = 3, // node x y [drops=<id>:<itemId>[|...] [metal]]
+		["trade"] = 2, // node kind [item=<id>] [value=<n>] [offset=<n>] [scale=<n>] [post=<n>] [bleeding] [hasgun] [dirty]
 	};
 
 	private static readonly string[] NodeAliases = ["host", "g1", "g2"];

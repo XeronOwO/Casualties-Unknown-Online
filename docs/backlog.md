@@ -273,9 +273,16 @@ lands, never bolted on afterwards.
 
 ## Tooling / testing
 
-- Replay corpus extension (evolution-roadmap memory): the replay format already fossilizes
-  item/craft/entity-event/fluid behavior; the remaining domains are block-break and trade
-  cross-domain action sets.
+- RESOLVED (2026-08-16): replay corpus extension — the block-break and trade domains now
+  have replay worlds, grammar, assertions and fossil files. BlockBreakReplayWorld drives the
+  real BlockBreakArbitration + IItemControl surfaces (`airwrite`/`break` actions;
+  `block_accepted` / `block_accepted_by` / `block_received` / `block_reject` /
+  `block_registered` assertions); TradeReplayWorld drives the real TradeStockMachine through
+  SimTraderHost (`trade` action with meet/purchase/give/haggle/threaten/hug/move;
+  `trade_received` / `trade_converged` / `trade_rejected` assertions). Five new fossil files
+  cover first-writer-wins + loser rollback, unattributed-break refusal, the full interaction
+  sequence, a rejected purchase and a delayed three-action sequence; ReplayTests dispatches by
+  exclusive domain actions and the SimTrace contract covers every world. 846 tests green.
 - Real-log → replay / SimTrace diff automation: `tools/extract-itemtrace.ps1` extracts the
   trace, but the real-log-vs-simulation diff is still a manual/CI step; automate the full
   pipeline when the next replay class lands.

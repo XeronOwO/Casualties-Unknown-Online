@@ -14,10 +14,11 @@ namespace CasualtiesUnknownOnline.Tests.Replays;
 /// automated scenario — a real bug's operation sequence fossilized as data
 /// (with its OperationTrace provenance in the file's comments), driven over
 /// the full simulated stack (TestNode + FakeNetwork, same injection helpers
-/// as the hand-written simulations). Item files run on the item world, the
-/// entity/fluid files (phase A1) on the entity world — a file is dispatched
-/// by its first action and a file in the wrong world fails instead of
-/// silently running nowhere. A replay that cannot be parsed, an assertion
+/// as the hand-written simulations). A file is dispatched by its exclusive
+/// domain actions (item / entity+fluid / block-break / trade); shared actions
+/// (fault, clearfault, expect) do not decide the world. A file mixing
+/// exclusive domains fails instead of silently running part of the scenario
+/// nowhere. A replay that cannot be parsed, an assertion
 /// that never converges or an expectation the world violates fails this test
 /// with the file:line of the offending step. Every run also emits its SimTrace
 /// (the OperationTrace-format result sequence) to SimTraces/ and asserts the
@@ -28,7 +29,13 @@ namespace CasualtiesUnknownOnline.Tests.Replays;
 /// </summary>
 public class ReplayTests
 {
+	private static readonly string[] ItemActions = ["spawn", "pickup", "drop", "use", "slot", "destroy", "craft", "expect_no_reject"];
+
 	private static readonly string[] EntityActions = ["event", "snapshot", "fluid"];
+
+	private static readonly string[] BlockBreakActions = ["airwrite", "break"];
+
+	private static readonly string[] TradeActions = ["trade"];
 
 	// The extract-itemtrace.ps1 normalization regexes (:16-28) — the SimTrace
 	// format contract: an END line ("op=N result=X events=[..]") or a begin
@@ -48,15 +55,37 @@ public class ReplayTests
 		var path = Path.Combine(AppContext.BaseDirectory, "Replays", fileName);
 		var steps = ReplayParser.Parse(File.ReadAllText(path), fileName);
 		var simTrace = new SimTrace();
-		if (EntityActions.Contains(steps[0].Action))
+		var domain = SelectDomain(fileName, steps);
+		switch (domain)
 		{
-			using var world = EntityEventSimWorld.Create();
-			ReplayRunner.Run(fileName, world, steps, simTrace);
-		}
-		else
-		{
-			using var world = ItemSimWorld.Create();
-			ReplayRunner.Run(fileName, world, steps, simTrace);
+			case "entity":
+				using (var world = EntityEventSimWorld.Create())
+				{
+					ReplayRunner.Run(fileName, world, steps, simTrace);
+				}
+
+				break;
+			case "block-break":
+				using (var world = BlockBreakReplayWorld.Create())
+				{
+					ReplayRunner.Run(fileName, world, steps, simTrace);
+				}
+
+				break;
+			case "trade":
+				using (var world = TradeReplayWorld.Create())
+				{
+					ReplayRunner.Run(fileName, world, steps, simTrace);
+				}
+
+				break;
+			default:
+				using (var world = ItemSimWorld.Create())
+				{
+					ReplayRunner.Run(fileName, world, steps, simTrace);
+				}
+
+				break;
 		}
 
 		AssertSimTraceContract(fileName, simTrace);
@@ -84,15 +113,64 @@ public class ReplayTests
 	}
 
 	[Fact]
+	public void BlockBreakWithoutDrops_Fails()
+	{
+		using var world = BlockBreakReplayWorld.Create();
+		var steps = ReplayParser.Parse("@0 break g1 5 7\n", "bad-block.replay");
+		var e = Assert.Throws<ReplayRunner.ReplayStepException>(() => ReplayRunner.Run("bad-block.replay", world, steps, new SimTrace()));
+		Assert.Contains("break needs drops", e.Message);
+	}
+
+	[Fact]
+	public void TradeActionFromHost_Fails()
+	{
+		using var world = TradeReplayWorld.Create();
+		var steps = ReplayParser.Parse("@0 trade host meet\n", "bad-trade.replay");
+		var e = Assert.Throws<ReplayRunner.ReplayStepException>(() => ReplayRunner.Run("bad-trade.replay", world, steps, new SimTrace()));
+		Assert.Contains("trade actions must originate from g1", e.Message);
+	}
+
+	[Fact]
 	public void ItemActionInEntityFile_Fails()
 	{
-		// A file is dispatched by its first action — mixing domains is caught by
-		// the runner (the entity world knows no item actions) instead of silently
-		// running part of the scenario nowhere.
+		// ReplayTests.SelectDomain refuses a file mixing exclusive domains; driving
+		// the mixed steps directly against the entity world must also fail loudly
+		// instead of silently running part of the scenario nowhere.
 		using var world = EntityEventSimWorld.Create();
 		var steps = ReplayParser.Parse("@0 event g1 MineExploded 10 20\n@33 spawn g1 42 t 1.0\n", "mixed.replay");
 		var e = Assert.Throws<ReplayRunner.ReplayStepException>(() => ReplayRunner.Run("mixed.replay", world, steps, new SimTrace()));
 		Assert.Contains("unhandled action 'spawn'", e.Message);
+	}
+
+	private static string SelectDomain(string fileName, ReplayStep[] steps)
+	{
+		var domains = new List<string>();
+		if (steps.Any(step => ItemActions.Contains(step.Action)))
+		{
+			domains.Add("item");
+		}
+
+		if (steps.Any(step => EntityActions.Contains(step.Action)))
+		{
+			domains.Add("entity");
+		}
+
+		if (steps.Any(step => BlockBreakActions.Contains(step.Action)))
+		{
+			domains.Add("block-break");
+		}
+
+		if (steps.Any(step => TradeActions.Contains(step.Action)))
+		{
+			domains.Add("trade");
+		}
+
+		if (domains.Count > 1)
+		{
+			throw new InvalidOperationException($"{fileName}: mixes exclusive replay domains [{string.Join(", ", domains)}] — one file runs on one world");
+		}
+
+		return domains.Count == 1 ? domains[0] : "item";
 	}
 
 	private static void AssertSimTraceContract(string fileName, SimTrace simTrace)

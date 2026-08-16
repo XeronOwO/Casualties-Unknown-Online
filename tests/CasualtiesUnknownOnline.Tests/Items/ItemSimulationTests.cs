@@ -126,6 +126,10 @@ public class ItemSimulationTests
 				}
 				else if (!wasOwned)
 				{
+					// Gone AND never owned: the claim sits in the pending-pickup
+					// queue (a registration may still be in flight) and the
+					// bounded hold must produce exactly the late reject.
+					w.Driver.Tick(600);
 					Assert.True(w.Rejects(w.G1).Count > before,
 						$"seed {seed} step {step}: a claim on a gone item {id} must come back as a reject");
 				}

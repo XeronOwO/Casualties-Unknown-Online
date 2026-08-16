@@ -13,6 +13,7 @@ internal sealed class FakeNetwork
 	private readonly Dictionary<ulong, FakeTransport> _peers = [];
 	private readonly List<QueuedMessage> _queued = [];
 	private readonly Dictionary<(ulong From, ulong To), LinkFaults> _faults = [];
+	private bool _flushing;
 	private readonly Random _random;
 	private readonly FakeClock _clock;
 
@@ -93,6 +94,31 @@ internal sealed class FakeNetwork
 		_queued.Add(new QueuedMessage(deliverAtMs, from, to, data));
 
 	private void FlushDue()
+	{
+		// Production receives are poll-driven: SteamTransport.Poll drains the
+		// whole batch and a message handler's own sends are not delivered back
+		// into the SAME poll. Re-entering FlushDue from a handler's no-delay
+		// send would deliver later-due frames in the middle of the current
+		// handler (the pending-pickup drop-duplicate trace hit exactly this) —
+		// so a nested flush is skipped; the outer loop still drains every
+		// message that became due, in due order, before it returns.
+		if (_flushing)
+		{
+			return;
+		}
+
+		_flushing = true;
+		try
+		{
+			FlushDueCore();
+		}
+		finally
+		{
+			_flushing = false;
+		}
+	}
+
+	private void FlushDueCore()
 	{
 		// Deliver in DUE order (earliest deliverAt first), NOT queue order — a
 		// message with an earlier deliverAt that was queued later must arrive

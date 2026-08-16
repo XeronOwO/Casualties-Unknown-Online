@@ -48,6 +48,16 @@ public sealed class ItemArbitration(ISessionControl session, PacketSender sender
 	public bool IsTransferredToGuest(ulong guest, ulong itemId) =>
 		_transferred.TryGetValue(guest, out var owned) && owned.ContainsKey(itemId);
 
+	/// <summary>
+	/// Host only: whether ANY guest owns the item (the transfer table). A
+	/// pickup report for an item another guest already took is an obvious
+	/// first-writer-wins conflict — reject it immediately instead of holding it
+	/// in the pending-pickup queue (that queue exists for a registration still
+	/// in flight, not for a completed transfer).
+	/// </summary>
+	public bool IsTransferredToAnyGuest(ulong itemId) =>
+		_transferred.Values.Any(owned => owned.ContainsKey(itemId));
+
 	// ===== Action entry points (ItemService forwards the wire reports here) =====
 
 	/// <summary>

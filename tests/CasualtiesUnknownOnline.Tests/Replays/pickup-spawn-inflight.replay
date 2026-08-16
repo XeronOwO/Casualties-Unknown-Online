@@ -1,16 +1,23 @@
 # Phase-4 replay archive — the spawn-report-in-flight race: the pickup wins
 # the race against its own spawn report (the pickup lands while the spawn
-# report is still on the wire) — refused with exactly one UnknownItem reject,
-# then the late spawn report registers idempotently. End state: the item is
-# back in the world, nobody owns it.
+# report is still delayed on the wire). The host's pending-pickup queue holds
+# the claim for up to 500 ms; when the spawn lands inside the hold the SAME
+# transfer the spawn-first path would have produced settles — no reject, no
+# local rollback. The spawn relay is source-excluded and the settled pickup
+# relay reaches the other guest exactly once (the carried-fact sync rides the
+# same settlement), so G1 sees no wire echo and G2 sees pickup without spawn.
 #
-# Fossil of: ItemRaceTests.SpawnPickupInflight_PickupArrivesFirst_...
-# Mechanism: the branch ItemService.cs:314-318 was written for — "the spawn
-#            report is still in flight (the pickup won the race)"
+# Fossil of: ItemRaceTests.SpawnPickupInflight_PickupArrivesFirst_SettlesWhenTheSpawnLands
+# Mechanism: ItemService.PendingPickups.cs — PendingPickupQueue hold + spawn settlement
 
 @0 pickup g1 42 test_item 1.0
 @0 fault g1 host delay=300
 @0 spawn g1 42 test_item 1.0
-@33 expect reject g1 42 within 500
-@33 expect received g1 ItemReject 1
-@333 expect host_table 42 within 500
+@33 expect_no_reject g1
+@333 expect no_host_table 42 within 500
+@333 expect_no_reject g1
+@333 expect received g1 ItemSpawn 0
+@333 expect received g1 ItemPickup 0
+@333 expect received g2 ItemSpawn 1
+@333 expect received g2 ItemPickup 1
+@333 expect received g2 ItemCarriedSync 1

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Time;
 using Microsoft.Extensions.Logging;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.Items;
@@ -14,9 +15,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 /// the star-network pattern: the spawner applies locally, the host arbitrates
 /// (pickups are first-writer-wins against the table) and relays to the other
 /// members. Generation-time items never enter the table — world-gen
-/// determinism covers them. No pump (not an ICuoService, like WorldService).
+/// determinism covers them. ItemService itself has no pump (not an ICuoService,
+/// like WorldService); the pending-pickup hold window's time edge lives in
+/// PendingPickupPump, and its integration lives in ItemService.PendingPickups.cs.
 /// </summary>
-public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposable
+public sealed partial class ItemService : IItemControl, IItemActionWorldAccess, IDisposable
 {
 	private readonly ISessionControl _session;
 	private readonly PacketSender _sender;
@@ -32,12 +35,14 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 	private readonly ItemIdCoordinator _idCoordinator;
 	private readonly BlockDropSync _blockDrops;
 
-	public ItemService(ISessionControl session, PacketSender sender, ItemArbitration arbitration, ILogger<ItemService> log)
+	public ItemService(ISessionControl session, PacketSender sender, ItemArbitration arbitration, ITimeSource time, ILogger<ItemService> log)
 	{
 		_session = session;
 		_sender = sender;
 		_log = log;
+		_time = time;
 		_arbitration = arbitration; // DI-registered — the crafting domain composes the same instance (RemoveTransferred/AdoptEvidence/RegisterCarried)
+		_pendingPickups = new(PendingPickupQueue.DefaultHoldMs);
 		_carriedSync = new(session, sender, log);
 		_itemActionSync = new(session, sender, arbitration, this, log); // the use/slot action flows — this is their narrow world access (abstract extraction)
 		_snapshots = new(session, sender, () => (IReadOnlyCollection<WorldItem>)_worldTable.Items.Values, log);
@@ -266,24 +271,12 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 	{
 		if (_session.Role == SessionRole.Host)
 		{
-			if (!_worldTable.ContainsKey(itemId))
-			{
-				_worldTable.Set(itemId, new WorldItem(itemId, item, pos, vel, 0, rotation, freshItemDrop, AngularVelocity: angularVelocity));
-				_session.BroadcastExcept(sender, NetMsg.ItemSpawn, new ItemSpawnMsg
-				{
-					ItemId = itemId,
-					Item = item,
-					Position = pos.ToNetVector2Msg(),
-					Velocity = vel.ToNetVector2Msg(),
-					Rotation = rotation,
-					FreshItemDrop = freshItemDrop,
-				});
-				_log.LogInformation("Item {ItemId} ({Type}) spawned by {Sender} — registered + relayed.", itemId, item.ItemId, sender);
-			}
-			// Duplicate report (reliable retransmit): already registered — drop silently (idempotent).
+			HandleHostSpawnReport(sender, itemId, item, pos, vel, rotation, freshItemDrop, angularVelocity);
+			return;
 		}
 
-		// Host materializes the guest's item; guest materializes the host's relay.
+		// Guest materializes the host's relay (the host's own materialization
+		// is part of HandleHostSpawnReport, where a queued pickup may settle).
 		ItemSpawned?.Invoke(new WorldItem(itemId, item, pos, vel, 0, rotation, freshItemDrop, AngularVelocity: angularVelocity));
 	}
 
@@ -291,51 +284,12 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 	{
 		if (_session.Role == SessionRole.Host)
 		{
-			if (!_worldTable.TryGetValue(itemId, out var entry))
-			{
-				// Not in the table: the spawn report is still in flight (the
-				// pickup won the race) or a faster writer already took it —
-				// refuse; the requester rolls its local pickup back. EXCEPT:
-				// an id that travels INSIDE a container entry (a bag's picked-up
-				// contents are reported separately, PickupSync, but have no
-				// independent world-table entry) is not unknown — accept
-				// silently, the container's own transfer carries it (refusing
-				// yanked each content back out of the picker's bag — "picked up
-				// a bag with contents, it came back empty").
-				// EXCEPT the picker's OWN duplicate report (reliable
-				// retransmission): the transfer already took the item out of the
-				// table, the sender owns it — a rejection would roll the winner's
-				// own successful pickup back (the same idempotency family as the
-				// spawn/drop duplicate guards).
-				if (!_arbitration.IsContainedInEntry(itemId, _worldTable.Items) && !_arbitration.IsTransferredToGuest(sender, itemId))
-				{
-					_sender.Send(sender, NetMsg.ItemReject, new ItemRejectMsg
-					{
-						ItemId = itemId,
-						Rejection = ItemRejectMsg.Reason.UnknownItem,
-					});
-					_log.LogWarning("Item pickup {ItemId} from {Sender} refused — not in the world-item table.", itemId, sender);
-				}
-
-				return;
-			}
-
-			_worldTable.Remove(itemId);
-
-			// Accept-with-correction: the transfer happens from OUR entry (the
-			// picker's claim never replaces it), the picker's evidence is only
-			// compared afterwards — divergence syncs, never blocks. The adopted
-			// entry then broadcasts as the carried-fact event (the peers' clones
-			// of the picker show the item the moment it lands in its slot).
-			var authoritative = _arbitration.CheckAndTransferToGuest(sender, itemId, entry, evidence);
-			PublishCarriedSync(sender, authoritative);
-
-			_session.BroadcastExcept(sender, NetMsg.ItemPickup, new ItemPickupMsg { ItemId = itemId });
-			_log.LogInformation("Item {ItemId} picked up by {Sender} — transferred + relayed.", itemId, sender);
+			HandleHostPickupReport(sender, itemId, evidence);
+			return;
 		}
 
-		// The winner's local removal; on the losing guests this event rolls
-		// their optimistic pickup back (the adapter decides by local state).
+		// Guest side: the winner broadcast removes the item from this side's
+		// world; a losing optimistic pickup rolls back through ItemReject.
 		ItemPickedUp?.Invoke(itemId);
 	}
 
@@ -343,34 +297,8 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 	{
 		if (_session.Role == SessionRole.Host)
 		{
-			// The drop leaves the transfer table — the carried item is now a
-			// world item. The full item IS the evidence (materialization
-			// payload, so the host already has everything to compare) —
-			// checked against the entry BEFORE it leaves, the divergence is
-			// synced with the drop itself.
-			_arbitration.CheckAndUnloadFromGuest(sender, itemId, item);
-
-			// Idempotent: a retransmitted report (Steam reliable resend) must not
-			// re-broadcast — the receivers would materialize AND re-place the
-			// same item (observed: "not present — materializing" followed by
-			// "present — re-placing" for one drop).
-			var isDuplicate = _worldTable.TryGetValue(itemId, out var existing)
-				&& existing.Pos.X == pos.X && existing.Pos.Y == pos.Y && existing.Rotation == rotation;
-			_worldTable.Set(itemId, new WorldItem(itemId, item, pos, vel, parentItemId, rotation, false, parentPos, angularVelocity));
-			if (!isDuplicate)
-			{
-				_session.BroadcastExcept(sender, NetMsg.ItemDrop, new ItemDropMsg
-				{
-					ItemId = itemId,
-					Item = item,
-					Position = pos.ToNetVector2Msg(),
-					Velocity = vel.ToNetVector2Msg(),
-					ParentItemId = parentItemId,
-					Rotation = rotation,
-					ParentPosition = parentPos.ToNetVector2Msg(),
-					AngularVelocity = angularVelocity,
-				});
-			}
+			HandleHostDropReport(sender, itemId, item, pos, vel, parentItemId, rotation, angularVelocity, parentPos);
+			return;
 		}
 
 		ItemDropped?.Invoke(itemId, item, pos, vel, parentItemId, rotation, angularVelocity, parentPos);
@@ -491,12 +419,17 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 	/// <summary>Host only: periodically re-send the full table (unreliable) — see ItemSnapshotService.</summary>
 	public void SendPeriodicItemSnapshot() => _snapshots.SendPeriodicItemSnapshot();
 
-	public void ResetItems() => _worldTable.Clear();
+	public void ResetItems()
+	{
+		_worldTable.Clear();
+		_pendingPickups.Reset(); // a new layer voids every in-flight claim from the old world
+	}
 
 	/// <summary>Session ended: every session-scoped item table dies with it.</summary>
 	public void ResetSessionState()
 	{
 		_worldTable.Clear();
+		_pendingPickups.Reset();
 		_arbitration.ResetForSessionEnd();
 		_idCoordinator.ResetForSessionEnd();
 		_snapshots.ResetForSessionEnd();

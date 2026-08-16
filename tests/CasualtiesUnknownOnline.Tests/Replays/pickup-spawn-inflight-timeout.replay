@@ -1,0 +1,18 @@
+# Phase-4 replay archive — the pending-pickup hold is BOUNDED: a pickup that
+# beats its spawn report by more than the 500 ms hold gets exactly one late
+# UnknownItem reject (the local optimistic pickup rolls back), and the even
+# later spawn report still registers idempotently. End state: the item is back
+# in the world, nobody owns it — the old immediate-reject shape, only delayed.
+#
+# Fossil of: ItemRaceTests.SpawnPickupInflight_SpawnArrivesAfterTheHold_RejectedThenSpawnRegisters
+# Mechanism: PendingPickupPump -> ItemService.PumpPendingPickups (PendingPickups.cs)
+
+@0 pickup g1 42 test_item 1.0
+@0 fault g1 host delay=700
+@0 spawn g1 42 test_item 1.0
+@33 expect_no_reject g1
+@533 expect reject g1 42 within 500
+@533 expect received g1 ItemReject 1
+@533 expect no_host_table 42
+@733 expect host_table 42 within 500
+@733 expect received g1 ItemReject 1

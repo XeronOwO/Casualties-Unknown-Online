@@ -120,10 +120,12 @@ lands, never bolted on afterwards.
 - TutorialHandler claw double-give in the tutorial world (tutorial domain).
 - Trade domain #132: implemented — simulation coverage landed (`TradeSimulationTests`,
   `TradeStockMachineTests`); the acceptance only lacks a dual-side runtime pass.
-- Building-entity damage persistence for late joiners (phase-1 memory): only live
-  `BuildingEntityDamaged` relays exist — a late joiner regenerates destroyed plants/crates and
-  intermediate damage is never recovered. Needs a host-side damaged-entity registry + a
-  world-entry snapshot (the `OpenedEntitiesSnapshot` family).
+- Building-entity damage persistence for late joiners: RESOLVED (2026-08-16,
+  ProtocolVersion 11) — `BuildingEntityHealthRegistry` records the host's latest per-position
+  health (local + remote damage/open paths), and `BuildingEntityHealthSnapshot` (NetMsg 88)
+  backfills world entry / reconnect / 60 s resend; the guest writes the host health and marks
+  deaths `RemoteEntityDeath` so no duplicate drop roll happens. See
+  `docs/building-entity-health-selfcheck.md`; 767 tests green.
 - Runtime random supply refresh (phase-1 memory, unresolved question): it is not verified
   whether any supplies spawn independently of world generation. If such a mechanism exists it
   needs host-authoritative spawn + broadcast (the #110 pattern); investigate before assuming.

@@ -159,7 +159,12 @@ lands, never bolted on afterwards.
   ExtendedFlags bit on the 20 Hz entity snapshot; the peer's clone replays `ArmsSwing` on the flag's
   rising edge (`SessionStatePump`). The procedural attackRot/armOffset lean and the weapon slash
   effect are not synced (weapon-specific presentation, separate from the swing clip).
-- Block HP progressive sync (currently only the break instant is synced).
+- RESOLVED (2026-08-16, ProtocolVersion 12): Block HP progressive sync — the live
+  `BlockDamaged` relay now carries `MetalBonus` (the laser-vs-metallic ×10 multiplier applied
+  identically everywhere), and `BlockDamageSnapshot` (NetMsg 89) backfills the host's accumulated
+  `BlockDamage.damage` to late joiners/reconnects on world entry and the 60 s resend (absolute
+  set — never an additive delta). See `docs/block-damage-progressive-selfcheck.md`; 778 tests
+  green.
 - Death-pose / limb / bleed / mining presentation-state sync.
 - Accepted presentation gaps from the entity-domain memory (non-blocking; several are already
   recorded in `docs/event-replay-matrix.csv`): mine 0.8 s press visual, CrystalUnstable 5 s

@@ -30,11 +30,11 @@ public class ModHandshakeTests
 	// The matrix's one mod id — declared per test with the mode/version needed.
 	private const string ModId = "test.matrix";
 
-	private static ModManifest Manifest(NetworkMode mode, string version = "1.0.0") =>
-		new(ModId, "Matrix Mod", version, mode, null);
+	private static ModManifest Manifest(NetworkMode mode, string version = "1.0.0", ModPermission permissions = ModPermission.None) =>
+		new(ModId, "Matrix Mod", version, mode, null, permissions);
 
-	private static ModInfoMsg Info(NetworkMode mode, string version = "1.0.0") =>
-		new() { Id = ModId, Version = version, NetworkMode = mode };
+	private static ModInfoMsg Info(NetworkMode mode, string version = "1.0.0", ModPermission permissions = ModPermission.None) =>
+		new() { Id = ModId, Version = version, NetworkMode = mode, Permissions = permissions };
 
 	private static (TestNode Host, TestNode Guest) CreatePair(
 		List<ModManifest> hostMods, List<ModInfoMsg> guestInfos, bool hostComplete = true)
@@ -106,6 +106,76 @@ public class ModHandshakeTests
 	public void VersionMismatchOnStateBearingMod_Rejected()
 	{
 		var (host, _) = CreatePair([Manifest(NetworkMode.RequiresAllPlayers)], [Info(NetworkMode.RequiresAllPlayers, "0.9.0")]);
+
+		Assert.False(GuestHandshaken(host));
+	}
+
+	[Fact]
+	public void SemverBuildMetadataDifference_Accepted()
+	{
+		var (host, _) = CreatePair(
+			[Manifest(NetworkMode.Synchronized, "1.0.0+host.1")],
+			[Info(NetworkMode.Synchronized, "1.0.0+guest.2")]);
+
+		Assert.True(GuestHandshaken(host), "build metadata does not affect SemVer precedence");
+	}
+
+	[Fact]
+	public void SemverPrereleaseDifference_Rejected()
+	{
+		var (host, _) = CreatePair(
+			[Manifest(NetworkMode.Synchronized, "1.0.0")],
+			[Info(NetworkMode.Synchronized, "1.0.0-alpha")]);
+
+		Assert.False(GuestHandshaken(host), "a prerelease and its release differ by precedence");
+	}
+
+	[Fact]
+	public void MalformedSemVerInGuestList_Rejected()
+	{
+		var (host, _) = CreatePair(
+			[Manifest(NetworkMode.Synchronized, "1.0.0")],
+			[Info(NetworkMode.Synchronized, "not-semver")]);
+
+		Assert.False(GuestHandshaken(host));
+	}
+
+	[Fact]
+	public void PermissionMismatchOnStateBearingMod_Rejected()
+	{
+		var (host, _) = CreatePair(
+			[Manifest(NetworkMode.Synchronized, permissions: ModPermission.RegisterCommand)],
+			[Info(NetworkMode.Synchronized)]);
+
+		Assert.False(GuestHandshaken(host), "state-bearing mod copies must declare the same permissions");
+	}
+
+	[Fact]
+	public void GuestDeclaresDifferentModeForHostStateBearingMod_Rejected()
+	{
+		var (host, _) = CreatePair(
+			[Manifest(NetworkMode.Synchronized)],
+			[Info(NetworkMode.ClientOnly)]);
+
+		Assert.False(GuestHandshaken(host), "the network contract must match for the same mod id");
+	}
+
+	[Fact]
+	public void GuestClaimsStateBearingForHostClientOnlyMod_Rejected()
+	{
+		var (host, _) = CreatePair(
+			[Manifest(NetworkMode.ClientOnly)],
+			[Info(NetworkMode.Synchronized)]);
+
+		Assert.False(GuestHandshaken(host), "the host cannot arbitrate a Synchronized contract it never declared");
+	}
+
+	[Fact]
+	public void UnknownPermissionBitsInGuestList_Rejected()
+	{
+		var (host, _) = CreatePair(
+			[Manifest(NetworkMode.Synchronized)],
+			[Info(NetworkMode.Synchronized, permissions: (ModPermission)(1 << 20))]);
 
 		Assert.False(GuestHandshaken(host));
 	}
@@ -251,6 +321,14 @@ public class ModHandshakeTests
 		internal bool Complete { get; set; }
 
 		public void FireModMessageReceived(ulong sender, ModMessageMsg msg)
+		{
+		}
+
+		public void FireModCommandRequestReceived(ulong sender, ModCommandRequestMsg msg)
+		{
+		}
+
+		public void FireModCommandResultReceived(ulong sender, ModCommandResultMsg msg)
 		{
 		}
 

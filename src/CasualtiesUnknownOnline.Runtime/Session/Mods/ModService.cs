@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Time;
 using Microsoft.Extensions.Logging;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.Mods;
@@ -21,14 +22,18 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Mods;
 /// that never fires at all) and routes received mod frames by id to the local
 /// copy of the mod (unknown ids and over-cap payloads dropped with a log).
 /// </summary>
-public sealed class ModService(SessionService session, ModChannel channel, ModRegistry registry,
-	ILoggerFactory loggerFactory, ILogger<ModService> log) : ICuoService, IModsControl
+public sealed partial class ModService(SessionService session, ModChannel channel, ModRegistry registry,
+	PacketSender sender, ITimeSource time, ILoggerFactory loggerFactory, ILogger<ModService> log) : ICuoService, IModsControl
 {
 	private readonly SessionService _session = session;
 	private readonly ModChannel _channel = channel;
 	private readonly ModRegistry _registry = registry;
 	private readonly ILoggerFactory _loggerFactory = loggerFactory;
 	private readonly ILogger<ModService> _log = log;
+	private readonly PacketSender _sender = sender;
+	private readonly ITimeSource _time = time;
+	private readonly Dictionary<ulong, ModRateLimiter> _messageRateLimiters = [];
+	private readonly Dictionary<ulong, ModRateLimiter> _commandRateLimiters = [];
 	private readonly List<LoadedMod> _mods = [];
 	private bool _discovered;
 	private bool _disposed; // the container may dispose the same singleton once per registration (3.1 behaviour) — the ICuoService contract requires idempotent dispose
@@ -86,6 +91,8 @@ public sealed class ModService(SessionService session, ModChannel channel, ModRe
 		((ISessionControl)_session).MemberRemoved -= OnMemberRemoved;
 		_channel.ModMessageReceived -= OnModMessageReceived;
 
+		FailAllPendingCommands("framework shutdown");
+
 		foreach (var mod in _mods.AsEnumerable().Reverse())
 		{
 			SafeRun(mod, "Dispose", mod.Instance.Dispose);
@@ -108,8 +115,15 @@ public sealed class ModService(SessionService session, ModChannel channel, ModRe
 	private void DiscoverAndLoad()
 	{
 		var discovered = _registry.Discover(AppDomain.CurrentDomain.GetAssemblies());
+		var loadedIds = new HashSet<string>(StringComparer.Ordinal);
 		foreach (var d in discovered)
 		{
+			if (d.Manifest.Dependencies.Any(dep => !loadedIds.Contains(dep)))
+			{
+				_log.LogWarning("[Mods] {Id} dependency did not load — skipped.", d.Manifest.Id);
+				continue;
+			}
+
 			try
 			{
 				var instance = (ICuoMod)Activator.CreateInstance(d.Type)!;
@@ -118,6 +132,7 @@ public sealed class ModService(SessionService session, ModChannel channel, ModRe
 				instance.Initialize();
 				instance.Start();
 				_mods.Add(new LoadedMod(d.Manifest, instance, context));
+				loadedIds.Add(d.Manifest.Id);
 				_log.LogInformation("[Mods] {Id} loaded (bind + initialize + start in the discovery frame).", d.Manifest.Id);
 			}
 			catch (Exception e)
@@ -151,6 +166,7 @@ public sealed class ModService(SessionService session, ModChannel channel, ModRe
 
 	private void OnSessionEnded()
 	{
+		FailAllPendingCommands("session ended");
 		foreach (var mod in _mods)
 		{
 			SafeRun(mod, "SessionEnded", mod.Context.FireSessionEnded);
@@ -175,6 +191,11 @@ public sealed class ModService(SessionService session, ModChannel channel, ModRe
 
 	private void OnModMessageReceived(ulong sender, ModMessageMsg msg)
 	{
+		if (!TryConsumeModMessage(sender))
+		{
+			return;
+		}
+
 		if (msg.Payload.Length > ModChannel.MaxPayloadBytes)
 		{
 			_log.LogWarning("[Mods] {Sender} sent an over-cap {Length}-byte payload for {ModId} — dropped.",
@@ -189,7 +210,47 @@ public sealed class ModService(SessionService session, ModChannel channel, ModRe
 			return;
 		}
 
+		if (!HasPermission(mod, ModPermission.SendNetworkMessage))
+		{
+			_log.LogWarning("[Mods] message for {ModId} from {Sender} — the local mod does not declare SendNetworkMessage, dropped.", msg.ModId, sender);
+			return;
+		}
+
 		SafeRun(mod, "MessageReceived", () => mod.Context.NetworkAdapter.FireMessageReceived(sender, msg.Payload));
+	}
+
+	private bool TryConsumeModMessage(ulong sender)
+	{
+		if (!_messageRateLimiters.TryGetValue(sender, out var limiter))
+		{
+			limiter = new ModRateLimiter(ModRateLimitPolicy.ModMessagesPerSecond, ModRateLimitPolicy.ModMessageBurst);
+			_messageRateLimiters[sender] = limiter;
+		}
+
+		if (limiter.TryConsume(_time.NowMs))
+		{
+			return true;
+		}
+
+		_log.LogWarning("[Mods] mod-message rate limit hit for {Sender} — frame dropped.", sender);
+		return false;
+	}
+
+	private bool TryConsumeCommandRequest(ulong sender)
+	{
+		if (!_commandRateLimiters.TryGetValue(sender, out var limiter))
+		{
+			limiter = new ModRateLimiter(ModRateLimitPolicy.CommandRequestsPerSecond, ModRateLimitPolicy.CommandRequestBurst);
+			_commandRateLimiters[sender] = limiter;
+		}
+
+		if (limiter.TryConsume(_time.NowMs))
+		{
+			return true;
+		}
+
+		_log.LogWarning("[Mods] command-request rate limit hit for {Sender} — request dropped.", sender);
+		return false;
 	}
 
 	private ISessionInfo BuildSessionSnapshot() => new SessionSnapshot(
@@ -213,17 +274,21 @@ public sealed class ModService(SessionService session, ModChannel channel, ModRe
 	private sealed class ModContext : IModContext
 	{
 		private readonly ModNetworkAdapter _network;
+		private readonly ModCommandAdapter _commands;
 
 		internal ModContext(ModService owner, ModManifest manifest, ILogger logger)
 		{
 			Logger = logger;
-			_network = new ModNetworkAdapter(owner, manifest.Id);
+			_network = new ModNetworkAdapter(owner, manifest);
+			_commands = new ModCommandAdapter(owner, manifest);
 			Session = owner.BuildSessionSnapshot();
 		}
 
 		public ILogger Logger { get; }
 
 		public IModNetwork Network => _network;
+
+		public IModCommands Commands => _commands;
 
 		public ISessionInfo Session { get; }
 
@@ -237,6 +302,8 @@ public sealed class ModService(SessionService session, ModChannel channel, ModRe
 
 		internal ModNetworkAdapter NetworkAdapter => _network;
 
+		internal ModCommandAdapter CommandAdapter => _commands;
+
 		// Events are only +=/-=-able from outside the declaring type — the
 		// owner fires through these.
 		internal void FireSessionActivated() => SessionActivated?.Invoke();
@@ -248,18 +315,38 @@ public sealed class ModService(SessionService session, ModChannel channel, ModRe
 		internal void FirePlayerLeft(ulong steamId) => PlayerLeft?.Invoke(steamId);
 	}
 
-	/// <summary>The per-mod send surface — every call routes through the channel with the mod's own id.</summary>
-	private sealed class ModNetworkAdapter(ModService owner, string modId) : IModNetwork
+	/// <summary>The per-mod send surface — every call routes through the channel with the mod's own id. SendNetworkMessage is checked here (undeclared messages are refused).</summary>
+	private sealed class ModNetworkAdapter(ModService owner, ModManifest manifest) : IModNetwork
 	{
-		public void SendToHost(byte[] payload) => owner._channel.SendToHost(modId, payload);
+		public void SendToHost(byte[] payload)
+		{
+			if (CanSend()) { owner._channel.SendToHost(manifest.Id, payload); }
+		}
 
-		public void SendToPeer(ulong steamId, byte[] payload) => owner._channel.SendToPeer(modId, steamId, payload);
+		public void SendToPeer(ulong steamId, byte[] payload)
+		{
+			if (CanSend()) { owner._channel.SendToPeer(manifest.Id, steamId, payload); }
+		}
 
-		public void Broadcast(byte[] payload) => owner._channel.SendToAll(modId, payload);
+		public void Broadcast(byte[] payload)
+		{
+			if (CanSend()) { owner._channel.SendToAll(manifest.Id, payload); }
+		}
 
 		public event Action<ulong, byte[]>? MessageReceived;
 
 		internal void FireMessageReceived(ulong sender, byte[] payload) => MessageReceived?.Invoke(sender, payload);
+
+		private bool CanSend()
+		{
+			if (ModService.HasPermission(manifest, ModPermission.SendNetworkMessage))
+			{
+				return true;
+			}
+
+			owner.LogMissingPermission(manifest.Id, "SendNetworkMessage");
+			return false;
+		}
 	}
 
 	/// <summary>The read-only bind-time session snapshot (ISessionInfo).</summary>

@@ -12,8 +12,9 @@ drop-then-pickup view offset determined game-native (CUO never writes the item t
 
 ## Phase 4 Mod API remaining
 
-- Content registration, custom entities, host commands, UI, mod-state saves, dependency ordering.
-- Full permission model (architecture.md §5) + semantic version comparison.
+- RESOLVED (2026-08-16, ProtocolVersion 10): host commands, full permission model,
+  dependency ordering, SemVer versions — see `docs/mod-api.md`.
+- Content registration, custom entities, UI, mod-state saves.
 
 ## Lobby domain
 
@@ -114,7 +115,9 @@ drop-then-pickup view offset determined game-native (CUO never writes the item t
     patches already cover every moving script, so no freeze-list extension is needed (evidence in
     `docs/enemy-sync.md` §1).
 - Online UI (create/join room, player status, nameplates + off-screen arrows).
-- Command system + permission model (host-authoritative, host can authorize guests).
+- RESOLVED (2026-08-16): command system + permission model — `ModPermission` declaration
+  + live enforcement, host-authoritative `IModCommands` (NetMsg 86/87), host mod authorizes
+  per-guest via `IModCommandContext.RequesterSteamId`.
 - Damage events (environment damage local — `ExplosionBodyEffect` rolls it locally and the result rides
   the 1 Hz character snapshot; player-vs-player is OUT OF SCOPE: the base game has no PvP mechanic, the
   KrokMP mod added it as an extra, and CUO prioritizes the base game loop).

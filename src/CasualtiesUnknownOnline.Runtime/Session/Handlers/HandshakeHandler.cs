@@ -4,6 +4,7 @@ using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session.Mods;
 using Microsoft.Extensions.Logging;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
@@ -158,8 +159,9 @@ public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandl
 	/// version-unequal, → reject (the host cannot arbitrate state the member
 	/// lacks or claims with a different version); HostOnly is host-side only (a
 	/// guest lacking it passes); ClientOnly/Cosmetic differences pass (local
-	/// surfaces). A malformed guest list (empty/duplicated id, Unspecified or
-	/// unknown NetworkMode) is rejected. Discovery pending → "not checked yet"
+	/// surfaces). A malformed guest list (empty/duplicated id, Unspecified or unknown
+	/// NetworkMode, invalid permissions, unparseable state-bearing SemVer) is
+	/// rejected. Discovery pending → "not checked yet"
 	/// refusal (the guest's 1 s handshake retry is then checked properly).
 	/// </summary>
 	private bool CheckModConsistency(ulong sender, HandshakeMsg msg, HandlerContext ctx)
@@ -190,6 +192,13 @@ public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandl
 				_log.LogWarning("Handshake from {Peer} rejected: mod {Id} declares {Mode} — not a valid NetworkMode.", sender, info.Id, (int)info.NetworkMode);
 				return false;
 			}
+
+			if (!ModPermissionPolicy.IsValidFor(info.NetworkMode, info.Permissions))
+			{
+				_log.LogWarning("Handshake from {Peer} rejected: mod {Id} declares invalid permissions {Permissions} for {Mode}.",
+					sender, info.Id, info.Permissions, info.NetworkMode);
+				return false;
+			}
 		}
 
 		// Host has, member lacks or version-unequal: the state-bearing modes
@@ -199,7 +208,7 @@ public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandl
 			var guestInfo = guest.FirstOrDefault(g => g.Id == hostMod.Id);
 			if (guestInfo is null)
 			{
-				if (hostMod.NetworkMode is NetworkMode.RequiresAllPlayers or NetworkMode.Synchronized or NetworkMode.Authoritative)
+				if (IsStateBearing(hostMod.NetworkMode))
 				{
 					_log.LogWarning("Handshake from {Peer} rejected: {Id} ({Mode}) is required and missing on the member.", sender, hostMod.Id, hostMod.NetworkMode);
 					return false;
@@ -208,12 +217,32 @@ public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandl
 				continue;
 			}
 
-			if (guestInfo.Version != hostMod.Version
-				&& hostMod.NetworkMode is NetworkMode.RequiresAllPlayers or NetworkMode.Synchronized or NetworkMode.Authoritative)
+			var hostStateBearing = IsStateBearing(hostMod.NetworkMode);
+			var guestStateBearing = IsStateBearing(guestInfo.NetworkMode);
+			if ((hostStateBearing || guestStateBearing) && guestInfo.NetworkMode != hostMod.NetworkMode)
 			{
-				_log.LogWarning("Handshake from {Peer} rejected: {Id} version {Member} ≠ host {Host} ({Mode}).",
-					sender, hostMod.Id, guestInfo.Version, hostMod.Version, hostMod.NetworkMode);
+				_log.LogWarning("Handshake from {Peer} rejected: {Id} declares {Member} but the host declares {Host} — the network contract must match.",
+					sender, hostMod.Id, guestInfo.NetworkMode, hostMod.NetworkMode);
 				return false;
+			}
+
+			if (hostStateBearing)
+			{
+				if (!SemanticVersion.TryParse(guestInfo.Version, out var guestVersion)
+					|| !SemanticVersion.TryParse(hostMod.Version, out var hostVersion)
+					|| !guestVersion!.PrecedenceEquals(hostVersion!))
+				{
+					_log.LogWarning("Handshake from {Peer} rejected: {Id} version {Member} ≠ host {Host} by SemVer precedence ({Mode}).",
+						sender, hostMod.Id, guestInfo.Version, hostMod.Version, hostMod.NetworkMode);
+					return false;
+				}
+
+				if (guestInfo.Permissions != hostMod.Permissions)
+				{
+					_log.LogWarning("Handshake from {Peer} rejected: {Id} permissions {Member} ≠ host {Host} ({Mode}).",
+						sender, hostMod.Id, guestInfo.Permissions, hostMod.Permissions, hostMod.NetworkMode);
+					return false;
+				}
 			}
 		}
 
@@ -232,4 +261,7 @@ public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandl
 
 		return true;
 	}
+
+	private static bool IsStateBearing(NetworkMode mode) =>
+		mode is NetworkMode.RequiresAllPlayers or NetworkMode.Synchronized or NetworkMode.Authoritative;
 }

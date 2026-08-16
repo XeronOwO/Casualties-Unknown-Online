@@ -31,6 +31,9 @@ public interface IModContext
 	/// <summary>The session state at bind time (a snapshot, not a live view).</summary>
 	ISessionInfo Session { get; }
 
+	/// <summary>Host-authoritative commands — the handler always runs on the host's copy of the mod.</summary>
+	IModCommands Commands { get; }
+
 	/// <summary>The first member handshake completed (host side: never — see the snapshot).</summary>
 	event Action? SessionActivated;
 

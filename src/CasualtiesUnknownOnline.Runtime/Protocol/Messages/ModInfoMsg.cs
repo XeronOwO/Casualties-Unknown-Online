@@ -18,10 +18,18 @@ public sealed class ModInfoMsg
 	[ProtoMember(1)]
 	public string Id { get; set; } = string.Empty;
 
-	/// <summary>Exact string version — the handshake compares by equality.</summary>
+	/// <summary>SemVer version — state-bearing modes are compared by precedence (build metadata ignored).</summary>
 	[ProtoMember(2)]
 	public string Version { get; set; } = string.Empty;
 
 	[ProtoMember(3)]
 	public NetworkMode NetworkMode { get; set; }
+
+	/// <summary>
+	/// The declared permission flags (Phase 4b). Serialized as their underlying
+	/// int; unknown bits are rejected by the host's shape check. State-bearing
+	/// modes require the member's flags to equal the host's.
+	/// </summary>
+	[ProtoMember(4)]
+	public ModPermission Permissions { get; set; }
 }

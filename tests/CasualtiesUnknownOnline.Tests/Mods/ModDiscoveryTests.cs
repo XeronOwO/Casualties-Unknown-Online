@@ -105,6 +105,60 @@ public class ModDiscoveryTests
 		Assert.Equal(NetworkMode.Synchronized, echo.NetworkMode);
 	}
 
+	[Fact]
+	public void InvalidSemVerVersion_Rejected()
+	{
+		var discovered = CreateRegistry().Discover(TestAssembly);
+
+		Assert.DoesNotContain(discovered, d => d.Manifest.Id == "test.badsemver");
+	}
+
+	[Fact]
+	public void InvalidPermissionsForMode_Rejected()
+	{
+		var discovered = CreateRegistry().Discover(TestAssembly);
+
+		Assert.DoesNotContain(discovered, d => d.Manifest.Id == "test.badperm");
+		Assert.DoesNotContain(discovered, d => d.Manifest.Id == "test.unknownperm");
+	}
+
+	[Fact]
+	public void Dependencies_AreLoadedInTopologicalOrder()
+	{
+		var discovered = CreateRegistry().Discover(TestAssembly);
+		var ids = discovered.Select(d => d.Manifest.Id).ToList();
+		var baseIndex = ids.IndexOf("test.depbase");
+		var childIndex = ids.IndexOf("test.depchild");
+		var grandIndex = ids.IndexOf("test.depgrand");
+
+		Assert.True(baseIndex >= 0 && childIndex > baseIndex && grandIndex > childIndex,
+			"dependencies must load before their dependents (base < child < grand)");
+		Assert.Equal(["test.depbase"], discovered[childIndex].Manifest.Dependencies);
+	}
+
+	[Fact]
+	public void UnsatisfiableDependencies_Rejected()
+	{
+		var discovered = CreateRegistry().Discover(TestAssembly);
+
+		Assert.DoesNotContain(discovered, d => d.Manifest.Id == "test.depmissing");
+		Assert.DoesNotContain(discovered, d => d.Manifest.Id == "test.depself");
+		Assert.DoesNotContain(discovered, d => d.Manifest.Id == "test.depduplicate");
+		Assert.DoesNotContain(discovered, d => d.Manifest.Id == "test.depcyclea");
+		Assert.DoesNotContain(discovered, d => d.Manifest.Id == "test.depcycleb");
+		Assert.DoesNotContain(discovered, d => d.Manifest.Id == "test.deptransitive");
+	}
+
+	[Fact]
+	public void HealthyManifest_CarriesPermissionsAndDependencies()
+	{
+		var discovered = CreateRegistry().Discover(TestAssembly);
+
+		var echo = discovered.Single(d => d.Manifest.Id == "test.echo");
+		Assert.Equal(ModPermission.SendNetworkMessage, echo.Manifest.Permissions);
+		Assert.Empty(echo.Manifest.Dependencies);
+	}
+
 	// ---- The malformed candidates (nested — they belong to this test) ----
 
 	[CuoMod("test.unspecified", "No Mode", "1.0.0")] // NetworkMode defaults to Unspecified — fail-closed
@@ -195,4 +249,244 @@ public class ModDiscoveryTests
 
 		public void Dispose() => throw new InvalidOperationException("must never load");
 	}
+
+	// ---- Phase 4b malformed/ordering candidates ----
+
+	[CuoMod("test.badsemver", "Bad SemVer", "not-semver", NetworkMode = NetworkMode.ClientOnly)]
+	public sealed class BadSemVerMod : ICuoMod
+	{
+		public void Bind(IModContext context) => throw new InvalidOperationException("must never load");
+
+		public void Initialize() => throw new InvalidOperationException("must never load");
+
+		public void Start() => throw new InvalidOperationException("must never load");
+
+		public void Update() => throw new InvalidOperationException("must never load");
+
+		public void Stop() => throw new InvalidOperationException("must never load");
+
+		public void Dispose() => throw new InvalidOperationException("must never load");
+	}
+
+	[CuoMod("test.badperm", "Bad Permissions", "1.0.0", NetworkMode = NetworkMode.ClientOnly,
+		Permissions = ModPermission.WriteGameState)]
+	public sealed class BadPermissionMod : ICuoMod
+	{
+		public void Bind(IModContext context) => throw new InvalidOperationException("must never load");
+
+		public void Initialize() => throw new InvalidOperationException("must never load");
+
+		public void Start() => throw new InvalidOperationException("must never load");
+
+		public void Update() => throw new InvalidOperationException("must never load");
+
+		public void Stop() => throw new InvalidOperationException("must never load");
+
+		public void Dispose() => throw new InvalidOperationException("must never load");
+	}
+
+	[CuoMod("test.unknownperm", "Unknown Permissions", "1.0.0", NetworkMode = NetworkMode.HostOnly,
+		Permissions = (ModPermission)(1 << 20))]
+	public sealed class UnknownPermissionMod : ICuoMod
+	{
+		public void Bind(IModContext context) => throw new InvalidOperationException("must never load");
+
+		public void Initialize() => throw new InvalidOperationException("must never load");
+
+		public void Start() => throw new InvalidOperationException("must never load");
+
+		public void Update() => throw new InvalidOperationException("must never load");
+
+		public void Stop() => throw new InvalidOperationException("must never load");
+
+		public void Dispose() => throw new InvalidOperationException("must never load");
+	}
+
+	[CuoMod("test.depbase", "Dependency Base", "1.0.0", NetworkMode = NetworkMode.ClientOnly)]
+	public sealed class DependencyBaseMod : ICuoMod
+	{
+		public void Bind(IModContext context)
+		{
+		}
+
+		public void Initialize()
+		{
+		}
+
+		public void Start()
+		{
+		}
+
+		public void Update()
+		{
+		}
+
+		public void Stop()
+		{
+		}
+
+		public void Dispose()
+		{
+		}
+	}
+
+	[CuoMod("test.depchild", "Dependency Child", "1.0.0", NetworkMode = NetworkMode.ClientOnly,
+		Dependencies = new[] { "test.depbase" })]
+	public sealed class DependencyChildMod : ICuoMod
+	{
+		public void Bind(IModContext context)
+		{
+		}
+
+		public void Initialize()
+		{
+		}
+
+		public void Start()
+		{
+		}
+
+		public void Update()
+		{
+		}
+
+		public void Stop()
+		{
+		}
+
+		public void Dispose()
+		{
+		}
+	}
+
+	[CuoMod("test.depgrand", "Dependency Grandchild", "1.0.0", NetworkMode = NetworkMode.ClientOnly,
+		Dependencies = new[] { "test.depchild" })]
+	public sealed class DependencyGrandchildMod : ICuoMod
+	{
+		public void Bind(IModContext context)
+		{
+		}
+
+		public void Initialize()
+		{
+		}
+
+		public void Start()
+		{
+		}
+
+		public void Update()
+		{
+		}
+
+		public void Stop()
+		{
+		}
+
+		public void Dispose()
+		{
+		}
+	}
+
+	[CuoMod("test.depmissing", "Dependency Missing", "1.0.0", NetworkMode = NetworkMode.ClientOnly,
+		Dependencies = new[] { "test.doesnotexist" })]
+	public sealed class DependencyMissingMod : ICuoMod
+	{
+		public void Bind(IModContext context) => throw new InvalidOperationException("must never load");
+
+		public void Initialize() => throw new InvalidOperationException("must never load");
+
+		public void Start() => throw new InvalidOperationException("must never load");
+
+		public void Update() => throw new InvalidOperationException("must never load");
+
+		public void Stop() => throw new InvalidOperationException("must never load");
+
+		public void Dispose() => throw new InvalidOperationException("must never load");
+	}
+
+	[CuoMod("test.depself", "Dependency Self", "1.0.0", NetworkMode = NetworkMode.ClientOnly,
+		Dependencies = new[] { "test.depself" })]
+	public sealed class DependencySelfMod : ICuoMod
+	{
+		public void Bind(IModContext context) => throw new InvalidOperationException("must never load");
+
+		public void Initialize() => throw new InvalidOperationException("must never load");
+
+		public void Start() => throw new InvalidOperationException("must never load");
+
+		public void Update() => throw new InvalidOperationException("must never load");
+
+		public void Stop() => throw new InvalidOperationException("must never load");
+
+		public void Dispose() => throw new InvalidOperationException("must never load");
+	}
+
+	[CuoMod("test.depduplicate", "Dependency Duplicate", "1.0.0", NetworkMode = NetworkMode.ClientOnly,
+		Dependencies = new[] { "test.depbase", "test.depbase" })]
+	public sealed class DependencyDuplicateMod : ICuoMod
+	{
+		public void Bind(IModContext context) => throw new InvalidOperationException("must never load");
+
+		public void Initialize() => throw new InvalidOperationException("must never load");
+
+		public void Start() => throw new InvalidOperationException("must never load");
+
+		public void Update() => throw new InvalidOperationException("must never load");
+
+		public void Stop() => throw new InvalidOperationException("must never load");
+
+		public void Dispose() => throw new InvalidOperationException("must never load");
+	}
+
+	[CuoMod("test.depcyclea", "Dependency Cycle A", "1.0.0", NetworkMode = NetworkMode.ClientOnly,
+		Dependencies = new[] { "test.depcycleb" })]
+	public sealed class DependencyCycleAMod : ICuoMod
+	{
+		public void Bind(IModContext context) => throw new InvalidOperationException("must never load");
+
+		public void Initialize() => throw new InvalidOperationException("must never load");
+
+		public void Start() => throw new InvalidOperationException("must never load");
+
+		public void Update() => throw new InvalidOperationException("must never load");
+
+		public void Stop() => throw new InvalidOperationException("must never load");
+
+		public void Dispose() => throw new InvalidOperationException("must never load");
+	}
+
+	[CuoMod("test.depcycleb", "Dependency Cycle B", "1.0.0", NetworkMode = NetworkMode.ClientOnly,
+		Dependencies = new[] { "test.depcyclea" })]
+	public sealed class DependencyCycleBMod : ICuoMod
+	{
+		public void Bind(IModContext context) => throw new InvalidOperationException("must never load");
+
+		public void Initialize() => throw new InvalidOperationException("must never load");
+
+		public void Start() => throw new InvalidOperationException("must never load");
+
+		public void Update() => throw new InvalidOperationException("must never load");
+
+		public void Stop() => throw new InvalidOperationException("must never load");
+
+		public void Dispose() => throw new InvalidOperationException("must never load");
+	}
+	[CuoMod("test.deptransitive", "Dependency Transitive", "1.0.0", NetworkMode = NetworkMode.ClientOnly,
+		Dependencies = new[] { "test.depmissing" })]
+	public sealed class DependencyTransitiveMod : ICuoMod
+	{
+		public void Bind(IModContext context) => throw new InvalidOperationException("must never load");
+
+		public void Initialize() => throw new InvalidOperationException("must never load");
+
+		public void Start() => throw new InvalidOperationException("must never load");
+
+		public void Update() => throw new InvalidOperationException("must never load");
+
+		public void Stop() => throw new InvalidOperationException("must never load");
+
+		public void Dispose() => throw new InvalidOperationException("must never load");
+	}
+
 }

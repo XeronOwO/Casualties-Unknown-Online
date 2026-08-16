@@ -11,7 +11,7 @@ namespace CasualtiesUnknownOnline.Tests.Mods;
 /// shared static would race them). Synchronized = both sides must run it, so
 /// the standard handshake setups pass the consistency check.
 /// </summary>
-[CuoMod("test.echo", "Test Echo", "1.0.0", NetworkMode = NetworkMode.Synchronized)]
+[CuoMod("test.echo", "Test Echo", "1.0.0", NetworkMode = NetworkMode.Synchronized, Permissions = ModPermission.SendNetworkMessage)]
 public sealed class TestEchoMod : ICuoMod
 {
 	/// <summary>The lifecycle stages in call order (Bind is a phase of the discovery frame).</summary>

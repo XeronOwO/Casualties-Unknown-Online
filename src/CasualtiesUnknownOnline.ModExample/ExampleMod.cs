@@ -12,7 +12,8 @@ namespace CasualtiesUnknownOnline.ModExample;
 /// same version, so the handshake consistency check admits the pair and a
 /// missing copy is refused — exactly what the two-process verification proves.
 /// </summary>
-[CuoMod("cuo.example", "CUO Example", "0.1.0", NetworkMode = NetworkMode.Synchronized)]
+[CuoMod("cuo.example", "CUO Example", "0.1.0", NetworkMode = NetworkMode.Synchronized,
+	Permissions = ModPermission.SendNetworkMessage | ModPermission.RegisterCommand | ModPermission.ExecuteHostAction)]
 public sealed class ExampleMod : ICuoMod
 {
 	private IModContext? _context;
@@ -29,6 +30,8 @@ public sealed class ExampleMod : ICuoMod
 				context.Network.Broadcast(Encoding.UTF8.GetBytes($"echo:{text}"));
 			}
 		};
+		context.Commands.Register(new ModCommand("echo", c => $"echo:{string.Join(" ", c.Arguments)}"));
+		context.Commands.Register(new ModCommand("whoami", c => $"requester:{c.RequesterSteamId}", isHostAction: true));
 		context.PlayerJoined += id => context.Logger.LogInformation("[Example] player {Id} joined.", id);
 		context.PlayerLeft += id => context.Logger.LogInformation("[Example] player {Id} left.", id);
 		context.SessionEnded += () => context.Logger.LogInformation("[Example] session ended.");

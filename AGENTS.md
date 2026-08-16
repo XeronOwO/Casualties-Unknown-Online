@@ -153,7 +153,7 @@ client prediction, full anti-cheat.
     arrives only via the stream (the event chain missed it); (b) host→guest replay — the full
     world/character state on entry or reconnect. Never design a trigger to depend on the snapshot.
 
-## Delivery Quality Gate (binding, user mandate 2026-08-10)
+## Delivery Quality Gate (binding, user mandates 2026-08-10 / 2026-08-16)
 
 Repeated "paper review passes, runtime fails" cycles made "don't assume" a hard-stop process. Executable
 form: `docs/delivery-checklist.md` + `tools/check-delivery.ps1`.
@@ -172,6 +172,12 @@ form: `docs/delivery-checklist.md` + `tools/check-delivery.ps1`.
   patch stacked on a patch. Deploy to the real game directory only (`tools/deploy.ps1` hard-rejects sandbox paths).
 - **Step 4 — Post-delivery structure review**: every touched class (size/600-line gate/responsibility/state
   bools); dead mechanisms deleted in the same round — never left co-existing.
+- **Checklist edit discipline** (user mandate 2026-08-16): check the boxes ONE
+  LINE AT A TIME with the Edit tool (bulk checking stays forbidden), but do NOT
+  create a separate git commit per checked box — that makes the history
+  redundant. Fold the checklist edits into the normal work commits for the
+  matching step (implementation/docs/deploy/verification). The audit record is
+  the line-by-line Edit sequence, not one commit per checkbox.
 
 **Hard order**: understand → mechanism inventory → adversarial self-check → plan + self-check table →
 user approval → implement → build + format + architecture gate → deploy → runtime verification → structure

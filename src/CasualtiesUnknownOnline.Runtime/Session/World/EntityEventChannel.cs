@@ -14,12 +14,13 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 /// everything else: report up (guest → host), the host applies to its own
 /// world and relays (BroadcastExcept — the source already applied locally).
 /// </summary>
-public sealed class EntityEventChannel(ISessionControl session, PacketSender sender, TrapConsumptionRegistry trapConsumption, OpenedEntityRegistry openedEntities, TrapLayoutRegistry trapLayout)
+public sealed class EntityEventChannel(ISessionControl session, PacketSender sender, TrapConsumptionRegistry trapConsumption, OpenedEntityRegistry openedEntities, BuildingEntityHealthRegistry buildingEntityHealth, TrapLayoutRegistry trapLayout)
 {
 	private readonly ISessionControl _session = session;
 	private readonly PacketSender _sender = sender;
 	private readonly TrapConsumptionRegistry _trapConsumption = trapConsumption;
 	private readonly OpenedEntityRegistry _openedEntities = openedEntities;
+	private readonly BuildingEntityHealthRegistry _buildingEntityHealth = buildingEntityHealth;
 	private readonly TrapLayoutRegistry _trapLayout = trapLayout;
 
 	// ---- World entity events (traps/mechanisms) ----
@@ -193,6 +194,22 @@ public sealed class EntityEventChannel(ISessionControl session, PacketSender sen
 	public event Action<IReadOnlyList<NetVector2Msg>>? OpenedEntitiesSnapshotReceived;
 
 	public void FireOpenedEntitiesSnapshotReceived(IReadOnlyList<NetVector2Msg> positions) => OpenedEntitiesSnapshotReceived?.Invoke(positions);
+
+	// ---- Damaged building entities (the late-joiner health snapshot) ----
+
+	/// <summary>Host only: record a damaged building entity's current health at a world position.</summary>
+	public void ReportBuildingEntityHealth(float x, float y, float health) => _buildingEntityHealth.Report(x, y, health);
+
+	/// <summary>Host only: send the recorded entity health to one member (on its world entry).</summary>
+	public void SendBuildingEntityHealthSnapshot(ulong targetSteamId) => _buildingEntityHealth.SendSnapshot(targetSteamId);
+
+	/// <summary>Host only: a new world layer is generating — the health records start empty again.</summary>
+	public void ResetBuildingEntityHealth() => _buildingEntityHealth.Reset();
+
+	/// <summary>Guest: the host's building-entity health snapshot arrived — apply each entry (idempotent).</summary>
+	public event Action<IReadOnlyList<BuildingEntityHealthEntryMsg>>? BuildingEntityHealthSnapshotReceived;
+
+	public void FireBuildingEntityHealthSnapshotReceived(IReadOnlyList<BuildingEntityHealthEntryMsg> entries) => BuildingEntityHealthSnapshotReceived?.Invoke(entries);
 
 	// ---- Trap layout (host authority — the generated trap entities' positions) ----
 

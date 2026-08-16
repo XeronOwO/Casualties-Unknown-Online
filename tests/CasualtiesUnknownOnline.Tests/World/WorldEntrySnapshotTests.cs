@@ -25,19 +25,24 @@ public class WorldEntrySnapshotTests
 		var hostWorld = w.Host.Services.GetRequiredService<IWorldControl>();
 		hostWorld.ReportTrapConsumed(EntityEventKind.MineExploded, 10f, 20f, extra: 0);
 		hostWorld.ReportOpenedEntity(30f, 40f);
+		hostWorld.ReportBuildingEntityHealth(50f, 60f, 25f);
 
 		var g1Traps = new List<IReadOnlyList<EntityEventMsg>>();
 		var g1Opened = new List<IReadOnlyList<NetVector2Msg>>();
+		var g1Health = new List<IReadOnlyList<BuildingEntityHealthEntryMsg>>();
 		w.G1.Services.GetRequiredService<EntityEventChannel>().TrapStateReceived += list => g1Traps.Add(list);
 		w.G1.Services.GetRequiredService<EntityEventChannel>().OpenedEntitiesSnapshotReceived += list => g1Opened.Add(list);
+		w.G1.Services.GetRequiredService<EntityEventChannel>().BuildingEntityHealthSnapshotReceived += list => g1Health.Add(list);
 
 		w.G1.Session.ReportSceneState(SceneStateType.InWorld, "SampleScene");
 		w.Driver.Tick(33);
 
 		// The world-entry fan-out sends ALL the world-state snapshots — the
-		// trap and opened sends must not wait for the 60 s periodic resend.
+		// trap, opened and entity-health sends must not wait for the 60 s
+		// periodic resend.
 		Assert.Single(g1Traps);
 		Assert.Single(g1Opened);
+		Assert.Single(g1Health);
 		Assert.True(w.ReceivedCount(w.G1, NetMsg.WorldBlockState) >= 0, "the block-state snapshot rides the same edge");
 	}
 
@@ -47,13 +52,16 @@ public class WorldEntrySnapshotTests
 		using var w = ItemSimWorld.Create();
 		var g1Traps = new List<IReadOnlyList<EntityEventMsg>>();
 		var g1Opened = new List<IReadOnlyList<NetVector2Msg>>();
+		var g1Health = new List<IReadOnlyList<BuildingEntityHealthEntryMsg>>();
 		w.G1.Services.GetRequiredService<EntityEventChannel>().TrapStateReceived += list => g1Traps.Add(list);
 		w.G1.Services.GetRequiredService<EntityEventChannel>().OpenedEntitiesSnapshotReceived += list => g1Opened.Add(list);
+		w.G1.Services.GetRequiredService<EntityEventChannel>().BuildingEntityHealthSnapshotReceived += list => g1Health.Add(list);
 
 		w.G1.Session.ReportSceneState(SceneStateType.InWorld, "SampleScene");
 		w.Driver.Tick(33);
 
 		Assert.Empty(g1Traps);
 		Assert.Empty(g1Opened);
+		Assert.Empty(g1Health);
 	}
 }

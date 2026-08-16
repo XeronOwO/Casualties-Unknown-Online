@@ -462,6 +462,7 @@ public sealed partial class WorldService : IWorldControl, IDisposable
 		_damagedBlocks.Clear();
 		_eventChannel.ResetConsumptions();
 		_eventChannel.ResetOpenedEntities();
+		_eventChannel.ResetBuildingEntityHealth();
 		_eventChannel.ResetTrapLayouts();
 	}
 

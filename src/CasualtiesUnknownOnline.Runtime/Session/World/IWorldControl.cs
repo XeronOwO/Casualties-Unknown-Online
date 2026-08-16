@@ -182,6 +182,17 @@ public interface IWorldControl
 
 	event Action<IReadOnlyList<NetVector2Msg>>? OpenedEntitiesSnapshotReceived;
 
+	/// <summary>Host only: record a damaged building entity's current health at a world position (the late-joiner snapshot's source).</summary>
+	void ReportBuildingEntityHealth(float x, float y, float health);
+
+	/// <summary>Host only: send the recorded building-entity health to one member (on its world entry).</summary>
+	void SendBuildingEntityHealthSnapshot(ulong targetSteamId);
+
+	/// <summary>Guest: the host's building-entity health snapshot arrived — apply each entry (idempotent).</summary>
+	void FireBuildingEntityHealthSnapshotReceived(IReadOnlyList<BuildingEntityHealthEntryMsg> entries);
+
+	event Action<IReadOnlyList<BuildingEntityHealthEntryMsg>>? BuildingEntityHealthSnapshotReceived;
+
 	/// <summary>Host only: record one generated trap entity (the adapter's scanner reports it on the generation-finished edge).</summary>
 	void ReportTrapLayout(EntityEventKind kind, float x, float y, string prefabName);
 

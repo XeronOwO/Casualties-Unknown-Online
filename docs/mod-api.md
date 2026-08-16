@@ -168,9 +168,9 @@ commands and remains the two-process verification target).
 ## 7. Versioning and protocol discipline
 
 - `ProtocolVersion.Current` is bumped on any behavioral wire change. Current:
-  **10** (v10 = mod permissions in the handshake + `ModCommandRequest`/`Result`
-  (86/87) + SemVer-validated versions; a v9 peer drops those, so mixed
-  versions are refused instead of silently degrading).
+  **11** (v11 adds `BuildingEntityHealthSnapshot` (88) for late-joiner
+  building-entity damage; a v10 peer drops it, so mixed versions are refused
+  instead of silently degrading).
 - Mod versions are strict SemVer strings, validated at discovery and compared
   by precedence for state-bearing modes.
 - The 64 KiB cap is a policy constant (`ModChannel.MaxPayloadBytes`); raising

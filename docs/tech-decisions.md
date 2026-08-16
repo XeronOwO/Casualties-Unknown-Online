@@ -303,3 +303,27 @@ never became a Guest and never followed the host's run. The lobby identity is no
 - Binding contract: `docs/mod-api.md`; two-process runtime verified with host + Steam1 sandbox
   (permissions discovered, handshake end-to-end, guest→host `echo`/`whoami` results success,
   host-local command output, mod-message report).
+
+## 20. Damaged building-entity health snapshot (ProtocolVersion 11)
+
+The live `BuildingEntityDamaged` relay is position-keyed and only updates peers that are already
+in the world; a late joiner regenerates every building entity at full health, so destroyed
+plants/crates resurrected and intermediate damage was lost. The fix mirrors the opened-entities
+snapshot family:
+
+- **`BuildingEntityHealthRegistry`** (Runtime/World, host-authoritative): position-keyed
+  (`(floor x, floor y)`) latest-health records, cap 4096, reset with `ResetDamagedBlocks`.
+- **`BuildingEntityHealthSnapshot` (NetMsg 88, host → guest)**: cell-centre position + current
+  health entries, sent in `HandlerContext.SendWorldStateToMember` (world entry + reconnect) and
+  the 60 s resend. Floats are immune to protobuf zero-omission (an omitted 0 decodes to 0), so
+  destroyed-entity health 0 round-trips.
+- **Game Adapter recording** — the local damage path, the remote-damage apply path, the local
+  open path and the remote-open apply path all report the post-write health (host-only); a
+  guest-reported hit applied on the host is therefore part of the snapshot history.
+- **Guest application** — `WorldEventSync` finds the generated copy at the position, writes the
+  host's health, and marks `< 0.5` with `RemoteEntityDeath`, so the local `BuildingEntity.Update`
+  never rolls a second set of drops.
+- **ProtocolVersion 10→11** — a v10 peer drops NetMsg 88 and would regress the late-joiner state,
+  so mixed-version sessions are refused instead of silently degrading.
+- Tests: registry semantics (`BuildingEntityHealthRegistryTests`), direction table, wire round-trip
+  with health 0, and the world-entry/reconnect snapshot groups extended from five to six snapshots.

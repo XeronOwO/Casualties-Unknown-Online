@@ -75,9 +75,14 @@ lands, never bolted on afterwards.
 
 ## World time flow
 
-- Multiplayer time domain: the base game supports wait/fast-forward and sleep-acceleration, which
-  do not fit multiplayer. Undecided: host-authoritative world time, how fast-forward/sleep degrade
-  or disable on the guest, forced-sleep residual handling.
+- RESOLVED (2026-08-16, ProtocolVersion 13): host-authoritative world time. Guest speed
+  hotkeys/movement-resets become `WorldTimeRequest` (NetMsg 90) reports — never local
+  timeScale writes; the host applies the pure `WorldTimePolicy` (movement forces Normal and
+  clears the request; all-unconscious sleep acceleration runs 25×, or 3.5× when any sleeping
+  player is brain-dying) and broadcasts `WorldTime` (NetMsg 91). The vanilla per-side
+  unconscious fast-forward is suppressed by a CallContext scope; direct timeScale writers are
+  re-adopted/corrected, with world-entry fan-out + 5 s resend. Slowmo/Paused stay local-only
+  presentation. See `docs/world-time-selfcheck.md`; 801 tests green.
 
 ## Item / entity domain
 

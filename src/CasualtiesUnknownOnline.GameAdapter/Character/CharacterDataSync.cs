@@ -71,12 +71,75 @@ internal sealed class CharacterDataSync(
 	{
 		_characterData.CharacterDataReceived += OnCharacterDataReceived;
 		_characterData.HostCharacterDataReceived += OnHostCharacterDataReceived;
+		_characterData.LimbStateEventReceived += OnLimbStateEventReceived;
 	}
 
 	internal void Unbind()
 	{
 		_characterData.CharacterDataReceived -= OnCharacterDataReceived;
 		_characterData.HostCharacterDataReceived -= OnHostCharacterDataReceived;
+		_characterData.LimbStateEventReceived -= OnLimbStateEventReceived;
+	}
+
+	/// <summary>A limb-latch event arrived (report or relay) — update the owner's fact-table entry and re-render its clone (the dedicated event is the trigger; the 1 Hz snapshot is the fallback).</summary>
+	private void OnLimbStateEventReceived(ulong sender, LimbStateEventMsg msg) =>
+		_factTable.ApplyLimbStateEvent(msg.OwnerSteamId, msg);
+
+	/// <summary>
+	/// The local body's limb latch changed (BreakBone/MendBone/Dislocate/
+	/// UnDislocate/Dismember — the patch verified the write): capture the
+	/// body's FULL post-event terminal state (every limb + the body health —
+	/// Dismember also deactivates the lower limbs and mutates the connected
+	/// limbs, Limb.cs:91-145) and report it (guest → host) or broadcast it
+	/// (host) as the dedicated LimbStateEvent event. The limb indices into
+	/// Body.limbs ride the message (the same index space the 1 Hz snapshot
+	/// uses).
+	/// </summary>
+	internal void ReportLimbStateEvent(Limb limb)
+	{
+		if (!_session.SessionActive)
+		{
+			return;
+		}
+
+		var body = limb.body;
+		if (body == null) // Unity object — ==
+		{
+			_log.LogWarning("[LimbEvent] limb has no body — not reported.");
+			return;
+		}
+
+		for (var i = 0; i < body.limbs.Length; i++)
+		{
+			if (body.limbs[i] == limb) // Unity objects — ==
+			{
+				_characterData.SendLimbStateEvent(CaptureLimbStateEvent(body));
+				_log.LogInformation("[LimbEvent] reported local limb {Limb}.", i);
+				return;
+			}
+		}
+
+		_log.LogWarning("[LimbEvent] limb not found in its body's limbs array — not reported.");
+	}
+
+	private LimbStateEventMsg CaptureLimbStateEvent(Body body)
+	{
+		var msg = new LimbStateEventMsg
+		{
+			OwnerSteamId = _session.LocalSteamId,
+			Health = _mapper.Map<CharacterHealthMsg>(body),
+		};
+
+		// Limb has no Index field — Mapster maps the rest, the loop assigns it
+		// (the same capture shape as the 1 Hz character snapshot).
+		for (var i = 0; i < body.limbs.Length; i++)
+		{
+			var limbMsg = _mapper.Map<CharacterLimbMsg>(body.limbs[i]);
+			limbMsg.Index = i;
+			msg.Limbs.Add(limbMsg);
+		}
+
+		return msg;
 	}
 
 	private void OnCharacterDataReceived(ulong sender, CharacterDataMsg data)

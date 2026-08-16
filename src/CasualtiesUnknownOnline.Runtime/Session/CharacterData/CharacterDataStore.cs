@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
@@ -269,6 +270,45 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable
 	/// <summary>Guest: the host's own 1 Hz snapshot arrived — render its clone inventory (never apply).</summary>
 	public event Action<CharacterDataMsg>? HostCharacterDataReceived;
 
+	/// <summary>A limb-latch event arrived (report or relay) — the Game Adapter applies the limb's terminal state to the owner's clone.</summary>
+	public event Action<ulong, LimbStateEventMsg>? LimbStateEventReceived;
+
+	/// <summary>Host side: merge a limb-latch event's full terminal state into the owner's saved snapshot immediately — a disconnect before the next 1 Hz report must still restore every changed limb + body field (the dedicated event is the trigger; the snapshot is only the fallback).</summary>
+	public void ApplyLimbStateEvent(LimbStateEventMsg msg)
+	{
+		if (_savedCharacters.TryGetValue(msg.OwnerSteamId, out var data))
+		{
+			EnemyTerminalStateApplier.ApplyLimbState(data, msg);
+			PersistTable();
+		}
+	}
+
+	/// <summary>
+	/// Report/broadcast a limb-latch event: a guest reports its own limb to the
+	/// host; the host broadcasts its own to every handshaken guest (its body is
+	/// already damaged locally). Reliable — a lost event self-heals on the next
+	/// 1 Hz character snapshot, but the trigger rides the event, never the
+	/// snapshot (mirror of EnemySyncService.SendEnemyBite).
+	/// </summary>
+	public void SendLimbStateEvent(LimbStateEventMsg msg)
+	{
+		if (!_session.SessionActive)
+		{
+			return;
+		}
+
+		if (_session.Role == SessionRole.Host)
+		{
+			_sender.SendToAll(
+				_session.Members.Where(m => m.Handshaken && m.SteamId != _session.LocalSteamId).Select(m => m.SteamId),
+				NetMsg.LimbStateEvent, msg, reliable: true);
+		}
+		else
+		{
+			_sender.Send(_session.HostSteamId, NetMsg.LimbStateEvent, msg);
+		}
+	}
+
 	// ---- ICharacterDataControl (the packet handlers' control surface) ----
 
 	void ICharacterDataControl.SaveCharacterData(ulong steamId, CharacterDataMsg msg) => SaveCharacterData(steamId, msg);
@@ -306,4 +346,11 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable
 	void ICharacterDataControl.ApplyEnemyLunge(EnemyLungeMsg msg) => ApplyEnemyLunge(msg);
 
 	void ICharacterDataControl.ApplyEnemyEffect(EnemyEffectMsg msg) => ApplyEnemyEffect(msg);
+
+	void ICharacterDataControl.ApplyLimbStateEvent(LimbStateEventMsg msg) => ApplyLimbStateEvent(msg);
+
+	void ICharacterDataControl.FireLimbStateEventReceived(ulong sender, LimbStateEventMsg msg) =>
+		LimbStateEventReceived?.Invoke(sender, msg);
+
+	void ICharacterDataControl.SendLimbStateEvent(LimbStateEventMsg msg) => SendLimbStateEvent(msg);
 }

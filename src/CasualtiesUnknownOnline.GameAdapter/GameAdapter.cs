@@ -109,7 +109,7 @@ public sealed partial class GameAdapter : IGameAdapter, ICuoService, IPatchBridg
 			new CloneInventoryRenderer(loggerFactory.CreateLogger<CloneInventoryRenderer>()),
 			_factTable,
 			loggerFactory.CreateLogger<CharacterDataSync>());
-		_renderer = new RemotePlayerRenderer(session, entities, _characterDataSync, loggerFactory.CreateLogger<RemotePlayerRenderer>());
+		_renderer = new RemotePlayerRenderer(session, entities, _characterDataSync, new CloneLimbRenderer(loggerFactory.CreateLogger<CloneLimbRenderer>()), loggerFactory.CreateLogger<RemotePlayerRenderer>());
 		_dropGuard = new DropProtectionGuard();
 		_itemApplication = new ItemApplication(items, session, loggerFactory.CreateLogger<ItemApplication>());
 		_itemReconcile = new ItemReconcile(items, _itemApplication, _dropGuard, loggerFactory.CreateLogger<ItemReconcile>());

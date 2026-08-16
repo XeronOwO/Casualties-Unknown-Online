@@ -254,6 +254,12 @@ internal interface IPatchBridge
 	/// host) or broadcast it (host) as the dedicated EnemyBite event.</summary>
 	void OnEnemyBite(Limb limb);
 
+	/// <summary>A limb latch changed on the LOCAL body (BreakBone/MendBone/
+	/// Dislocate/UnDislocate/Dismember — the patch verified the write) — report
+	/// the body's full post-event terminal state (guest → host) or broadcast it
+	/// (host) as the dedicated LimbStateEvent event.</summary>
+	void OnLimbStateEvent(Limb limb);
+
 	/// <summary>A spider just recomputed its move target (host side) — the combat director replaces the single-player OverlapCircle result with the nearest in-world player.</summary>
 	void OnSpiderTargetDecided(SpiderHandler spider);
 

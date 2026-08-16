@@ -18,11 +18,13 @@ internal sealed class RemotePlayerRenderer(
 	SessionService session,
 	EntitySyncService entities,
 	CharacterDataSync characterData,
+	CloneLimbRenderer limbRenderer,
 	ILogger<RemotePlayerRenderer> log)
 {
 	private readonly SessionService _session = session;
 	private readonly EntitySyncService _entities = entities;
 	private readonly CharacterDataSync _characterData = characterData;
+	private readonly CloneLimbRenderer _limbRenderer = limbRenderer;
 	private readonly ILogger<RemotePlayerRenderer> _log = log;
 
 	private readonly Dictionary<ulong, Body> _remoteClones = [];
@@ -55,6 +57,7 @@ internal sealed class RemotePlayerRenderer(
 			&& _characterData.CloneData.TryGetValue(steamId, out var data))
 		{
 			_characterData.ApplyCloneInventory(clone, data);
+			_limbRenderer.ApplyCloneLimbs(clone, data);
 		}
 	}
 
@@ -116,11 +119,12 @@ internal sealed class RemotePlayerRenderer(
 
 				_remoteClones[remote.SteamId] = clone;
 				_log.LogInformation("Remote body created for {SteamId}.", remote.SteamId);
-				// Render its carried items from the latest snapshot (a fresh
-				// report follows within 1 s at the latest).
+				// Render its carried items + limb presentation from the latest
+				// snapshot (a fresh report follows within 1 s at the latest).
 				if (_characterData.CloneData.TryGetValue(remote.SteamId, out var data))
 				{
 					_characterData.ApplyCloneInventory(clone, data);
+					_limbRenderer.ApplyCloneLimbs(clone, data);
 				}
 			}
 

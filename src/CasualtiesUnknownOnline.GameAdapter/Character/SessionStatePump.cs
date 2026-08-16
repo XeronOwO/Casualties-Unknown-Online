@@ -117,7 +117,8 @@ internal static class SessionStatePump
 			// Lying (ragdoll/dead/unconscious — !standing without sleeping, or
 			// !alive): the LayDown clip approximates the ragdoll pose on the
 			// proxy (real ragdoll is physics-driven, frozen here by design).
-			var lying = (!entity.Standing || !entity.Alive) && !entity.Sleeping;
+			// The rule is the pure LyingPose machine (L0-locked).
+			var lying = LyingPose.IsLying(entity.Standing, entity.Alive, entity.Sleeping);
 			if (lying != driver.PrevLying)
 			{
 				driver.PrevLying = lying;
@@ -130,19 +131,22 @@ internal static class SessionStatePump
 
 			driver.Climbing = entity.Climbing;
 
-			// Attack swing: replay the ArmsSwing clip once per rising flag edge —
-			// the same one-shot the local player plays on attack/throw (Body.cs:
-			// 1887, 1665). The IsAttacking flag is held for the swing's span by
-			// the sender (AttackSwingState), so the edge is delivered reliably
-			// even over the unreliable 20 Hz stream.
-			if (entity.IsAttacking != driver.PrevAttacking)
+			// Attack swing: replay the ArmsSwing clip once per swing — the
+			// SwingReplay machine replays on every sequence CHANGE (each swing,
+			// even several inside one held flag window — rapid mining swings)
+			// with the flag's rising edge as the old-sender fallback (a peer
+			// that never sends the sequence). The IsAttacking flag is held for
+			// the swing's span by the sender (AttackSwingState), so the edge
+			// is delivered reliably even over the unreliable 20 Hz stream.
+			if (SwingReplay.ShouldReplay(entity.SwingSeq, driver.PrevSwingSeq,
+				entity.IsAttacking, driver.PrevAttacking, driver.SwingStateSeeded))
 			{
-				driver.PrevAttacking = entity.IsAttacking;
-				if (entity.IsAttacking)
-				{
-					body.armsAnimator.Play("ArmsSwing", -1, 0f);
-				}
+				body.armsAnimator.Play("ArmsSwing", -1, 0f);
 			}
+
+			driver.PrevSwingSeq = entity.SwingSeq;
+			driver.PrevAttacking = entity.IsAttacking;
+			driver.SwingStateSeeded = true;
 		}
 	}
 

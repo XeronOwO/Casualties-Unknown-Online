@@ -36,4 +36,13 @@ public interface ICharacterDataControl
 
 	/// <summary>Host side: merge an enemy-proximity side effect terminal state into the victim's saved snapshot.</summary>
 	void ApplyEnemyEffect(EnemyEffectMsg msg);
+
+	/// <summary>Host side: merge a limb-latch event's full limb + body terminal state into the owner's saved snapshot (the trigger rides the event, the snapshot is the fallback).</summary>
+	void ApplyLimbStateEvent(LimbStateEventMsg msg);
+
+	/// <summary>Surface an arrived limb-latch event (report or relay) for the Game Adapter to apply to the owner's clone.</summary>
+	void FireLimbStateEventReceived(ulong sender, LimbStateEventMsg msg);
+
+	/// <summary>Report/broadcast a limb-latch event: a guest reports its own limb latch to the host; the host broadcasts its own to every guest. Reliable — the trigger rides the event, never the snapshot.</summary>
+	void SendLimbStateEvent(LimbStateEventMsg msg);
 }

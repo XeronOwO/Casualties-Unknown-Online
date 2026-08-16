@@ -133,6 +133,55 @@ public class EnemyTerminalStateApplierTests
 	}
 
 	[Fact]
+	public void ApplyLimbState_ReplacesTheFullLimbSetAndBodyHealth()
+	{
+		var data = new CharacterDataMsg
+		{
+			Health = new CharacterHealthMsg { Happiness = 1f },
+			Limbs =
+			[
+				new CharacterLimbMsg { Index = 0, Pain = 1f },
+				new CharacterLimbMsg { Index = 3, Broken = true },
+			],
+		};
+
+		EnemyTerminalStateApplier.ApplyLimbState(data, new LimbStateEventMsg
+		{
+			OwnerSteamId = 7,
+			Limbs =
+			[
+				new CharacterLimbMsg { Index = 0, Pain = 12f, Dismembered = true },
+				new CharacterLimbMsg { Index = 2, SkinHealth = 80f },
+			],
+			Health = new CharacterHealthMsg { Happiness = 40f, Adrenaline = 75f },
+		});
+
+		Assert.Equal(2, data.Limbs.Count);
+		Assert.Equal(12f, data.Limbs[0].Pain);
+		Assert.True(data.Limbs[0].Dismembered);
+		Assert.Equal(2, data.Limbs[1].Index);
+		Assert.Equal(80f, data.Limbs[1].SkinHealth);
+		Assert.Equal(40f, data.Health!.Happiness);
+		Assert.Equal(75f, data.Health!.Adrenaline);
+	}
+
+	[Fact]
+	public void ApplyLimbState_WithoutBodyHealth_KeepsTheExistingBodyRecord()
+	{
+		var data = new CharacterDataMsg
+		{
+			Health = new CharacterHealthMsg { Happiness = 1f },
+		};
+
+		EnemyTerminalStateApplier.ApplyLimbState(data, new LimbStateEventMsg
+		{
+			Limbs = [new CharacterLimbMsg { Index = 1, Broken = true }],
+		});
+
+		Assert.True(data.Health!.Happiness == 1f, "an old-version event without Health must only rebuild limbs");
+	}
+
+	[Fact]
 	public void ApplyEffect_UnknownKind_LeavesTheRecordUntouched()
 	{
 		var data = new CharacterDataMsg { Health = new CharacterHealthMsg { Shock = 3f } };

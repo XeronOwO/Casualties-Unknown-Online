@@ -101,3 +101,16 @@ verification box is checked on L0 simulation + static evidence (user rule
 | Guest isolation static evidence | `ItemPositionFollow.cs:186-198` (Item layer 7 collides only with Ground 6 while guest + session active) proves the guest cannot run the native conversion |
 | Native conversion static evidence | `reversing/Assembly-CSharp/Assembly-CSharp/Heater.cs:41-49` is the sole conversion implementation; CUO does not duplicate it |
 
+
+
+## 7. Structure review
+
+- Touched classes stay under the 600-line gate: `GameAdapter.cs` 597,
+  `ItemApplication.cs` 566, `ItemService.cs` 575; the new heater pieces are
+  small partials/owners (`GameAdapter.Heater.cs` 25, `ItemApplication.Heater.cs`
+  52, `HeaterCookRule.cs` 44, `HeaterCookSync.cs` 104, `HeaterCookPatch.cs` 120).
+- No new expression-state bool fields: `HeaterCookSync` owns one
+  `HashSet<ulong>` claim set (consumed once), no bool flags.
+- Dead mechanisms: none. The generic `ItemDestroy` + `ItemSpawn` fallback is
+  intentionally retained only for the verified-capture-miss path — it is the
+  self-healing fallback, not a co-existing duplicate path.

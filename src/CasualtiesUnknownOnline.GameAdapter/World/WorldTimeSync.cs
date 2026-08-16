@@ -140,6 +140,11 @@ internal sealed class WorldTimeSync(
 			return;
 		}
 
+		if (_run.LocalBody == null) // Unity object — == (menu-only SetTimeScale resets must not leak a request into the next world)
+		{
+			return;
+		}
+
 		if (CallContext.Current is CallContext.Origin.WorldTimeApply or CallContext.Origin.WorldTimeSleepLocal)
 		{
 			return;
@@ -161,9 +166,9 @@ internal sealed class WorldTimeSync(
 			return;
 		}
 
-		if (!_session.TryGetMember(sender, out var member) || !member.Handshaken)
+		if (!_session.TryGetMember(sender, out var member) || !member.Handshaken || !member.InWorld)
 		{
-			_log.LogWarning("[WorldTime] refused request from non-member {Sender}.", sender);
+			_log.LogWarning("[WorldTime] refused request from {Sender} (not an in-world member).", sender);
 			return;
 		}
 

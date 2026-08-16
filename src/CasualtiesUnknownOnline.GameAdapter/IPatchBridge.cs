@@ -28,6 +28,18 @@ internal interface IPatchBridge
 
 	void OnBlockDamaged(Vector2 pos, float dmg, bool bonusMetal);
 
+	/// <summary>
+	/// PlayerCamera.SetTimeScale is starting (outside CUO apply/sleep-suppress
+	/// scopes). Returns whether the ORIGINAL method may run: the host always
+	/// may (it is the time authority); a guest may only run local-only speeds
+	/// (Slowmo/Paused) or forced local transitions — Normal/Fast/SuperFast
+	/// become host requests, UnconsciousFast/DyingFast are host-owned.
+	/// </summary>
+	bool OnTimeScaleSetRequested(PlayerCamera.SpeedType speed, bool force);
+
+	/// <summary>PlayerCamera.SetTimeScale finished — the host reports the speed it just applied so the world-time domain can broadcast it (guests never report; apply/sleep scopes never report).</summary>
+	void OnLocalTimeScaleChanged(PlayerCamera.SpeedType speed);
+
 	/// <summary>A player's attack damaged a building entity (Body.cs:1946) — report it (the entity's health is local-only otherwise).</summary>
 	void OnBuildingEntityDamaged(BuildingEntity entity, float damage);
 

@@ -182,4 +182,22 @@ public class NetPacketTests
 
 		Assert.True(decoded.MetalBonus, "MetalBonus=true must round-trip");
 	}
+
+	[Fact]
+	public void WorldTime_NormalZero_RoundTrips()
+	{
+		// WorldTimeSpeed.Normal is 0 and omitted by protobuf-net — the omission
+		// must decode back to the SAME semantic default (Normal).
+		var decoded = NetPacket.DecodePayload<WorldTimeMsg>(NetPacket.Encode(NetMsg.WorldTime, new WorldTimeMsg { Speed = WorldTimeSpeed.Normal }));
+
+		Assert.Equal(WorldTimeSpeed.Normal, decoded.Speed);
+	}
+
+	[Fact]
+	public void WorldTimeRequest_Fast_RoundTrips()
+	{
+		var decoded = NetPacket.DecodePayload<WorldTimeRequestMsg>(NetPacket.Encode(NetMsg.WorldTimeRequest, new WorldTimeRequestMsg { Speed = WorldTimeSpeed.Fast }));
+
+		Assert.Equal(WorldTimeSpeed.Fast, decoded.Speed);
+	}
 }

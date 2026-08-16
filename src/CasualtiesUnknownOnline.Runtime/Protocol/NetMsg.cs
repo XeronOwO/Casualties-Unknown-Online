@@ -137,4 +137,11 @@ public enum NetMsg : byte
 	// accumulated BlockDamage, so it must learn the host's current damage; a
 	// broken block rides WorldBlockState instead)
 	BlockDamageSnapshot = 89, // host → guest: current partial block-damage records (world entry / 60 s resend)
+
+	// World time (host authority — Time.timeScale is process-global world state:
+	// guests request speed changes, the host applies the policy and broadcasts
+	// the authoritative speed; the all-unconscious sleep acceleration is
+	// host-computed, never per-side)
+	WorldTimeRequest = 90, // guest → host: request Normal/Fast/SuperFast
+	WorldTime = 91, // host → guest: the authoritative world-time speed (change / world entry / 5 s resend)
 }

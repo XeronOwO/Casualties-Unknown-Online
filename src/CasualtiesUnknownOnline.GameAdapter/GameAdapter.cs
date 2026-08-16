@@ -91,7 +91,7 @@ public sealed partial class GameAdapter : IGameAdapter, ICuoService, IPatchBridg
 
 	public GameAdapter(SessionService session, EntitySyncService entities, CharacterDataStore characterData,
 		WorldService world, ItemService items, ICraftControl craft, ItemArbitration arbitration,
-		EnemySyncService enemies, ILogger<GameAdapter> log, IMapper mapper, ILoggerFactory loggerFactory)
+		EnemySyncService enemies, IWorldTimeControl worldTime, ILogger<GameAdapter> log, IMapper mapper, ILoggerFactory loggerFactory)
 	{
 		_session = session;
 		_items = items;
@@ -154,6 +154,7 @@ public sealed partial class GameAdapter : IGameAdapter, ICuoService, IPatchBridg
 		_guestMenu = new GuestMenuGuard(session, loggerFactory.CreateLogger<GuestMenuGuard>());
 		_worldParams = new WorldParamsService(world, loggerFactory.CreateLogger<WorldParamsService>());
 		_run = new RunCoordinator(session, world, entities, _characterDataSync, _guestMenu, _worldParams, arbitration, loggerFactory.CreateLogger<RunCoordinator>());
+		_worldTimeSync = new WorldTimeSync(session, entities, characterData, _run, worldTime, loggerFactory.CreateLogger<WorldTimeSync>());
 		_gate = new StartGateCoordinator(session, world, _lifePod, _run, loggerFactory.CreateLogger<StartGateCoordinator>());
 		PatchBridge.Bind(this); // the only static seam — Harmony patches read the narrow surface, never this instance
 	}
@@ -280,6 +281,7 @@ public sealed partial class GameAdapter : IGameAdapter, ICuoService, IPatchBridg
 	{
 		_guestMenu.Update();
 		_run.Update();
+		_worldTimeSync.Update(); // host policy + direct-write adoption + resend; guest enforcement of the host speed
 
 		// World-entry edge: the teardown of the PREVIOUS scene finished (its
 		// destroys were suppressed, #191) — the new world's real destroys report
@@ -325,6 +327,7 @@ public sealed partial class GameAdapter : IGameAdapter, ICuoService, IPatchBridg
 
 	void IDisposable.Dispose()
 	{
+		_worldTimeSync.Unbind();
 		UnbindFromSession();
 		_renderer.DestroyAllClones();
 		PatchBridge.Unbind(this);
@@ -350,6 +353,7 @@ public sealed partial class GameAdapter : IGameAdapter, ICuoService, IPatchBridg
 		_recipeUnlockApply.BindToSession();
 		_enemySync.BindToSession();
 		_enemyProximity.BindToSession();
+		_worldTimeSync.BindToSession();
 		_run.BindToSession();
 		_session.SessionEnded += OnSessionEnded;
 		_genItemApplication.BindToSession();

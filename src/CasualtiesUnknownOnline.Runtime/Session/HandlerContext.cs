@@ -14,7 +14,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session;
 /// </summary>
 public sealed class HandlerContext(ISessionControl session, IEntitySyncControl entities,
 	ICharacterDataControl characterData, IWorldControl world, IItemControl items, IModsControl mods,
-	ICraftControl craft, IEnemySyncControl enemies)
+	ICraftControl craft, IEnemySyncControl enemies, IWorldTimeControl worldTime)
 {
 	public ISessionControl Session { get; } = session;
 
@@ -23,6 +23,9 @@ public sealed class HandlerContext(ISessionControl session, IEntitySyncControl e
 	public ICharacterDataControl CharacterData { get; } = characterData;
 
 	public IWorldControl World { get; } = world;
+
+	/// <summary>The world-time domain (host-authoritative speed requests/broadcasts).</summary>
+	public IWorldTimeControl WorldTime { get; } = worldTime;
 
 	public IItemControl Items { get; } = items;
 

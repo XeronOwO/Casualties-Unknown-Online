@@ -39,6 +39,12 @@ internal static class CallContext
 
 		/// <summary>Inside a crafting operation (Recipe.TryMake / Body.CombineItems) — the material/product item hooks stay silent (their facts ride the ONE craft report; the end-of-frame destroys ride the destroy-claim set in CraftingSync).</summary>
 		Craft,
+
+		/// <summary>The world-time domain is applying an authoritative speed (host policy or a host broadcast on the guest) — the SetTimeScale patch must let it through without re-reporting.</summary>
+		WorldTimeApply,
+
+		/// <summary>Inside PlayerCamera.HandleUnconsciousScreen — the vanilla per-side black-screen fast-forward is suppressed; the host's all-unconscious policy owns sleep acceleration.</summary>
+		WorldTimeSleepLocal,
 	}
 
 	/// <summary>Stack bound — real nesting is 2-3 levels (remote apply → container load → hooks).</summary>

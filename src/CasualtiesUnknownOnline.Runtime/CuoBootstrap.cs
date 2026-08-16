@@ -102,7 +102,8 @@ public static class CuoBootstrap
 			p.GetRequiredService<IItemControl>(),
 			p.GetRequiredService<IModsControl>(),
 			p.GetRequiredService<ICraftControl>(),
-			p.GetRequiredService<IEnemySyncControl>()));
+			p.GetRequiredService<IEnemySyncControl>(),
+			p.GetRequiredService<IWorldTimeControl>()));
 		services.AddSingleton<PacketDispatcher>();
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<PacketDispatcher>());
 
@@ -129,6 +130,8 @@ public static class CuoBootstrap
 		services.AddSingleton<BuildingEntityHealthRegistry>(); // the damaged building-entity health table (the late-joiner snapshot's source)
 		services.AddSingleton<BlockDamageRegistry>(); // the partial block-damage table (the late-joiner snapshot's source)
 		services.AddSingleton<TrapLayoutRegistry>(); // the generated trap-entity layout (the host's entity-distribution authority)
+		services.AddSingleton<WorldTimeChannel>(); // the world-time request/broadcast channel (host authority — the Game Adapter owns the policy)
+		services.AddSingleton<IWorldTimeControl>(p => p.GetRequiredService<WorldTimeChannel>());
 		services.AddSingleton<EntityEventChannel>(); // the entity event/creation channels + the consumption/opened/health registries
 		services.AddSingleton<TradeChannel>(); // the trader state/action channel (trade domain)
 		services.AddSingleton<SpeechChannel>(); // the speech-bubble channel (the Talker domain)

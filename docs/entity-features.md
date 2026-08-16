@@ -130,7 +130,7 @@ trap's sound/sprite/light.
 | ShuttleStartOpen | trigger | covered | ShuttleDoorOpened — door anim + shuttleOpen sound on both sides |
 | LifepodController (heat button) | click | covered | LifepodHeatChanged — Extra = heatState 0/1/2; replay writes heatState/desiredTemp/enabled/sprite |
 | LifepodShower | click | covered | LifepodShowerActivated — one-shot replay particles + activated; one consumption shared |
-| Heater (cooker branch) | field | excluded | temperature field drives each side's own clone (no world state); cooker = item domain todo — raw→cooked conversion stays an item-domain item |
+| Heater (cooker branch) | field | covered | ItemCook (NetMsg 92) — host conversion event; temperature field stays local-presentation |
 
 ## Unlocks (one-shot progression — hard gameplay divergence)
 

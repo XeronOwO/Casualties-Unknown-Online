@@ -35,6 +35,16 @@ public interface IItemControl
 	/// <summary>A world item was destroyed locally — drop it from the table (host/solo) and report/broadcast.</summary>
 	void SendItemDestroyed(ulong itemId);
 
+	/// <summary>
+	/// Host/solo: a Heater cooker converted a raw meat item into a steak
+	/// (Heater.OnCollisionEnter2D) — remove the source and register the cooked
+	/// item in the world table in ONE transition, then broadcast the complete
+	/// cooked-item state as one host→guest ItemCook event (never a decomposed
+	/// ItemDestroy + ItemSpawn pair). The host's scene already ran the native
+	/// conversion; the adapter calls this only from the verified patch postfix.
+	/// </summary>
+	void SendItemCooked(ulong sourceItemId, ulong cookedItemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, float rotation, float angularVelocity);
+
 	// ===== Receive side (packet handlers surface the wire here) =====
 
 	void FireItemSpawnedReceived(ulong sender, ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, float rotation, bool freshItemDrop, float angularVelocity);
@@ -44,6 +54,9 @@ public interface IItemControl
 	void FireItemDroppedReceived(ulong sender, ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, ulong parentItemId, float rotation, float angularVelocity, NetVector2 parentPos = default);
 
 	void FireItemDestroyedReceived(ulong sender, ulong itemId);
+
+	/// <summary>Guest side: the host's authoritative heater-conversion event arrived — surface the source id and the full cooked-steak state for the adapter's one-scope apply.</summary>
+	void FireItemCookedReceived(ulong sender, ulong sourceItemId, ulong cookedItemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, float rotation, float angularVelocity);
 
 	/// <summary>Guest side: the host refused an arbitration — roll back (UnknownItem = a refused pickup, BlockAlreadyBroken = a refused block break's drops to destroy).</summary>
 	void FireItemRejectReceived(ulong sender, ulong itemId, ItemRejectMsg.Reason reason);
@@ -145,6 +158,9 @@ public interface IItemControl
 
 	/// <summary>An item was destroyed — remove it locally.</summary>
 	event Action<ulong>? ItemDestroyed;
+
+	/// <summary>The host's heater conversion arrived — kill the raw-meat copy and materialize the cooked steak atomically.</summary>
+	event Action<ulong, WorldItem>? ItemCookedReceived;
 
 	/// <summary>Guest side: the host's physics moved items — follow (apply the authoritative positions).</summary>
 	event Action<IReadOnlyList<ItemMoveEntryMsg>>? ItemMoveReceived;

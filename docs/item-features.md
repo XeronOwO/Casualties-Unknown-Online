@@ -269,7 +269,7 @@ domain"). Per-surface notes:
   container-item domain (real new world items); noautopickup products ride the
   item domain's spawn path; mindwipe's recipe-static reset (entity domain);
   save-restore recipe INT divergence (multiplayer has no save-load path);
-  Heater cooker (meat→steak) stays its own item-domain TODO.
+     Heater cooker (meat→steak) is RESOLVED as one `ItemCook` event (NetMsg 92) — see `docs/heater-cook-selfcheck.md`.
 
 ## Known state gaps (documented, not part of #89)
 

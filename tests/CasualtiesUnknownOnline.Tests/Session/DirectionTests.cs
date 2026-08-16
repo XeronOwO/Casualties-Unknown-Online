@@ -65,6 +65,7 @@ public class DirectionTests
 		NetMsg.EnemyAttack,
 		NetMsg.ModCommandResult,
 		NetMsg.WorldTime,
+		NetMsg.ItemCook,
 	};
 
 	public static TheoryData<NetMsg> BidirectionalMessages => new()

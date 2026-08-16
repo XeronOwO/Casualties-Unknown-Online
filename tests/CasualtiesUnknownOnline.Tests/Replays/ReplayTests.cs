@@ -29,7 +29,7 @@ namespace CasualtiesUnknownOnline.Tests.Replays;
 /// </summary>
 public class ReplayTests
 {
-	private static readonly string[] ItemActions = ["spawn", "pickup", "drop", "use", "slot", "destroy", "craft", "expect_no_reject"];
+	private static readonly string[] ItemActions = ["spawn", "pickup", "drop", "use", "slot", "destroy", "craft", "cook", "expect_no_reject"];
 
 	private static readonly string[] EntityActions = ["event", "snapshot", "fluid"];
 

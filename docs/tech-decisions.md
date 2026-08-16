@@ -522,3 +522,35 @@ The raw→cooked item-domain TODO is closed as a dedicated host→guest event, n
   pure rule + patch surface + contract), the `heater-cook.replay` fossil, and the `DirectionTests`
   completeness guard. 863 tests green.
 
+
+## 27. Character-data disk persistence (no protocol change)
+
+The host's per-SteamID character saves were in-memory only and died with the host
+process. The saves are now disk-backed without touching the wire:
+
+- **`CharacterDataFileStore`** (Runtime/Session/CharacterData) owns path, format and
+  atomic writes. The file is a versioned protobuf wrapper (`CharacterDataFile`) with
+  `(SteamId, CharacterDataMsg)` entries; serialize to `<file>.tmp`, flush, then
+  `File.Replace`/`File.Move`, so a crash never leaves a half-file current.
+- **Lifecycle** — `CharacterDataStore` loads the file exactly once at construction
+  (the host-restart / continue-run path), persists after every verified mutation
+  (guest report save + enemy bite/lunge/effect terminal-state merges), and keeps
+  memory session-scoped: `SessionEnded` clears memory, the file survives.
+  `ClearSavedCharacters` (new run) writes an empty-table tombstone first, then
+  deletes — a failed delete can never resurrect the old run's supplies.
+- **No same-process lazy reload** — after a session end the next run's identity is
+  unknown, so the old process must not hand out the previous run's save to a
+  brand-new lobby; only a new process start (restart / continue-run) reloads.
+- **Production path** — the Plugin passes `Paths.ConfigPath /
+  CasualtiesUnknownOnline.character-data.bin` (computed at runtime, no committed
+  machine path). `null` disables persistence and is the test-composition default.
+- **Degradation** — missing file = empty; corrupt/unknown-version file = warn +
+  empty (never a startup crash); failed save/delete = warn and keep the in-memory
+  session working.
+- **No protocol bump** — ProtocolVersion stays 15; the file is a local artifact and
+  the Game Adapter/Item domains are untouched.
+- Tests: `CharacterDataFileStoreTests` (full-field round-trip, missing/corrupt/
+  version degradation, delete, temp-file contract) + `CharacterDataPersistenceTests`
+  (full-DI restart restore, new-run clear, session-end disk survival, the three
+  terminal-state merge kinds across restart, corrupt-file startup, failed-clear
+  no-leak). 877 tests green.

@@ -77,6 +77,10 @@ public class Plugin : BaseUnityPlugin
 				Logger,
 				Path.Combine(Paths.BepInExRootPath, "logs"),
 				legacyLogPath: Path.Combine(Paths.BepInExRootPath, "CUO.log"),
+				// The host's guest-character saves persist under BepInEx/config —
+				// a host restart (continue-run) restores reconnecting guests from
+				// this file; a NEW run deletes it (RunCoordinator).
+				characterDataFile: Path.Combine(Paths.ConfigPath, "CasualtiesUnknownOnline.character-data.bin"),
 				extraRegistrations: services =>
 				{
 					// BepInEx ConfigFile → IOptionsMonitor bridge: the plugin owns

@@ -402,6 +402,7 @@ Later (requires a full snapshot system): periodic full world snapshots, mod-stat
 
 - Host is the only save authority; guests never write the world save.
 - Host saves world state periodically; guests keep local settings and personal display data only.
+- Guest `Player State` restore data is disk-backed on the host (`CharacterDataFileStore`, see tech-decisions §27): memory stays session-scoped, the disk copy survives a host restart / continue-run, and a new run clears it.
 - Save partitions: `World State`, `Player State`, `Mod State`, `Framework Metadata`.
 - Mod save data must carry: mod ID, mod version, schema version, migration policy, missing-mod handling policy, corruption degradation policy.
 - Never let mods serialize arbitrary objects to binary in saves — unrecoverable after game/mod updates.

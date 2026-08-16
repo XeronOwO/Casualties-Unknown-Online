@@ -276,7 +276,18 @@ lands, never bolted on afterwards.
 
 ## Persistence
 
-- Character data disk persistence (currently in-memory, lost on host exit).
+- RESOLVED (2026-08-16, no protocol bump): character data disk persistence —
+  the host's per-SteamID saves now ride a versioned protobuf file
+  (`CharacterDataFileStore`, atomic temp+replace writes) under
+  `BepInEx/config/CasualtiesUnknownOnline.character-data.bin`. The table loads
+  once at host construction (restart/continue-run restore), persists after
+  every verified mutation (1 Hz report save + enemy bite/lunge/effect merges),
+  survives `SessionEnded` as a disk copy while memory clears, and a NEW run
+  writes an empty tombstone before deleting it. No same-process lazy reload —
+  the old process must not leak a previous run's save into a brand-new lobby.
+  Corrupt/unknown-version files degrade to empty with a warning, never a
+  startup crash. See `docs/character-data-persistence-selfcheck.md`;
+  877 tests green (L0 simulation, no manual acceptance).
 
 ## Config
 

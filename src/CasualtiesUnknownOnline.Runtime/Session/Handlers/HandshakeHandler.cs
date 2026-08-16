@@ -59,9 +59,9 @@ public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandl
 		{
 			member = session.GetOrCreateMember(sender);
 			member.InWorld = peerState == SceneStateType.InWorld;
-			// Cross-session restore: the in-memory character save outlives the
-			// session (kept per SteamID for the process lifetime) — a returning
-			// player gets it back even in a brand-new session.
+			// Cross-session restore: the disk-backed character save outlives the
+			// session — a returning player gets it back after a host restart /
+			// continue-run; a NEW run clears it at the host's start click.
 			ctx.CharacterData.SendSavedCharacter(sender);
 		}
 		else

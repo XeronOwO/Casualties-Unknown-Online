@@ -17,7 +17,7 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 /// guard: the local-report hooks (ItemWorldSync) read it so a remote
 /// application never echoes back as a local report.
 /// </summary>
-internal sealed class ItemApplication(
+internal sealed partial class ItemApplication(
 	ItemService items,
 	ISessionControl session,
 	ILogger<ItemApplication> log)
@@ -43,6 +43,7 @@ internal sealed class ItemApplication(
 		_items.ItemPickedUp += OnRemoteItemPickedUp;
 		_items.ItemDropped += OnRemoteItemDropped;
 		_items.ItemDestroyed += OnRemoteItemDestroyed;
+		_items.ItemCookedReceived += OnRemoteItemCooked;
 		_items.ItemRejected += OnItemRejected;
 		_items.ItemCorrectionReceived += OnItemCorrection;
 	}
@@ -53,6 +54,7 @@ internal sealed class ItemApplication(
 		_items.ItemPickedUp -= OnRemoteItemPickedUp;
 		_items.ItemDropped -= OnRemoteItemDropped;
 		_items.ItemDestroyed -= OnRemoteItemDestroyed;
+		_items.ItemCookedReceived -= OnRemoteItemCooked;
 		_items.ItemRejected -= OnItemRejected;
 		_items.ItemCorrectionReceived -= OnItemCorrection;
 	}

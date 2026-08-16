@@ -490,3 +490,35 @@ config foundation goes in now (no protocol change):
   (L0 bridge + normalization), `LoggingOptionsTests` (both sinks + DI replacement path),
   `StateStreamFrequencyTests` (real production pumps counted at 20/10/5 Hz over the fake network),
   extended `AttackSwingStateTests`. 839 tests green.
+
+## 26. Heater cooker meat→steak conversion — one ItemCook event (ProtocolVersion 15)
+
+The raw→cooked item-domain TODO is closed as a dedicated host→guest event, never a decomposed
+`ItemDestroy` + `ItemSpawn` pair:
+
+- **Trigger side stays native** — `HeaterCookPatch` does not reimplement `Heater.OnCollisionEnter2D`
+  (Heater.cs:41-49). The host/solo original instantiates the steak, writes `condition * 0.3f`,
+  destroys the raw meat and plays Scald; the patch only verifies and reports the terminal fact.
+- **Guest can never cook** — guest world items are layer-isolated to Ground
+  (`ItemPositionFollow.cs:186-198`), and the patch's prefix additionally returns false for a guest
+  in an active session (`IPatchBridge.IsHeaterCookAuthority`). The host's full-physics copy is the
+  single conversion site.
+- **Created-steak fingerprint** — the postfix claims the created steak only when it is the exact
+  `"steak"` id, is not yet registered in `Item.allItems` (Start has not run in the same physics
+  callback), has the exact `source × 0.3` condition and sits at the captured raw-item position.
+  A failed fingerprint claims nothing — the existing generic hooks remain the fallback.
+- **One operation = one message** — `HeaterCookSync` stamps the steak's `ItemInstanceId` before
+  `Item.Start`, claims the raw-meat destroy, and commits `ItemCook` (NetMsg 92) through
+  `ItemService.SendItemCooked`, which performs one atomic table transition (source removed, steak
+  registered) and broadcasts the full cooked-item capture.
+- **Guest replay is atomic** — `ItemApplication.OnRemoteItemCooked` kills the source copy and
+  materializes the steak in one `RemoteApply` scope, idempotently (missing source is fine, an
+  existing cooked id skips the duplicate), then replays the exact `Sound.Play("Scald", ...)` call.
+- **No new late-joiner snapshot** — the cooked steak is an ordinary world-table entry and rides the
+  existing world-entry `ItemSnapshot` + periodic keyframe + position stream.
+- **ProtocolVersion 14→15** — a v14 peer would never learn the conversion and would keep raw meat
+  where the host has a steak, so mixed-version sessions are refused.
+- Tests: `ItemCookSimulationTests` (wire + table transition), `HeaterCookPatchTests` (reflective
+  pure rule + patch surface + contract), the `heater-cook.replay` fossil, and the `DirectionTests`
+  completeness guard. 863 tests green.
+

@@ -83,6 +83,8 @@ public sealed partial class ItemService : IItemControl, IItemActionWorldAccess, 
 
 	public event Action<ulong>? ItemDestroyed;
 
+	public event Action<ulong, WorldItem>? ItemCookedReceived;
+
 	public event Action<ulong, ItemRejectMsg.Reason>? ItemRejected;
 
 	public event Action<IReadOnlyList<WorldItem>, int, byte[]?>? ItemSnapshotReceived
@@ -176,6 +178,39 @@ public sealed partial class ItemService : IItemControl, IItemActionWorldAccess, 
 		{
 			_sender.Send(_session.HostSteamId, NetMsg.ItemSpawn, msg);
 		}
+	}
+
+	public void SendItemCooked(ulong sourceItemId, ulong cookedItemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, float rotation, float angularVelocity)
+	{
+		// The heater conversion is host-authoritative (guest world items are
+		// layer-isolated to the Ground layer and can never collide with the
+		// cooker) — a guest call would be a stale/wrong role report and is
+		// deliberately a no-op.
+		if (_session.Role == SessionRole.Guest)
+		{
+			_log.LogWarning("ItemCook suppressed on guest (source {Source}, cooked {Cooked}) — the host owns heater conversions.", sourceItemId, cookedItemId);
+			return;
+		}
+
+		// ONE atomic table transition: the raw meat is gone, the steak exists.
+		_worldTable.Remove(sourceItemId);
+		_worldTable.Set(cookedItemId, new WorldItem(cookedItemId, item, pos, vel, 0, rotation, false, AngularVelocity: angularVelocity));
+
+		if (!_session.SessionActive)
+		{
+			return; // solo play keeps the table for a future late joiner, no wire
+		}
+
+		_session.Broadcast(NetMsg.ItemCook, new ItemCookMsg
+		{
+			SourceItemId = sourceItemId,
+			CookedItemId = cookedItemId,
+			Item = item,
+			Position = pos.ToNetVector2Msg(),
+			Velocity = vel.ToNetVector2Msg(),
+			Rotation = rotation,
+			AngularVelocity = angularVelocity,
+		});
 	}
 
 	public void SendItemPickedUp(ulong itemId, CharacterItemMsg? evidence = null)
@@ -313,6 +348,19 @@ public sealed partial class ItemService : IItemControl, IItemActionWorldAccess, 
 		}
 
 		ItemDestroyed?.Invoke(itemId);
+	}
+
+	public void FireItemCookedReceived(ulong sender, ulong sourceItemId, ulong cookedItemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, float rotation, float angularVelocity)
+	{
+		// One-way host → guest; the host never receives its own broadcast and a
+		// misrouted/stale frame arriving at the host is dropped here.
+		if (_session.Role != SessionRole.Guest)
+		{
+			return;
+		}
+
+		ItemCookedReceived?.Invoke(sourceItemId,
+			new WorldItem(cookedItemId, item, pos, vel, 0, rotation, false, AngularVelocity: angularVelocity));
 	}
 
 	public void FireItemRejectReceived(ulong sender, ulong itemId, ItemRejectMsg.Reason reason)

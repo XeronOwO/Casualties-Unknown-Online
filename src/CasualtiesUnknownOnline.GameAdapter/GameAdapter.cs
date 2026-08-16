@@ -147,6 +147,7 @@ public sealed partial class GameAdapter : IGameAdapter, ICuoService, IPatchBridg
 		_speechSync = new SpeechSync(world, session, loggerFactory.CreateLogger<SpeechSync>());
 		_craftingSync = new CraftingSync(craft, _itemIds, itemReports, _operationTrace, loggerFactory.CreateLogger<CraftingSync>());
 		_recipeUnlockApply = new RecipeUnlockApply(craft, loggerFactory.CreateLogger<RecipeUnlockApply>());
+		_heaterCookSync = new HeaterCookSync(items, _itemIds, itemReports, _operationTrace, loggerFactory.CreateLogger<HeaterCookSync>());
 		_enemySync = new EnemySyncCoordinator(session, enemies, mapper, _characterDataSync, loggerFactory.CreateLogger<EnemySyncCoordinator>());
 		_enemyCombat = new EnemyCombatDirector(session, entities, enemies, _enemySync, _renderer, loggerFactory.CreateLogger<EnemyCombatDirector>());
 		_enemyProximity = new EnemyProximitySync(session, enemies, _characterDataSync, loggerFactory.CreateLogger<EnemyProximitySync>());
@@ -578,7 +579,8 @@ public sealed partial class GameAdapter : IGameAdapter, ICuoService, IPatchBridg
 	void IPatchBridge.OnLiquidTransferFinished(WaterContainerItem transferTo, WaterContainerItem transferFrom) =>
 		_craftingSync.OnLiquidTransferFinished(transferTo, transferFrom);
 
-	bool IPatchBridge.ShouldSuppressDestroy(Item item) => _craftingSync.ShouldSuppressDestroy(item);
+	bool IPatchBridge.ShouldSuppressDestroy(Item item) =>
+		_craftingSync.ShouldSuppressDestroy(item) || _heaterCookSync.ShouldSuppressDestroy(item);
 
 	void IPatchBridge.OnSlotMoved(Body body, int slot, string origin) => _itemSlotSync.OnSlotMoved(body, slot, origin);
 

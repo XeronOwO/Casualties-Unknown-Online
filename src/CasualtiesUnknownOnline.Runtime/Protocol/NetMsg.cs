@@ -144,4 +144,9 @@ public enum NetMsg : byte
 	// host-computed, never per-side)
 	WorldTimeRequest = 90, // guest → host: request Normal/Fast/SuperFast
 	WorldTime = 91, // host → guest: the authoritative world-time speed (change / world entry / 5 s resend)
+
+	// Heater cooker (host authority — the conversion is a physics collision on
+	// the host's full-physics world items; guest items are layer-isolated to
+	// the Ground layer, so guests replay the broadcast instead of cooking)
+	ItemCook = 92, // host → guest: one raw-meat item became a steak (source id removed, cooked item registered — one operation, one message)
 }

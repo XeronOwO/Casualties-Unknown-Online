@@ -18,7 +18,7 @@
 "ShuttleStartOpen","lifepod","trigger","activated","yes","no","no","door anim/shuttleOpen sound","covered","ShuttleDoorOpened"
 "LifepodController","lifepod","click","heatState","no","no","no","heat color/heater state","covered","LifepodHeatChanged"
 "LifepodShower","lifepod","click","activated","yes","no","no","particles/cleanse","covered","LifepodShowerActivated"
-"Heater","lifepod","field","cooker","no","no","no","raw-to-cooked item","excluded","temperature field drives each side's own clone (no world state); cooker = item domain todo"
+"Heater","lifepod","field","cooker","no","no","no","raw-to-cooked item","covered","ItemCook (NetMsg 92) — host conversion event; temperature field stays local-presentation"
 "BioTerminalScript","unlock","click","none","yes","no","no","Backgroundify door","covered","BioTerminalUnlocked"
 "ScrapEaterScript","unlock","click","scrapAmount","no","no","no","progress/Backgroundify door","covered","ScrapEaterProgress"
 "MedStationScript","unlock","trigger","didHeal","yes","yes","no","laser anim/heal/Backgroundify","covered","MedStationHealed"

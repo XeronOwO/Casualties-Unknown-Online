@@ -177,6 +177,18 @@ internal interface IPatchBridge
 
 	void OnItemDestroyed(Item item);
 
+	/// <summary>True while this side may run the Heater cooker's native conversion (host/solo, or a guest without an active session). A guest in a live session returns false — its world items are layer-isolated and the host's ItemCook broadcast owns the conversion.</summary>
+	bool IsHeaterCookAuthority { get; }
+
+	/// <summary>HeaterCookPatch prefix: the native conversion is about to run — stamp the raw item's instance id and return it (0 = not reportable, keep the generic fallback).</summary>
+	ulong OnHeaterCookBegin(Item item);
+
+	/// <summary>HeaterCookPatch postfix: the created steak passed the fingerprint check — commit one ItemCook report (the source id leaves the table, the steak enters it, both generic hooks stay silent).</summary>
+	void OnHeaterCookCompleted(ulong sourceItemId, Item cookedItem, float sourceCondition, Vector2 sourcePosition);
+
+	/// <summary>HeaterCookPatch postfix could not identify the created steak — log it; the generic item hooks remain the fallback.</summary>
+	void OnHeaterCookCaptureFailed(ulong sourceItemId);
+
 	/// <summary>Prefix of Body.PickUpItem — remember the world position (rollback target for a refused pickup).</summary>
 	void OnItemPickupStart(Item item);
 

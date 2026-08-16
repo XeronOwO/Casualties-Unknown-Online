@@ -122,6 +122,10 @@ internal sealed class ItemSimWorld : IDisposable
 	/// <summary>One crafting operation's complete terminal state (the one-operation-one-report convention).</summary>
 	internal void Craft(TestNode guest, CraftReportMsg msg) => Send(guest, NetMsg.CraftReport, msg);
 
+	/// <summary>The host's heater conversion (one operation = one ItemCook broadcast).</summary>
+	internal void Cook(ulong sourceItemId, ulong cookedItemId, CharacterItemMsg item) =>
+		Items.SendItemCooked(sourceItemId, cookedItemId, item, new NetVector2(10, 20), new NetVector2(0, 0), 0f, 0f);
+
 	/// <summary>A blueprint use unlocked a recipe.</summary>
 	internal void Unlock(TestNode guest, int recipeIndex) =>
 		Send(guest, NetMsg.RecipeUnlock, new RecipeUnlockMsg { RecipeIndex = recipeIndex });

@@ -86,6 +86,9 @@ internal static partial class ReplayRunner
 			case "craft":
 				ExecuteCraft(world, step, simTrace);
 				break;
+			case "cook":
+				ExecuteCook(world, step, simTrace);
+				break;
 			case "fault":
 				ApplyFault(world.Driver, world.Node, step);
 				break;
@@ -188,6 +191,27 @@ internal static partial class ReplayRunner
 		world.Craft(node, msg);
 		var newFrames = (world.ReceivedTotal(node) - beforeFrames) + (world.ReceivedTotal(OtherGuest(world, node)) - beforeFrames);
 		simTrace.End(op, 0, "craft", newFrames > 0 ? $"Committed({newFrames})" : "Skipped", "Craft");
+	}
+
+	/// <summary>One heater-cook operation (the one-operation-one-report
+	/// convention). The action must originate from the host — the conversion is
+	/// host-authoritative. The trace's item id is the raw-meat source; the
+	/// result is the guest relay surface (both guests receive one ItemCook).</summary>
+	private static void ExecuteCook(ItemSimWorld world, ReplayStep step, SimTrace simTrace)
+	{
+		var node = world.Node(step.Args[0]);
+		if (node != world.Host)
+		{
+			throw new InvalidOperationException($"cook actions must originate from host, got {step.Args[0]}");
+		}
+
+		var sourceId = ItemId(step, 1);
+		var cookedId = ItemId(step, 2);
+		var beforeFrames = world.ReceivedTotal(world.G1) + world.ReceivedTotal(world.G2);
+		var op = simTrace.Begin(sourceId, "cook", "Cook");
+		world.Cook(sourceId, cookedId, Item(step, 3, 4));
+		var newFrames = (world.ReceivedTotal(world.G1) - beforeFrames) + (world.ReceivedTotal(world.G2) - beforeFrames);
+		simTrace.End(op, sourceId, "cook", newFrames > 0 ? $"Committed({newFrames})" : "Skipped", "Cook");
 	}
 
 	private static List<CraftEntryMsg> CraftEntries(ReplayStep step, int index)

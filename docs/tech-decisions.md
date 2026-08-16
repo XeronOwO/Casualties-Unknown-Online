@@ -563,3 +563,33 @@ process. The saves are now disk-backed without touching the wire:
   (full-DI restart restore, new-run clear, session-end disk survival, the three
   terminal-state merge kinds across restart, corrupt-file startup, failed-clear
   no-leak). 877 tests green.
+
+## 28. Tutorial-claw props are per-player until pickup (no protocol change)
+
+The tutorial courses run per side (`TutorialHandler.main` exists in each process and every
+course coroutine drives that side's claw). Reporting both sides' `objectToCreate` copies into
+the shared item/entity domains produced the claw double-give — one host-id copy plus one
+guest-id copy on every screen. The props are therefore declared per-player course objects:
+
+- **Marker at the native creation** — `TutorialHandlerUpdatePatch` opens the
+  `TutorialClawSpawn` call-identity scope around `TutorialHandler.Update`; the
+  `UtilsCreateTutorialPatch` postfix on the exact `Utils.Create(string, Vector2, float)`
+  overload adds the field-less `TutorialClawProp` marker in the same postfix, before the
+  created object's `Item.Start`/`BuildingEntity.Start` run.
+- **Item path** — `ItemWorldSync.OnItemInstantiated` skips marked items, so a claw item stays
+  id-less exactly like a generation-time item. The first real pickup/wear exits through the
+  existing id-less branch of `PickupSync.OnPickedUp` (spawn-then-pickup, one commit); from then
+  on the item is an ordinary domain item (position stream, keyframe, character data).
+- **Entity path** — `EntitySpawnSync.OnEntityInstantiated` skips marked building props; a
+  claw-placed fence/terminal never rides `EntitySpawned` and stays local to the player's course.
+- **No cross-player binding** — `ItemApplication.FindExistingAt` and
+  `EntitySpawnSync.FindExisting` both skip marked props, so one player's shared pickup/spawn can
+  never bind to (and then destroy) another player's private course object.
+- **No protocol bump** — the marker is process-local and the wire formats are untouched;
+  ProtocolVersion stays 15.
+- **Accepted boundary** — tutorial course state was already per-side; a prop created before a
+  late joiner arrives is not in the joiner's snapshot (the joiner's own course creates its own
+  copy). The claw 20 Hz flow todo stays open for a deliberate tutorial-domain sync pass.
+- Tests: `TutorialClawPropTests` (reflective marker/scope/patch-shape/contract locks) plus the
+  existing item simulation/race suites covering the unchanged spawn-then-pickup transfer.
+  899 tests green.

@@ -34,8 +34,10 @@ public sealed class EntityEventChannel(ISessionControl session, PacketSender sen
 	/// Report a locally-triggered entity event (a trap fired on this side, local
 	/// compute): guest → host as a report (the host applies the event to its own
 	/// world — the mine destroys the host's copy and rolls the host-side drops —
-	/// and relays), host → broadcast to all synced members. Same shape as
-	/// SendBlockDamaged: the host owns the world consequences.
+	/// and relays), host → broadcast to all synced members. The host branch
+	/// also records ONE-SHOT consumptions for the late-joiner snapshot before
+	/// broadcasting (the host is not in its own presence table, so its own
+	/// broadcast never returns through EntityEventHandler).
 	/// </summary>
 	public void SendEntityEvent(EntityEventMsg msg)
 	{

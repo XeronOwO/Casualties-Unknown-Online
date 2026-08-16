@@ -312,10 +312,16 @@ lands, never bolted on afterwards.
   cover first-writer-wins + loser rollback, unattributed-break refusal, the full interaction
   sequence, a rejected purchase and a delayed three-action sequence; ReplayTests dispatches by
   exclusive domain actions and the SimTrace contract covers every world. 846 tests green.
-- Real-log → replay / SimTrace diff automation (now due — the trigger condition landed with
-  the block-break + trade replay worlds): `tools/extract-itemtrace.ps1` extracts the trace,
-  but the real-log-vs-simulation diff is still a manual/CI step; automate the full pipeline
-  next.
+- RESOLVED (2026-08-16): real-log → replay / SimTrace diff automation — the new
+  `tools/compare-itemtrace.ps1` resolves a replay's generated `SimTraces/<file>.trace`
+  (`-Refresh` re-runs the replay theory first), reads real logs plain or `.log.gz`, and
+  normalizes both sides on the same begin-event/result/events surface as
+  `extract-itemtrace.ps1`. Default subsequence matching finds the expected gesture battery
+  inside a whole-session log and reports the original log-line span; `-Contiguous` / `-Strict`
+  / `-NoBegins` cover windowed and result-only checks. Expected begin-without-end leaks always
+  fail, real-log leaks warn by default and fail with `-FailOnLeak`. Nine end-to-end PowerShell
+  contract tests + a matcher-mutation assertion-effectiveness proof landed; 887 tests green.
+  See `docs/simtrace-diff-selfcheck.md`.
 - Patch-contract same-name limitation: `PatchContractTests` identifies targets by name, so a
   same-name overload pair cannot be distinguished (the `LoadSceneAsync` case). Extend the
   contract only when a game update actually hits it.

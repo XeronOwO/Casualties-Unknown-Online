@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.DependencyInjection;
@@ -53,6 +54,7 @@ public class CharacterDataPersistenceTests
 				// The reconnect surface must also work from the reloaded table.
 				var received = new List<CharacterDataMsg>();
 				guest.Services.GetRequiredService<CharacterDataStore>().CharacterDataReceived += (_, msg) => received.Add(msg);
+				host.Session.ReportSceneState(SceneStateType.InWorld, "SampleScene");
 				store.SendSavedCharacter(GuestId);
 				Assert.True(received.Count == 1, $"the reloaded snapshot must reach the reconnecting guest, got {received.Count}");
 				Assert.Equal(12.5f, received[0].Position!.X);

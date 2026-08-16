@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
+using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Logging;
 using CasualtiesUnknownOnline.Runtime.Networking;
 using CasualtiesUnknownOnline.Runtime.Session;
@@ -15,6 +16,7 @@ using CasualtiesUnknownOnline.Runtime.Steam;
 using ManualLogSource = BepInEx.Logging.ManualLogSource;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace CasualtiesUnknownOnline.Runtime;
 
@@ -46,12 +48,26 @@ public static class CuoBootstrap
 	{
 		var services = new ServiceCollection();
 
-		services.AddLogging(builder =>
-		{
-			builder.SetMinimumLevel(LogLevel.Trace);
-			builder.AddProvider(new BepInExLoggerProvider(bepinExLogSource));
-			builder.AddProvider(new RollingFileLoggerProvider(logDirectory, legacyLogPath));
-		});
+		// Default options monitors: the production plugin replaces these with the
+		// BepInEx config-backed monitors in extraRegistrations; tests replace
+		// them with mutable monitors. Providers and stream services resolve the
+		// monitor through DI, so a replacement here reaches every consumer.
+		services.AddSingleton<IOptionsMonitor<LoggingOptions>>(
+			new MutableOptionsMonitor<LoggingOptions>(new LoggingOptions()));
+		services.AddSingleton<IOptionsMonitor<StateStreamOptions>>(
+			new MutableOptionsMonitor<StateStreamOptions>(new StateStreamOptions()));
+
+		// The logging providers are DI-resolved (registered as ILoggerProvider)
+		// rather than captured as instances, so the extraRegistrations options
+		// replacement also reaches the log sinks. The factory minimum stays Trace
+		// on purpose — the providers enforce the configurable level.
+		services.AddSingleton(p => new BepInExLoggerProvider(
+			bepinExLogSource, p.GetRequiredService<IOptionsMonitor<LoggingOptions>>()));
+		services.AddSingleton<ILoggerProvider>(p => p.GetRequiredService<BepInExLoggerProvider>());
+		services.AddSingleton(p => new RollingFileLoggerProvider(
+			logDirectory, legacyLogPath, p.GetRequiredService<IOptionsMonitor<LoggingOptions>>()));
+		services.AddSingleton<ILoggerProvider>(p => p.GetRequiredService<RollingFileLoggerProvider>());
+		services.AddLogging(builder => builder.SetMinimumLevel(LogLevel.Trace));
 
 		// Registration order determines GetServices<ICuoService>() order:
 		// SteamService before SteamTransport (transport reads steam readiness),

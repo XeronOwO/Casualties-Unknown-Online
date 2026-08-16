@@ -464,3 +464,29 @@ host-side arbitration is now three-way:
   `ItemRaceTests`; the jittered random-lifecycle oracle now models the queue + pump ticks;
   two replay fossils (`pickup-spawn-inflight.replay`, `pickup-spawn-inflight-timeout.replay`);
   `TransportTests.HandlerSends_DoNotReenterTheFlushingBatch`. 818 tests green.
+
+## 25. Config foundation — BepInEx ConfigFile → IOptionsMonitor + logging levels + state-stream cadence
+
+The 2026-08-09 config decision set Phase 4 Mod API as the trigger; that round has landed, so the
+config foundation goes in now (no protocol change):
+
+- **Bridge** — the plugin owns the `ConfigEntry` declarations and replaces the Runtime's default
+  `MutableOptionsMonitor<T>` registrations with `BepInExOptionsMonitor<T>` (subscribes to
+  `ConfigFile.SettingChanged`, filters watched `ConfigDefinition`s, re-reads the snapshot and
+  notifies `IOptionsMonitor<T>.OnChange` listeners).
+- **Logging levels** — `[Logging] MinimumLevel` (default Information) is enforced by both log
+  providers, not by `SetMinimumLevel`. The logging factory stays at Trace so a config change takes
+  effect live; normal play no longer fills CUO logs with Trace/Debug traffic.
+- **State-stream cadence** — `[Sync] StateStreamHz` (1-60, default 20, BepInEx range-clamped)
+  replaces the hard-coded 20 Hz consts in `EntitySyncService` (player host broadcast + guest
+  report) and `EnemySyncService`. The 1 Hz `CharacterData` snapshot is explicitly NOT part of
+  this knob — it is the full-fact fallback, not a state stream.
+- **Attack-swing hold adapts** — `AttackSwingState` now holds
+  `max(300 ms clip, 6 × configured interval)` so the `IsAttacking` rising edge keeps its original
+  six-tick drop resilience at any configured cadence.
+- **Layering** — `Configuration/` options types and monitors live in the Runtime; the Plugin is
+  the only layer that knows the BepInEx `Config` instance.
+- Tests: `BepInExOptionsMonitorTests` / `MutableOptionsMonitorTests` / `StateStreamOptionsTests`
+  (L0 bridge + normalization), `LoggingOptionsTests` (both sinks + DI replacement path),
+  `StateStreamFrequencyTests` (real production pumps counted at 20/10/5 Hz over the fake network),
+  extended `AttackSwingStateTests`. 839 tests green.

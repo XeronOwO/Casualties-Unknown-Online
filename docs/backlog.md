@@ -188,7 +188,10 @@ lands, never bolted on afterwards.
   temperature field also stay local by design (accepted; only heater meat→steak conversion is
   an open item, listed under Item / entity). Re-open only as part of a deliberate presentation
   pass.
-- Configurable state-stream frequency (currently hard-coded 20 Hz).
+- RESOLVED (2026-08-16): configurable state-stream frequency — `[Sync] StateStreamHz`
+  (1-60, default 20) drives both the player entity stream (host broadcast + guest
+  report) and the enemy stream through `StateStreamOptions`; the attack-swing hold
+  stays six stream ticks at any cadence. See `docs/config-options-selfcheck.md`.
 - NPC position/state sync — CORE LANDED (docs/enemy-sync.md): host-authoritative enemy simulation
   + 20 Hz `EnemyState` snapshot + late-joiner `EnemySnapshot` fan-out; the guest freezes its copies
   at generation finish (`RemoteEnemyDriver` + `EnemyPatches` for SpiderHandler/CrystalEnemy) and
@@ -260,13 +263,13 @@ lands, never bolted on afterwards.
 
 ## Config
 
-- BepInEx `ConfigFile` → `IOptionsMonitor<T>` adapter (bridge `ConfigEntry.SettingChanged` to
-  `OnChange`); trigger: Phase 4 Mod API or when config entries appear in bulk. Standalone JSON only
-  when structured/nested/array config is needed.
-- Runtime logging levels (DSH dtodo `6a7caba1`): the mod now logs a lot at Info — use the
-  level hierarchy so normal play stays quiet (Info/Warning/Error only) while a local dev can
-  raise Debug to diagnose, without affecting other players. Depends on the config hot-reload
-  foundation (the entry above).
+- RESOLVED (2026-08-16): BepInEx `ConfigFile` → `IOptionsMonitor<T>` adapter landed
+  (`BepInExOptionsMonitor<T>`, hot-reload via `ConfigFile.SettingChanged`) — Phase 4 Mod API
+  triggered the 2026-08-09 decision. Standalone JSON still only when structured/nested/array
+  config is needed.
+- RESOLVED (2026-08-16): runtime logging levels — `[Logging] MinimumLevel` (default
+  Information) is enforced by both providers (BepInEx + rolling file) and hot-reloads without
+  rebuilding the logging factory. See `docs/config-options-selfcheck.md`.
 
 ## Tooling / testing
 

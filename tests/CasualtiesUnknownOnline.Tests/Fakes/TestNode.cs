@@ -100,14 +100,15 @@ internal sealed class TestNode : IDisposable
 	/// tests. Tests needing to inject faults or observe events before the
 	/// handshake build the nodes with <see cref="Create"/> directly.
 	/// </summary>
-	internal static (TestNode Host, TestNode Guest) CreatePair(ulong hostId, ulong guestId, ulong lobbyId)
+	internal static (TestNode Host, TestNode Guest) CreatePair(ulong hostId, ulong guestId, ulong lobbyId,
+		Action<IServiceCollection>? extraRegistrations = null)
 	{
 		var clock = new FakeClock();
 		var network = new FakeNetwork(clock: clock);
 		var hostSteam = new FakeSteamService(hostId) { LobbyOwner = hostId, LobbyMembers = [hostId] };
 		var guestSteam = new FakeSteamService(guestId) { LobbyOwner = hostId, LobbyMembers = [hostId, guestId] };
-		var host = Create(hostId, network, hostSteam, clock, pumpFirstFrame: true);
-		var guest = Create(guestId, network, guestSteam, clock, pumpFirstFrame: true);
+		var host = Create(hostId, network, hostSteam, clock, pumpFirstFrame: true, extraRegistrations: extraRegistrations);
+		var guest = Create(guestId, network, guestSteam, clock, pumpFirstFrame: true, extraRegistrations: extraRegistrations);
 		host.Steam.FireLobbyCreated(lobbyId);
 		host.Steam.LobbyMembers = [hostId, guestId]; // the guest joined the lobby
 		guest.Steam.FireLobbyEntered(lobbyId);

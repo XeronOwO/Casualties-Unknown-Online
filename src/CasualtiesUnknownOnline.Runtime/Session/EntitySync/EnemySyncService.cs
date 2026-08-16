@@ -2,17 +2,20 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
+using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Time;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 
 /// <summary>
 /// Enemy-sync domain (host-authoritative, reusing the player entity-stream
 /// pattern): the host simulates the enemies (AI + physics) and publishes their
-/// presentation state here; this service broadcasts it at 20 Hz (unreliable,
+/// presentation state here; this service broadcasts it at the configured
+/// cadence (default 20 Hz; unreliable,
 /// seq-gated) and fans out a full snapshot on member world-entry. The guest
 /// receives into the same buffer and raises <see cref="EnemyStateReceived"/>
 /// for the Game Adapter to drive its frozen render copies. Only the
@@ -21,11 +24,12 @@ namespace CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 /// </summary>
 public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 {
-	private const float StateSendInterval = 0.05f; // 20 Hz authoritative broadcast
-
 	private readonly ISessionControl _session;
 	private readonly PacketSender _sender;
 	private readonly ITimeSource _time;
+
+	private readonly IOptionsMonitor<StateStreamOptions> _stateStreamOptions;
+
 	private readonly ILogger<EnemySyncService> _log;
 
 	private readonly Dictionary<NetworkEntityId, EnemyEntity> _enemies = [];
@@ -36,11 +40,13 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 	private ulong _epoch; // host: the enemy-id epoch (set on Initialize)
 	private uint _nextEnemyCounter; // host: enemy-id allocation counter
 
-	public EnemySyncService(ISessionControl session, PacketSender sender, ITimeSource time, ILogger<EnemySyncService> log)
+	public EnemySyncService(ISessionControl session, PacketSender sender, ITimeSource time,
+		IOptionsMonitor<StateStreamOptions> stateStreamOptions, ILogger<EnemySyncService> log)
 	{
 		_session = session;
 		_sender = sender;
 		_time = time;
+		_stateStreamOptions = stateStreamOptions;
 		_log = log;
 		session.SessionEnded += OnSessionEnded;
 	}
@@ -48,7 +54,7 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 	/// <summary>Raised after the full world-entry snapshot is applied (the Game Adapter binds its local enemy copies to the host's ids on this).</summary>
 	public event Action? EnemySnapshotReceived;
 
-	/// <summary>Raised after a 20 Hz batch is applied (the Game Adapter drives the frozen render copies from the buffered state on this).</summary>
+	/// <summary>Raised after a state-stream batch is applied (the Game Adapter drives the frozen render copies from the buffered state on this).</summary>
 	public event Action? EnemyStateReceived;
 
 	/// <summary>Raised when an enemy bite arrives (report or relay) — the Game Adapter applies the post-bite limb/body state to the victim's clone.</summary>
@@ -248,7 +254,7 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 			var nowMs = _time.NowMs;
 			if (nowMs >= _nextStateSendMs)
 			{
-				_nextStateSendMs = nowMs + (long)(StateSendInterval * 1000f);
+				_nextStateSendMs = nowMs + (long)(_stateStreamOptions.CurrentValue.SendIntervalSeconds * 1000f);
 				BroadcastEnemyState();
 			}
 		}

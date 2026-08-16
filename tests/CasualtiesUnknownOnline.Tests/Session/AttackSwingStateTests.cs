@@ -92,4 +92,30 @@ public class AttackSwingStateTests
 
 		Assert.False(state.IsAttacking, "after a reset a stale swing must not re-assert");
 	}
+
+	[Fact]
+	public void SlowStreamHold_KeepsTheFlagAcrossTheLongerCadence()
+	{
+		var state = new AttackSwingState();
+		state.SetStreamHoldMs(2000); // a 1 Hz stream — six ticks = 6 s
+		state.MarkAttack(nowMs: 1000);
+
+		state.Tick(nowMs: 2999);
+		Assert.True(state.IsAttacking, "the slow cadence extends the flag so six ticks fit");
+
+		state.Tick(nowMs: 3000);
+		Assert.False(state.IsAttacking, "the configured hold boundary is inclusive");
+	}
+
+	[Fact]
+	public void FastStreamHold_NeverShrinksBelowTheVisibleClip()
+	{
+		var state = new AttackSwingState();
+		state.SetStreamHoldMs(100); // a 60 Hz stream would only need 100 ms
+
+		Assert.Equal(AttackSwingState.SwingDurationMs, state.HoldDurationMs);
+		state.MarkAttack(nowMs: 1000);
+		state.Tick(nowMs: 1000 + AttackSwingState.SwingDurationMs - 1);
+		Assert.True(state.IsAttacking, "the 300 ms clip span is the floor");
+	}
 }

@@ -5,6 +5,7 @@ using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Session.World;
+using CasualtiesUnknownOnline.GameAdapter.Tutorial;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
 
@@ -177,6 +178,18 @@ internal sealed class ItemWorldSync(
 	{
 		if (IsRemoteApply || HarmonyTraverse.IsGenerating() || !IsStandaloneWorldItem(item))
 		{
+			return;
+		}
+
+		// A tutorial-claw prop is per-player course state: each side's
+		// TutorialHandler creates its own copy (TutorialHandler.cs:255-271),
+		// and reporting both copies made every prop appear twice on both
+		// sides (the claw double-give). It stays id-less here; the existing
+		// id-less pickup flow (PickupSync.OnPickedUp) reports
+		// spawn-then-pickup the moment a player actually takes it.
+		if (item.GetComponent<TutorialClawProp>() != null) // Unity object — ==
+		{
+			_log.LogInformation("[TutorialClaw] {Type} left as a per-player course prop (no id until picked up).", item.id);
 			return;
 		}
 

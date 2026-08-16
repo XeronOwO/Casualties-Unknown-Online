@@ -4,6 +4,7 @@ using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
+using CasualtiesUnknownOnline.GameAdapter.Tutorial;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
 
@@ -427,6 +428,15 @@ internal sealed partial class ItemApplication(
 		foreach (var item in Item.allItems)
 		{
 			if (item.id != itemId || !ItemWorldSync.IsWorldItem(item)) // Unity object — ==
+			{
+				continue;
+			}
+
+			// A per-player tutorial prop is never a bind target — binding a
+			// shared item to it would let one player's pickup remove another
+			// player's private course object (the claw double-give fix must
+			// not become a cross-player course stall).
+			if (item.GetComponent<TutorialClawProp>() != null) // Unity object — ==
 			{
 				continue;
 			}

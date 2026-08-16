@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.World;
+using CasualtiesUnknownOnline.GameAdapter.Tutorial;
 using HarmonyLib;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
@@ -68,6 +69,17 @@ internal sealed class EntitySpawnSync(IWorldControl world, ISessionControl sessi
 	/// </summary>
 	internal void OnEntityInstantiated(BuildingEntity entity)
 	{
+		// A tutorial-claw prop is per-player course state: each side's
+		// TutorialHandler creates its own copy (TutorialHandler.cs:255-271)
+		// and reporting both copies made every prop appear twice on both
+		// sides (the claw double-give, entity branch). It never enters the
+		// shared entity domain.
+		if (entity.GetComponent<TutorialClawProp>() != null) // Unity object — ==
+		{
+			_log.LogInformation("[TutorialClaw] {Id} left as a per-player course prop (no spawn report).", entity.id);
+			return;
+		}
+
 		if (entity.GetComponent<SpawnReplayMarker>() != null) // Unity object — ==; a replay of this channel must not re-report
 		{
 			return;
@@ -267,6 +279,14 @@ internal sealed class EntitySpawnSync(IWorldControl world, ISessionControl sessi
 	{
 		foreach (var entity in Object.FindObjectsOfType<BuildingEntity>())
 		{
+			// A per-player tutorial prop is never a bind target — binding a
+			// domain entity to it would let one player's shared entity absorb
+			// (or destroy) another player's private course object.
+			if (entity.GetComponent<TutorialClawProp>() != null) // Unity object — ==
+			{
+				continue;
+			}
+
 			if (entity.id == id && Vector2.Distance(entity.transform.position, pos) < 1f)
 			{
 				return entity;

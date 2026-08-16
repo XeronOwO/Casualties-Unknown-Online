@@ -1,0 +1,18 @@
+# Phase-4 replay archive — trade domain under link faults: three interactions
+# sent back-to-back while both directions carry a 200 ms delay. The reliable
+# channels preserve send order, so the guest must receive EXACTLY the host's
+# three authoritative overwrites in order, and the last one must equal the
+# host's final state. The trade actions' SimTrace result is "Sent" here — the
+# report is in flight at the action step; the convergence assertion is the
+# verdict.
+#
+# Fossil of: TradeSimulationTests.Interaction_UnderLinkDelay_StillConverges
+# Mechanism: FakeNetwork delay faults + TradeChannel reliable FIFO
+
+@0 fault g1 host delay=200
+@0 fault host g1 delay=200
+@0 trade g1 meet
+@0 trade g1 haggle
+@0 trade g1 move
+@600 expect trade_received g1 3 within 1000
+@600 expect trade_converged g1

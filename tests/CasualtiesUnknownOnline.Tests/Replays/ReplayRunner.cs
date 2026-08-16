@@ -27,7 +27,7 @@ namespace CasualtiesUnknownOnline.Tests.Replays;
 /// SimTraces/{file}.trace so the simulation's result sequence is diffable
 /// against the game's real trace of the same gesture sequence.
 /// </summary>
-internal static class ReplayRunner
+internal static partial class ReplayRunner
 {
 	private const long TickStepMs = 33;
 

@@ -1,0 +1,13 @@
+# Phase-4 replay archive — block break: a drops-carrying break report without
+# the sender's recorded applied air-write is refused. The host never applies
+# the drops, never relays, and rolls the breaker's copy back with ItemReject
+# (BlockAlreadyBroken). GetBlock cannot make this decision — the block is air
+# for every side; the record is the only first-writer proof.
+#
+# Fossil of: BlockBreakSimulationTests.BreakWithoutAirWriteRecord_Refused
+# Mechanism: BlockBreakArbitration.TryAccept returns false with no record,
+#            ItemService.SendItemReject(BlockAlreadyBroken)
+
+@0 break g1 9 9 drops=99:ore
+@33 expect block_accepted 0 within 500
+@33 expect block_reject g1 ItemReject 1

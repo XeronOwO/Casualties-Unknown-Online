@@ -236,7 +236,7 @@ else {
     }
 }
 
-if (([string]::IsNullOrWhiteSpace($tracePath) -or -not (Test-Path -LiteralPath $tracePath -PathType Leaf)) -and $canGenerate -and $Refresh) {
+if ($canGenerate -and $Refresh) {
     Write-Host "Generating SimTrace(s): dotnet test $root\CasualtiesUnknownOnline.slnx -c $Configuration --filter $TestFilter"
     $sln = Join-Path $root "CasualtiesUnknownOnline.slnx"
     & dotnet test $sln -c $Configuration --filter $TestFilter

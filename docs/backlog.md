@@ -104,9 +104,16 @@ lands, never bolted on afterwards.
   lighter `ItemComponentSyncMsg` + `RenderItemIdentity` variant named in the original design was
   superseded — the full-fact broadcast is correct (matching renders are kept, only component
   state refreshes), and a component-only message would be a pure wire-size optimization.
-- #87 loading-screen wait info (bottom-right, to be redesigned). The layer-title popup is
-  built immediately after `loadingObject` hides (`WorldGeneration.cs:3637`/3640-3659), so it
-  can play out invisibly during the host's start-gate wait — fold into the same redesign.
+- RESOLVED (2026-08-16, no protocol bump): #87 loading-screen wait info + layer-title popup —
+  the multiplayer wait text is now a translucent bottom-right panel over the live frozen world
+  (the game's own loading-info slot is bottom-right; `level1` LoadingImage/Text RectTransform
+  path id 1195 anchors at (1,0)), and `PlayerCamera.DoAlert` popups are deferred through the
+  start-gate alert window (`PlayerCameraDoAlertPatch` + `StartGateAlertQueue`): the host latch
+  covers generation end, where the layer title fires one frame BEFORE the world-entry edge arms
+  the gate (`WorldGeneration.cs:3637`/3640-3659), and the queue replays in order once the run is
+  playing. Session end / world exit clear the queue. See `docs/start-gate-alert-selfcheck.md`;
+  903 tests green (L0 reflection + patch contract + static asset/source evidence,
+  no manual acceptance).
 - RESOLVED (076da7a, held-light-direction cycle): #119 held light direction on remote clones —
   `CustomItemBehaviour.Update` aims flashlight/emergencylight/rangefinder at the LOCAL mouse
   (CustomItemBehaviour.cs:439/512/526); a clone body now re-aims those three hand-slot items at the

@@ -57,9 +57,13 @@
   </ItemGroup>
 
   <!-- The event-replay matrix audit data (the check-event-replay gate's
-       source) — a test asserts its integrity (ReplayMatrixDataTests). -->
+       source) — a test asserts its integrity (ReplayMatrixDataTests). The
+       entity-features CSV + narrative doc ride along for the narrative-vs-CSV
+       consistency gate (EntityFeaturesDocConsistencyTests). -->
   <ItemGroup>
     <None Include="..\..\docs\event-replay-matrix.csv" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\docs\entity-features-matrix.csv" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\docs\entity-features.md" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework.TrimEnd(`0123456789`))' == 'net'">

@@ -289,6 +289,17 @@ domain"). Per-surface notes:
   component state of a world item stays at its last report time until
   picked up (where pickup evidence carries it) or corrected.
 
+## Runtime item spawn surface (audit 2026-08-16)
+
+Every runtime item creation — building/block drops, unloads, use-action
+results, cook/trade/craft products, the unconscious droppings loop — funnels
+into one of two sinks: standalone world items ride the generic
+host-authoritative `ItemSpawn` channel, and items picked up in the same call
+ride `PickUpItemPatch` → `PickupSync.OnPickedUp` (spawn-then-pickup). There is
+**no world-level random/timed supply refresh** in the shipped game; the full
+spawn-site inventory and the repeatability evidence are in
+`docs/runtime-supply-refresh-audit.md`.
+
 ## Column key (matrix)
 
 | column | meaning |

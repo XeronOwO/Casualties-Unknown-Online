@@ -156,4 +156,9 @@ evidence, marked `no manual acceptance`.
 - Static diff: `ProtocolVersion.cs` unchanged (15); no Harmony patch, no game
   assembly reference, no GameAdapter source change; the new file format is
   host-local and never travels the wire.
+- Structure review: `CharacterDataStore` 296 lines / `CharacterDataFileStore`
+  182 / `CharacterDataFile` 35 (all under the 600-line gate); zero new
+  expression-state bools; one top-level type per file (gate passed). The
+  interim lazy-reload approach was removed in the same round — no dead
+  mechanism was left behind.
 

@@ -1,6 +1,6 @@
 # Character-data disk persistence — delivery fact sheet
 
-Status: delivered — build + format + architecture/event-replay/entity-dispatch gates green, 877 tests green (L0), deployed to the real game dir via deploy.ps1, runtime verification = L0 simulation + static evidence (no manual acceptance), structure review done.
+Status: implemented — the self-review found a menu-handshake staging hazard after the first deploy; the host-in-world restore gate is folded into the same cycle. Build + format + architecture/event-replay/entity-dispatch gates green, 878 tests green (L0). Re-deploy and final close are the remaining boxes.
 
 Cycle: character-data disk persistence (backlog `Persistence` — "Character data
 disk persistence (currently in-memory, lost on host exit)").
@@ -35,13 +35,14 @@ evidence, marked `no manual acceptance`.
   semantics; the disk copy intentionally SURVIVES the session (that is the
   persistence item). A later `ClearSavedCharacters` (new run) deletes it.
 - **Restore reads** — `SendSavedCharacter` / `GetSavedCharacter` keep reading
-  only memory (CharacterDataStore.cs:154-166,236-237). The persisted table is
+  only memory (CharacterDataStore.cs:154-172,242-243). The persisted table is
   loaded exactly once, at host construction, so a process restart (the
-  continue-run path) restores from disk through the unchanged handshake flow
-  (HandshakeHandler.cs / SceneStateHandler.cs call `SendSavedCharacter`).
-  There is deliberately NO lazy reload after a same-process session end: the
-  next run's identity is unknown, so reloading then could leak the old run's
-  saves into a brand-new lobby before `ClearSavedCharacters` runs.
+  continue-run path) restores from disk through the unchanged handshake flow.
+  `SendSavedCharacter` additionally requires `Session.LocalInWorld`: a menu
+  handshake must never stage a previous run's save for the next run (the host
+  clears the save only when it clicks "new run", AFTER a menu handshake may
+  already have happened). There is deliberately NO lazy reload after a
+  same-process session end, for the same run-identity reason.
 - **Merge is transient** — `MergeTransferredItems` merges the item arbitration's
   transfer table into the snapshot before sending
   (CharacterDataStore.cs:187-215). Change: intentionally NOT persisted as part
@@ -100,7 +101,8 @@ evidence, marked `no manual acceptance`.
 2. `CharacterDataStore` loads the file exactly once at construction and
    persists after every verified in-memory mutation (`SaveCharacterData`,
    enemy terminal-state merges). No lazy reloads: the construction load is the
-   restart/continue-run path.
+   restart/continue-run path. Restores are only sent while the host has a live
+   world (`LocalInWorld`).
 3. Session-end reset keeps clearing memory (existing test stays true) but does
    NOT delete the file; a new run writes the empty tombstone and deletes it.
 4. Production file lives under BepInEx `config` and is generated at runtime,
@@ -112,9 +114,10 @@ evidence, marked `no manual acceptance`.
   family; missing file; corrupt file; wrong version; delete; no `.tmp` residue.
 - **L0 restart simulations over the production DI stack**: save on host A,
   dispose the whole stack, build host B on the same file path → saved character
-  reloads and reaches the guest on `SendSavedCharacter`; new-run clear deletes
-  the disk copy (host B sees nothing); session end keeps the disk copy while
-  memory clears.
+  reloads and reaches the guest on `SendSavedCharacter` once host B is InWorld;
+  a menu-side `SendSavedCharacter` sends NOTHING (the staging-hazard gate);
+  new-run clear deletes the disk copy (host B sees nothing); session end keeps
+  the disk copy while memory clears.
 - **Mutation-family tests**: enemy bite/effect/lunge merges persist across a
   restart (the whole mutation family is covered, not only `SaveCharacterData`).
 - **No same-process cross-run leak**: after a session-end memory reset, the
@@ -138,7 +141,7 @@ evidence, marked `no manual acceptance`.
 | 2 | Bite/lunge/effect terminal-state merges | Persist after each merge | Restart tests for all three merge kinds |
 | 3 | New-run clear (`ClearSavedCharacters`) | Clear memory, write empty-table tombstone, then delete | Restart-after-clear test + failed-clear no-leak test |
 | 4 | Session-end reset (`ResetForSessionEnd`) | Memory clears, disk survives | Existing `SavedCharacters_ClearOnSessionEnd` stays green + new disk-survives test |
-| 5 | Restore reads (`SendSavedCharacter`/`GetSavedCharacter`) | Construction-only disk load; no lazy reload after session end | Restart + session-end-reset tests |
+| 5 | Restore reads (`SendSavedCharacter`/`GetSavedCharacter`) | Construction-only disk load; restore send requires host `LocalInWorld`; no lazy reload after session end | Restart + host-in-world send + menu-no-send + session-end-reset tests |
 | 6 | DI / plugin path | New optional bootstrap parameter + BepInEx config-path default | Build + `TestNode` path tests + Plugin compile |
 | 7 | Protocol / Game Adapter | No change | `ProtocolVersion.cs` unchanged in the diff; Runtime csproj has no game references |
 | 8 | Degraded disk (corrupt/unknown version/IO failure) | Warning + continue in-memory, never crash startup | Corrupt-file test + wrong-version test + save-failure policy test |

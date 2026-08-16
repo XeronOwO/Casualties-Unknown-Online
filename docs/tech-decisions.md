@@ -538,6 +538,8 @@ process. The saves are now disk-backed without touching the wire:
   memory session-scoped: `SessionEnded` clears memory, the file survives.
   `ClearSavedCharacters` (new run) writes an empty-table tombstone first, then
   deletes — a failed delete can never resurrect the old run's supplies.
+  `SendSavedCharacter` requires the host to be `LocalInWorld`; a menu handshake
+  never stages a previous run's save for the next run.
 - **No same-process lazy reload** — after a session end the next run's identity is
   unknown, so the old process must not hand out the previous run's save to a
   brand-new lobby; only a new process start (restart / continue-run) reloads.

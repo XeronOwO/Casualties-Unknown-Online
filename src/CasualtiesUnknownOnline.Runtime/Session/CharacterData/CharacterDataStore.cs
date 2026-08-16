@@ -150,9 +150,21 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable
 
 	public void Dispose() => _session.SessionEnded -= OnSessionEnded;
 
-	/// <summary>Host side: hand the saved character data back to a reconnecting player, with the item arbitration's transfer table merged over it.</summary>
+	/// <summary>
+	/// Host side: hand the saved character data back to a reconnecting player,
+	/// with the item arbitration's transfer table merged over it. Only while
+	/// the host has a LIVE world: a menu handshake must never stage a previous
+	/// run's restore for the next run (a fresh run clears the save only when
+	/// the host clicks start, after that menu handshake already happened).
+	/// </summary>
 	internal void SendSavedCharacter(ulong steamId)
 	{
+		if (!_session.LocalInWorld)
+		{
+			_log.LogDebug("Not sending saved character data to {Peer}: the host is not in a world.", steamId);
+			return;
+		}
+
 		if (_savedCharacters.TryGetValue(steamId, out var data))
 		{
 			MergeTransferredItems(steamId, data);

@@ -283,11 +283,12 @@ lands, never bolted on afterwards.
   once at host construction (restart/continue-run restore), persists after
   every verified mutation (1 Hz report save + enemy bite/lunge/effect merges),
   survives `SessionEnded` as a disk copy while memory clears, and a NEW run
-  writes an empty tombstone before deleting it. No same-process lazy reload —
-  the old process must not leak a previous run's save into a brand-new lobby.
-  Corrupt/unknown-version files degrade to empty with a warning, never a
-  startup crash. See `docs/character-data-persistence-selfcheck.md`;
-  877 tests green (L0 simulation, no manual acceptance).
+  writes an empty tombstone before deleting it. No same-process lazy reload,
+  and restores are only sent while the host is InWorld — a menu handshake can
+  never stage a previous run's save for the next run. Corrupt/unknown-version
+  files degrade to empty with a warning, never a startup crash. See
+  `docs/character-data-persistence-selfcheck.md`; 878 tests green (L0
+  simulation, no manual acceptance).
 
 ## Config
 

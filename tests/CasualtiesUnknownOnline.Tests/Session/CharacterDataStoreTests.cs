@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.DependencyInjection;
@@ -28,6 +29,10 @@ public class CharacterDataStoreTests
 		Items = [new CharacterItemMsg { ItemId = "flashlight", Condition = 1f }],
 		Position = new NetVector2Msg(12.5f, 34.75f),
 	};
+
+	/// <summary>The restore is only legal while the host has a live world — a menu handshake must not stage a previous run's save.</summary>
+	private static void MarkHostInWorld(TestNode host) =>
+		host.Session.ReportSceneState(SceneStateType.InWorld, "SampleScene");
 
 	[Fact]
 	public void SavedData_SurvivesReentry_SameRunRestores()
@@ -65,10 +70,31 @@ public class CharacterDataStoreTests
 			guest.Services.GetRequiredService<CharacterDataStore>().CharacterDataReceived += (_, msg) => received.Add(msg);
 
 			host.Services.GetRequiredService<CharacterDataStore>().SaveCharacterData(GuestId, Snapshot(GuestId));
+			MarkHostInWorld(host);
 			host.Services.GetRequiredService<ICharacterDataControl>().SendSavedCharacter(GuestId);
 
 			Assert.True(received.Count == 1, $"the saved snapshot must reach the reconnecting guest, got {received.Count}");
 			Assert.Equal("flashlight", received[0].Items[0].ItemId);
+		}
+	}
+
+	[Fact]
+	public void SendSavedCharacter_WhileHostIsInMenu_DoesNotSend()
+	{
+		// A menu handshake must never stage a previous run's save for the next
+		// run: the host clears the save only when it clicks "new run", which
+		// happens AFTER a guest may have already handshaken in the menu.
+		var (host, guest) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		using (host)
+		using (guest)
+		{
+			var received = new List<CharacterDataMsg>();
+			guest.Services.GetRequiredService<CharacterDataStore>().CharacterDataReceived += (_, msg) => received.Add(msg);
+
+			host.Services.GetRequiredService<CharacterDataStore>().SaveCharacterData(GuestId, Snapshot(GuestId));
+			host.Services.GetRequiredService<ICharacterDataControl>().SendSavedCharacter(GuestId);
+
+			Assert.True(received.Count == 0, $"a menu restore must not be sent, got {received.Count}");
 		}
 	}
 
@@ -86,6 +112,7 @@ public class CharacterDataStoreTests
 			guest.Services.GetRequiredService<CharacterDataStore>().CharacterDataReceived += (_, msg) => received.Add(msg);
 
 			host.Services.GetRequiredService<CharacterDataStore>().SaveCharacterData(GuestId, Snapshot(GuestId));
+			MarkHostInWorld(host);
 			host.Services.GetRequiredService<ICharacterDataControl>().SendSavedCharacter(GuestId);
 
 			Assert.True(received.Count == 1, $"the saved snapshot must reach the reconnecting guest, got {received.Count}");
@@ -111,6 +138,7 @@ public class CharacterDataStoreTests
 			var snapshot = Snapshot(GuestId);
 			snapshot.Position = null;
 			host.Services.GetRequiredService<CharacterDataStore>().SaveCharacterData(GuestId, snapshot);
+			MarkHostInWorld(host);
 			host.Services.GetRequiredService<ICharacterDataControl>().SendSavedCharacter(GuestId);
 
 			Assert.True(received.Count == 1, $"the saved snapshot must reach the reconnecting guest, got {received.Count}");

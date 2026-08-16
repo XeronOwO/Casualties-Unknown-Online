@@ -158,7 +158,17 @@ lands, never bolted on afterwards.
   locally (item-layer isolation + explicit prefix gate) and replay the conversion +
   Scald sound in one `RemoteApply` scope. See `docs/heater-cook-selfcheck.md`;
   863 tests green (L0 simulation + replay fossil + patch contract, no manual acceptance).
-- TutorialHandler claw double-give in the tutorial world (tutorial domain).
+- RESOLVED (2026-08-16, no protocol bump): TutorialHandler claw double-give — the tutorial
+  courses run per side, so every `objectToCreate` prop was created by BOTH host and guest and
+  entered the shared item/entity domains under two ids (every player saw two copies). The claw
+  creations are now marked `TutorialClawProp` inside a `TutorialClawSpawn` call-identity scope
+  (`TutorialHandlerUpdatePatch` + `UtilsCreateTutorialPatch`) and the item/entity entry hooks
+  leave them out of the shared domains: an item stays id-less until a player actually picks it
+  up (the existing generation-item spawn-then-pickup flow takes over), a BuildingEntity stays
+  per-player local, and both bind-target finders skip marked props so one player's pickup can
+  never destroy another player's course object. Tutorial course state remains per-side by design;
+  the claw 20 Hz flow todo stays open. See `docs/tutorial-claw-selfcheck.md`; 899 tests green
+  (L0 reflection + static evidence, no manual acceptance).
 - Trade domain #132: implemented — simulation coverage landed (`TradeSimulationTests`,
   `TradeStockMachineTests`); the acceptance only lacks a dual-side runtime pass.
 - Building-entity damage persistence for late joiners: RESOLVED (2026-08-16,

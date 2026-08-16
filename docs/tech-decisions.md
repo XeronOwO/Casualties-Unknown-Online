@@ -638,3 +638,33 @@ Tests: `LimbStateSyncTests` (wire + star relay + saved merge), `LyingPoseTests`,
 `SwingReplayTests`, `LimbStatePatchTests` (reflective patch/formula surface), extended
 `EnemyTerminalStateApplierTests` / `EntityStateRoundtripTests` / `DirectionTests`. 932 tests green.
 See `docs/limb-presentation-selfcheck.md`.
+
+
+## 30. Character action sounds — one CharacterSound event + native block/building sound paths (ProtocolVersion 17)
+
+The broad "character sound / block sound sync" item is split into three precise mechanisms:
+
+- **Attack / throw / exert sounds are dedicated events.** `SoundPlayPatch` captures the EXACT
+  clip from the real string `Sound.Play` call inside the `CharacterAttack` / `CharacterThrow` /
+  `CharacterExert` call-identity scopes (`Body.Attack`, `Body.ThrowItem`,
+  `Body.TryExertSound`). `CharacterSoundMsg` (NetMsg 94, bidirectional star relay like
+  LimbStateEvent/Speech) carries owner + kind + clip + position + volume + follow/2D mode, and
+  `CharacterSoundSync` replays it on the owner's render clone under `RemoteApply`.
+- **Block hit/break sounds already ride the native apply** — every `BlockDamaged` receiver
+  applies through `WorldGeneration.DamageBlock(hitSound: true)`, which plays the game's own
+  block hit/break sounds; adding an event would double-play them. This half is closed by
+  evidence, not by new code.
+- **Building-entity hit sounds ride the existing `BuildingEntityDamaged` message** — the
+  receiver plays the local entity's own `hitSound` when it applies the damage (one operation =
+  one message; no asset path on the wire).
+
+- **Capture is call-identity, not guessing** — the innermost `DamageBlockOrigin` scope excludes
+  block sounds during an attack, the `RemoteApply` scope excludes replays, and the pure
+  `CharacterSoundPolicy` maps scope + clip to the kind.
+- **ProtocolVersion 16→17** — a v16 peer would silently miss remote action sounds;
+  mixed-version sessions are refused by policy.
+
+Tests: `CharacterSoundSyncTests` (wire + star relay), `CharacterSoundPolicyTests`,
+`CharacterSoundPatchTests` (reflective patch/capture surface), the `DirectionTests`
+completeness guard, and the automatic patch-contract cover for the new `TryExertSound` patch.
+947 tests green. See `docs/character-sound-selfcheck.md`.

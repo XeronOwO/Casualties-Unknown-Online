@@ -9,7 +9,7 @@ live-relay correction.
 | # | Mechanism | Vanilla behaviour | CUO change | Evidence |
 |---|---|---|---|---|
 | 1 | Local block damage | `WorldGeneration.DamageBlock(Vector2, …)` accumulates `BlockDamage.damage`, updates the crack sprite, and breaks + rolls drops at `health` (WorldGeneration.cs:713-849); `bonusMetal && blockInfo.metallic` multiplies the damage by 10 inside the `Vector2Int` overload (:715) | the existing postfix reports the raw damage; it now also carries `bonusMetal` so the peer applies the same multiplier; the host additionally records the post-write `BlockDamage.damage` in the new registry | WorldGenerationDamageBlockPatch.cs; BlockBreakSync.cs |
-| 2 | Live damage relay | `BlockDamagedMsg` applies the reported damage on the peer | the message gains `MetalBonus` (ProtoMember 4); every apply path passes it into `DamageBlock` instead of hard-coding `false` (the laser vs metallic block divergence — Item.cs:4645 sets `metalMoreDamage`, WorldGeneration.cs:715 applies ×10) | BlockDamagedMsg.cs; WorldService.cs; BlockBreakSync.cs |
+| 2 | Live damage relay | `BlockDamagedMsg` applies the reported damage on the peer | the message gains `MetalBonus` (ProtoMember 4); every apply path passes it into `DamageBlock` instead of hard-coding `false` (the laser vs metallic block divergence — Item.cs:4645 sets `metalMoreDamage`, WorldGeneration.cs:715 applies ×10); a damage-only report against an already-air cell is ignored instead of creating a transient air `BlockDamage` + hit sound/particles (air health is 0 — WorldGeneration.cs:315-322) | BlockDamagedMsg.cs; WorldService.cs; BlockBreakSync.cs |
 | 3 | Local break | damage ≥ health → `SetBlock(0)` + loot roll + `blockDamages.Remove` (:836-842) | the pending-break report now carries the bonus flag too; the registry entry is removed so a broken block never ships as partial damage | BlockBreakSync.cs; BlockBreakPendingState.cs |
 | 4 | Late joiner / reconnect | a regenerated world has no `BlockDamage` entries — every partially-mined block is back at full HP (and therefore breaks later, desynchronizing the damage chain) | new `BlockDamageSnapshot` (NetMsg 89) backfills the host's current partial damage on world entry / reconnect / 60 s resend; application sets `BlockDamage.damage` absolutely and refreshes the crack sprite | BlockDamageRegistry.cs; HandlerContext.cs; BlockBreakSync.cs |
 | 5 | Earthquake / environment air writes | `WorldGeneration.Update` writes `SetBlock(0)` directly without `BlockDamage` (:895) | any applied air write clears the registry entry for that cell | WorldEventSync.cs |
@@ -34,7 +34,10 @@ live-relay correction.
   snapshot, never a partial-damage entry).
 - Live relay correctness: `MetalBonus` rides the existing `BlockDamagedMsg`
   (damage stays raw — the receiver's own `DamageBlock` applies the same
-  `bonusMetal` multiplier to the same generated block type).
+  `bonusMetal` multiplier to the same generated block type). A damage-only
+  report against an already-air cell returns before `DamageBlock` (air
+  `BlockDamage` artifacts are never created); a break relay's drops still
+  materialize on the already-air guest cell.
 
 ## Verification design
 
@@ -61,7 +64,7 @@ live-relay correction.
 |---|---|---|
 | DamageBlock postfix | carry `bonusMetal` | WorldGenerationDamageBlockPatch.cs; PatchContractTests |
 | Live damage wire | `BlockDamagedMsg.MetalBonus` | BlockDamagedMsg.cs; NetPacketTests |
-| Live apply | pass `MetalBonus` into `DamageBlock` on host and guest | BlockBreakSync.cs |
+| Live apply | pass `MetalBonus` into `DamageBlock` on host and guest; ignore damage-only reports on already-air cells | BlockBreakSync.cs |
 | Break pending state | store + flush the bonus flag | BlockBreakPendingState.cs; tests |
 | Snapshot source | registry latest-wins + remove + reset + cap | BlockDamageRegistry.cs |
 | Host record | post-write `BlockDamage.damage` on local + remote damage paths | BlockBreakSync.cs |

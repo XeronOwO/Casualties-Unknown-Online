@@ -178,10 +178,10 @@ internal sealed class BlockBreakSync(
 		using (CallContext.Enter(CallContext.Origin.RemoteApply))
 		{
 			var cell = world.WorldToBlockPos(new Vector2(pos.X, pos.Y));
+			var blockIsAir = world.GetBlock(cell) == 0;
 			if (IsHostMode)
 			{
-
-				if (drops is { Count: > 0 } && world.GetBlock(cell) == 0)
+				if (drops is { Count: > 0 } && blockIsAir)
 				{
 					// A BREAK with drops: first-writer-wins on the sender's
 					// applied air-write record.
@@ -206,10 +206,19 @@ internal sealed class BlockBreakSync(
 					return;
 				}
 
+				// Damage only against an already-air cell: there is no block to
+				// damage — ignore it. DamageBlock on air would create a
+				// transient BlockDamage for an air cell and play the hit
+				// sounds/particles (air health is 0, WorldGeneration.cs:
+				// 315-322).
+				if (blockIsAir)
+				{
+					return;
+				}
+
 				// Damage only (or a break whose roll was empty): apply the
-				// damage — a no-op on an already-broken block. The relay only
-				// goes out while the block still stands: a broken block's
-				// damage is meaningless elsewhere.
+				// damage. The relay only goes out while the block still
+				// stands: a broken block's damage is meaningless elsewhere.
 				world.DamageBlock(cell, dmg, true, metalBonus, true);
 				if (world.GetBlock(cell) != 0)
 				{
@@ -224,7 +233,19 @@ internal sealed class BlockBreakSync(
 				return;
 			}
 
-			// Guest: the host's broadcast — apply.
+			// Guest: the host's broadcast — apply. An already-air cell has no
+			// block to damage; its drops (an accepted break relay whose
+			// BlockPlaced already made the cell air here) still materialize.
+			if (blockIsAir)
+			{
+				if (drops is { Count: > 0 })
+				{
+					_items.FireBlockDropsReceived(sender, drops);
+				}
+
+				return;
+			}
+
 			world.DamageBlock(cell, dmg, true, metalBonus, true);
 			if (drops is { Count: > 0 })
 			{

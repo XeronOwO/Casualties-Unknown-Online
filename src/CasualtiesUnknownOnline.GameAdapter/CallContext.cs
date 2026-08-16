@@ -48,6 +48,15 @@ internal static class CallContext
 
 		/// <summary>Inside TutorialHandler.Update — Utils.Create calls in this scope are per-player tutorial-claw props (marked TutorialClawProp, kept out of the shared item/entity domains until a player picks the item up).</summary>
 		TutorialClawSpawn,
+
+		/// <summary>Inside Body.Attack — string Sound.Play calls in this scope are the local attack swing/exert sounds (block hit sounds run in the innermost DamageBlockOrigin scope and are excluded).</summary>
+		CharacterAttack,
+
+		/// <summary>Inside Body.ThrowItem — the local throw swing sound reports from this scope.</summary>
+		CharacterThrow,
+
+		/// <summary>Inside Body.TryExertSound — the local exertion sound reports from this scope.</summary>
+		CharacterExert,
 	}
 
 	/// <summary>Stack bound — real nesting is 2-3 levels (remote apply → container load → hooks).</summary>

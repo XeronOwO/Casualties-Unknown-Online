@@ -161,6 +161,8 @@ internal sealed class WorldEventSync(
 			if (entity != null)
 			{
 				entity.health -= damage;
+				// Every side applying the relay plays the entity's own hitSound (the attacker heard it locally, Body.cs:1953).
+				Sound.Play(entity.hitSound, entity.transform.position, false, true, null, 1f, 1f, false, false);
 				if (entity.health < 0.5f)
 				{
 					entity.gameObject.AddComponent<RemoteEntityDeath>();

@@ -1,4 +1,5 @@
 using System;
+using CasualtiesUnknownOnline.GameAdapter.Character;
 using HarmonyLib;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Patches;
@@ -125,14 +126,33 @@ internal static class BodyItemPatches
 	[HarmonyPatch(typeof(Body), "ThrowItem")]
 	internal static class ThrowItemPatch
 	{
-		private static void Prefix(Body __instance, out Item __state) => __state = __instance.GetItem(__instance.handSlot);
-
-		private static void Postfix(Item __state)
+		private sealed class ThrowState
 		{
-			if (__state != null) // Unity object — == (a throw only runs with an item, Body.cs:1654)
+			internal Item? Item;
+			internal IDisposable? SoundScope;
+		}
+
+		private static void Prefix(Body __instance, out ThrowState __state)
+		{
+			// The character-sound capture scope: the native ThrowItem plays its
+			// BSSwing clip inside this scope. A render clone never throws — no
+			// scope, no capture.
+			__state = new ThrowState
+			{
+				Item = __instance.GetItem(__instance.handSlot),
+				SoundScope = __instance.GetComponentInParent<RemoteBodyDriver>() == null
+					? CallContext.Enter(CallContext.Origin.CharacterThrow)
+					: null,
+			};
+		}
+
+		private static void Postfix(ThrowState __state)
+		{
+			__state.SoundScope?.Dispose();
+			if (__state.Item != null) // Unity object — == (a throw only runs with an item, Body.cs:1654)
 			{
 				PatchBridge.Impl?.OnArmSwing();
-				PatchBridge.Impl?.OnItemThrown(__state);
+				PatchBridge.Impl?.OnItemThrown(__state.Item);
 			}
 		}
 	}

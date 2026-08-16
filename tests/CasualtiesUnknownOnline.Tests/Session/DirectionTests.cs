@@ -94,6 +94,7 @@ public class DirectionTests
 		NetMsg.EnemyLunge,
 		NetMsg.EnemyEffect,
 		NetMsg.LimbStateEvent,
+		NetMsg.CharacterSound,
 	};
 
 	[Theory]

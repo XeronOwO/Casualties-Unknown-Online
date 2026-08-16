@@ -137,7 +137,15 @@ lands, never bolted on afterwards.
   out of the old AdapterDomain into ItemWorldSync/CharacterDataSync/etc. The coordinator stays a
   thin forwarder. Left only as a possible readability grouping of the ~40 constructor `new`s by
   domain — no mechanical factory, per the "no mechanical refactor" rule.
-- Heater cooker meat→steak conversion (item domain).
+- RESOLVED (2026-08-16, ProtocolVersion 15): Heater cooker meat→steak conversion —
+  one host-authoritative `ItemCook` event (NetMsg 92) carries the full cooked-steak
+  capture; `HeaterCookPatch` lets the native `Heater.OnCollisionEnter2D` run on the
+  host/solo side, verifies the created steak by the game's exact condition×0.3 +
+  spawn-position fingerprint, claims the source destroy and stamps the steak before
+  `Item.Start` so the generic hooks never decompose the conversion. Guests never cook
+  locally (item-layer isolation + explicit prefix gate) and replay the conversion +
+  Scald sound in one `RemoteApply` scope. See `docs/heater-cook-selfcheck.md`;
+  863 tests green (L0 simulation + replay fossil + patch contract, no manual acceptance).
 - TutorialHandler claw double-give in the tutorial world (tutorial domain).
 - Trade domain #132: implemented — simulation coverage landed (`TradeSimulationTests`,
   `TradeStockMachineTests`); the acceptance only lacks a dual-side runtime pass.

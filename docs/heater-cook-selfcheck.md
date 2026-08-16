@@ -81,3 +81,23 @@ Every sibling is aligned in the same round:
 The user instructed this session to pick one backlog item autonomously and
 complete it ("由你来自主挑选一个并完成"). That instruction is the plan
 approval for this cycle; no further interactive approval is required.
+
+## 6. Verification results (2026-08-16)
+
+Development-period rule applied: **no manual acceptance** — the runtime
+verification box is checked on L0 simulation + static evidence (user rule
+2026-08-16).
+
+| Evidence | Result |
+|---|---|
+| `dotnet build CasualtiesUnknownOnline.slnx` | 0 warnings / 0 errors |
+| `dotnet test CasualtiesUnknownOnline.slnx --no-build` | 863 passed / 0 failed |
+| Heater/ItemCook focused filter | 8 passed (ItemCookSimulationTests × 2 + HeaterCookPatchTests × 6) |
+| `heater-cook.replay` | passed inside the full suite (one host ItemCook broadcast, both guests receive one frame, host table flips source→cooked) |
+| `dotnet format CasualtiesUnknownOnline.slnx` | clean |
+| `check-architecture.ps1` / `check-event-replay.ps1` / `check-entity-event-dispatch.ps1` | all passed |
+| `tools/deploy.ps1 -GameDir "E:\SteamLibrary\steamapps\common\Casualties Unknown Demo"` | 26 files deployed to the real game dir only |
+| Patch contract | `PatchInventory.BuildContracts` now contains `Heater.OnCollisionEnter2D`; `PatchContractTests` loaded the real game assembly and passed |
+| Guest isolation static evidence | `ItemPositionFollow.cs:186-198` (Item layer 7 collides only with Ground 6 while guest + session active) proves the guest cannot run the native conversion |
+| Native conversion static evidence | `reversing/Assembly-CSharp/Assembly-CSharp/Heater.cs:41-49` is the sole conversion implementation; CUO does not duplicate it |
+

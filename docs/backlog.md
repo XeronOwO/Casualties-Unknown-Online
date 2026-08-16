@@ -292,10 +292,10 @@ lands, never bolted on afterwards.
 - Block-break drop-race dual-side runtime pass: L0 simulation covers the first-writer-wins +
   loser-rollback arbitration, but the 2026-08-09 "two guests break the same block at the same
   time" runtime confirmation was never recorded — fold into the next dual-side verification.
-- `docs/entity-features.md` status-column refresh: the narrative table still says "missing"
-  for rows that the CSV now marks `covered` (lifepod/terminal/med-station/talker/crystal
-  events) — regenerate the table text from `tools/entity-features.ps1 list` so the two sources
-  cannot disagree again.
+- RESOLVED (2026-08-16): `docs/entity-features.md` status-column refresh — every narrative
+  table now mirrors the CSV's `sync`/`path` cells (lifepod, unlocks, talker, crystal family,
+  environment and creature rows included), and `EntityFeaturesDocConsistencyTests` runs in
+  `dotnet test` to fail any future narrative/CSV drift instead of re-discovering it in review.
 
 ## Future phases / ecosystem
 

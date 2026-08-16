@@ -144,8 +144,8 @@ function Invoke-Advisory {
 
     $sections = @{}
     Get-Content $Doc -Encoding UTF8 | ForEach-Object {
-        # Section headers are "### <feature> — description": the first word is the feature.
-        if ($_ -match '^### ([A-Za-z0-9]+)') { $sections[$matches[1]] = $true }
+        # Section headers are "### <feature> — description": the feature name may contain hyphens (one-shot).
+        if ($_ -match '^### ([A-Za-z0-9-]+)') { $sections[$matches[1]] = $true }
     }
     foreach ($feature in (Get-Features)) {
         if (-not $sections.ContainsKey($feature)) {

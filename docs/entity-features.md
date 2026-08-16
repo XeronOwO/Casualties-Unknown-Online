@@ -19,6 +19,12 @@ priority) — a `missing` row is an open TODO. The table is the answer to
 "is there anything left to sync?" — run `tools/entity-features.ps1 list |
 Select-String missing` to get the open list.
 
+The narrative tables below mirror the matrix's `sync`/`path` cells. The
+`EntityFeaturesDocConsistencyTests` in `dotnet test` cross-check every
+narrative row against the CSV, so editing one source without the other fails
+the build test run — change the CSV with `tools/entity-features.ps1 set`,
+then refresh the matching narrative row in the same commit.
+
 ## Matrix tool usage
 
 ```
@@ -98,50 +104,50 @@ entity consumption; state family = run the trap's own state machine (its
 sounds/animations play exactly like the trigger side); visual family = the
 trap's sound/sprite/light.
 
-| entity | trigger | one-shot | replay |
-|---|---|---|---|
-| MineScript | collide | no | explosion sound/particle/blastmark/shake + real-body damage + destroy (press visual NOT replayed — gap) |
-| SpikeStabberScript | trigger | yes | Stab() anim + sound + CheckStab damage |
-| BearTrap | trigger | repeatable | closeSprite + sound; release replayed (BearTrapReleased) |
-| BarbedFence | trigger | repeatable | hitSprite + fence sound |
-| CoilScript | collide | repeatable | zap sound + light + shake |
-| CactusScript | collide | repeatable | gore sound |
-| JumpPadScript | collide | repeatable | light blink + jumppad sound |
-| StalactiteDropper | trigger/detect | yes | Drop() fall + DamagingCrate damage |
-| GeyserScript | trigger | repeatable | TryRumble() + liquid eruption (liquidType synced in Extra) |
-| SoundCannon | detect | yes | spent + cancel charge (the blast's deafen/mute is the local player's UI — only the trigger side gets it) |
-| TurretScript | detect | repeatable | tracers + gunshot; self-destruct = explosion family |
-| CrystalElectric | collide | repeatable | zap + shake |
-| CrystalFragile | collide | yes | destroy + drops |
-| CaveTickSpawner | trigger | yes | nest destroy + particles + sound (the 16 spiders ride EntitySpawned + EnemyRuntimeSpawn binding; late joiner materializes via EnemySnapshot.RuntimeSpawns) |
-| BananaPlantSlip | trigger | repeatable | plantslip sound |
-| GrabberPlant | detect | repeatable | scream bubble + ragdoll (speech / entity-state streams) + EnemyEffectMsg terminal state |
+| entity | trigger | one-shot | replay | sync | path |
+|---|---|---|---|---|---|
+| MineScript | collide | no | explosion sound/particle/blastmark/shake + real-body damage + destroy (press visual NOT replayed — gap) | covered | MineExploded |
+| SpikeStabberScript | trigger | yes | Stab() anim + sound + CheckStab damage | covered | SpikeStabbed |
+| BearTrap | trigger | repeatable | closeSprite + sound; release replayed (BearTrapReleased) | covered | BearTrapClamped/Released |
+| BarbedFence | trigger | repeatable | hitSprite + fence sound | covered | BarbedFenceHit |
+| CoilScript | collide | repeatable | zap sound + light + shake | covered | CoilShocked |
+| CactusScript | collide | repeatable | gore sound | covered | CactusHit |
+| JumpPadScript | collide | repeatable | light blink + jumppad sound | covered | JumpPadLaunched |
+| StalactiteDropper | trigger/detect | yes | Drop() fall + DamagingCrate damage | covered | StalactiteDropped |
+| GeyserScript | trigger | repeatable | TryRumble() + liquid eruption (liquidType synced in Extra) | covered | GeyserActivated |
+| SoundCannon | detect | yes | spent + cancel charge (the blast's deafen/mute is the local player's UI — only the trigger side gets it) | covered | SoundCannonFired |
+| TurretScript | detect | repeatable | tracers + gunshot; self-destruct = explosion family | covered | TurretFired/TurretSelfDestructed |
+| CrystalElectric | collide | repeatable | zap + shake | covered | CrystalElectricShocked |
+| CrystalFragile | collide | yes | destroy + drops | covered | CrystalFragileBroken |
+| CaveTickSpawner | trigger | yes | nest destroy + particles + sound (the 16 spiders ride EntitySpawned + EnemyRuntimeSpawn binding; late joiner materializes via EnemySnapshot.RuntimeSpawns) | covered | CaveTicksSpawned |
+| BananaPlantSlip | trigger | repeatable | plantslip sound | covered | BananaPlantSlip |
+| GrabberPlant | detect | repeatable | scream bubble + ragdoll (speech / entity-state streams) + EnemyEffectMsg terminal state | covered | GrabberGrabbed layout key + EnemyEffectMsg terminal state |
 
 ## Lifepod interior
 
 | entity | trigger | sync | path |
 |---|---|---|---|
 | ShuttleStartOpen | trigger | covered | ShuttleDoorOpened — door anim + shuttleOpen sound on both sides |
-| LifepodController (heat button) | click | **missing (high)** | LifepodHeatChanged (Extra = heatState 0/1/2) — replay writes heatState/desiredTemp/enabled/sprite; two sides each toggling otherwise heats two worlds and shows two colors |
-| LifepodShower | click | **missing (high)** | LifepodShowerActivated (one-shot) — replay particles + activated; otherwise the one-shot shower is usable once per side (double heal) |
-| Heater (cooker branch) | field | missing (low) | raw→cooked item rides the item domain |
+| LifepodController (heat button) | click | covered | LifepodHeatChanged — Extra = heatState 0/1/2; replay writes heatState/desiredTemp/enabled/sprite |
+| LifepodShower | click | covered | LifepodShowerActivated — one-shot replay particles + activated; one consumption shared |
+| Heater (cooker branch) | field | excluded | temperature field drives each side's own clone (no world state); cooker = item domain todo — raw→cooked conversion stays an item-domain item |
 
 ## Unlocks (one-shot progression — hard gameplay divergence)
 
 | entity | trigger | sync | path |
 |---|---|---|---|
-| BioTerminalScript (blood unlock) | click | **missing (high)** | BioTerminalUnlocked — replay Backgroundify()s the terminal + the reinforceddoor; otherwise the door opens only on the unlocking side while the blood is already spent |
-| ScrapEaterScript | click | **missing (high)** | ScrapEaterProgress (Extra = progress) — replay progress + Backgroundify on threshold; otherwise scrap feeds twice and the door opens only on one side |
-| MedStationScript | trigger | **missing (high)** | MedStationHealed (one-shot) — replay didHeal + laser anim + Backgroundify; otherwise the station heals once per side |
-| BatteryRecharger | click | missing (med-high) | BatteryInserted (Extra = slot) + firstTime one-shot; charge rides the item-domain condition |
+| BioTerminalScript (blood unlock) | click | covered | BioTerminalUnlocked — replay Backgroundify()s the terminal + the reinforceddoor |
+| ScrapEaterScript | click | covered | ScrapEaterProgress — Extra = progress; replay progress + Backgroundify on threshold |
+| MedStationScript | trigger | covered | MedStationHealed — one-shot replay didHeal + laser anim + Backgroundify |
+| BatteryRecharger | click | covered | BatteryInserted — Extra = slot + firstTime one-shot; charge rides the item-domain condition |
 
 ## Trade
 
 | entity | trigger | sync | path |
 |---|---|---|---|
-| TraderScript | field | covered | trade domain (#132): the trader state is host-authoritative — host-computed overwrites (TraderState, every interaction + world entry + 5 s fallback), the acting side runs the game method in full (its player-side effects are immediate) and reports (TraderAction); a rejected concurrent purchase rolls the locally-bought item back |
-| Talker | field | missing (med) | SpeechMsg (entity key + text id) — clone-side bubble replay; remote clones otherwise show no dialogue and self-trigger their own |
-| LampScript | collide | covered | trade domain (#132): LightBroken's flat reputation -40 is deterministic — it runs on both sides from the broadcasted base (the lamp's destruction is synced by the building-entity damage) |
+| TraderScript | field | covered | trade domain #132 — host-computed overwrites (TraderState, every interaction + world entry + 5 s fallback); the acting side runs the game method in full and reports TraderAction |
+| Talker | field | covered | SpeechMsg (NetMsg 74) — entity key + text id; clone-side bubble replay |
+| LampScript | collide | covered | trade domain #132 — LightBroken's flat reputation -40 runs on both sides from the broadcasted base |
 
 ## Crystals (CrystalBehaviour family)
 
@@ -152,30 +158,46 @@ Blinding/Irradiated) are excluded: each side's body is simulated locally.
 
 | entity | sync | path |
 |---|---|---|
-| CrystalUnstable | missing (med-high) | arm/exploded events — otherwise the crystal self-destructs only on the touching side and re-triggers there |
-| CrystalMetamorphic | missing (med-low) | death rides BuildingEntityDamaged + the item drops ride the item domain |
-| CrystalMimic | covered | CrystalMimicTriggered — activated latch event; the spawned enemies ride EntitySpawned + EnemyRuntimeSpawn binding; late joiner materializes them via EnemySnapshot.RuntimeSpawns (enemy SetColor is trigger-side local, recorded gap) |
-| CrystalShy | missing (low) | position-swap event |
-| CrystalEMP | missing (low) | black visual only (battery drain already rides the item domain) |
-| CrystalGravity/Kinetic | excluded | local physics |
-| CrystalDripping | covered | rides the fluid domain (guest writes stopped, host streams) |
+| CrystalUnstable | covered | CrystalUnstableExploded (26); 5s ticking gap recorded — the explosion latch is shared; the 5 s pre-explosion ticking stays a recorded local-presentation gap |
+| CrystalMetamorphic | covered | CrystalMetamorphicTriggered (27) — death + item drops ride the event |
+| CrystalMimic | covered | CrystalMimicTriggered (30); enemies ride EntitySpawned + EnemyRuntimeSpawn — activated latch event; enemy SetColor is trigger-side local (recorded gap) |
+| CrystalShy | covered | CrystalShySwapped (28); scan order risk recorded |
+| CrystalEMP | covered | CrystalEMPActivated (29) — black visual + battery drain |
+| CrystalBurning | excluded | local body effect |
+| CrystalTemperature | excluded | local body effect |
+| CrystalSeptic | excluded | local body effect |
+| CrystalHealing | excluded | local body effect |
+| CrystalBlinding | excluded | local body effect |
+| CrystalIrradiated | excluded | local body effect |
+| CrystalGravity | excluded | local physics |
+| CrystalKinetic | excluded | local physics |
+| CrystalDripping | covered | FluidRegion/FluidWorldSync — the drip writes ride the fluid domain |
 
 ## Fluid world grid
 
 | entity | sync | path |
 |---|---|---|
-| FluidManager / OilPipeScript / LifepodPump / CrystalDripping | covered | fluid domain (#130): host simulates every member's viewport (deduplicated bands), guest writes stopped; 10 Hz diff + 1 Hz full absolute RLE regions over FluidRegion; drink via FluidInteraction report → host clears → relay |
+| FluidManager | covered | FluidRegion/FluidWorldSync — host simulates every member's viewport (deduplicated bands); 10 Hz diff + 1 Hz full RLE over FluidRegion |
+| OilPipeScript | covered | FluidRegion/FluidWorldSync — oil production rides the host fluid stream |
+| LifepodPump | covered | FluidRegion/FluidWorldSync — pump writes ride the host fluid stream |
 
 ## Environment
 
 | entity | sync | path |
 |---|---|---|
-| CorpseScript | covered | BuildingEntity hp + GeneratedItemAuthority loot |
-| SurvivorNote | missing (low) | slowmo on the reading side only (time-scale divergence) |
-| TutorialHandler | missing (med-low) | tutorial domain decision (claw items double-given) |
-| GrapplingHook | excluded | visual-only (rope is a local projection) |
-| Climbable/BounceShroom/GeigeFruit/Leadbush/Campfire/WaterPusher/ItemLock/Radioactive | excluded | local body / local physics / marker-only |
-| XalorisScript | covered | EnemyEffectMsg septic tick (0.5 s edge) |
+| CorpseScript | covered | BuildingEntity/GeneratedItemAuthority — corpse hp + loot |
+| SurvivorNote | excluded | local UI + local time-scale (accepted divergence) — slowmo on the reading side only |
+| TutorialHandler | excluded | tutorial domain (claw 20Hz flow todo; double-give gap recorded) |
+| GrapplingHook | excluded | visual low — rope is a local projection |
+| Climbable | excluded | local body |
+| BounceShroom | excluded | local physics |
+| GeigeFruitScript | excluded | local body |
+| LeadbushScript | excluded | local body |
+| CampfireAnimation | excluded | pure visual |
+| WaterPusher | excluded | local physics |
+| ItemLock | excluded | marker only |
+| RadioactiveObject | excluded | local body field |
+| XalorisScript | covered | EnemyEffectMsg septic tick — 0.5 s edge terminal state |
 
 ## Buildings
 
@@ -183,8 +205,9 @@ Blinding/Irradiated) are excluded: each side's body is simulated locally.
 |---|---|---|
 | Openable (locks/crates) | covered | BuildingEntityOpened |
 | BuildingEntity (attack damage) | covered | BuildingEntityDamaged |
-| DrillPod | excluded | world reset is WorldJoin-level granularity |
-| GunmineScript/SawbladeScript | excluded | hand-placed, outside the generation stream |
+| DrillPod | excluded | WorldJoin-level — repair/world reset is world-join granularity |
+| GunmineScript | excluded | hand-placed — outside the generation stream |
+| SawbladeScript | excluded | hand-placed — outside the generation stream |
 
 ## Creatures
 
@@ -194,3 +217,10 @@ attacks ride `EnemyAttack`/`EnemyBite`/`EnemyLunge`, and the proximity side
 effects of ElderThornback/Xaloris/GrabberPlant ride `EnemyEffectMsg`.
 Recorded local-presentation gaps: `LookTarget` gaze/scare and the `Heater`
 temperature field on `xaloris`.
+
+| entity | sync | path |
+|---|---|---|
+| SpiderHandler | covered | EnemyState stream + EnemyAttack/EnemyBite events |
+| CaveTicks | covered | EnemyState stream + EnemyAttack/EnemyBite events |
+| ElderThornbackBehaviour | covered | EnemyState stream + EnemyEffectMsg horror events |
+| CrystalEnemy | covered | EnemyState stream + EnemyAttack/EnemyLunge events |

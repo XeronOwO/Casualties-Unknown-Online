@@ -93,6 +93,7 @@ public class DirectionTests
 		NetMsg.EnemyBite,
 		NetMsg.EnemyLunge,
 		NetMsg.EnemyEffect,
+		NetMsg.LimbStateEvent,
 	};
 
 	[Theory]

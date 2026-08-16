@@ -226,6 +226,25 @@ internal sealed class CloneFactTable(ILogger log)
 		CloneSnapshotUpdated?.Invoke(msg.VictimSteamId);
 	}
 
+	/// <summary>
+	/// A limb-latch event arrived (the dedicated event — never the 1 Hz
+	/// snapshot): update the owner's fact-table limb + body entry (full
+	/// terminal state, exact rebuild) and re-render its clone. An owner with
+	/// no snapshot yet is skipped — the next snapshot carries it.
+	/// </summary>
+	internal void ApplyLimbStateEvent(ulong owner, LimbStateEventMsg msg)
+	{
+		if (!_cloneData.TryGetValue(owner, out var data))
+		{
+			_log.LogInformation("[LimbEvent] no snapshot for owner {Owner} yet — the 1 Hz snapshot will carry the change.", owner);
+			return;
+		}
+
+		EnemyTerminalStateApplier.ApplyLimbState(data, msg);
+		_log.LogInformation("[LimbEvent] applied {Limbs} limbs to {Owner}.", msg.Limbs.Count, owner);
+		CloneSnapshotUpdated?.Invoke(owner);
+	}
+
 	/// <summary>Store one owner's snapshot and re-render its clone, after the
 	/// divergence check — every carried move MUST arrive as an event (use/slot/
 	/// pickup/wear/drop); a snapshot that carries a move the fact table never
@@ -311,6 +330,41 @@ internal sealed class CloneFactTable(ILogger log)
 
 			_log.LogWarning("[CharSync] divergence for {Owner}'s {Type} (id {ItemId}): left the inventory without an event sync (the 1 Hz snapshot carried it).",
 				owner, old.ItemId, old.InstanceId);
+		}
+
+		// Limb latches (broken/dismembered/dislocated) change exclusively
+		// through the dedicated limb-state event — a snapshot carrying a latch
+		// change the fact table never saw means the event chain missed it. Only
+		// compared where BOTH snapshots have the limb (a snapshot seeded with
+		// items only has no limbs yet — that is a first snapshot, not a
+		// divergence), and never the continuous values (bleed/skin/muscle decay
+		// on their own — they are the snapshot's legitimate channel, like item
+		// condition).
+		foreach (var limb in next.Limbs)
+		{
+			var old = prev.Limbs.FirstOrDefault(l => l.Index == limb.Index);
+			if (old is null)
+			{
+				continue;
+			}
+
+			if (old.Broken != limb.Broken)
+			{
+				_log.LogWarning("[CharSync] divergence for {Owner}'s limb {Limb}: broken {Old} → {New} — a break/mend without an event sync (the 1 Hz snapshot carried it).",
+					owner, limb.Index, old.Broken, limb.Broken);
+			}
+
+			if (old.Dismembered != limb.Dismembered)
+			{
+				_log.LogWarning("[CharSync] divergence for {Owner}'s limb {Limb}: dismembered {Old} → {New} — a dismember without an event sync (the 1 Hz snapshot carried it).",
+					owner, limb.Index, old.Dismembered, limb.Dismembered);
+			}
+
+			if (old.Dislocated != limb.Dislocated)
+			{
+				_log.LogWarning("[CharSync] divergence for {Owner}'s limb {Limb}: dislocated {Old} → {New} — a dislocate/relocate without an event sync (the 1 Hz snapshot carried it).",
+					owner, limb.Index, old.Dislocated, limb.Dislocated);
+			}
 		}
 	}
 

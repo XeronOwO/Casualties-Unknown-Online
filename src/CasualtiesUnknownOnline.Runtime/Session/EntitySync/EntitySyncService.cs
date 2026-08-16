@@ -54,6 +54,9 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 	/// <summary>The local swing-presentation window (state belongs to its owner — this service owns the local player's presentation state).</summary>
 	private readonly AttackSwingState _attackSwing = new();
 
+	/// <summary>The rolling per-swing sequence (0 = never swung): every swing increments it so the peers' proxies replay the clip even for swings merged inside one held flag window (rapid mining swings).</summary>
+	private byte _swingSeq;
+
 	private readonly Dictionary<ulong, SyncedEntity> _entities = [];
 	private ulong _epoch;
 	private uint _nextEntityCounter;
@@ -124,13 +127,15 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 		_localPlayer.Sleeping = sleeping;
 		_localPlayer.Climbing = climbing;
 		_localPlayer.IsAttacking = _attackSwing.IsAttacking;
+		_localPlayer.SwingSeq = _swingSeq;
 	}
 
-	/// <summary>The local player swung (Body.Attack or Body.ThrowItem — both play ArmsSwing) — mark the swing so the peers' clones replay the animation via the IsAttacking snapshot flag.</summary>
+	/// <summary>The local player swung (Body.Attack or Body.ThrowItem — both play ArmsSwing) — mark the swing so the peers' clones replay the animation via the IsAttacking snapshot flag and the per-swing sequence.</summary>
 	public void MarkLocalAttackSwing()
 	{
 		ConfigureSwingHold();
 		_attackSwing.MarkAttack(_time.NowMs);
+		_swingSeq = (byte)(_swingSeq + 1); // wraps — the peer edge-detects the CHANGE, so a wrap reads as a new swing
 	}
 
 	/// <summary>Raised when a member's entity sync starts (host: that guest; guest: host or a roster member).</summary>
@@ -236,6 +241,7 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 	internal void EndEntitySync()
 	{
 		_attackSwing.Reset(); // the swing cannot outlive the world (either role, either branch)
+		_swingSeq = 0; // same for the sequence — a stale sequence would replay a clip on the next world entry
 		if (_session.Role == SessionRole.Host)
 		{
 			if (_entities.Count == 0)
@@ -396,6 +402,7 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 		_entities.Clear();
 		_selfSyncActive = false;
 		_attackSwing.Reset();
+		_swingSeq = 0;
 	}
 
 	// ---- Sync decisions ----

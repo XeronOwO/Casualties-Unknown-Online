@@ -21,6 +21,12 @@ internal sealed class RemoteBodyDriver : MonoBehaviour
 	/// <summary>Last applied attack-swing flag — the ArmsSwing clip plays only on the flag's rising edge.</summary>
 	public bool PrevAttacking;
 
+	/// <summary>Last applied swing sequence — the ArmsSwing clip replays when the sequence CHANGES (rapid swings inside one held flag window), the flag edge being the old-sender fallback.</summary>
+	public byte PrevSwingSeq;
+
+	/// <summary>The first snapshot seeded PrevSwingSeq — before that a sequence edge is NOT a new swing (the sender may have swung long before this clone existed).</summary>
+	public bool SwingStateSeeded;
+
 	/// <summary>Current climbing state — HandleVisuals overwrites the animator flag every frame.</summary>
 	public bool Climbing;
 

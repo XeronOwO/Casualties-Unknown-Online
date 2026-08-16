@@ -593,3 +593,48 @@ guest-id copy on every screen. The props are therefore declared per-player cours
 - Tests: `TutorialClawPropTests` (reflective marker/scope/patch-shape/contract locks) plus the
   existing item simulation/race suites covering the unchanged spawn-then-pickup transfer.
   899 tests green.
+
+
+## 29. Limb/death/bleed/mining presentation sync — LimbStateEvent + SwingSeq (ProtocolVersion 16)
+
+The character-presentation backlog item is closed with one full-terminal-state event for every
+limb latch, a clone limb renderer fed by the 1 Hz snapshot, and a per-swing sequence for rapid
+mining swings:
+
+- **Trigger family is complete** — `LimbStatePatches` covers `BreakBone` / `MendBone` /
+  `Dislocate` / `UnDislocate` / `Dismember` (Limb.cs:193-273; natural healing reaches
+  MendBone/UnDislocate through Limb.Update, Limb.cs:518-522). Those five methods are the only
+  writers of `broken`/`dislocated`/`dismembered` in the decompiled assembly.
+- **Verified transitions, not post-state** — each patch captures the latch in a prefix
+  `out bool __state` and reports only a false→true / true→false edge; a repeated BreakBone that
+  merely refreshes `boneHealTimer` is not an event. Clones are excluded by `RemoteBodyDriver`.
+- **One operation = one full message** — `LimbStateEventMsg` (NetMsg 93, bidirectional star
+  relay like EnemyBite) carries the owner's WHOLE post-event limb set + `CharacterHealthMsg`,
+  because `Dismember` deactivates lower limbs and mutates connected limbs in the same call
+  (Limb.cs:91-145) and every latch also writes body fields. The host merges via
+  `EnemyTerminalStateApplier.ApplyLimbState` (whole-set replace) into both the saved character
+  and the clone fact table.
+- **Clone limb visuals are applied, never simulated** — `CloneLimbRenderer` replaces the
+  skipped clone `Limb.Update` with the snapshot/event state: replicated brokenBone sprite,
+  both-direction dismember toggle, the full seven shader params
+  (`_SkinDamage/_MuscleDamage/_InfectionPercent/_SnowAmount/_Dirtyness/_Pain/_BloodOverlay/_Wetness`,
+  Limb.cs:487-488/501-506), and the game's >0.95 fur-blood drip threshold. Its bone sprite uses
+  the separate `RemoteCloneLimbRender` marker so the inventory renderer's worn-item cleanup
+  never destroys it.
+- **Rapid mining swings** — `EntityStateMsg.SwingSeq` (proto field 7) is a rolling per-swing
+  sequence published beside the held `IsAttacking` flag; `SwingReplay` replays `ArmsSwing` on
+  every sequence change (each swing inside one held window), keeps the flag rising edge as the
+  old-sender fallback, and only seeds the sequence on the first snapshot (no historical replay).
+- **Death pose L0-locked** — the pump's `(!standing || !alive) && !sleeping` rule is extracted
+  as the pure `LyingPose` machine.
+- **ProtocolVersion 15→16** — a v15 peer would not understand NetMsg 93 and would merge rapid
+  swings; mixed-version sessions are refused instead of silently degrading.
+- **Accepted residuals** — the clone's body-level `FacialExpression` latches (disfigured/eye
+  sprites + the owner's random disfiguredIndex) stay template-driven; underwater/downward
+  fur-blood transfer branches are owner-side simulation, so the synced terminal furBloodAmount
+  is applied directly. Both are recorded in `docs/limb-presentation-selfcheck.md`.
+
+Tests: `LimbStateSyncTests` (wire + star relay + saved merge), `LyingPoseTests`,
+`SwingReplayTests`, `LimbStatePatchTests` (reflective patch/formula surface), extended
+`EnemyTerminalStateApplierTests` / `EntityStateRoundtripTests` / `DirectionTests`. 932 tests green.
+See `docs/limb-presentation-selfcheck.md`.

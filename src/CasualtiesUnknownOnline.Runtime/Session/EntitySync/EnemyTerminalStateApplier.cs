@@ -29,6 +29,25 @@ public static class EnemyTerminalStateApplier
 		health.Stamina = msg.Stamina;
 	}
 
+	/// <summary>A limb-latch event's full terminal state — replace the WHOLE
+	/// limb set with the event's full set (Dismember mutates more than the
+	/// reported limb, so merge-by-index would leave stale lower limbs) and,
+	/// when the reporter carried it, the whole body health record. Shared by
+	/// the host's saved-character merge and the clone fact table so both
+	/// records interpret the event identically.</summary>
+	public static void ApplyLimbState(CharacterDataMsg data, LimbStateEventMsg msg)
+	{
+		if (msg.Limbs.Count > 0)
+		{
+			data.Limbs = [.. msg.Limbs];
+		}
+
+		if (msg.Health is not null)
+		{
+			data.Health = msg.Health;
+		}
+	}
+
 	public static void ApplyEffect(CharacterDataMsg data, EnemyEffectMsg msg)
 	{
 		var health = EnsureHealth(data);
@@ -59,7 +78,8 @@ public static class EnemyTerminalStateApplier
 	private static CharacterHealthMsg EnsureHealth(CharacterDataMsg data) =>
 		data.Health ??= new CharacterHealthMsg();
 
-	private static void ApplyLimb(CharacterDataMsg data, CharacterLimbMsg limb)
+	/// <summary>Replace (or append) one limb's full terminal state by index — exact rebuild, shared by the enemy events and the limb-latch events so both records interpret a limb identically.</summary>
+	public static void ApplyLimb(CharacterDataMsg data, CharacterLimbMsg limb)
 	{
 		var idx = data.Limbs.FindIndex(l => l.Index == limb.Index);
 		if (idx >= 0)

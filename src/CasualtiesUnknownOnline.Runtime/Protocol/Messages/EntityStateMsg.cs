@@ -30,6 +30,16 @@ public sealed class EntityStateMsg
 	[ProtoMember(6)]
 	public uint ExtendedFlags { get; set; }
 
+	/// <summary>
+	/// Rolling per-swing sequence (wraps at 255): the render proxy replays the
+	/// ArmsSwing clip when this CHANGES — every swing, even several inside one
+	/// held IsAttacking window (rapid mining swings below the flag hold would
+	/// otherwise merge into one rising edge). Additive: an old-version peer
+	/// never sends it (stays 0) and the receiver falls back to the flag edge.
+	/// </summary>
+	[ProtoMember(7)]
+	public byte SwingSeq { get; set; }
+
 	/// <summary>Domain → wire lives in <see cref="EntityStateMsgExtensions"/>;
 	/// this applies the wire state back onto a live entity buffer (values + flags).</summary>
 	public void ApplyTo(PlayerEntity target)
@@ -46,5 +56,6 @@ public sealed class EntityStateMsg
 		target.Sleeping = (Flags & 0x40) != 0;
 		target.Climbing = (Flags & 0x80) != 0;
 		target.IsAttacking = (ExtendedFlags & 0x01u) != 0;
+		target.SwingSeq = SwingSeq;
 	}
 }

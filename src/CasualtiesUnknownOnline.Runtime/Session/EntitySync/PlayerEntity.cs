@@ -52,6 +52,14 @@ public sealed class PlayerEntity(ulong steamId, NetworkEntityId entityId, bool i
 	/// </summary>
 	public bool IsAttacking { get; set; }
 
+	/// <summary>
+	/// Rolling per-swing sequence (0 = never swung): the render proxy replays
+	/// the swing clip when this changes — every swing, even several inside one
+	/// held IsAttacking window (rapid mining swings). An old-version sender
+	/// never sets it; the receiver falls back to the flag's rising edge.
+	/// </summary>
+	public byte SwingSeq { get; set; }
+
 	// ---- Render interpolation buffer (guest side only) ----
 	/// <summary>Previous authoritative values, for lerping between snapshots.</summary>
 	public NetVector2 PrevPosition { get; set; }
@@ -85,5 +93,6 @@ public sealed class PlayerEntity(ulong steamId, NetworkEntityId entityId, bool i
 			(Alive ? 0x04 : 0) | (Conscious ? 0x08 : 0) | (Crouching ? 0x10 : 0) |
 			(Sitting ? 0x20 : 0) | (Sleeping ? 0x40 : 0) | (Climbing ? 0x80 : 0)),
 		ExtendedFlags = IsAttacking ? 0x01u : 0u,
+		SwingSeq = SwingSeq,
 	};
 }

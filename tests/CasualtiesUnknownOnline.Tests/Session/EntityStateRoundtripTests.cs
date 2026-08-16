@@ -103,4 +103,22 @@ public class EntityStateRoundtripTests
 
 		Assert.True(target.IsAttacking);
 	}
+
+	[Fact]
+	public void SwingSeq_AppliesIntoEntity_AndRoundTripsBackToWire()
+	{
+		var entity = NewEntity();
+		new EntityStateMsg { SwingSeq = 200 }.ApplyTo(entity);
+
+		Assert.Equal(200, entity.SwingSeq);
+		Assert.Equal(200, entity.ToEntityStateMsg().SwingSeq);
+	}
+
+	[Fact]
+	public void SwingSeq_DefaultsToZero_NeverSwinged()
+	{
+		var entity = NewEntity();
+
+		Assert.Equal(0, entity.ToEntityStateMsg().SwingSeq);
+	}
 }

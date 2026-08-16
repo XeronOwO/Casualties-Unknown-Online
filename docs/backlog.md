@@ -16,13 +16,13 @@ drop-then-pickup view offset determined game-native (CUO never writes the item t
 
 Finish every remaining base-game domain before returning to the Mod API remainder. Proposed
 order (the bullets live in the sections below — no duplicate copies):
-1. World consistency: World generation / determinism, Known game-native issues, and
-   Building-entity damage persistence for late joiners.
-2. World time flow.
-3. Item / entity domain open items (excluding entries explicitly marked accepted).
-4. Character / presentation / combat open items, including Online UI and sound sync.
-5. Persistence + Config.
-6. Tooling / testing debt.
+1. Item / entity domain open items (excluding entries explicitly marked accepted).
+2. Character / presentation / combat open items, including Online UI and sound sync.
+3. Persistence + Config.
+4. Tooling / testing debt.
+World consistency and world time flow are code-complete; their only residual is the final
+dual-side acceptance pass (world fingerprint comparison), folded into the final acceptance
+round under the development-period no-manual-acceptance rule.
 Extension seams for the medium-priority Mod API surfaces are reserved as each native domain
 lands, never bolted on afterwards.
 
@@ -95,21 +95,24 @@ lands, never bolted on afterwards.
 - #87 loading-screen wait info (bottom-right, to be redesigned). The layer-title popup is
   built immediately after `loadingObject` hides (`WorldGeneration.cs:3637`/3640-3659), so it
   can play out invisibly during the host's start-gate wait — fold into the same redesign.
-- RESOLVED (held-light-direction cycle): #119 held light direction on remote clones —
+- RESOLVED (076da7a, held-light-direction cycle): #119 held light direction on remote clones —
   `CustomItemBehaviour.Update` aims flashlight/emergencylight/rangefinder at the LOCAL mouse
   (CustomItemBehaviour.cs:439/512/526); a clone body now re-aims those three hand-slot items at the
   peer's synced `LookPos` via `HeldItemDirectionPatch` (Postfix, `RemoteBodyDriver` + first-snapshot
   gate), the only three local-mouse item-orientation call sites in the game. See
   `docs/held-light-direction-selfcheck.md`.
-- #193 clone shooting direction / recoil (deferred from the 2026-08-13 fix-round plan): no
-  log evidence yet — the next step is a hotrepl runtime check comparing the 20 Hz state-stream
-  `LookPos` against what the clone renders, then decide whether weapon direction/recoil needs
-  its own sync bit.
+- #193 clone shooting direction / recoil (deferred from the 2026-08-13 fix-round plan): the
+  held-light direction family is now covered by #119's fix, but weapon direction/recoil itself
+  still has no log evidence — the next step is a hotrepl runtime check comparing the 20 Hz
+  state-stream `LookPos` against what the clone renders, then decide whether weapon
+  direction/recoil needs its own sync bit.
 - #195 blueprint popup: cosmetic, game-local UI (the unlock fact itself is synced via
   `RecipeUnlock`); revisit with the online-UI pass.
-- RestoreItem slot-conflict handling (#192 follow-up): an occupied target slot with no
-  container currently no-ops and leaves the item at the player position — acceptable for the
-  cross-run leak fix, but the semantics should be made explicit.
+- RestoreItem slot-conflict handling (#192 follow-up): ACCEPTED — the semantics are now
+  explicit in `ItemStateCodec.RestoreItem`: an occupied target slot with a container loads the
+  restored item into it (mirroring SaveSystem.cs:325), and an occupied slot with no container
+  intentionally no-ops, leaving the item at the player position (the cross-run leak fix's
+  accepted fallback).
 - #120 nested container content movement (deferred): items moved inside a carried container
   still ride the 1 Hz snapshot (visible impact is zero until opening another player's
   inventory exists; a `[CharSync]` warning is already logged). When direct player interaction
@@ -149,9 +152,10 @@ lands, never bolted on afterwards.
   needs host-authoritative spawn + broadcast (the #110 pattern); investigate before assuming.
 - High-frequency small drops (shell casings etc.): observe message volume before optimizing —
   batch/rate-limit only if it actually hurts.
-- Geyser replay duplicate report: the replay side's natural `Activate` reports once more (the
-  game's cooldown gate drops it — harmless noise); add an event-origin marker only if the log
-  noise matters.
+- RESOLVED (c6b7d92): Geyser replay duplicate report — the report now rides `TryRumble`'s
+  verified idle→rumbling transition (TrapGeyserPatch), not `Activate`, and `OnTrapTriggered`
+  drops any `RemoteApply` origin; a replay can no longer produce the natural-Activate echo.
+  The earlier "add an event-origin marker only if the log noise matters" option is obsolete.
 - Openable keypad prefab mapping (entity-features table follow-up): `Openable.isKeypad` is a
   runtime resource configuration, so which prefabs carry it is still not enumerated in the
   matrix notes; fill during the next runtime component sweep.
@@ -288,9 +292,10 @@ lands, never bolted on afterwards.
   cover first-writer-wins + loser rollback, unattributed-break refusal, the full interaction
   sequence, a rejected purchase and a delayed three-action sequence; ReplayTests dispatches by
   exclusive domain actions and the SimTrace contract covers every world. 846 tests green.
-- Real-log → replay / SimTrace diff automation: `tools/extract-itemtrace.ps1` extracts the
-  trace, but the real-log-vs-simulation diff is still a manual/CI step; automate the full
-  pipeline when the next replay class lands.
+- Real-log → replay / SimTrace diff automation (now due — the trigger condition landed with
+  the block-break + trade replay worlds): `tools/extract-itemtrace.ps1` extracts the trace,
+  but the real-log-vs-simulation diff is still a manual/CI step; automate the full pipeline
+  next.
 - Patch-contract same-name limitation: `PatchContractTests` identifies targets by name, so a
   same-name overload pair cannot be distinguished (the `LoadSceneAsync` case). Extend the
   contract only when a game update actually hits it.

@@ -327,3 +327,37 @@ snapshot family:
   so mixed-version sessions are refused instead of silently degrading.
 - Tests: registry semantics (`BuildingEntityHealthRegistryTests`), direction table, wire round-trip
   with health 0, and the world-entry/reconnect snapshot groups extended from five to six snapshots.
+
+## 21. Partial block-damage snapshot + metallic damage multiplier (ProtocolVersion 12)
+
+The live `BlockDamaged` relay is delta-based and only aligns peers that were present for every
+hit; a late joiner regenerates every block with zero accumulated `BlockDamage.damage`, so a
+partially-mined block was back at full HP and broke later (the chain desynchronized). The same
+audit found a live-relay multiplier bug: the `DamageBlock` postfix reported the RAW damage but not
+`bonusMetal`, and the receiver hard-coded `false` — a laser (`metalMoreDamage = true`,
+Item.cs:4645) against a metallic tile (WorldGeneration.cs:715 multiplies by 10) applied 10× on the
+attacker and 1× on the peers. Closeout:
+
+- **`BlockDamageRegistry`** (Runtime/World, host-authoritative): block-cell-keyed latest
+  `BlockDamage.damage`, cap 256 (the game's own `blockDamages` list caps at 128,
+  WorldGeneration.cs:732-737), reset with `ResetDamagedBlocks`; a break / applied air write
+  removes the cell.
+- **`BlockDamageSnapshot` (NetMsg 89, host → guest)**: integer block cells + accumulated damage,
+  sent in `HandlerContext.SendWorldStateToMember` (world entry + reconnect) and the 60 s resend.
+  Integer zero coordinates are protobuf zero-omission transparent.
+- **Host recording** — `BlockBreakSync` reads the game's own post-write `BlockDamage.damage` on
+  the local damage path and the host-side remote-damage apply path; the value is already
+  post-metallic-multiplier, so the snapshot carries true accumulated HP.
+- **Guest application is an ABSOLUTE set** — find or create `BlockDamage`, write the host damage,
+  `UpdateSprite`; it never rides `DamageBlock`, so a re-sent snapshot cannot add or go negative.
+  Air cells and `damage >= blockHealth` are skipped (a break is the block-state snapshot's
+  semantic).
+- **`BlockDamagedMsg.MetalBonus` (ProtoMember 4)** — raw damage + source bonus flag; every apply
+  path passes the flag into the receiver's own `DamageBlock`, which multiplies identically on the
+  same generated block type. The pending-break state carries it through the one-frame drops hold.
+- **ProtocolVersion 11→12** — a v11 peer would drop NetMsg 89 and apply the wrong metallic
+  multiplier, so mixed-version sessions are refused instead of silently degrading.
+- Tests: registry semantics (`BlockDamageRegistryTests`), direction table, wire round-trips
+  (origin cell / damage 0 and `MetalBonus = true`), pending-state bonus preservation, the
+  accepted-break relay bonus preservation, and the world-entry/reconnect snapshot groups extended
+  from six to seven snapshots.

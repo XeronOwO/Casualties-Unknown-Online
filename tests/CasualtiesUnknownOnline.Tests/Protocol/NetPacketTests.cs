@@ -141,4 +141,45 @@ public class NetPacketTests
 		Assert.Equal(-34.25f, decoded.Entries[1].Y);
 		Assert.Equal(73.5f, decoded.Entries[1].Health);
 	}
+
+	[Fact]
+	public void BlockDamageSnapshot_OriginZeroDamage_RoundTrips()
+	{
+		// X/Y are ints and Damage is a float — protobuf's zero omission decodes
+		// an omitted 0 back to the SAME 0, so a cell at the origin with zero
+		// accumulated damage is the round-trip's boundary case.
+		var msg = new BlockDamageSnapshotMsg
+		{
+			Entries =
+			[
+				new BlockDamageEntryMsg { X = 0, Y = 0, Damage = 0f },
+				new BlockDamageEntryMsg { X = 12, Y = -34, Damage = 73.5f },
+			],
+		};
+
+		var decoded = NetPacket.DecodePayload<BlockDamageSnapshotMsg>(NetPacket.Encode(NetMsg.BlockDamageSnapshot, msg));
+
+		Assert.Equal(2, decoded.Entries.Count);
+		Assert.Equal(0, decoded.Entries[0].X);
+		Assert.Equal(0, decoded.Entries[0].Y);
+		Assert.Equal(0f, decoded.Entries[0].Damage);
+		Assert.Equal(12, decoded.Entries[1].X);
+		Assert.Equal(-34, decoded.Entries[1].Y);
+		Assert.Equal(73.5f, decoded.Entries[1].Damage);
+	}
+
+	[Fact]
+	public void BlockDamaged_MetalBonusTrue_RoundTrips()
+	{
+		// The ×10 metallic-block multiplier depends on this flag crossing the
+		// wire — a false omission decodes back to false, a true must survive.
+		var decoded = NetPacket.DecodePayload<BlockDamagedMsg>(NetPacket.Encode(NetMsg.BlockDamaged, new BlockDamagedMsg
+		{
+			Position = new NetVector2Msg(3.5f, -4.25f),
+			Damage = 10f,
+			MetalBonus = true,
+		}));
+
+		Assert.True(decoded.MetalBonus, "MetalBonus=true must round-trip");
+	}
 }

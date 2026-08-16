@@ -25,13 +25,13 @@ internal sealed class BlockBreakPendingState
 		Broken,
 	}
 
-	private (float PosX, float PosY, float Dmg, int Frame, long Op, List<BlockDropEntryMsg> Drops)? _pending;
+	private (float PosX, float PosY, float Dmg, bool MetalBonus, int Frame, long Op, List<BlockDropEntryMsg> Drops)? _pending;
 
 	internal Phase Current => _pending is null ? Phase.Idle : Phase.Broken;
 
-	/// <summary>Idle → Broken: the block broke locally — hold the report until the drops are collected. The op id links the pending state to its operation trace.</summary>
-	internal void EnterBreak(float posX, float posY, float dmg, long op, int currentFrame) =>
-		_pending = (posX, posY, dmg, currentFrame, op, []);
+	/// <summary>Idle → Broken: the block broke locally — hold the report until the drops are collected. The op id links the pending state to its operation trace; MetalBonus preserves the source's metallic-block multiplier.</summary>
+	internal void EnterBreak(float posX, float posY, float dmg, bool metalBonus, long op, int currentFrame) =>
+		_pending = (posX, posY, dmg, metalBonus, currentFrame, op, []);
 
 	/// <summary>Broken → stays Broken: one drop's Item.Start ran — fold it in. False when no break is pending (the drop then falls back to a standalone spawn report).</summary>
 	internal bool TryAddDrop(BlockDropEntryMsg drop)
@@ -52,7 +52,7 @@ internal sealed class BlockBreakPendingState
 	/// flushing early would send the break with half its drops (the rest would
 	/// then report as standalone spawns and split the verdict).
 	/// </summary>
-	internal bool TryFlush(int currentFrame, out (float PosX, float PosY, float Dmg, long Op, List<BlockDropEntryMsg> Drops) flushed)
+	internal bool TryFlush(int currentFrame, out (float PosX, float PosY, float Dmg, bool MetalBonus, long Op, List<BlockDropEntryMsg> Drops) flushed)
 	{
 		if (_pending is not { } pending)
 		{
@@ -67,7 +67,7 @@ internal sealed class BlockBreakPendingState
 		}
 
 		_pending = null;
-		flushed = (pending.PosX, pending.PosY, pending.Dmg, pending.Op, pending.Drops);
+		flushed = (pending.PosX, pending.PosY, pending.Dmg, pending.MetalBonus, pending.Op, pending.Drops);
 		return true;
 	}
 

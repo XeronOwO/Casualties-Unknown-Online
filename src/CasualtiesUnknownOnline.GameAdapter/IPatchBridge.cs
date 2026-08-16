@@ -26,7 +26,7 @@ internal interface IPatchBridge
 
 	void OnBlockSet(Vector2Int pos, ushort block);
 
-	void OnBlockDamaged(Vector2 pos, float dmg);
+	void OnBlockDamaged(Vector2 pos, float dmg, bool bonusMetal);
 
 	/// <summary>A player's attack damaged a building entity (Body.cs:1946) — report it (the entity's health is local-only otherwise).</summary>
 	void OnBuildingEntityDamaged(BuildingEntity entity, float damage);

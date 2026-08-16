@@ -61,7 +61,7 @@ public class BlockBreakSimulationTests
 		var accepted = new Counter();
 		var acceptedByG2 = new Counter();
 		var world = host.Services.GetRequiredService<IWorldControl>();
-		world.BlockDamagedReceived += (sender, pos, damage, drops) =>
+		world.BlockDamagedReceived += (sender, pos, damage, metalBonus, drops) =>
 		{
 			// The executor: first-writer-wins — an accepted break relays, a
 			// refused one (the record was already consumed) is dropped silently.
@@ -76,19 +76,20 @@ public class BlockBreakSimulationTests
 				acceptedByG2.Value++; // G2's own accepted breaks relay EXCLUDING G2
 			}
 
-			world.BroadcastBlockDamaged(sender, pos, damage, drops);
+			world.BroadcastBlockDamaged(sender, pos, damage, metalBonus, drops);
 		};
 
 		return new SimWorld(driver, host, g1, g2, g2Received, arbitration, accepted, acceptedByG2);
 	}
 
-	private static void ReportBreak(TestNode guest, int cellX, int cellY, List<BlockDropEntryMsg>? drops = null)
+	private static void ReportBreak(TestNode guest, int cellX, int cellY, List<BlockDropEntryMsg>? drops = null, bool metalBonus = false)
 	{
 		var sender = guest.Services.GetRequiredService<PacketSender>();
 		sender.Send(HostId, NetMsg.BlockDamaged, new BlockDamagedMsg
 		{
 			Position = new NetVector2Msg(cellX + 0.5f, cellY + 0.5f),
 			Damage = 100f,
+			MetalBonus = metalBonus,
 			Drops = drops,
 		});
 	}
@@ -141,6 +142,22 @@ public class BlockBreakSimulationTests
 		var relay = w.G2Received.Single(r => r.Msg == NetMsg.BlockDamaged).Frame;
 		var msg = NetPacket.DecodePayload<BlockDamagedMsg>(relay);
 		Assert.True(msg.Drops != null && msg.Drops.Count == 1 && msg.Drops[0].ItemId == 77, "the accepted break's drops ride the relay");
+	}
+
+	[Fact]
+	public void MetalBonus_RidesTheAcceptedBreakRelay()
+	{
+		var w = CreateWorld();
+		w.Arbitration.RecordAppliedAirWrite(G1Id, 4, 4, now: 0);
+
+		ReportBreak(w.G1, 4, 4, drops: [new BlockDropEntryMsg { ItemId = 78 }], metalBonus: true);
+		w.Driver.Tick(33);
+
+		// The accepted break's relay must preserve the bonus flag — the peer's
+		// DamageBlock applies the game's ×10 metallic multiplier from it.
+		var relay = w.G2Received.Single(r => r.Msg == NetMsg.BlockDamaged).Frame;
+		var msg = NetPacket.DecodePayload<BlockDamagedMsg>(relay);
+		Assert.True(msg.MetalBonus, "the accepted break's relay must carry the source's bonus-metal flag");
 	}
 
 	[Theory]

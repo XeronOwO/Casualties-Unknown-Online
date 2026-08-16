@@ -127,6 +127,7 @@ public static class CuoBootstrap
 		services.AddSingleton<TrapConsumptionRegistry>(); // the one-shot trap-consumption table
 		services.AddSingleton<OpenedEntityRegistry>(); // the opened lockable-entity table (the late-joiner snapshot's source)
 		services.AddSingleton<BuildingEntityHealthRegistry>(); // the damaged building-entity health table (the late-joiner snapshot's source)
+		services.AddSingleton<BlockDamageRegistry>(); // the partial block-damage table (the late-joiner snapshot's source)
 		services.AddSingleton<TrapLayoutRegistry>(); // the generated trap-entity layout (the host's entity-distribution authority)
 		services.AddSingleton<EntityEventChannel>(); // the entity event/creation channels + the consumption/opened/health registries
 		services.AddSingleton<TradeChannel>(); // the trader state/action channel (trade domain)

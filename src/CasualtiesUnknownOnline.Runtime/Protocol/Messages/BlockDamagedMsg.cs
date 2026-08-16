@@ -23,4 +23,13 @@ public sealed class BlockDamagedMsg
 	/// <summary>The drops the BREAK created on the damaging side (null/empty = damage only — the block survived).</summary>
 	[ProtoMember(3)]
 	public List<BlockDropEntryMsg>? Drops { get; set; }
+
+	/// <summary>
+	/// The damage source had <c>bonusMetal</c> set (e.g. the laser tool,
+	/// Item.cs:4645). The receiver passes this into its own
+	/// <c>DamageBlock</c> so the game applies the same ×10 metallic-block
+	/// multiplier (WorldGeneration.cs:715) — the raw Damage stays raw.
+	/// </summary>
+	[ProtoMember(4)]
+	public bool MetalBonus { get; set; }
 }

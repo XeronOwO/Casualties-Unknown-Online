@@ -449,7 +449,7 @@ public sealed partial class GameAdapter : IGameAdapter, ICuoService, IPatchBridg
 
 	void IPatchBridge.OnBlockSet(Vector2Int pos, ushort block) => _worldEventSync.OnBlockSet(pos, block);
 
-	void IPatchBridge.OnBlockDamaged(Vector2 pos, float dmg) => _blockBreakSync.OnBlockDamaged(pos, dmg);
+	void IPatchBridge.OnBlockDamaged(Vector2 pos, float dmg, bool bonusMetal) => _blockBreakSync.OnBlockDamaged(pos, dmg, bonusMetal);
 
 	void IPatchBridge.OnBuildingEntityDamaged(BuildingEntity entity, float damage)
 	{

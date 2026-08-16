@@ -45,4 +45,10 @@ public interface ICharacterDataControl
 
 	/// <summary>Report/broadcast a limb-latch event: a guest reports its own limb latch to the host; the host broadcasts its own to every guest. Reliable — the trigger rides the event, never the snapshot.</summary>
 	void SendLimbStateEvent(LimbStateEventMsg msg);
+
+	/// <summary>Surface an arrived character-sound event (report or relay) for the Game Adapter to replay on the owner's clone.</summary>
+	void FireCharacterSoundReceived(ulong sender, CharacterSoundMsg msg);
+
+	/// <summary>Report/broadcast a character action sound: a guest reports its own sound to the host; the host broadcasts its own to every guest. One sound = one message.</summary>
+	void SendCharacterSound(CharacterSoundMsg msg);
 }

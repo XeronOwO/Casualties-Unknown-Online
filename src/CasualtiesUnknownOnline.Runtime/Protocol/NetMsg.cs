@@ -153,4 +153,8 @@ public enum NetMsg : byte
 	// Limb presentation (local compute → report → apply → fan-out: a limb's
 	// latch changed on its owner's local simulation — break/mend/dismember)
 	LimbStateEvent = 93, // bidirectional: guest → host report of the owner's own limb latch; host → guest broadcast relay (source excluded) — carries the body's full post-event limb + health terminal state
+
+	// Character sound (one-shot presentation event: the owner's action already
+	// played its sound locally, the peers replay it on the owner's clone)
+	CharacterSound = 94, // bidirectional: guest → host report of the owner's own action sound; host → guest broadcast relay (source excluded)
 }

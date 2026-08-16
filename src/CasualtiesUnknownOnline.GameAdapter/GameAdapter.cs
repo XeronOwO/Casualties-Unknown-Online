@@ -151,6 +151,7 @@ public sealed partial class GameAdapter : IGameAdapter, ICuoService, IPatchBridg
 		_enemySync = new EnemySyncCoordinator(session, enemies, mapper, _characterDataSync, loggerFactory.CreateLogger<EnemySyncCoordinator>());
 		_enemyCombat = new EnemyCombatDirector(session, entities, enemies, _enemySync, _renderer, loggerFactory.CreateLogger<EnemyCombatDirector>());
 		_enemyProximity = new EnemyProximitySync(session, enemies, _characterDataSync, loggerFactory.CreateLogger<EnemyProximitySync>());
+		_characterSoundSync = new CharacterSoundSync(characterData, session, _renderer, loggerFactory.CreateLogger<CharacterSoundSync>());
 		_lifePod = new LifePodPresentation(loggerFactory.CreateLogger<LifePodPresentation>());
 		_guestMenu = new GuestMenuGuard(session, loggerFactory.CreateLogger<GuestMenuGuard>());
 		_worldParams = new WorldParamsService(world, loggerFactory.CreateLogger<WorldParamsService>());
@@ -356,6 +357,7 @@ public sealed partial class GameAdapter : IGameAdapter, ICuoService, IPatchBridg
 		_recipeUnlockApply.BindToSession();
 		_enemySync.BindToSession();
 		_enemyProximity.BindToSession();
+		_characterSoundSync.BindToSession();
 		_worldTimeSync.BindToSession();
 		_run.BindToSession();
 		_session.SessionEnded += OnSessionEnded;
@@ -388,6 +390,7 @@ public sealed partial class GameAdapter : IGameAdapter, ICuoService, IPatchBridg
 		_recipeUnlockApply.Unbind();
 		_enemySync.Unbind();
 		_enemyProximity.Unbind();
+		_characterSoundSync.Unbind();
 		_craftingSync.ResetPending(); // the destroy claims die with the scene
 		_run.Unbind();
 		_session.SessionEnded -= OnSessionEnded;
@@ -463,8 +466,6 @@ public sealed partial class GameAdapter : IGameAdapter, ICuoService, IPatchBridg
 		_worldEventSync.OnBuildingEntityDamaged(entity, damage);
 		_enemySync.RecordLocalAttack(entity, damage); // a guest's local drop on a frozen enemy must not flash-revert on the next batch
 	}
-
-	void IPatchBridge.OnArmSwing() => _entities.MarkLocalAttackSwing();
 
 	void IPatchBridge.OnBuildingEntityOpened(BuildingEntity entity) =>
 		_worldEventSync.OnBuildingEntityOpened(entity);

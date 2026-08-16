@@ -273,6 +273,9 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable
 	/// <summary>A limb-latch event arrived (report or relay) — the Game Adapter applies the limb's terminal state to the owner's clone.</summary>
 	public event Action<ulong, LimbStateEventMsg>? LimbStateEventReceived;
 
+	/// <summary>A character action sound arrived (report or relay) — the Game Adapter replays it on the owner's clone.</summary>
+	public event Action<ulong, CharacterSoundMsg>? CharacterSoundReceived;
+
 	/// <summary>Host side: merge a limb-latch event's full terminal state into the owner's saved snapshot immediately — a disconnect before the next 1 Hz report must still restore every changed limb + body field (the dedicated event is the trigger; the snapshot is only the fallback).</summary>
 	public void ApplyLimbStateEvent(LimbStateEventMsg msg)
 	{
@@ -306,6 +309,31 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable
 		else
 		{
 			_sender.Send(_session.HostSteamId, NetMsg.LimbStateEvent, msg);
+		}
+	}
+
+	/// <summary>
+	/// Report/broadcast a character action sound: a guest reports its own sound
+	/// to the host; the host broadcasts its own to every handshaken guest (it
+	/// already heard the sound locally). Reliable — one sound = one message,
+	/// the presentation trigger never rides the snapshot stream.
+	/// </summary>
+	public void SendCharacterSound(CharacterSoundMsg msg)
+	{
+		if (!_session.SessionActive)
+		{
+			return;
+		}
+
+		if (_session.Role == SessionRole.Host)
+		{
+			_sender.SendToAll(
+				_session.Members.Where(m => m.Handshaken && m.SteamId != _session.LocalSteamId).Select(m => m.SteamId),
+				NetMsg.CharacterSound, msg, reliable: true);
+		}
+		else
+		{
+			_sender.Send(_session.HostSteamId, NetMsg.CharacterSound, msg);
 		}
 	}
 
@@ -353,4 +381,9 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable
 		LimbStateEventReceived?.Invoke(sender, msg);
 
 	void ICharacterDataControl.SendLimbStateEvent(LimbStateEventMsg msg) => SendLimbStateEvent(msg);
+
+	void ICharacterDataControl.FireCharacterSoundReceived(ulong sender, CharacterSoundMsg msg) =>
+		CharacterSoundReceived?.Invoke(sender, msg);
+
+	void ICharacterDataControl.SendCharacterSound(CharacterSoundMsg msg) => SendCharacterSound(msg);
 }

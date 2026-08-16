@@ -181,6 +181,7 @@ internal static class BodyPatches
 		{
 			internal bool WillRun;
 			internal List<(BuildingEntity, float)> Entities = [];
+			internal IDisposable? SoundScope;
 		}
 
 		private static void Prefix(Body __instance, AttackInfo atk, out AttackState __state)
@@ -188,10 +189,18 @@ internal static class BodyPatches
 			// A postfix can't tell a real swing from a no-op: attackCooldown is
 			// also > 0 for a no-op while a previous cooldown is still active.
 			// Capture the exact guard the original checks (Body.cs:1843, 1885).
+			// The character-sound capture scope: string Sound.Play calls that
+			// run inside the native attack are the swing/exert sounds. A render
+			// clone never attacks — no scope, no capture (its Body.Update is
+			// already skipped, this is the belt-and-braces guard).
 			__state = new AttackState
 			{
 				WillRun = __instance.conscious && __instance.attackCooldown <= 0f && atk.doAttackAnim,
+				SoundScope = __instance.GetComponentInParent<RemoteBodyDriver>() == null
+					? CallContext.Enter(CallContext.Origin.CharacterAttack)
+					: null,
 			};
+
 			foreach (var entity in UnityEngine.Object.FindObjectsOfType<BuildingEntity>())
 			{
 				__state.Entities.Add((entity, entity.health));
@@ -200,6 +209,7 @@ internal static class BodyPatches
 
 		private static void Postfix(AttackState __state)
 		{
+			__state.SoundScope?.Dispose();
 			if (__state.WillRun)
 			{
 				PatchBridge.Impl?.OnArmSwing();
@@ -213,6 +223,24 @@ internal static class BodyPatches
 				}
 			}
 		}
+	}
+
+	/// <summary>
+	/// Body.TryExertSound (Body.cs:2103-2109) plays one of the four exert clips
+	/// when its Random gate passes — the call-identity scope around it lets the
+	/// Sound.Play patch report the exact chosen clip. Called directly by Attack/
+	/// Jump/other body actions and patched once here instead of at every call
+	/// site (whole-family coverage).
+	/// </summary>
+	[HarmonyPatch(typeof(Body), "TryExertSound")]
+	internal static class BodyTryExertSoundPatch
+	{
+		private static void Prefix(Body __instance, out IDisposable? __state) =>
+			__state = __instance.GetComponentInParent<RemoteBodyDriver>() == null
+				? CallContext.Enter(CallContext.Origin.CharacterExert)
+				: null;
+
+		private static void Postfix(IDisposable? __state) => __state?.Dispose();
 	}
 
 	[HarmonyPatch(typeof(Body), "WearWearable")]

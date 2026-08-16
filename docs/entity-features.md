@@ -209,6 +209,15 @@ Blinding/Irradiated) are excluded: each side's body is simulated locally.
 | GunmineScript | excluded | hand-placed — outside the generation stream |
 | SawbladeScript | excluded | hand-placed — outside the generation stream |
 
+**Openable prefab configuration (asset sweep 2026-08-16):** the serialized
+`Openable` components are all in `resources.assets` (17 instances, 11 root
+prefabs). `isKeypad = true` only on the `dropcapsule` prefab and on the two
+nested `dropcapsule` props inside `Structures/BrickLoot`; `instantOpen = true`
+only on `foodbox` (root + the nested copy in `BioContainer`). Every other
+`Openable` is lockpick: `containercrate` precision 0.5, `medcrate` 1.25,
+`lifepodchest` 4.0. Evidence and scan method:
+`docs/openable-keypad-prefabs-selfcheck.md`.
+
 ## Creatures
 
 Enemy AI is covered by the host-authoritative enemy-sync domain

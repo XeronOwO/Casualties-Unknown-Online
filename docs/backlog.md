@@ -186,9 +186,17 @@ lands, never bolted on afterwards.
   verified idle→rumbling transition (TrapGeyserPatch), not `Activate`, and `OnTrapTriggered`
   drops any `RemoteApply` origin; a replay can no longer produce the natural-Activate echo.
   The earlier "add an event-origin marker only if the log noise matters" option is obsolete.
-- Openable keypad prefab mapping (entity-features table follow-up): `Openable.isKeypad` is a
-  runtime resource configuration, so which prefabs carry it is still not enumerated in the
-  matrix notes; fill during the next runtime component sweep.
+- RESOLVED (2026-08-16, docs-only): Openable keypad prefab mapping — a full
+  serialized-asset sweep of every MonoBehaviour under the game data folder
+  (2688 components) found exactly 17 `Openable` instances, all in
+  `resources.assets`, and decoded the three serialized fields at raw offsets
+  32/36/40 (`instantOpen` / `isKeypad` / `lockpickAnglePrecision`).
+  `isKeypad = true` only on the `dropcapsule` prefab and on the two nested
+  `dropcapsule` props inside `Structures/BrickLoot`; every other Openable is
+  lockpick (`containercrate` 0.5, `medcrate` 1.25, `lifepodchest` 4.0) or
+  instant-open (`foodbox`). The decode sanity-checks against the native
+  semantics (`Openable.cs:8-32`, `KeypadMinigame.cs:76`, `LockpingMinigame.cs`,
+  locale `v1.8.3.json`). See `docs/openable-keypad-prefabs-selfcheck.md`.
 - Accepted item/fluid boundaries from memory (non-blocking): guest item-vs-player and
   item-vs-item push are disabled by the layer isolation (the position stream + soft
   correction self-heal); geyser mid-eruption fluid writes cannot be patched out, so the 1 Hz

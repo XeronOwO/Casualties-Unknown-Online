@@ -232,7 +232,26 @@ lands, never bolted on afterwards.
   `BlockDamage.damage` to late joiners/reconnects on world entry and the 60 s resend (absolute
   set — never an additive delta). See `docs/block-damage-progressive-selfcheck.md`; 778 tests
   green.
-- Death-pose / limb / bleed / mining presentation-state sync.
+- RESOLVED (2026-08-16, ProtocolVersion 16): death-pose / limb / bleed / mining
+  presentation-state sync — the remote clone now renders the owner's full limb wound state
+  from the 1 Hz character snapshot (`CloneLimbRenderer` + the pure `LimbPresentation`
+  formulas: brokenBone sprite, both-direction dismember toggle, all seven wound/bleed
+  shader params, and the game's >0.95 fur-blood drip threshold). Every limb latch
+  (BreakBone/MendBone/Dislocate/UnDislocate/Dismember) travels as a dedicated
+  `LimbStateEvent` (NetMsg 93, ProtocolVersion 16) carrying the body's FULL post-event
+  limb + health state — one operation = one message, exact rebuild, so Dismember's lower/
+  connected-limb mutations and the body side effects never wait for the snapshot. The
+  patches report verified false→true / true→false transitions only, the host merges the
+  event into the saved character immediately, and the clone fact-table divergence monitor
+  now watches broken/dismembered/dislocated. Rapid mining swings ride a rolling
+  `EntityStateMsg.SwingSeq` beside the held `IsAttacking` flag, so every `ArmsSwing` clip
+  replays even inside one held flag window; the first snapshot only seeds the sequence and
+  the old-sender flag edge stays as fallback. The death/unconscious lying rule is extracted
+  as the pure `LyingPose` machine. See `docs/limb-presentation-selfcheck.md`; 932 tests
+  green (L0 simulation + reflective patch surface + static evidence, no manual acceptance).
+  Accepted residuals: the clone's body-level FacialExpression latches (disfigured/eye
+  sprites + the owner's disfiguredIndex) stay template-driven, and the underwater/downward
+  fur-blood transfer branches are owner-side simulation — both recorded in the self-check.
 - Accepted presentation gaps from the entity-domain memory (non-blocking; several are already
   recorded in `docs/event-replay-matrix.csv`): mine 0.8 s press visual, CrystalUnstable 5 s
   ticking, remote building-destruction particles, sound-cannon burst effect trigger-side-only,

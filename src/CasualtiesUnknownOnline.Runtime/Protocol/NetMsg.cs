@@ -126,4 +126,9 @@ public enum NetMsg : byte
 	// and answers with a directed result)
 	ModCommandRequest = 86, // guest → host: invoke a registered mod command
 	ModCommandResult = 87, // host → guest: the command result (directed to the requester)
+
+	// Damaged building entities (the late-joiner snapshot — live damage is a
+	// position-keyed relay, but a late joiner regenerates every entity at full
+	// health, so it must learn the host's current entity health)
+	BuildingEntityHealthSnapshot = 88, // host → guest: current building-entity health records (world entry / 60 s resend)
 }

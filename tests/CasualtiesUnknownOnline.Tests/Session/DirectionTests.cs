@@ -57,6 +57,7 @@ public class DirectionTests
 		NetMsg.ItemCarriedSync,
 		NetMsg.OpenedEntitiesSnapshot,
 		NetMsg.TrapLayoutSnapshot,
+		NetMsg.BuildingEntityHealthSnapshot,
 		NetMsg.EnemyState,
 		NetMsg.EnemySnapshot,
 		NetMsg.EnemyAttack,

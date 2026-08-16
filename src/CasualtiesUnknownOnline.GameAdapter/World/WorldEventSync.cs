@@ -51,6 +51,7 @@ internal sealed class WorldEventSync(
 		_world.EarthquakeStartReceived += OnEarthquakeStartReceived;
 		_world.KeypadCodeReceived += OnKeypadCodeReceived;
 		_world.OpenedEntitiesSnapshotReceived += OnOpenedEntitiesSnapshot;
+		_world.BuildingEntityHealthSnapshotReceived += OnBuildingEntityHealthSnapshot;
 		_session.RemoteSceneChanged += OnRemoteSceneChanged;
 	}
 
@@ -64,6 +65,7 @@ internal sealed class WorldEventSync(
 		_world.EarthquakeStartReceived -= OnEarthquakeStartReceived;
 		_world.KeypadCodeReceived -= OnKeypadCodeReceived;
 		_world.OpenedEntitiesSnapshotReceived -= OnOpenedEntitiesSnapshot;
+		_world.BuildingEntityHealthSnapshotReceived -= OnBuildingEntityHealthSnapshot;
 		_session.RemoteSceneChanged -= OnRemoteSceneChanged;
 	}
 
@@ -110,6 +112,7 @@ internal sealed class WorldEventSync(
 					_world.SendBlockStateSnapshot(member.SteamId);
 					_world.SendTrapStateSnapshot(member.SteamId); // the one-shot trap consumptions ride the same world-entry resend (idempotent)
 					_world.SendOpenedEntitiesSnapshot(member.SteamId); // same for the opened entities (idempotent)
+					_world.SendBuildingEntityHealthSnapshot(member.SteamId); // same for the damaged building entities (idempotent)
 				}
 			}
 
@@ -133,6 +136,7 @@ internal sealed class WorldEventSync(
 
 		var pos = entity.transform.position;
 		_world.SendBuildingEntityDamaged(new NetVector2(pos.x, pos.y), damage);
+		_world.ReportBuildingEntityHealth(pos.x, pos.y, entity.health); // host-only — the late-joiner snapshot's fact source
 		_trace.End(_trace.NextOperationId(), 0, "OnBuildingEntityDamaged", "Committed(1)", "EntityDamage");
 	}
 
@@ -158,6 +162,8 @@ internal sealed class WorldEventSync(
 				{
 					entity.gameObject.AddComponent<RemoteEntityDeath>();
 				}
+
+				_world.ReportBuildingEntityHealth(pos.X, pos.Y, entity.health); // host-only — a guest-reported hit applied here is part of the authoritative history
 			}
 			else
 			{
@@ -180,6 +186,7 @@ internal sealed class WorldEventSync(
 
 		var pos = entity.transform.position;
 		_world.SendBuildingEntityOpened(new NetVector2(pos.x, pos.y));
+		_world.ReportBuildingEntityHealth(pos.x, pos.y, entity.health); // an open is health = 0 — the snapshot covers it too
 		_trace.End(_trace.NextOperationId(), 0, "OnBuildingEntityOpened", "Committed(1)", "Open");
 	}
 
@@ -199,6 +206,7 @@ internal sealed class WorldEventSync(
 			{
 				entity.health = 0f;
 				entity.gameObject.AddComponent<RemoteEntityDeath>();
+				_world.ReportBuildingEntityHealth(pos.X, pos.Y, 0f); // host-only — the opened state is part of the late-joiner history
 			}
 			else
 			{
@@ -221,6 +229,44 @@ internal sealed class WorldEventSync(
 		}
 
 		_log.LogInformation("Opened-entities snapshot applied ({Count} positions).", positions.Count);
+	}
+
+	/// <summary>
+	/// The host's building-entity health snapshot arrived (world entry / the
+	/// 60 s resend) — apply every entry through the SAME semantic as the live
+	/// relay: write the host's current health, and mark a death applied here as
+	/// remote so this side never rolls a second set of drops. Idempotent by
+	/// construction: writing the same health again is a no-op.
+	/// </summary>
+	private void OnBuildingEntityHealthSnapshot(IReadOnlyList<BuildingEntityHealthEntryMsg> entries)
+	{
+		foreach (var entry in entries)
+		{
+			ApplyRemoteBuildingEntityHealth(entry.X, entry.Y, entry.Health);
+		}
+
+		_log.LogInformation("Building-entity health snapshot applied ({Count} entities).", entries.Count);
+	}
+
+	private void ApplyRemoteBuildingEntityHealth(float x, float y, float health)
+	{
+		using (CallContext.Enter(CallContext.Origin.RemoteApply))
+		{
+			var hit = Physics2D.OverlapPoint(new Vector2(x, y));
+			var entity = hit != null ? hit.GetComponent<BuildingEntity>() : null; // Unity object — ==
+			if (entity != null)
+			{
+				entity.health = health;
+				if (entity.health < 0.5f)
+				{
+					entity.gameObject.AddComponent<RemoteEntityDeath>();
+				}
+			}
+			else
+			{
+				_log.LogWarning("Building-entity health snapshot at ({X}, {Y}) — no entity there (moved or already gone).", x, y);
+			}
+		}
 	}
 
 	/// <summary>

@@ -115,4 +115,30 @@ public class NetPacketTests
 
 		Assert.Equal(0, decoded.RecipeIndex);
 	}
+
+	[Fact]
+	public void BuildingEntityHealthSnapshot_ZeroHealth_RoundTrips()
+	{
+		// X/Y/Health are floats — protobuf's zero omission decodes an omitted
+		// 0 back to the SAME 0, so a destroyed entity (health 0) at the origin
+		// is the round-trip's boundary case.
+		var msg = new BuildingEntityHealthSnapshotMsg
+		{
+			Entries =
+			[
+				new BuildingEntityHealthEntryMsg { X = 0f, Y = 0f, Health = 0f },
+				new BuildingEntityHealthEntryMsg { X = 12.5f, Y = -34.25f, Health = 73.5f },
+			],
+		};
+
+		var decoded = NetPacket.DecodePayload<BuildingEntityHealthSnapshotMsg>(NetPacket.Encode(NetMsg.BuildingEntityHealthSnapshot, msg));
+
+		Assert.Equal(2, decoded.Entries.Count);
+		Assert.Equal(0f, decoded.Entries[0].X);
+		Assert.Equal(0f, decoded.Entries[0].Y);
+		Assert.Equal(0f, decoded.Entries[0].Health);
+		Assert.Equal(12.5f, decoded.Entries[1].X);
+		Assert.Equal(-34.25f, decoded.Entries[1].Y);
+		Assert.Equal(73.5f, decoded.Entries[1].Health);
+	}
 }

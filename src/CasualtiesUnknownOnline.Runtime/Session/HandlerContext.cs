@@ -48,6 +48,8 @@ public sealed class HandlerContext(ISessionControl session, IEntitySyncControl e
 	///   periodic resend — a rejoin saw spent traps fire up to a minute late);
 	/// - opened-entities: one-shot opens (an open has no re-open — a rejoin
 	///   must learn them from the host; observed: the pod door closed again);
+	/// - building-entity health: current damage/destroy state (a rejoin would
+	///   otherwise regenerate destroyed plants/crates at full health);
 	/// - trap-layout: the generated trap positions (the entity distribution
 	///   runs physics queries the random isolation does not cover, so the
 	///   member's layout diverges — the host's scene is the authority);
@@ -61,6 +63,7 @@ public sealed class HandlerContext(ISessionControl session, IEntitySyncControl e
 		World.SendBlockStateSnapshot(steamId);
 		World.SendTrapStateSnapshot(steamId);
 		World.SendOpenedEntitiesSnapshot(steamId);
+		World.SendBuildingEntityHealthSnapshot(steamId);
 		World.SendTrapLayoutSnapshot(steamId);
 		Items.SendItemSnapshot(steamId);
 		Enemies.SendEnemySnapshot(steamId);

@@ -46,7 +46,7 @@ public class ReconnectWorldSnapshotTests
 	}
 
 	[Fact]
-	public void GuestReconnects_WhileStillInWorld_ReceivesAllFiveWorldSnapshotsAgain()
+	public void GuestReconnects_WhileStillInWorld_ReceivesAllSixWorldSnapshotsAgain()
 	{
 		using var w = ItemSimWorld.Create();
 
@@ -55,6 +55,7 @@ public class ReconnectWorldSnapshotTests
 		hostWorld.ReportTrapLayout(EntityEventKind.SpikeStabbed, -13f, 466.8f, "spikestabber");
 		hostWorld.ReportTrapConsumed(EntityEventKind.MineExploded, 10f, 20f, extra: 0);
 		hostWorld.ReportOpenedEntity(30f, 40f);
+		hostWorld.ReportBuildingEntityHealth(50f, 60f, 25f);
 		hostWorld.ReportBlockState(5, 6, 7);
 		w.Spawn(w.G1, 100, new CharacterItemMsg { ItemId = "ore", Condition = 1f });
 
@@ -71,6 +72,7 @@ public class ReconnectWorldSnapshotTests
 		Assert.True(w.ReceivedCount(w.G1, NetMsg.TrapLayoutSnapshot) >= 2, $"reconnect: trap layout, got {w.ReceivedCount(w.G1, NetMsg.TrapLayoutSnapshot)}");
 		Assert.True(w.ReceivedCount(w.G1, NetMsg.TrapStateSnapshot) >= 2, $"reconnect: trap state, got {w.ReceivedCount(w.G1, NetMsg.TrapStateSnapshot)}");
 		Assert.True(w.ReceivedCount(w.G1, NetMsg.OpenedEntitiesSnapshot) >= 2, $"reconnect: opened entities, got {w.ReceivedCount(w.G1, NetMsg.OpenedEntitiesSnapshot)}");
+		Assert.True(w.ReceivedCount(w.G1, NetMsg.BuildingEntityHealthSnapshot) >= 2, $"reconnect: building-entity health, got {w.ReceivedCount(w.G1, NetMsg.BuildingEntityHealthSnapshot)}");
 		Assert.True(w.ReceivedCount(w.G1, NetMsg.WorldBlockState) >= 2, $"reconnect: block state, got {w.ReceivedCount(w.G1, NetMsg.WorldBlockState)}");
 		Assert.True(w.ReceivedCount(w.G1, NetMsg.ItemSnapshot) >= 2, $"reconnect: world items, got {w.ReceivedCount(w.G1, NetMsg.ItemSnapshot)}");
 	}

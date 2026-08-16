@@ -402,3 +402,35 @@ its own request/policy split and pure decision machine:
 - Tests: `WorldTimePolicyTests` (pure policy matrix), `WorldTimeFlowTests` (request/broadcast
   over the real wire), direction-table rows, protobuf zero-omission round-trip, and
   `PatchContractTests` re-verifies both new PlayerCamera patches against the game assembly.
+
+## 23. CrystalMimic trigger sync — one-shot latch event + EntitySpawned enemies (ProtocolVersion 14)
+
+CrystalMimic spawns 1-2 `crystalenemy` on its first touch/attack and latches `activated`
+(CrystalMimic.cs:23-49). The spawns already ride the generic `EntitySpawned` channel and the
+runtime enemy-spawn binding; the missing piece was the latch: a peer whose mimic stayed
+unconsumed would spawn a SECOND set on its own collision/attack. Closeout:
+
+- **`CrystalMimicTriggered` (EntityEventKind 30, one-shot)** — observed on the PUBLIC
+  `CrystalBehaviour.OnCollisionEnter2D` / `BuildingHit` dispatchers (the exact entry points that
+  call the internal effect, CrystalBehaviour.cs:74-88); the patch reports the mimic `activated`
+  false→true edge. No dynamic patch target needed.
+- **Host apply / guest replay** — `TrapStateActions.ApplyCrystalMimic` writes the latch only
+  (never spawns from the event); live replays play the trigger side's exact 2D `observerlaugh`
+  call (CrystalMimic.cs:29/43). A late-joiner snapshot replay is state-only (silent).
+- **Spawn chain unchanged** — the game-created `crystalenemy` entities ride `EntitySpawned` +
+  `EnemySyncCoordinator` runtime binding; late joiners materialize them from
+  `EnemySnapshot.RuntimeSpawns`. Enemy `SetColor` re-rolls per side and is a recorded
+  presentation gap (no color wire field).
+- **Channel family fixes landed in the same round** — (a) host-triggered one-shot events now
+  record into `TrapConsumptionRegistry` in `EntityEventChannel.SendEntityEvent` (the host is not
+  in its own presence table, so the old remote-report-only path lost every host-triggered
+  consumption for late joiners); (b) `EntityEventHandler` / `EntitySpawnedHandler` no longer
+  broadcast — the adapter domain (`EntityEventSync` / `EntitySpawnSync`) is the single relay
+  owner, which removes the duplicate relay every guest used to receive.
+- **ProtocolVersion 13→14** — a v13 peer would leave the mimic's latch unconsumed and re-trigger
+  the crystalenemy spawn, so mixed-version sessions are refused instead of silently degrading.
+- Tests: the combinatorial entity-event suite auto-runs the new kind; new simulations lock the
+  host-triggered late-joiner snapshot, the event/spawn channel split, and exactly-one relays;
+  `GameFieldContractTests` locks `CrystalBehaviour.effects` + `CrystalMimic.activated`;
+  `PatchContractTests` locks the two `CrystalBehaviour` dispatcher patches and the now-complete
+  7-entry dynamic patch inventory.

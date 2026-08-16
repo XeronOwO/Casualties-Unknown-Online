@@ -63,6 +63,8 @@ public class GameFieldContractTests
 		("CrystalMetamorphic", "activated", Kind.Field, typeof(bool), "the touch latch (TrapCrystalPatch.MetamorphicTouchedPatch)"),
 		("CrystalShy", "activated", Kind.Field, typeof(bool), "the touch latch (TrapCrystalPatch.ShyTouchedPatch)"),
 		("CrystalEMP", "activated", Kind.Field, typeof(bool), "the TryEMP latch (TrapCrystalPatch.EmpTryEMPPatch)"),
+		("CrystalMimic", "activated", Kind.Field, typeof(bool), "the touch/hit latch (CrystalMimicAccess, TrapCrystalPatch mimic patches, TrapStateActions.ApplyCrystalMimic)"),
+		("CrystalBehaviour", "effects", Kind.Field, null, "the crystal effect list — read UNTYPED as IEnumerable (CrystalMimicAccess.Find); the adapter only needs the mimic's type name + activated field"),
 		// The trader domain.
 		("TraderScript", "desiredPos", Kind.Field, "UnityEngine.Vector2", "the walk target (TradeExecutor)"),
 		("TraderScript", "freeAmount", Kind.Field, typeof(int), "the free-give quota (TradeExecutor.Read, TradeStateSync)"),

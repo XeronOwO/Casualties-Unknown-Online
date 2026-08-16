@@ -105,6 +105,14 @@ internal sealed class TrapEffectApplier(ILogger<TrapEffectApplier> log)
 			case EntityEventKind.CrystalMetamorphicTriggered:
 				ApplyState<CrystalBehaviour>(position, kind, TrapStateActions.ApplyCrystalMetamorphic);
 				break;
+			case EntityEventKind.CrystalMimicTriggered:
+				// The enemies spawned on the triggering side; the host does NOT
+				// spawn from the event — the EntitySpawned reports create and
+				// relay the crystalenemy copies. This only consumes the latch
+				// (so the host's own copy cannot spawn a second set) and plays
+				// the live laugh.
+				ApplyState<CrystalBehaviour>(position, kind, c => TrapStateActions.ApplyCrystalMimic(c, playSound: true));
+				break;
 			case EntityEventKind.CrystalShySwapped:
 				ApplyState<CrystalBehaviour>(position, kind, TrapStateActions.ApplyCrystalShy);
 				break;

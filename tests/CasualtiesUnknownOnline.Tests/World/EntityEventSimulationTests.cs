@@ -178,11 +178,13 @@ public class EntityEventSimulationTests
 	}
 
 	[Fact]
-	public void EntitySpawned_RelayedExcludingSource()
+	public void EntitySpawned_DomainRelaysOnce_ToEveryMember()
 	{
 		var w = EntityEventSimWorld.Create();
-		var spawns = new List<EntitySpawnedMsg>();
-		w.G2.Services.GetRequiredService<IWorldControl>().EntitySpawnedReceived += (_, msg) => spawns.Add(msg);
+		var g1Spawns = new List<EntitySpawnedMsg>();
+		var g2Spawns = new List<EntitySpawnedMsg>();
+		w.G1.Services.GetRequiredService<IWorldControl>().EntitySpawnedReceived += (_, msg) => g1Spawns.Add(msg);
+		w.G2.Services.GetRequiredService<IWorldControl>().EntitySpawnedReceived += (_, msg) => g2Spawns.Add(msg);
 
 		w.G1.Services.GetRequiredService<IWorldControl>().SendEntitySpawned(new EntitySpawnedMsg
 		{
@@ -190,9 +192,54 @@ public class EntityEventSimulationTests
 			Position = new NetVector2Msg(7f, 8f),
 		});
 
-		// The relay is the EntitySpawnedHandler's own (source excluded) — no
-		// executor participation, the creating side keeps its local copy.
-		Assert.True(spawns.Count == 1, $"the other guest must get the spawn, got {spawns.Count}");
+		// The ADAPTER domain is the single relay owner (the handler never
+		// broadcasts). The host's relay is a broadcast to every member — the
+		// source included, whose copy makes the repeat a no-op.
+		Assert.True(g1Spawns.Count == 1 && g2Spawns.Count == 1,
+			$"every member must get exactly one relay (g1: {g1Spawns.Count}, g2: {g2Spawns.Count})");
+	}
+
+	[Fact]
+	public void CrystalMimicTriggered_HostTrigger_IsRecordedForTheLateJoiner()
+	{
+		var w = EntityEventSimWorld.Create();
+		var consumed = new List<IReadOnlyList<EntityEventMsg>>();
+		w.G1.Services.GetRequiredService<EntityEventChannel>().TrapStateReceived += list => consumed.Add(list);
+
+		// A HOST trigger never comes back through EntityEventHandler (the host
+		// is not in its own presence table) — the channel must record the
+		// one-shot consumption before broadcasting, or a late joiner re-arms
+		// the mimic and spawns a second crystalenemy set.
+		w.Trigger(w.Host, EntityEventKind.CrystalMimicTriggered, 10f, 20f);
+		w.HostChannel.SendTrapStateSnapshot(w.G1.SteamId);
+
+		Assert.True(consumed.Count == 1 && consumed[0].Count == 1,
+			$"the host-triggered mimic consumption must reach the snapshot (snapshots: {consumed.Count})");
+		Assert.True(consumed[0][0].Kind == EntityEventKind.CrystalMimicTriggered,
+			"the snapshot carries the mimic's one-shot consumption");
+	}
+
+	[Fact]
+	public void CrystalMimicTriggered_EventAndSpawnsRideTheirOwnChannels()
+	{
+		var w = EntityEventSimWorld.Create();
+		var g2Spawns = new List<EntitySpawnedMsg>();
+		w.G2.Services.GetRequiredService<IWorldControl>().EntitySpawnedReceived += (_, msg) => g2Spawns.Add(msg);
+
+		// One operation = one message per channel: the latch travels as the
+		// dedicated entity event; the crystalenemy copies ride EntitySpawned
+		// (the game spawns them inside Touched/Hit, CrystalMimic.cs:30-32).
+		w.Trigger(w.G1, EntityEventKind.CrystalMimicTriggered, 10f, 20f);
+		w.G1.Services.GetRequiredService<IWorldControl>().SendEntitySpawned(new EntitySpawnedMsg
+		{
+			Id = "crystalenemy",
+			Position = new NetVector2Msg(10f, 20f),
+		});
+
+		Assert.True(w.G2Events.Count == 1 && w.G2Events[0].Kind == EntityEventKind.CrystalMimicTriggered,
+			$"the other guest must get the mimic event, got {w.G2Events.Count}");
+		Assert.True(g2Spawns.Count == 1 && g2Spawns[0].Id == "crystalenemy",
+			$"the crystalenemy spawn must ride EntitySpawned, got {g2Spawns.Count}");
 	}
 
 	[Fact]

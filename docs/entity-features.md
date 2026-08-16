@@ -154,7 +154,7 @@ Blinding/Irradiated) are excluded: each side's body is simulated locally.
 |---|---|---|
 | CrystalUnstable | missing (med-high) | arm/exploded events — otherwise the crystal self-destructs only on the touching side and re-triggers there |
 | CrystalMetamorphic | missing (med-low) | death rides BuildingEntityDamaged + the item drops ride the item domain |
-| CrystalMimic | excluded | AI domain (spawns CrystalEnemy) |
+| CrystalMimic | covered | CrystalMimicTriggered — activated latch event; the spawned enemies ride EntitySpawned + EnemyRuntimeSpawn binding; late joiner materializes them via EnemySnapshot.RuntimeSpawns (enemy SetColor is trigger-side local, recorded gap) |
 | CrystalShy | missing (low) | position-swap event |
 | CrystalEMP | missing (low) | black visual only (battery drain already rides the item domain) |
 | CrystalGravity/Kinetic | excluded | local physics |

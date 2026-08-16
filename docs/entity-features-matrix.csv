@@ -28,7 +28,7 @@
 "LampScript","trade","collide","none","yes","no","no","light break/reputation","covered","trade domain #132"
 "CrystalUnstable","crystal","collide","timer","yes","yes","yes","flash/explosion/destroy","covered","CrystalUnstableExploded (26); 5s ticking gap recorded"
 "CrystalMetamorphic","crystal","collide","health","yes","no","yes","destroy/items","covered","CrystalMetamorphicTriggered (27)"
-"CrystalMimic","crystal","collide","none","yes","no","no","spawn enemy","excluded","AI domain"
+"CrystalMimic","crystal","collide","activated","yes","no","no","observerlaugh + spawn enemies (EntitySpawned)","covered","CrystalMimicTriggered (30); enemies ride EntitySpawned + EnemyRuntimeSpawn"
 "CrystalShy","crystal","collide","none","no","no","no","position swap","covered","CrystalShySwapped (28); scan order risk recorded"
 "CrystalEMP","crystal","collide","activated","yes","no","no","black visual","covered","CrystalEMPActivated (29)"
 "CrystalBurning","crystal","collide","none","no","no","no","none","excluded","local body effect"

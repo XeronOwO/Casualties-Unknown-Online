@@ -116,8 +116,11 @@ applies the game's own damage path locally and reports the post-attack terminal 
 
 - Death: extend the existing BuildingEntity health sync to animal entities (`RemoteEntityDeath`
   already suppresses the remote roll).
-- Runtime spawn (`CaveTickSpawner`): the 16 `cavetick` creations already ride the generic
-  `OnEntityInstantiated` → `EntitySpawned` channel (prefab id + position + rotation). The guest
+- Runtime spawn (`CaveTickSpawner` and `CrystalMimic`): the `cavetick` creations and the
+  `crystalenemy` spawns already ride the generic `OnEntityInstantiated` → `EntitySpawned` channel
+  (prefab id + position + rotation). `CrystalMimicTriggered` (one-shot) consumes the mimic's
+  `activated` latch so a peer cannot spawn a second set; the spawns themselves ride this channel.
+  The guest
   freezes each runtime animal copy at its Start (`OnAnimalInstantiated`, before AI/physics move it);
   the host marks every id allocated after the initial deterministic mapping as a runtime spawn and
   carries those facts in `EnemySnapshot.RuntimeSpawns` (id + prefab + current position/rotation).

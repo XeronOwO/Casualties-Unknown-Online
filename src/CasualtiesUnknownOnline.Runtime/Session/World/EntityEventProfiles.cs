@@ -33,6 +33,7 @@ internal static class EntityEventProfiles
 		EntityEventKind.CrystalMetamorphicTriggered,
 		EntityEventKind.CrystalShySwapped,
 		EntityEventKind.CrystalEMPActivated,
+		EntityEventKind.CrystalMimicTriggered,
 	];
 
 	internal static bool IsOneShotConsumption(EntityEventKind kind) => OneShotConsumptions.Contains(kind);

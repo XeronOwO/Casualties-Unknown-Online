@@ -355,6 +355,27 @@ internal static class TrapStateActions
 		return true;
 	}
 
+	/// <summary>Mimic crystal triggered: consume the one-shot latch (the
+	/// observerlaugh + crystalenemy spawns ran on the triggering side; the
+	/// spawned enemies ride EntitySpawned + EnemyRuntimeSpawn, never here).
+	/// Live replays play the SAME 2D observerlaugh call as the trigger side
+	/// (CrystalMimic.cs:29/43); a late-joiner snapshot replay passes
+	/// playSound=false — an old laugh must not fire over the joiner.</summary>
+	internal static bool ApplyCrystalMimic(CrystalBehaviour crystal, bool playSound)
+	{
+		if (!CrystalMimicAccess.TryActivate(crystal))
+		{
+			return false; // already consumed, or no mimic at this position
+		}
+
+		if (playSound)
+		{
+			Sound.Play("observerlaugh", Vector2.zero, true, false, null, 1f, 1f, true, true);
+		}
+
+		return true;
+	}
+
 	/// <summary>Metamorphic crystal triggered (the death rides BuildingEntityDamaged,
 	/// the drops ride the item domain — this syncs the remaining observables):
 	/// the white screen flash + the laugh, exactly the trigger side's path

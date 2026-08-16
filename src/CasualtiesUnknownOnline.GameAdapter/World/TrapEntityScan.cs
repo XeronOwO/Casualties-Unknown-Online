@@ -110,8 +110,8 @@ internal static class TrapEntityScan
 	}
 
 	/// <summary>The crystal family: the actual types are internal (CrystalFragile,
-	/// CrystalElectric, CrystalUnstable, CrystalMetamorphic, CrystalShy,
-	/// CrystalEMP) — the kind derives from the runtime type name. Non-event
+	/// CrystalElectric, CrystalUnstable, CrystalMetamorphic, CrystalMimic,
+	/// CrystalShy, CrystalEMP) — the kind derives from the runtime type name. Non-event
 	/// crystal kinds (CrystalDripping) produce nothing.</summary>
 	private static EntityEventKind[] CrystalKinds(Component component) => component.GetType().Name switch
 	{
@@ -119,6 +119,7 @@ internal static class TrapEntityScan
 		"CrystalElectric" => [EntityEventKind.CrystalElectricShocked],
 		"CrystalUnstable" => [EntityEventKind.CrystalUnstableExploded],
 		"CrystalMetamorphic" => [EntityEventKind.CrystalMetamorphicTriggered],
+		"CrystalMimic" => [EntityEventKind.CrystalMimicTriggered],
 		"CrystalShy" => [EntityEventKind.CrystalShySwapped],
 		"CrystalEMP" => [EntityEventKind.CrystalEMPActivated],
 		_ => [],

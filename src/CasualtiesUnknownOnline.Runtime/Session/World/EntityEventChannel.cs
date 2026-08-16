@@ -46,6 +46,17 @@ public sealed class EntityEventChannel(ISessionControl session, PacketSender sen
 
 		if (_session.Role == SessionRole.Host)
 		{
+			// The host already applied the trigger locally. Record a ONE-SHOT
+			// consumption HERE: the host is not in its own presence table, so
+			// its broadcast never comes back through EntityEventHandler, and
+			// the remote-report path only records guest-triggered events.
+			// Without this a late joiner never learns host-triggered
+			// consumptions (mine, spike, mimic, ...).
+			if (EntityEventProfiles.IsOneShotConsumption(msg.Kind))
+			{
+				_trapConsumption.Report(msg.Kind, msg.Position.X, msg.Position.Y, msg.Extra);
+			}
+
 			_session.Broadcast(NetMsg.EntityEvent, msg);
 		}
 		else

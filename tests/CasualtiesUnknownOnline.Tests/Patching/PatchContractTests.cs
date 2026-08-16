@@ -142,8 +142,8 @@ public class PatchContractTests
 		var attributed = GameAssemblyHost.Adapter.GetTypes().Count(t =>
 			t.GetCustomAttributesData().Any(a => a.AttributeType.FullName == "HarmonyLib.HarmonyPatch"));
 
-		Assert.True(contracts.Count == attributed + 3,
-			$"the contract inventory must cover every [HarmonyPatch] class ({attributed}) plus the 3 dynamic patches (InstallDynamicPatches) — got {contracts.Count}");
+		Assert.True(contracts.Count == attributed + 7,
+			$"the contract inventory must cover every [HarmonyPatch] class ({attributed}) plus the 7 dynamic patches (InstallDynamicPatches) — got {contracts.Count}");
 	}
 
 	[Fact]
@@ -157,6 +157,33 @@ public class PatchContractTests
 
 		Assert.True(violations.Count == 0,
 			$"broken patch contracts against the game assembly ({violations.Count}):\n" + string.Join("\n", violations));
+	}
+
+	/// <summary>
+	/// The CrystalMimic patch surface: the two public CrystalBehaviour
+	/// dispatchers whose false→true activated edge the mimic event reports on.
+	/// A regression that deletes one hook fails here before the game launches.
+	/// </summary>
+	[Fact]
+	public void CrystalMimicPatchSet_IsComplete()
+	{
+		var contracts = BuildContracts();
+		var expected = new[]
+		{
+			("CrystalBehaviour", "OnCollisionEnter2D"),
+			("CrystalBehaviour", "BuildingHit"),
+		};
+		var missing = new List<string>();
+		foreach (var (type, method) in expected)
+		{
+			if (!contracts.Any(c => c.TargetType == type && c.MethodName == method))
+			{
+				missing.Add($"{type}.{method}");
+			}
+		}
+
+		Assert.True(missing.Count == 0,
+			$"CrystalMimic patch surface is incomplete ({missing.Count}):" + Environment.NewLine + string.Join(Environment.NewLine, missing));
 	}
 
 	/// <summary>

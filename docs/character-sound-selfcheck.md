@@ -12,6 +12,9 @@ the existing `BuildingEntityDamaged` relay (no extra message).
 > extended with `CharacterSoundKind.GunFire` + `RecoilDegrees` so weapon shots
 > and recoil replay on the owner's clone — see
 > `docs/weapon-fire-recoil-selfcheck.md`.
+> Note (ProtocolVersion 19): the same `CharacterSoundMsg` event was later
+> extended with `CharacterSoundKind.Footstep` + `LandingImpact` — see
+> `docs/footstep-sound-selfcheck.md`.
 
 ## 1. Mechanism inventory
 
@@ -102,12 +105,10 @@ overload (Body.cs:1953) and is covered through the damage relay.
 
 ## 5. Accepted residuals (recorded, not re-discovered)
 
-- **High-frequency/continuous character sounds are not evented in this
-  cycle**: footsteps (`Body.FootStep`, Body.cs:1169-1185), landing impacts
-  (Body.cs:2729-2737), speech blips (Talker.Update) and similar per-frame/
-  per-step sounds remain local-only. They are the natural next slice and are
-  now tracked separately in `docs/backlog.md` instead of the broad
-  "character sound" wording.
+- **High-frequency/continuous character sounds**: footsteps and landing
+  impacts are now evented (ProtocolVersion 19) — see
+  `docs/footstep-sound-selfcheck.md`. Speech blips and other per-frame/
+  per-step sounds remain local-only and stay tracked in `docs/backlog.md`.
 - **Building hit replay uses the entity centre**, not the source's raycast
   hit point — the position-keyed relay carries only the entity position and
   the difference is inaudible for entity-local hit sounds.

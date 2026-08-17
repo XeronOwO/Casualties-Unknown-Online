@@ -57,6 +57,12 @@ internal static class CallContext
 
 		/// <summary>Inside Body.TryExertSound — the local exertion sound reports from this scope.</summary>
 		CharacterExert,
+
+		/// <summary>Inside Body.FootStep — the local step sound (fallback string or material/water AudioClip) reports from this scope.</summary>
+		CharacterFootstep,
+
+		/// <summary>Inside Body.HandleGroundedState — the local landing impact AudioClip reports from this scope (the nested FootStep call reports as CharacterFootstep).</summary>
+		CharacterLandingImpact,
 	}
 
 	/// <summary>Stack bound — real nesting is 2-3 levels (remote apply → container load → hooks).</summary>

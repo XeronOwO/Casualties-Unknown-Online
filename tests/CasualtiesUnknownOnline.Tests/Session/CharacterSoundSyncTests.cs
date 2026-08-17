@@ -9,11 +9,11 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 
 /// <summary>
 /// The character-action event (CharacterSoundMsg): a player's attack/throw/
-/// exert/gunfire plays locally and travels as one dedicated reliable message —
-/// guest reports reach the host (whose adapter replays it on the guest's
-/// clone) and relay to the other guests; the host's own event broadcasts to
-/// every guest. One event = one message; there is no snapshot fallback to
-/// assert (the event has no persistent state).
+/// exert/gunfire/footstep/landing plays locally and travels as one dedicated
+/// reliable message — guest reports reach the host (whose adapter replays it on
+/// the guest's clone) and relay to the other guests; the host's own event
+/// broadcasts to every guest. One event = one message; there is no snapshot
+/// fallback to assert (the event has no persistent state).
 /// </summary>
 public class CharacterSoundSyncTests
 {
@@ -25,7 +25,14 @@ public class CharacterSoundSyncTests
 	{
 		OwnerSteamId = owner,
 		Kind = kind,
-		Clip = kind == CharacterSoundKind.Exert ? "exert2" : (kind == CharacterSoundKind.GunFire ? "rifleshot" : "BSSwing3"),
+		Clip = kind switch
+		{
+			CharacterSoundKind.Exert => "exert2",
+			CharacterSoundKind.GunFire => "rifleshot",
+			CharacterSoundKind.Footstep => "footstep/Rock/RockStep1",
+			CharacterSoundKind.LandingImpact => "bodyFall1",
+			_ => "BSSwing3",
+		},
 		Position = new NetVector2Msg { X = 10f, Y = 20f },
 		Volume = 0.7f,
 		FollowOwner = kind != CharacterSoundKind.ThrowSwing && kind != CharacterSoundKind.GunFire,
@@ -63,6 +70,20 @@ public class CharacterSoundSyncTests
 		Assert.Equal(12f, decoded.RecoilDegrees);
 		Assert.False(decoded.FollowOwner);
 		Assert.True(decoded.TwoDimensional);
+	}
+
+	[Fact]
+	public void FootstepAndLandingImpact_RoundTripTheirKindsAndClips()
+	{
+		var footstep = NetPacket.DecodePayload<CharacterSoundMsg>(
+			NetPacket.Encode(NetMsg.CharacterSound, Sound(kind: CharacterSoundKind.Footstep)));
+		Assert.Equal(CharacterSoundKind.Footstep, footstep.Kind);
+		Assert.Equal("footstep/Rock/RockStep1", footstep.Clip);
+
+		var landing = NetPacket.DecodePayload<CharacterSoundMsg>(
+			NetPacket.Encode(NetMsg.CharacterSound, Sound(kind: CharacterSoundKind.LandingImpact)));
+		Assert.Equal(CharacterSoundKind.LandingImpact, landing.Kind);
+		Assert.Equal("bodyFall1", landing.Clip);
 	}
 
 	[Fact]

@@ -344,10 +344,19 @@ lands, never bolted on afterwards.
   the local entity's own `hitSound` (one operation = one message). See
   `docs/character-sound-selfcheck.md`; 947 tests green (L0 simulation + reflective patch
   surface + static evidence, no manual acceptance).
-- High-frequency/continuous character sounds (footsteps Body.cs:1169-1185, landing impacts
-  Body.cs:2729-2737, speech blips, other per-frame/per-step sounds): the natural next slice of
-  the sound domain — keep local-only until a deliberate sound-frequency pass (do not event
-  every footstep without volume evidence).
+- RESOLVED (2026-08-16, ProtocolVersion 19): footsteps and landing impacts —
+  the deliberate sound-frequency pass for the high-frequency slice. Every step funnels through
+  `Body.FootStep` and every landing impact through `Body.HandleGroundedState`; the local
+  capture opens `CharacterFootstep` / `CharacterLandingImpact` call scopes and the
+  string/AudioClip `Sound.Play` patches report the exact clip as
+  `CharacterSoundKind.Footstep` / `LandingImpact` (NetMsg 94, star relay). Material/water
+  step clips travel as `footstep/<step>/<clip.name>` so the receiver's string overload loads
+  them; landing clips are root `bodyFallN` resources (asset-string evidence). A
+  `SoundCaptureContext` skip flag prevents double-reporting the string overload's internal
+  AudioClip call. See `docs/footstep-sound-selfcheck.md`; 957 tests green (L0 simulation +
+  reflective patch surface + static evidence, no manual acceptance).
+- Speech blips and other per-frame/per-step character sounds: remain local-only until a further
+  deliberate sound-frequency pass (do not event every blip without volume evidence).
 - Direct player interaction (view/take items, carry, view vitals, heal).
 - Periodic keyframe self-healing (partially implemented; extend to remaining domains). Before
   any snapshot stream switches to an unreliable channel, event-version numbers are required —

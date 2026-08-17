@@ -243,6 +243,74 @@ internal static class BodyPatches
 		private static void Postfix(IDisposable? __state) => __state?.Dispose();
 	}
 
+	/// <summary>
+	/// Body.FootStep (Body.cs:1169-1184) is the single entry point for every
+	/// player step sound: animation events, jump/walljump take-off, and the
+	/// landing roll all call it. On the local body (never a render clone) it
+	/// opens the CharacterFootstep scope so the string/AudioClip Sound.Play
+	/// patches capture the exact step clip. The step-surface prefix is stored
+	/// for the AudioClip overload: material/water steps are RandomStepSound
+	/// clips under Sounds/footstep/&lt;step&gt;/ and need the prefix to make a
+	/// loadable string resource.
+	/// </summary>
+	[HarmonyPatch(typeof(Body), "FootStep")]
+	internal static class BodyFootStepPatch
+	{
+		private sealed class FootstepState
+		{
+			internal IDisposable? Scope;
+			internal string? StepPathPrefix;
+		}
+
+		private static void Prefix(Body __instance, out FootstepState __state)
+		{
+			FootstepSoundCapture.ClearStepPathPrefix();
+			if (__instance.GetComponentInParent<RemoteBodyDriver>() != null)
+			{
+				__state = new FootstepState();
+				return;
+			}
+
+			var standingOn = Traverse.Create(__instance).Field("standingOn");
+			var prefix = __instance.bodyAffect.wasWater
+				? "footstep/Water"
+				: standingOn.FieldExists() && standingOn.GetValue() is BlockInfo blockInfo
+					? "footstep/" + blockInfo.stepsound
+					: null;
+			FootstepSoundCapture.SetStepPathPrefix(prefix);
+			__state = new FootstepState
+			{
+				Scope = CallContext.Enter(CallContext.Origin.CharacterFootstep),
+				StepPathPrefix = prefix,
+			};
+		}
+
+		private static void Postfix(FootstepState __state)
+		{
+			__state.Scope?.Dispose();
+			FootstepSoundCapture.ClearStepPathPrefix();
+		}
+	}
+
+	/// <summary>
+	/// Body.HandleGroundedState (Body.cs:2594) is the landing-impact entry:
+	/// on the local body it opens the CharacterLandingImpact scope around the
+	/// frame, so the impactLarge/Medium/Small AudioClip calls (Body.cs:2729-2737)
+	/// report as landing impacts. The nested FootStep call inside the same
+	/// method runs in the innermost CharacterFootstep scope and reports as a
+	/// footstep.
+	/// </summary>
+	[HarmonyPatch(typeof(Body), "HandleGroundedState")]
+	internal static class BodyHandleGroundedStatePatch
+	{
+		private static void Prefix(Body __instance, out IDisposable? __state) =>
+			__state = __instance.GetComponentInParent<RemoteBodyDriver>() == null
+				? CallContext.Enter(CallContext.Origin.CharacterLandingImpact)
+				: null;
+
+		private static void Postfix(IDisposable? __state) => __state?.Dispose();
+	}
+
 	[HarmonyPatch(typeof(Body), "WearWearable")]
 	internal static class WearWearablePatch
 	{

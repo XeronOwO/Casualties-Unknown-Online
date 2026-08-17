@@ -8,15 +8,15 @@ namespace CasualtiesUnknownOnline.GameAdapter.Character;
 
 /// <summary>
 /// The player-character action-presentation chain (attack swing / throw
-/// swing / exert / gun fire): the source side's <c>Sound.Play</c> call is
-/// captured by the patch (call-identity scope for the swings/exert, the
-/// GunScript.Fire postfix for gun fire), the exact clip + position +
-/// volume/follow + recoil facts travel as one dedicated reliable
-/// <see cref="CharacterSoundMsg"/>, and every receiving side replays it on the
-/// owner's render clone. The receiver's replay runs inside a RemoteApply
-/// scope, so the capture patch can never echo the replay. No state is held
-/// across calls; a lost message is a lost one-shot presentation (acceptable
-/// degradation — there is no persistent fact to heal).
+/// swing / exert / gun fire / footstep / landing impact): the source side's
+/// <c>Sound.Play</c> call is captured by the patches (call-identity scope for
+/// the swings/exert/footstep/landing, the GunScript.Fire postfix for gun
+/// fire), the exact clip + position + volume/follow + recoil facts travel as
+/// one dedicated reliable <see cref="CharacterSoundMsg"/>, and every receiving
+/// side replays it on the owner's render clone. The receiver's replay runs
+/// inside a RemoteApply scope, so the capture patches can never echo the
+/// replay. No state is held across calls; a lost message is a lost one-shot
+/// presentation (acceptable degradation — there is no persistent fact to heal).
 /// </summary>
 internal sealed class CharacterSoundSync(
 	CharacterDataStore characterData,

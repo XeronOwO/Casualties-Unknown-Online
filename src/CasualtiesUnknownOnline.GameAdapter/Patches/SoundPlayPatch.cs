@@ -14,12 +14,15 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 /// heard it as a slowed, lowered groan. Defer it: the gate release plays it,
 /// together with everyone else's release.
 /// 2. Character action-sound capture: inside the Body.Attack / ThrowItem /
-/// TryExertSound call-identity scopes, every real string sound is reported
-/// with its EXACT clip. Block hit sounds are excluded by the innermost
+/// TryExertSound / FootStep call-identity scopes, every real string sound is
+/// reported with its EXACT clip. Block hit sounds are excluded by the innermost
 /// DamageBlockOrigin scope (WorldGeneration.DamageBlock opens it around the
 /// native roll), and replays are excluded by the RemoteApply scope — the
 /// patch is a thin adapter, the classification is the pure
 /// CharacterSoundPolicy.
+/// The string overload internally calls the AudioClip overload, so after a
+/// successful string report the AudioClip patch must skip the same physical
+/// call (SoundCaptureContext flag, cleared in the postfix).
 /// </summary>
 [HarmonyPatch(typeof(Sound), "Play",
 	new Type[] { typeof(string), typeof(Vector2), typeof(bool), typeof(bool), typeof(Transform),
@@ -45,14 +48,19 @@ internal static class SoundPlayPatch
 				CallContext.Origin.CharacterAttack => CharacterSoundPolicy.Origin.Attack,
 				CallContext.Origin.CharacterThrow => CharacterSoundPolicy.Origin.Throw,
 				CallContext.Origin.CharacterExert => CharacterSoundPolicy.Origin.Exert,
+				CallContext.Origin.CharacterFootstep => CharacterSoundPolicy.Origin.Footstep,
+				CallContext.Origin.CharacterLandingImpact => CharacterSoundPolicy.Origin.LandingImpact,
 				_ => CharacterSoundPolicy.Origin.None,
 			};
 			if (CharacterSoundPolicy.Classify(origin, clip) is { } kind)
 			{
 				PatchBridge.Impl?.OnCharacterSound(kind, clip, pos, volume, follow != null, twoDimensional, 0f);
+				SoundCaptureContext.SetSkipAudioClipCapture();
 			}
 		}
 
 		return true;
 	}
+
+	private static void Postfix() => SoundCaptureContext.ClearSkipAudioClipCapture();
 }

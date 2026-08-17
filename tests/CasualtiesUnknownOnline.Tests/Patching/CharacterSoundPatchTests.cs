@@ -49,6 +49,22 @@ public class CharacterSoundPatchTests
 		return false;
 	}
 
+	private static bool HasContract(string patchClass, string targetType, string methodName)
+	{
+		foreach (var contract in BuildContracts())
+		{
+			var type = contract.GetType();
+			if ((type.GetProperty("TargetType", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)?.GetValue(contract) as string) == targetType
+				&& (type.GetProperty("MethodName", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)?.GetValue(contract) as string) == methodName
+				&& (type.GetProperty("PatchClass", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)?.GetValue(contract) as string) == patchClass)
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
 	[Fact]
 	public void PatchInventory_DeclaresEveryCharacterSoundTarget()
 	{
@@ -56,6 +72,39 @@ public class CharacterSoundPatchTests
 		Assert.True(HasContract("Body", "Attack"), "the Body.Attack capture-scope contract must be declared");
 		Assert.True(HasContract("Body", "ThrowItem"), "the Body.ThrowItem capture-scope contract must be declared");
 		Assert.True(HasContract("Body", "TryExertSound"), "the Body.TryExertSound capture-scope contract must be declared");
+		Assert.True(HasContract("Body", "FootStep"), "the Body.FootStep capture-scope contract must be declared");
+		Assert.True(HasContract("Body", "HandleGroundedState"), "the Body.HandleGroundedState capture-scope contract must be declared");
+	}
+
+	[Fact]
+	public void PatchInventory_DeclaresTheAudioClipSoundPlayContract()
+	{
+		var contracts = BuildContracts();
+		var found = false;
+		foreach (var contract in contracts)
+		{
+			var type = contract.GetType();
+			if ((type.GetProperty("TargetType", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)?.GetValue(contract) as string) != "Sound"
+				|| (type.GetProperty("MethodName", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)?.GetValue(contract) as string) != "Play")
+			{
+				continue;
+			}
+
+			var parameters = (IEnumerable?)type
+				.GetProperty("ParameterTypes", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)?.GetValue(contract);
+			if (parameters != null)
+			{
+				foreach (var p in parameters)
+				{
+					if (p is string s && s == "UnityEngine.AudioClip")
+					{
+						found = true;
+					}
+				}
+			}
+		}
+
+		Assert.True(found, "at least one Sound.Play contract must carry UnityEngine.AudioClip as its first parameter type (the AudioClip overload)");
 	}
 
 	[Fact]
@@ -103,6 +152,50 @@ public class CharacterSoundPatchTests
 			&& prefixParameters[0].ParameterType.FullName == "Body"
 			&& prefixParameters[1].Name == "__state",
 			$"ThrowItem.Prefix must be (Body __instance, out ThrowState __state), got {prefixParameters.Length} parameter(s)");
+	}
+
+	[Fact]
+	public void FootStepPatch_OpensTheFootstepScopeAndClearsTheSurfacePrefix()
+	{
+		var patch = BodyPatches.GetNestedType("BodyFootStepPatch", BindingFlags.NonPublic | BindingFlags.Public)
+			?? throw new InvalidOperationException("BodyPatches.BodyFootStepPatch not found.");
+
+		var state = patch.GetNestedType("FootstepState", BindingFlags.NonPublic | BindingFlags.Public)
+			?? throw new InvalidOperationException("BodyFootStepPatch.FootstepState not found.");
+		Assert.True(state.GetField("Scope", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)?.FieldType == typeof(IDisposable),
+			"FootstepState must carry the IDisposable scope");
+		Assert.True(state.GetField("StepPathPrefix", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)?.FieldType == typeof(string),
+			"FootstepState must carry the string step-path prefix");
+
+		var capture = GameAssemblyHost.Adapter.GetType("CasualtiesUnknownOnline.GameAdapter.Patches.FootstepSoundCapture", throwOnError: true);
+		Assert.NotNull(capture);
+		Assert.NotNull(capture.GetMethod("SetStepPathPrefix", BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public));
+		Assert.NotNull(capture.GetMethod("ClearStepPathPrefix", BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public));
+	}
+
+	[Fact]
+	public void HandleGroundedStatePatch_OpensAndClosesTheLandingImpactScope()
+	{
+		var patch = BodyPatches.GetNestedType("BodyHandleGroundedStatePatch", BindingFlags.NonPublic | BindingFlags.Public)
+			?? throw new InvalidOperationException("BodyPatches.BodyHandleGroundedStatePatch not found.");
+
+		var prefix = patch.GetMethod("Prefix", BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
+			?? throw new InvalidOperationException("Prefix not found.");
+		var prefixParameters = prefix.GetParameters();
+		Assert.True(prefixParameters.Length == 2
+			&& prefixParameters[0].Name == "__instance"
+			&& prefixParameters[0].ParameterType.FullName == "Body"
+			&& prefixParameters[1].Name == "__state"
+			&& prefixParameters[1].ParameterType == typeof(IDisposable).MakeByRefType(),
+			$"HandleGroundedState.Prefix must be (Body __instance, out IDisposable? __state), got {prefixParameters.Length} parameter(s)");
+
+		var postfix = patch.GetMethod("Postfix", BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
+			?? throw new InvalidOperationException("Postfix not found.");
+		var postfixParameters = postfix.GetParameters();
+		Assert.True(postfixParameters.Length == 1
+			&& postfixParameters[0].Name == "__state"
+			&& postfixParameters[0].ParameterType == typeof(IDisposable),
+			$"HandleGroundedState.Postfix must be (IDisposable? __state), got {postfixParameters.Length} parameter(s)");
 	}
 
 	[Fact]

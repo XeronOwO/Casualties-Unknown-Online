@@ -7,11 +7,12 @@ namespace CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 /// Pure classification for the player-character sound capture (no Unity):
 /// maps a call-identity scope + the clip the game just played to a
 /// <see cref="CharacterSoundKind"/>. The GameAdapter's <c>Sound.Play</c>
-/// patch runs this inside the call-identity scopes opened around
-/// <c>Body.Attack</c> / <c>Body.ThrowItem</c> / <c>Body.TryExertSound</c>;
-/// any block hit sound that fires during an attack is excluded before this
-/// policy sees it, because <c>WorldGeneration.DamageBlock</c> opens its own
-/// innermost <c>DamageBlockOrigin</c> scope.
+/// patches run this inside the call-identity scopes opened around
+/// <c>Body.Attack</c> / <c>Body.ThrowItem</c> / <c>Body.TryExertSound</c> /
+/// <c>Body.FootStep</c> / <c>Body.HandleGroundedState</c>; any block hit
+/// sound that fires during an attack is excluded before this policy sees it,
+/// because <c>WorldGeneration.DamageBlock</c> opens its own innermost
+/// <c>DamageBlockOrigin</c> scope.
 /// </summary>
 public static class CharacterSoundPolicy
 {
@@ -22,6 +23,8 @@ public static class CharacterSoundPolicy
 		Attack = 1,
 		Throw = 2,
 		Exert = 3,
+		Footstep = 4,
+		LandingImpact = 5,
 	}
 
 	/// <summary>
@@ -30,7 +33,10 @@ public static class CharacterSoundPolicy
 	/// plays nothing). Inside <c>Body.Attack</c>, every non-empty string sound
 	/// that reaches this policy (block sounds excluded by the innermost damage
 	/// scope) is either the swing sound or the exertion sound — the exertion
-	/// prefix is the discriminator.
+	/// prefix is the discriminator. Inside the footstep scope every non-empty
+	/// clip is a step (the fallback <c>BSFootstepN</c> or a material path under
+	/// <c>Sounds/footstep/…</c>); inside the landing-impact scope every non-empty
+	/// clip is a landing impact (the <c>bodyFallN</c> clips).
 	/// </summary>
 	public static CharacterSoundKind? Classify(Origin origin, string clip)
 	{
@@ -44,6 +50,8 @@ public static class CharacterSoundPolicy
 			Origin.Exert => CharacterSoundKind.Exert,
 			Origin.Throw => CharacterSoundKind.ThrowSwing,
 			Origin.Attack => IsExertClip(clip) ? CharacterSoundKind.Exert : CharacterSoundKind.AttackSwing,
+			Origin.Footstep => CharacterSoundKind.Footstep,
+			Origin.LandingImpact => CharacterSoundKind.LandingImpact,
 			_ => null,
 		};
 	}

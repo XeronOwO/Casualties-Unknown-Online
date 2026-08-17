@@ -168,9 +168,9 @@ commands and remains the two-process verification target).
 ## 7. Versioning and protocol discipline
 
 - `ProtocolVersion.Current` is bumped on any behavioral wire change. Current:
-  **11** (v11 adds `BuildingEntityHealthSnapshot` (88) for late-joiner
-  building-entity damage; a v10 peer drops it, so mixed versions are refused
-  instead of silently degrading).
+  **18** (v18 extends the CharacterSound event (94) with GunFire kind +
+  `RecoilDegrees`; a v17 peer drops the new field/kind, so mixed versions are
+  refused instead of silently degrading).
 - Mod versions are strict SemVer strings, validated at discovery and compared
   by precedence for state-bearing modes.
 - The 64 KiB cap is a policy constant (`ModChannel.MaxPayloadBytes`); raising

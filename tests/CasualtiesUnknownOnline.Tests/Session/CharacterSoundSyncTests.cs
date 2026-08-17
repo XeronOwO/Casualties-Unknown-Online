@@ -8,12 +8,12 @@ using Xunit;
 namespace CasualtiesUnknownOnline.Tests.Session;
 
 /// <summary>
-/// The character-sound event (CharacterSoundMsg): a player's attack/throw/
-/// exert sound plays locally and travels as one dedicated reliable message —
+/// The character-action event (CharacterSoundMsg): a player's attack/throw/
+/// exert/gunfire plays locally and travels as one dedicated reliable message —
 /// guest reports reach the host (whose adapter replays it on the guest's
-/// clone) and relay to the other guests; the host's own sound broadcasts to
-/// every guest. One sound = one message; there is no snapshot fallback to
-/// assert (the sound has no persistent state).
+/// clone) and relay to the other guests; the host's own event broadcasts to
+/// every guest. One event = one message; there is no snapshot fallback to
+/// assert (the event has no persistent state).
 /// </summary>
 public class CharacterSoundSyncTests
 {
@@ -21,21 +21,22 @@ public class CharacterSoundSyncTests
 	private const ulong GuestId = 2001;
 	private const ulong LobbyId = 9001;
 
-	private static CharacterSoundMsg Sound(ulong owner = GuestId, CharacterSoundKind kind = CharacterSoundKind.AttackSwing) => new()
+	private static CharacterSoundMsg Sound(ulong owner = GuestId, CharacterSoundKind kind = CharacterSoundKind.AttackSwing, float recoilDegrees = 0f) => new()
 	{
 		OwnerSteamId = owner,
 		Kind = kind,
-		Clip = kind == CharacterSoundKind.Exert ? "exert2" : "BSSwing3",
+		Clip = kind == CharacterSoundKind.Exert ? "exert2" : (kind == CharacterSoundKind.GunFire ? "rifleshot" : "BSSwing3"),
 		Position = new NetVector2Msg { X = 10f, Y = 20f },
 		Volume = 0.7f,
-		FollowOwner = kind != CharacterSoundKind.ThrowSwing,
-		TwoDimensional = kind == CharacterSoundKind.Exert,
+		FollowOwner = kind != CharacterSoundKind.ThrowSwing && kind != CharacterSoundKind.GunFire,
+		TwoDimensional = kind == CharacterSoundKind.Exert || kind == CharacterSoundKind.GunFire,
+		RecoilDegrees = recoilDegrees,
 	};
 
 	[Fact]
 	public void CharacterSound_RoundTripsEveryField()
 	{
-		var source = Sound();
+		var source = Sound(recoilDegrees: 5.5f);
 
 		var decoded = NetPacket.DecodePayload<CharacterSoundMsg>(NetPacket.Encode(NetMsg.CharacterSound, source));
 
@@ -47,6 +48,21 @@ public class CharacterSoundSyncTests
 		Assert.Equal(source.Volume, decoded.Volume);
 		Assert.Equal(source.FollowOwner, decoded.FollowOwner);
 		Assert.Equal(source.TwoDimensional, decoded.TwoDimensional);
+		Assert.Equal(source.RecoilDegrees, decoded.RecoilDegrees);
+	}
+
+	[Fact]
+	public void GunFire_RoundTripsRecoilDegrees()
+	{
+		var source = Sound(kind: CharacterSoundKind.GunFire, recoilDegrees: 12f);
+
+		var decoded = NetPacket.DecodePayload<CharacterSoundMsg>(NetPacket.Encode(NetMsg.CharacterSound, source));
+
+		Assert.Equal(CharacterSoundKind.GunFire, decoded.Kind);
+		Assert.Equal("rifleshot", decoded.Clip);
+		Assert.Equal(12f, decoded.RecoilDegrees);
+		Assert.False(decoded.FollowOwner);
+		Assert.True(decoded.TwoDimensional);
 	}
 
 	[Fact]

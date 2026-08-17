@@ -15,6 +15,6 @@ public sealed partial class GameAdapter
 
 	void IPatchBridge.OnArmSwing() => _entities.MarkLocalAttackSwing();
 
-	void IPatchBridge.OnCharacterSound(CharacterSoundKind kind, string clip, Vector2 pos, float volume, bool followOwner, bool twoDimensional) =>
-		_characterSoundSync.Report(kind, clip, pos, volume, followOwner, twoDimensional);
+	void IPatchBridge.OnCharacterSound(CharacterSoundKind kind, string clip, Vector2 pos, float volume, bool followOwner, bool twoDimensional, float recoilDegrees) =>
+		_characterSoundSync.Report(kind, clip, pos, volume, followOwner, twoDimensional, recoilDegrees);
 }

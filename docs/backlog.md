@@ -120,11 +120,14 @@ lands, never bolted on afterwards.
   peer's synced `LookPos` via `HeldItemDirectionPatch` (Postfix, `RemoteBodyDriver` + first-snapshot
   gate), the only three local-mouse item-orientation call sites in the game. See
   `docs/held-light-direction-selfcheck.md`.
-- #193 clone shooting direction / recoil (deferred from the 2026-08-13 fix-round plan): the
-  held-light direction family is now covered by #119's fix, but weapon direction/recoil itself
-  still has no log evidence — the next step is a hotrepl runtime check comparing the 20 Hz
-  state-stream `LookPos` against what the clone renders, then decide whether weapon
-  direction/recoil needs its own sync bit.
+- RESOLVED (2026-08-16, ProtocolVersion 18): #193 clone weapon direction/recoil —
+  the direction is already synced (Body.HandleVisuals derives `gunangle` from the
+  peer's `targetLookPos`, Body.cs:3271, written by SessionStatePump), and the
+  missing shot-time recoil kick now rides the existing CharacterSound event as
+  `CharacterSoundKind.GunFire` (NetMsg 94) with a new `RecoilDegrees` field: the
+  GunScript.Fire postfix reports the fire sound clip + `knockBack * 8`, and the
+  receiver plays the sound + adds the kick to the owner's clone arms animator.
+  See `docs/weapon-fire-recoil-selfcheck.md`; 951 tests green (L0 simulation + static evidence, no manual acceptance).
 - #195 blueprint popup: cosmetic, game-local UI (the unlock fact itself is synced via
   `RecipeUnlock`); revisit with the online-UI pass.
 - RestoreItem slot-conflict handling (#192 follow-up): ACCEPTED — the semantics are now

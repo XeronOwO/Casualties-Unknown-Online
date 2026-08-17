@@ -290,10 +290,11 @@ internal interface IPatchBridge
 	/// <summary>GrabberPlant.Update grabbed the local body — report the post-grab terminal state.</summary>
 	void OnGrabberGrabbed(Body body);
 	/// <summary>
-	/// The game just played a local player-character action sound (the Sound.Play
+	/// The game just played a local player-character action event (the Sound.Play
 	/// call ran inside a Body.Attack / ThrowItem / TryExertSound call-identity
-	/// scope — the clip is the EXACT chosen one). Report it so the peers replay
-	/// the sound on the owner's clone (guest → host; host → broadcast).
+	/// scope, or GunScript.Fire postfix — the clip is the EXACT chosen one;
+	/// GunFire also carries the recoil kick). Report it so the peers replay the
+	/// presentation on the owner's clone (guest → host; host → broadcast).
 	/// </summary>
-	void OnCharacterSound(CharacterSoundKind kind, string clip, Vector2 pos, float volume, bool followOwner, bool twoDimensional);
+	void OnCharacterSound(CharacterSoundKind kind, string clip, Vector2 pos, float volume, bool followOwner, bool twoDimensional, float recoilDegrees);
 }

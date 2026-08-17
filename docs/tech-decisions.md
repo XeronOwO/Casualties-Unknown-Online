@@ -668,3 +668,33 @@ Tests: `CharacterSoundSyncTests` (wire + star relay), `CharacterSoundPolicyTests
 `CharacterSoundPatchTests` (reflective patch/capture surface), the `DirectionTests`
 completeness guard, and the automatic patch-contract cover for the new `TryExertSound` patch.
 947 tests green. See `docs/character-sound-selfcheck.md`.
+
+## 31. Weapon-fire direction + recoil — no new message, gunangle kick rides CharacterSound (ProtocolVersion 18)
+
+`#193` split into two findings:
+
+- **Direction was already synced.** `Body.HandleVisuals` computes the arm
+  `gunangle` from `(targetLookPos - limbs[1].position)` (Body.cs:3271), and
+  `SessionStatePump` writes the peer's 20 Hz `LookPos` into every render clone's
+  `targetLookPos`. The only local-mouse item orientation calls are the three
+  hand-slot lights fixed by #119 (`CustomItemBehaviour.cs:439/512/526`), so the
+  gun render path never reads the local mouse. No new sync bit needed.
+- **Recoil was missing and is now a dedicated trigger event.** `GunScript.Fire`
+  adds `knockBack * 8` to the OWNER's `armsAnimator.gunangle` (GunScript.cs:221);
+  a render clone never runs that path. `GunFirePatch` (Postfix on `GunScript.Fire`)
+  reports a new `CharacterSoundKind.GunFire` on the existing `CharacterSound` event
+  (NetMsg 94), carrying the exact fire-sound clip name + `knockBack * 8` as the new
+  `CharacterSoundMsg.RecoilDegrees` field. The receiver plays the sound and adds the
+  same kick to the owner's clone arms animator; `Body.HandleVisuals` then lerps it
+  back to the synced aim — the same transient the owner sees.
+
+- **Wire shape**: no new NetMsg id, no direction-table change — the existing
+  bidirectional star relay already fans the event out. ProtocolVersion 17→18
+  because a v17 peer would not understand the new enum value/field.
+- **One event = one message**: the fire sound + recoil travel together as one
+  reliable presentation event; the snapshot stream is untouched.
+
+Tests: extended `CharacterSoundSyncTests` (GunFire wire round-trip with recoil),
+new `GunFirePatchTests` (patch surface + PatchInventory contract + protocol field),
+automatic patch-contract cover for the `GunScript.Fire` postfix. See
+`docs/weapon-fire-recoil-selfcheck.md`.

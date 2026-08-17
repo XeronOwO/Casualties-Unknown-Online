@@ -16,4 +16,7 @@ public enum CharacterSoundKind : byte
 
 	/// <summary><c>Body.TryExertSound</c> played an exertion sound (Body.cs:2103-2109).</summary>
 	Exert = 3,
+
+	/// <summary><c>GunScript.Fire</c> fired a gun (the fire sound + recoil presentation on the owner's clone).</summary>
+	GunFire = 4,
 }

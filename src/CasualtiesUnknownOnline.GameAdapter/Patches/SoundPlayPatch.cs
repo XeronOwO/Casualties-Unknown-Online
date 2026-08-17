@@ -49,7 +49,7 @@ internal static class SoundPlayPatch
 			};
 			if (CharacterSoundPolicy.Classify(origin, clip) is { } kind)
 			{
-				PatchBridge.Impl?.OnCharacterSound(kind, clip, pos, volume, follow != null, twoDimensional);
+				PatchBridge.Impl?.OnCharacterSound(kind, clip, pos, volume, follow != null, twoDimensional, 0f);
 			}
 		}
 

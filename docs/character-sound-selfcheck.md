@@ -8,6 +8,11 @@ the native `DamageBlock` apply path and is now recorded with evidence instead
 of remaining an open question; remote building-entity hit sounds replay on
 the existing `BuildingEntityDamaged` relay (no extra message).
 
+> Note (ProtocolVersion 18): the same `CharacterSoundMsg` event was later
+> extended with `CharacterSoundKind.GunFire` + `RecoilDegrees` so weapon shots
+> and recoil replay on the owner's clone — see
+> `docs/weapon-fire-recoil-selfcheck.md`.
+
 ## 1. Mechanism inventory
 
 | # | Mechanism | Evidence |

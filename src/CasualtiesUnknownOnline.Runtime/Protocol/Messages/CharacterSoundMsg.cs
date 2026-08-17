@@ -3,14 +3,15 @@ using ProtoBuf;
 namespace CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 
 /// <summary>
-/// ONE player-character action sound (attack swing / throw swing / exert) —
-/// the dedicated trigger event, star semantics. The owner's local simulation
-/// already played the sound (the patch captured it from the real
-/// <c>Sound.Play</c> call, so the clip string is the EXACT chosen clip); the
-/// host applies it to the owner's remote clone and relays to the other
-/// members (source excluded). One sound = one message, reliable: a lost event
-/// is acceptable presentation degradation (there is no persistent state to
-/// heal), but the event never rides the snapshot stream.
+/// ONE player-character action presentation event (attack swing / throw
+/// swing / exert / gun fire) — the dedicated trigger event, star semantics.
+/// The owner's local simulation already played the sound (the patch captured
+/// it from the real <c>Sound.Play</c> call, so the clip string is the EXACT
+/// chosen clip; GunFire also carries the recoil kick); the host applies it to
+/// the owner's remote clone and relays to the other members (source excluded).
+/// One event = one message, reliable: a lost event is acceptable presentation
+/// degradation (there is no persistent state to heal), but the event never
+/// rides the snapshot stream.
 ///
 /// <see cref="FollowOwner"/> means the sound followed the owner's body
 /// transform on the source side (attack swing + exert — <c>follow</c> is the
@@ -50,4 +51,13 @@ public sealed class CharacterSoundMsg
 	/// <summary>True when the source call was 2D (exert is; the swing sounds are 3D).</summary>
 	[ProtoMember(7)]
 	public bool TwoDimensional { get; set; }
+
+	/// <summary>
+	/// GunFire only: the recoil kick <c>GunScript.Fire</c> adds to the owner's
+	/// <c>gunangle</c> (<c>knockBack * 8</c>, GunScript.cs:221). The receiver
+	/// adds the same degrees to the owner's clone arms animator so the clone's
+	/// weapon visibly kicks; any other kind carries 0.
+	/// </summary>
+	[ProtoMember(8)]
+	public float RecoilDegrees { get; set; }
 }

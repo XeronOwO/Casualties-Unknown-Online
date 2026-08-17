@@ -111,14 +111,15 @@ public class CharacterSoundPatchTests
 		var report = SoundSync.GetMethod("Report", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)
 			?? throw new InvalidOperationException("CharacterSoundSync.Report not found.");
 		var parameters = report.GetParameters();
-		Assert.True(parameters.Length == 6
+		Assert.True(parameters.Length == 7
 			&& parameters[0].ParameterType.FullName == "CasualtiesUnknownOnline.Runtime.Protocol.Messages.CharacterSoundKind"
 			&& parameters[1].ParameterType == typeof(string)
 			&& parameters[2].ParameterType.FullName == "UnityEngine.Vector2"
 			&& parameters[3].ParameterType == typeof(float)
 			&& parameters[4].ParameterType == typeof(bool)
-			&& parameters[5].ParameterType == typeof(bool),
-			$"CharacterSoundSync.Report must take (kind, clip, pos, volume, followOwner, twoDimensional), got {parameters.Length} parameter(s)");
+			&& parameters[5].ParameterType == typeof(bool)
+			&& parameters[6].ParameterType == typeof(float),
+			$"CharacterSoundSync.Report must take (kind, clip, pos, volume, followOwner, twoDimensional, recoilDegrees), got {parameters.Length} parameter(s)");
 	}
 
 	[Fact]

@@ -7,10 +7,11 @@ using UnityEngine;
 namespace CasualtiesUnknownOnline.GameAdapter.Character;
 
 /// <summary>
-/// The player-character action-sound chain (attack swing / throw swing /
-/// exert): the source side's <c>Sound.Play</c> call is captured by the
-/// call-identity scope (the patch is the thin adapter), the exact clip +
-/// position + volume/follow facts travel as one dedicated reliable
+/// The player-character action-presentation chain (attack swing / throw
+/// swing / exert / gun fire): the source side's <c>Sound.Play</c> call is
+/// captured by the patch (call-identity scope for the swings/exert, the
+/// GunScript.Fire postfix for gun fire), the exact clip + position +
+/// volume/follow + recoil facts travel as one dedicated reliable
 /// <see cref="CharacterSoundMsg"/>, and every receiving side replays it on the
 /// owner's render clone. The receiver's replay runs inside a RemoteApply
 /// scope, so the capture patch can never echo the replay. No state is held
@@ -38,7 +39,8 @@ internal sealed class CharacterSoundSync(
 	/// Report it: a guest sends to the host; the host broadcasts to every
 	/// handshaken guest (it already heard its own sound).
 	/// </summary>
-	internal void Report(CharacterSoundKind kind, string clip, Vector2 pos, float volume, bool followOwner, bool twoDimensional)
+	internal void Report(CharacterSoundKind kind, string clip, Vector2 pos, float volume,
+		bool followOwner, bool twoDimensional, float recoilDegrees = 0f)
 	{
 		if (!_session.SessionActive || string.IsNullOrEmpty(clip))
 		{
@@ -54,6 +56,7 @@ internal sealed class CharacterSoundSync(
 			Volume = volume,
 			FollowOwner = followOwner,
 			TwoDimensional = twoDimensional,
+			RecoilDegrees = recoilDegrees,
 		});
 	}
 
@@ -74,9 +77,10 @@ internal sealed class CharacterSoundSync(
 		}
 
 		var pos = new Vector2(msg.Position.X, msg.Position.Y);
+		var hasBody = _renderer.TryGetRemoteBody(msg.OwnerSteamId, out var body);
 		using (CallContext.Enter(CallContext.Origin.RemoteApply))
 		{
-			if (msg.FollowOwner && _renderer.TryGetRemoteBody(msg.OwnerSteamId, out var body))
+			if (msg.FollowOwner && hasBody && body != null) // Unity object — ==
 			{
 				Sound.Play(msg.Clip, pos, msg.TwoDimensional, true, body.transform, msg.Volume, 1f, false, false);
 			}
@@ -84,6 +88,15 @@ internal sealed class CharacterSoundSync(
 			{
 				Sound.Play(msg.Clip, pos, msg.TwoDimensional, true, null, msg.Volume, 1f, false, false);
 			}
+		}
+
+		// GunFire: the owner's Fire added knockBack * 8 to gunangle
+		// (GunScript.cs:221) — mirror the same one-shot kick on the clone's
+		// arms animator. Body.HandleVisuals lerps gunangle back to the synced
+		// aim on the next frame (Body.cs:3271), so this is a natural transient.
+		if (msg.Kind == CharacterSoundKind.GunFire && hasBody && body != null && msg.RecoilDegrees != 0f) // Unity object — ==
+		{
+			body.armsAnimator.SetFloat("gunangle", body.armsAnimator.GetFloat("gunangle") + msg.RecoilDegrees);
 		}
 
 		_log.LogDebug("[CharacterSound] replayed {Kind} {Clip} for owner {Owner} at ({X:F1},{Y:F1}).",

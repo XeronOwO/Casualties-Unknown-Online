@@ -64,6 +64,20 @@ public sealed class SteamService(ILogger<SteamService> log) : ICuoService, IStea
 		return members;
 	}
 
+	/// <summary>Steam persona names for the Online UI. The local persona comes
+	/// from <c>GetPersonaName</c>; lobby members use the friends/persona lookup
+	/// (Steam fills lobby member names even for non-friends once their info is
+	/// available). The UI falls back to the SteamID when this returns empty.</summary>
+	public string GetPersonaName(ulong steamId)
+	{
+		if (steamId == LocalSteamId)
+		{
+			return SteamFriends.GetPersonaName();
+		}
+
+		return SteamFriends.GetFriendPersonaName(new CSteamID(steamId));
+	}
+
 	/// <summary>Raised on the Unity main thread via <see cref="RunCallbacks"/>.</summary>
 	public event Action<ulong>? LobbyCreated;
 

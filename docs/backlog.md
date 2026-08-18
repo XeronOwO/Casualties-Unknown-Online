@@ -332,7 +332,14 @@ lands, never bolted on afterwards.
   host-triggered one-shot consumptions are recorded for late joiners, and EntityEvent/
   EntitySpawned relays no longer double-broadcast (the adapter domain is the single relay owner).
   See `docs/crystal-mimic-selfcheck.md`; enemy SetColor remains a recorded presentation gap.
-- Online UI (create/join room, player status, nameplates + off-screen arrows).
+- RESOLVED (2026-08-18, no protocol bump): Online UI — create/join room
+  controls (IMGUI lobby ID field + Join/Create buttons reusing the F8/F9
+  guarded paths), member status list (persona / host-or-guest / handshake /
+  in-world-or-menu per lobby member), and world nameplates + off-screen arrows
+  for in-world remote players (`OnlineUiOverlay` + pure
+  `OffScreenArrowGeometry`; `ISteamService.GetPersonaName` added for names).
+  See `docs/online-ui-selfcheck.md`; 973 tests green (L0 geometry tests +
+  static evidence, no manual acceptance).
 - RESOLVED (2026-08-16): command system + permission model — `ModPermission` declaration
   + live enforcement, host-authoritative `IModCommands` (NetMsg 86/87), host mod authorizes
   per-guest via `IModCommandContext.RequesterSteamId`.

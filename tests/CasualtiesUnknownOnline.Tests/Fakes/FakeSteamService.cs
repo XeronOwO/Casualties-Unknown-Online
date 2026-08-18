@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Steam;
 
@@ -21,6 +22,8 @@ internal sealed class FakeSteamService(ulong localSteamId) : ISteamService, ICuo
 
 	internal ulong[] LobbyMembers { get; set; } = [];
 
+	internal Dictionary<ulong, string> Personas { get; } = [];
+
 	public event Action<ulong>? LobbyCreated;
 
 	public event Action<ulong>? LobbyEntered;
@@ -30,6 +33,9 @@ internal sealed class FakeSteamService(ulong localSteamId) : ISteamService, ICuo
 	public ulong GetLobbyOwner() => LobbyOwner;
 
 	public ulong[] GetLobbyMembers() => LobbyMembers;
+
+	public string GetPersonaName(ulong steamId) =>
+		Personas.TryGetValue(steamId, out var name) ? name : $"player-{steamId}";
 
 	internal void FireLobbyCreated(ulong lobbyId) => LobbyCreated?.Invoke(lobbyId);
 

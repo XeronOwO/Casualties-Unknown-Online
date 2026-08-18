@@ -38,6 +38,7 @@ public class Plugin : BaseUnityPlugin
 	private ConfigEntry<string> _targetLobbyId = null!;
 	private ulong? _pendingJoinLobbyId;
 	private string? _lastJoinError;
+	private OnlineUiOverlay _onlineUi = null!;
 
 	[DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
 	private static extern IntPtr LoadLibrary(string lpFileName);
@@ -124,6 +125,13 @@ public class Plugin : BaseUnityPlugin
 			_entities = _services.GetRequiredService<EntitySyncService>();
 			_adapter = _services.GetService<IGameAdapter>();
 			_cuoServices = [.. _services.GetServices<ICuoService>()];
+			_onlineUi = new OnlineUiOverlay
+			{
+				// The UI delegates are the same guarded paths the F8/F9 hotkeys
+				// use — one lobby-switch policy, two entry points.
+				JoinLobby = TryJoinLobbyFromUi,
+				CreateLobby = TryCreateLobbyFromUi,
+			};
 
 			// Publish the container on the static diagnostics seam (HotRepl etc.).
 			CuoBootstrap.Services = _services;
@@ -316,6 +324,31 @@ public class Plugin : BaseUnityPlugin
 		return false;
 	}
 
+	/// <summary>Online UI Join button path — same guards as the F9 hotkey, with
+	/// the lobby id coming from the text field instead of the config.</summary>
+	private bool TryJoinLobbyFromUi(string lobbyId)
+	{
+		if (!EnsureSteamReady(_steam) || !CanSwitchLobbyForJoin() || !ulong.TryParse(lobbyId, out var lobbyIdValue))
+		{
+			return false;
+		}
+
+		_steam.JoinLobby(lobbyIdValue);
+		return true;
+	}
+
+	/// <summary>Online UI Create button path — same policy as the F8 hotkey.</summary>
+	private bool TryCreateLobbyFromUi()
+	{
+		if (!EnsureSteamReady(_steam) || !CanSwitchLobbyForCreate())
+		{
+			return false;
+		}
+
+		_steam.CreateLobby();
+		return true;
+	}
+
 	private static MelLogLevel ParseLogLevel(string text) =>
 		Enum.TryParse(text, ignoreCase: true, out MelLogLevel level)
 		&& Enum.IsDefined(typeof(MelLogLevel), level)
@@ -341,7 +374,8 @@ public class Plugin : BaseUnityPlugin
 		return null;
 	}
 
-	// Phase-1 test HUD (IMGUI, temporary): replace with real UI in later phases.
+	// The Online UI overlay (IMGUI): lobby create/join panel, member status,
+	// nameplates and off-screen arrows — see OnlineUiOverlay.cs.
 	private void OnGUI()
 	{
 		if (_adapter is { IsWaitingForReady: true })
@@ -350,37 +384,7 @@ public class Plugin : BaseUnityPlugin
 			return; // the HUD is hidden behind the gate overlay
 		}
 
-		var y = 10f;
-		Line("CUO Phase 1 — Steam: " + (_steam.IsInitialized ? "initialized" : "not initialized"));
-		if (_steam.IsInitialized)
-		{
-			Line($"SteamID: {_steam.LocalSteamId}");
-			Line($"Lobby: {_steam.CurrentLobbyId}  Members: {_steam.GetLobbyMembers().Length}");
-		}
-
-		var role = _session.Role == SessionRole.Host ? "HOST"
-			: _session.Role == SessionRole.Guest ? "GUEST" : "—";
-		Line($"Session: {role}  handshake: {(_session.SessionActive ? "yes" : "no")}  "
-			+ $"entity sync: {(_entities.EntitySyncActive ? "ON" : "off")}");
-		foreach (var remote in _entities.RemotePlayers)
-		{
-			Line($"Remote: {remote.SteamId:X}  pos: ({remote.Position.X:F1}, {remote.Position.Y:F1})  "
-				+ $"inWorld: {_session.IsRemoteInWorld(remote.SteamId)}");
-		}
-
-		Line(_session.LastRttMs >= 0f ? $"Last RTT: {_session.LastRttMs:F1} ms" : "No ping yet");
-		if (_lastJoinError is not null)
-		{
-			Line(_lastJoinError);
-		}
-
-		Line("F8 create lobby / F9 join from config / F7 ping peer");
-
-		void Line(string text)
-		{
-			GUI.Label(new Rect(10f, y, 900f, 20f), text);
-			y += 20f;
-		}
+		_onlineUi.Draw(_steam, _session, _entities, _lastJoinError);
 	}
 
 	/// <summary>

@@ -22,6 +22,11 @@ public interface ISteamService
 	/// <summary>SteamIDs of all current lobby members (including self).</summary>
 	ulong[] GetLobbyMembers();
 
+	/// <summary>The Steam persona name for the local user or a lobby member
+	/// (Online UI nameplates/status; falls back to the SteamID hex in the UI
+	/// when Steam returns an empty name).</summary>
+	string GetPersonaName(ulong steamId);
+
 	event Action<ulong>? LobbyCreated;
 
 	event Action<ulong>? LobbyEntered;

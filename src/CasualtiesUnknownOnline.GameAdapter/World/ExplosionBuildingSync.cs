@@ -42,7 +42,7 @@ internal static class ExplosionBuildingSync
 		{
 			if (entity != null && entity.health < before) // Unity object — ==
 			{
-				PatchBridge.Impl?.OnBuildingEntityDamaged(entity, before - entity.health);
+				PatchBridge.Impl?.OnBuildingEntityDamaged(entity, before - entity.health, playHitSound: true);
 			}
 		}
 	}

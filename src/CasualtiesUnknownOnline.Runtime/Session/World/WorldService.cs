@@ -311,11 +311,11 @@ public sealed partial class WorldService : IWorldControl, IDisposable
 	public void FireBlockPlacedReceived(ulong sender, int x, int y, ushort block) =>
 		BlockPlacedReceived?.Invoke(sender, x, y, block);
 
-	/// <summary>A player's attack damaged a building entity — apply the damage to the entity at Pos.</summary>
-	public event Action<NetVector2, float>? BuildingEntityDamagedReceived;
+	/// <summary>A building entity was damaged — apply the damage to the entity at Pos. If <c>playHitSound</c> is true the receiver also replays the entity's own hitSound (attack damage); silent damage sources pass false.</summary>
+	public event Action<NetVector2, float, bool>? BuildingEntityDamagedReceived;
 
-	public void FireBuildingEntityDamagedReceived(NetVector2 pos, float damage) =>
-		BuildingEntityDamagedReceived?.Invoke(pos, damage);
+	public void FireBuildingEntityDamagedReceived(NetVector2 pos, float damage, bool playHitSound) =>
+		BuildingEntityDamagedReceived?.Invoke(pos, damage, playHitSound);
 
 	/// <summary>A lockable entity was opened — apply the open (health = 0) to the entity at Pos.</summary>
 	public event Action<NetVector2>? BuildingEntityOpenedReceived;
@@ -357,14 +357,17 @@ public sealed partial class WorldService : IWorldControl, IDisposable
 	}
 
 	/// <summary>
-	/// Report a locally-performed player attack on a building entity (local
-	/// compute): guest → host as a report (the host applies the damage to its
-	/// own copy — which is what rolls the host-side entity drops — and relays),
-	/// host → guest as a broadcast relay. The entity is identified by its world
+	/// Report a locally-performed building-entity damage (local compute):
+	/// guest → host as a report (the host applies the damage to its own copy —
+	/// which is what rolls the host-side entity drops — and relays), host →
+	/// guest as a broadcast relay. The entity is identified by its world
 	/// position (world entities are generated deterministically, so both sides
-	/// have the same object at the same place).
+	/// have the same object at the same place). <paramref name="playHitSound"/>
+	/// is true for attack/explosion damage (the receiver replays the entity's
+	/// own hitSound) and false for silent damage sources such as cactus
+	/// collision self-damage.
 	/// </summary>
-	public void SendBuildingEntityDamaged(NetVector2 pos, float damage)
+	public void SendBuildingEntityDamaged(NetVector2 pos, float damage, bool playHitSound = true)
 	{
 		if (!_session.SessionActive)
 		{
@@ -375,6 +378,7 @@ public sealed partial class WorldService : IWorldControl, IDisposable
 		{
 			Position = pos.ToNetVector2Msg(),
 			Damage = damage,
+			PlayHitSound = playHitSound,
 		};
 		if (_session.Role == SessionRole.Host)
 		{

@@ -49,8 +49,8 @@ internal interface IPatchBridge
 	/// <summary>PlayerCamera.SetTimeScale finished — the host reports the speed it just applied so the world-time domain can broadcast it (guests never report; apply/sleep scopes never report).</summary>
 	void OnLocalTimeScaleChanged(PlayerCamera.SpeedType speed);
 
-	/// <summary>A player's attack damaged a building entity (Body.cs:1946) — report it (the entity's health is local-only otherwise).</summary>
-	void OnBuildingEntityDamaged(BuildingEntity entity, float damage);
+	/// <summary>A building entity was damaged (Body.cs:1946 attack, explosion diff, or cactus collision self-damage) — report it (the entity's health is local-only otherwise). <c>playHitSound</c> is true for attack/explosion damage (the receiver replays the entity's own hitSound) and false for silent damage sources such as cactus collision self-damage.</summary>
+	void OnBuildingEntityDamaged(BuildingEntity entity, float damage, bool playHitSound = true);
 
 	/// <summary>
 	/// The local player swung — <c>Body.Attack</c> (Body.cs:1887, conscious +

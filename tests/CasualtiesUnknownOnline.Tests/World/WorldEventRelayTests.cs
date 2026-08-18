@@ -37,12 +37,12 @@ public class WorldEventRelayTests
 	public void BuildingDamaged_GuestReport_RelayedToOtherGuest_SourceExcluded()
 	{
 		using var w = ItemSimWorld.Create();
-		var hostDamages = new List<(float X, float Y, float Damage)>();
-		var g1Damages = new List<(float X, float Y, float Damage)>();
-		var g2Damages = new List<(float X, float Y, float Damage)>();
-		w.Host.Services.GetRequiredService<IWorldControl>().BuildingEntityDamagedReceived += (p, d) => hostDamages.Add((p.X, p.Y, d));
-		w.G1.Services.GetRequiredService<IWorldControl>().BuildingEntityDamagedReceived += (p, d) => g1Damages.Add((p.X, p.Y, d));
-		w.G2.Services.GetRequiredService<IWorldControl>().BuildingEntityDamagedReceived += (p, d) => g2Damages.Add((p.X, p.Y, d));
+		var hostDamages = new List<(float X, float Y, float Damage, bool PlayHitSound)>();
+		var g1Damages = new List<(float X, float Y, float Damage, bool PlayHitSound)>();
+		var g2Damages = new List<(float X, float Y, float Damage, bool PlayHitSound)>();
+		w.Host.Services.GetRequiredService<IWorldControl>().BuildingEntityDamagedReceived += (p, d, s) => hostDamages.Add((p.X, p.Y, d, s));
+		w.G1.Services.GetRequiredService<IWorldControl>().BuildingEntityDamagedReceived += (p, d, s) => g1Damages.Add((p.X, p.Y, d, s));
+		w.G2.Services.GetRequiredService<IWorldControl>().BuildingEntityDamagedReceived += (p, d, s) => g2Damages.Add((p.X, p.Y, d, s));
 
 		// g1's attack (local compute) — report → host applies to its own copy
 		// (which rolls the host-side drops) and relays, the source excluded.
@@ -51,7 +51,9 @@ public class WorldEventRelayTests
 
 		Assert.True(hostDamages.Count == 1, $"the host must apply the report, got {hostDamages.Count}");
 		Assert.True(hostDamages[0].X == 7f && hostDamages[0].Damage == 3.5f, "the position key and the damage ride through");
+		Assert.True(hostDamages[0].PlayHitSound, "attack damage must default to replaying the entity hitSound");
 		Assert.True(g2Damages.Count == 1, $"the other guest must get the relay, got {g2Damages.Count}");
+		Assert.True(g2Damages[0].PlayHitSound, "the relay must carry the attack's playHitSound=true");
 		Assert.True(g1Damages.Count == 0, $"the source already applied locally — no echo, got {g1Damages.Count}");
 	}
 
@@ -59,10 +61,10 @@ public class WorldEventRelayTests
 	public void BuildingDamaged_HostBroadcast_ReachesEveryGuest()
 	{
 		using var w = ItemSimWorld.Create();
-		var g1Damages = new List<(float X, float Y, float Damage)>();
-		var g2Damages = new List<(float X, float Y, float Damage)>();
-		w.G1.Services.GetRequiredService<IWorldControl>().BuildingEntityDamagedReceived += (p, d) => g1Damages.Add((p.X, p.Y, d));
-		w.G2.Services.GetRequiredService<IWorldControl>().BuildingEntityDamagedReceived += (p, d) => g2Damages.Add((p.X, p.Y, d));
+		var g1Damages = new List<(float X, float Y, float Damage, bool PlayHitSound)>();
+		var g2Damages = new List<(float X, float Y, float Damage, bool PlayHitSound)>();
+		w.G1.Services.GetRequiredService<IWorldControl>().BuildingEntityDamagedReceived += (p, d, s) => g1Damages.Add((p.X, p.Y, d, s));
+		w.G2.Services.GetRequiredService<IWorldControl>().BuildingEntityDamagedReceived += (p, d, s) => g2Damages.Add((p.X, p.Y, d, s));
 
 		w.Host.Services.GetRequiredService<IWorldControl>().SendBuildingEntityDamaged(new Runtime.Protocol.NetVector2(1f, 2f), 9f);
 		w.Driver.Tick(50);
@@ -70,5 +72,26 @@ public class WorldEventRelayTests
 		Assert.True(g1Damages.Count == 1 && g2Damages.Count == 1,
 			$"the host's attack must reach every guest (g1: {g1Damages.Count}, g2: {g2Damages.Count})");
 		Assert.True(g1Damages[0].Damage == 9f && g2Damages[0].Y == 2f, "the damage and the position ride through");
+		Assert.True(g1Damages[0].PlayHitSound && g2Damages[0].PlayHitSound, "host attack damage must stay playHitSound=true");
+	}
+
+	[Fact]
+	public void BuildingDamaged_SilentDamageFlag_RidesThroughRelay()
+	{
+		using var w = ItemSimWorld.Create();
+		var hostDamages = new List<(float X, float Y, float Damage, bool PlayHitSound)>();
+		var g2Damages = new List<(float X, float Y, float Damage, bool PlayHitSound)>();
+		w.Host.Services.GetRequiredService<IWorldControl>().BuildingEntityDamagedReceived += (p, d, s) => hostDamages.Add((p.X, p.Y, d, s));
+		w.G2.Services.GetRequiredService<IWorldControl>().BuildingEntityDamagedReceived += (p, d, s) => g2Damages.Add((p.X, p.Y, d, s));
+
+		// Cactus collision self-damage: the trigger side never plays the entity
+		// hitSound, so the report must carry playHitSound=false through the star.
+		w.G1.Services.GetRequiredService<IWorldControl>().SendBuildingEntityDamaged(new Runtime.Protocol.NetVector2(3f, 4f), 30f, playHitSound: false);
+		w.Driver.Tick(50);
+
+		Assert.True(hostDamages.Count == 1, $"the host must receive the silent damage report, got {hostDamages.Count}");
+		Assert.True(hostDamages[0].PlayHitSound == false, "the host must know this is silent damage");
+		Assert.True(g2Damages.Count == 1, $"the other guest must receive the silent damage relay, got {g2Damages.Count}");
+		Assert.True(g2Damages[0].PlayHitSound == false, "the relay must keep silent-damage semantics");
 	}
 }

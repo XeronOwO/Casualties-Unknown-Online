@@ -111,7 +111,7 @@ trap's sound/sprite/light.
 | BearTrap | trigger | repeatable | closeSprite + sound; release replayed (BearTrapReleased) | covered | BearTrapClamped/Released |
 | BarbedFence | trigger | repeatable | hitSprite + fence sound | covered | BarbedFenceHit |
 | CoilScript | collide | repeatable | zap sound + light + shake | covered | CoilShocked |
-| CactusScript | collide | repeatable | gore sound | covered | CactusHit |
+| CactusScript | collide | repeatable | gore sound + self-damage health (silent BuildingEntityDamaged relay) | covered | CactusHit + BuildingEntityDamaged silent (PV21) |
 | JumpPadScript | collide | repeatable | light blink + jumppad sound | covered | JumpPadLaunched |
 | StalactiteDropper | trigger/detect | yes | Drop() fall + DamagingCrate damage | covered | StalactiteDropped |
 | GeyserScript | trigger | repeatable | TryRumble() + liquid eruption (liquidType synced in Extra) | covered | GeyserActivated |

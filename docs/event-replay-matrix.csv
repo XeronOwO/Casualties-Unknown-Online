@@ -18,7 +18,7 @@ CrystalShySwapped,observerlaugh,ok,position swap,re-scan swap,activated latch,co
 CrystalEMPActivated,crystalemp,ok,white flash+Shake200+darken,white flash+Shake200 (darken runs natural),activated latch,covered,battery drain rides the item domain
 BarbedFenceHit,fence(3D) ok,ok,hitSprite transition,ok,none (instant),covered,
 CoilShocked,zap(3D)+light-flash+Shake,ok,light flash,SetLightIntensity ok,cooldown gate,covered,
-CactusHit,gore at player (DoGoreSound),gore1-5 at cactus (3D),player-knockback (local),none,none,covered,sound position differs per-side semantics
+CactusHit,gore at player (DoGoreSound),gore1-5 at cactus (3D),player-knockback (local) + cactus self-damage (health-=30),none + BuildingEntityDamaged silent health relay,none,covered,sound position differs per-side semantics; self-damage rides BuildingEntityDamagedMsg.PlayHitSound=false (ProtocolVersion 21) so peers' cactus health/death stay in sync without replaying the entity hitSound
 JumpPadLaunched,jumppad(3D)+light+Shake,ok,light flash,ok,cooldown gate,covered,
 BananaPlantSlip,plantslip(3D) ok,ok,none,none,none,covered,
 GrabberGrabbed,EnemyEffectMsg body terminal state,n/a (no live EntityEvent),scream bubble + ragdoll via speech/entity-state streams,n/a,layout key only,excluded,kind retained only as the trap-layout identity key; the body effect rides EnemyEffectMsg (NetMsg 85)

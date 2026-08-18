@@ -4,7 +4,7 @@
 "BearTrap","trap","trigger","activated/caughtLimb","no","yes","no","closeSprite/sound + release","covered","BearTrapClamped/Released"
 "BarbedFence","trap","trigger","hitSprite","no","yes","no","hitSprite/fence sound","covered","BarbedFenceHit"
 "CoilScript","trap","collide","cooldown","no","yes","no","zap sound/light/shake","covered","CoilShocked"
-"CactusScript","trap","collide","none","no","yes","no","gore sound","covered","CactusHit"
+"CactusScript","trap","collide","health","no","yes","no","gore sound + self-damage health","covered","CactusHit + BuildingEntityDamaged silent (PV21)"
 "JumpPadScript","trap","collide","cooldown","no","no","no","light blink/jumppad sound","covered","JumpPadLaunched"
 "StalactiteDropper","trap","trigger/detect","dropped","yes","yes","no","fall/DamagingCrate","covered","StalactiteDropped"
 "GeyserScript","trap","trigger","rumbleTime/liquidType","no","no","yes","rumble/liquid eruption","covered","GeyserActivated"

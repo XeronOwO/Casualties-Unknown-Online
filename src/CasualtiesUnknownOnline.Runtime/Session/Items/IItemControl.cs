@@ -29,6 +29,9 @@ public interface IItemControl
 	/// <summary>Guest only: an item moved slots locally (SwapSlots / SwitchHands) — report the new slot so the host's record stays in sync. The digest evidence rides along (the host broadcasts it as the carried-fact event when it has no transfer-table entry — a starting-supply item).</summary>
 	void SendItemSlot(ulong itemId, int slotIndex, CharacterItemMsg item);
 
+	/// <summary>Guest only: a carried container's full fact changed internally (a nested-content move) — report the parent container so the host records it and relays it as the carried-fact event (one operation = one message).</summary>
+	void SendItemContainerContent(ulong itemId, CharacterItemMsg item);
+
 	/// <summary>An item was dropped/placed into the world locally (inventory → world/container) — record and report/broadcast. Vel is the item's velocity at the drop moment (a throw carries a big one); ParentPos is the container's world position when ParentItemId is set (the receiver binds a local generation-time container by position).</summary>
 	void SendItemDropped(ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, ulong parentItemId, float rotation, NetVector2 parentPos = default, float angularVelocity = 0f);
 
@@ -87,6 +90,9 @@ public interface IItemControl
 
 	/// <summary>An item moved slots locally (SwapSlots / SwitchHands) — report the new slot so the host's record stays in sync. The digest evidence rides along (the host broadcasts it when it has no transfer-table entry).</summary>
 	void FireItemSlotReceived(ulong sender, ulong itemId, int slotIndex, CharacterItemMsg item);
+
+	/// <summary>A carried container's full fact changed internally (nested-content move) — the host records it and relays it as the carried-fact event.</summary>
+	void FireItemContainerContentReceived(ulong sender, ulong itemId, CharacterItemMsg item);
 
 	/// <summary>Guest only: an item-instance id was allocated locally — report the counter high-water mark so the host can grant it back on a reconnect (a crashed-and-rejoined counter restarts from zero and would reuse ids the host still holds).</summary>
 	void SendItemIdWatermark(ulong counter);

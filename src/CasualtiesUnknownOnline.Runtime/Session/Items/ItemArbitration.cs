@@ -218,6 +218,31 @@ public sealed class ItemArbitration(ISessionControl session, PacketSender sender
 		return null;
 	}
 
+	/// <summary>
+	/// Host only: a carried container's nested contents changed — the owner's own
+	/// body is the fact source, so the report's full recursive capture is adopted
+	/// onto the transfer-table entry (top-level state + contents replaced — exact
+	/// rebuild, never an additive delta). Returns the updated authoritative item
+	/// (null when untracked — no entry to arbitrate against).
+	/// </summary>
+	public CharacterItemMsg? RecordContainerContent(ulong guest, ulong itemId, CharacterItemMsg item)
+	{
+		if (_transferred.TryGetValue(guest, out var owned) && owned.TryGetValue(itemId, out var entry))
+		{
+			entry.Item.SlotIndex = item.SlotIndex;
+			entry.Item.Condition = item.Condition;
+			entry.Item.Favourited = item.Favourited;
+			entry.Item.Liquids = item.Liquids;
+			entry.Item.Components = item.Components;
+			entry.Item.Contents = item.Contents;
+			_log.LogInformation("Item {ItemId} container contents changed by {Guest} ({ContentCount} contents).", itemId, guest, item.Contents.Count);
+			return entry.Item;
+		}
+
+		_log.LogWarning("Item container content {ItemId} from {Guest} — no transfer-table entry, not tracked.", itemId, guest);
+		return null;
+	}
+
 	/// <summary>Guest side: the host's authoritative item state arrived — surface it for the adapter to apply.</summary>
 	public void FireCorrectionReceived(CharacterItemMsg item)
 	{

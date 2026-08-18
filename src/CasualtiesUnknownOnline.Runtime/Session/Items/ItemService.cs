@@ -245,6 +245,9 @@ public sealed partial class ItemService : IItemControl, IItemActionWorldAccess, 
 	/// <summary>Guest only: an item moved slots locally — report the new slot so the host's record stays in sync. Host-side moves are the host's own authority, never reported.</summary>
 	public void SendItemSlot(ulong itemId, int slotIndex, CharacterItemMsg item) => _itemActionSync.SendItemSlot(itemId, slotIndex, item);
 
+	/// <summary>Guest only: a carried container's full fact changed internally (nested-content move) — report the parent container so the host records and relays it.</summary>
+	public void SendItemContainerContent(ulong itemId, CharacterItemMsg item) => _itemActionSync.SendItemContainerContent(itemId, item);
+
 	public void SendItemDropped(ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, ulong parentItemId, float rotation, NetVector2 parentPos = default, float angularVelocity = 0f)
 	{
 		if (_session.Role != SessionRole.Guest)
@@ -415,6 +418,8 @@ public sealed partial class ItemService : IItemControl, IItemActionWorldAccess, 
 	public void FireItemUseReceived(ulong sender, ulong itemId, CharacterItemMsg evidence) => _itemActionSync.FireItemUseReceived(sender, itemId, evidence);
 
 	public void FireItemSlotReceived(ulong sender, ulong itemId, int slotIndex, CharacterItemMsg item) => _itemActionSync.FireItemSlotReceived(sender, itemId, slotIndex, item);
+
+	public void FireItemContainerContentReceived(ulong sender, ulong itemId, CharacterItemMsg item) => _itemActionSync.FireItemContainerContentReceived(sender, itemId, item);
 
 	public void FireItemSnapshotReceived(ulong sender, IReadOnlyList<WorldItem> items, int layerModifierIndex, byte[]? layerModifierRandomState)
 		=> _snapshots.FireItemSnapshotReceived(sender, items, layerModifierIndex, layerModifierRandomState);

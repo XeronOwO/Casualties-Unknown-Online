@@ -121,7 +121,7 @@ public sealed partial class GameAdapter : IGameAdapter, ICuoService, IPatchBridg
 		_itemWorldSync = new ItemWorldSync(session, items, _dropGuard, itemDropState, blockBreakState, _operationTrace, itemReports, _itemIds, loggerFactory.CreateLogger<ItemWorldSync>());
 		_itemSlotSync = new ItemSlotSync(items, session, _itemIds, loggerFactory.CreateLogger<ItemSlotSync>());
 		_pickupSync = new PickupSync(items, session, _itemApplication, itemDropState, _itemIds, _operationTrace, itemReports, _itemSlotSync);
-		_containerSync = new ContainerItemSync(items, itemDropState, _itemIds, _operationTrace, itemReports, loggerFactory.CreateLogger<ContainerItemSync>());
+		_containerSync = new ContainerItemSync(items, itemDropState, _itemIds, _operationTrace, itemReports, session, loggerFactory.CreateLogger<ContainerItemSync>());
 		_itemUseSync = new ItemUseSync(items, session, _itemIds, loggerFactory.CreateLogger<ItemUseSync>());
 		_itemPositionAuthority = new ItemPositionAuthority(items);
 		_itemPositionFollow = new ItemPositionFollow(items, _dropGuard, session, loggerFactory.CreateLogger<ItemPositionFollow>());

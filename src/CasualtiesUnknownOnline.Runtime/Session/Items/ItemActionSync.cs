@@ -50,6 +50,22 @@ internal sealed class ItemActionSync(
 		_sender.Send(_session.HostSteamId, NetMsg.ItemSlot, new ItemSlotMsg { ItemId = itemId, SlotIndex = slotIndex, Item = item });
 	}
 
+	/// <summary>Guest only: a carried container's FULL fact changed internally (a
+	/// nested-content move — an item shifted inside a backpack or held container).
+	/// The parent container is the fact source for its owner's own body, so the
+	/// full recursive capture is reported — the host records it and relays it as
+	/// the carried-fact event.</summary>
+	public void SendItemContainerContent(ulong itemId, CharacterItemMsg item)
+	{
+		if (_session.Role != SessionRole.Guest || !_session.SessionActive)
+		{
+			return;
+		}
+
+		_sender.Send(_session.HostSteamId, NetMsg.ItemContainerContent,
+			new ItemContainerContentMsg { ItemId = itemId, Item = item });
+	}
+
 	public void FireItemUseReceived(ulong sender, ulong itemId, CharacterItemMsg evidence)
 	{
 		if (_session.Role != SessionRole.Host || !_session.SessionActive)
@@ -92,6 +108,21 @@ internal sealed class ItemActionSync(
 		// item falls back to the report's digest evidence (its slot is the new
 		// one, SlotKnown), broadcast as-is.
 		var authoritative = _arbitration.RecordSlot(sender, itemId, slotIndex) ?? item;
+		_world.PublishCarriedSyncFor(sender, authoritative);
+	}
+
+	public void FireItemContainerContentReceived(ulong sender, ulong itemId, CharacterItemMsg item)
+	{
+		if (_session.Role != SessionRole.Host || !_session.SessionActive)
+		{
+			return;
+		}
+
+		// The container's nested contents are the owner's local fact (the host
+		// record was one action behind), so the report is adopted unconditionally
+		// and relayed as the carried-fact event — the same accept-with-correction
+		// shape as the use/slot flows.
+		var authoritative = _arbitration.RecordContainerContent(sender, itemId, item) ?? item;
 		_world.PublishCarriedSyncFor(sender, authoritative);
 	}
 

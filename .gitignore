@@ -78,3 +78,6 @@ references/*.dll
 reversing/*
 !reversing/README.md
 .mcp.json
+
+# J-Space task workspace (created by the j-space skill in the task directory)
+.jspace/

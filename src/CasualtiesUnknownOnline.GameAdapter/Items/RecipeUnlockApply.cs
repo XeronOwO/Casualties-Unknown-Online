@@ -20,6 +20,14 @@ internal sealed class RecipeUnlockApply(ICraftControl craft, ILogger<RecipeUnloc
 
 	internal void Unbind() => _craft.RecipeUnlockReceived -= OnRecipeUnlockReceived;
 
+	/// <summary>
+	/// A recipe-unlock fact arrived (the host's own report or a relayed remote
+	/// unlock). Write the static INT = 0. When the write is a NEW learn
+	/// (previous INT was non-zero) also show the same "learned recipe" popup
+	/// the game's native blueprint use shows (Item.cs:4285-4287) — the acting
+	/// side already showed it natively, so the pre-write check suppresses the
+	/// duplicate on that side.
+	/// </summary>
 	private void OnRecipeUnlockReceived(int recipeIndex)
 	{
 		if (Recipes.recipes == null || recipeIndex < 0 || recipeIndex >= Recipes.recipes.Count)
@@ -28,7 +36,35 @@ internal sealed class RecipeUnlockApply(ICraftControl craft, ILogger<RecipeUnloc
 			return;
 		}
 
-		Recipes.recipes[recipeIndex].INT = 0;
-		_log.LogInformation("[Crafting] recipe {Index} unlocked ({Name}).", recipeIndex, Recipes.recipes[recipeIndex].fullName);
+		var recipe = Recipes.recipes[recipeIndex];
+		var newlyUnlocked = ShouldShowPopup(recipe.INT);
+		recipe.INT = 0;
+
+		if (newlyUnlocked)
+		{
+			ShowNewlyUnlockedPopup(recipeIndex, recipe);
+		}
+
+		_log.LogInformation("[Crafting] recipe {Index} unlocked ({Name}).", recipeIndex, recipe.fullName);
+	}
+
+	/// <summary>Only a transition INTO the learned state (INT != 0 → 0) needs the popup; an already-learned recipe must not re-alert on every duplicate relay.</summary>
+	internal static bool ShouldShowPopup(int previousInt) => previousInt != 0;
+
+	/// <summary>Pure text builder — same replacement the game performs for the native blueprint popup (Item.cs:4285-4287).</summary>
+	internal static string BuildPopupText(string learnedRecipeTemplate, string itemName)
+		=> learnedRecipeTemplate.Replace("r1", itemName);
+
+	private void ShowNewlyUnlockedPopup(int recipeIndex, Recipe recipe)
+	{
+		if (PlayerCamera.main == null) // Unity object — ==
+		{
+			_log.LogWarning("[Crafting] recipe {Index} unlocked before PlayerCamera exists — popup skipped.", recipeIndex);
+			return;
+		}
+
+		var text = BuildPopupText(Locale.GetOther("learnedrecipe"), Locale.GetItem(recipe.simpleName));
+		PlayerCamera.main.DoAlert(text, false);
+		_log.LogInformation("[Crafting] showed recipe-unlock popup ({Name}).", recipe.fullName);
 	}
 }

@@ -257,7 +257,10 @@ domain"). Per-surface notes:
   instead — no report until `LiquidTransfer.Finish` (cancel = nothing).
 - **Blueprint use** (Item.cs:4279): the blueprint's own destruction rides the
   existing use digest; the UNLOCK (`Recipes.recipes[idx].INT = 0`) rides
-  `RecipeUnlockMsg` — every side applies it to its per-process static.
+  `RecipeUnlockMsg` — every side applies it to its per-process static. The
+  native "learned recipe" popup (Item.cs:4285-4287) now also replays on the
+  other sides for a NEW unlock and is suppressed on the acting side
+  (#195, `docs/blueprint-popup-selfcheck.md`).
 - **Enum component fields (codec kind 6)**: `GunScript.roundInChamber` and the
   ammo/firing-mode enums now ride the component digest (stored as the
   underlying int). The gun's live state (hasMag/roundsInMag/racked/safe —

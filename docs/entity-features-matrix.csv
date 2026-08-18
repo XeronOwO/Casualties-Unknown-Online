@@ -1,5 +1,5 @@
 "entity","type","trigger","state","one-shot","damages","random","replay","sync","path"
-"MineScript","trap","collide","pressed/exploded/timeSincePressed","no","yes","yes","explosion sound/particle/blastmark/shake/body damage/destroy","covered","MineExploded"
+"MineScript","trap","collide","pressed/exploded/timeSincePressed","no","yes","yes","press visual (mine/pressedSprite) + explosion sound/particle/blastmark/shake/body damage/destroy","covered","MinePressed + MineExploded"
 "SpikeStabberScript","trap","trigger","activated","yes","yes","no","stab anim/sound/damage","covered","SpikeStabbed"
 "BearTrap","trap","trigger","activated/caughtLimb","no","yes","no","closeSprite/sound + release","covered","BearTrapClamped/Released"
 "BarbedFence","trap","trigger","hitSprite","no","yes","no","hitSprite/fence sound","covered","BarbedFenceHit"

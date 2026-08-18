@@ -28,6 +28,9 @@ internal sealed class TrapVisualReplay(ILogger<TrapVisualReplay> log)
 	{
 		switch (kind)
 		{
+			case EntityEventKind.MinePressed:
+				ReplayState<MineScript>(position, kind, TrapStateActions.ApplyMinePressed);
+				break;
 			case EntityEventKind.MineExploded:
 				ReplayMineExplosion(position);
 				break;

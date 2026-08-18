@@ -19,6 +19,7 @@ internal static class EntityEventArchives
 	internal static readonly (EntityEventKind Kind, bool OneShot)[] Declared =
 	[
 		(EntityEventKind.MineExploded, true), // landmine — destroyed + consumed
+		(EntityEventKind.MinePressed, false), // landmine press visual — a transient one-way edge, NOT a durable snapshot consumption (MineExploded is); duplicate suppression is the local MinePressReplayMarker
 		(EntityEventKind.SpikeStabbed, true), // spikestabber one-shot activated
 		(EntityEventKind.BearTrapClamped, false), // clamp is reversible
 		(EntityEventKind.BarbedFenceHit, false), // repeatable hit

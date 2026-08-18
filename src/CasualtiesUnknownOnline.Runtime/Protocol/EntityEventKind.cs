@@ -10,6 +10,7 @@ namespace CasualtiesUnknownOnline.Runtime.Protocol;
 /// </summary>
 public enum EntityEventKind : byte
 {
+	MinePressed = 31, // landmine pressed: the 0.8 s pre-explosion visual (MineScript.OnCollisionEnter2D: pressed=true + mine sound + pressedSprite) — transient one-way edge; MineExploded remains the durable consumption
 	MineExploded = 1, // landmine triggered: pressed → 0.8 s → explosion + entity destroyed (chain explosions included)
 	SpikeStabbed = 2, // spikestabber: Stab() ran — one-shot activated state
 	BearTrapClamped = 3, // beartrap closed on a limb

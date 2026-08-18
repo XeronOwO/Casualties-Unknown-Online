@@ -200,7 +200,11 @@ internal sealed class EntityEventSimWorld : IDisposable
 			{
 				hostExecutions.Value++; // a consumption actually executed
 				hostExecutionsByKind[msg.Kind] = CountOf(hostExecutionsByKind, msg.Kind) + 1;
-				registry.Report(msg.Kind, msg.Position.X, msg.Position.Y, msg.Extra);
+				if (EntityEventProfiles.IsOneShotConsumption(msg.Kind))
+				{
+					registry.Report(msg.Kind, msg.Position.X, msg.Position.Y, msg.Extra);
+				}
+
 				world.HostExecuted?.Invoke(msg);
 			}
 

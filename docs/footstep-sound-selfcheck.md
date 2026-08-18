@@ -87,8 +87,9 @@ would be a separate sound domain.
 ## 5. Accepted residuals (recorded, not re-discovered)
 
 - **Speech blips and other per-frame/per-step character sounds** (Talker speech
-  blips, panting, dog-shake, etc.) remain local-only and stay open in
-  `docs/backlog.md`.
+  blips, panting, dog-shake, etc.) remain local-only; the deliberate
+  sound-frequency pass for this slice is now closed in
+  `docs/speech-sound-frequency-selfcheck.md`.
 - **World-object step sounds** (`BuildingEntity`, `Limb`, `Item` RandomStepSound
   calls) are outside this player-character sound slice.
 - **Pitch shift stays local random** as before — the wire carries pitch 1 +

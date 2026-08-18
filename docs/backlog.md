@@ -362,8 +362,17 @@ lands, never bolted on afterwards.
   `SoundCaptureContext` skip flag prevents double-reporting the string overload's internal
   AudioClip call. See `docs/footstep-sound-selfcheck.md`; 957 tests green (L0 simulation +
   reflective patch surface + static evidence, no manual acceptance).
-- Speech blips and other per-frame/per-step character sounds: remain local-only until a further
-  deliberate sound-frequency pass (do not event every blip without volume evidence).
+- RESOLVED (2026-08-16, docs-only + reflective contract tests): speech blips /
+  remaining per-frame/per-step character sounds — the deliberate sound-frequency
+  pass is done. Speech blips are NOT a new `CharacterSoundMsg`: the existing
+  `SpeechMsg` bubble replay writes the final text into the peer's clone/trader
+  Talker, whose native `Talker.Update` types it out and therefore plays the same
+  per-letter blips locally (`Talker.cs:380-414`; `SpeechSync.Replay`). Panting /
+  pain / yawn / growl / bark stay local-only (continuous or long-timer personal
+  body sounds, no volume evidence), and the one-shot body/UI sounds remain local
+  presentation or ride their owning domains. No protocol bump; 965 tests green
+  (new `SpeechBlipReplayContractTests` + existing speech/talker contracts, static
+  evidence, no manual acceptance). See `docs/speech-sound-frequency-selfcheck.md`.
 - Direct player interaction (view/take items, carry, view vitals, heal).
 - Periodic keyframe self-healing (partially implemented; extend to remaining domains). Before
   any snapshot stream switches to an unreliable channel, event-version numbers are required —

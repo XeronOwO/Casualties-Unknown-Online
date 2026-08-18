@@ -204,7 +204,7 @@ Blinding/Irradiated) are excluded: each side's body is simulated locally.
 | entity | sync | path |
 |---|---|---|
 | Openable (locks/crates) | covered | BuildingEntityOpened |
-| BuildingEntity (attack damage) | covered | BuildingEntityDamaged |
+| BuildingEntity (attack damage) | covered | BuildingEntityDamaged; remote destruction visuals replay via BuildingEntityUpdatePatch |
 | DrillPod | excluded | WorldJoin-level — repair/world reset is world-join granularity |
 | GunmineScript | excluded | hand-placed — outside the generation stream |
 | SawbladeScript | excluded | hand-placed — outside the generation stream |

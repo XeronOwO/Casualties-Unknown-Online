@@ -311,6 +311,37 @@ public class EntityEventSimulationTests
 	}
 
 	[Fact]
+	public void MinePressed_TransientEdge_NotInLateJoinerSnapshot()
+	{
+		var w = EntityEventSimWorld.Create();
+		var consumed = new List<IReadOnlyList<EntityEventMsg>>();
+		w.G1.Services.GetRequiredService<EntityEventChannel>().TrapStateReceived += list => consumed.Add(list);
+
+		w.Trigger(w.G1, EntityEventKind.MinePressed, 10f, 20f);
+		w.HostChannel.SendTrapStateSnapshot(w.G1.SteamId);
+
+		Assert.True(consumed.Count == 0,
+			$"the transient press edge must not occupy a snapshot slot, got {consumed.Count} snapshot(s)");
+	}
+
+	[Fact]
+	public void MinePressed_DoesNotClobberMineExplodedSnapshotFact()
+	{
+		var w = EntityEventSimWorld.Create();
+		var consumed = new List<IReadOnlyList<EntityEventMsg>>();
+		w.G1.Services.GetRequiredService<EntityEventChannel>().TrapStateReceived += list => consumed.Add(list);
+
+		w.Trigger(w.G1, EntityEventKind.MinePressed, 10f, 20f);
+		w.Trigger(w.G1, EntityEventKind.MineExploded, 10f, 20f);
+		w.HostChannel.SendTrapStateSnapshot(w.G1.SteamId);
+
+		Assert.True(consumed.Count == 1 && consumed[0].Count == 1,
+			$"only the durable MineExploded consumption is snapshotted, got {consumed.Count} snapshot(s) with {(consumed.Count > 0 ? consumed[0].Count : 0)} entry/entries");
+		Assert.True(consumed[0][0].Kind == EntityEventKind.MineExploded,
+			$"the snapshot carries MineExploded, got {consumed[0][0].Kind}");
+	}
+
+	[Fact]
 	public void FluidInteraction_RelayedExcludingSource()
 	{
 		var w = EntityEventSimWorld.Create();

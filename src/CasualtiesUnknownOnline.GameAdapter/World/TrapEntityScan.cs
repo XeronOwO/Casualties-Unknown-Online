@@ -32,7 +32,7 @@ internal static class TrapEntityScan
 
 	private static readonly Row[] Rows =
 	[
-		new Row { Component = typeof(MineScript), Kinds = _ => [EntityEventKind.MineExploded] },
+		new Row { Component = typeof(MineScript), Kinds = _ => [EntityEventKind.MinePressed, EntityEventKind.MineExploded] },
 		new Row { Component = typeof(SpikeStabberScript), Kinds = _ => [EntityEventKind.SpikeStabbed] },
 		new Row { Component = typeof(BearTrap), Kinds = _ => [EntityEventKind.BearTrapClamped, EntityEventKind.BearTrapReleased] },
 		new Row { Component = typeof(BarbedFence), Kinds = _ => [EntityEventKind.BarbedFenceHit] },

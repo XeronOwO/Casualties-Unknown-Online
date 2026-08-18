@@ -106,7 +106,7 @@ trap's sound/sprite/light.
 
 | entity | trigger | one-shot | replay | sync | path |
 |---|---|---|---|---|---|
-| MineScript | collide | no | explosion sound/particle/blastmark/shake + real-body damage + destroy (press visual NOT replayed — gap) | covered | MineExploded |
+| MineScript | collide | no | 0.8 s press visual (mine sound + pressedSprite) + explosion sound/particle/blastmark/shake + real-body damage + destroy | covered | MinePressed + MineExploded |
 | SpikeStabberScript | trigger | yes | Stab() anim + sound + CheckStab damage | covered | SpikeStabbed |
 | BearTrap | trigger | repeatable | closeSprite + sound; release replayed (BearTrapReleased) | covered | BearTrapClamped/Released |
 | BarbedFence | trigger | repeatable | hitSprite + fence sound | covered | BarbedFenceHit |

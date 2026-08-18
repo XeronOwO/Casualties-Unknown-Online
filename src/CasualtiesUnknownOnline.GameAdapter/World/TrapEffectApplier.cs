@@ -27,6 +27,9 @@ internal sealed class TrapEffectApplier(ILogger<TrapEffectApplier> log)
 	{
 		switch (kind)
 		{
+			case EntityEventKind.MinePressed:
+				ApplyState<MineScript>(position, kind, TrapStateActions.ApplyMinePressed);
+				break;
 			case EntityEventKind.MineExploded:
 				ApplyMineExplosion(position);
 				break;

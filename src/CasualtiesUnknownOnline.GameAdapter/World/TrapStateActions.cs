@@ -199,6 +199,29 @@ internal static class TrapStateActions
 		return true;
 	}
 
+	/// <summary>Mine pressed: the transient 0.8 s pre-explosion visual —
+	/// pressedSprite + the native "mine" sound (MineScript.cs:44-51). The
+	/// game's private `pressed` latch is deliberately NOT written: setting it
+	/// would make the local MineScript.Update count down and explode the mine
+	/// naturally, double-applying the world effects that the MineExploded event
+	/// already replays. The MinePressReplayMarker owns the duplicate guard for
+	/// this transient event (a second guest's report of the same press must not
+	/// replay the sprite/sound again).</summary>
+	internal static bool ApplyMinePressed(MineScript mine)
+	{
+		if (Traverse.Create(mine).Field("pressed").GetValue<bool>()
+			|| Traverse.Create(mine).Field("exploded").GetValue<bool>()
+			|| mine.GetComponent<MinePressReplayMarker>() != null) // Unity object — ==
+		{
+			return false; // already triggered/consumed/replayed — a duplicate
+		}
+
+		mine.GetComponent<SpriteRenderer>().sprite = mine.pressedSprite;
+		Sound.Play("mine", mine.transform.position, false, true, null, 1f, 1f, false, false);
+		mine.gameObject.AddComponent<MinePressReplayMarker>();
+		return true;
+	}
+
 	/// <summary>Sound cannon: consume the one-shot spent + cancel the charge,
 	/// and replay the blast sound — sonarouch is a 2D GLOBAL sound
 	/// (SoundCannon.cs:64), so the peers hear the blast at any distance. The

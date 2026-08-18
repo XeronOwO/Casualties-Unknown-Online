@@ -57,6 +57,7 @@ public class GameFieldContractTests
 		("SoundCannon", "charging", Kind.Field, typeof(bool), "the charging latch reset on fire (TrapStateActions.ApplySoundCannon)"),
 		("CaveTickSpawner", "started", Kind.Field, typeof(bool), "the nest's one-shot (TrapStateActions.ApplyCaveTicks, TrapCaveTickSpawnerPatch)"),
 		("BearTrap", "activated", Kind.Field, typeof(bool), "the clamp/release latch (TrapStateActions, TrapBearTrapPatch)"),
+		("MineScript", "pressed", Kind.Field, typeof(bool), "the mine's press latch edge (TrapMinePressPatch, TrapStateActions.ApplyMinePressed)"),
 		("MineScript", "exploded", Kind.Field, typeof(bool), "the mine's one-shot — set BEFORE the remote death so OnDestroy skips the chain explosion (TrapEffectApplier, TrapMineExplosionPatch)"),
 		// The crystal family (internal types, dynamically patched — object __instance).
 		("CrystalUnstable", "timer", Kind.Field, typeof(float), "the 5 s pre-explosion ticking (TrapCrystalPatch.UnstableUpdatePatch)"),

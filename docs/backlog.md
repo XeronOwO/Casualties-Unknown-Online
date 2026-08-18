@@ -140,6 +140,16 @@ lands, never bolted on afterwards.
   from the existing `RecipeUnlock` (NetMsg 77). See
   `docs/blueprint-popup-selfcheck.md`; 978 tests green (L0 reflection tests +
   static evidence, no manual acceptance).
+- RESOLVED (2026-08-18, ProtocolVersion 22): mine 0.8 s press visual —
+  `MinePressed` (EntityEventKind 31) reports at the false→true `pressed` edge
+  (MineScript.OnCollisionEnter2D) and replays the pressedSprite + "mine" sound
+  on all sides at the event's true start; the receiver never writes the
+  private `pressed` latch (a local natural explosion would double the world
+  effects), a `MinePressReplayMarker` owns the transient duplicate guard, and
+  the durable MineExploded consumption remains the only snapshot fact. See
+  `docs/mine-press-visual-selfcheck.md`; 987 tests green (L0 event-transport
+  simulation + reflective patch/field contracts + static evidence,
+  no manual acceptance).
 - RestoreItem slot-conflict handling (#192 follow-up): ACCEPTED — the semantics are now
   explicit in `ItemStateCodec.RestoreItem`: an occupied target slot with a container loads the
   restored item into it (mirroring SaveSystem.cs:325), and an occupied slot with no container
@@ -281,7 +291,7 @@ lands, never bolted on afterwards.
 - Presentation gaps are HIGH priority (user 2026-08-18) — treated as native
   game-content coverage, not accepted low-priority debt. The open presentation
   gaps from the entity-domain memory (several already recorded in
-  `docs/event-replay-matrix.csv`): mine 0.8 s press visual, CrystalUnstable 5 s
+  `docs/event-replay-matrix.csv`): CrystalUnstable 5 s
   ticking, sound-cannon burst effect trigger-side-only, jump-pad light /
   turret tracer omissions, the guest-side fluid
   water sound/push/slip gaps, and the fluid lightSprite flicker starting at

@@ -128,8 +128,15 @@ lands, never bolted on afterwards.
   GunScript.Fire postfix reports the fire sound clip + `knockBack * 8`, and the
   receiver plays the sound + adds the kick to the owner's clone arms animator.
   See `docs/weapon-fire-recoil-selfcheck.md`; 951 tests green (L0 simulation + static evidence, no manual acceptance).
-- #195 blueprint popup: cosmetic, game-local UI (the unlock fact itself is synced via
-  `RecipeUnlock`); revisit with the online-UI pass.
+- RESOLVED (2026-08-18, no protocol bump): #195 blueprint popup — the native
+  "learned recipe" popup (Item.cs:4285-4287) now replays on the other sides
+  whenever a relayed unlock is a NEW learn; the acting side's duplicate is
+  suppressed by checking `recipe.INT` before the write, already-learned relays
+  never re-alert, and the popup is skipped with a warning if
+  `PlayerCamera.main` is not ready yet. The unlock fact itself remains drawn
+  from the existing `RecipeUnlock` (NetMsg 77). See
+  `docs/blueprint-popup-selfcheck.md`; 978 tests green (L0 reflection tests +
+  static evidence, no manual acceptance).
 - RestoreItem slot-conflict handling (#192 follow-up): ACCEPTED — the semantics are now
   explicit in `ItemStateCodec.RestoreItem`: an occupied target slot with a container loads the
   restored item into it (mirroring SaveSystem.cs:325), and an occupied slot with no container

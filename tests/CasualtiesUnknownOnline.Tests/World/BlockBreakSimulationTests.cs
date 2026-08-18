@@ -4,6 +4,7 @@ using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
+using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.DependencyInjection;
@@ -61,12 +62,23 @@ public class BlockBreakSimulationTests
 		var accepted = new Counter();
 		var acceptedByG2 = new Counter();
 		var world = host.Services.GetRequiredService<IWorldControl>();
+		var items = host.Services.GetRequiredService<IItemControl>();
 		world.BlockDamagedReceived += (sender, pos, damage, metalBonus, drops) =>
 		{
 			// The executor: first-writer-wins — an accepted break relays, a
-			// refused one (the record was already consumed) is dropped silently.
+			// refused one (the record was already consumed) rolls every drop
+			// back to the breaker via ItemReject(BlockAlreadyBroken).
+			// Damage-only reports (drops == null) are ignored here.
 			if (!arbitration.TryAccept(sender, (int)Math.Floor(pos.X), (int)Math.Floor(pos.Y)))
 			{
+				if (drops is { Count: > 0 })
+				{
+					foreach (var drop in drops)
+					{
+						items.SendItemReject(sender, drop.ItemId, ItemRejectMsg.Reason.BlockAlreadyBroken);
+					}
+				}
+
 				return;
 			}
 
@@ -158,6 +170,31 @@ public class BlockBreakSimulationTests
 		var relay = w.G2Received.Single(r => r.Msg == NetMsg.BlockDamaged).Frame;
 		var msg = NetPacket.DecodePayload<BlockDamagedMsg>(relay);
 		Assert.True(msg.MetalBonus, "the accepted break's relay must carry the source's bonus-metal flag");
+	}
+
+	[Fact]
+	public void TwoGuestsBreakSameCellAtTheSameTime_FirstWriterWins_LoserRejected()
+	{
+		var w = CreateWorld();
+		var rejects = new List<(ulong ItemId, ItemRejectMsg.Reason Reason)>();
+		w.G2.Services.GetRequiredService<ItemService>().ItemRejected += (itemId, reason) => rejects.Add((itemId, reason));
+
+		// G1's air-write applied first — the host's OnRemoteBlockPlaced refuses
+		// G2's same-cell air-write as already-broken, so only G1 has the
+		// first-writer record. Both breaks then arrive in the same tick.
+		w.Arbitration.RecordAppliedAirWrite(G1Id, 5, 7, now: 0);
+		ReportBreak(w.G1, 5, 7, drops: [new BlockDropEntryMsg { ItemId = 77 }]);
+		ReportBreak(w.G2, 5, 7, drops: [new BlockDropEntryMsg { ItemId = 88 }]);
+		w.Driver.Tick(33);
+
+		Assert.True(w.AcceptedBreaks.Value == 1, $"two guests breaking the same cell must yield exactly one winner, got {w.AcceptedBreaks.Value}");
+		var relay = w.G2Received.Single(r => r.Msg == NetMsg.BlockDamaged).Frame;
+		var relayMsg = NetPacket.DecodePayload<BlockDamagedMsg>(relay);
+		Assert.True(relayMsg.Drops != null && relayMsg.Drops.Count == 1 && relayMsg.Drops[0].ItemId == 77,
+			"the relayed break must be the winner's drops (77), not the loser's (88)");
+		var reject = Assert.Single(rejects);
+		Assert.True(reject.ItemId == 88 && reject.Reason == ItemRejectMsg.Reason.BlockAlreadyBroken,
+			$"the loser must roll its drops back with BlockAlreadyBroken, got item {reject.ItemId} reason {reject.Reason}");
 	}
 
 	[Theory]

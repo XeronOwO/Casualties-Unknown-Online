@@ -20,6 +20,9 @@ order (the bullets live in the sections below — no duplicate copies):
 2. Character / presentation / combat open items, including Online UI and the remaining high-frequency sound slice.
 3. Persistence + Config.
 4. Tooling / testing debt.
+Presentation gaps are HIGH priority (user 2026-08-18): they affect the native
+game-content experience and belong to item 2, not to a low-priority
+"accepted debt" bucket — the deliberate presentation pass is now, not later.
 World consistency and world time flow are code-complete; their only residual is the final
 dual-side acceptance pass (world fingerprint comparison), folded into the final acceptance
 round under the development-period no-manual-acceptance rule.
@@ -275,15 +278,25 @@ lands, never bolted on afterwards.
   Accepted residuals: the clone's body-level FacialExpression latches (disfigured/eye
   sprites + the owner's disfiguredIndex) stay template-driven, and the underwater/downward
   fur-blood transfer branches are owner-side simulation — both recorded in the self-check.
-- Accepted presentation gaps from the entity-domain memory (non-blocking; several are already
-  recorded in `docs/event-replay-matrix.csv`): mine 0.8 s press visual, CrystalUnstable 5 s
-  ticking, remote building-destruction particles, sound-cannon burst effect trigger-side-only,
-  jump-pad light / turret tracer omissions, cactus self-damage HP local, the guest-side fluid
-  water sound/push/slip gaps, and the fluid lightSprite flicker starting at the warning edge
-  (the `didShoot` immediate-lock tradeoff). `LookTarget` gaze/startle and the Heater
-  temperature field also stay local by design (accepted; only heater meat→steak conversion is
-  an open item, listed under Item / entity). Re-open only as part of a deliberate presentation
-  pass.
+- Presentation gaps are HIGH priority (user 2026-08-18) — treated as native
+  game-content coverage, not accepted low-priority debt. The open presentation
+  gaps from the entity-domain memory (several already recorded in
+  `docs/event-replay-matrix.csv`): mine 0.8 s press visual, CrystalUnstable 5 s
+  ticking, sound-cannon burst effect trigger-side-only, jump-pad light /
+  turret tracer omissions, cactus self-damage HP local, the guest-side fluid
+  water sound/push/slip gaps, and the fluid lightSprite flicker starting at
+  the warning edge (the `didShoot` immediate-lock tradeoff). `LookTarget`
+  gaze/startle and the Heater temperature field stay local by design
+  (accepted; only heater meat→steak conversion is an open item, listed under
+  Item / entity).
+- RESOLVED (2026-08-18, no protocol bump): remote building-destruction
+  particles/sound — `BuildingEntityUpdatePatch` now replays the native
+  non-drop death visuals (`BuildingBreakParticle` + `DustBig` +
+  `footstep/Rock/11`, BuildingEntity.cs:58-73) before destroying a
+  `RemoteEntityDeath` entity, so a peer sees/hears the same destruction as the
+  attacker. Drops and `AnimalDeath`/corpse spawning stay attacker-side. See
+  `docs/building-destruction-presentation-selfcheck.md`; reflection tests
+  lock the patch surface, no manual acceptance.
 - RESOLVED (2026-08-16): configurable state-stream frequency — `[Sync] StateStreamHz`
   (1-60, default 20) drives both the player entity stream (host broadcast + guest
   report) and the enemy stream through `StateStreamOptions`; the attack-swing hold
@@ -444,9 +457,14 @@ lands, never bolted on afterwards.
 - Patch-contract same-name limitation: `PatchContractTests` identifies targets by name, so a
   same-name overload pair cannot be distinguished (the `LoadSceneAsync` case). Extend the
   contract only when a game update actually hits it.
-- Block-break drop-race dual-side runtime pass: L0 simulation covers the first-writer-wins +
-  loser-rollback arbitration, but the 2026-08-09 "two guests break the same block at the same
-  time" runtime confirmation was never recorded — fold into the next dual-side verification.
+- RESOLVED (2026-08-18, L0): block-break drop-race dual-side scenario — a
+  dedicated `TwoGuestsBreakSameCellAtTheSameTime_FirstWriterWins_LoserRejected`
+  simulation now sends both guests' breaks in the same tick and asserts the
+  winner's drops relay while the loser receives
+  `ItemReject(BlockAlreadyBroken)`; the existing
+  `block-break-first-writer-wins.replay` fossil covers the same race. The real
+  dual-side runtime confirmation remains folded into the final acceptance
+  pass under the development-period no-manual-acceptance rule.
 - RESOLVED (2026-08-16): `docs/entity-features.md` status-column refresh — every narrative
   table now mirrors the CSV's `sync`/`path` cells (lifepod, unlocks, talker, crystal family,
   environment and creature rows included), and `EntityFeaturesDocConsistencyTests` runs in

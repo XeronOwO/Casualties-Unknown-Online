@@ -461,9 +461,9 @@ public sealed partial class GameAdapter : IGameAdapter, ICuoService, IPatchBridg
 
 	void IPatchBridge.OnBlockDamaged(Vector2 pos, float dmg, bool bonusMetal) => _blockBreakSync.OnBlockDamaged(pos, dmg, bonusMetal);
 
-	void IPatchBridge.OnBuildingEntityDamaged(BuildingEntity entity, float damage)
+	void IPatchBridge.OnBuildingEntityDamaged(BuildingEntity entity, float damage, bool playHitSound)
 	{
-		_worldEventSync.OnBuildingEntityDamaged(entity, damage);
+		_worldEventSync.OnBuildingEntityDamaged(entity, damage, playHitSound);
 		_enemySync.RecordLocalAttack(entity, damage); // a guest's local drop on a frozen enemy must not flash-revert on the next batch
 	}
 

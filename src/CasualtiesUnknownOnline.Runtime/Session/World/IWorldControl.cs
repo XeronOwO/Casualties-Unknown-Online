@@ -40,8 +40,12 @@ public interface IWorldControl
 	/// own copy — which rolls the host-side entity drops — and relays), host →
 	/// guest as a broadcast relay. The entity is identified by world position
 	/// (world entities are generated deterministically on both sides).
+	/// <paramref name="playHitSound"/> is true for attack damage (the receiver
+	/// replays the entity's own hitSound) and false for silent damage sources
+	/// such as cactus collision self-damage (the trigger side plays only the
+	/// player-local gore sound, never the entity hitSound).
 	/// </summary>
-	void SendBuildingEntityDamaged(NetVector2 pos, float damage);
+	void SendBuildingEntityDamaged(NetVector2 pos, float damage, bool playHitSound = true);
 
 	/// <summary>Guest: a block was placed locally — report it to the host (host arbitrates + relays).</summary>
 	void SendBlockPlacedReport(int x, int y, ushort block);
@@ -53,10 +57,10 @@ public interface IWorldControl
 
 	event Action<ulong, int, int, ushort>? BlockPlacedReceived;
 
-	void FireBuildingEntityDamagedReceived(NetVector2 pos, float damage);
+	void FireBuildingEntityDamagedReceived(NetVector2 pos, float damage, bool playHitSound);
 
-	/// <summary>A player's attack damaged a building entity — apply the damage to the entity at Pos.</summary>
-	event Action<NetVector2, float>? BuildingEntityDamagedReceived;
+	/// <summary>A building entity was damaged — apply the damage to the entity at Pos. If <c>playHitSound</c> is true the receiver also replays the entity's own hitSound (attack damage); silent damage sources pass false.</summary>
+	event Action<NetVector2, float, bool>? BuildingEntityDamagedReceived;
 
 	/// <summary>
 	/// Report a locally-opened lockable entity (instant-open/lockpick/keypad —

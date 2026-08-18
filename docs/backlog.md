@@ -283,7 +283,7 @@ lands, never bolted on afterwards.
   gaps from the entity-domain memory (several already recorded in
   `docs/event-replay-matrix.csv`): mine 0.8 s press visual, CrystalUnstable 5 s
   ticking, sound-cannon burst effect trigger-side-only, jump-pad light /
-  turret tracer omissions, cactus self-damage HP local, the guest-side fluid
+  turret tracer omissions, the guest-side fluid
   water sound/push/slip gaps, and the fluid lightSprite flicker starting at
   the warning edge (the `didShoot` immediate-lock tradeoff). `LookTarget`
   gaze/startle and the Heater temperature field stay local by design
@@ -297,6 +297,15 @@ lands, never bolted on afterwards.
   attacker. Drops and `AnimalDeath`/corpse spawning stay attacker-side. See
   `docs/building-destruction-presentation-selfcheck.md`; reflection tests
   lock the patch surface, no manual acceptance.
+- RESOLVED (2026-08-18, ProtocolVersion 21): cactus self-damage HP — a body
+  bumping a cactus now reports the native 30 self-damage through the existing
+  `BuildingEntityDamaged` channel as a SILENT damage report
+  (`BuildingEntityDamagedMsg.PlayHitSound=false`; the trigger side never plays
+  the entity hitSound, only the player-local gore sound). Peers' cactus health
+  stays aligned and a death is applied as a remote death via the same
+  building-entity health path; the `CactusHit` event still replays the gore
+  sound. See `docs/cactus-selfdamage-sync-selfcheck.md`; 982 tests green
+  (L0 relay/flag simulation + static evidence, no manual acceptance).
 - RESOLVED (2026-08-16): configurable state-stream frequency — `[Sync] StateStreamHz`
   (1-60, default 20) drives both the player entity stream (host broadcast + guest
   report) and the enemy stream through `StateStreamOptions`; the attack-swing hold

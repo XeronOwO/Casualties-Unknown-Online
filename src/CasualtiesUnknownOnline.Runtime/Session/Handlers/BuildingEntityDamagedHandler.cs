@@ -20,7 +20,7 @@ public sealed class BuildingEntityDamagedHandler(ILogger<BuildingEntityDamagedHa
 	protected override void Handle(ulong sender, BuildingEntityDamagedMsg msg, HandlerContext ctx)
 	{
 		var pos = msg.Position.ToNetVector2();
-		ctx.World.FireBuildingEntityDamagedReceived(pos, msg.Damage);
+		ctx.World.FireBuildingEntityDamagedReceived(pos, msg.Damage, msg.PlayHitSound);
 		if (ctx.Session.Role == SessionRole.Host)
 		{
 			ctx.Session.BroadcastExcept(sender, NetMsg.BuildingEntityDamaged, msg);

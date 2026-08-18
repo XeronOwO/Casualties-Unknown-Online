@@ -29,6 +29,7 @@ public class DirectionTests
 		NetMsg.ItemUse,
 		NetMsg.ItemSlot,
 		NetMsg.CarriedInventory,
+		NetMsg.ItemContainerContent,
 		NetMsg.ModCommandRequest,
 		NetMsg.WorldTimeRequest,
 	};

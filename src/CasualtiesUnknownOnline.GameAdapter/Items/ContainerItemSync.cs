@@ -1,4 +1,5 @@
 using CasualtiesUnknownOnline.Runtime.Protocol;
+using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using Microsoft.Extensions.Logging;
 using CommitStatus = CasualtiesUnknownOnline.GameAdapter.Items.ItemReportCommitter.CommitStatus;
@@ -21,6 +22,7 @@ internal sealed class ContainerItemSync(
 	ItemIdAllocator ids,
 	OperationTrace trace,
 	ItemReportCommitter reports,
+	ISessionControl session,
 	ILogger<ContainerItemSync> log)
 {
 	private readonly ItemService _items = items;
@@ -28,6 +30,7 @@ internal sealed class ContainerItemSync(
 	private readonly ItemIdAllocator _ids = ids;
 	private readonly OperationTrace _trace = trace;
 	private readonly ItemReportCommitter _reports = reports;
+	private readonly ISessionControl _session = session;
 	private readonly ILogger<ContainerItemSync> _log = log;
 
 	/// <summary>True while a remote message is being applied — local reports must stay silent (call identity lives in CallContext).</summary>
@@ -76,13 +79,40 @@ internal sealed class ContainerItemSync(
 			else
 			{
 				// A move INSIDE the carried inventory (a backpack's contents
-				// shifted between container/slot/hand): no event sync exists —
-				// the 1 Hz character snapshot carries it. A deliberate gap
-				// (the clone render does not show container contents), but a
-				// warning keeps the fallback observable — user rule: an event
-				// that relies on the timed snapshot must be loud about it.
-				_trace.End(op, itemId, "OnItemLoadedIntoContainer", "Skipped", "BodyInternal");
-				_log.LogWarning("[ContainerLoad] {Type} (id {ItemId}) moved inside a body container — no event sync, the 1 Hz character snapshot carries it.", item.id, itemId);
+				// shifted between container/slot/hand): the parent container's
+				// FULL fact is one operation = one message. The owner's body is
+				// the local fact source — a guest reports the parent, the host
+				// records and broadcasts it as the carried-fact event; a host
+				// move IS the authority and broadcasts directly. The peers'
+				// clone fact table replaces the parent entry wholesale, so the
+				// new nested contents re-render immediately (the 1 Hz character
+				// snapshot stays only as the reliable-event fallback).
+				var parent = item.transform.parent != null ? item.transform.parent.GetComponent<Item>() : null;
+				if (parent == null) // Unity object — ==
+				{
+					_trace.End(op, itemId, "OnItemLoadedIntoContainer", "Skipped", "BodyInternalNoParent");
+					return;
+				}
+
+				var parentId = _ids.EnsureId(parent);
+				if (parentId == 0)
+				{
+					_trace.End(op, itemId, "OnItemLoadedIntoContainer", "Skipped", "BodyInternalNoId");
+					return;
+				}
+
+				var capture = ItemStateCodec.CaptureItem(parent, ItemStateCodec.SlotOf(parent));
+				if (_session.Role == SessionRole.Host && _session.SessionActive)
+				{
+					_items.SendItemCarriedSync(_session.LocalSteamId, capture);
+				}
+				else
+				{
+					_items.SendItemContainerContent(parentId, capture);
+				}
+
+				_trace.End(op, itemId, "OnItemLoadedIntoContainer", "Committed", "ContainerContent");
+				_log.LogInformation("[ContainerLoad] {Type} (id {ItemId}) moved inside body container {ContainerType} (id {ContainerId}) — nested content event.", item.id, itemId, parent.id, parentId);
 			}
 
 			return;

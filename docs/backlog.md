@@ -135,10 +135,17 @@ lands, never bolted on afterwards.
   restored item into it (mirroring SaveSystem.cs:325), and an occupied slot with no container
   intentionally no-ops, leaving the item at the player position (the cross-run leak fix's
   accepted fallback).
-- #120 nested container content movement (deferred): items moved inside a carried container
-  still ride the 1 Hz snapshot (visible impact is zero until opening another player's
-  inventory exists; a `[CharSync]` warning is already logged). When direct player interaction
-  lands, design nested-content events instead of extending the snapshot.
+- RESOLVED (2026-08-16, ProtocolVersion 20): #120 nested container content
+  movement — a body-internal move inside a carried container is now ONE parent
+  container fact: guest → host `ItemContainerContent` (NetMsg 95), the host
+  records the full recursive capture in the transfer table and relays it as the
+  existing `ItemCarriedSync` event (`ItemArbitration.RecordContainerContent`);
+  `CloneFactTable.ApplyCarriedSync` replaces the matched node recursively (a
+  pouch inside a backpack is no longer appended top-level), and the `[CharSync]`
+  divergence monitor now compares nested content trees. The old
+  `[ContainerLoad] no event sync` warning is gone. See
+  `docs/container-content-sync-selfcheck.md`; 962 tests green (L0 simulation +
+  reflective patch surface + static evidence, no manual acceptance).
 - In-flight pickup reject friction: RESOLVED (2026-08-16, no protocol bump) — a pickup
   report that beats its spawn/drop registration now waits in `PendingPickupQueue` for a
   bounded 500 ms hold instead of being refused immediately. A registration that confirms

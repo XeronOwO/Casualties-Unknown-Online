@@ -50,6 +50,33 @@ public class NetPacketTests
 	}
 
 	[Fact]
+	public void ItemContainerContent_RoundTripsRecursiveCapture()
+	{
+		// The nested-content report's entire payload is the parent container's
+		// full fact — the receiver must see the same recursive contents that
+		// were captured on the sender.
+		var msg = new ItemContainerContentMsg
+		{
+			ItemId = 101,
+			Item = new CharacterItemMsg
+			{
+				InstanceId = 101,
+				ItemId = "backpack",
+				SlotIndex = 2,
+				Contents = [new CharacterItemMsg { InstanceId = 202, ItemId = "knife" }],
+			},
+		};
+
+		var decoded = NetPacket.DecodePayload<ItemContainerContentMsg>(
+			NetPacket.Encode(NetMsg.ItemContainerContent, msg));
+
+		Assert.Equal(101ul, decoded.ItemId);
+		Assert.Equal(101ul, decoded.Item.InstanceId);
+		Assert.Equal(2, decoded.Item.SlotIndex);
+		Assert.Equal(202ul, Assert.Single(decoded.Item.Contents).InstanceId);
+	}
+
+	[Fact]
 	public void CharacterData_PositionField_RoundTrips()
 	{
 		// The reconnect restore's leave-spot field (ProtoMember 7): a null

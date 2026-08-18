@@ -57,6 +57,16 @@ internal sealed class CloneFactTable(ILogger log)
 		var idx = data.Items.FindIndex(i => i.InstanceId == item.InstanceId);
 		if (idx < 0)
 		{
+			// A nested container moved (a pouch inside a backpack): replace it
+			// inside the parent's recursive contents — the full parent capture
+			// is the event, so the clone's fact tree stays exact.
+			if (TryReplaceNested(data.Items, item))
+			{
+				_log.LogInformation("[CarriedSync] applied {Type} (id {ItemId}) to {Owner}'s snapshot contents — re-rendering the clone.", item.ItemId, item.InstanceId, owner);
+				CloneSnapshotUpdated?.Invoke(owner);
+				return;
+			}
+
 			if (!slotKnown)
 			{
 				_log.LogInformation("[CarriedSync] {Type} (id {ItemId}) not in {Owner}'s snapshot and slot unknown — the 1 Hz snapshot will carry the change.", item.ItemId, item.InstanceId, owner);
@@ -167,6 +177,58 @@ internal sealed class CloneFactTable(ILogger log)
 		}
 
 		return false;
+	}
+
+	/// <summary>Recursively replace one entry by instance id inside the carried
+	/// tree (top-level entries first, then each entry's Contents). Returns false
+	/// when the item is not in the tree at all.</summary>
+	private static bool TryReplaceNested(List<CharacterItemMsg> entries, CharacterItemMsg replacement)
+	{
+		for (var i = 0; i < entries.Count; i++)
+		{
+			if (entries[i].InstanceId == replacement.InstanceId)
+			{
+				entries[i] = replacement;
+				return true;
+			}
+
+			if (TryReplaceNested(entries[i].Contents, replacement))
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/// <summary>Recursive content-tree equality for the divergence monitor:
+	/// same instance-id set at every level, order-insensitive. A nested-content
+	/// move that only an event may change shows up here when the 1 Hz snapshot
+	/// carried it instead.</summary>
+	private static bool ContentsEquivalent(CharacterItemMsg a, CharacterItemMsg b)
+	{
+		var aIds = a.Contents.Where(c => c.InstanceId != 0).Select(c => c.InstanceId).ToHashSet();
+		var bIds = b.Contents.Where(c => c.InstanceId != 0).Select(c => c.InstanceId).ToHashSet();
+		if (!aIds.SetEquals(bIds))
+		{
+			return false;
+		}
+
+		foreach (var aContent in a.Contents)
+		{
+			if (aContent.InstanceId == 0)
+			{
+				continue;
+			}
+
+			var bContent = b.Contents.FirstOrDefault(c => c.InstanceId == aContent.InstanceId);
+			if (bContent is null || !ContentsEquivalent(aContent, bContent))
+			{
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	/// <summary>
@@ -316,6 +378,12 @@ internal sealed class CloneFactTable(ILogger log)
 			{
 				_log.LogWarning("[CharSync] divergence for {Owner}'s {Type} (id {ItemId}): flashlight state {Old} → {New} — a use without an event sync (the 1 Hz snapshot carried it).",
 					owner, item.ItemId, item.InstanceId, UseState(old), UseState(item));
+			}
+
+			if (!ContentsEquivalent(old, item))
+			{
+				_log.LogWarning("[CharSync] divergence for {Owner}'s {Type} (id {ItemId}): nested container contents changed without an event sync (the 1 Hz snapshot carried it).",
+					owner, item.ItemId, item.InstanceId);
 			}
 		}
 

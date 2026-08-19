@@ -77,7 +77,7 @@ internal sealed class TrapVisualReplay(ILogger<TrapVisualReplay> log)
 				ReplayState<CaveTickSpawner>(position, kind, TrapStateActions.ApplyCaveTicks);
 				break;
 			case EntityEventKind.CrystalFragileBroken:
-				ReplayState<CrystalBehaviour>(position, kind, TrapStateActions.ApplyCrystalFragile);
+				ReplayState<CrystalBehaviour>(position, kind, CrystalStateActions.ApplyCrystalFragile);
 				break;
 			case EntityEventKind.TurretSelfDestructed:
 				ReplayTurretSelfDestructed(position);
@@ -98,28 +98,37 @@ internal sealed class TrapVisualReplay(ILogger<TrapVisualReplay> log)
 				ReplayState<BananaPlantSlip>(position, kind, TrapStateActions.ApplyBananaSlip);
 				break;
 			case EntityEventKind.CrystalElectricShocked:
-				ReplayState<CrystalBehaviour>(position, kind, TrapStateActions.ApplyCrystalElectric);
+				ReplayState<CrystalBehaviour>(position, kind, CrystalStateActions.ApplyCrystalElectric);
 				break;
 			case EntityEventKind.TurretFired:
 				ReplayState<TurretScript>(position, kind, TrapStateActions.ApplyTurretFired);
+				break;
+			case EntityEventKind.CrystalUnstableTicked:
+				// The transient ticking start — replay the 5 s pre-explosion
+				// visual (sound + glow ramp + jitter) WITHOUT writing the
+				// crystal's timerStarted/timer latches (the local copy must not
+				// count down and explode naturally — CrystalUnstableExploded
+				// owns the consumption). The CrystalTickingReplay component
+				// IS the duplicate guard.
+				ReplayState<CrystalBehaviour>(position, kind, CrystalStateActions.ApplyCrystalUnstableTicked);
 				break;
 			case EntityEventKind.CrystalUnstableExploded:
 				ReplayCrystalUnstableExplosion(position);
 				break;
 			case EntityEventKind.CrystalMetamorphicTriggered:
-				ReplayState<CrystalBehaviour>(position, kind, TrapStateActions.ApplyCrystalMetamorphic);
+				ReplayState<CrystalBehaviour>(position, kind, CrystalStateActions.ApplyCrystalMetamorphic);
 				break;
 			case EntityEventKind.CrystalMimicTriggered:
 				// Live relay: consume the latch + play the original 2D laugh.
 				// Late-joiner snapshot (ElapsedSeconds > 0): latch only — an old
 				// laugh must not fire over the joining player.
-				ReplayState<CrystalBehaviour>(position, kind, c => TrapStateActions.ApplyCrystalMimic(c, playSound: elapsedSeconds <= 0f));
+				ReplayState<CrystalBehaviour>(position, kind, c => CrystalStateActions.ApplyCrystalMimic(c, playSound: elapsedSeconds <= 0f));
 				break;
 			case EntityEventKind.CrystalShySwapped:
-				ReplayState<CrystalBehaviour>(position, kind, TrapStateActions.ApplyCrystalShy);
+				ReplayState<CrystalBehaviour>(position, kind, CrystalStateActions.ApplyCrystalShy);
 				break;
 			case EntityEventKind.CrystalEMPActivated:
-				ReplayState<CrystalBehaviour>(position, kind, TrapStateActions.ApplyCrystalEMP);
+				ReplayState<CrystalBehaviour>(position, kind, CrystalStateActions.ApplyCrystalEMP);
 				break;
 			case EntityEventKind.GrabberGrabbed:
 				// The grab's visuals are the player-side ragdoll/scream (each

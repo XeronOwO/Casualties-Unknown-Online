@@ -72,6 +72,25 @@ internal static class DynamicPatchInstaller
 		InstallCrystalFamilyPatch(harmony, log, "CrystalMetamorphic", "Touched", "MetamorphicTouchedPrefix", "MetamorphicTouchedPostfix");
 		InstallCrystalFamilyPatch(harmony, log, "CrystalShy", "Touched", "ShyTouchedPrefix", "ShyTouchedPostfix");
 		InstallCrystalFamilyPatch(harmony, log, "CrystalEMP", "TryEMP", "EmpTryEMPPrefix", "EmpTryEMPPostfix");
+
+		// The unstable crystal's ticking START — StartTimer is PRIVATE (the
+		// false→true `timerStarted` edge that the Update patch cannot see: the
+		// latch is set inside Touched/Hit→StartTimer, and Update only runs
+		// once it is already true). A separate NonPublic install.
+		var unstableTimerType = typeof(CrystalEffect).Assembly.GetType("CrystalUnstable");
+		var startTimer = unstableTimerType?.GetMethod("StartTimer", BindingFlags.NonPublic | BindingFlags.Instance);
+		if (startTimer != null)
+		{
+			harmony.Patch(startTimer,
+				prefix: new HarmonyMethod(typeof(TrapCrystalPatch).GetMethod(
+					nameof(TrapCrystalPatch.UnstableTimerStartPrefix), BindingFlags.Static | BindingFlags.NonPublic)),
+				postfix: new HarmonyMethod(typeof(TrapCrystalPatch).GetMethod(
+					nameof(TrapCrystalPatch.UnstableTimerStartPostfix), BindingFlags.Static | BindingFlags.NonPublic)));
+		}
+		else
+		{
+			log.LogError("Dynamic patch method CrystalUnstable.StartTimer not found — the crystal ticking visual sync is off.");
+		}
 	}
 
 	/// <summary>Install a crystal-family latch-rise pair (prefix + postfix) onto

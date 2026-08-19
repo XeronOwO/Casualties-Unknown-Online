@@ -76,7 +76,7 @@ internal sealed class TrapEffectApplier(ILogger<TrapEffectApplier> log)
 				ApplyState<CaveTickSpawner>(position, kind, TrapStateActions.ApplyCaveTicks);
 				break;
 			case EntityEventKind.CrystalFragileBroken:
-				ApplyState<CrystalBehaviour>(position, kind, TrapStateActions.ApplyCrystalFragile);
+				ApplyState<CrystalBehaviour>(position, kind, CrystalStateActions.ApplyCrystalFragile);
 				break;
 			case EntityEventKind.TurretSelfDestructed:
 				ApplyTurretSelfDestructed(position);
@@ -97,16 +97,19 @@ internal sealed class TrapEffectApplier(ILogger<TrapEffectApplier> log)
 				ApplyState<BananaPlantSlip>(position, kind, TrapStateActions.ApplyBananaSlip);
 				break;
 			case EntityEventKind.CrystalElectricShocked:
-				ApplyState<CrystalBehaviour>(position, kind, TrapStateActions.ApplyCrystalElectric);
+				ApplyState<CrystalBehaviour>(position, kind, CrystalStateActions.ApplyCrystalElectric);
 				break;
 			case EntityEventKind.TurretFired:
 				ApplyState<TurretScript>(position, kind, TrapStateActions.ApplyTurretFired);
+				break;
+			case EntityEventKind.CrystalUnstableTicked:
+				ApplyState<CrystalBehaviour>(position, kind, CrystalStateActions.ApplyCrystalUnstableTicked);
 				break;
 			case EntityEventKind.CrystalUnstableExploded:
 				ApplyCrystalUnstableExplosion(position);
 				break;
 			case EntityEventKind.CrystalMetamorphicTriggered:
-				ApplyState<CrystalBehaviour>(position, kind, TrapStateActions.ApplyCrystalMetamorphic);
+				ApplyState<CrystalBehaviour>(position, kind, CrystalStateActions.ApplyCrystalMetamorphic);
 				break;
 			case EntityEventKind.CrystalMimicTriggered:
 				// The enemies spawned on the triggering side; the host does NOT
@@ -114,13 +117,13 @@ internal sealed class TrapEffectApplier(ILogger<TrapEffectApplier> log)
 				// relay the crystalenemy copies. This only consumes the latch
 				// (so the host's own copy cannot spawn a second set) and plays
 				// the live laugh.
-				ApplyState<CrystalBehaviour>(position, kind, c => TrapStateActions.ApplyCrystalMimic(c, playSound: true));
+				ApplyState<CrystalBehaviour>(position, kind, c => CrystalStateActions.ApplyCrystalMimic(c, playSound: true));
 				break;
 			case EntityEventKind.CrystalShySwapped:
-				ApplyState<CrystalBehaviour>(position, kind, TrapStateActions.ApplyCrystalShy);
+				ApplyState<CrystalBehaviour>(position, kind, CrystalStateActions.ApplyCrystalShy);
 				break;
 			case EntityEventKind.CrystalEMPActivated:
-				ApplyState<CrystalBehaviour>(position, kind, TrapStateActions.ApplyCrystalEMP);
+				ApplyState<CrystalBehaviour>(position, kind, CrystalStateActions.ApplyCrystalEMP);
 				break;
 			case EntityEventKind.GrabberGrabbed:
 				// The grab's visuals are the player-side ragdoll/scream (each

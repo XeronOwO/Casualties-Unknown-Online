@@ -61,6 +61,8 @@ public class GameFieldContractTests
 		("MineScript", "exploded", Kind.Field, typeof(bool), "the mine's one-shot — set BEFORE the remote death so OnDestroy skips the chain explosion (TrapEffectApplier, TrapMineExplosionPatch)"),
 		// The crystal family (internal types, dynamically patched — object __instance).
 		("CrystalUnstable", "timer", Kind.Field, typeof(float), "the 5 s pre-explosion ticking (TrapCrystalPatch.UnstableUpdatePatch)"),
+		("CrystalUnstable", "timerStarted", Kind.Field, typeof(bool), "the ticking's start latch edge (TrapCrystalPatch.UnstableTimerStartPatch, CrystalUnstableAccess.IsTimerStarted)"),
+		("CrystalBehaviour", "light", Kind.Field, null, "the crystal's Light2D — read UNTYPED (CrystalTickingReplay's glow ramp; the type lives in the URP assembly, not the reference graph)"),
 		("CrystalMetamorphic", "activated", Kind.Field, typeof(bool), "the touch latch (TrapCrystalPatch.MetamorphicTouchedPatch)"),
 		("CrystalShy", "activated", Kind.Field, typeof(bool), "the touch latch (TrapCrystalPatch.ShyTouchedPatch)"),
 		("CrystalEMP", "activated", Kind.Field, typeof(bool), "the TryEMP latch (TrapCrystalPatch.EmpTryEMPPatch)"),

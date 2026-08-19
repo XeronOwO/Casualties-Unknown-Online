@@ -45,6 +45,7 @@ internal static class EntityEventArchives
 		(EntityEventKind.MedStationHealed, true), // one-shot heal
 		(EntityEventKind.BatteryInserted, true), // one-shot firstTime consumption
 		(EntityEventKind.CrystalUnstableExploded, true), // destroyed by its own explosion — one-shot
+		(EntityEventKind.CrystalUnstableTicked, false), // the unstable crystal's ticking START — a transient one-way edge, NOT a durable snapshot consumption (CrystalUnstableExploded is); duplicate suppression is the local CrystalTickingReplay component
 		(EntityEventKind.CrystalMetamorphicTriggered, true), // activated latch — one-shot
 		(EntityEventKind.CrystalShySwapped, true), // activated latch — one-shot
 		(EntityEventKind.CrystalEMPActivated, true), // activated latch — one-shot

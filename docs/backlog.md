@@ -150,6 +150,19 @@ lands, never bolted on afterwards.
   `docs/mine-press-visual-selfcheck.md`; 987 tests green (L0 event-transport
   simulation + reflective patch/field contracts + static evidence,
   no manual acceptance).
+- RESOLVED (2026-08-19, ProtocolVersion 23): CrystalUnstable 5 s
+  pre-explosion ticking — the touch/hit now reports a transient
+  `CrystalUnstableTicked` (EntityEventKind 32) at the `timerStarted`
+  false→true edge (`CrystalUnstable.StartTimer`, dynamically patched), and
+  every side replays the 5 s ticking visual (crystaltick sound + glow ramp +
+  jitter via the `CrystalTickingReplay` component) from its own clock,
+  WITHOUT writing the private `timerStarted`/`timer` latches (a written latch
+  would double the world effects — the mine-press rule); `CrystalUnstableExploded`
+  stays the durable snapshot fact. The crystal-family actions moved to
+  `CrystalStateActions` (600-line gate split; they were a single domain in the
+  585-line `TrapStateActions`). See `docs/crystal-ticking-selfcheck.md`;
+  993 tests green (L0 event-transport simulation + reflective patch/field
+  contracts + static evidence, no manual acceptance).
 - RestoreItem slot-conflict handling (#192 follow-up): ACCEPTED — the semantics are now
   explicit in `ItemStateCodec.RestoreItem`: an occupied target slot with a container loads the
   restored item into it (mirroring SaveSystem.cs:325), and an occupied slot with no container
@@ -295,7 +308,9 @@ lands, never bolted on afterwards.
   ticking, sound-cannon burst effect trigger-side-only, jump-pad light /
   turret tracer omissions, the guest-side fluid
   water sound/push/slip gaps, and the fluid lightSprite flicker starting at
-  the warning edge (the `didShoot` immediate-lock tradeoff). `LookTarget`
+  the warning edge (the `didShoot` immediate-lock tradeoff).
+  CrystalUnstable 5 s ticking is now RESOLVED (2026-08-19, ProtocolVersion 23 —
+  `CrystalUnstableTicked`, see above). `LookTarget`
   gaze/startle and the Heater temperature field stay local by design
   (accepted; only heater meat→steak conversion is an open item, listed under
   Item / entity).

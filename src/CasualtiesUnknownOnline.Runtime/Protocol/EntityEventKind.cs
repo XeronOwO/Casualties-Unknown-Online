@@ -41,4 +41,5 @@ public enum EntityEventKind : byte
 	CrystalShySwapped = 28, // shy crystal: touched → swaps positions with the first other crystal in range (CrystalShy.cs:8-33; the swap is a real world-state change) — one-shot
 	CrystalEMPActivated = 29, // EMP crystal: touched → battery drain + white flash + shake (CrystalEMP.cs:14-35; the battery effects ride the item domain, the darkening runs on the crystal's own Update) — one-shot
 	CrystalMimicTriggered = 30, // mimic crystal: touched/attacked → activated latch + observerlaugh + crystalenemy spawns (the enemies ride EntitySpawned + EnemyRuntimeSpawn; this syncs the one-shot latch)
+	CrystalUnstableTicked = 32, // unstable crystal: touched/hit → the 5 s pre-explosion ticking starts (StartTimer: timerStarted=true + crystaltick sound + glow ramp + jitter, CrystalUnstable.cs:31-37/40-64) — transient one-way edge; CrystalUnstableExploded remains the durable consumption
 }

@@ -158,7 +158,7 @@ Blinding/Irradiated) are excluded: each side's body is simulated locally.
 
 | entity | sync | path |
 |---|---|---|
-| CrystalUnstable | covered | CrystalUnstableExploded (26); 5s ticking gap recorded — the explosion latch is shared; the 5 s pre-explosion ticking stays a recorded local-presentation gap |
+| CrystalUnstable | covered | CrystalUnstableExploded (26) + CrystalUnstableTicked (32) — the 5 s pre-explosion ticking (glow ramp + jitter + crystaltick sound) rides the transient Ticked event; the explosion (health0 + RemoteEntityDeath) is the durable consumption |
 | CrystalMetamorphic | covered | CrystalMetamorphicTriggered (27) — death + item drops ride the event |
 | CrystalMimic | covered | CrystalMimicTriggered (30); enemies ride EntitySpawned + EnemyRuntimeSpawn — activated latch event; enemy SetColor is trigger-side local (recorded gap) |
 | CrystalShy | covered | CrystalShySwapped (28); scan order risk recorded |

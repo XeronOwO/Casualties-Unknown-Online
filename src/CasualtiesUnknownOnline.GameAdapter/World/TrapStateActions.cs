@@ -263,24 +263,6 @@ internal static class TrapStateActions
 		return true;
 	}
 
-	/// <summary>Fragile crystal: consume the break — glass sound + health = 0 as a
-	/// REMOTE death (the drops rolled on the triggering side). The position key
-	/// already located the crystal (CrystalEffect is a plain class, not a
-	/// component — the CrystalBehaviour carries the transform); the health
-	/// check drops duplicates.</summary>
-	internal static bool ApplyCrystalFragile(CrystalBehaviour crystal)
-	{
-		if (crystal.build.health < 0.5f)
-		{
-			return false; // already consumed — a duplicate event
-		}
-
-		Sound.Play("glass", crystal.transform.position, false, true, null, 1f, 1f, false, false);
-		crystal.build.health = 0f;
-		crystal.gameObject.AddComponent<RemoteEntityDeath>();
-		return true;
-	}
-
 	/// <summary>Beartrap CLAMPED (repeatable — the activated flag is the current-
 	/// clamp mark, cleared on release): close the visual (closeSprite + sound +
 	/// shake + the child teeth). The clamp's limb damage happened on the
@@ -366,87 +348,6 @@ internal static class TrapStateActions
 	internal static bool ApplyBananaSlip(BananaPlantSlip plant)
 	{
 		Sound.Play("plantslip", plant.transform.position, false, true, null, 1f, 1f, false, false);
-		return true;
-	}
-
-	/// <summary>Electric crystal shock: zap + shake (the ring animation runs on
-	/// the crystal's own Update everywhere).</summary>
-	internal static bool ApplyCrystalElectric(CrystalBehaviour crystal)
-	{
-		Sound.Play("zap", crystal.transform.position, false, true, null, 1f, 1f, false, false);
-		PlayerCamera.main.shaker.Shake(200f);
-		return true;
-	}
-
-	/// <summary>Mimic crystal triggered: consume the one-shot latch (the
-	/// observerlaugh + crystalenemy spawns ran on the triggering side; the
-	/// spawned enemies ride EntitySpawned + EnemyRuntimeSpawn, never here).
-	/// Live replays play the SAME 2D observerlaugh call as the trigger side
-	/// (CrystalMimic.cs:29/43); a late-joiner snapshot replay passes
-	/// playSound=false — an old laugh must not fire over the joiner.</summary>
-	internal static bool ApplyCrystalMimic(CrystalBehaviour crystal, bool playSound)
-	{
-		if (!CrystalMimicAccess.TryActivate(crystal))
-		{
-			return false; // already consumed, or no mimic at this position
-		}
-
-		if (playSound)
-		{
-			Sound.Play("observerlaugh", Vector2.zero, true, false, null, 1f, 1f, true, true);
-		}
-
-		return true;
-	}
-
-	/// <summary>Metamorphic crystal triggered (the death rides BuildingEntityDamaged,
-	/// the drops ride the item domain — this syncs the remaining observables):
-	/// the white screen flash + the laugh, exactly the trigger side's path
-	/// (CrystalMetamorphic.cs:25, :32). Re-applying is harmless — the death
-	/// consumption is what guards duplicates.</summary>
-	internal static bool ApplyCrystalMetamorphic(CrystalBehaviour crystal)
-	{
-		PlayerCamera.main.StartCoroutine("FlashBrief");
-		Sound.Play("crystalenemylaugh", crystal.transform.position, false, true, null, 1f, 1f, false, false);
-		return true;
-	}
-
-	/// <summary>Shy crystal swapped: re-run the trigger side's scan — the first
-	/// other crystal within 64 units (CrystalShy.cs:17-30) — and swap the
-	/// positions, the observerlaugh the swap's audible cue. The scan order has
-	/// no formal guarantee, but the crystals are generation-static and the world
-	/// is deterministic (recorded in the entity-features matrix).</summary>
-	internal static bool ApplyCrystalShy(CrystalBehaviour crystal)
-	{
-		foreach (var collider in Physics2D.OverlapCircleAll(crystal.transform.position, 64f, LayerMask.GetMask("Ground")))
-		{
-			if (collider.GetComponent<CrystalBehaviour>() != null) // Unity object — ==
-			{
-				var target = collider.transform;
-				var self = crystal.transform;
-				var targetPos = target.position;
-				var targetRot = target.rotation;
-				var selfPos = self.position;
-				var selfRot = self.rotation;
-				target.SetPositionAndRotation(selfPos, selfRot);
-				self.SetPositionAndRotation(targetPos, targetRot);
-				Sound.Play("observerlaugh", self.position, false, true, null, 1f, 1f, false, false);
-				break;
-			}
-		}
-
-		return true;
-	}
-
-	/// <summary>EMP crystal activated (the battery drain rides the item domain):
-	/// the white flash + the crystalemp sound + the shake — the darkening runs on
-	/// the crystal's own Update once it is white (CrystalEMP.cs:54-64), so the
-	/// black-state transition is what the update drives afterwards.</summary>
-	internal static bool ApplyCrystalEMP(CrystalBehaviour crystal)
-	{
-		crystal.SetColor(Color.white);
-		Sound.Play("crystalemp", crystal.transform.position, false, true, null, 1f, 1f, false, false);
-		PlayerCamera.main.shaker.Shake(200f);
 		return true;
 	}
 

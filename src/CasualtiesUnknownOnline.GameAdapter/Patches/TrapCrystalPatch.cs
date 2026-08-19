@@ -112,6 +112,29 @@ internal static class TrapCrystalPatch
 		ReportCrystal(__instance, EntityEventKind.CrystalUnstableExploded);
 	}
 
+	/// <summary>Unstable crystal StartTimer — the false→true timerStarted edge
+	/// (CrystalUnstable.cs:31-37): the touch or hit just STARTED the 5 s
+	/// pre-explosion ticking (talk "..!" + crystaltick sound + the Update's
+	/// glow ramp and jitter follow). The prefix captures the latch, the
+	/// postfix reports the rise — the ticking's true start, exactly like the
+	/// mine's pressed edge. The receiver replays ONLY the ticking visual
+	/// (never the latch — a remote timerStarted would make the local
+	/// CrystalUnstable.Update count down and explode the crystal naturally,
+	/// double-applying the world effects the Exploded event already replays).
+	/// </summary>
+	internal static void UnstableTimerStartPrefix(object __instance, out bool __state) =>
+		__state = Traverse.Create(__instance).Field("timerStarted").GetValue<bool>();
+
+	internal static void UnstableTimerStartPostfix(object __instance, bool __state)
+	{
+		if (__state || !Traverse.Create(__instance).Field("timerStarted").GetValue<bool>())
+		{
+			return; // not the timerStarted false → true edge
+		}
+
+		ReportCrystal(__instance, EntityEventKind.CrystalUnstableTicked);
+	}
+
 	/// <summary>Metamorphic crystal Touched — the activated latch rose (the touch
 	/// applied: FlashBrief + death + drops; CrystalMetamorphic.cs:16-35).</summary>
 	internal static void MetamorphicTouchedPrefix(object __instance, out bool __state) =>

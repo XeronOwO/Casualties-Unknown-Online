@@ -117,7 +117,7 @@ internal static class TrapEntityScan
 	{
 		"CrystalFragile" => [EntityEventKind.CrystalFragileBroken],
 		"CrystalElectric" => [EntityEventKind.CrystalElectricShocked],
-		"CrystalUnstable" => [EntityEventKind.CrystalUnstableExploded],
+		"CrystalUnstable" => [EntityEventKind.CrystalUnstableTicked, EntityEventKind.CrystalUnstableExploded],
 		"CrystalMetamorphic" => [EntityEventKind.CrystalMetamorphicTriggered],
 		"CrystalMimic" => [EntityEventKind.CrystalMimicTriggered],
 		"CrystalShy" => [EntityEventKind.CrystalShySwapped],

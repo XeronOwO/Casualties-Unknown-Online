@@ -159,4 +159,9 @@ public enum NetMsg : byte
 	// played its sound locally, the peers replay it on the owner's clone; GunFire
 	// also carries the recoil kick so the clone's weapon visibly kicks)
 	CharacterSound = 94, // bidirectional: guest → host report of the owner's own action event; host → guest broadcast relay (source excluded)
+
+	// Fluid presentation (host authority — the host simulates the world fluid
+	// alone, so the transient water-push physics and waterflow sounds that the
+	// host's SimulationStep produces are sent to the guests as dedicated events)
+	FluidPresentation = 96, // host → guest (reliable): one water push / waterflow sound at a grid cell
 }

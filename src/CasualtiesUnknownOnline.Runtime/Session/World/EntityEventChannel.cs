@@ -176,6 +176,28 @@ public sealed class EntityEventChannel(ISessionControl session, PacketSender sen
 
 	public void FireFluidInteractionReceived(ulong sender, FluidInteractionMsg msg) => FluidInteractionReceived?.Invoke(sender, msg);
 
+	// ---- Fluid presentation (host authority, transient water push / sound) ----
+
+	/// <summary>Host only: send one transient fluid-presentation event (water
+	/// push / waterflow sound) to one member. Reliable: a lost push would make
+	/// the guest miss a local-body physics effect that the next streamed grid
+	/// snapshot cannot heal (the grid is the authority, not the push).</summary>
+	public void SendFluidPresentation(ulong targetSteamId, FluidPresentationMsg msg)
+	{
+		if (_session.Role != SessionRole.Host || !_session.SessionActive)
+		{
+			return;
+		}
+
+		_sender.Send(targetSteamId, NetMsg.FluidPresentation, msg, reliable: true);
+	}
+
+	/// <summary>Guest: the host's fluid-presentation event arrived — replay the
+	/// transient water push / waterflow sound.</summary>
+	public event Action<FluidPresentationMsg>? FluidPresentationReceived;
+
+	public void FireFluidPresentationReceived(FluidPresentationMsg msg) => FluidPresentationReceived?.Invoke(msg);
+
 	// ---- One-shot trap consumptions (the late-joiner snapshot) ----
 
 	/// <summary>Host only: record a one-shot trap consumption (position-keyed; Extra rides along for progress-carrying events).</summary>

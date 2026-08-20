@@ -390,4 +390,27 @@ public class EntityEventSimulationTests
 		Assert.True(drinks.Count == 1, $"the other guest gets the drink, got {drinks.Count}");
 		Assert.True(drinks[0].X == 2 && drinks[0].Y == 3, "the cell rides through");
 	}
+
+	[Fact]
+	public void FluidPresentation_HostSendsToGuest_ReplaySurfaceFires()
+	{
+		var w = EntityEventSimWorld.Create();
+		var presentations = new List<FluidPresentationMsg>();
+		w.G1.Services.GetRequiredService<IWorldControl>().FluidPresentationReceived += msg => presentations.Add(msg);
+
+		w.Host.Services.GetRequiredService<IWorldControl>().SendFluidPresentation(w.G1.SteamId, new FluidPresentationMsg
+		{
+			Kind = FluidPresentationMsg.KindWaterPush,
+			X = 4,
+			Y = 5,
+			DirX = 1f,
+			DirY = 0f,
+		});
+
+		Assert.True(presentations.Count == 1, $"the guest gets the fluid presentation, got {presentations.Count}");
+		Assert.True(presentations[0].Kind == FluidPresentationMsg.KindWaterPush
+			&& presentations[0].X == 4 && presentations[0].Y == 5
+			&& presentations[0].DirX == 1f && presentations[0].DirY == 0f,
+			"the push event rides through unchanged");
+	}
 }

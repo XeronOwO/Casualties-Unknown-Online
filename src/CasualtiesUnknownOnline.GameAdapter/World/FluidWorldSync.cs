@@ -23,17 +23,20 @@ internal sealed class FluidWorldSync(
 	private readonly IWorldControl _world = world;
 	private readonly FluidSimulationAuthority _authority = new(world, session, entities, loggerFactory.CreateLogger<FluidSimulationAuthority>());
 	private readonly FluidRegionApplication _application = new(loggerFactory.CreateLogger<FluidRegionApplication>());
+	private readonly FluidPresentationApplication _presentation = new(loggerFactory.CreateLogger<FluidPresentationApplication>());
 	private readonly FluidInteractionSync _interaction = new(world, session, loggerFactory.CreateLogger<FluidInteractionSync>());
 
 	internal void BindToSession()
 	{
 		_world.FluidRegionReceived += _application.Apply;
+		_world.FluidPresentationReceived += _presentation.Apply;
 		_interaction.BindToSession();
 	}
 
 	internal void Unbind()
 	{
 		_world.FluidRegionReceived -= _application.Apply;
+		_world.FluidPresentationReceived -= _presentation.Apply;
 		_interaction.Unbind();
 	}
 

@@ -67,6 +67,7 @@ public class DirectionTests
 		NetMsg.ModCommandResult,
 		NetMsg.WorldTime,
 		NetMsg.ItemCook,
+		NetMsg.FluidPresentation,
 	};
 
 	public static TheoryData<NetMsg> BidirectionalMessages => new()

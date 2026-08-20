@@ -69,6 +69,7 @@ public sealed class PacketReceiver : IDisposable
 			or NetMsg.BuildingEntityHealthSnapshot or NetMsg.BlockDamageSnapshot
 			or NetMsg.EnemyState or NetMsg.EnemySnapshot or NetMsg.EnemyAttack
 			or NetMsg.ModCommandResult or NetMsg.WorldTime or NetMsg.ItemCook
+			or NetMsg.FluidPresentation
 			=> _session.Role == SessionRole.Guest,
 		// ModCommandRequest is guest→host only; ModCommandResult is host→guest only.
 		// Ping/Pong/SceneState/BlockDamaged/CharacterData/ItemSpawn/ItemPickup/

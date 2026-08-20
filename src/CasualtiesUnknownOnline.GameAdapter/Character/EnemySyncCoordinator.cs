@@ -166,6 +166,19 @@ internal sealed partial class EnemySyncCoordinator(
 	private static EnemyEntity Capture(BuildingEntity entity, NetworkEntityId id, bool runtimeSpawn)
 	{
 		var rb = entity.GetComponent<Rigidbody2D>();
+		var crystal = entity.GetComponentInChildren<CrystalEnemy>();
+		var hasTint = false;
+		NetColorRgba tint = default;
+		var lightIntensity = 0f;
+		if (crystal != null && CrystalEnemyTintAccess.TryRead(crystal, out var color, out lightIntensity)) // Unity object — ==
+		{
+			// The mimic's trigger-side SetColor (CrystalMimic.cs:32/46) painted
+			// this copy; carry the EXACT post-jitter color (never a re-roll — the
+			// SetColor jitter is per-side random) so the backfill can match it.
+			hasTint = true;
+			tint = new NetColorRgba(color.r, color.g, color.b, color.a);
+		}
+
 		return new EnemyEntity(id)
 		{
 			Position = new NetVector2(entity.transform.position.x, entity.transform.position.y),
@@ -175,6 +188,9 @@ internal sealed partial class EnemySyncCoordinator(
 			Stunned = false, // presentation flags land once the per-enemy stun state is wired (SpiderHandler.stunTime etc.)
 			PrefabId = entity.id,
 			RuntimeSpawned = runtimeSpawn,
+			HasTint = hasTint,
+			TintColor = tint,
+			TintLightIntensity = lightIntensity,
 		};
 	}
 

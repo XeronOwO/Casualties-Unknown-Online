@@ -227,4 +227,63 @@ public class NetPacketTests
 
 		Assert.Equal(WorldTimeSpeed.Fast, decoded.Speed);
 	}
+
+	[Fact]
+	public void EntitySpawned_CrystalEnemyTint_RoundTrips()
+	{
+		// The live creation command carries the exact trigger-side post-SetColor
+		// color + light intensity (CrystalMimic.cs:32/46); a receiver must see
+		// the same values after the wire round-trip — a lost tint would make the
+		// fresh copy colorless (the recorded presentation gap).
+		var msg = new EntitySpawnedMsg
+		{
+			Id = "crystalenemy",
+			Position = new NetVector2Msg(10f, 20f),
+			HasEnemyTint = true,
+			EnemyTintColor = new NetColorRgbaMsg(0.25f, 0.5f, 0.75f, 1f),
+			EnemyLightIntensity = 0.8f,
+		};
+
+		var decoded = NetPacket.DecodePayload<EntitySpawnedMsg>(NetPacket.Encode(NetMsg.EntitySpawned, msg));
+
+		Assert.True(decoded.HasEnemyTint);
+		Assert.Equal(0.25f, decoded.EnemyTintColor.R);
+		Assert.Equal(0.5f, decoded.EnemyTintColor.G);
+		Assert.Equal(0.75f, decoded.EnemyTintColor.B);
+		Assert.Equal(1f, decoded.EnemyTintColor.A);
+		Assert.Equal(0.8f, decoded.EnemyLightIntensity);
+	}
+
+	[Fact]
+	public void EnemySpawnEntry_CrystalEnemyTint_RoundTrips()
+	{
+		// The late-joiner backfill entry mirrors the live EntitySpawned tint; a
+		// fresh member materializes the copy and must paint it with the exact
+		// host-captured color, not a per-side-random re-roll.
+		var msg = new EnemySnapshotMsg
+		{
+			RuntimeSpawns =
+			[
+				new EnemySpawnEntryMsg
+				{
+					Id = new NetworkEntityIdMsg { Epoch = 1, Counter = 2, Generation = 0 },
+					PrefabId = "crystalenemy",
+					HasTint = true,
+					TintColor = new NetColorRgbaMsg(0.1f, 0.2f, 0.3f, 1f),
+					LightIntensity = 0.65f,
+				},
+			],
+		};
+
+		var decoded = NetPacket.DecodePayload<EnemySnapshotMsg>(NetPacket.Encode(NetMsg.EnemySnapshot, msg));
+
+		var entry = Assert.Single(decoded.RuntimeSpawns);
+		Assert.True(entry.HasTint);
+		Assert.Equal(0.1f, entry.TintColor.R);
+		Assert.Equal(0.2f, entry.TintColor.G);
+		Assert.Equal(0.3f, entry.TintColor.B);
+		Assert.Equal(1f, entry.TintColor.A);
+		Assert.Equal(0.65f, entry.LightIntensity);
+	}
+
 }

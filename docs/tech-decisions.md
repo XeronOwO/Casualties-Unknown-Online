@@ -426,8 +426,10 @@ unconsumed would spawn a SECOND set on its own collision/attack. Closeout:
   call (CrystalMimic.cs:29/43). A late-joiner snapshot replay is state-only (silent).
 - **Spawn chain unchanged** — the game-created `crystalenemy` entities ride `EntitySpawned` +
   `EnemySyncCoordinator` runtime binding; late joiners materialize them from
-  `EnemySnapshot.RuntimeSpawns`. Enemy `SetColor` re-rolls per side and is a recorded
-  presentation gap (no color wire field).
+  `EnemySnapshot.RuntimeSpawns`. The trigger-side `SetColor` now travels as creation data
+  (`EntitySpawnedMsg` / `EnemySpawnEntryMsg` tint fields, ProtocolVersion 24): the host carries
+  the EXACT post-SetColor color + light intensity and receivers write it directly — never the
+  native `SetColor`, whose per-side random jitter would diverge.
 - **Channel family fixes landed in the same round** — (a) host-triggered one-shot events now
   record into `TrapConsumptionRegistry` in `EntityEventChannel.SendEntityEvent` (the host is not
   in its own presence table, so the old remote-report-only path lost every host-triggered

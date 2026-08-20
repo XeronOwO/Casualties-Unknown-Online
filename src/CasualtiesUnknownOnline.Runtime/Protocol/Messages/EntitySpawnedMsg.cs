@@ -50,4 +50,28 @@ public sealed class EntitySpawnedMsg
 	/// </summary>
 	[ProtoMember(5)]
 	public string KeypadCode { get; set; } = string.Empty;
+
+	/// <summary>
+	/// Creation-time initial data: the presentation tint of a runtime-created
+	/// crystalenemy (CrystalMimic.cs:32/46 — the mimic writes
+	/// <c>CrystalEnemy.SetColor(crystal.sprite.color)</c> on the triggering side
+	/// ONLY; the jitter that SetColor applies comes from the PER-SIDE random
+	/// stream, so the copy must be written the EXACT captured color, never a
+	/// re-roll). The host reads its copy's post-SetColor <c>sprite.color</c> /
+	/// <c>light intensity</c> at the spawn report (BuildingEntity.Start runs one
+	/// frame after the same-frame SetColor) and carries them; every receiving
+	/// side writes them onto its created copy directly. True = the carried color
+	/// is meaningful (only crystalenemy creations set it — the protobuf
+	/// zero-omission cannot bite because an explicit flag rides the payload).
+	/// </summary>
+	[ProtoMember(6)]
+	public bool HasEnemyTint { get; set; }
+
+	/// <summary>The exact post-SetColor RGBA (only meaningful when <see cref="HasEnemyTint"/> is true).</summary>
+	[ProtoMember(7)]
+	public NetColorRgbaMsg EnemyTintColor { get; set; } = new();
+
+	/// <summary>The exact post-SetColor light intensity (CrystalEnemy.cs:215 — Random.Range(0.5, 1), only meaningful when <see cref="HasEnemyTint"/> is true).</summary>
+	[ProtoMember(8)]
+	public float EnemyLightIntensity { get; set; }
 }

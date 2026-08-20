@@ -160,7 +160,7 @@ Blinding/Irradiated) are excluded: each side's body is simulated locally.
 |---|---|---|
 | CrystalUnstable | covered | CrystalUnstableExploded (26) + CrystalUnstableTicked (32) — the 5 s pre-explosion ticking (glow ramp + jitter + crystaltick sound) rides the transient Ticked event; the explosion (health0 + RemoteEntityDeath) is the durable consumption |
 | CrystalMetamorphic | covered | CrystalMetamorphicTriggered (27) — death + item drops ride the event |
-| CrystalMimic | covered | CrystalMimicTriggered (30); enemies ride EntitySpawned + EnemyRuntimeSpawn — activated latch event; enemy SetColor is trigger-side local (recorded gap) |
+| CrystalMimic | covered | CrystalMimicTriggered (30); enemies ride EntitySpawned + EnemyRuntimeSpawn; crystalenemy tint rides EntitySpawned/EnemySnapshot (PV24) — activated latch event |
 | CrystalShy | covered | CrystalShySwapped (28); scan order risk recorded |
 | CrystalEMP | covered | CrystalEMPActivated (29) — black visual + battery drain |
 | CrystalBurning | excluded | local body effect |
@@ -232,4 +232,4 @@ temperature field on `xaloris`.
 | SpiderHandler | covered | EnemyState stream + EnemyAttack/EnemyBite events |
 | CaveTicks | covered | EnemyState stream + EnemyAttack/EnemyBite events |
 | ElderThornbackBehaviour | covered | EnemyState stream + EnemyEffectMsg horror events |
-| CrystalEnemy | covered | EnemyState stream + EnemyAttack/EnemyLunge events |
+| CrystalEnemy | covered | EnemyState stream + EnemyAttack/EnemyLunge events; runtime crystalenemy tint rides EntitySpawned/EnemySnapshot (PV24) |

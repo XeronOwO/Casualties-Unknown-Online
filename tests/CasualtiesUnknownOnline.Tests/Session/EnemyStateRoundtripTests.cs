@@ -105,8 +105,11 @@ public class EnemyStateRoundtripTests
 		{
 			Position = new NetVector2(11f, -22f),
 			Rotation = 180f,
-			PrefabId = "cavetick",
+			PrefabId = "crystalenemy",
 			RuntimeSpawned = true,
+			HasTint = true,
+			TintColor = new NetColorRgba(0.25f, 0.5f, 0.75f, 1f),
+			TintLightIntensity = 0.8f,
 		};
 
 		var msg = source.ToEnemySpawnEntryMsg();
@@ -115,6 +118,12 @@ public class EnemyStateRoundtripTests
 		Assert.Equal(source.PrefabId, msg.PrefabId);
 		Assert.Equal(source.Position, msg.Position.ToNetVector2());
 		Assert.Equal(source.Rotation, msg.Rotation);
+		Assert.True(msg.HasTint);
+		Assert.Equal(0.25f, msg.TintColor.R);
+		Assert.Equal(0.5f, msg.TintColor.G);
+		Assert.Equal(0.75f, msg.TintColor.B);
+		Assert.Equal(1f, msg.TintColor.A);
+		Assert.Equal(0.8f, msg.LightIntensity);
 	}
 
 }

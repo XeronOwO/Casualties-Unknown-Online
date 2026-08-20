@@ -29,4 +29,24 @@ public sealed class EnemySpawnEntryMsg
 	/// <summary>The authoritative current z rotation (euler degrees).</summary>
 	[ProtoMember(4)]
 	public float Rotation { get; set; }
+
+	/// <summary>
+	/// The presentation tint of a runtime-created crystalenemy (the same fact
+	/// the live EntitySpawned channel carries in <see cref="EntitySpawnedMsg"/>,
+	/// mirrored here for the late-joiner backfill — a fresh member materializes
+	/// the copy WITHOUT the trigger-side SetColor, so the entry must carry the
+	/// exact host-captured color). True = the carried color is meaningful (only
+	/// crystalenemy entries set it; a false/zero entry is wire-identical to the
+	/// old layout for every other prefab).
+	/// </summary>
+	[ProtoMember(5)]
+	public bool HasTint { get; set; }
+
+	/// <summary>The exact host-captured post-SetColor RGBA (only meaningful when <see cref="HasTint"/> is true).</summary>
+	[ProtoMember(6)]
+	public NetColorRgbaMsg TintColor { get; set; } = new();
+
+	/// <summary>The exact host-captured light intensity (CrystalEnemy.cs:215 — only meaningful when <see cref="HasTint"/> is true).</summary>
+	[ProtoMember(7)]
+	public float LightIntensity { get; set; }
 }

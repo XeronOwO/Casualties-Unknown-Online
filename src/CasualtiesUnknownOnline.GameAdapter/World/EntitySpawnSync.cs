@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.World;
@@ -106,7 +107,31 @@ internal sealed class EntitySpawnSync(IWorldControl world, ISessionControl sessi
 		var keypadCode = openable is not null && openable.isKeypad && _session.Role == SessionRole.Host
 			? WorldEventSync.EnsureKeypadCode(openable) // the host creates it — its code is host authority from the start
 			: "";
-		ReportSpawn(entity.id, pos, entity.transform.eulerAngles.z, 0, keypadCode);
+		TryCaptureEnemyTint(entity, out var hasTint, out var tint, out var lightIntensity);
+		ReportSpawn(entity.id, pos, entity.transform.eulerAngles.z, 0, keypadCode, hasTint, tint, lightIntensity);
+	}
+
+	/// <summary>
+	/// A runtime-created crystalenemy's trigger-side SetColor (CrystalMimic.cs:32/46)
+	/// ran BEFORE its BuildingEntity.Start — SetColor is synchronous inside the
+	/// touched/hit callback, Start is deferred to the frame's start phase — so at
+	/// this report the copy already carries its final tint: capture it as creation
+	/// data so every receiving side paints its own copy with the EXACT color (never
+	/// a re-roll of the per-side-random SetColor jitter, CrystalEnemy.cs:210-212).
+	/// </summary>
+	private static void TryCaptureEnemyTint(BuildingEntity entity, out bool hasTint, out NetColorRgba tint, out float lightIntensity)
+	{
+		var crystal = entity.GetComponentInChildren<CrystalEnemy>();
+		if (crystal != null && CrystalEnemyTintAccess.TryRead(crystal, out var color, out lightIntensity)) // Unity object — ==
+		{
+			hasTint = true;
+			tint = new NetColorRgba(color.r, color.g, color.b, color.a);
+			return;
+		}
+
+		hasTint = false;
+		tint = default;
+		lightIntensity = 0f;
 	}
 
 	private void OnRemoteEntitySpawned(ulong sender, EntitySpawnedMsg msg)
@@ -150,10 +175,14 @@ internal sealed class EntitySpawnSync(IWorldControl world, ISessionControl sessi
 					Rotation = msg.Rotation,
 					LiquidType = msg.LiquidType,
 					KeypadCode = WorldEventSync.EnsureKeypadCode(openable),
+					HasEnemyTint = msg.HasEnemyTint,
+					EnemyTintColor = msg.EnemyTintColor,
+					EnemyLightIntensity = msg.EnemyLightIntensity,
 				};
 			}
 
 			ApplyCreationData(created, relay, pos);
+			ApplyEnemyTint(created, relay, pos);
 
 			if (_session.Role == SessionRole.Host && sender != _session.LocalSteamId)
 			{
@@ -191,6 +220,29 @@ internal sealed class EntitySpawnSync(IWorldControl world, ISessionControl sessi
 		{
 			_applyQueue.Add((pos, msg.LiquidType, Time.frameCount));
 		}
+	}
+
+	/// <summary>Apply the creation-carried crystalenemy tint: the exact
+	/// host/trigger-side post-SetColor color + light intensity, written directly
+	/// (never the native SetColor — its per-side-random jitter would diverge).
+	/// The copy was just created, so its Awake-assigned sprite/light fields are
+	/// present; a non-crystalenemy entity with a stray flag is a no-op.</summary>
+	private void ApplyEnemyTint(BuildingEntity created, EntitySpawnedMsg msg, Vector2 pos)
+	{
+		if (!msg.HasEnemyTint)
+		{
+			return;
+		}
+
+		var crystal = created.GetComponentInChildren<CrystalEnemy>();
+		if (crystal == null) // Unity object — == (a non-crystalenemy prefab despite the flag — nothing to paint)
+		{
+			return;
+		}
+
+		var tint = msg.EnemyTintColor.ToNetColorRgba();
+		CrystalEnemyTintAccess.ApplyTint(crystal, new Color(tint.R, tint.G, tint.B, tint.A), msg.EnemyLightIntensity);
+		_log.LogInformation("[EntitySpawn] applied carried crystal tint at ({X:F1},{Y:F1}).", pos.x, pos.y);
 	}
 
 	/// <summary>The geyser reports run here — a frame after the parent Start, so
@@ -253,12 +305,14 @@ internal sealed class EntitySpawnSync(IWorldControl world, ISessionControl sessi
 		_applyQueue.RemoveAll(q => Time.frameCount - q.AtFrame >= 1);
 	}
 
-	private void ReportSpawn(string id, Vector2 pos, float rotation, byte liquidType, string keypadCode)
+	private void ReportSpawn(string id, Vector2 pos, float rotation, byte liquidType, string keypadCode,
+		bool hasEnemyTint = false, NetColorRgba enemyTint = default, float enemyLightIntensity = 0f)
 	{
-		_log.LogInformation("[EntitySpawn] reporting {Id} at ({X:F1},{Y:F1}){Liquid}{Code}.",
+		_log.LogInformation("[EntitySpawn] reporting {Id} at ({X:F1},{Y:F1}){Liquid}{Code}{Tint}.",
 			id, pos.x, pos.y,
 			liquidType != 0 ? $" (liquid {liquidType})" : "",
-			keypadCode.Length > 0 ? " (keypad code carried)" : "");
+			keypadCode.Length > 0 ? " (keypad code carried)" : "",
+			hasEnemyTint ? " (crystal tint carried)" : "");
 		_world.SendEntitySpawned(new EntitySpawnedMsg
 		{
 			Id = id,
@@ -266,6 +320,9 @@ internal sealed class EntitySpawnSync(IWorldControl world, ISessionControl sessi
 			Rotation = rotation,
 			LiquidType = liquidType,
 			KeypadCode = keypadCode,
+			HasEnemyTint = hasEnemyTint,
+			EnemyTintColor = enemyTint.ToNetColorRgbaMsg(),
+			EnemyLightIntensity = enemyLightIntensity,
 		});
 	}
 

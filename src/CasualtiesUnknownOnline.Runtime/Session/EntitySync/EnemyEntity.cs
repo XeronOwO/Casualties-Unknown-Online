@@ -33,6 +33,20 @@ public sealed class EnemyEntity(NetworkEntityId entityId)
 	/// <summary>True when this enemy was created at RUNTIME (outside generation) — the late-joiner snapshot carries it as an EnemySpawnEntryMsg so a fresh member can materialize the copy.</summary>
 	public bool RuntimeSpawned { get; set; }
 
+	/// <summary>
+	/// True when this enemy carries a presentation tint (a runtime-created
+	/// crystalenemy — the mimic's trigger-side SetColor, CrystalMimic.cs:32/46).
+	/// The HOST captures the exact post-SetColor color so the receiving side can
+	/// write its copy to match without re-rolling the per-side random jitter.
+	/// </summary>
+	public bool HasTint { get; set; }
+
+	/// <summary>The exact host-captured RGBA (only meaningful when <see cref="HasTint"/> is true).</summary>
+	public NetColorRgba TintColor { get; set; }
+
+	/// <summary>The exact host-captured light intensity (CrystalEnemy.cs:215 — only meaningful when <see cref="HasTint"/> is true).</summary>
+	public float TintLightIntensity { get; set; }
+
 	/// <summary>Domain → wire; the reverse applies via <see cref="EnemyStateMsg.ApplyTo"/>.</summary>
 	public EnemyStateMsg ToEnemyStateMsg() => new()
 	{
@@ -51,5 +65,8 @@ public sealed class EnemyEntity(NetworkEntityId entityId)
 		PrefabId = PrefabId,
 		Position = Position.ToNetVector2Msg(),
 		Rotation = Rotation,
+		HasTint = HasTint,
+		TintColor = TintColor.ToNetColorRgbaMsg(),
+		LightIntensity = TintLightIntensity,
 	};
 }

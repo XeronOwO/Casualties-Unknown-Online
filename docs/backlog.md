@@ -314,6 +314,16 @@ lands, never bolted on afterwards.
   gaze/startle and the Heater temperature field stay local by design
   (accepted; only heater meat→steak conversion is an open item, listed under
   Item / entity).
+- RESOLVED (2026-08-19, ProtocolVersion 24): crystalenemy presentation tint —
+  the mimic's trigger-side `CrystalEnemy.SetColor` (CrystalMimic.cs:32/46,
+  CrystalEnemy.cs:208-216) now rides creation data instead of staying
+  trigger-side-local: `EntitySpawnedMsg` (live) and `EnemySpawnEntryMsg`
+  (late-joiner backfill) carry the host-captured EXACT post-SetColor RGBA +
+  light intensity, and every receiver writes them onto its created copy directly
+  (never the native SetColor — its per-side-random jitter would diverge). See
+  `docs/crystal-enemy-tint-selfcheck.md`; 995 tests green (L0 wire roundtrips +
+  reflective field contracts + static evidence, no manual acceptance).
+
 - RESOLVED (2026-08-18, no protocol bump): remote building-destruction
   particles/sound — `BuildingEntityUpdatePatch` now replays the native
   non-drop death visuals (`BuildingBreakParticle` + `DustBig` +
@@ -385,7 +395,7 @@ lands, never bolted on afterwards.
   late-joiner TrapStateSnapshot consumption. The same round fixed two event-channel family bugs:
   host-triggered one-shot consumptions are recorded for late joiners, and EntityEvent/
   EntitySpawned relays no longer double-broadcast (the adapter domain is the single relay owner).
-  See `docs/crystal-mimic-selfcheck.md`; enemy SetColor remains a recorded presentation gap.
+  See `docs/crystal-mimic-selfcheck.md`; enemy SetColor tint now rides EntitySpawned/EnemySnapshot (PV24).
 - RESOLVED (2026-08-18, no protocol bump): Online UI — create/join room
   controls (IMGUI lobby ID field + Join/Create buttons reusing the F8/F9
   guarded paths), member status list (persona / host-or-guest / handshake /

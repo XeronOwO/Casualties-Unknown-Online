@@ -48,6 +48,7 @@ internal sealed partial class EnemySyncCoordinator
 		{
 			var spawn = spawns[spawnIndex];
 			Bind(candidates[candidateIndex], spawn.Id.ToNetworkEntityId(), runtimeSpawn: false);
+			ApplySpawnTint(candidates[candidateIndex], spawn);
 			Freeze(candidates[candidateIndex]);
 		}
 
@@ -94,9 +95,34 @@ internal sealed partial class EnemySyncCoordinator
 		created.transform.eulerAngles = new Vector3(0f, 0f, spawn.Rotation);
 		createdGo.AddComponent<SpawnReplayMarker>(); // its own Start must not re-report the materialization
 		Bind(created, id, runtimeSpawn: false);
+		ApplySpawnTint(created, spawn); // a crystalenemy backfill must carry the trigger-side color — see ApplySpawnTint
 		Freeze(created);
 		_log.LogInformation("[Enemy] materialized runtime spawn {Id} (prefab {Prefab}) at ({X:F1},{Y:F1}).",
 			id, spawn.PrefabId, spawn.Position.X, spawn.Position.Y);
+	}
+
+	/// <summary>
+	/// Apply the spawned crystalenemy's carried presentation tint to the copy —
+	/// the exact host-captured post-SetColor color and light intensity
+	/// (CrystalEnemy.cs:208-216), written directly (never the native SetColor —
+	/// its per-side-random jitter would diverge). The late joiner never saw the
+	/// trigger side's SetColor, so the backfill entry must paint its copy.</summary>
+	private void ApplySpawnTint(BuildingEntity entity, EnemySpawnEntryMsg spawn)
+	{
+		if (!spawn.HasTint)
+		{
+			return;
+		}
+
+		var crystal = entity.GetComponentInChildren<CrystalEnemy>();
+		if (crystal == null) // Unity object — == (a non-crystalenemy prefab despite the flag — nothing to paint)
+		{
+			return;
+		}
+
+		var tint = spawn.TintColor.ToNetColorRgba();
+		CrystalEnemyTintAccess.ApplyTint(crystal, new Color(tint.R, tint.G, tint.B, tint.A), spawn.LightIntensity);
+		_log.LogInformation("[Enemy] applied carried tint to runtime spawn {Id}.", spawn.Id.ToNetworkEntityId());
 	}
 
 	private void ApplyAllStates()

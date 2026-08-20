@@ -355,7 +355,8 @@ internal static class TrapStateActions
 	/// the peer's copy — timeSinceFired = 0 + didShoot = true start its 15 s
 	/// reload (TurretScript.cs:30-53), so a peer walking into range gets beeped
 	/// but NOT shot during the reload, matching the triggering side. The tracer
-	/// beam is a local LineRenderer — recorded gap.</summary>
+	/// beam and the lightSprite flicker are both replayed at the firing moment
+	/// (the latter via TurretLightSpriteGate).</summary>
 	internal static bool ApplyTurretFired(TurretScript turret)
 	{
 		// The timeline decision (warning → 3 s / firing → 0 s / 15 s reload) is
@@ -373,6 +374,7 @@ internal static class TrapStateActions
 		Traverse.Create(turret).Property("timeSinceFired").SetValue(timeline.TimeSinceFired);
 		Traverse.Create(turret).Field("didShoot").SetValue(timeline.DidShoot);
 		Traverse.Create(turret).Field("didBeep").SetValue(timeline.DidBeep);
+		TurretLightSpriteGate.Begin(turret); // keep lightSprite steady until the shot — TurretScript.cs:29 would otherwise flicker it 0.5 s early
 		turret.StartCoroutine(DelayedFireVisuals(turret));
 		return true;
 	}
@@ -385,7 +387,7 @@ internal static class TrapStateActions
 	/// light when the trigger side's shot does, not at the warning.</summary>
 	private static IEnumerator DelayedFireVisuals(TurretScript turret)
 	{
-		yield return new WaitForSeconds(0.5f);
+		yield return new WaitForSeconds(TurretReplayTimeline.ShotDelaySeconds);
 		if (turret == null) // Unity object — ==
 		{
 			yield break; // destroyed while the delay ran

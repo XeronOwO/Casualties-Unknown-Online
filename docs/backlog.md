@@ -304,16 +304,29 @@ lands, never bolted on afterwards.
 - Presentation gaps are HIGH priority (user 2026-08-18) — treated as native
   game-content coverage, not accepted low-priority debt. The open presentation
   gaps from the entity-domain memory (several already recorded in
-  `docs/event-replay-matrix.csv`): CrystalUnstable 5 s
-  ticking, sound-cannon burst effect trigger-side-only, jump-pad light /
-  turret tracer omissions, the guest-side fluid
-  water sound/push/slip gaps, and the fluid lightSprite flicker starting at
-  the warning edge (the `didShoot` immediate-lock tradeoff).
+  `docs/event-replay-matrix.csv`):
+  sound-cannon burst effect trigger-side-only and the guest-side fluid
+  water sound/push/slip gaps. The earlier jump-pad light / turret tracer
+  omissions are already covered by the replay actions
+  (`docs/event-replay-matrix.csv` rows JumpPadLaunched and TurretFired);
+  the turret lightSprite flicker that used to start at the warning edge
+  (the `didShoot` immediate-lock tradeoff) is now RESOLVED (2026-08-20,
+  no protocol bump — `TurretLightSpriteGate`, see
+  `docs/turret-light-sprite-selfcheck.md`).
   CrystalUnstable 5 s ticking is now RESOLVED (2026-08-19, ProtocolVersion 23 —
   `CrystalUnstableTicked`, see above). `LookTarget`
   gaze/startle and the Heater temperature field stay local by design
   (accepted; only heater meat→steak conversion is an open item, listed under
   Item / entity).
+- RESOLVED (2026-08-20, no protocol bump): turret lightSprite flicker
+  timing — the remote replay's `didShoot` lock starts the native lightSprite
+  flicker (TurretScript.cs:29) at the warning, 0.5 s before the trigger side's
+  shot. A new `TurretLightSpriteGate` component holds the lightSprite steady
+  through the warning window (LateUpdate, after the game's Update) and removes
+  itself at the firing moment, so the flicker starts exactly when the shot
+  visuals do. See `docs/turret-light-sprite-selfcheck.md`; 998 tests green
+  (L0 reflective surface + static evidence, no manual acceptance).
+
 - RESOLVED (2026-08-19, ProtocolVersion 24): crystalenemy presentation tint —
   the mimic's trigger-side `CrystalEnemy.SetColor` (CrystalMimic.cs:32/46,
   CrystalEnemy.cs:208-216) now rides creation data instead of staying

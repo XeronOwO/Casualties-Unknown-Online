@@ -38,6 +38,7 @@ internal sealed class FluidSimulationAuthority(
 	private readonly Dictionary<ulong, MemberView> _views = [];
 	private int _simIndex;
 	private byte _tileCooldown; // mirrors FluidManager.tileCooldown (the waterflow sound every 17 moves)
+	private int _waterMoveCount; // mirrors FluidManager.waterMoveCount (the water-push every 11 moves)
 	private float _nextDiff;
 	private float _nextFull;
 	private byte _seq;
@@ -103,7 +104,7 @@ internal sealed class FluidSimulationAuthority(
 			// reverse-engineering 2026-08-10, CUO convention). The host's random
 			// consumption is identical to the game's own (a faithful copy), so
 			// its public stream stays where the original simulation would leave it.
-			SimulateBand(fluid, x0, x1, y0, y1);
+			SimulateBand(fluid, x0, x1, y0, y1, anchors);
 		}
 
 		_simIndex += BandHeight;
@@ -119,7 +120,8 @@ internal sealed class FluidSimulationAuthority(
 	/// driving the water-push and the waterflow sound), the 1/2 mixing, the
 	/// random side spread (the PUBLIC Random stream — the host consumes it here,
 	/// alone).</summary>
-	private void SimulateBand(FluidManager fluid, int x0, int x1, int y0, int y1)
+	private void SimulateBand(FluidManager fluid, int x0, int x1, int y0, int y1,
+		Dictionary<ulong, Vector2Int> anchors)
 	{
 		for (var i = x0; i < x1; i++)
 		{
@@ -140,12 +142,21 @@ internal sealed class FluidSimulationAuthority(
 					fluid.Swap(new Vector2Int(i, j), new Vector2Int(i, j - 1));
 					_tileCooldown++;
 					fluid.IncrMove(Vector2.down, new Vector2Int(i, j));
+					SendWaterPushIfDue(fluid, new Vector2Int(i, j), Vector2.down, anchors);
 					if (_tileCooldown > 16)
 					{
 						_tileCooldown = 0;
 						if (Time.timeScale <= 1f)
 						{
-							Sound.Play("waterflow" + Random.Range(1, 4), WorldGeneration.world.BlockToWorldPos(new Vector2Int(i, j)), false, true, null, 1f, 1f, false, false);
+							var soundIndex = (byte)Random.Range(1, 4);
+							Sound.Play("waterflow" + soundIndex, WorldGeneration.world.BlockToWorldPos(new Vector2Int(i, j)), false, true, null, 1f, 1f, false, false);
+							SendPresentation(new Vector2Int(i, j), new FluidPresentationMsg
+							{
+								Kind = FluidPresentationMsg.KindWaterflowSound,
+								X = i,
+								Y = j,
+								SoundIndex = soundIndex,
+							}, anchors);
 						}
 					}
 				}
@@ -168,13 +179,69 @@ internal sealed class FluidSimulationAuthority(
 					{
 						fluid.Swap(new Vector2Int(i, j), new Vector2Int(i + 1, j));
 						fluid.IncrMove(Vector2.right, new Vector2Int(i, j));
+						SendWaterPushIfDue(fluid, new Vector2Int(i, j), Vector2.right, anchors);
 					}
 					else if (left)
 					{
 						fluid.Swap(new Vector2Int(i, j), new Vector2Int(i - 1, j));
 						fluid.IncrMove(Vector2.left, new Vector2Int(i, j));
+						SendWaterPushIfDue(fluid, new Vector2Int(i, j), Vector2.left, anchors);
 					}
 				}
+			}
+		}
+	}
+
+	/// <summary>Mirror FluidManager.IncrMove's water-push cadence (FluidManager.cs:232-254):
+	/// after every 11 moves (the game's <c>waterMoveCount &gt; 10</c> reset) the host
+	/// creates a <c>WaterPusher</c>; the guests receive the same transient as a
+	/// dedicated message instead of simulating the fluid themselves.</summary>
+	private void SendWaterPushIfDue(FluidManager fluid, Vector2Int pos, Vector2 direction,
+		Dictionary<ulong, Vector2Int> anchors)
+	{
+		if (!fluid.liquidPushing)
+		{
+			return; // the game's IncrMove no-ops here too — no pusher on any side
+		}
+
+		_waterMoveCount++;
+		if (_waterMoveCount <= 10)
+		{
+			return;
+		}
+
+		_waterMoveCount = 0;
+		SendPresentation(pos, new FluidPresentationMsg
+		{
+			Kind = FluidPresentationMsg.KindWaterPush,
+			X = pos.x,
+			Y = pos.y,
+			DirX = direction.x,
+			DirY = direction.y,
+		}, anchors);
+	}
+
+	/// <summary>Send one transient fluid-presentation event to every guest whose
+	/// viewport contains the cell (the host's own side already ran the native
+	/// effect in SimulateBand).</summary>
+	private void SendPresentation(Vector2Int pos, FluidPresentationMsg msg,
+		Dictionary<ulong, Vector2Int> anchors)
+	{
+		foreach (var pair in anchors)
+		{
+			var id = pair.Key;
+			if (id == _session.LocalSteamId)
+			{
+				continue;
+			}
+
+			var center = pair.Value;
+			var dx = pos.x - center.x;
+			var dy = pos.y - center.y;
+			if (dx >= -64 && dx < 64 && dy >= -64 && dy < 48)
+			{
+				_world.SendFluidPresentation(id, msg);
+				_log.LogDebug("[Fluid] presentation kind={Kind} at=({X},{Y}) → {Target}.", msg.Kind, msg.X, msg.Y, id);
 			}
 		}
 	}

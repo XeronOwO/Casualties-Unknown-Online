@@ -177,7 +177,7 @@ Blinding/Irradiated) are excluded: each side's body is simulated locally.
 
 | entity | sync | path |
 |---|---|---|
-| FluidManager | covered | FluidRegion/FluidWorldSync — host simulates every member's viewport (deduplicated bands); 10 Hz diff + 1 Hz full RLE over FluidRegion |
+| FluidManager | covered | FluidRegion/FluidWorldSync + FluidPresentation (NetMsg 96) — host simulates every member's viewport (deduplicated bands); 10 Hz diff + 1 Hz full RLE over FluidRegion; transient water-push / waterflow sound rides FluidPresentationMsg |
 | OilPipeScript | covered | FluidRegion/FluidWorldSync — oil production rides the host fluid stream |
 | LifepodPump | covered | FluidRegion/FluidWorldSync — pump writes ride the host fluid stream |
 
@@ -194,7 +194,7 @@ Blinding/Irradiated) are excluded: each side's body is simulated locally.
 | GeigeFruitScript | excluded | local body |
 | LeadbushScript | excluded | local body |
 | CampfireAnimation | excluded | pure visual |
-| WaterPusher | excluded | local physics |
+| WaterPusher | covered | FluidPresentation (NetMsg 96) — transient water push/slip from the host's fluid simulation |
 | ItemLock | excluded | marker only |
 | RadioactiveObject | excluded | local body field |
 | XalorisScript | covered | EnemyEffectMsg septic tick — 0.5 s edge terminal state |

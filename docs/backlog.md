@@ -259,10 +259,11 @@ lands, never bolted on afterwards.
   absolute fluid snapshot corrects them within ≤1 s.
 - Accepted entity-features exclusions (non-blocking, local-only semantics — recorded so they
   are re-evaluated, not re-discovered): SurvivorNote slow-mo/time-scale, GrapplingHook rope
-  visual, Climbable/BounceShroom/GeigeFruit/Leadbush/Campfire/WaterPusher/ItemLock/
+  visual, Climbable/BounceShroom/GeigeFruit/Leadbush/Campfire/ItemLock/
   Radioactive local body/physics/marker roles, continuous crystal body effects,
   CrystalGravity/Kinetic local physics, DrillPod WorldJoin-level reset, and hand-placed
-  Gunmine/Sawblade.
+  Gunmine/Sawblade. (WaterPusher is no longer on this list: the fluid-generated
+  water push/slip is now covered via FluidPresentation, NetMsg 96.)
 - RESOLVED (1ceec3e): world-entry snapshot-group consistency — `GeyserStateSnapshot` and `KeypadCode`
   now re-fan-out on member world-entry via the `RemoteSceneChanged(inWorld=true)` signal (the Game
   Adapter owns the data and re-broadcasts on the signal; `HandlerContext.SendWorldStateToMember`
@@ -301,23 +302,22 @@ lands, never bolted on afterwards.
   Accepted residuals: the clone's body-level FacialExpression latches (disfigured/eye
   sprites + the owner's disfiguredIndex) stay template-driven, and the underwater/downward
   fur-blood transfer branches are owner-side simulation — both recorded in the self-check.
-- Presentation gaps are HIGH priority (user 2026-08-18) — treated as native
-  game-content coverage, not accepted low-priority debt. The open presentation
-  gaps from the entity-domain memory (several already recorded in
-  `docs/event-replay-matrix.csv`):
-  sound-cannon burst effect trigger-side-only and the guest-side fluid
-  water sound/push/slip gaps. The earlier jump-pad light / turret tracer
-  omissions are already covered by the replay actions
-  (`docs/event-replay-matrix.csv` rows JumpPadLaunched and TurretFired);
-  the turret lightSprite flicker that used to start at the warning edge
-  (the `didShoot` immediate-lock tradeoff) is now RESOLVED (2026-08-20,
-  no protocol bump — `TurretLightSpriteGate`, see
-  `docs/turret-light-sprite-selfcheck.md`).
-  CrystalUnstable 5 s ticking is now RESOLVED (2026-08-19, ProtocolVersion 23 —
-  `CrystalUnstableTicked`, see above). `LookTarget`
-  gaze/startle and the Heater temperature field stay local by design
-  (accepted; only heater meat→steak conversion is an open item, listed under
-  Item / entity).
+- RESOLVED (2026-08-20, ProtocolVersion 25): guest-side fluid water
+  sound/push/slip — the host now sends dedicated `FluidPresentationMsg`
+  (NetMsg 96) for every water-push `WaterPusher` and `waterflow1..3` sound
+  it produces inside a guest's viewport; the guest replays the transient
+  effects without simulating the fluid. See
+  `docs/fluid-presentation-selfcheck.md`.
+- RESOLVED (docs-only): sound-cannon burst effect — the blast `sonarouch`
+  replay already rides `SoundCannonFired`
+  (`TrapStateActions.ApplySoundCannon`, added in 5ccec0e); the only
+  trigger-side-only parts are the local player's deafen/mute/shake UI, which
+  stay local by design. The presentation-gaps pass is now closed:
+  jump-pad light / turret tracer / turret lightSprite / CrystalUnstable
+  ticking / crystalenemy tint / sound-cannon / fluid water sound-push-slip
+  are all resolved or accepted-local. `LookTarget` gaze/startle and the
+  Heater temperature field stay local by design (accepted; only heater
+  meat→steak conversion is an open item, listed under Item / entity).
 - RESOLVED (2026-08-20, no protocol bump): turret lightSprite flicker
   timing — the remote replay's `didShoot` lock starts the native lightSprite
   flicker (TurretScript.cs:29) at the warning, 0.5 s before the trigger side's

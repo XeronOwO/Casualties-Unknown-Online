@@ -245,6 +245,14 @@ public interface IWorldControl
 	/// <summary>A fluid interaction arrived — the receiver applies it (host: to its own grid, then relays; guest: clear the cell).</summary>
 	event Action<ulong, FluidInteractionMsg>? FluidInteractionReceived;
 
+	/// <summary>Host only: send one transient fluid-presentation event (water push / waterflow sound) to one member.</summary>
+	void SendFluidPresentation(ulong targetSteamId, FluidPresentationMsg msg);
+
+	/// <summary>Guest: the host's fluid-presentation event arrived — replay the transient water push / waterflow sound.</summary>
+	void FireFluidPresentationReceived(FluidPresentationMsg msg);
+
+	event Action<FluidPresentationMsg>? FluidPresentationReceived;
+
 	/// <summary>Host only: send one trader's authoritative state to one member (world entry, the 5 s fallback).</summary>
 	void SendTraderState(ulong targetSteamId, TraderStateMsg msg);
 

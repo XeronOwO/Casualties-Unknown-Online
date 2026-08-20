@@ -76,6 +76,12 @@ public sealed partial class WorldService
 
 	public void FireFluidInteractionReceived(ulong sender, FluidInteractionMsg msg) => _eventChannel.FireFluidInteractionReceived(sender, msg);
 
+	public void SendFluidPresentation(ulong targetSteamId, FluidPresentationMsg msg) => _eventChannel.SendFluidPresentation(targetSteamId, msg);
+
+	public event Action<FluidPresentationMsg>? FluidPresentationReceived { add => _eventChannel.FluidPresentationReceived += value; remove => _eventChannel.FluidPresentationReceived -= value; }
+
+	public void FireFluidPresentationReceived(FluidPresentationMsg msg) => _eventChannel.FireFluidPresentationReceived(msg);
+
 	public void SendTraderState(ulong targetSteamId, TraderStateMsg msg) => _tradeChannel.SendTraderState(targetSteamId, msg);
 
 	public void BroadcastTraderState(TraderStateMsg msg) => _tradeChannel.BroadcastTraderState(msg);

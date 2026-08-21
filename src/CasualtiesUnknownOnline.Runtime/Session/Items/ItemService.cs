@@ -129,6 +129,11 @@ public sealed partial class ItemService : IItemControl, IItemActionWorldAccess, 
 			return;
 		}
 
+		foreach (var entry in items)
+		{
+			RecordItemTraffic(ItemTrafficKind.Move, ItemTrafficLabel(entry.ItemId));
+		}
+
 		var msg = new ItemMoveMsg { Items = [.. items] };
 		_sender.SendToAll(
 			_session.Members.Where(m => m.Handshaken && m.SteamId != _session.LocalSteamId).Select(m => m.SteamId),
@@ -160,6 +165,8 @@ public sealed partial class ItemService : IItemControl, IItemActionWorldAccess, 
 		{
 			return;
 		}
+
+		RecordItemTraffic(ItemTrafficKind.Spawn, item.ItemId);
 
 		var msg = new ItemSpawnMsg
 		{
@@ -225,6 +232,8 @@ public sealed partial class ItemService : IItemControl, IItemActionWorldAccess, 
 			return;
 		}
 
+		RecordItemTraffic(ItemTrafficKind.Pickup, evidence?.ItemId ?? ItemTrafficLabel(itemId));
+
 		// The digest evidence rides the guest's report only (host-side pickups
 		// are the host's own authority — nothing to check, and the broadcast to
 		// the other guests carries no Item).
@@ -260,6 +269,8 @@ public sealed partial class ItemService : IItemControl, IItemActionWorldAccess, 
 			return;
 		}
 
+		RecordItemTraffic(ItemTrafficKind.Drop, item.ItemId);
+
 		var msg = new ItemDropMsg
 		{
 			ItemId = itemId,
@@ -282,6 +293,7 @@ public sealed partial class ItemService : IItemControl, IItemActionWorldAccess, 
 
 	public void SendItemDestroyed(ulong itemId)
 	{
+		var trafficLabel = ItemTrafficLabel(itemId);
 		if (_session.Role != SessionRole.Guest)
 		{
 			_worldTable.Remove(itemId);
@@ -291,6 +303,8 @@ public sealed partial class ItemService : IItemControl, IItemActionWorldAccess, 
 		{
 			return;
 		}
+
+		RecordItemTraffic(ItemTrafficKind.Destroy, trafficLabel);
 
 		var msg = new ItemDestroyMsg { ItemId = itemId };
 		if (_session.Role == SessionRole.Host)
@@ -346,8 +360,10 @@ public sealed partial class ItemService : IItemControl, IItemActionWorldAccess, 
 	{
 		if (_session.Role == SessionRole.Host)
 		{
+			var trafficLabel = ItemTrafficLabel(itemId);
 			_worldTable.Remove(itemId);
 			_session.BroadcastExcept(sender, NetMsg.ItemDestroy, new ItemDestroyMsg { ItemId = itemId });
+			RecordItemTraffic(ItemTrafficKind.Destroy, trafficLabel);
 		}
 
 		ItemDestroyed?.Invoke(itemId);
@@ -486,6 +502,7 @@ public sealed partial class ItemService : IItemControl, IItemActionWorldAccess, 
 		_arbitration.ResetForSessionEnd();
 		_idCoordinator.ResetForSessionEnd();
 		_snapshots.ResetForSessionEnd();
+		_itemTraffic.Reset();
 	}
 
 	private void OnSessionEnded() => ResetSessionState();

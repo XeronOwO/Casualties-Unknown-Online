@@ -236,8 +236,18 @@ lands, never bolted on afterwards.
   `ItemWorldSync.OnItemInstantiated` → `ItemService.SendItemSpawned`/`HandleHostSpawnReport` →
   `ItemSpawnHandler`). Console commands recorded as a local-only debug boundary; `LoadRun` stays
   in the Phase 3 saves scope. See `docs/runtime-supply-refresh-audit.md`.
-- High-frequency small drops (shell casings etc.): observe message volume before optimizing —
-  batch/rate-limit only if it actually hurts.
+- RESOLVED (2026-08-21, no protocol bump): high-frequency small drops
+  message-volume observation — `ItemTrafficTracker` + `ItemTrafficWindow` +
+  `ItemService.Traffic.cs` + `ItemTrafficPump` now count one logical
+  ItemSpawn / ItemDrop / ItemMove / ItemDestroy / ItemPickup send operation per
+  10 s window and log `[ItemTraffic]` totals, per-kind splits and top item
+  labels. Originator sends and host relays are both counted; per-recipient
+  fan-out is deliberately not counted (the metric is "how many item facts are
+  produced", not transport frames). No batching/rate-limit yet — the "observe
+  first" step is now enabled; optimize only if the observed numbers show a
+  family actually hurts. See `docs/high-frequency-small-drops-selfcheck.md`;
+  1035 tests green (L0 tracker + wiring simulation + static evidence,
+  no manual acceptance).
 - RESOLVED (c6b7d92): Geyser replay duplicate report — the report now rides `TryRumble`'s
   verified idle→rumbling transition (TrapGeyserPatch), not `Activate`, and `OnTrapTriggered`
   drops any `RemoteApply` origin; a replay can no longer produce the natural-Activate echo.

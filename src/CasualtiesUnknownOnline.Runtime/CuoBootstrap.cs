@@ -177,6 +177,10 @@ public static class CuoBootstrap
 		services.AddSingleton<IItemControl>(p => p.GetRequiredService<ItemService>());
 		services.AddSingleton<PendingPickupPump>();
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<PendingPickupPump>());
+		// Item-traffic observer: logs the per-window item-message volume (no
+		// batching/rate-limit — observe first, optimize only if the numbers hurt).
+		services.AddSingleton<ItemTrafficPump>();
+		services.AddSingleton<ICuoService>(p => p.GetRequiredService<ItemTrafficPump>());
 		// Crafting domain: the one-operation-one-report apply + the recipe
 		// unlock (no pump, not an ICuoService — it only reacts to calls and
 		// messages; ItemService's crafting seams are its world-table gateway).

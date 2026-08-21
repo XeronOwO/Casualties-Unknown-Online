@@ -546,7 +546,8 @@ lands, never bolted on afterwards.
   (the old hand-wave "extend only when a game update hits it" is closed).
   `PatchInventory.VerifyMissing` gets the same runtime parity: a constrained
   exact-lookup failure is reported as missing, never checked against the
-  wrong overload. No current contract needed new parameter types; 1028 tests
+  wrong overload, and an unconstrained multi-overload target is reported as
+  ambiguous. No current contract needed new parameter types; 1028 tests
   green. See `docs/patch-contract-overload-selfcheck.md`.
 - RESOLVED (2026-08-18, L0): block-break drop-race dual-side scenario — a
   dedicated `TwoGuestsBreakSameCellAtTheSameTime_FirstWriterWins_LoserRejected`

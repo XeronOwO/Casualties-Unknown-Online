@@ -99,11 +99,28 @@ internal static class PatchInventory
 			// With explicit argument types, a failed exact lookup must NOT fall
 			// back to name-only: the fallback would silently check the wrong
 			// same-name overload after a game-update type change. An
-			// unconstrained contract keeps the name-only path (Harmony's own
-			// attribute shape).
-			var target = info.argumentTypes is { Length: > 0 }
-				? AccessTools.Method(declaring, info.methodName, info.argumentTypes)
-				: AccessTools.Method(declaring, info.methodName);
+			// unconstrained contract resolves only when exactly one method
+			// matches; multiple overloads are ambiguous and need explicit
+			// argumentTypes, never an arbitrary pick.
+			MethodInfo? target;
+			if (info.argumentTypes is { Length: > 0 })
+			{
+				target = AccessTools.Method(declaring, info.methodName, info.argumentTypes);
+			}
+			else
+			{
+				var sameName = declaring.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static)
+					.Where(m => m.Name == info.methodName)
+					.ToArray();
+				if (sameName.Length > 1)
+				{
+					missing.Add($"{type.Name}: ambiguous unconstrained contract {declaring.Name}.{info.methodName} has {sameName.Length} overloads; add [HarmonyPatch] argumentTypes.");
+					continue;
+				}
+
+				target = sameName.Length == 1 ? sameName[0] : null;
+			}
+
 			if (target == null || !mine.Contains(target))
 			{
 				missing.Add($"{type.Name} → {declaring.Name}.{info.methodName}");

@@ -457,7 +457,15 @@ lands, never bolted on afterwards.
   presentation or ride their owning domains. No protocol bump; 965 tests green
   (new `SpeechBlipReplayContractTests` + existing speech/talker contracts, static
   evidence, no manual acceptance). See `docs/speech-sound-frequency-selfcheck.md`.
-- Direct player interaction (view/take items, carry, view vitals, heal).
+- Direct player interaction (view/take items, carry, view vitals, heal):
+  - RESOLVED (2026-08-21, no protocol bump): view vitals slice — the Online UI
+    now shows each in-world remote player's compact HP / hunger / thirst /
+    stamina in both the member status list and the world nameplate. The data
+    is projected from the existing 1 Hz character stream
+    (`RemoteVitalsService` + `RemoteVitalsSnapshot`); no new wire message.
+    See `docs/remote-vitals-selfcheck.md`.
+  - Remaining: view/take items from another player, carry, and heal (direct
+    body/Inventory interaction) — still open.
 - Periodic keyframe self-healing (partially implemented; extend to remaining domains). Before
   any snapshot stream switches to an unreliable channel, event-version numbers are required —
   an old snapshot arriving after an in-flight event would otherwise roll the event back

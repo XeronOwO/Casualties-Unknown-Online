@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using CasualtiesUnknownOnline.Runtime.OnlineUi;
 using CasualtiesUnknownOnline.Runtime.Session;
+using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Steam;
 using UnityEngine;
@@ -27,13 +28,13 @@ internal sealed class OnlineUiOverlay
 	private string _lobbyIdInput = "";
 	private string? _inlineError;
 
-	internal void Draw(SteamService steam, SessionService session, EntitySyncService entities, string? lastJoinError)
+	internal void Draw(SteamService steam, SessionService session, EntitySyncService entities, RemoteVitalsService vitals, string? lastJoinError)
 	{
-		DrawStatusPanel(steam, session, entities, lastJoinError ?? _inlineError);
-		DrawNameplatesAndArrows(steam, session, entities);
+		DrawStatusPanel(steam, session, entities, vitals, lastJoinError ?? _inlineError);
+		DrawNameplatesAndArrows(steam, session, entities, vitals);
 	}
 
-	private void DrawStatusPanel(SteamService steam, SessionService session, EntitySyncService entities, string? error)
+	private void DrawStatusPanel(SteamService steam, SessionService session, EntitySyncService entities, RemoteVitalsService vitals, string? error)
 	{
 		var y = 10f;
 		Line("CUO — Steam: " + (steam.IsInitialized ? "initialized" : "not initialized"));
@@ -51,7 +52,7 @@ internal sealed class OnlineUiOverlay
 		Line(session.LastRttMs >= 0f ? $"Last RTT: {session.LastRttMs:F1} ms" : "No ping yet");
 
 		y = DrawLobbyControls(y);
-		y = DrawMemberStatus(steam, session, y);
+		y = DrawMemberStatus(steam, session, vitals, y);
 
 		if (!string.IsNullOrEmpty(error))
 		{
@@ -95,7 +96,7 @@ internal sealed class OnlineUiOverlay
 		return y + 26f;
 	}
 
-	private float DrawMemberStatus(SteamService steam, SessionService session, float y)
+	private float DrawMemberStatus(SteamService steam, SessionService session, RemoteVitalsService vitals, float y)
 	{
 		if (steam.CurrentLobbyId == 0)
 		{
@@ -110,15 +111,18 @@ internal sealed class OnlineUiOverlay
 			var status = member is null ? "not handshaken"
 				: (member.Handshaken ? "handshake" : "no handshake")
 				+ (member.InWorld ? ", in world" : ", menu");
+			var vitalsText = member is { InWorld: true } && vitals.TryGet(lobbyMember, out var snapshot)
+				? $" — {snapshot.ToShortString()}"
+				: "";
 			GUI.Label(new Rect(10f, y, 900f, 20f),
-				$"  {name} [{lobbyMember:X}] {(isHost ? "HOST" : "guest")} — {status}");
+				$"  {name} [{lobbyMember:X}] {(isHost ? "HOST" : "guest")} — {status}{vitalsText}");
 			y += 20f;
 		}
 
 		return y;
 	}
 
-	private static void DrawNameplatesAndArrows(SteamService steam, SessionService session, EntitySyncService entities)
+	private static void DrawNameplatesAndArrows(SteamService steam, SessionService session, EntitySyncService entities, RemoteVitalsService vitals)
 	{
 		var camera = Camera.main;
 		if (camera == null)
@@ -142,7 +146,7 @@ internal sealed class OnlineUiOverlay
 
 			if (placement.Direction == OffScreenArrowDirection.None)
 			{
-				DrawNameplate(placement.X, placement.Y, DisplayName(steam, remote.SteamId), remote);
+				DrawNameplate(placement.X, placement.Y, DisplayName(steam, remote.SteamId), remote, vitals);
 			}
 			else
 			{
@@ -151,7 +155,7 @@ internal sealed class OnlineUiOverlay
 		}
 	}
 
-	private static void DrawNameplate(float x, float y, string name, PlayerEntity remote)
+	private static void DrawNameplate(float x, float y, string name, PlayerEntity remote, RemoteVitalsService vitals)
 	{
 		var style = new GUIStyle(GUI.skin.label)
 		{
@@ -162,6 +166,17 @@ internal sealed class OnlineUiOverlay
 
 		var status = remote.Alive ? (remote.Conscious ? "" : " Zzz") : " \u271D"; // ✝
 		GUI.Label(new Rect(x - 80f, y - 34f, 160f, 20f), name + status, style);
+
+		if (vitals.TryGet(remote.SteamId, out var snapshot))
+		{
+			var vitalsStyle = new GUIStyle(GUI.skin.label)
+			{
+				fontSize = 10,
+				alignment = TextAnchor.MiddleCenter,
+			};
+			vitalsStyle.normal.textColor = Color.white;
+			GUI.Label(new Rect(x - 80f, y - 12f, 160f, 16f), snapshot.ToShortString(), vitalsStyle);
+		}
 	}
 
 	private static void DrawOffScreenArrow(OffScreenArrowPlacement placement, string name)

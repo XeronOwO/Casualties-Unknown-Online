@@ -96,8 +96,14 @@ internal static class PatchInventory
 				continue;
 			}
 
-			var target = AccessTools.Method(declaring, info.methodName, info.argumentTypes)
-				?? AccessTools.Method(declaring, info.methodName);
+			// With explicit argument types, a failed exact lookup must NOT fall
+			// back to name-only: the fallback would silently check the wrong
+			// same-name overload after a game-update type change. An
+			// unconstrained contract keeps the name-only path (Harmony's own
+			// attribute shape).
+			var target = info.argumentTypes is { Length: > 0 }
+				? AccessTools.Method(declaring, info.methodName, info.argumentTypes)
+				: AccessTools.Method(declaring, info.methodName);
 			if (target == null || !mine.Contains(target))
 			{
 				missing.Add($"{type.Name} → {declaring.Name}.{info.methodName}");

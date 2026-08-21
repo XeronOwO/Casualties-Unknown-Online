@@ -146,6 +146,10 @@ public static class CuoBootstrap
 			characterDataFile, p.GetRequiredService<ILogger<CharacterDataFileStore>>()));
 		services.AddSingleton<CharacterDataStore>();
 		services.AddSingleton<ICharacterDataControl>(p => p.GetRequiredService<CharacterDataStore>());
+		// Remote-vitals cache: the Online UI's read-only view of the latest
+		// character snapshots (no pump, not an ICuoService — only reacts to the
+		// character-data stream and session end).
+		services.AddSingleton<RemoteVitalsService>();
 		// World domain: world-start parameters + block-damage reports (no pump,
 		// not an ICuoService — it only reacts to calls and messages).
 		services.AddSingleton<TrapConsumptionRegistry>(); // the one-shot trap-consumption table

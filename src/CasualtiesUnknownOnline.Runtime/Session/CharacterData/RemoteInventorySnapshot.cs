@@ -43,6 +43,7 @@ public sealed class RemoteInventorySnapshot
 
 		var items = data.Items
 			.Select(item => new RemoteInventoryEntry(
+				item.InstanceId,
 				item.ItemId,
 				item.SlotIndex,
 				item.Condition,

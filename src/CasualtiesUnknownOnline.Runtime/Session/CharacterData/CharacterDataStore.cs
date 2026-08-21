@@ -34,6 +34,7 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable
 	private readonly IItemControl _items;
 	private readonly CharacterDataFileStore _persistence;
 	private readonly Dictionary<ulong, CharacterDataMsg> _savedCharacters; // host: last report per SteamID
+	private CharacterDataMsg? _hostData; // host: the host's own latest character snapshot (same shape, broadcast to guests)
 
 	public CharacterDataStore(ISessionControl session, PacketSender sender,
 		ILogger<CharacterDataStore> log, IItemControl items, CharacterDataFileStore persistence)
@@ -128,6 +129,7 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable
 	public void ClearSavedCharacters()
 	{
 		_savedCharacters.Clear();
+		_hostData = null;
 
 		// Write the empty-table tombstone BEFORE deleting: if the delete fails,
 		// the current file already reads as an empty new run — the old run can
@@ -145,7 +147,11 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable
 	}
 
 	/// <summary>Session ended: the in-memory saves die with the session; the disk copy survives for a host restart / continue-run.</summary>
-	public void ResetForSessionEnd() => _savedCharacters.Clear();
+	public void ResetForSessionEnd()
+	{
+		_savedCharacters.Clear();
+		_hostData = null;
+	}
 
 	private void OnSessionEnded() => ResetForSessionEnd();
 
@@ -249,6 +255,16 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable
 	public CharacterDataMsg? GetSavedCharacter(ulong steamId) =>
 		_savedCharacters.TryGetValue(steamId, out var data) ? data : null;
 
+	/// <summary>Host: the host's own latest character snapshot (cross-player interaction authority for host-owned items).</summary>
+	public CharacterDataMsg? GetHostCharacterData() => _hostData;
+
+	/// <summary>Host: record the host's own latest character snapshot (cross-player transfer result).</summary>
+	public void SaveHostCharacterData(CharacterDataMsg msg)
+	{
+		_hostData = msg;
+		_log.LogInformation("Host character data updated ({Items} items).", msg.Items.Count);
+	}
+
 	/// <summary>Host only: broadcast the host's own snapshot — the guests render the host's clone inventory from it.</summary>
 	public void BroadcastHostCharacterData(CharacterDataMsg msg)
 	{
@@ -257,6 +273,7 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable
 			return;
 		}
 
+		_hostData = msg;
 		_session.Broadcast(NetMsg.HostCharacterData, msg);
 	}
 
@@ -344,6 +361,10 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable
 	void ICharacterDataControl.SendSavedCharacter(ulong steamId) => SendSavedCharacter(steamId);
 
 	CharacterDataMsg? ICharacterDataControl.GetSavedCharacter(ulong steamId) => GetSavedCharacter(steamId);
+
+	CharacterDataMsg? ICharacterDataControl.GetHostCharacterData() => GetHostCharacterData();
+
+	void ICharacterDataControl.SaveHostCharacterData(CharacterDataMsg msg) => SaveHostCharacterData(msg);
 
 	void ICharacterDataControl.BroadcastHostCharacterData(CharacterDataMsg msg) => BroadcastHostCharacterData(msg);
 

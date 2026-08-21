@@ -12,6 +12,7 @@ using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.Handlers;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
+using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using CasualtiesUnknownOnline.Runtime.Steam;
 using ManualLogSource = BepInEx.Logging.ManualLogSource;
 using Microsoft.Extensions.DependencyInjection;
@@ -122,7 +123,8 @@ public static class CuoBootstrap
 			p.GetRequiredService<IModsControl>(),
 			p.GetRequiredService<ICraftControl>(),
 			p.GetRequiredService<IEnemySyncControl>(),
-			p.GetRequiredService<IWorldTimeControl>()));
+			p.GetRequiredService<IWorldTimeControl>(),
+			p.GetRequiredService<IPlayerInteractionControl>()));
 		services.AddSingleton<PacketDispatcher>();
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<PacketDispatcher>());
 
@@ -175,6 +177,10 @@ public static class CuoBootstrap
 		services.AddSingleton<ItemArbitration>();
 		services.AddSingleton<ItemService>();
 		services.AddSingleton<IItemControl>(p => p.GetRequiredService<ItemService>());
+		// Direct player interaction (cross-player inventory take) — depends on the
+		// session, character-data and item control surfaces; no pump.
+		services.AddSingleton<PlayerInteractionService>();
+		services.AddSingleton<IPlayerInteractionControl>(p => p.GetRequiredService<PlayerInteractionService>());
 		services.AddSingleton<PendingPickupPump>();
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<PendingPickupPump>());
 		// Item-traffic observer: logs the per-window item-message volume (no

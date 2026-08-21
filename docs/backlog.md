@@ -483,8 +483,20 @@ lands, never bolted on afterwards.
     a separate operation. No new wire message. See
     `docs/remote-inventory-view-selfcheck.md`; 1025 tests green (L0 service +
     projection tests, no manual acceptance).
-  - Remaining: take items from another player, carry, and heal (direct
-    body/Inventory interaction) — still open.
+  - RESOLVED (2026-08-21, ProtocolVersion 26): take items from another player —
+    the Online UI now shows a Take button on each backpack/hand-slot item of an
+    in-world unconscious/dead remote body. A guest request travels as
+    `PlayerInventoryTakeRequest` (NetMsg 97); the host validates the item
+    against its authoritative character snapshots, moves the ownership record
+    (saved snapshots + guest transfer table) and sends the two participants a
+    single `PlayerInventoryTransfer` (NetMsg 98) carrying the full item fact.
+    Each participant applies its local body mutation inside a RemoteApply
+    scope and immediately re-reports the character snapshot, so the real local
+    slot converges without waiting for the 1 Hz tick. Worn items are excluded
+    in this slice. See
+    `docs/player-inventory-take-selfcheck.md`; 1044 tests green (L0 runtime
+    wire tests + projection/direction tests, no manual acceptance).
+  - Remaining: carry and heal (direct body/Inventory interaction) — still open.
 - RESOLVED (2026-08-21, no protocol bump): periodic keyframe self-healing
   for the world-item domain — the 5 s periodic snapshot now re-aligns an
   existing world item's top-level state (condition/favourited/liquid

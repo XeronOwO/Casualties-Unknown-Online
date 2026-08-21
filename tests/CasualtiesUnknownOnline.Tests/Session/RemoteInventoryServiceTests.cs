@@ -171,4 +171,19 @@ public class RemoteInventoryServiceTests
 		Assert.Contains("slot 1: backpack (+2 inside) ★", lines);
 		Assert.Contains("worn: hat ★", lines);
 	}
+
+	[Fact]
+	public void Snapshot_ProjectsInstanceIdForTakeButtons()
+	{
+		var snapshot = RemoteInventorySnapshot.From(Snapshot(0, new CharacterItemMsg
+		{
+			InstanceId = 1234,
+			ItemId = "medkit",
+			SlotIndex = 0,
+		}))!;
+
+		var entry = Assert.Single(snapshot.Items);
+		Assert.Equal(1234UL, entry.InstanceId);
+		Assert.Equal("medkit", entry.ItemId);
+	}
 }

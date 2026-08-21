@@ -307,6 +307,29 @@ public sealed class ItemArbitration(ISessionControl session, PacketSender sender
 
 	// ===== Host-only surface =====
 
+	/// <summary>
+	/// Host only: adopt a carried item into a guest's transfer table (a
+	/// cross-player transfer result — the recipient now owns it). The item is a
+	/// carried fact, so it has no world position/velocity; the same entry shape
+	/// as RegisterCarried. Slot is deliberately NOT chosen here — the owner's
+	/// local slot is its own fact and the next slot/character report carries it.
+	/// </summary>
+	public void AdoptTransferredItem(ulong guest, ulong itemId, CharacterItemMsg item)
+	{
+		if (!_transferred.TryGetValue(guest, out var owned))
+		{
+			_transferred[guest] = owned = [];
+		}
+
+		item.InstanceId = itemId;
+		owned[itemId] = new WorldItem(itemId, item, default, default, 0, 0f, false);
+		_log.LogInformation("Item {ItemId} adopted into {Guest}'s transfer table (cross-player transfer).", itemId, guest);
+	}
+
+	/// <summary>Host only: remove a carried item from a guest's transfer table (cross-player transfer source).</summary>
+	public void RemoveTransferredItem(ulong guest, ulong itemId) =>
+		RemoveTransferred(guest, itemId);
+
 	public void SendCorrection(ulong targetSteamId, CharacterItemMsg item)
 	{
 		if (_session.Role != SessionRole.Host || !_session.SessionActive)

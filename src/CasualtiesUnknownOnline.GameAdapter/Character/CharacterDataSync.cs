@@ -333,6 +333,9 @@ internal sealed class CharacterDataSync(
 			// The reconnect restore returns the character to its LEAVE spot, not
 			// the fresh world's landing spot.
 			Position = new NetVector2Msg(body.transform.position.x, body.transform.position.y),
+			// The cross-player interaction service needs the live slot layout to
+			// pick a concrete empty slot before a transfer.
+			SlotCount = body.slots.Length,
 		};
 
 		// Limb has no Index field — Mapster maps the rest, the loop assigns it.

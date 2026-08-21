@@ -17,6 +17,12 @@ public interface ICharacterDataControl
 	/// <summary>Host: the latest report per SteamID (clone inventory rendering on body creation).</summary>
 	CharacterDataMsg? GetSavedCharacter(ulong steamId);
 
+	/// <summary>Host only: the host's own latest character snapshot (the cross-player interaction service's authority for host-owned carried items).</summary>
+	CharacterDataMsg? GetHostCharacterData();
+
+	/// <summary>Host only: record the host's own character snapshot (cross-player transfer result — the in-memory fact for host-owned items).</summary>
+	void SaveHostCharacterData(CharacterDataMsg msg);
+
 	/// <summary>Host only: broadcast the host's own character snapshot (the guests render the host's clone inventory from it).</summary>
 	void BroadcastHostCharacterData(CharacterDataMsg msg);
 

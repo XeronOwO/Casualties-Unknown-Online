@@ -53,4 +53,13 @@ public sealed class CharacterDataMsg
 	/// </summary>
 	[ProtoMember(7)]
 	public NetVector2Msg? Position { get; set; }
+
+	/// <summary>
+	/// The local body's inventory slot count (Body.slots.Length). The cross-player
+	/// interaction service uses it to pick a concrete empty slot before sending a
+	/// transfer; old senders default to 0, which the service falls back to the
+	/// known game minimum (3) for compatibility.
+	/// </summary>
+	[ProtoMember(8)]
+	public int SlotCount { get; set; }
 }

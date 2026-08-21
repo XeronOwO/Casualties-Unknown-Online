@@ -2,6 +2,7 @@ using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
+using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 
 namespace CasualtiesUnknownOnline.Runtime.Session;
@@ -14,7 +15,8 @@ namespace CasualtiesUnknownOnline.Runtime.Session;
 /// </summary>
 public sealed class HandlerContext(ISessionControl session, IEntitySyncControl entities,
 	ICharacterDataControl characterData, IWorldControl world, IItemControl items, IModsControl mods,
-	ICraftControl craft, IEnemySyncControl enemies, IWorldTimeControl worldTime)
+	ICraftControl craft, IEnemySyncControl enemies, IWorldTimeControl worldTime,
+	IPlayerInteractionControl playerInteraction)
 {
 	public ISessionControl Session { get; } = session;
 
@@ -26,6 +28,9 @@ public sealed class HandlerContext(ISessionControl session, IEntitySyncControl e
 
 	/// <summary>The world-time domain (host-authoritative speed requests/broadcasts).</summary>
 	public IWorldTimeControl WorldTime { get; } = worldTime;
+
+	/// <summary>The direct player-interaction domain (take items from another player, host-authoritative).</summary>
+	public IPlayerInteractionControl PlayerInteraction { get; } = playerInteraction;
 
 	public IItemControl Items { get; } = items;
 

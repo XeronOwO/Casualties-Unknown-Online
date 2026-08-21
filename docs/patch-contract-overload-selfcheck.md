@@ -23,7 +23,7 @@ ambiguous and fails loudly with the fix instruction.
 | Family member | Change |
 |---|---|
 | `PatchContractTests.Resolve` | Constrained contracts no longer fall back to name-only. Unconstrained contracts resolve only when exactly one method matches; multiple overloads throw `InvalidOperationException` naming the ambiguity and the fix |
-| `PatchInventory.VerifyMissing` | Runtime parity: when `argumentTypes` are declared, a failed exact lookup no longer falls back to name-only — a game-update type change is reported as missing, not silently checked against a wrong overload |
+| `PatchInventory.VerifyMissing` | Runtime parity: when `argumentTypes` are declared, a failed exact lookup no longer falls back to name-only — a game-update type change is reported as missing, not silently checked against a wrong overload. An unconstrained multi-overload target is reported as ambiguous instead of picking an arbitrary method |
 | `PatchContractChecker` | Unchanged — it remains the pure verdict comparator; resolver correctness is the caller's responsibility |
 | Existing patch declarations | Unchanged — no current contract needed new parameter types; the existing 15 `PatchContractTests` still resolve with the stricter rules |
 
@@ -35,7 +35,7 @@ ambiguous and fails loudly with the fix instruction.
 | Unconstrained ambiguity | Fails loudly instead of silently picking one | `Resolve_UnconstrainedContractAgainstOverloads_ThrowsAmbiguous`; message contains "ambiguous" and "argumentTypes" |
 | No masked mismatch | A constrained contract with a non-matching type returns null, then the checker reports not-found | `Resolve_ExactTypeMismatch_DoesNotFallBackToNameOnly` |
 | Full guard regression | Every real patch contract still resolves | `EveryContract_ResolvesWithExactSignature` + full `dotnet test` (1028 passed) |
-| Runtime parity | `VerifyMissing` skips the name-only fallback when argumentTypes are declared | Static code path; the runtime method is exercised by the same contract inventory tests indirectly through `PatchContractChecker` |
+| Runtime parity | `VerifyMissing` skips the name-only fallback when argumentTypes are declared and reports an unconstrained multi-overload target as ambiguous | Static code path; `PatchContractChecker` is shared with the contract inventory tests |
 
 ## 4. Verification design
 

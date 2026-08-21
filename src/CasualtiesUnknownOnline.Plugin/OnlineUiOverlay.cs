@@ -28,13 +28,13 @@ internal sealed class OnlineUiOverlay
 	private string _lobbyIdInput = "";
 	private string? _inlineError;
 
-	internal void Draw(SteamService steam, SessionService session, EntitySyncService entities, RemoteVitalsService vitals, string? lastJoinError)
+	internal void Draw(SteamService steam, SessionService session, EntitySyncService entities, RemoteVitalsService vitals, RemoteInventoryService inventory, string? lastJoinError)
 	{
-		DrawStatusPanel(steam, session, entities, vitals, lastJoinError ?? _inlineError);
+		DrawStatusPanel(steam, session, entities, vitals, inventory, lastJoinError ?? _inlineError);
 		DrawNameplatesAndArrows(steam, session, entities, vitals);
 	}
 
-	private void DrawStatusPanel(SteamService steam, SessionService session, EntitySyncService entities, RemoteVitalsService vitals, string? error)
+	private void DrawStatusPanel(SteamService steam, SessionService session, EntitySyncService entities, RemoteVitalsService vitals, RemoteInventoryService inventory, string? error)
 	{
 		var y = 10f;
 		Line("CUO — Steam: " + (steam.IsInitialized ? "initialized" : "not initialized"));
@@ -52,7 +52,7 @@ internal sealed class OnlineUiOverlay
 		Line(session.LastRttMs >= 0f ? $"Last RTT: {session.LastRttMs:F1} ms" : "No ping yet");
 
 		y = DrawLobbyControls(y);
-		y = DrawMemberStatus(steam, session, vitals, y);
+		y = DrawMemberStatus(steam, session, vitals, inventory, y);
 
 		if (!string.IsNullOrEmpty(error))
 		{
@@ -96,7 +96,7 @@ internal sealed class OnlineUiOverlay
 		return y + 26f;
 	}
 
-	private float DrawMemberStatus(SteamService steam, SessionService session, RemoteVitalsService vitals, float y)
+	private float DrawMemberStatus(SteamService steam, SessionService session, RemoteVitalsService vitals, RemoteInventoryService inventory, float y)
 	{
 		if (steam.CurrentLobbyId == 0)
 		{
@@ -114,9 +114,25 @@ internal sealed class OnlineUiOverlay
 			var vitalsText = member is { InWorld: true } && vitals.TryGet(lobbyMember, out var snapshot)
 				? $" — {snapshot.ToShortString()}"
 				: "";
+			var inventoryText = member is { InWorld: true } && inventory.TryGet(lobbyMember, out _)
+				? " — items"
+				: "";
 			GUI.Label(new Rect(10f, y, 900f, 20f),
-				$"  {name} [{lobbyMember:X}] {(isHost ? "HOST" : "guest")} — {status}{vitalsText}");
+				$"  {name} [{lobbyMember:X}] {(isHost ? "HOST" : "guest")} — {status}{vitalsText}{inventoryText}");
 			y += 20f;
+
+			// The "view items" slice: expand the in-world member's carried and
+			// worn inventory under its status line. The clone already shows the
+			// visuals; this gives a readable item/slot list from the same 1 Hz
+			// character snapshot.
+			if (member is { InWorld: true } && inventory.TryGet(lobbyMember, out var inv))
+			{
+				foreach (var line in inv.ToDisplayLines())
+				{
+					GUI.Label(new Rect(30f, y, 880f, 16f), $"    {line}");
+					y += 16f;
+				}
+			}
 		}
 
 		return y;

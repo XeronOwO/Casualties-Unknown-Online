@@ -464,7 +464,16 @@ lands, never bolted on afterwards.
     is projected from the existing 1 Hz character stream
     (`RemoteVitalsService` + `RemoteVitalsSnapshot`); no new wire message.
     See `docs/remote-vitals-selfcheck.md`.
-  - Remaining: view/take items from another player, carry, and heal (direct
+  - RESOLVED (2026-08-21, no protocol bump): view items slice — the Online UI
+    member status list now expands each in-world remote player's carried and
+    worn item list (item id, slot/worn position, favourite flag, nested
+    content count) under that player's row, projected from the same 1 Hz
+    character stream (`RemoteInventoryService` + `RemoteInventorySnapshot`).
+    This is the read-only "view" half; taking a remote player's items remains
+    a separate operation. No new wire message. See
+    `docs/remote-inventory-view-selfcheck.md`; 1025 tests green (L0 service +
+    projection tests, no manual acceptance).
+  - Remaining: take items from another player, carry, and heal (direct
     body/Inventory interaction) — still open.
 - RESOLVED (2026-08-21, no protocol bump): periodic keyframe self-healing
   for the world-item domain — the 5 s periodic snapshot now re-aligns an

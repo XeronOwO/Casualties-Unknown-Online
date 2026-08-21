@@ -150,6 +150,9 @@ public static class CuoBootstrap
 		// character snapshots (no pump, not an ICuoService — only reacts to the
 		// character-data stream and session end).
 		services.AddSingleton<RemoteVitalsService>();
+		// Remote-inventory cache: the Online UI's read-only view of the latest
+		// carried/worn item snapshots (same events and lifecycle as vitals).
+		services.AddSingleton<RemoteInventoryService>();
 		// World domain: world-start parameters + block-damage reports (no pump,
 		// not an ICuoService — it only reacts to calls and messages).
 		services.AddSingleton<TrapConsumptionRegistry>(); // the one-shot trap-consumption table

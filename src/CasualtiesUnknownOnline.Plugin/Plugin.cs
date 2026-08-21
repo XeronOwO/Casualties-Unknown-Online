@@ -36,6 +36,7 @@ public class Plugin : BaseUnityPlugin
 	private SessionService _session = null!;
 	private EntitySyncService _entities = null!;
 	private RemoteVitalsService _remoteVitals = null!;
+	private RemoteInventoryService _remoteInventory = null!;
 	private IGameAdapter? _adapter;
 	private ConfigEntry<string> _targetLobbyId = null!;
 	private ulong? _pendingJoinLobbyId;
@@ -126,6 +127,7 @@ public class Plugin : BaseUnityPlugin
 			_session = _services.GetRequiredService<SessionService>();
 			_entities = _services.GetRequiredService<EntitySyncService>();
 			_remoteVitals = _services.GetRequiredService<RemoteVitalsService>();
+			_remoteInventory = _services.GetRequiredService<RemoteInventoryService>();
 			_adapter = _services.GetService<IGameAdapter>();
 			_cuoServices = [.. _services.GetServices<ICuoService>()];
 			_onlineUi = new OnlineUiOverlay
@@ -387,7 +389,7 @@ public class Plugin : BaseUnityPlugin
 			return; // the HUD is hidden behind the gate overlay
 		}
 
-		_onlineUi.Draw(_steam, _session, _entities, _remoteVitals, _lastJoinError);
+		_onlineUi.Draw(_steam, _session, _entities, _remoteVitals, _remoteInventory, _lastJoinError);
 	}
 
 	/// <summary>

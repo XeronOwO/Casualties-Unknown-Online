@@ -95,6 +95,8 @@ public sealed partial class ItemService
 				_log.LogInformation("Item {ItemId} ({Type}) spawned by {Sender} — registered; queued pickup from {Picker} is being settled.",
 					itemId, item.ItemId, sender, pendingWinner.Sender);
 			}
+
+			RecordItemTraffic(ItemTrafficKind.Spawn, item.ItemId);
 		}
 		// Duplicate report (reliable retransmit): already registered — the
 		// registration is idempotent; a queued claim can still settle below.
@@ -147,6 +149,8 @@ public sealed partial class ItemService
 			{
 				_sender.SendToAll(MembersExcept(sender, pendingWinner.Sender), NetMsg.ItemDrop, msg);
 			}
+
+			RecordItemTraffic(ItemTrafficKind.Drop, item.ItemId);
 		}
 
 		ItemDropped?.Invoke(itemId, item, pos, vel, parentItemId, rotation, angularVelocity, parentPos);
@@ -168,6 +172,7 @@ public sealed partial class ItemService
 		PublishCarriedSync(sender, authoritative);
 
 		_session.BroadcastExcept(sender, NetMsg.ItemPickup, new ItemPickupMsg { ItemId = itemId });
+		RecordItemTraffic(ItemTrafficKind.Pickup, entry.Item.ItemId);
 		_log.LogInformation("Item {ItemId} picked up by {Sender} — transferred + relayed.", itemId, sender);
 
 		// The winner's local removal; on the losing guests this event rolls

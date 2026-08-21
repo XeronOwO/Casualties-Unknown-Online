@@ -539,9 +539,15 @@ lands, never bolted on afterwards.
   fail, real-log leaks warn by default and fail with `-FailOnLeak`. Nine end-to-end PowerShell
   contract tests + a matcher-mutation assertion-effectiveness proof landed; 887 tests green.
   See `docs/simtrace-diff-selfcheck.md`.
-- Patch-contract same-name limitation: `PatchContractTests` identifies targets by name, so a
-  same-name overload pair cannot be distinguished (the `LoadSceneAsync` case). Extend the
-  contract only when a game update actually hits it.
+- RESOLVED (2026-08-21): patch-contract same-name overload resolution — the
+  test-side resolver no longer falls back to a name-only method when the
+  contract declares parameter types, and an unconstrained contract against a
+  multi-overload target now fails loudly with the disambiguation instruction
+  (the old hand-wave "extend only when a game update hits it" is closed).
+  `PatchInventory.VerifyMissing` gets the same runtime parity: a constrained
+  exact-lookup failure is reported as missing, never checked against the
+  wrong overload. No current contract needed new parameter types; 1028 tests
+  green. See `docs/patch-contract-overload-selfcheck.md`.
 - RESOLVED (2026-08-18, L0): block-break drop-race dual-side scenario — a
   dedicated `TwoGuestsBreakSameCellAtTheSameTime_FirstWriterWins_LoserRejected`
   simulation now sends both guests' breaks in the same tick and asserts the

@@ -38,11 +38,16 @@ public class PatchContractTests
 	}
 
 	/// <summary>The test-side resolver, mirroring the runtime's AccessTools
-	/// semantics: exact argument types first, name-only fallback. The target
-	/// type may live OUTSIDE the game assembly (a UnityEngine type — the
-	/// SceneManager scene-load patch): any loaded assembly first, then the
-	/// module DLL beside the test output (the Unity modules are split
-	/// assemblies; the game's references load them on demand).</summary>
+	/// semantics: exact argument types first, then a deterministic single
+	/// name-only match. A same-name overload pair can no longer be silently
+	/// resolved to an arbitrary method: a constrained contract must resolve by
+	/// its exact parameter types (no name-only fallback), and an unconstrained
+	/// contract against a multi-overload target is ambiguous and fails loudly
+	/// with instructions to add the argument types. The target type may live
+	/// OUTSIDE the game assembly (a UnityEngine type — the SceneManager
+	/// scene-load patch): any loaded assembly first, then the module DLL beside
+	/// the test output (the Unity modules are split assemblies; the game's
+	/// references load them on demand).</summary>
 	private static MethodInfo? Resolve(PatchContract contract)
 	{
 		var type = GameAssemblyHost.Game.GetType(contract.TargetType) ?? ResolveExternalType(contract.TargetType);
@@ -54,17 +59,22 @@ public class PatchContractTests
 		if (contract.ParameterTypes.Count > 0)
 		{
 			var types = contract.ParameterTypes.Select(ResolveType).ToArray();
-			var exact = type.GetMethod(contract.MethodName,
+			return type.GetMethod(contract.MethodName,
 				BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static,
 				null, types, null);
-			if (exact != null)
-			{
-				return exact;
-			}
 		}
 
-		return type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static)
-			.FirstOrDefault(m => m.Name == contract.MethodName);
+		var sameName = type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static)
+			.Where(m => m.Name == contract.MethodName)
+			.ToArray();
+		return sameName.Length switch
+		{
+			0 => null,
+			1 => sameName[0],
+			_ => throw new InvalidOperationException(
+				$"ambiguous patch contract: {contract.TargetType}.{contract.MethodName} has {sameName.Length} overloads; " +
+				"add the [HarmonyPatch] argumentTypes (or the parameter types in a hand-declared dynamic contract) to disambiguate."),
+		};
 	}
 
 	/// <summary>A contract target type that lives outside the game assembly
@@ -353,6 +363,37 @@ public class PatchContractTests
 			violations.Count > 0 ? violations[0] : "no violation");
 	}
 
+	[Fact]
+	public void Resolve_ConstrainedContract_SelectsTheExactOverload()
+	{
+		var contract = new PatchContract("t", typeof(Fixtures).FullName!, "Overloaded", ["System.Int32"], []);
+
+		var resolved = Resolve(contract);
+
+		Assert.NotNull(resolved);
+		Assert.Equal(typeof(int), resolved!.GetParameters()[0].ParameterType);
+		Assert.Empty(PatchContractChecker.Check(contract, resolved));
+	}
+
+	[Fact]
+	public void Resolve_UnconstrainedContractAgainstOverloads_ThrowsAmbiguous()
+	{
+		var contract = new PatchContract("t", typeof(Fixtures).FullName!, "Overloaded", [], []);
+
+		var ex = Assert.Throws<InvalidOperationException>(() => Resolve(contract));
+
+		Assert.Contains("ambiguous", ex.Message);
+		Assert.Contains("argumentTypes", ex.Message);
+	}
+
+	[Fact]
+	public void Resolve_ExactTypeMismatch_DoesNotFallBackToNameOnly()
+	{
+		var contract = new PatchContract("t", typeof(Fixtures).FullName!, "Overloaded", ["System.Single"], []);
+
+		Assert.Null(Resolve(contract));
+	}
+
 	private static class Fixtures
 	{
 		internal static void Target(int alpha, string beta)
@@ -360,6 +401,14 @@ public class PatchContractTests
 		}
 
 		internal static void TargetNoParams()
+		{
+		}
+
+		internal static void Overloaded(int value)
+		{
+		}
+
+		internal static void Overloaded(string value)
 		{
 		}
 	}

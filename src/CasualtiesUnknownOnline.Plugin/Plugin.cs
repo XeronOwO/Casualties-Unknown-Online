@@ -12,6 +12,7 @@ using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
+using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using CasualtiesUnknownOnline.Runtime.Steam;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -37,6 +38,7 @@ public class Plugin : BaseUnityPlugin
 	private EntitySyncService _entities = null!;
 	private RemoteVitalsService _remoteVitals = null!;
 	private RemoteInventoryService _remoteInventory = null!;
+	private PlayerInteractionService _playerInteraction = null!;
 	private IGameAdapter? _adapter;
 	private ConfigEntry<string> _targetLobbyId = null!;
 	private ulong? _pendingJoinLobbyId;
@@ -128,6 +130,7 @@ public class Plugin : BaseUnityPlugin
 			_entities = _services.GetRequiredService<EntitySyncService>();
 			_remoteVitals = _services.GetRequiredService<RemoteVitalsService>();
 			_remoteInventory = _services.GetRequiredService<RemoteInventoryService>();
+			_playerInteraction = _services.GetRequiredService<PlayerInteractionService>();
 			_adapter = _services.GetService<IGameAdapter>();
 			_cuoServices = [.. _services.GetServices<ICuoService>()];
 			_onlineUi = new OnlineUiOverlay
@@ -136,6 +139,7 @@ public class Plugin : BaseUnityPlugin
 				// use — one lobby-switch policy, two entry points.
 				JoinLobby = TryJoinLobbyFromUi,
 				CreateLobby = TryCreateLobbyFromUi,
+				TakeItem = TryTakeItemFromRemote,
 			};
 
 			// Publish the container on the static diagnostics seam (HotRepl etc.).
@@ -351,6 +355,18 @@ public class Plugin : BaseUnityPlugin
 		}
 
 		_steam.CreateLobby();
+		return true;
+	}
+
+	/// <summary>Online UI Take button path — forward to the host-authoritative player-interaction domain (guests send the request; the host handles it locally).</summary>
+	private bool TryTakeItemFromRemote(ulong ownerSteamId, ulong itemInstanceId)
+	{
+		if (!_session.SessionActive)
+		{
+			return false;
+		}
+
+		_playerInteraction.SendTakeRequest(ownerSteamId, itemInstanceId);
 		return true;
 	}
 

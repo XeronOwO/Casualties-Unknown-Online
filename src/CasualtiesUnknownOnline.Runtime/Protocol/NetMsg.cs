@@ -164,4 +164,10 @@ public enum NetMsg : byte
 	// alone, so the transient water-push physics and waterflow sounds that the
 	// host's SimulationStep produces are sent to the guests as dedicated events)
 	FluidPresentation = 96, // host → guest (reliable): one water push / waterflow sound at a grid cell
+
+	// Direct player interaction — take items from another player (host
+	// authority: the host owns the cross-player inventory transfer; the two
+	// participants apply the authoritative body mutation locally)
+	PlayerInventoryTakeRequest = 97, // guest → host: take one carried item from another in-world player
+	PlayerInventoryTransfer = 98, // host → participant: the authoritative transfer result (remove from FromSteamId, add to ToSteamId)
 }

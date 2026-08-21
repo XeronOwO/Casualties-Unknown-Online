@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.GameAdapter.Character;
@@ -10,10 +9,10 @@ using CasualtiesUnknownOnline.GameAdapter.World;
 using CasualtiesUnknownOnline.GameAdapter.WorldGen;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Protocol;
-using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
+using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using HarmonyLib;
 using MapsterMapper;
@@ -87,15 +86,18 @@ public sealed partial class GameAdapter : IGameAdapter, ICuoService, IPatchBridg
 	private readonly EnemySyncCoordinator _enemySync;
 	private readonly EnemyCombatDirector _enemyCombat;
 	private readonly EnemyProximitySync _enemyProximity;
+	private readonly PlayerInteractionService _playerInteraction;
 	private Body? _lastLocalBody; // Unity object — == (the world-entry edge for the destroy-suppression reset)
 
 	public GameAdapter(SessionService session, EntitySyncService entities, CharacterDataStore characterData,
 		WorldService world, ItemService items, ICraftControl craft, ItemArbitration arbitration,
-		EnemySyncService enemies, IWorldTimeControl worldTime, ILogger<GameAdapter> log, IMapper mapper, ILoggerFactory loggerFactory)
+		EnemySyncService enemies, IWorldTimeControl worldTime, PlayerInteractionService playerInteraction,
+		ILogger<GameAdapter> log, IMapper mapper, ILoggerFactory loggerFactory)
 	{
 		_session = session;
 		_items = items;
 		_entities = entities;
+		_playerInteraction = playerInteraction;
 		_log = log;
 		// Domains (state belongs to its owner; the coordinator forwards, never holds).
 		// Construction order follows the dependencies: item domains (guard → world →
@@ -368,6 +370,7 @@ public sealed partial class GameAdapter : IGameAdapter, ICuoService, IPatchBridg
 		_items.ItemDropped += OnCarriedItemDropped; // a carried item leaving into the world leaves the fact table (recursive)
 		_items.ItemIdWatermarkReceived += OnItemIdWatermark; // the host granted the id counter — resume from watermark + 1
 		_items.CarriedInventoryReceived += OnCarriedInventory; // a guest's starting supplies with self-assigned ids — seed the fact table (clone render + divergence baseline)
+		_playerInteraction.TransferReceived += OnPlayerInventoryTransfer; // cross-player take: apply the local body mutation and re-report
 	}
 
 	private void UnbindFromSession()
@@ -401,22 +404,8 @@ public sealed partial class GameAdapter : IGameAdapter, ICuoService, IPatchBridg
 		_items.ItemDropped -= OnCarriedItemDropped;
 		_items.ItemIdWatermarkReceived -= OnItemIdWatermark;
 		_items.CarriedInventoryReceived -= OnCarriedInventory;
+		_playerInteraction.TransferReceived -= OnPlayerInventoryTransfer;
 	}
-
-	/// <summary>Carried-fact event: the owner's fact-table entry updates and the clone re-renders immediately.</summary>
-	private void OnItemCarriedSync(ulong owner, CharacterItemMsg item, bool slotKnown) =>
-		_characterDataSync.ApplyCarriedSync(owner, item, slotKnown);
-
-	/// <summary>The host granted the item-id counter (join/reconnect): resume from watermark + 1 — the crashed-and-rejoined counter must not reuse ids the host still holds.</summary>
-	private void OnItemIdWatermark(ulong counter) => _itemIds.SetWatermark(counter);
-
-	/// <summary>A guest's starting supplies with self-assigned ids arrived — seed its fact table so the clone renders them and the snapshot divergence check knows them.</summary>
-	private void OnCarriedInventory(ulong owner, IReadOnlyList<CharacterItemMsg> items) =>
-		_characterDataSync.ApplyCarriedInventory(owner, items);
-
-	/// <summary>ItemDropped: a carried item left into the world — it leaves the owner's fact table (top-level or nested in a container's contents).</summary>
-	private void OnCarriedItemDropped(ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, ulong parentItemId, float rotation, float angularVelocity, NetVector2 parentPos) =>
-		_characterDataSync.RemoveCarriedItem(itemId);
 
 	// ---- IGameAdapter ----
 

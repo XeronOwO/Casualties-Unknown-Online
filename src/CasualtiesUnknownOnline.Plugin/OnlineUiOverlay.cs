@@ -25,6 +25,9 @@ internal sealed class OnlineUiOverlay
 	/// <summary>Invoked when the user clicks Create Lobby.</summary>
 	internal Func<bool>? CreateLobby;
 
+	/// <summary>Invoked when the user clicks Take on one of a remote player's inventory lines.</summary>
+	internal Func<ulong, ulong, bool>? TakeItem;
+
 	private string _lobbyIdInput = "";
 	private string? _inlineError;
 
@@ -124,12 +127,30 @@ internal sealed class OnlineUiOverlay
 			// The "view items" slice: expand the in-world member's carried and
 			// worn inventory under its status line. The clone already shows the
 			// visuals; this gives a readable item/slot list from the same 1 Hz
-			// character snapshot.
+			// character snapshot. The "take" slice adds one button per
+			// backpack/hand-slot item on an unconscious/dead remote body — the
+			// host re-checks the same rule from its authoritative snapshot.
 			if (member is { InWorld: true } && inventory.TryGet(lobbyMember, out var inv))
 			{
-				foreach (var line in inv.ToDisplayLines())
+				var canTake = lobbyMember != steam.LocalSteamId
+					&& vitals.TryGet(lobbyMember, out var targetVitals)
+					&& (!targetVitals.Conscious || !targetVitals.Alive);
+				foreach (var entry in inv.Items)
 				{
+					var slot = entry.SlotIndex >= 0 ? $"slot {entry.SlotIndex}" : "worn";
+					var suffix = entry.ContentsCount > 0 ? $" (+{entry.ContentsCount} inside)" : "";
+					var favourite = entry.Favourited ? " ★" : "";
+					var line = $"{slot}: {entry.ItemId}{suffix}{favourite}";
 					GUI.Label(new Rect(30f, y, 880f, 16f), $"    {line}");
+
+					if (canTake && entry.SlotIndex >= 0 && entry.InstanceId != 0)
+					{
+						if (GUI.Button(new Rect(820f, y, 58f, 16f), "Take"))
+						{
+							TakeItem?.Invoke(lobbyMember, entry.InstanceId);
+						}
+					}
+
 					y += 16f;
 				}
 			}

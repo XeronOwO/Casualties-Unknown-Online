@@ -126,6 +126,12 @@ public interface IItemControl
 	/// <summary>Host only: the items a guest currently owns (the transfer table — where the host moved world-table entries as the guest's actions took them). The reconnect restore merges these into the character snapshot.</summary>
 	IReadOnlyList<WorldItem> GetTransferredItems(ulong steamId);
 
+	/// <summary>Host only: adopt a carried item into a guest's transfer table (a cross-player transfer result — the recipient now owns it for use/slot/drop arbitration and reconnect restore).</summary>
+	void AdoptTransferredItem(ulong guest, ulong itemId, CharacterItemMsg item);
+
+	/// <summary>Host only: remove a carried item from a guest's transfer table (a cross-player transfer result — the source no longer owns it).</summary>
+	void RemoveTransferredItem(ulong guest, ulong itemId);
+
 	/// <summary>Host only: broadcast one carried item's authoritative fact (use/slot move/pickup) to every guest except its owner — the peers update the owner's fact table and re-render the clone immediately (reliable; the 1 Hz snapshot is the fallback).</summary>
 	void SendItemCarriedSync(ulong ownerSteamId, CharacterItemMsg item);
 

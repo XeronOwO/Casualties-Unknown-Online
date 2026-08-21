@@ -300,6 +300,7 @@ public sealed partial class GameAdapter : IGameAdapter, ICuoService, IPatchBridg
 		}
 
 		_lastLocalBody = localBody;
+		UpdateCarriedBody(localBody); // a carried local body follows its carrier's entity state
 		_gate.Update(_run.LocalBody);
 		_genItemAuthority.Update(); // host/solo: publish the generation-time items when the generation finished
 		_genItemApplication.Update(); // guest: apply the host's generation snapshot once the local generation finished
@@ -371,6 +372,7 @@ public sealed partial class GameAdapter : IGameAdapter, ICuoService, IPatchBridg
 		_items.ItemIdWatermarkReceived += OnItemIdWatermark; // the host granted the id counter — resume from watermark + 1
 		_items.CarriedInventoryReceived += OnCarriedInventory; // a guest's starting supplies with self-assigned ids — seed the fact table (clone render + divergence baseline)
 		_playerInteraction.TransferReceived += OnPlayerInventoryTransfer; // cross-player take: apply the local body mutation and re-report
+		_playerInteraction.CarryStateChanged += OnCarryStateChanged; // cross-player carry: set/clear the local carried-body driver
 	}
 
 	private void UnbindFromSession()
@@ -405,6 +407,7 @@ public sealed partial class GameAdapter : IGameAdapter, ICuoService, IPatchBridg
 		_items.ItemIdWatermarkReceived -= OnItemIdWatermark;
 		_items.CarriedInventoryReceived -= OnCarriedInventory;
 		_playerInteraction.TransferReceived -= OnPlayerInventoryTransfer;
+		_playerInteraction.CarryStateChanged -= OnCarryStateChanged;
 	}
 
 	// ---- IGameAdapter ----

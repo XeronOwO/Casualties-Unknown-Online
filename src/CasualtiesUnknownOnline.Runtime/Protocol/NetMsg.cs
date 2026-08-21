@@ -170,4 +170,12 @@ public enum NetMsg : byte
 	// participants apply the authoritative body mutation locally)
 	PlayerInventoryTakeRequest = 97, // guest → host: take one carried item from another in-world player
 	PlayerInventoryTransfer = 98, // host → participant: the authoritative transfer result (remove from FromSteamId, add to ToSteamId)
+
+	// Direct player interaction — carry/release another player (host
+	// authority: the host validates the carryable state, records the one
+	// carrier/one carried relation and broadcasts the authoritative state;
+	// the carried player's client drives its own body to follow the carrier)
+	PlayerCarryStartRequest = 99, // guest → host: start carrying an unconscious/dead in-world player
+	PlayerCarryStopRequest = 100, // guest → host: stop carrying the current carried player
+	PlayerCarryState = 101, // host → all: authoritative carry relation changed (CarriedSteamId = 0 means released)
 }

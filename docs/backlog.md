@@ -496,7 +496,19 @@ lands, never bolted on afterwards.
     in this slice. See
     `docs/player-inventory-take-selfcheck.md`; 1044 tests green (L0 runtime
     wire tests + projection/direction tests, no manual acceptance).
-  - Remaining: carry and heal (direct body/Inventory interaction) — still open.
+  - RESOLVED (2026-08-22, ProtocolVersion 27): carry/release another player —
+    the Online UI now shows Carry/Drop buttons on in-world unconscious/dead
+    remote members. A guest request travels as `PlayerCarryStartRequest`
+    (NetMsg 99) / `PlayerCarryStopRequest` (NetMsg 100); the host validates the
+    carryable rule, enforces one carrier/one carried with no mutual carry,
+    records the relation and broadcasts `PlayerCarryState` (NetMsg 101). The
+    carried player's own client marks its local body with `CarriedBodyDriver`,
+    treats it as a render proxy and drives it from the carrier's entity state
+    each frame, so peers see the carried body through the ordinary 20 Hz stream
+    rather than a second movement channel. See
+    `docs/carry-interaction-selfcheck.md`; 1053 tests green (L0 runtime wire
+    tests + direction tests + static evidence, no manual acceptance).
+  - Remaining: heal (direct body/Inventory interaction) — still open.
 - RESOLVED (2026-08-21, no protocol bump): periodic keyframe self-healing
   for the world-item domain — the 5 s periodic snapshot now re-aligns an
   existing world item's top-level state (condition/favourited/liquid

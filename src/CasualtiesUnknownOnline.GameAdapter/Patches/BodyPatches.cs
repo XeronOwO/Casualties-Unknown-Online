@@ -24,7 +24,11 @@ internal static class BodyPatches
 	{
 		// GetComponentInParent: the driver lives on the Body GameObject.
 		// == null: Unity object (a missing component is managed-null, same check).
-		private static bool Prefix(Body __instance) => __instance.GetComponentInParent<RemoteBodyDriver>() == null;
+		// A carried local body is also proxy-driven: its simulation is skipped
+		// and GameAdapter.CarryInteraction moves its transform instead.
+		private static bool Prefix(Body __instance) =>
+			__instance.GetComponentInParent<RemoteBodyDriver>() == null
+			&& __instance.GetComponent<CarriedBodyDriver>() == null;
 	}
 
 	[HarmonyPatch(typeof(Body), "Update")]
@@ -36,7 +40,8 @@ internal static class BodyPatches
 
 		private static bool Prefix(Body __instance)
 		{
-			if (__instance.GetComponentInParent<RemoteBodyDriver>() == null) // Unity object — ==
+			if (__instance.GetComponentInParent<RemoteBodyDriver>() == null
+				&& __instance.GetComponent<CarriedBodyDriver>() == null) // Unity objects — ==
 			{
 				// Local player: while the start gate holds us, lock movement
 				// (the game's own movingAllowed — Body.cs:4322) every frame;
@@ -165,7 +170,10 @@ internal static class BodyPatches
 		// it applies to a render clone (its vitals are not synced). Skip.
 		// GetComponentInParent: the driver lives on the Body GameObject.
 		// == null: Unity object (a missing component is managed-null, same check).
-		private static bool Prefix(Limb __instance) => __instance.GetComponentInParent<RemoteBodyDriver>() == null;
+		// A carried local body is likewise proxy-driven while carried.
+		private static bool Prefix(Limb __instance) =>
+			__instance.GetComponentInParent<RemoteBodyDriver>() == null
+			&& __instance.GetComponentInParent<CarriedBodyDriver>() == null;
 	}
 
 	[HarmonyPatch(typeof(Body), "Attack")]

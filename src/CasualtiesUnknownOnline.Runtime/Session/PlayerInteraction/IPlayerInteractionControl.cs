@@ -5,11 +5,12 @@ namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 
 /// <summary>
 /// The direct player-interaction surface packet handlers and the Online UI
-/// operate on. The first slice is the cross-player item take: a player requests
-/// one carried item out of another in-world player's inventory; the host is the
-/// authority (it owns the per-player character-data snapshots and the guest
-/// transfer table), it moves the ownership record and sends the two
-/// participants an authoritative body mutation.
+/// operate on. The landed slices are the cross-player item take (host moves one
+/// carried item between its character-data snapshots and tells the two
+/// participants to apply the authoritative body mutation) and the cross-player
+/// carry/release (host records one carrier/one carried relation and broadcasts
+/// the authoritative state so the carried player's own client follows the
+/// carrier).
 /// </summary>
 public interface IPlayerInteractionControl
 {
@@ -24,4 +25,28 @@ public interface IPlayerInteractionControl
 
 	/// <summary>An authoritative cross-player inventory transfer arrived — the Game Adapter applies the body mutation.</summary>
 	event Action<PlayerInventoryTransferMsg>? TransferReceived;
+
+	/// <summary>Any role: request to carry another player (guest → host on the wire; host handles locally).</summary>
+	void SendCarryStartRequest(ulong targetSteamId);
+
+	/// <summary>Any role: request to release the currently carried player (guest → host on the wire; host handles locally).</summary>
+	void SendCarryStopRequest(ulong carriedSteamId);
+
+	/// <summary>Host only: a carry-start request arrived (from the wire or the host's own UI).</summary>
+	void HandleCarryStartRequest(ulong sender, PlayerCarryStartRequestMsg msg);
+
+	/// <summary>Host only: a carry-stop request arrived (from the wire or the host's own UI).</summary>
+	void HandleCarryStopRequest(ulong sender, PlayerCarryStopRequestMsg msg);
+
+	/// <summary>Raise a received carry-state broadcast for the Game Adapter and UI to apply locally (wire handler path).</summary>
+	void FireCarryStateReceived(PlayerCarryStateMsg msg);
+
+	/// <summary>An authoritative carry relation changed — the Game Adapter sets/clears the local carried-body driver; the UI refreshes buttons.</summary>
+	event Action<PlayerCarryStateMsg>? CarryStateChanged;
+
+	/// <summary>Read-only UI mirror: who currently carries the given player, if any.</summary>
+	bool TryGetCarrier(ulong carriedSteamId, out ulong carrierSteamId);
+
+	/// <summary>Read-only UI mirror: whom the given player currently carries, if any.</summary>
+	bool TryGetCarried(ulong carrierSteamId, out ulong carriedSteamId);
 }

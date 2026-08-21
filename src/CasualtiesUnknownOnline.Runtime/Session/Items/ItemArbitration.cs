@@ -345,7 +345,7 @@ public sealed class ItemArbitration(ISessionControl session, PacketSender sender
 		// captured id-less; the key is only known at arbitration time).
 		authoritative.InstanceId = itemId;
 
-		var matched = TopLevelMatches(evidence, authoritative);
+		var matched = ItemStateEquality.TopLevelMatches(evidence, authoritative);
 		var missing = !ContentsMatch(evidence, authoritative, out var extra);
 		return EvidenceVerdict.From(matched && !missing, extra);
 	}
@@ -375,71 +375,6 @@ public sealed class ItemArbitration(ISessionControl session, PacketSender sender
 			_log.LogInformation("Item {ItemId} evidence of {Guest} diverged — correction sent.", itemId, guest);
 		}
 	}
-
-	/// <summary>Top-level state: condition (tolerance), favourited, liquid stacks and [Saveable] component states. Contents are compared separately (id sets).</summary>
-	private static bool TopLevelMatches(CharacterItemMsg evidence, CharacterItemMsg authoritative)
-		=> Math.Abs(evidence.Condition - authoritative.Condition) < 0.01f
-			&& evidence.Favourited == authoritative.Favourited
-			&& LiquidsMatch(evidence.Liquids, authoritative.Liquids)
-			&& ComponentsMatch(evidence.Components, authoritative.Components);
-
-	private static bool LiquidsMatch(List<LiquidStackMsg> evidence, List<LiquidStackMsg> authoritative)
-	{
-		if (evidence.Count != authoritative.Count)
-		{
-			return false;
-		}
-
-		foreach (var e in evidence)
-		{
-			var a = authoritative.FirstOrDefault(l => l.LiquidId == e.LiquidId);
-			if (a == null || Math.Abs(a.Amount - e.Amount) >= 0.01f)
-			{
-				return false;
-			}
-		}
-
-		return true;
-	}
-
-	private static bool ComponentsMatch(List<ComponentStateMsg> evidence, List<ComponentStateMsg> authoritative)
-	{
-		if (evidence.Count != authoritative.Count)
-		{
-			return false;
-		}
-
-		foreach (var e in evidence)
-		{
-			var a = authoritative.FirstOrDefault(c => c.TypeName == e.TypeName);
-			if (a == null || e.Fields.Count != a.Fields.Count)
-			{
-				return false;
-			}
-
-			foreach (var ef in e.Fields)
-			{
-				var af = a.Fields.FirstOrDefault(f => f.Name == ef.Name);
-				if (af == null || !FieldEquals(ef, af))
-				{
-					return false;
-				}
-			}
-		}
-
-		return true;
-	}
-
-	private static bool FieldEquals(ComponentFieldMsg e, ComponentFieldMsg a) => e.Kind switch
-	{
-		1 => Math.Abs(e.FloatValue - a.FloatValue) < 0.01f,
-		2 => e.IntValue == a.IntValue,
-		3 => e.BoolValue == a.BoolValue,
-		4 => e.StringValue == a.StringValue,
-		5 => e.StringList.SequenceEqual(a.StringList),
-		6 => e.IntValue == a.IntValue, // enum — stored as its underlying int (ItemStateCodec kind 6)
-		_ => false,
-	};
 
 	/// <summary>
 	/// Compare the evidence's contents against the authoritative entry's.

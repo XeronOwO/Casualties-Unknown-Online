@@ -466,10 +466,21 @@ lands, never bolted on afterwards.
     See `docs/remote-vitals-selfcheck.md`.
   - Remaining: view/take items from another player, carry, and heal (direct
     body/Inventory interaction) — still open.
-- Periodic keyframe self-healing (partially implemented; extend to remaining domains). Before
-  any snapshot stream switches to an unreliable channel, event-version numbers are required —
-  an old snapshot arriving after an in-flight event would otherwise roll the event back
-  (carried-sync-monitoring memory; the snapshot streams are reliable today).
+- RESOLVED (2026-08-21, no protocol bump): periodic keyframe self-healing
+  for the world-item domain — the 5 s periodic snapshot now re-aligns an
+  existing world item's top-level state (condition/favourited/liquid
+  stacks/`[Saveable]` component states) when it diverges from the host
+  table, so a dropped or missed report/correction is self-healed. Position
+  stays owned by the position stream; container contents remain on the
+  content/container message family. See
+  `docs/item-keyframe-state-selfcheck.md`; 1018 tests green (L0 pure
+  equality tests + wire-level keyframe test + static evidence, no manual
+  acceptance).
+- Retained contingency (no current work): event-version numbers are still
+  required before any snapshot stream switches to an unreliable channel —
+  an old snapshot arriving after an in-flight event would otherwise roll
+  the event back (carried-sync-monitoring memory; the snapshot streams are
+  reliable today).
 
 ## Persistence
 

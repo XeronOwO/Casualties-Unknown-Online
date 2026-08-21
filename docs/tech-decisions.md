@@ -724,3 +724,34 @@ restores condition/favourited/liquids/components from the snapshot:
 Tests: new `ItemStateEqualityTests` (pure tolerance/field rules) and
 `PeriodicSnapshot_CarriesTopLevelComponentAndLiquidState` (wire-level keyframe
 evidence). 1018 tests green. See `docs/item-keyframe-state-selfcheck.md`.
+
+## 33. Cross-player carry/release (ProtocolVersion 27)
+
+The direct-player-interaction family's carry half lands with the same
+host-authoritative shape as the take slice, but the movement model stays inside
+the existing local-compute boundary:
+
+- **Host is only the carry-relation authority.** `PlayerInteractionService`
+  validates the target (unconscious/dead), the carrier (conscious/alive), the
+  one-carrier/one-carried rule, records the relation and broadcasts
+  `PlayerCarryStateMsg` (NetMsg 101). The host never simulates the carried
+  body's movement.
+- **The carried client is the mover.** On receiving the state, the carried
+  player's GameAdapter adds `CarriedBodyDriver` to its local body; BodyPatches
+  then skips that body's simulation (same render-proxy path as
+  `RemoteBodyDriver`) and the adapter moves the transform to an offset on the
+  carrier's back from the carrier's entity buffer every frame.
+- **No second movement channel.** The carried body reports its new position
+  through the ordinary 20 Hz entity stream (and 1 Hz character stream), so all
+  peers already see the carried-on-back result without a carry-specific render
+  network. Late joiners need no carry snapshot for the same reason.
+- **Wire**: `PlayerCarryStartRequestMsg` (99, guest→host),
+  `PlayerCarryStopRequestMsg` (100, guest→host), `PlayerCarryStateMsg` (101,
+  host→all). ProtocolVersion 26→27 because v26 peers would not understand the
+  new messages.
+- **Accepted boundaries**: one carrier/one carried, no piggyback stack, no
+  distance/line-of-sight validation, no heal in this slice.
+
+Tests: `PlayerInteractionServiceTests` carry family (start/stop/refusal/mirror)
+and `DirectionTests` rows for the three new IDs. 1053 tests green. See
+`docs/carry-interaction-selfcheck.md`.

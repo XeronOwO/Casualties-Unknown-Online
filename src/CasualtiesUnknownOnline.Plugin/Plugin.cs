@@ -140,6 +140,8 @@ public class Plugin : BaseUnityPlugin
 				JoinLobby = TryJoinLobbyFromUi,
 				CreateLobby = TryCreateLobbyFromUi,
 				TakeItem = TryTakeItemFromRemote,
+				CarryRemote = TryCarryRemoteFromUi,
+				DropCarried = TryDropCarryFromUi,
 			};
 
 			// Publish the container on the static diagnostics seam (HotRepl etc.).
@@ -370,6 +372,30 @@ public class Plugin : BaseUnityPlugin
 		return true;
 	}
 
+	/// <summary>Online UI Carry button path — forward to the host-authoritative carry domain (guests send the request; the host handles it locally).</summary>
+	private bool TryCarryRemoteFromUi(ulong targetSteamId)
+	{
+		if (!_session.SessionActive)
+		{
+			return false;
+		}
+
+		_playerInteraction.SendCarryStartRequest(targetSteamId);
+		return true;
+	}
+
+	/// <summary>Online UI Drop button path — forward to the host-authoritative carry domain.</summary>
+	private bool TryDropCarryFromUi(ulong carriedSteamId)
+	{
+		if (!_session.SessionActive)
+		{
+			return false;
+		}
+
+		_playerInteraction.SendCarryStopRequest(carriedSteamId);
+		return true;
+	}
+
 	private static MelLogLevel ParseLogLevel(string text) =>
 		Enum.TryParse(text, ignoreCase: true, out MelLogLevel level)
 		&& Enum.IsDefined(typeof(MelLogLevel), level)
@@ -405,7 +431,7 @@ public class Plugin : BaseUnityPlugin
 			return; // the HUD is hidden behind the gate overlay
 		}
 
-		_onlineUi.Draw(_steam, _session, _entities, _remoteVitals, _remoteInventory, _lastJoinError);
+		_onlineUi.Draw(_steam, _session, _entities, _remoteVitals, _remoteInventory, _playerInteraction, _lastJoinError);
 	}
 
 	/// <summary>

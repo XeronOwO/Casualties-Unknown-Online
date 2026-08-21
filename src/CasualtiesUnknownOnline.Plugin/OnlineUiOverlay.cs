@@ -4,6 +4,7 @@ using CasualtiesUnknownOnline.Runtime.OnlineUi;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
+using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using CasualtiesUnknownOnline.Runtime.Steam;
 using UnityEngine;
 
@@ -28,16 +29,22 @@ internal sealed class OnlineUiOverlay
 	/// <summary>Invoked when the user clicks Take on one of a remote player's inventory lines.</summary>
 	internal Func<ulong, ulong, bool>? TakeItem;
 
+	/// <summary>Invoked when the user clicks Carry on an unconscious/dead remote player.</summary>
+	internal Func<ulong, bool>? CarryRemote;
+
+	/// <summary>Invoked when the user clicks Drop on the currently carried remote player.</summary>
+	internal Func<ulong, bool>? DropCarried;
+
 	private string _lobbyIdInput = "";
 	private string? _inlineError;
 
-	internal void Draw(SteamService steam, SessionService session, EntitySyncService entities, RemoteVitalsService vitals, RemoteInventoryService inventory, string? lastJoinError)
+	internal void Draw(SteamService steam, SessionService session, EntitySyncService entities, RemoteVitalsService vitals, RemoteInventoryService inventory, IPlayerInteractionControl playerInteraction, string? lastJoinError)
 	{
-		DrawStatusPanel(steam, session, entities, vitals, inventory, lastJoinError ?? _inlineError);
+		DrawStatusPanel(steam, session, entities, vitals, inventory, playerInteraction, lastJoinError ?? _inlineError);
 		DrawNameplatesAndArrows(steam, session, entities, vitals);
 	}
 
-	private void DrawStatusPanel(SteamService steam, SessionService session, EntitySyncService entities, RemoteVitalsService vitals, RemoteInventoryService inventory, string? error)
+	private void DrawStatusPanel(SteamService steam, SessionService session, EntitySyncService entities, RemoteVitalsService vitals, RemoteInventoryService inventory, IPlayerInteractionControl playerInteraction, string? error)
 	{
 		var y = 10f;
 		Line("CUO — Steam: " + (steam.IsInitialized ? "initialized" : "not initialized"));
@@ -55,7 +62,7 @@ internal sealed class OnlineUiOverlay
 		Line(session.LastRttMs >= 0f ? $"Last RTT: {session.LastRttMs:F1} ms" : "No ping yet");
 
 		y = DrawLobbyControls(y);
-		y = DrawMemberStatus(steam, session, vitals, inventory, y);
+		y = DrawMemberStatus(steam, session, vitals, inventory, playerInteraction, y);
 
 		if (!string.IsNullOrEmpty(error))
 		{
@@ -99,7 +106,7 @@ internal sealed class OnlineUiOverlay
 		return y + 26f;
 	}
 
-	private float DrawMemberStatus(SteamService steam, SessionService session, RemoteVitalsService vitals, RemoteInventoryService inventory, float y)
+	private float DrawMemberStatus(SteamService steam, SessionService session, RemoteVitalsService vitals, RemoteInventoryService inventory, IPlayerInteractionControl playerInteraction, float y)
 	{
 		if (steam.CurrentLobbyId == 0)
 		{
@@ -120,8 +127,37 @@ internal sealed class OnlineUiOverlay
 			var inventoryText = member is { InWorld: true } && inventory.TryGet(lobbyMember, out _)
 				? " — items"
 				: "";
-			GUI.Label(new Rect(10f, y, 900f, 20f),
+			var rowY = y;
+			GUI.Label(new Rect(10f, rowY, 900f, 20f),
 				$"  {name} [{lobbyMember:X}] {(isHost ? "HOST" : "guest")} — {status}{vitalsText}{inventoryText}");
+
+			// The carry slice: an in-world remote who is unconscious/dead can be
+			// carried by the local player; the host re-checks the same rule. If
+			// the local player is already carrying this member, the button turns
+			// into a Drop action.
+			var isCarryingThis = playerInteraction.TryGetCarried(steam.LocalSteamId, out var currentCarried)
+				&& currentCarried == lobbyMember;
+			var canCarry = lobbyMember != steam.LocalSteamId
+				&& member is { InWorld: true }
+				&& vitals.TryGet(lobbyMember, out var carryVitals)
+				&& (!carryVitals.Conscious || !carryVitals.Alive)
+				&& !playerInteraction.TryGetCarrier(lobbyMember, out _)
+				&& !playerInteraction.TryGetCarried(steam.LocalSteamId, out _);
+			if (isCarryingThis)
+			{
+				if (GUI.Button(new Rect(760f, rowY, 58f, 16f), "Drop"))
+				{
+					DropCarried?.Invoke(lobbyMember);
+				}
+			}
+			else if (canCarry)
+			{
+				if (GUI.Button(new Rect(760f, rowY, 58f, 16f), "Carry"))
+				{
+					CarryRemote?.Invoke(lobbyMember);
+				}
+			}
+
 			y += 20f;
 
 			// The "view items" slice: expand the in-world member's carried and

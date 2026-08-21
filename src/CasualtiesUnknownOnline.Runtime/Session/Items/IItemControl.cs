@@ -134,8 +134,8 @@ public interface IItemControl
 
 	/// <summary>
 	/// Host only: periodically re-send the full table (unreliable) so physical
-	/// drift self-heals — the receiver aligns settled items on the next
-	/// reconcile (todo: periodic keyframes).
+	/// and top-level state drift self-heals — the receiver aligns settled items
+	/// on the next reconcile.
 	/// </summary>
 	void SendPeriodicItemSnapshot();
 

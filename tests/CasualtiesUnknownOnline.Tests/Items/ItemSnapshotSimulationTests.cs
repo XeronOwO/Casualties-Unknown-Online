@@ -119,6 +119,40 @@ public class ItemSnapshotSimulationTests
 	}
 
 	[Fact]
+	public void PeriodicSnapshot_CarriesTopLevelComponentAndLiquidState()
+	{
+		using var w = ItemSimWorld.Create();
+		w.Spawn(w.G1, 100, new CharacterItemMsg
+		{
+			ItemId = "waterbottle",
+			Condition = 0.8f,
+			Liquids = [new LiquidStackMsg { LiquidId = "water", Amount = 0.4f }],
+			Components =
+			[
+				new ComponentStateMsg
+				{
+					TypeName = "CustomItemBehaviour",
+					Fields = [new ComponentFieldMsg { Name = "state", Kind = 2, IntValue = 2 }],
+				},
+			],
+		});
+
+		var received = new List<IReadOnlyList<WorldItem>>();
+		w.G2.Services.GetRequiredService<IItemControl>().ItemSnapshotReceived += (items, _, _) => received.Add(items);
+
+		w.Host.Services.GetRequiredService<IItemControl>().SendPeriodicItemSnapshot();
+		w.Driver.Tick(50);
+
+		Assert.True(received.Count == 1, $"the keyframe must arrive, got {received.Count}");
+		var entry = received[0].Single(i => i.ItemId == 100);
+		Assert.True(entry.Item.Liquids.Count == 1 && entry.Item.Liquids[0].Amount == 0.4f,
+			"the keyframe carries the current liquid stacks");
+		Assert.True(entry.Item.Components.Count == 1
+			&& entry.Item.Components[0].Fields.Single(f => f.Name == "state").IntValue == 2,
+			"the keyframe carries the current component state");
+	}
+
+	[Fact]
 	public void GenerationSnapshot_PublishBroadcastsRawEntriesWithModifier()
 	{
 		using var w = ItemSimWorld.Create();

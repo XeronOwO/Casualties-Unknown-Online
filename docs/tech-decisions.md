@@ -700,3 +700,27 @@ Tests: extended `CharacterSoundSyncTests` (GunFire wire round-trip with recoil),
 new `GunFirePatchTests` (patch surface + PatchInventory contract + protocol field),
 automatic patch-contract cover for the `GunScript.Fire` postfix. See
 `docs/weapon-fire-recoil-selfcheck.md`.
+
+## 32. Periodic keyframe self-heals world-item top-level state (no protocol change)
+
+The 5 s periodic item snapshot already carries the host table's full
+`CharacterItemMsg` (condition/favourited/liquids/components/contents), but the
+reconcile applied only condition to existing world items. A dropped use/craft
+report or a missed correction therefore left component/liquid state stale until
+the item was picked up or corrected again. The keyframe reconcile now captures
+the local top-level digest and, when `ItemStateEquality` reports divergence,
+restores condition/favourited/liquids/components from the snapshot:
+
+- **Position stays owned by the position stream** — the keyframe still never
+  places or re-positions; it only aligns state.
+- **Container contents stay on the content/container message family** — the
+  top-level equality deliberately ignores `Contents`; this is a top-level
+  self-heal, not a recursive reconcile.
+- **The comparison rules are shared** — the evidence-check tolerance logic was
+  extracted from `ItemArbitration` into pure `ItemStateEquality`, so
+  arbitration and keyframe reconcile cannot drift apart.
+- **No protocol bump** — the wire formats are untouched; ProtocolVersion stays.
+
+Tests: new `ItemStateEqualityTests` (pure tolerance/field rules) and
+`PeriodicSnapshot_CarriesTopLevelComponentAndLiquidState` (wire-level keyframe
+evidence). 1018 tests green. See `docs/item-keyframe-state-selfcheck.md`.

@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using Microsoft.Extensions.Logging;
-using UnityEngine;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Items;
 
@@ -96,6 +95,14 @@ internal sealed class ItemReconcile(
 			// BatteryItem.cs:136) — a placed device's power drain is covered by
 			// this same alignment. POSITION stays owned by the position stream —
 			// never placed here.
+			// The same keyframe now also re-aligns the top-level item state that
+			// is not covered by a dedicated event: favourited, liquid stacks and
+			// [Saveable] component states (flashlight mode, gun state, custom
+			// behaviours). Before this, component/liquid state of an existing
+			// world item only advanced at its last report/correction time, so a
+			// dropped event was not self-healed. Contents are intentionally left
+			// to the content/container message family — this is the periodic
+			// top-level self-heal, not a full recursive reconcile.
 			var aligned = 0;
 			foreach (var item in Item.allItems)
 			{
@@ -110,9 +117,14 @@ internal sealed class ItemReconcile(
 					continue;
 				}
 
-				if (Mathf.Abs(item.condition - w.Item.Condition) > 0.0005f)
+				// CaptureDigest is the cheap top-level surface (no recursive
+				// contents); TopLevelMatches ignores the content ids.
+				if (!ItemStateEquality.TopLevelMatches(ItemStateCodec.CaptureDigest(item), w.Item, 0.0005f))
 				{
 					item.condition = w.Item.Condition;
+					item.favourited = w.Item.Favourited;
+					ItemStateCodec.RestoreLiquids(item, w.Item.Liquids);
+					ItemStateCodec.RestoreComponentStates(item, w.Item.Components);
 					aligned++;
 				}
 			}

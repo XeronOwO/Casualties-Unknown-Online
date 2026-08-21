@@ -287,10 +287,14 @@ domain"). Per-surface notes:
   snapshot's component state (`RestoreComponentStates` + the `Light2D` enabled sync) — a remote
   player's held flashlight now renders in its real mode. Display path only; the render application
   itself has no L0 test face (GameAdapter).
-- **World-item component state on keyframes**: the 5 s periodic snapshot
-  refreshes condition/position only (ItemPositionAuthority.cs:103-119) —
-  component state of a world item stays at its last report time until
-  picked up (where pickup evidence carries it) or corrected.
+- **World-item component state on keyframes**: RESOLVED (2026-08-21, no
+  protocol bump) — the 5 s periodic snapshot now re-aligns the top-level
+  state of an existing world item (condition/favourited/liquid stacks/
+  `[Saveable]` component states) whenever it diverges from the host table;
+  it no longer stays at its last report/correction time. Position is still
+  owned by the position stream, and container contents stay on the
+  content/container message family. See
+  `docs/item-keyframe-state-selfcheck.md`.
 
 ## Runtime item spawn surface (audit 2026-08-16)
 

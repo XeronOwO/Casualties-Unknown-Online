@@ -34,9 +34,7 @@ public sealed class SteamTransport(ISteamService steam, ILogger<SteamTransport> 
 		var identity = new SteamNetworkingIdentity();
 		identity.SetSteamID64(steamId);
 
-		var flags = reliable
-			? Constants.k_nSteamNetworkingSend_Reliable
-			: Constants.k_nSteamNetworkingSend_Unreliable;
+		var flags = SteamSendFlags.For(reliable);
 
 		unsafe
 		{

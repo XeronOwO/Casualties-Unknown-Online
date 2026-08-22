@@ -28,6 +28,10 @@
   <ItemGroup>
     <!-- net48 matches the tested assemblies (same TFM, zero compatibility risk) -->
     <ProjectReference Include="..\..\src\CasualtiesUnknownOnline.Runtime\CasualtiesUnknownOnline.Runtime.csproj" />
+    <Reference Include="Steamworks.NET">
+      <HintPath>..\..\references\Steamworks.NET.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <!-- Phase-3 contract tests: GameAdapter.dll is loaded REFLECTIVELY (never
          compile-referenced — it binds Unity/game assemblies), so only its
          build output is copied here (ExcludeAssets="compile" — no type

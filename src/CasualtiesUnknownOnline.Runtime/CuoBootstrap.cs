@@ -12,6 +12,7 @@ using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.Handlers;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
+using CasualtiesUnknownOnline.Runtime.Session.NetworkTraffic;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using CasualtiesUnknownOnline.Runtime.Session.Tutorial;
 using CasualtiesUnknownOnline.Runtime.Steam;
@@ -115,6 +116,11 @@ public static class CuoBootstrap
 		// received frames to the handlers with the per-message context.
 		services.AddSingleton<PacketReceiver>();
 		services.AddSingleton<PacketSender>();
+		// Whole-protocol traffic observer: PacketSender/PacketReceiver report
+		// raw frame facts into it; it rolls the periodic log window (observability
+		// only — no batching/rate-limit decision is made from these numbers yet).
+		services.AddSingleton<NetworkTrafficMonitor>();
+		services.AddSingleton<ICuoService>(p => p.GetRequiredService<NetworkTrafficMonitor>());
 		services.AddSingleton(p => new HandlerContext(
 			p.GetRequiredService<ISessionControl>(),
 			p.GetRequiredService<IEntitySyncControl>(),

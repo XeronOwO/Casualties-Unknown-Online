@@ -922,3 +922,22 @@ degradation). 1079 tests green after this slice. See
   duplicate/over-cap refusal, unregister, defensive copies, control-surface
   aggregation, policy caps). 1093 tests green after this slice. See
   `docs/selfchecks/mod-content-registration-selfcheck.md`.
+
+## 39. Whole-protocol network traffic monitor (no protocol bump)
+
+- **Scope**: `PacketSender` / `PacketReceiver` are the single data-plane
+  boundaries, so the monitor observes every actual transport frame there —
+  one record per recipient (not one per logical fan-out), including failed
+  sends with the transport verdict.
+- **Design**: a pure `NetworkTrafficTracker` (per-`NetMsg` send/receive byte
+  counts, per-peer totals, failed send counts/bytes) + `NetworkTrafficMonitor`
+  (`ICuoService`, 10-second rolling window, periodic `[NetworkTraffic]` log).
+  `ItemTrafficTracker` remains the item-domain logical-operation counter.
+- **Observability-only**: no batching, no rate-limit, no bandwidth decision is
+  made from these numbers yet; `SteamSendFailureClassifier` still owns the
+  transport-level failure-family log.
+- **No wire change**: no new `NetMsg`, `ProtocolVersion` stays 29.
+- Tests: `NetworkTrafficTrackerTests` + `PacketTrafficMonitorTests`
+  (aggregation, failed sends, roll/reset, real ping/pong round trip, fan-out
+  per-recipient). 1124 tests green after this slice. See
+  `docs/selfchecks/network-traffic-monitor-selfcheck.md`.

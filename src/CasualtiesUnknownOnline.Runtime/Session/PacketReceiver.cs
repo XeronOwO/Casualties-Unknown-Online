@@ -1,6 +1,7 @@
 using System;
 using CasualtiesUnknownOnline.Runtime.Networking;
 using CasualtiesUnknownOnline.Runtime.Protocol;
+using CasualtiesUnknownOnline.Runtime.Session.NetworkTraffic;
 using Microsoft.Extensions.Logging;
 
 namespace CasualtiesUnknownOnline.Runtime.Session;
@@ -10,18 +11,21 @@ namespace CasualtiesUnknownOnline.Runtime.Session;
 /// message direction for the current role and surfaces direction-valid frames
 /// as <see cref="MessageArrived"/>. PacketDispatcher subscribes and routes;
 /// receive and send are independent mechanisms (PacketSender), user
-/// architecture rule. Depends on ISessionControl (role) only.
+/// architecture rule. Depends on ISessionControl (role) only; the traffic
+/// monitor is a one-way observability sink (never blocks or changes routing).
 /// </summary>
 public sealed class PacketReceiver : IDisposable
 {
 	private readonly INetworkTransport _transport;
 	private readonly ISessionControl _session;
+	private readonly NetworkTrafficMonitor _traffic;
 	private readonly ILogger<PacketReceiver> _log;
 
-	public PacketReceiver(INetworkTransport transport, ISessionControl session, ILogger<PacketReceiver> log)
+	public PacketReceiver(INetworkTransport transport, ISessionControl session, NetworkTrafficMonitor traffic, ILogger<PacketReceiver> log)
 	{
 		_transport = transport;
 		_session = session;
+		_traffic = traffic;
 		_log = log;
 		transport.MessageReceived += OnTransportMessage;
 	}
@@ -37,6 +41,7 @@ public sealed class PacketReceiver : IDisposable
 		}
 
 		var msgId = (NetMsg)frame[0];
+		_traffic.RecordReceive(sender, msgId, frame.Length);
 		if (!IsValidDirection(msgId))
 		{
 			_log.LogWarning("Dropping {Msg} from {Sender}: illegal direction for role {Role}.",

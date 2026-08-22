@@ -75,17 +75,19 @@ lands, never bolted on afterwards.
 ## Runtime / transport
 
 - RESOLVED (2026-08-22, no protocol bump): #118 Steam P2P cert error — the
-  investigation found no CUO code defect: the observed `BadCert` /
-  rendezvous-style failures are external (local Clash proxy on
-  `localhost:7890` is the first known trigger, then Steam client/relay state,
-  then the Steamworks.NET wrapper), and the existing host warm-up backoff +
-  guest 1 s handshake retry already self-heal once the external cause clears.
-  The shipped change is actionable observability: `SteamSendFailureClassifier`
-  maps `EResult` / `ESteamNetConnectionEnd` into `BadCert` / `Rendezvous` /
-  `ConnectFailed` / `NoConnection` / `Timeout` / `Other` and `SteamTransport`
-  logs the family + remediation on every failed P2P send. See
-  `docs/steam-p2p-cert-selfcheck.md`; 9 new classifier tests, no wire/protocol
-  change.
+  root was a CUO transport usage defect: every `SendMessageToUser` was sent
+  with only `Reliable`/`Unreliable`, so once a P2P session was broken
+  (peer close, `Remote_BadCert`, rendezvous failure) it stayed broken and
+  kept returning `k_EResultNoConnection` until Steam's idle timeout — CUO
+  never passed `k_nSteamNetworkingSend_AutoRestartBrokenSession` nor called
+  `CloseSessionWithUser`. `SteamTransport` now ORs in
+  `AutoRestartBrokenSession` on every send via `SteamSendFlags.For`, so the
+  next send automatically re-establishes a fresh session; the external
+  triggers (local Clash proxy on `localhost:7890`, Steam client/relay state)
+  remain the first diagnostic suspects and are now labeled by
+  `SteamSendFailureClassifier` in the transport log. See
+  `docs/steam-p2p-cert-selfcheck.md`; 9 classifier + 3 send-flag tests, no
+  wire/protocol change.
 - Offline-member P2P noise: RESOLVED (2026-08-16, no protocol bump). Log
   correlation first cleared the candidate hypothesis: the entity state stream
   already stops for a removed member (`EntitySyncService.OnMemberRemoved`,

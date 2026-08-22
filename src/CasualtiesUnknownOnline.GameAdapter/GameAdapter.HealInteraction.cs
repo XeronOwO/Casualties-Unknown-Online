@@ -1,4 +1,6 @@
 using CasualtiesUnknownOnline.GameAdapter.Items;
+using CasualtiesUnknownOnline.Runtime.GameAdapter;
+using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using Microsoft.Extensions.Logging;
@@ -95,6 +97,47 @@ public sealed partial class GameAdapter
 
 		return false;
 	}
+
+	IReadOnlyList<LocalHealItem> IGameAdapter.GetLocalHealItems() => GetLocalHealItems();
+
+	private IReadOnlyList<LocalHealItem> GetLocalHealItems()
+	{
+		var result = new List<LocalHealItem>();
+		var body = PlayerCamera.main != null ? PlayerCamera.main.body : null; // Unity object — ==
+		if (body == null) // Unity object — ==
+		{
+			return result;
+		}
+
+		// Only inventory slots are requestable: the host's heal finder skips
+		// worn items (SlotIndex < 0), so a selector that lists worn items would
+		// only produce refused requests.
+		foreach (var slot in body.slots)
+		{
+			if (slot == null) // Unity object — ==
+			{
+				continue;
+			}
+
+			for (var c = 0; c < slot.transform.childCount; c++)
+			{
+				var item = slot.transform.GetChild(c).GetComponent<Item>();
+				if (item == null || !RemoteHealProfiles.IsHealItem(item.id)) // Unity object — ==
+				{
+					continue;
+				}
+
+				var id = item.GetComponent<ItemInstanceId>();
+				if (id != null && id.Id != 0) // Unity object — ==
+				{
+					result.Add(new LocalHealItem(id.Id, item.id));
+				}
+			}
+		}
+
+		return result;
+	}
+
 
 	private static bool HasHealItemChild(Transform parent)
 	{

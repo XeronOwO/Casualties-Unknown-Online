@@ -1016,3 +1016,49 @@ message:
 Tests: `RemoteItemPresentationTests` (3 cases), `GrapplingHookComponentSyncContractTests`
 (2 cases), full suite 1133 green. See
 `docs/selfchecks/grappling-hook-presentation-selfcheck.md`.
+
+## 42. Remote player container content view — recursive Online UI projection (no protocol bump)
+
+The remaining "open another player's inventory/container" backlog entry is
+closed on the **view** side. The 1 Hz `CharacterDataMsg.Items` already carries
+each container item's recursive `Contents` (the same data `CloneFactTable` and
+`ItemStateCodec` use to materialize clones), so no wire change was needed.
+
+- **`RemoteInventoryEntry` is now recursive.** It carries
+  `IReadOnlyList<RemoteInventoryEntry> Contents`; `ContentsCount` stays as a
+  derived convenience for the compact top-level line.
+- **`RemoteInventorySnapshot` projects the tree.** `From` recursively maps
+  `CharacterItemMsg.Contents`; `ToDisplayLines` emits indented `↳` child rows
+  beneath each container parent so the Online UI can show what is inside a
+  remote player's carried container.
+- **`OnlineUiOverlay` renders the nested rows.** A recursive
+  `DrawContainerContents` helper keeps the IMGUI member list readable; nested
+  items are display-only (the existing Take operation remains top-level slot
+  items only).
+- **No protocol change.** `ProtocolVersion` stays 30; no new `NetMsg`.
+- **Tests:** `RemoteInventoryServiceTests` gained recursive projection and
+  display-formatting coverage (9 tests in that class); full suite 1134 green.
+  See `docs/selfchecks/remote-container-content-view-selfcheck.md`.
+
+
+## 43. Heal item selector — explicit Online UI medical item picker (no protocol bump)
+
+The last "Online UI / interaction refinements" backlog item is closed. The
+wire already supported a concrete `PlayerHealRequestMsg.ItemInstanceId`; the
+UI simply always sent 0 for host auto-select. This cycle exposes the local
+slot-held heal items and lets the user pick one.
+
+- **`IGameAdapter.GetLocalHealItems()`** returns read-only `LocalHealItem`
+  records (`InstanceId`, `ItemId`). The adapter scans inventory slots only,
+  matching the host's `FindHealItemIndex` rule that skips worn items
+  (`SlotIndex < 0`).
+- **`OnlineUiOverlay` renders one `Heal <item>` button per local heal item**
+  under the member row. The existing auto Heal button remains and still sends
+  instance id 0.
+- **`Plugin.TryHealWithItemFromUi`** forwards the chosen instance id through
+  the existing `SendHealRequest`; the host re-validates authority from its
+  character snapshots.
+- **No protocol change.** `ProtocolVersion` stays 30; no new `NetMsg`.
+- **Tests:** existing `PlayerInteractionServiceTests` already cover explicit
+  ids on the host path; full suite 1134 green. See
+  `docs/selfchecks/heal-item-selection-selfcheck.md`.

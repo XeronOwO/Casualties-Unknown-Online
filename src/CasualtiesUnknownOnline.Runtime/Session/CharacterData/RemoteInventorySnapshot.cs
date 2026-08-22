@@ -7,7 +7,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 /// <summary>
 /// One remote player's carried/worn inventory in the read-only form the Online
 /// UI can render. Kept deliberately small: the UI needs item ids, slot
-/// positions, condition, favorite flag and nested-content counts, not the full
+/// positions, condition, favorite flag and container contents, not the full
 /// wire <see cref="CharacterItemMsg"/>. The snapshot is immutable; the owning
 /// cache stores one per SteamId.
 /// </summary>
@@ -21,7 +21,7 @@ public sealed class RemoteInventorySnapshot
 		HandSlot = handSlot;
 	}
 
-	/// <summary>The top-level carried/worn items; container contents are represented by <see cref="RemoteInventoryEntry.ContentsCount"/>.</summary>
+	/// <summary>The top-level carried/worn items; container contents are projected recursively into <see cref="RemoteInventoryEntry.Contents"/>.</summary>
 	public IReadOnlyList<RemoteInventoryEntry> Items { get; }
 
 	/// <summary>The raw hand-slot wire value (0 = none in the game's save encoding).</summary>
@@ -42,17 +42,20 @@ public sealed class RemoteInventorySnapshot
 		}
 
 		var items = data.Items
-			.Select(item => new RemoteInventoryEntry(
-				item.InstanceId,
-				item.ItemId,
-				item.SlotIndex,
-				item.Condition,
-				item.Favourited,
-				item.Contents.Count))
+			.Select(Project)
 			.ToList();
 
 		return new RemoteInventorySnapshot(items, data.HandSlot);
 	}
+
+	private static RemoteInventoryEntry Project(CharacterItemMsg item) =>
+		new(
+			item.InstanceId,
+			item.ItemId,
+			item.SlotIndex,
+			item.Condition,
+			item.Favourited,
+			[.. item.Contents.Select(Project)]);
 
 	/// <summary>Compact status-line text for the member list.</summary>
 	public string ToShortString() => Count == 0 ? "no items" : $"{Count} item(s)";
@@ -60,6 +63,8 @@ public sealed class RemoteInventorySnapshot
 	/// <summary>
 	/// One display line per carried/worn item, in snapshot order. Negative slot
 	/// indexes are worn items (the game encodes wear as -(limbIndex + 2)).
+	/// Container children are rendered indented beneath their parent with a
+	/// ↳ marker so the Online UI can show what is inside a remote container.
 	/// </summary>
 	public IReadOnlyList<string> ToDisplayLines()
 	{
@@ -68,15 +73,32 @@ public sealed class RemoteInventorySnapshot
 			return ["(empty)"];
 		}
 
-		return
-		[
-			.. Items.Select(entry =>
-			{
-				var slot = entry.SlotIndex >= 0 ? $"slot {entry.SlotIndex}" : "worn";
-				var suffix = entry.ContentsCount > 0 ? $" (+{entry.ContentsCount} inside)" : "";
-				var favourite = entry.Favourited ? " ★" : "";
-				return $"{slot}: {entry.ItemId}{suffix}{favourite}";
-			})
-		];
+		var lines = new List<string>();
+		foreach (var entry in Items)
+		{
+			lines.Add(FormatTopLevel(entry));
+			AppendContents(lines, entry.Contents, "        ");
+		}
+
+		return lines;
+	}
+
+	private static string FormatTopLevel(RemoteInventoryEntry entry)
+	{
+		var slot = entry.SlotIndex >= 0 ? $"slot {entry.SlotIndex}" : "worn";
+		var suffix = entry.ContentsCount > 0 ? $" (+{entry.ContentsCount} inside)" : "";
+		var favourite = entry.Favourited ? " ★" : "";
+		return $"{slot}: {entry.ItemId}{suffix}{favourite}";
+	}
+
+	private static void AppendContents(List<string> lines, IReadOnlyList<RemoteInventoryEntry> contents, string indent)
+	{
+		foreach (var child in contents)
+		{
+			var favourite = child.Favourited ? " ★" : "";
+			var suffix = child.ContentsCount > 0 ? $" ({child.ContentsCount} inside)" : "";
+			lines.Add($"{indent}↳ {child.ItemId}{suffix}{favourite}");
+			AppendContents(lines, child.Contents, indent + "    ");
+		}
 	}
 }

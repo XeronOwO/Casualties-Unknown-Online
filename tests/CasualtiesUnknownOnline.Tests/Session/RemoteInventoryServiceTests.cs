@@ -14,7 +14,8 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 /// a read-only per-SteamID view and clears on session end. It is the "view
 /// items" half of the direct player interaction backlog item; taking a remote
 /// item remains a separate operation. No protocol change: the 1 Hz character
-/// snapshots already carry the carried/worn item list.
+/// snapshots already carry the carried/worn item list (including recursive
+/// container contents).
 /// </summary>
 public class RemoteInventoryServiceTests
 {
@@ -29,7 +30,22 @@ public class RemoteInventoryServiceTests
 		SlotIndex = slotIndex,
 		Condition = 50f,
 		Favourited = true,
-		Contents = [.. Enumerable.Repeat(new CharacterItemMsg(), contentsCount)],
+		Contents = [.. Enumerable.Range(0, contentsCount).Select(i => new CharacterItemMsg
+		{
+			InstanceId = (ulong)(1000 + i),
+			ItemId = $"{itemId}-content-{i}",
+			SlotIndex = slotIndex,
+			Favourited = false,
+		})],
+	};
+
+	private static CharacterItemMsg ContainerWithNested(string itemId, int slotIndex, params CharacterItemMsg[] children) => new()
+	{
+		ItemId = itemId,
+		SlotIndex = slotIndex,
+		Condition = 50f,
+		Favourited = false,
+		Contents = [.. children],
 	};
 
 	private static CharacterDataMsg Snapshot(ulong owner, params CharacterItemMsg[] items) => new()
@@ -167,9 +183,48 @@ public class RemoteInventoryServiceTests
 		Assert.Equal(3, nonEmpty.Count);
 		Assert.Equal("3 item(s)", nonEmpty.ToShortString());
 		var lines = nonEmpty.ToDisplayLines();
-		Assert.Contains("slot 0: medkit ★", lines);
-		Assert.Contains("slot 1: backpack (+2 inside) ★", lines);
-		Assert.Contains("worn: hat ★", lines);
+		Assert.Contains(lines, line => line.Contains("slot 0: medkit ★"));
+		Assert.Contains(lines, line => line.Contains("slot 1: backpack (+2 inside) ★"));
+		Assert.Contains(lines, line => line.Contains("↳ backpack-content-0"));
+		Assert.Contains(lines, line => line.Contains("↳ backpack-content-1"));
+		Assert.Contains(lines, line => line.Contains("worn: hat ★"));
+	}
+
+	[Fact]
+	public void Snapshot_ProjectsRecursiveContainerContents()
+	{
+		var inner = new CharacterItemMsg
+		{
+			InstanceId = 41,
+			ItemId = "inner",
+			SlotIndex = 1,
+			Favourited = true,
+			Contents =
+			[
+				new CharacterItemMsg
+				{
+					InstanceId = 42,
+					ItemId = "deep",
+					SlotIndex = 1,
+				},
+			],
+		};
+
+		var snapshot = RemoteInventorySnapshot.From(Snapshot(
+			0,
+			ContainerWithNested("backpack", 1, inner)))!;
+
+		var backpack = Assert.Single(snapshot.Items);
+		Assert.Equal(1, backpack.ContentsCount);
+		var projectedInner = Assert.Single(backpack.Contents);
+		Assert.Equal("inner", projectedInner.ItemId);
+		Assert.True(projectedInner.Favourited);
+		Assert.Equal("deep", Assert.Single(projectedInner.Contents).ItemId);
+
+		var lines = snapshot.ToDisplayLines();
+		Assert.Contains(lines, line => line.Contains("slot 1: backpack (+1 inside)"));
+		Assert.Contains(lines, line => line.Contains("↳ inner (1 inside) ★"));
+		Assert.Contains(lines, line => line.Contains("↳ deep"));
 	}
 
 	[Fact]

@@ -11,7 +11,8 @@ Open work only. Landed delivery details are not duplicated here; they live in:
 ## Status
 
 - No open high-priority bugs.
-- Native game-content sync coverage is complete: item and entity feature matrices currently have no `missing` rows.
+- Native game-content sync coverage is complete: item and entity feature matrices currently have no `missing` rows; the last recorded `Heater`-on-`xaloris` local-presentation residual is closed as excluded by design.
+- Network health metrics (per-peer RTT history / jitter / probe loss) now surface in `[NetworkHealth]` logs; per-peer bandwidth already surfaces in `[NetworkTraffic]` logs. See `docs/selfchecks/network-health-metrics-selfcheck.md`.
 - Remaining final dual-side acceptance items below are end-of-cycle acceptance, not development work.
 
 ## Open work
@@ -29,13 +30,13 @@ None open. The previous local-only item states and the enemy LookTarget presenta
 - **GrapplingHook** `fired` / `hookLatched` / `pulling` — synced via the item component-state path; clone renderer presents the fired sprite (see `docs/item-features.md`).
 - **WatchScript** timers / **AutoPump.worn** — excluded by design: owner-local body/UI effects only, and render-clone scripts are disabled.
 - **Peer-view clone renderer** — the pure state-selection helper now has an L0 test face (`RemoteItemPresentationTests`).
-- **LookTarget gaze/scare** — closed via the 20 Hz player entity stream: `EntityStateMsg` now carries the owner's `LookTarget`/`CorpseScript` override gaze + the eye face timers (`eyeScareTime`/`eyePanicTime`/`eyeCloseTime`), and the remote clone writes them into its proxy Body (see `docs/tech-decisions.md` #44). The `Heater` temperature field on `xaloris` remains the one recorded local-presentation gap (low priority).
+- **LookTarget gaze/scare** — closed via the 20 Hz player entity stream: `EntityStateMsg` now carries the owner's `LookTarget`/`CorpseScript` override gaze + the eye face timers (`eyeScareTime`/`eyePanicTime`/`eyeCloseTime`), and the remote clone writes them into its proxy Body (see `docs/tech-decisions.md` #44).
+- **Heater temperature field on `xaloris`** — closed as **excluded by design**: `Heater.OnWillRenderObject` writes only the local player's body temperature, which already rides the 1 Hz character stream, so no enemy-sync surface is needed (see `docs/selfchecks/heater-xaloris-local-body-effect-selfcheck.md`).
 
 ### Networking observability / optimization (new)
 
 Measurement-first items; do not optimize before data exists.
 
-- **Network health metrics** — surface per-peer packet loss / jitter / bandwidth alongside the existing ping RTT in Online UI or logs. The whole-protocol traffic monitor now provides per-`NetMsg` send/receive byte counts and per-peer window logs; the remaining health-specific counts (loss/jitter) are still unmeasured.
 - **State-stream bandwidth reduction** (only after the monitor shows need): candidates include fixed-point/quantized positions, per-entity update masks / delta encoding, and field-dirty batching for 20 Hz player/enemy streams and 1 Hz `CharacterDataMsg`. No change before measurement; gameplay and visual quality must not regress.
 - **Snapshot size reduction** — full world-item / character-data snapshots are correctness-oriented; only optimize after the traffic monitor identifies a dominant family.
 

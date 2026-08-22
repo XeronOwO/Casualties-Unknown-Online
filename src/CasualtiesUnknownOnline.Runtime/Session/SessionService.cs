@@ -4,6 +4,7 @@ using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
+using CasualtiesUnknownOnline.Runtime.Session.NetworkTraffic;
 using CasualtiesUnknownOnline.Runtime.Steam;
 using CasualtiesUnknownOnline.Runtime.Time;
 using Microsoft.Extensions.Logging;
@@ -31,6 +32,7 @@ public sealed class SessionService : ICuoService, ISessionControl
 
 	private readonly ISteamService _steam;
 	private readonly PacketSender _sender;
+	private readonly NetworkTrafficMonitor _traffic;
 	private readonly ITimeSource _time;
 	private readonly ILogger<SessionService> _log;
 	private readonly IModListProvider _modListProvider;
@@ -51,11 +53,12 @@ public sealed class SessionService : ICuoService, ISessionControl
 	private long _nextMemberCheckMs;
 	private long _nextHandshakeRetryMs;
 
-	public SessionService(ISteamService steam, PacketSender sender, ITimeSource time,
+	public SessionService(ISteamService steam, PacketSender sender, NetworkTrafficMonitor traffic, ITimeSource time,
 		IModListProvider modListProvider, ILogger<SessionService> log)
 	{
 		_steam = steam;
 		_sender = sender;
+		_traffic = traffic;
 		_time = time;
 		_modListProvider = modListProvider;
 		_log = log;
@@ -142,6 +145,7 @@ public sealed class SessionService : ICuoService, ISessionControl
 	void ISessionControl.RecordPong(ulong sender, long ticks)
 	{
 		LastRttMs = (_time.UtcNowTicks - ticks) / 10_000f;
+		_traffic.RecordPong(sender, LastRttMs, ticks);
 		if (_presence.TryGetMember(sender, out var member))
 		{
 			member.RttMs = LastRttMs;
@@ -219,11 +223,13 @@ public sealed class SessionService : ICuoService, ISessionControl
 		{
 			foreach (var member in _presence.Members)
 			{
+				_traffic.RecordPingSent(member.SteamId, msg.Ticks, _time.NowMs);
 				_sender.Send(member.SteamId, NetMsg.Ping, msg);
 			}
 		}
 		else
 		{
+			_traffic.RecordPingSent(HostSteamId, msg.Ticks, _time.NowMs);
 			_sender.Send(HostSteamId, NetMsg.Ping, msg);
 		}
 	}
@@ -563,6 +569,8 @@ public sealed class SessionService : ICuoService, ISessionControl
 			_log.LogInformation("Session ended (role {Role} kept).", Role);
 			_state.FireSessionEnded(); // the entity domain + the Game Adapter tear down on this
 		}
+
+		_traffic.Reset(); // per-session traffic and peer-health diagnostics are not reused across lobbies
 	}
 
 	private HandshakeMsg CreateHandshakeMsg() => new()

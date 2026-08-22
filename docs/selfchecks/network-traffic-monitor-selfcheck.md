@@ -79,9 +79,10 @@ these numbers yet.
 
 ## 6. What was NOT changed (and why)
 
-- No `Network health metrics` claim: per-peer packet loss / jitter are still
-  unmeasured; only bandwidth/RTT-adjacent counts and per-peer window logs are
-  provided by this monitor. That backlog item remains open.
+- No `Network health metrics` claim in this cycle: per-peer packet loss /
+  jitter were still unmeasured here; only bandwidth/RTT-adjacent counts and
+  per-peer window logs were provided by this monitor. That backlog item was
+  closed later by `docs/selfchecks/network-health-metrics-selfcheck.md`.
 - No protocol/version bump: this is pure diagnostics, no wire behavior change.
 - No bandwidth optimization: the monitor exists precisely to measure before
   optimizing; state-stream and snapshot reduction remain explicitly deferred.

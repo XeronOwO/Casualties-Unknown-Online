@@ -116,7 +116,9 @@ evolution (the snapshot's `furBloodAmount` already carries its visual result).
   `EyeGone`, `BothEyesGone` and the owner's random `disfiguredIndex`) are
   carried by `CharacterHealthMsg` for save/restore, but the remote clone's
   face sprites remain template-driven in this cycle; disfigurement is a
-  body-presentation follow-up, not a limb wound visual.
+  body-presentation follow-up, not a limb wound visual. **Closed later by
+  tech-decision #47** (`CloneFacePresentation`, ProtocolVersion 32) — see
+  `clone-face-presentation-selfcheck.md`.
 - The underwater bleed particle branch and the owner-side downward fur-blood
   transfer are not replicated on clones — the synced terminal `furBloodAmount`
   is applied directly (the transfer is simulation, not a latch).

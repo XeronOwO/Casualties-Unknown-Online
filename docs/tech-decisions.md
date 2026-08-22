@@ -1166,3 +1166,38 @@ permission refusal, host guest-report projection, guest host-snapshot
 projection, no-snapshot false, leave-world clear) and
 `TestReadGameStateMod` (the declared-permission test mod); full suite **1148
 green**. See `docs/selfchecks/mod-game-state-selfcheck.md`.
+
+## 47. Remote clone FacialExpression disfigurement/eye-loss presentation (ProtocolVersion 32)
+
+The limb-presentation cycle's recorded residual — the remote clone's
+body-level `FacialExpression` latches (`Disfigured`, `EyeGone`,
+`BothEyesGone`, the owner's random `disfiguredIndex`) remained template-driven
+— is closed on the clone side.
+
+- **Wire**: `CharacterHealthMsg` gains `DisfiguredIndex` (int),
+  `DisfiguredTimeFullSkin` (float) and `EyeTimeHealed` (float)
+  (ProtoMember 65-67). The three Body booleans already rode the 1 Hz
+  character snapshot; the new fields carry the FacialExpression presentation
+  state that Mapster cannot read from `Body`.
+- **Capture**: `CharacterDataSync.CaptureCharacterData` and
+  `CaptureLimbStateEvent` now call `CloneFacePresentation.Capture(body, health)`,
+  which reads `FacialExpression.disfiguredIndex` /
+  `disfiguredTimeFullSkin` / `eyeTimeHealed` from the owner's body child and
+  writes them into the health message after the normal `Body → CharacterHealthMsg`
+  map.
+- **Apply**: `RemotePlayerRenderer` calls `CloneFacePresentation.Apply(clone,
+  health)` whenever a clone is created or its snapshot updates, so the render
+  clone gets the body latches and the same disfigurement head index / heal
+  progress. The clone's own `FacialExpression.Update` continues to run and uses
+  the written fields exactly like the owner's.
+- **Robustness**: `Apply` clamps the disfigurement index into the clone's
+  `disfiguredHead` array (a malformed/old wire value cannot index outside the
+  sprite array).
+- **ProtocolVersion 31→32** because older peers cannot send/render the new
+  face-latch presentation fields.
+- **Tests**: `NetPacketTests.CharacterHealth_FaceLatchPresentation_RoundTrips`,
+  `CharacterDataFileStoreTests` full-field round-trip assertions, and
+  `CloneFacePresentationTests` reflective surface (Capture/Apply shape +
+  static state-free helper); full suite **1151 green**.
+
+See `docs/selfchecks/clone-face-presentation-selfcheck.md`.

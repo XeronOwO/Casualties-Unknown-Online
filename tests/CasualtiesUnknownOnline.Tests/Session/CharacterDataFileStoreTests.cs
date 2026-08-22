@@ -45,6 +45,12 @@ public class CharacterDataFileStoreTests
 			HorrifiedLevel = 2f,
 			Alive = true,
 			Conscious = true,
+			Disfigured = true,
+			EyeGone = true,
+			BothEyesGone = true,
+			DisfiguredIndex = 2,
+			DisfiguredTimeFullSkin = 123.5f,
+			EyeTimeHealed = 456.25f,
 		},
 		Limbs =
 		[
@@ -105,6 +111,12 @@ public class CharacterDataFileStoreTests
 			Assert.Equal(42UL, restored.OwnerSteamId);
 			Assert.Equal(7, restored.Skills!.Strength);
 			Assert.Equal(61.5f, restored.Health!.Hunger);
+			Assert.True(restored.Health!.Disfigured, "the disfigured latch must survive the round-trip");
+			Assert.True(restored.Health!.EyeGone, "the eyeGone latch must survive the round-trip");
+			Assert.True(restored.Health!.BothEyesGone, "the bothEyesGone latch must survive the round-trip");
+			Assert.Equal(2, restored.Health!.DisfiguredIndex);
+			Assert.Equal(123.5f, restored.Health!.DisfiguredTimeFullSkin);
+			Assert.Equal(456.25f, restored.Health!.EyeTimeHealed);
 			Assert.True(restored.Limbs.Count == 1, "the limb must survive the round-trip");
 			Assert.True(restored.Limbs[0].Broken, "the limb bool must survive the round-trip");
 			Assert.Equal(12f, restored.Limbs[0].Pain);

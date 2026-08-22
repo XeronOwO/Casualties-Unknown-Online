@@ -74,10 +74,18 @@ lands, never bolted on afterwards.
 
 ## Runtime / transport
 
-- #118 Steam P2P cert error (transient self-heal on idle — recorded, not investigated).
-  Diagnostic order from memory: check the local proxy first (Clash on localhost:7890 has
-  triggered `4003 Bad cert` / `5008 rendezvous timeout` probabilistically), then the Steam
-  client state, then the Steamworks.NET wrapper.
+- RESOLVED (2026-08-22, no protocol bump): #118 Steam P2P cert error — the
+  investigation found no CUO code defect: the observed `BadCert` /
+  rendezvous-style failures are external (local Clash proxy on
+  `localhost:7890` is the first known trigger, then Steam client/relay state,
+  then the Steamworks.NET wrapper), and the existing host warm-up backoff +
+  guest 1 s handshake retry already self-heal once the external cause clears.
+  The shipped change is actionable observability: `SteamSendFailureClassifier`
+  maps `EResult` / `ESteamNetConnectionEnd` into `BadCert` / `Rendezvous` /
+  `ConnectFailed` / `NoConnection` / `Timeout` / `Other` and `SteamTransport`
+  logs the family + remediation on every failed P2P send. See
+  `docs/steam-p2p-cert-selfcheck.md`; 9 new classifier tests, no wire/protocol
+  change.
 - Offline-member P2P noise: RESOLVED (2026-08-16, no protocol bump). Log
   correlation first cleared the candidate hypothesis: the entity state stream
   already stops for a removed member (`EntitySyncService.OnMemberRemoved`,
@@ -212,9 +220,14 @@ lands, never bolted on afterwards.
   network's re-entrant flush was fixed along the way (handlers may not deliver a later-due
   frame into the middle of the current handler — the production poll-batch shape).
   See `docs/pickup-inflight-selfcheck.md`; 818 tests green.
-- Picking up a generation-time item leaves the peer's own copy behind (low frequency,
-  accepted): the id is assigned on drop/container-exit, not on the pickup path — revisit only
-  if the duplicate becomes observable.
+- RESOLVED (2026-08-22, no protocol bump): generation-time item pickup no
+  longer leaves the peer's copy behind — `PickupSync.OnPickedUp`'s id-less
+  branch allocates the instance id on the pickup path and commits ONE report
+  (`ItemSpawned` + `ItemPickedUp`); `ItemApplication.SpawnWorldItem` binds the
+  peer's same-spot generation-time object to that id and
+  `OnRemoteItemPickedUp` removes it. The Runtime half is covered by the
+  existing item race/in-flight suites (SpawnPickupInflight scenarios); the
+  adapter contract is the id-less branch at `PickupSync.cs:160-189`.
 - RESOLVED (2026-08-22, no protocol bump): #122 GameAdapter assembly readability
   grouping — the adapter's owned state and constructor dependency wiring moved
   out of `GameAdapter.cs` into a dedicated `GameAdapter.Construction.cs`

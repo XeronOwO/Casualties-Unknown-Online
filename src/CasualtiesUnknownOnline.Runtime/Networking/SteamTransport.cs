@@ -62,9 +62,11 @@ public sealed class SteamTransport(ISteamService steam, ILogger<SteamTransport> 
 		var state = SteamNetworkingMessages.GetSessionConnectionInfo(
 			ref identity, out var info, out _);
 
+		var kind = SteamSendFailureClassifier.Classify(result, (ESteamNetConnectionEnd)info.m_eEndReason);
 		_log.LogWarning(
-			$"SendMessageToUser to {steamId} failed: {result}; " +
-			$"session state: {state}, end reason: {info.m_eEndReason}, debug: \"{info.m_szEndDebug}\"");
+			$"SendMessageToUser to {steamId} failed: {result} ({kind}); " +
+			$"session state: {state}, end reason: {info.m_eEndReason}, debug: \"{info.m_szEndDebug}\"; " +
+			$"{SteamSendFailureClassifier.Remediation(kind)}");
 
 		if (SteamNetworkingUtils.GetRelayNetworkStatus(out var relay) == ESteamNetworkingAvailability.k_ESteamNetworkingAvailability_Current)
 		{

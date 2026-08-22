@@ -1129,3 +1129,40 @@ Tests: `PeerHealthTrackerTests` (5 pure-unit tests) and
 `PacketTrafficMonitorTests.RequestPing_RecordsPeerHealthSnapshot`
 (production stack integration); full suite **1143 green** (x64 vstest). See
 `docs/selfchecks/network-health-metrics-selfcheck.md`.
+
+## 46. Mod ReadGameState — read-only player character projection (no protocol bump)
+
+The backlog's Phase 4 `ReadGameState` item is closed with a first read-only
+game-state projection: the mod-facing `IModGameState` surface exposes the
+same session-scoped remote player character facts the Online UI already
+consumes, without exposing Unity or game-assembly types.
+
+- **Permission is enforced at the read surface.**
+  `IModContext.GameState` is available to every mod, but `CanRead` only
+  reports true when the mod declared `ModPermission.ReadGameState`, and every
+  `TryGetPlayer` call re-checks it (refused + logged otherwise). The permission
+  was already declared/validated/carried by the handshake; this round gives it
+  its first live enforcement point.
+- **Projection, not a second data path.** `ModGameStateAdapter` reads the
+  existing `RemoteVitalsService` and `RemoteInventoryService`, so a mod sees
+  the same 1 Hz character-stream facts as the built-in UI. Vitals and
+  inventory are the two halves; a missing half is simply null until its
+  snapshot arrives.
+- **Immutable DTOs in Abstractions.** `IModPlayerState`, `IModPlayerVitals`,
+  `IModPlayerInventory` and `IModInventoryEntry` are read-only interfaces over
+  private runtime records. Container contents are projected recursively, and
+  the returned objects are copies (no live game object escapes).
+- **Presence is included.** `IModPlayerState.InWorld` comes from the session's
+  local/remote in-world state, so a mod can tell whether a player is actually
+  in the world rather than only in the lobby.
+- **Session-scoped lifecycle.** A remote leaving the world or a session end
+  clears the underlying caches, so the mod surface can never serve a stale
+  player from a previous run.
+- **No wire change.** The data already arrives on the 1 Hz character stream;
+  `ProtocolVersion` stays 31, no `NetMsg`, no direction-table change.
+
+Tests: `ModGameStateTests` (5 integration tests over the production stack:
+permission refusal, host guest-report projection, guest host-snapshot
+projection, no-snapshot false, leave-world clear) and
+`TestReadGameStateMod` (the declared-permission test mod); full suite **1148
+green**. See `docs/selfchecks/mod-game-state-selfcheck.md`.

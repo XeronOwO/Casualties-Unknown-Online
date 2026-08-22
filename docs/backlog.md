@@ -13,6 +13,7 @@ Open work only. Landed delivery details are not duplicated here; they live in:
 - No open high-priority bugs.
 - Native game-content sync coverage is complete: item and entity feature matrices currently have no `missing` rows; the last recorded `Heater`-on-`xaloris` local-presentation residual is closed as excluded by design.
 - Network health metrics (per-peer RTT history / jitter / probe loss) now surface in `[NetworkHealth]` logs; per-peer bandwidth already surfaces in `[NetworkTraffic]` logs. See `docs/selfchecks/network-health-metrics-selfcheck.md`.
+- Phase 4 Mod API **ReadGameState** landed as a read-only player-character projection (`IModGameState`); no wire/protocol change. See `docs/selfchecks/mod-game-state-selfcheck.md`.
 - Remaining final dual-side acceptance items below are end-of-cycle acceptance, not development work.
 
 ## Open work
@@ -20,7 +21,6 @@ Open work only. Landed delivery details are not duplicated here; they live in:
 ### Phase 4 Mod API (MEDIUM)
 
 - **Custom entities** — `SpawnEntity` is declared and carried through the handshake, but no entity-spawn/replication surface exists. Needs design before implementation.
-- **ReadGameState** — permission is declared but no framework surface exposes a read-only game-state projection.
 - **AccessNativeApi** — permission is declared but the explicit native/game-private escape hatch is un-designed; decide policy before exposing.
 
 ### Item / entity known gaps

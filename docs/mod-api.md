@@ -15,10 +15,10 @@ session events, handshake consistency.
 for the live surfaces), host-authoritative commands, dependency ordering,
 SemVer versions, and per-sender rate limits.
 
-**UI is landed (see §4e), content registration is landed (see §4f).**
-Still NOT landed (recorded TODO): custom entities; `ReadGameState` and
-`AccessNativeApi` are declared permission flags but have no exposed framework
-surface yet.
+**UI is landed (see §4e), content registration is landed (see §4f),
+ReadGameState is landed (see §4g).**
+Still NOT landed (recorded TODO): custom entities; `AccessNativeApi` is a
+declared permission flag but has no exposed framework surface yet.
 The mod surface lives in **`CUO.Abstractions`** — the ONLY
 assembly mods may reference (architecture.md §5.5). A mod never touches
 BepInEx, Steamworks, the game assemblies, or CUO.Runtime. **Mod-state saves
@@ -81,9 +81,10 @@ public sealed class MyMod : ICuoMod   // ICuoService lifecycle + Bind
   `IModNetwork` send AND receive; `RegisterCommand` gates command
   registration; `ExecuteHostAction` additionally gates `ModCommand.IsHostAction`;
   `WriteGameState` gates host-persistent mod-state writes (`IModState`);
-  `RegisterContent` gates mod content registration (`IModContent`).
-  The remaining flags (`ReadGameState`, `SpawnEntity`, `AccessNativeApi`) are
-  carried through the handshake and are pre-declared for their future surfaces.
+  `RegisterContent` gates mod content registration (`IModContent`);
+  `ReadGameState` gates the read-only game-state projection (`IModGameState`).
+  The remaining flags (`SpawnEntity`, `AccessNativeApi`) are carried through
+  the handshake and are pre-declared for their future surfaces.
 - **`Dependencies`** are mod ids loaded before the dependent; missing or
   cyclic dependencies reject the dependent (transitive failures propagate).
 - **`ICuoMod : ICuoService`** — the standard lifecycle, driven by the
@@ -98,6 +99,7 @@ public sealed class MyMod : ICuoMod   // ICuoService lifecycle + Bind
 | `State` | host-persistent per-mod state — see §4d. |
 | `Ui` | local immediate-mode mod UI windows — see §4e. |
 | `Content` | mod content registration — see §4f. |
+| `GameState` | read-only player-state projection — see §4g. |
 | `SessionActivated` | the first member handshake completed. **Host side: never** — read the snapshot. |
 | `PlayerJoined` / `PlayerLeft` | a member's handshake completed / a member was removed (host side). NOT the in-world entity join. Each member exactly once, including yourself. |
 | `SessionEnded` | the session tore down. A guest's `PlayerLeft` for the host is NOT fired on host exit — only `SessionEnded`. |
@@ -244,6 +246,42 @@ context.Content.TryUnregister("wooden.sword");
   consumers) as a read-only snapshot.
 - **No wire change**: no content bytes or new NetMsg, so ProtocolVersion stays 29.
 
+## 4g. Read game state (read-only projection)
+
+```csharp
+if (context.GameState.CanRead)
+{
+    if (context.GameState.TryGetPlayer(steamId, out var player))
+    {
+        var hp = player.Vitals?.BrainHealth;
+        var items = player.Inventory?.Items;
+    }
+}
+```
+
+- **Scope**: a read-only projection of the latest framework-held **player
+  character state** already arriving on the 1 Hz character stream. It is the
+  same data source the built-in Online UI uses; a mod never sees Unity objects
+  or game-assembly types.
+- **Permission**: reading requires `ModPermission.ReadGameState`.
+  `CanRead` reflects whether this mod copy declared the flag, and every
+  `TryGetPlayer` call also enforces it (returns false with a log otherwise).
+- **Exposed shape**: `IModPlayerState` carries `SteamId`, `InWorld`,
+  `Vitals` (`BrainHealth`, `Hunger`, `Thirst`, `Stamina`, `Energy`,
+  `Temperature`, `Alive`, `Conscious`) and `Inventory` (recursive
+  `IModInventoryEntry` tree: instance id, item id, slot/wear index, condition,
+  favourite flag, container contents). A missing half is null until its
+  snapshot arrives.
+- **Live read, immutable snapshot**: each `TryGetPlayer` call returns the
+  latest cached facts at that moment; the returned objects are copies and can
+  be held safely. A remote leaving the world or the session ending clears the
+  cache.
+- **Not in this slice**: the local player's own character state, and
+  world/item/block/entity global state, are not exposed yet. The same
+  projection pattern is the forward path for those slices.
+- **No wire change**: this surface only projects data that already arrives, so
+  `ProtocolVersion` stays unchanged.
+
 ## 5. Handshake consistency (how sessions stay coherent)
 
 The guest's declared mod list rides the handshake (`HandshakeMsg.Mods`). The
@@ -277,8 +315,9 @@ commands and remains the two-process verification target).
 ## 7. Versioning and protocol discipline
 
 - `ProtocolVersion.Current` is bumped on any behavioral wire change. Current:
-  **29** (v29 adds `TutorialClawStateMsg` (104), the host→guest tutorial-claw
-  20 Hz presentation stream; a v28 peer does not render the remote claw flow).
+  **31** (v31 adds the LookTarget override gaze + eye-scare presentation fields
+  on `EntityStateMsg`; v30 peers cannot render a remote player's enemy
+  gaze/scared face). `ReadGameState` is not a wire change, so it stays at 31.
 - Mod versions are strict SemVer strings, validated at discovery and compared
   by precedence for state-bearing modes.
 - The 64 KiB cap is a policy constant (`ModChannel.MaxPayloadBytes`); raising
@@ -292,7 +331,7 @@ permission policy (`ModPermissionPolicyTests`), SemVer (`SemanticVersionTests`),
 lifecycle (`ModLifecycleTests`), message routing + permission/rate gates
 (`ModMessageTests`), host commands (`ModCommandTests`), mod-state saves
 (`ModStateTests`), local mod UI (`ModUiTests`), mod content registration
-(`ModContentTests`), handshake matrix
+(`ModContentTests`), read game state (`ModGameStateTests`), handshake matrix
 (`ModHandshakeTests`), rate limiter (`ModRateLimiterTests`), direction rows
 (`DirectionTests`) and wire round-trips (`ModHandshakeProtocolTests`).
 

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Time;
 using Microsoft.Extensions.Logging;
 
@@ -24,7 +25,8 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Mods;
 /// </summary>
 public sealed partial class ModService(SessionService session, ModChannel channel, ModRegistry registry,
 	PacketSender sender, ITimeSource time, ILoggerFactory loggerFactory, ILogger<ModService> log,
-	ModStateFileStore stateFile) : ICuoService, IModsControl
+	ModStateFileStore stateFile, RemoteVitalsService remoteVitals, RemoteInventoryService remoteInventory)
+	: ICuoService, IModsControl
 {
 	private readonly SessionService _session = session;
 	private readonly ModChannel _channel = channel;
@@ -34,6 +36,8 @@ public sealed partial class ModService(SessionService session, ModChannel channe
 	private readonly PacketSender _sender = sender;
 	private readonly ITimeSource _time = time;
 	private readonly ModStateFileStore _stateFile = stateFile;
+	private readonly RemoteVitalsService _remoteVitals = remoteVitals;
+	private readonly RemoteInventoryService _remoteInventory = remoteInventory;
 	private readonly Dictionary<ulong, ModRateLimiter> _messageRateLimiters = [];
 	private readonly Dictionary<ulong, ModRateLimiter> _commandRateLimiters = [];
 	private readonly List<LoadedMod> _mods = [];
@@ -286,6 +290,7 @@ public sealed partial class ModService(SessionService session, ModChannel channe
 		private readonly ModStateAdapter _state;
 		private readonly ModUiAdapter _ui;
 		private readonly ModContentAdapter _content;
+		private readonly ModGameStateAdapter _gameState;
 
 		internal ModContext(ModService owner, ModManifest manifest, ILogger logger)
 		{
@@ -295,6 +300,7 @@ public sealed partial class ModService(SessionService session, ModChannel channe
 			_state = new ModStateAdapter(owner, manifest);
 			_ui = new ModUiAdapter(owner, manifest);
 			_content = new ModContentAdapter(owner, manifest);
+			_gameState = new ModGameStateAdapter(owner, manifest, owner._session, owner._remoteVitals, owner._remoteInventory);
 			Session = owner.BuildSessionSnapshot();
 		}
 
@@ -309,6 +315,8 @@ public sealed partial class ModService(SessionService session, ModChannel channe
 		public IModUi Ui => _ui;
 
 		public IModContent Content => _content;
+
+		public IModGameState GameState => _gameState;
 
 		public ISessionInfo Session { get; }
 

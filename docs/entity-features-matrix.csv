@@ -45,7 +45,7 @@
 "LifepodPump","fluid","field","none","no","no","yes","pump","covered","FluidRegion/FluidWorldSync"
 "CorpseScript","environment","field","health","no","no","no","corpse hp/loot","covered","BuildingEntity/GeneratedItemAuthority"
 "SurvivorNote","environment","click","none","yes","no","no","slowmo","excluded","local UI + local time-scale (accepted divergence)"
-"TutorialHandler","environment","story","none","no","no","yes","claw items","excluded","tutorial domain (claw items are per-player local props until pickup — double-give fixed; claw 20Hz flow todo remains)"
+"TutorialHandler","environment","story","none","no","no","yes","claw items","covered","TutorialClawStateMsg — host 20Hz claw presentation stream; per-side course/props remain by design"
 "GrapplingHook","environment","use","none","no","no","no","rope visual","excluded","visual low"
 "Climbable","environment","field","none","no","no","no","climb","excluded","local body"
 "BounceShroom","environment","field","none","no","no","no","bounce","excluded","local physics"

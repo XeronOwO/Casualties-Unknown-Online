@@ -220,9 +220,19 @@ lands, never bolted on afterwards.
   leave them out of the shared domains: an item stays id-less until a player actually picks it
   up (the existing generation-item spawn-then-pickup flow takes over), a BuildingEntity stays
   per-player local, and both bind-target finders skip marked props so one player's pickup can
-  never destroy another player's course object. Tutorial course state remains per-side by design;
-  the claw 20 Hz flow todo stays open. See `docs/tutorial-claw-selfcheck.md`; 899 tests green
+  never destroy another player's course object. Tutorial course state remains per-side by design.
+  See `docs/tutorial-claw-selfcheck.md`; 899 tests green
   (L0 reflection + static evidence, no manual acceptance).
+- RESOLVED (2026-08-22, ProtocolVersion 29): TutorialHandler claw 20 Hz flow —
+  the host-authoritative claw presentation stream. `TutorialClawSync` captures
+  the host's `handPos` / `handPosCurrent` / arm material each frame;
+  `TutorialClawService` broadcasts at the configured state-stream cadence
+  (default 20 Hz, unreliable, seq-gated) to in-world guests; a guest not
+  running its own course applies the stream to its local TutorialHandler plus
+  `TutorialClawRemoteDriver` for the arm material. Per-side course state and
+  per-player claw props remain by design (no course-state sync in this slice).
+  See `docs/tutorial-claw-stream-selfcheck.md`; 1072 tests green (L0
+  simulation + static evidence, no manual acceptance).
 - Trade domain #132: implemented — simulation coverage landed (`TradeSimulationTests`,
   `TradeStockMachineTests`); the acceptance only lacks a dual-side runtime pass.
 - Building-entity damage persistence for late joiners: RESOLVED (2026-08-16,
@@ -330,8 +340,8 @@ lands, never bolted on afterwards.
   jump-pad light / turret tracer / turret lightSprite / CrystalUnstable
   ticking / crystalenemy tint / sound-cannon / fluid water sound-push-slip
   are all resolved or accepted-local. `LookTarget` gaze/startle and the
-  Heater temperature field stay local by design (accepted; only heater
-  meat→steak conversion is an open item, listed under Item / entity).
+  Heater temperature field stay local by design (accepted); heater
+  meat→steak conversion is resolved (listed under Item / entity).
 - RESOLVED (2026-08-20, no protocol bump): turret lightSprite flicker
   timing — the remote replay's `didShoot` lock starts the native lightSprite
   flicker (TurretScript.cs:29) at the warning, 0.5 s before the trigger side's

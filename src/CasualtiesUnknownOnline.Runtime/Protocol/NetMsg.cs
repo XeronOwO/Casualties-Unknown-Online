@@ -185,4 +185,9 @@ public enum NetMsg : byte
 	// participants the exact post-heal state)
 	PlayerHealRequest = 102, // guest → host: use a carried medical item on another in-world player (ItemInstanceId 0 = host auto-select)
 	PlayerHealResult = 103, // host → participants: authoritative heal result (item consumed/destroyed + target health/limbs)
+
+	// Tutorial claw presentation (host authority — the claw's 20 Hz flow: the
+	// host's TutorialHandler is the single live rig; a guest not running its own
+	// course renders the same handPos/handPosCurrent from this absolute stream)
+	TutorialClawState = 104, // host → guest (unreliable): the tutorial-claw presentation snapshot (20 Hz, seq-gated)
 }

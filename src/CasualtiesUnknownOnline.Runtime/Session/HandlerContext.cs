@@ -3,6 +3,7 @@ using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
+using CasualtiesUnknownOnline.Runtime.Session.Tutorial;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 
 namespace CasualtiesUnknownOnline.Runtime.Session;
@@ -16,7 +17,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session;
 public sealed class HandlerContext(ISessionControl session, IEntitySyncControl entities,
 	ICharacterDataControl characterData, IWorldControl world, IItemControl items, IModsControl mods,
 	ICraftControl craft, IEnemySyncControl enemies, IWorldTimeControl worldTime,
-	IPlayerInteractionControl playerInteraction)
+	IPlayerInteractionControl playerInteraction, ITutorialClawControl tutorialClaw)
 {
 	public ISessionControl Session { get; } = session;
 
@@ -31,6 +32,9 @@ public sealed class HandlerContext(ISessionControl session, IEntitySyncControl e
 
 	/// <summary>The direct player-interaction domain (take items from another player, host-authoritative).</summary>
 	public IPlayerInteractionControl PlayerInteraction { get; } = playerInteraction;
+
+	/// <summary>The tutorial-claw presentation stream (host-authoritative 20 Hz claw visual).</summary>
+	public ITutorialClawControl TutorialClaw { get; } = tutorialClaw;
 
 	public IItemControl Items { get; } = items;
 

@@ -144,6 +144,20 @@ public class NetPacketTests
 	}
 
 	[Fact]
+	public void DynamiteExplosion_Position_RoundTrips()
+	{
+		var decoded = NetPacket.DecodePayload<DynamiteExplosionMsg>(NetPacket.Encode(NetMsg.DynamiteExplosion, new DynamiteExplosionMsg
+		{
+			ItemInstanceId = 777ul,
+			Position = new NetVector2Msg(12.5f, -34.25f),
+		}));
+
+		Assert.Equal(777ul, decoded.ItemInstanceId);
+		Assert.Equal(12.5f, decoded.Position.X);
+		Assert.Equal(-34.25f, decoded.Position.Y);
+	}
+
+	[Fact]
 	public void BuildingEntityHealthSnapshot_ZeroHealth_RoundTrips()
 	{
 		// X/Y/Health are floats — protobuf's zero omission decodes an omitted

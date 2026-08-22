@@ -72,6 +72,14 @@ internal interface IPatchBridge
 	/// </summary>
 	void OnTrapTriggered(EntityEventKind kind, Vector2 position, byte extra);
 
+	/// <summary>
+	/// A player-lit dynamite item detonated (CustomItemBehaviour.DynamiteExplode)
+	/// — the native explosion ran on this side; report the one-shot fact (item
+	/// id + world position) so the host applies it to its own world and the
+	/// peers replay the body/visual segment.
+	/// </summary>
+	void OnDynamiteExploded(ulong itemId, Vector2 position);
+
 	/// <summary>A world entity started outside world generation (the spawn command)
 	/// — a runtime creation: report it so the peers create the same entity at the same place.</summary>
 	void OnEntityInstantiated(BuildingEntity entity);

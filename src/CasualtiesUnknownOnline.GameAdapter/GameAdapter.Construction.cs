@@ -65,6 +65,7 @@ public sealed partial class GameAdapter
 	private readonly ItemIdAllocator _itemIds;
 	private readonly CarriedInventoryReporter _carriedInventoryReporter;
 	private readonly EntityEventSync _entityEventSync;
+	private readonly DynamiteExplosionSync _dynamiteExplosionSync;
 	private readonly EntitySpawnSync _entitySpawnSync;
 	private readonly GeyserStateSync _geyserStateSync;
 	private readonly FluidWorldSync _fluidSync;
@@ -129,10 +130,13 @@ public sealed partial class GameAdapter
 		MineScriptPatches.ShouldShieldItems = () => _session.Role == SessionRole.Guest; // a locally simulated item must not trip a mine on the guest side (the trigger checks only !isKinematic)
 		_blockBreakSync = new BlockBreakSync(session, world, items, blockBreakState, _operationTrace, loggerFactory.CreateLogger<BlockBreakSync>());
 		_worldEventSync = new WorldEventSync(session, world, _blockBreakSync, _operationTrace, loggerFactory.CreateLogger<WorldEventSync>());
+		var trapVisualReplay = new TrapVisualReplay(loggerFactory.CreateLogger<TrapVisualReplay>());
 		_entityEventSync = new EntityEventSync(world, session,
 			new TrapEffectApplier(loggerFactory.CreateLogger<TrapEffectApplier>()),
-			new TrapVisualReplay(loggerFactory.CreateLogger<TrapVisualReplay>()),
+			trapVisualReplay,
 			loggerFactory.CreateLogger<EntityEventSync>());
+		_dynamiteExplosionSync = new DynamiteExplosionSync(world, session, trapVisualReplay,
+			loggerFactory.CreateLogger<DynamiteExplosionSync>());
 		_entitySpawnSync = new EntitySpawnSync(world, session, loggerFactory.CreateLogger<EntitySpawnSync>());
 		_geyserStateSync = new GeyserStateSync(world, session, loggerFactory.CreateLogger<GeyserStateSync>());
 		_fluidSync = new FluidWorldSync(world, session, entities, loggerFactory);

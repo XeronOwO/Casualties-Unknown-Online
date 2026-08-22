@@ -146,11 +146,15 @@ dynamite fuse flag (Item.cs:6671-6682), liquidcentrifuge cooldown timer
 (`data[0] = 60f`, Item.cs:5667-5689), jetpack throttle
 (CustomItemBehaviour.cs:382-428).
 
-**CUO sync: ✕ by design.** `object[]` is an unsupported field kind
-(ItemStateCodec.cs:155-159) — state is frame-level transient (jetpack
-throttle) or short-lived visual (centrifuge cooldown); the dynamite fuse is a
-**known gap** (a guest-loaded fuse detonates locally, not synced — tracked as
-its own defect, not part of #89).
+**CUO sync: ✕ by design for the array itself.** `object[]` is an unsupported
+field kind (ItemStateCodec.cs:155-159) — state is frame-level transient
+(jetpack throttle) or short-lived visual (centrifuge cooldown). The dynamite
+**detonation** is no longer a gap: it travels as a dedicated
+`DynamiteExplosionMsg` (NetMsg 105, ProtocolVersion 30) carrying the one-shot
+item id + position, so a guest-loaded fuse's explosion now applies on the host
+and replays on the other sides. The 5-second lit-fuse visual on remote clones
+remains local-only (short-lived presentation). See
+`docs/selfchecks/dynamite-explosion-selfcheck.md`.
 
 ### gun — GunScript state machine
 
@@ -277,7 +281,8 @@ domain"). Per-surface notes:
 ## Known state gaps (documented, not part of #89)
 
 - **CustomItemBehaviour.data** — see [payload](#payload—customitembbehaviourdata);
-  dynamite fuse gap tracked separately.
+  the dynamite **detonation** is synced via `DynamiteExplosionMsg`; the
+  short-lived lit-fuse visual remains local-only.
 - **GrapplingHook** `fired`/`hookLatched`/`pulling` (GrapplingHook.cs:114-120,
   no `[Saveable]`) — a fired hook is local-only.
 - **WatchScript** timers (WatchScript.cs:130-148) — local-only, low risk.

@@ -355,6 +355,18 @@ internal sealed class TrapVisualReplay(ILogger<TrapVisualReplay> log)
 		_log.LogInformation("[TrapEvent] replayed unstable-crystal explosion at {Pos}.", position);
 	}
 
+	/// <summary>
+	/// Replay a plain player-item explosion (dynamite) on the receiving side:
+	/// the pure-visual five-piece plus the real-body effect segment. Used by
+	/// the dynamite event (DynamiteExplosionSync); the trap replays call the
+	/// same two pieces through their own kind-specific consumption checks.
+	/// </summary>
+	internal void ReplayExplosion(ExplosionParams param)
+	{
+		ReplayExplosionVisual(param);
+		ExplosionBodyEffect.ApplyToLocalBodies(param);
+	}
+
 	/// <summary>The pure-visual explosion five-piece (WorldGeneration.cs:3965-3970)
 	/// — shared by the mine and turret replays.</summary>
 	private void ReplayExplosionVisual(ExplosionParams param)

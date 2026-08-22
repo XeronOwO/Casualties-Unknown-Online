@@ -44,6 +44,9 @@ public sealed partial class GameAdapter : IGameAdapter, ICuoService, IPatchBridg
 	void IPatchBridge.OnTrapTriggered(EntityEventKind kind, Vector2 position, byte extra) =>
 		_entityEventSync.OnTrapTriggered(kind, position, extra);
 
+	void IPatchBridge.OnDynamiteExploded(ulong itemId, Vector2 position) =>
+		_dynamiteExplosionSync.OnLocalExploded(itemId, position);
+
 	void IPatchBridge.OnEntityInstantiated(BuildingEntity entity)
 	{
 		// Enemy copies freeze at their spawn position before any AI/physics
@@ -222,6 +225,7 @@ public sealed partial class GameAdapter : IGameAdapter, ICuoService, IPatchBridg
 		_itemPositionFollow.BindToSession();
 		_worldEventSync.BindToSession();
 		_entityEventSync.BindToSession();
+		_dynamiteExplosionSync.BindToSession();
 		_entitySpawnSync.BindToSession();
 		_geyserStateSync.BindToSession();
 		_fluidSync.BindToSession();
@@ -259,6 +263,7 @@ public sealed partial class GameAdapter : IGameAdapter, ICuoService, IPatchBridg
 		_itemPositionFollow.Unbind();
 		_worldEventSync.Unbind();
 		_entityEventSync.Unbind();
+		_dynamiteExplosionSync.Unbind();
 		_entitySpawnSync.Unbind();
 		_geyserStateSync.Unbind();
 		_fluidSync.Unbind();

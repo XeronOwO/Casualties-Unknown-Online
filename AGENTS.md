@@ -102,8 +102,8 @@ Current: **Phase 3 native game-content follow-through** — finish the remaining
    character save/restore).
 4. **Phase 3 — Game core loop** — largely landed (star network, item/world/entity/crafting domains; see
    `docs/tech-decisions.md`).
-5. **Phase 4 — Public Mod API** — first two rounds landed; remaining: content registration, custom
-   entities, UI, mod-state saves.
+5. **Phase 4 — Public Mod API** — first two rounds plus mod-state saves landed; remaining: content
+   registration, custom entities, UI.
 6. **Phase 5 — Tooling & ecosystem** — future (mod manager, auto-install, crash reports, host migration,
    dedicated server).
 

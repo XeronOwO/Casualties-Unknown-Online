@@ -842,3 +842,33 @@ Tests: `TutorialClawStreamTests` (wire round-trip, cadence, in-world gate,
 seq gate, clear semantics) + the updated `DirectionTests`
 host→guest row. 1072 tests green. See
 `docs/tutorial-claw-stream-selfcheck.md`.
+
+## 37. Mod-state saves (no protocol bump)
+
+The first Mod-API save surface lands as a host-persistent, per-mod opaque
+key/value store — not as a synced wire channel. The host is the only save
+authority (architecture.md §8), so the store is host-write-only; a guest copy
+gets `CanWrite = false` and coordinates through `IModNetwork`/`IModCommands`.
+
+- **API**: `IModContext.State` / `IModState` — `TryGet`, `TrySet`,
+  `TryRemove`, `TryClear`, `TrySetSchemaVersion`, `SchemaVersion`, `CanWrite`,
+  `Keys`, `Count`. Payloads are opaque byte arrays; the framework never
+  interprets mod bytes, so the mod owns its own schema/migration.
+- **Permission**: writes require the host role + `ModPermission.WriteGameState`
+  (the first live enforcement point for that flag). Reads are host-only too;
+  the state table is not synced to guests.
+- **Persistence**: `BepInEx/config/CasualtiesUnknownOnline.mod-state.bin`
+  (versioned protobuf wrapper, atomic temp+replace, same degrade-to-empty
+  contract as `CharacterDataFileStore`). It loads once at `ModService.Initialize`
+  (before discovery/Bind) and persists on each mutation.
+- **Metadata/rails**: file entries carry mod id, mod version and schema version;
+  missing mods keep their entries untouched. Safety rails: key ≤128 chars,
+  ≤1024 keys per mod, value ≤64 KiB.
+- **No wire change**: this is host-local persistence, so ProtocolVersion stays 29.
+  Content registration, custom entities and UI remain the un-landed Mod API
+  surfaces.
+
+Tests: `ModStateTests` (host write/read/remove/clear, guest refusal,
+permission refusal, copy semantics, process persistence, corrupt-file
+degradation). 1079 tests green after this slice. See
+`docs/mod-state-saves-selfcheck.md`.

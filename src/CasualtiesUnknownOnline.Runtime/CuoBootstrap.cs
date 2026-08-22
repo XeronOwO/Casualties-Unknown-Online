@@ -48,7 +48,7 @@ public static class CuoBootstrap
 	/// </summary>
 	public static ServiceProvider BuildServiceProvider(
 		ManualLogSource bepinExLogSource, string logDirectory, string? legacyLogPath = null,
-		string? characterDataFile = null,
+		string? characterDataFile = null, string? modStateFile = null,
 		Action<IServiceCollection>? extraRegistrations = null)
 	{
 		var services = new ServiceCollection();
@@ -202,7 +202,11 @@ public static class CuoBootstrap
 		// Mod domain (Phase 4 Mod API): discovery registry (pure), the message
 		// channel and the coordinator (an ICuoService — registered after the
 		// session it reads; the session's IModListProvider resolves the registry
-		// lazily, so this order is safe).
+		// lazily, so this order is safe). The mod-state disk store is a
+		// persistence mechanism only (no pump); a null path keeps it in-memory
+		// (the test composition default).
+		services.AddSingleton(p => new ModStateFileStore(
+			modStateFile, p.GetRequiredService<ILogger<ModStateFileStore>>()));
 		services.AddSingleton<ModRegistry>();
 		services.AddSingleton<IModListProvider>(p => p.GetRequiredService<ModRegistry>());
 		services.AddSingleton<ModChannel>();

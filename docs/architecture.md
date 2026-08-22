@@ -308,8 +308,9 @@ commands (NetMsg 86/87, host-authoritative execution, per-sender rate limits),
 dependency ordering (topological load, missing/cycle/transitive rejection),
 and strict SemVer versions (ProtocolVersion 10). Binding contract:
 `docs/mod-api.md`.
-Not yet landed (MEDIUM priority per the 2026-08-16 decision): content registration, custom
-entities, UI, mod-state saves — resume after the remaining native game-content coverage.
+Mod-state saves are landed (host-persistent `IModState`, see `docs/mod-api.md` §4d). Not yet landed
+(MEDIUM priority per the 2026-08-16 decision): content registration, custom
+entities, UI — resume after the remaining native game-content coverage.
 
 ### KrokMP Compatibility Layer (future, reserved space)
 

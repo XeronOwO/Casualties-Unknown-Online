@@ -90,6 +90,7 @@ public class GameFieldContractTests
 		("PreRunScript", "runSettings", Kind.Field, typeof(Dictionary<string, object>), "instance — the menu's run settings (HarmonyTraverse.ReadPreRunRunSettings)"),
 		// Enemy sync.
 		("SpiderHandler", "biteCooldown", Kind.Field, typeof(float), "the host-side bite gate read/written by EnemyCombatDirector for host-ordered bites (SpiderHandler.cs:39/146)"),
+		("SpiderHandler", "threatWorkaround", Kind.Field, typeof(bool), "the native item-hit threat-music suppression toggle (EnemyCombatDirector.ApplyNativeItemBranch, SpiderHandler.cs:255-257)"),
 		("ElderThornbackBehaviour", "timeChecked", Kind.Field, typeof(float), "the 1 s horror/stamina tick edge (EnemyProximityPatches)"),
 		("ElderThornbackBehaviour", "build", Kind.Field, "BuildingEntity", "the death-reward health check (EnemyProximityPatches)"),
 		("XalorisScript", "lastTime", Kind.Field, typeof(float), "the 0.5 s septic-tick edge (EnemyProximityPatches)"),

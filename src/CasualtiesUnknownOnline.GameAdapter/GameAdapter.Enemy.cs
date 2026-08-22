@@ -1,3 +1,5 @@
+using UnityEngine;
+
 namespace CasualtiesUnknownOnline.GameAdapter;
 
 /// <summary>
@@ -17,6 +19,21 @@ public sealed partial class GameAdapter
 	object? IPatchBridge.OnCrystalLungeBegin(CrystalEnemy enemy) => _enemyCombat.OnCrystalLungeBegin(enemy);
 
 	void IPatchBridge.OnCrystalLungeEnd(object? state) => _enemyCombat.OnCrystalLungeEnd(state);
+
+	float? IPatchBridge.OnEnemyItemCollision(SpiderHandler spider, Collision2D collision)
+	{
+		var damage = _enemyCombat.OnEnemyItemCollision(spider, collision);
+		if (damage is { } healthDamage)
+		{
+			var entity = spider.GetComponentInParent<BuildingEntity>();
+			if (entity != null) // Unity object — ==
+			{
+				_worldEventSync.OnBuildingEntityDamaged(entity, healthDamage, playHitSound: false);
+			}
+		}
+
+		return damage;
+	}
 
 	void IPatchBridge.OnElderHorrorTick(Body body) => _enemyProximity.ReportElderHorrorTick(body);
 

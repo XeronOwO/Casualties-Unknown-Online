@@ -235,6 +235,13 @@ public class PatchContractTests
 			missing.Add($"SpiderHandler.Update (freeze + target guidance) — got {updateCount} patch class(es)");
 		}
 
+		var itemHitCount = contracts.Count(c =>
+			c.TargetType == "SpiderHandler" && c.MethodName == "OnCollisionEnter2D");
+		if (itemHitCount < 2)
+		{
+			missing.Add($"SpiderHandler.OnCollisionEnter2D (freeze + item-hit) — got {itemHitCount} patch class(es)");
+		}
+
 		Assert.True(missing.Count == 0,
 			$"enemy-combat patch surface is incomplete ({missing.Count}):\n" + string.Join("\n", missing));
 	}

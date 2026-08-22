@@ -18,10 +18,10 @@ acceptance.
 
 ## Explicitly out of scope (recorded, not silent)
 
-- Guest-originated thrown-item/enemy damage remains unsynced: a guest's item cannot damage the
-  host's authoritative enemy or set stun there. This cycle only carries the host-side stun state
-  that the already-synced enemy snapshot can observe. The item-vs-enemy damage path stays in
-  `docs/backlog.md` as deferred until item-vs-enemy attacks are synced.
+- Guest-originated thrown-item/enemy damage is now resolved (2026-08-22): see
+  `docs/enemy-item-hit-sync-selfcheck.md`. The stun presentation flag remains the guest-side
+  rendering surface; the item hit itself travels through the existing `BuildingEntityDamaged`
+  relay (health/drop semantics) plus the enemy state stream's `Stunned` presentation flag.
 - There is no dedicated native "stun pose" renderer; the flag is the presentation surface and is
   held on the frozen copy's driver for future presentation consumers.
 

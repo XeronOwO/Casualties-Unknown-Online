@@ -278,6 +278,15 @@ internal interface IPatchBridge
 	/// <summary>CrystalEnemy.Lunge just finished (host side) — verify the native hit on the local body and report the post-lunge terminal state when the limb diff confirms it.</summary>
 	void OnCrystalLungeEnd(object? state);
 
+	/// <summary>
+	/// SpiderHandler.OnCollisionEnter2D completed (host side) — an item hit an
+	/// animal. The native branch only runs within 50 units of the local body;
+	/// this entry generalizes to the in-world player set, applies the missing
+	/// host-side effects when native skipped, and returns the health damage to
+	/// relay through the existing BuildingEntityDamaged event.
+	/// </summary>
+	float? OnEnemyItemCollision(SpiderHandler spider, Collision2D collision);
+
 	/// <summary>ElderThornbackBehaviour.Update ran its 1 s proximity tick on the local body — report the post-tick terminal state.</summary>
 	void OnElderHorrorTick(Body body);
 

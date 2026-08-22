@@ -427,12 +427,17 @@ lands, never bolted on afterwards.
     host spider, guarded by `GameFieldContractTests`). The `rb.bodyType = Static` freeze remains a
     no-op (`BuildingEntity.Update`, BuildingEntity.cs:50-55, re-toggles `bodyType` to Dynamic when the
     chunk renders + `timeScale ≤ 5`), so the freeze still relies entirely on EnemyPatches, not the
-    Static rb. Related edge (deferred): guest-originated thrown-item enemy
-    damage is still unsynced — a guest's item cannot damage the host's
-    authoritative enemy or set `stunTime` there. The host-side stun
-    presentation that follows the native `AnimalHit` is now carried (see the
-    per-enemy stun presentation bullet above), but the item-vs-enemy damage
-    path itself remains out of scope until item-vs-enemy attacks are synced.
+    Static rb.
+  - RESOLVED (2026-08-22, no protocol bump): item-vs-enemy damage sync — the
+    native `SpiderHandler.OnCollisionEnter2D` item branch's 50-unit
+    LOCAL-body guard (SpiderHandler.cs:247) is generalized to the in-world
+    player set. A host-side postfix reports every reportable item hit through
+    the existing `BuildingEntityDamaged` relay (health + remote-death/drop
+    semantics) and, when the original skipped the far-from-host case, applies
+    the same native effects locally (health, `AnimalHit` stun, sounds, item
+    bounce). See `docs/enemy-item-hit-sync-selfcheck.md`; 1105 tests green
+    (L0 pure rules + patch/field contracts + static evidence, no manual
+    acceptance).
   - **RESOLVED (enemy-targeting + host-ordered attacks)**: enemies now see every in-world player —
     `EnemyCombatDirector` makes SpiderHandler target the nearest player inside `seeDistance` on the
     game's own moveTime-expiry edge and resolves `CrystalEnemy.body` to the nearest player body within

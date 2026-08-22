@@ -52,6 +52,9 @@ internal sealed class EnemyCombatDirector(
 	private static readonly FieldInfo? BiteCooldownField =
 		typeof(SpiderHandler).GetField("biteCooldown", BindingFlags.Instance | BindingFlags.NonPublic);
 
+	private static readonly FieldInfo? ThreatWorkaroundField =
+		typeof(SpiderHandler).GetField("threatWorkaround", BindingFlags.Instance | BindingFlags.NonPublic);
+
 	private readonly SessionService _session = session;
 	private readonly EntitySyncService _entities = entities;
 	private readonly EnemySyncService _enemies = enemies;
@@ -200,6 +203,101 @@ internal sealed class EnemyCombatDirector(
 		}
 
 		_enemySync.ReportLocalCrystalLunge(changed);
+	}
+
+	// ---- Item hits (thrown/dropped items vs host-authoritative animals) ----
+
+	/// <summary>
+	/// A SpiderHandler.OnCollisionEnter2D completed on the host. The native item
+	/// branch (SpiderHandler.cs:246-258) only runs inside 50 units of the LOCAL
+	/// body — single-player scoping that breaks when a REMOTE guest throws an
+	/// item far from the host. This entry generalizes the proximity guard to the
+	/// in-world player set and returns the health damage for the dedicated
+	/// BuildingEntityDamaged relay. When the native branch did not run it also
+	/// applies the same local host-side effects (health, stun, sounds, item
+	/// bounce) so the host authority is indistinguishable from a native hit.
+	/// Returns null when there is no reportable item impact.
+	/// </summary>
+	internal float? OnEnemyItemCollision(SpiderHandler spider, Collision2D collision)
+	{
+		if (!_session.SessionActive || _session.Role != SessionRole.Host)
+		{
+			return null;
+		}
+
+		if (spider.GetComponentInParent<RemoteEnemyDriver>() != null) // Unity object — ==; a frozen render copy never reports
+		{
+			return null;
+		}
+
+		var item = collision.gameObject.GetComponent<Item>();
+		if (item == null) // Unity object — ==
+		{
+			return null;
+		}
+
+		var magnitude = collision.relativeVelocity.magnitude;
+		if (!EnemyItemHitArbitration.IsImpactEligible(magnitude))
+		{
+			return null;
+		}
+
+		var building = spider.GetComponentInParent<BuildingEntity>();
+		if (building == null) // Unity object — ==
+		{
+			_log.LogWarning("[Enemy] item hit on {Spider} has no BuildingEntity — no host-side damage/report.",
+				spider.transform.position);
+			return null;
+		}
+
+		var localBody = LocalBody();
+		var nativeHandled = localBody != null &&
+			Vector2.Distance(spider.transform.position, localBody.transform.position) < EnemyItemHitArbitration.PlayerRadius;
+
+		if (!nativeHandled)
+		{
+			var hasNearbyPlayer = EnemyItemHitArbitration.AnyPlayerWithin(
+				BuildCandidates().Select(c => c.ToFact().Position),
+				ToNetVector2(spider.transform.position),
+				EnemyItemHitArbitration.PlayerRadius);
+			if (!hasNearbyPlayer)
+			{
+				return null; // same as the single-player scoping: no player near, no item-vs-enemy effect
+			}
+
+			ApplyNativeItemBranch(spider, item, magnitude, building);
+		}
+
+		var damage = EnemyItemHitArbitration.ComputeHealthDamage(magnitude, item.rb.mass);
+		_log.LogInformation("[Enemy] item hit on {Enemy} near host at ({X:F1},{Y:F1}) — damage {Damage:F2}, nativeHandled {Native}.",
+			building.id, spider.transform.position.x, spider.transform.position.y, damage, nativeHandled);
+		return damage;
+	}
+
+	/// <summary>
+	/// Apply the native SpiderHandler item branch exactly (SpiderHandler.cs:
+	/// 246-258) when the original skipped it because the local body was far
+	/// away. The threat-workaround toggle is private and reflected; the field
+	/// is locked by GameFieldContractTests.
+	/// </summary>
+	private void ApplyNativeItemBranch(SpiderHandler spider, Item item, float magnitude, BuildingEntity building)
+	{
+		var num = EnemyItemHitArbitration.ComputeImpactWeight(magnitude, item.rb.mass);
+		Sound.Play("gore3", spider.transform.position, false, true, null, 1f, 1f, false, false);
+		Sound.Play("boneHit", spider.transform.position, false, true, null, 1f, 1f, false, false);
+
+		var spiderRb = spider.GetComponent<Rigidbody2D>();
+		if (spiderRb != null && spiderRb.mass > 0f) // Unity object — ==
+		{
+			spiderRb.velocity = Vector2.Lerp(spiderRb.velocity, item.rb.velocity, 1f / spiderRb.mass * 10f);
+		}
+
+		item.rb.velocity *= -1f;
+		building.health -= EnemyItemHitArbitration.ComputeHealthDamage(magnitude, item.rb.mass);
+
+		ThreatWorkaroundField?.SetValue(spider, false);
+		spider.AnimalHit(EnemyItemHitArbitration.ComputeStunDamage(magnitude, item.rb.mass));
+		ThreatWorkaroundField?.SetValue(spider, true);
 	}
 
 	// ---- Spider bite (the host's collision callback can never touch a remote clone) ----

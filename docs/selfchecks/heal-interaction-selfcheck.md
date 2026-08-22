@@ -120,8 +120,10 @@ the plan approval for this cycle; no further interactive approval is required.
 
 ## 8. Accepted boundaries
 
-- Auto-select first medical item from the Online UI; exact item picking remains
-  a possible future UI refinement (the wire supports explicit instance ids).
+- The original slice auto-selected the first medical item from the Online UI;
+  the explicit item selector is now closed by the follow-up
+  `docs/selfchecks/heal-item-selection-selfcheck.md` (the wire already
+  supported explicit instance ids).
 - No CPR / dead-target healing.
 - Supported item set is the dressing/medicine limb-usable profile set; liquid,
   drug, container and tool items are not included.

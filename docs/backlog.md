@@ -30,11 +30,6 @@ None open. The previous local-only item states are closed:
 - **WatchScript** timers / **AutoPump.worn** — excluded by design: owner-local body/UI effects only, and render-clone scripts are disabled.
 - **Peer-view clone renderer** — the pure state-selection helper now has an L0 test face (`RemoteItemPresentationTests`).
 
-### Online UI / interaction refinements (LOW/MEDIUM)
-
-- **Open another player's inventory/container** — content sync and clone fact tables are correct, but the renderer does not display a remote player's container contents; a remote inventory UI remains.
-- **Heal item selection** — heals auto-select the first carried medical item; the wire already supports explicit item ids, so a UI selector is a future refinement.
-
 ### Networking observability / optimization (new)
 
 Measurement-first items; do not optimize before data exists.

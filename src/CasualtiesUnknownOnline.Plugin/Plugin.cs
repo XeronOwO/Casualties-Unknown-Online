@@ -151,6 +151,8 @@ public class Plugin : BaseUnityPlugin
 				DropCarried = TryDropCarryFromUi,
 				HealRemote = TryHealRemoteFromUi,
 				HasHealItem = () => _adapter?.HasLocalHealItem() == true,
+				HealWithItem = TryHealWithItemFromUi,
+				GetLocalHealItems = () => _adapter?.GetLocalHealItems() ?? [],
 			};
 
 			// Publish the container on the static diagnostics seam (HotRepl etc.).
@@ -416,6 +418,19 @@ public class Plugin : BaseUnityPlugin
 		_playerInteraction.SendHealRequest(targetSteamId, 0);
 		return true;
 	}
+
+	/// <summary>Online UI explicit heal-item path — forward the chosen instance id to the host-authoritative heal domain.</summary>
+	private bool TryHealWithItemFromUi(ulong targetSteamId, ulong itemInstanceId)
+	{
+		if (!_session.SessionActive || itemInstanceId == 0)
+		{
+			return false;
+		}
+
+		_playerInteraction.SendHealRequest(targetSteamId, itemInstanceId);
+		return true;
+	}
+
 
 	private static MelLogLevel ParseLogLevel(string text) =>
 		Enum.TryParse(text, ignoreCase: true, out MelLogLevel level)

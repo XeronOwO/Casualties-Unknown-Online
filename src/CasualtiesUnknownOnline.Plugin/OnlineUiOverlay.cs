@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Runtime.OnlineUi;
+using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
@@ -40,6 +42,12 @@ internal sealed class OnlineUiOverlay
 
 	/// <summary>Read-only UI check: does the local body currently carry a heal-profile medical item?</summary>
 	internal Func<bool>? HasHealItem;
+
+	/// <summary>Invoked when the user clicks one of the explicit local heal items (instance id must be non-zero).</summary>
+	internal Func<ulong, ulong, bool>? HealWithItem;
+
+	/// <summary>Explicit local heal items for the Online UI selector (slot items with wire ids only).</summary>
+	internal Func<IReadOnlyList<LocalHealItem>>? GetLocalHealItems;
 
 	private string _lobbyIdInput = "";
 	private string? _inlineError;
@@ -182,6 +190,29 @@ internal sealed class OnlineUiOverlay
 
 			y += 20f;
 
+			// Explicit heal-item selector: the wire already accepts a concrete
+			// instance id, so list the local slot-held medical items. The host
+			// remains the authority and re-validates the requested id.
+			if (lobbyMember != steam.LocalSteamId
+				&& member is { InWorld: true }
+				&& session.LocalInWorld
+				&& vitals.TryGet(lobbyMember, out var healSelectorVitals)
+				&& healSelectorVitals.Alive
+				&& (HasHealItem?.Invoke() ?? false)
+				&& (GetLocalHealItems?.Invoke() ?? []) is { Count: > 0 } healItems)
+			{
+				foreach (var healItem in healItems)
+				{
+					if (GUI.Button(new Rect(30f, y, 190f, 16f), $"Heal {healItem.ItemId}"))
+					{
+						HealWithItem?.Invoke(lobbyMember, healItem.InstanceId);
+					}
+
+					y += 16f;
+				}
+			}
+
+
 			// The "view items" slice: expand the in-world member's carried and
 			// worn inventory under its status line. The clone already shows the
 			// visuals; this gives a readable item/slot list from the same 1 Hz
@@ -210,12 +241,28 @@ internal sealed class OnlineUiOverlay
 					}
 
 					y += 16f;
+					y = DrawContainerContents(entry, y);
 				}
 			}
 		}
 
 		return y;
 	}
+
+	private static float DrawContainerContents(RemoteInventoryEntry entry, float y)
+	{
+		foreach (var child in entry.Contents)
+		{
+			var suffix = child.ContentsCount > 0 ? $" ({child.ContentsCount} inside)" : "";
+			var favourite = child.Favourited ? " ★" : "";
+			GUI.Label(new Rect(50f, y, 860f, 16f), $"            ↳ {child.ItemId}{suffix}{favourite}");
+			y += 16f;
+			y = DrawContainerContents(child, y);
+		}
+
+		return y;
+	}
+
 
 	private static void DrawNameplatesAndArrows(SteamService steam, SessionService session, EntitySyncService entities, RemoteVitalsService vitals)
 	{

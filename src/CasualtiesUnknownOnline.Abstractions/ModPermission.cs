@@ -9,12 +9,13 @@ namespace CasualtiesUnknownOnline.Abstractions;
 /// bits and host/state permissions on local-only network modes
 /// (see the framework's ModPermissionPolicy).
 ///
-/// Only <see cref="SendNetworkMessage"/>, <see cref="RegisterCommand"/> and
-/// <see cref="ExecuteHostAction"/> have an executable enforcement point today
-/// (the mod message channel and the host-command domain). The remaining values
-/// are part of the binding permission contract: they are declared, validated and
-/// carried through the handshake, and their future API surfaces must check them
-/// before they can be used.
+/// <see cref="SendNetworkMessage"/>, <see cref="RegisterCommand"/>,
+/// <see cref="ExecuteHostAction"/> and <see cref="WriteGameState"/> have an
+/// executable enforcement point today (the mod message channel, the host-command
+/// domain and the mod-state store). The remaining values are part of the binding
+/// permission contract: they are declared, validated and carried through the
+/// handshake, and their future API surfaces must check them before they can be
+/// used.
 /// </summary>
 [Flags]
 public enum ModPermission
@@ -25,7 +26,7 @@ public enum ModPermission
 	/// <summary>Read game state through a future framework surface (not exposed yet).</summary>
 	ReadGameState = 1 << 0,
 
-	/// <summary>Write game state through a future framework surface (not exposed yet).</summary>
+	/// <summary>Write game state through a framework surface (enforced by <see cref="IModState"/> for host-persistent mod state).</summary>
 	WriteGameState = 1 << 1,
 
 	/// <summary>Spawn entities through a future framework surface (not exposed yet).</summary>

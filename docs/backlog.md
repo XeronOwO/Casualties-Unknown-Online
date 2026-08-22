@@ -33,9 +33,16 @@ lands, never bolted on afterwards.
 
 - RESOLVED (2026-08-16, ProtocolVersion 10): host commands, full permission model,
   dependency ordering, SemVer versions — see `docs/mod-api.md`.
+- RESOLVED (2026-08-22, no protocol bump): mod-state saves — the
+  `IModState` host-persistent per-mod key/value surface (opaque bytes,
+  schema version, atomic versioned file under
+  `BepInEx/config/CasualtiesUnknownOnline.mod-state.bin`). Writes require
+  the host role + `WriteGameState`, guests never read/write the host table,
+  and the file degrades to empty on corruption/unknown version. See
+  `docs/mod-api.md` §4d and `docs/mod-state-saves-selfcheck.md`.
 - Mod support stays MEDIUM priority (user 2026-08-16): land the native coverage above first,
   reserve extension space while doing native work, then return to the remaining surfaces:
-  content registration, custom entities, UI, mod-state saves.
+  content registration, custom entities, UI.
 
 ## Lobby domain
 

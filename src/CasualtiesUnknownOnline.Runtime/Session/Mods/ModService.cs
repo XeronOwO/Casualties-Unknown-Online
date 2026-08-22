@@ -23,7 +23,8 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Mods;
 /// copy of the mod (unknown ids and over-cap payloads dropped with a log).
 /// </summary>
 public sealed partial class ModService(SessionService session, ModChannel channel, ModRegistry registry,
-	PacketSender sender, ITimeSource time, ILoggerFactory loggerFactory, ILogger<ModService> log) : ICuoService, IModsControl
+	PacketSender sender, ITimeSource time, ILoggerFactory loggerFactory, ILogger<ModService> log,
+	ModStateFileStore stateFile) : ICuoService, IModsControl
 {
 	private readonly SessionService _session = session;
 	private readonly ModChannel _channel = channel;
@@ -32,6 +33,7 @@ public sealed partial class ModService(SessionService session, ModChannel channe
 	private readonly ILogger<ModService> _log = log;
 	private readonly PacketSender _sender = sender;
 	private readonly ITimeSource _time = time;
+	private readonly ModStateFileStore _stateFile = stateFile;
 	private readonly Dictionary<ulong, ModRateLimiter> _messageRateLimiters = [];
 	private readonly Dictionary<ulong, ModRateLimiter> _commandRateLimiters = [];
 	private readonly List<LoadedMod> _mods = [];
@@ -42,6 +44,12 @@ public sealed partial class ModService(SessionService session, ModChannel channe
 
 	public void Initialize()
 	{
+		// Host mod state is loaded before discovery so Bind sees the persisted
+		// table (a mod can read its own state in Bind/Initialize). The in-memory
+		// table is process-scoped like the file store; no lazy reload after a
+		// session end — only a new process start may reload the disk copy.
+		LoadModState();
+
 		// The event bridge — subscribed here (construction-time wiring, not late
 		// attachment), forwarded to every mod context discovered later.
 		_session.SessionActivated += OnSessionActivated;
@@ -275,12 +283,14 @@ public sealed partial class ModService(SessionService session, ModChannel channe
 	{
 		private readonly ModNetworkAdapter _network;
 		private readonly ModCommandAdapter _commands;
+		private readonly ModStateAdapter _state;
 
 		internal ModContext(ModService owner, ModManifest manifest, ILogger logger)
 		{
 			Logger = logger;
 			_network = new ModNetworkAdapter(owner, manifest);
 			_commands = new ModCommandAdapter(owner, manifest);
+			_state = new ModStateAdapter(owner, manifest);
 			Session = owner.BuildSessionSnapshot();
 		}
 
@@ -289,6 +299,8 @@ public sealed partial class ModService(SessionService session, ModChannel channe
 		public IModNetwork Network => _network;
 
 		public IModCommands Commands => _commands;
+
+		public IModState State => _state;
 
 		public ISessionInfo Session { get; }
 

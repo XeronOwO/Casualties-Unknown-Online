@@ -34,6 +34,13 @@ public interface IModContext
 	/// <summary>Host-authoritative commands — the handler always runs on the host's copy of the mod.</summary>
 	IModCommands Commands { get; }
 
+	/// <summary>
+	/// Host-persistent per-mod state (opaque key/value bytes, scoped to this mod
+	/// id). Writes require <see cref="ModPermission.WriteGameState"/> and the host
+	/// role; see <see cref="IModState"/> for the full contract.
+	/// </summary>
+	IModState State { get; }
+
 	/// <summary>The first member handshake completed (host side: never — see the snapshot).</summary>
 	event Action? SessionActivated;
 

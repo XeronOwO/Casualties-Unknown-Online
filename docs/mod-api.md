@@ -15,10 +15,11 @@ session events, handshake consistency.
 for the live surfaces), host-authoritative commands, dependency ordering,
 SemVer versions, and per-sender rate limits.
 
-Still NOT landed (recorded TODO): content registration, custom entities, UI,
-mod-state saves. The mod surface lives in **`CUO.Abstractions`** — the ONLY
+Still NOT landed (recorded TODO): content registration, custom entities, UI.
+The mod surface lives in **`CUO.Abstractions`** — the ONLY
 assembly mods may reference (architecture.md §5.5). A mod never touches
-BepInEx, Steamworks, the game assemblies, or CUO.Runtime.
+BepInEx, Steamworks, the game assemblies, or CUO.Runtime. **Mod-state saves
+are landed (see §4d).**
 
 ## 2. How a mod is loaded (read this — the timing is deliberate)
 
@@ -134,6 +135,35 @@ context.Commands.TryExecute("heal", new[] { "alice" }, result => { /* ... */ });
   are settled with a failure when the session ends or the framework shuts down.
 - Guest-side result callbacks are reliable and directed to the requester only;
   unknown request ids are dropped with a log.
+
+## 4d. Mod state (host-persistent saves)
+
+```csharp
+context.State.TrySet("loadout", bytes);       // host-only + WriteGameState
+context.State.TryGet("loadout", out var bytes);
+context.State.TrySetSchemaVersion(2);
+```
+
+- **Scope**: `IModState` is scoped to the mod id — a mod can only read/write
+  its own entry. Values are opaque `byte[]`; the framework never interprets or
+  serializes the mod payload, so the mod owns its schema/migration.
+- **Host-only save authority**: `TrySet` / `TrySetSchemaVersion` / `TryRemove` /
+  `TryClear` require the host role AND `ModPermission.WriteGameState`. A guest
+  copy sees `CanWrite = false` and cannot read the host's table; a synchronized
+  mod that needs host state coordinates through `IModNetwork` / `IModCommands`.
+- **Persistence**: the host writes a versioned protobuf file under
+  `BepInEx/config/CasualtiesUnknownOnline.mod-state.bin` (atomic temp+replace).
+  Each write persists the full table; the in-memory table is process-scoped
+  and loaded once before discovery/Bind. A missing file is empty; a corrupt or
+  unknown-version file degrades to empty with a warning (never a startup
+  crash, never a guessed migration).
+- **Metadata**: the file carries mod id, mod version (last writer) and the
+  mod-declared schema version. `SchemaVersion` defaults to 1; the framework
+  stores it verbatim and does not migrate — migration policy belongs to the mod.
+- **Missing-mod policy**: an entry for a mod that is not currently loaded is
+  preserved untouched, so the data is still there if the mod returns.
+- **Safety rails**: key length ≤128, ≤1024 keys per mod, value ≤64 KiB.
+  Errors are refused with a log, never silently truncated.
 
 ## 5. Handshake consistency (how sessions stay coherent)
 

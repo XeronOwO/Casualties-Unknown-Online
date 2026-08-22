@@ -24,12 +24,11 @@ Open work only. Landed delivery details are not duplicated here; they live in:
 
 ### Item / entity known gaps
 
-Already documented in [`docs/item-features.md`](item-features.md); kept here as open/decision items:
+None open. The previous local-only item states are closed:
 
-- **GrapplingHook** `fired` / `hookLatched` / `pulling` — local-only (no `[Saveable]`).
-- **WatchScript** timers — local-only, low risk.
-- **AutoPump.worn** — local-only, low risk.
-- **Peer-view clone renderer** — the display path has no L0 test face (GameAdapter); add a test seam when next touched.
+- **GrapplingHook** `fired` / `hookLatched` / `pulling` — synced via the item component-state path; clone renderer presents the fired sprite (see `docs/item-features.md`).
+- **WatchScript** timers / **AutoPump.worn** — excluded by design: owner-local body/UI effects only, and render-clone scripts are disabled.
+- **Peer-view clone renderer** — the pure state-selection helper now has an L0 test face (`RemoteItemPresentationTests`).
 
 ### Online UI / interaction refinements (LOW/MEDIUM)
 

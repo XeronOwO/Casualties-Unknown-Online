@@ -158,10 +158,27 @@ internal static class ItemStateCodec
 		})];
 	}
 
+	/// <summary>
+	/// Components the official save does not persist but whose state must
+	/// travel over multiplayer anyway. CustomItemBehaviour is kept in the old
+	/// whitelist position because it is the general item-mode component;
+	/// GrapplingHook is added for the owner-local grapple visual the remote
+	/// clone renderer presents.
+	/// </summary>
+	private static readonly Dictionary<string, HashSet<string>> MultiplayerStateFields =
+		new(StringComparer.Ordinal)
+		{
+			["GrapplingHook"] = ["fired", "hookLatched", "pulling"],
+		};
+
+	private static bool IsMultiplayerStateField(string typeName, string fieldName) =>
+		MultiplayerStateFields.TryGetValue(typeName, out var fields) && fields.Contains(fieldName);
+
 	/// <summary>Snapshots every [Saveable] component's simple-typed state —
 	/// the wire form of the official save's per-item component dictionaries —
 	/// plus the state whitelist: components the official save does not persist
 	/// but multiplayer syncs (CustomItemBehaviour — the flashlight's on/off
+	/// state; GrapplingHook — the owner-local fired/latched/pulling visual
 	/// state). Unity-reference fields are never serialized; WaterContainerItem
 	/// is skipped (its state travels as Liquids).</summary>
 	private static List<ComponentStateMsg> CaptureSaveableComponents(Item item)
@@ -176,11 +193,14 @@ internal static class ItemStateCodec
 
 			// The state whitelist: components the official save does not persist
 			// but multiplayer syncs (CustomItemBehaviour.state — flashlight
-			// modes). The field rules below only admit public simple-typed
-			// fields, so state (int) travels while the object[] data and the
-			// Item reference stay out.
+			// modes; GrapplingHook — the grapple presentation state). The field
+			// rules below only admit public simple-typed fields, plus the
+			// explicitly declared GrapplingHook booleans — private fields that
+			// are not marked for the official save but ARE the multiplayer
+			// visual state (a fired hook's sprite must not stay local-only).
 			if (comp.GetType().GetCustomAttribute<Saveable>(inherit: false) is null
-				&& comp is not CustomItemBehaviour)
+				&& comp is not CustomItemBehaviour
+				&& !MultiplayerStateFields.ContainsKey(comp.GetType().Name))
 			{
 				continue;
 			}
@@ -195,8 +215,11 @@ internal static class ItemStateCodec
 				}
 
 				// Private state must be explicitly marked for serialization
-				// (the Unity serializer's rule, which the game relies on).
-				if (!field.IsPublic && field.GetCustomAttribute<SerializeField>() is null)
+				// (the Unity serializer's rule, which the game relies on) —
+				// unless this is one of the explicitly declared multiplayer
+				// state fields (GrapplingHook's private bools).
+				if (!field.IsPublic && field.GetCustomAttribute<SerializeField>() is null
+					&& !IsMultiplayerStateField(comp.GetType().Name, field.Name))
 				{
 					continue;
 				}

@@ -983,3 +983,36 @@ source-excluded; host broadcast to both guests), `NetPacketTests`
 round-trip, `DirectionTests` bidirectional row, and the automatic
 `PatchInventory` contract for `CustomItemBehaviour.DynamiteExplode`. 1128 tests
 green. See `docs/selfchecks/dynamite-explosion-selfcheck.md`.
+
+## 41. GrapplingHook presentation sync and clone owner-local script isolation (no protocol bump)
+
+The remaining native-content known state gaps were closed without a new wire
+message:
+
+- **GrapplingHook state rides the existing item component digest.**
+  `ItemStateCodec.MultiplayerStateFields` explicitly declares
+  `fired`/`hookLatched`/`pulling` (private bools on the game's
+  `GrapplingHook`, `GrapplingHook.cs:114-120`, no `[Saveable]`), so every
+  existing item capture/report/snapshot path carries them and the clone
+  renderer can present the owner's fired/normal sprite.
+- **Clone display is safe and owner-local.** The new
+  `RemoteItemPresentation` (display-domain helper) disables the original
+  `GrapplingHook`/`WatchScript`/`AutoPump` scripts on render clones — those
+  scripts read the local body or expect a live hook object and must not run on
+  a display proxy — and applies the grapple sprite from the wire state. The
+  rope/hook projectile remains a documented local projection (no hook
+  transform is carried).
+- **WatchScript/AutoPump are owner-local by design, not sync gaps.** Their
+  timers/worn flag only drive the owning player's UI/body; remote clone copies
+  are disabled. This closes the backlog's low-risk local-only entries as
+  explicit exclusions instead of piecemeal state sync.
+- **Peer-view renderer gained an L0 test face.** The pure
+  `RemoteItemPresentation.IsGrapplingHookFired` decision is unit-tested;
+  `GrapplingHookComponentSyncContractTests` guards the codec table and the
+  game field shapes against a future game update.
+- **No protocol change.** `ComponentStateMsg` already carries name/kind/value,
+  so ProtocolVersion stays 30.
+
+Tests: `RemoteItemPresentationTests` (3 cases), `GrapplingHookComponentSyncContractTests`
+(2 cases), full suite 1133 green. See
+`docs/selfchecks/grappling-hook-presentation-selfcheck.md`.

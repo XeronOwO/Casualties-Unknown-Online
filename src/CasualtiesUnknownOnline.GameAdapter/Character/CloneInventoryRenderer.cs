@@ -87,6 +87,12 @@ internal sealed class CloneInventoryRenderer(ILogger<CloneInventoryRenderer> log
 					ItemStateCodec.RestoreComponentStates(matches[0], wanted.Components);
 				}
 
+				RemoteItemPresentation.Apply(matches[0], wanted);
+				if (matches[0].GetComponent<RemoteCloneRender>() == null) // Unity object — ==
+				{
+					matches[0].gameObject.AddComponent<RemoteCloneRender>();
+				}
+
 				return;
 			}
 		}
@@ -143,6 +149,12 @@ internal sealed class CloneInventoryRenderer(ILogger<CloneInventoryRenderer> log
 			ItemStateCodec.RestoreComponentStates(item, wanted.Components);
 		}
 
+		// Owner-local component state also needs display-only presentation on
+		// the clone (GrapplingHook sprite/script isolation, Watch/AutoPump
+		// script isolation) — a hidden NRE after restoring the fired flag is
+		// exactly the class of bug this call prevents.
+		RemoteItemPresentation.Apply(item, wanted);
+
 		var modeState = item.GetComponent<CustomItemBehaviour>() != null
 			? item.GetComponent<CustomItemBehaviour>().state
 			: 0;
@@ -181,9 +193,9 @@ internal sealed class CloneInventoryRenderer(ILogger<CloneInventoryRenderer> log
 				: sortOrder;
 		}
 
-		if (wearLimb != null)
-		{
-			obj.AddComponent<RemoteCloneRender>(); // the marker the next pass clears (never the game's own children)
-		}
+		// Every clone render gets the marker now: limb parents still use it to
+		// clear only our renders, and the uniform marker lets presentation code
+		// identify a display-proxy item without depending on slot internals.
+		obj.AddComponent<RemoteCloneRender>();
 	}
 }

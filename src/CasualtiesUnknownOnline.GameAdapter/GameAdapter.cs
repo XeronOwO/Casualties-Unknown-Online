@@ -197,6 +197,7 @@ public sealed partial class GameAdapter : IGameAdapter, ICuoService, IPatchBridg
 		_renderer.Update();
 		_enemySync.Update(); // host: capture + publish the simulated enemies; guest: (event-driven bind/apply)
 		_enemyCombat.Update(); // host: enemy combat decisions (target guidance rides the patch callbacks; bite arbitration here)
+		_tutorialClawSync.Update(); // host: publish the tutorial-claw presentation state (Runtime throttles the 20 Hz fan-out)
 	}
 
 	void ICuoService.Stop() => Uninstall();
@@ -230,6 +231,7 @@ public sealed partial class GameAdapter : IGameAdapter, ICuoService, IPatchBridg
 		_enemySync.BindToSession();
 		_enemyProximity.BindToSession();
 		_characterSoundSync.BindToSession();
+		_tutorialClawSync.BindToSession();
 		_worldTimeSync.BindToSession();
 		_run.BindToSession();
 		_session.SessionEnded += OnSessionEnded;
@@ -266,6 +268,7 @@ public sealed partial class GameAdapter : IGameAdapter, ICuoService, IPatchBridg
 		_enemySync.Unbind();
 		_enemyProximity.Unbind();
 		_characterSoundSync.Unbind();
+		_tutorialClawSync.Unbind();
 		_craftingSync.ResetPending(); // the destroy claims die with the scene
 		_run.Unbind();
 		_session.SessionEnded -= OnSessionEnded;

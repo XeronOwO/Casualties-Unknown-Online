@@ -2,6 +2,7 @@ using CasualtiesUnknownOnline.GameAdapter.Character;
 using CasualtiesUnknownOnline.GameAdapter.Items;
 using CasualtiesUnknownOnline.GameAdapter.Patches;
 using CasualtiesUnknownOnline.GameAdapter.Run;
+using CasualtiesUnknownOnline.GameAdapter.Tutorial;
 using CasualtiesUnknownOnline.GameAdapter.World;
 using CasualtiesUnknownOnline.GameAdapter.WorldGen;
 using CasualtiesUnknownOnline.Runtime.Session;
@@ -9,6 +10,7 @@ using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
+using CasualtiesUnknownOnline.Runtime.Session.Tutorial;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using HarmonyLib;
 using MapsterMapper;
@@ -73,12 +75,14 @@ public sealed partial class GameAdapter
 	private readonly EnemySyncCoordinator _enemySync;
 	private readonly EnemyCombatDirector _enemyCombat;
 	private readonly EnemyProximitySync _enemyProximity;
+	private readonly TutorialClawSync _tutorialClawSync;
 	private readonly PlayerInteractionService _playerInteraction;
 	private Body? _lastLocalBody; // Unity object — == (the world-entry edge for the destroy-suppression reset)
 
 	public GameAdapter(SessionService session, EntitySyncService entities, CharacterDataStore characterData,
 		WorldService world, ItemService items, ICraftControl craft, ItemArbitration arbitration,
 		EnemySyncService enemies, IWorldTimeControl worldTime, PlayerInteractionService playerInteraction,
+		ITutorialClawControl tutorialClaw,
 		ILogger<GameAdapter> log, IMapper mapper, ILoggerFactory loggerFactory)
 	{
 		_session = session;
@@ -140,6 +144,7 @@ public sealed partial class GameAdapter
 		_enemySync = new EnemySyncCoordinator(session, enemies, mapper, _characterDataSync, loggerFactory.CreateLogger<EnemySyncCoordinator>());
 		_enemyCombat = new EnemyCombatDirector(session, entities, enemies, _enemySync, _renderer, loggerFactory.CreateLogger<EnemyCombatDirector>());
 		_enemyProximity = new EnemyProximitySync(session, enemies, _characterDataSync, loggerFactory.CreateLogger<EnemyProximitySync>());
+		_tutorialClawSync = new TutorialClawSync(tutorialClaw, session, loggerFactory.CreateLogger<TutorialClawSync>());
 		_characterSoundSync = new CharacterSoundSync(characterData, session, _renderer, loggerFactory.CreateLogger<CharacterSoundSync>());
 		_lifePod = new LifePodPresentation(loggerFactory.CreateLogger<LifePodPresentation>());
 		_guestMenu = new GuestMenuGuard(session, loggerFactory.CreateLogger<GuestMenuGuard>());

@@ -591,7 +591,8 @@ guest-id copy on every screen. The props are therefore declared per-player cours
   ProtocolVersion stays 15.
 - **Accepted boundary** — tutorial course state was already per-side; a prop created before a
   late joiner arrives is not in the joiner's snapshot (the joiner's own course creates its own
-  copy). The claw 20 Hz flow todo stays open for a deliberate tutorial-domain sync pass.
+  copy). The deliberate tutorial-domain sync pass is decision #36 (the 20 Hz claw presentation
+  stream; course/prop state itself remains per-side).
 - Tests: `TutorialClawPropTests` (reflective marker/scope/patch-shape/contract locks) plus the
   existing item simulation/race suites covering the unchanged spawn-then-pickup transfer.
   899 tests green.
@@ -809,3 +810,35 @@ construction block**, which is now landed without changing that architecture:
   `GameAdapter.Construction.cs` 155 lines.
 
 See `docs/gameadapter-construction-selfcheck.md`; 1066 tests green.
+
+## 36. Tutorial-claw 20 Hz presentation stream (ProtocolVersion 29)
+
+The backpack "claw 20 Hz flow todo" is now a stream, not a full tutorial-course
+sync. Per-side tutorial course state and per-player claw-created props remain by
+design (decision #28); the missing piece was the host's continuous claw *visual*
+flow — the world-space rig that otherwise appears only on each side's own
+simulation.
+
+- **Host authority**: the host's `TutorialHandler` remains the only live rig.
+  The Game Adapter captures `handPos` / `handPosCurrent` / arm material each
+  frame and publishes to `TutorialClawService`.
+- **20 Hz fan-out**: `TutorialClawService` broadcasts the latest snapshot at
+  the configured state-stream cadence (default 20 Hz, unreliable, seq-gated)
+  to in-world handshaken guests. The stream is absolute, so a late joiner
+  receives the current claw pose within one cadence tick; no separate
+  join snapshot is needed.
+- **Guest apply**: `TutorialClawSync` applies the streamed state to the local
+  `TutorialHandler` when the guest is not running its own course (a local
+  course keeps ownership of its claw). `TutorialClawRemoteDriver` overwrites
+  the claw-arm material in `LateUpdate` after the game's own `Update`.
+- **Wire**: `TutorialClawStateMsg` (104, host→guest, unreliable). ProtocolVersion
+  28→29 because a v28 peer does not render the remote claw flow.
+- **No course/prop change**: the double-give marker family, the per-player
+  pickup flow and the accepted late-joiner boundary are untouched. This is the
+  deliberate "claw 20 Hz flow" slice; a later host-authoritative course-domain
+  pass would be a separate decision.
+
+Tests: `TutorialClawStreamTests` (wire round-trip, cadence, in-world gate,
+seq gate, clear semantics) + the updated `DirectionTests`
+host→guest row. 1072 tests green. See
+`docs/tutorial-claw-stream-selfcheck.md`.

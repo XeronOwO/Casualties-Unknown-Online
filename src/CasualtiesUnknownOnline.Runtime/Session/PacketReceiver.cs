@@ -75,6 +75,7 @@ public sealed class PacketReceiver : IDisposable
 			or NetMsg.FluidPresentation or NetMsg.PlayerInventoryTransfer
 			or NetMsg.PlayerCarryState
 			or NetMsg.PlayerHealResult
+			or NetMsg.TutorialClawState
 			=> _session.Role == SessionRole.Guest,
 		// ModCommandRequest is guest→host only; ModCommandResult is host→guest only.
 		// Ping/Pong/SceneState/BlockDamaged/CharacterData/ItemSpawn/ItemPickup/

@@ -13,6 +13,7 @@ using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.Handlers;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
+using CasualtiesUnknownOnline.Runtime.Session.Tutorial;
 using CasualtiesUnknownOnline.Runtime.Steam;
 using ManualLogSource = BepInEx.Logging.ManualLogSource;
 using Microsoft.Extensions.DependencyInjection;
@@ -124,7 +125,8 @@ public static class CuoBootstrap
 			p.GetRequiredService<ICraftControl>(),
 			p.GetRequiredService<IEnemySyncControl>(),
 			p.GetRequiredService<IWorldTimeControl>(),
-			p.GetRequiredService<IPlayerInteractionControl>()));
+			p.GetRequiredService<IPlayerInteractionControl>(),
+			p.GetRequiredService<ITutorialClawControl>()));
 		services.AddSingleton<PacketDispatcher>();
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<PacketDispatcher>());
 
@@ -140,6 +142,11 @@ public static class CuoBootstrap
 		services.AddSingleton<EnemySyncService>();
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<EnemySyncService>());
 		services.AddSingleton<IEnemySyncControl>(p => p.GetRequiredService<EnemySyncService>());
+		// Tutorial-claw presentation stream (host-authoritative 20 Hz claw visual;
+		// no course/prop state — the Game Adapter owns the capture/apply).
+		services.AddSingleton<TutorialClawService>();
+		services.AddSingleton<ICuoService>(p => p.GetRequiredService<TutorialClawService>());
+		services.AddSingleton<ITutorialClawControl>(p => p.GetRequiredService<TutorialClawService>());
 		// Character-data domain: the SteamID-keyed save/restore with its disk
 		// store (no pump, not an ICuoService — it only reacts to reports and
 		// handshakes). A null characterDataFile keeps the store in-memory-only

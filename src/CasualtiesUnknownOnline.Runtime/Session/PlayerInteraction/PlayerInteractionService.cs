@@ -21,7 +21,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 /// No pump and no mutable session state outside the host-owned carry relation —
 /// the service only reacts to calls and messages.
 /// </summary>
-public sealed class PlayerInteractionService : IPlayerInteractionControl, IDisposable
+public sealed partial class PlayerInteractionService : IPlayerInteractionControl, IDisposable
 {
 	private readonly ISessionControl _session;
 	private readonly PacketSender _sender;
@@ -359,6 +359,7 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, IDispo
 		_carrying[msg.CarrierSteamId] = msg.CarriedSteamId;
 	}
 
+
 	// ---- Session cleanup (host-owned carry table + guest mirror) ----
 
 	private void OnSessionEnded()
@@ -483,5 +484,28 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, IDispo
 		Components = item.Components,
 		Contents = item.Contents,
 		Liquids = item.Liquids,
+	};
+
+	private static CharacterLimbMsg CloneLimb(CharacterLimbMsg limb) => new()
+	{
+		Index = limb.Index,
+		SkinHealth = limb.SkinHealth,
+		MuscleHealth = limb.MuscleHealth,
+		Broken = limb.Broken,
+		Dislocated = limb.Dislocated,
+		Splinted = limb.Splinted,
+		Infected = limb.Infected,
+		InfectionAmount = limb.InfectionAmount,
+		BleedAmount = limb.BleedAmount,
+		DisinfectionTime = limb.DisinfectionTime,
+		Pain = limb.Pain,
+		DislocationTimer = limb.DislocationTimer,
+		BoneHealTimer = limb.BoneHealTimer,
+		BlockedBleeding = limb.BlockedBleeding,
+		Shrapnel = limb.Shrapnel,
+		FurBloodAmount = limb.FurBloodAmount,
+		BandageSlowAmount = limb.BandageSlowAmount,
+		SkinHealAmount = limb.SkinHealAmount,
+		Dismembered = limb.Dismembered,
 	};
 }

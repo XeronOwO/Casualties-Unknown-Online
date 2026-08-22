@@ -49,4 +49,16 @@ public interface IPlayerInteractionControl
 
 	/// <summary>Read-only UI mirror: whom the given player currently carries, if any.</summary>
 	bool TryGetCarried(ulong carrierSteamId, out ulong carriedSteamId);
+
+	/// <summary>Any role: request a heal from the Online UI (guest → host on the wire; host handles locally). ItemInstanceId 0 = host auto-selects a carried medical item.</summary>
+	void SendHealRequest(ulong targetSteamId, ulong itemInstanceId = 0);
+
+	/// <summary>Host only: a heal request arrived (from the wire or the host's own UI).</summary>
+	void HandleHealRequest(ulong sender, PlayerHealRequestMsg msg);
+
+	/// <summary>Raise a received heal result for the Game Adapter to apply locally (wire handler path).</summary>
+	void FireHealReceived(PlayerHealResultMsg msg);
+
+	/// <summary>An authoritative cross-player heal result arrived — the Game Adapter consumes the healer's item and/or applies the target's post-heal state.</summary>
+	event Action<PlayerHealResultMsg>? HealReceived;
 }

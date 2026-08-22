@@ -178,4 +178,11 @@ public enum NetMsg : byte
 	PlayerCarryStartRequest = 99, // guest → host: start carrying an unconscious/dead in-world player
 	PlayerCarryStopRequest = 100, // guest → host: stop carrying the current carried player
 	PlayerCarryState = 101, // host → all: authoritative carry relation changed (CarriedSteamId = 0 means released)
+
+	// Direct player interaction — heal another player (host authority: the host
+	// validates the healer/target snapshots, consumes the healer's medical item,
+	// applies the healing effect to the target's authority and tells the two
+	// participants the exact post-heal state)
+	PlayerHealRequest = 102, // guest → host: use a carried medical item on another in-world player (ItemInstanceId 0 = host auto-select)
+	PlayerHealResult = 103, // host → participants: authoritative heal result (item consumed/destroyed + target health/limbs)
 }

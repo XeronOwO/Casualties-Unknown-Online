@@ -46,4 +46,7 @@ public interface IGameAdapter : IDisposable
 	/// copies (#191).
 	/// </summary>
 	void OnApplicationQuit();
+
+	/// <summary>True when the local body currently carries at least one item from the cross-player heal profile set (Online UI only — the host re-checks authority).</summary>
+	bool HasLocalHealItem();
 }

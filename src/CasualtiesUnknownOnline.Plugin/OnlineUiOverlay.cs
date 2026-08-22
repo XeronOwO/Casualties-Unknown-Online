@@ -35,6 +35,12 @@ internal sealed class OnlineUiOverlay
 	/// <summary>Invoked when the user clicks Drop on the currently carried remote player.</summary>
 	internal Func<ulong, bool>? DropCarried;
 
+	/// <summary>Invoked when the user clicks Heal on an in-world remote player.</summary>
+	internal Func<ulong, bool>? HealRemote;
+
+	/// <summary>Read-only UI check: does the local body currently carry a heal-profile medical item?</summary>
+	internal Func<bool>? HasHealItem;
+
 	private string _lobbyIdInput = "";
 	private string? _inlineError;
 
@@ -155,6 +161,22 @@ internal sealed class OnlineUiOverlay
 				if (GUI.Button(new Rect(760f, rowY, 58f, 16f), "Carry"))
 				{
 					CarryRemote?.Invoke(lobbyMember);
+				}
+			}
+
+			// The heal slice: show a Heal button for any in-world remote who is
+			// alive and the local body has a known medical item. The host is the
+			// authority — it re-checks availability/state from its snapshots.
+			if (lobbyMember != steam.LocalSteamId
+				&& member is { InWorld: true }
+				&& session.LocalInWorld
+				&& vitals.TryGet(lobbyMember, out var healVitals)
+				&& healVitals.Alive
+				&& (HasHealItem?.Invoke() ?? false))
+			{
+				if (GUI.Button(new Rect(700f, rowY, 58f, 16f), "Heal"))
+				{
+					HealRemote?.Invoke(lobbyMember);
 				}
 			}
 

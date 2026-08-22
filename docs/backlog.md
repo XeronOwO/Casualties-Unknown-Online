@@ -508,7 +508,18 @@ lands, never bolted on afterwards.
     rather than a second movement channel. See
     `docs/carry-interaction-selfcheck.md`; 1053 tests green (L0 runtime wire
     tests + direction tests + static evidence, no manual acceptance).
-  - Remaining: heal (direct body/Inventory interaction) — still open.
+  - RESOLVED (2026-08-22, ProtocolVersion 28): heal another player — the
+    Online UI shows a Heal button when the local body carries a known
+    medical item; `PlayerHealRequestMsg` (NetMsg 102) asks the host to
+    auto-select a carried heal item, the host consumes its condition,
+    applies the dressing/medicine profile to the target's most injured
+    limb and sends `PlayerHealResultMsg` (NetMsg 103) to both
+    participants; each participant applies the local body mutation inside
+    RemoteApply and immediately re-reports the character snapshot. No CPR
+    / dead-target healing in this slice. See
+    `docs/heal-interaction-selfcheck.md`; 1066 tests green (L0 runtime
+    wire tests + pure profile tests + direction tests, static evidence,
+    no manual acceptance).
 - RESOLVED (2026-08-21, no protocol bump): periodic keyframe self-healing
   for the world-item domain — the 5 s periodic snapshot now re-aligns an
   existing world item's top-level state (condition/favourited/liquid

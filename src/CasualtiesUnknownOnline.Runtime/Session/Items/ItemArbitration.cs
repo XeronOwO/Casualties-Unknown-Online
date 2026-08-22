@@ -330,6 +330,26 @@ public sealed class ItemArbitration(ISessionControl session, PacketSender sender
 	public void RemoveTransferredItem(ulong guest, ulong itemId) =>
 		RemoveTransferred(guest, itemId);
 
+	/// <summary>
+	/// Host only: replace a carried item's authoritative state in a guest's
+	/// transfer table (a cross-player heal consumed part of the item's
+	/// condition). The reconnect restore merges the transfer table over the
+	/// snapshot, so leaving the old condition would resurrect the consumed
+	/// amount after a disconnect.
+	/// </summary>
+	public void UpdateTransferredItem(ulong guest, ulong itemId, CharacterItemMsg item)
+	{
+		if (!_transferred.TryGetValue(guest, out var owned) || !owned.ContainsKey(itemId))
+		{
+			_log.LogWarning("Transfer-table update refused: {Guest} does not own item {ItemId}.", guest, itemId);
+			return;
+		}
+
+		item.InstanceId = itemId;
+		owned[itemId] = new WorldItem(itemId, item, default, default, 0, 0f, false);
+		_log.LogInformation("Item {ItemId} updated in {Guest}'s transfer table (cross-player heal).", itemId, guest);
+	}
+
 	public void SendCorrection(ulong targetSteamId, CharacterItemMsg item)
 	{
 		if (_session.Role != SessionRole.Host || !_session.SessionActive)

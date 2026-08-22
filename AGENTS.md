@@ -153,6 +153,39 @@ client prediction, full anti-cheat.
     arrives only via the stream (the event chain missed it); (b) host→guest replay — the full
     world/character state on entry or reconnect. Never design a trigger to depend on the snapshot.
 
+## Quality & Engineering Norms (binding, user mandates 2026-08-21)
+
+These rules apply to every change in this repository; they mirror the user-global
+engineering standards.
+
+### Root cause over patch stacking
+
+- When a problem is found, do not start with "add a patch on top". First consider whether the
+  architecture can be changed to eliminate the root cause.
+- Do not accumulate technical debt for convenience. Piled-up patches and compromises eventually
+  become an unmaintainable mess.
+- Do not fear refactoring or architectural work. Cost does not disappear — it transfers. Fixing the
+  structure early is cheaper than cleaning up after a collapse.
+
+### Tests: core scenarios plus edge/special cases
+
+- Test suites must cover the core scenario first, then actively include boundary conditions, special
+  cases, and failure paths.
+- The goal is robustness, not just "the test passes". A happy-path-only suite does not prove the
+  change is done well.
+- Edge/special-case coverage is part of the delivery standard, not an optional extra.
+
+### Logging: every key path and branch must be observable
+
+- Add logging to every key path and every logical branch. Choose the level by trigger frequency:
+  high-frequency paths use Verbose/Debug; rare, failure, or guarded paths use Warn/Error.
+- Never skip logging because "this path should not fail". An unobservable key path is unfinished.
+- Log content must be detailed enough for troubleshooting: include branch, state, ids, inputs, and
+  outcome. Avoid generic "something happened" messages.
+- Standard: after a defect is reported, the existing logs must be sufficient to locate it. Do not
+  require a code-change → deploy → reproduce → re-analyze loop just to add missing print statements.
+  Do the observability work once, correctly, to reduce rework.
+
 ## Delivery Quality Gate (binding, user mandates 2026-08-10 / 2026-08-16)
 
 Repeated "paper review passes, runtime fails" cycles made "don't assume" a hard-stop process. Executable

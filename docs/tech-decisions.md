@@ -1062,3 +1062,40 @@ slot-held heal items and lets the user pick one.
 - **Tests:** existing `PlayerInteractionServiceTests` already cover explicit
   ids on the host path; full suite 1134 green. See
   `docs/selfchecks/heal-item-selection-selfcheck.md`.
+
+## 44. LookTarget gaze/scare — remote clone presentation via the player entity stream (ProtocolVersion 31)
+
+The last recorded enemy-presentation local gap (`LookTarget` gaze/scare) is
+closed on the **player clone** side. The enemy's `LookTarget` component still
+runs natively on the local body (LookTarget.cs:12-16); the missing piece was
+that a peer's render clone never received that transient gaze/face state.
+
+- **Wire**: `EntityStateMsg` gains `LookOverridePos` (nullable `NetVector2Msg`,
+  null = no override), `LookOverrideTime`, `EyeScareTime`, `EyePanicTime` and
+  `EyeCloseTime` (ProtoMember 8-12). They ride the existing 20 Hz
+  `PlayerState` / `PlayerStateReport` stream, so the remote clone is refreshed
+  every stream tick.
+- **Capture**: `RunCoordinator.PublishBodyState` sends
+  `body.overrideLookTime > 0 ? body.overrideLookPos : null`,
+  `body.overrideLookTime`, `body.eyeScareTime`, `body.eyePanicTime` and
+  `body.eyeCloseTime` alongside the existing mouse `targetLookPos` — both are
+  preserved, so weapon aim and head gaze stay distinct.
+- **Apply**: `SessionStatePump` writes the override target/timer and the three
+  face timers onto the proxy Body. `Body.HandleVisuals` then uses
+  `overrideLookTime > 0` to turn the head/eyes toward the override point
+  (Body.cs:3178), and `FacialExpression` reads `eyeScareTime`/`eyePanicTime`/
+  `eyeCloseTime` for the scared/panic/closed eyes face (FacialExpression.cs:37-52).
+- **Owner-local scripts unchanged**: `LookTarget` is not patched; it continues
+  to drive only the local player's body on each side. No new `NetMsg`, no
+  direction-table change.
+- **ProtocolVersion 30→31** because a v30 peer would not send/render the new
+  gaze/face fields.
+- **Accepted residual**: the `Heater` temperature field on the `xaloris`
+  prefab remains a recorded local-presentation item (low priority); the
+  rope/hook projectile and the 5-second fused dynamite visual also remain
+  short-lived local presentation.
+
+Tests: `EntityStateRoundtripTests` gained gaze/eye-scare round-trip and
+defaults coverage (2 tests), `NetPacketTests` gained the wire round-trip for
+the new fields (1 test); full suite 1137 green. See
+`docs/selfchecks/looktarget-gaze-sync-selfcheck.md`.

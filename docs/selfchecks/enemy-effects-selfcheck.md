@@ -23,6 +23,11 @@ Explicitly recorded, not silently degraded: `LookTarget` local gaze/scare stays 
 (remote clones do not look at enemies); `Heater` on the `xaloris` prefab remains the existing
 temperature-field low-priority item.
 
+Updated 2026-08-23: `LookTarget` gaze/scare is now closed via the 20 Hz player entity stream
+(`EntityStateMsg` carries the override gaze + the eye face timers, `SessionStatePump` writes them
+onto the remote clone; see `docs/tech-decisions.md` #44). The `Heater` temperature-field item
+remains the only recorded local-presentation gap.
+
 ## Step 2 — Design
 
 - One new bidirectional star message: `EnemyEffectMsg` (NetMsg 85), `EnemyEffectKind`

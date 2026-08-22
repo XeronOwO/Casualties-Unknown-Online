@@ -24,11 +24,12 @@ Open work only. Landed delivery details are not duplicated here; they live in:
 
 ### Item / entity known gaps
 
-None open. The previous local-only item states are closed:
+None open. The previous local-only item states and the enemy LookTarget presentation gap are closed:
 
 - **GrapplingHook** `fired` / `hookLatched` / `pulling` — synced via the item component-state path; clone renderer presents the fired sprite (see `docs/item-features.md`).
 - **WatchScript** timers / **AutoPump.worn** — excluded by design: owner-local body/UI effects only, and render-clone scripts are disabled.
 - **Peer-view clone renderer** — the pure state-selection helper now has an L0 test face (`RemoteItemPresentationTests`).
+- **LookTarget gaze/scare** — closed via the 20 Hz player entity stream: `EntityStateMsg` now carries the owner's `LookTarget`/`CorpseScript` override gaze + the eye face timers (`eyeScareTime`/`eyePanicTime`/`eyeCloseTime`), and the remote clone writes them into its proxy Body (see `docs/tech-decisions.md` #44). The `Heater` temperature field on `xaloris` remains the one recorded local-presentation gap (low priority).
 
 ### Networking observability / optimization (new)
 

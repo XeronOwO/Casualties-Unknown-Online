@@ -113,10 +113,17 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 	/// <summary>Host side: current authoritative state of the local body.</summary>
 	public void PublishLocalState(NetVector2 position, NetVector2 lookPos, NetVector2 velocity,
 		bool isRight, bool standing, bool alive, bool conscious, bool crouching,
+		NetVector2? lookOverridePos = null, float lookOverrideTime = 0f, float eyeScareTime = 0f,
+		float eyePanicTime = 0f, float eyeCloseTime = 0f,
 		bool sitting = false, bool sleeping = false, bool climbing = false)
 	{
 		_localPlayer.Position = position;
 		_localPlayer.LookPos = lookPos;
+		_localPlayer.LookOverridePos = lookOverridePos;
+		_localPlayer.LookOverrideTime = lookOverrideTime;
+		_localPlayer.EyeScareTime = eyeScareTime;
+		_localPlayer.EyePanicTime = eyePanicTime;
+		_localPlayer.EyeCloseTime = eyeCloseTime;
 		_localPlayer.Velocity = velocity;
 		_localPlayer.IsRight = isRight;
 		_localPlayer.Standing = standing;

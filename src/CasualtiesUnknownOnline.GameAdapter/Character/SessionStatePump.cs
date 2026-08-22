@@ -65,6 +65,21 @@ internal static class SessionStatePump
 
 		body.transform.position = position;
 		body.targetLookPos = lookPos;
+		// LookTarget/CorpseScript override gaze: write the owner's override
+		// target and remaining timers onto the proxy. Body.Update is skipped on
+		// the proxy, so these are refreshed from the 20 Hz stream rather than
+		// decayed locally; HandleVisuals reads overrideLookTime > 0 to turn the
+		// head/eyes toward the override point (Body.cs:3178) and
+		// FacialExpression reads eyeScareTime for the scared face.
+		if (entity.LookOverridePos is { } overridePos)
+		{
+			body.overrideLookPos = new Vector2(overridePos.X, overridePos.Y);
+		}
+
+		body.overrideLookTime = entity.LookOverrideTime;
+		body.eyeScareTime = entity.EyeScareTime;
+		body.eyePanicTime = entity.EyePanicTime;
+		body.eyeCloseTime = entity.EyeCloseTime;
 		body.rb.velocity = velocity;
 		body.isRight = entity.IsRight;
 		// Facing is RENDERED via transform.localScale.x (SwitchDir, Body.cs:1187-

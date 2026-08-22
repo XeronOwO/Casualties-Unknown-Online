@@ -40,12 +40,41 @@ public sealed class EntityStateMsg
 	[ProtoMember(7)]
 	public byte SwingSeq { get; set; }
 
+	/// <summary>
+	/// The owner's LookTarget/CorpseScript override gaze target, or null when
+	/// no override is active. Synced so a remote clone turns its head/eyes
+	/// toward the same world point instead of only following the mouse aim.
+	/// </summary>
+	[ProtoMember(8)]
+	public NetVector2Msg? LookOverridePos { get; set; }
+
+	/// <summary>The owner's remaining override-look time (Body.overrideLookTime).</summary>
+	[ProtoMember(9)]
+	public float LookOverrideTime { get; set; }
+
+	/// <summary>The owner's remaining scared-face time (Body.eyeScareTime).</summary>
+	[ProtoMember(10)]
+	public float EyeScareTime { get; set; }
+
+	/// <summary>The owner's remaining panic-face time (Body.eyePanicTime).</summary>
+	[ProtoMember(11)]
+	public float EyePanicTime { get; set; }
+
+	/// <summary>The owner's remaining eye-close time (Body.eyeCloseTime).</summary>
+	[ProtoMember(12)]
+	public float EyeCloseTime { get; set; }
+
 	/// <summary>Domain → wire lives in <see cref="EntityStateMsgExtensions"/>;
 	/// this applies the wire state back onto a live entity buffer (values + flags).</summary>
 	public void ApplyTo(PlayerEntity target)
 	{
 		target.Position = Position.ToNetVector2();
 		target.LookPos = LookPos.ToNetVector2();
+		target.LookOverridePos = LookOverridePos?.ToNetVector2();
+		target.LookOverrideTime = LookOverrideTime;
+		target.EyeScareTime = EyeScareTime;
+		target.EyePanicTime = EyePanicTime;
+		target.EyeCloseTime = EyeCloseTime;
 		target.Velocity = Velocity.ToNetVector2();
 		target.IsRight = (Flags & 0x01) != 0;
 		target.Standing = (Flags & 0x02) != 0;

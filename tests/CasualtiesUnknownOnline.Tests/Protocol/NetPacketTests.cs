@@ -300,4 +300,39 @@ public class NetPacketTests
 		Assert.Equal(0.65f, entry.LightIntensity);
 	}
 
+	[Fact]
+	public void EntityState_GazeOverrideAndEyeScare_RoundTrips()
+	{
+		// The 20 Hz player entity stream carries the LookTarget/CorpseScript
+		// override gaze and scared-face timer. The wire must preserve the
+		// override target and both float timers, and a null override (inactive)
+		// must decode back to null rather than a fake (0,0) claim.
+		var msg = new EntityStateMsg
+		{
+			LookOverridePos = new NetVector2Msg(12.5f, -34.25f),
+			LookOverrideTime = 0.75f,
+			EyeScareTime = 1.5f,
+			EyePanicTime = 0.6f,
+			EyeCloseTime = 2.25f,
+		};
+
+		var decoded = NetPacket.DecodePayload<EntityStateMsg>(NetPacket.Encode(NetMsg.PlayerState, msg));
+
+		Assert.NotNull(decoded.LookOverridePos);
+		Assert.Equal(12.5f, decoded.LookOverridePos!.X);
+		Assert.Equal(-34.25f, decoded.LookOverridePos.Y);
+		Assert.Equal(0.75f, decoded.LookOverrideTime);
+		Assert.Equal(1.5f, decoded.EyeScareTime);
+		Assert.Equal(0.6f, decoded.EyePanicTime);
+		Assert.Equal(2.25f, decoded.EyeCloseTime);
+
+		var inactive = NetPacket.DecodePayload<EntityStateMsg>(
+			NetPacket.Encode(NetMsg.PlayerState, new EntityStateMsg()));
+		Assert.Null(inactive.LookOverridePos);
+		Assert.Equal(0f, inactive.LookOverrideTime);
+		Assert.Equal(0f, inactive.EyeScareTime);
+		Assert.Equal(0f, inactive.EyePanicTime);
+		Assert.Equal(0f, inactive.EyeCloseTime);
+	}
+
 }

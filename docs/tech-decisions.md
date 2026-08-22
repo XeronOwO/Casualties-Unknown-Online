@@ -865,10 +865,32 @@ gets `CanWrite = false` and coordinates through `IModNetwork`/`IModCommands`.
   missing mods keep their entries untouched. Safety rails: key ≤128 chars,
   ≤1024 keys per mod, value ≤64 KiB.
 - **No wire change**: this is host-local persistence, so ProtocolVersion stays 29.
-  Content registration, custom entities and UI remain the un-landed Mod API
-  surfaces.
+  Content registration and custom entities remain the un-landed Mod API
+  surfaces; the local mod UI surface is now landed (see below).
 
 Tests: `ModStateTests` (host write/read/remove/clear, guest refusal,
 permission refusal, copy semantics, process persistence, corrupt-file
 degradation). 1079 tests green after this slice. See
 `docs/mod-state-saves-selfcheck.md`.
+
+## 30. Mod UI — local immediate-mode windows (no protocol bump)
+
+- **API**: `IModContext.Ui` / `IModUi` — per-mod local window registry.
+  `Register(id, title, draw)` stores an immediate-mode callback;
+  `Unregister`/`IsRegistered`/`WindowIds` manage it. The draw callback
+  receives `IModUiWindow` (Label/Button/TextField/Separator), never Unity types.
+- **Local-only**: UI windows cannot touch network/session/game state by
+  themselves, so no permission is required and every `NetworkMode` may use it.
+  Shared state still flows through `IModNetwork`/`IModCommands`; the window is
+  a projection.
+- **Wiring**: `ModService` owns the per-mod registry and exposes
+  `IModUiControl.Windows` to the plugin. `CasualtiesUnknownOnline.Plugin`
+  draws each window through `GUI.Window` + `GUILayout` (`ModUiDrawing`/
+  `ModUiRenderer`); a throwing draw callback shows an inline error and is
+  logged, never breaking the frame.
+- **Rules**: empty id/title or null draw refused; duplicate id per mod refused;
+  unregister removes. Mods persist their own UI state in the mod instance.
+- **No wire change**: local presentation only, ProtocolVersion stays 29.
+- Tests: `ModUiTests` (register/validate/unregister, plugin-facing control
+  list, draw callback call sequence through a recording fake). 1085 tests
+  green after this slice. See `docs/mod-ui-selfcheck.md`.

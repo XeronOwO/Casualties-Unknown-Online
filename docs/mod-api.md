@@ -15,11 +15,12 @@ session events, handshake consistency.
 for the live surfaces), host-authoritative commands, dependency ordering,
 SemVer versions, and per-sender rate limits.
 
-Still NOT landed (recorded TODO): content registration, custom entities, UI.
+**UI is landed (see §4e).** Still NOT landed (recorded TODO): content
+registration, custom entities.
 The mod surface lives in **`CUO.Abstractions`** — the ONLY
 assembly mods may reference (architecture.md §5.5). A mod never touches
 BepInEx, Steamworks, the game assemblies, or CUO.Runtime. **Mod-state saves
-are landed (see §4d).**
+are landed (see §4d), and the local mod UI surface is landed (see §4e).**
 
 ## 2. How a mod is loaded (read this — the timing is deliberate)
 
@@ -90,6 +91,7 @@ public sealed class MyMod : ICuoMod   // ICuoService lifecycle + Bind
 | `Session` | a **SNAPSHOT at bind time**, not a live view — the host never fires `SessionActivated` (it activated at lobby creation), and events fired before discovery are lost. The snapshot is the only reliable "current state". `MemberSteamIds` is the peer member set (the local peer is `LocalSteamId`). |
 | `Commands` | host-authoritative commands — see §4b. |
 | `State` | host-persistent per-mod state — see §4d. |
+| `Ui` | local immediate-mode mod UI windows — see §4e. |
 | `SessionActivated` | the first member handshake completed. **Host side: never** — read the snapshot. |
 | `PlayerJoined` / `PlayerLeft` | a member's handshake completed / a member was removed (host side). NOT the in-world entity join. Each member exactly once, including yourself. |
 | `SessionEnded` | the session tore down. A guest's `PlayerLeft` for the host is NOT fired on host exit — only `SessionEnded`. |
@@ -167,6 +169,39 @@ context.State.TrySetSchemaVersion(2);
 - **Safety rails**: key length ≤128, ≤1024 keys per mod, value ≤64 KiB.
   Errors are refused with a log, never silently truncated.
 
+## 4e. Mod UI (local windows)
+
+```csharp
+context.Ui.Register("status", "My Mod Status", window =>
+{
+    window.Label($"session active: {context.Session.SessionActive}");
+    if (window.Button("ping"))
+    {
+        context.Network.Broadcast(Encoding.UTF8.GetBytes("ping"));
+    }
+    var text = window.TextField(_lastText);
+    _lastText = text; // the mod owns persistent UI state
+});
+context.Ui.Unregister("status");
+```
+
+- **Scope**: `IModUi` is a per-mod, local-only immediate-mode window registry.
+  A mod registers an id + title + draw callback in `Bind`; CUO invokes the
+  callback every frame and the Unity plugin owns all IMGUI/Unity details.
+- **No permission**: a UI window cannot touch network, session, or
+  game-authoritative state by itself, so every network mode may use it. Shared
+  UI state still flows through `IModNetwork` / `IModCommands`; the window only
+  projects that state locally.
+- **Control alphabet**: `Label`, `Button` (returns true on click),
+  `TextField` (returns the edited value; the mod owns persistence), and
+  `Separator`. The set is deliberately tiny — no Unity types leak into
+  `CUO.Abstractions`.
+- **Rules**: empty id/title or a null draw callback is refused; a duplicate id
+  within the same mod is refused; `Unregister` removes the window.
+- **Failure isolation**: a mod draw callback that throws shows an inline error
+  in the window and is logged by the plugin; it never breaks the UI frame.
+- **No wire change**: this is local presentation, so ProtocolVersion stays 29.
+
 ## 5. Handshake consistency (how sessions stay coherent)
 
 The guest's declared mod list rides the handshake (`HandshakeMsg.Mods`). The
@@ -213,7 +248,7 @@ All mod behavior is covered by pure-managed tests over the production stack
 (`tests/.../Mods/`): discovery + dependency ordering (`ModDiscoveryTests`),
 permission policy (`ModPermissionPolicyTests`), SemVer (`SemanticVersionTests`),
 lifecycle (`ModLifecycleTests`), message routing + permission/rate gates
-(`ModMessageTests`), host commands (`ModCommandTests`), handshake matrix
+(`ModMessageTests`), host commands (`ModCommandTests`), local mod UI (`ModUiTests`), handshake matrix
 (`ModHandshakeTests`), rate limiter (`ModRateLimiterTests`), direction rows
 (`DirectionTests`) and wire round-trips (`ModHandshakeProtocolTests`).
 

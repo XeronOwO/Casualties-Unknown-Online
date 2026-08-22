@@ -75,7 +75,8 @@ public sealed class MyMod : ICuoMod   // ICuoService lifecycle + Bind
   SendNetworkMessage, RegisterContent, RegisterCommand, ExecuteHostAction,
   AccessNativeApi`. Live enforcement today: `SendNetworkMessage` gates
   `IModNetwork` send AND receive; `RegisterCommand` gates command
-  registration; `ExecuteHostAction` additionally gates `ModCommand.IsHostAction`.
+  registration; `ExecuteHostAction` additionally gates `ModCommand.IsHostAction`;
+  `WriteGameState` gates host-persistent mod-state writes (`IModState`).
   The remaining flags are carried through the handshake and are pre-declared
   for their future surfaces.
 - **`Dependencies`** are mod ids loaded before the dependent; missing or
@@ -88,6 +89,7 @@ public sealed class MyMod : ICuoMod   // ICuoService lifecycle + Bind
 |---|---|
 | `Session` | a **SNAPSHOT at bind time**, not a live view — the host never fires `SessionActivated` (it activated at lobby creation), and events fired before discovery are lost. The snapshot is the only reliable "current state". `MemberSteamIds` is the peer member set (the local peer is `LocalSteamId`). |
 | `Commands` | host-authoritative commands — see §4b. |
+| `State` | host-persistent per-mod state — see §4d. |
 | `SessionActivated` | the first member handshake completed. **Host side: never** — read the snapshot. |
 | `PlayerJoined` / `PlayerLeft` | a member's handshake completed / a member was removed (host side). NOT the in-world entity join. Each member exactly once, including yourself. |
 | `SessionEnded` | the session tore down. A guest's `PlayerLeft` for the host is NOT fired on host exit — only `SessionEnded`. |

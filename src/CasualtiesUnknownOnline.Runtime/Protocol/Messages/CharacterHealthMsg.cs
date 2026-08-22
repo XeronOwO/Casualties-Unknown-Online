@@ -210,4 +210,17 @@ public sealed class CharacterHealthMsg
 
 	[ProtoMember(64)]
 	public float EyePanicTime { get; set; }
+
+	// Remote-clone FacialExpression presentation latches (not part of the
+	// vanilla SaveSystem set — the owner-side face state must reach the peer's
+	// render clone, including the random disfigurement head index and the
+	// long-run heal presentation timers).
+	[ProtoMember(65)]
+	public int DisfiguredIndex { get; set; }
+
+	[ProtoMember(66)]
+	public float DisfiguredTimeFullSkin { get; set; }
+
+	[ProtoMember(67)]
+	public float EyeTimeHealed { get; set; }
 }

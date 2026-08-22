@@ -124,10 +124,13 @@ internal sealed class CharacterDataSync(
 
 	private LimbStateEventMsg CaptureLimbStateEvent(Body body)
 	{
+		var health = _mapper.Map<CharacterHealthMsg>(body);
+		CloneFacePresentation.Capture(body, health);
+
 		var msg = new LimbStateEventMsg
 		{
 			OwnerSteamId = _session.LocalSteamId,
-			Health = _mapper.Map<CharacterHealthMsg>(body),
+			Health = health,
 		};
 
 		// Limb has no Index field — Mapster maps the rest, the loop assigns it
@@ -323,10 +326,13 @@ internal sealed class CharacterDataSync(
 
 	private CharacterDataMsg CaptureCharacterData(Body body)
 	{
+		var health = _mapper.Map<CharacterHealthMsg>(body);
+		CloneFacePresentation.Capture(body, health);
+
 		var msg = new CharacterDataMsg
 		{
 			Skills = _mapper.Map<CharacterSkillsMsg>(body.skills),
-			Health = _mapper.Map<CharacterHealthMsg>(body),
+			Health = health,
 			// Wire encoding is handSlot + 1 (0 = none) — protobuf-net omits
 			// 0-valued ints, and hand slot 0 is valid (see CharacterDataMsg.HandSlot).
 			HandSlot = body.handSlot + 1,

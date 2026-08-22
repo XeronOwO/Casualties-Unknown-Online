@@ -335,4 +335,34 @@ public class NetPacketTests
 		Assert.Equal(0f, inactive.EyeCloseTime);
 	}
 
+	[Fact]
+	public void CharacterHealth_FaceLatchPresentation_RoundTrips()
+	{
+		// The 1 Hz character snapshot carries the owner's body-level
+		// FacialExpression latches (disfigured/eye loss), the random
+		// disfigurement head index and the long-run heal presentation timers
+		// so a remote clone can render the same face sprites as its owner.
+		var msg = new CharacterDataMsg
+		{
+			Health = new CharacterHealthMsg
+			{
+				Disfigured = true,
+				EyeGone = true,
+				BothEyesGone = true,
+				DisfiguredIndex = 2,
+				DisfiguredTimeFullSkin = 123.5f,
+				EyeTimeHealed = 456.25f,
+			},
+		};
+
+		var decoded = NetPacket.DecodePayload<CharacterDataMsg>(NetPacket.Encode(NetMsg.CharacterData, msg));
+
+		Assert.True(decoded.Health!.Disfigured);
+		Assert.True(decoded.Health.EyeGone);
+		Assert.True(decoded.Health.BothEyesGone);
+		Assert.Equal(2, decoded.Health.DisfiguredIndex);
+		Assert.Equal(123.5f, decoded.Health.DisfiguredTimeFullSkin);
+		Assert.Equal(456.25f, decoded.Health.EyeTimeHealed);
+	}
+
 }

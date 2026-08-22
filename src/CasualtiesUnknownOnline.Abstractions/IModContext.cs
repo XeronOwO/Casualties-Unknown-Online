@@ -54,6 +54,13 @@ public interface IModContext
 	/// </summary>
 	IModContent Content { get; }
 
+	/// <summary>
+	/// The read-only game-state projection (currently the latest known player
+	/// character state). Reading requires <see cref="ModPermission.ReadGameState"/>
+	/// — see <see cref="IModGameState"/> for the full contract.
+	/// </summary>
+	IModGameState GameState { get; }
+
 	/// <summary>The first member handshake completed (host side: never — see the snapshot).</summary>
 	event Action? SessionActivated;
 

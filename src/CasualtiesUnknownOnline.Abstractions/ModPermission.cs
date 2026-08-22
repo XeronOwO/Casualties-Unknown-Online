@@ -23,7 +23,7 @@ public enum ModPermission
 	/// <summary>No capabilities declared. The default — nothing is implicit.</summary>
 	None = 0,
 
-	/// <summary>Read game state through a future framework surface (not exposed yet).</summary>
+	/// <summary>Read game state through <see cref="IModGameState"/> (enforced at the read surface).</summary>
 	ReadGameState = 1 << 0,
 
 	/// <summary>Write game state through a framework surface (enforced by <see cref="IModState"/> for host-persistent mod state).</summary>

@@ -382,6 +382,13 @@ lands, never bolted on afterwards.
   (never the native SetColor — its per-side-random jitter would diverge). See
   `docs/crystal-enemy-tint-selfcheck.md`; 995 tests green (L0 wire roundtrips +
   reflective field contracts + static evidence, no manual acceptance).
+- RESOLVED (2026-08-22, no protocol bump): per-enemy stun presentation —
+  the host now captures `SpiderHandler.stunTime > 0` / `CrystalEnemy.stuck`
+  into the existing `EnemyStateMsg.FlagStunned`, and the guest mirrors the
+  received boolean onto `RemoteEnemyDriver.Stunned` (never writes the native
+  AI timers). See `docs/enemy-stun-presentation-selfcheck.md`; 1095 tests
+  green (L0 roundtrip + reflective patch/field contracts + static evidence,
+  no manual acceptance).
 
 - RESOLVED (2026-08-18, no protocol bump): remote building-destruction
   particles/sound — `BuildingEntityUpdatePatch` now replays the native
@@ -420,10 +427,12 @@ lands, never bolted on afterwards.
     host spider, guarded by `GameFieldContractTests`). The `rb.bodyType = Static` freeze remains a
     no-op (`BuildingEntity.Update`, BuildingEntity.cs:50-55, re-toggles `bodyType` to Dynamic when the
     chunk renders + `timeScale ≤ 5`), so the freeze still relies entirely on EnemyPatches, not the
-    Static rb. Related edge (deferred): a thrown item that hits the frozen spider sets `stunTime` via
-    `AnimalHit` (SpiderHandler.cs:264), which is ALSO frozen (Update:40 skipped) and would permanently
-    re-gate the bite — that path rides the unsynced item-vs-enemy damage, out of scope until
-    item-vs-enemy attacks are synced.
+    Static rb. Related edge (deferred): guest-originated thrown-item enemy
+    damage is still unsynced — a guest's item cannot damage the host's
+    authoritative enemy or set `stunTime` there. The host-side stun
+    presentation that follows the native `AnimalHit` is now carried (see the
+    per-enemy stun presentation bullet above), but the item-vs-enemy damage
+    path itself remains out of scope until item-vs-enemy attacks are synced.
   - **RESOLVED (enemy-targeting + host-ordered attacks)**: enemies now see every in-world player —
     `EnemyCombatDirector` makes SpiderHandler target the nearest player inside `seeDistance` on the
     game's own moveTime-expiry edge and resolves `CrystalEnemy.body` to the nearest player body within

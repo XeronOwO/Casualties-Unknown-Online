@@ -13,4 +13,6 @@ namespace CasualtiesUnknownOnline.GameAdapter.Character;
 /// </summary>
 internal sealed class RemoteEnemyDriver : MonoBehaviour
 {
+	/// <summary>The host's stun/stuck presentation flag for this frozen render copy (SpiderHandler.stunTime &gt; 0 / CrystalEnemy.stuck).</summary>
+	internal bool Stunned { get; set; }
 }

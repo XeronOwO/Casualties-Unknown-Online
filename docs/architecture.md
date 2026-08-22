@@ -309,10 +309,10 @@ dependency ordering (topological load, missing/cycle/transitive rejection),
 and strict SemVer versions (ProtocolVersion 10). Binding contract:
 `docs/mod-api.md`.
 Mod-state saves are landed (host-persistent `IModState`, see `docs/mod-api.md` §4d),
-and the local mod UI surface is landed (`IModUi`, see `docs/mod-api.md` §4e).
-Not yet landed (MEDIUM priority per the 2026-08-16 decision): content
-registration, custom entities — resume after the remaining native game-content
-coverage.
+the local mod UI surface is landed (`IModUi`, see `docs/mod-api.md` §4e),
+and content registration is landed (`IModContent`, see `docs/mod-api.md` §4f).
+Not yet landed (MEDIUM priority per the 2026-08-16 decision): custom entities —
+resume after the remaining native game-content coverage.
 
 ### KrokMP Compatibility Layer (future, reserved space)
 

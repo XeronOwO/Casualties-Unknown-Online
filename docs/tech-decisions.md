@@ -865,8 +865,8 @@ gets `CanWrite = false` and coordinates through `IModNetwork`/`IModCommands`.
   missing mods keep their entries untouched. Safety rails: key ≤128 chars,
   ≤1024 keys per mod, value ≤64 KiB.
 - **No wire change**: this is host-local persistence, so ProtocolVersion stays 29.
-  Content registration and custom entities remain the un-landed Mod API
-  surfaces; the local mod UI surface is now landed (see below).
+  Custom entities remain the un-landed Mod API surface; the local mod UI
+  surface and content registration are now landed (see below).
 
 Tests: `ModStateTests` (host write/read/remove/clear, guest refusal,
 permission refusal, copy semantics, process persistence, corrupt-file
@@ -894,3 +894,31 @@ degradation). 1079 tests green after this slice. See
 - Tests: `ModUiTests` (register/validate/unregister, plugin-facing control
   list, draw callback call sequence through a recording fake). 1085 tests
   green after this slice. See `docs/mod-ui-selfcheck.md`.
+
+## 38. Mod content registration (no protocol bump)
+
+- **API**: `IModContext.Content` / `IModContent` — a per-mod registry of
+  opaque content definitions (`TryRegister(id, kind, data)` / `TryUnregister` /
+  `IsRegistered` / `Definitions` / `Count`). `CanRegister` tells a mod whether
+  it declared `ModPermission.RegisterContent`; every registration also checks
+  the permission.
+- **Content is static, not synced**: the framework stores definitions as
+  opaque bytes and never interprets them. Content is part of the mod, so the
+  Mod API handshake (id / SemVer / permissions / mode) is the consistency
+  boundary — no content bytes cross the wire. A mod needing client-specific
+  dynamic content coordinates through `IModNetwork`/`IModCommands`.
+- **Permission**: `RegisterContent` gets its first live enforcement point.
+  The permission policy already rejects that flag on `ClientOnly`/`Cosmetic`;
+  only state-bearing modes may register content.
+- **Safety rails**: id ≤128 chars, kind ≤64 chars, payload ≤64 KiB, ≤1024
+  definitions per mod. Invalid/duplicate/over-cap entries are refused with a
+  log, never silently truncated.
+- **Framework read view**: `ModService` implements `IModContentControl`
+  (`Entries` — mod id + definition snapshots) so the plugin and future
+  native-content consumers can enumerate registered content without reaching
+  into mod internals.
+- **No wire change**: local registry only, ProtocolVersion stays 29.
+- Tests: `ModContentTests` (Bind registration, permission refusal, invalid/
+  duplicate/over-cap refusal, unregister, defensive copies, control-surface
+  aggregation, policy caps). 1093 tests green after this slice. See
+  `docs/mod-content-registration-selfcheck.md`.

@@ -13,7 +13,8 @@ namespace CasualtiesUnknownOnline.ModExample;
 /// missing copy is refused — exactly what the two-process verification proves.
 /// </summary>
 [CuoMod("cuo.example", "CUO Example", "0.1.0", NetworkMode = NetworkMode.Synchronized,
-	Permissions = ModPermission.SendNetworkMessage | ModPermission.RegisterCommand | ModPermission.ExecuteHostAction)]
+	Permissions = ModPermission.SendNetworkMessage | ModPermission.RegisterCommand | ModPermission.ExecuteHostAction
+		| ModPermission.RegisterContent)]
 public sealed class ExampleMod : ICuoMod
 {
 	private IModContext? _context;
@@ -21,6 +22,7 @@ public sealed class ExampleMod : ICuoMod
 	public void Bind(IModContext context)
 	{
 		_context = context;
+		context.Content.TryRegister("example.recipe", "recipe", [0x01, 0x02, 0x03]);
 		context.Network.MessageReceived += (sender, payload) =>
 		{
 			var text = Encoding.UTF8.GetString(payload);

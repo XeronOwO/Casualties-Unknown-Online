@@ -47,6 +47,13 @@ public interface IModContext
 	/// </summary>
 	IModUi Ui { get; }
 
+	/// <summary>
+	/// Mod content registration (opaque content definitions scoped to this mod
+	/// id). Registration requires <see cref="ModPermission.RegisterContent"/> —
+	/// see <see cref="IModContent"/> for the full contract.
+	/// </summary>
+	IModContent Content { get; }
+
 	/// <summary>The first member handshake completed (host side: never — see the snapshot).</summary>
 	event Action? SessionActivated;
 

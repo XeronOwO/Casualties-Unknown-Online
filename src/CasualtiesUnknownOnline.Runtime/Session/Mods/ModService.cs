@@ -285,6 +285,7 @@ public sealed partial class ModService(SessionService session, ModChannel channe
 		private readonly ModCommandAdapter _commands;
 		private readonly ModStateAdapter _state;
 		private readonly ModUiAdapter _ui;
+		private readonly ModContentAdapter _content;
 
 		internal ModContext(ModService owner, ModManifest manifest, ILogger logger)
 		{
@@ -293,6 +294,7 @@ public sealed partial class ModService(SessionService session, ModChannel channe
 			_commands = new ModCommandAdapter(owner, manifest);
 			_state = new ModStateAdapter(owner, manifest);
 			_ui = new ModUiAdapter(owner, manifest);
+			_content = new ModContentAdapter(owner, manifest);
 			Session = owner.BuildSessionSnapshot();
 		}
 
@@ -305,6 +307,8 @@ public sealed partial class ModService(SessionService session, ModChannel channe
 		public IModState State => _state;
 
 		public IModUi Ui => _ui;
+
+		public IModContent Content => _content;
 
 		public ISessionInfo Session { get; }
 
@@ -321,6 +325,8 @@ public sealed partial class ModService(SessionService session, ModChannel channe
 		internal ModCommandAdapter CommandAdapter => _commands;
 
 		internal ModUiAdapter UiAdapter => _ui;
+
+		internal ModContentAdapter ContentAdapter => _content;
 
 		// Events are only +=/-=-able from outside the declaring type — the
 		// owner fires through these.

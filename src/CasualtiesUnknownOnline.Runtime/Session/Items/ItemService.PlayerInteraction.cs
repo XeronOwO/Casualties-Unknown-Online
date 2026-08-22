@@ -15,4 +15,7 @@ public sealed partial class ItemService
 
 	public void RemoveTransferredItem(ulong guest, ulong itemId) =>
 		_arbitration.RemoveTransferredItem(guest, itemId);
+
+	public void UpdateTransferredItem(ulong guest, ulong itemId, CharacterItemMsg item) =>
+		_arbitration.UpdateTransferredItem(guest, itemId, item);
 }

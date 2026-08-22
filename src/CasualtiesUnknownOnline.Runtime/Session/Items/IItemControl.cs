@@ -132,6 +132,9 @@ public interface IItemControl
 	/// <summary>Host only: remove a carried item from a guest's transfer table (a cross-player transfer result — the source no longer owns it).</summary>
 	void RemoveTransferredItem(ulong guest, ulong itemId);
 
+	/// <summary>Host only: replace a carried item's authoritative state in a guest's transfer table (a cross-player heal consumes part of the item's condition; the restore merge must not resurrect the consumed amount).</summary>
+	void UpdateTransferredItem(ulong guest, ulong itemId, CharacterItemMsg item);
+
 	/// <summary>Host only: broadcast one carried item's authoritative fact (use/slot move/pickup) to every guest except its owner — the peers update the owner's fact table and re-render the clone immediately (reliable; the 1 Hz snapshot is the fallback).</summary>
 	void SendItemCarriedSync(ulong ownerSteamId, CharacterItemMsg item);
 

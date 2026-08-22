@@ -423,6 +423,26 @@ internal sealed class CharacterDataSync(
 		return true;
 	}
 
+	/// <summary>
+	/// Apply a host-authoritative cross-player heal result to the LOCAL body:
+	/// map the post-heal body health and limb state directly, without touching
+	/// inventory or running the restore wipe. Called inside a RemoteApply scope;
+	/// the caller re-reports the full character snapshot immediately afterwards.
+	/// </summary>
+	internal void ApplyHealState(Body body, CharacterHealthMsg health, IReadOnlyList<CharacterLimbMsg> limbs)
+	{
+		_mapper.Map(health, body);
+		foreach (var limbData in limbs)
+		{
+			if (limbData.Index < 0 || limbData.Index >= body.limbs.Length)
+			{
+				continue;
+			}
+
+			_mapper.Map(limbData, body.limbs[limbData.Index]);
+		}
+	}
+
 	private void ApplyRestoredStatsAndWipe(Body body, CharacterDataMsg data)
 	{
 		_log.LogInformation("Applying character restore ({Items} items).", data.Items.Count);

@@ -60,6 +60,7 @@ public sealed class PacketReceiver : IDisposable
 			or NetMsg.ItemContainerContent or NetMsg.ModCommandRequest or NetMsg.WorldTimeRequest
 			or NetMsg.PlayerInventoryTakeRequest
 			or NetMsg.PlayerCarryStartRequest or NetMsg.PlayerCarryStopRequest
+			or NetMsg.PlayerHealRequest
 			=> _session.Role == SessionRole.Host,
 		NetMsg.HandshakeAck or NetMsg.WorldStartParams or NetMsg.WorldJoin or NetMsg.WorldReady
 			or NetMsg.PlayerJoin or NetMsg.PlayerLeave or NetMsg.PlayerState or NetMsg.WorldBlockState
@@ -73,6 +74,7 @@ public sealed class PacketReceiver : IDisposable
 			or NetMsg.ModCommandResult or NetMsg.WorldTime or NetMsg.ItemCook
 			or NetMsg.FluidPresentation or NetMsg.PlayerInventoryTransfer
 			or NetMsg.PlayerCarryState
+			or NetMsg.PlayerHealResult
 			=> _session.Role == SessionRole.Guest,
 		// ModCommandRequest is guest→host only; ModCommandResult is host→guest only.
 		// Ping/Pong/SceneState/BlockDamaged/CharacterData/ItemSpawn/ItemPickup/

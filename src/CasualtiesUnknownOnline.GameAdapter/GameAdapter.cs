@@ -373,6 +373,7 @@ public sealed partial class GameAdapter : IGameAdapter, ICuoService, IPatchBridg
 		_items.CarriedInventoryReceived += OnCarriedInventory; // a guest's starting supplies with self-assigned ids — seed the fact table (clone render + divergence baseline)
 		_playerInteraction.TransferReceived += OnPlayerInventoryTransfer; // cross-player take: apply the local body mutation and re-report
 		_playerInteraction.CarryStateChanged += OnCarryStateChanged; // cross-player carry: set/clear the local carried-body driver
+		_playerInteraction.HealReceived += OnPlayerHealReceived; // cross-player heal: consume the local item and/or apply the target's post-heal state
 	}
 
 	private void UnbindFromSession()
@@ -408,6 +409,7 @@ public sealed partial class GameAdapter : IGameAdapter, ICuoService, IPatchBridg
 		_items.CarriedInventoryReceived -= OnCarriedInventory;
 		_playerInteraction.TransferReceived -= OnPlayerInventoryTransfer;
 		_playerInteraction.CarryStateChanged -= OnCarryStateChanged;
+		_playerInteraction.HealReceived -= OnPlayerHealReceived;
 	}
 
 	// ---- IGameAdapter ----

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol;
@@ -45,6 +46,19 @@ public class PlayerInteractionServiceTests
 			BrainHealth = conscious ? 80f : 5f,
 		},
 	};
+
+	private static CharacterDataMsg SnapshotWithLimbs(ulong owner, bool conscious, bool alive = true, params CharacterItemMsg[] items)
+	{
+		var data = Snapshot(owner, conscious, items);
+		data.Health!.Alive = alive;
+		data.Limbs =
+		[
+			new CharacterLimbMsg { Index = 0, SkinHealth = 50f, MuscleHealth = 50f },
+			new CharacterLimbMsg { Index = 1, SkinHealth = 20f, MuscleHealth = 30f },
+			new CharacterLimbMsg { Index = 2, SkinHealth = 80f, MuscleHealth = 80f },
+		];
+		return data;
+	}
 
 	private static void MarkInWorld(TestNode node) =>
 		node.Session.ReportSceneState(SceneStateType.InWorld, "SampleScene");
@@ -286,5 +300,129 @@ public class PlayerInteractionServiceTests
 		Assert.Equal(HostId, carried);
 		Assert.True(hostInteraction.TryGetCarrier(HostId, out var carrier));
 		Assert.Equal(GuestId, carrier);
+	}
+
+	[Fact]
+	public void Guest_HealsUnconsciousHost_ConsumesItemAndSendsResult()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		var items = host.Services.GetRequiredService<IItemControl>();
+		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, conscious: false));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, Item(42, "bandage", slot: 0)));
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendHealRequest(HostId);
+
+		var frame = received.Single(r => r.Msg == NetMsg.PlayerHealResult).Frame;
+		var result = NetPacket.DecodePayload<PlayerHealResultMsg>(frame);
+		Assert.Equal(GuestId, result.HealerSteamId);
+		Assert.Equal(HostId, result.TargetSteamId);
+		Assert.Equal(42UL, result.ItemInstanceId);
+		Assert.True(result.ItemDestroyed);
+		Assert.Equal(1, result.HealedLimbIndex);
+
+		// The host's target limb gained the bandage's skin-heal amount.
+		var hostData = characters.GetHostCharacterData()!;
+		var healedLimb = hostData.Limbs[result.HealedLimbIndex];
+		Assert.True(healedLimb.SkinHealAmount > 0f);
+		Assert.True(Math.Abs(healedLimb.SkinHealAmount - 30f) < 0.001f);
+		Assert.True(Math.Abs(healedLimb.BandageSlowAmount - 45f) < 0.001f);
+
+		// The healer's item was consumed and its transfer-table entry removed.
+		Assert.DoesNotContain(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);
+		Assert.DoesNotContain(items.GetTransferredItems(GuestId), w => w.Item.InstanceId == 42);
+	}
+
+	[Fact]
+	public void Host_HealsUnconsciousGuest_SendsResultToGuest()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true, Item(77, "bandage", slot: 0)));
+		characters.SaveCharacterData(GuestId, SnapshotWithLimbs(GuestId, conscious: false));
+
+		host.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendHealRequest(GuestId, 77);
+
+		var frame = received.Single(r => r.Msg == NetMsg.PlayerHealResult).Frame;
+		var result = NetPacket.DecodePayload<PlayerHealResultMsg>(frame);
+		Assert.Equal(HostId, result.HealerSteamId);
+		Assert.Equal(GuestId, result.TargetSteamId);
+		Assert.Equal(77UL, result.ItemInstanceId);
+		Assert.Equal(1, result.HealedLimbIndex);
+
+		// The host's own item is consumed; the guest's saved target limb healed.
+		Assert.DoesNotContain(characters.GetHostCharacterData()!.Items, i => i.InstanceId == 77);
+		Assert.True(characters.GetSavedCharacter(GuestId)!.Limbs[1].SkinHealAmount > 0f);
+	}
+
+	[Fact]
+	public void Heal_NoHealItem_IsRefused()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, conscious: false));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, Item(42, "knife", slot: 0)));
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendHealRequest(HostId);
+
+		Assert.DoesNotContain(received, r => r.Msg == NetMsg.PlayerHealResult);
+	}
+
+	[Fact]
+	public void Heal_UnableHealer_IsRefused()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, conscious: false));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: false, Item(42, "bandage", slot: 0)));
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendHealRequest(HostId);
+
+		Assert.DoesNotContain(received, r => r.Msg == NetMsg.PlayerHealResult);
+		Assert.Contains(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);
+	}
+
+	[Fact]
+	public void Heal_DeadTarget_IsRefused()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, conscious: false, alive: false));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, Item(42, "bandage", slot: 0)));
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendHealRequest(HostId);
+
+		Assert.DoesNotContain(received, r => r.Msg == NetMsg.PlayerHealResult);
+	}
+
+	[Fact]
+	public void Heal_PartialCondition_PreservesItemAndUpdatesTransferTable()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		var items = host.Services.GetRequiredService<IItemControl>();
+		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, conscious: false));
+		var bandage = Item(42, "bandage", slot: 0);
+		bandage.Condition = 1.5f;
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, bandage));
+		items.AdoptTransferredItem(GuestId, 42, bandage);
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendHealRequest(HostId, 42);
+
+		var frame = received.Single(r => r.Msg == NetMsg.PlayerHealResult).Frame;
+		var result = NetPacket.DecodePayload<PlayerHealResultMsg>(frame);
+		Assert.False(result.ItemDestroyed);
+		Assert.True(Math.Abs(result.ItemConditionAfter - 0.5f) < 0.001f);
+
+		var saved = characters.GetSavedCharacter(GuestId)!.Items.Single(i => i.InstanceId == 42);
+		Assert.True(Math.Abs(saved.Condition - 0.5f) < 0.001f);
+		var transferred = items.GetTransferredItems(GuestId).Single(w => w.Item.InstanceId == 42);
+		Assert.True(Math.Abs(transferred.Item.Condition - 0.5f) < 0.001f);
 	}
 }

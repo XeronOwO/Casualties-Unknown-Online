@@ -142,6 +142,8 @@ public class Plugin : BaseUnityPlugin
 				TakeItem = TryTakeItemFromRemote,
 				CarryRemote = TryCarryRemoteFromUi,
 				DropCarried = TryDropCarryFromUi,
+				HealRemote = TryHealRemoteFromUi,
+				HasHealItem = () => _adapter?.HasLocalHealItem() == true,
 			};
 
 			// Publish the container on the static diagnostics seam (HotRepl etc.).
@@ -393,6 +395,18 @@ public class Plugin : BaseUnityPlugin
 		}
 
 		_playerInteraction.SendCarryStopRequest(carriedSteamId);
+		return true;
+	}
+
+	/// <summary>Online UI Heal button path — forward to the host-authoritative heal domain (item instance 0 = host auto-select).</summary>
+	private bool TryHealRemoteFromUi(ulong targetSteamId)
+	{
+		if (!_session.SessionActive)
+		{
+			return false;
+		}
+
+		_playerInteraction.SendHealRequest(targetSteamId, 0);
 		return true;
 	}
 

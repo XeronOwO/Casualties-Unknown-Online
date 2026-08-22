@@ -755,3 +755,36 @@ the existing local-compute boundary:
 Tests: `PlayerInteractionServiceTests` carry family (start/stop/refusal/mirror)
 and `DirectionTests` rows for the three new IDs. 1053 tests green. See
 `docs/carry-interaction-selfcheck.md`.
+
+## 34. Cross-player heal (ProtocolVersion 28)
+
+The direct-player-interaction family's final slice uses the same
+host-authoritative shape as take and carry:
+
+- **Host validates and owns the healing operation.** `PlayerInteractionService`
+  checks both are in-world and have snapshots, the healer is conscious/alive,
+  the target is alive, and the requested item (or an auto-selected one) is a
+  known heal profile. It refuses dead targets (no CPR) and non-medical items.
+- **Host computes the effect as pure data.** `RemoteHealProfile` /
+  `RemoteHealApplication` define the supported dressing/medicine items and apply
+  the effect to the target's most injured limb (dismembered limbs skipped). The
+  Runtime has no game-assembly dependency in this logic.
+- **Item consumption is authoritative.** The host reduces the item's condition
+  by the profile cost and destroys it at zero; the guest transfer table is
+  updated/removed in the same round so a reconnect restore cannot resurrect the
+  consumed amount.
+- **One result message to both participants.** `PlayerHealResultMsg` (NetMsg
+  103) carries the item consumption state and the target's full post-heal
+  health/limb state; the GameAdapter applies the local half inside RemoteApply
+  and immediately re-reports the character snapshot. The heal result is not a
+  second health channel — it rides the existing 1 Hz character data as the
+  convergence path.
+- **Wire**: `PlayerHealRequestMsg` (102, guest→host),
+  `PlayerHealResultMsg` (103, host→participants). ProtocolVersion 27→28.
+- **Accepted boundaries**: auto-select first item from the Online UI; no CPR /
+  dead-target healing; only the dressing/medicine profile set; no
+  distance/line-of-sight validation.
+
+Tests: `PlayerInteractionServiceTests` heal family, `RemoteHealApplicationTests`
+pure profile/limb tests and `DirectionTests` rows for the two new IDs.
+1066 tests green. See `docs/heal-interaction-selfcheck.md`.

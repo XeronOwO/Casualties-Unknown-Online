@@ -224,8 +224,10 @@ Enemy AI is covered by the host-authoritative enemy-sync domain
 (`docs/enemy-sync.md`): positions/health ride `EnemyState`/`EnemySnapshot`,
 attacks ride `EnemyAttack`/`EnemyBite`/`EnemyLunge`, and the proximity side
 effects of ElderThornback/Xaloris/GrabberPlant ride `EnemyEffectMsg`.
-Recorded local-presentation gaps: `LookTarget` gaze/scare and the `Heater`
-temperature field on `xaloris`.
+Recorded local-presentation gap: the `Heater` temperature field on `xaloris`
+(low priority). `LookTarget` gaze/scare and the eye face timers now ride the 20 Hz player
+entity stream (v31) so remote clones turn their head/eyes toward the same world
+point and show the owner's scared/panic/closed-eye face.
 
 | entity | sync | path |
 |---|---|---|

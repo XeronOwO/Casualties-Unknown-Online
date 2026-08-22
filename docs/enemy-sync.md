@@ -169,8 +169,9 @@ applies the game's own damage path locally and reports the post-attack terminal 
 5. **Proximity side effects are now event-synced** — `ElderThornbackBehaviour` (horror tick +
    defeat reward), `XalorisScript` (septic tick) and `GrabberPlant` (grab) each report their
    post-effect terminal state as the dedicated `EnemyEffectMsg` (NetMsg 85); the host merges the
-   terminal state into the saved character immediately and relays. `LookTarget` gaze/scare and the
-   `Heater` temperature field stay local-presentation, recorded in `backlog.md`.
+   terminal state into the saved character immediately and relays. `LookTarget` gaze/scare now
+   rides the 20 Hz player entity stream (v31); the `Heater` temperature field stays
+   local-presentation, recorded in `backlog.md`.
 6. **Host-local crystal lunge now has a dedicated report** — `CrystalEnemyLungePatch` captures a
    pre-lunge limb trace, the native hit runs unchanged, and the postfix reports `EnemyLungeMsg`
    only after the pre/post limb diff verifies the actual write.

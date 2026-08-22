@@ -24,6 +24,25 @@ public sealed class PlayerEntity(ulong steamId, NetworkEntityId entityId, bool i
 
 	public NetVector2 LookPos { get; set; }
 
+	/// <summary>
+	/// The owner's LookTarget/CorpseScript override gaze target (null when no
+	/// override is active). Drives the remote clone's head/eye direction so a
+	/// peer visibly looks at the same world point the owner is looking at.
+	/// </summary>
+	public NetVector2? LookOverridePos { get; set; }
+
+	/// <summary>The owner's remaining override-look time (Body.overrideLookTime).</summary>
+	public float LookOverrideTime { get; set; }
+
+	/// <summary>The owner's remaining scared-face time (Body.eyeScareTime).</summary>
+	public float EyeScareTime { get; set; }
+
+	/// <summary>The owner's remaining panic-face time (Body.eyePanicTime).</summary>
+	public float EyePanicTime { get; set; }
+
+	/// <summary>The owner's remaining eye-close time (Body.eyeCloseTime).</summary>
+	public float EyeCloseTime { get; set; }
+
 	public NetVector2 Velocity { get; set; }
 
 	public bool IsRight { get; set; }
@@ -87,6 +106,11 @@ public sealed class PlayerEntity(ulong steamId, NetworkEntityId entityId, bool i
 		Id = EntityId.ToNetworkEntityIdMsg(),
 		Position = Position.ToNetVector2Msg(),
 		LookPos = LookPos.ToNetVector2Msg(),
+		LookOverridePos = LookOverridePos?.ToNetVector2Msg(),
+		LookOverrideTime = LookOverrideTime,
+		EyeScareTime = EyeScareTime,
+		EyePanicTime = EyePanicTime,
+		EyeCloseTime = EyeCloseTime,
 		Velocity = Velocity.ToNetVector2Msg(),
 		Flags = (byte)(
 			(IsRight ? 0x01 : 0) | (Standing ? 0x02 : 0) |

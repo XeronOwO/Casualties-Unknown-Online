@@ -496,6 +496,14 @@ internal sealed class RunCoordinator(
 		var pos = body.transform.position;
 		var look = body.targetLookPos;
 		var vel = body.rb.velocity;
+		// LookTarget/CorpseScript drive Body.overrideLookPos/Time on the local
+		// player (LookTarget.cs:12-13, CorpseScript.cs:87-88); carry the
+		// override target and the scared-face timer with the 20 Hz state so a
+		// remote clone visibly looks at the same enemy/corpse and shows the
+		// same facial expression.
+		var lookOverridePos = body.overrideLookTime > 0f
+			? new NetVector2(body.overrideLookPos.x, body.overrideLookPos.y)
+			: (NetVector2?)null;
 		// Pose flags mirror the game's own pose rules:
 		// - sitting: idle sit condition (Body.cs:3162), minus movingAllowed
 		//   (private; sleeping is covered by the sleeping flag).
@@ -507,6 +515,8 @@ internal sealed class RunCoordinator(
 			new NetVector2(look.x, look.y),
 			new NetVector2(vel.x, vel.y),
 			body.isRight, body.standing, body.alive, body.conscious, body.crouching,
+			lookOverridePos, body.overrideLookTime, body.eyeScareTime,
+			body.eyePanicTime, body.eyeCloseTime,
 			sitting, body.sleeping, body.currentClimbable != null); // Unity object — ==
 	}
 }

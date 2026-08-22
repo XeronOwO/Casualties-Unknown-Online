@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using Xunit;
@@ -120,5 +121,51 @@ public class EntityStateRoundtripTests
 		var entity = NewEntity();
 
 		Assert.Equal(0, entity.ToEntityStateMsg().SwingSeq);
+	}
+
+	[Fact]
+	public void GazeOverrideAndEyeScare_Roundtrip()
+	{
+		var entity = NewEntity();
+		entity.LookOverridePos = new NetVector2(12.5f, -3.25f);
+		entity.LookOverrideTime = 0.75f;
+		entity.EyeScareTime = 1.5f;
+		entity.EyePanicTime = 0.6f;
+		entity.EyeCloseTime = 2.25f;
+
+		var wire = entity.ToEntityStateMsg();
+		var target = NewEntity();
+		wire.ApplyTo(target);
+
+		Assert.True(target.LookOverridePos.HasValue);
+		Assert.Equal(12.5f, target.LookOverridePos!.Value.X);
+		Assert.Equal(-3.25f, target.LookOverridePos.Value.Y);
+		Assert.Equal(0.75f, target.LookOverrideTime);
+		Assert.Equal(1.5f, target.EyeScareTime);
+		Assert.Equal(0.6f, target.EyePanicTime);
+		Assert.Equal(2.25f, target.EyeCloseTime);
+	}
+
+	[Fact]
+	public void GazeOverride_DefaultsToNull_AndTimersToZero()
+	{
+		var entity = NewEntity();
+
+		var wire = entity.ToEntityStateMsg();
+
+		Assert.Null(wire.LookOverridePos);
+		Assert.Equal(0f, wire.LookOverrideTime);
+		Assert.Equal(0f, wire.EyeScareTime);
+		Assert.Equal(0f, wire.EyePanicTime);
+		Assert.Equal(0f, wire.EyeCloseTime);
+
+		var target = NewEntity();
+		wire.ApplyTo(target);
+
+		Assert.False(target.LookOverridePos.HasValue);
+		Assert.Equal(0f, target.LookOverrideTime);
+		Assert.Equal(0f, target.EyeScareTime);
+		Assert.Equal(0f, target.EyePanicTime);
+		Assert.Equal(0f, target.EyeCloseTime);
 	}
 }

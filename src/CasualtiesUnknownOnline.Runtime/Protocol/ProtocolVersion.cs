@@ -3,6 +3,6 @@ namespace CasualtiesUnknownOnline.Runtime.Protocol;
 public static class ProtocolVersion
 {
 	/// <summary>Bumped on any breaking wire change.</summary>
-	public const int Current = 30; // v30: DynamiteExplosionMsg (NetMsg 105) — player-item explosion replay; v29 peers do not apply the body/visual segment of a remote dynamite blast
+	public const int Current = 31; // v31: EntityStateMsg carries LookTarget override gaze + eye-scare presentation; v30 peers cannot render a remote player's enemy gaze/scared face
 
 }

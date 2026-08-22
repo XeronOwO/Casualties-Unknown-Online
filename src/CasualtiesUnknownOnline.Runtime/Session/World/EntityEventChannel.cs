@@ -78,6 +78,62 @@ public sealed class EntityEventChannel(ISessionControl session, PacketSender sen
 		_session.BroadcastExcept(excludeSteamId, NetMsg.EntityEvent, msg);
 	}
 
+	// ---- Player-item explosions (dynamite — local compute → report → host applies → relay) ----
+
+	/// <summary>A player-item explosion arrived — the receiver applies it (host: to its own world; guest: replay).</summary>
+	public event Action<ulong, ulong, NetVector2>? DynamiteExplosionReceived;
+
+	public void FireDynamiteExplosionReceived(ulong sender, ulong itemInstanceId, NetVector2 position) =>
+		DynamiteExplosionReceived?.Invoke(sender, itemInstanceId, position);
+
+	/// <summary>
+	/// Report a locally-detonated dynamite: guest → host as a report, host →
+	/// broadcast to all synced members. Same star shape as SendEntityEvent:
+	/// the trigger side already ran the native explosion, the host applies the
+	/// explosion to its own world and relays, and the peers replay the
+	/// body/visual segment. The item id is the one-shot identity for duplicate
+	/// suppression on every receiving side.
+	/// </summary>
+	public void SendDynamiteExplosion(ulong itemInstanceId, NetVector2 position)
+	{
+		if (!_session.SessionActive)
+		{
+			return;
+		}
+
+		var msg = new DynamiteExplosionMsg
+		{
+			ItemInstanceId = itemInstanceId,
+			Position = new NetVector2Msg(position.X, position.Y),
+		};
+
+		if (_session.Role == SessionRole.Host)
+		{
+			_session.Broadcast(NetMsg.DynamiteExplosion, msg);
+		}
+		else
+		{
+			_sender.Send(_session.HostSteamId, NetMsg.DynamiteExplosion, msg);
+		}
+	}
+
+	/// <summary>Host only: relay an accepted player-item explosion to the other members (source excluded — it already applied locally).</summary>
+	public void BroadcastDynamiteExplosion(ulong excludeSteamId, ulong itemInstanceId, NetVector2 position)
+	{
+		if (_session.Role != SessionRole.Host || !_session.SessionActive)
+		{
+			return;
+		}
+
+		var msg = new DynamiteExplosionMsg
+		{
+			ItemInstanceId = itemInstanceId,
+			Position = new NetVector2Msg(position.X, position.Y),
+		};
+
+		_session.BroadcastExcept(excludeSteamId, NetMsg.DynamiteExplosion, msg);
+	}
+
 	// ---- World entity creation (runtime, outside generation) ----
 
 	/// <summary>An entity-creation report arrived — the receiver creates its own copy (host: then relays; guest: remote apply).</summary>

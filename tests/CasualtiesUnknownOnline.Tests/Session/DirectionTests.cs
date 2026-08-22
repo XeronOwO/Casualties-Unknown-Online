@@ -105,6 +105,7 @@ public class DirectionTests
 		NetMsg.EnemyEffect,
 		NetMsg.LimbStateEvent,
 		NetMsg.CharacterSound,
+		NetMsg.DynamiteExplosion,
 	};
 
 	[Theory]

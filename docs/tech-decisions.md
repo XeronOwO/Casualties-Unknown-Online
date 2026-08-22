@@ -941,3 +941,45 @@ degradation). 1079 tests green after this slice. See
   (aggregation, failed sends, roll/reset, real ping/pong round trip, fan-out
   per-recipient). 1124 tests green after this slice. See
   `docs/selfchecks/network-traffic-monitor-selfcheck.md`.
+
+## 40. Dynamite detonation sync — dedicated player-item explosion event (ProtocolVersion 30)
+
+The last known gameplay-affecting item gap (`CustomItemBehaviour.data`'s
+dynamite fuse flag) is closed as a one-shot explosion event, not by trying to
+sync the unsupported `object[]` payload:
+
+- **Native detonation stays native.** The dynamite use action
+  (`Item.cs:6671-6682`) schedules `CustomItemBehaviour.DynamiteExplode`
+  (`CustomItemBehaviour.cs:563-572`). `DynamiteExplodePatch` is a postfix that
+  only reports the verified detonation (item id + world position) after the
+  game's own explosion ran.
+- **One event = one message.** `DynamiteExplosionMsg` (NetMsg 105,
+  bidirectional) carries the destroyed item's `ItemInstanceId` (the one-shot
+  identity) and the detonation position.
+- **Host applies and relays.** `DynamiteExplosionSync.OnRemote` on the host runs
+  `WorldGeneration.CreateExplosion(dynamite params)` inside `RemoteApply` — the
+  host's real body/world items receive the effect without re-reporting the
+  block/building damage that the trigger side's native explosion already
+  synced through the existing channels — then broadcasts to the other guests
+  (source excluded).
+- **Guests replay, never re-explode.** The receiving guest uses
+  `TrapVisualReplay.ReplayExplosion` (the shared trap-explosion visual/body
+  segment), which never calls `CreateExplosion`; terrain/buildings were already
+  aligned by the trigger side's block/building reports.
+- **Duplicate suppression.** A session-scoped `HashSet<ulong>` of seen item ids
+  drops a reliable-channel retransmission on the host and on replaying guests
+  (an item can detonate at most once).
+- **ProtocolVersion 29→30** because a v29 peer would not understand NetMsg 105.
+- **Accepted residual**: the 5-second lit-fuse visual (child sprite + fuse
+  audio) on remote clones stays local-only — short-lived presentation, not
+  persistent state (same family as the crystal-unstable pre-explosion ticking).
+- **Existing channels unchanged**: terrain craters, building damage, item
+  condition/velocity destruction still ride `BlockPlaced`/`BlockDamaged`/
+  `BuildingEntityDamaged`/item lifecycle/keyframe channels; this event adds the
+  missing body/visual replay and authority apply.
+
+Tests: `DynamiteExplosionSimulationTests` (guest report → host apply + relay
+source-excluded; host broadcast to both guests), `NetPacketTests`
+round-trip, `DirectionTests` bidirectional row, and the automatic
+`PatchInventory` contract for `CustomItemBehaviour.DynamiteExplode`. 1128 tests
+green. See `docs/selfchecks/dynamite-explosion-selfcheck.md`.

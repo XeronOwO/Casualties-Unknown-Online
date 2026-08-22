@@ -190,4 +190,9 @@ public enum NetMsg : byte
 	// host's TutorialHandler is the single live rig; a guest not running its own
 	// course renders the same handPos/handPosCurrent from this absolute stream)
 	TutorialClawState = 104, // host → guest (unreliable): the tutorial-claw presentation snapshot (20 Hz, seq-gated)
+
+	// Player-item explosions (local compute → report → host applies + relays →
+	// receiver replays the body/visual segment; the terrain/building/item facts
+	// ride the existing block/building/world-item channels)
+	DynamiteExplosion = 105, // bidirectional: guest → host report of a dynamite detonation; host → guest broadcast relay (source excluded)
 }

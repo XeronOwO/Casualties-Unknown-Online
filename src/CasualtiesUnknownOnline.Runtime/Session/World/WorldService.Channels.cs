@@ -22,6 +22,14 @@ public sealed partial class WorldService
 
 	public void BroadcastEntityEvent(ulong excludeSteamId, EntityEventMsg msg) => _eventChannel.BroadcastEntityEvent(excludeSteamId, msg);
 
+	public void SendDynamiteExplosion(ulong itemInstanceId, NetVector2 position) => _eventChannel.SendDynamiteExplosion(itemInstanceId, position);
+
+	public void BroadcastDynamiteExplosion(ulong excludeSteamId, ulong itemInstanceId, NetVector2 position) => _eventChannel.BroadcastDynamiteExplosion(excludeSteamId, itemInstanceId, position);
+
+	public event Action<ulong, ulong, NetVector2>? DynamiteExplosionReceived { add => _eventChannel.DynamiteExplosionReceived += value; remove => _eventChannel.DynamiteExplosionReceived -= value; }
+
+	public void FireDynamiteExplosionReceived(ulong sender, ulong itemInstanceId, NetVector2 position) => _eventChannel.FireDynamiteExplosionReceived(sender, itemInstanceId, position);
+
 	public void ReportTrapConsumed(EntityEventKind kind, float x, float y, byte extra) => _eventChannel.ReportTrapConsumed(kind, x, y, extra);
 
 	public event Action<ulong, EntitySpawnedMsg>? EntitySpawnedReceived { add => _eventChannel.EntitySpawnedReceived += value; remove => _eventChannel.EntitySpawnedReceived -= value; }

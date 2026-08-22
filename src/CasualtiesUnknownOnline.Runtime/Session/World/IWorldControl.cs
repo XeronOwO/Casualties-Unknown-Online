@@ -163,6 +163,24 @@ public interface IWorldControl
 	/// <summary>An entity event arrived — the receiver applies it (host: to its own world; guest: replay).</summary>
 	event Action<ulong, EntityEventMsg>? EntityEventReceived;
 
+	/// <summary>
+	/// Report a locally-detonated player-item explosion (dynamite): guest → host
+	/// as a report (the host applies the explosion to its own world and relays),
+	/// host → broadcast to all synced members. The trigger side's own world
+	/// consequences already ran and ride the block/building/item channels; this
+	/// event carries the one-shot item id and the detonation position for the
+	/// host's apply, the peers' body/visual replay and duplicate suppression.
+	/// </summary>
+	void SendDynamiteExplosion(ulong itemInstanceId, NetVector2 position);
+
+	/// <summary>Host only: relay an accepted player-item explosion to the other members (source excluded — it already applied locally).</summary>
+	void BroadcastDynamiteExplosion(ulong excludeSteamId, ulong itemInstanceId, NetVector2 position);
+
+	void FireDynamiteExplosionReceived(ulong sender, ulong itemInstanceId, NetVector2 position);
+
+	/// <summary>A player-item explosion arrived — the receiver applies it (host: to its own world; guest: replay body/visual).</summary>
+	event Action<ulong, ulong, NetVector2>? DynamiteExplosionReceived;
+
 	/// <summary>Host only: record a one-shot trap consumption (position-keyed; Extra rides along for progress-carrying events).</summary>
 	void ReportTrapConsumed(EntityEventKind kind, float x, float y, byte extra);
 

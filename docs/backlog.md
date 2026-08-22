@@ -26,7 +26,6 @@ Open work only. Landed delivery details are not duplicated here; they live in:
 
 Already documented in [`docs/item-features.md`](item-features.md); kept here as open/decision items:
 
-- **Dynamite fuse** — `CustomItemBehaviour.data` is `object[]` and deliberately unsynced; a guest-loaded fuse detonates locally only. This is the only known gameplay-affecting item gap; needs either a dedicated fuse-state event or an explicit accepted-local decision.
 - **GrapplingHook** `fired` / `hookLatched` / `pulling` — local-only (no `[Saveable]`).
 - **WatchScript** timers — local-only, low risk.
 - **AutoPump.worn** — local-only, low risk.

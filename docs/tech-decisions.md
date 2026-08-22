@@ -118,7 +118,7 @@ The real-log vs simulation diff automation landed 2026-08-16:
 normalizes real log (plain or `.log.gz`) and SimTrace through the same begin-event/result/events
 surface, matches the expected sequence inside a whole-session log (`-Contiguous` / `-Strict` /
 `-NoBegins` variants) and enforces the begin-without-end leak contract. See
-`docs/simtrace-diff-selfcheck.md`; 887 tests green (9 new script-contract tests).
+`docs/selfchecks/simtrace-diff-selfcheck.md`; 887 tests green (9 new script-contract tests).
 
 ## 8. Entity-event behavior suite (landed 2026-08-12, Phase 5)
 
@@ -635,12 +635,12 @@ mining swings:
 - **Accepted residuals** — the clone's body-level `FacialExpression` latches (disfigured/eye
   sprites + the owner's random disfiguredIndex) stay template-driven; underwater/downward
   fur-blood transfer branches are owner-side simulation, so the synced terminal furBloodAmount
-  is applied directly. Both are recorded in `docs/limb-presentation-selfcheck.md`.
+  is applied directly. Both are recorded in `docs/selfchecks/limb-presentation-selfcheck.md`.
 
 Tests: `LimbStateSyncTests` (wire + star relay + saved merge), `LyingPoseTests`,
 `SwingReplayTests`, `LimbStatePatchTests` (reflective patch/formula surface), extended
 `EnemyTerminalStateApplierTests` / `EntityStateRoundtripTests` / `DirectionTests`. 932 tests green.
-See `docs/limb-presentation-selfcheck.md`.
+See `docs/selfchecks/limb-presentation-selfcheck.md`.
 
 
 ## 30. Character action sounds — one CharacterSound event + native block/building sound paths (ProtocolVersion 17)
@@ -670,7 +670,7 @@ The broad "character sound / block sound sync" item is split into three precise 
 Tests: `CharacterSoundSyncTests` (wire + star relay), `CharacterSoundPolicyTests`,
 `CharacterSoundPatchTests` (reflective patch/capture surface), the `DirectionTests`
 completeness guard, and the automatic patch-contract cover for the new `TryExertSound` patch.
-947 tests green. See `docs/character-sound-selfcheck.md`.
+947 tests green. See `docs/selfchecks/character-sound-selfcheck.md`.
 
 ## 31. Weapon-fire direction + recoil — no new message, gunangle kick rides CharacterSound (ProtocolVersion 18)
 
@@ -700,7 +700,7 @@ completeness guard, and the automatic patch-contract cover for the new `TryExert
 Tests: extended `CharacterSoundSyncTests` (GunFire wire round-trip with recoil),
 new `GunFirePatchTests` (patch surface + PatchInventory contract + protocol field),
 automatic patch-contract cover for the `GunScript.Fire` postfix. See
-`docs/weapon-fire-recoil-selfcheck.md`.
+`docs/selfchecks/weapon-fire-recoil-selfcheck.md`.
 
 ## 32. Periodic keyframe self-heals world-item top-level state (no protocol change)
 
@@ -724,7 +724,7 @@ restores condition/favourited/liquids/components from the snapshot:
 
 Tests: new `ItemStateEqualityTests` (pure tolerance/field rules) and
 `PeriodicSnapshot_CarriesTopLevelComponentAndLiquidState` (wire-level keyframe
-evidence). 1018 tests green. See `docs/item-keyframe-state-selfcheck.md`.
+evidence). 1018 tests green. See `docs/selfchecks/item-keyframe-state-selfcheck.md`.
 
 ## 33. Cross-player carry/release (ProtocolVersion 27)
 
@@ -755,7 +755,7 @@ the existing local-compute boundary:
 
 Tests: `PlayerInteractionServiceTests` carry family (start/stop/refusal/mirror)
 and `DirectionTests` rows for the three new IDs. 1053 tests green. See
-`docs/carry-interaction-selfcheck.md`.
+`docs/selfchecks/carry-interaction-selfcheck.md`.
 
 ## 34. Cross-player heal (ProtocolVersion 28)
 
@@ -788,7 +788,7 @@ host-authoritative shape as take and carry:
 
 Tests: `PlayerInteractionServiceTests` heal family, `RemoteHealApplicationTests`
 pure profile/limb tests and `DirectionTests` rows for the two new IDs.
-1066 tests green. See `docs/heal-interaction-selfcheck.md`.
+1066 tests green. See `docs/selfchecks/heal-interaction-selfcheck.md`.
 
 ## 35. GameAdapter construction readability split (no protocol change)
 
@@ -809,7 +809,7 @@ construction block**, which is now landed without changing that architecture:
 - No protocol/wire change; `GameAdapter.cs` 472 lines,
   `GameAdapter.Construction.cs` 155 lines.
 
-See `docs/gameadapter-construction-selfcheck.md`; 1066 tests green.
+See `docs/selfchecks/gameadapter-construction-selfcheck.md`; 1066 tests green.
 
 ## 36. Tutorial-claw 20 Hz presentation stream (ProtocolVersion 29)
 
@@ -841,7 +841,7 @@ simulation.
 Tests: `TutorialClawStreamTests` (wire round-trip, cadence, in-world gate,
 seq gate, clear semantics) + the updated `DirectionTests`
 host→guest row. 1072 tests green. See
-`docs/tutorial-claw-stream-selfcheck.md`.
+`docs/selfchecks/tutorial-claw-stream-selfcheck.md`.
 
 ## 37. Mod-state saves (no protocol bump)
 
@@ -871,7 +871,7 @@ gets `CanWrite = false` and coordinates through `IModNetwork`/`IModCommands`.
 Tests: `ModStateTests` (host write/read/remove/clear, guest refusal,
 permission refusal, copy semantics, process persistence, corrupt-file
 degradation). 1079 tests green after this slice. See
-`docs/mod-state-saves-selfcheck.md`.
+`docs/selfchecks/mod-state-saves-selfcheck.md`.
 
 ## 30. Mod UI — local immediate-mode windows (no protocol bump)
 
@@ -893,7 +893,7 @@ degradation). 1079 tests green after this slice. See
 - **No wire change**: local presentation only, ProtocolVersion stays 29.
 - Tests: `ModUiTests` (register/validate/unregister, plugin-facing control
   list, draw callback call sequence through a recording fake). 1085 tests
-  green after this slice. See `docs/mod-ui-selfcheck.md`.
+  green after this slice. See `docs/selfchecks/mod-ui-selfcheck.md`.
 
 ## 38. Mod content registration (no protocol bump)
 
@@ -921,4 +921,4 @@ degradation). 1079 tests green after this slice. See
 - Tests: `ModContentTests` (Bind registration, permission refusal, invalid/
   duplicate/over-cap refusal, unregister, defensive copies, control-surface
   aggregation, policy caps). 1093 tests green after this slice. See
-  `docs/mod-content-registration-selfcheck.md`.
+  `docs/selfchecks/mod-content-registration-selfcheck.md`.

@@ -16,7 +16,7 @@ The native landmine has a visible two-stage experience:
 
 CUO already synced the explosion (`MineExploded`), but the 0.8 s press visual
 was trigger-side-only: peers saw a normal mine suddenly explode. This was a
-recorded presentation gap in `docs/backlog.md` ("mine 0.8 s press visual").
+recorded presentation gap in `../backlog.md` ("mine 0.8 s press visual").
 
 ## Change
 

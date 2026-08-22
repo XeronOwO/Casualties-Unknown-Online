@@ -90,7 +90,7 @@ Decision summary:
 ## 5. Plan approval
 
 The user instructed this session to pick one backlog item autonomously and
-complete it, then write the result back into `docs/backlog.md`
+complete it, then write the result back into `../backlog.md`
 ("由你来自主挑选一个并完成，记得在完成之后回写 backlog"). That instruction is
 the plan approval for this cycle; no further interactive approval is required.
 

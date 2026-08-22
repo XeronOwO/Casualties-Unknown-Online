@@ -22,7 +22,7 @@ remain by design (decision #28).
 | Family member | Change |
 |---|---|
 | `TutorialHandler.Update` | Unchanged — the host continues to run the native course/claw; guests with a local active course keep their local claw. |
-| `TutorialClawProp` marker / item-entity domain skip | Unchanged — claw-created props remain per-player until pickup (`docs/tutorial-claw-selfcheck.md`). |
+| `TutorialClawProp` marker / item-entity domain skip | Unchanged — claw-created props remain per-player until pickup (`tutorial-claw-selfcheck.md`). |
 | `TutorialClawRemoteDriver` | New guest-side component; overrides only the arm material in `LateUpdate`, never writes course/prop state. |
 | `TutorialClawSync` | New Game Adapter domain; host captures/publishes, guest applies when no local `activeCourse`. |
 | `TutorialClawService` / `ITutorialClawControl` / handler | New Runtime stream; one absolute state at the configured cadence, no history buffer. |

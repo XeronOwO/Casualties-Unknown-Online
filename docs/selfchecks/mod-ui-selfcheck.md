@@ -39,8 +39,8 @@ no protocol bump.
 | Per-mod scope | The adapter lives inside one mod's `ModContext`; window ids are per-mod | Code path (`ModService.Ui.cs`, `ModContext.UiAdapter`); no cross-mod shared list exists. |
 | Unregister | `Unregister` removes from the per-mod list and the plugin-facing snapshot | `ModUiTests.Unregister_RemovesWindow`, `Unregister_UpdatesThePluginFacingControlList`. |
 | Draw callback intact | `IModUiControl.Windows` carries the exact mod callback and the correct mod/window metadata | `ModUiTests.ControlList_ExposesWindowWithModIdAndDrawCallback` (drives the callback through a recording `IModUiWindow`). |
-| Local-only / no permission | No permission check exists for registration; the surface exposes no network/session writes | API docs (`docs/mod-api.md` §4e); no wire path in `ModService.Ui.cs`. |
-| No wire/protocol regression | No new NetMsg; only local Runtime + Plugin files changed | `docs/mod-api.md` §7 still says ProtocolVersion 29; full suite green. |
+| Local-only / no permission | No permission check exists for registration; the surface exposes no network/session writes | API docs (`../mod-api.md` §4e); no wire path in `ModService.Ui.cs`. |
+| No wire/protocol regression | No new NetMsg; only local Runtime + Plugin files changed | `../mod-api.md` §7 still says ProtocolVersion 29; full suite green. |
 
 ## 4. Verification design (development-period, no manual acceptance)
 
@@ -50,7 +50,7 @@ no protocol bump.
 - Static evidence: the plugin bridge is the only Unity touch point
   (`ModUiDrawing` / `ModUiRenderer`), the mod-facing API stays in
   `CUO.Abstractions`, and the local-only/no-wire contract is documented in
-  `docs/mod-api.md` §4e.
+  `../mod-api.md` §4e.
 - Runtime verification box: **L0 simulation + static evidence, no manual
   acceptance** (user rule 2026-08-16).
 
@@ -63,5 +63,5 @@ no protocol bump.
 | `dotnet format CasualtiesUnknownOnline.slnx` | clean for tracked/untracked source (only ignored `obj/MyPluginInfo.cs` reports; outside git) |
 | `check-architecture.ps1` / `check-event-replay.ps1` / `check-entity-event-dispatch.ps1` | pass (arch 600-line/state-bool/one-type gates) |
 | `tools/deploy.ps1 -GameDir "E:\SteamLibrary\steamapps\common\Casualties Unknown Demo"` | deployed to the real game directory only |
-| `check-delivery.ps1` | pass (checked boxes tracked in `docs/delivery-checklist.md`) |
+| `check-delivery.ps1` | pass (checked boxes tracked in `../delivery-checklist.md`) |
 | No manual acceptance | per development-period rule |

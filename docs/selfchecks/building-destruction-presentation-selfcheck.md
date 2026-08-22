@@ -10,7 +10,7 @@ every side, but the non-attacker side's `BuildingEntityUpdatePatch` destroyed
 the entity before `BuildingEntity.Update` could run its death branch. The
 remote side therefore missed the destruction visuals/sound that the attacker
 saw: `BuildingBreakParticle`, `DustBig`, and the `footstep/Rock/11` rock
-sound. This was a recorded presentation gap in `docs/backlog.md` ("remote
+sound. This was a recorded presentation gap in `../backlog.md` ("remote
 building-destruction particles").
 
 ## Change

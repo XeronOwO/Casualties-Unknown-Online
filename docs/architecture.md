@@ -285,7 +285,7 @@ Define explicitly: which callbacks run on the Unity main thread; which may touch
 
 ### Permission Model
 
-Mods do not get all permissions by default: `ReadGameState, WriteGameState, SpawnEntity, SendNetworkMessage, RegisterContent, RegisterCommand, ModifySave, ExecuteHostAction, AccessNativeApi`.
+Mods do not get all permissions by default: `ReadGameState, WriteGameState, SpawnEntity, SendNetworkMessage, RegisterContent, RegisterCommand, ExecuteHostAction, AccessNativeApi`.
 
 - Guests must not write host-authoritative state.
 - Client-only mods must not register sync objects.

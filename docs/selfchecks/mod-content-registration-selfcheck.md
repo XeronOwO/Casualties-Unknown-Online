@@ -42,7 +42,7 @@ remains the consistency boundary. No wire change, no protocol bump.
 | Unregister | `TryUnregister` removes from the per-mod list | `ModContentTests.Unregister_RemovesDefinition`. |
 | Defensive copies | Payloads are copied on write and on every read | `ModContentTests.PayloadsAreDefensivelyCopied_OnWriteAndRead`. |
 | Framework read view | `IModContentControl.Entries` aggregates every mod with mod id + definition | `ModContentTests.ControlSurface_AggregatesEveryModsEntries`. |
-| No wire/protocol regression | No new NetMsg; content is process-local | `docs/mod-api.md` §7 still says ProtocolVersion 29; full suite green. |
+| No wire/protocol regression | No new NetMsg; content is process-local | `../mod-api.md` §7 still says ProtocolVersion 29; full suite green. |
 
 ## 4. Verification design (development-period, no manual acceptance)
 
@@ -52,7 +52,7 @@ remains the consistency boundary. No wire change, no protocol bump.
   snapshot.
 - Static evidence: the mod-facing API stays in `CUO.Abstractions`, the
   registry is process-local by design, and the no-wire/no-protocol contract is
-  documented in `docs/mod-api.md` §4f.
+  documented in `../mod-api.md` §4f.
 - Runtime verification box: **L0 simulation + static evidence, no manual
   acceptance** (user rule 2026-08-16).
 
@@ -65,5 +65,5 @@ remains the consistency boundary. No wire change, no protocol bump.
 | `dotnet format CasualtiesUnknownOnline.slnx` | clean for tracked/untracked source (only ignored `obj/MyPluginInfo.cs` outside git) |
 | `check-architecture.ps1` / `check-event-replay.ps1` / `check-entity-event-dispatch.ps1` | pass (arch 600-line/state-bool/one-type gates) |
 | `tools/deploy.ps1 -GameDir "E:\SteamLibrary\steamapps\common\Casualties Unknown Demo"` | deployed to the real game directory only |
-| `check-delivery.ps1` | pass (checked boxes tracked in `docs/delivery-checklist.md`) |
+| `check-delivery.ps1` | pass (checked boxes tracked in `../delivery-checklist.md`) |
 | No manual acceptance | per development-period rule |

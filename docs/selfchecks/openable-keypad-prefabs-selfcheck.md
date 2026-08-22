@@ -50,8 +50,8 @@ unclassified.
 
 | Mechanism | Change | Evidence |
 |---|---|---|
-| Backlog note | Open item rewritten as RESOLVED with the prefab set and the scan result | `docs/backlog.md` item-domain section |
-| Entity-features narrative | Buildings section gains the prefab-configuration note; matrix `sync`/`path` cells stay `covered` / `BuildingEntityOpened` | `docs/entity-features.md`; `EntityFeaturesDocConsistencyTests` passes unchanged |
+| Backlog note | Open item rewritten as RESOLVED with the prefab set and the scan result | `../backlog.md` item-domain section |
+| Entity-features narrative | Buildings section gains the prefab-configuration note; matrix `sync`/`path` cells stay `covered` / `BuildingEntityOpened` | `../entity-features.md`; `EntityFeaturesDocConsistencyTests` passes unchanged |
 | No protocol / code change | No message, patch, registry or wire format touched | ProtocolVersion unchanged; no `src/` file in the commit |
 | Scan completeness | Every MonoBehaviour in every serialized asset under the game data folder was read (2688), and the only Openable script id was resolved once (MonoScript 1276) | Sweep output (recorded in this document's evidence run); 17/17 instances decoded |
 | Field decode correctness | Raw offsets 32/36/40 verified against known game semantics: foodbox direct-open, dropcapsule code-2296 keypad, lockpick precision values shown by the lockpick screen | `Openable.cs`, `KeypadMinigame.cs:76`, `LockpingMinigame.cs`, locale `v1.8.3.json` |
@@ -78,7 +78,7 @@ unclassified.
 ## 5. Plan approval
 
 The user instructed this session to pick one backlog item autonomously and
-complete it, then write the result back into `docs/backlog.md`
+complete it, then write the result back into `../backlog.md`
 ("由你来自主挑选一个并完成，记得在完成之后回写 backlog"). That instruction is
 the plan approval for this cycle; no further interactive approval is required.
 
@@ -102,8 +102,8 @@ consistency gate (user rule 2026-08-16).
 
 ## 7. Structure review
 
-- Touched artifacts: `docs/openable-keypad-prefabs-selfcheck.md` (new),
-  `docs/entity-features.md` (narrative note), `docs/backlog.md` (write-back).
+- Touched artifacts: `openable-keypad-prefabs-selfcheck.md` (new),
+  `../entity-features.md` (narrative note), `../backlog.md` (write-back).
 - No C# class was touched, so the 600-line gate, state-bool rule and
   dead-mechanism rule are trivially satisfied.
 - Dead mechanisms: none — the existing `Openable` sync row stays

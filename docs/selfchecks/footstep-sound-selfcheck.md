@@ -5,7 +5,7 @@ player's footsteps and landing impacts now travel as dedicated `CharacterSoundMs
 events and replay on the owner's remote clone. This is the deliberate
 sound-frequency pass the backlog's high-frequency/continuous sound bullet asked
 for; speech blips and other per-frame/per-step sounds remain local-only and stay
-tracked in `docs/backlog.md`.
+tracked in `../backlog.md`.
 
 ## 1. Mechanism inventory
 
@@ -89,7 +89,7 @@ would be a separate sound domain.
 - **Speech blips and other per-frame/per-step character sounds** (Talker speech
   blips, panting, dog-shake, etc.) remain local-only; the deliberate
   sound-frequency pass for this slice is now closed in
-  `docs/speech-sound-frequency-selfcheck.md`.
+  `speech-sound-frequency-selfcheck.md`.
 - **World-object step sounds** (`BuildingEntity`, `Limb`, `Item` RandomStepSound
   calls) are outside this player-character sound slice.
 - **Pitch shift stays local random** as before — the wire carries pitch 1 +

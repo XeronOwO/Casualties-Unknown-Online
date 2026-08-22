@@ -16,7 +16,7 @@ A body bumping a cactus runs the native `CactusScript.OnCollisionEnter2D`:
 CUO already relayed the gore sound through the `CactusHit` entity event, but
 the cactus self-damage stayed local. After enough bumps the trigger side's
 cactus could be destroyed while peers still saw it alive — a recorded
-presentation/state gap in `docs/backlog.md` ("cactus self-damage HP local").
+presentation/state gap in `../backlog.md` ("cactus self-damage HP local").
 
 ## Change
 

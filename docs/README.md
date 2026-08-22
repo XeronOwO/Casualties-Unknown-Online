@@ -16,17 +16,22 @@ Map of this repository's documentation. Start with [architecture.md](architectur
 
 - [item-features.md](item-features.md) + `item-features-matrix.csv` — the item feature matrix (battery/liquid/consumable/durability/modeswitch/gun/ammo/…), the crafting operation surfaces, and known state gaps.
 - [entity-features.md](entity-features.md) + `entity-features-matrix.csv` — trap/mechanism entity events, the crystal family, trade, fluid, environment, buildings, creatures.
-- [enemy-targeting-selfcheck.md](enemy-targeting-selfcheck.md) — the enemy-targeting delivery fact sheet (mechanism × change × evidence + verification design).
-- [enemy-stun-presentation-selfcheck.md](enemy-stun-presentation-selfcheck.md) — the per-enemy stun presentation delivery fact sheet (mechanism × change × evidence + verification design).
+- [enemy-sync.md](enemy-sync.md) — enemy simulation/sync design and the runtime component map.
 - [mod-api.md](mod-api.md) — the Phase 4 Mod API contract (the binding reference for mod authors).
-- [mod-content-registration-selfcheck.md](mod-content-registration-selfcheck.md) — the mod content registration delivery fact sheet (mechanism × change × evidence + verification design).
+- [selfchecks/](selfchecks/) — per-delivery fact sheets (mechanism × change × evidence + verification design). These are historical delivery records, not the current open-work view.
+
+## Audits / plans
+
+- [lobby-refactor-plan.md](lobby-refactor-plan.md) — lobby-domain refactor plan and acceptance evidence.
+- [runtime-supply-refresh-audit.md](runtime-supply-refresh-audit.md) — runtime item-spawn surface sweep (which calls create items, repeatability).
+- [worldgen-determinism-audit.md](worldgen-determinism-audit.md) — world-generation random-consumer / determinism audit.
 
 ## Process & gates
 
 - [delivery-checklist.md](delivery-checklist.md) — the delivery-quality-gate checklist (paired with `tools/check-delivery.ps1`).
-- [backlog.md](backlog.md) — deferred and future work, grouped by domain.
+- [backlog.md](backlog.md) — open work and future/pending items (landed details live in `tech-decisions.md` and `selfchecks/`).
 - `event-replay-matrix.csv` — the per-mechanism replay audit (paired with `tools/check-event-replay.ps1`).
-- `tools/compare-itemtrace.ps1` — real-log vs replay SimTrace diff automation (whole-session subsequence matching, gzip logs, leak contract; see `simtrace-diff-selfcheck.md`).
+- `tools/compare-itemtrace.ps1` — real-log vs replay SimTrace diff automation (whole-session subsequence matching, gzip logs, leak contract; see `selfchecks/simtrace-diff-selfcheck.md`).
 
 ## Conventions
 

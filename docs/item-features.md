@@ -260,7 +260,7 @@ domain"). Per-surface notes:
   `RecipeUnlockMsg` — every side applies it to its per-process static. The
   native "learned recipe" popup (Item.cs:4285-4287) now also replays on the
   other sides for a NEW unlock and is suppressed on the acting side
-  (#195, `docs/blueprint-popup-selfcheck.md`).
+  (#195, `docs/selfchecks/blueprint-popup-selfcheck.md`).
 - **Enum component fields (codec kind 6)**: `GunScript.roundInChamber` and the
   ammo/firing-mode enums now ride the component digest (stored as the
   underlying int). The gun's live state (hasMag/roundsInMag/racked/safe —
@@ -272,7 +272,7 @@ domain"). Per-surface notes:
   container-item domain (real new world items); noautopickup products ride the
   item domain's spawn path; mindwipe's recipe-static reset (entity domain);
   save-restore recipe INT divergence (multiplayer has no save-load path);
-     Heater cooker (meat→steak) is RESOLVED as one `ItemCook` event (NetMsg 92) — see `docs/heater-cook-selfcheck.md`.
+     Heater cooker (meat→steak) is RESOLVED as one `ItemCook` event (NetMsg 92) — see `docs/selfchecks/heater-cook-selfcheck.md`.
 
 ## Known state gaps (documented, not part of #89)
 
@@ -294,7 +294,7 @@ domain"). Per-surface notes:
   it no longer stays at its last report/correction time. Position is still
   owned by the position stream, and container contents stay on the
   content/container message family. See
-  `docs/item-keyframe-state-selfcheck.md`.
+  `docs/selfchecks/item-keyframe-state-selfcheck.md`.
 
 ## Runtime item spawn surface (audit 2026-08-16)
 

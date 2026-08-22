@@ -22,10 +22,10 @@ dual-open acceptance.
 ## Explicitly out of scope (recorded, not silent)
 
 - `LookTarget` local gaze/scare and the `Heater` temperature field on `xaloris` remain local
-  presentation — tracked in `docs/backlog.md`.
+  presentation — tracked in `../backlog.md`.
 - The previously out-of-scope enemy-proximity effects, the host-local `CrystalEnemy` lunge report
   and the prefab script-mapping runtime check were closed in the next delivery cycle
-  (`docs/enemy-effects-selfcheck.md`).
+  (`enemy-effects-selfcheck.md`).
 
 ## Verification design
 

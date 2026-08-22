@@ -788,3 +788,24 @@ host-authoritative shape as take and carry:
 Tests: `PlayerInteractionServiceTests` heal family, `RemoteHealApplicationTests`
 pure profile/limb tests and `DirectionTests` rows for the two new IDs.
 1066 tests green. See `docs/heal-interaction-selfcheck.md`.
+
+## 35. GameAdapter construction readability split (no protocol change)
+
+#122 re-evaluated: the pre-migration idea of collapsing the hand-wired fields
+into a DI service was rejected before — the `new`s are state-belongs-to-its-owner,
+not DI services, and the domain logic has already sunk out of the coordinator.
+The only remaining actionable form is a **readability grouping of the
+construction block**, which is now landed without changing that architecture:
+
+- The coordinator file (`GameAdapter.cs`) owns only lifecycle/session wiring and
+  the thin `IPatchBridge` forwards.
+- A new `GameAdapter.Construction.cs` partial owns the adapter's state fields and
+  the constructor dependency wiring.
+- No factory, no late wiring, no DI collapse: every `readonly` field is still
+  assigned directly in the constructor, and every domain still owns its own
+  state. Existing per-domain partial fields (`_characterSoundSync`,
+  `_heaterCookSync`, `_worldTimeSync`) remain in their domain partials.
+- No protocol/wire change; `GameAdapter.cs` 472 lines,
+  `GameAdapter.Construction.cs` 155 lines.
+
+See `docs/gameadapter-construction-selfcheck.md`; 1066 tests green.

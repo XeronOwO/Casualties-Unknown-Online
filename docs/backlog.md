@@ -193,12 +193,16 @@ lands, never bolted on afterwards.
 - Picking up a generation-time item leaves the peer's own copy behind (low frequency,
   accepted): the id is assigned on drop/container-exit, not on the pickup path — revisit only
   if the duplicate becomes observable.
-- #122 GameAdapter assembly (re-evaluated 2026-08-14): the pre-migration "collapse ~25 hand-wired
-  fields to 1" is NOT a mechanical DI collapse — the hand-wired `new`s are state-belongs-to-its-owner
-  (the domain objects own their state; they are not DI services), and the domain logic already sank
-  out of the old AdapterDomain into ItemWorldSync/CharacterDataSync/etc. The coordinator stays a
-  thin forwarder. Left only as a possible readability grouping of the ~40 constructor `new`s by
-  domain — no mechanical factory, per the "no mechanical refactor" rule.
+- RESOLVED (2026-08-22, no protocol bump): #122 GameAdapter assembly readability
+  grouping — the adapter's owned state and constructor dependency wiring moved
+  out of `GameAdapter.cs` into a dedicated `GameAdapter.Construction.cs`
+  partial. This is the state-belongs-to-its-owner form, not a DI collapse or
+  mechanical factory: every readonly field is still assigned directly in the
+  constructor, every domain still owns its own state, and the coordinator file
+  now only owns lifecycle/session wiring and the thin IPatchBridge forwards.
+  `GameAdapter.cs` 472 lines, `GameAdapter.Construction.cs` 155 lines; no
+  protocol/wire change. See `docs/gameadapter-construction-selfcheck.md`; 1066
+  tests green (L0 build + full test suite + gates, no manual acceptance).
 - RESOLVED (2026-08-16, ProtocolVersion 15): Heater cooker meat→steak conversion —
   one host-authoritative `ItemCook` event (NetMsg 92) carries the full cooked-steak
   capture; `HeaterCookPatch` lets the native `Heater.OnCollisionEnter2D` run on the

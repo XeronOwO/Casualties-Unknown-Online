@@ -213,6 +213,7 @@ public static class CuoBootstrap
 		services.AddSingleton<ModService>();
 		services.AddSingleton<IModsControl>(p => p.GetRequiredService<ModService>());
 		services.AddSingleton<IModUiControl>(p => p.GetRequiredService<ModService>());
+		services.AddSingleton<IModContentControl>(p => p.GetRequiredService<ModService>());
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<ModService>());
 
 		extraRegistrations?.Invoke(services);

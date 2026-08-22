@@ -46,9 +46,18 @@ lands, never bolted on afterwards.
   bridge, a throwing draw callback is isolated, and no wire/protocol change is
   involved. See `docs/mod-api.md` §4e and `docs/mod-ui-selfcheck.md`; 1085
   tests green (L0 simulation + static evidence, no manual acceptance).
+- RESOLVED (2026-08-22, no protocol bump): mod content registration — the
+  `IModContent` per-mod opaque content definition registry (id + kind +
+  payload). Registration requires `RegisterContent` and is refused on
+  invalid/duplicate/over-cap entries; definitions stay process-local and do
+  not ride the wire, so the Mod API handshake remains the consistency
+  boundary. The plugin/future native-content layers read the registry through
+  `IModContentControl.Entries`. See `docs/mod-api.md` §4f and
+  `docs/mod-content-registration-selfcheck.md`; 1093 tests green (L0
+  simulation + static evidence, no manual acceptance).
 - Mod support stays MEDIUM priority (user 2026-08-16): land the native coverage above first,
-  reserve extension space while doing native work, then return to the remaining surfaces:
-  content registration, custom entities.
+  reserve extension space while doing native work, then return to the remaining surface:
+  custom entities.
 
 ## Lobby domain
 

@@ -18,6 +18,7 @@ Map of this repository's documentation. Start with [architecture.md](architectur
 - [entity-features.md](entity-features.md) + `entity-features-matrix.csv` — trap/mechanism entity events, the crystal family, trade, fluid, environment, buildings, creatures.
 - [enemy-targeting-selfcheck.md](enemy-targeting-selfcheck.md) — the enemy-targeting delivery fact sheet (mechanism × change × evidence + verification design).
 - [mod-api.md](mod-api.md) — the Phase 4 Mod API contract (the binding reference for mod authors).
+- [mod-content-registration-selfcheck.md](mod-content-registration-selfcheck.md) — the mod content registration delivery fact sheet (mechanism × change × evidence + verification design).
 
 ## Process & gates
 

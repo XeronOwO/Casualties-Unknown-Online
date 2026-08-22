@@ -15,12 +15,13 @@ session events, handshake consistency.
 for the live surfaces), host-authoritative commands, dependency ordering,
 SemVer versions, and per-sender rate limits.
 
-**UI is landed (see §4e).** Still NOT landed (recorded TODO): content
-registration, custom entities.
+**UI is landed (see §4e), content registration is landed (see §4f).**
+Still NOT landed (recorded TODO): custom entities.
 The mod surface lives in **`CUO.Abstractions`** — the ONLY
 assembly mods may reference (architecture.md §5.5). A mod never touches
 BepInEx, Steamworks, the game assemblies, or CUO.Runtime. **Mod-state saves
-are landed (see §4d), and the local mod UI surface is landed (see §4e).**
+are landed (see §4d), the local mod UI surface is landed (see §4e), and
+content registration is landed (see §4f).**
 
 ## 2. How a mod is loaded (read this — the timing is deliberate)
 
@@ -77,14 +78,16 @@ public sealed class MyMod : ICuoMod   // ICuoService lifecycle + Bind
   AccessNativeApi`. Live enforcement today: `SendNetworkMessage` gates
   `IModNetwork` send AND receive; `RegisterCommand` gates command
   registration; `ExecuteHostAction` additionally gates `ModCommand.IsHostAction`;
-  `WriteGameState` gates host-persistent mod-state writes (`IModState`).
-  The remaining flags are carried through the handshake and are pre-declared
-  for their future surfaces.
+  `WriteGameState` gates host-persistent mod-state writes (`IModState`);
+  `RegisterContent` gates mod content registration (`IModContent`).
+  The remaining flags (`ReadGameState`, `SpawnEntity`, `AccessNativeApi`) are
+  carried through the handshake and are pre-declared for their future surfaces.
 - **`Dependencies`** are mod ids loaded before the dependent; missing or
   cyclic dependencies reject the dependent (transitive failures propagate).
 - **`ICuoMod : ICuoService`** — the standard lifecycle, driven by the
   framework's pump on the Unity main thread. Every stage is exception-isolated.
-- **`IModContext`** — `Logger`, `Network`, `Commands`, `Session` and events:
+- **`IModContext`** — `Logger`, `Network`, `Commands`, `Session`, `State`,
+  `Ui`, `Content` and events:
 
 | Member | Semantics |
 |---|---|
@@ -92,6 +95,7 @@ public sealed class MyMod : ICuoMod   // ICuoService lifecycle + Bind
 | `Commands` | host-authoritative commands — see §4b. |
 | `State` | host-persistent per-mod state — see §4d. |
 | `Ui` | local immediate-mode mod UI windows — see §4e. |
+| `Content` | mod content registration — see §4f. |
 | `SessionActivated` | the first member handshake completed. **Host side: never** — read the snapshot. |
 | `PlayerJoined` / `PlayerLeft` | a member's handshake completed / a member was removed (host side). NOT the in-world entity join. Each member exactly once, including yourself. |
 | `SessionEnded` | the session tore down. A guest's `PlayerLeft` for the host is NOT fired on host exit — only `SessionEnded`. |
@@ -202,6 +206,42 @@ context.Ui.Unregister("status");
   in the window and is logged by the plugin; it never breaks the UI frame.
 - **No wire change**: this is local presentation, so ProtocolVersion stays 29.
 
+## 4f. Mod content (registration)
+
+```csharp
+if (context.Content.CanRegister)
+{
+    context.Content.TryRegister("wooden.sword", "item", myItemDefinitionBytes);
+    context.Content.TryRegister("healing.recipe", "recipe", myRecipeDefinitionBytes);
+}
+var itemDefs = context.Content.Definitions; // snapshot; payloads are copied on read
+context.Content.TryUnregister("wooden.sword");
+```
+
+- **Scope**: `IModContent` is a per-mod registry of opaque content
+  definitions (item defs, weapon stats, NPC types, recipes, skills, map
+  entries, etc.). A mod registers an id + kind + opaque payload in `Bind`;
+  the framework never interprets or serializes the payload, so the mod owns
+  its own content schema/versioning.
+- **Permission**: registration requires `ModPermission.RegisterContent`.
+  `CanRegister` reflects whether this mod copy declared the flag; every
+  `TryRegister` call also enforces it. The permission policy already refuses
+  that flag on `ClientOnly`/`Cosmetic` modes, so only state-bearing mods may
+  register content.
+- **Process-local**: content bytes do not travel over the wire. Content is
+  part of the mod itself, so the existing Mod API handshake (mod id /
+  SemVer / permissions / network mode) is the consistency boundary; a mod
+  that needs client-specific dynamic content must coordinate through
+  `IModNetwork` / `IModCommands` instead.
+- **Rules**: empty id/kind, a null or over-cap payload, or a duplicate id
+  within the same mod is refused; `TryUnregister` removes a definition.
+  Safety rails: id ≤128 chars, kind ≤64 chars, payload ≤64 KiB, ≤1024
+  definitions per mod. Errors are refused with a log, never silently truncated.
+- **Framework read view**: `IModContentControl.Entries` exposes every mod's
+  registered definitions to other CUO layers (plugin / future native-content
+  consumers) as a read-only snapshot.
+- **No wire change**: no content bytes or new NetMsg, so ProtocolVersion stays 29.
+
 ## 5. Handshake consistency (how sessions stay coherent)
 
 The guest's declared mod list rides the handshake (`HandshakeMsg.Mods`). The
@@ -248,7 +288,9 @@ All mod behavior is covered by pure-managed tests over the production stack
 (`tests/.../Mods/`): discovery + dependency ordering (`ModDiscoveryTests`),
 permission policy (`ModPermissionPolicyTests`), SemVer (`SemanticVersionTests`),
 lifecycle (`ModLifecycleTests`), message routing + permission/rate gates
-(`ModMessageTests`), host commands (`ModCommandTests`), local mod UI (`ModUiTests`), handshake matrix
+(`ModMessageTests`), host commands (`ModCommandTests`), mod-state saves
+(`ModStateTests`), local mod UI (`ModUiTests`), mod content registration
+(`ModContentTests`), handshake matrix
 (`ModHandshakeTests`), rate limiter (`ModRateLimiterTests`), direction rows
 (`DirectionTests`) and wire round-trips (`ModHandshakeProtocolTests`).
 

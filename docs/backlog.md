@@ -41,8 +41,7 @@ Already documented in [`docs/item-features.md`](item-features.md); kept here as 
 
 Measurement-first items; do not optimize before data exists.
 
-- **General network traffic monitor** — extend the item-domain `ItemTrafficTracker` into a whole-protocol monitor at `PacketSender` / `PacketReceiver`: per-`NetMsg` send/receive byte counts, per-peer and per-window logs, combined with existing send-failure classification and ping RTT. This is the prerequisite for any bandwidth optimization.
-- **Network health metrics** — surface per-peer packet loss / jitter / bandwidth alongside the existing ping RTT in Online UI or logs.
+- **Network health metrics** — surface per-peer packet loss / jitter / bandwidth alongside the existing ping RTT in Online UI or logs. The whole-protocol traffic monitor now provides per-`NetMsg` send/receive byte counts and per-peer window logs; the remaining health-specific counts (loss/jitter) are still unmeasured.
 - **State-stream bandwidth reduction** (only after the monitor shows need): candidates include fixed-point/quantized positions, per-entity update masks / delta encoding, and field-dirty batching for 20 Hz player/enemy streams and 1 Hz `CharacterDataMsg`. No change before measurement; gameplay and visual quality must not regress.
 - **Snapshot size reduction** — full world-item / character-data snapshots are correctness-oriented; only optimize after the traffic monitor identifies a dominant family.
 
@@ -58,6 +57,7 @@ Measurement-first items; do not optimize before data exists.
 
 ## Future / low priority
 
+- **Minecraft-style in-game command console** — a standalone, complete command chain (registration → parsing → permission → execution → feedback), NOT reusing the existing console and independent of the current host-command/mod-command surfaces. Low priority; recorded for future planning.
 - Strict validation / anti-cheat hardening — explicitly low; defer until sync domains are stable.
 - Phase 5 tooling & ecosystem: mod manager, auto-install, crash reports, host migration, dedicated server.
 - KrokMP compatibility adapter — reserved; only after the native Mod API stabilizes and real migration demand exists.

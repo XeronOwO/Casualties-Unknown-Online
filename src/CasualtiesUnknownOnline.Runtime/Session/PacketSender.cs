@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Networking;
 using CasualtiesUnknownOnline.Runtime.Protocol;
+using CasualtiesUnknownOnline.Runtime.Session.NetworkTraffic;
 
 namespace CasualtiesUnknownOnline.Runtime.Session;
 
@@ -11,9 +12,10 @@ namespace CasualtiesUnknownOnline.Runtime.Session;
 /// and instead of the session (receive/send are independent mechanisms,
 /// user architecture rule).
 /// </summary>
-public sealed class PacketSender(INetworkTransport transport)
+public sealed class PacketSender(INetworkTransport transport, NetworkTrafficMonitor traffic)
 {
 	private readonly INetworkTransport _transport = transport;
+	private readonly NetworkTrafficMonitor _traffic = traffic;
 
 	/// <summary>
 	/// Send a message. Reliable by default — only the 20 Hz state stream
@@ -37,7 +39,10 @@ public sealed class PacketSender(INetworkTransport transport)
 			return false;
 		}
 
-		return _transport.SendTo(steamId, NetPacket.Encode(msg, payload), reliable);
+		var frame = NetPacket.Encode(msg, payload);
+		var success = _transport.SendTo(steamId, frame, reliable);
+		_traffic.RecordSend(steamId, msg, frame.Length, success);
+		return success;
 	}
 
 	/// <summary>
@@ -55,7 +60,8 @@ public sealed class PacketSender(INetworkTransport transport)
 		{
 			if (steamId != 0 && steamId != excludeSteamId)
 			{
-				_transport.SendTo(steamId, frame, reliable);
+				var success = _transport.SendTo(steamId, frame, reliable);
+				_traffic.RecordSend(steamId, msg, frame.Length, success);
 			}
 		}
 	}

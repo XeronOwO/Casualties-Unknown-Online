@@ -284,14 +284,23 @@ domain"). Per-surface notes:
   the dynamite **detonation** is synced via `DynamiteExplosionMsg`; the
   short-lived lit-fuse visual remains local-only.
 - **GrapplingHook** `fired`/`hookLatched`/`pulling` (GrapplingHook.cs:114-120,
-  no `[Saveable]`) — a fired hook is local-only.
-- **WatchScript** timers (WatchScript.cs:130-148) — local-only, low risk.
-- **AutoPump.worn** (AutoPump.cs:56) — local-only, low risk.
+  private bools, no `[Saveable]`) — **SYNCED**: `ItemStateCodec`'s
+  multiplayer-state table carries the three private bools on every item state
+  path; the clone renderer presents the fired sprite and disables the original
+  owner-local script. The rope/hook projectile itself remains local
+  presentation (no hook transform is carried).
+- **WatchScript** timers (WatchScript.cs:130-148) — **EXCLUDED by design**:
+  they only drive the owning player's UI/body speech; render-clone WatchScript
+  is disabled so it never acts on the local player.
+- **AutoPump.worn** (AutoPump.cs:56) — **EXCLUDED by design**: it only drives
+  the owning player's blood-pressure effect; render-clone AutoPump is disabled.
 - **Peer-view rendering**: the clone renderer (`CloneInventoryRenderer.RenderItemInto`,
   split out of `CharacterDataSync` at the 600-line gate) instantiates by prefab AND applies the
   snapshot's component state (`RestoreComponentStates` + the `Light2D` enabled sync) — a remote
-  player's held flashlight now renders in its real mode. Display path only; the render application
-  itself has no L0 test face (GameAdapter).
+  player's held flashlight now renders in its real mode, and a fired grappling
+  hook renders with the owner's fired sprite. Display path only; the pure
+  state-selection helper (`RemoteItemPresentation.IsGrapplingHookFired`) now
+  has an L0 test face, while the Unity sprite write remains display-only.
 - **World-item component state on keyframes**: RESOLVED (2026-08-21, no
   protocol bump) — the 5 s periodic snapshot now re-aligns the top-level
   state of an existing world item (condition/favourited/liquid stacks/

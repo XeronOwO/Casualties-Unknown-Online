@@ -188,7 +188,7 @@ Blinding/Irradiated) are excluded: each side's body is simulated locally.
 | CorpseScript | covered | BuildingEntity/GeneratedItemAuthority — corpse hp + loot |
 | SurvivorNote | excluded | local UI + local time-scale (accepted divergence) — slowmo on the reading side only |
 | TutorialHandler | covered | TutorialClawStateMsg — host 20Hz claw presentation stream; per-side course/props remain by design |
-| GrapplingHook | excluded | visual low — rope is a local projection |
+| GrapplingHook | covered | item component state + RemoteItemPresentation — fired/latched/pulling ride the carried-item state; clone presents the fired sprite; rope remains a local projection |
 | Climbable | excluded | local body |
 | BounceShroom | excluded | local physics |
 | GeigeFruitScript | excluded | local body |

@@ -40,9 +40,15 @@ lands, never bolted on afterwards.
   the host role + `WriteGameState`, guests never read/write the host table,
   and the file degrades to empty on corruption/unknown version. See
   `docs/mod-api.md` §4d and `docs/mod-state-saves-selfcheck.md`.
+- RESOLVED (2026-08-22, no protocol bump): local mod UI — the
+  `IModUi`/`IModUiWindow` per-mod immediate-mode window surface. Windows are
+  local-only and require no permission; the plugin owns the Unity IMGUI
+  bridge, a throwing draw callback is isolated, and no wire/protocol change is
+  involved. See `docs/mod-api.md` §4e and `docs/mod-ui-selfcheck.md`; 1085
+  tests green (L0 simulation + static evidence, no manual acceptance).
 - Mod support stays MEDIUM priority (user 2026-08-16): land the native coverage above first,
   reserve extension space while doing native work, then return to the remaining surfaces:
-  content registration, custom entities, UI.
+  content registration, custom entities.
 
 ## Lobby domain
 

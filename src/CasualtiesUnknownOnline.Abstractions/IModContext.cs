@@ -41,6 +41,12 @@ public interface IModContext
 	/// </summary>
 	IModState State { get; }
 
+	/// <summary>
+	/// Local mod UI windows (immediate-mode drawings on the local client). This
+	/// surface is local-only and requires no permission — see <see cref="IModUi"/>.
+	/// </summary>
+	IModUi Ui { get; }
+
 	/// <summary>The first member handshake completed (host side: never — see the snapshot).</summary>
 	event Action? SessionActivated;
 

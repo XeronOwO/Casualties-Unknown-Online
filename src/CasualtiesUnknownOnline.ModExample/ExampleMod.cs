@@ -32,6 +32,11 @@ public sealed class ExampleMod : ICuoMod
 		};
 		context.Commands.Register(new ModCommand("echo", c => $"echo:{string.Join(" ", c.Arguments)}"));
 		context.Commands.Register(new ModCommand("whoami", c => $"requester:{c.RequesterSteamId}", isHostAction: true));
+		context.Ui.Register("example", "CUO Example", window =>
+		{
+			window.Label($"session active: {context.Session.SessionActive}");
+			window.Label($"host: {context.Session.HostSteamId}");
+		});
 		context.PlayerJoined += id => context.Logger.LogInformation("[Example] player {Id} joined.", id);
 		context.PlayerLeft += id => context.Logger.LogInformation("[Example] player {Id} left.", id);
 		context.SessionEnded += () => context.Logger.LogInformation("[Example] session ended.");

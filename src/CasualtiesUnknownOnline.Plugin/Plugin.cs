@@ -12,6 +12,7 @@ using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
+using CasualtiesUnknownOnline.Runtime.Session.Mods;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using CasualtiesUnknownOnline.Runtime.Steam;
 using Microsoft.Extensions.DependencyInjection;
@@ -39,6 +40,7 @@ public class Plugin : BaseUnityPlugin
 	private RemoteVitalsService _remoteVitals = null!;
 	private RemoteInventoryService _remoteInventory = null!;
 	private PlayerInteractionService _playerInteraction = null!;
+	private IModUiControl _modUiControl = null!;
 	private IGameAdapter? _adapter;
 	private ConfigEntry<string> _targetLobbyId = null!;
 	private ulong? _pendingJoinLobbyId;
@@ -135,6 +137,7 @@ public class Plugin : BaseUnityPlugin
 			_remoteVitals = _services.GetRequiredService<RemoteVitalsService>();
 			_remoteInventory = _services.GetRequiredService<RemoteInventoryService>();
 			_playerInteraction = _services.GetRequiredService<PlayerInteractionService>();
+			_modUiControl = _services.GetRequiredService<IModUiControl>();
 			_adapter = _services.GetService<IGameAdapter>();
 			_cuoServices = [.. _services.GetServices<ICuoService>()];
 			_onlineUi = new OnlineUiOverlay
@@ -450,6 +453,7 @@ public class Plugin : BaseUnityPlugin
 		}
 
 		_onlineUi.Draw(_steam, _session, _entities, _remoteVitals, _remoteInventory, _playerInteraction, _lastJoinError);
+		ModUiDrawing.DrawAll(_modUiControl, e => _log.LogError(e, "Mod UI window threw while drawing."));
 	}
 
 	/// <summary>

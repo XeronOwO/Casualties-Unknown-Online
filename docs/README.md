@@ -17,6 +17,7 @@ Map of this repository's documentation. Start with [architecture.md](architectur
 - [item-features.md](item-features.md) + `item-features-matrix.csv` — the item feature matrix (battery/liquid/consumable/durability/modeswitch/gun/ammo/…), the crafting operation surfaces, and known state gaps.
 - [entity-features.md](entity-features.md) + `entity-features-matrix.csv` — trap/mechanism entity events, the crystal family, trade, fluid, environment, buildings, creatures.
 - [enemy-targeting-selfcheck.md](enemy-targeting-selfcheck.md) — the enemy-targeting delivery fact sheet (mechanism × change × evidence + verification design).
+- [enemy-stun-presentation-selfcheck.md](enemy-stun-presentation-selfcheck.md) — the per-enemy stun presentation delivery fact sheet (mechanism × change × evidence + verification design).
 - [mod-api.md](mod-api.md) — the Phase 4 Mod API contract (the binding reference for mod authors).
 - [mod-content-registration-selfcheck.md](mod-content-registration-selfcheck.md) — the mod content registration delivery fact sheet (mechanism × change × evidence + verification design).
 

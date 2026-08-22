@@ -185,7 +185,7 @@ internal sealed partial class EnemySyncCoordinator(
 			Velocity = rb != null ? new NetVector2(rb.velocity.x, rb.velocity.y) : NetVector2.Zero,
 			Rotation = entity.transform.eulerAngles.z,
 			Health = entity.health,
-			Stunned = false, // presentation flags land once the per-enemy stun state is wired (SpiderHandler.stunTime etc.)
+			Stunned = EnemyStunPresentation.IsStunned(entity),
 			PrefabId = entity.id,
 			RuntimeSpawned = runtimeSpawn,
 			HasTint = hasTint,
@@ -291,6 +291,11 @@ internal sealed partial class EnemySyncCoordinator(
 		entity.health = _healthReconcile.TryGetValue(state.EntityId, out var reconcile)
 			? reconcile.Reconcile(state.Health)
 			: state.Health;
+
+		if (EnemyStunPresentation.Apply(entity, state.Stunned))
+		{
+			_log.LogInformation("[Enemy] {Enemy} stun presentation -> {New}.", state.EntityId, state.Stunned);
+		}
 	}
 
 	/// <summary>

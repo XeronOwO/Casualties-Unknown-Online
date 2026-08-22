@@ -65,6 +65,7 @@ public class GameFieldContractTests
 		("CrystalBehaviour", "light", Kind.Field, null, "the crystal's Light2D — read UNTYPED (CrystalTickingReplay's glow ramp; the type lives in the URP assembly, not the reference graph)"),
 		("CrystalEnemy", "sprite", Kind.Field, null, "the crystal's renderer sprite — read UNTYPED (CrystalEnemyTintAccess captures/applies the exact post-SetColor color)"),
 		("CrystalEnemy", "light", Kind.Field, null, "the crystal's Light2D — read UNTYPED (CrystalEnemyTintAccess captures/applies the exact post-SetColor light intensity)"),
+		("CrystalEnemy", "stuck", Kind.Field, typeof(bool), "the enemy's stuck latch — read as bool (EnemyStunPresentation captures the host's CrystalEnemy stun presentation flag)"),
 		("CrystalMetamorphic", "activated", Kind.Field, typeof(bool), "the touch latch (TrapCrystalPatch.MetamorphicTouchedPatch)"),
 		("CrystalShy", "activated", Kind.Field, typeof(bool), "the touch latch (TrapCrystalPatch.ShyTouchedPatch)"),
 		("CrystalEMP", "activated", Kind.Field, typeof(bool), "the TryEMP latch (TrapCrystalPatch.EmpTryEMPPatch)"),

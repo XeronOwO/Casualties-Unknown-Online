@@ -1,3 +1,4 @@
+using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.NetworkTraffic;
@@ -36,6 +37,21 @@ public class PacketTrafficMonitorTests
 		Assert.True(guestPing.Count >= 1);
 		Assert.True(guestWindow.SendByMessage.TryGetValue(NetMsg.Pong, out var guestPong));
 		Assert.True(guestPong.Count >= 1);
+	}
+
+	[Fact]
+	public void RequestPing_RecordsPeerHealthSnapshot()
+	{
+		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		var hostMonitor = host.Services.GetRequiredService<NetworkTrafficMonitor>();
+
+		host.Session.RequestPing();
+
+		var health = hostMonitor.HealthSnapshots.Single(s => s.SteamId == GuestId);
+		Assert.True(health.LastRttMs >= 0f, $"peer health must record the RTT, was {health.LastRttMs}");
+		Assert.Equal(1, health.PingsSent);
+		Assert.Equal(1, health.PingsCompleted);
+		Assert.Equal(0, health.PingsLost);
 	}
 
 	[Fact]

@@ -25,7 +25,9 @@ scripts. There is **no shared enemy base class**; the only shared anchor is the 
 `grabberplant` carries `GrabberPlant` + `IKHandle`; `xaloris` carries `XalorisScript` + `Heater`.
 Every moving script is therefore already covered by `EnemyPatches` (SpiderHandler.Update/FixedUpdate
 are inherited by `SpiderHandlerTBE`; CrystalEnemy has its own patches) — no freeze-list extension
-was needed. `LookTarget` and `Heater` remain recorded local-presentation fields.
+was needed. `LookTarget` runs locally and its gaze/scare is carried in the
+player entity stream for remote-clone presentation; `Heater` is an excluded
+local-body effect (see §6).
 
 **Non-deterministic**: movement is random numbers + Unity physics, so two sides simulating
 independently inevitably diverge (and can damage different players independently).
@@ -170,8 +172,10 @@ applies the game's own damage path locally and reports the post-attack terminal 
    defeat reward), `XalorisScript` (septic tick) and `GrabberPlant` (grab) each report their
    post-effect terminal state as the dedicated `EnemyEffectMsg` (NetMsg 85); the host merges the
    terminal state into the saved character immediately and relays. `LookTarget` gaze/scare now
-   rides the 20 Hz player entity stream (v31); the `Heater` temperature field stays
-   local-presentation, recorded in `backlog.md`.
+   rides the 20 Hz player entity stream (v31); the `Heater` temperature field is
+   **excluded by design** — a local-body effect that writes only the local
+   player's body temperature (already carried by the 1 Hz character stream),
+   recorded in `backlog.md`.
 6. **Host-local crystal lunge now has a dedicated report** — `CrystalEnemyLungePatch` captures a
    pre-lunge limb trace, the native hit runs unchanged, and the postfix reports `EnemyLungeMsg`
    only after the pre/post limb diff verifies the actual write.

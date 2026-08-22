@@ -1090,12 +1090,42 @@ that a peer's render clone never received that transient gaze/face state.
   direction-table change.
 - **ProtocolVersion 30→31** because a v30 peer would not send/render the new
   gaze/face fields.
-- **Accepted residual**: the `Heater` temperature field on the `xaloris`
-  prefab remains a recorded local-presentation item (low priority); the
-  rope/hook projectile and the 5-second fused dynamite visual also remain
-  short-lived local presentation.
+- **Resolved residual**: the `Heater` temperature field on the `xaloris`
+  prefab is **excluded by design** — a local-body effect (`Heater.OnWillRenderObject`
+  writes only the local player's body temperature, which already rides the
+  1 Hz character stream), not a sync gap. The rope/hook projectile and the
+  5-second fused dynamite visual remain short-lived local presentation.
 
 Tests: `EntityStateRoundtripTests` gained gaze/eye-scare round-trip and
 defaults coverage (2 tests), `NetPacketTests` gained the wire round-trip for
 the new fields (1 test); full suite 1137 green. See
 `docs/selfchecks/looktarget-gaze-sync-selfcheck.md`.
+
+## 45. Network health metrics — RTT history / jitter / probe loss (no protocol bump)
+
+The backlog's "Network health metrics" item is closed: the missing
+health-specific counts are now measured and logged, without changing
+transport/protocol/bandwidth behaviour.
+
+- **Pure peer-health state.** `PeerHealthTracker` owns per-peer rolling RTT
+  samples (max 16), average RTT, jitter (absolute difference of the last two
+  samples), completed/lost probe counters and the derived loss percentage.
+- **Probe matching by tick stamp.** `SessionService.RequestPing` records the
+  sent ping's original `UtcNowTicks` with the probe; `RecordPong` closes only
+  the probe whose stamp matches. A late pong from an already-lost probe can
+  never be mistaken for the current outstanding probe, and a duplicate pong
+  cannot double-count a sample.
+- **Observability only.** `NetworkTrafficMonitor` now owns the tracker and logs
+  `[NetworkHealth] peer=... rtt=... avg=... jitter=... loss=...` on the same
+  10 s window edge as `[NetworkTraffic]`; per-peer bandwidth remains in the
+  existing `[NetworkTraffic]` log. No UI or gameplay path consumes these
+  numbers yet.
+- **Session boundary.** `TeardownSession` resets the traffic + health
+  monitor so diagnostics from one lobby never leak into the next.
+- **No wire change.** `ProtocolVersion` stays 31; no `NetMsg`, no
+  direction-table change.
+
+Tests: `PeerHealthTrackerTests` (5 pure-unit tests) and
+`PacketTrafficMonitorTests.RequestPing_RecordsPeerHealthSnapshot`
+(production stack integration); full suite **1143 green** (x64 vstest). See
+`docs/selfchecks/network-health-metrics-selfcheck.md`.

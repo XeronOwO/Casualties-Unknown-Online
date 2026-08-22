@@ -28,7 +28,7 @@ CUO's turret replay already locked the post-fire state at the warning:
 the game's own `Update` can never fire a REAL shot (the `!didShoot` guard at
 TurretScript.cs:40-41). That same lock made the replayed `lightSprite` start
 flickering 0.5 s early — the recorded `didShoot` immediate-lock tradeoff in
-`docs/backlog.md` / `docs/event-replay-matrix.csv`.
+`../backlog.md` / `../event-replay-matrix.csv`.
 
 ## Change
 

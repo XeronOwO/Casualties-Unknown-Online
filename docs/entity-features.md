@@ -216,7 +216,7 @@ nested `dropcapsule` props inside `Structures/BrickLoot`; `instantOpen = true`
 only on `foodbox` (root + the nested copy in `BioContainer`). Every other
 `Openable` is lockpick: `containercrate` precision 0.5, `medcrate` 1.25,
 `lifepodchest` 4.0. Evidence and scan method:
-`docs/openable-keypad-prefabs-selfcheck.md`.
+`docs/selfchecks/openable-keypad-prefabs-selfcheck.md`.
 
 ## Creatures
 

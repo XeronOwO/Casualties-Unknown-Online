@@ -39,7 +39,7 @@ rather than writing a local save file. No wire change, no protocol bump.
 | Persistence across process | File load once at `Initialize`; every mutation writes the full table atomically | `ModStateTests.Persistence_SurvivesANewHostProcess`. |
 | Corrupt/unknown file | `ModStateFileStore.TryLoad` returns false → empty table + warning, next write replaces | `ModStateTests.CorruptFile_DegradesToEmptyAndNextWriteReplacesIt`. |
 | Caps / no silent truncation | `ModStatePolicy` rejects invalid keys/over-cap values/too many keys | `ModStateTests.InvalidKeysAndValues_AreRefusedWithoutSilentTruncation`. |
-| No wire/protocol regression | No new NetMsg; state is host-local | `docs/mod-api.md` §7 still says ProtocolVersion 29; full suite green. |
+| No wire/protocol regression | No new NetMsg; state is host-local | `../mod-api.md` §7 still says ProtocolVersion 29; full suite green. |
 
 ## 4. Verification design (development-period, no manual acceptance)
 
@@ -48,7 +48,7 @@ rather than writing a local save file. No wire change, no protocol bump.
   node process, corrupt-file degradation.
 - Static evidence: the host-only save-authority rule (architecture.md §8), the
   file-store degradation contract mirrors `CharacterDataFileStore`, and the
-  API/permission docs updated in `docs/mod-api.md`.
+  API/permission docs updated in `../mod-api.md`.
 - Runtime verification box: **L0 simulation + static evidence, no manual
   acceptance** (user rule 2026-08-16).
 

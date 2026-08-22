@@ -19,7 +19,7 @@ acceptance.
 ## Explicitly out of scope (recorded, not silent)
 
 - Guest-originated thrown-item/enemy damage is now resolved (2026-08-22): see
-  `docs/enemy-item-hit-sync-selfcheck.md`. The stun presentation flag remains the guest-side
+  `enemy-item-hit-sync-selfcheck.md`. The stun presentation flag remains the guest-side
   rendering surface; the item hit itself travels through the existing `BuildingEntityDamaged`
   relay (health/drop semantics) plus the enemy state stream's `Stunned` presentation flag.
 - There is no dedicated native "stun pose" renderer; the flag is the presentation surface and is
@@ -42,7 +42,7 @@ acceptance.
 ## Plan approval
 
 The user instructed this session to pick one backlog item autonomously and
-complete it, then write the result back into `docs/backlog.md`
+complete it, then write the result back into `../backlog.md`
 ("由你来自主挑选一个并完成，记得在完成之后回写 backlog"). That instruction is
 the plan approval for this cycle; no further interactive approval is required.
 

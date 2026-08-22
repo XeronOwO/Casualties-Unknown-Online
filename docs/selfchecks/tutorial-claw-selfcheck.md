@@ -42,7 +42,7 @@ The change touches the runtime item/entity entry family. Every sibling is aligne
 | `BuildingEntity` damage/open/health family | Unchanged — position-keyed live reports still apply between overlapping copies; a private prop simply never got a spawn id |
 | `CallContext.Origin` | New `TutorialClawSpawn` scope; the stack semantics and disposal are unchanged |
 | `Utils.Create` patch family | `UtilsCreateDropPatch` (DamageBlockOrigin) and the new `UtilsCreateTutorialPatch` (TutorialClawSpawn) are two independent postfixes with disjoint scopes |
-| Solo / mid-course late joiner | Accepted boundary recorded: tutorial courses were never session-synchronized; a prop created before a joiner arrives stays on the creator's side only. The joiner's own course creates its own prop. The deliberate tutorial-domain sync pass landed as the 20 Hz claw presentation stream — see `docs/tutorial-claw-stream-selfcheck.md` (course/prop state itself remains per-side) |
+| Solo / mid-course late joiner | Accepted boundary recorded: tutorial courses were never session-synchronized; a prop created before a joiner arrives stays on the creator's side only. The joiner's own course creates its own prop. The deliberate tutorial-domain sync pass landed as the 20 Hz claw presentation stream — see `tutorial-claw-stream-selfcheck.md` (course/prop state itself remains per-side) |
 
 ## 3. Self-check table (mechanism × change × evidence)
 
@@ -78,7 +78,7 @@ The change touches the runtime item/entity entry family. Every sibling is aligne
 ## 5. Plan approval
 
 The user instructed this session to pick one backlog item autonomously and
-complete it, then write the result back into `docs/backlog.md`
+complete it, then write the result back into `../backlog.md`
 ("由你来自主挑选一个并完成，记得在完成之后回写 backlog"). That instruction is
 the plan approval for this cycle; no further interactive approval is required.
 

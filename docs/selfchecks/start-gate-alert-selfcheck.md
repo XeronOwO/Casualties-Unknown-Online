@@ -6,7 +6,7 @@ acceptance — development-period rule).
 
 ## Context
 
-`docs/backlog.md` #87 has two coupled presentation defects:
+`../backlog.md` #87 has two coupled presentation defects:
 
 1. The multiplayer wait info was a centered IMGUI label, while the game's own
    loading-screen info slot is anchored at the bottom-right corner.

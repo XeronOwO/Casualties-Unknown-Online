@@ -5,8 +5,8 @@ blips and other per-frame/per-step character sounds" local-only pending a
 deliberate sound-frequency pass. Decision after the pass: **stay local-only, no
 new `CharacterSoundMsg` event, and no new wire message.** The player-character
 step/landing/attack/throw/exert/gunfire slice is already evented (see
-`docs/character-sound-selfcheck.md`, `docs/weapon-fire-recoil-selfcheck.md`,
-`docs/footstep-sound-selfcheck.md`); the remaining continuous/per-blip character
+`character-sound-selfcheck.md`, `weapon-fire-recoil-selfcheck.md`,
+`footstep-sound-selfcheck.md`); the remaining continuous/per-blip character
 sounds are produced natively on each side from already-synced facts (speech text)
 or are local UI/body effects whose volume does not justify per-event wire traffic.
 
@@ -96,7 +96,7 @@ or are local UI/body effects whose volume does not justify per-event wire traffi
 ## 7. Plan approval
 
 The user instructed this session to pick one backlog item autonomously and
-complete it, then write the result back into `docs/backlog.md`
+complete it, then write the result back into `../backlog.md`
 ("由你来自主挑选一个并完成，记得在完成之后回写 backlog"). That instruction is
 the plan approval for this cycle; no further interactive approval is required.
 

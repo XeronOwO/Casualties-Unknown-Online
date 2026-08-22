@@ -16,7 +16,9 @@ for the live surfaces), host-authoritative commands, dependency ordering,
 SemVer versions, and per-sender rate limits.
 
 **UI is landed (see §4e), content registration is landed (see §4f).**
-Still NOT landed (recorded TODO): custom entities.
+Still NOT landed (recorded TODO): custom entities; `ReadGameState` and
+`AccessNativeApi` are declared permission flags but have no exposed framework
+surface yet.
 The mod surface lives in **`CUO.Abstractions`** — the ONLY
 assembly mods may reference (architecture.md §5.5). A mod never touches
 BepInEx, Steamworks, the game assemblies, or CUO.Runtime. **Mod-state saves

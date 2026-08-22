@@ -35,7 +35,7 @@ public enum ModPermission
 	/// <summary>Use <see cref="IModNetwork"/> (send and receive). Enforced at the channel.</summary>
 	SendNetworkMessage = 1 << 3,
 
-	/// <summary>Register content through a future framework surface (not exposed yet).</summary>
+	/// <summary>Register mod content definitions via <see cref="IModContent"/>. Enforced at registration.</summary>
 	RegisterContent = 1 << 4,
 
 	/// <summary>Register host commands via <see cref="IModCommands"/>. Enforced at registration.</summary>

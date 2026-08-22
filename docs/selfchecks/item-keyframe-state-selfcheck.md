@@ -2,7 +2,7 @@
 
 Owner cycle: backlog "Periodic keyframe self-healing (partially implemented;
 extend to remaining domains)" and the documented world-item component-state
-keyframe gap in `docs/item-features.md`. Decision: the 5 s periodic snapshot
+keyframe gap in `../item-features.md`. Decision: the 5 s periodic snapshot
 already carries the host table's full `CharacterItemMsg` (including liquid
 stacks and `[Saveable]` component states); the missing piece was the
 reconcile applying that top-level state to **existing** world items. It now

@@ -23,14 +23,14 @@ namespace CasualtiesUnknownOnline.GameAdapter.World;
 /// gate must not play into the frozen world.
 /// </summary>
 internal sealed partial class WorldEventSync(
-	SessionService session,
-	WorldService world,
+	ISessionControl session,
+	IWorldControl world,
 	BlockBreakSync blockBreaks,
 	OperationTrace trace,
 	ILogger<WorldEventSync> log)
 {
-	private readonly SessionService _session = session;
-	private readonly WorldService _world = world;
+	private readonly ISessionControl _session = session;
+	private readonly IWorldControl _world = world;
 	private readonly BlockBreakSync _blockBreaks = blockBreaks;
 	private readonly OperationTrace _trace = trace;
 	private readonly WorldBuildingEntitySync _buildingEntities = new(session, world, trace, log);

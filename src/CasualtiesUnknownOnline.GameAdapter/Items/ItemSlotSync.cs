@@ -13,9 +13,9 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 /// authority — it broadcasts the full carried item instead, so the peers'
 /// clones of the host re-home the item the moment the move lands.
 /// </summary>
-internal sealed class ItemSlotSync(ItemService items, ISessionControl session, ItemIdAllocator ids, ILogger<ItemSlotSync> log)
+internal sealed class ItemSlotSync(IItemControl items, ISessionControl session, ItemIdAllocator ids, ILogger<ItemSlotSync> log)
 {
-	private readonly ItemService _items = items;
+	private readonly IItemControl _items = items;
 	private readonly ISessionControl _session = session;
 	private readonly ItemIdAllocator _ids = ids;
 	private readonly ILogger<ItemSlotSync> _log = log;

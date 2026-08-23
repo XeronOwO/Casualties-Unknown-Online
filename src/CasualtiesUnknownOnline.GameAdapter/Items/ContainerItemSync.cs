@@ -17,7 +17,7 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 /// phantom drop on the peer).
 /// </summary>
 internal sealed class ContainerItemSync(
-	ItemService items,
+	IItemControl items,
 	ItemDropState dropState,
 	ItemIdAllocator ids,
 	OperationTrace trace,
@@ -25,7 +25,7 @@ internal sealed class ContainerItemSync(
 	ISessionControl session,
 	ILogger<ContainerItemSync> log)
 {
-	private readonly ItemService _items = items;
+	private readonly IItemControl _items = items;
 	private readonly ItemDropState _dropState = dropState;
 	private readonly ItemIdAllocator _ids = ids;
 	private readonly OperationTrace _trace = trace;

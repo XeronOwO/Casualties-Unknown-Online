@@ -22,9 +22,9 @@ namespace CasualtiesUnknownOnline.GameAdapter.Run;
 /// which reads this machine's state.
 /// </summary>
 internal sealed class RunCoordinator(
-	SessionService session,
-	WorldService world,
-	EntitySyncService entities,
+	ISessionControl session,
+	IWorldControl world,
+	IEntitySyncControl entities,
 	CharacterDataSync characterData,
 	GuestMenuGuard guestMenu,
 	WorldParamsService worldParams,
@@ -42,9 +42,9 @@ internal sealed class RunCoordinator(
 		Playing,      // WorldReady received — playing
 	}
 
-	private readonly SessionService _session = session;
-	private readonly WorldService _world = world;
-	private readonly EntitySyncService _entities = entities;
+	private readonly ISessionControl _session = session;
+	private readonly IWorldControl _world = world;
+	private readonly IEntitySyncControl _entities = entities;
 	private readonly CharacterDataSync _characterData = characterData;
 	private readonly GuestMenuGuard _guestMenu = guestMenu;
 	private readonly WorldParamsService _params = worldParams;

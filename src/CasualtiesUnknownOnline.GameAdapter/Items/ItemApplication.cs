@@ -21,13 +21,13 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 /// </summary>
 internal sealed class ItemApplication
 {
-	private readonly ItemService _items;
+	private readonly IItemControl _items;
 	private readonly ISessionControl _session;
 	private readonly ILogger<ItemApplication> _log;
 	private readonly ItemCookReplayApplier _cookReplay;
 
 	internal ItemApplication(
-		ItemService items,
+		IItemControl items,
 		ISessionControl session,
 		ILogger<ItemApplication> log)
 	{

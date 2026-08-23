@@ -25,6 +25,15 @@ public interface ISessionControl
 
 	SceneStateType LocalSceneState { get; }
 
+	/// <summary>Remote member's in-world state (the Game Adapter's clone presence).</summary>
+	bool IsRemoteInWorld(ulong steamId);
+
+	/// <summary>The spawn position a member reported when entering the world — the host's clone anchor.</summary>
+	NetVector2 GetRemoteSpawnPos(ulong steamId);
+
+	/// <summary>Either side: report the local scene state (menu / in world).</summary>
+	void ReportSceneState(SceneStateType state, string sceneName, NetVector2? localPosition = null);
+
 	float LastRttMs { get; }
 
 	IEnumerable<MemberPresenceTable.MemberPresence> Members { get; }
@@ -63,4 +72,7 @@ public interface ISessionControl
 
 	/// <summary>Raised when the session ends (the entity domain tears down on this).</summary>
 	event Action? SessionEnded;
+
+	/// <summary>Raised when the handshake completes and scene exchange can start.</summary>
+	event Action? SessionActivated;
 }

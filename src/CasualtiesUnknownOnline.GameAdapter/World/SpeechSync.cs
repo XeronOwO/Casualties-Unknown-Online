@@ -16,10 +16,10 @@ namespace CasualtiesUnknownOnline.GameAdapter.World;
 /// speaking side, Talker.cs:380-414), wrapped in the RemoteApply scope so a
 /// future talk path can never re-report it.
 /// </summary>
-internal sealed class SpeechSync(WorldService world, SessionService session, ILogger<SpeechSync> log)
+internal sealed class SpeechSync(IWorldControl world, ISessionControl session, ILogger<SpeechSync> log)
 {
-	private readonly WorldService _world = world;
-	private readonly SessionService _session = session;
+	private readonly IWorldControl _world = world;
+	private readonly ISessionControl _session = session;
 	private readonly ILogger<SpeechSync> _log = log;
 
 	internal void BindToSession() => _world.SpeechReceived += OnSpeechReceived;

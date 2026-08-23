@@ -26,9 +26,9 @@ namespace CasualtiesUnknownOnline.GameAdapter.WorldGen;
 /// against the local replay — a disagreement means the deterministic roll
 /// failed somewhere (different baseline) and the host's snapshot wins.
 /// </summary>
-internal sealed class LayerModifierSync(ItemService items, ILogger<LayerModifierSync> log)
+internal sealed class LayerModifierSync(IItemControl items, ILogger<LayerModifierSync> log)
 {
-	private readonly ItemService _items = items;
+	private readonly IItemControl _items = items;
 	private readonly ILogger<LayerModifierSync> _log = log;
 
 	/// <summary>The modifier currently applied on this side (-1 = none).</summary>

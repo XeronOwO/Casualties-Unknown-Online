@@ -2145,3 +2145,46 @@ host-rules composition surface plus one real host rule (`AllowLateJoin`).
 
 No wire/protocol change. See
 `docs/selfchecks/host-rules-selfcheck.md`.
+
+## 75. GameAdapter concrete-service dependency narrowing (no wire change)
+
+Backlog §3.5 listed the GameAdapter's concrete runtime-service dependencies as
+the remaining medium-priority testability debt. This entry closes the concrete
+service portion of that item: the adapter's deep modules now compose against
+the existing narrow control interfaces instead of the concrete
+`SessionService` / `WorldService` / `ItemService` / `EntitySyncService` /
+`CharacterDataStore` / `PlayerInteractionService` types.
+
+- **Session surface** — `ISessionControl` gains `IsRemoteInWorld`,
+  `GetRemoteSpawnPos`, `ReportSceneState`, and `SessionActivated` (the member
+  set the adapter's scene/clone/run domains consumed from `SessionService`).
+- **World surface** — `IWorldControl` gains `SendWorldJoin`, `SendWorldJoinTo`,
+  and `PublishWorldParams` (the world-entry/run-start calls the adapter used on
+  `WorldService`).
+- **Item surface** — `IItemControl` gains `LayerModifierRandomState` and the
+  `CarriedInventoryReceived` event.
+- **Entity surface** — `IEntitySyncControl` gains `RemotePlayers`,
+  `GetRemotePlayer`, `PublishLocalState`, `MarkLocalAttackSwing`, and
+  `RemoteJoined`.
+- **Character surface** — `ICharacterDataControl` gains `ReportCharacterData`,
+  `ClearSavedCharacters`, and the `CharacterDataReceived` /
+  `HostCharacterDataReceived` / `LimbStateEventReceived` /
+  `CharacterSoundReceived` events.
+- **Conversion** — every GameAdapter `.cs` file that referenced one of the six
+  concrete services was switched to the corresponding interface
+  (`PlayerInteractionService → IPlayerInteractionControl` needed no new
+  members). Search proof: no `SessionService` / `WorldService` / `ItemService` /
+  `EntitySyncService` / `CharacterDataStore` / `PlayerInteractionService` type
+  reference remains in the GameAdapter project.
+- **No behavior change** — all method bodies, event subscriptions, DI
+  registrations, and protocol/version semantics are unchanged; the concrete
+  services already implemented the expanded interfaces.
+- **L0 proof** — new `AdapterControlSurfaceTests` resolves all five control
+  surfaces from the production `CuoBootstrap` composition and exercises the
+  new adapter-facing members. Full suite: 1266 tests green.
+- **Remaining scope** — the Unity seam (`FindObjectsOfType`, `Resources.Load`,
+  `Utils.Create`, private reflection in Harmony patches/rendering) is still a
+  separate future slice for a true L0 adapter harness.
+
+No wire/protocol change. See
+`docs/selfchecks/adapter-control-surfaces-selfcheck.md`.

@@ -16,9 +16,9 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 /// (its local object IS the fact) — it broadcasts the full carried item
 /// instead, so the peers' clones of the host flip the moment the use lands.
 /// </summary>
-internal sealed class ItemUseSync(ItemService items, ISessionControl session, ItemIdAllocator ids, ILogger<ItemUseSync> log)
+internal sealed class ItemUseSync(IItemControl items, ISessionControl session, ItemIdAllocator ids, ILogger<ItemUseSync> log)
 {
-	private readonly ItemService _items = items;
+	private readonly IItemControl _items = items;
 	private readonly ISessionControl _session = session;
 	private readonly ItemIdAllocator _ids = ids;
 	private readonly ILogger<ItemUseSync> _log = log;

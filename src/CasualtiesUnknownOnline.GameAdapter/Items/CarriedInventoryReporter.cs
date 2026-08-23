@@ -22,12 +22,12 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 /// </summary>
 internal sealed class CarriedInventoryReporter(
 	ISessionControl session,
-	ItemService items,
+	IItemControl items,
 	ItemIdAllocator ids,
 	ILogger<CarriedInventoryReporter> log)
 {
 	private readonly ISessionControl _session = session;
-	private readonly ItemService _items = items;
+	private readonly IItemControl _items = items;
 	private readonly ItemIdAllocator _ids = ids;
 	private readonly ILogger<CarriedInventoryReporter> _log = log;
 

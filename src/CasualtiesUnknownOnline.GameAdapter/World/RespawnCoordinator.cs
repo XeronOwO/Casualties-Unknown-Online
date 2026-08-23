@@ -20,15 +20,15 @@ namespace CasualtiesUnknownOnline.GameAdapter.World;
 /// (keep inventory/skills, Permadeath gate).
 /// </summary>
 internal sealed class RespawnCoordinator(
-	SessionService session,
-	WorldService world,
+	ISessionControl session,
+	IWorldControl world,
 	ICharacterDataControl characterData,
 	CharacterDataSync characterDataSync,
 	IOptionsMonitor<RespawnOptions> respawnOptions,
 	ILogger<RespawnCoordinator> log)
 {
-	private readonly SessionService _session = session;
-	private readonly WorldService _world = world;
+	private readonly ISessionControl _session = session;
+	private readonly IWorldControl _world = world;
 	private readonly ICharacterDataControl _characterData = characterData;
 	private readonly CharacterDataSync _characterDataSync = characterDataSync;
 	private readonly IOptionsMonitor<RespawnOptions> _respawnOptions = respawnOptions;

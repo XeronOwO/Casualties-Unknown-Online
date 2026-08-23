@@ -1,3 +1,4 @@
+using System;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.CharacterData;
@@ -25,6 +26,24 @@ public interface ICharacterDataControl
 
 	/// <summary>Host only: broadcast the host's own character snapshot (the guests render the host's clone inventory from it).</summary>
 	void BroadcastHostCharacterData(CharacterDataMsg msg);
+
+	/// <summary>Guest side: report the local character snapshot to the host (1-2 Hz, driven by the Game Adapter).</summary>
+	void ReportCharacterData(CharacterDataMsg msg);
+
+	/// <summary>Host only: a NEW run started — the previous run's saved characters are void (a stale restore would wipe the new run's starting supplies).</summary>
+	void ClearSavedCharacters();
+
+	/// <summary>A character snapshot arrived (host: guest report; guest: host restore) — the Game Adapter applies/renders it.</summary>
+	event Action<ulong, CharacterDataMsg>? CharacterDataReceived;
+
+	/// <summary>Guest: the host's own snapshot arrived — render the host clone inventory.</summary>
+	event Action<CharacterDataMsg>? HostCharacterDataReceived;
+
+	/// <summary>A limb-latch event arrived — the Game Adapter applies the limb's terminal state to the owner's clone.</summary>
+	event Action<ulong, LimbStateEventMsg>? LimbStateEventReceived;
+
+	/// <summary>A character action sound arrived — the Game Adapter replays it on the owner's clone.</summary>
+	event Action<ulong, CharacterSoundMsg>? CharacterSoundReceived;
 
 	/// <summary>Host only: relay a guest's report to the other guests (OwnerSteamId stamped, source excluded) — their clones of the reporter render its carried state.</summary>
 	void RelayCharacterData(ulong ownerSteamId, CharacterDataMsg msg);

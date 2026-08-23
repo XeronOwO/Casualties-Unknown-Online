@@ -15,14 +15,14 @@ namespace CasualtiesUnknownOnline.GameAdapter.Character;
 /// snapshot cache for the clones' carried-item rendering.
 /// </summary>
 internal sealed class RemotePlayerRenderer(
-	SessionService session,
-	EntitySyncService entities,
+	ISessionControl session,
+	IEntitySyncControl entities,
 	CharacterDataSync characterData,
 	CloneLimbRenderer limbRenderer,
 	ILogger<RemotePlayerRenderer> log)
 {
-	private readonly SessionService _session = session;
-	private readonly EntitySyncService _entities = entities;
+	private readonly ISessionControl _session = session;
+	private readonly IEntitySyncControl _entities = entities;
 	private readonly CharacterDataSync _characterData = characterData;
 	private readonly CloneLimbRenderer _limbRenderer = limbRenderer;
 	private readonly ILogger<RemotePlayerRenderer> _log = log;

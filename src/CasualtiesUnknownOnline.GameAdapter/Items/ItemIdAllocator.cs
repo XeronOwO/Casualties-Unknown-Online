@@ -15,10 +15,10 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 /// the host's tables still hold. Split out of ItemWorldSync (gate-driven — the
 /// report-side class keeps growing with every pickup/drop path fix).
 /// </summary>
-internal sealed class ItemIdAllocator(SessionService session, ItemService items, ILogger<ItemIdAllocator> log)
+internal sealed class ItemIdAllocator(ISessionControl session, IItemControl items, ILogger<ItemIdAllocator> log)
 {
-	private readonly SessionService _session = session;
-	private readonly ItemService _items = items;
+	private readonly ISessionControl _session = session;
+	private readonly IItemControl _items = items;
 	private readonly ILogger<ItemIdAllocator> _log = log;
 
 	/// <summary>Instance-id counter: ids are (counter, account id) — globally unique per session without host allocation.</summary>

@@ -14,6 +14,15 @@ public interface IWorldControl
 {
 	WorldStartParams? WorldParams { get; set; }
 
+	/// <summary>Host only: publish the world-start parameters as the generation baseline (captured at the host's click/boundary moment).</summary>
+	void PublishWorldParams(WorldStartParams parameters);
+
+	/// <summary>Host: tell every synced member to follow the run (the guest enters the world on this instruction).</summary>
+	void SendWorldJoin(bool isTutorial);
+
+	/// <summary>Host: send a targeted world-join instruction (a reconnecting member's re-entry).</summary>
+	void SendWorldJoinTo(ulong steamId);
+
 	/// <summary>Host only: a run started (click moment) but the host is not in the world yet — mid-generation handshakes may follow immediately.</summary>
 	bool HostRunPending { get; }
 

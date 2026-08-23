@@ -19,15 +19,15 @@ namespace CasualtiesUnknownOnline.GameAdapter.Character;
 /// nothing here mutates game items in a way that fires the item hooks.
 /// </summary>
 internal sealed class CharacterDataSync(
-	SessionService session,
-	CharacterDataStore characterData,
+	ISessionControl session,
+	ICharacterDataControl characterData,
 	IMapper mapper,
 	CloneInventoryRenderer inventoryRenderer,
 	CloneFactTable factTable,
 	ILogger<CharacterDataSync> log)
 {
-	private readonly SessionService _session = session;
-	private readonly CharacterDataStore _characterData = characterData;
+	private readonly ISessionControl _session = session;
+	private readonly ICharacterDataControl _characterData = characterData;
 	private readonly IMapper _mapper = mapper;
 	private readonly CloneInventoryRenderer _inventoryRenderer = inventoryRenderer;
 	private readonly CloneFactTable _factTable = factTable;
@@ -247,7 +247,7 @@ internal sealed class CharacterDataSync(
 		}
 	}
 
-	/// <summary>Host side: a NEW run started (the host clicked start) — the previous run's saved characters are void (see CharacterDataStore.ClearSavedCharacters).</summary>
+	/// <summary>Host side: a NEW run started (the host clicked start) — the previous run's saved characters are void (see ICharacterDataControl.ClearSavedCharacters).</summary>
 	internal void ClearSavedCharacters() => _characterData.ClearSavedCharacters();
 
 	/// <summary>

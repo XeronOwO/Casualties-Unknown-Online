@@ -26,7 +26,7 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 /// The DECISIONS (settled / ease / snap — <see cref="ItemFollowDecision"/>) are
 /// pure; this class is the scene-write shell.
 /// </summary>
-internal sealed class ItemPositionFollow(ItemService items, DropProtectionGuard guard, SessionService session, ILogger<ItemPositionFollow> log)
+internal sealed class ItemPositionFollow(IItemControl items, DropProtectionGuard guard, ISessionControl session, ILogger<ItemPositionFollow> log)
 {
 	/// <summary>Item layer — pickup queries (PlayerCamera.cs:1423/1702/1997) are
 	/// queries and ignore the collision matrix, so isolating Item×X never breaks pickup.</summary>
@@ -35,9 +35,9 @@ internal sealed class ItemPositionFollow(ItemService items, DropProtectionGuard 
 	/// <summary>Ground layer — the tilemap collider (WorldGeneration.cs:3827-3839).</summary>
 	private const int GroundLayer = 6;
 
-	private readonly ItemService _items = items;
+	private readonly IItemControl _items = items;
 	private readonly DropProtectionGuard _guard = guard;
-	private readonly SessionService _session = session;
+	private readonly ISessionControl _session = session;
 	private readonly ILogger<ItemPositionFollow> _log = log;
 
 	private readonly ItemFollowDecision _follow = new();

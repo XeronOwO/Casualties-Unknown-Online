@@ -25,16 +25,16 @@ namespace CasualtiesUnknownOnline.GameAdapter.World;
 /// </summary>
 internal sealed class WorldTimeSync(
 	ISessionControl session,
-	EntitySyncService entities,
-	CharacterDataStore characterData,
+	IEntitySyncControl entities,
+	ICharacterDataControl characterData,
 	RunCoordinator run,
 	StartGateCoordinator gate,
 	IWorldTimeControl worldTime,
 	ILogger<WorldTimeSync> log)
 {
 	private readonly ISessionControl _session = session;
-	private readonly EntitySyncService _entities = entities;
-	private readonly CharacterDataStore _characterData = characterData;
+	private readonly IEntitySyncControl _entities = entities;
+	private readonly ICharacterDataControl _characterData = characterData;
 	private readonly RunCoordinator _run = run;
 	private readonly StartGateCoordinator _gate = gate;
 	private readonly IWorldTimeControl _worldTime = worldTime;

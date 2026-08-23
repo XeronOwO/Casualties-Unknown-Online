@@ -18,10 +18,10 @@ namespace CasualtiesUnknownOnline.GameAdapter.World;
 /// guest branch).
 /// </summary>
 internal sealed class WorldParamsService(
-	WorldService world,
+	IWorldControl world,
 	ILogger<WorldParamsService> log)
 {
-	private readonly WorldService _world = world;
+	private readonly IWorldControl _world = world;
 	private readonly ILogger<WorldParamsService> _log = log;
 
 	/// <summary>Host: params captured at the run-start entry — the first GenerateWorld must not re-capture.</summary>

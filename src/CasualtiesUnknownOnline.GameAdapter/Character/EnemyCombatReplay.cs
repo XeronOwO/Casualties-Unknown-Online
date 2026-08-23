@@ -16,14 +16,14 @@ namespace CasualtiesUnknownOnline.GameAdapter.Character;
 /// the enemy domain can keep its two responsibilities distinct.
 /// </summary>
 internal sealed class EnemyCombatReplay(
-	SessionService session,
+	ISessionControl session,
 	EnemySyncService enemies,
 	IMapper mapper,
 	CharacterDataSync characterData,
 	System.Func<NetworkEntityId, BuildingEntity?> findEntity,
 	ILogger<EnemySyncCoordinator> log)
 {
-	private readonly SessionService _session = session;
+	private readonly ISessionControl _session = session;
 	private readonly EnemySyncService _enemies = enemies;
 	private readonly IMapper _mapper = mapper;
 	private readonly CharacterDataSync _characterData = characterData;

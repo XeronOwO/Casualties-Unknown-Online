@@ -14,10 +14,10 @@ namespace CasualtiesUnknownOnline.GameAdapter.Run;
 /// can only enter a world on the host's WorldJoin instruction.
 /// </summary>
 internal sealed class GuestMenuGuard(
-	SessionService session,
+	ISessionControl session,
 	ILogger<GuestMenuGuard> log)
 {
-	private readonly SessionService _session = session;
+	private readonly ISessionControl _session = session;
 	private readonly ILogger<GuestMenuGuard> _log = log;
 
 	/// <summary>Set right before the WorldJoin-triggered StartRun, consumed by the run-start gate.</summary>

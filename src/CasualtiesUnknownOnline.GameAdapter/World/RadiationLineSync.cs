@@ -27,7 +27,7 @@ namespace CasualtiesUnknownOnline.GameAdapter.World;
 internal sealed class RadiationLineSync(
 	IWorldControl world,
 	ISessionControl session,
-	EntitySyncService entities,
+	IEntitySyncControl entities,
 	ILogger<RadiationLineSync> log)
 {
 	/// <summary>Host resend interval for an active line. The line moves at
@@ -37,7 +37,7 @@ internal sealed class RadiationLineSync(
 
 	private readonly IWorldControl _world = world;
 	private readonly ISessionControl _session = session;
-	private readonly EntitySyncService _entities = entities;
+	private readonly IEntitySyncControl _entities = entities;
 	private readonly ILogger<RadiationLineSync> _log = log;
 	private readonly List<RadiationPlayerProgress> _playerProgress = [];
 

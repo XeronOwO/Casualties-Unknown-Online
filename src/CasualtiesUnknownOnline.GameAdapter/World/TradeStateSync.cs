@@ -22,16 +22,16 @@ namespace CasualtiesUnknownOnline.GameAdapter.World;
 /// fallback covers missed broadcasts and a new layer's traders.
 /// </summary>
 internal sealed class TradeStateSync(
-	WorldService world,
-	SessionService session,
+	IWorldControl world,
+	ISessionControl session,
 	TradeExecutor executor,
 	ILogger<TradeStateSync> log)
 {
 	private const float SnapshotInterval = 5f; // the unreliable fallback broadcast
 	private const float PositionTolerance = 2f; // matching tolerance (the trader's transform is the position key)
 
-	private readonly WorldService _world = world;
-	private readonly SessionService _session = session;
+	private readonly IWorldControl _world = world;
+	private readonly ISessionControl _session = session;
 	private readonly TradeExecutor _executor = executor;
 	private readonly ILogger<TradeStateSync> _log = log;
 	private float _lastSnapshot;

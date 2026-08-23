@@ -1,19 +1,35 @@
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session;
+using CasualtiesUnknownOnline.Runtime.Session.World;
+using CasualtiesUnknownOnline.GameAdapter.Items;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
 
 namespace CasualtiesUnknownOnline.GameAdapter.World;
 
 /// <summary>
-/// The building-entity part of the world-event domain: damage and open
-/// reports (live star relay), the opened-entity snapshot and the
-/// building-entity health snapshot. Split from WorldEventSync at the 600-line
-/// gate — the block/keypad/earthquake domain stays in the main partial.
+/// The building-entity half of the world-event domain: damage and open reports
+/// (live star relay), the opened-entity snapshot and the building-entity health
+/// snapshot. Split out of <see cref="WorldEventSync"/> as its own top-level
+/// responsibility — the block/keypad/earthquake domain stays in WorldEventSync,
+/// and this class owns only the BuildingEntity application/report paths.
 /// </summary>
-internal sealed partial class WorldEventSync
+internal sealed class WorldBuildingEntitySync(
+	SessionService session,
+	WorldService world,
+	OperationTrace trace,
+	ILogger<WorldEventSync> log)
 {
+	private readonly SessionService _session = session;
+	private readonly WorldService _world = world;
+	private readonly OperationTrace _trace = trace;
+	private readonly ILogger<WorldEventSync> _log = log;
+
+	/// <summary>True while a remote world mutation is being applied — the local-report hooks must stay silent (call identity lives in CallContext, not bools).</summary>
+	private bool IsRemoteApply => CallContext.Current == CallContext.Origin.RemoteApply;
+
 	/// <summary>
 	/// Called from the Body.Attack patch after the local attack damaged a
 	/// building entity (Body.cs:1946 — the only player-vs-entity damage write,
@@ -45,7 +61,7 @@ internal sealed partial class WorldEventSync
 	/// sources (cactus collision self-damage) pass playHitSound = false because
 	/// the trigger side never played the entity hitSound.
 	/// </summary>
-	private void OnRemoteBuildingEntityDamaged(NetVector2 pos, float damage, bool playHitSound)
+	internal void OnRemoteBuildingEntityDamaged(NetVector2 pos, float damage, bool playHitSound)
 	{
 		using (CallContext.Enter(CallContext.Origin.RemoteApply))
 		{
@@ -97,7 +113,7 @@ internal sealed partial class WorldEventSync
 	/// REMOTE: the opener's side rolls and reports the drops, this side is
 	/// marked and BuildingEntityUpdatePatch only removes the entity.
 	/// </summary>
-	private void OnRemoteBuildingEntityOpened(NetVector2 pos)
+	internal void OnRemoteBuildingEntityOpened(NetVector2 pos)
 	{
 		using (CallContext.Enter(CallContext.Origin.RemoteApply))
 		{
@@ -122,7 +138,7 @@ internal sealed partial class WorldEventSync
 	/// relay (health = 0 + the remote-death mark). Idempotent by construction:
 	/// an already-open entity's health is 0 again.
 	/// </summary>
-	private void OnOpenedEntitiesSnapshot(IReadOnlyList<NetVector2Msg> positions)
+	internal void OnOpenedEntitiesSnapshot(IReadOnlyList<NetVector2Msg> positions)
 	{
 		foreach (var pos in positions)
 		{
@@ -139,7 +155,7 @@ internal sealed partial class WorldEventSync
 	/// remote so this side never rolls a second set of drops. Idempotent by
 	/// construction: writing the same health again is a no-op.
 	/// </summary>
-	private void OnBuildingEntityHealthSnapshot(IReadOnlyList<BuildingEntityHealthEntryMsg> entries)
+	internal void OnBuildingEntityHealthSnapshot(IReadOnlyList<BuildingEntityHealthEntryMsg> entries)
 	{
 		foreach (var entry in entries)
 		{

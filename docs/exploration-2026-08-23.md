@@ -166,16 +166,24 @@ sync model.
 
 ## 3. Architecture / quality audit
 
-### 3.1 Partial-aware architecture gate — HIGH
+### 3.1 Partial-aware architecture gate — CLOSED (2026-08-23)
 
-- `tools/check-architecture.ps1` checks per-file line counts; partial classes are
-  not aggregated by type, so a single logical class can exceed the 600-line gate
-  while each file remains under it.
-- Observed aggregate sizes (approximate, from the audit): `ModService` ~1590,
-  `GameAdapter` ~1364, `ItemService` ~928, `WorldService` ~792,
-  `EnemySyncCoordinator` ~750, `PlayerInteractionService` ~716,
-  `ItemApplication` ~630.
-- Proposed: make the gate aggregate by top-level type across partials and enforce
+> **Status 2026-08-23: CLOSED (gate); debt flattening remains a follow-up.** —
+> `tools/check-architecture.ps1` now aggregates by complete top-level type
+> across partial files. Unrecorded debt or growth beyond the recorded debt
+> ledger fails; `-Strict` refuses all recorded debt. The first real split
+> landed: `WorldBuildingEntitySync` extracted from `WorldEventSync`. Remaining
+> recorded aggregate debt is tracked in `docs/architecture-debt.json` and
+> listed in `docs/backlog.md` as the follow-up "large logical class debt
+> flattening" item. See `docs/selfchecks/partial-aware-gate-selfcheck.md` and
+> `docs/tech-decisions.md` #65.
+
+- The old gate checked per-file line counts; partial classes could hide a
+  logical class far above 600 lines.
+- Observed aggregate sizes: `ModService` 1590, `GameAdapter` 1397,
+  `ItemService` 928, `WorldService` 899, `EnemySyncCoordinator` 750,
+  `PlayerInteractionService` 716, `ItemApplication` 630.
+- Original proposal: aggregate by top-level type across partials and enforce
   real responsibility splits, not just physical file movement.
 
 ### 3.2 NetMsg direction registry — CLOSED (2026-08-23)

@@ -2,6 +2,5 @@
   "CasualtiesUnknownOnline.Runtime.Session.Mods.ModService": { "Lines": 1590, "BoolFlags": 0 },
   "CasualtiesUnknownOnline.GameAdapter.GameAdapter": { "Lines": 1397, "BoolFlags": 0 },
   "CasualtiesUnknownOnline.Runtime.Session.Items.ItemService": { "Lines": 928, "BoolFlags": 0 },
-  "CasualtiesUnknownOnline.Runtime.Session.World.WorldService": { "Lines": 899, "BoolFlags": 0 },
-  "CasualtiesUnknownOnline.GameAdapter.Character.EnemySyncCoordinator": { "Lines": 750, "BoolFlags": 0 }
+  "CasualtiesUnknownOnline.Runtime.Session.World.WorldService": { "Lines": 899, "BoolFlags": 0 }
 }

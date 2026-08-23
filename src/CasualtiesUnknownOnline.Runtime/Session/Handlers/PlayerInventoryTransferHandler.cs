@@ -9,8 +9,8 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// ToSteamId) and immediately re-reports the character snapshot.
 /// </summary>
 [PacketHandler(NetMsg.PlayerInventoryTransfer, NetMessageDirection.HostToGuest)]
-internal sealed class PlayerInventoryTransferHandler : PacketHandlerBase<PlayerInventoryTransferMsg>
+internal sealed class PlayerInventoryTransferHandler : PacketHandlerBase<PlayerInventoryTransferMsg, IPlayerInteractionHandlerContext>
 {
-	protected override void Handle(ulong sender, PlayerInventoryTransferMsg msg, HandlerContext ctx) =>
+	protected override void Handle(ulong sender, PlayerInventoryTransferMsg msg, IPlayerInteractionHandlerContext ctx) =>
 		ctx.PlayerInteraction.FireTransferReceived(msg);
 }

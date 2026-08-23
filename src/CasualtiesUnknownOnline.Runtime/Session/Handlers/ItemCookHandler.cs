@@ -14,11 +14,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// to the Ground layer and can never collide with the cooker.
 /// </summary>
 [PacketHandler(NetMsg.ItemCook, NetMessageDirection.HostToGuest)]
-public sealed class ItemCookHandler(ILogger<ItemCookHandler> log) : PacketHandlerBase<ItemCookMsg>
+public sealed class ItemCookHandler(ILogger<ItemCookHandler> log) : PacketHandlerBase<ItemCookMsg, IItemHandlerContext>
 {
 	private readonly ILogger<ItemCookHandler> _log = log;
 
-	protected override void Handle(ulong sender, ItemCookMsg msg, HandlerContext ctx)
+	protected override void Handle(ulong sender, ItemCookMsg msg, IItemHandlerContext ctx)
 	{
 		ctx.Items.FireItemCookedReceived(sender, msg.SourceItemId, msg.CookedItemId, msg.Item,
 			msg.Position.ToNetVector2(), msg.Velocity.ToNetVector2(), msg.Rotation, msg.AngularVelocity);

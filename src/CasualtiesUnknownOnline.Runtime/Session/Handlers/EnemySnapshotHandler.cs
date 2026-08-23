@@ -5,9 +5,9 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 
 /// <summary>Host → guest: the full enemy snapshot (world entry / late joiner) — ids + spawn positions for binding.</summary>
 [PacketHandler(NetMsg.EnemySnapshot, NetMessageDirection.HostToGuest)]
-public sealed class EnemySnapshotHandler : PacketHandlerBase<EnemySnapshotMsg>
+public sealed class EnemySnapshotHandler : PacketHandlerBase<EnemySnapshotMsg, IEnemySessionHandlerContext>
 {
-	protected override void Handle(ulong sender, EnemySnapshotMsg msg, HandlerContext ctx)
+	protected override void Handle(ulong sender, EnemySnapshotMsg msg, IEnemySessionHandlerContext ctx)
 	{
 		if (ctx.Session.Role != SessionRole.Guest)
 		{

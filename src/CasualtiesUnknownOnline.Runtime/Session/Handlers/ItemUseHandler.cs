@@ -12,11 +12,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// Usage itself is never rejected.
 /// </summary>
 [PacketHandler(NetMsg.ItemUse, NetMessageDirection.GuestToHost)]
-public sealed class ItemUseHandler(ILogger<ItemUseHandler> log) : PacketHandlerBase<ItemUseMsg>
+public sealed class ItemUseHandler(ILogger<ItemUseHandler> log) : PacketHandlerBase<ItemUseMsg, IItemHandlerContext>
 {
 	private readonly ILogger<ItemUseHandler> _log = log;
 
-	protected override void Handle(ulong sender, ItemUseMsg msg, HandlerContext ctx)
+	protected override void Handle(ulong sender, ItemUseMsg msg, IItemHandlerContext ctx)
 	{
 		ctx.Items.FireItemUseReceived(sender, msg.ItemId, msg.Item);
 		_log.LogInformation("Item use {ItemId} from {Sender}.", msg.ItemId, sender);

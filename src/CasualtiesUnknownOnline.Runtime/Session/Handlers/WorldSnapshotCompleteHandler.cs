@@ -9,8 +9,8 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// best-effort snapshot set.
 /// </summary>
 [PacketHandler(NetMsg.WorldSnapshotComplete, NetMessageDirection.HostToGuest)]
-public sealed class WorldSnapshotCompleteHandler : PacketHandlerBase<WorldSnapshotCompleteMsg>
+public sealed class WorldSnapshotCompleteHandler : PacketHandlerBase<WorldSnapshotCompleteMsg, IWorldHandlerContext>
 {
-	protected override void Handle(ulong sender, WorldSnapshotCompleteMsg msg, HandlerContext ctx) =>
+	protected override void Handle(ulong sender, WorldSnapshotCompleteMsg msg, IWorldHandlerContext ctx) =>
 		ctx.World.FireWorldSnapshotCompleteReceived();
 }

@@ -12,11 +12,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// host's relay — clear the cell (idempotent).
 /// </summary>
 [PacketHandler(NetMsg.FluidInteraction, NetMessageDirection.Bidirectional)]
-public sealed class FluidInteractionHandler(ILogger<FluidInteractionHandler> log) : PacketHandlerBase<FluidInteractionMsg>
+public sealed class FluidInteractionHandler(ILogger<FluidInteractionHandler> log) : PacketHandlerBase<FluidInteractionMsg, IWorldSessionHandlerContext>
 {
 	private readonly ILogger<FluidInteractionHandler> _log = log;
 
-	protected override void Handle(ulong sender, FluidInteractionMsg msg, HandlerContext ctx)
+	protected override void Handle(ulong sender, FluidInteractionMsg msg, IWorldSessionHandlerContext ctx)
 	{
 		ctx.World.FireFluidInteractionReceived(sender, msg);
 		if (ctx.Session.Role == SessionRole.Host)

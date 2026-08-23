@@ -16,8 +16,8 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// broadcast — apply it.
 /// </summary>
 [PacketHandler(NetMsg.BlockDamaged, NetMessageDirection.Bidirectional)]
-public sealed class BlockDamagedHandler : PacketHandlerBase<BlockDamagedMsg>
+public sealed class BlockDamagedHandler : PacketHandlerBase<BlockDamagedMsg, IWorldHandlerContext>
 {
-	protected override void Handle(ulong sender, BlockDamagedMsg msg, HandlerContext ctx) =>
+	protected override void Handle(ulong sender, BlockDamagedMsg msg, IWorldHandlerContext ctx) =>
 		ctx.World.FireBlockDamagedReceived(sender, msg.Position.ToNetVector2(), msg.Damage, msg.MetalBonus, msg.Drops);
 }

@@ -10,8 +10,8 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// participants.
 /// </summary>
 [PacketHandler(NetMsg.PlayerHealRequest, NetMessageDirection.GuestToHost)]
-internal sealed class PlayerHealRequestHandler : PacketHandlerBase<PlayerHealRequestMsg>
+internal sealed class PlayerHealRequestHandler : PacketHandlerBase<PlayerHealRequestMsg, IPlayerInteractionHandlerContext>
 {
-	protected override void Handle(ulong sender, PlayerHealRequestMsg msg, HandlerContext ctx) =>
+	protected override void Handle(ulong sender, PlayerHealRequestMsg msg, IPlayerInteractionHandlerContext ctx) =>
 		ctx.PlayerInteraction.HandleHealRequest(sender, msg);
 }

@@ -12,11 +12,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// the member joined.
 /// </summary>
 [PacketHandler(NetMsg.BuildingEntityHealthSnapshot, NetMessageDirection.HostToGuest)]
-public sealed class BuildingEntityHealthSnapshotHandler(ILogger<BuildingEntityHealthSnapshotHandler> log) : PacketHandlerBase<BuildingEntityHealthSnapshotMsg>
+public sealed class BuildingEntityHealthSnapshotHandler(ILogger<BuildingEntityHealthSnapshotHandler> log) : PacketHandlerBase<BuildingEntityHealthSnapshotMsg, IWorldHandlerContext>
 {
 	private readonly ILogger<BuildingEntityHealthSnapshotHandler> _log = log;
 
-	protected override void Handle(ulong sender, BuildingEntityHealthSnapshotMsg msg, HandlerContext ctx)
+	protected override void Handle(ulong sender, BuildingEntityHealthSnapshotMsg msg, IWorldHandlerContext ctx)
 	{
 		_log.LogInformation("Building-entity health snapshot received ({Count} entities).", msg.Entries.Count);
 		ctx.World.FireBuildingEntityHealthSnapshotReceived(msg.Entries);

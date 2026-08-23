@@ -13,11 +13,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// the line is surfaced locally and never re-relayed.
 /// </summary>
 [PacketHandler(NetMsg.Chat, NetMessageDirection.Bidirectional)]
-public sealed class ChatHandler(ILogger<ChatHandler> log) : PacketHandlerBase<ChatMsg>
+public sealed class ChatHandler(ILogger<ChatHandler> log) : PacketHandlerBase<ChatMsg, IWorldSessionHandlerContext>
 {
 	private readonly ILogger<ChatHandler> _log = log;
 
-	protected override void Handle(ulong sender, ChatMsg msg, HandlerContext ctx)
+	protected override void Handle(ulong sender, ChatMsg msg, IWorldSessionHandlerContext ctx)
 	{
 		if (!ChatPolicy.IsValid(msg.Text) || msg.SenderSteamId == 0)
 		{

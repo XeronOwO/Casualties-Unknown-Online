@@ -11,11 +11,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// travels with the message so every receiver can materialize the object.
 /// </summary>
 [PacketHandler(NetMsg.ItemSpawn, NetMessageDirection.Bidirectional)]
-public sealed class ItemSpawnHandler(ILogger<ItemSpawnHandler> log) : PacketHandlerBase<ItemSpawnMsg>
+public sealed class ItemSpawnHandler(ILogger<ItemSpawnHandler> log) : PacketHandlerBase<ItemSpawnMsg, IItemHandlerContext>
 {
 	private readonly ILogger<ItemSpawnHandler> _log = log;
 
-	protected override void Handle(ulong sender, ItemSpawnMsg msg, HandlerContext ctx)
+	protected override void Handle(ulong sender, ItemSpawnMsg msg, IItemHandlerContext ctx)
 	{
 		ctx.Items.FireItemSpawnedReceived(sender, msg.ItemId, msg.Item, msg.Position.ToNetVector2(), msg.Velocity.ToNetVector2(), msg.Rotation, msg.FreshItemDrop, msg.AngularVelocity);
 		_log.LogInformation("Item spawn {ItemId} ({Type}) from {Sender}.", msg.ItemId, msg.Item.ItemId, sender);

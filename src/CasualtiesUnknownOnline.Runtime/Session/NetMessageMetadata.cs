@@ -6,8 +6,8 @@ namespace CasualtiesUnknownOnline.Runtime.Session;
 /// <summary>
 /// One entry in the protocol message registry: the wire id, its locked transport
 /// direction and the protobuf payload type used by its handler. The payload type
-/// is derived from the handler's <c>PacketHandlerBase&lt;TPacket&gt;</c> base
-/// class, so a handler and its registry entry cannot silently disagree about the
+/// is derived from the handler's <c>PacketHandlerBase&lt;TPacket, TContext&gt;</c>
+/// base class, so a handler and its registry entry cannot silently disagree about the
 /// wire payload.
 /// </summary>
 public readonly record struct NetMessageMetadata(NetMsg Msg, NetMessageDirection Direction, Type PayloadType)

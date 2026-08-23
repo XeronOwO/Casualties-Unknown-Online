@@ -14,11 +14,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// character snapshot stays the fallback. Mirror of <see cref="EnemyBiteHandler"/>.
 /// </summary>
 [PacketHandler(NetMsg.LimbStateEvent, NetMessageDirection.Bidirectional)]
-public sealed class LimbStateEventHandler(ILogger<LimbStateEventHandler> log) : PacketHandlerBase<LimbStateEventMsg>
+public sealed class LimbStateEventHandler(ILogger<LimbStateEventHandler> log) : PacketHandlerBase<LimbStateEventMsg, ICharacterSessionHandlerContext>
 {
 	private readonly ILogger<LimbStateEventHandler> _log = log;
 
-	protected override void Handle(ulong sender, LimbStateEventMsg msg, HandlerContext ctx)
+	protected override void Handle(ulong sender, LimbStateEventMsg msg, ICharacterSessionHandlerContext ctx)
 	{
 		if (ctx.Session.Role == SessionRole.Host)
 		{

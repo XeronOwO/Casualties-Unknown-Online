@@ -13,11 +13,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// there is no entry — a starting-supply item).
 /// </summary>
 [PacketHandler(NetMsg.ItemSlot, NetMessageDirection.GuestToHost)]
-public sealed class ItemSlotHandler(ILogger<ItemSlotHandler> log) : PacketHandlerBase<ItemSlotMsg>
+public sealed class ItemSlotHandler(ILogger<ItemSlotHandler> log) : PacketHandlerBase<ItemSlotMsg, IItemHandlerContext>
 {
 	private readonly ILogger<ItemSlotHandler> _log = log;
 
-	protected override void Handle(ulong sender, ItemSlotMsg msg, HandlerContext ctx)
+	protected override void Handle(ulong sender, ItemSlotMsg msg, IItemHandlerContext ctx)
 	{
 		ctx.Items.FireItemSlotReceived(sender, msg.ItemId, msg.SlotIndex, msg.Item);
 		_log.LogInformation("Item slot {ItemId} → {Slot} from {Sender}.", msg.ItemId, msg.SlotIndex, sender);

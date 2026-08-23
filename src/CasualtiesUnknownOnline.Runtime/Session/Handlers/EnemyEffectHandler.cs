@@ -13,11 +13,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// unconditionally; the 1 Hz character snapshot stays the fallback.
 /// </summary>
 [PacketHandler(NetMsg.EnemyEffect, NetMessageDirection.Bidirectional)]
-public sealed class EnemyEffectHandler(ILogger<EnemyEffectHandler> log) : PacketHandlerBase<EnemyEffectMsg>
+public sealed class EnemyEffectHandler(ILogger<EnemyEffectHandler> log) : PacketHandlerBase<EnemyEffectMsg, IEnemyCharacterSessionHandlerContext>
 {
 	private readonly ILogger<EnemyEffectHandler> _log = log;
 
-	protected override void Handle(ulong sender, EnemyEffectMsg msg, HandlerContext ctx)
+	protected override void Handle(ulong sender, EnemyEffectMsg msg, IEnemyCharacterSessionHandlerContext ctx)
 	{
 		if (ctx.Session.Role == SessionRole.Host)
 		{

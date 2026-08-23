@@ -9,8 +9,8 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// mutation to the two participants.
 /// </summary>
 [PacketHandler(NetMsg.PlayerInventoryTakeRequest, NetMessageDirection.GuestToHost)]
-internal sealed class PlayerInventoryTakeRequestHandler : PacketHandlerBase<PlayerInventoryTakeRequestMsg>
+internal sealed class PlayerInventoryTakeRequestHandler : PacketHandlerBase<PlayerInventoryTakeRequestMsg, IPlayerInteractionHandlerContext>
 {
-	protected override void Handle(ulong sender, PlayerInventoryTakeRequestMsg msg, HandlerContext ctx) =>
+	protected override void Handle(ulong sender, PlayerInventoryTakeRequestMsg msg, IPlayerInteractionHandlerContext ctx) =>
 		ctx.PlayerInteraction.HandleTakeRequest(sender, msg);
 }

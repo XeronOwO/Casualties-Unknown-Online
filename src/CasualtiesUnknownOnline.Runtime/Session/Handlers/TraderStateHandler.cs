@@ -12,11 +12,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// </summary>
 [PacketHandler(NetMsg.TraderState, NetMessageDirection.HostToGuest)]
 public sealed class TraderStateHandler(ILogger<TraderStateHandler> log)
-	: PacketHandlerBase<TraderStateMsg>
+	: PacketHandlerBase<TraderStateMsg, IWorldHandlerContext>
 {
 	private readonly ILogger<TraderStateHandler> _log = log;
 
-	protected override void Handle(ulong sender, TraderStateMsg msg, HandlerContext ctx)
+	protected override void Handle(ulong sender, TraderStateMsg msg, IWorldHandlerContext ctx)
 	{
 		ctx.World.FireTraderStateReceived(msg);
 		_log.LogInformation("[Trade] state received trader=({X:0.0},{Y:0.0}) rep={Rep} items={N} reject={Reject}.",

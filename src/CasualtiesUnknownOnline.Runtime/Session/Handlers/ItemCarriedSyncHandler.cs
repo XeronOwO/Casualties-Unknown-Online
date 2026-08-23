@@ -12,11 +12,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// stays as the fallback.
 /// </summary>
 [PacketHandler(NetMsg.ItemCarriedSync, NetMessageDirection.HostToGuest)]
-public sealed class ItemCarriedSyncHandler(ILogger<ItemCarriedSyncHandler> log) : PacketHandlerBase<ItemCarriedSyncMsg>
+public sealed class ItemCarriedSyncHandler(ILogger<ItemCarriedSyncHandler> log) : PacketHandlerBase<ItemCarriedSyncMsg, IItemHandlerContext>
 {
 	private readonly ILogger<ItemCarriedSyncHandler> _log = log;
 
-	protected override void Handle(ulong sender, ItemCarriedSyncMsg msg, HandlerContext ctx)
+	protected override void Handle(ulong sender, ItemCarriedSyncMsg msg, IItemHandlerContext ctx)
 	{
 		ctx.Items.FireItemCarriedSyncReceived(sender, msg.OwnerSteamId, msg.Item, msg.SlotKnown);
 		_log.LogInformation("Carried sync for {Owner}'s {ItemId} (id {InstanceId}) from {Sender}.", msg.OwnerSteamId, msg.Item.ItemId, msg.Item.InstanceId, sender);

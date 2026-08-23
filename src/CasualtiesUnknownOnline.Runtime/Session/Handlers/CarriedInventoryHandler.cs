@@ -11,11 +11,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// normally.
 /// </summary>
 [PacketHandler(NetMsg.CarriedInventory, NetMessageDirection.GuestToHost)]
-public sealed class CarriedInventoryHandler(ILogger<CarriedInventoryHandler> log) : PacketHandlerBase<CarriedInventoryMsg>
+public sealed class CarriedInventoryHandler(ILogger<CarriedInventoryHandler> log) : PacketHandlerBase<CarriedInventoryMsg, IItemHandlerContext>
 {
 	private readonly ILogger<CarriedInventoryHandler> _log = log;
 
-	protected override void Handle(ulong sender, CarriedInventoryMsg msg, HandlerContext ctx)
+	protected override void Handle(ulong sender, CarriedInventoryMsg msg, IItemHandlerContext ctx)
 	{
 		ctx.Items.FireCarriedInventoryReceived(sender, msg.Items);
 		_log.LogInformation("Carried inventory of {Sender}: {Count} items.", sender, msg.Items.Count);

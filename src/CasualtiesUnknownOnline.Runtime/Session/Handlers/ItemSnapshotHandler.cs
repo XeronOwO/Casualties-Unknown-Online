@@ -12,11 +12,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// snapshot: spawns the missing, destroys the stale.
 /// </summary>
 [PacketHandler(NetMsg.ItemSnapshot, NetMessageDirection.HostToGuest)]
-public sealed class ItemSnapshotHandler(ILogger<ItemSnapshotHandler> log) : PacketHandlerBase<ItemSnapshotMsg>
+public sealed class ItemSnapshotHandler(ILogger<ItemSnapshotHandler> log) : PacketHandlerBase<ItemSnapshotMsg, IItemHandlerContext>
 {
 	private readonly ILogger<ItemSnapshotHandler> _log = log;
 
-	protected override void Handle(ulong sender, ItemSnapshotMsg msg, HandlerContext ctx)
+	protected override void Handle(ulong sender, ItemSnapshotMsg msg, IItemHandlerContext ctx)
 	{
 		var items = new List<WorldItem>(msg.Entries.Count);
 		foreach (var entry in msg.Entries)

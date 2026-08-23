@@ -9,8 +9,8 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// authoritative empty carry state.
 /// </summary>
 [PacketHandler(NetMsg.PlayerCarryStopRequest, NetMessageDirection.GuestToHost)]
-internal sealed class PlayerCarryStopRequestHandler : PacketHandlerBase<PlayerCarryStopRequestMsg>
+internal sealed class PlayerCarryStopRequestHandler : PacketHandlerBase<PlayerCarryStopRequestMsg, IPlayerInteractionHandlerContext>
 {
-	protected override void Handle(ulong sender, PlayerCarryStopRequestMsg msg, HandlerContext ctx) =>
+	protected override void Handle(ulong sender, PlayerCarryStopRequestMsg msg, IPlayerInteractionHandlerContext ctx) =>
 		ctx.PlayerInteraction.HandleCarryStopRequest(sender, msg);
 }

@@ -13,11 +13,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// </summary>
 [PacketHandler(NetMsg.EntitySpawned, NetMessageDirection.Bidirectional)]
 public sealed class EntitySpawnedHandler(ILogger<EntitySpawnedHandler> log)
-	: PacketHandlerBase<EntitySpawnedMsg>
+	: PacketHandlerBase<EntitySpawnedMsg, IWorldHandlerContext>
 {
 	private readonly ILogger<EntitySpawnedHandler> _log = log;
 
-	protected override void Handle(ulong sender, EntitySpawnedMsg msg, HandlerContext ctx)
+	protected override void Handle(ulong sender, EntitySpawnedMsg msg, IWorldHandlerContext ctx)
 	{
 		ctx.World.FireEntitySpawnedReceived(sender, msg);
 

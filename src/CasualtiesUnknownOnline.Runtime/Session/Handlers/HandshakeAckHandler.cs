@@ -9,12 +9,12 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// Answers with the AckAck leg (HandshakeAckAckMsg): the host only counts the
 /// member as handshaken once it receives it (HandshakeAckAckHandler).</summary>
 [PacketHandler(NetMsg.HandshakeAck, NetMessageDirection.HostToGuest)]
-public sealed class HandshakeAckHandler(PacketSender sender, ILogger<HandshakeAckHandler> log) : PacketHandlerBase<HandshakeAckMsg>
+public sealed class HandshakeAckHandler(PacketSender sender, ILogger<HandshakeAckHandler> log) : PacketHandlerBase<HandshakeAckMsg, ISessionHandlerContext>
 {
 	private readonly PacketSender _sender = sender;
 	private readonly ILogger<HandshakeAckHandler> _log = log;
 
-	protected override void Handle(ulong sender, HandshakeAckMsg msg, HandlerContext ctx)
+	protected override void Handle(ulong sender, HandshakeAckMsg msg, ISessionHandlerContext ctx)
 	{
 		var session = ctx.Session;
 		var protocol = msg.Protocol;

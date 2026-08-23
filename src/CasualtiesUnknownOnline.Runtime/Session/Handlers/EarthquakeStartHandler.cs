@@ -9,8 +9,8 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// (direction-validated by PacketReceiver).
 /// </summary>
 [PacketHandler(NetMsg.EarthquakeStart, NetMessageDirection.HostToGuest)]
-public sealed class EarthquakeStartHandler : PacketHandlerBase<EarthquakeStartMsg>
+public sealed class EarthquakeStartHandler : PacketHandlerBase<EarthquakeStartMsg, IWorldHandlerContext>
 {
-	protected override void Handle(ulong sender, EarthquakeStartMsg msg, HandlerContext ctx) =>
+	protected override void Handle(ulong sender, EarthquakeStartMsg msg, IWorldHandlerContext ctx) =>
 		ctx.World.FireEarthquakeStartReceived(msg.Duration, msg.NextDelay);
 }

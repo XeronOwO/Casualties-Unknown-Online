@@ -10,11 +10,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// excluded), host → guest as a broadcast relay.
 /// </summary>
 [PacketHandler(NetMsg.ItemDestroy, NetMessageDirection.Bidirectional)]
-public sealed class ItemDestroyHandler(ILogger<ItemDestroyHandler> log) : PacketHandlerBase<ItemDestroyMsg>
+public sealed class ItemDestroyHandler(ILogger<ItemDestroyHandler> log) : PacketHandlerBase<ItemDestroyMsg, IItemHandlerContext>
 {
 	private readonly ILogger<ItemDestroyHandler> _log = log;
 
-	protected override void Handle(ulong sender, ItemDestroyMsg msg, HandlerContext ctx)
+	protected override void Handle(ulong sender, ItemDestroyMsg msg, IItemHandlerContext ctx)
 	{
 		ctx.Items.FireItemDestroyedReceived(sender, msg.ItemId);
 		_log.LogInformation("Item destroy {ItemId} from {Sender}.", msg.ItemId, sender);

@@ -10,11 +10,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// copy, the same application as the live BuildingEntityOpened relay).
 /// </summary>
 [PacketHandler(NetMsg.OpenedEntitiesSnapshot, NetMessageDirection.HostToGuest)]
-public sealed class OpenedEntitiesSnapshotHandler(ILogger<OpenedEntitiesSnapshotHandler> log) : PacketHandlerBase<OpenedEntitiesSnapshotMsg>
+public sealed class OpenedEntitiesSnapshotHandler(ILogger<OpenedEntitiesSnapshotHandler> log) : PacketHandlerBase<OpenedEntitiesSnapshotMsg, IWorldHandlerContext>
 {
 	private readonly ILogger<OpenedEntitiesSnapshotHandler> _log = log;
 
-	protected override void Handle(ulong sender, OpenedEntitiesSnapshotMsg msg, HandlerContext ctx)
+	protected override void Handle(ulong sender, OpenedEntitiesSnapshotMsg msg, IWorldHandlerContext ctx)
 	{
 		_log.LogInformation("Opened-entities snapshot received ({Count} positions).", msg.Positions.Count);
 		ctx.World.FireOpenedEntitiesSnapshotReceived(msg.Positions);

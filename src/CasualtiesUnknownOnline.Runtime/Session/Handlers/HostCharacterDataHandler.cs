@@ -12,11 +12,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// </summary>
 [PacketHandler(NetMsg.HostCharacterData, NetMessageDirection.HostToGuest)]
 public sealed class HostCharacterDataHandler(ILogger<HostCharacterDataHandler> log)
-	: PacketHandlerBase<CharacterDataMsg>
+	: PacketHandlerBase<CharacterDataMsg, ICharacterDataHandlerContext>
 {
 	private readonly ILogger<HostCharacterDataHandler> _log = log;
 
-	protected override void Handle(ulong sender, CharacterDataMsg msg, HandlerContext ctx)
+	protected override void Handle(ulong sender, CharacterDataMsg msg, ICharacterDataHandlerContext ctx)
 	{
 		ctx.CharacterData.FireHostCharacterDataReceived(msg);
 		_log.LogDebug("Host character snapshot received ({Items} items).", msg.Items.Count);

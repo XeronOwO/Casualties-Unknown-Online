@@ -8,8 +8,8 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// host owns the line's active/timeGone world state; guests apply it).
 /// </summary>
 [PacketHandler(NetMsg.RadiationLineState, NetMessageDirection.HostToGuest)]
-public sealed class RadiationLineStateHandler : PacketHandlerBase<RadiationLineStateMsg>
+public sealed class RadiationLineStateHandler : PacketHandlerBase<RadiationLineStateMsg, IWorldHandlerContext>
 {
-	protected override void Handle(ulong sender, RadiationLineStateMsg msg, HandlerContext ctx) =>
+	protected override void Handle(ulong sender, RadiationLineStateMsg msg, IWorldHandlerContext ctx) =>
 		ctx.World.FireRadiationLineStateReceived(msg);
 }

@@ -9,9 +9,9 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// The entity domain owns both paths (ProcessPlayerJoin).
 /// </summary>
 [PacketHandler(NetMsg.PlayerJoin, NetMessageDirection.HostToGuest)]
-public sealed class PlayerJoinHandler : PacketHandlerBase<PlayerJoinMsg>
+public sealed class PlayerJoinHandler : PacketHandlerBase<PlayerJoinMsg, IEntitySessionHandlerContext>
 {
-	protected override void Handle(ulong sender, PlayerJoinMsg msg, HandlerContext ctx)
+	protected override void Handle(ulong sender, PlayerJoinMsg msg, IEntitySessionHandlerContext ctx)
 	{
 		if (ctx.Session.Role != SessionRole.Guest)
 		{

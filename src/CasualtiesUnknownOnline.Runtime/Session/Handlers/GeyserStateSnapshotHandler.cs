@@ -14,11 +14,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// </summary>
 [PacketHandler(NetMsg.GeyserStateSnapshot, NetMessageDirection.HostToGuest)]
 public sealed class GeyserStateSnapshotHandler(ILogger<GeyserStateSnapshotHandler> log)
-	: PacketHandlerBase<GeyserStateSnapshotMsg>
+	: PacketHandlerBase<GeyserStateSnapshotMsg, IWorldHandlerContext>
 {
 	private readonly ILogger<GeyserStateSnapshotHandler> _log = log;
 
-	protected override void Handle(ulong sender, GeyserStateSnapshotMsg msg, HandlerContext ctx)
+	protected override void Handle(ulong sender, GeyserStateSnapshotMsg msg, IWorldHandlerContext ctx)
 	{
 		ctx.World.FireGeyserStateReceived(msg.Geysers);
 		_log.LogInformation("[GeyserSnapshot] received {Count} liquid types.", msg.Geysers.Count);

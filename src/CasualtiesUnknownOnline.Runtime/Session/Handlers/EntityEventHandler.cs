@@ -12,11 +12,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// </summary>
 [PacketHandler(NetMsg.EntityEvent, NetMessageDirection.Bidirectional)]
 public sealed class EntityEventHandler(ILogger<EntityEventHandler> log)
-	: PacketHandlerBase<EntityEventMsg>
+	: PacketHandlerBase<EntityEventMsg, IWorldHandlerContext>
 {
 	private readonly ILogger<EntityEventHandler> _log = log;
 
-	protected override void Handle(ulong sender, EntityEventMsg msg, HandlerContext ctx)
+	protected override void Handle(ulong sender, EntityEventMsg msg, IWorldHandlerContext ctx)
 	{
 		ctx.World.FireEntityEventReceived(sender, msg);
 

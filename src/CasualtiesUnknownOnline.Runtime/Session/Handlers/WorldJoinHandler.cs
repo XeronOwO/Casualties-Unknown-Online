@@ -10,8 +10,8 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// waits for the params (the adapter owns that wait).
 /// </summary>
 [PacketHandler(NetMsg.WorldJoin, NetMessageDirection.HostToGuest)]
-public sealed class WorldJoinHandler : PacketHandlerBase<WorldJoinMsg>
+public sealed class WorldJoinHandler : PacketHandlerBase<WorldJoinMsg, IWorldHandlerContext>
 {
-	protected override void Handle(ulong sender, WorldJoinMsg msg, HandlerContext ctx) =>
+	protected override void Handle(ulong sender, WorldJoinMsg msg, IWorldHandlerContext ctx) =>
 		ctx.World.FireWorldJoinReceived(msg.IsTutorial);
 }

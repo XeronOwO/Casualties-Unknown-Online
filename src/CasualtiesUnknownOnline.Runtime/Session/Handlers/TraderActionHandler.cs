@@ -13,11 +13,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// </summary>
 [PacketHandler(NetMsg.TraderAction, NetMessageDirection.GuestToHost)]
 public sealed class TraderActionHandler(ILogger<TraderActionHandler> log)
-	: PacketHandlerBase<TraderActionMsg>
+	: PacketHandlerBase<TraderActionMsg, IWorldHandlerContext>
 {
 	private readonly ILogger<TraderActionHandler> _log = log;
 
-	protected override void Handle(ulong sender, TraderActionMsg msg, HandlerContext ctx)
+	protected override void Handle(ulong sender, TraderActionMsg msg, IWorldHandlerContext ctx)
 	{
 		ctx.World.FireTraderActionReceived(sender, msg);
 		_log.LogInformation("[Trade] action received from={Sender} action={Action} trader=({X:0.0},{Y:0.0}).",

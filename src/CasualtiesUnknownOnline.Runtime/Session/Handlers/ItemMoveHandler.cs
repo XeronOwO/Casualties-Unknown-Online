@@ -9,8 +9,8 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// guest only (direction-validated by PacketReceiver).
 /// </summary>
 [PacketHandler(NetMsg.ItemMove, NetMessageDirection.HostToGuest)]
-public sealed class ItemMoveHandler : PacketHandlerBase<ItemMoveMsg>
+public sealed class ItemMoveHandler : PacketHandlerBase<ItemMoveMsg, IItemHandlerContext>
 {
-	protected override void Handle(ulong sender, ItemMoveMsg msg, HandlerContext ctx) =>
+	protected override void Handle(ulong sender, ItemMoveMsg msg, IItemHandlerContext ctx) =>
 		ctx.Items.FireItemMoveReceived(msg.Items);
 }

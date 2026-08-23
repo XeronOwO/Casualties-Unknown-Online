@@ -57,14 +57,16 @@ src/dst/broadcast-flag envelope.
 ## 3. Session layer (landed 2026-08-08)
 
 Per-message handlers (`Runtime/Session/Handlers/`, `[PacketHandler(NetMsg.X)]` +
-`PacketHandlerBase<TPacket>`); `PacketDispatcher` builds a read-only `Dictionary<NetMsg, IPacketHandler>`
+`PacketHandlerBase<TPacket, TContext>`); `PacketDispatcher` builds a read-only `Dictionary<NetMsg, IPacketHandler>`
 at startup (O(1) dispatch). The session owns its state internally (identity/flags/presence table
 are private fields, never DI services — "state belongs to its owner"); consumers depend on the
 narrow `ISessionControl` factory, **resolved after the session is built** (abstract extraction over
 `Lazy`; reason through "who constructs whom"). Data plane: `PacketReceiver` (bind + direction
 validation + `MessageArrived`) + `PacketSender` (one send primitive) + `PacketDispatcher` (routes
-with `HandlerContext{ISessionControl, IEntitySyncControl, ICharacterDataControl, IWorldControl}` —
-handlers take no service constructor deps, keeping the graph acyclic). Domain services:
+through the `HandlerContext` composition root but hands each handler only the narrow capability
+interface it declares — `IWorldHandlerContext`, `IItemHandlerContext`, `IHandshakeHandlerContext`,
+etc.; handlers take no service constructor deps and never receive the broad context, keeping the
+graph acyclic). Domain services:
 `EntitySyncService`, `CharacterDataStore`, `WorldService` hang off the session through the control
 interfaces. `ICuoService : IDisposable`.
 
@@ -1756,7 +1758,7 @@ registry and makes both sides of the data plane fail closed.
 - **Registry** — `NetMessageRegistry` (`Runtime/Session`) is built once from
   every Runtime `IPacketHandler` type. `NetMessageMetadata` carries the wire id,
   the locked direction and the payload type derived from the handler's
-  `PacketHandlerBase<TPacket>` generic argument.
+  `PacketHandlerBase<TPacket, TContext>` first generic argument.
 - **Receiver fail-closed** — `PacketReceiver.OnTransportMessage` first checks
   `NetMessageRegistry.TryGet`; an unregistered id is dropped with a warning
   before any handler can see it. Direction validation then comes from the
@@ -2076,3 +2078,40 @@ facade plus real top-level responsibility classes, not more physical partials.
 
 No wire/protocol change. See
 `docs/selfchecks/game-adapter-split-selfcheck.md`.
+
+## 73. HandlerContext per-domain narrowing — capability interfaces, no protocol change
+
+Backlog §3.3 called out the remaining `HandlerContext` god-object concern:
+it still injected many control planes into every packet handler even though
+most handlers only use one or two. This entry closes that by keeping the
+single composition root at the dispatch seam while making each handler's
+business signature depend only on the narrow capability interface it needs.
+
+- **Capability interfaces** — one interface per used handler-context shape
+  (`IWorldHandlerContext`, `IItemHandlerContext`,
+  `ICharacterSessionHandlerContext`, `IEnemySessionHandlerContext`,
+  `IHandshakeHandlerContext`, `ISceneHandlerContext`, ...) under
+  `Session/HandlerContexts/`. Every interface exposes only the control
+  properties its handlers actually use.
+- **Handler base** — `PacketHandlerBase<TMessage, TContext>`; `Process`
+  receives the broad `HandlerContext` from the dispatcher, validates that it
+  satisfies `TContext`, and passes only the narrow interface to `Handle`.
+  Business handlers never reference `HandlerContext` anymore.
+- **Composition root** — the existing `HandlerContext` concrete type now
+  implements every capability interface; `CuoBootstrap` still constructs it
+  once and `PacketDispatcher` still owns the route table, so no DI/cycle
+  change.
+- **Registry** — `NetMessageRegistry.FindPayloadType` still derives the wire
+  payload type from the handler's `PacketHandlerBase<,>` first generic
+  argument; the second generic argument is the context interface.
+- **Empty context** — `PingHandler` needs no control surface and uses
+  `IEmptyHandlerContext` instead of an unused broad context.
+- **Regression gate** — `HandlerContextNarrowingTests` reflects every
+  `IPacketHandler` and locks: two-arg handler base, interface context,
+  `HandlerContext` implements the context, and the `Handle` parameter is
+  exactly the declared context type.
+- **No behavior change** — all handler bodies and routing semantics are
+  identical; this is compile-time dependency narrowing only.
+
+No wire/protocol change. See
+`docs/selfchecks/handler-context-narrowing-selfcheck.md`.

@@ -10,11 +10,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// </summary>
 [PacketHandler(NetMsg.TraderRecruitResult, NetMessageDirection.HostToGuest)]
 public sealed class TraderRecruitResultHandler(ILogger<TraderRecruitResultHandler> log)
-	: PacketHandlerBase<TraderRecruitResultMsg>
+	: PacketHandlerBase<TraderRecruitResultMsg, IWorldHandlerContext>
 {
 	private readonly ILogger<TraderRecruitResultHandler> _log = log;
 
-	protected override void Handle(ulong sender, TraderRecruitResultMsg msg, HandlerContext ctx)
+	protected override void Handle(ulong sender, TraderRecruitResultMsg msg, IWorldHandlerContext ctx)
 	{
 		ctx.World.FireTraderRecruitResultReceived(msg);
 		_log.LogInformation("[TradeRecruit] result received target={Target} health={Health}.", msg.TargetSteamId, msg.Health?.BrainHealth);

@@ -10,11 +10,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// guest must resume from Counter + 1). The host records; the guest applies.
 /// </summary>
 [PacketHandler(NetMsg.ItemIdWatermark, NetMessageDirection.Bidirectional)]
-public sealed class ItemIdWatermarkHandler(ILogger<ItemIdWatermarkHandler> log) : PacketHandlerBase<ItemIdWatermarkMsg>
+public sealed class ItemIdWatermarkHandler(ILogger<ItemIdWatermarkHandler> log) : PacketHandlerBase<ItemIdWatermarkMsg, IItemHandlerContext>
 {
 	private readonly ILogger<ItemIdWatermarkHandler> _log = log;
 
-	protected override void Handle(ulong sender, ItemIdWatermarkMsg msg, HandlerContext ctx)
+	protected override void Handle(ulong sender, ItemIdWatermarkMsg msg, IItemHandlerContext ctx)
 	{
 		ctx.Items.FireItemIdWatermarkReceived(sender, msg.Counter);
 		_log.LogInformation("Item id watermark {Counter} from {Sender}.", msg.Counter, sender);

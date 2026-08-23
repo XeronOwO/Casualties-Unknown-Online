@@ -10,8 +10,8 @@ namespace CasualtiesUnknownOnline.Runtime.Session;
 /// The single protocol message registry. Built once from every
 /// <see cref="IPacketHandler"/> in the Runtime assembly: the handler's
 /// <see cref="PacketHandlerAttribute"/> supplies the wire id and locked
-/// direction, and its <c>PacketHandlerBase&lt;TPacket&gt;</c> base supplies the
-/// payload type. The receiver validates every incoming frame against this
+/// direction, and its <c>PacketHandlerBase&lt;TPacket, TContext&gt;</c> base
+/// supplies the first generic argument as the payload type. The receiver validates every incoming frame against this
 /// registry and fails closed — a message id that is not registered is dropped.
 /// No per-message switch exists anymore; a new message must be added as a
 /// handler with an explicit direction or it will never be accepted.
@@ -40,7 +40,7 @@ public static class NetMessageRegistry
 
 			var payloadType = FindPayloadType(handlerType)
 				?? throw new InvalidOperationException(
-					$"Packet handler {handlerType.Name} does not derive from PacketHandlerBase<TPacket>.");
+					$"Packet handler {handlerType.Name} does not derive from PacketHandlerBase<TPacket, TContext>.");
 
 			var metadata = new NetMessageMetadata(attribute.Msg, attribute.Direction, payloadType);
 			if (messages.ContainsKey(metadata.Msg))
@@ -58,7 +58,7 @@ public static class NetMessageRegistry
 	{
 		for (var current = handlerType.BaseType; current is not null; current = current.BaseType)
 		{
-			if (current.IsGenericType && current.GetGenericTypeDefinition() == typeof(PacketHandlerBase<>))
+			if (current.IsGenericType && current.GetGenericTypeDefinition() == typeof(PacketHandlerBase<,>))
 			{
 				return current.GetGenericArguments()[0];
 			}

@@ -12,11 +12,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// means "the handshake protocol completed" (see HandshakeAckAckMsg).
 /// </summary>
 [PacketHandler(NetMsg.HandshakeAckAck, NetMessageDirection.GuestToHost)]
-public sealed class HandshakeAckAckHandler(ILogger<HandshakeAckAckHandler> log) : PacketHandlerBase<HandshakeAckAckMsg>
+public sealed class HandshakeAckAckHandler(ILogger<HandshakeAckAckHandler> log) : PacketHandlerBase<HandshakeAckAckMsg, IEntitySessionHandlerContext>
 {
 	private readonly ILogger<HandshakeAckAckHandler> _log = log;
 
-	protected override void Handle(ulong sender, HandshakeAckAckMsg msg, HandlerContext ctx)
+	protected override void Handle(ulong sender, HandshakeAckAckMsg msg, IEntitySessionHandlerContext ctx)
 	{
 		var session = ctx.Session;
 		if (session.Role != SessionRole.Host)

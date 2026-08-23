@@ -11,11 +11,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// </summary>
 [PacketHandler(NetMsg.TrapStateSnapshot, NetMessageDirection.HostToGuest)]
 public sealed class TrapStateSnapshotHandler(ILogger<TrapStateSnapshotHandler> log)
-	: PacketHandlerBase<TrapStateSnapshotMsg>
+	: PacketHandlerBase<TrapStateSnapshotMsg, IWorldHandlerContext>
 {
 	private readonly ILogger<TrapStateSnapshotHandler> _log = log;
 
-	protected override void Handle(ulong sender, TrapStateSnapshotMsg msg, HandlerContext ctx)
+	protected override void Handle(ulong sender, TrapStateSnapshotMsg msg, IWorldHandlerContext ctx)
 	{
 		ctx.World.FireTrapStateReceived(msg.Consumed);
 		_log.LogInformation("[TrapSnapshot] received {Count} consumed.", msg.Consumed.Count);

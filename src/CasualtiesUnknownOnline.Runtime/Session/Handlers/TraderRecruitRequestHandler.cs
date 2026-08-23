@@ -14,11 +14,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// </summary>
 [PacketHandler(NetMsg.TraderRecruitRequest, NetMessageDirection.GuestToHost)]
 public sealed class TraderRecruitRequestHandler(ILogger<TraderRecruitRequestHandler> log)
-	: PacketHandlerBase<TraderRecruitRequestMsg>
+	: PacketHandlerBase<TraderRecruitRequestMsg, IWorldHandlerContext>
 {
 	private readonly ILogger<TraderRecruitRequestHandler> _log = log;
 
-	protected override void Handle(ulong sender, TraderRecruitRequestMsg msg, HandlerContext ctx)
+	protected override void Handle(ulong sender, TraderRecruitRequestMsg msg, IWorldHandlerContext ctx)
 	{
 		ctx.World.FireTraderRecruitRequestReceived(sender, msg);
 		_log.LogInformation("[TradeRecruit] request received from={Sender} target={Target} trader=({X:0.0},{Y:0.0}).",

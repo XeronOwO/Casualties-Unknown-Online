@@ -12,11 +12,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// holds end-to-end.
 /// </summary>
 [PacketHandler(NetMsg.CraftReport, NetMessageDirection.Bidirectional)]
-public sealed class CraftReportHandler(ILogger<CraftReportHandler> log) : PacketHandlerBase<CraftReportMsg>
+public sealed class CraftReportHandler(ILogger<CraftReportHandler> log) : PacketHandlerBase<CraftReportMsg, ICraftHandlerContext>
 {
 	private readonly ILogger<CraftReportHandler> _log = log;
 
-	protected override void Handle(ulong sender, CraftReportMsg msg, HandlerContext ctx)
+	protected override void Handle(ulong sender, CraftReportMsg msg, ICraftHandlerContext ctx)
 	{
 		ctx.Craft.FireCraftReportReceived(sender, msg);
 		_log.LogInformation("Craft report ({Kind}) from {Sender}.", msg.Kind, sender);

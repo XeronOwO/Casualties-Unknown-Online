@@ -217,4 +217,9 @@ public enum NetMsg : byte
 	// end-of-group marker so a receiver never mistakes a partial best-effort
 	// state for the full authoritative state)
 	WorldSnapshotComplete = 110, // host → guest: the world-entry snapshot group is complete
+
+	// Host administration (host authority — only the host may remove a guest
+	// from the session; the target is told directly so it can tear down instead
+	// of waiting for the host to disappear)
+	Kicked = 111, // host → guest: this member was kicked by the host
 }

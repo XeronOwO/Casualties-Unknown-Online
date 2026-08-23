@@ -14,12 +14,12 @@ internal static class OnlineUiPlayersDrawer
 		var session = ctx.Session;
 		if (steam.CurrentLobbyId == 0)
 		{
-			GUILayout.Label("You are not in a lobby.", OnlineUiTheme.MutedLabel());
+			GUILayout.Label(ctx.T("players.not_in_lobby"), OnlineUiTheme.MutedLabel());
 			return;
 		}
 
-		GUILayout.Label("PLAYERS", OnlineUiTheme.Section());
-		GUILayout.Label($"Local player: {(session.LocalInWorld ? "in world" : "menu")}", OnlineUiTheme.MutedLabel());
+		GUILayout.Label(ctx.T("players.section"), OnlineUiTheme.Section());
+		GUILayout.Label(session.LocalInWorld ? ctx.T("players.local_in_world") : ctx.T("players.local_menu"), OnlineUiTheme.MutedLabel());
 
 		var rows = OnlineUiMemberListDrawer.BuildRows(ctx);
 		OnlineUiMemberListDrawer.Draw(ctx, rows);

@@ -42,7 +42,8 @@ internal sealed class OnlineUiWindow
 	{
 		var rect = new Rect(Screen.width - 170f, 12f, 158f, 34f);
 		OnlineUiTheme.DrawBackground(rect);
-		if (GUI.Button(rect, _state.Visible ? "CUO ONLINE ▲" : "CUO ONLINE ▼", OnlineUiTheme.Launcher()))
+		var label = ctx.T("launcher") + (_state.Visible ? " ▲" : " ▼");
+		if (GUI.Button(rect, label, OnlineUiTheme.Launcher()))
 		{
 			_state.Visible = !_state.Visible;
 			if (_state.Visible && _state.Page == OnlineUiPage.Home && ctx.Session.Role != Runtime.Session.SessionRole.None)
@@ -60,7 +61,7 @@ internal sealed class OnlineUiWindow
 		GUILayout.BeginArea(area);
 
 		GUILayout.BeginHorizontal();
-		GUILayout.Label("CASUALTIES UNKNOWN: ONLINE", OnlineUiTheme.Title());
+		GUILayout.Label(ctx.T("window.title"), OnlineUiTheme.Title());
 		GUILayout.FlexibleSpace();
 		if (GUILayout.Button("✕", OnlineUiTheme.Button(), GUILayout.Width(26f), GUILayout.Height(22f)))
 		{
@@ -70,7 +71,7 @@ internal sealed class OnlineUiWindow
 		GUILayout.EndHorizontal();
 
 		GUILayout.Space(4f);
-		DrawTabs();
+		DrawTabs(ctx);
 		GUILayout.Space(6f);
 
 		_state.Scroll = GUILayout.BeginScrollView(_state.Scroll, GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true));
@@ -97,14 +98,14 @@ internal sealed class OnlineUiWindow
 		GUILayout.EndArea();
 	}
 
-	private void DrawTabs()
+	private void DrawTabs(OnlineUiContext ctx)
 	{
 		GUILayout.BeginHorizontal();
-		DrawTab("Home", OnlineUiPage.Home);
-		DrawTab("Lobby", OnlineUiPage.Lobby);
-		DrawTab("Players", OnlineUiPage.Players);
-		DrawTab("Network", OnlineUiPage.Network);
-		DrawTab("Admin", OnlineUiPage.Admin);
+		DrawTab(ctx.T("tab.home"), OnlineUiPage.Home);
+		DrawTab(ctx.T("tab.lobby"), OnlineUiPage.Lobby);
+		DrawTab(ctx.T("tab.players"), OnlineUiPage.Players);
+		DrawTab(ctx.T("tab.network"), OnlineUiPage.Network);
+		DrawTab(ctx.T("tab.admin"), OnlineUiPage.Admin);
 		GUILayout.EndHorizontal();
 	}
 

@@ -16,21 +16,21 @@ internal static class OnlineUiNetworkDrawer
 		var steam = ctx.Steam;
 		var session = ctx.Session;
 
-		GUILayout.Label("CONNECTION", OnlineUiTheme.Section());
-		GUILayout.Label($"Steam: {(steam.IsInitialized ? "initialized" : "not initialized")}", OnlineUiTheme.Label());
-		GUILayout.Label($"Lobby: {(steam.CurrentLobbyId == 0 ? "none" : steam.CurrentLobbyId.ToString())}", OnlineUiTheme.MutedLabel());
-		GUILayout.Label($"Role: {session.Role}", OnlineUiTheme.MutedLabel());
-		GUILayout.Label($"Handshake: {(session.SessionActive ? "active" : "idle")}", OnlineUiTheme.MutedLabel());
-		GUILayout.Label($"Entity sync: {(ctx.Entities.EntitySyncActive ? "active" : "off")}", OnlineUiTheme.MutedLabel());
-		GUILayout.Label($"Local player: {(session.LocalInWorld ? "in world" : "menu")}", OnlineUiTheme.MutedLabel());
-		GUILayout.Label($"Last RTT: {(session.LastRttMs >= 0f ? $"{session.LastRttMs:F1} ms" : "no ping yet")}", OnlineUiTheme.MutedLabel());
+		GUILayout.Label(ctx.T("network.connection"), OnlineUiTheme.Section());
+		GUILayout.Label(ctx.F("network.steam", ctx.T(steam.IsInitialized ? "common.initialized" : "common.not_initialized")), OnlineUiTheme.Label());
+		GUILayout.Label(ctx.F("network.lobby", steam.CurrentLobbyId == 0 ? ctx.T("common.none") : steam.CurrentLobbyId.ToString()), OnlineUiTheme.MutedLabel());
+		GUILayout.Label(ctx.F("network.role", ctx.RoleName(session.Role)), OnlineUiTheme.MutedLabel());
+		GUILayout.Label(ctx.F("network.handshake", ctx.T(session.SessionActive ? "common.active" : "common.idle")), OnlineUiTheme.MutedLabel());
+		GUILayout.Label(ctx.F("network.entity_sync", ctx.T(ctx.Entities.EntitySyncActive ? "common.active" : "common.off")), OnlineUiTheme.MutedLabel());
+		GUILayout.Label(ctx.F("network.local_player", ctx.T(session.LocalInWorld ? "common.in_world" : "common.menu")), OnlineUiTheme.MutedLabel());
+		GUILayout.Label(session.LastRttMs >= 0f ? ctx.F("network.last_rtt", $"{session.LastRttMs:F1} ms") : ctx.T("common.no_ping"), OnlineUiTheme.MutedLabel());
 
 		GUILayout.Space(8f);
-		GUILayout.Label("PEER RTT", OnlineUiTheme.Section());
+		GUILayout.Label(ctx.T("network.peer_rtt"), OnlineUiTheme.Section());
 		foreach (var member in session.Members)
 		{
 			var name = DisplayName(steam, member.SteamId);
-			var rtt = member.RttMs >= 0f ? $"{member.RttMs:F0} ms" : "pending";
+			var rtt = member.RttMs >= 0f ? $"{member.RttMs:F0} ms" : ctx.T("common.pending");
 			GUILayout.Label($"{name}: {rtt}", OnlineUiTheme.MutedLabel());
 		}
 	}

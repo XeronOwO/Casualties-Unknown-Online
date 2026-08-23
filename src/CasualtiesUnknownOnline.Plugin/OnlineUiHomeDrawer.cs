@@ -14,28 +14,33 @@ internal static class OnlineUiHomeDrawer
 		var steam = ctx.Steam;
 		var session = ctx.Session;
 
-		GUILayout.Label("STEAM STATUS", OnlineUiTheme.Section());
-		GUILayout.Label(steam.IsInitialized ? "Steam: <color=#70D28F>initialized</color>" : "Steam: <color=#E6615A>not initialized</color>", OnlineUiTheme.Label());
+		GUILayout.Label(ctx.T("home.steam_status"), OnlineUiTheme.Section());
+		var steamStatus = steam.IsInitialized
+			? $"<color=#70D28F>{ctx.T("home.steam_initialized")}</color>"
+			: $"<color=#E6615A>{ctx.T("home.steam_not_initialized")}</color>";
+		GUILayout.Label(steamStatus, OnlineUiTheme.Label());
 		if (steam.IsInitialized)
 		{
-			GUILayout.Label($"Persona: {DisplayName(steam, steam.LocalSteamId)}", OnlineUiTheme.MutedLabel());
-			GUILayout.Label($"SteamID: {steam.LocalSteamId}", OnlineUiTheme.MutedLabel());
+			GUILayout.Label(ctx.F("home.persona", DisplayName(steam, steam.LocalSteamId)), OnlineUiTheme.MutedLabel());
+			GUILayout.Label(ctx.F("home.steam_id", steam.LocalSteamId), OnlineUiTheme.MutedLabel());
 		}
 
 		GUILayout.Space(8f);
-		GUILayout.Label("SESSION", OnlineUiTheme.Section());
-		GUILayout.Label($"Role: {session.Role}  Handshake: {(session.SessionActive ? "active" : "idle")}", OnlineUiTheme.Label());
-		GUILayout.Label($"Lobby: {(steam.CurrentLobbyId == 0 ? "none" : steam.CurrentLobbyId.ToString())}", OnlineUiTheme.MutedLabel());
+		GUILayout.Label(ctx.T("home.session"), OnlineUiTheme.Section());
+		GUILayout.Label($"{ctx.F("home.role", ctx.RoleName(session.Role))}  {ctx.T(session.SessionActive ? "home.handshake_active" : "home.handshake_idle")}", OnlineUiTheme.Label());
+		GUILayout.Label(steam.CurrentLobbyId == 0
+			? ctx.T("home.lobby_none")
+			: ctx.F("home.lobby", steam.CurrentLobbyId), OnlineUiTheme.MutedLabel());
 		if (session.LastRttMs >= 0f)
 		{
-			GUILayout.Label($"Last RTT: {session.LastRttMs:F1} ms", OnlineUiTheme.MutedLabel());
+			GUILayout.Label(ctx.F("home.last_rtt", $"{session.LastRttMs:F1}"), OnlineUiTheme.MutedLabel());
 		}
 
 		GUILayout.Space(10f);
 		if (steam.CurrentLobbyId != 0)
 		{
-			GUILayout.Label("You are already in a lobby.", OnlineUiTheme.Status(OnlineUiTheme.Positive));
-			if (GUILayout.Button("Open Lobby Page", OnlineUiTheme.Button(), GUILayout.Height(30f)))
+			GUILayout.Label(ctx.T("home.already_in_lobby"), OnlineUiTheme.Status(OnlineUiTheme.Positive));
+			if (GUILayout.Button(ctx.T("home.open_lobby_page"), OnlineUiTheme.Button(), GUILayout.Height(30f)))
 			{
 				ctx.State.Page = OnlineUiPage.Lobby;
 			}
@@ -43,20 +48,20 @@ internal static class OnlineUiHomeDrawer
 			return;
 		}
 
-		GUILayout.Label("HOST A GAME", OnlineUiTheme.Section());
-		GUILayout.Label("Create a public Steam lobby and wait for friends.", OnlineUiTheme.MutedLabel());
-		if (GUILayout.Button("Create Lobby", OnlineUiTheme.Button(), GUILayout.Height(34f)))
+		GUILayout.Label(ctx.T("home.host_a_game"), OnlineUiTheme.Section());
+		GUILayout.Label(ctx.T("home.host_hint"), OnlineUiTheme.MutedLabel());
+		if (GUILayout.Button(ctx.T("home.create_lobby"), OnlineUiTheme.Button(), GUILayout.Height(34f)))
 		{
 			ctx.State.Error = null;
 			ctx.CreateLobby?.Invoke();
 		}
 
 		GUILayout.Space(10f);
-		GUILayout.Label("JOIN A GAME", OnlineUiTheme.Section());
-		GUILayout.Label("Enter the lobby ID shown by the host.", OnlineUiTheme.MutedLabel());
+		GUILayout.Label(ctx.T("home.join_a_game"), OnlineUiTheme.Section());
+		GUILayout.Label(ctx.T("home.join_hint"), OnlineUiTheme.MutedLabel());
 		GUILayout.BeginHorizontal();
 		ctx.State.LobbyIdInput = GUILayout.TextField(ctx.State.LobbyIdInput, 20, GUILayout.Width(240f));
-		if (GUILayout.Button("Join", OnlineUiTheme.Button(), GUILayout.Width(90f)))
+		if (GUILayout.Button(ctx.T("home.join"), OnlineUiTheme.Button(), GUILayout.Width(90f)))
 		{
 			var trimmed = ctx.State.LobbyIdInput.Trim();
 			if (ulong.TryParse(trimmed, out _))
@@ -66,7 +71,7 @@ internal static class OnlineUiHomeDrawer
 			}
 			else
 			{
-				ctx.State.Error = "Lobby ID must be a number.";
+				ctx.State.Error = ctx.T("home.lobby_id_must_be_number");
 			}
 		}
 
@@ -75,7 +80,7 @@ internal static class OnlineUiHomeDrawer
 		DrawError(ctx);
 
 		GUILayout.Space(10f);
-		GUILayout.Label("Hotkeys: F8 create / F9 join from config / F7 ping peer", OnlineUiTheme.MutedLabel());
+		GUILayout.Label(ctx.T("home.hotkeys"), OnlineUiTheme.MutedLabel());
 	}
 
 	private static void DrawError(OnlineUiContext ctx)

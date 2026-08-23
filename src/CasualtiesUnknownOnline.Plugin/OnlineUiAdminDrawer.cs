@@ -16,27 +16,27 @@ internal static class OnlineUiAdminDrawer
 		var session = ctx.Session;
 		var isHost = session.Role == SessionRole.Host && session.SessionActive;
 
-		GUILayout.Label("HOST RULES", OnlineUiTheme.Section());
+		GUILayout.Label(ctx.T("admin.host_rules"), OnlineUiTheme.Section());
 		if (!isHost)
 		{
-			GUILayout.Label("Host-only page — current role cannot change host rules.", OnlineUiTheme.MutedLabel());
+			GUILayout.Label(ctx.T("admin.host_only"), OnlineUiTheme.MutedLabel());
 		}
 
 		var rules = ctx.HostRules;
-		DrawRule("PvP", rules.PvpEnabled);
-		DrawRule("Auto-continue", rules.AutoContinue);
-		DrawRule("Allow late join", rules.AllowLateJoin);
-		DrawRule("Save inventory", rules.SaveInventory);
-		DrawRule("Revive from trader", rules.ReviveFromTrader);
-		DrawRule("Revive on next level", rules.ReviveOnNextLevel);
-		DrawRule("Permadeath", rules.Permadeath);
+		DrawRule(ctx.T("admin.rule_pvp"), rules.PvpEnabled, ctx);
+		DrawRule(ctx.T("admin.rule_auto_continue"), rules.AutoContinue, ctx);
+		DrawRule(ctx.T("admin.rule_allow_late_join"), rules.AllowLateJoin, ctx);
+		DrawRule(ctx.T("admin.rule_save_inventory"), rules.SaveInventory, ctx);
+		DrawRule(ctx.T("admin.rule_revive_trader"), rules.ReviveFromTrader, ctx);
+		DrawRule(ctx.T("admin.rule_revive_next_level"), rules.ReviveOnNextLevel, ctx);
+		DrawRule(ctx.T("admin.rule_permadeath"), rules.Permadeath, ctx);
 
 		GUILayout.Space(10f);
-		GUILayout.Label("BAN LIST", OnlineUiTheme.Section());
+		GUILayout.Label(ctx.T("admin.ban_list"), OnlineUiTheme.Section());
 		var bans = ctx.HostBan.BannedSteamIds;
 		if (bans.Count == 0)
 		{
-			GUILayout.Label("No banned players.", OnlineUiTheme.MutedLabel());
+			GUILayout.Label(ctx.T("admin.no_bans"), OnlineUiTheme.MutedLabel());
 		}
 
 		foreach (var steamId in bans)
@@ -44,7 +44,7 @@ internal static class OnlineUiAdminDrawer
 			GUILayout.BeginHorizontal();
 			GUILayout.Label($"{DisplayName(ctx.Steam, steamId)} [{steamId:X}]", OnlineUiTheme.Label());
 			GUILayout.FlexibleSpace();
-			if (isHost && GUILayout.Button("Unban", OnlineUiTheme.Button(), GUILayout.Width(70f)))
+			if (isHost && GUILayout.Button(ctx.T("admin.unban"), OnlineUiTheme.Button(), GUILayout.Width(70f)))
 			{
 				ctx.UnbanMember?.Invoke(steamId);
 			}
@@ -53,9 +53,9 @@ internal static class OnlineUiAdminDrawer
 		}
 	}
 
-	private static void DrawRule(string label, bool value)
+	private static void DrawRule(string label, bool value, OnlineUiContext ctx)
 	{
-		var text = value ? "enabled" : "disabled";
+		var text = ctx.T(value ? "admin.rule_enabled" : "admin.rule_disabled");
 		var color = value ? OnlineUiTheme.Positive : OnlineUiTheme.Muted;
 		GUILayout.Label($"{label}: <color=#{ColorUtility.ToHtmlStringRGBA(color)}>{text}</color>", OnlineUiTheme.Label());
 	}

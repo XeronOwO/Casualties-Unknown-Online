@@ -2281,3 +2281,28 @@ all runtime/wire behavior unchanged.
   rules; full suite 1286 green.
 
 See `docs/selfchecks/online-ui-window-selfcheck.md`.
+
+## 79. I18n framework — en/zh localization for the CUO UI (no protocol bump)
+
+The Online UI window landed with hardcoded English labels. This entry adds a
+small key-based localization framework so the same UI can run in English or
+Simplified Chinese without touching drawing code when adding a language.
+
+- **Service** — `ILocalizationService` / `LocalizationService` (Runtime) read
+  `LocalizationOptions.Language` through `IOptionsMonitor`, provide `T` /
+  `Format`, fall back to English, normalize `zh-*` to `zh`, and fire
+  `LanguageChanged` on hot reload.
+- **Catalog** — `LocalizationCatalog` holds the `en` and `zh` tables for every
+  Online UI string; missing keys return the key itself so a missing translation
+  is visible instead of silently blank.
+- **Config** — `[UI] Language` BepInEx entry (`en` / `zh`) is registered through
+  the existing `BepInExOptionsMonitor` pattern; editing the file hot-reloads the
+  UI language.
+- **UI migration** — all `OnlineUi*Drawer` user-facing strings go through
+  `OnlineUiContext.T/F`; the plugin lobby-switch error strings are localized
+  too.
+- **Tests** — 7 new `LocalizationServiceTests` cover defaults, Chinese lookup,
+  regional normalization, unknown-language/missing-key fallback, formatting
+  and the change event.
+
+See `docs/selfchecks/i18n-framework-selfcheck.md`.

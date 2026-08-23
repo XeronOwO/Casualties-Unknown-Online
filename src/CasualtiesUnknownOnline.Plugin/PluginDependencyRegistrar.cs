@@ -92,6 +92,18 @@ internal static class PluginDependencyRegistrar
 				},
 				pvpEnabled.Definition, autoContinue.Definition, allowLateJoin.Definition)));
 
+		// UI language: en or zh. The localization service normalizes anything
+		// starting with "zh" to zh and everything else to English.
+		var language = config.Bind("UI", "Language", "en",
+			new ConfigDescription(
+				"CUO UI language. Supported: en, zh.",
+				new AcceptableValueList<string>(new[] { "en", "zh" })));
+		services.Replace(ServiceDescriptor.Singleton<IOptionsMonitor<LocalizationOptions>>(
+			new BepInExOptionsMonitor<LocalizationOptions>(
+				config,
+				() => new LocalizationOptions { Language = language.Value },
+				language.Definition)));
+
 		// Character-data mapping (Mapster). Mapster 6.0.0 core ships
 		// IMapper/Mapper — registered directly, no DI package needed
 		// (Mapster.DependencyInjection 10.x requires net6+).
@@ -102,6 +114,10 @@ internal static class PluginDependencyRegistrar
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<GameAdapterImpl>());
 		services.Replace(ServiceDescriptor.Singleton<IModEntitySpawner>(p => p.GetRequiredService<GameAdapterImpl>()));
 		services.Replace(ServiceDescriptor.Singleton<IModNativeApiProvider>(p => p.GetRequiredService<GameAdapterImpl>()));
+
+		// Persist newly bound configuration entries (e.g. a fresh [UI] Language
+		// section on an existing install) so users can see and edit them.
+		config.Save();
 	}
 
 	private static MelLogLevel ParseLogLevel(string text) =>

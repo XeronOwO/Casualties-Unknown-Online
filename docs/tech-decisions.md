@@ -1843,9 +1843,9 @@ debt explicit instead of invisible.
   `ItemService` (928), `WorldService` (899), `EnemySyncCoordinator` (750),
   `PlayerInteractionService` (716), `ItemApplication` (630) remain recorded in
   `docs/architecture-debt.json` and are listed as the follow-up flattening
-  item in `docs/backlog.md`. `PlayerInteractionService` and `ItemApplication`
-  were flattened later in this cycle (see #66/#67) and removed from the
-  ledger.
+  item in `docs/backlog.md`. `PlayerInteractionService`, `ItemApplication` and
+  `EnemySyncCoordinator` were flattened later in this cycle (see #66/#67/#68)
+  and removed from the ledger.
 
 No wire/protocol change. See `docs/selfchecks/partial-aware-gate-selfcheck.md`.
 
@@ -1908,3 +1908,34 @@ side into a real top-level class, not another partial.
 
 No wire/protocol change. See
 `docs/selfchecks/item-cook-replay-split-selfcheck.md`.
+
+## 68. EnemySyncCoordinator combat-replay split — real top-level responsibility (no protocol change)
+
+Backlog §3.1 listed `EnemySyncCoordinator` (750 aggregate lines) as one of the
+remaining logical classes. This entry extracts the guest-side host-ordered
+attack/bite replay into a real top-level class, not another partial.
+
+- **Owner class** — `EnemySyncCoordinator` remains a partial coordinator but
+  drops from 750 to 542 aggregate lines. It keeps enemy binding/mapping,
+  host capture, snapshot/replay state application, runtime-spawn
+  materialization/pairing and local attack health reconciliation. Its
+  `_mapper` / `_characterData` fields were removed because combat is the only
+  consumer and the new class receives them directly.
+- **Combat replay** — `EnemyCombatReplay` (257 lines) is an internal owned
+  dependency, not a DI service. It owns:
+  - applying host-ordered spider bites / crystal lunges to the local body;
+  - reporting local crystal lunge and enemy bite terminal states as dedicated
+    EnemyLunge/EnemyBite events;
+  - applying received EnemyLunge/EnemyBite facts through `CharacterDataSync`.
+- **Entity lookup** — the replay class receives a
+  `Func<NetworkEntityId, BuildingEntity?>` delegate from the coordinator so it
+  never owns or duplicates the enemy mapping tables.
+- **Event wiring** — `BindToSession` / `Unbind` subscribe enemy attack/lunge/
+  bite events to `_combat`; `ReportLocalCrystalLunge` / `ReportEnemyBite`
+  remain on the coordinator as thin delegations so callers do not change.
+- **No behavior change** — all moved method bodies are verbatim.
+- **Debt ledger** — `EnemySyncCoordinator` removed from
+  `docs/architecture-debt.json`.
+
+No wire/protocol change. See
+`docs/selfchecks/enemy-combat-replay-split-selfcheck.md`.

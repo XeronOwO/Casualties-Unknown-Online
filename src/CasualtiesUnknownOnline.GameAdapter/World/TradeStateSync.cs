@@ -63,7 +63,7 @@ internal sealed class TradeStateSync(
 
 		_lastSnapshot = Time.unscaledTime;
 		var traders = Object.FindObjectsOfType<TraderScript>(); // Unity object — the game's own registry
-		_log.LogInformation("[Trade] snapshot n={N} members={M}.", traders.Length, _session.Members.Count());
+		_log.LogDebug("[Trade] snapshot n={N} members={M}.", traders.Length, _session.Members.Count());
 		foreach (var member in _session.Members)
 		{
 			if (!member.InWorld)

@@ -459,7 +459,7 @@ internal sealed class FluidSimulationAuthority(
 			Height = (byte)(y1 - y0),
 			Cells = [.. runs],
 		});
-		_log.LogInformation("[Fluid] region=(x={X},y={Y},w={W},h={H}) cells={N} seq={S} → {Target}.",
+		_log.LogDebug("[Fluid] region=(x={X},y={Y},w={W},h={H}) cells={N} seq={S} → {Target}.",
 			view.Center.x - 64 + x0, view.Center.y - 64 + y0, x1 - x0, y1 - y0, runs.Count, _seq, target);
 	}
 }

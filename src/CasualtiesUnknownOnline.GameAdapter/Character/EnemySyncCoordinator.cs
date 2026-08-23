@@ -22,13 +22,13 @@ namespace CasualtiesUnknownOnline.GameAdapter.Character;
 /// </summary>
 internal sealed partial class EnemySyncCoordinator
 {
-	private readonly SessionService _session;
+	private readonly ISessionControl _session;
 	private readonly EnemySyncService _enemies;
 	private readonly ILogger<EnemySyncCoordinator> _log;
 	private readonly EnemyCombatReplay _combat;
 
 	internal EnemySyncCoordinator(
-		SessionService session,
+		ISessionControl session,
 		EnemySyncService enemies,
 		IMapper mapper,
 		CharacterDataSync characterData,

@@ -17,11 +17,11 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 /// happened). The drop report itself (SendDropReport) lives here too.
 /// </summary>
 internal sealed class ItemReportCommitter(
-	ItemService items,
+	IItemControl items,
 	OperationTrace trace,
 	ILogger<ItemReportCommitter> log)
 {
-	private readonly ItemService _items = items;
+	private readonly IItemControl _items = items;
 	private readonly OperationTrace _trace = trace;
 	private readonly ILogger<ItemReportCommitter> _log = log;
 

@@ -18,11 +18,11 @@ namespace CasualtiesUnknownOnline.GameAdapter.Tutorial;
 /// </summary>
 internal sealed class TutorialClawSync(
 	ITutorialClawControl tutorialClaw,
-	SessionService session,
+	ISessionControl session,
 	ILogger<TutorialClawSync> log)
 {
 	private readonly ITutorialClawControl _tutorialClaw = tutorialClaw;
-	private readonly SessionService _session = session;
+	private readonly ISessionControl _session = session;
 	private readonly ILogger<TutorialClawSync> _log = log;
 
 	internal void BindToSession() => _tutorialClaw.TutorialClawStateReceived += OnTutorialClawStateReceived;

@@ -18,18 +18,18 @@ namespace CasualtiesUnknownOnline.GameAdapter.Run;
 /// the gate after 30 s, both sides freeze the local player while it holds
 /// (timeScale 0 + movingAllowed locked + the loading screen kept visible for
 /// a guest) and restore everything on release. The gate's STATE lives in the
-/// WorldService (host) and the RunCoordinator phase machine (guest); this
+/// IWorldControl (host) and the RunCoordinator phase machine (guest); this
 /// class only reads it and drives the presentation.
 /// </summary>
 internal sealed class StartGateCoordinator(
-	SessionService session,
-	WorldService world,
+	ISessionControl session,
+	IWorldControl world,
 	LifePodPresentation lifePod,
 	RunCoordinator run,
 	ILogger<StartGateCoordinator> log)
 {
-	private readonly SessionService _session = session;
-	private readonly WorldService _world = world;
+	private readonly ISessionControl _session = session;
+	private readonly IWorldControl _world = world;
 	private readonly LifePodPresentation _lifePod = lifePod;
 	private readonly RunCoordinator _run = run;
 	private readonly ILogger<StartGateCoordinator> _log = log;

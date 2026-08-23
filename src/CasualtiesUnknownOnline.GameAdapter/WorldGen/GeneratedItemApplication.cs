@@ -25,11 +25,11 @@ namespace CasualtiesUnknownOnline.GameAdapter.WorldGen;
 /// are still being created (a duplicate per entry).
 /// </summary>
 internal sealed class GeneratedItemApplication(
-	ItemService items,
+	IItemControl items,
 	ItemApplication itemApplication,
 	ILogger<GeneratedItemApplication> log)
 {
-	private readonly ItemService _items = items;
+	private readonly IItemControl _items = items;
 	private readonly ItemApplication _itemApplication = itemApplication;
 	private readonly ILogger<GeneratedItemApplication> _log = log;
 

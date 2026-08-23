@@ -23,16 +23,16 @@ namespace CasualtiesUnknownOnline.GameAdapter.World;
 /// — the DamageBlock/SetBlock patches and the world domain are thin adapters.
 /// </summary>
 internal sealed class BlockBreakSync(
-	SessionService session,
-	WorldService world,
-	ItemService items,
+	ISessionControl session,
+	IWorldControl world,
+	IItemControl items,
 	BlockBreakPendingState breakState,
 	OperationTrace trace,
 	ILogger<BlockBreakSync> log)
 {
-	private readonly SessionService _session = session;
-	private readonly WorldService _world = world;
-	private readonly ItemService _items = items;
+	private readonly ISessionControl _session = session;
+	private readonly IWorldControl _world = world;
+	private readonly IItemControl _items = items;
 	private readonly BlockBreakPendingState _breakState = breakState;
 	private readonly OperationTrace _trace = trace;
 	private readonly ILogger<BlockBreakSync> _log = log;

@@ -15,13 +15,13 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 /// threshold, see <see cref="ItemPositionFollow"/>). The 5 s keyframe
 /// refreshes the authoritative table before re-sending it. The host's role
 /// gate lives in the caller (GameAdapter dispatches by session mode);
-/// ItemService re-checks on send. The settled throttle (which items ride the
+/// IItemControl re-checks on send. The settled throttle (which items ride the
 /// 1 Hz round — <see cref="SettledStreamThrottle"/>) is pure; this class is
 /// the scene-read shell.
 /// </summary>
-internal sealed class ItemPositionAuthority(ItemService items)
+internal sealed class ItemPositionAuthority(IItemControl items)
 {
-	private readonly ItemService _items = items;
+	private readonly IItemControl _items = items;
 
 	private const int ItemMoveIntervalMs = 100; // position stream (unreliable, 10 Hz)
 	private long _nextItemMoveMs;

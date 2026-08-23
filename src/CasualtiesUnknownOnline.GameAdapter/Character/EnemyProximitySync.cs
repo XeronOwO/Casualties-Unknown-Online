@@ -16,12 +16,12 @@ namespace CasualtiesUnknownOnline.GameAdapter.Character;
 /// the victim's clone fact table via <see cref="CharacterDataSync"/>.
 /// </summary>
 internal sealed class EnemyProximitySync(
-	SessionService session,
+	ISessionControl session,
 	EnemySyncService enemies,
 	CharacterDataSync characterData,
 	ILogger<EnemyProximitySync> log)
 {
-	private readonly SessionService _session = session;
+	private readonly ISessionControl _session = session;
 	private readonly EnemySyncService _enemies = enemies;
 	private readonly CharacterDataSync _characterData = characterData;
 	private readonly ILogger<EnemyProximitySync> _log = log;

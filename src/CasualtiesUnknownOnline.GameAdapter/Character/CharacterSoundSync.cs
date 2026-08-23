@@ -19,13 +19,13 @@ namespace CasualtiesUnknownOnline.GameAdapter.Character;
 /// presentation (acceptable degradation — there is no persistent fact to heal).
 /// </summary>
 internal sealed class CharacterSoundSync(
-	CharacterDataStore characterData,
-	SessionService session,
+	ICharacterDataControl characterData,
+	ISessionControl session,
 	RemotePlayerRenderer renderer,
 	ILogger<CharacterSoundSync> log)
 {
-	private readonly CharacterDataStore _characterData = characterData;
-	private readonly SessionService _session = session;
+	private readonly ICharacterDataControl _characterData = characterData;
+	private readonly ISessionControl _session = session;
 	private readonly RemotePlayerRenderer _renderer = renderer;
 	private readonly ILogger<CharacterSoundSync> _log = log;
 

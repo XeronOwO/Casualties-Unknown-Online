@@ -25,23 +25,23 @@ namespace CasualtiesUnknownOnline.GameAdapter.World;
 /// TraderActionKind.
 /// </summary>
 internal sealed class TraderRecruitCoordinator(
-	SessionService session,
-	WorldService world,
+	ISessionControl session,
+	IWorldControl world,
 	ICharacterDataControl characterData,
 	CharacterDataSync characterDataSync,
 	IOptionsMonitor<RespawnOptions> respawnOptions,
-	ItemService items,
+	IItemControl items,
 	ItemIdAllocator itemIds,
 	ILogger<TraderRecruitCoordinator> log)
 {
 	private const float PositionTolerance = 2f;
 
-	private readonly SessionService _session = session;
-	private readonly WorldService _world = world;
+	private readonly ISessionControl _session = session;
+	private readonly IWorldControl _world = world;
 	private readonly ICharacterDataControl _characterData = characterData;
 	private readonly CharacterDataSync _characterDataSync = characterDataSync;
 	private readonly IOptionsMonitor<RespawnOptions> _respawnOptions = respawnOptions;
-	private readonly ItemService _items = items;
+	private readonly IItemControl _items = items;
 	private readonly ItemIdAllocator _itemIds = itemIds;
 	private readonly ILogger<TraderRecruitCoordinator> _log = log;
 

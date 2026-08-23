@@ -29,9 +29,9 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// </summary>
 internal sealed class GameAdapterDomains
 {
-	internal readonly SessionService Session;
-	internal readonly ItemService Items;
-	internal readonly EntitySyncService Entities;
+	internal readonly ISessionControl Session;
+	internal readonly IItemControl Items;
+	internal readonly IEntitySyncControl Entities;
 	internal readonly ILogger<GameAdapter> Log;
 
 	internal readonly CloneFactTable FactTable;
@@ -79,22 +79,22 @@ internal sealed class GameAdapterDomains
 	internal readonly EnemyCombatDirector EnemyCombat;
 	internal readonly EnemyProximitySync EnemyProximity;
 	internal readonly TutorialClawSync TutorialClawSync;
-	internal readonly PlayerInteractionService PlayerInteraction;
+	internal readonly IPlayerInteractionControl PlayerInteraction;
 	internal readonly CharacterSoundSync CharacterSoundSync;
 	internal readonly HeaterCookSync HeaterCookSync;
 	internal readonly WorldTimeSync WorldTimeSync;
 
 	public GameAdapterDomains(
-		SessionService session,
-		EntitySyncService entities,
-		CharacterDataStore characterData,
-		WorldService world,
-		ItemService items,
+		ISessionControl session,
+		IEntitySyncControl entities,
+		ICharacterDataControl characterData,
+		IWorldControl world,
+		IItemControl items,
 		ICraftControl craft,
 		ItemArbitration arbitration,
 		EnemySyncService enemies,
 		IWorldTimeControl worldTime,
-		PlayerInteractionService playerInteraction,
+		IPlayerInteractionControl playerInteraction,
 		ITutorialClawControl tutorialClaw,
 		IOptionsMonitor<RespawnOptions> respawnOptions,
 		ILogger<GameAdapter> log,

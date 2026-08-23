@@ -29,13 +29,13 @@ namespace CasualtiesUnknownOnline.GameAdapter.WorldGen;
 /// (SendItemSnapshot) — no special "solo → lobby" backfill path exists.
 /// </summary>
 internal sealed class GeneratedItemAuthority(
-	SessionService session,
-	ItemService items,
+	ISessionControl session,
+	IItemControl items,
 	ItemIdAllocator ids,
 	ILogger<GeneratedItemAuthority> log)
 {
-	private readonly SessionService _session = session;
-	private readonly ItemService _items = items;
+	private readonly ISessionControl _session = session;
+	private readonly IItemControl _items = items;
 	private readonly ItemIdAllocator _ids = ids;
 	private readonly ILogger<GeneratedItemAuthority> _log = log;
 

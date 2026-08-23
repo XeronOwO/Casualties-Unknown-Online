@@ -17,13 +17,13 @@ namespace CasualtiesUnknownOnline.GameAdapter.World;
 /// and this class owns only the BuildingEntity application/report paths.
 /// </summary>
 internal sealed class WorldBuildingEntitySync(
-	SessionService session,
-	WorldService world,
+	ISessionControl session,
+	IWorldControl world,
 	OperationTrace trace,
 	ILogger<WorldEventSync> log)
 {
-	private readonly SessionService _session = session;
-	private readonly WorldService _world = world;
+	private readonly ISessionControl _session = session;
+	private readonly IWorldControl _world = world;
 	private readonly OperationTrace _trace = trace;
 	private readonly ILogger<WorldEventSync> _log = log;
 

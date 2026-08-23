@@ -23,7 +23,7 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 /// ItemStateCodec.SlotOf).
 /// </summary>
 internal sealed class PickupSync(
-	ItemService items,
+	IItemControl items,
 	ISessionControl session,
 	ItemApplication application,
 	ItemDropState dropState,
@@ -32,7 +32,7 @@ internal sealed class PickupSync(
 	ItemReportCommitter reports,
 	ItemSlotSync slotSync)
 {
-	private readonly ItemService _items = items;
+	private readonly IItemControl _items = items;
 	private readonly ISessionControl _session = session;
 	private readonly ItemApplication _application = application;
 	private readonly ItemDropState _dropState = dropState;

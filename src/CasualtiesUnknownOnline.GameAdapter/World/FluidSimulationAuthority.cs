@@ -23,7 +23,7 @@ namespace CasualtiesUnknownOnline.GameAdapter.World;
 /// baseline, so it gets the full viewport immediately.
 /// </summary>
 internal sealed class FluidSimulationAuthority(
-	IWorldControl world, ISessionControl session, EntitySyncService entities, ILogger<FluidSimulationAuthority> log)
+	IWorldControl world, ISessionControl session, IEntitySyncControl entities, ILogger<FluidSimulationAuthority> log)
 {
 	private const int ViewWidth = 128;   // mirrors SimulationRange (FluidManager.cs:27-65)
 	private const int ViewHeight = 112;  // y: center - 64 .. center + 48 (the 7 x 16-cell bands)
@@ -33,7 +33,7 @@ internal sealed class FluidSimulationAuthority(
 
 	private readonly IWorldControl _world = world;
 	private readonly ISessionControl _session = session;
-	private readonly EntitySyncService _entities = entities;
+	private readonly IEntitySyncControl _entities = entities;
 	private readonly ILogger<FluidSimulationAuthority> _log = log;
 	private readonly Dictionary<ulong, MemberView> _views = [];
 	private int _simIndex;

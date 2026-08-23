@@ -30,8 +30,8 @@ namespace CasualtiesUnknownOnline.GameAdapter.Character;
 /// Local-host collisions stay on the game's native path (real colliders).
 /// </summary>
 internal sealed class EnemyCombatDirector(
-	SessionService session,
-	EntitySyncService entities,
+	ISessionControl session,
+	IEntitySyncControl entities,
 	EnemySyncService enemies,
 	EnemySyncCoordinator enemySync,
 	RemotePlayerRenderer renderer,
@@ -55,8 +55,8 @@ internal sealed class EnemyCombatDirector(
 	private static readonly FieldInfo? ThreatWorkaroundField =
 		typeof(SpiderHandler).GetField("threatWorkaround", BindingFlags.Instance | BindingFlags.NonPublic);
 
-	private readonly SessionService _session = session;
-	private readonly EntitySyncService _entities = entities;
+	private readonly ISessionControl _session = session;
+	private readonly IEntitySyncControl _entities = entities;
 	private readonly EnemySyncService _enemies = enemies;
 	private readonly EnemySyncCoordinator _enemySync = enemySync;
 	private readonly RemotePlayerRenderer _renderer = renderer;

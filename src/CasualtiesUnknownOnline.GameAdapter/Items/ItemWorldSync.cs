@@ -21,8 +21,8 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 /// materialization side in <see cref="ItemApplication"/>.
 /// </summary>
 internal sealed class ItemWorldSync(
-	SessionService session,
-	ItemService items,
+	ISessionControl session,
+	IItemControl items,
 	DropProtectionGuard guard,
 	ItemDropState dropState,
 	BlockBreakPendingState breakState,
@@ -31,8 +31,8 @@ internal sealed class ItemWorldSync(
 	ItemIdAllocator ids,
 	ILogger<ItemWorldSync> log)
 {
-	private readonly SessionService _session = session;
-	private readonly ItemService _items = items;
+	private readonly ISessionControl _session = session;
+	private readonly IItemControl _items = items;
 	private readonly DropProtectionGuard _guard = guard;
 	private readonly ItemDropState _dropState = dropState;
 	private readonly BlockBreakPendingState _breakState = breakState;

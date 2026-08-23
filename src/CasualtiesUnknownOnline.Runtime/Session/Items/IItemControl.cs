@@ -138,6 +138,9 @@ public interface IItemControl
 	/// <summary>Host only: broadcast one carried item's authoritative fact (use/slot move/pickup) to every guest except its owner — the peers update the owner's fact table and re-render the clone immediately (reliable; the 1 Hz snapshot is the fallback).</summary>
 	void SendItemCarriedSync(ulong ownerSteamId, CharacterItemMsg item);
 
+	/// <summary>A guest's carried inventory with self-assigned ids arrived (its local generation finished) — the Game Adapter seeds the owner's fact table.</summary>
+	event Action<ulong, IReadOnlyList<CharacterItemMsg>>? CarriedInventoryReceived;
+
 	/// <summary>Host only: the item's live state (position/velocity/rotation/condition) — the periodic keyframe must broadcast the CURRENT state, not the spawn-time one (stale positions yank settled items around; a stale condition re-aligns the peers' decay to the wrong value).</summary>
 	void RefreshItemState(ulong itemId, NetVector2 pos, NetVector2 vel, float rotation, float condition);
 
@@ -156,6 +159,9 @@ public interface IItemControl
 
 	/// <summary>Host side: the world's current layer modifier (index into the game's LayerModifier.availableModifiers, -1 = none) — rides the world-item snapshots so a world entry outside a generation still receives it. A projection of world state: the adapter refreshes it when a generation finishes.</summary>
 	int LayerModifierIndex { get; set; }
+
+	/// <summary>Host side: the layer modifier decision's random-state seed (rides the world-item snapshots for deterministic cross-side replay).</summary>
+	byte[]? LayerModifierRandomState { get; set; }
 
 	/// <summary>Host only: broadcast the moving world items' authoritative positions (unreliable — the host's physics is the position authority, the guests follow).</summary>
 	void SendItemMove(IReadOnlyList<ItemMoveEntryMsg> items);

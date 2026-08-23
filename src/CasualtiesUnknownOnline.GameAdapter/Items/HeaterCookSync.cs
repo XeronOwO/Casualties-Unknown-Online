@@ -17,13 +17,13 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 /// rules live in <see cref="HeaterCookRule"/>.
 /// </summary>
 internal sealed class HeaterCookSync(
-	ItemService items,
+	IItemControl items,
 	ItemIdAllocator ids,
 	ItemReportCommitter reports,
 	OperationTrace trace,
 	ILogger<HeaterCookSync> log)
 {
-	private readonly ItemService _items = items;
+	private readonly IItemControl _items = items;
 	private readonly ItemIdAllocator _ids = ids;
 	private readonly ItemReportCommitter _reports = reports;
 	private readonly OperationTrace _trace = trace;

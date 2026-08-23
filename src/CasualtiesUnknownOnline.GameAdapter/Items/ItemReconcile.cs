@@ -14,12 +14,12 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 /// <see cref="ItemApplication"/>; this class owns the reconcile-only logic.
 /// </summary>
 internal sealed class ItemReconcile(
-	ItemService items,
+	IItemControl items,
 	ItemApplication itemApplication,
 	DropProtectionGuard guard,
 	ILogger<ItemReconcile> log)
 {
-	private readonly ItemService _items = items;
+	private readonly IItemControl _items = items;
 	private readonly ItemApplication _app = itemApplication;
 	private readonly DropProtectionGuard _guard = guard;
 	private readonly ILogger<ItemReconcile> _log = log;

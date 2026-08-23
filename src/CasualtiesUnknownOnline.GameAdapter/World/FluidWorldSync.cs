@@ -18,7 +18,7 @@ namespace CasualtiesUnknownOnline.GameAdapter.World;
 /// the bridge's OnFluidFixedUpdate / OnFluidDrinkReported.
 /// </summary>
 internal sealed class FluidWorldSync(
-	IWorldControl world, ISessionControl session, EntitySyncService entities, ILoggerFactory loggerFactory)
+	IWorldControl world, ISessionControl session, IEntitySyncControl entities, ILoggerFactory loggerFactory)
 {
 	private readonly IWorldControl _world = world;
 	private readonly FluidSimulationAuthority _authority = new(world, session, entities, loggerFactory.CreateLogger<FluidSimulationAuthority>());

@@ -239,6 +239,13 @@ public class Plugin : BaseUnityPlugin
 			RunLifecycle(service, "Update", s => s.Update());
 		}
 
+		// Keep the game's background UI input suppressed while the Online UI
+		// modal window is open (IMGUI does not participate in UGUI input).
+		if (_adapter is { } adapter)
+		{
+			adapter.SetOnlineUiModal(_onlineUi.IsWindowVisible);
+		}
+
 		if (_steam is { } steam)
 		{
 			if (Input.GetKeyDown(KeyCode.F8))

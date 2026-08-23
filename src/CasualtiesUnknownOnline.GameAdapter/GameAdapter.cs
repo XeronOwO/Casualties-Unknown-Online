@@ -145,6 +145,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 	void ICuoService.Update()
 	{
 		_domains.GuestMenu.Update();
+		_domains.MenuInput.Update();
 		_domains.Run.Update();
 		_domains.WorldTimeSync.Update(); // host policy + direct-write adoption + resend; guest enforcement of the host speed
 
@@ -221,6 +222,8 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 	System.Collections.Generic.IReadOnlyList<LocalHealItem> IGameAdapter.GetLocalHealItems() => _playerInteraction.GetLocalHealItems();
 
 	bool IGameAdapter.TryRequestTraderRecruit(ulong targetSteamId) => _domains.TraderRecruit.TryRequest(targetSteamId);
+
+	void IGameAdapter.SetOnlineUiModal(bool visible) => _domains.MenuInput.SetModal(visible);
 
 	// ---- Mod runtime boundaries (Phase 4 Mod API) ----
 

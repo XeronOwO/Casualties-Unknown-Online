@@ -56,6 +56,7 @@ internal sealed class GameAdapterDomains
 	internal readonly WorldParamsService WorldParams;
 	internal readonly StartGateCoordinator Gate;
 	internal readonly GuestMenuGuard GuestMenu;
+	internal readonly OnlineMenuInputGuard MenuInput;
 	internal readonly GeneratedItemAuthority GenItemAuthority;
 	internal readonly GeneratedItemApplication GenItemApplication;
 	internal readonly TrapLayoutScanner TrapLayoutScanner;
@@ -171,6 +172,7 @@ internal sealed class GameAdapterDomains
 		CharacterSoundSync = new CharacterSoundSync(characterData, session, Renderer, loggerFactory.CreateLogger<CharacterSoundSync>());
 		LifePod = new LifePodPresentation(loggerFactory.CreateLogger<LifePodPresentation>());
 		GuestMenu = new GuestMenuGuard(session, loggerFactory.CreateLogger<GuestMenuGuard>());
+		MenuInput = new OnlineMenuInputGuard(session, loggerFactory.CreateLogger<OnlineMenuInputGuard>());
 		WorldParams = new WorldParamsService(world, loggerFactory.CreateLogger<WorldParamsService>());
 		Run = new RunCoordinator(session, world, entities, CharacterDataSync, GuestMenu, WorldParams, arbitration, loggerFactory.CreateLogger<RunCoordinator>());
 		Gate = new StartGateCoordinator(session, world, LifePod, Run, loggerFactory.CreateLogger<StartGateCoordinator>());

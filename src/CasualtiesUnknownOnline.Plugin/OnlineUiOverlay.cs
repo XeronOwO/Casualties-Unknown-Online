@@ -53,6 +53,9 @@ internal sealed class OnlineUiOverlay
 	/// <summary>Invoked when the user clicks Recruit on a dead in-world teammate (trader-recruit co-op revive).</summary>
 	internal Func<ulong, bool>? RecruitPlayer;
 
+	/// <summary>Invoked when the host clicks Kick on a non-local lobby member.</summary>
+	internal Func<ulong, bool>? KickMember;
+
 	private string _lobbyIdInput = "";
 	private string _chatInput = "";
 	private string? _inlineError;
@@ -189,9 +192,21 @@ internal sealed class OnlineUiOverlay
 			var inventoryText = member is { InWorld: true } && inventory.TryGet(lobbyMember, out _)
 				? " — items"
 				: "";
+			var rttText = member is { RttMs: >= 0f } ? $", {member.RttMs:F0} ms" : "";
 			var rowY = y;
 			GUI.Label(new Rect(10f, rowY, 900f, 20f),
-				$"  {name} [{lobbyMember:X}] {(isHost ? "HOST" : "guest")} — {status}{vitalsText}{inventoryText}");
+				$"  {name} [{lobbyMember:X}] {(isHost ? "HOST" : "guest")} — {status}{rttText}{vitalsText}{inventoryText}");
+
+			// The kick slice: the host can remove any non-local session member.
+			// The target receives a dedicated Kicked message before the host
+			// drops its presence, so the guest tears down instead of hanging.
+			if (session.Role == SessionRole.Host && lobbyMember != steam.LocalSteamId && member is not null)
+			{
+				if (GUI.Button(new Rect(580f, rowY, 52f, 16f), "Kick"))
+				{
+					KickMember?.Invoke(lobbyMember);
+				}
+			}
 
 			// The carry slice: an in-world remote who is unconscious/dead can be
 			// carried by the local player; the host re-checks the same rule. If

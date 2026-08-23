@@ -37,6 +37,8 @@ public sealed class SessionService : ICuoService, ISessionControl
 	private readonly ILogger<SessionService> _log;
 	private readonly IModListProvider _modListProvider;
 
+	private readonly HostKickService _hostKick;
+
 	// Session-owned state — never registered as services (user rule: state
 	// belongs to the object that owns it; consumers get ISessionControl).
 	private readonly SessionIdentity _identity = new();
@@ -62,6 +64,7 @@ public sealed class SessionService : ICuoService, ISessionControl
 		_time = time;
 		_modListProvider = modListProvider;
 		_log = log;
+		_hostKick = new HostKickService(this, _sender, _log);
 
 		steam.LobbyCreated += OnLobbyCreated;
 		steam.LobbyEntered += OnLobbyEntered;
@@ -503,6 +506,15 @@ public sealed class SessionService : ICuoService, ISessionControl
 			EndSession();
 		}
 	}
+
+	/// <summary>
+	/// Host side: kick a guest out of the session. Sends the dedicated
+	/// <see cref="NetMsg.Kicked"/> to the target first (so the guest tears down
+	/// instead of waiting for the host to disappear), then removes it from the
+	/// presence table — the existing member-removal path broadcasts PlayerLeave
+	/// to the remaining members and cleans up entity clones.
+	/// </summary>
+	public bool KickMember(ulong steamId, string reason) => _hostKick.Kick(steamId, reason);
 
 	/// <summary>Host side: drop a member (presence removal; the entity domain
 	/// broadcasts the roster PlayerLeave and tears the clone down).</summary>

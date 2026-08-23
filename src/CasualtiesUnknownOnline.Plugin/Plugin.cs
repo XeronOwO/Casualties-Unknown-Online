@@ -118,6 +118,7 @@ public class Plugin : BaseUnityPlugin
 				HealWithItem = TryHealWithItemFromUi,
 				GetLocalHealItems = () => _adapter?.GetLocalHealItems() ?? [],
 				RecruitPlayer = TryRequestTraderRecruitFromUi,
+				KickMember = TryKickMemberFromUi,
 			};
 
 			// Publish the container on the static diagnostics seam (HotRepl etc.).
@@ -406,6 +407,9 @@ public class Plugin : BaseUnityPlugin
 
 		return _adapter?.TryRequestTraderRecruit(targetSteamId) == true;
 	}
+
+	/// <summary>Online UI Kick path — host-only session removal (the target receives a dedicated Kicked message).</summary>
+	private bool TryKickMemberFromUi(ulong targetSteamId) => _session.KickMember(targetSteamId, "kicked by host");
 
 
 	// Steam launches the game with "+connect_lobby <id>" when the user clicks

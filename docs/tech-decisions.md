@@ -2188,3 +2188,32 @@ the existing narrow control interfaces instead of the concrete
 
 No wire/protocol change. See
 `docs/selfchecks/adapter-control-surfaces-selfcheck.md`.
+
+## 76. Host kick — dedicated Kicked message (ProtocolVersion 39)
+
+Backlog §2.7 listed admin/kick/ban/vote among the lower-priority KrokMP
+candidates. This entry closes the **kick** slice as the first admin feature:
+the host can remove a guest from the session with a dedicated wire message, the
+guest tears its own session down immediately, and the remaining members are
+updated through the existing member-removal path.
+
+- **Wire** — `KickedMsg` (NetMsg 111, ProtocolVersion 39), host → guest, carries
+  a short human-readable `Reason`. The direction is fail-closed through
+  `NetMessageRegistry` and `DirectionTests`.
+- **Host path** — `SessionService.KickMember` delegates to the new
+  `HostKickService`: host-only, rejects self/unknown, sends `Kicked` to the
+  target first, then calls `ISessionControl.RemoveGuestMember` so the entity
+  domain broadcasts `PlayerLeave` to the remaining members and cleans up the
+  clone.
+- **Guest path** — `KickedHandler` logs the reason and calls
+  `ISessionControl.EndSession()`; no host migration, the kicked player returns
+  to the menu/lobby.
+- **UI** — the Online UI member list adds a host-only `Kick` button and, as an
+  adjacent player-list polish item, shows each member's own `RttMs` instead of
+  only the global last-RTT line.
+- **Architecture** — `HostKickService` is a stateless top-level collaborator so
+  `SessionService` remains under the 600-line gate after adding the kick path.
+- **Tests** — `KickedTests` (2) covers the dedicated-message + teardown path
+  and the host-only/self/unknown rejection guards; full suite 1269 green.
+
+See `docs/selfchecks/host-kick-selfcheck.md`.

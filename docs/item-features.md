@@ -146,15 +146,21 @@ dynamite fuse flag (Item.cs:6671-6682), liquidcentrifuge cooldown timer
 (`data[0] = 60f`, Item.cs:5667-5689), jetpack throttle
 (CustomItemBehaviour.cs:382-428).
 
-**CUO sync: ✕ by design for the array itself.** `object[]` is an unsupported
-field kind (ItemStateCodec.cs:155-159) — state is frame-level transient
-(jetpack throttle) or short-lived visual (centrifuge cooldown). The dynamite
-**detonation** is no longer a gap: it travels as a dedicated
-`DynamiteExplosionMsg` (NetMsg 105, ProtocolVersion 30) carrying the one-shot
-item id + position, so a guest-loaded fuse's explosion now applies on the host
-and replays on the other sides. The 5-second lit-fuse visual on remote clones
-remains local-only (short-lived presentation). See
-`docs/selfchecks/dynamite-explosion-selfcheck.md`.
+**CUO sync: partial — the array itself is still unsupported as a generic
+saveable field, but the one persistent gameplay state in it now has an
+explicit wire face.** `object[]` is an unsupported field kind
+(ItemStateCodec.cs:155-159). The **liquidcentrifuge cooldown**
+(`data[0] = 60f`, Item.cs:5667-5689) gates the use action and is now captured
+as a synthetic `cooldown` component field via `CustomItemDataState` and
+restored through the existing item-state paths (including a one-frame
+reapply marker because `CustomItemBehaviour.Start` re-initializes the array to
+0 on a fresh prefab). The remaining payload entries are not persistent
+gameplay state: jetpack throttle is a frame-level transient, and the dynamite
+**detonation** travels as a dedicated `DynamiteExplosionMsg` (NetMsg 105,
+ProtocolVersion 30) carrying the one-shot item id + position; the 5-second
+lit-fuse visual on remote clones remains local-only (short-lived
+presentation). See `docs/selfchecks/dynamite-explosion-selfcheck.md` and
+`docs/selfchecks/custom-item-data-state-selfcheck.md`.
 
 ### gun — GunScript state machine
 
@@ -289,9 +295,11 @@ domain"). Per-surface notes:
 
 ## Known state gaps (documented, not part of #89)
 
-- **CustomItemBehaviour.data** — see [payload](#payload—customitembbehaviourdata);
+- **CustomItemBehaviour.data** — see
+  [payload](#payload—customitembbehaviourdata); the liquidcentrifuge
+  **cooldown** is now SYNCED as a synthetic `cooldown` component field,
   the dynamite **detonation** is synced via `DynamiteExplosionMsg`; the
-  short-lived lit-fuse visual remains local-only.
+  short-lived lit-fuse visual and the jetpack throttle remain local-only.
 - **GrapplingHook** `fired`/`hookLatched`/`pulling` (GrapplingHook.cs:114-120,
   private bools, no `[Saveable]`) — **SYNCED**: `ItemStateCodec`'s
   multiplayer-state table carries the three private bools on every item state

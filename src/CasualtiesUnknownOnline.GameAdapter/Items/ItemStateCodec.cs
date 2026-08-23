@@ -243,6 +243,19 @@ internal static class ItemStateCodec
 				});
 			}
 
+			if (comp is CustomItemBehaviour custom)
+			{
+				// CustomItemBehaviour.data is object[] — not a generic saveable
+				// field — but it carries persistent gameplay state (the
+				// liquidcentrifuge 60 s cooldown gates its use action). Give it
+				// an explicit wire face as a synthetic component field.
+				var dataState = CustomItemDataState.CaptureLiquidCentrifugeCooldown(item.id, custom.data);
+				if (dataState != null)
+				{
+					fields.Add(dataState);
+				}
+			}
+
 			states.Add(new ComponentStateMsg { TypeName = comp.GetType().Name, Fields = fields });
 		}
 
@@ -332,6 +345,26 @@ internal static class ItemStateCodec
 
 			foreach (var field in state.Fields)
 			{
+				if (comp is CustomItemBehaviour custom
+					&& CustomItemDataState.IsLiquidCentrifugeCooldownField(item.id, field))
+				{
+					custom.data = CustomItemDataState.WithLiquidCentrifugeCooldown(
+						item.id, custom.data, field.FloatValue);
+
+					// The prefab's own Start initializes data[0] to 0 after a
+					// fresh Instantiate. A marker reapplies the synced value on
+					// the next frame (after Start) so the transfer/reconnect
+					// cooldown survives the native lifecycle.
+					var restore = item.GetComponent<LiquidCentrifugeCooldownRestore>();
+					if (restore == null) // Unity object — ==
+					{
+						restore = item.gameObject.AddComponent<LiquidCentrifugeCooldownRestore>();
+					}
+
+					restore.Cooldown = field.FloatValue;
+					continue;
+				}
+
 				var target = comp.GetType().GetField(field.Name,
 					BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
 				if (target is null || target.IsStatic || target.IsInitOnly)

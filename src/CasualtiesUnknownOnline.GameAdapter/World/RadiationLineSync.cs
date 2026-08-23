@@ -1,5 +1,7 @@
+using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
+using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using HarmonyLib;
 using Microsoft.Extensions.Logging;
@@ -25,6 +27,7 @@ namespace CasualtiesUnknownOnline.GameAdapter.World;
 internal sealed class RadiationLineSync(
 	IWorldControl world,
 	ISessionControl session,
+	EntitySyncService entities,
 	ILogger<RadiationLineSync> log)
 {
 	/// <summary>Host resend interval for an active line. The line moves at
@@ -34,7 +37,9 @@ internal sealed class RadiationLineSync(
 
 	private readonly IWorldControl _world = world;
 	private readonly ISessionControl _session = session;
+	private readonly EntitySyncService _entities = entities;
 	private readonly ILogger<RadiationLineSync> _log = log;
+	private readonly List<RadiationPlayerProgress> _playerProgress = [];
 
 	/// <summary>Whether the host has published the current generation's state
 	/// (a new generation resets this — the first frame after generation
@@ -68,6 +73,8 @@ internal sealed class RadiationLineSync(
 			return;
 		}
 
+		TryActivateForStragglers();
+
 		var active = line.active;
 		var timeGone = ReadTimeGone(line);
 
@@ -91,6 +98,62 @@ internal sealed class RadiationLineSync(
 		}
 
 		Publish(active, timeGone);
+	}
+
+	/// <summary>
+	/// Host-side co-op straggler pressure: if the vanilla layer timer has not
+	/// started the line yet, start it when at least one living player has
+	/// reached the layer bottom and another living player is still above it.
+	/// The line remains active once started (vanilla one-way semantics); the
+	/// body radiation/eye effects stay local per side (local-compute mandate)
+	/// and are already driven by each side's <c>RadiationLine.Update</c>.
+	/// </summary>
+	private void TryActivateForStragglers()
+	{
+		if (!_session.SessionActive || _session.Role != SessionRole.Host)
+		{
+			return;
+		}
+
+		var line = RadiationLine.line;
+		if (line == null || line.active) // Unity object — ==
+		{
+			return;
+		}
+
+		var world = WorldGeneration.world;
+		if (world == null || HarmonyTraverse.IsGenerating()) // Unity object — ==
+		{
+			return;
+		}
+
+		var bottomY = -(float)world.halfHeight + 3.1f;
+		_playerProgress.Clear();
+		AddProgress(_entities.LocalPlayer);
+		foreach (var remote in _entities.RemotePlayers)
+		{
+			AddProgress(remote);
+		}
+
+		if (!RadiationStragglerPolicy.ShouldActivateLine(_playerProgress, bottomY))
+		{
+			return;
+		}
+
+		line.Activate();
+		_log.LogInformation(
+			"[RadiationLine] host activated the line for straggler pressure (players={Players}, bottomY={BottomY:F1}).",
+			_playerProgress.Count, bottomY);
+	}
+
+	private void AddProgress(PlayerEntity player)
+	{
+		if (player is null)
+		{
+			return;
+		}
+
+		_playerProgress.Add(new RadiationPlayerProgress(player.Position.Y, player.Alive));
 	}
 
 	private void Publish(bool active, float timeGone)

@@ -1551,3 +1551,35 @@ owner's body.
 - **No wire/protocol change**: only `RemoteBodyFactory.cs` touched.
 
 See `docs/selfchecks/owner-local-body-auto-events-selfcheck.md`.
+
+
+## 58. RadiationLine straggler pressure — multiplayer activation rule (no protocol change)
+
+The vanilla radiation line is a single-player timer: it activates when the
+local `layerTimeSpent > maxTimePerLayer` (WorldGeneration.cs:859-863). In a
+co-op session that timer only reflects the host's progress. The KrokMP-inspired
+exploration (2026-08-23 §2.3) asked for the missing host-side rule: start the
+line when players have reached the layer bottom and stragglers remain. The
+world-state half (NetMsg 106) had already landed (#55); this entry completes
+the rule.
+
+- **Pure policy**: `RadiationStragglerPolicy.ShouldActivateLine`
+  (`Runtime.Session.EntitySync`) — given the local + remote entity-stream
+  players, activate when **at least one living player has reached the layer
+  bottom and at least one other living player is still above it**. Dead and
+  absent players are ignored.
+- **Boundary**: `bottomY = -world.halfHeight + 3.1f` with a strict `<`,
+  matching the game's own next-layer trigger (WorldGeneration.cs:979).
+- **Integration**: `RadiationLineSync` now takes `EntitySyncService` and calls
+  the policy on the host before publishing while the line is inactive. The
+  vanilla layer timer remains untouched and acts as the fallback.
+- **One-way activation**: the vanilla line stays active until layer
+  regeneration, so the policy only ever calls `Activate()`; no new
+  deactivation/inactivity semantics were introduced.
+- **No wire/protocol change**: the activation is a local world mutation that
+  the existing `RadiationLineState` (NetMsg 106) already broadcasts, so
+  `ProtocolVersion` stays 34.
+
+Tests: `RadiationStragglerPolicyTests` (8 cases), full suite **1208 green**,
+build 0 warnings/0 errors, architecture/event-replay gates pass. See
+`docs/selfchecks/radiation-straggler-pressure-selfcheck.md`.

@@ -58,4 +58,12 @@ public interface IGameAdapter : IDisposable
 	/// authority and re-validates the requested id.
 	/// </summary>
 	IReadOnlyList<LocalHealItem> GetLocalHealItems();
+
+	/// <summary>
+	/// Online UI entry: the local player requests a trader recruit of a dead
+	/// in-world teammate. Returns false when there is no session/world or no
+	/// trader within range; the host remains the authority for the actual
+	/// trade gates and the revive result.
+	/// </summary>
+	bool TryRequestTraderRecruit(ulong targetSteamId);
 }

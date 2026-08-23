@@ -104,6 +104,18 @@ public sealed partial class WorldService
 
 	public void FireTraderActionReceived(ulong sender, TraderActionMsg msg) => _tradeChannel.FireTraderActionReceived(sender, msg);
 
+	public void SendTraderRecruitRequest(TraderRecruitRequestMsg msg) => _tradeChannel.SendTraderRecruitRequest(msg);
+
+	public event Action<ulong, TraderRecruitRequestMsg>? TraderRecruitRequestReceived { add => _tradeChannel.TraderRecruitRequestReceived += value; remove => _tradeChannel.TraderRecruitRequestReceived -= value; }
+
+	public void FireTraderRecruitRequestReceived(ulong sender, TraderRecruitRequestMsg msg) => _tradeChannel.FireTraderRecruitRequestReceived(sender, msg);
+
+	public void SendTraderRecruitResult(ulong targetSteamId, TraderRecruitResultMsg msg) => _tradeChannel.SendTraderRecruitResult(targetSteamId, msg);
+
+	public event Action<TraderRecruitResultMsg>? TraderRecruitResultReceived { add => _tradeChannel.TraderRecruitResultReceived += value; remove => _tradeChannel.TraderRecruitResultReceived -= value; }
+
+	public void FireTraderRecruitResultReceived(TraderRecruitResultMsg msg) => _tradeChannel.FireTraderRecruitResultReceived(msg);
+
 	public void SendSpeech(SpeechMsg msg) => _speechChannel.SendSpeech(msg);
 
 	public void BroadcastSpeech(ulong excludeSteamId, SpeechMsg msg) => _speechChannel.BroadcastSpeech(excludeSteamId, msg);

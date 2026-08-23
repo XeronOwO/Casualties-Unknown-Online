@@ -200,4 +200,10 @@ public enum NetMsg : byte
 	// world state is host-owned; guests apply the absolute state and only run
 	// the local per-frame presentation/effects between resends)
 	RadiationLineState = 106, // host → guest: the authoritative radiation-line state (Active + TimeGone)
+
+	// Trader recruit (host-authoritative co-op revive — the acting side only
+	// sends the request; the host validates the trader/player gates and sends
+	// the revived physiological state directly to the target)
+	TraderRecruitRequest = 107, // guest → host: recruit a dead in-world player at a nearby trader
+	TraderRecruitResult = 108, // host → target: the authoritative post-revive body state
 }

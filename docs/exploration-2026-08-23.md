@@ -65,6 +65,12 @@ sync model.
 
 ### 2.1 Trader Recruit — revive a dead player at a trader — HIGH
 
+> **Status 2026-08-23: first slice CLOSED** — host-authoritative
+> `TraderRecruitRequest`/`TraderRecruitResult` (NetMsg 107/108,
+> ProtocolVersion 35) with in-place health revive; random trader items and the
+> broader revive lifecycle remain open. See
+> `docs/selfchecks/trader-recruit-selfcheck.md`.
+
 - KrokMP: a trader can be recruited when its health and reputation gates pass;
   the server picks a dead player to respawn, gives 1–3 random trader items, and
   destroys the trader. It has its own `SERVER_TraderRecruit` message and UI

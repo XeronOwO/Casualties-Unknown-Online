@@ -232,6 +232,7 @@ public sealed partial class GameAdapter : IGameAdapter, ICuoService, IPatchBridg
 		_radiationLineSync.BindToSession();
 		_fluidSync.BindToSession();
 		_tradeSync.BindToSession();
+		_traderRecruit.BindToSession();
 		_speechSync.BindToSession();
 		_recipeUnlockApply.BindToSession();
 		_enemySync.BindToSession();
@@ -271,6 +272,7 @@ public sealed partial class GameAdapter : IGameAdapter, ICuoService, IPatchBridg
 		_radiationLineSync.Unbind();
 		_fluidSync.Unbind();
 		_tradeSync.Unbind();
+		_traderRecruit.Unbind();
 		_speechSync.Unbind();
 		_recipeUnlockApply.Unbind();
 		_enemySync.Unbind();

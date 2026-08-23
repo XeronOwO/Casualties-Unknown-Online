@@ -14,6 +14,7 @@ public sealed partial class GameAdapter
 		_itemWorldSync.ResetPending();
 		_blockBreakSync.ResetPending();
 		_craftingSync.ResetPending();
+		_traderRecruit.Reset();
 		_heaterCookSync.Reset();
 		_gate.ResetSessionState();
 		_renderer.DestroyAllClones();

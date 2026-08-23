@@ -1583,3 +1583,46 @@ the rule.
 Tests: `RadiationStragglerPolicyTests` (8 cases), full suite **1208 green**,
 build 0 warnings/0 errors, architecture/event-replay gates pass. See
 `docs/selfchecks/radiation-straggler-pressure-selfcheck.md`.
+
+
+## 59. Trader Recruit — host-authoritative co-op revive (ProtocolVersion 35)
+
+The KrokMP exploration (§2.1/§2.2) proposed a trader-recruit flow: a living
+player at a trader can revive a dead teammate. CUO already had a strong
+host-authoritative trade domain and the character save/restore snapshots, but
+no revive lifecycle and no public UI for it.
+
+- **Dedicated request/result pair, not a `TraderActionKind`** — ordinary trade
+  actions run a vanilla game method locally first; recruit has no vanilla
+  method, so the host owns the whole outcome. `TraderRecruitRequest`
+  (NetMsg 107, guest→host) carries the target SteamId + the acting side's
+  nearest-trader position; `TraderRecruitResult` (NetMsg 108, host→target)
+  carries the authoritative post-revive `CharacterHealthMsg` + limbs.
+- **Host-side policy** — `TraderRecruitPolicy` (`Runtime.Session.World`) locks
+  the L0 rules in pure form: `CanRecruit` (`reputation >= 75`, `hostility <= 0`,
+  `build.health > 200`, one recruit per trader instance), `IsDead`, and
+  `PrepareRevive` (health baseline while preserving skills/items/limbs/
+  position).
+- **Unity shell** — `TraderRecruitCoordinator` (`GameAdapter.World`) finds the
+  nearest trader for the acting side, re-validates on the host, saves the
+  revived snapshot into `CharacterDataStore`, and delivers the revive:
+  wire to a guest target, direct local apply for a host target.
+- **Heal in place, not restore** — the target applies the result through the
+  existing cross-player `CharacterDataSync.ApplyHealState` inside a RemoteApply
+  scope. No inventory wipe, no position teleport; the death screen cancels when
+  `body.alive` returns true (`PlayerCamera.HandleDeathScreen`, PlayerCamera.cs:
+  2397-2410).
+- **Peer visibility** — after applying, the target re-reports the full
+  character snapshot (`ReportInventoryChanged`), so the host save and every
+  peer clone refresh immediately.
+- **Scope boundary** — no random trader items, no Permadeath/ReviveOnNextLevel/
+  save-transition rules yet; the broader `Revive/respawn rules` backlog item
+  remains open.
+- **ProtocolVersion 34→35** because a v34 peer has no NetMsg 107/108 handler and
+  no revive flow.
+
+Tests: `TraderRecruitPolicyTests` (7 cases), `TraderRecruitChannelTests`
+(2 wire cases), direction-table rows + `EveryNetMsg_IsExplicitlyClassified`;
+full suite **1219 green**, build 0 warnings/0 errors, architecture / event-replay
+/ entity-event-dispatch gates pass. See
+`docs/selfchecks/trader-recruit-selfcheck.md`.

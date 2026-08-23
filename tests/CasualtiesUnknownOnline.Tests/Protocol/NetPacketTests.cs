@@ -158,6 +158,18 @@ public class NetPacketTests
 	}
 
 	[Fact]
+	public void RadiationLineState_RoundTripsActiveAndTimeGone()
+	{
+		var msg = new RadiationLineStateMsg { Active = true, TimeGone = 123.5f };
+
+		var decoded = NetPacket.DecodePayload<RadiationLineStateMsg>(
+			NetPacket.Encode(NetMsg.RadiationLineState, msg));
+
+		Assert.True(decoded.Active);
+		Assert.Equal(123.5f, decoded.TimeGone);
+	}
+
+	[Fact]
 	public void BuildingEntityHealthSnapshot_ZeroHealth_RoundTrips()
 	{
 		// X/Y/Health are floats — protobuf's zero omission decodes an omitted

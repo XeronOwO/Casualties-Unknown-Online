@@ -1,0 +1,202 @@
+# CUO Exploration — 2026-08-23
+
+Scope: a parallel sub-agent sweep for (a) original-game mechanics that may still
+lack multiplayer support, (b) valuable KrokMP mechanics worth adopting in a
+CUO-native way, and (c) architecture/quality debt found during the sweep.
+
+This file is an exploration record, not a binding design. Landed decisions
+belong in `docs/tech-decisions.md`; actionable open items are summarized in
+`docs/backlog.md`.
+
+## 1. Original game mechanics — likely gaps
+
+### 1.1 RadiationLine world state — CLOSED (landed 2026-08-23)
+
+- Original: `RadiationLine` advances `timeGone`, applies `radiationSickness`
+  and eye-scare/irradiation presentation to bodies above the line, and is
+  activated/deactivated by world generation / layer-time logic.
+- **Landed**: a new host→guest `RadiationLineStateMsg` (NetMsg 106,
+  ProtocolVersion 33) carries the host-authoritative `active` + `timeGone`
+  state. The host publishes it while the line is active (idempotent 5 Hz
+  self-heal) and stores the current state for the world-entry/reconnect
+  fan-out; guests apply the absolute state, keep running their local
+  per-frame line presentation/body effects between resends, and their
+  independent `layerTimeSpent` activation is suppressed in
+  `WorldGenerationUpdatePatch`. See `docs/selfchecks/radiation-line-state-sync-selfcheck.md`
+  and `docs/tech-decisions.md` #55.
+
+### 1.2 CrystalTeleport matrix coverage — MEDIUM/LOW
+
+- Original: `CrystalBehaviour.possibleEffects` includes `CrystalTeleport`; it
+  teleports the local player and changes consciousness/shock/velocity with a
+  one-shot presentation effect.
+- CUO today: not listed in the entity feature matrix and not explicitly handled.
+  The resulting player position/stats likely self-heal via the 20 Hz body state
+  stream, but the one-shot presentation (`observerlaugh`, `FlashBrief`) has no
+  dedicated event path.
+- Proposed direction: add a matrix row declaring it covered-by-body-stream with
+  local-only presentation, or add a dedicated event if remote presentation is
+  wanted.
+
+### 1.3 Owner-local body auto-event presentation — LOW / UNVERIFIED
+
+- Vomiter, SelfHarmer, PantSound, MoodChangeSounds, and similar body-driven
+  one-shot sounds/visuals are not explicitly part of the CUO clone presentation
+  contract.
+- Many may never fire on frozen render clones because the clone does not receive
+  the full local `Body` simulation state. That should be verified before
+  deciding whether an event path is needed.
+- Also recorded: `usingSleepingBag` is owner-local and not currently synced.
+
+## 2. KrokMP mechanics worth considering
+
+KrokMP's network transport (LiteNetLib raw UDP) and its "everyone simulates
+everything" internals are explicitly NOT a model to copy. The following are
+mechanism-level candidates that fit CUO's host-authoritative world / accept-first
+sync model.
+
+### 2.1 Trader Recruit — revive a dead player at a trader — HIGH
+
+- KrokMP: a trader can be recruited when its health and reputation gates pass;
+  the server picks a dead player to respawn, gives 1–3 random trader items, and
+  destroys the trader. It has its own `SERVER_TraderRecruit` message and UI
+  button.
+- CUO: the trade domain is already host-authoritative and well covered
+  (`TraderState`, `TraderAction`, `TradeExecutor`), but `TraderActionKind` has no
+  Recruit action and there is no survive/revive flow.
+- Value: adds a cooperative "death is not necessarily run-ending" mechanic and
+  reuses the existing trader domain.
+- Complexity: medium-high; needs a host-side dead-player roster, an authoritative
+  revive/apply path, and idempotency/concurrency handling.
+
+### 2.2 Revive/respawn rules — HIGH
+
+- KrokMP rule bits: `Permadeath`, `ReviveOnNextLevel`, `ReviveFromTrader`,
+  `RespawnKeepInventory`, `RespawnKeepSkills`; death handling is integrated with
+  save/level transitions.
+- CUO: no respawn semantics; `SessionStatePump` documents death as the end of
+  the run. Character data persistence currently covers reconnect, not revival.
+- Value: core to extended co-op sessions.
+- Complexity: high; needs a lifecycle design distinct from new-run reset.
+
+### 2.3 Radiation line / straggler pressure — HIGH
+
+- KrokMP: starts the radiation line when enough players have reached the layer
+  bottom and stragglers remain; synchronizes `radlineactive` / `radlinestate` in
+  world state; slows progress when players are unconscious; applies body damage
+  to players caught above the line.
+- CUO: has per-body `RadiationSickness`, but no line/straggler rule.
+- Value: directly improves co-op pacing and is the natural multiplayer extension
+  of the original game's radiation line.
+- Complexity: medium-high; needs host-side per-player layer progress and a
+  world-state sync path, while applying local body effects client-side.
+
+### 2.4 Host rules / configurable game rules — MEDIUM/HIGH (design-level)
+
+- KrokMP has a broad rules struct (PVP, auto-continue, late-join, save
+  inventory, teams, etc.) plus rule sync and lobby metadata.
+- CUO currently hardcodes several behaviors and has no rules message/UI.
+- Recommendation: do NOT copy a 60-field struct. Start with a minimal host rules
+  service for the highest-value flags (PVP, auto-continue, late join, save
+  inventory, revive-related) as an independent domain.
+
+### 2.5 Text chat — MEDIUM-HIGH
+
+- KrokMP ships a full chat box with speech-impaired/hearing-loss distortion and
+  server announcements.
+- CUO only syncs in-world Talker bubbles via `SpeechMsg`.
+- A simple `ChatMsg`/UI layer is likely the right first communication feature;
+  voice is much larger and should wait.
+
+### 2.6 PVP — MEDIUM-HIGH but complex
+
+- KrokMP has a player-vs-player attack pipeline, hit checks, knockback, mood
+  debuffs, team rules.
+- CUO has no player-to-player damage domain.
+- Recommendation: defer behind PvE and a host-rules foundation; requires careful
+  use of the accept-first model without strict anti-cheat.
+
+### 2.7 Other lower-priority candidates
+
+- Voice chat (Opus, push-to-talk/range attenuation) — high complexity, medium
+  value after text chat.
+- Admin commands / kick / ban / vote-kick — medium value for friend sessions;
+  more relevant for public/dedicated servers later.
+- Co-op keybinds, push/piggyback, status icons, richer player list — functional
+  polish, low-medium.
+- Protocol quantization/compression — explicitly measurement-first; CUO already
+  has this in backlog as "do not optimize before data".
+
+## 3. Architecture / quality audit
+
+### 3.1 Partial-aware architecture gate — HIGH
+
+- `tools/check-architecture.ps1` checks per-file line counts; partial classes are
+  not aggregated by type, so a single logical class can exceed the 600-line gate
+  while each file remains under it.
+- Observed aggregate sizes (approximate, from the audit): `ModService` ~1590,
+  `GameAdapter` ~1364, `ItemService` ~928, `WorldService` ~792,
+  `EnemySyncCoordinator` ~750, `PlayerInteractionService` ~716,
+  `ItemApplication` ~630.
+- Proposed: make the gate aggregate by top-level type across partials and enforce
+  real responsibility splits, not just physical file movement.
+
+### 3.2 NetMsg direction registry — HIGH
+
+- `PacketReceiver.IsValidDirection` is currently a manually maintained, fail-open
+  switch; unknown/new message types default to valid.
+- Proposed: a single `NetMessageRegistry` (or expanded `PacketHandlerAttribute`)
+  carrying direction/reliability/payload type, read by both dispatcher and
+  receiver, with fail-closed behavior for unregistered messages.
+
+### 3.3 `HandlerContext` god-object — MEDIUM
+
+- `HandlerContext` injects many control-plane services and also owns
+  world-entry state fan-out. This makes handlers depend on an implicit global
+  service surface and makes new domains more expensive to add.
+- Proposed: narrow handler dependencies to per-domain interfaces and move
+  world-entry fan-out into a dedicated service.
+
+### 3.4 World-entry snapshot completion semantics — MEDIUM
+
+- Reconnect/late-join currently sends several independent snapshot messages with
+  no explicit "complete world-entry snapshot set" signal.
+- Proposed: a completion marker (or batched snapshot message) so receivers can
+  distinguish a full world state from partial-best-effort state.
+
+### 3.5 GameAdapter testability / concrete service dependencies — MEDIUM
+
+- Several adapter domain objects depend on concrete `SessionService` and reach
+  into Unity statics (`FindObjectsOfType`, `Resources.Load`, `Utils.Create`,
+  private reflection).
+- Proposed: narrow interfaces for world/object lookups, spawn factories, and
+  session identity; keep pure arbitration in pure-machine classes and make the
+  Unity seam injectable for L0 simulation.
+
+### 3.6 Log levels on high-frequency paths — LOW/MEDIUM
+
+- 1 Hz character-data and periodic sync logs are emitted at Information.
+- Proposed: drop periodic paths to Debug/Verbose; keep join/leave/restore/refusal
+  and failures at Information/Warn/Error, and rely on `[NetworkTraffic]` /
+  `[NetworkHealth]` for metrics.
+
+### 3.7 Already-good areas (no change needed)
+
+- Main-thread marshaling is correctly confined to `ICuoService.Update` paths.
+- Packet routing uses the handler attribute + generic base pattern, not a giant
+  switch.
+- Control/data plane separation is in place.
+- Sync-chain ownership (`CallContext`, `OperationTrace`, verified commit) is
+  present as the structural backbone.
+
+## 4. Recommended ordering
+
+1. Trader Recruit + minimal revive semantics (highest gameplay value, reuses
+   trade domain).
+2. Radiation line world-state sync + straggler rule (high value, analogous to
+   earthquake/world-state patterns).
+3. Pre-final-acceptance architecture cheese: NetMsg direction fail-closed,
+   partial-aware gate, log-level cleanup.
+4. Minimal host rules service and text chat once the above are stable.
+5. PVP and voice only after rules/co-op foundations exist.
+6. Protocol optimization remains measurement-first as already recorded.

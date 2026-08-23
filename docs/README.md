@@ -25,6 +25,7 @@ Map of this repository's documentation. Start with [architecture.md](architectur
 - [lobby-refactor-plan.md](lobby-refactor-plan.md) — lobby-domain refactor plan and acceptance evidence.
 - [runtime-supply-refresh-audit.md](runtime-supply-refresh-audit.md) — runtime item-spawn surface sweep (which calls create items, repeatability).
 - [worldgen-determinism-audit.md](worldgen-determinism-audit.md) — world-generation random-consumer / determinism audit.
+- [exploration-2026-08-23.md](exploration-2026-08-23.md) — 2026-08-23 sweep: original-game sync gaps, KrokMP feature candidates, architecture/quality debt.
 
 ## Process & gates
 

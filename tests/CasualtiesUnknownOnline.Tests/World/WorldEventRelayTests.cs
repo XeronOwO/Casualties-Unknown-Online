@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.DependencyInjection;
@@ -31,6 +32,25 @@ public class WorldEventRelayTests
 			$"every guest must get the quake (g1: {g1Quakes.Count}, g2: {g2Quakes.Count})");
 		Assert.True(g1Quakes[0].Duration == 12f && g1Quakes[0].NextDelay == 240f,
 			$"the duration and the next-delay ride through, got {g1Quakes[0]}");
+	}
+
+	[Fact]
+	public void RadiationLineState_HostBroadcast_ReachesEveryGuest()
+	{
+		using var w = ItemSimWorld.Create();
+		var g1States = new List<RadiationLineStateMsg>();
+		var g2States = new List<RadiationLineStateMsg>();
+		w.G1.Services.GetRequiredService<IWorldControl>().RadiationLineStateReceived += msg => g1States.Add(msg);
+		w.G2.Services.GetRequiredService<IWorldControl>().RadiationLineStateReceived += msg => g2States.Add(msg);
+
+		w.Host.Services.GetRequiredService<IWorldControl>()
+			.BroadcastRadiationLineState(new RadiationLineStateMsg { Active = true, TimeGone = 42.5f });
+		w.Driver.Tick(50);
+
+		Assert.True(g1States.Count == 1 && g2States.Count == 1,
+			$"every guest must get the radiation-line state (g1: {g1States.Count}, g2: {g2States.Count})");
+		Assert.True(g1States[0].Active && g1States[0].TimeGone == 42.5f,
+			$"active + timeGone ride through, got {g1States[0]}");
 	}
 
 	[Fact]

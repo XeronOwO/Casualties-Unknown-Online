@@ -195,4 +195,9 @@ public enum NetMsg : byte
 	// receiver replays the body/visual segment; the terrain/building/item facts
 	// ride the existing block/building/world-item channels)
 	DynamiteExplosion = 105, // bidirectional: guest → host report of a dynamite detonation; host → guest broadcast relay (source excluded)
+
+	// World event state (host authority — the radiation line's active/timeGone
+	// world state is host-owned; guests apply the absolute state and only run
+	// the local per-frame presentation/effects between resends)
+	RadiationLineState = 106, // host → guest: the authoritative radiation-line state (Active + TimeGone)
 }

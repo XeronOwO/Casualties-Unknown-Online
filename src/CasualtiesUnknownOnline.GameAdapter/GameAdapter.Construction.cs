@@ -69,6 +69,7 @@ public sealed partial class GameAdapter
 	private readonly DynamiteExplosionSync _dynamiteExplosionSync;
 	private readonly EntitySpawnSync _entitySpawnSync;
 	private readonly GeyserStateSync _geyserStateSync;
+	private readonly RadiationLineSync _radiationLineSync;
 	private readonly FluidWorldSync _fluidSync;
 	private readonly TradeStateSync _tradeSync;
 	private readonly SpeechSync _speechSync;
@@ -141,6 +142,7 @@ public sealed partial class GameAdapter
 			loggerFactory.CreateLogger<DynamiteExplosionSync>());
 		_entitySpawnSync = new EntitySpawnSync(world, session, loggerFactory.CreateLogger<EntitySpawnSync>());
 		_geyserStateSync = new GeyserStateSync(world, session, loggerFactory.CreateLogger<GeyserStateSync>());
+		_radiationLineSync = new RadiationLineSync(world, session, loggerFactory.CreateLogger<RadiationLineSync>());
 		_fluidSync = new FluidWorldSync(world, session, entities, loggerFactory);
 		_tradeSync = new TradeStateSync(world, session, new TradeExecutor(), loggerFactory.CreateLogger<TradeStateSync>());
 		_speechSync = new SpeechSync(world, session, loggerFactory.CreateLogger<SpeechSync>());

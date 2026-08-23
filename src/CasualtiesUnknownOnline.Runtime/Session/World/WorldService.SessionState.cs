@@ -22,6 +22,7 @@ public sealed partial class WorldService
 		_startGateArmedMs = 0;
 		_gateReleased = false;
 		WorldParams = null;
+		RadiationLineState = null;
 		ResetDamagedBlocks();
 	}
 

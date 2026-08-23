@@ -17,6 +17,7 @@ CrystalUnstableExploded,crystaltick (5s tick)+explosion-fivepiece,explosion-five
 CrystalMetamorphicTriggered,crystalenemylaugh,ok,FlashBrief,FlashBrief,activated latch,covered,death rides BuildingEntityDamaged + drops ride the item domain
 CrystalMimicTriggered,observerlaugh 2D (CrystalMimic.cs:29/43 args),observerlaugh 2D (live relay; silent on late-joiner snapshot),pulse stops via activated latch + spawned crystalenemies,pulse stops; spawned enemies ride EntitySpawned,activated latch (one-shot); enemies ride EnemyRuntimeSpawn,covered,spawns ride EntitySpawned + EnemySyncCoordinator runtime binding; late joiner consumes the mimic via TrapStateSnapshot and materializes enemies from EnemySnapshot.RuntimeSpawns; crystalenemy tint rides EntitySpawned/EnemySnapshot (PV24)
 CrystalShySwapped,observerlaugh,ok,position swap,re-scan swap,activated latch,covered,scan order has no formal guarantee (generation-static crystals)
+CrystalTeleportTriggered,observerlaugh 2D (CrystalTeleport.cs:27),observerlaugh 2D (live relay),FlashBrief (trigger side),FlashBrief (relay),none (repeatable),covered,body teleport rides the 20 Hz player stream; no latch and no late-joiner replay
 CrystalEMPActivated,crystalemp,ok,white flash+Shake200+darken,white flash+Shake200 (darken runs natural),activated latch,covered,battery drain rides the item domain
 BarbedFenceHit,fence(3D) ok,ok,hitSprite transition,ok,none (instant),covered,
 CoilShocked,zap(3D)+light-flash+Shake,ok,light flash,SetLightIntensity ok,cooldown gate,covered,

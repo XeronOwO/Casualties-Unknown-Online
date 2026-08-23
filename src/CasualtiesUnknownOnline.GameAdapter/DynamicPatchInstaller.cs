@@ -52,6 +52,12 @@ internal static class DynamicPatchInstaller
 			log.LogError("Dynamic patch method CrystalElectric.Shock not found — the electric-crystal shock sync is off.");
 		}
 
+		// CrystalTeleport (internal — the Touched override cannot be intercepted
+		// through the base class): the body moved on a real ground-teleport, so
+		// the repeatable laugh/flash event reports; the teleported body itself
+		// rides the 20 Hz player stream.
+		InstallCrystalFamilyPatch(harmony, log, "CrystalTeleport", "Touched", "TeleportTouchedPrefix", "TeleportTouchedPostfix");
+
 		// CrystalDripping (internal — the drip's fluid writes are the host's, #129).
 		var drippingType = typeof(CrystalEffect).Assembly.GetType("CrystalDripping");
 		var dripUpdate = drippingType?.GetMethod("Update", BindingFlags.Public | BindingFlags.Instance);

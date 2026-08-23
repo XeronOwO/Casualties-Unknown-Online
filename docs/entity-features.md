@@ -162,6 +162,7 @@ Blinding/Irradiated) are excluded: each side's body is simulated locally.
 | CrystalMetamorphic | covered | CrystalMetamorphicTriggered (27) — death + item drops ride the event |
 | CrystalMimic | covered | CrystalMimicTriggered (30); enemies ride EntitySpawned + EnemyRuntimeSpawn; crystalenemy tint rides EntitySpawned/EnemySnapshot (PV24) — activated latch event |
 | CrystalShy | covered | CrystalShySwapped (28); scan order risk recorded |
+| CrystalTeleport | covered | CrystalTeleportTriggered (EntityEventKind 33) + 20 Hz player stream — the observerlaugh/FlashBrief replay; the body teleport itself rides the player stream |
 | CrystalEMP | covered | CrystalEMPActivated (29) — black visual + battery drain |
 | CrystalBurning | excluded | local body effect |
 | CrystalTemperature | excluded | local body effect |

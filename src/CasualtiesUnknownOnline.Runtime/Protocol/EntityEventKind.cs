@@ -42,4 +42,5 @@ public enum EntityEventKind : byte
 	CrystalEMPActivated = 29, // EMP crystal: touched → battery drain + white flash + shake (CrystalEMP.cs:14-35; the battery effects ride the item domain, the darkening runs on the crystal's own Update) — one-shot
 	CrystalMimicTriggered = 30, // mimic crystal: touched/attacked → activated latch + observerlaugh + crystalenemy spawns (the enemies ride EntitySpawned + EnemyRuntimeSpawn; this syncs the one-shot latch)
 	CrystalUnstableTicked = 32, // unstable crystal: touched/hit → the 5 s pre-explosion ticking starts (StartTimer: timerStarted=true + crystaltick sound + glow ramp + jitter, CrystalUnstable.cs:31-37/40-64) — transient one-way edge; CrystalUnstableExploded remains the durable consumption
+	CrystalTeleportTriggered = 33, // teleport crystal: touched → local body teleport + observerlaugh + FlashBrief (CrystalTeleport.cs:14-38) — repeatable (no latch); the body position/consciousness/shock/velocity ride the 20 Hz player stream, this event carries the observable 2D laugh + camera-flash replay
 }

@@ -67,6 +67,7 @@ internal static class PatchInventory
 		contracts.Add(new PatchContract("TrapCrystalPatch (dynamic)", "CrystalMetamorphic", "Touched", [], []));
 		contracts.Add(new PatchContract("TrapCrystalPatch (dynamic)", "CrystalShy", "Touched", [], []));
 		contracts.Add(new PatchContract("TrapCrystalPatch (dynamic)", "CrystalEMP", "TryEMP", [], []));
+		contracts.Add(new PatchContract("TrapCrystalPatch (dynamic)", "CrystalTeleport", "Touched", [], ["touched"]));
 		contracts.Add(new PatchContract("CrystalDrippingPatch (dynamic)", "CrystalDripping", "Update", [], []));
 
 		return contracts;

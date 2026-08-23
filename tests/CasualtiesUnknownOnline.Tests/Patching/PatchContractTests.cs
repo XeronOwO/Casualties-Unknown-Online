@@ -152,8 +152,8 @@ public class PatchContractTests
 		var attributed = GameAssemblyHost.Adapter.GetTypes().Count(t =>
 			t.GetCustomAttributesData().Any(a => a.AttributeType.FullName == "HarmonyLib.HarmonyPatch"));
 
-		Assert.True(contracts.Count == attributed + 8,
-			$"the contract inventory must cover every [HarmonyPatch] class ({attributed}) plus the 8 dynamic patches (InstallDynamicPatches) — got {contracts.Count}");
+		Assert.True(contracts.Count == attributed + 9,
+			$"the contract inventory must cover every [HarmonyPatch] class ({attributed}) plus the 9 dynamic patches (InstallDynamicPatches) — got {contracts.Count}");
 	}
 
 	[Fact]
@@ -305,6 +305,19 @@ public class PatchContractTests
 
 		Assert.True(missing.Count == 0,
 			$"CrystalUnstable ticking patch surface is incomplete ({missing.Count}):" + Environment.NewLine + string.Join(Environment.NewLine, missing));
+	}
+
+	/// <summary>
+	/// The teleport-crystal patch surface: the dynamic Touched hook that
+	/// reports a real body teleport. A regression that deletes it leaves the
+	/// observerlaugh/FlashBrief replay silent — fails here before the game
+	/// launches.
+	/// </summary>
+	[Fact]
+	public void CrystalTeleportPatchSet_IsComplete()
+	{
+		var contracts = BuildContracts();
+		Assert.Contains(contracts, c => c.TargetType == "CrystalTeleport" && c.MethodName == "Touched");
 	}
 
 	// ---- PatchContractChecker verdict unit tests	}

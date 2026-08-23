@@ -1,5 +1,6 @@
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using HarmonyLib;
+using UnityEngine;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 
@@ -27,6 +28,46 @@ internal static class TrapCrystalPatch
 		}
 
 		PatchBridge.Impl?.OnTrapTriggered(EntityEventKind.CrystalElectricShocked, crystal.crystal.transform.position, 0);
+	}
+
+	/// <summary>Teleport crystal Touched prefix — captures the body's position
+	/// BEFORE CrystalTeleport.Touched runs, so the postfix can report only a
+	/// REAL teleport (the method silently returns when the 1000-iteration
+	/// raycast never finds a ground point, CrystalTeleport.cs:19-37).</summary>
+	internal static void TeleportTouchedPrefix(object __instance, GameObject touched, out Vector2 __state)
+	{
+		__state = default;
+		if (__instance is not CrystalEffect crystal)
+		{
+			return;
+		}
+
+		if (Utils.GetBody(touched, out var body) && body != null) // Unity object — ==
+		{
+			__state = body.transform.position;
+		}
+	}
+
+	/// <summary>Teleport crystal Touched postfix — the body moved (the crystal's
+	/// random ground teleport ran): report the repeatable event. The body's new
+	/// position/stats ride the 20 Hz player stream; the event replays the
+	/// shared observerlaugh + FlashBrief.</summary>
+	internal static void TeleportTouchedPostfix(object __instance, GameObject touched, Vector2 __state)
+	{
+		if (__instance is not CrystalEffect crystal)
+		{
+			return;
+		}
+
+		if (!Utils.GetBody(touched, out var body) || body == null) // Unity object — ==
+		{
+			return;
+		}
+
+		if (Vector2.Distance(__state, body.transform.position) > 1f)
+		{
+			PatchBridge.Impl?.OnTrapTriggered(EntityEventKind.CrystalTeleportTriggered, crystal.crystal.transform.position, 0);
+		}
 	}
 
 	internal static void Postfix(object __instance)

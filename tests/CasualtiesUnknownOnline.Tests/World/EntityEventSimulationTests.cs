@@ -373,6 +373,20 @@ public class EntityEventSimulationTests
 	}
 
 	[Fact]
+	public void CrystalTeleportTriggered_RepeatableEvent_NotInLateJoinerSnapshot()
+	{
+		var w = EntityEventSimWorld.Create();
+		var consumed = new List<IReadOnlyList<EntityEventMsg>>();
+		w.G1.Services.GetRequiredService<EntityEventChannel>().TrapStateReceived += list => consumed.Add(list);
+
+		w.Trigger(w.G1, EntityEventKind.CrystalTeleportTriggered, 10f, 20f);
+		w.HostChannel.SendTrapStateSnapshot(w.G1.SteamId);
+
+		Assert.True(consumed.Count == 0,
+			$"the repeatable teleport laugh/flash must not occupy a snapshot slot, got {consumed.Count} snapshot(s)");
+	}
+
+	[Fact]
 	public void FluidInteraction_RelayedExcludingSource()
 	{
 		var w = EntityEventSimWorld.Create();

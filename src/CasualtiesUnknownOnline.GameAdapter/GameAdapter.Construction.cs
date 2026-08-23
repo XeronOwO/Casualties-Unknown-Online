@@ -46,6 +46,7 @@ public sealed partial class GameAdapter
 	private readonly PickupSync _pickupSync;
 	private readonly ContainerItemSync _containerSync;
 	private readonly ItemUseSync _itemUseSync;
+	private readonly GunStateSync _gunStateSync;
 	private readonly ItemSlotSync _itemSlotSync;
 	private readonly OperationTrace _operationTrace;
 	private readonly ItemPositionAuthority _itemPositionAuthority;
@@ -117,6 +118,7 @@ public sealed partial class GameAdapter
 		_pickupSync = new PickupSync(items, session, _itemApplication, itemDropState, _itemIds, _operationTrace, itemReports, _itemSlotSync);
 		_containerSync = new ContainerItemSync(items, itemDropState, _itemIds, _operationTrace, itemReports, session, loggerFactory.CreateLogger<ContainerItemSync>());
 		_itemUseSync = new ItemUseSync(items, session, _itemIds, loggerFactory.CreateLogger<ItemUseSync>());
+		_gunStateSync = new GunStateSync(_itemUseSync, loggerFactory.CreateLogger<GunStateSync>());
 		_itemPositionAuthority = new ItemPositionAuthority(items);
 		_itemPositionFollow = new ItemPositionFollow(items, _dropGuard, session, loggerFactory.CreateLogger<ItemPositionFollow>());
 		_genItemAuthority = new GeneratedItemAuthority(session, items, _itemIds, loggerFactory.CreateLogger<GeneratedItemAuthority>());

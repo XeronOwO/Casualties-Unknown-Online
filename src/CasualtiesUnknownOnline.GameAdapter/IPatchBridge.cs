@@ -231,6 +231,12 @@ internal interface IPatchBridge
 	/// <summary>An item was USED (Body.UseItemInHand / Body.UseItem — the use action ran) — report the post-use digest so the host validates and corrects.</summary>
 	void OnItemUsed(Item item);
 
+	/// <summary>A GunScript persistent-state transition ran (fire/rack/safety/
+	/// load/unload or an Update-driven auto-rack step) — the gun-state sync
+	/// domain compares it to the last reported snapshot and only routes an
+	/// actual change through the existing item-use fact path.</summary>
+	void OnGunStateChanged(GunScript gun);
+
 	/// <summary>One slot's occupant changed through a slot move (SwapSlots/SwitchHands) — report the item's new slot so the host's record stays current.</summary>
 	void OnSlotMoved(Body body, int slot, string origin);
 

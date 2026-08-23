@@ -442,6 +442,8 @@ public sealed partial class GameAdapter : IGameAdapter, ICuoService, IPatchBridg
 		_craftingSync.OnItemUsed(item); // a blueprint use unlocks its recipe (the unlock fact — the destruction rides the use digest)
 	}
 
+	void IPatchBridge.OnGunStateChanged(GunScript gun) => _gunStateSync.TryReport(gun);
+
 	object? IPatchBridge.OnCraftBegin(Recipe recipe) => _craftingSync.OnCraftBegin(recipe);
 
 	void IPatchBridge.OnCraftEnd(object? state) => _craftingSync.OnCraftEnd(state);

@@ -1313,3 +1313,38 @@ unsafe-result refusal, argument cap, policy rails) +
 `GameAdapterNativeApiContractTests` (3 reflective contract rows) +
 `FakeModNativeApiProvider`; full suite **1170 green** (was 1160). See
 `docs/selfchecks/mod-native-api-selfcheck.md`.
+
+## 51. Gun state reports — persistent GunScript transitions ride the item-use fact path (no protocol bump)
+
+The last recorded native-content narrative gap in `docs/item-features.md` was
+"gun firing/racking has no reports": the `GunScript` persistent state
+(`roundInChamber`, `roundsInMag`, `hasMag`, `safe`, `racked` and `condition`)
+is already captured by the `[Saveable]` component digest, but the discrete
+transitions only reached the host and peer clones on the next 1 Hz character
+snapshot.
+
+- **Domain owner**: new `GunStateSync` (Game Adapter/Items) owns the
+  per-instance last-reported snapshot (`ConditionalWeakTable<GunScript, …>`)
+  and reports only an actual persistent-state change through the existing
+  `ItemUseSync.OnItemUsed` fact path. The Harmony patches are thin — they call
+  `IPatchBridge.OnGunStateChanged` after `Fire`, `TryRack`, `ToggleSafety`,
+  `LoadMag`, `UnloadMag` and `Update`; no cross-call state lives in a patch.
+- **Why reuse `ItemUse`**: gun-state transitions are the same accept-with-
+  correction shape as a use — the owner's local copy is the fact source; the
+  host adopts the evidence unconditionally (`CheckUseEvidence`) and broadcasts
+  the authoritative carried item to the other peers. No new wire message, no
+  direction row, no `ProtocolVersion` bump.
+- **Coverage**: user-facing fire/rack/safety/load/unload plus the
+  Update-driven auto-rack/auto-unrack transitions. A remote render clone is
+  excluded by the existing `RemoteBodyDriver` guard.
+- **Deduplication**: `Fire` and `Update` both call the same report surface;
+  the sync domain compares the persistent snapshot so one state change still
+  produces exactly one item-use report.
+- **Fallback unchanged**: the 1 Hz `CharacterDataMsg` remains the self-healing
+  fallback if a report is lost; the dedicated report is the freshness layer,
+  not a second authoritative channel.
+
+Tests: `GunStatePatchTests` (2 reflective surface tests) plus the automatic
+`PatchContractTests` resolution of the six new `[HarmonyPatch]` targets; full
+suite **1172 green** (was 1170). See
+`docs/selfchecks/gun-state-sync-selfcheck.md`.

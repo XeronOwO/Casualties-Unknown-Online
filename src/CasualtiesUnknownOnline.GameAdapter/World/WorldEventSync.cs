@@ -33,6 +33,7 @@ internal sealed partial class WorldEventSync(
 	private readonly WorldService _world = world;
 	private readonly BlockBreakSync _blockBreaks = blockBreaks;
 	private readonly OperationTrace _trace = trace;
+	private readonly WorldBuildingEntitySync _buildingEntities = new(session, world, trace, log);
 	private readonly ILogger<WorldEventSync> _log = log;
 
 	/// <summary>True while a remote world mutation is being applied — the local-report hooks must stay silent (call identity lives in CallContext, not bools).</summary>
@@ -45,14 +46,14 @@ internal sealed partial class WorldEventSync(
 	{
 		_world.BlockDamagedReceived += _blockBreaks.OnRemoteBlockDamaged;
 		_world.BlockDamageSnapshotReceived += _blockBreaks.OnBlockDamageSnapshot;
-		_world.BuildingEntityDamagedReceived += OnRemoteBuildingEntityDamaged;
-		_world.BuildingEntityOpenedReceived += OnRemoteBuildingEntityOpened;
+		_world.BuildingEntityDamagedReceived += _buildingEntities.OnRemoteBuildingEntityDamaged;
+		_world.BuildingEntityOpenedReceived += _buildingEntities.OnRemoteBuildingEntityOpened;
 		_world.BlockStateReceived += OnRemoteBlockState;
 		_world.BlockPlacedReceived += OnRemoteBlockPlaced;
 		_world.EarthquakeStartReceived += OnEarthquakeStartReceived;
 		_world.KeypadCodeReceived += OnKeypadCodeReceived;
-		_world.OpenedEntitiesSnapshotReceived += OnOpenedEntitiesSnapshot;
-		_world.BuildingEntityHealthSnapshotReceived += OnBuildingEntityHealthSnapshot;
+		_world.OpenedEntitiesSnapshotReceived += _buildingEntities.OnOpenedEntitiesSnapshot;
+		_world.BuildingEntityHealthSnapshotReceived += _buildingEntities.OnBuildingEntityHealthSnapshot;
 		_session.RemoteSceneChanged += OnRemoteSceneChanged;
 	}
 
@@ -60,16 +61,24 @@ internal sealed partial class WorldEventSync(
 	{
 		_world.BlockDamagedReceived -= _blockBreaks.OnRemoteBlockDamaged;
 		_world.BlockDamageSnapshotReceived -= _blockBreaks.OnBlockDamageSnapshot;
-		_world.BuildingEntityDamagedReceived -= OnRemoteBuildingEntityDamaged;
-		_world.BuildingEntityOpenedReceived -= OnRemoteBuildingEntityOpened;
+		_world.BuildingEntityDamagedReceived -= _buildingEntities.OnRemoteBuildingEntityDamaged;
+		_world.BuildingEntityOpenedReceived -= _buildingEntities.OnRemoteBuildingEntityOpened;
 		_world.BlockStateReceived -= OnRemoteBlockState;
 		_world.BlockPlacedReceived -= OnRemoteBlockPlaced;
 		_world.EarthquakeStartReceived -= OnEarthquakeStartReceived;
 		_world.KeypadCodeReceived -= OnKeypadCodeReceived;
-		_world.OpenedEntitiesSnapshotReceived -= OnOpenedEntitiesSnapshot;
-		_world.BuildingEntityHealthSnapshotReceived -= OnBuildingEntityHealthSnapshot;
+		_world.OpenedEntitiesSnapshotReceived -= _buildingEntities.OnOpenedEntitiesSnapshot;
+		_world.BuildingEntityHealthSnapshotReceived -= _buildingEntities.OnBuildingEntityHealthSnapshot;
 		_session.RemoteSceneChanged -= OnRemoteSceneChanged;
 	}
+
+	/// <summary>Building-entity patch entry: report a local damage write (delegated to the building-entity sync).</summary>
+	internal void OnBuildingEntityDamaged(BuildingEntity entity, float damage, bool playHitSound = true) =>
+		_buildingEntities.OnBuildingEntityDamaged(entity, damage, playHitSound);
+
+	/// <summary>Building-entity patch entry: report a local open write (delegated to the building-entity sync).</summary>
+	internal void OnBuildingEntityOpened(BuildingEntity entity) =>
+		_buildingEntities.OnBuildingEntityOpened(entity);
 
 	/// <summary>A member (re)entered the world — re-broadcast the keypad codes so
 	/// a reconnect gets them immediately instead of waiting up to 60 s for the

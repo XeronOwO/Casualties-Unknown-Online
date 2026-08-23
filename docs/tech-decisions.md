@@ -1811,3 +1811,38 @@ does both in one small domain change.
   message and registry entry.
 
 See `docs/selfchecks/world-entry-completion-selfcheck.md`.
+
+## 65. Partial-aware architecture gate + debt ledger (no protocol change)
+
+Backlog §3.1 found that the architecture gate counted per-file lines, so a
+logical class split across partial files could exceed the 600-line rule without
+being caught. This entry makes the gate logical-type-aware and makes existing
+debt explicit instead of invisible.
+
+- **Logical aggregation** — `tools/check-architecture.ps1` now extracts
+  namespace + top-level type from every `src` `.cs` file and aggregates line
+  count and expression-state bool fields across all partial files of the same
+  complete type. A logical type over `MaxLines` / `MaxBoolFlags` is a failure,
+  not just a physical file over the limit.
+- **Debt ledger** — `docs/architecture-debt.json` records the current
+  aggregate sizes of existing over-limit logical types. The gate allows
+  recorded debt but:
+  - fails any unrecorded over-limit type (new debt must not appear silently);
+  - fails any growth beyond the recorded size (existing debt must not get
+    worse);
+  - prints the current debt as a visible warning on every run.
+- **Strict mode** — `tools/check-architecture.ps1 -Strict` refuses all
+  recorded debt. This is the switch to use once the flattening work is done.
+- **First real split** — `WorldEventSync`'s building-entity half moved from a
+  partial into a separate top-level `WorldBuildingEntitySync`; `WorldEventSync`
+  delegates the patch entry points and wires the event subscriptions. This
+  reduced the logical class from 643 aggregate lines to under 600 and removed
+  it from the debt ledger. It is a responsibility split, not another physical
+  partial split.
+- **Remaining debt** — `ModService` (1590), `GameAdapter` (1397),
+  `ItemService` (928), `WorldService` (899), `EnemySyncCoordinator` (750),
+  `PlayerInteractionService` (716), `ItemApplication` (630) remain recorded in
+  `docs/architecture-debt.json` and are listed as the follow-up flattening
+  item in `docs/backlog.md`.
+
+No wire/protocol change. See `docs/selfchecks/partial-aware-gate-selfcheck.md`.

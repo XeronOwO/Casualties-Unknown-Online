@@ -1839,10 +1839,72 @@ debt explicit instead of invisible.
   reduced the logical class from 643 aggregate lines to under 600 and removed
   it from the debt ledger. It is a responsibility split, not another physical
   partial split.
-- **Remaining debt** — `ModService` (1590), `GameAdapter` (1397),
+- **Remaining debt at the time** — `ModService` (1590), `GameAdapter` (1397),
   `ItemService` (928), `WorldService` (899), `EnemySyncCoordinator` (750),
   `PlayerInteractionService` (716), `ItemApplication` (630) remain recorded in
   `docs/architecture-debt.json` and are listed as the follow-up flattening
-  item in `docs/backlog.md`.
+  item in `docs/backlog.md`. `PlayerInteractionService` and `ItemApplication`
+  were flattened later in this cycle (see #66/#67) and removed from the
+  ledger.
 
 No wire/protocol change. See `docs/selfchecks/partial-aware-gate-selfcheck.md`.
+
+## 66. PlayerInteractionService flattening — real responsibility split (no protocol change)
+
+Backlog §3.1 listed `PlayerInteractionService` (716 aggregate lines) as one of
+the remaining logical classes that needed to be split into real top-level
+responsibilities, not more partial files. This entry does that split.
+
+- **Thin facade** — `PlayerInteractionService` is now a 94-line composition
+  facade implementing `IPlayerInteractionControl`. It only constructs the three
+  domain services, forwards calls/events and disposes the lifecycle-owning
+  carry service.
+- **Inventory take** — `PlayerInventoryTakeService` (170 lines) owns the
+  cross-player item take operation, its validation against authoritative
+  character snapshots, the guest transfer-table updates and the transfer
+  publish path.
+- **Carry/release** — `PlayerCarryService` (271 lines) owns the host carry
+  relation tables, start/stop arbitration, broadcast mirror and the session
+  lifecycle cleanup (end/remove/scene-change). It remains the only owner of the
+  mutable carry dictionaries.
+- **Heal** — `PlayerHealService` (217 lines) owns the cross-player heal
+  operation, medical-item consumption and result publish path.
+- **Shared access** — `PlayerCharacterAccess` (106 lines) is the bounded
+  character-data projection (local/remote get/save, in-world check, clone
+  helpers) used by the three domain services, keeping the SteamId branch in one
+  place.
+- **No behavior change** — every operation body was moved verbatim; the public
+  interface, DI registration (single `PlayerInteractionService` +
+  `IPlayerInteractionControl` forwarding), wire messages, events and protocol
+  are unchanged.
+- **Debt ledger** — `PlayerInteractionService` removed from
+  `docs/architecture-debt.json`; remaining recorded debt is unchanged.
+
+No wire/protocol change. See
+`docs/selfchecks/player-interaction-service-split-selfcheck.md`.
+
+## 67. ItemApplication cook-replay split — real top-level responsibility (no protocol change)
+
+Backlog §3.1 listed `ItemApplication` (630 aggregate lines) as one of the
+remaining logical classes. This entry extracts the heater-cook replay apply
+side into a real top-level class, not another partial.
+
+- **Owner class** — `ItemApplication` converted from a `sealed partial` to a
+  normal `sealed` class (587 lines). It keeps the general remote world-item
+  application surface, all mutable state (`PickupOrigins`,
+  `_materializedFrame`) and the static item lookup helpers.
+- **Replay applier** — `ItemCookReplayApplier` (59 lines) is an internal owned
+  dependency, not a DI service. It owns the single host→guest ItemCook replay
+  path: kill the raw source (if present), materialize the cooked item from the
+  event fact, skip a duplicate cooked id, and replay the guest's Scald sound
+  once.
+- **Event wiring** — `ItemApplication.BindToSession` / `Unbind` now subscribe
+  `_items.ItemCookedReceived` to `_cookReplay.OnRemoteItemCooked`; the old
+  `ItemApplication.Heater.cs` partial is deleted.
+- **No behavior change** — the moved method body is verbatim; the RemoteApply
+  scope, idempotency guard, sound replay and log lines are unchanged.
+- **Debt ledger** — `ItemApplication` removed from
+  `docs/architecture-debt.json`.
+
+No wire/protocol change. See
+`docs/selfchecks/item-cook-replay-split-selfcheck.md`.

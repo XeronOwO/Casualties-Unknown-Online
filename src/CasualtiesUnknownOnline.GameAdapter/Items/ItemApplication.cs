@@ -19,14 +19,23 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 /// guard: the local-report hooks (ItemWorldSync) read it so a remote
 /// application never echoes back as a local report.
 /// </summary>
-internal sealed partial class ItemApplication(
-	ItemService items,
-	ISessionControl session,
-	ILogger<ItemApplication> log)
+internal sealed class ItemApplication
 {
-	private readonly ItemService _items = items;
-	private readonly ISessionControl _session = session;
-	private readonly ILogger<ItemApplication> _log = log;
+	private readonly ItemService _items;
+	private readonly ISessionControl _session;
+	private readonly ILogger<ItemApplication> _log;
+	private readonly ItemCookReplayApplier _cookReplay;
+
+	internal ItemApplication(
+		ItemService items,
+		ISessionControl session,
+		ILogger<ItemApplication> log)
+	{
+		_items = items;
+		_session = session;
+		_log = log;
+		_cookReplay = new ItemCookReplayApplier(this, session, log);
+	}
 
 	/// <summary>Pickup origin cache (id → world position) — the rollback target for a refused pickup (the pickup-start hook fills it).</summary>
 	internal readonly Dictionary<ulong, Vector2> PickupOrigins = [];
@@ -45,7 +54,7 @@ internal sealed partial class ItemApplication(
 		_items.ItemPickedUp += OnRemoteItemPickedUp;
 		_items.ItemDropped += OnRemoteItemDropped;
 		_items.ItemDestroyed += OnRemoteItemDestroyed;
-		_items.ItemCookedReceived += OnRemoteItemCooked;
+		_items.ItemCookedReceived += _cookReplay.OnRemoteItemCooked;
 		_items.ItemRejected += OnItemRejected;
 		_items.ItemCorrectionReceived += OnItemCorrection;
 	}
@@ -56,7 +65,7 @@ internal sealed partial class ItemApplication(
 		_items.ItemPickedUp -= OnRemoteItemPickedUp;
 		_items.ItemDropped -= OnRemoteItemDropped;
 		_items.ItemDestroyed -= OnRemoteItemDestroyed;
-		_items.ItemCookedReceived -= OnRemoteItemCooked;
+		_items.ItemCookedReceived -= _cookReplay.OnRemoteItemCooked;
 		_items.ItemRejected -= OnItemRejected;
 		_items.ItemCorrectionReceived -= OnItemCorrection;
 	}

@@ -1,19 +1,31 @@
 using System;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session.Items;
 using Microsoft.Extensions.Logging;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 
 /// <summary>
-/// Direct player-interaction heal half (partial of
-/// <see cref="PlayerInteractionService"/>). The host validates the healer and
-/// target against its authoritative character snapshots, consumes a carried
-/// medical item, applies the healing effect to the target's worst limb and
-/// sends the two participants one authoritative result.
+/// The cross-player heal operation. The host validates the healer and target
+/// against its authoritative character snapshots, consumes a carried medical
+/// item, applies the healing effect to the target's worst limb and sends the
+/// two participants one authoritative result. It has no mutable session state —
+/// it only reacts to calls and messages.
 /// </summary>
-public sealed partial class PlayerInteractionService
+internal sealed class PlayerHealService(
+	ISessionControl session,
+	PacketSender sender,
+	PlayerCharacterAccess characters,
+	IItemControl items,
+	ILogger log)
 {
+	private readonly ISessionControl _session = session;
+	private readonly PacketSender _sender = sender;
+	private readonly PlayerCharacterAccess _characters = characters;
+	private readonly IItemControl _items = items;
+	private readonly ILogger _log = log;
+
 	/// <summary>An authoritative cross-player heal result arrived — the Game Adapter applies the local participant half.</summary>
 	public event Action<PlayerHealResultMsg>? HealReceived;
 
@@ -56,14 +68,14 @@ public sealed partial class PlayerInteractionService
 			return;
 		}
 
-		if (!IsInWorld(healer) || !IsInWorld(target))
+		if (!_characters.IsInWorld(healer) || !_characters.IsInWorld(target))
 		{
 			_log.LogWarning("[Heal] refused: {Healer} or {Target} is not in-world.", healer, target);
 			return;
 		}
 
-		var healerData = GetCharacterData(healer);
-		var targetData = GetCharacterData(target);
+		var healerData = _characters.GetCharacterData(healer);
+		var targetData = _characters.GetCharacterData(target);
 		if (healerData is null || targetData is null)
 		{
 			_log.LogWarning("[Heal] refused: no character snapshot for {Healer}/{Target}.", healer, target);
@@ -109,8 +121,8 @@ public sealed partial class PlayerInteractionService
 			return;
 		}
 
-		var newHealerData = CloneCharacter(healerData);
-		var consumed = CloneItem(newHealerData.Items[itemIndex]);
+		var newHealerData = PlayerCharacterAccess.CloneCharacter(healerData);
+		var consumed = PlayerCharacterAccess.CloneItem(newHealerData.Items[itemIndex]);
 		consumed.Condition -= profile.ConditionCost;
 		var destroyed = consumed.Condition <= 0f;
 		if (destroyed)
@@ -122,13 +134,13 @@ public sealed partial class PlayerInteractionService
 			newHealerData.Items[itemIndex] = consumed;
 		}
 
-		var newTargetData = CloneCharacter(targetData);
-		var healedLimb = CloneLimb(newTargetData.Limbs[limbIndex]);
+		var newTargetData = PlayerCharacterAccess.CloneCharacter(targetData);
+		var healedLimb = PlayerCharacterAccess.CloneLimb(newTargetData.Limbs[limbIndex]);
 		RemoteHealApplication.Apply(healedLimb, profile);
 		newTargetData.Limbs[limbIndex] = healedLimb;
 
-		SaveCharacterData(healer, newHealerData);
-		SaveCharacterData(target, newTargetData);
+		_characters.SaveCharacterData(healer, newHealerData);
+		_characters.SaveCharacterData(target, newTargetData);
 
 		if (healer != _session.LocalSteamId)
 		{
@@ -138,7 +150,7 @@ public sealed partial class PlayerInteractionService
 			}
 			else
 			{
-				_items.UpdateTransferredItem(healer, originalItem.InstanceId, CloneItem(consumed));
+				_items.UpdateTransferredItem(healer, originalItem.InstanceId, PlayerCharacterAccess.CloneItem(consumed));
 			}
 		}
 

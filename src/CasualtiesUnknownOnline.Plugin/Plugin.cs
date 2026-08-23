@@ -8,6 +8,7 @@ using BepInEx.Logging;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
+using CasualtiesUnknownOnline.Runtime.Localization;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.Chat;
@@ -36,6 +37,7 @@ public class Plugin : BaseUnityPlugin
 	private SessionService _session = null!;
 	private IHostBanService _hostBan = null!;
 	private IHostRules _hostRules = null!;
+	private ILocalizationService _localization = null!;
 	private EntitySyncService _entities = null!;
 	private RemoteVitalsService _remoteVitals = null!;
 	private RemoteInventoryService _remoteInventory = null!;
@@ -104,6 +106,7 @@ public class Plugin : BaseUnityPlugin
 			_session = _services.GetRequiredService<SessionService>();
 			_hostBan = _services.GetRequiredService<IHostBanService>();
 			_hostRules = _services.GetRequiredService<IHostRules>();
+			_localization = _services.GetRequiredService<ILocalizationService>();
 			_entities = _services.GetRequiredService<EntitySyncService>();
 			_remoteVitals = _services.GetRequiredService<RemoteVitalsService>();
 			_remoteInventory = _services.GetRequiredService<RemoteInventoryService>();
@@ -299,7 +302,7 @@ public class Plugin : BaseUnityPlugin
 			return true;
 		}
 
-		_lastJoinError = "Return to the main menu before switching lobby.";
+		_lastJoinError = _localization.T("lobby.join_blocked_in_world");
 		_log.LogWarning("Lobby join refused: a world is running or generating.");
 		return false;
 	}
@@ -317,7 +320,7 @@ public class Plugin : BaseUnityPlugin
 			return true;
 		}
 
-		_lastJoinError = "Return to the main menu before switching lobby.";
+		_lastJoinError = _localization.T("lobby.join_blocked_in_world");
 		_log.LogWarning("Lobby create refused: a sessioned world is running or generating.");
 		return false;
 	}
@@ -457,7 +460,7 @@ public class Plugin : BaseUnityPlugin
 			return; // the HUD is hidden behind the gate overlay
 		}
 
-		_onlineUi.Draw(_steam, _session, _entities, _remoteVitals, _remoteInventory, _playerInteraction, _chat, _hostBan, _hostRules, _adapter, _lastJoinError);
+		_onlineUi.Draw(_steam, _session, _entities, _remoteVitals, _remoteInventory, _playerInteraction, _chat, _hostBan, _hostRules, _adapter, _localization, _lastJoinError);
 		ModUiDrawing.DrawAll(_modUiControl, e => _log.LogError(e, "Mod UI window threw while drawing."));
 	}
 

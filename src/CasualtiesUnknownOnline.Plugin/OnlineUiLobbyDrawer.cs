@@ -16,18 +16,18 @@ internal static class OnlineUiLobbyDrawer
 		var session = ctx.Session;
 		if (steam.CurrentLobbyId == 0)
 		{
-			GUILayout.Label("You are not in a lobby. Create or join one from Home.", OnlineUiTheme.MutedLabel());
+			GUILayout.Label(ctx.T("lobby.not_in_lobby"), OnlineUiTheme.MutedLabel());
 			return;
 		}
 
-		GUILayout.Label($"LOBBY {steam.CurrentLobbyId}", OnlineUiTheme.Section());
-		GUILayout.Label($"Role: {session.Role}  Owner: {DisplayName(steam, steam.GetLobbyOwner())}", OnlineUiTheme.Label());
-		GUILayout.Label($"Members: {steam.GetLobbyMembers().Length}", OnlineUiTheme.MutedLabel());
+		GUILayout.Label(ctx.F("lobby.title", steam.CurrentLobbyId), OnlineUiTheme.Section());
+		GUILayout.Label(ctx.F("lobby.role_owner", ctx.RoleName(session.Role), DisplayName(steam, steam.GetLobbyOwner())), OnlineUiTheme.Label());
+		GUILayout.Label(ctx.F("lobby.members", steam.GetLobbyMembers().Length), OnlineUiTheme.MutedLabel());
 
-		if (GUILayout.Button("Copy Lobby ID", OnlineUiTheme.Button(), GUILayout.Width(130f)))
+		if (GUILayout.Button(ctx.T("lobby.copy_id"), OnlineUiTheme.Button(), GUILayout.Width(130f)))
 		{
 			GUIUtility.systemCopyBuffer = steam.CurrentLobbyId.ToString();
-			ctx.State.Error = "Lobby ID copied to clipboard.";
+			ctx.State.Error = ctx.T("lobby.id_copied");
 		}
 
 		if (!string.IsNullOrEmpty(ctx.State.Error))
@@ -36,7 +36,7 @@ internal static class OnlineUiLobbyDrawer
 		}
 
 		GUILayout.Space(8f);
-		GUILayout.Label("MEMBERS", OnlineUiTheme.Section());
+		GUILayout.Label(ctx.T("lobby.members_section"), OnlineUiTheme.Section());
 
 		var rows = OnlineUiMemberListDrawer.BuildRows(ctx);
 		OnlineUiMemberListDrawer.Draw(ctx, rows);

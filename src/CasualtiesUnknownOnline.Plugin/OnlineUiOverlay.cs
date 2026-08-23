@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
+using CasualtiesUnknownOnline.Runtime.Localization;
 using CasualtiesUnknownOnline.Runtime.OnlineUi;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
@@ -75,6 +76,7 @@ internal sealed class OnlineUiOverlay
 		IHostBanService hostBan,
 		IHostRules hostRules,
 		IGameAdapter? adapter,
+		ILocalizationService localization,
 		string? lastJoinError)
 	{
 		var ctx = new OnlineUiContext
@@ -88,6 +90,7 @@ internal sealed class OnlineUiOverlay
 			Chat = chat,
 			HostBan = hostBan,
 			HostRules = hostRules,
+			Localization = localization,
 			Adapter = adapter,
 			LastJoinError = lastJoinError,
 			State = _window.State,
@@ -108,7 +111,7 @@ internal sealed class OnlineUiOverlay
 
 		_window.Draw(ctx);
 		DrawNameplatesAndArrows(steam, session, entities, vitals);
-		DrawChatPanel(steam, session, chat);
+		DrawChatPanel(steam, session, chat, localization);
 	}
 
 	/// <summary>
@@ -117,7 +120,7 @@ internal sealed class OnlineUiOverlay
 	/// ChatService owns the buffer and the wire send; the overlay only projects
 	/// persona names for display.
 	/// </summary>
-	private void DrawChatPanel(SteamService steam, SessionService session, IChatControl chat)
+	private void DrawChatPanel(SteamService steam, SessionService session, IChatControl chat, ILocalizationService localization)
 	{
 		if (!session.SessionActive)
 		{
@@ -144,7 +147,7 @@ internal sealed class OnlineUiOverlay
 
 		var inputY = y + height - 30f;
 		_chatInput = GUI.TextField(new Rect(x + 8f, inputY, width - 70f, 22f), _chatInput, 200);
-		if (GUI.Button(new Rect(x + width - 58f, inputY, 50f, 22f), "Send", OnlineUiTheme.Button()))
+		if (GUI.Button(new Rect(x + width - 58f, inputY, 50f, 22f), localization.T("chat.send"), OnlineUiTheme.Button()))
 		{
 			if (chat.TrySend(_chatInput))
 			{

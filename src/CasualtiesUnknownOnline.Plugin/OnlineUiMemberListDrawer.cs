@@ -37,7 +37,7 @@ internal static class OnlineUiMemberListDrawer
 	{
 		if (rows.Count == 0)
 		{
-			GUILayout.Label("No lobby members yet.", OnlineUiTheme.MutedLabel());
+			GUILayout.Label(ctx.T("member.no_members"), OnlineUiTheme.MutedLabel());
 			return;
 		}
 
@@ -53,13 +53,13 @@ internal static class OnlineUiMemberListDrawer
 		GUILayout.BeginVertical();
 
 		GUILayout.BeginHorizontal();
-		var tags = row.IsLocal ? " (you)" : row.IsHost ? " (host)" : "";
+		var tags = row.IsLocal ? ctx.T("member.you") : row.IsHost ? ctx.T("member.host") : "";
 		GUILayout.Label($"{row.Name}{tags}", OnlineUiTheme.Label());
 		GUILayout.FlexibleSpace();
 		DrawAdminActions(ctx, row);
 		GUILayout.EndHorizontal();
 
-		var status = BuildStatus(row);
+		var status = BuildStatus(ctx, row);
 		GUILayout.Label(status, OnlineUiTheme.MutedLabel());
 
 		DrawWorldActions(ctx, row);
@@ -72,16 +72,16 @@ internal static class OnlineUiMemberListDrawer
 		GUILayout.EndVertical();
 	}
 
-	private static string BuildStatus(OnlineUiMemberRow row)
+	private static string BuildStatus(OnlineUiContext ctx, OnlineUiMemberRow row)
 	{
-		var state = row.Handshaken ? "handshake" : "no handshake";
+		var state = ctx.T(row.Handshaken ? "member.status_handshake" : "member.status_no_handshake");
 		if (row.InWorld)
 		{
-			state += ", in world";
+			state += ", " + ctx.T("member.status_in_world");
 		}
 		else
 		{
-			state += ", menu";
+			state += ", " + ctx.T("member.status_menu");
 		}
 
 		if (row.RttMs >= 0f)
@@ -101,7 +101,7 @@ internal static class OnlineUiMemberListDrawer
 
 		if (row.IsBanned)
 		{
-			state += " [banned]";
+			state += ctx.T("member.banned");
 		}
 
 		return state;
@@ -109,12 +109,12 @@ internal static class OnlineUiMemberListDrawer
 
 	private static void DrawAdminActions(OnlineUiContext ctx, OnlineUiMemberRow row)
 	{
-		if (row.CanKick && GUILayout.Button("Kick", OnlineUiTheme.Button(), GUILayout.Width(58f)))
+		if (row.CanKick && GUILayout.Button(ctx.T("member.kick"), OnlineUiTheme.Button(), GUILayout.Width(58f)))
 		{
 			ctx.KickMember?.Invoke(row.SteamId);
 		}
 
-		if (row.CanBan && GUILayout.Button("Ban", OnlineUiTheme.Button(), GUILayout.Width(58f)))
+		if (row.CanBan && GUILayout.Button(ctx.T("member.ban"), OnlineUiTheme.Button(), GUILayout.Width(58f)))
 		{
 			ctx.BanMember?.Invoke(row.SteamId);
 		}
@@ -129,22 +129,22 @@ internal static class OnlineUiMemberListDrawer
 		}
 
 		GUILayout.BeginHorizontal();
-		if (row.CanCarry && GUILayout.Button("Carry", OnlineUiTheme.Button(), GUILayout.Width(70f)))
+		if (row.CanCarry && GUILayout.Button(ctx.T("member.carry"), OnlineUiTheme.Button(), GUILayout.Width(70f)))
 		{
 			ctx.CarryRemote?.Invoke(row.SteamId);
 		}
 
-		if (row.CanDrop && GUILayout.Button("Drop", OnlineUiTheme.Button(), GUILayout.Width(70f)))
+		if (row.CanDrop && GUILayout.Button(ctx.T("member.drop"), OnlineUiTheme.Button(), GUILayout.Width(70f)))
 		{
 			ctx.DropCarried?.Invoke(row.SteamId);
 		}
 
-		if (row.CanHeal && GUILayout.Button("Heal", OnlineUiTheme.Button(), GUILayout.Width(70f)))
+		if (row.CanHeal && GUILayout.Button(ctx.T("member.heal"), OnlineUiTheme.Button(), GUILayout.Width(70f)))
 		{
 			ctx.HealRemote?.Invoke(row.SteamId);
 		}
 
-		if (row.CanRecruit && GUILayout.Button("Recruit", OnlineUiTheme.Button(), GUILayout.Width(70f)))
+		if (row.CanRecruit && GUILayout.Button(ctx.T("member.recruit"), OnlineUiTheme.Button(), GUILayout.Width(70f)))
 		{
 			ctx.RecruitPlayer?.Invoke(row.SteamId);
 		}
@@ -166,7 +166,7 @@ internal static class OnlineUiMemberListDrawer
 	{
 		foreach (var item in row.TakeableItems)
 		{
-			if (GUILayout.Button($"Take {item.ItemId} ({item.SlotIndex})", OnlineUiTheme.Button(), GUILayout.Width(180f)))
+			if (GUILayout.Button(ctx.F("member.take", item.ItemId, item.SlotIndex), OnlineUiTheme.Button(), GUILayout.Width(180f)))
 			{
 				ctx.TakeItem?.Invoke(row.SteamId, item.InstanceId);
 			}
@@ -177,7 +177,7 @@ internal static class OnlineUiMemberListDrawer
 	{
 		foreach (var item in row.HealItems)
 		{
-			if (GUILayout.Button($"Heal with {item.ItemId}", OnlineUiTheme.Button(), GUILayout.Width(180f)))
+			if (GUILayout.Button(ctx.F("member.heal_with", item.ItemId), OnlineUiTheme.Button(), GUILayout.Width(180f)))
 			{
 				ctx.HealWithItem?.Invoke(row.SteamId, item.InstanceId);
 			}
@@ -187,7 +187,7 @@ internal static class OnlineUiMemberListDrawer
 	private static void DrawInventoryToggle(OnlineUiContext ctx, OnlineUiMemberRow row)
 	{
 		GUILayout.BeginHorizontal();
-		if (GUILayout.Button(ctx.State.ExpandedMember == row.SteamId ? "Hide items" : "View items", OnlineUiTheme.Button(), GUILayout.Width(110f)))
+		if (GUILayout.Button(ctx.State.ExpandedMember == row.SteamId ? ctx.T("member.hide_items") : ctx.T("member.view_items"), OnlineUiTheme.Button(), GUILayout.Width(110f)))
 		{
 			ctx.State.ExpandedMember = ctx.State.ExpandedMember == row.SteamId ? null : row.SteamId;
 		}
@@ -200,27 +200,27 @@ internal static class OnlineUiMemberListDrawer
 			{
 				foreach (var entry in inventory)
 				{
-					DrawInventoryEntry(entry, 0);
+					DrawInventoryEntry(ctx, entry, 0);
 				}
 			}
 			else
 			{
-				GUILayout.Label("(empty)", OnlineUiTheme.MutedLabel());
+				GUILayout.Label(ctx.T("member.empty"), OnlineUiTheme.MutedLabel());
 			}
 		}
 	}
 
-	private static void DrawInventoryEntry(RemoteInventoryEntry entry, int depth)
+	private static void DrawInventoryEntry(OnlineUiContext ctx, RemoteInventoryEntry entry, int depth)
 	{
-		var slot = entry.SlotIndex >= 0 ? $"slot {entry.SlotIndex}" : "worn";
-		var suffix = entry.ContentsCount > 0 ? $" (+{entry.ContentsCount} inside)" : "";
+		var slot = entry.SlotIndex >= 0 ? ctx.F("member.slot", entry.SlotIndex) : ctx.T("member.worn");
+		var suffix = entry.ContentsCount > 0 ? ctx.F("member.inside", entry.ContentsCount) : "";
 		var favourite = entry.Favourited ? " ★" : "";
 		var indent = new string(' ', depth * 4);
 		GUILayout.Label($"{indent}{slot}: {entry.ItemId}{suffix}{favourite}", OnlineUiTheme.MutedLabel());
 
 		foreach (var child in entry.Contents)
 		{
-			DrawInventoryEntry(child, depth + 1);
+			DrawInventoryEntry(ctx, child, depth + 1);
 		}
 	}
 

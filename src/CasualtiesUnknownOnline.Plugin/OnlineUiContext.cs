@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
+using CasualtiesUnknownOnline.Runtime.Localization;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.Chat;
@@ -36,6 +37,8 @@ internal sealed class OnlineUiContext
 
 	internal IHostRules HostRules = null!;
 
+	internal ILocalizationService Localization = null!;
+
 	internal IGameAdapter? Adapter;
 
 	internal string? LastJoinError;
@@ -67,4 +70,15 @@ internal sealed class OnlineUiContext
 	internal Func<IReadOnlyList<LocalHealItem>>? GetLocalHealItems;
 
 	internal Func<bool>? HasHealItem;
+
+	internal string T(string key) => Localization.T(key);
+
+	internal string F(string key, params object?[] args) => Localization.Format(key, args);
+
+	internal string RoleName(SessionRole role) => role switch
+	{
+		Runtime.Session.SessionRole.Host => T("common.role_host"),
+		Runtime.Session.SessionRole.Guest => T("common.role_guest"),
+		_ => T("common.role_none"),
+	};
 }

@@ -28,7 +28,10 @@ entity. The helper replays exactly the non-drop part of the native death branch
 
 It deliberately does NOT set `pressed`/timers or start any simulation: this is
 presentation only. Drops stay attacker-side (the world-item domain already
-materializes them), and `AnimalDeath`/corpse spawning remains attacker-side.
+materializes them). The animal-specific death presentation is also replayed on
+the remote side for live remote deaths — see the later
+`animal-death-presentation-selfcheck.md`; the attacker-side experience reward
+and drop rolls remain attacker-side.
 
 ## Self-check table
 
@@ -37,7 +40,7 @@ materializes them), and `AnimalDeath`/corpse spawning remains attacker-side.
 | `BuildingEntity.Update` death branch (BuildingEntity.cs:56-73) | Remote side replays the non-drop visuals/sound instead of skipping them | Decompiled `BuildingEntity.cs:58-73`; helper copies the same resources/sound calls |
 | `RemoteEntityDeath` destroy suppression (`BuildingEntityUpdatePatch.Prefix`) | Still destroys the entity and returns false, so no duplicate drop roll | `BuildingEntityPatches.cs`; `BuildingDestroyReplayPatchTests` locks the prefix shape |
 | New remote presentation helper | `ReplayDestructionVisuals` sets particle shape + plays dust/rock sound | `BuildingEntityPatches.cs`; `BuildingDestructionReplayPatchTests` locks the helper surface |
-| Drops / AnimalDeath | Unchanged — attacker-side only, world-item domain materializes drops | `BuildingEntity.cs:75-121`; `RemoteEntityDeath` comments |
+| Drops / AnimalDeath | Drops + experience reward unchanged (attacker-side only); remote side now replays the creature-specific death presentation for live remote deaths | `BuildingEntity.cs:75-121`; `RemoteEntityDeath`; `AnimalDeathReplay.cs`; `docs/selfchecks/animal-death-presentation-selfcheck.md` |
 
 ## Why this is safe
 

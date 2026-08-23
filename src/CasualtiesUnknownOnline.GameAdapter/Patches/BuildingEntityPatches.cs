@@ -18,7 +18,9 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 /// Opened) and just destroys the entity. The remote side still replays the
 /// pure-visual destruction pieces (BuildingBreakParticle + DustBig + the rock
 /// sound — BuildingEntity.cs:58-73) so the death reads identically to the
-/// attacker; drops and AnimalDeath/corpse spawning stay attacker-side.
+/// attacker; the animal-specific death presentation is replayed too, while
+/// drops, the experience reward and any other attacker-side side effects stay
+/// on the attacker's side.
 /// </summary>
 [HarmonyPatch(typeof(BuildingEntity), "Update")]
 internal static class BuildingEntityUpdatePatch
@@ -41,9 +43,12 @@ internal static class BuildingEntityUpdatePatch
 	/// <summary>
 	/// The remote side's destruction replay — the non-drop part of
 	/// BuildingEntity.Update's death branch (BuildingEntity.cs:58-73), kept
-	/// identical so the peer sees the break particles, dust and rock sound that
-	/// the attacker's side saw. Pure presentation: none of these objects is an
-	/// item or a building entity, so the shared domains never see them.
+	/// identical so the peer sees the break particles, dust, animal death
+	/// presentation and rock sound that the attacker's side saw. Pure
+	/// presentation: none of these objects is an item or a building entity, so
+	/// the shared domains never see them. The creature-specific effects are
+	/// replayed only when the marker came from a live remote death, not from a
+	/// world-entry snapshot.
 	/// </summary>
 	private static void ReplayDestructionVisuals(BuildingEntity entity)
 	{
@@ -64,6 +69,12 @@ internal static class BuildingEntityUpdatePatch
 		}
 
 		Object.Instantiate(Resources.Load<GameObject>("DustBig"), entity.transform.position, Quaternion.identity);
+		var death = entity.GetComponent<RemoteEntityDeath>();
+		if (entity.animal && death != null && death.ReplayAnimalDeath) // Unity object — ==
+		{
+			AnimalDeathReplay.Replay(entity);
+		}
+
 		Sound.Play("footstep/Rock/11", entity.transform.position, false, true, null, 1f, 1f, false, false);
 	}
 }

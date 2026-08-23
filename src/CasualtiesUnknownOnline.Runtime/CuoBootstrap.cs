@@ -221,6 +221,10 @@ public static class CuoBootstrap
 		// with the real Utils.Create-backed implementation. Tests may also
 		// replace it with a recording fake.
 		services.AddSingleton<IModEntitySpawner>(new DisabledModEntitySpawner());
+		// The default mod native-API provider is disabled for the same reason:
+		// only the Game Adapter knows the game-private operations. Tests may
+		// replace it with a recording fake.
+		services.AddSingleton<IModNativeApiProvider>(new DisabledModNativeApiProvider());
 		services.AddSingleton<ModService>();
 		services.AddSingleton<IModsControl>(p => p.GetRequiredService<ModService>());
 		services.AddSingleton<IModUiControl>(p => p.GetRequiredService<ModService>());

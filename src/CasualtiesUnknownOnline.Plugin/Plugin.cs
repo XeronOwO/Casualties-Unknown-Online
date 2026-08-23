@@ -129,6 +129,7 @@ public class Plugin : BaseUnityPlugin
 					services.AddSingleton<IGameAdapter>(p => p.GetRequiredService<GameAdapterImpl>());
 					services.AddSingleton<ICuoService>(p => p.GetRequiredService<GameAdapterImpl>());
 					services.Replace(ServiceDescriptor.Singleton<IModEntitySpawner>(p => p.GetRequiredService<GameAdapterImpl>()));
+					services.Replace(ServiceDescriptor.Singleton<IModNativeApiProvider>(p => p.GetRequiredService<GameAdapterImpl>()));
 				});
 
 			_log = _services.GetRequiredService<ILogger<Plugin>>();

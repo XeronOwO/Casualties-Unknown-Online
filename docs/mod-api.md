@@ -16,9 +16,8 @@ for the live surfaces), host-authoritative commands, dependency ordering,
 SemVer versions, and per-sender rate limits.
 
 **UI is landed (see §4e), content registration is landed (see §4f),
-ReadGameState is landed (see §4g), and entity spawn is landed (see §4h).**
-Still NOT landed (recorded TODO): `AccessNativeApi` is a
-declared permission flag but has no exposed framework surface yet.
+ReadGameState is landed (see §4g), entity spawn is landed (see §4h), and
+AccessNativeApi is landed (see §4i).**
 The mod surface lives in **`CUO.Abstractions`** — the ONLY
 assembly mods may reference (architecture.md §5.5). A mod never touches
 BepInEx, Steamworks, the game assemblies, or CUO.Runtime. **Mod-state saves
@@ -83,9 +82,9 @@ public sealed class MyMod : ICuoMod   // ICuoService lifecycle + Bind
   `WriteGameState` gates host-persistent mod-state writes (`IModState`);
   `RegisterContent` gates mod content registration (`IModContent`);
   `ReadGameState` gates the read-only game-state projection (`IModGameState`);
-  `SpawnEntity` gates the world entity-spawn surface (`IModEntitySpawn`).
-  The remaining flag (`AccessNativeApi`) is carried through the handshake and
-  is pre-declared for its future surface.
+  `SpawnEntity` gates the world entity-spawn surface (`IModEntitySpawn`);
+  `AccessNativeApi` gates the curated native/game-private operation registry
+  (`IModNativeApi`).
 - **`Dependencies`** are mod ids loaded before the dependent; missing or
   cyclic dependencies reject the dependent (transitive failures propagate).
 - **`ICuoMod : ICuoService`** — the standard lifecycle, driven by the
@@ -102,6 +101,7 @@ public sealed class MyMod : ICuoMod   // ICuoService lifecycle + Bind
 | `Content` | mod content registration — see §4f. |
 | `GameState` | read-only player-state projection — see §4g. |
 | `EntitySpawn` | world entity spawn — see §4h. |
+| `NativeApi` | curated native/game-private operation registry — see §4i. |
 | `SessionActivated` | the first member handshake completed. **Host side: never** — read the snapshot. |
 | `PlayerJoined` / `PlayerLeft` | a member's handshake completed / a member was removed (host side). NOT the in-world entity join. Each member exactly once, including yourself. |
 | `SessionEnded` | the session tore down. A guest's `PlayerLeft` for the host is NOT fired on host exit — only `SessionEnded`. |
@@ -278,9 +278,11 @@ if (context.GameState.CanRead)
   latest cached facts at that moment; the returned objects are copies and can
   be held safely. A remote leaving the world or the session ending clears the
   cache.
-- **Not in this slice**: the local player's own character state, and
-  world/item/block/entity global state, are not exposed yet. The same
-  projection pattern is the forward path for those slices.
+- **Not in this slice**: the local player's own character state is not exposed
+  through `IModGameState`; it is available through the native API's read-only
+  local-player projection (see §4i). World/item/block/entity global state is
+  not exposed yet. The same projection pattern is the forward path for those
+  slices.
 - **No wire change**: this surface only projects data that already arrives, so
   `ProtocolVersion` stays unchanged.
 
@@ -322,6 +324,51 @@ if (context.EntitySpawn.CanSpawn)
   data still coordinates through `IModNetwork` / `IModCommands` or registers
   it as static content (`IModContent`).
 - **No wire change**: no new `NetMsg`; `ProtocolVersion` stays unchanged.
+
+## 4i. AccessNativeApi (curated native operation registry)
+
+```csharp
+if (context.NativeApi.CanAccess)
+{
+    // Generic operation registry (Game Adapter-curated; not arbitrary reflection)
+    if (context.NativeApi.TryInvoke("local.player.state", [], out var raw))
+    {
+        var state = (IModNativeLocalPlayerState)raw;
+        var hp = state.BrainHealth;
+    }
+
+    // Typed convenience for the same registered operation
+    if (context.NativeApi.TryGetLocalPlayerState(out var local))
+    {
+        var x = local.X;
+        var y = local.Y;
+    }
+}
+```
+
+- **Scope**: `IModNativeApi` is a permission-gated registry of named native
+  operations. The Runtime never exposes arbitrary reflection or direct access
+  to game assemblies; only the Game Adapter registers operations, and only
+  those operation ids are invokable.
+- **Permission**: invoking requires `ModPermission.AccessNativeApi`.
+  `CanAccess` reflects the declared flag; every invoke method also enforces it
+  (false + log otherwise).
+- **Safe value surface**: arguments and results are restricted to `null`,
+  strings, numeric primitives, capped `byte[]` / primitive arrays, and
+  framework DTO types (currently `IModNativeLocalPlayerState`). Unity objects,
+  game-assembly objects, and arbitrary object graphs are refused before and
+  after the Game Adapter seam — they never cross to a mod.
+- **Registered operation (this slice)**: `local.player.state`
+  (`ModNativeApiOperations.LocalPlayerState`) returns the local player body's
+  position, vitals, consciousness, and derived alive/conscious flags as
+  `IModNativeLocalPlayerState`. It is read-only and local-only; no wire
+  message, no authority change, no `ProtocolVersion` bump.
+- **Policy boundary**: the first slice is deliberately read-only. Write /
+  native-mutation operations are not registered until a concrete consumer
+  exists and its sync/authority boundary is designed. This is the explicit
+  escape-hatch policy decision: a curated allowlist, never open reflection.
+- **No wire change**: this surface only reads local game state; `ProtocolVersion`
+  stays unchanged.
 
 ## 5. Handshake consistency (how sessions stay coherent)
 
@@ -375,7 +422,8 @@ lifecycle (`ModLifecycleTests`), message routing + permission/rate gates
 (`ModMessageTests`), host commands (`ModCommandTests`), mod-state saves
 (`ModStateTests`), local mod UI (`ModUiTests`), mod content registration
 (`ModContentTests`), read game state (`ModGameStateTests`), entity spawn
-(`ModEntitySpawnTests`), handshake matrix
+(`ModEntitySpawnTests`), native API (`ModNativeApiTests` +
+`GameAdapterNativeApiContractTests`), handshake matrix
 (`ModHandshakeTests`), rate limiter (`ModRateLimiterTests`), direction rows
 (`DirectionTests`) and wire round-trips (`ModHandshakeProtocolTests`).
 

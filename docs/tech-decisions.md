@@ -1271,3 +1271,45 @@ Tests: `ModEntitySpawnTests` (6 tests: permission refusal, adapter delegation,
 out-of-world refusal, malformed request refusal, adapter failure, policy
 rails) + `FakeModEntitySpawner`; full suite **1160 green** (was 1154). See
 `docs/selfchecks/mod-entity-spawn-selfcheck.md`.
+
+## 50. AccessNativeApi — curated read-only native operation registry (no protocol bump)
+
+The last open Phase 4 Mod API item was the `AccessNativeApi` permission flag:
+declared and handshake-carried for a long time, but with no exposed surface and
+no policy. This cycle closes it with a deliberately bounded design:
+
+- **Policy decision**: AccessNativeApi is **not arbitrary reflection and not
+  unrestricted game-assembly access**. It is a Game Adapter-curated operation
+  registry: the Runtime exposes only named operation ids, and every id must be
+  registered by the Game Adapter (the only layer allowed to know game-private
+  types). The first slice is read-only; no write/native-mutation operation is
+  registered until a concrete consumer exists and its sync/authority boundary
+  is designed.
+- **Public surface**: `IModContext.NativeApi` / `IModNativeApi` in
+  `CUO.Abstractions`. `CanAccess` reflects `ModPermission.AccessNativeApi`;
+  `CanInvoke` asks the provider registry; `TryInvoke` runs the full permission,
+  operation-id, argument and result policy; `TryGetLocalPlayerState` is the
+  typed convenience for the one registered operation.
+- **Registered operation**: `local.player.state`
+  (`ModNativeApiOperations.LocalPlayerState`) returns
+  `IModNativeLocalPlayerState` — local body position, brain health, hunger,
+  thirst, stamina, energy, temperature, consciousness, alive/conscious. The
+  Game Adapter reads them directly from `Body` (Body.cs:3934-3965, 203/213)
+  and never leaks the Unity object.
+- **Safe value surface**: arguments/results are null, strings, numeric
+  primitives, capped byte/primitive arrays, and framework DTOs
+  (`IModNativeLocalPlayerState`). Any other object is refused before the seam
+  (argument) or after it (result), logged, and never returned to a mod.
+- **No wire change**: local read-only state only; no new `NetMsg`, no
+  direction row, `ProtocolVersion` stays 32.
+- **Architecture**: `IModNativeApiProvider` is the narrow Runtime → Game
+  Adapter seam (registered in the plugin, disabled default in the Runtime/test
+  composition); `DisabledModNativeApiProvider` keeps the Runtime-only graph
+  constructible without a game adapter.
+
+Tests: `ModNativeApiTests` (7 tests: permission refusal, provider delegation +
+typed local state, unknown operation, malformed/unsafe-argument refusal,
+unsafe-result refusal, argument cap, policy rails) +
+`GameAdapterNativeApiContractTests` (3 reflective contract rows) +
+`FakeModNativeApiProvider`; full suite **1170 green** (was 1160). See
+`docs/selfchecks/mod-native-api-selfcheck.md`.

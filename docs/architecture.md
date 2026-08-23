@@ -310,9 +310,12 @@ and strict SemVer versions (ProtocolVersion 10). Binding contract:
 `docs/mod-api.md`.
 Mod-state saves are landed (host-persistent `IModState`, see `docs/mod-api.md` §4d),
 the local mod UI surface is landed (`IModUi`, see `docs/mod-api.md` §4e),
-and content registration is landed (`IModContent`, see `docs/mod-api.md` §4f).
-Not yet landed (MEDIUM priority per the 2026-08-16 decision): custom entities —
-resume after the remaining native game-content coverage.
+content registration is landed (`IModContent`, see `docs/mod-api.md` §4f),
+ReadGameState is landed (`IModGameState`, see `docs/mod-api.md` §4g), entity
+spawn is landed (`IModEntitySpawn`, see `docs/mod-api.md` §4h), and
+AccessNativeApi is landed as a curated operation registry (`IModNativeApi`,
+see `docs/mod-api.md` §4i). The Phase 4 Mod API surface is now complete except
+for future extension points, which are addressed as concrete consumers appear.
 
 ### KrokMP Compatibility Layer (future, reserved space)
 

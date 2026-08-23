@@ -68,6 +68,13 @@ public interface IModContext
 	/// </summary>
 	IModEntitySpawn EntitySpawn { get; }
 
+	/// <summary>
+	/// The permission-gated native/game-private operation registry. Invoking
+	/// requires <see cref="ModPermission.AccessNativeApi"/> — see
+	/// <see cref="IModNativeApi"/> for the full contract and value-safety policy.
+	/// </summary>
+	IModNativeApi NativeApi { get; }
+
 	/// <summary>The first member handshake completed (host side: never — see the snapshot).</summary>
 	event Action? SessionActivated;
 

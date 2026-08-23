@@ -1452,3 +1452,41 @@ features land in them.
 Tests: existing full suite **1191 green**; build 0 warnings/0 errors;
 architecture, event-replay and entity-event-dispatch gates all pass. See
 `docs/selfchecks/world-item-service-partial-split-selfcheck.md`.
+
+
+## 55. RadiationLine world-state sync (ProtocolVersion 33)
+
+The original `RadiationLine` (public MonoBehaviour, `active` + private
+`timeGone`) is world state, not per-player presentation. CUO previously
+carried only the per-body `CharacterHealthMsg.RadiationSickness`; each side
+ran its own layer-timer `Activate()` and its own `timeGone` advancement
+(WorldGeneration.cs:859-863, RadiationLine.cs:Update), so late joiners and
+guests whose layer clock or body consciousness diverged could see a different
+radiation boundary.
+
+- **Host authority**: a new host→guest `RadiationLineStateMsg` (NetMsg 106)
+  carries `Active` + `TimeGone`. The host publishes the absolute state while
+  the line is active (5 Hz idempotent self-heal; the line moves at most
+  ~1.5 units/s, so the wire cost is tiny) and stores the current state for the
+  world-entry/reconnect fan-out (`HandlerContext.SendWorldStateToMember`).
+  Guest local activation is suppressed in `WorldGenerationUpdatePatch`
+  (`layerTimeSpent` capped at `maxTimePerLayer` — the only consumer of that
+  field is the line condition).
+- **Guest side**: `RadiationLineSync.OnRadiationLineStateReceived` writes the
+  host's absolute state onto the local `RadiationLine`. The guest still runs its
+  own per-frame `RadiationLine.Update` between resends — that path drives the
+  local player's radiation sickness / eye-scare / irradiation presentation —
+  and re-aligns every 5 Hz. An inactive host state calls `Deactivate()`.
+- **Solo→lobby**: `RadiationLineSync.Update` also snapshots the line state into
+  `WorldService` while there is no active session, so a solo-turned-lobby host
+  can immediately hand the current boundary to a joining/reconnecting guest
+  without waiting for the first live broadcast frame.
+- **ProtocolVersion 32→33** because a v32 peer would not understand NetMsg 106
+  and would run its own local line.
+
+Tests: `NetPacketTests.RadiationLineState_RoundTripsActiveAndTimeGone`,
+`WorldEventRelayTests.RadiationLineState_HostBroadcast_ReachesEveryGuest`,
+`WorldEntrySnapshotTests.MemberEntersWorld_ReceivesCurrentRadiationLineState`,
+direction-table row + game-field contract row; full suite **1195 green**,
+build 0 warnings/0 errors. See
+`docs/selfchecks/radiation-line-state-sync-selfcheck.md`.

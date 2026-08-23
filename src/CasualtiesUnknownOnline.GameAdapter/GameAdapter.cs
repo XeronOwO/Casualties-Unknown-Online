@@ -193,6 +193,7 @@ public sealed partial class GameAdapter : IGameAdapter, ICuoService, IPatchBridg
 
 		_worldEventSync.Update();
 		_geyserStateSync.Update(); // host/solo: capture + broadcast the geysers' liquid types once the generation finished
+		_radiationLineSync.Update(); // host: publish the authoritative radiation-line state (active + timeGone)
 		_entitySpawnSync.Update(); // the creation channel's deferred reports (a geyser's type, after its child Start) and carried-data applications
 		_fluidSync.Update(); // host: stream the members' fluid viewports (10 Hz diff + 1 Hz full)
 		_tradeSync.Update(); // host: the 5 s trader-state fallback broadcast
@@ -228,6 +229,7 @@ public sealed partial class GameAdapter : IGameAdapter, ICuoService, IPatchBridg
 		_dynamiteExplosionSync.BindToSession();
 		_entitySpawnSync.BindToSession();
 		_geyserStateSync.BindToSession();
+		_radiationLineSync.BindToSession();
 		_fluidSync.BindToSession();
 		_tradeSync.BindToSession();
 		_speechSync.BindToSession();
@@ -266,6 +268,7 @@ public sealed partial class GameAdapter : IGameAdapter, ICuoService, IPatchBridg
 		_dynamiteExplosionSync.Unbind();
 		_entitySpawnSync.Unbind();
 		_geyserStateSync.Unbind();
+		_radiationLineSync.Unbind();
 		_fluidSync.Unbind();
 		_tradeSync.Unbind();
 		_speechSync.Unbind();

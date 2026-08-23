@@ -1,4 +1,5 @@
 using HarmonyLib;
+using UnityEngine;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 
@@ -35,9 +36,15 @@ internal static class WorldGenerationUpdatePatch
 		// the start still ran the trigger frame (started then ended). Capping
 		// the delay keeps the trigger from ever firing: the guest never starts
 		// a quake, only the host's broadcast does (OnEarthquakeStartReceived).
+		//
+		// The radiation line is the same host-authority world state: a guest's
+		// own layerTimeSpent must not Activate() its local line independently.
+		// layerTimeSpent is otherwise consumed only by the line condition
+		// (WorldGeneration.cs:859-863), so capping it is side-effect free.
 		if (PatchBridge.Impl is { IsSessionActive: true } bridge && bridge.IsHostMode == false)
 		{
 			__instance.earthquakeDelay = float.MaxValue;
+			__instance.layerTimeSpent = Mathf.Min(__instance.layerTimeSpent, __instance.maxTimePerLayer);
 		}
 	}
 

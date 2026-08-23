@@ -218,6 +218,49 @@ public sealed partial class WorldService
 		EarthquakeStartReceived?.Invoke(duration, nextDelay);
 	}
 
+	// ---- Radiation line (host authority: the world boundary is host-owned) ----
+
+	/// <summary>The current authoritative radiation-line state (host-only source for world entry/reconnect fan-out).</summary>
+	public RadiationLineStateMsg? RadiationLineState { get; private set; }
+
+	public event Action<RadiationLineStateMsg>? RadiationLineStateReceived;
+
+	public void FireRadiationLineStateReceived(RadiationLineStateMsg state) =>
+		RadiationLineStateReceived?.Invoke(state);
+
+	/// <summary>Set the world-entry snapshot source (host/solo — no wire send).
+	/// A solo host that later creates a lobby already has the current line state
+	/// stored, independent of the first live broadcast frame.</summary>
+	public void SetRadiationLineState(RadiationLineStateMsg state) => RadiationLineState = state;
+
+	/// <summary>Host only: broadcast the authoritative radiation-line state and
+	/// keep it as the world-entry snapshot source.</summary>
+	public void BroadcastRadiationLineState(RadiationLineStateMsg state)
+	{
+		RadiationLineState = state;
+		if (_session.Role != SessionRole.Host || !_session.SessionActive)
+		{
+			return;
+		}
+
+		_session.Broadcast(NetMsg.RadiationLineState, state);
+		_log.LogDebug("Broadcast radiation-line state active={Active}, timeGone={TimeGone:F2}.", state.Active, state.TimeGone);
+	}
+
+	/// <summary>Host only: send the stored radiation-line state to one member
+	/// (world entry / reconnect — the world-entry fan-out in HandlerContext).</summary>
+	public void SendRadiationLineState(ulong targetSteamId)
+	{
+		if (_session.Role != SessionRole.Host || !_session.SessionActive || RadiationLineState is null)
+		{
+			return;
+		}
+
+		_sender.Send(targetSteamId, NetMsg.RadiationLineState, RadiationLineState);
+		_log.LogDebug("Sent radiation-line state (active={Active}, timeGone={TimeGone:F2}) to {Peer}.",
+			RadiationLineState.Active, RadiationLineState.TimeGone, targetSteamId);
+	}
+
 	/// <summary>
 	/// Host only: a block now deviates from its generated baseline (mined,
 	/// destroyed, built — the SetBlock write path, which damage application

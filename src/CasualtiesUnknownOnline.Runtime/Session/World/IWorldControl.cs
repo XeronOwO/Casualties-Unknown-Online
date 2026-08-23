@@ -300,4 +300,28 @@ public interface IWorldControl
 	void FireSpeechReceived(ulong sender, SpeechMsg msg);
 
 	event Action<ulong, SpeechMsg>? SpeechReceived;
+
+	/// <summary>Host/solo: the current authoritative radiation-line state (the
+	/// active/timeGone snapshot a world-entry/reconnect fan-out sends).</summary>
+	RadiationLineStateMsg? RadiationLineState { get; }
+
+	/// <summary>Host/solo: keep the current radiation-line state as the
+	/// world-entry snapshot source. No wire send; a later lobby conversion
+	/// reuses this snapshot before the host's first live broadcast.</summary>
+	void SetRadiationLineState(RadiationLineStateMsg state);
+
+	/// <summary>Host only: broadcast the authoritative radiation-line state —
+	/// the world boundary is host-owned and every side must see the same line.</summary>
+	void BroadcastRadiationLineState(RadiationLineStateMsg state);
+
+	/// <summary>Host only: send the current radiation-line state to one member
+	/// (world entry / reconnect backfill).</summary>
+	void SendRadiationLineState(ulong targetSteamId);
+
+	/// <summary>Guest: the host's radiation-line state arrived — apply it to
+	/// the local line (and let the local Update continue per-frame between
+	/// resends).</summary>
+	void FireRadiationLineStateReceived(RadiationLineStateMsg state);
+
+	event Action<RadiationLineStateMsg>? RadiationLineStateReceived;
 }

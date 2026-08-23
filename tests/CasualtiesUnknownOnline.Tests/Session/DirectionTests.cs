@@ -76,6 +76,7 @@ public class DirectionTests
 		NetMsg.PlayerCarryState,
 		NetMsg.PlayerHealResult,
 		NetMsg.TutorialClawState,
+		NetMsg.RadiationLineState,
 	};
 
 	public static TheoryData<NetMsg> BidirectionalMessages => new()

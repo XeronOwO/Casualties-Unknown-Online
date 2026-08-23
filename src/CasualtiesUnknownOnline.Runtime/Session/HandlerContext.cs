@@ -81,6 +81,7 @@ public sealed class HandlerContext(ISessionControl session, IEntitySyncControl e
 		World.SendOpenedEntitiesSnapshot(steamId);
 		World.SendBuildingEntityHealthSnapshot(steamId);
 		World.SendTrapLayoutSnapshot(steamId);
+		World.SendRadiationLineState(steamId);
 		Items.SendItemSnapshot(steamId);
 		Enemies.SendEnemySnapshot(steamId);
 	}

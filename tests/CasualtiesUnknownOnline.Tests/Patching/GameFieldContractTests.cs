@@ -87,6 +87,7 @@ public class GameFieldContractTests
 		("WorldGeneration", "biomeOverride", Kind.Field, "WorldGeneration+OverrideSceneType", "the biome override enum (HarmonyTraverse.ReadBiomeOverride)"),
 		("WorldGeneration", "biomeDepth", Kind.Field, typeof(int), "the biome depth (HarmonyTraverse.ReadBiomeDepth)"),
 		("WorldGeneration", "totalTraveled", Kind.Field, typeof(int), "the total-traveled counter (HarmonyTraverse.ReadTotalTraveled)"),
+		("RadiationLine", "timeGone", Kind.Field, typeof(float), "the radiation line's authoritative descent (RadiationLineSync reads via Traverse — exact float)"),
 		("PreRunScript", "runSettings", Kind.Field, typeof(Dictionary<string, object>), "instance — the menu's run settings (HarmonyTraverse.ReadPreRunRunSettings)"),
 		// Enemy sync.
 		("SpiderHandler", "biteCooldown", Kind.Field, typeof(float), "the host-side bite gate read/written by EnemyCombatDirector for host-ordered bites (SpiderHandler.cs:39/146)"),

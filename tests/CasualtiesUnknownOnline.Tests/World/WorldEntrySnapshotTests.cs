@@ -51,6 +51,24 @@ public class WorldEntrySnapshotTests
 	}
 
 	[Fact]
+	public void MemberEntersWorld_ReceivesCurrentRadiationLineState()
+	{
+		using var w = ItemSimWorld.Create();
+		var hostWorld = w.Host.Services.GetRequiredService<IWorldControl>();
+		hostWorld.SetRadiationLineState(new RadiationLineStateMsg { Active = true, TimeGone = 9.5f });
+
+		var g1States = new List<RadiationLineStateMsg>();
+		w.G1.Services.GetRequiredService<IWorldControl>().RadiationLineStateReceived += msg => g1States.Add(msg);
+
+		w.G1.Session.ReportSceneState(SceneStateType.InWorld, "SampleScene");
+		w.Driver.Tick(33);
+
+		Assert.Single(g1States);
+		Assert.True(g1States[0].Active, "the stored host state must ride the world-entry fan-out");
+		Assert.Equal(9.5f, g1States[0].TimeGone);
+	}
+
+	[Fact]
 	public void MemberEntersWorld_EmptyTables_SendNothing()
 	{
 		using var w = ItemSimWorld.Create();

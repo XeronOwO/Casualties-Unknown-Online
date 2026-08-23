@@ -12,6 +12,7 @@ using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.Chat;
 using CasualtiesUnknownOnline.Runtime.Session.Handlers;
+using CasualtiesUnknownOnline.Runtime.Session.HostRules;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
 using CasualtiesUnknownOnline.Runtime.Session.NetworkTraffic;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
@@ -65,6 +66,8 @@ public static class CuoBootstrap
 			new MutableOptionsMonitor<StateStreamOptions>(new StateStreamOptions()));
 		services.AddSingleton<IOptionsMonitor<RespawnOptions>>(
 			new MutableOptionsMonitor<RespawnOptions>(new RespawnOptions()));
+		services.AddSingleton<IOptionsMonitor<HostRulesOptions>>(
+			new MutableOptionsMonitor<HostRulesOptions>(new HostRulesOptions()));
 
 		// The logging providers are DI-resolved (registered as ILoggerProvider)
 		// rather than captured as instances, so the extraRegistrations options
@@ -103,6 +106,12 @@ public static class CuoBootstrap
 		services.AddSingleton<SessionService>();
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<SessionService>());
 		services.AddSingleton<ISessionControl>(p => p.GetRequiredService<SessionService>());
+
+		// Minimal host-rules service: a stateless composition of the host-only
+		// flags and the revives/respawn flags. Registered before the handlers so
+		// HandshakeHandler can inject it for the late-join gate.
+		services.AddSingleton<HostRulesService>();
+		services.AddSingleton<IHostRules>(p => p.GetRequiredService<HostRulesService>());
 
 		// Packet handlers: every [PacketHandler]-marked class in the Runtime
 		// assembly (Session/Handlers/) is DI-registered; the dispatcher reads

@@ -2115,3 +2115,33 @@ business signature depend only on the narrow capability interface it needs.
 
 No wire/protocol change. See
 `docs/selfchecks/handler-context-narrowing-selfcheck.md`.
+## 74. Minimal host-rules service + late-join gate + Plugin registrar split (no wire change)
+
+Backlog §2.4 asked for a small independent host-rules service instead of a
+broad KrokMP-style rules struct. This lands the first slice: a stateless
+host-rules composition surface plus one real host rule (`AllowLateJoin`).
+
+- **`HostRulesOptions`** — host-only flags not already owned by
+  `RespawnOptions`: `PvpEnabled`, `AutoContinue`, `AllowLateJoin`.
+- **`HostRulesService` / `IHostRules`** — one read-only surface composing the
+  new flags with `RespawnOptions` (save-inventory, trader-revive,
+  next-level-revive, permadeath). No wire/protocol; host rules are local
+  host config.
+- **`HostRulesPolicy`** — pure decision helpers (`CanAcceptNewMember`,
+  `CanAutoContinue`).
+- **Late-join gate** — `HandshakeHandler` rejects a brand-new member when the
+  host is already in-world and `AllowLateJoin` is false. Reconnects and
+  menu/new-run joins are unaffected.
+- **BepInEx config** — `[HostRules]` section bound in
+  `PluginDependencyRegistrar`; `CuoBootstrap` registers the default mutable
+  monitor and the service.
+- **PVP / auto-continue** — surfaced as flags but deliberately not wired:
+  PVP has no damage domain (backlog §2.6); auto-continue is a future
+  run-lifecycle flow.
+- **By-product structure split** — adding the config block pushed `Plugin.cs`
+  past the 600-line gate; the BepInEx config/DI registration responsibility
+  moved to `PluginDependencyRegistrar`, reducing `Plugin.cs` from 611 to 522
+  aggregate lines.
+
+No wire/protocol change. See
+`docs/selfchecks/host-rules-selfcheck.md`.

@@ -4,6 +4,7 @@ using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session.HostRules;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using Microsoft.Extensions.Logging;
@@ -12,11 +13,12 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 
 /// <summary>Guest → host: protocol negotiation + member creation (new join or reconnect).</summary>
 [PacketHandler(NetMsg.Handshake, NetMessageDirection.GuestToHost)]
-public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandler> log, WorldEntryFanout worldEntryFanout) : PacketHandlerBase<HandshakeMsg, IHandshakeHandlerContext>
+public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandler> log, WorldEntryFanout worldEntryFanout, IHostRules hostRules) : PacketHandlerBase<HandshakeMsg, IHandshakeHandlerContext>
 {
 	private readonly PacketSender _sender = sender;
 	private readonly ILogger<HandshakeHandler> _log = log;
 	private readonly WorldEntryFanout _worldEntryFanout = worldEntryFanout;
+	private readonly IHostRules _hostRules = hostRules;
 
 	protected override void Handle(ulong sender, HandshakeMsg msg, IHandshakeHandlerContext ctx)
 	{
@@ -53,6 +55,16 @@ public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandl
 		// sessions are refused by the protocol gate above anyway).
 		if (!CheckModConsistency(sender, msg, ctx))
 		{
+			return;
+		}
+
+		// Late-join host rule: a brand-new member may not enter an already-running
+		// world when the host disabled late join. Reconnects of already-known
+		// members always pass (they are not a new join).
+		var isNewMember = !session.TryGetMember(sender, out _);
+		if (isNewMember && !HostRulesPolicy.CanAcceptNewMember(_hostRules.AllowLateJoin, session.LocalInWorld))
+		{
+			_log.LogWarning("Handshake from {Peer} ignored: late join disabled and the host is already in-world.", sender);
 			return;
 		}
 

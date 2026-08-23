@@ -7,7 +7,6 @@ using BepInEx.Configuration;
 using BepInEx.Logging;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime;
-using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
@@ -17,11 +16,8 @@ using CasualtiesUnknownOnline.Runtime.Session.Mods;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using CasualtiesUnknownOnline.Runtime.Steam;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using UnityEngine;
-using MelLogLevel = Microsoft.Extensions.Logging.LogLevel;
 using GameAdapterImpl = CasualtiesUnknownOnline.GameAdapter.GameAdapter;
 
 namespace CasualtiesUnknownOnline;
@@ -95,70 +91,7 @@ public class Plugin : BaseUnityPlugin
 				// directory; guests never write it (host is the only save
 				// authority, enforced by ModService.State).
 				modStateFile: Path.Combine(Paths.ConfigPath, "CasualtiesUnknownOnline.mod-state.bin"),
-				extraRegistrations: services =>
-				{
-					// BepInEx ConfigFile → IOptionsMonitor bridge: the plugin owns
-					// the ConfigEntry declarations, the Runtime owns the options
-					// snapshots and the hot-reload monitor. Invalid/out-of-range
-					// values are clamped by BepInEx (range) or by the defensive
-					// parser below (log level falls back to Information).
-					var stateStreamHz = Config.Bind("Sync", "StateStreamHz",
-						StateStreamOptions.DefaultStateStreamHz,
-						new ConfigDescription(
-							"Player/enemy state snapshot frequency in Hz (higher = smoother, more bandwidth).",
-							new AcceptableValueRange<int>(StateStreamOptions.MinStateStreamHz, StateStreamOptions.MaxStateStreamHz)));
-					var minimumLevel = Config.Bind("Logging", "MinimumLevel", "Information",
-						new ConfigDescription(
-							"Minimum CUO log level written to BepInEx and latest.log. Information keeps normal play quiet.",
-							new AcceptableValueList<string>(new[] { "Information", "Trace", "Debug", "Warning", "Error", "Critical", "None" })));
-					// Host-authoritative revive/respawn rules (KrokMP-inspired
-					// co-op lifecycle). These are read at decision time, so a
-					// config edit hot-reloads without a restart.
-					var permadeath = Config.Bind("Respawn", "Permadeath", false,
-						new ConfigDescription("True = death is terminal: no trader revive and no next-level auto-respawn."));
-					var reviveFromTrader = Config.Bind("Respawn", "ReviveFromTrader", true,
-						new ConfigDescription("True = a living player can revive a dead teammate at a friendly trader."));
-					var reviveOnNextLevel = Config.Bind("Respawn", "ReviveOnNextLevel", true,
-						new ConfigDescription("True = dead players are auto-respawned when the host finishes the next world layer."));
-					var keepInventory = Config.Bind("Respawn", "KeepInventory", true,
-						new ConfigDescription("True = auto-respawn keeps the character's carried/worn items."));
-					var keepSkills = Config.Bind("Respawn", "KeepSkills", true,
-						new ConfigDescription("True = auto-respawn keeps skills/experience; false resets them."));
-					services.Replace(ServiceDescriptor.Singleton<IOptionsMonitor<StateStreamOptions>>(
-						new BepInExOptionsMonitor<StateStreamOptions>(
-							Config,
-							() => new StateStreamOptions { StateStreamHz = stateStreamHz.Value },
-							stateStreamHz.Definition)));
-					services.Replace(ServiceDescriptor.Singleton<IOptionsMonitor<LoggingOptions>>(
-						new BepInExOptionsMonitor<LoggingOptions>(
-							Config,
-							() => new LoggingOptions { MinimumLevel = ParseLogLevel(minimumLevel.Value) },
-							minimumLevel.Definition)));
-					services.Replace(ServiceDescriptor.Singleton<IOptionsMonitor<RespawnOptions>>(
-						new BepInExOptionsMonitor<RespawnOptions>(
-							Config,
-							() => new RespawnOptions
-							{
-								Permadeath = permadeath.Value,
-								ReviveFromTrader = reviveFromTrader.Value,
-								ReviveOnNextLevel = reviveOnNextLevel.Value,
-								RespawnKeepInventory = keepInventory.Value,
-								RespawnKeepSkills = keepSkills.Value,
-							},
-							permadeath.Definition, reviveFromTrader.Definition, reviveOnNextLevel.Definition,
-							keepInventory.Definition, keepSkills.Definition)));
-
-					// Character-data mapping (Mapster). Mapster 6.0.0 core ships
-					// IMapper/Mapper — registered directly, no DI package needed
-					// (Mapster.DependencyInjection 10.x requires net6+).
-					services.AddSingleton<MapsterMapper.IMapper>(
-						new MapsterMapper.Mapper(Mapster.TypeAdapterConfig.GlobalSettings));
-					services.AddSingleton<GameAdapterImpl>();
-					services.AddSingleton<IGameAdapter>(p => p.GetRequiredService<GameAdapterImpl>());
-					services.AddSingleton<ICuoService>(p => p.GetRequiredService<GameAdapterImpl>());
-					services.Replace(ServiceDescriptor.Singleton<IModEntitySpawner>(p => p.GetRequiredService<GameAdapterImpl>()));
-					services.Replace(ServiceDescriptor.Singleton<IModNativeApiProvider>(p => p.GetRequiredService<GameAdapterImpl>()));
-				});
+				extraRegistrations: services => PluginDependencyRegistrar.Apply(Config, services));
 
 			_log = _services.GetRequiredService<ILogger<Plugin>>();
 			_steam = _services.GetRequiredService<SteamService>();
@@ -474,12 +407,6 @@ public class Plugin : BaseUnityPlugin
 		return _adapter?.TryRequestTraderRecruit(targetSteamId) == true;
 	}
 
-
-	private static MelLogLevel ParseLogLevel(string text) =>
-		Enum.TryParse(text, ignoreCase: true, out MelLogLevel level)
-		&& Enum.IsDefined(typeof(MelLogLevel), level)
-			? level
-			: MelLogLevel.Information;
 
 	// Steam launches the game with "+connect_lobby <id>" when the user clicks
 	// a friend's "Join Game" while the game is not running. Parse the lobby ID

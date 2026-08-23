@@ -122,14 +122,23 @@ sync model.
   `docs/selfchecks/radiation-straggler-pressure-selfcheck.md` and
   `docs/tech-decisions.md` #58.
 
-### 2.4 Host rules / configurable game rules — MEDIUM/HIGH (design-level)
+### 2.4 Host rules / configurable game rules — CLOSED (first slice, 2026-08-23)
+
+> **Status 2026-08-23: CLOSED (first slice)** — a small independent
+> host-rules service landed (`HostRulesOptions` + `HostRulesService`/`IHostRules`
+> + `HostRulesPolicy`), composing PVP, auto-continue, late join, save-inventory
+> and revive-related flags. The first wired behavior is `AllowLateJoin`: a
+> brand-new member is rejected when the host is already in-world and late join
+> is disabled. PVP remains reserved until the damage domain exists; auto-continue
+> is surfaced but not wired yet. No wire/protocol change. See
+> `docs/selfchecks/host-rules-selfcheck.md` and `docs/tech-decisions.md` #74.
 
 - KrokMP has a broad rules struct (PVP, auto-continue, late-join, save
   inventory, teams, etc.) plus rule sync and lobby metadata.
-- CUO currently hardcodes several behaviors and has no rules message/UI.
-- Recommendation: do NOT copy a 60-field struct. Start with a minimal host rules
-  service for the highest-value flags (PVP, auto-continue, late join, save
-  inventory, revive-related) as an independent domain.
+- CUO now has a minimal host-rules service rather than a rules message/UI; this
+  is the intended first slice.
+- Recommendation followed: do NOT copy a 60-field struct. Start with a minimal
+  host rules service for the highest-value flags as an independent domain.
 
 ### 2.5 Text chat — MEDIUM-HIGH
 

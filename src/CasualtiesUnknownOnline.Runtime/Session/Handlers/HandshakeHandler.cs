@@ -13,12 +13,13 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 
 /// <summary>Guest → host: protocol negotiation + member creation (new join or reconnect).</summary>
 [PacketHandler(NetMsg.Handshake, NetMessageDirection.GuestToHost)]
-public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandler> log, WorldEntryFanout worldEntryFanout, IHostRules hostRules) : PacketHandlerBase<HandshakeMsg, IHandshakeHandlerContext>
+public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandler> log, WorldEntryFanout worldEntryFanout, IHostRules hostRules, IHostBanService hostBans) : PacketHandlerBase<HandshakeMsg, IHandshakeHandlerContext>
 {
 	private readonly PacketSender _sender = sender;
 	private readonly ILogger<HandshakeHandler> _log = log;
 	private readonly WorldEntryFanout _worldEntryFanout = worldEntryFanout;
 	private readonly IHostRules _hostRules = hostRules;
+	private readonly IHostBanService _hostBans = hostBans;
 
 	protected override void Handle(ulong sender, HandshakeMsg msg, IHandshakeHandlerContext ctx)
 	{
@@ -42,6 +43,14 @@ public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandl
 		if (!session.IsLobbyMember(sender))
 		{
 			_log.LogWarning("Handshake from {Peer} ignored: not a lobby member.", sender);
+			return;
+		}
+
+		// Host ban list is checked before the member is created: a banned
+		// SteamID never enters the roster, even on a reconnect attempt.
+		if (_hostBans.IsBanned(sender))
+		{
+			_log.LogWarning("Handshake from {Peer} ignored: this host has banned the member.", sender);
 			return;
 		}
 

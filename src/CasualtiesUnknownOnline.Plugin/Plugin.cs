@@ -33,6 +33,7 @@ public class Plugin : BaseUnityPlugin
 	private ILogger<Plugin> _log = null!;
 	private SteamService _steam = null!;
 	private SessionService _session = null!;
+	private IHostBanService _hostBan = null!;
 	private EntitySyncService _entities = null!;
 	private RemoteVitalsService _remoteVitals = null!;
 	private RemoteInventoryService _remoteInventory = null!;
@@ -91,11 +92,15 @@ public class Plugin : BaseUnityPlugin
 				// directory; guests never write it (host is the only save
 				// authority, enforced by ModService.State).
 				modStateFile: Path.Combine(Paths.ConfigPath, "CasualtiesUnknownOnline.mod-state.bin"),
+				// The host's ban list persists in the same config directory;
+				// it is written only by the host's HostBanService.
+				hostBanFile: Path.Combine(Paths.ConfigPath, "CasualtiesUnknownOnline.host-bans.bin"),
 				extraRegistrations: services => PluginDependencyRegistrar.Apply(Config, services));
 
 			_log = _services.GetRequiredService<ILogger<Plugin>>();
 			_steam = _services.GetRequiredService<SteamService>();
 			_session = _services.GetRequiredService<SessionService>();
+			_hostBan = _services.GetRequiredService<IHostBanService>();
 			_entities = _services.GetRequiredService<EntitySyncService>();
 			_remoteVitals = _services.GetRequiredService<RemoteVitalsService>();
 			_remoteInventory = _services.GetRequiredService<RemoteInventoryService>();
@@ -119,6 +124,7 @@ public class Plugin : BaseUnityPlugin
 				GetLocalHealItems = () => _adapter?.GetLocalHealItems() ?? [],
 				RecruitPlayer = TryRequestTraderRecruitFromUi,
 				KickMember = TryKickMemberFromUi,
+				BanMember = TryBanMemberFromUi,
 			};
 
 			// Publish the container on the static diagnostics seam (HotRepl etc.).
@@ -410,6 +416,9 @@ public class Plugin : BaseUnityPlugin
 
 	/// <summary>Online UI Kick path — host-only session removal (the target receives a dedicated Kicked message).</summary>
 	private bool TryKickMemberFromUi(ulong targetSteamId) => _session.KickMember(targetSteamId, "kicked by host");
+
+	/// <summary>Online UI Ban path — host-only permanent removal (the target receives a dedicated Banned message and the SteamID is persisted on the host).</summary>
+	private bool TryBanMemberFromUi(ulong targetSteamId) => _hostBan.Ban(targetSteamId, "banned by host");
 
 
 	// Steam launches the game with "+connect_lobby <id>" when the user clicks

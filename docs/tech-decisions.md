@@ -1231,3 +1231,43 @@ saw only generic building-break particles/dust/rock sound.
   shape, marker flag shape, destruction-replay helper still present); full
   suite **1154 green** (was 1151).
 - See `docs/selfchecks/animal-death-presentation-selfcheck.md`.
+
+## 49. Mod entity spawn — permission-gated native prefab replication (no protocol bump)
+
+The Phase 4 Mod API `SpawnEntity` permission gets its first live enforcement
+point with a small, intentionally native-prefab-only spawn surface. The design
+reuses the existing runtime entity channel instead of adding a parallel mod
+entity wire/path:
+
+- **Public surface**: `IModContext.EntitySpawn` / `IModEntitySpawn` in
+  `CUO.Abstractions`. `CanSpawn` reflects the declared
+  `ModPermission.SpawnEntity`; `TrySpawn(prefabId, x, y, rotation)` runs the
+  full gate and forwards to the Runtime → Game Adapter boundary. A mod never
+  sees Unity or game-assembly types.
+- **Replication is not duplicated**: the Game Adapter creates the local
+  `BuildingEntity` via `Utils.Create` and lets the normal
+  `BuildingEntity.Start` report ride `EntitySpawnedMsg` (NetMsg 68). The host
+  creates/relays, the guests create/replay — exactly the same path as a native
+  runtime spawn (CaveTickSpawner, CrystalMimic, scripted spawns), including
+  the existing creation-time data handling for geysers/keypads/crystal tint.
+- **Gates**: permission + `SessionActive` + `LocalInWorld` + request-shape
+  rails (`ModEntitySpawnPolicy`: valid prefab id, finite X/Y/rotation).
+  Malformed calls are refused with a log before the adapter seam; an adapter
+  rejection (unknown prefab / non-`BuildingEntity` prefab) is returned false
+  and a non-entity local object is destroyed, never left unsynced.
+- **Boundary recorded**: only native `BuildingEntity` prefabs are supported in
+  this slice. It is a spawn/replication surface, not a generic custom
+  component/state-injection mechanism; per-entity custom data still belongs to
+  `IModNetwork` / `IModCommands` / `IModContent` coordination.
+- **No wire change**: no new `NetMsg`, no direction-table row; `ProtocolVersion`
+  stays 32. Mixed-version sessions remain compatible because the feature only
+  calls an existing wire message.
+- **Architecture**: `IModEntitySpawner` is the narrow Runtime → Game Adapter
+  seam (registered in the plugin, disabled default in the Runtime/test
+  composition); `DisabledModEntitySpawner` keeps the Runtime-only graph
+  constructible without a game adapter.
+
+Tests: `ModEntitySpawnTests` (6 tests: permission refusal, adapter delegation,
+out-of-world refusal, malformed request refusal, adapter failure, policy
+rails) + `FakeModEntitySpawner`; full suite **1160 green** (was 1154). See
+`docs/selfchecks/mod-entity-spawn-selfcheck.md`.

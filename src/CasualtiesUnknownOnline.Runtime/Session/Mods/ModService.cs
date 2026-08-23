@@ -25,7 +25,8 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Mods;
 /// </summary>
 public sealed partial class ModService(SessionService session, ModChannel channel, ModRegistry registry,
 	PacketSender sender, ITimeSource time, ILoggerFactory loggerFactory, ILogger<ModService> log,
-	ModStateFileStore stateFile, RemoteVitalsService remoteVitals, RemoteInventoryService remoteInventory)
+	ModStateFileStore stateFile, RemoteVitalsService remoteVitals, RemoteInventoryService remoteInventory,
+	IModEntitySpawner entitySpawner)
 	: ICuoService, IModsControl
 {
 	private readonly SessionService _session = session;
@@ -38,6 +39,7 @@ public sealed partial class ModService(SessionService session, ModChannel channe
 	private readonly ModStateFileStore _stateFile = stateFile;
 	private readonly RemoteVitalsService _remoteVitals = remoteVitals;
 	private readonly RemoteInventoryService _remoteInventory = remoteInventory;
+	private readonly IModEntitySpawner _entitySpawner = entitySpawner;
 	private readonly Dictionary<ulong, ModRateLimiter> _messageRateLimiters = [];
 	private readonly Dictionary<ulong, ModRateLimiter> _commandRateLimiters = [];
 	private readonly List<LoadedMod> _mods = [];
@@ -291,6 +293,7 @@ public sealed partial class ModService(SessionService session, ModChannel channe
 		private readonly ModUiAdapter _ui;
 		private readonly ModContentAdapter _content;
 		private readonly ModGameStateAdapter _gameState;
+		private readonly ModEntitySpawnAdapter _entitySpawn;
 
 		internal ModContext(ModService owner, ModManifest manifest, ILogger logger)
 		{
@@ -301,6 +304,7 @@ public sealed partial class ModService(SessionService session, ModChannel channe
 			_ui = new ModUiAdapter(owner, manifest);
 			_content = new ModContentAdapter(owner, manifest);
 			_gameState = new ModGameStateAdapter(owner, manifest, owner._session, owner._remoteVitals, owner._remoteInventory);
+			_entitySpawn = new ModEntitySpawnAdapter(owner, manifest);
 			Session = owner.BuildSessionSnapshot();
 		}
 
@@ -317,6 +321,8 @@ public sealed partial class ModService(SessionService session, ModChannel channe
 		public IModContent Content => _content;
 
 		public IModGameState GameState => _gameState;
+
+		public IModEntitySpawn EntitySpawn => _entitySpawn;
 
 		public ISessionInfo Session { get; }
 

@@ -216,6 +216,11 @@ public static class CuoBootstrap
 		services.AddSingleton<ModRegistry>();
 		services.AddSingleton<IModListProvider>(p => p.GetRequiredService<ModRegistry>());
 		services.AddSingleton<ModChannel>();
+		// The default mod entity spawner is disabled: the Game Adapter is
+		// registered by the plugin through extraRegistrations and replaces this
+		// with the real Utils.Create-backed implementation. Tests may also
+		// replace it with a recording fake.
+		services.AddSingleton<IModEntitySpawner>(new DisabledModEntitySpawner());
 		services.AddSingleton<ModService>();
 		services.AddSingleton<IModsControl>(p => p.GetRequiredService<ModService>());
 		services.AddSingleton<IModUiControl>(p => p.GetRequiredService<ModService>());

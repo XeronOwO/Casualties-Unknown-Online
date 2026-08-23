@@ -61,6 +61,13 @@ public interface IModContext
 	/// </summary>
 	IModGameState GameState { get; }
 
+	/// <summary>
+	/// The world entity-spawn surface. Spawning requires
+	/// <see cref="ModPermission.SpawnEntity"/> — see <see cref="IModEntitySpawn"/>
+	/// for the full contract.
+	/// </summary>
+	IModEntitySpawn EntitySpawn { get; }
+
 	/// <summary>The first member handshake completed (host side: never — see the snapshot).</summary>
 	event Action? SessionActivated;
 

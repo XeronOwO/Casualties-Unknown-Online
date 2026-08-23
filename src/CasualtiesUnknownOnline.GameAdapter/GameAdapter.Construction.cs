@@ -142,7 +142,7 @@ public sealed partial class GameAdapter
 			loggerFactory.CreateLogger<DynamiteExplosionSync>());
 		_entitySpawnSync = new EntitySpawnSync(world, session, loggerFactory.CreateLogger<EntitySpawnSync>());
 		_geyserStateSync = new GeyserStateSync(world, session, loggerFactory.CreateLogger<GeyserStateSync>());
-		_radiationLineSync = new RadiationLineSync(world, session, loggerFactory.CreateLogger<RadiationLineSync>());
+		_radiationLineSync = new RadiationLineSync(world, session, entities, loggerFactory.CreateLogger<RadiationLineSync>());
 		_fluidSync = new FluidWorldSync(world, session, entities, loggerFactory);
 		_tradeSync = new TradeStateSync(world, session, new TradeExecutor(), loggerFactory.CreateLogger<TradeStateSync>());
 		_speechSync = new SpeechSync(world, session, loggerFactory.CreateLogger<SpeechSync>());

@@ -87,7 +87,7 @@ sync model.
 - Value: core to extended co-op sessions.
 - Complexity: high; needs a lifecycle design distinct from new-run reset.
 
-### 2.3 Radiation line / straggler pressure — HIGH
+### 2.3 Radiation line / straggler pressure — CLOSED (landed 2026-08-23)
 
 - KrokMP: starts the radiation line when enough players have reached the layer
   bottom and stragglers remain; synchronizes `radlineactive` / `radlinestate` in
@@ -98,6 +98,11 @@ sync model.
   of the original game's radiation line.
 - Complexity: medium-high; needs host-side per-player layer progress and a
   world-state sync path, while applying local body effects client-side.
+- **Landed**: the world-state half landed earlier (NetMsg 106, #55); the
+  remaining host-side straggler detection/pressure rule now landed as
+  `RadiationStragglerPolicy` + `RadiationLineSync` host activation. See
+  `docs/selfchecks/radiation-straggler-pressure-selfcheck.md` and
+  `docs/tech-decisions.md` #58.
 
 ### 2.4 Host rules / configurable game rules — MEDIUM/HIGH (design-level)
 

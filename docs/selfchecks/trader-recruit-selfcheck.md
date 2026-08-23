@@ -33,9 +33,11 @@ dead body is, keeps its inventory, and resumes control immediately.
   full restore would wipe inventory and teleport the target. Instead the host
   sends only `CharacterHealthMsg` + limbs and the target uses the existing
   `ApplyHealState` mapping — "heal the dead body in place".
-- **No random trader items yet**: this slice is the minimal revive mechanic;
-  giving random trader items on recruit is intentionally left as a later
-  increment (it would need a host-side item-spawn/transfer decision).
+- **Random trader items landed separately**: this first slice was the minimal
+  revive mechanic; the later increment gives 1–3 random trader-stock bonus
+  items through `TraderRecruitResult.Items` — see
+  `docs/selfchecks/trader-recruit-gift-items-selfcheck.md` and
+  `docs/tech-decisions.md` #62.
 - **Death is still not a full respawn system here**: this slice covers a dead
   player who is still in-world and keeps its inventory/position. The broader
   `Revive/respawn rules` lifecycle (Permadeath, ReviveOnNextLevel,

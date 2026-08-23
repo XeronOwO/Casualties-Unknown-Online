@@ -3,6 +3,6 @@ namespace CasualtiesUnknownOnline.Runtime.Protocol;
 public static class ProtocolVersion
 {
 	/// <summary>Bumped on any breaking wire change.</summary>
-	public const int Current = 36; // v36: Chat (NetMsg 109) — a v35 peer has no text-chat relay; the message is dropped by direction/unknown handler rules
+	public const int Current = 37; // v37: TraderRecruitResult carries bonus trader-stock items — a v36 peer would revive but not receive the gift
 
 }

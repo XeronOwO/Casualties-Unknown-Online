@@ -1,9 +1,12 @@
 using System.Collections.Generic;
+using System.Linq;
 using CasualtiesUnknownOnline.GameAdapter.Character;
+using CasualtiesUnknownOnline.GameAdapter.Items;
 using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
+using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -27,6 +30,8 @@ internal sealed class TraderRecruitCoordinator(
 	ICharacterDataControl characterData,
 	CharacterDataSync characterDataSync,
 	IOptionsMonitor<RespawnOptions> respawnOptions,
+	ItemService items,
+	ItemIdAllocator itemIds,
 	ILogger<TraderRecruitCoordinator> log)
 {
 	private const float PositionTolerance = 2f;
@@ -36,6 +41,8 @@ internal sealed class TraderRecruitCoordinator(
 	private readonly ICharacterDataControl _characterData = characterData;
 	private readonly CharacterDataSync _characterDataSync = characterDataSync;
 	private readonly IOptionsMonitor<RespawnOptions> _respawnOptions = respawnOptions;
+	private readonly ItemService _items = items;
+	private readonly ItemIdAllocator _itemIds = itemIds;
 	private readonly ILogger<TraderRecruitCoordinator> _log = log;
 
 	/// <summary>Host-side used-trader registry (one recruit per trader instance
@@ -138,8 +145,8 @@ internal sealed class TraderRecruitCoordinator(
 			return;
 		}
 
-		_log.LogInformation("[TradeRecruit] applying revive to local body health={Health}.", msg.Health.BrainHealth);
-		ApplyRevive(body, msg.Health, msg.Limbs);
+		_log.LogInformation("[TradeRecruit] applying revive to local body health={Health} gifts={Gifts}.", msg.Health.BrainHealth, msg.Items.Count);
+		ApplyRevive(body, msg.Health, msg.Limbs, msg.Items);
 	}
 
 	/// <summary>
@@ -192,6 +199,23 @@ internal sealed class TraderRecruitCoordinator(
 		}
 
 		var revived = TraderRecruitPolicy.PrepareRevive(targetData!);
+		var giftItems = BuildTraderGiftItems(traderState, revived);
+		if (giftItems.Count > 0)
+		{
+			revived.Items.AddRange(giftItems);
+			if (target != _session.LocalSteamId)
+			{
+				foreach (var gift in giftItems)
+				{
+					_items.AdoptTransferredItem(target, gift.InstanceId, gift);
+				}
+			}
+
+			_log.LogInformation(
+				"[TradeRecruit] granted {Count} trader item(s) to {Target}: {Items}.",
+				giftItems.Count, target, string.Join(", ", giftItems.Select(x => x.ItemId)));
+		}
+
 		SaveCharacterData(target, revived);
 		_usedTraders.Add(trader.GetInstanceID());
 
@@ -204,7 +228,7 @@ internal sealed class TraderRecruitCoordinator(
 			var body = PlayerCamera.main != null ? PlayerCamera.main.body : null; // Unity object — ==
 			if (body != null && revived.Health is { } health) // Unity object — ==
 			{
-				ApplyRevive(body, health, revived.Limbs);
+				ApplyRevive(body, health, revived.Limbs, giftItems);
 			}
 		}
 		else
@@ -214,18 +238,121 @@ internal sealed class TraderRecruitCoordinator(
 				TargetSteamId = target,
 				Health = revived.Health,
 				Limbs = [.. revived.Limbs],
+				Items = [.. giftItems],
 			});
 		}
 	}
 
-	private void ApplyRevive(Body body, CharacterHealthMsg health, IReadOnlyList<CharacterLimbMsg> limbs)
+	/// <summary>
+	/// Build the host-selected trader-stock gift items for a successful recruit.
+	/// The count is capped by the target's empty inventory slots and by the
+	/// trader's distinct stock; each item is captured from the prefab (fresh
+	/// state, no temporary instantiation) and allocated a host instance id.
+	/// </summary>
+	private List<CharacterItemMsg> BuildTraderGiftItems(
+		TradeStockState traderState,
+		CharacterDataMsg revived)
+	{
+		var emptySlots = TraderRecruitPolicy.FindEmptySlots(revived);
+		if (emptySlots.Count == 0 || traderState.Items.Count == 0)
+		{
+			return [];
+		}
+
+		var count = Random.Range(TraderRecruitPolicy.MinGiftItems, TraderRecruitPolicy.MaxGiftItems + 1);
+		count = Mathf.Min(count, emptySlots.Count);
+		var selected = TraderRecruitPolicy.SelectGiftItemIds(traderState, count, n => Random.Range(0, n));
+
+		var gifts = new List<CharacterItemMsg>();
+		foreach (var itemId in selected)
+		{
+			if (gifts.Count >= emptySlots.Count)
+			{
+				break;
+			}
+
+			var gift = CreateGiftItem(itemId, emptySlots[gifts.Count]);
+			if (gift != null)
+			{
+				gifts.Add(gift);
+			}
+		}
+
+		return gifts;
+	}
+
+	/// <summary>
+	/// Capture a fresh wire item fact from the prefab for a trader-stock id. No
+	/// temporary scene instance is created, so no item-domain report can fire;
+	/// the host only allocates the instance id that the recipient will bind.
+	/// </summary>
+	private CharacterItemMsg? CreateGiftItem(string itemId, int slot)
+	{
+		var prefab = (GameObject?)Resources.Load(itemId);
+		if (prefab == null) // Unity object — ==
+		{
+			_log.LogWarning("[TradeRecruit] gifted item {ItemId} has no prefab — skipped.", itemId);
+			return null;
+		}
+
+		var item = prefab.GetComponent<Item>();
+		if (item == null) // Unity object — ==
+		{
+			_log.LogWarning("[TradeRecruit] gifted prefab {ItemId} has no Item component — skipped.", itemId);
+			return null;
+		}
+
+		var gift = ItemStateCodec.CaptureItem(item, slot);
+		gift.InstanceId = _itemIds.AllocateId();
+		_log.LogInformation("[TradeRecruit] prepared gift {ItemId} (id {InstanceId}) for slot {Slot}.", itemId, gift.InstanceId, slot);
+		return gift;
+	}
+
+	private void ApplyRevive(
+		Body body,
+		CharacterHealthMsg health,
+		IReadOnlyList<CharacterLimbMsg> limbs,
+		IReadOnlyList<CharacterItemMsg>? gifts = null)
 	{
 		using (CallContext.Enter(CallContext.Origin.RemoteApply))
 		{
 			_characterDataSync.ApplyHealState(body, health, limbs);
+			if (gifts is { Count: > 0 })
+			{
+				ApplyTraderGiftItems(body, gifts);
+			}
+
 			// Re-report immediately so the peer clones and the host's saved
 			// snapshot see the revived state without waiting for the next 1 Hz tick.
 			_characterDataSync.ReportInventoryChanged(body);
+		}
+	}
+
+	/// <summary>
+	/// Place gifted items into the local body. The host-chosen slot is preferred;
+	/// if the live body has since filled it, the body's own first empty slot is
+	/// the fallback (the immediate re-report carries the real slot back).
+	/// </summary>
+	private void ApplyTraderGiftItems(Body body, IReadOnlyList<CharacterItemMsg> gifts)
+	{
+		foreach (var gift in gifts)
+		{
+			var slot = gift.SlotIndex;
+			if (slot < 0 || slot >= body.slots.Length || body.HoldingItem(slot))
+			{
+				var fallback = body.FirstEmptySlot();
+				if (fallback is not { } empty)
+				{
+					_log.LogWarning("[TradeRecruit] cannot place gift {ItemId} (id {InstanceId}) — no empty slot.", gift.ItemId, gift.InstanceId);
+					continue;
+				}
+
+				slot = empty;
+				gift.SlotIndex = slot;
+			}
+
+			ItemStateCodec.RestoreItem(gift, body);
+			_log.LogInformation("[TradeRecruit] placed gift {ItemId} (id {InstanceId}) in slot {Slot}.", gift.ItemId, gift.InstanceId, slot);
 		}
 	}
 

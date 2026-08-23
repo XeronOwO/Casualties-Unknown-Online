@@ -56,6 +56,16 @@ public class TraderRecruitChannelTests
 		{
 			TargetSteamId = GuestId,
 			Health = new CharacterHealthMsg { BrainHealth = 75f, Alive = true, Conscious = true },
+			Items =
+			[
+				new CharacterItemMsg
+				{
+					InstanceId = 777,
+					ItemId = "bandage",
+					Condition = 1f,
+					SlotIndex = 2,
+				},
+			],
 		});
 
 		var driver = new SimulationDriver(guest.Clock, guest.Transport.Network, host, guest);
@@ -64,5 +74,9 @@ public class TraderRecruitChannelTests
 		Assert.NotNull(received);
 		Assert.Equal(GuestId, received!.TargetSteamId);
 		Assert.Equal(75f, received.Health!.BrainHealth);
+		var gift = Assert.Single(received.Items);
+		Assert.Equal(777UL, gift.InstanceId);
+		Assert.Equal("bandage", gift.ItemId);
+		Assert.Equal(2, gift.SlotIndex);
 	}
 }

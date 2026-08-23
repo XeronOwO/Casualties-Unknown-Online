@@ -9,7 +9,8 @@ namespace CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 /// <see cref="CharacterHealthMsg"/> + limb list) so the target's local Body is
 /// restored to life without running the reconnect restore machinery (no
 /// inventory wipe, no position teleport — the player stays where their dead
-/// body is).
+/// body is). It also carries optional random trader-stock bonus items granted
+/// as part of the recruit, each in its host-chosen slot.
 /// </summary>
 [ProtoContract]
 public sealed class TraderRecruitResultMsg
@@ -22,4 +23,7 @@ public sealed class TraderRecruitResultMsg
 
 	[ProtoMember(3)]
 	public List<CharacterLimbMsg> Limbs { get; set; } = [];
+
+	[ProtoMember(4)]
+	public List<CharacterItemMsg> Items { get; set; } = [];
 }

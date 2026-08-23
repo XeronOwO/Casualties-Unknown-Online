@@ -80,6 +80,7 @@ public class DirectionTests
 		NetMsg.TutorialClawState,
 		NetMsg.RadiationLineState,
 		NetMsg.TraderRecruitResult,
+		NetMsg.WorldSnapshotComplete,
 	};
 
 	public static TheoryData<NetMsg> BidirectionalMessages => new()

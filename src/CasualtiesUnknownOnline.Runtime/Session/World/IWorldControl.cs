@@ -94,6 +94,14 @@ public interface IWorldControl
 
 	event Action? WorldReadyReceived;
 
+	/// <summary>Host only: send the world-entry snapshot-complete marker to one member (sent after the full snapshot group).</summary>
+	void SendWorldSnapshotComplete(ulong targetSteamId);
+
+	/// <summary>Guest: the host's world-entry snapshot-complete marker arrived — the full snapshot group has been received.</summary>
+	void FireWorldSnapshotCompleteReceived();
+
+	event Action? WorldSnapshotCompleteReceived;
+
 	/// <summary>Host only: a block changed after generation (mined/destroyed/built) — upsert it into the damage table.</summary>
 	void ReportBlockState(int x, int y, ushort block);
 

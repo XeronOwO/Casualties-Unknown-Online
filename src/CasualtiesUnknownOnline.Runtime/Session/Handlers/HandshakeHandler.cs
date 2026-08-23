@@ -5,16 +5,18 @@ using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
+using CasualtiesUnknownOnline.Runtime.Session.World;
 using Microsoft.Extensions.Logging;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 
 /// <summary>Guest → host: protocol negotiation + member creation (new join or reconnect).</summary>
 [PacketHandler(NetMsg.Handshake, NetMessageDirection.GuestToHost)]
-public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandler> log) : PacketHandlerBase<HandshakeMsg>
+public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandler> log, WorldEntryFanout worldEntryFanout) : PacketHandlerBase<HandshakeMsg>
 {
 	private readonly PacketSender _sender = sender;
 	private readonly ILogger<HandshakeHandler> _log = log;
+	private readonly WorldEntryFanout _worldEntryFanout = worldEntryFanout;
 
 	protected override void Handle(ulong sender, HandshakeMsg msg, HandlerContext ctx)
 	{
@@ -98,7 +100,7 @@ public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandl
 		// again, the trashbag contents regressed).
 		if (member.InWorld)
 		{
-			ctx.SendWorldStateToMember(sender);
+			_worldEntryFanout.Send(sender);
 			// The Game Adapter's world-entry state (geyser liquid types, keypad
 			// codes) lives in the Unity scene, so it cannot ride the Runtime
 			// snapshot group — tell it the member (re)entered so it re-fans-out

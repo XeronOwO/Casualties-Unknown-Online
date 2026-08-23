@@ -1,5 +1,6 @@
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session.World;
 using Microsoft.Extensions.Logging;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
@@ -11,9 +12,10 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// domain); the host leaving ends the guest's own sync.
 /// </summary>
 [PacketHandler(NetMsg.SceneState, NetMessageDirection.Bidirectional)]
-public sealed class SceneStateHandler(ILogger<SceneStateHandler> log) : PacketHandlerBase<SceneStateMsg>
+public sealed class SceneStateHandler(ILogger<SceneStateHandler> log, WorldEntryFanout worldEntryFanout) : PacketHandlerBase<SceneStateMsg>
 {
 	private readonly ILogger<SceneStateHandler> _log = log;
+	private readonly WorldEntryFanout _worldEntryFanout = worldEntryFanout;
 
 	protected override void Handle(ulong sender, SceneStateMsg msg, HandlerContext ctx)
 	{
@@ -53,8 +55,8 @@ public sealed class SceneStateHandler(ILogger<SceneStateHandler> log) : PacketHa
 					ctx.CharacterData.SendSavedCharacter(reporter);
 					// The full world-state backfill (block damage, trap
 					// consumptions, opened entities, trap layout, world items) —
-					// see HandlerContext.SendWorldStateToMember.
-					ctx.SendWorldStateToMember(reporter);
+					// owned by WorldEntryFanout.
+					_worldEntryFanout.Send(reporter);
 					// Start gate: everyone enters together — or, if the game
 					// already started, let this late joiner pass directly.
 					ctx.World.NotifyMemberInWorld(reporter);

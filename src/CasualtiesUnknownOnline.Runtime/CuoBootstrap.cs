@@ -186,6 +186,10 @@ public static class CuoBootstrap
 		services.AddSingleton<ChatChannel>(); // the text-chat channel (co-op communication)
 		services.AddSingleton<WorldService>();
 		services.AddSingleton<IWorldControl>(p => p.GetRequiredService<WorldService>());
+		// The world-entry backfill fan-out owns the ordered snapshot group +
+		// completion marker; it is injected into the handshake/scene handlers
+		// so HandlerContext no longer owns a concrete world-entry flow.
+		services.AddSingleton<WorldEntryFanout>();
 		// Text-chat domain: the bounded recent-message buffer + send path (no
 		// pump — it only reacts to the world channel's receive event and session end).
 		services.AddSingleton<ChatService>();

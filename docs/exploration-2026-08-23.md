@@ -197,20 +197,35 @@ sync model.
   both dispatcher and receiver, with fail-closed behavior for unregistered
   messages.
 
-### 3.3 `HandlerContext` god-object — MEDIUM
+### 3.3 `HandlerContext` god-object — MEDIUM (partially addressed)
 
-- `HandlerContext` injects many control-plane services and also owns
-  world-entry state fan-out. This makes handlers depend on an implicit global
-  service surface and makes new domains more expensive to add.
+> **Status 2026-08-23: world-entry fan-out moved** — `HandlerContext` no
+> longer owns `SendWorldStateToMember`; that flow lives in `WorldEntryFanout`
+> (see §3.4). The remaining god-object concern is the still-broad
+> per-message control plane; narrowing it to per-domain handler dependencies is
+> still open.
+
+- `HandlerContext` injects many control-plane services and also owned
+  world-entry state fan-out.
 - Proposed: narrow handler dependencies to per-domain interfaces and move
   world-entry fan-out into a dedicated service.
+- **Moved**: `WorldEntryFanout` now owns the world-entry snapshot group +
+  completion marker; `SceneStateHandler` / `HandshakeHandler` depend on it
+  directly.
 
-### 3.4 World-entry snapshot completion semantics — MEDIUM
+### 3.4 World-entry snapshot completion semantics — CLOSED (2026-08-23)
 
-- Reconnect/late-join currently sends several independent snapshot messages with
+> **Status 2026-08-23: CLOSED** — the world-entry fan-out now sends an
+> explicit `WorldSnapshotComplete` (NetMsg 110, ProtocolVersion 38) after the
+> full snapshot group. The receiver raises `WorldSnapshotCompleteReceived`, so
+> a full authoritative backfill is distinguishable from a partial best-effort
+> state. See `docs/selfchecks/world-entry-completion-selfcheck.md` and
+> `docs/tech-decisions.md` #64.
+
+- Reconnect/late-join used to send several independent snapshot messages with
   no explicit "complete world-entry snapshot set" signal.
-- Proposed: a completion marker (or batched snapshot message) so receivers can
-  distinguish a full world state from partial-best-effort state.
+- Original proposal: a completion marker (or batched snapshot message) so
+  receivers can distinguish a full world state from partial-best-effort state.
 
 ### 3.5 GameAdapter testability / concrete service dependencies — MEDIUM
 

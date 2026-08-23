@@ -33,6 +33,22 @@ public sealed partial class WorldService
 
 	public void FireWorldJoinReceived(bool isTutorial) => WorldJoinReceived?.Invoke(isTutorial);
 
+	/// <summary>Guest: the host's world-entry snapshot-complete marker arrived — the full snapshot group has been received.</summary>
+	public event Action? WorldSnapshotCompleteReceived;
+
+	public void FireWorldSnapshotCompleteReceived() => WorldSnapshotCompleteReceived?.Invoke();
+
+	/// <summary>Host only: send the world-entry snapshot-complete marker after the whole snapshot group.</summary>
+	public void SendWorldSnapshotComplete(ulong targetSteamId)
+	{
+		if (_session.Role != SessionRole.Host || targetSteamId == 0)
+		{
+			return;
+		}
+
+		_sender.Send(targetSteamId, NetMsg.WorldSnapshotComplete, new WorldSnapshotCompleteMsg());
+	}
+
 	/// <summary>Guest: the host's authoritative block-state snapshot arrived (world entry).</summary>
 	public event Action<IReadOnlyList<DamagedBlock>>? BlockStateReceived;
 

@@ -38,6 +38,7 @@ public class Plugin : BaseUnityPlugin
 	private IHostBanService _hostBan = null!;
 	private IHostRules _hostRules = null!;
 	private ILocalizationService _localization = null!;
+	private HostRulesConfigEditor _rulesEditor = null!;
 	private EntitySyncService _entities = null!;
 	private RemoteVitalsService _remoteVitals = null!;
 	private RemoteInventoryService _remoteInventory = null!;
@@ -107,6 +108,7 @@ public class Plugin : BaseUnityPlugin
 			_hostBan = _services.GetRequiredService<IHostBanService>();
 			_hostRules = _services.GetRequiredService<IHostRules>();
 			_localization = _services.GetRequiredService<ILocalizationService>();
+			_rulesEditor = _services.GetRequiredService<HostRulesConfigEditor>();
 			_entities = _services.GetRequiredService<EntitySyncService>();
 			_remoteVitals = _services.GetRequiredService<RemoteVitalsService>();
 			_remoteInventory = _services.GetRequiredService<RemoteInventoryService>();
@@ -121,6 +123,7 @@ public class Plugin : BaseUnityPlugin
 				// use — one lobby-switch policy, two entry points.
 				JoinLobby = TryJoinLobbyFromUi,
 				CreateLobby = TryCreateLobbyFromUi,
+				LeaveLobby = TryLeaveLobbyFromUi,
 				TakeItem = TryTakeItemFromRemote,
 				CarryRemote = TryCarryRemoteFromUi,
 				DropCarried = TryDropCarryFromUi,
@@ -357,6 +360,18 @@ public class Plugin : BaseUnityPlugin
 		return true;
 	}
 
+	/// <summary>Online UI Leave Lobby / Close Room path.</summary>
+	private bool TryLeaveLobbyFromUi()
+	{
+		if (!EnsureSteamReady(_steam))
+		{
+			return false;
+		}
+
+		_steam.LeaveLobby();
+		return true;
+	}
+
 	/// <summary>Online UI Take button path — forward to the host-authoritative player-interaction domain (guests send the request; the host handles it locally).</summary>
 	private bool TryTakeItemFromRemote(ulong ownerSteamId, ulong itemInstanceId)
 	{
@@ -467,7 +482,7 @@ public class Plugin : BaseUnityPlugin
 			return; // the HUD is hidden behind the gate overlay
 		}
 
-		_onlineUi.Draw(_steam, _session, _entities, _remoteVitals, _remoteInventory, _playerInteraction, _chat, _hostBan, _hostRules, _adapter, _localization, _lastJoinError);
+		_onlineUi.Draw(_steam, _session, _entities, _remoteVitals, _remoteInventory, _playerInteraction, _chat, _hostBan, _hostRules, _adapter, _localization, _rulesEditor, _lastJoinError);
 		ModUiDrawing.DrawAll(_modUiControl, e => _log.LogError(e, "Mod UI window threw while drawing."));
 	}
 

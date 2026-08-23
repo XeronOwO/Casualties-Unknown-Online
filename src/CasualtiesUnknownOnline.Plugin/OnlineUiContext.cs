@@ -39,6 +39,8 @@ internal sealed class OnlineUiContext
 
 	internal ILocalizationService Localization = null!;
 
+	internal HostRulesConfigEditor? RulesEditor;
+
 	internal IGameAdapter? Adapter;
 
 	internal string? LastJoinError;
@@ -48,6 +50,8 @@ internal sealed class OnlineUiContext
 	internal Func<string, bool>? JoinLobby;
 
 	internal Func<bool>? CreateLobby;
+
+	internal Func<bool>? LeaveLobby;
 
 	internal Func<ulong, ulong, bool>? TakeItem;
 

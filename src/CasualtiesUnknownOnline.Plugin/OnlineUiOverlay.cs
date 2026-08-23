@@ -28,6 +28,9 @@ internal sealed class OnlineUiOverlay
 	/// <summary>Invoked when the user clicks Create Lobby.</summary>
 	internal Func<bool>? CreateLobby;
 
+	/// <summary>Invoked when the user clicks Leave Lobby / Close Room.</summary>
+	internal Func<bool>? LeaveLobby;
+
 	/// <summary>Invoked when the user clicks Take on one of a remote player's inventory lines.</summary>
 	internal Func<ulong, ulong, bool>? TakeItem;
 
@@ -79,6 +82,7 @@ internal sealed class OnlineUiOverlay
 		IHostRules hostRules,
 		IGameAdapter? adapter,
 		ILocalizationService localization,
+		HostRulesConfigEditor? rulesEditor,
 		string? lastJoinError)
 	{
 		var ctx = new OnlineUiContext
@@ -93,11 +97,13 @@ internal sealed class OnlineUiOverlay
 			HostBan = hostBan,
 			HostRules = hostRules,
 			Localization = localization,
+			RulesEditor = rulesEditor,
 			Adapter = adapter,
 			LastJoinError = lastJoinError,
 			State = _window.State,
 			JoinLobby = JoinLobby,
 			CreateLobby = CreateLobby,
+			LeaveLobby = LeaveLobby,
 			TakeItem = TakeItem,
 			CarryRemote = CarryRemote,
 			DropCarried = DropCarried,

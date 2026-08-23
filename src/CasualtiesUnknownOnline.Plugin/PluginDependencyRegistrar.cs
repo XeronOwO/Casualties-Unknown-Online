@@ -104,6 +104,20 @@ internal static class PluginDependencyRegistrar
 				() => new LocalizationOptions { Language = language.Value },
 				language.Definition)));
 
+		// Host-rule write path for the Online UI Admin page. The runtime reads
+		// through IOptionsMonitor; this editor holds the ConfigEntry references
+		// so the UI can toggle and persist the same entries.
+		services.AddSingleton(new HostRulesConfigEditor(
+			config,
+			pvpEnabled,
+			autoContinue,
+			allowLateJoin,
+			permadeath,
+			reviveFromTrader,
+			reviveOnNextLevel,
+			keepInventory,
+			keepSkills));
+
 		// Character-data mapping (Mapster). Mapster 6.0.0 core ships
 		// IMapper/Mapper — registered directly, no DI package needed
 		// (Mapster.DependencyInjection 10.x requires net6+).

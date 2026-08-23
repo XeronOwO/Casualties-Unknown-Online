@@ -2328,3 +2328,23 @@ through to game menu/world controls behind it.
   1293 green, real-game launch smoke no CUO exception.
 
 See `docs/selfchecks/ui-modal-input-blocker-selfcheck.md`.
+
+## 81. Lobby leave / close + host rules in-game editor (no protocol bump)
+
+The Online UI had no explicit disconnect/close-room button and the Admin page
+was read-only for host rules. This entry adds both.
+
+- **Leave/close** — `SteamService.LeaveLobby()` exposes the existing
+  leave-current-lobby path; the Online Lobby page adds **Leave Lobby** for
+  guests and **Close Room** for hosts. Session teardown still rides the
+  existing `LobbyLeft` event.
+- **Host rules editor** — `HostRulesConfigEditor` (Plugin) owns the BepInEx
+  `ConfigEntry<bool>` references for PvP, auto-continue, allow late join,
+  keep inventory, revive-from-trader, revive-on-next-level and permadeath.
+  Admin page renders toggles for the host and writes through the same config
+  entries the runtime `IOptionsMonitor` watches, so the change applies
+  immediately.
+- **Tests/gates** — build 0 warnings/errors, architecture pass, full suite
+  green, real-game launch smoke no CUO exception.
+
+See `docs/selfchecks/lobby-leave-host-rules-editor-selfcheck.md`.

@@ -1844,8 +1844,8 @@ debt explicit instead of invisible.
   `PlayerInteractionService` (716), `ItemApplication` (630) remain recorded in
   `docs/architecture-debt.json` and are listed as the follow-up flattening
   item in `docs/backlog.md`. `PlayerInteractionService`, `ItemApplication`,
-  `EnemySyncCoordinator` and `WorldService` were flattened later in this cycle
-  (see #66/#67/#68/#69) and removed from the ledger.
+  `EnemySyncCoordinator`, `WorldService` and `ItemService` were flattened later
+  in this cycle (see #66/#67/#68/#69/#70) and removed from the ledger.
 
 No wire/protocol change. See `docs/selfchecks/partial-aware-gate-selfcheck.md`.
 
@@ -1972,3 +1972,35 @@ a thin facade plus two real top-level responsibility classes.
 
 No wire/protocol change. See
 `docs/selfchecks/world-service-split-selfcheck.md`.
+
+## 70. ItemService message-flow split — real top-level responsibilities (no protocol change)
+
+Backlog §3.1 listed `ItemService` (928 aggregate lines) as one of the
+remaining logical classes. This entry splits the item-domain coordinator into
+a facade plus two real top-level responsibility classes.
+
+- **Facade** — `ItemService` is now a 411-line normal class implementing
+  `IItemControl` / `IItemActionWorldAccess`. It keeps the authoritative
+  `WorldItemTable`, sub-service composition, application events, host-only
+  surfaces, crafting seams, traffic observation and direct player-interaction
+  forwarding.
+- **Message flow** — `ItemMessageFlowService` (312 lines) owns the
+  report/receive message-flow surface: spawn/cook/pickup/use/slot/drop/destroy
+  sends, wire receive events, block-drop registration, corrections and
+  action/snapshot receive forwarding.
+- **Pending picks** — `ItemPendingPickupArbiter` (233 lines) owns the
+  host-side pending-pickup queue and first-writer-wins settlement/expiry.
+- **Deleted partials** — `ItemService.PendingPickups.cs`,
+  `ItemService.ReportReceive.cs`, `ItemService.PlayerInteraction.cs` and
+  `ItemService.Traffic.cs` are removed.
+- **State ownership** — `WorldItemTable` and `ItemTrafficTracker` stay on the
+  facade; `PendingPickupQueue` moves with the arbiter.
+- **Event wiring** — the child classes receive callbacks that raise
+  `ItemSpawned` / `ItemPickedUp` / `ItemDropped` / `ItemDestroyed` /
+  `ItemCookedReceived` / `ItemRejected` on the facade.
+- **No behavior change** — all moved method bodies are verbatim.
+- **Debt ledger** — `ItemService` removed from
+  `docs/architecture-debt.json`.
+
+No wire/protocol change. See
+`docs/selfchecks/item-service-split-selfcheck.md`.

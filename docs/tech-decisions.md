@@ -2306,3 +2306,25 @@ Simplified Chinese without touching drawing code when adding a language.
   and the change event.
 
 See `docs/selfchecks/i18n-framework-selfcheck.md`.
+
+## 80. Online window modal input blocker (no protocol bump)
+
+The CUO Online window is IMGUI, so Unity's UGUI EventSystem does not know it
+covers the screen. Clicks on the window's non-control areas were falling
+through to game menu/world controls behind it.
+
+- **Input guard** — `OnlineMenuInputGuard` (GameAdapter) is told by the
+  Plugin through `IGameAdapter.SetOnlineUiModal` whether the Online window is
+  open. While open it disables every `AdaptiveButton` (those use raw
+  `Input.GetMouseButtonDown`, so UGUI raycast blocking alone is insufficient)
+  and adds transparent full-rect `Image` raycast blockers to active
+  screen-space canvases for standard UGUI buttons.
+- **Restore** — the guard preserves the captured `AdaptiveButton.enabled`
+  values, applies the guest menu-lock rules on restore, and destroys the
+  blocked canvas images when the window closes.
+- **Reference** — `UnityEngine.UIModule.dll` is added as an on-demand
+  GameAdapter reference for Canvas/RenderMode; `references/README.md` updated.
+- **Tests/gates** — build 0 warnings/errors, architecture pass, full suite
+  1293 green, real-game launch smoke no CUO exception.
+
+See `docs/selfchecks/ui-modal-input-blocker-selfcheck.md`.

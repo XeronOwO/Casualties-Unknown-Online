@@ -66,4 +66,12 @@ public interface IGameAdapter : IDisposable
 	/// trade gates and the revive result.
 	/// </summary>
 	bool TryRequestTraderRecruit(ulong targetSteamId);
+
+	/// <summary>
+	/// Tells the Game Adapter whether the CUO Online UI modal window is open.
+	/// While open, the adapter suppresses interaction with the game's
+	/// background UI (custom AdaptiveButton inputs and UGUI raycasts) so clicks
+	/// on the UI's non-control areas do not leak to the menu/world behind it.
+	/// </summary>
+	void SetOnlineUiModal(bool visible);
 }

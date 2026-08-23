@@ -65,6 +65,8 @@ internal sealed class OnlineUiOverlay
 
 	private string _chatInput = "";
 
+	internal bool IsWindowVisible => _window.State.Visible;
+
 	internal void Draw(
 		SteamService steam,
 		SessionService session,

@@ -28,6 +28,14 @@ public class RemoteItemPresentationTests
 		return (bool)method.Invoke(null, [data])!;
 	}
 
+	private static bool IsDynamiteFuseLit(CharacterItemMsg data)
+	{
+		var method = Presentation.GetMethod("IsDynamiteFuseLit",
+			BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
+			?? throw new InvalidOperationException("RemoteItemPresentation.IsDynamiteFuseLit not found.");
+		return (bool)method.Invoke(null, [data])!;
+	}
+
 	[Fact]
 	public void FiredFlag_PresentAndTrue_ReturnsTrue()
 	{
@@ -94,5 +102,83 @@ public class RemoteItemPresentationTests
 
 		Assert.False(IsGrapplingHookFired(data),
 			"a non-GrapplingHook component must not select the fired sprite.");
+	}
+
+	[Fact]
+	public void DynamiteFuse_PresentAndTrue_ReturnsTrue()
+	{
+		var data = new CharacterItemMsg
+		{
+			Components =
+			[
+				new ComponentStateMsg
+				{
+					TypeName = "CustomItemBehaviour",
+					Fields =
+					[
+						new ComponentFieldMsg { Name = "fuse", Kind = 3, BoolValue = true },
+					],
+				},
+			],
+		};
+
+		Assert.True(IsDynamiteFuseLit(data),
+			"a CustomItemBehaviour fuse=true must select the lit-fuse presentation.");
+	}
+
+	[Fact]
+	public void DynamiteFuse_PresentButFalse_ReturnsFalse()
+	{
+		var data = new CharacterItemMsg
+		{
+			Components =
+			[
+				new ComponentStateMsg
+				{
+					TypeName = "CustomItemBehaviour",
+					Fields =
+					[
+						new ComponentFieldMsg { Name = "fuse", Kind = 3, BoolValue = false },
+					],
+				},
+			],
+		};
+
+		Assert.False(IsDynamiteFuseLit(data),
+			"fuse=false must keep the unlit presentation.");
+	}
+
+	[Fact]
+	public void DynamiteFuse_MissingField_ReturnsFalse()
+	{
+		var data = new CharacterItemMsg
+		{
+			Components =
+			[
+				new ComponentStateMsg
+				{
+					TypeName = "CustomItemBehaviour",
+					Fields =
+					[
+						new ComponentFieldMsg { Name = "state", Kind = 2, IntValue = 0 },
+					],
+				},
+			],
+		};
+
+		Assert.False(IsDynamiteFuseLit(data),
+			"a CustomItemBehaviour without the fuse field must not present a lit fuse.");
+	}
+
+	[Fact]
+	public void Adapter_DeclaresDynamiteFuseAudioReplayMarker()
+	{
+		var type = GameAssemblyHost.Adapter.GetType(
+			"CasualtiesUnknownOnline.GameAdapter.Character.DynamiteFuseAudioReplay",
+			throwOnError: true)!;
+
+		var start = type.GetMethod("Start", BindingFlags.Instance | BindingFlags.NonPublic)
+			?? throw new InvalidOperationException("DynamiteFuseAudioReplay.Start not found.");
+		Assert.False(start.IsStatic);
 	}
 }

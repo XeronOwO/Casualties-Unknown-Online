@@ -247,12 +247,19 @@ internal static class ItemStateCodec
 			{
 				// CustomItemBehaviour.data is object[] — not a generic saveable
 				// field — but it carries persistent gameplay state (the
-				// liquidcentrifuge 60 s cooldown gates its use action). Give it
-				// an explicit wire face as a synthetic component field.
+				// liquidcentrifuge 60 s cooldown gates its use action, and the
+				// dynamite lit-fuse latch drives the pre-explosion visual).
+				// Give each an explicit wire face as a synthetic component field.
 				var dataState = CustomItemDataState.CaptureLiquidCentrifugeCooldown(item.id, custom.data);
 				if (dataState != null)
 				{
 					fields.Add(dataState);
+				}
+
+				var dynamiteFuse = CustomItemDataState.CaptureDynamiteFuse(item.id, custom.data);
+				if (dynamiteFuse != null)
+				{
+					fields.Add(dynamiteFuse);
 				}
 			}
 
@@ -362,6 +369,17 @@ internal static class ItemStateCodec
 					}
 
 					restore.Cooldown = field.FloatValue;
+					continue;
+				}
+
+				if (comp is CustomItemBehaviour dynamicCustom
+					&& CustomItemDataState.IsDynamiteFuseField(item.id, field))
+				{
+					// No Start-time reset for dynamite (only liquidcentrifuge
+					// initializes data), so setting the array directly is enough
+					// for the remote clone to show the lit fuse.
+					dynamicCustom.data = CustomItemDataState.WithDynamiteFuse(
+						item.id, dynamicCustom.data, field.BoolValue);
 					continue;
 				}
 

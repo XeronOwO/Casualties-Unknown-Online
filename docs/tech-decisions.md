@@ -970,9 +970,10 @@ sync the unsupported `object[]` payload:
   drops a reliable-channel retransmission on the host and on replaying guests
   (an item can detonate at most once).
 - **ProtocolVersion 29→30** because a v29 peer would not understand NetMsg 105.
-- **Accepted residual**: the 5-second lit-fuse visual (child sprite + fuse
-  audio) on remote clones stays local-only — short-lived presentation, not
-  persistent state (same family as the crystal-unstable pre-explosion ticking).
+- **Accepted residual (superseded by #53)**: the 5-second lit-fuse visual
+  (child sprite + fuse audio) on remote clones was initially left local-only —
+  short-lived presentation, not persistent state (same family as the
+  crystal-unstable pre-explosion ticking).
 - **Existing channels unchanged**: terrain craters, building damage, item
   condition/velocity destruction still ride `BlockPlaced`/`BlockDamaged`/
   `BuildingEntityDamaged`/item lifecycle/keyframe channels; this event adds the
@@ -1376,10 +1377,47 @@ not show the countdown sprite.
   is stable regardless of capture timing.
 - **Remaining payload entries stay non-synced by design**: jetpack throttle is
   a frame-level transient; dynamite detonation already rides
-  `DynamiteExplosionMsg`, and its 5-second lit-fuse visual remains local-only
-  presentation.
+  `DynamiteExplosionMsg`, and its 5-second lit-fuse visual is now closed in #53
+  (it rides the same synthetic component-field pattern).
 
 Tests: `CustomItemDataStateTests` (9 L0 reflective tests: capture/restore
 helper shape, default-zero capture, field matching, array creation/mutation,
 game-field contract, marker contract); full suite **1181 green** (was 1172).
 See `docs/selfchecks/custom-item-data-state-selfcheck.md`.
+
+## 53. Dynamite lit-fuse presentation — synthetic fuse field rides item state (no protocol bump)
+
+The last item-domain accepted presentation residual was the 5-second dynamite
+lit-fuse visual/audio on remote clones. The native use action only enables a
+child sprite and plays the item's AudioSource on the trigger side
+(Item.cs:6678-6680); peers saw the dynamite unlit until the detonation message
+arrived.
+
+- **Explicit wire face, not a new wire message**: `CustomItemDataState` gains a
+  synthetic `fuse` component field (bool) for `dynamite` inside the existing
+  `CustomItemBehaviour` component digest, exactly like the liquidcentrifuge
+  `cooldown` field. `ItemStateCodec` captures/restores it on every existing
+  item-state path — carried sync, world correction, character snapshots,
+  spawn/drop and reconnect restore. No new `NetMsg`, no direction row,
+  `ProtocolVersion` stays 32.
+- **Deterministic capture**: for a dynamite, capture always emits the `fuse`
+  field (false when the native use action has not run), so the wire face is
+  stable regardless of capture timing.
+- **Clone/world presentation**: `RemoteItemPresentation.Apply` reads the
+  synthetic field and enables the clone's child `SpriteRenderer` for the lit
+  fuse; `ItemApplication.ApplyAuthoritativeState` calls the same
+  `ApplyDynamiteFuse` for corrected world-item copies. A new
+  `DynamiteFuseAudioReplay` marker plays the clone's fuse AudioSource once and
+  persists for the fuse lifetime, so repeated 1 Hz snapshot refreshes never
+  re-trigger the audio.
+- **Detonation unchanged**: the existing `DynamiteExplosionMsg` (NetMsg 105)
+  still carries the one-shot detonation; this slice only makes the preceding
+  fuse presentation visible/audible on remote clones.
+- **No protocol change**: synthetic component fields already ride
+  `ComponentStateMsg`, so v32 peers stay compatible.
+
+Tests: `CustomItemDataStateTests` gained 6 dynamite-fuse L0 reflective tests
+(capture true/false/null, field matching, array creation/mutation, game-field
+contract) and `RemoteItemPresentationTests` gained dynamite-fuse decision
+tests plus the audio-marker contract row; full suite **1190 green** (was 1181).
+See `docs/selfchecks/dynamite-fuse-presentation-selfcheck.md`.

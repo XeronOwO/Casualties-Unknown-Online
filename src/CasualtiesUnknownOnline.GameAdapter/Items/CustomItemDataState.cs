@@ -11,15 +11,25 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 /// facts an explicit synthetic component-field face so they travel with the
 /// existing item-state paths instead of being silently dropped.
 ///
-/// Current state: <c>liquidcentrifuge</c> cooldown — <c>data[0]</c> is a float
+/// Current states:
+/// <list type="bullet">
+/// <item><c>liquidcentrifuge</c> cooldown — <c>data[0]</c> is a float
 /// seconds-remaining gate for the use action (Item.cs:5667-5689). It must ride
 /// item state or a transferred/reconnected centrifuge immediately becomes usable
-/// again on the receiving side.
+/// again on the receiving side.</item>
+/// <item><c>dynamite</c> lit-fuse latch — <c>data[0]</c> is a bool set by the
+/// use action before the 5 s delayed detonation (Item.cs:6671-6682). It rides
+/// item state so a remote clone can show the owner's lit-fuse sprite instead of
+/// waiting for the explosion moment.</item>
+/// </list>
 /// </summary>
 internal static class CustomItemDataState
 {
 	internal const string LiquidCentrifugeItemId = "liquidcentrifuge";
 	internal const string CooldownFieldName = "cooldown";
+
+	internal const string DynamiteItemId = "dynamite";
+	internal const string DynamiteFuseFieldName = "fuse";
 
 	internal static ComponentFieldMsg? CaptureLiquidCentrifugeCooldown(string itemId, object[]? data)
 	{
@@ -47,6 +57,45 @@ internal static class CustomItemDataState
 	internal static object[] WithLiquidCentrifugeCooldown(string itemId, object[]? data, float value)
 	{
 		if (itemId != LiquidCentrifugeItemId)
+		{
+			return data ?? [];
+		}
+
+		if (data is { Length: > 0 })
+		{
+			data[0] = value;
+			return data;
+		}
+
+		return new object[] { value };
+	}
+
+	internal static ComponentFieldMsg? CaptureDynamiteFuse(string itemId, object[]? data)
+	{
+		if (itemId != DynamiteItemId)
+		{
+			return null;
+		}
+
+		// The native use action sets data[0] = true; emit the synthetic bool
+		// even before use so every capture has the same wire face (false).
+		var value = data is { Length: > 0 } && data[0] is bool b && b;
+		return new ComponentFieldMsg
+		{
+			Name = DynamiteFuseFieldName,
+			Kind = SaveableFieldKind.Bool,
+			BoolValue = value,
+		};
+	}
+
+	internal static bool IsDynamiteFuseField(string itemId, ComponentFieldMsg field) =>
+		itemId == DynamiteItemId
+			&& field.Name == DynamiteFuseFieldName
+			&& field.Kind == SaveableFieldKind.Bool;
+
+	internal static object[] WithDynamiteFuse(string itemId, object[]? data, bool value)
+	{
+		if (itemId != DynamiteItemId)
 		{
 			return data ?? [];
 		}

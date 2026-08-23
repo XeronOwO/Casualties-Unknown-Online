@@ -34,8 +34,29 @@ public class CustomItemDataStateTests
 		"WithLiquidCentrifugeCooldown", BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
 		?? throw new InvalidOperationException("CustomItemDataState.WithLiquidCentrifugeCooldown not found.");
 
+	private static readonly MethodInfo CaptureFuse = StateType.GetMethod(
+		"CaptureDynamiteFuse", BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
+		?? throw new InvalidOperationException("CustomItemDataState.CaptureDynamiteFuse not found.");
+
+	private static readonly MethodInfo IsFuseField = StateType.GetMethod(
+		"IsDynamiteFuseField", BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
+		?? throw new InvalidOperationException("CustomItemDataState.IsDynamiteFuseField not found.");
+
+	private static readonly MethodInfo WithFuse = StateType.GetMethod(
+		"WithDynamiteFuse", BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
+		?? throw new InvalidOperationException("CustomItemDataState.WithDynamiteFuse not found.");
+
 	private static ComponentFieldMsg? CaptureField(string itemId, object[]? data) =>
 		(ComponentFieldMsg?)Capture.Invoke(null, [itemId, data]);
+
+	private static ComponentFieldMsg? CaptureFuseField(string itemId, object[]? data) =>
+		(ComponentFieldMsg?)CaptureFuse.Invoke(null, [itemId, data]);
+
+	private static bool IsFuse(string itemId, ComponentFieldMsg field) =>
+		(bool)IsFuseField.Invoke(null, [itemId, field])!;
+
+	private static object[] SetFuse(string itemId, object[]? data, bool value) =>
+		(object[])WithFuse.Invoke(null, [itemId, data, value])!;
 
 	private static bool IsCooldownField(string itemId, ComponentFieldMsg field) =>
 		(bool)IsField.Invoke(null, [itemId, field])!;
@@ -105,6 +126,68 @@ public class CustomItemDataStateTests
 
 		Assert.Same(data, result);
 		Assert.Equal(15f, (float)data[0]);
+	}
+
+	[Fact]
+	public void Capture_DynamiteFuse_ReturnsSyntheticBoolField()
+	{
+		var field = CaptureFuseField("dynamite", new object[] { true });
+
+		Assert.NotNull(field);
+		Assert.Equal("fuse", field!.Name);
+		Assert.Equal(SaveableFieldKind.Bool, field.Kind);
+		Assert.True(field.BoolValue);
+	}
+
+	[Fact]
+	public void Capture_NonDynamite_ReturnsNull() =>
+		Assert.Null(CaptureFuseField("liquidcentrifuge", new object[] { true }));
+
+	[Fact]
+	public void Capture_DynamiteMissingOrFalse_UsesFalse()
+	{
+		var fromNull = CaptureFuseField("dynamite", null);
+		var fromEmpty = CaptureFuseField("dynamite", []);
+		var fromFalse = CaptureFuseField("dynamite", new object[] { false });
+
+		Assert.NotNull(fromNull);
+		Assert.False(fromNull!.BoolValue);
+		Assert.NotNull(fromEmpty);
+		Assert.False(fromEmpty!.BoolValue);
+		Assert.NotNull(fromFalse);
+		Assert.False(fromFalse!.BoolValue);
+	}
+
+	[Fact]
+	public void IsFuseField_OnlyMatchesDynamiteBoolFuse()
+	{
+		var match = new ComponentFieldMsg { Name = "fuse", Kind = SaveableFieldKind.Bool, BoolValue = true };
+
+		Assert.True(IsFuse("dynamite", match));
+		Assert.False(IsFuse("jetpack", match));
+		Assert.False(IsFuse("dynamite",
+			new ComponentFieldMsg { Name = "other", Kind = SaveableFieldKind.Bool }));
+		Assert.False(IsFuse("dynamite",
+			new ComponentFieldMsg { Name = "fuse", Kind = SaveableFieldKind.Int }));
+	}
+
+	[Fact]
+	public void With_DynamiteFuseMissingData_CreatesArrayAndSetsValue()
+	{
+		var data = SetFuse("dynamite", null, true);
+
+		Assert.Single(data);
+		Assert.Equal(true, data[0]);
+	}
+
+	[Fact]
+	public void With_DynamiteFuseExistingData_MutatesTheSameArray()
+	{
+		var data = new object[] { false };
+		var result = SetFuse("dynamite", data, true);
+
+		Assert.Same(data, result);
+		Assert.Equal(true, data[0]);
 	}
 
 	[Fact]

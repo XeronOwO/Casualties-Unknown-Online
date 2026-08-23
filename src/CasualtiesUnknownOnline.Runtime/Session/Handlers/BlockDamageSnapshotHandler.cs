@@ -10,7 +10,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// deterministically-generated copy — the same semantic as the live
 /// BlockDamaged relay, but for damage accumulated before the member joined.
 /// </summary>
-[PacketHandler(NetMsg.BlockDamageSnapshot)]
+[PacketHandler(NetMsg.BlockDamageSnapshot, NetMessageDirection.HostToGuest)]
 public sealed class BlockDamageSnapshotHandler(ILogger<BlockDamageSnapshotHandler> log) : PacketHandlerBase<BlockDamageSnapshotMsg>
 {
 	private readonly ILogger<BlockDamageSnapshotHandler> _log = log;

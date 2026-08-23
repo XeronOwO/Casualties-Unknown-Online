@@ -10,7 +10,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// guests, source excluded), host → guest as a broadcast relay. The item state
 /// travels with the message so every receiver can materialize the object.
 /// </summary>
-[PacketHandler(NetMsg.ItemSpawn)]
+[PacketHandler(NetMsg.ItemSpawn, NetMessageDirection.Bidirectional)]
 public sealed class ItemSpawnHandler(ILogger<ItemSpawnHandler> log) : PacketHandlerBase<ItemSpawnMsg>
 {
 	private readonly ILogger<ItemSpawnHandler> _log = log;

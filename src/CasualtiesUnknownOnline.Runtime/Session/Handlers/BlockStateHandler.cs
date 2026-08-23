@@ -12,7 +12,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// generation finished — the snapshot is only sent after the guest reported
 /// InWorld (which requires generation complete), so ordering is guaranteed.
 /// </summary>
-[PacketHandler(NetMsg.WorldBlockState)]
+[PacketHandler(NetMsg.WorldBlockState, NetMessageDirection.HostToGuest)]
 public sealed class BlockStateHandler(ILogger<BlockStateHandler> log) : PacketHandlerBase<BlockStateMsg>
 {
 	private readonly ILogger<BlockStateHandler> _log = log;

@@ -8,7 +8,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// announcement (another member joined — upsert with its spawn anchor).
 /// The entity domain owns both paths (ProcessPlayerJoin).
 /// </summary>
-[PacketHandler(NetMsg.PlayerJoin)]
+[PacketHandler(NetMsg.PlayerJoin, NetMessageDirection.HostToGuest)]
 public sealed class PlayerJoinHandler : PacketHandlerBase<PlayerJoinMsg>
 {
 	protected override void Handle(ulong sender, PlayerJoinMsg msg, HandlerContext ctx)

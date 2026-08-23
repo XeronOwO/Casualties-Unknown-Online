@@ -10,7 +10,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// source excluded), host → guest as a broadcast relay. Receivers without the
 /// item materialize it at the carried position.
 /// </summary>
-[PacketHandler(NetMsg.ItemDrop)]
+[PacketHandler(NetMsg.ItemDrop, NetMessageDirection.Bidirectional)]
 public sealed class ItemDropHandler(ILogger<ItemDropHandler> log) : PacketHandlerBase<ItemDropMsg>
 {
 	private readonly ILogger<ItemDropHandler> _log = log;

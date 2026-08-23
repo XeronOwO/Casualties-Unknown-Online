@@ -10,7 +10,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// which is what rolls the host-side entity drops — and relays to the other
 /// members (the source excluded). Guest: the host's broadcast — apply it.
 /// </summary>
-[PacketHandler(NetMsg.BuildingEntityOpened)]
+[PacketHandler(NetMsg.BuildingEntityOpened, NetMessageDirection.Bidirectional)]
 public sealed class BuildingEntityOpenedHandler(ILogger<BuildingEntityOpenedHandler> log)
 	: PacketHandlerBase<BuildingEntityOpenedMsg>
 {

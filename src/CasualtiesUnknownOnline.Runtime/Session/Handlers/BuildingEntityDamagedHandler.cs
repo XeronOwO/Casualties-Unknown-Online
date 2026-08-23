@@ -11,7 +11,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// other members (the source excluded, it already applied locally). Guest:
 /// the host's broadcast — apply it.
 /// </summary>
-[PacketHandler(NetMsg.BuildingEntityDamaged)]
+[PacketHandler(NetMsg.BuildingEntityDamaged, NetMessageDirection.Bidirectional)]
 public sealed class BuildingEntityDamagedHandler(ILogger<BuildingEntityDamagedHandler> log)
 	: PacketHandlerBase<BuildingEntityDamagedMsg>
 {

@@ -10,7 +10,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// applies the full overwrite onto its local trader (stock + sync fields, UI
 /// refresh, the rejected-purchase rollback).
 /// </summary>
-[PacketHandler(NetMsg.TraderState)]
+[PacketHandler(NetMsg.TraderState, NetMessageDirection.HostToGuest)]
 public sealed class TraderStateHandler(ILogger<TraderStateHandler> log)
 	: PacketHandlerBase<TraderStateMsg>
 {

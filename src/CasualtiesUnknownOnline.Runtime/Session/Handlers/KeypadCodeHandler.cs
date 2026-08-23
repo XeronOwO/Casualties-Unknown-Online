@@ -8,7 +8,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// (the game lazy-generates per side otherwise, giving every side its own
 /// code). Host → guest only (direction-validated by PacketReceiver).
 /// </summary>
-[PacketHandler(NetMsg.KeypadCode)]
+[PacketHandler(NetMsg.KeypadCode, NetMessageDirection.HostToGuest)]
 public sealed class KeypadCodeHandler : PacketHandlerBase<KeypadCodeMsg>
 {
 	protected override void Handle(ulong sender, KeypadCodeMsg msg, HandlerContext ctx) =>

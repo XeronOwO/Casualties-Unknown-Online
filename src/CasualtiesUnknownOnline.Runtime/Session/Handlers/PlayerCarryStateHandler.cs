@@ -8,7 +8,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// every side updates its local carry mirror and the Game Adapter sets/clears
 /// the carried-body driver.
 /// </summary>
-[PacketHandler(NetMsg.PlayerCarryState)]
+[PacketHandler(NetMsg.PlayerCarryState, NetMessageDirection.HostToGuest)]
 internal sealed class PlayerCarryStateHandler : PacketHandlerBase<PlayerCarryStateMsg>
 {
 	protected override void Handle(ulong sender, PlayerCarryStateMsg msg, HandlerContext ctx) =>

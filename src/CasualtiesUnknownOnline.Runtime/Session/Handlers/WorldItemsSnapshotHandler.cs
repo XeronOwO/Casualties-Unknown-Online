@@ -11,7 +11,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// local copy (world items by position, carried items by slot), materialize the
 /// host's version or destroy a host-unknown local copy.
 /// </summary>
-[PacketHandler(NetMsg.WorldItemsSnapshot)]
+[PacketHandler(NetMsg.WorldItemsSnapshot, NetMessageDirection.HostToGuest)]
 public sealed class WorldItemsSnapshotHandler(ILogger<WorldItemsSnapshotHandler> log) : PacketHandlerBase<WorldItemsSnapshotMsg>
 {
 	private readonly ILogger<WorldItemsSnapshotHandler> _log = log;

@@ -42,7 +42,14 @@ public sealed class PacketReceiver : IDisposable
 
 		var msgId = (NetMsg)frame[0];
 		_traffic.RecordReceive(sender, msgId, frame.Length);
-		if (!IsValidDirection(msgId))
+		if (!NetMessageRegistry.TryGet(msgId, out var metadata))
+		{
+			_log.LogWarning("Dropping {Raw} from {Sender}: unregistered message id.",
+				frame[0], sender);
+			return;
+		}
+
+		if (!metadata.IsValidFor(_session.Role))
 		{
 			_log.LogWarning("Dropping {Msg} from {Sender}: illegal direction for role {Role}.",
 				msgId, sender, _session.Role);
@@ -55,44 +62,12 @@ public sealed class PacketReceiver : IDisposable
 	/// <summary>
 	/// One-way messages must arrive at the role they were sent to. Anything
 	/// else means a misbehaving peer or a stale message from a previous
-	/// session — drop it instead of processing. Internal so the test suite
-	/// locks the direction table (CUO.Tests via InternalsVisibleTo).
+	/// session — drop it instead of processing. Unregistered message ids are
+	/// also invalid (fail closed). Internal so the test suite locks the
+	/// direction table (CUO.Tests via InternalsVisibleTo).
 	/// </summary>
-	internal bool IsValidDirection(NetMsg msgId) => msgId switch
-	{
-		NetMsg.Handshake or NetMsg.PlayerStateReport or NetMsg.HandshakeAckAck
-			or NetMsg.TraderAction or NetMsg.ItemUse or NetMsg.ItemSlot or NetMsg.CarriedInventory
-			or NetMsg.ItemContainerContent or NetMsg.ModCommandRequest or NetMsg.WorldTimeRequest
-			or NetMsg.PlayerInventoryTakeRequest
-			or NetMsg.PlayerCarryStartRequest or NetMsg.PlayerCarryStopRequest
-			or NetMsg.PlayerHealRequest
-			or NetMsg.TraderRecruitRequest
-			=> _session.Role == SessionRole.Host,
-		NetMsg.HandshakeAck or NetMsg.WorldStartParams or NetMsg.WorldJoin or NetMsg.WorldReady
-			or NetMsg.PlayerJoin or NetMsg.PlayerLeave or NetMsg.PlayerState or NetMsg.WorldBlockState
-			or NetMsg.ItemReject or NetMsg.ItemSnapshot or NetMsg.HostCharacterData or NetMsg.EarthquakeStart
-			or NetMsg.ItemMove or NetMsg.KeypadCode or NetMsg.TrapStateSnapshot or NetMsg.GeyserStateSnapshot
-			or NetMsg.FluidRegion or NetMsg.TraderState
-			or NetMsg.ItemCorrection or NetMsg.WorldItemsSnapshot or NetMsg.ItemCarriedSync
-			or NetMsg.OpenedEntitiesSnapshot or NetMsg.TrapLayoutSnapshot
-			or NetMsg.BuildingEntityHealthSnapshot or NetMsg.BlockDamageSnapshot
-			or NetMsg.EnemyState or NetMsg.EnemySnapshot or NetMsg.EnemyAttack
-			or NetMsg.ModCommandResult or NetMsg.WorldTime or NetMsg.ItemCook
-			or NetMsg.FluidPresentation or NetMsg.PlayerInventoryTransfer
-			or NetMsg.PlayerCarryState
-			or NetMsg.PlayerHealResult
-			or NetMsg.TutorialClawState
-			or NetMsg.RadiationLineState
-			or NetMsg.TraderRecruitResult
-			=> _session.Role == SessionRole.Guest,
-		// ModCommandRequest is guest→host only; ModCommandResult is host→guest only.
-		// Ping/Pong/SceneState/BlockDamaged/CharacterData/ItemSpawn/ItemPickup/
-		// ItemDrop/ItemDestroy/ItemIdWatermark/EntityEvent/EntitySpawned/
-		// FluidInteraction/BlockPlaced/BuildingEntityDamaged/BuildingEntityOpened/
-		// SpeechMsg: bidirectional — report up (guest → host) and broadcast down
-		// (host → guest) share one message id.
-		_ => true,
-	};
+	internal bool IsValidDirection(NetMsg msgId) =>
+		NetMessageRegistry.TryGet(msgId, out var metadata) && metadata.IsValidFor(_session.Role);
 
 	public void Dispose() => _transport.MessageReceived -= OnTransportMessage;
 }

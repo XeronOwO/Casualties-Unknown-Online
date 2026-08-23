@@ -8,7 +8,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// validates the carryable state, records the one carrier/one carried relation
 /// and broadcasts the authoritative carry state.
 /// </summary>
-[PacketHandler(NetMsg.PlayerCarryStartRequest)]
+[PacketHandler(NetMsg.PlayerCarryStartRequest, NetMessageDirection.GuestToHost)]
 internal sealed class PlayerCarryStartRequestHandler : PacketHandlerBase<PlayerCarryStartRequestMsg>
 {
 	protected override void Handle(ulong sender, PlayerCarryStartRequestMsg msg, HandlerContext ctx) =>

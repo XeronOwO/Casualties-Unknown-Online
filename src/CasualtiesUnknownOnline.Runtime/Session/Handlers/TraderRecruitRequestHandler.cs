@@ -12,7 +12,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// vanilla game method for the acting side to run, so the host decides the
 /// entire outcome.
 /// </summary>
-[PacketHandler(NetMsg.TraderRecruitRequest)]
+[PacketHandler(NetMsg.TraderRecruitRequest, NetMessageDirection.GuestToHost)]
 public sealed class TraderRecruitRequestHandler(ILogger<TraderRecruitRequestHandler> log)
 	: PacketHandlerBase<TraderRecruitRequestMsg>
 {

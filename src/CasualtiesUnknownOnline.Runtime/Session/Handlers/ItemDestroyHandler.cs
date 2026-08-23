@@ -9,7 +9,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// report (the host drops it from the authoritative table and relays, source
 /// excluded), host → guest as a broadcast relay.
 /// </summary>
-[PacketHandler(NetMsg.ItemDestroy)]
+[PacketHandler(NetMsg.ItemDestroy, NetMessageDirection.Bidirectional)]
 public sealed class ItemDestroyHandler(ILogger<ItemDestroyHandler> log) : PacketHandlerBase<ItemDestroyMsg>
 {
 	private readonly ILogger<ItemDestroyHandler> _log = log;

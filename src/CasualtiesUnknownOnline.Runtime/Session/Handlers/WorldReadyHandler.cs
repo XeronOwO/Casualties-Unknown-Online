@@ -9,7 +9,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// is still generating (forced gate timeout), it starts as soon as its own
 /// generation finishes.
 /// </summary>
-[PacketHandler(NetMsg.WorldReady)]
+[PacketHandler(NetMsg.WorldReady, NetMessageDirection.HostToGuest)]
 public sealed class WorldReadyHandler : PacketHandlerBase<WorldReadyMsg>
 {
 	protected override void Handle(ulong sender, WorldReadyMsg msg, HandlerContext ctx) =>

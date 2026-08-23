@@ -8,7 +8,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// Adapter applies the local body mutation (remove from FromSteamId, add to
 /// ToSteamId) and immediately re-reports the character snapshot.
 /// </summary>
-[PacketHandler(NetMsg.PlayerInventoryTransfer)]
+[PacketHandler(NetMsg.PlayerInventoryTransfer, NetMessageDirection.HostToGuest)]
 internal sealed class PlayerInventoryTransferHandler : PacketHandlerBase<PlayerInventoryTransferMsg>
 {
 	protected override void Handle(ulong sender, PlayerInventoryTransferMsg msg, HandlerContext ctx) =>

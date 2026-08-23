@@ -11,7 +11,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// regions; every region is an absolute RLE snapshot of its rectangle, so an
 /// apply is idempotent and a lost message is healed by the next one.
 /// </summary>
-[PacketHandler(NetMsg.FluidRegion)]
+[PacketHandler(NetMsg.FluidRegion, NetMessageDirection.HostToGuest)]
 public sealed class FluidRegionHandler(ILogger<FluidRegionHandler> log) : PacketHandlerBase<FluidRegionMsg>
 {
 	private readonly ILogger<FluidRegionHandler> _log = log;

@@ -9,7 +9,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// memory + disk) relayed to the other guests (their clones of the reporter
 /// render its carried state), host → guest as a reconnect restore.
 /// </summary>
-[PacketHandler(NetMsg.CharacterData)]
+[PacketHandler(NetMsg.CharacterData, NetMessageDirection.Bidirectional)]
 public sealed class CharacterDataHandler(ILogger<CharacterDataHandler> log) : PacketHandlerBase<CharacterDataMsg>
 {
 	private readonly ILogger<CharacterDataHandler> _log = log;

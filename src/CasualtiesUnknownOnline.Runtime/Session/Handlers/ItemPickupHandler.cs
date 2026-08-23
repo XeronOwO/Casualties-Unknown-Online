@@ -12,7 +12,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// ItemReject back) and host → guest as the winner broadcast (the other guests
 /// remove the item from their world).
 /// </summary>
-[PacketHandler(NetMsg.ItemPickup)]
+[PacketHandler(NetMsg.ItemPickup, NetMessageDirection.Bidirectional)]
 public sealed class ItemPickupHandler(ILogger<ItemPickupHandler> log) : PacketHandlerBase<ItemPickupMsg>
 {
 	private readonly ILogger<ItemPickupHandler> _log = log;

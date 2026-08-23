@@ -11,7 +11,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// BuildingEntityDamaged relay, but for entities damaged or destroyed before
 /// the member joined.
 /// </summary>
-[PacketHandler(NetMsg.BuildingEntityHealthSnapshot)]
+[PacketHandler(NetMsg.BuildingEntityHealthSnapshot, NetMessageDirection.HostToGuest)]
 public sealed class BuildingEntityHealthSnapshotHandler(ILogger<BuildingEntityHealthSnapshotHandler> log) : PacketHandlerBase<BuildingEntityHealthSnapshotMsg>
 {
 	private readonly ILogger<BuildingEntityHealthSnapshotHandler> _log = log;

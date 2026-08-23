@@ -10,7 +10,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// guest as a broadcast. A member leaving the world ends its sync (entity
 /// domain); the host leaving ends the guest's own sync.
 /// </summary>
-[PacketHandler(NetMsg.SceneState)]
+[PacketHandler(NetMsg.SceneState, NetMessageDirection.Bidirectional)]
 public sealed class SceneStateHandler(ILogger<SceneStateHandler> log) : PacketHandlerBase<SceneStateMsg>
 {
 	private readonly ILogger<SceneStateHandler> _log = log;

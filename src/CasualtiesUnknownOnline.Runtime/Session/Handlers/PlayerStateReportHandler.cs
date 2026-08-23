@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 
 /// <summary>Guest → host: the guest's locally simulated state (host renders it, no host-side simulation).</summary>
-[PacketHandler(NetMsg.PlayerStateReport)]
+[PacketHandler(NetMsg.PlayerStateReport, NetMessageDirection.GuestToHost)]
 public sealed class PlayerStateReportHandler(ILogger<PlayerStateReportHandler> log) : PacketHandlerBase<PlayerStateReportMsg>
 {
 	private readonly ILogger<PlayerStateReportHandler> _log = log;

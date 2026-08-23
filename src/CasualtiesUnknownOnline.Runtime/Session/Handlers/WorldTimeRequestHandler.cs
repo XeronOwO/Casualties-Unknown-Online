@@ -10,7 +10,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// all-unconscious sleep acceleration) lives in the Game Adapter's
 /// WorldTimeSync, which answers with a WorldTime broadcast.
 /// </summary>
-[PacketHandler(NetMsg.WorldTimeRequest)]
+[PacketHandler(NetMsg.WorldTimeRequest, NetMessageDirection.GuestToHost)]
 public sealed class WorldTimeRequestHandler(ILogger<WorldTimeRequestHandler> log) : PacketHandlerBase<WorldTimeRequestMsg>
 {
 	private readonly ILogger<WorldTimeRequestHandler> _log = log;

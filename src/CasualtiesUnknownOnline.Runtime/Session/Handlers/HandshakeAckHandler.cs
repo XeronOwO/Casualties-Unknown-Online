@@ -8,7 +8,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// ack must not rebuild the entity — that would reset the interpolation buffer).
 /// Answers with the AckAck leg (HandshakeAckAckMsg): the host only counts the
 /// member as handshaken once it receives it (HandshakeAckAckHandler).</summary>
-[PacketHandler(NetMsg.HandshakeAck)]
+[PacketHandler(NetMsg.HandshakeAck, NetMessageDirection.HostToGuest)]
 public sealed class HandshakeAckHandler(PacketSender sender, ILogger<HandshakeAckHandler> log) : PacketHandlerBase<HandshakeAckMsg>
 {
 	private readonly PacketSender _sender = sender;

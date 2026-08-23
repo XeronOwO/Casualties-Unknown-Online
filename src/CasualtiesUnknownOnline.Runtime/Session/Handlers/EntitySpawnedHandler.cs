@@ -11,7 +11,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// and is the single broadcast owner — a handler-level broadcast here would
 /// send a second, un-enriched copy.
 /// </summary>
-[PacketHandler(NetMsg.EntitySpawned)]
+[PacketHandler(NetMsg.EntitySpawned, NetMessageDirection.Bidirectional)]
 public sealed class EntitySpawnedHandler(ILogger<EntitySpawnedHandler> log)
 	: PacketHandlerBase<EntitySpawnedMsg>
 {

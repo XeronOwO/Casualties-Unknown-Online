@@ -12,7 +12,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// apply it. Accept-first: the host adopts the victim's post-effect state
 /// unconditionally; the 1 Hz character snapshot stays the fallback.
 /// </summary>
-[PacketHandler(NetMsg.EnemyEffect)]
+[PacketHandler(NetMsg.EnemyEffect, NetMessageDirection.Bidirectional)]
 public sealed class EnemyEffectHandler(ILogger<EnemyEffectHandler> log) : PacketHandlerBase<EnemyEffectMsg>
 {
 	private readonly ILogger<EnemyEffectHandler> _log = log;

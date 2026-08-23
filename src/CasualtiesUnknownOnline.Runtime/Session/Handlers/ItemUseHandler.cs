@@ -11,7 +11,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// source for its own body) and sends an ItemCorrection when it diverges.
 /// Usage itself is never rejected.
 /// </summary>
-[PacketHandler(NetMsg.ItemUse)]
+[PacketHandler(NetMsg.ItemUse, NetMessageDirection.GuestToHost)]
 public sealed class ItemUseHandler(ILogger<ItemUseHandler> log) : PacketHandlerBase<ItemUseMsg>
 {
 	private readonly ILogger<ItemUseHandler> _log = log;

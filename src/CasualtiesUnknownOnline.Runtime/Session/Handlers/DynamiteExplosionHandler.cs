@@ -11,7 +11,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// body/visual segment. The adapter owns apply/replay — the handler only
 /// surfaces the event (same shape as EntityEventHandler).
 /// </summary>
-[PacketHandler(NetMsg.DynamiteExplosion)]
+[PacketHandler(NetMsg.DynamiteExplosion, NetMessageDirection.Bidirectional)]
 public sealed class DynamiteExplosionHandler(ILogger<DynamiteExplosionHandler> log) : PacketHandlerBase<DynamiteExplosionMsg>
 {
 	private readonly ILogger<DynamiteExplosionHandler> _log = log;

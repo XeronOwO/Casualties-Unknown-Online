@@ -9,7 +9,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// host — surface it to the adapter, which replays the transient effect on the
 /// guest's local world. Host→guest one-way; the host never receives this.
 /// </summary>
-[PacketHandler(NetMsg.FluidPresentation)]
+[PacketHandler(NetMsg.FluidPresentation, NetMessageDirection.HostToGuest)]
 public sealed class FluidPresentationHandler(ILogger<FluidPresentationHandler> log) : PacketHandlerBase<FluidPresentationMsg>
 {
 	private readonly ILogger<FluidPresentationHandler> _log = log;

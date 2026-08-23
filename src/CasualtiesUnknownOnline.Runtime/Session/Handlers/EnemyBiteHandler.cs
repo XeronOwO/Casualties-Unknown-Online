@@ -12,7 +12,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// adopts the victim's post-bite state unconditionally (no distance/legitimacy
 /// validation); the 1 Hz character snapshot stays the fallback.
 /// </summary>
-[PacketHandler(NetMsg.EnemyBite)]
+[PacketHandler(NetMsg.EnemyBite, NetMessageDirection.Bidirectional)]
 public sealed class EnemyBiteHandler(ILogger<EnemyBiteHandler> log) : PacketHandlerBase<EnemyBiteMsg>
 {
 	private readonly ILogger<EnemyBiteHandler> _log = log;

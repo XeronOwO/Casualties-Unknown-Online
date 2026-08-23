@@ -178,13 +178,24 @@ sync model.
 - Proposed: make the gate aggregate by top-level type across partials and enforce
   real responsibility splits, not just physical file movement.
 
-### 3.2 NetMsg direction registry — HIGH
+### 3.2 NetMsg direction registry — CLOSED (2026-08-23)
 
-- `PacketReceiver.IsValidDirection` is currently a manually maintained, fail-open
-  switch; unknown/new message types default to valid.
-- Proposed: a single `NetMessageRegistry` (or expanded `PacketHandlerAttribute`)
-  carrying direction/reliability/payload type, read by both dispatcher and
-  receiver, with fail-closed behavior for unregistered messages.
+> **Status 2026-08-23: CLOSED** — `PacketReceiver.IsValidDirection` is no
+> longer a fail-open switch. Every `[PacketHandler]` carries an explicit
+> `NetMessageDirection`; `NetMessageRegistry` is built once from all Runtime
+> handlers (direction + payload type) and is read by the receiver (unknown ids
+> dropped), sender (unknown sends refused) and dispatcher (startup consistency).
+> Reliability is intentionally not a registry boolean because several messages
+> are legitimately sent both reliably and unreliably by path. See
+> `docs/selfchecks/netmsg-registry-selfcheck.md` and
+> `docs/tech-decisions.md` #63.
+
+- The old manually maintained switch defaulted unknown/new message types to
+  valid.
+- The original proposal was a single `NetMessageRegistry` (or expanded
+  `PacketHandlerAttribute`) carrying direction/reliability/payload type, read by
+  both dispatcher and receiver, with fail-closed behavior for unregistered
+  messages.
 
 ### 3.3 `HandlerContext` god-object — MEDIUM
 

@@ -11,7 +11,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// frame) — star topology, the frame is routed to the local mod with the
 /// carried id, unknown ids are dropped with a log.
 /// </summary>
-[PacketHandler(NetMsg.ModMessage)]
+[PacketHandler(NetMsg.ModMessage, NetMessageDirection.Bidirectional)]
 public sealed class ModMessageHandler(ILogger<ModMessageHandler> log) : PacketHandlerBase<ModMessageMsg>
 {
 	private readonly ILogger<ModMessageHandler> _log = log;

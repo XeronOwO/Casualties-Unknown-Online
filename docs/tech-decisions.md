@@ -1741,3 +1741,42 @@ Tests: `TraderRecruitPolicyTests` (6 new pure cases), `TraderRecruitChannelTests
 (result round-trips `Items`), full suite **1244 green**, build 0 warnings/0
 errors, architecture / event-replay / entity-event-dispatch gates pass. See
 `docs/selfchecks/trader-recruit-gift-items-selfcheck.md`.
+
+## 63. NetMsg direction registry — fail-closed protocol metadata (no protocol bump)
+
+Backlog §3.2 identified the receive-side direction table as a manually
+maintained, fail-open switch: `PacketReceiver.IsValidDirection` ended in
+`_ => true`, so a new/unknown message id would silently become valid instead
+of being rejected. This entry replaces that with a single immutable protocol
+registry and makes both sides of the data plane fail closed.
+
+- **One direction source** — every `[PacketHandler]` attribute now requires an
+  explicit `NetMessageDirection` (`GuestToHost`, `HostToGuest`,
+  `Bidirectional`). The old receiver switch is deleted.
+- **Registry** — `NetMessageRegistry` (`Runtime/Session`) is built once from
+  every Runtime `IPacketHandler` type. `NetMessageMetadata` carries the wire id,
+  the locked direction and the payload type derived from the handler's
+  `PacketHandlerBase<TPacket>` generic argument.
+- **Receiver fail-closed** — `PacketReceiver.OnTransportMessage` first checks
+  `NetMessageRegistry.TryGet`; an unregistered id is dropped with a warning
+  before any handler can see it. Direction validation then comes from the
+  registered metadata, not a switch.
+- **Sender fail-closed** — `PacketSender.TrySend` / `SendToAll` refuse
+  unregistered ids before encoding. This catches a programming error at the
+  source instead of silently wasting a frame that the receiver would drop.
+- **Dispatcher startup validation** — `PacketDispatcher` verifies each
+  handler's id exists in the registry while building the route table.
+- **Reliability stays a call-site decision** — the exploration proposed
+  "reliability" in the registry, but several messages are genuinely sent both
+  reliably and unreliably by path (e.g. `ItemSnapshot` one-shot reliable vs
+  periodic unreliable; `CharacterData` reliable restore vs periodic snapshot).
+  Baking a single boolean into the registry would be wrong and would require
+  per-call override anyway, so it is deliberately not added.
+- **Tests** — `DirectionTests` stays the independent 3-way contract and now
+  exercises the registry-backed receiver; `NetMessageRegistryTests` locks
+  every `NetMsg` registered, explicit direction + payload type, and unregistered
+  ids rejected on both receive and send.
+
+No wire/protocol change: same `NetMsg` ids, same payload classes,
+`ProtocolVersion` remains 37. See
+`docs/selfchecks/netmsg-registry-selfcheck.md`.

@@ -12,7 +12,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// its own UI already showed the line). At a guest it is the host's relay:
 /// the line is surfaced locally and never re-relayed.
 /// </summary>
-[PacketHandler(NetMsg.Chat)]
+[PacketHandler(NetMsg.Chat, NetMessageDirection.Bidirectional)]
 public sealed class ChatHandler(ILogger<ChatHandler> log) : PacketHandlerBase<ChatMsg>
 {
 	private readonly ILogger<ChatHandler> _log = log;

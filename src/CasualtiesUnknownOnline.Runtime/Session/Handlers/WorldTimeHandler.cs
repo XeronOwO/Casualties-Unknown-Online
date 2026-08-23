@@ -9,7 +9,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// through the SAME SetTimeScale path as local speed changes (so the HUD's
 /// curTimeScale and sounds update), guarded by the WorldTimeApply call origin.
 /// </summary>
-[PacketHandler(NetMsg.WorldTime)]
+[PacketHandler(NetMsg.WorldTime, NetMessageDirection.HostToGuest)]
 public sealed class WorldTimeHandler(ILogger<WorldTimeHandler> log) : PacketHandlerBase<WorldTimeMsg>
 {
 	private readonly ILogger<WorldTimeHandler> _log = log;

@@ -4,7 +4,6 @@ using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Localization;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
-using CasualtiesUnknownOnline.Runtime.Session.Chat;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.HostRules;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
@@ -30,8 +29,6 @@ internal sealed class OnlineUiContext
 	internal RemoteInventoryService Inventory = null!;
 
 	internal IPlayerInteractionControl PlayerInteraction = null!;
-
-	internal IChatControl Chat = null!;
 
 	internal IHostBanService HostBan = null!;
 

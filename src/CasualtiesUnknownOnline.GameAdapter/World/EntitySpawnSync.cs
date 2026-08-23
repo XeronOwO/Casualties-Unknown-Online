@@ -59,6 +59,39 @@ internal sealed class EntitySpawnSync(IWorldControl world, ISessionControl sessi
 	}
 
 	/// <summary>
+	/// Create a runtime world-entity prefab on behalf of a mod and leave the
+	/// normal <see cref="BuildingEntity"/> Start report to replicate it to the
+	/// peers. Returns false (and destroys the created object when it is not a
+	/// BuildingEntity) so a mod can never create a local-only orphan through
+	/// this surface.
+	/// </summary>
+	internal bool TrySpawnFromMod(string prefabId, float x, float y, float rotation)
+	{
+		if (!_session.SessionActive || string.IsNullOrEmpty(prefabId))
+		{
+			return false;
+		}
+
+		var createdGo = Utils.Create(prefabId, new Vector2(x, y), 0f);
+		if (createdGo == null) // Unity object — ==
+		{
+			return false;
+		}
+
+		var created = createdGo.GetComponent<BuildingEntity>();
+		if (created == null) // Unity object — ==
+		{
+			_log.LogWarning("[EntitySpawn] mod-requested prefab {Id} has no BuildingEntity — the local copy is destroyed.", prefabId);
+			Object.Destroy(createdGo);
+			return false;
+		}
+
+		created.transform.eulerAngles = new Vector3(0f, 0f, rotation);
+		_log.LogInformation("[EntitySpawn] mod-requested {Id} created at ({X:F1},{Y:F1}); the Start report will replicate it.", prefabId, x, y);
+		return true;
+	}
+
+	/// <summary>
 	/// Patch-bridge entry: a world entity just started. Inside world generation
 	/// = deterministic (both sides generate the same entity — nothing to do); a
 	/// RemoteApply create = a replay of this very channel (nothing to do);

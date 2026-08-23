@@ -16,8 +16,8 @@ for the live surfaces), host-authoritative commands, dependency ordering,
 SemVer versions, and per-sender rate limits.
 
 **UI is landed (see §4e), content registration is landed (see §4f),
-ReadGameState is landed (see §4g).**
-Still NOT landed (recorded TODO): custom entities; `AccessNativeApi` is a
+ReadGameState is landed (see §4g), and entity spawn is landed (see §4h).**
+Still NOT landed (recorded TODO): `AccessNativeApi` is a
 declared permission flag but has no exposed framework surface yet.
 The mod surface lives in **`CUO.Abstractions`** — the ONLY
 assembly mods may reference (architecture.md §5.5). A mod never touches
@@ -82,9 +82,10 @@ public sealed class MyMod : ICuoMod   // ICuoService lifecycle + Bind
   registration; `ExecuteHostAction` additionally gates `ModCommand.IsHostAction`;
   `WriteGameState` gates host-persistent mod-state writes (`IModState`);
   `RegisterContent` gates mod content registration (`IModContent`);
-  `ReadGameState` gates the read-only game-state projection (`IModGameState`).
-  The remaining flags (`SpawnEntity`, `AccessNativeApi`) are carried through
-  the handshake and are pre-declared for their future surfaces.
+  `ReadGameState` gates the read-only game-state projection (`IModGameState`);
+  `SpawnEntity` gates the world entity-spawn surface (`IModEntitySpawn`).
+  The remaining flag (`AccessNativeApi`) is carried through the handshake and
+  is pre-declared for its future surface.
 - **`Dependencies`** are mod ids loaded before the dependent; missing or
   cyclic dependencies reject the dependent (transitive failures propagate).
 - **`ICuoMod : ICuoService`** — the standard lifecycle, driven by the
@@ -100,6 +101,7 @@ public sealed class MyMod : ICuoMod   // ICuoService lifecycle + Bind
 | `Ui` | local immediate-mode mod UI windows — see §4e. |
 | `Content` | mod content registration — see §4f. |
 | `GameState` | read-only player-state projection — see §4g. |
+| `EntitySpawn` | world entity spawn — see §4h. |
 | `SessionActivated` | the first member handshake completed. **Host side: never** — read the snapshot. |
 | `PlayerJoined` / `PlayerLeft` | a member's handshake completed / a member was removed (host side). NOT the in-world entity join. Each member exactly once, including yourself. |
 | `SessionEnded` | the session tore down. A guest's `PlayerLeft` for the host is NOT fired on host exit — only `SessionEnded`. |
@@ -282,6 +284,45 @@ if (context.GameState.CanRead)
 - **No wire change**: this surface only projects data that already arrives, so
   `ProtocolVersion` stays unchanged.
 
+## 4h. Entity spawn
+
+```csharp
+if (context.EntitySpawn.CanSpawn)
+{
+    context.EntitySpawn.TrySpawn("landmine", 10f, 20f, 45f);
+}
+```
+
+- **Scope**: `IModEntitySpawn` lets a synchronized/authoritative mod create a
+  runtime world entity by the game's prefab id (`BuildingEntity.id`, the same
+  id `Utils.Create` accepts). The method signature is the full public surface
+  for this slice: prefab id + world X/Y + z rotation. No Unity or
+  game-assembly type crosses the boundary.
+- **Permission**: spawning requires `ModPermission.SpawnEntity`.
+  `CanSpawn` reflects the declared flag; every `TrySpawn` call also enforces it
+  (false + log otherwise). The permission policy already refuses that flag on
+  `ClientOnly`/`Cosmetic`, so only state-bearing mods may spawn entities.
+- **Runtime gates**: `TrySpawn` additionally requires an active session and the
+  local player to be in-world (`LocalInWorld`); a spawn outside a live world is
+  refused, not silently ignored.
+- **Replication reuses the runtime-entity channel**: the Game Adapter creates
+  the local `BuildingEntity` copy via `Utils.Create`; the normal
+  `BuildingEntity.Start` report path then sends the existing
+  `EntitySpawned` message (guest → host or host → broadcast), so every side
+  creates the same prefab at the same position/rotation with the same
+  creation-time data handling (geyser liquid type, keypad code, crystal tint)
+  as any native runtime spawn. No new `NetMsg`, no ProtocolVersion bump.
+- **Failure isolation**: invalid prefab ids, non-finite positions, an out-of-
+  world session, a missing permission, or an adapter rejection (unknown prefab
+  / non-`BuildingEntity` prefab) return false and are logged; a non-entity
+  prefab created by the adapter is destroyed, never left as a local-only ghost.
+- **Boundary (this slice)**: only existing game `BuildingEntity` prefabs are
+  supported. This is a spawn/replication surface, not a generic custom-
+  component/state-injection mechanism — a mod that needs per-entity custom
+  data still coordinates through `IModNetwork` / `IModCommands` or registers
+  it as static content (`IModContent`).
+- **No wire change**: no new `NetMsg`; `ProtocolVersion` stays unchanged.
+
 ## 5. Handshake consistency (how sessions stay coherent)
 
 The guest's declared mod list rides the handshake (`HandshakeMsg.Mods`). The
@@ -315,9 +356,11 @@ commands and remains the two-process verification target).
 ## 7. Versioning and protocol discipline
 
 - `ProtocolVersion.Current` is bumped on any behavioral wire change. Current:
-  **31** (v31 adds the LookTarget override gaze + eye-scare presentation fields
-  on `EntityStateMsg`; v30 peers cannot render a remote player's enemy
-  gaze/scared face). `ReadGameState` is not a wire change, so it stays at 31.
+  **32** (v32 adds the remote-clone facial-expression presentation fields on
+  `CharacterHealthMsg`; v31 peers cannot render a remote player's eye-loss /
+  disfigurement face). `ReadGameState`, content registration, mod UI,
+  mod-state saves and entity spawn are not wire changes, so they do not bump
+  the protocol.
 - Mod versions are strict SemVer strings, validated at discovery and compared
   by precedence for state-bearing modes.
 - The 64 KiB cap is a policy constant (`ModChannel.MaxPayloadBytes`); raising
@@ -331,7 +374,8 @@ permission policy (`ModPermissionPolicyTests`), SemVer (`SemanticVersionTests`),
 lifecycle (`ModLifecycleTests`), message routing + permission/rate gates
 (`ModMessageTests`), host commands (`ModCommandTests`), mod-state saves
 (`ModStateTests`), local mod UI (`ModUiTests`), mod content registration
-(`ModContentTests`), read game state (`ModGameStateTests`), handshake matrix
+(`ModContentTests`), read game state (`ModGameStateTests`), entity spawn
+(`ModEntitySpawnTests`), handshake matrix
 (`ModHandshakeTests`), rate limiter (`ModRateLimiterTests`), direction rows
 (`DirectionTests`) and wire round-trips (`ModHandshakeProtocolTests`).
 

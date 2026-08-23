@@ -14,14 +14,16 @@ Open work only. Landed delivery details are not duplicated here; they live in:
 - Native game-content sync coverage is complete: item and entity feature matrices currently have no `missing` rows; the last recorded `Heater`-on-`xaloris` local-presentation residual is closed as excluded by design, and the remote-clone disfigurement/eye-loss facial presentation residual is now closed (ProtocolVersion 32).
 - Network health metrics (per-peer RTT history / jitter / probe loss) now surface in `[NetworkHealth]` logs; per-peer bandwidth already surfaces in `[NetworkTraffic]` logs. See `docs/selfchecks/network-health-metrics-selfcheck.md`.
 - Phase 4 Mod API **ReadGameState** landed as a read-only player-character projection (`IModGameState`); no wire/protocol change. See `docs/selfchecks/mod-game-state-selfcheck.md`.
+- Phase 4 Mod API **entity spawn** landed as a permission-gated `IModEntitySpawn` surface reusing the runtime `EntitySpawned` channel; no wire/protocol change. See `docs/selfchecks/mod-entity-spawn-selfcheck.md`.
 - Remaining final dual-side acceptance items below are end-of-cycle acceptance, not development work.
 
 ## Open work
 
 ### Phase 4 Mod API (MEDIUM)
 
-- **Custom entities** — `SpawnEntity` is declared and carried through the handshake, but no entity-spawn/replication surface exists. Needs design before implementation.
 - **AccessNativeApi** — permission is declared but the explicit native/game-private escape hatch is un-designed; decide policy before exposing.
+
+Landed in this area: mod entity spawn — `IModEntitySpawn` (`context.EntitySpawn`) lets a state-bearing mod spawn a native `BuildingEntity` prefab at runtime; replication reuses the existing `EntitySpawned` channel, no protocol change. See `docs/mod-api.md` §4h and `docs/tech-decisions.md` #49.
 
 ### Item / entity known gaps
 

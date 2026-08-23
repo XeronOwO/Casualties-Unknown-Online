@@ -120,3 +120,7 @@ the plan approval for this cycle; no further interactive approval is required.
   slice.
 - The UI is a minimal IMGUI panel (recent 7 lines + one input), matching the
   existing Online UI style.
+- **Later note (2026-08-23):** this IMGUI chat panel was disabled/removed from
+  the overlay because its input field captured Tab/WASD while playing. The
+  Runtime chat channel/service and wire message remain; the UI will be redone
+  as part of a Minecraft-style command input surface (see `docs/backlog.md`).

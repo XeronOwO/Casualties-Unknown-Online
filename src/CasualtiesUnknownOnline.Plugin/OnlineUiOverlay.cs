@@ -5,7 +5,6 @@ using CasualtiesUnknownOnline.Runtime.Localization;
 using CasualtiesUnknownOnline.Runtime.OnlineUi;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
-using CasualtiesUnknownOnline.Runtime.Session.Chat;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.HostRules;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
@@ -16,7 +15,7 @@ namespace CasualtiesUnknownOnline;
 
 /// <summary>
 /// The Online UI overlay. It owns the IMGUI composition (the new CUO Online
-/// window, world nameplates/off-screen arrows and the bottom-right chat panel).
+/// window and world nameplates/off-screen arrows).
 /// The old top-left status/lobby/member dump is gone: the same runtime facts
 /// are now presented through the tabbed <see cref="OnlineUiWindow"/>.
 /// </summary>
@@ -66,8 +65,6 @@ internal sealed class OnlineUiOverlay
 
 	private readonly OnlineUiWindow _window = new();
 
-	private string _chatInput = "";
-
 	internal bool IsWindowVisible => _window.State.Visible;
 
 	internal void Draw(
@@ -77,7 +74,6 @@ internal sealed class OnlineUiOverlay
 		RemoteVitalsService vitals,
 		RemoteInventoryService inventory,
 		IPlayerInteractionControl playerInteraction,
-		IChatControl chat,
 		IHostBanService hostBan,
 		IHostRules hostRules,
 		IGameAdapter? adapter,
@@ -93,7 +89,6 @@ internal sealed class OnlineUiOverlay
 			Vitals = vitals,
 			Inventory = inventory,
 			PlayerInteraction = playerInteraction,
-			Chat = chat,
 			HostBan = hostBan,
 			HostRules = hostRules,
 			Localization = localization,
@@ -119,49 +114,6 @@ internal sealed class OnlineUiOverlay
 
 		_window.Draw(ctx);
 		DrawNameplatesAndArrows(steam, session, entities, vitals);
-		DrawChatPanel(steam, session, chat, localization);
-	}
-
-	/// <summary>
-	/// Small bottom-right text-chat panel. It is intentionally IMGUI-simple: a
-	/// bounded recent-line list and one input + Send button. The Runtime
-	/// ChatService owns the buffer and the wire send; the overlay only projects
-	/// persona names for display.
-	/// </summary>
-	private void DrawChatPanel(SteamService steam, SessionService session, IChatControl chat, ILocalizationService localization)
-	{
-		if (!session.SessionActive)
-		{
-			return;
-		}
-
-		const float width = 360f;
-		const float height = 180f;
-		var x = Screen.width - width - 12f;
-		var y = Screen.height - height - 12f;
-		OnlineUiTheme.DrawBackground(new Rect(x, y, width, height));
-
-		const int maxVisible = 7;
-		var lines = chat.Recent;
-		var start = Math.Max(0, lines.Count - maxVisible);
-		var lineY = y + 8f;
-		for (var i = start; i < lines.Count; i++)
-		{
-			var line = lines[i];
-			var name = DisplayName(steam, line.SenderSteamId);
-			GUI.Label(new Rect(x + 8f, lineY, width - 16f, 18f), $"{name}: {line.Text}", OnlineUiTheme.MutedLabel());
-			lineY += 18f;
-		}
-
-		var inputY = y + height - 30f;
-		_chatInput = GUI.TextField(new Rect(x + 8f, inputY, width - 70f, 22f), _chatInput, 200);
-		if (GUI.Button(new Rect(x + width - 58f, inputY, 50f, 22f), localization.T("chat.send"), OnlineUiTheme.Button()))
-		{
-			if (chat.TrySend(_chatInput))
-			{
-				_chatInput = "";
-			}
-		}
 	}
 
 	private static void DrawNameplatesAndArrows(SteamService steam, SessionService session, EntitySyncService entities, RemoteVitalsService vitals)

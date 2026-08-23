@@ -26,7 +26,7 @@ Open work only. Landed delivery details are not duplicated here; they live in:
 - **Log-level cleanup** closed: high-frequency periodic sync logs (1 Hz character snapshot/relay, fluid region stream send/apply, 5 s trader fallback snapshot) now log at Debug; one-shot/error events stay at Information/Warn/Error. See `docs/selfchecks/log-level-cleanup-selfcheck.md`.
 - **Trader Recruit (revive at a trader)** closed as the first co-op revive slice: a living player at a friendly, undamaged trader can revive a dead in-world teammate. Dedicated `TraderRecruitRequest`/`TraderRecruitResult` (NetMsg 107/108, ProtocolVersion 35), host-authoritative trade gates + one-use-per-trader, in-place health revive (no inventory wipe/position teleport). The random trader-stock bonus items slice (1–3 items, ProtocolVersion 37) is closed too; see `docs/selfchecks/trader-recruit-gift-items-selfcheck.md`. See `docs/selfchecks/trader-recruit-selfcheck.md` and `docs/tech-decisions.md` #59/#62.
 - **Revive/respawn rules** closed: Permadeath, trader-revive permission, next-level auto-respawn, keep-inventory/keep-skills, save-persistence, and revived re-entry for players who already left the world now ride a host-authoritative `RespawnOptions`/`RespawnPolicy`/`RespawnCoordinator` rule set; no protocol change (ProtocolVersion 35). See `docs/selfchecks/respawn-rules-selfcheck.md` and `docs/tech-decisions.md` #60.
-- **Text chat** closed: a simple host-relayed chat line (`ChatMsg`, NetMsg 109, ProtocolVersion 36) with a bounded Runtime recent-buffer and a bottom-right IMGUI panel; the host validates sender identity/text and relays to the other members. See `docs/selfchecks/chat-selfcheck.md` and `docs/tech-decisions.md` #61.
+- **Text chat** closed: a simple host-relayed chat line (`ChatMsg`, NetMsg 109, ProtocolVersion 36) with a bounded Runtime recent-buffer and a bottom-right IMGUI panel; the host validates sender identity/text and relays to the other members. See `docs/selfchecks/chat-selfcheck.md` and `docs/tech-decisions.md` #61. **UI disabled 2026-08-23**: the bottom-right IMGUI chat panel is removed from the overlay (the input-focus/Tab/WASD conflict) pending a Minecraft-style command console; the Runtime chat channel/service and wire message remain for the future redo.
 - **HandlerContext per-domain narrowing** closed: every packet handler now receives only the narrow capability interface it declares; `HandlerContext` remains the single dispatcher composition root but is no longer exposed to business handler code. No protocol change. See `docs/selfchecks/handler-context-narrowing-selfcheck.md` and `docs/tech-decisions.md` #73.
 - **Minimal host rules system (first slice)** closed: a small stateless `HostRulesService`/`IHostRules` composes new host-only flags (`PvP`, auto-continue, late join) with the existing respawn rules, and `AllowLateJoin` is wired as a real handshake gate. No protocol/wire change; PVP and auto-continue remain reserved flags. See `docs/selfchecks/host-rules-selfcheck.md` and `docs/tech-decisions.md` #74.
 - **Host ban** closed as the second admin slice: host-only persistent SteamID ban list (`HostBanService` + `HostBanFileStore`), dedicated `Banned` message (NetMsg 112, ProtocolVersion 40), handshake rejection before roster creation, and an Online UI `Ban` button next to `Kick`. `Unban` is exposed through the same service. See `docs/selfchecks/host-ban-selfcheck.md` and `docs/tech-decisions.md` #77.
@@ -65,6 +65,71 @@ None open. The previous local-only item states and the enemy LookTarget presenta
 - **Heater temperature field on `xaloris`** — closed as **excluded by design**: `Heater.OnWillRenderObject` writes only the local player's body temperature, which already rides the 1 Hz character stream, so no enemy-sync surface is needed (see `docs/selfchecks/heater-xaloris-local-body-effect-selfcheck.md`).
 - **Remote-clone FacialExpression disfigurement/eye-loss latches** — closed via the 1 Hz `CharacterHealthMsg` + `CloneFacePresentation`: body latches (`Disfigured`/`EyeGone`/`BothEyesGone`), the owner's random disfigurement head index, and the long-run heal presentation timers are now applied to the render clone; `ProtocolVersion` 32. See `docs/selfchecks/clone-face-presentation-selfcheck.md`.
 
+### Sync two-layer audit (2026-08-23)
+
+A read-only audit checked every major game domain against the two-layer rule
+(dedicated event for discrete triggers + periodic/entry snapshot as fallback).
+Item/entity matrices have zero `missing` rows. Recorded observations:
+
+- **Player death has no dedicated event** — `alive=false`/`conscious=false`
+  currently ride the 20 Hz `PlayerState` stream and the final 1 Hz
+  `CharacterData` snapshot. If death is treated as a discrete terminal trigger,
+  a dedicated death/health event would be the strict two-layer shape.
+- **Attack-swing visual still rides the periodic stream** — the exact swing
+  audio is a dedicated `CharacterSound` event, but the visible `ArmsSwing`
+  replay is driven by `SwingSeq`/`IsAttacking` in the 20 Hz entity stream. This
+  is a recorded deviation (§29); either accept it as a presentation exception
+  or add a dedicated swing event later. The separate one-shot `attackAnim`
+  prefab gap is listed under the animation audit below.
+- **Speech/chat are event-only, no periodic fallback** — intentional for
+  transient lines; late joiners should not receive old bubbles/chat.
+- **Tutorial claw / radiation line are stream-only domains** — continuous
+  presentation/state, not discrete user triggers; per-side course state is
+  already a design boundary.
+- **Mod messages/commands, admin kick/ban, and UI are event-only** —
+  request/response or one-shot session control, no snapshot needed.
+- **Minor: `TrapLayoutSnapshot` has no periodic resend** — it is only in the
+  world-entry snapshot group; covered by `WorldSnapshotComplete`, low risk.
+
+### Animation / presentation sync audit (2026-08-23)
+
+Read-only audit of the decompiled animation/visual triggers against CUO sync
+paths. The item/entity matrices remain clean, but several transient animation
+presentations still have no dedicated event or periodic field:
+
+- **Player attack `attackAnim` prefab — NOT_SYNCED**.
+  `Body.Attack` instantiates `ClawAnim` / `SwingAnim` / `LaserAnim`
+  (`Body.cs:1913-1920`); only `ArmsSwing` and the swing sound are replayed on
+  peer clones.
+- **Direct placeable-item `ArmsSwing` — NOT_SYNCED** for `scrapmetal`,
+  `climbingrope`, and `scaffoldingpack` (`Item.cs:2165/2208/2249`); these
+  bypass `Body.Attack`/`ThrowItem`, so `OnArmSwing()` never fires.
+- **Workout/exercise animations — NOT_SYNCED** (`Body.cs:368-435`): `exercising`
+  and the pushup/squat/plank clips are not carried in the entity or character
+  state.
+- **Alt-nap and water-shake variants — PARTIAL/NOT_SYNCED**
+  (`Body.cs:2502-2571`): the normal lay-down pose is synced, but
+  `LayDownAlt` and `dogShakeIntensity` are not.
+- **Wall-slide / landing presentation — NOT_SYNCED**
+  (`Body.cs:2610-2632`, `Body.cs:2713-2725`, `Body.cs:3274-3321`): the
+  `Wall`/`Grounded` clips and dust particles are not replayed on clones.
+- **Gun muzzle-flash particle — NOT_SYNCED** (`GunScript.cs:191`):
+  `CharacterSoundMsg` carries gun sound + recoil only.
+- **Spider leg IK/crawl — NOT_SYNCED** (`SpiderHandler.cs:49-59`): frozen guest
+  copies do not receive host leg-target/root poses.
+- **Spider bite `ClawAnim` — NOT_SYNCED on host-ordered remote bites**
+  (`SpiderHandler.cs:201-208`; `EnemyCombatReplay.cs:72-104`).
+- **Crystal wind-up/telegraph line — NOT_SYNCED** (`CrystalEnemy.cs:68-90`);
+  `EnemyState` carries no line/windup fields.
+- **Trader hostile `Swing()` attackAnimation — NOT_SYNCED**
+  (`TraderScript.cs:548-559`); trade state sync covers stock/reputation only.
+- **Coroutine/shake body states — NOT_SYNCED/OWNER_LOCAL**: `FurExplode`,
+  brain-damage ragdoll shake, `specialCrying`, and underwater/waterdrip
+  particle branches remain owner-side/local.
+
+These are presentation-only observations; no protocol or gameplay-state change
+has been made for them yet.
+
 ### Exploration 2026-08-23 — KrokMP-inspired co-op features
 
 - **Trader Recruit (revive a dead player at a trader)** — **CLOSED (first slice, 2026-08-23)**. The trader-recruit revive slice is landed as dedicated `TraderRecruitRequest`/`TraderRecruitResult` (NetMsg 107/108, ProtocolVersion 35) with host-authoritative trade gates and in-place health revival. **Random trader-stock bonus items are CLOSED (2026-08-23)**: a successful recruit grants the revived player 1–3 distinct items drawn from the host trader's current stock, delivered through `TraderRecruitResult.Items` (ProtocolVersion 37). The stock is treated as a catalog (not depleted); the existing one-use-per-trader guard prevents repeat farming. See `docs/selfchecks/trader-recruit-gift-items-selfcheck.md` and `docs/tech-decisions.md` #62.
@@ -102,9 +167,13 @@ Measurement-first items; do not optimize before data exists.
 
 - **Event-version numbers** — required before any snapshot stream switches to an unreliable channel, to prevent a stale snapshot rolling back an in-flight event.
 
+## Open decisions (no code change yet)
+
+- **World-time adjustability / sleep acceleration policy** — currently the host and guests can both request `Fast` / `SuperFast`, and the host applies an all-unconscious sleep acceleration. Gameplay-wise this works, but the design is open for debate: either disallow manual time acceleration, or adopt a Minecraft-style "only when all players sleep" cooperative acceleration. No change made; record only for future design.
+
 ## Future / low priority
 
-- **Minecraft-style in-game command console** — a standalone, complete command chain (registration → parsing → permission → execution → feedback), NOT reusing the existing console and independent of the current host-command/mod-command surfaces. Low priority; recorded for future planning.
+- **Minecraft-style in-game command console** — a standalone, complete command chain (registration → parsing → permission → execution → feedback), NOT reusing the existing console and independent of the current host-command/mod-command surfaces. Low priority; recorded for future planning. The current bottom-right text-chat UI is disabled in favor of this eventual command-style input surface.
 - Strict validation / anti-cheat hardening — explicitly low; defer until sync domains are stable.
 - Phase 5 tooling & ecosystem: mod manager, auto-install, crash reports, host migration, dedicated server.
 - KrokMP compatibility adapter — reserved; only after the native Mod API stabilizes and real migration demand exists.

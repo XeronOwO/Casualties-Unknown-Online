@@ -1348,3 +1348,38 @@ Tests: `GunStatePatchTests` (2 reflective surface tests) plus the automatic
 `PatchContractTests` resolution of the six new `[HarmonyPatch]` targets; full
 suite **1172 green** (was 1170). See
 `docs/selfchecks/gun-state-sync-selfcheck.md`.
+
+## 52. Liquidcentrifuge cooldown — persistent `CustomItemBehaviour.data[0]` state (no protocol bump)
+
+The last real gameplay state hidden in `CustomItemBehaviour.data` was the
+liquidcentrifuge 60-second cooldown. The `object[]` payload itself is
+unsupported by the generic `[Saveable]`-field codec, so the cooldown never
+traveled with item state: a transferred or reconnect-restored centrifuge came
+back with `data[0] = 0` and was immediately usable again, and peer clones could
+not show the countdown sprite.
+
+- **Explicit wire face, not a new wire message**: new `CustomItemDataState`
+  (Game Adapter/Items) gives the cooldown a synthetic `cooldown` component
+  field (kind float) inside the existing `CustomItemBehaviour` component
+  digest. `ItemStateCodec` captures/restores it on every existing item-state
+  path — carried sync, world correction, character snapshots, spawn/drop and
+  reconnect restore. No new `NetMsg`, no direction row, `ProtocolVersion`
+  stays 32.
+- **Start lifecycle**: `CustomItemBehaviour.Start` initializes
+  `data[0] = 0f` on every fresh prefab (CustomItemBehaviour.cs:9-17), after
+  `ItemStateCodec.RestoreComponentStates` has applied a synced value. The
+  restore path also adds a one-frame `LiquidCentrifugeCooldownRestore`
+  marker, which reapplies the value from `Update` (after Start) and destroys
+  itself.
+- **Deterministic capture**: for a liquidcentrifuge, capture always emits the
+  `cooldown` field (0 when the native Start has not run yet), so the wire face
+  is stable regardless of capture timing.
+- **Remaining payload entries stay non-synced by design**: jetpack throttle is
+  a frame-level transient; dynamite detonation already rides
+  `DynamiteExplosionMsg`, and its 5-second lit-fuse visual remains local-only
+  presentation.
+
+Tests: `CustomItemDataStateTests` (9 L0 reflective tests: capture/restore
+helper shape, default-zero capture, field matching, array creation/mutation,
+game-field contract, marker contract); full suite **1181 green** (was 1172).
+See `docs/selfchecks/custom-item-data-state-selfcheck.md`.

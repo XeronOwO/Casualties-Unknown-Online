@@ -2254,3 +2254,30 @@ into future host sessions until unbanned.
   edge cases; full suite 1278 green.
 
 See `docs/selfchecks/host-ban-selfcheck.md`.
+
+## 78. Online UI window — full tabbed multiplayer UI (no protocol bump)
+
+The original Online UI was a top-left IMGUI status dump created for the Phase-1
+HUD. This entry replaces it with a dedicated tabbed window system while keeping
+all runtime/wire behavior unchanged.
+
+- **UI shell** — `OnlineUiWindow` (Plugin) owns a draggable, centered IMGUI
+  window with Home / Lobby / Players / Network / Admin tabs and a single
+  top-right `CUO ONLINE` launcher; the old top-left status/lobby/member dump is
+  deleted.
+- **Pages** — Home (Steam status, create/join), Lobby (lobby ID/copy, member
+  roster, host Kick/Ban), Players (vitals, inventory expansion, Carry/Drop/
+  Heal/Take/Recruit), Network (diagnostics + per-peer RTT), Admin (host rules
+  read-only, ban list + Unban).
+- **Projection** — `OnlineUiMemberRow` + `OnlineUiMemberProjection` (Runtime)
+  convert the read-only session/vitals/inventory/player-interaction/host-ban
+  surfaces into immutable rows; IMGUI drawers only render booleans/text.
+- **Style** — `OnlineUiTheme` caches a dark translucent "operator console" look
+  (amber border, cyan/green status colors) built from Unity's IMGUI skin; no
+  asset bundles or new dependencies.
+- **Chat/nameplates** — kept; chat panel now uses the shared theme and the
+  world-space nameplate/arrow behavior is unchanged.
+- **Tests** — 8 new `OnlineUiMemberProjectionTests` cover projection/eligibility
+  rules; full suite 1286 green.
+
+See `docs/selfchecks/online-ui-window-selfcheck.md`.

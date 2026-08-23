@@ -168,6 +168,11 @@ Randomness: jam rolls `Random.value` per trigger (GunScript.cs:145, 168, 196,
 203) and spread `Random.Range` (213) — see [randomaction](#randomaction—random-behavior-out-of-sync-by-design).
 
 **CUO sync: ✓** (`[Saveable]` components captured/restored on every path).
+The persistent transitions (fire, rack/unrack, safety, load, unload) now also
+report immediately through the existing item-use fact path (`GunStateSync`),
+so the host's record and the peer clones update at the action edge instead of
+waiting for the next 1 Hz character snapshot; the snapshot remains the
+fallback.
 
 ### ammo — AmmoScript.rounds
 
@@ -270,13 +275,17 @@ domain"). Per-surface notes:
   underlying int). The gun's live state (hasMag/roundsInMag/racked/safe —
   public bool/int) was already covered; the enum was silently dropped before
   this round (the CraftCodecContractTests kind-table now guards it).
-- **Recorded gaps**: gun firing/racking has no reports (a stale chamber record
-  corrects on the next drop — the report only makes records fresher); the
+- **Recorded gaps**: gun firing/racking is now **RESOLVED** — the persistent
+  gun-state transitions (Fire/TryRack/ToggleSafety/LoadMag/UnloadMag and the
+  Update-driven auto-rack steps) are reported through the existing item-use
+  fact path via `GunStateSync`, so the host's transfer record and the peer
+  clones update immediately; the 1 Hz character snapshot remains the fallback.
+  The remaining recorded items stay as before: the
   container-material spill (UnloadAllItems children) deliberately rides the
   container-item domain (real new world items); noautopickup products ride the
   item domain's spawn path; mindwipe's recipe-static reset (entity domain);
   save-restore recipe INT divergence (multiplayer has no save-load path);
-     Heater cooker (meat→steak) is RESOLVED as one `ItemCook` event (NetMsg 92) — see `docs/selfchecks/heater-cook-selfcheck.md`.
+  Heater cooker (meat→steak) is RESOLVED as one `ItemCook` event (NetMsg 92) — see `docs/selfchecks/heater-cook-selfcheck.md`.
 
 ## Known state gaps (documented, not part of #89)
 

@@ -77,6 +77,8 @@ Measurement-first items; do not optimize before data exists.
 
 Files at or near the 600-line gate should be split before the next feature lands in them:
 
-`WorldService.cs` (600), `ItemService.cs` (597), `SessionService.cs` (580), `ItemApplication.cs` (576), `CharacterDataSync.cs` (563), `EnemySyncCoordinator.cs` (551), `EntitySyncService.cs` (548), `EnemyCombatDirector.cs` (547), `Plugin.cs` (534), `RunCoordinator.cs` (512), `PlayerInteractionService.cs` (511).
+`SessionService.cs` (580), `ItemApplication.cs` (576), `CharacterDataSync.cs` (563), `EnemySyncCoordinator.cs` (551), `EntitySyncService.cs` (548), `EnemyCombatDirector.cs` (547), `Plugin.cs` (534), `RunCoordinator.cs` (512), `PlayerInteractionService.cs` (511).
+
+`WorldService.cs` and `ItemService.cs` were split into message-flow partials in the 2026-08-22 architecture cycle (each main file + new partial is now under the gate; see `docs/selfchecks/world-item-service-partial-split-selfcheck.md`).
 
 `docs/tech-decisions.md` is also large; future landing entries should consider a domain-split index if it keeps growing.

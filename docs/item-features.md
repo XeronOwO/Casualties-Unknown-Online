@@ -147,20 +147,26 @@ dynamite fuse flag (Item.cs:6671-6682), liquidcentrifuge cooldown timer
 (CustomItemBehaviour.cs:382-428).
 
 **CUO sync: partial — the array itself is still unsupported as a generic
-saveable field, but the one persistent gameplay state in it now has an
-explicit wire face.** `object[]` is an unsupported field kind
+saveable field, but both persistent gameplay states in it now have explicit
+wire faces.** `object[]` is an unsupported field kind
 (ItemStateCodec.cs:155-159). The **liquidcentrifuge cooldown**
 (`data[0] = 60f`, Item.cs:5667-5689) gates the use action and is now captured
 as a synthetic `cooldown` component field via `CustomItemDataState` and
 restored through the existing item-state paths (including a one-frame
 reapply marker because `CustomItemBehaviour.Start` re-initializes the array to
-0 on a fresh prefab). The remaining payload entries are not persistent
-gameplay state: jetpack throttle is a frame-level transient, and the dynamite
-**detonation** travels as a dedicated `DynamiteExplosionMsg` (NetMsg 105,
-ProtocolVersion 30) carrying the one-shot item id + position; the 5-second
-lit-fuse visual on remote clones remains local-only (short-lived
-presentation). See `docs/selfchecks/dynamite-explosion-selfcheck.md` and
-`docs/selfchecks/custom-item-data-state-selfcheck.md`.
+0 on a fresh prefab). The **dynamite lit-fuse latch**
+(`data[0] = true`, Item.cs:6671-6682) is now captured as a synthetic `fuse`
+component field on the same existing item-state paths; `RemoteItemPresentation`
+uses it to enable the clone's lit-fuse child sprite (and corrected world-item
+copies via `ItemApplication`) and plays the fuse audio once via a persistent
+one-shot marker, so the 5-second pre-explosion presentation is no longer
+local-only. The remaining payload entry is not
+persistent gameplay state: jetpack throttle is a frame-level transient. The
+dynamite **detonation** travels as a dedicated `DynamiteExplosionMsg`
+(NetMsg 105, ProtocolVersion 30) carrying the one-shot item id + position. See
+`docs/selfchecks/dynamite-explosion-selfcheck.md`,
+`docs/selfchecks/custom-item-data-state-selfcheck.md` and
+`docs/selfchecks/dynamite-fuse-presentation-selfcheck.md`.
 
 ### gun — GunScript state machine
 
@@ -297,9 +303,11 @@ domain"). Per-surface notes:
 
 - **CustomItemBehaviour.data** — see
   [payload](#payload—customitembbehaviourdata); the liquidcentrifuge
-  **cooldown** is now SYNCED as a synthetic `cooldown` component field,
-  the dynamite **detonation** is synced via `DynamiteExplosionMsg`; the
-  short-lived lit-fuse visual and the jetpack throttle remain local-only.
+  **cooldown** is now SYNCED as a synthetic `cooldown` component field, the
+  dynamite **lit-fuse latch** is now SYNCED as a synthetic `fuse` component
+  field (clone child sprite + one-shot fuse audio replay), the dynamite
+  **detonation** is synced via `DynamiteExplosionMsg`, and only the frame-level
+  jetpack throttle remains local-only.
 - **GrapplingHook** `fired`/`hookLatched`/`pulling` (GrapplingHook.cs:114-120,
   private bools, no `[Saveable]`) — **SYNCED**: `ItemStateCodec`'s
   multiplayer-state table carries the three private bools on every item state

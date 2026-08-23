@@ -4,6 +4,7 @@ using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
+using CasualtiesUnknownOnline.GameAdapter.Character;
 using CasualtiesUnknownOnline.GameAdapter.Tutorial;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
@@ -166,6 +167,7 @@ internal sealed partial class ItemApplication(
 		target.favourited = authoritative.Favourited;
 		ItemStateCodec.RestoreLiquids(target, authoritative.Liquids);
 		ItemStateCodec.RestoreComponentStates(target, authoritative.Components);
+		RemoteItemPresentation.ApplyDynamiteFuse(target, authoritative);
 
 		var container = target.GetComponent<Container>();
 		if (container == null || authoritative.Contents.Count == 0) // Unity object — ==

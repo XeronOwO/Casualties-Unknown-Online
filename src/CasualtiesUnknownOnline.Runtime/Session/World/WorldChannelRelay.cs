@@ -6,14 +6,23 @@ using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 namespace CasualtiesUnknownOnline.Runtime.Session.World;
 
 /// <summary>
-/// The IWorldControl channel-forwarding members of <see cref="WorldService"/>
-/// (split off at the 600-line gate — the world entity channels accumulated
-/// five forwarding surfaces: events, spawns, trap consumptions, fluid, trade).
-/// Each surface is one thin delegation to its channel class; the world-defining
-/// state stays in WorldService.cs.
+/// The IWorldControl channel-forwarding surface. It shuttles world entity
+/// events, trap consumptions, fluid, trader, speech and chat calls/events to
+/// their dedicated channel classes. The world-defining state and message-flow
+/// logic live in <see cref="WorldStateMessageService"/>; this class is only the
+/// thin channel relay.
 /// </summary>
-public sealed partial class WorldService
+internal sealed class WorldChannelRelay(
+	EntityEventChannel eventChannel,
+	TradeChannel tradeChannel,
+	SpeechChannel speechChannel,
+	ChatChannel chatChannel)
 {
+	private readonly EntityEventChannel _eventChannel = eventChannel;
+	private readonly TradeChannel _tradeChannel = tradeChannel;
+	private readonly SpeechChannel _speechChannel = speechChannel;
+	private readonly ChatChannel _chatChannel = chatChannel;
+
 	public event Action<ulong, EntityEventMsg>? EntityEventReceived { add => _eventChannel.EntityEventReceived += value; remove => _eventChannel.EntityEventReceived -= value; }
 
 	public void FireEntityEventReceived(ulong sender, EntityEventMsg msg) => _eventChannel.FireEntityEventReceived(sender, msg);

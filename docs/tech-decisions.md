@@ -1843,9 +1843,9 @@ debt explicit instead of invisible.
   `ItemService` (928), `WorldService` (899), `EnemySyncCoordinator` (750),
   `PlayerInteractionService` (716), `ItemApplication` (630) remain recorded in
   `docs/architecture-debt.json` and are listed as the follow-up flattening
-  item in `docs/backlog.md`. `PlayerInteractionService`, `ItemApplication` and
-  `EnemySyncCoordinator` were flattened later in this cycle (see #66/#67/#68)
-  and removed from the ledger.
+  item in `docs/backlog.md`. `PlayerInteractionService`, `ItemApplication`,
+  `EnemySyncCoordinator` and `WorldService` were flattened later in this cycle
+  (see #66/#67/#68/#69) and removed from the ledger.
 
 No wire/protocol change. See `docs/selfchecks/partial-aware-gate-selfcheck.md`.
 
@@ -1939,3 +1939,36 @@ attack/bite replay into a real top-level class, not another partial.
 
 No wire/protocol change. See
 `docs/selfchecks/enemy-combat-replay-split-selfcheck.md`.
+
+## 69. WorldService message-flow split — real top-level responsibilities (no protocol change)
+
+Backlog §3.1 listed `WorldService` (899 aggregate lines) as one of the
+remaining logical classes. This entry splits the world-domain coordinator into
+a thin facade plus two real top-level responsibility classes.
+
+- **Facade** — `WorldService` is now a 423-line normal class implementing
+  `IWorldControl`. It keeps the host start-gate lifecycle, the
+  `WorldReadyReceived` event and session reset, and delegates every other
+  method/event to the two child services.
+- **World state/message flow** — `WorldStateMessageService` (422 lines) owns
+  the block-difference table, block-damage backfill, radiation-line snapshot
+  source, world-start parameters, world join, earthquake, keypad/geyser,
+  building-entity damage/open and block-damaged send/receive.
+- **Channel relay** — `WorldChannelRelay` (143 lines) owns the pure
+  forwarding surface for entity events, trap/opened/health/layout snapshots,
+  fluid, trader, speech and chat.
+- **Deleted partials** — `WorldService.Channels.cs`,
+  `WorldService.BlockDamage.cs`, `WorldService.MessageFlow.cs` and
+  `WorldService.SessionState.cs` are removed; no physical partial split is used
+  to hide the logical size.
+- **State ownership** — `_damagedBlocks`, `WorldParams` and
+  `RadiationLineState` moved with the message-flow owner; start-gate state
+  stays in the facade.
+- **No behavior change** — all moved method bodies are verbatim; event
+  forwarding goes through the facade so handlers see the same
+  `IWorldControl` surface.
+- **Debt ledger** — `WorldService` removed from
+  `docs/architecture-debt.json`.
+
+No wire/protocol change. See
+`docs/selfchecks/world-service-split-selfcheck.md`.

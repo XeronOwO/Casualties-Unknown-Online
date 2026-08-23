@@ -20,6 +20,9 @@ internal sealed class OnlineUiWindow
 
 	internal OnlineUiWindowState State => _state;
 
+	/// <summary>True when the visible Online UI window contains a GUI-space point (used to keep in-world right-click menus out of the modal window).</summary>
+	internal bool ContainsPoint(Vector2 point) => _state.Visible && _windowRect.width > 1f && _windowRect.Contains(point);
+
 	internal void Draw(OnlineUiContext ctx)
 	{
 		ctx.State = _state;
@@ -48,7 +51,7 @@ internal sealed class OnlineUiWindow
 			_state.Visible = !_state.Visible;
 			if (_state.Visible && _state.Page == OnlineUiPage.Home && ctx.Session.Role != Runtime.Session.SessionRole.None)
 			{
-				_state.Page = OnlineUiPage.Lobby;
+				_state.Page = OnlineUiPage.Players;
 			}
 		}
 	}
@@ -63,7 +66,7 @@ internal sealed class OnlineUiWindow
 		GUILayout.BeginHorizontal();
 		GUILayout.Label(ctx.T("window.title"), OnlineUiTheme.Title());
 		GUILayout.FlexibleSpace();
-		if (GUILayout.Button("✕", OnlineUiTheme.Button(), GUILayout.Width(26f), GUILayout.Height(22f)))
+		if (GUILayout.Button("×", OnlineUiTheme.CloseButton(), GUILayout.Width(26f), GUILayout.Height(22f)))
 		{
 			_state.Visible = false;
 		}
@@ -80,9 +83,6 @@ internal sealed class OnlineUiWindow
 			case OnlineUiPage.Home:
 				OnlineUiHomeDrawer.Draw(ctx);
 				break;
-			case OnlineUiPage.Lobby:
-				OnlineUiLobbyDrawer.Draw(ctx);
-				break;
 			case OnlineUiPage.Players:
 				OnlineUiPlayersDrawer.Draw(ctx);
 				break;
@@ -91,6 +91,9 @@ internal sealed class OnlineUiWindow
 				break;
 			case OnlineUiPage.Admin:
 				OnlineUiAdminDrawer.Draw(ctx);
+				break;
+			case OnlineUiPage.Preferences:
+				OnlineUiPreferencesDrawer.Draw(ctx);
 				break;
 		}
 
@@ -102,10 +105,10 @@ internal sealed class OnlineUiWindow
 	{
 		GUILayout.BeginHorizontal();
 		DrawTab(ctx.T("tab.home"), OnlineUiPage.Home);
-		DrawTab(ctx.T("tab.lobby"), OnlineUiPage.Lobby);
 		DrawTab(ctx.T("tab.players"), OnlineUiPage.Players);
 		DrawTab(ctx.T("tab.network"), OnlineUiPage.Network);
 		DrawTab(ctx.T("tab.admin"), OnlineUiPage.Admin);
+		DrawTab(ctx.T("tab.preferences"), OnlineUiPage.Preferences);
 		GUILayout.EndHorizontal();
 	}
 

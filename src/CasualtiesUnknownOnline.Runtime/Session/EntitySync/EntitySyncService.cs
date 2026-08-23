@@ -457,15 +457,22 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 		BroadcastPlayerState();
 	}
 
-	private PlayerJoinMsg BuildJoinMsg(ulong guestSteamId, NetworkEntityId guestId, NetVector2 guestPosition) => new()
+	private PlayerJoinMsg BuildJoinMsg(ulong guestSteamId, NetworkEntityId guestId, NetVector2 guestPosition)
 	{
-		HostSteamId = _localPlayer.SteamId,
-		HostEntityId = _localPlayer.EntityId.ToNetworkEntityIdMsg(),
-		HostPosition = _localPlayer.Position.ToNetVector2Msg(),
-		GuestSteamId = guestSteamId,
-		GuestEntityId = guestId.ToNetworkEntityIdMsg(),
-		GuestPosition = guestPosition.ToNetVector2Msg(),
-	};
+		var displayName = _session.TryGetMember(guestSteamId, out var presence)
+			? presence.DisplayName
+			: "";
+		return new PlayerJoinMsg
+		{
+			HostSteamId = _localPlayer.SteamId,
+			HostEntityId = _localPlayer.EntityId.ToNetworkEntityIdMsg(),
+			HostPosition = _localPlayer.Position.ToNetVector2Msg(),
+			GuestSteamId = guestSteamId,
+			GuestEntityId = guestId.ToNetworkEntityIdMsg(),
+			GuestPosition = guestPosition.ToNetVector2Msg(),
+			DisplayName = displayName,
+		};
+	}
 
 	// ---- State stream ----
 

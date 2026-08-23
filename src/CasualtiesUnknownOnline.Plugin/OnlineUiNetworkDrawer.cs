@@ -1,13 +1,12 @@
-using CasualtiesUnknownOnline.Runtime.Steam;
 using UnityEngine;
 
 namespace CasualtiesUnknownOnline;
 
 /// <summary>
 /// Network page: the connection diagnostics that are already available from the
-/// runtime — Steam/lobby state, role, handshake, per-member RTT and entity sync
-/// state. Real traffic/health metrics are recorded in logs; this page is the
-/// readable live snapshot.
+/// runtime — transport/lobby state, role, handshake, per-member RTT and entity
+/// sync state. Real traffic/health metrics are recorded in logs; this page is
+/// the readable live snapshot.
 /// </summary>
 internal static class OnlineUiNetworkDrawer
 {
@@ -17,8 +16,17 @@ internal static class OnlineUiNetworkDrawer
 		var session = ctx.Session;
 
 		GUILayout.Label(ctx.T("network.connection"), OnlineUiTheme.Section());
-		GUILayout.Label(ctx.F("network.steam", ctx.T(steam.IsInitialized ? "common.initialized" : "common.not_initialized")), OnlineUiTheme.Label());
-		GUILayout.Label(ctx.F("network.lobby", steam.CurrentLobbyId == 0 ? ctx.T("common.none") : steam.CurrentLobbyId.ToString()), OnlineUiTheme.MutedLabel());
+		if (ctx.IpDirectActive)
+		{
+			GUILayout.Label(ctx.F("network.mode", ctx.T("ip.mode_label")), OnlineUiTheme.Label());
+			GUILayout.Label(ctx.F("network.address", ctx.IpConfig?.ListenPort.ToString() ?? ""), OnlineUiTheme.MutedLabel());
+		}
+		else
+		{
+			GUILayout.Label(ctx.F("network.steam", ctx.T(steam.IsInitialized ? "common.initialized" : "common.not_initialized")), OnlineUiTheme.Label());
+			GUILayout.Label(ctx.F("network.lobby", steam.CurrentLobbyId == 0 ? ctx.T("common.none") : steam.CurrentLobbyId.ToString()), OnlineUiTheme.MutedLabel());
+		}
+
 		GUILayout.Label(ctx.F("network.role", ctx.RoleName(session.Role)), OnlineUiTheme.MutedLabel());
 		GUILayout.Label(ctx.F("network.handshake", ctx.T(session.SessionActive ? "common.active" : "common.idle")), OnlineUiTheme.MutedLabel());
 		GUILayout.Label(ctx.F("network.entity_sync", ctx.T(ctx.Entities.EntitySyncActive ? "common.active" : "common.off")), OnlineUiTheme.MutedLabel());
@@ -29,15 +37,9 @@ internal static class OnlineUiNetworkDrawer
 		GUILayout.Label(ctx.T("network.peer_rtt"), OnlineUiTheme.Section());
 		foreach (var member in session.Members)
 		{
-			var name = DisplayName(steam, member.SteamId);
+			var name = ctx.DisplayName(member.SteamId);
 			var rtt = member.RttMs >= 0f ? $"{member.RttMs:F0} ms" : ctx.T("common.pending");
 			GUILayout.Label($"{name}: {rtt}", OnlineUiTheme.MutedLabel());
 		}
-	}
-
-	private static string DisplayName(SteamService steam, ulong steamId)
-	{
-		var name = steam.GetPersonaName(steamId);
-		return string.IsNullOrWhiteSpace(name) ? $"player-{steamId:X}" : name;
 	}
 }

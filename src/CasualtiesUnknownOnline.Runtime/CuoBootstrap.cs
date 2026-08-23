@@ -94,11 +94,23 @@ public static class CuoBootstrap
 		services.AddSingleton<SystemTimeSource>();
 		services.AddSingleton<ITimeSource>(p => p.GetRequiredService<SystemTimeSource>());
 		services.AddSingleton<SteamService>();
-		services.AddSingleton<ISteamService>(p => p.GetRequiredService<SteamService>());
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<SteamService>());
-		services.AddSingleton<SteamTransport>();
-		services.AddSingleton<INetworkTransport>(p => p.GetRequiredService<SteamTransport>());
+		// SteamTransport takes the concrete SteamService, NOT the router: the
+		// router itself composes SteamTransport, so injecting ISteamService here
+		// would create a constructor cycle.
+		services.AddSingleton(p => new SteamTransport(
+			p.GetRequiredService<SteamService>(),
+			p.GetRequiredService<ILogger<SteamTransport>>()));
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<SteamTransport>());
+		// Non-Steam transport path: TCP IP-direct host/guest. The router exposes
+		// the ACTIVE pair (Steam or IP-direct) through the same INetworkTransport /
+		// ISteamService contracts; the plugin switches it when an IP session starts.
+		services.AddSingleton<IpDirectTransport>();
+		services.AddSingleton<ICuoService>(p => p.GetRequiredService<IpDirectTransport>());
+		services.AddSingleton<IpDirectSteamService>();
+		services.AddSingleton<CuoNetworkRouter>();
+		services.AddSingleton<INetworkTransport>(p => p.GetRequiredService<CuoNetworkRouter>());
+		services.AddSingleton<ISteamService>(p => p.GetRequiredService<CuoNetworkRouter>());
 
 		// Session owns its state (identity/flags/presence, created internally);
 		// consumers depend on the narrow ISessionControl surface, registered as

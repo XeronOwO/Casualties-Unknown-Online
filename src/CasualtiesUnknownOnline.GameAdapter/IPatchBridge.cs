@@ -17,6 +17,9 @@ internal interface IPatchBridge
 
 	bool IsWaitingForReady { get; }
 
+	/// <summary>True while the CUO Online UI modal window is open — the adapter suppresses the game's native input handling (pause/ESC) behind it.</summary>
+	bool IsOnlineUiModalOpen { get; }
+
 	/// <summary>Guest: generation finished (or finishing) but the start gate still holds — the GlobalDark fade must not black out the kept loading screen.</summary>
 	bool IsInGateWindow { get; }
 
@@ -54,12 +57,22 @@ internal interface IPatchBridge
 
 	/// <summary>
 	/// The local player swung — <c>Body.Attack</c> (Body.cs:1887, conscious +
-	/// off-cooldown + doAttackAnim) or <c>Body.ThrowItem</c> (Body.cs:1665, with
-	/// an item). Both play the one-shot <c>ArmsSwing</c> clip, which the peer's
-	/// render clone must replay. Report the swing so it rides the IsAttacking
-	/// snapshot flag (the clone plays ArmsSwing on the flag's rising edge).
+	/// off-cooldown + doAttackAnim), <c>Body.ThrowItem</c> (Body.cs:1665, with
+	/// an item), or a successful direct placeable use (<c>scrapmetal</c> /
+	/// <c>climbingrope</c> / <c>scaffoldingpack</c>, Item.cs:2165/2208/2249). All
+	/// play the one-shot <c>ArmsSwing</c> clip, which the peer's render clone
+	/// must replay. Report the swing so it rides the IsAttacking snapshot flag
+	/// (the clone plays ArmsSwing on the flag's rising edge).
 	/// </summary>
 	void OnArmSwing();
+
+	/// <summary>
+	/// The local player's <c>Body.Attack</c> instantiated its one-shot
+	/// <c>attackAnim</c> prefab (ClawAnim/SwingAnim/LaserAnim, Body.cs:1913-1920)
+	/// — report the exact prefab + facing + attack direction so the peers replay
+	/// the same visual on the owner's render clone.
+	/// </summary>
+	void OnAttackAnim(string prefab, Vector2 direction, bool isRight, Vector2 position);
 
 	/// <summary>A lockable entity was opened (health = 0 write path — Openable/lockpick/keypad) — report it.</summary>
 	void OnBuildingEntityOpened(BuildingEntity entity);

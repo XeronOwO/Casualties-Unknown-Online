@@ -188,6 +188,8 @@ internal static class BodyPatches
 		private sealed class AttackState
 		{
 			internal bool WillRun;
+			internal bool IsLocalBody;
+			internal string? AttackAnim;
 			internal List<(BuildingEntity, float)> Entities = [];
 			internal IDisposable? SoundScope;
 		}
@@ -201,10 +203,14 @@ internal static class BodyPatches
 			// run inside the native attack are the swing/exert sounds. A render
 			// clone never attacks — no scope, no capture (its Body.Update is
 			// already skipped, this is the belt-and-braces guard).
+			var isLocalBody = __instance.GetComponentInParent<RemoteBodyDriver>() == null
+				&& __instance.GetComponent<CarriedBodyDriver>() == null; // Unity objects — ==
 			__state = new AttackState
 			{
 				WillRun = __instance.conscious && __instance.attackCooldown <= 0f && atk.doAttackAnim,
-				SoundScope = __instance.GetComponentInParent<RemoteBodyDriver>() == null
+				IsLocalBody = isLocalBody,
+				AttackAnim = atk.attackAnim != null ? atk.attackAnim.name : null, // Unity object — ==
+				SoundScope = isLocalBody
 					? CallContext.Enter(CallContext.Origin.CharacterAttack)
 					: null,
 			};
@@ -215,12 +221,22 @@ internal static class BodyPatches
 			}
 		}
 
-		private static void Postfix(AttackState __state)
+		private static void Postfix(Body __instance, AttackState __state)
 		{
 			__state.SoundScope?.Dispose();
 			if (__state.WillRun)
 			{
 				PatchBridge.Impl?.OnArmSwing();
+				if (__state.IsLocalBody && __state.AttackAnim is { } prefab)
+				{
+					// The original computes the swing vector after the guard
+					// (Body.cs:1854) and instantiates the anim after the sound
+					// (Body.cs:1913). Recompute the same facts in the postfix:
+					// isRight/targetLookPos/arm are the final values the
+					// original used for the visual.
+					var direction = ((Vector2)__instance.targetLookPos - (Vector2)__instance.limbs[1].transform.position).normalized;
+					PatchBridge.Impl?.OnAttackAnim(prefab, direction, __instance.isRight, __instance.limbs[1].transform.position);
+				}
 			}
 
 			foreach (var (entity, before) in __state.Entities)

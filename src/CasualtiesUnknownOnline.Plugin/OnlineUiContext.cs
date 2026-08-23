@@ -38,6 +38,10 @@ internal sealed class OnlineUiContext
 
 	internal HostRulesConfigEditor? RulesEditor;
 
+	internal LoggingConfigEditor? Logging;
+
+	internal LocalizationConfigEditor? Language;
+
 	internal IGameAdapter? Adapter;
 
 	internal string? LastJoinError;
@@ -49,6 +53,16 @@ internal sealed class OnlineUiContext
 	internal Func<bool>? CreateLobby;
 
 	internal Func<bool>? LeaveLobby;
+
+	internal bool IpDirectActive;
+
+	internal IpDirectConfigEditor? IpConfig;
+
+	internal Func<bool>? CreateIpHost;
+
+	internal Func<string, int, bool>? JoinIp;
+
+	internal Func<bool>? LeaveIp;
 
 	internal Func<ulong, ulong, bool>? TakeItem;
 
@@ -82,4 +96,29 @@ internal sealed class OnlineUiContext
 		Runtime.Session.SessionRole.Guest => T("common.role_guest"),
 		_ => T("common.role_none"),
 	};
+
+	/// <summary>Resolves the best display name for a member: custom IP-direct name
+	/// when present, Steam persona otherwise, and a stable player-id fallback.</summary>
+	internal string DisplayName(ulong id)
+	{
+		if (IpDirectActive)
+		{
+			if (id == Session.LocalSteamId)
+			{
+				var local = IpConfig?.DisplayName ?? "";
+				return string.IsNullOrWhiteSpace(local) ? $"player-{id:X}" : local;
+			}
+
+			foreach (var member in Session.Members)
+			{
+				if (member.SteamId == id && !string.IsNullOrWhiteSpace(member.DisplayName))
+				{
+					return member.DisplayName;
+				}
+			}
+		}
+
+		var name = Steam.GetPersonaName(id);
+		return string.IsNullOrWhiteSpace(name) ? $"player-{id:X}" : name;
+	}
 }

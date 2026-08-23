@@ -17,7 +17,7 @@ public sealed class WorldTimeRequestHandler(ILogger<WorldTimeRequestHandler> log
 
 	protected override void Handle(ulong sender, WorldTimeRequestMsg msg, IWorldTimeHandlerContext ctx)
 	{
-		_log.LogInformation("World-time request from {Sender}: {Speed}.", sender, msg.Speed);
+		_log.LogDebug("World-time request from {Sender}: {Speed}.", sender, msg.Speed);
 		ctx.WorldTime.FireRequestReceived(sender, msg.Speed);
 	}
 }

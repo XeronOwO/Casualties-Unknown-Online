@@ -1,6 +1,5 @@
 using System;
 using CasualtiesUnknownOnline.Runtime.Session;
-using CasualtiesUnknownOnline.Runtime.Steam;
 using UnityEngine;
 
 namespace CasualtiesUnknownOnline;
@@ -56,7 +55,7 @@ internal static class OnlineUiAdminDrawer
 		foreach (var steamId in bans)
 		{
 			GUILayout.BeginHorizontal();
-			GUILayout.Label($"{DisplayName(ctx.Steam, steamId)} [{steamId:X}]", OnlineUiTheme.Label());
+			GUILayout.Label($"{ctx.DisplayName(steamId)} [{steamId:X}]", OnlineUiTheme.Label());
 			GUILayout.FlexibleSpace();
 			if (isHost && GUILayout.Button(ctx.T("admin.unban"), OnlineUiTheme.Button(), GUILayout.Width(70f)))
 			{
@@ -86,11 +85,5 @@ internal static class OnlineUiAdminDrawer
 		}
 
 		GUILayout.EndHorizontal();
-	}
-
-	private static string DisplayName(SteamService steam, ulong steamId)
-	{
-		var name = steam.GetPersonaName(steamId);
-		return string.IsNullOrWhiteSpace(name) ? $"player-{steamId:X}" : name;
 	}
 }

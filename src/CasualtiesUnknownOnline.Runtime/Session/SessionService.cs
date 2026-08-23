@@ -406,14 +406,7 @@ public sealed class SessionService : ICuoService, ISessionControl
 		_log.LogInformation("Retrying handshake with {Host}…", HostSteamId);
 	}
 
-	/// <summary>
-	/// Host side: keep pinging lobby peers that have not completed a handshake
-	/// yet. The Steam P2P session only establishes with traffic from both
-	/// directions (Phase-0 finding); with the guest retrying the handshake
-	/// alone the messages never arrive. Runs regardless of session state — a
-	/// member joining mid-session needs the same warm-up traffic as one joining
-	/// pre-session.
-	/// </summary>
+	/// <summary>Host-side warm-up for un-handshaken lobby peers (Steam P2P needs traffic both ways).</summary>
 	private void SendPeerWarmup()
 	{
 		if (Role != SessionRole.Host)
@@ -595,6 +588,9 @@ public sealed class SessionService : ICuoService, ISessionControl
 		// its first handshake with an empty list, the 1 s retry carries the
 		// real one (and a host without requirements accepts the empty list).
 		Mods = _modListProvider.CurrentModInfos(),
+		// The local display name: Steam persona in Steam mode, the configured
+		// custom name in IP-direct mode (the IP adapter answers this query).
+		DisplayName = _steam.GetPersonaName(LocalSteamId),
 	};
 	void ISessionControl.EndSession() => EndSession();
 }

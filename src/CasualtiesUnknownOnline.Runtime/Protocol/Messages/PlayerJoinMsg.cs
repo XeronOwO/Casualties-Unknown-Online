@@ -33,4 +33,8 @@ public sealed class PlayerJoinMsg
 	/// <summary>The joining guest's reported spawn anchor (roster mode).</summary>
 	[ProtoMember(6)]
 	public NetVector2Msg GuestPosition { get; set; } = new();
+
+	/// <summary>The joining guest's custom display name (IP-direct sessions; Steam sessions fall back to persona).</summary>
+	[ProtoMember(7)]
+	public string DisplayName { get; set; } = "";
 }

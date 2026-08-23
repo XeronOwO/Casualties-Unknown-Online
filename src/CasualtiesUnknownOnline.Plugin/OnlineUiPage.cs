@@ -4,8 +4,8 @@ namespace CasualtiesUnknownOnline;
 internal enum OnlineUiPage
 {
 	Home,
-	Lobby,
 	Players,
 	Network,
 	Admin,
+	Preferences,
 }

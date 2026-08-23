@@ -196,7 +196,13 @@ internal sealed class WorldTimeSync(
 			return; // direction guard — the host never applies its own broadcast
 		}
 
-		_appliedSpeed = Normalize(speed);
+		var incoming = Normalize(speed);
+		if (incoming == _appliedSpeed)
+		{
+			return; // the 5 s periodic resend is idempotent — do not replay the speed-change UI sound every tick
+		}
+
+		_appliedSpeed = incoming;
 		if (!_gate.WaitingForReady)
 		{
 			ApplyLocalTime(_appliedSpeed); // during the start gate the gate owns timeScale 0; Update enforces the host speed on release

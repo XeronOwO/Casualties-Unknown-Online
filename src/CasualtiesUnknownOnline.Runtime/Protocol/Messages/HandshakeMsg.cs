@@ -22,4 +22,9 @@ public sealed class HandshakeMsg
 
 	[ProtoMember(3)]
 	public List<ModInfoMsg>? Mods { get; set; }
+
+	/// <summary>The sender's custom in-game display name. Used by IP-direct sessions;
+	/// Steam sessions may send the Steam persona name as a harmless duplicate.</summary>
+	[ProtoMember(4)]
+	public string DisplayName { get; set; } = "";
 }

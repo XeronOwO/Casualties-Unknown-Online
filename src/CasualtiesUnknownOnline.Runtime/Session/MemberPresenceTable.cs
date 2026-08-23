@@ -27,6 +27,9 @@ public sealed class MemberPresenceTable
 		public bool InWorld; // in the world (menu/loading = false)
 		public NetVector2 ReportedSpawnPos; // position reported when entering the world — the clone anchor
 		public float RttMs = -1f; // per-member ping diagnostics
+
+		/// <summary>Custom display name for IP-direct sessions (empty = fall back to Steam persona/ID).</summary>
+		public string DisplayName = "";
 	}
 
 	private readonly Dictionary<ulong, MemberPresence> _members = [];

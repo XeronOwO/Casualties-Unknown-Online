@@ -13,6 +13,7 @@ using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.Chat;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
+using CasualtiesUnknownOnline.Runtime.Session.HostRules;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using CasualtiesUnknownOnline.Runtime.Steam;
 using Microsoft.Extensions.DependencyInjection;
@@ -34,6 +35,7 @@ public class Plugin : BaseUnityPlugin
 	private SteamService _steam = null!;
 	private SessionService _session = null!;
 	private IHostBanService _hostBan = null!;
+	private IHostRules _hostRules = null!;
 	private EntitySyncService _entities = null!;
 	private RemoteVitalsService _remoteVitals = null!;
 	private RemoteInventoryService _remoteInventory = null!;
@@ -101,6 +103,7 @@ public class Plugin : BaseUnityPlugin
 			_steam = _services.GetRequiredService<SteamService>();
 			_session = _services.GetRequiredService<SessionService>();
 			_hostBan = _services.GetRequiredService<IHostBanService>();
+			_hostRules = _services.GetRequiredService<IHostRules>();
 			_entities = _services.GetRequiredService<EntitySyncService>();
 			_remoteVitals = _services.GetRequiredService<RemoteVitalsService>();
 			_remoteInventory = _services.GetRequiredService<RemoteInventoryService>();
@@ -125,6 +128,7 @@ public class Plugin : BaseUnityPlugin
 				RecruitPlayer = TryRequestTraderRecruitFromUi,
 				KickMember = TryKickMemberFromUi,
 				BanMember = TryBanMemberFromUi,
+				UnbanMember = TryUnbanMemberFromUi,
 			};
 
 			// Publish the container on the static diagnostics seam (HotRepl etc.).
@@ -420,6 +424,9 @@ public class Plugin : BaseUnityPlugin
 	/// <summary>Online UI Ban path — host-only permanent removal (the target receives a dedicated Banned message and the SteamID is persisted on the host).</summary>
 	private bool TryBanMemberFromUi(ulong targetSteamId) => _hostBan.Ban(targetSteamId, "banned by host");
 
+	/// <summary>Online UI Unban path — host-only removal from the persisted ban list.</summary>
+	private bool TryUnbanMemberFromUi(ulong targetSteamId) => _hostBan.Unban(targetSteamId);
+
 
 	// Steam launches the game with "+connect_lobby <id>" when the user clicks
 	// a friend's "Join Game" while the game is not running. Parse the lobby ID
@@ -450,7 +457,7 @@ public class Plugin : BaseUnityPlugin
 			return; // the HUD is hidden behind the gate overlay
 		}
 
-		_onlineUi.Draw(_steam, _session, _entities, _remoteVitals, _remoteInventory, _playerInteraction, _chat, _lastJoinError);
+		_onlineUi.Draw(_steam, _session, _entities, _remoteVitals, _remoteInventory, _playerInteraction, _chat, _hostBan, _hostRules, _adapter, _lastJoinError);
 		ModUiDrawing.DrawAll(_modUiControl, e => _log.LogError(e, "Mod UI window threw while drawing."));
 	}
 

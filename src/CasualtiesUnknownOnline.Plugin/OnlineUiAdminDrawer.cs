@@ -1,3 +1,4 @@
+using System;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Steam;
 using UnityEngine;
@@ -5,9 +6,9 @@ using UnityEngine;
 namespace CasualtiesUnknownOnline;
 
 /// <summary>
-/// Admin page: the host-only rule/ban surfaces. The host rules service is
-/// read-only for now (config hot-reload is the edit path); the ban list is
-/// directly manageable through the existing host-ban service.
+/// Admin page: the host-only rule/ban surfaces. Hosts can toggle the host-rule
+/// and respawn flags directly; guests see the read-only summary. The ban list
+/// is directly manageable through the existing host-ban service.
 /// </summary>
 internal static class OnlineUiAdminDrawer
 {
@@ -23,13 +24,26 @@ internal static class OnlineUiAdminDrawer
 		}
 
 		var rules = ctx.HostRules;
-		DrawRule(ctx.T("admin.rule_pvp"), rules.PvpEnabled, ctx);
-		DrawRule(ctx.T("admin.rule_auto_continue"), rules.AutoContinue, ctx);
-		DrawRule(ctx.T("admin.rule_allow_late_join"), rules.AllowLateJoin, ctx);
-		DrawRule(ctx.T("admin.rule_save_inventory"), rules.SaveInventory, ctx);
-		DrawRule(ctx.T("admin.rule_revive_trader"), rules.ReviveFromTrader, ctx);
-		DrawRule(ctx.T("admin.rule_revive_next_level"), rules.ReviveOnNextLevel, ctx);
-		DrawRule(ctx.T("admin.rule_permadeath"), rules.Permadeath, ctx);
+		if (isHost && ctx.RulesEditor is { } editor)
+		{
+			DrawEditableRule(ctx, "admin.rule_pvp", rules.PvpEnabled, editor.SetPvpEnabled);
+			DrawEditableRule(ctx, "admin.rule_auto_continue", rules.AutoContinue, editor.SetAutoContinue);
+			DrawEditableRule(ctx, "admin.rule_allow_late_join", rules.AllowLateJoin, editor.SetAllowLateJoin);
+			DrawEditableRule(ctx, "admin.rule_save_inventory", rules.SaveInventory, editor.SetKeepInventory);
+			DrawEditableRule(ctx, "admin.rule_revive_trader", rules.ReviveFromTrader, editor.SetReviveFromTrader);
+			DrawEditableRule(ctx, "admin.rule_revive_next_level", rules.ReviveOnNextLevel, editor.SetReviveOnNextLevel);
+			DrawEditableRule(ctx, "admin.rule_permadeath", rules.Permadeath, editor.SetPermadeath);
+		}
+		else
+		{
+			DrawRule(ctx.T("admin.rule_pvp"), rules.PvpEnabled, ctx);
+			DrawRule(ctx.T("admin.rule_auto_continue"), rules.AutoContinue, ctx);
+			DrawRule(ctx.T("admin.rule_allow_late_join"), rules.AllowLateJoin, ctx);
+			DrawRule(ctx.T("admin.rule_save_inventory"), rules.SaveInventory, ctx);
+			DrawRule(ctx.T("admin.rule_revive_trader"), rules.ReviveFromTrader, ctx);
+			DrawRule(ctx.T("admin.rule_revive_next_level"), rules.ReviveOnNextLevel, ctx);
+			DrawRule(ctx.T("admin.rule_permadeath"), rules.Permadeath, ctx);
+		}
 
 		GUILayout.Space(10f);
 		GUILayout.Label(ctx.T("admin.ban_list"), OnlineUiTheme.Section());
@@ -58,6 +72,20 @@ internal static class OnlineUiAdminDrawer
 		var text = ctx.T(value ? "admin.rule_enabled" : "admin.rule_disabled");
 		var color = value ? OnlineUiTheme.Positive : OnlineUiTheme.Muted;
 		GUILayout.Label($"{label}: <color=#{ColorUtility.ToHtmlStringRGBA(color)}>{text}</color>", OnlineUiTheme.Label());
+	}
+
+	private static void DrawEditableRule(OnlineUiContext ctx, string labelKey, bool value, Action<bool> setter)
+	{
+		GUILayout.BeginHorizontal();
+		GUILayout.Label(ctx.T(labelKey), OnlineUiTheme.Label());
+		GUILayout.FlexibleSpace();
+		var next = GUILayout.Toggle(value, ctx.T(value ? "admin.rule_enabled" : "admin.rule_disabled"), OnlineUiTheme.Button());
+		if (next != value)
+		{
+			setter(next);
+		}
+
+		GUILayout.EndHorizontal();
 	}
 
 	private static string DisplayName(SteamService steam, ulong steamId)

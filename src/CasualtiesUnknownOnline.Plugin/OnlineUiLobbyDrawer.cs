@@ -1,3 +1,4 @@
+using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Steam;
 using UnityEngine;
 
@@ -33,6 +34,13 @@ internal static class OnlineUiLobbyDrawer
 		if (!string.IsNullOrEmpty(ctx.State.Error))
 		{
 			GUILayout.Label(ctx.State.Error!, OnlineUiTheme.Status(OnlineUiTheme.Positive));
+		}
+
+		GUILayout.Space(6f);
+		var leaveLabel = session.Role == SessionRole.Host ? ctx.T("lobby.close_room") : ctx.T("lobby.leave_lobby");
+		if (GUILayout.Button(leaveLabel, OnlineUiTheme.Button(), GUILayout.Width(150f)))
+		{
+			ctx.LeaveLobby?.Invoke();
 		}
 
 		GUILayout.Space(8f);

@@ -160,6 +160,10 @@ public sealed class SteamService(ILogger<SteamService> log) : ICuoService, IStea
 		SteamMatchmaking.JoinLobby(new CSteamID(lobbyId));
 	}
 
+	/// <summary>Leave the current lobby explicitly (Online UI "Leave Lobby" /
+	/// "Close Room"). The session layer tears down through <see cref="LobbyLeft"/>.</summary>
+	public void LeaveLobby() => LeaveCurrentLobbyFor("leaving from Online UI");
+
 	/// <summary>
 	/// Leave the current lobby before acquiring another one. Steam's LeaveLobby
 	/// takes effect immediately on the client side (official docs); the other

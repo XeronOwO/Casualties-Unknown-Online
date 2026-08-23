@@ -2004,3 +2004,40 @@ a facade plus two real top-level responsibility classes.
 
 No wire/protocol change. See
 `docs/selfchecks/item-service-split-selfcheck.md`.
+
+## 71. ModService split — real top-level responsibilities (no protocol change)
+
+Backlog §3.1 listed `ModService` (1590 aggregate lines) as the largest
+remaining logical class. This entry splits the mod-domain coordinator into a
+thin facade plus real top-level responsibility classes, not more physical
+partials.
+
+- **Facade** — `ModService` is now a 98-line normal class implementing
+  `ICuoService` / `IModsControl` / `IModUiControl` / `IModContentControl`. It
+  composes `ModCatalog`, `ModStateStore`, `ModCommandService` and
+  `ModLifecycle`, and delegates the public surfaces.
+- **Lifecycle** — `ModLifecycle` (258 lines) owns discovery/load, the
+  update/stop/dispose pump, the session-event fan-out and received mod-frame
+  routing.
+- **Host commands** — `ModCommandService` (438 lines) owns host-command
+  request/result handling, registration/execution, pending guest callbacks and
+  command rate limits.
+- **Mod state** — `ModStateStore` (309 lines) owns the per-mod key/value table
+  and persistence; the per-mod `IModState` adapter remains nested because it is
+  just the gated front door to the store.
+- **Per-mod context** — `ModContext` (485 lines) owns the network, content, UI,
+  entity-spawn, game-state and native-API adapters plus lifecycle events.
+- **Supporting types** — `ModCatalog` (26), `ModPermissionGate` (30) and
+  `ModSessionSnapshot` (37) are internal owned dependencies.
+- **Deleted partials** — all seven `ModService.*.cs` partial files are removed;
+  no physical partial split is used to hide the logical size.
+- **State ownership** — loaded-mod list moves to `ModCatalog`; mod-state table
+  moves to `ModStateStore`; command pending-callback state stays in the
+  command service's nested per-mod adapter.
+- **No behavior change** — all moved method bodies are verbatim or explicit
+  delegation; session end still fails pending commands before firing
+  `SessionEnded`.
+- **Debt ledger** — `ModService` removed from `docs/architecture-debt.json`.
+
+No wire/protocol change. See
+`docs/selfchecks/mod-service-split-selfcheck.md`.

@@ -4,33 +4,39 @@ using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Time;
 using Microsoft.Extensions.Logging;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.Mods;
 
 /// <summary>
-/// Host-command half of <see cref="ModService"/> (Phase 4b). Command
-/// execution is host-authoritative: a guest request is validated against the
-/// session membership and the host's loaded mod/permission/registration
-/// state, then executed on the HOST's copy of the mod and answered with a
-/// directed result; a host-local call executes synchronously and invokes its
-/// callback in place. Pending guest callbacks are settled with a failure when
-/// the session ends or the framework shuts down.
+/// Host-command half of the mod domain (Phase 4b). Command execution is
+/// host-authoritative: a guest request is validated against the session
+/// membership and the host's loaded mod/permission/registration state, then
+/// executed on the HOST's copy of the mod and answered with a directed result;
+/// a host-local call executes synchronously and invokes its callback in place.
+/// Pending guest callbacks are settled with a failure when the session ends or
+/// the framework shuts down.
 /// </summary>
-public sealed partial class ModService
+internal sealed class ModCommandService(
+	ModCatalog catalog,
+	SessionService session,
+	PacketSender sender,
+	ITimeSource time,
+	ILogger log)
 {
-	private static bool HasPermission(LoadedMod mod, ModPermission permission) =>
-		(mod.Manifest.Permissions & permission) == permission;
+	private readonly ModCatalog _catalog = catalog;
+	private readonly SessionService _session = session;
+	private readonly PacketSender _sender = sender;
+	private readonly ITimeSource _time = time;
+	private readonly ILogger _log = log;
+	private readonly Dictionary<ulong, ModRateLimiter> _commandRateLimiters = [];
 
-	private static bool HasPermission(ModManifest manifest, ModPermission permission) =>
-		(manifest.Permissions & permission) == permission;
+	internal ModCommandAdapter CreateAdapter(ModManifest manifest) => new(this, manifest);
 
-	private void LogMissingPermission(string modId, string permission) =>
-		_log.LogWarning("[Mods] {ModId} does not declare {Permission} — the call is refused.", modId, permission);
+	// ---- Command frames (the handlers stay thin adapters) ----
 
-	// ---- IModsControl: command frames (the handlers stay thin adapters) ----
-
-	public void FireModCommandRequestReceived(ulong sender, ModCommandRequestMsg msg)
+	internal void FireCommandRequestReceived(ulong sender, ModCommandRequestMsg msg)
 	{
 		if (_session.Role != SessionRole.Host || !_session.SessionActive)
 		{
@@ -55,7 +61,7 @@ public sealed partial class ModService
 			return;
 		}
 
-		var mod = _mods.FirstOrDefault(m => m.Manifest.Id == msg.ModId);
+		var mod = _catalog.Find(msg.ModId);
 		if (mod is null)
 		{
 			_log.LogWarning("[Mods] command request from {Sender} for unknown mod {ModId} — failure returned.", sender, msg.ModId);
@@ -82,7 +88,7 @@ public sealed partial class ModService
 		SendCommandResult(sender, msg.RequestId, msg.ModId, msg.Name, result.Success, result.Output, result.Error);
 	}
 
-	public void FireModCommandResultReceived(ulong sender, ModCommandResultMsg msg)
+	internal void FireCommandResultReceived(ulong sender, ModCommandResultMsg msg)
 	{
 		if (!ModCommandPolicy.IsValidResult(msg))
 		{
@@ -90,7 +96,7 @@ public sealed partial class ModService
 			return;
 		}
 
-		var mod = _mods.FirstOrDefault(m => m.Manifest.Id == msg.ModId);
+		var mod = _catalog.Find(msg.ModId);
 		if (mod is null)
 		{
 			_log.LogWarning("[Mods] command result from {Sender} for unknown mod {ModId} — dropped.", sender, msg.ModId);
@@ -109,7 +115,7 @@ public sealed partial class ModService
 
 	// ---- Registration / execution helpers (called by the per-mod adapter) ----
 
-	private bool RegisterCommand(ModManifest modManifest, ModCommand command)
+	internal bool RegisterCommand(ModManifest modManifest, ModCommand command)
 	{
 		if (command.Handler is null)
 		{
@@ -134,13 +140,13 @@ public sealed partial class ModService
 
 	private static bool CanRegisterCommand(ModManifest manifest, ModCommand command, out string refusal)
 	{
-		if (!HasPermission(manifest, ModPermission.RegisterCommand))
+		if (!ModPermissionGate.HasPermission(manifest, ModPermission.RegisterCommand))
 		{
 			refusal = "RegisterCommand";
 			return false;
 		}
 
-		if (command.IsHostAction && !HasPermission(manifest, ModPermission.ExecuteHostAction))
+		if (command.IsHostAction && !ModPermissionGate.HasPermission(manifest, ModPermission.ExecuteHostAction))
 		{
 			refusal = "ExecuteHostAction";
 			return false;
@@ -150,15 +156,15 @@ public sealed partial class ModService
 		return true;
 	}
 
-	private static bool CanExecuteCommand(LoadedMod mod, ModCommand command, out string refusal)
+	internal static bool CanExecuteCommand(LoadedMod mod, ModCommand command, out string refusal)
 	{
-		if (!HasPermission(mod, ModPermission.RegisterCommand))
+		if (!ModPermissionGate.HasPermission(mod, ModPermission.RegisterCommand))
 		{
 			refusal = "RegisterCommand";
 			return false;
 		}
 
-		if (command.IsHostAction && !HasPermission(mod, ModPermission.ExecuteHostAction))
+		if (command.IsHostAction && !ModPermissionGate.HasPermission(mod, ModPermission.ExecuteHostAction))
 		{
 			refusal = "ExecuteHostAction";
 			return false;
@@ -168,7 +174,7 @@ public sealed partial class ModService
 		return true;
 	}
 
-	private bool RunLocalCommand(LoadedMod mod, ModCommand command, IReadOnlyList<string> arguments,
+	internal bool RunLocalCommand(LoadedMod mod, ModCommand command, IReadOnlyList<string> arguments,
 		uint requestId, Action<IModCommandResult> callback)
 	{
 		var result = ExecuteCommand(mod, command, command.Name, arguments, _session.LocalSteamId, requestId);
@@ -192,6 +198,17 @@ public sealed partial class ModService
 		}
 	}
 
+	internal void SendCommandRequest(ulong target, uint requestId, string modId, string name, IReadOnlyList<string> arguments)
+	{
+		_sender.Send(target, NetMsg.ModCommandRequest, new ModCommandRequestMsg
+		{
+			RequestId = requestId,
+			ModId = modId,
+			Name = name,
+			Arguments = [.. arguments],
+		});
+	}
+
 	private void SendCommandResult(ulong target, uint requestId, string modId, string name,
 		bool success, string? output, string? error)
 	{
@@ -206,15 +223,15 @@ public sealed partial class ModService
 		});
 	}
 
-	private void FailAllPendingCommands(string reason)
+	internal void FailAllPending(string reason)
 	{
-		foreach (var mod in _mods)
+		foreach (var mod in _catalog.Mods)
 		{
-			mod.Context.CommandAdapter.FailPending(reason);
+			mod.Context.FailPendingCommands(reason);
 		}
 	}
 
-	private void InvokeCallback(LoadedMod mod, Action<IModCommandResult> callback, IModCommandResult result)
+	internal void InvokeCallback(LoadedMod mod, Action<IModCommandResult> callback, IModCommandResult result)
 	{
 		try
 		{
@@ -226,10 +243,32 @@ public sealed partial class ModService
 		}
 	}
 
-	// ---- Nested types (private — part of ModService) ----
+	private bool TryConsumeCommandRequest(ulong sender)
+	{
+		if (!_commandRateLimiters.TryGetValue(sender, out var limiter))
+		{
+			limiter = new ModRateLimiter(ModRateLimitPolicy.CommandRequestsPerSecond, ModRateLimitPolicy.CommandRequestBurst);
+			_commandRateLimiters[sender] = limiter;
+		}
+
+		if (limiter.TryConsume(_time.NowMs))
+		{
+			return true;
+		}
+
+		_log.LogWarning("[Mods] command-request rate limit hit for {Sender} — request dropped.", sender);
+		return false;
+	}
+
+	private void LogMissingPermission(string modId, string permission) =>
+		_log.LogWarning("[Mods] {ModId} does not declare {Permission} — the call is refused.", modId, permission);
+
+	private ISessionInfo BuildSessionSnapshot() => ModSessionSnapshot.Capture(_session);
+
+	// ---- Nested types (private — part of ModCommandService) ----
 
 	/// <summary>The per-mod command surface: registration + request/result bookkeeping.</summary>
-	private sealed class ModCommandAdapter(ModService owner, ModManifest manifest) : IModCommands
+	internal sealed class ModCommandAdapter(ModCommandService service, ModManifest manifest) : IModCommands
 	{
 		private readonly Dictionary<string, ModCommand> _commands = [];
 		private readonly Dictionary<uint, PendingCommand> _pending = [];
@@ -237,7 +276,7 @@ public sealed partial class ModService
 
 		public bool Register(ModCommand command)
 		{
-			if (!owner.RegisterCommand(manifest, command))
+			if (!service.RegisterCommand(manifest, command))
 			{
 				return false;
 			}
@@ -251,43 +290,42 @@ public sealed partial class ModService
 		{
 			if (!ModCommandPolicy.IsValidName(name) || !ModCommandPolicy.AreArgumentsValid(arguments))
 			{
-				owner._log.LogWarning("[Mods] {Id}/{Name} rejected at the sender: invalid name or argument shape.", manifest.Id, name);
+				service._log.LogWarning("[Mods] {Id}/{Name} rejected at the sender: invalid name or argument shape.", manifest.Id, name);
 				return false;
 			}
 
 			if (!_commands.TryGetValue(name, out var command))
 			{
-				owner._log.LogWarning("[Mods] {Id}/{Name} is not registered — execution refused.", manifest.Id, name);
+				service._log.LogWarning("[Mods] {Id}/{Name} is not registered — execution refused.", manifest.Id, name);
 				return false;
 			}
 
-			var mod = owner._mods.First(m => m.Manifest.Id == manifest.Id);
+			var mod = service._catalog.Find(manifest.Id);
+			if (mod is null)
+			{
+				return false;
+			}
+
 			if (!CanExecuteCommand(mod, command, out var refusal))
 			{
-				owner.LogMissingPermission(manifest.Id, refusal);
+				service.LogMissingPermission(manifest.Id, refusal);
 				return false;
 			}
 
-			if (owner._session.Role == SessionRole.Host)
+			if (service._session.Role == SessionRole.Host)
 			{
 				var requestId = NextRequestId();
-				return owner.RunLocalCommand(mod, command, arguments, requestId, callback);
+				return service.RunLocalCommand(mod, command, arguments, requestId, callback);
 			}
 
-			if (owner._session.Role != SessionRole.Guest || !owner._session.SessionActive)
+			if (service._session.Role != SessionRole.Guest || !service._session.SessionActive)
 			{
 				return false; // outside a session a guest request cannot be delivered
 			}
 
 			var guestRequestId = NextRequestId();
 			_pending.Add(guestRequestId, new PendingCommand(callback));
-			owner._sender.Send(owner._session.HostSteamId, NetMsg.ModCommandRequest, new ModCommandRequestMsg
-			{
-				RequestId = guestRequestId,
-				ModId = manifest.Id,
-				Name = name,
-				Arguments = [.. arguments],
-			});
+			service.SendCommandRequest(service._session.HostSteamId, guestRequestId, manifest.Id, name, arguments);
 			return true;
 		}
 
@@ -295,7 +333,7 @@ public sealed partial class ModService
 		{
 			if (_commands.ContainsKey(command.Name))
 			{
-				owner._log.LogWarning("[Mods] {Id}/{Name} is already registered — the duplicate is refused.", manifest.Id, command.Name);
+				service._log.LogWarning("[Mods] {Id}/{Name} is already registered — the duplicate is refused.", manifest.Id, command.Name);
 				return false;
 			}
 
@@ -310,13 +348,16 @@ public sealed partial class ModService
 		{
 			if (!_pending.TryGetValue(requestId, out var pending))
 			{
-				owner._log.LogWarning("[Mods] {Id} received a result for unknown request {RequestId} — dropped.", manifest.Id, requestId);
+				service._log.LogWarning("[Mods] {Id} received a result for unknown request {RequestId} — dropped.", manifest.Id, requestId);
 				return;
 			}
 
 			_pending.Remove(requestId);
-			var mod = owner._mods.First(m => m.Manifest.Id == manifest.Id);
-			owner.InvokeCallback(mod, pending.Callback, result);
+			var mod = service._catalog.Find(manifest.Id);
+			if (mod is not null)
+			{
+				service.InvokeCallback(mod, pending.Callback, result);
+			}
 		}
 
 		internal void FailPending(string reason)
@@ -328,13 +369,13 @@ public sealed partial class ModService
 
 			var pending = _pending.Values.ToArray();
 			_pending.Clear();
-			var mod = owner._mods.FirstOrDefault(m => m.Manifest.Id == manifest.Id);
+			var mod = service._catalog.Find(manifest.Id);
 			foreach (var entry in pending)
 			{
-				var result = new CommandResultData(0, string.Empty, owner._session.LocalSteamId, false, null, ModCommandPolicy.ClampError(reason));
+				var result = new CommandResultData(0, string.Empty, service._session.LocalSteamId, false, null, ModCommandPolicy.ClampError(reason));
 				if (mod is not null)
 				{
-					owner.InvokeCallback(mod, entry.Callback, result);
+					service.InvokeCallback(mod, entry.Callback, result);
 				}
 			}
 		}
@@ -369,7 +410,7 @@ public sealed partial class ModService
 	}
 
 	/// <summary>The concrete callback result (the mod only sees <see cref="IModCommandResult"/>).</summary>
-	private sealed class CommandResultData : IModCommandResult
+	internal sealed class CommandResultData : IModCommandResult
 	{
 		internal CommandResultData(uint requestId, string name, ulong requester,
 			bool success, string? output, string? error)

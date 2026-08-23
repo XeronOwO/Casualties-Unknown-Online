@@ -230,6 +230,13 @@ enemy-sync surface is needed. `LookTarget` gaze/scare and the eye face timers no
 entity stream (v31) so remote clones turn their head/eyes toward the same world
 point and show the owner's scared/panic/closed-eye face.
 
+Remote animal deaths now replay the creature-specific death presentation
+(spider `gore`/`BloodExplosion`, crystal-enemy death sound/`CrystalDistort`,
+trader `gore`) through `AnimalDeathReplay` before the remote entity is
+destroyed. The attacker-side experience reward and drop rolls stay
+attacker-side; late-joiner health snapshots do not replay the creature-specific
+effects (see `docs/selfchecks/animal-death-presentation-selfcheck.md`).
+
 | entity | sync | path |
 |---|---|---|
 | SpiderHandler | covered | EnemyState stream + EnemyAttack/EnemyBite events |

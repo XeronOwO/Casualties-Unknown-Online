@@ -10,7 +10,15 @@ namespace CasualtiesUnknownOnline.GameAdapter.World;
 /// so this side's BuildingEntity.Update must not roll again — it only removes
 /// the entity. Added by the remote-damage application in GameAdapter, read by
 /// BuildingEntityUpdatePatch.
+/// <see cref="ReplayAnimalDeath"/> distinguishes a live remote death (set by
+/// the live damage/open relay) from a late-joiner snapshot application, so the
+/// creature-specific death effects are replayed only for deaths the peer
+/// actually observed arriving, not for pre-existing dead entities materialized
+/// from a world-entry snapshot.
 /// </summary>
 public sealed class RemoteEntityDeath : MonoBehaviour
 {
+	/// <summary>True when this marker came from a live remote damage/open relay
+	/// and the receiver should replay the animal-specific death presentation.</summary>
+	public bool ReplayAnimalDeath { get; set; }
 }

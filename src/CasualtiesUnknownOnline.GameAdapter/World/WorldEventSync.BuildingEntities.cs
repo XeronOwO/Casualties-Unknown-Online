@@ -61,7 +61,7 @@ internal sealed partial class WorldEventSync
 				}
 				if (entity.health < 0.5f)
 				{
-					entity.gameObject.AddComponent<RemoteEntityDeath>();
+					MarkRemoteEntityDeath(entity, replayAnimalDeath: true);
 				}
 
 				_world.ReportBuildingEntityHealth(pos.X, pos.Y, entity.health); // host-only — a guest-reported hit applied here is part of the authoritative history
@@ -106,7 +106,7 @@ internal sealed partial class WorldEventSync
 			if (entity != null)
 			{
 				entity.health = 0f;
-				entity.gameObject.AddComponent<RemoteEntityDeath>();
+				MarkRemoteEntityDeath(entity, replayAnimalDeath: true);
 				_world.ReportBuildingEntityHealth(pos.X, pos.Y, 0f); // host-only — the opened state is part of the late-joiner history
 			}
 			else
@@ -160,13 +160,38 @@ internal sealed partial class WorldEventSync
 				entity.health = health;
 				if (entity.health < 0.5f)
 				{
-					entity.gameObject.AddComponent<RemoteEntityDeath>();
+					MarkRemoteEntityDeath(entity, replayAnimalDeath: false);
 				}
 			}
 			else
 			{
 				_log.LogWarning("Building-entity health snapshot at ({X}, {Y}) — no entity there (moved or already gone).", x, y);
 			}
+		}
+	}
+
+	/// <summary>
+	/// Adds (or reuses) the <see cref="RemoteEntityDeath"/> marker and records
+	/// whether this death was a live remote event or a late-joiner snapshot
+	/// application. The flag lets <see cref="BuildingEntityUpdatePatch"/> replay
+	/// the animal-specific presentation only for a death the current world
+	/// session actually observed, while snapshot-applied pre-existing deaths
+	/// stay silent on the creature-specific effects.
+	/// </summary>
+	private static void MarkRemoteEntityDeath(BuildingEntity entity, bool replayAnimalDeath)
+	{
+		var death = entity.gameObject.GetComponent<RemoteEntityDeath>();
+		if (death == null) // Unity object — ==
+		{
+			death = entity.gameObject.AddComponent<RemoteEntityDeath>();
+		}
+
+		// A snapshot application must never downgrade an already-marked live
+		// remote death (a resend landed in the same window would otherwise
+		// suppress the creature-specific replay).
+		if (replayAnimalDeath)
+		{
+			death.ReplayAnimalDeath = true;
 		}
 	}
 }

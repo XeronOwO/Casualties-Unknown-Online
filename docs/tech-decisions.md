@@ -1201,3 +1201,33 @@ body-level `FacialExpression` latches (`Disfigured`, `EyeGone`,
   static state-free helper); full suite **1151 green**.
 
 See `docs/selfchecks/clone-face-presentation-selfcheck.md`.
+
+## 48. Animal death presentation replay on remote kills (no protocol bump)
+
+The last native-content presentation gap found in the creature domain was that
+a remote death skipped the animal-specific death effects entirely: the remote
+side's `BuildingEntityUpdatePatch` destroyed the entity before the game's
+death branch could call `SendMessage("AnimalDeath")`, so peers of the attacker
+saw only generic building-break particles/dust/rock sound.
+
+- **Presentation-only replay.** New `AnimalDeathReplay.Replay(BuildingEntity)`
+  covers the three known creature families:
+  - `SpiderHandler` (incl. `SpiderHandlerTBE`): `gore` sound + `BloodExplosion`
+    when `doDeathExplode` is true; the method OMITS the native
+    `PlayerCamera.main.body.skills.AddExp` reward, which stays attacker-side.
+  - `CrystalEnemy`: `crystalenemydeath` sound + `Utils.Create("Special/CrystalDistort")`
+    with `CrystalDeathAnimation`.
+  - `TraderScript`: `gore` + `BloodExplosion` at the trader's torso.
+- **Live vs late-joiner distinction.** `RemoteEntityDeath` gains
+  `ReplayAnimalDeath`; the live damage/open relay sets it true, the
+  world-entry / 60 s health snapshot sets it false. The replay path therefore
+  plays creature-specific effects only for deaths the current session actually
+  observed arriving, not for pre-existing dead entities materialized from a
+  snapshot.
+- **No wire/protocol change.** The death fact already arrives through the
+  existing building-damage/health channels; this is pure local presentation on
+  the receiving side. `ProtocolVersion` stays 32.
+- **Tests**: `AnimalDeathReplayPatchTests` (3 reflective rows: replay helper
+  shape, marker flag shape, destruction-replay helper still present); full
+  suite **1154 green** (was 1151).
+- See `docs/selfchecks/animal-death-presentation-selfcheck.md`.

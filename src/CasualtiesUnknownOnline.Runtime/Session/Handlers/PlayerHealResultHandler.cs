@@ -9,8 +9,8 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// (consume the healer's item and/or apply the target's post-heal state).
 /// </summary>
 [PacketHandler(NetMsg.PlayerHealResult, NetMessageDirection.HostToGuest)]
-internal sealed class PlayerHealResultHandler : PacketHandlerBase<PlayerHealResultMsg>
+internal sealed class PlayerHealResultHandler : PacketHandlerBase<PlayerHealResultMsg, IPlayerInteractionHandlerContext>
 {
-	protected override void Handle(ulong sender, PlayerHealResultMsg msg, HandlerContext ctx) =>
+	protected override void Handle(ulong sender, PlayerHealResultMsg msg, IPlayerInteractionHandlerContext ctx) =>
 		ctx.PlayerInteraction.FireHealReceived(msg);
 }

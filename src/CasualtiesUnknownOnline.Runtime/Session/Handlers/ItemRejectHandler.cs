@@ -11,11 +11,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// goes back into the world.
 /// </summary>
 [PacketHandler(NetMsg.ItemReject, NetMessageDirection.HostToGuest)]
-public sealed class ItemRejectHandler(ILogger<ItemRejectHandler> log) : PacketHandlerBase<ItemRejectMsg>
+public sealed class ItemRejectHandler(ILogger<ItemRejectHandler> log) : PacketHandlerBase<ItemRejectMsg, IItemHandlerContext>
 {
 	private readonly ILogger<ItemRejectHandler> _log = log;
 
-	protected override void Handle(ulong sender, ItemRejectMsg msg, HandlerContext ctx)
+	protected override void Handle(ulong sender, ItemRejectMsg msg, IItemHandlerContext ctx)
 	{
 		ctx.Items.FireItemRejectReceived(sender, msg.ItemId, msg.Rejection);
 		_log.LogWarning("Item {ItemId} rejected ({Reason}) by the host {Sender}.", msg.ItemId, msg.Rejection, sender);

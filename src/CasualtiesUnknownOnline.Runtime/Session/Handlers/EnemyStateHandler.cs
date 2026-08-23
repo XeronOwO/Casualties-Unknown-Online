@@ -5,9 +5,9 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 
 /// <summary>Host → guest: the authoritative enemy-state batch (unreliable, seq-gated).</summary>
 [PacketHandler(NetMsg.EnemyState, NetMessageDirection.HostToGuest)]
-public sealed class EnemyStateHandler : PacketHandlerBase<EnemyStateBatchMsg>
+public sealed class EnemyStateHandler : PacketHandlerBase<EnemyStateBatchMsg, IEnemySessionHandlerContext>
 {
-	protected override void Handle(ulong sender, EnemyStateBatchMsg msg, HandlerContext ctx)
+	protected override void Handle(ulong sender, EnemyStateBatchMsg msg, IEnemySessionHandlerContext ctx)
 	{
 		if (ctx.Session.Role != SessionRole.Guest)
 		{

@@ -12,11 +12,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// host's version or destroy a host-unknown local copy.
 /// </summary>
 [PacketHandler(NetMsg.WorldItemsSnapshot, NetMessageDirection.HostToGuest)]
-public sealed class WorldItemsSnapshotHandler(ILogger<WorldItemsSnapshotHandler> log) : PacketHandlerBase<WorldItemsSnapshotMsg>
+public sealed class WorldItemsSnapshotHandler(ILogger<WorldItemsSnapshotHandler> log) : PacketHandlerBase<WorldItemsSnapshotMsg, IItemHandlerContext>
 {
 	private readonly ILogger<WorldItemsSnapshotHandler> _log = log;
 
-	protected override void Handle(ulong sender, WorldItemsSnapshotMsg msg, HandlerContext ctx)
+	protected override void Handle(ulong sender, WorldItemsSnapshotMsg msg, IItemHandlerContext ctx)
 	{
 		ctx.Items.FireWorldItemsSnapshotReceived(sender, msg.Items, msg.LayerModifierIndex, msg.LayerModifierRandomState);
 		_log.LogInformation("Generation-item snapshot ({Count} items, modifier {Modifier}) from {Sender}.", msg.Items.Count, msg.LayerModifierIndex, sender);

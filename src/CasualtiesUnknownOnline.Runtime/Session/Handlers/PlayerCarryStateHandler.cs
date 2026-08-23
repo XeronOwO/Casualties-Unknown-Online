@@ -9,8 +9,8 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// the carried-body driver.
 /// </summary>
 [PacketHandler(NetMsg.PlayerCarryState, NetMessageDirection.HostToGuest)]
-internal sealed class PlayerCarryStateHandler : PacketHandlerBase<PlayerCarryStateMsg>
+internal sealed class PlayerCarryStateHandler : PacketHandlerBase<PlayerCarryStateMsg, IPlayerInteractionHandlerContext>
 {
-	protected override void Handle(ulong sender, PlayerCarryStateMsg msg, HandlerContext ctx) =>
+	protected override void Handle(ulong sender, PlayerCarryStateMsg msg, IPlayerInteractionHandlerContext ctx) =>
 		ctx.PlayerInteraction.FireCarryStateReceived(msg);
 }

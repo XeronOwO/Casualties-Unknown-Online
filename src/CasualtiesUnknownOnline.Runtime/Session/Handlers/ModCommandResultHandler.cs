@@ -10,11 +10,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// ModId + RequestId (unknown ids are dropped with a log).
 /// </summary>
 [PacketHandler(NetMsg.ModCommandResult, NetMessageDirection.HostToGuest)]
-public sealed class ModCommandResultHandler(ILogger<ModCommandResultHandler> log) : PacketHandlerBase<ModCommandResultMsg>
+public sealed class ModCommandResultHandler(ILogger<ModCommandResultHandler> log) : PacketHandlerBase<ModCommandResultMsg, IModHandlerContext>
 {
 	private readonly ILogger<ModCommandResultHandler> _log = log;
 
-	protected override void Handle(ulong sender, ModCommandResultMsg msg, HandlerContext ctx)
+	protected override void Handle(ulong sender, ModCommandResultMsg msg, IModHandlerContext ctx)
 	{
 		ctx.Mods.FireModCommandResultReceived(sender, msg);
 		_log.LogInformation("[Mods] {ModId}/{Name} result for {Requester} (request {RequestId}, success {Success}).",

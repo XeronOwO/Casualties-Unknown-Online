@@ -13,11 +13,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// suppressed from talking on their own).
 /// </summary>
 [PacketHandler(NetMsg.SpeechMsg, NetMessageDirection.Bidirectional)]
-public sealed class SpeechHandler(ILogger<SpeechHandler> log) : PacketHandlerBase<SpeechMsg>
+public sealed class SpeechHandler(ILogger<SpeechHandler> log) : PacketHandlerBase<SpeechMsg, IWorldSessionHandlerContext>
 {
 	private readonly ILogger<SpeechHandler> _log = log;
 
-	protected override void Handle(ulong sender, SpeechMsg msg, HandlerContext ctx)
+	protected override void Handle(ulong sender, SpeechMsg msg, IWorldSessionHandlerContext ctx)
 	{
 		ctx.World.FireSpeechReceived(sender, msg);
 		if (ctx.Session.Role == SessionRole.Host)

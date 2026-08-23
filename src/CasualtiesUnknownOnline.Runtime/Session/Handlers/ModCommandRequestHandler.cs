@@ -11,11 +11,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// mod. Direction is locked one-way in PacketReceiver.
 /// </summary>
 [PacketHandler(NetMsg.ModCommandRequest, NetMessageDirection.GuestToHost)]
-public sealed class ModCommandRequestHandler(ILogger<ModCommandRequestHandler> log) : PacketHandlerBase<ModCommandRequestMsg>
+public sealed class ModCommandRequestHandler(ILogger<ModCommandRequestHandler> log) : PacketHandlerBase<ModCommandRequestMsg, IModHandlerContext>
 {
 	private readonly ILogger<ModCommandRequestHandler> _log = log;
 
-	protected override void Handle(ulong sender, ModCommandRequestMsg msg, HandlerContext ctx)
+	protected override void Handle(ulong sender, ModCommandRequestMsg msg, IModHandlerContext ctx)
 	{
 		ctx.Mods.FireModCommandRequestReceived(sender, msg);
 		_log.LogInformation("[Mods] {Sender} requests {ModId}/{Name} (request {RequestId}).",

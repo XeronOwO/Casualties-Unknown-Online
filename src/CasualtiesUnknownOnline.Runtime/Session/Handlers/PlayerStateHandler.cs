@@ -7,11 +7,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 
 /// <summary>Host → guest: the authoritative entity batch (unreliable stream, seq gate).</summary>
 [PacketHandler(NetMsg.PlayerState, NetMessageDirection.HostToGuest)]
-public sealed class PlayerStateHandler(ILogger<PlayerStateHandler> log) : PacketHandlerBase<PlayerStateMsg>
+public sealed class PlayerStateHandler(ILogger<PlayerStateHandler> log) : PacketHandlerBase<PlayerStateMsg, IEntitySessionHandlerContext>
 {
 	private readonly ILogger<PlayerStateHandler> _log = log;
 
-	protected override void Handle(ulong sender, PlayerStateMsg msg, HandlerContext ctx)
+	protected override void Handle(ulong sender, PlayerStateMsg msg, IEntitySessionHandlerContext ctx)
 	{
 		var entities = ctx.Entities;
 		if (ctx.Session.Role != SessionRole.Guest)

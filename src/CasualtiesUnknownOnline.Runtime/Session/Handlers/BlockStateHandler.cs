@@ -13,11 +13,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// InWorld (which requires generation complete), so ordering is guaranteed.
 /// </summary>
 [PacketHandler(NetMsg.WorldBlockState, NetMessageDirection.HostToGuest)]
-public sealed class BlockStateHandler(ILogger<BlockStateHandler> log) : PacketHandlerBase<BlockStateMsg>
+public sealed class BlockStateHandler(ILogger<BlockStateHandler> log) : PacketHandlerBase<BlockStateMsg, IWorldHandlerContext>
 {
 	private readonly ILogger<BlockStateHandler> _log = log;
 
-	protected override void Handle(ulong sender, BlockStateMsg msg, HandlerContext ctx)
+	protected override void Handle(ulong sender, BlockStateMsg msg, IWorldHandlerContext ctx)
 	{
 		if (msg.Blocks is not { Count: > 0 })
 		{

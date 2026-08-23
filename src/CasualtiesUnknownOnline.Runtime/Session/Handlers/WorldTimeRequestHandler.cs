@@ -11,11 +11,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// WorldTimeSync, which answers with a WorldTime broadcast.
 /// </summary>
 [PacketHandler(NetMsg.WorldTimeRequest, NetMessageDirection.GuestToHost)]
-public sealed class WorldTimeRequestHandler(ILogger<WorldTimeRequestHandler> log) : PacketHandlerBase<WorldTimeRequestMsg>
+public sealed class WorldTimeRequestHandler(ILogger<WorldTimeRequestHandler> log) : PacketHandlerBase<WorldTimeRequestMsg, IWorldTimeHandlerContext>
 {
 	private readonly ILogger<WorldTimeRequestHandler> _log = log;
 
-	protected override void Handle(ulong sender, WorldTimeRequestMsg msg, HandlerContext ctx)
+	protected override void Handle(ulong sender, WorldTimeRequestMsg msg, IWorldTimeHandlerContext ctx)
 	{
 		_log.LogInformation("World-time request from {Sender}: {Speed}.", sender, msg.Speed);
 		ctx.WorldTime.FireRequestReceived(sender, msg.Speed);

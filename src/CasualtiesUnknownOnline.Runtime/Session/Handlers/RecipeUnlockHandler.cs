@@ -12,11 +12,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// Recipes.recipes[idx].INT = 0).
 /// </summary>
 [PacketHandler(NetMsg.RecipeUnlock, NetMessageDirection.Bidirectional)]
-public sealed class RecipeUnlockHandler(ILogger<RecipeUnlockHandler> log) : PacketHandlerBase<RecipeUnlockMsg>
+public sealed class RecipeUnlockHandler(ILogger<RecipeUnlockHandler> log) : PacketHandlerBase<RecipeUnlockMsg, ICraftHandlerContext>
 {
 	private readonly ILogger<RecipeUnlockHandler> _log = log;
 
-	protected override void Handle(ulong sender, RecipeUnlockMsg msg, HandlerContext ctx)
+	protected override void Handle(ulong sender, RecipeUnlockMsg msg, ICraftHandlerContext ctx)
 	{
 		ctx.Craft.FireRecipeUnlockReceived(sender, msg.RecipeIndex);
 		_log.LogInformation("Recipe {Index} unlocked by {Sender}.", msg.RecipeIndex, sender);

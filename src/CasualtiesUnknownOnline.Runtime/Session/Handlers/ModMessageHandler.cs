@@ -12,11 +12,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// carried id, unknown ids are dropped with a log.
 /// </summary>
 [PacketHandler(NetMsg.ModMessage, NetMessageDirection.Bidirectional)]
-public sealed class ModMessageHandler(ILogger<ModMessageHandler> log) : PacketHandlerBase<ModMessageMsg>
+public sealed class ModMessageHandler(ILogger<ModMessageHandler> log) : PacketHandlerBase<ModMessageMsg, IModHandlerContext>
 {
 	private readonly ILogger<ModMessageHandler> _log = log;
 
-	protected override void Handle(ulong sender, ModMessageMsg msg, HandlerContext ctx)
+	protected override void Handle(ulong sender, ModMessageMsg msg, IModHandlerContext ctx)
 	{
 		ctx.Mods.FireModMessageReceived(sender, msg);
 		_log.LogInformation("[Mods] {Sender} → {ModId} ({Length} bytes).", sender, msg.ModId, msg.Payload.Length);

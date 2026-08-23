@@ -9,8 +9,8 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// and broadcasts the authoritative carry state.
 /// </summary>
 [PacketHandler(NetMsg.PlayerCarryStartRequest, NetMessageDirection.GuestToHost)]
-internal sealed class PlayerCarryStartRequestHandler : PacketHandlerBase<PlayerCarryStartRequestMsg>
+internal sealed class PlayerCarryStartRequestHandler : PacketHandlerBase<PlayerCarryStartRequestMsg, IPlayerInteractionHandlerContext>
 {
-	protected override void Handle(ulong sender, PlayerCarryStartRequestMsg msg, HandlerContext ctx) =>
+	protected override void Handle(ulong sender, PlayerCarryStartRequestMsg msg, IPlayerInteractionHandlerContext ctx) =>
 		ctx.PlayerInteraction.HandleCarryStartRequest(sender, msg);
 }

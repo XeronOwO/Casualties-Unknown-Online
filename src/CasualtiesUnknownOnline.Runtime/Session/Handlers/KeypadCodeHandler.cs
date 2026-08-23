@@ -9,8 +9,8 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// code). Host → guest only (direction-validated by PacketReceiver).
 /// </summary>
 [PacketHandler(NetMsg.KeypadCode, NetMessageDirection.HostToGuest)]
-public sealed class KeypadCodeHandler : PacketHandlerBase<KeypadCodeMsg>
+public sealed class KeypadCodeHandler : PacketHandlerBase<KeypadCodeMsg, IWorldHandlerContext>
 {
-	protected override void Handle(ulong sender, KeypadCodeMsg msg, HandlerContext ctx) =>
+	protected override void Handle(ulong sender, KeypadCodeMsg msg, IWorldHandlerContext ctx) =>
 		ctx.World.FireKeypadCodeReceived(msg.Codes);
 }

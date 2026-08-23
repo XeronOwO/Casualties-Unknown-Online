@@ -205,21 +205,28 @@ sync model.
   both dispatcher and receiver, with fail-closed behavior for unregistered
   messages.
 
-### 3.3 `HandlerContext` god-object — MEDIUM (partially addressed)
+### 3.3 `HandlerContext` god-object — CLOSED (2026-08-23)
 
-> **Status 2026-08-23: world-entry fan-out moved** — `HandlerContext` no
-> longer owns `SendWorldStateToMember`; that flow lives in `WorldEntryFanout`
-> (see §3.4). The remaining god-object concern is the still-broad
-> per-message control plane; narrowing it to per-domain handler dependencies is
-> still open.
+> **Status 2026-08-23: CLOSED** — `HandlerContext` no longer owns
+> `SendWorldStateToMember`; that flow lives in `WorldEntryFanout` (see §3.4).
+> The remaining broad per-message control plane is now also closed: every
+> packet handler receives only the narrow capability interface it declares
+> (`PacketHandlerBase<TPacket, TContext>`), and `HandlerContext` remains the
+> single internal composition root at the dispatch seam.
 
-- `HandlerContext` injects many control-plane services and also owned
-  world-entry state fan-out.
+- `HandlerContext` used to inject many control-plane services into every
+  handler and also owned world-entry state fan-out.
 - Proposed: narrow handler dependencies to per-domain interfaces and move
   world-entry fan-out into a dedicated service.
 - **Moved**: `WorldEntryFanout` now owns the world-entry snapshot group +
   completion marker; `SceneStateHandler` / `HandshakeHandler` depend on it
   directly.
+- **Landed**: `Session/HandlerContexts/` capability interfaces +
+  `PacketHandlerBase<TPacket, TContext>`; business handler signatures no
+  longer reference `HandlerContext`; `NetMessageRegistry` payload derivation
+  updated for the two generic arguments. See
+  `docs/selfchecks/handler-context-narrowing-selfcheck.md` and
+  `docs/tech-decisions.md` #73.
 
 ### 3.4 World-entry snapshot completion semantics — CLOSED (2026-08-23)
 

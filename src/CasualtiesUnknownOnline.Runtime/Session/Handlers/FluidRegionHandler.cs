@@ -12,11 +12,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// apply is idempotent and a lost message is healed by the next one.
 /// </summary>
 [PacketHandler(NetMsg.FluidRegion, NetMessageDirection.HostToGuest)]
-public sealed class FluidRegionHandler(ILogger<FluidRegionHandler> log) : PacketHandlerBase<FluidRegionMsg>
+public sealed class FluidRegionHandler(ILogger<FluidRegionHandler> log) : PacketHandlerBase<FluidRegionMsg, IWorldHandlerContext>
 {
 	private readonly ILogger<FluidRegionHandler> _log = log;
 
-	protected override void Handle(ulong sender, FluidRegionMsg msg, HandlerContext ctx)
+	protected override void Handle(ulong sender, FluidRegionMsg msg, IWorldHandlerContext ctx)
 	{
 		ctx.World.FireFluidRegionReceived(msg);
 		_log.LogInformation("[Fluid] region=(x={X},y={Y},w={W},h={H}) cells={Cells} seq={Seq} from {Sender}.",

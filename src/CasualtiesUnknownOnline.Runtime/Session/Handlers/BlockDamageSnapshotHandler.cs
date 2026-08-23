@@ -11,11 +11,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// BlockDamaged relay, but for damage accumulated before the member joined.
 /// </summary>
 [PacketHandler(NetMsg.BlockDamageSnapshot, NetMessageDirection.HostToGuest)]
-public sealed class BlockDamageSnapshotHandler(ILogger<BlockDamageSnapshotHandler> log) : PacketHandlerBase<BlockDamageSnapshotMsg>
+public sealed class BlockDamageSnapshotHandler(ILogger<BlockDamageSnapshotHandler> log) : PacketHandlerBase<BlockDamageSnapshotMsg, IWorldHandlerContext>
 {
 	private readonly ILogger<BlockDamageSnapshotHandler> _log = log;
 
-	protected override void Handle(ulong sender, BlockDamageSnapshotMsg msg, HandlerContext ctx)
+	protected override void Handle(ulong sender, BlockDamageSnapshotMsg msg, IWorldHandlerContext ctx)
 	{
 		_log.LogInformation("Block-damage snapshot received ({Count} cells).", msg.Entries.Count);
 		ctx.World.FireBlockDamageSnapshotReceived(msg.Entries);

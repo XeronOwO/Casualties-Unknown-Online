@@ -12,12 +12,12 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// domain); the host leaving ends the guest's own sync.
 /// </summary>
 [PacketHandler(NetMsg.SceneState, NetMessageDirection.Bidirectional)]
-public sealed class SceneStateHandler(ILogger<SceneStateHandler> log, WorldEntryFanout worldEntryFanout) : PacketHandlerBase<SceneStateMsg>
+public sealed class SceneStateHandler(ILogger<SceneStateHandler> log, WorldEntryFanout worldEntryFanout) : PacketHandlerBase<SceneStateMsg, ISceneHandlerContext>
 {
 	private readonly ILogger<SceneStateHandler> _log = log;
 	private readonly WorldEntryFanout _worldEntryFanout = worldEntryFanout;
 
-	protected override void Handle(ulong sender, SceneStateMsg msg, HandlerContext ctx)
+	protected override void Handle(ulong sender, SceneStateMsg msg, ISceneHandlerContext ctx)
 	{
 		var session = ctx.Session;
 		// The reporter is msg.SteamId when the host relays another member's

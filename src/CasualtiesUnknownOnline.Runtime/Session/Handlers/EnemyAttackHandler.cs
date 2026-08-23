@@ -11,11 +11,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// one-shot — the direction table already rejects it on a host.
 /// </summary>
 [PacketHandler(NetMsg.EnemyAttack, NetMessageDirection.HostToGuest)]
-public sealed class EnemyAttackHandler(ILogger<EnemyAttackHandler> log) : PacketHandlerBase<EnemyAttackMsg>
+public sealed class EnemyAttackHandler(ILogger<EnemyAttackHandler> log) : PacketHandlerBase<EnemyAttackMsg, IEnemySessionHandlerContext>
 {
 	private readonly ILogger<EnemyAttackHandler> _log = log;
 
-	protected override void Handle(ulong sender, EnemyAttackMsg msg, HandlerContext ctx)
+	protected override void Handle(ulong sender, EnemyAttackMsg msg, IEnemySessionHandlerContext ctx)
 	{
 		if (ctx.Session.Role != SessionRole.Guest)
 		{

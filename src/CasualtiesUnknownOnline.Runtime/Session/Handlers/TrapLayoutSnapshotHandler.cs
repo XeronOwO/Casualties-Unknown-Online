@@ -10,8 +10,8 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// (direction-validated by PacketReceiver).
 /// </summary>
 [PacketHandler(NetMsg.TrapLayoutSnapshot, NetMessageDirection.HostToGuest)]
-public sealed class TrapLayoutSnapshotHandler : PacketHandlerBase<TrapLayoutSnapshotMsg>
+public sealed class TrapLayoutSnapshotHandler : PacketHandlerBase<TrapLayoutSnapshotMsg, IWorldHandlerContext>
 {
-	protected override void Handle(ulong sender, TrapLayoutSnapshotMsg msg, HandlerContext ctx) =>
+	protected override void Handle(ulong sender, TrapLayoutSnapshotMsg msg, IWorldHandlerContext ctx) =>
 		ctx.World.FireTrapLayoutReceived(msg.Entries);
 }

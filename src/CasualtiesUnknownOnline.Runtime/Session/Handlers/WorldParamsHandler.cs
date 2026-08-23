@@ -6,11 +6,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 
 /// <summary>Host → guest: world-start parameters (RNG state + world-defining fields) — store for the adapter.</summary>
 [PacketHandler(NetMsg.WorldStartParams, NetMessageDirection.HostToGuest)]
-public sealed class WorldParamsHandler(ILogger<WorldParamsHandler> log) : PacketHandlerBase<WorldStartParamsMsg>
+public sealed class WorldParamsHandler(ILogger<WorldParamsHandler> log) : PacketHandlerBase<WorldStartParamsMsg, IWorldHandlerContext>
 {
 	private readonly ILogger<WorldParamsHandler> _log = log;
 
-	protected override void Handle(ulong sender, WorldStartParamsMsg msg, HandlerContext ctx)
+	protected override void Handle(ulong sender, WorldStartParamsMsg msg, IWorldHandlerContext ctx)
 	{
 		var worldParams = msg.ToWorldStartParams();
 		ctx.World.WorldParams = worldParams;

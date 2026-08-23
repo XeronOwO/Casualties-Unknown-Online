@@ -12,11 +12,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// relay — fire the event for the replay. One sound = one reliable message.
 /// </summary>
 [PacketHandler(NetMsg.CharacterSound, NetMessageDirection.Bidirectional)]
-public sealed class CharacterSoundHandler(ILogger<CharacterSoundHandler> log) : PacketHandlerBase<CharacterSoundMsg>
+public sealed class CharacterSoundHandler(ILogger<CharacterSoundHandler> log) : PacketHandlerBase<CharacterSoundMsg, ICharacterSessionHandlerContext>
 {
 	private readonly ILogger<CharacterSoundHandler> _log = log;
 
-	protected override void Handle(ulong sender, CharacterSoundMsg msg, HandlerContext ctx)
+	protected override void Handle(ulong sender, CharacterSoundMsg msg, ICharacterSessionHandlerContext ctx)
 	{
 		ctx.CharacterData.FireCharacterSoundReceived(sender, msg);
 		if (ctx.Session.Role == SessionRole.Host)

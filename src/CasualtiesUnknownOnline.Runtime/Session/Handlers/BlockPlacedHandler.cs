@@ -12,11 +12,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// event; the adapter validates and answers via BroadcastBlockPlaced.
 /// </summary>
 [PacketHandler(NetMsg.BlockPlaced, NetMessageDirection.Bidirectional)]
-public sealed class BlockPlacedHandler(ILogger<BlockPlacedHandler> log) : PacketHandlerBase<BlockPlacedMsg>
+public sealed class BlockPlacedHandler(ILogger<BlockPlacedHandler> log) : PacketHandlerBase<BlockPlacedMsg, IWorldHandlerContext>
 {
 	private readonly ILogger<BlockPlacedHandler> _log = log;
 
-	protected override void Handle(ulong sender, BlockPlacedMsg msg, HandlerContext ctx)
+	protected override void Handle(ulong sender, BlockPlacedMsg msg, IWorldHandlerContext ctx)
 	{
 		ctx.World.FireBlockPlacedReceived(sender, msg.X, msg.Y, msg.Block);
 		_log.LogInformation("Block placed at ({X},{Y}) type {Block} from {Sender}.", msg.X, msg.Y, msg.Block, sender);

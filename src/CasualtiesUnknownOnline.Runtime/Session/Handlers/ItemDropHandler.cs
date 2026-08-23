@@ -11,11 +11,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// item materialize it at the carried position.
 /// </summary>
 [PacketHandler(NetMsg.ItemDrop, NetMessageDirection.Bidirectional)]
-public sealed class ItemDropHandler(ILogger<ItemDropHandler> log) : PacketHandlerBase<ItemDropMsg>
+public sealed class ItemDropHandler(ILogger<ItemDropHandler> log) : PacketHandlerBase<ItemDropMsg, IItemHandlerContext>
 {
 	private readonly ILogger<ItemDropHandler> _log = log;
 
-	protected override void Handle(ulong sender, ItemDropMsg msg, HandlerContext ctx)
+	protected override void Handle(ulong sender, ItemDropMsg msg, IItemHandlerContext ctx)
 	{
 		ctx.Items.FireItemDroppedReceived(sender, msg.ItemId, msg.Item, msg.Position.ToNetVector2(),
 			msg.Velocity?.ToNetVector2() ?? NetVector2.Zero, msg.ParentItemId, msg.Rotation, msg.AngularVelocity,

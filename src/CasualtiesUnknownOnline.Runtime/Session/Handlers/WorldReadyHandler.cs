@@ -10,8 +10,8 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// generation finishes.
 /// </summary>
 [PacketHandler(NetMsg.WorldReady, NetMessageDirection.HostToGuest)]
-public sealed class WorldReadyHandler : PacketHandlerBase<WorldReadyMsg>
+public sealed class WorldReadyHandler : PacketHandlerBase<WorldReadyMsg, IWorldHandlerContext>
 {
-	protected override void Handle(ulong sender, WorldReadyMsg msg, HandlerContext ctx) =>
+	protected override void Handle(ulong sender, WorldReadyMsg msg, IWorldHandlerContext ctx) =>
 		ctx.World.FireWorldReadyReceived();
 }

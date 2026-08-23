@@ -12,13 +12,13 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 
 /// <summary>Guest → host: protocol negotiation + member creation (new join or reconnect).</summary>
 [PacketHandler(NetMsg.Handshake, NetMessageDirection.GuestToHost)]
-public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandler> log, WorldEntryFanout worldEntryFanout) : PacketHandlerBase<HandshakeMsg>
+public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandler> log, WorldEntryFanout worldEntryFanout) : PacketHandlerBase<HandshakeMsg, IHandshakeHandlerContext>
 {
 	private readonly PacketSender _sender = sender;
 	private readonly ILogger<HandshakeHandler> _log = log;
 	private readonly WorldEntryFanout _worldEntryFanout = worldEntryFanout;
 
-	protected override void Handle(ulong sender, HandshakeMsg msg, HandlerContext ctx)
+	protected override void Handle(ulong sender, HandshakeMsg msg, IHandshakeHandlerContext ctx)
 	{
 		var session = ctx.Session;
 		if (session.Role != SessionRole.Host)
@@ -167,7 +167,7 @@ public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandl
 	/// rejected. Discovery pending → "not checked yet"
 	/// refusal (the guest's 1 s handshake retry is then checked properly).
 	/// </summary>
-	private bool CheckModConsistency(ulong sender, HandshakeMsg msg, HandlerContext ctx)
+	private bool CheckModConsistency(ulong sender, HandshakeMsg msg, IHandshakeHandlerContext ctx)
 	{
 		var mods = ctx.Mods;
 		if (!mods.IsDiscoveryComplete)

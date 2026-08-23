@@ -12,11 +12,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// surfaces the event (same shape as EntityEventHandler).
 /// </summary>
 [PacketHandler(NetMsg.DynamiteExplosion, NetMessageDirection.Bidirectional)]
-public sealed class DynamiteExplosionHandler(ILogger<DynamiteExplosionHandler> log) : PacketHandlerBase<DynamiteExplosionMsg>
+public sealed class DynamiteExplosionHandler(ILogger<DynamiteExplosionHandler> log) : PacketHandlerBase<DynamiteExplosionMsg, IWorldHandlerContext>
 {
 	private readonly ILogger<DynamiteExplosionHandler> _log = log;
 
-	protected override void Handle(ulong sender, DynamiteExplosionMsg msg, HandlerContext ctx)
+	protected override void Handle(ulong sender, DynamiteExplosionMsg msg, IWorldHandlerContext ctx)
 	{
 		ctx.World.FireDynamiteExplosionReceived(sender, msg.ItemInstanceId, msg.Position.ToNetVector2());
 		_log.LogInformation("Dynamite explosion item {ItemId} at ({X:F1},{Y:F1}) from {Sender}.",

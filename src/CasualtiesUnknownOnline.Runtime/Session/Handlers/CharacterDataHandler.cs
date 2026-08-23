@@ -10,11 +10,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// render its carried state), host → guest as a reconnect restore.
 /// </summary>
 [PacketHandler(NetMsg.CharacterData, NetMessageDirection.Bidirectional)]
-public sealed class CharacterDataHandler(ILogger<CharacterDataHandler> log) : PacketHandlerBase<CharacterDataMsg>
+public sealed class CharacterDataHandler(ILogger<CharacterDataHandler> log) : PacketHandlerBase<CharacterDataMsg, ICharacterSessionHandlerContext>
 {
 	private readonly ILogger<CharacterDataHandler> _log = log;
 
-	protected override void Handle(ulong sender, CharacterDataMsg msg, HandlerContext ctx)
+	protected override void Handle(ulong sender, CharacterDataMsg msg, ICharacterSessionHandlerContext ctx)
 	{
 		if (ctx.Session.Role == SessionRole.Host)
 		{

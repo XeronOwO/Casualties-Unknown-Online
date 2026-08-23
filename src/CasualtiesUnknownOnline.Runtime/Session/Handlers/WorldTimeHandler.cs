@@ -10,11 +10,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// curTimeScale and sounds update), guarded by the WorldTimeApply call origin.
 /// </summary>
 [PacketHandler(NetMsg.WorldTime, NetMessageDirection.HostToGuest)]
-public sealed class WorldTimeHandler(ILogger<WorldTimeHandler> log) : PacketHandlerBase<WorldTimeMsg>
+public sealed class WorldTimeHandler(ILogger<WorldTimeHandler> log) : PacketHandlerBase<WorldTimeMsg, IWorldTimeHandlerContext>
 {
 	private readonly ILogger<WorldTimeHandler> _log = log;
 
-	protected override void Handle(ulong sender, WorldTimeMsg msg, HandlerContext ctx)
+	protected override void Handle(ulong sender, WorldTimeMsg msg, IWorldTimeHandlerContext ctx)
 	{
 		_log.LogInformation("World-time broadcast: {Speed}.", msg.Speed);
 		ctx.WorldTime.FireTimeReceived(msg.Speed);

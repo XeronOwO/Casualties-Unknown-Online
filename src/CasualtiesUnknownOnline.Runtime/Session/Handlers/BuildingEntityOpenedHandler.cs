@@ -12,11 +12,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// </summary>
 [PacketHandler(NetMsg.BuildingEntityOpened, NetMessageDirection.Bidirectional)]
 public sealed class BuildingEntityOpenedHandler(ILogger<BuildingEntityOpenedHandler> log)
-	: PacketHandlerBase<BuildingEntityOpenedMsg>
+	: PacketHandlerBase<BuildingEntityOpenedMsg, IWorldSessionHandlerContext>
 {
 	private readonly ILogger<BuildingEntityOpenedHandler> _log = log;
 
-	protected override void Handle(ulong sender, BuildingEntityOpenedMsg msg, HandlerContext ctx)
+	protected override void Handle(ulong sender, BuildingEntityOpenedMsg msg, IWorldSessionHandlerContext ctx)
 	{
 		var pos = msg.Position.ToNetVector2();
 		ctx.World.FireBuildingEntityOpenedReceived(pos);

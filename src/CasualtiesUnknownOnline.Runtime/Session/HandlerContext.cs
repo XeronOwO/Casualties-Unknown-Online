@@ -13,11 +13,31 @@ namespace CasualtiesUnknownOnline.Runtime.Session;
 /// SessionService when a direction-valid frame arrives and passed through the
 /// router — handlers never depend on the concrete services at construction
 /// time (that would create the session ↔ gateway ↔ router ↔ handlers cycle).
+/// The class itself is an internal composition root: each handler receives
+/// only the narrow capability interface it declares, never the broad concrete
+/// type.
 /// </summary>
 public sealed class HandlerContext(ISessionControl session, IEntitySyncControl entities,
 	ICharacterDataControl characterData, IWorldControl world, IItemControl items, IModsControl mods,
 	ICraftControl craft, IEnemySyncControl enemies, IWorldTimeControl worldTime,
-	IPlayerInteractionControl playerInteraction, ITutorialClawControl tutorialClaw)
+	IPlayerInteractionControl playerInteraction, ITutorialClawControl tutorialClaw) :
+	IWorldHandlerContext,
+	IWorldSessionHandlerContext,
+	IItemHandlerContext,
+	ICharacterSessionHandlerContext,
+	ICraftHandlerContext,
+	IEnemySessionHandlerContext,
+	IEnemyCharacterSessionHandlerContext,
+	IEntitySessionHandlerContext,
+	IHandshakeHandlerContext,
+	ICharacterDataHandlerContext,
+	IModHandlerContext,
+	IPlayerInteractionHandlerContext,
+	ISessionHandlerContext,
+	ISceneHandlerContext,
+	ITutorialSessionHandlerContext,
+	IWorldTimeHandlerContext,
+	IEmptyHandlerContext
 {
 	public ISessionControl Session { get; } = session;
 

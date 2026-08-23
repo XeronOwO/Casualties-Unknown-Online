@@ -9,13 +9,13 @@ namespace CasualtiesUnknownOnline.Abstractions;
 /// bits and host/state permissions on local-only network modes
 /// (see the framework's ModPermissionPolicy).
 ///
-/// <see cref="SendNetworkMessage"/>, <see cref="RegisterCommand"/>,
-/// <see cref="ExecuteHostAction"/> and <see cref="WriteGameState"/> have an
-/// executable enforcement point today (the mod message channel, the host-command
-/// domain and the mod-state store). The remaining values are part of the binding
-/// permission contract: they are declared, validated and carried through the
-/// handshake, and their future API surfaces must check them before they can be
-/// used.
+/// Every declared value now has a live enforcement point: the mod message
+/// channel (<see cref="IModNetwork"/>), the host-command domain
+/// (<see cref="IModCommands"/>), the mod-state store (<see cref="IModState"/>),
+/// content registration (<see cref="IModContent"/>), the read-only game-state
+/// projection (<see cref="IModGameState"/>), entity spawn
+/// (<see cref="IModEntitySpawn"/>) and the native operation registry
+/// (<see cref="IModNativeApi"/>).
 /// </summary>
 [Flags]
 public enum ModPermission
@@ -29,7 +29,7 @@ public enum ModPermission
 	/// <summary>Write game state through a framework surface (enforced by <see cref="IModState"/> for host-persistent mod state).</summary>
 	WriteGameState = 1 << 1,
 
-	/// <summary>Spawn entities through a future framework surface (not exposed yet).</summary>
+	/// <summary>Spawn world entities via <see cref="IModEntitySpawn"/> (enforced at the spawn surface).</summary>
 	SpawnEntity = 1 << 2,
 
 	/// <summary>Use <see cref="IModNetwork"/> (send and receive). Enforced at the channel.</summary>
@@ -44,7 +44,7 @@ public enum ModPermission
 	/// <summary>Register/execute a host-action command (<see cref="ModCommand.IsHostAction"/>). Enforced at registration.</summary>
 	ExecuteHostAction = 1 << 6,
 
-	/// <summary>Access native/game-private APIs through a future explicit escape hatch (not exposed yet).</summary>
+	/// <summary>Access native/game-private operations through <see cref="IModNativeApi"/> (enforced at the registry surface).</summary>
 	AccessNativeApi = 1 << 7,
 
 	/// <summary>The defined bit mask — used to reject unknown bits.</summary>

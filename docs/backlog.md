@@ -15,15 +15,22 @@ Open work only. Landed delivery details are not duplicated here; they live in:
 - Network health metrics (per-peer RTT history / jitter / probe loss) now surface in `[NetworkHealth]` logs; per-peer bandwidth already surfaces in `[NetworkTraffic]` logs. See `docs/selfchecks/network-health-metrics-selfcheck.md`.
 - Phase 4 Mod API **ReadGameState** landed as a read-only player-character projection (`IModGameState`); no wire/protocol change. See `docs/selfchecks/mod-game-state-selfcheck.md`.
 - Phase 4 Mod API **entity spawn** landed as a permission-gated `IModEntitySpawn` surface reusing the runtime `EntitySpawned` channel; no wire/protocol change. See `docs/selfchecks/mod-entity-spawn-selfcheck.md`.
+- Phase 4 Mod API **AccessNativeApi** landed as a curated read-only native operation registry (`IModNativeApi` + `local.player.state`); no wire/protocol change. See `docs/selfchecks/mod-native-api-selfcheck.md`.
 - Remaining final dual-side acceptance items below are end-of-cycle acceptance, not development work.
 
 ## Open work
 
-### Phase 4 Mod API (MEDIUM)
+### Phase 4 Mod API
 
-- **AccessNativeApi** — permission is declared but the explicit native/game-private escape hatch is un-designed; decide policy before exposing.
+No open development work in this area: the previously open `AccessNativeApi` is
+now a live, permission-gated, Game Adapter-curated native operation registry
+(the first slice is read-only local player state). See `docs/mod-api.md` §4i
+and `docs/tech-decisions.md` #50.
 
-Landed in this area: mod entity spawn — `IModEntitySpawn` (`context.EntitySpawn`) lets a state-bearing mod spawn a native `BuildingEntity` prefab at runtime; replication reuses the existing `EntitySpawned` channel, no protocol change. See `docs/mod-api.md` §4h and `docs/tech-decisions.md` #49.
+Landed in this area (not duplicated here): mod entity spawn — `IModEntitySpawn`
+(`context.EntitySpawn`) lets a state-bearing mod spawn a native `BuildingEntity`
+prefab at runtime; replication reuses the existing `EntitySpawned` channel, no
+protocol change. See `docs/mod-api.md` §4h and `docs/tech-decisions.md` #49.
 
 ### Item / entity known gaps
 

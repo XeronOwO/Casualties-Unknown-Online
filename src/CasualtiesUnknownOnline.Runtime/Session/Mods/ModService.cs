@@ -26,7 +26,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Mods;
 public sealed partial class ModService(SessionService session, ModChannel channel, ModRegistry registry,
 	PacketSender sender, ITimeSource time, ILoggerFactory loggerFactory, ILogger<ModService> log,
 	ModStateFileStore stateFile, RemoteVitalsService remoteVitals, RemoteInventoryService remoteInventory,
-	IModEntitySpawner entitySpawner)
+	IModEntitySpawner entitySpawner, IModNativeApiProvider nativeApiProvider)
 	: ICuoService, IModsControl
 {
 	private readonly SessionService _session = session;
@@ -40,6 +40,7 @@ public sealed partial class ModService(SessionService session, ModChannel channe
 	private readonly RemoteVitalsService _remoteVitals = remoteVitals;
 	private readonly RemoteInventoryService _remoteInventory = remoteInventory;
 	private readonly IModEntitySpawner _entitySpawner = entitySpawner;
+	private readonly IModNativeApiProvider _nativeApiProvider = nativeApiProvider;
 	private readonly Dictionary<ulong, ModRateLimiter> _messageRateLimiters = [];
 	private readonly Dictionary<ulong, ModRateLimiter> _commandRateLimiters = [];
 	private readonly List<LoadedMod> _mods = [];
@@ -294,6 +295,7 @@ public sealed partial class ModService(SessionService session, ModChannel channe
 		private readonly ModContentAdapter _content;
 		private readonly ModGameStateAdapter _gameState;
 		private readonly ModEntitySpawnAdapter _entitySpawn;
+		private readonly ModNativeApiAdapter _nativeApi;
 
 		internal ModContext(ModService owner, ModManifest manifest, ILogger logger)
 		{
@@ -305,6 +307,7 @@ public sealed partial class ModService(SessionService session, ModChannel channe
 			_content = new ModContentAdapter(owner, manifest);
 			_gameState = new ModGameStateAdapter(owner, manifest, owner._session, owner._remoteVitals, owner._remoteInventory);
 			_entitySpawn = new ModEntitySpawnAdapter(owner, manifest);
+			_nativeApi = new ModNativeApiAdapter(owner, manifest);
 			Session = owner.BuildSessionSnapshot();
 		}
 
@@ -323,6 +326,8 @@ public sealed partial class ModService(SessionService session, ModChannel channe
 		public IModGameState GameState => _gameState;
 
 		public IModEntitySpawn EntitySpawn => _entitySpawn;
+
+		public IModNativeApi NativeApi => _nativeApi;
 
 		public ISessionInfo Session { get; }
 

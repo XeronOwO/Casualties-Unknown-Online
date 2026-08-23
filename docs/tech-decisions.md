@@ -2041,3 +2041,38 @@ partials.
 
 No wire/protocol change. See
 `docs/selfchecks/mod-service-split-selfcheck.md`.
+
+## 72. GameAdapter split — real top-level responsibilities (no protocol change)
+
+Backlog §3.1 listed `GameAdapter` (1397 aggregate lines) as the last
+remaining logical class. This entry splits the adapter coordinator into a thin
+facade plus real top-level responsibility classes, not more physical partials.
+
+- **Facade** — `GameAdapter` is now a 299-line normal class implementing
+  `IGameAdapter` / `ICuoService` / `IModEntitySpawner` /
+  `IModNativeApiProvider`. It keeps the lifecycle (probe/install/uninstall),
+  the Update pump, the Runtime boundary methods and the mod native-API
+  adapter.
+- **Domain set** — `GameAdapterDomains` (179 lines) owns the deep sync module
+  fields and constructor wiring; it is internal owned state, not a DI service.
+- **Patch bridge** — `GameAdapterBridge` (277 lines) implements all of
+  `IPatchBridge`; `GameAdapter` binds this object into `PatchBridge` instead
+  of binding `this`.
+- **Session binding** — `GameAdapterSessionBinding` (117 lines) owns session
+  bind/unbind, session-led item events and session-ended resets.
+- **Player interaction** — `PlayerInteractionApply` (392 lines) owns
+  cross-player inventory transfer, carry/release and heal application plus the
+  Online UI heal-item projection.
+- **Deleted partials** — all fourteen `GameAdapter.*.cs` partial files are
+  removed; no physical partial split is used to hide the logical size.
+- **State ownership** — domain module set moves to `GameAdapterDomains`;
+  carry pending state stays in `PlayerInteractionApply`; the static Harmony
+  seam still binds one `IPatchBridge` object at construction.
+- **No behavior change** — all moved method bodies are verbatim or explicit
+  delegation; session bind/unbind order and the `WorldTimeSync` explicit
+  disposal step are preserved.
+- **Debt ledger** — `GameAdapter` removed from `docs/architecture-debt.json`;
+  the large logical class debt flattening list is now empty.
+
+No wire/protocol change. See
+`docs/selfchecks/game-adapter-split-selfcheck.md`.

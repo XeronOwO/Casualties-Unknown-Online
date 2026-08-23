@@ -10,6 +10,7 @@ using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
+using CasualtiesUnknownOnline.Runtime.Session.Chat;
 using CasualtiesUnknownOnline.Runtime.Session.Handlers;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
 using CasualtiesUnknownOnline.Runtime.Session.NetworkTraffic;
@@ -182,8 +183,13 @@ public static class CuoBootstrap
 		services.AddSingleton<EntityEventChannel>(); // the entity event/creation channels + the consumption/opened/health registries
 		services.AddSingleton<TradeChannel>(); // the trader state/action channel (trade domain)
 		services.AddSingleton<SpeechChannel>(); // the speech-bubble channel (the Talker domain)
+		services.AddSingleton<ChatChannel>(); // the text-chat channel (co-op communication)
 		services.AddSingleton<WorldService>();
 		services.AddSingleton<IWorldControl>(p => p.GetRequiredService<WorldService>());
+		// Text-chat domain: the bounded recent-message buffer + send path (no
+		// pump — it only reacts to the world channel's receive event and session end).
+		services.AddSingleton<ChatService>();
+		services.AddSingleton<IChatControl>(p => p.GetRequiredService<ChatService>());
 		// Item domain: the authoritative world-item table + pickup arbitration
 		// (ItemService itself reacts to calls and messages; the pending-pickup
 		// hold window's expiry edge is the tiny PendingPickupPump below).

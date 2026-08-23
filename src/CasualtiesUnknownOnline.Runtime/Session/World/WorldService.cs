@@ -26,12 +26,13 @@ public sealed partial class WorldService : IWorldControl, IDisposable
 	private readonly EntityEventChannel _eventChannel;
 	private readonly TradeChannel _tradeChannel;
 	private readonly SpeechChannel _speechChannel;
+	private readonly ChatChannel _chatChannel;
 	private readonly BlockDamageRegistry _blockDamageRegistry;
 
 	public WorldService(ISessionControl session, PacketSender sender, ITimeSource time,
 		ILogger<WorldService> log, EntityEventChannel eventChannel,
 		TradeChannel tradeChannel, SpeechChannel speechChannel,
-		BlockDamageRegistry blockDamageRegistry)
+		ChatChannel chatChannel, BlockDamageRegistry blockDamageRegistry)
 	{
 		_session = session;
 		_sender = sender;
@@ -40,6 +41,7 @@ public sealed partial class WorldService : IWorldControl, IDisposable
 		_eventChannel = eventChannel;
 		_tradeChannel = tradeChannel;
 		_speechChannel = speechChannel;
+		_chatChannel = chatChannel;
 		_blockDamageRegistry = blockDamageRegistry;
 
 		// Session-scoped world state dies with the session: a lobby switch or

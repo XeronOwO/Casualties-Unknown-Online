@@ -206,4 +206,9 @@ public enum NetMsg : byte
 	// the revived physiological state directly to the target)
 	TraderRecruitRequest = 107, // guest → host: recruit a dead in-world player at a nearby trader
 	TraderRecruitResult = 108, // host → target: the authoritative post-revive body state
+
+	// Text chat (star relay — a guest reports its own line to the host, the
+	// host validates and broadcasts to the other members; the same payload is
+	// used both up and down)
+	Chat = 109, // bidirectional: guest → host report, host → guest relay
 }

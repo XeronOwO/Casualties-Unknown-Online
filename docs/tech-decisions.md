@@ -1673,3 +1673,35 @@ Tests: `RespawnPolicyTests` (10 cases), full suite **1229 green**, build 0
 warnings/0 errors, architecture / event-replay / entity-event-dispatch gates
 pass, `dotnet format` passes (generated `obj` excluded). See
 `docs/selfchecks/respawn-rules-selfcheck.md`.
+
+
+## 61. Text chat — host-relayed co-op chat line (ProtocolVersion 36)
+
+The 2026-08-23 exploration (§2.5) listed text chat as the first clear
+communication feature: CUO currently only syncs in-world Talker bubbles via
+`SpeechMsg`, and there is no text chat surface. This entry lands a single
+simple chat line with a star relay, not a copy of KrokMP's full chat box.
+
+- **One bidirectional wire shape** — `ChatMsg` (NetMsg 109) carries
+  `SenderSteamId` + final `Text`. A guest reports its own line to the host;
+  the host validates and broadcasts to every other member; a guest never
+  sends peer-to-peer.
+- **Host relay authority / anti-spoof** — `ChatHandler` drops a line whose
+  claimed `SenderSteamId` does not match the transport sender, drops
+  whitespace/empty/oversized text, and only then fires the local event and
+  relays. `ChatPolicy` (`MaxLength = 200`) is shared by the send path and the
+  receive path.
+- **Pure Runtime domain** — `ChatService` owns a bounded 50-line recent buffer
+  + `TrySend`; it depends only on `ISessionControl` + `IWorldControl`, so the
+  same code is exercised by L0 fake-network tests. `ChatChannel` is the thin
+  wire channel, following the `SpeechChannel` pattern.
+- **UI** — `OnlineUiOverlay` draws a bottom-right IMGUI panel (last 7 lines +
+  one input + Send button) while the session is active. Persona names come
+  from `SteamService`; the buffer is session-scoped and clears on `SessionEnded`.
+- **ProtocolVersion 35→36** because a v35 peer has no `Chat` handler and no
+  text-chat relay.
+
+Tests: `ChatServiceTests` (6 end-to-end/edge cases + direction theory), full
+suite **1238 green**, build 0 warnings/0 errors, architecture / event-replay /
+entity-event-dispatch gates pass, `dotnet format` clean. See
+`docs/selfchecks/chat-selfcheck.md`.

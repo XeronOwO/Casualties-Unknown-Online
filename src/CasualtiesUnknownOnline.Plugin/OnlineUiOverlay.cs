@@ -5,6 +5,7 @@ using CasualtiesUnknownOnline.Runtime.OnlineUi;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
+using CasualtiesUnknownOnline.Runtime.Session.Chat;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using CasualtiesUnknownOnline.Runtime.Steam;
@@ -53,12 +54,14 @@ internal sealed class OnlineUiOverlay
 	internal Func<ulong, bool>? RecruitPlayer;
 
 	private string _lobbyIdInput = "";
+	private string _chatInput = "";
 	private string? _inlineError;
 
-	internal void Draw(SteamService steam, SessionService session, EntitySyncService entities, RemoteVitalsService vitals, RemoteInventoryService inventory, IPlayerInteractionControl playerInteraction, string? lastJoinError)
+	internal void Draw(SteamService steam, SessionService session, EntitySyncService entities, RemoteVitalsService vitals, RemoteInventoryService inventory, IPlayerInteractionControl playerInteraction, IChatControl chat, string? lastJoinError)
 	{
 		DrawStatusPanel(steam, session, entities, vitals, inventory, playerInteraction, lastJoinError ?? _inlineError);
 		DrawNameplatesAndArrows(steam, session, entities, vitals);
+		DrawChatPanel(steam, session, chat);
 	}
 
 	private void DrawStatusPanel(SteamService steam, SessionService session, EntitySyncService entities, RemoteVitalsService vitals, RemoteInventoryService inventory, IPlayerInteractionControl playerInteraction, string? error)
@@ -92,6 +95,48 @@ internal sealed class OnlineUiOverlay
 		{
 			GUI.Label(new Rect(10f, y, 900f, 20f), text);
 			y += 20f;
+		}
+	}
+
+	/// <summary>
+	/// Small bottom-right text-chat panel. It is intentionally IMGUI-simple:
+	/// a bounded recent-line list and one input + Send button. The Runtime
+	/// ChatService owns the buffer and the wire send; the overlay only projects
+	/// persona names for display.
+	/// </summary>
+	private void DrawChatPanel(SteamService steam, SessionService session, IChatControl chat)
+	{
+		if (!session.SessionActive)
+		{
+			return;
+		}
+
+		const float width = 360f;
+		const float height = 180f;
+		var x = Screen.width - width - 12f;
+		var y = Screen.height - height - 12f;
+		GUI.Box(new Rect(x, y, width, height), GUIContent.none);
+
+		const int maxVisible = 7;
+		var lines = chat.Recent;
+		var start = Math.Max(0, lines.Count - maxVisible);
+		var lineY = y + 8f;
+		for (var i = start; i < lines.Count; i++)
+		{
+			var line = lines[i];
+			var name = DisplayName(steam, line.SenderSteamId);
+			GUI.Label(new Rect(x + 8f, lineY, width - 16f, 18f), $"{name}: {line.Text}");
+			lineY += 18f;
+		}
+
+		var inputY = y + height - 30f;
+		_chatInput = GUI.TextField(new Rect(x + 8f, inputY, width - 70f, 22f), _chatInput, 200);
+		if (GUI.Button(new Rect(x + width - 58f, inputY, 50f, 22f), "Send"))
+		{
+			if (chat.TrySend(_chatInput))
+			{
+				_chatInput = "";
+			}
 		}
 	}
 

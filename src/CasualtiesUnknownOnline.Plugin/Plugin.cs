@@ -11,6 +11,7 @@ using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
+using CasualtiesUnknownOnline.Runtime.Session.Chat;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
@@ -40,6 +41,7 @@ public class Plugin : BaseUnityPlugin
 	private RemoteVitalsService _remoteVitals = null!;
 	private RemoteInventoryService _remoteInventory = null!;
 	private PlayerInteractionService _playerInteraction = null!;
+	private IChatControl _chat = null!;
 	private IModUiControl _modUiControl = null!;
 	private IGameAdapter? _adapter;
 	private ConfigEntry<string> _targetLobbyId = null!;
@@ -165,6 +167,7 @@ public class Plugin : BaseUnityPlugin
 			_remoteVitals = _services.GetRequiredService<RemoteVitalsService>();
 			_remoteInventory = _services.GetRequiredService<RemoteInventoryService>();
 			_playerInteraction = _services.GetRequiredService<PlayerInteractionService>();
+			_chat = _services.GetRequiredService<IChatControl>();
 			_modUiControl = _services.GetRequiredService<IModUiControl>();
 			_adapter = _services.GetService<IGameAdapter>();
 			_cuoServices = [.. _services.GetServices<ICuoService>()];
@@ -507,7 +510,7 @@ public class Plugin : BaseUnityPlugin
 			return; // the HUD is hidden behind the gate overlay
 		}
 
-		_onlineUi.Draw(_steam, _session, _entities, _remoteVitals, _remoteInventory, _playerInteraction, _lastJoinError);
+		_onlineUi.Draw(_steam, _session, _entities, _remoteVitals, _remoteInventory, _playerInteraction, _chat, _lastJoinError);
 		ModUiDrawing.DrawAll(_modUiControl, e => _log.LogError(e, "Mod UI window threw while drawing."));
 	}
 

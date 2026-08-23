@@ -9,7 +9,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// allocated up to Counter — the host records it) or the host's grant (the
 /// guest must resume from Counter + 1). The host records; the guest applies.
 /// </summary>
-[PacketHandler(NetMsg.ItemIdWatermark)]
+[PacketHandler(NetMsg.ItemIdWatermark, NetMessageDirection.Bidirectional)]
 public sealed class ItemIdWatermarkHandler(ILogger<ItemIdWatermarkHandler> log) : PacketHandlerBase<ItemIdWatermarkMsg>
 {
 	private readonly ILogger<ItemIdWatermarkHandler> _log = log;

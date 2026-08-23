@@ -8,7 +8,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// the cross-player inventory transfer and sends the authoritative body
 /// mutation to the two participants.
 /// </summary>
-[PacketHandler(NetMsg.PlayerInventoryTakeRequest)]
+[PacketHandler(NetMsg.PlayerInventoryTakeRequest, NetMessageDirection.GuestToHost)]
 internal sealed class PlayerInventoryTakeRequestHandler : PacketHandlerBase<PlayerInventoryTakeRequestMsg>
 {
 	protected override void Handle(ulong sender, PlayerInventoryTakeRequestMsg msg, HandlerContext ctx) =>

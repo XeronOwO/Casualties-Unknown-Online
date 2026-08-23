@@ -9,7 +9,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// before the world params arrive — the guest's generation boundary then
 /// waits for the params (the adapter owns that wait).
 /// </summary>
-[PacketHandler(NetMsg.WorldJoin)]
+[PacketHandler(NetMsg.WorldJoin, NetMessageDirection.HostToGuest)]
 public sealed class WorldJoinHandler : PacketHandlerBase<WorldJoinMsg>
 {
 	protected override void Handle(ulong sender, WorldJoinMsg msg, HandlerContext ctx) =>

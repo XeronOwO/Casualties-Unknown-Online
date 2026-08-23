@@ -9,7 +9,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// the healer's medical item and sends the authoritative heal result to the two
 /// participants.
 /// </summary>
-[PacketHandler(NetMsg.PlayerHealRequest)]
+[PacketHandler(NetMsg.PlayerHealRequest, NetMessageDirection.GuestToHost)]
 internal sealed class PlayerHealRequestHandler : PacketHandlerBase<PlayerHealRequestMsg>
 {
 	protected override void Handle(ulong sender, PlayerHealRequestMsg msg, HandlerContext ctx) =>

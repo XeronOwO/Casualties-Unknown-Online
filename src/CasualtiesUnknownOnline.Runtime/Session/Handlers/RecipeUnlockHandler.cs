@@ -11,7 +11,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// (source excluded). Every side raises the apply event (the adapter sets
 /// Recipes.recipes[idx].INT = 0).
 /// </summary>
-[PacketHandler(NetMsg.RecipeUnlock)]
+[PacketHandler(NetMsg.RecipeUnlock, NetMessageDirection.Bidirectional)]
 public sealed class RecipeUnlockHandler(ILogger<RecipeUnlockHandler> log) : PacketHandlerBase<RecipeUnlockMsg>
 {
 	private readonly ILogger<RecipeUnlockHandler> _log = log;

@@ -11,7 +11,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// (the source excluded — it already heard its own sound). Guest: the host's
 /// relay — fire the event for the replay. One sound = one reliable message.
 /// </summary>
-[PacketHandler(NetMsg.CharacterSound)]
+[PacketHandler(NetMsg.CharacterSound, NetMessageDirection.Bidirectional)]
 public sealed class CharacterSoundHandler(ILogger<CharacterSoundHandler> log) : PacketHandlerBase<CharacterSoundMsg>
 {
 	private readonly ILogger<CharacterSoundHandler> _log = log;

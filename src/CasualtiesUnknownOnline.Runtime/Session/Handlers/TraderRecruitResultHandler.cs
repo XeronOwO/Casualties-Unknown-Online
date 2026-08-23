@@ -8,7 +8,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// The host's trader-recruit result arrived (host → the revived player only):
 /// apply the authoritative post-revive physiological state to the local Body.
 /// </summary>
-[PacketHandler(NetMsg.TraderRecruitResult)]
+[PacketHandler(NetMsg.TraderRecruitResult, NetMessageDirection.HostToGuest)]
 public sealed class TraderRecruitResultHandler(ILogger<TraderRecruitResultHandler> log)
 	: PacketHandlerBase<TraderRecruitResultMsg>
 {

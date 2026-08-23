@@ -11,7 +11,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// state to every member (the acting side included — its local state was
 /// provisional and is overwritten).
 /// </summary>
-[PacketHandler(NetMsg.TraderAction)]
+[PacketHandler(NetMsg.TraderAction, NetMessageDirection.GuestToHost)]
 public sealed class TraderActionHandler(ILogger<TraderActionHandler> log)
 	: PacketHandlerBase<TraderActionMsg>
 {

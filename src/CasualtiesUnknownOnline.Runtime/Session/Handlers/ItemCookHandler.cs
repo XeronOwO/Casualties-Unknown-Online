@@ -13,7 +13,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// running its own physics collision — guest world items are layer-isolated
 /// to the Ground layer and can never collide with the cooker.
 /// </summary>
-[PacketHandler(NetMsg.ItemCook)]
+[PacketHandler(NetMsg.ItemCook, NetMessageDirection.HostToGuest)]
 public sealed class ItemCookHandler(ILogger<ItemCookHandler> log) : PacketHandlerBase<ItemCookMsg>
 {
 	private readonly ILogger<ItemCookHandler> _log = log;

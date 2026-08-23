@@ -12,7 +12,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// report (the host broadcasts them directly, the guests' traders are
 /// suppressed from talking on their own).
 /// </summary>
-[PacketHandler(NetMsg.SpeechMsg)]
+[PacketHandler(NetMsg.SpeechMsg, NetMessageDirection.Bidirectional)]
 public sealed class SpeechHandler(ILogger<SpeechHandler> log) : PacketHandlerBase<SpeechMsg>
 {
 	private readonly ILogger<SpeechHandler> _log = log;

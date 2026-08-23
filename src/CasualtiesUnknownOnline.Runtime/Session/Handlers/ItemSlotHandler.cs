@@ -12,7 +12,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// and reconnects, and broadcasts the carried-fact event (the evidence when
 /// there is no entry — a starting-supply item).
 /// </summary>
-[PacketHandler(NetMsg.ItemSlot)]
+[PacketHandler(NetMsg.ItemSlot, NetMessageDirection.GuestToHost)]
 public sealed class ItemSlotHandler(ILogger<ItemSlotHandler> log) : PacketHandlerBase<ItemSlotMsg>
 {
 	private readonly ILogger<ItemSlotHandler> _log = log;

@@ -9,7 +9,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// the receiver applies each open to its own deterministically-generated
 /// copy, the same application as the live BuildingEntityOpened relay).
 /// </summary>
-[PacketHandler(NetMsg.OpenedEntitiesSnapshot)]
+[PacketHandler(NetMsg.OpenedEntitiesSnapshot, NetMessageDirection.HostToGuest)]
 public sealed class OpenedEntitiesSnapshotHandler(ILogger<OpenedEntitiesSnapshotHandler> log) : PacketHandlerBase<OpenedEntitiesSnapshotMsg>
 {
 	private readonly ILogger<OpenedEntitiesSnapshotHandler> _log = log;

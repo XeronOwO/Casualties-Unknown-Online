@@ -11,7 +11,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// and the start gate's Handshaken filter only means anything when the flag
 /// means "the handshake protocol completed" (see HandshakeAckAckMsg).
 /// </summary>
-[PacketHandler(NetMsg.HandshakeAckAck)]
+[PacketHandler(NetMsg.HandshakeAckAck, NetMessageDirection.GuestToHost)]
 public sealed class HandshakeAckAckHandler(ILogger<HandshakeAckAckHandler> log) : PacketHandlerBase<HandshakeAckAckMsg>
 {
 	private readonly ILogger<HandshakeAckAckHandler> _log = log;

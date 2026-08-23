@@ -10,7 +10,7 @@ using Microsoft.Extensions.Logging;
 namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 
 /// <summary>Guest → host: protocol negotiation + member creation (new join or reconnect).</summary>
-[PacketHandler(NetMsg.Handshake)]
+[PacketHandler(NetMsg.Handshake, NetMessageDirection.GuestToHost)]
 public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandler> log) : PacketHandlerBase<HandshakeMsg>
 {
 	private readonly PacketSender _sender = sender;

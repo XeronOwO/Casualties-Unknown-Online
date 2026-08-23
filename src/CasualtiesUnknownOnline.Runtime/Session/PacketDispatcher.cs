@@ -34,9 +34,15 @@ public sealed class PacketDispatcher : ICuoService
 		_log = log;
 		foreach (var handler in handlers)
 		{
-			var msg = handler.GetType().GetCustomAttribute<PacketHandlerAttribute>(inherit: false)?.Msg
+			var attribute = handler.GetType().GetCustomAttribute<PacketHandlerAttribute>(inherit: false)
 				?? throw new InvalidOperationException(
 					$"Packet handler {handler.GetType().Name} lacks a [PacketHandler] attribute.");
+			var msg = attribute.Msg;
+			if (!NetMessageRegistry.TryGet(msg, out _))
+			{
+				throw new InvalidOperationException(
+					$"Packet handler {handler.GetType().Name} is registered for {msg}, which is not in NetMessageRegistry.");
+			}
 			// Dictionary.TryAdd is netstandard2.1+ — net48 needs the two-step form.
 			if (_routes.ContainsKey(msg))
 			{

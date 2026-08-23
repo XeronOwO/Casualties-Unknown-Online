@@ -10,7 +10,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// the authoritative record that makes the guest's use/slot reports arbitrate
 /// normally.
 /// </summary>
-[PacketHandler(NetMsg.CarriedInventory)]
+[PacketHandler(NetMsg.CarriedInventory, NetMessageDirection.GuestToHost)]
 public sealed class CarriedInventoryHandler(ILogger<CarriedInventoryHandler> log) : PacketHandlerBase<CarriedInventoryMsg>
 {
 	private readonly ILogger<CarriedInventoryHandler> _log = log;

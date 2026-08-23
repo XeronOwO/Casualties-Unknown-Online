@@ -10,7 +10,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// what the host is carrying. Never applied to the local body (unlike the
 /// reconnect restore, which travels on NetMsg.CharacterData).
 /// </summary>
-[PacketHandler(NetMsg.HostCharacterData)]
+[PacketHandler(NetMsg.HostCharacterData, NetMessageDirection.HostToGuest)]
 public sealed class HostCharacterDataHandler(ILogger<HostCharacterDataHandler> log)
 	: PacketHandlerBase<CharacterDataMsg>
 {

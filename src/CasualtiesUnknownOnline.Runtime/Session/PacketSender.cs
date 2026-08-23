@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Networking;
 using CasualtiesUnknownOnline.Runtime.Protocol;
@@ -39,6 +40,7 @@ public sealed class PacketSender(INetworkTransport transport, NetworkTrafficMoni
 			return false;
 		}
 
+		EnsureRegistered(msg);
 		var frame = NetPacket.Encode(msg, payload);
 		var success = _transport.SendTo(steamId, frame, reliable);
 		_traffic.RecordSend(steamId, msg, frame.Length, success);
@@ -55,6 +57,7 @@ public sealed class PacketSender(INetworkTransport transport, NetworkTrafficMoni
 	/// </summary>
 	public void SendToAll(IEnumerable<ulong> steamIds, NetMsg msg, object? payload, bool reliable = true, ulong? excludeSteamId = null)
 	{
+		EnsureRegistered(msg);
 		var frame = NetPacket.Encode(msg, payload);
 		foreach (var steamId in steamIds)
 		{
@@ -63,6 +66,14 @@ public sealed class PacketSender(INetworkTransport transport, NetworkTrafficMoni
 				var success = _transport.SendTo(steamId, frame, reliable);
 				_traffic.RecordSend(steamId, msg, frame.Length, success);
 			}
+		}
+	}
+
+	private static void EnsureRegistered(NetMsg msg)
+	{
+		if (!NetMessageRegistry.TryGet(msg, out _))
+		{
+			throw new InvalidOperationException($"Cannot send unregistered message {msg}.");
 		}
 	}
 }

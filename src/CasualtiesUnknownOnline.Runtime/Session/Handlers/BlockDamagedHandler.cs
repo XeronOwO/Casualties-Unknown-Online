@@ -15,7 +15,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// keeps the local application from echoing a new report). Guest: the host's
 /// broadcast — apply it.
 /// </summary>
-[PacketHandler(NetMsg.BlockDamaged)]
+[PacketHandler(NetMsg.BlockDamaged, NetMessageDirection.Bidirectional)]
 public sealed class BlockDamagedHandler : PacketHandlerBase<BlockDamagedMsg>
 {
 	protected override void Handle(ulong sender, BlockDamagedMsg msg, HandlerContext ctx) =>

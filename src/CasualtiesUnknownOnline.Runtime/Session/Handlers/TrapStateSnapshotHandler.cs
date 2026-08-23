@@ -9,7 +9,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// block-state snapshot) — the guest consumes each entry against its own
 /// deterministic world (idempotent: an already-destroyed entity is skipped).
 /// </summary>
-[PacketHandler(NetMsg.TrapStateSnapshot)]
+[PacketHandler(NetMsg.TrapStateSnapshot, NetMessageDirection.HostToGuest)]
 public sealed class TrapStateSnapshotHandler(ILogger<TrapStateSnapshotHandler> log)
 	: PacketHandlerBase<TrapStateSnapshotMsg>
 {

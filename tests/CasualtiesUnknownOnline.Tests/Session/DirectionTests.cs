@@ -9,10 +9,11 @@ using Xunit;
 namespace CasualtiesUnknownOnline.Tests.Session;
 
 /// <summary>
-/// The one-way direction table (PacketReceiver.IsValidDirection): a one-way
-/// message arriving at the wrong role is dropped before any handler runs.
-/// These rows lock the table — a message added without its direction rule
-/// fails here when the direction is wrong.
+/// The independent direction contract exercised through
+/// <see cref="PacketReceiver.IsValidDirection"/> (backed by
+/// <see cref="NetMessageRegistry"/>): a one-way message arriving at the wrong
+/// role is dropped before any handler runs. These rows lock the classification
+/// — a message whose handler attribute carries the wrong direction fails here.
 /// </summary>
 public class DirectionTests
 {
@@ -150,10 +151,10 @@ public class DirectionTests
 
 	/// <summary>
 	/// The classification-completeness guard: every NetMsg value must appear in
-	/// exactly one direction list. Without this, a new message (or a forgotten
-	/// one — observed: SpeechMsg was bidirectional but unlisted, silently
-	/// falling into IsValidDirection's default-true) never gets its direction
-	/// locked, and a one-way message could regress to bidirectional.
+	/// exactly one direction list. The receiver is now fail-closed (an
+	/// unregistered id is dropped), but this contract still matters: a new
+	/// message that is not listed here (or whose handler attribute does not
+	/// match this list) never gets its intended direction enforced.
 	/// </summary>
 	[Fact]
 	public void EveryNetMsg_IsExplicitlyClassified()

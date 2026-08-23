@@ -9,7 +9,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// adapter: the mod domain settles the requester's pending callback by
 /// ModId + RequestId (unknown ids are dropped with a log).
 /// </summary>
-[PacketHandler(NetMsg.ModCommandResult)]
+[PacketHandler(NetMsg.ModCommandResult, NetMessageDirection.HostToGuest)]
 public sealed class ModCommandResultHandler(ILogger<ModCommandResultHandler> log) : PacketHandlerBase<ModCommandResultMsg>
 {
 	private readonly ILogger<ModCommandResultHandler> _log = log;

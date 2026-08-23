@@ -7,7 +7,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// Host → guest: the authoritative radiation-line state (host authority — the
 /// host owns the line's active/timeGone world state; guests apply it).
 /// </summary>
-[PacketHandler(NetMsg.RadiationLineState)]
+[PacketHandler(NetMsg.RadiationLineState, NetMessageDirection.HostToGuest)]
 public sealed class RadiationLineStateHandler : PacketHandlerBase<RadiationLineStateMsg>
 {
 	protected override void Handle(ulong sender, RadiationLineStateMsg msg, HandlerContext ctx) =>

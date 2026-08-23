@@ -8,7 +8,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// authoritative result for the Game Adapter to apply the local body mutation
 /// (consume the healer's item and/or apply the target's post-heal state).
 /// </summary>
-[PacketHandler(NetMsg.PlayerHealResult)]
+[PacketHandler(NetMsg.PlayerHealResult, NetMessageDirection.HostToGuest)]
 internal sealed class PlayerHealResultHandler : PacketHandlerBase<PlayerHealResultMsg>
 {
 	protected override void Handle(ulong sender, PlayerHealResultMsg msg, HandlerContext ctx) =>

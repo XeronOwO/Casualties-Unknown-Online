@@ -11,7 +11,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// reconnect). The guest reconciles its local world items against the
 /// snapshot: spawns the missing, destroys the stale.
 /// </summary>
-[PacketHandler(NetMsg.ItemSnapshot)]
+[PacketHandler(NetMsg.ItemSnapshot, NetMessageDirection.HostToGuest)]
 public sealed class ItemSnapshotHandler(ILogger<ItemSnapshotHandler> log) : PacketHandlerBase<ItemSnapshotMsg>
 {
 	private readonly ILogger<ItemSnapshotHandler> _log = log;

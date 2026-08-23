@@ -10,7 +10,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// own world, records one-shot consumptions and broadcasts to the other
 /// members) — a handler-level broadcast here would send a second copy.
 /// </summary>
-[PacketHandler(NetMsg.EntityEvent)]
+[PacketHandler(NetMsg.EntityEvent, NetMessageDirection.Bidirectional)]
 public sealed class EntityEventHandler(ILogger<EntityEventHandler> log)
 	: PacketHandlerBase<EntityEventMsg>
 {

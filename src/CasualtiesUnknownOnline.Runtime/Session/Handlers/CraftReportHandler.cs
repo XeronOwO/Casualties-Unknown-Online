@@ -11,7 +11,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// — never decomposed into per-entry broadcasts, so one-operation-one-report
 /// holds end-to-end.
 /// </summary>
-[PacketHandler(NetMsg.CraftReport)]
+[PacketHandler(NetMsg.CraftReport, NetMessageDirection.Bidirectional)]
 public sealed class CraftReportHandler(ILogger<CraftReportHandler> log) : PacketHandlerBase<CraftReportMsg>
 {
 	private readonly ILogger<CraftReportHandler> _log = log;

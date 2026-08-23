@@ -11,7 +11,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// re-renders that player's clone immediately — the 1 Hz character snapshot
 /// stays as the fallback.
 /// </summary>
-[PacketHandler(NetMsg.ItemCarriedSync)]
+[PacketHandler(NetMsg.ItemCarriedSync, NetMessageDirection.HostToGuest)]
 public sealed class ItemCarriedSyncHandler(ILogger<ItemCarriedSyncHandler> log) : PacketHandlerBase<ItemCarriedSyncMsg>
 {
 	private readonly ILogger<ItemCarriedSyncHandler> _log = log;

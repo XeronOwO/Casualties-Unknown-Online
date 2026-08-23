@@ -9,7 +9,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// name), destroy the surplus/off-position entities. Host → guest only
 /// (direction-validated by PacketReceiver).
 /// </summary>
-[PacketHandler(NetMsg.TrapLayoutSnapshot)]
+[PacketHandler(NetMsg.TrapLayoutSnapshot, NetMessageDirection.HostToGuest)]
 public sealed class TrapLayoutSnapshotHandler : PacketHandlerBase<TrapLayoutSnapshotMsg>
 {
 	protected override void Handle(ulong sender, TrapLayoutSnapshotMsg msg, HandlerContext ctx) =>

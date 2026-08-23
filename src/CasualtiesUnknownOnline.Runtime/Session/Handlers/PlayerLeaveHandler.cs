@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 
 /// <summary>Host → guest: a synced member left — drop it (clone teardown via RemoteSceneChanged).</summary>
-[PacketHandler(NetMsg.PlayerLeave)]
+[PacketHandler(NetMsg.PlayerLeave, NetMessageDirection.HostToGuest)]
 public sealed class PlayerLeaveHandler(ILogger<PlayerLeaveHandler> log) : PacketHandlerBase<PlayerLeaveMsg>
 {
 	private readonly ILogger<PlayerLeaveHandler> _log = log;

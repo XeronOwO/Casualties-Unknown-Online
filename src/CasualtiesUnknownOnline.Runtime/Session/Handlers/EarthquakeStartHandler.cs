@@ -8,7 +8,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// independent quake timer and show the host's). Host → guest only
 /// (direction-validated by PacketReceiver).
 /// </summary>
-[PacketHandler(NetMsg.EarthquakeStart)]
+[PacketHandler(NetMsg.EarthquakeStart, NetMessageDirection.HostToGuest)]
 public sealed class EarthquakeStartHandler : PacketHandlerBase<EarthquakeStartMsg>
 {
 	protected override void Handle(ulong sender, EarthquakeStartMsg msg, HandlerContext ctx) =>

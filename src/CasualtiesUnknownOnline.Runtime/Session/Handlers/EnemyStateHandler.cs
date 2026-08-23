@@ -4,7 +4,7 @@ using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 
 /// <summary>Host → guest: the authoritative enemy-state batch (unreliable, seq-gated).</summary>
-[PacketHandler(NetMsg.EnemyState)]
+[PacketHandler(NetMsg.EnemyState, NetMessageDirection.HostToGuest)]
 public sealed class EnemyStateHandler : PacketHandlerBase<EnemyStateBatchMsg>
 {
 	protected override void Handle(ulong sender, EnemyStateBatchMsg msg, HandlerContext ctx)

@@ -10,7 +10,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// slot) — the action itself was accepted, the divergence is synced now. The
 /// adapter applies the payload via its restore machinery.
 /// </summary>
-[PacketHandler(NetMsg.ItemCorrection)]
+[PacketHandler(NetMsg.ItemCorrection, NetMessageDirection.HostToGuest)]
 public sealed class ItemCorrectionHandler(ILogger<ItemCorrectionHandler> log) : PacketHandlerBase<ItemCorrectionMsg>
 {
 	private readonly ILogger<ItemCorrectionHandler> _log = log;

@@ -11,7 +11,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// broadcast happens after arbitration, so this handler only surfaces the
 /// event; the adapter validates and answers via BroadcastBlockPlaced.
 /// </summary>
-[PacketHandler(NetMsg.BlockPlaced)]
+[PacketHandler(NetMsg.BlockPlaced, NetMessageDirection.Bidirectional)]
 public sealed class BlockPlacedHandler(ILogger<BlockPlacedHandler> log) : PacketHandlerBase<BlockPlacedMsg>
 {
 	private readonly ILogger<BlockPlacedHandler> _log = log;

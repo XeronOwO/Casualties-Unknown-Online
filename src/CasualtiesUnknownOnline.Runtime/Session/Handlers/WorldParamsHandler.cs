@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 
 /// <summary>Host → guest: world-start parameters (RNG state + world-defining fields) — store for the adapter.</summary>
-[PacketHandler(NetMsg.WorldStartParams)]
+[PacketHandler(NetMsg.WorldStartParams, NetMessageDirection.HostToGuest)]
 public sealed class WorldParamsHandler(ILogger<WorldParamsHandler> log) : PacketHandlerBase<WorldStartParamsMsg>
 {
 	private readonly ILogger<WorldParamsHandler> _log = log;

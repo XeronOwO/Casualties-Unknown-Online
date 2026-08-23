@@ -11,7 +11,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// members (the source excluded, it already applied locally). Guest: the
 /// host's relay — clear the cell (idempotent).
 /// </summary>
-[PacketHandler(NetMsg.FluidInteraction)]
+[PacketHandler(NetMsg.FluidInteraction, NetMessageDirection.Bidirectional)]
 public sealed class FluidInteractionHandler(ILogger<FluidInteractionHandler> log) : PacketHandlerBase<FluidInteractionMsg>
 {
 	private readonly ILogger<FluidInteractionHandler> _log = log;

@@ -10,7 +10,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// and broadcasts the carried-fact event (ItemCarriedSync) so the peers'
 /// clones re-render the container's new contents immediately.
 /// </summary>
-[PacketHandler(NetMsg.ItemContainerContent)]
+[PacketHandler(NetMsg.ItemContainerContent, NetMessageDirection.GuestToHost)]
 public sealed class ItemContainerContentHandler(ILogger<ItemContainerContentHandler> log) : PacketHandlerBase<ItemContainerContentMsg>
 {
 	private readonly ILogger<ItemContainerContentHandler> _log = log;

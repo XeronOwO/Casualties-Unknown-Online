@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 
 /// <summary>Host → guest: the authoritative entity batch (unreliable stream, seq gate).</summary>
-[PacketHandler(NetMsg.PlayerState)]
+[PacketHandler(NetMsg.PlayerState, NetMessageDirection.HostToGuest)]
 public sealed class PlayerStateHandler(ILogger<PlayerStateHandler> log) : PacketHandlerBase<PlayerStateMsg>
 {
 	private readonly ILogger<PlayerStateHandler> _log = log;

@@ -10,7 +10,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// validates the request and executes the command on the host's copy of the
 /// mod. Direction is locked one-way in PacketReceiver.
 /// </summary>
-[PacketHandler(NetMsg.ModCommandRequest)]
+[PacketHandler(NetMsg.ModCommandRequest, NetMessageDirection.GuestToHost)]
 public sealed class ModCommandRequestHandler(ILogger<ModCommandRequestHandler> log) : PacketHandlerBase<ModCommandRequestMsg>
 {
 	private readonly ILogger<ModCommandRequestHandler> _log = log;

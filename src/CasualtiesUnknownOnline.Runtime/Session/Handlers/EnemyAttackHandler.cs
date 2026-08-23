@@ -10,7 +10,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// the post-attack terminal state through the attack-specific event. Reliable
 /// one-shot — the direction table already rejects it on a host.
 /// </summary>
-[PacketHandler(NetMsg.EnemyAttack)]
+[PacketHandler(NetMsg.EnemyAttack, NetMessageDirection.HostToGuest)]
 public sealed class EnemyAttackHandler(ILogger<EnemyAttackHandler> log) : PacketHandlerBase<EnemyAttackMsg>
 {
 	private readonly ILogger<EnemyAttackHandler> _log = log;

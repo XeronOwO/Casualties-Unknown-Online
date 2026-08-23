@@ -8,7 +8,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// to the local copies, so both sides see the items at the same spot. Host →
 /// guest only (direction-validated by PacketReceiver).
 /// </summary>
-[PacketHandler(NetMsg.ItemMove)]
+[PacketHandler(NetMsg.ItemMove, NetMessageDirection.HostToGuest)]
 public sealed class ItemMoveHandler : PacketHandlerBase<ItemMoveMsg>
 {
 	protected override void Handle(ulong sender, ItemMoveMsg msg, HandlerContext ctx) =>

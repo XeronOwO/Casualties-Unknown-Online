@@ -13,7 +13,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// belongs to the reporter's own local simulation — no validation); the 1 Hz
 /// character snapshot stays the fallback. Mirror of <see cref="EnemyBiteHandler"/>.
 /// </summary>
-[PacketHandler(NetMsg.LimbStateEvent)]
+[PacketHandler(NetMsg.LimbStateEvent, NetMessageDirection.Bidirectional)]
 public sealed class LimbStateEventHandler(ILogger<LimbStateEventHandler> log) : PacketHandlerBase<LimbStateEventMsg>
 {
 	private readonly ILogger<LimbStateEventHandler> _log = log;

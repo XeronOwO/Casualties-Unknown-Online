@@ -12,7 +12,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// Accept-first: the host adopts the victim's post-lunge state unconditionally;
 /// the 1 Hz character snapshot stays the fallback.
 /// </summary>
-[PacketHandler(NetMsg.EnemyLunge)]
+[PacketHandler(NetMsg.EnemyLunge, NetMessageDirection.Bidirectional)]
 public sealed class EnemyLungeHandler(ILogger<EnemyLungeHandler> log) : PacketHandlerBase<EnemyLungeMsg>
 {
 	private readonly ILogger<EnemyLungeHandler> _log = log;

@@ -12,7 +12,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// every side's copy may differ — the host's roll is the authority), not an
 /// event payload.
 /// </summary>
-[PacketHandler(NetMsg.GeyserStateSnapshot)]
+[PacketHandler(NetMsg.GeyserStateSnapshot, NetMessageDirection.HostToGuest)]
 public sealed class GeyserStateSnapshotHandler(ILogger<GeyserStateSnapshotHandler> log)
 	: PacketHandlerBase<GeyserStateSnapshotMsg>
 {

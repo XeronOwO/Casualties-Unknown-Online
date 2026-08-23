@@ -10,7 +10,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 /// guest rolls its optimistic pickup back: the item leaves the inventory and
 /// goes back into the world.
 /// </summary>
-[PacketHandler(NetMsg.ItemReject)]
+[PacketHandler(NetMsg.ItemReject, NetMessageDirection.HostToGuest)]
 public sealed class ItemRejectHandler(ILogger<ItemRejectHandler> log) : PacketHandlerBase<ItemRejectMsg>
 {
 	private readonly ILogger<ItemRejectHandler> _log = log;

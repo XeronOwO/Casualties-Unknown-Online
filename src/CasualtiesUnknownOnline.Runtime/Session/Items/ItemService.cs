@@ -9,54 +9,77 @@ using Microsoft.Extensions.Logging;
 namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 
 /// <summary>
-/// The world-item domain: runtime-generated items in the world (drops, loot,
-/// placed items) with the host (and solo play — late-joiner parity) keeping
-/// the authoritative table. Local compute → report up / register → relay down,
-/// the star-network pattern: the spawner applies locally, the host arbitrates
-/// (pickups are first-writer-wins against the table) and relays to the other
-/// members. Generation-time items never enter the table — world-gen
-/// determinism covers them. ItemService itself has no pump (not an ICuoService,
-/// like WorldService); the pending-pickup hold window's time edge lives in
-/// PendingPickupPump, and its integration lives in ItemService.PendingPickups.cs.
+/// The world-item domain coordinator. It owns the authoritative world-item
+/// table, the sub-services and the application events, and delegates the
+/// report/receive message flow to <see cref="ItemMessageFlowService"/> plus the
+/// host-side pending-pickup arbitration to
+/// <see cref="ItemPendingPickupArbiter"/>. The class is deliberately a facade
+/// over real top-level responsibilities rather than a partial-logical god
+/// object.
 /// </summary>
-public sealed partial class ItemService : IItemControl, IItemActionWorldAccess, IDisposable
+public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposable
 {
 	private readonly ISessionControl _session;
 	private readonly PacketSender _sender;
 	private readonly ILogger<ItemService> _log;
-
-	/// <summary>The authoritative world-item table (instance id → item) — the state lives in WorldItemTable.</summary>
 	private readonly WorldItemTable _worldTable = new();
-
 	private readonly ItemArbitration _arbitration;
 	private readonly ItemCarriedSyncService _carriedSync;
 	private readonly ItemActionSync _itemActionSync;
 	private readonly ItemSnapshotService _snapshots;
 	private readonly ItemIdCoordinator _idCoordinator;
 	private readonly BlockDropSync _blockDrops;
+	private readonly ItemTrafficTracker _itemTraffic = new(ItemTrafficTracker.DefaultWindowMs);
+	private readonly ItemPendingPickupArbiter _pendingPickups;
+	private readonly ItemMessageFlowService _messageFlow;
 
 	public ItemService(ISessionControl session, PacketSender sender, ItemArbitration arbitration, ITimeSource time, ILogger<ItemService> log)
 	{
 		_session = session;
 		_sender = sender;
 		_log = log;
-		_time = time;
-		_arbitration = arbitration; // DI-registered — the crafting domain composes the same instance (RemoveTransferred/AdoptEvidence/RegisterCarried)
-		_pendingPickups = new(PendingPickupQueue.DefaultHoldMs);
+		_arbitration = arbitration;
 		_carriedSync = new(session, sender, log);
-		_itemActionSync = new(session, sender, arbitration, this, log); // the use/slot action flows — this is their narrow world access (abstract extraction)
+		_itemActionSync = new(session, sender, arbitration, this, log);
 		_snapshots = new(session, sender, () => (IReadOnlyCollection<WorldItem>)_worldTable.Items.Values, log);
 		_idCoordinator = new ItemIdCoordinator(session, sender, _arbitration, log);
 		_blockDrops = new BlockDropSync(session, this);
 
-		// The item domain is session-scoped: a lobby switch must never carry a
-		// world/transfer table, watermark or modifier projection into the new
-		// lobby. The host session survives a guest leaving, so reconnect
-		// recovery keeps its state.
+		_pendingPickups = new ItemPendingPickupArbiter(
+			session,
+			sender,
+			time,
+			_worldTable,
+			arbitration,
+			_carriedSync,
+			RecordItemTraffic,
+			item => ItemSpawned?.Invoke(item),
+			itemId => ItemPickedUp?.Invoke(itemId),
+			(itemId, item, pos, vel, parentItemId, rotation, angularVelocity, parentPos) => ItemDropped?.Invoke(itemId, item, pos, vel, parentItemId, rotation, angularVelocity, parentPos),
+			log);
+		_messageFlow = new ItemMessageFlowService(
+			session,
+			sender,
+			log,
+			_worldTable,
+			arbitration,
+			_itemActionSync,
+			_snapshots,
+			_blockDrops,
+			_pendingPickups,
+			RecordItemTraffic,
+			ItemTrafficLabel,
+			item => ItemSpawned?.Invoke(item),
+			itemId => ItemPickedUp?.Invoke(itemId),
+			(itemId, item, pos, vel, parentItemId, rotation, angularVelocity, parentPos) => ItemDropped?.Invoke(itemId, item, pos, vel, parentItemId, rotation, angularVelocity, parentPos),
+			itemId => ItemDestroyed?.Invoke(itemId),
+			(sourceItemId, cooked) => ItemCookedReceived?.Invoke(sourceItemId, cooked),
+			(itemId, reason) => ItemRejected?.Invoke(itemId, reason));
+
 		session.SessionEnded += OnSessionEnded;
 	}
 
-	// ===== Item-id coordination (watermarks + carried inventory) — the state and the docs live in ItemIdCoordinator =====
+	// ===== Item-id coordination =====
 
 	public void SendItemIdWatermark(ulong counter) => _idCoordinator.SendItemIdWatermark(counter);
 
@@ -68,7 +91,6 @@ public sealed partial class ItemService : IItemControl, IItemActionWorldAccess, 
 
 	public void FireCarriedInventoryReceived(ulong sender, IReadOnlyList<CharacterItemMsg> items) => _idCoordinator.FireCarriedInventoryReceived(sender, items);
 
-	/// <summary>Host side: a guest's self-assigned carried inventory arrived — the adapter merges it into the guest's fact table.</summary>
 	public event Action<ulong, IReadOnlyList<CharacterItemMsg>>? CarriedInventoryReceived
 	{
 		add => _idCoordinator.CarriedInventoryReceived += value;
@@ -119,9 +141,66 @@ public sealed partial class ItemService : IItemControl, IItemActionWorldAccess, 
 		remove => _idCoordinator.ItemIdWatermarkReceived -= value;
 	}
 
+	// ===== Report/receive flow =====
+
+	public void SendItemSpawned(ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, float rotation, bool freshItemDrop, float angularVelocity) =>
+		_messageFlow.SendItemSpawned(itemId, item, pos, vel, rotation, freshItemDrop, angularVelocity);
+
+	public void SendItemCooked(ulong sourceItemId, ulong cookedItemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, float rotation, float angularVelocity) =>
+		_messageFlow.SendItemCooked(sourceItemId, cookedItemId, item, pos, vel, rotation, angularVelocity);
+
+	public void SendItemPickedUp(ulong itemId, CharacterItemMsg? evidence = null) =>
+		_messageFlow.SendItemPickedUp(itemId, evidence);
+
+	public void SendItemUse(ulong itemId, CharacterItemMsg item) => _messageFlow.SendItemUse(itemId, item);
+
+	public void SendItemSlot(ulong itemId, int slotIndex, CharacterItemMsg item) => _messageFlow.SendItemSlot(itemId, slotIndex, item);
+
+	public void SendItemContainerContent(ulong itemId, CharacterItemMsg item) => _messageFlow.SendItemContainerContent(itemId, item);
+
+	public void SendItemDropped(ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, ulong parentItemId, float rotation, NetVector2 parentPos = default, float angularVelocity = 0f) =>
+		_messageFlow.SendItemDropped(itemId, item, pos, vel, parentItemId, rotation, parentPos, angularVelocity);
+
+	public void SendItemDestroyed(ulong itemId) => _messageFlow.SendItemDestroyed(itemId);
+
+	public void FireItemSpawnedReceived(ulong sender, ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, float rotation, bool freshItemDrop, float angularVelocity) =>
+		_messageFlow.FireItemSpawnedReceived(sender, itemId, item, pos, vel, rotation, freshItemDrop, angularVelocity);
+
+	public void FireItemPickedUpReceived(ulong sender, ulong itemId, CharacterItemMsg? evidence) =>
+		_messageFlow.FireItemPickedUpReceived(sender, itemId, evidence);
+
+	public void FireItemDroppedReceived(ulong sender, ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, ulong parentItemId, float rotation, float angularVelocity, NetVector2 parentPos = default) =>
+		_messageFlow.FireItemDroppedReceived(sender, itemId, item, pos, vel, parentItemId, rotation, angularVelocity, parentPos);
+
+	public void FireItemDestroyedReceived(ulong sender, ulong itemId) =>
+		_messageFlow.FireItemDestroyedReceived(sender, itemId);
+
+	public void FireItemCookedReceived(ulong sender, ulong sourceItemId, ulong cookedItemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, float rotation, float angularVelocity) =>
+		_messageFlow.FireItemCookedReceived(sender, sourceItemId, cookedItemId, item, pos, vel, rotation, angularVelocity);
+
+	public void FireItemRejectReceived(ulong sender, ulong itemId, ItemRejectMsg.Reason reason) =>
+		_messageFlow.FireItemRejectReceived(sender, itemId, reason);
+
+	public void RegisterBlockDrops(IReadOnlyList<BlockDropEntryMsg> drops) => _messageFlow.RegisterBlockDrops(drops);
+
+	public void FireBlockDropsReceived(ulong sender, IReadOnlyList<BlockDropEntryMsg> drops) => _messageFlow.FireBlockDropsReceived(sender, drops);
+
+	public void SendItemReject(ulong targetSteamId, ulong itemId, ItemRejectMsg.Reason reason) =>
+		_messageFlow.SendItemReject(targetSteamId, itemId, reason);
+
+	public void FireItemCorrectionReceived(ulong sender, CharacterItemMsg item) => _messageFlow.FireItemCorrectionReceived(sender, item);
+
+	public void FireItemUseReceived(ulong sender, ulong itemId, CharacterItemMsg evidence) => _messageFlow.FireItemUseReceived(sender, itemId, evidence);
+
+	public void FireItemSlotReceived(ulong sender, ulong itemId, int slotIndex, CharacterItemMsg item) => _messageFlow.FireItemSlotReceived(sender, itemId, slotIndex, item);
+
+	public void FireItemContainerContentReceived(ulong sender, ulong itemId, CharacterItemMsg item) => _messageFlow.FireItemContainerContentReceived(sender, itemId, item);
+
+	public void FireItemSnapshotReceived(ulong sender, IReadOnlyList<WorldItem> items, int layerModifierIndex, byte[]? layerModifierRandomState) =>
+		_messageFlow.FireItemSnapshotReceived(sender, items, layerModifierIndex, layerModifierRandomState);
+
 	// ===== Host-authoritative position stream =====
 
-	/// <summary>Host only: broadcast EVERY world item's authoritative position (unreliable — drops are harmless, the next tick overwrites; the host's physics is the single position authority, the guests' copies are kinematic renders that follow).</summary>
 	public void SendItemMove(IReadOnlyList<ItemMoveEntryMsg> items)
 	{
 		if (_session.Role != SessionRole.Host || !_session.SessionActive || items.Count == 0)
@@ -142,26 +221,23 @@ public sealed partial class ItemService : IItemControl, IItemActionWorldAccess, 
 
 	public void FireItemMoveReceived(IReadOnlyList<ItemMoveEntryMsg> items) => ItemMoveReceived?.Invoke(items);
 
-	// ===== Carried-item facts (host → guest events: use/slot move/pickup) — the wire surface lives in ItemCarriedSyncService =====
+	// ===== Carried-item facts =====
 
 	public void SendItemCarriedSync(ulong ownerSteamId, CharacterItemMsg item) => _carriedSync.SendItemCarriedSync(ownerSteamId, item);
 
 	public void FireItemCarriedSyncReceived(ulong sender, ulong ownerSteamId, CharacterItemMsg item, bool slotKnown)
 		=> _carriedSync.FireItemCarriedSyncReceived(sender, ownerSteamId, item, slotKnown);
 
-	/// <summary>Host only: an arbitration adopted/recorded a carried item's new fact — apply it locally and broadcast it to the peers.</summary>
 	private void PublishCarriedSync(ulong ownerSteamId, CharacterItemMsg item) => _carriedSync.Publish(ownerSteamId, item);
 
 	// ===== Host-only surface =====
 
-	/// <summary>The world's current layer modifier projection — rides the snapshots (see ItemSnapshotService).</summary>
 	public int LayerModifierIndex
 	{
 		get => _snapshots.LayerModifierIndex;
 		set => _snapshots.LayerModifierIndex = value;
 	}
 
-	/// <summary>The modifier decision's random start — rides the snapshots (see ItemSnapshotService).</summary>
 	public byte[]? LayerModifierRandomState
 	{
 		get => _snapshots.LayerModifierRandomState;
@@ -178,14 +254,12 @@ public sealed partial class ItemService : IItemControl, IItemActionWorldAccess, 
 		_arbitration.SendCorrection(targetSteamId, item);
 	}
 
-	/// <summary>Host only: correct every OTHER member's copy of a used world item — the user's own copy IS the fact.</summary>
 	public void SendWorldItemCorrection(ulong exceptSteamId, CharacterItemMsg item) => _itemActionSync.SendWorldItemCorrection(exceptSteamId, item);
 
 	public IReadOnlyList<WorldItem> GetTransferredItems(ulong steamId) => _arbitration.GetTransferredItems(steamId);
 
 	public void SendItemSnapshot(ulong targetSteamId) => _snapshots.SendItemSnapshot(targetSteamId);
 
-	/// <summary>Host only: the item's live state — the periodic keyframe must broadcast the CURRENT positions and condition, not the spawn-time ones (the spawn position would pull settled items back into the air every tick; a stale condition would re-align the peers' decay to the wrong value).</summary>
 	public void RefreshItemState(ulong itemId, NetVector2 pos, NetVector2 vel, float rotation, float condition)
 	{
 		if (_session.Role == SessionRole.Guest || !_worldTable.TryGetValue(itemId, out var w))
@@ -197,16 +271,14 @@ public sealed partial class ItemService : IItemControl, IItemActionWorldAccess, 
 		_worldTable.Set(itemId, w with { Pos = pos, Vel = vel, Rotation = rotation });
 	}
 
-	/// <summary>Host only: periodically re-send the full table (unreliable) — see ItemSnapshotService.</summary>
 	public void SendPeriodicItemSnapshot() => _snapshots.SendPeriodicItemSnapshot();
 
 	public void ResetItems()
 	{
 		_worldTable.Clear();
-		_pendingPickups.Reset(); // a new layer voids every in-flight claim from the old world
+		_pendingPickups.Reset();
 	}
 
-	/// <summary>Session ended: every session-scoped item table dies with it.</summary>
 	public void ResetSessionState()
 	{
 		_worldTable.Clear();
@@ -221,7 +293,8 @@ public sealed partial class ItemService : IItemControl, IItemActionWorldAccess, 
 
 	public void Dispose() => _session.SessionEnded -= OnSessionEnded;
 
-	/// <summary>Host only: the generation finished — the host assigned ids to the generation-time items and hands the full set over. Registered silently (no ItemSpawned event — the local copies exist) and broadcast as ONE reliable snapshot (see GeneratedItemAuthority/Application).</summary>
+	// ===== Generation-time items =====
+
 	public void PublishGeneratedItems(IReadOnlyList<ItemSnapshotEntryMsg> entries)
 	{
 		if (_session.Role == SessionRole.Guest || entries.Count == 0)
@@ -232,13 +305,6 @@ public sealed partial class ItemService : IItemControl, IItemActionWorldAccess, 
 		var registered = 0;
 		foreach (var entry in entries)
 		{
-			// A carried entry (starting supplies, SlotIndex > 0 — the wire
-			// encoding of a backpack slot is slotIndex + 1, see
-			// ItemSnapshotEntryMsg.SlotIndex) has NO table entry — it lives in
-			// a backpack until a drop brings it into the world (the drop report
-			// registers it then, the standard path). SlotIndex 0 IS a world
-			// item: protobuf-net omits the 0-valued wire field, so the encoded
-			// -1 + 1 arrives as 0 — never treat 0 as a slot.
 			if (entry.SlotIndex > 0 || _worldTable.ContainsKey(entry.ItemId))
 			{
 				continue;
@@ -253,7 +319,6 @@ public sealed partial class ItemService : IItemControl, IItemActionWorldAccess, 
 		_session.Broadcast(NetMsg.WorldItemsSnapshot, new WorldItemsSnapshotMsg
 		{
 			Items = [.. entries],
-			// Wire encoding is modifierIndex + 1 (0 = none) — see SendItemSnapshot.
 			LayerModifierIndex = LayerModifierIndex + 1,
 			LayerModifierRandomState = LayerModifierRandomState,
 		});
@@ -265,18 +330,14 @@ public sealed partial class ItemService : IItemControl, IItemActionWorldAccess, 
 	public void FireWorldItemsSnapshotReceived(ulong sender, IReadOnlyList<ItemSnapshotEntryMsg> items, int layerModifierIndex, byte[]? layerModifierRandomState)
 		=> _snapshots.FireWorldItemsSnapshotReceived(sender, items, layerModifierIndex, layerModifierRandomState);
 
-	// ===== Crafting-domain seams — the craft apply (CraftSyncService) composes these; it cannot live
-	// here: this file sits at the 600-line architecture gate. Role-agnostic where possible (the craft
-	// relay applies on the host AND on the guests — their world tables are empty, the event is the point).
+	// ===== Crafting-domain seams =====
 
-	// Local world-table removal, no wire send (the craft relay carries the fact): table remove + the adapter's ItemDestroyed event.
 	internal void RemoveWorldItemLocal(ulong itemId)
 	{
 		_worldTable.Remove(itemId);
 		ItemDestroyed?.Invoke(itemId);
 	}
 
-	// Host only: adopt a changed world item's state into the table entry (the craft report's world-Changed evidence — the use path's adopt field set).
 	internal void UpdateWorldItemState(ulong itemId, CharacterItemMsg state)
 	{
 		if (_session.Role == SessionRole.Host && _worldTable.TryGetValue(itemId, out var w))
@@ -288,16 +349,57 @@ public sealed partial class ItemService : IItemControl, IItemActionWorldAccess, 
 		}
 	}
 
-	// Publish one carried item's adopted fact (local event + host broadcast — the broadcast self-guards host-only, so one method serves both roles).
 	internal void PublishCarriedSyncFor(ulong owner, CharacterItemMsg item) => PublishCarriedSync(owner, item);
 
-	// Local-only carried-fact apply (the craft relay already carries the fact — one operation = one message).
 	internal void PublishCarriedSyncLocal(ulong owner, CharacterItemMsg item) => _carriedSync.PublishLocal(owner, item);
 
-	// Role-agnostic local correction apply (the wire entry stays guest-only) — the craft domain's world-Changed entries reach the host's own scene copy through this.
 	internal void FireCorrectionLocal(CharacterItemMsg item) => _arbitration.FireCorrectionReceived(item);
 
-	// ===== IItemActionWorldAccess (explicit — the narrow surface the action flows compose) =====
+	// ===== Direct player-interaction forwarding =====
+
+	public void AdoptTransferredItem(ulong guest, ulong itemId, CharacterItemMsg item) =>
+		_arbitration.AdoptTransferredItem(guest, itemId, item);
+
+	public void RemoveTransferredItem(ulong guest, ulong itemId) =>
+		_arbitration.RemoveTransferredItem(guest, itemId);
+
+	public void UpdateTransferredItem(ulong guest, ulong itemId, CharacterItemMsg item) =>
+		_arbitration.UpdateTransferredItem(guest, itemId, item);
+
+	// ===== Traffic =====
+
+	internal void RecordItemTraffic(ItemTrafficKind kind, string itemLabel)
+	{
+		if (_session.SessionActive)
+		{
+			_itemTraffic.Record(kind, itemLabel);
+		}
+	}
+
+	internal void PumpItemTraffic(long nowMs)
+	{
+		if (_itemTraffic.TryCollectWindow(nowMs, out var window) && window.Total > 0)
+		{
+			_log.LogInformation("[ItemTraffic] {Window}", ItemTrafficWindowLog.Format(window));
+		}
+	}
+
+	internal ItemTrafficWindow CurrentItemTraffic => _itemTraffic.Snapshot();
+
+	internal string ItemTrafficLabel(ulong itemId) =>
+		_worldTable.TryGetValue(itemId, out var entry) ? entry.Item.ItemId : $"#{itemId}";
+
+	internal void ResetItemTraffic() => _itemTraffic.Reset();
+
+	internal void PumpPendingPickups(long nowMs) => _pendingPickups.PumpPendingPickups(nowMs);
+
+	internal bool RegisterWorldItemIfAbsent(ulong itemId, WorldItem item) => _messageFlow.RegisterWorldItemIfAbsent(itemId, item);
+
+	internal bool IsWorldItemRegistered(ulong itemId) => _messageFlow.IsWorldItemRegistered(itemId);
+
+	internal void FireItemSpawned(WorldItem item) => _messageFlow.FireItemSpawned(item);
+
+	// ===== IItemActionWorldAccess =====
 
 	bool IItemActionWorldAccess.IsWorldItem(ulong itemId) => IsWorldItemRegistered(itemId);
 

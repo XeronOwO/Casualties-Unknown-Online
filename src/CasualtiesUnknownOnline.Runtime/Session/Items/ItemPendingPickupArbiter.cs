@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol;
@@ -8,24 +9,39 @@ using Microsoft.Extensions.Logging;
 namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 
 /// <summary>
-/// Host-side pending-pickup integration for <see cref="ItemService"/>. A pickup
-/// that arrives before its spawn/drop registration is no longer refused
-/// immediately (the old UnknownItem reject rolled the picker's local pickup
-/// back and then left the late spawn in the world for a manual re-pickup);
-/// instead the claim waits in <see cref="PendingPickupQueue"/> for a short
-/// hold window. A registration that confirms the item settles the first
-/// queued claim (first-writer-wins — later claims are rejected), a
-/// registration that makes the claim a container content resolves it
-/// silently (the container transfer carries it), and the per-frame
-/// <see cref="PendingPickupPump"/> rejects only claims that never resolved.
+/// Host-side pending-pickup arbitration. A pickup that arrives before its
+/// spawn/drop registration waits in a short hold window instead of being
+/// refused immediately; a registration that confirms the item settles the first
+/// queued claim (first-writer-wins), and the per-frame expiry edge rejects only
+/// claims that never resolved.
 /// </summary>
-public sealed partial class ItemService
+internal sealed class ItemPendingPickupArbiter(
+	ISessionControl session,
+	PacketSender sender,
+	ITimeSource time,
+	WorldItemTable worldTable,
+	ItemArbitration arbitration,
+	ItemCarriedSyncService carriedSync,
+	Action<ItemTrafficKind, string> recordTraffic,
+	Action<WorldItem> onItemSpawned,
+	Action<ulong> onItemPickedUp,
+	Action<ulong, CharacterItemMsg, NetVector2, NetVector2, ulong, float, float, NetVector2> onItemDropped,
+	ILogger<ItemService> log)
 {
-	private readonly PendingPickupQueue _pendingPickups;
-	private readonly ITimeSource _time;
+	private readonly ISessionControl _session = session;
+	private readonly PacketSender _sender = sender;
+	private readonly ITimeSource _time = time;
+	private readonly WorldItemTable _worldTable = worldTable;
+	private readonly ItemArbitration _arbitration = arbitration;
+	private readonly ItemCarriedSyncService _carriedSync = carriedSync;
+	private readonly PendingPickupQueue _pendingPickups = new(PendingPickupQueue.DefaultHoldMs);
+	private readonly Action<ItemTrafficKind, string> _recordTraffic = recordTraffic;
+	private readonly Action<WorldItem> _onItemSpawned = onItemSpawned;
+	private readonly Action<ulong> _onItemPickedUp = onItemPickedUp;
+	private readonly Action<ulong, CharacterItemMsg, NetVector2, NetVector2, ulong, float, float, NetVector2> _onItemDropped = onItemDropped;
+	private readonly ILogger<ItemService> _log = log;
 
-	/// <summary>A pickup report on the host: transfer when the item is known, queue when its registration is still in flight, stay silent for the idempotency/container family.</summary>
-	private void HandleHostPickupReport(ulong sender, ulong itemId, CharacterItemMsg? evidence)
+	public void HandleHostPickupReport(ulong sender, ulong itemId, CharacterItemMsg? evidence)
 	{
 		if (_worldTable.TryGetValue(itemId, out var entry))
 		{
@@ -33,19 +49,11 @@ public sealed partial class ItemService
 			return;
 		}
 
-		// An id that travels INSIDE a container entry is not unknown: the
-		// container's own transfer carries it (refusing yanked each content back
-		// out of the picker's bag). The picker's OWN duplicate report is a
-		// retransmission of a completed transfer — a rejection would roll the
-		// winner's own successful pickup back.
 		if (_arbitration.IsContainedInEntry(itemId, _worldTable.Items) || _arbitration.IsTransferredToGuest(sender, itemId))
 		{
 			return;
 		}
 
-		// A faster writer already owns the item — the first-writer-wins conflict
-		// is obvious and the item will not register for this claim; reject now
-		// (the pending queue is only for a registration still in flight).
 		if (_arbitration.IsTransferredToAnyGuest(itemId))
 		{
 			SendUnknownItemReject(sender, itemId, "another guest's pickup already transferred it");
@@ -62,8 +70,7 @@ public sealed partial class ItemService
 		_log.LogWarning("Item pickup {ItemId} from {Sender} already queued — duplicate claim dropped silently.", itemId, sender);
 	}
 
-	/// <summary>A spawn report on the host: register + relay, then settle any queued pickup the registration confirms.</summary>
-	private void HandleHostSpawnReport(ulong sender, ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, float rotation, bool freshItemDrop, float angularVelocity)
+	public void HandleHostSpawnReport(ulong sender, ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, float rotation, bool freshItemDrop, float angularVelocity)
 	{
 		var pendingWinner = _pendingPickups.TryTakeFirst(itemId);
 		var worldItem = new WorldItem(itemId, item, pos, vel, 0, rotation, freshItemDrop, AngularVelocity: angularVelocity);
@@ -87,43 +94,25 @@ public sealed partial class ItemService
 			}
 			else
 			{
-				// The queued winner already has the item locally — do not send
-				// it a second world copy. Everyone else still needs the spawn
-				// fact before the pickup broadcast (same reliable order as the
-				// non-raced spawn-then-pickup path).
 				_sender.SendToAll(MembersExcept(sender, pendingWinner.Sender), NetMsg.ItemSpawn, msg);
 				_log.LogInformation("Item {ItemId} ({Type}) spawned by {Sender} — registered; queued pickup from {Picker} is being settled.",
 					itemId, item.ItemId, sender, pendingWinner.Sender);
 			}
 
-			RecordItemTraffic(ItemTrafficKind.Spawn, item.ItemId);
+			_recordTraffic(ItemTrafficKind.Spawn, item.ItemId);
 		}
-		// Duplicate report (reliable retransmit): already registered — the
-		// registration is idempotent; a queued claim can still settle below.
 
-		// The host's scene applies the spawn first, then the settled pickup
-		// removes it — the same event order as the non-raced path.
-		ItemSpawned?.Invoke(worldItem);
+		_onItemSpawned(worldItem);
 		ResolveContainedPendingPickups();
 		SettlePendingWinner(itemId, pendingWinner);
 	}
 
-	/// <summary>A drop report on the host: the carried item becomes a world item again; any queued pickup that this registration confirms settles right away.</summary>
-	private void HandleHostDropReport(ulong sender, ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, ulong parentItemId, float rotation, float angularVelocity, NetVector2 parentPos)
+	public void HandleHostDropReport(ulong sender, ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, ulong parentItemId, float rotation, float angularVelocity, NetVector2 parentPos)
 	{
-		// The drop leaves the transfer table — the carried item is now a world
-		// item. The full item IS the evidence (materialization payload, so the
-		// host already has everything to compare) — checked against the entry
-		// BEFORE it leaves, the divergence is synced with the drop itself.
 		_arbitration.CheckAndUnloadFromGuest(sender, itemId, item);
 
 		var pendingWinner = _pendingPickups.TryTakeFirst(itemId);
 
-		// Idempotent: a retransmitted report (Steam reliable resend) must not
-		// re-broadcast — the receivers would materialize AND re-place the same
-		// item. The queued winner already has its local copy, so a real drop
-		// relay also excludes it (spawn/drop fact then pickup fact for everyone
-		// else, no second copy on the winner).
 		var isDuplicate = _worldTable.TryGetValue(itemId, out var existing)
 			&& existing.Pos.X == pos.X && existing.Pos.Y == pos.Y && existing.Rotation == rotation;
 		var registered = new WorldItem(itemId, item, pos, vel, parentItemId, rotation, false, parentPos, angularVelocity);
@@ -150,38 +139,29 @@ public sealed partial class ItemService
 				_sender.SendToAll(MembersExcept(sender, pendingWinner.Sender), NetMsg.ItemDrop, msg);
 			}
 
-			RecordItemTraffic(ItemTrafficKind.Drop, item.ItemId);
+			_recordTraffic(ItemTrafficKind.Drop, item.ItemId);
 		}
 
-		ItemDropped?.Invoke(itemId, item, pos, vel, parentItemId, rotation, angularVelocity, parentPos);
+		_onItemDropped(itemId, item, pos, vel, parentItemId, rotation, angularVelocity, parentPos);
 		ResolveContainedPendingPickups();
 		SettlePendingWinner(itemId, pendingWinner);
 	}
 
-	/// <summary>The host-side accepted-pickup completion: remove the authoritative world entry, transfer it to the picker, broadcast the carried fact + the pickup and fire the local removal event.</summary>
 	private void CompleteAcceptedPickup(ulong sender, ulong itemId, WorldItem entry, CharacterItemMsg? evidence)
 	{
 		_worldTable.Remove(itemId);
 
-		// Accept-with-correction: the transfer happens from OUR entry (the
-		// picker's claim never replaces it), the picker's evidence is only
-		// compared afterwards — divergence syncs, never blocks. The adopted
-		// entry then broadcasts as the carried-fact event (the peers' clones
-		// of the picker show the item the moment it lands in its slot).
 		var authoritative = _arbitration.CheckAndTransferToGuest(sender, itemId, entry, evidence);
-		PublishCarriedSync(sender, authoritative);
+		_carriedSync.Publish(sender, authoritative);
 
 		_session.BroadcastExcept(sender, NetMsg.ItemPickup, new ItemPickupMsg { ItemId = itemId });
-		RecordItemTraffic(ItemTrafficKind.Pickup, entry.Item.ItemId);
+		_recordTraffic(ItemTrafficKind.Pickup, entry.Item.ItemId);
 		_log.LogInformation("Item {ItemId} picked up by {Sender} — transferred + relayed.", itemId, sender);
 
-		// The winner's local removal; on the losing guests this event rolls
-		// their optimistic pickup back (the adapter decides by local state).
-		ItemPickedUp?.Invoke(itemId);
+		_onItemPickedUp(itemId);
 	}
 
-	/// <summary>The per-frame expiry edge: a claim that never resolved gets the late UnknownItem reject — or, if the item registered through a path that does not settle queues, the normal transfer.</summary>
-	internal void PumpPendingPickups(long nowMs)
+	public void PumpPendingPickups(long nowMs)
 	{
 		foreach (var pending in _pendingPickups.TakeExpired(nowMs))
 		{
@@ -203,7 +183,6 @@ public sealed partial class ItemService
 		}
 	}
 
-	/// <summary>Every pending claim whose item is now a content of a registered container resolves silently — the container's own transfer carries it.</summary>
 	private void ResolveContainedPendingPickups()
 	{
 		foreach (var pending in _pendingPickups.TakeWhere(p => _arbitration.IsContainedInEntry(p.ItemId, _worldTable.Items)))
@@ -228,7 +207,6 @@ public sealed partial class ItemService
 			_log.LogWarning("Queued item pickup {ItemId} from {Sender} could not settle — the registered entry is gone.", itemId, pendingWinner.Sender);
 		}
 
-		// Later claims for the same item lose the settled race (first-writer-wins).
 		foreach (var loser in _pendingPickups.TakeByItem(itemId))
 		{
 			SendUnknownItemReject(loser.Sender, itemId, "an earlier queued claim settled first");
@@ -250,4 +228,6 @@ public sealed partial class ItemService
 		var excludes = new HashSet<ulong>(excluded);
 		return _session.Members.Select(m => m.SteamId).Where(id => !excludes.Contains(id));
 	}
+
+	public void Reset() => _pendingPickups.Reset();
 }

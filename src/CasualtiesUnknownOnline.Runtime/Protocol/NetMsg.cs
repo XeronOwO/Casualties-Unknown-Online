@@ -222,4 +222,5 @@ public enum NetMsg : byte
 	// from the session; the target is told directly so it can tear down instead
 	// of waiting for the host to disappear)
 	Kicked = 111, // host → guest: this member was kicked by the host
+	Banned = 112, // host → guest: this member was banned by the host (persisted on the host; future handshakes are rejected)
 }

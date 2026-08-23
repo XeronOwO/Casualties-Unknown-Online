@@ -82,6 +82,7 @@ public class DirectionTests
 		NetMsg.TraderRecruitResult,
 		NetMsg.WorldSnapshotComplete,
 		NetMsg.Kicked,
+		NetMsg.Banned,
 	};
 
 	public static TheoryData<NetMsg> BidirectionalMessages => new()

@@ -167,7 +167,9 @@ sync model.
 - Voice chat (Opus, push-to-talk/range attenuation) — high complexity, medium
   value after text chat.
 - Admin commands / kick / ban / vote-kick — medium value for friend sessions;
-  more relevant for public/dedicated servers later.
+  more relevant for public/dedicated servers later. Kick and ban have both
+  landed as closed slices (see `docs/selfchecks/host-kick-selfcheck.md` and
+  `docs/selfchecks/host-ban-selfcheck.md`); vote-kick remains open.
 - Co-op keybinds, push/piggyback, status icons, richer player list — functional
   polish, low-medium.
 - Protocol quantization/compression — explicitly measurement-first; CUO already

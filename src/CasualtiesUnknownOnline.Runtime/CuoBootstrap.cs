@@ -51,7 +51,7 @@ public static class CuoBootstrap
 	/// </summary>
 	public static ServiceProvider BuildServiceProvider(
 		ManualLogSource bepinExLogSource, string logDirectory, string? legacyLogPath = null,
-		string? characterDataFile = null, string? modStateFile = null,
+		string? characterDataFile = null, string? modStateFile = null, string? hostBanFile = null,
 		Action<IServiceCollection>? extraRegistrations = null)
 	{
 		var services = new ServiceCollection();
@@ -128,6 +128,13 @@ public static class CuoBootstrap
 		// received frames to the handlers with the per-message context.
 		services.AddSingleton<PacketReceiver>();
 		services.AddSingleton<PacketSender>();
+		// Host ban list: a persistent host-only admin surface. The file store
+		// is in-memory-only when hostBanFile is null (test/default); the
+		// service owns the add/remove decision and the handshake rejection.
+		services.AddSingleton(p => new HostBanFileStore(
+			hostBanFile, p.GetRequiredService<ILogger<HostBanFileStore>>()));
+		services.AddSingleton<HostBanService>();
+		services.AddSingleton<IHostBanService>(p => p.GetRequiredService<HostBanService>());
 		// Whole-protocol traffic observer: PacketSender/PacketReceiver report
 		// raw frame facts into it; it rolls the periodic log window (observability
 		// only — no batching/rate-limit decision is made from these numbers yet).

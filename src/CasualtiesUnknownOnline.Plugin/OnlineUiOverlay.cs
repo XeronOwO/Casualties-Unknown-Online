@@ -56,6 +56,9 @@ internal sealed class OnlineUiOverlay
 	/// <summary>Invoked when the host clicks Kick on a non-local lobby member.</summary>
 	internal Func<ulong, bool>? KickMember;
 
+	/// <summary>Invoked when the host clicks Ban on a non-local lobby member.</summary>
+	internal Func<ulong, bool>? BanMember;
+
 	private string _lobbyIdInput = "";
 	private string _chatInput = "";
 	private string? _inlineError;
@@ -206,6 +209,14 @@ internal sealed class OnlineUiOverlay
 				{
 					KickMember?.Invoke(lobbyMember);
 				}
+
+				// The ban slice: the host can also persist a permanent ban for
+				// the same member; the target receives a dedicated Banned
+				// message and the host rejects its future handshakes.
+				if (GUI.Button(new Rect(636f, rowY, 52f, 16f), "Ban"))
+				{
+					BanMember?.Invoke(lobbyMember);
+				}
 			}
 
 			// The carry slice: an in-world remote who is unconscious/dead can be
@@ -286,7 +297,7 @@ internal sealed class OnlineUiOverlay
 				&& vitals.TryGet(lobbyMember, out var recruitVitals)
 				&& !recruitVitals.Alive)
 			{
-				if (GUI.Button(new Rect(640f, rowY, 58f, 16f), "Recruit"))
+				if (GUI.Button(new Rect(700f, rowY, 58f, 16f), "Recruit"))
 				{
 					RecruitPlayer?.Invoke(lobbyMember);
 				}

@@ -2217,3 +2217,40 @@ updated through the existing member-removal path.
   and the host-only/self/unknown rejection guards; full suite 1269 green.
 
 See `docs/selfchecks/host-kick-selfcheck.md`.
+
+## 77. Host ban — dedicated Banned message + persisted list (ProtocolVersion 40)
+
+Backlog §2.7 listed admin/kick/ban/vote among the lower-priority KrokMP
+candidates. This entry closes the **ban** slice as the second admin feature:
+the host can permanently reject a guest SteamID, the guest receives a dedicated
+wire message, and the host persists the ban so the same player cannot handshake
+into future host sessions until unbanned.
+
+- **Wire** — `BannedMsg` (NetMsg 112, ProtocolVersion 40), host → guest, carries
+  a short human-readable `Reason`. The direction is fail-closed through
+  `NetMessageRegistry` and `DirectionTests`.
+- **Host path** — `HostBanService` / `IHostBanService` is a separate top-level
+  collaborator (not a `SessionService` method) so the session stays under the
+  architecture gate. It is host-only, rejects self/unknown/already-banned,
+  persists through `HostBanFileStore`, sends `Banned` to the target first, and
+  removes it through `ISessionControl.RemoveGuestMember`.
+- **Persistence** — `HostBanFile` + `HostBanFileStore` is a versioned protobuf
+  file in `BepInEx/config/CasualtiesUnknownOnline.host-bans.bin`; missing/corrupt/
+  unknown-version files degrade to an empty list; writes are atomic and
+  leave no `.tmp` residue.
+- **Handshake gate** — `HandshakeHandler` checks the ban list before mod
+  consistency and before creating a member, so a banned SteamID never enters
+  the roster even on reconnect.
+- **Unban** — `IHostBanService.Unban` removes a SteamID from the persisted list;
+  the same rejoin flow then succeeds again.
+- **Guest path** — `BannedHandler` logs the reason and calls
+  `ISessionControl.EndSession()`; no host migration, the banned player returns
+  to the menu/lobby.
+- **UI** — the Online UI member list adds a host-only `Ban` button next to
+  `Kick`; the existing `Recruit` button is nudged right to avoid overlap.
+- **Tests** — `HostBanTests` (4) plus `HostBanFileStoreTests` (4) cover the
+  dedicated-message/teardown path, host-only/self/unknown/already-banned
+  guards, ban-reject/unban-rejoin behavior, restart persistence and file-store
+  edge cases; full suite 1278 green.
+
+See `docs/selfchecks/host-ban-selfcheck.md`.

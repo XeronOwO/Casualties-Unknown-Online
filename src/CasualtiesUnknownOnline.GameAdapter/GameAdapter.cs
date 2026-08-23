@@ -176,6 +176,7 @@ public sealed partial class GameAdapter : IGameAdapter, ICuoService, IPatchBridg
 		_gate.Update(_run.LocalBody);
 		_genItemAuthority.Update(); // host/solo: publish the generation-time items when the generation finished
 		_genItemApplication.Update(); // guest: apply the host's generation snapshot once the local generation finished
+		_respawn.Update(); // host: next-level respawn once a world generation finishes
 		_trapLayoutScanner.Update(); // host: report the generated trap layout on the same falling edge
 		_trapLayoutApplication.Update(); // guest: apply a deferred layout snapshot once the local generation finished
 		_layerModifierSync.Update(); // guest: apply the host's layer modifier once the local generation finished
@@ -233,6 +234,7 @@ public sealed partial class GameAdapter : IGameAdapter, ICuoService, IPatchBridg
 		_fluidSync.BindToSession();
 		_tradeSync.BindToSession();
 		_traderRecruit.BindToSession();
+		_respawn.BindToSession();
 		_speechSync.BindToSession();
 		_recipeUnlockApply.BindToSession();
 		_enemySync.BindToSession();
@@ -273,6 +275,7 @@ public sealed partial class GameAdapter : IGameAdapter, ICuoService, IPatchBridg
 		_fluidSync.Unbind();
 		_tradeSync.Unbind();
 		_traderRecruit.Unbind();
+		_respawn.Unbind();
 		_speechSync.Unbind();
 		_recipeUnlockApply.Unbind();
 		_enemySync.Unbind();

@@ -1,10 +1,12 @@
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.GameAdapter.Character;
+using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using UnityEngine;
 
 namespace CasualtiesUnknownOnline.GameAdapter.World;
@@ -24,6 +26,7 @@ internal sealed class TraderRecruitCoordinator(
 	WorldService world,
 	ICharacterDataControl characterData,
 	CharacterDataSync characterDataSync,
+	IOptionsMonitor<RespawnOptions> respawnOptions,
 	ILogger<TraderRecruitCoordinator> log)
 {
 	private const float PositionTolerance = 2f;
@@ -32,6 +35,7 @@ internal sealed class TraderRecruitCoordinator(
 	private readonly WorldService _world = world;
 	private readonly ICharacterDataControl _characterData = characterData;
 	private readonly CharacterDataSync _characterDataSync = characterDataSync;
+	private readonly IOptionsMonitor<RespawnOptions> _respawnOptions = respawnOptions;
 	private readonly ILogger<TraderRecruitCoordinator> _log = log;
 
 	/// <summary>Host-side used-trader registry (one recruit per trader instance
@@ -149,6 +153,13 @@ internal sealed class TraderRecruitCoordinator(
 		if (requester == target || requester == 0 || target == 0)
 		{
 			_log.LogWarning("[TradeRecruit] refused: invalid requester/target pair {Requester}→{Target}.", requester, target);
+			return;
+		}
+
+		if (!RespawnPolicy.CanUseTraderRecruit(_respawnOptions.CurrentValue))
+		{
+			_log.LogInformation("[TradeRecruit] refused: trader revive disabled by host rules (permadeath={Permadeath}, fromTrader={FromTrader}).",
+				_respawnOptions.CurrentValue.Permadeath, _respawnOptions.CurrentValue.ReviveFromTrader);
 			return;
 		}
 

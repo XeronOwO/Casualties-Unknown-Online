@@ -62,6 +62,8 @@ public static class CuoBootstrap
 			new MutableOptionsMonitor<LoggingOptions>(new LoggingOptions()));
 		services.AddSingleton<IOptionsMonitor<StateStreamOptions>>(
 			new MutableOptionsMonitor<StateStreamOptions>(new StateStreamOptions()));
+		services.AddSingleton<IOptionsMonitor<RespawnOptions>>(
+			new MutableOptionsMonitor<RespawnOptions>(new RespawnOptions()));
 
 		// The logging providers are DI-resolved (registered as ILoggerProvider)
 		// rather than captured as instances, so the extraRegistrations options

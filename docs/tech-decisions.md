@@ -1615,9 +1615,10 @@ no revive lifecycle and no public UI for it.
 - **Peer visibility** — after applying, the target re-reports the full
   character snapshot (`ReportInventoryChanged`), so the host save and every
   peer clone refresh immediately.
-- **Scope boundary** — no random trader items, no Permadeath/ReviveOnNextLevel/
-  save-transition rules yet; the broader `Revive/respawn rules` backlog item
-  remains open.
+- **Scope boundary** — no random trader items in this slice; the broader
+  Permadeath/ReviveOnNextLevel/RespawnKeepInventory/RespawnKeepSkills/
+  save-transition lifecycle landed later as #60, so the `Revive/respawn rules`
+  backlog item is now closed.
 - **ProtocolVersion 34→35** because a v34 peer has no NetMsg 107/108 handler and
   no revive flow.
 
@@ -1626,3 +1627,49 @@ Tests: `TraderRecruitPolicyTests` (7 cases), `TraderRecruitChannelTests`
 full suite **1219 green**, build 0 warnings/0 errors, architecture / event-replay
 / entity-event-dispatch gates pass. See
 `docs/selfchecks/trader-recruit-selfcheck.md`.
+
+
+## 60. Revive / respawn rules — next-level auto-respawn + host rules (no protocol bump)
+
+The KrokMP exploration (§2.2) asked for the broader revive lifecycle after the
+trader-recruit first slice: Permadeath, ReviveOnNextLevel,
+RespawnKeepInventory, RespawnKeepSkills, save/level-transition integration and
+revival for players who have already left the world. This entry lands that as
+a small host-authoritative rule set, reusing the existing full character
+restore path rather than inventing a new wire protocol.
+
+- **Small rule surface** — `RespawnOptions`
+  (`Runtime.Configuration`) with BepInEx `[Respawn]` config entries:
+  `Permadeath`, `ReviveFromTrader`, `ReviveOnNextLevel`, `KeepInventory`,
+  `KeepSkills`. The values are read through `IOptionsMonitor`, so a config edit
+  hot-reloads.
+- **Pure policy** — `RespawnPolicy` (`Runtime.Session.World`) locks the L0
+  decisions: `CanUseTraderRecruit`, `CanAutoReviveOnNextLevel`, `IsDead`, and
+  `PrepareRespawn` (physiological baseline via `TraderRecruitPolicy` +
+  inventory/skills shaping + `Position=null` so the respawn lands at the
+  current spawn, not the old layer).
+- **Trader gate** — `TraderRecruitCoordinator` now refuses requests when the
+  host rules disable trader revive; the existing trade gates remain unchanged.
+- **Next-level trigger** — `RespawnCoordinator` (`GameAdapter.World`) watches
+  the same `HarmonyTraverse.IsGenerating()` falling edge as the
+  generation-item authority and runs one frame later. On the host, each dead
+  handshaken player (including the host itself) is respawned from the latest
+  authoritative snapshot.
+- **Full restore on every side** — a guest receives the existing
+  `CharacterData` restore (the same two-frame wipe path as reconnect), even
+  while in-world; the host uses the new `CharacterDataSync.QueueRespawnRestore`
+  local queue so there is no host-only apply path. This makes KeepInventory /
+  KeepSkills real (a disabled keep flag actually wipes/zeros the restored
+  state).
+- **Left-world revival** — a dead guest whose `InWorld == false` is saved,
+  then invited back with the new targeted `WorldService.SendWorldJoinTo`. The
+  ordinary `SceneStateHandler` InWorld edge re-sends the saved character, so
+  the guest resumes with the respawned snapshot.
+- **No protocol change**: the respawn rides the existing `CharacterData`
+  direction and the existing `WorldJoin` message; `ProtocolVersion` remains 35.
+  Only the targeted world-join send-side helper is new.
+
+Tests: `RespawnPolicyTests` (10 cases), full suite **1229 green**, build 0
+warnings/0 errors, architecture / event-replay / entity-event-dispatch gates
+pass, `dotnet format` passes (generated `obj` excluded). See
+`docs/selfchecks/respawn-rules-selfcheck.md`.

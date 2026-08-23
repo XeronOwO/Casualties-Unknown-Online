@@ -83,15 +83,23 @@ sync model.
 - Complexity: medium-high; needs a host-side dead-player roster, an authoritative
   revive/apply path, and idempotency/concurrency handling.
 
-### 2.2 Revive/respawn rules — HIGH
+### 2.2 Revive/respawn rules — CLOSED (landed 2026-08-23)
 
 - KrokMP rule bits: `Permadeath`, `ReviveOnNextLevel`, `ReviveFromTrader`,
   `RespawnKeepInventory`, `RespawnKeepSkills`; death handling is integrated with
   save/level transitions.
-- CUO: no respawn semantics; `SessionStatePump` documents death as the end of
-  the run. Character data persistence currently covers reconnect, not revival.
+- CUO: no respawn semantics at exploration time; `SessionStatePump` documented
+  death as the end of the run. Character data persistence covered reconnect,
+  not revival.
+- **Landed**: `RespawnOptions` (BepInEx `[Respawn]` rules, hot-reloadable),
+  `RespawnPolicy` (pure gates + respawn shaping), `RespawnCoordinator`
+  (host generation-finished edge), full-restore delivery for guests and local
+  host, and targeted `WorldJoinTo` re-entry for dead players that already left
+  the world. No protocol change. See `docs/selfchecks/respawn-rules-selfcheck.md`
+  and `docs/tech-decisions.md` #60.
 - Value: core to extended co-op sessions.
-- Complexity: high; needs a lifecycle design distinct from new-run reset.
+- Complexity: high; the lifecycle is distinct from new-run reset (new runs
+  still clear saved characters).
 
 ### 2.3 Radiation line / straggler pressure — CLOSED (landed 2026-08-23)
 

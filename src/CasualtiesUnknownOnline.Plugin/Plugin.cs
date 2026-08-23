@@ -109,6 +109,19 @@ public class Plugin : BaseUnityPlugin
 						new ConfigDescription(
 							"Minimum CUO log level written to BepInEx and latest.log. Information keeps normal play quiet.",
 							new AcceptableValueList<string>(new[] { "Information", "Trace", "Debug", "Warning", "Error", "Critical", "None" })));
+					// Host-authoritative revive/respawn rules (KrokMP-inspired
+					// co-op lifecycle). These are read at decision time, so a
+					// config edit hot-reloads without a restart.
+					var permadeath = Config.Bind("Respawn", "Permadeath", false,
+						new ConfigDescription("True = death is terminal: no trader revive and no next-level auto-respawn."));
+					var reviveFromTrader = Config.Bind("Respawn", "ReviveFromTrader", true,
+						new ConfigDescription("True = a living player can revive a dead teammate at a friendly trader."));
+					var reviveOnNextLevel = Config.Bind("Respawn", "ReviveOnNextLevel", true,
+						new ConfigDescription("True = dead players are auto-respawned when the host finishes the next world layer."));
+					var keepInventory = Config.Bind("Respawn", "KeepInventory", true,
+						new ConfigDescription("True = auto-respawn keeps the character's carried/worn items."));
+					var keepSkills = Config.Bind("Respawn", "KeepSkills", true,
+						new ConfigDescription("True = auto-respawn keeps skills/experience; false resets them."));
 					services.Replace(ServiceDescriptor.Singleton<IOptionsMonitor<StateStreamOptions>>(
 						new BepInExOptionsMonitor<StateStreamOptions>(
 							Config,
@@ -119,6 +132,19 @@ public class Plugin : BaseUnityPlugin
 							Config,
 							() => new LoggingOptions { MinimumLevel = ParseLogLevel(minimumLevel.Value) },
 							minimumLevel.Definition)));
+					services.Replace(ServiceDescriptor.Singleton<IOptionsMonitor<RespawnOptions>>(
+						new BepInExOptionsMonitor<RespawnOptions>(
+							Config,
+							() => new RespawnOptions
+							{
+								Permadeath = permadeath.Value,
+								ReviveFromTrader = reviveFromTrader.Value,
+								ReviveOnNextLevel = reviveOnNextLevel.Value,
+								RespawnKeepInventory = keepInventory.Value,
+								RespawnKeepSkills = keepSkills.Value,
+							},
+							permadeath.Definition, reviveFromTrader.Definition, reviveOnNextLevel.Definition,
+							keepInventory.Definition, keepSkills.Definition)));
 
 					// Character-data mapping (Mapster). Mapster 6.0.0 core ships
 					// IMapper/Mapper — registered directly, no DI package needed

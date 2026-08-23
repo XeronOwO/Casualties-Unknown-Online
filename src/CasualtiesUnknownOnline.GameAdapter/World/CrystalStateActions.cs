@@ -42,6 +42,19 @@ internal static class CrystalStateActions
 		return true;
 	}
 
+	/// <summary>Teleport crystal touched (CrystalTeleport.cs:14-38): the
+	/// triggering side's body teleports locally — position/consciousness/shock/
+	/// velocity ride the 20 Hz player entity stream. The shared observable is
+	/// the exact 2D observerlaugh + FlashBrief the trigger side played; this
+	/// event is repeatable (no crystal latch) and does not write any entity
+	/// state.</summary>
+	internal static bool ApplyCrystalTeleport(CrystalBehaviour crystal)
+	{
+		Sound.Play("observerlaugh", Vector2.zero, true, false, null, 1f, 1f, true, true);
+		PlayerCamera.main.StartCoroutine("FlashBrief");
+		return true;
+	}
+
 	/// <summary>Unstable crystal ticked (transient): THIS side's copy now replays
 	/// the 5 s pre-explosion ticking the trigger side's StartTimer started
 	/// (CrystalUnstable.cs:31-37) — the crystaltick sound + the CrystalTickingReplay

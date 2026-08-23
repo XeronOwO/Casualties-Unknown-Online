@@ -98,6 +98,40 @@ internal static class RemoteBodyFactory
 			ik.enabled = false;
 		}
 
+		// Owner-local body auto-event components must not run on a render
+		// clone. Vomiter/SelfHarmer/PantSound are mounted on the Body object
+		// (Body.cs:1074/1077/3434) and their own Update methods are NOT part of
+		// Body.Update/Limb.Update, so the render-proxy patch does not skip them.
+		// MoodChangeSounds/SleepingBagUse additionally read PlayerCamera.main.body
+		// (the local player), so leaving them enabled on a clone would double
+		// local mood sounds or even destroy the clone from the local player's
+		// sleeping-bag state. These effects remain owner-local by design; remote
+		// presentation, if ever wanted, belongs in a dedicated future event path.
+		foreach (var component in clone.GetComponentsInChildren<Vomiter>())
+		{
+			component.enabled = false;
+		}
+
+		foreach (var component in clone.GetComponentsInChildren<SelfHarmer>())
+		{
+			component.enabled = false;
+		}
+
+		foreach (var component in clone.GetComponentsInChildren<PantSound>())
+		{
+			component.enabled = false;
+		}
+
+		foreach (var component in clone.GetComponentsInChildren<MoodChangeSounds>())
+		{
+			component.enabled = false;
+		}
+
+		foreach (var component in clone.GetComponentsInChildren<SleepingBagUse>())
+		{
+			component.enabled = false;
+		}
+
 		return body;
 	}
 }

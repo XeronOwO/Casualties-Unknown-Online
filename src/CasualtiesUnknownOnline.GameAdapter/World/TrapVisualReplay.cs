@@ -130,6 +130,12 @@ internal sealed class TrapVisualReplay(ILogger<TrapVisualReplay> log)
 			case EntityEventKind.CrystalEMPActivated:
 				ReplayState<CrystalBehaviour>(position, kind, CrystalStateActions.ApplyCrystalEMP);
 				break;
+			case EntityEventKind.CrystalTeleportTriggered:
+				// The teleported body already rides the 20 Hz player stream;
+				// the replay is the same 2D observerlaugh + FlashBrief call the
+				// trigger side made (CrystalTeleport.cs:27-28).
+				ReplayState<CrystalBehaviour>(position, kind, CrystalStateActions.ApplyCrystalTeleport);
+				break;
 			case EntityEventKind.GrabberGrabbed:
 				// The grab's visuals are the player-side ragdoll/scream (each
 				// side's own body); the tendril animation is Update-driven

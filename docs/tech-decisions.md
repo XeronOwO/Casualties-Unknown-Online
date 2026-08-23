@@ -1490,3 +1490,64 @@ Tests: `NetPacketTests.RadiationLineState_RoundTripsActiveAndTimeGone`,
 direction-table row + game-field contract row; full suite **1195 green**,
 build 0 warnings/0 errors. See
 `docs/selfchecks/radiation-line-state-sync-selfcheck.md`.
+
+
+## 56. CrystalTeleport sync — repeatable teleport-laugh/flash event (ProtocolVersion 34)
+
+The original `CrystalTeleport` (internal, extends `CrystalEffect`) teleports
+the touching player's body to a random ground point and plays a 2D
+`observerlaugh` + `FlashBrief` (CrystalTeleport.cs:14-38). It has no latch and
+is repeatable. CUO previously had no entity-feature row and no dedicated
+event: the body's new position/stats already ride the 20 Hz player stream, but
+peers never heard/saw the laugh/flash — the remote player simply blinked away.
+
+- **`CrystalTeleportTriggered` (EntityEventKind 33, repeatable)** — reported by a
+  dynamic prefix/postfix pair on the internal `CrystalTeleport.Touched`. The
+  prefix captures the touching body's position; the postfix reports only when
+  the body actually moved (the method can silently return after a failed
+  1000-point ground search), so no false event is emitted.
+- **Replay** — `CrystalStateActions.ApplyCrystalTeleport` plays the same
+  trigger-side calls (`observerlaugh` 2D with the original flags, then
+  `FlashBrief`). Both the host executor (`TrapEffectApplier`) and the guest
+  replay (`TrapVisualReplay`) route through it.
+- **Body state intentionally not part of the event** — each player simulates
+  their own body; the teleporting body already moved locally and the existing
+  20 Hz player entity stream carries position/consciousness/shock/velocity to
+  every peer. The event only carries the shared presentation.
+- **Repeatable / no one-shot snapshot** — no crystal latch exists, so a late
+  joiner must not replay an old laugh/flash. The event is classified
+  repeatable in `EntityEventArchives`/`EntityEventProfiles`.
+- **ProtocolVersion 33→34** because a v33 peer would receive the new enum value
+  on the existing entity event message and silently drop the presentation.
+
+Tests: archive/profile completeness, the combinatorial entity-event suite
+automatically runs the new repeatable kind, a dedicated
+`CrystalTeleportTriggered_RepeatableEvent_NotInLateJoinerSnapshot`,
+`PatchContractTests.CrystalTeleportPatchSet_IsComplete` and the dynamic
+contract count 8→9; full suite **1200 green**, build 0 warnings/0 errors, all
+repo gates pass. See
+`docs/selfchecks/crystal-teleport-sync-selfcheck.md`.
+
+
+## 57. Owner-local body auto-events — clone suppression (no protocol change)
+
+The exploration audit (2026-08-23) flagged Vomiter, SelfHarmer, PantSound,
+MoodChangeSounds and SleepingBagUse as not part of the clone presentation
+contract. Static review confirmed the first three are mounted on the Body
+object (Body.cs:1074/1077/3434) and run in their OWN `Update` methods, which
+the render-proxy `Body.Update`/`Limb.Update` skips do not cover.
+`MoodChangeSounds` and `SleepingBagUse` read `PlayerCamera.main.body` (the
+local player), so a clone copy would not even be operating on the remote
+owner's body.
+
+- **Change**: `RemoteBodyFactory.CreateRemoteBody` now disables each of these
+  component types on every render clone. This is adapter-local clone
+  construction — no new wire message, no `ProtocolVersion` bump.
+- **Why not a dedicated event**: these are owner-local body/UI/sound effects
+  (vomit warnings, self-harm minigames, pant/pain/yawn loops, mood-change
+  sounds). A future remote-presentation design would need a dedicated,
+  explicit event channel; disabling the clone copies is the correct minimal
+  boundary until one exists.
+- **No wire/protocol change**: only `RemoteBodyFactory.cs` touched.
+
+See `docs/selfchecks/owner-local-body-auto-events-selfcheck.md`.

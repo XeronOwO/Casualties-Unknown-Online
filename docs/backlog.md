@@ -20,7 +20,9 @@ Open work only. Landed delivery details are not duplicated here; they live in:
 - Phase 4 Mod API **AccessNativeApi** landed as a curated read-only native operation registry (`IModNativeApi` + `local.player.state`); no wire/protocol change. See `docs/selfchecks/mod-native-api-selfcheck.md`.
 - Remaining final dual-side acceptance items below are end-of-cycle acceptance, not development work.
 - **RadiationLine world-state sync** closed: the host-authoritative `active` / `timeGone` state now travels as `RadiationLineState` (NetMsg 106, ProtocolVersion 33); guests still run the local per-frame line presentation/body effects between resends and re-align to the host's absolute state. World entry/reconnect fan-out includes the stored snapshot; guest local activation is suppressed. See `docs/selfchecks/radiation-line-state-sync-selfcheck.md` and `docs/tech-decisions.md` #55.
-- 2026-08-23 exploration added candidate open work below: original CrystalTeleport/owner-local presentation gaps, KrokMP-inspired co-op features, and architecture/quality debt. See `docs/exploration-2026-08-23.md` for the evidence record.
+- **CrystalTeleport matrix coverage** closed: `CrystalTeleportTriggered` (EntityEventKind 33, ProtocolVersion 34) replays the 2D `observerlaugh` + `FlashBrief` on every side; the body teleport itself rides the existing 20 Hz player stream. Repeatable, no late-joiner replay. See `docs/selfchecks/crystal-teleport-sync-selfcheck.md` and `docs/tech-decisions.md` #56.
+- **Owner-local body auto-event presentation audit** closed: `RemoteBodyFactory` now disables `Vomiter`/`SelfHarmer`/`PantSound`/`MoodChangeSounds`/`SleepingBagUse` on render clones — these `Update` methods are not covered by the `Body.Update`/`Limb.Update` render-proxy skips, and two of them read the local player's body. Owner-local by design. See `docs/selfchecks/owner-local-body-auto-events-selfcheck.md` and `docs/tech-decisions.md` #57.
+- 2026-08-23 exploration added candidate open work below: KrokMP-inspired co-op features and architecture/quality debt. See `docs/exploration-2026-08-23.md` for the evidence record.
 
 ## Open work
 
@@ -50,11 +52,6 @@ None open. The previous local-only item states and the enemy LookTarget presenta
 - **LookTarget gaze/scare** — closed via the 20 Hz player entity stream: `EntityStateMsg` now carries the owner's `LookTarget`/`CorpseScript` override gaze + the eye face timers (`eyeScareTime`/`eyePanicTime`/`eyeCloseTime`), and the remote clone writes them into its proxy Body (see `docs/tech-decisions.md` #44).
 - **Heater temperature field on `xaloris`** — closed as **excluded by design**: `Heater.OnWillRenderObject` writes only the local player's body temperature, which already rides the 1 Hz character stream, so no enemy-sync surface is needed (see `docs/selfchecks/heater-xaloris-local-body-effect-selfcheck.md`).
 - **Remote-clone FacialExpression disfigurement/eye-loss latches** — closed via the 1 Hz `CharacterHealthMsg` + `CloneFacePresentation`: body latches (`Disfigured`/`EyeGone`/`BothEyesGone`), the owner's random disfigurement head index, and the long-run heal presentation timers are now applied to the render clone; `ProtocolVersion` 32. See `docs/selfchecks/clone-face-presentation-selfcheck.md`.
-
-### Exploration 2026-08-23 — original game-mechanic gaps
-
-- **CrystalTeleport matrix coverage** — MEDIUM/LOW. `CrystalTeleport` is an original crystal effect not listed in the entity feature matrix and has no dedicated CUO handling. The resulting body state likely self-heals via the 20 Hz body stream; one-shot presentation is unverified. Next step: add a matrix row (covered-by-body-stream + local-only presentation, or a dedicated event). See §1.2.
-- **Owner-local body auto-event presentation audit** — LOW/UNVERIFIED. Vomiter, SelfHarmer, PantSound, MoodChangeSounds and `usingSleepingBag` are not part of the clone presentation contract; verify whether clone-side components are suppressed before deciding whether replay is needed. See §1.3.
 
 ### Exploration 2026-08-23 — KrokMP-inspired co-op features
 

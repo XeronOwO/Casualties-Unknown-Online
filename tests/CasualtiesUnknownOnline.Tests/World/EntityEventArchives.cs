@@ -50,6 +50,7 @@ internal static class EntityEventArchives
 		(EntityEventKind.CrystalShySwapped, true), // activated latch — one-shot
 		(EntityEventKind.CrystalEMPActivated, true), // activated latch — one-shot
 		(EntityEventKind.CrystalMimicTriggered, true), // activated latch — one-shot (the crystalenemy spawns ride EntitySpawned)
+		(EntityEventKind.CrystalTeleportTriggered, false), // repeatable teleport — no latch; the body teleport rides the 20 Hz player stream, this event only replays the shared laugh/flash
 	];
 
 	/// <summary>The archive kinds, one row per value — the combinatorial data source.</summary>

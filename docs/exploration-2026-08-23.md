@@ -25,28 +25,36 @@ belong in `docs/tech-decisions.md`; actionable open items are summarized in
   `WorldGenerationUpdatePatch`. See `docs/selfchecks/radiation-line-state-sync-selfcheck.md`
   and `docs/tech-decisions.md` #55.
 
-### 1.2 CrystalTeleport matrix coverage — MEDIUM/LOW
+### 1.2 CrystalTeleport matrix coverage — CLOSED (landed 2026-08-23)
 
 - Original: `CrystalBehaviour.possibleEffects` includes `CrystalTeleport`; it
   teleports the local player and changes consciousness/shock/velocity with a
   one-shot presentation effect.
-- CUO today: not listed in the entity feature matrix and not explicitly handled.
-  The resulting player position/stats likely self-heal via the 20 Hz body state
-  stream, but the one-shot presentation (`observerlaugh`, `FlashBrief`) has no
-  dedicated event path.
-- Proposed direction: add a matrix row declaring it covered-by-body-stream with
-  local-only presentation, or add a dedicated event if remote presentation is
-  wanted.
+- **Landed**: `CrystalTeleportTriggered` (EntityEventKind 33, ProtocolVersion
+  34) is a repeatable entity event reported when the touching body actually
+  moves (dynamic prefix/postfix on the internal `CrystalTeleport.Touched`).
+  The host executor and guest replay both run the trigger-side 2D
+  `observerlaugh` + `FlashBrief`; the body position/consciousness/shock/velocity
+  continue to ride the 20 Hz player stream. No late-joiner replay (repeatable,
+  no latch). See `docs/selfchecks/crystal-teleport-sync-selfcheck.md` and
+  `docs/tech-decisions.md` #56.
 
-### 1.3 Owner-local body auto-event presentation — LOW / UNVERIFIED
+### 1.3 Owner-local body auto-event presentation — CLOSED (landed 2026-08-23)
 
 - Vomiter, SelfHarmer, PantSound, MoodChangeSounds, and similar body-driven
   one-shot sounds/visuals are not explicitly part of the CUO clone presentation
   contract.
-- Many may never fire on frozen render clones because the clone does not receive
-  the full local `Body` simulation state. That should be verified before
-  deciding whether an event path is needed.
-- Also recorded: `usingSleepingBag` is owner-local and not currently synced.
+- **Landed**: `RemoteBodyFactory.CreateRemoteBody` now disables every
+  owner-local body auto-event component on render clones (`Vomiter`,
+  `SelfHarmer`, `PantSound`, `MoodChangeSounds`, `SleepingBagUse`). These
+  components' `Update` methods are not skipped by the `Body.Update`/`Limb.Update`
+  render-proxy patches, and `MoodChangeSounds`/`SleepingBagUse` read
+  `PlayerCamera.main.body` (the local player), so leaving them enabled could
+  double local mood sounds or even destroy a clone from the local player's
+  sleeping-bag state. The effects remain owner-local by design; a future remote
+  presentation would need a dedicated event path. See
+  `docs/selfchecks/owner-local-body-auto-events-selfcheck.md` and
+  `docs/tech-decisions.md` #57.
 
 ## 2. KrokMP mechanics worth considering
 

@@ -403,11 +403,11 @@ commands and remains the two-process verification target).
 ## 7. Versioning and protocol discipline
 
 - `ProtocolVersion.Current` is bumped on any behavioral wire change. Current:
-  **33** (v33 adds `RadiationLineState` NetMsg 106 for the host-authoritative
-  radiation-line world state; v32 peers would run an independent local line
-  and diverge the radiation boundary). `ReadGameState`, content registration,
-  mod UI, mod-state saves and entity spawn are not wire changes, so they do
-  not bump the protocol.
+  **34** (v34 adds `CrystalTeleportTriggered` EntityEventKind 33 for the
+  teleport crystal's shared observerlaugh/FlashBrief replay; v33 peers would
+  silently miss the one-shot presentation). `ReadGameState`, content
+  registration, mod UI, mod-state saves and entity spawn are not wire changes,
+  so they do not bump the protocol.
 - Mod versions are strict SemVer strings, validated at discovery and compared
   by precedence for state-bearing modes.
 - The 64 KiB cap is a policy constant (`ModChannel.MaxPayloadBytes`); raising

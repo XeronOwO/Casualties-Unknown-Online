@@ -125,6 +125,12 @@ internal sealed class TrapEffectApplier(ILogger<TrapEffectApplier> log)
 			case EntityEventKind.CrystalEMPActivated:
 				ApplyState<CrystalBehaviour>(position, kind, CrystalStateActions.ApplyCrystalEMP);
 				break;
+			case EntityEventKind.CrystalTeleportTriggered:
+				// The body teleport belongs to the triggering side's own
+				// simulation (it already ran locally and rides the 20 Hz body
+				// stream); the host only replays the shared laugh/flash.
+				ApplyState<CrystalBehaviour>(position, kind, CrystalStateActions.ApplyCrystalTeleport);
+				break;
 			case EntityEventKind.GrabberGrabbed:
 				// The grab's visuals are the player-side ragdoll/scream (each
 				// side's own body); the tendril animation is Update-driven

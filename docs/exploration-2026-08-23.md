@@ -129,6 +129,12 @@ sync model.
 
 ### 2.5 Text chat — MEDIUM-HIGH
 
+> **Status 2026-08-23: CLOSED** — a simple host-relayed text-chat line landed
+> as `ChatMsg` (NetMsg 109, ProtocolVersion 36), with a bounded Runtime
+> recent-buffer and a bottom-right IMGUI chat panel. The host validates sender
+> identity/text and relays to the other members. Voice remains future work. See
+> `docs/selfchecks/chat-selfcheck.md` and `docs/tech-decisions.md` #61.
+
 - KrokMP ships a full chat box with speech-impaired/hearing-loss distortion and
   server announcements.
 - CUO only syncs in-world Talker bubbles via `SpeechMsg`.

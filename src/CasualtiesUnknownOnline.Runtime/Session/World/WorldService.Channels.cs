@@ -123,4 +123,12 @@ public sealed partial class WorldService
 	public event Action<ulong, SpeechMsg>? SpeechReceived { add => _speechChannel.SpeechReceived += value; remove => _speechChannel.SpeechReceived -= value; }
 
 	public void FireSpeechReceived(ulong sender, SpeechMsg msg) => _speechChannel.FireSpeechReceived(sender, msg);
+
+	public void SendChat(ChatMsg msg) => _chatChannel.SendChat(msg);
+
+	public void BroadcastChat(ulong excludeSteamId, ChatMsg msg) => _chatChannel.BroadcastChat(excludeSteamId, msg);
+
+	public event Action<ulong, ChatMsg>? ChatReceived { add => _chatChannel.ChatReceived += value; remove => _chatChannel.ChatReceived -= value; }
+
+	public void FireChatReceived(ulong sender, ChatMsg msg) => _chatChannel.FireChatReceived(sender, msg);
 }

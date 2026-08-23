@@ -341,4 +341,15 @@ public interface IWorldControl
 	void FireRadiationLineStateReceived(RadiationLineStateMsg state);
 
 	event Action<RadiationLineStateMsg>? RadiationLineStateReceived;
+
+	/// <summary>Guest: report a locally-authored text-chat line to the host.</summary>
+	void SendChat(ChatMsg msg);
+
+	/// <summary>Host only: fan a chat line out to every member except the author.</summary>
+	void BroadcastChat(ulong excludeSteamId, ChatMsg msg);
+
+	/// <summary>A chat line arrived: a guest's report on the host, a relay on the guests.</summary>
+	void FireChatReceived(ulong sender, ChatMsg msg);
+
+	event Action<ulong, ChatMsg>? ChatReceived;
 }

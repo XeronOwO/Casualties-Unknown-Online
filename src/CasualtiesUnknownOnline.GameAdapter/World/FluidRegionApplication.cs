@@ -31,6 +31,6 @@ internal sealed class FluidRegionApplication(ILogger<FluidRegionApplication> log
 			(int)world.width, (int)world.height,
 			(x, y, value) => fluid.fluid[x, y] = value);
 
-		_log.LogInformation("[Fluid] applied=(x={X},y={Y},w={W},h={H}) seq={Seq}.", msg.OriginX, msg.OriginY, msg.Width, msg.Height, msg.Seq);
+		_log.LogDebug("[Fluid] applied=(x={X},y={Y},w={W},h={H}) seq={Seq}.", msg.OriginX, msg.OriginY, msg.Width, msg.Height, msg.Seq);
 	}
 }

@@ -23,6 +23,7 @@ Open work only. Landed delivery details are not duplicated here; they live in:
 - **CrystalTeleport matrix coverage** closed: `CrystalTeleportTriggered` (EntityEventKind 33, ProtocolVersion 34) replays the 2D `observerlaugh` + `FlashBrief` on every side; the body teleport itself rides the existing 20 Hz player stream. Repeatable, no late-joiner replay. See `docs/selfchecks/crystal-teleport-sync-selfcheck.md` and `docs/tech-decisions.md` #56.
 - **Owner-local body auto-event presentation audit** closed: `RemoteBodyFactory` now disables `Vomiter`/`SelfHarmer`/`PantSound`/`MoodChangeSounds`/`SleepingBagUse` on render clones — these `Update` methods are not covered by the `Body.Update`/`Limb.Update` render-proxy skips, and two of them read the local player's body. Owner-local by design. See `docs/selfchecks/owner-local-body-auto-events-selfcheck.md` and `docs/tech-decisions.md` #57.
 - **RadiationLine straggler pressure** closed: the host now activates the line in co-op when at least one living player has reached the layer bottom and another living player remains above it; the existing `RadiationLineState` (NetMsg 106) world-state sync carries the activation to every side. No protocol change. See `docs/selfchecks/radiation-straggler-pressure-selfcheck.md` and `docs/tech-decisions.md` #58.
+- **Log-level cleanup** closed: high-frequency periodic sync logs (1 Hz character snapshot/relay, fluid region stream send/apply, 5 s trader fallback snapshot) now log at Debug; one-shot/error events stay at Information/Warn/Error. See `docs/selfchecks/log-level-cleanup-selfcheck.md`.
 - 2026-08-23 exploration added candidate open work below: KrokMP-inspired co-op features and architecture/quality debt. See `docs/exploration-2026-08-23.md` for the evidence record.
 
 ## Open work
@@ -70,7 +71,6 @@ None open. The previous local-only item states and the enemy LookTarget presenta
 - **`HandlerContext` god-object** — MEDIUM. It injects many control planes and owns world-entry fan-out. Proposed: narrow per-domain handler dependencies and move world-entry fan-out to a dedicated service. See §3.3.
 - **World-entry snapshot completion semantics** — MEDIUM. Late join sends multiple independent snapshots without an explicit complete-set marker. Proposed: completion marker or batched world-entry snapshot. See §3.4.
 - **GameAdapter testability / concrete service dependencies** — MEDIUM. Adapter domain objects still depend on concrete `SessionService` and Unity statics. Proposed: narrow world/identity/spawn interfaces for injectable L0 simulation. See §3.5.
-- **Log-level cleanup** — LOW/MEDIUM. High-frequency 1 Hz character/periodic sync paths log at Information; move to Debug/Verbose and keep one-shot/error events at their proper levels. See §3.6.
 
 ### Networking observability / optimization (new)
 

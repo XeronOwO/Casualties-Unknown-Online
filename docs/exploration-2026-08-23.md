@@ -186,12 +186,16 @@ sync model.
   session identity; keep pure arbitration in pure-machine classes and make the
   Unity seam injectable for L0 simulation.
 
-### 3.6 Log levels on high-frequency paths — LOW/MEDIUM
+### 3.6 Log levels on high-frequency paths — CLOSED (landed 2026-08-23)
 
 - 1 Hz character-data and periodic sync logs are emitted at Information.
 - Proposed: drop periodic paths to Debug/Verbose; keep join/leave/restore/refusal
   and failures at Information/Warn/Error, and rely on `[NetworkTraffic]` /
   `[NetworkHealth]` for metrics.
+- **Landed**: the periodic paths moved to Debug/Verbose — 1 Hz character
+  snapshot/relay, fluid region stream send/apply, and the 5 s trader fallback
+  snapshot; one-shot/error paths remain at their proper levels. See
+  `docs/selfchecks/log-level-cleanup-selfcheck.md`.
 
 ### 3.7 Already-good areas (no change needed)
 

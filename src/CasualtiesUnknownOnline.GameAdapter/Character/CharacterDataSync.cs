@@ -153,7 +153,7 @@ internal sealed class CharacterDataSync(
 			// show what it is carrying; the new body renders on creation from
 			// this cache).
 			_factTable.ApplySnapshot(sender, data);
-			_log.LogInformation("[CloneRender] host: char data from {Sender} ({Count} items).", sender, data.Items.Count);
+			_log.LogDebug("[CloneRender] host: char data from {Sender} ({Count} items).", sender, data.Items.Count);
 			return;
 		}
 
@@ -163,7 +163,7 @@ internal sealed class CharacterDataSync(
 		if (data.OwnerSteamId != 0 && data.OwnerSteamId != _session.LocalSteamId)
 		{
 			_factTable.ApplySnapshot(data.OwnerSteamId, data);
-			_log.LogInformation("[CloneRender] guest: char data relay of {Owner} ({Count} items).", data.OwnerSteamId, data.Items.Count);
+			_log.LogDebug("[CloneRender] guest: char data relay of {Owner} ({Count} items).", data.OwnerSteamId, data.Items.Count);
 			return;
 		}
 
@@ -182,7 +182,7 @@ internal sealed class CharacterDataSync(
 	private void OnHostCharacterDataReceived(CharacterDataMsg data)
 	{
 		_factTable.ApplySnapshot(_session.HostSteamId, data);
-		_log.LogInformation("[CloneRender] guest: host char data ({Count} items).", data.Items.Count);
+		_log.LogDebug("[CloneRender] guest: host char data ({Count} items).", data.Items.Count);
 	}
 
 	/// <summary>Render a remote clone's carried state from its owner's character
@@ -231,7 +231,7 @@ internal sealed class CharacterDataSync(
 			// Host → guests: their clones of the host render its carried items.
 			if (throttled)
 			{
-				_log.LogInformation("[CloneRender] host broadcasting char data ({Count} items).", data.Items.Count);
+				_log.LogDebug("[CloneRender] host broadcasting char data ({Count} items).", data.Items.Count);
 			}
 
 			_characterData.BroadcastHostCharacterData(data);
@@ -240,7 +240,7 @@ internal sealed class CharacterDataSync(
 		{
 			if (throttled)
 			{
-				_log.LogInformation("[CloneRender] guest reporting char data ({Count} items).", data.Items.Count);
+				_log.LogDebug("[CloneRender] guest reporting char data ({Count} items).", data.Items.Count);
 			}
 
 			_characterData.ReportCharacterData(data);

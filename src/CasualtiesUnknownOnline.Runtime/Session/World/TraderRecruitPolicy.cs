@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 
@@ -26,10 +28,72 @@ internal static class TraderRecruitPolicy
 	/// usable while standing at a trader).</summary>
 	internal const float RecruitRange = 8f;
 
+	/// <summary>Minimum trader-stock items granted on a successful recruit.</summary>
+	internal const int MinGiftItems = 1;
+
+	/// <summary>Maximum trader-stock items granted on a successful recruit.</summary>
+	internal const int MaxGiftItems = 3;
+
 	/// <summary>The target is revivable only when the host's authoritative
 	/// character snapshot says the player is dead (in world still).</summary>
 	internal static bool IsDead(CharacterDataMsg? data) =>
 		data?.Health is { } health && !health.Alive;
+
+	/// <summary>
+	/// The empty backpack/hand slots in a character snapshot. Worn items
+	/// (negative SlotIndex) do not occupy a slot; an older snapshot with
+	/// SlotCount=0 falls back to the game's known minimum (3), matching the
+	/// cross-player interaction service.
+	/// </summary>
+	internal static IReadOnlyList<int> FindEmptySlots(CharacterDataMsg data)
+	{
+		var count = data.SlotCount > 0 ? data.SlotCount : 3;
+		var occupied = data.Items.Where(i => i.SlotIndex >= 0).Select(i => i.SlotIndex).ToHashSet();
+		var empty = new List<int>();
+		for (var slot = 0; slot < count; slot++)
+		{
+			if (!occupied.Contains(slot))
+			{
+				empty.Add(slot);
+			}
+		}
+
+		return empty;
+	}
+
+	/// <summary>
+	/// Choose <paramref name="count"/> distinct trader-stock item ids. The
+	/// random source is injected as a function returning an index in
+	/// <c>[0, remaining.Count)</c>, so the pure policy stays L0-testable while
+	/// the Unity-facing coordinator supplies <c>Random.Range</c>.
+	/// </summary>
+	internal static IReadOnlyList<string> SelectGiftItemIds(
+		TradeStockState stock,
+		int count,
+		Func<int, int> randomIndex)
+	{
+		var available = stock.Items.Select(i => i.Id).Distinct(StringComparer.Ordinal).ToList();
+		var selected = new List<string>();
+		if (count <= 0 || available.Count == 0)
+		{
+			return selected;
+		}
+
+		var remaining = new List<string>(available);
+		for (var i = 0; i < count && remaining.Count > 0; i++)
+		{
+			var index = randomIndex(remaining.Count);
+			if (index < 0 || index >= remaining.Count)
+			{
+				continue;
+			}
+
+			selected.Add(remaining[index]);
+			remaining.RemoveAt(index);
+		}
+
+		return selected;
+	}
 
 	/// <summary>Trade gates for one recruit: the trader has not already been
 	/// used, is not hostile, is friendly enough and its building is intact.</summary>

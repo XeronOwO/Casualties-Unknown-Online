@@ -1705,3 +1705,39 @@ Tests: `ChatServiceTests` (6 end-to-end/edge cases + direction theory), full
 suite **1238 green**, build 0 warnings/0 errors, architecture / event-replay /
 entity-event-dispatch gates pass, `dotnet format` clean. See
 `docs/selfchecks/chat-selfcheck.md`.
+
+
+## 62. Trader Recruit random trader-stock bonus items (ProtocolVersion 37)
+
+The trader-recruit first slice (#59) intentionally left the KrokMP "$1–3
+random trader items" part as a later increment. This entry closes that
+remaining gameplay slice without expanding the revive lifecycle.
+
+- **Gift pool** — the host reads the trader's current stock through the
+  existing `TradeExecutor.Read` (`TradeStockState.Items`), so the reward comes
+  from actual trader-sellable items. The stock is treated as a catalog, not a
+  depletable inventory, in this increment.
+- **Pure selection policy** — `TraderRecruitPolicy.SelectGiftItemIds(stock,
+  count, randomIndex)` selects distinct stock item ids with an injected index
+  function; `FindEmptySlots` caps grants to the target's real empty slots.
+  Constants `MinGiftItems = 1`, `MaxGiftItems = 3`.
+- **Host item fact without a temp object** — `TraderRecruitCoordinator`
+  captures the fresh item wire fact directly from the prefab
+  (`ItemStateCodec.CaptureItem` on `Resources.Load(id)`) and allocates a bare
+  host instance id via `ItemIdAllocator.AllocateId`; no scene spawn/destroy
+  report can fire. The host appends the gifts to the saved revived snapshot.
+- **Guest ownership** — each gift for a remote target is registered through
+  `ItemService.AdoptTransferredItem`, so later guest use/slot/drop reports
+  arbitrate against the host's transfer table.
+- **Delivery** — `TraderRecruitResultMsg` gains `Items` (protobuf member 4).
+  The target applies each gift inside the existing RemoteApply heal scope via
+  `ItemStateCodec.RestoreItem` (host-chosen slot first, `Body.FirstEmptySlot`
+  fallback) and immediately re-reports the character snapshot.
+- **ProtocolVersion 36→37** because a v36 peer can still connect but would not
+  know about the result's new `Items` field and would silently revive without
+  the bonus — a feature difference that should reject at handshake.
+
+Tests: `TraderRecruitPolicyTests` (6 new pure cases), `TraderRecruitChannelTests`
+(result round-trips `Items`), full suite **1244 green**, build 0 warnings/0
+errors, architecture / event-replay / entity-event-dispatch gates pass. See
+`docs/selfchecks/trader-recruit-gift-items-selfcheck.md`.

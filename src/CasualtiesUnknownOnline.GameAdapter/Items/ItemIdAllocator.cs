@@ -78,4 +78,11 @@ internal sealed class ItemIdAllocator(SessionService session, ItemService items,
 		idComp.Id = Next();
 		return idComp.Id;
 	}
+
+	/// <summary>
+	/// Allocate a bare instance id without stamping it on a live item. Used by
+	/// host-side services that produce a wire item fact from a prefab/stock
+	/// entry; the receiving side attaches the id when it restores the item.
+	/// </summary>
+	internal ulong AllocateId() => Next();
 }

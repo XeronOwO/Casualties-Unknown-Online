@@ -150,7 +150,7 @@ public sealed partial class GameAdapter
 		_radiationLineSync = new RadiationLineSync(world, session, entities, loggerFactory.CreateLogger<RadiationLineSync>());
 		_fluidSync = new FluidWorldSync(world, session, entities, loggerFactory);
 		_tradeSync = new TradeStateSync(world, session, new TradeExecutor(), loggerFactory.CreateLogger<TradeStateSync>());
-		_traderRecruit = new TraderRecruitCoordinator(session, world, characterData, _characterDataSync, respawnOptions, loggerFactory.CreateLogger<TraderRecruitCoordinator>());
+		_traderRecruit = new TraderRecruitCoordinator(session, world, characterData, _characterDataSync, respawnOptions, _items, _itemIds, loggerFactory.CreateLogger<TraderRecruitCoordinator>());
 		_respawn = new RespawnCoordinator(session, world, characterData, _characterDataSync, respawnOptions, loggerFactory.CreateLogger<RespawnCoordinator>());
 		_speechSync = new SpeechSync(world, session, loggerFactory.CreateLogger<SpeechSync>());
 		_craftingSync = new CraftingSync(craft, _itemIds, itemReports, _operationTrace, loggerFactory.CreateLogger<CraftingSync>());

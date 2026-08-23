@@ -101,4 +101,88 @@ public class TraderRecruitPolicyTests
 		Assert.Equal(10f, revived.Position!.X);
 		Assert.Equal(20f, revived.Position.Y);
 	}
+
+	[Fact]
+	public void FindEmptySlots_ReturnsUnoccupiedBackpackSlots()
+	{
+		var data = DeadSnapshot();
+		data.SlotCount = 4;
+		data.Items =
+		[
+			new CharacterItemMsg { InstanceId = 1, ItemId = "lantern", SlotIndex = 0 },
+			new CharacterItemMsg { InstanceId = 2, ItemId = "backpack", SlotIndex = 2 },
+			new CharacterItemMsg { InstanceId = 3, ItemId = "hat", SlotIndex = -2 },
+		];
+
+		var empty = TraderRecruitPolicy.FindEmptySlots(data);
+
+		Assert.Equal([1, 3], empty);
+	}
+
+	[Fact]
+	public void FindEmptySlots_FallsBackToMinimumSlotCountWhenSlotCountMissing()
+	{
+		var data = DeadSnapshot();
+		data.SlotCount = 0;
+		data.Items = [];
+
+		var empty = TraderRecruitPolicy.FindEmptySlots(data);
+
+		Assert.Equal(3, empty.Count);
+	}
+
+	[Fact]
+	public void FindEmptySlots_ReturnsNoSlotsWhenFull()
+	{
+		var data = DeadSnapshot();
+		data.SlotCount = 2;
+		data.Items =
+		[
+			new CharacterItemMsg { InstanceId = 1, ItemId = "lantern", SlotIndex = 0 },
+			new CharacterItemMsg { InstanceId = 2, ItemId = "knife", SlotIndex = 1 },
+		];
+
+		var empty = TraderRecruitPolicy.FindEmptySlots(data);
+
+		Assert.Empty(empty);
+	}
+
+	[Fact]
+	public void SelectGiftItemIds_ChoosesDistinctStockIds()
+	{
+		var stock = NewTrader() with
+		{
+			Items =
+			[
+				new TraderItemMsg { Id = "bandage", Value = 2 },
+				new TraderItemMsg { Id = "medkit", Value = 5 },
+				new TraderItemMsg { Id = "lantern", Value = 3 },
+			],
+		};
+
+		var selected = TraderRecruitPolicy.SelectGiftItemIds(stock, 2, n => 0);
+
+		Assert.Equal(["bandage", "medkit"], selected);
+	}
+
+	[Fact]
+	public void SelectGiftItemIds_RespectsRandomIndexOuOfRange()
+	{
+		var stock = NewTrader() with
+		{
+			Items = [new TraderItemMsg { Id = "bandage", Value = 2 }],
+		};
+
+		var selected = TraderRecruitPolicy.SelectGiftItemIds(stock, 1, _ => 99);
+
+		Assert.Empty(selected);
+	}
+
+	[Fact]
+	public void SelectGiftItemIds_ReturnsEmptyWhenStockEmpty()
+	{
+		var selected = TraderRecruitPolicy.SelectGiftItemIds(NewTrader(), 2, _ => 0);
+
+		Assert.Empty(selected);
+	}
 }

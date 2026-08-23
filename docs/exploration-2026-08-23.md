@@ -67,9 +67,13 @@ sync model.
 
 > **Status 2026-08-23: first slice CLOSED** — host-authoritative
 > `TraderRecruitRequest`/`TraderRecruitResult` (NetMsg 107/108,
-> ProtocolVersion 35) with in-place health revive; random trader items and the
-> broader revive lifecycle remain open. See
-> `docs/selfchecks/trader-recruit-selfcheck.md`.
+> ProtocolVersion 35) with in-place health revive; the broader revive lifecycle
+> is closed (§2.2). **Random trader-stock bonus items are also CLOSED**: a
+> successful recruit grants the revived player 1–3 distinct items from the
+> host trader's current stock via `TraderRecruitResult.Items`
+> (ProtocolVersion 37). See
+> `docs/selfchecks/trader-recruit-selfcheck.md` and
+> `docs/selfchecks/trader-recruit-gift-items-selfcheck.md`.
 
 - KrokMP: a trader can be recruited when its health and reputation gates pass;
   the server picks a dead player to respawn, gives 1–3 random trader items, and

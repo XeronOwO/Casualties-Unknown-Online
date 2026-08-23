@@ -290,6 +290,23 @@ public interface IWorldControl
 
 	event Action<ulong, TraderActionMsg>? TraderActionReceived;
 
+	/// <summary>Guest: send a trader-recruit request (the acting side has already
+	/// located its nearest trader; the host owns the trade gates + the revive).</summary>
+	void SendTraderRecruitRequest(TraderRecruitRequestMsg msg);
+
+	/// <summary>Host: a guest's trader-recruit request arrived.</summary>
+	void FireTraderRecruitRequestReceived(ulong sender, TraderRecruitRequestMsg msg);
+
+	event Action<ulong, TraderRecruitRequestMsg>? TraderRecruitRequestReceived;
+
+	/// <summary>Host only: send the authoritative post-revive body state to the revived player.</summary>
+	void SendTraderRecruitResult(ulong targetSteamId, TraderRecruitResultMsg msg);
+
+	/// <summary>Guest: the host's trader-recruit result arrived — apply the revive to the local body.</summary>
+	void FireTraderRecruitResultReceived(TraderRecruitResultMsg msg);
+
+	event Action<TraderRecruitResultMsg>? TraderRecruitResultReceived;
+
 	/// <summary>Guest: report a locally-spoken player bubble to the host.</summary>
 	void SendSpeech(SpeechMsg msg);
 

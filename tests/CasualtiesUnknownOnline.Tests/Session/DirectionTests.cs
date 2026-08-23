@@ -36,6 +36,7 @@ public class DirectionTests
 		NetMsg.PlayerCarryStartRequest,
 		NetMsg.PlayerCarryStopRequest,
 		NetMsg.PlayerHealRequest,
+		NetMsg.TraderRecruitRequest,
 	};
 
 	public static TheoryData<NetMsg> HostToGuestMessages => new()
@@ -77,6 +78,7 @@ public class DirectionTests
 		NetMsg.PlayerHealResult,
 		NetMsg.TutorialClawState,
 		NetMsg.RadiationLineState,
+		NetMsg.TraderRecruitResult,
 	};
 
 	public static TheoryData<NetMsg> BidirectionalMessages => new()

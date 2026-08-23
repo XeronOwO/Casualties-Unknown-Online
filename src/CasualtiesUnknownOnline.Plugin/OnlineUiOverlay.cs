@@ -49,6 +49,9 @@ internal sealed class OnlineUiOverlay
 	/// <summary>Explicit local heal items for the Online UI selector (slot items with wire ids only).</summary>
 	internal Func<IReadOnlyList<LocalHealItem>>? GetLocalHealItems;
 
+	/// <summary>Invoked when the user clicks Recruit on a dead in-world teammate (trader-recruit co-op revive).</summary>
+	internal Func<ulong, bool>? RecruitPlayer;
+
 	private string _lobbyIdInput = "";
 	private string? _inlineError;
 
@@ -212,6 +215,22 @@ internal sealed class OnlineUiOverlay
 				}
 			}
 
+
+			// The trader-recruit slice: offer a Recruit button for a dead
+			// in-world teammate. The adapter only dispatches the request when a
+			// trader is within range; the host remains the authority for the
+			// trade gates and the revive result.
+			if (lobbyMember != steam.LocalSteamId
+				&& member is { InWorld: true }
+				&& session.LocalInWorld
+				&& vitals.TryGet(lobbyMember, out var recruitVitals)
+				&& !recruitVitals.Alive)
+			{
+				if (GUI.Button(new Rect(640f, rowY, 58f, 16f), "Recruit"))
+				{
+					RecruitPlayer?.Invoke(lobbyMember);
+				}
+			}
 
 			// The "view items" slice: expand the in-world member's carried and
 			// worn inventory under its status line. The clone already shows the

@@ -109,7 +109,7 @@ internal sealed class TradeExecutor
 		}
 	}
 
-	private static TradeStockState Read(TraderScript trader)
+	internal static TradeStockState Read(TraderScript trader)
 	{
 		var fields = Traverse.Create(trader);
 		return new TradeStockState

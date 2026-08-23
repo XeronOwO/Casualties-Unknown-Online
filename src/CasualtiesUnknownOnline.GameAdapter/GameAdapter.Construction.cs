@@ -72,6 +72,7 @@ public sealed partial class GameAdapter
 	private readonly RadiationLineSync _radiationLineSync;
 	private readonly FluidWorldSync _fluidSync;
 	private readonly TradeStateSync _tradeSync;
+	private readonly TraderRecruitCoordinator _traderRecruit;
 	private readonly SpeechSync _speechSync;
 	private readonly CraftingSync _craftingSync;
 	private readonly RecipeUnlockApply _recipeUnlockApply;
@@ -145,6 +146,7 @@ public sealed partial class GameAdapter
 		_radiationLineSync = new RadiationLineSync(world, session, entities, loggerFactory.CreateLogger<RadiationLineSync>());
 		_fluidSync = new FluidWorldSync(world, session, entities, loggerFactory);
 		_tradeSync = new TradeStateSync(world, session, new TradeExecutor(), loggerFactory.CreateLogger<TradeStateSync>());
+		_traderRecruit = new TraderRecruitCoordinator(session, world, characterData, _characterDataSync, loggerFactory.CreateLogger<TraderRecruitCoordinator>());
 		_speechSync = new SpeechSync(world, session, loggerFactory.CreateLogger<SpeechSync>());
 		_craftingSync = new CraftingSync(craft, _itemIds, itemReports, _operationTrace, loggerFactory.CreateLogger<CraftingSync>());
 		_recipeUnlockApply = new RecipeUnlockApply(craft, loggerFactory.CreateLogger<RecipeUnlockApply>());

@@ -64,4 +64,39 @@ public sealed class TradeChannel(ISessionControl session, PacketSender sender)
 	public event Action<ulong, TraderActionMsg>? TraderActionReceived;
 
 	public void FireTraderActionReceived(ulong sender, TraderActionMsg msg) => TraderActionReceived?.Invoke(sender, msg);
+
+	/// <summary>Guest: send a trader-recruit request to the host (the acting side
+	/// has already located its nearest trader; the host owns the gate + revive).</summary>
+	public void SendTraderRecruitRequest(TraderRecruitRequestMsg msg)
+	{
+		if (_session.Role != SessionRole.Guest || !_session.SessionActive)
+		{
+			return;
+		}
+
+		_sender.Send(_session.HostSteamId, NetMsg.TraderRecruitRequest, msg);
+	}
+
+	/// <summary>Host: a guest's trader-recruit request arrived.</summary>
+	public event Action<ulong, TraderRecruitRequestMsg>? TraderRecruitRequestReceived;
+
+	public void FireTraderRecruitRequestReceived(ulong sender, TraderRecruitRequestMsg msg) =>
+		TraderRecruitRequestReceived?.Invoke(sender, msg);
+
+	/// <summary>Host only: send the authoritative post-revive body state to the revived player.</summary>
+	public void SendTraderRecruitResult(ulong targetSteamId, TraderRecruitResultMsg msg)
+	{
+		if (_session.Role != SessionRole.Host || !_session.SessionActive)
+		{
+			return;
+		}
+
+		_sender.Send(targetSteamId, NetMsg.TraderRecruitResult, msg);
+	}
+
+	/// <summary>Guest: the host's trader-recruit result arrived — apply the revive to the local body.</summary>
+	public event Action<TraderRecruitResultMsg>? TraderRecruitResultReceived;
+
+	public void FireTraderRecruitResultReceived(TraderRecruitResultMsg msg) =>
+		TraderRecruitResultReceived?.Invoke(msg);
 }

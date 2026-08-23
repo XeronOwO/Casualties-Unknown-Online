@@ -155,6 +155,7 @@ public class Plugin : BaseUnityPlugin
 				HasHealItem = () => _adapter?.HasLocalHealItem() == true,
 				HealWithItem = TryHealWithItemFromUi,
 				GetLocalHealItems = () => _adapter?.GetLocalHealItems() ?? [],
+				RecruitPlayer = TryRequestTraderRecruitFromUi,
 			};
 
 			// Publish the container on the static diagnostics seam (HotRepl etc.).
@@ -431,6 +432,17 @@ public class Plugin : BaseUnityPlugin
 
 		_playerInteraction.SendHealRequest(targetSteamId, itemInstanceId);
 		return true;
+	}
+
+	/// <summary>Online UI Recruit path — forward to the Game Adapter's trader-recruit coordinator (the host remains the authority).</summary>
+	private bool TryRequestTraderRecruitFromUi(ulong targetSteamId)
+	{
+		if (!_session.SessionActive)
+		{
+			return false;
+		}
+
+		return _adapter?.TryRequestTraderRecruit(targetSteamId) == true;
 	}
 
 

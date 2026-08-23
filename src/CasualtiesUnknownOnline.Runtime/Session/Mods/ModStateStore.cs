@@ -7,21 +7,22 @@ using Microsoft.Extensions.Logging;
 namespace CasualtiesUnknownOnline.Runtime.Session.Mods;
 
 /// <summary>
-/// Mod-state half of <see cref="ModService"/> (Phase 4 Mod API remainder).
-/// Each mod gets a per-id key/value store of opaque bytes. The host is the only
-/// save authority, so writes (and host reads) are refused outside the host role
-/// and require <see cref="ModPermission.WriteGameState"/> — a guest copy that
-/// needs host state coordinates through the existing mod message/command
-/// surfaces. The disk store is versioned, atomic and degrade-to-empty on
-/// corruption; the in-memory table is loaded once at Initialize (before
-/// discovery/Bind) and lives for the process.
+/// The mod-state half of the Phase 4 Mod API. Each mod gets a per-id key/value
+/// store of opaque bytes. The host is the only save authority, so writes (and
+/// host reads) are refused outside the host role — this store only owns the
+/// table + persistence; the per-mod adapter applies the role/permission gate.
+/// The disk store is versioned, atomic and degrade-to-empty on corruption; the
+/// in-memory table is loaded once at Initialize (before discovery/Bind) and
+/// lives for the process.
 /// </summary>
-public sealed partial class ModService
+internal sealed class ModStateStore(ModStateFileStore stateFile, ILogger log)
 {
+	private readonly ModStateFileStore _stateFile = stateFile;
+	private readonly ILogger _log = log;
 	private readonly Dictionary<string, ModStateEntry> _modState = [];
 	private bool _stateLoaded;
 
-	private void LoadModState()
+	internal void Load()
 	{
 		if (_stateLoaded)
 		{
@@ -63,41 +64,12 @@ public sealed partial class ModService
 		}
 	}
 
-	// ---- Host gating + permission (called by ModStateAdapter) ----
-
-	private bool EnsureHostStateRead(ModManifest manifest, string operation)
-	{
-		if (_session.Role == SessionRole.Host)
-		{
-			return true;
-		}
-
-		_log.LogWarning("[Mods] {ModId} tried to {Operation} mod state outside the host role — refused.",
-			manifest.Id, operation);
-		return false;
-	}
-
-	private bool EnsureHostStateWrite(ModManifest manifest, string operation)
-	{
-		if (_session.Role != SessionRole.Host)
-		{
-			_log.LogWarning("[Mods] {ModId} tried to {Operation} mod state outside the host role — refused.",
-				manifest.Id, operation);
-			return false;
-		}
-
-		if (!HasPermission(manifest, ModPermission.WriteGameState))
-		{
-			LogMissingPermission(manifest.Id, "WriteGameState");
-			return false;
-		}
-
-		return true;
-	}
+	internal IModState CreateStateAdapter(ModManifest manifest, SessionService session) =>
+		new ModStateAdapter(this, session, manifest, _log);
 
 	// ---- Primitive table access (no role checks — the adapter gates them) ----
 
-	internal bool TryGetModStateValue(string modId, string key, out byte[]? value)
+	internal bool TryGetValue(string modId, string key, out byte[]? value)
 	{
 		value = null;
 		if (!_modState.TryGetValue(modId, out var entry) || !entry.Values.TryGetValue(key, out var stored))
@@ -109,16 +81,16 @@ public sealed partial class ModService
 		return true;
 	}
 
-	internal IReadOnlyList<string> GetModStateKeys(string modId) =>
+	internal IReadOnlyList<string> GetKeys(string modId) =>
 		_modState.TryGetValue(modId, out var entry) ? [.. entry.Values.Keys] : [];
 
-	internal int GetModStateCount(string modId) =>
+	internal int GetCount(string modId) =>
 		_modState.TryGetValue(modId, out var entry) ? entry.Values.Count : 0;
 
-	internal int GetModStateSchemaVersion(string modId) =>
+	internal int GetSchemaVersion(string modId) =>
 		_modState.TryGetValue(modId, out var entry) ? entry.SchemaVersion : 1;
 
-	internal bool TrySetModStateSchemaVersion(ModManifest manifest, int schemaVersion)
+	internal bool TrySetSchemaVersion(ModManifest manifest, int schemaVersion)
 	{
 		if (schemaVersion < 1)
 		{
@@ -127,14 +99,14 @@ public sealed partial class ModService
 			return false;
 		}
 
-		var entry = GetOrCreateModState(manifest);
+		var entry = GetOrCreate(manifest);
 		entry.SchemaVersion = schemaVersion;
 		entry.ModVersion = manifest.Version;
-		PersistModState();
+		Persist();
 		return true;
 	}
 
-	internal bool TrySetModState(ModManifest manifest, string key, byte[] value)
+	internal bool TrySet(ModManifest manifest, string key, byte[] value)
 	{
 		if (!ModStatePolicy.IsValidKey(key))
 		{
@@ -150,7 +122,7 @@ public sealed partial class ModService
 			return false;
 		}
 
-		var entry = GetOrCreateModState(manifest);
+		var entry = GetOrCreate(manifest);
 		var isNew = !entry.Values.ContainsKey(key);
 		if (isNew && !ModStatePolicy.CanAddKey(entry.Values.Count))
 		{
@@ -161,11 +133,11 @@ public sealed partial class ModService
 
 		entry.Values[key] = (byte[])value.Clone();
 		entry.ModVersion = manifest.Version;
-		PersistModState();
+		Persist();
 		return true;
 	}
 
-	internal bool TryRemoveModState(ModManifest manifest, string key)
+	internal bool TryRemove(ModManifest manifest, string key)
 	{
 		if (!_modState.TryGetValue(manifest.Id, out var entry) || !entry.Values.Remove(key))
 		{
@@ -173,13 +145,13 @@ public sealed partial class ModService
 		}
 
 		entry.ModVersion = manifest.Version;
-		PersistModState();
+		Persist();
 		return true;
 	}
 
-	internal bool TryClearModState(ModManifest manifest)
+	internal bool TryClear(ModManifest manifest)
 	{
-		var entry = GetOrCreateModState(manifest);
+		var entry = GetOrCreate(manifest);
 		if (entry.Values.Count == 0)
 		{
 			return true;
@@ -187,11 +159,11 @@ public sealed partial class ModService
 
 		entry.Values.Clear();
 		entry.ModVersion = manifest.Version;
-		PersistModState();
+		Persist();
 		return true;
 	}
 
-	private ModStateEntry GetOrCreateModState(ModManifest manifest)
+	private ModStateEntry GetOrCreate(ModManifest manifest)
 	{
 		if (!_modState.TryGetValue(manifest.Id, out var entry))
 		{
@@ -208,7 +180,7 @@ public sealed partial class ModService
 		return entry;
 	}
 
-	private void PersistModState()
+	private void Persist()
 	{
 		if (!_stateFile.IsEnabled)
 		{
@@ -235,67 +207,91 @@ public sealed partial class ModService
 
 	// ---- Per-mod API adapter ----
 
-	private sealed class ModStateAdapter(ModService owner, ModManifest manifest) : IModState
+	private sealed class ModStateAdapter(ModStateStore store, SessionService session, ModManifest manifest, ILogger log) : IModState
 	{
 		public bool CanWrite =>
-			owner._session.Role == SessionRole.Host
-			&& ModService.HasPermission(manifest, ModPermission.WriteGameState);
+			session.Role == SessionRole.Host
+			&& ModPermissionGate.HasPermission(manifest, ModPermission.WriteGameState);
 
-		public int SchemaVersion => owner.GetModStateSchemaVersion(manifest.Id);
+		public int SchemaVersion => store.GetSchemaVersion(manifest.Id);
 
-		public IReadOnlyCollection<string> Keys => owner.GetModStateKeys(manifest.Id);
+		public IReadOnlyCollection<string> Keys => store.GetKeys(manifest.Id);
 
-		public int Count => owner.GetModStateCount(manifest.Id);
+		public int Count => store.GetCount(manifest.Id);
 
 		public bool TryGet(string key, out byte[]? value)
 		{
-			if (!owner.EnsureHostStateRead(manifest, "read"))
+			if (!EnsureHostStateRead("read"))
 			{
 				value = null;
 				return false;
 			}
 
-			return owner.TryGetModStateValue(manifest.Id, key, out value);
+			return store.TryGetValue(manifest.Id, key, out value);
 		}
 
 		public bool TrySetSchemaVersion(int schemaVersion)
 		{
-			if (!owner.EnsureHostStateWrite(manifest, "set its state schema version"))
+			if (!EnsureHostStateWrite("set its state schema version"))
 			{
 				return false;
 			}
 
-			return owner.TrySetModStateSchemaVersion(manifest, schemaVersion);
+			return store.TrySetSchemaVersion(manifest, schemaVersion);
 		}
 
 		public bool TrySet(string key, byte[] value)
 		{
-			if (!owner.EnsureHostStateWrite(manifest, "write"))
+			if (!EnsureHostStateWrite("write"))
 			{
 				return false;
 			}
 
-			return owner.TrySetModState(manifest, key, value);
+			return store.TrySet(manifest, key, value);
 		}
 
 		public bool TryRemove(string key)
 		{
-			if (!owner.EnsureHostStateWrite(manifest, "remove"))
+			if (!EnsureHostStateWrite("remove"))
 			{
 				return false;
 			}
 
-			return owner.TryRemoveModState(manifest, key);
+			return store.TryRemove(manifest, key);
 		}
 
 		public bool TryClear()
 		{
-			if (!owner.EnsureHostStateWrite(manifest, "clear"))
+			if (!EnsureHostStateWrite("clear"))
 			{
 				return false;
 			}
 
-			return owner.TryClearModState(manifest);
+			return store.TryClear(manifest);
+		}
+
+		private bool EnsureHostStateRead(string operation)
+		{
+			if (session.Role == SessionRole.Host)
+			{
+				return true;
+			}
+
+			log.LogWarning("[Mods] {ModId} tried to {Operation} mod state outside the host role — refused.",
+				manifest.Id, operation);
+			return false;
+		}
+
+		private bool EnsureHostStateWrite(string operation)
+		{
+			if (session.Role != SessionRole.Host)
+			{
+				log.LogWarning("[Mods] {ModId} tried to {Operation} mod state outside the host role — refused.",
+					manifest.Id, operation);
+				return false;
+			}
+
+			return ModPermissionGate.Try(log, manifest, ModPermission.WriteGameState);
 		}
 	}
 

@@ -69,6 +69,19 @@ public class WorldEntrySnapshotTests
 	}
 
 	[Fact]
+	public void MemberEntersWorld_ReceivesSnapshotCompleteMarker()
+	{
+		using var w = ItemSimWorld.Create();
+		var completed = 0;
+		w.G1.Services.GetRequiredService<IWorldControl>().WorldSnapshotCompleteReceived += () => completed++;
+
+		w.G1.Session.ReportSceneState(SceneStateType.InWorld, "SampleScene");
+		w.Driver.Tick(33);
+
+		Assert.Equal(1, completed);
+	}
+
+	[Fact]
 	public void MemberEntersWorld_EmptyTables_SendNothing()
 	{
 		using var w = ItemSimWorld.Create();

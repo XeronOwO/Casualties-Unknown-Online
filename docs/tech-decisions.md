@@ -1780,3 +1780,34 @@ registry and makes both sides of the data plane fail closed.
 No wire/protocol change: same `NetMsg` ids, same payload classes,
 `ProtocolVersion` remains 37. See
 `docs/selfchecks/netmsg-registry-selfcheck.md`.
+
+## 64. World-entry snapshot completion + fan-out ownership (ProtocolVersion 38)
+
+Backlog §3.4 asked for an explicit end-of-backfill marker; §3.3 also called
+out that `HandlerContext` owned a concrete world-entry fan-out. This entry
+does both in one small domain change.
+
+- **Dedicated fan-out service** — `WorldEntryFanout`
+  (`Runtime/Session/World`) now owns the ordered world-entry snapshot group.
+  It replaces `HandlerContext.SendWorldStateToMember` (removed), and
+  `SceneStateHandler` / `HandshakeHandler` depend on it directly. This takes
+  the concrete world-entry flow out of the handler context god object.
+- **Completion marker** — the fan-out sends the whole snapshot group
+  (`BlockState`, `BlockDamage`, `TrapState`, `OpenedEntities`,
+  `BuildingEntityHealth`, `TrapLayout`, `RadiationLineState`, `ItemSnapshot`,
+  `EnemySnapshot`) and then `WorldSnapshotComplete` (NetMsg 110,
+  HostToGuest). The receiver raises `WorldSnapshotCompleteReceived`.
+- **Why a new message** — `WorldReady` means "start playing", not "backfill
+  complete"; the marker is also needed on reconnect-while-InWorld where no
+  WorldReady is sent. A separate id keeps the two semantics independent.
+- **ProtocolVersion 37→38** — a v37 peer has no `WorldSnapshotComplete`
+  handler and cannot know when a join backfill is complete, so this is a
+  breaking wire change.
+- **No batch message** — the individual snapshot messages stay independent;
+  the completion marker is the explicit "set complete" edge rather than
+  inventing a new batched payload type.
+- **Tests** — first InWorld edge and reconnect-while-InWorld both receive the
+  marker; `DirectionTests` / `NetMessageRegistryTests` cover the new HostToGuest
+  message and registry entry.
+
+See `docs/selfchecks/world-entry-completion-selfcheck.md`.

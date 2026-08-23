@@ -211,4 +211,10 @@ public enum NetMsg : byte
 	// host validates and broadcasts to the other members; the same payload is
 	// used both up and down)
 	Chat = 109, // bidirectional: guest → host report, host → guest relay
+
+	// World-entry snapshot group completion (host authority — the world-entry
+	// fan-out sends many independent snapshot messages; this one is the explicit
+	// end-of-group marker so a receiver never mistakes a partial best-effort
+	// state for the full authoritative state)
+	WorldSnapshotComplete = 110, // host → guest: the world-entry snapshot group is complete
 }

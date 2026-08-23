@@ -77,6 +77,8 @@ public class ReconnectWorldSnapshotTests
 		Assert.True(w.ReceivedCount(w.G1, NetMsg.BlockDamageSnapshot) >= 2, $"reconnect: block damage, got {w.ReceivedCount(w.G1, NetMsg.BlockDamageSnapshot)}");
 		Assert.True(w.ReceivedCount(w.G1, NetMsg.WorldBlockState) >= 2, $"reconnect: block state, got {w.ReceivedCount(w.G1, NetMsg.WorldBlockState)}");
 		Assert.True(w.ReceivedCount(w.G1, NetMsg.ItemSnapshot) >= 2, $"reconnect: world items, got {w.ReceivedCount(w.G1, NetMsg.ItemSnapshot)}");
+		Assert.True(w.ReceivedCount(w.G1, NetMsg.WorldSnapshotComplete) >= 2,
+			$"reconnect: snapshot-complete marker, got {w.ReceivedCount(w.G1, NetMsg.WorldSnapshotComplete)}");
 	}
 
 	[Fact]

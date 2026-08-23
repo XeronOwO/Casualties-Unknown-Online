@@ -1421,3 +1421,34 @@ Tests: `CustomItemDataStateTests` gained 6 dynamite-fuse L0 reflective tests
 contract) and `RemoteItemPresentationTests` gained dynamite-fuse decision
 tests plus the audio-marker contract row; full suite **1190 green** (was 1181).
 See `docs/selfchecks/dynamite-fuse-presentation-selfcheck.md`.
+
+
+## 54. WorldService / ItemService partial split (no protocol bump)
+
+The architecture watchlist's two largest runtime cursors were at/near the
+600-line gate, so they were split into message-flow partials before further
+features land in them.
+
+- **WorldService**: `WorldService.cs` keeps the world-defining state,
+  constructor and start-gate lifecycle (600 → 233 lines). The new
+  `WorldService.MessageFlow.cs` (385 lines) owns the block/building/world-state
+  events, report/send/broadcast plumbing and the late-joiner block-difference
+  snapshot. The existing `Channels.cs`, `BlockDamage.cs` and `SessionState.cs`
+  partials are unchanged.
+- **ItemService**: `ItemService.cs` keeps the constructor, events, position
+  stream, carried facts, host-only snapshot/lifecycle and crafting seams plus
+  interface forwards (597 → 309 lines). The new
+  `ItemService.ReportReceive.cs` (306 lines) owns the report/receive message
+  flow: spawn/drop/use/cook/destroy sends, wire receive events, block-drop
+  registration, corrections and action/snapshot receive forwarding. The
+  existing `PendingPickups.cs`, `PlayerInteraction.cs` and `Traffic.cs`
+  partials are unchanged.
+- **No behavior change**: methods were relocated, not rewritten; no new class,
+  no new state bool, no DI change, no wire message, no protocol version bump.
+- **Architecture**: partial type is the existing codebase pattern for
+  cursor-level service decomposition; each new file remains one top-level type
+  and under the 600-line gate.
+
+Tests: existing full suite **1191 green**; build 0 warnings/0 errors;
+architecture, event-replay and entity-event-dispatch gates all pass. See
+`docs/selfchecks/world-item-service-partial-split-selfcheck.md`.

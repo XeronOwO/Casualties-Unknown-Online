@@ -34,7 +34,7 @@ internal static class PluginDependencyRegistrar
 				new AcceptableValueRange<int>(StateStreamOptions.MinStateStreamHz, StateStreamOptions.MaxStateStreamHz)));
 		var minimumLevel = config.Bind("Logging", "MinimumLevel", "Information",
 			new ConfigDescription(
-				"Minimum CUO log level written to BepInEx and latest.log. Information keeps normal play quiet.",
+				"Minimum CUO log level written to BepInEx and latest.log. Information keeps normal play quiet; Debug enables high-frequency per-frame/per-event traces (clone inventory, character relay, block/sound events).",
 				new AcceptableValueList<string>(new[] { "Information", "Trace", "Debug", "Warning", "Error", "Critical", "None" })));
 		// Host-authoritative revive/respawn rules (KrokMP-inspired
 		// co-op lifecycle). These are read at decision time, so a
@@ -59,6 +59,7 @@ internal static class PluginDependencyRegistrar
 				config,
 				() => new LoggingOptions { MinimumLevel = ParseLogLevel(minimumLevel.Value) },
 				minimumLevel.Definition)));
+		services.AddSingleton(new LoggingConfigEditor(config, minimumLevel));
 		services.Replace(ServiceDescriptor.Singleton<IOptionsMonitor<RespawnOptions>>(
 			new BepInExOptionsMonitor<RespawnOptions>(
 				config,
@@ -103,6 +104,7 @@ internal static class PluginDependencyRegistrar
 				config,
 				() => new LocalizationOptions { Language = language.Value },
 				language.Definition)));
+		services.AddSingleton(new LocalizationConfigEditor(config, language));
 
 		// Host-rule write path for the Online UI Admin page. The runtime reads
 		// through IOptionsMonitor; this editor holds the ConfigEntry references
@@ -117,6 +119,28 @@ internal static class PluginDependencyRegistrar
 			reviveOnNextLevel,
 			keepInventory,
 			keepSkills));
+
+		// IP-direct (non-Steam) connection settings. The custom display name is
+		// used only in IP-direct sessions; Steam sessions keep using the Steam
+		// persona name. Ports are validated by BepInEx's range.
+		var ipListenPort = config.Bind("IpDirect", "ListenPort", 7777,
+			new ConfigDescription(
+				"TCP port the IP-direct host listens on.",
+				new AcceptableValueRange<int>(1, 65535)));
+		var ipJoinAddress = config.Bind("IpDirect", "JoinAddress", "127.0.0.1",
+			new ConfigDescription("IP address or hostname of an IP-direct host to join."));
+		var ipJoinPort = config.Bind("IpDirect", "JoinPort", 7777,
+			new ConfigDescription(
+				"TCP port of an IP-direct host to join.",
+				new AcceptableValueRange<int>(1, 65535)));
+		var ipDisplayName = config.Bind("IpDirect", "DisplayName", "",
+			new ConfigDescription("Custom in-game display name for IP-direct sessions (empty = player-<id>)."));
+		services.AddSingleton(new IpDirectConfigEditor(
+			config,
+			ipListenPort,
+			ipJoinAddress,
+			ipJoinPort,
+			ipDisplayName));
 
 		// Character-data mapping (Mapster). Mapster 6.0.0 core ships
 		// IMapper/Mapper — registered directly, no DI package needed

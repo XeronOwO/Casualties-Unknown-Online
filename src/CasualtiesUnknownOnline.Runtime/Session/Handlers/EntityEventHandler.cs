@@ -20,6 +20,7 @@ public sealed class EntityEventHandler(ILogger<EntityEventHandler> log)
 	{
 		ctx.World.FireEntityEventReceived(sender, msg);
 
-		_log.LogInformation("[TrapEvent] kind={Kind} pos={Pos} from {Sender}.", msg.Kind, msg.Position, sender);
+		_log.LogInformation("[TrapEvent] kind={Kind} pos=({X:F1},{Y:F1}) from {Sender}.",
+			msg.Kind, msg.Position.X, msg.Position.Y, sender);
 	}
 }

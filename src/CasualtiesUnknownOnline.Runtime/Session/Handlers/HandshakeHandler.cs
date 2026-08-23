@@ -7,19 +7,21 @@ using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.HostRules;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
 using CasualtiesUnknownOnline.Runtime.Session.World;
+using CasualtiesUnknownOnline.Runtime.Steam;
 using Microsoft.Extensions.Logging;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 
 /// <summary>Guest → host: protocol negotiation + member creation (new join or reconnect).</summary>
 [PacketHandler(NetMsg.Handshake, NetMessageDirection.GuestToHost)]
-public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandler> log, WorldEntryFanout worldEntryFanout, IHostRules hostRules, IHostBanService hostBans) : PacketHandlerBase<HandshakeMsg, IHandshakeHandlerContext>
+public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandler> log, WorldEntryFanout worldEntryFanout, IHostRules hostRules, IHostBanService hostBans, ISteamService steam) : PacketHandlerBase<HandshakeMsg, IHandshakeHandlerContext>
 {
 	private readonly PacketSender _sender = sender;
 	private readonly ILogger<HandshakeHandler> _log = log;
 	private readonly WorldEntryFanout _worldEntryFanout = worldEntryFanout;
 	private readonly IHostRules _hostRules = hostRules;
 	private readonly IHostBanService _hostBans = hostBans;
+	private readonly ISteamService _steam = steam;
 
 	protected override void Handle(ulong sender, HandshakeMsg msg, IHandshakeHandlerContext ctx)
 	{
@@ -82,6 +84,7 @@ public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandl
 		{
 			member = session.GetOrCreateMember(sender);
 			member.InWorld = peerState == SceneStateType.InWorld;
+			member.DisplayName = msg.DisplayName;
 			// Cross-session restore: the disk-backed character save outlives the
 			// session — a returning player gets it back once the host has a live
 			// world (CharacterDataStore.SendSavedCharacter gates on LocalInWorld);
@@ -110,6 +113,7 @@ public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandl
 			}
 
 			member.InWorld = peerState == SceneStateType.InWorld;
+			member.DisplayName = msg.DisplayName;
 			ctx.CharacterData.SendSavedCharacter(sender);
 		}
 
@@ -153,6 +157,11 @@ public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandl
 			Protocol = ProtocolVersion.Current,
 			Scene = new SceneStateMsg { State = (byte)session.LocalSceneState },
 			HasWorldParams = ctx.World.WorldParams is not null,
+			// Always carry the sender's logical peer id / SteamID. It is a
+			// no-op for Steam (the guest already knows its SteamID) and is the
+			// assigned identity for IP-direct guests.
+			AssignedPeerId = sender,
+			DisplayName = _steam.GetPersonaName(_steam.LocalSteamId),
 		});
 		var worldParams = ctx.World.WorldParams;
 		if (worldParams is not null)

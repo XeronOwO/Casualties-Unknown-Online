@@ -20,6 +20,8 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 
 	public bool IsWaitingForReady => domains.Gate.WaitingForReady;
 
+	public bool IsOnlineUiModalOpen => domains.MenuInput.IsModal;
+
 	public bool IsInGateWindow => domains.Run.IsInGateWindow;
 
 	public bool IsSessionActive => domains.Session.SessionActive;
@@ -256,6 +258,9 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 	public void OnGrabberGrabbed(Body body) => domains.EnemyProximity.ReportGrabberGrabbed(body);
 
 	public void OnArmSwing() => domains.Entities.MarkLocalAttackSwing();
+
+	public void OnAttackAnim(string prefab, Vector2 direction, bool isRight, Vector2 position) =>
+		domains.CharacterAttackAnimSync.Report(prefab, direction, isRight, position);
 
 	public void OnCharacterSound(CharacterSoundKind kind, string clip, Vector2 pos, float volume, bool followOwner, bool twoDimensional, float recoilDegrees) =>
 		domains.CharacterSoundSync.Report(kind, clip, pos, volume, followOwner, twoDimensional, recoilDegrees);

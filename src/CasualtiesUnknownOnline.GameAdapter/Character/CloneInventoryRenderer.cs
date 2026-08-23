@@ -24,7 +24,7 @@ internal sealed class CloneInventoryRenderer(ILogger<CloneInventoryRenderer> log
 
 	internal void ApplyCloneInventory(Body clone, CharacterDataMsg data)
 	{
-		_log.LogInformation("[CloneRender] apply {Count} items to clone slots ({Slots} slots).", data.Items.Count, clone.slots.Length);
+		_log.LogDebug("[CloneRender] apply {Count} items to clone slots ({Slots} slots).", data.Items.Count, clone.slots.Length);
 		foreach (var slot in clone.slots)
 		{
 			if (slot == null) // Unity object — ==

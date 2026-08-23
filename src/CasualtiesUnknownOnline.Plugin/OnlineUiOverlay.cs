@@ -30,6 +30,21 @@ internal sealed class OnlineUiOverlay
 	/// <summary>Invoked when the user clicks Leave Lobby / Close Room.</summary>
 	internal Func<bool>? LeaveLobby;
 
+	/// <summary>Invoked when the user clicks Create IP Host.</summary>
+	internal Func<bool>? CreateIpHost;
+
+	/// <summary>Invoked when the user clicks Join IP with an address/port.</summary>
+	internal Func<string, int, bool>? JoinIp;
+
+	/// <summary>Invoked when the user clicks Leave IP Direct.</summary>
+	internal Func<bool>? LeaveIp;
+
+	/// <summary>The IP-direct config editor (address/port/display name fields).</summary>
+	internal IpDirectConfigEditor? IpConfig;
+
+	/// <summary>Set by the plugin each frame; true while the router is on the IP-direct path.</summary>
+	internal bool IpDirectActive;
+
 	/// <summary>Invoked when the user clicks Take on one of a remote player's inventory lines.</summary>
 	internal Func<ulong, ulong, bool>? TakeItem;
 
@@ -65,7 +80,19 @@ internal sealed class OnlineUiOverlay
 
 	private readonly OnlineUiWindow _window = new();
 
+	private readonly OnlineUiPlayerContextMenu _contextMenu = new();
+
+	private const float StatusDelaySeconds = 1.5f;
+	private const float StatusHoldSeconds = 15f;
+
+	private string? _statusMessage;
+	private float _statusSetTime = float.NegativeInfinity;
+	private bool _lastHadSession;
+
 	internal bool IsWindowVisible => _window.State.Visible;
+
+	/// <summary>Programmatic close (ESC hotkey); the modal guard sees it on the next frame's adapter call.</summary>
+	internal void CloseWindow() => _window.State.Visible = false;
 
 	internal void Draw(
 		SteamService steam,
@@ -79,6 +106,8 @@ internal sealed class OnlineUiOverlay
 		IGameAdapter? adapter,
 		ILocalizationService localization,
 		HostRulesConfigEditor? rulesEditor,
+		LoggingConfigEditor? logging,
+		LocalizationConfigEditor? language,
 		string? lastJoinError)
 	{
 		var ctx = new OnlineUiContext
@@ -93,12 +122,19 @@ internal sealed class OnlineUiOverlay
 			HostRules = hostRules,
 			Localization = localization,
 			RulesEditor = rulesEditor,
+			Logging = logging,
+			Language = language,
 			Adapter = adapter,
 			LastJoinError = lastJoinError,
 			State = _window.State,
 			JoinLobby = JoinLobby,
 			CreateLobby = CreateLobby,
 			LeaveLobby = LeaveLobby,
+			CreateIpHost = CreateIpHost,
+			JoinIp = JoinIp,
+			LeaveIp = LeaveIp,
+			IpConfig = IpConfig,
+			IpDirectActive = IpDirectActive,
 			TakeItem = TakeItem,
 			CarryRemote = CarryRemote,
 			DropCarried = DropCarried,
@@ -112,11 +148,173 @@ internal sealed class OnlineUiOverlay
 			HasHealItem = HasHealItem,
 		};
 
+		// ESC closes the modal Online UI. The native PlayerCamera.HandleInput
+		// pause/menu handling is already short-circuited by the adapter when
+		// the modal is open, and this OnGUI frame runs after Update, so the
+		// same key cannot reach the game's pause path.
+		var esc = Event.current;
+		if (_window.State.Visible
+			&& esc != null
+			&& esc.type == EventType.KeyDown
+			&& esc.keyCode == KeyCode.Escape)
+		{
+			CloseWindow();
+			esc.Use();
+		}
+
 		_window.Draw(ctx);
-		DrawNameplatesAndArrows(steam, session, entities, vitals);
+		UpdateDelayedStatus(ctx);
+		DrawNetworkHud(ctx);
+		DrawNameplatesAndArrows(ctx, entities, vitals);
+		DrawPlayerContextMenu(ctx);
 	}
 
-	private static void DrawNameplatesAndArrows(SteamService steam, SessionService session, EntitySyncService entities, RemoteVitalsService vitals)
+	private void UpdateDelayedStatus(OnlineUiContext ctx)
+	{
+		var hadSession = ctx.IpDirectActive
+			|| ctx.Session.SessionActive
+			|| ctx.Session.Role != Runtime.Session.SessionRole.None;
+		if (hadSession == _lastHadSession)
+		{
+			return;
+		}
+
+		_lastHadSession = hadSession;
+		if (hadSession)
+		{
+			var message = ctx.IpDirectActive
+				? ctx.T(ctx.Session.Role == Runtime.Session.SessionRole.Host ? "hud.ip_host_started" : "hud.ip_guest_joined")
+				: ctx.T(ctx.Session.Role == Runtime.Session.SessionRole.Host ? "hud.steam_host_started" : "hud.steam_guest_joined");
+			Notify(message);
+		}
+		else
+		{
+			Notify(ctx.T("hud.session_ended"));
+		}
+	}
+
+	internal void Notify(string message)
+	{
+		_statusMessage = message;
+		_statusSetTime = Time.realtimeSinceStartup;
+	}
+
+	private void DrawNetworkHud(OnlineUiContext ctx)
+	{
+		if (!ctx.IpDirectActive && ctx.Steam.CurrentLobbyId == 0 && ctx.Session.Role == Runtime.Session.SessionRole.None)
+		{
+			return;
+		}
+
+		// Minimal top-left readout: no background panel (the game shows the
+		// hand-held item there), only the live RTT plus the latest delayed
+		// session event. Full details are in the Online UI window.
+		var rect = new Rect(8f, 8f, 220f, 48f);
+		GUILayout.BeginArea(rect);
+		var rtt = ctx.Session.LastRttMs >= 0f ? $"{ctx.Session.LastRttMs:F0} ms" : ctx.T("common.pending");
+		GUILayout.Label($"{ctx.T("hud.rtt")}: {rtt}", OnlineUiTheme.MutedLabel());
+
+		var elapsed = Time.realtimeSinceStartup - _statusSetTime;
+		if (_statusMessage is not null && elapsed >= StatusDelaySeconds && elapsed <= StatusDelaySeconds + StatusHoldSeconds)
+		{
+			GUILayout.Label(_statusMessage, OnlineUiTheme.Status(OnlineUiTheme.Positive));
+		}
+		else if (_statusMessage is not null && elapsed > StatusDelaySeconds + StatusHoldSeconds)
+		{
+			_statusMessage = null;
+		}
+
+		GUILayout.EndArea();
+	}
+
+	private void DrawPlayerContextMenu(OnlineUiContext ctx)
+	{
+		HandleContextMenuInput(ctx);
+		_contextMenu.Draw(ctx);
+	}
+
+	private void HandleContextMenuInput(OnlineUiContext ctx)
+	{
+		var evt = Event.current;
+		if (evt == null || evt.type != EventType.MouseDown)
+		{
+			return;
+		}
+
+		var mouse = evt.mousePosition;
+		if (evt.button == 1)
+		{
+			// Right-clicks inside the Online window belong to the UI, not the
+			// world; never open/re-target/close the in-world menu from there.
+			if (_window.ContainsPoint(mouse))
+			{
+				return;
+			}
+
+			// A right-click inside an already-open menu is left for the menu
+			// buttons (or a future switch); it must not re-target/re-close.
+			if (_contextMenu.IsOpen && _contextMenu.Contains(mouse))
+			{
+				return;
+			}
+
+			if (TryFindRemoteAt(mouse, ctx, out var remoteSteamId))
+			{
+				_contextMenu.Open(remoteSteamId, mouse);
+				evt.Use();
+			}
+			else if (_contextMenu.IsOpen)
+			{
+				_contextMenu.Close();
+				evt.Use();
+			}
+
+			return;
+		}
+
+		if (evt.button == 0 && _contextMenu.IsOpen && !_contextMenu.Contains(mouse))
+		{
+			_contextMenu.Close();
+		}
+	}
+
+	private static bool TryFindRemoteAt(Vector2 guiMouse, OnlineUiContext ctx, out ulong steamId)
+	{
+		var camera = Camera.main;
+		if (camera == null)
+		{
+			steamId = 0;
+			return false;
+		}
+
+		const float radius = 48f;
+		foreach (var remote in ctx.Entities.RemotePlayers)
+		{
+			if (remote.IsLocal || !ctx.Session.IsRemoteInWorld(remote.SteamId))
+			{
+				continue;
+			}
+
+			var world = new Vector3(remote.Position.X, remote.Position.Y, 0f);
+			var screen = camera.WorldToScreenPoint(world);
+			if (screen.z < 0f)
+			{
+				continue;
+			}
+
+			var gui = new Vector2(screen.x, Screen.height - screen.y);
+			if (Vector2.Distance(guiMouse, gui) <= radius)
+			{
+				steamId = remote.SteamId;
+				return true;
+			}
+		}
+
+		steamId = 0;
+		return false;
+	}
+
+	private static void DrawNameplatesAndArrows(OnlineUiContext ctx, EntitySyncService entities, RemoteVitalsService vitals)
 	{
 		var camera = Camera.main;
 		if (camera == null)
@@ -127,7 +325,7 @@ internal sealed class OnlineUiOverlay
 		const float margin = 28f;
 		foreach (var remote in entities.RemotePlayers)
 		{
-			if (remote.IsLocal || !session.IsRemoteInWorld(remote.SteamId))
+			if (remote.IsLocal || !ctx.Session.IsRemoteInWorld(remote.SteamId))
 			{
 				continue;
 			}
@@ -140,11 +338,11 @@ internal sealed class OnlineUiOverlay
 
 			if (placement.Direction == OffScreenArrowDirection.None)
 			{
-				DrawNameplate(placement.X, placement.Y, DisplayName(steam, remote.SteamId), remote, vitals);
+				DrawNameplate(placement.X, placement.Y, ctx.DisplayName(remote.SteamId), remote, vitals);
 			}
 			else
 			{
-				DrawOffScreenArrow(placement, DisplayName(steam, remote.SteamId));
+				DrawOffScreenArrow(placement, ctx.DisplayName(remote.SteamId));
 			}
 		}
 	}
@@ -201,9 +399,4 @@ internal sealed class OnlineUiOverlay
 		GUI.Label(new Rect(placement.X - 70f, placement.Y + 12f, 140f, 16f), name, nameStyle);
 	}
 
-	private static string DisplayName(SteamService steam, ulong steamId)
-	{
-		var name = steam.GetPersonaName(steamId);
-		return string.IsNullOrWhiteSpace(name) ? $"player-{steamId:X}" : name;
-	}
 }

@@ -24,6 +24,7 @@ Open work only. Landed delivery details are not duplicated here; they live in:
 - **Owner-local body auto-event presentation audit** closed: `RemoteBodyFactory` now disables `Vomiter`/`SelfHarmer`/`PantSound`/`MoodChangeSounds`/`SleepingBagUse` on render clones — these `Update` methods are not covered by the `Body.Update`/`Limb.Update` render-proxy skips, and two of them read the local player's body. Owner-local by design. See `docs/selfchecks/owner-local-body-auto-events-selfcheck.md` and `docs/tech-decisions.md` #57.
 - **RadiationLine straggler pressure** closed: the host now activates the line in co-op when at least one living player has reached the layer bottom and another living player remains above it; the existing `RadiationLineState` (NetMsg 106) world-state sync carries the activation to every side. No protocol change. See `docs/selfchecks/radiation-straggler-pressure-selfcheck.md` and `docs/tech-decisions.md` #58.
 - **Log-level cleanup** closed: high-frequency periodic sync logs (1 Hz character snapshot/relay, fluid region stream send/apply, 5 s trader fallback snapshot) now log at Debug; one-shot/error events stay at Information/Warn/Error. See `docs/selfchecks/log-level-cleanup-selfcheck.md`.
+- **IP direct connection (non-Steam transport)** closed: a second TCP transport/identity path lets players host/join directly by IP:port without Steam P2P (LAN, port-forward, VPN). The host is logical peer id 1, guests send a random transport hello, and the existing session/handshake/star-relay stack is reused unchanged. Custom display names are carried on handshake/player-join and rendered by the Online UI; a small top-left network HUD shows live RTT plus delayed session-status text. IP-direct and Steam sessions are separate modes and are not interconnected. No new NetMsg / protocol bump (additive protobuf fields only). See `docs/selfchecks/ip-direct-selfcheck.md` and `docs/tech-decisions.md` #82.
 - **Trader Recruit (revive at a trader)** closed as the first co-op revive slice: a living player at a friendly, undamaged trader can revive a dead in-world teammate. Dedicated `TraderRecruitRequest`/`TraderRecruitResult` (NetMsg 107/108, ProtocolVersion 35), host-authoritative trade gates + one-use-per-trader, in-place health revive (no inventory wipe/position teleport). The random trader-stock bonus items slice (1–3 items, ProtocolVersion 37) is closed too; see `docs/selfchecks/trader-recruit-gift-items-selfcheck.md`. See `docs/selfchecks/trader-recruit-selfcheck.md` and `docs/tech-decisions.md` #59/#62.
 - **Revive/respawn rules** closed: Permadeath, trader-revive permission, next-level auto-respawn, keep-inventory/keep-skills, save-persistence, and revived re-entry for players who already left the world now ride a host-authoritative `RespawnOptions`/`RespawnPolicy`/`RespawnCoordinator` rule set; no protocol change (ProtocolVersion 35). See `docs/selfchecks/respawn-rules-selfcheck.md` and `docs/tech-decisions.md` #60.
 - **Text chat** closed: a simple host-relayed chat line (`ChatMsg`, NetMsg 109, ProtocolVersion 36) with a bounded Runtime recent-buffer and a bottom-right IMGUI panel; the host validates sender identity/text and relays to the other members. See `docs/selfchecks/chat-selfcheck.md` and `docs/tech-decisions.md` #61. **UI disabled 2026-08-23**: the bottom-right IMGUI chat panel is removed from the overlay (the input-focus/Tab/WASD conflict) pending a Minecraft-style command console; the Runtime chat channel/service and wire message remain for the future redo.
@@ -97,13 +98,16 @@ Read-only audit of the decompiled animation/visual triggers against CUO sync
 paths. The item/entity matrices remain clean, but several transient animation
 presentations still have no dedicated event or periodic field:
 
-- **Player attack `attackAnim` prefab — NOT_SYNCED**.
+- **Player attack `attackAnim` prefab — CLOSED (2026-08-23)**.
   `Body.Attack` instantiates `ClawAnim` / `SwingAnim` / `LaserAnim`
-  (`Body.cs:1913-1920`); only `ArmsSwing` and the swing sound are replayed on
-  peer clones.
-- **Direct placeable-item `ArmsSwing` — NOT_SYNCED** for `scrapmetal`,
-  `climbingrope`, and `scaffoldingpack` (`Item.cs:2165/2208/2249`); these
-  bypass `Body.Attack`/`ThrowItem`, so `OnArmSwing()` never fires.
+  (`Body.cs:1913-1920`); the exact prefab + facing + attack direction now travel
+  as one dedicated reliable `CharacterAttackAnimMsg` (NetMsg 113,
+  ProtocolVersion 41) and every peer replays the same visual on the owner's
+  render clone. `ArmsSwing` and the swing sound continue to ride their existing
+  paths.
+- **Direct placeable-item `ArmsSwing` — CLOSED (2026-08-23)**. Successful
+  `scrapmetal` / `climbingrope` / `scaffoldingpack` placements now report through
+  the existing `OnArmSwing` / 20 Hz swing stream; no protocol change.
 - **Workout/exercise animations — NOT_SYNCED** (`Body.cs:368-435`): `exercising`
   and the pushup/squat/plank clips are not carried in the entity or character
   state.
@@ -127,8 +131,9 @@ presentations still have no dedicated event or periodic field:
   brain-damage ragdoll shake, `specialCrying`, and underwater/waterdrip
   particle branches remain owner-side/local.
 
-These are presentation-only observations; no protocol or gameplay-state change
-has been made for them yet.
+The player attack-anim and direct placeable-item rows above are now closed; the
+remaining lines are presentation-only observations, with no protocol or
+gameplay-state change made for them yet.
 
 ### Exploration 2026-08-23 — KrokMP-inspired co-op features
 
@@ -139,6 +144,10 @@ has been made for them yet.
 - **Host kick (first admin slice)** — **CLOSED (2026-08-23)**. The host can remove a guest from the session with a dedicated `Kicked` message (NetMsg 111, ProtocolVersion 39); the target tears its session down, the host's existing member-removal path cleans up the remaining peers. As a small adjacent polish item, the Online UI member list now shows each member's own RTT. Remaining admin/ban/vote slices stay lower priority. See `docs/selfchecks/host-kick-selfcheck.md` and `docs/tech-decisions.md` #76.
 - **Host ban (second admin slice)** — **CLOSED (2026-08-23)**. The host can permanently reject a guest SteamID with a dedicated `Banned` message (NetMsg 112, ProtocolVersion 40); the ban list is persisted by `HostBanService` + `HostBanFileStore`, `HandshakeHandler` rejects the SteamID before roster creation, and `Unban` is exposed through the same service. See `docs/selfchecks/host-ban-selfcheck.md` and `docs/tech-decisions.md` #77.
 - **PVP** — MEDIUM/HIGH but complex. No player-to-player damage domain today; defer until PvE, rules, and accept-first arbitration are stable. See §2.6.
+- **Player nameplates / off-screen indicators / player colors** — OPEN (MEDIUM). KrokMP shows player names above heads, an off-screen name + arrow + distance, and player-custom colors to distinguish teammates. CUO already has basic in-world nameplates and off-screen arrows (`OnlineUiOverlay.DrawNameplatesAndArrows`), but no distance readout and no per-player color assignment. See `docs/exploration-2026-08-23.md` §2.8.
+- **In-world right-click player interaction menu** — **CLOSED (2026-08-23)**. Right-clicking near a remote player now opens a context menu reusing the Players-page action eligibility (Carry/Drop/Heal/Recruit/Take) plus an always-available "View items" fallback that opens the Online window Players page and expands that member. It uses authoritative entity positions instead of the remote clones' disabled colliders. No protocol change. See `docs/selfchecks/character-attack-anim-and-player-context-menu-selfcheck.md` and `docs/tech-decisions.md` #84.
+- **Cross-player item use (give/feed/drink/wear/use an item on another player)** — **OPEN (MEDIUM, 2026-08-23)**. The only cross-player item-effect operation today is the dedicated Heal slice (fixed medical-item profiles). There is no generic “use item on remote player” request/result, so dragging a water bottle/food/medicine/usable item onto another player to make them drink/eat/use it is not implemented. Design should follow the existing host-authoritative pattern: host validates the acting player and target character snapshots, consumes/updates the acted item, applies the target-side body effect to the authoritative snapshot, and tells both participants the exact resulting state. First slice candidates: water containers (Drink) and food/consumables; UI should expose the choice from the in-world context menu (or from the drag target) when an appropriate item is held.
+- **Overlapping remote-player target disambiguation in in-world UI** — **OPEN (LOW/MEDIUM, 2026-08-23)**. When multiple remote players overlap on screen, the current right-click hit-test silently picks the first matching authoritative position and the context menu title shows only that one player; there is no explicit way to list/choose between stacked targets. The context menu does display the chosen player's name and the Players page expands the same member, which prevents most mistakes after opening, but the overlap case still needs a visible target selector (e.g. a small candidate list/cycle in the menu, or a distinct in-world selection indicator) before a cross-player use/carry action is triggered.
 - **Other lower-priority KrokMP candidates** — voice, vote-kick, co-op keybinds, push/piggyback, status icons, and any remaining player-list polish. Ban is closed as the second admin slice (see above). See §2.7.
 
 ### Exploration 2026-08-23 — architecture & quality debt
@@ -156,6 +165,20 @@ Measurement-first items; do not optimize before data exists.
 
 - **State-stream bandwidth reduction** (only after the monitor shows need): candidates include fixed-point/quantized positions, per-entity update masks / delta encoding, and field-dirty batching for 20 Hz player/enemy streams and 1 Hz `CharacterDataMsg`. No change before measurement; gameplay and visual quality must not regress.
 - **Snapshot size reduction** — full world-item / character-data snapshots are correctness-oriented; only optimize after the traffic monitor identifies a dominant family.
+
+### Networking / transport candidate
+
+- **IP direct connection (non-Steam transport)** — **CLOSED (2026-08-23)**. TCP IP-direct host/join by IP:port, custom display name, separate non-interconnected mode, and a top-left RTT/status HUD are landed. See `docs/selfchecks/ip-direct-selfcheck.md` and `docs/tech-decisions.md` #82.
+
+### Configuration / preferences
+
+- **Custom configuration template system** — OPEN. When the multiplayer preference/config items grow, provide a reusable template system so players can easily edit and switch between full configuration profiles (e.g. log level, language, display/nameplate/color preferences, IP-direct/network settings). The default/built-in configuration should also be editable and savable as a template, not a read-only preset. Intended to build on the existing Preferences page and BepInEx config-backed options.
+- **Custom run-settings range broadening for co-op** — OPEN. The base game's custom run-settings screen (`PreRunScript.ToggleCustomSettings`, `RunSettings.settingTypes`) exposes numeric sliders tuned for single-player (e.g. `baselootdensity` 0–2, `basetrapdensity` 0–3, `traderchance` 0–100, `timelimit` 5–300). In co-op the host should be able to widen these ranges (and/or add scalable per-player pressure options) so the run can be tuned to the actual lobby size; the start screen is already host-only, and changed values must continue to ride the existing world-start params. No protocol change expected beyond host-side range/UI work.
+- **Dedicated standalone player-interaction UI** — OPEN (design). Player interactions currently live in the Online window Players page rows plus the in-world right-click context menu; evaluate whether a dedicated compact interaction panel (target + available actions + immediate result) is a better fit for frequent co-op actions than requiring the full Online window. Decide before implementing; no code change yet.
+
+### Performance profiling / instrumentation
+
+- **Hot-path latency instrumentation** — OPEN. Add lightweight instrumentation/timing for compute-heavy scenes (e.g. fluid simulation, physics simulation, world generation, entity/enemy sync) so we can measure call/frame latency and identify hotspots. Instrumentation should be opt-in or gated behind the existing logging/debug configuration to avoid affecting normal play; no premature optimization.
 
 ### Final acceptance (not development work)
 

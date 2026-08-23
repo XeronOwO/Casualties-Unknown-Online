@@ -2348,3 +2348,127 @@ was read-only for host rules. This entry adds both.
   green, real-game launch smoke no CUO exception.
 
 See `docs/selfchecks/lobby-leave-host-rules-editor-selfcheck.md`.
+
+## 82. IP direct connection — non-Steam TCP transport (no protocol bump)
+
+This closes the backlog "Networking / transport candidate" item. It allows
+players to host/join by IP:port directly (LAN, port-forward, VPN), without Steam
+P2P, with a custom in-game display name because there is no Steam persona.
+
+- **Transport** — `IpDirectTransport` implements `INetworkTransport` over TCP:
+  length-prefixed frames, a transport-level 8-byte hello carrying each guest's
+  random logical peer id, host id always `1`. All frames are reliable (TCP);
+  the `reliable` flag is accepted and ignored, a safe degradation for the first
+  slice.
+- **Identity path** — `IpDirectSteamService` implements `ISteamService` and
+  presents the TCP session as a lobby to the existing `SessionService`. The
+  router (`CuoNetworkRouter`) is the single seam exposing either the Steam or
+  IP-direct pair as `INetworkTransport` / `ISteamService`; the rest of the
+  runtime has no mode branches.
+- **Display names** — `HandshakeMsg`, `HandshakeAckMsg` and `PlayerJoinMsg`
+  gain additive optional display-name fields; `MemberPresence` stores names so
+  the UI can render custom IP-direct names without Steam persona. No new NetMsg
+  and no `ProtocolVersion` bump (additive fields only).
+- **UI/config** — Home page has IP host/join fields; Players/Network use the
+  custom names; `[IpDirect]` BepInEx config entries cover listen port, join
+  address/port and display name. A small top-left network HUD shows live RTT and
+  delayed (1.5 s) session-status text.
+- **Separation** — IP-direct and Steam sessions are deliberately separate and
+  not interconnected; guards prevent starting one while the other is active.
+- **Tests/gates** — real loopback TCP transport tests, IP adapter tests, two
+  full-container end-to-end handshake/name tests; build 0 warnings/errors,
+  architecture pass, full suite 1299 green.
+
+See `docs/selfchecks/ip-direct-selfcheck.md`.
+
+## 83. Character attack-animation sync — dedicated one-shot visual event (ProtocolVersion 41)
+
+`Body.Attack` instantiates a one-shot `attackAnim` prefab on the attacker's
+body (`ClawAnim` / `SwingAnim` / `LaserAnim`, Body.cs:1913-1920). This was the
+remaining player-attack visual gap after the `ArmsSwing` clip and swing audio
+were already synced.
+
+- **Wire** — `CharacterAttackAnimMsg` (NetMsg 113, ProtocolVersion 41) carries
+  `OwnerSteamId`, the Resources prefab name, the anchor position, the normalized
+  attack direction and the owner's facing sign. Star semantics: guest → host
+  report, host fires + relays (source excluded); host → guest relay fires the
+  replay.
+- **Adapter** — `CharacterAttackAnimSync` replays the exact prefab on the
+  owner's render clone (parented to the clone's body and anchored at the clone's
+  live arm when available; fallback to the reported position during a
+  clone-creation race). The replay runs inside a `RemoteApply` scope so capture
+  patches cannot echo it.
+- **Capture** — `BodyAttackPatch` now carries the prefab name across
+  Prefix→Postfix and reports after the verified swing, using the final
+  `isRight`/`targetLookPos`/arm position, so the visual matches the original
+  facing even when the attack flipped the body.
+- **Tests/gates** — new `CharacterAttackAnimSyncTests` cover protobuf
+  round-trip, guest→host relay, host broadcast and guest relay fire; full suite
+  green.
+
+## 84. In-world right-click player interaction menu (no protocol bump)
+
+KrokMP had a right-click player interaction menu; CUO's direct interactions
+(Take/Carry/Heal/Recruit) previously lived only in the Online window Players
+page. Remote render clones deliberately have no colliders (physics-off proxies),
+so the CUO world cannot use the game's `Physics2D.OverlapPoint` body hit path
+directly.
+
+- **Presentation** — a new `OnlineUiPlayerContextMenu` opens when the user
+  right-clicks near a remote player's authoritative stream position; it reuses
+  the same `OnlineUiMemberProjection` eligibility rows and action delegates as
+  the Players page, so carry/drop/heal/recruit/take are not duplicated.
+- **Fallback** — every in-world remote row has a "View items" action that opens
+  the Online window Players page and expands that member, so a right-click
+  always produces a useful menu even when no direct action is currently
+  eligible.
+- No wire/protocol change; pure UI presentation over existing runtime facts.
+
+## 85. Direct placeable-item ArmsSwing sync (no protocol bump)
+
+The animation-audit row for the three direct placeable item use actions was
+open: `scrapmetal`, `climbingrope` and `scaffoldingpack` play
+`ArmsSwing` inside their own `ItemInfo.useAction` delegates
+(`Item.cs:2165/2208/2249`), bypassing `Body.Attack`/`Body.ThrowItem`, so
+`OnArmSwing()` never fired and peer clones did not see the swing.
+
+- **Capture** — new `DirectPlaceableUseItemPatch` (drag/`Body.UseItem`) and
+  `DirectPlaceableUseItemInHandPatch` (LMB hand use, Body.cs:2449-2455) capture
+  the item condition in Prefix and report after the native use when the
+  condition actually dropped (the same cost the successful action writes: 0.25 /
+  0.501 / 0.01). This makes gated/failed placements (no canPlaceBlock, occupied
+  target, low condition) invisible to sync, matching the native ArmsSwing
+  behavior.
+- **Pure rule** — `DirectPlaceableArmSwingPolicy` owns the item-id + condition
+  delta decision so the adapter patch stays thin and the rule has an L0 test
+  face.
+- **Scope** — only a local, non-carried body in `CallContext.Origin.LocalAction`
+  reports; craft/remote/internal scopes are excluded.
+- **No wire/protocol change** — the report reuses the existing
+  `OnArmSwing` → `IsAttacking`/`SwingSeq` 20 Hz entity stream.
+
+Tests: `DirectPlaceableArmSwingPatchTests` (5) cover the pure rule, the patch
+surfaces and the auto-generated `Body.UseItem` / `Body.UseItemInHand`
+contracts. See `docs/selfchecks/direct-placeable-arm-swing-selfcheck.md`.
+
+## 86. Online UI polish + idempotent world-time resend (no protocol bump)
+
+A user-facing UI/UX pass on the Online UI plus a repeated world-time sound fix:
+
+- **Home / Players split** — lobby identity, owner, member count, copy-id and
+  leave/close moved to the Home page's session block; the Players page is now
+  only the roster + direct interaction surface.
+- **Minimal top-left HUD** — the dark HUD panel over the game's hand-item
+  display is gone; only RTT and the latest delayed session event remain, and
+  the event hold is extended to 15 s. Full details stay in the Online UI.
+- **Modal click + ESC** — window click states are neutralized (no background
+  tint), `PlayerCamera.HandleInput` and `PauseHandler.TogglePause` are
+  suppressed while the Online UI modal is open, and ESC closes the modal. The
+  modal input guard remains the single owner of background input blocking.
+- **World-time sound** — `OnTimeReceived` skips re-applying an unchanged
+  authoritative speed, so the 5 s periodic resend no longer repeats the
+  speed-change sound; a real speed change still plays it once.
+- No wire/protocol change.
+
+Tests/gates: full suite 1309 green, build/format/architecture/event gates pass.
+See `docs/selfchecks/online-ui-polish-selfcheck.md`.

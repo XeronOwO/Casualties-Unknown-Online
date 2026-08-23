@@ -24,7 +24,7 @@ public sealed class CharacterSoundHandler(ILogger<CharacterSoundHandler> log) : 
 			ctx.Session.BroadcastExcept(sender, NetMsg.CharacterSound, msg);
 		}
 
-		_log.LogInformation("[CharacterSound] owner {Owner} kind {Kind} clip {Clip} from {Sender}.",
+		_log.LogDebug("[CharacterSound] owner {Owner} kind {Kind} clip {Clip} from {Sender}.",
 			msg.OwnerSteamId, msg.Kind, msg.Clip, sender);
 	}
 }

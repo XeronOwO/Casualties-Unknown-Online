@@ -19,6 +19,6 @@ public sealed class BlockPlacedHandler(ILogger<BlockPlacedHandler> log) : Packet
 	protected override void Handle(ulong sender, BlockPlacedMsg msg, IWorldHandlerContext ctx)
 	{
 		ctx.World.FireBlockPlacedReceived(sender, msg.X, msg.Y, msg.Block);
-		_log.LogInformation("Block placed at ({X},{Y}) type {Block} from {Sender}.", msg.X, msg.Y, msg.Block, sender);
+		_log.LogDebug("Block placed at ({X},{Y}) type {Block} from {Sender}.", msg.X, msg.Y, msg.Block, sender);
 	}
 }

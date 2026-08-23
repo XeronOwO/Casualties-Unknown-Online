@@ -293,6 +293,9 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable
 	/// <summary>A character action sound arrived (report or relay) — the Game Adapter replays it on the owner's clone.</summary>
 	public event Action<ulong, CharacterSoundMsg>? CharacterSoundReceived;
 
+	/// <summary>A character attack-animation event arrived (report or relay) — the Game Adapter replays it on the owner's clone.</summary>
+	public event Action<ulong, CharacterAttackAnimMsg>? CharacterAttackAnimReceived;
+
 	/// <summary>Host side: merge a limb-latch event's full terminal state into the owner's saved snapshot immediately — a disconnect before the next 1 Hz report must still restore every changed limb + body field (the dedicated event is the trigger; the snapshot is only the fallback).</summary>
 	public void ApplyLimbStateEvent(LimbStateEventMsg msg)
 	{
@@ -354,6 +357,31 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable
 		}
 	}
 
+	/// <summary>
+	/// Report/broadcast a character attack animation: a guest reports its own
+	/// visual to the host; the host broadcasts its own to every handshaken
+	/// guest. Reliable — one animation = one message, the visual trigger never
+	/// rides the snapshot stream.
+	/// </summary>
+	public void SendCharacterAttackAnim(CharacterAttackAnimMsg msg)
+	{
+		if (!_session.SessionActive)
+		{
+			return;
+		}
+
+		if (_session.Role == SessionRole.Host)
+		{
+			_sender.SendToAll(
+				_session.Members.Where(m => m.Handshaken && m.SteamId != _session.LocalSteamId).Select(m => m.SteamId),
+				NetMsg.CharacterAttackAnim, msg, reliable: true);
+		}
+		else
+		{
+			_sender.Send(_session.HostSteamId, NetMsg.CharacterAttackAnim, msg);
+		}
+	}
+
 	// ---- ICharacterDataControl (the packet handlers' control surface) ----
 
 	void ICharacterDataControl.SaveCharacterData(ulong steamId, CharacterDataMsg msg) => SaveCharacterData(steamId, msg);
@@ -381,7 +409,7 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable
 		// exactly for OwnerSteamId == itself.
 		msg.OwnerSteamId = ownerSteamId;
 		_session.BroadcastExcept(ownerSteamId, NetMsg.CharacterData, msg);
-		_log.LogInformation("Relayed character data of {Owner} to the other guests ({Items} items).", ownerSteamId, msg.Items.Count);
+		_log.LogDebug("Relayed character data of {Owner} to the other guests ({Items} items).", ownerSteamId, msg.Items.Count);
 	}
 
 	void ICharacterDataControl.FireCharacterDataReceived(ulong sender, CharacterDataMsg msg) =>
@@ -407,4 +435,9 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable
 		CharacterSoundReceived?.Invoke(sender, msg);
 
 	void ICharacterDataControl.SendCharacterSound(CharacterSoundMsg msg) => SendCharacterSound(msg);
+
+	void ICharacterDataControl.FireCharacterAttackAnimReceived(ulong sender, CharacterAttackAnimMsg msg) =>
+		CharacterAttackAnimReceived?.Invoke(sender, msg);
+
+	void ICharacterDataControl.SendCharacterAttackAnim(CharacterAttackAnimMsg msg) => SendCharacterAttackAnim(msg);
 }

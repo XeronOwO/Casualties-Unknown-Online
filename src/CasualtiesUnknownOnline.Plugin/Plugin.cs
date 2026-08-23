@@ -1,7 +1,5 @@
 using System;
 using System.IO;
-using System.Reflection;
-using System.Runtime.InteropServices;
 using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
@@ -9,6 +7,7 @@ using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Localization;
+using CasualtiesUnknownOnline.Runtime.Networking;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
@@ -33,11 +32,17 @@ public class Plugin : BaseUnityPlugin
 	private ICuoService[] _cuoServices = [];
 	private ILogger<Plugin> _log = null!;
 	private SteamService _steam = null!;
+	private CuoNetworkRouter _router = null!;
+	private IpDirectSteamService _ipSteam = null!;
+	private IpDirectConfigEditor _ipConfig = null!;
+	private IpDirectActions _ipActions = null!;
 	private SessionService _session = null!;
 	private IHostBanService _hostBan = null!;
 	private IHostRules _hostRules = null!;
 	private ILocalizationService _localization = null!;
 	private HostRulesConfigEditor _rulesEditor = null!;
+	private LoggingConfigEditor _loggingEditor = null!;
+	private LocalizationConfigEditor _languageEditor = null!;
 	private EntitySyncService _entities = null!;
 	private RemoteVitalsService _remoteVitals = null!;
 	private RemoteInventoryService _remoteInventory = null!;
@@ -49,33 +54,10 @@ public class Plugin : BaseUnityPlugin
 	private string? _lastJoinError;
 	private OnlineUiOverlay _onlineUi = null!;
 
-	[DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-	private static extern IntPtr LoadLibrary(string lpFileName);
-
-	// Loads steam_api64.dll from this plugin's folder so DllImport in
-	// Steamworks.NET resolves it (DllImport only searches the exe dir,
-	// system dirs and PATH by default). Must run before any Steam call.
-	private static void PreloadNativeLibrary()
-	{
-		try
-		{
-			var dir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-			var path = Path.Combine(dir ?? "", "steam_api64.dll");
-			if (LoadLibrary(path) == IntPtr.Zero)
-			{
-				Logger.LogWarning($"CUO: LoadLibrary failed for {path} (Win32 error {Marshal.GetLastWin32Error()})");
-			}
-		}
-		catch (Exception ex)
-		{
-			Logger.LogWarning($"CUO: native library preload failed: {ex.Message}");
-		}
-	}
-
 	private void Awake()
 	{
 		Logger = base.Logger;
-		PreloadNativeLibrary();
+		NativeLibraryPreloader.Preload(Logger);
 
 		try
 		{
@@ -102,17 +84,31 @@ public class Plugin : BaseUnityPlugin
 
 			_log = _services.GetRequiredService<ILogger<Plugin>>();
 			_steam = _services.GetRequiredService<SteamService>();
+			_router = _services.GetRequiredService<CuoNetworkRouter>();
+			_ipSteam = _router.IpDirectSteam;
+			_ipConfig = _services.GetRequiredService<IpDirectConfigEditor>();
+			_ipSteam.SetDisplayName(_ipConfig.DisplayName);
 			_session = _services.GetRequiredService<SessionService>();
 			_hostBan = _services.GetRequiredService<IHostBanService>();
 			_hostRules = _services.GetRequiredService<IHostRules>();
 			_localization = _services.GetRequiredService<ILocalizationService>();
 			_rulesEditor = _services.GetRequiredService<HostRulesConfigEditor>();
+			_loggingEditor = _services.GetRequiredService<LoggingConfigEditor>();
+			_languageEditor = _services.GetRequiredService<LocalizationConfigEditor>();
 			_entities = _services.GetRequiredService<EntitySyncService>();
 			_remoteVitals = _services.GetRequiredService<RemoteVitalsService>();
 			_remoteInventory = _services.GetRequiredService<RemoteInventoryService>();
 			_playerInteraction = _services.GetRequiredService<PlayerInteractionService>();
 			_modUiControl = _services.GetRequiredService<IModUiControl>();
 			_adapter = _services.GetService<IGameAdapter>();
+			_ipActions = new IpDirectActions(
+				_router,
+				_ipSteam,
+				_ipConfig,
+				_session,
+				_adapter,
+				_localization,
+				_services.GetRequiredService<ILogger<IpDirectActions>>());
 			_cuoServices = [.. _services.GetServices<ICuoService>()];
 			_onlineUi = new OnlineUiOverlay
 			{
@@ -121,6 +117,10 @@ public class Plugin : BaseUnityPlugin
 				JoinLobby = TryJoinLobbyFromUi,
 				CreateLobby = TryCreateLobbyFromUi,
 				LeaveLobby = TryLeaveLobbyFromUi,
+				CreateIpHost = _ipActions.CreateHost,
+				JoinIp = _ipActions.Join,
+				LeaveIp = _ipActions.Leave,
+				IpConfig = _ipConfig,
 				TakeItem = TryTakeItemFromRemote,
 				CarryRemote = TryCarryRemoteFromUi,
 				DropCarried = TryDropCarryFromUi,
@@ -304,6 +304,13 @@ public class Plugin : BaseUnityPlugin
 	/// <summary>Join policy: a lobby join always changes identity, so any active world/generation blocks it. The reason is visible on the test HUD.</summary>
 	private bool CanSwitchLobbyForJoin()
 	{
+		if (_ipSteam.IsActive)
+		{
+			_lastJoinError = _localization.T("ip.blocked_active_session");
+			_log.LogWarning("Steam lobby join refused: an IP-direct session is active.");
+			return false;
+		}
+
 		if (_adapter is not { IsInWorldOrGenerating: true })
 		{
 			return true;
@@ -317,6 +324,13 @@ public class Plugin : BaseUnityPlugin
 	/// <summary>Create policy: menu is always allowed; in a world only the solo->host conversion is (no session, no identity change away from another host).</summary>
 	private bool CanSwitchLobbyForCreate()
 	{
+		if (_ipSteam.IsActive)
+		{
+			_lastJoinError = _localization.T("ip.blocked_active_session");
+			_log.LogWarning("Steam lobby create refused: an IP-direct session is active.");
+			return false;
+		}
+
 		if (_adapter is not { IsInWorldOrGenerating: true })
 		{
 			return true;
@@ -479,7 +493,13 @@ public class Plugin : BaseUnityPlugin
 			return; // the HUD is hidden behind the gate overlay
 		}
 
-		_onlineUi.Draw(_steam, _session, _entities, _remoteVitals, _remoteInventory, _playerInteraction, _hostBan, _hostRules, _adapter, _localization, _rulesEditor, _lastJoinError);
+		_onlineUi.IpDirectActive = _router.IsIpDirectActive;
+		if (_ipActions.LastError is not null)
+		{
+			_lastJoinError = _ipActions.LastError;
+		}
+
+		_onlineUi.Draw(_steam, _session, _entities, _remoteVitals, _remoteInventory, _playerInteraction, _hostBan, _hostRules, _adapter, _localization, _rulesEditor, _loggingEditor, _languageEditor, _lastJoinError);
 		ModUiDrawing.DrawAll(_modUiControl, e => _log.LogError(e, "Mod UI window threw while drawing."));
 	}
 

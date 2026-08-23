@@ -175,6 +175,25 @@ sync model.
 - Protocol quantization/compression — explicitly measurement-first; CUO already
   has this in backlog as "do not optimize before data".
 
+### 2.8 Player nameplates / off-screen indicators / player colors — OPEN
+
+- KrokMP: shows player names above heads; when a player leaves the screen it
+  shows a name + arrow + distance; players can customize a color to make
+  teammates easier to tell apart.
+- CUO current: the Online UI overlay already draws in-world nameplates and
+  off-screen arrows (`OnlineUiOverlay.DrawNameplatesAndArrows`, `OffScreenArrowGeometry`),
+  but off-screen markers carry no distance readout and there is no per-player
+  color/custom color.
+- Value: improves co-op awareness, especially in larger lobbies; the existing
+  overlay is the natural extension point.
+- Complexity: low-medium; mostly UI/presentation plus deciding where the color
+  comes from (local setting vs host-assigned vs deterministic per-SteamID) and
+  whether it needs to be visible to all players (would need a small sync surface
+  or be local-only cosmetic).
+- Open questions: distance units (game units → meters conversion), readability
+  through walls/whether to keep the current always-visible style, and color
+  storage (per-player local config vs host-side assignment).
+
 ## 3. Architecture / quality audit
 
 ### 3.1 Partial-aware architecture gate — CLOSED (2026-08-23)

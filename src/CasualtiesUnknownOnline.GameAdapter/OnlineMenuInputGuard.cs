@@ -26,6 +26,8 @@ internal sealed class OnlineMenuInputGuard(
 
 	private bool _modal;
 
+	internal bool IsModal => _modal;
+
 	internal void SetModal(bool modal)
 	{
 		if (_modal == modal)

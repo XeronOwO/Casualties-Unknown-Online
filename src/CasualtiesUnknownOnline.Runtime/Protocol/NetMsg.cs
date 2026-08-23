@@ -223,4 +223,9 @@ public enum NetMsg : byte
 	// of waiting for the host to disappear)
 	Kicked = 111, // host → guest: this member was kicked by the host
 	Banned = 112, // host → guest: this member was banned by the host (persisted on the host; future handshakes are rejected)
+
+	// Player attack-animation presentation (one-shot: the owner's local
+	// Body.Attack already instantiated the attackAnim prefab, the peers replay
+	// it on the owner's clone with the same prefab/facing/direction)
+	CharacterAttackAnim = 113, // bidirectional: guest → host report of the owner's own attack anim; host → guest broadcast relay (source excluded)
 }

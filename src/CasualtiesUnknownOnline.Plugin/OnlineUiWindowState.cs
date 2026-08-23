@@ -20,4 +20,8 @@ internal sealed class OnlineUiWindowState
 	internal Vector2 Scroll;
 
 	internal ulong? ExpandedMember;
+
+	internal bool LogLevelOptionsOpen;
+
+	internal bool LanguageOptionsOpen;
 }

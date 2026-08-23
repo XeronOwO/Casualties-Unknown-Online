@@ -18,6 +18,14 @@ public sealed class PlayerJoinHandler : PacketHandlerBase<PlayerJoinMsg, IEntity
 			return;
 		}
 
+		// Store the roster display name on the presence table so IP-direct UIs
+		// can render the custom name without a Steam persona lookup.
+		if (msg.GuestSteamId != 0 && !string.IsNullOrWhiteSpace(msg.DisplayName))
+		{
+			var member = ctx.Session.GetOrCreateMember(msg.GuestSteamId);
+			member.DisplayName = msg.DisplayName;
+		}
+
 		ctx.Entities.ProcessPlayerJoin(msg);
 	}
 }

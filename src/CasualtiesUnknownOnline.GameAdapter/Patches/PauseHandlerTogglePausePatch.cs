@@ -13,5 +13,9 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 [HarmonyPatch(typeof(PauseHandler), "TogglePause")]
 internal static class PauseHandlerTogglePausePatch
 {
-	private static bool Prefix() => PatchBridge.Impl is not { IsWaitingForReady: true };
+	private static bool Prefix()
+	{
+		var bridge = PatchBridge.Impl;
+		return bridge is null || (!bridge.IsWaitingForReady && !bridge.IsOnlineUiModalOpen);
+	}
 }

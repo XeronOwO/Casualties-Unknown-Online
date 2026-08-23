@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using CasualtiesUnknownOnline.Runtime.OnlineUi;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Steam;
@@ -17,12 +18,16 @@ internal static class OnlineUiMemberListDrawer
 {
 	internal static IReadOnlyList<OnlineUiMemberRow> BuildRows(OnlineUiContext ctx)
 	{
+		IReadOnlyList<ulong> lobbyMembers = ctx.IpDirectActive
+			? [ctx.Session.LocalSteamId, .. ctx.Session.Members.Select(m => m.SteamId)]
+			: ctx.Steam.GetLobbyMembers();
+		var lobbyOwner = ctx.IpDirectActive ? ctx.Session.HostSteamId : ctx.Steam.GetLobbyOwner();
 		return OnlineUiMemberProjection.Build(
 			localSteamId: ctx.Steam.LocalSteamId,
-			lobbyOwner: ctx.Steam.GetLobbyOwner(),
-			lobbyMembers: ctx.Steam.GetLobbyMembers(),
+			lobbyOwner: lobbyOwner,
+			lobbyMembers: lobbyMembers,
 			members: ctx.Session.Members,
-			displayName: id => DisplayName(ctx.Steam, id),
+			displayName: ctx.DisplayName,
 			getVitals: id => ctx.Vitals.TryGet(id, out var v) ? v : null,
 			getInventory: id => ctx.Inventory.TryGet(id, out var inv) ? inv : null,
 			playerInteraction: ctx.PlayerInteraction,
@@ -64,7 +69,7 @@ internal static class OnlineUiMemberListDrawer
 
 		DrawWorldActions(ctx, row);
 
-		if (row.Inventory is { Count: > 0 } && ctx.State.Page == OnlineUiPage.Players)
+		if (row.Inventory is { Count: > 0 })
 		{
 			DrawInventoryToggle(ctx, row);
 		}

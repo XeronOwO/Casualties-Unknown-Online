@@ -1,5 +1,6 @@
 using System;
 using CasualtiesUnknownOnline.GameAdapter.Character;
+using CasualtiesUnknownOnline.GameAdapter.Items;
 using HarmonyLib;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Patches;
@@ -156,4 +157,66 @@ internal static class BodyItemPatches
 			}
 		}
 	}
+
+	/// <summary>
+	/// The direct placeable-item use actions (scrapmetal / climbingrope /
+	/// scaffoldingpack, Item.cs:2143-2250) play <c>body.armsAnimator.Play(
+	/// "ArmsSwing")</c> themselves instead of going through
+	/// <c>Body.Attack</c>/<c>Body.ThrowItem</c>, so the existing
+	/// <see cref="IPatchBridge.OnArmSwing"/> report never fired for them.
+	/// This patch reports a successful placeable use after the native action:
+	/// the success signal is the item-condition reduction written by the same
+	/// action (scrapmetal 0.25, climbingrope 0.501, scaffoldingpack 0.01), so
+	/// gated/failed attempts (canPlaceBlock false, occupied target, low
+	/// condition) are not marked as swings. It rides the existing
+	/// IsAttacking / SwingSeq 20 Hz entity stream — no new wire message.
+	/// </summary>
+	[HarmonyPatch(typeof(Body), "UseItem")]
+	internal static class DirectPlaceableUseItemPatch
+	{
+		private static void Prefix(Body __instance, Item item, out float __state) =>
+			__state = item.condition;
+
+		private static void Postfix(Body __instance, Item item, float __state)
+		{
+			if (IsEligibleLocalUse(__instance)
+				&& DirectPlaceableArmSwingPolicy.ShouldReport(item.id, __state, item.condition))
+			{
+				PatchBridge.Impl?.OnArmSwing();
+			}
+		}
+	}
+
+	/// <summary>
+	/// The left-click hand-use path (Body.cs:2449-2455) calls
+	/// <c>Stats.useAction</c> directly, not <c>Body.UseItem</c>, so the
+	/// <see cref="DirectPlaceableUseItemPatch"/> alone would miss the normal
+	/// placeable LMB action. This second hook covers the whole direct
+	/// placeable-item family before the swing reaches the peers.
+	/// </summary>
+	[HarmonyPatch(typeof(Body), "UseItemInHand")]
+	internal static class DirectPlaceableUseItemInHandPatch
+	{
+		private static void Prefix(Body __instance, out float __state)
+		{
+			var item = __instance.GetItem(__instance.handSlot);
+			__state = item != null ? item.condition : -1f; // Unity object — ==
+		}
+
+		private static void Postfix(Body __instance, float __state)
+		{
+			var item = __instance.GetItem(__instance.handSlot);
+			if (item != null // Unity object — ==
+				&& IsEligibleLocalUse(__instance)
+				&& DirectPlaceableArmSwingPolicy.ShouldReport(item.id, __state, item.condition))
+			{
+				PatchBridge.Impl?.OnArmSwing();
+			}
+		}
+	}
+
+	private static bool IsEligibleLocalUse(Body body) =>
+		body.GetComponentInParent<RemoteBodyDriver>() == null
+		&& body.GetComponent<CarriedBodyDriver>() == null // Unity objects — ==
+		&& CallContext.Current == CallContext.Origin.LocalAction;
 }

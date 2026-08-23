@@ -32,6 +32,8 @@ internal static class OnlineUiTheme
 
 	private static GUIStyle? _button;
 
+	private static GUIStyle? _closeButton;
+
 	private static GUIStyle? _launcher;
 
 	private static GUIStyle? _tabActive;
@@ -49,6 +51,8 @@ internal static class OnlineUiTheme
 	internal static GUIStyle Window() => _window ??= CreateWindow();
 
 	internal static GUIStyle Button() => _button ??= CreateButton();
+
+	internal static GUIStyle CloseButton() => _closeButton ??= CreateCloseButton();
 
 	internal static GUIStyle Launcher() => _launcher ??= CreateLauncher();
 
@@ -93,6 +97,16 @@ internal static class OnlineUiTheme
 		};
 		style.normal.background = null;
 		style.normal.textColor = Text;
+		// The default GUI window style has hover/active/focused backgrounds
+		// that tint the whole window on click; keep the click visual neutral so
+		// the Online UI background does not "switch color". Input blocking is
+		// handled by OnlineMenuInputGuard, not by a visual active state.
+		style.hover.background = null;
+		style.hover.textColor = Text;
+		style.active.background = null;
+		style.active.textColor = Text;
+		style.focused.background = null;
+		style.focused.textColor = Text;
 		return style;
 	}
 
@@ -103,6 +117,20 @@ internal static class OnlineUiTheme
 			fontSize = 13,
 			alignment = TextAnchor.MiddleCenter,
 			padding = new RectOffset(10, 10, 5, 5),
+		};
+		style.normal.textColor = Text;
+		style.hover.textColor = Accent;
+		style.active.textColor = Accent;
+		return style;
+	}
+
+	private static GUIStyle CreateCloseButton()
+	{
+		var style = new GUIStyle(GUI.skin.button)
+		{
+			fontSize = 14,
+			alignment = TextAnchor.MiddleCenter,
+			padding = new RectOffset(2, 2, 2, 2),
 		};
 		style.normal.textColor = Text;
 		style.hover.textColor = Accent;

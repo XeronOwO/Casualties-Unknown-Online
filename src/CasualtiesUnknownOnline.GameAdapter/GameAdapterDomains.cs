@@ -82,6 +82,7 @@ internal sealed class GameAdapterDomains
 	internal readonly TutorialClawSync TutorialClawSync;
 	internal readonly IPlayerInteractionControl PlayerInteraction;
 	internal readonly CharacterSoundSync CharacterSoundSync;
+	internal readonly CharacterAttackAnimSync CharacterAttackAnimSync;
 	internal readonly HeaterCookSync HeaterCookSync;
 	internal readonly WorldTimeSync WorldTimeSync;
 
@@ -170,6 +171,7 @@ internal sealed class GameAdapterDomains
 		EnemyProximity = new EnemyProximitySync(session, enemies, CharacterDataSync, loggerFactory.CreateLogger<EnemyProximitySync>());
 		TutorialClawSync = new TutorialClawSync(tutorialClaw, session, loggerFactory.CreateLogger<TutorialClawSync>());
 		CharacterSoundSync = new CharacterSoundSync(characterData, session, Renderer, loggerFactory.CreateLogger<CharacterSoundSync>());
+		CharacterAttackAnimSync = new CharacterAttackAnimSync(characterData, session, Renderer, loggerFactory.CreateLogger<CharacterAttackAnimSync>());
 		LifePod = new LifePodPresentation(loggerFactory.CreateLogger<LifePodPresentation>());
 		GuestMenu = new GuestMenuGuard(session, loggerFactory.CreateLogger<GuestMenuGuard>());
 		MenuInput = new OnlineMenuInputGuard(session, loggerFactory.CreateLogger<OnlineMenuInputGuard>());

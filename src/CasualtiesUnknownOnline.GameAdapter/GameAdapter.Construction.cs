@@ -5,6 +5,7 @@ using CasualtiesUnknownOnline.GameAdapter.Run;
 using CasualtiesUnknownOnline.GameAdapter.Tutorial;
 using CasualtiesUnknownOnline.GameAdapter.World;
 using CasualtiesUnknownOnline.GameAdapter.WorldGen;
+using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
@@ -15,6 +16,7 @@ using CasualtiesUnknownOnline.Runtime.Session.World;
 using HarmonyLib;
 using MapsterMapper;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace CasualtiesUnknownOnline.GameAdapter;
 
@@ -73,6 +75,7 @@ public sealed partial class GameAdapter
 	private readonly FluidWorldSync _fluidSync;
 	private readonly TradeStateSync _tradeSync;
 	private readonly TraderRecruitCoordinator _traderRecruit;
+	private readonly RespawnCoordinator _respawn;
 	private readonly SpeechSync _speechSync;
 	private readonly CraftingSync _craftingSync;
 	private readonly RecipeUnlockApply _recipeUnlockApply;
@@ -87,6 +90,7 @@ public sealed partial class GameAdapter
 		WorldService world, ItemService items, ICraftControl craft, ItemArbitration arbitration,
 		EnemySyncService enemies, IWorldTimeControl worldTime, PlayerInteractionService playerInteraction,
 		ITutorialClawControl tutorialClaw,
+		IOptionsMonitor<RespawnOptions> respawnOptions,
 		ILogger<GameAdapter> log, IMapper mapper, ILoggerFactory loggerFactory)
 	{
 		_session = session;
@@ -146,7 +150,8 @@ public sealed partial class GameAdapter
 		_radiationLineSync = new RadiationLineSync(world, session, entities, loggerFactory.CreateLogger<RadiationLineSync>());
 		_fluidSync = new FluidWorldSync(world, session, entities, loggerFactory);
 		_tradeSync = new TradeStateSync(world, session, new TradeExecutor(), loggerFactory.CreateLogger<TradeStateSync>());
-		_traderRecruit = new TraderRecruitCoordinator(session, world, characterData, _characterDataSync, loggerFactory.CreateLogger<TraderRecruitCoordinator>());
+		_traderRecruit = new TraderRecruitCoordinator(session, world, characterData, _characterDataSync, respawnOptions, loggerFactory.CreateLogger<TraderRecruitCoordinator>());
+		_respawn = new RespawnCoordinator(session, world, characterData, _characterDataSync, respawnOptions, loggerFactory.CreateLogger<RespawnCoordinator>());
 		_speechSync = new SpeechSync(world, session, loggerFactory.CreateLogger<SpeechSync>());
 		_craftingSync = new CraftingSync(craft, _itemIds, itemReports, _operationTrace, loggerFactory.CreateLogger<CraftingSync>());
 		_recipeUnlockApply = new RecipeUnlockApply(craft, loggerFactory.CreateLogger<RecipeUnlockApply>());

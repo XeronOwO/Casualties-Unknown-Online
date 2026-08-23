@@ -324,6 +324,27 @@ internal sealed class CharacterDataSync(
 		}
 	}
 
+	/// <summary>
+	/// Queue a full respawn restore for the LOCAL body (host side of the
+	/// next-level auto-respawn). It uses the same two-frame wipe/restore path as
+	/// a guest reconnect restore, so the keep flags (inventory/skills) are
+	/// honored exactly. The caller prepares <paramref name="data"/> with
+	/// <c>Position = null</c> for a spawn-point respawn; this method deliberately
+	/// does not reset the position gate (that only resets when the body leaves
+	/// the world), so an in-world body is never teleported by this queue.
+	/// </summary>
+	internal void QueueRespawnRestore(CharacterDataMsg data)
+	{
+		if (!_session.SessionActive)
+		{
+			return;
+		}
+
+		_pendingRestore = data;
+		_restoreWipePending = false;
+		_log.LogInformation("Queued respawn restore on the local body ({Items} items).", data.Items.Count);
+	}
+
 	private CharacterDataMsg CaptureCharacterData(Body body)
 	{
 		var health = _mapper.Map<CharacterHealthMsg>(body);

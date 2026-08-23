@@ -36,10 +36,12 @@ dead body is, keeps its inventory, and resumes control immediately.
 - **No random trader items yet**: this slice is the minimal revive mechanic;
   giving random trader items on recruit is intentionally left as a later
   increment (it would need a host-side item-spawn/transfer decision).
-- **Death is still not a full respawn system**: this covers a dead player who
-  is still in-world. The broader `Revive/respawn rules` backlog item
-  (Permadeath, ReviveOnNextLevel, RespawnKeepInventory, save/level
-  transitions) remains open.
+- **Death is still not a full respawn system here**: this slice covers a dead
+  player who is still in-world and keeps its inventory/position. The broader
+  `Revive/respawn rules` lifecycle (Permadeath, ReviveOnNextLevel,
+  RespawnKeepInventory, RespawnKeepSkills, save/level transitions, left-world
+  re-entry) landed separately — see
+  `docs/selfchecks/respawn-rules-selfcheck.md` and `docs/tech-decisions.md` #60.
 
 ## Verification design
 

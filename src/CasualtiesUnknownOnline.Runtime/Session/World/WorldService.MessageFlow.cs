@@ -350,6 +350,31 @@ public sealed partial class WorldService
 			_session.Members.Count(m => m.Handshaken && !m.InWorld), isTutorial);
 	}
 
+	/// <summary>
+	/// Host only: tell one specific handshaken member to (re)enter the current
+	/// world. The bulk <see cref="SendWorldJoin"/> is for run-start/late-join
+	/// fan-out; this targeted form is used by the respawn lifecycle when a dead
+	/// member has already left the world and must be invited back after a
+	/// next-level respawn without dragging unrelated menu-side players along.
+	/// </summary>
+	public void SendWorldJoinTo(ulong steamId)
+	{
+		if (_session.Role != SessionRole.Host || !_session.SessionActive)
+		{
+			return;
+		}
+
+		if (!_session.TryGetMember(steamId, out var member) || !member.Handshaken || member.InWorld)
+		{
+			_log.LogDebug("[Respawn] targeted world join to {Peer} skipped (not a handshaken menu-side member).", steamId);
+			return;
+		}
+
+		var tutorial = WorldParams?.IsTutorial ?? false;
+		_sender.Send(steamId, NetMsg.WorldJoin, new WorldJoinMsg { IsTutorial = tutorial });
+		_log.LogInformation("[Respawn] sent targeted world join to {Peer} (tutorial: {Tutorial}).", steamId, tutorial);
+	}
+
 	/// <summary>Host side: capture and publish world-start parameters (run start).</summary>
 	public void PublishWorldParams(WorldStartParams parameters)
 	{

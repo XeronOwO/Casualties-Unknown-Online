@@ -35,7 +35,9 @@ internal static class OnlineUiMemberListDrawer
 			canAdmin: ctx.Session.Role == Runtime.Session.SessionRole.Host && ctx.Session.SessionActive,
 			localInWorld: ctx.Session.LocalInWorld,
 			hasHealItem: ctx.HasHealItem?.Invoke() ?? false,
-			healItems: ctx.GetLocalHealItems?.Invoke() ?? []);
+			healItems: ctx.GetLocalHealItems?.Invoke() ?? [],
+			hasUseItem: ctx.HasUseItem?.Invoke() ?? false,
+			useItems: ctx.GetLocalUseItems?.Invoke() ?? []);
 	}
 
 	internal static void Draw(OnlineUiContext ctx, IReadOnlyList<OnlineUiMemberRow> rows)
@@ -127,7 +129,7 @@ internal static class OnlineUiMemberListDrawer
 
 	private static void DrawWorldActions(OnlineUiContext ctx, OnlineUiMemberRow row)
 	{
-		var hasAction = row.IsCarryingThis || row.CanCarry || row.CanHeal || row.CanRecruit || row.CanTake;
+		var hasAction = row.IsCarryingThis || row.CanCarry || row.CanHeal || row.CanUseItem || row.CanRecruit || row.CanTake;
 		if (!hasAction)
 		{
 			return;
@@ -149,6 +151,11 @@ internal static class OnlineUiMemberListDrawer
 			ctx.HealRemote?.Invoke(row.SteamId);
 		}
 
+		if (row.CanUseItem && GUILayout.Button(ctx.T("member.use"), OnlineUiTheme.Button(), GUILayout.Width(70f)))
+		{
+			ctx.UseItemOnRemote?.Invoke(row.SteamId);
+		}
+
 		if (row.CanRecruit && GUILayout.Button(ctx.T("member.recruit"), OnlineUiTheme.Button(), GUILayout.Width(70f)))
 		{
 			ctx.RecruitPlayer?.Invoke(row.SteamId);
@@ -164,6 +171,11 @@ internal static class OnlineUiMemberListDrawer
 		if (row.HealItems.Count > 0)
 		{
 			DrawHealItemButtons(ctx, row);
+		}
+
+		if (row.UseItems.Count > 0)
+		{
+			DrawUseItemButtons(ctx, row);
 		}
 	}
 
@@ -185,6 +197,17 @@ internal static class OnlineUiMemberListDrawer
 			if (GUILayout.Button(ctx.F("member.heal_with", item.ItemId), OnlineUiTheme.Button(), GUILayout.Width(180f)))
 			{
 				ctx.HealWithItem?.Invoke(row.SteamId, item.InstanceId);
+			}
+		}
+	}
+
+	private static void DrawUseItemButtons(OnlineUiContext ctx, OnlineUiMemberRow row)
+	{
+		foreach (var item in row.UseItems)
+		{
+			if (GUILayout.Button(ctx.F("member.use_with", item.ItemId), OnlineUiTheme.Button(), GUILayout.Width(180f)))
+			{
+				ctx.UseItemOnRemoteWith?.Invoke(row.SteamId, item.InstanceId);
 			}
 		}
 	}

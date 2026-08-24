@@ -2720,3 +2720,42 @@ resource/trap/time pressure to its actual size.
   `HostRulesPolicyTests`; full suite 1373 green,
   build/format/architecture/event gates pass. See
   `docs/selfchecks/run-settings-range-selfcheck.md`.
+
+## 96. Cross-player consumable use (ProtocolVersion 48)
+
+The long-open "Cross-player item use" first slice is closed: a player can now
+use a carried drink/food consumable on another in-world teammate through the
+same host-authoritative request/result pattern as the existing cross-player
+heal.
+
+- **Wire** — `PlayerItemUseRequestMsg` (NetMsg 116, guest → host) carries
+  `TargetSteamId` + `ItemInstanceId` (0 = host auto-select);
+  `PlayerItemUseResultMsg` (NetMsg 117, host → participants) carries the user,
+  target, item post-use state and the target post-use health/limbs.
+  `ProtocolVersion` 47 → 48 because this is a new wire operation.
+- **Catalog** — `RemoteConsumeCatalog` (Runtime) hosts the curated drinkable
+  liquids (clean water, milk, juices, coffee, energy drink, soda, etc.) and
+  solid foods (bread, burger, steak, nutrientbar, raw meats, etc.). Unknown
+  liquids/items are refused as a whole; no unsupported effect is silently
+  approximated.
+- **Pure apply** — `RemoteConsumeApplication` builds the exact proportional
+  drink draw (min 100 ml / remaining stack), applies per-100 ml liquid effects
+  and solid-food body effects to the target's `CharacterHealthMsg`.
+- **Host service** — `PlayerItemUseService` validates both players (in-world,
+  alive, conscious), finds/auto-selects a usable slot item, consumes a food
+  item or drains a liquid container, updates both authoritative snapshots,
+  updates the guest transfer table (so a reconnect restore cannot resurrect
+  consumed condition), and publishes one result to both participants.
+- **Local apply** — `PlayerInteractionApply.OnPlayerItemUseReceived` applies
+  the user's item update/destroy and the target's post-use body state inside a
+  `RemoteApply` scope, then re-reports the full character snapshot. The UI
+  exposes a `Use` button and per-item selectors on the Players page and the
+  in-world right-click context menu.
+- **Scope limits** — this is the drink/food first slice. Wear, injectables,
+  stimulant/timed medicine, and arbitrary tool use remain future extensions.
+- **Tests/gates** — `RemoteConsumeApplicationTests` (7),
+  `PlayerInteractionServiceTests` +4 use cases,
+  `OnlineUiMemberProjectionTests` +1 use case, `DirectionTests` updated for the
+  two new messages; full suite 1386 green,
+  build/format/architecture/event gates pass. See
+  `docs/selfchecks/cross-player-item-use-selfcheck.md`.

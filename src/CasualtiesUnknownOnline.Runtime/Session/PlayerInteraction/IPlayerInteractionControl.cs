@@ -61,4 +61,16 @@ public interface IPlayerInteractionControl
 
 	/// <summary>An authoritative cross-player heal result arrived — the Game Adapter consumes the healer's item and/or applies the target's post-heal state.</summary>
 	event Action<PlayerHealResultMsg>? HealReceived;
+
+	/// <summary>Any role: request a consumable use from the Online UI (guest → host on the wire; host handles locally). ItemInstanceId 0 = host auto-selects a carried drink/food.</summary>
+	void SendUseRequest(ulong targetSteamId, ulong itemInstanceId = 0);
+
+	/// <summary>Host only: a consumable-use request arrived (from the wire or the host's own UI).</summary>
+	void HandleUseRequest(ulong sender, PlayerItemUseRequestMsg msg);
+
+	/// <summary>Raise a received consumable-use result for the Game Adapter to apply locally (wire handler path).</summary>
+	void FireUseReceived(PlayerItemUseResultMsg msg);
+
+	/// <summary>An authoritative cross-player consumable-use result arrived — the Game Adapter consumes/updates the user's item and/or applies the target's post-use state.</summary>
+	event Action<PlayerItemUseResultMsg>? UseReceived;
 }

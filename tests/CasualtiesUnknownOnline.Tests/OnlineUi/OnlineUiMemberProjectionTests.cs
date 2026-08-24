@@ -131,6 +131,32 @@ public sealed class OnlineUiMemberProjectionTests
 	}
 
 	[Fact]
+	public void AliveConsciousRemoteCanReceiveConsumableWhenLocalHasUseItem()
+	{
+		var vitals = new Dictionary<ulong, RemoteVitalsSnapshot>
+		{
+			[Remote] = RemoteVitalsSnapshot.From(new CharacterHealthMsg { Alive = true, Conscious = true })!,
+		};
+		var useItems = new List<LocalUseItem> { new(22, "waterbottle") };
+
+		var rows = Build(
+			[Local, Remote],
+			[Presence(Remote, handshaken: true, inWorld: true)],
+			new FakeInteraction(),
+			canAdmin: false,
+			localInWorld: true,
+			hasHealItem: false,
+			getVitals: id => vitals.TryGetValue(id, out var v) ? v : null,
+			hasUseItem: true,
+			useItems: useItems);
+
+		Assert.True(rows[1].CanUseItem);
+		Assert.Single(rows[1].UseItems);
+		Assert.Equal(22UL, rows[1].UseItems[0].InstanceId);
+		Assert.False(rows[1].CanHeal);
+	}
+
+	[Fact]
 	public void DeadRemoteCanBeRecruitedButNotHealed()
 	{
 		var vitals = new Dictionary<ulong, RemoteVitalsSnapshot>
@@ -192,7 +218,9 @@ public sealed class OnlineUiMemberProjectionTests
 		bool hasHealItem = false,
 		Func<ulong, RemoteVitalsSnapshot?>? getVitals = null,
 		Func<ulong, RemoteInventorySnapshot?>? getInventory = null,
-		IReadOnlyList<LocalHealItem>? healItems = null)
+		IReadOnlyList<LocalHealItem>? healItems = null,
+		bool hasUseItem = false,
+		IReadOnlyList<LocalUseItem>? useItems = null)
 	{
 		return OnlineUiMemberProjection.Build(
 			Local,
@@ -207,7 +235,9 @@ public sealed class OnlineUiMemberProjectionTests
 			canAdmin: canAdmin,
 			localInWorld: localInWorld,
 			hasHealItem: hasHealItem,
-			healItems: healItems ?? []);
+			healItems: healItems ?? [],
+			hasUseItem: hasUseItem,
+			useItems: useItems ?? []);
 	}
 
 	private static MemberPresenceTable.MemberPresence Presence(ulong steamId, bool handshaken, bool inWorld) =>
@@ -292,6 +322,24 @@ public sealed class OnlineUiMemberProjectionTests
 		}
 
 		public event Action<PlayerHealResultMsg>? HealReceived
+		{
+			add { }
+			remove { }
+		}
+
+		public void SendUseRequest(ulong targetSteamId, ulong itemInstanceId = 0)
+		{
+		}
+
+		public void HandleUseRequest(ulong sender, PlayerItemUseRequestMsg msg)
+		{
+		}
+
+		public void FireUseReceived(PlayerItemUseResultMsg msg)
+		{
+		}
+
+		public event Action<PlayerItemUseResultMsg>? UseReceived
 		{
 			add { }
 			remove { }

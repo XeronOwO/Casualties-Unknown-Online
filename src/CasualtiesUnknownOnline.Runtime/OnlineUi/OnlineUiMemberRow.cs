@@ -43,6 +43,9 @@ public sealed class OnlineUiMemberRow
 	/// <summary>True when the local player can request a heal on this in-world member.</summary>
 	public bool CanHeal { get; init; }
 
+	/// <summary>True when the local player has at least one drink/food consumable usable on this in-world member.</summary>
+	public bool CanUseItem { get; init; }
+
 	/// <summary>True when the local player is at a trader and can recruit this dead member.</summary>
 	public bool CanRecruit { get; init; }
 
@@ -66,4 +69,7 @@ public sealed class OnlineUiMemberRow
 
 	/// <summary>The local player's medical items available for an explicit heal selector.</summary>
 	public IReadOnlyList<LocalHealItem> HealItems { get; init; } = [];
+
+	/// <summary>The local player's drink/food items available for an explicit cross-player use selector.</summary>
+	public IReadOnlyList<LocalUseItem> UseItems { get; init; } = [];
 }

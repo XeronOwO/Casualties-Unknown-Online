@@ -425,4 +425,100 @@ public class PlayerInteractionServiceTests
 		var transferred = items.GetTransferredItems(GuestId).Single(w => w.Item.InstanceId == 42);
 		Assert.True(Math.Abs(transferred.Item.Condition - 0.5f) < 0.001f);
 	}
+
+	private static CharacterItemMsg WaterBottle(ulong instanceId, float amount = 500f, float condition = 1f) => new()
+	{
+		InstanceId = instanceId,
+		ItemId = "waterbottle",
+		SlotIndex = 0,
+		Condition = condition,
+		Liquids = [new LiquidStackMsg { LiquidId = "water", Amount = amount }],
+	};
+
+	[Fact]
+	public void Guest_UsesWaterOnHost_AppliesDrinkAndSendsResult()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		var items = host.Services.GetRequiredService<IItemControl>();
+		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, conscious: true));
+		var water = WaterBottle(42);
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, water));
+		items.AdoptTransferredItem(GuestId, 42, water);
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendUseRequest(HostId, 42);
+
+		var frame = received.Single(r => r.Msg == NetMsg.PlayerItemUseResult).Frame;
+		var result = NetPacket.DecodePayload<PlayerItemUseResultMsg>(frame);
+		Assert.Equal(GuestId, result.UserSteamId);
+		Assert.Equal(HostId, result.TargetSteamId);
+		Assert.Equal(42UL, result.ItemInstanceId);
+		Assert.False(result.ItemDestroyed);
+		Assert.NotNull(result.ItemAfter);
+		Assert.True(Math.Abs(result.ItemAfter!.Condition - 0.8f) < 0.001f);
+
+		var hostData = characters.GetHostCharacterData()!;
+		Assert.True(Math.Abs(hostData.Health!.Thirst - 9f) < 0.001f);
+		var saved = characters.GetSavedCharacter(GuestId)!.Items.Single(i => i.InstanceId == 42);
+		Assert.True(Math.Abs(saved.Condition - 0.8f) < 0.001f);
+		Assert.True(Math.Abs(saved.Liquids.Single(l => l.LiquidId == "water").Amount - 400f) < 0.001f);
+		var transferred = items.GetTransferredItems(GuestId).Single(w => w.Item.InstanceId == 42);
+		Assert.True(Math.Abs(transferred.Item.Condition - 0.8f) < 0.001f);
+		Assert.True(Math.Abs(transferred.Item.Liquids.Single(l => l.LiquidId == "water").Amount - 400f) < 0.001f);
+	}
+
+	[Fact]
+	public void Host_UsesBreadOnGuest_AppliesFoodAndSendsResult()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true, Item(77, "bread", slot: 0)));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true));
+
+		host.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendUseRequest(GuestId, 77);
+
+		var frame = received.Single(r => r.Msg == NetMsg.PlayerItemUseResult).Frame;
+		var result = NetPacket.DecodePayload<PlayerItemUseResultMsg>(frame);
+		Assert.Equal(HostId, result.UserSteamId);
+		Assert.Equal(GuestId, result.TargetSteamId);
+		Assert.False(result.ItemDestroyed);
+		Assert.True(Math.Abs(result.ItemAfter!.Condition - 0.41f) < 0.001f);
+
+		var guestData = characters.GetSavedCharacter(GuestId)!;
+		Assert.True(Math.Abs(guestData.Health!.Hunger - 9f) < 0.001f);
+		var hostData = characters.GetHostCharacterData()!;
+		Assert.True(Math.Abs(hostData.Items.Single(i => i.InstanceId == 77).Condition - 0.41f) < 0.001f);
+	}
+
+	[Fact]
+	public void Use_DeadTarget_IsRefused()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, conscious: false, alive: false));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, WaterBottle(42)));
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendUseRequest(HostId, 42);
+
+		Assert.DoesNotContain(received, r => r.Msg == NetMsg.PlayerItemUseResult);
+		Assert.Contains(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);
+	}
+
+	[Fact]
+	public void Use_UnknownItem_IsRefused()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, Item(42, "knife", slot: 0)));
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendUseRequest(HostId, 42);
+
+		Assert.DoesNotContain(received, r => r.Msg == NetMsg.PlayerItemUseResult);
+		Assert.Contains(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);
+	}
 }

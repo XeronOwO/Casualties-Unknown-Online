@@ -151,6 +151,112 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains)
 		}
 	}
 
+	public void OnPlayerItemUseReceived(PlayerItemUseResultMsg msg)
+	{
+		var body = PlayerCamera.main != null ? PlayerCamera.main.body : null; // Unity object — ==
+		if (body == null) // Unity object — ==
+		{
+			domains.Log.LogWarning("[PlayerInteraction] item-use result received but the local body is not ready — skipped.");
+			return;
+		}
+
+		var changed = false;
+		using (CallContext.Enter(CallContext.Origin.RemoteApply))
+		{
+			if (msg.UserSteamId == domains.Session.LocalSteamId)
+			{
+				var item = FindCarriedItemById(body, msg.ItemInstanceId);
+				if (item == null) // Unity object — ==
+				{
+					domains.Log.LogWarning("[ItemUse] local user item {ItemId} not found — consumed state skipped.", msg.ItemInstanceId);
+				}
+				else if (msg.ItemDestroyed)
+				{
+					Object.Destroy(item.gameObject);
+					domains.Log.LogInformation("[ItemUse] local item {ItemId} destroyed by cross-player use.", msg.ItemInstanceId);
+					changed = true;
+				}
+				else if (msg.ItemAfter is { } after)
+				{
+					item.condition = after.Condition;
+					ItemStateCodec.RestoreLiquids(item, after.Liquids);
+					ItemStateCodec.RestoreComponentStates(item, after.Components);
+					domains.Log.LogInformation("[ItemUse] local item {ItemId} condition set to {Condition:F2} by cross-player use.", msg.ItemInstanceId, after.Condition);
+					changed = true;
+				}
+			}
+
+			if (msg.TargetSteamId == domains.Session.LocalSteamId && msg.Health is { } health)
+			{
+				domains.CharacterDataSync.ApplyHealState(body, health, msg.Limbs);
+				domains.Log.LogInformation("[ItemUse] local body received a consumable from {User}.", msg.UserSteamId);
+				changed = true;
+			}
+		}
+
+		if (changed)
+		{
+			domains.CharacterDataSync.ReportInventoryChanged(body);
+		}
+	}
+
+	public bool HasLocalUseItem()
+	{
+		var body = PlayerCamera.main != null ? PlayerCamera.main.body : null; // Unity object — ==
+		if (body == null) // Unity object — ==
+		{
+			return false;
+		}
+
+		foreach (var slot in body.slots)
+		{
+			if (slot != null && HasLocalUseItemChild(slot.transform)) // Unity object — ==
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	public IReadOnlyList<LocalUseItem> GetLocalUseItems()
+	{
+		var result = new List<LocalUseItem>();
+		var body = PlayerCamera.main != null ? PlayerCamera.main.body : null; // Unity object — ==
+		if (body == null) // Unity object — ==
+		{
+			return result;
+		}
+
+		// Only inventory slots are requestable: the host's use finder skips
+		// worn items (SlotIndex < 0), so a selector that lists worn items would
+		// only produce refused requests.
+		foreach (var slot in body.slots)
+		{
+			if (slot == null) // Unity object — ==
+			{
+				continue;
+			}
+
+			for (var c = 0; c < slot.transform.childCount; c++)
+			{
+				var item = slot.transform.GetChild(c).GetComponent<Item>();
+				if (item == null || !IsLocalUseItem(item)) // Unity object — ==
+				{
+					continue;
+				}
+
+				var id = item.GetComponent<ItemInstanceId>();
+				if (id != null && id.Id != 0) // Unity object — ==
+				{
+					result.Add(new LocalUseItem(id.Id, item.id));
+				}
+			}
+		}
+
+		return result;
+	}
+
 	public bool HasLocalHealItem()
 	{
 		var body = PlayerCamera.main != null ? PlayerCamera.main.body : null; // Unity object — ==
@@ -337,6 +443,49 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains)
 		}
 
 		return false;
+	}
+
+	private static bool HasLocalUseItemChild(Transform parent)
+	{
+		for (var c = 0; c < parent.childCount; c++)
+		{
+			var item = parent.GetChild(c).GetComponent<Item>();
+			if (item != null && IsLocalUseItem(item)) // Unity object — ==
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	private static bool IsLocalUseItem(Item item)
+	{
+		if (item == null || item.condition <= 0f) // Unity object — ==
+		{
+			return false;
+		}
+
+		if (RemoteConsumeCatalog.IsFoodItem(item.id))
+		{
+			return true;
+		}
+
+		var water = item.GetComponent<WaterContainerItem>();
+		if (water == null || water.CurrentTotal <= 0f) // Unity object — ==
+		{
+			return false;
+		}
+
+		foreach (var liquid in water.stack)
+		{
+			if (!RemoteConsumeCatalog.IsKnownLiquid(liquid.liquidId))
+			{
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	private static Item? FindCarriedItemById(Body body, ulong instanceId)

@@ -37,6 +37,7 @@ public class DirectionTests
 		NetMsg.PlayerCarryStartRequest,
 		NetMsg.PlayerCarryStopRequest,
 		NetMsg.PlayerHealRequest,
+		NetMsg.PlayerItemUseRequest,
 		NetMsg.TraderRecruitRequest,
 	};
 
@@ -77,6 +78,7 @@ public class DirectionTests
 		NetMsg.PlayerInventoryTransfer,
 		NetMsg.PlayerCarryState,
 		NetMsg.PlayerHealResult,
+		NetMsg.PlayerItemUseResult,
 		NetMsg.TutorialClawState,
 		NetMsg.RadiationLineState,
 		NetMsg.TraderRecruitResult,

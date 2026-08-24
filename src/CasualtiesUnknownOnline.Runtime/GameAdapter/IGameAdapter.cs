@@ -59,6 +59,17 @@ public interface IGameAdapter : IDisposable
 	/// </summary>
 	IReadOnlyList<LocalHealItem> GetLocalHealItems();
 
+	/// <summary>True when the local body currently carries at least one cross-player drink/food consumable (Online UI only — the host re-checks authority).</summary>
+	bool HasLocalUseItem();
+
+	/// <summary>
+	/// The local carried cross-player drink/food items with wire instance ids,
+	/// for the Online UI's explicit item selector. Empty when no body / no
+	/// usable slot item / no instance ids are available. The host remains the
+	/// authority and re-validates the requested id.
+	/// </summary>
+	IReadOnlyList<LocalUseItem> GetLocalUseItems();
+
 	/// <summary>
 	/// Online UI entry: the local player requests a trader recruit of a dead
 	/// in-world teammate. Returns false when there is no session/world or no

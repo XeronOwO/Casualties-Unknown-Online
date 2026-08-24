@@ -83,6 +83,7 @@ internal sealed class GameAdapterDomains
 	internal readonly IPlayerInteractionControl PlayerInteraction;
 	internal readonly CharacterSoundSync CharacterSoundSync;
 	internal readonly CharacterAttackAnimSync CharacterAttackAnimSync;
+	internal readonly CharacterLandingVisualSync CharacterLandingVisualSync;
 	internal readonly HeaterCookSync HeaterCookSync;
 	internal readonly WorldTimeSync WorldTimeSync;
 
@@ -172,6 +173,7 @@ internal sealed class GameAdapterDomains
 		TutorialClawSync = new TutorialClawSync(tutorialClaw, session, loggerFactory.CreateLogger<TutorialClawSync>());
 		CharacterSoundSync = new CharacterSoundSync(characterData, session, Renderer, loggerFactory.CreateLogger<CharacterSoundSync>());
 		CharacterAttackAnimSync = new CharacterAttackAnimSync(characterData, session, Renderer, loggerFactory.CreateLogger<CharacterAttackAnimSync>());
+		CharacterLandingVisualSync = new CharacterLandingVisualSync(characterData, session, Renderer, loggerFactory.CreateLogger<CharacterLandingVisualSync>());
 		LifePod = new LifePodPresentation(loggerFactory.CreateLogger<LifePodPresentation>());
 		GuestMenu = new GuestMenuGuard(session, loggerFactory.CreateLogger<GuestMenuGuard>());
 		MenuInput = new OnlineMenuInputGuard(session, loggerFactory.CreateLogger<OnlineMenuInputGuard>());

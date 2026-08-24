@@ -6,6 +6,7 @@ using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.GameAdapter.Character;
 using CasualtiesUnknownOnline.GameAdapter.World;
 using Microsoft.Extensions.Logging;
+using HarmonyLib;
 
 using System;
 
@@ -530,6 +531,11 @@ internal sealed class RunCoordinator(
 		// Dog shake is a public continuous body field; the clone's HandleVisuals
 		// reads it when BodyPatches runs the render-only path.
 		var dogShakeIntensity = body.dogShakeIntensity;
+		// Wall slide is continuous body state written by HandleGroundedState
+		// from the local move input + side raycasts (Body.cs:2600-2601); the
+		// render proxy needs the same flags to replay the Wall clip/particle.
+		var slidingLeft = Traverse.Create(body).Field("slidingLeft").GetValue<bool>();
+		var slidingRight = Traverse.Create(body).Field("slidingRight").GetValue<bool>();
 		_entities.PublishLocalState(
 			new NetVector2(pos.x, pos.y),
 			new NetVector2(look.x, look.y),
@@ -538,6 +544,7 @@ internal sealed class RunCoordinator(
 			lookOverridePos, body.overrideLookTime, body.eyeScareTime,
 			body.eyePanicTime, body.eyeCloseTime,
 			sitting, body.sleeping, body.currentClimbable != null, // Unity object — ==
-			workoutType, napVariant, dogShakeIntensity);
+			workoutType, napVariant, dogShakeIntensity,
+			slidingLeft, slidingRight);
 	}
 }

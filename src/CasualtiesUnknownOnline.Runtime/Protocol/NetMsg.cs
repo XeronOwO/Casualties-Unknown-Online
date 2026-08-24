@@ -228,4 +228,9 @@ public enum NetMsg : byte
 	// Body.Attack already instantiated the attackAnim prefab, the peers replay
 	// it on the owner's clone with the same prefab/facing/direction)
 	CharacterAttackAnim = 113, // bidirectional: guest → host report of the owner's own attack anim; host → guest broadcast relay (source excluded)
+
+	// Player landing presentation (one-shot: the owner's local HandleGroundedState
+	// already played the Grounded clip and spawned the landing dust; the peers
+	// replay the same clip/dust on the owner's clone)
+	CharacterLandingVisual = 114, // bidirectional: guest → host report of the owner's own landing visual; host → guest broadcast relay (source excluded)
 }

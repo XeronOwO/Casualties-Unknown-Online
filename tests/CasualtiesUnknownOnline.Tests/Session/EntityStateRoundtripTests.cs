@@ -106,6 +106,54 @@ public class EntityStateRoundtripTests
 	}
 
 	[Fact]
+	public void ExtendedFlags_SlidingLeft_RoundtripsIntoEntity()
+	{
+		var entity = NewEntity();
+		new EntityStateMsg { ExtendedFlags = 0x02u }.ApplyTo(entity);
+
+		Assert.True(entity.SlidingLeft);
+		Assert.False(entity.SlidingRight);
+	}
+
+	[Fact]
+	public void ExtendedFlags_SlidingRight_RoundtripsIntoEntity()
+	{
+		var entity = NewEntity();
+		new EntityStateMsg { ExtendedFlags = 0x04u }.ApplyTo(entity);
+
+		Assert.False(entity.SlidingLeft);
+		Assert.True(entity.SlidingRight);
+	}
+
+	[Fact]
+	public void SlidingFlags_PublishToExtendedFlags_Bits0x02And0x04()
+	{
+		var entity = NewEntity();
+		entity.SlidingLeft = true;
+		entity.SlidingRight = true;
+
+		var wire = entity.ToEntityStateMsg();
+
+		Assert.Equal(0x06u, wire.ExtendedFlags & 0x06u);
+	}
+
+	[Fact]
+	public void SlidingFlags_FullRoundtrip()
+	{
+		var source = NewEntity();
+		source.SlidingLeft = true;
+		source.SlidingRight = true;
+
+		var wire = source.ToEntityStateMsg();
+		var target = NewEntity();
+		wire.ApplyTo(target);
+
+		Assert.True(target.SlidingLeft);
+		Assert.True(target.SlidingRight);
+	}
+
+
+	[Fact]
 	public void SwingSeq_AppliesIntoEntity_AndRoundTripsBackToWire()
 	{
 		var entity = NewEntity();

@@ -48,6 +48,9 @@ public interface ICharacterDataControl
 	/// <summary>A character attack-animation event arrived — the Game Adapter replays it on the owner's clone.</summary>
 	event Action<ulong, CharacterAttackAnimMsg>? CharacterAttackAnimReceived;
 
+	/// <summary>A character landing-visual event arrived — the Game Adapter replays the Grounded clip/dust on the owner's clone.</summary>
+	event Action<ulong, CharacterLandingVisualMsg>? CharacterLandingVisualReceived;
+
 	/// <summary>Host only: relay a guest's report to the other guests (OwnerSteamId stamped, source excluded) — their clones of the reporter render its carried state.</summary>
 	void RelayCharacterData(ulong ownerSteamId, CharacterDataMsg msg);
 
@@ -85,4 +88,11 @@ public interface ICharacterDataControl
 
 	/// <summary>Report/broadcast a character attack animation: a guest reports its own visual to the host; the host broadcasts its own to every guest. One animation = one message.</summary>
 	void SendCharacterAttackAnim(CharacterAttackAnimMsg msg);
+
+	/// <summary>Surface an arrived character landing-visual event (report or relay) for the Game Adapter to replay on the owner's clone.</summary>
+	void FireCharacterLandingVisualReceived(ulong sender, CharacterLandingVisualMsg msg);
+
+	/// <summary>Report/broadcast a character landing visual: a guest reports its own landing to the host; the host broadcasts its own to every guest. One landing = one message.</summary>
+	void SendCharacterLandingVisual(CharacterLandingVisualMsg msg);
+
 }

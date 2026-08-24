@@ -2550,3 +2550,37 @@ Tests: `MuzzleFlashReplayTests` (1 reflective signature) + existing
 `CharacterSoundSyncTests`/`GunFirePatchTests` cover the event path; full suite
 **1333 green** (was 1332). See
 `docs/selfchecks/muzzle-flash-sync-selfcheck.md`.
+
+## 90. Wall-slide + landing presentation sync (ProtocolVersion 44)
+
+The animation-audit row for `Body.HandleGroundedState`'s wall slide and landing
+presentation was open: remote clones never played the `Wall`/`Grounded` clips,
+the wall-slide particle/audio or the native landing dust.
+
+- **Wall-slide wire** — the owner's `Body.slidingLeft` / `slidingRight`
+  (Body.cs:2600-2601) ride the existing 20 Hz player entity stream as
+  `EntityStateMsg.ExtendedFlags` bits `0x02` / `0x04`. `ProtocolVersion` 43 → 44
+  because older peers cannot send/render the new flags.
+- **Wall-slide replay** — `SessionStatePump` caches the flags on
+  `RemoteBodyDriver`; `BodyUpdatePatch` re-asserts the private `Body.sliding*`
+  fields before `HandleVisuals` and `WallSlidePresentation` mirrors the
+  continuous `wallSlideParticle` + slide-source latch using the clone's synced
+  grounded/velocity facts.
+- **Landing wire** — one dedicated reliable `CharacterLandingVisualMsg`
+  (NetMsg 114) carries `OwnerSteamId`, cloud size (0/1/2), the cloud anchor
+  position and the horizontal emitter velocity. Star semantics: guest → host
+  report, host fires + relays (source excluded); host → guest relay fires the
+  replay.
+- **Capture** — `BodyHandleGroundedStatePatch` now keeps a small `LandingState`
+  (scope + previous grounded + local-body verdict) and, after a verified
+  became-grounded transition on the local body, reports the same cloud
+  thresholds the native code uses (Body.cs:2713-2725). A soft landing still
+  reports `CloudNone` so peers replay the `Grounded` pose clip.
+- **Replay** — `CharacterLandingVisualSync` plays the `Grounded` clip on the
+  owner's clone and calls `Body.CreateCloudSmall/Big` with the reported
+  position/velocity; a clone-creation race falls back to instantiating the dust
+  prefab at the reported anchor. The replay runs inside a `RemoteApply` scope.
+- **Tests/gates** — new `CharacterLandingVisualSyncTests`, `WallSlideLandingSyncTests`,
+  `EntityStateRoundtrip` sliding-flag cases, updated `DirectionTests` and
+  `CharacterSoundPatchTests`; full suite green, build/format/architecture/event
+  gates pass. See `docs/selfchecks/wall-slide-landing-sync-selfcheck.md`.

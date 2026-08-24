@@ -140,6 +140,12 @@ internal static class SessionStatePump
 			// synced value so the clone shakes/calms with the owner.
 			body.dogShakeIntensity = entity.DogShakeIntensity;
 
+			// Wall-slide presentation is a continuous fact: cache the wire
+			// flags on the driver so BodyPatches can re-assert the private
+			// Body.sliding* fields and drive the wall particle every frame.
+			driver.SlidingLeft = entity.SlidingLeft;
+			driver.SlidingRight = entity.SlidingRight;
+
 			// Lying (ragdoll/dead/unconscious — !standing without sleeping, or
 			// !alive): the LayDown clip approximates the ragdoll pose on the
 			// proxy (real ragdoll is physics-driven, frozen here by design).

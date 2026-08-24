@@ -93,6 +93,17 @@ public sealed class PlayerEntity(ulong steamId, NetworkEntityId entityId, bool i
 	/// <summary>The owner's current dog-shake intensity (Body.dogShakeIntensity).</summary>
 	public float DogShakeIntensity { get; set; }
 
+	/// <summary>
+	/// True while the owner is wall-sliding on the left wall (Body.slidingLeft,
+	/// Body.cs:2601). Continuous presentation state: the render proxy replays
+	/// the Wall clip and wall-side animator fields while the flag is set.
+	/// </summary>
+	public bool SlidingLeft { get; set; }
+
+	/// <summary>True while the owner is wall-sliding on the right wall (Body.slidingRight, Body.cs:2600).</summary>
+	public bool SlidingRight { get; set; }
+
+
 	// ---- Render interpolation buffer (guest side only) ----
 	/// <summary>Previous authoritative values, for lerping between snapshots.</summary>
 	public NetVector2 PrevPosition { get; set; }
@@ -130,7 +141,7 @@ public sealed class PlayerEntity(ulong steamId, NetworkEntityId entityId, bool i
 			(IsRight ? 0x01 : 0) | (Standing ? 0x02 : 0) |
 			(Alive ? 0x04 : 0) | (Conscious ? 0x08 : 0) | (Crouching ? 0x10 : 0) |
 			(Sitting ? 0x20 : 0) | (Sleeping ? 0x40 : 0) | (Climbing ? 0x80 : 0)),
-		ExtendedFlags = IsAttacking ? 0x01u : 0u,
+		ExtendedFlags = (IsAttacking ? 0x01u : 0u) | (SlidingLeft ? 0x02u : 0u) | (SlidingRight ? 0x04u : 0u),
 		SwingSeq = SwingSeq,
 		WorkoutType = WorkoutType,
 		NapVariant = NapVariant,

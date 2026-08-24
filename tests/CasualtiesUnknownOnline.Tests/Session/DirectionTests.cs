@@ -113,6 +113,7 @@ public class DirectionTests
 		NetMsg.LimbStateEvent,
 		NetMsg.CharacterSound,
 		NetMsg.CharacterAttackAnim,
+		NetMsg.CharacterLandingVisual,
 		NetMsg.DynamiteExplosion,
 		NetMsg.Chat,
 	};

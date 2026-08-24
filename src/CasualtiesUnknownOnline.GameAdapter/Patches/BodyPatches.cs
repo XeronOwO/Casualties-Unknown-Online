@@ -69,6 +69,18 @@ internal static class BodyPatches
 			// within seconds of being frozen, then gravity pulling the limbs
 			// apart). Re-freeze every frame — cheap and covers all paths.
 			FreezeRigidbodies(__instance);
+			// Wall-slide: the owner's HandleGroundedState sets private
+			// slidingLeft/Right from move input + side raycasts; write the
+			// synced flags onto the clone before HandleVisuals plays the Wall
+			// clip/params, and mirror the continuous particle/audio latch.
+			{
+				var wallDriver = __instance.GetComponent<RemoteBodyDriver>();
+				if (wallDriver != null) // Unity object — ==
+				{
+					WallSlidePresentation.Apply(__instance, wallDriver.SlidingLeft, wallDriver.SlidingRight);
+					WallSlidePresentation.UpdateEffects(__instance, wallDriver.SlidingLeft, wallDriver.SlidingRight);
+				}
+			}
 			HandleVisualsMethod.Invoke(__instance, [__instance.GetComponent<Painkillers>()]);
 
 			// legSpeedMult is a computed property from leg force (Body.cs:67-95)
@@ -322,19 +334,70 @@ internal static class BodyPatches
 	/// frame, so the impactLarge/Medium/Small AudioClip calls (Body.cs:2729-2737)
 	/// report as landing impacts. The nested FootStep call inside the same
 	/// method runs in the innermost CharacterFootstep scope and reports as a
-	/// footstep.
+	/// footstep. The postfix additionally reports the landing presentation
+	/// (the Grounded clip + optional DustSmall/DustBig) as a dedicated one-shot
+	/// event for the peers' render clones.
 	/// </summary>
 	[HarmonyPatch(typeof(Body), "HandleGroundedState")]
 	internal static class BodyHandleGroundedStatePatch
 	{
-		private static void Prefix(Body __instance, out IDisposable? __state) =>
-			__state = __instance.GetComponentInParent<RemoteBodyDriver>() == null
-				? CallContext.Enter(CallContext.Origin.CharacterLandingImpact)
-				: null;
+		private sealed class LandingState
+		{
+			internal IDisposable? Scope;
+			internal bool IsLocalBody;
+			internal bool WasGrounded;
+		}
 
-		private static void Postfix(IDisposable? __state) => __state?.Dispose();
+		private static void Prefix(Body __instance, out LandingState __state)
+		{
+			__state = new LandingState
+			{
+				IsLocalBody = __instance.GetComponentInParent<RemoteBodyDriver>() == null
+					&& __instance.GetComponent<CarriedBodyDriver>() == null, // Unity objects — ==
+				WasGrounded = __instance.grounded,
+			};
+			if (__state.IsLocalBody)
+			{
+				__state.Scope = CallContext.Enter(CallContext.Origin.CharacterLandingImpact);
+			}
+		}
+
+		private static void Postfix(Body __instance, LandingState __state)
+		{
+			__state.Scope?.Dispose();
+			if (!__state.IsLocalBody || __state.WasGrounded || !__instance.grounded)
+			{
+				return;
+			}
+
+			var cloudSize = LandingCloudSize(__instance);
+			if (cloudSize != 0)
+			{
+				var originalSize = Traverse.Create(__instance).Field("origColSize").GetValue<Vector2>();
+				var position = (Vector2)__instance.transform.position + Vector2.down * (originalSize.y * 0.5f);
+				PatchBridge.Impl?.OnCharacterLandingVisual(cloudSize, position, __instance.rb.velocity.x);
+			}
+			else
+			{
+				// A soft landing still replays the Grounded clip on the clone,
+				// even though no dust was spawned.
+				PatchBridge.Impl?.OnCharacterLandingVisual(0, Vector2.zero, 0f);
+			}
+		}
+
+		private static byte LandingCloudSize(Body body)
+		{
+			var impact = body.lastTimeStepVelocity.y;
+			if (impact >= -body.jumpSpeed * 0.35f)
+			{
+				return 0;
+			}
+
+			return impact < -body.jumpSpeed - 5f
+				? CasualtiesUnknownOnline.Runtime.Protocol.Messages.CharacterLandingVisualMsg.CloudBig
+				: CasualtiesUnknownOnline.Runtime.Protocol.Messages.CharacterLandingVisualMsg.CloudSmall;
+		}
 	}
-
 	[HarmonyPatch(typeof(Body), "WearWearable")]
 	internal static class WearWearablePatch
 	{

@@ -30,6 +30,13 @@ internal sealed class RemoteBodyDriver : MonoBehaviour
 	/// <summary>Current climbing state — HandleVisuals overwrites the animator flag every frame.</summary>
 	public bool Climbing;
 
+	/// <summary>Current wall-slide-left state — BodyPatches re-asserts it on the clone's private Body.slidingLeft before HandleVisuals.</summary>
+	public bool SlidingLeft;
+
+	/// <summary>Current wall-slide-right state — BodyPatches re-asserts it on the clone's private Body.slidingRight before HandleVisuals.</summary>
+	public bool SlidingRight;
+
+
 	/// <summary>Last applied workout type — the exercise clips replay only when the wire type changes.</summary>
 	public byte PrevWorkoutType;
 

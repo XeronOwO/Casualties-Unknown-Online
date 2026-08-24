@@ -119,9 +119,12 @@ presentations still have no dedicated event or periodic field:
   (ProtocolVersion 43); each peer replays the matching lay-down clip pair and
   shake on the owner's clone. See `docs/selfchecks/nap-and-dog-shake-sync-selfcheck.md`
   and `docs/tech-decisions.md` #88.
-- **Wall-slide / landing presentation — NOT_SYNCED**
-  (`Body.cs:2610-2632`, `Body.cs:2713-2725`, `Body.cs:3274-3321`): the
-  `Wall`/`Grounded` clips and dust particles are not replayed on clones.
+- **Wall-slide / landing presentation — CLOSED (2026-08-23)**: the owner's
+  wall-slide direction rides `EntityStateMsg` extended flags, and each landing
+  is a dedicated `CharacterLandingVisual` event (NetMsg 114, ProtocolVersion 44)
+  carrying the native Grounded clip + DustSmall/DustBig facts to the owner's
+  clone. See `docs/selfchecks/wall-slide-landing-sync-selfcheck.md` and
+  `docs/tech-decisions.md` #90.
 - **Gun muzzle-flash particle — CLOSED (2026-08-23)**. The existing
   `CharacterSoundKind.GunFire` event now also replays the source's
   `muzzleParticle.Play()` on the owner's clone through `MuzzleFlashReplay`
@@ -140,9 +143,10 @@ presentations still have no dedicated event or periodic field:
   brain-damage ragdoll shake, `specialCrying`, and underwater/waterdrip
   particle branches remain owner-side/local.
 
-The player attack-anim, direct placeable-item and workout rows above are now
-closed; the remaining lines are presentation-only observations, with no
-protocol or gameplay-state change made for them yet.
+The player attack-anim, direct placeable-item, workout, nap/dog-shake,
+muzzle-flash and wall-slide/landing rows above are now closed; the remaining
+lines are presentation-only observations, with no protocol or gameplay-state
+change made for them yet.
 
 ### Exploration 2026-08-23 — KrokMP-inspired co-op features
 

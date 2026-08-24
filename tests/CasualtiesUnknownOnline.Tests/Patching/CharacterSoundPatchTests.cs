@@ -174,10 +174,12 @@ public class CharacterSoundPatchTests
 	}
 
 	[Fact]
-	public void HandleGroundedStatePatch_OpensAndClosesTheLandingImpactScope()
+	public void HandleGroundedStatePatch_OpensAndClosesTheLandingImpactScope_AndReportsVisual()
 	{
 		var patch = BodyPatches.GetNestedType("BodyHandleGroundedStatePatch", BindingFlags.NonPublic | BindingFlags.Public)
 			?? throw new InvalidOperationException("BodyPatches.BodyHandleGroundedStatePatch not found.");
+		var state = patch.GetNestedType("LandingState", BindingFlags.NonPublic | BindingFlags.Public)
+			?? throw new InvalidOperationException("BodyHandleGroundedStatePatch.LandingState not found.");
 
 		var prefix = patch.GetMethod("Prefix", BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
 			?? throw new InvalidOperationException("Prefix not found.");
@@ -186,17 +188,20 @@ public class CharacterSoundPatchTests
 			&& prefixParameters[0].Name == "__instance"
 			&& prefixParameters[0].ParameterType.FullName == "Body"
 			&& prefixParameters[1].Name == "__state"
-			&& prefixParameters[1].ParameterType == typeof(IDisposable).MakeByRefType(),
-			$"HandleGroundedState.Prefix must be (Body __instance, out IDisposable? __state), got {prefixParameters.Length} parameter(s)");
+			&& prefixParameters[1].ParameterType == state.MakeByRefType(),
+			$"HandleGroundedState.Prefix must be (Body __instance, out LandingState __state), got {prefixParameters.Length} parameter(s)");
 
 		var postfix = patch.GetMethod("Postfix", BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
 			?? throw new InvalidOperationException("Postfix not found.");
 		var postfixParameters = postfix.GetParameters();
-		Assert.True(postfixParameters.Length == 1
-			&& postfixParameters[0].Name == "__state"
-			&& postfixParameters[0].ParameterType == typeof(IDisposable),
-			$"HandleGroundedState.Postfix must be (IDisposable? __state), got {postfixParameters.Length} parameter(s)");
+		Assert.True(postfixParameters.Length == 2
+			&& postfixParameters[0].Name == "__instance"
+			&& postfixParameters[0].ParameterType.FullName == "Body"
+			&& postfixParameters[1].Name == "__state"
+			&& postfixParameters[1].ParameterType == state,
+			$"HandleGroundedState.Postfix must be (Body __instance, LandingState __state), got {postfixParameters.Length} parameter(s)");
 	}
+
 
 	[Fact]
 	public void SoundSyncReport_TakesTheFullCaptureFact()

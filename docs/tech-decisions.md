@@ -2662,3 +2662,35 @@ other member saw the swing.
   replay surfaces; `DirectionTests` classifies the new message as
   bidirectional; full suite green. See
   `docs/selfchecks/trader-swing-sync-selfcheck.md`.
+
+## 94. Online UI player awareness: off-screen distance, per-player colors, overlapping target selection
+
+The KrokMP-inspired nameplate/off-screen indicator row was the last open
+medium UI feature before the remaining cross-player item-use work: CUO already
+drew nameplates and off-screen arrows, but the markers had no distance and no
+per-player color; the in-world right-click menu also silently picked the first
+overlapping remote player.
+
+- **Distance** — `OnlineUiOverlay.DrawNameplatesAndArrows` now computes the
+  world-space distance from `EntitySyncService.LocalPlayer.Position` to each
+  remote and passes it to the off-screen arrow label through the localized
+  `hud.distance` format (`{0} m` / `{0} 米`). World units are treated as
+  metres (the game's movement/speed fields already use m/s, see
+  `docs/tech-decisions.md` #22 area).
+- **Per-player colors** — `PlayerColorResolver` maps a SteamId to one of eight
+  high-contrast palette entries using a stable 64-bit mix. The mapping is
+  purely local (no wire/protocol change, no host assignment): every peer sees
+  the same color for the same SteamId, which gives teammates a consistent
+  visual identity without a sync surface. Nameplates and off-screen arrows use
+  the resolved color; vitals text stays white for readability.
+- **Overlap selection** — `RemoteTargetPicker.Find` returns every remote within
+  the right-click radius ordered by distance (ties by SteamId).
+  `OnlineUiPlayerContextMenu` now stores the candidate list and renders a
+  compact target selector when more than one remote overlaps; clicking a
+  candidate switches the selected player before the action buttons are used.
+- **No protocol change** — this is UI-only; no `NetMsg`, no `ProtocolVersion`
+  bump, no event/entity matrix rows touched.
+- **Tests/gates** — `PlayerColorResolverTests` (3) and
+  `RemoteTargetPickerTests` (5) cover stable colors, palette spread, radius
+  filtering, distance ordering and tie-breaking. Full suite green. See
+  `docs/selfchecks/online-ui-player-awareness-selfcheck.md`.

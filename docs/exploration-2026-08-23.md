@@ -175,7 +175,12 @@ sync model.
 - Protocol quantization/compression — explicitly measurement-first; CUO already
   has this in backlog as "do not optimize before data".
 
-### 2.8 Player nameplates / off-screen indicators / player colors — OPEN
+### 2.8 Player nameplates / off-screen indicators / player colors — CLOSED (2026-08-24)
+
+> Landed: off-screen arrows now carry a distance readout and each SteamId has
+> a stable local deterministic marker color; the in-world context menu also
+> gained a target selector for overlapping remotes. No wire/protocol change.
+> See `docs/selfchecks/online-ui-player-awareness-selfcheck.md`.
 
 - KrokMP: shows player names above heads; when a player leaves the screen it
   shows a name + arrow + distance; players can customize a color to make

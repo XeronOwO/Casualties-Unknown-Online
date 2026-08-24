@@ -258,9 +258,9 @@ internal sealed class OnlineUiOverlay
 				return;
 			}
 
-			if (TryFindRemoteAt(mouse, ctx, out var remoteSteamId))
+			if (TryFindRemoteCandidatesAt(mouse, ctx, out var candidates))
 			{
-				_contextMenu.Open(remoteSteamId, mouse);
+				_contextMenu.Open(candidates[0], candidates, mouse);
 				evt.Use();
 			}
 			else if (_contextMenu.IsOpen)
@@ -278,16 +278,17 @@ internal sealed class OnlineUiOverlay
 		}
 	}
 
-	private static bool TryFindRemoteAt(Vector2 guiMouse, OnlineUiContext ctx, out ulong steamId)
+	private static bool TryFindRemoteCandidatesAt(Vector2 guiMouse, OnlineUiContext ctx, out IReadOnlyList<ulong> steamIds)
 	{
 		var camera = Camera.main;
 		if (camera == null)
 		{
-			steamId = 0;
+			steamIds = [];
 			return false;
 		}
 
 		const float radius = 48f;
+		var screenTargets = new List<RemoteScreenTarget>();
 		foreach (var remote in ctx.Entities.RemotePlayers)
 		{
 			if (remote.IsLocal || !ctx.Session.IsRemoteInWorld(remote.SteamId))
@@ -303,15 +304,18 @@ internal sealed class OnlineUiOverlay
 			}
 
 			var gui = new Vector2(screen.x, Screen.height - screen.y);
-			if (Vector2.Distance(guiMouse, gui) <= radius)
-			{
-				steamId = remote.SteamId;
-				return true;
-			}
+			screenTargets.Add(new RemoteScreenTarget(remote.SteamId, gui.x, gui.y));
 		}
 
-		steamId = 0;
-		return false;
+		var matches = RemoteTargetPicker.Find(screenTargets, guiMouse.x, guiMouse.y, radius);
+		var result = new List<ulong>(matches.Count);
+		foreach (var match in matches)
+		{
+			result.Add(match.SteamId);
+		}
+
+		steamIds = result;
+		return result.Count > 0;
 	}
 
 	private static void DrawNameplatesAndArrows(OnlineUiContext ctx, EntitySyncService entities, RemoteVitalsService vitals)
@@ -323,6 +327,7 @@ internal sealed class OnlineUiOverlay
 		}
 
 		const float margin = 28f;
+		var local = entities.LocalPlayer.Position;
 		foreach (var remote in entities.RemotePlayers)
 		{
 			if (remote.IsLocal || !ctx.Session.IsRemoteInWorld(remote.SteamId))
@@ -336,25 +341,30 @@ internal sealed class OnlineUiOverlay
 			var gui = new Vector2(projected.x, Screen.height - projected.y);
 			var placement = OffScreenArrowGeometry.Place(gui.x, gui.y, Screen.width, Screen.height, margin);
 
+			var dx = remote.Position.X - local.X;
+			var dy = remote.Position.Y - local.Y;
+			var distance = Mathf.Sqrt((dx * dx) + (dy * dy));
+			var color = ToColor(PlayerColorResolver.Resolve(remote.SteamId));
+			var name = ctx.DisplayName(remote.SteamId);
 			if (placement.Direction == OffScreenArrowDirection.None)
 			{
-				DrawNameplate(placement.X, placement.Y, ctx.DisplayName(remote.SteamId), remote, vitals);
+				DrawNameplate(placement.X, placement.Y, name, remote, vitals, color);
 			}
 			else
 			{
-				DrawOffScreenArrow(placement, ctx.DisplayName(remote.SteamId));
+				DrawOffScreenArrow(placement, name, ctx.F("hud.distance", Mathf.RoundToInt(distance)), color);
 			}
 		}
 	}
 
-	private static void DrawNameplate(float x, float y, string name, PlayerEntity remote, RemoteVitalsService vitals)
+	private static void DrawNameplate(float x, float y, string name, PlayerEntity remote, RemoteVitalsService vitals, Color color)
 	{
 		var style = new GUIStyle(GUI.skin.label)
 		{
 			fontSize = 12,
 			alignment = TextAnchor.MiddleCenter,
 		};
-		style.normal.textColor = Color.white;
+		style.normal.textColor = color;
 
 		var status = remote.Alive ? (remote.Conscious ? "" : " Zzz") : " \u271D"; // ✝
 		GUI.Label(new Rect(x - 80f, y - 34f, 160f, 20f), name + status, style);
@@ -371,14 +381,14 @@ internal sealed class OnlineUiOverlay
 		}
 	}
 
-	private static void DrawOffScreenArrow(OffScreenArrowPlacement placement, string name)
+	private static void DrawOffScreenArrow(OffScreenArrowPlacement placement, string name, string distanceText, Color color)
 	{
 		var arrowStyle = new GUIStyle(GUI.skin.label)
 		{
 			fontSize = 18,
 			alignment = TextAnchor.MiddleCenter,
 		};
-		arrowStyle.normal.textColor = Color.yellow;
+		arrowStyle.normal.textColor = color;
 
 		var arrow = placement.Direction switch
 		{
@@ -395,8 +405,10 @@ internal sealed class OnlineUiOverlay
 			fontSize = 10,
 			alignment = TextAnchor.MiddleCenter,
 		};
-		nameStyle.normal.textColor = Color.white;
-		GUI.Label(new Rect(placement.X - 70f, placement.Y + 12f, 140f, 16f), name, nameStyle);
+		nameStyle.normal.textColor = color;
+		GUI.Label(new Rect(placement.X - 70f, placement.Y + 12f, 140f, 16f), name + "  " + distanceText, nameStyle);
 	}
+
+	private static Color ToColor(PlayerColorValue value) => new(value.R, value.G, value.B, value.A);
 
 }

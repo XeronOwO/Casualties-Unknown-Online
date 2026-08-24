@@ -265,6 +265,10 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 	public void OnCharacterSound(CharacterSoundKind kind, string clip, Vector2 pos, float volume, bool followOwner, bool twoDimensional, float recoilDegrees) =>
 		domains.CharacterSoundSync.Report(kind, clip, pos, volume, followOwner, twoDimensional, recoilDegrees);
 
+	public void OnCharacterLandingVisual(byte cloudSize, Vector2 position, float velocityX) =>
+		domains.CharacterLandingVisualSync.Report(cloudSize, position, velocityX);
+
+
 	public void OnLimbStateEvent(Limb limb) => domains.CharacterDataSync.ReportLimbStateEvent(limb);
 
 	public bool OnTimeScaleSetRequested(PlayerCamera.SpeedType speed, bool force) =>

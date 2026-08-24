@@ -296,6 +296,10 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable
 	/// <summary>A character attack-animation event arrived (report or relay) — the Game Adapter replays it on the owner's clone.</summary>
 	public event Action<ulong, CharacterAttackAnimMsg>? CharacterAttackAnimReceived;
 
+	/// <summary>A character landing-visual event arrived (report or relay) — the Game Adapter replays the Grounded clip/dust on the owner's clone.</summary>
+	public event Action<ulong, CharacterLandingVisualMsg>? CharacterLandingVisualReceived;
+
+
 	/// <summary>Host side: merge a limb-latch event's full terminal state into the owner's saved snapshot immediately — a disconnect before the next 1 Hz report must still restore every changed limb + body field (the dedicated event is the trigger; the snapshot is only the fallback).</summary>
 	public void ApplyLimbStateEvent(LimbStateEventMsg msg)
 	{
@@ -382,6 +386,32 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable
 		}
 	}
 
+	/// <summary>
+	/// Report/broadcast a character landing visual: a guest reports its own
+	/// landing to the host; the host broadcasts its own to every handshaken
+	/// guest. Reliable — one landing = one message, the visual trigger never
+	/// rides the snapshot stream.
+	/// </summary>
+	public void SendCharacterLandingVisual(CharacterLandingVisualMsg msg)
+	{
+		if (!_session.SessionActive)
+		{
+			return;
+		}
+
+		if (_session.Role == SessionRole.Host)
+		{
+			_sender.SendToAll(
+				_session.Members.Where(m => m.Handshaken && m.SteamId != _session.LocalSteamId).Select(m => m.SteamId),
+				NetMsg.CharacterLandingVisual, msg, reliable: true);
+		}
+		else
+		{
+			_sender.Send(_session.HostSteamId, NetMsg.CharacterLandingVisual, msg);
+		}
+	}
+
+
 	// ---- ICharacterDataControl (the packet handlers' control surface) ----
 
 	void ICharacterDataControl.SaveCharacterData(ulong steamId, CharacterDataMsg msg) => SaveCharacterData(steamId, msg);
@@ -440,4 +470,10 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable
 		CharacterAttackAnimReceived?.Invoke(sender, msg);
 
 	void ICharacterDataControl.SendCharacterAttackAnim(CharacterAttackAnimMsg msg) => SendCharacterAttackAnim(msg);
+
+	void ICharacterDataControl.FireCharacterLandingVisualReceived(ulong sender, CharacterLandingVisualMsg msg) =>
+		CharacterLandingVisualReceived?.Invoke(sender, msg);
+
+	void ICharacterDataControl.SendCharacterLandingVisual(CharacterLandingVisualMsg msg) => SendCharacterLandingVisual(msg);
+
 }

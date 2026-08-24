@@ -333,4 +333,14 @@ internal interface IPatchBridge
 	/// presentation on the owner's clone (guest → host; host → broadcast).
 	/// </summary>
 	void OnCharacterSound(CharacterSoundKind kind, string clip, Vector2 pos, float volume, bool followOwner, bool twoDimensional, float recoilDegrees);
+
+	/// <summary>
+	/// The local body just landed (Body.HandleGroundedState's became-grounded
+	/// branch — the Grounded clip already played and the native landing dust
+	/// already spawned when <paramref name="cloudSize"/> is non-zero). Report it
+	/// so the peers replay the presentation on the owner's clone (guest → host;
+	/// host → broadcast).
+	/// </summary>
+	void OnCharacterLandingVisual(byte cloudSize, Vector2 position, float velocityX);
+
 }

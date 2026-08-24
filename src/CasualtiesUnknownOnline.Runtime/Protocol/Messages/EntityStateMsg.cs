@@ -114,6 +114,8 @@ public sealed class EntityStateMsg
 		target.Sleeping = (Flags & 0x40) != 0;
 		target.Climbing = (Flags & 0x80) != 0;
 		target.IsAttacking = (ExtendedFlags & 0x01u) != 0;
+		target.SlidingLeft = (ExtendedFlags & 0x02u) != 0;
+		target.SlidingRight = (ExtendedFlags & 0x04u) != 0;
 		target.SwingSeq = SwingSeq;
 		target.WorkoutType = WorkoutType;
 		target.NapVariant = NapVariant;

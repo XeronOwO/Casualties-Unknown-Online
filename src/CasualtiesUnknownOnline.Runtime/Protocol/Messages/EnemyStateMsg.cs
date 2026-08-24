@@ -44,6 +44,22 @@ public sealed class EnemyStateMsg
 	[ProtoMember(7)]
 	public List<NetVector2Msg>? SpiderLegTargets { get; set; }
 
+	/// <summary>
+	/// Host-captured CrystalEnemy wind-up progress in seconds (0 = no telegraph;
+	/// > 0 = the pre-lunge line is visible). Only meaningful for crystal
+	/// enemies; the receiver reproduces the line fade from this absolute value.
+	/// </summary>
+	[ProtoMember(8)]
+	public float CrystalWindupAmount { get; set; }
+
+	/// <summary>
+	/// Host-captured end point of the CrystalEnemy telegraph line (world space).
+	/// Null when no line is active; the start point is the entity transform,
+	/// which is already position-synced.
+	/// </summary>
+	[ProtoMember(9)]
+	public NetVector2Msg? CrystalLineEnd { get; set; }
+
 	/// <summary>Wire → domain; the reverse lives in <see cref="EnemyEntity.ToEnemyStateMsg"/>.</summary>
 	public void ApplyTo(EnemyEntity target)
 	{
@@ -54,5 +70,7 @@ public sealed class EnemyStateMsg
 		target.Health = Health;
 		target.Stunned = (PresentationFlags & FlagStunned) != 0;
 		target.SpiderLegTargets = SpiderLegTargets?.ConvertAll(v => v.ToNetVector2());
+		target.CrystalWindupAmount = CrystalWindupAmount;
+		target.CrystalLineEnd = CrystalLineEnd?.ToNetVector2();
 	}
 }

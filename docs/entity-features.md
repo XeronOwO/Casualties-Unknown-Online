@@ -145,7 +145,7 @@ trap's sound/sprite/light.
 
 | entity | trigger | sync | path |
 |---|---|---|---|
-| TraderScript | field | covered | trade domain #132 — host-computed overwrites (TraderState, every interaction + world entry + 5 s fallback); the acting side runs the game method in full and reports TraderAction |
+| TraderScript | field | covered | trade domain #132 + TraderSwing hostile swing — host-computed overwrites (TraderState, every interaction + world entry + 5 s fallback); the acting side runs the game method in full and reports TraderAction |
 | Talker | field | covered | SpeechMsg (NetMsg 74) — entity key + text id; clone-side bubble replay |
 | LampScript | collide | covered | trade domain #132 — LightBroken's flat reputation -40 runs on both sides from the broadcasted base |
 
@@ -240,7 +240,7 @@ effects (see `docs/selfchecks/animal-death-presentation-selfcheck.md`).
 
 | entity | sync | path |
 |---|---|---|
-| SpiderHandler | covered | EnemyState stream (SpiderLegTargets for leg IK) + EnemyAttack/EnemyBite events; host-ordered bites replay ClawAnim |
-| CaveTicks | covered | EnemyState stream (SpiderLegTargets for leg IK) + EnemyAttack/EnemyBite events |
+| SpiderHandler | covered | EnemyState stream (SpiderLegTargets) + EnemyAttack/EnemyBite events + ClawAnim replay |
+| CaveTicks | covered | EnemyState stream (SpiderLegTargets) + EnemyAttack/EnemyBite events + ClawAnim replay |
 | ElderThornbackBehaviour | covered | EnemyState stream + EnemyEffectMsg horror events |
-| CrystalEnemy | covered | EnemyState stream + EnemyAttack/EnemyLunge events; runtime crystalenemy tint rides EntitySpawned/EnemySnapshot (PV24) |
+| CrystalEnemy | covered | EnemyState stream (CrystalWindup telegraph) + EnemyAttack/EnemyLunge events; runtime crystalenemy tint rides EntitySpawned/EnemySnapshot (PV24) |

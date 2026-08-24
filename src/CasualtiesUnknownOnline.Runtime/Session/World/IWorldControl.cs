@@ -324,6 +324,14 @@ public interface IWorldControl
 
 	event Action<TraderRecruitResultMsg>? TraderRecruitResultReceived;
 
+	/// <summary>Report/broadcast a hostile trader swing presentation (guest → host report; host → all guests).</summary>
+	void SendTraderSwing(TraderSwingMsg msg);
+
+	/// <summary>A hostile trader swing arrived (report or relay) — the receiver replays the animation on its same-position trader.</summary>
+	void FireTraderSwingReceived(ulong sender, TraderSwingMsg msg);
+
+	event Action<ulong, TraderSwingMsg>? TraderSwingReceived;
+
 	/// <summary>Guest: report a locally-spoken player bubble to the host.</summary>
 	void SendSpeech(SpeechMsg msg);
 

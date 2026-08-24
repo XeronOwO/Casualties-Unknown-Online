@@ -116,6 +116,7 @@ public class DirectionTests
 		NetMsg.CharacterLandingVisual,
 		NetMsg.DynamiteExplosion,
 		NetMsg.Chat,
+		NetMsg.TraderSwing,
 	};
 
 	[Theory]

@@ -222,6 +222,8 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 	public void OnTraderActionReported(TraderScript trader, TraderActionKind action, string itemId, int itemValue, Item? purchaseItem) =>
 		domains.TradeSync.OnTraderActionReported(trader, action, itemId, itemValue, purchaseItem);
 
+	public void OnTraderSwing(TraderScript trader) => domains.TraderSwingSync.Report(trader);
+
 	public void OnSpeechReported(Talker talker, string text) => domains.SpeechSync.OnSpeechReported(talker, text);
 
 	public void OnEnemyBite(Limb limb) => domains.EnemySync.ReportEnemyBite(limb);

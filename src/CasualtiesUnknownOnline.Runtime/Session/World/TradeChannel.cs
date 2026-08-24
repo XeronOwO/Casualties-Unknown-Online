@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 
@@ -99,4 +100,35 @@ public sealed class TradeChannel(ISessionControl session, PacketSender sender)
 
 	public void FireTraderRecruitResultReceived(TraderRecruitResultMsg msg) =>
 		TraderRecruitResultReceived?.Invoke(msg);
+
+	/// <summary>
+	/// Report/broadcast a hostile trader swing presentation: a guest reports
+	/// its local trader's swing to the host; the host sends its own swing to
+	/// every handshaken guest. The source side already played the visual
+	/// locally, so the host never sends its own swing back to itself.
+	/// </summary>
+	public void SendTraderSwing(TraderSwingMsg msg)
+	{
+		if (!_session.SessionActive)
+		{
+			return;
+		}
+
+		if (_session.Role == SessionRole.Host)
+		{
+			_sender.SendToAll(
+				_session.Members.Where(m => m.Handshaken && m.SteamId != _session.LocalSteamId).Select(m => m.SteamId),
+				NetMsg.TraderSwing, msg, reliable: true);
+		}
+		else
+		{
+			_sender.Send(_session.HostSteamId, NetMsg.TraderSwing, msg);
+		}
+	}
+
+	/// <summary>A hostile trader swing arrived (report or relay) — the receiver replays the animation on its same-position trader.</summary>
+	public event Action<ulong, TraderSwingMsg>? TraderSwingReceived;
+
+	public void FireTraderSwingReceived(ulong sender, TraderSwingMsg msg) =>
+		TraderSwingReceived?.Invoke(sender, msg);
 }

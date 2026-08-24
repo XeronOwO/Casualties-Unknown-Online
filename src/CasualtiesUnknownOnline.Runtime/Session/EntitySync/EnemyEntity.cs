@@ -56,6 +56,20 @@ public sealed class EnemyEntity(NetworkEntityId entityId)
 	/// </summary>
 	public List<NetVector2>? SpiderLegTargets { get; set; }
 
+	/// <summary>
+	/// Host-captured CrystalEnemy wind-up progress in seconds (0 = no telegraph;
+	/// > 0 = the pre-lunge line is visible). Only meaningful for crystal
+	/// enemies; the receiver reproduces the line fade from this absolute value.
+	/// </summary>
+	public float CrystalWindupAmount { get; set; }
+
+	/// <summary>
+	/// Host-captured end point of the CrystalEnemy telegraph line (world space).
+	/// Null when no line is active; the start point is the entity transform,
+	/// which is already position-synced.
+	/// </summary>
+	public NetVector2? CrystalLineEnd { get; set; }
+
 	/// <summary>Domain → wire; the reverse applies via <see cref="EnemyStateMsg.ApplyTo"/>.</summary>
 	public EnemyStateMsg ToEnemyStateMsg() => new()
 	{
@@ -66,6 +80,8 @@ public sealed class EnemyEntity(NetworkEntityId entityId)
 		Health = Health,
 		PresentationFlags = Stunned ? EnemyStateMsg.FlagStunned : 0u,
 		SpiderLegTargets = SpiderLegTargets?.ConvertAll(t => t.ToNetVector2Msg()),
+		CrystalWindupAmount = CrystalWindupAmount,
+		CrystalLineEnd = CrystalLineEnd?.ToNetVector2Msg(),
 	};
 
 	/// <summary>The runtime-spawn backfill entry (only meaningful when <see cref="RuntimeSpawned"/> is true).</summary>

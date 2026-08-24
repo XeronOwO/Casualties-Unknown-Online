@@ -15,4 +15,7 @@ internal sealed class RemoteEnemyDriver : MonoBehaviour
 {
 	/// <summary>The host's stun/stuck presentation flag for this frozen render copy (SpiderHandler.stunTime &gt; 0 / CrystalEnemy.stuck).</summary>
 	internal bool Stunned { get; set; }
+
+	/// <summary>The host's last-applied CrystalEnemy wind-up amount, used only to detect the visible-toggle edge for logging/one-shot replay decisions.</summary>
+	internal float CrystalWindupAmount { get; set; }
 }

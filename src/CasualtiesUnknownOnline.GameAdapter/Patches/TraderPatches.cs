@@ -147,4 +147,14 @@ internal static class TraderPatches
 		private static void Postfix(TraderScript __instance) =>
 			PatchBridge.Impl?.OnTraderActionReported(__instance, TraderActionKind.MeetPlayer, "", 0, null);
 	}
+
+	/// <summary>TraderScript.Swing: the hostile swing ran locally (animation +
+	/// sound + local damage already applied) — report the presentation so the
+	/// peers replay it on their same-position trader.</summary>
+	[HarmonyPatch(typeof(TraderScript), "Swing")]
+	internal static class TraderSwingPatch
+	{
+		private static void Postfix(TraderScript __instance) =>
+			PatchBridge.Impl?.OnTraderSwing(__instance);
+	}
 }

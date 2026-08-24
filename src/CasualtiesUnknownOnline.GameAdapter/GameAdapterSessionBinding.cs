@@ -28,6 +28,7 @@ internal sealed class GameAdapterSessionBinding(GameAdapterDomains domains, Play
 		domains.RadiationLineSync.BindToSession();
 		domains.FluidSync.BindToSession();
 		domains.TradeSync.BindToSession();
+		domains.TraderSwingSync.BindToSession();
 		domains.TraderRecruit.BindToSession();
 		domains.Respawn.BindToSession();
 		domains.SpeechSync.BindToSession();
@@ -71,6 +72,7 @@ internal sealed class GameAdapterSessionBinding(GameAdapterDomains domains, Play
 		domains.RadiationLineSync.Unbind();
 		domains.FluidSync.Unbind();
 		domains.TradeSync.Unbind();
+		domains.TraderSwingSync.Unbind();
 		domains.TraderRecruit.Unbind();
 		domains.Respawn.Unbind();
 		domains.SpeechSync.Unbind();

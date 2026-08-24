@@ -137,18 +137,29 @@ presentations still have no dedicated event or periodic field:
 - **Spider bite `ClawAnim` — CLOSED (2026-08-23)**: host-ordered remote bites
   now replay the one-shot claw on the host view and the victim via
   `SpiderClawReplay`; no protocol change beyond the leg field above.
-- **Crystal wind-up/telegraph line — NOT_SYNCED** (`CrystalEnemy.cs:68-90`);
-  `EnemyState` carries no line/windup fields.
-- **Trader hostile `Swing()` attackAnimation — NOT_SYNCED**
-  (`TraderScript.cs:548-559`); trade state sync covers stock/reputation only.
+- **Crystal wind-up/telegraph line — CLOSED (2026-08-24)**.
+  `CrystalEnemy.Update`'s pre-lunge line (`CrystalEnemy.cs:66-90`) now rides
+  `EnemyStateMsg.CrystalWindupAmount` / `CrystalLineEnd`
+  (ProtocolVersion 47); frozen copies replay the host's native fade/width on
+  their `LineRenderer`. See
+  `docs/selfchecks/crystal-windup-telegraph-sync-selfcheck.md` and
+  `docs/tech-decisions.md` #92.
+- **Trader hostile `Swing()` attackAnimation — CLOSED (2026-08-24)**.
+  `TraderScript.Swing`'s attackAnimation + swing sound now travel as one
+  dedicated reliable `TraderSwingMsg` (NetMsg 115, ProtocolVersion 47) with
+  star semantics; every other member replays the exact visual on its
+  same-position trader. See
+  `docs/selfchecks/trader-swing-sync-selfcheck.md` and
+  `docs/tech-decisions.md` #93.
 - **Coroutine/shake body states — NOT_SYNCED/OWNER_LOCAL**: `FurExplode`,
   brain-damage ragdoll shake, `specialCrying`, and underwater/waterdrip
   particle branches remain owner-side/local.
 
 The player attack-anim, direct placeable-item, workout, nap/dog-shake,
-muzzle-flash, wall-slide/landing and spider leg/claw rows above are now closed;
-the remaining lines are presentation-only observations, with no protocol or
-gameplay-state change made for them yet.
+muzzle-flash, wall-slide/landing, spider leg/claw, crystal wind-up/telegraph
+and trader hostile swing rows above are now closed; the remaining line is the
+owner-local coroutine/shake group, intentionally not a shared presentation
+surface.
 
 ### Exploration 2026-08-23 — KrokMP-inspired co-op features
 

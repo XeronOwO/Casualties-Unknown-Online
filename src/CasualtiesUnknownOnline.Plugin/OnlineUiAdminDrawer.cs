@@ -28,6 +28,7 @@ internal static class OnlineUiAdminDrawer
 			DrawEditableRule(ctx, "admin.rule_pvp", rules.PvpEnabled, editor.SetPvpEnabled);
 			DrawEditableRule(ctx, "admin.rule_auto_continue", rules.AutoContinue, editor.SetAutoContinue);
 			DrawEditableRule(ctx, "admin.rule_allow_late_join", rules.AllowLateJoin, editor.SetAllowLateJoin);
+			DrawEditableRule(ctx, "admin.rule_widen_run_settings", rules.WidenRunSettings, editor.SetWidenRunSettings);
 			DrawEditableRule(ctx, "admin.rule_save_inventory", rules.SaveInventory, editor.SetKeepInventory);
 			DrawEditableRule(ctx, "admin.rule_revive_trader", rules.ReviveFromTrader, editor.SetReviveFromTrader);
 			DrawEditableRule(ctx, "admin.rule_revive_next_level", rules.ReviveOnNextLevel, editor.SetReviveOnNextLevel);
@@ -38,6 +39,7 @@ internal static class OnlineUiAdminDrawer
 			DrawRule(ctx.T("admin.rule_pvp"), rules.PvpEnabled, ctx);
 			DrawRule(ctx.T("admin.rule_auto_continue"), rules.AutoContinue, ctx);
 			DrawRule(ctx.T("admin.rule_allow_late_join"), rules.AllowLateJoin, ctx);
+			DrawRule(ctx.T("admin.rule_widen_run_settings"), rules.WidenRunSettings, ctx);
 			DrawRule(ctx.T("admin.rule_save_inventory"), rules.SaveInventory, ctx);
 			DrawRule(ctx.T("admin.rule_revive_trader"), rules.ReviveFromTrader, ctx);
 			DrawRule(ctx.T("admin.rule_revive_next_level"), rules.ReviveOnNextLevel, ctx);

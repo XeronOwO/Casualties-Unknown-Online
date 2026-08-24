@@ -82,6 +82,8 @@ internal static class PluginDependencyRegistrar
 			new ConfigDescription("Reserved host-rule surface for automatic next-layer continuation; not wired yet."));
 		var allowLateJoin = config.Bind("HostRules", "AllowLateJoin", true,
 			new ConfigDescription("True = a brand-new player may join the host's already-running world."));
+		var widenRunSettings = config.Bind("HostRules", "WidenRunSettings", true,
+			new ConfigDescription("Host-only: widen the native custom run-settings sliders in co-op so the run can be tuned for the actual lobby size. Values still ride the existing world-start params."));
 		services.Replace(ServiceDescriptor.Singleton<IOptionsMonitor<HostRulesOptions>>(
 			new BepInExOptionsMonitor<HostRulesOptions>(
 				config,
@@ -90,8 +92,10 @@ internal static class PluginDependencyRegistrar
 					PvpEnabled = pvpEnabled.Value,
 					AutoContinue = autoContinue.Value,
 					AllowLateJoin = allowLateJoin.Value,
+					WidenRunSettings = widenRunSettings.Value,
 				},
-				pvpEnabled.Definition, autoContinue.Definition, allowLateJoin.Definition)));
+				pvpEnabled.Definition, autoContinue.Definition, allowLateJoin.Definition,
+				widenRunSettings.Definition)));
 
 		// UI language: en or zh. The localization service normalizes anything
 		// starting with "zh" to zh and everything else to English.
@@ -114,6 +118,7 @@ internal static class PluginDependencyRegistrar
 			pvpEnabled,
 			autoContinue,
 			allowLateJoin,
+			widenRunSettings,
 			permadeath,
 			reviveFromTrader,
 			reviveOnNextLevel,

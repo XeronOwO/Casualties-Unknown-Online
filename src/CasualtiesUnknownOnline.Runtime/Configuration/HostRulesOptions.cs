@@ -28,4 +28,11 @@ public sealed class HostRulesOptions
 	/// reconnects of already-known members are always allowed.
 	/// </summary>
 	public bool AllowLateJoin { get; set; } = true;
+
+	/// <summary>
+	/// Host-only: widen the native custom run-settings sliders in co-op so the
+	/// run can be tuned for the actual lobby size. The slider limits are UI-only;
+	/// selected values still ride the existing world-start params unchanged.
+	/// </summary>
+	public bool WidenRunSettings { get; set; } = true;
 }

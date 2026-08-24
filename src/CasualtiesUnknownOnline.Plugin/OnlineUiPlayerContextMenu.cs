@@ -98,6 +98,11 @@ internal sealed class OnlineUiPlayerContextMenu
 			Close();
 		}
 
+		if (row.CanUseItem && ActionButton(ctx.T("member.use"), () => ctx.UseItemOnRemote?.Invoke(row.SteamId)))
+		{
+			Close();
+		}
+
 		if (row.CanRecruit && ActionButton(ctx.T("member.recruit"), () => ctx.RecruitPlayer?.Invoke(row.SteamId)))
 		{
 			Close();
@@ -119,6 +124,16 @@ internal sealed class OnlineUiPlayerContextMenu
 			var itemId = item.ItemId;
 			var instanceId = item.InstanceId;
 			if (ActionButton(ctx.F("member.heal_with", itemId), () => ctx.HealWithItem?.Invoke(row.SteamId, instanceId)))
+			{
+				Close();
+			}
+		}
+
+		foreach (var item in row.UseItems)
+		{
+			var itemId = item.ItemId;
+			var instanceId = item.InstanceId;
+			if (ActionButton(ctx.F("member.use_with", itemId), () => ctx.UseItemOnRemoteWith?.Invoke(row.SteamId, instanceId)))
 			{
 				Close();
 			}
@@ -160,6 +175,11 @@ internal sealed class OnlineUiPlayerContextMenu
 			count++;
 		}
 
+		if (row.CanUseItem)
+		{
+			count++;
+		}
+
 		if (row.CanRecruit)
 		{
 			count++;
@@ -167,6 +187,7 @@ internal sealed class OnlineUiPlayerContextMenu
 
 		count += row.TakeableItems.Count;
 		count += row.HealItems.Count;
+		count += row.UseItems.Count;
 		return count;
 	}
 

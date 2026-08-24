@@ -18,6 +18,7 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, IDispo
 	private readonly PlayerInventoryTakeService _take;
 	private readonly PlayerCarryService _carry;
 	private readonly PlayerHealService _heal;
+	private readonly PlayerItemUseService _itemUse;
 
 	public event Action<PlayerInventoryTransferMsg>? TransferReceived
 	{
@@ -37,6 +38,12 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, IDispo
 		remove => _heal.HealReceived -= value;
 	}
 
+	public event Action<PlayerItemUseResultMsg>? UseReceived
+	{
+		add => _itemUse.UseReceived += value;
+		remove => _itemUse.UseReceived -= value;
+	}
+
 	public PlayerInteractionService(
 		ISessionControl session,
 		PacketSender sender,
@@ -48,6 +55,7 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, IDispo
 		_take = new PlayerInventoryTakeService(session, sender, access, items, log);
 		_carry = new PlayerCarryService(session, sender, access, log);
 		_heal = new PlayerHealService(session, sender, access, items, log);
+		_itemUse = new PlayerItemUseService(session, sender, access, items, log);
 	}
 
 	public void SendTakeRequest(ulong ownerSteamId, ulong itemInstanceId) =>
@@ -88,6 +96,15 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, IDispo
 
 	public void FireHealReceived(PlayerHealResultMsg msg) =>
 		_heal.FireHealReceived(msg);
+
+	public void SendUseRequest(ulong targetSteamId, ulong itemInstanceId = 0) =>
+		_itemUse.SendUseRequest(targetSteamId, itemInstanceId);
+
+	public void HandleUseRequest(ulong sender, PlayerItemUseRequestMsg msg) =>
+		_itemUse.HandleUseRequest(sender, msg);
+
+	public void FireUseReceived(PlayerItemUseResultMsg msg) =>
+		_itemUse.FireUseReceived(msg);
 
 	public void Dispose() => _carry.Dispose();
 }

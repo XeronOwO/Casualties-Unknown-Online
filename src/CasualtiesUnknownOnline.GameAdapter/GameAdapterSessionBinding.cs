@@ -52,6 +52,7 @@ internal sealed class GameAdapterSessionBinding(GameAdapterDomains domains, Play
 		domains.PlayerInteraction.TransferReceived += playerInteraction.OnPlayerInventoryTransfer; // cross-player take: apply the local body mutation and re-report
 		domains.PlayerInteraction.CarryStateChanged += playerInteraction.OnCarryStateChanged; // cross-player carry: set/clear the local carried-body driver
 		domains.PlayerInteraction.HealReceived += playerInteraction.OnPlayerHealReceived; // cross-player heal: consume the local item and/or apply the target's post-heal state
+		domains.PlayerInteraction.UseReceived += playerInteraction.OnPlayerItemUseReceived; // cross-player consumable use: consume/update the user's item and/or apply the target's post-use state
 	}
 
 	public void Unbind()
@@ -96,6 +97,7 @@ internal sealed class GameAdapterSessionBinding(GameAdapterDomains domains, Play
 		domains.PlayerInteraction.TransferReceived -= playerInteraction.OnPlayerInventoryTransfer;
 		domains.PlayerInteraction.CarryStateChanged -= playerInteraction.OnCarryStateChanged;
 		domains.PlayerInteraction.HealReceived -= playerInteraction.OnPlayerHealReceived;
+		domains.PlayerInteraction.UseReceived -= playerInteraction.OnPlayerItemUseReceived;
 	}
 
 	private void OnSessionEnded()

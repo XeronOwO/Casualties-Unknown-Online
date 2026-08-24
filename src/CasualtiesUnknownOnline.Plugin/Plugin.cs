@@ -53,6 +53,7 @@ public class Plugin : BaseUnityPlugin
 	private ulong? _pendingJoinLobbyId;
 	private string? _lastJoinError;
 	private OnlineUiOverlay _onlineUi = null!;
+	private OnlineUiActions _uiActions = null!;
 
 	private void Awake()
 	{
@@ -101,6 +102,7 @@ public class Plugin : BaseUnityPlugin
 			_playerInteraction = _services.GetRequiredService<PlayerInteractionService>();
 			_modUiControl = _services.GetRequiredService<IModUiControl>();
 			_adapter = _services.GetService<IGameAdapter>();
+			_uiActions = new OnlineUiActions(_session, _hostBan, _playerInteraction, _adapter);
 			_ipActions = new IpDirectActions(
 				_router,
 				_ipSteam,
@@ -121,17 +123,21 @@ public class Plugin : BaseUnityPlugin
 				JoinIp = _ipActions.Join,
 				LeaveIp = _ipActions.Leave,
 				IpConfig = _ipConfig,
-				TakeItem = TryTakeItemFromRemote,
-				CarryRemote = TryCarryRemoteFromUi,
-				DropCarried = TryDropCarryFromUi,
-				HealRemote = TryHealRemoteFromUi,
-				HasHealItem = () => _adapter?.HasLocalHealItem() == true,
-				HealWithItem = TryHealWithItemFromUi,
-				GetLocalHealItems = () => _adapter?.GetLocalHealItems() ?? [],
-				RecruitPlayer = TryRequestTraderRecruitFromUi,
-				KickMember = TryKickMemberFromUi,
-				BanMember = TryBanMemberFromUi,
-				UnbanMember = TryUnbanMemberFromUi,
+				TakeItem = _uiActions.TakeItemFromRemote,
+				CarryRemote = _uiActions.CarryRemoteFromUi,
+				DropCarried = _uiActions.DropCarryFromUi,
+				HealRemote = _uiActions.HealRemoteFromUi,
+				HasHealItem = _uiActions.HasLocalHealItem,
+				HealWithItem = _uiActions.HealWithItemFromUi,
+				GetLocalHealItems = _uiActions.GetLocalHealItems,
+				UseItemOnRemote = _uiActions.UseItemOnRemoteFromUi,
+				UseItemOnRemoteWith = _uiActions.UseItemWithOnRemoteFromUi,
+				HasUseItem = _uiActions.HasLocalUseItem,
+				GetLocalUseItems = _uiActions.GetLocalUseItems,
+				RecruitPlayer = _uiActions.RecruitPlayerFromUi,
+				KickMember = _uiActions.KickMemberFromUi,
+				BanMember = _uiActions.BanMemberFromUi,
+				UnbanMember = _uiActions.UnbanMemberFromUi,
 			};
 
 			// Publish the container on the static diagnostics seam (HotRepl etc.).
@@ -382,87 +388,6 @@ public class Plugin : BaseUnityPlugin
 		_steam.LeaveLobby();
 		return true;
 	}
-
-	/// <summary>Online UI Take button path — forward to the host-authoritative player-interaction domain (guests send the request; the host handles it locally).</summary>
-	private bool TryTakeItemFromRemote(ulong ownerSteamId, ulong itemInstanceId)
-	{
-		if (!_session.SessionActive)
-		{
-			return false;
-		}
-
-		_playerInteraction.SendTakeRequest(ownerSteamId, itemInstanceId);
-		return true;
-	}
-
-	/// <summary>Online UI Carry button path — forward to the host-authoritative carry domain (guests send the request; the host handles it locally).</summary>
-	private bool TryCarryRemoteFromUi(ulong targetSteamId)
-	{
-		if (!_session.SessionActive)
-		{
-			return false;
-		}
-
-		_playerInteraction.SendCarryStartRequest(targetSteamId);
-		return true;
-	}
-
-	/// <summary>Online UI Drop button path — forward to the host-authoritative carry domain.</summary>
-	private bool TryDropCarryFromUi(ulong carriedSteamId)
-	{
-		if (!_session.SessionActive)
-		{
-			return false;
-		}
-
-		_playerInteraction.SendCarryStopRequest(carriedSteamId);
-		return true;
-	}
-
-	/// <summary>Online UI Heal button path — forward to the host-authoritative heal domain (item instance 0 = host auto-select).</summary>
-	private bool TryHealRemoteFromUi(ulong targetSteamId)
-	{
-		if (!_session.SessionActive)
-		{
-			return false;
-		}
-
-		_playerInteraction.SendHealRequest(targetSteamId, 0);
-		return true;
-	}
-
-	/// <summary>Online UI explicit heal-item path — forward the chosen instance id to the host-authoritative heal domain.</summary>
-	private bool TryHealWithItemFromUi(ulong targetSteamId, ulong itemInstanceId)
-	{
-		if (!_session.SessionActive || itemInstanceId == 0)
-		{
-			return false;
-		}
-
-		_playerInteraction.SendHealRequest(targetSteamId, itemInstanceId);
-		return true;
-	}
-
-	/// <summary>Online UI Recruit path — forward to the Game Adapter's trader-recruit coordinator (the host remains the authority).</summary>
-	private bool TryRequestTraderRecruitFromUi(ulong targetSteamId)
-	{
-		if (!_session.SessionActive)
-		{
-			return false;
-		}
-
-		return _adapter?.TryRequestTraderRecruit(targetSteamId) == true;
-	}
-
-	/// <summary>Online UI Kick path — host-only session removal (the target receives a dedicated Kicked message).</summary>
-	private bool TryKickMemberFromUi(ulong targetSteamId) => _session.KickMember(targetSteamId, "kicked by host");
-
-	/// <summary>Online UI Ban path — host-only permanent removal (the target receives a dedicated Banned message and the SteamID is persisted on the host).</summary>
-	private bool TryBanMemberFromUi(ulong targetSteamId) => _hostBan.Ban(targetSteamId, "banned by host");
-
-	/// <summary>Online UI Unban path — host-only removal from the persisted ban list.</summary>
-	private bool TryUnbanMemberFromUi(ulong targetSteamId) => _hostBan.Unban(targetSteamId);
-
 
 	// Steam launches the game with "+connect_lobby <id>" when the user clicks
 	// a friend's "Join Game" while the game is not running. Parse the lobby ID

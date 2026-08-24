@@ -74,6 +74,10 @@ internal sealed class OnlineUiContext
 
 	internal Func<ulong, ulong, bool>? HealWithItem;
 
+	internal Func<ulong, bool>? UseItemOnRemote;
+
+	internal Func<ulong, ulong, bool>? UseItemOnRemoteWith;
+
 	internal Func<ulong, bool>? RecruitPlayer;
 
 	internal Func<ulong, bool>? KickMember;
@@ -85,6 +89,10 @@ internal sealed class OnlineUiContext
 	internal Func<IReadOnlyList<LocalHealItem>>? GetLocalHealItems;
 
 	internal Func<bool>? HasHealItem;
+
+	internal Func<IReadOnlyList<LocalUseItem>>? GetLocalUseItems;
+
+	internal Func<bool>? HasUseItem;
 
 	internal string T(string key) => Localization.T(key);
 

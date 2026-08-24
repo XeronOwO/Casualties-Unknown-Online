@@ -77,7 +77,7 @@ internal sealed class PlayerCharacterAccess(ISessionControl session, ICharacterD
 		Favourited = item.Favourited,
 		Components = item.Components,
 		Contents = item.Contents,
-		Liquids = item.Liquids,
+		Liquids = [.. item.Liquids],
 	};
 
 	public static CharacterLimbMsg CloneLimb(CharacterLimbMsg limb) => new()

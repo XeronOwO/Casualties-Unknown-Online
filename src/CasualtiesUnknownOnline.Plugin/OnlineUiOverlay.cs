@@ -66,6 +66,18 @@ internal sealed class OnlineUiOverlay
 	/// <summary>Explicit local heal items for the Online UI selector (slot items with wire ids only).</summary>
 	internal Func<IReadOnlyList<LocalHealItem>>? GetLocalHealItems;
 
+	/// <summary>Invoked when the user clicks Use on an in-world remote player (auto-selects a consumable).</summary>
+	internal Func<ulong, bool>? UseItemOnRemote;
+
+	/// <summary>Invoked when the user clicks one of the explicit local consumable items (instance id must be non-zero).</summary>
+	internal Func<ulong, ulong, bool>? UseItemOnRemoteWith;
+
+	/// <summary>Read-only UI check: does the local body currently carry a cross-player drink/food?</summary>
+	internal Func<bool>? HasUseItem;
+
+	/// <summary>Explicit local drink/food items for the Online UI selector (slot items with wire ids only).</summary>
+	internal Func<IReadOnlyList<LocalUseItem>>? GetLocalUseItems;
+
 	/// <summary>Invoked when the user clicks Recruit on a dead in-world teammate (trader-recruit co-op revive).</summary>
 	internal Func<ulong, bool>? RecruitPlayer;
 
@@ -140,12 +152,16 @@ internal sealed class OnlineUiOverlay
 			DropCarried = DropCarried,
 			HealRemote = HealRemote,
 			HealWithItem = HealWithItem,
+			UseItemOnRemote = UseItemOnRemote,
+			UseItemOnRemoteWith = UseItemOnRemoteWith,
 			RecruitPlayer = RecruitPlayer,
 			KickMember = KickMember,
 			BanMember = BanMember,
 			UnbanMember = UnbanMember,
 			GetLocalHealItems = GetLocalHealItems,
 			HasHealItem = HasHealItem,
+			GetLocalUseItems = GetLocalUseItems,
+			HasUseItem = HasUseItem,
 		};
 
 		// ESC closes the modal Online UI. The native PlayerCamera.HandleInput

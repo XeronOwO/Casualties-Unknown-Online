@@ -33,7 +33,9 @@ public static class OnlineUiMemberProjection
 		bool canAdmin,
 		bool localInWorld,
 		bool hasHealItem,
-		IReadOnlyList<LocalHealItem> healItems)
+		IReadOnlyList<LocalHealItem> healItems,
+		bool hasUseItem,
+		IReadOnlyList<LocalUseItem> useItems)
 	{
 		var memberMap = members.ToDictionary(m => m.SteamId, m => m);
 		var rows = new List<OnlineUiMemberRow>();
@@ -64,6 +66,11 @@ public static class OnlineUiMemberProjection
 				&& localInWorld
 				&& vitals is { Alive: true }
 				&& hasHealItem;
+			var canUseItem = !isLocal
+				&& member is { InWorld: true }
+				&& localInWorld
+				&& vitals is { Alive: true, Conscious: true }
+				&& hasUseItem;
 			var canRecruit = !isLocal
 				&& member is { InWorld: true }
 				&& localInWorld
@@ -86,6 +93,7 @@ public static class OnlineUiMemberProjection
 				CanCarry = canCarry,
 				CanDrop = canDrop,
 				CanHeal = canHeal,
+				CanUseItem = canUseItem,
 				CanRecruit = canRecruit,
 				CanTake = takeable.Count > 0,
 				CanKick = canAdminMember,
@@ -94,6 +102,7 @@ public static class OnlineUiMemberProjection
 				Inventory = inventory?.Items,
 				TakeableItems = takeable,
 				HealItems = canHeal ? healItems : [],
+				UseItems = canUseItem ? useItems : [],
 			});
 		}
 

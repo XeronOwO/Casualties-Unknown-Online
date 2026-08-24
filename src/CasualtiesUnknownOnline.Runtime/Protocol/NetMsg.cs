@@ -238,4 +238,11 @@ public enum NetMsg : byte
 	// trader already swung at that side's local player; the peers replay the
 	// same attackAnimation on their same-position trader)
 	TraderSwing = 115, // bidirectional: guest → host report of a local trader swing; host → guest broadcast relay (source excluded)
+
+	// Direct player interaction — use a carried consumable on another player
+	// (host authority: the host validates the user/target snapshots, consumes
+	// or drains the item, applies the target-side body effect to the authority
+	// and tells the two participants the exact post-use state)
+	PlayerItemUseRequest = 116, // guest → host: use a carried drink/food on another in-world player (ItemInstanceId 0 = host auto-select)
+	PlayerItemUseResult = 117, // host → participants: authoritative consumable-use result (item consumed/destroyed + target health/limbs)
 }

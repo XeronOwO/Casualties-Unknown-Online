@@ -100,6 +100,11 @@ internal sealed class EnemyCombatReplay(
 			}
 		}
 
+		var biteDirection = new Vector2(
+			body.transform.position.x - spider.transform.position.x,
+			body.transform.position.y - spider.transform.position.y);
+		SpiderClawReplay.Play(spider, biteDirection);
+
 		_log.LogInformation("[Enemy] applied host spider bite {Enemy} to local limb {Limb}.", msg.EnemyId.ToNetworkEntityId(), limb);
 	}
 

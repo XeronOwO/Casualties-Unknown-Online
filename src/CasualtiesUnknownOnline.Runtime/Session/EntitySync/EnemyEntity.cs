@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 
@@ -47,6 +48,14 @@ public sealed class EnemyEntity(NetworkEntityId entityId)
 	/// <summary>The exact host-captured light intensity (CrystalEnemy.cs:215 — only meaningful when <see cref="HasTint"/> is true).</summary>
 	public float TintLightIntensity { get; set; }
 
+	/// <summary>
+	/// Host-captured spider leg IK targets (IKHandle.targetPos, world space) for
+	/// this enemy's crawl presentation. Null for non-spider enemies; the body
+	/// positions/rotations of the legs are otherwise already carried by the
+	/// entity transform, so only the target positions travel.
+	/// </summary>
+	public List<NetVector2>? SpiderLegTargets { get; set; }
+
 	/// <summary>Domain → wire; the reverse applies via <see cref="EnemyStateMsg.ApplyTo"/>.</summary>
 	public EnemyStateMsg ToEnemyStateMsg() => new()
 	{
@@ -56,6 +65,7 @@ public sealed class EnemyEntity(NetworkEntityId entityId)
 		Rotation = Rotation,
 		Health = Health,
 		PresentationFlags = Stunned ? EnemyStateMsg.FlagStunned : 0u,
+		SpiderLegTargets = SpiderLegTargets?.ConvertAll(t => t.ToNetVector2Msg()),
 	};
 
 	/// <summary>The runtime-spawn backfill entry (only meaningful when <see cref="RuntimeSpawned"/> is true).</summary>

@@ -240,7 +240,7 @@ effects (see `docs/selfchecks/animal-death-presentation-selfcheck.md`).
 
 | entity | sync | path |
 |---|---|---|
-| SpiderHandler | covered | EnemyState stream + EnemyAttack/EnemyBite events |
-| CaveTicks | covered | EnemyState stream + EnemyAttack/EnemyBite events |
+| SpiderHandler | covered | EnemyState stream (SpiderLegTargets for leg IK) + EnemyAttack/EnemyBite events; host-ordered bites replay ClawAnim |
+| CaveTicks | covered | EnemyState stream (SpiderLegTargets for leg IK) + EnemyAttack/EnemyBite events |
 | ElderThornbackBehaviour | covered | EnemyState stream + EnemyEffectMsg horror events |
 | CrystalEnemy | covered | EnemyState stream + EnemyAttack/EnemyLunge events; runtime crystalenemy tint rides EntitySpawned/EnemySnapshot (PV24) |

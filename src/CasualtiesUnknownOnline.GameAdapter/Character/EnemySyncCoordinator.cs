@@ -175,6 +175,7 @@ internal sealed partial class EnemySyncCoordinator
 	private static EnemyEntity Capture(BuildingEntity entity, NetworkEntityId id, bool runtimeSpawn)
 	{
 		var rb = entity.GetComponent<Rigidbody2D>();
+		var spider = entity.GetComponentInChildren<SpiderHandler>();
 		var crystal = entity.GetComponentInChildren<CrystalEnemy>();
 		var hasTint = false;
 		NetColorRgba tint = default;
@@ -200,6 +201,7 @@ internal sealed partial class EnemySyncCoordinator
 			HasTint = hasTint,
 			TintColor = tint,
 			TintLightIntensity = lightIntensity,
+			SpiderLegTargets = SpiderLegPresentation.Capture(spider),
 		};
 	}
 
@@ -304,6 +306,11 @@ internal sealed partial class EnemySyncCoordinator
 		if (EnemyStunPresentation.Apply(entity, state.Stunned))
 		{
 			_log.LogInformation("[Enemy] {Enemy} stun presentation -> {New}.", state.EntityId, state.Stunned);
+		}
+
+		if (state.SpiderLegTargets is { Count: > 0 })
+		{
+			SpiderLegPresentation.Apply(entity, state.SpiderLegTargets);
 		}
 	}
 

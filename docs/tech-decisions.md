@@ -2584,3 +2584,25 @@ the wall-slide particle/audio or the native landing dust.
   `EntityStateRoundtrip` sliding-flag cases, updated `DirectionTests` and
   `CharacterSoundPatchTests`; full suite green, build/format/architecture/event
   gates pass. See `docs/selfchecks/wall-slide-landing-sync-selfcheck.md`.
+
+## 91. Spider enemy presentation — leg IK targets + bite claw replay (ProtocolVersion 45)
+
+The animation-audit rows for `SpiderHandler` remained open: frozen guest copies
+never receive the host's leg IK target poses, and host-ordered remote spider
+bites never replay the native one-shot `ClawAnim` visual (SpiderHandler.cs:201-208).
+
+- **Leg IK wire** — `EnemyStateMsg` gains `SpiderLegTargets`
+  (ProtoMember 7, `List<NetVector2Msg>`, world-space `IKHandle.targetPos`).
+  `ProtocolVersion` 44 → 45 because older peers cannot render the crawl.
+- **Leg IK capture/apply** — `SpiderLegPresentation.Capture` reads each
+  `SpiderHandler.legs[i].targetPos` on the host; `Apply` mirrors the targets onto
+  the frozen copy and re-derives the leg root from the copy's own leg transform
+  (the entity transform is already host-driven). Non-spiders carry no list.
+- **Bite claw replay** — `SpiderClawReplay.Play` reproduces the native
+  `ClawAnim` instantiation/rotation/parent/destroy with the enemy-to-victim
+  direction. It is called by `EnemyCombatDirector.TryOrderSpiderBite` for the
+  host's own view and by `EnemyCombatReplay.ApplyHostSpiderBite` on the victim.
+  No new `NetMsg`/direction row.
+- **Tests/gates** — `EnemyStateRoundtripTests` now roundtrips the leg-target
+  list, `SpiderEnemyPresentationTests` locks the adapter helper shapes, and the
+  full suite is green (1350). See `docs/selfchecks/spider-enemy-presentation-sync-selfcheck.md`.

@@ -309,6 +309,12 @@ public sealed class WorldService : IWorldControl, IDisposable
 
 	public void FireTraderRecruitResultReceived(TraderRecruitResultMsg msg) => _channels.FireTraderRecruitResultReceived(msg);
 
+	public void SendTraderSwing(TraderSwingMsg msg) => _channels.SendTraderSwing(msg);
+
+	public event Action<ulong, TraderSwingMsg>? TraderSwingReceived { add => _channels.TraderSwingReceived += value; remove => _channels.TraderSwingReceived -= value; }
+
+	public void FireTraderSwingReceived(ulong sender, TraderSwingMsg msg) => _channels.FireTraderSwingReceived(sender, msg);
+
 	public void SendSpeech(SpeechMsg msg) => _channels.SendSpeech(msg);
 
 	public void BroadcastSpeech(ulong excludeSteamId, SpeechMsg msg) => _channels.BroadcastSpeech(excludeSteamId, msg);

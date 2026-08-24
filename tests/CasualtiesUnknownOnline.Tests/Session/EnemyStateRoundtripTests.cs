@@ -72,6 +72,8 @@ public class EnemyStateRoundtripTests
 				new NetVector2(10f, 11f),
 				new NetVector2(12f, 13f),
 			],
+			CrystalWindupAmount = 0.25f,
+			CrystalLineEnd = new NetVector2(4f, 5f),
 		};
 
 		var target = NewEntity();
@@ -86,6 +88,8 @@ public class EnemyStateRoundtripTests
 		Assert.Equal(2, target.SpiderLegTargets!.Count);
 		Assert.Equal(new NetVector2(10f, 11f), target.SpiderLegTargets![0]);
 		Assert.Equal(new NetVector2(12f, 13f), target.SpiderLegTargets![1]);
+		Assert.Equal(0.25f, target.CrystalWindupAmount);
+		Assert.Equal(new NetVector2(4f, 5f), target.CrystalLineEnd);
 	}
 
 	[Fact]
@@ -95,6 +99,16 @@ public class EnemyStateRoundtripTests
 		new EnemyStateMsg().ApplyTo(target);
 
 		Assert.Null(target.SpiderLegTargets);
+	}
+
+	[Fact]
+	public void CrystalWindup_MissingLeavesZeroAndNull()
+	{
+		var target = NewEntity();
+		new EnemyStateMsg().ApplyTo(target);
+
+		Assert.Equal(0f, target.CrystalWindupAmount);
+		Assert.Null(target.CrystalLineEnd);
 	}
 
 	[Fact]

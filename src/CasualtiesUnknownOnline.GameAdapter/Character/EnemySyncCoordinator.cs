@@ -202,6 +202,8 @@ internal sealed partial class EnemySyncCoordinator
 			TintColor = tint,
 			TintLightIntensity = lightIntensity,
 			SpiderLegTargets = SpiderLegPresentation.Capture(spider),
+			CrystalWindupAmount = CrystalWindupPresentation.CaptureAmount(crystal),
+			CrystalLineEnd = CrystalWindupPresentation.CaptureLineEnd(crystal),
 		};
 	}
 
@@ -311,6 +313,11 @@ internal sealed partial class EnemySyncCoordinator
 		if (state.SpiderLegTargets is { Count: > 0 })
 		{
 			SpiderLegPresentation.Apply(entity, state.SpiderLegTargets);
+		}
+
+		if (CrystalWindupPresentation.Apply(entity, state.CrystalWindupAmount, state.CrystalLineEnd))
+		{
+			_log.LogInformation("[Enemy] {Enemy} crystal wind-up telegraph -> {Visible}.", state.EntityId, state.CrystalWindupAmount > 0f);
 		}
 	}
 

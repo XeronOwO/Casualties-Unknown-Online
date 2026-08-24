@@ -125,6 +125,12 @@ internal sealed class WorldChannelRelay(
 
 	public void FireTraderRecruitResultReceived(TraderRecruitResultMsg msg) => _tradeChannel.FireTraderRecruitResultReceived(msg);
 
+	public void SendTraderSwing(TraderSwingMsg msg) => _tradeChannel.SendTraderSwing(msg);
+
+	public event Action<ulong, TraderSwingMsg>? TraderSwingReceived { add => _tradeChannel.TraderSwingReceived += value; remove => _tradeChannel.TraderSwingReceived -= value; }
+
+	public void FireTraderSwingReceived(ulong sender, TraderSwingMsg msg) => _tradeChannel.FireTraderSwingReceived(sender, msg);
+
 	public void SendSpeech(SpeechMsg msg) => _speechChannel.SendSpeech(msg);
 
 	public void BroadcastSpeech(ulong excludeSteamId, SpeechMsg msg) => _speechChannel.BroadcastSpeech(excludeSteamId, msg);

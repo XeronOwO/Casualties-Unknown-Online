@@ -2606,3 +2606,59 @@ bites never replay the native one-shot `ClawAnim` visual (SpiderHandler.cs:201-2
 - **Tests/gates** — `EnemyStateRoundtripTests` now roundtrips the leg-target
   list, `SpiderEnemyPresentationTests` locks the adapter helper shapes, and the
   full suite is green (1350). See `docs/selfchecks/spider-enemy-presentation-sync-selfcheck.md`.
+
+## 92. CrystalEnemy wind-up telegraph line sync (ProtocolVersion 47)
+
+The animation-audit row for `CrystalEnemy.Update`'s pre-lunge telegraph
+(`CrystalEnemy.cs:66-90`) was open: frozen guest copies skip `Update`, so the
+host's warning line never appeared on the guest view.
+
+- **Wire** — `EnemyStateMsg` gains `CrystalWindupAmount`
+  (ProtoMember 8, seconds, 0 = idle) and `CrystalLineEnd`
+  (ProtoMember 9, world-space `LineRenderer` end point). `ProtocolVersion`
+  45 → 47 because older peers cannot render the telegraph nor the trader
+  swing event added below.
+- **Capture/apply** — `CrystalWindupPresentation.CaptureAmount` reads the
+  private `CrystalEnemy.timeBeforeAttack`; `CaptureLineEnd` reads the private
+  `LineRenderer` end point on the host. `Apply` mirrors the start point from the
+  entity transform (already position-synced), the end point, and reproduces the
+  native wind-up fade alpha/width math onto the frozen copy's `LineRenderer`;
+  when the copy is stuck it applies the native post-lunge `endColor` fade.
+  Zero clears the line. `RemoteEnemyDriver` stores the last applied amount for
+  transition logging.
+- **No new NetMsg** — the line is a continuous presentation state, so it rides
+  the existing 20 Hz `EnemyState` stream and the world-entry snapshot.
+- **Tests/gates** — `EnemyStateRoundtripTests` roundtrips the new fields,
+  `CrystalWindupPresentationTests` locks the adapter helper surface and the
+  driver property, and `GameFieldContractTests` locks the two new reflected
+  members. See `docs/selfchecks/crystal-windup-telegraph-sync-selfcheck.md`.
+
+## 93. Trader hostile swing presentation sync (ProtocolVersion 47)
+
+The animation-audit row for `TraderScript.Swing`'s `attackAnimation`
+(`TraderScript.cs:548-559`) was open: a hostile trader's one-shot swing
+presentation only ran on the side whose local player was attacked, and no
+other member saw the swing.
+
+- **Wire** — a dedicated reliable `TraderSwingMsg` (NetMsg 115) carries the
+  trader's position key, the normalized direction from the trader to the
+  attacked player, and the Resources name of the attack-animation prefab.
+  `ProtocolVersion` 46 → 47 (the same bump as the crystal telegraph).
+- **Capture** — `TraderPatches.TraderSwingPatch` (Postfix on
+  `TraderScript.Swing`) reports through `TraderSwingSync.Report`: the local
+  trader already instantiated the prefab and played the sound, so only the
+  presentation facts travel. Guests send to the host; the host sends its own
+  swing to every guest.
+- **Relay/replay** — `TraderSwingHandler` (bidirectional) fires the event on
+  the host for a guest report, then `BroadcastExcept(sender)`; guests receive
+  the host's broadcast. `TraderSwingReplay.Play` instantiates the same prefab
+  (or the receiver's own local field as fallback), orients/scales it with the
+  reported direction, anchors it at the local trader's torso and plays the
+  `BSSwing1` sound inside a `RemoteApply` scope.
+- **No trader-state/damage change** — the acting side's local damage remains
+  local-compute; this event is presentation only and never touches the
+  trade/health domain.
+- **Tests/gates** — `TraderSwingPresentationTests` locks the coordinator and
+  replay surfaces; `DirectionTests` classifies the new message as
+  bidirectional; full suite green. See
+  `docs/selfchecks/trader-swing-sync-selfcheck.md`.

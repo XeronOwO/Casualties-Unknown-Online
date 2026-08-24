@@ -271,6 +271,11 @@ internal interface IPatchBridge
 	/// </summary>
 	void OnTraderActionReported(TraderScript trader, TraderActionKind action, string itemId, int itemValue, Item? purchaseItem);
 
+	/// <summary>A hostile trader swing ran locally (TraderScript.Swing — the
+	/// animation, swing sound and local damage are already applied) — report
+	/// the presentation so the peers replay it on their same-position trader.</summary>
+	void OnTraderSwing(TraderScript trader);
+
 	/// <summary>A speech bubble was spoken (the game method ran in full — the
 	/// text is the FINAL string): report it (guest → host) or broadcast it
 	/// (host — a player bubble to the other members, a trader bubble to every

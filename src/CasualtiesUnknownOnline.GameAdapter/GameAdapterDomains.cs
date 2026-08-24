@@ -71,6 +71,7 @@ internal sealed class GameAdapterDomains
 	internal readonly RadiationLineSync RadiationLineSync;
 	internal readonly FluidWorldSync FluidSync;
 	internal readonly TradeStateSync TradeSync;
+	internal readonly TraderSwingSync TraderSwingSync;
 	internal readonly TraderRecruitCoordinator TraderRecruit;
 	internal readonly RespawnCoordinator Respawn;
 	internal readonly SpeechSync SpeechSync;
@@ -161,6 +162,7 @@ internal sealed class GameAdapterDomains
 		RadiationLineSync = new RadiationLineSync(world, session, entities, loggerFactory.CreateLogger<RadiationLineSync>());
 		FluidSync = new FluidWorldSync(world, session, entities, loggerFactory);
 		TradeSync = new TradeStateSync(world, session, new TradeExecutor(), loggerFactory.CreateLogger<TradeStateSync>());
+		TraderSwingSync = new TraderSwingSync(world, session, loggerFactory.CreateLogger<TraderSwingSync>());
 		TraderRecruit = new TraderRecruitCoordinator(session, world, characterData, CharacterDataSync, respawnOptions, items, ItemIds, loggerFactory.CreateLogger<TraderRecruitCoordinator>());
 		Respawn = new RespawnCoordinator(session, world, characterData, CharacterDataSync, respawnOptions, loggerFactory.CreateLogger<RespawnCoordinator>());
 		SpeechSync = new SpeechSync(world, session, loggerFactory.CreateLogger<SpeechSync>());

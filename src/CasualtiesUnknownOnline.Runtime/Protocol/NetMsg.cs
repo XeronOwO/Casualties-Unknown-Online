@@ -233,4 +233,9 @@ public enum NetMsg : byte
 	// already played the Grounded clip and spawned the landing dust; the peers
 	// replay the same clip/dust on the owner's clone)
 	CharacterLandingVisual = 114, // bidirectional: guest → host report of the owner's own landing visual; host → guest broadcast relay (source excluded)
+
+	// Trader hostile swing presentation (one-shot: the acting side's local
+	// trader already swung at that side's local player; the peers replay the
+	// same attackAnimation on their same-position trader)
+	TraderSwing = 115, // bidirectional: guest → host report of a local trader swing; host → guest broadcast relay (source excluded)
 }

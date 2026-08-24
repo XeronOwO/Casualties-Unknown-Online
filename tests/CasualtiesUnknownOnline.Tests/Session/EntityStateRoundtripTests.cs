@@ -124,6 +124,34 @@ public class EntityStateRoundtripTests
 	}
 
 	[Fact]
+	public void WorkoutType_AppliesIntoEntity_AndRoundTripsBackToWire()
+	{
+		var entity = NewEntity();
+		new EntityStateMsg { WorkoutType = 2 }.ApplyTo(entity);
+
+		Assert.Equal(2, entity.WorkoutType);
+		Assert.Equal(2, entity.ToEntityStateMsg().WorkoutType);
+	}
+
+	[Fact]
+	public void WorkoutType_DefaultsToZero_NotExercising()
+	{
+		var entity = NewEntity();
+
+		Assert.Equal(0, entity.ToEntityStateMsg().WorkoutType);
+	}
+
+	[Fact]
+	public void WorkoutType_ZeroClearsThePreviousValue()
+	{
+		var entity = NewEntity();
+		entity.WorkoutType = 3;
+		new EntityStateMsg { WorkoutType = 0 }.ApplyTo(entity);
+
+		Assert.Equal(0, entity.WorkoutType);
+	}
+
+	[Fact]
 	public void GazeOverrideAndEyeScare_Roundtrip()
 	{
 		var entity = NewEntity();

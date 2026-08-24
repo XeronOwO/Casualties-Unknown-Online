@@ -30,6 +30,9 @@ internal sealed class RemoteBodyDriver : MonoBehaviour
 	/// <summary>Current climbing state — HandleVisuals overwrites the animator flag every frame.</summary>
 	public bool Climbing;
 
+	/// <summary>Last applied workout type — the exercise clips replay only when the wire type changes.</summary>
+	public byte PrevWorkoutType;
+
 	/// <summary>Last snapshot arrival (TickCount) — snapshot-change detection for the arrival-interval estimate.</summary>
 	public long LastStateMs;
 

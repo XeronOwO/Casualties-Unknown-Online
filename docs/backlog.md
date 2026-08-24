@@ -108,9 +108,11 @@ presentations still have no dedicated event or periodic field:
 - **Direct placeable-item `ArmsSwing` — CLOSED (2026-08-23)**. Successful
   `scrapmetal` / `climbingrope` / `scaffoldingpack` placements now report through
   the existing `OnArmSwing` / 20 Hz swing stream; no protocol change.
-- **Workout/exercise animations — NOT_SYNCED** (`Body.cs:368-435`): `exercising`
-  and the pushup/squat/plank clips are not carried in the entity or character
-  state.
+- **Workout/exercise animations — CLOSED (2026-08-23)**. The active
+  `Body.DoWorkout` type now rides `EntityStateMsg.WorkoutType`
+  (ProtocolVersion 42); each peer replays the matching pushup/squat/plank
+  clip set on the owner's clone. See `docs/selfchecks/workout-animation-sync-selfcheck.md`
+  and `docs/tech-decisions.md` #87.
 - **Alt-nap and water-shake variants — PARTIAL/NOT_SYNCED**
   (`Body.cs:2502-2571`): the normal lay-down pose is synced, but
   `LayDownAlt` and `dogShakeIntensity` are not.
@@ -131,9 +133,9 @@ presentations still have no dedicated event or periodic field:
   brain-damage ragdoll shake, `specialCrying`, and underwater/waterdrip
   particle branches remain owner-side/local.
 
-The player attack-anim and direct placeable-item rows above are now closed; the
-remaining lines are presentation-only observations, with no protocol or
-gameplay-state change made for them yet.
+The player attack-anim, direct placeable-item and workout rows above are now
+closed; the remaining lines are presentation-only observations, with no
+protocol or gameplay-state change made for them yet.
 
 ### Exploration 2026-08-23 — KrokMP-inspired co-op features
 

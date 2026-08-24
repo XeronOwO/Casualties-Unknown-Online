@@ -64,6 +64,16 @@ public sealed class EntityStateMsg
 	[ProtoMember(12)]
 	public float EyeCloseTime { get; set; }
 
+	/// <summary>
+	/// The owner's active workout/exercise type (Body.DoWorkout's
+	/// WorkoutType): 0 = none, 1 = pushups, 2 = squats, 3 = plank. The clone
+	/// replays the matching animator clips on change; no persistent fact is
+	/// needed because the value is refreshed by the 20 Hz stream while the
+	/// workout runs and returns to 0 when it ends.
+	/// </summary>
+	[ProtoMember(13)]
+	public byte WorkoutType { get; set; }
+
 	/// <summary>Domain → wire lives in <see cref="EntityStateMsgExtensions"/>;
 	/// this applies the wire state back onto a live entity buffer (values + flags).</summary>
 	public void ApplyTo(PlayerEntity target)
@@ -86,5 +96,6 @@ public sealed class EntityStateMsg
 		target.Climbing = (Flags & 0x80) != 0;
 		target.IsAttacking = (ExtendedFlags & 0x01u) != 0;
 		target.SwingSeq = SwingSeq;
+		target.WorkoutType = WorkoutType;
 	}
 }

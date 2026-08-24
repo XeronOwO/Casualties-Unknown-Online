@@ -27,7 +27,8 @@ public interface IEntitySyncControl
 		bool isRight, bool standing, bool alive, bool conscious, bool crouching,
 		NetVector2? lookOverridePos = null, float lookOverrideTime = 0f, float eyeScareTime = 0f,
 		float eyePanicTime = 0f, float eyeCloseTime = 0f,
-		bool sitting = false, bool sleeping = false, bool climbing = false);
+		bool sitting = false, bool sleeping = false, bool climbing = false,
+		byte workoutType = 0);
 
 	/// <summary>The local player swung — mark the swing so peers replay the animation via the snapshot flag + sequence.</summary>
 	void MarkLocalAttackSwing();

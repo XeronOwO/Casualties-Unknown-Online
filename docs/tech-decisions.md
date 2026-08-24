@@ -2526,3 +2526,27 @@ are now carried by the existing 20 Hz player entity stream.
   roundtrip cases, 1 wire roundtrip case; full suite 1332 green,
   build/format/architecture/event gates pass, deployed to the real game dir.
   See `docs/selfchecks/nap-and-dog-shake-sync-selfcheck.md`.
+
+## 89. Gun muzzle-flash particle replay — existing GunFire event (no protocol bump)
+
+The animation audit row for `GunScript.Fire`'s `muzzleParticle.Play()`
+(GunScript.cs:191) was open: remote clones heard the shot and saw the recoil,
+but never saw the flash because a render clone does not run `Fire`.
+
+- **Replay helper** — new `MuzzleFlashReplay` (Game Adapter/Character) finds
+  the clone gun nearest to the reported fire position and calls
+  `muzzleParticle.Play()` directly. It is display-only and never simulates
+  the gun.
+- **Hook** — `CharacterSoundSync.OnReceived` invokes the helper for every
+  `CharacterSoundKind.GunFire` after the existing sound/recoil replay and logs
+  the result; the receiver-side `RemoteApply` scope prevents echo.
+- **No wire change** — the shot event already carries the fire position and
+  kind; `ProtocolVersion` stays 43.
+- **Degradation** — if the clone's inventory snapshot has not rendered the gun
+  yet, the particle is skipped and the event remains sound/recoil-only, which
+  is acceptable for a one-shot presentation.
+
+Tests: `MuzzleFlashReplayTests` (1 reflective signature) + existing
+`CharacterSoundSyncTests`/`GunFirePatchTests` cover the event path; full suite
+**1333 green** (was 1332). See
+`docs/selfchecks/muzzle-flash-sync-selfcheck.md`.

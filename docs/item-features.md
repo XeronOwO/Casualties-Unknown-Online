@@ -184,7 +184,10 @@ The persistent transitions (fire, rack/unrack, safety, load, unload) now also
 report immediately through the existing item-use fact path (`GunStateSync`),
 so the host's record and the peer clones update at the action edge instead of
 waiting for the next 1 Hz character snapshot; the snapshot remains the
-fallback.
+fallback. One-shot shot presentation (fire sound, recoil and muzzle-flash
+particle) rides the `CharacterSoundKind.GunFire` event; the particle is
+replayed on the owner's clone by `MuzzleFlashReplay`. See
+`docs/selfchecks/muzzle-flash-sync-selfcheck.md`.
 
 ### ammo — AmmoScript.rounds
 

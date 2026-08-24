@@ -99,6 +99,16 @@ internal sealed class CharacterSoundSync(
 			body.armsAnimator.SetFloat("gunangle", body.armsAnimator.GetFloat("gunangle") + msg.RecoilDegrees);
 		}
 
+		// GunFire: the source's GunScript.Fire also played the muzzle particle
+		// (GunScript.cs:191). A render clone never runs Fire, so replay the
+		// particle by finding the clone gun nearest to the reported fire point.
+		if (msg.Kind == CharacterSoundKind.GunFire && hasBody && body != null) // Unity object — ==
+		{
+			var played = MuzzleFlashReplay.TryPlay(body, pos);
+			_log.LogDebug("[CharacterSound] muzzle flash replay {Result} for owner {Owner} at ({X:F1},{Y:F1}).",
+				played ? "ok" : "no gun", msg.OwnerSteamId, pos.x, pos.y);
+		}
+
 		_log.LogDebug("[CharacterSound] replayed {Kind} {Clip} for owner {Owner} at ({X:F1},{Y:F1}).",
 			msg.Kind, msg.Clip, msg.OwnerSteamId, pos.x, pos.y);
 	}

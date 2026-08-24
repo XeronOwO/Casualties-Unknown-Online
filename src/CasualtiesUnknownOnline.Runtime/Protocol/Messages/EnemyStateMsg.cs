@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using ProtoBuf;
 
@@ -35,6 +36,14 @@ public sealed class EnemyStateMsg
 	[ProtoMember(6)]
 	public uint PresentationFlags { get; set; }
 
+	/// <summary>
+	/// Host-captured spider leg IK targets (IKHandle.targetPos, world space).
+	/// Null/empty for non-spider enemies; the positional part of the legs is
+	/// already carried by the entity transform.
+	/// </summary>
+	[ProtoMember(7)]
+	public List<NetVector2Msg>? SpiderLegTargets { get; set; }
+
 	/// <summary>Wire → domain; the reverse lives in <see cref="EnemyEntity.ToEnemyStateMsg"/>.</summary>
 	public void ApplyTo(EnemyEntity target)
 	{
@@ -44,5 +53,6 @@ public sealed class EnemyStateMsg
 		target.Rotation = Rotation;
 		target.Health = Health;
 		target.Stunned = (PresentationFlags & FlagStunned) != 0;
+		target.SpiderLegTargets = SpiderLegTargets?.ConvertAll(v => v.ToNetVector2());
 	}
 }

@@ -47,6 +47,9 @@ distributed with `isTrap=true` — plus a runtime spawner (`CaveTickSpawner.cs:4
   the remote drop roll).
 - Enemy targeting and attacks on remote players are synced through `EnemyCombatDirector` +
   `EnemyAttack`/`EnemyBite`/`EnemyLunge` (§3.6-3.7).
+- Spider presentation is synced on the same stream: `EnemyState.SpiderLegTargets`
+  carries the host's `IKHandle.targetPos` values and host-ordered bites replay
+  the one-shot `ClawAnim` on both the host view and the victim.
 
 ## 2. Goal
 

@@ -131,10 +131,12 @@ presentations still have no dedicated event or periodic field:
   (nearest clone gun to the reported fire position). No wire/protocol change.
   See `docs/selfchecks/muzzle-flash-sync-selfcheck.md` and
   `docs/tech-decisions.md` #89.
-- **Spider leg IK/crawl — NOT_SYNCED** (`SpiderHandler.cs:49-59`): frozen guest
-  copies do not receive host leg-target/root poses.
-- **Spider bite `ClawAnim` — NOT_SYNCED on host-ordered remote bites**
-  (`SpiderHandler.cs:201-208`; `EnemyCombatReplay.cs:72-104`).
+- **Spider leg IK/crawl — CLOSED (2026-08-23)**: host `IKHandle.targetPos`
+  positions now ride `EnemyStateMsg.SpiderLegTargets` (ProtocolVersion 45) and
+  frozen copies mirror them; see `docs/selfchecks/spider-enemy-presentation-sync-selfcheck.md`.
+- **Spider bite `ClawAnim` — CLOSED (2026-08-23)**: host-ordered remote bites
+  now replay the one-shot claw on the host view and the victim via
+  `SpiderClawReplay`; no protocol change beyond the leg field above.
 - **Crystal wind-up/telegraph line — NOT_SYNCED** (`CrystalEnemy.cs:68-90`);
   `EnemyState` carries no line/windup fields.
 - **Trader hostile `Swing()` attackAnimation — NOT_SYNCED**
@@ -144,9 +146,9 @@ presentations still have no dedicated event or periodic field:
   particle branches remain owner-side/local.
 
 The player attack-anim, direct placeable-item, workout, nap/dog-shake,
-muzzle-flash and wall-slide/landing rows above are now closed; the remaining
-lines are presentation-only observations, with no protocol or gameplay-state
-change made for them yet.
+muzzle-flash, wall-slide/landing and spider leg/claw rows above are now closed;
+the remaining lines are presentation-only observations, with no protocol or
+gameplay-state change made for them yet.
 
 ### Exploration 2026-08-23 — KrokMP-inspired co-op features
 

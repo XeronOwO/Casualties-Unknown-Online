@@ -67,6 +67,11 @@ public class EnemyStateRoundtripTests
 			Rotation = 90f,
 			Health = 42.5f,
 			Stunned = true,
+			SpiderLegTargets =
+			[
+				new NetVector2(10f, 11f),
+				new NetVector2(12f, 13f),
+			],
 		};
 
 		var target = NewEntity();
@@ -78,6 +83,18 @@ public class EnemyStateRoundtripTests
 		Assert.Equal(source.Rotation, target.Rotation);
 		Assert.Equal(source.Health, target.Health);
 		Assert.Equal(source.Stunned, target.Stunned);
+		Assert.Equal(2, target.SpiderLegTargets!.Count);
+		Assert.Equal(new NetVector2(10f, 11f), target.SpiderLegTargets![0]);
+		Assert.Equal(new NetVector2(12f, 13f), target.SpiderLegTargets![1]);
+	}
+
+	[Fact]
+	public void SpiderLegTargets_MissingLeavesNull()
+	{
+		var target = NewEntity();
+		new EnemyStateMsg().ApplyTo(target);
+
+		Assert.Null(target.SpiderLegTargets);
 	}
 
 	[Fact]

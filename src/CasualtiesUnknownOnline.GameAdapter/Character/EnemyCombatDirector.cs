@@ -346,6 +346,12 @@ internal sealed class EnemyCombatDirector(
 		var fromSpider = new Vector2(spider.transform.position.x - target.Position.x, spider.transform.position.y - target.Position.y);
 		spider.target = fromSpider.normalized * 15f + new Vector2(spider.transform.position.x, spider.transform.position.y);
 		spider.moveTime = spider.retreatMoveTime;
+
+		var biteDirection = new Vector2(
+			target.Position.x - spider.transform.position.x,
+			target.Position.y - spider.transform.position.y);
+		SpiderClawReplay.Play(spider, biteDirection);
+
 		_log.LogInformation("[Enemy] host spider {Enemy} bite ordered on {Victim} limb {Limb}.",
 			enemyId, target.SteamId, limbIndex);
 	}

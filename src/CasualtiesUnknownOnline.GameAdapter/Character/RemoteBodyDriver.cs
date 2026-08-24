@@ -33,6 +33,9 @@ internal sealed class RemoteBodyDriver : MonoBehaviour
 	/// <summary>Last applied workout type — the exercise clips replay only when the wire type changes.</summary>
 	public byte PrevWorkoutType;
 
+	/// <summary>Last applied nap variant — the lay-down clip pair replays when the variant changes.</summary>
+	public byte PrevNapVariant;
+
 	/// <summary>Last snapshot arrival (TickCount) — snapshot-change detection for the arrival-interval estimate.</summary>
 	public long LastStateMs;
 

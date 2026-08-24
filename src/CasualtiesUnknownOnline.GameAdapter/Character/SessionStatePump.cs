@@ -119,15 +119,26 @@ internal static class SessionStatePump
 				}
 			}
 
-			if (entity.Sleeping != driver.PrevSleeping)
+			if (entity.Sleeping != driver.PrevSleeping
+				|| (entity.Sleeping && entity.NapVariant != driver.PrevNapVariant))
 			{
 				driver.PrevSleeping = entity.Sleeping;
+				driver.PrevNapVariant = entity.NapVariant;
 				if (entity.Sleeping)
 				{
-					body.bodyAnimator.Play("ExperimentLayDown");
-					body.armsAnimator.Play("ArmsLayDown");
+					body.bodyAnimator.Play(NapPresentation.BodyClip(entity.NapVariant));
+					body.armsAnimator.Play(NapPresentation.ArmsClip(entity.NapVariant));
 				}
 			}
+			else if (!entity.Sleeping)
+			{
+				driver.PrevNapVariant = entity.NapVariant;
+			}
+
+			// Dog-shake is a continuous presentation fact (Body.dogShakeIntensity
+			// is public and HandleVisuals reads it on the proxy) — write the
+			// synced value so the clone shakes/calms with the owner.
+			body.dogShakeIntensity = entity.DogShakeIntensity;
 
 			// Lying (ragdoll/dead/unconscious — !standing without sleeping, or
 			// !alive): the LayDown clip approximates the ragdoll pose on the

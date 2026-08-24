@@ -2499,3 +2499,30 @@ workout was active and remained in the standing pose.
 - **Tests/gates** — new `WorkoutAnimationSyncTests` (8) plus 3 workout
   roundtrip cases; full suite 1320 green, build/format/architecture/event
   gates pass. See `docs/selfchecks/workout-animation-sync-selfcheck.md`.
+
+## 88. Nap variant + dog-shake intensity — player entity stream (ProtocolVersion 43)
+
+The animation audit left two body-presentation rows open: the sick/alt
+lay-down variant (`AltNapCoroutine`, `Body.cs:2519-2531`) and the continuous
+water-shake intensity (`Body.dogShakeIntensity`, `Body.cs:2550-2571`). Both
+are now carried by the existing 20 Hz player entity stream.
+
+- **Wire** — `EntityStateMsg.NapVariant` (ProtoMember 14, byte: 0=standard,
+  1=alt/sick) and `EntityStateMsg.DogShakeIntensity` (ProtoMember 15, float)
+  ride the existing `PlayerState` / `PlayerStateReport` stream.
+  `ProtocolVersion` 42 → 43 because older peers cannot send/render the new
+  fields.
+- **Capture** — `BodyNapPatch` prefixes the `Body.NapCoroutine` and
+  `Body.AltNapCoroutine` iterator methods (the call-identity trick used by
+  `BodyWorkoutPatch`) and stores the exact variant on a tiny
+  `LocalNapTracker` on the local body. The publisher gates it on
+  `body.sleeping`, so forced sleep without a tracker still sends standard.
+  `dogShakeIntensity` is a public body field and is published directly.
+- **Replay** — `SessionStatePump` plays the matching body+arms lay-down clip
+  pair when the sleeping edge or the nap variant changes, and writes the
+  synced dog-shake intensity onto the render clone every frame.
+- **Pure rule** — `NapPresentation` owns the variant → clip mapping.
+- **Tests/gates** — new `NapAndDogShakeSyncTests` (8), 4 entity-state
+  roundtrip cases, 1 wire roundtrip case; full suite 1332 green,
+  build/format/architecture/event gates pass, deployed to the real game dir.
+  See `docs/selfchecks/nap-and-dog-shake-sync-selfcheck.md`.

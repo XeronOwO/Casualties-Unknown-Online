@@ -87,6 +87,12 @@ public sealed class PlayerEntity(ulong steamId, NetworkEntityId entityId, bool i
 	/// </summary>
 	public byte WorkoutType { get; set; }
 
+	/// <summary>The owner's nap variant (0 = standard lay-down, 1 = sick/alt lay-down).</summary>
+	public byte NapVariant { get; set; }
+
+	/// <summary>The owner's current dog-shake intensity (Body.dogShakeIntensity).</summary>
+	public float DogShakeIntensity { get; set; }
+
 	// ---- Render interpolation buffer (guest side only) ----
 	/// <summary>Previous authoritative values, for lerping between snapshots.</summary>
 	public NetVector2 PrevPosition { get; set; }
@@ -127,5 +133,7 @@ public sealed class PlayerEntity(ulong steamId, NetworkEntityId entityId, bool i
 		ExtendedFlags = IsAttacking ? 0x01u : 0u,
 		SwingSeq = SwingSeq,
 		WorkoutType = WorkoutType,
+		NapVariant = NapVariant,
+		DogShakeIntensity = DogShakeIntensity,
 	};
 }

@@ -21,9 +21,11 @@ owner exercised.
   (ProtoMember 13), round-tripped via `ApplyTo` / `ToEntityStateMsg`.
 - **Local capture** — `BodyWorkoutPatch` (Harmony prefix on
   `Body.DoWorkout`) records the requested `Body.WorkoutType` on a
-  `LocalWorkoutTracker` component attached to the local body. The
-  authoritative active/inactive decision remains `Body.exercising`, so a
-  failed guard or stopped coroutine never sends a stale workout.
+  `LocalWorkoutTracker` component attached to the local body, translating the
+  game's zero-based enum (Pushups=0) into the positive wire codes (1/2/3)
+  through `WorkoutPresentation.FromGameValue`. The authoritative
+  active/inactive decision remains `Body.exercising`, so a failed guard or
+  stopped coroutine never sends a stale workout.
 - **Publisher** — `RunCoordinator.PublishBodyState` sends
   `workoutTracker.WorkoutType` only while `body.exercising` is true, else 0.
 - **Replay** — `SessionStatePump` detects a `WorkoutType` change and plays the
@@ -39,8 +41,8 @@ owner exercised.
 | Evidence | Result |
 |---|---|
 | `dotnet build CasualtiesUnknownOnline.slnx --no-restore` | 0 warnings / 0 errors |
-| `dotnet test CasualtiesUnknownOnline.slnx --no-restore` | 1319 passed |
-| `WorkoutAnimationSyncTests` | 7 passed |
+| `dotnet test CasualtiesUnknownOnline.slnx --no-restore` | 1320 passed |
+| `WorkoutAnimationSyncTests` | 8 passed |
 | `EntityStateRoundtripTests` additional workout cases | 3 passed |
 | `dotnet format CasualtiesUnknownOnline.slnx --no-restore` | passed |
 | `tools/check-architecture.ps1` | passed |
@@ -52,6 +54,9 @@ owner exercised.
 - `WorkoutAnimationSyncTests.ClipMapping_*` exercises the exact byte → clip
   mapping used by `SessionStatePump.ReplayWorkout`, including unknown/zero
   values.
+- `WorkoutAnimationSyncTests.FromGameValue_*` locks the zero-based game enum
+  → positive wire-code translation, so wire 0 stays reserved for "not
+  exercising".
 - The patch-surface test locks the `Body.DoWorkout` prefix parameter names
   and types; the generic `PatchContractTests` also auto-verifies the new
   `[HarmonyPatch]` contract against the game assembly.

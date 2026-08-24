@@ -2486,13 +2486,16 @@ workout was active and remained in the standing pose.
   the new field.
 - **Capture** — `BodyWorkoutPatch` is a Harmony prefix on `Body.DoWorkout`;
   it stores the requested type on a tiny `LocalWorkoutTracker` on the local
-  body. `Body.exercising` remains the authoritative on/off gate, so a failed
+  body, translating the game's zero-based enum (Pushups=0) into the positive
+  wire codes through `WorkoutPresentation.FromGameValue`.
+  `Body.exercising` remains the authoritative on/off gate, so a failed
   guard or stopped coroutine never publishes a stale pose.
 - **Replay** — `SessionStatePump` replays the matching body+arms clip pair
   when `WorkoutType` changes; returning to 0 clears `exercising` and plays
   `Grounded`.
-- **Pure rule** — `WorkoutPresentation` owns the byte → clip mapping; the
-  patch stays a thin adapter with no cross-call state.
-- **Tests/gates** — new `WorkoutAnimationSyncTests` (7) plus 3 workout
-  roundtrip cases; full suite 1319 green, build/format/architecture/event
+- **Pure rule** — `WorkoutPresentation` owns the byte → clip mapping and the
+  game-enum → wire code translation; the patch stays a thin adapter with no
+  cross-call state.
+- **Tests/gates** — new `WorkoutAnimationSyncTests` (8) plus 3 workout
+  roundtrip cases; full suite 1320 green, build/format/architecture/event
   gates pass. See `docs/selfchecks/workout-animation-sync-selfcheck.md`.

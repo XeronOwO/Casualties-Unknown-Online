@@ -11,10 +11,24 @@ namespace CasualtiesUnknownOnline.GameAdapter.Character;
 /// </summary>
 internal static class WorkoutPresentation
 {
+	/// <summary>Wire value: not working out (kept separate from the game enum's zero-based Pushups).</summary>
 	internal const byte None = 0;
 	internal const byte Pushups = 1;
 	internal const byte Squats = 2;
 	internal const byte Plank = 3;
+
+	/// <summary>
+	/// Translates the game's zero-based <c>Body.WorkoutType</c> values
+	/// (Pushups=0, Squats=1, Plank=2) into the wire codes (1/2/3) so wire 0
+	/// can mean "not exercising" without colliding with Pushups.
+	/// </summary>
+	internal static byte FromGameValue(byte gameWorkoutType) => gameWorkoutType switch
+	{
+		0 => Pushups,
+		1 => Squats,
+		2 => Plank,
+		_ => None,
+	};
 
 	internal static bool IsWorkout(byte workoutType) =>
 		workoutType is Pushups or Squats or Plank;

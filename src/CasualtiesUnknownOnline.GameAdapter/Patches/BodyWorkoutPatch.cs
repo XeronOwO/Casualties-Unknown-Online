@@ -30,6 +30,8 @@ internal static class BodyWorkoutPatch
 			tracker = __instance.gameObject.AddComponent<LocalWorkoutTracker>();
 		}
 
-		tracker.WorkoutType = (byte)type;
+		// The game's WorkoutType enum is zero-based (Pushups=0), while wire 0
+		// is reserved for "not exercising"; translate through the pure mapping.
+		tracker.WorkoutType = WorkoutPresentation.FromGameValue((byte)type);
 	}
 }

@@ -51,6 +51,13 @@ public class WorkoutAnimationSyncTests
 		return (bool)method.Invoke(null, [workoutType])!;
 	}
 
+	private static byte FromGameValue(byte gameWorkoutType)
+	{
+		var method = Presentation.GetMethod("FromGameValue", BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
+			?? throw new InvalidOperationException("WorkoutPresentation.FromGameValue not found.");
+		return (byte)method.Invoke(null, [gameWorkoutType])!;
+	}
+
 	[Fact]
 	public void ClipMapping_MatchesTheGameDoWorkoutSwitch()
 	{
@@ -72,6 +79,17 @@ public class WorkoutAnimationSyncTests
 		Assert.True(IsWorkout(1));
 		Assert.True(IsWorkout(2));
 		Assert.True(IsWorkout(3));
+	}
+
+	[Fact]
+	public void FromGameValue_MapsZeroBasedGameEnumToPositiveWireCodes()
+	{
+		// Body.WorkoutType is declaration-ordered: Pushups=0, Squats=1, Plank=2.
+		// Wire 0 must stay reserved for "not exercising".
+		Assert.Equal(1, FromGameValue(0));
+		Assert.Equal(2, FromGameValue(1));
+		Assert.Equal(3, FromGameValue(2));
+		Assert.Equal(0, FromGameValue(99));
 	}
 
 	[Fact]

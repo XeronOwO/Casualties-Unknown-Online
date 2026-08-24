@@ -2472,3 +2472,27 @@ A user-facing UI/UX pass on the Online UI plus a repeated world-time sound fix:
 
 Tests/gates: full suite 1309 green, build/format/architecture/event gates pass.
 See `docs/selfchecks/online-ui-polish-selfcheck.md`.
+
+## 87. Workout/exercise animation sync — player entity stream (ProtocolVersion 42)
+
+The animation-audit row for `Body.DoWorkout` was open: the owner plays
+`ExperimentPushups` / `ExperimentSquats` / `ExperimentPlank` plus the matching
+arms clips (`Body.cs:368-435`), but the render clone could not know which
+workout was active and remained in the standing pose.
+
+- **Wire** — `EntityStateMsg.WorkoutType` (ProtoMember 13, byte: 0=none,
+  1=pushups, 2=squats, 3=plank) rides the existing 20 Hz player entity
+  stream. `ProtocolVersion` 41 → 42 because older peers cannot send/render
+  the new field.
+- **Capture** — `BodyWorkoutPatch` is a Harmony prefix on `Body.DoWorkout`;
+  it stores the requested type on a tiny `LocalWorkoutTracker` on the local
+  body. `Body.exercising` remains the authoritative on/off gate, so a failed
+  guard or stopped coroutine never publishes a stale pose.
+- **Replay** — `SessionStatePump` replays the matching body+arms clip pair
+  when `WorkoutType` changes; returning to 0 clears `exercising` and plays
+  `Grounded`.
+- **Pure rule** — `WorkoutPresentation` owns the byte → clip mapping; the
+  patch stays a thin adapter with no cross-call state.
+- **Tests/gates** — new `WorkoutAnimationSyncTests` (7) plus 3 workout
+  roundtrip cases; full suite 1319 green, build/format/architecture/event
+  gates pass. See `docs/selfchecks/workout-animation-sync-selfcheck.md`.

@@ -146,6 +146,16 @@ internal static class SessionStatePump
 
 			driver.Climbing = entity.Climbing;
 
+			// Workout/exercise: the owner's DoWorkout plays a specific
+			// animator clip set; replay it on the proxy when the wire type
+			// changes. The value is refreshed every 20 Hz, so a lost packet is
+			// self-healed; returning to 0 restores the standing clips.
+			if (entity.WorkoutType != driver.PrevWorkoutType)
+			{
+				driver.PrevWorkoutType = entity.WorkoutType;
+				ReplayWorkout(body, entity.WorkoutType);
+			}
+
 			// Attack swing: replay the ArmsSwing clip once per swing — the
 			// SwingReplay machine replays on every sequence CHANGE (each swing,
 			// even several inside one held flag window — rapid mining swings)
@@ -163,6 +173,21 @@ internal static class SessionStatePump
 			driver.PrevAttacking = entity.IsAttacking;
 			driver.SwingStateSeeded = true;
 		}
+	}
+
+	private static void ReplayWorkout(Body body, byte workoutType)
+	{
+		if (!WorkoutPresentation.IsWorkout(workoutType))
+		{
+			body.bodyAnimator.SetBool("exercising", false);
+			body.bodyAnimator.Play("Grounded");
+			body.armsAnimator.Play("Grounded");
+			return;
+		}
+
+		body.bodyAnimator.SetBool("exercising", true);
+		body.bodyAnimator.Play(WorkoutPresentation.BodyClip(workoutType));
+		body.armsAnimator.Play(WorkoutPresentation.ArmsClip(workoutType));
 	}
 
 	private static Vector2 ToVector2(NetVector2 v) => new(v.X, v.Y);

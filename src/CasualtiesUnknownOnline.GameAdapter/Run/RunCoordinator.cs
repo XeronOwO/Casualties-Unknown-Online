@@ -510,6 +510,16 @@ internal sealed class RunCoordinator(
 		// - sleeping: Body.cs:3961.
 		// - climbing: currentClimbable (Body.cs:470).
 		var sitting = body.idleTime > 12f && !body.exercising;
+		// Workout/exercise: Body.DoWorkout is a coroutine that does not expose
+		// the active workout type as a public field, so BodyWorkoutPatch stores
+		// the requested WorkoutType on a tiny local-body tracker. The
+		// Body.exercising flag is the authoritative "currently working out"
+		// gate — a failed DoWorkout guard or a stopped coroutine never sends a
+		// stale workout pose.
+		var workoutType = body.exercising
+			&& body.TryGetComponent<LocalWorkoutTracker>(out var workoutTracker)
+				? workoutTracker.WorkoutType
+				: (byte)0;
 		_entities.PublishLocalState(
 			new NetVector2(pos.x, pos.y),
 			new NetVector2(look.x, look.y),
@@ -517,6 +527,7 @@ internal sealed class RunCoordinator(
 			body.isRight, body.standing, body.alive, body.conscious, body.crouching,
 			lookOverridePos, body.overrideLookTime, body.eyeScareTime,
 			body.eyePanicTime, body.eyeCloseTime,
-			sitting, body.sleeping, body.currentClimbable != null); // Unity object — ==
+			sitting, body.sleeping, body.currentClimbable != null, // Unity object — ==
+			workoutType);
 	}
 }

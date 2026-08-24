@@ -79,6 +79,14 @@ public sealed class PlayerEntity(ulong steamId, NetworkEntityId entityId, bool i
 	/// </summary>
 	public byte SwingSeq { get; set; }
 
+	/// <summary>
+	/// The owner's active workout/exercise type (0 = none, 1 = pushups, 2 =
+	/// squats, 3 = plank). The render proxy replays the matching exercise
+	/// animator clips when this changes; the 20 Hz stream refreshes the value
+	/// while the workout runs and returns it to 0 when the workout ends.
+	/// </summary>
+	public byte WorkoutType { get; set; }
+
 	// ---- Render interpolation buffer (guest side only) ----
 	/// <summary>Previous authoritative values, for lerping between snapshots.</summary>
 	public NetVector2 PrevPosition { get; set; }
@@ -118,5 +126,6 @@ public sealed class PlayerEntity(ulong steamId, NetworkEntityId entityId, bool i
 			(Sitting ? 0x20 : 0) | (Sleeping ? 0x40 : 0) | (Climbing ? 0x80 : 0)),
 		ExtendedFlags = IsAttacking ? 0x01u : 0u,
 		SwingSeq = SwingSeq,
+		WorkoutType = WorkoutType,
 	};
 }

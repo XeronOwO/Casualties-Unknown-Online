@@ -122,8 +122,12 @@ presentations still have no dedicated event or periodic field:
 - **Wall-slide / landing presentation — NOT_SYNCED**
   (`Body.cs:2610-2632`, `Body.cs:2713-2725`, `Body.cs:3274-3321`): the
   `Wall`/`Grounded` clips and dust particles are not replayed on clones.
-- **Gun muzzle-flash particle — NOT_SYNCED** (`GunScript.cs:191`):
-  `CharacterSoundMsg` carries gun sound + recoil only.
+- **Gun muzzle-flash particle — CLOSED (2026-08-23)**. The existing
+  `CharacterSoundKind.GunFire` event now also replays the source's
+  `muzzleParticle.Play()` on the owner's clone through `MuzzleFlashReplay`
+  (nearest clone gun to the reported fire position). No wire/protocol change.
+  See `docs/selfchecks/muzzle-flash-sync-selfcheck.md` and
+  `docs/tech-decisions.md` #89.
 - **Spider leg IK/crawl — NOT_SYNCED** (`SpiderHandler.cs:49-59`): frozen guest
   copies do not receive host leg-target/root poses.
 - **Spider bite `ClawAnim` — NOT_SYNCED on host-ordered remote bites**

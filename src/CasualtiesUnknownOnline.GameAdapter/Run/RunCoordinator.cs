@@ -520,6 +520,16 @@ internal sealed class RunCoordinator(
 			&& body.TryGetComponent<LocalWorkoutTracker>(out var workoutTracker)
 				? workoutTracker.WorkoutType
 				: (byte)0;
+		// Nap variant: TakeANap selects the standard or sick/alt coroutine; the
+		// tracker records the exact choice (0 = standard, 1 = alt). Forced sleep
+		// (body.sleeping without a nap tracker) stays 0 = standard lay-down.
+		var napVariant = body.sleeping
+			&& body.TryGetComponent<LocalNapTracker>(out var napTracker)
+				? napTracker.NapVariant
+				: (byte)0;
+		// Dog shake is a public continuous body field; the clone's HandleVisuals
+		// reads it when BodyPatches runs the render-only path.
+		var dogShakeIntensity = body.dogShakeIntensity;
 		_entities.PublishLocalState(
 			new NetVector2(pos.x, pos.y),
 			new NetVector2(look.x, look.y),
@@ -528,6 +538,6 @@ internal sealed class RunCoordinator(
 			lookOverridePos, body.overrideLookTime, body.eyeScareTime,
 			body.eyePanicTime, body.eyeCloseTime,
 			sitting, body.sleeping, body.currentClimbable != null, // Unity object — ==
-			workoutType);
+			workoutType, napVariant, dogShakeIntensity);
 	}
 }

@@ -116,7 +116,7 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 		NetVector2? lookOverridePos = null, float lookOverrideTime = 0f, float eyeScareTime = 0f,
 		float eyePanicTime = 0f, float eyeCloseTime = 0f,
 		bool sitting = false, bool sleeping = false, bool climbing = false,
-		byte workoutType = 0)
+		byte workoutType = 0, byte napVariant = 0, float dogShakeIntensity = 0f)
 	{
 		_localPlayer.Position = position;
 		_localPlayer.LookPos = lookPos;
@@ -135,6 +135,8 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 		_localPlayer.Sleeping = sleeping;
 		_localPlayer.Climbing = climbing;
 		_localPlayer.WorkoutType = workoutType;
+		_localPlayer.NapVariant = napVariant;
+		_localPlayer.DogShakeIntensity = dogShakeIntensity;
 		_localPlayer.IsAttacking = _attackSwing.IsAttacking;
 		_localPlayer.SwingSeq = _swingSeq;
 	}

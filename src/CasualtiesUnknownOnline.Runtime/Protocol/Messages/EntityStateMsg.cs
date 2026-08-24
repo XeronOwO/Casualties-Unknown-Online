@@ -74,6 +74,25 @@ public sealed class EntityStateMsg
 	[ProtoMember(13)]
 	public byte WorkoutType { get; set; }
 
+	/// <summary>
+	/// The owner's nap variant (0 = standard lay-down, 1 = sick/alt lay-down).
+	/// <c>Body.TakeANap</c> selects <c>NapCoroutine</c> or <c>AltNapCoroutine</c>
+	/// from the body's sickness/happiness/temperature state (Body.cs:2492-2495);
+	/// the value rides the same 20 Hz stream so the clone plays the same clip
+	/// pair when the sleeping edge arrives.
+	/// </summary>
+	[ProtoMember(14)]
+	public byte NapVariant { get; set; }
+
+	/// <summary>
+	/// The owner's current dog-shake intensity (Body.dogShakeIntensity,
+	/// Body.cs:2550-2571). The value rides the 20 Hz stream so the clone's
+	/// HandleVisuals applies the same shake offset; it is a continuous
+	/// presentation fact, not a one-shot event.
+	/// </summary>
+	[ProtoMember(15)]
+	public float DogShakeIntensity { get; set; }
+
 	/// <summary>Domain → wire lives in <see cref="EntityStateMsgExtensions"/>;
 	/// this applies the wire state back onto a live entity buffer (values + flags).</summary>
 	public void ApplyTo(PlayerEntity target)
@@ -97,5 +116,7 @@ public sealed class EntityStateMsg
 		target.IsAttacking = (ExtendedFlags & 0x01u) != 0;
 		target.SwingSeq = SwingSeq;
 		target.WorkoutType = WorkoutType;
+		target.NapVariant = NapVariant;
+		target.DogShakeIntensity = DogShakeIntensity;
 	}
 }

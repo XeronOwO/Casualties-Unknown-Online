@@ -152,6 +152,42 @@ public class EntityStateRoundtripTests
 	}
 
 	[Fact]
+	public void NapVariant_AppliesIntoEntity_AndRoundTripsBackToWire()
+	{
+		var entity = NewEntity();
+		new EntityStateMsg { NapVariant = 1 }.ApplyTo(entity);
+
+		Assert.Equal(1, entity.NapVariant);
+		Assert.Equal(1, entity.ToEntityStateMsg().NapVariant);
+	}
+
+	[Fact]
+	public void NapVariant_DefaultsToZero_StandardLayDown()
+	{
+		var entity = NewEntity();
+
+		Assert.Equal(0, entity.ToEntityStateMsg().NapVariant);
+	}
+
+	[Fact]
+	public void DogShakeIntensity_AppliesIntoEntity_AndRoundTripsBackToWire()
+	{
+		var entity = NewEntity();
+		new EntityStateMsg { DogShakeIntensity = 0.175f }.ApplyTo(entity);
+
+		Assert.Equal(0.175f, entity.DogShakeIntensity);
+		Assert.Equal(0.175f, entity.ToEntityStateMsg().DogShakeIntensity);
+	}
+
+	[Fact]
+	public void DogShakeIntensity_DefaultsToZero_NoShake()
+	{
+		var entity = NewEntity();
+
+		Assert.Equal(0f, entity.ToEntityStateMsg().DogShakeIntensity);
+	}
+
+	[Fact]
 	public void GazeOverrideAndEyeScare_Roundtrip()
 	{
 		var entity = NewEntity();

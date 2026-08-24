@@ -348,6 +348,28 @@ public class NetPacketTests
 	}
 
 	[Fact]
+	public void EntityState_NapVariantAndDogShake_RoundTrips()
+	{
+		// The 20 Hz player entity stream carries the exact nap clip variant and
+		// the continuous dog-shake intensity; protobuf must preserve both.
+		var msg = new EntityStateMsg
+		{
+			NapVariant = 1,
+			DogShakeIntensity = 0.175f,
+		};
+
+		var decoded = NetPacket.DecodePayload<EntityStateMsg>(NetPacket.Encode(NetMsg.PlayerState, msg));
+
+		Assert.Equal(1, decoded.NapVariant);
+		Assert.Equal(0.175f, decoded.DogShakeIntensity);
+
+		var inactive = NetPacket.DecodePayload<EntityStateMsg>(
+			NetPacket.Encode(NetMsg.PlayerState, new EntityStateMsg()));
+		Assert.Equal(0, inactive.NapVariant);
+		Assert.Equal(0f, inactive.DogShakeIntensity);
+	}
+
+	[Fact]
 	public void CharacterHealth_FaceLatchPresentation_RoundTrips()
 	{
 		// The 1 Hz character snapshot carries the owner's body-level

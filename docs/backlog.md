@@ -113,9 +113,12 @@ presentations still have no dedicated event or periodic field:
   (ProtocolVersion 42); each peer replays the matching pushup/squat/plank
   clip set on the owner's clone. See `docs/selfchecks/workout-animation-sync-selfcheck.md`
   and `docs/tech-decisions.md` #87.
-- **Alt-nap and water-shake variants — PARTIAL/NOT_SYNCED**
-  (`Body.cs:2502-2571`): the normal lay-down pose is synced, but
-  `LayDownAlt` and `dogShakeIntensity` are not.
+- **Alt-nap and water-shake variants — CLOSED (2026-08-23)**.
+  `Body.NapCoroutine`/`AltNapCoroutine` variant and `Body.dogShakeIntensity`
+  now ride `EntityStateMsg.NapVariant` / `DogShakeIntensity`
+  (ProtocolVersion 43); each peer replays the matching lay-down clip pair and
+  shake on the owner's clone. See `docs/selfchecks/nap-and-dog-shake-sync-selfcheck.md`
+  and `docs/tech-decisions.md` #88.
 - **Wall-slide / landing presentation — NOT_SYNCED**
   (`Body.cs:2610-2632`, `Body.cs:2713-2725`, `Body.cs:3274-3321`): the
   `Wall`/`Grounded` clips and dust particles are not replayed on clones.

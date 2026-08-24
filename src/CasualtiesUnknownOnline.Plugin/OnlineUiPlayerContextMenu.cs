@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Runtime.OnlineUi;
 using UnityEngine;
@@ -18,20 +19,27 @@ internal sealed class OnlineUiPlayerContextMenu
 	private const float Width = 240f;
 	private const float RowHeight = 28f;
 	private const float TitleHeight = 30f;
+	private const float SelectorHeight = 28f;
 
 	private ulong? _targetSteamId;
+	private IReadOnlyList<ulong> _candidateSteamIds = [];
 	private Vector2 _position;
 	private Rect _lastRect;
 
 	internal bool IsOpen => _targetSteamId.HasValue;
 
-	internal void Open(ulong steamId, Vector2 screenPosition)
+	internal void Open(ulong steamId, IReadOnlyList<ulong> candidates, Vector2 screenPosition)
 	{
 		_targetSteamId = steamId;
+		_candidateSteamIds = [.. candidates];
 		_position = screenPosition;
 	}
 
-	internal void Close() => _targetSteamId = null;
+	internal void Close()
+	{
+		_targetSteamId = null;
+		_candidateSteamIds = [];
+	}
 
 	internal bool Contains(Vector2 point) => _lastRect.Contains(point);
 
@@ -51,7 +59,8 @@ internal sealed class OnlineUiPlayerContextMenu
 		}
 
 		var actionCount = CountActions(row);
-		var height = TitleHeight + actionCount * RowHeight + 8f;
+		var selectorHeight = _candidateSteamIds.Count > 1 ? SelectorHeight : 0f;
+		var height = TitleHeight + selectorHeight + actionCount * RowHeight + 8f;
 		var x = Mathf.Clamp(_position.x + 8f, 4f, Mathf.Max(4f, Screen.width - Width - 4f));
 		var y = Mathf.Clamp(_position.y - 8f, 4f, Mathf.Max(4f, Screen.height - height - 4f));
 		var rect = new Rect(x, y, Width, height);
@@ -60,6 +69,11 @@ internal sealed class OnlineUiPlayerContextMenu
 		OnlineUiTheme.DrawBackground(rect);
 		GUILayout.BeginArea(new Rect(rect.x + 6f, rect.y + 6f, rect.width - 12f, rect.height - 12f));
 		GUILayout.Label(row.Name, OnlineUiTheme.Section(), GUILayout.Height(TitleHeight - 4f));
+
+		if (_candidateSteamIds.Count > 1)
+		{
+			DrawTargetSelector(ctx);
+		}
 
 		// Always offer the read-only player page as the fallback interaction so
 		// a right-click on any in-world remote has a visible menu even when no
@@ -111,6 +125,21 @@ internal sealed class OnlineUiPlayerContextMenu
 		}
 
 		GUILayout.EndArea();
+	}
+
+	private void DrawTargetSelector(OnlineUiContext ctx)
+	{
+		GUILayout.BeginHorizontal();
+		GUILayout.Label(ctx.T("member.select_target"), OnlineUiTheme.MutedLabel(), GUILayout.Width(54f));
+		foreach (var candidate in _candidateSteamIds)
+		{
+			if (GUILayout.Button(ctx.DisplayName(candidate), OnlineUiTheme.Button(), GUILayout.Height(SelectorHeight - 4f)))
+			{
+				_targetSteamId = candidate;
+			}
+		}
+
+		GUILayout.EndHorizontal();
 	}
 
 	private static int CountActions(OnlineUiMemberRow row)

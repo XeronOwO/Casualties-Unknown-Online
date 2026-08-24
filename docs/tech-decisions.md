@@ -2694,3 +2694,29 @@ overlapping remote player.
   `RemoteTargetPickerTests` (5) cover stable colors, palette spread, radius
   filtering, distance ordering and tie-breaking. Full suite green. See
   `docs/selfchecks/online-ui-player-awareness-selfcheck.md`.
+
+## 95. Co-op custom run-settings range broadening (no protocol change)
+
+The configuration row for the base game's single-player-tuned run-settings
+sliders was open: the host could only choose within the solo ranges (e.g.
+`baselootdensity` 0–2, `timelimit` 5–300), so a co-op lobby could not tune
+resource/trap/time pressure to its actual size.
+
+- **Host rule** — `[HostRules] WidenRunSettings` (default true) is exposed in
+  the Online UI Admin page and through BepInEx config. It applies only while
+  this side is the active host in a session.
+- **Range policy** — `RunSettingsRange.ForCoOp` widens the upper bound of the
+  scalable tuning sliders (loot/trap density, loot/xp/healing multipliers,
+  trader item amount, time limit, etc.) by the total player count (host +
+  guests). Percentage/offset sliders keep their semantic caps.
+- **Apply/restore** — `RunSettingsRangeService` owns the original native
+  limits, captures/restores them on session/host-rule transitions, and
+  refreshes already-created menu sliders directly because the game only reads
+  the limits in its first display init.
+- **No wire change** — selected values still ride the existing
+  `WorldStartParams`/`RunSettings` path; no `NetMsg`, no `ProtocolVersion`
+  bump.
+- **Tests/gates** — `RunSettingsRangeTests` (7) and the updated
+  `HostRulesPolicyTests`; full suite 1373 green,
+  build/format/architecture/event gates pass. See
+  `docs/selfchecks/run-settings-range-selfcheck.md`.

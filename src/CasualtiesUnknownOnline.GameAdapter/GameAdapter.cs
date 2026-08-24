@@ -7,6 +7,7 @@ using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
+using CasualtiesUnknownOnline.Runtime.Session.HostRules;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
@@ -58,12 +59,13 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 		IPlayerInteractionControl playerInteraction,
 		ITutorialClawControl tutorialClaw,
 		IOptionsMonitor<RespawnOptions> respawnOptions,
+		IHostRules hostRules,
 		ILogger<GameAdapter> log,
 		IMapper mapper,
 		ILoggerFactory loggerFactory)
 	{
 		_domains = new GameAdapterDomains(session, entities, characterData, world, items, craft, arbitration,
-			enemies, worldTime, playerInteraction, tutorialClaw, respawnOptions, log, mapper, loggerFactory);
+			enemies, worldTime, playerInteraction, tutorialClaw, respawnOptions, hostRules, log, mapper, loggerFactory);
 		_bridge = new GameAdapterBridge(_domains);
 		_playerInteraction = new PlayerInteractionApply(_domains);
 		_sessionBinding = new GameAdapterSessionBinding(_domains, _playerInteraction);
@@ -145,6 +147,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 	void ICuoService.Update()
 	{
 		_domains.GuestMenu.Update();
+		_domains.RunSettingsRange.Update();
 		_domains.MenuInput.Update();
 		_domains.Run.Update();
 		_domains.WorldTimeSync.Update(); // host policy + direct-write adoption + resend; guest enforcement of the host speed

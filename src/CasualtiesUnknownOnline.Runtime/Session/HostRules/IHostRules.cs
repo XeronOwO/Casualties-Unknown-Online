@@ -19,6 +19,9 @@ public interface IHostRules
 	/// <summary>A brand-new player may join the host's already-running world.</summary>
 	bool AllowLateJoin { get; }
 
+	/// <summary>Host-only: widen the native custom run-settings slider ranges in co-op for lobby-size tuning.</summary>
+	bool WidenRunSettings { get; }
+
 	/// <summary>Respawn keeps inventory (from <see cref="Configuration.RespawnOptions"/>).</summary>
 	bool SaveInventory { get; }
 

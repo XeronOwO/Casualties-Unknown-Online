@@ -39,6 +39,7 @@ public class HostRulesPolicyTests
 				PvpEnabled = true,
 				AutoContinue = true,
 				AllowLateJoin = false,
+				WidenRunSettings = true,
 			}),
 			new MutableOptionsMonitor<RespawnOptions>(new RespawnOptions
 			{
@@ -52,6 +53,7 @@ public class HostRulesPolicyTests
 		Assert.True(service.PvpEnabled);
 		Assert.True(service.AutoContinue);
 		Assert.False(service.AllowLateJoin);
+		Assert.True(service.WidenRunSettings);
 		Assert.True(service.Permadeath);
 		Assert.False(service.SaveInventory);
 		Assert.False(service.ReviveFromTrader);

@@ -9,6 +9,7 @@ using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
+using CasualtiesUnknownOnline.Runtime.Session.HostRules;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using CasualtiesUnknownOnline.Runtime.Session.Tutorial;
@@ -56,6 +57,7 @@ internal sealed class GameAdapterDomains
 	internal readonly WorldParamsService WorldParams;
 	internal readonly StartGateCoordinator Gate;
 	internal readonly GuestMenuGuard GuestMenu;
+	internal readonly RunSettingsRangeService RunSettingsRange;
 	internal readonly OnlineMenuInputGuard MenuInput;
 	internal readonly GeneratedItemAuthority GenItemAuthority;
 	internal readonly GeneratedItemApplication GenItemApplication;
@@ -101,6 +103,7 @@ internal sealed class GameAdapterDomains
 		IPlayerInteractionControl playerInteraction,
 		ITutorialClawControl tutorialClaw,
 		IOptionsMonitor<RespawnOptions> respawnOptions,
+		IHostRules hostRules,
 		ILogger<GameAdapter> log,
 		IMapper mapper,
 		ILoggerFactory loggerFactory)
@@ -178,6 +181,7 @@ internal sealed class GameAdapterDomains
 		CharacterLandingVisualSync = new CharacterLandingVisualSync(characterData, session, Renderer, loggerFactory.CreateLogger<CharacterLandingVisualSync>());
 		LifePod = new LifePodPresentation(loggerFactory.CreateLogger<LifePodPresentation>());
 		GuestMenu = new GuestMenuGuard(session, loggerFactory.CreateLogger<GuestMenuGuard>());
+		RunSettingsRange = new RunSettingsRangeService(session, hostRules, loggerFactory.CreateLogger<RunSettingsRangeService>());
 		MenuInput = new OnlineMenuInputGuard(session, loggerFactory.CreateLogger<OnlineMenuInputGuard>());
 		WorldParams = new WorldParamsService(world, loggerFactory.CreateLogger<WorldParamsService>());
 		Run = new RunCoordinator(session, world, entities, CharacterDataSync, GuestMenu, WorldParams, arbitration, loggerFactory.CreateLogger<RunCoordinator>());

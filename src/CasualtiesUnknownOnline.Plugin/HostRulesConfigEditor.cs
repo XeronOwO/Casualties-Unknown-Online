@@ -14,6 +14,7 @@ internal sealed class HostRulesConfigEditor
 	private readonly ConfigEntry<bool> _pvp;
 	private readonly ConfigEntry<bool> _autoContinue;
 	private readonly ConfigEntry<bool> _allowLateJoin;
+	private readonly ConfigEntry<bool> _widenRunSettings;
 	private readonly ConfigEntry<bool> _permadeath;
 	private readonly ConfigEntry<bool> _reviveFromTrader;
 	private readonly ConfigEntry<bool> _reviveOnNextLevel;
@@ -25,6 +26,7 @@ internal sealed class HostRulesConfigEditor
 		ConfigEntry<bool> pvp,
 		ConfigEntry<bool> autoContinue,
 		ConfigEntry<bool> allowLateJoin,
+		ConfigEntry<bool> widenRunSettings,
 		ConfigEntry<bool> permadeath,
 		ConfigEntry<bool> reviveFromTrader,
 		ConfigEntry<bool> reviveOnNextLevel,
@@ -35,6 +37,7 @@ internal sealed class HostRulesConfigEditor
 		_pvp = pvp;
 		_autoContinue = autoContinue;
 		_allowLateJoin = allowLateJoin;
+		_widenRunSettings = widenRunSettings;
 		_permadeath = permadeath;
 		_reviveFromTrader = reviveFromTrader;
 		_reviveOnNextLevel = reviveOnNextLevel;
@@ -47,6 +50,8 @@ internal sealed class HostRulesConfigEditor
 	internal void SetAutoContinue(bool value) => Set(_autoContinue, value);
 
 	internal void SetAllowLateJoin(bool value) => Set(_allowLateJoin, value);
+
+	internal void SetWidenRunSettings(bool value) => Set(_widenRunSettings, value);
 
 	internal void SetPermadeath(bool value) => Set(_permadeath, value);
 

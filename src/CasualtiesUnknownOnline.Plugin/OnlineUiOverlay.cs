@@ -101,6 +101,8 @@ internal sealed class OnlineUiOverlay
 
 	private readonly OnlineUiPlayerContextMenu _contextMenu = new();
 
+	private readonly OnlineUiQuickPanel _quickPanel = new();
+
 	private const float StatusDelaySeconds = 1.5f;
 	private const float StatusHoldSeconds = 15f;
 
@@ -110,8 +112,13 @@ internal sealed class OnlineUiOverlay
 
 	internal bool IsWindowVisible => _window.State.Visible;
 
+	internal bool IsQuickPanelVisible => _quickPanel.IsVisible;
+
 	/// <summary>Programmatic close (ESC hotkey); the modal guard sees it on the next frame's adapter call.</summary>
 	internal void CloseWindow() => _window.State.Visible = false;
+
+	/// <summary>Toggles the standalone player-interaction quick panel (configurable session hotkey).</summary>
+	internal void ToggleQuickPanel() => _quickPanel.Toggle();
 
 	internal void Draw(
 		SteamService steam,
@@ -192,6 +199,7 @@ internal sealed class OnlineUiOverlay
 		DrawNetworkHud(ctx);
 		DrawNameplatesAndArrows(ctx, entities, vitals);
 		DrawPlayerContextMenu(ctx);
+		_quickPanel.Draw(ctx);
 	}
 
 	private void UpdateDelayedStatus(OnlineUiContext ctx)
@@ -272,6 +280,13 @@ internal sealed class OnlineUiOverlay
 			// Right-clicks inside the Online window belong to the UI, not the
 			// world; never open/re-target/close the in-world menu from there.
 			if (_window.ContainsPoint(mouse))
+			{
+				return;
+			}
+
+			// Right-clicks inside the standalone quick panel belong to that UI,
+			// not the world; never open/re-target the in-world menu from there.
+			if (_quickPanel.IsVisible && _quickPanel.Contains(mouse))
 			{
 				return;
 			}

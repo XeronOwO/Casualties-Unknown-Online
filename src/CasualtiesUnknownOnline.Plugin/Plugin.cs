@@ -53,6 +53,7 @@ public class Plugin : BaseUnityPlugin
 	private ConfigEntry<string> _createLobbyKey = null!;
 	private ConfigEntry<string> _joinLobbyKey = null!;
 	private ConfigEntry<string> _pingPeerKey = null!;
+	private ConfigEntry<string> _interactionPanelKey = null!;
 	private ulong? _pendingJoinLobbyId;
 	private string? _lastJoinError;
 	private OnlineUiOverlay _onlineUi = null!;
@@ -163,6 +164,8 @@ public class Plugin : BaseUnityPlugin
 				"Hotkey to join the TargetLobbyId with Steam.");
 			_pingPeerKey = Config.Bind("Session", "PingPeerKey", "F7",
 				"Hotkey to ping the connected peer.");
+			_interactionPanelKey = Config.Bind("Session", "InteractionPanelKey", "F6",
+				"Hotkey to toggle the standalone player-interaction quick panel. See UnityEngine.KeyCode names.");
 
 			// Steam friends "Join Game" with the game not running launches it
 			// with "+connect_lobby <id>" on the command line. GameLobbyJoinRequested_t
@@ -302,6 +305,10 @@ public class Plugin : BaseUnityPlugin
 			else if (HotkeyPressed(_pingPeerKey))
 			{
 				_session.RequestPing();
+			}
+			else if (HotkeyPressed(_interactionPanelKey))
+			{
+				_onlineUi.ToggleQuickPanel();
 			}
 		}
 	}

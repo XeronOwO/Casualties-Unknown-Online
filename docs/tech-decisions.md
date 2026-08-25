@@ -3136,3 +3136,31 @@ timed/random/component medicine branches" candidate.
   `PlayerInteractionServiceTests` +4, `MedicationComponentsSyncTests` (2);
   full suite 1494 green, build/format/architecture/event gates pass. See
   `docs/selfchecks/cross-player-drinkable-medicine-selfcheck.md`.
+
+## 111. Dedicated standalone player-interaction quick panel
+
+Closed 2026-08-25 from the backlog "Dedicated standalone player-interaction UI"
+design row: the decision was to implement a compact, persistent, hotkey-docked
+panel rather than requiring the full Online window for frequent co-op actions.
+
+- **Decision** — the transient right-click context menu stays as the
+  cursor-based option; the standalone quick panel is the always-available
+  alternative for frequent actions. It reuses the existing
+  `OnlineUiMemberProjection` / `OnlineUiMemberListDrawer` action-eligibility and
+  rendering path, so it never duplicates interaction rules.
+- **Panel** — new `OnlineUiQuickPanel` is drawn by `OnlineUiOverlay` with a
+  docked bottom-right panel, a target selector, and the selected member's full
+  status/inventory/interaction row (carry, piggyback, drop, get down, heal,
+  use, push, recruit, take, heal-with, use-with).
+- **Target selection** — new pure `QuickPanelTargetPicker` keeps the current
+  target while it remains an in-world remote; otherwise it picks the nearest
+  remote with a deterministic SteamId tie-break.
+- **Hotkey** — new `[Session] InteractionPanelKey` (default F6) toggles the
+  panel; ESC closes it.
+- **UI integration** — right-clicks inside the quick panel are not treated as
+  world clicks, matching the existing modal-window/context-menu boundary.
+- **No protocol change** — no new `NetMsg`, no `ProtocolVersion` bump, no
+  event/item/entity matrix row touched.
+- **Tests/gates** — `QuickPanelTargetPickerTests` +5; full suite 1499 green,
+  build/format/architecture/event gates pass. See
+  `docs/selfchecks/player-quick-panel-selfcheck.md`.

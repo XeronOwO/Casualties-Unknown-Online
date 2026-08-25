@@ -117,6 +117,7 @@ internal sealed class PlayerItemUseService(
 		var newTargetData = PlayerCharacterAccess.CloneCharacter(targetData);
 		var destroyed = false;
 		CharacterItemMsg? wornItem = null;
+		var timedEffects = new List<TimedLimbEffectMsg>();
 
 		if (RemoteWearCatalog.IsWearItem(originalItem.ItemId))
 		{
@@ -153,7 +154,7 @@ internal sealed class PlayerItemUseService(
 		}
 		else if (RemoteLimbToolCatalog.TryGet(originalItem.ItemId, out var tool))
 		{
-			if (!RemoteLimbToolApplication.TryApply(newTargetData.Health!, newTargetData.Limbs, tool, out _, originalItem.Condition))
+			if (!RemoteLimbToolApplication.TryApply(newTargetData.Health!, newTargetData.Limbs, tool, out var limbIndex, originalItem.Condition))
 			{
 				_log.LogWarning("[ItemUse] refused: {ItemId} (id {InstanceId}) cannot be applied to {Target} — required limb missing, no limb data, or component ineligible.", originalItem.ItemId, originalItem.InstanceId, target);
 				return;
@@ -161,6 +162,15 @@ internal sealed class PlayerItemUseService(
 
 			newItem.Condition -= tool.ConditionCost;
 			destroyed = newItem.Condition <= 0f && tool.DestroyAtZero;
+			if (tool.TimedBleedDurationSeconds > 0f)
+			{
+				timedEffects.Add(new TimedLimbEffectMsg
+				{
+					LimbIndex = limbIndex,
+					DurationSeconds = tool.TimedBleedDurationSeconds,
+					BleedPerSecond = tool.TimedBleedPerSecond,
+				});
+			}
 		}
 		else
 		{
@@ -214,6 +224,7 @@ internal sealed class PlayerItemUseService(
 			WornItem = wornItem,
 			Health = newTargetData.Health,
 			Limbs = [.. newTargetData.Limbs],
+			TimedEffects = timedEffects,
 		});
 	}
 

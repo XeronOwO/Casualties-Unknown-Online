@@ -46,4 +46,12 @@ public sealed class PlayerItemUseResultMsg
 	/// <summary>The wearable item placed on the target's body, or null for consumable/tool uses. When set, the acting player's local item is removed and the target's local body wears this exact wire item.</summary>
 	[ProtoMember(8)]
 	public CharacterItemMsg? WornItem { get; set; }
+
+	/// <summary>
+	/// Timed limb ticks the target's local body must run (e.g. medicalsuture's
+	/// per-second bleed reduction). Empty for immediate-only uses. The host does
+	/// not simulate these; the target re-reports through the normal snapshot path.
+	/// </summary>
+	[ProtoMember(9)]
+	public List<TimedLimbEffectMsg> TimedEffects { get; set; } = [];
 }

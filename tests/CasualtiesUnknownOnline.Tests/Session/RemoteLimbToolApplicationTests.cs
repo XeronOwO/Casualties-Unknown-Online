@@ -19,6 +19,8 @@ public sealed class RemoteLimbToolApplicationTests
 		Assert.True(RemoteLimbToolCatalog.IsToolItem("carcasssplint"));
 		Assert.True(RemoteLimbToolCatalog.IsToolItem("tourniquet"));
 		Assert.True(RemoteLimbToolCatalog.IsToolItem("icepack"));
+		Assert.True(RemoteLimbToolCatalog.IsToolItem("tweezers"));
+		Assert.True(RemoteLimbToolCatalog.IsToolItem("medicalsuture"));
 		Assert.False(RemoteLimbToolCatalog.IsToolItem("mysterytool"));
 		Assert.True(RemoteLimbToolCatalog.TryGet("boneweldingtool", out _));
 	}
@@ -206,5 +208,55 @@ public sealed class RemoteLimbToolApplicationTests
 		Assert.True(RemoteLimbToolCatalog.TryGet("tourniquet", out var profile));
 
 		Assert.False(RemoteLimbToolApplication.TryApply(health, limbs, profile, out _));
+	}
+
+	[Fact]
+	public void ApplyTweezers_RemovesMostShrapnelLimb()
+	{
+		var health = new CharacterHealthMsg();
+		var limbs = new List<CharacterLimbMsg>
+		{
+			new() { Index = 0, SkinHealth = 50f, MuscleHealth = 50f, Shrapnel = 1 },
+			new() { Index = 1, SkinHealth = 50f, MuscleHealth = 50f, Shrapnel = 4 },
+		};
+		Assert.True(RemoteLimbToolCatalog.TryGet("tweezers", out var profile));
+
+		Assert.True(RemoteLimbToolApplication.TryApply(health, limbs, profile, out var limbIndex));
+
+		Assert.Equal(1, limbIndex);
+		Assert.Equal(0, limbs[1].Shrapnel);
+		Assert.Equal(1, limbs[0].Shrapnel);
+	}
+
+	[Fact]
+	public void ApplyTweezers_NoShrapnelLimb_IsRefused()
+	{
+		var health = new CharacterHealthMsg();
+		var limbs = new List<CharacterLimbMsg>
+		{
+			new() { Index = 0, SkinHealth = 50f, MuscleHealth = 50f },
+		};
+		Assert.True(RemoteLimbToolCatalog.TryGet("tweezers", out var profile));
+
+		Assert.False(RemoteLimbToolApplication.TryApply(health, limbs, profile, out _));
+	}
+
+	[Fact]
+	public void ApplyMedicalsuture_AppliesImmediateEffectsAndExposesTimedProfile()
+	{
+		var health = new CharacterHealthMsg();
+		var limbs = new List<CharacterLimbMsg>
+		{
+			new() { Index = 0, SkinHealth = 50f, MuscleHealth = 50f, Pain = 10f, BleedAmount = 20f },
+		};
+		Assert.True(RemoteLimbToolCatalog.TryGet("medicalsuture", out var profile));
+
+		Assert.True(RemoteLimbToolApplication.TryApply(health, limbs, profile, out var limbIndex));
+		Assert.Equal(0, limbIndex);
+		Assert.True(Math.Abs(limbs[0].Pain - 22.5f) < 0.001f);
+		Assert.True(Math.Abs(limbs[0].SkinHealAmount - 25f) < 0.001f);
+		Assert.True(Math.Abs(limbs[0].BleedAmount - 20f) < 0.001f);
+		Assert.True(Math.Abs(profile.TimedBleedPerSecond + 4.5f) < 0.001f);
+		Assert.True(Math.Abs(profile.TimedBleedDurationSeconds - 10f) < 0.001f);
 	}
 }

@@ -2,6 +2,7 @@ using System;
 using BepInEx.Configuration;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Configuration;
+using CasualtiesUnknownOnline.Runtime.Diagnostics;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
 using Microsoft.Extensions.DependencyInjection;
@@ -146,6 +147,27 @@ internal static class PluginDependencyRegistrar
 			ipJoinAddress,
 			ipJoinPort,
 			ipDisplayName));
+
+		// Opt-in hot-path latency instrumentation. Default off: it must not
+		// affect normal play; when enabled it only adds a stopwatch per
+		// measured domain call and a one-line-per-name summary at the log
+		// interval.
+		var latencyEnabled = config.Bind("Diagnostics", "LatencyInstrumentation", false,
+			new ConfigDescription("True = collect and log per-domain CUO update-pump timing (opt-in, off by default)."));
+		var latencyInterval = config.Bind("Diagnostics", "LatencyLogIntervalSeconds", 1.0,
+			new ConfigDescription(
+				"Seconds between aggregated hot-path latency log lines.",
+				new AcceptableValueRange<double>(0.1, 60.0)));
+		services.Replace(ServiceDescriptor.Singleton<IOptionsMonitor<LatencyOptions>>(
+			new BepInExOptionsMonitor<LatencyOptions>(
+				config,
+				() => new LatencyOptions
+				{
+					Enabled = latencyEnabled.Value,
+					LogIntervalSeconds = Math.Max(0.1, latencyInterval.Value),
+				},
+				latencyEnabled.Definition, latencyInterval.Definition)));
+		services.AddSingleton<LatencyInstrumentation>();
 
 		// Character-data mapping (Mapster). Mapster 6.0.0 core ships
 		// IMapper/Mapper — registered directly, no DI package needed

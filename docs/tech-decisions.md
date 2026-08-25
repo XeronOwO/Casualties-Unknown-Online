@@ -2940,3 +2940,27 @@ Closed 2026-08-25 from the remaining cross-player item-use tools candidate.
   `PlayerInteractionServiceTests` +1. Full suite 1439 green,
   build/format/architecture/event gates pass. See
   `docs/selfchecks/cross-player-limb-tool-use-selfcheck.md`.
+
+## 104. Hot-path latency instrumentation
+
+Closed 2026-08-25 from the backlog Performance profiling / instrumentation
+section.
+
+- **Config** — new `[Diagnostics] LatencyInstrumentation` (default off) and
+  `[Diagnostics] LatencyLogIntervalSeconds` (default 1.0) feed
+  `LatencyOptions` through the existing `BepInExOptionsMonitor`, so the
+  feature hot-reloads and is disabled by default.
+- **Instrumentation** — `LatencyInstrumentation` (Runtime Diagnostics)
+  aggregates per-name call count / total / average / max milliseconds. The
+  `Measure(name)` scope returns null while disabled (so production `using`
+  blocks cost nothing off), and `Measure(name, action)` records in `finally`
+  for callers that prefer the one-line form.
+- **Integration** — `GameAdapter.Update` times the compute-heavy pumps
+  (`Run`, `WorldTime`, `StartGate`, `Respawn`, `ItemPosition`, `WorldEvent`,
+  `Fluid`, `Trader`, `Renderer`, `EnemySync`, `EnemyCombat`) and flushes one
+  `[Latency]` summary line per name at the configured interval.
+- **No wire change** — no `NetMsg`, no `ProtocolVersion` bump; sync/network
+  semantics untouched.
+- **Tests/gates** — `LatencyInstrumentationTests` (4). Full suite 1443 green,
+  build/format/architecture/event gates pass. See
+  `docs/selfchecks/hot-path-latency-instrumentation-selfcheck.md`.

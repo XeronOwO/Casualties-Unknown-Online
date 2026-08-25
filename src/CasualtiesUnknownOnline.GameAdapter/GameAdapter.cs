@@ -3,6 +3,7 @@ using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.GameAdapter.Character;
 using CasualtiesUnknownOnline.GameAdapter.Patches;
 using CasualtiesUnknownOnline.Runtime.Configuration;
+using CasualtiesUnknownOnline.Runtime.Diagnostics;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
@@ -43,6 +44,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 	private readonly GameAdapterBridge _bridge;
 	private readonly PlayerInteractionApply _playerInteraction;
 	private readonly GameAdapterSessionBinding _sessionBinding;
+	private readonly LatencyInstrumentation _latency;
 	private Harmony? _harmony;
 	private Body? _lastLocalBody; // Unity object — == (the world-entry edge for the destroy-suppression reset)
 
@@ -61,9 +63,11 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 		IOptionsMonitor<RespawnOptions> respawnOptions,
 		IHostRules hostRules,
 		ILogger<GameAdapter> log,
+		LatencyInstrumentation latency,
 		IMapper mapper,
 		ILoggerFactory loggerFactory)
 	{
+		_latency = latency;
 		_domains = new GameAdapterDomains(session, entities, characterData, world, items, craft, arbitration,
 			enemies, worldTime, playerInteraction, tutorialClaw, respawnOptions, hostRules, log, mapper, loggerFactory);
 		_bridge = new GameAdapterBridge(_domains);
@@ -150,8 +154,15 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 		_domains.GuestMenu.Update();
 		_domains.RunSettingsRange.Update();
 		_domains.MenuInput.Update();
-		_domains.Run.Update();
-		_domains.WorldTimeSync.Update(); // host policy + direct-write adoption + resend; guest enforcement of the host speed
+		using (_latency.Measure("Run"))
+		{
+			_domains.Run.Update();
+		}
+
+		using (_latency.Measure("WorldTime"))
+		{
+			_domains.WorldTimeSync.Update(); // host policy + direct-write adoption + resend; guest enforcement of the host speed
+		}
 
 		// World-entry edge: the teardown of the PREVIOUS scene finished (its
 		// destroys were suppressed, #191) — the new world's real destroys report
@@ -165,36 +176,67 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 
 		_lastLocalBody = localBody;
 		_playerInteraction.UpdateCarriedBody(localBody); // a carried local body follows its carrier's entity state
-		_domains.Gate.Update(_domains.Run.LocalBody);
+		using (_latency.Measure("StartGate"))
+		{
+			_domains.Gate.Update(_domains.Run.LocalBody);
+		}
 		_domains.GenItemAuthority.Update(); // host/solo: publish the generation-time items when the generation finished
 		_domains.GenItemApplication.Update(); // guest: apply the host's generation snapshot once the local generation finished
-		_domains.Respawn.Update(); // host: next-level respawn once a world generation finishes
+		using (_latency.Measure("Respawn"))
+		{
+			_domains.Respawn.Update(); // host: next-level respawn once a world generation finishes
+		}
 		_domains.TrapLayoutScanner.Update(); // host: report the generated trap layout on the same falling edge
 		_domains.TrapLayoutApplication.Update(); // guest: apply a deferred layout snapshot once the local generation finished
 		_domains.LayerModifierSync.Update(); // guest: apply the host's layer modifier once the local generation finished
 		_domains.CarriedInventoryReporter.Update(); // guest: report the carried inventory with self-assigned ids once the local generation finished
 		_domains.ItemWorldSync.FlushPendingDrop(); // a drop that was not thrown reports at end of frame (one drop = one report)
 		_domains.BlockBreakSync.FlushPendingBlockBreak(); // a break's drops fold in one frame after the break — the break + drops go out as ONE message
-		if (_domains.Session.Role == SessionRole.Host && _domains.Session.SessionActive)
+		using (_latency.Measure("ItemPosition"))
 		{
-			_domains.ItemPositionAuthority.Update(); // the host's physics is the single position authority
-		}
-		else
-		{
-			_domains.ItemPositionFollow.Update(); // the guest copies simulate locally (ground-layer isolation), soft-corrected by the host's stream
+			if (_domains.Session.Role == SessionRole.Host && _domains.Session.SessionActive)
+			{
+				_domains.ItemPositionAuthority.Update(); // the host's physics is the single position authority
+			}
+			else
+			{
+				_domains.ItemPositionFollow.Update(); // the guest copies simulate locally (ground-layer isolation), soft-corrected by the host's stream
+			}
 		}
 
-		_domains.WorldEventSync.Update();
+		using (_latency.Measure("WorldEvent"))
+		{
+			_domains.WorldEventSync.Update();
+		}
 		_domains.GeyserStateSync.Update(); // host/solo: capture + broadcast the geysers' liquid types once the generation finished
 		_domains.RadiationLineSync.Update(); // host: publish the authoritative radiation-line state (active + timeGone)
 		_domains.EntitySpawnSync.Update(); // the creation channel's deferred reports (a geyser's type, after its child Start) and carried-data applications
-		_domains.FluidSync.Update(); // host: stream the members' fluid viewports (10 Hz diff + 1 Hz full)
-		_domains.TradeSync.Update(); // host: the 5 s trader-state fallback broadcast
+		using (_latency.Measure("Fluid"))
+		{
+			_domains.FluidSync.Update(); // host: stream the members' fluid viewports (10 Hz diff + 1 Hz full)
+		}
+
+		using (_latency.Measure("Trader"))
+		{
+			_domains.TradeSync.Update(); // host: the 5 s trader-state fallback broadcast
+		}
 		_domains.BlockBreakSync.Update(); // expire break records without a consuming drops report
-		_domains.Renderer.Update();
-		_domains.EnemySync.Update(); // host: capture + publish the simulated enemies; guest: (event-driven bind/apply)
-		_domains.EnemyCombat.Update(); // host: enemy combat decisions (target guidance rides the patch callbacks; bite arbitration here)
+		using (_latency.Measure("Renderer"))
+		{
+			_domains.Renderer.Update();
+		}
+
+		using (_latency.Measure("EnemySync"))
+		{
+			_domains.EnemySync.Update(); // host: capture + publish the simulated enemies; guest: (event-driven bind/apply)
+		}
+
+		using (_latency.Measure("EnemyCombat"))
+		{
+			_domains.EnemyCombat.Update(); // host: enemy combat decisions (target guidance rides the patch callbacks; bite arbitration here)
+		}
 		_domains.TutorialClawSync.Update(); // host: publish the tutorial-claw presentation state (Runtime throttles the 20 Hz fan-out)
+		_latency.Flush();
 	}
 
 	void ICuoService.Stop() => Uninstall();

@@ -198,6 +198,7 @@ Measurement-first items; do not optimize before data exists.
 
 - **IP direct connection (non-Steam transport)** — **CLOSED (2026-08-23)**. TCP IP-direct host/join by IP:port, custom display name, separate non-interconnected mode, and a top-left RTT/status HUD are landed. See `docs/selfchecks/ip-direct-selfcheck.md` and `docs/tech-decisions.md` #82.
 - **Host migration** — **NOT PLANNED / BY DESIGN (2026-08-25)**. The chosen simple behavior is: host exit or disconnect → the session ends and every guest disconnects back to the menu/lobby. CUO’s host-authoritative save/world ownership makes this the natural scope for a friends-coop session; no host transfer, election or migration feature is planned. Dedicated server is also NOT needed for this model and remains future/low unless public community hosting becomes a real goal. See `docs/architecture.md` §7.
+- **Online UI transport-mode exclusivity** — OPEN. The Home page currently shows both the Steam network section and the IP-direct section at the same time, but Steam and IP-direct are mutually exclusive transports (the plugin already refuses switching while the other session is active). Optimize the presentation so only the currently relevant transport mode is shown; the inactive mode can be hidden or collapsed. Low-risk UI-only item, no wire/protocol change.
 
 ### Configuration / preferences
 

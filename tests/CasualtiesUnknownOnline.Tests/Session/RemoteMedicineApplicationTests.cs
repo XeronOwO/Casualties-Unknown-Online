@@ -21,6 +21,72 @@ public sealed class RemoteMedicineApplicationTests
 	}
 
 	[Fact]
+	public void Catalog_ExposesOpiateItemsAndLiquids()
+	{
+		Assert.True(RemoteMedicineCatalog.IsInjectableItem("morphine"));
+		Assert.True(RemoteMedicineCatalog.IsInjectableItem("opium"));
+		Assert.True(RemoteMedicineCatalog.IsInjectableItem("heroin"));
+		Assert.True(RemoteMedicineCatalog.IsInjectableItem("fentanyl"));
+		Assert.True(RemoteMedicineCatalog.IsInjectableItem("naloxone"));
+		Assert.True(RemoteMedicineCatalog.IsSupportedMedicineLiquid("morphine"));
+		Assert.True(RemoteMedicineCatalog.IsSupportedMedicineLiquid("heroin"));
+		Assert.True(RemoteMedicineCatalog.IsSupportedMedicineLiquid("fentanyl"));
+		Assert.True(RemoteMedicineCatalog.IsSupportedMedicineLiquid("naloxone"));
+	}
+
+	[Fact]
+	public void Plan_DrawsOpiateItemAmountOrEntireSmallStack()
+	{
+		var full = new List<LiquidStackMsg>
+		{
+			new() { LiquidId = "morphine", Amount = 100f },
+		};
+		Assert.True(RemoteMedicineCatalog.TryCreatePlan(full, "morphine", out var plan));
+		var drain = Assert.Single(plan);
+		Assert.Equal("morphine", drain.LiquidId);
+		Assert.True(Math.Abs(drain.Amount - 100f) < 0.001f);
+
+		var small = new List<LiquidStackMsg> { new() { LiquidId = "morphine", Amount = 30f } };
+		Assert.True(RemoteMedicineCatalog.TryCreatePlan(small, "morphine", out var smallPlan));
+		var smallDrain = Assert.Single(smallPlan);
+		Assert.True(Math.Abs(smallDrain.Amount - 30f) < 0.001f);
+	}
+
+	[Fact]
+	public void ApplyMorphine_AddsOpiateAmount()
+	{
+		var health = new CharacterHealthMsg { OpiateAmount = 0f };
+		var plan = new List<LiquidStackMsg> { new() { LiquidId = "morphine", Amount = 100f } };
+
+		RemoteMedicineApplication.Apply(health, [], plan);
+
+		Assert.True(Math.Abs(health.OpiateAmount - 90f) < 0.001f);
+	}
+
+	[Fact]
+	public void ApplyHeroin_AddsOpiateAndSickness()
+	{
+		var health = new CharacterHealthMsg { OpiateAmount = 0f, SicknessAmount = 0f };
+		var plan = new List<LiquidStackMsg> { new() { LiquidId = "heroin", Amount = 100f } };
+
+		RemoteMedicineApplication.Apply(health, [], plan);
+
+		Assert.True(Math.Abs(health.OpiateAmount - 130f) < 0.001f);
+		Assert.True(Math.Abs(health.SicknessAmount - 50f) < 0.001f);
+	}
+
+	[Fact]
+	public void ApplyNaloxone_AddsAntagonistAmount()
+	{
+		var health = new CharacterHealthMsg { AntagonistAmount = 0f };
+		var plan = new List<LiquidStackMsg> { new() { LiquidId = "naloxone", Amount = 100f } };
+
+		RemoteMedicineApplication.Apply(health, [], plan);
+
+		Assert.True(Math.Abs(health.AntagonistAmount - 50f) < 0.001f);
+	}
+
+	[Fact]
 	public void Plan_DrawsItemAmountOrEntireSmallStack()
 	{
 		var full = new List<LiquidStackMsg> { new() { LiquidId = "saline", Amount = 750f } };

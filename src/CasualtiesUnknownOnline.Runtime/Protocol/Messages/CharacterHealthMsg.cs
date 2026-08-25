@@ -223,4 +223,23 @@ public sealed class CharacterHealthMsg
 
 	[ProtoMember(67)]
 	public float EyeTimeHealed { get; set; }
+
+	// Painkiller component state (Painkillers.cs, [Saveable] — the component
+	// drives limb pain reduction, opiate happiness, withdrawal and overdose
+	// presentation on the owner's simulated body, so it must ride the character
+	// snapshot for cross-player opiate use and reconnect restore).
+	[ProtoMember(68)]
+	public float OpiateAmount { get; set; }
+
+	[ProtoMember(69)]
+	public float OpiateTolerance { get; set; }
+
+	[ProtoMember(70)]
+	public float OpiateReception { get; set; }
+
+	[ProtoMember(71)]
+	public float AntagonistAmount { get; set; }
+
+	[ProtoMember(72)]
+	public float ActualOpiateReception { get; set; }
 }

@@ -11,7 +11,9 @@ namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 /// supported liquid to a pure per-ml effect. Unknown items/liquids are refused
 /// as a whole so an unsupported effect is never silently approximated. Only
 /// immediate body/limb surfaces that already ride the character snapshot are
-/// included; opiate/components and timed/random effects stay future slices.
+/// included; timed/random effects stay future slices. The opiate and
+/// opiate-antagonist liquids are included in this slice and their component
+/// state rides <c>CharacterHealthMsg</c> (see <c>PainkillersSync</c>).
 /// </summary>
 public static class RemoteMedicineCatalog
 {
@@ -25,6 +27,11 @@ public static class RemoteMedicineCatalog
 			["antiserum"] = 50f,
 			["ceftriaxone"] = 100f,
 			["streptokinase"] = 33.334f,
+			["morphine"] = 100f,
+			["opium"] = 100f,
+			["heroin"] = 150f,
+			["fentanyl"] = 100f,
+			["naloxone"] = 100f,
 		};
 
 	private static readonly IReadOnlyDictionary<string, RemoteMedicineLiquidEffect> Liquids =
@@ -60,6 +67,14 @@ public static class RemoteMedicineCatalog
 			["streptokinase"] = new("streptokinase",
 				BloodViscosityPerMl: -50f / 33.334f,
 				SicknessPerMl: 5f / 33.334f),
+			// Opiate/opiate-antagonist formulas from Liquids.cs onHealthUse:
+			// morphine ml*0.01*90, opium ml*0.01*40, heroin ml*0.01*130 +
+			// sickness ml*0.01*50, fentanyl ml*0.1*420, naloxone ml*0.01*50.
+			["morphine"] = new("morphine", OpiateAmountPerMl: 90f * 0.01f),
+			["opium"] = new("opium", OpiateAmountPerMl: 40f * 0.01f),
+			["heroin"] = new("heroin", OpiateAmountPerMl: 130f * 0.01f, SicknessPerMl: 50f * 0.01f),
+			["fentanyl"] = new("fentanyl", OpiateAmountPerMl: 420f * 0.1f),
+			["naloxone"] = new("naloxone", AntagonistAmountPerMl: 50f * 0.01f),
 		};
 
 	// Liquids that the game may inject without an onHealthUse effect (mostly

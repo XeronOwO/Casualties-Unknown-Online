@@ -137,9 +137,20 @@ internal sealed class PlayerItemUseService(
 			RemoteTopicalApplication.Apply(newTargetData.Health!, newTargetData.Limbs, topicalPlan);
 			ApplyDrain(newItem, topicalPlan);
 		}
+		else if (RemoteLimbToolCatalog.TryGet(originalItem.ItemId, out var tool))
+		{
+			if (!RemoteLimbToolApplication.TryApply(newTargetData.Health!, newTargetData.Limbs, tool, out _))
+			{
+				_log.LogWarning("[ItemUse] refused: {ItemId} (id {InstanceId}) cannot be applied to {Target} — required limb missing or no limb data.", originalItem.ItemId, originalItem.InstanceId, target);
+				return;
+			}
+
+			newItem.Condition -= tool.ConditionCost;
+			destroyed = newItem.Condition <= 0f;
+		}
 		else
 		{
-			_log.LogWarning("[ItemUse] refused: {ItemId} (id {InstanceId}) is not in the remote-consumable/medicine/topical catalog.", originalItem.ItemId, originalItem.InstanceId);
+			_log.LogWarning("[ItemUse] refused: {ItemId} (id {InstanceId}) is not in the remote-consumable/medicine/topical/limb-tool catalog.", originalItem.ItemId, originalItem.InstanceId);
 			return;
 		}
 
@@ -257,7 +268,7 @@ internal sealed class PlayerItemUseService(
 
 	private static bool IsActuallyUsable(CharacterItemMsg item)
 	{
-		if (item.Condition <= 0f && RemoteConsumeCatalog.IsFoodItem(item.ItemId))
+		if (item.Condition <= 0f && (RemoteConsumeCatalog.IsFoodItem(item.ItemId) || RemoteLimbToolCatalog.IsToolItem(item.ItemId)))
 		{
 			return false;
 		}
@@ -265,6 +276,7 @@ internal sealed class PlayerItemUseService(
 		return RemoteConsumeCatalog.IsFoodItem(item.ItemId)
 			|| RemoteConsumeApplication.TryCreateDrinkPlan(item.Liquids, out _)
 			|| RemoteMedicineCatalog.TryCreatePlan(item.Liquids, item.ItemId, out _)
-			|| RemoteTopicalCatalog.TryCreatePlan(item.Liquids, item.ItemId, out _);
+			|| RemoteTopicalCatalog.TryCreatePlan(item.Liquids, item.ItemId, out _)
+			|| RemoteLimbToolCatalog.IsToolItem(item.ItemId);
 	}
 }

@@ -2890,3 +2890,53 @@ Closed 2026-08-25 from the lower-priority KrokMP candidate list.
 - **Tests/gates** — `OnlineUiMemberProjectionTests` +3 status-flag cases; full
   suite green, build/format/architecture gates pass. See
   `docs/selfchecks/member-status-icons-and-session-hotkeys-selfcheck.md`.
+
+## 102. Cross-player opiate use (fourth cross-player item-use slice)
+
+Closed 2026-08-25 from the remaining cross-player item-use candidates.
+
+- **Component sync** — `CharacterHealthMsg` gains five additive proto fields for
+  the `Painkillers` component (`OpiateAmount`, `OpiateTolerance`,
+  `OpiateReception`, `AntagonistAmount`, `ActualOpiateReception`). The new
+  Game Adapter helper `PainkillersSync` captures those fields from the local
+  body's `Painkillers` component into the 1 Hz character snapshot and applies a
+  host-authoritative health result/restore back onto the local body. No wire
+  message and no `ProtocolVersion` bump.
+- **Catalog/apply** — `RemoteMedicineCatalog` adds `morphine`, `opium`,
+  `heroin`, `fentanyl` and `naloxone` as injectable containers;
+  `RemoteMedicineLiquidEffect` adds `OpiateAmountPerMl` and
+  `AntagonistAmountPerMl`; `RemoteMedicineApplication` writes those fields onto
+  the target health snapshot. Heroin also adds its sickness component.
+- **Target results** — the existing `PlayerItemUseResult` fan-out already
+  carries the complete post-use `CharacterHealthMsg`, so the target's own
+  client applies the opiate component through `CharacterDataSync.ApplyHealState`
+  and re-reports immediately.
+- **Scope limits** — drinkable pill opiates and timed/random opiate effects
+  remain future slices. Supported item set is the curated injectable set above.
+- **Tests/gates** — `RemoteMedicineApplicationTests` +4, `PainkillersSyncTests`
+  +2, `PlayerInteractionServiceTests` +1. Full suite 1439 green,
+  build/format/architecture/event gates pass. See
+  `docs/selfchecks/cross-player-opiate-use-selfcheck.md`.
+
+## 103. Cross-player limb-tool use (fifth cross-player item-use slice)
+
+Closed 2026-08-25 from the remaining cross-player item-use tools candidate.
+
+- **Catalog/apply** — new pure `RemoteLimbToolProfile`,
+  `RemoteLimbToolCatalog` and `RemoteLimbToolApplication` cover the curated
+  non-liquid limb-tool set: `boneweldingtool`, `clottingmush`, `chestdrain`,
+  `musharm`. The apply path supports most-injured-limb selection, a required
+  limb (chest drain), additive deltas and the `boneHealTimer`/`bleedAmount`
+  multiplicative factors.
+- **Host service** — `PlayerItemUseService` tries limb tools after the
+  topical branch and consumes the item condition (destroys at zero). A tool
+  whose required limb is missing is refused before consumption.
+- **UI** — `PlayerInteractionApply.IsLocalUseItem` recognises the tool registry,
+  so the existing Use button/per-item selectors expose them.
+- **Scope limits** — component-bearing tools (splint/tourniquet/icepack),
+  minigame-random tools (tweezers) and timed tools (medicalsuture) remain
+  future slices.
+- **Tests/gates** — `RemoteLimbToolApplicationTests` (6),
+  `PlayerInteractionServiceTests` +1. Full suite 1439 green,
+  build/format/architecture/event gates pass. See
+  `docs/selfchecks/cross-player-limb-tool-use-selfcheck.md`.

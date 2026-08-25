@@ -180,7 +180,7 @@ surface.
 
 ### Player interaction / piggyback follow-ups — OPEN (2026-08-26)
 
-User-reported follow-ups after the piggyback direction + drag-use pass. Recorded as open work; not fixed in this cycle.
+User-reported follow-ups after the piggyback direction + drag-use pass. Recorded as open work; not fixed in this cycle. Per AGENTS.md test-coverage norms, each fix below must first add a multi-step combination regression test (carry/piggyback state machine + local apply/driver cleanup + UI option projection) that reproduces the reported scenario, then make the fix.
 
 - **Host-on-guest real-time follow presentation — OPEN (optimization)**. When the host rides on a guest (or any carrier/rider pair), the carrier's client should render the rider locally attached/following in real time instead of relying on the periodic sync stream. Current implementation uses the session stream as the presentation fallback; the local follow attachment should give better visual smoothness.
 - **Piggyback weight / encumbrance rules — OPEN (missing config)**. There is currently no weight configuration for piggyback (e.g. carrier encumbrance/weight multiplier). KrokMP has a `PiggybackWeightMultiplier`-style rule; CUO should add an equivalent host rule/config before considering the feature complete.

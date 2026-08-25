@@ -118,6 +118,7 @@ internal sealed class PlayerItemUseService(
 		var destroyed = false;
 		CharacterItemMsg? wornItem = null;
 		var timedEffects = new List<TimedLimbEffectMsg>();
+		var timedBodyEffects = new List<TimedBodyEffectMsg>();
 
 		if (RemoteWearCatalog.IsWearItem(originalItem.ItemId))
 		{
@@ -145,6 +146,7 @@ internal sealed class PlayerItemUseService(
 		else if (RemoteMedicineCatalog.TryCreatePlan(originalItem.Liquids, originalItem.ItemId, out var medicinePlan))
 		{
 			RemoteMedicineApplication.Apply(newTargetData.Health!, newTargetData.Limbs, medicinePlan);
+			timedBodyEffects = RemoteMedicineApplication.BuildTimedEffects(medicinePlan);
 			ApplyDrain(newItem, medicinePlan);
 		}
 		else if (RemoteTopicalCatalog.TryCreatePlan(originalItem.Liquids, originalItem.ItemId, out var topicalPlan))
@@ -225,6 +227,7 @@ internal sealed class PlayerItemUseService(
 			Health = newTargetData.Health,
 			Limbs = [.. newTargetData.Limbs],
 			TimedEffects = timedEffects,
+			TimedBodyEffects = timedBodyEffects,
 		});
 	}
 

@@ -9,11 +9,12 @@ namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 /// second cross-player item-use slice. It maps a known medicine item to the
 /// ml the game's <c>WaterContainerItem.Inject</c> drains per use, and maps each
 /// supported liquid to a pure per-ml effect. Unknown items/liquids are refused
-/// as a whole so an unsupported effect is never silently approximated. Only
-/// immediate body/limb surfaces that already ride the character snapshot are
-/// included; timed/random effects stay future slices. The opiate and
-/// opiate-antagonist liquids are included in this slice and their component
-/// state rides <c>CharacterHealthMsg</c> (see <c>PainkillersSync</c>).
+/// as a whole so an unsupported effect is never silently approximated. Immediate
+/// body/limb surfaces ride the character snapshot; timed/random onHealthUse
+/// branches are exposed as <c>TimedBodyEffectMsg</c> and run on the target's
+/// local body through <c>TimedBodyEffectApply</c>. The opiate and
+/// opiate-antagonist liquids are included and their component state rides
+/// <c>CharacterHealthMsg</c> (see <c>PainkillersSync</c>).
 /// </summary>
 public static class RemoteMedicineCatalog
 {
@@ -32,6 +33,9 @@ public static class RemoteMedicineCatalog
 			["heroin"] = 150f,
 			["fentanyl"] = 100f,
 			["naloxone"] = 100f,
+			["bloodcoagulant"] = 33.334f,
+			["combatpen"] = 100f,
+			["syringe"] = 100f,
 		};
 
 	private static readonly IReadOnlyDictionary<string, RemoteMedicineLiquidEffect> Liquids =
@@ -75,6 +79,19 @@ public static class RemoteMedicineCatalog
 			["heroin"] = new("heroin", OpiateAmountPerMl: 130f * 0.01f, SicknessPerMl: 50f * 0.01f),
 			["fentanyl"] = new("fentanyl", OpiateAmountPerMl: 420f * 0.1f),
 			["naloxone"] = new("naloxone", AntagonistAmountPerMl: 50f * 0.01f),
+			// Timed/random onHealthUse branches (Liquids.cs). The per-tick
+			// bodies are not representable in a pure snapshot, so they travel as
+			// TimedBodyEffectMsg and run on the target's local body through the
+			// native CoUtils.DoTimedOp path. DurationPerMl mirrors the native
+			// formula exactly (see TimedBodyEffectApply).
+			["chloroform"] = new("chloroform", TimedEffectId: "chloroform", TimedDurationPerMl: 180f * 0.01f),
+			["highgradestimulant"] = new("highgradestimulant", TimedEffectId: "highgradestimulant", TimedDurationPerMl: 240f / 100f),
+			["midgradestimulant"] = new("midgradestimulant", TimedEffectId: "midgradestimulant", TimedDurationPerMl: 180f / 50f),
+			["lowgradestimulant"] = new("lowgradestimulant", TimedEffectId: "lowgradestimulant", TimedDurationPerMl: 130f / 40f),
+			["procoagulant"] = new("procoagulant", TimedEffectId: "procoagulant", TimedDurationPerMl: 20f / 33.34f),
+			["epinephrine"] = new("epinephrine", TimedEffectId: "epinephrine", TimedDurationPerMl: 120f / 20f),
+			["oxyline"] = new("oxyline", TimedEffectId: "oxyline", TimedDurationPerMl: 60f / 30f),
+			["amiodarone"] = new("amiodarone", TimedEffectId: "amiodarone", TimedDurationPerMl: 60f / 20f),
 		};
 
 	// Liquids that the game may inject without an onHealthUse effect (mostly

@@ -66,4 +66,37 @@ public static class RemoteMedicineApplication
 			limb.SkinHealth += effect.SkinHealthPerMl * scale;
 		}
 	}
+
+	/// <summary>
+	/// Build the timed/random body effects carried by a medicine plan. These are
+	/// intentionally not applied to the host snapshot: the target's local body
+	/// must run the native <c>CoUtils.DoTimedOp</c> lambda so per-action random
+	/// rolls stay on the simulated body. Empty for immediate-only medicines.
+	/// </summary>
+	public static List<TimedBodyEffectMsg> BuildTimedEffects(IReadOnlyList<LiquidStackMsg>? plan)
+	{
+		var effects = new List<TimedBodyEffectMsg>();
+		if (plan is null)
+		{
+			return effects;
+		}
+
+		foreach (var dose in plan)
+		{
+			if (!RemoteMedicineCatalog.TryGetLiquid(dose.LiquidId, out var effect)
+				|| effect.TimedEffectId is null
+				|| effect.TimedDurationPerMl <= 0f)
+			{
+				continue;
+			}
+
+			effects.Add(new TimedBodyEffectMsg
+			{
+				EffectId = effect.TimedEffectId,
+				DurationSeconds = effect.TimedDurationPerMl * dose.Amount,
+			});
+		}
+
+		return effects;
+	}
 }

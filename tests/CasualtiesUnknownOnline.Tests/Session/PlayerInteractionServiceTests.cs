@@ -1231,4 +1231,81 @@ public class PlayerInteractionServiceTests
 		Assert.Contains(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);
 	}
 
+	[Fact]
+	public void Guest_UsesCombatPenOnHost_CarriesTimedBodyEffects()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		var items = host.Services.GetRequiredService<IItemControl>();
+		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, conscious: true));
+		var pen = new CharacterItemMsg
+		{
+			InstanceId = 42,
+			ItemId = "combatpen",
+			SlotIndex = 0,
+			Condition = 1f,
+			Liquids =
+			[
+				new LiquidStackMsg { LiquidId = "highgradestimulant", Amount = 60f },
+				new LiquidStackMsg { LiquidId = "epinephrine", Amount = 15f },
+				new LiquidStackMsg { LiquidId = "oxyline", Amount = 25f },
+			],
+		};
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, pen));
+		items.AdoptTransferredItem(GuestId, 42, pen);
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendUseRequest(HostId, 42);
+
+		var frame = received.Single(r => r.Msg == NetMsg.PlayerItemUseResult).Frame;
+		var result = NetPacket.DecodePayload<PlayerItemUseResultMsg>(frame);
+		Assert.Equal(GuestId, result.UserSteamId);
+		Assert.Equal(HostId, result.TargetSteamId);
+		Assert.False(result.ItemDestroyed);
+		Assert.NotNull(result.ItemAfter);
+		Assert.Empty(result.ItemAfter!.Liquids);
+		Assert.Empty(result.TimedEffects);
+
+		Assert.Equal(3, result.TimedBodyEffects.Count);
+		Assert.Equal("highgradestimulant", result.TimedBodyEffects[0].EffectId);
+		Assert.True(Math.Abs(result.TimedBodyEffects[0].DurationSeconds - 144f) < 0.001f);
+		Assert.True(Math.Abs(result.TimedBodyEffects[1].DurationSeconds - 90f) < 0.001f);
+		Assert.True(Math.Abs(result.TimedBodyEffects[2].DurationSeconds - 50f) < 0.001f);
+
+		var saved = characters.GetSavedCharacter(GuestId)!.Items.Single(i => i.InstanceId == 42);
+		Assert.Empty(saved.Liquids);
+		var transferred = items.GetTransferredItems(GuestId).Single(w => w.Item.InstanceId == 42);
+		Assert.Empty(transferred.Item.Liquids);
+	}
+
+	[Fact]
+	public void Guest_UsesBloodCoagulantOnHost_CarriesTimedBodyEffect()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		var items = host.Services.GetRequiredService<IItemControl>();
+		var hostSnapshot = SnapshotWithLimbs(HostId, conscious: true);
+		hostSnapshot.Health!.BloodViscosity = 10f;
+		characters.SaveHostCharacterData(hostSnapshot);
+		var coagulant = MedicineBottle(42, "bloodcoagulant", "procoagulant", amount: 100f);
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, coagulant));
+		items.AdoptTransferredItem(GuestId, 42, coagulant);
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendUseRequest(HostId, 42);
+
+		var frame = received.Single(r => r.Msg == NetMsg.PlayerItemUseResult).Frame;
+		var result = NetPacket.DecodePayload<PlayerItemUseResultMsg>(frame);
+		Assert.Equal(GuestId, result.UserSteamId);
+		Assert.Equal(HostId, result.TargetSteamId);
+		Assert.False(result.ItemDestroyed);
+		Assert.NotNull(result.ItemAfter);
+		Assert.True(Math.Abs(result.ItemAfter!.Liquids.Single().Amount - 66.666f) < 0.001f);
+
+		var timedBody = Assert.Single(result.TimedBodyEffects);
+		Assert.Equal("procoagulant", timedBody.EffectId);
+		Assert.True(Math.Abs(timedBody.DurationSeconds - 20f) < 0.01f);
+		Assert.Empty(result.TimedEffects);
+	}
+
 }

@@ -3070,3 +3070,34 @@ Closed 2026-08-25 from the remaining cross-player item-use tool candidates.
   `PlayerInteractionServiceTests` +3; full suite 1466 green,
   build/format/architecture/event gates pass. See
   `docs/selfchecks/cross-player-shrapnel-and-timed-tool-use-selfcheck.md`.
+
+## 109. Cross-player timed/random liquid medicine (injectable branches)
+
+Closed 2026-08-25 from the remaining cross-player item-use "timed/random liquid
+medicine branches" candidate.
+
+- **Catalog** — `RemoteMedicineCatalog` adds the timed/random injectable
+  containers `bloodcoagulant`, `combatpen` and `syringe`, plus the timed
+  onHealthUse liquids `chloroform`, `highgradestimulant`,
+  `midgradestimulant`, `lowgradestimulant`, `procoagulant`, `epinephrine`,
+  `oxyline` and `amiodarone`. Each liquid carries a pure `TimedEffectId` +
+  `TimedDurationPerMl` derived from `Liquids.cs`.
+- **Timed plan** — `RemoteMedicineApplication.BuildTimedEffects` converts a
+  drawn medicine plan into the exact `TimedBodyEffectMsg` list (native duration
+  scaling only; no per-tick host simulation).
+- **Wire** — `PlayerItemUseResultMsg.TimedBodyEffects` (additive ProtoMember
+  10) carries the effect id + duration. No new NetMsg and no `ProtocolVersion`
+  bump.
+- **Local apply** — new GameAdapter `TimedBodyEffectApply` schedules the
+  native `CoUtils.DoTimedOp` for each effect on the target's local body; high
+  and low stimulant steps reuse the native private static `Liquids` helpers via
+  reflection, and the remaining lambdas are ported one-to-one so per-action
+  random rolls stay local by design.
+- **Scope limits** — drinkable timed/random/component medicines (antirad,
+  sleepingpills, painkillers, antibiotics, antidepressants, braingrow,
+  mindwipe, keratinbooster, naltrexone, and other onDrink branches) remain a
+  future slice.
+- **Tests/gates** — `RemoteMedicineApplicationTests` +5,
+  `PlayerInteractionServiceTests` +2; full suite 1472 green,
+  build/format/architecture/event gates pass. See
+  `docs/selfchecks/cross-player-timed-liquid-medicine-selfcheck.md`.

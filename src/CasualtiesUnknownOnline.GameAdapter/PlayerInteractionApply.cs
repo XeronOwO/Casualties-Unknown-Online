@@ -186,11 +186,20 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains)
 				}
 			}
 
-			if (msg.TargetSteamId == domains.Session.LocalSteamId && msg.Health is { } health)
+			if (msg.TargetSteamId == domains.Session.LocalSteamId)
 			{
-				domains.CharacterDataSync.ApplyHealState(body, health, msg.Limbs);
-				domains.Log.LogInformation("[ItemUse] local body received a consumable from {User}.", msg.UserSteamId);
-				changed = true;
+				if (msg.WornItem is { } worn)
+				{
+					domains.CharacterDataSync.RestoreWearable(worn, body);
+					domains.Log.LogInformation("[ItemUse] local body wears {ItemId} from {User}.", worn.ItemId, msg.UserSteamId);
+					changed = true;
+				}
+				else if (msg.Health is { } health)
+				{
+					domains.CharacterDataSync.ApplyHealState(body, health, msg.Limbs);
+					domains.Log.LogInformation("[ItemUse] local body received a consumable from {User}.", msg.UserSteamId);
+					changed = true;
+				}
 			}
 		}
 
@@ -464,6 +473,11 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains)
 		if (item == null || item.condition <= 0f) // Unity object — ==
 		{
 			return false;
+		}
+
+		if (RemoteWearCatalog.IsWearItem(item.id))
+		{
+			return true;
 		}
 
 		if (RemoteConsumeCatalog.IsFoodItem(item.id))

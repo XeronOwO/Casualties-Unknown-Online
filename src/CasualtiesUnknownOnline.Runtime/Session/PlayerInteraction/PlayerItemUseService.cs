@@ -10,11 +10,12 @@ namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 
 /// <summary>
 /// The cross-player item-use operation (drink/food first slice plus the
-/// curated medicine and topical slices). The host validates the user and
-/// target against its authoritative character snapshots, consumes or drains a
-/// carried item, applies the curated target-side body/limb effect and sends
-/// the two participants one authoritative result. It has no mutable session
-/// state — it only reacts to calls and messages.
+/// curated medicine, topical, limb-tool and wearable slices). The host
+/// validates the user and target against its authoritative character
+/// snapshots, consumes/drains a carried item or transfers a wearable onto the
+/// target's snapshot, applies the curated target-side body/limb effect and
+/// sends the two participants one authoritative result. It has no mutable
+/// session state — it only reacts to calls and messages.
 /// </summary>
 internal sealed class PlayerItemUseService(
 	ISessionControl session,
@@ -115,8 +116,21 @@ internal sealed class PlayerItemUseService(
 		var newItem = PlayerCharacterAccess.CloneItem(originalItem);
 		var newTargetData = PlayerCharacterAccess.CloneCharacter(targetData);
 		var destroyed = false;
+		CharacterItemMsg? wornItem = null;
 
-		if (RemoteConsumeApplication.TryCreateDrinkPlan(originalItem.Liquids, out var drinkPlan))
+		if (RemoteWearCatalog.IsWearItem(originalItem.ItemId))
+		{
+			if (!RemoteWearApplication.TryCreateWornItem(newTargetData.Limbs, newTargetData.Items, originalItem, out wornItem))
+			{
+				_log.LogWarning("[ItemUse] refused: {ItemId} (id {InstanceId}) cannot be placed on {Target} — target limb missing/dismembered or wear slot already occupied.", originalItem.ItemId, originalItem.InstanceId, target);
+				return;
+			}
+
+			newTargetData.Items.Add(wornItem);
+			destroyed = true; // the acting player's local item is removed; the wire carries WornItem for the target side
+			_log.LogInformation("[ItemUse] {User} wears {ItemId} (id {InstanceId}) on {Target}; slot {Slot}.", user, originalItem.ItemId, originalItem.InstanceId, target, wornItem.SlotIndex);
+		}
+		else if (RemoteConsumeApplication.TryCreateDrinkPlan(originalItem.Liquids, out var drinkPlan))
 		{
 			RemoteConsumeApplication.ApplyDrink(newTargetData.Health!, drinkPlan);
 			ApplyDrain(newItem, drinkPlan);
@@ -178,6 +192,14 @@ internal sealed class PlayerItemUseService(
 			}
 		}
 
+		// A wearable transfer moves the item into the target's ownership. For a
+		// guest target the transfer table must learn the item so reconnect
+		// restore and arbitration see it as the target's own carried fact.
+		if (wornItem is not null && target != _session.LocalSteamId)
+		{
+			_items.AdoptTransferredItem(target, originalItem.InstanceId, PlayerCharacterAccess.CloneItem(wornItem));
+		}
+
 		_log.LogInformation(
 			"[ItemUse] {User} used {ItemId} (id {InstanceId}) on {Target}; destroyed={Destroyed}.",
 			user, originalItem.ItemId, originalItem.InstanceId, target, destroyed);
@@ -189,6 +211,7 @@ internal sealed class PlayerItemUseService(
 			ItemInstanceId = originalItem.InstanceId,
 			ItemDestroyed = destroyed,
 			ItemAfter = destroyed ? null : PlayerCharacterAccess.CloneItem(newItem),
+			WornItem = wornItem,
 			Health = newTargetData.Health,
 			Limbs = [.. newTargetData.Limbs],
 		});
@@ -268,12 +291,16 @@ internal sealed class PlayerItemUseService(
 
 	private static bool IsActuallyUsable(CharacterItemMsg item)
 	{
-		if (item.Condition <= 0f && (RemoteConsumeCatalog.IsFoodItem(item.ItemId) || RemoteLimbToolCatalog.IsToolItem(item.ItemId)))
+		if (item.Condition <= 0f
+			&& (RemoteConsumeCatalog.IsFoodItem(item.ItemId)
+				|| RemoteLimbToolCatalog.IsToolItem(item.ItemId)
+				|| RemoteWearCatalog.IsWearItem(item.ItemId)))
 		{
 			return false;
 		}
 
-		return RemoteConsumeCatalog.IsFoodItem(item.ItemId)
+		return RemoteWearCatalog.IsWearItem(item.ItemId)
+			|| RemoteConsumeCatalog.IsFoodItem(item.ItemId)
 			|| RemoteConsumeApplication.TryCreateDrinkPlan(item.Liquids, out _)
 			|| RemoteMedicineCatalog.TryCreatePlan(item.Liquids, item.ItemId, out _)
 			|| RemoteTopicalCatalog.TryCreatePlan(item.Liquids, item.ItemId, out _)

@@ -42,4 +42,8 @@ public sealed class PlayerItemUseResultMsg
 	/// <summary>The target's post-use full limb state (unchanged for consumables, included for complete restore symmetry).</summary>
 	[ProtoMember(7)]
 	public List<CharacterLimbMsg> Limbs { get; set; } = [];
+
+	/// <summary>The wearable item placed on the target's body, or null for consumable/tool uses. When set, the acting player's local item is removed and the target's local body wears this exact wire item.</summary>
+	[ProtoMember(8)]
+	public CharacterItemMsg? WornItem { get; set; }
 }

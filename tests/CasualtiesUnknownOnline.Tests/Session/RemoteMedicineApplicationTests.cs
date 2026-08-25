@@ -85,6 +85,26 @@ public sealed class RemoteMedicineApplicationTests
 	}
 
 	[Fact]
+	public void ApplyAntiserum_PreservesHigherExistingDisinfection()
+	{
+		var health = new CharacterHealthMsg
+		{
+			BloodVolume = 100f,
+			SepticShock = 50f,
+			AntibioticImmunityTime = 0f,
+		};
+		var limbs = new List<CharacterLimbMsg>
+		{
+			new() { Index = 0, SkinHealth = 70f, MuscleHealth = 70f, DisinfectionTime = 500f },
+		};
+		var plan = new List<LiquidStackMsg> { new() { LiquidId = "antiserum", Amount = 50f } };
+
+		RemoteMedicineApplication.Apply(health, limbs, plan);
+
+		Assert.True(Math.Abs(limbs[0].DisinfectionTime - 500f) < 0.001f);
+	}
+
+	[Fact]
 	public void ApplyCeftriaxone_IncreasesImmunityAndLimbPain()
 	{
 		var health = new CharacterHealthMsg { AntibioticImmunityTime = 0f };

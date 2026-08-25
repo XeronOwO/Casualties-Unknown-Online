@@ -45,6 +45,7 @@ topical non-injectable liquids remain future slices.
 | Unknown liquid | refused as a whole for a known container | `Plan_RefusesUnknownLiquidEvenForKnownItem` + service test |
 | Saline effect | blood volume/viscosity/thirst per ml | `ApplySaline_AppliesBloodVolumeViscosityAndThirst` + service test |
 | Antiserum effect | body + most-injured-limb disinfection | `ApplyAntiserum_AppliesBodyAndMostInjuredLimbDisinfection` |
+| Antiserum disinfection max | existing higher timer is preserved (SetDisinfect max, not addition) | `ApplyAntiserum_PreservesHigherExistingDisinfection` |
 | Ceftriaxone effect | immunity + limb pain | `ApplyCeftriaxone_IncreasesImmunityAndLimbPain` |
 | Redblood effect | harmful body + selected-limb muscle loss | `ApplyRedblood_AppliesHarmfulEffectsToSelectedLimb` |
 | Host operation | service drains medicine item, saves target, updates transfer table | `PlayerInteractionServiceTests.Guest_InjectSalineOnHost...` |
@@ -52,7 +53,7 @@ topical non-injectable liquids remain future slices.
 
 ## 4. Verification
 
-- **L0 unit**: `RemoteMedicineApplicationTests` (7) +
+- **L0 unit**: `RemoteMedicineApplicationTests` (8) +
   `PlayerInteractionServiceTests` +2 medicine cases.
 - **Code gates**: `dotnet build` 0 warnings/0 errors, `dotnet test` 1402 green,
   `dotnet format`, check-architecture / check-event-replay /

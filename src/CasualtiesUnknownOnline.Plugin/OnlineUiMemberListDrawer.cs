@@ -106,6 +106,25 @@ internal static class OnlineUiMemberListDrawer
 			state += $" — {row.InventoryText}";
 		}
 
+		if (row.IsDead)
+		{
+			state += ctx.T("member.status_dead");
+		}
+		else if (row.IsUnconscious)
+		{
+			state += ctx.T("member.status_unconscious");
+		}
+
+		if (row.IsCarryingSomeone)
+		{
+			state += ctx.T("member.status_carrying");
+		}
+
+		if (row.IsCarried)
+		{
+			state += ctx.T("member.status_carried");
+		}
+
 		if (row.IsBanned)
 		{
 			state += ctx.T("member.banned");

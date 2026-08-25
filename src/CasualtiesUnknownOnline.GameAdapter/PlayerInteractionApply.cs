@@ -471,6 +471,25 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains)
 			return true;
 		}
 
+		if (RemoteMedicineCatalog.IsInjectableItem(item.id))
+		{
+			var medicine = item.GetComponent<WaterContainerItem>();
+			if (medicine == null || medicine.CurrentTotal <= 0f) // Unity object — ==
+			{
+				return false;
+			}
+
+			foreach (var liquid in medicine.stack)
+			{
+				if (!RemoteMedicineCatalog.IsSupportedMedicineLiquid(liquid.liquidId))
+				{
+					return false;
+				}
+			}
+
+			return true;
+		}
+
 		var water = item.GetComponent<WaterContainerItem>();
 		if (water == null || water.CurrentTotal <= 0f) // Unity object — ==
 		{

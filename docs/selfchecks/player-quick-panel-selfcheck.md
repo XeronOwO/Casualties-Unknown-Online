@@ -33,6 +33,10 @@ in-world right-click context menu remains the transient cursor-based entry.
   toggles the panel; `ESC` closes it.
 - **Input boundary** — right-clicks inside the quick panel are ignored by the
   world context-menu handler.
+- **Right-click integration** — the context menu's "View items" fallback now
+  calls `OnlineUiOverlay.OpenQuickPanelFor`, pinning the quick panel to the
+  right-clicked remote and expanding its inventory, instead of opening the full
+  Online window.
 - **No protocol change** — no new `NetMsg`, no `ProtocolVersion` bump, no
   event/item/entity matrix row touched.
 
@@ -41,7 +45,7 @@ in-world right-click context menu remains the transient cursor-based entry.
 | Evidence | Result |
 |---|---|
 | `dotnet build CasualtiesUnknownOnline.slnx` | 0 warnings / 0 errors |
-| `dotnet test CasualtiesUnknownOnline.slnx` | 1499 passed |
+| `dotnet test CasualtiesUnknownOnline.slnx` | 1501 passed |
 | `QuickPanelTargetPickerTests` | 5 passed |
 | `tools/check-architecture.ps1` | passed |
 | `tools/check-event-replay.ps1` / `tools/check-entity-event-dispatch.ps1` | passed (no event mechanism touched) |

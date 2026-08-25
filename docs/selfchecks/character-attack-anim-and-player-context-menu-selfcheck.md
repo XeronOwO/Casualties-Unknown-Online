@@ -33,7 +33,10 @@ This cycle closes two user-visible gaps found during play:
 - `OnlineUiPlayerContextMenu` — right-click near a remote player's stream
   position opens a context menu with the exact same eligibility rows/actions as
   the Players page, plus an always-available "View items" fallback that opens
-  the Players page and expands that member.
+  the standalone `OnlineUiQuickPanel` pinned to that member and expands its
+  inventory (never the full Online window). The menu measures each row with
+  `GUIStyle.CalcHeight` and uses a zero-margin menu button style so its height
+  adapts to the action list instead of overflowing the panel.
 - `OnlineUiOverlay` — right-click hit-testing against authoritative remote
   positions (no collider dependency) and context-menu drawing.
 

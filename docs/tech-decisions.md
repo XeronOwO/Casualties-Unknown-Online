@@ -2419,9 +2419,12 @@ directly.
   the same `OnlineUiMemberProjection` eligibility rows and action delegates as
   the Players page, so carry/drop/heal/recruit/take are not duplicated.
 - **Fallback** — every in-world remote row has a "View items" action that opens
-  the Online window Players page and expands that member, so a right-click
-  always produces a useful menu even when no direct action is currently
-  eligible.
+  the standalone `OnlineUiQuickPanel` pinned to that member and expands its
+  inventory, so a right-click always produces a useful independent UI even when
+  no direct action is currently eligible. It never opens the full Online window.
+- **Adaptive height** — the menu measures per-row heights with
+  `GUIStyle.CalcHeight` and uses a zero-margin menu button style, so the panel
+  background tracks the actual action list instead of overflowing.
 - No wire/protocol change; pure UI presentation over existing runtime facts.
 
 ## 85. Direct placeable-item ArmsSwing sync (no protocol bump)
@@ -3158,9 +3161,13 @@ panel rather than requiring the full Online window for frequent co-op actions.
 - **Hotkey** — new `[Session] InteractionPanelKey` (default F6) toggles the
   panel; ESC closes it.
 - **UI integration** — right-clicks inside the quick panel are not treated as
-  world clicks, matching the existing modal-window/context-menu boundary.
+  world clicks, matching the existing modal-window/context-menu boundary. The
+  right-click context menu's "View items" fallback now opens the quick panel
+  pinned to the clicked remote (and expands its inventory) instead of opening
+  the full Online window.
 - **No protocol change** — no new `NetMsg`, no `ProtocolVersion` bump, no
   event/item/entity matrix row touched.
-- **Tests/gates** — `QuickPanelTargetPickerTests` +5; full suite 1499 green,
-  build/format/architecture/event gates pass. See
+- **Tests/gates** — `QuickPanelTargetPickerTests` +5; full suite 1501 green
+  (includes the Mapster `Limb` mapping regression tests), build/format/
+  architecture/event gates pass. See
   `docs/selfchecks/player-quick-panel-selfcheck.md`.

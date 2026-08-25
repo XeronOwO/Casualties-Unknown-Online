@@ -99,6 +99,9 @@ internal sealed class OnlineUiContext
 
 	internal Func<bool>? HasUseItem;
 
+	/// <summary>Opens the standalone player-interaction quick panel pinned to a remote player (the right-click "View items" path).</summary>
+	internal Action<ulong>? OpenQuickPanel;
+
 	internal string T(string key) => Localization.T(key);
 
 	internal string F(string key, params object?[] args) => Localization.Format(key, args);

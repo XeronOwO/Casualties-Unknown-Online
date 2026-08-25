@@ -120,6 +120,14 @@ internal sealed class OnlineUiOverlay
 	/// <summary>Toggles the standalone player-interaction quick panel (configurable session hotkey).</summary>
 	internal void ToggleQuickPanel() => _quickPanel.Toggle();
 
+	/// <summary>Opens the standalone quick panel pinned to a right-clicked remote, expands that member's inventory immediately, and closes the full Online window so the independent panel is the active surface.</summary>
+	internal void OpenQuickPanelFor(ulong steamId)
+	{
+		_window.State.Visible = false;
+		_quickPanel.Open(steamId);
+		_window.State.ExpandedMember = steamId;
+	}
+
 	internal void Draw(
 		SteamService steam,
 		SessionService session,
@@ -178,6 +186,7 @@ internal sealed class OnlineUiOverlay
 			HasHealItem = HasHealItem,
 			GetLocalUseItems = GetLocalUseItems,
 			HasUseItem = HasUseItem,
+			OpenQuickPanel = OpenQuickPanelFor,
 		};
 
 		// ESC closes the modal Online UI. The native PlayerCamera.HandleInput

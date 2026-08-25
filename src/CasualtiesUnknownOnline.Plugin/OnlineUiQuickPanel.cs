@@ -11,8 +11,9 @@ namespace CasualtiesUnknownOnline;
 /// full Players page: a compact docked panel shows the selected in-world
 /// remote player's status, inventory and every eligible co-op interaction
 /// (carry/piggyback/drop/heal/use/push/recruit/take). The panel never opens
-/// the full Online window and can be toggled from a configurable session
-/// hotkey.
+/// the full Online window; it can be toggled from a configurable session
+/// hotkey and is opened by the right-click context menu's "View items"
+/// fallback.
 /// </summary>
 internal sealed class OnlineUiQuickPanel
 {
@@ -30,6 +31,13 @@ internal sealed class OnlineUiQuickPanel
 	internal bool Contains(Vector2 point) => _rect.Contains(point);
 
 	internal void Toggle() => _visible = !_visible;
+
+	/// <summary>Opens the panel and pins it to a specific in-world remote target (used by the right-click "View items" path).</summary>
+	internal void Open(ulong target)
+	{
+		_visible = true;
+		_target = target;
+	}
 
 	internal void Close() => _visible = false;
 

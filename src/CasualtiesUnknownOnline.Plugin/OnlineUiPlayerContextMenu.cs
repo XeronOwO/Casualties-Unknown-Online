@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Runtime.OnlineUi;
@@ -20,11 +21,16 @@ internal sealed class OnlineUiPlayerContextMenu
 	private const float RowHeight = 28f;
 	private const float TitleHeight = 30f;
 	private const float SelectorHeight = 28f;
+	private const float FramePadding = 6f;
+	private const float Gap = 4f;
+	private const float TargetLabelWidth = 54f;
+	private const float BottomPadding = 8f;
 
 	private ulong? _targetSteamId;
 	private IReadOnlyList<ulong> _candidateSteamIds = [];
 	private Vector2 _position;
 	private Rect _lastRect;
+	private static GUIStyle? _menuButton;
 
 	internal bool IsOpen => _targetSteamId.HasValue;
 
@@ -58,64 +64,149 @@ internal sealed class OnlineUiPlayerContextMenu
 			return;
 		}
 
-		var actionCount = CountActions(row);
-		var selectorHeight = _candidateSteamIds.Count > 1 ? SelectorHeight : 0f;
-		var height = TitleHeight + selectorHeight + actionCount * RowHeight + 8f;
+		var actions = BuildActions(ctx, row);
+		var contentWidth = Width - (FramePadding * 2f);
+		var buttonStyle = MenuButton();
+		var titleStyle = OnlineUiTheme.Section();
+
+		var titleHeight = Mathf.Max(TitleHeight - 4f, titleStyle.CalcHeight(new GUIContent(row.Name), contentWidth));
+		var selectorHeight = MeasureTargetSelectorHeight(ctx, contentWidth);
+		var actionsHeight = 0f;
+		foreach (var action in actions)
+		{
+			actionsHeight += ButtonHeight(action.Label, buttonStyle, contentWidth);
+		}
+
+		var contentHeight = titleHeight + selectorHeight + actionsHeight;
+		var height = contentHeight + (FramePadding * 2f) + BottomPadding;
 		var x = Mathf.Clamp(_position.x + 8f, 4f, Mathf.Max(4f, Screen.width - Width - 4f));
 		var y = Mathf.Clamp(_position.y - 8f, 4f, Mathf.Max(4f, Screen.height - height - 4f));
 		var rect = new Rect(x, y, Width, height);
 		_lastRect = rect;
 
 		OnlineUiTheme.DrawBackground(rect);
-		GUILayout.BeginArea(new Rect(rect.x + 6f, rect.y + 6f, rect.width - 12f, rect.height - 12f));
-		GUILayout.Label(row.Name, OnlineUiTheme.Section(), GUILayout.Height(TitleHeight - 4f));
+
+		var left = rect.x + FramePadding;
+		var yCursor = rect.y + FramePadding;
+		GUI.Label(new Rect(left, yCursor, contentWidth, titleHeight), row.Name, titleStyle);
+		yCursor += titleHeight;
 
 		if (_candidateSteamIds.Count > 1)
 		{
-			DrawTargetSelector(ctx);
+			yCursor = DrawTargetSelector(ctx, left, yCursor, contentWidth, selectorHeight, buttonStyle);
 		}
 
-		// Always offer the read-only player page as the fallback interaction so
-		// a right-click on any in-world remote has a visible menu even when no
-		// carry/heal/recruit/take action is currently eligible.
-		if (ActionButton(ctx.T("member.view_items"), () => OpenPlayerDetails(ctx, row.SteamId)))
+		foreach (var action in actions)
 		{
-			Close();
+			var rowHeight = ButtonHeight(action.Label, buttonStyle, contentWidth);
+			if (GUI.Button(new Rect(left, yCursor, contentWidth, rowHeight), action.Label, buttonStyle))
+			{
+				action.Action();
+				Close();
+				return;
+			}
+
+			yCursor += rowHeight;
+		}
+	}
+
+	private float DrawTargetSelector(
+		OnlineUiContext ctx,
+		float left,
+		float y,
+		float width,
+		float height,
+		GUIStyle buttonStyle)
+	{
+		var count = _candidateSteamIds.Count;
+		var available = width - TargetLabelWidth - (Gap * (count - 1));
+		var buttonWidth = Mathf.Max(40f, available / count);
+
+		GUI.Label(new Rect(left, y, TargetLabelWidth, height), ctx.T("member.select_target"), OnlineUiTheme.MutedLabel());
+
+		var bx = left + TargetLabelWidth;
+		foreach (var candidate in _candidateSteamIds)
+		{
+			var label = ctx.DisplayName(candidate);
+			var rowHeight = Mathf.Max(SelectorHeight - 4f, buttonStyle.CalcHeight(new GUIContent(label), buttonWidth) + 4f);
+			if (GUI.Button(new Rect(bx, y, buttonWidth, rowHeight), label, buttonStyle))
+			{
+				_targetSteamId = candidate;
+			}
+
+			bx += buttonWidth + Gap;
 		}
 
-		if (row.CanCarry && ActionButton(ctx.T("member.carry"), () => ctx.CarryRemote?.Invoke(row.SteamId)))
+		return y + height;
+	}
+
+	private float MeasureTargetSelectorHeight(OnlineUiContext ctx, float width)
+	{
+		if (_candidateSteamIds.Count <= 1)
 		{
-			Close();
+			return 0f;
 		}
 
-		if (row.CanPiggyback && ActionButton(ctx.T("member.piggyback"), () => ctx.PiggybackRemote?.Invoke(row.SteamId)))
+		var count = _candidateSteamIds.Count;
+		var available = width - TargetLabelWidth - (Gap * (count - 1));
+		var buttonWidth = Mathf.Max(40f, available / count);
+		var buttonStyle = MenuButton();
+		var height = SelectorHeight;
+		foreach (var candidate in _candidateSteamIds)
 		{
-			Close();
+			var label = ctx.DisplayName(candidate);
+			height = Mathf.Max(height, buttonStyle.CalcHeight(new GUIContent(label), buttonWidth) + 4f);
 		}
 
-		if (row.CanDrop && ActionButton(ctx.T("member.drop"), () => ctx.DropCarried?.Invoke(row.SteamId)))
+		return height;
+	}
+
+	private static float ButtonHeight(string label, GUIStyle style, float width)
+	{
+		var textHeight = style.CalcHeight(new GUIContent(label), width);
+		return Mathf.Max(RowHeight, textHeight + 4f);
+	}
+
+	private static List<MenuAction> BuildActions(OnlineUiContext ctx, OnlineUiMemberRow row)
+	{
+		var actions = new List<MenuAction>
 		{
-			Close();
+			new(ctx.T("member.view_items"), () => OpenPlayerDetails(ctx, row.SteamId)),
+		};
+
+		if (row.CanCarry)
+		{
+			actions.Add(new MenuAction(ctx.T("member.carry"), () => ctx.CarryRemote?.Invoke(row.SteamId)));
 		}
 
-		if (row.CanHeal && ActionButton(ctx.T("member.heal"), () => ctx.HealRemote?.Invoke(row.SteamId)))
+		if (row.CanPiggyback)
 		{
-			Close();
+			actions.Add(new MenuAction(ctx.T("member.piggyback"), () => ctx.PiggybackRemote?.Invoke(row.SteamId)));
 		}
 
-		if (row.CanUseItem && ActionButton(ctx.T("member.use"), () => ctx.UseItemOnRemote?.Invoke(row.SteamId)))
+		if (row.CanDrop)
 		{
-			Close();
+			actions.Add(new MenuAction(ctx.T("member.drop"), () => ctx.DropCarried?.Invoke(row.SteamId)));
 		}
 
-		if (row.CanPush && ActionButton(ctx.T("member.push"), () => ctx.PushRemote?.Invoke(row.SteamId)))
+		if (row.CanHeal)
 		{
-			Close();
+			actions.Add(new MenuAction(ctx.T("member.heal"), () => ctx.HealRemote?.Invoke(row.SteamId)));
 		}
 
-		if (row.CanRecruit && ActionButton(ctx.T("member.recruit"), () => ctx.RecruitPlayer?.Invoke(row.SteamId)))
+		if (row.CanUseItem)
 		{
-			Close();
+			actions.Add(new MenuAction(ctx.T("member.use"), () => ctx.UseItemOnRemote?.Invoke(row.SteamId)));
+		}
+
+		if (row.CanPush)
+		{
+			actions.Add(new MenuAction(ctx.T("member.push"), () => ctx.PushRemote?.Invoke(row.SteamId)));
+		}
+
+		if (row.CanRecruit)
+		{
+			actions.Add(new MenuAction(ctx.T("member.recruit"), () => ctx.RecruitPlayer?.Invoke(row.SteamId)));
 		}
 
 		foreach (var item in row.TakeableItems)
@@ -123,109 +214,62 @@ internal sealed class OnlineUiPlayerContextMenu
 			var itemId = item.ItemId;
 			var slot = item.SlotIndex;
 			var instanceId = item.InstanceId;
-			if (ActionButton(ctx.F("member.take", itemId, slot), () => ctx.TakeItem?.Invoke(row.SteamId, instanceId)))
-			{
-				Close();
-			}
+			actions.Add(new MenuAction(ctx.F("member.take", itemId, slot), () => ctx.TakeItem?.Invoke(row.SteamId, instanceId)));
 		}
 
 		foreach (var item in row.HealItems)
 		{
 			var itemId = item.ItemId;
 			var instanceId = item.InstanceId;
-			if (ActionButton(ctx.F("member.heal_with", itemId), () => ctx.HealWithItem?.Invoke(row.SteamId, instanceId)))
-			{
-				Close();
-			}
+			actions.Add(new MenuAction(ctx.F("member.heal_with", itemId), () => ctx.HealWithItem?.Invoke(row.SteamId, instanceId)));
 		}
 
 		foreach (var item in row.UseItems)
 		{
 			var itemId = item.ItemId;
 			var instanceId = item.InstanceId;
-			if (ActionButton(ctx.F("member.use_with", itemId), () => ctx.UseItemOnRemoteWith?.Invoke(row.SteamId, instanceId)))
-			{
-				Close();
-			}
+			actions.Add(new MenuAction(ctx.F("member.use_with", itemId), () => ctx.UseItemOnRemoteWith?.Invoke(row.SteamId, instanceId)));
 		}
 
-		GUILayout.EndArea();
-	}
-
-	private void DrawTargetSelector(OnlineUiContext ctx)
-	{
-		GUILayout.BeginHorizontal();
-		GUILayout.Label(ctx.T("member.select_target"), OnlineUiTheme.MutedLabel(), GUILayout.Width(54f));
-		foreach (var candidate in _candidateSteamIds)
-		{
-			if (GUILayout.Button(ctx.DisplayName(candidate), OnlineUiTheme.Button(), GUILayout.Height(SelectorHeight - 4f)))
-			{
-				_targetSteamId = candidate;
-			}
-		}
-
-		GUILayout.EndHorizontal();
-	}
-
-	private static int CountActions(OnlineUiMemberRow row)
-	{
-		var count = 1; // the always-available "view items" fallback
-		if (row.CanCarry)
-		{
-			count++;
-		}
-
-		if (row.CanPiggyback)
-		{
-			count++;
-		}
-
-		if (row.CanDrop)
-		{
-			count++;
-		}
-
-		if (row.CanHeal)
-		{
-			count++;
-		}
-
-		if (row.CanUseItem)
-		{
-			count++;
-		}
-
-		if (row.CanPush)
-		{
-			count++;
-		}
-
-		if (row.CanRecruit)
-		{
-			count++;
-		}
-
-		count += row.TakeableItems.Count;
-		count += row.HealItems.Count;
-		count += row.UseItems.Count;
-		return count;
+		return actions;
 	}
 
 	private static void OpenPlayerDetails(OnlineUiContext ctx, ulong steamId)
 	{
+		if (ctx.OpenQuickPanel is { } open)
+		{
+			open(steamId);
+			return;
+		}
+
 		ctx.State.Visible = true;
 		ctx.State.Page = OnlineUiPage.Players;
 		ctx.State.ExpandedMember = steamId;
 	}
 
-	private static bool ActionButton(string label, System.Action action)
+	private static GUIStyle MenuButton()
 	{
-		var clicked = GUILayout.Button(label, OnlineUiTheme.Button(), GUILayout.Height(RowHeight));
-		if (clicked)
+		if (_menuButton is null)
 		{
-			action();
+			_menuButton = new GUIStyle(OnlineUiTheme.Button())
+			{
+				margin = new RectOffset(0, 0, 0, 0),
+			};
 		}
 
-		return clicked;
+		return _menuButton;
+	}
+
+	private sealed class MenuAction
+	{
+		internal MenuAction(string label, System.Action action)
+		{
+			Label = label;
+			Action = action;
+		}
+
+		internal string Label { get; }
+
+		internal System.Action Action { get; }
 	}
 }

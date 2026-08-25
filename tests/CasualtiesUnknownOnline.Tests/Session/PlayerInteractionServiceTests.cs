@@ -878,4 +878,67 @@ public class PlayerInteractionServiceTests
 		Assert.DoesNotContain(received, r => r.Msg == NetMsg.PlayerPushResult);
 	}
 
+	[Fact]
+	public void Guest_InjectMorphineOnHost_AppliesOpiateAndSendsResult()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		var items = host.Services.GetRequiredService<IItemControl>();
+		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, conscious: true));
+		var morphine = MedicineBottle(42, "morphine", "morphine", amount: 100f);
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, morphine));
+		items.AdoptTransferredItem(GuestId, 42, morphine);
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendUseRequest(HostId, 42);
+
+		var frame = received.Single(r => r.Msg == NetMsg.PlayerItemUseResult).Frame;
+		var result = NetPacket.DecodePayload<PlayerItemUseResultMsg>(frame);
+		Assert.Equal(GuestId, result.UserSteamId);
+		Assert.Equal(HostId, result.TargetSteamId);
+		Assert.Equal(42UL, result.ItemInstanceId);
+		Assert.False(result.ItemDestroyed);
+		Assert.NotNull(result.ItemAfter);
+		Assert.True(Math.Abs(result.ItemAfter!.Condition - 0f) < 0.001f);
+
+		var hostData = characters.GetHostCharacterData()!;
+		Assert.True(Math.Abs(hostData.Health!.OpiateAmount - 90f) < 0.001f);
+
+		var saved = characters.GetSavedCharacter(GuestId)!.Items.Single(i => i.InstanceId == 42);
+		Assert.Empty(saved.Liquids);
+		var transferred = items.GetTransferredItems(GuestId).Single(w => w.Item.InstanceId == 42);
+		Assert.Empty(transferred.Item.Liquids);
+	}
+
+	[Fact]
+	public void Guest_UsesBoneweldingToolOnHost_AppliesToolAndSendsResult()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		var items = host.Services.GetRequiredService<IItemControl>();
+		var hostSnapshot = SnapshotWithLimbs(HostId, conscious: true);
+		hostSnapshot.Health!.BloodViscosity = 5f;
+		hostSnapshot.Limbs[1].BoneHealTimer = 100f;
+		characters.SaveHostCharacterData(hostSnapshot);
+		var tool = Item(42, "boneweldingtool", slot: 0);
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, tool));
+		items.AdoptTransferredItem(GuestId, 42, tool);
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendUseRequest(HostId, 42);
+
+		var frame = received.Single(r => r.Msg == NetMsg.PlayerItemUseResult).Frame;
+		var result = NetPacket.DecodePayload<PlayerItemUseResultMsg>(frame);
+		Assert.Equal(GuestId, result.UserSteamId);
+		Assert.Equal(HostId, result.TargetSteamId);
+		Assert.Equal(42UL, result.ItemInstanceId);
+		Assert.False(result.ItemDestroyed);
+		Assert.NotNull(result.ItemAfter);
+		Assert.True(Math.Abs(result.ItemAfter!.Condition - 0.25f) < 0.001f);
+
+		var hostData = characters.GetHostCharacterData()!;
+		Assert.True(Math.Abs(hostData.Health!.BloodViscosity - 7f) < 0.001f);
+		Assert.True(Math.Abs(hostData.Limbs[1].BoneHealTimer - 25f) < 0.001f);
+	}
+
 }

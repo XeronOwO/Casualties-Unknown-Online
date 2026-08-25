@@ -509,6 +509,11 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains)
 			return true;
 		}
 
+		if (RemoteLimbToolCatalog.IsToolItem(item.id))
+		{
+			return true;
+		}
+
 		var water = item.GetComponent<WaterContainerItem>();
 		if (water == null || water.CurrentTotal <= 0f) // Unity object — ==
 		{

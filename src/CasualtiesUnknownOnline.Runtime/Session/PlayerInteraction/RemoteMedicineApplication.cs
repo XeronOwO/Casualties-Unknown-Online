@@ -50,6 +50,8 @@ public static class RemoteMedicineApplication
 			health.FibrillationProgress += effect.FibrillationProgressPerMl * scale;
 			health.StrokeAmount += effect.StrokeAmountPerMl * scale;
 			health.Adrenaline += effect.AdrenalinePerMl * scale;
+			health.OpiateAmount += effect.OpiateAmountPerMl * scale;
+			health.AntagonistAmount += effect.AntagonistAmountPerMl * scale;
 
 			if (limb is null)
 			{

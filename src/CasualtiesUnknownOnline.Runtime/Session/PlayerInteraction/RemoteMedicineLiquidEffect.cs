@@ -5,9 +5,9 @@ namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 /// expressed per millilitre (the game's <c>WaterContainerItem.Inject</c>
 /// consumes variable ml per container). The values mirror the
 /// <c>LiquidType.onHealthUse</c> delegates in Liquids.cs for the curated
-/// medicine slice. Timed, random, opiate-component, and presentation-only
-/// branches are deliberately outside this slice. Pure data — no game assembly
-/// dependency, no state.
+/// medicine slice. Timed and random branches stay outside this slice; opiate
+/// and opiate-antagonist components are now included. Pure data — no game
+/// assembly dependency, no state.
 /// </summary>
 public sealed record RemoteMedicineLiquidEffect(
 	string LiquidId,
@@ -28,4 +28,6 @@ public sealed record RemoteMedicineLiquidEffect(
 	float DisinfectionTimePerMl = 0f,
 	float SkinHealAmountPerMl = 0f,
 	float BleedAmountPerMl = 0f,
-	float SkinHealthPerMl = 0f);
+	float SkinHealthPerMl = 0f,
+	float OpiateAmountPerMl = 0f,
+	float AntagonistAmountPerMl = 0f);

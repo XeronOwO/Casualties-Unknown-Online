@@ -479,6 +479,20 @@ public class PlayerInteractionServiceTests
 			Liquids = [new LiquidStackMsg { LiquidId = liquidId, Amount = amount }],
 		};
 
+	private static CharacterItemMsg TopicalBottle(
+		ulong instanceId,
+		string itemId,
+		string liquidId,
+		float amount = 100f,
+		float condition = 1f) => new()
+		{
+			InstanceId = instanceId,
+			ItemId = itemId,
+			SlotIndex = 0,
+			Condition = condition,
+			Liquids = [new LiquidStackMsg { LiquidId = liquidId, Amount = amount }],
+		};
+
 	[Fact]
 	public void Guest_UsesWaterOnHost_AppliesDrinkAndSendsResult()
 	{
@@ -615,6 +629,63 @@ public class PlayerInteractionServiceTests
 			SlotIndex = 0,
 			Condition = 1f,
 			Liquids = [new LiquidStackMsg { LiquidId = "mystery", Amount = 750f }],
+		};
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, bad));
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendUseRequest(HostId, 42);
+
+		Assert.DoesNotContain(received, r => r.Msg == NetMsg.PlayerItemUseResult);
+		Assert.Contains(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);
+	}
+
+	[Fact]
+	public void Guest_UsesPaincreamOnHost_AppliesTopicalAndSendsResult()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		var items = host.Services.GetRequiredService<IItemControl>();
+		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, conscious: true));
+		var cream = TopicalBottle(42, "paincream", "reliefcream", amount: 100f);
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, cream));
+		items.AdoptTransferredItem(GuestId, 42, cream);
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendUseRequest(HostId, 42);
+
+		var frame = received.Single(r => r.Msg == NetMsg.PlayerItemUseResult).Frame;
+		var result = NetPacket.DecodePayload<PlayerItemUseResultMsg>(frame);
+		Assert.Equal(GuestId, result.UserSteamId);
+		Assert.Equal(HostId, result.TargetSteamId);
+		Assert.Equal(42UL, result.ItemInstanceId);
+		Assert.False(result.ItemDestroyed);
+		Assert.NotNull(result.ItemAfter);
+		Assert.True(Math.Abs(result.ItemAfter!.Condition - 0.9f) < 0.001f);
+
+		var hostData = characters.GetHostCharacterData()!;
+		var limb = hostData.Limbs[1];
+		Assert.True(Math.Abs(limb.SkinHealAmount - 3f) < 0.001f);
+		Assert.True(Math.Abs(limb.DisinfectionTime - 300f) < 0.001f);
+
+		var saved = characters.GetSavedCharacter(GuestId)!.Items.Single(i => i.InstanceId == 42);
+		Assert.True(Math.Abs(saved.Liquids.Single(l => l.LiquidId == "reliefcream").Amount - 90f) < 0.001f);
+		var transferred = items.GetTransferredItems(GuestId).Single(w => w.Item.InstanceId == 42);
+		Assert.True(Math.Abs(transferred.Item.Liquids.Single(l => l.LiquidId == "reliefcream").Amount - 90f) < 0.001f);
+	}
+
+	[Fact]
+	public void Use_UnknownTopicalLiquid_IsRefused()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true));
+		var bad = new CharacterItemMsg
+		{
+			InstanceId = 42,
+			ItemId = "spraybottle",
+			SlotIndex = 0,
+			Condition = 1f,
+			Liquids = [new LiquidStackMsg { LiquidId = "mystery", Amount = 100f }],
 		};
 		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, bad));
 

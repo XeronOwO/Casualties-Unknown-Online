@@ -398,13 +398,11 @@ Lobby metadata stores only a digest: `frameworkVersion, gameVersion, modListHash
 
 ## 7. Host Migration
 
-**Not in the first version.** Host holds: world RNG state, quest state, unsaved item state, NPC internals, physics state, mod private state, temp coroutines, save-write authority.
+**Chosen policy: no host migration.** Host holds: world RNG state, quest state, unsaved item state, NPC internals, physics state, mod private state, temp coroutines, save-write authority.
 
-MVP behavior: host exit → session terminates → guests return to lobby.
+Behavior (2026-08-25): host exit or disconnect → session terminates → every guest disconnects and returns to the menu/lobby. CUO's host-authoritative save/world ownership makes this the natural scope for a friends-coop session; no host transfer, election or migration feature is planned. A dedicated server is also not planned for this model and remains a future option only if public community hosting becomes a real goal.
 
-Later (requires a full snapshot system): periodic full world snapshots, mod-state saves, new-host election, snapshot restore, full entity resync, handling of old host's uncommitted operations. Do not claim host migration support without the snapshot system.
-
-**Priority note (2026-08-25)**: host migration is promoted to a MEDIUM post-MVP item. It is not in the MVP, but it is now an intentional near-term target once the snapshot/mod-state foundations are in place. A dedicated server process is not planned for the friends/co-op model; that remains a future option only if public community hosting becomes a real goal.
+If this is ever revisited, a real migration would require a full snapshot system: periodic full world snapshots, mod-state saves, new-host election, snapshot restore, full entity resync, and handling of the old host's uncommitted operations. Do not claim host migration support without that foundation.
 
 ## 8. Saves
 

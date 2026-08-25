@@ -941,4 +941,89 @@ public class PlayerInteractionServiceTests
 		Assert.True(Math.Abs(hostData.Limbs[1].BoneHealTimer - 25f) < 0.001f);
 	}
 
+	[Fact]
+	public void Guest_UsesSplintOnHost_AppliesComponentAndDestroysItem()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		var items = host.Services.GetRequiredService<IItemControl>();
+		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, conscious: true));
+		var splint = Item(42, "splint", slot: 0);
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, splint));
+		items.AdoptTransferredItem(GuestId, 42, splint);
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendUseRequest(HostId, 42);
+
+		var frame = received.Single(r => r.Msg == NetMsg.PlayerItemUseResult).Frame;
+		var result = NetPacket.DecodePayload<PlayerItemUseResultMsg>(frame);
+		Assert.True(result.ItemDestroyed);
+		Assert.Null(result.ItemAfter);
+
+		var hostData = characters.GetHostCharacterData()!;
+		Assert.True(hostData.Limbs[1].Splinted);
+		var state = Assert.Single(hostData.Limbs[1].Components);
+		Assert.Equal("SplintLimb", state.TypeName);
+		Assert.Empty(characters.GetSavedCharacter(GuestId)!.Items);
+		Assert.Empty(items.GetTransferredItems(GuestId));
+	}
+
+	[Fact]
+	public void Guest_UsesTourniquetOnHost_AppliesComponentAndDestroysItem()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		var items = host.Services.GetRequiredService<IItemControl>();
+		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, conscious: true));
+		var tourniquet = Item(42, "tourniquet", slot: 0);
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, tourniquet));
+		items.AdoptTransferredItem(GuestId, 42, tourniquet);
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendUseRequest(HostId, 42);
+
+		var frame = received.Single(r => r.Msg == NetMsg.PlayerItemUseResult).Frame;
+		var result = NetPacket.DecodePayload<PlayerItemUseResultMsg>(frame);
+		Assert.True(result.ItemDestroyed);
+		Assert.Null(result.ItemAfter);
+
+		var hostData = characters.GetHostCharacterData()!;
+		Assert.True(hostData.Limbs[1].BlockedBleeding);
+		var state = Assert.Single(hostData.Limbs[1].Components);
+		Assert.Equal("TourniquetScript", state.TypeName);
+		Assert.Empty(characters.GetSavedCharacter(GuestId)!.Items);
+	}
+
+	[Fact]
+	public void Guest_UsesIcepackOnHost_AppliesComponentAndKeepsUsedItem()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		var items = host.Services.GetRequiredService<IItemControl>();
+		var hostSnapshot = SnapshotWithLimbs(HostId, conscious: true);
+		hostSnapshot.Health!.Temperature = 37f;
+		characters.SaveHostCharacterData(hostSnapshot);
+		var icepack = Item(42, "icepack", slot: 0);
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, icepack));
+		items.AdoptTransferredItem(GuestId, 42, icepack);
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendUseRequest(HostId, 42);
+
+		var frame = received.Single(r => r.Msg == NetMsg.PlayerItemUseResult).Frame;
+		var result = NetPacket.DecodePayload<PlayerItemUseResultMsg>(frame);
+		Assert.False(result.ItemDestroyed);
+		Assert.NotNull(result.ItemAfter);
+		Assert.True(Math.Abs(result.ItemAfter!.Condition - 0.25f) < 0.001f);
+
+		var hostData = characters.GetHostCharacterData()!;
+		Assert.True(Math.Abs(hostData.Health!.Temperature - 36f) < 0.001f);
+		var state = Assert.Single(hostData.Limbs[1].Components);
+		Assert.Equal("ChilledLimb", state.TypeName);
+		var saved = characters.GetSavedCharacter(GuestId)!.Items.Single(i => i.InstanceId == 42);
+		Assert.True(Math.Abs(saved.Condition - 0.25f) < 0.001f);
+		var transferred = items.GetTransferredItems(GuestId).Single(w => w.Item.InstanceId == 42);
+		Assert.True(Math.Abs(transferred.Item.Condition - 0.25f) < 0.001f);
+	}
+
 }

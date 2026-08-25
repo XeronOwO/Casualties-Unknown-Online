@@ -37,6 +37,27 @@ public static class RemoteLimbToolCatalog
 				ConditionCost: 1f,
 				SkinHealAmount: 8f,
 				BandageSlowAmount: 10f),
+			// Component-bearing tools from Item.cs SetupItems:
+			// splint (1471-1490), carcasssplint (1497-1516),
+			// tourniquet (392-408), icepack (1621-1638).
+			["splint"] = new("splint",
+				ConditionCost: 1f,
+				ComponentKind: RemoteLimbComponentKind.Splint,
+				ComponentConditionLossMinute: 0.015f),
+			["carcasssplint"] = new("carcasssplint",
+				ConditionCost: 1f,
+				ComponentKind: RemoteLimbComponentKind.Splint,
+				ComponentConditionLossMinute: 0.036f),
+			["tourniquet"] = new("tourniquet",
+				ConditionCost: 1f,
+				ComponentKind: RemoteLimbComponentKind.Tourniquet),
+			["icepack"] = new("icepack",
+				ConditionCost: 0.5f,
+				Temperature: -1f,
+				ComponentKind: RemoteLimbComponentKind.Icepack,
+				ComponentTimeLeft: 150f,
+				ComponentMaxTime: 150f,
+				DestroyAtZero: false),
 		};
 
 	public static bool IsToolItem(string itemId) => Registry.ContainsKey(itemId);

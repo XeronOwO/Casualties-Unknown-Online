@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using ProtoBuf;
 
 namespace CasualtiesUnknownOnline.Runtime.Protocol.Messages;
@@ -64,4 +65,28 @@ public sealed class CharacterLimbMsg
 
 	[ProtoMember(19)]
 	public bool Dismembered { get; set; }
+
+	/// <summary>
+	/// The limb's dynamic <c>[Saveable]</c> component states (SplintLimb,
+	/// TourniquetScript, ChilledLimb). Same wire shape as item component state;
+	/// the Game Adapter owns the game-type capture/apply side.
+	/// </summary>
+	[ProtoMember(20)]
+	public List<ComponentStateMsg> Components { get; set; } = [];
+
+	/// <summary>
+	/// Whether this limb is the body's head. Not part of the vanilla save set,
+	/// but needed by host-authoritative cross-player limb tools to mirror the
+	/// native "not on head" eligibility checks.
+	/// </summary>
+	[ProtoMember(21)]
+	public bool IsHead { get; set; }
+
+	/// <summary>
+	/// Whether this limb is vital (torso/central). Not part of the vanilla save
+	/// set, but needed by host-authoritative cross-player limb tools to mirror
+	/// the native "not on vital" eligibility checks.
+	/// </summary>
+	[ProtoMember(22)]
+	public bool IsVital { get; set; }
 }

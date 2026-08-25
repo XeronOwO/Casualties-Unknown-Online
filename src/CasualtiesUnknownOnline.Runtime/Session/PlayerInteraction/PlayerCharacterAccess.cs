@@ -61,11 +61,12 @@ internal sealed class PlayerCharacterAccess(ISessionControl session, ICharacterD
 	{
 		Skills = source.Skills,
 		Health = source.Health,
-		Limbs = source.Limbs,
+		Limbs = [.. source.Limbs.Select(CloneLimb)],
 		Items = [.. source.Items],
 		HandSlot = source.HandSlot,
 		OwnerSteamId = source.OwnerSteamId,
 		Position = source.Position,
+		SlotCount = source.SlotCount,
 	};
 
 	public static CharacterItemMsg CloneItem(CharacterItemMsg item) => new()
@@ -101,5 +102,8 @@ internal sealed class PlayerCharacterAccess(ISessionControl session, ICharacterD
 		BandageSlowAmount = limb.BandageSlowAmount,
 		SkinHealAmount = limb.SkinHealAmount,
 		Dismembered = limb.Dismembered,
+		Components = [.. limb.Components],
+		IsHead = limb.IsHead,
+		IsVital = limb.IsVital,
 	};
 }

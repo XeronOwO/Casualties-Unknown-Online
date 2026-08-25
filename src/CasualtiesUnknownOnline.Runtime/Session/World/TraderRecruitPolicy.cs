@@ -233,5 +233,8 @@ internal static class TraderRecruitPolicy
 		BandageSlowAmount = limb.BandageSlowAmount,
 		SkinHealAmount = limb.SkinHealAmount,
 		Dismembered = limb.Dismembered,
+		Components = [.. limb.Components],
+		IsHead = limb.IsHead,
+		IsVital = limb.IsVital,
 	};
 }

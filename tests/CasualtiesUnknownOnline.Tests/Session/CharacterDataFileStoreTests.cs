@@ -64,6 +64,14 @@ public class CharacterDataFileStoreTests
 				BleedAmount = 1.5f,
 				Pain = 12f,
 				Shrapnel = 2,
+				Components =
+				[
+					new ComponentStateMsg
+					{
+						TypeName = "SplintLimb",
+						Fields = [new ComponentFieldMsg { Name = "condition", Kind = 1, FloatValue = 0.5f }],
+					},
+				],
 			},
 		],
 		Items =
@@ -120,6 +128,9 @@ public class CharacterDataFileStoreTests
 			Assert.True(restored.Limbs.Count == 1, "the limb must survive the round-trip");
 			Assert.True(restored.Limbs[0].Broken, "the limb bool must survive the round-trip");
 			Assert.Equal(12f, restored.Limbs[0].Pain);
+			var limbComponent = Assert.Single(restored.Limbs[0].Components);
+			Assert.Equal("SplintLimb", limbComponent.TypeName);
+			Assert.Equal(0.5f, Assert.Single(limbComponent.Fields).FloatValue);
 			Assert.Equal(4242UL, restored.Items[0].InstanceId);
 			Assert.True(restored.Items[0].Contents.Count == 1, "nested container contents must survive the round-trip");
 			Assert.Equal("water", restored.Items[0].Liquids[0].LiquidId);

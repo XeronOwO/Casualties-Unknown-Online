@@ -371,6 +371,9 @@ internal sealed class CharacterDataSync(
 		{
 			var limbMsg = _mapper.Map<CharacterLimbMsg>(body.limbs[i]);
 			limbMsg.Index = i;
+			limbMsg.IsHead = body.limbs[i].isHead;
+			limbMsg.IsVital = body.limbs[i].isVital;
+			limbMsg.Components = LimbComponentStateCodec.Capture(body.limbs[i]);
 			msg.Limbs.Add(limbMsg);
 		}
 
@@ -469,6 +472,7 @@ internal sealed class CharacterDataSync(
 			}
 
 			_mapper.Map(limbData, body.limbs[limbData.Index]);
+			LimbComponentStateCodec.Apply(body.limbs[limbData.Index], limbData.Components);
 		}
 	}
 
@@ -515,6 +519,7 @@ internal sealed class CharacterDataSync(
 			}
 
 			_mapper.Map(limbData, body.limbs[limbData.Index]);
+			LimbComponentStateCodec.Apply(body.limbs[limbData.Index], limbData.Components);
 		}
 	}
 

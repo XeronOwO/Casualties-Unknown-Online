@@ -244,9 +244,11 @@ TourniquetScript via tourniquet (Item.cs:400), SplintLimb via splint
 via the matching injectables (Item.cs useLimbAction tables).
 
 State: the applied component's fields (e.g. `timeLeft`/`maxTime`,
-SplintLimb.cs:48-59). **CUO sync: ✓** — these components travel in the
-save-aligned character data snapshot (the body/limb component dictionaries
-mirror SaveSystem's per-type component capture, SaveSystem.cs:113-146).
+SplintLimb.cs:48-59). **CUO sync: ✓** — these components travel as
+`CharacterLimbMsg.Components` (same `ComponentStateMsg` wire shape as item
+components) on the 1 Hz character snapshot, cross-player item-use results, and
+reconnect restore; the Game Adapter's `LimbComponentStateCodec` captures and
+applies the actual game components.
 
 ## Passive-effect items (no state, outside the matrix)
 

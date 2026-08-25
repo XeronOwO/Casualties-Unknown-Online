@@ -214,6 +214,46 @@ public sealed class OnlineUiMemberProjectionTests
 	}
 
 	[Fact]
+	public void InWorldRemoteCanBePushedWhenLocalInWorld()
+	{
+		var vitals = new Dictionary<ulong, RemoteVitalsSnapshot>
+		{
+			[Remote] = RemoteVitalsSnapshot.From(new CharacterHealthMsg { Alive = true, Conscious = true })!,
+		};
+
+		var rows = Build(
+			[Local, Remote],
+			[Presence(Remote, handshaken: true, inWorld: true)],
+			new FakeInteraction(),
+			canAdmin: false,
+			localInWorld: true,
+			hasHealItem: false,
+			getVitals: id => vitals.TryGetValue(id, out var v) ? v : null);
+
+		Assert.True(rows[1].CanPush);
+	}
+
+	[Fact]
+	public void CarriedLocalCannotPushRemote()
+	{
+		var vitals = new Dictionary<ulong, RemoteVitalsSnapshot>
+		{
+			[Remote] = RemoteVitalsSnapshot.From(new CharacterHealthMsg { Alive = true, Conscious = true })!,
+		};
+
+		var rows = Build(
+			[Local, Remote],
+			[Presence(Remote, handshaken: true, inWorld: true)],
+			new FakeInteraction { CarrierOfLocal = Remote },
+			canAdmin: false,
+			localInWorld: true,
+			hasHealItem: false,
+			getVitals: id => vitals.TryGetValue(id, out var v) ? v : null);
+
+		Assert.False(rows[1].CanPush);
+	}
+
+	[Fact]
 	public void ConsciousRemoteCannotPiggybackWhenLocalIsNotInWorld()
 	{
 		var vitals = new Dictionary<ulong, RemoteVitalsSnapshot>
@@ -408,6 +448,24 @@ public sealed class OnlineUiMemberProjectionTests
 		}
 
 		public event Action<PlayerItemUseResultMsg>? UseReceived
+		{
+			add { }
+			remove { }
+		}
+
+		public void SendPushRequest(ulong targetSteamId)
+		{
+		}
+
+		public void HandlePushRequest(ulong sender, PlayerPushRequestMsg msg)
+		{
+		}
+
+		public void FirePushReceived(PlayerPushResultMsg msg)
+		{
+		}
+
+		public event Action<PlayerPushResultMsg>? PushReceived
 		{
 			add { }
 			remove { }

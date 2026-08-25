@@ -2815,3 +2815,29 @@ no ProtocolVersion bump: the same `PlayerItemUseRequest`/`PlayerItemUseResult`
   `PlayerInteractionServiceTests` +2 cases; full suite 1402 green,
   build/format/architecture/event gates pass. See
   `docs/selfchecks/cross-player-medicine-use-selfcheck.md`.
+
+## 99. Cross-player push/shove (ProtocolVersion 49)
+
+The long-open "push" lower-priority KrokMP candidate is closed as a dedicated
+host-authoritative player-interaction slice.
+
+- **Wire** — `PlayerPushRequestMsg` (NetMsg 118, guest → host) carries only
+  `TargetSteamId`; `PlayerPushResultMsg` (NetMsg 119, host → all) carries the
+  pusher, target and the committed force delta. `ProtocolVersion` 48 → 49.
+- **Host gates** — `PlayerPushService` validates host role/session, in-world
+  presence, no carry/piggyback relation, pusher conscious/alive/standing,
+  distance ≤ 9 × 1.2 world units, and a 1 s per-pusher cooldown. It computes
+  the KrokMP strength formula (`15 * clamp(1 + (STR-10)*0.1, 0.2, 3)`) and the
+  normalized pusher→target direction from the authoritative entity positions.
+- **Local apply** — `PlayerPushApply` (new top-level class, split from
+  `PlayerInteractionApply` at the 600-line gate) lets the target's own client
+  apply native `Ragdoll()` + `SetVelocity(current + force)`, the pusher pay 1
+  stamina + 0.03 heat, and every side replay `landsmall1` at the target
+  position. The target's motion continues to ride the existing 20 Hz player
+  state stream.
+- **UI** — Players page and in-world right-click menu expose `Push` through
+  `OnlineUiMemberProjection.CanPush`; English/Simplified Chinese labels added.
+- **Tests/gates** — `PlayerInteractionServiceTests` +6,
+  `OnlineUiMemberProjectionTests` +2, `DirectionTests` updated for the two new
+  messages; full suite green, build/format/architecture/event gates pass. See
+  `docs/selfchecks/player-push-selfcheck.md`.

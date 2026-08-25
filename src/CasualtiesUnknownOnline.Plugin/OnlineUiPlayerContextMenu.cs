@@ -108,6 +108,11 @@ internal sealed class OnlineUiPlayerContextMenu
 			Close();
 		}
 
+		if (row.CanPush && ActionButton(ctx.T("member.push"), () => ctx.PushRemote?.Invoke(row.SteamId)))
+		{
+			Close();
+		}
+
 		if (row.CanRecruit && ActionButton(ctx.T("member.recruit"), () => ctx.RecruitPlayer?.Invoke(row.SteamId)))
 		{
 			Close();
@@ -186,6 +191,11 @@ internal sealed class OnlineUiPlayerContextMenu
 		}
 
 		if (row.CanUseItem)
+		{
+			count++;
+		}
+
+		if (row.CanPush)
 		{
 			count++;
 		}

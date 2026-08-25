@@ -81,6 +81,8 @@ internal sealed class OnlineUiContext
 
 	internal Func<ulong, ulong, bool>? UseItemOnRemoteWith;
 
+	internal Func<ulong, bool>? PushRemote;
+
 	internal Func<ulong, bool>? RecruitPlayer;
 
 	internal Func<ulong, bool>? KickMember;

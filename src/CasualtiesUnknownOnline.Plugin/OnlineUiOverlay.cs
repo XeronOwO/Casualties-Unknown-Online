@@ -76,6 +76,9 @@ internal sealed class OnlineUiOverlay
 	/// <summary>Invoked when the user clicks one of the explicit local consumable items (instance id must be non-zero).</summary>
 	internal Func<ulong, ulong, bool>? UseItemOnRemoteWith;
 
+	/// <summary>Invoked when the user clicks Push on an in-world remote player.</summary>
+	internal Func<ulong, bool>? PushRemote;
+
 	/// <summary>Read-only UI check: does the local body currently carry a cross-player drink/food?</summary>
 	internal Func<bool>? HasUseItem;
 
@@ -159,6 +162,7 @@ internal sealed class OnlineUiOverlay
 			HealWithItem = HealWithItem,
 			UseItemOnRemote = UseItemOnRemote,
 			UseItemOnRemoteWith = UseItemOnRemoteWith,
+			PushRemote = PushRemote,
 			RecruitPlayer = RecruitPlayer,
 			KickMember = KickMember,
 			BanMember = BanMember,

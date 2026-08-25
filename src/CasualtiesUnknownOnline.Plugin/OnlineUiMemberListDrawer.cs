@@ -136,6 +136,7 @@ internal static class OnlineUiMemberListDrawer
 			|| row.CanRequestDrop
 			|| row.CanHeal
 			|| row.CanUseItem
+			|| row.CanPush
 			|| row.CanRecruit
 			|| row.CanTake;
 		if (!hasAction)
@@ -172,6 +173,11 @@ internal static class OnlineUiMemberListDrawer
 		if (row.CanUseItem && GUILayout.Button(ctx.T("member.use"), OnlineUiTheme.Button(), GUILayout.Width(70f)))
 		{
 			ctx.UseItemOnRemote?.Invoke(row.SteamId);
+		}
+
+		if (row.CanPush && GUILayout.Button(ctx.T("member.push"), OnlineUiTheme.Button(), GUILayout.Width(70f)))
+		{
+			ctx.PushRemote?.Invoke(row.SteamId);
 		}
 
 		if (row.CanRecruit && GUILayout.Button(ctx.T("member.recruit"), OnlineUiTheme.Button(), GUILayout.Width(70f)))

@@ -5,6 +5,7 @@ using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
+using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using CasualtiesUnknownOnline.Tests.Fakes;
@@ -71,6 +72,35 @@ public class PlayerInteractionServiceTests
 		MarkInWorld(host);
 		MarkInWorld(guest);
 		return (host, guest, received);
+	}
+
+	private static void SeedHostEntities(TestNode host, ulong guestId, float guestX, float guestY = 0f, bool standing = true)
+	{
+		var entities = host.Services.GetRequiredService<IEntitySyncControl>();
+		entities.PublishLocalState(
+			new NetVector2(0f, 0f),
+			new NetVector2(1f, 1f),
+			NetVector2.Zero,
+			isRight: true,
+			standing: true,
+			alive: true,
+			conscious: true,
+			crouching: false);
+		entities.ProcessPlayerJoin(new PlayerJoinMsg
+		{
+			HostSteamId = HostId,
+			GuestSteamId = guestId,
+			HostPosition = new NetVector2Msg(0f, 0f),
+			GuestPosition = new NetVector2Msg(guestX, guestY),
+		});
+		var guestEntity = entities.GetRemotePlayer(guestId);
+		if (guestEntity is not null)
+		{
+			guestEntity.Position = new NetVector2(guestX, guestY);
+			guestEntity.Standing = standing;
+			guestEntity.Alive = true;
+			guestEntity.Conscious = true;
+		}
 	}
 
 	[Fact]
@@ -673,6 +703,108 @@ public class PlayerInteractionServiceTests
 
 		Assert.False(hostInteraction.TryGetCarried(GuestId, out _));
 		Assert.False(hostInteraction.TryGetCarrier(HostId, out _));
+	}
+
+	[Fact]
+	public void Guest_PushesHost_ComputesForceAndBroadcastsResult()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true));
+		SeedHostEntities(host, GuestId, guestX: 10f);
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendPushRequest(HostId);
+
+		var frame = received.Single(r => r.Msg == NetMsg.PlayerPushResult).Frame;
+		var result = NetPacket.DecodePayload<PlayerPushResultMsg>(frame);
+		Assert.Equal(GuestId, result.PusherSteamId);
+		Assert.Equal(HostId, result.TargetSteamId);
+		Assert.True(result.ForceX < 0f);
+		Assert.True(Math.Abs(result.ForceY) < 0.001f);
+	}
+
+	[Fact]
+	public void Host_PushesGuest_SendsResultToGuest()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true));
+		SeedHostEntities(host, GuestId, guestX: 10f);
+
+		host.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendPushRequest(GuestId);
+
+		var frame = received.Single(r => r.Msg == NetMsg.PlayerPushResult).Frame;
+		var result = NetPacket.DecodePayload<PlayerPushResultMsg>(frame);
+		Assert.Equal(HostId, result.PusherSteamId);
+		Assert.Equal(GuestId, result.TargetSteamId);
+		Assert.True(result.ForceX > 0f);
+		Assert.True(Math.Abs(result.ForceY) < 0.001f);
+	}
+
+	[Fact]
+	public void Push_NotStandingPusher_IsRefused()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true));
+		SeedHostEntities(host, GuestId, guestX: 10f, standing: false);
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendPushRequest(HostId);
+
+		Assert.DoesNotContain(received, r => r.Msg == NetMsg.PlayerPushResult);
+	}
+
+	[Fact]
+	public void Push_OutOfReach_IsRefused()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true));
+		SeedHostEntities(host, GuestId, guestX: 20f);
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendPushRequest(HostId);
+
+		Assert.DoesNotContain(received, r => r.Msg == NetMsg.PlayerPushResult);
+	}
+
+	[Fact]
+	public void Push_ImmediateSecondRequest_IsRefusedByCooldown()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true));
+		SeedHostEntities(host, GuestId, guestX: 10f);
+
+		var interaction = guest.Services.GetRequiredService<IPlayerInteractionControl>();
+		interaction.SendPushRequest(HostId);
+		interaction.SendPushRequest(HostId);
+
+		Assert.Equal(1, received.Count(r => r.Msg == NetMsg.PlayerPushResult));
+	}
+
+	[Fact]
+	public void Push_CarryRelation_IsRefused()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: false));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true));
+		SeedHostEntities(host, GuestId, guestX: 10f);
+
+		var guestInteraction = guest.Services.GetRequiredService<IPlayerInteractionControl>();
+		guestInteraction.SendCarryStartRequest(HostId);
+		guestInteraction.SendPushRequest(HostId);
+
+		Assert.DoesNotContain(received, r => r.Msg == NetMsg.PlayerPushResult);
 	}
 
 }

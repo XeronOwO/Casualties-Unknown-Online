@@ -110,6 +110,17 @@ internal sealed class OnlineUiActions(
 		return true;
 	}
 
+	public bool PushRemoteFromUi(ulong targetSteamId)
+	{
+		if (!_session.SessionActive)
+		{
+			return false;
+		}
+
+		_playerInteraction.SendPushRequest(targetSteamId);
+		return true;
+	}
+
 	public bool RecruitPlayerFromUi(ulong targetSteamId)
 	{
 		if (!_session.SessionActive)

@@ -76,4 +76,16 @@ public interface IPlayerInteractionControl
 
 	/// <summary>An authoritative cross-player consumable-use result arrived — the Game Adapter consumes/updates the user's item and/or applies the target's post-use state.</summary>
 	event Action<PlayerItemUseResultMsg>? UseReceived;
+
+	/// <summary>Any role: request a push/shove on an in-world player (guest → host on the wire; host handles locally).</summary>
+	void SendPushRequest(ulong targetSteamId);
+
+	/// <summary>Host only: a push request arrived (from the wire or the host's own UI).</summary>
+	void HandlePushRequest(ulong sender, PlayerPushRequestMsg msg);
+
+	/// <summary>Raise a received push result for the Game Adapter to apply locally (wire handler path).</summary>
+	void FirePushReceived(PlayerPushResultMsg msg);
+
+	/// <summary>An authoritative cross-player push result arrived — the local target ragdolls/pushes and/or the local pusher pays stamina; every side plays the sound.</summary>
+	event Action<PlayerPushResultMsg>? PushReceived;
 }

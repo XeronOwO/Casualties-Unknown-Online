@@ -52,6 +52,9 @@ public sealed class OnlineUiMemberRow
 	/// <summary>True when the local player has at least one drink/food consumable usable on this in-world member.</summary>
 	public bool CanUseItem { get; init; }
 
+	/// <summary>True when this in-world member can be pushed/shoved by the local player (the host still validates distance/standing/cooldown).</summary>
+	public bool CanPush { get; init; }
+
 	/// <summary>True when the local player is at a trader and can recruit this dead member.</summary>
 	public bool CanRecruit { get; init; }
 

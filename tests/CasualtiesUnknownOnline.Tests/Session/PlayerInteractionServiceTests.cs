@@ -456,6 +456,31 @@ public class PlayerInteractionServiceTests
 		Assert.True(Math.Abs(transferred.Item.Condition - 0.5f) < 0.001f);
 	}
 
+	[Fact]
+	public void Guest_UsesAnalgesicGauzeOnHost_AddsOpiateComponentAndSendsResult()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, conscious: false));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, Item(42, "analgesicgauze", slot: 0)));
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendHealRequest(HostId);
+
+		var frame = received.Single(r => r.Msg == NetMsg.PlayerHealResult).Frame;
+		var result = NetPacket.DecodePayload<PlayerHealResultMsg>(frame);
+		Assert.Equal(GuestId, result.HealerSteamId);
+		Assert.Equal(HostId, result.TargetSteamId);
+		Assert.True(result.ItemDestroyed);
+		Assert.Equal(1, result.HealedLimbIndex);
+		Assert.Equal(28f, result.Health!.OpiateAmount);
+
+		var hostData = characters.GetHostCharacterData()!;
+		Assert.Equal(28f, hostData.Health!.OpiateAmount);
+		Assert.True(hostData.Limbs[result.HealedLimbIndex].SkinHealAmount > 0f);
+		Assert.DoesNotContain(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);
+	}
+
 	private static CharacterItemMsg WaterBottle(ulong instanceId, float amount = 500f, float condition = 1f) => new()
 	{
 		InstanceId = instanceId,

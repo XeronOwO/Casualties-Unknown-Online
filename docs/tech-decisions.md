@@ -3014,9 +3014,33 @@ Closed 2026-08-25 from the remaining cross-player item-use "wear" candidate.
   local item is removed by the existing destroyed path.
 - **UI** — `PlayerInteractionApply.IsLocalUseItem` recognises the wearable
   catalog, so the existing Use button/per-item selectors expose wearables.
-- **Scope limits** — timed/component medicine, minigame-random tools and
-  timed tools remain future slices.
+- **Scope limits** — timed/random medicine, minigame-random tools and
+  timed tools remain future slices (component medicine is closed in #107).
 - **Tests/gates** — `PlayerInteractionServiceTests` +4 (guest→host, host→guest,
   same-slot conflict, dismembered limb). Full suite 1458 green,
   build/format/architecture/event gates pass. See
   `docs/selfchecks/cross-player-wear-use-selfcheck.md`.
+
+## 107. Cross-player component medicine (analgesicgauze opiate component)
+
+Closed 2026-08-25 from the remaining cross-player item-use "component medicine"
+candidate.
+
+- **Profile** — `RemoteHealProfile` gains `OpiateAmount` for the body-level
+  `Painkillers` component effect; `RemoteHealProfiles` wires `analgesicgauze`
+  to the native full-use opiate amount (`Item.cs:457` adds `num8 * 28`, and
+  the heal profile already uses the full-success `num8 = 1` values).
+- **Pure apply** — new `RemoteHealApplication.Apply(CharacterHealthMsg,
+  CharacterLimbMsg, RemoteHealProfile)` overload applies the limb effects
+  unchanged and adds the opiate amount to the target health snapshot, clamped
+  non-negative.
+- **Host operation** — `PlayerHealService` calls the health-aware overload.
+  The existing `PlayerHealResultMsg` already carries the complete post-heal
+  `Health` and `Limbs`, so no new NetMsg and no `ProtocolVersion` bump.
+- **Local apply** — `CharacterDataSync.ApplyHealState` already maps the full
+  health snapshot and runs `PainkillersSync.Apply`, so the target's local body
+  receives the opiate component on the same result path.
+- **Tests/gates** — `RemoteHealApplicationTests` +1 opiate component case,
+  `PlayerInteractionServiceTests` +1 host-side result case. Full suite 1460
+  green, build/format/architecture/event gates pass. See
+  `docs/selfchecks/cross-player-component-medicine-selfcheck.md`.

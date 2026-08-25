@@ -136,7 +136,7 @@ internal sealed class PlayerHealService(
 
 		var newTargetData = PlayerCharacterAccess.CloneCharacter(targetData);
 		var healedLimb = PlayerCharacterAccess.CloneLimb(newTargetData.Limbs[limbIndex]);
-		RemoteHealApplication.Apply(healedLimb, profile);
+		RemoteHealApplication.Apply(newTargetData.Health!, healedLimb, profile);
 		newTargetData.Limbs[limbIndex] = healedLimb;
 
 		_characters.SaveCharacterData(healer, newHealerData);

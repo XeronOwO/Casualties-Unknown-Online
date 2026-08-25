@@ -35,7 +35,7 @@ and no protocol bump (additive result field).
   destroyed/removed path.
 - `PlayerInteractionApply.IsLocalUseItem` recognizes the wearable catalog so the
   existing Use button/per-item selectors expose wearables.
-- **Scope limits** — timed/component medicine, minigame-random tools and timed
+- **Scope limits** — timed/random medicine, minigame-random tools and timed
   tools remain future slices.
 
 ## 3. Self-check table (mechanism × change × evidence)

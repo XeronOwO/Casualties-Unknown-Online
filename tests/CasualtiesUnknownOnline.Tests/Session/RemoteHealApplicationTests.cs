@@ -73,10 +73,37 @@ public class RemoteHealApplicationTests
 	}
 
 	[Fact]
+	public void Apply_WithHealthAddsOpiateComponentAndKeepsLimbEffects()
+	{
+		var health = new CharacterHealthMsg { OpiateAmount = 5f };
+		var limb = new CharacterLimbMsg
+		{
+			Index = 0,
+			Pain = 50f,
+			SkinHealAmount = 0f,
+		};
+
+		RemoteHealApplication.Apply(health, limb, new RemoteHealProfile(
+			"analgesicgauze", 1f,
+			SkinHealAmount: 20f,
+			BandageSlowAmount: 50f,
+			Pain: -300f,
+			OpiateAmount: 28f));
+
+		Assert.Equal(33f, health.OpiateAmount);
+		Assert.Equal(20f, limb.SkinHealAmount);
+		Assert.Equal(50f, limb.BandageSlowAmount);
+		Assert.Equal(0f, limb.Pain);
+	}
+
+	[Fact]
 	public void Profiles_KnownItemSetExists()
 	{
 		Assert.True(RemoteHealProfiles.IsHealItem("bandage"));
 		Assert.True(RemoteHealProfiles.IsHealItem("sterilizedbandage"));
 		Assert.False(RemoteHealProfiles.IsHealItem("medkit"));
+
+		Assert.True(RemoteHealProfiles.TryGet("analgesicgauze", out var analgesicgauze));
+		Assert.Equal(28f, analgesicgauze.OpiateAmount);
 	}
 }

@@ -126,6 +126,7 @@ internal sealed class CharacterDataSync(
 	{
 		var health = _mapper.Map<CharacterHealthMsg>(body);
 		CloneFacePresentation.Capture(body, health);
+		CharacterComponentSync.Capture(body, health);
 
 		var msg = new LimbStateEventMsg
 		{
@@ -349,7 +350,7 @@ internal sealed class CharacterDataSync(
 	{
 		var health = _mapper.Map<CharacterHealthMsg>(body);
 		CloneFacePresentation.Capture(body, health);
-		PainkillersSync.Capture(body, health);
+		CharacterComponentSync.Capture(body, health);
 
 		var msg = new CharacterDataMsg
 		{
@@ -463,7 +464,7 @@ internal sealed class CharacterDataSync(
 	internal void ApplyHealState(Body body, CharacterHealthMsg health, IReadOnlyList<CharacterLimbMsg> limbs)
 	{
 		_mapper.Map(health, body);
-		PainkillersSync.Apply(body, health);
+		CharacterComponentSync.Apply(body, health);
 		foreach (var limbData in limbs)
 		{
 			if (limbData.Index < 0 || limbData.Index >= body.limbs.Length)
@@ -508,7 +509,7 @@ internal sealed class CharacterDataSync(
 			// are touched — alive/conscious (derived properties, Body.cs:203/213)
 			// are read-only and skipped automatically.
 			_mapper.Map(health, body);
-			PainkillersSync.Apply(body, health);
+			CharacterComponentSync.Apply(body, health);
 		}
 
 		foreach (var limbData in data.Limbs)

@@ -242,4 +242,23 @@ public sealed class CharacterHealthMsg
 
 	[ProtoMember(72)]
 	public float ActualOpiateReception { get; set; }
+
+	// Drinkable-medicine component state (SleepingPills/Antidepressants/
+	// MindwipeScript are [Saveable] components on the simulated Body — Mapster
+	// cannot see them, so the character snapshot carries the same fields the
+	// cross-player drinkable-medicine slice needs to restore/evolve them).
+	[ProtoMember(73)]
+	public float SleepingPillsAmount { get; set; }
+
+	[ProtoMember(74)]
+	public float AntidepressantsAmount { get; set; }
+
+	[ProtoMember(75)]
+	public float AntidepressantsCurrentAmount { get; set; }
+
+	[ProtoMember(76)]
+	public bool MindwipeScriptPresent { get; set; }
+
+	[ProtoMember(77)]
+	public bool MindwipeScriptActive { get; set; }
 }

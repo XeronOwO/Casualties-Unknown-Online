@@ -3101,3 +3101,38 @@ medicine branches" candidate.
   `PlayerInteractionServiceTests` +2; full suite 1472 green,
   build/format/architecture/event gates pass. See
   `docs/selfchecks/cross-player-timed-liquid-medicine-selfcheck.md`.
+
+## 110. Cross-player drinkable medicine
+
+Closed 2026-08-25 from the remaining cross-player item-use "drinkable
+timed/random/component medicine branches" candidate.
+
+- **Catalog** — new `RemoteDrinkMedicineCatalog` maps the native drinkable
+  medicine items (`naltrexone`, `sodiumnitroprusside`, `vasopressin`,
+  `amiodarone`, `painkillers`, `keratinbooster`, `braingrow`,
+  `antidepressants`, `antibiotics`, `mindwipe`, `antirad`, `sleepingpills`)
+  and the `LiquidType.onDrink` formulas from `Liquids.cs`; mindwipe's
+  mental-health refusal gate (`Item.cs:1343-1351`) is mirrored host-side.
+- **Pure apply** — `RemoteDrinkMedicineApplication` applies the deterministic
+  per-ml deltas and conditional branches (keratin overdose, braingrow
+  mindwipe/shock) to the target `CharacterHealthMsg`.
+- **Timed/random/component** — `TimedBodyEffectMsg` gains an additive `DoseMl`
+  field; `TimedBodyEffectApply` handles `antirad`, `naltrexone`, `braingrow`
+  and `antidepressants` on the target's local body.
+- **Component sync** — `CharacterHealthMsg` gains `SleepingPillsAmount`,
+  `AntidepressantsAmount`, `AntidepressantsCurrentAmount`,
+  `MindwipeScriptPresent` and `MindwipeScriptActive`; new
+  `MedicationComponentsSync` + `CharacterComponentSync` capture/apply those
+  Mapster-invisible body components in the 1 Hz snapshot and restore paths.
+- **Host operation/UI** — `PlayerItemUseService` and the local use-item
+  eligibility projection accept the drinkable medicine items through the
+  existing `PlayerItemUseRequest`/`PlayerItemUseResult` operation.
+- **Split** — `PlayerInteractionApply`'s use-item eligibility projection moved
+  to `LocalUseItemEligibility` and `CharacterDataSync`'s component-sync calls
+  moved to `CharacterComponentSync` to stay under the 600-line gate.
+- **No new NetMsg and no `ProtocolVersion` bump** — additive protobuf fields
+  only.
+- **Tests/gates** — `RemoteDrinkMedicineApplicationTests` (16),
+  `PlayerInteractionServiceTests` +4, `MedicationComponentsSyncTests` (2);
+  full suite 1494 green, build/format/architecture/event gates pass. See
+  `docs/selfchecks/cross-player-drinkable-medicine-selfcheck.md`.

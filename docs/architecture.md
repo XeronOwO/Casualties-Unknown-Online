@@ -404,6 +404,8 @@ MVP behavior: host exit → session terminates → guests return to lobby.
 
 Later (requires a full snapshot system): periodic full world snapshots, mod-state saves, new-host election, snapshot restore, full entity resync, handling of old host's uncommitted operations. Do not claim host migration support without the snapshot system.
 
+**Priority note (2026-08-25)**: host migration is promoted to a MEDIUM post-MVP item. It is not in the MVP, but it is now an intentional near-term target once the snapshot/mod-state foundations are in place. A dedicated server process is not planned for the friends/co-op model; that remains a future option only if public community hosting becomes a real goal.
+
 ## 8. Saves
 
 - Host is the only save authority; guests never write the world save.
@@ -459,7 +461,7 @@ Only the **Game Adapter** layer may reference game assemblies — CUO Core never
 - **Phase 2 — Entity lifecycle**: host spawns, guests receive, destroy, respawn, entity IDs, scene switching, snapshot resend.
 - **Phase 3 — Game core loop**: interaction, items, combat, NPCs, quests, world time, saves — one system at a time, each with explicit host-authority and guest-render logic.
 - **Phase 4 — Public Mod API**: content registration, custom entities, network messages, host commands, UI, mod-state saves, mod dependencies, manifest validation.
-- **Phase 5 — Tooling & ecosystem**: mod manager, auto-install, version checks, crash reports, network diagnostics, conflict detection, compatibility database, host migration, dedicated server.
+- **Phase 5 — Tooling & ecosystem**: mod manager, auto-install, version checks, crash reports, network diagnostics, conflict detection, compatibility database, dedicated server. Host migration is a separate MEDIUM post-MVP item (see §7) rather than a Phase 5 future line.
 
 ## 12. MVP Scope (recommended)
 

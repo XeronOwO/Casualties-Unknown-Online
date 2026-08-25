@@ -2787,3 +2787,31 @@ player can also request release.
   `OnlineUiMemberProjectionTests` +3 cases; full suite 1393 green,
   build/format/architecture/event gates pass. See
   `docs/selfchecks/piggyback-releasable-carry-selfcheck.md`.
+
+## 98. Cross-player medicine/injectable use (second cross-player item-use slice)
+
+The cross-player item-use operation is extended from drink/food to a curated
+set of immediately representable medicine containers. No new wire message and
+no ProtocolVersion bump: the same `PlayerItemUseRequest`/`PlayerItemUseResult`
+(NetMsg 116/117) operation now also accepts known medicine items.
+
+- **Catalog** — `RemoteMedicineCatalog` maps known containers to the ml the
+  game's `WaterContainerItem.Inject` consumes per use (saline/ringersolution
+  80, antiserum 50, ceftriaxone 100, streptokinase 33.334, bloodbags 375) and
+  each supported liquid to per-ml body/limb coefficients from `Liquids.cs`.
+- **Pure apply** — `RemoteMedicineApplication` applies the plan to the target
+  `CharacterHealthMsg` and the most-injured limb (same limb pick as heal).
+- **Host service** — `PlayerItemUseService` tries medicine after drink/food;
+  the existing `ApplyDrain`, guest transfer-table update and result fan-out are
+  reused unchanged.
+- **UI** — `PlayerInteractionApply` recognizes medicine containers in the same
+  local use-item list, so the existing Use button/per-item selectors expose
+  them with no projection changes.
+- **Scope limits** — supported: saline, ringersolution, bloodbag,
+  bloodbaghuman, antiserum, ceftriaxone, streptokinase (water as inert
+  carrier). Opiates/component effects, timed/random stimulants, topical
+  non-injectable liquids, wear and tools remain future slices.
+- **Tests/gates** — `RemoteMedicineApplicationTests` (7),
+  `PlayerInteractionServiceTests` +2 cases; full suite 1402 green,
+  build/format/architecture/event gates pass. See
+  `docs/selfchecks/cross-player-medicine-use-selfcheck.md`.

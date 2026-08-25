@@ -2841,3 +2841,32 @@ host-authoritative player-interaction slice.
   `OnlineUiMemberProjectionTests` +2, `DirectionTests` updated for the two new
   messages; full suite green, build/format/architecture/event gates pass. See
   `docs/selfchecks/player-push-selfcheck.md`.
+
+## 100. Cross-player topical use (third cross-player item-use slice)
+
+The cross-player item-use operation is extended from drink/food and curated
+injectable medicine to the game's topical `ApplyToLimb` branch. No new wire
+message and no ProtocolVersion bump: the same `PlayerItemUseRequest`/
+`PlayerItemUseResult` (NetMsg 116/117) operation now also accepts known topical
+containers.
+
+- **Catalog** — `RemoteTopicalCatalog` maps known item ids to the ml drained
+  per use (`paincream` 10, `woundglue` 20, `disinfectant` 10, `spraybottle`
+  10) and maps the six `healthUsable` liquids to their immediate per-ml
+  effects from `Liquids.cs`.
+- **Pure apply** — `RemoteTopicalApplication` applies the plan to the target
+  `CharacterHealthMsg` and the most-injured limb (same limb pick as heal and
+  medicine); `SetDisinfect` is modelled as max rather than addition.
+- **Host service** — `PlayerItemUseService` tries topical after medicine; the
+  existing `ApplyDrain`, guest transfer-table update and result fan-out are
+  reused unchanged.
+- **UI** — `PlayerInteractionApply` recognizes topical containers in the same
+  local use-item list, so the existing Use button/per-item selectors expose
+  them with no projection changes.
+- **Scope limits** — supported liquids: `alcohol`, `bleach`, `reliefcream`,
+  `woundglue`, `disinfectant`, `soap`. Timed/random branches, opiate
+  components, wear and tools remain future slices.
+- **Tests/gates** — `RemoteTopicalApplicationTests` (6),
+  `PlayerInteractionServiceTests` +2 cases; full suite green,
+  build/format/architecture/event gates pass. See
+  `docs/selfchecks/cross-player-topical-use-selfcheck.md`.

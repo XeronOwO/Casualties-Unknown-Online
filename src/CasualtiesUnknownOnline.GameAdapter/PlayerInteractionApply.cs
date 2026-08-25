@@ -490,6 +490,25 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains)
 			return true;
 		}
 
+		if (RemoteTopicalCatalog.IsTopicalItem(item.id))
+		{
+			var topical = item.GetComponent<WaterContainerItem>();
+			if (topical == null || topical.CurrentTotal <= 0f) // Unity object — ==
+			{
+				return false;
+			}
+
+			foreach (var liquid in topical.stack)
+			{
+				if (!RemoteTopicalCatalog.IsSupportedTopicalLiquid(liquid.liquidId))
+				{
+					return false;
+				}
+			}
+
+			return true;
+		}
+
 		var water = item.GetComponent<WaterContainerItem>();
 		if (water == null || water.CurrentTotal <= 0f) // Unity object — ==
 		{

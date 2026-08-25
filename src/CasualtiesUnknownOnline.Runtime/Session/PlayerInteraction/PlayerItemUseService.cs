@@ -10,11 +10,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 
 /// <summary>
 /// The cross-player item-use operation (drink/food first slice plus the
-/// curated medicine slice). The host validates the user and target against its
-/// authoritative character snapshots, consumes or drains a carried item,
-/// applies the curated target-side body effect and sends the two participants
-/// one authoritative result. It has no mutable session state — it only reacts
-/// to calls and messages.
+/// curated medicine and topical slices). The host validates the user and
+/// target against its authoritative character snapshots, consumes or drains a
+/// carried item, applies the curated target-side body/limb effect and sends
+/// the two participants one authoritative result. It has no mutable session
+/// state — it only reacts to calls and messages.
 /// </summary>
 internal sealed class PlayerItemUseService(
 	ISessionControl session,
@@ -132,9 +132,14 @@ internal sealed class PlayerItemUseService(
 			RemoteMedicineApplication.Apply(newTargetData.Health!, newTargetData.Limbs, medicinePlan);
 			ApplyDrain(newItem, medicinePlan);
 		}
+		else if (RemoteTopicalCatalog.TryCreatePlan(originalItem.Liquids, originalItem.ItemId, out var topicalPlan))
+		{
+			RemoteTopicalApplication.Apply(newTargetData.Health!, newTargetData.Limbs, topicalPlan);
+			ApplyDrain(newItem, topicalPlan);
+		}
 		else
 		{
-			_log.LogWarning("[ItemUse] refused: {ItemId} (id {InstanceId}) is not in the remote-consumable/medicine catalog.", originalItem.ItemId, originalItem.InstanceId);
+			_log.LogWarning("[ItemUse] refused: {ItemId} (id {InstanceId}) is not in the remote-consumable/medicine/topical catalog.", originalItem.ItemId, originalItem.InstanceId);
 			return;
 		}
 
@@ -259,6 +264,7 @@ internal sealed class PlayerItemUseService(
 
 		return RemoteConsumeCatalog.IsFoodItem(item.ItemId)
 			|| RemoteConsumeApplication.TryCreateDrinkPlan(item.Liquids, out _)
-			|| RemoteMedicineCatalog.TryCreatePlan(item.Liquids, item.ItemId, out _);
+			|| RemoteMedicineCatalog.TryCreatePlan(item.Liquids, item.ItemId, out _)
+			|| RemoteTopicalCatalog.TryCreatePlan(item.Liquids, item.ItemId, out _);
 	}
 }

@@ -68,7 +68,8 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 			enemies, worldTime, playerInteraction, tutorialClaw, respawnOptions, hostRules, log, mapper, loggerFactory);
 		_bridge = new GameAdapterBridge(_domains);
 		_playerInteraction = new PlayerInteractionApply(_domains);
-		_sessionBinding = new GameAdapterSessionBinding(_domains, _playerInteraction);
+		var pushApply = new PlayerPushApply(_domains);
+		_sessionBinding = new GameAdapterSessionBinding(_domains, _playerInteraction, pushApply);
 		PatchBridge.Bind(_bridge); // the only static seam — Harmony patches read the narrow surface, never this instance
 	}
 

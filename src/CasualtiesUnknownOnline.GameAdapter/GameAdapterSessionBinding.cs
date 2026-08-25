@@ -10,7 +10,7 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// Previously this lived in the GameAdapter coordinator partials; as a real
 /// top-level class it keeps the facade free of the event/subscription surface.
 /// </summary>
-internal sealed class GameAdapterSessionBinding(GameAdapterDomains domains, PlayerInteractionApply playerInteraction)
+internal sealed class GameAdapterSessionBinding(GameAdapterDomains domains, PlayerInteractionApply playerInteraction, PlayerPushApply pushApply)
 {
 	public void Bind()
 	{
@@ -53,6 +53,7 @@ internal sealed class GameAdapterSessionBinding(GameAdapterDomains domains, Play
 		domains.PlayerInteraction.CarryStateChanged += playerInteraction.OnCarryStateChanged; // cross-player carry: set/clear the local carried-body driver
 		domains.PlayerInteraction.HealReceived += playerInteraction.OnPlayerHealReceived; // cross-player heal: consume the local item and/or apply the target's post-heal state
 		domains.PlayerInteraction.UseReceived += playerInteraction.OnPlayerItemUseReceived; // cross-player consumable use: consume/update the user's item and/or apply the target's post-use state
+		domains.PlayerInteraction.PushReceived += pushApply.Apply; // cross-player push: apply local target ragdoll/pusher cost and play the push sound
 	}
 
 	public void Unbind()
@@ -98,6 +99,7 @@ internal sealed class GameAdapterSessionBinding(GameAdapterDomains domains, Play
 		domains.PlayerInteraction.CarryStateChanged -= playerInteraction.OnCarryStateChanged;
 		domains.PlayerInteraction.HealReceived -= playerInteraction.OnPlayerHealReceived;
 		domains.PlayerInteraction.UseReceived -= playerInteraction.OnPlayerItemUseReceived;
+		domains.PlayerInteraction.PushReceived -= pushApply.Apply;
 	}
 
 	private void OnSessionEnded()

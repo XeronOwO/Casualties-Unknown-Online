@@ -1,17 +1,20 @@
 using System;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
+using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
+using CasualtiesUnknownOnline.Runtime.Time;
 using Microsoft.Extensions.Logging;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 
 /// <summary>
 /// The direct player-to-player interaction domain coordinator. It is a thin
-/// composition facade over the three authoritative operations: inventory take,
-/// carry/release, and heal. The host is the cross-player authority for all
-/// three; each operation owns its own validation/state/event surface so the
-/// domain can grow without turning this class into a mixed god-object.
+/// composition facade over the authoritative operations: inventory take,
+/// carry/release, heal, consumable use, and push/shove. The host is the
+/// cross-player authority for all of them; each operation owns its own
+/// validation/state/event surface so the domain can grow without turning this
+/// class into a mixed god-object.
 /// </summary>
 public sealed class PlayerInteractionService : IPlayerInteractionControl, IDisposable
 {
@@ -19,6 +22,7 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, IDispo
 	private readonly PlayerCarryService _carry;
 	private readonly PlayerHealService _heal;
 	private readonly PlayerItemUseService _itemUse;
+	private readonly PlayerPushService _push;
 
 	public event Action<PlayerInventoryTransferMsg>? TransferReceived
 	{
@@ -44,11 +48,19 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, IDispo
 		remove => _itemUse.UseReceived -= value;
 	}
 
+	public event Action<PlayerPushResultMsg>? PushReceived
+	{
+		add => _push.PushReceived += value;
+		remove => _push.PushReceived -= value;
+	}
+
 	public PlayerInteractionService(
 		ISessionControl session,
 		PacketSender sender,
 		ICharacterDataControl characters,
 		IItemControl items,
+		IEntitySyncControl entities,
+		ITimeSource time,
 		ILogger<PlayerInteractionService> log)
 	{
 		var access = new PlayerCharacterAccess(session, characters);
@@ -56,6 +68,7 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, IDispo
 		_carry = new PlayerCarryService(session, sender, access, log);
 		_heal = new PlayerHealService(session, sender, access, items, log);
 		_itemUse = new PlayerItemUseService(session, sender, access, items, log);
+		_push = new PlayerPushService(session, sender, access, entities, _carry, time, log);
 	}
 
 	public void SendTakeRequest(ulong ownerSteamId, ulong itemInstanceId) =>
@@ -109,5 +122,18 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, IDispo
 	public void FireUseReceived(PlayerItemUseResultMsg msg) =>
 		_itemUse.FireUseReceived(msg);
 
-	public void Dispose() => _carry.Dispose();
+	public void SendPushRequest(ulong targetSteamId) =>
+		_push.SendPushRequest(targetSteamId);
+
+	public void HandlePushRequest(ulong sender, PlayerPushRequestMsg msg) =>
+		_push.HandlePushRequest(sender, msg);
+
+	public void FirePushReceived(PlayerPushResultMsg msg) =>
+		_push.FirePushReceived(msg);
+
+	public void Dispose()
+	{
+		_carry.Dispose();
+		_push.Dispose();
+	}
 }

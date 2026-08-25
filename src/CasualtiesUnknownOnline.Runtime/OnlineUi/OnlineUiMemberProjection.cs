@@ -51,6 +51,7 @@ public static class OnlineUiMemberProjection
 				&& playerInteraction?.TryGetCarried(localSteamId, out var carried) == true
 				&& carried == memberId;
 			var hasExistingCarry = playerInteraction?.TryGetCarried(localSteamId, out _) == true;
+			var isLocalCarried = playerInteraction?.TryGetCarrier(localSteamId, out _) == true;
 			var isAlreadyCarried = playerInteraction?.TryGetCarrier(memberId, out _) == true;
 			var isCarryingSomeone = playerInteraction?.TryGetCarried(memberId, out _) == true;
 
@@ -85,6 +86,14 @@ public static class OnlineUiMemberProjection
 				&& localInWorld
 				&& vitals is { Alive: true, Conscious: true }
 				&& hasUseItem;
+			var canPush = !isLocal
+				&& member is { InWorld: true }
+				&& localInWorld
+				&& vitals is not null
+				&& !isLocalCarried
+				&& !isAlreadyCarried
+				&& !isCarryingSomeone
+				&& !hasExistingCarry;
 			var canRecruit = !isLocal
 				&& member is { InWorld: true }
 				&& localInWorld
@@ -110,6 +119,7 @@ public static class OnlineUiMemberProjection
 				CanRequestDrop = canRequestDrop,
 				CanHeal = canHeal,
 				CanUseItem = canUseItem,
+				CanPush = canPush,
 				CanRecruit = canRecruit,
 				CanTake = takeable.Count > 0,
 				CanKick = canAdminMember,

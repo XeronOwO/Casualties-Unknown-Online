@@ -171,7 +171,8 @@ sync model.
   landed as closed slices (see `docs/selfchecks/host-kick-selfcheck.md` and
   `docs/selfchecks/host-ban-selfcheck.md`); vote-kick remains open.
 - Co-op keybinds, push/piggyback, status icons, richer player list — functional
-  polish, low-medium.
+  polish, low-medium. Piggyback and push are both closed as player-interaction
+  slices (see `docs/selfchecks/player-push-selfcheck.md`).
 - Protocol quantization/compression — explicitly measurement-first; CUO already
   has this in backlog as "do not optimize before data".
 

@@ -133,6 +133,7 @@ public class Plugin : BaseUnityPlugin
 				GetLocalHealItems = _uiActions.GetLocalHealItems,
 				UseItemOnRemote = _uiActions.UseItemOnRemoteFromUi,
 				UseItemOnRemoteWith = _uiActions.UseItemWithOnRemoteFromUi,
+				PushRemote = _uiActions.PushRemoteFromUi,
 				HasUseItem = _uiActions.HasLocalUseItem,
 				GetLocalUseItems = _uiActions.GetLocalUseItems,
 				RecruitPlayer = _uiActions.RecruitPlayerFromUi,

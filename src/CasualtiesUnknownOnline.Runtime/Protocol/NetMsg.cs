@@ -245,4 +245,11 @@ public enum NetMsg : byte
 	// and tells the two participants the exact post-use state)
 	PlayerItemUseRequest = 116, // guest → host: use a carried drink/food on another in-world player (ItemInstanceId 0 = host auto-select)
 	PlayerItemUseResult = 117, // host → participants: authoritative consumable-use result (item consumed/destroyed + target health/limbs)
+
+	// Direct player interaction — push/shove another player (host authority:
+	// the host validates distance/standing/cooldown, computes the force from
+	// the authoritative entity positions and broadcasts one committed result;
+	// the target's own client applies the native ragdoll/velocity locally)
+	PlayerPushRequest = 118, // guest → host: push an in-world player
+	PlayerPushResult = 119, // host → all: authoritative push result (force delta)
 }

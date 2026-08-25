@@ -125,6 +125,7 @@ public class Plugin : BaseUnityPlugin
 				IpConfig = _ipConfig,
 				TakeItem = _uiActions.TakeItemFromRemote,
 				CarryRemote = _uiActions.CarryRemoteFromUi,
+				PiggybackRemote = _uiActions.PiggybackRemoteFromUi,
 				DropCarried = _uiActions.DropCarryFromUi,
 				HealRemote = _uiActions.HealRemoteFromUi,
 				HasHealItem = _uiActions.HasLocalHealItem,

@@ -193,6 +193,63 @@ public sealed class OnlineUiMemberProjectionTests
 	}
 
 	[Fact]
+	public void ConsciousAliveRemoteCanPiggybackWhenLocalInWorld()
+	{
+		var vitals = new Dictionary<ulong, RemoteVitalsSnapshot>
+		{
+			[Remote] = RemoteVitalsSnapshot.From(new CharacterHealthMsg { Alive = true, Conscious = true })!,
+		};
+
+		var rows = Build(
+			[Local, Remote],
+			[Presence(Remote, handshaken: true, inWorld: true)],
+			new FakeInteraction(),
+			canAdmin: false,
+			localInWorld: true,
+			hasHealItem: false,
+			getVitals: id => vitals.TryGetValue(id, out var v) ? v : null);
+
+		Assert.True(rows[1].CanPiggyback);
+		Assert.False(rows[1].CanCarry);
+	}
+
+	[Fact]
+	public void ConsciousRemoteCannotPiggybackWhenLocalIsNotInWorld()
+	{
+		var vitals = new Dictionary<ulong, RemoteVitalsSnapshot>
+		{
+			[Remote] = RemoteVitalsSnapshot.From(new CharacterHealthMsg { Alive = true, Conscious = true })!,
+		};
+
+		var rows = Build(
+			[Local, Remote],
+			[Presence(Remote, handshaken: true, inWorld: true)],
+			new FakeInteraction(),
+			canAdmin: false,
+			localInWorld: false,
+			hasHealItem: false,
+			getVitals: id => vitals.TryGetValue(id, out var v) ? v : null);
+
+		Assert.False(rows[1].CanPiggyback);
+	}
+
+	[Fact]
+	public void CarriedLocalCanRequestDropWhenInWorld()
+	{
+		var interaction = new FakeInteraction { CarrierOfLocal = Remote };
+		var rows = Build(
+			[Local, Remote],
+			[Presence(Remote, handshaken: true, inWorld: true)],
+			interaction,
+			canAdmin: false,
+			localInWorld: true,
+			hasHealItem: false);
+
+		Assert.True(rows[0].CanRequestDrop);
+		Assert.False(rows[1].CanRequestDrop);
+	}
+
+	[Fact]
 	public void BannedMemberIsMarked()
 	{
 		var banList = new FakeBanService { Banned = [Remote] };
@@ -246,6 +303,7 @@ public sealed class OnlineUiMemberProjectionTests
 	private sealed class FakeInteraction : IPlayerInteractionControl
 	{
 		public ulong? CarriedByLocal;
+		public ulong? CarrierOfLocal;
 
 		public void SendTakeRequest(ulong ownerSteamId, ulong itemInstanceId)
 		{
@@ -266,6 +324,10 @@ public sealed class OnlineUiMemberProjectionTests
 		}
 
 		public void SendCarryStartRequest(ulong targetSteamId)
+		{
+		}
+
+		public void SendPiggybackRequest(ulong targetSteamId)
 		{
 		}
 
@@ -294,6 +356,12 @@ public sealed class OnlineUiMemberProjectionTests
 		public bool TryGetCarrier(ulong carriedSteamId, out ulong carrierSteamId)
 		{
 			carrierSteamId = 0;
+			if (carriedSteamId == Local && CarrierOfLocal is { } carrier)
+			{
+				carrierSteamId = carrier;
+				return true;
+			}
+
 			return false;
 		}
 

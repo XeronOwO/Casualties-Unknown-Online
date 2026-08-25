@@ -52,15 +52,29 @@ public static class OnlineUiMemberProjection
 				&& carried == memberId;
 			var hasExistingCarry = playerInteraction?.TryGetCarried(localSteamId, out _) == true;
 			var isAlreadyCarried = playerInteraction?.TryGetCarrier(memberId, out _) == true;
+			var isCarryingSomeone = playerInteraction?.TryGetCarried(memberId, out _) == true;
 
 			var canCarry = !isLocal
 				&& member is { InWorld: true }
+				&& localInWorld
 				&& vitals is not null
 				&& (!vitals.Conscious || !vitals.Alive)
 				&& !isAlreadyCarried
+				&& !isCarryingSomeone
+				&& !hasExistingCarry;
+
+			var canPiggyback = !isLocal
+				&& member is { InWorld: true }
+				&& localInWorld
+				&& vitals is { Alive: true, Conscious: true }
+				&& !isAlreadyCarried
+				&& !isCarryingSomeone
 				&& !hasExistingCarry;
 
 			var canDrop = isCarryingThis;
+			var canRequestDrop = isLocal
+				&& localInWorld
+				&& playerInteraction?.TryGetCarrier(localSteamId, out _) == true;
 			var canHeal = !isLocal
 				&& member is { InWorld: true }
 				&& localInWorld
@@ -91,7 +105,9 @@ public static class OnlineUiMemberProjection
 				InventoryText = inventory?.ToShortString(),
 				IsCarryingThis = isCarryingThis,
 				CanCarry = canCarry,
+				CanPiggyback = canPiggyback,
 				CanDrop = canDrop,
+				CanRequestDrop = canRequestDrop,
 				CanHeal = canHeal,
 				CanUseItem = canUseItem,
 				CanRecruit = canRecruit,

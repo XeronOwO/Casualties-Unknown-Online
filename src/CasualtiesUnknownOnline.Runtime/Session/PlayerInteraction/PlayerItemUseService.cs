@@ -139,14 +139,14 @@ internal sealed class PlayerItemUseService(
 		}
 		else if (RemoteLimbToolCatalog.TryGet(originalItem.ItemId, out var tool))
 		{
-			if (!RemoteLimbToolApplication.TryApply(newTargetData.Health!, newTargetData.Limbs, tool, out _))
+			if (!RemoteLimbToolApplication.TryApply(newTargetData.Health!, newTargetData.Limbs, tool, out _, originalItem.Condition))
 			{
-				_log.LogWarning("[ItemUse] refused: {ItemId} (id {InstanceId}) cannot be applied to {Target} — required limb missing or no limb data.", originalItem.ItemId, originalItem.InstanceId, target);
+				_log.LogWarning("[ItemUse] refused: {ItemId} (id {InstanceId}) cannot be applied to {Target} — required limb missing, no limb data, or component ineligible.", originalItem.ItemId, originalItem.InstanceId, target);
 				return;
 			}
 
 			newItem.Condition -= tool.ConditionCost;
-			destroyed = newItem.Condition <= 0f;
+			destroyed = newItem.Condition <= 0f && tool.DestroyAtZero;
 		}
 		else
 		{

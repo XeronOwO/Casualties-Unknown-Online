@@ -2964,3 +2964,31 @@ section.
 - **Tests/gates** — `LatencyInstrumentationTests` (4). Full suite 1443 green,
   build/format/architecture/event gates pass. See
   `docs/selfchecks/hot-path-latency-instrumentation-selfcheck.md`.
+
+## 105. Cross-player component-bearing limb tools
+
+Closed 2026-08-25 from the remaining cross-player item-use tools candidate.
+
+- **Limb component wire state** — `CharacterLimbMsg` gains `Components`
+  (reuses `ComponentStateMsg`, the same wire shape as item components),
+  plus `IsHead`/`IsVital` for native eligibility. No new NetMsg and no
+  `ProtocolVersion` bump (additive proto fields).
+- **Tool set** — `RemoteLimbToolCatalog` adds `splint`, `carcasssplint`,
+  `tourniquet` and `icepack`. `RemoteLimbToolProfile` gains a neutral
+  component kind, component constants, and a `DestroyAtZero` flag (icepack
+  stays at zero condition instead of being destroyed).
+- **Eligibility/application** — `RemoteLimbToolApplication` refuses
+  splint/tourniquet on head/vital limbs, refuses tourniquet on the body's
+  central limb, refuses duplicate splint/tourniquet components, and writes the
+  neutral `SplintLimb`/`TourniquetScript`/`ChilledLimb` state onto the target
+  snapshot. Icepack refreshes an existing chilled-limb component.
+- **Adapter codec** — new `LimbComponentStateCodec` captures the owner body's
+  three dynamic limb component types into the character snapshot and applies
+  authoritative states back to the local body (including reconnect restore).
+- **Scope limits** — minigame-random tools, timed tools, wear and
+  timed/random medicine remain future slices.
+- **Tests/gates** — `RemoteLimbToolApplicationTests` (12),
+  `PlayerInteractionServiceTests` +3, `CharacterDataFileStoreTests` +1 limb
+  component assertion, `LimbComponentStateCodecTests` (2). Full suite 1454
+  green, build/format/architecture/event gates pass. See
+  `docs/selfchecks/cross-player-component-tool-use-selfcheck.md`.

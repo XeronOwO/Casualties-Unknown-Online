@@ -3,9 +3,10 @@ namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 /// <summary>
 /// The host-authoritative effect of one non-liquid limb tool when it is used on
 /// another player. The values mirror the immediate parts of the game's
-/// <c>ItemInfo.useLimbAction</c> delegates (Item.cs SetupItems). Timed,
-/// persistent-component and minigame-random tools are deliberately outside this
-/// first tool slice. Pure data — no game assembly dependency, no state.
+/// <c>ItemInfo.useLimbAction</c> delegates (Item.cs SetupItems) plus the
+/// component-bearing subset (splint/tourniquet/icepack). Timed or
+/// minigame-random tools remain outside this slice. Pure data — no game
+/// assembly dependency, no state.
 /// </summary>
 public sealed record RemoteLimbToolProfile(
 	string ItemId,
@@ -23,4 +24,9 @@ public sealed record RemoteLimbToolProfile(
 	int RequiredLimbIndex = -1,
 	float BloodViscosity = 0f,
 	float Hemothorax = 0f,
-	float Temperature = 0f);
+	float Temperature = 0f,
+	RemoteLimbComponentKind ComponentKind = RemoteLimbComponentKind.None,
+	float ComponentConditionLossMinute = 0f,
+	float ComponentTimeLeft = 0f,
+	float ComponentMaxTime = 0f,
+	bool DestroyAtZero = true);

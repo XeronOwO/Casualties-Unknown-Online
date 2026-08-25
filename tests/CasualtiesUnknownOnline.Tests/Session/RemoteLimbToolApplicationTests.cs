@@ -15,6 +15,10 @@ public sealed class RemoteLimbToolApplicationTests
 		Assert.True(RemoteLimbToolCatalog.IsToolItem("clottingmush"));
 		Assert.True(RemoteLimbToolCatalog.IsToolItem("chestdrain"));
 		Assert.True(RemoteLimbToolCatalog.IsToolItem("musharm"));
+		Assert.True(RemoteLimbToolCatalog.IsToolItem("splint"));
+		Assert.True(RemoteLimbToolCatalog.IsToolItem("carcasssplint"));
+		Assert.True(RemoteLimbToolCatalog.IsToolItem("tourniquet"));
+		Assert.True(RemoteLimbToolCatalog.IsToolItem("icepack"));
 		Assert.False(RemoteLimbToolCatalog.IsToolItem("mysterytool"));
 		Assert.True(RemoteLimbToolCatalog.TryGet("boneweldingtool", out _));
 	}
@@ -99,5 +103,108 @@ public sealed class RemoteLimbToolApplicationTests
 
 		Assert.True(Math.Abs(limbs[0].SkinHealAmount - 8f) < 0.001f);
 		Assert.True(Math.Abs(limbs[0].BandageSlowAmount - 10f) < 0.001f);
+	}
+
+	[Fact]
+	public void ApplySplint_AddsSplintComponentAndMarksSplinted()
+	{
+		var health = new CharacterHealthMsg();
+		var limbs = new List<CharacterLimbMsg>
+		{
+			new() { Index = 0, SkinHealth = 50f, MuscleHealth = 50f },
+		};
+		Assert.True(RemoteLimbToolCatalog.TryGet("splint", out var profile));
+
+		Assert.True(RemoteLimbToolApplication.TryApply(health, limbs, profile, out _, itemCondition: 0.75f));
+
+		Assert.True(limbs[0].Splinted);
+		var state = Assert.Single(limbs[0].Components);
+		Assert.Equal("SplintLimb", state.TypeName);
+		Assert.Contains(state.Fields, f => f.Name == "condition" && Math.Abs(f.FloatValue - 0.75f) < 0.001f);
+		Assert.Contains(state.Fields, f => f.Name == "conditionLossMinute" && Math.Abs(f.FloatValue - 0.015f) < 0.001f);
+		Assert.Contains(state.Fields, f => f.Name == "item" && f.StringValue == "splint");
+	}
+
+	[Fact]
+	public void ApplyTourniquet_AddsTourniquetComponentAndBlocksBleeding()
+	{
+		var health = new CharacterHealthMsg();
+		var limbs = new List<CharacterLimbMsg>
+		{
+			new() { Index = 0, SkinHealth = 50f, MuscleHealth = 50f, BleedAmount = 10f },
+		};
+		Assert.True(RemoteLimbToolCatalog.TryGet("tourniquet", out var profile));
+
+		Assert.True(RemoteLimbToolApplication.TryApply(health, limbs, profile, out _, itemCondition: 0.875f));
+
+		Assert.True(limbs[0].BlockedBleeding);
+		var state = Assert.Single(limbs[0].Components);
+		Assert.Equal("TourniquetScript", state.TypeName);
+		Assert.Contains(state.Fields, f => f.Name == "condition" && Math.Abs(f.FloatValue - 0.875f) < 0.001f);
+		Assert.Contains(state.Fields, f => f.Name == "timeApplied" && Math.Abs(f.FloatValue) < 0.001f);
+	}
+
+	[Fact]
+	public void ApplyIcepack_AddsChilledComponentAndReducesTemperature()
+	{
+		var health = new CharacterHealthMsg { Temperature = 37f };
+		var limbs = new List<CharacterLimbMsg>
+		{
+			new() { Index = 0, SkinHealth = 50f, MuscleHealth = 50f },
+		};
+		Assert.True(RemoteLimbToolCatalog.TryGet("icepack", out var profile));
+
+		Assert.True(RemoteLimbToolApplication.TryApply(health, limbs, profile, out _));
+
+		Assert.True(Math.Abs(health.Temperature - 36f) < 0.001f);
+		var state = Assert.Single(limbs[0].Components);
+		Assert.Equal("ChilledLimb", state.TypeName);
+		Assert.Contains(state.Fields, f => f.Name == "timeLeft" && Math.Abs(f.FloatValue - 150f) < 0.001f);
+		Assert.Contains(state.Fields, f => f.Name == "maxTime" && Math.Abs(f.FloatValue - 150f) < 0.001f);
+	}
+
+	[Fact]
+	public void ApplySplint_ExistingSplintComponent_IsRefused()
+	{
+		var health = new CharacterHealthMsg();
+		var limbs = new List<CharacterLimbMsg>
+		{
+			new()
+			{
+				Index = 0,
+				SkinHealth = 50f,
+				MuscleHealth = 50f,
+				Components = [new ComponentStateMsg { TypeName = "SplintLimb" }],
+			},
+		};
+		Assert.True(RemoteLimbToolCatalog.TryGet("splint", out var profile));
+
+		Assert.False(RemoteLimbToolApplication.TryApply(health, limbs, profile, out _));
+	}
+
+	[Fact]
+	public void ApplySplint_HeadLimb_IsRefused()
+	{
+		var health = new CharacterHealthMsg();
+		var limbs = new List<CharacterLimbMsg>
+		{
+			new() { Index = 0, SkinHealth = 50f, MuscleHealth = 50f, IsHead = true },
+		};
+		Assert.True(RemoteLimbToolCatalog.TryGet("splint", out var profile));
+
+		Assert.False(RemoteLimbToolApplication.TryApply(health, limbs, profile, out _));
+	}
+
+	[Fact]
+	public void ApplyTourniquet_CentralLimb_IsRefused()
+	{
+		var health = new CharacterHealthMsg();
+		var limbs = new List<CharacterLimbMsg>
+		{
+			new() { Index = 2, SkinHealth = 50f, MuscleHealth = 50f },
+		};
+		Assert.True(RemoteLimbToolCatalog.TryGet("tourniquet", out var profile));
+
+		Assert.False(RemoteLimbToolApplication.TryApply(health, limbs, profile, out _));
 	}
 }

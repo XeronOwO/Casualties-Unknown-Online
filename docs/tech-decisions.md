@@ -2751,9 +2751,10 @@ heal.
   consumed condition), and publishes one result to both participants.
 - **Local apply** — `PlayerInteractionApply.OnPlayerItemUseReceived` applies
   the user's item update/destroy and the target's post-use body state inside a
-  `RemoteApply` scope, then re-reports the full character snapshot. The UI
-  exposes a `Use` button and per-item selectors on the Players page and the
-  in-world right-click context menu.
+  `RemoteApply` scope, then re-reports the full character snapshot. The entry
+  is now KrokMP-style drag/overlap release (`CrossPlayerDragUse` +
+  `PlayerCameraDragUsePatch`); the static “Use” / “Use with” buttons were
+  removed from the Players page and right-click context menu.
 - **Scope limits** — this is the drink/food first slice. Wear, injectables,
   stimulant/timed medicine, and arbitrary tool use remain future extensions.
 - **Tests/gates** — `RemoteConsumeApplicationTests` (7),
@@ -2778,6 +2779,10 @@ player can also request release.
   requires a conscious/alive target and a conscious/alive carrier. Both modes
   share the same host-owned carry tables, `PlayerCarryStateMsg` broadcast and
   the existing `CarriedBodyDriver` follow presentation.
+- **Direction** — `SendPiggybackRequest(target)` means the local player climbs
+  onto `target`'s back: `target` becomes the carrier and the requester becomes
+  the carried rider, matching KrokMP's "Climb on their back." Classic carry
+  remains requester-carries-target.
 - **Release by carried** — `HandleCarryStopRequest` now accepts the carried
   player as the requester, so a rider can get down without asking the carrier.
   The Online UI shows a `Get down` button on the local row when the local

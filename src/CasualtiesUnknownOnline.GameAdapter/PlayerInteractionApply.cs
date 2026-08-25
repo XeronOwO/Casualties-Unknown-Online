@@ -211,63 +211,6 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains)
 		}
 	}
 
-	public bool HasLocalUseItem()
-	{
-		var body = PlayerCamera.main != null ? PlayerCamera.main.body : null; // Unity object — ==
-		if (body == null) // Unity object — ==
-		{
-			return false;
-		}
-
-		foreach (var slot in body.slots)
-		{
-			if (slot != null && LocalUseItemEligibility.HasUseItemChild(slot.transform)) // Unity object — ==
-			{
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-	public IReadOnlyList<LocalUseItem> GetLocalUseItems()
-	{
-		var result = new List<LocalUseItem>();
-		var body = PlayerCamera.main != null ? PlayerCamera.main.body : null; // Unity object — ==
-		if (body == null) // Unity object — ==
-		{
-			return result;
-		}
-
-		// Only inventory slots are requestable: the host's use finder skips
-		// worn items (SlotIndex < 0), so a selector that lists worn items would
-		// only produce refused requests.
-		foreach (var slot in body.slots)
-		{
-			if (slot == null) // Unity object — ==
-			{
-				continue;
-			}
-
-			for (var c = 0; c < slot.transform.childCount; c++)
-			{
-				var item = slot.transform.GetChild(c).GetComponent<Item>();
-				if (item == null || !LocalUseItemEligibility.IsUseItem(item)) // Unity object — ==
-				{
-					continue;
-				}
-
-				var id = item.GetComponent<ItemInstanceId>();
-				if (id != null && id.Id != 0) // Unity object — ==
-				{
-					result.Add(new LocalUseItem(id.Id, item.id));
-				}
-			}
-		}
-
-		return result;
-	}
-
 	public bool HasLocalHealItem()
 	{
 		var body = PlayerCamera.main != null ? PlayerCamera.main.body : null; // Unity object — ==

@@ -124,6 +124,9 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 	public void OnDragReleasedToWorld() =>
 		domains.Log.LogWarning("[DragFlow] release fell through to the WORLD path (no UI target hit).");
 
+	public bool TryHandleDraggedItemUseOnRemote(Item dragItem, Body localBody) =>
+		domains.DragUse.TryHandleRelease(dragItem, localBody);
+
 	public void OnPickUpResult(string itemId, int slot, string home, Vector2 position) =>
 		domains.Log.LogInformation("[PickUpResult] {Item} → {Home} (slot {Slot}) at ({X:F1},{Y:F1}).", itemId, home, slot, position.x, position.y);
 

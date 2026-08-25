@@ -77,10 +77,6 @@ internal sealed class OnlineUiContext
 
 	internal Func<ulong, ulong, bool>? HealWithItem;
 
-	internal Func<ulong, bool>? UseItemOnRemote;
-
-	internal Func<ulong, ulong, bool>? UseItemOnRemoteWith;
-
 	internal Func<ulong, bool>? PushRemote;
 
 	internal Func<ulong, bool>? RecruitPlayer;
@@ -94,10 +90,6 @@ internal sealed class OnlineUiContext
 	internal Func<IReadOnlyList<LocalHealItem>>? GetLocalHealItems;
 
 	internal Func<bool>? HasHealItem;
-
-	internal Func<IReadOnlyList<LocalUseItem>>? GetLocalUseItems;
-
-	internal Func<bool>? HasUseItem;
 
 	/// <summary>Opens the standalone player-interaction quick panel pinned to a remote player (the right-click "View items" path).</summary>
 	internal Action<ulong>? OpenQuickPanel;

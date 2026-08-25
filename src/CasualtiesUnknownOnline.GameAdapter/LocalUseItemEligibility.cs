@@ -1,30 +1,15 @@
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
-using UnityEngine;
 
 namespace CasualtiesUnknownOnline.GameAdapter;
 
 /// <summary>
-/// Pure stateless eligibility projection for the local use-item picker: an
-/// inventory item is exposed to the Online UI's Use button only when its id and
-/// liquid stack are in one of the supported remote-item catalogs. Split out of
+/// Pure stateless eligibility for the KrokMP-style drag-to-use entry: a dragged
+/// inventory item can be released on another player only when its id and liquid
+/// stack are in one of the supported remote-item catalogs. Split out of
 /// <see cref="PlayerInteractionApply"/> at the 600-line gate; no game state.
 /// </summary>
 internal static class LocalUseItemEligibility
 {
-	public static bool HasUseItemChild(Transform parent)
-	{
-		for (var c = 0; c < parent.childCount; c++)
-		{
-			var item = parent.GetChild(c).GetComponent<Item>();
-			if (item != null && IsUseItem(item)) // Unity object — ==
-			{
-				return true;
-			}
-		}
-
-		return false;
-	}
-
 	public static bool IsUseItem(Item item)
 	{
 		if (item == null || item.condition <= 0f) // Unity object — ==

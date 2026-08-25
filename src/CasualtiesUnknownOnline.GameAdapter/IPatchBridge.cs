@@ -194,6 +194,14 @@ internal interface IPatchBridge
 	/// <summary>A drag release fell through to the world path (TryPerformWorldActions) instead of a UI target — the "cannot take out of a ground container" diagnostic.</summary>
 	void OnDragReleasedToWorld();
 
+	/// <summary>
+	/// PlayerCamera.HandleReleaseDragging released a dragged item over an
+	/// in-world remote player. Returns true when the cross-player use request was
+	/// sent (the native drop must be skipped), false to let the original drop
+	/// path run.
+	/// </summary>
+	bool TryHandleDraggedItemUseOnRemote(Item dragItem, Body localBody);
+
 	/// <summary>PickUpItem ran — where the item ended up (slot / container / world): the takeout-flow outcome diagnostic.</summary>
 	void OnPickUpResult(string itemId, int slot, string home, Vector2 position);
 

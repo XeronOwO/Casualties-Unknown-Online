@@ -149,6 +149,18 @@ internal sealed class PlayerItemUseService(
 			timedBodyEffects = RemoteMedicineApplication.BuildTimedEffects(medicinePlan);
 			ApplyDrain(newItem, medicinePlan);
 		}
+		else if (RemoteDrinkMedicineCatalog.TryCreatePlan(originalItem.Liquids, originalItem.ItemId, out var drinkMedicinePlan))
+		{
+			if (RemoteDrinkMedicineCatalog.IsMindwipeBlocked(originalItem.ItemId, newTargetData.Health!))
+			{
+				_log.LogInformation("[ItemUse] refused: {Target} is still mentally healthy for mindwipe.", target);
+				return;
+			}
+
+			RemoteDrinkMedicineApplication.Apply(newTargetData.Health!, drinkMedicinePlan);
+			timedBodyEffects = RemoteDrinkMedicineApplication.BuildTimedEffects(drinkMedicinePlan);
+			ApplyDrain(newItem, drinkMedicinePlan);
+		}
 		else if (RemoteTopicalCatalog.TryCreatePlan(originalItem.Liquids, originalItem.ItemId, out var topicalPlan))
 		{
 			RemoteTopicalApplication.Apply(newTargetData.Health!, newTargetData.Limbs, topicalPlan);
@@ -317,6 +329,7 @@ internal sealed class PlayerItemUseService(
 			|| RemoteConsumeCatalog.IsFoodItem(item.ItemId)
 			|| RemoteConsumeApplication.TryCreateDrinkPlan(item.Liquids, out _)
 			|| RemoteMedicineCatalog.TryCreatePlan(item.Liquids, item.ItemId, out _)
+			|| RemoteDrinkMedicineCatalog.TryCreatePlan(item.Liquids, item.ItemId, out _)
 			|| RemoteTopicalCatalog.TryCreatePlan(item.Liquids, item.ItemId, out _)
 			|| RemoteLimbToolCatalog.IsToolItem(item.ItemId);
 	}

@@ -21,4 +21,13 @@ public sealed class TimedBodyEffectMsg
 	/// <summary>How many seconds the tick continues (same meaning as <c>CoUtils.DoTimedOp</c> duration).</summary>
 	[ProtoMember(2)]
 	public float DurationSeconds { get; set; }
+
+	/// <summary>
+	/// The ml actually drawn for this effect, when the target-side lambda needs
+	/// the exact dose (e.g. braingrow per-tick scaling, antidepressant
+	/// <c>TakeDose</c>, naltrexone random-vomit probability). Zero for effects
+	/// that only need the duration.
+	/// </summary>
+	[ProtoMember(3)]
+	public float DoseMl { get; set; }
 }

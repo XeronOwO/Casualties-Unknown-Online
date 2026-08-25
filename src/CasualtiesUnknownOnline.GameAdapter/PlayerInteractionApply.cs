@@ -221,7 +221,7 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains)
 
 		foreach (var slot in body.slots)
 		{
-			if (slot != null && HasLocalUseItemChild(slot.transform)) // Unity object — ==
+			if (slot != null && LocalUseItemEligibility.HasUseItemChild(slot.transform)) // Unity object — ==
 			{
 				return true;
 			}
@@ -252,7 +252,7 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains)
 			for (var c = 0; c < slot.transform.childCount; c++)
 			{
 				var item = slot.transform.GetChild(c).GetComponent<Item>();
-				if (item == null || !IsLocalUseItem(item)) // Unity object — ==
+				if (item == null || !LocalUseItemEligibility.IsUseItem(item)) // Unity object — ==
 				{
 					continue;
 				}
@@ -454,97 +454,6 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains)
 		}
 
 		return false;
-	}
-
-	private static bool HasLocalUseItemChild(Transform parent)
-	{
-		for (var c = 0; c < parent.childCount; c++)
-		{
-			var item = parent.GetChild(c).GetComponent<Item>();
-			if (item != null && IsLocalUseItem(item)) // Unity object — ==
-			{
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-	private static bool IsLocalUseItem(Item item)
-	{
-		if (item == null || item.condition <= 0f) // Unity object — ==
-		{
-			return false;
-		}
-
-		if (RemoteWearCatalog.IsWearItem(item.id))
-		{
-			return true;
-		}
-
-		if (RemoteConsumeCatalog.IsFoodItem(item.id))
-		{
-			return true;
-		}
-
-		if (RemoteMedicineCatalog.IsInjectableItem(item.id))
-		{
-			var medicine = item.GetComponent<WaterContainerItem>();
-			if (medicine == null || medicine.CurrentTotal <= 0f) // Unity object — ==
-			{
-				return false;
-			}
-
-			foreach (var liquid in medicine.stack)
-			{
-				if (!RemoteMedicineCatalog.IsSupportedMedicineLiquid(liquid.liquidId))
-				{
-					return false;
-				}
-			}
-
-			return true;
-		}
-
-		if (RemoteTopicalCatalog.IsTopicalItem(item.id))
-		{
-			var topical = item.GetComponent<WaterContainerItem>();
-			if (topical == null || topical.CurrentTotal <= 0f) // Unity object — ==
-			{
-				return false;
-			}
-
-			foreach (var liquid in topical.stack)
-			{
-				if (!RemoteTopicalCatalog.IsSupportedTopicalLiquid(liquid.liquidId))
-				{
-					return false;
-				}
-			}
-
-			return true;
-		}
-
-		if (RemoteLimbToolCatalog.IsToolItem(item.id))
-		{
-			return true;
-		}
-
-		var water = item.GetComponent<WaterContainerItem>();
-		if (water == null || water.CurrentTotal <= 0f) // Unity object — ==
-		{
-			return false;
-		}
-
-		foreach (var liquid in water.stack)
-		{
-			if (!RemoteConsumeCatalog.IsKnownLiquid(liquid.liquidId))
-			{
-				return false;
-			}
-		}
-
-		return true;
 	}
 
 	private static Item? FindCarriedItemById(Body body, ulong instanceId)

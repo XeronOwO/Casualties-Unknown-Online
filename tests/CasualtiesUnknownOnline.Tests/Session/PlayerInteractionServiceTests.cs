@@ -1308,4 +1308,101 @@ public class PlayerInteractionServiceTests
 		Assert.Empty(result.TimedEffects);
 	}
 
+	[Fact]
+	public void Guest_UsesAntiradOnHost_CarriesTimedBodyEffectAndDrains()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		var items = host.Services.GetRequiredService<IItemControl>();
+		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, conscious: true));
+		var antirad = MedicineBottle(42, "antirad", "antirad", amount: 100f);
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, antirad));
+		items.AdoptTransferredItem(GuestId, 42, antirad);
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendUseRequest(HostId, 42);
+
+		var frame = received.Single(r => r.Msg == NetMsg.PlayerItemUseResult).Frame;
+		var result = NetPacket.DecodePayload<PlayerItemUseResultMsg>(frame);
+		Assert.Equal(GuestId, result.UserSteamId);
+		Assert.Equal(HostId, result.TargetSteamId);
+		Assert.False(result.ItemDestroyed);
+		Assert.NotNull(result.ItemAfter);
+		Assert.True(Math.Abs(result.ItemAfter!.Liquids.Single().Amount - 80f) < 0.001f);
+
+		var timedBody = Assert.Single(result.TimedBodyEffects);
+		Assert.Equal("antirad", timedBody.EffectId);
+		Assert.True(Math.Abs(timedBody.DurationSeconds - 90f) < 0.001f);
+		Assert.Empty(result.TimedEffects);
+	}
+
+	[Fact]
+	public void Guest_UsesSleepingPillsOnHost_AddsComponentAmount()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		var items = host.Services.GetRequiredService<IItemControl>();
+		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, conscious: true));
+		var sleepingPills = MedicineBottle(42, "sleepingpills", "sleepingpills", amount: 25f);
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, sleepingPills));
+		items.AdoptTransferredItem(GuestId, 42, sleepingPills);
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendUseRequest(HostId, 42);
+
+		var frame = received.Single(r => r.Msg == NetMsg.PlayerItemUseResult).Frame;
+		var result = NetPacket.DecodePayload<PlayerItemUseResultMsg>(frame);
+		Assert.Equal(HostId, result.TargetSteamId);
+		Assert.True(Math.Abs(result.Health!.SleepingPillsAmount - 300f) < 0.001f);
+
+		var hostData = characters.GetHostCharacterData()!;
+		Assert.True(Math.Abs(hostData.Health!.SleepingPillsAmount - 300f) < 0.001f);
+	}
+
+	[Fact]
+	public void Guest_UsesMindwipeOnUnhappyHost_AppliesMindwipeScript()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		var items = host.Services.GetRequiredService<IItemControl>();
+		var hostSnapshot = SnapshotWithLimbs(HostId, conscious: true);
+		hostSnapshot.Health!.Happiness = -60f;
+		hostSnapshot.Health.BrainHealth = 50f;
+		hostSnapshot.Health.StrokeAmount = 10f;
+		characters.SaveHostCharacterData(hostSnapshot);
+		var mindwipe = MedicineBottle(42, "mindwipe", "mindwipe", amount: 60f);
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, mindwipe));
+		items.AdoptTransferredItem(GuestId, 42, mindwipe);
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendUseRequest(HostId, 42);
+
+		var frame = received.Single(r => r.Msg == NetMsg.PlayerItemUseResult).Frame;
+		var result = NetPacket.DecodePayload<PlayerItemUseResultMsg>(frame);
+		Assert.True(result.Health!.MindwipeScriptPresent);
+		Assert.False(result.Health.MindwipeScriptActive);
+
+		var hostData = characters.GetHostCharacterData()!;
+		Assert.True(hostData.Health!.MindwipeScriptPresent);
+	}
+
+	[Fact]
+	public void Use_MindwipeOnMentallyHealthyHost_IsRefused()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		var hostSnapshot = Snapshot(HostId, conscious: true);
+		hostSnapshot.Health!.Happiness = 0f;
+		hostSnapshot.Health.BrainHealth = 95f;
+		hostSnapshot.Health.StrokeAmount = 0f;
+		characters.SaveHostCharacterData(hostSnapshot);
+		var mindwipe = MedicineBottle(42, "mindwipe", "mindwipe", amount: 60f);
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, mindwipe));
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendUseRequest(HostId, 42);
+
+		Assert.DoesNotContain(received, r => r.Msg == NetMsg.PlayerItemUseResult);
+		Assert.Contains(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);
+	}
 }

@@ -130,6 +130,75 @@ internal static class TimedBodyEffectApply
 					}, effect.DurationSeconds);
 					break;
 
+				case "antirad":
+					CoUtils.instance.DoTimedOp("antirad", () =>
+					{
+						body.radiationSickness -= 0.2f;
+						if (CoUtils.instance.DurationOf("antirad") > 180f)
+						{
+							body.sicknessAmount += 0.6f;
+							if (body.limbs.Length > 1)
+							{
+								body.limbs[1].pain += 1.5f;
+							}
+
+							body.overdoseIndex = 3;
+						}
+					}, effect.DurationSeconds);
+					break;
+
+				case "naltrexone":
+					{
+						var dose = effect.DoseMl * 0.05f;
+						if (Random.value < 0.15f * dose)
+						{
+							body.vomiter.Vomit();
+						}
+
+						CoUtils.instance.DoTimedOp("naltrexone", () =>
+						{
+							body.sicknessAmount -= 1f;
+						}, effect.DurationSeconds);
+						break;
+					}
+
+				case "braingrow":
+					{
+						var twentyMl = effect.DoseMl * 0.05f;
+						if (body.brainGrowSickness > 0f || effect.DoseMl > 40f)
+						{
+							body.shock = twentyMl * 10f;
+							body.Ragdoll();
+						}
+
+						if (Random.value < twentyMl * 0.5f)
+						{
+							body.vomiter.Vomit();
+						}
+
+						CoUtils.instance.DoTimedOp("braingrow", () =>
+						{
+							if (body.alive)
+							{
+								body.brainHealth += 0.1f * twentyMl;
+								body.strokeAmount -= 1.5f;
+							}
+						}, effect.DurationSeconds);
+						break;
+					}
+
+				case "antidepressants":
+					{
+						var antidepressants = body.GetComponent<Antidepressants>();
+						if (antidepressants == null) // Unity object — ==
+						{
+							antidepressants = body.gameObject.AddComponent<Antidepressants>();
+						}
+
+						antidepressants.TakeDose(effect.DoseMl * 5f);
+						break;
+					}
+
 				default:
 					log.LogWarning("[ItemUse] timed body effect skipped: unknown effect {Effect}.", effect.EffectId);
 					continue;

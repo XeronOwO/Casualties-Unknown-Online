@@ -290,6 +290,73 @@ public sealed class OnlineUiMemberProjectionTests
 	}
 
 	[Fact]
+	public void DeadMemberExposesDeadStatusFlag()
+	{
+		var vitals = new Dictionary<ulong, RemoteVitalsSnapshot>
+		{
+			[Remote] = RemoteVitalsSnapshot.From(new CharacterHealthMsg { Alive = false, Conscious = false })!,
+		};
+
+		var rows = Build(
+			[Local, Remote],
+			[Presence(Remote, handshaken: true, inWorld: true)],
+			new FakeInteraction(),
+			canAdmin: false,
+			localInWorld: true,
+			hasHealItem: false,
+			getVitals: id => vitals.TryGetValue(id, out var v) ? v : null);
+
+		Assert.True(rows[1].IsDead);
+		Assert.False(rows[1].IsUnconscious);
+		Assert.False(rows[1].IsCarryingSomeone);
+		Assert.False(rows[1].IsCarried);
+	}
+
+	[Fact]
+	public void UnconsciousMemberExposesUnconsciousStatusFlag()
+	{
+		var vitals = new Dictionary<ulong, RemoteVitalsSnapshot>
+		{
+			[Remote] = RemoteVitalsSnapshot.From(new CharacterHealthMsg { Alive = true, Conscious = false })!,
+		};
+
+		var rows = Build(
+			[Local, Remote],
+			[Presence(Remote, handshaken: true, inWorld: true)],
+			new FakeInteraction(),
+			canAdmin: false,
+			localInWorld: true,
+			hasHealItem: false,
+			getVitals: id => vitals.TryGetValue(id, out var v) ? v : null);
+
+		Assert.False(rows[1].IsDead);
+		Assert.True(rows[1].IsUnconscious);
+	}
+
+	[Fact]
+	public void CarryRelationExposesCarryingAndCarriedFlags()
+	{
+		var interaction = new FakeInteraction
+		{
+			CarriedByRemote = Other,
+			CarrierOfRemote = Other,
+		};
+
+		var rows = Build(
+			[Local, Remote],
+			[Presence(Remote, handshaken: true, inWorld: false)],
+			interaction,
+			canAdmin: false,
+			localInWorld: false,
+			hasHealItem: false);
+
+		Assert.True(rows[1].IsCarryingSomeone);
+		Assert.True(rows[1].IsCarried);
+		Assert.False(rows[1].IsDead);
+		Assert.False(rows[1].IsUnconscious);
+	}
+
+	[Fact]
 	public void BannedMemberIsMarked()
 	{
 		var banList = new FakeBanService { Banned = [Remote] };
@@ -344,6 +411,8 @@ public sealed class OnlineUiMemberProjectionTests
 	{
 		public ulong? CarriedByLocal;
 		public ulong? CarrierOfLocal;
+		public ulong? CarriedByRemote;
+		public ulong? CarrierOfRemote;
 
 		public void SendTakeRequest(ulong ownerSteamId, ulong itemInstanceId)
 		{
@@ -402,6 +471,12 @@ public sealed class OnlineUiMemberProjectionTests
 				return true;
 			}
 
+			if (carriedSteamId == Remote && CarrierOfRemote is { } remoteCarrier)
+			{
+				carrierSteamId = remoteCarrier;
+				return true;
+			}
+
 			return false;
 		}
 
@@ -411,6 +486,12 @@ public sealed class OnlineUiMemberProjectionTests
 			if (carrierSteamId == Local && CarriedByLocal is { } carried)
 			{
 				carriedSteamId = carried;
+				return true;
+			}
+
+			if (carrierSteamId == Remote && CarriedByRemote is { } remoteCarried)
+			{
+				carriedSteamId = remoteCarried;
 				return true;
 			}
 

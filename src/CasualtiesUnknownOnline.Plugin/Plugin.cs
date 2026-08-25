@@ -50,6 +50,9 @@ public class Plugin : BaseUnityPlugin
 	private IModUiControl _modUiControl = null!;
 	private IGameAdapter? _adapter;
 	private ConfigEntry<string> _targetLobbyId = null!;
+	private ConfigEntry<string> _createLobbyKey = null!;
+	private ConfigEntry<string> _joinLobbyKey = null!;
+	private ConfigEntry<string> _pingPeerKey = null!;
 	private ulong? _pendingJoinLobbyId;
 	private string? _lastJoinError;
 	private OnlineUiOverlay _onlineUi = null!;
@@ -150,6 +153,16 @@ public class Plugin : BaseUnityPlugin
 
 			_targetLobbyId = Config.Bind("Session", "TargetLobbyId", "",
 				"Lobby ID to join with F9 (printed by the host on F8). Leave empty to host only.");
+
+			// Co-op session hotkeys (configurable): values are UnityEngine.KeyCode
+			// names, so players on non-standard layouts can rebind them in the
+			// BepInEx config without touching code.
+			_createLobbyKey = Config.Bind("Session", "CreateLobbyKey", "F8",
+				"Hotkey to create a Steam lobby / retry Steam init. See UnityEngine.KeyCode names.");
+			_joinLobbyKey = Config.Bind("Session", "JoinLobbyKey", "F9",
+				"Hotkey to join the TargetLobbyId with Steam.");
+			_pingPeerKey = Config.Bind("Session", "PingPeerKey", "F7",
+				"Hotkey to ping the connected peer.");
 
 			// Steam friends "Join Game" with the game not running launches it
 			// with "+connect_lobby <id>" on the command line. GameLobbyJoinRequested_t
@@ -256,7 +269,7 @@ public class Plugin : BaseUnityPlugin
 
 		if (_steam is { } steam)
 		{
-			if (Input.GetKeyDown(KeyCode.F8))
+			if (HotkeyPressed(_createLobbyKey))
 			{
 				// Retry path: if load-time init failed (Steam not running yet),
 				// F8 re-attempts initialization, then creates the lobby — or
@@ -277,7 +290,7 @@ public class Plugin : BaseUnityPlugin
 					}
 				}
 			}
-			else if (Input.GetKeyDown(KeyCode.F9))
+			else if (HotkeyPressed(_joinLobbyKey))
 			{
 				if (EnsureSteamReady(steam)
 					&& CanSwitchLobbyForJoin()
@@ -286,11 +299,19 @@ public class Plugin : BaseUnityPlugin
 					steam.JoinLobby(lobbyId);
 				}
 			}
-			else if (Input.GetKeyDown(KeyCode.F7))
+			else if (HotkeyPressed(_pingPeerKey))
 			{
 				_session.RequestPing();
 			}
 		}
+	}
+
+	/// <summary>Returns true when the configured hotkey string maps to a valid Unity KeyCode and that key was pressed this frame.</summary>
+	private bool HotkeyPressed(ConfigEntry<string> entry)
+	{
+		return Enum.TryParse<KeyCode>(entry.Value, ignoreCase: true, out var key)
+			&& Enum.IsDefined(typeof(KeyCode), key)
+			&& Input.GetKeyDown(key);
 	}
 
 	// Forwards one lifecycle stage to a service; a failing service is logged

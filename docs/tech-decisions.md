@@ -2871,3 +2871,22 @@ containers.
   `PlayerInteractionServiceTests` +2 cases; full suite green,
   build/format/architecture/event gates pass. See
   `docs/selfchecks/cross-player-topical-use-selfcheck.md`.
+
+## #101 Member status icons + configurable session hotkeys
+
+Closed 2026-08-25 from the lower-priority KrokMP candidate list.
+
+- **Member status icons** — `OnlineUiMemberRow` now projects `IsDead`,
+  `IsUnconscious`, `IsCarryingSomeone` and `IsCarried` from the same cached
+  vitals and carry-relation surfaces already used for action eligibility, and
+  `OnlineUiMemberListDrawer` appends localized `[dead]` / `[unconscious]` /
+  `[carrying]` / `[carried]` tags to every member status line. No wire/protocol
+  change; pure read-only UI projection.
+- **Co-op session keybinds** — the hardcoded `F8`/`F9`/`F7` session hotkeys are
+  now BepInEx `[Session]` config entries (`CreateLobbyKey`, `JoinLobbyKey`,
+  `PingPeerKey`) accepting `UnityEngine.KeyCode` names. An invalid/unknown
+  value disables that hotkey rather than failing; defaults preserve the
+  historical keys. No wire/protocol change.
+- **Tests/gates** — `OnlineUiMemberProjectionTests` +3 status-flag cases; full
+  suite green, build/format/architecture gates pass. See
+  `docs/selfchecks/member-status-icons-and-session-hotkeys-selfcheck.md`.

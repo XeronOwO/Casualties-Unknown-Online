@@ -70,6 +70,18 @@ public sealed class OnlineUiMemberRow
 	/// <summary>True when this member is on the host's persisted ban list.</summary>
 	public bool IsBanned { get; init; }
 
+	/// <summary>True when this member's cached vitals show a dead body.</summary>
+	public bool IsDead { get; init; }
+
+	/// <summary>True when this member is alive but unconscious.</summary>
+	public bool IsUnconscious { get; init; }
+
+	/// <summary>True when this member is carrying another player.</summary>
+	public bool IsCarryingSomeone { get; init; }
+
+	/// <summary>True when this member is currently carried by another player.</summary>
+	public bool IsCarried { get; init; }
+
 	/// <summary>The member's inventory snapshot, or null when no snapshot is cached yet.</summary>
 	public IReadOnlyList<RemoteInventoryEntry>? Inventory { get; init; }
 

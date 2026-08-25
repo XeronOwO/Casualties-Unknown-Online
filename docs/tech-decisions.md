@@ -2759,3 +2759,31 @@ heal.
   two new messages; full suite 1386 green,
   build/format/architecture/event gates pass. See
   `docs/selfchecks/cross-player-item-use-selfcheck.md`.
+
+## 97. Piggyback (conscious-alive ride) + carried-player release
+
+The closed carry relation is extended with the first piggyback slice: a
+conscious/alive teammate can ride on another player's back using the same
+one-carrier/one-carried relation and body-driver presentation, and the carried
+player can also request release.
+
+- **No new NetMsg / protocol bump** — only an additive `Piggyback` field on
+  `PlayerCarryStartRequestMsg` (ProtoMember 2). Classic carry semantics stay
+  unchanged for old peers (default false = unconscious/dead only).
+- **Host gate** — `PlayerCarryService.HandleCarryStartRequest` branches on the
+  mode: classic carry still requires an unconscious/dead target; piggyback
+  requires a conscious/alive target and a conscious/alive carrier. Both modes
+  share the same host-owned carry tables, `PlayerCarryStateMsg` broadcast and
+  the existing `CarriedBodyDriver` follow presentation.
+- **Release by carried** — `HandleCarryStopRequest` now accepts the carried
+  player as the requester, so a rider can get down without asking the carrier.
+  The Online UI shows a `Get down` button on the local row when the local
+  player is being carried.
+- **UI** — Players page and in-world right-click menu expose a `Piggyback`
+  button for conscious/alive remotes; eligibility lives in
+  `OnlineUiMemberProjection` (`CanPiggyback`, `CanRequestDrop`). English and
+  Simplified Chinese labels added.
+- **Tests/gates** — `PlayerInteractionServiceTests` +4 cases,
+  `OnlineUiMemberProjectionTests` +3 cases; full suite 1393 green,
+  build/format/architecture/event gates pass. See
+  `docs/selfchecks/piggyback-releasable-carry-selfcheck.md`.

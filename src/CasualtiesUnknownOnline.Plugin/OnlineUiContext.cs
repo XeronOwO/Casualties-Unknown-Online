@@ -68,6 +68,9 @@ internal sealed class OnlineUiContext
 
 	internal Func<ulong, bool>? CarryRemote;
 
+
+	internal Func<ulong, bool>? PiggybackRemote;
+
 	internal Func<ulong, bool>? DropCarried;
 
 	internal Func<ulong, bool>? HealRemote;

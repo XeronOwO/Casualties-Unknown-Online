@@ -88,6 +88,11 @@ internal sealed class OnlineUiPlayerContextMenu
 			Close();
 		}
 
+		if (row.CanPiggyback && ActionButton(ctx.T("member.piggyback"), () => ctx.PiggybackRemote?.Invoke(row.SteamId)))
+		{
+			Close();
+		}
+
 		if (row.CanDrop && ActionButton(ctx.T("member.drop"), () => ctx.DropCarried?.Invoke(row.SteamId)))
 		{
 			Close();
@@ -161,6 +166,11 @@ internal sealed class OnlineUiPlayerContextMenu
 	{
 		var count = 1; // the always-available "view items" fallback
 		if (row.CanCarry)
+		{
+			count++;
+		}
+
+		if (row.CanPiggyback)
 		{
 			count++;
 		}

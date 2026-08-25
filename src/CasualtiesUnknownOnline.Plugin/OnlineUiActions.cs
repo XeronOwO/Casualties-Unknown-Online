@@ -44,6 +44,17 @@ internal sealed class OnlineUiActions(
 		return true;
 	}
 
+	public bool PiggybackRemoteFromUi(ulong targetSteamId)
+	{
+		if (!_session.SessionActive)
+		{
+			return false;
+		}
+
+		_playerInteraction.SendPiggybackRequest(targetSteamId);
+		return true;
+	}
+
 	public bool DropCarryFromUi(ulong carriedSteamId)
 	{
 		if (!_session.SessionActive)

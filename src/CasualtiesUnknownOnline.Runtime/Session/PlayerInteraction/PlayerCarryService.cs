@@ -8,11 +8,15 @@ using Microsoft.Extensions.Logging;
 namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 
 /// <summary>
-/// The cross-player carry/release operation and the host-owned carry relation.
-/// The host validates against its authoritative character snapshots, records
-/// one carrier/one carried relation, and broadcasts the authoritative state so
-/// the carried player's own client follows the carrier. Guests keep the same
-/// relation mirror from the broadcast. Session lifecycle cleanup is owned here.
+/// The cross-player carry/piggyback operation and the host-owned carry
+/// relation. Classic carry picks up an unconscious/dead body; the piggyback
+/// mode lets a conscious/alive teammate ride on another player's back (same
+/// one-carrier/one-carried relation and body-driver presentation). The host
+/// validates against its authoritative character snapshots, records the
+/// relation, and broadcasts the authoritative state so the carried player's own
+/// client follows the carrier. Both the carrier and the carried player may
+/// request release. Guests keep the same relation mirror from the broadcast.
+/// Session lifecycle cleanup is owned here.
 /// </summary>
 internal sealed class PlayerCarryService : IDisposable
 {
@@ -46,15 +50,26 @@ internal sealed class PlayerCarryService : IDisposable
 		_session.RemoteSceneChanged += OnRemoteSceneChanged;
 	}
 
-	/// <summary>Online UI entry: the local player starts carrying another player.</summary>
-	public void SendCarryStartRequest(ulong targetSteamId)
+	/// <summary>Online UI entry: the local player starts carrying an unconscious/dead player.</summary>
+	public void SendCarryStartRequest(ulong targetSteamId) =>
+		SendStartRequest(targetSteamId, piggyback: false);
+
+	/// <summary>Online UI entry: the local player starts a conscious-alive piggyback ride.</summary>
+	public void SendPiggybackRequest(ulong targetSteamId) =>
+		SendStartRequest(targetSteamId, piggyback: true);
+
+	private void SendStartRequest(ulong targetSteamId, bool piggyback)
 	{
 		if (!_session.SessionActive || !_session.LocalInWorld)
 		{
 			return;
 		}
 
-		var msg = new PlayerCarryStartRequestMsg { TargetSteamId = targetSteamId };
+		var msg = new PlayerCarryStartRequestMsg
+		{
+			TargetSteamId = targetSteamId,
+			Piggyback = piggyback,
+		};
 		if (_session.Role == SessionRole.Host)
 		{
 			HandleCarryStartRequest(_session.LocalSteamId, msg);
@@ -65,7 +80,7 @@ internal sealed class PlayerCarryService : IDisposable
 		}
 	}
 
-	/// <summary>Online UI entry: the local player releases the player they carry.</summary>
+	/// <summary>Online UI entry: the local player releases the player they carry (or themselves from a carrier).</summary>
 	public void SendCarryStopRequest(ulong carriedSteamId)
 	{
 		if (!_session.SessionActive || !_session.LocalInWorld)
@@ -84,7 +99,7 @@ internal sealed class PlayerCarryService : IDisposable
 		}
 	}
 
-	/// <summary>Host only: a carry-start request arrived — the guest→host wire and the host's own UI share this path.</summary>
+	/// <summary>Host only: a carry/piggyback start request arrived — the guest→host wire and the host's own UI share this path.</summary>
 	public void HandleCarryStartRequest(ulong sender, PlayerCarryStartRequestMsg msg)
 	{
 		if (_session.Role != SessionRole.Host || !_session.SessionActive || !_session.LocalInWorld)
@@ -105,12 +120,25 @@ internal sealed class PlayerCarryService : IDisposable
 			return;
 		}
 
-		// Cooperative default: only an unconscious or dead body can be carried.
-		// The Online UI surfaces the button only in that state; the host
-		// re-checks the authoritative snapshot here.
 		var target = _characters.GetCharacterData(carried);
-		if (target?.Health is not { } health || (health.Conscious && health.Alive))
+		if (target?.Health is not { } health)
 		{
+			_log.LogWarning("[Carry] refused: {Carried} has no authoritative health snapshot.", carried);
+			return;
+		}
+
+		if (msg.Piggyback)
+		{
+			if (!health.Conscious || !health.Alive)
+			{
+				_log.LogInformation("[Piggyback] refused: {Carried} is not conscious/alive and cannot ride.", carried);
+				return;
+			}
+		}
+		else if (health.Conscious && health.Alive)
+		{
+			// Cooperative default: the classic carry remains for unconscious/dead
+			// bodies; conscious-alive targets use the piggyback mode instead.
 			_log.LogInformation("[Carry] refused: {Carried} is conscious/alive and not carryable.", carried);
 			return;
 		}
@@ -131,7 +159,7 @@ internal sealed class PlayerCarryService : IDisposable
 
 		_carriedBy[carried] = carrier;
 		_carrying[carrier] = carried;
-		_log.LogInformation("[Carry] {Carrier} starts carrying {Carried}.", carrier, carried);
+		_log.LogInformation("[Carry] {Carrier} starts carrying {Carried} (piggyback={Piggyback}).", carrier, carried, msg.Piggyback);
 		PublishCarryState(new PlayerCarryStateMsg
 		{
 			CarrierSteamId = carrier,
@@ -139,7 +167,7 @@ internal sealed class PlayerCarryService : IDisposable
 		});
 	}
 
-	/// <summary>Host only: a carry-stop request arrived.</summary>
+	/// <summary>Host only: a carry-stop request arrived. The requester may be the carrier or the carried player.</summary>
 	public void HandleCarryStopRequest(ulong sender, PlayerCarryStopRequestMsg msg)
 	{
 		if (_session.Role != SessionRole.Host || !_session.SessionActive || !_session.LocalInWorld)
@@ -147,22 +175,42 @@ internal sealed class PlayerCarryService : IDisposable
 			return;
 		}
 
-		var carrier = sender;
 		var carried = msg.CarriedSteamId;
-		if (carrier == 0 || carried == 0 || !_carrying.TryGetValue(carrier, out var current) || current != carried)
+		var carrier = ResolveStopCarrier(sender, carried);
+		if (carrier == 0)
 		{
-			_log.LogWarning("[Carry] stop refused: {Carrier} is not carrying {Carried}.", carrier, carried);
+			_log.LogWarning("[Carry] stop refused: {Sender} is not allowed to end the relation with {Carried}.", sender, carried);
 			return;
 		}
 
 		_carriedBy.Remove(carried);
 		_carrying.Remove(carrier);
-		_log.LogInformation("[Carry] {Carrier} stops carrying {Carried}.", carrier, carried);
+		_log.LogInformation("[Carry] {Carrier} stops carrying {Carried} (requested by {Sender}).", carrier, carried, sender);
 		PublishCarryState(new PlayerCarryStateMsg
 		{
 			CarrierSteamId = carrier,
 			CarriedSteamId = 0,
 		});
+	}
+
+	private ulong ResolveStopCarrier(ulong sender, ulong carried)
+	{
+		if (carried == 0)
+		{
+			return 0;
+		}
+
+		if (_carrying.TryGetValue(sender, out var currentCarried) && currentCarried == carried)
+		{
+			return sender;
+		}
+
+		if (_carriedBy.TryGetValue(sender, out var currentCarrier) && sender == carried)
+		{
+			return currentCarrier;
+		}
+
+		return 0;
 	}
 
 	/// <summary>Wire handler path: a carry-state broadcast arrived — update the local mirror and surface it for the Game Adapter/UI.</summary>

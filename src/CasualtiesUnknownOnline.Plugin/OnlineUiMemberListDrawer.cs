@@ -129,7 +129,15 @@ internal static class OnlineUiMemberListDrawer
 
 	private static void DrawWorldActions(OnlineUiContext ctx, OnlineUiMemberRow row)
 	{
-		var hasAction = row.IsCarryingThis || row.CanCarry || row.CanHeal || row.CanUseItem || row.CanRecruit || row.CanTake;
+		var hasAction = row.IsCarryingThis
+			|| row.CanCarry
+			|| row.CanPiggyback
+			|| row.CanDrop
+			|| row.CanRequestDrop
+			|| row.CanHeal
+			|| row.CanUseItem
+			|| row.CanRecruit
+			|| row.CanTake;
 		if (!hasAction)
 		{
 			return;
@@ -141,7 +149,17 @@ internal static class OnlineUiMemberListDrawer
 			ctx.CarryRemote?.Invoke(row.SteamId);
 		}
 
+		if (row.CanPiggyback && GUILayout.Button(ctx.T("member.piggyback"), OnlineUiTheme.Button(), GUILayout.Width(90f)))
+		{
+			ctx.PiggybackRemote?.Invoke(row.SteamId);
+		}
+
 		if (row.CanDrop && GUILayout.Button(ctx.T("member.drop"), OnlineUiTheme.Button(), GUILayout.Width(70f)))
+		{
+			ctx.DropCarried?.Invoke(row.SteamId);
+		}
+
+		if (row.CanRequestDrop && GUILayout.Button(ctx.T("member.get_down"), OnlineUiTheme.Button(), GUILayout.Width(90f)))
 		{
 			ctx.DropCarried?.Invoke(row.SteamId);
 		}

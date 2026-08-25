@@ -37,8 +37,14 @@ public sealed class OnlineUiMemberRow
 	/// <summary>True when this member is unconscious/dead and can be carried by the local player.</summary>
 	public bool CanCarry { get; init; }
 
+	/// <summary>True when this member is conscious/alive and can ride on the local player's back.</summary>
+	public bool CanPiggyback { get; init; }
+
 	/// <summary>True when the local player is carrying this member and can drop it.</summary>
 	public bool CanDrop { get; init; }
+
+	/// <summary>True when the local player is being carried by someone and can request to get down.</summary>
+	public bool CanRequestDrop { get; init; }
 
 	/// <summary>True when the local player can request a heal on this in-world member.</summary>
 	public bool CanHeal { get; init; }

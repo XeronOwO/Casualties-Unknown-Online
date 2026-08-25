@@ -37,6 +37,12 @@ in-world right-click context menu remains the transient cursor-based entry.
   calls `OnlineUiOverlay.OpenQuickPanelFor`, pinning the quick panel to the
   right-clicked remote and expanding its inventory, instead of opening the full
   Online window.
+- **Carried release** — the panel also shows a "Get down" button when the local
+  player is the carried rider, so the standalone UI can release a piggyback
+  without switching to the full Players page.
+- **Item use** — no static `Use` / `Use with` buttons in the panel; cross-player
+  item use is now KrokMP-style drag-release over the remote body
+  (`CrossPlayerDragUse` + `PlayerCameraDragUsePatch`).
 - **No protocol change** — no new `NetMsg`, no `ProtocolVersion` bump, no
   event/item/entity matrix row touched.
 

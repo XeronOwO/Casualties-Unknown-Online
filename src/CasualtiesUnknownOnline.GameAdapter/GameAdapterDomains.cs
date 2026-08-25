@@ -84,6 +84,7 @@ internal sealed class GameAdapterDomains
 	internal readonly EnemyProximitySync EnemyProximity;
 	internal readonly TutorialClawSync TutorialClawSync;
 	internal readonly IPlayerInteractionControl PlayerInteraction;
+	internal readonly CrossPlayerDragUse DragUse;
 	internal readonly CharacterSoundSync CharacterSoundSync;
 	internal readonly CharacterAttackAnimSync CharacterAttackAnimSync;
 	internal readonly CharacterLandingVisualSync CharacterLandingVisualSync;
@@ -187,5 +188,6 @@ internal sealed class GameAdapterDomains
 		Run = new RunCoordinator(session, world, entities, CharacterDataSync, GuestMenu, WorldParams, arbitration, loggerFactory.CreateLogger<RunCoordinator>());
 		Gate = new StartGateCoordinator(session, world, LifePod, Run, loggerFactory.CreateLogger<StartGateCoordinator>());
 		WorldTimeSync = new WorldTimeSync(session, entities, characterData, Run, Gate, worldTime, loggerFactory.CreateLogger<WorldTimeSync>());
+		DragUse = new CrossPlayerDragUse(this);
 	}
 }

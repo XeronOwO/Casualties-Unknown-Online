@@ -40,9 +40,12 @@ cross-player heal slice.
   consumes/updates/destroys its item (including liquid stack + condition) or
   applies the target post-use health/limbs inside `RemoteApply`, then
   re-reports the character snapshot immediately.
-- Online UI: a “Use” button plus explicit per-item buttons for drink/food on
-  the Players page and the in-world right-click context menu. Eligibility is
-  projected through the same `OnlineUiMemberProjection` rules as heal.
+- Online UI entry: KrokMP-style drag/overlap release — when the local player
+  drags a usable inventory item and releases it over an in-world remote player's
+  authoritative body position, `CrossPlayerDragUse` routes the existing
+  cross-player use request and the native drop is skipped. The static “Use” /
+  “Use with” buttons were removed from the Players page and right-click context
+  menu because they did not match the intended interaction.
 
 ## 3. Self-check table (mechanism × change × evidence)
 

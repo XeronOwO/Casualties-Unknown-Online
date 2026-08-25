@@ -267,10 +267,6 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 
 	System.Collections.Generic.IReadOnlyList<LocalHealItem> IGameAdapter.GetLocalHealItems() => _playerInteraction.GetLocalHealItems();
 
-	bool IGameAdapter.HasLocalUseItem() => _playerInteraction.HasLocalUseItem();
-
-	System.Collections.Generic.IReadOnlyList<LocalUseItem> IGameAdapter.GetLocalUseItems() => _playerInteraction.GetLocalUseItems();
-
 	bool IGameAdapter.TryRequestTraderRecruit(ulong targetSteamId) => _domains.TraderRecruit.TryRequest(targetSteamId);
 
 	void IGameAdapter.SetOnlineUiModal(bool visible) => _domains.MenuInput.SetModal(visible);

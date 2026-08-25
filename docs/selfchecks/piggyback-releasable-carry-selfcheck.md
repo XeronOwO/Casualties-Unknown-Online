@@ -25,6 +25,10 @@ player can also request release. Push remains future work.
   - classic carry = target must be unconscious or dead (unchanged);
   - piggyback = target must be conscious and alive, carrier must be
     conscious/alive, and neither side may already be in a carry relation.
+- **Direction** — `SendPiggybackRequest(target)` means the local player climbs
+  onto `target`'s back: `target` becomes the carrier and the requester becomes
+  the carried rider, matching KrokMP's "Climb on their back." Classic carry
+  remains requester-carries-target.
 - **Same relation/broadcast.** Both modes write the same carry tables and
   broadcast the same `PlayerCarryStateMsg`; `CarriedBodyDriver` already gives
   the ride presentation without a second network surface.

@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Runtime.OnlineUi;
@@ -194,11 +193,6 @@ internal sealed class OnlineUiPlayerContextMenu
 			actions.Add(new MenuAction(ctx.T("member.heal"), () => ctx.HealRemote?.Invoke(row.SteamId)));
 		}
 
-		if (row.CanUseItem)
-		{
-			actions.Add(new MenuAction(ctx.T("member.use"), () => ctx.UseItemOnRemote?.Invoke(row.SteamId)));
-		}
-
 		if (row.CanPush)
 		{
 			actions.Add(new MenuAction(ctx.T("member.push"), () => ctx.PushRemote?.Invoke(row.SteamId)));
@@ -224,13 +218,6 @@ internal sealed class OnlineUiPlayerContextMenu
 			actions.Add(new MenuAction(ctx.F("member.heal_with", itemId), () => ctx.HealWithItem?.Invoke(row.SteamId, instanceId)));
 		}
 
-		foreach (var item in row.UseItems)
-		{
-			var itemId = item.ItemId;
-			var instanceId = item.InstanceId;
-			actions.Add(new MenuAction(ctx.F("member.use_with", itemId), () => ctx.UseItemOnRemoteWith?.Invoke(row.SteamId, instanceId)));
-		}
-
 		return actions;
 	}
 
@@ -249,13 +236,10 @@ internal sealed class OnlineUiPlayerContextMenu
 
 	private static GUIStyle MenuButton()
 	{
-		if (_menuButton is null)
-		{
-			_menuButton = new GUIStyle(OnlineUiTheme.Button())
+		_menuButton ??= new GUIStyle(OnlineUiTheme.Button())
 			{
 				margin = new RectOffset(0, 0, 0, 0),
 			};
-		}
 
 		return _menuButton;
 	}

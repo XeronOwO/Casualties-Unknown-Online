@@ -131,32 +131,6 @@ public sealed class OnlineUiMemberProjectionTests
 	}
 
 	[Fact]
-	public void AliveConsciousRemoteCanReceiveConsumableWhenLocalHasUseItem()
-	{
-		var vitals = new Dictionary<ulong, RemoteVitalsSnapshot>
-		{
-			[Remote] = RemoteVitalsSnapshot.From(new CharacterHealthMsg { Alive = true, Conscious = true })!,
-		};
-		var useItems = new List<LocalUseItem> { new(22, "waterbottle") };
-
-		var rows = Build(
-			[Local, Remote],
-			[Presence(Remote, handshaken: true, inWorld: true)],
-			new FakeInteraction(),
-			canAdmin: false,
-			localInWorld: true,
-			hasHealItem: false,
-			getVitals: id => vitals.TryGetValue(id, out var v) ? v : null,
-			hasUseItem: true,
-			useItems: useItems);
-
-		Assert.True(rows[1].CanUseItem);
-		Assert.Single(rows[1].UseItems);
-		Assert.Equal(22UL, rows[1].UseItems[0].InstanceId);
-		Assert.False(rows[1].CanHeal);
-	}
-
-	[Fact]
 	public void DeadRemoteCanBeRecruitedButNotHealed()
 	{
 		var vitals = new Dictionary<ulong, RemoteVitalsSnapshot>
@@ -211,6 +185,26 @@ public sealed class OnlineUiMemberProjectionTests
 
 		Assert.True(rows[1].CanPiggyback);
 		Assert.False(rows[1].CanCarry);
+	}
+
+	[Fact]
+	public void CarriedLocalCannotPiggybackRemote()
+	{
+		var vitals = new Dictionary<ulong, RemoteVitalsSnapshot>
+		{
+			[Remote] = RemoteVitalsSnapshot.From(new CharacterHealthMsg { Alive = true, Conscious = true })!,
+		};
+
+		var rows = Build(
+			[Local, Remote],
+			[Presence(Remote, handshaken: true, inWorld: true)],
+			new FakeInteraction { CarrierOfLocal = Remote },
+			canAdmin: false,
+			localInWorld: true,
+			hasHealItem: false,
+			getVitals: id => vitals.TryGetValue(id, out var v) ? v : null);
+
+		Assert.False(rows[1].CanPiggyback);
 	}
 
 	[Fact]
@@ -382,9 +376,7 @@ public sealed class OnlineUiMemberProjectionTests
 		bool hasHealItem = false,
 		Func<ulong, RemoteVitalsSnapshot?>? getVitals = null,
 		Func<ulong, RemoteInventorySnapshot?>? getInventory = null,
-		IReadOnlyList<LocalHealItem>? healItems = null,
-		bool hasUseItem = false,
-		IReadOnlyList<LocalUseItem>? useItems = null)
+		IReadOnlyList<LocalHealItem>? healItems = null)
 	{
 		return OnlineUiMemberProjection.Build(
 			Local,
@@ -399,9 +391,7 @@ public sealed class OnlineUiMemberProjectionTests
 			canAdmin: canAdmin,
 			localInWorld: localInWorld,
 			hasHealItem: hasHealItem,
-			healItems: healItems ?? [],
-			hasUseItem: hasUseItem,
-			useItems: useItems ?? []);
+			healItems: healItems ?? []);
 	}
 
 	private static MemberPresenceTable.MemberPresence Presence(ulong steamId, bool handshaken, bool inWorld) =>

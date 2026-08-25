@@ -54,7 +54,7 @@ internal sealed class PlayerCarryService : IDisposable
 	public void SendCarryStartRequest(ulong targetSteamId) =>
 		SendStartRequest(targetSteamId, piggyback: false);
 
-	/// <summary>Online UI entry: the local player starts a conscious-alive piggyback ride.</summary>
+	/// <summary>Online UI entry: the local player climbs onto a conscious-alive teammate's back.</summary>
 	public void SendPiggybackRequest(ulong targetSteamId) =>
 		SendStartRequest(targetSteamId, piggyback: true);
 
@@ -107,8 +107,18 @@ internal sealed class PlayerCarryService : IDisposable
 			return;
 		}
 
-		var carrier = sender;
-		var carried = msg.TargetSteamId;
+		var requester = sender;
+		var requested = msg.TargetSteamId;
+		var carrier = requester;
+		var carried = requested;
+		if (msg.Piggyback)
+		{
+			// The requester climbs onto the target's back: the target is the
+			// carrier, the requester is the carried rider.
+			carrier = requested;
+			carried = requester;
+		}
+
 		if (carrier == carried || carrier == 0 || carried == 0)
 		{
 			return;
@@ -120,8 +130,8 @@ internal sealed class PlayerCarryService : IDisposable
 			return;
 		}
 
-		var target = _characters.GetCharacterData(carried);
-		if (target?.Health is not { } health)
+		var carriedData = _characters.GetCharacterData(carried);
+		if (carriedData?.Health is not { } carriedHealth)
 		{
 			_log.LogWarning("[Carry] refused: {Carried} has no authoritative health snapshot.", carried);
 			return;
@@ -129,13 +139,13 @@ internal sealed class PlayerCarryService : IDisposable
 
 		if (msg.Piggyback)
 		{
-			if (!health.Conscious || !health.Alive)
+			if (!carriedHealth.Conscious || !carriedHealth.Alive)
 			{
-				_log.LogInformation("[Piggyback] refused: {Carried} is not conscious/alive and cannot ride.", carried);
+				_log.LogInformation("[Piggyback] refused: {Carried} is not conscious/alive and cannot climb.", carried);
 				return;
 			}
 		}
-		else if (health.Conscious && health.Alive)
+		else if (carriedHealth.Conscious && carriedHealth.Alive)
 		{
 			// Cooperative default: the classic carry remains for unconscious/dead
 			// bodies; conscious-alive targets use the piggyback mode instead.
@@ -159,7 +169,15 @@ internal sealed class PlayerCarryService : IDisposable
 
 		_carriedBy[carried] = carrier;
 		_carrying[carrier] = carried;
-		_log.LogInformation("[Carry] {Carrier} starts carrying {Carried} (piggyback={Piggyback}).", carrier, carried, msg.Piggyback);
+		if (msg.Piggyback)
+		{
+			_log.LogInformation("[Piggyback] {Rider} climbs onto {Carrier}'s back.", carried, carrier);
+		}
+		else
+		{
+			_log.LogInformation("[Carry] {Carrier} starts carrying {Carried}.", carrier, carried);
+		}
+
 		PublishCarryState(new PlayerCarryStateMsg
 		{
 			CarrierSteamId = carrier,

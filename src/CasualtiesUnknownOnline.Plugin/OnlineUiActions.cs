@@ -88,28 +88,6 @@ internal sealed class OnlineUiActions(
 		return true;
 	}
 
-	public bool UseItemOnRemoteFromUi(ulong targetSteamId)
-	{
-		if (!_session.SessionActive)
-		{
-			return false;
-		}
-
-		_playerInteraction.SendUseRequest(targetSteamId, 0);
-		return true;
-	}
-
-	public bool UseItemWithOnRemoteFromUi(ulong targetSteamId, ulong itemInstanceId)
-	{
-		if (!_session.SessionActive || itemInstanceId == 0)
-		{
-			return false;
-		}
-
-		_playerInteraction.SendUseRequest(targetSteamId, itemInstanceId);
-		return true;
-	}
-
 	public bool PushRemoteFromUi(ulong targetSteamId)
 	{
 		if (!_session.SessionActive)
@@ -140,8 +118,4 @@ internal sealed class OnlineUiActions(
 	public bool HasLocalHealItem() => _adapter?.HasLocalHealItem() == true;
 
 	public IReadOnlyList<LocalHealItem> GetLocalHealItems() => _adapter?.GetLocalHealItems() ?? [];
-
-	public bool HasLocalUseItem() => _adapter?.HasLocalUseItem() == true;
-
-	public IReadOnlyList<LocalUseItem> GetLocalUseItems() => _adapter?.GetLocalUseItems() ?? [];
 }

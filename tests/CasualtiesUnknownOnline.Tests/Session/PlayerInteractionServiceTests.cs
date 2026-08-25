@@ -734,14 +734,14 @@ public class PlayerInteractionServiceTests
 
 		var frame = received.Single(r => r.Msg == NetMsg.PlayerCarryState).Frame;
 		var state = NetPacket.DecodePayload<PlayerCarryStateMsg>(frame);
-		Assert.Equal(GuestId, state.CarrierSteamId);
-		Assert.Equal(HostId, state.CarriedSteamId);
+		Assert.Equal(HostId, state.CarrierSteamId);
+		Assert.Equal(GuestId, state.CarriedSteamId);
 
 		var interaction = host.Services.GetRequiredService<IPlayerInteractionControl>();
-		Assert.True(interaction.TryGetCarried(GuestId, out var carried));
-		Assert.Equal(HostId, carried);
-		Assert.True(interaction.TryGetCarrier(HostId, out var carrier));
-		Assert.Equal(GuestId, carrier);
+		Assert.True(interaction.TryGetCarried(HostId, out var carried));
+		Assert.Equal(GuestId, carried);
+		Assert.True(interaction.TryGetCarrier(GuestId, out var carrier));
+		Assert.Equal(HostId, carrier);
 	}
 
 	[Fact]
@@ -757,8 +757,8 @@ public class PlayerInteractionServiceTests
 
 		var frame = received.Single(r => r.Msg == NetMsg.PlayerCarryState).Frame;
 		var state = NetPacket.DecodePayload<PlayerCarryStateMsg>(frame);
-		Assert.Equal(HostId, state.CarrierSteamId);
-		Assert.Equal(GuestId, state.CarriedSteamId);
+		Assert.Equal(GuestId, state.CarrierSteamId);
+		Assert.Equal(HostId, state.CarriedSteamId);
 	}
 
 	[Fact]
@@ -787,18 +787,18 @@ public class PlayerInteractionServiceTests
 		var guestInteraction = guest.Services.GetRequiredService<IPlayerInteractionControl>();
 		guestInteraction.SendPiggybackRequest(HostId);
 
-		// The carried player (host) is allowed to end the ride even though it is
+		// The carried player (guest) is allowed to end the ride even though it is
 		// not the carrier.
-		var hostInteraction = host.Services.GetRequiredService<IPlayerInteractionControl>();
-		hostInteraction.SendCarryStopRequest(HostId);
+		guestInteraction.SendCarryStopRequest(GuestId);
 
 		var frame = received.Last(r => r.Msg == NetMsg.PlayerCarryState).Frame;
 		var state = NetPacket.DecodePayload<PlayerCarryStateMsg>(frame);
-		Assert.Equal(GuestId, state.CarrierSteamId);
+		Assert.Equal(HostId, state.CarrierSteamId);
 		Assert.Equal(0UL, state.CarriedSteamId);
 
-		Assert.False(hostInteraction.TryGetCarried(GuestId, out _));
-		Assert.False(hostInteraction.TryGetCarrier(HostId, out _));
+		var hostInteraction = host.Services.GetRequiredService<IPlayerInteractionControl>();
+		Assert.False(hostInteraction.TryGetCarried(HostId, out _));
+		Assert.False(hostInteraction.TryGetCarrier(GuestId, out _));
 	}
 
 	[Fact]

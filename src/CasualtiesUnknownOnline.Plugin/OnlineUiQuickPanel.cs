@@ -88,6 +88,16 @@ internal sealed class OnlineUiQuickPanel
 		GUILayout.Space(4f);
 		OnlineUiMemberListDrawer.Draw(ctx, [targetRow]);
 
+		var localRow = rows.FirstOrDefault(r => r.IsLocal);
+		if (localRow is { CanRequestDrop: true, InWorld: true })
+		{
+			GUILayout.Space(6f);
+			if (GUILayout.Button(ctx.T("member.get_down"), OnlineUiTheme.Button(), GUILayout.Height(28f)))
+			{
+				ctx.DropCarried?.Invoke(localRow.SteamId);
+			}
+		}
+
 		GUILayout.EndArea();
 	}
 

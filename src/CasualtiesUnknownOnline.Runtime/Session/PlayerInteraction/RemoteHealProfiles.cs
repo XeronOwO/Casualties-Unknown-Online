@@ -19,7 +19,7 @@ public static class RemoteHealProfiles
 			["sterilizedbandage"] = new("sterilizedbandage", 1f, SkinHealAmount: 30f, BandageSlowAmount: 45f, Pain: -60f, BoneHealTimer: -20f, DislocationTimer: -20f, DisinfectionTime: 900f),
 			["plasticbandage"] = new("plasticbandage", 1f, SkinHealAmount: 60f, BandageSlowAmount: 72f, Pain: -100f, BoneHealTimer: -30f, DislocationTimer: -30f),
 			["adhesivebandage"] = new("adhesivebandage", 0.16f, SkinHealAmount: 3f, BandageSlowAmount: 6f, Pain: -5f),
-			["analgesicgauze"] = new("analgesicgauze", 1f, SkinHealAmount: 20f, BandageSlowAmount: 50f, Pain: -300f),
+			["analgesicgauze"] = new("analgesicgauze", 1f, SkinHealAmount: 20f, BandageSlowAmount: 50f, Pain: -300f, OpiateAmount: 28f),
 			["alginate"] = new("alginate", 1f, SkinHealAmount: 125f, BandageSlowAmount: 72.5f, Pain: -80f, DisinfectionTime: 800f),
 			["rag"] = new("rag", 1f, SkinHealAmount: 8f, BandageSlowAmount: 10f, Pain: -25f, BoneHealTimer: -5f, DislocationTimer: -5f),
 			["bruisekit"] = new("bruisekit", 1f, SkinHealAmount: 100f, Pain: -80f, DislocationTimer: -80f),

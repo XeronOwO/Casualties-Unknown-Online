@@ -62,5 +62,20 @@ public static class RemoteHealApplication
 		limb.MuscleHealth = Clamp100(limb.MuscleHealth + profile.MuscleHealth);
 	}
 
+	/// <summary>
+	/// Apply one medical item's full-use effect to the target's health and
+	/// limb snapshot. Limb effects use the existing limb-only apply; the
+	/// body-level component effect (opiate amount) is clamped to non-negative
+	/// because it is a count on the <c>Painkillers</c> component.
+	/// </summary>
+	public static void Apply(CharacterHealthMsg health, CharacterLimbMsg limb, RemoteHealProfile profile)
+	{
+		Apply(limb, profile);
+		if (health is not null)
+		{
+			health.OpiateAmount = Math.Max(0f, health.OpiateAmount + profile.OpiateAmount);
+		}
+	}
+
 	private static float Clamp100(float value) => Math.Max(0f, Math.Min(100f, value));
 }

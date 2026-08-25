@@ -1026,4 +1026,100 @@ public class PlayerInteractionServiceTests
 		Assert.True(Math.Abs(transferred.Item.Condition - 0.25f) < 0.001f);
 	}
 
+	[Fact]
+	public void Guest_WearsHelmetOnHost_MovesItemAndSendsWornResult()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		var items = host.Services.GetRequiredService<IItemControl>();
+		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, conscious: true));
+		var helmet = Item(42, "bikehelmet", slot: 0);
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, helmet));
+		items.AdoptTransferredItem(GuestId, 42, helmet);
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendUseRequest(HostId, 42);
+
+		var frame = received.Single(r => r.Msg == NetMsg.PlayerItemUseResult).Frame;
+		var result = NetPacket.DecodePayload<PlayerItemUseResultMsg>(frame);
+		Assert.Equal(GuestId, result.UserSteamId);
+		Assert.Equal(HostId, result.TargetSteamId);
+		Assert.True(result.ItemDestroyed);
+		Assert.Null(result.ItemAfter);
+		Assert.NotNull(result.WornItem);
+		Assert.Equal("bikehelmet", result.WornItem!.ItemId);
+		Assert.Equal(-2, result.WornItem.SlotIndex);
+
+		var hostData = characters.GetHostCharacterData()!;
+		Assert.Contains(hostData.Items, i => i.InstanceId == 42 && i.SlotIndex == -2);
+		Assert.DoesNotContain(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);
+		Assert.Empty(items.GetTransferredItems(GuestId));
+	}
+
+	[Fact]
+	public void Host_WearsHelmetOnGuest_MovesItemAndAdoptsForGuest()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		var items = host.Services.GetRequiredService<IItemControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true, Item(42, "bikehelmet", slot: 0)));
+		characters.SaveCharacterData(GuestId, SnapshotWithLimbs(GuestId, conscious: true));
+
+		host.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendUseRequest(GuestId, 42);
+
+		var frame = received.Single(r => r.Msg == NetMsg.PlayerItemUseResult).Frame;
+		var result = NetPacket.DecodePayload<PlayerItemUseResultMsg>(frame);
+		Assert.Equal(HostId, result.UserSteamId);
+		Assert.Equal(GuestId, result.TargetSteamId);
+		Assert.True(result.ItemDestroyed);
+		Assert.NotNull(result.WornItem);
+		Assert.Equal(-2, result.WornItem!.SlotIndex);
+
+		Assert.DoesNotContain(characters.GetHostCharacterData()!.Items, i => i.InstanceId == 42);
+		var guestData = characters.GetSavedCharacter(GuestId)!;
+		Assert.Contains(guestData.Items, i => i.InstanceId == 42 && i.SlotIndex == -2);
+		Assert.Contains(items.GetTransferredItems(GuestId), w => w.Item.InstanceId == 42);
+	}
+
+	[Fact]
+	public void Wear_TargetAlreadyUsesSameWearSlot_IsRefused()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		var items = host.Services.GetRequiredService<IItemControl>();
+		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, conscious: true, alive: true, Item(99, "holidayhat", slot: -2)));
+		var helmet = Item(42, "bikehelmet", slot: 0);
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, helmet));
+		items.AdoptTransferredItem(GuestId, 42, helmet);
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendUseRequest(HostId, 42);
+
+		Assert.DoesNotContain(received, r => r.Msg == NetMsg.PlayerItemUseResult);
+		Assert.Contains(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);
+		Assert.Contains(items.GetTransferredItems(GuestId), w => w.Item.InstanceId == 42);
+	}
+
+	[Fact]
+	public void Wear_TargetLimbDismembered_IsRefused()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		var items = host.Services.GetRequiredService<IItemControl>();
+		var hostSnapshot = SnapshotWithLimbs(HostId, conscious: true);
+		hostSnapshot.Limbs[0].Dismembered = true;
+		characters.SaveHostCharacterData(hostSnapshot);
+		var helmet = Item(42, "bikehelmet", slot: 0);
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, helmet));
+		items.AdoptTransferredItem(GuestId, 42, helmet);
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendUseRequest(HostId, 42);
+
+		Assert.DoesNotContain(received, r => r.Msg == NetMsg.PlayerItemUseResult);
+		Assert.Contains(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);
+		Assert.Contains(items.GetTransferredItems(GuestId), w => w.Item.InstanceId == 42);
+	}
+
 }

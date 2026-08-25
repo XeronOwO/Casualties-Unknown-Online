@@ -550,7 +550,7 @@ internal sealed class CharacterDataSync(
 	/// the captured negative SlotIndex — the restore path never had the item
 	/// in a backpack, so the game's slot-driven wear flow cannot run.
 	/// </summary>
-	private void RestoreWearable(CharacterItemMsg itemData, Body body)
+	internal void RestoreWearable(CharacterItemMsg itemData, Body body)
 	{
 		var limbIndex = -itemData.SlotIndex - 2;
 		if (limbIndex < 0 || limbIndex >= body.limbs.Length)

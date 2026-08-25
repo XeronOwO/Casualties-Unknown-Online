@@ -2992,3 +2992,31 @@ Closed 2026-08-25 from the remaining cross-player item-use tools candidate.
   component assertion, `LimbComponentStateCodecTests` (2). Full suite 1454
   green, build/format/architecture/event gates pass. See
   `docs/selfchecks/cross-player-component-tool-use-selfcheck.md`.
+
+## 106. Cross-player wearable use
+
+Closed 2026-08-25 from the remaining cross-player item-use "wear" candidate.
+
+- **Catalog/validate** — new pure `RemoteWearProfile`, `RemoteWearCatalog`
+  and `RemoteWearApplication` cover the native wearable item set from Item.cs
+  SetupItems. Placement validates target limb existence/dismemberment and
+  refuses an already-occupied wear slot.
+- **Host operation** — `PlayerItemUseService` reuses the existing
+  `PlayerItemUseRequest`/`PlayerItemUseResult` operation: the acting player's
+  inventory item is removed, the target's character snapshot gains the same
+  item with the negative limb slot encoding, and guest ownership follows the
+  item through the transfer table (source removed, guest target adopted).
+- **Wire** — `PlayerItemUseResultMsg.WornItem` (additive ProtoMember 8) carries
+  the exact worn item to the target side. No new NetMsg and no
+  `ProtocolVersion` bump.
+- **Adapter** — `CharacterDataSync.RestoreWearable` is reused on the local
+  target body inside the existing RemoteApply result path; the acting player's
+  local item is removed by the existing destroyed path.
+- **UI** — `PlayerInteractionApply.IsLocalUseItem` recognises the wearable
+  catalog, so the existing Use button/per-item selectors expose wearables.
+- **Scope limits** — timed/component medicine, minigame-random tools and
+  timed tools remain future slices.
+- **Tests/gates** — `PlayerInteractionServiceTests` +4 (guest→host, host→guest,
+  same-slot conflict, dismembered limb). Full suite 1458 green,
+  build/format/architecture/event gates pass. See
+  `docs/selfchecks/cross-player-wear-use-selfcheck.md`.

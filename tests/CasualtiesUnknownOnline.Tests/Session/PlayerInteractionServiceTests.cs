@@ -1147,4 +1147,88 @@ public class PlayerInteractionServiceTests
 		Assert.Contains(items.GetTransferredItems(GuestId), w => w.Item.InstanceId == 42);
 	}
 
+	[Fact]
+	public void Guest_UsesTweezersOnHost_RemovesShrapnelAndSendsResult()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		var items = host.Services.GetRequiredService<IItemControl>();
+		var hostSnapshot = SnapshotWithLimbs(HostId, conscious: true);
+		hostSnapshot.Limbs[1].Shrapnel = 3;
+		characters.SaveHostCharacterData(hostSnapshot);
+		var tweezers = Item(42, "tweezers", slot: 0);
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, tweezers));
+		items.AdoptTransferredItem(GuestId, 42, tweezers);
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendUseRequest(HostId, 42);
+
+		var frame = received.Single(r => r.Msg == NetMsg.PlayerItemUseResult).Frame;
+		var result = NetPacket.DecodePayload<PlayerItemUseResultMsg>(frame);
+		Assert.Equal(GuestId, result.UserSteamId);
+		Assert.Equal(HostId, result.TargetSteamId);
+		Assert.Equal(42UL, result.ItemInstanceId);
+		Assert.False(result.ItemDestroyed);
+		Assert.NotNull(result.ItemAfter);
+		Assert.True(Math.Abs(result.ItemAfter!.Condition - 0.74f) < 0.001f);
+
+		var hostData = characters.GetHostCharacterData()!;
+		Assert.Equal(0, hostData.Limbs[1].Shrapnel);
+		Assert.Empty(result.TimedEffects);
+		Assert.Contains(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);
+	}
+
+	[Fact]
+	public void Tweezers_NoShrapnelOnTarget_IsRefused()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, conscious: true));
+		var tweezers = Item(42, "tweezers", slot: 0);
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, tweezers));
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendUseRequest(HostId, 42);
+
+		Assert.DoesNotContain(received, r => r.Msg == NetMsg.PlayerItemUseResult);
+		Assert.Contains(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);
+	}
+
+	[Fact]
+	public void Guest_UsesMedicalSutureOnHost_AppliesImmediateAndCarriesTimedEffect()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		var items = host.Services.GetRequiredService<IItemControl>();
+		var hostSnapshot = SnapshotWithLimbs(HostId, conscious: true);
+		hostSnapshot.Limbs[1].Pain = 10f;
+		hostSnapshot.Limbs[1].BleedAmount = 20f;
+		characters.SaveHostCharacterData(hostSnapshot);
+		var suture = Item(42, "medicalsuture", slot: 0);
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, suture));
+		items.AdoptTransferredItem(GuestId, 42, suture);
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendUseRequest(HostId, 42);
+
+		var frame = received.Single(r => r.Msg == NetMsg.PlayerItemUseResult).Frame;
+		var result = NetPacket.DecodePayload<PlayerItemUseResultMsg>(frame);
+		Assert.Equal(GuestId, result.UserSteamId);
+		Assert.Equal(HostId, result.TargetSteamId);
+		Assert.False(result.ItemDestroyed);
+		Assert.NotNull(result.ItemAfter);
+		Assert.True(Math.Abs(result.ItemAfter!.Condition - 0.24f) < 0.001f);
+
+		var hostData = characters.GetHostCharacterData()!;
+		Assert.True(Math.Abs(hostData.Limbs[1].Pain - 22.5f) < 0.001f);
+		Assert.True(Math.Abs(hostData.Limbs[1].SkinHealAmount - 25f) < 0.001f);
+		Assert.True(Math.Abs(hostData.Limbs[1].BleedAmount - 20f) < 0.001f);
+
+		var timed = Assert.Single(result.TimedEffects);
+		Assert.Equal(1, timed.LimbIndex);
+		Assert.True(Math.Abs(timed.DurationSeconds - 10f) < 0.001f);
+		Assert.True(Math.Abs(timed.BleedPerSecond + 4.5f) < 0.001f);
+		Assert.Contains(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);
+	}
+
 }

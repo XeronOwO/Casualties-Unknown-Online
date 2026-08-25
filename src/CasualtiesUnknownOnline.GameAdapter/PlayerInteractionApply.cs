@@ -197,6 +197,7 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains)
 				else if (msg.Health is { } health)
 				{
 					domains.CharacterDataSync.ApplyHealState(body, health, msg.Limbs);
+					TimedLimbEffectApply.Apply(body, msg.TimedEffects, domains.Log);
 					domains.Log.LogInformation("[ItemUse] local body received a consumable from {User}.", msg.UserSteamId);
 					changed = true;
 				}

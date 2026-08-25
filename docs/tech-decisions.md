@@ -3044,3 +3044,29 @@ candidate.
   `PlayerInteractionServiceTests` +1 host-side result case. Full suite 1460
   green, build/format/architecture/event gates pass. See
   `docs/selfchecks/cross-player-component-medicine-selfcheck.md`.
+
+## 108. Cross-player shrapnel and timed tool use
+
+Closed 2026-08-25 from the remaining cross-player item-use tool candidates.
+
+- **Tool set** — `RemoteLimbToolCatalog` adds `tweezers` (minigame-random
+  shrapnel removal, condition cost 0.01) and `medicalsuture` (timed tool,
+  condition cost 0.51). `RemoteLimbToolProfile` gains `RequiresShrapnel`,
+  `TimedBleedPerSecond` and `TimedBleedDurationSeconds`.
+- **Pure apply** — `RemoteLimbToolApplication` selects the most-shrapnel limb
+  for tweezers, refuses when no limb has shrapnel, and clears shrapnel on full
+  success. Medicalsuture applies its immediate pain/skin-heal only; the timed
+  bleed tick is intentionally not written into the host snapshot.
+- **Wire** — `PlayerItemUseResultMsg.TimedEffects` (additive ProtoMember 9)
+  carries the target limb/duration/per-second bleed delta. No new NetMsg and
+  no `ProtocolVersion` bump.
+- **Local apply** — new GameAdapter `TimedLimbEffectApply` calls
+  `CoUtils.instance.DoTimedOp` with the native `"suture" + limb.name` id, so
+  the cross-player timed effect runs exactly like the native self-use path and
+  the resulting body state is adopted by the normal character snapshot flow.
+- **Scope limits** — timed/random liquid medicine branches remain a future
+  slice.
+- **Tests/gates** — `RemoteLimbToolApplicationTests` +3,
+  `PlayerInteractionServiceTests` +3; full suite 1466 green,
+  build/format/architecture/event gates pass. See
+  `docs/selfchecks/cross-player-shrapnel-and-timed-tool-use-selfcheck.md`.

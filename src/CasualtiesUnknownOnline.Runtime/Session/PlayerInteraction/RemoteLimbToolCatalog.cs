@@ -37,6 +37,21 @@ public static class RemoteLimbToolCatalog
 				ConditionCost: 1f,
 				SkinHealAmount: 8f,
 				BandageSlowAmount: 10f),
+			// Minigame-random tool from Item.cs SetupItems:
+			// tweezers (1687-1706) starts ShrapnelMinigame; full success removes
+			// every shrapnel piece and consumes a tiny condition.
+			["tweezers"] = new("tweezers",
+				ConditionCost: 0.01f,
+				RequiresShrapnel: true),
+			// Timed tool from Item.cs SetupItems: medicalsuture (368-390) adds
+			// immediate pain/skin-heal and then ticks bleed -4.5 per second for
+			// 10 seconds through CoUtils.DoTimedOp.
+			["medicalsuture"] = new("medicalsuture",
+				ConditionCost: 0.51f,
+				Pain: 12.5f,
+				SkinHealAmount: 25f,
+				TimedBleedPerSecond: -4.5f,
+				TimedBleedDurationSeconds: 10f),
 			// Component-bearing tools from Item.cs SetupItems:
 			// splint (1471-1490), carcasssplint (1497-1516),
 			// tourniquet (392-408), icepack (1621-1638).

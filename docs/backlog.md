@@ -197,6 +197,7 @@ Measurement-first items; do not optimize before data exists.
 ### Networking / transport candidate
 
 - **IP direct connection (non-Steam transport)** — **CLOSED (2026-08-23)**. TCP IP-direct host/join by IP:port, custom display name, separate non-interconnected mode, and a top-left RTT/status HUD are landed. See `docs/selfchecks/ip-direct-selfcheck.md` and `docs/tech-decisions.md` #82.
+- **Host migration** — **MEDIUM (2026-08-25)**. Host exit currently ends the session and guests return to the lobby. Post-MVP, this is promoted to medium priority: evaluate new-host election + periodic full world snapshots + snapshot restore so a friend can take over when the current host leaves. Requires the full snapshot system, mod-state saves and full entity resync; see `docs/architecture.md` §7. Dedicated server is NOT needed for the friends/co-op model and remains future/low unless public community hosting becomes a real goal.
 
 ### Configuration / preferences
 
@@ -226,7 +227,7 @@ Measurement-first items; do not optimize before data exists.
 
 - **Minecraft-style in-game command console** — a standalone, complete command chain (registration → parsing → permission → execution → feedback), NOT reusing the existing console and independent of the current host-command/mod-command surfaces. Low priority; recorded for future planning. The current bottom-right text-chat UI is disabled in favor of this eventual command-style input surface.
 - Strict validation / anti-cheat hardening — explicitly low; defer until sync domains are stable.
-- Phase 5 tooling & ecosystem: mod manager, auto-install, crash reports, host migration, dedicated server.
+- Phase 5 tooling & ecosystem: mod manager, auto-install, crash reports, network diagnostics, compatibility database, dedicated server (only if public community hosting becomes relevant; host migration is now a MEDIUM post-MVP item, see the Networking / transport candidate section).
 - KrokMP compatibility adapter — reserved; only after the native Mod API stabilizes and real migration demand exists.
 
 ## Architecture watchlist

@@ -104,8 +104,9 @@ Current: **Phase 3 native game-content follow-through** — finish the remaining
    `docs/tech-decisions.md`).
 5. **Phase 4 — Public Mod API** — first two rounds plus mod-state saves landed; remaining: content
    registration, custom entities, UI.
-6. **Phase 5 — Tooling & ecosystem** — future (mod manager, auto-install, crash reports, host migration,
-   dedicated server).
+6. **Phase 5 — Tooling & ecosystem** — future (mod manager, auto-install, crash reports,
+   dedicated server only if public community hosting becomes relevant). Host migration is a separate
+   MEDIUM post-MVP item (see `docs/architecture.md` §7), not part of the Phase 5 future list.
 
 MVP explicitly excludes: host migration, dedicated server, auto mod install, generic physics sync,
 client prediction, full anti-cheat.

@@ -208,4 +208,64 @@ public sealed class RemoteMedicineApplicationTests
 		Assert.True(Math.Abs(health.SepticShock - 20f) < 0.001f);
 		Assert.True(Math.Abs(limbs[0].MuscleHealth - 65f) < 0.001f);
 	}
+
+	[Fact]
+	public void Catalog_ExposesTimedMedicineItemsAndLiquids()
+	{
+		Assert.True(RemoteMedicineCatalog.IsInjectableItem("bloodcoagulant"));
+		Assert.True(RemoteMedicineCatalog.IsInjectableItem("combatpen"));
+		Assert.True(RemoteMedicineCatalog.IsInjectableItem("syringe"));
+		Assert.True(RemoteMedicineCatalog.IsSupportedMedicineLiquid("procoagulant"));
+		Assert.True(RemoteMedicineCatalog.IsSupportedMedicineLiquid("highgradestimulant"));
+		Assert.True(RemoteMedicineCatalog.IsSupportedMedicineLiquid("midgradestimulant"));
+		Assert.True(RemoteMedicineCatalog.IsSupportedMedicineLiquid("lowgradestimulant"));
+		Assert.True(RemoteMedicineCatalog.IsSupportedMedicineLiquid("epinephrine"));
+		Assert.True(RemoteMedicineCatalog.IsSupportedMedicineLiquid("oxyline"));
+		Assert.True(RemoteMedicineCatalog.IsSupportedMedicineLiquid("chloroform"));
+		Assert.True(RemoteMedicineCatalog.IsSupportedMedicineLiquid("amiodarone"));
+	}
+
+	[Fact]
+	public void BuildTimedEffects_CombatPen_ProducesScaledBodyEffects()
+	{
+		var plan = new List<LiquidStackMsg>
+		{
+			new() { LiquidId = "highgradestimulant", Amount = 60f },
+			new() { LiquidId = "epinephrine", Amount = 15f },
+			new() { LiquidId = "oxyline", Amount = 25f },
+		};
+
+		var effects = RemoteMedicineApplication.BuildTimedEffects(plan);
+
+		Assert.Equal(3, effects.Count);
+		Assert.Equal("highgradestimulant", effects[0].EffectId);
+		Assert.True(Math.Abs(effects[0].DurationSeconds - 144f) < 0.001f);
+		Assert.Equal("epinephrine", effects[1].EffectId);
+		Assert.True(Math.Abs(effects[1].DurationSeconds - 90f) < 0.001f);
+		Assert.Equal("oxyline", effects[2].EffectId);
+		Assert.True(Math.Abs(effects[2].DurationSeconds - 50f) < 0.001f);
+	}
+
+	[Fact]
+	public void BuildTimedEffects_BloodCoagulant_ProducesScaledProcoagulantEffect()
+	{
+		var plan = new List<LiquidStackMsg>
+		{
+			new() { LiquidId = "procoagulant", Amount = 33.334f },
+		};
+
+		var effects = RemoteMedicineApplication.BuildTimedEffects(plan);
+
+		var effect = Assert.Single(effects);
+		Assert.Equal("procoagulant", effect.EffectId);
+		Assert.True(Math.Abs(effect.DurationSeconds - 20f) < 0.01f);
+	}
+
+	[Fact]
+	public void BuildTimedEffects_ImmediateOnlyLiquid_ReturnsEmpty()
+	{
+		var plan = new List<LiquidStackMsg> { new() { LiquidId = "saline", Amount = 80f } };
+
+		Assert.Empty(RemoteMedicineApplication.BuildTimedEffects(plan));
+	}
 }

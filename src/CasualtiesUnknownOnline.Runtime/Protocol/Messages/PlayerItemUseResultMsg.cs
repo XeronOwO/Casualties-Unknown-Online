@@ -54,4 +54,13 @@ public sealed class PlayerItemUseResultMsg
 	/// </summary>
 	[ProtoMember(9)]
 	public List<TimedLimbEffectMsg> TimedEffects { get; set; } = [];
+
+	/// <summary>
+	/// Timed body-level liquid effects the target's local body must run (e.g.
+	/// stimulant, procoagulant, epinephrine and oxyline injections). The host
+	/// does not simulate these timed/random branches; the target re-reports
+	/// through the normal snapshot path.
+	/// </summary>
+	[ProtoMember(10)]
+	public List<TimedBodyEffectMsg> TimedBodyEffects { get; set; } = [];
 }

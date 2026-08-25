@@ -33,5 +33,20 @@ internal static class CharacterDataMapper
 			.Map(d => d.expSTR, s => s.ExpStrength)
 			.Map(d => d.expRES, s => s.ExpResistance)
 			.Map(d => d.expINT, s => s.ExpIntelligence);
+
+		// Limb → CharacterLimbMsg is explicitly configured because Mapster's
+		// dynamic mapping sees the UnityEngine.Component.GetComponents<T>()
+		// generic method and tries to use it as the source for the new
+		// CharacterLimbMsg.Components collection, which fails to compile
+		// ("Method T[] GetComponents[T]() is a generic method definition").
+		// Component state is deliberately NOT mapped here: the Game Adapter
+		// captures/restores dynamic limb components through
+		// LimbComponentStateCodec, and Index/IsHead/IsVital are assigned by
+		// the character-data capture loop after the map.
+		TypeAdapterConfig<Limb, CharacterLimbMsg>.NewConfig()
+			.Ignore(d => d.Components)
+			.Ignore(d => d.Index)
+			.Ignore(d => d.IsHead)
+			.Ignore(d => d.IsVital);
 	}
 }

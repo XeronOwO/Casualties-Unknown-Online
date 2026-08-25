@@ -206,7 +206,7 @@ Measurement-first items; do not optimize before data exists.
 
 ### Performance profiling / instrumentation
 
-- **Hot-path latency instrumentation** — OPEN. Add lightweight instrumentation/timing for compute-heavy scenes (e.g. fluid simulation, physics simulation, world generation, entity/enemy sync) so we can measure call/frame latency and identify hotspots. Instrumentation should be opt-in or gated behind the existing logging/debug configuration to avoid affecting normal play; no premature optimization.
+- **Hot-path latency instrumentation** — **CLOSED (2026-08-25)**. An opt-in `[Diagnostics]` config pair (default off) drives `LatencyInstrumentation`, which times the compute-heavy Game Adapter pumps (`Run`, `WorldTime`, `StartGate`, `Respawn`, `ItemPosition`, `WorldEvent`, `Fluid`, `Trader`, `Renderer`, `EnemySync`, `EnemyCombat`) and emits aggregated `[Latency]` call/total/avg/max lines on a hot-reloadable interval. No wire/protocol change. See `docs/selfchecks/hot-path-latency-instrumentation-selfcheck.md` and `docs/tech-decisions.md` #104.
 
 ### Final acceptance (not development work)
 

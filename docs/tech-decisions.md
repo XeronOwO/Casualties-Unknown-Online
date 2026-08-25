@@ -2856,7 +2856,8 @@ containers.
   effects from `Liquids.cs`.
 - **Pure apply** — `RemoteTopicalApplication` applies the plan to the target
   `CharacterHealthMsg` and the most-injured limb (same limb pick as heal and
-  medicine); `SetDisinfect` is modelled as max rather than addition.
+  medicine); `SetDisinfect` is modelled as max rather than addition. The same
+  correction is applied to the existing medicine apply path.
 - **Host service** — `PlayerItemUseService` tries topical after medicine; the
   existing `ApplyDrain`, guest transfer-table update and result fan-out are
   reused unchanged.

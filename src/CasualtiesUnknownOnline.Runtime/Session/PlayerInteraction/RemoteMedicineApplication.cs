@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 
@@ -57,7 +58,7 @@ public static class RemoteMedicineApplication
 
 			limb.Pain += effect.PainPerMl * scale;
 			limb.MuscleHealth += effect.MuscleHealthPerMl * scale;
-			limb.DisinfectionTime += effect.DisinfectionTimePerMl * scale;
+			limb.DisinfectionTime = Math.Max(limb.DisinfectionTime, effect.DisinfectionTimePerMl * scale);
 			limb.SkinHealAmount += effect.SkinHealAmountPerMl * scale;
 			limb.BleedAmount += effect.BleedAmountPerMl * scale;
 			limb.SkinHealth += effect.SkinHealthPerMl * scale;

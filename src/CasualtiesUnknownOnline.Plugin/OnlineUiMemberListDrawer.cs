@@ -35,7 +35,8 @@ internal static class OnlineUiMemberListDrawer
 			canAdmin: ctx.Session.Role == Runtime.Session.SessionRole.Host && ctx.Session.SessionActive,
 			localInWorld: ctx.Session.LocalInWorld,
 			hasHealItem: ctx.HasHealItem?.Invoke() ?? false,
-			healItems: ctx.GetLocalHealItems?.Invoke() ?? []);
+			healItems: ctx.GetLocalHealItems?.Invoke() ?? [],
+			allowRemoteInventoryTake: ctx.HostRules.AllowRemoteInventoryTake);
 	}
 
 	internal static void Draw(OnlineUiContext ctx, IReadOnlyList<OnlineUiMemberRow> rows)
@@ -259,7 +260,7 @@ internal static class OnlineUiMemberListDrawer
 			{
 				foreach (var entry in inventory)
 				{
-					DrawInventoryEntry(ctx, entry, 0);
+					DrawInventoryEntry(ctx, row.SteamId, entry, 0);
 				}
 			}
 			else
@@ -269,19 +270,51 @@ internal static class OnlineUiMemberListDrawer
 		}
 	}
 
-	private static void DrawInventoryEntry(OnlineUiContext ctx, RemoteInventoryEntry entry, int depth)
+	private static void DrawInventoryEntry(OnlineUiContext ctx, ulong ownerSteamId, RemoteInventoryEntry entry, int depth)
 	{
 		var slot = entry.SlotIndex >= 0 ? ctx.F("member.slot", entry.SlotIndex) : ctx.T("member.worn");
 		var suffix = entry.ContentsCount > 0 ? ctx.F("member.inside", entry.ContentsCount) : "";
 		var favourite = entry.Favourited ? " ★" : "";
 		var indent = new string(' ', depth * 4);
-		GUILayout.Label($"{indent}{slot}: {entry.ItemId}{suffix}{favourite}", OnlineUiTheme.MutedLabel());
+		var label = $"{indent}{slot}: {entry.ItemId}{suffix}{favourite}";
+
+		if (entry.ContentsCount == 0)
+		{
+			GUILayout.Label(label, OnlineUiTheme.MutedLabel());
+			return;
+		}
+
+		var key = ContainerKey(ownerSteamId, entry);
+		var expanded = ctx.State.ExpandedContainers.Contains(key);
+		GUILayout.BeginHorizontal();
+		GUILayout.Label(label, OnlineUiTheme.MutedLabel(), GUILayout.ExpandWidth(true));
+		if (GUILayout.Button(expanded ? ctx.T("member.close_container") : ctx.T("member.open_container"), OnlineUiTheme.Button(), GUILayout.Width(76f)))
+		{
+			if (expanded)
+			{
+				ctx.State.ExpandedContainers.Remove(key);
+			}
+			else
+			{
+				ctx.State.ExpandedContainers.Add(key);
+			}
+		}
+
+		GUILayout.EndHorizontal();
+
+		if (!expanded)
+		{
+			return;
+		}
 
 		foreach (var child in entry.Contents)
 		{
-			DrawInventoryEntry(ctx, child, depth + 1);
+			DrawInventoryEntry(ctx, ownerSteamId, child, depth + 1);
 		}
 	}
+
+	private static string ContainerKey(ulong ownerSteamId, RemoteInventoryEntry entry) =>
+		$"{ownerSteamId}:{entry.InstanceId}";
 
 	private static string DisplayName(SteamService steam, ulong steamId)
 	{

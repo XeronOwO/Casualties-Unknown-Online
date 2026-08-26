@@ -2,6 +2,7 @@ using System;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
+using CasualtiesUnknownOnline.Runtime.Session.HostRules;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Time;
 using Microsoft.Extensions.Logging;
@@ -60,11 +61,12 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, IDispo
 		ICharacterDataControl characters,
 		IItemControl items,
 		IEntitySyncControl entities,
+		IHostRules hostRules,
 		ITimeSource time,
 		ILogger<PlayerInteractionService> log)
 	{
 		var access = new PlayerCharacterAccess(session, characters);
-		_take = new PlayerInventoryTakeService(session, sender, access, items, log);
+		_take = new PlayerInventoryTakeService(session, sender, access, items, hostRules, log);
 		_carry = new PlayerCarryService(session, sender, access, log);
 		_heal = new PlayerHealService(session, sender, access, items, log);
 		_itemUse = new PlayerItemUseService(session, sender, access, items, log);

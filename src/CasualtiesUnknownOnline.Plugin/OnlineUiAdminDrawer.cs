@@ -28,6 +28,7 @@ internal static class OnlineUiAdminDrawer
 			DrawEditableRule(ctx, "admin.rule_pvp", rules.PvpEnabled, editor.SetPvpEnabled);
 			DrawEditableRule(ctx, "admin.rule_auto_continue", rules.AutoContinue, editor.SetAutoContinue);
 			DrawEditableRule(ctx, "admin.rule_allow_late_join", rules.AllowLateJoin, editor.SetAllowLateJoin);
+			DrawEditableRule(ctx, "admin.rule_allow_remote_inventory_take", rules.AllowRemoteInventoryTake, editor.SetAllowRemoteInventoryTake);
 			DrawEditableRule(ctx, "admin.rule_widen_run_settings", rules.WidenRunSettings, editor.SetWidenRunSettings);
 			DrawEditableNumberRule(ctx, "admin.rule_piggyback_weight", rules.PiggybackWeightMultiplier, v => editor.SetPiggybackWeightMultiplier(v), 0f, 3f);
 			DrawEditableRule(ctx, "admin.rule_save_inventory", rules.SaveInventory, editor.SetKeepInventory);
@@ -40,6 +41,7 @@ internal static class OnlineUiAdminDrawer
 			DrawRule(ctx.T("admin.rule_pvp"), rules.PvpEnabled, ctx);
 			DrawRule(ctx.T("admin.rule_auto_continue"), rules.AutoContinue, ctx);
 			DrawRule(ctx.T("admin.rule_allow_late_join"), rules.AllowLateJoin, ctx);
+			DrawRule(ctx.T("admin.rule_allow_remote_inventory_take"), rules.AllowRemoteInventoryTake, ctx);
 			DrawRule(ctx.T("admin.rule_widen_run_settings"), rules.WidenRunSettings, ctx);
 			DrawNumberRule(ctx, "admin.rule_piggyback_weight", rules.PiggybackWeightMultiplier);
 			DrawRule(ctx.T("admin.rule_save_inventory"), rules.SaveInventory, ctx);

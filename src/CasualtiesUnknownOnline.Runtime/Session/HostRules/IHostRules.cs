@@ -19,6 +19,9 @@ public interface IHostRules
 	/// <summary>A brand-new player may join the host's already-running world.</summary>
 	bool AllowLateJoin { get; }
 
+	/// <summary>Host-only: other players may take carried items from a remote player's inventory.</summary>
+	bool AllowRemoteInventoryTake { get; }
+
 	/// <summary>Host-only: widen the native custom run-settings slider ranges in co-op for lobby-size tuning.</summary>
 	bool WidenRunSettings { get; }
 

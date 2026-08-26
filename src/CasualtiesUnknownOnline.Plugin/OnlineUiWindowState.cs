@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace CasualtiesUnknownOnline;
@@ -20,6 +21,9 @@ internal sealed class OnlineUiWindowState
 	internal Vector2 Scroll;
 
 	internal ulong? ExpandedMember;
+
+	/// <summary>Container entries currently expanded in the remote-inventory view, keyed by owner SteamId + item instance id.</summary>
+	internal HashSet<string> ExpandedContainers { get; } = [];
 
 	internal bool LogLevelOptionsOpen;
 

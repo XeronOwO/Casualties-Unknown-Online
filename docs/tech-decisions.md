@@ -3336,3 +3336,34 @@ full-screen" and "Online UI transport-mode exclusivity".
   implementation + guard setter + filter interface); full suite 1536 green;
   build/format/architecture/event gates pass. See
   `docs/selfchecks/online-ui-scoped-passthrough-selfcheck.md`.
+
+## 117. Remote inventory UI follow-up — openable containers + host take toggle
+
+Closed 2026-08-26 from the backlog "Remote-player inventory UI should reuse
+the game backpack UI". The native game radial/backpack surface cannot be
+reused for a remote player without hijacking the local camera/body or
+operating on display-only clone items, so the Online UI remains the remote
+inventory surface. This cycle closes the remaining practical parts: nested
+remote containers are now openable/collapsible in the CUO UI, and a host rule
+controls whether the cross-player take operation is enabled at all.
+
+- **Host rule** — `[HostRules] AllowRemoteInventoryTake` (default `true`).
+  `false` hides every remote Take action from the UI and makes the host reject
+  all `PlayerInventoryTakeRequestMsg` operations; `true` preserves the
+  existing cooperative unconscious/dead loot rule. Local host config only, no
+  wire change.
+- **Host enforcement** — `PlayerInteractionService` injects `IHostRules` into
+  `PlayerInventoryTakeService`; the authority checks the rule at decision time
+  so a BepInEx config edit hot-reloads without a restart.
+- **Collapsible containers** — `OnlineUiMemberListDrawer` now shows each
+  container entry as an `Open` / `Close` row. Expansion state lives in
+  `OnlineUiWindowState.ExpandedContainers` keyed by owner SteamId + instance id;
+  presentation-only, never crosses the Runtime/wire. Nested items remain
+  view-only (existing take boundary).
+- **No wire change** — no new `NetMsg`, no `ProtocolVersion` bump, no
+  event/item/entity matrix row touched.
+- **Tests/gates** — `OnlineUiMemberProjectionTests` +1,
+  `PlayerInteractionServiceTests` +1, `HostRulesPolicyTests` compose +
+  hot-reload assertions; full suite 1538 green; build/format/architecture/event
+  gates pass. See
+  `docs/selfchecks/remote-inventory-ui-followup-selfcheck.md`.

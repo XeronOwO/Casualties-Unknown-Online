@@ -12,12 +12,12 @@ Open work only. Landed delivery details are not duplicated here; they live in:
 - Native game-content sync coverage is complete: item and entity feature matrices currently have no `missing` rows.
 - **World bleeding effects sync — CLOSED (2026-08-26).** The visible blood decals a player leaves in the world now travel as a dedicated `WorldBloodSpawn` event (NetMsg 121, ProtocolVersion 51); every peer replays the same transient ground/wall decal. Remote render clones no longer create their own duplicate decals. See `docs/selfchecks/world-blood-spawn-sync-selfcheck.md` and `docs/tech-decisions.md` #115.
 - **Online UI scoped anti-passthrough + transport-mode exclusivity — CLOSED (2026-08-26).** The quick panel and right-click context menu now get scoped UGUI raycast blockers limited to their own rectangles, and the Home page shows only the selected Steam or IP-direct transport section at a time. See `docs/selfchecks/online-ui-scoped-passthrough-selfcheck.md` and `docs/tech-decisions.md` #116.
+- **Remote-player inventory UI follow-up — CLOSED (2026-08-26).** Remote inventory containers are now openable/collapsible in the Online UI, and a host rule `[HostRules] AllowRemoteInventoryTake` controls whether the cross-player take operation is enabled (default preserves unconscious/dead loot; false disables all remote take). The native game backpack/radial UI is not reused because it is hard-wired to the local body and its drag/drop path mutates local-body items; the CUO Online UI remains the remote-inventory surface. See `docs/selfchecks/remote-inventory-ui-followup-selfcheck.md` and `docs/tech-decisions.md` #117.
 
 ## Open work
 
 ### Player interaction / UI
 
-- **Remote-player inventory UI should reuse the game backpack UI** — viewing another player's items currently uses a homemade inventory UI. Reuse the game's own backpack UI where possible; nested containers in another player's inventory should also be openable like the local player's. Add a host/session toggle controlling whether other players may take items from that inventory.
 - **PVP** — LOW (reprioritized). No player-to-player damage domain today; defer until PvE, rules, and accept-first arbitration are stable.
 - **Other lower-priority KrokMP candidates** — voice, vote-kick, and remaining player-list polish.
 

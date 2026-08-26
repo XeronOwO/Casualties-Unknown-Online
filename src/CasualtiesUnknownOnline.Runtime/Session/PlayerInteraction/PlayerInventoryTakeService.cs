@@ -1,6 +1,7 @@
 using System;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session.HostRules;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using Microsoft.Extensions.Logging;
 
@@ -19,12 +20,14 @@ internal sealed class PlayerInventoryTakeService(
 	PacketSender sender,
 	PlayerCharacterAccess characters,
 	IItemControl items,
+	IHostRules hostRules,
 	ILogger log)
 {
 	private readonly ISessionControl _session = session;
 	private readonly PacketSender _sender = sender;
 	private readonly PlayerCharacterAccess _characters = characters;
 	private readonly IItemControl _items = items;
+	private readonly IHostRules _hostRules = hostRules;
 	private readonly ILogger _log = log;
 
 	/// <summary>An authoritative cross-player inventory transfer arrived — the Game Adapter applies the body mutation.</summary>
@@ -66,6 +69,12 @@ internal sealed class PlayerInventoryTakeService(
 		var to = sender;
 		if (from == to || from == 0 || to == 0 || msg.ItemInstanceId == 0)
 		{
+			return;
+		}
+
+		if (!_hostRules.AllowRemoteInventoryTake)
+		{
+			_log.LogInformation("[Take] refused: host has disabled cross-player inventory take (rule AllowRemoteInventoryTake=false).");
 			return;
 		}
 

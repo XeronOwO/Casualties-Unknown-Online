@@ -83,6 +83,8 @@ internal static class PluginDependencyRegistrar
 			new ConfigDescription("Reserved host-rule surface for automatic next-layer continuation; not wired yet."));
 		var allowLateJoin = config.Bind("HostRules", "AllowLateJoin", true,
 			new ConfigDescription("True = a brand-new player may join the host's already-running world."));
+		var allowRemoteInventoryTake = config.Bind("HostRules", "AllowRemoteInventoryTake", true,
+			new ConfigDescription("True = other players may take carried items from a remote player's inventory (unconscious/dead loot remains the default rule; false disables cross-player inventory take entirely)."));
 		var widenRunSettings = config.Bind("HostRules", "WidenRunSettings", true,
 			new ConfigDescription("Host-only: widen the native custom run-settings sliders in co-op so the run can be tuned for the actual lobby size. Values still ride the existing world-start params."));
 		var piggybackWeight = config.Bind("HostRules", "PiggybackWeightMultiplier", 0.8,
@@ -97,10 +99,12 @@ internal static class PluginDependencyRegistrar
 					PvpEnabled = pvpEnabled.Value,
 					AutoContinue = autoContinue.Value,
 					AllowLateJoin = allowLateJoin.Value,
+					AllowRemoteInventoryTake = allowRemoteInventoryTake.Value,
 					WidenRunSettings = widenRunSettings.Value,
 					PiggybackWeightMultiplier = (float)piggybackWeight.Value,
 				},
 				pvpEnabled.Definition, autoContinue.Definition, allowLateJoin.Definition,
+				allowRemoteInventoryTake.Definition,
 				widenRunSettings.Definition, piggybackWeight.Definition)));
 
 		// UI language: en or zh. The localization service normalizes anything
@@ -124,6 +128,7 @@ internal static class PluginDependencyRegistrar
 			pvpEnabled,
 			autoContinue,
 			allowLateJoin,
+			allowRemoteInventoryTake,
 			widenRunSettings,
 			piggybackWeight,
 			permadeath,

@@ -85,6 +85,45 @@ internal static class OnlineUiHomeDrawer
 			return;
 		}
 
+		DrawTransportSelector(ctx);
+
+		if (ctx.State.TransportMode == OnlineUiTransportMode.Steam)
+		{
+			DrawSteamHostJoin(ctx);
+		}
+		else
+		{
+			DrawIpDirect(ctx);
+		}
+
+		GUILayout.Space(10f);
+		GUILayout.Label(ctx.T("home.hotkeys"), OnlineUiTheme.MutedLabel());
+	}
+
+	private static void DrawTransportSelector(OnlineUiContext ctx)
+	{
+		GUILayout.Space(6f);
+		GUILayout.BeginHorizontal();
+		if (GUILayout.Button(ctx.T("home.steam_network"),
+			OnlineUiTheme.Tab(ctx.State.TransportMode == OnlineUiTransportMode.Steam),
+			GUILayout.Height(28f)))
+		{
+			ctx.State.TransportMode = OnlineUiTransportMode.Steam;
+		}
+
+		if (GUILayout.Button(ctx.T("home.ip_direct"),
+			OnlineUiTheme.Tab(ctx.State.TransportMode == OnlineUiTransportMode.IpDirect),
+			GUILayout.Height(28f)))
+		{
+			ctx.State.TransportMode = OnlineUiTransportMode.IpDirect;
+		}
+
+		GUILayout.EndHorizontal();
+		GUILayout.Space(8f);
+	}
+
+	private static void DrawSteamHostJoin(OnlineUiContext ctx)
+	{
 		GUILayout.Label(ctx.T("home.host_a_game"), OnlineUiTheme.Section());
 		GUILayout.Label(ctx.T("home.host_hint"), OnlineUiTheme.MutedLabel());
 		if (GUILayout.Button(ctx.T("home.create_lobby"), OnlineUiTheme.Button(), GUILayout.Height(34f)))
@@ -115,12 +154,6 @@ internal static class OnlineUiHomeDrawer
 		GUILayout.EndHorizontal();
 
 		DrawError(ctx);
-
-		GUILayout.Space(12f);
-		DrawIpDirect(ctx);
-
-		GUILayout.Space(10f);
-		GUILayout.Label(ctx.T("home.hotkeys"), OnlineUiTheme.MutedLabel());
 	}
 
 	private static void DrawIpDirect(OnlineUiContext ctx)

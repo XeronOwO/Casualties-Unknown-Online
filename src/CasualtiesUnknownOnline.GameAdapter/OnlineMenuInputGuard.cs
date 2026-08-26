@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Session;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
@@ -23,6 +24,8 @@ internal sealed class OnlineMenuInputGuard(
 	private readonly ILogger<OnlineMenuInputGuard> _log = log;
 	private readonly List<AdaptiveButton> _buttons = [];
 	private readonly List<GameObject> _blockers = [];
+	private readonly List<GameObject> _scopedBlockers = [];
+	private IReadOnlyList<OnlineUiBlockRect> _scopedBlocks = [];
 
 	private bool _modal;
 
@@ -43,6 +46,23 @@ internal sealed class OnlineMenuInputGuard(
 		else
 		{
 			EndModal();
+		}
+	}
+
+	/// <summary>Sets the non-modal CUO Online UI rectangles that should block
+	/// background UGUI raycasts. Empty clears all scoped blockers.</summary>
+	internal void SetScopedBlocks(IReadOnlyList<OnlineUiBlockRect> blocks)
+	{
+		if (ScopedBlocksEqual(_scopedBlocks, blocks))
+		{
+			return;
+		}
+
+		_scopedBlocks = [.. blocks];
+		DestroyScopedBlockers();
+		if (_scopedBlocks.Count > 0)
+		{
+			CreateScopedBlockers();
 		}
 	}
 
@@ -150,5 +170,73 @@ internal sealed class OnlineMenuInputGuard(
 		}
 
 		_blockers.Clear();
+	}
+
+	private void CreateScopedBlockers()
+	{
+		foreach (var canvas in UnityEngine.Object.FindObjectsOfType<Canvas>())
+		{
+			if (canvas == null || !canvas.gameObject.activeInHierarchy) // Unity object — ==
+			{
+				continue;
+			}
+
+			if (canvas.renderMode == RenderMode.WorldSpace)
+			{
+				continue;
+			}
+
+			var blocker = new GameObject("CUO Online Scoped Input Blocker")
+			{
+				layer = canvas.gameObject.layer,
+			};
+			var rect = blocker.AddComponent<RectTransform>();
+			rect.SetParent(canvas.transform, false);
+			rect.anchorMin = Vector2.zero;
+			rect.anchorMax = Vector2.one;
+			rect.offsetMin = Vector2.zero;
+			rect.offsetMax = Vector2.zero;
+			blocker.transform.SetAsLastSibling();
+
+			var image = blocker.AddComponent<Image>();
+			image.raycastTarget = true;
+			image.color = new Color(0f, 0f, 0f, 0f);
+			var filter = blocker.AddComponent<OnlineScopedRaycastFilter>();
+			filter.SetBlocks(_scopedBlocks);
+			_scopedBlockers.Add(blocker);
+		}
+	}
+
+	private void DestroyScopedBlockers()
+	{
+		foreach (var blocker in _scopedBlockers)
+		{
+			if (blocker != null) // Unity object — ==
+			{
+				UnityEngine.Object.Destroy(blocker);
+			}
+		}
+
+		_scopedBlockers.Clear();
+	}
+
+	private static bool ScopedBlocksEqual(
+		IReadOnlyList<OnlineUiBlockRect> current,
+		IReadOnlyList<OnlineUiBlockRect> next)
+	{
+		if (current.Count != next.Count)
+		{
+			return false;
+		}
+
+		for (var i = 0; i < current.Count; i++)
+		{
+			if (current[i] != next[i])
+			{
+				return false;
+			}
+		}
+
+		return true;
 	}
 }

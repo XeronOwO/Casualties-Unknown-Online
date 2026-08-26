@@ -196,7 +196,31 @@ internal sealed class OnlineUiOverlay
 		DrawNameplatesAndArrows(ctx, entities, vitals);
 		DrawPlayerContextMenu(ctx);
 		_quickPanel.Draw(ctx);
+
+		// Non-modal CUO surfaces (quick panel, right-click context menu) are
+		// IMGUI and invisible to UGUI; scoped blockers keep their pixels from
+		// leaking to the menu/world without blocking the rest of the screen.
+		adapter?.SetOnlineUiScopedBlocks(CollectScopedBlocks());
 	}
+
+	private IReadOnlyList<OnlineUiBlockRect> CollectScopedBlocks()
+	{
+		var blocks = new List<OnlineUiBlockRect>(2);
+		if (_contextMenu.IsOpen)
+		{
+			blocks.Add(FromRect(_contextMenu.Bounds));
+		}
+
+		if (_quickPanel.IsVisible)
+		{
+			blocks.Add(FromRect(_quickPanel.Bounds));
+		}
+
+		return blocks;
+	}
+
+	private static OnlineUiBlockRect FromRect(Rect rect) =>
+		new(rect.x, rect.y, rect.width, rect.height);
 
 	private void UpdateDelayedStatus(OnlineUiContext ctx)
 	{

@@ -49,6 +49,9 @@ public sealed class OnlineUiMemberRow
 	/// <summary>True when the local player is being carried by someone and can request to get down.</summary>
 	public bool CanRequestDrop { get; init; }
 
+	/// <summary>True for the remote carrier row when the local player is riding on this member and can request to get down.</summary>
+	public bool CanRequestDropFromCarrier { get; init; }
+
 	/// <summary>True when the local player can request a heal on this in-world member.</summary>
 	public bool CanHeal { get; init; }
 

@@ -77,6 +77,11 @@ public static class OnlineUiMemberProjection
 			var canRequestDrop = isLocal
 				&& localInWorld
 				&& playerInteraction?.TryGetCarrier(localSteamId, out _) == true;
+			var canRequestDropFromCarrier = !isLocal
+				&& member is { InWorld: true }
+				&& localInWorld
+				&& playerInteraction?.TryGetCarrier(localSteamId, out var localCarrier) == true
+				&& localCarrier == memberId;
 			var canHeal = !isLocal
 				&& member is { InWorld: true }
 				&& localInWorld
@@ -114,6 +119,7 @@ public static class OnlineUiMemberProjection
 				CanCarryOnBack = canCarryOnBack,
 				CanDrop = canDrop,
 				CanRequestDrop = canRequestDrop,
+				CanRequestDropFromCarrier = canRequestDropFromCarrier,
 				CanHeal = canHeal,
 				CanPush = canPush,
 				CanRecruit = canRecruit,

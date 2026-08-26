@@ -326,6 +326,23 @@ public sealed class OnlineUiMemberProjectionTests
 	}
 
 	[Fact]
+	public void CarriedLocalShowsGetDownOnLocalRowAndOnCarrierRemoteRow()
+	{
+		var interaction = new FakeInteraction { CarrierOfLocal = Remote };
+		var rows = Build(
+			[Local, Remote],
+			[Presence(Remote, handshaken: true, inWorld: true)],
+			interaction,
+			canAdmin: false,
+			localInWorld: true,
+			hasHealItem: false);
+
+		Assert.True(rows[0].CanRequestDrop);
+		Assert.True(rows[1].CanRequestDropFromCarrier);
+		Assert.False(rows[1].CanDrop);
+	}
+
+	[Fact]
 	public void DeadMemberExposesDeadStatusFlag()
 	{
 		var vitals = new Dictionary<ulong, RemoteVitalsSnapshot>

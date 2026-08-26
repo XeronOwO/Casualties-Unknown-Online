@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.GameAdapter.Items;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
@@ -93,6 +94,7 @@ internal sealed class CloneInventoryRenderer(ILogger<CloneInventoryRenderer> log
 					matches[0].gameObject.AddComponent<RemoteCloneRender>();
 				}
 
+				RestoreRemoteContents(matches[0], wanted.Contents);
 				return;
 			}
 		}
@@ -197,5 +199,68 @@ internal sealed class CloneInventoryRenderer(ILogger<CloneInventoryRenderer> log
 		// clear only our renders, and the uniform marker lets presentation code
 		// identify a display-proxy item without depending on slot internals.
 		obj.AddComponent<RemoteCloneRender>();
+		RestoreRemoteContents(item, wanted.Contents);
+	}
+
+	/// <summary>
+	/// Rebuilds a remote clone container's child items from the snapshot's
+	/// recursive contents. The native container/backpack UI reads a real
+	/// <see cref="Container"/> transform, so a remote container that has
+	/// contents must materialise those children on the display clone; they are
+	/// marked as remote render proxies (no authority, no physics).
+	/// </summary>
+	private static void RestoreRemoteContents(Item containerItem, List<CharacterItemMsg> contents)
+	{
+		if (containerItem == null) // Unity object — ==
+		{
+			return;
+		}
+
+		// Remove only our previous proxy child items. Destroy is deferred, so a
+		// changed container may briefly show both old and new children in the
+		// same frame; the next frame is clean.
+		var previous = containerItem.GetComponentsInChildren<Item>(true)
+			.Where(c => c != containerItem && c.GetComponent<RemoteCloneRender>() != null) // Unity object — == marker check
+			.ToArray();
+		foreach (var old in previous)
+		{
+			UnityEngine.Object.Destroy(old.gameObject);
+		}
+
+		if (contents.Count == 0)
+		{
+			return;
+		}
+
+		ItemStateCodec.RestoreContents(containerItem, contents);
+		MarkRemoteCloneTree(containerItem);
+	}
+
+	private static void MarkRemoteCloneTree(Item root)
+	{
+		foreach (var child in root.GetComponentsInChildren<Item>(true))
+		{
+			if (child == root) // Unity object — ==
+			{
+				continue;
+			}
+
+			if (child.GetComponent<RemoteCloneRender>() == null) // Unity object — ==
+			{
+				child.gameObject.AddComponent<RemoteCloneRender>();
+			}
+
+			var rb = child.GetComponent<Rigidbody2D>();
+			if (rb != null) // Unity object — ==
+			{
+				rb.simulated = false;
+			}
+
+			var col = child.GetComponent<Collider2D>();
+			if (col != null) // Unity object — ==
+			{
+				col.enabled = false;
+			}
+		}
 	}
 }

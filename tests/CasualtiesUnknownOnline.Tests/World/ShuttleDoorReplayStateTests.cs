@@ -35,4 +35,12 @@ public class ShuttleDoorReplayStateTests
 		Assert.True(state.PlayedSound == expectedSound, $"elapsed {elapsed}: sound latch must be {expectedSound}, got {state.PlayedSound}");
 		Assert.True(state.DidTalk == expectedTalk, $"elapsed {elapsed}: talk latch must be {expectedTalk}, got {state.DidTalk}");
 	}
+
+	[Theory]
+	[InlineData(0f, true)]
+	[InlineData(-1f, true)]
+	[InlineData(0.01f, false)]
+	[InlineData(10f, false)]
+	public void ShouldReplayTriggerSound_LiveRelayOnly(float elapsed, bool expected) =>
+		Assert.Equal(expected, ShuttleDoorReplayState.ShouldReplayTriggerSound(elapsed));
 }

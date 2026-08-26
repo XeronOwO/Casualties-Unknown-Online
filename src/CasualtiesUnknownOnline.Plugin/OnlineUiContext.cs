@@ -96,6 +96,9 @@ internal sealed class OnlineUiContext
 	/// <summary>Opens the standalone player-interaction quick panel pinned to a remote player (the right-click "View items" path).</summary>
 	internal Action<ulong>? OpenQuickPanel;
 
+	/// <summary>Opens the game's native radial backpack UI focused on a remote player's render clone.</summary>
+	internal Func<ulong, string, bool>? OpenRemoteBackpack;
+
 	internal string T(string key) => Localization.T(key);
 
 	internal string F(string key, params object?[] args) => Localization.Format(key, args);

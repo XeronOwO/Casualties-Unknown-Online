@@ -1,5 +1,10 @@
 # Remote inventory UI follow-up — openable containers + host take toggle (2026-08-26)
 
+> **Superseded note**: the "native not reused" boundary below was later
+> corrected by `docs/selfchecks/native-remote-backpack-and-door-sound-selfcheck.md`
+> (#118), which ports the native radial backpack view for remote players.
+> This sheet remains the record for the collapsible-container + host-rule slice.
+
 Closes the backlog "Remote-player inventory UI should reuse the game backpack
 UI" as far as the CUO architecture permits. The native game radial/backpack
 surface is hard-wired to `PlayerCamera.main.body` and its drag/drop path

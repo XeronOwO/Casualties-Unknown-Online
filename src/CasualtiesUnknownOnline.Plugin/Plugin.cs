@@ -128,6 +128,17 @@ public class Plugin : BaseUnityPlugin
 				LeaveIp = _ipActions.Leave,
 				IpConfig = _ipConfig,
 				TakeItem = _uiActions.TakeItemFromRemote,
+				OpenRemoteBackpack = (id, name) =>
+				{
+					var opened = _uiActions.OpenRemoteBackpackFromUi(id, name);
+					if (opened)
+					{
+						_onlineUi.CloseWindow();
+						_onlineUi.CloseQuickPanel();
+					}
+
+					return opened;
+				},
 				CarryRemote = _uiActions.CarryRemoteFromUi,
 				PiggybackRemote = _uiActions.PiggybackRemoteFromUi,
 				CarryOnBackRemote = _uiActions.CarryOnBackRemoteFromUi,

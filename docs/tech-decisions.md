@@ -3367,3 +3367,39 @@ controls whether the cross-player take operation is enabled at all.
   hot-reload assertions; full suite 1538 green; build/format/architecture/event
   gates pass. See
   `docs/selfchecks/remote-inventory-ui-followup-selfcheck.md`.
+
+## 118. Native remote backpack view + shuttle-door trigger sound live replay
+
+Closed 2026-08-26 from two follow-up observations on #117: the shuttle-door
+trigger sound was still missing on the guest replay path (the prior fix only
+covered the host executor), and the remote inventory action still used the
+CUO custom UI instead of the game's native radial backpack.
+
+- **Shuttle-door trigger sound** — `TrapVisualReplay.ReplayShuttleDoor`
+  previously jumped straight to the elapsed state and never played
+  `shuttleNotice`. It now calls `TrapStateActions.ApplyShuttleDoor` for live
+  relays (`ShuttleDoorReplayState.ShouldReplayTriggerSound(elapsed <= 0)`),
+  which plays the collision-only trigger sound and lets the door's own
+  `Update` drive the animation + `shuttleOpen` at 2 s. Late-joiner snapshots
+  remain silent, consistent with the host not re-playing its opening.
+- **Native remote backpack view** — a `RemoteBackpackView` static focus plus
+  `RemoteBackpackCoordinator` opens the game's radial inventory on a remote
+  render clone. Harmony seams port the KrokMP pattern:
+  `InvButton.get_body` → remote clone while focused;
+  `PlayerCamera.UpdateWearables` → temporary body swap for worn buttons;
+  `PlayerCamera.HandleWhileDragging` → radial menu follows the remote clone.
+  `TryPerformRadialAction` and `TryPickupFromUI` are blocked while focused so
+  the display clone is never mutated.
+- **Clone container contents** — `CloneInventoryRenderer.RestoreRemoteContents`
+  materialises recursive snapshot contents under remote clone containers with
+  `RemoteCloneRender` markers and physics/colliders disabled, so the native
+  container UI can read nested items on a display clone.
+- **UI wiring** — "Open backpack" is exposed in the Players page, quick panel
+  and right-click menu; it closes the CUO windows/panels before opening the
+  native radial. The custom item list remains as the explicit detail fallback.
+- **No wire change** — no new `NetMsg`, no `ProtocolVersion` bump, no
+  event/item/entity matrix row touched.
+- **Tests/gates** — `ShuttleDoorReplayStateTests` +4,
+  `RemoteBackpackContractTests` +2; full suite 1544 green;
+  build/format/architecture/event gates pass. See
+  `docs/selfchecks/native-remote-backpack-and-door-sound-selfcheck.md`.

@@ -48,6 +48,9 @@ internal sealed class OnlineUiOverlay
 	/// <summary>Invoked when the user clicks Take on one of a remote player's inventory lines.</summary>
 	internal Func<ulong, ulong, bool>? TakeItem;
 
+	/// <summary>Invoked when the user wants to open a remote player's inventory in the game's native radial backpack UI.</summary>
+	internal Func<ulong, string, bool>? OpenRemoteBackpack;
+
 	/// <summary>Invoked when the user clicks Carry on an unconscious/dead remote player.</summary>
 	internal Func<ulong, bool>? CarryRemote;
 
@@ -107,6 +110,9 @@ internal sealed class OnlineUiOverlay
 	/// <summary>Programmatic close (ESC hotkey); the modal guard sees it on the next frame's adapter call.</summary>
 	internal void CloseWindow() => _window.State.Visible = false;
 
+	/// <summary>Closes the standalone player-interaction quick panel.</summary>
+	internal void CloseQuickPanel() => _quickPanel.Close();
+
 	/// <summary>Toggles the standalone player-interaction quick panel (configurable session hotkey).</summary>
 	internal void ToggleQuickPanel() => _quickPanel.Toggle();
 
@@ -160,6 +166,7 @@ internal sealed class OnlineUiOverlay
 			IpConfig = IpConfig,
 			IpDirectActive = IpDirectActive,
 			TakeItem = TakeItem,
+			OpenRemoteBackpack = OpenRemoteBackpack,
 			CarryRemote = CarryRemote,
 			PiggybackRemote = PiggybackRemote,
 			CarryOnBackRemote = CarryOnBackRemote,

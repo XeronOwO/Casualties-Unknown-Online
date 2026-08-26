@@ -247,6 +247,14 @@ internal static class OnlineUiMemberListDrawer
 	private static void DrawInventoryToggle(OnlineUiContext ctx, OnlineUiMemberRow row)
 	{
 		GUILayout.BeginHorizontal();
+		if (!row.IsLocal && row.InWorld && ctx.OpenRemoteBackpack is { } open)
+		{
+			if (GUILayout.Button(ctx.T("member.open_backpack"), OnlineUiTheme.Button(), GUILayout.Width(130f)))
+			{
+				open(row.SteamId, ctx.DisplayName(row.SteamId));
+			}
+		}
+
 		if (GUILayout.Button(ctx.State.ExpandedMember == row.SteamId ? ctx.T("member.hide_items") : ctx.T("member.view_items"), OnlineUiTheme.Button(), GUILayout.Width(110f)))
 		{
 			ctx.State.ExpandedMember = ctx.State.ExpandedMember == row.SteamId ? null : row.SteamId;

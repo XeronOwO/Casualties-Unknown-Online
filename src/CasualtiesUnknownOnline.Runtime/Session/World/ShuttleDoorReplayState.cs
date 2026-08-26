@@ -13,4 +13,12 @@ internal static class ShuttleDoorReplayState
 	/// <summary>The door's state at the given elapsed seconds since its trigger.</summary>
 	internal static (float Progress, bool PlayedSound, bool DidTalk) FromElapsed(float elapsedSeconds) =>
 		(elapsedSeconds, elapsedSeconds > 2f, elapsedSeconds > 4f);
+
+	/// <summary>
+	/// Live relays (elapsed 0) replay the collision-only trigger sound;
+	/// late-joiner snapshots (elapsed &gt; 0) jump to the current state without
+	/// replaying old sounds (the host's door is not re-playing its opening
+	/// either).
+	/// </summary>
+	internal static bool ShouldReplayTriggerSound(float elapsedSeconds) => elapsedSeconds <= 0f;
 }

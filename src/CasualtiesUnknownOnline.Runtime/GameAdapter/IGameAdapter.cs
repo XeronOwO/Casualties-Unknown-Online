@@ -83,4 +83,15 @@ public interface IGameAdapter : IDisposable
 	/// game world/menu. Pass an empty list to clear them.
 	/// </summary>
 	void SetOnlineUiScopedBlocks(IReadOnlyList<OnlineUiBlockRect> blocks);
+
+	/// <summary>
+	/// Opens the game's native radial backpack UI focused on one in-world remote
+	/// player's render clone. Returns false when no session/world/remote clone is
+	/// available yet. The view is read-only presentation; the clone is never the
+	/// authority and no item mutation is performed through it.
+	/// </summary>
+	bool OpenRemoteBackpack(ulong targetSteamId, string displayName);
+
+	/// <summary>Closes the native remote backpack view (if one is open).</summary>
+	void CloseRemoteBackpack();
 }

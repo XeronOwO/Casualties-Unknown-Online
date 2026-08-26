@@ -25,7 +25,7 @@ CactusHit,gore at player (DoGoreSound),gore1-5 at cactus (3D),player-knockback (
 JumpPadLaunched,jumppad(3D)+light+Shake,ok,light flash,ok,cooldown gate,covered,
 BananaPlantSlip,plantslip(3D) ok,ok,none,none,none,covered,
 GrabberGrabbed,EnemyEffectMsg body terminal state,n/a (no live EntityEvent),scream bubble + ragdoll via speech/entity-state streams,n/a,layout key only,excluded,kind retained only as the trap-layout identity key; the body effect rides EnemyEffectMsg (NetMsg 85)
-ShuttleDoorOpened,shuttleNotice+shuttleOpen(3D at 2s),shuttleNotice replayed + shuttleOpen via Update natural,door-lift anim,ok,activated,covered,shuttleNotice was missing (collision-only sound); 50pct talk is trigger-side local UI not replayed
+ShuttleDoorOpened,shuttleNotice+shuttleOpen(3D at 2s),shuttleNotice replayed on live relay + shuttleOpen via Update natural; late-joiner silent,door-lift anim,ok,activated,covered,shuttleNotice was missing on the guest live-replay path (fixed 2026-08-26); 50pct talk is trigger-side local UI not replayed
 LifepodHeatChanged,button-sound (interaction layer),ToggleHeatState runs game path,sprite+description,ok,heatState,covered,
 LifepodShowerActivated,none,ActivateShower runs game path,shower anim,ok,activated,covered,
 BioTerminalUnlocked,beep(3D) ok,ok,Backgroundify+doors,ok,collider-disabled,covered,

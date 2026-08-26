@@ -39,6 +39,14 @@ internal sealed class WorldChannelRelay(
 
 	public void FireDynamiteExplosionReceived(ulong sender, ulong itemInstanceId, NetVector2 position) => _eventChannel.FireDynamiteExplosionReceived(sender, itemInstanceId, position);
 
+	public void SendWorldBloodSpawn(WorldBloodSpawnMsg msg) => _eventChannel.SendWorldBloodSpawn(msg);
+
+	public void BroadcastWorldBloodSpawn(ulong excludeSteamId, WorldBloodSpawnMsg msg) => _eventChannel.BroadcastWorldBloodSpawn(excludeSteamId, msg);
+
+	public event Action<ulong, WorldBloodSpawnMsg>? WorldBloodSpawnReceived { add => _eventChannel.WorldBloodSpawnReceived += value; remove => _eventChannel.WorldBloodSpawnReceived -= value; }
+
+	public void FireWorldBloodSpawnReceived(ulong sender, WorldBloodSpawnMsg msg) => _eventChannel.FireWorldBloodSpawnReceived(sender, msg);
+
 	public void ReportTrapConsumed(EntityEventKind kind, float x, float y, byte extra) => _eventChannel.ReportTrapConsumed(kind, x, y, extra);
 
 	public event Action<ulong, EntitySpawnedMsg>? EntitySpawnedReceived { add => _eventChannel.EntitySpawnedReceived += value; remove => _eventChannel.EntitySpawnedReceived -= value; }

@@ -257,4 +257,9 @@ public enum NetMsg : byte
 	// transition already collapsed the body; the peers replay the lying pose on
 	// the owner's clone immediately, with the 20 Hz standing state as fallback)
 	CharacterRagdoll = 120, // bidirectional: guest → host report of the owner's own ragdoll toggle; host → guest broadcast relay (source excluded)
+
+	// Player world-blood presentation (one-shot transient decal: the owner's
+	// local BleedParticle already spawned the ground/wall blood object; the
+	// peers replay the same decal at the same world position)
+	WorldBloodSpawn = 121, // bidirectional: guest → host report of a local player's blood decal; host → guest broadcast relay (source excluded)
 }

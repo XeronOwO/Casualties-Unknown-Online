@@ -373,4 +373,12 @@ internal interface IPatchBridge
 	/// </summary>
 	void OnCharacterRagdoll(Vector2 position);
 
+	/// <summary>
+	/// The local player's BleedParticle just spawned a world-blood decal (the
+	/// native <c>BleedParticle.Update</c> transient ground/wall branch). Report
+	/// the decal so the peers spawn the same visual (guest → host; host →
+	/// broadcast). The decal is presentation-only and transient.
+	/// </summary>
+	void OnWorldBloodSpawn(Vector2 position, bool ground);
+
 }

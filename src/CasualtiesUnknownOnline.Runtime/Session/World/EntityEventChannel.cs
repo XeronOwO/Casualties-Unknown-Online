@@ -134,6 +134,50 @@ public sealed class EntityEventChannel(ISessionControl session, PacketSender sen
 		_session.BroadcastExcept(excludeSteamId, NetMsg.DynamiteExplosion, msg);
 	}
 
+	// ---- Player world-blood decals (one-shot transient presentation) ----
+
+	/// <summary>A world-blood decal arrived — the receiver replays it (host: after a guest report; guest: the host's relay).</summary>
+	public event Action<ulong, WorldBloodSpawnMsg>? WorldBloodSpawnReceived;
+
+	public void FireWorldBloodSpawnReceived(ulong sender, WorldBloodSpawnMsg msg) =>
+		WorldBloodSpawnReceived?.Invoke(sender, msg);
+
+	/// <summary>
+	/// Report a locally-spawned world-blood decal: guest → host as a report,
+	/// host → broadcast to all synced members. Same star shape as the dynamite
+	/// explosion: the triggering player's own client already spawned the decal
+	/// locally; the host replays it on its own world and relays to the other
+	/// members (source excluded). One decal = one message; the decal is
+	/// transient and has no snapshot fallback.
+	/// </summary>
+	public void SendWorldBloodSpawn(WorldBloodSpawnMsg msg)
+	{
+		if (!_session.SessionActive)
+		{
+			return;
+		}
+
+		if (_session.Role == SessionRole.Host)
+		{
+			_session.Broadcast(NetMsg.WorldBloodSpawn, msg);
+		}
+		else
+		{
+			_sender.Send(_session.HostSteamId, NetMsg.WorldBloodSpawn, msg);
+		}
+	}
+
+	/// <summary>Host only: relay an accepted world-blood decal to the other members (source excluded — it already spawned locally).</summary>
+	public void BroadcastWorldBloodSpawn(ulong excludeSteamId, WorldBloodSpawnMsg msg)
+	{
+		if (_session.Role != SessionRole.Host || !_session.SessionActive)
+		{
+			return;
+		}
+
+		_session.BroadcastExcept(excludeSteamId, NetMsg.WorldBloodSpawn, msg);
+	}
+
 	// ---- World entity creation (runtime, outside generation) ----
 
 	/// <summary>An entity-creation report arrived — the receiver creates its own copy (host: then relays; guest: remote apply).</summary>

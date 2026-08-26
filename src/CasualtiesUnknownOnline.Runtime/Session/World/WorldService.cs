@@ -223,6 +223,14 @@ public sealed class WorldService : IWorldControl, IDisposable
 
 	public void FireDynamiteExplosionReceived(ulong sender, ulong itemInstanceId, NetVector2 position) => _channels.FireDynamiteExplosionReceived(sender, itemInstanceId, position);
 
+	public void SendWorldBloodSpawn(WorldBloodSpawnMsg msg) => _channels.SendWorldBloodSpawn(msg);
+
+	public void BroadcastWorldBloodSpawn(ulong excludeSteamId, WorldBloodSpawnMsg msg) => _channels.BroadcastWorldBloodSpawn(excludeSteamId, msg);
+
+	public event Action<ulong, WorldBloodSpawnMsg>? WorldBloodSpawnReceived { add => _channels.WorldBloodSpawnReceived += value; remove => _channels.WorldBloodSpawnReceived -= value; }
+
+	public void FireWorldBloodSpawnReceived(ulong sender, WorldBloodSpawnMsg msg) => _channels.FireWorldBloodSpawnReceived(sender, msg);
+
 	public void ReportTrapConsumed(EntityEventKind kind, float x, float y, byte extra) => _channels.ReportTrapConsumed(kind, x, y, extra);
 
 	public event Action<ulong, EntitySpawnedMsg>? EntitySpawnedReceived { add => _channels.EntitySpawnedReceived += value; remove => _channels.EntitySpawnedReceived -= value; }

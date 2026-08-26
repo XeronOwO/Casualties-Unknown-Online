@@ -188,6 +188,48 @@ public sealed class OnlineUiMemberProjectionTests
 	}
 
 	[Fact]
+	public void ConsciousAliveRemoteCanRideOnLocalBackWhenLocalInWorld()
+	{
+		var vitals = new Dictionary<ulong, RemoteVitalsSnapshot>
+		{
+			[Remote] = RemoteVitalsSnapshot.From(new CharacterHealthMsg { Alive = true, Conscious = true })!,
+		};
+
+		var rows = Build(
+			[Local, Remote],
+			[Presence(Remote, handshaken: true, inWorld: true)],
+			new FakeInteraction(),
+			canAdmin: false,
+			localInWorld: true,
+			hasHealItem: false,
+			getVitals: id => vitals.TryGetValue(id, out var v) ? v : null);
+
+		Assert.True(rows[1].CanCarryOnBack);
+		Assert.True(rows[1].CanPiggyback);
+	}
+
+	[Fact]
+	public void CarriedLocalCannotPutRemoteOnOwnBack()
+	{
+		var vitals = new Dictionary<ulong, RemoteVitalsSnapshot>
+		{
+			[Remote] = RemoteVitalsSnapshot.From(new CharacterHealthMsg { Alive = true, Conscious = true })!,
+		};
+
+		var rows = Build(
+			[Local, Remote],
+			[Presence(Remote, handshaken: true, inWorld: true)],
+			new FakeInteraction { CarrierOfLocal = Remote },
+			canAdmin: false,
+			localInWorld: true,
+			hasHealItem: false,
+			getVitals: id => vitals.TryGetValue(id, out var v) ? v : null);
+
+		Assert.False(rows[1].CanCarryOnBack);
+		Assert.False(rows[1].CanPiggyback);
+	}
+
+	[Fact]
 	public void CarriedLocalCannotPiggybackRemote()
 	{
 		var vitals = new Dictionary<ulong, RemoteVitalsSnapshot>
@@ -427,6 +469,10 @@ public sealed class OnlineUiMemberProjectionTests
 		}
 
 		public void SendPiggybackRequest(ulong targetSteamId)
+		{
+		}
+
+		public void SendCarryOnBackRequest(ulong targetSteamId)
 		{
 		}
 

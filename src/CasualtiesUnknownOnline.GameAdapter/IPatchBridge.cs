@@ -163,6 +163,14 @@ internal interface IPatchBridge
 	/// <summary>An inventory-internal move completed (SwapSlots/SwitchHands) — re-report the character snapshot immediately so the peer's clone updates in real time (the 1 Hz throttle alone reads as a 1-2 s delay).</summary>
 	void OnInventoryChanged();
 
+	/// <summary>
+	/// The extra encumbrance a LOCAL carrier body owes while it carries or
+	/// piggybacks a teammate. Zero for non-local bodies or when there is no
+	/// active carry relation, so the native <c>Body.GetTotalEncumberance</c>
+	/// result is unchanged for remote clones and standalone players.
+	/// </summary>
+	float GetCarriedEncumbrance(Body body);
+
 	// ---- World items (runtime-generated item entities) ----
 
 	/// <summary>True in a live session — the spawn landing sound is deferred until the start-gate release.</summary>

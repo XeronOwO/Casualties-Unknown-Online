@@ -35,4 +35,12 @@ public sealed class HostRulesOptions
 	/// selected values still ride the existing world-start params unchanged.
 	/// </summary>
 	public bool WidenRunSettings { get; set; } = true;
+
+	/// <summary>
+	/// Host-only: the fraction of a carried/rider player's full encumbrance that
+	/// is added to the carrier's own encumbrance while a carry/piggyback relation
+	/// is active. Matches KrokMP's <c>PiggybackWeightMultiplier</c> rule spirit:
+	/// 0 disables the movement penalty, 0.8 is the KrokMP default.
+	/// </summary>
+	public float PiggybackWeightMultiplier { get; set; } = 0.8f;
 }

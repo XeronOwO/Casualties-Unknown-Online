@@ -3176,3 +3176,43 @@ panel rather than requiring the full Online window for frequent co-op actions.
   (includes the Mapster `Limb` mapping regression tests), build/format/
   architecture/event gates pass. See
   `docs/selfchecks/player-quick-panel-selfcheck.md`.
+
+## 112. Player-interaction carry/piggyback follow-ups
+
+Closed 2026-08-26 from the open follow-up list under the carry/piggyback
+section: the four remaining player-interaction polish/bug items.
+
+- **Local-as-carrier piggyback direction** — `PlayerCarryStartRequestMsg`
+  gains an additive `RequesterIsCarrier` field. The existing
+  `SendPiggybackRequest(target)` still means "local climbs onto target's
+  back"; the new `SendCarryOnBackRequest(target)` means "local invites target
+  to ride on local's back". The host shares the same piggyback validation,
+  carry table and `PlayerCarryStateMsg` broadcast. The UI adds a `Carry on
+  back` / `背起` action on the Players page, right-click menu and quick panel.
+- **Carrier-side real-time follow presentation** — `RemotePlayerRenderer`
+  now receives the local body and, after the periodic state pump, pins the
+  clone of the player the local player is carrying to the local body's back
+  offset. This is presentation-only: the rider still reports its authoritative
+  position over the ordinary 20 Hz/1 Hz streams for every other peer, and the
+  release clears the local override automatically when the carry mirror drops.
+- **Release floating-body restore** — the carry-state release branch now
+  places the released local body at the carrier's current position and calls
+  the new `CarriedBodyPlacement.RestoreLocalBody`, which re-enables the body
+  and limb rigidbodies frozen by the carried-proxy path and restores the
+  native standing pose for conscious/alive bodies or the ragdoll pose for
+  unconscious/dead bodies.
+- **Piggyback weight/encumbrance host rule** — `[HostRules]
+  PiggybackWeightMultiplier` (default 0.8, 0–3) is exposed through
+  `IHostRules` and editable on the Admin page. A new
+  `CarryEncumbrancePatch` postfix on `Body.GetTotalEncumberance` adds the
+  carried player's full authoritative character-snapshot encumbrance × the
+  multiplier to the local carrier's load. The snapshot-based calculation is
+  used instead of the frozen render clone's item objects.
+- **No protocol bump** — additive protobuf field only; no new `NetMsg`, no
+  `ProtocolVersion` change, no event/item/entity matrix row touched.
+- **Tests/gates** — `PlayerInteractionServiceTests` +2 local-as-carrier
+  direction cases, `OnlineUiMemberProjectionTests` +2 `CanCarryOnBack` cases,
+  `HostRulesPolicyTests` weight exposure, `CarryEncumbrancePatchTests` +4
+  (multiplier + patch contract); full suite 1509 green,
+  build/format/architecture/event gates pass. See
+  `docs/selfchecks/player-interaction-followups-selfcheck.md`.

@@ -22,6 +22,9 @@ public interface IHostRules
 	/// <summary>Host-only: widen the native custom run-settings slider ranges in co-op for lobby-size tuning.</summary>
 	bool WidenRunSettings { get; }
 
+	/// <summary>Host-only: the fraction of a carried rider's full encumbrance added to the carrier while a carry/piggyback relation is active.</summary>
+	float PiggybackWeightMultiplier { get; }
+
 	/// <summary>Respawn keeps inventory (from <see cref="Configuration.RespawnOptions"/>).</summary>
 	bool SaveInventory { get; }
 

@@ -86,6 +86,9 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, IDispo
 	public void SendPiggybackRequest(ulong targetSteamId) =>
 		_carry.SendPiggybackRequest(targetSteamId);
 
+	public void SendCarryOnBackRequest(ulong targetSteamId) =>
+		_carry.SendCarryOnBackRequest(targetSteamId);
+
 	public void SendCarryStopRequest(ulong carriedSteamId) =>
 		_carry.SendCarryStopRequest(carriedSteamId);
 

@@ -149,6 +149,7 @@ internal static class OnlineUiMemberListDrawer
 		var hasAction = row.IsCarryingThis
 			|| row.CanCarry
 			|| row.CanPiggyback
+			|| row.CanCarryOnBack
 			|| row.CanDrop
 			|| row.CanRequestDrop
 			|| row.CanHeal
@@ -169,6 +170,11 @@ internal static class OnlineUiMemberListDrawer
 		if (row.CanPiggyback && GUILayout.Button(ctx.T("member.piggyback"), OnlineUiTheme.Button(), GUILayout.Width(90f)))
 		{
 			ctx.PiggybackRemote?.Invoke(row.SteamId);
+		}
+
+		if (row.CanCarryOnBack && GUILayout.Button(ctx.T("member.carry_on_back"), OnlineUiTheme.Button(), GUILayout.Width(110f)))
+		{
+			ctx.CarryOnBackRemote?.Invoke(row.SteamId);
 		}
 
 		if (row.CanDrop && GUILayout.Button(ctx.T("member.drop"), OnlineUiTheme.Button(), GUILayout.Width(70f)))

@@ -52,13 +52,17 @@ internal sealed class PlayerCarryService : IDisposable
 
 	/// <summary>Online UI entry: the local player starts carrying an unconscious/dead player.</summary>
 	public void SendCarryStartRequest(ulong targetSteamId) =>
-		SendStartRequest(targetSteamId, piggyback: false);
+		SendStartRequest(targetSteamId, piggyback: false, requesterIsCarrier: false);
 
 	/// <summary>Online UI entry: the local player climbs onto a conscious-alive teammate's back.</summary>
 	public void SendPiggybackRequest(ulong targetSteamId) =>
-		SendStartRequest(targetSteamId, piggyback: true);
+		SendStartRequest(targetSteamId, piggyback: true, requesterIsCarrier: false);
 
-	private void SendStartRequest(ulong targetSteamId, bool piggyback)
+	/// <summary>Online UI entry: the local player invites a conscious-alive teammate to ride on the local player's back.</summary>
+	public void SendCarryOnBackRequest(ulong targetSteamId) =>
+		SendStartRequest(targetSteamId, piggyback: true, requesterIsCarrier: true);
+
+	private void SendStartRequest(ulong targetSteamId, bool piggyback, bool requesterIsCarrier)
 	{
 		if (!_session.SessionActive || !_session.LocalInWorld)
 		{
@@ -69,6 +73,7 @@ internal sealed class PlayerCarryService : IDisposable
 		{
 			TargetSteamId = targetSteamId,
 			Piggyback = piggyback,
+			RequesterIsCarrier = requesterIsCarrier,
 		};
 		if (_session.Role == SessionRole.Host)
 		{
@@ -111,13 +116,15 @@ internal sealed class PlayerCarryService : IDisposable
 		var requested = msg.TargetSteamId;
 		var carrier = requester;
 		var carried = requested;
-		if (msg.Piggyback)
+		if (msg.Piggyback && !msg.RequesterIsCarrier)
 		{
 			// The requester climbs onto the target's back: the target is the
 			// carrier, the requester is the carried rider.
 			carrier = requested;
 			carried = requester;
 		}
+		// With RequesterIsCarrier=true the requester remains the carrier and the
+		// target is the conscious/alive rider, matching the local-as-carrier UI.
 
 		if (carrier == carried || carrier == 0 || carried == 0)
 		{
@@ -171,7 +178,14 @@ internal sealed class PlayerCarryService : IDisposable
 		_carrying[carrier] = carried;
 		if (msg.Piggyback)
 		{
-			_log.LogInformation("[Piggyback] {Rider} climbs onto {Carrier}'s back.", carried, carrier);
+			if (msg.RequesterIsCarrier)
+			{
+				_log.LogInformation("[Piggyback] {Carrier} takes {Rider} onto their back.", carrier, carried);
+			}
+			else
+			{
+				_log.LogInformation("[Piggyback] {Rider} climbs onto {Carrier}'s back.", carried, carrier);
+			}
 		}
 		else
 		{

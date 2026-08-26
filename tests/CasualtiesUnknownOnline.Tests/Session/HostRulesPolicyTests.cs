@@ -1,3 +1,4 @@
+using System;
 using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Session.HostRules;
 using Xunit;
@@ -40,6 +41,7 @@ public class HostRulesPolicyTests
 				AutoContinue = true,
 				AllowLateJoin = false,
 				WidenRunSettings = true,
+				PiggybackWeightMultiplier = 1.25f,
 			}),
 			new MutableOptionsMonitor<RespawnOptions>(new RespawnOptions
 			{
@@ -54,6 +56,7 @@ public class HostRulesPolicyTests
 		Assert.True(service.AutoContinue);
 		Assert.False(service.AllowLateJoin);
 		Assert.True(service.WidenRunSettings);
+		Assert.True(Math.Abs(service.PiggybackWeightMultiplier - 1.25f) < 0.001f);
 		Assert.True(service.Permadeath);
 		Assert.False(service.SaveInventory);
 		Assert.False(service.ReviveFromTrader);

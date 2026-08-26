@@ -178,14 +178,33 @@ surface.
 - **Push/shove (cross-player)** — **CLOSED (2026-08-24)**. Host-authoritative `PlayerPushRequest`/`PlayerPushResult` (NetMsg 118/119, ProtocolVersion 49): the host validates in-world/standing/cooldown/distance/carry, computes KrokMP-style strength from the pusher's Strength, and broadcasts one force delta; the target's own client applies the native ragdoll+velocity, the pusher pays the stamina/heat cost, and every side replays the `landsmall1` sound. The 20 Hz player state stream remains the motion fallback. Players page and in-world right-click menu expose `Push`. See `docs/selfchecks/player-push-selfcheck.md` and `docs/tech-decisions.md` #99.
 - **Other lower-priority KrokMP candidates** — voice, vote-kick, and any remaining player-list polish. **Co-op keybinds and status icons closed (2026-08-25)**; ban is closed as the second admin slice; piggyback and push are closed above. See §2.7.
 
-### Player interaction / piggyback follow-ups — OPEN (2026-08-26)
+### Player interaction / piggyback follow-ups — CLOSED (2026-08-26)
 
-User-reported follow-ups after the piggyback direction + drag-use pass. Recorded as open work; not fixed in this cycle. Per AGENTS.md test-coverage norms, each fix below must first add a multi-step combination regression test (carry/piggyback state machine + local apply/driver cleanup + UI option projection) that reproduces the reported scenario, then make the fix.
+The four follow-ups recorded after the piggyback direction + drag-use pass are
+now closed:
 
-- **Host-on-guest real-time follow presentation — OPEN (optimization)**. When the host rides on a guest (or any carrier/rider pair), the carrier's client should render the rider locally attached/following in real time instead of relying on the periodic sync stream. Current implementation uses the session stream as the presentation fallback; the local follow attachment should give better visual smoothness.
-- **Piggyback weight / encumbrance rules — OPEN (missing config)**. There is currently no weight configuration for piggyback (e.g. carrier encumbrance/weight multiplier). KrokMP has a `PiggybackWeightMultiplier`-style rule; CUO should add an equivalent host rule/config before considering the feature complete.
-- **Drop/release leaves the previously carried body floating — OPEN (bug)**. After a rider/carried player is dropped or released, the body can remain floating in the air, unable to move and not falling with physics. The release path must restore the local body's normal physics/standing/driver state, not just clear the carry relation.
-- **Missing "put another player on your own back" action — OPEN (missing UI/feature)**. The UI currently offers “骑背” (local player climbs onto the target’s back), but there is no equivalent action to make a conscious/alive teammate ride on the **local player's back** (local as carrier). This direction is still missing from the right-click menu / Players page / quick panel.
+- **Host-on-guest real-time follow presentation** — closed as a carrier-side
+  presentation optimization. `RemotePlayerRenderer` pins the remote rider clone
+  to the local carrier body each frame (presentation only); the rider still
+  reports its authoritative position through the ordinary 20 Hz/1 Hz streams.
+- **Piggyback weight / encumbrance rules** — closed as a host rule/config.
+  `[HostRules] PiggybackWeightMultiplier` (default 0.8, editable on the Admin
+  page) feeds a `Body.GetTotalEncumberance` postfix that adds the carried
+  player's authoritative snapshot encumbrance to the local carrier's load.
+- **Drop/release floating body** — closed as a local-body restore bug fix.
+  The release path now re-enables the frozen body/limb rigidbodies, places the
+  released body at the carrier's position, and restores the native
+  standing/ragdoll pose for the body's alive/conscious state.
+- **Missing "put another player on your own back" action** — closed as the
+  local-as-carrier piggyback direction. A new additive
+  `PlayerCarryStartRequestMsg.RequesterIsCarrier` field plus `Carry on back`
+  action (Players page, right-click menu, quick panel) lets a local conscious
+  player invite a conscious/alive teammate to ride on the local back.
+
+No protocol bump: the new field is additive; the existing carry/piggyback
+wire, state broadcast and carry mirror are unchanged. See
+`docs/selfchecks/player-interaction-followups-selfcheck.md` and
+`docs/tech-decisions.md` #112.
 
 ### Exploration 2026-08-23 — architecture & quality debt
 

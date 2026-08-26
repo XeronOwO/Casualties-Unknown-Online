@@ -27,6 +27,8 @@ public sealed class HostRulesService(
 
 	public bool WidenRunSettings => _hostRules.CurrentValue.WidenRunSettings;
 
+	public float PiggybackWeightMultiplier => _hostRules.CurrentValue.PiggybackWeightMultiplier;
+
 	public bool SaveInventory => _respawn.CurrentValue.RespawnKeepInventory;
 
 	public bool ReviveFromTrader => _respawn.CurrentValue.ReviveFromTrader;

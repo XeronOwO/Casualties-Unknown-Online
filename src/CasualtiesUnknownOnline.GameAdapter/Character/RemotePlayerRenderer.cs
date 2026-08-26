@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
+using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
 
@@ -19,12 +20,14 @@ internal sealed class RemotePlayerRenderer(
 	IEntitySyncControl entities,
 	CharacterDataSync characterData,
 	CloneLimbRenderer limbRenderer,
+	IPlayerInteractionControl playerInteraction,
 	ILogger<RemotePlayerRenderer> log)
 {
 	private readonly ISessionControl _session = session;
 	private readonly IEntitySyncControl _entities = entities;
 	private readonly CharacterDataSync _characterData = characterData;
 	private readonly CloneLimbRenderer _limbRenderer = limbRenderer;
+	private readonly IPlayerInteractionControl _playerInteraction = playerInteraction;
 	private readonly ILogger<RemotePlayerRenderer> _log = log;
 
 	private readonly Dictionary<ulong, Body> _remoteClones = [];
@@ -95,8 +98,8 @@ internal sealed class RemotePlayerRenderer(
 		_remoteClones.Clear();
 	}
 
-	/// <summary>Pump: lazy per-member clone ensure + state application + 1 Hz diagnostics.</summary>
-	internal void Update()
+	/// <summary>Pump: lazy per-member clone ensure + state application + local-carrier follow + 1 Hz diagnostics.</summary>
+	internal void Update(Body? localBody)
 	{
 		// Lazy per-member ensure: a roster join can arrive before the member's
 		// world exists (the menu scene has no "Experiment" template), and members
@@ -131,9 +134,39 @@ internal sealed class RemotePlayerRenderer(
 			}
 
 			SessionStatePump.Apply(remote, clone);
+			ApplyLocalCarrierFollow(localBody, remote, clone);
 		}
 
 		LogClonePosition();
+	}
+
+	/// <summary>
+	/// Carrier-side presentation: when the LOCAL player is the carrier of this
+	/// remote, pin that remote's render clone directly to the local body instead
+	/// of waiting for the rider's 20 Hz state stream. This is presentation-only;
+	/// the rider's own client still reports its authoritative position through
+	/// the ordinary stream for every other peer.
+	/// </summary>
+	private void ApplyLocalCarrierFollow(Body? localBody, PlayerEntity remote, Body clone)
+	{
+		if (localBody == null // Unity object — ==
+			|| localBody == clone // Unity objects — ==
+			|| !_playerInteraction.TryGetCarried(_session.LocalSteamId, out var carriedId)
+			|| carriedId != remote.SteamId)
+		{
+			return;
+		}
+
+		var position = CarriedBodyPlacement.BackOffset(
+			localBody.transform.position,
+			localBody.isRight,
+			localBody.crouching);
+		clone.transform.position = position;
+		clone.rb.velocity = localBody.rb.velocity;
+		clone.isRight = localBody.isRight;
+		clone.standing = false;
+		clone.moveDir = Vector2.zero;
+		clone.targetLookPos = localBody.targetLookPos;
 	}
 
 	private Vector2 AnchorFor(PlayerEntity remote) =>

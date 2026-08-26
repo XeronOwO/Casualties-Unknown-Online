@@ -130,6 +130,7 @@ public class Plugin : BaseUnityPlugin
 				TakeItem = _uiActions.TakeItemFromRemote,
 				CarryRemote = _uiActions.CarryRemoteFromUi,
 				PiggybackRemote = _uiActions.PiggybackRemoteFromUi,
+				CarryOnBackRemote = _uiActions.CarryOnBackRemoteFromUi,
 				DropCarried = _uiActions.DropCarryFromUi,
 				HealRemote = _uiActions.HealRemoteFromUi,
 				HasHealItem = _uiActions.HasLocalHealItem,

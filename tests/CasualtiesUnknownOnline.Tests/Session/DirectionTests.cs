@@ -119,6 +119,7 @@ public class DirectionTests
 		NetMsg.CharacterAttackAnim,
 		NetMsg.CharacterLandingVisual,
 		NetMsg.CharacterRagdoll,
+		NetMsg.WorldBloodSpawn,
 		NetMsg.DynamiteExplosion,
 		NetMsg.Chat,
 		NetMsg.TraderSwing,

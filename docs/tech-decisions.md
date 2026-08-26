@@ -3274,3 +3274,37 @@ ragdoll-key collapse is a discrete trigger that deserves a dedicated one-shot.
   host relay + host broadcast + guest relay), `DirectionTests` new
   bidirectional row; build/format/architecture/event gates pass. See
   `docs/selfchecks/character-ragdoll-toggle-sync-selfcheck.md`.
+
+## 115. Player world-blood decal presentation sync
+
+Closed 2026-08-26 from the backlog "World bleeding effects sync". The owner's
+local `BleedParticle` already created ground/wall blood decals; the peers only
+had the remote clone's independent particle-driven presentation, so the exact
+world-blood placement was not synchronized.
+
+- **Decision** — add `WorldBloodSpawnMsg` (NetMsg 121, `ProtocolVersion` 51),
+  star semantics (guest → host report, host fires + relays, guest replays),
+  modeled on the existing trader-swing/ragdoll one-shot presentation events.
+  One decal = one message; the visual is transient (120 s) and has no snapshot.
+- **Detection** — `BleedParticleWorldBloodPatch` observes the native
+  `BleedParticle.Update` dying-particle loop and simulates the same
+  `spawned`/`every` modulo to know which particle caused the decal spawn. It
+  reports only for the local player's own Body (no `RemoteBodyDriver`).
+- **Remote clone suppression** — while render/simulated remote clones still keep
+  the blood-drip particle emission from the 1 Hz fur-blood snapshot, their
+  native `BleedParticle.Update` is skipped so they no longer create duplicate
+  unsynchronized decals or local drip sounds.
+- **Scope limit** — `BleedParticle` vomit variants (`vomit=true`) are not
+  reported; this cycle is blood decals only, vomit presentation remains
+  owner-local.
+- **Replay** — `WorldBloodReplay.Play` instantiates the same
+  `Special/blockblood` / `wallblood` prefab at the reported world position,
+  adds `GroundBlood` for ground decals, applies receiver-side random
+  scale/flip/alpha/rotation, replays the `dripN` sound and destroys after 120 s.
+- **No persistent state** — a lost message is acceptable presentation
+  degradation.
+- **Tests/gates** — `WorldBloodSpawnSyncTests` +5 (roundtrip + guest report/
+  host relay + host broadcast + guest relay + source exclusion),
+  `WorldBloodPresentationTests` +3, `DirectionTests` new bidirectional row;
+  full suite 1529 green; build/format/architecture/event gates pass. See
+  `docs/selfchecks/world-blood-spawn-sync-selfcheck.md`.

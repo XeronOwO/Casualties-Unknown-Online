@@ -303,6 +303,9 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 	public void OnCharacterRagdoll(Vector2 position) =>
 		domains.CharacterRagdollSync.Report(position);
 
+	public void OnWorldBloodSpawn(Vector2 position, bool ground) =>
+		domains.WorldBloodSync.Report(position, ground);
+
 
 	public void OnLimbStateEvent(Limb limb) => domains.CharacterDataSync.ReportLimbStateEvent(limb);
 

@@ -90,6 +90,7 @@ internal sealed class GameAdapterDomains
 	internal readonly CharacterAttackAnimSync CharacterAttackAnimSync;
 	internal readonly CharacterLandingVisualSync CharacterLandingVisualSync;
 	internal readonly CharacterRagdollSync CharacterRagdollSync;
+	internal readonly WorldBloodSync WorldBloodSync;
 	internal readonly HeaterCookSync HeaterCookSync;
 	internal readonly WorldTimeSync WorldTimeSync;
 
@@ -184,6 +185,7 @@ internal sealed class GameAdapterDomains
 		CharacterAttackAnimSync = new CharacterAttackAnimSync(characterData, session, Renderer, loggerFactory.CreateLogger<CharacterAttackAnimSync>());
 		CharacterLandingVisualSync = new CharacterLandingVisualSync(characterData, session, Renderer, loggerFactory.CreateLogger<CharacterLandingVisualSync>());
 		CharacterRagdollSync = new CharacterRagdollSync(characterData, session, Renderer, loggerFactory.CreateLogger<CharacterRagdollSync>());
+		WorldBloodSync = new WorldBloodSync(world, session, loggerFactory.CreateLogger<WorldBloodSync>());
 		LifePod = new LifePodPresentation(loggerFactory.CreateLogger<LifePodPresentation>());
 		GuestMenu = new GuestMenuGuard(session, loggerFactory.CreateLogger<GuestMenuGuard>());
 		RunSettingsRange = new RunSettingsRangeService(session, hostRules, loggerFactory.CreateLogger<RunSettingsRangeService>());

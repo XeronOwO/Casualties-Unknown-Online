@@ -39,6 +39,7 @@ internal sealed class GameAdapterSessionBinding(GameAdapterDomains domains, Play
 		domains.CharacterAttackAnimSync.BindToSession();
 		domains.CharacterLandingVisualSync.BindToSession();
 		domains.CharacterRagdollSync.BindToSession();
+		domains.WorldBloodSync.BindToSession();
 		domains.TutorialClawSync.BindToSession();
 		domains.WorldTimeSync.BindToSession();
 		domains.Run.BindToSession();
@@ -86,6 +87,7 @@ internal sealed class GameAdapterSessionBinding(GameAdapterDomains domains, Play
 		domains.CharacterAttackAnimSync.Unbind();
 		domains.CharacterLandingVisualSync.Unbind();
 		domains.CharacterRagdollSync.Unbind();
+		domains.WorldBloodSync.Unbind();
 		domains.TutorialClawSync.Unbind();
 		domains.CraftingSync.ResetPending(); // the destroy claims die with the scene
 		domains.Run.Unbind();

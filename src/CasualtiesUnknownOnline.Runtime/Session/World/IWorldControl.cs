@@ -198,6 +198,22 @@ public interface IWorldControl
 	/// <summary>A player-item explosion arrived — the receiver applies it (host: to its own world; guest: replay body/visual).</summary>
 	event Action<ulong, ulong, NetVector2>? DynamiteExplosionReceived;
 
+	/// <summary>
+	/// Report a locally-spawned player world-blood decal: guest → host as a
+	/// report (the host replays it on its own world and relays), host →
+	/// broadcast to all synced members. The reporting player's own client
+	/// already spawned the transient decal locally.
+	/// </summary>
+	void SendWorldBloodSpawn(WorldBloodSpawnMsg msg);
+
+	/// <summary>Host only: relay an accepted world-blood decal to the other members (source excluded — it already spawned locally).</summary>
+	void BroadcastWorldBloodSpawn(ulong excludeSteamId, WorldBloodSpawnMsg msg);
+
+	void FireWorldBloodSpawnReceived(ulong sender, WorldBloodSpawnMsg msg);
+
+	/// <summary>A world-blood decal arrived — the receiver replays it (host: after a guest report; guest: the host's relay).</summary>
+	event Action<ulong, WorldBloodSpawnMsg>? WorldBloodSpawnReceived;
+
 	/// <summary>Host only: record a one-shot trap consumption (position-keyed; Extra rides along for progress-carrying events).</summary>
 	void ReportTrapConsumed(EntityEventKind kind, float x, float y, byte extra);
 

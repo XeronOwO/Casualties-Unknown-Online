@@ -51,6 +51,9 @@ public interface ICharacterDataControl
 	/// <summary>A character landing-visual event arrived — the Game Adapter replays the Grounded clip/dust on the owner's clone.</summary>
 	event Action<ulong, CharacterLandingVisualMsg>? CharacterLandingVisualReceived;
 
+	/// <summary>A character ragdoll-toggle event arrived — the Game Adapter replays the lying pose on the owner's clone.</summary>
+	event Action<ulong, CharacterRagdollMsg>? CharacterRagdollReceived;
+
 	/// <summary>Host only: relay a guest's report to the other guests (OwnerSteamId stamped, source excluded) — their clones of the reporter render its carried state.</summary>
 	void RelayCharacterData(ulong ownerSteamId, CharacterDataMsg msg);
 
@@ -94,5 +97,11 @@ public interface ICharacterDataControl
 
 	/// <summary>Report/broadcast a character landing visual: a guest reports its own landing to the host; the host broadcasts its own to every guest. One landing = one message.</summary>
 	void SendCharacterLandingVisual(CharacterLandingVisualMsg msg);
+
+	/// <summary>Surface an arrived character ragdoll-toggle event (report or relay) for the Game Adapter to replay on the owner's clone.</summary>
+	void FireCharacterRagdollReceived(ulong sender, CharacterRagdollMsg msg);
+
+	/// <summary>Report/broadcast a character ragdoll toggle: a guest reports its own collapse to the host; the host broadcasts its own to every guest. One collapse = one message.</summary>
+	void SendCharacterRagdoll(CharacterRagdollMsg msg);
 
 }

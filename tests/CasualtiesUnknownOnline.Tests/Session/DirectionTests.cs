@@ -118,6 +118,7 @@ public class DirectionTests
 		NetMsg.CharacterSound,
 		NetMsg.CharacterAttackAnim,
 		NetMsg.CharacterLandingVisual,
+		NetMsg.CharacterRagdoll,
 		NetMsg.DynamiteExplosion,
 		NetMsg.Chat,
 		NetMsg.TraderSwing,

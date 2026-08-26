@@ -3249,3 +3249,28 @@ Drop the released body could not move.
   get-down projection tests. Full suite 1515 green, no protocol change, no
   `ProtocolVersion` bump. See
   `docs/selfchecks/piggyback-drop-cleanup-selfcheck.md`.
+
+## 114. Player ragdoll-toggle presentation sync
+
+Closed 2026-08-26 from the backlog "Ragdoll-toggle presentation sync". The
+standing/lying pose already had a continuous state-stream path, but the manual
+ragdoll-key collapse is a discrete trigger that deserves a dedicated one-shot.
+
+- **Decision** — add `CharacterRagdollMsg` (NetMsg 120, `ProtocolVersion` 50),
+  star semantics (guest → host report, host fires + relays, guest replays),
+  modeled on the existing `CharacterAttackAnimMsg` /
+  `CharacterLandingVisualMsg` presentation events.
+- **Detection** — `PlayerCameraHandleInputPatch` observes `HandleInput`'s
+  standing → collapsed transition, so only the game's ragdoll-key input branch
+  reports. External ragdoll sources (traps, enemy attacks, cross-player push,
+  timed medicine) continue to ride their own event/state chains.
+- **Replay** — `CharacterRagdollSync` plays `ExperimentLayDown` /
+  `ArmsLayDown` on the owner's render clone, forces `standing=false`, and seeds
+  `RemoteBodyDriver.PrevLying=true` so the next 20 Hz standing snapshot does not
+  double-trigger the transition. The receiver runs inside `RemoteApply`.
+- **No persistent state** — a lost message is acceptable presentation
+  degradation; the 20 Hz `EntityStateMsg.Standing` flag remains the fallback.
+- **Tests/gates** — `CharacterRagdollSyncTests` +4 (roundtrip + guest report/
+  host relay + host broadcast + guest relay), `DirectionTests` new
+  bidirectional row; build/format/architecture/event gates pass. See
+  `docs/selfchecks/character-ragdoll-toggle-sync-selfcheck.md`.

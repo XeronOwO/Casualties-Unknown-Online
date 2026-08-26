@@ -299,6 +299,9 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable
 	/// <summary>A character landing-visual event arrived (report or relay) — the Game Adapter replays the Grounded clip/dust on the owner's clone.</summary>
 	public event Action<ulong, CharacterLandingVisualMsg>? CharacterLandingVisualReceived;
 
+	/// <summary>A character ragdoll-toggle event arrived (report or relay) — the Game Adapter replays the lying pose on the owner's clone.</summary>
+	public event Action<ulong, CharacterRagdollMsg>? CharacterRagdollReceived;
+
 
 	/// <summary>Host side: merge a limb-latch event's full terminal state into the owner's saved snapshot immediately — a disconnect before the next 1 Hz report must still restore every changed limb + body field (the dedicated event is the trigger; the snapshot is only the fallback).</summary>
 	public void ApplyLimbStateEvent(LimbStateEventMsg msg)
@@ -411,6 +414,31 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable
 		}
 	}
 
+	/// <summary>
+	/// Report/broadcast a character ragdoll toggle: a guest reports its own
+	/// collapse to the host; the host broadcasts its own to every handshaken
+	/// guest. Reliable — one collapse = one message, the presentation trigger
+	/// never rides the snapshot stream.
+	/// </summary>
+	public void SendCharacterRagdoll(CharacterRagdollMsg msg)
+	{
+		if (!_session.SessionActive)
+		{
+			return;
+		}
+
+		if (_session.Role == SessionRole.Host)
+		{
+			_sender.SendToAll(
+				_session.Members.Where(m => m.Handshaken && m.SteamId != _session.LocalSteamId).Select(m => m.SteamId),
+				NetMsg.CharacterRagdoll, msg, reliable: true);
+		}
+		else
+		{
+			_sender.Send(_session.HostSteamId, NetMsg.CharacterRagdoll, msg);
+		}
+	}
+
 
 	// ---- ICharacterDataControl (the packet handlers' control surface) ----
 
@@ -475,5 +503,10 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable
 		CharacterLandingVisualReceived?.Invoke(sender, msg);
 
 	void ICharacterDataControl.SendCharacterLandingVisual(CharacterLandingVisualMsg msg) => SendCharacterLandingVisual(msg);
+
+	void ICharacterDataControl.FireCharacterRagdollReceived(ulong sender, CharacterRagdollMsg msg) =>
+		CharacterRagdollReceived?.Invoke(sender, msg);
+
+	void ICharacterDataControl.SendCharacterRagdoll(CharacterRagdollMsg msg) => SendCharacterRagdoll(msg);
 
 }

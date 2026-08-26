@@ -271,6 +271,9 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 
 	void IGameAdapter.SetOnlineUiModal(bool visible) => _domains.MenuInput.SetModal(visible);
 
+	void IGameAdapter.SetOnlineUiScopedBlocks(System.Collections.Generic.IReadOnlyList<OnlineUiBlockRect> blocks) =>
+		_domains.MenuInput.SetScopedBlocks(blocks);
+
 	// ---- Mod runtime boundaries (Phase 4 Mod API) ----
 
 	bool IModEntitySpawner.TrySpawnEntity(string prefabId, float x, float y, float rotation) =>

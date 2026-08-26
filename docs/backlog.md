@@ -11,14 +11,13 @@ Open work only. Landed delivery details are not duplicated here; they live in:
 - No open high-priority bugs.
 - Native game-content sync coverage is complete: item and entity feature matrices currently have no `missing` rows.
 - **World bleeding effects sync — CLOSED (2026-08-26).** The visible blood decals a player leaves in the world now travel as a dedicated `WorldBloodSpawn` event (NetMsg 121, ProtocolVersion 51); every peer replays the same transient ground/wall decal. Remote render clones no longer create their own duplicate decals. See `docs/selfchecks/world-blood-spawn-sync-selfcheck.md` and `docs/tech-decisions.md` #115.
+- **Online UI scoped anti-passthrough + transport-mode exclusivity — CLOSED (2026-08-26).** The quick panel and right-click context menu now get scoped UGUI raycast blockers limited to their own rectangles, and the Home page shows only the selected Steam or IP-direct transport section at a time. See `docs/selfchecks/online-ui-scoped-passthrough-selfcheck.md` and `docs/tech-decisions.md` #116.
 
 ## Open work
 
 ### Player interaction / UI
 
-- **Online UI anti-passthrough is only full-screen** — the main CUO Online UI already blocks mouse passthrough with a full-screen guard, but the other custom UI surfaces (quick panel, context menu) do not; they should use scoped/within-panel passthrough blocking.
 - **Remote-player inventory UI should reuse the game backpack UI** — viewing another player's items currently uses a homemade inventory UI. Reuse the game's own backpack UI where possible; nested containers in another player's inventory should also be openable like the local player's. Add a host/session toggle controlling whether other players may take items from that inventory.
-- **Online UI transport-mode exclusivity** — the Home page currently shows both Steam network and IP-direct sections at the same time, although they are mutually exclusive transports. Hide/collapse the inactive mode (low-risk UI-only).
 - **PVP** — LOW (reprioritized). No player-to-player damage domain today; defer until PvE, rules, and accept-first arbitration are stable.
 - **Other lower-priority KrokMP candidates** — voice, vote-kick, and remaining player-list polish.
 

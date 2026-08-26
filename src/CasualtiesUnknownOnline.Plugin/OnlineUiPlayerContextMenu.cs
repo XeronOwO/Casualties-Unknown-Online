@@ -33,6 +33,8 @@ internal sealed class OnlineUiPlayerContextMenu
 
 	internal bool IsOpen => _targetSteamId.HasValue;
 
+	internal Rect Bounds => _lastRect;
+
 	internal void Open(ulong steamId, IReadOnlyList<ulong> candidates, Vector2 screenPosition)
 	{
 		_targetSteamId = steamId;

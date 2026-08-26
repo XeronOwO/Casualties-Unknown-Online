@@ -24,4 +24,6 @@ internal sealed class OnlineUiWindowState
 	internal bool LogLevelOptionsOpen;
 
 	internal bool LanguageOptionsOpen;
+
+	internal OnlineUiTransportMode TransportMode = OnlineUiTransportMode.Steam;
 }

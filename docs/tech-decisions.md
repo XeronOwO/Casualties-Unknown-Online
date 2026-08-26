@@ -3308,3 +3308,31 @@ world-blood placement was not synchronized.
   `WorldBloodPresentationTests` +3, `DirectionTests` new bidirectional row;
   full suite 1529 green; build/format/architecture/event gates pass. See
   `docs/selfchecks/world-blood-spawn-sync-selfcheck.md`.
+
+## 116. Online UI scoped anti-passthrough + transport-mode exclusivity
+
+Closed 2026-08-26 from the backlog "Online UI anti-passthrough is only
+full-screen" and "Online UI transport-mode exclusivity".
+
+- **Scoped blockers** — the quick panel and right-click context menu are
+  IMGUI surfaces outside the full-screen modal guard. `OnlineMenuInputGuard`
+  now also owns a separate scoped-blocker list driven by
+  `IGameAdapter.SetOnlineUiScopedBlocks`; for each active screen-space Canvas a
+  transparent full-rect `Image` is created with an
+  `OnlineScopedRaycastFilter` component that accepts the raycast only inside
+  the supplied `OnlineUiBlockRect` values (GUI space, Y down). Empty clears
+  them.
+- **Plugin integration** — `OnlineUiOverlay.Draw` forwards the quick panel's
+  and context menu's live `Rect` bounds after drawing. No change to the
+  full-screen modal path or `SetOnlineUiModal`.
+- **Transport selector** — `OnlineUiWindowState.TransportMode` plus a Steam /
+  IP-direct selector on the Home page render exactly one transport's
+  host/join section. Presentation-only; the router still changes only on an
+  actual IP host/join/leave action.
+- **No wire change** — no new `NetMsg`, no `ProtocolVersion` bump, no
+  event/item/entity matrix row touched.
+- **Tests/gates** — new `OnlineUiBlockRectTests` (inside/edges/empty),
+  `OnlineMenuInputGuardContractTests` (IGameAdapter surface + GameAdapter
+  implementation + guard setter + filter interface); full suite 1536 green;
+  build/format/architecture/event gates pass. See
+  `docs/selfchecks/online-ui-scoped-passthrough-selfcheck.md`.

@@ -74,4 +74,13 @@ public interface IGameAdapter : IDisposable
 	/// on the UI's non-control areas do not leak to the menu/world behind it.
 	/// </summary>
 	void SetOnlineUiModal(bool visible);
+
+	/// <summary>
+	/// Sets the screen-space rectangles occupied by non-modal CUO Online UI
+	/// surfaces (quick panel, right-click context menu). The adapter adds
+	/// transparent UGUI raycast blockers that only intercept pointer input
+	/// inside those rectangles, so clicks outside a small panel still reach the
+	/// game world/menu. Pass an empty list to clear them.
+	/// </summary>
+	void SetOnlineUiScopedBlocks(IReadOnlyList<OnlineUiBlockRect> blocks);
 }

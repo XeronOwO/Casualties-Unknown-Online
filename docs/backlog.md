@@ -217,6 +217,12 @@ wire, state broadcast and carry mirror are unchanged. See
   (blood leaving a body into the world) are not synchronized to peers. Needs a
   dedicated presentation or item/world-state mechanism; record as open before
   design.
+- **LifePod/escape-pod trigger-sound sync** — when the host triggers an escape
+  pod door open, the guest hears the later opening sound but not the earlier
+  trigger sound. The discrete trigger sound is missing from the peer's audio
+  presentation; needs a dedicated sound/event sync path (the opening sound is
+  already audible, so the missing half is likely a trigger-time one-shot that
+  currently only plays on the host).
 
 ### Exploration 2026-08-23 — architecture & quality debt
 

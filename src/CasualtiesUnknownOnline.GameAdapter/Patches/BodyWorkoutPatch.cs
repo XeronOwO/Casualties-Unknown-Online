@@ -19,7 +19,7 @@ internal static class BodyWorkoutPatch
 	private static void Prefix(Body __instance, Body.WorkoutType type)
 	{
 		if (__instance.GetComponentInParent<RemoteBodyDriver>() != null
-			|| __instance.GetComponent<CarriedBodyDriver>() != null) // Unity objects — ==
+			|| CarriedBodyDriver.IsCarrying(__instance)) // Unity objects — ==
 		{
 			return;
 		}

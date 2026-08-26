@@ -28,7 +28,7 @@ internal static class BodyPatches
 		// and GameAdapter.CarryInteraction moves its transform instead.
 		private static bool Prefix(Body __instance) =>
 			__instance.GetComponentInParent<RemoteBodyDriver>() == null
-			&& __instance.GetComponent<CarriedBodyDriver>() == null;
+			&& !CarriedBodyDriver.IsCarrying(__instance);
 	}
 
 	[HarmonyPatch(typeof(Body), "Update")]
@@ -41,7 +41,7 @@ internal static class BodyPatches
 		private static bool Prefix(Body __instance)
 		{
 			if (__instance.GetComponentInParent<RemoteBodyDriver>() == null
-				&& __instance.GetComponent<CarriedBodyDriver>() == null) // Unity objects — ==
+				&& !CarriedBodyDriver.IsCarrying(__instance)) // Unity objects — ==
 			{
 				// Local player: while the start gate holds us, lock movement
 				// (the game's own movingAllowed — Body.cs:4322) every frame;
@@ -185,7 +185,7 @@ internal static class BodyPatches
 		// A carried local body is likewise proxy-driven while carried.
 		private static bool Prefix(Limb __instance) =>
 			__instance.GetComponentInParent<RemoteBodyDriver>() == null
-			&& __instance.GetComponentInParent<CarriedBodyDriver>() == null;
+			&& !CarriedBodyDriver.IsCarryingInParent(__instance);
 	}
 
 	[HarmonyPatch(typeof(Body), "Attack")]
@@ -216,7 +216,7 @@ internal static class BodyPatches
 			// clone never attacks — no scope, no capture (its Body.Update is
 			// already skipped, this is the belt-and-braces guard).
 			var isLocalBody = __instance.GetComponentInParent<RemoteBodyDriver>() == null
-				&& __instance.GetComponent<CarriedBodyDriver>() == null; // Unity objects — ==
+				&& !CarriedBodyDriver.IsCarrying(__instance); // Unity objects — ==
 			__state = new AttackState
 			{
 				WillRun = __instance.conscious && __instance.attackCooldown <= 0f && atk.doAttackAnim,
@@ -353,7 +353,7 @@ internal static class BodyPatches
 			__state = new LandingState
 			{
 				IsLocalBody = __instance.GetComponentInParent<RemoteBodyDriver>() == null
-					&& __instance.GetComponent<CarriedBodyDriver>() == null, // Unity objects — ==
+					&& !CarriedBodyDriver.IsCarrying(__instance), // Unity objects — ==
 				WasGrounded = __instance.grounded,
 			};
 			if (__state.IsLocalBody)

@@ -304,6 +304,11 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains)
 				body.transform.position = pos;
 			}
 
+			// Empty the carrier id BEFORE the deferred Destroy: Unity keeps the
+			// component until the end of the frame, and the render-proxy patches
+			// decide by active-carrier state. Without this, one more proxy frame
+			// can run after RestoreLocalBody and re-freeze the body/limbs.
+			driver.CarrierSteamId = 0;
 			CarriedBodyPlacement.RestoreLocalBody(body);
 			Object.Destroy(driver);
 			domains.Log.LogInformation("[Carry] local body released by {Carrier}; physics restored.", msg.CarrierSteamId);

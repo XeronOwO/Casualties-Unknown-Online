@@ -3221,3 +3221,31 @@ section: the four remaining player-interaction polish/bug items.
   (multiplier + patch contract); full suite 1509 green,
   build/format/architecture/event gates pass. See
   `docs/selfchecks/player-interaction-followups-selfcheck.md`.
+
+## 113. Piggyback drop cleanup — release must update the driver immediately
+
+Closed 2026-08-26. The first restore fix added
+`CarriedBodyPlacement.RestoreLocalBody`, but the user still reported that after
+Drop the released body could not move.
+
+- **Root cause** — Unity's `Object.Destroy` is deferred to the end of the
+  frame. The release handler ran
+  `CarriedBodyPlacement.RestoreLocalBody` and then scheduled the
+  `CarriedBodyDriver` for destruction. If the release was processed before the
+  same frame's `Body.Update`/`Limb.Update`, the still-present driver made the
+  render-proxy patches run once more and `FreezeRigidbodies` re-disabled every
+  body/limb rigidbody after the restore — leaving the released body frozen.
+- **Fix** — `PlayerInteractionApply.ApplyCarryStateToBody` now sets
+  `driver.CarrierSteamId = 0` before calling `RestoreLocalBody`/`Destroy`.
+  The active-carried test is centralized as
+  `CarriedBodyDriver.IsActivelyCarried(driverPresent, carrierSteamId)`;
+  body/limb/proxy patches (BodyPatches, BodyNapPatch, BodyWorkoutPatch,
+  BodyItemPatches) use that active state instead of mere component presence, so
+  a zero-carrier driver immediately stops freezing/following even while the
+  Unity object still exists in the current frame.
+- **Tests** — new `CarriedBodyReleaseTests` (driver-active semantics + restore
+  entry point), `PlayerInteractionServiceTests.HostRider_CanRequestReleaseFromGuestCarrier`
+  (host-as-rider full state-machine release), and the existing UI
+  get-down projection tests. Full suite 1515 green, no protocol change, no
+  `ProtocolVersion` bump. See
+  `docs/selfchecks/piggyback-drop-cleanup-selfcheck.md`.

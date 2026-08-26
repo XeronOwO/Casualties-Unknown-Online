@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
@@ -10,6 +11,8 @@ using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using Xunit;
 
 namespace CasualtiesUnknownOnline.Tests.Session;
@@ -64,9 +67,10 @@ public class PlayerInteractionServiceTests
 	private static void MarkInWorld(TestNode node) =>
 		node.Session.ReportSceneState(SceneStateType.InWorld, "SampleScene");
 
-	private static (TestNode Host, TestNode Guest, List<(NetMsg Msg, byte[] Frame)> Received) CreateSession()
+	private static (TestNode Host, TestNode Guest, List<(NetMsg Msg, byte[] Frame)> Received) CreateSession(
+		Action<IServiceCollection>? extraRegistrations = null)
 	{
-		var (host, guest) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		var (host, guest) = TestNode.CreatePair(HostId, GuestId, LobbyId, extraRegistrations: extraRegistrations);
 		var received = new List<(NetMsg Msg, byte[] Frame)>();
 		guest.Transport.MessageReceived += (_, frame) => received.Add(((NetMsg)frame[0], frame));
 		MarkInWorld(host);
@@ -155,6 +159,22 @@ public class PlayerInteractionServiceTests
 		var (host, guest, received) = CreateSession();
 		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
 		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true, Item(42)));
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendTakeRequest(HostId, 42);
+
+		Assert.DoesNotContain(received, r => r.Msg == NetMsg.PlayerInventoryTransfer);
+		Assert.Contains(characters.GetHostCharacterData()!.Items, i => i.InstanceId == 42);
+	}
+
+	[Fact]
+	public void Take_RemoteInventoryTakeDisabled_RefusesEvenUnconsciousTarget()
+	{
+		var (host, guest, received) = CreateSession(s => s.Replace(
+			ServiceDescriptor.Singleton<IOptionsMonitor<HostRulesOptions>>(
+				new MutableOptionsMonitor<HostRulesOptions>(new HostRulesOptions { AllowRemoteInventoryTake = false }))));
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: false, Item(42)));
 
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendTakeRequest(HostId, 42);

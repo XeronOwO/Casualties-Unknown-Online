@@ -14,6 +14,7 @@ internal sealed class HostRulesConfigEditor
 	private readonly ConfigEntry<bool> _pvp;
 	private readonly ConfigEntry<bool> _autoContinue;
 	private readonly ConfigEntry<bool> _allowLateJoin;
+	private readonly ConfigEntry<bool> _allowRemoteInventoryTake;
 	private readonly ConfigEntry<bool> _widenRunSettings;
 	private readonly ConfigEntry<double> _piggybackWeight;
 	private readonly ConfigEntry<bool> _permadeath;
@@ -27,6 +28,7 @@ internal sealed class HostRulesConfigEditor
 		ConfigEntry<bool> pvp,
 		ConfigEntry<bool> autoContinue,
 		ConfigEntry<bool> allowLateJoin,
+		ConfigEntry<bool> allowRemoteInventoryTake,
 		ConfigEntry<bool> widenRunSettings,
 		ConfigEntry<double> piggybackWeight,
 		ConfigEntry<bool> permadeath,
@@ -39,6 +41,7 @@ internal sealed class HostRulesConfigEditor
 		_pvp = pvp;
 		_autoContinue = autoContinue;
 		_allowLateJoin = allowLateJoin;
+		_allowRemoteInventoryTake = allowRemoteInventoryTake;
 		_widenRunSettings = widenRunSettings;
 		_piggybackWeight = piggybackWeight;
 		_permadeath = permadeath;
@@ -53,6 +56,8 @@ internal sealed class HostRulesConfigEditor
 	internal void SetAutoContinue(bool value) => Set(_autoContinue, value);
 
 	internal void SetAllowLateJoin(bool value) => Set(_allowLateJoin, value);
+
+	internal void SetAllowRemoteInventoryTake(bool value) => Set(_allowRemoteInventoryTake, value);
 
 	internal void SetWidenRunSettings(bool value) => Set(_widenRunSettings, value);
 

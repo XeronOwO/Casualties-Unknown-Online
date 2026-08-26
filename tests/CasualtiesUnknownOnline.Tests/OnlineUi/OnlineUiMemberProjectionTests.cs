@@ -106,6 +106,39 @@ public sealed class OnlineUiMemberProjectionTests
 	}
 
 	[Fact]
+	public void RemoteInventoryTakeDisabled_HidesNonLocalTakeActions()
+	{
+		var vitals = new Dictionary<ulong, RemoteVitalsSnapshot>
+		{
+			[Remote] = RemoteVitalsSnapshot.From(new CharacterHealthMsg { Alive = false, Conscious = false })!,
+		};
+		var inventory = new Dictionary<ulong, RemoteInventorySnapshot>
+		{
+			[Remote] = RemoteInventorySnapshot.From(new CharacterDataMsg
+			{
+				Items =
+				{
+					new CharacterItemMsg { InstanceId = 42, ItemId = "Bandage", SlotIndex = 2 },
+				},
+			})!,
+		};
+
+		var rows = Build(
+			[Local, Remote],
+			[Presence(Remote, handshaken: true, inWorld: true)],
+			new FakeInteraction(),
+			canAdmin: false,
+			localInWorld: true,
+			hasHealItem: false,
+			getVitals: id => vitals.TryGetValue(id, out var v) ? v : null,
+			getInventory: id => inventory.TryGetValue(id, out var inv) ? inv : null,
+			allowRemoteInventoryTake: false);
+
+		Assert.False(rows[1].CanTake);
+		Assert.Empty(rows[1].TakeableItems);
+	}
+
+	[Fact]
 	public void AliveRemoteCanBeHealedWhenLocalHasMedicalItem()
 	{
 		var vitals = new Dictionary<ulong, RemoteVitalsSnapshot>
@@ -435,7 +468,8 @@ public sealed class OnlineUiMemberProjectionTests
 		bool hasHealItem = false,
 		Func<ulong, RemoteVitalsSnapshot?>? getVitals = null,
 		Func<ulong, RemoteInventorySnapshot?>? getInventory = null,
-		IReadOnlyList<LocalHealItem>? healItems = null)
+		IReadOnlyList<LocalHealItem>? healItems = null,
+		bool allowRemoteInventoryTake = true)
 	{
 		return OnlineUiMemberProjection.Build(
 			Local,
@@ -450,7 +484,8 @@ public sealed class OnlineUiMemberProjectionTests
 			canAdmin: canAdmin,
 			localInWorld: localInWorld,
 			hasHealItem: hasHealItem,
-			healItems: healItems ?? []);
+			healItems: healItems ?? [],
+			allowRemoteInventoryTake: allowRemoteInventoryTake);
 	}
 
 	private static MemberPresenceTable.MemberPresence Presence(ulong steamId, bool handshaken, bool inWorld) =>

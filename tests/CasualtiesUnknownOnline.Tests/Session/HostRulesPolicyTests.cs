@@ -40,6 +40,7 @@ public class HostRulesPolicyTests
 				PvpEnabled = true,
 				AutoContinue = true,
 				AllowLateJoin = false,
+				AllowRemoteInventoryTake = false,
 				WidenRunSettings = true,
 				PiggybackWeightMultiplier = 1.25f,
 			}),
@@ -55,6 +56,7 @@ public class HostRulesPolicyTests
 		Assert.True(service.PvpEnabled);
 		Assert.True(service.AutoContinue);
 		Assert.False(service.AllowLateJoin);
+		Assert.False(service.AllowRemoteInventoryTake);
 		Assert.True(service.WidenRunSettings);
 		Assert.True(Math.Abs(service.PiggybackWeightMultiplier - 1.25f) < 0.001f);
 		Assert.True(service.Permadeath);
@@ -70,10 +72,12 @@ public class HostRulesPolicyTests
 		var service = new HostRulesService(hostRules,
 			new MutableOptionsMonitor<RespawnOptions>(new RespawnOptions()));
 		Assert.True(service.AllowLateJoin);
+		Assert.True(service.AllowRemoteInventoryTake);
 
-		hostRules.Set(new HostRulesOptions { AllowLateJoin = false, PvpEnabled = true });
+		hostRules.Set(new HostRulesOptions { AllowLateJoin = false, AllowRemoteInventoryTake = false, PvpEnabled = true });
 
 		Assert.False(service.AllowLateJoin);
+		Assert.False(service.AllowRemoteInventoryTake);
 		Assert.True(service.PvpEnabled);
 	}
 }

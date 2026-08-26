@@ -33,7 +33,8 @@ public static class OnlineUiMemberProjection
 		bool canAdmin,
 		bool localInWorld,
 		bool hasHealItem,
-		IReadOnlyList<LocalHealItem> healItems)
+		IReadOnlyList<LocalHealItem> healItems,
+		bool allowRemoteInventoryTake = true)
 	{
 		var memberMap = members.ToDictionary(m => m.SteamId, m => m);
 		var rows = new List<OnlineUiMemberRow>();
@@ -99,7 +100,7 @@ public static class OnlineUiMemberProjection
 				&& member is { InWorld: true }
 				&& localInWorld
 				&& vitals is { Alive: false };
-			var takeable = canTake(inventory, vitals, isLocal, member);
+			var takeable = canTake(inventory, vitals, isLocal, member, allowRemoteInventoryTake);
 			var canAdminMember = canAdmin && !isLocal && member is not null;
 
 			rows.Add(new OnlineUiMemberRow
@@ -144,9 +145,11 @@ public static class OnlineUiMemberProjection
 		RemoteInventorySnapshot? inventory,
 		RemoteVitalsSnapshot? vitals,
 		bool isLocal,
-		MemberPresenceTable.MemberPresence? member)
+		MemberPresenceTable.MemberPresence? member,
+		bool allowRemoteInventoryTake)
 	{
-		if (isLocal
+		if (!allowRemoteInventoryTake
+			|| isLocal
 			|| member is not { InWorld: true }
 			|| inventory is null
 			|| vitals is null

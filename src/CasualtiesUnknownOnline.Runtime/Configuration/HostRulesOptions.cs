@@ -30,6 +30,15 @@ public sealed class HostRulesOptions
 	public bool AllowLateJoin { get; set; } = true;
 
 	/// <summary>
+	/// Host-only: whether other players may take carried items from a remote
+	/// player's inventory at all. Keeping the default true preserves the
+	/// cooperative rule (an unconscious/dead body may be looted); turning it
+	/// off disables the cross-player take buttons and the host-side authority
+	/// path completely.
+	/// </summary>
+	public bool AllowRemoteInventoryTake { get; set; } = true;
+
+	/// <summary>
 	/// Host-only: widen the native custom run-settings sliders in co-op so the
 	/// run can be tuned for the actual lobby size. The slider limits are UI-only;
 	/// selected values still ride the existing world-start params unchanged.

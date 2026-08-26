@@ -25,6 +25,8 @@ public sealed class HostRulesService(
 
 	public bool AllowLateJoin => _hostRules.CurrentValue.AllowLateJoin;
 
+	public bool AllowRemoteInventoryTake => _hostRules.CurrentValue.AllowRemoteInventoryTake;
+
 	public bool WidenRunSettings => _hostRules.CurrentValue.WidenRunSettings;
 
 	public float PiggybackWeightMultiplier => _hostRules.CurrentValue.PiggybackWeightMultiplier;

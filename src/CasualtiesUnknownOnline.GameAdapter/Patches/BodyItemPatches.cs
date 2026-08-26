@@ -217,6 +217,6 @@ internal static class BodyItemPatches
 
 	private static bool IsEligibleLocalUse(Body body) =>
 		body.GetComponentInParent<RemoteBodyDriver>() == null
-		&& body.GetComponent<CarriedBodyDriver>() == null // Unity objects — ==
+		&& !CarriedBodyDriver.IsCarrying(body) // Unity objects — ==
 		&& CallContext.Current == CallContext.Origin.LocalAction;
 }

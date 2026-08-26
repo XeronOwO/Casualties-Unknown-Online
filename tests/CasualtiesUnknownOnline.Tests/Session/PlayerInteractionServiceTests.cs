@@ -842,6 +842,33 @@ public class PlayerInteractionServiceTests
 	}
 
 	[Fact]
+	public void HostRider_CanRequestReleaseFromGuestCarrier()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true));
+
+		// Guest is the carrier and invites the host to ride on the guest's back.
+		var guestInteraction = guest.Services.GetRequiredService<IPlayerInteractionControl>();
+		guestInteraction.SendCarryOnBackRequest(HostId);
+
+		// The host (rider) requests release through its own local row.
+		var hostInteraction = host.Services.GetRequiredService<IPlayerInteractionControl>();
+		Assert.True(hostInteraction.TryGetCarrier(HostId, out var carrier));
+		Assert.Equal(GuestId, carrier);
+		hostInteraction.SendCarryStopRequest(HostId);
+
+		var frame = received.Last(r => r.Msg == NetMsg.PlayerCarryState).Frame;
+		var state = NetPacket.DecodePayload<PlayerCarryStateMsg>(frame);
+		Assert.Equal(GuestId, state.CarrierSteamId);
+		Assert.Equal(0UL, state.CarriedSteamId);
+
+		Assert.False(hostInteraction.TryGetCarrier(HostId, out _));
+		Assert.False(guestInteraction.TryGetCarried(GuestId, out _));
+	}
+
+	[Fact]
 	public void Guest_PushesHost_ComputesForceAndBroadcastsResult()
 	{
 		var (host, guest, received) = CreateSession();

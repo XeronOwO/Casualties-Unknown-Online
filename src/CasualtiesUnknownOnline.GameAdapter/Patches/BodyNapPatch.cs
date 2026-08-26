@@ -18,7 +18,7 @@ internal static class BodyNapPatch
 	private static void Mark(Body body, byte napVariant)
 	{
 		if (body.GetComponentInParent<RemoteBodyDriver>() != null
-			|| body.GetComponent<CarriedBodyDriver>() != null) // Unity objects — ==
+			|| CarriedBodyDriver.IsCarrying(body)) // Unity objects — ==
 		{
 			return;
 		}

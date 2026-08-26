@@ -300,6 +300,9 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 	public void OnCharacterLandingVisual(byte cloudSize, Vector2 position, float velocityX) =>
 		domains.CharacterLandingVisualSync.Report(cloudSize, position, velocityX);
 
+	public void OnCharacterRagdoll(Vector2 position) =>
+		domains.CharacterRagdollSync.Report(position);
+
 
 	public void OnLimbStateEvent(Limb limb) => domains.CharacterDataSync.ReportLimbStateEvent(limb);
 

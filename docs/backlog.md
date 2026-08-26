@@ -211,23 +211,25 @@ wire, state broadcast and carry mirror are unchanged. See
 `docs/selfchecks/player-interaction-followups-selfcheck.md` and
 `docs/tech-decisions.md` #112/#113.
 
-### New reported issues — OPEN (2026-08-26)
+### New reported issues
 
-- **Ragdoll-toggle presentation sync** — when the local player presses the
-  game's ragdoll key (X), the remote peer still sees the clone standing. The
-  visible ragdoll/lying pose is not following the local body's native
-  ragdoll-toggle transition; need a dedicated event or a verified standing/pose
-  sync path.
+- **Ragdoll-toggle presentation sync** — **CLOSED (2026-08-26)**. The owner's
+  manual ragdoll-key collapse now travels as a dedicated reliable
+  `CharacterRagdoll` event (NetMsg 120, ProtocolVersion 50); every peer
+  immediately replays `ExperimentLayDown`/`ArmsLayDown` on the owner's render
+  clone and seeds `PrevLying` so the standing stream does not double-trigger.
+  The 20 Hz `EntityStateMsg.Standing` flag remains the fallback for the
+  continuous pose. See `docs/selfchecks/character-ragdoll-toggle-sync-selfcheck.md`.
 - **World bleeding effects sync** — the visible bleeding/world-blood effects
   (blood leaving a body into the world) are not synchronized to peers. Needs a
   dedicated presentation or item/world-state mechanism; record as open before
   design.
-- **LifePod/escape-pod trigger-sound sync** — when the host triggers an escape
-  pod door open, the guest hears the later opening sound but not the earlier
-  trigger sound. The discrete trigger sound is missing from the peer's audio
-  presentation; needs a dedicated sound/event sync path (the opening sound is
-  already audible, so the missing half is likely a trigger-time one-shot that
-  currently only plays on the host).
+- **LifePod/escape-pod trigger-sound sync** — **CLOSED (2026-08-26, verified
+  existing path)**. The shuttle door's trigger-time `shuttleNotice` already
+  rides the `ShuttleDoorOpened` world event (`TrapStateActions.ApplyShuttleDoor`)
+  on every peer; the later `shuttleOpen` plays from the activated door's own
+  Update. No code change was needed beyond the existing replay state tests
+  (`ShuttleDoorReplayStateTests`).
 - **Online UI anti-passthrough is only full-screen** — the main CUO Online UI
   already blocks mouse passthrough with a full-screen guard, but the other
   custom UI surfaces do not; they should use scoped/within-panel passthrough

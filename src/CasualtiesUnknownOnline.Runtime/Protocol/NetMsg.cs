@@ -252,4 +252,9 @@ public enum NetMsg : byte
 	// the target's own client applies the native ragdoll/velocity locally)
 	PlayerPushRequest = 118, // guest → host: push an in-world player
 	PlayerPushResult = 119, // host → all: authoritative push result (force delta)
+
+	// Player ragdoll presentation (one-shot: the owner's local Body.Ragdoll
+	// transition already collapsed the body; the peers replay the lying pose on
+	// the owner's clone immediately, with the 20 Hz standing state as fallback)
+	CharacterRagdoll = 120, // bidirectional: guest → host report of the owner's own ragdoll toggle; host → guest broadcast relay (source excluded)
 }

@@ -364,4 +364,13 @@ internal interface IPatchBridge
 	/// </summary>
 	void OnCharacterLandingVisual(byte cloudSize, Vector2 position, float velocityX);
 
+	/// <summary>
+	/// The local body just collapsed via the game's ragdoll key (PlayerCamera's
+	/// ragdoll input path ran Body.Ragdoll and the standing flag flipped).
+	/// Report it so the peers replay the lying pose on the owner's clone
+	/// immediately (guest → host; host → broadcast); the 20 Hz entity-state
+	/// stream remains the fallback.
+	/// </summary>
+	void OnCharacterRagdoll(Vector2 position);
+
 }

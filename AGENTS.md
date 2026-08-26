@@ -169,6 +169,21 @@ engineering standards.
 - Do not fear refactoring or architectural work. Cost does not disappear — it transfers. Fixing the
   structure early is cheaper than cleaning up after a collapse.
 
+### Bug reproduction before fix
+
+- For every reported bug, do not start by changing production code. First add a
+  regression test that reproduces the reported symptom as closely as the L0
+  harness allows (multi-step state-machine test, pure unit test, or contract
+  test for adapter/game boundaries).
+- Run the new test against the current buggy code and record that it fails; if
+  the failure cannot be observed, record the exact harness blocker and keep the
+  bug row open instead of claiming a fix.
+- Only after the failing test pins the defect may the implementation change
+  start. The fix is done when that reproduction test passes AND the full suite
+  is green.
+- A fix without a before-red regression does not count as evidence of root
+  cause; it is how "half-fixed but still broken" cycles happen.
+
 ### Tests: core scenarios plus edge/special cases
 
 - Test suites must cover the core scenario first, then actively include boundary conditions, special

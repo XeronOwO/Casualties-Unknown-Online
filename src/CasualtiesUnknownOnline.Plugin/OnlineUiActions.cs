@@ -33,6 +33,16 @@ internal sealed class OnlineUiActions(
 		return true;
 	}
 
+	public bool OpenRemoteBackpackFromUi(ulong targetSteamId, string displayName)
+	{
+		if (!_session.SessionActive)
+		{
+			return false;
+		}
+
+		return _adapter?.OpenRemoteBackpack(targetSteamId, displayName) == true;
+	}
+
 	public bool CarryRemoteFromUi(ulong targetSteamId)
 	{
 		if (!_session.SessionActive)

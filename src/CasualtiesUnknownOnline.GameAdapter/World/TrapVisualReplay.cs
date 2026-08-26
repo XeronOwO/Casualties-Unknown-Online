@@ -188,14 +188,29 @@ internal sealed class TrapVisualReplay(ILogger<TrapVisualReplay> log)
 			return;
 		}
 
-		if (Traverse.Create(door).Field("activated").GetValue<bool>())
+		// Live relay (elapsed == 0): the trigger side just opened the door, so
+		// this side must play the same collision-only trigger sound
+		// (shuttleNotice) and let the door's own Update drive the animation and
+		// the later shuttleOpen sound from the same start moment. This is the
+		// path the earlier fix missed — the sound existed only in
+		// TrapStateActions.ApplyShuttleDoor, which is the HOST executor, not the
+		// guest replay.
+		if (ShuttleDoorReplayState.ShouldReplayTriggerSound(elapsedSeconds))
 		{
-			_log.LogWarning("[TrapEvent] ShuttleDoorOpened at {Pos} already consumed locally — duplicate dropped.", position);
+			if (TrapStateActions.ApplyShuttleDoor(door))
+			{
+				_log.LogInformation("[TrapEvent] replayed ShuttleDoorOpened at {Pos} (live).", position);
+			}
+			else
+			{
+				_log.LogWarning("[TrapEvent] ShuttleDoorOpened at {Pos} already consumed locally — duplicate dropped.", position);
+			}
+
 			return;
 		}
 
-		// The state, jumped to the elapsed point — no sounds (the host's door
-		// is not re-playing its opening either).
+		// Late-joiner snapshot: jump to the current elapsed point — no sounds
+		// (the host's door is not re-playing its opening either).
 		var state = ShuttleDoorReplayState.FromElapsed(elapsedSeconds);
 		Traverse.Create(door).Field("activated").SetValue(true);
 		Traverse.Create(door).Field("progress").SetValue(state.Progress);

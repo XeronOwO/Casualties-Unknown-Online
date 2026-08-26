@@ -226,6 +226,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 			_domains.Renderer.Update(localBody);
 		}
 
+		_domains.RemoteBackpack.Update();
 		using (_latency.Measure("EnemySync"))
 		{
 			_domains.EnemySync.Update(); // host: capture + publish the simulated enemies; guest: (event-driven bind/apply)
@@ -273,6 +274,11 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 
 	void IGameAdapter.SetOnlineUiScopedBlocks(System.Collections.Generic.IReadOnlyList<OnlineUiBlockRect> blocks) =>
 		_domains.MenuInput.SetScopedBlocks(blocks);
+
+	bool IGameAdapter.OpenRemoteBackpack(ulong targetSteamId, string displayName) =>
+		_domains.RemoteBackpack.Open(targetSteamId, displayName);
+
+	void IGameAdapter.CloseRemoteBackpack() => _domains.RemoteBackpack.Close();
 
 	// ---- Mod runtime boundaries (Phase 4 Mod API) ----
 

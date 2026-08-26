@@ -3201,6 +3201,11 @@ section: the four remaining player-interaction polish/bug items.
   and limb rigidbodies frozen by the carried-proxy path and restores the
   native standing pose for conscious/alive bodies or the ragdoll pose for
   unconscious/dead bodies.
+- **Rider get-down access** — `OnlineUiMemberProjection` now also projects
+  `CanRequestDropFromCarrier` on the remote carrier row. A rider can select
+  the player carrying them from the Players page, right-click menu or quick
+  panel and choose `Get down`, so the release action is discoverable without
+  having to open the full Online window or hunt for the local row.
 - **Piggyback weight/encumbrance host rule** — `[HostRules]
   PiggybackWeightMultiplier` (default 0.8, 0–3) is exposed through
   `IHostRules` and editable on the Admin page. A new

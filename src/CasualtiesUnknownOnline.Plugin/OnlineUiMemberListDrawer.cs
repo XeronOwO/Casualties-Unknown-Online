@@ -152,6 +152,7 @@ internal static class OnlineUiMemberListDrawer
 			|| row.CanCarryOnBack
 			|| row.CanDrop
 			|| row.CanRequestDrop
+			|| row.CanRequestDropFromCarrier
 			|| row.CanHeal
 			|| row.CanPush
 			|| row.CanRecruit
@@ -185,6 +186,11 @@ internal static class OnlineUiMemberListDrawer
 		if (row.CanRequestDrop && GUILayout.Button(ctx.T("member.get_down"), OnlineUiTheme.Button(), GUILayout.Width(90f)))
 		{
 			ctx.DropCarried?.Invoke(row.SteamId);
+		}
+
+		if (row.CanRequestDropFromCarrier && GUILayout.Button(ctx.T("member.get_down"), OnlineUiTheme.Button(), GUILayout.Width(90f)))
+		{
+			ctx.DropCarried?.Invoke(ctx.Session.LocalSteamId);
 		}
 
 		if (row.CanHeal && GUILayout.Button(ctx.T("member.heal"), OnlineUiTheme.Button(), GUILayout.Width(70f)))

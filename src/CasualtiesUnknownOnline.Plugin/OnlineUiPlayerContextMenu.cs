@@ -193,6 +193,11 @@ internal sealed class OnlineUiPlayerContextMenu
 			actions.Add(new MenuAction(ctx.T("member.drop"), () => ctx.DropCarried?.Invoke(row.SteamId)));
 		}
 
+		if (row.CanRequestDropFromCarrier)
+		{
+			actions.Add(new MenuAction(ctx.T("member.get_down"), () => ctx.DropCarried?.Invoke(ctx.Session.LocalSteamId)));
+		}
+
 		if (row.CanHeal)
 		{
 			actions.Add(new MenuAction(ctx.T("member.heal"), () => ctx.HealRemote?.Invoke(row.SteamId)));

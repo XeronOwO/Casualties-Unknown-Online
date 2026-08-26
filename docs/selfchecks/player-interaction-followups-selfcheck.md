@@ -38,6 +38,10 @@ local-as-carrier piggyback UI direction.
   standing pose for conscious/alive bodies or the ragdoll/limb-physics pose
   for unconscious/dead bodies. The shared placement/restore rules live in
   `CarriedBodyPlacement`.
+- **Rider-side get-down access** — the remote carrier row now also projects
+  `CanRequestDropFromCarrier`, so a rider can right-click/select the player
+  carrying them and choose `Get down` directly, in addition to the local row
+  action in the Players page and quick panel.
 - **Piggyback weight host rule** — `[HostRules] PiggybackWeightMultiplier`
   (default 0.8, range 0–3) is added to the host rules surface and Admin page.
   A `Body.GetTotalEncumberance` postfix reads the local carrier's current
@@ -53,6 +57,7 @@ local-as-carrier piggyback UI direction.
 |-----------|--------|----------|
 | Local-as-carrier mode | additive field + service method + host direction branch | `PlayerInteractionServiceTests.Guest_InvitesHostToRideOnGuestBack...` and `Host_InvitesGuestToRideOnHostBack...` |
 | UI eligibility | `CanCarryOnBack` projected from the same conscious/alive/in-world/no-carry rules | `OnlineUiMemberProjectionTests.ConsciousAliveRemoteCanRideOnLocalBack...` + carried-local negation |
+| Rider get-down access | carrier remote row projects `CanRequestDropFromCarrier`; right-click/Players/quick panel all show Get down | `OnlineUiMemberProjectionTests.CarriedLocalShowsGetDownOnLocalRowAndOnCarrierRemoteRow` |
 | Weight host rule | option/service exposure + config + Admin editor | `HostRulesPolicyTests.HostRulesService_ComposesNewFlagsAndRespawnFlags` |
 | Weight contribution | multiplier + patch surface | `CarryEncumbrancePatchTests` (pure multiplier + Body.GetTotalEncumberance contract) |
 | Carrier-side follow | renderer overrides carried clone position from local body | static Unified-code path; no L0 game-object harness by design |

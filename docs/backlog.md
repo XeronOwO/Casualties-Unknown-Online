@@ -206,6 +206,18 @@ wire, state broadcast and carry mirror are unchanged. See
 `docs/selfchecks/player-interaction-followups-selfcheck.md` and
 `docs/tech-decisions.md` #112.
 
+### New reported issues — OPEN (2026-08-26)
+
+- **Ragdoll-toggle presentation sync** — when the local player presses the
+  game's ragdoll key (X), the remote peer still sees the clone standing. The
+  visible ragdoll/lying pose is not following the local body's native
+  ragdoll-toggle transition; need a dedicated event or a verified standing/pose
+  sync path.
+- **World bleeding effects sync** — the visible bleeding/world-blood effects
+  (blood leaving a body into the world) are not synchronized to peers. Needs a
+  dedicated presentation or item/world-state mechanism; record as open before
+  design.
+
 ### Exploration 2026-08-23 — architecture & quality debt
 
 - **Partial-aware architecture gate** — **CLOSED (2026-08-23)**. `tools/check-architecture.ps1` now aggregates line counts and expression-state bools by complete top-level type across partial files, and refuses unrecorded debt or any growth beyond the recorded debt ledger (`docs/architecture-debt.json`). `-Strict` fails even on recorded debt once the mountain is flattened. The first real split landed: `WorldEventSync`'s building-entity half moved to its own `WorldBuildingEntitySync` (aggregate 643 → under 600, removed from the debt ledger). See `docs/selfchecks/partial-aware-gate-selfcheck.md` and `docs/tech-decisions.md` #65.

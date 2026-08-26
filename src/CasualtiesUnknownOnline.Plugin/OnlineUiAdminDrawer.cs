@@ -29,6 +29,7 @@ internal static class OnlineUiAdminDrawer
 			DrawEditableRule(ctx, "admin.rule_auto_continue", rules.AutoContinue, editor.SetAutoContinue);
 			DrawEditableRule(ctx, "admin.rule_allow_late_join", rules.AllowLateJoin, editor.SetAllowLateJoin);
 			DrawEditableRule(ctx, "admin.rule_widen_run_settings", rules.WidenRunSettings, editor.SetWidenRunSettings);
+			DrawEditableNumberRule(ctx, "admin.rule_piggyback_weight", rules.PiggybackWeightMultiplier, v => editor.SetPiggybackWeightMultiplier(v), 0f, 3f);
 			DrawEditableRule(ctx, "admin.rule_save_inventory", rules.SaveInventory, editor.SetKeepInventory);
 			DrawEditableRule(ctx, "admin.rule_revive_trader", rules.ReviveFromTrader, editor.SetReviveFromTrader);
 			DrawEditableRule(ctx, "admin.rule_revive_next_level", rules.ReviveOnNextLevel, editor.SetReviveOnNextLevel);
@@ -40,6 +41,7 @@ internal static class OnlineUiAdminDrawer
 			DrawRule(ctx.T("admin.rule_auto_continue"), rules.AutoContinue, ctx);
 			DrawRule(ctx.T("admin.rule_allow_late_join"), rules.AllowLateJoin, ctx);
 			DrawRule(ctx.T("admin.rule_widen_run_settings"), rules.WidenRunSettings, ctx);
+			DrawNumberRule(ctx, "admin.rule_piggyback_weight", rules.PiggybackWeightMultiplier);
 			DrawRule(ctx.T("admin.rule_save_inventory"), rules.SaveInventory, ctx);
 			DrawRule(ctx.T("admin.rule_revive_trader"), rules.ReviveFromTrader, ctx);
 			DrawRule(ctx.T("admin.rule_revive_next_level"), rules.ReviveOnNextLevel, ctx);
@@ -66,6 +68,30 @@ internal static class OnlineUiAdminDrawer
 
 			GUILayout.EndHorizontal();
 		}
+	}
+
+	private static void DrawNumberRule(OnlineUiContext ctx, string labelKey, float value) =>
+		GUILayout.Label($"{ctx.T(labelKey)}: {value:F2}", OnlineUiTheme.Label());
+
+	private static void DrawEditableNumberRule(
+		OnlineUiContext ctx,
+		string labelKey,
+		float value,
+		Action<float> setter,
+		float min,
+		float max)
+	{
+		GUILayout.BeginHorizontal();
+		GUILayout.Label(ctx.T(labelKey), OnlineUiTheme.Label());
+		GUILayout.FlexibleSpace();
+		var next = GUILayout.HorizontalSlider(value, min, max, GUILayout.Width(120f));
+		GUILayout.Label($"{next:F2}", OnlineUiTheme.MutedLabel(), GUILayout.Width(36f));
+		if (Math.Abs(next - value) > 0.001f)
+		{
+			setter(next);
+		}
+
+		GUILayout.EndHorizontal();
 	}
 
 	private static void DrawRule(string label, bool value, OnlineUiContext ctx)

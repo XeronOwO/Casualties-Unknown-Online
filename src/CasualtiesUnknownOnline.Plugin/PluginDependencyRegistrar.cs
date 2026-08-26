@@ -85,6 +85,10 @@ internal static class PluginDependencyRegistrar
 			new ConfigDescription("True = a brand-new player may join the host's already-running world."));
 		var widenRunSettings = config.Bind("HostRules", "WidenRunSettings", true,
 			new ConfigDescription("Host-only: widen the native custom run-settings sliders in co-op so the run can be tuned for the actual lobby size. Values still ride the existing world-start params."));
+		var piggybackWeight = config.Bind("HostRules", "PiggybackWeightMultiplier", 0.8,
+			new ConfigDescription(
+				"Host-only: fraction of a carried/rider player's full encumbrance added to the carrier while a carry/piggyback relation is active. 0 disables the movement penalty.",
+				new AcceptableValueRange<double>(0.0, 3.0)));
 		services.Replace(ServiceDescriptor.Singleton<IOptionsMonitor<HostRulesOptions>>(
 			new BepInExOptionsMonitor<HostRulesOptions>(
 				config,
@@ -94,9 +98,10 @@ internal static class PluginDependencyRegistrar
 					AutoContinue = autoContinue.Value,
 					AllowLateJoin = allowLateJoin.Value,
 					WidenRunSettings = widenRunSettings.Value,
+					PiggybackWeightMultiplier = (float)piggybackWeight.Value,
 				},
 				pvpEnabled.Definition, autoContinue.Definition, allowLateJoin.Definition,
-				widenRunSettings.Definition)));
+				widenRunSettings.Definition, piggybackWeight.Definition)));
 
 		// UI language: en or zh. The localization service normalizes anything
 		// starting with "zh" to zh and everything else to English.
@@ -120,6 +125,7 @@ internal static class PluginDependencyRegistrar
 			autoContinue,
 			allowLateJoin,
 			widenRunSettings,
+			piggybackWeight,
 			permadeath,
 			reviveFromTrader,
 			reviveOnNextLevel,

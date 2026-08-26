@@ -1,4 +1,5 @@
 using System.Linq;
+using CasualtiesUnknownOnline.GameAdapter.Character;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
@@ -107,6 +108,32 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 	public void OnSceneLoadBegin() => domains.ItemWorldSync.SuppressDestroys();
 
 	public void OnInventoryChanged() => domains.CharacterDataSync.ReportInventoryChanged(domains.Run.LocalBody);
+
+	public float GetCarriedEncumbrance(Body body)
+	{
+		var local = domains.Run.LocalBody;
+		if (local == null || local != body) // Unity objects — ==
+		{
+			return 0f;
+		}
+
+		if (!domains.PlayerInteraction.TryGetCarried(domains.Session.LocalSteamId, out var carried))
+		{
+			return 0f;
+		}
+
+		if (!domains.CharacterDataSync.CloneData.TryGetValue(carried, out var data))
+		{
+			domains.Log.LogDebug("[CarryWeight] no character snapshot for carried {Carried} — no weight added.", carried);
+			return 0f;
+		}
+
+		var full = CarriedEncumbranceCalculator.ComputeFullEncumbrance(data);
+		var contribution = CarriedEncumbranceCalculator.ApplyMultiplier(full, domains.HostRules.PiggybackWeightMultiplier);
+		domains.Log.LogDebug("[CarryWeight] carrier {Carrier} gains {Contribution:F2} from {Carried} (full {Full:F2}).",
+			domains.Session.LocalSteamId, contribution, carried, full);
+		return contribution;
+	}
 
 	public bool EnsureGuestWorldParams() => domains.WorldParams.EnsureGuestApplied();
 

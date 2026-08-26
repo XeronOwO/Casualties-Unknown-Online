@@ -21,4 +21,13 @@ public sealed class PlayerCarryStartRequestMsg
 	/// <summary>True for a conscious/alive piggyback ride; false for the classic unconscious/dead carry.</summary>
 	[ProtoMember(2)]
 	public bool Piggyback { get; set; }
+
+	/// <summary>
+	/// Only meaningful when <see cref="Piggyback"/> is true. False (the wire
+	/// default for old peers) means the requester climbs onto the target's back
+	/// (target becomes the carrier). True means the requester is the carrier and
+	/// invites the target to ride on the requester's back.
+	/// </summary>
+	[ProtoMember(3)]
+	public bool RequesterIsCarrier { get; set; }
 }

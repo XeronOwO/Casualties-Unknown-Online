@@ -32,6 +32,9 @@ public interface IPlayerInteractionControl
 	/// <summary>Any role: request to climb onto a conscious-alive teammate's back (guest → host on the wire; host handles locally).</summary>
 	void SendPiggybackRequest(ulong targetSteamId);
 
+	/// <summary>Any role: request a conscious-alive teammate to ride on the local player's back (guest → host on the wire; host handles locally).</summary>
+	void SendCarryOnBackRequest(ulong targetSteamId);
+
 	/// <summary>Any role: request to release the currently carried player (guest → host on the wire; host handles locally).</summary>
 	void SendCarryStopRequest(ulong carriedSteamId);
 

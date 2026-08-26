@@ -223,7 +223,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 		_domains.BlockBreakSync.Update(); // expire break records without a consuming drops report
 		using (_latency.Measure("Renderer"))
 		{
-			_domains.Renderer.Update();
+			_domains.Renderer.Update(localBody);
 		}
 
 		using (_latency.Measure("EnemySync"))

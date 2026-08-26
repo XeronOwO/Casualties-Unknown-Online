@@ -33,6 +33,7 @@ internal sealed class GameAdapterDomains
 	internal readonly ISessionControl Session;
 	internal readonly IItemControl Items;
 	internal readonly IEntitySyncControl Entities;
+	internal readonly IHostRules HostRules;
 	internal readonly ILogger<GameAdapter> Log;
 
 	internal readonly CloneFactTable FactTable;
@@ -112,6 +113,7 @@ internal sealed class GameAdapterDomains
 		Session = session;
 		Items = items;
 		Entities = entities;
+		HostRules = hostRules;
 		PlayerInteraction = playerInteraction;
 		Log = log;
 		// Domains (state belongs to its owner; the coordinator forwards, never holds).
@@ -126,7 +128,7 @@ internal sealed class GameAdapterDomains
 			new CloneInventoryRenderer(loggerFactory.CreateLogger<CloneInventoryRenderer>()),
 			FactTable,
 			loggerFactory.CreateLogger<CharacterDataSync>());
-		Renderer = new RemotePlayerRenderer(session, entities, CharacterDataSync, new CloneLimbRenderer(loggerFactory.CreateLogger<CloneLimbRenderer>()), loggerFactory.CreateLogger<RemotePlayerRenderer>());
+		Renderer = new RemotePlayerRenderer(session, entities, CharacterDataSync, new CloneLimbRenderer(loggerFactory.CreateLogger<CloneLimbRenderer>()), playerInteraction, loggerFactory.CreateLogger<RemotePlayerRenderer>());
 		DropGuard = new DropProtectionGuard();
 		ItemApplication = new ItemApplication(items, session, loggerFactory.CreateLogger<ItemApplication>());
 		ItemReconcile = new ItemReconcile(items, ItemApplication, DropGuard, loggerFactory.CreateLogger<ItemReconcile>());

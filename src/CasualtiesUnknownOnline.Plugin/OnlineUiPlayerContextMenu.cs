@@ -183,6 +183,11 @@ internal sealed class OnlineUiPlayerContextMenu
 			actions.Add(new MenuAction(ctx.T("member.piggyback"), () => ctx.PiggybackRemote?.Invoke(row.SteamId)));
 		}
 
+		if (row.CanCarryOnBack)
+		{
+			actions.Add(new MenuAction(ctx.T("member.carry_on_back"), () => ctx.CarryOnBackRemote?.Invoke(row.SteamId)));
+		}
+
 		if (row.CanDrop)
 		{
 			actions.Add(new MenuAction(ctx.T("member.drop"), () => ctx.DropCarried?.Invoke(row.SteamId)));
@@ -237,9 +242,9 @@ internal sealed class OnlineUiPlayerContextMenu
 	private static GUIStyle MenuButton()
 	{
 		_menuButton ??= new GUIStyle(OnlineUiTheme.Button())
-			{
-				margin = new RectOffset(0, 0, 0, 0),
-			};
+		{
+			margin = new RectOffset(0, 0, 0, 0),
+		};
 
 		return _menuButton;
 	}

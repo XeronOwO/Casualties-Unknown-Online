@@ -15,6 +15,7 @@ internal sealed class HostRulesConfigEditor
 	private readonly ConfigEntry<bool> _autoContinue;
 	private readonly ConfigEntry<bool> _allowLateJoin;
 	private readonly ConfigEntry<bool> _widenRunSettings;
+	private readonly ConfigEntry<double> _piggybackWeight;
 	private readonly ConfigEntry<bool> _permadeath;
 	private readonly ConfigEntry<bool> _reviveFromTrader;
 	private readonly ConfigEntry<bool> _reviveOnNextLevel;
@@ -27,6 +28,7 @@ internal sealed class HostRulesConfigEditor
 		ConfigEntry<bool> autoContinue,
 		ConfigEntry<bool> allowLateJoin,
 		ConfigEntry<bool> widenRunSettings,
+		ConfigEntry<double> piggybackWeight,
 		ConfigEntry<bool> permadeath,
 		ConfigEntry<bool> reviveFromTrader,
 		ConfigEntry<bool> reviveOnNextLevel,
@@ -38,6 +40,7 @@ internal sealed class HostRulesConfigEditor
 		_autoContinue = autoContinue;
 		_allowLateJoin = allowLateJoin;
 		_widenRunSettings = widenRunSettings;
+		_piggybackWeight = piggybackWeight;
 		_permadeath = permadeath;
 		_reviveFromTrader = reviveFromTrader;
 		_reviveOnNextLevel = reviveOnNextLevel;
@@ -53,6 +56,8 @@ internal sealed class HostRulesConfigEditor
 
 	internal void SetWidenRunSettings(bool value) => Set(_widenRunSettings, value);
 
+	internal void SetPiggybackWeightMultiplier(double value) => Set(_piggybackWeight, value);
+
 	internal void SetPermadeath(bool value) => Set(_permadeath, value);
 
 	internal void SetReviveFromTrader(bool value) => Set(_reviveFromTrader, value);
@@ -64,6 +69,12 @@ internal sealed class HostRulesConfigEditor
 	internal void SetKeepSkills(bool value) => Set(_keepSkills, value);
 
 	private void Set(ConfigEntry<bool> entry, bool value)
+	{
+		entry.Value = value;
+		_config.Save();
+	}
+
+	private void Set(ConfigEntry<double> entry, double value)
 	{
 		entry.Value = value;
 		_config.Save();

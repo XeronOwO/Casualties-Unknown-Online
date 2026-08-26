@@ -71,6 +71,7 @@ public static class OnlineUiMemberProjection
 				&& !isAlreadyCarried
 				&& !isCarryingSomeone
 				&& !hasExistingCarry;
+			var canCarryOnBack = canPiggyback;
 
 			var canDrop = isCarryingThis;
 			var canRequestDrop = isLocal
@@ -110,6 +111,7 @@ public static class OnlineUiMemberProjection
 				IsCarryingThis = isCarryingThis,
 				CanCarry = canCarry,
 				CanPiggyback = canPiggyback,
+				CanCarryOnBack = canCarryOnBack,
 				CanDrop = canDrop,
 				CanRequestDrop = canRequestDrop,
 				CanHeal = canHeal,

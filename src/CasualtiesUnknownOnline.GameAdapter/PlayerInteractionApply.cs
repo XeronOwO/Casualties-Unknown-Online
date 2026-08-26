@@ -91,10 +91,8 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains)
 			return;
 		}
 
-		var side = carrier.IsRight ? -1f : 1f;
-		var up = carrier.Crouching ? 0.5f : 0.9f;
-		var offset = new Vector2(0.35f * side, up);
-		localBody.transform.position = new Vector3(carrier.Position.X + offset.x, carrier.Position.Y + offset.y, 0f);
+		var carrierPosition = new Vector3(carrier.Position.X, carrier.Position.Y, 0f);
+		localBody.transform.position = CarriedBodyPlacement.BackOffset(carrierPosition, carrier.IsRight, carrier.Crouching);
 		localBody.rb.velocity = new Vector2(carrier.Velocity.X, carrier.Velocity.Y);
 		localBody.isRight = carrier.IsRight;
 		localBody.standing = false;
@@ -297,8 +295,18 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains)
 		// carried half of that same relation.
 		if (driver != null && driver.CarrierSteamId == msg.CarrierSteamId && msg.CarriedSteamId == 0)
 		{
+			var carrier = domains.Entities.GetRemotePlayer(msg.CarrierSteamId);
+			var releasePosition = carrier is not null
+				? new Vector3(carrier.Position.X, carrier.Position.Y, 0f)
+				: (Vector3?)null;
+			if (releasePosition is { } pos)
+			{
+				body.transform.position = pos;
+			}
+
+			CarriedBodyPlacement.RestoreLocalBody(body);
 			Object.Destroy(driver);
-			domains.Log.LogInformation("[Carry] local body released by {Carrier}.", msg.CarrierSteamId);
+			domains.Log.LogInformation("[Carry] local body released by {Carrier}; physics restored.", msg.CarrierSteamId);
 		}
 	}
 

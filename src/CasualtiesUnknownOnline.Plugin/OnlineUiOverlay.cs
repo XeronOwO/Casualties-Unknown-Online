@@ -51,9 +51,11 @@ internal sealed class OnlineUiOverlay
 	/// <summary>Invoked when the user clicks Carry on an unconscious/dead remote player.</summary>
 	internal Func<ulong, bool>? CarryRemote;
 
-	/// <summary>Invoked when the user clicks Piggyback on a conscious/alive remote player.</summary>
+	/// <summary>Invoked when the user clicks Piggyback on a conscious/alive remote player (local climbs onto them).</summary>
 	internal Func<ulong, bool>? PiggybackRemote;
 
+	/// <summary>Invoked when the user clicks Carry on back on a conscious/alive remote player (local is the carrier).</summary>
+	internal Func<ulong, bool>? CarryOnBackRemote;
 
 	/// <summary>Invoked when the user clicks Drop on the currently carried remote player.</summary>
 	internal Func<ulong, bool>? DropCarried;
@@ -160,6 +162,7 @@ internal sealed class OnlineUiOverlay
 			TakeItem = TakeItem,
 			CarryRemote = CarryRemote,
 			PiggybackRemote = PiggybackRemote,
+			CarryOnBackRemote = CarryOnBackRemote,
 			DropCarried = DropCarried,
 			HealRemote = HealRemote,
 			HealWithItem = HealWithItem,

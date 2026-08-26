@@ -762,6 +762,46 @@ public class PlayerInteractionServiceTests
 	}
 
 	[Fact]
+	public void Guest_InvitesHostToRideOnGuestBack_RecordsAndBroadcastsCarryState()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true));
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendCarryOnBackRequest(HostId);
+
+		var frame = received.Single(r => r.Msg == NetMsg.PlayerCarryState).Frame;
+		var state = NetPacket.DecodePayload<PlayerCarryStateMsg>(frame);
+		Assert.Equal(GuestId, state.CarrierSteamId);
+		Assert.Equal(HostId, state.CarriedSteamId);
+
+		var interaction = host.Services.GetRequiredService<IPlayerInteractionControl>();
+		Assert.True(interaction.TryGetCarried(GuestId, out var carried));
+		Assert.Equal(HostId, carried);
+		Assert.True(interaction.TryGetCarrier(HostId, out var carrier));
+		Assert.Equal(GuestId, carrier);
+	}
+
+	[Fact]
+	public void Host_InvitesGuestToRideOnHostBack_SendsCarryStateToGuest()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true));
+
+		host.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendCarryOnBackRequest(GuestId);
+
+		var frame = received.Single(r => r.Msg == NetMsg.PlayerCarryState).Frame;
+		var state = NetPacket.DecodePayload<PlayerCarryStateMsg>(frame);
+		Assert.Equal(HostId, state.CarrierSteamId);
+		Assert.Equal(GuestId, state.CarriedSteamId);
+	}
+
+	[Fact]
 	public void Piggyback_DeadTarget_IsRefused()
 	{
 		var (host, guest, received) = CreateSession();

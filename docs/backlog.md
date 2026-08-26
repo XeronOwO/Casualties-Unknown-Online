@@ -178,10 +178,11 @@ surface.
 - **Push/shove (cross-player)** — **CLOSED (2026-08-24)**. Host-authoritative `PlayerPushRequest`/`PlayerPushResult` (NetMsg 118/119, ProtocolVersion 49): the host validates in-world/standing/cooldown/distance/carry, computes KrokMP-style strength from the pusher's Strength, and broadcasts one force delta; the target's own client applies the native ragdoll+velocity, the pusher pays the stamina/heat cost, and every side replays the `landsmall1` sound. The 20 Hz player state stream remains the motion fallback. Players page and in-world right-click menu expose `Push`. See `docs/selfchecks/player-push-selfcheck.md` and `docs/tech-decisions.md` #99.
 - **Other lower-priority KrokMP candidates** — voice, vote-kick, and any remaining player-list polish. **Co-op keybinds and status icons closed (2026-08-25)**; ban is closed as the second admin slice; piggyback and push are closed above. See §2.7.
 
-### Player interaction / piggyback follow-ups — CLOSED (2026-08-26)
+### Player interaction / piggyback follow-ups — 3 CLOSED + 1 RE-OPENED (2026-08-26)
 
-The four follow-ups recorded after the piggyback direction + drag-use pass are
-now closed:
+Three of the four follow-ups recorded after the piggyback direction + drag-use
+pass are closed; the drop/release issue is re-opened because the reported
+symptom is still not resolved:
 
 - **Host-on-guest real-time follow presentation** — closed as a carrier-side
   presentation optimization. `RemotePlayerRenderer` pins the remote rider clone
@@ -191,10 +192,12 @@ now closed:
   `[HostRules] PiggybackWeightMultiplier` (default 0.8, editable on the Admin
   page) feeds a `Body.GetTotalEncumberance` postfix that adds the carried
   player's authoritative snapshot encumbrance to the local carrier's load.
-- **Drop/release floating body** — closed as a local-body restore bug fix.
-  The release path now re-enables the frozen body/limb rigidbodies, places the
-  released body at the carrier's position, and restores the native
-  standing/ragdoll pose for the body's alive/conscious state.
+- **Drop/release floating body — RE-OPENED (2026-08-26)**. The earlier restore
+  fix re-enables the frozen body/limb rigidbodies, places the released body at
+  the carrier's position, and restores the native standing/ragdoll pose.
+  The user still reports: after riding (piggyback), the carried/rider cannot
+  actively `Drop`. The remaining symptom is recorded for a fresh session to
+  root-cause; do not treat this row as closed.
 - **Missing "put another player on your own back" action** — closed as the
   local-as-carrier piggyback direction. A new additive
   `PlayerCarryStartRequestMsg.RequesterIsCarrier` field plus `Carry on back`
@@ -223,6 +226,20 @@ wire, state broadcast and carry mirror are unchanged. See
   presentation; needs a dedicated sound/event sync path (the opening sound is
   already audible, so the missing half is likely a trigger-time one-shot that
   currently only plays on the host).
+- **Piggyback Drop still not working** — after riding/piggyback, the rider
+  still cannot actively `Drop`. This is the re-opened symptom from the
+  carry/piggyback follow-up row; recorded here so a new session can pick it up
+  directly.
+- **Online UI anti-passthrough is only full-screen** — the main CUO Online UI
+  already blocks mouse passthrough with a full-screen guard, but the other
+  custom UI surfaces do not; they should use scoped/within-panel passthrough
+  blocking instead of relying on the full-screen modal guard.
+- **Remote-player inventory UI should reuse the game backpack UI** — viewing
+  another player's items currently uses a homemade inventory UI that is less
+  intuitive and visually poor. Reuse the game's own backpack UI where possible;
+  nested containers in another player's inventory should also be openable like
+  the local player's. Add a host/session toggle controlling whether other
+  players may take items from that inventory.
 
 ### Exploration 2026-08-23 — architecture & quality debt
 

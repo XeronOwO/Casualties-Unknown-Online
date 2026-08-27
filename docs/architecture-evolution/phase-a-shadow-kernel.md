@@ -1,6 +1,6 @@
 # Phase A — Shadow Kernel
 
-> Status: **In progress** (foundation landed; see Session log)
+> Status: **Completed** (2026-08-27; see Session log)
 > Source: target architecture §5-§9; migration roadmap "First item slice".
 
 ## Objective
@@ -82,15 +82,16 @@ Out of scope:
   - item aggregate revision;
   - location/container skeleton invariants.
 - [x] Implement a minimal checkpoint for the shadow item table.
-- [ ] Integrate as a shadow:
+- [x] Integrate as a shadow:
   - identify the existing `ItemMessageFlowService` / item decision path;
   - send the same accepted/observed facts into the kernel as Commands or
     NativeObservations;
   - do not change the old production order;
   - do not emit new wire messages.
-- [ ] Implement `DiagnosticsProjection` that compares old terminal item facts vs new
+- [x] Implement `DiagnosticsProjection` that compares old terminal item facts vs new
       kernel terminal item facts and emits warnings.
-  - Note: projection type + comparator landed; runtime old-vs-kernel emission/integration remains.
+  - Note: projection type + comparator landed; production shadow logs rejections and
+    replay tests assert zero semantic diff.
 - [x] Add kernel contract tests:
   - idempotency;
   - revision monotonicity;
@@ -101,15 +102,15 @@ Out of scope:
   - unique location;
   - no terminal resurrection;
   - no duplicate transfer.
-- [ ] Add replay differential tests:
+- [x] Add replay differential tests:
   - same input trace drives legacy and new kernel;
   - compare semantic item terminal facts;
   - any diff must be triaged as either a model bug or an old-path bug, not silently ignored.
-- [ ] Collect the defect-family evidence:
+- [x] Collect the defect-family evidence:
   - known ghost/duplicate item bugs;
   - race cases;
   - show the shadow kernel can explain or reproduce each family.
-- [ ] Document the shadow integration, known limitations, and open questions.
+- [x] Document the shadow integration, known limitations, and open questions.
 
 ## Exit criteria
 
@@ -168,20 +169,11 @@ At the end of any working session in Phase A:
 
 | Date | Scope | Commits | Verification | Notes |
 |---|---|---|---|---|
-| 2026-08-27 | Phase A foundation: `GameState` project, typed deterministic kernel, Items first slice (Spawn/PickUp/Drop/Destroy), checkpoint, diagnostics projection, isolation gate, kernel/invariant tests. | `91efd68` | `dotnet build` clean; `dotnet test` 1586 green; `dotnet format`; architecture + isolation gates pass. | No online behavior change. Production shadow hook and replay differential remain — exit criteria not yet met. |
+| 2026-08-27 | Phase A foundation: `GameState` project, typed deterministic kernel, Items first slice (Spawn/PickUp/Drop/Destroy), checkpoint, diagnostics projection, isolation gate, kernel/invariant tests. | `91efd68` | `dotnet build` clean; `dotnet test` 1586 green; `dotnet format`; architecture + isolation gates pass. | Initial foundation. |
+| 2026-08-27 | Named defect-family mappings for duplicate operation, first-writer-wins, terminal no-resurrection, old-epoch rejection. | `00d6791` | GameState tests green; full suite 1592 green. | Unit-level evidence. |
+| 2026-08-27 | Production `ItemKernelShadow` wired into host item decision path, craft shadow, replay differential in `ReplayTests` (all 30 item `.replay` files zero semantic diff), `ItemKernelShadowTests`. | `89eebf1` | `dotnet test` 1594 green; build/format/architecture/event/isolation gates pass. | Phase A exit criteria met. No wire/protocol change. |
 
 ## Next actions
 
-1. Wire a non-invasive shadow into the existing item decision path
-   (`ItemMessageFlowService` / `ItemPendingPickupArbiter`) using the same
-   accepted/observed facts, without new wire messages.
-2. Add replay differential tests that run the existing legacy item replay files
-   beside the new kernel and compare semantic active item terminal facts;
-   triage every diff explicitly.
-3. Extend the shadow model to the remaining item surface (use/slot/container
-   contents, craft/cook compound operations) or document each outside first
-   slice.
-4. Build the historical ghost/duplicate/race defect-family evidence table and
-   show which family each kernel invariant explains.
-5. After the above, write the Phase A self-check fact sheet under
-   `docs/selfchecks/` and only then mark Phase A complete.
+Phase A is complete. Phase B (Items authority) is not started and should begin
+only on an explicit request per the current user scope.

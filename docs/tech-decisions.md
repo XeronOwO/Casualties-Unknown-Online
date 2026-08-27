@@ -3615,3 +3615,34 @@ input paths, the direct hotkey handling was removed.
 - **No wire change** — no `NetMsg`, `ProtocolVersion`, or sync matrix touched.
 - **Tests/gates** — build/format/architecture/event gates pass; full suite
   green.
+
+## 126. Phase A shadow kernel — typed deterministic GameState beside the item path
+
+Closed 2026-08-27. The architecture evolution Phase A is complete: a new
+`CasualtiesUnknownOnline.GameState` project owns a typed deterministic kernel and
+an Items first slice, while the old item path remains authoritative.
+
+- **Project/decomposition** — `GameState` has no CUO/Unity/BepInEx/Steam/network
+  references; `tools/check-gamestate-isolation.ps1` enforces the boundary inside
+  `tools/check-architecture.ps1`. The kernel exposes Execute/Apply/
+  CreateCheckpoint/Restore/Query, bounded operation idempotency, aggregate +
+  global revisions, and checkpoint round-trip.
+- **Items first slice** — `ItemIdentity`, `ItemLocation` (World/Carried/Contained/
+  Terminal), `ItemState`, Spawn/PickUp/Drop/Destroy commands and reducers,
+  `ItemSpawned`/`ItemRelocated`/`ItemDestroyed` events. Invariants cover duplicate
+  operation idempotency, no Terminal resurrection, stale revision rejection, and
+  RunEpoch isolation.
+- **Production shadow** — `ItemKernelShadow` (Runtime) observes accepted facts from
+  `ItemService`, `ItemPendingPickupArbiter`, `ItemMessageFlowService`, and
+  `CraftSyncService` without changing old state or emitting wire messages. Runtime
+  references GameState directly as an interim seam until the Application layer
+  exists.
+- **Replay differential** — every existing item `.replay` file now asserts zero
+  semantic diff between the legacy host terminal facts and the kernel shadow
+  (`ItemSimWorld.CompareKernelShadow` + `ReplayTests`). The initial world-drop and
+  craft diffs were resolved by allowing world relocation in `DropItemCommand` and
+  observing craft destroys/products as kernel facts.
+- **Tests/gates** — new kernel, invariant, property, defect-family, shadow, and
+  replay-differential coverage; full suite 1594 green; build/format/architecture/
+  event/entity/isolation gates pass. See
+  `docs/selfchecks/phase-a-kernel-foundation-selfcheck.md`.

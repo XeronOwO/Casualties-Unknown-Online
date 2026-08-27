@@ -167,7 +167,7 @@ Out of scope:
 
 | Date | Scope | Commits | Verification | Notes |
 |---|---|---|---|---|
-| 2026-08-28 | Phase B item authority: full kernel item data payload, update/transfer/container commands, `ItemKernelAuthority` + `ItemProjection`, kernel-first `ItemArbitration`, `NativeOperationCoordinator`, item capability registry, temporary item checkpoint store, item write-path architecture gate. | _(add after commit)_ | Full suite 1611 tests green; architecture + item authority gates pass. | NativeOperationCoordinator contract is tested but not yet absorbed into every patch; old wire protocol remains authoritative for presentation until Phase C. |
+| 2026-08-28 | Phase B item authority: full kernel item data payload, update/transfer/container commands, `ItemKernelAuthority` + `ItemProjection`, kernel-first `ItemArbitration`, `NativeOperationCoordinator`, item capability registry, temporary item checkpoint store, item write-path architecture gate. | `bf40394` | Full suite 1611 tests green; architecture + item authority gates pass. | NativeOperationCoordinator contract is tested but not yet absorbed into every patch; old wire protocol remains authoritative for presentation until Phase C. |
 
 ## Next actions
 

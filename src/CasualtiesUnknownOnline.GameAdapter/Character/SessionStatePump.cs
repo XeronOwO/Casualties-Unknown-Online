@@ -85,12 +85,7 @@ internal static class SessionStatePump
 		// Facing is RENDERED via transform.localScale.x (SwitchDir, Body.cs:1187-
 		// 1209). On a proxy the auto-flip in HandleVisuals (Body.cs:3131) never
 		// triggers (moveDir=0, attackCooldown=0) — mirror the scale sign here.
-		var scale = body.transform.localScale;
-		var targetX = Mathf.Abs(scale.x) * (entity.IsRight ? 1f : -1f);
-		if (Mathf.Abs(scale.x - targetX) > 0.001f)
-		{
-			body.transform.localScale = new Vector3(targetX, scale.y, scale.z);
-		}
+		BodyFacing.Apply(body);
 
 		// The ragdoll one-shot is reliable; the 20 Hz standing flag is not. A
 		// collapse event may arrive before the state stream's standing=false

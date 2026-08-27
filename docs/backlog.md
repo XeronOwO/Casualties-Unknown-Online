@@ -8,7 +8,8 @@ Open work only. Landed delivery details are not duplicated here; they live in:
 
 ## Status
 
-- **No open bug reports.** The 2026-08-27 remote-backpack container take bug is closed (see below). Open work below is feature/decision/acceptance work only.
+- **Two open bug reports (2026-08-27)** — see "Open bugs" below. They are not to be closed by a paper-only claim.
+- The 2026-08-27 remote-backpack container take bug is closed (see below). Open work below is feature/decision/acceptance work only.
 - Native game-content sync coverage is complete: item and entity feature matrices currently have no `missing` rows.
 - **Host body orientation after piggyback Drop — CLOSED (2026-08-27).** CUO now keeps `Body.isRight` and `transform.localScale.x` in lockstep through a shared `BodyFacing` rule on every CUO-facing write (carried local body, render proxy, carrier-side clone override), and the release restore re-applies it before native simulation resumes. See `docs/selfchecks/piggyback-facing-restore-selfcheck.md` and `docs/tech-decisions.md` #121.
 - **Remote backpack container take — CLOSED (2026-08-27).** The cross-player take authority is now recursive through container `Contents`, the native remote-backpack drag surface sends the same host take request, and the custom inventory tree has Take buttons at every container depth. Display-proxy drag-loop mutations and the local-body radial re-anchor are isolated while the remote view is open. See `docs/selfchecks/remote-backpack-container-take-selfcheck.md` and `docs/tech-decisions.md` #122.
@@ -18,6 +19,22 @@ Open work only. Landed delivery details are not duplicated here; they live in:
 - **Online UI scoped anti-passthrough + transport-mode exclusivity — CLOSED (2026-08-26).** The quick panel and right-click context menu now get scoped UGUI raycast blockers limited to their own rectangles, and the Home page shows only the selected Steam or IP-direct transport section at a time. See `docs/selfchecks/online-ui-scoped-passthrough-selfcheck.md` and `docs/tech-decisions.md` #116.
 - **Remote-player inventory UI follow-up — CLOSED (2026-08-26).** Remote inventory has an "Open backpack" path that reuses the game's native radial backpack UI focused on the remote player's render clone (display-only proxies are never mutated; cross-player operations go through the host). The Custom UI remains as a text detail fallback and the recursive container collapsibles, and `[HostRules] AllowRemoteInventoryTake` controls the cross-player take operation. See `docs/selfchecks/remote-inventory-ui-followup-selfcheck.md` and `docs/tech-decisions.md` #117.
 - **LifePod shuttle-door trigger sound — CLOSED (2026-08-26).** The earlier fix only added `shuttleNotice` to the host executor; the guest live-replay path still skipped the collision-only trigger sound. `TrapVisualReplay.ReplayShuttleDoor` now replays it for live relays (elapsed == 0), while late-joiner snapshots still jump to the current state without replaying old sounds. See `docs/selfchecks/native-remote-backpack-and-door-sound-selfcheck.md` and `docs/tech-decisions.md` #118.
+
+## Open bugs (2026-08-27)
+
+### Remote-backpack drag can duplicate a water bottle into both inventories
+
+- **Reported**: 2026-08-27.
+- **Observed**: as a guest viewing the host's inventory, a water bottle inside a container can be dragged, but dragging toward the screen edge shows no native drop hint (the white fading rectangle). If the player closes the backpack while still dragging, then opens their own backpack and drops the dragged bottle into it, the water bottle ends up in **both** the host's inventory and the guest's own inventory. The guest can then drop the duplicated copy into the world.
+- **Impact**: cross-player inventory duplication via the remote-backpack drag path; the display-proxy drag state is apparently not being cancelled/reconciled when the remote view closes or when the drag transfers to the local backpack.
+- **Related surfaces**: native remote-backpack drag (`RemoteBackpackView` / `RemoteBackpackCoordinator`), `PlayerCameraDragUsePatch`, `HandleReleaseDragging` / `HandleWhileDragging`, remote clone display proxies, cross-player take / transfer arbitration.
+
+### Host closing the lobby exits the game and can destroy the run save
+
+- **Reported**: 2026-08-27.
+- **Observed**: when the host closes the multiplayer lobby, the game exits instead of returning to a safe menu/lobby state. A brief network hiccup or a host wanting to recreate the room therefore ends the whole process.
+- **Impact**: destructive UX for the host; combined with the save authority model this can effectively invalidate/lose the run's save/state. The host should be able to leave/close the session without force-quitting the game, and the save should be preserved or explicitly managed.
+- **Related surfaces**: session/lobby teardown, host lifecycle (`LobbyLeft` / session end), Steam lobby ownership, save authority/run state, `GameAdapter` / `Plugin` shutdown path.
 
 ## Open work
 

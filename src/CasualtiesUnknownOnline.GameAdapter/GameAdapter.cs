@@ -226,6 +226,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 			_domains.Renderer.Update(localBody);
 		}
 
+		_domains.CharacterRagdollSync.Update(); // flush clone-creation-race ragdoll one-shots after the renderer created clones
 		_domains.RemoteBackpack.Update();
 		using (_latency.Measure("EnemySync"))
 		{

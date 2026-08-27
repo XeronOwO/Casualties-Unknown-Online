@@ -18,6 +18,15 @@ internal sealed class RemoteBodyDriver : MonoBehaviour
 	/// <summary>Last applied lying pose (standing=false, not sleeping) — same transition rule.</summary>
 	public bool PrevLying;
 
+	/// <summary>A reliable ragdoll-collapse event is waiting for the state stream's standing=false confirmation.</summary>
+	public bool RagdollCollapsePending;
+
+	/// <summary>The state stream has confirmed standing=false after the ragdoll event — later standing=true is a real stand-up.</summary>
+	public bool RagdollCollapseConfirmed;
+
+	/// <summary>Environment.TickCount when the ragdoll-collapse event was applied (the suppression window start).</summary>
+	public long RagdollCollapseMs;
+
 	/// <summary>Last applied attack-swing flag — the ArmsSwing clip plays only on the flag's rising edge.</summary>
 	public bool PrevAttacking;
 

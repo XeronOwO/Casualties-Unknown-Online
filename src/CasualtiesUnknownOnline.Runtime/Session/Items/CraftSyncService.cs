@@ -115,9 +115,11 @@ public sealed class CraftSyncService(
 			{
 				case CraftVerdict.WorldDestroy:
 					_items.RemoveWorldItemLocal(id);
+					_items.KernelShadow.ObserveDestroy(sender, id);
 					break;
 				case CraftVerdict.TransferredRemove:
 					_arbitration.RemoveTransferred(sender, id);
+					_items.KernelShadow.ObserveDestroy(sender, id);
 					break;
 				case CraftVerdict.UnknownSkip:
 					// Never rejected (the consumption is irreversible on the
@@ -147,6 +149,7 @@ public sealed class CraftSyncService(
 		_arbitration.RegisterCarried(sender, msg.Products);
 		foreach (var product in msg.Products)
 		{
+			_items.KernelShadow.ObserveCarriedSpawn(sender, product.InstanceId, product.ItemId);
 			// This host's clone fact table of the crafter re-renders — the
 			// relay's receivers do the same locally (no broadcast here: the
 			// relay already carries the products, one operation = one message).

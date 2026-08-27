@@ -26,6 +26,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\CasualtiesUnknownOnline.Abstractions\CasualtiesUnknownOnline.Abstractions.csproj" />
+    <!-- Phase A shadow: the Runtime observes through the deterministic kernel.
+         This direct reference is an interim seam until the Application layer
+         exists; the final dependency direction is Runtime -> Application -> GameState. -->
+    <ProjectReference Include="..\CasualtiesUnknownOnline.GameState\CasualtiesUnknownOnline.GameState.csproj" />
   </ItemGroup>
 
   <!--

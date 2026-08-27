@@ -32,13 +32,15 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 	private readonly ItemTrafficTracker _itemTraffic = new(ItemTrafficTracker.DefaultWindowMs);
 	private readonly ItemPendingPickupArbiter _pendingPickups;
 	private readonly ItemMessageFlowService _messageFlow;
+	private readonly ItemKernelShadow _kernelShadow;
 
-	public ItemService(ISessionControl session, PacketSender sender, ItemArbitration arbitration, ITimeSource time, ILogger<ItemService> log)
+	public ItemService(ISessionControl session, PacketSender sender, ItemArbitration arbitration, ITimeSource time, ILogger<ItemService> log, ItemKernelShadow kernelShadow)
 	{
 		_session = session;
 		_sender = sender;
 		_log = log;
 		_arbitration = arbitration;
+		_kernelShadow = kernelShadow;
 		_carriedSync = new(session, sender, log);
 		_itemActionSync = new(session, sender, arbitration, this, log);
 		_snapshots = new(session, sender, () => (IReadOnlyCollection<WorldItem>)_worldTable.Items.Values, log);
@@ -52,6 +54,7 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 			_worldTable,
 			arbitration,
 			_carriedSync,
+			_kernelShadow,
 			RecordItemTraffic,
 			item => ItemSpawned?.Invoke(item),
 			itemId => ItemPickedUp?.Invoke(itemId),
@@ -67,6 +70,7 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 			_snapshots,
 			_blockDrops,
 			_pendingPickups,
+			_kernelShadow,
 			RecordItemTraffic,
 			ItemTrafficLabel,
 			item => ItemSpawned?.Invoke(item),
@@ -287,6 +291,7 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 		_idCoordinator.ResetForSessionEnd();
 		_snapshots.ResetForSessionEnd();
 		_itemTraffic.Reset();
+		_kernelShadow.ResetForSession();
 	}
 
 	private void OnSessionEnded() => ResetSessionState();
@@ -401,6 +406,8 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 
 	/// <summary>Read-only world-table snapshot for the architecture shadow diagnostics (never mutates production state).</summary>
 	internal IReadOnlyList<WorldItem> GetWorldItemsForDiagnostics() => [.. _worldTable.Items.Values];
+
+	internal ItemKernelShadow KernelShadow => _kernelShadow;
 
 	// ===== IItemActionWorldAccess =====
 

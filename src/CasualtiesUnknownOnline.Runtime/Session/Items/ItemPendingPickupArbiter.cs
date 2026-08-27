@@ -22,6 +22,7 @@ internal sealed class ItemPendingPickupArbiter(
 	WorldItemTable worldTable,
 	ItemArbitration arbitration,
 	ItemCarriedSyncService carriedSync,
+	ItemKernelShadow kernelShadow,
 	Action<ItemTrafficKind, string> recordTraffic,
 	Action<WorldItem> onItemSpawned,
 	Action<ulong> onItemPickedUp,
@@ -34,6 +35,7 @@ internal sealed class ItemPendingPickupArbiter(
 	private readonly WorldItemTable _worldTable = worldTable;
 	private readonly ItemArbitration _arbitration = arbitration;
 	private readonly ItemCarriedSyncService _carriedSync = carriedSync;
+	private readonly ItemKernelShadow _kernelShadow = kernelShadow;
 	private readonly PendingPickupQueue _pendingPickups = new(PendingPickupQueue.DefaultHoldMs);
 	private readonly Action<ItemTrafficKind, string> _recordTraffic = recordTraffic;
 	private readonly Action<WorldItem> _onItemSpawned = onItemSpawned;
@@ -102,6 +104,7 @@ internal sealed class ItemPendingPickupArbiter(
 			_recordTraffic(ItemTrafficKind.Spawn, item.ItemId);
 		}
 
+		_kernelShadow.ObserveSpawn(sender, itemId, item.ItemId, pos.X, pos.Y);
 		_onItemSpawned(worldItem);
 		ResolveContainedPendingPickups();
 		SettlePendingWinner(itemId, pendingWinner);
@@ -142,6 +145,7 @@ internal sealed class ItemPendingPickupArbiter(
 			_recordTraffic(ItemTrafficKind.Drop, item.ItemId);
 		}
 
+		_kernelShadow.ObserveDrop(sender, itemId, pos.X, pos.Y, parentItemId);
 		_onItemDropped(itemId, item, pos, vel, parentItemId, rotation, angularVelocity, parentPos);
 		ResolveContainedPendingPickups();
 		SettlePendingWinner(itemId, pendingWinner);
@@ -158,6 +162,7 @@ internal sealed class ItemPendingPickupArbiter(
 		_recordTraffic(ItemTrafficKind.Pickup, entry.Item.ItemId);
 		_log.LogInformation("Item {ItemId} picked up by {Sender} — transferred + relayed.", itemId, sender);
 
+		_kernelShadow.ObservePickup(sender, itemId);
 		_onItemPickedUp(itemId);
 	}
 

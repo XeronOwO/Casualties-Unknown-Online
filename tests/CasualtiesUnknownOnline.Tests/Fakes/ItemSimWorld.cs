@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CasualtiesUnknownOnline.GameState.Domains.Items;
+using CasualtiesUnknownOnline.GameState.Projections;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
@@ -159,6 +161,52 @@ internal sealed class ItemSimWorld : IDisposable
 	/// <summary>How many frames of ANY message type the node has received so far
 	/// (cumulative) — the SimTrace "Committed(n)" message-count surface.</summary>
 	internal int ReceivedTotal(TestNode node) => Received(node).Count;
+
+	/// <summary>
+	/// Semantic diff between the legacy host terminal facts (world table +
+	/// transfer table) and the production item kernel shadow. Revision is not
+	/// comparable yet because the legacy path has no aggregate revisions.
+	/// </summary>
+	internal ItemTerminalDiff CompareKernelShadow() =>
+		ItemDiagnosticsProjection.Compare(
+			BuildLegacyActiveFacts(),
+			ItemDiagnosticsProjection.BuildActiveFacts(Items.KernelShadow.KernelForDiagnostics.QueryItems().Values),
+			includeRevision: false);
+
+	private IReadOnlyDictionary<ulong, ItemTerminalFact> BuildLegacyActiveFacts()
+	{
+		var facts = new Dictionary<ulong, ItemTerminalFact>();
+		foreach (var worldItem in Items.GetWorldItemsForDiagnostics())
+		{
+			facts[worldItem.ItemId] = new ItemTerminalFact(
+				worldItem.ItemId,
+				worldItem.Item.ItemId,
+				ItemLocationKind.World,
+				0,
+				worldItem.ParentItemId,
+				worldItem.Pos.X,
+				worldItem.Pos.Y,
+				0);
+		}
+
+		foreach (var guest in new[] { G1, G2 })
+		{
+			foreach (var transferred in Items.GetTransferredItems(guest.SteamId))
+			{
+				facts[transferred.ItemId] = new ItemTerminalFact(
+					transferred.ItemId,
+					transferred.Item.ItemId,
+					ItemLocationKind.Carried,
+					guest.SteamId,
+					0,
+					0,
+					0,
+					0);
+			}
+		}
+
+		return facts;
+	}
 
 	private List<(NetMsg Msg, byte[] Frame)> Received(TestNode node)
 	{

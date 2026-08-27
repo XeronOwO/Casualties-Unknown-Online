@@ -154,6 +154,87 @@ public class PlayerInteractionServiceTests
 	}
 
 	[Fact]
+	public void Guest_TakesNestedItemFromUnconsciousHostContainer_MovesRecordAndSendsTransfer()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		var items = host.Services.GetRequiredService<IItemControl>();
+		var backpack = new CharacterItemMsg
+		{
+			InstanceId = 500,
+			ItemId = "backpack",
+			SlotIndex = 0,
+			Contents =
+			[
+				new CharacterItemMsg { InstanceId = 42, ItemId = "medkit", SlotIndex = 0 },
+			],
+		};
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: false, backpack));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true));
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendTakeRequest(HostId, 42);
+
+		var frame = received.Single(r => r.Msg == NetMsg.PlayerInventoryTransfer).Frame;
+		var transfer = NetPacket.DecodePayload<PlayerInventoryTransferMsg>(frame);
+		Assert.Equal(HostId, transfer.FromSteamId);
+		Assert.Equal(GuestId, transfer.ToSteamId);
+		Assert.Equal(42UL, transfer.Item!.InstanceId);
+		Assert.Equal("medkit", transfer.Item.ItemId);
+
+		var hostData = characters.GetHostCharacterData()!;
+		var remainingBackpack = Assert.Single(hostData.Items);
+		Assert.Equal(500UL, remainingBackpack.InstanceId);
+		Assert.Empty(remainingBackpack.Contents);
+
+		Assert.Contains(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);
+		Assert.Contains(items.GetTransferredItems(GuestId), w => w.Item.InstanceId == 42);
+	}
+
+	[Fact]
+	public void Guest_TakesItemFromNestedContainerInsideUnconsciousHost_RemovesOnlyFromDeepestParent()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		var outer = new CharacterItemMsg
+		{
+			InstanceId = 40,
+			ItemId = "outerbackpack",
+			SlotIndex = 0,
+			Contents =
+			[
+				new CharacterItemMsg
+				{
+					InstanceId = 41,
+					ItemId = "innerbox",
+					SlotIndex = 0,
+					Contents =
+					[
+						new CharacterItemMsg { InstanceId = 42, ItemId = "medkit", SlotIndex = 0 },
+					],
+				},
+			],
+		};
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: false, outer));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true));
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendTakeRequest(HostId, 42);
+
+		var frame = received.Single(r => r.Msg == NetMsg.PlayerInventoryTransfer).Frame;
+		var transfer = NetPacket.DecodePayload<PlayerInventoryTransferMsg>(frame);
+		Assert.Equal(42UL, transfer.Item!.InstanceId);
+
+		var hostData = characters.GetHostCharacterData()!;
+		var outerAfter = Assert.Single(hostData.Items);
+		var innerAfter = Assert.Single(outerAfter.Contents);
+		Assert.Equal(41UL, innerAfter.InstanceId);
+		Assert.Empty(innerAfter.Contents);
+
+		Assert.Contains(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);
+	}
+
+	[Fact]
 	public void Take_FromConsciousPlayer_IsRefused()
 	{
 		var (host, guest, received) = CreateSession();
@@ -165,6 +246,31 @@ public class PlayerInteractionServiceTests
 
 		Assert.DoesNotContain(received, r => r.Msg == NetMsg.PlayerInventoryTransfer);
 		Assert.Contains(characters.GetHostCharacterData()!.Items, i => i.InstanceId == 42);
+	}
+
+	[Fact]
+	public void Take_NestedItemFromConsciousPlayer_IsRefused()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true, new CharacterItemMsg
+		{
+			InstanceId = 500,
+			ItemId = "backpack",
+			SlotIndex = 0,
+			Contents =
+			[
+				new CharacterItemMsg { InstanceId = 42, ItemId = "medkit", SlotIndex = 0 },
+			],
+		}));
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendTakeRequest(HostId, 42);
+
+		Assert.DoesNotContain(received, r => r.Msg == NetMsg.PlayerInventoryTransfer);
+		var hostData = characters.GetHostCharacterData()!;
+		var backpack = Assert.Single(hostData.Items);
+		Assert.Contains(backpack.Contents, i => i.InstanceId == 42);
 	}
 
 	[Fact]

@@ -268,7 +268,7 @@ internal static class OnlineUiMemberListDrawer
 			{
 				foreach (var entry in inventory)
 				{
-					DrawInventoryEntry(ctx, row.SteamId, entry, 0);
+					DrawInventoryEntry(ctx, row.SteamId, entry, 0, row.CanTake);
 				}
 			}
 			else
@@ -278,7 +278,7 @@ internal static class OnlineUiMemberListDrawer
 		}
 	}
 
-	private static void DrawInventoryEntry(OnlineUiContext ctx, ulong ownerSteamId, RemoteInventoryEntry entry, int depth)
+	private static void DrawInventoryEntry(OnlineUiContext ctx, ulong ownerSteamId, RemoteInventoryEntry entry, int depth, bool canTake)
 	{
 		var slot = entry.SlotIndex >= 0 ? ctx.F("member.slot", entry.SlotIndex) : ctx.T("member.worn");
 		var suffix = entry.ContentsCount > 0 ? ctx.F("member.inside", entry.ContentsCount) : "";
@@ -288,7 +288,10 @@ internal static class OnlineUiMemberListDrawer
 
 		if (entry.ContentsCount == 0)
 		{
-			GUILayout.Label(label, OnlineUiTheme.MutedLabel());
+			GUILayout.BeginHorizontal();
+			GUILayout.Label(label, OnlineUiTheme.MutedLabel(), GUILayout.ExpandWidth(true));
+			DrawTakeButton(ctx, ownerSteamId, entry, depth, canTake);
+			GUILayout.EndHorizontal();
 			return;
 		}
 
@@ -296,6 +299,7 @@ internal static class OnlineUiMemberListDrawer
 		var expanded = ctx.State.ExpandedContainers.Contains(key);
 		GUILayout.BeginHorizontal();
 		GUILayout.Label(label, OnlineUiTheme.MutedLabel(), GUILayout.ExpandWidth(true));
+		DrawTakeButton(ctx, ownerSteamId, entry, depth, canTake);
 		if (GUILayout.Button(expanded ? ctx.T("member.close_container") : ctx.T("member.open_container"), OnlineUiTheme.Button(), GUILayout.Width(76f)))
 		{
 			if (expanded)
@@ -317,7 +321,24 @@ internal static class OnlineUiMemberListDrawer
 
 		foreach (var child in entry.Contents)
 		{
-			DrawInventoryEntry(ctx, ownerSteamId, child, depth + 1);
+			DrawInventoryEntry(ctx, ownerSteamId, child, depth + 1, canTake);
+		}
+	}
+
+	private static void DrawTakeButton(OnlineUiContext ctx, ulong ownerSteamId, RemoteInventoryEntry entry, int depth, bool canTake)
+	{
+		// Top-level slot items already have Take buttons in the member action
+		// row (TakeableItems). The recursive container view needs its own action
+		// for nested entries, so the cross-player take operation is available
+		// at every container depth — not only for the container itself.
+		if (!canTake || depth == 0 || entry.SlotIndex < 0 || entry.InstanceId == 0)
+		{
+			return;
+		}
+
+		if (GUILayout.Button(ctx.F("member.take", entry.ItemId, entry.SlotIndex), OnlineUiTheme.Button(), GUILayout.Width(150f)))
+		{
+			ctx.TakeItem?.Invoke(ownerSteamId, entry.InstanceId);
 		}
 	}
 

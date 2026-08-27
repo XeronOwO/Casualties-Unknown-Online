@@ -323,35 +323,15 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains)
 			return;
 		}
 
-		foreach (var slot in body.slots)
+		// A carried item may live at any depth: a top-level slot, a worn limb,
+		// or inside a carried container. The authoritative transfer can lift an
+		// item out of a nested container, so the local body removal must search
+		// the whole carried-item subtree, not just direct slot/limb children.
+		foreach (var item in body.GetComponentsInChildren<Item>(true))
 		{
-			if (slot == null) // Unity object — ==
+			if (TryDestroyById(item, instanceId))
 			{
-				continue;
-			}
-
-			for (var c = slot.transform.childCount - 1; c >= 0; c--)
-			{
-				if (TryDestroyById(slot.transform.GetChild(c).GetComponent<Item>(), instanceId))
-				{
-					return;
-				}
-			}
-		}
-
-		foreach (var limb in body.limbs)
-		{
-			if (limb == null) // Unity object — ==
-			{
-				continue;
-			}
-
-			for (var c = limb.transform.childCount - 1; c >= 0; c--)
-			{
-				if (TryDestroyById(limb.transform.GetChild(c).GetComponent<Item>(), instanceId))
-				{
-					return;
-				}
+				return;
 			}
 		}
 	}

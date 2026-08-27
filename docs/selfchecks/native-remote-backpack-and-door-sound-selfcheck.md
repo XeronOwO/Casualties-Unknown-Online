@@ -1,5 +1,11 @@
 # Native remote backpack view + shuttle-door trigger sound live replay — self-check (2026-08-26)
 
+> **Superseded note**: the read-only native backpack boundary described below
+> was later extended by `docs/selfchecks/remote-backpack-container-take-selfcheck.md`
+> (#122). The display proxies themselves are still never mutated; the drag
+> release in the remote view now routes to the existing host-authoritative take
+> request instead of being blocked.
+
 Follow-up to the previous remote-inventory cycle: the user correctly observed
 that (1) the shuttle-door trigger sound was still missing on guests, because
 the earlier fix only touched the host executor, and (2) the "open other

@@ -1,5 +1,6 @@
 using System.Linq;
 using CasualtiesUnknownOnline.GameAdapter.Character;
+using CasualtiesUnknownOnline.GameAdapter.Items;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
@@ -153,6 +154,38 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 
 	public bool TryHandleDraggedItemUseOnRemote(Item dragItem, Body localBody) =>
 		domains.DragUse.TryHandleRelease(dragItem, localBody);
+
+	public bool TryHandleRemoteBackpackTake(Item dragItem)
+	{
+		if (!RemoteBackpackView.IsOpen || dragItem == null) // Unity object — ==
+		{
+			return false;
+		}
+
+		if (dragItem.GetComponent<RemoteCloneRender>() == null) // Unity object — ==
+		{
+			return false;
+		}
+
+		var id = dragItem.GetComponent<ItemInstanceId>();
+		if (id == null || id.Id == 0) // Unity object — ==
+		{
+			domains.Log.LogWarning("[BackpackView] refused remote take: dragged display item {ItemId} has no bound instance id.", dragItem.id);
+			return false;
+		}
+
+		var owner = RemoteBackpackView.FocusedSteamId;
+		if (owner == 0)
+		{
+			domains.Log.LogWarning("[BackpackView] refused remote take: the native view has no focused owner.");
+			return false;
+		}
+
+		domains.PlayerInteraction.SendTakeRequest(owner, id.Id);
+		domains.Log.LogInformation("[BackpackView] requested take of {ItemId} (id {InstanceId}) from {Owner}.",
+			dragItem.id, id.Id, owner);
+		return true;
+	}
 
 	public void OnPickUpResult(string itemId, int slot, string home, Vector2 position) =>
 		domains.Log.LogInformation("[PickUpResult] {Item} → {Home} (slot {Slot}) at ({X:F1},{Y:F1}).", itemId, home, slot, position.x, position.y);

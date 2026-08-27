@@ -35,4 +35,17 @@ public class RemoteBackpackContractTests
 			throwOnError: true)!;
 		Assert.True(typeof(IGameAdapter).IsAssignableFrom(adapter));
 	}
+
+	[Fact]
+	public void PatchBridge_ExposesRemoteBackpackTakeSurface()
+	{
+		var bridge = GameAssemblyHost.Adapter.GetType(
+			"CasualtiesUnknownOnline.GameAdapter.IPatchBridge",
+			throwOnError: true)!;
+		var take = bridge.GetMethod("TryHandleRemoteBackpackTake");
+		Assert.NotNull(take);
+		Assert.Equal(typeof(bool), take!.ReturnType);
+		var parameter = Assert.Single(take.GetParameters());
+		Assert.Equal("Item", parameter.ParameterType.Name);
+	}
 }

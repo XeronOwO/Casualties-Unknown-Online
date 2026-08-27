@@ -20,6 +20,14 @@ Map of this repository's documentation. Start with [architecture.md](architectur
 - [mod-api.md](mod-api.md) — the Phase 4 Mod API contract (the binding reference for mod authors).
 - [selfchecks/](selfchecks/) — per-delivery fact sheets (mechanism × change × evidence + verification design). These are historical delivery records, not the current open-work view.
 
+## Architecture evolution
+
+- [architecture-evolution/README.md](architecture-evolution/README.md) — planning and tracking home for the typed deterministic game-state kernel iteration.
+- [architecture-evolution/status.md](architecture-evolution/status.md) — live phase tracker and handoff state.
+- [architecture-evolution/session-workflow.md](architecture-evolution/session-workflow.md) — continuity rules for independent phase sessions.
+- [architecture-evolution/target-architecture.md](architecture-evolution/target-architecture.md) — full target design for the kernel, protocol, save, projections, and tests.
+- [architecture-evolution/migration-roadmap.md](architecture-evolution/migration-roadmap.md) — phase-by-phase route and recommended domain order.
+
 ## Audits / plans
 
 - [lobby-refactor-plan.md](lobby-refactor-plan.md) — lobby-domain refactor plan and acceptance evidence.

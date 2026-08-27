@@ -32,6 +32,7 @@ All projects target `net48` (BepInEx 5 + the game's Mono runtime). Deployment in
 
 - [`AGENTS.md`](AGENTS.md) — project conventions and instructions for AI-assisted development
 - [`docs/architecture.md`](docs/architecture.md) — architecture blueprint, technical specs, pitfalls, and development phases
+- [`docs/architecture-evolution/README.md`](docs/architecture-evolution/README.md) — planned architecture iteration toward the typed deterministic game-state kernel (phase plans, status, session handoff)
 - [`docs/tech-decisions.md`](docs/tech-decisions.md) — landed binding decisions
 - [`docs/mod-api.md`](docs/mod-api.md) — Phase 4 Mod API contract
 

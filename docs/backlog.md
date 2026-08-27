@@ -77,6 +77,6 @@ Measurement-first items; do not optimize before data exists.
 
 Files at or near the 600-line gate should be split before the next feature lands in them:
 
-`SessionService.cs` (580), `ItemApplication.cs` (576), `CharacterDataSync.cs` (563), `EntitySyncService.cs` (548), `EnemyCombatDirector.cs` (547), `Plugin.cs` (522), `RunCoordinator.cs` (512).
+`SessionService.cs` (580), `ItemApplication.cs` (599), `CharacterDataSync.cs` (563), `EntitySyncService.cs` (548), `EnemyCombatDirector.cs` (547), `Plugin.cs` (522), `RunCoordinator.cs` (512).
 
 `docs/tech-decisions.md` is also large; future landing entries should consider a domain-split index if it keeps growing.

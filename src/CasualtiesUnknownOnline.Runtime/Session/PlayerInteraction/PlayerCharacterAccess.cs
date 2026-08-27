@@ -62,7 +62,7 @@ internal sealed class PlayerCharacterAccess(ISessionControl session, ICharacterD
 		Skills = source.Skills,
 		Health = source.Health,
 		Limbs = [.. source.Limbs.Select(CloneLimb)],
-		Items = [.. source.Items],
+		Items = [.. source.Items.Select(CloneItem)],
 		HandSlot = source.HandSlot,
 		OwnerSteamId = source.OwnerSteamId,
 		Position = source.Position,
@@ -77,7 +77,7 @@ internal sealed class PlayerCharacterAccess(ISessionControl session, ICharacterD
 		SlotIndex = item.SlotIndex,
 		Favourited = item.Favourited,
 		Components = item.Components,
-		Contents = item.Contents,
+		Contents = [.. item.Contents.Select(CloneItem)],
 		Liquids = [.. item.Liquids],
 	};
 

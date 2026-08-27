@@ -3388,8 +3388,9 @@ CUO custom UI instead of the game's native radial backpack.
   `InvButton.get_body` → remote clone while focused;
   `PlayerCamera.UpdateWearables` → temporary body swap for worn buttons;
   `PlayerCamera.HandleWhileDragging` → radial menu follows the remote clone.
-  `TryPerformRadialAction` and `TryPickupFromUI` are blocked while focused so
-  the display clone is never mutated.
+  `TryPerformRadialAction` is blocked while focused so the display clone is never
+  mutated; `TryPickupFromUI`/release were later extended by #122 to route a
+  remote take through the host rather than letting the native path mutate it.
 - **Clone container contents** — `CloneInventoryRenderer.RestoreRemoteContents`
   materialises recursive snapshot contents under remote clone containers with
   `RemoteCloneRender` markers and physics/colliders disabled, so the native
@@ -3492,3 +3493,40 @@ auto-flip could no longer turn the visual.
   Apply entry-point contract); before-red run failed with the missing shared
   type, after-fix full suite 1559 green; build/format/architecture/event gates
   pass. See `docs/selfchecks/piggyback-facing-restore-selfcheck.md`.
+
+## 122. Remote backpack container take — recursive cross-player take + native drag take
+
+Closed 2026-08-27 from the open bug "Remote backpack item operations
+unavailable inside open containers". The native remote-backpack view could show
+recursive container contents, but the existing cross-player take authority
+only searched top-level body slots and the native view was read-only, so items
+inside a container could not be taken.
+
+- **Host authority** — `PlayerInventoryTakeService` now removes the requested
+  item from any depth of the character snapshot tree (`TryFindAndRemove` walks
+  `Contents` recursively). The taken item is still delivered into the
+  recipient's first empty top-level slot through the existing
+  `PlayerInventoryTransferMsg`; the host still refuses conscious/alive and worn
+  targets.
+- **Deep copy** — `PlayerCharacterAccess.CloneCharacter` / `CloneItem` now
+  deep-clone recursive item contents, so nested removal never aliases the live
+  host snapshot's container list.
+- **Local source removal** — `PlayerInteractionApply.RemoveCarriedItemFromLocalBody`
+  searches the full carried-item subtree, so the source player's real body also
+  loses the nested item when the transfer arrives.
+- **Native remote-backpack take** — a display-proxy drag release in the remote
+  view now sends the existing host take request via
+  `IPatchBridge.TryHandleRemoteBackpackTake`; the native release path is
+  skipped. `HandleWhileDragging` is isolated so display proxies cannot receive
+  the native favourite toggle, and `HandleTradeMenu` is isolated so the radial
+  stays anchored to the focused remote clone.
+- **Custom UI nested take** — the recursive custom inventory tree now has Take
+  buttons at every container depth, reusing the same `TakeItem` action and host
+  decision surface.
+- **No wire change** — no new `NetMsg`, no `ProtocolVersion` bump, no
+  event/item/entity matrix row touched.
+- **Tests/gates** — nested-take before-red tests failed on the pre-fix host
+  (no transfer), then 3 new `PlayerInteractionServiceTests` + 1
+  `RemoteBackpackContractTests`; full suite 1563 green;
+  build/format/architecture/event gates pass. See
+  `docs/selfchecks/remote-backpack-container-take-selfcheck.md`.

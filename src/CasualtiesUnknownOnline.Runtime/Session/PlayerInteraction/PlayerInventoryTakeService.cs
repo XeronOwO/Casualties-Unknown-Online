@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.HostRules;
@@ -103,14 +104,13 @@ internal sealed class PlayerInventoryTakeService(
 			return;
 		}
 
-		var idx = source.Items.FindIndex(i => i.InstanceId == msg.ItemInstanceId);
-		if (idx < 0)
+		var newSource = PlayerCharacterAccess.CloneCharacter(source);
+		if (!TryFindAndRemove(newSource.Items, msg.ItemInstanceId, out var original))
 		{
 			_log.LogWarning("[Take] refused: {From} has no item instance {ItemId}.", from, msg.ItemInstanceId);
 			return;
 		}
 
-		var original = source.Items[idx];
 		if (original.SlotIndex < 0)
 		{
 			// Worn items are excluded in this slice — the character restore path
@@ -126,10 +126,7 @@ internal sealed class PlayerInventoryTakeService(
 			return;
 		}
 
-		var newSource = PlayerCharacterAccess.CloneCharacter(source);
 		var newTarget = PlayerCharacterAccess.CloneCharacter(target);
-		newSource.Items.RemoveAll(i => i.InstanceId == msg.ItemInstanceId);
-
 		var transferred = PlayerCharacterAccess.CloneItem(original);
 		transferred.SlotIndex = targetSlot; // the host picks a concrete empty slot; the recipient's immediate re-report confirms it
 		newTarget.Items.Add(transferred);
@@ -156,6 +153,34 @@ internal sealed class PlayerInventoryTakeService(
 			ToSteamId = to,
 			Item = transferred,
 		});
+	}
+
+	/// <summary>
+	/// Remove one carried item from a character snapshot's item tree. Container
+	/// contents are recursive, so the cross-player take operation must be able
+	/// to lift an item out of any depth — not just the top-level body slots.
+	/// Operates on the caller's already-cloned tree; never mutates the live
+	/// snapshot directly.
+	/// </summary>
+	private static bool TryFindAndRemove(List<CharacterItemMsg> items, ulong instanceId, out CharacterItemMsg removed)
+	{
+		for (var i = 0; i < items.Count; i++)
+		{
+			if (items[i].InstanceId == instanceId)
+			{
+				removed = items[i];
+				items.RemoveAt(i);
+				return true;
+			}
+
+			if (TryFindAndRemove(items[i].Contents, instanceId, out removed))
+			{
+				return true;
+			}
+		}
+
+		removed = null!;
+		return false;
 	}
 
 	/// <summary>Wire handler path: a transfer message arrived — surface it for the Game Adapter.</summary>

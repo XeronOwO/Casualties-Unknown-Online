@@ -181,9 +181,42 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 			return false;
 		}
 
+		var focused = RemoteBackpackView.FocusedBody;
+		if (focused == null || !dragItem.transform.IsChildOf(focused.transform)) // Unity objects — ==
+		{
+			domains.Log.LogWarning("[BackpackView] refused remote take: dragged display item {ItemId} is not under the focused remote clone ({Owner}).",
+				dragItem.id, owner);
+			return false;
+		}
+
 		domains.PlayerInteraction.SendTakeRequest(owner, id.Id);
 		domains.Log.LogInformation("[BackpackView] requested take of {ItemId} (id {InstanceId}) from {Owner}.",
 			dragItem.id, id.Id, owner);
+		return true;
+	}
+
+	public bool CancelRemoteProxyDrag(PlayerCamera camera, string reason)
+	{
+		if (camera == null || camera.dragItem == null) // Unity objects — ==
+		{
+			return false;
+		}
+
+		var item = camera.dragItem;
+		if (item.GetComponent<RemoteCloneRender>() == null) // Unity object — ==
+		{
+			return false;
+		}
+
+		var id = item.GetComponent<ItemInstanceId>();
+		if (camera.dragImage != null) // Unity object — ==
+		{
+			camera.dragImage.enabled = false;
+		}
+
+		camera.dragItem = null;
+		domains.Log.LogWarning("[BackpackView] cancelled remote display-proxy drag ({Reason}) for {ItemId} (id {InstanceId}).",
+			reason, item.id, id?.Id ?? 0);
 		return true;
 	}
 

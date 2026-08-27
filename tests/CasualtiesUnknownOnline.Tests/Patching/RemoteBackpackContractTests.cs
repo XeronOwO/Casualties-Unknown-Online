@@ -47,5 +47,13 @@ public class RemoteBackpackContractTests
 		Assert.Equal(typeof(bool), take!.ReturnType);
 		var parameter = Assert.Single(take.GetParameters());
 		Assert.Equal("Item", parameter.ParameterType.Name);
+
+		var cancel = bridge.GetMethod("CancelRemoteProxyDrag");
+		Assert.NotNull(cancel);
+		Assert.Equal(typeof(bool), cancel!.ReturnType);
+		var cancelParameters = cancel.GetParameters();
+		Assert.Equal(2, cancelParameters.Length);
+		Assert.Equal("PlayerCamera", cancelParameters[0].ParameterType.Name);
+		Assert.Equal(typeof(string), cancelParameters[1].ParameterType);
 	}
 }

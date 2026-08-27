@@ -3530,3 +3530,35 @@ inside a container could not be taken.
   `RemoteBackpackContractTests`; full suite 1563 green;
   build/format/architecture/event gates pass. See
   `docs/selfchecks/remote-backpack-container-take-selfcheck.md`.
+
+## 123. Remote-backpack drag escape — display-proxy release containment
+
+Closed 2026-08-27 from the open bug "Remote-backpack drag can duplicate a
+water bottle into both inventories". #122 enabled drag-based remote take by
+allowing a display proxy to become the native drag item, but the drag was not
+tied to the remote view lifetime: closing the backpack while still dragging
+left a `RemoteCloneRender` proxy in `PlayerCamera.dragItem`, and releasing it
+into the local backpack ran the native body-mutation path.
+
+- **Drag lifetime tied to the view** — `RemoteBackpackView.Close` now calls
+  `IPatchBridge.CancelRemoteProxyDrag`, cancelling a held remote proxy when the
+  focused view closes (including when a later `InvButton.get_body` call detects
+  the view is no longer open).
+- **Release-time invariant** — `PlayerCameraDragUsePatch` consults the new pure
+  `RemoteProxyDragPolicy`; any display proxy not consumed by the remote-take
+  path is cancelled before the native release or cross-player drag-use path can
+  handle it.
+- **Focused-owner check** — `TryHandleRemoteBackpackTake` requires the proxy
+  to be a descendant of the currently focused clone, so a stale proxy cannot be
+  sent as a take request against a different remote owner.
+- **Authority-capture guard** — `CharacterDataSync` and
+  `CarriedInventoryReporter` skip `RemoteCloneRender` items when capturing the
+  local body's inventory, preventing a stray proxy from ever being reported as
+  an authoritative local item.
+- **No wire change** — no new `NetMsg`, no `ProtocolVersion` bump, no
+  event/item/entity matrix row touched.
+- **Tests/gates** — `RemoteProxyDragPolicyTests` +4 (proxy-not-consumed
+  cancels, take-consumed does not, local items unaffected),
+  `RemoteBackpackContractTests` +1 (bridge cancellation surface); full suite
+  1567 green; build/format/architecture/event gates pass. See
+  `docs/selfchecks/remote-backpack-drag-escape-selfcheck.md`.

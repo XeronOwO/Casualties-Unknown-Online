@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using CasualtiesUnknownOnline.GameAdapter.Character;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
@@ -80,7 +81,7 @@ internal sealed class CarriedInventoryReporter(
 		for (var slot = 0; slot < body.slots.Length; slot++)
 		{
 			var item = body.GetItem(slot);
-			if (item == null) // Unity object — ==
+			if (item == null || item.GetComponent<RemoteCloneRender>() != null) // Unity objects — ==; display proxies are never authoritative guest items
 			{
 				continue;
 			}
@@ -105,7 +106,7 @@ internal sealed class CarriedInventoryReporter(
 			for (var c = 0; c < limb.childCount; c++)
 			{
 				var worn = limb.GetChild(c).GetComponent<Item>();
-				if (worn == null) // Unity object — ==
+				if (worn == null || worn.GetComponent<RemoteCloneRender>() != null) // Unity objects — ==; display proxies are never authoritative guest items
 				{
 					continue;
 				}

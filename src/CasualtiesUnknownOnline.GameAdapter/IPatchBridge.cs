@@ -219,6 +219,14 @@ internal interface IPatchBridge
 	/// </summary>
 	bool TryHandleRemoteBackpackTake(Item dragItem);
 
+	/// <summary>
+	/// Cancels an active drag whose item is a remote-clone display proxy. The
+	/// proxy must never escape into the native local-body/cross-player release
+	/// flows; the bridge logs the cancellation so the rare UI path is
+	/// observable. Returns true when it cancelled a proxy drag.
+	/// </summary>
+	bool CancelRemoteProxyDrag(PlayerCamera camera, string reason);
+
 	/// <summary>PickUpItem ran — where the item ended up (slot / container / world): the takeout-flow outcome diagnostic.</summary>
 	void OnPickUpResult(string itemId, int slot, string home, Vector2 position);
 

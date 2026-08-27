@@ -1,3 +1,4 @@
+using CasualtiesUnknownOnline.GameAdapter.Character;
 using HarmonyLib;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Patches;
@@ -21,8 +22,7 @@ internal static class PlayerCameraDragUsePatch
 		{
 			if (PatchBridge.Impl?.TryHandleRemoteBackpackTake(__instance.dragItem) == true)
 			{
-				__instance.dragImage.enabled = false;
-				__instance.dragItem = null;
+				ClearDrag(__instance);
 				return false;
 			}
 
@@ -32,21 +32,54 @@ internal static class PlayerCameraDragUsePatch
 			// mutate the display clone through the original release path.
 			if (__instance.dragItem != null) // Unity object — ==
 			{
-				__instance.dragImage.enabled = false;
-				__instance.dragItem = null;
+				CancelDrag(__instance, "remote backpack view did not consume the drag");
 				return false;
 			}
 
 			return true;
 		}
 
+		// A display proxy picked up from the remote view is the only drag that
+		// can legally outlive that view. It may ONLY be consumed by the
+		// remote-take path; if the view is closed (or the take did not happen)
+		// the proxy must be cancelled before the original native release or the
+		// cross-player use path can move it into an authoritative inventory.
+		if (RemoteProxyDragPolicy.ShouldCancelProxyRelease(IsRemoteProxy(__instance.dragItem), remoteTakeHandled: false))
+		{
+			CancelDrag(__instance, "remote display proxy released outside the remote backpack view");
+			return false;
+		}
+
 		if (PatchBridge.Impl?.TryHandleDraggedItemUseOnRemote(__instance.dragItem, __instance.body) == true)
 		{
-			__instance.dragImage.enabled = false;
-			__instance.dragItem = null;
+			ClearDrag(__instance);
 			return false;
 		}
 
 		return true;
+	}
+
+	private static bool IsRemoteProxy(Item? dragItem) =>
+		dragItem != null && dragItem.GetComponent<RemoteCloneRender>() != null; // Unity objects — ==
+
+	private static void CancelDrag(PlayerCamera camera, string reason)
+	{
+		if (IsRemoteProxy(camera.dragItem))
+		{
+			if (PatchBridge.Impl?.CancelRemoteProxyDrag(camera, reason) != true)
+			{
+				ClearDrag(camera);
+			}
+
+			return;
+		}
+
+		ClearDrag(camera);
+	}
+
+	private static void ClearDrag(PlayerCamera camera)
+	{
+		camera.dragImage.enabled = false;
+		camera.dragItem = null;
 	}
 }

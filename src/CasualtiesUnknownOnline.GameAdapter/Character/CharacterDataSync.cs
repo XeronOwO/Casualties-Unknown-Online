@@ -386,7 +386,7 @@ internal sealed class CharacterDataSync(
 		for (var slot = 0; slot < body.slots.Length; slot++)
 		{
 			var item = body.GetItem(slot);
-			if (item == null) // Unity object — ==
+			if (item == null || item.GetComponent<RemoteCloneRender>() != null) // Unity objects — ==; display proxies are never authoritative local inventory
 			{
 				continue;
 			}
@@ -406,7 +406,7 @@ internal sealed class CharacterDataSync(
 			for (var c = 0; c < limb.childCount; c++)
 			{
 				var worn = limb.GetChild(c).GetComponent<Item>();
-				if (worn != null) // Unity object — ==
+				if (worn != null && worn.GetComponent<RemoteCloneRender>() == null) // Unity objects — ==
 				{
 					msg.Items.Add(ItemStateCodec.CaptureItem(worn, -(i + 2)));
 				}

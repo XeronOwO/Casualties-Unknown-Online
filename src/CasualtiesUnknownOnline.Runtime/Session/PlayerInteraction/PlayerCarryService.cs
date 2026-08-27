@@ -23,6 +23,7 @@ internal sealed class PlayerCarryService : IDisposable
 	private readonly ISessionControl _session;
 	private readonly PacketSender _sender;
 	private readonly PlayerCharacterAccess _characters;
+	private readonly IPlayerInteractionVisibility _visibility;
 	private readonly ILogger _log;
 
 	/// <summary>Host-owned carry table: carried SteamId → carrier SteamId.</summary>
@@ -38,11 +39,13 @@ internal sealed class PlayerCarryService : IDisposable
 		ISessionControl session,
 		PacketSender sender,
 		PlayerCharacterAccess characters,
+		IPlayerInteractionVisibility visibility,
 		ILogger log)
 	{
 		_session = session;
 		_sender = sender;
 		_characters = characters;
+		_visibility = visibility;
 		_log = log;
 
 		_session.SessionEnded += OnSessionEnded;
@@ -134,6 +137,13 @@ internal sealed class PlayerCarryService : IDisposable
 		if (!_characters.IsInWorld(carrier) || !_characters.IsInWorld(carried))
 		{
 			_log.LogWarning("[Carry] refused: {Carrier} or {Carried} is not in-world.", carrier, carried);
+			return;
+		}
+
+		if (!_visibility.HasLineOfSight(requester, requested))
+		{
+			_log.LogInformation("[Carry] refused: {Requester} cannot see {Requested}.",
+				requester, requested);
 			return;
 		}
 

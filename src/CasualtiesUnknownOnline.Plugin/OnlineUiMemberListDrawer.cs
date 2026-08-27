@@ -36,7 +36,10 @@ internal static class OnlineUiMemberListDrawer
 			localInWorld: ctx.Session.LocalInWorld,
 			hasHealItem: ctx.HasHealItem?.Invoke() ?? false,
 			healItems: ctx.GetLocalHealItems?.Invoke() ?? [],
-			allowRemoteInventoryTake: ctx.HostRules.AllowRemoteInventoryTake);
+			allowRemoteInventoryTake: ctx.HostRules.AllowRemoteInventoryTake,
+			hasLineOfSight: ctx.Visibility is null
+				? null
+				: id => ctx.Visibility!.HasLineOfSight(ctx.Session.LocalSteamId, id));
 	}
 
 	internal static void Draw(OnlineUiContext ctx, IReadOnlyList<OnlineUiMemberRow> rows)
@@ -100,7 +103,7 @@ internal static class OnlineUiMemberListDrawer
 			state += $" — {row.VitalsText}";
 		}
 
-		if (!string.IsNullOrEmpty(row.InventoryText))
+		if (row.CanSee && !string.IsNullOrEmpty(row.InventoryText))
 		{
 			state += $" — {row.InventoryText}";
 		}
@@ -246,6 +249,11 @@ internal static class OnlineUiMemberListDrawer
 
 	private static void DrawInventoryToggle(OnlineUiContext ctx, OnlineUiMemberRow row)
 	{
+		if (!row.CanSee)
+		{
+			return;
+		}
+
 		GUILayout.BeginHorizontal();
 		if (!row.IsLocal && row.InWorld && ctx.OpenRemoteBackpack is { } open)
 		{

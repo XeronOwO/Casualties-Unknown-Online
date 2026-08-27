@@ -20,6 +20,8 @@ Open work only. Landed delivery details are not duplicated here; they live in:
 - **Remote-player inventory UI follow-up — CLOSED (2026-08-26).** Remote inventory has an "Open backpack" path that reuses the game's native radial backpack UI focused on the remote player's render clone (display-only proxies are never mutated; cross-player operations go through the host). The Custom UI remains as a text detail fallback and the recursive container collapsibles, and `[HostRules] AllowRemoteInventoryTake` controls the cross-player take operation. See `docs/selfchecks/remote-inventory-ui-followup-selfcheck.md` and `docs/tech-decisions.md` #117.
 - **LifePod shuttle-door trigger sound — CLOSED (2026-08-26).** The earlier fix only added `shuttleNotice` to the host executor; the guest live-replay path still skipped the collision-only trigger sound. `TrapVisualReplay.ReplayShuttleDoor` now replays it for live relays (elapsed == 0), while late-joiner snapshots still jump to the current state without replaying old sounds. See `docs/selfchecks/native-remote-backpack-and-door-sound-selfcheck.md` and `docs/tech-decisions.md` #118.
 - **Remote-backpack drag escape / duplicate bottle — CLOSED (2026-08-27).** Closing the remote backpack while a display-proxy drag was held no longer leaves the proxy to be released into the local backpack. The proxy drag is cancelled when the remote view closes and again at release time if it was not consumed by the remote-take path; local character capture also skips `RemoteCloneRender` items as a last-line authority guard. See `docs/selfchecks/remote-backpack-drag-escape-selfcheck.md` and `docs/tech-decisions.md` #123.
+- **Player-interaction line-of-sight / direct-visibility validation — CLOSED (2026-08-27).** Direct interactions now share a world-backed LOS gate; no wire change. See `docs/selfchecks/player-interaction-visibility-selfcheck.md` and `docs/tech-decisions.md` #124.
+- **Legacy F7/F8/F9 session hotkeys — CLOSED (2026-08-27).** The visual Online UI now owns create/join; the Network page gained a manual Ping button, and the `[Session] CreateLobbyKey / JoinLobbyKey / PingPeerKey / TargetLobbyId` surface was retired. The F6 quick-panel hotkey remains configurable. See `docs/tech-decisions.md` #125.
 
 ## Open bug (2026-08-27)
 
@@ -34,10 +36,8 @@ Open work only. Landed delivery details are not duplicated here; they live in:
 
 ### Player interaction / UI
 
-- **Player-interaction line-of-sight / direct-visibility validation** — after the direct player-interaction set is complete, add a shared direct-visibility gate so remote-player actions (take/carry/piggyback/heal/use/push/recruit, and the backpack view) cannot be performed through walls or other blockers. Deferred by design until the interaction features are stable; it belongs with the later strict-validation/anti-cheat hardening, not as a per-feature patch.
 - **PVP** — LOW (reprioritized). No player-to-player damage domain today; defer until PvE, rules, and accept-first arbitration are stable.
 - **Other lower-priority KrokMP candidates** — voice, vote-kick, and remaining player-list polish.
-- **Retire legacy F7/F8/F9 session hotkeys** — the visual Online UI now covers create/join lobby and peer ping, so the leftover direct `[Session] CreateLobbyKey / JoinLobbyKey / PingPeerKey` hotkeys are redundant. Decide whether to remove the hotkey path entirely or disable/hide it by default; confirm no workflow still depends on them before deleting the config surface.
 
 ### Configuration
 

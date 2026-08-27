@@ -31,7 +31,7 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// top-level collaborators, and the deep domain logic lives in the modules
 /// composed by <see cref="GameAdapterDomains"/>.
 /// </summary>
-public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, IModNativeApiProvider
+public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, IModNativeApiProvider, IPlayerInteractionVisibility
 {
 	/// <summary>
 	/// Set when the game was launched via a Steam friends "Join Game"
@@ -264,6 +264,9 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 	void IGameAdapter.ApplyWorldParams(WorldStartParams parameters) => _domains.WorldParams.Apply(parameters);
 
 	void IGameAdapter.OnApplicationQuit() => _domains.ItemWorldSync.SuppressDestroys();
+
+	bool IPlayerInteractionVisibility.HasLineOfSight(ulong observerSteamId, ulong targetSteamId) =>
+		_domains.InteractionVisibility.HasLineOfSight(observerSteamId, targetSteamId);
 
 	bool IGameAdapter.HasLocalHealItem() => _playerInteraction.HasLocalHealItem();
 

@@ -1598,4 +1598,91 @@ public class PlayerInteractionServiceTests
 		Assert.DoesNotContain(received, r => r.Msg == NetMsg.PlayerItemUseResult);
 		Assert.Contains(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);
 	}
+
+	// ---- Direct line-of-sight gate ----
+
+	[Fact]
+	public void Take_BlockedByLineOfSight_IsRefused()
+	{
+		var (host, guest, received) = CreateBlockedSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: false, Item(42)));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true));
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendTakeRequest(HostId, 42);
+
+		Assert.DoesNotContain(received, r => r.Msg == NetMsg.PlayerInventoryTransfer);
+		Assert.Contains(characters.GetHostCharacterData()!.Items, i => i.InstanceId == 42);
+	}
+
+	[Fact]
+	public void Carry_BlockedByLineOfSight_IsRefused()
+	{
+		var (host, guest, received) = CreateBlockedSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: false));
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendCarryStartRequest(HostId);
+
+		Assert.DoesNotContain(received, r => r.Msg == NetMsg.PlayerCarryState);
+		Assert.False(host.Services.GetRequiredService<IPlayerInteractionControl>().TryGetCarried(GuestId, out _));
+	}
+
+	[Fact]
+	public void Heal_BlockedByLineOfSight_IsRefused()
+	{
+		var (host, guest, received) = CreateBlockedSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, conscious: false));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, Item(42, "bandage", slot: 0)));
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendHealRequest(HostId);
+
+		Assert.DoesNotContain(received, r => r.Msg == NetMsg.PlayerHealResult);
+		Assert.Contains(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);
+	}
+
+	[Fact]
+	public void Use_BlockedByLineOfSight_IsRefused()
+	{
+		var (host, guest, received) = CreateBlockedSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, conscious: true));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, WaterBottle(42)));
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendUseRequest(HostId, 42);
+
+		Assert.DoesNotContain(received, r => r.Msg == NetMsg.PlayerItemUseResult);
+		Assert.Contains(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);
+	}
+
+	[Fact]
+	public void Push_BlockedByLineOfSight_IsRefused()
+	{
+		var (host, guest, received) = CreateBlockedSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true));
+		SeedHostEntities(host, GuestId, guestX: 10f);
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendPushRequest(HostId);
+
+		Assert.DoesNotContain(received, r => r.Msg == NetMsg.PlayerPushResult);
+	}
+
+	private static (TestNode Host, TestNode Guest, List<(NetMsg Msg, byte[] Frame)> Received) CreateBlockedSession() =>
+		CreateSession(s => s.Replace(
+			ServiceDescriptor.Singleton<IPlayerInteractionVisibility>(
+				new BlockingPlayerInteractionVisibility())));
+
+	private sealed class BlockingPlayerInteractionVisibility : IPlayerInteractionVisibility
+	{
+		public bool HasLineOfSight(ulong observerSteamId, ulong targetSteamId) => false;
+	}
 }

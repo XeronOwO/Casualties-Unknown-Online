@@ -7,6 +7,7 @@ using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
+using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -32,6 +33,7 @@ internal sealed class TraderRecruitCoordinator(
 	IOptionsMonitor<RespawnOptions> respawnOptions,
 	IItemControl items,
 	ItemIdAllocator itemIds,
+	IPlayerInteractionVisibility interactionVisibility,
 	ILogger<TraderRecruitCoordinator> log)
 {
 	private const float PositionTolerance = 2f;
@@ -43,6 +45,7 @@ internal sealed class TraderRecruitCoordinator(
 	private readonly IOptionsMonitor<RespawnOptions> _respawnOptions = respawnOptions;
 	private readonly IItemControl _items = items;
 	private readonly ItemIdAllocator _itemIds = itemIds;
+	private readonly IPlayerInteractionVisibility _interactionVisibility = interactionVisibility;
 	private readonly ILogger<TraderRecruitCoordinator> _log = log;
 
 	/// <summary>Host-side used-trader registry (one recruit per trader instance
@@ -173,6 +176,12 @@ internal sealed class TraderRecruitCoordinator(
 		if (!IsInWorld(requester) || !IsInWorld(target))
 		{
 			_log.LogWarning("[TradeRecruit] refused: {Requester} or {Target} is not in-world.", requester, target);
+			return;
+		}
+
+		if (!_interactionVisibility.HasLineOfSight(requester, target))
+		{
+			_log.LogInformation("[TradeRecruit] refused: {Requester} cannot see {Target}.", requester, target);
 			return;
 		}
 

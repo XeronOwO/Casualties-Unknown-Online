@@ -238,6 +238,10 @@ public static class CuoBootstrap
 		services.AddSingleton<ItemArbitration>();
 		services.AddSingleton<ItemService>();
 		services.AddSingleton<IItemControl>(p => p.GetRequiredService<ItemService>());
+		// Direct player-interaction visibility oracle. The base composition root
+		// permits every pair; the plugin replaces it with the Game Adapter's
+		// world-backed line-of-sight implementation in extraRegistrations.
+		services.AddSingleton<IPlayerInteractionVisibility>(new AllowAllPlayerInteractionVisibility());
 		// Direct player interaction (cross-player inventory take) — depends on the
 		// session, character-data and item control surfaces; no pump.
 		services.AddSingleton<PlayerInteractionService>();

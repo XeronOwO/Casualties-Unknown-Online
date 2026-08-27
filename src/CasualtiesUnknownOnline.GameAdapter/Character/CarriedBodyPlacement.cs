@@ -58,5 +58,11 @@ internal static class CarriedBodyPlacement
 				limb.rb.simulated = true;
 			}
 		}
+
+		// The carried follow wrote Body.isRight while the body's native flip
+		// path was skipped. Restore the visual scale to match the logical
+		// facing so the released body's HandleVisuals can flip normally again
+		// (a stale scale sign makes the auto-flip condition fight the render).
+		BodyFacing.Apply(body);
 	}
 }

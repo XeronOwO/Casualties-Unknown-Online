@@ -164,6 +164,7 @@ internal sealed class RemotePlayerRenderer(
 		clone.transform.position = position;
 		clone.rb.velocity = localBody.rb.velocity;
 		clone.isRight = localBody.isRight;
+		BodyFacing.Apply(clone);
 		clone.standing = false;
 		clone.moveDir = Vector2.zero;
 		clone.targetLookPos = localBody.targetLookPos;

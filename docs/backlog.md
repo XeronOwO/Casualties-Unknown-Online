@@ -8,8 +8,9 @@ Open work only. Landed delivery details are not duplicated here; they live in:
 
 ## Status
 
-- **Two open bug reports (2026-08-27)** — see "Open bugs" below. None are to be closed by a paper-only claim.
+- **One open bug report (2026-08-27)** — see "Open bugs" below. It is not to be closed by a paper-only claim.
 - Native game-content sync coverage is complete: item and entity feature matrices currently have no `missing` rows.
+- **Host body orientation after piggyback Drop — CLOSED (2026-08-27).** CUO now keeps `Body.isRight` and `transform.localScale.x` in lockstep through a shared `BodyFacing` rule on every CUO-facing write (carried local body, render proxy, carrier-side clone override), and the release restore re-applies it before native simulation resumes. See `docs/selfchecks/piggyback-facing-restore-selfcheck.md` and `docs/tech-decisions.md` #121.
 - **Remote container destroy authority — CLOSED (2026-08-27).** The remote-backpack display-proxy destroys no longer reach the host as real item destroys, and a received destroy can no longer kill a carried (non-world) item. The host also validates destroy ownership before relaying. See `docs/selfchecks/remote-container-destroy-authority-selfcheck.md` and `docs/tech-decisions.md` #120.
 - **Ragdoll stale-state / clone-creation race — CLOSED (2026-08-27).** The reliable `CharacterRagdoll` one-shot is now guarded against a lagging `Standing=true` 20 Hz snapshot and is queued until the owner's render clone exists. See `docs/selfchecks/ragdoll-stale-state-fix-selfcheck.md` and `docs/tech-decisions.md` #119.
 - **World bleeding effects sync — CLOSED (2026-08-26).** The visible blood decals a player leaves in the world now travel as a dedicated `WorldBloodSpawn` event (NetMsg 121, ProtocolVersion 51); every peer replays the same transient ground/wall decal. Remote render clones no longer create their own duplicate decals. See `docs/selfchecks/world-blood-spawn-sync-selfcheck.md` and `docs/tech-decisions.md` #115.
@@ -25,13 +26,6 @@ Open work only. Landed delivery details are not duplicated here; they live in:
 - **Observed**: with `[HostRules] AllowRemoteInventoryTake` enabled, opening another player's backpack shows the container contents, but items inside cannot be operated (drag/take) from the remote view.
 - **Investigation scope**: determine whether this is a UI-only limitation of the native read-only radial backpack view or a missing cross-player container-action path (remote take / move into / out of nested containers). Do not add a separate copy/move UI before the existing remote-take operation matrix is clear; the take/transfer path must remain consistent with the host decision surface.
 - **Related surfaces**: remote backpack view, native radial backpack focus path, `OnlineUi` remote inventory panels, `AllowRemoteInventoryTake`, container/nested container rows.
-
-### Host body orientation stuck after piggyback Drop (cannot flip)
-
-- **Reported**: 2026-08-27.
-- **Observed**: host rides piggyback on the guest; the guest presses Drop to release the host; on the host's side the body's displayed orientation is fixed to one direction (currently left) and cannot flip to the other, while from the guest's perspective the host's actions/animations look normal.
-- **Investigation scope**: check the carry-release restore path (`PlayerInteractionApply.ApplyCarryStateToBody`, `CarriedBodyPlacement.RestoreLocalBody`), whether `Body.isRight` / `transform.localScale` / `targetLookPos` / `moveDir` are re-seeded after release, the carried-follow override (`UpdateCarriedBody`, `RemotePlayerRenderer.ApplyLocalCarrierFollow`), and the local state publication / render-clone facing path (`RunCoordinator.PublishBodyState`, `SessionStatePump`).
-- **Acceptance**: a before-red reproduction for the released rider's facing; the fix must restore normal flipping on the released body while preserving the carrier-facing behavior during the ride.
 
 ## Open work
 

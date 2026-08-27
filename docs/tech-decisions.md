@@ -3462,3 +3462,33 @@ remote destroy apply did not require a world item.
   owner removes transfer + broadcasts); full suite 1554 green;
   build/format/architecture/event gates pass. See
   `docs/selfchecks/remote-container-destroy-authority-selfcheck.md`.
+
+## 121. Piggyback release facing — shared BodyFacing rule
+
+Closed 2026-08-27 from the open bug "Host body orientation stuck after
+piggyback Drop (cannot flip)". The carried local body path wrote
+`Body.isRight` to the carrier's facing while the body's native flip path was
+skipped, but did not write the matching `transform.localScale.x`; release
+restored physics/standing without repairing the mismatch, so the native
+auto-flip could no longer turn the visual.
+
+- **Root cause** — `Body.SwitchDir` keeps `isRight` and `transform.localScale.x`
+  as one coupled facing pair (`Body.cs:1187-1209`), and `HandleVisuals` relies
+  on that pair to decide when to flip (`Body.cs:3131-3134`). CUO had three
+  direct `isRight` writes on game Bodies but only one (the 20 Hz
+  `SessionStatePump`) also mirrored the scale.
+- **Fix** — new `BodyFacing` shared rule in `GameAdapter/Character`:
+  `FacingScale(bool isRight, float currentScaleX)` preserves the horizontal
+  magnitude and applies the correct sign; `Apply(Body)` writes it onto a live
+  Body. All CUO-facing `isRight` writes now reconcile through it:
+  - `SessionStatePump.Apply` (render clones)
+  - `PlayerInteractionApply.UpdateCarriedBody` (carried local body)
+  - `RemotePlayerRenderer.ApplyLocalCarrierFollow` (carrier-side clone override)
+  - `CarriedBodyPlacement.RestoreLocalBody` (release restore, before native
+    simulation resumes)
+- **No wire change** — no new `NetMsg`, no `ProtocolVersion` bump, no
+  event/item/entity matrix row touched.
+- **Tests/gates** — `BodyFacingTests` +5 (4 facing-scale sign/magnitude cases +
+  Apply entry-point contract); before-red run failed with the missing shared
+  type, after-fix full suite 1559 green; build/format/architecture/event gates
+  pass. See `docs/selfchecks/piggyback-facing-restore-selfcheck.md`.

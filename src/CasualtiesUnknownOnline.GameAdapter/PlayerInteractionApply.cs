@@ -95,6 +95,7 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains)
 		localBody.transform.position = CarriedBodyPlacement.BackOffset(carrierPosition, carrier.IsRight, carrier.Crouching);
 		localBody.rb.velocity = new Vector2(carrier.Velocity.X, carrier.Velocity.Y);
 		localBody.isRight = carrier.IsRight;
+		BodyFacing.Apply(localBody);
 		localBody.standing = false;
 		localBody.moveDir = Vector2.zero;
 	}

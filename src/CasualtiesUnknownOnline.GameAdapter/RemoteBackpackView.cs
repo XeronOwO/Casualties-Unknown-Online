@@ -56,6 +56,13 @@ internal static class RemoteBackpackView
 
 	internal static void Close()
 	{
+		// A display-proxy drag may outlive the focused view (the user closed the
+		// backpack while holding an item). It must be cancelled here rather than
+		// left to a later native release: once the view is gone the proxy is no
+		// longer associated with a remote-take target, and any other release
+		// path would move it into an authoritative body/local inventory.
+		PatchBridge.Impl?.CancelRemoteProxyDrag(PlayerCamera.main!, "remote backpack view closed");
+
 		_focusedBody = null;
 		_focusedSteamId = 0;
 		_focusedName = "";

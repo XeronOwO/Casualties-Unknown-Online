@@ -1,6 +1,8 @@
 # CUO Architecture Blueprint
 
 > Companion document to `AGENTS.md`. This is the design reference: architecture, technical stack, sync model, specs, and pitfalls. It is a blueprint, not a code map — implement incrementally per the development phases.
+>
+> The planned typed deterministic game-state kernel iteration is documented separately in [`architecture-evolution/README.md`](architecture-evolution/README.md). This file remains the current landed architecture reference until that iteration replaces it in Phase E.
 
 ## 1. Overall Architecture
 
@@ -300,7 +302,7 @@ scan on the first update frame — BepInEx 5 loads plugins one by one,
 load-then-Awake, verified by IL and the game log), the `ICuoMod` lifecycle
 with per-mod exception isolation, the manifest (`[CuoMod]` is the single
 source; `NetworkMode` Unspecified is rejected — fail-closed), mod network
-messages (NetMsg 75, opaque payload, report/定向 star semantics, 64 KiB
+messages (NetMsg 75, opaque payload, report/directed star semantics, 64 KiB
 policy cap), session events (bind-time snapshot semantics), and the handshake
 consistency check. The second round landed the full permission model
 (`ModPermission` declaration + live enforcement + handshake equality), host

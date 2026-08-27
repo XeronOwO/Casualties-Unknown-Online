@@ -23,6 +23,7 @@ internal sealed class ItemMessageFlowService(
 	ItemSnapshotService snapshots,
 	BlockDropSync blockDrops,
 	ItemPendingPickupArbiter pendingPickups,
+	ItemKernelShadow kernelShadow,
 	Action<ItemTrafficKind, string> recordTraffic,
 	Func<ulong, string> itemTrafficLabel,
 	Action<WorldItem> onItemSpawned,
@@ -41,6 +42,7 @@ internal sealed class ItemMessageFlowService(
 	private readonly ItemSnapshotService _snapshots = snapshots;
 	private readonly BlockDropSync _blockDrops = blockDrops;
 	private readonly ItemPendingPickupArbiter _pendingPickups = pendingPickups;
+	private readonly ItemKernelShadow _kernelShadow = kernelShadow;
 	private readonly Action<ItemTrafficKind, string> _recordTraffic = recordTraffic;
 	private readonly Func<ulong, string> _itemTrafficLabel = itemTrafficLabel;
 	private readonly Action<WorldItem> _onItemSpawned = onItemSpawned;
@@ -57,6 +59,7 @@ internal sealed class ItemMessageFlowService(
 		if (_session.Role != SessionRole.Guest)
 		{
 			_worldTable.Set(itemId, new WorldItem(itemId, item, pos, vel, 0, rotation, freshItemDrop, AngularVelocity: angularVelocity));
+			_kernelShadow.ObserveSpawn(_session.LocalSteamId, itemId, item.ItemId, pos.X, pos.Y);
 		}
 
 		if (!_session.SessionActive)
@@ -95,6 +98,8 @@ internal sealed class ItemMessageFlowService(
 
 		_worldTable.Remove(sourceItemId);
 		_worldTable.Set(cookedItemId, new WorldItem(cookedItemId, item, pos, vel, 0, rotation, false, AngularVelocity: angularVelocity));
+		_kernelShadow.ObserveDestroy(_session.LocalSteamId, sourceItemId);
+		_kernelShadow.ObserveSpawn(_session.LocalSteamId, cookedItemId, item.ItemId, pos.X, pos.Y);
 
 		if (!_session.SessionActive)
 		{
@@ -118,6 +123,7 @@ internal sealed class ItemMessageFlowService(
 		if (_session.Role != SessionRole.Guest)
 		{
 			_worldTable.Remove(itemId);
+			_kernelShadow.ObservePickup(_session.LocalSteamId, itemId);
 		}
 
 		if (!_session.SessionActive)
@@ -149,6 +155,7 @@ internal sealed class ItemMessageFlowService(
 		if (_session.Role != SessionRole.Guest)
 		{
 			_worldTable.Set(itemId, new WorldItem(itemId, item, pos, vel, parentItemId, rotation, false, parentPos, angularVelocity));
+			_kernelShadow.ObserveDrop(_session.LocalSteamId, itemId, pos.X, pos.Y, parentItemId);
 		}
 
 		if (!_session.SessionActive)
@@ -184,6 +191,7 @@ internal sealed class ItemMessageFlowService(
 		if (_session.Role != SessionRole.Guest)
 		{
 			_worldTable.Remove(itemId);
+			_kernelShadow.ObserveDestroy(_session.LocalSteamId, itemId);
 		}
 
 		if (!_session.SessionActive)
@@ -266,6 +274,7 @@ internal sealed class ItemMessageFlowService(
 				_log.LogInformation("Item destroy {ItemId} from owner {Sender} — removed from the transfer table.", itemId, sender);
 			}
 
+			_kernelShadow.ObserveDestroy(sender, itemId);
 			_session.BroadcastExcept(sender, NetMsg.ItemDestroy, new ItemDestroyMsg { ItemId = itemId });
 			_recordTraffic(ItemTrafficKind.Destroy, trafficLabel);
 		}

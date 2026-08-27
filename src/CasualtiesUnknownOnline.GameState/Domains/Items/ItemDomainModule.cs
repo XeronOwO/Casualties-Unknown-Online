@@ -130,12 +130,12 @@ internal sealed class ItemDomainModule : IDomainModule
 			return DomainDecision.Reject(RejectionReason.InvalidTransition, $"terminal item {command.InstanceId} cannot be dropped");
 		}
 
-		if (item.Value.Location.Kind != ItemLocationKind.Carried)
+		if (item.Value.Location.Kind is not (ItemLocationKind.Carried or ItemLocationKind.World or ItemLocationKind.Contained))
 		{
-			return DomainDecision.Reject(RejectionReason.InvalidTransition, $"item {command.InstanceId} is not carried");
+			return DomainDecision.Reject(RejectionReason.InvalidTransition, $"item {command.InstanceId} cannot be dropped from {item.Value.Location.Kind}");
 		}
 
-		if (item.Value.Location.Owner != command.Actor)
+		if (item.Value.Location.Kind == ItemLocationKind.Carried && item.Value.Location.Owner != command.Actor)
 		{
 			return DomainDecision.Reject(RejectionReason.NotAuthorized, $"item {command.InstanceId} is not owned by the dropping actor");
 		}

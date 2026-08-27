@@ -83,6 +83,9 @@ public class ReplayTests
 				using (var world = ItemSimWorld.Create())
 				{
 					ReplayRunner.Run(fileName, world, steps, simTrace);
+					var shadowDiff = world.CompareKernelShadow();
+					Assert.True(!shadowDiff.HasDifferences,
+						$"{fileName}: kernel shadow semantic diff: {string.Join(" | ", shadowDiff.Differences)}");
 				}
 
 				break;

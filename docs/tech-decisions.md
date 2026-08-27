@@ -3403,3 +3403,34 @@ CUO custom UI instead of the game's native radial backpack.
   `RemoteBackpackContractTests` +2; full suite 1544 green;
   build/format/architecture/event gates pass. See
   `docs/selfchecks/native-remote-backpack-and-door-sound-selfcheck.md`.
+
+## 119. Ragdoll one-shot stale-state / clone-creation race fix
+
+Closed 2026-08-27 from the open bug "Host ragdoll-key collapse not visible on
+guest (guest sees host standing)". The `CharacterRagdoll` one-shot (NetMsg 120,
+PV50) was on a reliable channel, but the render proxy's `standing` flag was
+continuously overwritten by the 20 Hz entity-state stream. The event could
+arrive before the next `Standing=false` snapshot, and an older
+`Standing=true` snapshot made the clone stand up again; if the event arrived
+before the owner's render clone existed it was dropped outright.
+
+- **Root cause** — two independent channels (reliable one-shot vs unreliable
+  20 Hz stream) with no cross-channel ordering. The one-shot was not
+  authoritative enough to survive the state stream's lag, and the clone
+  creation lazy-pump could race the event.
+- **Fix** — `RagdollPoseGate` (pure Runtime gate) suppresses a conflicting
+  `Standing=true` snapshot for a short 500 ms window until the state stream
+  confirms `Standing=false` (or the window expires). `RemoteBodyDriver` carries
+  the collapse latch (`RagdollCollapsePending` / `Confirmed` / `Ms`);
+  `SessionStatePump` consults the gate before writing `body.standing`.
+  `CharacterRagdollSync` queues a collapse whose owner clone is not ready and
+  flushes it after `RemotePlayerRenderer.Update`; the queue is cleared on
+  session end.
+- **No wire change** — no new `NetMsg`, no `ProtocolVersion` bump, no
+  event/item/entity matrix row touched.
+- **Tests/gates** — `RagdollPoseGateTests` +5 (stale-true / confirm / expiry /
+  no-pending / false-never-suppress), `RagdollPresentationStateTests` +3
+  (latch fields, flush + report surface, window bounds); all existing
+  `CharacterRagdollSyncTests` remain green; full suite 1552 green;
+  build/format/architecture/event gates pass. See
+  `docs/selfchecks/ragdoll-stale-state-fix-selfcheck.md`.

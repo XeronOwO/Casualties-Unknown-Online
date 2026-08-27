@@ -92,7 +92,41 @@ internal static class SessionStatePump
 			body.transform.localScale = new Vector3(targetX, scale.y, scale.z);
 		}
 
-		body.standing = entity.Standing;
+		// The ragdoll one-shot is reliable; the 20 Hz standing flag is not. A
+		// collapse event may arrive before the state stream's standing=false
+		// snapshot, and an older standing=true snapshot can then overwrite the
+		// replay. The gate keeps the proxy lying for the short suppression
+		// window until the stream confirms the collapse (or the window expires).
+		var effectiveStanding = entity.Standing;
+		if (driver != null)
+		{
+			if (entity.Standing)
+			{
+				var suppressStanding = RagdollPoseGate.ShouldSuppressStanding(
+					entity.Standing,
+					driver.RagdollCollapsePending,
+					driver.RagdollCollapseConfirmed,
+					driver.RagdollCollapseMs,
+					Environment.TickCount);
+				if (suppressStanding)
+				{
+					effectiveStanding = false;
+				}
+				else
+				{
+					// The collapse is either confirmed or the suppression window
+					// expired: a standing=true state is now a real stand-up.
+					driver.RagdollCollapsePending = false;
+					driver.RagdollCollapseConfirmed = false;
+				}
+			}
+			else
+			{
+				driver.RagdollCollapseConfirmed = true;
+			}
+		}
+
+		body.standing = effectiveStanding;
 		// Body.alive/conscious are derived properties (brainHealth > 0, Body.cs:203)
 		// — the proxy's own simulation would keep them consistent locally, but we
 		// render death explicitly: alive=false forces the lying pose immediately
@@ -150,7 +184,7 @@ internal static class SessionStatePump
 			// !alive): the LayDown clip approximates the ragdoll pose on the
 			// proxy (real ragdoll is physics-driven, frozen here by design).
 			// The rule is the pure LyingPose machine (L0-locked).
-			var lying = LyingPose.IsLying(entity.Standing, entity.Alive, entity.Sleeping);
+			var lying = LyingPose.IsLying(effectiveStanding, entity.Alive, entity.Sleeping);
 			if (lying != driver.PrevLying)
 			{
 				driver.PrevLying = lying;

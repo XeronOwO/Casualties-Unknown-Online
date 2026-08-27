@@ -5,8 +5,9 @@ iteration: replacing scattered authority stores and hook-coupled sync paths with
 typed, deterministic game-state kernel while preserving each gameplay domain's own
 semantics.
 
-> Status: **Phase A — not started**. This is documentation-only planning as of the
-> baseline commit `208df31`. No production code has been changed by this area yet.
+> Status: **Phase A — in progress**. The GameState kernel foundation has landed;
+> the remaining Phase A work is production shadow integration, replay differential,
+> and defect-family evidence. No online behavior has changed yet.
 
 ## Why this exists
 
@@ -53,7 +54,7 @@ invariants.
 
 | Phase | Short name | Exit signal | Status |
 |---|---|---|---|
-| A | Shadow kernel | Replay semantic diff zero for the item slice; shadow explains known defect families; no behavior change. | Not started |
+| A | Shadow kernel | Replay semantic diff zero for the item slice; shadow explains known defect families; no behavior change. | In progress |
 | B | Items authority | Every item fact has one authoritative write path; old tables are projections. | Not started |
 | C | Protocol/save switch | New envelopes and checkpoint join pass network simulation; old item wire DTOs removed from production. | Not started |
 | D | Full domain migration | All persistent gameplay facts live in kernel domains; epoch isolation works. | Not started |

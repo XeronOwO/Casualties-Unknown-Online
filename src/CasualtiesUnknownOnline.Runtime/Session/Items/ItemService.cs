@@ -399,6 +399,9 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 
 	internal void FireItemSpawned(WorldItem item) => _messageFlow.FireItemSpawned(item);
 
+	/// <summary>Read-only world-table snapshot for the architecture shadow diagnostics (never mutates production state).</summary>
+	internal IReadOnlyList<WorldItem> GetWorldItemsForDiagnostics() => [.. _worldTable.Items.Values];
+
 	// ===== IItemActionWorldAccess =====
 
 	bool IItemActionWorldAccess.IsWorldItem(ulong itemId) => IsWorldItemRegistered(itemId);

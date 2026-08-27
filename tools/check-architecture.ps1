@@ -144,5 +144,12 @@ if ($failures.Count -gt 0) {
     exit 1
 }
 
+# The GameState kernel is a dependency-free deterministic project; its
+# isolation boundary is part of the architecture gate.
+& (Join-Path $PSScriptRoot "check-gamestate-isolation.ps1")
+if ($LASTEXITCODE -ne 0) {
+    exit $LASTEXITCODE
+}
+
 Write-Host "Architecture gate passed." -ForegroundColor Green
 exit 0

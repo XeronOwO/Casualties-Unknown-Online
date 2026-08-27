@@ -1,6 +1,6 @@
 # Phase A — Shadow Kernel
 
-> Status: **Not started** (docs-only plan, baseline `208df31`)
+> Status: **In progress** (foundation landed; see Session log)
 > Source: target architecture §5-§9; migration roadmap "First item slice".
 
 ## Objective
@@ -59,15 +59,15 @@ Out of scope:
 
 ## Work breakdown
 
-- [ ] Create the `GameState` project with a placeholder/prototype assembly.
-- [ ] Add project-level isolation rule and a build/CI check that `GameState` does not
+- [x] Create the `GameState` project with a placeholder/prototype assembly.
+- [x] Add project-level isolation rule and a build/CI check that `GameState` does not
       reference forbidden assemblies.
-- [ ] Define the core C# contracts:
+- [x] Define the core C# contracts:
   - `IGameStateKernel` (Execute/Apply/CreateCheckpoint/Restore/Query);
-  - `IDomainModule<TCommand>` (Decide/Reduce/AssertInvariants);
+  - `IDomainModule` (CanHandle/CanReduce/Decide/Reduce/AssertInvariants);
   - typed `GameCommand`, `CommandContext`, `Decision`, `CommittedBatch`,
     `GameEvent`, `GameCheckpoint`, and rejection types.
-- [ ] Implement the minimal transaction loop:
+- [x] Implement the minimal transaction loop:
   - working copy;
   - event draft collection;
   - deterministic reduce;
@@ -75,13 +75,13 @@ Out of scope:
   - global revision assignment;
   - atomic swap;
   - batch publication.
-- [ ] Implement the Items domain first slice:
+- [x] Implement the Items domain first slice:
   - `ItemLocation` variants;
   - `ItemState`;
   - Spawn/PickUp/Drop/Destroy commands and reducers;
   - item aggregate revision;
   - location/container skeleton invariants.
-- [ ] Implement a minimal checkpoint for the shadow item table.
+- [x] Implement a minimal checkpoint for the shadow item table.
 - [ ] Integrate as a shadow:
   - identify the existing `ItemMessageFlowService` / item decision path;
   - send the same accepted/observed facts into the kernel as Commands or
@@ -90,12 +90,13 @@ Out of scope:
   - do not emit new wire messages.
 - [ ] Implement `DiagnosticsProjection` that compares old terminal item facts vs new
       kernel terminal item facts and emits warnings.
-- [ ] Add kernel contract tests:
+  - Note: projection type + comparator landed; runtime old-vs-kernel emission/integration remains.
+- [x] Add kernel contract tests:
   - idempotency;
   - revision monotonicity;
   - atomic batch;
   - checkpoint round-trip for item shadow state.
-- [ ] Add item invariant property tests:
+- [x] Add item invariant property tests:
   - random operation sequences;
   - unique location;
   - no terminal resurrection;
@@ -167,11 +168,20 @@ At the end of any working session in Phase A:
 
 | Date | Scope | Commits | Verification | Notes |
 |---|---|---|---|---|
-| _(none yet)_ | | | | |
+| 2026-08-27 | Phase A foundation: `GameState` project, typed deterministic kernel, Items first slice (Spawn/PickUp/Drop/Destroy), checkpoint, diagnostics projection, isolation gate, kernel/invariant tests. | This delivery | `dotnet build` clean; `dotnet test` 1586 green; `dotnet format`; architecture + isolation gates pass. | No online behavior change. Production shadow hook and replay differential remain — exit criteria not yet met. |
 
 ## Next actions
 
-1. Start a fresh session with this phase doc.
-2. Read `docs/architecture-evolution/session-workflow.md` and `status.md`.
-3. Decide the minimal `GameState` project shape and confirm the exact first-slice C# contracts.
-4. Implement the skeleton and item shadow; verify via replay diffs.
+1. Wire a non-invasive shadow into the existing item decision path
+   (`ItemMessageFlowService` / `ItemPendingPickupArbiter`) using the same
+   accepted/observed facts, without new wire messages.
+2. Add replay differential tests that run the existing legacy item replay files
+   beside the new kernel and compare semantic active item terminal facts;
+   triage every diff explicitly.
+3. Extend the shadow model to the remaining item surface (use/slot/container
+   contents, craft/cook compound operations) or document each outside first
+   slice.
+4. Build the historical ghost/duplicate/race defect-family evidence table and
+   show which family each kernel invariant explains.
+5. After the above, write the Phase A self-check fact sheet under
+   `docs/selfchecks/` and only then mark Phase A complete.

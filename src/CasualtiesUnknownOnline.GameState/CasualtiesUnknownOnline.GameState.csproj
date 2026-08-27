@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <AssemblyName>CasualtiesUnknownOnline.GameState</AssemblyName>
+    <Product>Casualties Unknown: Online GameState Kernel</Product>
+    <Version>0.1.0</Version>
+    <LangVersion>preview</LangVersion>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <Nullable>enable</Nullable>
+    <RootNamespace>CasualtiesUnknownOnline.GameState</RootNamespace>
+  </PropertyGroup>
+
+  <!--
+    CUO GameState: the typed deterministic authoritative kernel.
+    This project must remain dependency-free: no CUO project references, no
+    Unity, BepInEx, Steam, network, protocol, logging, or persistence packages.
+    The isolation gate lives in tools/check-gamestate-isolation.ps1.
+  -->
+  <ItemGroup>
+    <!-- No PackageReference / ProjectReference allowed by architecture guard. -->
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework.TrimEnd(`0123456789`))' == 'net'">
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.2" PrivateAssets="all" />
+  </ItemGroup>
+</Project>

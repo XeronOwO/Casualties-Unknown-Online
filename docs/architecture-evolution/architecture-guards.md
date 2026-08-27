@@ -47,3 +47,10 @@ can add the applicable guards early instead of discovering violations later.
 The existing repository gates (600-line classes, state bool limits, one top-level type
 per file, event-replay matrix, entity-event dispatch) remain in force. The guards above
 are additions for the new deep architecture, not replacements.
+
+## Landed guard automation
+
+Guard 1 (GameState isolation) is automated by `tools/check-gamestate-isolation.ps1`
+and runs inside `tools/check-architecture.ps1`. It rejects CUO project references,
+Unity/BepInEx/Steam/network packages, raw assembly references, forbidden source
+namespaces, and ambient random/wall-clock usage in `src/CasualtiesUnknownOnline.GameState`.

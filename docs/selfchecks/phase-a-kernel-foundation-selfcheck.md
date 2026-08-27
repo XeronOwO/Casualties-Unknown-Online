@@ -1,7 +1,7 @@
 # Phase A kernel foundation self-check (2026-08-27)
 
-This fact sheet records the first Phase A delivery: the `GameState` project,
-typed deterministic kernel, Items first slice, checkpoint, diagnostics
+This fact sheet records the first Phase A delivery (`91efd68`): the `GameState`
+project, typed deterministic kernel, Items first slice, checkpoint, diagnostics
 projection, isolation gate, and unit/property tests. Phase A is **not** complete:
 production shadow integration and replay differential are still open.
 

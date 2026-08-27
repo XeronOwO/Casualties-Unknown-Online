@@ -168,7 +168,7 @@ At the end of any working session in Phase A:
 
 | Date | Scope | Commits | Verification | Notes |
 |---|---|---|---|---|
-| 2026-08-27 | Phase A foundation: `GameState` project, typed deterministic kernel, Items first slice (Spawn/PickUp/Drop/Destroy), checkpoint, diagnostics projection, isolation gate, kernel/invariant tests. | This delivery | `dotnet build` clean; `dotnet test` 1586 green; `dotnet format`; architecture + isolation gates pass. | No online behavior change. Production shadow hook and replay differential remain — exit criteria not yet met. |
+| 2026-08-27 | Phase A foundation: `GameState` project, typed deterministic kernel, Items first slice (Spawn/PickUp/Drop/Destroy), checkpoint, diagnostics projection, isolation gate, kernel/invariant tests. | `91efd68` | `dotnet build` clean; `dotnet test` 1586 green; `dotnet format`; architecture + isolation gates pass. | No online behavior change. Production shadow hook and replay differential remain — exit criteria not yet met. |
 
 ## Next actions
 

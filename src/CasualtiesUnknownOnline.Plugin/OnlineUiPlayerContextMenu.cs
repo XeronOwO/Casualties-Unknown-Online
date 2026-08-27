@@ -171,6 +171,11 @@ internal sealed class OnlineUiPlayerContextMenu
 	private static List<MenuAction> BuildActions(OnlineUiContext ctx, OnlineUiMemberRow row)
 	{
 		var actions = new List<MenuAction>();
+		if (!row.CanSee)
+		{
+			return actions;
+		}
+
 		if (ctx.OpenRemoteBackpack is { } open)
 		{
 			actions.Add(new MenuAction(ctx.T("member.open_backpack"), () => open(row.SteamId, ctx.DisplayName(row.SteamId))));

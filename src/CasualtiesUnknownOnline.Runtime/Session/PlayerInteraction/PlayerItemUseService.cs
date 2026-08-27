@@ -22,12 +22,14 @@ internal sealed class PlayerItemUseService(
 	PacketSender sender,
 	PlayerCharacterAccess characters,
 	IItemControl items,
+	IPlayerInteractionVisibility visibility,
 	ILogger log)
 {
 	private readonly ISessionControl _session = session;
 	private readonly PacketSender _sender = sender;
 	private readonly PlayerCharacterAccess _characters = characters;
 	private readonly IItemControl _items = items;
+	private readonly IPlayerInteractionVisibility _visibility = visibility;
 	private readonly ILogger _log = log;
 
 	/// <summary>An authoritative cross-player consumable use result arrived — the Game Adapter applies the local participant half.</summary>
@@ -75,6 +77,12 @@ internal sealed class PlayerItemUseService(
 		if (!_characters.IsInWorld(user) || !_characters.IsInWorld(target))
 		{
 			_log.LogWarning("[ItemUse] refused: {User} or {Target} is not in-world.", user, target);
+			return;
+		}
+
+		if (!_visibility.HasLineOfSight(user, target))
+		{
+			_log.LogInformation("[ItemUse] refused: {User} cannot see {Target}.", user, target);
 			return;
 		}
 

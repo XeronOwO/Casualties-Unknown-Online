@@ -18,12 +18,14 @@ internal sealed class PlayerHealService(
 	PacketSender sender,
 	PlayerCharacterAccess characters,
 	IItemControl items,
+	IPlayerInteractionVisibility visibility,
 	ILogger log)
 {
 	private readonly ISessionControl _session = session;
 	private readonly PacketSender _sender = sender;
 	private readonly PlayerCharacterAccess _characters = characters;
 	private readonly IItemControl _items = items;
+	private readonly IPlayerInteractionVisibility _visibility = visibility;
 	private readonly ILogger _log = log;
 
 	/// <summary>An authoritative cross-player heal result arrived — the Game Adapter applies the local participant half.</summary>
@@ -71,6 +73,12 @@ internal sealed class PlayerHealService(
 		if (!_characters.IsInWorld(healer) || !_characters.IsInWorld(target))
 		{
 			_log.LogWarning("[Heal] refused: {Healer} or {Target} is not in-world.", healer, target);
+			return;
+		}
+
+		if (!_visibility.HasLineOfSight(healer, target))
+		{
+			_log.LogInformation("[Heal] refused: {Healer} cannot see {Target}.", healer, target);
 			return;
 		}
 

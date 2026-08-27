@@ -5,6 +5,7 @@ using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Diagnostics;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
+using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
@@ -190,6 +191,11 @@ internal static class PluginDependencyRegistrar
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<GameAdapterImpl>());
 		services.Replace(ServiceDescriptor.Singleton<IModEntitySpawner>(p => p.GetRequiredService<GameAdapterImpl>()));
 		services.Replace(ServiceDescriptor.Singleton<IModNativeApiProvider>(p => p.GetRequiredService<GameAdapterImpl>()));
+		// The Game Adapter is also the world-backed line-of-sight oracle. It
+		// replaces the Runtime's allow-all default, so the Runtime interaction
+		// services and the adapter domains share the same visibility rule.
+		services.Replace(ServiceDescriptor.Singleton<IPlayerInteractionVisibility>(
+			p => p.GetRequiredService<GameAdapterImpl>()));
 
 		// Persist newly bound configuration entries (e.g. a fresh [UI] Language
 		// section on an existing install) so users can see and edit them.

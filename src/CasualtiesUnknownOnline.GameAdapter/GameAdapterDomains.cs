@@ -34,6 +34,7 @@ internal sealed class GameAdapterDomains
 	internal readonly IItemControl Items;
 	internal readonly IEntitySyncControl Entities;
 	internal readonly IHostRules HostRules;
+	internal readonly IPlayerInteractionVisibility InteractionVisibility;
 	internal readonly ILogger<GameAdapter> Log;
 
 	internal readonly CloneFactTable FactTable;
@@ -118,6 +119,7 @@ internal sealed class GameAdapterDomains
 		Entities = entities;
 		HostRules = hostRules;
 		PlayerInteraction = playerInteraction;
+		InteractionVisibility = new PlayerInteractionVisibility(session, entities, loggerFactory.CreateLogger<PlayerInteractionVisibility>());
 		Log = log;
 		// Domains (state belongs to its owner; the coordinator forwards, never holds).
 		// Construction order follows the dependencies: item domains (guard → world →
@@ -132,7 +134,7 @@ internal sealed class GameAdapterDomains
 			FactTable,
 			loggerFactory.CreateLogger<CharacterDataSync>());
 		Renderer = new RemotePlayerRenderer(session, entities, CharacterDataSync, new CloneLimbRenderer(loggerFactory.CreateLogger<CloneLimbRenderer>()), playerInteraction, loggerFactory.CreateLogger<RemotePlayerRenderer>());
-		RemoteBackpack = new RemoteBackpackCoordinator(session, Renderer, loggerFactory.CreateLogger<RemoteBackpackCoordinator>());
+		RemoteBackpack = new RemoteBackpackCoordinator(session, Renderer, InteractionVisibility, loggerFactory.CreateLogger<RemoteBackpackCoordinator>());
 		DropGuard = new DropProtectionGuard();
 		ItemApplication = new ItemApplication(items, session, loggerFactory.CreateLogger<ItemApplication>());
 		ItemReconcile = new ItemReconcile(items, ItemApplication, DropGuard, loggerFactory.CreateLogger<ItemReconcile>());
@@ -173,7 +175,7 @@ internal sealed class GameAdapterDomains
 		FluidSync = new FluidWorldSync(world, session, entities, loggerFactory);
 		TradeSync = new TradeStateSync(world, session, new TradeExecutor(), loggerFactory.CreateLogger<TradeStateSync>());
 		TraderSwingSync = new TraderSwingSync(world, session, loggerFactory.CreateLogger<TraderSwingSync>());
-		TraderRecruit = new TraderRecruitCoordinator(session, world, characterData, CharacterDataSync, respawnOptions, items, ItemIds, loggerFactory.CreateLogger<TraderRecruitCoordinator>());
+		TraderRecruit = new TraderRecruitCoordinator(session, world, characterData, CharacterDataSync, respawnOptions, items, ItemIds, InteractionVisibility, loggerFactory.CreateLogger<TraderRecruitCoordinator>());
 		Respawn = new RespawnCoordinator(session, world, characterData, CharacterDataSync, respawnOptions, loggerFactory.CreateLogger<RespawnCoordinator>());
 		SpeechSync = new SpeechSync(world, session, loggerFactory.CreateLogger<SpeechSync>());
 		CraftingSync = new CraftingSync(craft, ItemIds, itemReports, OperationTrace, loggerFactory.CreateLogger<CraftingSync>());

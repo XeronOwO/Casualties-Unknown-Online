@@ -32,6 +32,10 @@ internal static class OnlineUiNetworkDrawer
 		GUILayout.Label(ctx.F("network.entity_sync", ctx.T(ctx.Entities.EntitySyncActive ? "common.active" : "common.off")), OnlineUiTheme.MutedLabel());
 		GUILayout.Label(ctx.F("network.local_player", ctx.T(session.LocalInWorld ? "common.in_world" : "common.menu")), OnlineUiTheme.MutedLabel());
 		GUILayout.Label(session.LastRttMs >= 0f ? ctx.F("network.last_rtt", $"{session.LastRttMs:F1} ms") : ctx.T("common.no_ping"), OnlineUiTheme.MutedLabel());
+		if (GUILayout.Button(ctx.T("network.ping"), OnlineUiTheme.Button(), GUILayout.Width(90f)))
+		{
+			session.RequestPing();
+		}
 
 		GUILayout.Space(8f);
 		GUILayout.Label(ctx.T("network.peer_rtt"), OnlineUiTheme.Section());

@@ -34,7 +34,8 @@ public static class OnlineUiMemberProjection
 		bool localInWorld,
 		bool hasHealItem,
 		IReadOnlyList<LocalHealItem> healItems,
-		bool allowRemoteInventoryTake = true)
+		bool allowRemoteInventoryTake = true,
+		Func<ulong, bool>? hasLineOfSight = null)
 	{
 		var memberMap = members.ToDictionary(m => m.SteamId, m => m);
 		var rows = new List<OnlineUiMemberRow>();
@@ -45,6 +46,9 @@ public static class OnlineUiMemberProjection
 			var vitals = member is { InWorld: true } ? getVitals(memberId) : null;
 			var inventory = member is { InWorld: true } ? getInventory(memberId) : null;
 			var isLocal = memberId == localSteamId;
+			var canSee = isLocal || (member is { InWorld: true }
+				&& localInWorld
+				&& (hasLineOfSight?.Invoke(memberId) ?? true));
 
 			var isCarryingThis = !isLocal
 				&& playerInteraction?.TryGetCarried(localSteamId, out var carried) == true
@@ -57,6 +61,7 @@ public static class OnlineUiMemberProjection
 			var canCarry = !isLocal
 				&& member is { InWorld: true }
 				&& localInWorld
+				&& canSee
 				&& vitals is not null
 				&& (!vitals.Conscious || !vitals.Alive)
 				&& !isLocalCarried
@@ -67,6 +72,7 @@ public static class OnlineUiMemberProjection
 			var canPiggyback = !isLocal
 				&& member is { InWorld: true }
 				&& localInWorld
+				&& canSee
 				&& vitals is { Alive: true, Conscious: true }
 				&& !isLocalCarried
 				&& !isAlreadyCarried
@@ -86,11 +92,13 @@ public static class OnlineUiMemberProjection
 			var canHeal = !isLocal
 				&& member is { InWorld: true }
 				&& localInWorld
+				&& canSee
 				&& vitals is { Alive: true }
 				&& hasHealItem;
 			var canPush = !isLocal
 				&& member is { InWorld: true }
 				&& localInWorld
+				&& canSee
 				&& vitals is not null
 				&& !isLocalCarried
 				&& !isAlreadyCarried
@@ -99,8 +107,9 @@ public static class OnlineUiMemberProjection
 			var canRecruit = !isLocal
 				&& member is { InWorld: true }
 				&& localInWorld
+				&& canSee
 				&& vitals is { Alive: false };
-			var takeable = canTake(inventory, vitals, isLocal, member, allowRemoteInventoryTake);
+			var takeable = canTake(inventory, vitals, isLocal, member, allowRemoteInventoryTake, canSee);
 			var canAdminMember = canAdmin && !isLocal && member is not null;
 
 			rows.Add(new OnlineUiMemberRow
@@ -115,6 +124,7 @@ public static class OnlineUiMemberProjection
 				VitalsText = vitals?.ToShortString(),
 				InventoryText = inventory?.ToShortString(),
 				IsCarryingThis = isCarryingThis,
+				CanSee = canSee,
 				CanCarry = canCarry,
 				CanPiggyback = canPiggyback,
 				CanCarryOnBack = canCarryOnBack,
@@ -146,10 +156,12 @@ public static class OnlineUiMemberProjection
 		RemoteVitalsSnapshot? vitals,
 		bool isLocal,
 		MemberPresenceTable.MemberPresence? member,
-		bool allowRemoteInventoryTake)
+		bool allowRemoteInventoryTake,
+		bool canSee)
 	{
 		if (!allowRemoteInventoryTake
 			|| isLocal
+			|| !canSee
 			|| member is not { InWorld: true }
 			|| inventory is null
 			|| vitals is null

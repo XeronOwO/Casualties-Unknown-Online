@@ -30,6 +30,9 @@ internal sealed class OnlineUiContext
 
 	internal IPlayerInteractionControl PlayerInteraction = null!;
 
+	/// <summary>The world-backed line-of-sight oracle used to hide direct actions behind walls.</summary>
+	internal IPlayerInteractionVisibility? Visibility;
+
 	internal IHostBanService HostBan = null!;
 
 	internal IHostRules HostRules = null!;

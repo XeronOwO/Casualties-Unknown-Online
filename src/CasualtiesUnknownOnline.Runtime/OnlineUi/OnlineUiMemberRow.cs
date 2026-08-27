@@ -79,6 +79,9 @@ public sealed class OnlineUiMemberRow
 	/// <summary>True when this member is alive but unconscious.</summary>
 	public bool IsUnconscious { get; init; }
 
+	/// <summary>True when the local player has direct line of sight to this in-world member.</summary>
+	public bool CanSee { get; init; }
+
 	/// <summary>True when this member is carrying another player.</summary>
 	public bool IsCarryingSomeone { get; init; }
 

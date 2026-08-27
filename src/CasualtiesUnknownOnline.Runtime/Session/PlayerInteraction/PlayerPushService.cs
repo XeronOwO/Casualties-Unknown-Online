@@ -35,6 +35,7 @@ internal sealed class PlayerPushService : IDisposable
 	private readonly IEntitySyncControl _entities;
 	private readonly PlayerCarryService _carry;
 	private readonly ITimeSource _time;
+	private readonly IPlayerInteractionVisibility _visibility;
 	private readonly ILogger _log;
 
 	private readonly Dictionary<ulong, long> _lastPushMs = [];
@@ -49,6 +50,7 @@ internal sealed class PlayerPushService : IDisposable
 		IEntitySyncControl entities,
 		PlayerCarryService carry,
 		ITimeSource time,
+		IPlayerInteractionVisibility visibility,
 		ILogger log)
 	{
 		_session = session;
@@ -57,6 +59,7 @@ internal sealed class PlayerPushService : IDisposable
 		_entities = entities;
 		_carry = carry;
 		_time = time;
+		_visibility = visibility;
 		_log = log;
 
 		_session.SessionEnded += OnSessionEnded;
@@ -99,6 +102,12 @@ internal sealed class PlayerPushService : IDisposable
 		if (!_characters.IsInWorld(pusher) || !_characters.IsInWorld(target))
 		{
 			_log.LogWarning("[Push] refused: {Pusher} or {Target} is not in-world.", pusher, target);
+			return;
+		}
+
+		if (!_visibility.HasLineOfSight(pusher, target))
+		{
+			_log.LogInformation("[Push] refused: {Pusher} cannot see {Target}.", pusher, target);
 			return;
 		}
 

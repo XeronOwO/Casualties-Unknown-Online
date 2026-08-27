@@ -1,5 +1,6 @@
 using CasualtiesUnknownOnline.GameAdapter.Character;
 using CasualtiesUnknownOnline.Runtime.Session;
+using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using Microsoft.Extensions.Logging;
 
 namespace CasualtiesUnknownOnline.GameAdapter;
@@ -14,16 +15,24 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 internal sealed class RemoteBackpackCoordinator(
 	ISessionControl session,
 	RemotePlayerRenderer renderer,
+	IPlayerInteractionVisibility visibility,
 	ILogger<RemoteBackpackCoordinator> log)
 {
 	private readonly ISessionControl _session = session;
 	private readonly RemotePlayerRenderer _renderer = renderer;
+	private readonly IPlayerInteractionVisibility _visibility = visibility;
 	private readonly ILogger<RemoteBackpackCoordinator> _log = log;
 
 	internal bool Open(ulong steamId, string displayName)
 	{
 		if (!_session.SessionActive || !_session.LocalInWorld)
 		{
+			return false;
+		}
+
+		if (!_visibility.HasLineOfSight(_session.LocalSteamId, steamId))
+		{
+			_log.LogInformation("[BackpackView] refused open for {SteamId}: no line of sight.", steamId);
 			return false;
 		}
 

@@ -47,12 +47,9 @@ public class Plugin : BaseUnityPlugin
 	private RemoteVitalsService _remoteVitals = null!;
 	private RemoteInventoryService _remoteInventory = null!;
 	private PlayerInteractionService _playerInteraction = null!;
+	private IPlayerInteractionVisibility _interactionVisibility = null!;
 	private IModUiControl _modUiControl = null!;
 	private IGameAdapter? _adapter;
-	private ConfigEntry<string> _targetLobbyId = null!;
-	private ConfigEntry<string> _createLobbyKey = null!;
-	private ConfigEntry<string> _joinLobbyKey = null!;
-	private ConfigEntry<string> _pingPeerKey = null!;
 	private ConfigEntry<string> _interactionPanelKey = null!;
 	private ulong? _pendingJoinLobbyId;
 	private string? _lastJoinError;
@@ -104,6 +101,7 @@ public class Plugin : BaseUnityPlugin
 			_remoteVitals = _services.GetRequiredService<RemoteVitalsService>();
 			_remoteInventory = _services.GetRequiredService<RemoteInventoryService>();
 			_playerInteraction = _services.GetRequiredService<PlayerInteractionService>();
+			_interactionVisibility = _services.GetRequiredService<IPlayerInteractionVisibility>();
 			_modUiControl = _services.GetRequiredService<IModUiControl>();
 			_adapter = _services.GetService<IGameAdapter>();
 			_uiActions = new OnlineUiActions(_session, _hostBan, _playerInteraction, _adapter);
@@ -160,18 +158,9 @@ public class Plugin : BaseUnityPlugin
 			// Multiplayer games must keep running when the window loses focus.
 			Application.runInBackground = true;
 
-			_targetLobbyId = Config.Bind("Session", "TargetLobbyId", "",
-				"Lobby ID to join with F9 (printed by the host on F8). Leave empty to host only.");
-
-			// Co-op session hotkeys (configurable): values are UnityEngine.KeyCode
-			// names, so players on non-standard layouts can rebind them in the
-			// BepInEx config without touching code.
-			_createLobbyKey = Config.Bind("Session", "CreateLobbyKey", "F8",
-				"Hotkey to create a Steam lobby / retry Steam init. See UnityEngine.KeyCode names.");
-			_joinLobbyKey = Config.Bind("Session", "JoinLobbyKey", "F9",
-				"Hotkey to join the TargetLobbyId with Steam.");
-			_pingPeerKey = Config.Bind("Session", "PingPeerKey", "F7",
-				"Hotkey to ping the connected peer.");
+			// The legacy F8/F9/F7 session hotkeys and TargetLobbyId were retired
+			// in favor of the visual Online UI. The F6 quick-panel toggle remains
+			// configurable.
 			_interactionPanelKey = Config.Bind("Session", "InteractionPanelKey", "F6",
 				"Hotkey to toggle the standalone player-interaction quick panel. See UnityEngine.KeyCode names.");
 
@@ -251,11 +240,11 @@ public class Plugin : BaseUnityPlugin
 
 			if (_steam.IsInitialized)
 			{
-				_log.LogInformation("CUO Phase 1 test keys: F8 = create lobby, F9 = join lobby from config, F7 = ping peer.");
+				_log.LogInformation("CUO Online UI: Steam lobby controls are available in the top-right Online UI.");
 			}
 			else
 			{
-				_log.LogWarning("CUO: Steam not initialized — lobby features unavailable. F8 can retry.");
+				_log.LogWarning("CUO: Steam not initialized — lobby features unavailable. Use the Online UI to retry.");
 			}
 		}
 		catch (Exception ex)
@@ -278,46 +267,9 @@ public class Plugin : BaseUnityPlugin
 			adapter.SetOnlineUiModal(_onlineUi.IsWindowVisible);
 		}
 
-		if (_steam is { } steam)
+		if (HotkeyPressed(_interactionPanelKey))
 		{
-			if (HotkeyPressed(_createLobbyKey))
-			{
-				// Retry path: if load-time init failed (Steam not running yet),
-				// F8 re-attempts initialization, then creates the lobby — or
-				// joins the +connect_lobby target that was pending.
-				if (EnsureSteamReady(steam))
-				{
-					if (_pendingJoinLobbyId is { } pending)
-					{
-						_pendingJoinLobbyId = null;
-						if (CanSwitchLobbyForJoin())
-						{
-							steam.JoinLobby(pending);
-						}
-					}
-					else if (CanSwitchLobbyForCreate())
-					{
-						steam.CreateLobby();
-					}
-				}
-			}
-			else if (HotkeyPressed(_joinLobbyKey))
-			{
-				if (EnsureSteamReady(steam)
-					&& CanSwitchLobbyForJoin()
-					&& ulong.TryParse(_targetLobbyId.Value, out var lobbyId))
-				{
-					steam.JoinLobby(lobbyId);
-				}
-			}
-			else if (HotkeyPressed(_pingPeerKey))
-			{
-				_session.RequestPing();
-			}
-			else if (HotkeyPressed(_interactionPanelKey))
-			{
-				_onlineUi.ToggleQuickPanel();
-			}
+			_onlineUi.ToggleQuickPanel();
 		}
 	}
 
@@ -462,7 +414,7 @@ public class Plugin : BaseUnityPlugin
 			_lastJoinError = _ipActions.LastError;
 		}
 
-		_onlineUi.Draw(_steam, _session, _entities, _remoteVitals, _remoteInventory, _playerInteraction, _hostBan, _hostRules, _adapter, _localization, _rulesEditor, _loggingEditor, _languageEditor, _lastJoinError);
+		_onlineUi.Draw(_steam, _session, _entities, _remoteVitals, _remoteInventory, _playerInteraction, _interactionVisibility, _hostBan, _hostRules, _adapter, _localization, _rulesEditor, _loggingEditor, _languageEditor, _lastJoinError);
 		ModUiDrawing.DrawAll(_modUiControl, e => _log.LogError(e, "Mod UI window threw while drawing."));
 	}
 

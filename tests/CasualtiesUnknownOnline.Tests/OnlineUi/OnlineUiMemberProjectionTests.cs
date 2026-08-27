@@ -164,6 +164,68 @@ public sealed class OnlineUiMemberProjectionTests
 	}
 
 	[Fact]
+	public void NoLineOfSight_HidesAllDirectInteractionActions()
+	{
+		var vitals = new Dictionary<ulong, RemoteVitalsSnapshot>
+		{
+			[Remote] = RemoteVitalsSnapshot.From(new CharacterHealthMsg { Alive = false, Conscious = false })!,
+		};
+		var inventory = new Dictionary<ulong, RemoteInventorySnapshot>
+		{
+			[Remote] = RemoteInventorySnapshot.From(new CharacterDataMsg
+			{
+				Items = { new CharacterItemMsg { InstanceId = 42, ItemId = "Bandage", SlotIndex = 2 } },
+			})!,
+		};
+
+		var rows = Build(
+			[Local, Remote],
+			[Presence(Remote, handshaken: true, inWorld: true)],
+			new FakeInteraction(),
+			canAdmin: false,
+			localInWorld: true,
+			hasHealItem: true,
+			getVitals: id => vitals.TryGetValue(id, out var v) ? v : null,
+			getInventory: id => inventory.TryGetValue(id, out var inv) ? inv : null,
+			healItems: [new LocalHealItem(11, "Medkit")],
+			hasLineOfSight: _ => false);
+
+		Assert.False(rows[1].CanSee);
+		Assert.False(rows[1].CanCarry);
+		Assert.False(rows[1].CanTake);
+		Assert.Empty(rows[1].TakeableItems);
+		Assert.False(rows[1].CanRecruit);
+		Assert.False(rows[1].CanHeal);
+		Assert.False(rows[1].CanPush);
+	}
+
+	[Fact]
+	public void NoLineOfSight_HidesConsciousSupportActions()
+	{
+		var vitals = new Dictionary<ulong, RemoteVitalsSnapshot>
+		{
+			[Remote] = RemoteVitalsSnapshot.From(new CharacterHealthMsg { Alive = true, Conscious = true })!,
+		};
+
+		var rows = Build(
+			[Local, Remote],
+			[Presence(Remote, handshaken: true, inWorld: true)],
+			new FakeInteraction(),
+			canAdmin: false,
+			localInWorld: true,
+			hasHealItem: true,
+			getVitals: id => vitals.TryGetValue(id, out var v) ? v : null,
+			healItems: [new LocalHealItem(11, "Medkit")],
+			hasLineOfSight: _ => false);
+
+		Assert.False(rows[1].CanSee);
+		Assert.False(rows[1].CanHeal);
+		Assert.False(rows[1].CanPush);
+		Assert.False(rows[1].CanPiggyback);
+		Assert.False(rows[1].CanCarryOnBack);
+	}
+
+	[Fact]
 	public void DeadRemoteCanBeRecruitedButNotHealed()
 	{
 		var vitals = new Dictionary<ulong, RemoteVitalsSnapshot>
@@ -469,7 +531,8 @@ public sealed class OnlineUiMemberProjectionTests
 		Func<ulong, RemoteVitalsSnapshot?>? getVitals = null,
 		Func<ulong, RemoteInventorySnapshot?>? getInventory = null,
 		IReadOnlyList<LocalHealItem>? healItems = null,
-		bool allowRemoteInventoryTake = true)
+		bool allowRemoteInventoryTake = true,
+		Func<ulong, bool>? hasLineOfSight = null)
 	{
 		return OnlineUiMemberProjection.Build(
 			Local,
@@ -485,7 +548,8 @@ public sealed class OnlineUiMemberProjectionTests
 			localInWorld: localInWorld,
 			hasHealItem: hasHealItem,
 			healItems: healItems ?? [],
-			allowRemoteInventoryTake: allowRemoteInventoryTake);
+			allowRemoteInventoryTake: allowRemoteInventoryTake,
+			hasLineOfSight: hasLineOfSight);
 	}
 
 	private static MemberPresenceTable.MemberPresence Presence(ulong steamId, bool handshaken, bool inWorld) =>

@@ -22,6 +22,7 @@ internal sealed class PlayerInventoryTakeService(
 	PlayerCharacterAccess characters,
 	IItemControl items,
 	IHostRules hostRules,
+	IPlayerInteractionVisibility visibility,
 	ILogger log)
 {
 	private readonly ISessionControl _session = session;
@@ -29,6 +30,7 @@ internal sealed class PlayerInventoryTakeService(
 	private readonly PlayerCharacterAccess _characters = characters;
 	private readonly IItemControl _items = items;
 	private readonly IHostRules _hostRules = hostRules;
+	private readonly IPlayerInteractionVisibility _visibility = visibility;
 	private readonly ILogger _log = log;
 
 	/// <summary>An authoritative cross-player inventory transfer arrived — the Game Adapter applies the body mutation.</summary>
@@ -82,6 +84,13 @@ internal sealed class PlayerInventoryTakeService(
 		if (!_characters.IsInWorld(from) || !_characters.IsInWorld(to))
 		{
 			_log.LogWarning("[Take] refused: {From} or {To} is not in-world.", from, to);
+			return;
+		}
+
+		if (!_visibility.HasLineOfSight(to, from))
+		{
+			_log.LogInformation("[Take] refused: {To} cannot see {From}.",
+				to, from);
 			return;
 		}
 

@@ -62,15 +62,16 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, IDispo
 		IItemControl items,
 		IEntitySyncControl entities,
 		IHostRules hostRules,
+		IPlayerInteractionVisibility visibility,
 		ITimeSource time,
 		ILogger<PlayerInteractionService> log)
 	{
 		var access = new PlayerCharacterAccess(session, characters);
-		_take = new PlayerInventoryTakeService(session, sender, access, items, hostRules, log);
-		_carry = new PlayerCarryService(session, sender, access, log);
-		_heal = new PlayerHealService(session, sender, access, items, log);
-		_itemUse = new PlayerItemUseService(session, sender, access, items, log);
-		_push = new PlayerPushService(session, sender, access, entities, _carry, time, log);
+		_take = new PlayerInventoryTakeService(session, sender, access, items, hostRules, visibility, log);
+		_carry = new PlayerCarryService(session, sender, access, visibility, log);
+		_heal = new PlayerHealService(session, sender, access, items, visibility, log);
+		_itemUse = new PlayerItemUseService(session, sender, access, items, visibility, log);
+		_push = new PlayerPushService(session, sender, access, entities, _carry, time, visibility, log);
 	}
 
 	public void SendTakeRequest(ulong ownerSteamId, ulong itemInstanceId) =>

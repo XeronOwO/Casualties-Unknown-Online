@@ -3562,3 +3562,56 @@ into the local backpack ran the native body-mutation path.
   `RemoteBackpackContractTests` +1 (bridge cancellation surface); full suite
   1567 green; build/format/architecture/event gates pass. See
   `docs/selfchecks/remote-backpack-drag-escape-selfcheck.md`.
+
+## 124. Direct player-interaction line-of-sight / visibility gate (no protocol change)
+
+The direct player-interaction set (take, carry/piggyback, heal, consumable use,
+push, trader recruit, native remote-backpack view) was stable enough to add the
+deferred shared visibility gate. The gate is not a strict anti-cheat box; it
+only blocks an action when a confirmed `Ground` linecast intersects between the
+two players.
+
+- **Runtime oracle seam** — new `IPlayerInteractionVisibility` in
+  `Runtime/Session/PlayerInteraction`; the base composition root registers a
+  default allow-all implementation so tests and non-game compositions keep
+  working. The plugin replaces it with the Game Adapter, which also implements
+  the interface.
+- **Game-backed implementation** — `GameAdapter.PlayerInteractionVisibility`
+  resolves the two players' world positions (local body first, then the
+  20 Hz entity stream) and runs the same Ground-only `Physics2D.Linecast` the
+  vanilla pickup check uses. Missing position evidence is NOT treated as a
+  block (log + allow), preserving accept-first/missing-sync-never-blocks.
+- **Host-authoritative checks** — every cross-player request handler now refuses
+  a blocked pair before consuming/transferring state: take, carry start,
+  heal, item use, push. `RemoteBackpackCoordinator.Open` refuses the native
+  remote backpack view and `TraderRecruitCoordinator.HandleHostRequest` refuses
+  a recruit through a wall.
+- **UI projection** — `OnlineUiMemberRow.CanSee` is fed from the same oracle;
+  direct-action buttons, take lists, the native open-backpack button and the
+  inventory-text fallback are hidden without line of sight (local rows remain
+  fully visible).
+- **No wire change** — no new `NetMsg`, no `ProtocolVersion` bump, no
+  event/item/entity matrix row touched.
+- **Tests/gates** — `PlayerInteractionServiceTests` +5 (blocked take/carry/
+  heal/use/push leave state untouched), `OnlineUiMemberProjectionTests` +2
+  (blocked rows hide every action surface plus conscious support actions); full
+  suite green after the change. See
+  `docs/selfchecks/player-interaction-visibility-selfcheck.md`.
+
+## 125. Retire legacy F7/F8/F9 session hotkeys (no protocol change)
+
+The visual Online UI already covered create/join lobby, so the dedicated
+`[Session] CreateLobbyKey / JoinLobbyKey / PingPeerKey` hotkeys and the
+`TargetLobbyId` config surface were redundant. Rather than keep two competing
+input paths, the direct hotkey handling was removed.
+
+- **Removed** — `CreateLobbyKey`, `JoinLobbyKey`, `PingPeerKey` and
+  `TargetLobbyId` are no longer bound/read; the Update hotkey branches for
+  create/join/ping are gone.
+- **Kept** — `InteractionPanelKey` (F6 quick-panel toggle) remains configurable.
+- **Replacement** — the Online UI Home page already host/joins through the same
+  guarded actions; the Network page now has an explicit `Ping` button so the
+  manual ping action is still available from the UI.
+- **No wire change** — no `NetMsg`, `ProtocolVersion`, or sync matrix touched.
+- **Tests/gates** — build/format/architecture/event gates pass; full suite
+  green.

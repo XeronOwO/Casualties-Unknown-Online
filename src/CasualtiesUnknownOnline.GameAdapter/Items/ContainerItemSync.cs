@@ -1,3 +1,4 @@
+using CasualtiesUnknownOnline.GameAdapter.Character;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
@@ -39,6 +40,15 @@ internal sealed class ContainerItemSync(
 	internal void OnLoadedIntoContainer(Item item, bool wasWorldItem)
 	{
 		if (IsRemoteApply)
+		{
+			return;
+		}
+
+		// Remote clone inventory renders are display proxies: their container
+		// adds/removes are presentation-only and must never enter the item
+		// domain (the native remote-backpack view materialises those children
+		// on the clone).
+		if (item.GetComponentInParent<RemoteCloneRender>() != null) // Unity object — ==
 		{
 			return;
 		}
@@ -173,6 +183,11 @@ internal sealed class ContainerItemSync(
 			return;
 		}
 
+		if (item.GetComponentInParent<RemoteCloneRender>() != null) // Unity object — ==
+		{
+			return;
+		}
+
 		if (_dropState.TryCancel(item, out var unloadedOp)) // the unload report below IS this item's report — a later flush must not send it again
 		{
 			_trace.End(unloadedOp, OperationTrace.IdOf(item), "OnItemUnloadedFromContainer", "Cancelled", "UnloadedReported");
@@ -203,6 +218,11 @@ internal sealed class ContainerItemSync(
 	internal void OnUnloadedAll(Container container)
 	{
 		if (IsRemoteApply)
+		{
+			return;
+		}
+
+		if (container.GetComponentInParent<RemoteCloneRender>() != null) // Unity object — ==
 		{
 			return;
 		}

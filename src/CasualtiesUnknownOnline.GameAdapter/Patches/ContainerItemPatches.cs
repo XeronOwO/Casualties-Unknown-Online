@@ -31,7 +31,9 @@ internal static class ContainerItemPatches
 			// A product loading into a surface container during a craft (the
 			// AutoPickUpItem container path) rides the ONE craft report — the
 			// coordinator's inventory diff sees it.
-			if (CallContext.Current != CallContext.Origin.Craft && item.transform.parent == __instance.transform)
+			if (CallContext.Current != CallContext.Origin.Craft
+				&& !RemoteCloneContainerGuard.IsDisplayProxy(__instance)
+				&& item.transform.parent == __instance.transform)
 			{
 				PatchBridge.Impl?.OnItemLoadedIntoContainer(item, __state);
 			}
@@ -52,7 +54,7 @@ internal static class ContainerItemPatches
 
 		private static void Postfix(Container __instance, Item item, bool __state)
 		{
-			if (__state && item.transform.parent != __instance.transform)
+			if (__state && !RemoteCloneContainerGuard.IsDisplayProxy(__instance) && item.transform.parent != __instance.transform)
 			{
 				PatchBridge.Impl?.OnItemUnloadedFromContainer(item);
 			}
@@ -62,6 +64,12 @@ internal static class ContainerItemPatches
 	[HarmonyPatch(typeof(Container), "UnloadAllItems")]
 	internal static class ContainerUnloadAllItemsPatch
 	{
-		private static void Postfix(Container __instance) => PatchBridge.Impl?.OnContainerUnloadedAll(__instance);
+		private static void Postfix(Container __instance)
+		{
+			if (!RemoteCloneContainerGuard.IsDisplayProxy(__instance))
+			{
+				PatchBridge.Impl?.OnContainerUnloadedAll(__instance);
+			}
+		}
 	}
 }

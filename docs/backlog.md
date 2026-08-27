@@ -8,8 +8,9 @@ Open work only. Landed delivery details are not duplicated here; they live in:
 
 ## Status
 
-- **Three open bug reports (2026-08-27)** — see "Open bugs" below. The container-content desync is the high-priority investigation; none are to be closed by a paper-only claim.
+- **Two open bug reports (2026-08-27)** — see "Open bugs" below. None are to be closed by a paper-only claim.
 - Native game-content sync coverage is complete: item and entity feature matrices currently have no `missing` rows.
+- **Remote container destroy authority — CLOSED (2026-08-27).** The remote-backpack display-proxy destroys no longer reach the host as real item destroys, and a received destroy can no longer kill a carried (non-world) item. The host also validates destroy ownership before relaying. See `docs/selfchecks/remote-container-destroy-authority-selfcheck.md` and `docs/tech-decisions.md` #120.
 - **Ragdoll stale-state / clone-creation race — CLOSED (2026-08-27).** The reliable `CharacterRagdoll` one-shot is now guarded against a lagging `Standing=true` 20 Hz snapshot and is queued until the owner's render clone exists. See `docs/selfchecks/ragdoll-stale-state-fix-selfcheck.md` and `docs/tech-decisions.md` #119.
 - **World bleeding effects sync — CLOSED (2026-08-26).** The visible blood decals a player leaves in the world now travel as a dedicated `WorldBloodSpawn` event (NetMsg 121, ProtocolVersion 51); every peer replays the same transient ground/wall decal. Remote render clones no longer create their own duplicate decals. See `docs/selfchecks/world-blood-spawn-sync-selfcheck.md` and `docs/tech-decisions.md` #115.
 - **Online UI scoped anti-passthrough + transport-mode exclusivity — CLOSED (2026-08-26).** The quick panel and right-click context menu now get scoped UGUI raycast blockers limited to their own rectangles, and the Home page shows only the selected Steam or IP-direct transport section at a time. See `docs/selfchecks/online-ui-scoped-passthrough-selfcheck.md` and `docs/tech-decisions.md` #116.
@@ -24,20 +25,6 @@ Open work only. Landed delivery details are not duplicated here; they live in:
 - **Observed**: with `[HostRules] AllowRemoteInventoryTake` enabled, opening another player's backpack shows the container contents, but items inside cannot be operated (drag/take) from the remote view.
 - **Investigation scope**: determine whether this is a UI-only limitation of the native read-only radial backpack view or a missing cross-player container-action path (remote take / move into / out of nested containers). Do not add a separate copy/move UI before the existing remote-take operation matrix is clear; the take/transfer path must remain consistent with the host decision surface.
 - **Related surfaces**: remote backpack view, native radial backpack focus path, `OnlineUi` remote inventory panels, `AllowRemoteInventoryTake`, container/nested container rows.
-
-### Container contents disappear after guest views host inventory (trash bag etc.)
-
-- **Reported**: 2026-08-27.
-- **Observed**: host loads a `waterbottle` and `dogfood` into a `trashbag`; guest opens the host's inventory and briefly sees the bag's storage/filled indicator; the indicator then disappears on the guest; when the host later opens the bag it is empty.
-- **Classification**: likely a container-content sync/state-family defect, not a one-off visual regression. It must be investigated end-to-end before any code change.
-- **Required mechanism inventory** (root-cause investigation, not symptom patch):
-  - item instance-id allocation and world → carried → container transitions: `ContainerItemSync`, `ItemWorldSync`, `PickupSync`, `ItemApplication`, `ItemStateCodec`;
-  - carried container `Contents` capture/apply, nested-content events, and `CharacterItemMsg` restore paths;
-  - the remote inventory read path: which fact/table feeds the guest's "storage bar" and why it later clears;
-  - host-side authoritative bag after the guest opened the remote view: which message/apply could unload, destroy, or re-materialize the contents;
-  - transfer-table / accept-with-correction interactions, snapshot reconciliation, world-entry fanout, and reconnect paths;
-  - races between remote container view and `1 Hz` `CharacterDataMsg`, periodic item snapshots, and state streams.
-- **Acceptance**: a before-red reproduction test (or documented harness blocker) that pins the full sequence; the fix must not be limited to re-showing the storage bar. The root-cause explanation must account for why the host's own bag ended up empty.
 
 ### Host body orientation stuck after piggyback Drop (cannot flip)
 

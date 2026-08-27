@@ -244,7 +244,28 @@ internal sealed class ItemMessageFlowService(
 		if (_session.Role == SessionRole.Host)
 		{
 			var trafficLabel = _itemTrafficLabel(itemId);
+			var isWorldItem = _worldTable.ContainsKey(itemId);
+			var isOwnedCarriedItem = _arbitration.IsTransferredToGuest(sender, itemId);
+			if (!isWorldItem && !isOwnedCarriedItem)
+			{
+				// A destroy report is only authoritative for a world item (any
+				// peer may witness it) or a carried item the SENDER owns. A
+				// remote-clone display proxy's OnDestroy used to report the
+				// owner's real carried ids (the proxy children carry those ids);
+				// accepting such a report for an item the sender does not own
+				// would let a viewer empty the owner's bag through the host.
+				_log.LogWarning("Item destroy {ItemId} from {Sender} ignored — not a world item and not owned by the sender.",
+					itemId, sender);
+				return;
+			}
+
 			_worldTable.Remove(itemId);
+			if (isOwnedCarriedItem)
+			{
+				_arbitration.RemoveTransferred(sender, itemId);
+				_log.LogInformation("Item destroy {ItemId} from owner {Sender} — removed from the transfer table.", itemId, sender);
+			}
+
 			_session.BroadcastExcept(sender, NetMsg.ItemDestroy, new ItemDestroyMsg { ItemId = itemId });
 			_recordTraffic(ItemTrafficKind.Destroy, trafficLabel);
 		}

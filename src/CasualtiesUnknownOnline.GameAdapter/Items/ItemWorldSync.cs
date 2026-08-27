@@ -4,6 +4,7 @@ using CommitStatus = CasualtiesUnknownOnline.GameAdapter.Items.ItemReportCommitt
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
+using CasualtiesUnknownOnline.GameAdapter.Character;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.GameAdapter.Tutorial;
 using Microsoft.Extensions.Logging;
@@ -250,6 +251,18 @@ internal sealed class ItemWorldSync(
 	{
 		if (IsRemoteApply || HarmonyTraverse.IsGenerating() || _suppressDestroys)
 		{
+			return;
+		}
+
+		// Remote clone inventory renders are display proxies. Their OnDestroy
+		// (the renderer prunes/replaces proxy children every snapshot) is not a
+		// player operation and must never report a destroy for the owner's real
+		// instance id — a guest destroying its clone of the host's bag contents
+		// used to delete the host's actual carried items on the host.
+		if (item.GetComponentInParent<RemoteCloneRender>() != null) // Unity object — ==
+		{
+			_log.LogDebug("[ItemDestroy] {Type} (id {ItemId}) is a remote clone display proxy — destroy not reported.",
+				item.id, item.GetComponent<ItemInstanceId>()?.Id ?? 0);
 			return;
 		}
 

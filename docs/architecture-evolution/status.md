@@ -30,7 +30,7 @@ Each completed phase should append one row here.
 | Date | Phase | Commit / artifacts | Key evidence | Handoff |
 |---|---|---|---|---|
 | 2026-08-27 | A — Shadow kernel | `91efd68` foundation; `00d6791` defect-family tests; `89eebf1` production shadow + replay differential | 1594 tests green; build/format/architecture/event/isolation gates pass; all 30 item replays produce zero kernel semantic diff | Phase B Items authority depends on this phase; not started per current scope. |
-| 2026-08-28 | B — Items authority | _(add after commit)_ | Full test suite green; architecture + item authority gates pass; item/replay diff green; capability/native-coordinator/checkpoint contracts tested | Phase C protocol/save switch is next; native coordinator patch-site absorption and full capability row expansion are Phase C follow-ups. |
+| 2026-08-28 | B — Items authority | `bf40394` | Full test suite green; architecture + item authority gates pass; item/replay diff green; capability/native-coordinator/checkpoint contracts tested | Phase C protocol/save switch is next; native coordinator patch-site absorption and full capability row expansion are Phase C follow-ups. |
 
 ## How to update this file
 

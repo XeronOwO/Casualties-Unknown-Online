@@ -3434,3 +3434,31 @@ before the owner's render clone existed it was dropped outright.
   `CharacterRagdollSyncTests` remain green; full suite 1552 green;
   build/format/architecture/event gates pass. See
   `docs/selfchecks/ragdoll-stale-state-fix-selfcheck.md`.
+
+## 120. Remote container destroy authority — display-proxy destroy containment
+
+Closed 2026-08-27 from the open bug "Container contents disappear after guest
+views host inventory (trash bag etc.)". The native remote-backpack view
+materialises recursive container contents under the remote render clone. Those
+proxy children carry the owner's real instance ids, and when the renderer
+pruned them the ordinary `Item.OnDestroy` reported those ids to the host as
+real destroys; the host then killed its own real carried contents because the
+remote destroy apply did not require a world item.
+
+- **Send-side** — `ItemWorldSync.OnItemDestroyed` skips any item inside a
+  `RemoteCloneRender` tree; `ContainerItemSync`/`ContainerItemPatches` also
+  skip display-proxy container loads/unloads/spills, so clone rendering can
+  never enter the item report chain.
+- **Host authority** — `ItemMessageFlowService.FireItemDestroyedReceived`
+  accepts a destroy only for a registered world item or a carried item the
+  sender owns; non-owner/non-world destroys are ignored and not relayed. An
+  owner's carried destroy also removes the transfer-table entry.
+- **Receive guard** — `ItemApplication.OnRemoteItemDestroyed` now requires
+  `ItemWorldSync.IsWorldItem` before killing a found object, mirroring the
+  remote-pickup guard.
+- **No wire change** — no new `NetMsg`, no `ProtocolVersion` bump, no
+  event/item/entity matrix row touched.
+- **Tests/gates** — `ItemDestroyAuthorityTests` +2 (non-owner not broadcast,
+  owner removes transfer + broadcasts); full suite 1554 green;
+  build/format/architecture/event gates pass. See
+  `docs/selfchecks/remote-container-destroy-authority-selfcheck.md`.

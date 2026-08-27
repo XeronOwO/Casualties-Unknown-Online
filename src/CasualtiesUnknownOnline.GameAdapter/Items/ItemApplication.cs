@@ -135,10 +135,22 @@ internal sealed class ItemApplication
 		using (CallContext.Enter(CallContext.Origin.RemoteApply))
 		{
 			var item = FindWorldItem(itemId);
-			if (item != null) // Unity object — ==
+			if (item == null) // Unity object — ==
 			{
-				KillRemoteItem(item);
+				return;
 			}
+
+			// A destroy report is a WORLD-item fact. A carried item or a remote
+			// clone display proxy must never be killed by a remote destroy —
+			// that is how a viewer's proxy destroy emptied the owner's real bag.
+			if (!ItemWorldSync.IsWorldItem(item)) // Unity object — ==
+			{
+				_log.LogDebug("[ItemDestroy] {Type} (id {ItemId}) is not a world item — remote destroy ignored.",
+					item.id, itemId);
+				return;
+			}
+
+			KillRemoteItem(item);
 		}
 	}
 

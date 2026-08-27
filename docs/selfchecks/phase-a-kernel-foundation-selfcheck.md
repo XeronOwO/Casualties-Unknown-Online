@@ -25,6 +25,7 @@ production shadow integration and replay differential are still open.
 |---|---|
 | `tests/CasualtiesUnknownOnline.Tests/GameState/GameStateKernelTests.cs` | spawn, duplicate operation idempotency, duplicate spawn conflict, stale revision, pickup/drop lifecycle, terminal no-resurrection, wrong epoch, Apply idempotency, checkpoint round-trip. |
 | `tests/CasualtiesUnknownOnline.Tests/GameState/ItemDomainInvariantTests.cs` | 500 random operations; unique instance ids, positive revisions, carried owner, contained parent. |
+| `tests/CasualtiesUnknownOnline.Tests/GameState/GameStateItemDefectFamilyTests.cs` | named first-slice mappings: duplicate operation, first-writer-wins conflict, duplicate drop idempotency, terminal after checkpoint restore, old-epoch rejection. |
 | `tests/CasualtiesUnknownOnline.Tests/GameState/ItemDiagnosticsProjectionTests.cs` | active facts exclude terminal, comparison reports missing/unexpected/differing facts, identical facts agree. |
 
 ## Verification

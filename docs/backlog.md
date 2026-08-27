@@ -43,6 +43,7 @@ Open work only. Landed delivery details are not duplicated here; they live in:
 - **Player-interaction line-of-sight / direct-visibility validation** — after the direct player-interaction set is complete, add a shared direct-visibility gate so remote-player actions (take/carry/piggyback/heal/use/push/recruit, and the backpack view) cannot be performed through walls or other blockers. Deferred by design until the interaction features are stable; it belongs with the later strict-validation/anti-cheat hardening, not as a per-feature patch.
 - **PVP** — LOW (reprioritized). No player-to-player damage domain today; defer until PvE, rules, and accept-first arbitration are stable.
 - **Other lower-priority KrokMP candidates** — voice, vote-kick, and remaining player-list polish.
+- **Retire legacy F7/F8/F9 session hotkeys** — the visual Online UI now covers create/join lobby and peer ping, so the leftover direct `[Session] CreateLobbyKey / JoinLobbyKey / PingPeerKey` hotkeys are redundant. Decide whether to remove the hotkey path entirely or disable/hide it by default; confirm no workflow still depends on them before deleting the config surface.
 
 ### Configuration
 

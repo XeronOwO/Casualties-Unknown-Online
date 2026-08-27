@@ -213,6 +213,7 @@ public class ItemRaceTests
 		// per-pump expiry of every unconfirmed claim after the 500 ms hold.
 		var oracleWorld = new HashSet<ulong>();
 		var oracleOwned = new HashSet<ulong>(); // transferred to G1
+		var oracleTerminal = new HashSet<ulong>();
 		var oracleRejects = new List<ulong>();
 		var oracleQueue = new List<(ulong ItemId, long QueuedAtMs)>();
 		var eventIndex = 0;
@@ -225,7 +226,11 @@ public class ItemRaceTests
 				switch (msg)
 				{
 					case NetMsg.ItemSpawn:
-						SettleSpawn(itemId, oracleWorld, oracleOwned, oracleRejects, oracleQueue);
+						if (!oracleTerminal.Contains(itemId))
+						{
+							SettleSpawn(itemId, oracleWorld, oracleOwned, oracleRejects, oracleQueue);
+						}
+
 						break;
 					case NetMsg.ItemPickup:
 						if (oracleWorld.Remove(itemId))
@@ -243,10 +248,18 @@ public class ItemRaceTests
 
 						break;
 					case NetMsg.ItemDrop:
-						SettleDrop(itemId, oracleWorld, oracleOwned, oracleRejects, oracleQueue);
+						if (!oracleTerminal.Contains(itemId))
+						{
+							SettleDrop(itemId, oracleWorld, oracleOwned, oracleRejects, oracleQueue);
+						}
+
 						break;
 					case NetMsg.ItemDestroy:
-						oracleWorld.Remove(itemId);
+						if (oracleWorld.Remove(itemId) || oracleOwned.Remove(itemId))
+						{
+							oracleTerminal.Add(itemId);
+						}
+
 						break;
 				}
 			}

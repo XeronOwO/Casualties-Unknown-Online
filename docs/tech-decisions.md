@@ -3646,3 +3646,36 @@ an Items first slice, while the old item path remains authoritative.
   replay-differential coverage; full suite 1594 green; build/format/architecture/
   event/entity/isolation gates pass. See
   `docs/selfchecks/phase-a-kernel-foundation-selfcheck.md`.
+
+## 127. Phase B — items become the first authoritative kernel domain
+
+Closed 2026-08-28. Phase B switches authority from the scattered legacy item
+tables to the typed deterministic kernel while keeping the current wire protocol
+and save untouched.
+
+- **Kernel payload** — `ItemData` (condition, favourited, slot, liquid stacks,
+  typed component fields) plus `UpdateItemStateCommand` and `TransferItemCommand`;
+  contained items are their own `ItemState` entries with parent links, so
+  container graph invariants live in the domain module.
+- **Host authority service** — `ItemKernelAuthority` replaces the Phase A shadow
+  as the single kernel-backed fact owner; it converts wire item messages to
+  kernel payloads and exposes spawn/pickup/drop/destroy/update/transfer plus
+  recursive container-content sync.
+- **Projection path** — `ItemProjection` is the only writer of `WorldItemTable`;
+  `ItemArbitration` calls the authority before mutating the transfer cache. A new
+  `tools/check-item-authority.ps1` gate rejects direct table writes outside these
+  projection surfaces and runs inside `tools/check-architecture.ps1`.
+- **Native operations** — `NativeOperationCoordinator` (GameAdapter) provides
+  Begin/Observe/Complete/Abort, one observation per operation, remote-apply
+  suppression, and run aborts. It is tested standalone; full patch-site absorption
+  is a Phase C follow-up.
+- **Capability registry** — `IItemCapability`/`ItemCapabilityRegistry` with the
+  mandated five surfaces (Capture/Restore/Equivalent/Validate/Presentation) and
+  initial saved-state, liquid, gun, and custom-data capabilities.
+- **Checkpoint** — `GameCheckpoint` already covers item payload; the temporary
+  `ItemCheckpointStore` adds in-memory save/restore until Phase C save format.
+- **Wire-free guard** — `tools/check-gamestate-isolation.ps1` now also rejects
+  Protocol DTO/protobuf/net-vector tokens in the kernel.
+- **Tests/gates** — full suite green; architecture gate (isolation + item
+  authority) passes; item/replay differential remains zero; no new wire message.
+  See `docs/selfchecks/phase-b-item-authority-selfcheck.md`.

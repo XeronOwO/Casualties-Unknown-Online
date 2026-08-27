@@ -32,15 +32,17 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 	private readonly ItemTrafficTracker _itemTraffic = new(ItemTrafficTracker.DefaultWindowMs);
 	private readonly ItemPendingPickupArbiter _pendingPickups;
 	private readonly ItemMessageFlowService _messageFlow;
-	private readonly ItemKernelShadow _kernelShadow;
+	private readonly ItemKernelAuthority _kernelAuthority;
+	private readonly ItemProjection _projection;
 
-	public ItemService(ISessionControl session, PacketSender sender, ItemArbitration arbitration, ITimeSource time, ILogger<ItemService> log, ItemKernelShadow kernelShadow)
+	public ItemService(ISessionControl session, PacketSender sender, ItemArbitration arbitration, ITimeSource time, ILogger<ItemService> log, ItemKernelAuthority kernelAuthority)
 	{
 		_session = session;
 		_sender = sender;
 		_log = log;
 		_arbitration = arbitration;
-		_kernelShadow = kernelShadow;
+		_kernelAuthority = kernelAuthority;
+		_projection = new ItemProjection(kernelAuthority, _worldTable);
 		_carriedSync = new(session, sender, log);
 		_itemActionSync = new(session, sender, arbitration, this, log);
 		_snapshots = new(session, sender, () => (IReadOnlyCollection<WorldItem>)_worldTable.Items.Values, log);
@@ -54,7 +56,7 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 			_worldTable,
 			arbitration,
 			_carriedSync,
-			_kernelShadow,
+			_projection,
 			RecordItemTraffic,
 			item => ItemSpawned?.Invoke(item),
 			itemId => ItemPickedUp?.Invoke(itemId),
@@ -70,7 +72,7 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 			_snapshots,
 			_blockDrops,
 			_pendingPickups,
-			_kernelShadow,
+			_projection,
 			RecordItemTraffic,
 			ItemTrafficLabel,
 			item => ItemSpawned?.Invoke(item),
@@ -266,32 +268,31 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 
 	public void RefreshItemState(ulong itemId, NetVector2 pos, NetVector2 vel, float rotation, float condition)
 	{
-		if (_session.Role == SessionRole.Guest || !_worldTable.TryGetValue(itemId, out var w))
+		if (_session.Role == SessionRole.Guest)
 		{
 			return;
 		}
 
-		w.Item.Condition = condition;
-		_worldTable.Set(itemId, w with { Pos = pos, Vel = vel, Rotation = rotation });
+		_projection.ApplyRefresh(itemId, pos, vel, rotation, condition);
 	}
 
 	public void SendPeriodicItemSnapshot() => _snapshots.SendPeriodicItemSnapshot();
 
 	public void ResetItems()
 	{
-		_worldTable.Clear();
+		_projection.Clear();
 		_pendingPickups.Reset();
 	}
 
 	public void ResetSessionState()
 	{
-		_worldTable.Clear();
+		_projection.Clear();
 		_pendingPickups.Reset();
 		_arbitration.ResetForSessionEnd();
 		_idCoordinator.ResetForSessionEnd();
 		_snapshots.ResetForSessionEnd();
 		_itemTraffic.Reset();
-		_kernelShadow.ResetForSession();
+		_kernelAuthority.ResetForSession();
 	}
 
 	private void OnSessionEnded() => ResetSessionState();
@@ -315,10 +316,13 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 				continue;
 			}
 
-			_worldTable.Set(entry.ItemId, new WorldItem(entry.ItemId, entry.Item,
+			var accepted = _projection.ApplySpawn(_session.LocalSteamId, entry.ItemId, entry.Item,
 				entry.Position.ToNetVector2(), entry.Velocity.ToNetVector2(),
-				entry.ParentItemId, entry.Rotation, entry.FreshItemDrop));
-			registered++;
+				entry.Rotation, entry.FreshItemDrop, entry.AngularVelocity);
+			if (accepted)
+			{
+				registered++;
+			}
 		}
 
 		_session.Broadcast(NetMsg.WorldItemsSnapshot, new WorldItemsSnapshotMsg
@@ -339,20 +343,12 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 
 	internal void RemoveWorldItemLocal(ulong itemId)
 	{
-		_worldTable.Remove(itemId);
+		_projection.ApplyDestroy(_session.LocalSteamId, itemId);
 		ItemDestroyed?.Invoke(itemId);
 	}
 
-	internal void UpdateWorldItemState(ulong itemId, CharacterItemMsg state)
-	{
-		if (_session.Role == SessionRole.Host && _worldTable.TryGetValue(itemId, out var w))
-		{
-			w.Item.Condition = state.Condition;
-			w.Item.Favourited = state.Favourited;
-			w.Item.Liquids = state.Liquids;
-			w.Item.Components = state.Components;
-		}
-	}
+	internal void UpdateWorldItemState(ulong itemId, CharacterItemMsg state) =>
+		_projection.ApplyUpdateState(_session.LocalSteamId, itemId, state);
 
 	internal void PublishCarriedSyncFor(ulong owner, CharacterItemMsg item) => PublishCarriedSync(owner, item);
 
@@ -407,7 +403,7 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 	/// <summary>Read-only world-table snapshot for the architecture shadow diagnostics (never mutates production state).</summary>
 	internal IReadOnlyList<WorldItem> GetWorldItemsForDiagnostics() => [.. _worldTable.Items.Values];
 
-	internal ItemKernelShadow KernelShadow => _kernelShadow;
+	internal ItemKernelAuthority KernelShadow => _kernelAuthority;
 
 	// ===== IItemActionWorldAccess =====
 

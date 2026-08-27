@@ -5,9 +5,10 @@ iteration: replacing scattered authority stores and hook-coupled sync paths with
 typed, deterministic game-state kernel while preserving each gameplay domain's own
 semantics.
 
-> Status: **Phase A — completed**. The typed deterministic kernel is running as a
-> shadow beside the item path, all 30 item replay files produce zero semantic diff,
-> and no online behavior has changed. Phase B is not started per current user scope.
+> Status: **Phase B — completed**. The typed deterministic kernel is now the
+> authoritative item-fact store on the host; legacy item tables are kernel-first
+> projections, the native-operation and capability surfaces are in place, and no
+> online behavior has changed. Phase C is not started per current scope.
 
 ## Why this exists
 
@@ -55,7 +56,7 @@ invariants.
 | Phase | Short name | Exit signal | Status |
 |---|---|---|---|
 | A | Shadow kernel | Replay semantic diff zero for the item slice; shadow explains known defect families; no behavior change. | Completed |
-| B | Items authority | Every item fact has one authoritative write path; old tables are projections. | Not started |
+| B | Items authority | Every item fact has one authoritative write path; old tables are projections. | Completed |
 | C | Protocol/save switch | New envelopes and checkpoint join pass network simulation; old item wire DTOs removed from production. | Not started |
 | D | Full domain migration | All persistent gameplay facts live in kernel domains; epoch isolation works. | Not started |
 | E | Delete dual architecture | No `Legacy`/`Compat`/shadow double-write/two authority tables remain. | Not started |

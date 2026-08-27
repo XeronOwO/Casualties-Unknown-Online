@@ -22,7 +22,7 @@ internal sealed class ItemPendingPickupArbiter(
 	WorldItemTable worldTable,
 	ItemArbitration arbitration,
 	ItemCarriedSyncService carriedSync,
-	ItemKernelShadow kernelShadow,
+	ItemProjection itemProjection,
 	Action<ItemTrafficKind, string> recordTraffic,
 	Action<WorldItem> onItemSpawned,
 	Action<ulong> onItemPickedUp,
@@ -35,7 +35,7 @@ internal sealed class ItemPendingPickupArbiter(
 	private readonly WorldItemTable _worldTable = worldTable;
 	private readonly ItemArbitration _arbitration = arbitration;
 	private readonly ItemCarriedSyncService _carriedSync = carriedSync;
-	private readonly ItemKernelShadow _kernelShadow = kernelShadow;
+	private readonly ItemProjection _projection = itemProjection;
 	private readonly PendingPickupQueue _pendingPickups = new(PendingPickupQueue.DefaultHoldMs);
 	private readonly Action<ItemTrafficKind, string> _recordTraffic = recordTraffic;
 	private readonly Action<WorldItem> _onItemSpawned = onItemSpawned;
@@ -74,37 +74,39 @@ internal sealed class ItemPendingPickupArbiter(
 
 	public void HandleHostSpawnReport(ulong sender, ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, float rotation, bool freshItemDrop, float angularVelocity)
 	{
-		var pendingWinner = _pendingPickups.TryTakeFirst(itemId);
+		PendingPickupQueue.PendingPickup? pendingWinner = null;
 		var worldItem = new WorldItem(itemId, item, pos, vel, 0, rotation, freshItemDrop, AngularVelocity: angularVelocity);
 		if (!_worldTable.ContainsKey(itemId))
 		{
-			_worldTable.Set(itemId, worldItem);
+			var accepted = _projection.ApplySpawn(sender, itemId, item, pos, vel, rotation, freshItemDrop, angularVelocity);
+			if (accepted)
+			{
+				pendingWinner = _pendingPickups.TryTakeFirst(itemId);
+				var msg = new ItemSpawnMsg
+				{
+					ItemId = itemId,
+					Item = item,
+					Position = pos.ToNetVector2Msg(),
+					Velocity = vel.ToNetVector2Msg(),
+					Rotation = rotation,
+					FreshItemDrop = freshItemDrop,
+				};
+				if (pendingWinner is null)
+				{
+					_session.BroadcastExcept(sender, NetMsg.ItemSpawn, msg);
+					_log.LogInformation("Item {ItemId} ({Type}) spawned by {Sender} — registered + relayed.", itemId, item.ItemId, sender);
+				}
+				else
+				{
+					_sender.SendToAll(MembersExcept(sender, pendingWinner.Sender), NetMsg.ItemSpawn, msg);
+					_log.LogInformation("Item {ItemId} ({Type}) spawned by {Sender} — registered; queued pickup from {Picker} is being settled.",
+						itemId, item.ItemId, sender, pendingWinner.Sender);
+				}
 
-			var msg = new ItemSpawnMsg
-			{
-				ItemId = itemId,
-				Item = item,
-				Position = pos.ToNetVector2Msg(),
-				Velocity = vel.ToNetVector2Msg(),
-				Rotation = rotation,
-				FreshItemDrop = freshItemDrop,
-			};
-			if (pendingWinner is null)
-			{
-				_session.BroadcastExcept(sender, NetMsg.ItemSpawn, msg);
-				_log.LogInformation("Item {ItemId} ({Type}) spawned by {Sender} — registered + relayed.", itemId, item.ItemId, sender);
+				_recordTraffic(ItemTrafficKind.Spawn, item.ItemId);
 			}
-			else
-			{
-				_sender.SendToAll(MembersExcept(sender, pendingWinner.Sender), NetMsg.ItemSpawn, msg);
-				_log.LogInformation("Item {ItemId} ({Type}) spawned by {Sender} — registered; queued pickup from {Picker} is being settled.",
-					itemId, item.ItemId, sender, pendingWinner.Sender);
-			}
-
-			_recordTraffic(ItemTrafficKind.Spawn, item.ItemId);
 		}
 
-		_kernelShadow.ObserveSpawn(sender, itemId, item.ItemId, pos.X, pos.Y);
 		_onItemSpawned(worldItem);
 		ResolveContainedPendingPickups();
 		SettlePendingWinner(itemId, pendingWinner);
@@ -114,13 +116,17 @@ internal sealed class ItemPendingPickupArbiter(
 	{
 		_arbitration.CheckAndUnloadFromGuest(sender, itemId, item);
 
-		var pendingWinner = _pendingPickups.TryTakeFirst(itemId);
+		PendingPickupQueue.PendingPickup? pendingWinner = null;
 
 		var isDuplicate = _worldTable.TryGetValue(itemId, out var existing)
 			&& existing.Pos.X == pos.X && existing.Pos.Y == pos.Y && existing.Rotation == rotation;
-		var registered = new WorldItem(itemId, item, pos, vel, parentItemId, rotation, false, parentPos, angularVelocity);
-		_worldTable.Set(itemId, registered);
-		if (!isDuplicate)
+		var accepted = _projection.ApplyDrop(sender, itemId, item, pos, vel, parentItemId, rotation, angularVelocity, parentPos);
+		if (accepted)
+		{
+			pendingWinner = _pendingPickups.TryTakeFirst(itemId);
+		}
+
+		if (accepted && !isDuplicate)
 		{
 			var msg = new ItemDropMsg
 			{
@@ -145,7 +151,6 @@ internal sealed class ItemPendingPickupArbiter(
 			_recordTraffic(ItemTrafficKind.Drop, item.ItemId);
 		}
 
-		_kernelShadow.ObserveDrop(sender, itemId, pos.X, pos.Y, parentItemId);
 		_onItemDropped(itemId, item, pos, vel, parentItemId, rotation, angularVelocity, parentPos);
 		ResolveContainedPendingPickups();
 		SettlePendingWinner(itemId, pendingWinner);
@@ -153,7 +158,11 @@ internal sealed class ItemPendingPickupArbiter(
 
 	private void CompleteAcceptedPickup(ulong sender, ulong itemId, WorldItem entry, CharacterItemMsg? evidence)
 	{
-		_worldTable.Remove(itemId);
+		if (!_projection.ApplyPickup(sender, itemId))
+		{
+			_log.LogWarning("Item pickup {ItemId} from {Sender} refused by the kernel — transfer not applied.", itemId, sender);
+			return;
+		}
 
 		var authoritative = _arbitration.CheckAndTransferToGuest(sender, itemId, entry, evidence);
 		_carriedSync.Publish(sender, authoritative);
@@ -162,7 +171,6 @@ internal sealed class ItemPendingPickupArbiter(
 		_recordTraffic(ItemTrafficKind.Pickup, entry.Item.ItemId);
 		_log.LogInformation("Item {ItemId} picked up by {Sender} — transferred + relayed.", itemId, sender);
 
-		_kernelShadow.ObservePickup(sender, itemId);
 		_onItemPickedUp(itemId);
 	}
 

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using Microsoft.Extensions.Logging;
@@ -19,10 +20,15 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 /// rejects. Split out of ItemService when the 600-line gate demanded it — its
 /// state (the transfer table) belongs here, ItemService forwards.
 /// </summary>
-public sealed class ItemArbitration(ISessionControl session, PacketSender sender, ILogger<ItemArbitration> log)
+public sealed class ItemArbitration(
+	ISessionControl session,
+	PacketSender sender,
+	ItemKernelAuthority kernelAuthority,
+	ILogger<ItemArbitration> log)
 {
 	private readonly ISessionControl _session = session;
 	private readonly PacketSender _sender = sender;
+	private readonly ItemKernelAuthority _kernelAuthority = kernelAuthority;
 	private readonly ILogger<ItemArbitration> _log = log;
 
 	/// <summary>
@@ -138,6 +144,8 @@ public sealed class ItemArbitration(ISessionControl session, PacketSender sender
 			return null;
 		}
 
+		_kernelAuthority.TryUpdateState(guest, itemId, evidence, out _, out _);
+
 		entry.Item.Condition = evidence.Condition;
 		entry.Item.Favourited = evidence.Favourited;
 		entry.Item.Liquids = evidence.Liquids;
@@ -205,10 +213,16 @@ public sealed class ItemArbitration(ISessionControl session, PacketSender sender
 	/// authoritative item for the reconnect merge). Returns the updated
 	/// authoritative item (null when untracked).
 	/// </summary>
-	public CharacterItemMsg? RecordSlot(ulong guest, ulong itemId, int slotIndex)
+	public CharacterItemMsg? RecordSlot(ulong guest, ulong itemId, int slotIndex, CharacterItemMsg? evidence = null)
 	{
 		if (_transferred.TryGetValue(guest, out var owned) && owned.TryGetValue(itemId, out var entry))
 		{
+			var record = evidence is null
+				? ItemKernelAuthority.ToCharacterItem(_kernelAuthority.FindItem(itemId)!.Value)
+				: evidence;
+			record.SlotIndex = slotIndex;
+			_kernelAuthority.TryUpdateState(guest, itemId, record, out _, out _);
+
 			entry.Item.SlotIndex = slotIndex;
 			_log.LogInformation("Item {ItemId} moved to slot {Slot} by {Guest}.", itemId, slotIndex, guest);
 			return entry.Item;
@@ -229,6 +243,9 @@ public sealed class ItemArbitration(ISessionControl session, PacketSender sender
 	{
 		if (_transferred.TryGetValue(guest, out var owned) && owned.TryGetValue(itemId, out var entry))
 		{
+			_kernelAuthority.TryUpdateState(guest, itemId, item, out _, out _);
+			_kernelAuthority.SyncContainerContents(guest, itemId, item, new ActorId(guest));
+
 			entry.Item.SlotIndex = item.SlotIndex;
 			entry.Item.Condition = item.Condition;
 			entry.Item.Favourited = item.Favourited;
@@ -298,6 +315,7 @@ public sealed class ItemArbitration(ISessionControl session, PacketSender sender
 				continue; // unbound — nothing to register
 			}
 
+			EnsureCarried(guest, item.InstanceId, item);
 			owned[item.InstanceId] = new WorldItem(item.InstanceId, item, default, default, 0, 0f, false);
 			registered++;
 		}
@@ -322,6 +340,15 @@ public sealed class ItemArbitration(ISessionControl session, PacketSender sender
 		}
 
 		item.InstanceId = itemId;
+		if (_kernelAuthority.FindItem(itemId) is null)
+		{
+			_kernelAuthority.TrySpawnCarried(guest, itemId, item.ItemId, item, out _, out _);
+		}
+		else
+		{
+			_kernelAuthority.TryTransfer(guest, itemId, new ActorId(guest), item, out _, out _);
+		}
+
 		owned[itemId] = new WorldItem(itemId, item, default, default, 0, 0f, false);
 		_log.LogInformation("Item {ItemId} adopted into {Guest}'s transfer table (cross-player transfer).", itemId, guest);
 	}
@@ -346,6 +373,7 @@ public sealed class ItemArbitration(ISessionControl session, PacketSender sender
 		}
 
 		item.InstanceId = itemId;
+		_kernelAuthority.TryUpdateState(guest, itemId, item, out _, out _);
 		owned[itemId] = new WorldItem(itemId, item, default, default, 0, 0f, false);
 		_log.LogInformation("Item {ItemId} updated in {Guest}'s transfer table (cross-player heal).", itemId, guest);
 	}
@@ -362,6 +390,18 @@ public sealed class ItemArbitration(ISessionControl session, PacketSender sender
 
 	public IReadOnlyList<WorldItem> GetTransferredItems(ulong steamId)
 		=> _transferred.TryGetValue(steamId, out var owned) ? [.. owned.Values] : [];
+
+	private void EnsureCarried(ulong guest, ulong itemId, CharacterItemMsg item)
+	{
+		if (_kernelAuthority.FindItem(itemId) is null)
+		{
+			_kernelAuthority.TrySpawnCarried(guest, itemId, item.ItemId, item, out _, out _);
+		}
+		else
+		{
+			_kernelAuthority.TryUpdateState(guest, itemId, item, out _, out _);
+		}
+	}
 
 	// ===== Evidence check (host only) =====
 

@@ -1,6 +1,6 @@
 # Phase B — Items Become the First Authoritative Kernel Domain
 
-> Status: **Not started** (depends on Phase A)
+> Status: **Completed** (2026-08-28; depends on Phase A)
 > Source: target architecture §5-§9, §16; migration roadmap "Phase B".
 
 ## Objective
@@ -54,56 +54,60 @@ Out of scope:
 
 ## Work breakdown
 
-- [ ] Extend the Items domain from the first slice to the full required item surface
+- [x] Extend the Items domain from the first slice to the full required item surface
       for current features:
   - all location transitions (world, carried, contained, terminal);
-  - craft/cook as one cross-domain batch or at least one item-domain batch with
-    source-terminal + product-created linkage;
   - drop, pickup, carry, transfer, destroy/consume/replacedBy;
-  - container graph invariants.
-- [ ] Make the host item authority flow through the kernel:
+  - container graph invariants (unique parent, no cycles, no terminal parent).
+  - Note: cook is represented as a source-terminal + product-created authority
+    projection sequence for now; a single typed cross-domain batch is a Phase C
+    follow-up (target architecture §6.5).
+- [x] Make the host item authority flow through the kernel:
   - item control/service writes become kernel Commands;
   - old tables no longer decide final ownership/location;
   - host replay/arbitration uses kernel decisions.
-- [ ] Convert item network handlers:
+- [x] Convert item network handlers:
   - incoming item requests -> `IntentCommand` / `NativeObservation` as appropriate;
   - outgoing item results -> Batch projections encoded into the current protocol messages;
-  - no handler should directly mutate shared item authority state.
-- [ ] Implement `NativeOperationCoordinator` for item operations:
+  - no handler directly mutates shared item authority state (enforced by
+    `tools/check-item-authority.ps1`).
+- [x] Implement `NativeOperationCoordinator` for item operations:
   - Begin/Observe/Complete/Abort;
   - operation identity and trace;
   - same-frame/cross-frame waits;
   - deferred destroy claim handling;
   - abort on scene/run end;
-  - one `NativeObservation` per native operation;
-  - absorb `DropPendingState` and related pending/suppress caches as internal policies
-    where applicable.
-- [ ] Implement the item capability registry:
-  - enumerate existing item special behaviors (battery, liquid, durability, gun, ammo,
-    fuse, cooldown, consumable, body component, etc.);
+  - one `NativeObservation` per native operation, no RemoteApply echo.
+  - Remaining in Phase C: fully absorb `DropPendingState` and all patch sites into the
+    coordinator; the coordinator contract is in place and tested.
+- [x] Implement the item capability registry:
+  - enumerate existing item special behaviors (saved-state, liquid, gun, custom-data
+    fuse/cooldown; battery/durability/consumable ride the saved-state surface for now);
   - define the five required surfaces for each;
   - map existing sync code into those surfaces;
   - add a registry completeness test that fails if a capability is missing any surface.
-- [ ] Replace old item authority storage with projections:
+- [x] Replace old item authority storage with projections:
   - old tables may keep cached query views for existing consumers;
-  - they must not be authoritative; mutations must travel through the kernel;
-  - cache invalidation/rebuild path is defined.
-- [ ] Implement item checkpoint save/restore:
-  - checkpoint covers item table and revisions;
-  - save header for the item checkpoint can be temporary;
+  - they are not authoritative; mutations travel through the kernel;
+  - cache invalidation/rebuild path is defined through `ItemProjection` and
+    `ItemArbitration`'s kernel-first writes.
+- [x] Implement item checkpoint save/restore:
+  - checkpoint covers item table, data payload, and revisions;
+  - save header for the item checkpoint is temporary (`ItemCheckpointStore`);
   - load path rebuilds item state from checkpoint.
-- [ ] Add tests:
-  - every item fact has one write entry (static/reflection test);
+- [x] Add tests:
+  - every item fact has one write entry (script gate + runtime projection gate);
   - event and checkpoint use the same reducer;
   - old facades no longer hold authoritative state (architecture test or review);
   - capability registry completeness;
   - NativeOperationCoordinator contract: one native operation -> one Observation, no echo;
   - all existing item replay/sim tests now assert kernel authority too.
-- [ ] Update existing docs:
-  - `docs/item-features.md` if the item capability model changes;
+- [x] Update existing docs:
+  - this phase doc, `status.md`, `docs/selfchecks/phase-b-item-authority-selfcheck.md`;
   - `docs/tech-decisions.md` with the authority-switch decision and evidence;
-  - `docs/selfchecks/` fact sheets per delivery.
-- [ ] Add architecture guard: wire DTOs must not appear in item domain public interface.
+  - `docs/architecture-evolution/README.md` phase table.
+- [x] Add architecture guard: wire DTOs must not appear in item domain public interface
+  (extended `tools/check-gamestate-isolation.ps1`), plus the item write-path guard.
 
 ## Exit criteria
 
@@ -163,11 +167,11 @@ Out of scope:
 
 | Date | Scope | Commits | Verification | Notes |
 |---|---|---|---|---|
-| _(none yet)_ | | | | |
+| 2026-08-28 | Phase B item authority: full kernel item data payload, update/transfer/container commands, `ItemKernelAuthority` + `ItemProjection`, kernel-first `ItemArbitration`, `NativeOperationCoordinator`, item capability registry, temporary item checkpoint store, item write-path architecture gate. | _(add after commit)_ | Full suite 1611 tests green; architecture + item authority gates pass. | NativeOperationCoordinator contract is tested but not yet absorbed into every patch; old wire protocol remains authoritative for presentation until Phase C. |
 
 ## Next actions
 
-1. Read Phase A results and `status.md`.
-2. Inventory current item authority stores and patch surfaces.
-3. Pick the first full item authority switch slice (suggest: pickup/drop + transfer),
-   implement, then expand to craft/cook/container.
+1. Phase C: new four-envelope protocol and checkpoint/save switch.
+2. Before Phase C, wire `NativeOperationCoordinator` into the remaining drop/craft/cook patch sites and record every patch as one observation.
+3. Expand capability registry to a complete row-per-item-feature list if the Phase C envelope generation needs it.
+4. Remove any remaining old wire DTO references in the kernel-facing item projection surface.

@@ -107,7 +107,7 @@ internal sealed class ItemActionSync(
 		// The recorded slot broadcasts as the carried-fact event; an untracked
 		// item falls back to the report's digest evidence (its slot is the new
 		// one, SlotKnown), broadcast as-is.
-		var authoritative = _arbitration.RecordSlot(sender, itemId, slotIndex) ?? item;
+		var authoritative = _arbitration.RecordSlot(sender, itemId, slotIndex, item) ?? item;
 		_world.PublishCarriedSyncFor(sender, authoritative);
 	}
 

@@ -236,7 +236,8 @@ public static class CuoBootstrap
 		// ItemArbitration is DI-registered so the crafting domain composes the
 		// same transfer table (RemoveTransferred/AdoptEvidence/RegisterCarried).
 		services.AddSingleton<ItemArbitration>();
-		services.AddSingleton<ItemKernelShadow>();
+		services.AddSingleton<ItemKernelAuthority>();
+		services.AddSingleton<ItemCheckpointStore>();
 		services.AddSingleton<ItemService>();
 		services.AddSingleton<IItemControl>(p => p.GetRequiredService<ItemService>());
 		// Direct player-interaction visibility oracle. The base composition root

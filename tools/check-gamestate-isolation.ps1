@@ -53,7 +53,15 @@ $forbidden = @(
     "System.Net",
     "System.IO",
     "System.Threading",
-    "System.Random"
+    "System.Random",
+    # Phase B wire-free item domain guard: no Protocol DTO names, protobuf
+    # attributes, or network vector shapes may leak into the kernel surface.
+    "ProtoContract",
+    "CharacterItemMsg",
+    "ComponentStateMsg",
+    "LiquidStackMsg",
+    "NetVector",
+    "protobuf"
 )
 
 $sourceRoot = Join-Path $root "src\CasualtiesUnknownOnline.GameState"

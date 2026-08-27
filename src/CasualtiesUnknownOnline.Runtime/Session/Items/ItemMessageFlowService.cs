@@ -23,7 +23,7 @@ internal sealed class ItemMessageFlowService(
 	ItemSnapshotService snapshots,
 	BlockDropSync blockDrops,
 	ItemPendingPickupArbiter pendingPickups,
-	ItemKernelShadow kernelShadow,
+	ItemProjection itemProjection,
 	Action<ItemTrafficKind, string> recordTraffic,
 	Func<ulong, string> itemTrafficLabel,
 	Action<WorldItem> onItemSpawned,
@@ -42,7 +42,7 @@ internal sealed class ItemMessageFlowService(
 	private readonly ItemSnapshotService _snapshots = snapshots;
 	private readonly BlockDropSync _blockDrops = blockDrops;
 	private readonly ItemPendingPickupArbiter _pendingPickups = pendingPickups;
-	private readonly ItemKernelShadow _kernelShadow = kernelShadow;
+	private readonly ItemProjection _projection = itemProjection;
 	private readonly Action<ItemTrafficKind, string> _recordTraffic = recordTraffic;
 	private readonly Func<ulong, string> _itemTrafficLabel = itemTrafficLabel;
 	private readonly Action<WorldItem> _onItemSpawned = onItemSpawned;
@@ -58,8 +58,7 @@ internal sealed class ItemMessageFlowService(
 	{
 		if (_session.Role != SessionRole.Guest)
 		{
-			_worldTable.Set(itemId, new WorldItem(itemId, item, pos, vel, 0, rotation, freshItemDrop, AngularVelocity: angularVelocity));
-			_kernelShadow.ObserveSpawn(_session.LocalSteamId, itemId, item.ItemId, pos.X, pos.Y);
+			_projection.ApplySpawn(_session.LocalSteamId, itemId, item, pos, vel, rotation, freshItemDrop, angularVelocity);
 		}
 
 		if (!_session.SessionActive)
@@ -96,10 +95,7 @@ internal sealed class ItemMessageFlowService(
 			return;
 		}
 
-		_worldTable.Remove(sourceItemId);
-		_worldTable.Set(cookedItemId, new WorldItem(cookedItemId, item, pos, vel, 0, rotation, false, AngularVelocity: angularVelocity));
-		_kernelShadow.ObserveDestroy(_session.LocalSteamId, sourceItemId);
-		_kernelShadow.ObserveSpawn(_session.LocalSteamId, cookedItemId, item.ItemId, pos.X, pos.Y);
+		_projection.ApplyCooked(_session.LocalSteamId, sourceItemId, cookedItemId, item, pos, vel, rotation, angularVelocity);
 
 		if (!_session.SessionActive)
 		{
@@ -122,8 +118,7 @@ internal sealed class ItemMessageFlowService(
 	{
 		if (_session.Role != SessionRole.Guest)
 		{
-			_worldTable.Remove(itemId);
-			_kernelShadow.ObservePickup(_session.LocalSteamId, itemId);
+			_projection.ApplyPickup(_session.LocalSteamId, itemId);
 		}
 
 		if (!_session.SessionActive)
@@ -154,8 +149,7 @@ internal sealed class ItemMessageFlowService(
 	{
 		if (_session.Role != SessionRole.Guest)
 		{
-			_worldTable.Set(itemId, new WorldItem(itemId, item, pos, vel, parentItemId, rotation, false, parentPos, angularVelocity));
-			_kernelShadow.ObserveDrop(_session.LocalSteamId, itemId, pos.X, pos.Y, parentItemId);
+			_projection.ApplyDrop(_session.LocalSteamId, itemId, item, pos, vel, parentItemId, rotation, angularVelocity, parentPos);
 		}
 
 		if (!_session.SessionActive)
@@ -190,8 +184,7 @@ internal sealed class ItemMessageFlowService(
 		var trafficLabel = _itemTrafficLabel(itemId);
 		if (_session.Role != SessionRole.Guest)
 		{
-			_worldTable.Remove(itemId);
-			_kernelShadow.ObserveDestroy(_session.LocalSteamId, itemId);
+			_projection.ApplyDestroy(_session.LocalSteamId, itemId);
 		}
 
 		if (!_session.SessionActive)
@@ -267,14 +260,13 @@ internal sealed class ItemMessageFlowService(
 				return;
 			}
 
-			_worldTable.Remove(itemId);
 			if (isOwnedCarriedItem)
 			{
 				_arbitration.RemoveTransferred(sender, itemId);
 				_log.LogInformation("Item destroy {ItemId} from owner {Sender} — removed from the transfer table.", itemId, sender);
 			}
 
-			_kernelShadow.ObserveDestroy(sender, itemId);
+			_projection.ApplyDestroy(sender, itemId);
 			_session.BroadcastExcept(sender, NetMsg.ItemDestroy, new ItemDestroyMsg { ItemId = itemId });
 			_recordTraffic(ItemTrafficKind.Destroy, trafficLabel);
 		}
@@ -315,7 +307,8 @@ internal sealed class ItemMessageFlowService(
 		_sender.Send(targetSteamId, NetMsg.ItemReject, new ItemRejectMsg { ItemId = itemId, Rejection = reason });
 	}
 
-	public bool RegisterWorldItemIfAbsent(ulong itemId, WorldItem item) => _worldTable.RegisterIfAbsent(itemId, item);
+	public bool RegisterWorldItemIfAbsent(ulong itemId, WorldItem item) =>
+		_projection.ApplyRegisterIfAbsent(_session.LocalSteamId, item);
 
 	public bool IsWorldItemRegistered(ulong itemId) => _worldTable.ContainsKey(itemId);
 

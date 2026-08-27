@@ -53,4 +53,9 @@ are additions for the new deep architecture, not replacements.
 Guard 1 (GameState isolation) is automated by `tools/check-gamestate-isolation.ps1`
 and runs inside `tools/check-architecture.ps1`. It rejects CUO project references,
 Unity/BepInEx/Steam/network packages, raw assembly references, forbidden source
-namespaces, and ambient random/wall-clock usage in `src/CasualtiesUnknownOnline.GameState`.
+namespaces, ambient random/wall-clock usage, and (Phase B) Protocol DTO/protobuf
+tokens in `src/CasualtiesUnknownOnline.GameState`.
+
+Phase B addendum: `tools/check-item-authority.ps1` runs inside the same architecture
+gate and rejects direct mutations of `WorldItemTable`/transfer-table state outside
+the item projection classes, so old tables stay rebuildable projections.

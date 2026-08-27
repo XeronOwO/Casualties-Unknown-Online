@@ -151,5 +151,11 @@ if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
 
+# Phase B: the legacy item tables must be projections, not independent writers.
+& (Join-Path $PSScriptRoot "check-item-authority.ps1")
+if ($LASTEXITCODE -ne 0) {
+    exit $LASTEXITCODE
+}
+
 Write-Host "Architecture gate passed." -ForegroundColor Green
 exit 0

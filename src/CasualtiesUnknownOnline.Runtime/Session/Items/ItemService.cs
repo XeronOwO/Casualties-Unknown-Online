@@ -46,6 +46,7 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 		_kernelAuthority = kernelAuthority;
 		_kernelProtocol = kernelProtocol;
 		_kernelProtocol.ItemMovesReceived += OnItemMovesReceived;
+		_kernelAuthority.ExternalBatchCommitted += OnExternalBatchCommitted;
 		_kernelAuthority.BatchApplied += OnBatchApplied;
 		_kernelAuthority.CheckpointRestored += OnCheckpointRestored;
 		_projection = new ItemProjection(kernelAuthority, _worldTable);
@@ -321,6 +322,7 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 	public void Dispose()
 	{
 		_kernelProtocol.ItemMovesReceived -= OnItemMovesReceived;
+		_kernelAuthority.ExternalBatchCommitted -= OnExternalBatchCommitted;
 		_kernelAuthority.BatchApplied -= OnBatchApplied;
 		_kernelAuthority.CheckpointRestored -= OnCheckpointRestored;
 		_session.SessionEnded -= OnSessionEnded;
@@ -433,6 +435,16 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 	internal ItemKernelAuthority KernelShadow => _kernelAuthority;
 
 	// ===== Phase C guest batch projection =====
+
+	private void OnExternalBatchCommitted(CommittedBatch batch)
+	{
+		if (_session.Role != SessionRole.Host)
+		{
+			return;
+		}
+
+		_kernelBatchProjection.Apply(batch);
+	}
 
 	private void OnBatchApplied(CommittedBatch batch)
 	{

@@ -27,6 +27,7 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 	private readonly ILogger<KernelProtocolService> _log;
 	private readonly List<CommittedBatch> _journal = [];
 	private readonly Dictionary<int, WireCheckpoint> _checkpointChunks = [];
+	private readonly Dictionary<ulong, CommittedBatch> _pendingBatches = [];
 	private long _nextMessageId;
 
 	public KernelProtocolService(
@@ -175,6 +176,7 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 	{
 		_journal.Clear();
 		_checkpointChunks.Clear();
+		_pendingBatches.Clear();
 		_nextMessageId = 0;
 	}
 
@@ -249,6 +251,12 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 		{
 			_log.LogWarning("Command from {Sender} has epoch {Epoch}; current is {Current} — dropped.",
 				sender, envelope.Header.RunEpoch, currentEpoch);
+			return;
+		}
+
+		if (envelope.Command.Kind == WireCommandKind.RangeRequest)
+		{
+			HandleRangeRequest(sender, envelope.Command);
 			return;
 		}
 
@@ -337,10 +345,20 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 		var expected = _authority.CurrentGlobalRevision + 1;
 		if (batch.GlobalRevision > expected)
 		{
-			_log.LogWarning("Batch from {Sender} creates a revision gap: expected {Expected}, received {Received} — requesting checkpoint.",
+			_log.LogWarning("Batch from {Sender} creates a revision gap: expected {Expected}, received {Received} — buffering and requesting range.",
 				sender, expected, batch.GlobalRevision);
-			// Gap handling is completed by the checkpoint path; this service
-			// leaves the gap to the reconnect/checkpoint fallback for now.
+			_pendingBatches[batch.GlobalRevision] = batch;
+			RequestRange(expected, batch.GlobalRevision - 1);
+			return;
+		}
+
+		ApplyBatchAndDrain(batch, sender);
+	}
+
+	private void ApplyBatchAndDrain(CommittedBatch batch, ulong sender)
+	{
+		if (batch.GlobalRevision < _authority.CurrentGlobalRevision + 1)
+		{
 			return;
 		}
 
@@ -348,12 +366,97 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 		if (!result.Success)
 		{
 			_log.LogWarning("Applying batch from {Sender} failed: {Message}", sender, result.Error);
+			return;
 		}
-		else
+
+		_log.LogDebug("Applied kernel batch {Operation} revision {Revision} from {Sender}.",
+			batch.OperationId.Value, batch.GlobalRevision, sender);
+
+		while (_pendingBatches.TryGetValue(_authority.CurrentGlobalRevision + 1, out var next))
 		{
-			_log.LogDebug("Applied kernel batch {Operation} revision {Revision} from {Sender}.",
-				batch.OperationId.Value, batch.GlobalRevision, sender);
+			_pendingBatches.Remove(_authority.CurrentGlobalRevision + 1);
+			var nextResult = _authority.Apply(next);
+			if (!nextResult.Success)
+			{
+				_log.LogWarning("Applying buffered kernel batch {Operation} revision {Revision} failed: {Message}",
+					next.OperationId.Value, next.GlobalRevision, nextResult.Error);
+				break;
+			}
+
+			_log.LogDebug("Applied buffered kernel batch {Operation} revision {Revision}.",
+				next.OperationId.Value, next.GlobalRevision);
 		}
+	}
+
+	private void RequestRange(ulong start, ulong end)
+	{
+		if (_session.Role != SessionRole.Guest || !_session.SessionActive || _session.HostSteamId == 0)
+		{
+			return;
+		}
+
+		SendCommand(new WireCommand
+		{
+			Kind = WireCommandKind.RangeRequest,
+			RangeStart = start,
+			RangeEnd = end,
+		}, WirePayloadType.RangeRequestCommand);
+	}
+
+	private void HandleRangeRequest(ulong sender, WireCommand command)
+	{
+		var start = command.RangeStart;
+		var end = command.RangeEnd;
+		if (start > end || start == 0)
+		{
+			_log.LogWarning("Ignoring invalid range request from {Sender}: {Start}..{End}.", sender, start, end);
+			return;
+		}
+
+		if (_journal.Count == 0)
+		{
+			SendCheckpoint(sender);
+			return;
+		}
+
+		var first = _journal[0].GlobalRevision;
+		var last = _journal[_journal.Count - 1].GlobalRevision;
+		if (start < first || end > last)
+		{
+			_log.LogInformation("Range request {Start}..{End} from {Sender} is outside journal {First}..{Last} — sending fresh checkpoint.",
+				start, end, sender, first, last);
+			SendCheckpoint(sender);
+			return;
+		}
+
+		var batches = _journal.Where(b => b.GlobalRevision >= start && b.GlobalRevision <= end).ToList();
+		if (batches.Count == 0)
+		{
+			SendCheckpoint(sender);
+			return;
+		}
+
+		foreach (var batch in batches)
+		{
+			SendBatchTo(sender, batch);
+		}
+
+		_log.LogInformation("Sent {Count} journal batch(es) {Start}..{End} to {Sender}.",
+			batches.Count, start, end, sender);
+	}
+
+	private void SendBatchTo(ulong targetSteamId, CommittedBatch batch)
+	{
+		var frame = new ProtocolFrame
+		{
+			Kind = EnvelopeKind.CommittedBatch,
+			CommittedBatch = new CommittedBatchEnvelope
+			{
+				Header = CreateHeader(WirePayloadType.CommittedBatch, batch.OperationId.Value, batch),
+				Batch = KernelWireMapper.ToWireBatch(batch),
+			},
+		};
+		_sender.Send(targetSteamId, NetMsg.KernelEnvelope, frame);
 	}
 
 	private void HandleCheckpoint(CheckpointEnvelope envelope)

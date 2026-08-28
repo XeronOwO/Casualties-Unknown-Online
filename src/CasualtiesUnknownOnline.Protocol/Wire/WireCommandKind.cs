@@ -12,4 +12,7 @@ public enum WireCommandKind
 	ItemDestroy = 4,
 	ItemUpdateState = 5,
 	ItemTransfer = 6,
+
+	// Protocol control (not a gameplay command)
+	RangeRequest = 100,
 }

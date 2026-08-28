@@ -41,6 +41,9 @@ public sealed class ItemKernelAuthority(ILogger<ItemKernelAuthority> log)
 	/// <summary>Raised after a remote/replay batch is applied to this authority's kernel (guest side).</summary>
 	public event Action<CommittedBatch>? BatchApplied;
 
+	/// <summary>Raised after a checkpoint restore replaces the kernel state.</summary>
+	public event Action<GameCheckpoint>? CheckpointRestored;
+
 	// ===== Query =====
 
 	public ItemState? FindItem(ulong instanceId) => _kernel.FindItem(instanceId);
@@ -49,7 +52,18 @@ public sealed class ItemKernelAuthority(ILogger<ItemKernelAuthority> log)
 
 	public GameCheckpoint CreateCheckpoint() => _kernel.CreateCheckpoint();
 
-	public RestoreResult Restore(GameCheckpoint checkpoint) => _kernel.Restore(checkpoint);
+	public RestoreResult Restore(GameCheckpoint checkpoint)
+	{
+		var result = _kernel.Restore(checkpoint);
+		if (!result.Success)
+		{
+			return result;
+		}
+
+		_appliedOperations.Clear();
+		CheckpointRestored?.Invoke(checkpoint);
+		return result;
+	}
 
 	/// <summary>Replay/guest side: apply an already-committed batch idempotently.</summary>
 	public ApplyResult Apply(CommittedBatch batch)

@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using CasualtiesUnknownOnline.GameState;
+using CasualtiesUnknownOnline.Protocol.Wire;
 using Microsoft.Extensions.Logging;
 using ProtoBuf;
 
@@ -43,6 +44,7 @@ public sealed class KernelSaveFileStore(string? filePath, ILogger<KernelSaveFile
 				CreatedAtTicks = DateTime.UtcNow.Ticks,
 			},
 			Items = [.. checkpoint.Items.Select(KernelWireMapper.ToWireItem)],
+			RandomStreams = [.. checkpoint.RandomStreams?.Select(ToWireRandomStream) ?? []],
 		};
 
 		return WriteAtomically(file);
@@ -82,7 +84,8 @@ public sealed class KernelSaveFileStore(string? filePath, ILogger<KernelSaveFile
 			checkpoint = new GameCheckpoint(
 				new RunEpoch(file.Header.RunEpoch),
 				file.Header.GlobalRevision,
-				[.. file.Items.Select(KernelWireMapper.FromWireItem)]);
+				[.. file.Items.Select(KernelWireMapper.FromWireItem)],
+				[.. file.RandomStreams.Select(FromWireRandomStream)]);
 			_log.LogInformation("Loaded kernel checkpoint from {Path}: epoch {Epoch}, revision {Revision}, items {Items}.",
 				_filePath, checkpoint.RunEpoch.Value, checkpoint.GlobalRevision, checkpoint.Items.Count);
 			return true;
@@ -93,6 +96,17 @@ public sealed class KernelSaveFileStore(string? filePath, ILogger<KernelSaveFile
 			return false;
 		}
 	}
+
+	private static WireRandomStream ToWireRandomStream(RandomStreamState state) =>
+		new()
+		{
+			Name = state.Name,
+			State = state.State,
+			DecidedValues = [.. state.DecidedValues],
+		};
+
+	private static RandomStreamState FromWireRandomStream(WireRandomStream stream) =>
+		new(stream.Name, stream.State, [.. stream.DecidedValues]);
 
 	private bool WriteAtomically(KernelSaveFile file)
 	{

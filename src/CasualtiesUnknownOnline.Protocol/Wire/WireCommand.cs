@@ -29,4 +29,10 @@ public sealed class WireCommand
 
 	[ProtoMember(7)]
 	public WireTerminalKind TerminalKind { get; set; }
+
+	[ProtoMember(8)]
+	public ulong RangeStart { get; set; }
+
+	[ProtoMember(9)]
+	public ulong RangeEnd { get; set; }
 }

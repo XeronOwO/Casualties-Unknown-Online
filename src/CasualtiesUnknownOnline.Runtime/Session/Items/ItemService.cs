@@ -47,6 +47,7 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 		_kernelAuthority = kernelAuthority;
 		_kernelProtocol = kernelProtocol;
 		_kernelAuthority.BatchApplied += OnBatchApplied;
+		_kernelAuthority.CheckpointRestored += OnCheckpointRestored;
 		_projection = new ItemProjection(kernelAuthority, _worldTable);
 		_kernelBatchProjection = new KernelBatchItemProjection(
 			kernelAuthority,
@@ -314,6 +315,7 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 	public void Dispose()
 	{
 		_kernelAuthority.BatchApplied -= OnBatchApplied;
+		_kernelAuthority.CheckpointRestored -= OnCheckpointRestored;
 		_session.SessionEnded -= OnSessionEnded;
 	}
 
@@ -433,6 +435,16 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 		}
 
 		_kernelBatchProjection.Apply(batch);
+	}
+
+	private void OnCheckpointRestored(GameCheckpoint checkpoint)
+	{
+		if (_session.Role != SessionRole.Guest)
+		{
+			return;
+		}
+
+		_kernelBatchProjection.Rebuild(checkpoint);
 	}
 
 	// ===== IItemActionWorldAccess =====

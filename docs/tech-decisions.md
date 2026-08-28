@@ -3709,6 +3709,13 @@ decisions of the first cycle so a later session can continue from a stable base.
   Cook remains a legacy projection until a single cross-domain cook batch lands.
 - **Save** — `KernelSaveFileStore` writes `SaveHeader` + `GameCheckpoint` items
   atomically and rejects unknown/corrupt files; no old DTO migration.
-- **Tests/gates** — full suite 1637 green; architecture, event-replay, and
+- **Range recovery** — guest buffers out-of-order committed batches and sends
+  `RangeRequestCommand`; the host serves journal ranges or falls back to a fresh
+  checkpoint when the range is outside the journal window.
+- **Random streams** — `GameCheckpoint`/wire checkpoint/save now carry named
+  `RandomStreamState`/`WireRandomStream` records; round-trip tests cover them.
+- **Projection rebuild** — checkpoint restore raises `CheckpointRestored` and the
+  guest world projection rebuilds from the authoritative checkpoint.
+- **Tests/gates** — full suite 1643 green; architecture, event-replay, and
   entity-dispatch gates pass. See
   `docs/selfchecks/phase-c-protocol-core-selfcheck.md`.

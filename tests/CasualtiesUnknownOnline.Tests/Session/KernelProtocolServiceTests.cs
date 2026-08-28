@@ -288,6 +288,103 @@ public class KernelProtocolServiceTests
 	}
 
 	[Fact]
+	public void Guest_CheckpointRebuild_RestoresDroppedWorldProjection()
+	{
+		var (_, host, guest) = HandshakeTests.CreateHostAndGuest();
+		host.Steam.FireLobbyCreated(LobbyId);
+		host.Steam.LobbyMembers = [HostId, GuestId];
+		guest.Steam.FireLobbyEntered(LobbyId);
+
+		var hostAuthority = host.Services.GetRequiredService<ItemKernelAuthority>();
+		hostAuthority.ObserveSpawn(HostId, 42, "water", 1f, 2f);
+		Assert.Contains(guest.Services.GetRequiredService<ItemService>().GetWorldItemsForDiagnostics(), w => w.ItemId == 42);
+
+		// Drop the guest's world projection (simulates a projection failure).
+		guest.Services.GetRequiredService<ItemService>().ResetItems();
+		Assert.Empty(guest.Services.GetRequiredService<ItemService>().GetWorldItemsForDiagnostics());
+
+		// A fresh checkpoint must rebuild the projection from authoritative state.
+		var hostKernel = host.Services.GetRequiredService<IKernelProtocolControl>();
+		hostKernel.SendCheckpoint(GuestId);
+
+		Assert.Contains(guest.Services.GetRequiredService<ItemService>().GetWorldItemsForDiagnostics(), w => w.ItemId == 42);
+	}
+
+	[Fact]
+	public void KernelProtocol_UnderLatencyAndDuplicates_Converges()
+	{
+		var (network, host, guest) = HandshakeTests.CreateHostAndGuest();
+		host.Steam.FireLobbyCreated(LobbyId);
+		host.Steam.LobbyMembers = [HostId, GuestId];
+		guest.Steam.FireLobbyEntered(LobbyId);
+		network.SetFaults(GuestId, HostId, new LinkFaults { DelayMs = 40, Duplicate = true });
+		network.SetFaults(HostId, GuestId, new LinkFaults { DelayMs = 40, Duplicate = true });
+
+		guest.Services.GetRequiredService<ItemService>().SendItemSpawned(
+			42,
+			new CharacterItemMsg { ItemId = "water", Condition = 0.8f },
+			new NetVector2(1f, 2f),
+			NetVector2.Zero,
+			0f,
+			false,
+			0f);
+
+		var driver = new SimulationDriver(guest.Clock, network, host, guest);
+		var hostAuthority = host.Services.GetRequiredService<ItemKernelAuthority>();
+		var guestAuthority = guest.Services.GetRequiredService<ItemKernelAuthority>();
+		driver.TickUntil(() => hostAuthority.FindItem(42) is not null && guestAuthority.FindItem(42) is not null,
+			maxMs: 1000);
+
+		var guestWorld = guest.Services.GetRequiredService<ItemService>().GetWorldItemsForDiagnostics();
+		Assert.Contains(guestWorld, w => w.ItemId == 42);
+	}
+
+	[Fact]
+	public void Host_RangeRequest_SendsMissingJournalBatches()
+	{
+		var (_, host, guest) = HandshakeTests.CreateHostAndGuest();
+		host.Steam.FireLobbyCreated(LobbyId);
+		var hostAuthority = host.Services.GetRequiredService<ItemKernelAuthority>();
+		hostAuthority.ObserveSpawn(HostId, 42, "water", 1f, 2f);
+		hostAuthority.ObserveSpawn(HostId, 43, "water", 3f, 4f);
+
+		var received = new List<ProtocolFrame>();
+		guest.Transport.MessageReceived += (_, frame) =>
+		{
+			if ((NetMsg)frame[0] == NetMsg.KernelEnvelope)
+			{
+				received.Add(NetPacket.DecodePayload<ProtocolFrame>(frame));
+			}
+		};
+
+		var kernel = host.Services.GetRequiredService<IKernelProtocolControl>();
+		kernel.HandleFrame(GuestId, RangeRequestFrame(1, 1));
+
+		Assert.Contains(received, f => f.CommittedBatch?.Batch.GlobalRevision == 1);
+		Assert.DoesNotContain(received, f => f.CommittedBatch?.Batch.GlobalRevision == 2);
+	}
+
+	[Fact]
+	public void Guest_BuffersOutOfOrderBatch_AndAppliesAfterMissingRange()
+	{
+		var (_, host, guest) = HandshakeTests.CreateHostAndGuest();
+		host.Steam.FireLobbyCreated(LobbyId);
+		host.Steam.LobbyMembers = [HostId, GuestId];
+		guest.Steam.FireLobbyEntered(LobbyId);
+
+		var kernel = guest.Services.GetRequiredService<IKernelProtocolControl>();
+		kernel.HandleFrame(HostId, BatchFrame(SpawnWireBatch(globalRevision: 2, itemId: 43)));
+
+		var guestAuthority = guest.Services.GetRequiredService<ItemKernelAuthority>();
+		Assert.Null(guestAuthority.FindItem(43));
+
+		kernel.HandleFrame(HostId, BatchFrame(SpawnWireBatch(globalRevision: 1, itemId: 42)));
+
+		Assert.NotNull(guestAuthority.FindItem(42));
+		Assert.NotNull(guestAuthority.FindItem(43));
+	}
+
+	[Fact]
 	public void Host_DirectPickupCommand_ResolvesRevision()
 	{
 		var (_, host, _) = HandshakeTests.CreateHostAndGuest();
@@ -358,6 +455,47 @@ public class KernelProtocolServiceTests
 		Assert.Equal(ItemLocationKind.Carried, hostAuthority.FindItem(42)!.Value.Location.Kind);
 	}
 
+	private static ProtocolFrame RangeRequestFrame(ulong start, ulong end) =>
+		new()
+		{
+			Kind = EnvelopeKind.Command,
+			Command = new CommandEnvelope
+			{
+				Header = new EnvelopeHeader
+				{
+					ProtocolVersion = ProtocolConstants.EnvelopeVersion,
+					RunEpoch = 1,
+					SenderId = GuestId,
+					OperationId = 300,
+					PayloadType = WirePayloadType.RangeRequestCommand,
+				},
+				Command = new WireCommand
+				{
+					Kind = WireCommandKind.RangeRequest,
+					RangeStart = start,
+					RangeEnd = end,
+				},
+			},
+		};
+
+	private static ProtocolFrame BatchFrame(WireCommittedBatch batch) =>
+		new()
+		{
+			Kind = EnvelopeKind.CommittedBatch,
+			CommittedBatch = new CommittedBatchEnvelope
+			{
+				Header = new EnvelopeHeader
+				{
+					ProtocolVersion = ProtocolConstants.EnvelopeVersion,
+					RunEpoch = batch.RunEpoch,
+					SenderId = HostId,
+					OperationId = batch.OperationId,
+					PayloadType = WirePayloadType.CommittedBatch,
+				},
+				Batch = batch,
+			},
+		};
+
 	private static ProtocolFrame SpawnCommandFrame() =>
 		new()
 		{
@@ -382,10 +520,10 @@ public class KernelProtocolServiceTests
 			},
 		};
 
-	private static WireCommittedBatch SpawnWireBatch(ulong globalRevision, ulong runEpoch = 1) =>
+	private static WireCommittedBatch SpawnWireBatch(ulong globalRevision, ulong runEpoch = 1, ulong itemId = 42) =>
 		new()
 		{
-			OperationId = 7,
+			OperationId = globalRevision,
 			GlobalRevision = globalRevision,
 			Actor = HostId,
 			Authority = (int)AuthorityKind.HostOnly,
@@ -395,7 +533,7 @@ public class KernelProtocolServiceTests
 				new WireEvent
 				{
 					Kind = WireEventKind.ItemSpawned,
-					Identity = new WireItemIdentity { InstanceId = 42, DefinitionId = "water" },
+					Identity = new WireItemIdentity { InstanceId = itemId, DefinitionId = "water" },
 					NewRevision = 1,
 					NewLocation = new WireItemLocation { Kind = WireItemLocationKind.World, X = 1f, Y = 2f },
 					NewData = new WireItemData { Condition = 0.8f },

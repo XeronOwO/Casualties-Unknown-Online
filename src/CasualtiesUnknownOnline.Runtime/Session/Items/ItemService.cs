@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Time;
@@ -34,15 +35,27 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 	private readonly ItemMessageFlowService _messageFlow;
 	private readonly ItemKernelAuthority _kernelAuthority;
 	private readonly ItemProjection _projection;
+	private readonly KernelBatchItemProjection _kernelBatchProjection;
+	private readonly IKernelProtocolControl _kernelProtocol;
 
-	public ItemService(ISessionControl session, PacketSender sender, ItemArbitration arbitration, ITimeSource time, ILogger<ItemService> log, ItemKernelAuthority kernelAuthority)
+	public ItemService(ISessionControl session, PacketSender sender, ItemArbitration arbitration, ITimeSource time, ILogger<ItemService> log, ItemKernelAuthority kernelAuthority, IKernelProtocolControl kernelProtocol)
 	{
 		_session = session;
 		_sender = sender;
 		_log = log;
 		_arbitration = arbitration;
 		_kernelAuthority = kernelAuthority;
+		_kernelProtocol = kernelProtocol;
+		_kernelAuthority.BatchApplied += OnBatchApplied;
 		_projection = new ItemProjection(kernelAuthority, _worldTable);
+		_kernelBatchProjection = new KernelBatchItemProjection(
+			kernelAuthority,
+			_worldTable,
+			item => ItemSpawned?.Invoke(item),
+			itemId => ItemPickedUp?.Invoke(itemId),
+			(itemId, item, pos, vel, parentItemId, rotation, angularVelocity, parentPos) =>
+				ItemDropped?.Invoke(itemId, item, pos, vel, parentItemId, rotation, angularVelocity, parentPos),
+			itemId => ItemDestroyed?.Invoke(itemId));
 		_carriedSync = new(session, sender, log);
 		_itemActionSync = new(session, sender, arbitration, this, log);
 		_snapshots = new(session, sender, () => (IReadOnlyCollection<WorldItem>)_worldTable.Items.Values, log);
@@ -80,7 +93,8 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 			(itemId, item, pos, vel, parentItemId, rotation, angularVelocity, parentPos) => ItemDropped?.Invoke(itemId, item, pos, vel, parentItemId, rotation, angularVelocity, parentPos),
 			itemId => ItemDestroyed?.Invoke(itemId),
 			(sourceItemId, cooked) => ItemCookedReceived?.Invoke(sourceItemId, cooked),
-			(itemId, reason) => ItemRejected?.Invoke(itemId, reason));
+			(itemId, reason) => ItemRejected?.Invoke(itemId, reason),
+			_kernelProtocol);
 
 		session.SessionEnded += OnSessionEnded;
 	}
@@ -297,7 +311,11 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 
 	private void OnSessionEnded() => ResetSessionState();
 
-	public void Dispose() => _session.SessionEnded -= OnSessionEnded;
+	public void Dispose()
+	{
+		_kernelAuthority.BatchApplied -= OnBatchApplied;
+		_session.SessionEnded -= OnSessionEnded;
+	}
 
 	// ===== Generation-time items =====
 
@@ -404,6 +422,18 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 	internal IReadOnlyList<WorldItem> GetWorldItemsForDiagnostics() => [.. _worldTable.Items.Values];
 
 	internal ItemKernelAuthority KernelShadow => _kernelAuthority;
+
+	// ===== Phase C guest batch projection =====
+
+	private void OnBatchApplied(CommittedBatch batch)
+	{
+		if (_session.Role != SessionRole.Guest)
+		{
+			return;
+		}
+
+		_kernelBatchProjection.Apply(batch);
+	}
 
 	// ===== IItemActionWorldAccess =====
 

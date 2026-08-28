@@ -17,11 +17,13 @@ public sealed class WorldEntryFanout(
 	IWorldControl world,
 	IItemControl items,
 	IEnemySyncControl enemies,
+	IKernelProtocolControl kernelProtocol,
 	ILogger<WorldEntryFanout> log)
 {
 	private readonly IWorldControl _world = world;
 	private readonly IItemControl _items = items;
 	private readonly IEnemySyncControl _enemies = enemies;
+	private readonly IKernelProtocolControl _kernelProtocol = kernelProtocol;
 	private readonly ILogger<WorldEntryFanout> _log = log;
 
 	/// <summary>
@@ -39,6 +41,7 @@ public sealed class WorldEntryFanout(
 		_world.SendBuildingEntityHealthSnapshot(steamId);
 		_world.SendTrapLayoutSnapshot(steamId);
 		_world.SendRadiationLineState(steamId);
+		_kernelProtocol.SendCheckpoint(steamId);
 		_items.SendItemSnapshot(steamId);
 		_enemies.SendEnemySnapshot(steamId);
 		_world.SendWorldSnapshotComplete(steamId);

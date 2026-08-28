@@ -1,0 +1,15 @@
+namespace CasualtiesUnknownOnline.Protocol.Wire;
+
+/// <summary>
+/// Discriminator for the typed item command payloads carried by
+/// <see cref="CommandEnvelope"/>.
+/// </summary>
+public enum WireCommandKind
+{
+	ItemSpawn = 1,
+	ItemPickup = 2,
+	ItemDrop = 3,
+	ItemDestroy = 4,
+	ItemUpdateState = 5,
+	ItemTransfer = 6,
+}

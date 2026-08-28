@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.GameState;
@@ -17,6 +18,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 public sealed class ItemKernelAuthority(ILogger<ItemKernelAuthority> log)
 {
 	private readonly ILogger<ItemKernelAuthority> _log = log;
+	private readonly HashSet<OperationId> _appliedOperations = [];
 	private GameStateKernel _kernel = new(new RunEpoch(1));
 	private RunEpoch _runEpoch = new(1);
 	private ulong _nextOperation = 1;
@@ -30,7 +32,14 @@ public sealed class ItemKernelAuthority(ILogger<ItemKernelAuthority> log)
 		_runEpoch = new RunEpoch(_runEpoch.Value + 1);
 		_kernel = new GameStateKernel(_runEpoch);
 		_nextOperation = 1;
+		_appliedOperations.Clear();
 	}
+
+	/// <summary>Raised after any accepted kernel batch commits. The Phase C protocol service broadcasts this to guests.</summary>
+	public event Action<CommittedBatch>? BatchCommitted;
+
+	/// <summary>Raised after a remote/replay batch is applied to this authority's kernel (guest side).</summary>
+	public event Action<CommittedBatch>? BatchApplied;
 
 	// ===== Query =====
 
@@ -41,6 +50,28 @@ public sealed class ItemKernelAuthority(ILogger<ItemKernelAuthority> log)
 	public GameCheckpoint CreateCheckpoint() => _kernel.CreateCheckpoint();
 
 	public RestoreResult Restore(GameCheckpoint checkpoint) => _kernel.Restore(checkpoint);
+
+	/// <summary>Replay/guest side: apply an already-committed batch idempotently.</summary>
+	public ApplyResult Apply(CommittedBatch batch)
+	{
+		if (_appliedOperations.Contains(batch.OperationId))
+		{
+			return ApplyResult.Ok();
+		}
+
+		var result = _kernel.Apply(batch);
+		if (!result.Success)
+		{
+			return result;
+		}
+
+		_appliedOperations.Add(batch.OperationId);
+		BatchApplied?.Invoke(batch);
+		return result;
+	}
+
+	/// <summary>The current authoritative global revision (checkpoint-derived).</summary>
+	public ulong CurrentGlobalRevision => _kernel.CreateCheckpoint().GlobalRevision;
 
 	// ===== Spawn =====
 
@@ -319,6 +350,13 @@ public sealed class ItemKernelAuthority(ILogger<ItemKernelAuthority> log)
 
 	private OperationId NextOperation() => new(_nextOperation++);
 
+	/// <summary>
+	/// Execute an externally supplied typed kernel command (e.g. decoded from a
+	/// Phase C CommandEnvelope). This is the host's generic command entry point.
+	/// </summary>
+	public bool TryExecuteCommand(GameCommand command, ulong actor, out CommittedBatch? batch, out Rejection? rejection) =>
+		TryExecute(command, actor, "wire-command", out batch, out rejection);
+
 	private bool TryExecute(GameCommand command, ulong actor, string label, out CommittedBatch? batch, out Rejection? rejection)
 	{
 		var decision = _kernel.Execute(command, new CommandContext(_runEpoch, new ActorId(actor)));
@@ -333,6 +371,7 @@ public sealed class ItemKernelAuthority(ILogger<ItemKernelAuthority> log)
 
 		batch = decision.Batch;
 		rejection = null;
+		BatchCommitted?.Invoke(batch!);
 		return true;
 	}
 }

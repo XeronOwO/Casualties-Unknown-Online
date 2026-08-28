@@ -123,6 +123,7 @@ public class DirectionTests
 		NetMsg.DynamiteExplosion,
 		NetMsg.Chat,
 		NetMsg.TraderSwing,
+		NetMsg.KernelEnvelope,
 	};
 
 	[Theory]

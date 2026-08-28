@@ -5,6 +5,7 @@ using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.Protocol.Versioning;
 using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Protocol;
+using CasualtiesUnknownOnline.Runtime.Time;
 using Microsoft.Extensions.Logging;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.Items;
@@ -40,13 +41,14 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 		ISessionControl session,
 		PacketSender sender,
 		ItemKernelAuthority authority,
+		ITimeSource time,
 		ILogger<KernelProtocolService> log)
 	{
 		_session = session;
 		_sender = sender;
 		_authority = authority;
 		_log = log;
-		_commandHandler = new KernelProtocolCommandHandler(session, sender, authority, log);
+		_commandHandler = new KernelProtocolCommandHandler(session, sender, authority, time, log);
 		_authority.BatchCommitted += BroadcastCommittedBatch;
 		_session.SessionEnded += ResetForSessionEnd;
 	}
@@ -239,12 +241,15 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 		}
 	}
 
+	public void PumpPendingPickups(long nowMs) => _commandHandler.PumpPendingPickups(nowMs);
+
 	public void ResetForSessionEnd()
 	{
 		_journal.Clear();
 		_checkpointChunks.Clear();
 		_pendingBatches.Clear();
 		_nextMessageId = 0;
+		_commandHandler.Reset();
 	}
 
 	private bool IsSupportedFrame(ProtocolFrame frame)

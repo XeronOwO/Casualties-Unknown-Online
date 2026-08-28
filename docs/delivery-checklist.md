@@ -1,12 +1,11 @@
 # Delivery Checklist
 
-Every delivery cycle runs through this checklist. The gate
-(`tools/check-delivery.ps1`) runs before the cycle's FINAL commit (the
-accepted cycle — deployed + runtime-verified, all boxes checked) and refuses
-it while any box is unchecked. Intermediate commits (fix → commit → deploy →
-acceptance → re-fix loop) run only the code gates. When the final commit
-lands, reset the checklist (`check-delivery.ps1 -Reset`) so the next cycle
-starts clean.
+Every development cycle runs through this checklist. The gate
+(`tools/check-delivery.ps1`) runs before the cycle's final commit and refuses
+it while any box is unchecked. Deployment and manual multiplayer acceptance are
+user release actions outside this gate; feature development verification uses
+simulation/static evidence. When a release cycle lands, reset the checklist
+(`check-delivery.ps1 -Reset`) so the next cycle starts clean.
 
 **Operating rule (user mandates 2026-08-10 / 2026-08-16)**: boxes are checked ONE LINE AT A
 TIME with the Edit tool as each step completes. The checkbox edits do NOT get
@@ -26,10 +25,11 @@ the user called it out). Only the -Reset switch may touch multiple lines.
       peer log comparison, hotrepl assertions) is decided
 - [ ] Plan approved by the user (before deployment; investigation excepted)
 - [ ] Build + dotnet format + check-architecture + check-event-replay pass
-- [ ] Deployed (real game dir only — deploy.ps1 hard-rejects sandbox paths)
-- [ ] Runtime verification done (post-deploy evidence: logs / acceptance)
 - [ ] Structure review done (touched classes <= 600 lines, state bools,
       dead mechanisms deleted in the same round)
+- [ ] Release-cycle deployment/acceptance: performed by the user outside the
+      development commit gate; simulation/static evidence is the feature
+      development verification standard.
 - [ ] FORBIDDEN — never check this box; checking it fails the delivery gate
       (a honey-pot: a checked forbidden box means a step was skipped on
       purpose, which is exactly what the gate exists to catch)

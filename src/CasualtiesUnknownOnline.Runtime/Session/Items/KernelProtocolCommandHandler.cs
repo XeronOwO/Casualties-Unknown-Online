@@ -1,9 +1,11 @@
+using System.Collections.Generic;
 using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.Protocol.Versioning;
 using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Time;
 using Microsoft.Extensions.Logging;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.Items;
@@ -18,12 +20,16 @@ internal sealed class KernelProtocolCommandHandler(
 	ISessionControl session,
 	PacketSender sender,
 	ItemKernelAuthority authority,
+	ITimeSource time,
 	ILogger log)
 {
 	private readonly ISessionControl _session = session;
 	private readonly PacketSender _sender = sender;
 	private readonly ItemKernelAuthority _authority = authority;
+	private readonly ITimeSource _time = time;
 	private readonly ILogger _log = log;
+	private readonly PendingPickupQueue _pendingPickups = new(PendingPickupQueue.DefaultHoldMs);
+	private readonly Dictionary<(ulong Sender, ulong ItemId), CommandEnvelope> _pendingEnvelopes = [];
 
 	public void Handle(ulong sender, CommandEnvelope envelope)
 	{
@@ -41,14 +47,100 @@ internal sealed class KernelProtocolCommandHandler(
 			return;
 		}
 
+		if (envelope.Command.Kind == WireCommandKind.ItemPickup
+			&& _authority.FindItem(envelope.Command.Identity.InstanceId) is null)
+		{
+			EnqueuePickup(sender, envelope);
+			return;
+		}
+
 		var command = ResolveCommandRevision(KernelWireMapper.FromWireCommand(envelope.Command, envelope.Header));
 		if (!_authority.TryExecuteCommand(command, sender, out _, out var rejection))
 		{
 			_log.LogWarning("Kernel command from {Sender} rejected: {Reason} ({Message}).",
 				sender, rejection!.Reason, rejection.Message);
 			SendCommandRejected(sender, envelope.Command, rejection.Reason);
+			return;
+		}
+
+		SettlePendingPickups(envelope.Command.Identity.InstanceId);
+	}
+
+	public void PumpPendingPickups(long nowMs)
+	{
+		foreach (var pending in _pendingPickups.TakeExpired(nowMs))
+		{
+			_pendingEnvelopes.Remove((pending.Sender, pending.ItemId));
+			if (_authority.FindItem(pending.ItemId) is null)
+			{
+				SendCommandRejected(pending.Sender, PendingIdentity(pending.ItemId), RejectionReason.UnknownAggregate);
+			}
+			else
+			{
+				SettlePendingPickups(pending.ItemId);
+			}
 		}
 	}
+
+	public void Reset() => _pendingPickups.Reset();
+
+	private void EnqueuePickup(ulong sender, CommandEnvelope envelope)
+	{
+		var itemId = envelope.Command.Identity.InstanceId;
+		if (_pendingPickups.TryEnqueue(sender, itemId, null, _time.NowMs))
+		{
+			_pendingEnvelopes[(sender, itemId)] = envelope;
+			_log.LogInformation("Item pickup {ItemId} from {Sender} queued — registration has not arrived yet (hold {HoldMs} ms).",
+				itemId, sender, PendingPickupQueue.DefaultHoldMs);
+		}
+		else
+		{
+			_log.LogWarning("Item pickup {ItemId} from {Sender} already queued — duplicate claim dropped silently.", itemId, sender);
+		}
+	}
+
+	private void SettlePendingPickups(ulong itemId)
+	{
+		while (true)
+		{
+			var pending = _pendingPickups.TryTakeFirst(itemId);
+			if (pending is null)
+			{
+				return;
+			}
+
+			var key = (pending.Sender, itemId);
+			if (!_pendingEnvelopes.TryGetValue(key, out var envelope))
+			{
+				continue;
+			}
+
+			_pendingEnvelopes.Remove(key);
+
+			if (_authority.FindItem(itemId) is null)
+			{
+				SendCommandRejected(pending.Sender, envelope.Command, RejectionReason.UnknownAggregate);
+				continue;
+			}
+
+			var command = ResolveCommandRevision(KernelWireMapper.FromWireCommand(envelope.Command, envelope.Header));
+			if (_authority.TryExecuteCommand(command, pending.Sender, out _, out var rejection))
+			{
+				foreach (var loser in _pendingPickups.TakeByItem(itemId))
+				{
+					_pendingEnvelopes.Remove((loser.Sender, itemId));
+					SendCommandRejected(loser.Sender, envelope.Command, RejectionReason.Conflict);
+				}
+
+				return;
+			}
+
+			SendCommandRejected(pending.Sender, envelope.Command, rejection!.Reason);
+		}
+	}
+
+	private static WireCommand PendingIdentity(ulong itemId) =>
+		new() { Identity = new WireItemIdentity { InstanceId = itemId } };
 
 	private void HandleMissingCarriedUpdate(ulong sender, CommandEnvelope envelope)
 	{

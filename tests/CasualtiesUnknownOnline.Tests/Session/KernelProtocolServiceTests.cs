@@ -311,6 +311,30 @@ public class KernelProtocolServiceTests
 	}
 
 	[Fact]
+	public void Disconnect_ThenReconnectWithCheckpoint_RestoresGuest()
+	{
+		var (network, host, guest) = HandshakeTests.CreateHostAndGuest();
+		host.Steam.FireLobbyCreated(LobbyId);
+		host.Steam.LobbyMembers = [HostId, GuestId];
+		guest.Steam.FireLobbyEntered(LobbyId);
+
+		network.SetFaults(HostId, GuestId, new LinkFaults { Down = true });
+		network.SetFaults(GuestId, HostId, new LinkFaults { Down = true });
+
+		var hostAuthority = host.Services.GetRequiredService<ItemKernelAuthority>();
+		hostAuthority.ObserveSpawn(HostId, 42, "water", 1f, 2f);
+		Assert.Null(guest.Services.GetRequiredService<ItemKernelAuthority>().FindItem(42));
+
+		network.ClearFaults(HostId, GuestId);
+		network.ClearFaults(GuestId, HostId);
+
+		host.Services.GetRequiredService<IKernelProtocolControl>().SendCheckpoint(GuestId);
+
+		Assert.NotNull(guest.Services.GetRequiredService<ItemKernelAuthority>().FindItem(42));
+		Assert.Contains(guest.Services.GetRequiredService<ItemService>().GetWorldItemsForDiagnostics(), w => w.ItemId == 42);
+	}
+
+	[Fact]
 	public void KernelProtocol_UnderLatencyAndDuplicates_Converges()
 	{
 		var (network, host, guest) = HandshakeTests.CreateHostAndGuest();

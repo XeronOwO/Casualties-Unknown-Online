@@ -3719,6 +3719,10 @@ decisions of the first cycle so a later session can continue from a stable base.
 - **StateStream** — item move host→guest rides `StateStreamEnvelope` (unreliable)
   and re-surfaces as `ItemMoveReceived`; the legacy `NetMsg.ItemMove` is no longer
   the production item-position send path.
+- **Host wire projection** — wire commands committed through
+  `ItemKernelAuthority.TryExecuteCommand` raise `ExternalBatchCommitted`; the
+  host projects those batches into the legacy world table, while local native
+  writes keep using `ItemProjection` (no double projection).
 - **Tests/gates** — full suite 1644 green; architecture, event-replay, and
   entity-dispatch gates pass. See
   `docs/selfchecks/phase-c-protocol-core-selfcheck.md`.

@@ -10,28 +10,23 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 /// <summary>
 /// The report/receive message-flow surface of the item domain: local-compute
 /// report sends (spawn/drop/use/cook/destroy), wire receive events, block-break
-/// drop registration and correction/action receive forwarding. Host-side
-/// pickup/spawn/drop arbitration delegates to
-/// <see cref="ItemPendingPickupArbiter"/>.
+/// drop registration and snapshot/action receive forwarding. The production
+/// item network path is the Phase C envelope protocol; the only legacy wire
+/// frame still used here is <see cref="NetMsg.ItemReject"/> for block-break
+/// drop refusal.
 /// </summary>
 internal sealed class ItemMessageFlowService(
 	ISessionControl session,
 	PacketSender sender,
 	ILogger<ItemService> log,
 	WorldItemTable worldTable,
-	ItemArbitration arbitration,
 	ItemActionSync itemActionSync,
 	ItemSnapshotService snapshots,
 	BlockDropSync blockDrops,
-	ItemPendingPickupArbiter pendingPickups,
 	ItemProjection itemProjection,
 	Action<ItemTrafficKind, string> recordTraffic,
 	Func<ulong, string> itemTrafficLabel,
 	Action<WorldItem> onItemSpawned,
-	Action<ulong> onItemPickedUp,
-	Action<ulong, CharacterItemMsg, NetVector2, NetVector2, ulong, float, float, NetVector2> onItemDropped,
-	Action<ulong> onItemDestroyed,
-	Action<ulong, WorldItem> onItemCookedReceived,
 	Action<ulong, ItemRejectMsg.Reason> onItemRejected,
 	IKernelProtocolControl kernelProtocol)
 {
@@ -40,19 +35,13 @@ internal sealed class ItemMessageFlowService(
 	private readonly PacketSender _sender = sender;
 	private readonly ILogger<ItemService> _log = log;
 	private readonly WorldItemTable _worldTable = worldTable;
-	private readonly ItemArbitration _arbitration = arbitration;
 	private readonly ItemActionSync _itemActionSync = itemActionSync;
 	private readonly ItemSnapshotService _snapshots = snapshots;
 	private readonly BlockDropSync _blockDrops = blockDrops;
-	private readonly ItemPendingPickupArbiter _pendingPickups = pendingPickups;
 	private readonly ItemProjection _projection = itemProjection;
 	private readonly Action<ItemTrafficKind, string> _recordTraffic = recordTraffic;
 	private readonly Func<ulong, string> _itemTrafficLabel = itemTrafficLabel;
 	private readonly Action<WorldItem> _onItemSpawned = onItemSpawned;
-	private readonly Action<ulong> _onItemPickedUp = onItemPickedUp;
-	private readonly Action<ulong, CharacterItemMsg, NetVector2, NetVector2, ulong, float, float, NetVector2> _onItemDropped = onItemDropped;
-	private readonly Action<ulong> _onItemDestroyed = onItemDestroyed;
-	private readonly Action<ulong, WorldItem> _onItemCookedReceived = onItemCookedReceived;
 	private readonly Action<ulong, ItemRejectMsg.Reason> _onItemRejected = onItemRejected;
 
 	// ===== Report side (local compute) =====
@@ -83,36 +72,6 @@ internal sealed class ItemMessageFlowService(
 		}
 		// Host broadcasts are unnecessary: the accepted kernel batch is already
 		// broadcast by KernelProtocolService.
-	}
-
-	public void SendItemCooked(ulong sourceItemId, ulong cookedItemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, float rotation, float angularVelocity)
-	{
-		if (_session.Role == SessionRole.Guest)
-		{
-			_log.LogWarning("ItemCook suppressed on guest (source {Source}, cooked {Cooked}) — the host owns heater conversions.", sourceItemId, cookedItemId);
-			return;
-		}
-
-		_projection.ApplyCooked(_session.LocalSteamId, sourceItemId, cookedItemId, item, pos, vel, rotation, angularVelocity);
-
-		if (!_session.SessionActive)
-		{
-			return;
-		}
-
-		// Cook is still a legacy presentation projection until Phase D's
-		// cross-domain batch; the new kernel batch also carries the item facts,
-		// but the dedicated cook event keeps the source→product link.
-		_session.Broadcast(NetMsg.ItemCook, new ItemCookMsg
-		{
-			SourceItemId = sourceItemId,
-			CookedItemId = cookedItemId,
-			Item = item,
-			Position = pos.ToNetVector2Msg(),
-			Velocity = vel.ToNetVector2Msg(),
-			Rotation = rotation,
-			AngularVelocity = angularVelocity,
-		});
 	}
 
 	public void SendItemPickedUp(ulong itemId, CharacterItemMsg? evidence = null)
@@ -234,84 +193,6 @@ internal sealed class ItemMessageFlowService(
 
 	// ===== Receive side (wire handlers) =====
 
-	public void FireItemSpawnedReceived(ulong sender, ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, float rotation, bool freshItemDrop, float angularVelocity)
-	{
-		if (_session.Role == SessionRole.Host)
-		{
-			_pendingPickups.HandleHostSpawnReport(sender, itemId, item, pos, vel, rotation, freshItemDrop, angularVelocity);
-			return;
-		}
-
-		_onItemSpawned(new WorldItem(itemId, item, pos, vel, 0, rotation, freshItemDrop, AngularVelocity: angularVelocity));
-	}
-
-	public void FireItemPickedUpReceived(ulong sender, ulong itemId, CharacterItemMsg? evidence)
-	{
-		if (_session.Role == SessionRole.Host)
-		{
-			_pendingPickups.HandleHostPickupReport(sender, itemId, evidence);
-			return;
-		}
-
-		_onItemPickedUp(itemId);
-	}
-
-	public void FireItemDroppedReceived(ulong sender, ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, ulong parentItemId, float rotation, float angularVelocity, NetVector2 parentPos = default)
-	{
-		if (_session.Role == SessionRole.Host)
-		{
-			_pendingPickups.HandleHostDropReport(sender, itemId, item, pos, vel, parentItemId, rotation, angularVelocity, parentPos);
-			return;
-		}
-
-		_onItemDropped(itemId, item, pos, vel, parentItemId, rotation, angularVelocity, parentPos);
-	}
-
-	public void FireItemDestroyedReceived(ulong sender, ulong itemId)
-	{
-		if (_session.Role == SessionRole.Host)
-		{
-			var trafficLabel = _itemTrafficLabel(itemId);
-			var isWorldItem = _worldTable.ContainsKey(itemId);
-			var isOwnedCarriedItem = _arbitration.IsTransferredToGuest(sender, itemId);
-			if (!isWorldItem && !isOwnedCarriedItem)
-			{
-				// A destroy report is only authoritative for a world item (any
-				// peer may witness it) or a carried item the SENDER owns. A
-				// remote-clone display proxy's OnDestroy used to report the
-				// owner's real carried ids (the proxy children carry those ids);
-				// accepting such a report for an item the sender does not own
-				// would let a viewer empty the owner's bag through the host.
-				_log.LogWarning("Item destroy {ItemId} from {Sender} ignored — not a world item and not owned by the sender.",
-					itemId, sender);
-				return;
-			}
-
-			if (isOwnedCarriedItem)
-			{
-				_arbitration.RemoveTransferred(sender, itemId);
-				_log.LogInformation("Item destroy {ItemId} from owner {Sender} — removed from the transfer table.", itemId, sender);
-			}
-
-			_projection.ApplyDestroy(sender, itemId);
-			_session.BroadcastExcept(sender, NetMsg.ItemDestroy, new ItemDestroyMsg { ItemId = itemId });
-			_recordTraffic(ItemTrafficKind.Destroy, trafficLabel);
-		}
-
-		_onItemDestroyed(itemId);
-	}
-
-	public void FireItemCookedReceived(ulong sender, ulong sourceItemId, ulong cookedItemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, float rotation, float angularVelocity)
-	{
-		if (_session.Role != SessionRole.Guest)
-		{
-			return;
-		}
-
-		_onItemCookedReceived(sourceItemId,
-			new WorldItem(cookedItemId, item, pos, vel, 0, rotation, false, AngularVelocity: angularVelocity));
-	}
-
 	public void FireItemRejectReceived(ulong sender, ulong itemId, ItemRejectMsg.Reason reason)
 	{
 		_log.LogWarning("Item {ItemId} rejected by the host ({Reason}) — rolling back.", itemId, reason);
@@ -341,22 +222,9 @@ internal sealed class ItemMessageFlowService(
 
 	public void FireItemSpawned(WorldItem item) => _onItemSpawned(item);
 
-	public void FireItemCorrectionReceived(ulong sender, CharacterItemMsg item)
-	{
-		if (_session.Role != SessionRole.Guest)
-		{
-			return;
-		}
-
-		_arbitration.FireCorrectionReceived(item);
-	}
-
-	public void FireItemUseReceived(ulong sender, ulong itemId, CharacterItemMsg evidence) => _itemActionSync.FireItemUseReceived(sender, itemId, evidence);
-
-	public void FireItemSlotReceived(ulong sender, ulong itemId, int slotIndex, CharacterItemMsg item) => _itemActionSync.FireItemSlotReceived(sender, itemId, slotIndex, item);
-
-	public void FireItemContainerContentReceived(ulong sender, ulong itemId, CharacterItemMsg item) => _itemActionSync.FireItemContainerContentReceived(sender, itemId, item);
-
 	public void FireItemSnapshotReceived(ulong sender, IReadOnlyList<WorldItem> items, int layerModifierIndex, byte[]? layerModifierRandomState)
 		=> _snapshots.FireItemSnapshotReceived(sender, items, layerModifierIndex, layerModifierRandomState);
+
+	public void FireWorldItemsSnapshotReceived(ulong sender, IReadOnlyList<WorldItem> items, int layerModifierIndex, byte[]? layerModifierRandomState)
+		=> _snapshots.FireWorldItemsSnapshotReceived(sender, items, layerModifierIndex, layerModifierRandomState);
 }

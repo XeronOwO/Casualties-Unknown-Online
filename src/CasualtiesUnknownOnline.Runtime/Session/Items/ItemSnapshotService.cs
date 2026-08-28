@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Protocol.Wire;
-using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using Microsoft.Extensions.Logging;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.Items;
@@ -14,7 +13,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 /// settled items get their drifted positions re-aligned) — plus the layer
 /// modifier projection that rides them. Read-only over the table (injected as
 /// a narrow delegate, the table state stays with ItemService — user rule:
-/// state belongs to its owner); PublishGeneratedItems stays with the table.
+/// state belongs to its owner); PublishGeneratedItems stays with ItemService.
 /// Split out of ItemService when the 600-line gate demanded it.
 /// </summary>
 public sealed class ItemSnapshotService(
@@ -41,13 +40,13 @@ public sealed class ItemSnapshotService(
 	/// <summary>The random stream state at the entry of the host's modifier
 	/// decision (non-null when a modifier was rolled) — rides alongside
 	/// <see cref="LayerModifierIndex"/> so the guests replay the decision draws
-	/// before the modifier's Initialize (identical world effects, see
-	/// WorldItemsSnapshotMsg.LayerModifierRandomState).</summary>
+	/// before the modifier's Initialize (identical world effects).</summary>
 	public byte[]? LayerModifierRandomState { get; set; }
 
 	public event Action<IReadOnlyList<WorldItem>, int, byte[]?>? ItemSnapshotReceived;
 
-	public event Action<IReadOnlyList<ItemSnapshotEntryMsg>, int, byte[]?>? WorldItemsSnapshotReceived;
+	public event Action<IReadOnlyList<WorldItem>, int, byte[]?>? WorldItemsSnapshotReceived;
+
 	/// <summary>Session ended: the layer-modifier projection belongs to the previous world — the next run publishes its own.</summary>
 	public void ResetForSessionEnd()
 	{
@@ -55,14 +54,13 @@ public sealed class ItemSnapshotService(
 		LayerModifierRandomState = null;
 	}
 
-
 	public void FireItemSnapshotReceived(ulong sender, IReadOnlyList<WorldItem> items, int layerModifierIndex, byte[]? layerModifierRandomState)
 	{
 		_log.LogInformation("World-item snapshot received ({Count} items).", items.Count);
 		ItemSnapshotReceived?.Invoke(items, layerModifierIndex, layerModifierRandomState);
 	}
 
-	public void FireWorldItemsSnapshotReceived(ulong sender, IReadOnlyList<ItemSnapshotEntryMsg> items, int layerModifierIndex, byte[]? layerModifierRandomState)
+	public void FireWorldItemsSnapshotReceived(ulong sender, IReadOnlyList<WorldItem> items, int layerModifierIndex, byte[]? layerModifierRandomState)
 		=> WorldItemsSnapshotReceived?.Invoke(items, layerModifierIndex, layerModifierRandomState);
 
 	public void SendItemSnapshot(ulong targetSteamId)

@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.DependencyInjection;
@@ -18,12 +18,12 @@ public class ItemMoveSyncTests
 	public void HostMove_BroadcastReachesEveryGuest()
 	{
 		using var w = ItemSimWorld.Create();
-		var g1Moves = new List<IReadOnlyList<ItemMoveEntryMsg>>();
-		var g2Moves = new List<IReadOnlyList<ItemMoveEntryMsg>>();
+		var g1Moves = new List<IReadOnlyList<WireItemMoveEntry>>();
+		var g2Moves = new List<IReadOnlyList<WireItemMoveEntry>>();
 		w.G1.Services.GetRequiredService<IItemControl>().ItemMoveReceived += moves => g1Moves.Add(moves);
 		w.G2.Services.GetRequiredService<IItemControl>().ItemMoveReceived += moves => g2Moves.Add(moves);
 
-		var entries = new List<ItemMoveEntryMsg>
+		var entries = new List<WireItemMoveEntry>
 		{
 			new() { ItemId = 100, X = 10f, Y = 20f, VelX = 1f, VelY = -2f, Rotation = 0.5f, AngularVelocity = 0.1f },
 			new() { ItemId = 200, X = -5f, Y = 3f, VelX = 0f, VelY = 0f, Rotation = 2f, AngularVelocity = 0f },
@@ -44,7 +44,7 @@ public class ItemMoveSyncTests
 	public void HostMove_EmptySendsNothing()
 	{
 		using var w = ItemSimWorld.Create();
-		var moves = new List<IReadOnlyList<ItemMoveEntryMsg>>();
+		var moves = new List<IReadOnlyList<WireItemMoveEntry>>();
 		w.G1.Services.GetRequiredService<IItemControl>().ItemMoveReceived += m => moves.Add(m);
 
 		w.Host.Services.GetRequiredService<IItemControl>().SendItemMove([]);

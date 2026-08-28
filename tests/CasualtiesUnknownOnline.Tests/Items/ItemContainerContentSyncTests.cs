@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Linq;
-using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Tests.Fakes;
@@ -62,8 +61,9 @@ public class ItemContainerContentSyncTests
 		var transferred = w.Items.GetTransferredItems(w.G1.SteamId).Single(e => e.Item.InstanceId == 101).Item;
 		Assert.Contains(transferred.Contents, c => c.InstanceId == 202);
 
-		// The owner is excluded: G1 never echoes its own report back as a fact.
-		Assert.Equal(0, w.ReceivedCount(w.G1, NetMsg.ItemCarriedSync));
+		// The batch projection reaches every guest, including the owner; the
+		// owner's apply is idempotent (its local copy already is the fact).
+		Assert.NotEmpty(w.CarriedEvents(w.G1));
 	}
 
 	[Fact]

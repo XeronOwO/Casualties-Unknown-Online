@@ -54,6 +54,14 @@ internal sealed class KernelProtocolCommandHandler(
 			return;
 		}
 
+		if (envelope.Command.Kind == WireCommandKind.ItemDestroy
+			&& !CanDestroy(sender, envelope.Command.Identity.InstanceId))
+		{
+			_log.LogWarning("Item destroy {ItemId} from {Sender} ignored — not a world item or not owned by the sender.",
+				envelope.Command.Identity.InstanceId, sender);
+			return;
+		}
+
 		var command = ResolveCommandRevision(KernelWireMapper.FromWireCommand(envelope.Command, envelope.Header));
 		if (!_authority.TryExecuteCommand(command, sender, out _, out var rejection))
 		{
@@ -274,6 +282,20 @@ internal sealed class KernelProtocolCommandHandler(
 	}
 
 	private ItemState? FindRevision(ulong itemId) => _authority.FindItem(itemId);
+
+	private bool CanDestroy(ulong sender, ulong itemId)
+	{
+		var current = _authority.FindItem(itemId);
+		if (current is null)
+		{
+			// Unknown items go through the kernel so the reporter receives the
+			// same UnknownAggregate rejection the old path produced.
+			return true;
+		}
+
+		return current.Value.Location.Kind != ItemLocationKind.Carried
+			|| current.Value.Location.Owner.Value == sender;
+	}
 
 	private static CharacterItemMsg ToCharacterItem(WireItemIdentity identity, WireItemData? data)
 	{

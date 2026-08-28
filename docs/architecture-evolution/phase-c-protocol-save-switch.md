@@ -119,7 +119,7 @@ Out of scope:
   - [x] replace carried-fact/world correction with batch projection;
   - [x] replace item snapshots with StateStreamEnvelope;
   - [x] replace item cook with an atomic cook batch;
-  - [x] keep old packet handlers in the runtime as test-only legacy injection for replay files (not on the production send path);
+  - [x] delete the old packet handlers, item DTOs, and corresponding `NetMsg` item enums after migrating replay/race tests to the new protocol;
   - [x] keep golden tests updated.
 - [ ] Add network simulation tests:
   - [x] duplication and idempotency;
@@ -203,9 +203,11 @@ Out of scope:
 | 2026-08-28 | Phase C recovery/save/projection second cycle: guest range requests + out-of-order buffering + host journal fallback checkpoint, named random streams in GameCheckpoint/wire/save, checkpoint rebuild of guest world projection, latency/duplicate simulation. | `8db5105` (re-signed; original unsigned `acaceac` preserved on backup branch) | Full suite 1643 tests green; architecture/event/entity gates pass. | Remaining: full old item DTO removal, StateStream projection, disconnect/reconnect simulation, failed-projection-must-not-mutate test. |
 | 2026-08-28 | Phase C StateStream cycle: item move host→guest now rides `StateStreamEnvelope` and resurface as `ItemMoveReceived`; disconnect/reconnect checkpoint-restore test added. | `a2ffdf5` (re-signed; original unsigned `809a808` preserved on backup branch) | Full suite 1644 tests green; architecture/event/entity gates pass. | Remaining: old item families use/slot/container/correction/carry/snapshot/cook, failed-projection test, final docs/tech-decisions. |
 | 2026-08-28 | Phase C cutover completion: CommandEnvelope for use/slot/container-sync, batch projection for carried facts/world corrections, StateStream item snapshots, atomic Cook batch, command-rejection feedback, kernel transfer-table rebuild. | current | Full suite 1647 tests green; build/format/architecture/event/entity gates pass. | Old item handlers remain as test-only legacy replay injection; production paths use the new four-envelope protocol. Phase D starts next. |
+| 2026-08-28 | Phase C cleanup: replay/race tests migrated to CommandEnvelope/KernelEnvelope assertions; old item packet handlers, item DTOs, and `NetMsg` item enums deleted (ItemReject retained for block-break drops). | current | Full test suite green; build/format/architecture/event/entity gates pass. | No old item wire residue remains; Phase D starts next. |
 
 ## Next actions
 
-Phase C is complete. The next phase (D) begins full non-item domain migration; the
-legacy item packet handlers remaining in the runtime are explicitly marked
-test-only replay injection and should be migrated/removed as part of Phase D/E.
+Phase C is complete. The next phase (D) begins full non-item domain migration.
+The legacy item packet handlers, old item DTOs, and corresponding `NetMsg` item
+enums have been removed; the only legacy item-frame survivor is `ItemReject` for
+block-break drop refusal.

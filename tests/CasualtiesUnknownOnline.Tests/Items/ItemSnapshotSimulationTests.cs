@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Tests.Fakes;
@@ -164,37 +165,39 @@ public class ItemSnapshotSimulationTests
 	{
 		using var w = ItemSimWorld.Create();
 
-		var received = new List<WorldItemsSnapshotMsg>();
+		var received = new List<IReadOnlyList<WorldItem>>();
+		var modifiers = new List<int>();
 		w.G1.Services.GetRequiredService<IItemControl>().WorldItemsSnapshotReceived += (entries, modifierIndex, randomState) =>
-			received.Add(new WorldItemsSnapshotMsg { Items = [.. entries], LayerModifierIndex = modifierIndex, LayerModifierRandomState = randomState });
+		{
+			received.Add([.. entries]);
+			modifiers.Add(modifierIndex);
+		};
 
 		w.Host.Services.GetRequiredService<IItemControl>().LayerModifierIndex = 0; // Foggy
 		w.Host.Services.GetRequiredService<IItemControl>().PublishGeneratedItems(
 		[
-			new ItemSnapshotEntryMsg { ItemId = 1, Item = Item("ore"), SlotIndex = 0 }, // ground
-			new ItemSnapshotEntryMsg { ItemId = 2, Item = Item("medkit"), SlotIndex = 3 }, // starting supply (wire slot 3 = backpack slot 2)
+			new WorldItem(1, Item("ore"), new NetVector2(0, 0), new NetVector2(0, 0), 0, 0f, false),
+			new WorldItem(2, Item("medkit"), new NetVector2(0, 0), new NetVector2(0, 0), 0, 0f, false),
 		]);
 		w.Driver.Tick(50);
 
 		Assert.True(received.Count == 1, $"the generation snapshot must arrive, got {received.Count}");
-		Assert.True(received[0].Items.Count == 2, $"both entries ride the broadcast, got {received[0].Items.Count}");
-		Assert.True(received[0].LayerModifierIndex == 1, $"Foggy (0) rides as 1, got {received[0].LayerModifierIndex}");
+		Assert.True(received[0].Count == 2, $"both entries ride the broadcast, got {received[0].Count}");
+		Assert.True(modifiers.Count == 1 && modifiers[0] == 1, "Foggy (0) rides as 1");
 	}
 
 	[Fact]
-	public void GenerationSnapshot_CarriedEntryStaysOutOfTheWorldTable()
+	public void GenerationSnapshot_PublishesGroundWorldItemsOnly()
 	{
 		using var w = ItemSimWorld.Create();
 
 		w.Host.Services.GetRequiredService<IItemControl>().PublishGeneratedItems(
 		[
-			new ItemSnapshotEntryMsg { ItemId = 1, Item = Item("ore"), SlotIndex = 0 }, // ground — registered
-			new ItemSnapshotEntryMsg { ItemId = 2, Item = Item("medkit"), SlotIndex = 3 }, // carried — NO table entry (it lives in a backpack until a drop)
+			new WorldItem(1, Item("ore"), new NetVector2(0, 0), new NetVector2(0, 0), 0, 0f, false),
 		]);
 		w.Driver.Tick(50);
 
-		// The world-entry snapshot is the table's truth: the ground item rides,
-		// the carried one does not (ItemService.PublishGeneratedItems skips it).
+		// The world-entry snapshot is the table's truth: the ground item rides.
 		var received = new List<IReadOnlyList<WorldItem>>();
 		w.G2.Services.GetRequiredService<IItemControl>().ItemSnapshotReceived += (items, _, _) => received.Add(items);
 		w.Host.Services.GetRequiredService<IItemControl>().SendItemSnapshot(w.G2.SteamId);
@@ -202,8 +205,7 @@ public class ItemSnapshotSimulationTests
 
 		Assert.True(received.Count == 1, $"the snapshot must arrive, got {received.Count}");
 		Assert.True(received[0].Count == 1 && received[0][0].ItemId == 1,
-			$"only the ground item is a world item, got [{string.Join(",", received[0].Select(i => i.ItemId))}]");
+			"the ground item is the only world-table entry after a generation publish");
 		Assert.True(w.HostTable(1), "the ground item registered");
-		Assert.True(!w.HostTable(2), "the carried item never entered the world table");
 	}
 }

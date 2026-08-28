@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.GameAdapter.Items;
 using CasualtiesUnknownOnline.Runtime.Protocol;
-using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using Microsoft.Extensions.Logging;
@@ -84,7 +83,7 @@ internal sealed class GeneratedItemAuthority(
 			return; // guests never enumerate — the host's snapshot is authoritative
 		}
 
-		var entries = new List<ItemSnapshotEntryMsg>();
+		var entries = new List<WorldItem>();
 		var ground = 0;
 
 		// Ground items: every standalone world item without an id is a
@@ -134,23 +133,18 @@ internal sealed class GeneratedItemAuthority(
 	}
 
 	/// <summary>Allocate the host's id (the host's counter — ids can never collide with a guest's) and capture the full state.</summary>
-	private ItemSnapshotEntryMsg BuildEntry(Item item, int slotIndex)
+	private WorldItem BuildEntry(Item item, int slotIndex)
 	{
 		var itemId = _ids.Allocate(item);
 		var pos = item.transform.position;
 		var vel = item.rb.velocity;
-		return new ItemSnapshotEntryMsg
-		{
-			ItemId = itemId,
-			Item = ItemStateCodec.CaptureItem(item, slotIndex),
-			Position = new NetVector2(pos.x, pos.y).ToNetVector2Msg(),
-			Velocity = new NetVector2(vel.x, vel.y).ToNetVector2Msg(),
-			Rotation = item.transform.eulerAngles.z,
-			FreshItemDrop = false,
-			// Wire encoding is slotIndex + 1 (0 = world item) — protobuf-net omits
-			// 0-valued ints, and backpack slot 0 is a valid raw index (see
-			// ItemSnapshotEntryMsg.SlotIndex).
-			SlotIndex = slotIndex + 1,
-		};
+		return new WorldItem(
+			itemId,
+			ItemStateCodec.CaptureItem(item, slotIndex),
+			new NetVector2(pos.x, pos.y),
+			new NetVector2(vel.x, vel.y),
+			0,
+			item.transform.eulerAngles.z,
+			false);
 	}
 }

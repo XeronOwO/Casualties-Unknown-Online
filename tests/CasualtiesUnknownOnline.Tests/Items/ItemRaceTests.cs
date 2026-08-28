@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
@@ -13,14 +14,11 @@ namespace CasualtiesUnknownOnline.Tests.Items;
 /// The time-sensitive item races — the class of bug manual double-opening
 /// cannot reliably reproduce (they need the wire to misbehave at the right
 /// moment). Fixed scenarios: the duplicated pickup report (reliable
-/// retransmission — found live by the race probe: a reject rolled the
-/// winner's own successful transfer back), the spawn-report-in-flight race
-/// in both arrival orders (the branch ItemService.cs:314-318 was written
-/// for), the symmetric same-frame claim (G2 first) and a reordered arrival
-/// (sender order ≠ arrival order). Plus a seeded random lifecycle whose
-/// host-table state is checked against an oracle that replays the ACTUAL
-/// delivery order — the strongest race check: every message's effect must
-/// be exactly the effect of the order it was delivered in.
+/// retransmission), the spawn-report-in-flight race in both arrival orders
+/// (the kernel pending-pickup queue), the symmetric same-frame claim (G2
+/// first) and a reordered arrival (sender order ≠ arrival order). Plus a
+/// seeded random lifecycle whose host-table state is checked against an oracle
+/// that replays the ACTUAL delivery order of the Phase C commands.
 /// </summary>
 public class ItemRaceTests
 {
@@ -33,11 +31,9 @@ public class ItemRaceTests
 	[Fact]
 	public void DuplicatedPickupReport_IsIdempotent_NoRejectToTheWinner()
 	{
-		// The probe that found the bug: the transfer took the item out of the
-		// world table, so the retransmitted report looked like an unknown item
-		// and a reject rolled the winner's own successful pickup back. The fix:
-		// a pickup report for an item the sender ALREADY owns (transfer table)
-		// is silent — the spawn/drop idempotency family completed.
+		// A Steam-reliable retransmit duplicates the same CommandEnvelope, so
+		// the kernel sees the same OperationId twice and applies the pickup
+		// only once.
 		using var w = ItemSimWorld.Create();
 		w.Spawn(w.G1, 42, Item());
 		w.Driver.Tick(33);
@@ -52,18 +48,16 @@ public class ItemRaceTests
 	[Fact]
 	public void SpawnPickupInflight_PickupArrivesFirst_SettlesWhenTheSpawnLands()
 	{
-		// The old branch ItemService.cs:314-318 refused the pickup immediately
-		// and left the late spawn in the world for a manual re-pickup. The
-		// pending-pickup queue now holds the claim until the spawn report lands
-		// (within the 500 ms hold), then settles the SAME transfer the normal
-		// spawn-first path would have produced — no reject, no rollback.
+		// The kernel pending-pickup queue holds the claim until the spawn
+		// command lands (within the 500 ms hold), then settles the same
+		// transfer the spawn-first path would have produced.
 		using var w = ItemSimWorld.Create();
-		w.Pickup(w.G1, 42, Item()); // clean link — lands immediately, the item is not in the table yet
+		w.Pickup(w.G1, 42, Item());
 		w.Driver.Network.SetFaults(w.G1.SteamId, w.Host.SteamId, new LinkFaults { DelayMs = 300 });
-		w.Spawn(w.G1, 42, Item()); // delayed — lands while the claim is still held
+		w.Spawn(w.G1, 42, Item());
 		w.Driver.Tick(33); // the pickup is queued, no reject yet
 		Assert.Empty(w.Rejects(w.G1));
-		w.Driver.Tick(300); // the spawn report lands and settles the queue
+		w.Driver.Tick(300); // the spawn command lands and settles the queue
 
 		Assert.Empty(w.Rejects(w.G1));
 		Assert.False(w.HostTable(42), "the settled claim transferred the item out of the world table");
@@ -75,8 +69,7 @@ public class ItemRaceTests
 	{
 		// The queue is bounded: when the registration never arrives inside the
 		// hold window the claim gets the late UnknownItem reject, and the even
-		// later spawn report registers idempotently (end state: item back in the
-		// world, nobody owns it — the old immediate-reject shape, only delayed).
+		// later spawn command registers idempotently.
 		using var w = ItemSimWorld.Create();
 		w.Pickup(w.G1, 42, Item());
 		w.Driver.Network.SetFaults(w.G1.SteamId, w.Host.SteamId, new LinkFaults { DelayMs = 700 });
@@ -88,16 +81,14 @@ public class ItemRaceTests
 		Assert.True(w.Rejects(w.G1).Count == 1, $"exactly one reject, got {w.Rejects(w.G1).Count}");
 		Assert.False(w.HostTable(42), "the item has not registered yet");
 
-		w.Driver.Tick(100); // the late spawn report lands
-		Assert.True(w.HostTable(42), "the late spawn report must register idempotently");
+		w.Driver.Tick(100); // the late spawn command lands
+		Assert.True(w.HostTable(42), "the late spawn command must register idempotently");
 		Assert.True(w.Rejects(w.G1).Count == 1, "the late spawn does not produce a second reject");
 	}
 
 	[Fact]
 	public void SpawnPickupInflight_SpawnArrivesFirst_NormalTransfer()
 	{
-		// The mirror order: the spawn report lands first, the delayed pickup
-		// then takes the item out of the table — no reject at all.
 		using var w = ItemSimWorld.Create();
 		w.Spawn(w.G1, 42, Item());
 		w.Driver.Tick(33);
@@ -112,8 +103,6 @@ public class ItemRaceTests
 	[Fact]
 	public void PickupRace_G2First_G2Wins()
 	{
-		// The symmetric claim order: the existing race covers G1-first; the
-		// winner is whoever's claim lands first, whoever that is.
 		using var w = ItemSimWorld.Create();
 		w.Spawn(w.G1, 42, Item());
 		w.Driver.Tick(33);
@@ -129,16 +118,13 @@ public class ItemRaceTests
 	[Fact]
 	public void PickupRace_ReorderedArrival_WinnerIsWhoeverArrivesFirst()
 	{
-		// Sender order ≠ arrival order: G2 sends first (400 ms link), G1 sends
-		// later (200 ms link) — G1's claim arrives first and wins. The arrival
-		// order, not the send order, decides.
 		using var w = ItemSimWorld.Create();
 		w.Spawn(w.G1, 42, Item());
 		w.Driver.Tick(33);
 		w.Driver.Network.SetFaults(w.G2.SteamId, w.Host.SteamId, new LinkFaults { DelayMs = 400 });
 		w.Driver.Network.SetFaults(w.G1.SteamId, w.Host.SteamId, new LinkFaults { DelayMs = 200 });
 		w.Pickup(w.G2, 42, Item());
-		w.Driver.Tick(100); // G1 sends later
+		w.Driver.Tick(100);
 		w.Pickup(w.G1, 42, Item());
 		w.Driver.Tick(400);
 
@@ -156,20 +142,34 @@ public class ItemRaceTests
 		// The strongest race check: a random lifecycle (spawn/pickup/destroy/
 		// drop by G1) over a jittered link (random delay, occasional duplicate)
 		// whose host-table end state and reject stream must EXACTLY match an
-		// oracle that replays the actual delivery order PLUS the pending-pickup
-		// hold window (500 ms) at the actual pump ticks — whatever the wire did,
-		// every message's effect is the effect of its delivery position and the
-		// bounded queue is part of that contract.
+		// oracle that replays the actual delivery order of the Phase C commands
+		// PLUS the kernel pending-pickup hold window (500 ms) at the actual pump
+		// ticks.
 		using var w = ItemSimWorld.Create();
 		var rng = new Random(seed);
-		var delivered = new List<(long Ms, ulong ItemId, NetMsg Msg)>();
+		var delivered = new List<(long Ms, ulong ItemId, WireCommandKind Kind, ulong OperationId)>();
 		var pumpTicks = new List<long>();
-		w.Host.Transport.MessageReceived += (_, frame) => delivered.Add((w.Driver.NowMs, Decode((NetMsg)frame[0], frame).ItemId, Decode((NetMsg)frame[0], frame).Msg));
+		w.Host.Transport.MessageReceived += (_, frame) =>
+		{
+			if ((NetMsg)frame[0] != NetMsg.KernelEnvelope)
+			{
+				return;
+			}
+
+			var envelope = NetPacket.DecodePayload<ProtocolFrame>(frame);
+			var commandEnvelope = envelope.Command;
+			var command = commandEnvelope?.Command;
+			if (command is null || commandEnvelope is null)
+			{
+				return;
+			}
+
+			delivered.Add((w.Driver.NowMs, command.Identity.InstanceId, command.Kind, commandEnvelope.Header.OperationId));
+		};
 		ulong nextId = 100;
 
 		for (var step = 0; step < 40; step++)
 		{
-			// Jitter the link: random delay, occasional duplication.
 			var faults = new LinkFaults { DelayMs = rng.Next(0, 600) };
 			if (rng.NextDouble() < 0.15)
 			{
@@ -204,42 +204,55 @@ public class ItemRaceTests
 			pumpTicks.Add(w.Driver.NowMs);
 		}
 
-		w.Driver.Tick(1000); // every in-flight message landed (max delay 600 ms)
+		w.Driver.Tick(1000);
 		pumpTicks.Add(w.Driver.NowMs);
 
-		// Oracle: replay the delivery order with the same decisions the host
-		// makes — world-table presence, transfer ownership, the duplicate guard,
-		// spawn/drop registration settling the first queued claim, and the
-		// per-pump expiry of every unconfirmed claim after the 500 ms hold.
 		var oracleWorld = new HashSet<ulong>();
-		var oracleOwned = new HashSet<ulong>(); // transferred to G1
+		var oracleOwned = new HashSet<ulong>();
 		var oracleTerminal = new HashSet<ulong>();
 		var oracleRejects = new List<ulong>();
 		var oracleQueue = new List<(ulong ItemId, long QueuedAtMs)>();
+		var seenOperations = new HashSet<ulong>();
 		var eventIndex = 0;
 
 		foreach (var now in pumpTicks)
 		{
 			while (eventIndex < delivered.Count && delivered[eventIndex].Ms <= now)
 			{
-				var (_, itemId, msg) = delivered[eventIndex++];
-				switch (msg)
+				var (_, itemId, kind, operationId) = delivered[eventIndex++];
+				if (seenOperations.Contains(operationId))
 				{
-					case NetMsg.ItemSpawn:
+					continue; // accepted operations are idempotent by OperationId
+				}
+
+				var accepted = false;
+				switch (kind)
+				{
+					case WireCommandKind.ItemSpawn:
 						if (!oracleTerminal.Contains(itemId))
 						{
 							SettleSpawn(itemId, oracleWorld, oracleOwned, oracleRejects, oracleQueue);
+							accepted = true;
 						}
 
 						break;
-					case NetMsg.ItemPickup:
-						if (oracleWorld.Remove(itemId))
+					case WireCommandKind.ItemPickup:
+						if (oracleTerminal.Contains(itemId))
+						{
+							oracleRejects.Add(itemId);
+						}
+						else if (oracleWorld.Remove(itemId))
 						{
 							oracleOwned.Add(itemId);
+							accepted = true;
 						}
-						else if (oracleOwned.Contains(itemId) || oracleQueue.Any(q => q.ItemId == itemId))
+						else if (oracleOwned.Contains(itemId))
 						{
-							// The sender's own retransmit, or a duplicate claim while one is queued — silent.
+							oracleRejects.Add(itemId);
+						}
+						else if (oracleQueue.Any(q => q.ItemId == itemId))
+						{
+							// A duplicate claim while one is queued is dropped silently.
 						}
 						else
 						{
@@ -247,39 +260,53 @@ public class ItemRaceTests
 						}
 
 						break;
-					case NetMsg.ItemDrop:
-						if (!oracleTerminal.Contains(itemId))
+					case WireCommandKind.ItemDrop:
+						if (oracleTerminal.Contains(itemId))
+						{
+							oracleRejects.Add(itemId);
+						}
+						else if (!oracleOwned.Contains(itemId) && !oracleWorld.Contains(itemId))
+						{
+							oracleRejects.Add(itemId);
+						}
+						else
 						{
 							SettleDrop(itemId, oracleWorld, oracleOwned, oracleRejects, oracleQueue);
+							accepted = true;
 						}
 
 						break;
-					case NetMsg.ItemDestroy:
+					case WireCommandKind.ItemDestroy:
 						if (oracleWorld.Remove(itemId) || oracleOwned.Remove(itemId))
 						{
 							oracleTerminal.Add(itemId);
+							accepted = true;
+						}
+						else
+						{
+							oracleRejects.Add(itemId);
 						}
 
 						break;
+				}
+
+				if (accepted)
+				{
+					seenOperations.Add(operationId);
 				}
 			}
 
 			ExpireQueue(now, oracleWorld, oracleOwned, oracleRejects, oracleQueue);
 		}
 
-		Assert.Equal(delivered.Count, eventIndex); // the final flush landed every in-flight message
+		Assert.Equal(delivered.Count, eventIndex);
 
 		foreach (var id in oracleWorld)
 		{
 			Assert.True(w.HostTable(id), $"seed {seed}: oracle says {id} is in the world, the host table lacks it");
 		}
 
-		var actualRejects = new List<ulong>();
-		foreach (var r in w.Rejects(w.G1))
-		{
-			actualRejects.Add(r.ItemId);
-		}
-
+		var actualRejects = w.Rejects(w.G1).Select(r => r.ItemId).ToList();
 		actualRejects.Sort();
 		oracleRejects.Sort();
 		Assert.Equal(oracleRejects, actualRejects);
@@ -352,14 +379,4 @@ public class ItemRaceTests
 			}
 		}
 	}
-
-	private static (ulong ItemId, NetMsg Msg) Decode(NetMsg msg, byte[] frame) =>
-		msg switch
-		{
-			NetMsg.ItemSpawn => (NetPacket.DecodePayload<ItemSpawnMsg>(frame).ItemId, msg),
-			NetMsg.ItemPickup => (NetPacket.DecodePayload<ItemPickupMsg>(frame).ItemId, msg),
-			NetMsg.ItemDrop => (NetPacket.DecodePayload<ItemDropMsg>(frame).ItemId, msg),
-			NetMsg.ItemDestroy => (NetPacket.DecodePayload<ItemDestroyMsg>(frame).ItemId, msg),
-			_ => (0, msg),
-		};
 }

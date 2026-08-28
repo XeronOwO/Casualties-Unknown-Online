@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
-using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using Microsoft.Extensions.Logging;
 
@@ -14,21 +13,16 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 /// guest currently owns — entries taken from the world table at pickup, so the
 /// host always has the authoritative state of what a guest carries,
 /// independent of the character-data snapshot the guest reports) plus the
-/// evidence checks of every arbitrated action (pickup/drop/use/slot) and the
-/// guest-side correction entry. Accept-with-correction: the action is never
-/// blocked, only its evidence is compared — divergence syncs (correction
-/// packet, one-shot ItemDestroy for claimed-but-unknown contents), never
-/// rejects. Split out of ItemService when the 600-line gate demanded it — its
-/// state (the transfer table) belongs here, ItemService forwards.
+/// owner/fact helpers for the surviving accept-first flows. The legacy wire
+/// correction/destroy sends were removed with Phase C; kernel batches now carry
+/// all confirmed facts.
 /// </summary>
 public sealed class ItemArbitration(
 	ISessionControl session,
-	PacketSender sender,
 	ItemKernelAuthority kernelAuthority,
 	ILogger<ItemArbitration> log)
 {
 	private readonly ISessionControl _session = session;
-	private readonly PacketSender _sender = sender;
 	private readonly ItemKernelAuthority _kernelAuthority = kernelAuthority;
 	private readonly ILogger<ItemArbitration> _log = log;
 
@@ -64,97 +58,6 @@ public sealed class ItemArbitration(
 	/// </summary>
 	public bool IsTransferredToAnyGuest(ulong itemId) =>
 		_transferred.Values.Any(owned => owned.ContainsKey(itemId));
-
-	// ===== Action entry points (ItemService forwards the wire reports here) =====
-
-	/// <summary>
-	/// Host only: a pickup was accepted — the entry (taken from the world table
-	/// by the caller) becomes the picker's owned item. The picker's evidence is
-	/// checked against it first; divergence syncs, never blocks. Returns the
-	/// authoritative carried item (the transfer-table entry, slot adopted from
-	/// the evidence) — the caller broadcasts it as the carried-fact event.
-	/// </summary>
-	public CharacterItemMsg CheckAndTransferToGuest(ulong guest, ulong itemId, WorldItem entry, CharacterItemMsg? evidence)
-	{
-		ApplyVerdict(guest, itemId, entry.Item, CheckEvidence(itemId, entry.Item, evidence));
-		// The evidence carries the slot the picker's item landed in — adopted
-		// (a carried item's slot is its owner's local fact, never corrected);
-		// the reconnect restore needs a real slot or the item would not restore.
-		// -1 is the only meaningless slot (not in any slot or limb); the limb
-		// wear encodings (≤ -2) are real slots, adopted like the backpack ones.
-		if (evidence is { SlotIndex: not -1 })
-		{
-			entry.Item.SlotIndex = evidence.SlotIndex;
-		}
-
-		if (!_transferred.TryGetValue(guest, out var owned))
-		{
-			_transferred[guest] = owned = [];
-		}
-
-		owned[itemId] = entry;
-		return entry.Item;
-	}
-
-	/// <summary>
-	/// Host only: a drop was reported — the item leaves the transfer table back
-	/// into the world. The full drop item IS the evidence (the materialization
-	/// payload), checked against the entry BEFORE it leaves.
-	/// </summary>
-	public void CheckAndUnloadFromGuest(ulong guest, ulong itemId, CharacterItemMsg evidence)
-	{
-		if (_transferred.TryGetValue(guest, out var owned) && owned.TryGetValue(itemId, out var transferred))
-		{
-			ApplyVerdict(guest, itemId, transferred.Item, CheckEvidence(itemId, transferred.Item, evidence));
-			owned.Remove(itemId);
-		}
-	}
-
-	/// <summary>
-	/// Host only: an item was used — the guest is the fact source for its own
-	/// body (the host's record is one action behind), so the used item's state
-	/// is adopted UNCONDITIONALLY. A use changes the item's state by definition
-	/// (a flashlight mode ++, a bite of food), so comparing the evidence against
-	/// the host's one-action-behind record would correct every use back — the
-	/// evidence can never match, the correction bounces the guest's action.
-	/// Pickup/drop evidence still goes through CheckEvidence (a pickup is not a
-	/// state change — a correction there converges the picker onto the host's
-	/// record); a use is exactly the opposite. Returns the adopted authoritative
-	/// item (null when untracked — no entry to arbitrate against).
-	/// </summary>
-	public CharacterItemMsg? CheckUseEvidence(ulong guest, ulong itemId, CharacterItemMsg evidence) =>
-		AdoptEvidence(guest, itemId, evidence, "used");
-
-	/// <summary>
-	/// Host only: adopt an action-report evidence over the transfer-table entry
-	/// — the shared shape of the use path and the crafting domain's Changed
-	/// entries (a craft/combine changes the item's state by definition, so
-	/// comparing would correct the operation back; the sender is the fact source
-	/// for its own inventory). Returns the adopted authoritative item (null when
-	/// untracked — no entry to arbitrate against).
-	/// </summary>
-	public CharacterItemMsg? AdoptEvidence(ulong guest, ulong itemId, CharacterItemMsg evidence, string origin)
-	{
-		if (!_transferred.TryGetValue(guest, out var owned) || !owned.TryGetValue(itemId, out var entry))
-		{
-			// Not tracked: no entry to arbitrate against — the item predates
-			// the transfer table (e.g. the reconnect restore has not merged
-			// yet). Log and leave; the character-data snapshot path still
-			// carries the state.
-			_log.LogWarning("Item {Origin} {ItemId} from {Guest} — no transfer-table entry, not arbitrated.", origin, itemId, guest);
-			return null;
-		}
-
-		_kernelAuthority.TryUpdateState(guest, itemId, evidence, out _, out _);
-
-		entry.Item.Condition = evidence.Condition;
-		entry.Item.Favourited = evidence.Favourited;
-		entry.Item.Liquids = evidence.Liquids;
-		entry.Item.Components = evidence.Components;
-
-		_log.LogInformation("Item {ItemId} {Origin} by {Guest}.", itemId, origin, guest);
-		return entry.Item;
-	}
 
 	/// <summary>
 	/// Host only: an item was destroyed while owned (consumed as a crafting
@@ -252,56 +155,34 @@ public sealed class ItemArbitration(
 	}
 
 	/// <summary>
-	/// Host only: an item moved slots — the guest's own slot layout is its
-	/// local fact, recorded, never corrected (the slot rides in the
-	/// authoritative item for the reconnect merge). Returns the updated
-	/// authoritative item (null when untracked).
+	/// Host only: adopt an action-report evidence over the transfer-table entry
+	/// — the shared shape of the use path and the crafting domain's Changed
+	/// entries (a craft/combine changes the item's state by definition, so
+	/// comparing would correct the operation back; the sender is the fact source
+	/// for its own inventory). Returns the adopted authoritative item (null when
+	/// untracked — no entry to arbitrate against).
 	/// </summary>
-	public CharacterItemMsg? RecordSlot(ulong guest, ulong itemId, int slotIndex, CharacterItemMsg? evidence = null)
+	public CharacterItemMsg? AdoptEvidence(ulong guest, ulong itemId, CharacterItemMsg evidence, string origin)
 	{
-		if (_transferred.TryGetValue(guest, out var owned) && owned.TryGetValue(itemId, out var entry))
+		if (!_transferred.TryGetValue(guest, out var owned) || !owned.TryGetValue(itemId, out var entry))
 		{
-			var record = evidence is null
-				? ItemKernelAuthority.ToCharacterItem(_kernelAuthority.FindItem(itemId)!.Value)
-				: evidence;
-			record.SlotIndex = slotIndex;
-			_kernelAuthority.TryUpdateState(guest, itemId, record, out _, out _);
-
-			entry.Item.SlotIndex = slotIndex;
-			_log.LogInformation("Item {ItemId} moved to slot {Slot} by {Guest}.", itemId, slotIndex, guest);
-			return entry.Item;
+			// Not tracked: no entry to arbitrate against — the item predates
+			// the transfer table (e.g. the reconnect restore has not merged
+			// yet). Log and leave; the character-data snapshot path still
+			// carries the state.
+			_log.LogWarning("Item {Origin} {ItemId} from {Guest} — no transfer-table entry, not arbitrated.", origin, itemId, guest);
+			return null;
 		}
 
-		_log.LogWarning("Item slot {ItemId} from {Guest} — no transfer-table entry, not tracked.", itemId, guest);
-		return null;
-	}
+		_kernelAuthority.TryUpdateState(guest, itemId, evidence, out _, out _);
 
-	/// <summary>
-	/// Host only: a carried container's nested contents changed — the owner's own
-	/// body is the fact source, so the report's full recursive capture is adopted
-	/// onto the transfer-table entry (top-level state + contents replaced — exact
-	/// rebuild, never an additive delta). Returns the updated authoritative item
-	/// (null when untracked — no entry to arbitrate against).
-	/// </summary>
-	public CharacterItemMsg? RecordContainerContent(ulong guest, ulong itemId, CharacterItemMsg item)
-	{
-		if (_transferred.TryGetValue(guest, out var owned) && owned.TryGetValue(itemId, out var entry))
-		{
-			_kernelAuthority.TryUpdateState(guest, itemId, item, out _, out _);
-			_kernelAuthority.SyncContainerContents(guest, itemId, item, new ActorId(guest));
+		entry.Item.Condition = evidence.Condition;
+		entry.Item.Favourited = evidence.Favourited;
+		entry.Item.Liquids = evidence.Liquids;
+		entry.Item.Components = evidence.Components;
 
-			entry.Item.SlotIndex = item.SlotIndex;
-			entry.Item.Condition = item.Condition;
-			entry.Item.Favourited = item.Favourited;
-			entry.Item.Liquids = item.Liquids;
-			entry.Item.Components = item.Components;
-			entry.Item.Contents = item.Contents;
-			_log.LogInformation("Item {ItemId} container contents changed by {Guest} ({ContentCount} contents).", itemId, guest, item.Contents.Count);
-			return entry.Item;
-		}
-
-		_log.LogWarning("Item container content {ItemId} from {Guest} — no transfer-table entry, not tracked.", itemId, guest);
-		return null;
+		_log.LogInformation("Item {ItemId} {Origin} by {Guest}.", itemId, origin, guest);
+		return entry.Item;
 	}
 
 	/// <summary>Guest side: the host's authoritative item state arrived — surface it for the adapter to apply.</summary>
@@ -422,16 +303,6 @@ public sealed class ItemArbitration(
 		_log.LogInformation("Item {ItemId} updated in {Guest}'s transfer table (cross-player heal).", itemId, guest);
 	}
 
-	public void SendCorrection(ulong targetSteamId, CharacterItemMsg item)
-	{
-		if (_session.Role != SessionRole.Host || !_session.SessionActive)
-		{
-			return;
-		}
-
-		_sender.Send(targetSteamId, NetMsg.ItemCorrection, new ItemCorrectionMsg { Item = item });
-	}
-
 	public IReadOnlyList<WorldItem> GetTransferredItems(ulong steamId)
 		=> _transferred.TryGetValue(steamId, out var owned) ? [.. owned.Values] : [];
 
@@ -475,13 +346,12 @@ public sealed class ItemArbitration(
 		return contents;
 	}
 
-	// ===== Evidence check (host only) =====
+	// ===== Evidence check (still used by pure verdict tests) =====
 
 	/// <summary>
 	/// Compare the action-report evidence against the authoritative entry —
 	/// PURE (no state, no sends, no logging): input message + entry, output the
-	/// decision (<see cref="EvidenceVerdict"/>). The side effects the verdict
-	/// demands run in <see cref="ApplyVerdict"/>. Accept-with-correction: the
+	/// decision (<see cref="EvidenceVerdict"/>). Accept-with-correction: the
 	/// action is never blocked, only its evidence is checked. Only what the
 	/// digest CLAIMS is compared: an empty nested Contents level means "no
 	/// claim" (the digest shape stops at ids), never "empty contents" — that is
@@ -503,32 +373,6 @@ public sealed class ItemArbitration(
 		var matched = ItemStateEquality.TopLevelMatches(evidence, authoritative);
 		var missing = !ContentsMatch(evidence, authoritative, out var extra);
 		return EvidenceVerdict.From(matched && !missing, extra);
-	}
-
-	/// <summary>
-	/// Execute a verdict's side effects: the guest claims content ids the host
-	/// does not have → each is destroyed with a one-shot ItemDestroy (never
-	/// corrected back — they are not ours); top-level state or missing contents
-	/// → the whole authoritative entry is sent as one correction (the guest's
-	/// apply materializes missing contents and fixes state).
-	/// </summary>
-	private void ApplyVerdict(ulong guest, ulong itemId, CharacterItemMsg authoritative, EvidenceVerdict verdict)
-	{
-		foreach (var id in verdict.ExtraContentIds)
-		{
-			_sender.Send(guest, NetMsg.ItemDestroy, new ItemDestroyMsg { ItemId = id });
-		}
-
-		if (verdict.ExtraContentIds.Count > 0)
-		{
-			_log.LogWarning("Item {ItemId} evidence of {Guest} claims unknown contents [{Extra}] — destroying.", itemId, guest, string.Join(", ", verdict.ExtraContentIds));
-		}
-
-		if (verdict.NeedsCorrection)
-		{
-			SendCorrection(guest, authoritative);
-			_log.LogInformation("Item {ItemId} evidence of {Guest} diverged — correction sent.", itemId, guest);
-		}
 	}
 
 	/// <summary>

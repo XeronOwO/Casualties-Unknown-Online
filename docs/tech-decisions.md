@@ -3683,8 +3683,9 @@ and save untouched.
 ## 128. Phase C protocol/save core — completed cutover (2026-08-28)
 
 Started 2026-08-28. This entry records the Phase C decisions through the final
-cutover. The phase is complete; the legacy item packet handlers retained in the
-runtime are test-only replay injection and are scheduled for removal with Phase D/E.
+cutover. The phase is complete; old item packet handlers, old item DTOs, and the
+corresponding `NetMsg` item enums have been fully removed after migrating the
+replay/race tests to the four-envelope protocol.
 
 - **Protocol project** — `CasualtiesUnknownOnline.Protocol` is a new net48,
   protobuf-net project with the four envelope DTOs (`CommandEnvelope`,

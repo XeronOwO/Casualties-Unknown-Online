@@ -7,7 +7,7 @@ namespace CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 /// BlockDamagedMsg.Drops so the break and its drops get ONE arbitration verdict
 /// (first-writer-wins: the accepted report's drops register and materialize
 /// everywhere, the rejected report's drops are rolled back on the breaker).
-/// Full initial state (same shape as ItemSpawnMsg) so a receiver can
+/// Full initial state (same shape as the world-item report) so a receiver can
 /// materialize the drop exactly — the break's drops are the local compute of
 /// the breaker, the peers only render them.
 /// </summary>

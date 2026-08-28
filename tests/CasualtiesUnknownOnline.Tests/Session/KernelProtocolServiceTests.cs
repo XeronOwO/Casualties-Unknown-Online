@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
@@ -309,6 +310,24 @@ public class KernelProtocolServiceTests
 		hostKernel.SendCheckpoint(GuestId);
 
 		Assert.Contains(guest.Services.GetRequiredService<ItemService>().GetWorldItemsForDiagnostics(), w => w.ItemId == 42);
+	}
+
+	[Fact]
+	public void ProjectionFailure_DoesNotRevertAuthoritativeKernel()
+	{
+		var (_, host, guest) = HandshakeTests.CreateHostAndGuest();
+		host.Steam.FireLobbyCreated(LobbyId);
+		host.Steam.LobbyMembers = [HostId, GuestId];
+		guest.Steam.FireLobbyEntered(LobbyId);
+
+		var items = guest.Services.GetRequiredService<ItemService>();
+		items.ItemSpawned += _ => throw new InvalidOperationException("projection failure");
+
+		var kernel = guest.Services.GetRequiredService<IKernelProtocolControl>();
+		Assert.ThrowsAny<Exception>(() =>
+			kernel.HandleFrame(HostId, BatchFrame(SpawnWireBatch(globalRevision: 1, itemId: 42))));
+
+		Assert.NotNull(guest.Services.GetRequiredService<ItemKernelAuthority>().FindItem(42));
 	}
 
 	[Fact]

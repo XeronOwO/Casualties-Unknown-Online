@@ -132,7 +132,7 @@ Out of scope:
   - [x] schema version handling.
 - [x] Add projection rebuild tests:
   - [x] world projection dropped and rebuilt from checkpoint;
-  - [ ] failed projection does not mutate authoritative state.
+  - [x] failed projection does not mutate authoritative state.
 - [ ] Update docs:
   - [x] `docs/selfchecks/`;
   - [x] this phase doc and `status.md`;

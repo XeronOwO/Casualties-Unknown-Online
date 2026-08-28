@@ -62,9 +62,7 @@ cutover items are listed at the bottom.
 1. Convert remaining old item wire families (use, slot, container-content,
    correction, carried-sync, snapshot, cook cross-domain batch) or explicitly
    annotate them as test-only.
-2. Disconnect/reconnect network simulation (checkpoint restore now covered) and
-   failed-projection-does-not-mutate authoritative-state test.
-3. Record remaining binding decisions in `docs/tech-decisions.md` and update
+2. Record remaining binding decisions in `docs/tech-decisions.md` and update
    `docs/architecture.md` if protocol sections are stale.
 
 ## Subsequent-cycle additions (2026-08-28)
@@ -80,5 +78,7 @@ cutover items are listed at the bottom.
 - Host wire projection: `ItemKernelAuthority.ExternalBatchCommitted` lets the
   host project commands that arrived over `CommandEnvelope` into the legacy
   world table without double-projecting local native writes.
+- Projection failure: an event-handler exception during guest projection does
+  not roll back the already-applied authoritative kernel batch.
 - Simulation: latency + duplicate convergence, disconnect/reconnect checkpoint
   restore; all verified by the full suite (1644 green) and repo gates.

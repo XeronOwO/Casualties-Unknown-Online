@@ -262,4 +262,9 @@ public enum NetMsg : byte
 	// local BleedParticle already spawned the ground/wall blood object; the
 	// peers replay the same decal at the same world position)
 	WorldBloodSpawn = 121, // bidirectional: guest → host report of a local player's blood decal; host → guest broadcast relay (source excluded)
+
+	// Phase C kernel envelope transport (the frame payload is a ProtocolFrame:
+	// CommandEnvelope / CommittedBatchEnvelope / CheckpointEnvelope /
+	// StateStreamEnvelope)
+	KernelEnvelope = 122, // bidirectional: the four-envelope kernel protocol rides one message id
 }

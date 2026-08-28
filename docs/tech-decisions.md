@@ -3679,3 +3679,36 @@ and save untouched.
 - **Tests/gates** — full suite green; architecture gate (isolation + item
   authority) passes; item/replay differential remains zero; no new wire message.
   See `docs/selfchecks/phase-b-item-authority-selfcheck.md`.
+
+## 128. Phase C protocol/save core — first delivery cycle (in progress)
+
+Started 2026-08-28. Phase C is not complete; this entry records the landed core
+decisions of the first cycle so a later session can continue from a stable base.
+
+- **Protocol project** — `CasualtiesUnknownOnline.Protocol` is a new net48,
+  protobuf-net project with the four envelope DTOs (`CommandEnvelope`,
+  `CommittedBatchEnvelope`, `CheckpointEnvelope`, `StateStreamEnvelope`), a
+  common `EnvelopeHeader`, numeric `WirePayloadType`, version constants, and a
+  protobuf-net `ProtocolCodec`. Golden byte tests lock the first command frame.
+- **Transport seam** — the four envelopes ride the existing transport as one
+  `NetMsg.KernelEnvelope` frame (`ProtocolFrame` payload). `KernelEnvelopeHandler`
+  is bidirectional; `KernelProtocolService` branches by role. This avoids a second
+  transport while still giving the kernel protocol a single production entry.
+- **Kernel↔wire mapping** — `KernelWireMapper` is the only Runtime seam that
+  knows both GameState and Protocol; `WireCheckpointAssembler` splits/reassembles
+  checkpoints. GameState remains wire-free.
+- **Guest confirmed state** — `ItemKernelAuthority.Apply` is now idempotent by
+  `OperationId` and raises `BatchApplied`; `KernelBatchItemProjection` turns
+  confirmed batches into world-item cache writes and adopter item events. The
+  item-authority gate lists it as a projection owner.
+- **Join checkpoint** — `WorldEntryFanout.Send` now sends a kernel checkpoint
+  plus journal tail as part of the existing world-entry backfill.
+- **Production item command switch** — guest spawn/pickup/drop/destroy reports
+  now send `CommandEnvelope`; host commits and broadcasts `CommittedBatchEnvelope`
+  instead of the old `ItemSpawn`/`ItemPickup`/`ItemDrop`/`ItemDestroy` frames.
+  Cook remains a legacy projection until a single cross-domain cook batch lands.
+- **Save** — `KernelSaveFileStore` writes `SaveHeader` + `GameCheckpoint` items
+  atomically and rejects unknown/corrupt files; no old DTO migration.
+- **Tests/gates** — full suite 1637 green; architecture, event-replay, and
+  entity-dispatch gates pass. See
+  `docs/selfchecks/phase-c-protocol-core-selfcheck.md`.

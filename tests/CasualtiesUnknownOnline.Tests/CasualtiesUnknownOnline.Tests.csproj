@@ -28,6 +28,7 @@
   <ItemGroup>
     <!-- net48 matches the tested assemblies (same TFM, zero compatibility risk) -->
     <ProjectReference Include="..\..\src\CasualtiesUnknownOnline.GameState\CasualtiesUnknownOnline.GameState.csproj" />
+    <ProjectReference Include="..\..\src\CasualtiesUnknownOnline.Protocol\CasualtiesUnknownOnline.Protocol.csproj" />
     <ProjectReference Include="..\..\src\CasualtiesUnknownOnline.Runtime\CasualtiesUnknownOnline.Runtime.csproj" />
     <Reference Include="Steamworks.NET">
       <HintPath>..\..\references\Steamworks.NET.dll</HintPath>

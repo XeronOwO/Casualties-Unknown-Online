@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
@@ -279,9 +280,23 @@ public class EntityEventSimulationTests
 		w.G2.Services.GetRequiredService<IWorldControl>().BlockPlacedReceived += (_, x, y, block) => g2Blocks.Add((x, y, block));
 		w.G2.Transport.MessageReceived += (_, frame) =>
 		{
-			if ((NetMsg)frame[0] == NetMsg.ItemSpawn)
+			if ((NetMsg)frame[0] != NetMsg.KernelEnvelope)
 			{
-				g2Drops.Add(NetPacket.DecodePayload<ItemSpawnMsg>(frame).ItemId);
+				return;
+			}
+
+			var envelope = NetPacket.DecodePayload<ProtocolFrame>(frame);
+			if (envelope.CommittedBatch is null)
+			{
+				return;
+			}
+
+			foreach (var @event in envelope.CommittedBatch.Batch.Events)
+			{
+				if (@event.Kind == WireEventKind.ItemSpawned && @event.Identity.InstanceId == 500)
+				{
+					g2Drops.Add(@event.Identity.InstanceId);
+				}
 			}
 		};
 

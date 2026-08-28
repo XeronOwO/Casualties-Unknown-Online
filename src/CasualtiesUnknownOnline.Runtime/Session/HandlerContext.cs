@@ -20,7 +20,8 @@ namespace CasualtiesUnknownOnline.Runtime.Session;
 public sealed class HandlerContext(ISessionControl session, IEntitySyncControl entities,
 	ICharacterDataControl characterData, IWorldControl world, IItemControl items, IModsControl mods,
 	ICraftControl craft, IEnemySyncControl enemies, IWorldTimeControl worldTime,
-	IPlayerInteractionControl playerInteraction, ITutorialClawControl tutorialClaw) :
+	IPlayerInteractionControl playerInteraction, ITutorialClawControl tutorialClaw,
+	IKernelProtocolControl kernelProtocol) :
 	IWorldHandlerContext,
 	IWorldSessionHandlerContext,
 	IItemHandlerContext,
@@ -37,6 +38,7 @@ public sealed class HandlerContext(ISessionControl session, IEntitySyncControl e
 	ISceneHandlerContext,
 	ITutorialSessionHandlerContext,
 	IWorldTimeHandlerContext,
+	IKernelProtocolContext,
 	IEmptyHandlerContext
 {
 	public ISessionControl Session { get; } = session;
@@ -66,4 +68,7 @@ public sealed class HandlerContext(ISessionControl session, IEntitySyncControl e
 
 	/// <summary>The enemy-sync domain (host-authoritative enemy snapshots).</summary>
 	public IEnemySyncControl Enemies { get; } = enemies;
+
+	/// <summary>The Phase C kernel-envelope control surface.</summary>
+	public IKernelProtocolControl KernelProtocol { get; } = kernelProtocol;
 }

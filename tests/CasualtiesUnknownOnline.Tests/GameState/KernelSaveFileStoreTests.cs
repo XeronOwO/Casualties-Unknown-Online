@@ -42,6 +42,34 @@ public class KernelSaveFileStoreTests
 	}
 
 	[Fact]
+	public void SaveLoad_RoundTripsRandomStreams()
+	{
+		var path = Path.Combine(Path.GetTempPath(), $"cuo-kernel-save-random-{Guid.NewGuid():N}.bin");
+		try
+		{
+			var checkpoint = new GameCheckpoint(
+				Epoch,
+				3,
+				[],
+				[new RandomStreamState("world-gen", "RLE", [11, 22, 33])]);
+			var store = new KernelSaveFileStore(path, NullLogger<KernelSaveFileStore>.Instance);
+			Assert.True(store.Save(checkpoint));
+			Assert.True(store.TryLoad(out var loaded));
+			var stream = Assert.Single(loaded.RandomStreams!);
+			Assert.Equal("world-gen", stream.Name);
+			Assert.Equal("RLE", stream.State);
+			Assert.Equal([11ul, 22ul, 33ul], stream.DecidedValues);
+		}
+		finally
+		{
+			if (File.Exists(path))
+			{
+				File.Delete(path);
+			}
+		}
+	}
+
+	[Fact]
 	public void MissingFile_FailsToLoad()
 	{
 		var store = new KernelSaveFileStore(

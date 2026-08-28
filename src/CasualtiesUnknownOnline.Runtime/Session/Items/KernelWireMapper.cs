@@ -15,6 +15,17 @@ public static class KernelWireMapper
 {
 	// ===== Kernel -> Wire =====
 
+	public static WireRandomStream ToWireRandomStream(RandomStreamState state) =>
+		new()
+		{
+			Name = state.Name,
+			State = state.State,
+			DecidedValues = [.. state.DecidedValues],
+		};
+
+	public static RandomStreamState FromWireRandomStream(WireRandomStream stream) =>
+		new(stream.Name, stream.State, [.. stream.DecidedValues]);
+
 	public static WireItem ToWireItem(ItemState state) =>
 		new()
 		{

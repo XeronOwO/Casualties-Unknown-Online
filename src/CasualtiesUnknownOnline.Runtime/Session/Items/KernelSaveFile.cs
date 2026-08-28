@@ -17,4 +17,7 @@ public sealed class KernelSaveFile
 
 	[ProtoMember(2)]
 	public List<WireItem> Items { get; set; } = [];
+
+	[ProtoMember(3)]
+	public List<WireRandomStream> RandomStreams { get; set; } = [];
 }

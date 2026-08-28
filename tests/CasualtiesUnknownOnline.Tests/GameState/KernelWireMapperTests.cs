@@ -68,6 +68,23 @@ public class KernelWireMapperTests
 	}
 
 	[Fact]
+	public void CheckpointSplitAndAssemble_RoundTripsRandomStreams()
+	{
+		var checkpoint = new GameCheckpoint(
+			Epoch,
+			1,
+			[],
+			[new RandomStreamState("gen", "state-xyz", [5, 6, 7])]);
+
+		var restored = WireCheckpointAssembler.Assemble(WireCheckpointAssembler.Split(checkpoint));
+
+		var stream = Assert.Single(restored.RandomStreams!);
+		Assert.Equal("gen", stream.Name);
+		Assert.Equal("state-xyz", stream.State);
+		Assert.Equal([5ul, 6ul, 7ul], stream.DecidedValues);
+	}
+
+	[Fact]
 	public void WireCommand_MapToGameCommand()
 	{
 		var header = new EnvelopeHeader

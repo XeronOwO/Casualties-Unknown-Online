@@ -32,6 +32,9 @@ public static class WireCheckpointAssembler
 				RunEpoch = checkpoint.RunEpoch.Value,
 				GlobalRevision = checkpoint.GlobalRevision,
 				Items = slice,
+				RandomStreams = index == 0
+					? [.. checkpoint.RandomStreams?.Select(KernelWireMapper.ToWireRandomStream) ?? []]
+					: [],
 			});
 		}
 
@@ -78,6 +81,10 @@ public static class WireCheckpointAssembler
 			.Select(KernelWireMapper.FromWireItem)
 			.ToList();
 
-		return new GameCheckpoint(new RunEpoch(first.RunEpoch), first.GlobalRevision, items);
+		var randomStreams = ordered[0]!.RandomStreams
+			.Select(KernelWireMapper.FromWireRandomStream)
+			.ToList();
+
+		return new GameCheckpoint(new RunEpoch(first.RunEpoch), first.GlobalRevision, items, randomStreams);
 	}
 }

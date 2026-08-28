@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.GameState;
+using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Time;
@@ -21,7 +22,6 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposable
 {
 	private readonly ISessionControl _session;
-	private readonly PacketSender _sender;
 	private readonly ILogger<ItemService> _log;
 	private readonly WorldItemTable _worldTable = new();
 	private readonly ItemArbitration _arbitration;
@@ -41,11 +41,11 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 	public ItemService(ISessionControl session, PacketSender sender, ItemArbitration arbitration, ITimeSource time, ILogger<ItemService> log, ItemKernelAuthority kernelAuthority, IKernelProtocolControl kernelProtocol)
 	{
 		_session = session;
-		_sender = sender;
 		_log = log;
 		_arbitration = arbitration;
 		_kernelAuthority = kernelAuthority;
 		_kernelProtocol = kernelProtocol;
+		_kernelProtocol.ItemMovesReceived += OnItemMovesReceived;
 		_kernelAuthority.BatchApplied += OnBatchApplied;
 		_kernelAuthority.CheckpointRestored += OnCheckpointRestored;
 		_projection = new ItemProjection(kernelAuthority, _worldTable);
@@ -234,10 +234,16 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 			RecordItemTraffic(ItemTrafficKind.Move, ItemTrafficLabel(entry.ItemId));
 		}
 
-		var msg = new ItemMoveMsg { Items = [.. items] };
-		_sender.SendToAll(
-			_session.Members.Where(m => m.Handshaken && m.SteamId != _session.LocalSteamId).Select(m => m.SteamId),
-			NetMsg.ItemMove, msg, reliable: false);
+		_kernelProtocol.SendStateStream([.. items.Select(e => new WireItemMoveEntry
+		{
+			ItemId = e.ItemId,
+			X = e.X,
+			Y = e.Y,
+			VelX = e.VelX,
+			VelY = e.VelY,
+			Rotation = e.Rotation,
+			AngularVelocity = e.AngularVelocity,
+		})]);
 	}
 
 	public void FireItemMoveReceived(IReadOnlyList<ItemMoveEntryMsg> items) => ItemMoveReceived?.Invoke(items);
@@ -314,6 +320,7 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 
 	public void Dispose()
 	{
+		_kernelProtocol.ItemMovesReceived -= OnItemMovesReceived;
 		_kernelAuthority.BatchApplied -= OnBatchApplied;
 		_kernelAuthority.CheckpointRestored -= OnCheckpointRestored;
 		_session.SessionEnded -= OnSessionEnded;
@@ -445,6 +452,25 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 		}
 
 		_kernelBatchProjection.Rebuild(checkpoint);
+	}
+
+	private void OnItemMovesReceived(IReadOnlyList<WireItemMoveEntry> moves)
+	{
+		if (_session.Role != SessionRole.Guest)
+		{
+			return;
+		}
+
+		FireItemMoveReceived([.. moves.Select(m => new ItemMoveEntryMsg
+		{
+			ItemId = m.ItemId,
+			X = m.X,
+			Y = m.Y,
+			VelX = m.VelX,
+			VelY = m.VelY,
+			Rotation = m.Rotation,
+			AngularVelocity = m.AngularVelocity,
+		})]);
 	}
 
 	// ===== IItemActionWorldAccess =====

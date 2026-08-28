@@ -3716,6 +3716,9 @@ decisions of the first cycle so a later session can continue from a stable base.
   `RandomStreamState`/`WireRandomStream` records; round-trip tests cover them.
 - **Projection rebuild** — checkpoint restore raises `CheckpointRestored` and the
   guest world projection rebuilds from the authoritative checkpoint.
-- **Tests/gates** — full suite 1643 green; architecture, event-replay, and
+- **StateStream** — item move host→guest rides `StateStreamEnvelope` (unreliable)
+  and re-surfaces as `ItemMoveReceived`; the legacy `NetMsg.ItemMove` is no longer
+  the production item-position send path.
+- **Tests/gates** — full suite 1644 green; architecture, event-replay, and
   entity-dispatch gates pass. See
   `docs/selfchecks/phase-c-protocol-core-selfcheck.md`.

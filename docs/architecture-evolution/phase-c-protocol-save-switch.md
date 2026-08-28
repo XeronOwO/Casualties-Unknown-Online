@@ -1,6 +1,6 @@
 # Phase C — Structural Protocol and Save Switch
 
-> Status: **Not started** (depends on Phase B)
+> Status: **In progress** (depends on Phase B; core protocol/save stack landed, production cutover continues)
 > Source: target architecture §11-§13; migration roadmap "Phase C".
 
 ## Objective
@@ -78,62 +78,63 @@ Out of scope:
 
 ## Work breakdown
 
-- [ ] Define Protocol project:
+- [x] Define Protocol project:
   - wire DTOs for the four envelopes and headers;
   - codecs;
   - version constants;
   - golden byte-level contract tests.
-- [ ] Define domain event wire IDs:
+- [x] Define domain event wire IDs:
   - numeric payload types;
   - mapping from kernel Events to wire payloads;
   - rejection table for unknown critical vs unknown non-critical.
 - [ ] Implement host-side send path:
-  - Commands from guests;
-  - committed batches from kernel;
-  - checkpoint chunks;
-  - state stream envelope for continuous fields.
+  - [x] Commands from guests;
+  - [x] committed batches from kernel;
+  - [x] checkpoint chunks;
+  - [ ] state stream envelope for continuous fields.
 - [ ] Implement guest-side receive path:
-  - apply batches idempotently by OperationId/GlobalRevision;
-  - request missing ranges;
-  - rebuild from checkpoint on large gaps;
-  - replay pending predictions after confirmed batch application;
-  - produce minimal projection diffs.
+  - [x] apply batches idempotently by OperationId/GlobalRevision;
+  - [ ] request missing ranges;
+  - [ ] rebuild from checkpoint on large gaps;
+  - [ ] replay pending predictions after confirmed batch application;
+  - [x] produce minimal projection diffs (world items from kernel batches).
 - [ ] Implement join/reconnect flow:
-  - checkpoint + tail;
-  - late join after journal window expiry;
-  - disconnect/reconnect with epoch validation.
-- [ ] Implement RunEpoch filtering:
+  - [x] checkpoint + tail;
+  - [ ] late join after journal window expiry;
+  - [ ] disconnect/reconnect with epoch validation.
+- [x] Implement RunEpoch filtering:
   - every envelope carries RunEpoch;
   - old-epoch packets are dropped;
   - session reset converges to kernel restore.
 - [ ] Implement save/load:
-  - write `SaveHeader` + `GameCheckpoint`;
-  - read/validate/migrate/reject old saves per policy;
-  - include named random streams / decided random results;
-  - keep checkpoint as the only authoritative on-disk source.
+  - [x] write `SaveHeader` + `GameCheckpoint`;
+  - [x] read/validate/reject old saves per policy;
+  - [ ] include named random streams / decided random results;
+  - [x] keep checkpoint as the only authoritative on-disk source.
 - [ ] Remove old item wire DTOs from production:
-  - identify all old item message usages;
-  - replace with new envelopes or projections;
-  - delete old message handlers/enums where no longer used;
-  - keep golden tests updated.
+  - [ ] identify all old item message usages;
+  - [x] replace spawn/pickup/drop/destroy with new envelopes;
+  - [ ] delete old message handlers/enums where no longer used;
+  - [x] keep golden tests updated.
 - [ ] Add network simulation tests:
-  - random latency, duplication, reordering, loss, disconnect, reconnect;
-  - checkpoint insertion;
-  - reliable Batch eventual consistency;
-  - state stream convergence only.
-- [ ] Add save round-trip tests:
+  - [x] duplication and idempotency;
+  - [x] reordering/gap/epoch rejection;
+  - [ ] random latency, loss, disconnect, reconnect;
+  - [ ] checkpoint insertion;
+  - [x] reliable Batch eventual consistency (kernel state + world projection).
+- [x] Add save round-trip tests:
   - checkpoint equivalence;
-  - random stream determinism;
+  - [ ] random stream determinism;
   - corrupt old save behavior;
   - schema version handling.
 - [ ] Add projection rebuild tests:
   - all projections can be dropped and rebuilt from checkpoint+journal tail;
   - failed projection does not mutate authoritative state.
 - [ ] Update docs:
-  - `docs/tech-decisions.md`;
-  - `docs/selfchecks/`;
-  - `docs/architecture.md` if protocol sections become obsolete;
-  - this phase doc and `status.md`.
+  - [x] `docs/selfchecks/`;
+  - [x] this phase doc and `status.md`;
+  - [ ] `docs/tech-decisions.md`;
+  - [ ] `docs/architecture.md` if protocol sections become obsolete.
 
 ## Exit criteria
 
@@ -191,10 +192,12 @@ Out of scope:
 
 | Date | Scope | Commits | Verification | Notes |
 |---|---|---|---|---|
-| _(none yet)_ | | | | |
+| 2026-08-28 | Phase C core: `CasualtiesUnknownOnline.Protocol` project (four envelopes, wire DTOs, codecs, golden tests), `KernelWireMapper`, `WireCheckpointAssembler`, `KernelProtocolService` + `KernelEnvelopeHandler`, `KernelSaveFileStore`, guest world projection, RunEpoch/version/gap filters, checkpoint join hook. Old spawn/pickup/drop/destroy production sends switched to CommandEnvelope. | _(not committed yet)_ | Full suite 1636 tests green; build clean. | Remaining: full old item DTO removal, request-missing-ranges/rebuild, StateStream projection, random streams, projection-rebuild tests, tech-decision/doc completion. |
 
 ## Next actions
 
-1. Read Phase B completion evidence in `status.md` and `docs/selfchecks/`.
-2. Design the Protocol project and wire event ID table first.
-3. Implement host/guest join flow in a simulation-only branch before switching production.
+1. Convert the remaining old item wire families (use/slot/container-content/snapshot/correction/carry) to envelopes or explicitly keep them as test-only projections.
+2. Implement guest missing-range request + host journal-range fallback-to-checkpoint.
+3. Add full network simulation with random latency/loss/disconnect/reconnect and StateStream convergence.
+4. Add named random streams to `GameCheckpoint`/save format and projection-rebuild tests.
+5. Record the Phase C decisions in `docs/tech-decisions.md`, update `docs/architecture.md` if protocol sections are stale, and commit.

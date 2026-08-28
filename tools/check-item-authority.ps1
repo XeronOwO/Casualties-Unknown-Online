@@ -9,6 +9,7 @@ $itemDir = Join-Path $root "src\CasualtiesUnknownOnline.Runtime\Session\Items"
 $allowed = @(
     "ItemProjection.cs",
     "ItemArbitration.cs",   # transfer-table projection/cache owner (its methods call the kernel first)
+    "KernelBatchItemProjection.cs", # Phase C guest batch projection (confirmed batches -> world cache)
     "WorldItemTable.cs"     # table definition
 )
 

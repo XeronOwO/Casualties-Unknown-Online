@@ -5,10 +5,12 @@ iteration: replacing scattered authority stores and hook-coupled sync paths with
 typed, deterministic game-state kernel while preserving each gameplay domain's own
 semantics.
 
-> Status: **Phase B — completed**. The typed deterministic kernel is now the
-> authoritative item-fact store on the host; legacy item tables are kernel-first
-> projections, the native-operation and capability surfaces are in place, and no
-> online behavior has changed. Phase C is not started per current scope.
+> Status: **Phase C — in progress**. The typed deterministic kernel is the
+> authoritative item-fact store on the host; the new four-envelope protocol and
+> checkpoint-save stack are landed, and spawn/pickup/drop/destroy production
+> sends now ride CommandEnvelope/CommittedBatchEnvelope. The remaining Phase C
+> work is the full old item DTO removal, missing-range recovery, StateStream
+> projection, random streams, and projection-rebuild tests.
 
 ## Why this exists
 
@@ -57,7 +59,7 @@ invariants.
 |---|---|---|---|
 | A | Shadow kernel | Replay semantic diff zero for the item slice; shadow explains known defect families; no behavior change. | Completed |
 | B | Items authority | Every item fact has one authoritative write path; old tables are projections. | Completed |
-| C | Protocol/save switch | New envelopes and checkpoint join pass network simulation; old item wire DTOs removed from production. | Not started |
+| C | Protocol/save switch | New envelopes and checkpoint join pass network simulation; old item wire DTOs removed from production. | In progress |
 | D | Full domain migration | All persistent gameplay facts live in kernel domains; epoch isolation works. | Not started |
 | E | Delete dual architecture | No `Legacy`/`Compat`/shadow double-write/two authority tables remain. | Not started |
 

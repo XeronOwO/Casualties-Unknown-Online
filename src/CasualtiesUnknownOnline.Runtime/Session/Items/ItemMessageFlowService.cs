@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using Microsoft.Extensions.Logging;
@@ -31,9 +32,11 @@ internal sealed class ItemMessageFlowService(
 	Action<ulong, CharacterItemMsg, NetVector2, NetVector2, ulong, float, float, NetVector2> onItemDropped,
 	Action<ulong> onItemDestroyed,
 	Action<ulong, WorldItem> onItemCookedReceived,
-	Action<ulong, ItemRejectMsg.Reason> onItemRejected)
+	Action<ulong, ItemRejectMsg.Reason> onItemRejected,
+	IKernelProtocolControl kernelProtocol)
 {
 	private readonly ISessionControl _session = session;
+	private readonly IKernelProtocolControl _kernelProtocol = kernelProtocol;
 	private readonly PacketSender _sender = sender;
 	private readonly ILogger<ItemService> _log = log;
 	private readonly WorldItemTable _worldTable = worldTable;
@@ -68,23 +71,18 @@ internal sealed class ItemMessageFlowService(
 
 		_recordTraffic(ItemTrafficKind.Spawn, item.ItemId);
 
-		var msg = new ItemSpawnMsg
+		if (_session.Role == SessionRole.Guest)
 		{
-			ItemId = itemId,
-			Item = item,
-			Position = pos.ToNetVector2Msg(),
-			Velocity = vel.ToNetVector2Msg(),
-			Rotation = rotation,
-			FreshItemDrop = freshItemDrop,
-		};
-		if (_session.Role == SessionRole.Host)
-		{
-			_session.Broadcast(NetMsg.ItemSpawn, msg);
+			_kernelProtocol.SendCommand(new WireCommand
+			{
+				Kind = WireCommandKind.ItemSpawn,
+				Identity = WireIdentity(itemId, item.ItemId),
+				Location = WorldLocation(pos, 0),
+				Data = ToWireItemData(item),
+			}, WirePayloadType.ItemSpawnCommand);
 		}
-		else
-		{
-			_sender.Send(_session.HostSteamId, NetMsg.ItemSpawn, msg);
-		}
+		// Host broadcasts are unnecessary: the accepted kernel batch is already
+		// broadcast by KernelProtocolService.
 	}
 
 	public void SendItemCooked(ulong sourceItemId, ulong cookedItemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, float rotation, float angularVelocity)
@@ -102,6 +100,9 @@ internal sealed class ItemMessageFlowService(
 			return;
 		}
 
+		// Cook is still a legacy presentation projection until Phase D's
+		// cross-domain batch; the new kernel batch also carries the item facts,
+		// but the dedicated cook event keeps the source→product link.
 		_session.Broadcast(NetMsg.ItemCook, new ItemCookMsg
 		{
 			SourceItemId = sourceItemId,
@@ -128,15 +129,20 @@ internal sealed class ItemMessageFlowService(
 
 		_recordTraffic(ItemTrafficKind.Pickup, evidence?.ItemId ?? _itemTrafficLabel(itemId));
 
-		var msg = new ItemPickupMsg { ItemId = itemId, Item = _session.Role == SessionRole.Guest ? evidence : null };
-		if (_session.Role == SessionRole.Host)
+		if (_session.Role == SessionRole.Guest)
 		{
-			_session.Broadcast(NetMsg.ItemPickup, msg);
+			_kernelProtocol.SendCommand(new WireCommand
+			{
+				Kind = WireCommandKind.ItemPickup,
+				Identity = WireIdentity(itemId, evidence?.ItemId ?? ""),
+				NewOwner = _session.LocalSteamId,
+				ExpectedRevision = 0,
+			}, WirePayloadType.ItemPickupCommand);
+			return;
 		}
-		else
-		{
-			_sender.Send(_session.HostSteamId, NetMsg.ItemPickup, msg);
-		}
+
+		// Host broadcasts are unnecessary: the accepted kernel batch is already
+		// broadcast by KernelProtocolService.
 	}
 
 	public void SendItemUse(ulong itemId, CharacterItemMsg item) => _itemActionSync.SendItemUse(itemId, item);
@@ -159,24 +165,21 @@ internal sealed class ItemMessageFlowService(
 
 		_recordTraffic(ItemTrafficKind.Drop, item.ItemId);
 
-		var msg = new ItemDropMsg
+		if (_session.Role == SessionRole.Guest)
 		{
-			ItemId = itemId,
-			Item = item,
-			Position = pos.ToNetVector2Msg(),
-			Velocity = vel.ToNetVector2Msg(),
-			ParentItemId = parentItemId,
-			Rotation = rotation,
-			ParentPosition = parentPos.ToNetVector2Msg(),
-		};
-		if (_session.Role == SessionRole.Host)
-		{
-			_session.Broadcast(NetMsg.ItemDrop, msg);
+			_kernelProtocol.SendCommand(new WireCommand
+			{
+				Kind = WireCommandKind.ItemDrop,
+				Identity = WireIdentity(itemId, item.ItemId),
+				Location = WorldLocation(pos, parentItemId),
+				Data = ToWireItemData(item),
+				ExpectedRevision = 0,
+			}, WirePayloadType.ItemDropCommand);
+			return;
 		}
-		else
-		{
-			_sender.Send(_session.HostSteamId, NetMsg.ItemDrop, msg);
-		}
+
+		// Host broadcasts are unnecessary: the accepted kernel batch is already
+		// broadcast by KernelProtocolService.
 	}
 
 	public void SendItemDestroyed(ulong itemId)
@@ -194,16 +197,40 @@ internal sealed class ItemMessageFlowService(
 
 		_recordTraffic(ItemTrafficKind.Destroy, trafficLabel);
 
-		var msg = new ItemDestroyMsg { ItemId = itemId };
-		if (_session.Role == SessionRole.Host)
+		if (_session.Role == SessionRole.Guest)
 		{
-			_session.Broadcast(NetMsg.ItemDestroy, msg);
+			_kernelProtocol.SendCommand(new WireCommand
+			{
+				Kind = WireCommandKind.ItemDestroy,
+				Identity = WireIdentity(itemId, ""),
+				TerminalKind = WireTerminalKind.Destroyed,
+				ExpectedRevision = 0,
+			}, WirePayloadType.ItemDestroyCommand);
+			return;
 		}
-		else
-		{
-			_sender.Send(_session.HostSteamId, NetMsg.ItemDestroy, msg);
-		}
+
+		// Host broadcasts are unnecessary: the accepted kernel batch is already
+		// broadcast by KernelProtocolService.
 	}
+
+	private static WireItemIdentity WireIdentity(ulong itemId, string definitionId) =>
+		new()
+		{
+			InstanceId = itemId,
+			DefinitionId = definitionId,
+		};
+
+	private static WireItemLocation WorldLocation(NetVector2 pos, ulong parentItemId) =>
+		new()
+		{
+			Kind = WireItemLocationKind.World,
+			X = pos.X,
+			Y = pos.Y,
+			ParentItemId = parentItemId,
+		};
+
+	private static WireItemData ToWireItemData(CharacterItemMsg item) =>
+		KernelWireMapper.ToWireData(ItemKernelAuthority.ToKernelData(item));
 
 	// ===== Receive side (wire handlers) =====
 

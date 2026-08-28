@@ -171,7 +171,8 @@ public static class CuoBootstrap
 			p.GetRequiredService<IEnemySyncControl>(),
 			p.GetRequiredService<IWorldTimeControl>(),
 			p.GetRequiredService<IPlayerInteractionControl>(),
-			p.GetRequiredService<ITutorialClawControl>()));
+			p.GetRequiredService<ITutorialClawControl>(),
+			p.GetRequiredService<IKernelProtocolControl>()));
 		services.AddSingleton<PacketDispatcher>();
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<PacketDispatcher>());
 
@@ -237,6 +238,11 @@ public static class CuoBootstrap
 		// same transfer table (RemoveTransferred/AdoptEvidence/RegisterCarried).
 		services.AddSingleton<ItemArbitration>();
 		services.AddSingleton<ItemKernelAuthority>();
+		// Phase C four-envelope kernel protocol: executes wire commands on the
+		// host, applies checkpoints/batches on the guest, and owns the host
+		// journal used by join/reconnect fallback.
+		services.AddSingleton<KernelProtocolService>();
+		services.AddSingleton<IKernelProtocolControl>(p => p.GetRequiredService<KernelProtocolService>());
 		services.AddSingleton<ItemCheckpointStore>();
 		services.AddSingleton<ItemService>();
 		services.AddSingleton<IItemControl>(p => p.GetRequiredService<ItemService>());

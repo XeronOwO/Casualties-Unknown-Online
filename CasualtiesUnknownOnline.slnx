@@ -1,6 +1,7 @@
 <Solution>
   <Project Path="src/CasualtiesUnknownOnline.Abstractions/CasualtiesUnknownOnline.Abstractions.csproj" />
   <Project Path="src/CasualtiesUnknownOnline.Runtime/CasualtiesUnknownOnline.Runtime.csproj" />
+  <Project Path="src/CasualtiesUnknownOnline.Protocol/CasualtiesUnknownOnline.Protocol.csproj" />
   <Project Path="src/CasualtiesUnknownOnline.GameState/CasualtiesUnknownOnline.GameState.csproj" />
   <Project Path="src/CasualtiesUnknownOnline.GameAdapter/CasualtiesUnknownOnline.GameAdapter.csproj" />
   <Project Path="src/CasualtiesUnknownOnline.Plugin/CasualtiesUnknownOnline.Plugin.csproj" />

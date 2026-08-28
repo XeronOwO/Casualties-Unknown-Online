@@ -1,0 +1,20 @@
+using System.Collections.Generic;
+using CasualtiesUnknownOnline.Protocol.Wire;
+using ProtoBuf;
+
+namespace CasualtiesUnknownOnline.Runtime.Session.Items;
+
+/// <summary>
+/// The on-disk container for a Phase C kernel checkpoint. The checkpoint is the
+/// only authoritative gameplay payload; recent batches are intentionally not
+/// persisted in this phase.
+/// </summary>
+[ProtoContract]
+public sealed class KernelSaveFile
+{
+	[ProtoMember(1)]
+	public SaveHeader Header { get; set; } = new();
+
+	[ProtoMember(2)]
+	public List<WireItem> Items { get; set; } = [];
+}

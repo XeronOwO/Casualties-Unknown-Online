@@ -242,6 +242,7 @@ public class KernelProtocolServiceTests
 
 		var hostAuthority = host.Services.GetRequiredService<ItemKernelAuthority>();
 		Assert.NotNull(hostAuthority.FindItem(42));
+		Assert.Contains(host.Services.GetRequiredService<ItemService>().GetWorldItemsForDiagnostics(), w => w.ItemId == 42);
 		var guestAuthority = guest.Services.GetRequiredService<ItemKernelAuthority>();
 		Assert.NotNull(guestAuthority.FindItem(42));
 		var guestWorld = guest.Services.GetRequiredService<ItemService>().GetWorldItemsForDiagnostics();

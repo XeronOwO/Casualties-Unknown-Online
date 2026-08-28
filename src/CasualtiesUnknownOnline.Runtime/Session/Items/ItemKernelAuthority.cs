@@ -38,6 +38,9 @@ public sealed class ItemKernelAuthority(ILogger<ItemKernelAuthority> log)
 	/// <summary>Raised after any accepted kernel batch commits. The Phase C protocol service broadcasts this to guests.</summary>
 	public event Action<CommittedBatch>? BatchCommitted;
 
+	/// <summary>Raised after a kernel batch committed through the external wire-command entry point. Used by host projections to refresh local state without double-projecting local native writes.</summary>
+	public event Action<CommittedBatch>? ExternalBatchCommitted;
+
 	/// <summary>Raised after a remote/replay batch is applied to this authority's kernel (guest side).</summary>
 	public event Action<CommittedBatch>? BatchApplied;
 
@@ -368,8 +371,16 @@ public sealed class ItemKernelAuthority(ILogger<ItemKernelAuthority> log)
 	/// Execute an externally supplied typed kernel command (e.g. decoded from a
 	/// Phase C CommandEnvelope). This is the host's generic command entry point.
 	/// </summary>
-	public bool TryExecuteCommand(GameCommand command, ulong actor, out CommittedBatch? batch, out Rejection? rejection) =>
-		TryExecute(command, actor, "wire-command", out batch, out rejection);
+	public bool TryExecuteCommand(GameCommand command, ulong actor, out CommittedBatch? batch, out Rejection? rejection)
+	{
+		if (!TryExecute(command, actor, "wire-command", out batch, out rejection))
+		{
+			return false;
+		}
+
+		ExternalBatchCommitted?.Invoke(batch!);
+		return true;
+	}
 
 	private bool TryExecute(GameCommand command, ulong actor, string label, out CommittedBatch? batch, out Rejection? rejection)
 	{

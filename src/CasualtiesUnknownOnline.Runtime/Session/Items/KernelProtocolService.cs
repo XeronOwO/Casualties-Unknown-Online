@@ -30,6 +30,8 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 	private readonly Dictionary<ulong, CommittedBatch> _pendingBatches = [];
 	private long _nextMessageId;
 
+	public event Action<IReadOnlyList<WireItemMoveEntry>>? ItemMovesReceived;
+
 	public KernelProtocolService(
 		ISessionControl session,
 		PacketSender sender,
@@ -143,6 +145,28 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 		_sender.Send(_session.HostSteamId, NetMsg.KernelEnvelope, frame);
 	}
 
+	public void SendStateStream(IReadOnlyList<WireItemMoveEntry> itemMoves)
+	{
+		if (_session.Role != SessionRole.Host || !_session.SessionActive || itemMoves.Count == 0)
+		{
+			return;
+		}
+
+		var frame = new ProtocolFrame
+		{
+			Kind = EnvelopeKind.StateStream,
+			StateStream = new StateStreamEnvelope
+			{
+				Header = CreateHeader(WirePayloadType.StateStream, 0),
+				Stream = new WireStateStream
+				{
+					ItemMoves = [.. itemMoves],
+				},
+			},
+		};
+		SendToGuests(frame, reliable: false);
+	}
+
 	public void HandleFrame(ulong sender, ProtocolFrame frame)
 	{
 		if (frame is null)
@@ -235,13 +259,23 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 			case EnvelopeKind.Command:
 				_log.LogWarning("Dropped command envelope from host {Sender}.", sender);
 				break;
-			case EnvelopeKind.StateStream:
-				_log.LogDebug("State stream envelope from {Sender} ignored (stream projection not migrated yet).", sender);
+			case EnvelopeKind.StateStream when frame.StateStream is not null:
+				HandleStateStream(frame.StateStream);
 				break;
 			default:
 				_log.LogWarning("Dropped unknown kernel envelope kind {Kind} from {Sender}.", frame.Kind, sender);
 				break;
 		}
+	}
+
+	private void HandleStateStream(StateStreamEnvelope envelope)
+	{
+		if (envelope.Stream.ItemMoves.Count == 0)
+		{
+			return;
+		}
+
+		ItemMovesReceived?.Invoke(envelope.Stream.ItemMoves);
 	}
 
 	private void HandleCommand(ulong sender, CommandEnvelope envelope)
@@ -490,11 +524,11 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 		}
 	}
 
-	private void SendToGuests(ProtocolFrame frame)
+	private void SendToGuests(ProtocolFrame frame, bool reliable = true)
 	{
 		foreach (var member in _session.Members.Where(m => m.Handshaken && m.SteamId != _session.LocalSteamId))
 		{
-			_sender.Send(member.SteamId, NetMsg.KernelEnvelope, frame);
+			_sender.Send(member.SteamId, NetMsg.KernelEnvelope, frame, reliable);
 		}
 	}
 

@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.Protocol.Wire;
 
@@ -14,9 +16,13 @@ public interface IKernelProtocolControl
 
 	void SendCommand(WireCommand command, WirePayloadType payloadType);
 
+	void SendStateStream(IReadOnlyList<WireItemMoveEntry> itemMoves);
+
 	void BroadcastCommittedBatch(CommittedBatch batch);
 
 	void SendCheckpoint(ulong targetSteamId);
+
+	event Action<IReadOnlyList<WireItemMoveEntry>>? ItemMovesReceived;
 
 	void ResetForSessionEnd();
 }

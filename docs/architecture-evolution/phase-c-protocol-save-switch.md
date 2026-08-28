@@ -91,7 +91,7 @@ Out of scope:
   - [x] Commands from guests;
   - [x] committed batches from kernel;
   - [x] checkpoint chunks;
-  - [ ] state stream envelope for continuous fields.
+  - [x] state stream envelope for continuous fields (item move stream).
 - [ ] Implement guest-side receive path:
   - [x] apply batches idempotently by OperationId/GlobalRevision;
   - [x] request missing ranges;
@@ -114,6 +114,7 @@ Out of scope:
 - [ ] Remove old item wire DTOs from production:
   - [ ] identify all old item message usages;
   - [x] replace spawn/pickup/drop/destroy with new envelopes;
+  - [x] replace item move with StateStreamEnvelope;
   - [ ] delete old message handlers/enums where no longer used;
   - [x] keep golden tests updated.
 - [ ] Add network simulation tests:
@@ -122,7 +123,8 @@ Out of scope:
   - [x] random latency and duplicate convergence;
   - [x] disconnect/reconnect simulation (checkpoint restore);
   - [x] checkpoint insertion/restore;
-  - [x] reliable Batch eventual consistency (kernel state + world projection).
+  - [x] reliable Batch eventual consistency (kernel state + world projection);
+  - [x] StateStream convergence (item move).
 - [x] Add save round-trip tests:
   - checkpoint equivalence;
   - [x] random stream determinism;
@@ -195,10 +197,10 @@ Out of scope:
 |---|---|---|---|---|
 | 2026-08-28 | Phase C core: `CasualtiesUnknownOnline.Protocol` project (four envelopes, wire DTOs, codecs, golden tests), `KernelWireMapper`, `WireCheckpointAssembler`, `KernelProtocolService` + `KernelEnvelopeHandler`, `KernelSaveFileStore`, guest world projection, RunEpoch/version/gap filters, checkpoint join hook. Old spawn/pickup/drop/destroy production sends switched to CommandEnvelope. | `884ecc3` | Full suite 1637 tests green; build/architecture/event/entity gates pass. | Remaining: full old item DTO removal, request-missing-ranges/rebuild, StateStream projection, random streams, projection-rebuild tests, remaining tech-decision/doc fields. |
 | 2026-08-28 | Phase C recovery/save/projection second cycle: guest range requests + out-of-order buffering + host journal fallback checkpoint, named random streams in GameCheckpoint/wire/save, checkpoint rebuild of guest world projection, latency/duplicate simulation. | `acaceac` | Full suite 1643 tests green; architecture/event/entity gates pass. | Remaining: full old item DTO removal, StateStream projection, disconnect/reconnect simulation, failed-projection-must-not-mutate test. |
+| 2026-08-28 | Phase C StateStream cycle: item move host→guest now rides `StateStreamEnvelope` and resurface as `ItemMoveReceived`; disconnect/reconnect checkpoint-restore test added. | `pending` | Full suite 1644 tests green; architecture/event/entity gates pass. | Remaining: old item families use/slot/container/correction/carry/snapshot/cook, failed-projection test, final docs/tech-decisions. |
 
 ## Next actions
 
 1. Convert the remaining old item wire families (use/slot/container-content/snapshot/correction/carry/cook) to envelopes or explicitly keep them as test-only projections.
-2. Add disconnect/reconnect network simulation and StateStream convergence.
-3. Add a failed-projection-does-not-mutate-authoritative-state test.
-4. Record remaining Phase C decisions in `docs/tech-decisions.md`, update `docs/architecture.md` if protocol sections are stale, and commit.
+2. Add a failed-projection-does-not-mutate-authoritative-state test.
+3. Record remaining Phase C decisions in `docs/tech-decisions.md`, update `docs/architecture.md` if protocol sections are stale, and commit.

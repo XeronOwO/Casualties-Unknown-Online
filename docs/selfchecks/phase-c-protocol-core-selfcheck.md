@@ -60,15 +60,14 @@ cutover items are listed at the bottom.
 ## Open items before Phase C can be marked complete
 
 1. Convert remaining old item wire families (use, slot, container-content,
-   correction, carried-sync, snapshot, move, cook cross-domain batch) or
-   explicitly annotate them as test-only.
-2. StateStream envelope projection (continuous field surface).
-3. Disconnect/reconnect network simulation and failed-projection-does-not-mutate
-   authoritative-state test.
-4. Record binding decisions in `docs/tech-decisions.md` and update
+   correction, carried-sync, snapshot, cook cross-domain batch) or explicitly
+   annotate them as test-only.
+2. Disconnect/reconnect network simulation (checkpoint restore now covered) and
+   failed-projection-does-not-mutate authoritative-state test.
+3. Record remaining binding decisions in `docs/tech-decisions.md` and update
    `docs/architecture.md` if protocol sections are stale.
 
-## Second-cycle additions (2026-08-28)
+## Subsequent-cycle additions (2026-08-28)
 
 - Range recovery: guest buffers out-of-order batches, sends `RangeRequestCommand`,
   host sends journal batch ranges or falls back to a fresh checkpoint.
@@ -76,5 +75,7 @@ cutover items are listed at the bottom.
   `WireRandomStream` in protocol/wire checkpoint/save, round-trip tests.
 - Projection rebuild: checkpoint restore raises `CheckpointRestored` and guest
   world projection rebuilds from the authoritative checkpoint.
-- Simulation: latency + duplicate delivery convergence test; all above verified
-  by the full suite (1643 green) and repo gates.
+- StateStream: item move stream now rides `StateStreamEnvelope` host→guest and
+  re-surfaces as `ItemMoveReceived` on the guest, replacing old `ItemMove`.
+- Simulation: latency + duplicate convergence, disconnect/reconnect checkpoint
+  restore; all verified by the full suite (1644 green) and repo gates.

@@ -17,4 +17,7 @@ public sealed class WireStateStream
 
 	[ProtoMember(3)]
 	public List<WireStreamField> Fields { get; set; } = [];
+
+	[ProtoMember(4)]
+	public List<WireItemMoveEntry> ItemMoves { get; set; } = [];
 }

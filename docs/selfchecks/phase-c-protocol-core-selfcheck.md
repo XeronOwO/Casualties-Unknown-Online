@@ -77,5 +77,8 @@ cutover items are listed at the bottom.
   world projection rebuilds from the authoritative checkpoint.
 - StateStream: item move stream now rides `StateStreamEnvelope` host→guest and
   re-surfaces as `ItemMoveReceived` on the guest, replacing old `ItemMove`.
+- Host wire projection: `ItemKernelAuthority.ExternalBatchCommitted` lets the
+  host project commands that arrived over `CommandEnvelope` into the legacy
+  world table without double-projecting local native writes.
 - Simulation: latency + duplicate convergence, disconnect/reconnect checkpoint
   restore; all verified by the full suite (1644 green) and repo gates.

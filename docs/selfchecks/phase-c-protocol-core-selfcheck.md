@@ -69,8 +69,10 @@ cutover items are listed at the bottom.
 - Cook is an atomic kernel batch (`CookItemCommand`), not a legacy `ItemCook`.
 - Command rejections ride `CommandRejected` `CommandEnvelope`; tests observe the
   adapter event instead of the legacy `ItemReject` frame.
-- Remaining old packet handlers are test-only replay injection; production
-  paths use only `NetMsg.KernelEnvelope`.
+- Old item packet handlers, old item DTOs, and the corresponding `NetMsg` item
+  enums have been fully deleted. The only production item network path is
+  `NetMsg.KernelEnvelope`; `NetMsg.ItemReject` remains only for block-break
+  drop refusal.
 
 ## Subsequent-cycle additions (2026-08-28)
 

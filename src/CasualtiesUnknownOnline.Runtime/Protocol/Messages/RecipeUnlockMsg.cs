@@ -11,7 +11,7 @@ namespace CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 ///
 /// Direction: guest → host report; host → guest broadcast relay (source
 /// excluded). The blueprint item's own destruction rides the existing use
-/// digest report (ItemUseMsg) — this frame is the unlock fact only.
+/// use report (kernel command) — this frame is the unlock fact only.
 /// </summary>
 [ProtoContract]
 public sealed class RecipeUnlockMsg

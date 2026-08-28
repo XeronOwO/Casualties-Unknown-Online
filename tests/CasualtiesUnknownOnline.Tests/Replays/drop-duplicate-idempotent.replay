@@ -18,4 +18,4 @@
 @33 fault g1 host dup
 @33 drop g1 42 test_item 1.0
 @66 expect host_table 42 within 500
-@66 expect received g2 ItemDrop 1
+@66 expect drop_event g2 1

@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.GameAdapter.Items;
-using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using Microsoft.Extensions.Logging;
 
@@ -34,7 +33,7 @@ internal sealed class GeneratedItemApplication(
 	private readonly ILogger<GeneratedItemApplication> _log = log;
 
 	/// <summary>The host's latest snapshot, held until the local generation finished. A layer switch's newer snapshot replaces an older one — the pending list is always the current layer's.</summary>
-	private List<ItemSnapshotEntryMsg>? _pending;
+	private List<WorldItem>? _pending;
 
 	internal void BindToSession() => _items.WorldItemsSnapshotReceived += OnWorldItemsSnapshot;
 
@@ -42,7 +41,7 @@ internal sealed class GeneratedItemApplication(
 
 	// The layer modifier rides the snapshot — LayerModifierSync applies it
 	// (its own subscription); this domain only consumes the item entries.
-	private void OnWorldItemsSnapshot(IReadOnlyList<ItemSnapshotEntryMsg> items, int layerModifierIndex, byte[]? layerModifierRandomState) => _pending = [.. items];
+	private void OnWorldItemsSnapshot(IReadOnlyList<WorldItem> items, int layerModifierIndex, byte[]? layerModifierRandomState) => _pending = [.. items];
 
 	/// <summary>Pump: apply the held snapshot once the local generation finished.</summary>
 	internal void Update()
@@ -57,23 +56,20 @@ internal sealed class GeneratedItemApplication(
 		Apply(pending);
 	}
 
-	private void Apply(List<ItemSnapshotEntryMsg> entries)
+	private void Apply(List<WorldItem> entries)
 	{
 		using (CallContext.Enter(CallContext.Origin.RemoteApply))
 		{
 			var ground = 0;
 			var bound = 0;
 			var materialized = 0;
-			foreach (var entry in entries)
+			foreach (var w in entries)
 			{
 				// Ground-only now: the starting supplies are no longer distributed
 				// with host-assigned ids — every side self-assigns its own (the id
 				// space is per-SteamId) and the guests report their carried
 				// inventory to the host (CarriedInventoryReporter).
 				ground++;
-				var w = new WorldItem(entry.ItemId, entry.Item,
-					entry.Position.ToNetVector2(), entry.Velocity.ToNetVector2(),
-					entry.ParentItemId, entry.Rotation, entry.FreshItemDrop);
 				if (ItemApplication.FindExistingAt(w.Pos, w.Item.ItemId) != null) // Unity object — ==
 				{
 					bound++; // the local copy gets the host's id (SpawnWorldItem binds, never duplicates)

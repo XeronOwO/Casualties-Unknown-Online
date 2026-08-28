@@ -465,7 +465,12 @@ internal static partial class ReplayRunner
 			"no_host_table" => () => !world.HostTable(ItemId(step, 1)),
 			"reject" => () => world.Rejects(world.Node(step.Args[1])).Any(r => r.ItemId == ItemId(step, 2)),
 			"received" => () => world.ReceivedCount(world.Node(step.Args[1]), MessageName(step, 2)) == Count(step, 3),
-			_ => throw new InvalidOperationException($"unknown assertion '{kind}' (host_table / no_host_table / reject / received)"),
+			"spawn_event" => () => world.SpawnedEvents(world.Node(step.Args[1])) == Count(step, 2),
+			"pickup_event" => () => world.PickedUpEvents(world.Node(step.Args[1])) == Count(step, 2),
+			"drop_event" => () => world.DroppedEvents(world.Node(step.Args[1])) == Count(step, 2),
+			"destroy_event" => () => world.DestroyedEvents(world.Node(step.Args[1])) == Count(step, 2),
+			"carried_event" => () => world.CarriedEvents(world.Node(step.Args[1])).Count == Count(step, 2),
+			_ => throw new InvalidOperationException($"unknown assertion '{kind}' (host_table / no_host_table / reject / received / spawn_event / pickup_event / drop_event / destroy_event / carried_event)"),
 		};
 		RunExpectation(world.Driver, step, predicate, () => ActualState(world, step));
 	}
@@ -534,6 +539,11 @@ internal static partial class ReplayRunner
 			"no_host_table" => $"table {(world.HostTable(ItemId(step, 1)) ? "still has" : "already lacks")} {ItemId(step, 1)}",
 			"reject" => $"{step.Args[1]} rejects: [{string.Join(", ", world.Rejects(world.Node(step.Args[1])).Select(r => r.ItemId))}]",
 			"received" => $"{step.Args[1]} received {world.ReceivedCount(world.Node(step.Args[1]), MessageName(step, 2))} {step.Args[2]} frames (expected {step.Args[3]})",
+			"spawn_event" => $"{step.Args[1]} spawn events: {world.SpawnedEvents(world.Node(step.Args[1]))} (expected {step.Args[2]})",
+			"pickup_event" => $"{step.Args[1]} pickup events: {world.PickedUpEvents(world.Node(step.Args[1]))} (expected {step.Args[2]})",
+			"drop_event" => $"{step.Args[1]} drop events: {world.DroppedEvents(world.Node(step.Args[1]))} (expected {step.Args[2]})",
+			"destroy_event" => $"{step.Args[1]} destroy events: {world.DestroyedEvents(world.Node(step.Args[1]))} (expected {step.Args[2]})",
+			"carried_event" => $"{step.Args[1]} carried events: {world.CarriedEvents(world.Node(step.Args[1])).Count} (expected {step.Args[2]})",
 			_ => string.Empty,
 		};
 	}

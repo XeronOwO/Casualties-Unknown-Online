@@ -1,4 +1,3 @@
-using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Tests.Fakes;
 using Xunit;
@@ -42,12 +41,12 @@ public class ItemDestroyAuthorityTests
 		w.Destroy(w.G2, 42);
 		w.Driver.Tick(33);
 
-		Assert.Equal(0, w.ReceivedCount(w.G1, NetMsg.ItemDestroy));
+		Assert.Equal(0, w.DestroyedEvents(w.G1));
 		Assert.True(w.TransferredOf(w.G1, 42), "the non-owner destroy must not remove the owner's transfer entry");
 	}
 
 	[Fact]
-	public void OwnerCarriedDestroy_RemovesTransferEntryAndBroadcasts()
+	public void OwnerCarriedDestroy_RemovesTransferEntry()
 	{
 		using var w = ItemSimWorld.Create();
 
@@ -57,13 +56,14 @@ public class ItemDestroyAuthorityTests
 		w.Driver.Tick(33);
 		Assert.True(w.TransferredOf(w.G1, 42));
 
-		// The owner consumes/destroys its own carried item. The host should
-		// remove the transfer entry (the item no longer exists to restore after
-		// a reconnect) and relay the fact to the other peers.
+		// The owner consumes/destroys its own carried item. The host removes
+		// the transfer entry (the item no longer exists to restore after a
+		// reconnect). A destroyed carried fact is not a world-item Destroyed
+		// projection in the Phase C model; the character snapshot is the
+		// recovery path for peer fact tables.
 		w.Destroy(w.G1, 42);
 		w.Driver.Tick(33);
 
 		Assert.False(w.TransferredOf(w.G1, 42), "an owner's destroy removes the transfer-table entry");
-		Assert.True(w.ReceivedCount(w.G2, NetMsg.ItemDestroy) > 0, "the other guest learns the carried item is gone");
 	}
 }

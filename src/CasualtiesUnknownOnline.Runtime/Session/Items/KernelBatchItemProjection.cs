@@ -154,14 +154,9 @@ internal sealed class KernelBatchItemProjection(
 		var itemId = relocated.Identity.InstanceId;
 		if (relocated.NewLocation.Kind == ItemLocationKind.World)
 		{
-			var wasWorld = relocated.OldLocation.Kind == ItemLocationKind.World;
 			var world = ToWorldItem(current.Value);
 			_worldTable.Set(itemId, world);
-			if (!wasWorld)
-			{
-				_onItemDropped(itemId, world.Item, world.Pos, world.Vel, world.ParentItemId, world.Rotation, world.AngularVelocity, world.ParentPosition);
-			}
-
+			_onItemDropped(itemId, world.Item, world.Pos, world.Vel, world.ParentItemId, world.Rotation, world.AngularVelocity, world.ParentPosition);
 			return;
 		}
 

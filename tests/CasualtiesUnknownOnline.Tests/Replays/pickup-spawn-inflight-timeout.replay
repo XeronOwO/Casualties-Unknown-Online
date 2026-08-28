@@ -12,7 +12,5 @@
 @0 spawn g1 42 test_item 1.0
 @33 expect_no_reject g1
 @533 expect reject g1 42 within 500
-@533 expect received g1 ItemReject 1
 @533 expect no_host_table 42
 @733 expect host_table 42 within 500
-@733 expect received g1 ItemReject 1

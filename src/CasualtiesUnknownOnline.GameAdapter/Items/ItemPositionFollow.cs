@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
-using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using HarmonyLib;
@@ -126,7 +126,7 @@ internal sealed class ItemPositionFollow(IItemControl items, DropProtectionGuard
 	/// <summary>The host's physics moved items — store the authoritative targets;
 	/// the first tick for a still-frozen copy switches it to local physics and
 	/// aligns it to the stream (same-phase start, no drop-off).</summary>
-	private void OnRemoteItemMove(IReadOnlyList<ItemMoveEntryMsg> items)
+	private void OnRemoteItemMove(IReadOnlyList<WireItemMoveEntry> items)
 	{
 		foreach (var e in items)
 		{
@@ -142,7 +142,7 @@ internal sealed class ItemPositionFollow(IItemControl items, DropProtectionGuard
 	/// and align it to the host's state once (start-point parity, the frozen
 	/// wait's payoff). An already-simulating copy (target re-registered) just
 	/// aligns once.</summary>
-	private void StartLocalPhysics(ulong itemId, ItemMoveEntryMsg e)
+	private void StartLocalPhysics(ulong itemId, WireItemMoveEntry e)
 	{
 		var item = ItemApplication.FindWorldItem(itemId);
 		if (item == null) // Unity object — == (not materialized yet — the next tick handles it)

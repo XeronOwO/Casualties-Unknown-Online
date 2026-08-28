@@ -35,13 +35,9 @@ public enum NetMsg : byte
 	WorldBlockState = 41, // host → guest: full block-state snapshot (damage table) on world entry
 	BlockPlaced = 42, // guest → host: report (host arbitrates); host → guest: broadcast relay (source excluded)
 
-	// World items (runtime-generated item entities, local compute → host register → relay)
-	ItemSpawn = 45, // guest → host: report; host → guest: broadcast relay (source excluded)
-	ItemPickup = 46, // guest → host: report (host arbitrates — first-writer-wins); host → guest: broadcast of the winner
-	ItemDrop = 47, // guest → host: report; host → guest: broadcast relay (source excluded)
-	ItemDestroy = 48, // guest → host: report; host → guest: broadcast relay (source excluded)
-	ItemReject = 49, // host → guest: arbitration refusal (e.g. pickup of an unknown item) — the guest rolls back
-	ItemSnapshot = 50, // host → guest: full world-item snapshot on world entry (late joiner / reconnect)
+	// Item-refusal feedback (block-break drops still ride this one frame; item
+	// kernel rejections use KernelEnvelope CommandRejected)
+	ItemReject = 49, // host → guest: block-break drop refusal — the guest destroys its local copy
 
 	// World entities (player-attacked building entities — plants, crates, creatures)
 	BuildingEntityDamaged = 51, // guest → host: report (host applies + relays); host → guest: broadcast relay (source excluded)
@@ -49,20 +45,7 @@ public enum NetMsg : byte
 
 	// World events (host authority)
 	EarthquakeStart = 55, // host → guest: an earthquake began (Duration seconds) — guests show the effect and suppress their own independent quake (four independent quakes would strip the terrain)
-	ItemMove = 56, // host → guest (unreliable): moving world-item positions — the host's physics is the position authority, guests follow (drops bounce to different spots otherwise)
 	KeypadCode = 57, // host → guest: the keypad codes (airdrop crates etc.) — generated host-side at world entry (the game lazy-generates them per side on first use, Openable.cs:19, which would give every side its own code)
-
-	// Item arbitration (accept-with-correction: the action always passes, the evidence decides whether a correction follows)
-	ItemCorrection = 59, // host → guest: authoritative item state (the guest's last action-report evidence diverged) — applied via the restore machinery, no location fields
-	ItemUse = 60, // guest → host: an item was used (digest evidence) — the host validates state and corrects
-	ItemSlot = 61, // guest → host: an item moved slots (id + new slot) — the host updates its record and corrects
-
-	// World items (generation-time — host authority: the host assigns the ids and distributes the full set)
-	WorldItemsSnapshot = 62, // host → guest: the generation-time world items (ground + starting supplies) with host-assigned ids — the guests bind their local copies to the host's ids or materialize the host's version
-
-	// Carried-item facts (host → guest events: use flipped state, slot move, pickup, container content — the receiver updates the per-player fact table and re-renders the clone immediately; the 1 Hz character snapshot stays as the fallback)
-	ItemCarriedSync = 63, // host → guest: one carried item's authoritative state (OwnerSteamId + full fact + SlotKnown) — a use/slot move/pickup/container-content broadcast; leaving an inventory travels ItemDrop
-	ItemContainerContent = 95, // guest → host: a carried container's full fact changed internally (nested content move) — the host records it and relays the container as an ItemCarriedSync fact
 
 	// Item id coordination (guest → host reports / host → guest grants)
 	ItemIdWatermark = 64, // bidirectional: guest → host the counter it allocated up to; host → guest the grant it must resume from (a crashed-and-rejoined guest's counter restarts — the grant keeps its new ids from colliding with the old ones the host still holds)
@@ -145,11 +128,6 @@ public enum NetMsg : byte
 	// host-computed, never per-side)
 	WorldTimeRequest = 90, // guest → host: request Normal/Fast/SuperFast
 	WorldTime = 91, // host → guest: the authoritative world-time speed (change / world entry / 5 s resend)
-
-	// Heater cooker (host authority — the conversion is a physics collision on
-	// the host's full-physics world items; guest items are layer-isolated to
-	// the Ground layer, so guests replay the broadcast instead of cooking)
-	ItemCook = 92, // host → guest: one raw-meat item became a steak (source id removed, cooked item registered — one operation, one message)
 
 	// Limb presentation (local compute → report → apply → fan-out: a limb's
 	// latch changed on its owner's local simulation — break/mend/dismember)

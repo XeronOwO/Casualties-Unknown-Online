@@ -16,8 +16,3 @@
 @33 expect_no_reject g1
 @333 expect no_host_table 42 within 500
 @333 expect_no_reject g1
-@333 expect received g1 ItemSpawn 0
-@333 expect received g1 ItemPickup 0
-@333 expect received g2 ItemSpawn 1
-@333 expect received g2 ItemPickup 1
-@333 expect received g2 ItemCarriedSync 1

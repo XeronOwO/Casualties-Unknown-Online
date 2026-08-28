@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using HarmonyLib;
@@ -18,7 +17,7 @@ namespace CasualtiesUnknownOnline.GameAdapter.WorldGen;
 /// Flooded would place liquids into a world the generator is still writing);
 /// outside a generation (no local replay: solo→lobby conversion, mid-session
 /// join) the snapshot-carried index + random state are applied instead
-/// (WorldItemsSnapshotMsg on generation, ItemSnapshotMsg periodically). The
+/// (generation snapshot and periodic snapshot streams). The
 /// stream is rewound to the decision's post-draw state before Initialize, so
 /// the world effects (Flooded's liquid fills, Infested/Ionized's entity
 /// distributions) consume the SAME random sequence the host's did and land in
@@ -124,7 +123,7 @@ internal sealed class LayerModifierSync(IItemControl items, ILogger<LayerModifie
 		ApplySnapshot(index, state);
 	}
 
-	private void OnWorldItemsSnapshot(IReadOnlyList<ItemSnapshotEntryMsg> items, int layerModifierIndex, byte[]? layerModifierRandomState)
+	private void OnWorldItemsSnapshot(IReadOnlyList<WorldItem> items, int layerModifierIndex, byte[]? layerModifierRandomState)
 	{
 		if (layerModifierIndex <= 0 || layerModifierIndex > LayerModifier.availableModifiers.Length)
 		{

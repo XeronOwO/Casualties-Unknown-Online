@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
+using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Protocol;
-using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using UnityEngine;
 
@@ -60,7 +60,7 @@ internal sealed class ItemPositionAuthority(IItemControl items)
 	/// </summary>
 	private void SendMovingItemMoves()
 	{
-		var entries = new List<ItemMoveEntryMsg>();
+		var entries = new List<WireItemMoveEntry>();
 		_throttle.BeginPump();
 		foreach (var item in Item.allItems)
 		{
@@ -83,7 +83,7 @@ internal sealed class ItemPositionAuthority(IItemControl items)
 
 			var pos = item.transform.position;
 			var vel = item.rb.velocity;
-			entries.Add(new ItemMoveEntryMsg
+			entries.Add(new WireItemMoveEntry
 			{
 				ItemId = idComp.Id,
 				X = pos.x,

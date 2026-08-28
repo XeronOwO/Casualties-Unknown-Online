@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 
@@ -50,17 +51,6 @@ public interface IItemControl
 
 	// ===== Receive side (packet handlers surface the wire here) =====
 
-	void FireItemSpawnedReceived(ulong sender, ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, float rotation, bool freshItemDrop, float angularVelocity);
-
-	void FireItemPickedUpReceived(ulong sender, ulong itemId, CharacterItemMsg? evidence);
-
-	void FireItemDroppedReceived(ulong sender, ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, ulong parentItemId, float rotation, float angularVelocity, NetVector2 parentPos = default);
-
-	void FireItemDestroyedReceived(ulong sender, ulong itemId);
-
-	/// <summary>Guest side: the host's authoritative heater-conversion event arrived — surface the source id and the full cooked-steak state for the adapter's one-scope apply.</summary>
-	void FireItemCookedReceived(ulong sender, ulong sourceItemId, ulong cookedItemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, float rotation, float angularVelocity);
-
 	/// <summary>Guest side: the host refused an arbitration — roll back (UnknownItem = a refused pickup, BlockAlreadyBroken = a refused block break's drops to destroy).</summary>
 	void FireItemRejectReceived(ulong sender, ulong itemId, ItemRejectMsg.Reason reason);
 
@@ -77,22 +67,10 @@ public interface IItemControl
 	void FireItemSnapshotReceived(ulong sender, IReadOnlyList<WorldItem> items, int layerModifierIndex, byte[]? layerModifierRandomState);
 
 	/// <summary>Guest side: the host's generation-time item snapshot arrived — bind local copies to the host's ids, materialize the host's version, destroy host-unknown locals. LayerModifierIndex/LayerModifierRandomState ride along (the host's rolled layer modifier and its decision's random start, -1/null = none).</summary>
-	void FireWorldItemsSnapshotReceived(ulong sender, IReadOnlyList<ItemSnapshotEntryMsg> items, int layerModifierIndex, byte[]? layerModifierRandomState);
+	void FireWorldItemsSnapshotReceived(ulong sender, IReadOnlyList<WorldItem> items, int layerModifierIndex, byte[]? layerModifierRandomState);
 
 	/// <summary>Guest side: the host's physics moved items — surface them for the local follow.</summary>
-	void FireItemMoveReceived(IReadOnlyList<ItemMoveEntryMsg> items);
-
-	/// <summary>Guest side: the host's authoritative item state arrived (our action-report evidence diverged) — apply it via the restore machinery.</summary>
-	void FireItemCorrectionReceived(ulong sender, CharacterItemMsg item);
-
-	/// <summary>An item was used locally (Body.UseItem) — report the used state (digest evidence) so the host validates and corrects.</summary>
-	void FireItemUseReceived(ulong sender, ulong itemId, CharacterItemMsg item);
-
-	/// <summary>An item moved slots locally (SwapSlots / SwitchHands) — report the new slot so the host's record stays in sync. The digest evidence rides along (the host broadcasts it when it has no transfer-table entry).</summary>
-	void FireItemSlotReceived(ulong sender, ulong itemId, int slotIndex, CharacterItemMsg item);
-
-	/// <summary>A carried container's full fact changed internally (nested-content move) — the host records it and relays it as the carried-fact event.</summary>
-	void FireItemContainerContentReceived(ulong sender, ulong itemId, CharacterItemMsg item);
+	void FireItemMoveReceived(IReadOnlyList<WireItemMoveEntry> items);
 
 	/// <summary>Guest only: an item-instance id was allocated locally — report the counter high-water mark so the host can grant it back on a reconnect (a crashed-and-rejoined counter restarts from zero and would reuse ids the host still holds).</summary>
 	void SendItemIdWatermark(ulong counter);
@@ -116,9 +94,6 @@ public interface IItemControl
 
 	/// <summary>Host only: send the full world-item table to one member (on its world entry).</summary>
 	void SendItemSnapshot(ulong targetSteamId);
-
-	/// <summary>Host only: send one guest the authoritative state of an item (its action-report evidence diverged) — accept-with-correction, never a rejection.</summary>
-	void SendItemCorrection(ulong targetSteamId, CharacterItemMsg item);
 
 	/// <summary>Host only: correct every OTHER member's copy of a used world item (drinking from a ground canister, #194) — the user's own copy IS the fact, every peer's copy adopts it via the standard correction path.</summary>
 	void SendWorldItemCorrection(ulong exceptSteamId, CharacterItemMsg item);
@@ -155,7 +130,7 @@ public interface IItemControl
 	void ResetItems();
 
 	/// <summary>Host only: the generation finished — register the generation-time items (host-assigned ids, ground + starting supplies) into the table and broadcast them as one snapshot (the guests bind their local copies or materialize the host's version). The current layer modifier (LayerModifierIndex) rides along.</summary>
-	void PublishGeneratedItems(IReadOnlyList<ItemSnapshotEntryMsg> entries);
+	void PublishGeneratedItems(IReadOnlyList<WorldItem> entries);
 
 	/// <summary>Host side: the world's current layer modifier (index into the game's LayerModifier.availableModifiers, -1 = none) — rides the world-item snapshots so a world entry outside a generation still receives it. A projection of world state: the adapter refreshes it when a generation finishes.</summary>
 	int LayerModifierIndex { get; set; }
@@ -164,7 +139,7 @@ public interface IItemControl
 	byte[]? LayerModifierRandomState { get; set; }
 
 	/// <summary>Host only: broadcast the moving world items' authoritative positions (unreliable — the host's physics is the position authority, the guests follow).</summary>
-	void SendItemMove(IReadOnlyList<ItemMoveEntryMsg> items);
+	void SendItemMove(IReadOnlyList<WireItemMoveEntry> items);
 
 	// ===== Application events (the adapter applies these) =====
 
@@ -184,7 +159,7 @@ public interface IItemControl
 	event Action<ulong, WorldItem>? ItemCookedReceived;
 
 	/// <summary>Guest side: the host's physics moved items — follow (apply the authoritative positions).</summary>
-	event Action<IReadOnlyList<ItemMoveEntryMsg>>? ItemMoveReceived;
+	event Action<IReadOnlyList<WireItemMoveEntry>>? ItemMoveReceived;
 
 	/// <summary>The host refused an item arbitration — roll back (UnknownItem = pickup, BlockAlreadyBroken = block-break drops to destroy).</summary>
 	event Action<ulong, ItemRejectMsg.Reason>? ItemRejected;
@@ -193,7 +168,7 @@ public interface IItemControl
 	event Action<IReadOnlyList<WorldItem>, int, byte[]?>? ItemSnapshotReceived;
 
 	/// <summary>The host's generation-time item snapshot arrived — the adapter binds local copies / materializes / destroys the host-unknown ones (the layer modifier + its random start ride along).</summary>
-	event Action<IReadOnlyList<ItemSnapshotEntryMsg>, int, byte[]?>? WorldItemsSnapshotReceived;
+	event Action<IReadOnlyList<WorldItem>, int, byte[]?>? WorldItemsSnapshotReceived;
 
 	/// <summary>Guest side: the host's authoritative item state arrived (our action-report evidence diverged) — the adapter applies it (materialize missing contents, fix state, fix slot).</summary>
 	event Action<CharacterItemMsg>? ItemCorrectionReceived;

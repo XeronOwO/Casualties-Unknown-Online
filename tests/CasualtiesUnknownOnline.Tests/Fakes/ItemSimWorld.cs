@@ -30,6 +30,16 @@ internal sealed class ItemSimWorld : IDisposable
 	private readonly List<(NetMsg Msg, byte[] Frame)> _g2Received = [];
 	private readonly List<ItemRejectMsg> _g1Rejects = [];
 	private readonly List<ItemRejectMsg> _g2Rejects = [];
+	private readonly List<WorldItem> _g1Spawned = [];
+	private readonly List<WorldItem> _g2Spawned = [];
+	private readonly List<ulong> _g1PickedUp = [];
+	private readonly List<ulong> _g2PickedUp = [];
+	private readonly List<ulong> _g1Dropped = [];
+	private readonly List<ulong> _g2Dropped = [];
+	private readonly List<ulong> _g1Destroyed = [];
+	private readonly List<ulong> _g2Destroyed = [];
+	private readonly List<(ulong Owner, CharacterItemMsg Item)> _g1Carried = [];
+	private readonly List<(ulong Owner, CharacterItemMsg Item)> _g2Carried = [];
 
 	private ItemSimWorld(SimulationDriver driver, TestNode host, TestNode g1, TestNode g2)
 	{
@@ -88,21 +98,38 @@ internal sealed class ItemSimWorld : IDisposable
 		var world = new ItemSimWorld(driver, host, g1, g2);
 		g1.Transport.MessageReceived += (_, frame) => world._g1Received.Add(((NetMsg)frame[0], frame));
 		g2.Transport.MessageReceived += (_, frame) => world._g2Received.Add(((NetMsg)frame[0], frame));
-		g1.Services.GetRequiredService<IItemControl>().ItemRejected += (id, reason) =>
-			world._g1Rejects.Add(new ItemRejectMsg { ItemId = id, Rejection = reason });
-		g2.Services.GetRequiredService<IItemControl>().ItemRejected += (id, reason) =>
-			world._g2Rejects.Add(new ItemRejectMsg { ItemId = id, Rejection = reason });
+		BindGuestEvents(world, g1, world._g1Spawned, world._g1PickedUp, world._g1Dropped, world._g1Destroyed, world._g1Carried, world._g1Rejects);
+		BindGuestEvents(world, g2, world._g2Spawned, world._g2PickedUp, world._g2Dropped, world._g2Destroyed, world._g2Carried, world._g2Rejects);
 		return world;
+	}
+
+	private static void BindGuestEvents(
+		ItemSimWorld world,
+		TestNode node,
+		List<WorldItem> spawned,
+		List<ulong> pickedUp,
+		List<ulong> dropped,
+		List<ulong> destroyed,
+		List<(ulong Owner, CharacterItemMsg Item)> carried,
+		List<ItemRejectMsg> rejects)
+	{
+		var items = node.Services.GetRequiredService<IItemControl>();
+		items.ItemSpawned += item => spawned.Add(item);
+		items.ItemPickedUp += id => pickedUp.Add(id);
+		items.ItemDropped += (id, _, _, _, _, _, _, _) => dropped.Add(id);
+		items.ItemDestroyed += id => destroyed.Add(id);
+		items.ItemCarriedSyncReceived += (owner, item, _) => carried.Add((owner, item));
+		items.ItemRejected += (id, reason) => rejects.Add(new ItemRejectMsg { ItemId = id, Rejection = reason });
 	}
 
 	// ===== Injection helpers (one player operation = one message, the phase-1
 	// operation-merge rule) =====
 
 	internal void Spawn(TestNode guest, ulong itemId, CharacterItemMsg item) =>
-		Send(guest, NetMsg.ItemSpawn, new ItemSpawnMsg { ItemId = itemId, Item = item });
+		guest.Services.GetRequiredService<IItemControl>().SendItemSpawned(itemId, item, new NetVector2(0, 0), new NetVector2(0, 0), 0f, false, 0f);
 
 	internal void Pickup(TestNode guest, ulong itemId, CharacterItemMsg? evidence = null) =>
-		Send(guest, NetMsg.ItemPickup, new ItemPickupMsg { ItemId = itemId, Item = evidence });
+		guest.Services.GetRequiredService<IItemControl>().SendItemPickedUp(itemId, evidence);
 
 	/// <summary>A drop report. The position is a real drop spot — NOT the spawn
 	/// spot (0,0): the host's duplicate guard is "same itemId + same position +
@@ -111,15 +138,11 @@ internal sealed class ItemSimWorld : IDisposable
 	/// swallowed (the broadcast would never reach the peers). The shell carries
 	/// the semantic "dropped at the player's feet", exactly like the game.</summary>
 	internal void Drop(TestNode guest, ulong itemId, CharacterItemMsg item) =>
-		Send(guest, NetMsg.ItemDrop, new ItemDropMsg
-		{
-			ItemId = itemId,
-			Item = item,
-			Position = new NetVector2Msg { X = 10, Y = 10 },
-		});
+		guest.Services.GetRequiredService<IItemControl>().SendItemDropped(
+			itemId, item, new NetVector2(10, 10), new NetVector2(0, 0), 0, 0f);
 
 	internal void Destroy(TestNode guest, ulong itemId) =>
-		Send(guest, NetMsg.ItemDestroy, new ItemDestroyMsg { ItemId = itemId });
+		guest.Services.GetRequiredService<IItemControl>().SendItemDestroyed(itemId);
 
 	internal void Use(TestNode guest, ulong itemId, CharacterItemMsg item) =>
 		guest.Services.GetRequiredService<IItemControl>().SendItemUse(itemId, item);
@@ -156,6 +179,22 @@ internal sealed class ItemSimWorld : IDisposable
 	/// <summary>The rejects the node has received so far (cumulative — the assertion is "ever received").</summary>
 	internal List<ItemRejectMsg> Rejects(TestNode node) =>
 		node == G1 ? [.. _g1Rejects] : [.. _g2Rejects];
+
+	/// <summary>The spawned item events a node has received so far (cumulative).</summary>
+	internal int SpawnedEvents(TestNode node) => (node == G1 ? _g1Spawned : _g2Spawned).Count;
+
+	/// <summary>The picked-up item events a node has received so far (cumulative).</summary>
+	internal int PickedUpEvents(TestNode node) => (node == G1 ? _g1PickedUp : _g2PickedUp).Count;
+
+	/// <summary>The dropped item events a node has received so far (cumulative).</summary>
+	internal int DroppedEvents(TestNode node) => (node == G1 ? _g1Dropped : _g2Dropped).Count;
+
+	/// <summary>The destroyed item events a node has received so far (cumulative).</summary>
+	internal int DestroyedEvents(TestNode node) => (node == G1 ? _g1Destroyed : _g2Destroyed).Count;
+
+	/// <summary>The carried-fact events a node has received so far (cumulative).</summary>
+	internal List<(ulong Owner, CharacterItemMsg Item)> CarriedEvents(TestNode node) =>
+		node == G1 ? [.. _g1Carried] : [.. _g2Carried];
 
 	/// <summary>The id-watermark grants the node has received so far (cumulative — the rejoin grant is the assertion surface).</summary>
 	internal List<ItemIdWatermarkMsg> Watermarks(TestNode node) =>

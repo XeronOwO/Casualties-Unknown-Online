@@ -14,11 +14,9 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 /// <summary>
 /// The world-item domain coordinator. It owns the authoritative world-item
 /// table, the sub-services and the application events, and delegates the
-/// report/receive message flow to <see cref="ItemMessageFlowService"/> plus the
-/// host-side pending-pickup arbitration to
-/// <see cref="ItemPendingPickupArbiter"/>. The class is deliberately a facade
-/// over real top-level responsibilities rather than a partial-logical god
-/// object.
+/// report/receive message flow to <see cref="ItemMessageFlowService"/>. The
+/// class is deliberately a facade over real top-level responsibilities rather
+/// than a partial-logical god object.
 /// </summary>
 public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposable
 {
@@ -32,7 +30,6 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 	private readonly ItemIdCoordinator _idCoordinator;
 	private readonly BlockDropSync _blockDrops;
 	private readonly ItemTrafficTracker _itemTraffic = new(ItemTrafficTracker.DefaultWindowMs);
-	private readonly ItemPendingPickupArbiter _pendingPickups;
 	private readonly ItemMessageFlowService _messageFlow;
 	private readonly ItemKernelAuthority _kernelAuthority;
 	private readonly ItemProjection _projection;
@@ -63,43 +60,24 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 			itemId => ItemDestroyed?.Invoke(itemId),
 			(owner, item, _) => PublishCarriedSyncLocal(owner, item),
 			item => FireCorrectionLocal(item));
-		_carriedSync = new(session, sender, log);
-		_itemActionSync = new(session, arbitration, this, _kernelProtocol, log);
+		_carriedSync = new ItemCarriedSyncService();
+		_itemActionSync = new(session, this, _kernelProtocol);
 		_snapshots = new(session, () => (IReadOnlyCollection<WorldItem>)_worldTable.Items.Values, _kernelProtocol, log);
 		_idCoordinator = new ItemIdCoordinator(session, sender, _arbitration, log);
 		_blockDrops = new BlockDropSync(session, this);
 
-		_pendingPickups = new ItemPendingPickupArbiter(
-			session,
-			sender,
-			time,
-			_worldTable,
-			arbitration,
-			_carriedSync,
-			_projection,
-			RecordItemTraffic,
-			item => ItemSpawned?.Invoke(item),
-			itemId => ItemPickedUp?.Invoke(itemId),
-			(itemId, item, pos, vel, parentItemId, rotation, angularVelocity, parentPos) => ItemDropped?.Invoke(itemId, item, pos, vel, parentItemId, rotation, angularVelocity, parentPos),
-			log);
 		_messageFlow = new ItemMessageFlowService(
 			session,
 			sender,
 			log,
 			_worldTable,
-			arbitration,
 			_itemActionSync,
 			_snapshots,
 			_blockDrops,
-			_pendingPickups,
 			_projection,
 			RecordItemTraffic,
 			ItemTrafficLabel,
 			item => ItemSpawned?.Invoke(item),
-			itemId => ItemPickedUp?.Invoke(itemId),
-			(itemId, item, pos, vel, parentItemId, rotation, angularVelocity, parentPos) => ItemDropped?.Invoke(itemId, item, pos, vel, parentItemId, rotation, angularVelocity, parentPos),
-			itemId => ItemDestroyed?.Invoke(itemId),
-			(sourceItemId, cooked) => ItemCookedReceived?.Invoke(sourceItemId, cooked),
 			(itemId, reason) => ItemRejected?.Invoke(itemId, reason),
 			_kernelProtocol);
 
@@ -142,13 +120,13 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 		remove => _snapshots.ItemSnapshotReceived -= value;
 	}
 
-	public event Action<IReadOnlyList<ItemSnapshotEntryMsg>, int, byte[]?>? WorldItemsSnapshotReceived
+	public event Action<IReadOnlyList<WorldItem>, int, byte[]?>? WorldItemsSnapshotReceived
 	{
 		add => _snapshots.WorldItemsSnapshotReceived += value;
 		remove => _snapshots.WorldItemsSnapshotReceived -= value;
 	}
 
-	public event Action<IReadOnlyList<ItemMoveEntryMsg>>? ItemMoveReceived;
+	public event Action<IReadOnlyList<WireItemMoveEntry>>? ItemMoveReceived;
 
 	public event Action<CharacterItemMsg>? ItemCorrectionReceived
 	{
@@ -212,21 +190,6 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 
 	public void SendItemDestroyed(ulong itemId) => _messageFlow.SendItemDestroyed(itemId);
 
-	public void FireItemSpawnedReceived(ulong sender, ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, float rotation, bool freshItemDrop, float angularVelocity) =>
-		_messageFlow.FireItemSpawnedReceived(sender, itemId, item, pos, vel, rotation, freshItemDrop, angularVelocity);
-
-	public void FireItemPickedUpReceived(ulong sender, ulong itemId, CharacterItemMsg? evidence) =>
-		_messageFlow.FireItemPickedUpReceived(sender, itemId, evidence);
-
-	public void FireItemDroppedReceived(ulong sender, ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, ulong parentItemId, float rotation, float angularVelocity, NetVector2 parentPos = default) =>
-		_messageFlow.FireItemDroppedReceived(sender, itemId, item, pos, vel, parentItemId, rotation, angularVelocity, parentPos);
-
-	public void FireItemDestroyedReceived(ulong sender, ulong itemId) =>
-		_messageFlow.FireItemDestroyedReceived(sender, itemId);
-
-	public void FireItemCookedReceived(ulong sender, ulong sourceItemId, ulong cookedItemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, float rotation, float angularVelocity) =>
-		_messageFlow.FireItemCookedReceived(sender, sourceItemId, cookedItemId, item, pos, vel, rotation, angularVelocity);
-
 	public void FireItemRejectReceived(ulong sender, ulong itemId, ItemRejectMsg.Reason reason) =>
 		_messageFlow.FireItemRejectReceived(sender, itemId, reason);
 
@@ -237,20 +200,15 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 	public void SendItemReject(ulong targetSteamId, ulong itemId, ItemRejectMsg.Reason reason) =>
 		_messageFlow.SendItemReject(targetSteamId, itemId, reason);
 
-	public void FireItemCorrectionReceived(ulong sender, CharacterItemMsg item) => _messageFlow.FireItemCorrectionReceived(sender, item);
-
-	public void FireItemUseReceived(ulong sender, ulong itemId, CharacterItemMsg evidence) => _messageFlow.FireItemUseReceived(sender, itemId, evidence);
-
-	public void FireItemSlotReceived(ulong sender, ulong itemId, int slotIndex, CharacterItemMsg item) => _messageFlow.FireItemSlotReceived(sender, itemId, slotIndex, item);
-
-	public void FireItemContainerContentReceived(ulong sender, ulong itemId, CharacterItemMsg item) => _messageFlow.FireItemContainerContentReceived(sender, itemId, item);
-
 	public void FireItemSnapshotReceived(ulong sender, IReadOnlyList<WorldItem> items, int layerModifierIndex, byte[]? layerModifierRandomState) =>
 		_messageFlow.FireItemSnapshotReceived(sender, items, layerModifierIndex, layerModifierRandomState);
 
+	public void FireWorldItemsSnapshotReceived(ulong sender, IReadOnlyList<WorldItem> items, int layerModifierIndex, byte[]? layerModifierRandomState) =>
+		_messageFlow.FireWorldItemsSnapshotReceived(sender, items, layerModifierIndex, layerModifierRandomState);
+
 	// ===== Host-authoritative position stream =====
 
-	public void SendItemMove(IReadOnlyList<ItemMoveEntryMsg> items)
+	public void SendItemMove(IReadOnlyList<WireItemMoveEntry> items)
 	{
 		if (_session.Role != SessionRole.Host || !_session.SessionActive || items.Count == 0)
 		{
@@ -262,19 +220,10 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 			RecordItemTraffic(ItemTrafficKind.Move, ItemTrafficLabel(entry.ItemId));
 		}
 
-		_kernelProtocol.SendStateStream([.. items.Select(e => new WireItemMoveEntry
-		{
-			ItemId = e.ItemId,
-			X = e.X,
-			Y = e.Y,
-			VelX = e.VelX,
-			VelY = e.VelY,
-			Rotation = e.Rotation,
-			AngularVelocity = e.AngularVelocity,
-		})]);
+		_kernelProtocol.SendStateStream([.. items]);
 	}
 
-	public void FireItemMoveReceived(IReadOnlyList<ItemMoveEntryMsg> items) => ItemMoveReceived?.Invoke(items);
+	public void FireItemMoveReceived(IReadOnlyList<WireItemMoveEntry> items) => ItemMoveReceived?.Invoke(items);
 
 	// ===== Carried-item facts =====
 
@@ -317,16 +266,6 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 		set => _snapshots.LayerModifierRandomState = value;
 	}
 
-	public void SendItemCorrection(ulong targetSteamId, CharacterItemMsg item)
-	{
-		if (_session.Role != SessionRole.Host || !_session.SessionActive)
-		{
-			return;
-		}
-
-		_arbitration.SendCorrection(targetSteamId, item);
-	}
-
 	public void SendWorldItemCorrection(ulong exceptSteamId, CharacterItemMsg item) => _itemActionSync.SendWorldItemCorrection(exceptSteamId, item);
 
 	public IReadOnlyList<WorldItem> GetTransferredItems(ulong steamId) => _arbitration.GetTransferredItems(steamId);
@@ -345,16 +284,11 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 
 	public void SendPeriodicItemSnapshot() => _snapshots.SendPeriodicItemSnapshot();
 
-	public void ResetItems()
-	{
-		_projection.Clear();
-		_pendingPickups.Reset();
-	}
+	public void ResetItems() => _projection.Clear();
 
 	public void ResetSessionState()
 	{
 		_projection.Clear();
-		_pendingPickups.Reset();
 		_arbitration.ResetForSessionEnd();
 		_idCoordinator.ResetForSessionEnd();
 		_snapshots.ResetForSessionEnd();
@@ -377,7 +311,7 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 
 	// ===== Generation-time items =====
 
-	public void PublishGeneratedItems(IReadOnlyList<ItemSnapshotEntryMsg> entries)
+	public void PublishGeneratedItems(IReadOnlyList<WorldItem> entries)
 	{
 		if (_session.Role == SessionRole.Guest || entries.Count == 0)
 		{
@@ -387,13 +321,13 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 		var registered = 0;
 		foreach (var entry in entries)
 		{
-			if (entry.SlotIndex > 0 || _worldTable.ContainsKey(entry.ItemId))
+			if (_worldTable.ContainsKey(entry.ItemId))
 			{
 				continue;
 			}
 
 			var accepted = _projection.ApplySpawn(_session.LocalSteamId, entry.ItemId, entry.Item,
-				entry.Position.ToNetVector2(), entry.Velocity.ToNetVector2(),
+				entry.Pos, entry.Vel,
 				entry.Rotation, entry.FreshItemDrop, entry.AngularVelocity);
 			if (accepted)
 			{
@@ -407,13 +341,9 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 			reliable: true,
 			layerModifierIndex: LayerModifierIndex + 1,
 			layerModifierRandomState: LayerModifierRandomState);
-		_log.LogInformation("Published generation items ({Count} entries, {Registered} registered): {World} ground, {Carried} carried — modifier {Modifier}.",
-			entries.Count, registered,
-			entries.Count(e => e.SlotIndex == 0), entries.Count(e => e.SlotIndex > 0), LayerModifierIndex);
+		_log.LogInformation("Published generation items ({Count} entries, {Registered} registered).",
+			entries.Count, registered);
 	}
-
-	public void FireWorldItemsSnapshotReceived(ulong sender, IReadOnlyList<ItemSnapshotEntryMsg> items, int layerModifierIndex, byte[]? layerModifierRandomState)
-		=> _snapshots.FireWorldItemsSnapshotReceived(sender, items, layerModifierIndex, layerModifierRandomState);
 
 	// ===== Crafting-domain seams =====
 
@@ -468,11 +398,7 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 
 	internal void ResetItemTraffic() => _itemTraffic.Reset();
 
-	internal void PumpPendingPickups(long nowMs)
-	{
-		_pendingPickups.PumpPendingPickups(nowMs);
-		_kernelProtocol.PumpPendingPickups(nowMs);
-	}
+	internal void PumpPendingPickups(long nowMs) => _kernelProtocol.PumpPendingPickups(nowMs);
 
 	internal bool RegisterWorldItemIfAbsent(ulong itemId, WorldItem item) => _messageFlow.RegisterWorldItemIfAbsent(itemId, item);
 
@@ -506,6 +432,41 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 		}
 
 		_kernelBatchProjection.Apply(batch);
+		FireCookedEventFromBatch(batch);
+	}
+
+	private void FireCookedEventFromBatch(CommittedBatch batch)
+	{
+		ulong? sourceId = null;
+		WorldItem? cooked = null;
+		foreach (var @event in batch.Events)
+		{
+			if (@event is ItemDestroyedEvent destroyed && destroyed.Kind == TerminalKind.ReplacedBy)
+			{
+				sourceId = destroyed.Identity.InstanceId;
+			}
+
+			if (@event is ItemSpawnedEvent spawned && spawned.Location.Kind == ItemLocationKind.World)
+			{
+				var current = _kernelAuthority.FindItem(spawned.Identity.InstanceId);
+				if (current is not null)
+				{
+					cooked = new WorldItem(
+						current.Value.Identity.InstanceId,
+						ItemKernelAuthority.ToCharacterItem(current.Value),
+						new NetVector2(spawned.Location.X, spawned.Location.Y),
+						NetVector2.Zero,
+						spawned.Location.ParentItemId,
+						0f,
+						false);
+				}
+			}
+		}
+
+		if (sourceId.HasValue && cooked.HasValue)
+		{
+			ItemCookedReceived?.Invoke(sourceId.Value, cooked.Value);
+		}
 	}
 
 	private void OnCheckpointRestored(GameCheckpoint checkpoint)
@@ -525,16 +486,7 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 			return;
 		}
 
-		FireItemMoveReceived([.. moves.Select(m => new ItemMoveEntryMsg
-		{
-			ItemId = m.ItemId,
-			X = m.X,
-			Y = m.Y,
-			VelX = m.VelX,
-			VelY = m.VelY,
-			Rotation = m.Rotation,
-			AngularVelocity = m.AngularVelocity,
-		})]);
+		FireItemMoveReceived(moves);
 	}
 
 	private void OnCommandRejected(ulong itemId, RejectionReason reason)
@@ -544,10 +496,8 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 			return;
 		}
 
-		if (reason is RejectionReason.Conflict or RejectionReason.UnknownAggregate)
-		{
-			ItemRejected?.Invoke(itemId, ItemRejectMsg.Reason.UnknownItem);
-		}
+		_log.LogWarning("Kernel command for item {ItemId} rejected ({Reason}) — surfacing item reject.", itemId, reason);
+		ItemRejected?.Invoke(itemId, ItemRejectMsg.Reason.UnknownItem);
 	}
 
 	private void OnItemStateStreamReceived(WirePayloadType payloadType, WireStateStream stream)
@@ -569,7 +519,7 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 			case WirePayloadType.WorldItemsSnapshotStream:
 				FireWorldItemsSnapshotReceived(
 					_session.HostSteamId,
-					[.. stream.ItemStates.Select(WireItemStateMapper.ToSnapshotEntry)],
+					[.. stream.ItemStates.Select(WireItemStateMapper.ToWorldItem)],
 					stream.LayerModifierIndex,
 					stream.LayerModifierRandomState);
 				break;

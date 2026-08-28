@@ -120,7 +120,7 @@ Out of scope:
   - [x] duplication and idempotency;
   - [x] reordering/gap/epoch rejection;
   - [x] random latency and duplicate convergence;
-  - [ ] disconnect/reconnect simulation;
+  - [x] disconnect/reconnect simulation (checkpoint restore);
   - [x] checkpoint insertion/restore;
   - [x] reliable Batch eventual consistency (kernel state + world projection).
 - [x] Add save round-trip tests:

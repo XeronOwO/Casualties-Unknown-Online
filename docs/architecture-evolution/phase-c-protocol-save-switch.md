@@ -194,7 +194,7 @@ Out of scope:
 | Date | Scope | Commits | Verification | Notes |
 |---|---|---|---|---|
 | 2026-08-28 | Phase C core: `CasualtiesUnknownOnline.Protocol` project (four envelopes, wire DTOs, codecs, golden tests), `KernelWireMapper`, `WireCheckpointAssembler`, `KernelProtocolService` + `KernelEnvelopeHandler`, `KernelSaveFileStore`, guest world projection, RunEpoch/version/gap filters, checkpoint join hook. Old spawn/pickup/drop/destroy production sends switched to CommandEnvelope. | `884ecc3` | Full suite 1637 tests green; build/architecture/event/entity gates pass. | Remaining: full old item DTO removal, request-missing-ranges/rebuild, StateStream projection, random streams, projection-rebuild tests, remaining tech-decision/doc fields. |
-| 2026-08-28 | Phase C recovery/save/projection second cycle: guest range requests + out-of-order buffering + host journal fallback checkpoint, named random streams in GameCheckpoint/wire/save, checkpoint rebuild of guest world projection, latency/duplicate simulation. | `pending` | Full suite 1643 tests green; architecture/event/entity gates pass. | Remaining: full old item DTO removal, StateStream projection, disconnect/reconnect simulation, failed-projection-must-not-mutate test. |
+| 2026-08-28 | Phase C recovery/save/projection second cycle: guest range requests + out-of-order buffering + host journal fallback checkpoint, named random streams in GameCheckpoint/wire/save, checkpoint rebuild of guest world projection, latency/duplicate simulation. | `acaceac` | Full suite 1643 tests green; architecture/event/entity gates pass. | Remaining: full old item DTO removal, StateStream projection, disconnect/reconnect simulation, failed-projection-must-not-mutate test. |
 
 ## Next actions
 

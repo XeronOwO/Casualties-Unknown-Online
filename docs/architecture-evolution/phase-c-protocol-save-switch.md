@@ -192,7 +192,7 @@ Out of scope:
 
 | Date | Scope | Commits | Verification | Notes |
 |---|---|---|---|---|
-| 2026-08-28 | Phase C core: `CasualtiesUnknownOnline.Protocol` project (four envelopes, wire DTOs, codecs, golden tests), `KernelWireMapper`, `WireCheckpointAssembler`, `KernelProtocolService` + `KernelEnvelopeHandler`, `KernelSaveFileStore`, guest world projection, RunEpoch/version/gap filters, checkpoint join hook. Old spawn/pickup/drop/destroy production sends switched to CommandEnvelope. | _(not committed yet)_ | Full suite 1636 tests green; build clean. | Remaining: full old item DTO removal, request-missing-ranges/rebuild, StateStream projection, random streams, projection-rebuild tests, tech-decision/doc completion. |
+| 2026-08-28 | Phase C core: `CasualtiesUnknownOnline.Protocol` project (four envelopes, wire DTOs, codecs, golden tests), `KernelWireMapper`, `WireCheckpointAssembler`, `KernelProtocolService` + `KernelEnvelopeHandler`, `KernelSaveFileStore`, guest world projection, RunEpoch/version/gap filters, checkpoint join hook. Old spawn/pickup/drop/destroy production sends switched to CommandEnvelope. | `884ecc3` | Full suite 1637 tests green; build/architecture/event/entity gates pass. | Remaining: full old item DTO removal, request-missing-ranges/rebuild, StateStream projection, random streams, projection-rebuild tests, remaining tech-decision/doc fields. |
 
 ## Next actions
 

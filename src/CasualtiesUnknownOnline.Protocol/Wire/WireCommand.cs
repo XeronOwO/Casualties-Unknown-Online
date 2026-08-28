@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using ProtoBuf;
 
 namespace CasualtiesUnknownOnline.Protocol.Wire;
@@ -35,4 +36,10 @@ public sealed class WireCommand
 
 	[ProtoMember(9)]
 	public ulong RangeEnd { get; set; }
+
+	[ProtoMember(10)]
+	public List<WireContainerChild> ContainerChildren { get; set; } = [];
+
+	[ProtoMember(11)]
+	public int RejectionReason { get; set; }
 }

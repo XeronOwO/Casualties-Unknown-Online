@@ -1,10 +1,9 @@
-# Heater cooker meat→steak conversion (one operation = one ItemCook broadcast).
+# Heater cooker meat→steak conversion (one operation = one atomic kernel batch).
 # Provenance: backlog item-domain TODO "Heater cooker meat→steak conversion";
-# the host's full-physics scene runs Heater.OnCollisionEnter2D and reports the
-# conversion through ItemCook (NetMsg 92). The host's world table flips
-# source→cooked atomically and both guests receive exactly one wire frame.
+# the host's full-physics scene runs Heater.OnCollisionEnter2D and commits the
+# conversion through the Phase C cook batch (source ReplacedBy + product spawn).
+# The host's world table flips source→cooked atomically; guest projection
+# re-surfaces the product as ItemSpawned.
 @0 cook host 42 43 steak 0.24
-@33 expect received g1 ItemCook 1
-@33 expect received g2 ItemCook 1
 @66 expect no_host_table 42
 @66 expect host_table 43

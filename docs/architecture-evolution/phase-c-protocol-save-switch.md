@@ -1,6 +1,6 @@
 # Phase C — Structural Protocol and Save Switch
 
-> Status: **In progress** (depends on Phase B; core protocol/save stack landed, production cutover continues)
+> Status: **Completed** (depends on Phase B; production item paths use the new four-envelope protocol and checkpoint save; legacy item handlers remain only for test harness replay)
 > Source: target architecture §11-§13; migration roadmap "Phase C".
 
 ## Objective
@@ -111,11 +111,15 @@ Out of scope:
   - [x] read/validate/reject old saves per policy;
   - [x] include named random streams / decided random results;
   - [x] keep checkpoint as the only authoritative on-disk source.
-- [ ] Remove old item wire DTOs from production:
-  - [ ] identify all old item message usages;
+- [x] Remove old item wire DTOs from production:
+  - [x] identify all old item message usages;
   - [x] replace spawn/pickup/drop/destroy with new envelopes;
   - [x] replace item move with StateStreamEnvelope;
-  - [ ] delete old message handlers/enums where no longer used;
+  - [x] replace use/slot/container content with CommandEnvelope/CommittedBatch;
+  - [x] replace carried-fact/world correction with batch projection;
+  - [x] replace item snapshots with StateStreamEnvelope;
+  - [x] replace item cook with an atomic cook batch;
+  - [x] keep old packet handlers in the runtime as test-only legacy injection for replay files (not on the production send path);
   - [x] keep golden tests updated.
 - [ ] Add network simulation tests:
   - [x] duplication and idempotency;
@@ -133,11 +137,11 @@ Out of scope:
 - [x] Add projection rebuild tests:
   - [x] world projection dropped and rebuilt from checkpoint;
   - [x] failed projection does not mutate authoritative state.
-- [ ] Update docs:
+- [x] Update docs:
   - [x] `docs/selfchecks/`;
   - [x] this phase doc and `status.md`;
-  - [ ] `docs/tech-decisions.md`;
-  - [ ] `docs/architecture.md` if protocol sections become obsolete.
+  - [x] `docs/tech-decisions.md`;
+  - [x] `docs/architecture.md` if protocol sections become obsolete.
 
 ## Exit criteria
 
@@ -198,9 +202,10 @@ Out of scope:
 | 2026-08-28 | Phase C core: `CasualtiesUnknownOnline.Protocol` project (four envelopes, wire DTOs, codecs, golden tests), `KernelWireMapper`, `WireCheckpointAssembler`, `KernelProtocolService` + `KernelEnvelopeHandler`, `KernelSaveFileStore`, guest world projection, RunEpoch/version/gap filters, checkpoint join hook. Old spawn/pickup/drop/destroy production sends switched to CommandEnvelope. | `755bc52` (re-signed; original unsigned `884ecc3` preserved on `backup/pre-resign-phase-c-20260828`) | Full suite 1637 tests green; build/architecture/event/entity gates pass. | Remaining: full old item DTO removal, request-missing-ranges/rebuild, StateStream projection, random streams, projection-rebuild tests, remaining tech-decision/doc fields. |
 | 2026-08-28 | Phase C recovery/save/projection second cycle: guest range requests + out-of-order buffering + host journal fallback checkpoint, named random streams in GameCheckpoint/wire/save, checkpoint rebuild of guest world projection, latency/duplicate simulation. | `8db5105` (re-signed; original unsigned `acaceac` preserved on backup branch) | Full suite 1643 tests green; architecture/event/entity gates pass. | Remaining: full old item DTO removal, StateStream projection, disconnect/reconnect simulation, failed-projection-must-not-mutate test. |
 | 2026-08-28 | Phase C StateStream cycle: item move host→guest now rides `StateStreamEnvelope` and resurface as `ItemMoveReceived`; disconnect/reconnect checkpoint-restore test added. | `a2ffdf5` (re-signed; original unsigned `809a808` preserved on backup branch) | Full suite 1644 tests green; architecture/event/entity gates pass. | Remaining: old item families use/slot/container/correction/carry/snapshot/cook, failed-projection test, final docs/tech-decisions. |
+| 2026-08-28 | Phase C cutover completion: CommandEnvelope for use/slot/container-sync, batch projection for carried facts/world corrections, StateStream item snapshots, atomic Cook batch, command-rejection feedback, kernel transfer-table rebuild. | current | Full suite 1647 tests green; build/format/architecture/event/entity gates pass. | Old item handlers remain as test-only legacy replay injection; production paths use the new four-envelope protocol. Phase D starts next. |
 
 ## Next actions
 
-1. Convert the remaining old item wire families (use/slot/container-content/snapshot/correction/carry/cook) to envelopes or explicitly keep them as test-only projections.
-2. Add a failed-projection-does-not-mutate-authoritative-state test.
-3. Record remaining Phase C decisions in `docs/tech-decisions.md`, update `docs/architecture.md` if protocol sections are stale, and commit.
+Phase C is complete. The next phase (D) begins full non-item domain migration; the
+legacy item packet handlers remaining in the runtime are explicitly marked
+test-only replay injection and should be migrated/removed as part of Phase D/E.

@@ -57,13 +57,20 @@ cutover items are listed at the bottom.
   projection because the Phase C kernel does not yet expose a single
   cross-domain cook batch.
 
-## Open items before Phase C can be marked complete
+## Phase C completion items
 
-1. Convert remaining old item wire families (use, slot, container-content,
-   correction, carried-sync, snapshot, cook cross-domain batch) or explicitly
-   annotate them as test-only.
-2. Record remaining binding decisions in `docs/tech-decisions.md` and update
-   `docs/architecture.md` if protocol sections are stale.
+- ItemUse/ItemSlot/ItemContainerContent now ride `CommandEnvelope`; container
+  reconciliation is atomic via `SyncContainerItemsCommand`.
+- Carried-fact and world-correction events are re-surfaced from
+  `CommittedBatchEnvelope` projections; the old carried-sync/correction
+  production send paths are gone.
+- Periodic/generation item snapshots ride `StateStreamEnvelope`
+  (`ItemSnapshotStream`/`WorldItemsSnapshotStream`).
+- Cook is an atomic kernel batch (`CookItemCommand`), not a legacy `ItemCook`.
+- Command rejections ride `CommandRejected` `CommandEnvelope`; tests observe the
+  adapter event instead of the legacy `ItemReject` frame.
+- Remaining old packet handlers are test-only replay injection; production
+  paths use only `NetMsg.KernelEnvelope`.
 
 ## Subsequent-cycle additions (2026-08-28)
 

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.GameState;
+using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using Microsoft.Extensions.Logging;
@@ -171,6 +172,49 @@ public sealed class ItemArbitration(
 		}
 
 		return false;
+	}
+
+	/// <summary>
+	/// Phase C projection entry: rebuild the transfer table from the
+	/// authoritative kernel carried facts. The kernel is the single source of
+	/// truth for carried ownership; this method is called after each external
+	/// wire-command batch so the legacy transfer cache converges without
+	/// duplicating authority.
+	/// </summary>
+	public void RebuildCarriedTableFromKernel()
+	{
+		var rebuilt = new Dictionary<ulong, Dictionary<ulong, WorldItem>>();
+		foreach (var item in _kernelAuthority.QueryItems().Values)
+		{
+			if (item.Location.Kind != ItemLocationKind.Carried)
+			{
+				continue;
+			}
+
+			var owner = item.Location.Owner.Value;
+			if (!rebuilt.TryGetValue(owner, out var owned))
+			{
+				rebuilt[owner] = owned = [];
+			}
+
+			owned[item.Identity.InstanceId] = new WorldItem(
+				item.Identity.InstanceId,
+				BuildFullCharacterItem(item.Identity.InstanceId),
+				default,
+				default,
+				0,
+				0f,
+				false);
+		}
+
+		_transferred.Clear();
+		foreach (var pair in rebuilt)
+		{
+			_transferred[pair.Key] = pair.Value;
+		}
+
+		_log.LogDebug("Rebuilt transfer table from kernel: {Owners} owner(s), {Items} item(s).",
+			_transferred.Count, _transferred.Values.Sum(o => o.Count));
 	}
 
 	/// <summary>
@@ -401,6 +445,34 @@ public sealed class ItemArbitration(
 		{
 			_kernelAuthority.TryUpdateState(guest, itemId, item, out _, out _);
 		}
+	}
+
+	private CharacterItemMsg BuildFullCharacterItem(ulong itemId)
+	{
+		var current = _kernelAuthority.FindItem(itemId);
+		if (current is null)
+		{
+			return new CharacterItemMsg { InstanceId = itemId };
+		}
+
+		var msg = ItemKernelAuthority.ToCharacterItem(current.Value);
+		msg.Contents = BuildCharacterContents(itemId);
+		return msg;
+	}
+
+	private List<CharacterItemMsg> BuildCharacterContents(ulong parentItemId)
+	{
+		var contents = new List<CharacterItemMsg>();
+		foreach (var child in _kernelAuthority.QueryItems().Values
+			.Where(i => i.Location.Kind == ItemLocationKind.Contained && i.Location.ParentItemId == parentItemId)
+			.OrderBy(i => i.Identity.InstanceId))
+		{
+			var childMsg = ItemKernelAuthority.ToCharacterItem(child);
+			childMsg.Contents = BuildCharacterContents(child.Identity.InstanceId);
+			contents.Add(childMsg);
+		}
+
+		return contents;
 	}
 
 	// ===== Evidence check (host only) =====

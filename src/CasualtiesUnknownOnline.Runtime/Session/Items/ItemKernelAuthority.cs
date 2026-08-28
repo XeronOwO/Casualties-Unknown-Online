@@ -186,6 +186,27 @@ public sealed class ItemKernelAuthority(ILogger<ItemKernelAuthority> log)
 		return TryExecute(command, actor, "destroy", out batch, out rejection);
 	}
 
+	// ===== Cook =====
+
+	public bool TryCook(ulong actor, ulong sourceItemId, ItemIdentity cookedIdentity, ItemLocation cookedLocation, CharacterItemMsg? cookedItem, out CommittedBatch? batch, out Rejection? rejection)
+	{
+		// Accept-first: the source may not have entered the kernel yet (the host
+		// cooker is a native observation). Missing sources are ignored by the
+		// domain; the cooked product still commits.
+		var source = _kernel.FindItem(sourceItemId);
+		var command = new CookItemCommand(
+			NextOperation(),
+			new ActorId(actor),
+			_runEpoch,
+			AuthorityKind.HostOnly,
+			source?.Identity ?? new ItemIdentity(sourceItemId, ""),
+			cookedIdentity,
+			cookedLocation,
+			cookedItem is null ? null : ToKernelData(cookedItem),
+			source?.Revision ?? 0);
+		return TryExecute(command, actor, "cook", out batch, out rejection);
+	}
+
 	// ===== State updates =====
 
 	public bool TryUpdateState(ulong actor, ulong itemId, CharacterItemMsg item, out CommittedBatch? batch, out Rejection? rejection)
@@ -250,7 +271,7 @@ public sealed class ItemKernelAuthority(ILogger<ItemKernelAuthority> log)
 			.ToList();
 		foreach (var staleId in stale)
 		{
-			TryDestroy(actor, staleId, TerminalKind.ReplacedBy, out _, out _);
+			TryDestroyExternal(actor, staleId, TerminalKind.ReplacedBy);
 		}
 	}
 
@@ -268,16 +289,68 @@ public sealed class ItemKernelAuthority(ILogger<ItemKernelAuthority> log)
 			if (current is null)
 			{
 				var location = ItemLocation.Contained(owner, parentItemId);
-				TrySpawn(actor, new ItemIdentity(child.InstanceId, child.ItemId), location, child, out _, out _);
+				TrySpawnExternal(actor, new ItemIdentity(child.InstanceId, child.ItemId), location, child);
 			}
 			else if (current.Value.Location.Kind == ItemLocationKind.Contained
 				&& current.Value.Location.ParentItemId == parentItemId)
 			{
-				TryUpdateState(actor, child.InstanceId, child, out _, out _);
+				TryUpdateStateExternal(actor, child.InstanceId, child);
 			}
 
 			SyncChildren(actor, child.InstanceId, child, owner, desired);
 		}
+	}
+
+	private void TrySpawnExternal(ulong actor, ItemIdentity identity, ItemLocation location, CharacterItemMsg item)
+	{
+		var command = new SpawnItemCommand(
+			NextOperation(),
+			new ActorId(actor),
+			_runEpoch,
+			AuthorityKind.OwnerPredictedHostValidated,
+			identity,
+			location,
+			0,
+			ToKernelData(item));
+		TryExecuteCommand(command, actor, out _, out _);
+	}
+
+	private void TryUpdateStateExternal(ulong actor, ulong itemId, CharacterItemMsg item)
+	{
+		var current = _kernel.FindItem(itemId);
+		if (current is null)
+		{
+			return;
+		}
+
+		var command = new UpdateItemStateCommand(
+			NextOperation(),
+			new ActorId(actor),
+			_runEpoch,
+			AuthorityKind.OwnerPredictedHostValidated,
+			itemId,
+			ToKernelData(item),
+			current.Value.Revision);
+		TryExecuteCommand(command, actor, out _, out _);
+	}
+
+	private void TryDestroyExternal(ulong actor, ulong itemId, TerminalKind kind)
+	{
+		var current = _kernel.FindItem(itemId);
+		if (current is null)
+		{
+			return;
+		}
+
+		var command = new DestroyItemCommand(
+			NextOperation(),
+			new ActorId(actor),
+			_runEpoch,
+			AuthorityKind.HostOnly,
+			itemId,
+			kind,
+			current.Value.Revision);
+		TryExecuteCommand(command, actor, out _, out _);
 	}
 
 	// ===== Shadow-compatible conveniences (still used by diagnostics/tests) =====

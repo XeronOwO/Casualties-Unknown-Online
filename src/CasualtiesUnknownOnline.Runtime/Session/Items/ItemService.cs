@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.GameState;
+using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
@@ -46,6 +47,8 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 		_kernelAuthority = kernelAuthority;
 		_kernelProtocol = kernelProtocol;
 		_kernelProtocol.ItemMovesReceived += OnItemMovesReceived;
+		_kernelProtocol.ItemStateStreamReceived += OnItemStateStreamReceived;
+		_kernelProtocol.CommandRejected += OnCommandRejected;
 		_kernelAuthority.ExternalBatchCommitted += OnExternalBatchCommitted;
 		_kernelAuthority.BatchApplied += OnBatchApplied;
 		_kernelAuthority.CheckpointRestored += OnCheckpointRestored;
@@ -57,10 +60,12 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 			itemId => ItemPickedUp?.Invoke(itemId),
 			(itemId, item, pos, vel, parentItemId, rotation, angularVelocity, parentPos) =>
 				ItemDropped?.Invoke(itemId, item, pos, vel, parentItemId, rotation, angularVelocity, parentPos),
-			itemId => ItemDestroyed?.Invoke(itemId));
+			itemId => ItemDestroyed?.Invoke(itemId),
+			(owner, item, _) => PublishCarriedSyncLocal(owner, item),
+			item => FireCorrectionLocal(item));
 		_carriedSync = new(session, sender, log);
-		_itemActionSync = new(session, sender, arbitration, this, log);
-		_snapshots = new(session, sender, () => (IReadOnlyCollection<WorldItem>)_worldTable.Items.Values, log);
+		_itemActionSync = new(session, arbitration, this, _kernelProtocol, log);
+		_snapshots = new(session, () => (IReadOnlyCollection<WorldItem>)_worldTable.Items.Values, _kernelProtocol, log);
 		_idCoordinator = new ItemIdCoordinator(session, sender, _arbitration, log);
 		_blockDrops = new BlockDropSync(session, this);
 
@@ -168,8 +173,30 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 	public void SendItemSpawned(ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, float rotation, bool freshItemDrop, float angularVelocity) =>
 		_messageFlow.SendItemSpawned(itemId, item, pos, vel, rotation, freshItemDrop, angularVelocity);
 
-	public void SendItemCooked(ulong sourceItemId, ulong cookedItemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, float rotation, float angularVelocity) =>
-		_messageFlow.SendItemCooked(sourceItemId, cookedItemId, item, pos, vel, rotation, angularVelocity);
+	public void SendItemCooked(ulong sourceItemId, ulong cookedItemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, float rotation, float angularVelocity)
+	{
+		if (_session.Role == SessionRole.Guest)
+		{
+			_log.LogWarning("ItemCook suppressed on guest (source {Source}, cooked {Cooked}) — the host owns heater conversions.", sourceItemId, cookedItemId);
+			return;
+		}
+
+		var cookedIdentity = new ItemIdentity(cookedItemId, item.ItemId);
+		if (!_kernelAuthority.TryCook(
+				_session.LocalSteamId,
+				sourceItemId,
+				cookedIdentity,
+				ItemLocation.World(pos.X, pos.Y),
+				item,
+				out var batch,
+				out var rejection))
+		{
+			_log.LogWarning("ItemCook rejected: {Reason} ({Message}).", rejection!.Reason, rejection.Message);
+			return;
+		}
+
+		_kernelBatchProjection.ApplyWorldTableOnly(batch!);
+	}
 
 	public void SendItemPickedUp(ulong itemId, CharacterItemMsg? evidence = null) =>
 		_messageFlow.SendItemPickedUp(itemId, evidence);
@@ -251,12 +278,30 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 
 	// ===== Carried-item facts =====
 
-	public void SendItemCarriedSync(ulong ownerSteamId, CharacterItemMsg item) => _carriedSync.SendItemCarriedSync(ownerSteamId, item);
+	public void SendItemCarriedSync(ulong ownerSteamId, CharacterItemMsg item)
+	{
+		if (_session.Role != SessionRole.Host || !_session.SessionActive || item.InstanceId == 0)
+		{
+			return;
+		}
+
+		var current = _kernelAuthority.FindItem(item.InstanceId);
+		if (current is null)
+		{
+			_kernelAuthority.TrySpawnCarried(ownerSteamId, item.InstanceId, item.ItemId, item, out _, out _);
+		}
+		else
+		{
+			_kernelAuthority.TryUpdateState(ownerSteamId, item.InstanceId, item, out _, out _);
+		}
+
+		PublishCarriedSyncLocal(ownerSteamId, item);
+	}
 
 	public void FireItemCarriedSyncReceived(ulong sender, ulong ownerSteamId, CharacterItemMsg item, bool slotKnown)
 		=> _carriedSync.FireItemCarriedSyncReceived(sender, ownerSteamId, item, slotKnown);
 
-	private void PublishCarriedSync(ulong ownerSteamId, CharacterItemMsg item) => _carriedSync.Publish(ownerSteamId, item);
+	private void PublishCarriedSync(ulong ownerSteamId, CharacterItemMsg item) => SendItemCarriedSync(ownerSteamId, item);
 
 	// ===== Host-only surface =====
 
@@ -322,6 +367,8 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 	public void Dispose()
 	{
 		_kernelProtocol.ItemMovesReceived -= OnItemMovesReceived;
+		_kernelProtocol.ItemStateStreamReceived -= OnItemStateStreamReceived;
+		_kernelProtocol.CommandRejected -= OnCommandRejected;
 		_kernelAuthority.ExternalBatchCommitted -= OnExternalBatchCommitted;
 		_kernelAuthority.BatchApplied -= OnBatchApplied;
 		_kernelAuthority.CheckpointRestored -= OnCheckpointRestored;
@@ -354,12 +401,12 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 			}
 		}
 
-		_session.Broadcast(NetMsg.WorldItemsSnapshot, new WorldItemsSnapshotMsg
-		{
-			Items = [.. entries],
-			LayerModifierIndex = LayerModifierIndex + 1,
-			LayerModifierRandomState = LayerModifierRandomState,
-		});
+		_kernelProtocol.BroadcastItemStateStream(
+			[.. entries.Select(WireItemStateMapper.ToWire)],
+			WirePayloadType.WorldItemsSnapshotStream,
+			reliable: true,
+			layerModifierIndex: LayerModifierIndex + 1,
+			layerModifierRandomState: LayerModifierRandomState);
 		_log.LogInformation("Published generation items ({Count} entries, {Registered} registered): {World} ground, {Carried} carried — modifier {Modifier}.",
 			entries.Count, registered,
 			entries.Count(e => e.SlotIndex == 0), entries.Count(e => e.SlotIndex > 0), LayerModifierIndex);
@@ -444,6 +491,7 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 		}
 
 		_kernelBatchProjection.Apply(batch);
+		_arbitration.RebuildCarriedTableFromKernel();
 	}
 
 	private void OnBatchApplied(CommittedBatch batch)
@@ -483,6 +531,45 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 			Rotation = m.Rotation,
 			AngularVelocity = m.AngularVelocity,
 		})]);
+	}
+
+	private void OnCommandRejected(ulong itemId, RejectionReason reason)
+	{
+		if (_session.Role != SessionRole.Guest)
+		{
+			return;
+		}
+
+		if (reason is RejectionReason.Conflict or RejectionReason.UnknownAggregate)
+		{
+			ItemRejected?.Invoke(itemId, ItemRejectMsg.Reason.UnknownItem);
+		}
+	}
+
+	private void OnItemStateStreamReceived(WirePayloadType payloadType, WireStateStream stream)
+	{
+		if (_session.Role != SessionRole.Guest)
+		{
+			return;
+		}
+
+		switch (payloadType)
+		{
+			case WirePayloadType.ItemSnapshotStream:
+				FireItemSnapshotReceived(
+					_session.HostSteamId,
+					[.. stream.ItemStates.Select(WireItemStateMapper.ToWorldItem)],
+					stream.LayerModifierIndex,
+					stream.LayerModifierRandomState);
+				break;
+			case WirePayloadType.WorldItemsSnapshotStream:
+				FireWorldItemsSnapshotReceived(
+					_session.HostSteamId,
+					[.. stream.ItemStates.Select(WireItemStateMapper.ToSnapshotEntry)],
+					stream.LayerModifierIndex,
+					stream.LayerModifierRandomState);
+				break;
+		}
 	}
 
 	// ===== IItemActionWorldAccess =====

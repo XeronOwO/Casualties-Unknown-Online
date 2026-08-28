@@ -1,5 +1,5 @@
-using System.Linq;
-using CasualtiesUnknownOnline.Runtime.Protocol;
+using System.Collections.Generic;
+using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using Microsoft.Extensions.Logging;
 
@@ -17,15 +17,15 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 /// </summary>
 internal sealed class ItemActionSync(
 	ISessionControl session,
-	PacketSender sender,
 	ItemArbitration arbitration,
 	IItemActionWorldAccess world,
+	IKernelProtocolControl kernelProtocol,
 	ILogger log)
 {
 	private readonly ISessionControl _session = session;
-	private readonly PacketSender _sender = sender;
 	private readonly ItemArbitration _arbitration = arbitration;
 	private readonly IItemActionWorldAccess _world = world;
+	private readonly IKernelProtocolControl _kernelProtocol = kernelProtocol;
 	private readonly ILogger _log = log;
 
 	/// <summary>Guest only: an item was used locally — report the used state (digest evidence) so the host validates and corrects. Host-side uses are the host's own authority, never reported.</summary>
@@ -36,7 +36,14 @@ internal sealed class ItemActionSync(
 			return;
 		}
 
-		_sender.Send(_session.HostSteamId, NetMsg.ItemUse, new ItemUseMsg { ItemId = itemId, Item = item });
+		_kernelProtocol.SendCommand(
+			new WireCommand
+			{
+				Kind = WireCommandKind.ItemUpdateState,
+				Identity = ToIdentity(itemId, item),
+				Data = ToWireData(item),
+			},
+			WirePayloadType.ItemUpdateStateCommand);
 	}
 
 	/// <summary>Guest only: an item moved slots locally — report the new slot so the host's record stays in sync. Host-side moves are the host's own authority, never reported.</summary>
@@ -47,7 +54,14 @@ internal sealed class ItemActionSync(
 			return;
 		}
 
-		_sender.Send(_session.HostSteamId, NetMsg.ItemSlot, new ItemSlotMsg { ItemId = itemId, SlotIndex = slotIndex, Item = item });
+		_kernelProtocol.SendCommand(
+			new WireCommand
+			{
+				Kind = WireCommandKind.ItemUpdateState,
+				Identity = ToIdentity(itemId, item),
+				Data = ToWireData(item),
+			},
+			WirePayloadType.ItemUpdateStateCommand);
 	}
 
 	/// <summary>Guest only: a carried container's FULL fact changed internally (a
@@ -62,8 +76,41 @@ internal sealed class ItemActionSync(
 			return;
 		}
 
-		_sender.Send(_session.HostSteamId, NetMsg.ItemContainerContent,
-			new ItemContainerContentMsg { ItemId = itemId, Item = item });
+		var children = new List<WireContainerChild>();
+		FlattenContainerChildren(item, children);
+		_kernelProtocol.SendCommand(
+			new WireCommand
+			{
+				Kind = WireCommandKind.ItemContainerSync,
+				Identity = ToIdentity(itemId, item),
+				Data = ToWireData(item),
+				ContainerChildren = children,
+			},
+			WirePayloadType.ItemContainerSyncCommand);
+	}
+
+	private static WireItemIdentity ToIdentity(ulong itemId, CharacterItemMsg item) =>
+		new()
+		{
+			InstanceId = itemId,
+			DefinitionId = item.ItemId,
+		};
+
+	private static WireItemData ToWireData(CharacterItemMsg item) =>
+		KernelWireMapper.ToWireData(ItemKernelAuthority.ToKernelData(item));
+
+	private static void FlattenContainerChildren(CharacterItemMsg parent, List<WireContainerChild> children)
+	{
+		foreach (var child in parent.Contents)
+		{
+			children.Add(new WireContainerChild
+			{
+				Identity = ToIdentity(child.InstanceId, child),
+				ParentItemId = parent.InstanceId,
+				Data = ToWireData(child),
+			});
+			FlattenContainerChildren(child, children);
+		}
 	}
 
 	public void FireItemUseReceived(ulong sender, ulong itemId, CharacterItemMsg evidence)
@@ -135,13 +182,15 @@ internal sealed class ItemActionSync(
 	/// </summary>
 	public void SendWorldItemCorrection(ulong exceptSteamId, CharacterItemMsg item)
 	{
-		if (_session.Role != SessionRole.Host || !_session.SessionActive)
+		if (_session.Role != SessionRole.Host || !_session.SessionActive || item.InstanceId == 0)
 		{
 			return;
 		}
 
-		_sender.SendToAll(
-			_session.Members.Where(m => m.Handshaken && m.SteamId != _session.LocalSteamId).Select(m => m.SteamId),
-			NetMsg.ItemCorrection, new ItemCorrectionMsg { Item = item }, excludeSteamId: exceptSteamId);
+		// Phase C: the authoritative world-item state change is a kernel
+		// UpdateItemState batch. The host broadcast carries the committed batch;
+		// the guest projection re-surfaces it as the world correction event.
+		_world.UpdateWorldItemState(item.InstanceId, item);
+		_world.FireCorrectionLocal(item);
 	}
 }

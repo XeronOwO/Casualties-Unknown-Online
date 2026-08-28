@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using CasualtiesUnknownOnline.Runtime.Protocol;
+using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using Microsoft.Extensions.Logging;
 
@@ -19,13 +19,13 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 /// </summary>
 public sealed class ItemSnapshotService(
 	ISessionControl session,
-	PacketSender sender,
 	Func<IReadOnlyCollection<WorldItem>> worldItems,
+	IKernelProtocolControl kernelProtocol,
 	ILogger log)
 {
 	private readonly ISessionControl _session = session;
-	private readonly PacketSender _sender = sender;
 	private readonly Func<IReadOnlyCollection<WorldItem>> _worldItems = worldItems;
+	private readonly IKernelProtocolControl _kernelProtocol = kernelProtocol;
 	private readonly ILogger _log = log;
 
 	/// <summary>
@@ -72,16 +72,13 @@ public sealed class ItemSnapshotService(
 			return;
 		}
 
-		var msg = new ItemSnapshotMsg
-		{
-			Entries = [.. _worldItems().Select(w => w.ToSnapshotEntryMsg())],
-			// Wire encoding is modifierIndex + 1 (0 = none) — protobuf-net omits
-			// 0-valued ints, and Foggy's raw index IS 0 (see
-			// WorldItemsSnapshotMsg.LayerModifierIndex).
-			LayerModifierIndex = LayerModifierIndex + 1,
-			LayerModifierRandomState = LayerModifierRandomState,
-		};
-		_sender.Send(targetSteamId, NetMsg.ItemSnapshot, msg);
+		_kernelProtocol.SendItemStateStreamTo(
+			targetSteamId,
+			[.. _worldItems().Select(WireItemStateMapper.ToWire)],
+			WirePayloadType.ItemSnapshotStream,
+			reliable: true,
+			layerModifierIndex: LayerModifierIndex + 1,
+			layerModifierRandomState: LayerModifierRandomState);
 		_log.LogInformation("Sent world-item snapshot ({Count} items) to {Peer}.", _worldItems().Count, targetSteamId);
 	}
 
@@ -97,15 +94,11 @@ public sealed class ItemSnapshotService(
 			return;
 		}
 
-		var msg = new ItemSnapshotMsg
-		{
-			Entries = [.. _worldItems().Select(w => w.ToSnapshotEntryMsg())],
-			// Wire encoding is modifierIndex + 1 (0 = none) — see SendItemSnapshot.
-			LayerModifierIndex = LayerModifierIndex + 1,
-			LayerModifierRandomState = LayerModifierRandomState,
-		};
-		_sender.SendToAll(
-			_session.Members.Where(m => m.Handshaken).Select(m => m.SteamId),
-			NetMsg.ItemSnapshot, msg, reliable: false);
+		_kernelProtocol.BroadcastItemStateStream(
+			[.. _worldItems().Select(WireItemStateMapper.ToWire)],
+			WirePayloadType.ItemSnapshotStream,
+			reliable: false,
+			layerModifierIndex: LayerModifierIndex + 1,
+			layerModifierRandomState: LayerModifierRandomState);
 	}
 }

@@ -3,6 +3,7 @@ using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
+using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.DependencyInjection;
@@ -59,12 +60,14 @@ public class ReconnectWorldSnapshotTests
 		hostWorld.ReportBlockDamage(5, 6, 70f);
 		hostWorld.ReportBlockState(5, 6, 7);
 		w.Spawn(w.G1, 100, new CharacterItemMsg { ItemId = "ore", Condition = 1f });
+		var itemSnapshots = new List<IReadOnlyList<WorldItem>>();
+		w.G1.Services.GetRequiredService<IItemControl>().ItemSnapshotReceived += (items, _, _) => itemSnapshots.Add(items);
 
 		// g1 enters the world — the first fan-out sends the snapshot group.
 		w.G1.Session.ReportSceneState(SceneStateType.InWorld, "SampleScene");
 		w.Driver.Tick(50);
 		Assert.True(w.ReceivedCount(w.G1, NetMsg.TrapLayoutSnapshot) == 1, "first entry: trap layout");
-		Assert.True(w.ReceivedCount(w.G1, NetMsg.ItemSnapshot) == 1, "first entry: world items");
+		Assert.Single(itemSnapshots);
 
 		ReconnectGuestStillInWorld(w);
 
@@ -76,7 +79,7 @@ public class ReconnectWorldSnapshotTests
 		Assert.True(w.ReceivedCount(w.G1, NetMsg.BuildingEntityHealthSnapshot) >= 2, $"reconnect: building-entity health, got {w.ReceivedCount(w.G1, NetMsg.BuildingEntityHealthSnapshot)}");
 		Assert.True(w.ReceivedCount(w.G1, NetMsg.BlockDamageSnapshot) >= 2, $"reconnect: block damage, got {w.ReceivedCount(w.G1, NetMsg.BlockDamageSnapshot)}");
 		Assert.True(w.ReceivedCount(w.G1, NetMsg.WorldBlockState) >= 2, $"reconnect: block state, got {w.ReceivedCount(w.G1, NetMsg.WorldBlockState)}");
-		Assert.True(w.ReceivedCount(w.G1, NetMsg.ItemSnapshot) >= 2, $"reconnect: world items, got {w.ReceivedCount(w.G1, NetMsg.ItemSnapshot)}");
+		Assert.True(itemSnapshots.Count >= 2, $"reconnect: world items, got {itemSnapshots.Count}");
 		Assert.True(w.ReceivedCount(w.G1, NetMsg.WorldSnapshotComplete) >= 2,
 			$"reconnect: snapshot-complete marker, got {w.ReceivedCount(w.G1, NetMsg.WorldSnapshotComplete)}");
 	}

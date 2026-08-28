@@ -24,4 +24,7 @@ public sealed class WireCheckpoint
 
 	[ProtoMember(5)]
 	public List<WireItem> Items { get; set; } = [];
+
+	[ProtoMember(6)]
+	public List<WireRandomStream> RandomStreams { get; set; } = [];
 }

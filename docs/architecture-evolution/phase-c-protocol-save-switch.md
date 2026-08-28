@@ -94,13 +94,13 @@ Out of scope:
   - [ ] state stream envelope for continuous fields.
 - [ ] Implement guest-side receive path:
   - [x] apply batches idempotently by OperationId/GlobalRevision;
-  - [ ] request missing ranges;
-  - [ ] rebuild from checkpoint on large gaps;
+  - [x] request missing ranges;
+  - [x] rebuild from checkpoint on large gaps;
   - [ ] replay pending predictions after confirmed batch application;
   - [x] produce minimal projection diffs (world items from kernel batches).
 - [ ] Implement join/reconnect flow:
   - [x] checkpoint + tail;
-  - [ ] late join after journal window expiry;
+  - [x] late join after journal window expiry (fallback checkpoint on out-of-window range);
   - [ ] disconnect/reconnect with epoch validation.
 - [x] Implement RunEpoch filtering:
   - every envelope carries RunEpoch;
@@ -109,7 +109,7 @@ Out of scope:
 - [ ] Implement save/load:
   - [x] write `SaveHeader` + `GameCheckpoint`;
   - [x] read/validate/reject old saves per policy;
-  - [ ] include named random streams / decided random results;
+  - [x] include named random streams / decided random results;
   - [x] keep checkpoint as the only authoritative on-disk source.
 - [ ] Remove old item wire DTOs from production:
   - [ ] identify all old item message usages;
@@ -119,17 +119,18 @@ Out of scope:
 - [ ] Add network simulation tests:
   - [x] duplication and idempotency;
   - [x] reordering/gap/epoch rejection;
-  - [ ] random latency, loss, disconnect, reconnect;
-  - [ ] checkpoint insertion;
+  - [x] random latency and duplicate convergence;
+  - [ ] disconnect/reconnect simulation;
+  - [x] checkpoint insertion/restore;
   - [x] reliable Batch eventual consistency (kernel state + world projection).
 - [x] Add save round-trip tests:
   - checkpoint equivalence;
-  - [ ] random stream determinism;
-  - corrupt old save behavior;
-  - schema version handling.
-- [ ] Add projection rebuild tests:
-  - all projections can be dropped and rebuilt from checkpoint+journal tail;
-  - failed projection does not mutate authoritative state.
+  - [x] random stream determinism;
+  - [x] corrupt old save behavior;
+  - [x] schema version handling.
+- [x] Add projection rebuild tests:
+  - [x] world projection dropped and rebuilt from checkpoint;
+  - [ ] failed projection does not mutate authoritative state.
 - [ ] Update docs:
   - [x] `docs/selfchecks/`;
   - [x] this phase doc and `status.md`;
@@ -193,11 +194,11 @@ Out of scope:
 | Date | Scope | Commits | Verification | Notes |
 |---|---|---|---|---|
 | 2026-08-28 | Phase C core: `CasualtiesUnknownOnline.Protocol` project (four envelopes, wire DTOs, codecs, golden tests), `KernelWireMapper`, `WireCheckpointAssembler`, `KernelProtocolService` + `KernelEnvelopeHandler`, `KernelSaveFileStore`, guest world projection, RunEpoch/version/gap filters, checkpoint join hook. Old spawn/pickup/drop/destroy production sends switched to CommandEnvelope. | `884ecc3` | Full suite 1637 tests green; build/architecture/event/entity gates pass. | Remaining: full old item DTO removal, request-missing-ranges/rebuild, StateStream projection, random streams, projection-rebuild tests, remaining tech-decision/doc fields. |
+| 2026-08-28 | Phase C recovery/save/projection second cycle: guest range requests + out-of-order buffering + host journal fallback checkpoint, named random streams in GameCheckpoint/wire/save, checkpoint rebuild of guest world projection, latency/duplicate simulation. | `pending` | Full suite 1643 tests green; architecture/event/entity gates pass. | Remaining: full old item DTO removal, StateStream projection, disconnect/reconnect simulation, failed-projection-must-not-mutate test. |
 
 ## Next actions
 
-1. Convert the remaining old item wire families (use/slot/container-content/snapshot/correction/carry) to envelopes or explicitly keep them as test-only projections.
-2. Implement guest missing-range request + host journal-range fallback-to-checkpoint.
-3. Add full network simulation with random latency/loss/disconnect/reconnect and StateStream convergence.
-4. Add named random streams to `GameCheckpoint`/save format and projection-rebuild tests.
-5. Record the Phase C decisions in `docs/tech-decisions.md`, update `docs/architecture.md` if protocol sections are stale, and commit.
+1. Convert the remaining old item wire families (use/slot/container-content/snapshot/correction/carry/cook) to envelopes or explicitly keep them as test-only projections.
+2. Add disconnect/reconnect network simulation and StateStream convergence.
+3. Add a failed-projection-does-not-mutate-authoritative-state test.
+4. Record remaining Phase C decisions in `docs/tech-decisions.md`, update `docs/architecture.md` if protocol sections are stale, and commit.

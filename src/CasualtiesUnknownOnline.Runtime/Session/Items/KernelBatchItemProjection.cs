@@ -36,6 +36,22 @@ internal sealed class KernelBatchItemProjection(
 		}
 	}
 
+	public void Rebuild(GameCheckpoint checkpoint)
+	{
+		_worldTable.Clear();
+		foreach (var item in checkpoint.Items)
+		{
+			if (item.Location.Kind != ItemLocationKind.World)
+			{
+				continue;
+			}
+
+			var world = ToWorldItem(item);
+			_worldTable.Set(world.ItemId, world);
+			_onItemSpawned(world);
+		}
+	}
+
 	private void ApplyKernelEventToProjection(GameEvent @event)
 	{
 		switch (@event)

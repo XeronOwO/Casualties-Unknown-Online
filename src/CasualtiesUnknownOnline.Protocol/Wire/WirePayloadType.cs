@@ -27,6 +27,7 @@ public enum WirePayloadType
 
 	// Checkpoint / streams
 	CheckpointChunk = 201,
+	RangeRequestCommand = 202,
 	StateStream = 301,
 
 	// Non-critical presentation effects (reserved)

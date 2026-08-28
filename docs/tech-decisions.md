@@ -3680,10 +3680,11 @@ and save untouched.
   authority) passes; item/replay differential remains zero; no new wire message.
   See `docs/selfchecks/phase-b-item-authority-selfcheck.md`.
 
-## 128. Phase C protocol/save core — first delivery cycle (in progress)
+## 128. Phase C protocol/save core — completed cutover (2026-08-28)
 
-Started 2026-08-28. Phase C is not complete; this entry records the landed core
-decisions of the first cycle so a later session can continue from a stable base.
+Started 2026-08-28. This entry records the Phase C decisions through the final
+cutover. The phase is complete; the legacy item packet handlers retained in the
+runtime are test-only replay injection and are scheduled for removal with Phase D/E.
 
 - **Protocol project** — `CasualtiesUnknownOnline.Protocol` is a new net48,
   protobuf-net project with the four envelope DTOs (`CommandEnvelope`,
@@ -3723,6 +3724,26 @@ decisions of the first cycle so a later session can continue from a stable base.
   `ItemKernelAuthority.TryExecuteCommand` raise `ExternalBatchCommitted`; the
   host projects those batches into the legacy world table, while local native
   writes keep using `ItemProjection` (no double projection).
-- **Tests/gates** — full suite 1644 green; architecture, event-replay, and
-  entity-dispatch gates pass. See
+- **Carried facts via batch projection** — use/slot/container reports ride
+  `CommandEnvelope`; `KernelBatchItemProjection` re-surfaces carried-fact and
+  world-correction events from confirmed batches. The legacy
+  `ItemCarriedSync`/`ItemCorrection` production send paths are no longer used.
+- **Container sync** — a new atomic `SyncContainerItemsCommand` reconciles a
+  container subtree (parent data + child create/update/move/destroy) in one
+  batch; `WireContainerChild` carries the flat child-fact list.
+- **Item snapshots via StateStream** — periodic and generation-time world-item
+  snapshots ride `StateStreamEnvelope` (`ItemSnapshotStream`,
+  `WorldItemsSnapshotStream`) with `WireWorldItemState`; the legacy
+  `ItemSnapshot`/`WorldItemsSnapshot` production send paths are no longer used.
+- **Atomic Cook batch** — `CookItemCommand` commits source `ReplacedBy` +
+  product spawn in one batch; missing/terminal source is accepted-first.
+- **Command rejections** — host command failures return as a
+  `CommandRejected` `CommandEnvelope` to the guest; the guest re-surfaces the
+  old adapter-facing `ItemRejected` event without using the legacy `ItemReject`
+  wire frame.
+- **Kernel transfer-table rebuild** — after every external wire batch the host
+  rebuilds its carried transfer table from the authoritative kernel, keeping the
+  legacy cache a pure projection.
+- **Tests/gates** — full suite 1647 green; architecture, item-authority,
+  event-replay, and entity-dispatch gates pass. See
   `docs/selfchecks/phase-c-protocol-core-selfcheck.md`.

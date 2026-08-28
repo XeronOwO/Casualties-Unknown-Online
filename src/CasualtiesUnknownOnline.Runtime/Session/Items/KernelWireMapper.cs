@@ -304,6 +304,18 @@ public static class KernelWireMapper
 				new ActorId(command.NewOwner),
 				command.Data is null ? null : FromWireData(command.Data),
 				command.ExpectedRevision),
+			WireCommandKind.ItemContainerSync => new SyncContainerItemsCommand(
+				operation,
+				actor,
+				epoch,
+				authority,
+				identity,
+				command.Data is null ? ItemData.Empty : FromWireData(command.Data),
+				[.. command.ContainerChildren.Select(c => new ContainerChildFact(
+					c.Identity.InstanceId,
+					c.Identity.DefinitionId,
+					c.ParentItemId,
+					FromWireData(c.Data)))]),
 			_ => throw new ArgumentOutOfRangeException(nameof(command.Kind), command.Kind, "unknown wire command kind"),
 		};
 	}

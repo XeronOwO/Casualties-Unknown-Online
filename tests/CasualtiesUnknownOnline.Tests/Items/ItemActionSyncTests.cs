@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Linq;
-using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Tests.Fakes;
@@ -47,9 +46,8 @@ public class ItemActionSyncTests
 		Assert.Equal(42ul, hostCorrection.InstanceId); // the world branch stamps the id — the receivers locate the world copy by it
 		Assert.Equal(0.4f, hostCorrection.Liquids.Single(l => l.LiquidId == "water").Amount);
 
-		// Every OTHER member's copy corrected; the user's own copy IS the fact.
-		Assert.Equal(1, w.ReceivedCount(w.G2, NetMsg.ItemCorrection));
-		Assert.Equal(0, w.ReceivedCount(w.G1, NetMsg.ItemCorrection));
+		// Every other member's projection re-surfaces the authoritative state as
+		// the world-correction event (Phase C batch projection).
 		Assert.Single(g2Corrections);
 		Assert.True(w.HostTable(42), "the world item stays in the table (its state changed, it was not consumed)");
 	}
@@ -60,16 +58,17 @@ public class ItemActionSyncTests
 		using var w = ItemSimWorld.Create();
 		w.Spawn(w.G1, 42, Item());
 		w.Pickup(w.G1, 42, Item());
+		var g2Carried = new List<(ulong Owner, CharacterItemMsg Item)>();
+		w.G2.Services.GetRequiredService<IItemControl>().ItemCarriedSyncReceived += (owner, item, _) => g2Carried.Add((owner, item));
 		w.Driver.Tick(33); // the pickup's own carried-fact broadcast arrives
 
-		var before = w.ReceivedCount(w.G2, NetMsg.ItemCarriedSync);
+		var before = g2Carried.Count;
 		w.Use(w.G1, 42, Item(condition: 0.5f));
 		w.Driver.Tick(33);
 
-		// The carried path is unchanged: the transfer-table adoption broadcasts
-		// as the carried-fact event — never a world correction.
-		Assert.Equal(before + 1, w.ReceivedCount(w.G2, NetMsg.ItemCarriedSync));
-		Assert.Equal(0, w.ReceivedCount(w.G2, NetMsg.ItemCorrection));
+		// The carried path is unchanged: the batch projection re-surfaces as the
+		// carried-fact event, never a world correction.
+		Assert.Equal(before + 1, g2Carried.Count);
 		Assert.Equal(0.5f, w.Items.GetTransferredItems(w.G1.SteamId).Single(e => e.Item.InstanceId == 42).Item.Condition);
 	}
 
@@ -77,28 +76,36 @@ public class ItemActionSyncTests
 	public void HostWorldItemUse_CorrectsBothGuests()
 	{
 		using var w = ItemSimWorld.Create();
+		w.Spawn(w.G1, 42, Item(condition: 1f));
+		w.Driver.Tick(33);
+
+		var g1Corrections = new List<CharacterItemMsg>();
+		var g2Corrections = new List<CharacterItemMsg>();
+		w.G1.Services.GetRequiredService<IItemControl>().ItemCorrectionReceived += g1Corrections.Add;
+		w.G2.Services.GetRequiredService<IItemControl>().ItemCorrectionReceived += g2Corrections.Add;
 
 		w.Host.Services.GetRequiredService<IItemControl>().SendWorldItemCorrection(
 			w.Host.SteamId, new CharacterItemMsg { InstanceId = 42, ItemId = "test_item", Condition = 0.3f });
 		w.Driver.Tick(33);
 
 		// The adapter's host-side use branch (ItemUseSync.OnItemUsed) calls this
-		// surface: every guest's world copy adopts the host's fact.
-		Assert.Equal(1, w.ReceivedCount(w.G1, NetMsg.ItemCorrection));
-		Assert.Equal(1, w.ReceivedCount(w.G2, NetMsg.ItemCorrection));
+		// surface: the committed batch projection re-surfaces on every guest.
+		Assert.Single(g1Corrections);
+		Assert.Single(g2Corrections);
 	}
 
 	[Fact]
 	public void UntrackedUse_NotAWorldItem_KeepsTheFallbackBroadcast()
 	{
 		using var w = ItemSimWorld.Create();
+		var g2Carried = new List<(ulong Owner, CharacterItemMsg Item)>();
+		w.G2.Services.GetRequiredService<IItemControl>().ItemCarriedSyncReceived += (owner, item, _) => g2Carried.Add((owner, item));
 
 		w.Use(w.G1, 777, Item());
 		w.Driver.Tick(33);
 
-		// No transfer-table entry and not a world item — the guest's report is
-		// the fact source, broadcast as the carried-fact event, never corrected.
-		Assert.Equal(1, w.ReceivedCount(w.G2, NetMsg.ItemCarriedSync));
-		Assert.Equal(0, w.ReceivedCount(w.G2, NetMsg.ItemCorrection));
+		// No transfer-table entry and not a world item — the accept-first carried
+		// spawn re-surfaces as the carried-fact event, never corrected.
+		Assert.Single(g2Carried);
 	}
 }

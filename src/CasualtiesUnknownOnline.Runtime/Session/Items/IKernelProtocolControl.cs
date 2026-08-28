@@ -18,11 +18,19 @@ public interface IKernelProtocolControl
 
 	void SendStateStream(IReadOnlyList<WireItemMoveEntry> itemMoves);
 
+	void SendItemStateStreamTo(ulong targetSteamId, IReadOnlyList<WireWorldItemState> items, WirePayloadType payloadType, bool reliable = true, int layerModifierIndex = 0, byte[]? layerModifierRandomState = null);
+
+	void BroadcastItemStateStream(IReadOnlyList<WireWorldItemState> items, WirePayloadType payloadType, bool reliable = false, int layerModifierIndex = 0, byte[]? layerModifierRandomState = null);
+
 	void BroadcastCommittedBatch(CommittedBatch batch);
 
 	void SendCheckpoint(ulong targetSteamId);
 
 	event Action<IReadOnlyList<WireItemMoveEntry>>? ItemMovesReceived;
+
+	event Action<WirePayloadType, WireStateStream>? ItemStateStreamReceived;
+
+	event Action<ulong, RejectionReason>? CommandRejected;
 
 	void ResetForSessionEnd();
 }

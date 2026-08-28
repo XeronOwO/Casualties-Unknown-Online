@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.GameState;
-using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.Protocol.Versioning;
 using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Protocol;
@@ -25,12 +24,17 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 	private readonly PacketSender _sender;
 	private readonly ItemKernelAuthority _authority;
 	private readonly ILogger<KernelProtocolService> _log;
+	private readonly KernelProtocolCommandHandler _commandHandler;
 	private readonly List<CommittedBatch> _journal = [];
 	private readonly Dictionary<int, WireCheckpoint> _checkpointChunks = [];
 	private readonly Dictionary<ulong, CommittedBatch> _pendingBatches = [];
 	private long _nextMessageId;
 
 	public event Action<IReadOnlyList<WireItemMoveEntry>>? ItemMovesReceived;
+
+	public event Action<WirePayloadType, WireStateStream>? ItemStateStreamReceived;
+
+	public event Action<ulong, RejectionReason>? CommandRejected;
 
 	public KernelProtocolService(
 		ISessionControl session,
@@ -42,6 +46,7 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 		_sender = sender;
 		_authority = authority;
 		_log = log;
+		_commandHandler = new KernelProtocolCommandHandler(session, sender, authority, log);
 		_authority.BatchCommitted += BroadcastCommittedBatch;
 		_session.SessionEnded += ResetForSessionEnd;
 	}
@@ -167,6 +172,44 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 		SendToGuests(frame, reliable: false);
 	}
 
+	public void SendItemStateStreamTo(ulong targetSteamId, IReadOnlyList<WireWorldItemState> items, WirePayloadType payloadType, bool reliable = true, int layerModifierIndex = 0, byte[]? layerModifierRandomState = null)
+	{
+		if (_session.Role != SessionRole.Host || !_session.SessionActive || items.Count == 0 || targetSteamId == 0)
+		{
+			return;
+		}
+
+		var frame = CreateItemStateStreamFrame(items, payloadType, layerModifierIndex, layerModifierRandomState);
+		_sender.Send(targetSteamId, NetMsg.KernelEnvelope, frame, reliable);
+	}
+
+	public void BroadcastItemStateStream(IReadOnlyList<WireWorldItemState> items, WirePayloadType payloadType, bool reliable = false, int layerModifierIndex = 0, byte[]? layerModifierRandomState = null)
+	{
+		if (_session.Role != SessionRole.Host || !_session.SessionActive || items.Count == 0)
+		{
+			return;
+		}
+
+		var frame = CreateItemStateStreamFrame(items, payloadType, layerModifierIndex, layerModifierRandomState);
+		SendToGuests(frame, reliable);
+	}
+
+	private ProtocolFrame CreateItemStateStreamFrame(IReadOnlyList<WireWorldItemState> items, WirePayloadType payloadType, int layerModifierIndex = 0, byte[]? layerModifierRandomState = null) =>
+		new()
+		{
+			Kind = EnvelopeKind.StateStream,
+			StateStream = new StateStreamEnvelope
+			{
+				Header = CreateHeader(payloadType, 0),
+				Stream = new WireStateStream
+				{
+					ItemStates = [.. items],
+					LayerModifierIndex = layerModifierIndex,
+					LayerModifierRandomState = layerModifierRandomState,
+				},
+			},
+		};
+
 	public void HandleFrame(ulong sender, ProtocolFrame frame)
 	{
 		if (frame is null)
@@ -256,6 +299,9 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 			case EnvelopeKind.CommittedBatch when frame.CommittedBatch is not null:
 				HandleCommittedBatch(sender, frame.CommittedBatch);
 				break;
+			case EnvelopeKind.Command when frame.Command is not null && frame.Command.Header.PayloadType == WirePayloadType.CommandRejected:
+				HandleCommandRejected(frame.Command);
+				break;
 			case EnvelopeKind.Command:
 				_log.LogWarning("Dropped command envelope from host {Sender}.", sender);
 				break;
@@ -268,14 +314,25 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 		}
 	}
 
+	private void HandleCommandRejected(CommandEnvelope envelope)
+	{
+		var itemId = envelope.Command.Identity.InstanceId;
+		var reason = (RejectionReason)envelope.Command.RejectionReason;
+		_log.LogWarning("Kernel command rejected by host for item {ItemId}: {Reason}.", itemId, reason);
+		CommandRejected?.Invoke(itemId, reason);
+	}
+
 	private void HandleStateStream(StateStreamEnvelope envelope)
 	{
-		if (envelope.Stream.ItemMoves.Count == 0)
+		if (envelope.Stream.ItemMoves.Count > 0)
 		{
-			return;
+			ItemMovesReceived?.Invoke(envelope.Stream.ItemMoves);
 		}
 
-		ItemMovesReceived?.Invoke(envelope.Stream.ItemMoves);
+		if (envelope.Stream.ItemStates.Count > 0)
+		{
+			ItemStateStreamReceived?.Invoke(envelope.Header.PayloadType, envelope.Stream);
+		}
 	}
 
 	private void HandleCommand(ulong sender, CommandEnvelope envelope)
@@ -294,77 +351,8 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 			return;
 		}
 
-		var command = ResolveCommandRevision(KernelWireMapper.FromWireCommand(envelope.Command, envelope.Header));
-		if (!_authority.TryExecuteCommand(command, sender, out var batch, out var rejection))
-		{
-			_log.LogWarning("Kernel command from {Sender} rejected: {Reason} ({Message}).",
-				sender, rejection!.Reason, rejection.Message);
-			return;
-		}
-
-		BroadcastCommittedBatch(batch!);
+		_commandHandler.Handle(sender, envelope);
 	}
-
-	private GameCommand ResolveCommandRevision(GameCommand command)
-	{
-		switch (command)
-		{
-			case PickUpItemCommand c:
-				{
-					var current = FindRevision(c.InstanceId);
-					if (current is not null)
-					{
-						return c with { ExpectedRevision = current.Value.Revision };
-					}
-
-					break;
-				}
-			case DropItemCommand c:
-				{
-					var current = FindRevision(c.InstanceId);
-					if (current is not null)
-					{
-						return c with { ExpectedRevision = current.Value.Revision };
-					}
-
-					break;
-				}
-			case DestroyItemCommand c:
-				{
-					var current = FindRevision(c.InstanceId);
-					if (current is not null)
-					{
-						return c with { ExpectedRevision = current.Value.Revision };
-					}
-
-					break;
-				}
-			case UpdateItemStateCommand c:
-				{
-					var current = FindRevision(c.InstanceId);
-					if (current is not null)
-					{
-						return c with { ExpectedRevision = current.Value.Revision };
-					}
-
-					break;
-				}
-			case TransferItemCommand c:
-				{
-					var current = FindRevision(c.InstanceId);
-					if (current is not null)
-					{
-						return c with { ExpectedRevision = current.Value.Revision };
-					}
-
-					break;
-				}
-		}
-
-		return command;
-	}
-
-	private ItemState? FindRevision(ulong itemId) => _authority.FindItem(itemId);
 
 	private void HandleCommittedBatch(ulong sender, CommittedBatchEnvelope envelope)
 	{

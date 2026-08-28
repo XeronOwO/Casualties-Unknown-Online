@@ -15,6 +15,7 @@ public enum WirePayloadType
 	ItemDestroyCommand = 4,
 	ItemUpdateStateCommand = 5,
 	ItemTransferCommand = 6,
+	ItemContainerSyncCommand = 7,
 
 	// Kernel events (critical)
 	ItemSpawnedEvent = 101,
@@ -28,7 +29,10 @@ public enum WirePayloadType
 	// Checkpoint / streams
 	CheckpointChunk = 201,
 	RangeRequestCommand = 202,
+	CommandRejected = 203,
 	StateStream = 301,
+	ItemSnapshotStream = 302,
+	WorldItemsSnapshotStream = 303,
 
 	// Non-critical presentation effects (reserved)
 	PresentationEffect = 1001,

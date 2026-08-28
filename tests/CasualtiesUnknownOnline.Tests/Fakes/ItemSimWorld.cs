@@ -28,6 +28,8 @@ internal sealed class ItemSimWorld : IDisposable
 
 	private readonly List<(NetMsg Msg, byte[] Frame)> _g1Received = [];
 	private readonly List<(NetMsg Msg, byte[] Frame)> _g2Received = [];
+	private readonly List<ItemRejectMsg> _g1Rejects = [];
+	private readonly List<ItemRejectMsg> _g2Rejects = [];
 
 	private ItemSimWorld(SimulationDriver driver, TestNode host, TestNode g1, TestNode g2)
 	{
@@ -86,6 +88,10 @@ internal sealed class ItemSimWorld : IDisposable
 		var world = new ItemSimWorld(driver, host, g1, g2);
 		g1.Transport.MessageReceived += (_, frame) => world._g1Received.Add(((NetMsg)frame[0], frame));
 		g2.Transport.MessageReceived += (_, frame) => world._g2Received.Add(((NetMsg)frame[0], frame));
+		g1.Services.GetRequiredService<IItemControl>().ItemRejected += (id, reason) =>
+			world._g1Rejects.Add(new ItemRejectMsg { ItemId = id, Rejection = reason });
+		g2.Services.GetRequiredService<IItemControl>().ItemRejected += (id, reason) =>
+			world._g2Rejects.Add(new ItemRejectMsg { ItemId = id, Rejection = reason });
 		return world;
 	}
 
@@ -116,10 +122,10 @@ internal sealed class ItemSimWorld : IDisposable
 		Send(guest, NetMsg.ItemDestroy, new ItemDestroyMsg { ItemId = itemId });
 
 	internal void Use(TestNode guest, ulong itemId, CharacterItemMsg item) =>
-		Send(guest, NetMsg.ItemUse, new ItemUseMsg { ItemId = itemId, Item = item });
+		guest.Services.GetRequiredService<IItemControl>().SendItemUse(itemId, item);
 
 	internal void Slot(TestNode guest, ulong itemId, int slotIndex, CharacterItemMsg item) =>
-		Send(guest, NetMsg.ItemSlot, new ItemSlotMsg { ItemId = itemId, SlotIndex = slotIndex, Item = item });
+		guest.Services.GetRequiredService<IItemControl>().SendItemSlot(itemId, slotIndex, item);
 
 	/// <summary>One crafting operation's complete terminal state (the one-operation-one-report convention).</summary>
 	internal void Craft(TestNode guest, CraftReportMsg msg) => Send(guest, NetMsg.CraftReport, msg);
@@ -149,7 +155,7 @@ internal sealed class ItemSimWorld : IDisposable
 
 	/// <summary>The rejects the node has received so far (cumulative — the assertion is "ever received").</summary>
 	internal List<ItemRejectMsg> Rejects(TestNode node) =>
-		[.. Received(node).Where(r => r.Msg == NetMsg.ItemReject).Select(r => NetPacket.DecodePayload<ItemRejectMsg>(r.Frame))];
+		node == G1 ? [.. _g1Rejects] : [.. _g2Rejects];
 
 	/// <summary>The id-watermark grants the node has received so far (cumulative — the rejoin grant is the assertion surface).</summary>
 	internal List<ItemIdWatermarkMsg> Watermarks(TestNode node) =>

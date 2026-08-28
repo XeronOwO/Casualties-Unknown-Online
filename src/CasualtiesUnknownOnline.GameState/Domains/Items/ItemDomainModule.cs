@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using CasualtiesUnknownOnline.GameState.Kernel;
 
 namespace CasualtiesUnknownOnline.GameState.Domains.Items;
@@ -14,7 +16,8 @@ internal sealed class ItemDomainModule : IDomainModule
 	public bool CanHandle(GameCommand command) => command switch
 	{
 		SpawnItemCommand or PickUpItemCommand or DropItemCommand or DestroyItemCommand
-			or UpdateItemStateCommand or TransferItemCommand => true,
+			or UpdateItemStateCommand or TransferItemCommand or CookItemCommand
+			or SyncContainerItemsCommand => true,
 		_ => false,
 	};
 
@@ -29,6 +32,8 @@ internal sealed class ItemDomainModule : IDomainModule
 			DestroyItemCommand destroy => DecideDestroy(destroy, state),
 			UpdateItemStateCommand update => DecideUpdate(update, state),
 			TransferItemCommand transfer => DecideTransfer(transfer, state),
+			CookItemCommand cook => DecideCook(cook, state),
+			SyncContainerItemsCommand sync => DecideSyncContainer(sync, state),
 			_ => DomainDecision.Reject(RejectionReason.UnknownCommand, $"unknown item command {command.GetType().Name}"),
 		};
 
@@ -282,6 +287,219 @@ internal sealed class ItemDomainModule : IDomainModule
 			command.NewData ?? item.Value.Data));
 	}
 
+	private static DomainDecision DecideSyncContainer(SyncContainerItemsCommand command, KernelReadModel state)
+	{
+		var parentId = command.ParentIdentity.InstanceId;
+		var parent = state.FindItem(parentId);
+		var events = new List<GameEvent>();
+		if (parent is null)
+		{
+			events.Add(new ItemSpawnedEvent(
+				command.ParentIdentity,
+				1,
+				ItemLocation.Carried(command.Actor),
+				command.ParentData));
+		}
+		else
+		{
+			if (parent.Value.Location.Kind == ItemLocationKind.Terminal)
+			{
+				return DomainDecision.Reject(RejectionReason.InvalidTransition,
+					$"terminal container {parentId} cannot accept children");
+			}
+
+			if (!parent.Value.Data.SemanticallyEquals(command.ParentData))
+			{
+				events.Add(new ItemDataUpdatedEvent(
+					parent.Value.Identity,
+					parent.Value.Revision,
+					parent.Value.Revision + 1,
+					parent.Value.Data,
+					command.ParentData));
+			}
+		}
+
+		var desired = new HashSet<ulong>();
+		foreach (var child in command.Children)
+		{
+			if (child.InstanceId == 0 || !desired.Add(child.InstanceId))
+			{
+				continue;
+			}
+
+			var current = state.FindItem(child.InstanceId);
+			if (current is null)
+			{
+				events.Add(new ItemSpawnedEvent(
+					new ItemIdentity(child.InstanceId, child.DefinitionId),
+					1,
+					ItemLocation.Contained(command.Actor, child.ParentItemId),
+					child.Data));
+				continue;
+			}
+
+			if (current.Value.Location.Kind == ItemLocationKind.Terminal)
+			{
+				return DomainDecision.Reject(RejectionReason.InvalidTransition,
+					$"terminal child {child.InstanceId} cannot re-enter container {parentId}");
+			}
+
+			var sameParent = current.Value.Location.Kind == ItemLocationKind.Contained
+				&& current.Value.Location.ParentItemId == child.ParentItemId;
+			if (sameParent && current.Value.Data.SemanticallyEquals(child.Data))
+			{
+				continue;
+			}
+
+			if (sameParent)
+			{
+				events.Add(new ItemDataUpdatedEvent(
+					current.Value.Identity,
+					current.Value.Revision,
+					current.Value.Revision + 1,
+					current.Value.Data,
+					child.Data));
+			}
+			else
+			{
+				events.Add(new ItemRelocatedEvent(
+					current.Value.Identity,
+					current.Value.Revision,
+					current.Value.Revision + 1,
+					current.Value.Location,
+					ItemLocation.Contained(command.Actor, child.ParentItemId),
+					child.Data));
+			}
+		}
+
+		var stale = state.Items.Values
+			.Where(i =>
+				i.Location.Kind == ItemLocationKind.Contained
+				&& !desired.Contains(i.Identity.InstanceId)
+				&& IsDescendantOf(i.Identity.InstanceId, parentId, state))
+			.Select(i => (Id: i.Identity.InstanceId, Depth: ContainedDepth(i.Identity.InstanceId, parentId, state)))
+			.OrderByDescending(x => x.Depth)
+			.ToList();
+
+		foreach (var (id, _) in stale)
+		{
+			var current = state.FindItem(id);
+			if (current is null)
+			{
+				continue;
+			}
+
+			events.Add(new ItemDestroyedEvent(
+				current.Value.Identity,
+				current.Value.Revision + 1,
+				ItemLocation.Terminal(),
+				TerminalKind.ReplacedBy));
+		}
+
+		return DomainDecision.Accept([.. events]);
+	}
+
+	private static bool IsDescendantOf(ulong itemId, ulong ancestorId, KernelReadModel state)
+	{
+		var current = state.FindItem(itemId);
+		if (current is null || current.Value.Location.Kind != ItemLocationKind.Contained)
+		{
+			return false;
+		}
+
+		var visited = new HashSet<ulong>();
+		var cursor = current.Value.Location.ParentItemId;
+		while (cursor != 0 && visited.Add(cursor))
+		{
+			if (cursor == ancestorId)
+			{
+				return true;
+			}
+
+			var parent = state.FindItem(cursor);
+			if (parent is null || parent.Value.Location.Kind != ItemLocationKind.Contained)
+			{
+				return false;
+			}
+
+			cursor = parent.Value.Location.ParentItemId;
+		}
+
+		return false;
+	}
+
+	private static int ContainedDepth(ulong itemId, ulong ancestorId, KernelReadModel state)
+	{
+		var current = state.FindItem(itemId);
+		if (current is null || current.Value.Location.Kind != ItemLocationKind.Contained)
+		{
+			return -1;
+		}
+
+		var depth = 0;
+		var visited = new HashSet<ulong>();
+		var cursor = current.Value.Location.ParentItemId;
+		while (cursor != 0 && visited.Add(cursor))
+		{
+			depth++;
+			if (cursor == ancestorId)
+			{
+				return depth;
+			}
+
+			var parent = state.FindItem(cursor);
+			if (parent is null || parent.Value.Location.Kind != ItemLocationKind.Contained)
+			{
+				return -1;
+			}
+
+			cursor = parent.Value.Location.ParentItemId;
+		}
+
+		return -1;
+	}
+
+	private static DomainDecision DecideCook(CookItemCommand command, KernelReadModel state)
+	{
+		if (state.FindItem(command.CookedIdentity.InstanceId) is not null)
+		{
+			return DomainDecision.Reject(RejectionReason.Conflict,
+				$"cooked item {command.CookedIdentity.InstanceId} already exists");
+		}
+
+		var source = state.FindItem(command.SourceIdentity.InstanceId);
+		if (source is null || source.Value.Location.Kind == ItemLocationKind.Terminal)
+		{
+			// Accept-first: a native cooker observation may precede the source
+			// entering the kernel. The product is still committed; a source that
+			// already reached Terminal has no further destroy to record.
+			return DomainDecision.Accept(
+				new ItemSpawnedEvent(
+					command.CookedIdentity,
+					1,
+					command.CookedLocation,
+					command.CookedData ?? ItemData.Empty));
+		}
+
+		if (source.Value.Revision != command.ExpectedSourceRevision)
+		{
+			return DomainDecision.Reject(RejectionReason.WrongRevision,
+				$"source item {command.SourceIdentity.InstanceId} revision {source.Value.Revision} does not match expected {command.ExpectedSourceRevision}");
+		}
+
+		return DomainDecision.Accept(
+			new ItemDestroyedEvent(
+				source.Value.Identity,
+				source.Value.Revision + 1,
+				ItemLocation.Terminal(),
+				TerminalKind.ReplacedBy),
+			new ItemSpawnedEvent(
+				command.CookedIdentity,
+				1,
+				command.CookedLocation,
+				command.CookedData ?? ItemData.Empty));
+	}
+
 	private static ItemState BuildRelocated(ItemRelocatedEvent relocated, MutableKernelState state)
 	{
 		var current = state.TryGetItem(relocated.Identity.InstanceId, out var existing)
@@ -335,7 +553,7 @@ internal sealed class ItemDomainModule : IDomainModule
 				continue;
 			}
 
-			var visited = new System.Collections.Generic.HashSet<ulong> { item.Identity.InstanceId };
+			var visited = new HashSet<ulong> { item.Identity.InstanceId };
 			var cursor = item.Location.ParentItemId;
 			while (cursor != 0)
 			{

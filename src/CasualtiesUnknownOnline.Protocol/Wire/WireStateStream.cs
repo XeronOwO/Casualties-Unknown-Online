@@ -20,4 +20,13 @@ public sealed class WireStateStream
 
 	[ProtoMember(4)]
 	public List<WireItemMoveEntry> ItemMoves { get; set; } = [];
+
+	[ProtoMember(5)]
+	public List<WireWorldItemState> ItemStates { get; set; } = [];
+
+	[ProtoMember(6)]
+	public int LayerModifierIndex { get; set; }
+
+	[ProtoMember(7)]
+	public byte[]? LayerModifierRandomState { get; set; }
 }

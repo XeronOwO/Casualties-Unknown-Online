@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Linq;
-using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Tests.Fakes;
@@ -99,11 +98,16 @@ public class ItemSnapshotSimulationTests
 		using var w = ItemSimWorld.Create();
 		w.Spawn(w.G1, 100, Item("ore"));
 
+		var g1Snapshots = new List<IReadOnlyList<WorldItem>>();
+		var g2Snapshots = new List<IReadOnlyList<WorldItem>>();
+		w.G1.Services.GetRequiredService<IItemControl>().ItemSnapshotReceived += (items, _, _) => g1Snapshots.Add(items);
+		w.G2.Services.GetRequiredService<IItemControl>().ItemSnapshotReceived += (items, _, _) => g2Snapshots.Add(items);
+
 		w.Host.Services.GetRequiredService<IItemControl>().SendPeriodicItemSnapshot();
 		w.Driver.Tick(50);
 
-		Assert.True(w.ReceivedCount(w.G1, NetMsg.ItemSnapshot) == 1, $"g1 must get the keyframe, got {w.ReceivedCount(w.G1, NetMsg.ItemSnapshot)}");
-		Assert.True(w.ReceivedCount(w.G2, NetMsg.ItemSnapshot) == 1, $"g2 must get the keyframe, got {w.ReceivedCount(w.G2, NetMsg.ItemSnapshot)}");
+		Assert.Single(g1Snapshots);
+		Assert.Single(g2Snapshots);
 	}
 
 	[Fact]
@@ -111,11 +115,14 @@ public class ItemSnapshotSimulationTests
 	{
 		using var w = ItemSimWorld.Create();
 
+		var snapshots = new List<IReadOnlyList<WorldItem>>();
+		w.G1.Services.GetRequiredService<IItemControl>().ItemSnapshotReceived += (items, _, _) => snapshots.Add(items);
+		w.G2.Services.GetRequiredService<IItemControl>().ItemSnapshotReceived += (items, _, _) => snapshots.Add(items);
+
 		w.Host.Services.GetRequiredService<IItemControl>().SendPeriodicItemSnapshot();
 		w.Driver.Tick(50);
 
-		Assert.True(w.ReceivedCount(w.G1, NetMsg.ItemSnapshot) == 0 && w.ReceivedCount(w.G2, NetMsg.ItemSnapshot) == 0,
-			"an empty table broadcasts no keyframe");
+		Assert.Empty(snapshots);
 	}
 
 	[Fact]

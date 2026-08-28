@@ -32,5 +32,7 @@ public interface IKernelProtocolControl
 
 	event Action<ulong, RejectionReason>? CommandRejected;
 
+	void PumpPendingPickups(long nowMs);
+
 	void ResetForSessionEnd();
 }

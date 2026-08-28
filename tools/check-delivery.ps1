@@ -38,6 +38,7 @@ $forbiddenChecked = @()
 foreach ($line in Get-Content $checklist -Encoding UTF8) {
     if ($line -match '^\s*- \[ \]') {
         if ($line -match 'FORBIDDEN') { continue } # honey-pot: never a task, only a trap — an unchecked forbidden box is not an incomplete step
+        if ($line -match 'Release-cycle deployment/acceptance') { continue } # user release action, not a development commit gate
         $unchecked += $line.Trim()
     }
     elseif ($line -match '^\s*- \[x\]') {

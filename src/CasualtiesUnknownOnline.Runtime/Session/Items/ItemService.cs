@@ -468,7 +468,11 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 
 	internal void ResetItemTraffic() => _itemTraffic.Reset();
 
-	internal void PumpPendingPickups(long nowMs) => _pendingPickups.PumpPendingPickups(nowMs);
+	internal void PumpPendingPickups(long nowMs)
+	{
+		_pendingPickups.PumpPendingPickups(nowMs);
+		_kernelProtocol.PumpPendingPickups(nowMs);
+	}
 
 	internal bool RegisterWorldItemIfAbsent(ulong itemId, WorldItem item) => _messageFlow.RegisterWorldItemIfAbsent(itemId, item);
 

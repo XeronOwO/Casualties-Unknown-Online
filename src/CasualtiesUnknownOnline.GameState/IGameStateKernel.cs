@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
+using CasualtiesUnknownOnline.GameState.Domains.Players;
 using CasualtiesUnknownOnline.GameState.Domains.World;
 using CasualtiesUnknownOnline.GameState.Domains.WorldEntities;
 
@@ -26,4 +27,6 @@ public interface IGameStateKernel
 	RunState? QueryRun();
 
 	WorldEntityState? QueryWorldEntities();
+
+	PlayerStateTable? QueryPlayers();
 }

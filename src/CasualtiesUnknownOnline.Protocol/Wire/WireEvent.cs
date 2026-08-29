@@ -53,4 +53,7 @@ public sealed class WireEvent
 
 	[ProtoMember(15)]
 	public long TriggeredAtMs { get; set; }
+
+	[ProtoMember(16)]
+	public WirePlayerState? PlayerState { get; set; }
 }

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.GameState;
+using CasualtiesUnknownOnline.GameState.Domains.Players;
 using CasualtiesUnknownOnline.Protocol.Versioning;
 using CasualtiesUnknownOnline.Protocol.Wire;
 
@@ -41,6 +42,9 @@ public static class WireCheckpointAssembler
 				WorldEntities = index == 0 && checkpoint.WorldEntities is not null
 					? KernelWireMapper.ToWireWorldEntityState(checkpoint.WorldEntities)
 					: null,
+				Players = index == 0
+					? [.. (checkpoint.Players?.Players ?? []).Select(KernelWireMapper.ToWirePlayerState)]
+					: [],
 			});
 		}
 
@@ -95,6 +99,9 @@ public static class WireCheckpointAssembler
 		var run = firstRun is null ? null : KernelWireMapper.FromWireRun(firstRun);
 		var firstWorldEntities = ordered[0]!.WorldEntities;
 		var worldEntities = firstWorldEntities is null ? null : KernelWireMapper.FromWireWorldEntityState(firstWorldEntities);
-		return new GameCheckpoint(new RunEpoch(first.RunEpoch), first.GlobalRevision, items, randomStreams, run, worldEntities);
+		var players = ordered[0]!.Players.Count == 0
+			? null
+			: new PlayerStateTable([.. ordered[0]!.Players.Select(KernelWireMapper.FromWirePlayerState)]);
+		return new GameCheckpoint(new RunEpoch(first.RunEpoch), first.GlobalRevision, items, randomStreams, run, worldEntities, players);
 	}
 }

@@ -17,4 +17,6 @@ public enum WireEventKind
 	BuildingEntityHealthUpdated = 8,
 	OpenedEntity = 9,
 	WorldEntitiesReset = 10,
+	PlayerStatusUpdated = 11,
+	PlayersReset = 12,
 }

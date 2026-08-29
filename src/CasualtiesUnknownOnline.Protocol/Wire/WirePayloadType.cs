@@ -22,6 +22,8 @@ public enum WirePayloadType
 	RecordBuildingEntityHealthCommand = 11,
 	RecordOpenedEntityCommand = 12,
 	ResetWorldEntitiesCommand = 13,
+	UpdatePlayerStatusCommand = 14,
+	ResetPlayersCommand = 15,
 
 	// Kernel events (critical)
 	ItemSpawnedEvent = 101,
@@ -34,6 +36,8 @@ public enum WirePayloadType
 	BuildingEntityHealthUpdatedEvent = 108,
 	OpenedEntityEvent = 109,
 	WorldEntitiesResetEvent = 110,
+	PlayerStatusUpdatedEvent = 111,
+	PlayersResetEvent = 112,
 
 	// Envelope families
 	CommittedBatch = 100,

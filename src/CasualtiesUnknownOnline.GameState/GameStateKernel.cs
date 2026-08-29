@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
+using CasualtiesUnknownOnline.GameState.Domains.Players;
 using CasualtiesUnknownOnline.GameState.Domains.World;
 using CasualtiesUnknownOnline.GameState.Domains.WorldEntities;
 using CasualtiesUnknownOnline.GameState.Kernel;
@@ -16,7 +17,7 @@ namespace CasualtiesUnknownOnline.GameState;
 public sealed class GameStateKernel(RunEpoch runEpoch) : IGameStateKernel
 {
 	private readonly GameStateStore _store = new(runEpoch);
-	private readonly IReadOnlyList<IDomainModule> _modules = [new ItemDomainModule(), new WorldDomainModule(), new WorldEntityDomainModule()];
+	private readonly IReadOnlyList<IDomainModule> _modules = [new ItemDomainModule(), new WorldDomainModule(), new WorldEntityDomainModule(), new PlayerDomainModule()];
 
 	public Decision Execute(GameCommand command, CommandContext context)
 	{
@@ -38,7 +39,7 @@ public sealed class GameStateKernel(RunEpoch runEpoch) : IGameStateKernel
 				$"no domain module handles {command.GetType().Name}"));
 		}
 
-		var decision = module.Decide(command, new KernelReadModel(_store.RunEpoch, _store.GlobalRevision, _store.Items, _store.Run, _store.WorldEntities), context);
+		var decision = module.Decide(command, new KernelReadModel(_store.RunEpoch, _store.GlobalRevision, _store.Items, _store.Run, _store.WorldEntities, _store.Players), context);
 		if (!decision.Accepted)
 		{
 			return Decision.Rejected(decision.Rejection!);
@@ -52,7 +53,7 @@ public sealed class GameStateKernel(RunEpoch runEpoch) : IGameStateKernel
 
 		try
 		{
-			module.AssertInvariants(new KernelReadModel(working.RunEpoch, working.GlobalRevision, working.Items, working.Run, working.WorldEntities));
+			module.AssertInvariants(new KernelReadModel(working.RunEpoch, working.GlobalRevision, working.Items, working.Run, working.WorldEntities, working.Players));
 		}
 		catch (InvalidOperationException e)
 		{
@@ -102,7 +103,7 @@ public sealed class GameStateKernel(RunEpoch runEpoch) : IGameStateKernel
 		{
 			foreach (var module in _modules)
 			{
-				module.AssertInvariants(new KernelReadModel(working.RunEpoch, working.GlobalRevision, working.Items, working.Run, working.WorldEntities));
+				module.AssertInvariants(new KernelReadModel(working.RunEpoch, working.GlobalRevision, working.Items, working.Run, working.WorldEntities, working.Players));
 			}
 		}
 		catch (InvalidOperationException e)
@@ -132,4 +133,6 @@ public sealed class GameStateKernel(RunEpoch runEpoch) : IGameStateKernel
 	public RunState? QueryRun() => _store.Run;
 
 	public WorldEntityState? QueryWorldEntities() => _store.WorldEntities;
+
+	public PlayerStateTable? QueryPlayers() => _store.Players;
 }

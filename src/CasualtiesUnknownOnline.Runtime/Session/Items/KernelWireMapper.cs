@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
+using CasualtiesUnknownOnline.GameState.Domains.Players;
 using CasualtiesUnknownOnline.GameState.Domains.World;
 using CasualtiesUnknownOnline.GameState.Domains.WorldEntities;
 using CasualtiesUnknownOnline.Protocol.Wire;
@@ -122,6 +123,17 @@ public static class KernelWireMapper
 			[.. state.OpenedEntities.Select(o => new OpenedEntityFact(
 				FromWireEntityPosition(o.Position)))]);
 	}
+
+	public static WirePlayerState ToWirePlayerState(PlayerState state) =>
+		new()
+		{
+			SteamId = state.SteamId,
+			Alive = state.Alive,
+			Conscious = state.Conscious,
+		};
+
+	public static PlayerState FromWirePlayerState(WirePlayerState state) =>
+		new(state.SteamId, state.Alive, state.Conscious);
 
 	public static WireItem ToWireItem(ItemState state) =>
 		new()
@@ -278,6 +290,15 @@ public static class KernelWireMapper
 			{
 				Kind = WireEventKind.WorldEntitiesReset,
 			},
+			PlayerStatusUpdatedEvent updated => new WireEvent
+			{
+				Kind = WireEventKind.PlayerStatusUpdated,
+				PlayerState = ToWirePlayerState(updated.State),
+			},
+			PlayersResetEvent => new WireEvent
+			{
+				Kind = WireEventKind.PlayersReset,
+			},
 			_ => throw new ArgumentOutOfRangeException(nameof(@event), @event.GetType().Name, "no wire mapping for kernel event"),
 		};
 
@@ -379,6 +400,9 @@ public static class KernelWireMapper
 			WireEventKind.OpenedEntity => new OpenedEntityEvent(
 				FromWireEntityPosition(@event.EntityPosition ?? throw new InvalidOperationException("OpenedEntity event lacks position"))),
 			WireEventKind.WorldEntitiesReset => new WorldEntitiesResetEvent(),
+			WireEventKind.PlayerStatusUpdated => new PlayerStatusUpdatedEvent(
+				FromWirePlayerState(@event.PlayerState ?? throw new InvalidOperationException("PlayerStatusUpdated event lacks player state"))),
+			WireEventKind.PlayersReset => new PlayersResetEvent(),
 			_ => throw new ArgumentOutOfRangeException(nameof(@event.Kind), @event.Kind, "unknown wire event kind"),
 		};
 
@@ -496,6 +520,17 @@ public static class KernelWireMapper
 				authority,
 				FromWireEntityPosition(command.EntityPosition ?? throw new InvalidOperationException("RecordOpenedEntity command lacks position"))),
 			WireCommandKind.ResetWorldEntities => new ResetWorldEntitiesCommand(
+				operation,
+				actor,
+				epoch,
+				authority),
+			WireCommandKind.UpdatePlayerStatus => new UpdatePlayerStatusCommand(
+				operation,
+				actor,
+				epoch,
+				authority,
+				FromWirePlayerState(command.PlayerState ?? throw new InvalidOperationException("UpdatePlayerStatus command lacks player state"))),
+			WireCommandKind.ResetPlayers => new ResetPlayersCommand(
 				operation,
 				actor,
 				epoch,

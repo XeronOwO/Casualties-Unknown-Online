@@ -26,4 +26,7 @@ public sealed class KernelSaveFile
 
 	[ProtoMember(5)]
 	public WireWorldEntityState? WorldEntities { get; set; }
+
+	[ProtoMember(6)]
+	public List<WirePlayerState> Players { get; set; } = [];
 }

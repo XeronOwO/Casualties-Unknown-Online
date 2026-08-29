@@ -26,6 +26,7 @@ internal sealed class PlayerItemUseService(
 	IItemControl items,
 	IPlayerInteractionVisibility visibility,
 	ItemKernelAuthority kernelAuthority,
+	PlayerInteractionResultAuthority resultAuthority,
 	ILogger log)
 {
 	private readonly ISessionControl _session = session;
@@ -34,6 +35,7 @@ internal sealed class PlayerItemUseService(
 	private readonly IItemControl _items = items;
 	private readonly IPlayerInteractionVisibility _visibility = visibility;
 	private readonly ItemKernelAuthority _kernelAuthority = kernelAuthority;
+	private readonly PlayerInteractionResultAuthority _resultAuthority = resultAuthority;
 	private readonly ILogger _log = log;
 
 	/// <summary>An authoritative cross-player consumable use result arrived — the Game Adapter applies the local participant half.</summary>
@@ -270,7 +272,7 @@ internal sealed class PlayerItemUseService(
 		});
 	}
 
-	/// <summary>Wire handler path: a use result arrived — surface it for the Game Adapter.</summary>
+	/// <summary>Kernel projection path: a use result event arrived — surface it for the Game Adapter.</summary>
 	public void FireUseReceived(PlayerItemUseResultMsg msg) => UseReceived?.Invoke(msg);
 
 	/// <summary>Remove a guest-owned item from the kernel when a cross-player use consumed it (non-wearable).</summary>
@@ -336,17 +338,27 @@ internal sealed class PlayerItemUseService(
 
 	private void PublishUse(PlayerItemUseResultMsg msg)
 	{
-		// The host applies its own participant half locally; guest participants
-		// receive their authoritative body/item mutation directly.
-		UseReceived?.Invoke(msg);
-		if (msg.UserSteamId != _session.LocalSteamId)
+		// The kernel is the single authority. The committed result event is
+		// broadcast through KernelEnvelope and the PlayerInteractionKernelProjection
+		// raises this same event on the host (BatchCommitted) and guests
+		// (BatchApplied); no legacy direct result wire remains.
+		if (!_resultAuthority.TryRecordPlayerItemUseResult(
+			_session.LocalSteamId,
+			msg.UserSteamId,
+			msg.TargetSteamId,
+			msg.ItemInstanceId,
+			msg.ItemDestroyed,
+			msg.ItemAfter is null ? null : PlayerInteractionKernelCodec.FromCharacterItem(msg.ItemAfter),
+			msg.WornItem is null ? null : PlayerInteractionKernelCodec.FromCharacterItem(msg.WornItem),
+			msg.Health is null ? null : PlayerInteractionKernelCodec.FromCharacterHealth(msg.Health),
+			[.. msg.Limbs.Select(PlayerInteractionKernelCodec.FromCharacterLimb)],
+			[.. msg.TimedEffects.Select(PlayerInteractionKernelCodec.FromTimedLimbEffect)],
+			[.. msg.TimedBodyEffects.Select(PlayerInteractionKernelCodec.FromTimedBodyEffect)],
+			out _,
+			out var rejection))
 		{
-			_sender.Send(msg.UserSteamId, NetMsg.PlayerItemUseResult, msg);
-		}
-
-		if (msg.TargetSteamId != _session.LocalSteamId)
-		{
-			_sender.Send(msg.TargetSteamId, NetMsg.PlayerItemUseResult, msg);
+			_log.LogWarning("[ItemUse] kernel result rejected {User} -> {Target}: {Reason} ({Message}).",
+				msg.UserSteamId, msg.TargetSteamId, rejection!.Reason, rejection.Message);
 		}
 	}
 

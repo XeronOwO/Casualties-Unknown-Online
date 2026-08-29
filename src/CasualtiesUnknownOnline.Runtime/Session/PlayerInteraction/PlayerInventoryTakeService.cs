@@ -25,6 +25,7 @@ internal sealed class PlayerInventoryTakeService(
 	IHostRules hostRules,
 	IPlayerInteractionVisibility visibility,
 	ItemKernelAuthority kernelAuthority,
+	PlayerInteractionResultAuthority resultAuthority,
 	ILogger log)
 {
 	private readonly ISessionControl _session = session;
@@ -34,6 +35,7 @@ internal sealed class PlayerInventoryTakeService(
 	private readonly IHostRules _hostRules = hostRules;
 	private readonly IPlayerInteractionVisibility _visibility = visibility;
 	private readonly ItemKernelAuthority _kernelAuthority = kernelAuthority;
+	private readonly PlayerInteractionResultAuthority _resultAuthority = resultAuthority;
 	private readonly ILogger _log = log;
 
 	/// <summary>An authoritative cross-player inventory transfer arrived — the Game Adapter applies the body mutation.</summary>
@@ -233,22 +235,25 @@ internal sealed class PlayerInventoryTakeService(
 		return false;
 	}
 
-	/// <summary>Wire handler path: a transfer message arrived — surface it for the Game Adapter.</summary>
+	/// <summary>Kernel projection path: a transfer result event arrived — surface it for the Game Adapter.</summary>
 	public void FireTransferReceived(PlayerInventoryTransferMsg msg) => TransferReceived?.Invoke(msg);
 
 	private void PublishTransfer(PlayerInventoryTransferMsg msg)
 	{
-		// The host applies its own participant half locally; guest participants
-		// receive their authoritative body mutation directly.
-		TransferReceived?.Invoke(msg);
-		if (msg.FromSteamId != _session.LocalSteamId)
+		// The kernel is the single authority. The committed result event is
+		// broadcast through KernelEnvelope and the PlayerInteractionKernelProjection
+		// raises this same event on the host (BatchCommitted) and guests
+		// (BatchApplied); no legacy direct result wire remains.
+		if (!_resultAuthority.TryRecordPlayerInventoryTransfer(
+			_session.LocalSteamId,
+			msg.FromSteamId,
+			msg.ToSteamId,
+			PlayerInteractionKernelCodec.FromCharacterItem(msg.Item!),
+			out _,
+			out var rejection))
 		{
-			_sender.Send(msg.FromSteamId, NetMsg.PlayerInventoryTransfer, msg);
-		}
-
-		if (msg.ToSteamId != _session.LocalSteamId)
-		{
-			_sender.Send(msg.ToSteamId, NetMsg.PlayerInventoryTransfer, msg);
+			_log.LogWarning("[Take] kernel result rejected {From} -> {To}: {Reason} ({Message}).",
+				msg.FromSteamId, msg.ToSteamId, rejection!.Reason, rejection.Message);
 		}
 	}
 }

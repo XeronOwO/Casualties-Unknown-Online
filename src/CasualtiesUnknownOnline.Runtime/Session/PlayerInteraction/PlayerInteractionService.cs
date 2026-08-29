@@ -25,6 +25,7 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, IDispo
 	private readonly PlayerHealService _heal;
 	private readonly PlayerItemUseService _itemUse;
 	private readonly PlayerPushService _push;
+	private readonly PlayerInteractionKernelProjection _resultProjection;
 
 	public event Action<PlayerInventoryTransferMsg>? TransferReceived
 	{
@@ -69,7 +70,8 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, IDispo
 		ILogger<PlayerInteractionService> log)
 	{
 		var access = new PlayerCharacterAccess(session, characters);
-		_take = new PlayerInventoryTakeService(session, sender, access, items, hostRules, visibility, kernelAuthority, log);
+		var resultAuthority = new PlayerInteractionResultAuthority(kernelAuthority);
+		_take = new PlayerInventoryTakeService(session, sender, access, items, hostRules, visibility, kernelAuthority, resultAuthority, log);
 		_carry = new PlayerCarryService(
 			session,
 			sender,
@@ -82,8 +84,9 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, IDispo
 			_carry,
 			session,
 			log);
-		_heal = new PlayerHealService(session, sender, access, items, visibility, kernelAuthority, log);
-		_itemUse = new PlayerItemUseService(session, sender, access, items, visibility, kernelAuthority, log);
+		_heal = new PlayerHealService(session, sender, access, items, visibility, kernelAuthority, resultAuthority, log);
+		_itemUse = new PlayerItemUseService(session, sender, access, items, visibility, kernelAuthority, resultAuthority, log);
+		_resultProjection = new PlayerInteractionKernelProjection(kernelAuthority, this, session, log);
 		_push = new PlayerPushService(session, sender, access, entities, _carry, time, visibility, log);
 	}
 
@@ -151,6 +154,7 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, IDispo
 	{
 		_carry.Dispose();
 		_carryKernelProjection.Dispose();
+		_resultProjection.Dispose();
 		_push.Dispose();
 	}
 }

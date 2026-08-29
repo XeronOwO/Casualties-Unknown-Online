@@ -548,6 +548,18 @@ public sealed class ItemKernelAuthority(ILogger<ItemKernelAuthority> log)
 	private OperationId NextOperation() => new(_nextOperation++);
 
 	/// <summary>
+	/// Execute a host-originated typed kernel command without the wire-command
+	/// external-projection hook. Used by non-item host domains that need to
+	/// commit journal/result facts through the same authority.
+	/// </summary>
+	internal RunEpoch CurrentRunEpoch => _runEpoch;
+
+	internal OperationId NextOperationId() => NextOperation();
+
+	internal bool TryExecuteHostCommand(GameCommand command, ulong actor, string label, out CommittedBatch? batch, out Rejection? rejection) =>
+		TryExecute(command, actor, label, out batch, out rejection);
+
+	/// <summary>
 	/// Execute an externally supplied typed kernel command (e.g. decoded from a
 	/// Phase C CommandEnvelope). This is the host's generic command entry point.
 	/// </summary>

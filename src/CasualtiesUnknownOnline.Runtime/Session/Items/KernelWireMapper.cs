@@ -8,6 +8,7 @@ using CasualtiesUnknownOnline.GameState.Domains.Players;
 using CasualtiesUnknownOnline.GameState.Domains.World;
 using CasualtiesUnknownOnline.GameState.Domains.WorldEntities;
 using CasualtiesUnknownOnline.Protocol.Wire;
+using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 
@@ -207,6 +208,21 @@ public static class KernelWireMapper
 				CarrierSteamId = carryClear.CarrierSteamId,
 				CarriedSteamId = carryClear.CarriedSteamId,
 			},
+			PlayerInventoryTransferEvent transfer => new WireEvent
+			{
+				Kind = WireEventKind.PlayerInventoryTransfer,
+				PlayerInteraction = PlayerInteractionWireMapper.ToWire(transfer),
+			},
+			PlayerHealResultEvent heal => new WireEvent
+			{
+				Kind = WireEventKind.PlayerHealResult,
+				PlayerInteraction = PlayerInteractionWireMapper.ToWire(heal),
+			},
+			PlayerItemUseResultEvent use => new WireEvent
+			{
+				Kind = WireEventKind.PlayerItemUseResult,
+				PlayerInteraction = PlayerInteractionWireMapper.ToWire(use),
+			},
 			EnemyUpsertedEvent upserted => new WireEvent
 			{
 				Kind = WireEventKind.EnemyUpserted,
@@ -340,6 +356,12 @@ public static class KernelWireMapper
 			WireEventKind.PlayerCarryCleared => new PlayerCarryClearedEvent(
 				@event.CarrierSteamId,
 				@event.CarriedSteamId),
+			WireEventKind.PlayerInventoryTransfer => PlayerInteractionWireMapper.FromWireInventoryTransfer(
+				@event.PlayerInteraction ?? throw new InvalidOperationException("PlayerInventoryTransfer event lacks interaction payload")),
+			WireEventKind.PlayerHealResult => PlayerInteractionWireMapper.FromWireHealResult(
+				@event.PlayerInteraction ?? throw new InvalidOperationException("PlayerHealResult event lacks interaction payload")),
+			WireEventKind.PlayerItemUseResult => PlayerInteractionWireMapper.FromWireItemUseResult(
+				@event.PlayerInteraction ?? throw new InvalidOperationException("PlayerItemUseResult event lacks interaction payload")),
 			WireEventKind.EnemyUpserted => new EnemyUpsertedEvent(
 				KernelDomainWireMapper.FromWireEnemyState(@event.EnemyState ?? throw new InvalidOperationException("EnemyUpserted event lacks enemy state"))),
 			WireEventKind.EnemyRemoved => new EnemyRemovedEvent(

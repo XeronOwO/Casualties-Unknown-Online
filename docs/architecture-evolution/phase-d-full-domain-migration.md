@@ -186,7 +186,7 @@ For each domain, complete these steps in order:
 | Date | Scope | Commits | Verification | Notes |
 |---|---|---|---|---|
 | 2026-08-29 | World/Run/Epoch kernel shadow + checkpoint/wire/save integration | `8fa118b` | 1638 tests green; build/format/architecture/event/entity/isolation/delivery gates pass | Kernel `RunState` + `StartRunCommand`/`AdvanceLayerCommand` + `RunStartedEvent`/`RunAdvancedEvent`; legacy `WorldStartParams` production path remains for the next authority-switch cycle. See `docs/selfchecks/phase-d-world-run-epoch-shadow-selfcheck.md`. |
-| 2026-08-29 | World/Run/Epoch authority switch + legacy wire removal | this cycle | 1640 tests green; build/format/architecture/event/entity/isolation/delivery gates pass | Host `PublishWorldParams` commits `StartRunCommand`/`AdvanceLayerCommand`; guest projects run batches/checkpoints into `WorldStartParams`; handshake delivers a kernel checkpoint; `WorldStartParamsMsg`, `WorldParamsHandler`, `SettingEntryMsg`, and `NetMsg.WorldStartParams` removed. |
+| 2026-08-29 | World/Run/Epoch authority switch + legacy wire removal | `3c0eb93` | 1640 tests green; build/format/architecture/event/entity/isolation/delivery gates pass | Host `PublishWorldParams` commits `StartRunCommand`/`AdvanceLayerCommand`; guest projects run batches/checkpoints into `WorldStartParams`; handshake delivers a kernel checkpoint; `WorldStartParamsMsg`, `WorldParamsHandler`, `SettingEntryMsg`, and `NetMsg.WorldStartParams` removed. |
 
 ## Next actions
 

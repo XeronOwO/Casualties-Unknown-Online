@@ -185,7 +185,7 @@ For each domain, complete these steps in order:
 
 | Date | Scope | Commits | Verification | Notes |
 |---|---|---|---|---|
-| _(none yet)_ | | | | |
+| 2026-08-29 | World/Run/Epoch kernel shadow + checkpoint/wire/save integration | `2cf6cbf` | 1638 tests green; build/format/architecture/event/entity/isolation/delivery gates pass | Kernel `RunState` + `StartRunCommand`/`AdvanceLayerCommand` + `RunStartedEvent`/`RunAdvancedEvent`; legacy `WorldStartParams` production path remains for the next authority-switch cycle. See `docs/selfchecks/phase-d-world-run-epoch-shadow-selfcheck.md`. |
 
 ## Next actions
 

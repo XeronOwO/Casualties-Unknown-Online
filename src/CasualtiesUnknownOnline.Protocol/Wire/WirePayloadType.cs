@@ -16,12 +16,16 @@ public enum WirePayloadType
 	ItemUpdateStateCommand = 5,
 	ItemTransferCommand = 6,
 	ItemContainerSyncCommand = 7,
+	RunStartCommand = 8,
+	AdvanceLayerCommand = 9,
 
 	// Kernel events (critical)
 	ItemSpawnedEvent = 101,
 	ItemRelocatedEvent = 102,
 	ItemDestroyedEvent = 103,
 	ItemDataUpdatedEvent = 104,
+	RunStartedEvent = 105,
+	RunAdvancedEvent = 106,
 
 	// Envelope families
 	CommittedBatch = 100,

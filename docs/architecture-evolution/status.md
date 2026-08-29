@@ -7,11 +7,11 @@ Live tracker for the CUO architecture iteration.
 | Field | Value |
 |---|---|
 | Source baseline | `208df31` (2026-08-27) |
-| Current phase | Phase C — Protocol & save switch |
-| Current phase status | Completed |
-| Last status update | 2026-08-28 |
-| Next work session | Phase D — full domain migration; no Phase C follow-up remains in the tracked scope. |
-| Protocol/save compatibility | The new four-envelope protocol and checkpoint save stack are the production item paths. Old item packet handlers/DTOs and the corresponding `NetMsg` item enums have been fully removed; the only legacy item-frame survivor is `ItemReject` for block-break drop refusal. |
+| Current phase | Phase D — Full domain migration |
+| Current phase status | In progress — World/Run/Epoch kernel and checkpoint/wire/save foundation landed |
+| Last status update | 2026-08-29 |
+| Next work session | Continue Phase D World/Run/Epoch: switch the host world-start capture to kernel commands, replace the legacy `WorldStartParams` send/read path, then proceed to Traps/Building Entities. |
+| Protocol/save compatibility | The new four-envelope protocol and checkpoint save stack are the production item paths. Old item packet handlers/DTOs and the corresponding `NetMsg` item enums have been fully removed; the only legacy item-frame survivor is `ItemReject` for block-break drop refusal. Phase D has added the World/Run baseline to the kernel and checkpoints; the legacy `WorldStartParams` wire remains until the authority switch and tests migrate. |
 
 ## Phase status
 
@@ -20,7 +20,7 @@ Live tracker for the CUO architecture iteration.
 | A — Shadow kernel | Completed | 2026-08-27 | GameState project + typed kernel + Items first slice; production shadow wired into item decision path; replay differential green on all item `.replay` files; kernel/invariant tests + defect-family mapping; isolation gate. See phase doc and self-check. |
 | B — Items authority | Completed | 2026-08-28 | Kernel owns full item payload/location/revision; `ItemKernelAuthority` + `ItemProjection`; world/transfer tables are kernel-first projections; `NativeOperationCoordinator`; capability registry; temporary item checkpoint store; item authority gate. See phase doc and `docs/selfchecks/phase-b-item-authority-selfcheck.md`. |
 | C — Protocol & save switch | Completed | 2026-08-28 | Protocol project + four envelopes + golden tests; `KernelProtocolService`/`KernelProtocolCommandHandler`; host wire commands, checkpoint+tail, RunEpoch/version/gap filters; guest range request/out-of-order buffering/journal fallback; named random streams in checkpoint/save/wire; checkpoint projection rebuild; latency/duplicate simulation; `KernelSaveFileStore`; spawn/pickup/drop/destroy; ItemUse/Slot/ContainerSync via CommandEnvelope; carried-fact and world-correction batch projection; item snapshot StateStream; atomic Cook batch; command-rejection feedback; old item handlers/DTOs/NetMsg enums fully removed. See `docs/selfchecks/phase-c-protocol-core-selfcheck.md`. |
-| D — Full domain migration | Not started | 2026-08-28 | Depends on C. Domain order is defined in the phase doc. |
+| D — Full domain migration | In progress (World/Run/Epoch foundation) | 2026-08-29 | Kernel World/Run domain (`StartRunCommand`/`AdvanceLayerCommand`, `RunState`, `RunStartedEvent`/`RunAdvancedEvent`), checkpoint/wire/save round-trip, 1637 tests green. Legacy `WorldStartParams` production path still exists; authority switch is the next sub-step. See `docs/selfchecks/phase-d-world-run-epoch-shadow-selfcheck.md`. |
 | E — Delete dual architecture | Not started | 2026-08-28 | Depends on D. No legacy surfaces may remain. |
 
 ## Phase completion log

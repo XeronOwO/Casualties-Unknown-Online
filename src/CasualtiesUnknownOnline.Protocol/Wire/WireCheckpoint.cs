@@ -27,4 +27,7 @@ public sealed class WireCheckpoint
 
 	[ProtoMember(6)]
 	public List<WireRandomStream> RandomStreams { get; set; } = [];
+
+	[ProtoMember(7)]
+	public WireRunState? Run { get; set; }
 }

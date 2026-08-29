@@ -13,6 +13,8 @@ public enum WireCommandKind
 	ItemUpdateState = 5,
 	ItemTransfer = 6,
 	ItemContainerSync = 7,
+	RunStart = 8,
+	AdvanceLayer = 9,
 
 	// Protocol control (not a gameplay command)
 	RangeRequest = 100,

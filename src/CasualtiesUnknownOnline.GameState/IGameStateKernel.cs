@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
+using CasualtiesUnknownOnline.GameState.Domains.World;
 
 namespace CasualtiesUnknownOnline.GameState;
 
@@ -20,4 +21,6 @@ public interface IGameStateKernel
 	IReadOnlyDictionary<ulong, ItemState> QueryItems();
 
 	ItemState? FindItem(ulong instanceId);
+
+	RunState? QueryRun();
 }

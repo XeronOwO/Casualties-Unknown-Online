@@ -11,4 +11,6 @@ public enum WireEventKind
 	ItemRelocated = 2,
 	ItemDestroyed = 3,
 	ItemDataUpdated = 4,
+	RunStarted = 5,
+	RunAdvanced = 6,
 }

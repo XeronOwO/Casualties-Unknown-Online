@@ -42,4 +42,7 @@ public sealed class WireCommand
 
 	[ProtoMember(11)]
 	public int RejectionReason { get; set; }
+
+	[ProtoMember(12)]
+	public WireRunState? RunState { get; set; }
 }

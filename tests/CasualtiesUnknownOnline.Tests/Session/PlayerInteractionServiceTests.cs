@@ -368,6 +368,34 @@ public class PlayerInteractionServiceTests
 	}
 
 	[Fact]
+	public void Guest_StartsCarryingHost_CommitsToKernelAndClearsOnStop()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: false));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true));
+		var playerKernel = host.Services.GetRequiredService<PlayerKernelStatusProjection>();
+		playerKernel.Sync(HostId, alive: true, conscious: true);
+		playerKernel.Sync(GuestId, alive: true, conscious: true);
+
+		var interaction = guest.Services.GetRequiredService<IPlayerInteractionControl>();
+		interaction.SendCarryStartRequest(HostId);
+
+		var authority = host.Services.GetRequiredService<ItemKernelAuthority>();
+		var carrier = authority.QueryPlayers()!.Players.Single(p => p.SteamId == GuestId);
+		Assert.Equal(HostId, carrier.CarrierOfSteamId);
+		var carried = authority.QueryPlayers()!.Players.Single(p => p.SteamId == HostId);
+		Assert.Equal(GuestId, carried.CarriedBySteamId);
+
+		interaction.SendCarryStopRequest(HostId);
+
+		carrier = authority.QueryPlayers()!.Players.Single(p => p.SteamId == GuestId);
+		Assert.Null(carrier.CarrierOfSteamId);
+		carried = authority.QueryPlayers()!.Players.Single(p => p.SteamId == HostId);
+		Assert.Null(carried.CarriedBySteamId);
+	}
+
+	[Fact]
 	public void Host_StartsCarryingUnconsciousGuest_SendsCarryStateToGuest()
 	{
 		var (host, guest, received) = CreateSession();

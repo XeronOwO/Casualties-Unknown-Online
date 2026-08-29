@@ -116,10 +116,17 @@ public static class KernelDomainWireMapper
 			SteamId = state.SteamId,
 			Alive = state.Alive,
 			Conscious = state.Conscious,
+			CarrierOfSteamId = state.CarrierOfSteamId ?? 0,
+			CarriedBySteamId = state.CarriedBySteamId ?? 0,
 		};
 
 	public static PlayerState FromWirePlayerState(WirePlayerState state) =>
-		new(state.SteamId, state.Alive, state.Conscious);
+		new(
+			state.SteamId,
+			state.Alive,
+			state.Conscious,
+			state.CarrierOfSteamId == 0 ? null : state.CarrierOfSteamId,
+			state.CarriedBySteamId == 0 ? null : state.CarriedBySteamId);
 
 	public static WireEntityId ToWireEntityId(EntityId id) =>
 		new()

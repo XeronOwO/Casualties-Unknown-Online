@@ -24,4 +24,6 @@ public enum WireEventKind
 	EnemiesReset = 15,
 	FluidRegionUpdated = 16,
 	FluidsReset = 17,
+	PlayerCarrySet = 18,
+	PlayerCarryCleared = 19,
 }

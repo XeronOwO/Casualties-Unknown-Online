@@ -195,6 +195,18 @@ public static class KernelWireMapper
 			{
 				Kind = WireEventKind.PlayersReset,
 			},
+			PlayerCarrySetEvent carrySet => new WireEvent
+			{
+				Kind = WireEventKind.PlayerCarrySet,
+				CarrierSteamId = carrySet.CarrierSteamId,
+				CarriedSteamId = carrySet.CarriedSteamId,
+			},
+			PlayerCarryClearedEvent carryClear => new WireEvent
+			{
+				Kind = WireEventKind.PlayerCarryCleared,
+				CarrierSteamId = carryClear.CarrierSteamId,
+				CarriedSteamId = carryClear.CarriedSteamId,
+			},
 			EnemyUpsertedEvent upserted => new WireEvent
 			{
 				Kind = WireEventKind.EnemyUpserted,
@@ -322,6 +334,12 @@ public static class KernelWireMapper
 			WireEventKind.PlayerStatusUpdated => new PlayerStatusUpdatedEvent(
 				KernelDomainWireMapper.FromWirePlayerState(@event.PlayerState ?? throw new InvalidOperationException("PlayerStatusUpdated event lacks player state"))),
 			WireEventKind.PlayersReset => new PlayersResetEvent(),
+			WireEventKind.PlayerCarrySet => new PlayerCarrySetEvent(
+				@event.CarrierSteamId,
+				@event.CarriedSteamId),
+			WireEventKind.PlayerCarryCleared => new PlayerCarryClearedEvent(
+				@event.CarrierSteamId,
+				@event.CarriedSteamId),
 			WireEventKind.EnemyUpserted => new EnemyUpsertedEvent(
 				KernelDomainWireMapper.FromWireEnemyState(@event.EnemyState ?? throw new InvalidOperationException("EnemyUpserted event lacks enemy state"))),
 			WireEventKind.EnemyRemoved => new EnemyRemovedEvent(
@@ -462,6 +480,20 @@ public static class KernelWireMapper
 				actor,
 				epoch,
 				authority),
+			WireCommandKind.SetPlayerCarry => new SetPlayerCarryCommand(
+				operation,
+				actor,
+				epoch,
+				authority,
+				command.CarrierSteamId,
+				command.CarriedSteamId),
+			WireCommandKind.ClearPlayerCarry => new ClearPlayerCarryCommand(
+				operation,
+				actor,
+				epoch,
+				authority,
+				command.CarrierSteamId,
+				command.CarriedSteamId),
 			WireCommandKind.UpsertEnemy => new UpsertEnemyCommand(
 				operation,
 				actor,

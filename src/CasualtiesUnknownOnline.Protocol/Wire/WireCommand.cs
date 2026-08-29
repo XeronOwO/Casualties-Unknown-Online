@@ -72,4 +72,10 @@ public sealed class WireCommand
 
 	[ProtoMember(21)]
 	public WireFluidRegionState? FluidState { get; set; }
+
+	[ProtoMember(22)]
+	public ulong CarrierSteamId { get; set; }
+
+	[ProtoMember(23)]
+	public ulong CarriedSteamId { get; set; }
 }

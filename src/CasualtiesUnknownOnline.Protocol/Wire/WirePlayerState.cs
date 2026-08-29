@@ -16,4 +16,10 @@ public sealed class WirePlayerState
 
 	[ProtoMember(3)]
 	public bool Conscious { get; set; }
+
+	[ProtoMember(4)]
+	public ulong CarrierOfSteamId { get; set; }
+
+	[ProtoMember(5)]
+	public ulong CarriedBySteamId { get; set; }
 }

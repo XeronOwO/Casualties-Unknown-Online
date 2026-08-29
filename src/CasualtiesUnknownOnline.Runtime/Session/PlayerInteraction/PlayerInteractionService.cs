@@ -64,11 +64,18 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, IDispo
 		IHostRules hostRules,
 		IPlayerInteractionVisibility visibility,
 		ITimeSource time,
+		ItemKernelAuthority kernelAuthority,
 		ILogger<PlayerInteractionService> log)
 	{
 		var access = new PlayerCharacterAccess(session, characters);
 		_take = new PlayerInventoryTakeService(session, sender, access, items, hostRules, visibility, log);
-		_carry = new PlayerCarryService(session, sender, access, visibility, log);
+		_carry = new PlayerCarryService(
+			session,
+			sender,
+			access,
+			visibility,
+			new PlayerKernelCarryProjection(kernelAuthority, session, log),
+			log);
 		_heal = new PlayerHealService(session, sender, access, items, visibility, log);
 		_itemUse = new PlayerItemUseService(session, sender, access, items, visibility, log);
 		_push = new PlayerPushService(session, sender, access, entities, _carry, time, visibility, log);

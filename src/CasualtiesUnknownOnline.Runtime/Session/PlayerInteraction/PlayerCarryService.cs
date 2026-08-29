@@ -24,6 +24,7 @@ internal sealed class PlayerCarryService : IDisposable
 	private readonly PacketSender _sender;
 	private readonly PlayerCharacterAccess _characters;
 	private readonly IPlayerInteractionVisibility _visibility;
+	private readonly PlayerKernelCarryProjection _kernel;
 	private readonly ILogger _log;
 
 	/// <summary>Host-owned carry table: carried SteamId → carrier SteamId.</summary>
@@ -40,12 +41,14 @@ internal sealed class PlayerCarryService : IDisposable
 		PacketSender sender,
 		PlayerCharacterAccess characters,
 		IPlayerInteractionVisibility visibility,
+		PlayerKernelCarryProjection kernel,
 		ILogger log)
 	{
 		_session = session;
 		_sender = sender;
 		_characters = characters;
 		_visibility = visibility;
+		_kernel = kernel;
 		_log = log;
 
 		_session.SessionEnded += OnSessionEnded;
@@ -275,6 +278,15 @@ internal sealed class PlayerCarryService : IDisposable
 		// The host applies its own side locally; every guest receives the same
 		// authoritative state (including the two participants).
 		ApplyCarryState(msg);
+		if (msg.CarriedSteamId == 0)
+		{
+			_kernel.ClearCarry(msg.CarrierSteamId, 0);
+		}
+		else
+		{
+			_kernel.SetCarry(msg.CarrierSteamId, msg.CarriedSteamId);
+		}
+
 		CarryStateChanged?.Invoke(msg);
 		_sender.SendToAll(_session.Members
 			.Where(m => m.SteamId != _session.LocalSteamId)

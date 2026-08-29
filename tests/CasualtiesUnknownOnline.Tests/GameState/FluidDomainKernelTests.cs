@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.GameState.Domains.Fluids;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
@@ -90,6 +91,28 @@ public class FluidDomainKernelTests
 			{
 				System.IO.File.Delete(path);
 			}
+		}
+	}
+
+	[Fact]
+	public void RandomUpdates_PreserveRegionInvariants()
+	{
+		var kernel = new GameStateKernel(Epoch);
+		var random = new Random(42);
+		for (ulong op = 1; op <= 1000; op++)
+		{
+			var state = new FluidRegionState(
+				random.Next(0, 8),
+				random.Next(0, 8),
+				random.Next(0, 500),
+				(byte)random.Next(1, 6),
+				(long)op);
+			Assert.True(Update(kernel, op, state).IsAccepted);
+
+			var table = kernel.QueryFluids()!;
+			Assert.All(table.Regions, r => Assert.True(r.TotalAmount >= 0));
+			var keys = table.Regions.Select(r => (r.ChunkX, r.ChunkY)).ToList();
+			Assert.Equal(keys.Count, keys.Distinct().Count());
 		}
 	}
 

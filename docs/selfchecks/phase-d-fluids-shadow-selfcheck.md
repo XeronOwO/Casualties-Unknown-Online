@@ -34,11 +34,13 @@ authoritative region checkpoint foundation.
 | Save/load preserves fluids | `FluidDomainKernelTests.SaveLoad_RoundTripsFluids`. |
 | Host region projection upserts and clears stale chunks | `FluidKernelProjectionTests.Sync_UpsertsAndClearsStalePositiveChunks`. |
 | Host region projection is change-gated | `FluidKernelProjectionTests.Sync_DoesNotCommitUnchangedRegionFacts`. |
+| `IWorldControl.ReportFluidRegions` reaches the kernel | `FluidKernelProjectionTests.WorldControlReportFluidRegions_CommitsThroughProjection`. |
+| Random region updates preserve kernel invariants | `FluidDomainKernelTests.RandomUpdates_PreserveRegionInvariants`. |
 
 ## Verification
 
 - `dotnet build CasualtiesUnknownOnline.slnx`: 0 warnings / 0 errors.
-- `dotnet test CasualtiesUnknownOnline.slnx`: 1670 passed.
+- `dotnet test CasualtiesUnknownOnline.slnx`: 1672 passed.
 - `dotnet format`: applied.
 - Architecture/event/entity/isolation gates passed.
 

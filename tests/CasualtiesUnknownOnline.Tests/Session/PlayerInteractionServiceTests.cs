@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Protocol;
@@ -167,6 +168,12 @@ public class PlayerInteractionServiceTests
 
 		Assert.DoesNotContain(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 77);
 		Assert.Contains(characters.GetHostCharacterData()!.Items, i => i.InstanceId == 77);
+
+		var authority = host.Services.GetRequiredService<ItemKernelAuthority>();
+		var kernelItem = authority.FindItem(77);
+		Assert.NotNull(kernelItem);
+		Assert.Equal(ItemLocationKind.Carried, kernelItem!.Value.Location.Kind);
+		Assert.Equal(HostId, kernelItem.Value.Location.Owner.Value);
 	}
 
 	[Fact]
@@ -751,6 +758,13 @@ public class PlayerInteractionServiceTests
 		Assert.True(Math.Abs(guestData.Health!.Hunger - 9f) < 0.001f);
 		var hostData = characters.GetHostCharacterData()!;
 		Assert.True(Math.Abs(hostData.Items.Single(i => i.InstanceId == 77).Condition - 0.41f) < 0.001f);
+
+		var authority = host.Services.GetRequiredService<ItemKernelAuthority>();
+		var kernelItem = authority.FindItem(77);
+		Assert.NotNull(kernelItem);
+		Assert.Equal(ItemLocationKind.Carried, kernelItem!.Value.Location.Kind);
+		Assert.Equal(HostId, kernelItem.Value.Location.Owner.Value);
+		Assert.True(Math.Abs(kernelItem.Value.Data.Condition - 0.41f) < 0.001f);
 	}
 
 	[Fact]
@@ -1336,6 +1350,12 @@ public class PlayerInteractionServiceTests
 		Assert.Contains(hostData.Items, i => i.InstanceId == 42 && i.SlotIndex == -2);
 		Assert.DoesNotContain(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);
 		Assert.Empty(items.GetTransferredItems(GuestId));
+
+		var authority = host.Services.GetRequiredService<ItemKernelAuthority>();
+		var kernelItem = authority.FindItem(42);
+		Assert.NotNull(kernelItem);
+		Assert.Equal(ItemLocationKind.Carried, kernelItem!.Value.Location.Kind);
+		Assert.Equal(HostId, kernelItem.Value.Location.Owner.Value);
 	}
 
 	[Fact]

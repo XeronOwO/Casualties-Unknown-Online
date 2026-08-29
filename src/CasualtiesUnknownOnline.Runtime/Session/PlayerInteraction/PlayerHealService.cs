@@ -1,4 +1,5 @@
 using System;
+using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
@@ -19,6 +20,7 @@ internal sealed class PlayerHealService(
 	PlayerCharacterAccess characters,
 	IItemControl items,
 	IPlayerInteractionVisibility visibility,
+	ItemKernelAuthority kernelAuthority,
 	ILogger log)
 {
 	private readonly ISessionControl _session = session;
@@ -26,6 +28,7 @@ internal sealed class PlayerHealService(
 	private readonly PlayerCharacterAccess _characters = characters;
 	private readonly IItemControl _items = items;
 	private readonly IPlayerInteractionVisibility _visibility = visibility;
+	private readonly ItemKernelAuthority _kernelAuthority = kernelAuthority;
 	private readonly ILogger _log = log;
 
 	/// <summary>An authoritative cross-player heal result arrived — the Game Adapter applies the local participant half.</summary>
@@ -161,6 +164,10 @@ internal sealed class PlayerHealService(
 				_items.UpdateTransferredItem(healer, originalItem.InstanceId, PlayerCharacterAccess.CloneItem(consumed));
 			}
 		}
+		else
+		{
+			SyncHostItemAfterConsumption(originalItem.InstanceId, consumed, destroyed);
+		}
 
 		_log.LogInformation(
 			"[Heal] {Healer} heals {Target} with {ItemId} (id {InstanceId}) on limb {Limb}; item destroyed={Destroyed}.",
@@ -180,6 +187,34 @@ internal sealed class PlayerHealService(
 
 	/// <summary>Wire handler path: a heal result arrived — surface it for the Game Adapter.</summary>
 	public void FireHealReceived(PlayerHealResultMsg msg) => HealReceived?.Invoke(msg);
+
+	/// <summary>
+	/// Keep the item kernel authoritative when the host is the healer: a consumed
+	/// host item is destroyed when already known to the kernel; a surviving host
+	/// item is spawned/updated with the post-heal condition.
+	/// </summary>
+	private void SyncHostItemAfterConsumption(ulong itemId, CharacterItemMsg consumed, bool destroyed)
+	{
+		var current = _kernelAuthority.FindItem(itemId);
+		if (destroyed)
+		{
+			if (current is not null)
+			{
+				_kernelAuthority.TryDestroy(_session.LocalSteamId, itemId, TerminalKind.Consumed, out _, out _);
+			}
+
+			return;
+		}
+
+		if (current is null)
+		{
+			_kernelAuthority.TrySpawnCarried(_session.LocalSteamId, itemId, consumed.ItemId, consumed, out _, out _);
+		}
+		else
+		{
+			_kernelAuthority.TryUpdateState(_session.LocalSteamId, itemId, consumed, out _, out _);
+		}
+	}
 
 	private void PublishHeal(PlayerHealResultMsg msg)
 	{

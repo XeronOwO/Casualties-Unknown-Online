@@ -23,6 +23,7 @@ data and carry service into the kernel.
 | Limb projection | `PlayerKernelLimbProjection` + `CharacterDataStore` | Host character snapshots and limb-latch events project discrete limb latches into kernel `PlayerState`; event + 1 Hz snapshot fallback are both covered. |
 | Body terminal projection | `PlayerKernelLimbProjection` + `CharacterDataStore` | The same character-data/limb-event projection also commits body-level terminal booleans (`Disfigured`, `EyeGone`, `BothEyesGone`, `HasPulmonaryEmbolism`, last-stand/neural booleans, `FibrillationForced`, `MindwipeScriptPresent/Active`) into `PlayerBodyTerminalState`. |
 | Carry production projection | `PlayerKernelCarryProjection` + `PlayerCarryService` | Host carry mutations are kernel commands; `PlayerKernelCarryProjection` applies committed batches on the host (`BatchCommitted`) and guest (`BatchApplied`) and rebuilds from checkpoint restore. The carry mirror and `CarryStateChanged` now ride the same kernel batch; legacy `NetMsg.PlayerCarryState` and its handler are removed. |
+| Cross-player item kernel sync | `PlayerInventoryTakeService` / `PlayerHealService` / `PlayerItemUseService` + `ItemKernelAuthority` | Host-recipient take, host-user heal/use, and wear-to-host now spawn/transfer/update/destroy the carried item in the item kernel, closing the host-side item-ownership gap; guest recipients continue through the transfer-table adopt path. |
 
 ## Evidence table
 
@@ -42,6 +43,9 @@ data and carry service into the kernel.
 | Host carry service commits kernel carry | `PlayerInteractionServiceTests.Guest_StartsCarryingHost_CommitsToKernelAndClearsOnStop`. |
 | Guest carry mirror follows the committed kernel batch | `PlayerInteractionServiceTests.Guest_StartsCarryingUnconsciousHost_RecordsKernelCarryAndUpdatesMirrors` and `Host_StartsCarryingUnconsciousGuest_RecordsKernelCarryAndUpdatesGuestMirror` assert the guest mirror after the `KernelEnvelope` projection. |
 | Carry stop projects a kernel clear and clears both mirrors | `PlayerInteractionServiceTests.Carry_Stop_ClearsRelationAndBroadcastsKernelClear`. |
+| Host-recipient take commits the carried item to the kernel | `PlayerInteractionServiceTests.Host_TakesItemFromUnconsciousGuest_SendsTransferToGuest` asserts the kernel item is carried by the host. |
+| Host-user consumable use commits the post-use item state to the kernel | `PlayerInteractionServiceTests.Host_UsesBreadOnGuest_AppliesFoodAndSendsResult` asserts the kernel item condition/owner. |
+| Wear-to-host transfer commits the worn item to the kernel | `PlayerInteractionServiceTests.Guest_WearsHelmetOnHost_MovesItemAndSendsWornResult` asserts the kernel item is carried by the host after the transfer. |
 | Kernel upserts limb terminal facts | `PlayerDomainKernelTests.UpdateStatus_UpsertsLimbFacts`. |
 | Duplicate limb index is rejected | `PlayerDomainKernelTests.DuplicateLimbIndex_IsRejectedByInvariant`. |
 | Wire/checkpoint/save preserve limb facts | `PlayerDomainKernelTests.WireBatchRoundTrip_PreservesPlayerLimbFacts` / `CheckpointSplitAssemble_RoundTripsPlayerLimbFacts` / `SaveLoad_RoundTripsPlayerLimbFacts`. |
@@ -79,6 +83,9 @@ data and carry service into the kernel.
    project from committed kernel batches; `NetMsg.PlayerCarryState`, its
    handler, and `FireCarryStateReceived` are removed.
 4. Route other cross-player interaction results (take/heal/use/push) through
-   kernel commands where they carry durable facts.
+   kernel commands where they carry durable facts. The host-recipient take,
+   host-user heal/use, and wear-to-host item kernel sync slices have landed;
+   the remaining work is the explicit command/event routing for the result
+   messages themselves and push (transient presentation) policy.
 5. Project kernel player facts into character restore/snapshots where the old
    snapshot stream is not sufficient.

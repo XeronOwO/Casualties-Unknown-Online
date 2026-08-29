@@ -69,7 +69,7 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, IDispo
 		ILogger<PlayerInteractionService> log)
 	{
 		var access = new PlayerCharacterAccess(session, characters);
-		_take = new PlayerInventoryTakeService(session, sender, access, items, hostRules, visibility, log);
+		_take = new PlayerInventoryTakeService(session, sender, access, items, hostRules, visibility, kernelAuthority, log);
 		_carry = new PlayerCarryService(
 			session,
 			sender,
@@ -82,8 +82,8 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, IDispo
 			_carry,
 			session,
 			log);
-		_heal = new PlayerHealService(session, sender, access, items, visibility, log);
-		_itemUse = new PlayerItemUseService(session, sender, access, items, visibility, log);
+		_heal = new PlayerHealService(session, sender, access, items, visibility, kernelAuthority, log);
+		_itemUse = new PlayerItemUseService(session, sender, access, items, visibility, kernelAuthority, log);
 		_push = new PlayerPushService(session, sender, access, entities, _carry, time, visibility, log);
 	}
 

@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CasualtiesUnknownOnline.GameState;
+using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
@@ -23,6 +25,7 @@ internal sealed class PlayerItemUseService(
 	PlayerCharacterAccess characters,
 	IItemControl items,
 	IPlayerInteractionVisibility visibility,
+	ItemKernelAuthority kernelAuthority,
 	ILogger log)
 {
 	private readonly ISessionControl _session = session;
@@ -30,6 +33,7 @@ internal sealed class PlayerItemUseService(
 	private readonly PlayerCharacterAccess _characters = characters;
 	private readonly IItemControl _items = items;
 	private readonly IPlayerInteractionVisibility _visibility = visibility;
+	private readonly ItemKernelAuthority _kernelAuthority = kernelAuthority;
 	private readonly ILogger _log = log;
 
 	/// <summary>An authoritative cross-player consumable use result arrived — the Game Adapter applies the local participant half.</summary>
@@ -223,13 +227,24 @@ internal sealed class PlayerItemUseService(
 				_items.UpdateTransferredItem(user, originalItem.InstanceId, PlayerCharacterAccess.CloneItem(newItem));
 			}
 		}
+		else
+		{
+			SyncHostItemAfterUse(originalItem.InstanceId, newItem, destroyed);
+		}
 
 		// A wearable transfer moves the item into the target's ownership. For a
 		// guest target the transfer table must learn the item so reconnect
 		// restore and arbitration see it as the target's own carried fact.
-		if (wornItem is not null && target != _session.LocalSteamId)
+		if (wornItem is not null)
 		{
-			_items.AdoptTransferredItem(target, originalItem.InstanceId, PlayerCharacterAccess.CloneItem(wornItem));
+			if (target != _session.LocalSteamId)
+			{
+				_items.AdoptTransferredItem(target, originalItem.InstanceId, PlayerCharacterAccess.CloneItem(wornItem));
+			}
+			else
+			{
+				CommitWornItemToHost(originalItem.InstanceId, wornItem);
+			}
 		}
 
 		_log.LogInformation(
@@ -253,6 +268,58 @@ internal sealed class PlayerItemUseService(
 
 	/// <summary>Wire handler path: a use result arrived — surface it for the Game Adapter.</summary>
 	public void FireUseReceived(PlayerItemUseResultMsg msg) => UseReceived?.Invoke(msg);
+
+	/// <summary>
+	/// Keep the item kernel authoritative when the host is the user: a destroyed
+	/// host item is removed from the kernel when known; a surviving host item is
+	/// spawned/updated with the post-use state.
+	/// </summary>
+	private void SyncHostItemAfterUse(ulong itemId, CharacterItemMsg item, bool destroyed)
+	{
+		var current = _kernelAuthority.FindItem(itemId);
+		if (destroyed)
+		{
+			if (current is not null)
+			{
+				_kernelAuthority.TryDestroy(_session.LocalSteamId, itemId, TerminalKind.Consumed, out _, out _);
+			}
+
+			return;
+		}
+
+		if (current is null)
+		{
+			_kernelAuthority.TrySpawnCarried(_session.LocalSteamId, itemId, item.ItemId, item, out _, out _);
+		}
+		else
+		{
+			_kernelAuthority.TryUpdateState(_session.LocalSteamId, itemId, item, out _, out _);
+		}
+	}
+
+	/// <summary>
+	/// Make the kernel own a wearable that crossed to the host target. Guest
+	/// targets go through the transfer-table adopt path; the host has no
+	/// transfer-table row, so this keeps the item kernel authoritative when the
+	/// host becomes the owner.
+	/// </summary>
+	private void CommitWornItemToHost(ulong itemId, CharacterItemMsg item)
+	{
+		var current = _kernelAuthority.FindItem(itemId);
+		if (current is null)
+		{
+			_kernelAuthority.TrySpawnCarried(_session.LocalSteamId, itemId, item.ItemId, item, out _, out _);
+			return;
+		}
+
+		_kernelAuthority.TryTransfer(
+			_session.LocalSteamId,
+			itemId,
+			new ActorId(_session.LocalSteamId),
+			item,
+			out _,
+			out _);
+	}
 
 	private void PublishUse(PlayerItemUseResultMsg msg)
 	{

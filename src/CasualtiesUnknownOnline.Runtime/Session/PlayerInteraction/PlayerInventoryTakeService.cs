@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.HostRules;
@@ -23,6 +24,7 @@ internal sealed class PlayerInventoryTakeService(
 	IItemControl items,
 	IHostRules hostRules,
 	IPlayerInteractionVisibility visibility,
+	ItemKernelAuthority kernelAuthority,
 	ILogger log)
 {
 	private readonly ISessionControl _session = session;
@@ -31,6 +33,7 @@ internal sealed class PlayerInventoryTakeService(
 	private readonly IItemControl _items = items;
 	private readonly IHostRules _hostRules = hostRules;
 	private readonly IPlayerInteractionVisibility _visibility = visibility;
+	private readonly ItemKernelAuthority _kernelAuthority = kernelAuthority;
 	private readonly ILogger _log = log;
 
 	/// <summary>An authoritative cross-player inventory transfer arrived — the Game Adapter applies the body mutation.</summary>
@@ -154,6 +157,10 @@ internal sealed class PlayerInventoryTakeService(
 		{
 			_items.AdoptTransferredItem(to, msg.ItemInstanceId, transferred);
 		}
+		else
+		{
+			CommitCarriedToHost(msg.ItemInstanceId, transferred);
+		}
 
 		_log.LogInformation("[Take] {To} takes {ItemId} (id {InstanceId}) from {From}.", to, original.ItemId, msg.ItemInstanceId, from);
 		PublishTransfer(new PlayerInventoryTransferMsg
@@ -162,6 +169,40 @@ internal sealed class PlayerInventoryTakeService(
 			ToSteamId = to,
 			Item = transferred,
 		});
+	}
+
+	/// <summary>
+	/// Make the kernel own the host's resulting carried item after a cross-player
+	/// take. Guest recipients already go through the transfer table's
+	/// adopt path; the host has no transfer-table row, so this keeps the item
+	/// kernel authoritative when the host is the recipient.
+	/// </summary>
+	private void CommitCarriedToHost(ulong itemId, CharacterItemMsg item)
+	{
+		var current = _kernelAuthority.FindItem(itemId);
+		if (current is null)
+		{
+			_kernelAuthority.TrySpawnCarried(_session.LocalSteamId, itemId, item.ItemId, item, out _, out var rejection);
+			if (rejection is not null)
+			{
+				_log.LogWarning("[Take] host item spawn rejected {ItemId}: {Reason} ({Message}).",
+					itemId, rejection.Reason, rejection.Message);
+			}
+
+			return;
+		}
+
+		if (!_kernelAuthority.TryTransfer(
+			_session.LocalSteamId,
+			itemId,
+			new ActorId(_session.LocalSteamId),
+			item,
+			out _,
+			out var transferRejection))
+		{
+			_log.LogWarning("[Take] host item transfer rejected {ItemId}: {Reason} ({Message}).",
+				itemId, transferRejection!.Reason, transferRejection.Message);
+		}
 	}
 
 	/// <summary>

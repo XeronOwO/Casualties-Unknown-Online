@@ -1,16 +1,16 @@
 # Phase D Players shadow self-check (2026-08-29)
 
 This fact sheet records the Phase D Players domain cycles: a kernel
-terminal-status table (alive/conscious), the cross-player carry relation,
-reset semantics, checkpoint/wire/save integration, and production wiring from
-the entity-sync surface and carry service into the kernel. Richer terminal
-facts (limbs etc.) remain for subsequent cycles.
+terminal-status table (alive/conscious), discrete limb terminal facts, the
+cross-player carry relation, reset semantics, checkpoint/wire/save
+integration, and production wiring from the entity-sync surface, character
+data and carry service into the kernel.
 
 ## Mechanism inventory
 
 | Mechanism | Where | Notes |
 |---|---|---|
-| Player terminal state | `Domains/Players/PlayerState.cs` | SteamID-keyed alive/conscious facts. |
+| Player terminal state | `Domains/Players/PlayerState.cs` | SteamID-keyed alive/conscious facts plus discrete limb latches (`PlayerLimbState`). |
 | Player table | `Domains/Players/PlayerStateTable.cs` | Immutable snapshot with upsert. |
 | Commands | `UpdatePlayerStatusCommand`, `ResetPlayersCommand`, `SetPlayerCarryCommand`, `ClearPlayerCarryCommand` | Host-only commands; reset clears for a new run; carry commands record/release one carrier/one carried relation. |
 | Events | `PlayerStatusUpdatedEvent`, `PlayersResetEvent`, `PlayerCarrySetEvent`, `PlayerCarryClearedEvent` | Reduce into the player table. |
@@ -20,6 +20,7 @@ facts (limbs etc.) remain for subsequent cycles.
 | Mapper/save | `KernelWireMapper`, `WireCheckpointAssembler`, `KernelSaveFileStore`, `KernelSaveFile` | Player facts round-trip through wire checkpoints and disk saves. |
 | Runtime authority surface | `ItemKernelAuthority.TryUpdatePlayerStatus/TryResetPlayers/QueryPlayers/TrySetPlayerCarry/TryClearPlayerCarry` | Host commands and query entry points. |
 | Entity-sync projection | `PlayerKernelStatusProjection` + `EntitySyncService` | Host `PublishLocalState`/`ApplyEntityState` project alive/conscious changes into kernel status; guests receive the kernel batch through the existing protocol path. |
+| Limb projection | `PlayerKernelLimbProjection` + `CharacterDataStore` | Host character snapshots and limb-latch events project discrete limb latches into kernel `PlayerState`; event + 1 Hz snapshot fallback are both covered. |
 | Carry production projection | `PlayerKernelCarryProjection` + `PlayerCarryService` | Host `PublishCarryState` also commits the relation into the kernel; guests keep the legacy wire mirror while the kernel owns the durable fact. |
 
 ## Evidence table
@@ -38,11 +39,16 @@ facts (limbs etc.) remain for subsequent cycles.
 | Wire batch preserves a carry event | `PlayerDomainKernelTests.WireBatchRoundTrip_PreservesPlayerCarryEvent`. |
 | Checkpoint/save preserve carry fields | `PlayerDomainKernelTests.CheckpointSplitAssemble_RoundTripsPlayerCarryFields` / `SaveLoad_RoundTripsPlayerCarryFields`. |
 | Host carry service commits kernel carry | `PlayerInteractionServiceTests.Guest_StartsCarryingHost_CommitsToKernelAndClearsOnStop`. |
+| Kernel upserts limb terminal facts | `PlayerDomainKernelTests.UpdateStatus_UpsertsLimbFacts`. |
+| Duplicate limb index is rejected | `PlayerDomainKernelTests.DuplicateLimbIndex_IsRejectedByInvariant`. |
+| Wire/checkpoint/save preserve limb facts | `PlayerDomainKernelTests.WireBatchRoundTrip_PreservesPlayerLimbFacts` / `CheckpointSplitAssemble_RoundTripsPlayerLimbFacts` / `SaveLoad_RoundTripsPlayerLimbFacts`. |
+| Host character data commits limb facts to kernel | `PlayerProjectionTests.HostSaveCharacterData_CommitsPlayerKernelLimbFacts`. |
+| Host limb event commits limb facts to kernel | `PlayerProjectionTests.LimbStateEvent_CommitsPlayerKernelLimbFacts`. |
 
 ## Verification
 
 - `dotnet build CasualtiesUnknownOnline.slnx`: 0 warnings / 0 errors.
-- `dotnet test CasualtiesUnknownOnline.slnx`: 1683 passed.
+- `dotnet test CasualtiesUnknownOnline.slnx`: 1687 passed.
 - `dotnet format`: applied.
 - Architecture/event/entity/isolation gates passed.
 
@@ -55,7 +61,9 @@ facts (limbs etc.) remain for subsequent cycles.
 
 ## Next sub-steps
 
-1. Add limb terminal facts to the player domain.
+1. [x] Add limb terminal facts to the player domain: `PlayerLimbState`,
+   checkpoint/wire/save round-trip, and production projection from character
+   data and limb-latch events.
 2. Route other cross-player interaction results (take/heal/use/push) through
    kernel commands where they carry durable facts.
 3. Project kernel player facts into character restore/snapshots where the old

@@ -25,9 +25,13 @@ public sealed class PlayerKernelStatusProjection(
 			return;
 		}
 
+		var state = current is null
+			? new PlayerState(steamId, alive, conscious)
+			: current.WithVitals(alive, conscious);
+
 		_kernelAuthority.TryUpdatePlayerStatus(
 			_session.LocalSteamId,
-			new PlayerState(steamId, alive, conscious),
+			state,
 			out _,
 			out _);
 	}

@@ -57,6 +57,125 @@ public class PlayerDomainKernelTests
 	}
 
 	[Fact]
+	public void UpdateStatus_UpsertsLimbFacts()
+	{
+		var kernel = new GameStateKernel(Epoch);
+		Assert.True(Update(kernel, 1, new PlayerState(
+			2001,
+			true,
+			true,
+			Limbs:
+			[
+				new PlayerLimbState(0, Broken: true, Dismembered: false, Dislocated: false, Splinted: false, Infected: false, BlockedBleeding: false, IsHead: true, IsVital: false),
+			])).IsAccepted);
+
+		var player = Assert.Single(kernel.QueryPlayers()!.Players);
+		var limb = Assert.Single(player.LimbFacts);
+		Assert.True(limb.Broken);
+		Assert.True(limb.IsHead);
+	}
+
+	[Fact]
+	public void DuplicateLimbIndex_IsRejectedByInvariant()
+	{
+		var kernel = new GameStateKernel(Epoch);
+		var decision = Update(kernel, 1, new PlayerState(
+			2001,
+			true,
+			true,
+			Limbs:
+			[
+				new PlayerLimbState(0, false, false, false, false, false, false, false, false),
+				new PlayerLimbState(0, false, false, false, false, false, false, false, false),
+			]));
+
+		Assert.False(decision.IsAccepted);
+		Assert.Equal(RejectionReason.InvariantViolation, decision.Rejection!.Reason);
+	}
+
+	[Fact]
+	public void WireBatchRoundTrip_PreservesPlayerLimbFacts()
+	{
+		var source = new GameStateKernel(Epoch);
+		var batch = Update(source, 1, new PlayerState(
+			2001,
+			true,
+			true,
+			Limbs:
+			[
+				new PlayerLimbState(2, Broken: true, Dismembered: false, Dislocated: false, Splinted: false, Infected: false, BlockedBleeding: false, IsHead: false, IsVital: true),
+			])).Batch!;
+
+		var restored = KernelWireMapper.FromWireBatch(KernelWireMapper.ToWireBatch(batch), Epoch);
+
+		var @event = Assert.IsType<PlayerStatusUpdatedEvent>(Assert.Single(restored.Events));
+		var limb = Assert.Single(@event.State.LimbFacts);
+		Assert.Equal(2, limb.Index);
+		Assert.True(limb.Broken);
+		Assert.True(limb.IsVital);
+	}
+
+	[Fact]
+	public void CheckpointSplitAssemble_RoundTripsPlayerLimbFacts()
+	{
+		var kernel = new GameStateKernel(Epoch);
+		Assert.True(Update(kernel, 1, new PlayerState(
+			2001,
+			true,
+			true,
+			Limbs:
+			[
+				new PlayerLimbState(1, Broken: false, Dismembered: true, Dislocated: false, Splinted: false, Infected: false, BlockedBleeding: false, IsHead: false, IsVital: false),
+			])).IsAccepted);
+
+		var restored = WireCheckpointAssembler.Assemble(WireCheckpointAssembler.Split(kernel.CreateCheckpoint()));
+
+		var player = Assert.Single(restored.Players!.Players);
+		var limb = Assert.Single(player.LimbFacts);
+		Assert.True(limb.Dismembered);
+	}
+
+	[Fact]
+	public void SaveLoad_RoundTripsPlayerLimbFacts()
+	{
+		var path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"cuo-players-limbs-{Guid.NewGuid():N}.bin");
+		try
+		{
+			var authority = new ItemKernelAuthority(NullLogger<ItemKernelAuthority>.Instance);
+			Assert.True(authority.TryUpdatePlayerStatus(
+				Host.Value,
+				new PlayerState(
+					2001,
+					true,
+					true,
+					Limbs:
+					[
+						new PlayerLimbState(3, Broken: true, Dismembered: false, Dislocated: true, Splinted: false, Infected: true, BlockedBleeding: true, IsHead: false, IsVital: false),
+					]),
+				out _,
+				out _));
+
+			var store = new KernelSaveFileStore(path, NullLogger<KernelSaveFileStore>.Instance);
+			Assert.True(store.Save(authority.CreateCheckpoint()));
+			Assert.True(store.TryLoad(out var loaded));
+
+			var player = Assert.Single(loaded.Players!.Players);
+			var limb = Assert.Single(player.LimbFacts);
+			Assert.True(limb.Broken);
+			Assert.True(limb.Dislocated);
+			Assert.True(limb.Infected);
+			Assert.True(limb.BlockedBleeding);
+		}
+		finally
+		{
+			if (System.IO.File.Exists(path))
+			{
+				System.IO.File.Delete(path);
+			}
+		}
+	}
+
+	[Fact]
 	public void SetAndClearCarry_DrivePlayerRelation()
 	{
 		var kernel = new GameStateKernel(Epoch);

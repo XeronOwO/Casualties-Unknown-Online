@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using ProtoBuf;
 
 namespace CasualtiesUnknownOnline.Protocol.Wire;
@@ -22,4 +23,7 @@ public sealed class WirePlayerState
 
 	[ProtoMember(5)]
 	public ulong CarriedBySteamId { get; set; }
+
+	[ProtoMember(6)]
+	public List<WirePlayerLimbState> Limbs { get; set; } = [];
 }

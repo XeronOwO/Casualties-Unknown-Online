@@ -118,6 +118,7 @@ public static class KernelDomainWireMapper
 			Conscious = state.Conscious,
 			CarrierOfSteamId = state.CarrierOfSteamId ?? 0,
 			CarriedBySteamId = state.CarriedBySteamId ?? 0,
+			Limbs = [.. (state.Limbs ?? []).Select(ToWirePlayerLimbState)],
 		};
 
 	public static PlayerState FromWirePlayerState(WirePlayerState state) =>
@@ -126,7 +127,34 @@ public static class KernelDomainWireMapper
 			state.Alive,
 			state.Conscious,
 			state.CarrierOfSteamId == 0 ? null : state.CarrierOfSteamId,
-			state.CarriedBySteamId == 0 ? null : state.CarriedBySteamId);
+			state.CarriedBySteamId == 0 ? null : state.CarriedBySteamId,
+			state.Limbs.Count == 0 ? null : [.. state.Limbs.Select(FromWirePlayerLimbState)]);
+
+	public static WirePlayerLimbState ToWirePlayerLimbState(PlayerLimbState limb) =>
+		new()
+		{
+			Index = limb.Index,
+			Broken = limb.Broken,
+			Dismembered = limb.Dismembered,
+			Dislocated = limb.Dislocated,
+			Splinted = limb.Splinted,
+			Infected = limb.Infected,
+			BlockedBleeding = limb.BlockedBleeding,
+			IsHead = limb.IsHead,
+			IsVital = limb.IsVital,
+		};
+
+	public static PlayerLimbState FromWirePlayerLimbState(WirePlayerLimbState limb) =>
+		new(
+			limb.Index,
+			limb.Broken,
+			limb.Dismembered,
+			limb.Dislocated,
+			limb.Splinted,
+			limb.Infected,
+			limb.BlockedBleeding,
+			limb.IsHead,
+			limb.IsVital);
 
 	public static WireEntityId ToWireEntityId(EntityId id) =>
 		new()

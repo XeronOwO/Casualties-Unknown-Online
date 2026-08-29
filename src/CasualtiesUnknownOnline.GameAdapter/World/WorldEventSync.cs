@@ -3,6 +3,7 @@ using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
+using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.GameAdapter.Items;
 using CasualtiesUnknownOnline.GameAdapter.Patches;
@@ -28,6 +29,7 @@ internal sealed partial class WorldEventSync(
 	BlockBreakSync blockBreaks,
 	OperationTrace trace,
 	WorldEntityKernelProjection kernelProjection,
+	IKernelProtocolControl kernelProtocol,
 	ILogger<WorldEventSync> log)
 {
 	private readonly ISessionControl _session = session;
@@ -35,6 +37,7 @@ internal sealed partial class WorldEventSync(
 	private readonly BlockBreakSync _blockBreaks = blockBreaks;
 	private readonly OperationTrace _trace = trace;
 	private readonly WorldEntityKernelProjection _kernelProjection = kernelProjection;
+	private readonly IKernelProtocolControl _kernelProtocol = kernelProtocol;
 	private readonly WorldBuildingEntitySync _buildingEntities = new(session, world, trace, log);
 	private readonly ILogger<WorldEventSync> _log = log;
 
@@ -54,10 +57,8 @@ internal sealed partial class WorldEventSync(
 		_world.BlockPlacedReceived += OnRemoteBlockPlaced;
 		_world.EarthquakeStartReceived += OnEarthquakeStartReceived;
 		_world.KeypadCodeReceived += OnKeypadCodeReceived;
-		_world.OpenedEntitiesSnapshotReceived += _buildingEntities.OnOpenedEntitiesSnapshot;
-		_world.BuildingEntityHealthSnapshotReceived += _buildingEntities.OnBuildingEntityHealthSnapshot;
-		_kernelProjection.OpenedEntitiesProjected += _buildingEntities.OnOpenedEntitiesSnapshot;
-		_kernelProjection.BuildingHealthProjected += _buildingEntities.OnBuildingEntityHealthSnapshot;
+		_kernelProjection.OpenedEntitiesProjected += _buildingEntities.OnOpenedEntitiesProjected;
+		_kernelProjection.BuildingHealthProjected += _buildingEntities.OnBuildingHealthProjected;
 		_session.RemoteSceneChanged += OnRemoteSceneChanged;
 	}
 
@@ -71,10 +72,8 @@ internal sealed partial class WorldEventSync(
 		_world.BlockPlacedReceived -= OnRemoteBlockPlaced;
 		_world.EarthquakeStartReceived -= OnEarthquakeStartReceived;
 		_world.KeypadCodeReceived -= OnKeypadCodeReceived;
-		_world.OpenedEntitiesSnapshotReceived -= _buildingEntities.OnOpenedEntitiesSnapshot;
-		_world.BuildingEntityHealthSnapshotReceived -= _buildingEntities.OnBuildingEntityHealthSnapshot;
-		_kernelProjection.OpenedEntitiesProjected -= _buildingEntities.OnOpenedEntitiesSnapshot;
-		_kernelProjection.BuildingHealthProjected -= _buildingEntities.OnBuildingEntityHealthSnapshot;
+		_kernelProjection.OpenedEntitiesProjected -= _buildingEntities.OnOpenedEntitiesProjected;
+		_kernelProjection.BuildingHealthProjected -= _buildingEntities.OnBuildingHealthProjected;
 		_session.RemoteSceneChanged -= OnRemoteSceneChanged;
 	}
 
@@ -128,9 +127,7 @@ internal sealed partial class WorldEventSync(
 				{
 					_world.SendBlockStateSnapshot(member.SteamId);
 					_world.SendBlockDamageSnapshot(member.SteamId); // the partial block damage rides the same world-entry resend (idempotent absolute set)
-					_world.SendTrapStateSnapshot(member.SteamId); // the one-shot trap consumptions ride the same world-entry resend (idempotent)
-					_world.SendOpenedEntitiesSnapshot(member.SteamId); // same for the opened entities (idempotent)
-					_world.SendBuildingEntityHealthSnapshot(member.SteamId); // same for the damaged building entities (idempotent)
+					_kernelProtocol.SendCheckpoint(member.SteamId); // the kernel checkpoint also covers lazy-session recovery for WorldEntities and the other kernel domains
 				}
 			}
 

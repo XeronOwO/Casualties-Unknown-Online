@@ -29,15 +29,13 @@ internal sealed class EntityEventSync(IWorldControl world, ISessionControl sessi
 	internal void BindToSession()
 	{
 		_world.EntityEventReceived += OnRemoteEntityEvent;
-		_world.TrapStateReceived += OnTrapStateReceived;
-		_kernelProjection.TrapSnapshotProjected += OnTrapStateReceived;
+		_kernelProjection.TrapSnapshotProjected += OnTrapStateProjected;
 	}
 
 	internal void Unbind()
 	{
 		_world.EntityEventReceived -= OnRemoteEntityEvent;
-		_world.TrapStateReceived -= OnTrapStateReceived;
-		_kernelProjection.TrapSnapshotProjected -= OnTrapStateReceived;
+		_kernelProjection.TrapSnapshotProjected -= OnTrapStateProjected;
 	}
 
 	/// <summary>
@@ -99,7 +97,7 @@ internal sealed class EntityEventSync(IWorldControl world, ISessionControl sessi
 		}
 	}
 
-	private void OnTrapStateReceived(IReadOnlyList<EntityEventMsg> consumed)
+	private void OnTrapStateProjected(IReadOnlyList<EntityEventMsg> consumed)
 	{
 		// Late joiner: consume every one-shot consumption against the local
 		// deterministic world — the entity is found by its position key (the
@@ -107,7 +105,7 @@ internal sealed class EntityEventSync(IWorldControl world, ISessionControl sessi
 		// (the consumption markers make the replay idempotent — a duplicate
 		// entry is dropped by the per-entity guard). RemoteApply: the replays
 		// must never re-report (the trap patches check the origin).
-		_log.LogInformation("[TrapSnapshot] received {Count} consumed.", consumed.Count);
+		_log.LogInformation("[TrapCheckpoint] projected {Count} consumed.", consumed.Count);
 		using (CallContext.Enter(CallContext.Origin.RemoteApply))
 		{
 			foreach (var msg in consumed)

@@ -257,27 +257,9 @@ public sealed class WorldService : IWorldControl, IDisposable
 
 	public void BroadcastEntitySpawned(ulong excludeSteamId, EntitySpawnedMsg msg) => _channels.BroadcastEntitySpawned(excludeSteamId, msg);
 
-	public void SendTrapStateSnapshot(ulong targetSteamId) => _channels.SendTrapStateSnapshot(targetSteamId);
-
-	public event Action<IReadOnlyList<EntityEventMsg>>? TrapStateReceived { add => _channels.TrapStateReceived += value; remove => _channels.TrapStateReceived -= value; }
-
-	public void FireTrapStateReceived(IReadOnlyList<EntityEventMsg> consumed) => _channels.FireTrapStateReceived(consumed);
-
 	public void ReportOpenedEntity(float x, float y) => _channels.ReportOpenedEntity(x, y);
 
-	public void SendOpenedEntitiesSnapshot(ulong targetSteamId) => _channels.SendOpenedEntitiesSnapshot(targetSteamId);
-
-	public event Action<IReadOnlyList<NetVector2Msg>>? OpenedEntitiesSnapshotReceived { add => _channels.OpenedEntitiesSnapshotReceived += value; remove => _channels.OpenedEntitiesSnapshotReceived -= value; }
-
-	public void FireOpenedEntitiesSnapshotReceived(IReadOnlyList<NetVector2Msg> positions) => _channels.FireOpenedEntitiesSnapshotReceived(positions);
-
 	public void ReportBuildingEntityHealth(float x, float y, float health) => _channels.ReportBuildingEntityHealth(x, y, health);
-
-	public void SendBuildingEntityHealthSnapshot(ulong targetSteamId) => _channels.SendBuildingEntityHealthSnapshot(targetSteamId);
-
-	public event Action<IReadOnlyList<BuildingEntityHealthEntryMsg>>? BuildingEntityHealthSnapshotReceived { add => _channels.BuildingEntityHealthSnapshotReceived += value; remove => _channels.BuildingEntityHealthSnapshotReceived -= value; }
-
-	public void FireBuildingEntityHealthSnapshotReceived(IReadOnlyList<BuildingEntityHealthEntryMsg> entries) => _channels.FireBuildingEntityHealthSnapshotReceived(entries);
 
 	public void ReportTrapLayout(EntityEventKind kind, float x, float y, string prefabName) => _channels.ReportTrapLayout(kind, x, y, prefabName);
 

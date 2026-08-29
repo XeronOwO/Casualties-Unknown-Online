@@ -62,21 +62,33 @@ public class ReconnectWorldSnapshotTests
 		w.Spawn(w.G1, 100, new CharacterItemMsg { ItemId = "ore", Condition = 1f });
 		var itemSnapshots = new List<IReadOnlyList<WorldItem>>();
 		w.G1.Services.GetRequiredService<IItemControl>().ItemSnapshotReceived += (items, _, _) => itemSnapshots.Add(items);
+		var trapProjections = new List<IReadOnlyList<EntityEventMsg>>();
+		var openedProjections = new List<IReadOnlyList<NetVector2Msg>>();
+		var healthProjections = new List<IReadOnlyList<BuildingEntityHealthEntryMsg>>();
+		var g1Projection = w.G1.Services.GetRequiredService<WorldEntityKernelProjection>();
+		g1Projection.TrapSnapshotProjected += list => trapProjections.Add(list);
+		g1Projection.OpenedEntitiesProjected += list => openedProjections.Add(list);
+		g1Projection.BuildingHealthProjected += list => healthProjections.Add(list);
 
 		// g1 enters the world — the first fan-out sends the snapshot group.
 		w.G1.Session.ReportSceneState(SceneStateType.InWorld, "SampleScene");
 		w.Driver.Tick(50);
 		Assert.True(w.ReceivedCount(w.G1, NetMsg.TrapLayoutSnapshot) == 1, "first entry: trap layout");
 		Assert.Single(itemSnapshots);
+		Assert.True(trapProjections.Count == 1 && openedProjections.Count == 1 && healthProjections.Count == 1,
+			$"first entry: kernel checkpoint projects world entities, got traps={trapProjections.Count}, opened={openedProjections.Count}, health={healthProjections.Count}");
 
 		ReconnectGuestStillInWorld(w);
 
 		// The reconnect must re-fan-out the WHOLE snapshot group — a missing one
-		// is exactly the reconnect-restore regression this guard exists for.
+		// is exactly the reconnect-restore regression this guard exists for. The
+		// world-entity facts now ride the kernel checkpoint (KernelEnvelope) and
+		// its guest projection instead of three legacy snapshot message ids.
 		Assert.True(w.ReceivedCount(w.G1, NetMsg.TrapLayoutSnapshot) >= 2, $"reconnect: trap layout, got {w.ReceivedCount(w.G1, NetMsg.TrapLayoutSnapshot)}");
-		Assert.True(w.ReceivedCount(w.G1, NetMsg.TrapStateSnapshot) >= 2, $"reconnect: trap state, got {w.ReceivedCount(w.G1, NetMsg.TrapStateSnapshot)}");
-		Assert.True(w.ReceivedCount(w.G1, NetMsg.OpenedEntitiesSnapshot) >= 2, $"reconnect: opened entities, got {w.ReceivedCount(w.G1, NetMsg.OpenedEntitiesSnapshot)}");
-		Assert.True(w.ReceivedCount(w.G1, NetMsg.BuildingEntityHealthSnapshot) >= 2, $"reconnect: building-entity health, got {w.ReceivedCount(w.G1, NetMsg.BuildingEntityHealthSnapshot)}");
+		Assert.True(w.ReceivedCount(w.G1, NetMsg.KernelEnvelope) >= 2, $"reconnect: kernel checkpoint, got {w.ReceivedCount(w.G1, NetMsg.KernelEnvelope)}");
+		Assert.True(trapProjections.Count >= 2, $"reconnect: trap projection, got {trapProjections.Count}");
+		Assert.True(openedProjections.Count >= 2, $"reconnect: opened projection, got {openedProjections.Count}");
+		Assert.True(healthProjections.Count >= 2, $"reconnect: building health projection, got {healthProjections.Count}");
 		Assert.True(w.ReceivedCount(w.G1, NetMsg.BlockDamageSnapshot) >= 2, $"reconnect: block damage, got {w.ReceivedCount(w.G1, NetMsg.BlockDamageSnapshot)}");
 		Assert.True(w.ReceivedCount(w.G1, NetMsg.WorldBlockState) >= 2, $"reconnect: block state, got {w.ReceivedCount(w.G1, NetMsg.WorldBlockState)}");
 		Assert.True(itemSnapshots.Count >= 2, $"reconnect: world items, got {itemSnapshots.Count}");

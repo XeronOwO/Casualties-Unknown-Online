@@ -36,9 +36,6 @@ public sealed class WorldEntryFanout(
 		_log.LogInformation("Sending world-entry snapshot group to {Peer}.", steamId);
 		_world.SendBlockStateSnapshot(steamId);
 		_world.SendBlockDamageSnapshot(steamId);
-		_world.SendTrapStateSnapshot(steamId);
-		_world.SendOpenedEntitiesSnapshot(steamId);
-		_world.SendBuildingEntityHealthSnapshot(steamId);
 		_world.SendTrapLayoutSnapshot(steamId);
 		_world.SendRadiationLineState(steamId);
 		_kernelProtocol.SendCheckpoint(steamId);

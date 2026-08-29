@@ -19,12 +19,12 @@ public class BuildingEntityHealthRegistryTests
 		using var w = EntityEventSimWorld.Create();
 		var hostWorld = w.Host.Services.GetRequiredService<IWorldControl>();
 		var received = new List<IReadOnlyList<BuildingEntityHealthEntryMsg>>();
-		w.G1.Services.GetRequiredService<EntityEventChannel>().BuildingEntityHealthSnapshotReceived += list => received.Add(list);
+		w.G1.Services.GetRequiredService<WorldEntityKernelProjection>().BuildingHealthProjected += list => received.Add(list);
 
 		hostWorld.ReportBuildingEntityHealth(10.2f, 20.8f, 80f);
 		hostWorld.ReportBuildingEntityHealth(10.9f, 20.1f, 35f); // the same cell — the latest health wins
 		hostWorld.ReportBuildingEntityHealth(30f, 40f, 0f); // a destroyed entity stays destroyed
-		hostWorld.SendBuildingEntityHealthSnapshot(w.G1.SteamId);
+		w.SendCheckpoint(w.G1);
 
 		Assert.Single(received);
 		Assert.Equal(2, received[0].Count);
@@ -39,9 +39,9 @@ public class BuildingEntityHealthRegistryTests
 	{
 		using var w = EntityEventSimWorld.Create();
 		var received = new List<IReadOnlyList<BuildingEntityHealthEntryMsg>>();
-		w.G1.Services.GetRequiredService<EntityEventChannel>().BuildingEntityHealthSnapshotReceived += list => received.Add(list);
+		w.G1.Services.GetRequiredService<WorldEntityKernelProjection>().BuildingHealthProjected += list => received.Add(list);
 
-		w.Host.Services.GetRequiredService<IWorldControl>().SendBuildingEntityHealthSnapshot(w.G1.SteamId);
+		w.SendCheckpoint(w.G1);
 
 		Assert.Empty(received);
 	}
@@ -52,12 +52,12 @@ public class BuildingEntityHealthRegistryTests
 		using var w = EntityEventSimWorld.Create();
 		var hostWorld = w.Host.Services.GetRequiredService<IWorldControl>();
 		var received = new List<IReadOnlyList<BuildingEntityHealthEntryMsg>>();
-		w.G1.Services.GetRequiredService<EntityEventChannel>().BuildingEntityHealthSnapshotReceived += list => received.Add(list);
+		w.G1.Services.GetRequiredService<WorldEntityKernelProjection>().BuildingHealthProjected += list => received.Add(list);
 
 		hostWorld.ReportBuildingEntityHealth(10f, 20f, 25f);
 		hostWorld.ResetDamagedBlocks(); // a new world layer is generating — the table's lifecycle
 
-		hostWorld.SendBuildingEntityHealthSnapshot(w.G1.SteamId);
+		w.SendCheckpoint(w.G1);
 
 		Assert.Empty(received);
 	}
@@ -69,12 +69,12 @@ public class BuildingEntityHealthRegistryTests
 		var hostWorld = w.Host.Services.GetRequiredService<IWorldControl>();
 		var guestWorld = w.G1.Services.GetRequiredService<IWorldControl>();
 		var received = new List<IReadOnlyList<BuildingEntityHealthEntryMsg>>();
-		w.G1.Services.GetRequiredService<EntityEventChannel>().BuildingEntityHealthSnapshotReceived += list => received.Add(list);
+		w.G1.Services.GetRequiredService<WorldEntityKernelProjection>().BuildingHealthProjected += list => received.Add(list);
 
 		hostWorld.ReportBuildingEntityHealth(10f, 20f, 25f);
 		guestWorld.ReportBuildingEntityHealth(99f, 99f, 1f); // a guest never owns the snapshot's fact source
 
-		hostWorld.SendBuildingEntityHealthSnapshot(w.G1.SteamId);
+		w.SendCheckpoint(w.G1);
 
 		Assert.Single(received);
 		Assert.Single(received[0]);

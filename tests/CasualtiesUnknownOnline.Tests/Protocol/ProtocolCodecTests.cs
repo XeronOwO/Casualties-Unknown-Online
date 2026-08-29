@@ -167,6 +167,56 @@ public class ProtocolCodecTests
 	}
 
 	[Fact]
+	public void StateStreamEnvelope_RoundTripsPlayerAndEnemyEntityStates()
+	{
+		var frame = new ProtocolFrame
+		{
+			Kind = EnvelopeKind.StateStream,
+			StateStream = new StateStreamEnvelope
+			{
+				Header = Header(WirePayloadType.PlayerStateStream),
+				Stream = new WireStateStream
+				{
+					Seq = 9,
+					PlayerStates =
+					[
+						new WirePlayerStreamState
+						{
+							EntityId = new WireEntityId { Epoch = 1, Counter = 2, Generation = 0 },
+							Position = new WireVector2 { X = 3f, Y = 4f },
+							LookOverridePos = new WireVector2 { X = 5f, Y = 6f },
+							NapVariant = 1,
+							DogShakeIntensity = 0.25f,
+						},
+					],
+					EnemyStates =
+					[
+						new WireEnemyStreamState
+						{
+							EntityId = new WireEntityId { Epoch = 1, Counter = 7, Generation = 0 },
+							Position = new WireVector2 { X = 8f, Y = 9f },
+							Health = 42f,
+							PresentationFlags = 1u,
+						},
+					],
+				},
+			},
+		};
+
+		var decoded = ProtocolCodec.Decode(ProtocolCodec.Encode(frame));
+
+		var stream = decoded.StateStream!.Stream;
+		Assert.Equal(9u, stream.Seq);
+		var player = Assert.Single(stream.PlayerStates);
+		Assert.Equal(3f, player.Position.X);
+		Assert.Equal(1, player.NapVariant);
+		Assert.Equal(0.25f, player.DogShakeIntensity);
+		var enemy = Assert.Single(stream.EnemyStates);
+		Assert.Equal(42f, enemy.Health);
+		Assert.Equal(1u, enemy.PresentationFlags);
+	}
+
+	[Fact]
 	public void Decode_EmptyFrame_Throws() =>
 		Assert.Throws<ArgumentException>(() => ProtocolCodec.Decode([]));
 

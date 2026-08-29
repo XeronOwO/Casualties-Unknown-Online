@@ -1,7 +1,7 @@
 using System;
 using System.Linq;
 using System.Reflection;
-using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Protocol.Wire;
 using Xunit;
 
 namespace CasualtiesUnknownOnline.Tests.Patching;
@@ -82,12 +82,12 @@ public class NapAndDogShakeSyncTests
 	[Fact]
 	public void EntityStateMsg_HasNapVariantAndDogShakeOnTheWire()
 	{
-		var nap = typeof(EntityStateMsg).GetProperty("NapVariant", BindingFlags.Instance | BindingFlags.Public)
-			?? throw new InvalidOperationException("EntityStateMsg.NapVariant not found.");
+		var nap = typeof(WirePlayerStreamState).GetProperty("NapVariant", BindingFlags.Instance | BindingFlags.Public)
+			?? throw new InvalidOperationException("WirePlayerStreamState.NapVariant not found.");
 		Assert.Equal(typeof(byte), nap.PropertyType);
 
-		var shake = typeof(EntityStateMsg).GetProperty("DogShakeIntensity", BindingFlags.Instance | BindingFlags.Public)
-			?? throw new InvalidOperationException("EntityStateMsg.DogShakeIntensity not found.");
+		var shake = typeof(WirePlayerStreamState).GetProperty("DogShakeIntensity", BindingFlags.Instance | BindingFlags.Public)
+			?? throw new InvalidOperationException("WirePlayerStreamState.DogShakeIntensity not found.");
 		Assert.Equal(typeof(float), shake.PropertyType);
 	}
 

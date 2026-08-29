@@ -14,7 +14,7 @@ namespace CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 [ProtoContract]
 public sealed class EnemyStateMsg
 {
-	/// <summary>Presentation flag: the enemy presents a stunned/stuck pose (SpiderHandler.stunTime &gt; 0, CrystalEnemy.stuck). Bits are FROZEN forever — new flags append only (same discipline as EntityStateMsg.ExtendedFlags).</summary>
+	/// <summary>Presentation flag: the enemy presents a stunned/stuck pose (SpiderHandler.stunTime &gt; 0, CrystalEnemy.stuck). Bits are FROZEN forever — new flags append only (same discipline as WireEnemyStreamState.PresentationFlags).</summary>
 	public const uint FlagStunned = 0x01;
 
 	[ProtoMember(1)]

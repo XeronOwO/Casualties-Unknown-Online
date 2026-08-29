@@ -3748,3 +3748,32 @@ replay/race tests to the four-envelope protocol.
 - **Tests/gates** — full suite 1647 green; architecture, item-authority,
   event-replay, and entity-dispatch gates pass. See
   `docs/selfchecks/phase-c-protocol-core-selfcheck.md`.
+
+## 129. High-frequency player/enemy streams moved to StateStreamEnvelope (2026-08-29)
+
+The Phase D high-frequency stream unification slice now routes player and enemy
+continuous/presentation streams through the Phase C `StateStreamEnvelope` instead
+of the legacy direct entity messages.
+
+- **Wire shape** — `WireStateStream` gains `Seq`, `PlayerStates`, and
+  `EnemyStates`; new `WirePlayerStreamState` / `WireEnemyStreamState` /
+  `WireVector2` DTOs live in the Protocol project and carry the same convergent
+  player/enemy fields as the old stream messages.
+- **Payload ids** — `WirePayloadType.PlayerStateStream` (304) and
+  `WirePayloadType.EnemyStateStream` (305) distinguish the two high-frequency
+  streams inside `KernelEnvelope`.
+- **Player path** — host→guest player broadcasts and guest→host player reports
+  both ride `PlayerStateStream` over `KernelEnvelope`; the guest seq-gates the
+  host stream, the host seq-gates each guest report per synced member.
+- **Enemy path** — host→guest enemy 20 Hz updates ride `EnemyStateStream` over
+  `KernelEnvelope`; update-only, explicit reliable removal, the removal
+  tombstone, and the terminal-health revision guard all remain in place.
+- **Removed legacy path** — `NetMsg.PlayerState`, `NetMsg.PlayerStateReport`,
+  `NetMsg.EnemyState`, their handlers (`PlayerStateHandler`,
+  `PlayerStateReportHandler`, `EnemyStateHandler`) and their DTOs
+  (`PlayerStateMsg`, `PlayerStateReportMsg`, `EnemyStateBatchMsg`,
+  `EntityStateMsg`) are deleted.
+- **Tests** — codec round-trip, seq gate over `KernelEnvelope`, update-only
+  player buffer semantics, guest report convergence, stale-terminal revision
+  protection, and frequency-count tests were updated to the new path. Full suite
+  1694 green.

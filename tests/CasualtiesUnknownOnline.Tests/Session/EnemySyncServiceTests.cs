@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.GameState.Domains.Entities;
+using CasualtiesUnknownOnline.Protocol.Versioning;
+using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
@@ -33,6 +35,25 @@ public class EnemySyncServiceTests
 			Rotation = 0f,
 			Health = health,
 			Stunned = false,
+		};
+
+	private static ProtocolFrame EnemyStreamFrame(uint seq, params WireEnemyStreamState[] states) =>
+		new()
+		{
+			Kind = EnvelopeKind.StateStream,
+			StateStream = new StateStreamEnvelope
+			{
+				Header = new EnvelopeHeader
+				{
+					ProtocolVersion = ProtocolConstants.EnvelopeVersion,
+					PayloadType = WirePayloadType.EnemyStateStream,
+				},
+				Stream = new WireStateStream
+				{
+					Seq = seq,
+					EnemyStates = [.. states],
+				},
+			},
 		};
 
 	[Fact]
@@ -128,14 +149,15 @@ public class EnemySyncServiceTests
 		var enemies = guest.Services.GetRequiredService<IEnemySyncControl>();
 		var sender = host.Services.GetRequiredService<PacketSender>();
 
-		sender.Send(GuestId, NetMsg.EnemyState, new EnemyStateBatchMsg { Seq = 1 }, reliable: false);
+		var dummy = Enemy(0, 0f, 0f).ToWireEnemyStreamState();
+		sender.Send(GuestId, NetMsg.KernelEnvelope, EnemyStreamFrame(seq: 1, dummy), reliable: false);
 		Assert.Equal(1u, enemies.LastEnemyStateSeq);
 
-		sender.Send(GuestId, NetMsg.EnemyState, new EnemyStateBatchMsg { Seq = 1 }, reliable: false); // duplicate
-		sender.Send(GuestId, NetMsg.EnemyState, new EnemyStateBatchMsg { Seq = 0 }, reliable: false); // stale (reordered)
+		sender.Send(GuestId, NetMsg.KernelEnvelope, EnemyStreamFrame(seq: 1, dummy), reliable: false); // duplicate
+		sender.Send(GuestId, NetMsg.KernelEnvelope, EnemyStreamFrame(seq: 0, dummy), reliable: false); // stale (reordered)
 		Assert.Equal(1u, enemies.LastEnemyStateSeq);
 
-		sender.Send(GuestId, NetMsg.EnemyState, new EnemyStateBatchMsg { Seq = 2 }, reliable: false);
+		sender.Send(GuestId, NetMsg.KernelEnvelope, EnemyStreamFrame(seq: 2, dummy), reliable: false);
 		Assert.Equal(2u, enemies.LastEnemyStateSeq);
 	}
 
@@ -167,11 +189,11 @@ public class EnemySyncServiceTests
 		var g1Enemies = w.G1.Services.GetRequiredService<EnemySyncService>();
 		var control = (IEnemySyncControl)g1Enemies;
 
-		control.ApplyEnemyState(new EnemyStateBatchMsg
+		control.ApplyEnemyStream(new WireStateStream
 		{
-			Enemies = [Enemy(0, 1f, 1f).ToEnemyStateMsg()],
+			EnemyStates = [Enemy(0, 1f, 1f).ToWireEnemyStreamState()],
 		});
-		control.ApplyEnemyState(new EnemyStateBatchMsg { Enemies = [] });
+		control.ApplyEnemyStream(new WireStateStream { EnemyStates = [] });
 
 		Assert.NotNull(g1Enemies.GetEnemy(new NetworkEntityId(1, 0, 0)));
 	}
@@ -184,9 +206,9 @@ public class EnemySyncServiceTests
 		var control = (IEnemySyncControl)g1Enemies;
 		var id = new NetworkEntityId(1, 9, 0);
 
-		control.ApplyEnemyState(new EnemyStateBatchMsg
+		control.ApplyEnemyStream(new WireStateStream
 		{
-			Enemies = [Enemy(9, 1f, 1f, health: 50f).ToEnemyStateMsg()],
+			EnemyStates = [Enemy(9, 1f, 1f, health: 50f).ToWireEnemyStreamState()],
 		});
 
 		var authority = w.G1.Services.GetRequiredService<ItemKernelAuthority>();
@@ -200,10 +222,10 @@ public class EnemySyncServiceTests
 		// A late/out-of-order 20 Hz batch from before the kernel health event
 		// must not roll the terminal health back, while continuous position
 		// fields still converge.
-		control.ApplyEnemyState(new EnemyStateBatchMsg
+		control.ApplyEnemyStream(new WireStateStream
 		{
 			BaseGlobalRevision = batch.GlobalRevision - 1,
-			Enemies = [Enemy(9, 2f, 2f, health: 90f).ToEnemyStateMsg()],
+			EnemyStates = [Enemy(9, 2f, 2f, health: 90f).ToWireEnemyStreamState()],
 		});
 
 		var enemy = g1Enemies.GetEnemy(id);
@@ -213,19 +235,19 @@ public class EnemySyncServiceTests
 
 		// The current stream refreshes the terminal health from the kernel
 		// event, then a later stale packet still cannot roll it back.
-		control.ApplyEnemyState(new EnemyStateBatchMsg
+		control.ApplyEnemyStream(new WireStateStream
 		{
 			BaseGlobalRevision = batch.GlobalRevision,
-			Enemies = [Enemy(9, 3f, 3f, health: 10f).ToEnemyStateMsg()],
+			EnemyStates = [Enemy(9, 3f, 3f, health: 10f).ToWireEnemyStreamState()],
 		});
 		var currentEnemy = g1Enemies.GetEnemy(id);
 		Assert.NotNull(currentEnemy);
 		Assert.Equal(10f, currentEnemy!.Health);
 
-		control.ApplyEnemyState(new EnemyStateBatchMsg
+		control.ApplyEnemyStream(new WireStateStream
 		{
 			BaseGlobalRevision = batch.GlobalRevision - 1,
-			Enemies = [Enemy(9, 4f, 4f, health: 90f).ToEnemyStateMsg()],
+			EnemyStates = [Enemy(9, 4f, 4f, health: 90f).ToWireEnemyStreamState()],
 		});
 		var finalEnemy = g1Enemies.GetEnemy(id);
 		Assert.NotNull(finalEnemy);
@@ -243,9 +265,9 @@ public class EnemySyncServiceTests
 		var removed = new List<NetworkEntityId>();
 		g1Enemies.EnemyRemovedReceived += removedId => removed.Add(removedId);
 
-		control.ApplyEnemyState(new EnemyStateBatchMsg
+		control.ApplyEnemyStream(new WireStateStream
 		{
-			Enemies = [Enemy(2, 3f, 4f).ToEnemyStateMsg()],
+			EnemyStates = [Enemy(2, 3f, 4f).ToWireEnemyStreamState()],
 		});
 		control.ApplyEnemyRemoved(new EnemyRemovedMsg { Id = id.ToNetworkEntityIdMsg() });
 
@@ -287,14 +309,14 @@ public class EnemySyncServiceTests
 		var control = (IEnemySyncControl)g1Enemies;
 		var id = new NetworkEntityId(1, 5, 0);
 
-		control.ApplyEnemyState(new EnemyStateBatchMsg
+		control.ApplyEnemyStream(new WireStateStream
 		{
-			Enemies = [Enemy(5, 1f, 1f).ToEnemyStateMsg()],
+			EnemyStates = [Enemy(5, 1f, 1f).ToWireEnemyStreamState()],
 		});
 		control.ApplyEnemyRemoved(new EnemyRemovedMsg { Id = id.ToNetworkEntityIdMsg() });
-		control.ApplyEnemyState(new EnemyStateBatchMsg
+		control.ApplyEnemyStream(new WireStateStream
 		{
-			Enemies = [Enemy(5, 2f, 2f).ToEnemyStateMsg()],
+			EnemyStates = [Enemy(5, 2f, 2f).ToWireEnemyStreamState()],
 		});
 
 		Assert.Null(g1Enemies.GetEnemy(id));
@@ -308,9 +330,9 @@ public class EnemySyncServiceTests
 		var control = (IEnemySyncControl)g1Enemies;
 		var id = new NetworkEntityId(1, 6, 0);
 
-		control.ApplyEnemyState(new EnemyStateBatchMsg
+		control.ApplyEnemyStream(new WireStateStream
 		{
-			Enemies = [Enemy(6, 1f, 1f).ToEnemyStateMsg()],
+			EnemyStates = [Enemy(6, 1f, 1f).ToWireEnemyStreamState()],
 		});
 		control.ApplyEnemyRemoved(new EnemyRemovedMsg { Id = id.ToNetworkEntityIdMsg() });
 		control.ApplyEnemySnapshot(new EnemySnapshotMsg

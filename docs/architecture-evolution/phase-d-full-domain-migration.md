@@ -125,11 +125,11 @@ For each domain, complete these steps in order:
 
 ### 4.6 High-frequency stream unification
 
-- [ ] Define stream projection as an update-only mechanism for convergent fields.
-- [ ] Ensure streams cannot create/destroy aggregates, change ownership/container relations, or advance key state machines.
-- [ ] Replace ad-hoc per-domain stream code with kernel-validated stream updates where possible.
-- [ ] Ensure terminal states are promoted to domain events, never left to stream convergence.
-- [ ] Add simulation tests: dropped/out-of-order stream packets converge without violating invariants.
+- [x] Define stream projection as an update-only mechanism for convergent fields.
+- [x] Ensure streams cannot create/destroy aggregates, change ownership/container relations, or advance key state machines.
+- [x] Replace ad-hoc per-domain stream code with kernel-validated stream updates where possible.
+- [x] Ensure terminal states are promoted to domain events, never left to stream convergence.
+- [x] Add simulation tests: dropped/out-of-order stream packets converge without violating invariants.
 
 ## Exit criteria
 
@@ -206,6 +206,7 @@ For each domain, complete these steps in order:
 | 2026-08-29 | Players guest kernel replay + destroyed guest-item cleanup | `current` | 1694 tests green; build/format/architecture/event/entity/isolation/delivery gates pass | Tests now assert the guest replay kernel receives the same take/use/wear item facts through `KernelEnvelope`; destroyed non-wear guest-owned items are removed from the kernel carried state instead of lingering after the transfer-table removal. See `docs/selfchecks/phase-d-players-shadow-selfcheck.md`. |
 | 2026-08-29 | Player high-frequency stream lifecycle audit | `current` | 1696 tests green; build/format/architecture/event/entity/isolation/delivery gates pass | Player stream is now audited as update-only with explicit `PlayerJoin`/`PlayerLeave` lifecycle: a state batch missing a player does not remove the buffer, and `PlayerLeave` removes the remote buffer. See `docs/selfchecks/phase-d-high-frequency-stream-unification-selfcheck.md`. |
 | 2026-08-29 | Enemy stream terminal revision guard | `current` | 1697 tests green; build/format/architecture/event/entity/isolation/delivery gates pass | `EnemyStateBatchMsg` carries the host kernel global revision; the guest tracks terminal health revisions from `EnemyUpsertedEvent`/checkpoint restore and refuses stale streams that would roll back health/stunned, while continuous position/velocity still converge. See `docs/selfchecks/phase-d-high-frequency-stream-unification-selfcheck.md`. |
+| 2026-08-29 | Player/enemy high-frequency stream wire unification | `current` | 1694 tests green; build/format/architecture/event/entity/isolation/delivery gates pass | `WireStateStream` now carries `PlayerStates`/`EnemyStates` + seq; both 20 Hz streams ride `StateStreamEnvelope` over `KernelEnvelope`; old `NetMsg.PlayerState`/`PlayerStateReport`/`EnemyState`, their handlers and DTOs are removed; guest player reports are seq-gated per member on the host. See `docs/selfchecks/phase-d-high-frequency-stream-unification-selfcheck.md`. |
 
 ## Next actions
 
@@ -213,6 +214,6 @@ For each domain, complete these steps in order:
    through kernel commands/events where they carry durable facts.
 2. Project kernel player terminal facts into character restore/reconnect
    snapshots where the legacy snapshot stream is no longer authoritative.
-3. Continue high-frequency stream alignment for player/enemy continuous fields
+3. [x] Continue high-frequency stream alignment for player/enemy continuous fields
    with `WireStateStream` / `StateStreamEnvelope`, keeping terminal facts on
    domain events.

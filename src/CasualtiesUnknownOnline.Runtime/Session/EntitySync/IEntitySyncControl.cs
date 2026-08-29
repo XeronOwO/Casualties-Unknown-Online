@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 
@@ -43,7 +44,7 @@ public interface IEntitySyncControl
 
 	bool TryGetSynced(ulong steamId, out EntitySyncService.SyncedEntity member);
 
-	void ApplyEntityState(EntityStateMsg msg, PlayerEntity target);
+	void ApplyPlayerState(WirePlayerStreamState msg, PlayerEntity target);
 
 	void FireStateReceived(PlayerEntity entity);
 

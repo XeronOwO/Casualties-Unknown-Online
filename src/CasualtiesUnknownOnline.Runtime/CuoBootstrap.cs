@@ -186,6 +186,7 @@ public static class CuoBootstrap
 		// Enemy-sync domain: host-authoritative enemy snapshots (the host
 		// publishes the simulated enemies, this broadcasts at 20 Hz + the
 		// world-entry full snapshot; the guest receives for its render copies).
+		services.AddSingleton<EnemyKernelProjection>();
 		services.AddSingleton<EnemySyncService>();
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<EnemySyncService>());
 		services.AddSingleton<IEnemySyncControl>(p => p.GetRequiredService<EnemySyncService>());

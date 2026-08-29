@@ -29,4 +29,7 @@ public sealed class KernelSaveFile
 
 	[ProtoMember(6)]
 	public List<WirePlayerState> Players { get; set; } = [];
+
+	[ProtoMember(7)]
+	public List<WireEnemyState> Enemies { get; set; } = [];
 }

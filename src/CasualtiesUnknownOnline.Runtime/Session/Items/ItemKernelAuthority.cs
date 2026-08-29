@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.GameState;
+using CasualtiesUnknownOnline.GameState.Domains.Entities;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.GameState.Domains.Players;
 using CasualtiesUnknownOnline.GameState.Domains.World;
@@ -61,6 +62,8 @@ public sealed class ItemKernelAuthority(ILogger<ItemKernelAuthority> log)
 	public WorldEntityState? QueryWorldEntities() => _kernel.QueryWorldEntities();
 
 	public PlayerStateTable? QueryPlayers() => _kernel.QueryPlayers();
+
+	public EnemyStateTable? QueryEnemies() => _kernel.QueryEnemies();
 
 	public GameCheckpoint CreateCheckpoint() => _kernel.CreateCheckpoint();
 
@@ -193,6 +196,40 @@ public sealed class ItemKernelAuthority(ILogger<ItemKernelAuthority> log)
 			_runEpoch,
 			AuthorityKind.HostOnly);
 		return TryExecute(command, actor, "reset-players", out batch, out rejection);
+	}
+
+	// ===== Entities =====
+
+	public bool TryUpsertEnemy(ulong actor, EnemyState state, out CommittedBatch? batch, out Rejection? rejection)
+	{
+		var command = new UpsertEnemyCommand(
+			NextOperation(),
+			new ActorId(actor),
+			_runEpoch,
+			AuthorityKind.HostOnly,
+			state);
+		return TryExecute(command, actor, "upsert-enemy", out batch, out rejection);
+	}
+
+	public bool TryRemoveEnemy(ulong actor, EntityId entityId, out CommittedBatch? batch, out Rejection? rejection)
+	{
+		var command = new RemoveEnemyCommand(
+			NextOperation(),
+			new ActorId(actor),
+			_runEpoch,
+			AuthorityKind.HostOnly,
+			entityId);
+		return TryExecute(command, actor, "remove-enemy", out batch, out rejection);
+	}
+
+	public bool TryResetEnemies(ulong actor, out CommittedBatch? batch, out Rejection? rejection)
+	{
+		var command = new ResetEnemiesCommand(
+			NextOperation(),
+			new ActorId(actor),
+			_runEpoch,
+			AuthorityKind.HostOnly);
+		return TryExecute(command, actor, "reset-enemies", out batch, out rejection);
 	}
 
 	// ===== Spawn =====
@@ -485,63 +522,11 @@ public sealed class ItemKernelAuthority(ILogger<ItemKernelAuthority> log)
 
 	// ===== Diagnostics / projection hooks =====
 
-	/// <summary>
-	/// Convert a kernel item state back to the wire/save-shaped projection. This
-	/// does not fill contents; projections assemble contained children from the
-	/// kernel separately.
-	/// </summary>
-	public static CharacterItemMsg ToCharacterItem(ItemState state) =>
-		new()
-		{
-			InstanceId = state.Identity.InstanceId,
-			ItemId = state.Identity.DefinitionId,
-			Condition = state.Data.Condition,
-			SlotIndex = state.Data.SlotIndex,
-			Favourited = state.Data.Favourited,
-			Liquids = [.. state.Data.Liquids.Select(l => new LiquidStackMsg { LiquidId = l.LiquidId, Amount = l.Amount })],
-			Components = [.. state.Data.Components.Select(ToWireComponent)],
-		};
+	/// <summary>Convert a kernel item state back to the wire/save-shaped projection.</summary>
+	public static CharacterItemMsg ToCharacterItem(ItemState state) => ItemKernelCodec.ToCharacterItem(state);
 
-	private static ComponentStateMsg ToWireComponent(ItemComponentState state) =>
-		new()
-		{
-			TypeName = state.TypeName,
-			Fields = [.. state.Fields.Select(f => new ComponentFieldMsg
-			{
-				Name = f.Name,
-				Kind = (int)f.Kind,
-				FloatValue = f.FloatValue,
-				IntValue = f.IntValue,
-				BoolValue = f.BoolValue,
-				StringValue = f.StringValue,
-				StringList = [.. f.StringList],
-			})],
-		};
-
-	/// <summary>
-	/// Convert a wire item message to the kernel-owned payload. Contents are not
-	/// copied here: contained children are authoritative as separate ItemState
-	/// entries and are reconciled by the projection layer.
-	/// </summary>
-	public static ItemData ToKernelData(CharacterItemMsg item) =>
-		new(
-			item.Condition,
-			item.Favourited,
-			item.SlotIndex,
-			[.. item.Liquids.Select(l => new ItemLiquidStack(l.LiquidId, l.Amount))],
-			[.. item.Components.Select(ToKernelComponent)]);
-
-	private static ItemComponentState ToKernelComponent(ComponentStateMsg state) =>
-		new(
-			state.TypeName,
-			[.. state.Fields.Select(f => new ItemComponentField(
-				f.Name,
-				(ItemComponentFieldKind)f.Kind,
-				f.FloatValue,
-				f.IntValue,
-				f.BoolValue,
-				f.StringValue,
-				f.StringList))]);
+	/// <summary>Convert a wire item message to the kernel-owned payload.</summary>
+	public static ItemData ToKernelData(CharacterItemMsg item) => ItemKernelCodec.ToKernelData(item);
 
 	private OperationId NextOperation() => new(_nextOperation++);
 

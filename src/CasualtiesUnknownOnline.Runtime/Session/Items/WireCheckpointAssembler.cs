@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.GameState;
+using CasualtiesUnknownOnline.GameState.Domains.Entities;
 using CasualtiesUnknownOnline.GameState.Domains.Players;
 using CasualtiesUnknownOnline.Protocol.Versioning;
 using CasualtiesUnknownOnline.Protocol.Wire;
@@ -37,13 +38,16 @@ public static class WireCheckpointAssembler
 					? [.. checkpoint.RandomStreams?.Select(KernelWireMapper.ToWireRandomStream) ?? []]
 					: [],
 				Run = index == 0 && checkpoint.Run is not null
-					? KernelWireMapper.ToWireRun(checkpoint.Run)
+					? KernelDomainWireMapper.ToWireRun(checkpoint.Run)
 					: null,
 				WorldEntities = index == 0 && checkpoint.WorldEntities is not null
-					? KernelWireMapper.ToWireWorldEntityState(checkpoint.WorldEntities)
+					? KernelDomainWireMapper.ToWireWorldEntityState(checkpoint.WorldEntities)
 					: null,
 				Players = index == 0
-					? [.. (checkpoint.Players?.Players ?? []).Select(KernelWireMapper.ToWirePlayerState)]
+					? [.. (checkpoint.Players?.Players ?? []).Select(KernelDomainWireMapper.ToWirePlayerState)]
+					: [],
+				Enemies = index == 0
+					? [.. (checkpoint.Enemies?.Enemies ?? []).Select(KernelDomainWireMapper.ToWireEnemyState)]
 					: [],
 			});
 		}
@@ -96,12 +100,15 @@ public static class WireCheckpointAssembler
 			.ToList();
 
 		var firstRun = ordered[0]!.Run;
-		var run = firstRun is null ? null : KernelWireMapper.FromWireRun(firstRun);
+		var run = firstRun is null ? null : KernelDomainWireMapper.FromWireRun(firstRun);
 		var firstWorldEntities = ordered[0]!.WorldEntities;
-		var worldEntities = firstWorldEntities is null ? null : KernelWireMapper.FromWireWorldEntityState(firstWorldEntities);
+		var worldEntities = firstWorldEntities is null ? null : KernelDomainWireMapper.FromWireWorldEntityState(firstWorldEntities);
 		var players = ordered[0]!.Players.Count == 0
 			? null
-			: new PlayerStateTable([.. ordered[0]!.Players.Select(KernelWireMapper.FromWirePlayerState)]);
-		return new GameCheckpoint(new RunEpoch(first.RunEpoch), first.GlobalRevision, items, randomStreams, run, worldEntities, players);
+			: new PlayerStateTable([.. ordered[0]!.Players.Select(KernelDomainWireMapper.FromWirePlayerState)]);
+		var enemies = ordered[0]!.Enemies.Count == 0
+			? null
+			: new EnemyStateTable([.. ordered[0]!.Enemies.Select(KernelDomainWireMapper.FromWireEnemyState)]);
+		return new GameCheckpoint(new RunEpoch(first.RunEpoch), first.GlobalRevision, items, randomStreams, run, worldEntities, players, enemies);
 	}
 }

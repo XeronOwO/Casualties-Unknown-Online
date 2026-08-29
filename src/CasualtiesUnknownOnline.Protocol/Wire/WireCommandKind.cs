@@ -21,6 +21,9 @@ public enum WireCommandKind
 	ResetWorldEntities = 13,
 	UpdatePlayerStatus = 14,
 	ResetPlayers = 15,
+	UpsertEnemy = 16,
+	RemoveEnemy = 17,
+	ResetEnemies = 18,
 
 	// Protocol control (not a gameplay command)
 	RangeRequest = 100,

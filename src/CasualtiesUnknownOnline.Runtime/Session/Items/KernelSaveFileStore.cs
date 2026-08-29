@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using CasualtiesUnknownOnline.GameState;
+using CasualtiesUnknownOnline.GameState.Domains.Players;
 using CasualtiesUnknownOnline.Protocol.Wire;
 using Microsoft.Extensions.Logging;
 using ProtoBuf;
@@ -47,6 +48,7 @@ public sealed class KernelSaveFileStore(string? filePath, ILogger<KernelSaveFile
 			RandomStreams = [.. checkpoint.RandomStreams?.Select(ToWireRandomStream) ?? []],
 			Run = checkpoint.Run is null ? null : KernelWireMapper.ToWireRun(checkpoint.Run),
 			WorldEntities = checkpoint.WorldEntities is null ? null : KernelWireMapper.ToWireWorldEntityState(checkpoint.WorldEntities),
+			Players = [.. (checkpoint.Players?.Players ?? []).Select(KernelWireMapper.ToWirePlayerState)],
 		};
 
 		return WriteAtomically(file);
@@ -89,7 +91,10 @@ public sealed class KernelSaveFileStore(string? filePath, ILogger<KernelSaveFile
 				[.. file.Items.Select(KernelWireMapper.FromWireItem)],
 				[.. file.RandomStreams.Select(FromWireRandomStream)],
 				file.Run is null ? null : KernelWireMapper.FromWireRun(file.Run),
-				file.WorldEntities is null ? null : KernelWireMapper.FromWireWorldEntityState(file.WorldEntities));
+				file.WorldEntities is null ? null : KernelWireMapper.FromWireWorldEntityState(file.WorldEntities),
+				file.Players.Count == 0
+					? null
+					: new PlayerStateTable([.. file.Players.Select(KernelWireMapper.FromWirePlayerState)]));
 			_log.LogInformation("Loaded kernel checkpoint from {Path}: epoch {Epoch}, revision {Revision}, items {Items}.",
 				_filePath, checkpoint.RunEpoch.Value, checkpoint.GlobalRevision, checkpoint.Items.Count);
 			return true;

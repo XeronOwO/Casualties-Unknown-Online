@@ -60,4 +60,7 @@ public sealed class WireCommand
 
 	[ProtoMember(17)]
 	public long TriggeredAtMs { get; set; }
+
+	[ProtoMember(18)]
+	public WirePlayerState? PlayerState { get; set; }
 }

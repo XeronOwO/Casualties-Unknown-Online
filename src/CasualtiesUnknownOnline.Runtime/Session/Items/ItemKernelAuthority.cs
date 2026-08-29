@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
+using CasualtiesUnknownOnline.GameState.Domains.Players;
 using CasualtiesUnknownOnline.GameState.Domains.World;
 using CasualtiesUnknownOnline.GameState.Domains.WorldEntities;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
@@ -58,6 +59,8 @@ public sealed class ItemKernelAuthority(ILogger<ItemKernelAuthority> log)
 	public RunState? QueryRun() => _kernel.QueryRun();
 
 	public WorldEntityState? QueryWorldEntities() => _kernel.QueryWorldEntities();
+
+	public PlayerStateTable? QueryPlayers() => _kernel.QueryPlayers();
 
 	public GameCheckpoint CreateCheckpoint() => _kernel.CreateCheckpoint();
 
@@ -167,6 +170,29 @@ public sealed class ItemKernelAuthority(ILogger<ItemKernelAuthority> log)
 			_runEpoch,
 			AuthorityKind.HostOnly);
 		return TryExecute(command, actor, "reset-world-entities", out batch, out rejection);
+	}
+
+	// ===== Players =====
+
+	public bool TryUpdatePlayerStatus(ulong actor, PlayerState state, out CommittedBatch? batch, out Rejection? rejection)
+	{
+		var command = new UpdatePlayerStatusCommand(
+			NextOperation(),
+			new ActorId(actor),
+			_runEpoch,
+			AuthorityKind.HostOnly,
+			state);
+		return TryExecute(command, actor, "update-player-status", out batch, out rejection);
+	}
+
+	public bool TryResetPlayers(ulong actor, out CommittedBatch? batch, out Rejection? rejection)
+	{
+		var command = new ResetPlayersCommand(
+			NextOperation(),
+			new ActorId(actor),
+			_runEpoch,
+			AuthorityKind.HostOnly);
+		return TryExecute(command, actor, "reset-players", out batch, out rejection);
 	}
 
 	// ===== Spawn =====

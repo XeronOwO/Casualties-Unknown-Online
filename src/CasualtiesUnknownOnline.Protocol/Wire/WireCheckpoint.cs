@@ -33,4 +33,7 @@ public sealed class WireCheckpoint
 
 	[ProtoMember(8)]
 	public WireWorldEntityState? WorldEntities { get; set; }
+
+	[ProtoMember(9)]
+	public List<WirePlayerState> Players { get; set; } = [];
 }

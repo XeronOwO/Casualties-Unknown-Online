@@ -61,6 +61,9 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 	/// <summary>Raised after a state-stream batch is applied (the Game Adapter drives the frozen render copies from the buffered state on this).</summary>
 	public event Action? EnemyStateReceived;
 
+	/// <summary>Raised after an explicit enemy aggregate removal is applied (the Game Adapter destroys the frozen copy).</summary>
+	public event Action<NetworkEntityId>? EnemyRemovedReceived;
+
 	/// <summary>Raised when an enemy bite arrives (report or relay) — the Game Adapter applies the post-bite limb/body state to the victim's clone.</summary>
 	public event Action<ulong, EnemyBiteMsg>? EnemyBiteReceived;
 
@@ -207,6 +210,8 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 	public void PublishEnemyStates(IEnumerable<EnemyEntity> states)
 	{
 		var published = states.ToList();
+		var publishedIds = published.Select(e => e.EntityId).ToHashSet();
+		var removed = _enemies.Keys.Where(id => !publishedIds.Contains(id)).ToList();
 		_enemies.Clear();
 		foreach (var state in published)
 		{
@@ -223,6 +228,7 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 		if (_session.Role == SessionRole.Host)
 		{
 			_enemyKernel.Sync(published);
+			SendEnemyRemoved(removed);
 		}
 	}
 
@@ -231,6 +237,8 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 	uint IEnemySyncControl.LastEnemyStateSeq { get => _lastEnemyStateSeq; set => _lastEnemyStateSeq = value; }
 
 	void IEnemySyncControl.ApplyEnemyState(EnemyStateBatchMsg msg) => ApplyEnemyState(msg);
+
+	void IEnemySyncControl.ApplyEnemyRemoved(EnemyRemovedMsg msg) => ApplyEnemyRemoved(msg);
 
 	void IEnemySyncControl.ApplyEnemySnapshot(EnemySnapshotMsg msg) => ApplyEnemySnapshot(msg);
 
@@ -313,9 +321,51 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 		_sender.Send(steamId, NetMsg.EnemySnapshot, payload);
 	}
 
+	/// <summary>Host side: send each removed enemy id to every in-world guest as
+	/// a reliable lifecycle fact. The 20 Hz stream is update-only, so this is the
+	/// only path by which a guest learn that an aggregate left the set.</summary>
+	private void SendEnemyRemoved(IReadOnlyList<NetworkEntityId> removedIds)
+	{
+		if (_session.Role != SessionRole.Host || !_session.SessionActive || removedIds.Count == 0)
+		{
+			return;
+		}
+
+		foreach (var id in removedIds)
+		{
+			foreach (var member in _session.Members)
+			{
+				if (member.Handshaken && member.InWorld && member.SteamId != _session.LocalSteamId)
+				{
+					_sender.Send(
+						member.SteamId,
+						NetMsg.EnemyRemoved,
+						new EnemyRemovedMsg { Id = id.ToNetworkEntityIdMsg() },
+						reliable: true);
+				}
+			}
+		}
+
+		_log.LogInformation("[Enemy] host sent {Count} enemy removal(s).", removedIds.Count);
+	}
+
 	// ---- Apply (guest) ----
 
-	private void ApplyEnemyState(EnemyStateBatchMsg msg) => Replace(msg.Enemies, EnemyStateReceived);
+	/// <summary>Update-only stream semantics: the 20 Hz batch refreshes the
+	/// convergent fields of the enemies it contains but never removes an id that
+	/// is absent from the batch. Aggregate lifecycle travels explicitly via
+	/// <see cref="EnemyRemovedMsg"/>.</summary>
+	private void ApplyEnemyState(EnemyStateBatchMsg msg) => Merge(msg.Enemies, EnemyStateReceived);
+
+	private void ApplyEnemyRemoved(EnemyRemovedMsg msg)
+	{
+		var id = msg.Id.ToNetworkEntityId();
+		if (_enemies.Remove(id))
+		{
+			_log.LogInformation("[Enemy] guest removed enemy {Enemy}.", id);
+			EnemyRemovedReceived?.Invoke(id);
+		}
+	}
 
 	private void ApplyEnemySnapshot(EnemySnapshotMsg msg)
 	{
@@ -323,8 +373,22 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 		Replace(msg.Enemies, EnemySnapshotReceived);
 	}
 
-	/// <summary>Full-overwrite semantics: the host's batch IS the whole enemy set —
-	/// a disappeared enemy (destroyed, off-screen) must drop out, not linger.</summary>
+	/// <summary>Merge the batch into the existing buffer. This is the update-only
+	/// stream path: no implicit removal when an id disappears from the batch.</summary>
+	private void Merge(IEnumerable<EnemyStateMsg> states, Action? notify)
+	{
+		foreach (var state in states)
+		{
+			var entity = new EnemyEntity(default);
+			state.ApplyTo(entity);
+			_enemies[entity.EntityId] = entity;
+		}
+
+		notify?.Invoke();
+	}
+
+	/// <summary>Full-overwrite semantics for the world-entry / reconnect snapshot:
+	/// the snapshot is the complete authoritative set at that moment.</summary>
 	private void Replace(IEnumerable<EnemyStateMsg> states, Action? notify)
 	{
 		_enemies.Clear();

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
@@ -155,5 +156,41 @@ public class EnemySyncServiceTests
 		Assert.Single(g1Enemies.Enemies);
 		Assert.NotNull(g1Enemies.GetEnemy(new NetworkEntityId(1, 1, 0)));
 		Assert.Null(g1Enemies.GetEnemy(new NetworkEntityId(1, 0, 0)));
+	}
+
+	[Fact]
+	public void StateBatch_MissingId_DoesNotRemoveExistingBuffer()
+	{
+		using var w = ItemSimWorld.Create();
+		var g1Enemies = w.G1.Services.GetRequiredService<EnemySyncService>();
+		var control = (IEnemySyncControl)g1Enemies;
+
+		control.ApplyEnemyState(new EnemyStateBatchMsg
+		{
+			Enemies = [Enemy(0, 1f, 1f).ToEnemyStateMsg()],
+		});
+		control.ApplyEnemyState(new EnemyStateBatchMsg { Enemies = [] });
+
+		Assert.NotNull(g1Enemies.GetEnemy(new NetworkEntityId(1, 0, 0)));
+	}
+
+	[Fact]
+	public void RemovalMessage_RemovesEnemyAndRaisesEvent()
+	{
+		using var w = ItemSimWorld.Create();
+		var g1Enemies = w.G1.Services.GetRequiredService<EnemySyncService>();
+		var control = (IEnemySyncControl)g1Enemies;
+		var id = new NetworkEntityId(1, 2, 0);
+		var removed = new List<NetworkEntityId>();
+		g1Enemies.EnemyRemovedReceived += removedId => removed.Add(removedId);
+
+		control.ApplyEnemyState(new EnemyStateBatchMsg
+		{
+			Enemies = [Enemy(2, 3f, 4f).ToEnemyStateMsg()],
+		});
+		control.ApplyEnemyRemoved(new EnemyRemovedMsg { Id = id.ToNetworkEntityIdMsg() });
+
+		Assert.Null(g1Enemies.GetEnemy(id));
+		Assert.Equal(id, Assert.Single(removed));
 	}
 }

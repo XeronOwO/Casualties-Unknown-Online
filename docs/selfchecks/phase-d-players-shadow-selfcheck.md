@@ -1,10 +1,10 @@
 # Phase D Players shadow self-check (2026-08-29)
 
-This fact sheet records the Phase D Players domain first cycle: a kernel
-terminal-status table (alive/conscious), reset semantics, and
-checkpoint/wire/save integration. The production player lifecycle and
-cross-player interaction services still remain the live path; this model is the
-next domain's shadow foundation.
+This fact sheet records the Phase D Players domain first cycles: a kernel
+terminal-status table (alive/conscious), reset semantics,
+checkpoint/wire/save integration, and production wiring from the entity-sync
+surface into the kernel for host-side player status changes. Cross-player
+carry/release and richer terminal facts remain for subsequent cycles.
 
 ## Mechanism inventory
 
@@ -18,7 +18,8 @@ next domain's shadow foundation.
 | Kernel integration | `GameStateKernel`, `GameStateStore`, `KernelReadModel`, `MutableKernelState`, `GameCheckpoint` | `PlayerStateTable?` is now a kernel domain table and checkpoint field. |
 | Wire DTOs | `WirePlayerState` | Protocol remains GameState-free. |
 | Mapper/save | `KernelWireMapper`, `WireCheckpointAssembler`, `KernelSaveFileStore`, `KernelSaveFile` | Player facts round-trip through wire checkpoints and disk saves. |
-| Runtime authority surface | `ItemKernelAuthority.TryUpdatePlayerStatus/TryResetPlayers/QueryPlayers` | Shadow entry points for the later production switch. |
+| Runtime authority surface | `ItemKernelAuthority.TryUpdatePlayerStatus/TryResetPlayers/QueryPlayers` | Host commands and query entry points. |
+| Entity-sync projection | `PlayerKernelStatusProjection` + `EntitySyncService` | Host `PublishLocalState`/`ApplyEntityState` project alive/conscious changes into kernel status; guests receive the kernel batch through the existing protocol path. |
 
 ## Evidence table
 
@@ -30,11 +31,12 @@ next domain's shadow foundation.
 | Wire batch preserves a player-status event | `PlayerDomainKernelTests.WireBatchRoundTrip_PreservesPlayerStatusEvent`. |
 | Checkpoint chunks preserve players | `PlayerDomainKernelTests.CheckpointSplitAssemble_RoundTripsPlayers`. |
 | Save/load preserves players | `PlayerDomainKernelTests.SaveLoad_RoundTripsPlayers`. |
+| Host entity-sync publish commits player status | `PlayerProjectionTests.HostPublishLocalState_CommitsPlayerKernelStatus`. |
 
 ## Verification
 
 - `dotnet build CasualtiesUnknownOnline.slnx`: 0 warnings / 0 errors.
-- `dotnet test CasualtiesUnknownOnline.slnx`: 1655 passed.
+- `dotnet test CasualtiesUnknownOnline.slnx`: 1656 passed.
 - `dotnet format`: applied.
 - Architecture/event/entity/isolation gates passed.
 
@@ -47,8 +49,7 @@ next domain's shadow foundation.
 
 ## Next sub-steps
 
-1. Route player death/unconscious/limb terminal transitions and carry/release
-   relations through kernel commands.
-2. Project kernel player facts into `PlayerEntity`/character restore and
-   snapshots.
-3. Add cross-player interaction authority policies and tests.
+1. Add limb terminal facts and carry/release relations to the player domain.
+2. Route cross-player interaction result messages through kernel commands.
+3. Project kernel player facts into character restore/snapshots where the old
+   ict stream is not sufficient.

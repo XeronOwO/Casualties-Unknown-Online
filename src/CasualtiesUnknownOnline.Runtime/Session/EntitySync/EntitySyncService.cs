@@ -49,6 +49,8 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 
 	private readonly ILogger<EntitySyncService> _log;
 
+	private readonly PlayerKernelStatusProjection _playerStatus;
+
 	private readonly PlayerEntity _localPlayer;
 
 	/// <summary>The local swing-presentation window (state belongs to its owner — this service owns the local player's presentation state).</summary>
@@ -72,7 +74,8 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 	private uint _nextReportSeq; // guest: PlayerStateReport broadcasts
 
 	public EntitySyncService(ISessionControl session, PacketSender sender, ITimeSource time,
-		IOptionsMonitor<StateStreamOptions> stateStreamOptions, ILogger<EntitySyncService> log)
+		IOptionsMonitor<StateStreamOptions> stateStreamOptions, ILogger<EntitySyncService> log,
+		PlayerKernelStatusProjection playerStatus)
 	{
 		_session = session;
 
@@ -83,6 +86,7 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 		_stateStreamOptions = stateStreamOptions;
 
 		_log = log;
+		_playerStatus = playerStatus;
 		_localPlayer = new PlayerEntity(session.LocalSteamId, default, isLocal: true);
 
 		session.MemberRemoved += OnMemberRemoved;
@@ -142,6 +146,10 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 		_localPlayer.SlidingRight = slidingRight;
 		_localPlayer.IsAttacking = _attackSwing.IsAttacking;
 		_localPlayer.SwingSeq = _swingSeq;
+		if (_session.Role == SessionRole.Host)
+		{
+			_playerStatus.Sync(_session.LocalSteamId, alive, conscious);
+		}
 	}
 
 	/// <summary>The local player swung (Body.Attack or Body.ThrowItem — both play ArmsSwing) — mark the swing so the peers' clones replay the animation via the IsAttacking snapshot flag and the per-swing sequence.</summary>
@@ -290,6 +298,10 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 		target.PrevVelocity = firstSnapshot ? msg.Velocity.ToNetVector2() : target.Velocity;
 		msg.ApplyTo(target);
 		target.StateReceivedMs = now;
+		if (_session.Role == SessionRole.Host && target.SteamId != 0)
+		{
+			_playerStatus.Sync(target.SteamId, target.Alive, target.Conscious);
+		}
 	}
 
 	// ---- Lifecycle ----

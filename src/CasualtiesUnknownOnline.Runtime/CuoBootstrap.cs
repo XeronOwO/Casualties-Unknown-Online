@@ -179,6 +179,7 @@ public static class CuoBootstrap
 		// Entity-sync domain: the entity table, the sync decisions and the
 		// 20 Hz state exchange + join announcements. It reads the session's
 		// control surface, so it runs after the session in the Update order.
+		services.AddSingleton<PlayerKernelStatusProjection>();
 		services.AddSingleton<EntitySyncService>();
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<EntitySyncService>());
 		services.AddSingleton<IEntitySyncControl>(p => p.GetRequiredService<EntitySyncService>());

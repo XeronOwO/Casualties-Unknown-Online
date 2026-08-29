@@ -62,4 +62,7 @@ public sealed class WireEvent
 
 	[ProtoMember(18)]
 	public WireEnemyState? EnemyState { get; set; }
+
+	[ProtoMember(19)]
+	public WireFluidRegionState? FluidState { get; set; }
 }

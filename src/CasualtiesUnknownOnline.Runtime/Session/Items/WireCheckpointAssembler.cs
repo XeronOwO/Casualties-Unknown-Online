@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.GameState.Domains.Entities;
+using CasualtiesUnknownOnline.GameState.Domains.Fluids;
 using CasualtiesUnknownOnline.GameState.Domains.Players;
 using CasualtiesUnknownOnline.Protocol.Versioning;
 using CasualtiesUnknownOnline.Protocol.Wire;
@@ -48,6 +49,9 @@ public static class WireCheckpointAssembler
 					: [],
 				Enemies = index == 0
 					? [.. (checkpoint.Enemies?.Enemies ?? []).Select(KernelDomainWireMapper.ToWireEnemyState)]
+					: [],
+				Fluids = index == 0
+					? [.. (checkpoint.Fluids?.Regions ?? []).Select(KernelDomainWireMapper.ToWireFluidRegionState)]
 					: [],
 			});
 		}
@@ -109,6 +113,9 @@ public static class WireCheckpointAssembler
 		var enemies = ordered[0]!.Enemies.Count == 0
 			? null
 			: new EnemyStateTable([.. ordered[0]!.Enemies.Select(KernelDomainWireMapper.FromWireEnemyState)]);
-		return new GameCheckpoint(new RunEpoch(first.RunEpoch), first.GlobalRevision, items, randomStreams, run, worldEntities, players, enemies);
+		var fluids = ordered[0]!.Fluids.Count == 0
+			? null
+			: new FluidStateTable([.. ordered[0]!.Fluids.Select(KernelDomainWireMapper.FromWireFluidRegionState)]);
+		return new GameCheckpoint(new RunEpoch(first.RunEpoch), first.GlobalRevision, items, randomStreams, run, worldEntities, players, enemies, fluids);
 	}
 }

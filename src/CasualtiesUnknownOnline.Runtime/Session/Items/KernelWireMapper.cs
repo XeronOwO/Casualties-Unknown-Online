@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.GameState.Domains.Entities;
+using CasualtiesUnknownOnline.GameState.Domains.Fluids;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.GameState.Domains.Players;
 using CasualtiesUnknownOnline.GameState.Domains.World;
@@ -208,6 +209,15 @@ public static class KernelWireMapper
 			{
 				Kind = WireEventKind.EnemiesReset,
 			},
+			FluidRegionUpdatedEvent fluid => new WireEvent
+			{
+				Kind = WireEventKind.FluidRegionUpdated,
+				FluidState = KernelDomainWireMapper.ToWireFluidRegionState(fluid.State),
+			},
+			FluidsResetEvent => new WireEvent
+			{
+				Kind = WireEventKind.FluidsReset,
+			},
 			_ => throw new ArgumentOutOfRangeException(nameof(@event), @event.GetType().Name, "no wire mapping for kernel event"),
 		};
 
@@ -317,6 +327,9 @@ public static class KernelWireMapper
 			WireEventKind.EnemyRemoved => new EnemyRemovedEvent(
 				KernelDomainWireMapper.FromWireEntityId(@event.EntityId ?? throw new InvalidOperationException("EnemyRemoved event lacks entity id"))),
 			WireEventKind.EnemiesReset => new EnemiesResetEvent(),
+			WireEventKind.FluidRegionUpdated => new FluidRegionUpdatedEvent(
+				KernelDomainWireMapper.FromWireFluidRegionState(@event.FluidState ?? throw new InvalidOperationException("FluidRegionUpdated event lacks fluid state"))),
+			WireEventKind.FluidsReset => new FluidsResetEvent(),
 			_ => throw new ArgumentOutOfRangeException(nameof(@event.Kind), @event.Kind, "unknown wire event kind"),
 		};
 
@@ -462,6 +475,17 @@ public static class KernelWireMapper
 				authority,
 				KernelDomainWireMapper.FromWireEntityId(command.EntityId ?? throw new InvalidOperationException("RemoveEnemy command lacks entity id"))),
 			WireCommandKind.ResetEnemies => new ResetEnemiesCommand(
+				operation,
+				actor,
+				epoch,
+				authority),
+			WireCommandKind.UpdateFluidRegion => new UpdateFluidRegionCommand(
+				operation,
+				actor,
+				epoch,
+				authority,
+				KernelDomainWireMapper.FromWireFluidRegionState(command.FluidState ?? throw new InvalidOperationException("UpdateFluidRegion command lacks fluid state"))),
+			WireCommandKind.ResetFluids => new ResetFluidsCommand(
 				operation,
 				actor,
 				epoch,

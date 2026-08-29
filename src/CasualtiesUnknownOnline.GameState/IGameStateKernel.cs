@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.GameState.Domains.Entities;
+using CasualtiesUnknownOnline.GameState.Domains.Fluids;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.GameState.Domains.Players;
 using CasualtiesUnknownOnline.GameState.Domains.World;
@@ -32,4 +33,6 @@ public interface IGameStateKernel
 	PlayerStateTable? QueryPlayers();
 
 	EnemyStateTable? QueryEnemies();
+
+	FluidStateTable? QueryFluids();
 }

@@ -27,6 +27,8 @@ public enum WirePayloadType
 	UpsertEnemyCommand = 16,
 	RemoveEnemyCommand = 17,
 	ResetEnemiesCommand = 18,
+	UpdateFluidRegionCommand = 19,
+	ResetFluidsCommand = 20,
 
 	// Kernel events (critical)
 	ItemSpawnedEvent = 101,
@@ -44,6 +46,8 @@ public enum WirePayloadType
 	EnemyUpsertedEvent = 113,
 	EnemyRemovedEvent = 114,
 	EnemiesResetEvent = 115,
+	FluidRegionUpdatedEvent = 116,
+	FluidsResetEvent = 117,
 
 	// Envelope families
 	CommittedBatch = 100,

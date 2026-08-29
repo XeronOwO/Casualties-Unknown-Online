@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.GameState.Domains.Players;
@@ -21,6 +22,7 @@ public static class PlayerInteractionWireMapper
 			ToSteamId = e.ToSteamId,
 			ItemIdentity = ToWireIdentity(e.Item.Identity),
 			ItemData = ToWireData(e.Item.Data),
+			ItemContents = [.. e.Item.Children.Select(ToWireItem)],
 		};
 
 	public static WirePlayerInteraction ToWire(PlayerHealResultEvent e) =>
@@ -64,12 +66,14 @@ public static class PlayerInteractionWireMapper
 		{
 			wire.ItemAfterIdentity = ToWireIdentity(after.Identity);
 			wire.ItemAfterData = ToWireData(after.Data);
+			wire.ItemAfterContents = [.. after.Children.Select(ToWireItem)];
 		}
 
 		if (e.WornItem is { } worn)
 		{
 			wire.WornItemIdentity = ToWireIdentity(worn.Identity);
 			wire.WornItemData = ToWireData(worn.Data);
+			wire.WornItemContents = [.. worn.Children.Select(ToWireItem)];
 		}
 
 		return wire;
@@ -79,7 +83,7 @@ public static class PlayerInteractionWireMapper
 		new(
 			p.FromSteamId,
 			p.ToSteamId,
-			FromWireItem(p.ItemIdentity, p.ItemData) ?? throw new System.InvalidOperationException("inventory transfer event lacks item payload"));
+			FromWireItem(p.ItemIdentity, p.ItemData, p.ItemContents) ?? throw new System.InvalidOperationException("inventory transfer event lacks item payload"));
 
 	public static PlayerHealResultEvent FromWireHealResult(WirePlayerInteraction p) =>
 		new(
@@ -98,8 +102,8 @@ public static class PlayerInteractionWireMapper
 			p.ToSteamId,
 			p.ItemInstanceId,
 			p.ItemDestroyed,
-			FromWireItem(p.ItemAfterIdentity, p.ItemAfterData),
-			FromWireItem(p.WornItemIdentity, p.WornItemData),
+			FromWireItem(p.ItemAfterIdentity, p.ItemAfterData, p.ItemAfterContents),
+			FromWireItem(p.WornItemIdentity, p.WornItemData, p.WornItemContents),
 			FromWireHealth(p.Health),
 			[.. p.Limbs.Select(FromWireLimb)],
 			[.. p.TimedEffects.Select(t => new PlayerInteractionTimedLimbEffect(t.LimbIndex, t.DurationSeconds, t.BleedPerSecond))],
@@ -122,7 +126,10 @@ public static class PlayerInteractionWireMapper
 			Components = [.. data.Components.Select(ToWireComponent)],
 		};
 
-	private static PlayerInteractionItem? FromWireItem(WireItemIdentity? identity, WireItemData? data)
+	private static PlayerInteractionItem? FromWireItem(
+		WireItemIdentity? identity,
+		WireItemData? data,
+		IReadOnlyList<WirePlayerInteractionItem>? contents)
 	{
 		if (identity is null || data is null)
 		{
@@ -131,8 +138,23 @@ public static class PlayerInteractionWireMapper
 
 		return new PlayerInteractionItem(
 			new ItemIdentity(identity.InstanceId, identity.DefinitionId),
-			FromWireData(data));
+			FromWireData(data),
+			contents is null ? null : [.. contents.Select(FromWireItem)]);
 	}
+
+	private static WirePlayerInteractionItem ToWireItem(PlayerInteractionItem item) =>
+		new()
+		{
+			Identity = ToWireIdentity(item.Identity),
+			Data = ToWireData(item.Data),
+			Contents = [.. item.Children.Select(ToWireItem)],
+		};
+
+	private static PlayerInteractionItem FromWireItem(WirePlayerInteractionItem item) =>
+		new(
+			new ItemIdentity(item.Identity.InstanceId, item.Identity.DefinitionId),
+			FromWireData(item.Data),
+			[.. item.Contents.Select(FromWireItem)]);
 
 	private static WireComponentState ToWireComponent(ItemComponentState component) =>
 		new()

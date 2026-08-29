@@ -1,6 +1,6 @@
 # Phase D — Full Domain Migration
 
-> Status: **Not started** (depends on Phase C)
+> Status: **In progress** (all Phase D domain areas have kernel foundations; remaining work is authority/projection cleanup and high-frequency stream alignment)
 > Source: target architecture §8-§10; migration roadmap "Phase D".
 
 ## Objective
@@ -199,6 +199,7 @@ For each domain, complete these steps in order:
 | 2026-08-29 | High-frequency stream unification first slice: enemy explicit lifecycle | `1853bdf` | 1675 tests green; build/format/architecture/event/entity/isolation/delivery gates pass | Enemy 20 Hz state batch is now update-only; disappearing enemies travel as reliable `EnemyRemovedMsg`, `EnemyRemovedHandler` removes the guest buffer, and `EnemySyncCoordinator` destroys the local frozen copy. See `docs/selfchecks/phase-d-high-frequency-stream-unification-selfcheck.md`. |
 | 2026-08-29 | WorldEntities legacy snapshot wire removal | `3a9628b` | 1680 tests green; build/format/architecture/event/entity/isolation/delivery gates pass | Removed `TrapStateSnapshot`, `OpenedEntitiesSnapshot`, and `BuildingEntityHealthSnapshot` message ids/classes/handlers and their world-entry/60 s send paths. World-entity backfill now rides `KernelEnvelope` checkpoint + `WorldEntityKernelProjection`; the 60 s host cycle resends the kernel checkpoint as the lazy-session fallback. Tests/replay moved from snapshot actions to checkpoint projection. See `docs/selfchecks/phase-d-world-entities-shadow-selfcheck.md`. |
 | 2026-08-29 | Players limb terminal facts | `b7c9e9e` | 1687 tests green; build/format/architecture/event/entity/isolation/delivery gates pass | `PlayerState` now carries `PlayerLimbState` discrete latch facts (broken/dismembered/dislocated/splinted/infected/blocked-bleeding/head/vital); wire/checkpoint/save round-trip; `PlayerKernelLimbProjection` commits from host character snapshots and limb-latch events; `PlayerKernelStatusProjection` now preserves carry/limbs on status updates. See `docs/selfchecks/phase-d-players-shadow-selfcheck.md`. |
+| 2026-08-29 | Players body-level terminal latches | `current` | 1693 tests green; build/format/architecture/event/entity/isolation/delivery gates pass | `PlayerState` now carries `PlayerBodyTerminalState` discrete body terminal booleans (face latches, pulmonary embolism, last-stand/neural flags, fibrillation forced, mindwipe script); wire/checkpoint/save round-trip; `PlayerKernelLimbProjection` commits them from character snapshots, limb-latch events, and cross-player use. See `docs/selfchecks/phase-d-players-shadow-selfcheck.md`. |
 
 ## Next actions
 

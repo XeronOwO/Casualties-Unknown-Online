@@ -176,6 +176,112 @@ public class PlayerDomainKernelTests
 	}
 
 	[Fact]
+	public void UpdateStatus_UpsertsBodyTerminalFacts()
+	{
+		var kernel = new GameStateKernel(Epoch);
+		var body = new PlayerBodyTerminalState(
+			Disfigured: true,
+			EyeGone: true,
+			BothEyesGone: false,
+			HasPulmonaryEmbolism: true,
+			TriedRollingLastStand: false,
+			SuccesfullyRolledLastStand: true,
+			UsedNeuralBooster: true,
+			FibrillationForced: false,
+			MindwipeScriptPresent: true,
+			MindwipeScriptActive: true);
+
+		Assert.True(Update(kernel, 1, new PlayerState(2001, true, true, Body: body)).IsAccepted);
+
+		var player = Assert.Single(kernel.QueryPlayers()!.Players);
+		Assert.Equal(body, player.Body);
+	}
+
+	[Fact]
+	public void WireBatchRoundTrip_PreservesPlayerBodyTerminalFacts()
+	{
+		var source = new GameStateKernel(Epoch);
+		var body = new PlayerBodyTerminalState(
+			Disfigured: false,
+			EyeGone: true,
+			BothEyesGone: true,
+			HasPulmonaryEmbolism: false,
+			TriedRollingLastStand: true,
+			SuccesfullyRolledLastStand: false,
+			UsedNeuralBooster: true,
+			FibrillationForced: true,
+			MindwipeScriptPresent: false,
+			MindwipeScriptActive: true);
+		var batch = Update(source, 1, new PlayerState(2001, true, true, Body: body)).Batch!;
+
+		var restored = KernelWireMapper.FromWireBatch(KernelWireMapper.ToWireBatch(batch), Epoch);
+
+		var @event = Assert.IsType<PlayerStatusUpdatedEvent>(Assert.Single(restored.Events));
+		Assert.Equal(body, @event.State.Body);
+	}
+
+	[Fact]
+	public void CheckpointSplitAssemble_RoundTripsPlayerBodyTerminalFacts()
+	{
+		var kernel = new GameStateKernel(Epoch);
+		var body = new PlayerBodyTerminalState(
+			Disfigured: true,
+			EyeGone: false,
+			BothEyesGone: false,
+			HasPulmonaryEmbolism: true,
+			TriedRollingLastStand: true,
+			SuccesfullyRolledLastStand: true,
+			UsedNeuralBooster: false,
+			FibrillationForced: true,
+			MindwipeScriptPresent: true,
+			MindwipeScriptActive: false);
+		Assert.True(Update(kernel, 1, new PlayerState(2001, true, true, Body: body)).IsAccepted);
+
+		var restored = WireCheckpointAssembler.Assemble(WireCheckpointAssembler.Split(kernel.CreateCheckpoint()));
+
+		Assert.Equal(body, Assert.Single(restored.Players!.Players).Body);
+	}
+
+	[Fact]
+	public void SaveLoad_RoundTripsPlayerBodyTerminalFacts()
+	{
+		var path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"cuo-players-body-{Guid.NewGuid():N}.bin");
+		try
+		{
+			var authority = new ItemKernelAuthority(NullLogger<ItemKernelAuthority>.Instance);
+			var body = new PlayerBodyTerminalState(
+				Disfigured: false,
+				EyeGone: true,
+				BothEyesGone: false,
+				HasPulmonaryEmbolism: false,
+				TriedRollingLastStand: false,
+				SuccesfullyRolledLastStand: false,
+				UsedNeuralBooster: true,
+				FibrillationForced: false,
+				MindwipeScriptPresent: true,
+				MindwipeScriptActive: true);
+			Assert.True(authority.TryUpdatePlayerStatus(
+				Host.Value,
+				new PlayerState(2001, true, true, Body: body),
+				out _,
+				out _));
+
+			var store = new KernelSaveFileStore(path, NullLogger<KernelSaveFileStore>.Instance);
+			Assert.True(store.Save(authority.CreateCheckpoint()));
+			Assert.True(store.TryLoad(out var loaded));
+
+			Assert.Equal(body, Assert.Single(loaded.Players!.Players).Body);
+		}
+		finally
+		{
+			if (System.IO.File.Exists(path))
+			{
+				System.IO.File.Delete(path);
+			}
+		}
+	}
+
+	[Fact]
 	public void SetAndClearCarry_DrivePlayerRelation()
 	{
 		var kernel = new GameStateKernel(Epoch);

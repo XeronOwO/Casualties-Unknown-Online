@@ -193,4 +193,30 @@ public class EnemySyncServiceTests
 		Assert.Null(g1Enemies.GetEnemy(id));
 		Assert.Equal(id, Assert.Single(removed));
 	}
+
+	[Fact]
+	public void RemovedEnemy_ConvergesEvenWhenStateBatchDrops()
+	{
+		using var w = ItemSimWorld.Create();
+		var hostEnemies = w.Host.Services.GetRequiredService<EnemySyncService>();
+		var g1Enemies = w.G1.Services.GetRequiredService<EnemySyncService>();
+
+		hostEnemies.PublishEnemyStates([Enemy(0, 1f, 1f), Enemy(1, 2f, 2f)]);
+		w.G1.Session.ReportSceneState(SceneStateType.InWorld, "SampleScene");
+		w.Driver.Tick(33);
+		Assert.Equal(2, g1Enemies.Enemies.Count());
+
+		// Drop every unreliable state batch after the initial snapshot; the
+		// explicit removal is reliable and must still converge the guest.
+		w.Driver.Network.SetFaults(
+			w.Host.SteamId,
+			w.G1.SteamId,
+			new LinkFaults { UnreliableDropRate = 1.0 });
+		hostEnemies.PublishEnemyStates([Enemy(1, 2f, 2f)]);
+		w.Driver.Tick(60);
+
+		Assert.Single(g1Enemies.Enemies);
+		Assert.NotNull(g1Enemies.GetEnemy(new NetworkEntityId(1, 1, 0)));
+		Assert.Null(g1Enemies.GetEnemy(new NetworkEntityId(1, 0, 0)));
+	}
 }

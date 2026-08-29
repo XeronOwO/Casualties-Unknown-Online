@@ -219,4 +219,46 @@ public class EnemySyncServiceTests
 		Assert.NotNull(g1Enemies.GetEnemy(new NetworkEntityId(1, 1, 0)));
 		Assert.Null(g1Enemies.GetEnemy(new NetworkEntityId(1, 0, 0)));
 	}
+
+	[Fact]
+	public void RemovedEnemy_NotResurrectedByLateStateBatch()
+	{
+		using var w = ItemSimWorld.Create();
+		var g1Enemies = w.G1.Services.GetRequiredService<EnemySyncService>();
+		var control = (IEnemySyncControl)g1Enemies;
+		var id = new NetworkEntityId(1, 5, 0);
+
+		control.ApplyEnemyState(new EnemyStateBatchMsg
+		{
+			Enemies = [Enemy(5, 1f, 1f).ToEnemyStateMsg()],
+		});
+		control.ApplyEnemyRemoved(new EnemyRemovedMsg { Id = id.ToNetworkEntityIdMsg() });
+		control.ApplyEnemyState(new EnemyStateBatchMsg
+		{
+			Enemies = [Enemy(5, 2f, 2f).ToEnemyStateMsg()],
+		});
+
+		Assert.Null(g1Enemies.GetEnemy(id));
+	}
+
+	[Fact]
+	public void RemovedEnemy_NotResurrectedByFullSnapshot()
+	{
+		using var w = ItemSimWorld.Create();
+		var g1Enemies = w.G1.Services.GetRequiredService<EnemySyncService>();
+		var control = (IEnemySyncControl)g1Enemies;
+		var id = new NetworkEntityId(1, 6, 0);
+
+		control.ApplyEnemyState(new EnemyStateBatchMsg
+		{
+			Enemies = [Enemy(6, 1f, 1f).ToEnemyStateMsg()],
+		});
+		control.ApplyEnemyRemoved(new EnemyRemovedMsg { Id = id.ToNetworkEntityIdMsg() });
+		control.ApplyEnemySnapshot(new EnemySnapshotMsg
+		{
+			Enemies = [Enemy(6, 3f, 3f).ToEnemyStateMsg()],
+		});
+
+		Assert.Null(g1Enemies.GetEnemy(id));
+	}
 }

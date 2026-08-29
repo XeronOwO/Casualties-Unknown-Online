@@ -17,6 +17,7 @@ Game Adapter destroys the corresponding frozen guest copy.
 | Guest destruction | `EnemySyncCoordinator.OnEnemyRemoved` | Removes mapping state and destroys the local frozen `BuildingEntity` copy. |
 | Removal tombstone | `EnemySyncService._removedEnemies` | Guest-side session-scoped tombstone set; late/out-of-order state batches and full snapshots cannot resurrect an explicitly removed id. |
 | Full snapshot | `EnemySyncService.ApplyEnemySnapshot` | Remains full-overwrite for world entry / reconnect, where a complete set is correct. |
+| Kernel terminal revision guard | `EnemySyncService` + `EnemyStateBatchMsg.BaseGlobalRevision` | Guest tracks the kernel global revision of each enemy terminal health event; a stale 20 Hz stream older than that event preserves terminal health/stunned while still applying continuous position/velocity. |
 | Player stream lifecycle audit | `PlayerStateHandler` / `PlayerLeaveHandler` / `ProcessPlayerJoin` | Player stream is update-only for existing buffers; explicit `PlayerJoin`/`PlayerLeave` owns aggregate lifecycle, so a state batch missing a player is not a removal. |
 
 ## Evidence table
@@ -32,11 +33,12 @@ Game Adapter destroys the corresponding frozen guest copy.
 | The new message is direction-classified | `DirectionTests.EveryNetMsg_IsExplicitlyClassified`. |
 | A player state batch missing a player does not remove the buffer | `StateStreamTests.PlayerStateBatch_MissingPlayer_DoesNotRemoveExistingBuffer`. |
 | PlayerLeave removes the guest's remote player buffer | `StateStreamTests.PlayerLeave_RemovesRemoteBuffer`. |
+| A stale enemy stream cannot overwrite a newer kernel health event | `EnemySyncServiceTests.StaleStream_CannotOverwriteNewerKernelHealth`. |
 
 ## Verification
 
 - `dotnet build CasualtiesUnknownOnline.slnx`: 0 warnings / 0 errors.
-- `dotnet test CasualtiesUnknownOnline.slnx`: 1696 passed.
+- `dotnet test CasualtiesUnknownOnline.slnx`: 1697 passed.
 - `dotnet format`: applied.
 - Architecture / event / entity / isolation / delivery gates passed.
 
@@ -56,6 +58,6 @@ Game Adapter destroys the corresponding frozen guest copy.
    covered by the update-only/PlayerLeave tests above).
 2. [x] Add property/simulation tests for dropped/out-of-order update-only packets
    with explicit removals, and guard the guest buffer against resurrection.
-3. Consider promoting enemy health/death facts to dedicated domain events
-   instead of carrying them only in the stream convergence path.
+3. [x] Enemy health/death facts are committed as dedicated kernel events, and
+   stale streams cannot roll them back (the revision guard covers this).
 4. Continue with Phase D player supplements and world-entity snapshot cleanup.

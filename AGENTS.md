@@ -46,6 +46,7 @@ powershell -File tools/check-delivery.ps1         # final commit of each deliver
 ```
 
 - `[GATE]` All of the above must pass before commit; `dotnet format` is build-enforced.
+- `[RULE]` Pure documentation-only changes (no `src/`, `tests/`, or `tools/` modifications) skip build/test/gates; review the diff and commit directly. If docs describe a code change, commit them with the code change and run the gates in that same commit.
 - Target: `net48`, `LangVersion = preview`, nullable enabled, warnings-as-errors.
 - NuGet sources: nuget.org + nuget.bepinex.dev + nuget.samboy.dev.
 - Game assemblies are copyrighted and only the Game Adapter may reference them.
@@ -138,6 +139,7 @@ See `docs/delivery-checklist.md` for the executable gate.
 
 `[REF]` Detailed list: `docs/architecture.md` §10. Keep these in mind:
 
+- After `dotnet format` (or any external tool) modifies a file, re-`read` that file before using Edit; the Edit tool tracks the last-read buffer and refuses stale edits as "file changed since it was read".
 - Steam P2P is not plain LAN UDP; don't mix the two modes.
 - Syncing Transforms fails on physics, parenting, animation, nav, rigidbodies, scene loads.
 - Over-reliance on hardcoded offsets/private fields breaks on every game update.

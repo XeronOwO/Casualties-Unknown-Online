@@ -15,6 +15,7 @@ Game Adapter destroys the corresponding frozen guest copy.
 | Handler | `EnemyRemovedHandler` | Guest-side packet handler routes into `IEnemySyncControl.ApplyEnemyRemoved`. |
 | Host diff | `EnemySyncService.PublishEnemyStates` | Computes ids that left the previous buffer and sends reliable removals to in-world guests. |
 | Guest destruction | `EnemySyncCoordinator.OnEnemyRemoved` | Removes mapping state and destroys the local frozen `BuildingEntity` copy. |
+| Removal tombstone | `EnemySyncService._removedEnemies` | Guest-side session-scoped tombstone set; late/out-of-order state batches and full snapshots cannot resurrect an explicitly removed id. |
 | Full snapshot | `EnemySyncService.ApplyEnemySnapshot` | Remains full-overwrite for world entry / reconnect, where a complete set is correct. |
 
 ## Evidence table
@@ -25,12 +26,14 @@ Game Adapter destroys the corresponding frozen guest copy.
 | An explicit removal drops the buffer and raises the event | `EnemySyncServiceTests.RemovalMessage_RemovesEnemyAndRaisesEvent`. |
 | Host shrink still converges on a guest through the removal message | `EnemySyncServiceTests.EnemySnapshot_Overwrites_PreviousBuffer`. |
 | Dropped state batches still converge through a reliable removal | `EnemySyncServiceTests.RemovedEnemy_ConvergesEvenWhenStateBatchDrops`. |
+| A late update-only state batch cannot resurrect a removed enemy | `EnemySyncServiceTests.RemovedEnemy_NotResurrectedByLateStateBatch`. |
+| A full snapshot cannot resurrect a removed enemy | `EnemySyncServiceTests.RemovedEnemy_NotResurrectedByFullSnapshot`. |
 | The new message is direction-classified | `DirectionTests.EveryNetMsg_IsExplicitlyClassified`. |
 
 ## Verification
 
 - `dotnet build CasualtiesUnknownOnline.slnx`: 0 warnings / 0 errors.
-- `dotnet test CasualtiesUnknownOnline.slnx`: 1676 passed.
+- `dotnet test CasualtiesUnknownOnline.slnx`: 1695 passed.
 - `dotnet format`: applied.
 - Architecture / event / entity / isolation / delivery gates passed.
 
@@ -40,15 +43,16 @@ Game Adapter destroys the corresponding frozen guest copy.
   protocol and buffer lifecycle stay in `EnemySyncService`.
 - One top-level type per new file.
 - The 20 Hz path remains a convergent stream; aggregate lifecycle is no longer
-  inferred from stream absence.
+  inferred from stream absence; a removed aggregate is also never resurrected
+  by a late out-of-order stream packet or snapshot.
 
 ## Remaining sub-steps
 
 1. Align player/enemy continuous stream fields with `WireStateStream` /
    `StateStreamEnvelope`, or add the same explicit lifecycle policy to the
    player stream audit.
-2. Add property/simulation tests for dropped/out-of-order update-only packets
-   with explicit removals.
+2. [x] Add property/simulation tests for dropped/out-of-order update-only packets
+   with explicit removals, and guard the guest buffer against resurrection.
 3. Consider promoting enemy health/death facts to dedicated domain events
    instead of carrying them only in the stream convergence path.
 4. Continue with Phase D player supplements and world-entity snapshot cleanup.

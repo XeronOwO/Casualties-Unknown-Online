@@ -35,6 +35,7 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 	private readonly EnemyKernelProjection _enemyKernel;
 
 	private readonly Dictionary<NetworkEntityId, EnemyEntity> _enemies = [];
+	private readonly HashSet<NetworkEntityId> _removedEnemies = [];
 	private IReadOnlyList<EnemySpawnEntryMsg> _runtimeSpawns = [];
 	private uint _nextEnemySeq; // host: EnemyState broadcast seq
 	private long _nextStateSendMs;
@@ -360,7 +361,9 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 	private void ApplyEnemyRemoved(EnemyRemovedMsg msg)
 	{
 		var id = msg.Id.ToNetworkEntityId();
-		if (_enemies.Remove(id))
+		var wasPresent = _enemies.Remove(id);
+		_removedEnemies.Add(id);
+		if (wasPresent)
 		{
 			_log.LogInformation("[Enemy] guest removed enemy {Enemy}.", id);
 			EnemyRemovedReceived?.Invoke(id);
@@ -379,6 +382,13 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 	{
 		foreach (var state in states)
 		{
+			var id = state.Id.ToNetworkEntityId();
+			if (_removedEnemies.Contains(id))
+			{
+				_log.LogDebug("[Enemy] ignored stream update for removed enemy {Enemy}.", id);
+				continue;
+			}
+
 			var entity = new EnemyEntity(default);
 			state.ApplyTo(entity);
 			_enemies[entity.EntityId] = entity;
@@ -388,12 +398,21 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 	}
 
 	/// <summary>Full-overwrite semantics for the world-entry / reconnect snapshot:
-	/// the snapshot is the complete authoritative set at that moment.</summary>
+	/// the snapshot is the complete authoritative set at that moment. A snapshot
+	/// also cannot resurrect an id that already received an explicit removal in
+	/// this session — lifecycle is final.</summary>
 	private void Replace(IEnumerable<EnemyStateMsg> states, Action? notify)
 	{
 		_enemies.Clear();
 		foreach (var state in states)
 		{
+			var id = state.Id.ToNetworkEntityId();
+			if (_removedEnemies.Contains(id))
+			{
+				_log.LogWarning("[Enemy] ignored snapshot entry for removed enemy {Enemy}.", id);
+				continue;
+			}
+
 			var entity = new EnemyEntity(default);
 			state.ApplyTo(entity);
 			_enemies[entity.EntityId] = entity;
@@ -405,6 +424,7 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 	private void OnSessionEnded()
 	{
 		_enemies.Clear();
+		_removedEnemies.Clear();
 		_runtimeSpawns = [];
 		_nextEnemySeq = 0;
 		_lastEnemyStateSeq = 0;

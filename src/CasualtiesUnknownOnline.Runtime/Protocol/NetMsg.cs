@@ -103,6 +103,7 @@ public enum NetMsg : byte
 	EnemyAttack = 83, // host → guest: the host's enemy simulation decided an attack on a remote player (the victim applies it locally and reports the terminal state)
 	EnemyLunge = 84, // bidirectional: guest → host report (the victim's local lunge already applied); host → guest broadcast relay (source excluded) — a crystal lunge hit a player, carrying the post-lunge limb + body state
 	EnemyEffect = 85, // bidirectional: guest → host report (the victim's local proximity effect already applied); host → guest broadcast relay (source excluded) — ElderThornback/Xaloris/GrabberPlant proximity side effects, carrying the post-effect body state
+	EnemyRemoved = 123, // host → guest (reliable): one enemy aggregate left the authoritative host set — the lifecycle fact the 20 Hz state batch no longer implies
 
 	// Mod host commands (Phase 4b Mod API — command execution is host-authoritative:
 	// the guest only sends the request, the host executes its own copy of the mod

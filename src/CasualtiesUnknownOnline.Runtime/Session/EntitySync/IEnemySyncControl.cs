@@ -13,8 +13,11 @@ public interface IEnemySyncControl
 	/// <summary>Guest side: last applied enemy-state seq (the unreliable-stream gate).</summary>
 	uint LastEnemyStateSeq { get; set; }
 
-	/// <summary>Guest side: apply a 20 Hz enemy-state batch (overwrite per id).</summary>
+	/// <summary>Guest side: apply an update-only 20 Hz enemy-state batch (never removes an id absent from the batch).</summary>
 	void ApplyEnemyState(EnemyStateBatchMsg msg);
+
+	/// <summary>Guest side: apply an explicit enemy aggregate removal (the reliable lifecycle counterpart of the state stream).</summary>
+	void ApplyEnemyRemoved(EnemyRemovedMsg msg);
 
 	/// <summary>Guest side: apply the full enemy snapshot (world entry / late joiner — clears + repopulates).</summary>
 	void ApplyEnemySnapshot(EnemySnapshotMsg msg);

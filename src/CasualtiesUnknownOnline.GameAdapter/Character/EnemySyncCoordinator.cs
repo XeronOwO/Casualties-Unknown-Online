@@ -52,6 +52,7 @@ internal sealed partial class EnemySyncCoordinator
 	{
 		_enemies.EnemySnapshotReceived += OnEnemySnapshotReceived;
 		_enemies.EnemyStateReceived += OnEnemyStateReceived;
+		_enemies.EnemyRemovedReceived += OnEnemyRemoved;
 		_enemies.EnemyBiteReceived += _combat.OnEnemyBiteReceived;
 		_enemies.EnemyAttackReceived += _combat.OnEnemyAttackReceived;
 		_enemies.EnemyLungeReceived += _combat.OnEnemyLungeReceived;
@@ -61,6 +62,7 @@ internal sealed partial class EnemySyncCoordinator
 	{
 		_enemies.EnemySnapshotReceived -= OnEnemySnapshotReceived;
 		_enemies.EnemyStateReceived -= OnEnemyStateReceived;
+		_enemies.EnemyRemovedReceived -= OnEnemyRemoved;
 		_enemies.EnemyBiteReceived -= _combat.OnEnemyBiteReceived;
 		_enemies.EnemyAttackReceived -= _combat.OnEnemyAttackReceived;
 		_enemies.EnemyLungeReceived -= _combat.OnEnemyLungeReceived;
@@ -93,6 +95,28 @@ internal sealed partial class EnemySyncCoordinator
 	/// <summary>Host side: the id of one captured enemy (the combat director resolves the EnemyAttack sender id).</summary>
 	internal bool TryGetHostEnemyId(BuildingEntity entity, out NetworkEntityId id) =>
 		_idByEntity.TryGetValue(entity, out id);
+
+	/// <summary>Guest side: the host explicitly removed an enemy aggregate —
+	/// drop the local binding and destroy the frozen copy. This is the lifecycle
+	/// counterpart of the update-only 20 Hz state stream.</summary>
+	private void OnEnemyRemoved(NetworkEntityId id)
+	{
+		if (!_entityById.TryGetValue(id, out var entity))
+		{
+			return;
+		}
+
+		_idByEntity.Remove(entity);
+		_entityById.Remove(id);
+		_runtimeEnemyIds.Remove(id);
+		_runtimeAnimalCopies.Remove(entity);
+		_healthReconcile.Remove(id);
+		if (entity != null) // Unity object — ==
+		{
+			UnityEngine.Object.Destroy(entity.gameObject);
+			_log.LogInformation("[Enemy] guest destroyed removed enemy {Enemy}.", id);
+		}
+	}
 
 	private BuildingEntity? FindEntityById(NetworkEntityId id) =>
 		_entityById.TryGetValue(id, out var entity) ? entity : null;

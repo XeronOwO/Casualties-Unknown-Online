@@ -62,6 +62,7 @@ public class DirectionTests
 		NetMsg.BlockDamageSnapshot,
 		NetMsg.EnemyState,
 		NetMsg.EnemySnapshot,
+		NetMsg.EnemyRemoved,
 		NetMsg.EnemyAttack,
 		NetMsg.ModCommandResult,
 		NetMsg.WorldTime,

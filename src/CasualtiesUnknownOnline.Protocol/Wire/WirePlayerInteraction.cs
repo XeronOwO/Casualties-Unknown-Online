@@ -59,4 +59,13 @@ public sealed class WirePlayerInteraction
 
 	[ProtoMember(16)]
 	public WireItemData? WornItemData { get; set; }
+
+	[ProtoMember(17)]
+	public List<WirePlayerInteractionItem> ItemContents { get; set; } = [];
+
+	[ProtoMember(18)]
+	public List<WirePlayerInteractionItem> ItemAfterContents { get; set; } = [];
+
+	[ProtoMember(19)]
+	public List<WirePlayerInteractionItem> WornItemContents { get; set; } = [];
 }

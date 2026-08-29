@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.GameState.Domains.Players;
@@ -16,12 +17,13 @@ public static class PlayerInteractionKernelCodec
 	public static PlayerInteractionItem FromCharacterItem(CharacterItemMsg item) =>
 		new(
 			new ItemIdentity(item.InstanceId, item.ItemId),
-			ItemKernelCodec.ToKernelData(item));
+			ItemKernelCodec.ToKernelData(item),
+			[.. item.Contents.Select(FromCharacterItem)]);
 
 	public static CharacterItemMsg ToCharacterItem(PlayerInteractionItem item) =>
-		ToCharacterItem(item.Identity, item.Data);
+		ToCharacterItem(item.Identity, item.Data, item.Children);
 
-	private static CharacterItemMsg ToCharacterItem(ItemIdentity identity, ItemData data) =>
+	private static CharacterItemMsg ToCharacterItem(ItemIdentity identity, ItemData data, IReadOnlyList<PlayerInteractionItem> contents) =>
 		new()
 		{
 			InstanceId = identity.InstanceId,
@@ -31,6 +33,7 @@ public static class PlayerInteractionKernelCodec
 			SlotIndex = data.SlotIndex,
 			Liquids = [.. data.Liquids.Select(l => new LiquidStackMsg { LiquidId = l.LiquidId, Amount = l.Amount })],
 			Components = [.. data.Components.Select(ToComponentMessage)],
+			Contents = [.. contents.Select(ToCharacterItem)],
 		};
 
 	public static PlayerInteractionHealth FromCharacterHealth(CharacterHealthMsg health) =>

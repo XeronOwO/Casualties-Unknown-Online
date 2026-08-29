@@ -3817,7 +3817,8 @@ the Phase C kernel protocol so no legacy direct result wire survives.
   projection rather than in a fan-out send.
 - **Wire mapping** — `WireEventKind.PlayerInventoryTransfer` /
   `PlayerHealResult` / `PlayerItemUseResult` carry
-  `WirePlayerInteraction`, including full post-effect health/limb snapshots so
-  participants apply the exact host-computed result.
+  `WirePlayerInteraction`, including full post-effect health/limb snapshots and
+  recursive container contents so participants apply the exact
+  host-computed result.
 - **Tests** — kernel command/wire round-trip tests and host/guest projection
   tests cover all three result families. Full suite 1699 green.

@@ -462,7 +462,8 @@ public class PlayerDomainKernelTests
 	public void WireBatchRoundTrip_PreservesPlayerInventoryTransferEvent()
 	{
 		var source = new GameStateKernel(Epoch);
-		var item = new PlayerInteractionItem(new ItemIdentity(42, "medkit"), new ItemData(0.75f, true, 0, [], []));
+		var child = new PlayerInteractionItem(new ItemIdentity(43, "bandage"), ItemData.Empty);
+		var item = new PlayerInteractionItem(new ItemIdentity(42, "backpack"), new ItemData(0.75f, true, 0, [], []), [child]);
 		var batch = source.Execute(
 			new RecordPlayerInventoryTransferCommand(new OperationId(1), Host, Epoch, AuthorityKind.HostOnly, 2001, 2002, item),
 			new CommandContext(Epoch, Host)).Batch!;
@@ -472,9 +473,12 @@ public class PlayerDomainKernelTests
 		var @event = Assert.IsType<PlayerInventoryTransferEvent>(Assert.Single(restored.Events));
 		Assert.Equal(2001ul, @event.FromSteamId);
 		Assert.Equal(2002ul, @event.ToSteamId);
-		Assert.Equal("medkit", @event.Item.Identity.DefinitionId);
+		Assert.Equal("backpack", @event.Item.Identity.DefinitionId);
 		Assert.Equal(0.75f, @event.Item.Data.Condition);
 		Assert.True(@event.Item.Data.Favourited);
+		var restoredChild = Assert.Single(@event.Item.Children);
+		Assert.Equal(43ul, restoredChild.Identity.InstanceId);
+		Assert.Equal("bandage", restoredChild.Identity.DefinitionId);
 	}
 
 	[Fact]

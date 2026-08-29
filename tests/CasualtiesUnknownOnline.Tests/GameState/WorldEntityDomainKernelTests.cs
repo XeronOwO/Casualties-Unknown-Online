@@ -37,6 +37,26 @@ public class WorldEntityDomainKernelTests
 	}
 
 	[Fact]
+	public void ResetWorldEntities_ClearsAllFacts()
+	{
+		var kernel = new GameStateKernel(Epoch);
+		Assert.True(RecordTrap(kernel, 1, new EntityPosition(1, 2), 1, 3, 10).IsAccepted);
+		Assert.True(RecordHealth(kernel, 2, new EntityPosition(4, 5), 8f).IsAccepted);
+		Assert.True(RecordOpened(kernel, 3, new EntityPosition(7, 8)).IsAccepted);
+
+		var decision = kernel.Execute(
+			new ResetWorldEntitiesCommand(new OperationId(4), Host, Epoch, AuthorityKind.HostOnly),
+			new CommandContext(Epoch, Host));
+
+		Assert.True(decision.IsAccepted);
+		var state = kernel.QueryWorldEntities();
+		Assert.NotNull(state);
+		Assert.Empty(state!.Consumptions);
+		Assert.Empty(state.BuildingHealth);
+		Assert.Empty(state.OpenedEntities);
+	}
+
+	[Fact]
 	public void SamePositionTrap_UpsertsInsteadOfDuplicating()
 	{
 		var kernel = new GameStateKernel(Epoch);

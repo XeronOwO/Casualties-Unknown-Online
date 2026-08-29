@@ -8,10 +8,10 @@ Live tracker for the CUO architecture iteration.
 |---|---|
 | Source baseline | `208df31` (2026-08-27) |
 | Current phase | Phase D — Full domain migration |
-| Current phase status | In progress — World/Run/Epoch complete; WorldEntities kernel shadow landed |
+| Current phase status | In progress — World/Run/Epoch complete; WorldEntities authority switch complete |
 | Last status update | 2026-08-29 |
-| Next work session | Continue Phase D Traps/Building Entities: route the three world-entity registries through kernel commands and project/remove the old snapshot path. |
-| Protocol/save compatibility | The new four-envelope protocol and checkpoint save stack are the production item paths. Old item packet handlers/DTOs and the corresponding `NetMsg` item enums have been fully removed; the only legacy item-frame survivor is `ItemReject` for block-break drop refusal. World/Run baseline rides the kernel checkpoint/batches and the legacy world-start wire has been removed. WorldEntities now has a kernel shadow table in checkpoint/wire/save; runtime registries are still the production path. |
+| Next work session | Continue Phase D: optionally remove legacy world-entity snapshot frames after direct checkpoint projection, then move to Players terminal state / cross-player interaction. |
+| Protocol/save compatibility | The new four-envelope protocol and checkpoint save stack are the production item paths. Old item packet handlers/DTOs and the corresponding `NetMsg` item enums have been fully removed; the only legacy item-frame survivor is `ItemReject` for block-break drop refusal. World/Run baseline and WorldEntities facts ride the kernel; the three runtime world-entity registries are now kernel-backed projection/snapshot adapters. |
 
 ## Phase status
 
@@ -20,7 +20,7 @@ Live tracker for the CUO architecture iteration.
 | A — Shadow kernel | Completed | 2026-08-27 | GameState project + typed kernel + Items first slice; production shadow wired into item decision path; replay differential green on all item `.replay` files; kernel/invariant tests + defect-family mapping; isolation gate. See phase doc and self-check. |
 | B — Items authority | Completed | 2026-08-28 | Kernel owns full item payload/location/revision; `ItemKernelAuthority` + `ItemProjection`; world/transfer tables are kernel-first projections; `NativeOperationCoordinator`; capability registry; temporary item checkpoint store; item authority gate. See phase doc and `docs/selfchecks/phase-b-item-authority-selfcheck.md`. |
 | C — Protocol & save switch | Completed | 2026-08-28 | Protocol project + four envelopes + golden tests; `KernelProtocolService`/`KernelProtocolCommandHandler`; host wire commands, checkpoint+tail, RunEpoch/version/gap filters; guest range request/out-of-order buffering/journal fallback; named random streams in checkpoint/save/wire; checkpoint projection rebuild; latency/duplicate simulation; `KernelSaveFileStore`; spawn/pickup/drop/destroy; ItemUse/Slot/ContainerSync via CommandEnvelope; carried-fact and world-correction batch projection; item snapshot StateStream; atomic Cook batch; command-rejection feedback; old item handlers/DTOs/NetMsg enums fully removed. See `docs/selfchecks/phase-c-protocol-core-selfcheck.md`. |
-| D — Full domain migration | In progress (World/Run/Epoch complete; WorldEntities shadow) | 2026-08-29 | World/Run/Epoch authority switch and legacy wire removal complete. WorldEntities kernel domain added: `RecordTrapConsumedCommand`, `RecordBuildingEntityHealthCommand`, `RecordOpenedEntityCommand`, `WorldEntityState`, checkpoint/wire/save round-trip. 1647 tests green. See `docs/selfchecks/phase-d-world-run-epoch-shadow-selfcheck.md` and `docs/selfchecks/phase-d-world-entities-shadow-selfcheck.md`. |
+| D — Full domain migration | In progress (World/Run/Epoch and WorldEntities complete) | 2026-08-29 | World/Run/Epoch authority switch and legacy wire removal complete. WorldEntities authority switch complete: kernel commands/events, reset command, checkpoint/wire/save round-trip, and runtime registries converted to kernel-backed snapshot projections. 1649 tests green. See `docs/selfchecks/phase-d-world-run-epoch-shadow-selfcheck.md` and `docs/selfchecks/phase-d-world-entities-shadow-selfcheck.md`. |
 | E — Delete dual architecture | Not started | 2026-08-28 | Depends on D. No legacy surfaces may remain. |
 
 ## Phase completion log

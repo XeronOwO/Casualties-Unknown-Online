@@ -16,4 +16,5 @@ public enum WireEventKind
 	TrapConsumed = 7,
 	BuildingEntityHealthUpdated = 8,
 	OpenedEntity = 9,
+	WorldEntitiesReset = 10,
 }

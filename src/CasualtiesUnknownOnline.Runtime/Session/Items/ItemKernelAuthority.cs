@@ -159,6 +159,16 @@ public sealed class ItemKernelAuthority(ILogger<ItemKernelAuthority> log)
 		return TryExecute(command, actor, "record-opened-entity", out batch, out rejection);
 	}
 
+	public bool TryResetWorldEntities(ulong actor, out CommittedBatch? batch, out Rejection? rejection)
+	{
+		var command = new ResetWorldEntitiesCommand(
+			NextOperation(),
+			new ActorId(actor),
+			_runEpoch,
+			AuthorityKind.HostOnly);
+		return TryExecute(command, actor, "reset-world-entities", out batch, out rejection);
+	}
+
 	// ===== Spawn =====
 
 	public bool TrySpawn(ulong actor, ItemIdentity identity, ItemLocation location, CharacterItemMsg item, out CommittedBatch? batch, out Rejection? rejection)

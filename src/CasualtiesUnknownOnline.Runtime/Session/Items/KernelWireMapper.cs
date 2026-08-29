@@ -274,6 +274,10 @@ public static class KernelWireMapper
 				Kind = WireEventKind.OpenedEntity,
 				EntityPosition = ToWireEntityPosition(opened.Position),
 			},
+			WorldEntitiesResetEvent => new WireEvent
+			{
+				Kind = WireEventKind.WorldEntitiesReset,
+			},
 			_ => throw new ArgumentOutOfRangeException(nameof(@event), @event.GetType().Name, "no wire mapping for kernel event"),
 		};
 
@@ -374,6 +378,7 @@ public static class KernelWireMapper
 				@event.Health),
 			WireEventKind.OpenedEntity => new OpenedEntityEvent(
 				FromWireEntityPosition(@event.EntityPosition ?? throw new InvalidOperationException("OpenedEntity event lacks position"))),
+			WireEventKind.WorldEntitiesReset => new WorldEntitiesResetEvent(),
 			_ => throw new ArgumentOutOfRangeException(nameof(@event.Kind), @event.Kind, "unknown wire event kind"),
 		};
 
@@ -490,6 +495,11 @@ public static class KernelWireMapper
 				epoch,
 				authority,
 				FromWireEntityPosition(command.EntityPosition ?? throw new InvalidOperationException("RecordOpenedEntity command lacks position"))),
+			WireCommandKind.ResetWorldEntities => new ResetWorldEntitiesCommand(
+				operation,
+				actor,
+				epoch,
+				authority),
 			_ => throw new ArgumentOutOfRangeException(nameof(command.Kind), command.Kind, "unknown wire command kind"),
 		};
 	}

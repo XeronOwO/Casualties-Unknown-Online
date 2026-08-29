@@ -33,17 +33,20 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable
 	private readonly ILogger<CharacterDataStore> _log;
 	private readonly IItemControl _items;
 	private readonly CharacterDataFileStore _persistence;
+	private readonly PlayerKernelLimbProjection _playerLimbKernel;
 	private readonly Dictionary<ulong, CharacterDataMsg> _savedCharacters; // host: last report per SteamID
 	private CharacterDataMsg? _hostData; // host: the host's own latest character snapshot (same shape, broadcast to guests)
 
 	public CharacterDataStore(ISessionControl session, PacketSender sender,
-		ILogger<CharacterDataStore> log, IItemControl items, CharacterDataFileStore persistence)
+		ILogger<CharacterDataStore> log, IItemControl items, CharacterDataFileStore persistence,
+		PlayerKernelLimbProjection playerLimbKernel)
 	{
 		_session = session;
 		_sender = sender;
 		_log = log;
 		_items = items;
 		_persistence = persistence;
+		_playerLimbKernel = playerLimbKernel;
 
 		// Load the persisted table at construction — a host restart/continue-run
 		// restores reconnecting guests from this file. A missing/disabled file is
@@ -80,6 +83,7 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable
 	{
 		_savedCharacters[steamId] = msg;
 		PersistTable();
+		_playerLimbKernel.SyncFromCharacterData(steamId, msg);
 	}
 
 	/// <summary>
@@ -262,6 +266,7 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable
 	public void SaveHostCharacterData(CharacterDataMsg msg)
 	{
 		_hostData = msg;
+		_playerLimbKernel.SyncFromCharacterData(_session.LocalSteamId, msg);
 		_log.LogInformation("Host character data updated ({Items} items).", msg.Items.Count);
 	}
 
@@ -274,6 +279,7 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable
 		}
 
 		_hostData = msg;
+		_playerLimbKernel.SyncFromCharacterData(_session.LocalSteamId, msg);
 		_session.Broadcast(NetMsg.HostCharacterData, msg);
 	}
 
@@ -311,6 +317,8 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable
 			EnemyTerminalStateApplier.ApplyLimbState(data, msg);
 			PersistTable();
 		}
+
+		_playerLimbKernel.SyncFromLimbEvent(msg);
 	}
 
 	/// <summary>
@@ -325,6 +333,11 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable
 		if (!_session.SessionActive)
 		{
 			return;
+		}
+
+		if (_session.Role == SessionRole.Host)
+		{
+			_playerLimbKernel.SyncFromLimbEvent(msg);
 		}
 
 		if (_session.Role == SessionRole.Host)

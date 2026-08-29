@@ -1,4 +1,7 @@
+using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol;
+using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Tests.Session;
@@ -35,5 +38,60 @@ public class PlayerProjectionTests
 		Assert.Equal(HostId, player.SteamId);
 		Assert.False(player.Alive);
 		Assert.False(player.Conscious);
+	}
+
+	[Fact]
+	public void HostSaveCharacterData_CommitsPlayerKernelLimbFacts()
+	{
+		var (_, host, _) = HandshakeTests.CreateHostAndGuest();
+		host.Steam.FireLobbyCreated(LobbyId);
+
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		var authority = host.Services.GetRequiredService<ItemKernelAuthority>();
+
+		characters.SaveHostCharacterData(new CharacterDataMsg
+		{
+			OwnerSteamId = HostId,
+			Health = new CharacterHealthMsg { Alive = true, Conscious = true },
+			Limbs =
+			[
+				new CharacterLimbMsg { Index = 0, Broken = true, Dismembered = false, Dislocated = false, Splinted = true, IsHead = true },
+				new CharacterLimbMsg { Index = 1, Broken = false, Dismembered = true, IsVital = true },
+			],
+		});
+
+		var player = Assert.Single(authority.QueryPlayers()!.Players);
+		Assert.Equal(2, player.LimbFacts.Count);
+		var head = player.LimbFacts.Single(l => l.Index == 0);
+		Assert.True(head.Broken);
+		Assert.True(head.Splinted);
+		Assert.True(head.IsHead);
+		var torso = player.LimbFacts.Single(l => l.Index == 1);
+		Assert.True(torso.Dismembered);
+		Assert.True(torso.IsVital);
+	}
+
+	[Fact]
+	public void LimbStateEvent_CommitsPlayerKernelLimbFacts()
+	{
+		var (_, host, _) = HandshakeTests.CreateHostAndGuest();
+		host.Steam.FireLobbyCreated(LobbyId);
+
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		var authority = host.Services.GetRequiredService<ItemKernelAuthority>();
+
+		characters.ApplyLimbStateEvent(new LimbStateEventMsg
+		{
+			OwnerSteamId = HostId,
+			Limbs =
+			[
+				new CharacterLimbMsg { Index = 2, Broken = false, Dismembered = false, Dislocated = true, IsVital = true },
+			],
+		});
+
+		var player = Assert.Single(authority.QueryPlayers()!.Players);
+		var limb = Assert.Single(player.LimbFacts);
+		Assert.True(limb.Dislocated);
+		Assert.True(limb.IsVital);
 	}
 }

@@ -63,6 +63,23 @@ internal sealed class PlayerDomainModule : IDomainModule
 				throw new InvalidOperationException($"dead player {player.SteamId} cannot be conscious");
 			}
 
+			if (player.Limbs is { } limbs)
+			{
+				var limbIndices = new System.Collections.Generic.HashSet<int>();
+				foreach (var limb in limbs)
+				{
+					if (limb.Index < 0)
+					{
+						throw new InvalidOperationException($"player {player.SteamId} has a negative limb index {limb.Index}");
+					}
+
+					if (!limbIndices.Add(limb.Index))
+					{
+						throw new InvalidOperationException($"player {player.SteamId} has duplicate limb index {limb.Index}");
+					}
+				}
+			}
+
 			AssertCarryFields(player, byId);
 		}
 	}

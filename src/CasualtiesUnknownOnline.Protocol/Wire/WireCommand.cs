@@ -45,4 +45,19 @@ public sealed class WireCommand
 
 	[ProtoMember(12)]
 	public WireRunState? RunState { get; set; }
+
+	[ProtoMember(13)]
+	public WireEntityPosition? EntityPosition { get; set; }
+
+	[ProtoMember(14)]
+	public int EntityKind { get; set; }
+
+	[ProtoMember(15)]
+	public byte Extra { get; set; }
+
+	[ProtoMember(16)]
+	public float Health { get; set; }
+
+	[ProtoMember(17)]
+	public long TriggeredAtMs { get; set; }
 }

@@ -3,6 +3,7 @@ using System.Linq;
 using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.GameState.Domains.World;
+using CasualtiesUnknownOnline.GameState.Domains.WorldEntities;
 using CasualtiesUnknownOnline.Protocol.Wire;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.Items;
@@ -70,6 +71,57 @@ public static class KernelWireMapper
 			setting.FloatValue,
 			setting.BoolValue,
 			setting.StringValue);
+
+	public static WireEntityPosition ToWireEntityPosition(EntityPosition position) =>
+		new()
+		{
+			X = position.X,
+			Y = position.Y,
+		};
+
+	public static EntityPosition FromWireEntityPosition(WireEntityPosition position) =>
+		new(position.X, position.Y);
+
+	public static WireWorldEntityState ToWireWorldEntityState(WorldEntityState? state) =>
+		new()
+		{
+			Consumptions = [.. (state?.Consumptions ?? []).Select(c => new WireTrapConsumption
+			{
+				Position = ToWireEntityPosition(c.Position),
+				Kind = c.Kind,
+				Extra = c.Extra,
+				TriggeredAtMs = c.TriggeredAtMs,
+			})],
+			BuildingHealth = [.. (state?.BuildingHealth ?? []).Select(h => new WireBuildingEntityHealth
+			{
+				Position = ToWireEntityPosition(h.Position),
+				Health = h.Health,
+			})],
+			OpenedEntities = [.. (state?.OpenedEntities ?? []).Select(o => new WireOpenedEntity
+			{
+				Position = ToWireEntityPosition(o.Position),
+			})],
+		};
+
+	public static WorldEntityState FromWireWorldEntityState(WireWorldEntityState? state)
+	{
+		if (state is null)
+		{
+			return WorldEntityState.Empty;
+		}
+
+		return new WorldEntityState(
+			[.. state.Consumptions.Select(c => new TrapConsumptionFact(
+				FromWireEntityPosition(c.Position),
+				c.Kind,
+				c.Extra,
+				c.TriggeredAtMs))],
+			[.. state.BuildingHealth.Select(h => new BuildingEntityHealthFact(
+				FromWireEntityPosition(h.Position),
+				h.Health))],
+			[.. state.OpenedEntities.Select(o => new OpenedEntityFact(
+				FromWireEntityPosition(o.Position)))]);
+	}
 
 	public static WireItem ToWireItem(ItemState state) =>
 		new()
@@ -203,6 +255,25 @@ public static class KernelWireMapper
 				Kind = WireEventKind.RunAdvanced,
 				RunState = ToWireRun(advanced.Run),
 			},
+			TrapConsumedEvent trap => new WireEvent
+			{
+				Kind = WireEventKind.TrapConsumed,
+				EntityPosition = ToWireEntityPosition(trap.Position),
+				EntityKind = trap.Kind,
+				Extra = trap.Extra,
+				TriggeredAtMs = trap.TriggeredAtMs,
+			},
+			BuildingEntityHealthUpdatedEvent health => new WireEvent
+			{
+				Kind = WireEventKind.BuildingEntityHealthUpdated,
+				EntityPosition = ToWireEntityPosition(health.Position),
+				Health = health.Health,
+			},
+			OpenedEntityEvent opened => new WireEvent
+			{
+				Kind = WireEventKind.OpenedEntity,
+				EntityPosition = ToWireEntityPosition(opened.Position),
+			},
 			_ => throw new ArgumentOutOfRangeException(nameof(@event), @event.GetType().Name, "no wire mapping for kernel event"),
 		};
 
@@ -293,6 +364,16 @@ public static class KernelWireMapper
 				FromWireRun(@event.RunState ?? throw new InvalidOperationException("RunStarted event lacks run state"))),
 			WireEventKind.RunAdvanced => new RunAdvancedEvent(
 				FromWireRun(@event.RunState ?? throw new InvalidOperationException("RunAdvanced event lacks run state"))),
+			WireEventKind.TrapConsumed => new TrapConsumedEvent(
+				FromWireEntityPosition(@event.EntityPosition ?? throw new InvalidOperationException("TrapConsumed event lacks position")),
+				@event.EntityKind,
+				@event.Extra,
+				@event.TriggeredAtMs),
+			WireEventKind.BuildingEntityHealthUpdated => new BuildingEntityHealthUpdatedEvent(
+				FromWireEntityPosition(@event.EntityPosition ?? throw new InvalidOperationException("BuildingEntityHealthUpdated event lacks position")),
+				@event.Health),
+			WireEventKind.OpenedEntity => new OpenedEntityEvent(
+				FromWireEntityPosition(@event.EntityPosition ?? throw new InvalidOperationException("OpenedEntity event lacks position"))),
 			_ => throw new ArgumentOutOfRangeException(nameof(@event.Kind), @event.Kind, "unknown wire event kind"),
 		};
 
@@ -387,6 +468,28 @@ public static class KernelWireMapper
 				epoch,
 				authority,
 				FromWireRun(command.RunState ?? throw new InvalidOperationException("AdvanceLayer command lacks run state"))),
+			WireCommandKind.RecordTrapConsumed => new RecordTrapConsumedCommand(
+				operation,
+				actor,
+				epoch,
+				authority,
+				FromWireEntityPosition(command.EntityPosition ?? throw new InvalidOperationException("RecordTrapConsumed command lacks position")),
+				command.EntityKind,
+				command.Extra,
+				command.TriggeredAtMs),
+			WireCommandKind.RecordBuildingEntityHealth => new RecordBuildingEntityHealthCommand(
+				operation,
+				actor,
+				epoch,
+				authority,
+				FromWireEntityPosition(command.EntityPosition ?? throw new InvalidOperationException("RecordBuildingEntityHealth command lacks position")),
+				command.Health),
+			WireCommandKind.RecordOpenedEntity => new RecordOpenedEntityCommand(
+				operation,
+				actor,
+				epoch,
+				authority,
+				FromWireEntityPosition(command.EntityPosition ?? throw new InvalidOperationException("RecordOpenedEntity command lacks position"))),
 			_ => throw new ArgumentOutOfRangeException(nameof(command.Kind), command.Kind, "unknown wire command kind"),
 		};
 	}

@@ -38,6 +38,9 @@ public static class WireCheckpointAssembler
 				Run = index == 0 && checkpoint.Run is not null
 					? KernelWireMapper.ToWireRun(checkpoint.Run)
 					: null,
+				WorldEntities = index == 0 && checkpoint.WorldEntities is not null
+					? KernelWireMapper.ToWireWorldEntityState(checkpoint.WorldEntities)
+					: null,
 			});
 		}
 
@@ -90,6 +93,8 @@ public static class WireCheckpointAssembler
 
 		var firstRun = ordered[0]!.Run;
 		var run = firstRun is null ? null : KernelWireMapper.FromWireRun(firstRun);
-		return new GameCheckpoint(new RunEpoch(first.RunEpoch), first.GlobalRevision, items, randomStreams, run);
+		var firstWorldEntities = ordered[0]!.WorldEntities;
+		var worldEntities = firstWorldEntities is null ? null : KernelWireMapper.FromWireWorldEntityState(firstWorldEntities);
+		return new GameCheckpoint(new RunEpoch(first.RunEpoch), first.GlobalRevision, items, randomStreams, run, worldEntities);
 	}
 }

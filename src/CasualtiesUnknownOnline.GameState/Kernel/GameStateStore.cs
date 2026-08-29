@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.GameState.Domains.World;
+using CasualtiesUnknownOnline.GameState.Domains.WorldEntities;
 
 namespace CasualtiesUnknownOnline.GameState.Kernel;
 
@@ -12,6 +13,7 @@ internal sealed class GameStateStore(RunEpoch runEpoch)
 {
 	private readonly Dictionary<ulong, ItemState> _items = [];
 	private RunState? _run;
+	private WorldEntityState? _worldEntities;
 
 	public RunEpoch RunEpoch { get; private set; } = runEpoch;
 
@@ -21,9 +23,11 @@ internal sealed class GameStateStore(RunEpoch runEpoch)
 
 	public RunState? Run => _run;
 
+	public WorldEntityState? WorldEntities => _worldEntities;
+
 	public CommittedOperationWindow Operations { get; } = new(2048);
 
-	public MutableKernelState CreateWorkingCopy() => new(RunEpoch, GlobalRevision, _items.Values, _run);
+	public MutableKernelState CreateWorkingCopy() => new(RunEpoch, GlobalRevision, _items.Values, _run, _worldEntities);
 
 	public void ReplaceWith(MutableKernelState working)
 	{
@@ -34,18 +38,20 @@ internal sealed class GameStateStore(RunEpoch runEpoch)
 		}
 
 		_run = working.Run;
+		_worldEntities = working.WorldEntities;
 		GlobalRevision = working.GlobalRevision;
 		RunEpoch = working.RunEpoch;
 	}
 
 	public GameCheckpoint CreateCheckpoint() =>
-		new(RunEpoch, GlobalRevision, [.. _items.Values], null, _run);
+		new(RunEpoch, GlobalRevision, [.. _items.Values], null, _run, _worldEntities);
 
 	public void Restore(GameCheckpoint checkpoint)
 	{
 		RunEpoch = checkpoint.RunEpoch;
 		GlobalRevision = checkpoint.GlobalRevision;
 		_run = checkpoint.Run;
+		_worldEntities = checkpoint.WorldEntities;
 		_items.Clear();
 		foreach (var item in checkpoint.Items)
 		{

@@ -13,4 +13,7 @@ public enum WireEventKind
 	ItemDataUpdated = 4,
 	RunStarted = 5,
 	RunAdvanced = 6,
+	TrapConsumed = 7,
+	BuildingEntityHealthUpdated = 8,
+	OpenedEntity = 9,
 }

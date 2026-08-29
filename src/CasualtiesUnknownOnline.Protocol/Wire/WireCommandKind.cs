@@ -15,6 +15,9 @@ public enum WireCommandKind
 	ItemContainerSync = 7,
 	RunStart = 8,
 	AdvanceLayer = 9,
+	RecordTrapConsumed = 10,
+	RecordBuildingEntityHealth = 11,
+	RecordOpenedEntity = 12,
 
 	// Protocol control (not a gameplay command)
 	RangeRequest = 100,

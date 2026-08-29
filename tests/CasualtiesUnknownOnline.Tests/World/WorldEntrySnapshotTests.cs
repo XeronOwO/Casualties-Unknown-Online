@@ -32,17 +32,18 @@ public class WorldEntrySnapshotTests
 		var g1Opened = new List<IReadOnlyList<NetVector2Msg>>();
 		var g1Health = new List<IReadOnlyList<BuildingEntityHealthEntryMsg>>();
 		var g1BlockDamage = new List<IReadOnlyList<BlockDamageEntryMsg>>();
-		w.G1.Services.GetRequiredService<EntityEventChannel>().TrapStateReceived += list => g1Traps.Add(list);
-		w.G1.Services.GetRequiredService<EntityEventChannel>().OpenedEntitiesSnapshotReceived += list => g1Opened.Add(list);
-		w.G1.Services.GetRequiredService<EntityEventChannel>().BuildingEntityHealthSnapshotReceived += list => g1Health.Add(list);
+		var g1Projection = w.G1.Services.GetRequiredService<WorldEntityKernelProjection>();
+		g1Projection.TrapSnapshotProjected += list => g1Traps.Add(list);
+		g1Projection.OpenedEntitiesProjected += list => g1Opened.Add(list);
+		g1Projection.BuildingHealthProjected += list => g1Health.Add(list);
 		w.G1.Services.GetRequiredService<IWorldControl>().BlockDamageSnapshotReceived += list => g1BlockDamage.Add(list);
 
 		w.G1.Session.ReportSceneState(SceneStateType.InWorld, "SampleScene");
 		w.Driver.Tick(33);
 
-		// The world-entry fan-out sends ALL the world-state snapshots — the
-		// trap, opened, entity-health and block-damage sends must not wait for
-		// the 60 s periodic resend.
+		// The world-entry fan-out sends the kernel checkpoint, which projects
+		// the trap, opened, entity-health and block-damage facts without the
+		// legacy snapshot wires.
 		Assert.Single(g1Traps);
 		Assert.Single(g1Opened);
 		Assert.Single(g1Health);
@@ -89,9 +90,10 @@ public class WorldEntrySnapshotTests
 		var g1Opened = new List<IReadOnlyList<NetVector2Msg>>();
 		var g1Health = new List<IReadOnlyList<BuildingEntityHealthEntryMsg>>();
 		var g1BlockDamage = new List<IReadOnlyList<BlockDamageEntryMsg>>();
-		w.G1.Services.GetRequiredService<EntityEventChannel>().TrapStateReceived += list => g1Traps.Add(list);
-		w.G1.Services.GetRequiredService<EntityEventChannel>().OpenedEntitiesSnapshotReceived += list => g1Opened.Add(list);
-		w.G1.Services.GetRequiredService<EntityEventChannel>().BuildingEntityHealthSnapshotReceived += list => g1Health.Add(list);
+		var g1Projection = w.G1.Services.GetRequiredService<WorldEntityKernelProjection>();
+		g1Projection.TrapSnapshotProjected += list => g1Traps.Add(list);
+		g1Projection.OpenedEntitiesProjected += list => g1Opened.Add(list);
+		g1Projection.BuildingHealthProjected += list => g1Health.Add(list);
 		w.G1.Services.GetRequiredService<IWorldControl>().BlockDamageSnapshotReceived += list => g1BlockDamage.Add(list);
 
 		w.G1.Session.ReportSceneState(SceneStateType.InWorld, "SampleScene");

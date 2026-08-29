@@ -57,27 +57,9 @@ internal sealed class WorldChannelRelay(
 
 	public void BroadcastEntitySpawned(ulong excludeSteamId, EntitySpawnedMsg msg) => _eventChannel.BroadcastEntitySpawned(excludeSteamId, msg);
 
-	public void SendTrapStateSnapshot(ulong targetSteamId) => _eventChannel.SendTrapStateSnapshot(targetSteamId);
-
-	public event Action<IReadOnlyList<EntityEventMsg>>? TrapStateReceived { add => _eventChannel.TrapStateReceived += value; remove => _eventChannel.TrapStateReceived -= value; }
-
-	public void FireTrapStateReceived(IReadOnlyList<EntityEventMsg> consumed) => _eventChannel.FireTrapStateReceived(consumed);
-
 	public void ReportOpenedEntity(float x, float y) => _eventChannel.ReportOpenedEntity(x, y);
 
-	public void SendOpenedEntitiesSnapshot(ulong targetSteamId) => _eventChannel.SendOpenedEntitiesSnapshot(targetSteamId);
-
-	public event Action<IReadOnlyList<NetVector2Msg>>? OpenedEntitiesSnapshotReceived { add => _eventChannel.OpenedEntitiesSnapshotReceived += value; remove => _eventChannel.OpenedEntitiesSnapshotReceived -= value; }
-
-	public void FireOpenedEntitiesSnapshotReceived(IReadOnlyList<NetVector2Msg> positions) => _eventChannel.FireOpenedEntitiesSnapshotReceived(positions);
-
 	public void ReportBuildingEntityHealth(float x, float y, float health) => _eventChannel.ReportBuildingEntityHealth(x, y, health);
-
-	public void SendBuildingEntityHealthSnapshot(ulong targetSteamId) => _eventChannel.SendBuildingEntityHealthSnapshot(targetSteamId);
-
-	public event Action<IReadOnlyList<BuildingEntityHealthEntryMsg>>? BuildingEntityHealthSnapshotReceived { add => _eventChannel.BuildingEntityHealthSnapshotReceived += value; remove => _eventChannel.BuildingEntityHealthSnapshotReceived -= value; }
-
-	public void FireBuildingEntityHealthSnapshotReceived(IReadOnlyList<BuildingEntityHealthEntryMsg> entries) => _eventChannel.FireBuildingEntityHealthSnapshotReceived(entries);
 
 	public void ReportTrapLayout(EntityEventKind kind, float x, float y, string prefabName) => _eventChannel.ReportTrapLayout(kind, x, y, prefabName);
 

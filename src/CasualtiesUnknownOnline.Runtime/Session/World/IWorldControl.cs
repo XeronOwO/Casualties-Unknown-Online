@@ -232,35 +232,11 @@ public interface IWorldControl
 	/// <summary>An entity-creation report arrived — the receiver creates its own copy (host: then relays; guest: remote apply).</summary>
 	event Action<ulong, EntitySpawnedMsg>? EntitySpawnedReceived;
 
-	/// <summary>Host only: send the one-shot trap consumptions to one member (on its world entry).</summary>
-	void SendTrapStateSnapshot(ulong targetSteamId);
-
-	void FireTrapStateReceived(IReadOnlyList<EntityEventMsg> consumed);
-
-	/// <summary>Guest: the host's trap-consumption snapshot arrived — consume each entry (idempotent).</summary>
-	event Action<IReadOnlyList<EntityEventMsg>>? TrapStateReceived;
-
-	/// <summary>Host only: record an opened lockable entity at a world position (the late-joiner snapshot's source).</summary>
+	/// <summary>Host only: record an opened lockable entity at a world position (a kernel WorldEntities fact).</summary>
 	void ReportOpenedEntity(float x, float y);
 
-	/// <summary>Host only: send the opened entities' positions to one member (on its world entry).</summary>
-	void SendOpenedEntitiesSnapshot(ulong targetSteamId);
-
-	/// <summary>Guest: the host's opened-entities snapshot arrived — apply each open (idempotent).</summary>
-	void FireOpenedEntitiesSnapshotReceived(IReadOnlyList<NetVector2Msg> positions);
-
-	event Action<IReadOnlyList<NetVector2Msg>>? OpenedEntitiesSnapshotReceived;
-
-	/// <summary>Host only: record a damaged building entity's current health at a world position (the late-joiner snapshot's source).</summary>
+	/// <summary>Host only: record a damaged building entity's current health at a world position (a kernel WorldEntities fact).</summary>
 	void ReportBuildingEntityHealth(float x, float y, float health);
-
-	/// <summary>Host only: send the recorded building-entity health to one member (on its world entry).</summary>
-	void SendBuildingEntityHealthSnapshot(ulong targetSteamId);
-
-	/// <summary>Guest: the host's building-entity health snapshot arrived — apply each entry (idempotent).</summary>
-	void FireBuildingEntityHealthSnapshotReceived(IReadOnlyList<BuildingEntityHealthEntryMsg> entries);
-
-	event Action<IReadOnlyList<BuildingEntityHealthEntryMsg>>? BuildingEntityHealthSnapshotReceived;
 
 	/// <summary>Host only: record one generated trap entity (the adapter's scanner reports it on the generation-finished edge).</summary>
 	void ReportTrapLayout(EntityEventKind kind, float x, float y, string prefabName);

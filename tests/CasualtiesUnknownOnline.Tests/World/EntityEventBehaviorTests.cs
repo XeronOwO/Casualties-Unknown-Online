@@ -35,7 +35,7 @@ public class EntityEventBehaviorTests
 	{
 		var w = EntityEventSimWorld.Create();
 		var consumed = new List<IReadOnlyList<EntityEventMsg>>();
-		w.G2.Services.GetRequiredService<EntityEventChannel>().TrapStateReceived += list => consumed.Add(list);
+		w.G2.Services.GetRequiredService<WorldEntityKernelProjection>().TrapSnapshotProjected += list => consumed.Add(list);
 
 		w.Trigger(w.G1, kind, 10f, 20f, extra: 7);
 
@@ -47,7 +47,7 @@ public class EntityEventBehaviorTests
 
 		if (EntityEventArchives.IsOneShot(kind))
 		{
-			w.HostChannel.SendTrapStateSnapshot(w.G2.SteamId);
+			w.SendCheckpoint(w.G2);
 			Assert.True(consumed.Count == 1 && consumed[0].Count == 1 && consumed[0][0].Kind == kind,
 				$"{kind}: the one-shot consumption is recorded for the late-joiner snapshot");
 		}
@@ -96,13 +96,13 @@ public class EntityEventBehaviorTests
 	{
 		var w = EntityEventSimWorld.Create();
 		var consumed = new List<IReadOnlyList<EntityEventMsg>>();
-		w.G1.Services.GetRequiredService<EntityEventChannel>().TrapStateReceived += list => consumed.Add(list);
+		w.G1.Services.GetRequiredService<WorldEntityKernelProjection>().TrapSnapshotProjected += list => consumed.Add(list);
 
 		// The same one-shot entity progresses (ScrapEaterProgress's %-carrying
 		// reports — the registry is the fact source, later writes overwrite).
 		w.HostChannel.ReportTrapConsumed(kind, 30f, 40f, extra: 25);
 		w.HostChannel.ReportTrapConsumed(kind, 30f, 40f, extra: 50);
-		w.HostChannel.SendTrapStateSnapshot(w.G1.SteamId);
+		w.SendCheckpoint(w.G1);
 
 		Assert.True(consumed.Count == 1 && consumed[0].Count == 1,
 			$"{kind}: the snapshot must carry the one consumed entity");
@@ -116,11 +116,11 @@ public class EntityEventBehaviorTests
 	{
 		var w = EntityEventSimWorld.Create();
 		var consumed = new List<IReadOnlyList<EntityEventMsg>>();
-		w.G2.Services.GetRequiredService<EntityEventChannel>().TrapStateReceived += list => consumed.Add(list);
+		w.G2.Services.GetRequiredService<WorldEntityKernelProjection>().TrapSnapshotProjected += list => consumed.Add(list);
 
 		w.Trigger(w.G1, kind, 10f, 20f, extra: 7);
 		w.HostChannel.ResetConsumptions(); // a new layer is generating
-		w.HostChannel.SendTrapStateSnapshot(w.G2.SteamId);
+		w.SendCheckpoint(w.G2);
 
 		Assert.True(consumed.Count == 0, $"{kind}: an empty consumption table sends nothing");
 	}

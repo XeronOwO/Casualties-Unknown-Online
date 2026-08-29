@@ -58,16 +58,16 @@ public class EntityEventSimulationTests
 	}
 
 	[Fact]
-	public void OneShotConsumption_SnapshotCarriesTheLatest()
+	public void OneShotConsumption_CheckpointCarriesTheLatest()
 	{
 		var w = EntityEventSimWorld.Create();
 		var g1Consumed = new List<IReadOnlyList<EntityEventMsg>>();
-		w.G1.Services.GetRequiredService<EntityEventChannel>().TrapStateReceived += list => g1Consumed.Add(list);
+		w.G1.Services.GetRequiredService<WorldEntityKernelProjection>().TrapSnapshotProjected += list => g1Consumed.Add(list);
 
 		// The same one-shot entity progresses (ScrapEaterProgress carries the %).
 		w.HostChannel.ReportTrapConsumed(EntityEventKind.ScrapEaterProgress, 30f, 40f, extra: 25);
 		w.HostChannel.ReportTrapConsumed(EntityEventKind.ScrapEaterProgress, 30f, 40f, extra: 50); // overwrites
-		w.HostChannel.SendTrapStateSnapshot(w.G1.SteamId);
+		w.SendCheckpoint(w.G1);
 
 		Assert.True(g1Consumed.Count == 1, "the snapshot must arrive");
 		Assert.True(g1Consumed[0].Count == 1, $"one consumed entity, got {g1Consumed[0].Count}");
@@ -83,20 +83,20 @@ public class EntityEventSimulationTests
 		w.HostChannel.ResetConsumptions(); // a new layer is generating
 
 		var g2Consumed = new List<IReadOnlyList<EntityEventMsg>>();
-		w.G2.Services.GetRequiredService<EntityEventChannel>().TrapStateReceived += list => g2Consumed.Add(list);
-		w.HostChannel.SendTrapStateSnapshot(w.G2.SteamId);
+		w.G2.Services.GetRequiredService<WorldEntityKernelProjection>().TrapSnapshotProjected += list => g2Consumed.Add(list);
+		w.SendCheckpoint(w.G2);
 
 		Assert.True(g2Consumed.Count == 0, "an empty consumption table sends nothing");
 	}
 
 	[Fact]
-	public void TrapStateSnapshot_LateJoinerConsumesEveryEntry()
+	public void CheckpointProjection_LateJoinerConsumesEveryEntry()
 	{
 		var w = EntityEventSimWorld.Create();
 		w.HostChannel.ReportTrapConsumed(EntityEventKind.MineExploded, 10f, 20f, extra: 0);
 		w.HostChannel.ReportTrapConsumed(EntityEventKind.BioTerminalUnlocked, 30f, 40f, extra: 0);
 
-		w.HostChannel.SendTrapStateSnapshot(w.G1.SteamId);
+		w.SendCheckpoint(w.G1);
 
 		// The late joiner replays every entry against its regenerated world
 		// (the snapshot-consumption step) — two consumed entities, two replays.
@@ -104,28 +104,28 @@ public class EntityEventSimulationTests
 	}
 
 	[Fact]
-	public void TrapStateSnapshot_DuplicateSnapshot_ConsumesOnce()
+	public void CheckpointProjection_DuplicateCheckpoint_ConsumesOnce()
 	{
 		var w = EntityEventSimWorld.Create();
 		w.HostChannel.ReportTrapConsumed(EntityEventKind.MineExploded, 10f, 20f, extra: 0);
 
-		w.HostChannel.SendTrapStateSnapshot(w.G1.SteamId);
-		w.HostChannel.SendTrapStateSnapshot(w.G1.SteamId); // the 60 s re-send
+		w.SendCheckpoint(w.G1);
+		w.SendCheckpoint(w.G1); // a periodic checkpoint resend
 
 		Assert.True(w.G1Replays.Value == 1, $"a duplicate snapshot must not re-consume, got {w.G1Replays.Value}");
 	}
 
 	[Fact]
-	public void OpenedEntity_SnapshotCarriesEveryDistinctPosition()
+	public void OpenedEntity_CheckpointCarriesEveryDistinctPosition()
 	{
 		var w = EntityEventSimWorld.Create();
 		var g1Opened = new List<IReadOnlyList<NetVector2Msg>>();
-		w.G1.Services.GetRequiredService<EntityEventChannel>().OpenedEntitiesSnapshotReceived += list => g1Opened.Add(list);
+		w.G1.Services.GetRequiredService<WorldEntityKernelProjection>().OpenedEntitiesProjected += list => g1Opened.Add(list);
 
 		w.HostChannel.ReportOpenedEntity(10.2f, 20.8f);
 		w.HostChannel.ReportOpenedEntity(30f, 40f);
 		w.HostChannel.ReportOpenedEntity(10.7f, 20.1f); // the same cell — idempotent
-		w.HostChannel.SendOpenedEntitiesSnapshot(w.G1.SteamId);
+		w.SendCheckpoint(w.G1);
 
 		Assert.True(g1Opened.Count == 1, "the snapshot must arrive");
 		Assert.True(g1Opened[0].Count == 2, $"two distinct cells, got {g1Opened[0].Count}");
@@ -139,14 +139,14 @@ public class EntityEventSimulationTests
 		w.HostChannel.ResetOpenedEntities(); // a new layer is generating
 
 		var g2Opened = new List<IReadOnlyList<NetVector2Msg>>();
-		w.G2.Services.GetRequiredService<EntityEventChannel>().OpenedEntitiesSnapshotReceived += list => g2Opened.Add(list);
-		w.HostChannel.SendOpenedEntitiesSnapshot(w.G2.SteamId);
+		w.G2.Services.GetRequiredService<WorldEntityKernelProjection>().OpenedEntitiesProjected += list => g2Opened.Add(list);
+		w.SendCheckpoint(w.G2);
 
 		Assert.True(g2Opened.Count == 0, "an empty opened table sends nothing");
 	}
 
 	[Fact]
-	public void Snapshot_ElapsedCarriesTheTriggerAge()
+	public void Checkpoint_ElapsedCarriesTheTriggerAge()
 	{
 		// The rejoin scenario (user-verified): the host's shuttle door opened,
 		// MINUTES pass, the guest rejoins — the snapshot must carry how long
@@ -158,8 +158,8 @@ public class EntityEventSimulationTests
 		clock.Advance(7_500); // 7.5 s later — the door's animation is mid-flight
 
 		var g1Consumed = new List<IReadOnlyList<EntityEventMsg>>();
-		w.G1.Services.GetRequiredService<EntityEventChannel>().TrapStateReceived += list => g1Consumed.Add(list);
-		w.HostChannel.SendTrapStateSnapshot(w.G1.SteamId);
+		w.G1.Services.GetRequiredService<WorldEntityKernelProjection>().TrapSnapshotProjected += list => g1Consumed.Add(list);
+		w.SendCheckpoint(w.G1);
 
 		Assert.True(g1Consumed.Count == 1, "the snapshot must arrive");
 		Assert.True(g1Consumed[0][0].ElapsedSeconds > 7.4f && g1Consumed[0][0].ElapsedSeconds < 7.6f,
@@ -205,14 +205,14 @@ public class EntityEventSimulationTests
 	{
 		var w = EntityEventSimWorld.Create();
 		var consumed = new List<IReadOnlyList<EntityEventMsg>>();
-		w.G1.Services.GetRequiredService<EntityEventChannel>().TrapStateReceived += list => consumed.Add(list);
+		w.G1.Services.GetRequiredService<WorldEntityKernelProjection>().TrapSnapshotProjected += list => consumed.Add(list);
 
 		// A HOST trigger never comes back through EntityEventHandler (the host
 		// is not in its own presence table) — the channel must record the
 		// one-shot consumption before broadcasting, or a late joiner re-arms
 		// the mimic and spawns a second crystalenemy set.
 		w.Trigger(w.Host, EntityEventKind.CrystalMimicTriggered, 10f, 20f);
-		w.HostChannel.SendTrapStateSnapshot(w.G1.SteamId);
+		w.SendCheckpoint(w.G1);
 
 		Assert.True(consumed.Count == 1 && consumed[0].Count == 1,
 			$"the host-triggered mimic consumption must reach the snapshot (snapshots: {consumed.Count})");
@@ -326,14 +326,14 @@ public class EntityEventSimulationTests
 	}
 
 	[Fact]
-	public void MinePressed_TransientEdge_NotInLateJoinerSnapshot()
+	public void MinePressed_TransientEdge_NotInLateJoinerCheckpoint()
 	{
 		var w = EntityEventSimWorld.Create();
 		var consumed = new List<IReadOnlyList<EntityEventMsg>>();
-		w.G1.Services.GetRequiredService<EntityEventChannel>().TrapStateReceived += list => consumed.Add(list);
+		w.G1.Services.GetRequiredService<WorldEntityKernelProjection>().TrapSnapshotProjected += list => consumed.Add(list);
 
 		w.Trigger(w.G1, EntityEventKind.MinePressed, 10f, 20f);
-		w.HostChannel.SendTrapStateSnapshot(w.G1.SteamId);
+		w.SendCheckpoint(w.G1);
 
 		Assert.True(consumed.Count == 0,
 			$"the transient press edge must not occupy a snapshot slot, got {consumed.Count} snapshot(s)");
@@ -344,11 +344,11 @@ public class EntityEventSimulationTests
 	{
 		var w = EntityEventSimWorld.Create();
 		var consumed = new List<IReadOnlyList<EntityEventMsg>>();
-		w.G1.Services.GetRequiredService<EntityEventChannel>().TrapStateReceived += list => consumed.Add(list);
+		w.G1.Services.GetRequiredService<WorldEntityKernelProjection>().TrapSnapshotProjected += list => consumed.Add(list);
 
 		w.Trigger(w.G1, EntityEventKind.MinePressed, 10f, 20f);
 		w.Trigger(w.G1, EntityEventKind.MineExploded, 10f, 20f);
-		w.HostChannel.SendTrapStateSnapshot(w.G1.SteamId);
+		w.SendCheckpoint(w.G1);
 
 		Assert.True(consumed.Count == 1 && consumed[0].Count == 1,
 			$"only the durable MineExploded consumption is snapshotted, got {consumed.Count} snapshot(s) with {(consumed.Count > 0 ? consumed[0].Count : 0)} entry/entries");
@@ -357,14 +357,14 @@ public class EntityEventSimulationTests
 	}
 
 	[Fact]
-	public void CrystalUnstableTicked_TransientEdge_NotInLateJoinerSnapshot()
+	public void CrystalUnstableTicked_TransientEdge_NotInLateJoinerCheckpoint()
 	{
 		var w = EntityEventSimWorld.Create();
 		var consumed = new List<IReadOnlyList<EntityEventMsg>>();
-		w.G1.Services.GetRequiredService<EntityEventChannel>().TrapStateReceived += list => consumed.Add(list);
+		w.G1.Services.GetRequiredService<WorldEntityKernelProjection>().TrapSnapshotProjected += list => consumed.Add(list);
 
 		w.Trigger(w.G1, EntityEventKind.CrystalUnstableTicked, 10f, 20f);
-		w.HostChannel.SendTrapStateSnapshot(w.G1.SteamId);
+		w.SendCheckpoint(w.G1);
 
 		Assert.True(consumed.Count == 0,
 			$"the transient ticking edge must not occupy a snapshot slot, got {consumed.Count} snapshot(s)");
@@ -375,11 +375,11 @@ public class EntityEventSimulationTests
 	{
 		var w = EntityEventSimWorld.Create();
 		var consumed = new List<IReadOnlyList<EntityEventMsg>>();
-		w.G1.Services.GetRequiredService<EntityEventChannel>().TrapStateReceived += list => consumed.Add(list);
+		w.G1.Services.GetRequiredService<WorldEntityKernelProjection>().TrapSnapshotProjected += list => consumed.Add(list);
 
 		w.Trigger(w.G1, EntityEventKind.CrystalUnstableTicked, 10f, 20f);
 		w.Trigger(w.G1, EntityEventKind.CrystalUnstableExploded, 10f, 20f);
-		w.HostChannel.SendTrapStateSnapshot(w.G1.SteamId);
+		w.SendCheckpoint(w.G1);
 
 		Assert.True(consumed.Count == 1 && consumed[0].Count == 1,
 			$"only the durable CrystalUnstableExploded consumption is snapshotted, got {consumed.Count} snapshot(s) with {(consumed.Count > 0 ? consumed[0].Count : 0)} entry/entries");
@@ -388,14 +388,14 @@ public class EntityEventSimulationTests
 	}
 
 	[Fact]
-	public void CrystalTeleportTriggered_RepeatableEvent_NotInLateJoinerSnapshot()
+	public void CrystalTeleportTriggered_RepeatableEvent_NotInLateJoinerCheckpoint()
 	{
 		var w = EntityEventSimWorld.Create();
 		var consumed = new List<IReadOnlyList<EntityEventMsg>>();
-		w.G1.Services.GetRequiredService<EntityEventChannel>().TrapStateReceived += list => consumed.Add(list);
+		w.G1.Services.GetRequiredService<WorldEntityKernelProjection>().TrapSnapshotProjected += list => consumed.Add(list);
 
 		w.Trigger(w.G1, EntityEventKind.CrystalTeleportTriggered, 10f, 20f);
-		w.HostChannel.SendTrapStateSnapshot(w.G1.SteamId);
+		w.SendCheckpoint(w.G1);
 
 		Assert.True(consumed.Count == 0,
 			$"the repeatable teleport laugh/flash must not occupy a snapshot slot, got {consumed.Count} snapshot(s)");

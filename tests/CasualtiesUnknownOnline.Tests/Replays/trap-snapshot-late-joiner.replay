@@ -1,20 +1,20 @@
-# provenance: the TrapStateSnapshot consumption step (EntityEventSync.cs:99-116)
+# provenance: the WorldEntityKernelProjection consumption step
+# (WorldEntityKernelProjection.cs:50-97 + EntityEventSync.cs:102-119)
 # — the late-joiner one-shot consumption was LOG-ONLY until the phase-5 fix
-# (2026-08-12): a late joiner entering the world must replay every consumed
-# one-shot entity against its regenerated world (the registry's facts,
-# TrapConsumptionRegistry.SendSnapshot). Two entities consumed; the snapshot
-# arrives; the late joiner replays both (the relays from the triggering frame
-# already consumed the per-entity guard once — the snapshot entries are
-# dropped as duplicates, which is exactly the idempotency the design relies
-# on); the 60 s re-send (WorldEventSync's cycle) must NOT re-consume.
-# Mechanism: TrapStateSnapshotMsg (NetMsg 67), the per-entity replay guard.
+# (2026-08-12), then moved from the legacy TrapStateSnapshot wire to the kernel
+# checkpoint projection. Two entities consumed; the checkpoint arrives; the
+# late joiner replays both (the relays from the triggering frame already
+# consumed the per-entity guard once — the checkpoint entries are dropped as
+# duplicates, which is exactly the idempotency the design relies on); the
+# duplicate checkpoint resend must NOT re-consume.
+# Mechanism: KernelEnvelope (NetMsg 122) + WorldEntityKernelProjection.
 @0 event g1 MineExploded 10 20
 @0 event g1 BioTerminalUnlocked 30 40
 @33 expect executed MineExploded 1 within 500
 @33 expect executed BioTerminalUnlocked 1 within 500
-@33 snapshot g2
+@33 checkpoint g2
 @66 expect replayed g2 MineExploded 1 within 500
 @66 expect replayed g2 BioTerminalUnlocked 1 within 500
-@66 snapshot g2
+@66 checkpoint g2
 @99 expect replayed g2 MineExploded 1 within 500
 @99 expect replayed g2 BioTerminalUnlocked 1 within 500

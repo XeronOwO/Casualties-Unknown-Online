@@ -12,11 +12,10 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 
 /// <summary>
 /// Projects the kernel WorldEntities checkpoint into the world-entry
-/// application surfaces on the guest. This is the checkpoint-driven rebuild
-/// counterpart of the legacy snapshot messages: when a guest restores a
-/// checkpoint it raises the same flat fact lists the Game Adapter already
-/// knows how to apply, so old snapshot wire can be removed once this path is
-/// proven.
+/// application surfaces on the guest. When a guest restores a checkpoint it
+/// raises the same flat fact lists the Game Adapter already knows how to apply.
+/// This is the production rebuild path; the legacy snapshot message ids and
+/// handlers have been removed.
 /// </summary>
 public sealed class WorldEntityKernelProjection
 {

@@ -298,53 +298,29 @@ public sealed class EntityEventChannel(ISessionControl session, PacketSender sen
 
 	public void FireFluidPresentationReceived(FluidPresentationMsg msg) => FluidPresentationReceived?.Invoke(msg);
 
-	// ---- One-shot trap consumptions (the late-joiner snapshot) ----
+	// ---- One-shot trap consumptions (kernel facts) ----
 
 	/// <summary>Host only: record a one-shot trap consumption (position-keyed; Extra rides along for progress-carrying events).</summary>
 	public void ReportTrapConsumed(EntityEventKind kind, float x, float y, byte extra) => _trapConsumption.Report(kind, x, y, extra);
 
-	/// <summary>Host only: send the one-shot trap consumptions to one member (on its world entry).</summary>
-	public void SendTrapStateSnapshot(ulong targetSteamId) => _trapConsumption.SendSnapshot(targetSteamId);
-
 	/// <summary>Host only: a new world layer is generating — the consumptions start empty again.</summary>
 	public void ResetConsumptions() => _trapConsumption.Reset();
 
-	/// <summary>Guest: the host's trap-consumption snapshot arrived — consume each entry (idempotent).</summary>
-	public event Action<IReadOnlyList<EntityEventMsg>>? TrapStateReceived;
-
-	public void FireTrapStateReceived(IReadOnlyList<EntityEventMsg> consumed) => TrapStateReceived?.Invoke(consumed);
-
-	// ---- Opened lockable entities (the late-joiner snapshot) ----
+	// ---- Opened lockable entities (kernel facts) ----
 
 	/// <summary>Host only: record an opened entity at a world position.</summary>
 	public void ReportOpenedEntity(float x, float y) => _openedEntities.Report(x, y);
 
-	/// <summary>Host only: send the opened positions to one member (on its world entry).</summary>
-	public void SendOpenedEntitiesSnapshot(ulong targetSteamId) => _openedEntities.SendSnapshot(targetSteamId);
-
 	/// <summary>Host only: a new world layer is generating — the opens start empty again.</summary>
 	public void ResetOpenedEntities() => _openedEntities.Reset();
 
-	/// <summary>Guest: the host's opened-entities snapshot arrived — apply each open (idempotent).</summary>
-	public event Action<IReadOnlyList<NetVector2Msg>>? OpenedEntitiesSnapshotReceived;
-
-	public void FireOpenedEntitiesSnapshotReceived(IReadOnlyList<NetVector2Msg> positions) => OpenedEntitiesSnapshotReceived?.Invoke(positions);
-
-	// ---- Damaged building entities (the late-joiner health snapshot) ----
+	// ---- Damaged building entities (kernel facts) ----
 
 	/// <summary>Host only: record a damaged building entity's current health at a world position.</summary>
 	public void ReportBuildingEntityHealth(float x, float y, float health) => _buildingEntityHealth.Report(x, y, health);
 
-	/// <summary>Host only: send the recorded entity health to one member (on its world entry).</summary>
-	public void SendBuildingEntityHealthSnapshot(ulong targetSteamId) => _buildingEntityHealth.SendSnapshot(targetSteamId);
-
 	/// <summary>Host only: a new world layer is generating — the health records start empty again.</summary>
 	public void ResetBuildingEntityHealth() => _buildingEntityHealth.Reset();
-
-	/// <summary>Guest: the host's building-entity health snapshot arrived — apply each entry (idempotent).</summary>
-	public event Action<IReadOnlyList<BuildingEntityHealthEntryMsg>>? BuildingEntityHealthSnapshotReceived;
-
-	public void FireBuildingEntityHealthSnapshotReceived(IReadOnlyList<BuildingEntityHealthEntryMsg> entries) => BuildingEntityHealthSnapshotReceived?.Invoke(entries);
 
 	// ---- Trap layout (host authority — the generated trap entities' positions) ----
 

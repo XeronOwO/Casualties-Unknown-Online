@@ -286,7 +286,7 @@ internal static partial class ReplayRunner
 		switch (step.Action)
 		{
 			case "event":
-			case "snapshot":
+			case "checkpoint":
 			case "fluid":
 				ExecuteEntityOperation(world, step, simTrace);
 				break;
@@ -318,15 +318,15 @@ internal static partial class ReplayRunner
 					break;
 				}
 
-			case "snapshot":
+			case "checkpoint":
 				{
 					var node = world.Node(step.Args[0]);
 					var before = world.Snapshots(node).Count;
-					var op = simTrace.Begin(0, "snapshot", "Snapshot");
-					world.HostChannel.SendTrapStateSnapshot(node.SteamId);
+					var op = simTrace.Begin(0, "checkpoint", "Checkpoint");
+					world.SendCheckpoint(node);
 					var snapshots = world.Snapshots(node);
 					var entries = snapshots.Count > before ? snapshots[snapshots.Count - 1].Count : 0;
-					simTrace.End(op, 0, "snapshot", entries > 0 ? $"Committed({entries})" : "Skipped", "Snapshot");
+					simTrace.End(op, 0, "checkpoint", entries > 0 ? $"Committed({entries})" : "Skipped", "Checkpoint");
 					break;
 				}
 

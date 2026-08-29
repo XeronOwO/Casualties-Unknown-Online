@@ -52,7 +52,6 @@ public enum NetMsg : byte
 
 	// World entity events (traps/mechanisms — local compute → report → host applies → relay, replay on the receivers)
 	EntityEvent = 66, // bidirectional: guest → host report of a triggered trap event; host → guest broadcast relay (source excluded — the host applies the event to its own world first)
-	TrapStateSnapshot = 67, // host → guest: the one-shot trap consumptions so far (world entry, sent alongside the block-state snapshot)
 
 	// World entity creation (runtime, outside generation — the spawn command)
 	EntitySpawned = 68, // bidirectional: the creating side reports (keeps its local copy); the host creates its own and relays (source excluded) — items ride the item domain, entities ride this
@@ -85,10 +84,6 @@ public enum NetMsg : byte
 	CraftReport = 76, // bidirectional: guest → host report; host → guest broadcast relay (source excluded)
 	RecipeUnlock = 77, // bidirectional: guest → host report of a blueprint unlock; host → guest broadcast relay (source excluded)
 
-	// Opened lockable entities (the late-joiner snapshot — an open is a one-shot
-	// write with no re-open, so a rejoin must learn the opens from the host)
-	OpenedEntitiesSnapshot = 78, // host → guest: the opened entities' positions so far (world entry, sent alongside the block-state and trap-state snapshots)
-
 	// The host's authoritative trap layout (the generated trap entities'
 	// positions — the game's entity distribution runs physics queries the
 	// random-stream isolation does not cover, so the sides' layouts diverge)
@@ -110,11 +105,6 @@ public enum NetMsg : byte
 	// and answers with a directed result)
 	ModCommandRequest = 86, // guest → host: invoke a registered mod command
 	ModCommandResult = 87, // host → guest: the command result (directed to the requester)
-
-	// Damaged building entities (the late-joiner snapshot — live damage is a
-	// position-keyed relay, but a late joiner regenerates every entity at full
-	// health, so it must learn the host's current entity health)
-	BuildingEntityHealthSnapshot = 88, // host → guest: current building-entity health records (world entry / 60 s resend)
 
 	// Partially-damaged blocks (the late-joiner snapshot — the live BlockDamaged
 	// relay is delta-based, but a late joiner regenerates every block with zero

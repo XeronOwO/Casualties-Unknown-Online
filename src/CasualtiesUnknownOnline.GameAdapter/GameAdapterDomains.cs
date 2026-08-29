@@ -111,6 +111,7 @@ internal sealed class GameAdapterDomains
 		IOptionsMonitor<RespawnOptions> respawnOptions,
 		IHostRules hostRules,
 		WorldEntityKernelProjection worldEntityKernel,
+		IKernelProtocolControl kernelProtocol,
 		ILogger<GameAdapter> log,
 		IMapper mapper,
 		ILoggerFactory loggerFactory)
@@ -162,7 +163,7 @@ internal sealed class GameAdapterDomains
 		LayerModifierApplyPatch.ReportLocalDecision = LayerModifierSync.OnLocalDecision; // the guest's local replay — the adapter defers Initialize until the generation finished
 		MineScriptPatches.ShouldShieldItems = () => Session.Role == SessionRole.Guest; // a locally simulated item must not trip a mine on the guest side (the trigger checks only !isKinematic)
 		BlockBreakSync = new BlockBreakSync(session, world, items, blockBreakState, OperationTrace, loggerFactory.CreateLogger<BlockBreakSync>());
-		WorldEventSync = new WorldEventSync(session, world, BlockBreakSync, OperationTrace, worldEntityKernel, loggerFactory.CreateLogger<WorldEventSync>());
+		WorldEventSync = new WorldEventSync(session, world, BlockBreakSync, OperationTrace, worldEntityKernel, kernelProtocol, loggerFactory.CreateLogger<WorldEventSync>());
 		var trapVisualReplay = new TrapVisualReplay(loggerFactory.CreateLogger<TrapVisualReplay>());
 		EntityEventSync = new EntityEventSync(world, session,
 			new TrapEffectApplier(loggerFactory.CreateLogger<TrapEffectApplier>()),

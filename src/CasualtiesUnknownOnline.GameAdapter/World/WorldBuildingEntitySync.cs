@@ -11,10 +11,11 @@ namespace CasualtiesUnknownOnline.GameAdapter.World;
 
 /// <summary>
 /// The building-entity half of the world-event domain: damage and open reports
-/// (live star relay), the opened-entity snapshot and the building-entity health
-/// snapshot. Split out of <see cref="WorldEventSync"/> as its own top-level
-/// responsibility — the block/keypad/earthquake domain stays in WorldEventSync,
-/// and this class owns only the BuildingEntity application/report paths.
+/// (live star relay) and the checkpoint projection for opened entities and
+/// building-entity health. Split out of <see cref="WorldEventSync"/> as its own
+/// top-level responsibility — the block/keypad/earthquake domain stays in
+/// WorldEventSync, and this class owns only the BuildingEntity
+/// application/report paths.
 /// </summary>
 internal sealed class WorldBuildingEntitySync(
 	ISessionControl session,
@@ -133,36 +134,36 @@ internal sealed class WorldBuildingEntitySync(
 	}
 
 	/// <summary>
-	/// The host's opened-entities snapshot arrived (world entry / the 60 s
-	/// resend) — apply every open through the SAME application as the live
-	/// relay (health = 0 + the remote-death mark). Idempotent by construction:
-	/// an already-open entity's health is 0 again.
+	/// The restored checkpoint's opened-entities facts arrived — apply every
+	/// open through the SAME application as the live relay (health = 0 + the
+	/// remote-death mark). Idempotent by construction: an already-open entity's
+	/// health is 0 again.
 	/// </summary>
-	internal void OnOpenedEntitiesSnapshot(IReadOnlyList<NetVector2Msg> positions)
+	internal void OnOpenedEntitiesProjected(IReadOnlyList<NetVector2Msg> positions)
 	{
 		foreach (var pos in positions)
 		{
 			OnRemoteBuildingEntityOpened(new NetVector2(pos.X, pos.Y));
 		}
 
-		_log.LogInformation("Opened-entities snapshot applied ({Count} positions).", positions.Count);
+		_log.LogInformation("Opened-entities checkpoint projection applied ({Count} positions).", positions.Count);
 	}
 
 	/// <summary>
-	/// The host's building-entity health snapshot arrived (world entry / the
-	/// 60 s resend) — apply every entry through the SAME semantic as the live
-	/// relay: write the host's current health, and mark a death applied here as
-	/// remote so this side never rolls a second set of drops. Idempotent by
-	/// construction: writing the same health again is a no-op.
+	/// The restored checkpoint's building-entity health facts arrived — apply
+	/// every entry through the SAME semantic as the live relay: write the
+	/// host's current health, and mark a death applied here as remote so this
+	/// side never rolls a second set of drops. Idempotent by construction:
+	/// writing the same health again is a no-op.
 	/// </summary>
-	internal void OnBuildingEntityHealthSnapshot(IReadOnlyList<BuildingEntityHealthEntryMsg> entries)
+	internal void OnBuildingHealthProjected(IReadOnlyList<BuildingEntityHealthEntryMsg> entries)
 	{
 		foreach (var entry in entries)
 		{
 			ApplyRemoteBuildingEntityHealth(entry.X, entry.Y, entry.Health);
 		}
 
-		_log.LogInformation("Building-entity health snapshot applied ({Count} entities).", entries.Count);
+		_log.LogInformation("Building-entity health checkpoint projection applied ({Count} entities).", entries.Count);
 	}
 
 	private void ApplyRemoteBuildingEntityHealth(float x, float y, float health)

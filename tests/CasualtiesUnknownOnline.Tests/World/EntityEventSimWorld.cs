@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,8 +20,9 @@ namespace CasualtiesUnknownOnline.Tests.World;
 /// EntityEventHandler's own — the executor never relays). Shared by the
 /// hand-written entity-event simulations and the phase-5 combinatorial
 /// behavior tests (the archive drives both); the phase-A1 replay runner
-/// drives it too (the event/snapshot/fluid actions and the replayed/executed/
-/// fluid assertions — the replay files' entity/fluid bug fossils).
+/// drives it too (the event/checkpoint/fluid actions and the
+/// replayed/executed/fluid assertions — the replay files' entity/fluid bug
+/// fossils).
 /// </summary>
 internal sealed class EntityEventSimWorld : IDisposable
 {
@@ -41,7 +43,7 @@ internal sealed class EntityEventSimWorld : IDisposable
 
 	/// <summary>A guest's observed surface: the events it received, its replay
 	/// executions (total + per kind), the fluid regions it applied (the
-	/// ABSOLUTE-overwrite grid) and the trap-state snapshots it consumed.</summary>
+	/// ABSOLUTE-overwrite grid) and the trap checkpoint projections it consumed.</summary>
 	private sealed class NodeSurface
 	{
 		internal List<EntityEventMsg> Events = [];
@@ -111,8 +113,12 @@ internal sealed class EntityEventSimWorld : IDisposable
 	/// <summary>The host's consumption registry (the late-joiner snapshot's fact source).</summary>
 	internal TrapConsumptionRegistry Registry => Host.Services.GetRequiredService<TrapConsumptionRegistry>();
 
-	/// <summary>The host's event channel (snapshot send/reset surface).</summary>
+	/// <summary>The host's event channel (report/reset surface).</summary>
 	internal EntityEventChannel HostChannel => Host.Services.GetRequiredService<EntityEventChannel>();
+
+	/// <summary>Send a fresh kernel checkpoint from the host to one guest (the checkpoint projection path).</summary>
+	internal void SendCheckpoint(TestNode guest) =>
+		Host.Services.GetRequiredService<IKernelProtocolControl>().SendCheckpoint(guest.SteamId);
 
 	public void Dispose()
 	{
@@ -146,8 +152,9 @@ internal sealed class EntityEventSimWorld : IDisposable
 	/// <summary>How many fluid regions the node has applied (the SimTrace "Committed(n)" surface).</summary>
 	internal int FluidRegions(TestNode node) => Surface(node).FluidRegions.Value;
 
-	/// <summary>The trap-state snapshots the node has received (each snapshot's
-	/// entries = the late-joiner consumptions — the SimTrace "Committed(n)" surface).</summary>
+	/// <summary>The trap checkpoint projections the node has received (each
+	/// projection's entries = the late-joiner consumptions — the SimTrace
+	/// "Committed(n)" surface).</summary>
 	internal List<IReadOnlyList<EntityEventMsg>> Snapshots(TestNode node) => Surface(node).Snapshots;
 
 	private NodeSurface Surface(TestNode node)
@@ -239,9 +246,10 @@ internal sealed class EntityEventSimWorld : IDisposable
 	private static void AttachReplayShell(TestNode guest, NodeSurface surface)
 	{
 		var world = guest.Services.GetRequiredService<IWorldControl>();
+		var projection = guest.Services.GetRequiredService<WorldEntityKernelProjection>();
 		var guard = new HashSet<(EntityEventKind Kind, int X, int Y)>();
 		world.EntityEventReceived += (_, msg) => ReplayOnce(msg, guard, surface);
-		world.TrapStateReceived += consumed =>
+		projection.TrapSnapshotProjected += consumed =>
 		{
 			surface.Snapshots.Add(consumed);
 			foreach (var msg in consumed)

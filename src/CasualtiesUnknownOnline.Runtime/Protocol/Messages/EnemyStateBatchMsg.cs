@@ -17,4 +17,12 @@ public sealed class EnemyStateBatchMsg
 
 	[ProtoMember(2)]
 	public uint Seq { get; set; }
+
+	/// <summary>
+	/// The host kernel global revision at the moment the batch was built. A
+	/// guest uses this to refuse stale stream updates that would overwrite a
+	/// newer terminal health fact committed through the kernel event path.
+	/// </summary>
+	[ProtoMember(3)]
+	public ulong BaseGlobalRevision { get; set; }
 }

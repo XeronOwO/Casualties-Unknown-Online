@@ -2,9 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
+using CasualtiesUnknownOnline.GameState;
+using CasualtiesUnknownOnline.GameState.Domains.Entities;
 using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Time;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -33,6 +36,8 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 	private readonly ILogger<EnemySyncService> _log;
 
 	private readonly EnemyKernelProjection _enemyKernel;
+	private readonly ItemKernelAuthority _kernelAuthority;
+	private readonly Dictionary<NetworkEntityId, ulong> _terminalHealthRevision = [];
 
 	private readonly Dictionary<NetworkEntityId, EnemyEntity> _enemies = [];
 	private readonly HashSet<NetworkEntityId> _removedEnemies = [];
@@ -45,7 +50,7 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 
 	public EnemySyncService(ISessionControl session, PacketSender sender, ITimeSource time,
 		IOptionsMonitor<StateStreamOptions> stateStreamOptions, ILogger<EnemySyncService> log,
-		EnemyKernelProjection enemyKernel)
+		EnemyKernelProjection enemyKernel, ItemKernelAuthority kernelAuthority)
 	{
 		_session = session;
 		_sender = sender;
@@ -53,7 +58,11 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 		_stateStreamOptions = stateStreamOptions;
 		_log = log;
 		_enemyKernel = enemyKernel;
+		_kernelAuthority = kernelAuthority;
 		session.SessionEnded += OnSessionEnded;
+		_kernelAuthority.BatchCommitted += OnKernelBatchCommitted;
+		_kernelAuthority.BatchApplied += OnKernelBatchApplied;
+		_kernelAuthority.CheckpointRestored += OnKernelCheckpointRestored;
 	}
 
 	/// <summary>Raised after the full world-entry snapshot is applied (the Game Adapter binds its local enemy copies to the host's ids on this).</summary>
@@ -282,7 +291,13 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 	{
 	}
 
-	void IDisposable.Dispose() => _session.SessionEnded -= OnSessionEnded;
+	void IDisposable.Dispose()
+	{
+		_session.SessionEnded -= OnSessionEnded;
+		_kernelAuthority.BatchCommitted -= OnKernelBatchCommitted;
+		_kernelAuthority.BatchApplied -= OnKernelBatchApplied;
+		_kernelAuthority.CheckpointRestored -= OnKernelCheckpointRestored;
+	}
 
 	// ---- Broadcast / snapshot ----
 
@@ -291,6 +306,7 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 		var payload = new EnemyStateBatchMsg
 		{
 			Seq = ++_nextEnemySeq,
+			BaseGlobalRevision = _kernelAuthority.CurrentGlobalRevision,
 			Enemies = [.. _enemies.Values.Select(e => e.ToEnemyStateMsg())],
 		};
 		foreach (var member in _session.Members)
@@ -356,13 +372,14 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 	/// convergent fields of the enemies it contains but never removes an id that
 	/// is absent from the batch. Aggregate lifecycle travels explicitly via
 	/// <see cref="EnemyRemovedMsg"/>.</summary>
-	private void ApplyEnemyState(EnemyStateBatchMsg msg) => Merge(msg.Enemies, EnemyStateReceived);
+	private void ApplyEnemyState(EnemyStateBatchMsg msg) => Merge(msg.Enemies, msg.BaseGlobalRevision, EnemyStateReceived);
 
 	private void ApplyEnemyRemoved(EnemyRemovedMsg msg)
 	{
 		var id = msg.Id.ToNetworkEntityId();
 		var wasPresent = _enemies.Remove(id);
 		_removedEnemies.Add(id);
+		_terminalHealthRevision.Remove(id);
 		if (wasPresent)
 		{
 			_log.LogInformation("[Enemy] guest removed enemy {Enemy}.", id);
@@ -377,8 +394,11 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 	}
 
 	/// <summary>Merge the batch into the existing buffer. This is the update-only
-	/// stream path: no implicit removal when an id disappears from the batch.</summary>
-	private void Merge(IEnumerable<EnemyStateMsg> states, Action? notify)
+	/// stream path: no implicit removal when an id disappears from the batch.
+	/// If the stream batch predates a newer kernel terminal-health event, the
+	/// terminal fields (health, stunned) are preserved while continuous
+	/// presentation fields (position/velocity/rotation) still update.</summary>
+	private void Merge(IEnumerable<EnemyStateMsg> states, ulong baseGlobalRevision, Action? notify)
 	{
 		foreach (var state in states)
 		{
@@ -391,6 +411,14 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 
 			var entity = new EnemyEntity(default);
 			state.ApplyTo(entity);
+			if (_terminalHealthRevision.TryGetValue(id, out var terminalRevision)
+				&& baseGlobalRevision < terminalRevision
+				&& _enemies.TryGetValue(id, out var existing))
+			{
+				entity.Health = existing.Health;
+				entity.Stunned = existing.Stunned;
+			}
+
 			_enemies[entity.EntityId] = entity;
 		}
 
@@ -421,10 +449,67 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 		notify?.Invoke();
 	}
 
+	// ---- Kernel terminal revision tracking (guest) ----
+
+	private void OnKernelBatchCommitted(CommittedBatch batch)
+	{
+		if (_session.Role == SessionRole.Guest)
+		{
+			TrackEnemyTerminalRevisions(batch);
+		}
+	}
+
+	private void OnKernelBatchApplied(CommittedBatch batch)
+	{
+		if (_session.Role == SessionRole.Guest)
+		{
+			TrackEnemyTerminalRevisions(batch);
+		}
+	}
+
+	private void OnKernelCheckpointRestored(GameCheckpoint checkpoint)
+	{
+		if (_session.Role != SessionRole.Guest)
+		{
+			return;
+		}
+
+		_terminalHealthRevision.Clear();
+		if (checkpoint.Enemies is null)
+		{
+			return;
+		}
+
+		foreach (var enemy in checkpoint.Enemies.Enemies)
+		{
+			_terminalHealthRevision[ToRuntimeId(enemy.EntityId)] = checkpoint.GlobalRevision;
+		}
+	}
+
+	private void TrackEnemyTerminalRevisions(CommittedBatch batch)
+	{
+		foreach (var @event in batch.Events)
+		{
+			switch (@event)
+			{
+				case EnemyUpsertedEvent upserted:
+					_terminalHealthRevision[ToRuntimeId(upserted.State.EntityId)] = batch.GlobalRevision;
+					break;
+				case EnemyRemovedEvent removed:
+					_terminalHealthRevision.Remove(ToRuntimeId(removed.EntityId));
+					break;
+			}
+		}
+	}
+
+	private static NetworkEntityId ToRuntimeId(EntityId id) =>
+		new(id.Epoch, id.Counter, id.Generation);
+
 	private void OnSessionEnded()
 	{
 		_enemies.Clear();
 		_removedEnemies.Clear();
+		_terminalHealthRevision.Clear();
 		_runtimeSpawns = [];
 		_nextEnemySeq = 0;
 		_lastEnemyStateSeq = 0;

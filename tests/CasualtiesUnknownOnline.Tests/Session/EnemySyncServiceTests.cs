@@ -1,9 +1,11 @@
 using System.Collections.Generic;
 using System.Linq;
+using CasualtiesUnknownOnline.GameState.Domains.Entities;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
+using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -172,6 +174,63 @@ public class EnemySyncServiceTests
 		control.ApplyEnemyState(new EnemyStateBatchMsg { Enemies = [] });
 
 		Assert.NotNull(g1Enemies.GetEnemy(new NetworkEntityId(1, 0, 0)));
+	}
+
+	[Fact]
+	public void StaleStream_CannotOverwriteNewerKernelHealth()
+	{
+		using var w = ItemSimWorld.Create();
+		var g1Enemies = w.G1.Services.GetRequiredService<EnemySyncService>();
+		var control = (IEnemySyncControl)g1Enemies;
+		var id = new NetworkEntityId(1, 9, 0);
+
+		control.ApplyEnemyState(new EnemyStateBatchMsg
+		{
+			Enemies = [Enemy(9, 1f, 1f, health: 50f).ToEnemyStateMsg()],
+		});
+
+		var authority = w.G1.Services.GetRequiredService<ItemKernelAuthority>();
+		Assert.True(authority.TryUpsertEnemy(
+			w.G1.SteamId,
+			new EnemyState(new EntityId(1, 9, 0), "cavetick", 10f, false, false),
+			out var batch,
+			out _));
+		Assert.True(batch!.GlobalRevision > 0);
+
+		// A late/out-of-order 20 Hz batch from before the kernel health event
+		// must not roll the terminal health back, while continuous position
+		// fields still converge.
+		control.ApplyEnemyState(new EnemyStateBatchMsg
+		{
+			BaseGlobalRevision = batch.GlobalRevision - 1,
+			Enemies = [Enemy(9, 2f, 2f, health: 90f).ToEnemyStateMsg()],
+		});
+
+		var enemy = g1Enemies.GetEnemy(id);
+		Assert.NotNull(enemy);
+		Assert.Equal(50f, enemy!.Health);
+		Assert.Equal(new NetVector2(2f, 2f), enemy.Position);
+
+		// The current stream refreshes the terminal health from the kernel
+		// event, then a later stale packet still cannot roll it back.
+		control.ApplyEnemyState(new EnemyStateBatchMsg
+		{
+			BaseGlobalRevision = batch.GlobalRevision,
+			Enemies = [Enemy(9, 3f, 3f, health: 10f).ToEnemyStateMsg()],
+		});
+		var currentEnemy = g1Enemies.GetEnemy(id);
+		Assert.NotNull(currentEnemy);
+		Assert.Equal(10f, currentEnemy!.Health);
+
+		control.ApplyEnemyState(new EnemyStateBatchMsg
+		{
+			BaseGlobalRevision = batch.GlobalRevision - 1,
+			Enemies = [Enemy(9, 4f, 4f, health: 90f).ToEnemyStateMsg()],
+		});
+		var finalEnemy = g1Enemies.GetEnemy(id);
+		Assert.NotNull(finalEnemy);
+		Assert.Equal(10f, finalEnemy!.Health);
+		Assert.Equal(new NetVector2(4f, 4f), finalEnemy.Position);
 	}
 
 	[Fact]

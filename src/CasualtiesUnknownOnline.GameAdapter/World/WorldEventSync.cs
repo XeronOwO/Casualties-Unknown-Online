@@ -27,12 +27,14 @@ internal sealed partial class WorldEventSync(
 	IWorldControl world,
 	BlockBreakSync blockBreaks,
 	OperationTrace trace,
+	WorldEntityKernelProjection kernelProjection,
 	ILogger<WorldEventSync> log)
 {
 	private readonly ISessionControl _session = session;
 	private readonly IWorldControl _world = world;
 	private readonly BlockBreakSync _blockBreaks = blockBreaks;
 	private readonly OperationTrace _trace = trace;
+	private readonly WorldEntityKernelProjection _kernelProjection = kernelProjection;
 	private readonly WorldBuildingEntitySync _buildingEntities = new(session, world, trace, log);
 	private readonly ILogger<WorldEventSync> _log = log;
 
@@ -54,6 +56,8 @@ internal sealed partial class WorldEventSync(
 		_world.KeypadCodeReceived += OnKeypadCodeReceived;
 		_world.OpenedEntitiesSnapshotReceived += _buildingEntities.OnOpenedEntitiesSnapshot;
 		_world.BuildingEntityHealthSnapshotReceived += _buildingEntities.OnBuildingEntityHealthSnapshot;
+		_kernelProjection.OpenedEntitiesProjected += _buildingEntities.OnOpenedEntitiesSnapshot;
+		_kernelProjection.BuildingHealthProjected += _buildingEntities.OnBuildingEntityHealthSnapshot;
 		_session.RemoteSceneChanged += OnRemoteSceneChanged;
 	}
 
@@ -69,6 +73,8 @@ internal sealed partial class WorldEventSync(
 		_world.KeypadCodeReceived -= OnKeypadCodeReceived;
 		_world.OpenedEntitiesSnapshotReceived -= _buildingEntities.OnOpenedEntitiesSnapshot;
 		_world.BuildingEntityHealthSnapshotReceived -= _buildingEntities.OnBuildingEntityHealthSnapshot;
+		_kernelProjection.OpenedEntitiesProjected -= _buildingEntities.OnOpenedEntitiesSnapshot;
+		_kernelProjection.BuildingHealthProjected -= _buildingEntities.OnBuildingEntityHealthSnapshot;
 		_session.RemoteSceneChanged -= OnRemoteSceneChanged;
 	}
 

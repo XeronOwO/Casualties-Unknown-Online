@@ -17,24 +17,27 @@ namespace CasualtiesUnknownOnline.GameAdapter.World;
 /// sides, so the trap's transform position IS its identity (same pattern as
 /// the building-entity damage/open events).
 /// </summary>
-internal sealed class EntityEventSync(IWorldControl world, ISessionControl session, TrapEffectApplier applier, TrapVisualReplay replay, ILogger<EntityEventSync> log)
+internal sealed class EntityEventSync(IWorldControl world, ISessionControl session, TrapEffectApplier applier, TrapVisualReplay replay, WorldEntityKernelProjection kernelProjection, ILogger<EntityEventSync> log)
 {
 	private readonly IWorldControl _world = world;
 	private readonly ISessionControl _session = session;
 	private readonly TrapEffectApplier _applier = applier;
 	private readonly TrapVisualReplay _replay = replay;
+	private readonly WorldEntityKernelProjection _kernelProjection = kernelProjection;
 	private readonly ILogger<EntityEventSync> _log = log;
 
 	internal void BindToSession()
 	{
 		_world.EntityEventReceived += OnRemoteEntityEvent;
 		_world.TrapStateReceived += OnTrapStateReceived;
+		_kernelProjection.TrapSnapshotProjected += OnTrapStateReceived;
 	}
 
 	internal void Unbind()
 	{
 		_world.EntityEventReceived -= OnRemoteEntityEvent;
 		_world.TrapStateReceived -= OnTrapStateReceived;
+		_kernelProjection.TrapSnapshotProjected -= OnTrapStateReceived;
 	}
 
 	/// <summary>

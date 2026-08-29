@@ -1,5 +1,7 @@
+using System.Collections.Generic;
 using CasualtiesUnknownOnline.GameState.Domains.WorldEntities;
 using CasualtiesUnknownOnline.Runtime.Protocol;
+using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.Tests.Session;
@@ -40,5 +42,38 @@ public class WorldEntityProjectionTests
 		var health = Assert.Single(state.BuildingHealth);
 		Assert.Equal(new EntityPosition(5, 6), health.Position);
 		Assert.Equal(7.5f, health.Health);
+	}
+
+	[Fact]
+	public void GuestCheckpointRestore_ProjectsKernelWorldEntities()
+	{
+		var (_, host, guest) = HandshakeTests.CreateHostAndGuest();
+		host.Steam.FireLobbyCreated(LobbyId);
+		host.Steam.LobbyMembers = [HostId, 2001];
+		guest.Steam.FireLobbyEntered(LobbyId);
+
+		var hostWorld = host.Services.GetRequiredService<IWorldControl>();
+		var hostAuthority = host.Services.GetRequiredService<ItemKernelAuthority>();
+		hostWorld.ReportTrapConsumed(EntityEventKind.MineExploded, 1.2f, 2.8f, 5);
+		hostWorld.ReportOpenedEntity(3.1f, 4.2f);
+		hostWorld.ReportBuildingEntityHealth(5.1f, 6.2f, 7.5f);
+
+		var projection = guest.Services.GetRequiredService<WorldEntityKernelProjection>();
+		IReadOnlyList<EntityEventMsg>? traps = null;
+		IReadOnlyList<NetVector2Msg>? opened = null;
+		IReadOnlyList<BuildingEntityHealthEntryMsg>? health = null;
+		projection.TrapSnapshotProjected += list => traps = list;
+		projection.OpenedEntitiesProjected += list => opened = list;
+		projection.BuildingHealthProjected += list => health = list;
+
+		var guestAuthority = guest.Services.GetRequiredService<ItemKernelAuthority>();
+		Assert.True(guestAuthority.Restore(hostAuthority.CreateCheckpoint()).Success);
+
+		Assert.NotNull(traps);
+		Assert.Equal(5, Assert.Single(traps!).Extra);
+		Assert.Equal(3.5f, Assert.Single(opened!).X);
+		Assert.Equal(4.5f, Assert.Single(opened!).Y);
+		Assert.Equal(6.5f, Assert.Single(health!).Y);
+		Assert.Equal(7.5f, Assert.Single(health!).Health);
 	}
 }

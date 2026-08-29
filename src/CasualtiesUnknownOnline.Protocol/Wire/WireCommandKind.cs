@@ -18,6 +18,7 @@ public enum WireCommandKind
 	RecordTrapConsumed = 10,
 	RecordBuildingEntityHealth = 11,
 	RecordOpenedEntity = 12,
+	ResetWorldEntities = 13,
 
 	// Protocol control (not a gameplay command)
 	RangeRequest = 100,

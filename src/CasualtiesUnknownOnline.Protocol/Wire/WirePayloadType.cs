@@ -21,6 +21,7 @@ public enum WirePayloadType
 	RecordTrapConsumedCommand = 10,
 	RecordBuildingEntityHealthCommand = 11,
 	RecordOpenedEntityCommand = 12,
+	ResetWorldEntitiesCommand = 13,
 
 	// Kernel events (critical)
 	ItemSpawnedEvent = 101,
@@ -32,6 +33,7 @@ public enum WirePayloadType
 	TrapConsumedEvent = 107,
 	BuildingEntityHealthUpdatedEvent = 108,
 	OpenedEntityEvent = 109,
+	WorldEntitiesResetEvent = 110,
 
 	// Envelope families
 	CommittedBatch = 100,

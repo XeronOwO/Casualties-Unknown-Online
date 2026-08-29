@@ -21,6 +21,7 @@ into kernel-backed projection/snapshot adapters.
 | Mapper/save | `KernelWireMapper`, `WireCheckpointAssembler`, `KernelSaveFileStore`, `KernelSaveFile` | World-entity facts round-trip through wire checkpoints and disk saves. |
 | Runtime authority surface | `ItemKernelAuthority.TryRecordTrapConsumed/TryRecordBuildingEntityHealth/TryRecordOpenedEntity/TryResetWorldEntities/QueryWorldEntities` | Host commands and query entry points. |
 | Registry projections | `TrapConsumptionRegistry`, `OpenedEntityRegistry`, `BuildingEntityHealthRegistry` | The three old registries now commit through the kernel and build their snapshot payloads from `QueryWorldEntities`; they are no longer independent fact stores. |
+| Guest checkpoint projection | `WorldEntityKernelProjection` + `EntityEventSync`/`WorldEventSync` | Guest `CheckpointRestored` raises the same flat fact lists the Game Adapter applies, providing the checkpoint-driven rebuild counterpart to the legacy snapshot wire. |
 
 ## Evidence table
 
@@ -35,11 +36,12 @@ into kernel-backed projection/snapshot adapters.
 | Save/load preserves the aggregate | `WorldEntityDomainKernelTests.SaveLoad_RoundTripsWorldEntityState`. |
 | Reset command clears all world-entity facts | `WorldEntityDomainKernelTests.ResetWorldEntities_ClearsAllFacts`. |
 | Host world control reports commit kernel facts | `WorldEntityProjectionTests.HostReports_CommitKernelWorldEntities`. |
+| Guest checkpoint restore projects world-entity facts | `WorldEntityProjectionTests.GuestCheckpointRestore_ProjectsKernelWorldEntities`. |
 
 ## Verification
 
 - `dotnet build CasualtiesUnknownOnline.slnx`: 0 warnings / 0 errors.
-- `dotnet test CasualtiesUnknownOnline.slnx`: 1649 passed.
+- `dotnet test CasualtiesUnknownOnline.slnx`: 1684 passed.
 - `dotnet format`: applied.
 - Architecture/event/entity/isolation gates passed.
 
@@ -52,9 +54,9 @@ into kernel-backed projection/snapshot adapters.
 
 ## Next sub-steps
 
-1. Optionally project kernel `WorldEntityState` directly into guest adapter
-   events on checkpoint/batch restore and remove the legacy snapshot frames
-   (`TrapStateSnapshot`, `OpenedEntitiesSnapshot`,
-   `BuildingEntityHealthSnapshot`) as a finishing cleanup.
-2. Move on to the next Phase D domain (Players terminal state/cross-player
-   interaction).
+1. The guest checkpoint projection has landed; remove the legacy snapshot
+   frames (`TrapStateSnapshot`, `OpenedEntitiesSnapshot`,
+   `BuildingEntityHealthSnapshot`) and their periodic resend path after the
+   checkpoint path is proven.
+2. Continue with the remaining player domain supplements and cross-player
+   interaction migration.

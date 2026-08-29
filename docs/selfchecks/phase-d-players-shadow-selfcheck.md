@@ -24,6 +24,7 @@ data and carry service into the kernel.
 | Body terminal projection | `PlayerKernelLimbProjection` + `CharacterDataStore` | The same character-data/limb-event projection also commits body-level terminal booleans (`Disfigured`, `EyeGone`, `BothEyesGone`, `HasPulmonaryEmbolism`, last-stand/neural booleans, `FibrillationForced`, `MindwipeScriptPresent/Active`) into `PlayerBodyTerminalState`. |
 | Carry production projection | `PlayerKernelCarryProjection` + `PlayerCarryService` | Host carry mutations are kernel commands; `PlayerKernelCarryProjection` applies committed batches on the host (`BatchCommitted`) and guest (`BatchApplied`) and rebuilds from checkpoint restore. The carry mirror and `CarryStateChanged` now ride the same kernel batch; legacy `NetMsg.PlayerCarryState` and its handler are removed. |
 | Cross-player item kernel sync | `PlayerInventoryTakeService` / `PlayerHealService` / `PlayerItemUseService` + `ItemKernelAuthority` | Host-recipient take, host-user heal/use, and wear-to-host now spawn/transfer/update/destroy the carried item in the item kernel, closing the host-side item-ownership gap; guest recipients continue through the transfer-table adopt path. |
+| Player interaction result projection | `PlayerInteractionKernelProjection` + `PlayerInteractionResultAuthority` + `PlayerInteractionKernelCodec` | Take/heal/use results are recorded as journal-only Players domain events; the projection restores `TransferReceived` / `HealReceived` / `UseReceived` on the host (`BatchCommitted`) and guests (`BatchApplied`). Legacy `NetMsg.PlayerInventoryTransfer` / `PlayerHealResult` / `PlayerItemUseResult` IDs and handlers are removed. |
 | Push presentation policy | `PlayerPushService` + `PlayerPushResultMsg` | Push is transient presentation: no kernel command/event, no durable relation/health change; the host result stays a direct host→all presentation message and the resulting motion rides the 20 Hz player stream. |
 
 ## Evidence table
@@ -49,6 +50,9 @@ data and carry service into the kernel.
 | Wear-to-host transfer commits the worn item to the kernel | `PlayerInteractionServiceTests.Guest_WearsHelmetOnHost_MovesItemAndSendsWornResult` asserts the kernel item is carried by the host after the transfer. |
 | Guest replay kernel receives the same item facts through KernelEnvelope | The take, bread-use, and wear-to-host tests now also assert the guest `ItemKernelAuthority` sees the host-owned/post-use item state. |
 | Destroyed guest-owned item leaves the kernel carried state | `PlayerInteractionServiceTests.Guest_UsesSplintOnHost_AppliesComponentAndDestroysItem` asserts the host and guest kernel entries are no longer `Carried`. |
+| Result events commit and wire-round-trip | `PlayerDomainKernelTests.RecordPlayerInventoryTransfer_CommitsJournalEvent`, `WireBatchRoundTrip_PreservesPlayerInventoryTransferEvent`, `WireBatchRoundTrip_PreservesPlayerHealResultEvent`, and `WireBatchRoundTrip_PreservesPlayerItemUseResultEvent`. |
+| Host and guest projection restore result events | `PlayerInteractionServiceTests.Guest_TakeResult_ProjectsTransferEventOnBothParticipants`, `Guest_HealResult_ProjectsHealEventOnBothParticipants`, and `Guest_UseResult_ProjectsUseEventOnBothParticipants`. |
+| Legacy result wire removed | `NetMsg.PlayerInventoryTransfer`, `NetMsg.PlayerHealResult`, and `NetMsg.PlayerItemUseResult` have no production/test references; their old handlers are deleted. |
 | Kernel upserts limb terminal facts | `PlayerDomainKernelTests.UpdateStatus_UpsertsLimbFacts`. |
 | Duplicate limb index is rejected | `PlayerDomainKernelTests.DuplicateLimbIndex_IsRejectedByInvariant`. |
 | Wire/checkpoint/save preserve limb facts | `PlayerDomainKernelTests.WireBatchRoundTrip_PreservesPlayerLimbFacts` / `CheckpointSplitAssemble_RoundTripsPlayerLimbFacts` / `SaveLoad_RoundTripsPlayerLimbFacts`. |
@@ -63,7 +67,7 @@ data and carry service into the kernel.
 ## Verification
 
 - `dotnet build CasualtiesUnknownOnline.slnx`: 0 warnings / 0 errors.
-- `dotnet test CasualtiesUnknownOnline.slnx`: 1694 passed.
+- `dotnet test CasualtiesUnknownOnline.slnx`: 1699 passed.
 - `dotnet format`: applied.
 - Architecture/event/entity/isolation gates passed.
 
@@ -88,7 +92,13 @@ data and carry service into the kernel.
 4. [x] Confirm push is transient presentation: `PlayerPushService` creates no
    kernel command/event and `PlayerPushResultMsg` remains a direct host→all
    presentation message; the resulting motion falls back to the 20 Hz player
-   stream. The remaining work in this item is the explicit command/event
-   routing for take/heal/use result messages themselves.
+   stream.
+5. [x] Route take/heal/use result messages through kernel commands/events:
+   `RecordPlayerInventoryTransferCommand` / `RecordPlayerHealResultCommand` /
+   `RecordPlayerItemUseResultCommand` journal the result facts;
+   `PlayerInteractionKernelProjection` restores the Game Adapter event surface
+   on both host and guest from committed/replayed kernel batches; legacy
+   `NetMsg.PlayerInventoryTransfer` / `PlayerHealResult` / `PlayerItemUseResult`
+   and their handlers are removed.
 5. Project kernel player facts into character restore/snapshots where the old
    snapshot stream is not sufficient.

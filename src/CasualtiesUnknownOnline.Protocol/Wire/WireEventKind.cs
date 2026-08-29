@@ -26,4 +26,7 @@ public enum WireEventKind
 	FluidsReset = 17,
 	PlayerCarrySet = 18,
 	PlayerCarryCleared = 19,
+	PlayerInventoryTransfer = 20,
+	PlayerHealResult = 21,
+	PlayerItemUseResult = 22,
 }

@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using CasualtiesUnknownOnline.GameState;
+using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.GameState.Domains.Players;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -438,6 +439,148 @@ public class PlayerDomainKernelTests
 				System.IO.File.Delete(path);
 			}
 		}
+	}
+
+	[Fact]
+	public void RecordPlayerInventoryTransfer_CommitsJournalEvent()
+	{
+		var kernel = new GameStateKernel(Epoch);
+		var item = new PlayerInteractionItem(new ItemIdentity(42, "medkit"), ItemData.Empty);
+
+		var decision = kernel.Execute(
+			new RecordPlayerInventoryTransferCommand(new OperationId(1), Host, Epoch, AuthorityKind.HostOnly, 2001, 2002, item),
+			new CommandContext(Epoch, Host));
+
+		Assert.True(decision.IsAccepted);
+		var @event = Assert.IsType<PlayerInventoryTransferEvent>(Assert.Single(decision.Batch!.Events));
+		Assert.Equal(2001ul, @event.FromSteamId);
+		Assert.Equal(2002ul, @event.ToSteamId);
+		Assert.Equal(42ul, @event.Item.Identity.InstanceId);
+	}
+
+	[Fact]
+	public void WireBatchRoundTrip_PreservesPlayerInventoryTransferEvent()
+	{
+		var source = new GameStateKernel(Epoch);
+		var item = new PlayerInteractionItem(new ItemIdentity(42, "medkit"), new ItemData(0.75f, true, 0, [], []));
+		var batch = source.Execute(
+			new RecordPlayerInventoryTransferCommand(new OperationId(1), Host, Epoch, AuthorityKind.HostOnly, 2001, 2002, item),
+			new CommandContext(Epoch, Host)).Batch!;
+
+		var restored = KernelWireMapper.FromWireBatch(KernelWireMapper.ToWireBatch(batch), Epoch);
+
+		var @event = Assert.IsType<PlayerInventoryTransferEvent>(Assert.Single(restored.Events));
+		Assert.Equal(2001ul, @event.FromSteamId);
+		Assert.Equal(2002ul, @event.ToSteamId);
+		Assert.Equal("medkit", @event.Item.Identity.DefinitionId);
+		Assert.Equal(0.75f, @event.Item.Data.Condition);
+		Assert.True(@event.Item.Data.Favourited);
+	}
+
+	[Fact]
+	public void RecordPlayerHealResult_CommitsJournalEvent()
+	{
+		var kernel = new GameStateKernel(Epoch);
+		var health = new PlayerInteractionHealth { OpiateAmount = 28f, BrainHealth = 70f };
+		var limb = new PlayerInteractionLimb { Index = 1, SkinHealth = 80f };
+
+		var decision = kernel.Execute(
+			new RecordPlayerHealResultCommand(
+				new OperationId(1),
+				Host,
+				Epoch,
+				AuthorityKind.HostOnly,
+				2001,
+				2002,
+				42,
+				true,
+				0f,
+				1,
+				health,
+				[limb]),
+			new CommandContext(Epoch, Host));
+
+		Assert.True(decision.IsAccepted);
+		var @event = Assert.IsType<PlayerHealResultEvent>(Assert.Single(decision.Batch!.Events));
+		Assert.Equal(2001ul, @event.HealerSteamId);
+		Assert.Equal(2002ul, @event.TargetSteamId);
+		Assert.True(@event.ItemDestroyed);
+		Assert.Equal(28f, @event.Health!.OpiateAmount);
+		Assert.Equal(1, Assert.Single(@event.Limbs).Index);
+	}
+
+	[Fact]
+	public void WireBatchRoundTrip_PreservesPlayerHealResultEvent()
+	{
+		var source = new GameStateKernel(Epoch);
+		var health = new PlayerInteractionHealth { BloodVolume = 100f, OpiateAmount = 28f };
+		var limb = new PlayerInteractionLimb { Index = 1, SkinHealth = 80f, Broken = true };
+		var batch = source.Execute(
+			new RecordPlayerHealResultCommand(
+				new OperationId(1),
+				Host,
+				Epoch,
+				AuthorityKind.HostOnly,
+				2001,
+				2002,
+				42,
+				false,
+				0.5f,
+				1,
+				health,
+				[limb]),
+			new CommandContext(Epoch, Host)).Batch!;
+
+		var restored = KernelWireMapper.FromWireBatch(KernelWireMapper.ToWireBatch(batch), Epoch);
+
+		var @event = Assert.IsType<PlayerHealResultEvent>(Assert.Single(restored.Events));
+		Assert.Equal(2001ul, @event.HealerSteamId);
+		Assert.Equal(2002ul, @event.TargetSteamId);
+		Assert.False(@event.ItemDestroyed);
+		Assert.Equal(0.5f, @event.ItemConditionAfter);
+		Assert.Equal(28f, @event.Health!.OpiateAmount);
+		var restoredLimb = Assert.Single(@event.Limbs);
+		Assert.Equal(1, restoredLimb.Index);
+		Assert.True(restoredLimb.Broken);
+	}
+
+	[Fact]
+	public void WireBatchRoundTrip_PreservesPlayerItemUseResultEvent()
+	{
+		var source = new GameStateKernel(Epoch);
+		var after = new PlayerInteractionItem(new ItemIdentity(42, "waterbottle"), new ItemData(0.8f, false, 0, [], []));
+		var worn = new PlayerInteractionItem(new ItemIdentity(7, "bikehelmet"), new ItemData(1f, false, -2, [], []));
+		var timedBody = new PlayerInteractionTimedBodyEffect("highgradestimulant", 144f, 60f);
+		var batch = source.Execute(
+			new RecordPlayerItemUseResultCommand(
+				new OperationId(1),
+				Host,
+				Epoch,
+				AuthorityKind.HostOnly,
+				2001,
+				2002,
+				42,
+				false,
+				after,
+				worn,
+				new PlayerInteractionHealth { Thirst = 9f },
+				[new PlayerInteractionLimb { Index = 1 }],
+				[new PlayerInteractionTimedLimbEffect(1, 10f, -4.5f)],
+				[timedBody]),
+			new CommandContext(Epoch, Host)).Batch!;
+
+		var restored = KernelWireMapper.FromWireBatch(KernelWireMapper.ToWireBatch(batch), Epoch);
+
+		var @event = Assert.IsType<PlayerItemUseResultEvent>(Assert.Single(restored.Events));
+		Assert.Equal(2001ul, @event.UserSteamId);
+		Assert.Equal(2002ul, @event.TargetSteamId);
+		Assert.Equal("waterbottle", @event.ItemAfter!.Identity.DefinitionId);
+		Assert.Equal(0.8f, @event.ItemAfter.Data.Condition);
+		Assert.Equal("bikehelmet", @event.WornItem!.Identity.DefinitionId);
+		Assert.Equal(9f, @event.Health!.Thirst);
+		Assert.Equal(1, Assert.Single(@event.Limbs).Index);
+		Assert.Equal(10f, Assert.Single(@event.TimedEffects).DurationSeconds);
+		Assert.Equal("highgradestimulant", Assert.Single(@event.TimedBodyEffects).EffectId);
 	}
 
 	private static Decision Update(GameStateKernel kernel, ulong op, PlayerState state) =>

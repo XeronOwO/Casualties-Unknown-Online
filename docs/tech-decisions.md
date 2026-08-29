@@ -3789,3 +3789,35 @@ Cross-player push/shove is a presentation-only operation.
   host→all presentation message; each side applies the sound/ragdoll locally.
 - **Fallback** — the resulting target motion is already covered by the existing
   20 Hz player state stream, so no stream-side kernel change is needed.
+
+## 131. Take/heal/use results ride journal-only kernel events (2026-08-29)
+
+Cross-player inventory take, heal, and consumable/wearable use are host
+operations whose durable item/player facts already ride the item and player
+kernel domains. The remaining result messages are now routed explicitly through
+the Phase C kernel protocol so no legacy direct result wire survives.
+
+- **Journal-only events** — `PlayerInventoryTransferEvent`,
+  `PlayerHealResultEvent`, and `PlayerItemUseResultEvent` are Players domain
+  events accepted by `RecordPlayerInventoryTransferCommand`,
+  `RecordPlayerHealResultCommand`, and `RecordPlayerItemUseResultCommand`.
+  They are reduced as no-ops: the result payload is a projection/restore
+  payload, not a separate terminal kernel table.
+- **Host commit** — `PlayerInventoryTakeService`, `PlayerHealService`, and
+  `PlayerItemUseService` commit result facts through
+  `PlayerInteractionResultAuthority` instead of invoking `TransferReceived` or
+  sending a direct wire result.
+- **Host/guest projection** — `PlayerInteractionKernelProjection` raises
+  `TransferReceived` / `HealReceived` / `UseReceived` from
+  `ItemKernelAuthority.BatchCommitted` on the host and `BatchApplied` on the
+  guest, converted by `PlayerInteractionKernelCodec`.
+- **Removed legacy path** — `NetMsg.PlayerInventoryTransfer` (98),
+  `NetMsg.PlayerHealResult` (103), `NetMsg.PlayerItemUseResult` (117), and
+  their three handlers are deleted; participant-style filtering happens in the
+  projection rather than in a fan-out send.
+- **Wire mapping** — `WireEventKind.PlayerInventoryTransfer` /
+  `PlayerHealResult` / `PlayerItemUseResult` carry
+  `WirePlayerInteraction`, including full post-effect health/limb snapshots so
+  participants apply the exact host-computed result.
+- **Tests** — kernel command/wire round-trip tests and host/guest projection
+  tests cover all three result families. Full suite 1699 green.

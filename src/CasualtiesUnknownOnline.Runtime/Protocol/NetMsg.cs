@@ -134,7 +134,6 @@ public enum NetMsg : byte
 	// authority: the host owns the cross-player inventory transfer; the two
 	// participants apply the authoritative body mutation locally)
 	PlayerInventoryTakeRequest = 97, // guest → host: take one carried item from another in-world player
-	PlayerInventoryTransfer = 98, // host → participant: the authoritative transfer result (remove from FromSteamId, add to ToSteamId)
 
 	// Direct player interaction — carry/release another player (host
 	// authority: the host validates the carryable state and commits the one
@@ -149,7 +148,6 @@ public enum NetMsg : byte
 	// applies the healing effect to the target's authority and tells the two
 	// participants the exact post-heal state)
 	PlayerHealRequest = 102, // guest → host: use a carried medical item on another in-world player (ItemInstanceId 0 = host auto-select)
-	PlayerHealResult = 103, // host → participants: authoritative heal result (item consumed/destroyed + target health/limbs)
 
 	// Tutorial claw presentation (host authority — the claw's 20 Hz flow: the
 	// host's TutorialHandler is the single live rig; a guest not running its own
@@ -209,7 +207,6 @@ public enum NetMsg : byte
 	// or drains the item, applies the target-side body effect to the authority
 	// and tells the two participants the exact post-use state)
 	PlayerItemUseRequest = 116, // guest → host: use a carried drink/food on another in-world player (ItemInstanceId 0 = host auto-select)
-	PlayerItemUseResult = 117, // host → participants: authoritative consumable-use result (item consumed/destroyed + target health/limbs)
 
 	// Direct player interaction — push/shove another player (host authority:
 	// the host validates distance/standing/cooldown, computes the force from

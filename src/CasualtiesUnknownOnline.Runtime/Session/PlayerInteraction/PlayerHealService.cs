@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
@@ -21,6 +22,7 @@ internal sealed class PlayerHealService(
 	IItemControl items,
 	IPlayerInteractionVisibility visibility,
 	ItemKernelAuthority kernelAuthority,
+	PlayerInteractionResultAuthority resultAuthority,
 	ILogger log)
 {
 	private readonly ISessionControl _session = session;
@@ -29,6 +31,7 @@ internal sealed class PlayerHealService(
 	private readonly IItemControl _items = items;
 	private readonly IPlayerInteractionVisibility _visibility = visibility;
 	private readonly ItemKernelAuthority _kernelAuthority = kernelAuthority;
+	private readonly PlayerInteractionResultAuthority _resultAuthority = resultAuthority;
 	private readonly ILogger _log = log;
 
 	/// <summary>An authoritative cross-player heal result arrived — the Game Adapter applies the local participant half.</summary>
@@ -186,7 +189,7 @@ internal sealed class PlayerHealService(
 		});
 	}
 
-	/// <summary>Wire handler path: a heal result arrived — surface it for the Game Adapter.</summary>
+	/// <summary>Kernel projection path: a heal result event arrived — surface it for the Game Adapter.</summary>
 	public void FireHealReceived(PlayerHealResultMsg msg) => HealReceived?.Invoke(msg);
 
 	/// <summary>Remove a guest-owned item from the kernel when a cross-player heal consumed it.</summary>
@@ -228,17 +231,25 @@ internal sealed class PlayerHealService(
 
 	private void PublishHeal(PlayerHealResultMsg msg)
 	{
-		// The host applies its own participant half locally; guest participants
-		// receive their authoritative body mutation directly.
-		HealReceived?.Invoke(msg);
-		if (msg.HealerSteamId != _session.LocalSteamId)
+		// The kernel is the single authority. The committed result event is
+		// broadcast through KernelEnvelope and the PlayerInteractionKernelProjection
+		// raises this same event on the host (BatchCommitted) and guests
+		// (BatchApplied); no legacy direct result wire remains.
+		if (!_resultAuthority.TryRecordPlayerHealResult(
+			_session.LocalSteamId,
+			msg.HealerSteamId,
+			msg.TargetSteamId,
+			msg.ItemInstanceId,
+			msg.ItemDestroyed,
+			msg.ItemConditionAfter,
+			msg.HealedLimbIndex,
+			msg.Health is null ? null : PlayerInteractionKernelCodec.FromCharacterHealth(msg.Health),
+			[.. msg.Limbs.Select(PlayerInteractionKernelCodec.FromCharacterLimb)],
+			out _,
+			out var rejection))
 		{
-			_sender.Send(msg.HealerSteamId, NetMsg.PlayerHealResult, msg);
-		}
-
-		if (msg.TargetSteamId != _session.LocalSteamId)
-		{
-			_sender.Send(msg.TargetSteamId, NetMsg.PlayerHealResult, msg);
+			_log.LogWarning("[Heal] kernel result rejected {Healer} -> {Target}: {Reason} ({Message}).",
+				msg.HealerSteamId, msg.TargetSteamId, rejection!.Reason, rejection.Message);
 		}
 	}
 

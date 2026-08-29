@@ -20,7 +20,7 @@ public interface IPlayerInteractionControl
 	/// <summary>Host only: a take request arrived (from the wire or the host's own UI).</summary>
 	void HandleTakeRequest(ulong sender, PlayerInventoryTakeRequestMsg msg);
 
-	/// <summary>Raise a received transfer for the Game Adapter to apply locally (wire handler path).</summary>
+	/// <summary>Raise a received transfer for the Game Adapter to apply locally (kernel projection path).</summary>
 	void FireTransferReceived(PlayerInventoryTransferMsg msg);
 
 	/// <summary>An authoritative cross-player inventory transfer arrived — the Game Adapter applies the body mutation.</summary>
@@ -59,7 +59,7 @@ public interface IPlayerInteractionControl
 	/// <summary>Host only: a heal request arrived (from the wire or the host's own UI).</summary>
 	void HandleHealRequest(ulong sender, PlayerHealRequestMsg msg);
 
-	/// <summary>Raise a received heal result for the Game Adapter to apply locally (wire handler path).</summary>
+	/// <summary>Raise a received heal result for the Game Adapter to apply locally (kernel projection path).</summary>
 	void FireHealReceived(PlayerHealResultMsg msg);
 
 	/// <summary>An authoritative cross-player heal result arrived — the Game Adapter consumes the healer's item and/or applies the target's post-heal state.</summary>
@@ -71,7 +71,7 @@ public interface IPlayerInteractionControl
 	/// <summary>Host only: a consumable-use request arrived (from the wire or the host's own UI).</summary>
 	void HandleUseRequest(ulong sender, PlayerItemUseRequestMsg msg);
 
-	/// <summary>Raise a received consumable-use result for the Game Adapter to apply locally (wire handler path).</summary>
+	/// <summary>Raise a received consumable-use result for the Game Adapter to apply locally (kernel projection path).</summary>
 	void FireUseReceived(PlayerItemUseResultMsg msg);
 
 	/// <summary>An authoritative cross-player consumable-use result arrived — the Game Adapter consumes/updates the user's item and/or applies the target's post-use state.</summary>

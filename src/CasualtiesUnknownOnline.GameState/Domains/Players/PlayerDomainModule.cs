@@ -15,7 +15,10 @@ internal sealed class PlayerDomainModule : IDomainModule
 		command is UpdatePlayerStatusCommand
 			or ResetPlayersCommand
 			or SetPlayerCarryCommand
-			or ClearPlayerCarryCommand;
+			or ClearPlayerCarryCommand
+			or RecordPlayerInventoryTransferCommand
+			or RecordPlayerHealResultCommand
+			or RecordPlayerItemUseResultCommand;
 
 	public bool CanReduce(GameEvent @event) => @event is PlayerEvent;
 
@@ -26,6 +29,27 @@ internal sealed class PlayerDomainModule : IDomainModule
 			ResetPlayersCommand => DomainDecision.Accept(new PlayersResetEvent()),
 			SetPlayerCarryCommand c => DecideSetCarry(c, state),
 			ClearPlayerCarryCommand c => DomainDecision.Accept(new PlayerCarryClearedEvent(c.CarrierSteamId, c.CarriedSteamId)),
+			RecordPlayerInventoryTransferCommand c => DomainDecision.Accept(new PlayerInventoryTransferEvent(c.FromSteamId, c.ToSteamId, c.Item)),
+			RecordPlayerHealResultCommand c => DomainDecision.Accept(new PlayerHealResultEvent(
+				c.HealerSteamId,
+				c.TargetSteamId,
+				c.ItemInstanceId,
+				c.ItemDestroyed,
+				c.ItemConditionAfter,
+				c.HealedLimbIndex,
+				c.Health,
+				c.Limbs)),
+			RecordPlayerItemUseResultCommand c => DomainDecision.Accept(new PlayerItemUseResultEvent(
+				c.UserSteamId,
+				c.TargetSteamId,
+				c.ItemInstanceId,
+				c.ItemDestroyed,
+				c.ItemAfter,
+				c.WornItem,
+				c.Health,
+				c.Limbs,
+				c.TimedEffects,
+				c.TimedBodyEffects)),
 			_ => DomainDecision.Reject(RejectionReason.UnknownCommand, $"unknown player command {command.GetType().Name}"),
 		};
 
@@ -38,6 +62,7 @@ internal sealed class PlayerDomainModule : IDomainModule
 			PlayersResetEvent => PlayerStateTable.Empty,
 			PlayerCarrySetEvent carry => ApplyCarry(current, carry.CarrierSteamId, carry.CarriedSteamId),
 			PlayerCarryClearedEvent carry => ClearCarry(current, carry.CarrierSteamId, carry.CarriedSteamId),
+			PlayerInventoryTransferEvent or PlayerHealResultEvent or PlayerItemUseResultEvent => current,
 			_ => throw new InvalidOperationException($"unknown player event {@event.GetType().Name}"),
 		};
 	}

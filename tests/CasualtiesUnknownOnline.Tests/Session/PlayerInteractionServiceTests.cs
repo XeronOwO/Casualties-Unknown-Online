@@ -95,6 +95,25 @@ public class PlayerInteractionServiceTests
 				}),
 		];
 
+	private static IEnumerable<WireEvent> KernelEvents(IEnumerable<(NetMsg Msg, byte[] Frame)> received) =>
+		received
+			.Where(r => r.Msg == NetMsg.KernelEnvelope)
+			.Select(r => NetPacket.DecodePayload<ProtocolFrame>(r.Frame))
+			.Where(f => f.CommittedBatch is not null)
+			.SelectMany(f => f.CommittedBatch!.Batch.Events);
+
+	private static PlayerInventoryTransferMsg TransferResult(IEnumerable<(NetMsg Msg, byte[] Frame)> received) =>
+		PlayerInteractionKernelCodec.ToTransferMessage(PlayerInteractionWireMapper.FromWireInventoryTransfer(
+			KernelEvents(received).Single(e => e.Kind == WireEventKind.PlayerInventoryTransfer).PlayerInteraction!));
+
+	private static PlayerHealResultMsg HealResult(IEnumerable<(NetMsg Msg, byte[] Frame)> received) =>
+		PlayerInteractionKernelCodec.ToHealMessage(PlayerInteractionWireMapper.FromWireHealResult(
+			KernelEvents(received).Single(e => e.Kind == WireEventKind.PlayerHealResult).PlayerInteraction!));
+
+	private static PlayerItemUseResultMsg UseResult(IEnumerable<(NetMsg Msg, byte[] Frame)> received) =>
+		PlayerInteractionKernelCodec.ToUseMessage(PlayerInteractionWireMapper.FromWireItemUseResult(
+			KernelEvents(received).Single(e => e.Kind == WireEventKind.PlayerItemUseResult).PlayerInteraction!));
+
 	private static void SeedHostEntities(TestNode host, ulong guestId, float guestX, float guestY = 0f, bool standing = true)
 	{
 		var entities = host.Services.GetRequiredService<IEntitySyncControl>();
@@ -136,8 +155,7 @@ public class PlayerInteractionServiceTests
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendTakeRequest(HostId, 42);
 
-		var frame = received.Single(r => r.Msg == NetMsg.PlayerInventoryTransfer).Frame;
-		var transfer = NetPacket.DecodePayload<PlayerInventoryTransferMsg>(frame);
+		var transfer = TransferResult(received);
 		Assert.Equal(HostId, transfer.FromSteamId);
 		Assert.Equal(GuestId, transfer.ToSteamId);
 		Assert.Equal(42UL, transfer.Item!.InstanceId);
@@ -146,6 +164,30 @@ public class PlayerInteractionServiceTests
 		Assert.DoesNotContain(characters.GetHostCharacterData()!.Items, i => i.InstanceId == 42);
 		Assert.Contains(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);
 		Assert.Contains(items.GetTransferredItems(GuestId), w => w.Item.InstanceId == 42);
+	}
+
+	[Fact]
+	public void Guest_TakeResult_ProjectsTransferEventOnBothParticipants()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: false, Item(42)));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true));
+
+		PlayerInventoryTransferMsg? hostTransfer = null;
+		PlayerInventoryTransferMsg? guestTransfer = null;
+		host.Services.GetRequiredService<IPlayerInteractionControl>().TransferReceived += m => hostTransfer = m;
+		guest.Services.GetRequiredService<IPlayerInteractionControl>().TransferReceived += m => guestTransfer = m;
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendTakeRequest(HostId, 42);
+
+		Assert.NotNull(hostTransfer);
+		Assert.Equal(HostId, hostTransfer!.FromSteamId);
+		Assert.Equal(GuestId, hostTransfer.ToSteamId);
+		Assert.NotNull(guestTransfer);
+		Assert.Equal(HostId, guestTransfer!.FromSteamId);
+		Assert.Equal(GuestId, guestTransfer.ToSteamId);
 	}
 
 	[Fact]
@@ -159,8 +201,7 @@ public class PlayerInteractionServiceTests
 		host.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendTakeRequest(GuestId, 77);
 
-		var frame = received.Single(r => r.Msg == NetMsg.PlayerInventoryTransfer).Frame;
-		var transfer = NetPacket.DecodePayload<PlayerInventoryTransferMsg>(frame);
+		var transfer = TransferResult(received);
 		Assert.Equal(GuestId, transfer.FromSteamId);
 		Assert.Equal(HostId, transfer.ToSteamId);
 		Assert.Equal(77UL, transfer.Item!.InstanceId);
@@ -206,8 +247,7 @@ public class PlayerInteractionServiceTests
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendTakeRequest(HostId, 42);
 
-		var frame = received.Single(r => r.Msg == NetMsg.PlayerInventoryTransfer).Frame;
-		var transfer = NetPacket.DecodePayload<PlayerInventoryTransferMsg>(frame);
+		var transfer = TransferResult(received);
 		Assert.Equal(HostId, transfer.FromSteamId);
 		Assert.Equal(GuestId, transfer.ToSteamId);
 		Assert.Equal(42UL, transfer.Item!.InstanceId);
@@ -252,8 +292,7 @@ public class PlayerInteractionServiceTests
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendTakeRequest(HostId, 42);
 
-		var frame = received.Single(r => r.Msg == NetMsg.PlayerInventoryTransfer).Frame;
-		var transfer = NetPacket.DecodePayload<PlayerInventoryTransferMsg>(frame);
+		var transfer = TransferResult(received);
 		Assert.Equal(42UL, transfer.Item!.InstanceId);
 
 		var hostData = characters.GetHostCharacterData()!;
@@ -275,7 +314,7 @@ public class PlayerInteractionServiceTests
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendTakeRequest(HostId, 42);
 
-		Assert.DoesNotContain(received, r => r.Msg == NetMsg.PlayerInventoryTransfer);
+		Assert.DoesNotContain(KernelEvents(received), e => e.Kind == WireEventKind.PlayerInventoryTransfer);
 		Assert.Contains(characters.GetHostCharacterData()!.Items, i => i.InstanceId == 42);
 	}
 
@@ -298,7 +337,7 @@ public class PlayerInteractionServiceTests
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendTakeRequest(HostId, 42);
 
-		Assert.DoesNotContain(received, r => r.Msg == NetMsg.PlayerInventoryTransfer);
+		Assert.DoesNotContain(KernelEvents(received), e => e.Kind == WireEventKind.PlayerInventoryTransfer);
 		var hostData = characters.GetHostCharacterData()!;
 		var backpack = Assert.Single(hostData.Items);
 		Assert.Contains(backpack.Contents, i => i.InstanceId == 42);
@@ -316,7 +355,7 @@ public class PlayerInteractionServiceTests
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendTakeRequest(HostId, 42);
 
-		Assert.DoesNotContain(received, r => r.Msg == NetMsg.PlayerInventoryTransfer);
+		Assert.DoesNotContain(KernelEvents(received), e => e.Kind == WireEventKind.PlayerInventoryTransfer);
 		Assert.Contains(characters.GetHostCharacterData()!.Items, i => i.InstanceId == 42);
 	}
 
@@ -330,7 +369,7 @@ public class PlayerInteractionServiceTests
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendTakeRequest(HostId, 999);
 
-		Assert.DoesNotContain(received, r => r.Msg == NetMsg.PlayerInventoryTransfer);
+		Assert.DoesNotContain(KernelEvents(received), e => e.Kind == WireEventKind.PlayerInventoryTransfer);
 	}
 
 	[Fact]
@@ -343,7 +382,7 @@ public class PlayerInteractionServiceTests
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendTakeRequest(HostId, 42);
 
-		Assert.DoesNotContain(received, r => r.Msg == NetMsg.PlayerInventoryTransfer);
+		Assert.DoesNotContain(KernelEvents(received), e => e.Kind == WireEventKind.PlayerInventoryTransfer);
 		Assert.Contains(characters.GetHostCharacterData()!.Items, i => i.InstanceId == 42);
 	}
 
@@ -364,7 +403,7 @@ public class PlayerInteractionServiceTests
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendTakeRequest(HostId, 42);
 
-		Assert.DoesNotContain(received, r => r.Msg == NetMsg.PlayerInventoryTransfer);
+		Assert.DoesNotContain(KernelEvents(received), e => e.Kind == WireEventKind.PlayerInventoryTransfer);
 		Assert.Contains(characters.GetHostCharacterData()!.Items, i => i.InstanceId == 42);
 		Assert.DoesNotContain(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);
 	}
@@ -537,8 +576,7 @@ public class PlayerInteractionServiceTests
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendHealRequest(HostId);
 
-		var frame = received.Single(r => r.Msg == NetMsg.PlayerHealResult).Frame;
-		var result = NetPacket.DecodePayload<PlayerHealResultMsg>(frame);
+		var result = HealResult(received);
 		Assert.Equal(GuestId, result.HealerSteamId);
 		Assert.Equal(HostId, result.TargetSteamId);
 		Assert.Equal(42UL, result.ItemInstanceId);
@@ -558,6 +596,30 @@ public class PlayerInteractionServiceTests
 	}
 
 	[Fact]
+	public void Guest_HealResult_ProjectsHealEventOnBothParticipants()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, conscious: false));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, Item(42, "bandage", slot: 0)));
+
+		PlayerHealResultMsg? hostHeal = null;
+		PlayerHealResultMsg? guestHeal = null;
+		host.Services.GetRequiredService<IPlayerInteractionControl>().HealReceived += m => hostHeal = m;
+		guest.Services.GetRequiredService<IPlayerInteractionControl>().HealReceived += m => guestHeal = m;
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendHealRequest(HostId);
+
+		Assert.NotNull(hostHeal);
+		Assert.Equal(GuestId, hostHeal!.HealerSteamId);
+		Assert.Equal(HostId, hostHeal.TargetSteamId);
+		Assert.NotNull(guestHeal);
+		Assert.Equal(GuestId, guestHeal!.HealerSteamId);
+		Assert.Equal(HostId, guestHeal.TargetSteamId);
+	}
+
+	[Fact]
 	public void Host_HealsUnconsciousGuest_SendsResultToGuest()
 	{
 		var (host, guest, received) = CreateSession();
@@ -568,8 +630,7 @@ public class PlayerInteractionServiceTests
 		host.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendHealRequest(GuestId, 77);
 
-		var frame = received.Single(r => r.Msg == NetMsg.PlayerHealResult).Frame;
-		var result = NetPacket.DecodePayload<PlayerHealResultMsg>(frame);
+		var result = HealResult(received);
 		Assert.Equal(HostId, result.HealerSteamId);
 		Assert.Equal(GuestId, result.TargetSteamId);
 		Assert.Equal(77UL, result.ItemInstanceId);
@@ -591,7 +652,7 @@ public class PlayerInteractionServiceTests
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendHealRequest(HostId);
 
-		Assert.DoesNotContain(received, r => r.Msg == NetMsg.PlayerHealResult);
+		Assert.DoesNotContain(KernelEvents(received), e => e.Kind == WireEventKind.PlayerHealResult);
 	}
 
 	[Fact]
@@ -605,7 +666,7 @@ public class PlayerInteractionServiceTests
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendHealRequest(HostId);
 
-		Assert.DoesNotContain(received, r => r.Msg == NetMsg.PlayerHealResult);
+		Assert.DoesNotContain(KernelEvents(received), e => e.Kind == WireEventKind.PlayerHealResult);
 		Assert.Contains(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);
 	}
 
@@ -620,7 +681,7 @@ public class PlayerInteractionServiceTests
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendHealRequest(HostId);
 
-		Assert.DoesNotContain(received, r => r.Msg == NetMsg.PlayerHealResult);
+		Assert.DoesNotContain(KernelEvents(received), e => e.Kind == WireEventKind.PlayerHealResult);
 	}
 
 	[Fact]
@@ -638,8 +699,7 @@ public class PlayerInteractionServiceTests
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendHealRequest(HostId, 42);
 
-		var frame = received.Single(r => r.Msg == NetMsg.PlayerHealResult).Frame;
-		var result = NetPacket.DecodePayload<PlayerHealResultMsg>(frame);
+		var result = HealResult(received);
 		Assert.False(result.ItemDestroyed);
 		Assert.True(Math.Abs(result.ItemConditionAfter - 0.5f) < 0.001f);
 
@@ -660,8 +720,7 @@ public class PlayerInteractionServiceTests
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendHealRequest(HostId);
 
-		var frame = received.Single(r => r.Msg == NetMsg.PlayerHealResult).Frame;
-		var result = NetPacket.DecodePayload<PlayerHealResultMsg>(frame);
+		var result = HealResult(received);
 		Assert.Equal(GuestId, result.HealerSteamId);
 		Assert.Equal(HostId, result.TargetSteamId);
 		Assert.True(result.ItemDestroyed);
@@ -725,8 +784,7 @@ public class PlayerInteractionServiceTests
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendUseRequest(HostId, 42);
 
-		var frame = received.Single(r => r.Msg == NetMsg.PlayerItemUseResult).Frame;
-		var result = NetPacket.DecodePayload<PlayerItemUseResultMsg>(frame);
+		var result = UseResult(received);
 		Assert.Equal(GuestId, result.UserSteamId);
 		Assert.Equal(HostId, result.TargetSteamId);
 		Assert.Equal(42UL, result.ItemInstanceId);
@@ -745,6 +803,33 @@ public class PlayerInteractionServiceTests
 	}
 
 	[Fact]
+	public void Guest_UseResult_ProjectsUseEventOnBothParticipants()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		var items = host.Services.GetRequiredService<IItemControl>();
+		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, conscious: true));
+		var water = WaterBottle(42);
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, water));
+		items.AdoptTransferredItem(GuestId, 42, water);
+
+		PlayerItemUseResultMsg? hostUse = null;
+		PlayerItemUseResultMsg? guestUse = null;
+		host.Services.GetRequiredService<IPlayerInteractionControl>().UseReceived += m => hostUse = m;
+		guest.Services.GetRequiredService<IPlayerInteractionControl>().UseReceived += m => guestUse = m;
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendUseRequest(HostId, 42);
+
+		Assert.NotNull(hostUse);
+		Assert.Equal(GuestId, hostUse!.UserSteamId);
+		Assert.Equal(HostId, hostUse.TargetSteamId);
+		Assert.NotNull(guestUse);
+		Assert.Equal(GuestId, guestUse!.UserSteamId);
+		Assert.Equal(HostId, guestUse.TargetSteamId);
+	}
+
+	[Fact]
 	public void Host_UsesBreadOnGuest_AppliesFoodAndSendsResult()
 	{
 		var (host, guest, received) = CreateSession();
@@ -755,8 +840,7 @@ public class PlayerInteractionServiceTests
 		host.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendUseRequest(GuestId, 77);
 
-		var frame = received.Single(r => r.Msg == NetMsg.PlayerItemUseResult).Frame;
-		var result = NetPacket.DecodePayload<PlayerItemUseResultMsg>(frame);
+		var result = UseResult(received);
 		Assert.Equal(HostId, result.UserSteamId);
 		Assert.Equal(GuestId, result.TargetSteamId);
 		Assert.False(result.ItemDestroyed);
@@ -795,7 +879,7 @@ public class PlayerInteractionServiceTests
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendUseRequest(HostId, 42);
 
-		Assert.DoesNotContain(received, r => r.Msg == NetMsg.PlayerItemUseResult);
+		Assert.DoesNotContain(KernelEvents(received), e => e.Kind == WireEventKind.PlayerItemUseResult);
 		Assert.Contains(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);
 	}
 
@@ -810,7 +894,7 @@ public class PlayerInteractionServiceTests
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendUseRequest(HostId, 42);
 
-		Assert.DoesNotContain(received, r => r.Msg == NetMsg.PlayerItemUseResult);
+		Assert.DoesNotContain(KernelEvents(received), e => e.Kind == WireEventKind.PlayerItemUseResult);
 		Assert.Contains(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);
 	}
 
@@ -831,8 +915,7 @@ public class PlayerInteractionServiceTests
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendUseRequest(HostId, 42);
 
-		var frame = received.Single(r => r.Msg == NetMsg.PlayerItemUseResult).Frame;
-		var result = NetPacket.DecodePayload<PlayerItemUseResultMsg>(frame);
+		var result = UseResult(received);
 		Assert.Equal(GuestId, result.UserSteamId);
 		Assert.Equal(HostId, result.TargetSteamId);
 		Assert.Equal(42UL, result.ItemInstanceId);
@@ -869,7 +952,7 @@ public class PlayerInteractionServiceTests
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendUseRequest(HostId, 42);
 
-		Assert.DoesNotContain(received, r => r.Msg == NetMsg.PlayerItemUseResult);
+		Assert.DoesNotContain(KernelEvents(received), e => e.Kind == WireEventKind.PlayerItemUseResult);
 		Assert.Contains(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);
 	}
 
@@ -887,8 +970,7 @@ public class PlayerInteractionServiceTests
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendUseRequest(HostId, 42);
 
-		var frame = received.Single(r => r.Msg == NetMsg.PlayerItemUseResult).Frame;
-		var result = NetPacket.DecodePayload<PlayerItemUseResultMsg>(frame);
+		var result = UseResult(received);
 		Assert.Equal(GuestId, result.UserSteamId);
 		Assert.Equal(HostId, result.TargetSteamId);
 		Assert.Equal(42UL, result.ItemInstanceId);
@@ -926,7 +1008,7 @@ public class PlayerInteractionServiceTests
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendUseRequest(HostId, 42);
 
-		Assert.DoesNotContain(received, r => r.Msg == NetMsg.PlayerItemUseResult);
+		Assert.DoesNotContain(KernelEvents(received), e => e.Kind == WireEventKind.PlayerItemUseResult);
 		Assert.Contains(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);
 	}
 
@@ -1205,8 +1287,7 @@ public class PlayerInteractionServiceTests
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendUseRequest(HostId, 42);
 
-		var frame = received.Single(r => r.Msg == NetMsg.PlayerItemUseResult).Frame;
-		var result = NetPacket.DecodePayload<PlayerItemUseResultMsg>(frame);
+		var result = UseResult(received);
 		Assert.Equal(GuestId, result.UserSteamId);
 		Assert.Equal(HostId, result.TargetSteamId);
 		Assert.Equal(42UL, result.ItemInstanceId);
@@ -1240,8 +1321,7 @@ public class PlayerInteractionServiceTests
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendUseRequest(HostId, 42);
 
-		var frame = received.Single(r => r.Msg == NetMsg.PlayerItemUseResult).Frame;
-		var result = NetPacket.DecodePayload<PlayerItemUseResultMsg>(frame);
+		var result = UseResult(received);
 		Assert.Equal(GuestId, result.UserSteamId);
 		Assert.Equal(HostId, result.TargetSteamId);
 		Assert.Equal(42UL, result.ItemInstanceId);
@@ -1268,8 +1348,7 @@ public class PlayerInteractionServiceTests
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendUseRequest(HostId, 42);
 
-		var frame = received.Single(r => r.Msg == NetMsg.PlayerItemUseResult).Frame;
-		var result = NetPacket.DecodePayload<PlayerItemUseResultMsg>(frame);
+		var result = UseResult(received);
 		Assert.True(result.ItemDestroyed);
 		Assert.Null(result.ItemAfter);
 
@@ -1304,8 +1383,7 @@ public class PlayerInteractionServiceTests
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendUseRequest(HostId, 42);
 
-		var frame = received.Single(r => r.Msg == NetMsg.PlayerItemUseResult).Frame;
-		var result = NetPacket.DecodePayload<PlayerItemUseResultMsg>(frame);
+		var result = UseResult(received);
 		Assert.True(result.ItemDestroyed);
 		Assert.Null(result.ItemAfter);
 
@@ -1332,8 +1410,7 @@ public class PlayerInteractionServiceTests
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendUseRequest(HostId, 42);
 
-		var frame = received.Single(r => r.Msg == NetMsg.PlayerItemUseResult).Frame;
-		var result = NetPacket.DecodePayload<PlayerItemUseResultMsg>(frame);
+		var result = UseResult(received);
 		Assert.False(result.ItemDestroyed);
 		Assert.NotNull(result.ItemAfter);
 		Assert.True(Math.Abs(result.ItemAfter!.Condition - 0.25f) < 0.001f);
@@ -1362,8 +1439,7 @@ public class PlayerInteractionServiceTests
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendUseRequest(HostId, 42);
 
-		var frame = received.Single(r => r.Msg == NetMsg.PlayerItemUseResult).Frame;
-		var result = NetPacket.DecodePayload<PlayerItemUseResultMsg>(frame);
+		var result = UseResult(received);
 		Assert.Equal(GuestId, result.UserSteamId);
 		Assert.Equal(HostId, result.TargetSteamId);
 		Assert.True(result.ItemDestroyed);
@@ -1403,8 +1479,7 @@ public class PlayerInteractionServiceTests
 		host.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendUseRequest(GuestId, 42);
 
-		var frame = received.Single(r => r.Msg == NetMsg.PlayerItemUseResult).Frame;
-		var result = NetPacket.DecodePayload<PlayerItemUseResultMsg>(frame);
+		var result = UseResult(received);
 		Assert.Equal(HostId, result.UserSteamId);
 		Assert.Equal(GuestId, result.TargetSteamId);
 		Assert.True(result.ItemDestroyed);
@@ -1431,7 +1506,7 @@ public class PlayerInteractionServiceTests
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendUseRequest(HostId, 42);
 
-		Assert.DoesNotContain(received, r => r.Msg == NetMsg.PlayerItemUseResult);
+		Assert.DoesNotContain(KernelEvents(received), e => e.Kind == WireEventKind.PlayerItemUseResult);
 		Assert.Contains(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);
 		Assert.Contains(items.GetTransferredItems(GuestId), w => w.Item.InstanceId == 42);
 	}
@@ -1452,7 +1527,7 @@ public class PlayerInteractionServiceTests
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendUseRequest(HostId, 42);
 
-		Assert.DoesNotContain(received, r => r.Msg == NetMsg.PlayerItemUseResult);
+		Assert.DoesNotContain(KernelEvents(received), e => e.Kind == WireEventKind.PlayerItemUseResult);
 		Assert.Contains(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);
 		Assert.Contains(items.GetTransferredItems(GuestId), w => w.Item.InstanceId == 42);
 	}
@@ -1473,8 +1548,7 @@ public class PlayerInteractionServiceTests
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendUseRequest(HostId, 42);
 
-		var frame = received.Single(r => r.Msg == NetMsg.PlayerItemUseResult).Frame;
-		var result = NetPacket.DecodePayload<PlayerItemUseResultMsg>(frame);
+		var result = UseResult(received);
 		Assert.Equal(GuestId, result.UserSteamId);
 		Assert.Equal(HostId, result.TargetSteamId);
 		Assert.Equal(42UL, result.ItemInstanceId);
@@ -1500,7 +1574,7 @@ public class PlayerInteractionServiceTests
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendUseRequest(HostId, 42);
 
-		Assert.DoesNotContain(received, r => r.Msg == NetMsg.PlayerItemUseResult);
+		Assert.DoesNotContain(KernelEvents(received), e => e.Kind == WireEventKind.PlayerItemUseResult);
 		Assert.Contains(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);
 	}
 
@@ -1521,8 +1595,7 @@ public class PlayerInteractionServiceTests
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendUseRequest(HostId, 42);
 
-		var frame = received.Single(r => r.Msg == NetMsg.PlayerItemUseResult).Frame;
-		var result = NetPacket.DecodePayload<PlayerItemUseResultMsg>(frame);
+		var result = UseResult(received);
 		Assert.Equal(GuestId, result.UserSteamId);
 		Assert.Equal(HostId, result.TargetSteamId);
 		Assert.False(result.ItemDestroyed);
@@ -1567,8 +1640,7 @@ public class PlayerInteractionServiceTests
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendUseRequest(HostId, 42);
 
-		var frame = received.Single(r => r.Msg == NetMsg.PlayerItemUseResult).Frame;
-		var result = NetPacket.DecodePayload<PlayerItemUseResultMsg>(frame);
+		var result = UseResult(received);
 		Assert.Equal(GuestId, result.UserSteamId);
 		Assert.Equal(HostId, result.TargetSteamId);
 		Assert.False(result.ItemDestroyed);
@@ -1604,8 +1676,7 @@ public class PlayerInteractionServiceTests
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendUseRequest(HostId, 42);
 
-		var frame = received.Single(r => r.Msg == NetMsg.PlayerItemUseResult).Frame;
-		var result = NetPacket.DecodePayload<PlayerItemUseResultMsg>(frame);
+		var result = UseResult(received);
 		Assert.Equal(GuestId, result.UserSteamId);
 		Assert.Equal(HostId, result.TargetSteamId);
 		Assert.False(result.ItemDestroyed);
@@ -1632,8 +1703,7 @@ public class PlayerInteractionServiceTests
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendUseRequest(HostId, 42);
 
-		var frame = received.Single(r => r.Msg == NetMsg.PlayerItemUseResult).Frame;
-		var result = NetPacket.DecodePayload<PlayerItemUseResultMsg>(frame);
+		var result = UseResult(received);
 		Assert.Equal(GuestId, result.UserSteamId);
 		Assert.Equal(HostId, result.TargetSteamId);
 		Assert.False(result.ItemDestroyed);
@@ -1660,8 +1730,7 @@ public class PlayerInteractionServiceTests
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendUseRequest(HostId, 42);
 
-		var frame = received.Single(r => r.Msg == NetMsg.PlayerItemUseResult).Frame;
-		var result = NetPacket.DecodePayload<PlayerItemUseResultMsg>(frame);
+		var result = UseResult(received);
 		Assert.Equal(HostId, result.TargetSteamId);
 		Assert.True(Math.Abs(result.Health!.SleepingPillsAmount - 300f) < 0.001f);
 
@@ -1687,8 +1756,7 @@ public class PlayerInteractionServiceTests
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendUseRequest(HostId, 42);
 
-		var frame = received.Single(r => r.Msg == NetMsg.PlayerItemUseResult).Frame;
-		var result = NetPacket.DecodePayload<PlayerItemUseResultMsg>(frame);
+		var result = UseResult(received);
 		Assert.True(result.Health!.MindwipeScriptPresent);
 		Assert.False(result.Health.MindwipeScriptActive);
 
@@ -1718,7 +1786,7 @@ public class PlayerInteractionServiceTests
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendUseRequest(HostId, 42);
 
-		Assert.DoesNotContain(received, r => r.Msg == NetMsg.PlayerItemUseResult);
+		Assert.DoesNotContain(KernelEvents(received), e => e.Kind == WireEventKind.PlayerItemUseResult);
 		Assert.Contains(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);
 	}
 
@@ -1735,7 +1803,7 @@ public class PlayerInteractionServiceTests
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendTakeRequest(HostId, 42);
 
-		Assert.DoesNotContain(received, r => r.Msg == NetMsg.PlayerInventoryTransfer);
+		Assert.DoesNotContain(KernelEvents(received), e => e.Kind == WireEventKind.PlayerInventoryTransfer);
 		Assert.Contains(characters.GetHostCharacterData()!.Items, i => i.InstanceId == 42);
 	}
 
@@ -1765,7 +1833,7 @@ public class PlayerInteractionServiceTests
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendHealRequest(HostId);
 
-		Assert.DoesNotContain(received, r => r.Msg == NetMsg.PlayerHealResult);
+		Assert.DoesNotContain(KernelEvents(received), e => e.Kind == WireEventKind.PlayerHealResult);
 		Assert.Contains(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);
 	}
 
@@ -1780,7 +1848,7 @@ public class PlayerInteractionServiceTests
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendUseRequest(HostId, 42);
 
-		Assert.DoesNotContain(received, r => r.Msg == NetMsg.PlayerItemUseResult);
+		Assert.DoesNotContain(KernelEvents(received), e => e.Kind == WireEventKind.PlayerItemUseResult);
 		Assert.Contains(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);
 	}
 

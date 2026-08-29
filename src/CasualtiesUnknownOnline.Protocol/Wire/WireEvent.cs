@@ -71,4 +71,7 @@ public sealed class WireEvent
 
 	[ProtoMember(21)]
 	public ulong CarriedSteamId { get; set; }
+
+	[ProtoMember(22)]
+	public WirePlayerInteraction? PlayerInteraction { get; set; }
 }

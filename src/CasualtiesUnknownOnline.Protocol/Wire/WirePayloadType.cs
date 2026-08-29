@@ -52,6 +52,9 @@ public enum WirePayloadType
 	FluidsResetEvent = 117,
 	PlayerCarrySetEvent = 118,
 	PlayerCarryClearedEvent = 119,
+	PlayerInventoryTransferEvent = 120,
+	PlayerHealResultEvent = 121,
+	PlayerItemUseResultEvent = 122,
 
 	// Envelope families
 	CommittedBatch = 100,

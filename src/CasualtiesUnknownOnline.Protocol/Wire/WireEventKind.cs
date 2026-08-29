@@ -22,4 +22,6 @@ public enum WireEventKind
 	EnemyUpserted = 13,
 	EnemyRemoved = 14,
 	EnemiesReset = 15,
+	FluidRegionUpdated = 16,
+	FluidsReset = 17,
 }

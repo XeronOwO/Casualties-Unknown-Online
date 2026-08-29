@@ -39,4 +39,7 @@ public sealed class WireCheckpoint
 
 	[ProtoMember(10)]
 	public List<WireEnemyState> Enemies { get; set; } = [];
+
+	[ProtoMember(11)]
+	public List<WireFluidRegionState> Fluids { get; set; } = [];
 }

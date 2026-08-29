@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.GameState.Domains.Entities;
+using CasualtiesUnknownOnline.GameState.Domains.Fluids;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.GameState.Domains.Players;
 using CasualtiesUnknownOnline.GameState.Domains.World;
@@ -18,7 +19,8 @@ internal sealed class KernelReadModel(
 	RunState? run,
 	WorldEntityState? worldEntities,
 	PlayerStateTable? players,
-	EnemyStateTable? enemies)
+	EnemyStateTable? enemies,
+	FluidStateTable? fluids)
 {
 	public RunEpoch RunEpoch { get; } = runEpoch;
 
@@ -33,6 +35,8 @@ internal sealed class KernelReadModel(
 	public PlayerStateTable? Players { get; } = players;
 
 	public EnemyStateTable? Enemies { get; } = enemies;
+
+	public FluidStateTable? Fluids { get; } = fluids;
 
 	public ItemState? FindItem(ulong instanceId) =>
 		Items.TryGetValue(instanceId, out var item) ? item : null;

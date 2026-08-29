@@ -1,5 +1,6 @@
 using System.Linq;
 using CasualtiesUnknownOnline.GameState.Domains.Entities;
+using CasualtiesUnknownOnline.GameState.Domains.Fluids;
 using CasualtiesUnknownOnline.GameState.Domains.Players;
 using CasualtiesUnknownOnline.GameState.Domains.World;
 using CasualtiesUnknownOnline.GameState.Domains.WorldEntities;
@@ -148,4 +149,22 @@ public static class KernelDomainWireMapper
 			state.Health,
 			state.RuntimeSpawned,
 			state.Stunned);
+
+	public static WireFluidRegionState ToWireFluidRegionState(FluidRegionState state) =>
+		new()
+		{
+			ChunkX = state.ChunkX,
+			ChunkY = state.ChunkY,
+			TotalAmount = state.TotalAmount,
+			MainType = state.MainType,
+			UpdatedAtMs = state.UpdatedAtMs,
+		};
+
+	public static FluidRegionState FromWireFluidRegionState(WireFluidRegionState state) =>
+		new(
+			state.ChunkX,
+			state.ChunkY,
+			state.TotalAmount,
+			state.MainType,
+			state.UpdatedAtMs);
 }

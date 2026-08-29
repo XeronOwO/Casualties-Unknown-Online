@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.GameState.Domains.Entities;
+using CasualtiesUnknownOnline.GameState.Domains.Fluids;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.GameState.Domains.Players;
 using CasualtiesUnknownOnline.GameState.Domains.World;
@@ -18,7 +19,7 @@ namespace CasualtiesUnknownOnline.GameState;
 public sealed class GameStateKernel(RunEpoch runEpoch) : IGameStateKernel
 {
 	private readonly GameStateStore _store = new(runEpoch);
-	private readonly IReadOnlyList<IDomainModule> _modules = [new ItemDomainModule(), new WorldDomainModule(), new WorldEntityDomainModule(), new PlayerDomainModule(), new EnemyDomainModule()];
+	private readonly IReadOnlyList<IDomainModule> _modules = [new ItemDomainModule(), new WorldDomainModule(), new WorldEntityDomainModule(), new PlayerDomainModule(), new EnemyDomainModule(), new FluidDomainModule()];
 
 	public Decision Execute(GameCommand command, CommandContext context)
 	{
@@ -40,7 +41,7 @@ public sealed class GameStateKernel(RunEpoch runEpoch) : IGameStateKernel
 				$"no domain module handles {command.GetType().Name}"));
 		}
 
-		var decision = module.Decide(command, new KernelReadModel(_store.RunEpoch, _store.GlobalRevision, _store.Items, _store.Run, _store.WorldEntities, _store.Players, _store.Enemies), context);
+		var decision = module.Decide(command, new KernelReadModel(_store.RunEpoch, _store.GlobalRevision, _store.Items, _store.Run, _store.WorldEntities, _store.Players, _store.Enemies, _store.Fluids), context);
 		if (!decision.Accepted)
 		{
 			return Decision.Rejected(decision.Rejection!);
@@ -54,7 +55,7 @@ public sealed class GameStateKernel(RunEpoch runEpoch) : IGameStateKernel
 
 		try
 		{
-			module.AssertInvariants(new KernelReadModel(working.RunEpoch, working.GlobalRevision, working.Items, working.Run, working.WorldEntities, working.Players, working.Enemies));
+			module.AssertInvariants(new KernelReadModel(working.RunEpoch, working.GlobalRevision, working.Items, working.Run, working.WorldEntities, working.Players, working.Enemies, working.Fluids));
 		}
 		catch (InvalidOperationException e)
 		{
@@ -104,7 +105,7 @@ public sealed class GameStateKernel(RunEpoch runEpoch) : IGameStateKernel
 		{
 			foreach (var module in _modules)
 			{
-				module.AssertInvariants(new KernelReadModel(working.RunEpoch, working.GlobalRevision, working.Items, working.Run, working.WorldEntities, working.Players, working.Enemies));
+				module.AssertInvariants(new KernelReadModel(working.RunEpoch, working.GlobalRevision, working.Items, working.Run, working.WorldEntities, working.Players, working.Enemies, working.Fluids));
 			}
 		}
 		catch (InvalidOperationException e)
@@ -138,4 +139,6 @@ public sealed class GameStateKernel(RunEpoch runEpoch) : IGameStateKernel
 	public PlayerStateTable? QueryPlayers() => _store.Players;
 
 	public EnemyStateTable? QueryEnemies() => _store.Enemies;
+
+	public FluidStateTable? QueryFluids() => _store.Fluids;
 }

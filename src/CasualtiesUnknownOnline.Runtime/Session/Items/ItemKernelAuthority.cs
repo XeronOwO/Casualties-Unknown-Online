@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.GameState.Domains.Entities;
+using CasualtiesUnknownOnline.GameState.Domains.Fluids;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.GameState.Domains.Players;
 using CasualtiesUnknownOnline.GameState.Domains.World;
@@ -64,6 +65,8 @@ public sealed class ItemKernelAuthority(ILogger<ItemKernelAuthority> log)
 	public PlayerStateTable? QueryPlayers() => _kernel.QueryPlayers();
 
 	public EnemyStateTable? QueryEnemies() => _kernel.QueryEnemies();
+
+	public FluidStateTable? QueryFluids() => _kernel.QueryFluids();
 
 	public GameCheckpoint CreateCheckpoint() => _kernel.CreateCheckpoint();
 
@@ -230,6 +233,29 @@ public sealed class ItemKernelAuthority(ILogger<ItemKernelAuthority> log)
 			_runEpoch,
 			AuthorityKind.HostOnly);
 		return TryExecute(command, actor, "reset-enemies", out batch, out rejection);
+	}
+
+	// ===== Fluids =====
+
+	public bool TryUpdateFluidRegion(ulong actor, FluidRegionState state, out CommittedBatch? batch, out Rejection? rejection)
+	{
+		var command = new UpdateFluidRegionCommand(
+			NextOperation(),
+			new ActorId(actor),
+			_runEpoch,
+			AuthorityKind.HostOnly,
+			state);
+		return TryExecute(command, actor, "update-fluid-region", out batch, out rejection);
+	}
+
+	public bool TryResetFluids(ulong actor, out CommittedBatch? batch, out Rejection? rejection)
+	{
+		var command = new ResetFluidsCommand(
+			NextOperation(),
+			new ActorId(actor),
+			_runEpoch,
+			AuthorityKind.HostOnly);
+		return TryExecute(command, actor, "reset-fluids", out batch, out rejection);
 	}
 
 	// ===== Spawn =====

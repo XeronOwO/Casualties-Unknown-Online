@@ -69,4 +69,7 @@ public sealed class WireCommand
 
 	[ProtoMember(20)]
 	public WireEnemyState? EnemyState { get; set; }
+
+	[ProtoMember(21)]
+	public WireFluidRegionState? FluidState { get; set; }
 }

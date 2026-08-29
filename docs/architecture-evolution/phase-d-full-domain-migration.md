@@ -117,11 +117,11 @@ For each domain, complete these steps in order:
 
 ### 4.5 Fluids
 
-- [ ] Split authoritative fluid region totals/types from simulation/visual grids.
-- [ ] Define region checkpoint commands/events and periodic authoritative commits.
+- [x] Split authoritative fluid region totals/types from simulation/visual grids.
+- [x] Define region checkpoint commands/events and periodic authoritative commits.
 - [ ] Move guest local fluid simulation into rebuildable projection.
 - [ ] Define convergence fields and forbidden stream operations (no aggregate creation/destruction).
-- [ ] Add property tests for region/total invariants under random updates.
+- [x] Add property tests for region/total invariants under random updates.
 
 ### 4.6 High-frequency stream unification
 

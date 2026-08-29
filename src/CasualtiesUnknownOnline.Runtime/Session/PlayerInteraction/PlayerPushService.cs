@@ -18,6 +18,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 /// result so every side applies the correct sound/ragdoll locally. The target's
 /// own client owns its body physics; the resulting motion rides the existing
 /// 20 Hz player state stream as the presentation fallback.
+///
+/// Push is intentionally NOT a kernel fact: it is a transient presentation
+/// effect. There is no durable ownership/health/relation change to commit, so
+/// no kernel command/event is created and the result remains a direct
+/// host→all presentation message.
 /// </summary>
 internal sealed class PlayerPushService : IDisposable
 {

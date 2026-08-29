@@ -24,6 +24,7 @@ data and carry service into the kernel.
 | Body terminal projection | `PlayerKernelLimbProjection` + `CharacterDataStore` | The same character-data/limb-event projection also commits body-level terminal booleans (`Disfigured`, `EyeGone`, `BothEyesGone`, `HasPulmonaryEmbolism`, last-stand/neural booleans, `FibrillationForced`, `MindwipeScriptPresent/Active`) into `PlayerBodyTerminalState`. |
 | Carry production projection | `PlayerKernelCarryProjection` + `PlayerCarryService` | Host carry mutations are kernel commands; `PlayerKernelCarryProjection` applies committed batches on the host (`BatchCommitted`) and guest (`BatchApplied`) and rebuilds from checkpoint restore. The carry mirror and `CarryStateChanged` now ride the same kernel batch; legacy `NetMsg.PlayerCarryState` and its handler are removed. |
 | Cross-player item kernel sync | `PlayerInventoryTakeService` / `PlayerHealService` / `PlayerItemUseService` + `ItemKernelAuthority` | Host-recipient take, host-user heal/use, and wear-to-host now spawn/transfer/update/destroy the carried item in the item kernel, closing the host-side item-ownership gap; guest recipients continue through the transfer-table adopt path. |
+| Push presentation policy | `PlayerPushService` + `PlayerPushResultMsg` | Push is transient presentation: no kernel command/event, no durable relation/health change; the host result stays a direct host→all presentation message and the resulting motion rides the 20 Hz player stream. |
 
 ## Evidence table
 
@@ -84,10 +85,10 @@ data and carry service into the kernel.
 3. [x] Remove the legacy carry-state wire: carry mirrors on host and guest now
    project from committed kernel batches; `NetMsg.PlayerCarryState`, its
    handler, and `FireCarryStateReceived` are removed.
-4. Route other cross-player interaction results (take/heal/use/push) through
-   kernel commands where they carry durable facts. The host-recipient take,
-   host-user heal/use, and wear-to-host item kernel sync slices have landed;
-   the remaining work is the explicit command/event routing for the result
-   messages themselves and push (transient presentation) policy.
+4. [x] Confirm push is transient presentation: `PlayerPushService` creates no
+   kernel command/event and `PlayerPushResultMsg` remains a direct host→all
+   presentation message; the resulting motion falls back to the 20 Hz player
+   stream. The remaining work in this item is the explicit command/event
+   routing for take/heal/use result messages themselves.
 5. Project kernel player facts into character restore/snapshots where the old
    snapshot stream is not sufficient.

@@ -33,6 +33,22 @@ public class FluidKernelProjectionTests
 	}
 
 	[Fact]
+	public void WorldControlReportFluidRegions_CommitsThroughProjection()
+	{
+		var (_, host, _) = HandshakeTests.CreateHostAndGuest();
+		var authority = host.Services.GetRequiredService<ItemKernelAuthority>();
+		var world = host.Services.GetRequiredService<IWorldControl>();
+
+		world.ReportFluidRegions([new FluidRegionSummary(9, 8, 4, 2)]);
+
+		var region = Assert.Single(authority.QueryFluids()!.Regions);
+		Assert.Equal(9, region.ChunkX);
+		Assert.Equal(8, region.ChunkY);
+		Assert.Equal(4, region.TotalAmount);
+		Assert.Equal(2, region.MainType);
+	}
+
+	[Fact]
 	public void Sync_DoesNotCommitUnchangedRegionFacts()
 	{
 		var (_, host, _) = HandshakeTests.CreateHostAndGuest();

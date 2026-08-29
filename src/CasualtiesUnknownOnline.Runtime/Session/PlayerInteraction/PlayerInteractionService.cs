@@ -21,6 +21,7 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, IDispo
 {
 	private readonly PlayerInventoryTakeService _take;
 	private readonly PlayerCarryService _carry;
+	private readonly PlayerKernelCarryProjection _carryKernelProjection;
 	private readonly PlayerHealService _heal;
 	private readonly PlayerItemUseService _itemUse;
 	private readonly PlayerPushService _push;
@@ -74,7 +75,12 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, IDispo
 			sender,
 			access,
 			visibility,
-			new PlayerKernelCarryProjection(kernelAuthority, session, log),
+			kernelAuthority,
+			log);
+		_carryKernelProjection = new PlayerKernelCarryProjection(
+			kernelAuthority,
+			_carry,
+			session,
 			log);
 		_heal = new PlayerHealService(session, sender, access, items, visibility, log);
 		_itemUse = new PlayerItemUseService(session, sender, access, items, visibility, log);
@@ -107,9 +113,6 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, IDispo
 
 	public void HandleCarryStopRequest(ulong sender, PlayerCarryStopRequestMsg msg) =>
 		_carry.HandleCarryStopRequest(sender, msg);
-
-	public void FireCarryStateReceived(PlayerCarryStateMsg msg) =>
-		_carry.FireCarryStateReceived(msg);
 
 	public bool TryGetCarrier(ulong carriedSteamId, out ulong carrierSteamId) =>
 		_carry.TryGetCarrier(carriedSteamId, out carrierSteamId);
@@ -147,6 +150,7 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, IDispo
 	public void Dispose()
 	{
 		_carry.Dispose();
+		_carryKernelProjection.Dispose();
 		_push.Dispose();
 	}
 }

@@ -65,7 +65,6 @@ public class DirectionTests
 		NetMsg.WorldTime,
 		NetMsg.FluidPresentation,
 		NetMsg.PlayerInventoryTransfer,
-		NetMsg.PlayerCarryState,
 		NetMsg.PlayerHealResult,
 		NetMsg.PlayerItemUseResult,
 		NetMsg.PlayerPushResult,

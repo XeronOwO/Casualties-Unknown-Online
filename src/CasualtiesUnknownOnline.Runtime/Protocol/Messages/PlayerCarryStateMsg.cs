@@ -3,11 +3,10 @@ using ProtoBuf;
 namespace CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 
 /// <summary>
-/// Host → every member: the authoritative carry relation changed. A zero
-/// <see cref="CarriedSteamId"/> means the carrier is no longer carrying anyone.
-/// One operation = one message; the carried body's own client follows the
-/// carrier's reported position, so all other peers need only this state for
-/// UI and local driver setup — the position stream already carries the result.
+/// A carry relation change projected from a committed kernel carry batch. A
+/// zero <see cref="CarriedSteamId"/> means the carrier is no longer carrying
+/// anyone. This is now a local presentation/mirror event payload, not a wire
+/// message; the wire fact rides <c>KernelEnvelope</c> as a committed batch.
 /// </summary>
 [ProtoContract]
 public sealed class PlayerCarryStateMsg

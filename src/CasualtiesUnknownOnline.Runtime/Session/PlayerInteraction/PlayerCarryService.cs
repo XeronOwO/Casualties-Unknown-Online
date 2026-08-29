@@ -1,8 +1,9 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
+using CasualtiesUnknownOnline.GameState.Domains.Players;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session.Items;
 using Microsoft.Extensions.Logging;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
@@ -12,11 +13,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 /// relation. Classic carry picks up an unconscious/dead body; the piggyback
 /// mode lets a conscious/alive teammate ride on another player's back (same
 /// one-carrier/one-carried relation and body-driver presentation). The host
-/// validates against its authoritative character snapshots, records the
-/// relation, and broadcasts the authoritative state so the carried player's own
-/// client follows the carrier. Both the carrier and the carried player may
-/// request release. Guests keep the same relation mirror from the broadcast.
-/// Session lifecycle cleanup is owned here.
+/// validates against its authoritative character snapshots and commits the
+/// relation as a kernel carry fact; the committed batch projection keeps both
+/// the host and guest carry mirrors in sync so the carried player's own client
+/// follows the carrier. Both the carrier and the carried player may request
+/// release. Session lifecycle cleanup is owned here.
 /// </summary>
 internal sealed class PlayerCarryService : IDisposable
 {
@@ -24,7 +25,7 @@ internal sealed class PlayerCarryService : IDisposable
 	private readonly PacketSender _sender;
 	private readonly PlayerCharacterAccess _characters;
 	private readonly IPlayerInteractionVisibility _visibility;
-	private readonly PlayerKernelCarryProjection _kernel;
+	private readonly ItemKernelAuthority _kernelAuthority;
 	private readonly ILogger _log;
 
 	/// <summary>Host-owned carry table: carried SteamId → carrier SteamId.</summary>
@@ -41,14 +42,14 @@ internal sealed class PlayerCarryService : IDisposable
 		PacketSender sender,
 		PlayerCharacterAccess characters,
 		IPlayerInteractionVisibility visibility,
-		PlayerKernelCarryProjection kernel,
+		ItemKernelAuthority kernelAuthority,
 		ILogger log)
 	{
 		_session = session;
 		_sender = sender;
 		_characters = characters;
 		_visibility = visibility;
-		_kernel = kernel;
+		_kernelAuthority = kernelAuthority;
 		_log = log;
 
 		_session.SessionEnded += OnSessionEnded;
@@ -187,8 +188,6 @@ internal sealed class PlayerCarryService : IDisposable
 			return;
 		}
 
-		_carriedBy[carried] = carrier;
-		_carrying[carrier] = carried;
 		if (msg.Piggyback)
 		{
 			if (msg.RequesterIsCarrier)
@@ -228,8 +227,6 @@ internal sealed class PlayerCarryService : IDisposable
 			return;
 		}
 
-		_carriedBy.Remove(carried);
-		_carrying.Remove(carrier);
 		_log.LogInformation("[Carry] {Carrier} stops carrying {Carried} (requested by {Sender}).", carrier, carried, sender);
 		PublishCarryState(new PlayerCarryStateMsg
 		{
@@ -258,11 +255,41 @@ internal sealed class PlayerCarryService : IDisposable
 		return 0;
 	}
 
-	/// <summary>Wire handler path: a carry-state broadcast arrived — update the local mirror and surface it for the Game Adapter/UI.</summary>
-	public void FireCarryStateReceived(PlayerCarryStateMsg msg)
+	/// <summary>Project a committed kernel carry fact into this local mirror and surface it for the Game Adapter/UI.</summary>
+	internal void ApplyCommittedCarry(ulong carrierSteamId, ulong carriedSteamId)
 	{
+		var msg = new PlayerCarryStateMsg
+		{
+			CarrierSteamId = carrierSteamId,
+			CarriedSteamId = carriedSteamId,
+		};
 		ApplyCarryState(msg);
 		CarryStateChanged?.Invoke(msg);
+	}
+
+	/// <summary>Clear the carry mirror without raising presentation events (players reset / session reset).</summary>
+	internal void ResetCarryMirror()
+	{
+		_carriedBy.Clear();
+		_carrying.Clear();
+	}
+
+	/// <summary>Rebuild the carry mirror from a kernel checkpoint (late-join / reconnect restore).</summary>
+	internal void RebuildFromCheckpoint(PlayerStateTable? players)
+	{
+		ResetCarryMirror();
+		if (players is null)
+		{
+			return;
+		}
+
+		foreach (var player in players.Players)
+		{
+			if (player.CarrierOfSteamId is { } carried && carried != 0)
+			{
+				ApplyCommittedCarry(player.SteamId, carried);
+			}
+		}
 	}
 
 	/// <summary>Read-only UI mirror: who currently carries the given player, if any.</summary>
@@ -275,22 +302,37 @@ internal sealed class PlayerCarryService : IDisposable
 
 	private void PublishCarryState(PlayerCarryStateMsg msg)
 	{
-		// The host applies its own side locally; every guest receives the same
-		// authoritative state (including the two participants).
-		ApplyCarryState(msg);
+		// The kernel is the single authoritative write. The committed batch
+		// projection (PlayerKernelCarryProjection) updates both this host mirror
+		// and (via KernelEnvelope) the guest mirrors; no legacy carry wire is sent.
 		if (msg.CarriedSteamId == 0)
 		{
-			_kernel.ClearCarry(msg.CarrierSteamId, 0);
-		}
-		else
-		{
-			_kernel.SetCarry(msg.CarrierSteamId, msg.CarriedSteamId);
+			if (!_kernelAuthority.TryClearPlayerCarry(
+				_session.LocalSteamId,
+				msg.CarrierSteamId,
+				0,
+				out _,
+				out var rejection))
+			{
+				_log.LogWarning(
+					"[CarryKernel] clear rejected {Carrier}: {Reason} ({Message}).",
+					msg.CarrierSteamId, rejection!.Reason, rejection.Message);
+			}
+
+			return;
 		}
 
-		CarryStateChanged?.Invoke(msg);
-		_sender.SendToAll(_session.Members
-			.Where(m => m.SteamId != _session.LocalSteamId)
-			.Select(m => m.SteamId), NetMsg.PlayerCarryState, msg);
+		if (!_kernelAuthority.TrySetPlayerCarry(
+			_session.LocalSteamId,
+			msg.CarrierSteamId,
+			msg.CarriedSteamId,
+			out _,
+			out var setRejection))
+		{
+			_log.LogWarning(
+				"[CarryKernel] set rejected {Carrier} -> {Carried}: {Reason} ({Message}).",
+				msg.CarrierSteamId, msg.CarriedSteamId, setRejection!.Reason, setRejection.Message);
+		}
 	}
 
 	private void ApplyCarryState(PlayerCarryStateMsg msg)
@@ -330,36 +372,47 @@ internal sealed class PlayerCarryService : IDisposable
 
 	private void ClearIfInvolved(ulong steamId)
 	{
-		var releasedCarrier = 0UL;
-		ulong? releasedCarried = null;
-
-		if (_carrying.TryGetValue(steamId, out var oldCarried))
+		if (_session.Role == SessionRole.Host)
 		{
-			_carriedBy.Remove(oldCarried);
-			_carrying.Remove(steamId);
-			releasedCarrier = steamId;
-			releasedCarried = oldCarried;
-		}
-
-		if (_carriedBy.TryGetValue(steamId, out var oldCarrier))
-		{
-			_carrying.Remove(oldCarrier);
-			_carriedBy.Remove(steamId);
-			releasedCarrier = oldCarrier;
-			releasedCarried = steamId;
-		}
-
-		if (releasedCarrier != 0 && releasedCarried is { } carried)
-		{
-			_log.LogInformation("[Carry] cleaned up relation involving {SteamId}.", steamId);
-			if (_session.Role == SessionRole.Host)
+			// Cleanup is another host mutation: the committed batch projection
+			// removes the mirror and broadcasts the clear through KernelEnvelope.
+			if (_carrying.TryGetValue(steamId, out var hostCarried))
 			{
+				_log.LogInformation("[Carry] cleaned up relation involving {SteamId} (carrier).", steamId);
 				PublishCarryState(new PlayerCarryStateMsg
 				{
-					CarrierSteamId = releasedCarrier,
+					CarrierSteamId = steamId,
+					CarriedSteamId = 0,
+				});
+				return;
+			}
+
+			if (_carriedBy.TryGetValue(steamId, out var hostCarrier))
+			{
+				_log.LogInformation("[Carry] cleaned up relation involving {SteamId} (carried).", steamId);
+				PublishCarryState(new PlayerCarryStateMsg
+				{
+					CarrierSteamId = hostCarrier,
 					CarriedSteamId = 0,
 				});
 			}
+
+			return;
+		}
+
+		// Guest mirror only: the host's cleanup broadcast will arrive through the
+		// kernel journal; dropping the local relation here keeps the mirror correct
+		// even before/if that batch is delayed.
+		if (_carrying.TryGetValue(steamId, out var guestCarried))
+		{
+			_carriedBy.Remove(guestCarried);
+			_carrying.Remove(steamId);
+		}
+
+		if (_carriedBy.TryGetValue(steamId, out var guestCarrier))
+		{
+			_carrying.Remove(guestCarrier);
+			_carriedBy.Remove(steamId);
 		}
 	}
 

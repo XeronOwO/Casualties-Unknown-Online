@@ -140,12 +140,12 @@ public enum NetMsg : byte
 	PlayerInventoryTransfer = 98, // host → participant: the authoritative transfer result (remove from FromSteamId, add to ToSteamId)
 
 	// Direct player interaction — carry/release another player (host
-	// authority: the host validates the carryable state, records the one
-	// carrier/one carried relation and broadcasts the authoritative state;
-	// the carried player's client drives its own body to follow the carrier)
+	// authority: the host validates the carryable state and commits the one
+	// carrier/one carried relation as a kernel carry fact; the committed batch
+	// rides KernelEnvelope and the carried player's client drives its own body
+	// to follow the carrier)
 	PlayerCarryStartRequest = 99, // guest → host: start carrying an unconscious/dead in-world player
 	PlayerCarryStopRequest = 100, // guest → host: stop carrying the current carried player
-	PlayerCarryState = 101, // host → all: authoritative carry relation changed (CarriedSteamId = 0 means released)
 
 	// Direct player interaction — heal another player (host authority: the host
 	// validates the healer/target snapshots, consumes the healer's medical item,

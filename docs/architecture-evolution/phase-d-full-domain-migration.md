@@ -201,9 +201,14 @@ For each domain, complete these steps in order:
 | 2026-08-29 | Players limb terminal facts | `b7c9e9e` | 1687 tests green; build/format/architecture/event/entity/isolation/delivery gates pass | `PlayerState` now carries `PlayerLimbState` discrete latch facts (broken/dismembered/dislocated/splinted/infected/blocked-bleeding/head/vital); wire/checkpoint/save round-trip; `PlayerKernelLimbProjection` commits from host character snapshots and limb-latch events; `PlayerKernelStatusProjection` now preserves carry/limbs on status updates. See `docs/selfchecks/phase-d-players-shadow-selfcheck.md`. |
 | 2026-08-29 | Players body-level terminal latches | `current` | 1693 tests green; build/format/architecture/event/entity/isolation/delivery gates pass | `PlayerState` now carries `PlayerBodyTerminalState` discrete body terminal booleans (face latches, pulmonary embolism, last-stand/neural flags, fibrillation forced, mindwipe script); wire/checkpoint/save round-trip; `PlayerKernelLimbProjection` commits them from character snapshots, limb-latch events, and cross-player use. See `docs/selfchecks/phase-d-players-shadow-selfcheck.md`. |
 | 2026-08-29 | Enemy stream resurrection guard | `current` | 1695 tests green; build/format/architecture/event/entity/isolation/delivery gates pass | `EnemySyncService` keeps a session-scoped removal tombstone set; late/out-of-order update-only state batches and full snapshots skip ids that already received an explicit removal. See `docs/selfchecks/phase-d-high-frequency-stream-unification-selfcheck.md`. |
+| 2026-08-29 | Players carry kernel-wire cutover | `current` | 1694 tests green; build/format/architecture/event/entity/isolation/delivery gates pass | `PlayerCarryService` now commits carry through kernel commands only; `PlayerKernelCarryProjection` projects host `BatchCommitted` and guest `BatchApplied` into the carry mirror and `CarryStateChanged`, and rebuilds from checkpoint. `NetMsg.PlayerCarryState`, `PlayerCarryStateHandler`, and `FireCarryStateReceived` are removed. See `docs/selfchecks/phase-d-players-shadow-selfcheck.md`. |
 
 ## Next actions
 
-1. Confirm Phase C completion evidence.
-2. Start Phase D with World/Run/Epoch shadow model.
-3. Follow the per-domain transition template; do not start the next domain until the previous one has authoritative switch + projection migration.
+1. Route the remaining cross-player interaction results (take/heal/use/push)
+   through kernel commands/events where they carry durable facts.
+2. Project kernel player terminal facts into character restore/reconnect
+   snapshots where the legacy snapshot stream is no longer authoritative.
+3. Continue high-frequency stream alignment for player/enemy continuous fields
+   with `WireStateStream` / `StateStreamEnvelope`, keeping terminal facts on
+   domain events.

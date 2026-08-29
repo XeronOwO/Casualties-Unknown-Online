@@ -8,9 +8,9 @@ namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 /// operate on. The landed slices are the cross-player item take (host moves one
 /// carried item between its character-data snapshots and tells the two
 /// participants to apply the authoritative body mutation) and the cross-player
-/// carry/release (host records one carrier/one carried relation and broadcasts
-/// the authoritative state so the carried player's own client follows the
-/// carrier).
+/// carry/release (host commits one carrier/one carried kernel carry fact; the
+/// committed batch projection updates the carry mirrors so the carried player's
+/// own client follows the carrier).
 /// </summary>
 public interface IPlayerInteractionControl
 {
@@ -43,9 +43,6 @@ public interface IPlayerInteractionControl
 
 	/// <summary>Host only: a carry-stop request arrived (from the wire or the host's own UI).</summary>
 	void HandleCarryStopRequest(ulong sender, PlayerCarryStopRequestMsg msg);
-
-	/// <summary>Raise a received carry-state broadcast for the Game Adapter and UI to apply locally (wire handler path).</summary>
-	void FireCarryStateReceived(PlayerCarryStateMsg msg);
 
 	/// <summary>An authoritative carry relation changed — the Game Adapter sets/clears the local carried-body driver; the UI refreshes buttons.</summary>
 	event Action<PlayerCarryStateMsg>? CarryStateChanged;

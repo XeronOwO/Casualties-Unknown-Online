@@ -22,7 +22,7 @@ data and carry service into the kernel.
 | Entity-sync projection | `PlayerKernelStatusProjection` + `EntitySyncService` | Host `PublishLocalState`/`ApplyEntityState` project alive/conscious changes into kernel status; guests receive the kernel batch through the existing protocol path. |
 | Limb projection | `PlayerKernelLimbProjection` + `CharacterDataStore` | Host character snapshots and limb-latch events project discrete limb latches into kernel `PlayerState`; event + 1 Hz snapshot fallback are both covered. |
 | Body terminal projection | `PlayerKernelLimbProjection` + `CharacterDataStore` | The same character-data/limb-event projection also commits body-level terminal booleans (`Disfigured`, `EyeGone`, `BothEyesGone`, `HasPulmonaryEmbolism`, last-stand/neural booleans, `FibrillationForced`, `MindwipeScriptPresent/Active`) into `PlayerBodyTerminalState`. |
-| Carry production projection | `PlayerKernelCarryProjection` + `PlayerCarryService` | Host `PublishCarryState` also commits the relation into the kernel; guests keep the legacy wire mirror while the kernel owns the durable fact. |
+| Carry production projection | `PlayerKernelCarryProjection` + `PlayerCarryService` | Host carry mutations are kernel commands; `PlayerKernelCarryProjection` applies committed batches on the host (`BatchCommitted`) and guest (`BatchApplied`) and rebuilds from checkpoint restore. The carry mirror and `CarryStateChanged` now ride the same kernel batch; legacy `NetMsg.PlayerCarryState` and its handler are removed. |
 
 ## Evidence table
 
@@ -40,6 +40,8 @@ data and carry service into the kernel.
 | Wire batch preserves a carry event | `PlayerDomainKernelTests.WireBatchRoundTrip_PreservesPlayerCarryEvent`. |
 | Checkpoint/save preserve carry fields | `PlayerDomainKernelTests.CheckpointSplitAssemble_RoundTripsPlayerCarryFields` / `SaveLoad_RoundTripsPlayerCarryFields`. |
 | Host carry service commits kernel carry | `PlayerInteractionServiceTests.Guest_StartsCarryingHost_CommitsToKernelAndClearsOnStop`. |
+| Guest carry mirror follows the committed kernel batch | `PlayerInteractionServiceTests.Guest_StartsCarryingUnconsciousHost_RecordsKernelCarryAndUpdatesMirrors` and `Host_StartsCarryingUnconsciousGuest_RecordsKernelCarryAndUpdatesGuestMirror` assert the guest mirror after the `KernelEnvelope` projection. |
+| Carry stop projects a kernel clear and clears both mirrors | `PlayerInteractionServiceTests.Carry_Stop_ClearsRelationAndBroadcastsKernelClear`. |
 | Kernel upserts limb terminal facts | `PlayerDomainKernelTests.UpdateStatus_UpsertsLimbFacts`. |
 | Duplicate limb index is rejected | `PlayerDomainKernelTests.DuplicateLimbIndex_IsRejectedByInvariant`. |
 | Wire/checkpoint/save preserve limb facts | `PlayerDomainKernelTests.WireBatchRoundTrip_PreservesPlayerLimbFacts` / `CheckpointSplitAssemble_RoundTripsPlayerLimbFacts` / `SaveLoad_RoundTripsPlayerLimbFacts`. |
@@ -54,7 +56,7 @@ data and carry service into the kernel.
 ## Verification
 
 - `dotnet build CasualtiesUnknownOnline.slnx`: 0 warnings / 0 errors.
-- `dotnet test CasualtiesUnknownOnline.slnx`: 1693 passed.
+- `dotnet test CasualtiesUnknownOnline.slnx`: 1694 passed.
 - `dotnet format`: applied.
 - Architecture/event/entity/isolation gates passed.
 
@@ -73,7 +75,10 @@ data and carry service into the kernel.
 2. [x] Add body-level terminal latches to the player domain:
    `PlayerBodyTerminalState`, checkpoint/wire/save round-trip, and production
    projection from character data, limb-latch events, and cross-player use.
-3. Route other cross-player interaction results (take/heal/use/push) through
+3. [x] Remove the legacy carry-state wire: carry mirrors on host and guest now
+   project from committed kernel batches; `NetMsg.PlayerCarryState`, its
+   handler, and `FireCarryStateReceived` are removed.
+4. Route other cross-player interaction results (take/heal/use/push) through
    kernel commands where they carry durable facts.
-3. Project kernel player facts into character restore/snapshots where the old
+5. Project kernel player facts into character restore/snapshots where the old
    snapshot stream is not sufficient.

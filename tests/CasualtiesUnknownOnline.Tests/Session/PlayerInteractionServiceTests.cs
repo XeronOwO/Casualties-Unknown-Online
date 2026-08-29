@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
@@ -77,6 +78,21 @@ public class PlayerInteractionServiceTests
 		MarkInWorld(guest);
 		return (host, guest, received);
 	}
+
+	private static List<PlayerCarryStateMsg> CarryStates(IEnumerable<(NetMsg Msg, byte[] Frame)> received) =>
+		[
+			.. received
+				.Where(r => r.Msg == NetMsg.KernelEnvelope)
+				.Select(r => NetPacket.DecodePayload<ProtocolFrame>(r.Frame))
+				.Where(f => f.CommittedBatch is not null)
+				.SelectMany(f => f.CommittedBatch!.Batch.Events)
+				.Where(e => e.Kind is WireEventKind.PlayerCarrySet or WireEventKind.PlayerCarryCleared)
+				.Select(e => new PlayerCarryStateMsg
+				{
+					CarrierSteamId = e.CarrierSteamId,
+					CarriedSteamId = e.Kind == WireEventKind.PlayerCarrySet ? e.CarriedSteamId : 0,
+				}),
+		];
 
 	private static void SeedHostEntities(TestNode host, ulong guestId, float guestX, float guestY = 0f, bool standing = true)
 	{
@@ -339,7 +355,7 @@ public class PlayerInteractionServiceTests
 	}
 
 	[Fact]
-	public void Guest_StartsCarryingUnconsciousHost_RecordsAndBroadcastsCarryState()
+	public void Guest_StartsCarryingUnconsciousHost_RecordsKernelCarryAndUpdatesMirrors()
 	{
 		var (host, guest, received) = CreateSession();
 		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
@@ -349,8 +365,7 @@ public class PlayerInteractionServiceTests
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendCarryStartRequest(HostId);
 
-		var frame = received.Single(r => r.Msg == NetMsg.PlayerCarryState).Frame;
-		var state = NetPacket.DecodePayload<PlayerCarryStateMsg>(frame);
+		var state = Assert.Single(CarryStates(received));
 		Assert.Equal(GuestId, state.CarrierSteamId);
 		Assert.Equal(HostId, state.CarriedSteamId);
 
@@ -396,7 +411,7 @@ public class PlayerInteractionServiceTests
 	}
 
 	[Fact]
-	public void Host_StartsCarryingUnconsciousGuest_SendsCarryStateToGuest()
+	public void Host_StartsCarryingUnconsciousGuest_RecordsKernelCarryAndUpdatesGuestMirror()
 	{
 		var (host, guest, received) = CreateSession();
 		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
@@ -406,10 +421,15 @@ public class PlayerInteractionServiceTests
 		host.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendCarryStartRequest(GuestId);
 
-		var frame = received.Single(r => r.Msg == NetMsg.PlayerCarryState).Frame;
-		var state = NetPacket.DecodePayload<PlayerCarryStateMsg>(frame);
+		var state = Assert.Single(CarryStates(received));
 		Assert.Equal(HostId, state.CarrierSteamId);
 		Assert.Equal(GuestId, state.CarriedSteamId);
+
+		var guestInteraction = guest.Services.GetRequiredService<IPlayerInteractionControl>();
+		Assert.True(guestInteraction.TryGetCarried(HostId, out var guestCarried));
+		Assert.Equal(GuestId, guestCarried);
+		Assert.True(guestInteraction.TryGetCarrier(GuestId, out var guestCarrier));
+		Assert.Equal(HostId, guestCarrier);
 	}
 
 	[Fact]
@@ -422,7 +442,7 @@ public class PlayerInteractionServiceTests
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendCarryStartRequest(HostId);
 
-		Assert.DoesNotContain(received, r => r.Msg == NetMsg.PlayerCarryState);
+		Assert.Empty(CarryStates(received));
 		Assert.False(host.Services.GetRequiredService<IPlayerInteractionControl>().TryGetCarried(GuestId, out _));
 	}
 
@@ -437,12 +457,12 @@ public class PlayerInteractionServiceTests
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendCarryStartRequest(HostId);
 
-		Assert.DoesNotContain(received, r => r.Msg == NetMsg.PlayerCarryState);
+		Assert.Empty(CarryStates(received));
 		Assert.False(host.Services.GetRequiredService<IPlayerInteractionControl>().TryGetCarried(GuestId, out _));
 	}
 
 	[Fact]
-	public void Carry_Stop_ClearsRelationAndBroadcastsEmptyState()
+	public void Carry_Stop_ClearsRelationAndBroadcastsKernelClear()
 	{
 		var (host, guest, received) = CreateSession();
 		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
@@ -453,10 +473,12 @@ public class PlayerInteractionServiceTests
 		interaction.SendCarryStartRequest(HostId);
 		interaction.SendCarryStopRequest(HostId);
 
-		var frame = received.Last(r => r.Msg == NetMsg.PlayerCarryState).Frame;
-		var state = NetPacket.DecodePayload<PlayerCarryStateMsg>(frame);
-		Assert.Equal(GuestId, state.CarrierSteamId);
-		Assert.Equal(0UL, state.CarriedSteamId);
+		var states = CarryStates(received);
+		Assert.Equal(2, states.Count);
+		Assert.Equal(GuestId, states[0].CarrierSteamId);
+		Assert.Equal(HostId, states[0].CarriedSteamId);
+		Assert.Equal(GuestId, states[1].CarrierSteamId);
+		Assert.Equal(0UL, states[1].CarriedSteamId);
 
 		var hostInteraction = host.Services.GetRequiredService<IPlayerInteractionControl>();
 		Assert.False(hostInteraction.TryGetCarried(GuestId, out _));
@@ -479,11 +501,13 @@ public class PlayerInteractionServiceTests
 		var hostInteraction = host.Services.GetRequiredService<IPlayerInteractionControl>();
 		hostInteraction.SendCarryStartRequest(GuestId);
 
-		Assert.Equal(1, received.Count(r => r.Msg == NetMsg.PlayerCarryState));
+		Assert.Single(CarryStates(received));
 		Assert.True(hostInteraction.TryGetCarried(GuestId, out var carried));
 		Assert.Equal(HostId, carried);
 		Assert.True(hostInteraction.TryGetCarrier(HostId, out var carrier));
 		Assert.Equal(GuestId, carrier);
+		Assert.False(hostInteraction.TryGetCarried(HostId, out _));
+		Assert.False(hostInteraction.TryGetCarrier(GuestId, out _));
 	}
 
 	[Fact]
@@ -876,7 +900,7 @@ public class PlayerInteractionServiceTests
 	}
 
 	[Fact]
-	public void Guest_PiggybacksConsciousHost_RecordsAndBroadcastsCarryState()
+	public void Guest_PiggybacksConsciousHost_RecordsKernelCarryAndUpdatesMirrors()
 	{
 		var (host, guest, received) = CreateSession();
 		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
@@ -886,8 +910,7 @@ public class PlayerInteractionServiceTests
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendPiggybackRequest(HostId);
 
-		var frame = received.Single(r => r.Msg == NetMsg.PlayerCarryState).Frame;
-		var state = NetPacket.DecodePayload<PlayerCarryStateMsg>(frame);
+		var state = Assert.Single(CarryStates(received));
 		Assert.Equal(HostId, state.CarrierSteamId);
 		Assert.Equal(GuestId, state.CarriedSteamId);
 
@@ -899,7 +922,7 @@ public class PlayerInteractionServiceTests
 	}
 
 	[Fact]
-	public void Host_PiggybacksConsciousGuest_SendsCarryStateToGuest()
+	public void Host_PiggybacksConsciousGuest_RecordsKernelCarryAndUpdatesGuestMirror()
 	{
 		var (host, guest, received) = CreateSession();
 		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
@@ -909,14 +932,19 @@ public class PlayerInteractionServiceTests
 		host.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendPiggybackRequest(GuestId);
 
-		var frame = received.Single(r => r.Msg == NetMsg.PlayerCarryState).Frame;
-		var state = NetPacket.DecodePayload<PlayerCarryStateMsg>(frame);
+		var state = Assert.Single(CarryStates(received));
 		Assert.Equal(GuestId, state.CarrierSteamId);
 		Assert.Equal(HostId, state.CarriedSteamId);
+
+		var guestInteraction = guest.Services.GetRequiredService<IPlayerInteractionControl>();
+		Assert.True(guestInteraction.TryGetCarried(GuestId, out var guestCarried));
+		Assert.Equal(HostId, guestCarried);
+		Assert.True(guestInteraction.TryGetCarrier(HostId, out var guestCarrier));
+		Assert.Equal(GuestId, guestCarrier);
 	}
 
 	[Fact]
-	public void Guest_InvitesHostToRideOnGuestBack_RecordsAndBroadcastsCarryState()
+	public void Guest_InvitesHostToRideOnGuestBack_RecordsKernelCarryAndUpdatesMirrors()
 	{
 		var (host, guest, received) = CreateSession();
 		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
@@ -926,8 +954,7 @@ public class PlayerInteractionServiceTests
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendCarryOnBackRequest(HostId);
 
-		var frame = received.Single(r => r.Msg == NetMsg.PlayerCarryState).Frame;
-		var state = NetPacket.DecodePayload<PlayerCarryStateMsg>(frame);
+		var state = Assert.Single(CarryStates(received));
 		Assert.Equal(GuestId, state.CarrierSteamId);
 		Assert.Equal(HostId, state.CarriedSteamId);
 
@@ -939,7 +966,7 @@ public class PlayerInteractionServiceTests
 	}
 
 	[Fact]
-	public void Host_InvitesGuestToRideOnHostBack_SendsCarryStateToGuest()
+	public void Host_InvitesGuestToRideOnHostBack_RecordsKernelCarryAndUpdatesGuestMirror()
 	{
 		var (host, guest, received) = CreateSession();
 		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
@@ -949,10 +976,15 @@ public class PlayerInteractionServiceTests
 		host.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendCarryOnBackRequest(GuestId);
 
-		var frame = received.Single(r => r.Msg == NetMsg.PlayerCarryState).Frame;
-		var state = NetPacket.DecodePayload<PlayerCarryStateMsg>(frame);
+		var state = Assert.Single(CarryStates(received));
 		Assert.Equal(HostId, state.CarrierSteamId);
 		Assert.Equal(GuestId, state.CarriedSteamId);
+
+		var guestInteraction = guest.Services.GetRequiredService<IPlayerInteractionControl>();
+		Assert.True(guestInteraction.TryGetCarried(HostId, out var guestCarried));
+		Assert.Equal(GuestId, guestCarried);
+		Assert.True(guestInteraction.TryGetCarrier(GuestId, out var guestCarrier));
+		Assert.Equal(HostId, guestCarrier);
 	}
 
 	[Fact]
@@ -966,7 +998,7 @@ public class PlayerInteractionServiceTests
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendPiggybackRequest(HostId);
 
-		Assert.DoesNotContain(received, r => r.Msg == NetMsg.PlayerCarryState);
+		Assert.Empty(CarryStates(received));
 		Assert.False(host.Services.GetRequiredService<IPlayerInteractionControl>().TryGetCarried(GuestId, out _));
 	}
 
@@ -985,10 +1017,12 @@ public class PlayerInteractionServiceTests
 		// not the carrier.
 		guestInteraction.SendCarryStopRequest(GuestId);
 
-		var frame = received.Last(r => r.Msg == NetMsg.PlayerCarryState).Frame;
-		var state = NetPacket.DecodePayload<PlayerCarryStateMsg>(frame);
-		Assert.Equal(HostId, state.CarrierSteamId);
-		Assert.Equal(0UL, state.CarriedSteamId);
+		var states = CarryStates(received);
+		Assert.Equal(2, states.Count);
+		Assert.Equal(HostId, states[0].CarrierSteamId);
+		Assert.Equal(GuestId, states[0].CarriedSteamId);
+		Assert.Equal(HostId, states[1].CarrierSteamId);
+		Assert.Equal(0UL, states[1].CarriedSteamId);
 
 		var hostInteraction = host.Services.GetRequiredService<IPlayerInteractionControl>();
 		Assert.False(hostInteraction.TryGetCarried(HostId, out _));
@@ -1013,10 +1047,12 @@ public class PlayerInteractionServiceTests
 		Assert.Equal(GuestId, carrier);
 		hostInteraction.SendCarryStopRequest(HostId);
 
-		var frame = received.Last(r => r.Msg == NetMsg.PlayerCarryState).Frame;
-		var state = NetPacket.DecodePayload<PlayerCarryStateMsg>(frame);
-		Assert.Equal(GuestId, state.CarrierSteamId);
-		Assert.Equal(0UL, state.CarriedSteamId);
+		var states = CarryStates(received);
+		Assert.Equal(2, states.Count);
+		Assert.Equal(GuestId, states[0].CarrierSteamId);
+		Assert.Equal(HostId, states[0].CarriedSteamId);
+		Assert.Equal(GuestId, states[1].CarrierSteamId);
+		Assert.Equal(0UL, states[1].CarriedSteamId);
 
 		Assert.False(hostInteraction.TryGetCarrier(HostId, out _));
 		Assert.False(guestInteraction.TryGetCarried(GuestId, out _));
@@ -1661,7 +1697,7 @@ public class PlayerInteractionServiceTests
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendCarryStartRequest(HostId);
 
-		Assert.DoesNotContain(received, r => r.Msg == NetMsg.PlayerCarryState);
+		Assert.Empty(CarryStates(received));
 		Assert.False(host.Services.GetRequiredService<IPlayerInteractionControl>().TryGetCarried(GuestId, out _));
 	}
 

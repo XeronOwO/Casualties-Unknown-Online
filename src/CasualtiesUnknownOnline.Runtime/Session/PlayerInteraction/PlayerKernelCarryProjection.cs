@@ -1,63 +1,91 @@
+using System;
+using CasualtiesUnknownOnline.GameState;
+using CasualtiesUnknownOnline.GameState.Domains.Players;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using Microsoft.Extensions.Logging;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 
 /// <summary>
-/// Projects host-authoritative cross-player carry mutations into the kernel
-/// Players domain. The legacy wire carry-state broadcast remains the live
-/// presentation/mirror path; this projection adds the durable kernel fact for
-/// checkpoint/save/replay.
+/// Projects host-authoritative carry kernel facts into the local
+/// <see cref="PlayerCarryService"/> mirror. Host mutations are applied through
+/// <see cref="ItemKernelAuthority.BatchCommitted"/>; guest received batches
+/// through <see cref="ItemKernelAuthority.BatchApplied"/>; checkpoint restore
+/// rebuilds the mirror from the kernel player table. This is the single carry
+/// projection path — no legacy carry-state wire remains.
 /// </summary>
-internal sealed class PlayerKernelCarryProjection(
-	ItemKernelAuthority kernelAuthority,
-	ISessionControl session,
-	ILogger log)
+internal sealed class PlayerKernelCarryProjection : IDisposable
 {
-	private readonly ItemKernelAuthority _kernelAuthority = kernelAuthority;
-	private readonly ISessionControl _session = session;
-	private readonly ILogger _log = log;
+	private readonly ItemKernelAuthority _kernelAuthority;
+	private readonly PlayerCarryService _carry;
+	private readonly ISessionControl _session;
+	private readonly ILogger _log;
 
-	public void SetCarry(ulong carrierSteamId, ulong carriedSteamId)
+	public PlayerKernelCarryProjection(
+		ItemKernelAuthority kernelAuthority,
+		PlayerCarryService carry,
+		ISessionControl session,
+		ILogger log)
 	{
-		if (_session.Role != SessionRole.Host)
-		{
-			return;
-		}
-
-		if (!_kernelAuthority.TrySetPlayerCarry(
-			_session.LocalSteamId,
-			carrierSteamId,
-			carriedSteamId,
-			out _,
-			out var rejection))
-		{
-			_log.LogWarning(
-				"[CarryKernel] set rejected {Carrier} -> {Carried}: {Reason} ({Message}).",
-				carrierSteamId, carriedSteamId, rejection!.Reason, rejection.Message);
-			return;
-		}
-
-		_log.LogDebug("[CarryKernel] committed {Carrier} -> {Carried}.", carrierSteamId, carriedSteamId);
+		_kernelAuthority = kernelAuthority;
+		_carry = carry;
+		_session = session;
+		_log = log;
+		_kernelAuthority.BatchCommitted += OnBatchCommitted;
+		_kernelAuthority.BatchApplied += OnBatchApplied;
+		_kernelAuthority.CheckpointRestored += OnCheckpointRestored;
 	}
 
-	public void ClearCarry(ulong carrierSteamId, ulong carriedSteamId)
+	public void Dispose()
 	{
-		if (_session.Role != SessionRole.Host)
-		{
-			return;
-		}
+		_kernelAuthority.BatchCommitted -= OnBatchCommitted;
+		_kernelAuthority.BatchApplied -= OnBatchApplied;
+		_kernelAuthority.CheckpointRestored -= OnCheckpointRestored;
+	}
 
-		if (!_kernelAuthority.TryClearPlayerCarry(
-			_session.LocalSteamId,
-			carrierSteamId,
-			carriedSteamId,
-			out _,
-			out var rejection))
+	private void OnBatchCommitted(CommittedBatch batch)
+	{
+		if (_session.Role == SessionRole.Host)
 		{
-			_log.LogWarning(
-				"[CarryKernel] clear rejected {Carrier} ({Carried}): {Reason} ({Message}).",
-				carrierSteamId, carriedSteamId, rejection!.Reason, rejection.Message);
+			ApplyCarryBatch(batch);
+		}
+	}
+
+	private void OnBatchApplied(CommittedBatch batch)
+	{
+		if (_session.Role == SessionRole.Guest)
+		{
+			ApplyCarryBatch(batch);
+		}
+	}
+
+	private void OnCheckpointRestored(GameCheckpoint checkpoint)
+	{
+		_carry.RebuildFromCheckpoint(checkpoint.Players);
+		_log.LogInformation("[CarryKernel] rebuilt carry mirror from checkpoint at revision {Revision}.",
+			checkpoint.GlobalRevision);
+	}
+
+	private void ApplyCarryBatch(CommittedBatch batch)
+	{
+		foreach (var @event in batch.Events)
+		{
+			switch (@event)
+			{
+				case PlayerCarrySetEvent set:
+					_carry.ApplyCommittedCarry(set.CarrierSteamId, set.CarriedSteamId);
+					_log.LogDebug("[CarryKernel] projected carry set {Carrier} -> {Carried}.",
+						set.CarrierSteamId, set.CarriedSteamId);
+					break;
+				case PlayerCarryClearedEvent clear:
+					_carry.ApplyCommittedCarry(clear.CarrierSteamId, 0);
+					_log.LogDebug("[CarryKernel] projected carry clear {Carrier}.", clear.CarrierSteamId);
+					break;
+				case PlayersResetEvent:
+					_carry.ResetCarryMirror();
+					_log.LogDebug("[CarryKernel] projected players reset; carry mirror cleared.");
+					break;
+			}
 		}
 	}
 }

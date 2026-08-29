@@ -46,6 +46,8 @@ data and carry service into the kernel.
 | Host-recipient take commits the carried item to the kernel | `PlayerInteractionServiceTests.Host_TakesItemFromUnconsciousGuest_SendsTransferToGuest` asserts the kernel item is carried by the host. |
 | Host-user consumable use commits the post-use item state to the kernel | `PlayerInteractionServiceTests.Host_UsesBreadOnGuest_AppliesFoodAndSendsResult` asserts the kernel item condition/owner. |
 | Wear-to-host transfer commits the worn item to the kernel | `PlayerInteractionServiceTests.Guest_WearsHelmetOnHost_MovesItemAndSendsWornResult` asserts the kernel item is carried by the host after the transfer. |
+| Guest replay kernel receives the same item facts through KernelEnvelope | The take, bread-use, and wear-to-host tests now also assert the guest `ItemKernelAuthority` sees the host-owned/post-use item state. |
+| Destroyed guest-owned item leaves the kernel carried state | `PlayerInteractionServiceTests.Guest_UsesSplintOnHost_AppliesComponentAndDestroysItem` asserts the host and guest kernel entries are no longer `Carried`. |
 | Kernel upserts limb terminal facts | `PlayerDomainKernelTests.UpdateStatus_UpsertsLimbFacts`. |
 | Duplicate limb index is rejected | `PlayerDomainKernelTests.DuplicateLimbIndex_IsRejectedByInvariant`. |
 | Wire/checkpoint/save preserve limb facts | `PlayerDomainKernelTests.WireBatchRoundTrip_PreservesPlayerLimbFacts` / `CheckpointSplitAssemble_RoundTripsPlayerLimbFacts` / `SaveLoad_RoundTripsPlayerLimbFacts`. |

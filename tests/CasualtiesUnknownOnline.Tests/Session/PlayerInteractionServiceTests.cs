@@ -174,6 +174,14 @@ public class PlayerInteractionServiceTests
 		Assert.NotNull(kernelItem);
 		Assert.Equal(ItemLocationKind.Carried, kernelItem!.Value.Location.Kind);
 		Assert.Equal(HostId, kernelItem.Value.Location.Owner.Value);
+
+		// The guest's replay authority receives the same item batch through
+		// KernelEnvelope, so the durable ownership fact is not host-only.
+		var guestAuthority = guest.Services.GetRequiredService<ItemKernelAuthority>();
+		var guestKernelItem = guestAuthority.FindItem(77);
+		Assert.NotNull(guestKernelItem);
+		Assert.Equal(ItemLocationKind.Carried, guestKernelItem!.Value.Location.Kind);
+		Assert.Equal(HostId, guestKernelItem.Value.Location.Owner.Value);
 	}
 
 	[Fact]
@@ -765,6 +773,15 @@ public class PlayerInteractionServiceTests
 		Assert.Equal(ItemLocationKind.Carried, kernelItem!.Value.Location.Kind);
 		Assert.Equal(HostId, kernelItem.Value.Location.Owner.Value);
 		Assert.True(Math.Abs(kernelItem.Value.Data.Condition - 0.41f) < 0.001f);
+
+		// The guest's replay kernel receives the same post-use item fact through
+		// KernelEnvelope.
+		var guestAuthority = guest.Services.GetRequiredService<ItemKernelAuthority>();
+		var guestKernelItem = guestAuthority.FindItem(77);
+		Assert.NotNull(guestKernelItem);
+		Assert.Equal(ItemLocationKind.Carried, guestKernelItem!.Value.Location.Kind);
+		Assert.Equal(HostId, guestKernelItem.Value.Location.Owner.Value);
+		Assert.True(Math.Abs(guestKernelItem.Value.Data.Condition - 0.41f) < 0.001f);
 	}
 
 	[Fact]
@@ -1262,6 +1279,15 @@ public class PlayerInteractionServiceTests
 		Assert.Equal("SplintLimb", state.TypeName);
 		Assert.Empty(characters.GetSavedCharacter(GuestId)!.Items);
 		Assert.Empty(items.GetTransferredItems(GuestId));
+
+		var hostAuthority = host.Services.GetRequiredService<ItemKernelAuthority>();
+		var hostItem = hostAuthority.FindItem(42);
+		Assert.NotNull(hostItem);
+		Assert.NotEqual(ItemLocationKind.Carried, hostItem!.Value.Location.Kind);
+		var guestAuthority = guest.Services.GetRequiredService<ItemKernelAuthority>();
+		var guestItem = guestAuthority.FindItem(42);
+		Assert.NotNull(guestItem);
+		Assert.NotEqual(ItemLocationKind.Carried, guestItem!.Value.Location.Kind);
 	}
 
 	[Fact]
@@ -1356,6 +1382,13 @@ public class PlayerInteractionServiceTests
 		Assert.NotNull(kernelItem);
 		Assert.Equal(ItemLocationKind.Carried, kernelItem!.Value.Location.Kind);
 		Assert.Equal(HostId, kernelItem.Value.Location.Owner.Value);
+
+		// The guest's replay kernel also sees the worn item move to the host.
+		var guestAuthority = guest.Services.GetRequiredService<ItemKernelAuthority>();
+		var guestKernelItem = guestAuthority.FindItem(42);
+		Assert.NotNull(guestKernelItem);
+		Assert.Equal(ItemLocationKind.Carried, guestKernelItem!.Value.Location.Kind);
+		Assert.Equal(HostId, guestKernelItem.Value.Location.Owner.Value);
 	}
 
 	[Fact]

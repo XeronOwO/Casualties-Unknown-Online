@@ -158,6 +158,7 @@ internal sealed class PlayerHealService(
 			if (destroyed)
 			{
 				_items.RemoveTransferredItem(healer, originalItem.InstanceId);
+				DestroyKernelCarriedItemIfPresent(originalItem.InstanceId);
 			}
 			else
 			{
@@ -187,6 +188,15 @@ internal sealed class PlayerHealService(
 
 	/// <summary>Wire handler path: a heal result arrived — surface it for the Game Adapter.</summary>
 	public void FireHealReceived(PlayerHealResultMsg msg) => HealReceived?.Invoke(msg);
+
+	/// <summary>Remove a guest-owned item from the kernel when a cross-player heal consumed it.</summary>
+	private void DestroyKernelCarriedItemIfPresent(ulong itemId)
+	{
+		if (_kernelAuthority.FindItem(itemId) is not null)
+		{
+			_kernelAuthority.TryDestroy(_session.LocalSteamId, itemId, TerminalKind.Consumed, out _, out _);
+		}
+	}
 
 	/// <summary>
 	/// Keep the item kernel authoritative when the host is the healer: a consumed

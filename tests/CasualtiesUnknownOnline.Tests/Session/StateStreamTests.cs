@@ -37,4 +37,72 @@ public class StateStreamTests
 		sender.Send(GuestId, NetMsg.PlayerState, new PlayerStateMsg { Seq = 2 }, reliable: false);
 		Assert.Equal(2u, entities.LastStateSeq);
 	}
+
+	[Fact]
+	public void PlayerStateBatch_MissingPlayer_DoesNotRemoveExistingBuffer()
+	{
+		var (host, guest) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		var entities = guest.Services.GetRequiredService<IEntitySyncControl>();
+		var sender = host.Services.GetRequiredService<PacketSender>();
+		var hostEntityId = new NetworkEntityIdMsg(1, 1, 0);
+		var guestEntityId = new NetworkEntityIdMsg(1, 2, 0);
+
+		entities.ProcessPlayerJoin(new PlayerJoinMsg
+		{
+			HostSteamId = HostId,
+			GuestSteamId = GuestId,
+			HostEntityId = hostEntityId,
+			GuestEntityId = guestEntityId,
+			HostPosition = new NetVector2Msg(0f, 0f),
+			GuestPosition = new NetVector2Msg(10f, 0f),
+		});
+		Assert.NotNull(entities.GetRemotePlayer(HostId));
+
+		// An update-only stream batch that omits the host must not remove the
+		// host buffer; lifecycle is owned by PlayerJoin/PlayerLeave.
+		sender.Send(GuestId, NetMsg.PlayerState, new PlayerStateMsg
+		{
+			Seq = 1,
+			Entities =
+			[
+				new EntityStateMsg
+				{
+					Id = guestEntityId,
+					Position = new NetVector2Msg(5f, 5f),
+				},
+			],
+		}, reliable: false);
+
+		Assert.NotNull(entities.GetRemotePlayer(HostId));
+		Assert.Equal(5f, entities.LocalPlayer.Position.X);
+	}
+
+	[Fact]
+	public void PlayerLeave_RemovesRemoteBuffer()
+	{
+		var (host, guest) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		var entities = guest.Services.GetRequiredService<IEntitySyncControl>();
+		var sender = host.Services.GetRequiredService<PacketSender>();
+		var hostEntityId = new NetworkEntityIdMsg(1, 1, 0);
+		var guestEntityId = new NetworkEntityIdMsg(1, 2, 0);
+
+		entities.ProcessPlayerJoin(new PlayerJoinMsg
+		{
+			HostSteamId = HostId,
+			GuestSteamId = GuestId,
+			HostEntityId = hostEntityId,
+			GuestEntityId = guestEntityId,
+			HostPosition = new NetVector2Msg(0f, 0f),
+			GuestPosition = new NetVector2Msg(10f, 0f),
+		});
+		Assert.NotNull(entities.GetRemotePlayer(HostId));
+
+		sender.Send(GuestId, NetMsg.PlayerLeave, new PlayerLeaveMsg
+		{
+			SteamId = HostId,
+			EntityId = hostEntityId,
+		}, reliable: true);
+
+		Assert.Null(entities.GetRemotePlayer(HostId));
+	}
 }

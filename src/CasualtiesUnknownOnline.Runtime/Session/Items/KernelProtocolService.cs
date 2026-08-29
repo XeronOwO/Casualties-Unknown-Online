@@ -35,6 +35,8 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 
 	public event Action<WirePayloadType, WireStateStream>? ItemStateStreamReceived;
 
+	public event Action<ulong, WirePayloadType, WireStateStream>? EntityStateStreamReceived;
+
 	public event Action<ulong, RejectionReason>? CommandRejected;
 
 	public KernelProtocolService(
@@ -174,6 +176,39 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 		SendToGuests(frame, reliable: false);
 	}
 
+	public void SendStateStreamTo(ulong targetSteamId, WireStateStream stream, WirePayloadType payloadType, bool reliable = false)
+	{
+		if (!_session.SessionActive || targetSteamId == 0)
+		{
+			return;
+		}
+
+		var frame = CreateStateStreamFrame(stream, payloadType);
+		_sender.Send(targetSteamId, NetMsg.KernelEnvelope, frame, reliable);
+	}
+
+	public void BroadcastStateStream(WireStateStream stream, WirePayloadType payloadType, bool reliable = false)
+	{
+		if (_session.Role != SessionRole.Host || !_session.SessionActive)
+		{
+			return;
+		}
+
+		var frame = CreateStateStreamFrame(stream, payloadType);
+		SendToGuests(frame, reliable);
+	}
+
+	public void BroadcastStateStreamTo(IEnumerable<ulong> targets, WireStateStream stream, WirePayloadType payloadType, bool reliable = false)
+	{
+		if (!_session.SessionActive)
+		{
+			return;
+		}
+
+		var frame = CreateStateStreamFrame(stream, payloadType);
+		_sender.SendToAll(targets, NetMsg.KernelEnvelope, frame, reliable);
+	}
+
 	public void SendItemStateStreamTo(ulong targetSteamId, IReadOnlyList<WireWorldItemState> items, WirePayloadType payloadType, bool reliable = true, int layerModifierIndex = 0, byte[]? layerModifierRandomState = null)
 	{
 		if (_session.Role != SessionRole.Host || !_session.SessionActive || items.Count == 0 || targetSteamId == 0)
@@ -195,6 +230,17 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 		var frame = CreateItemStateStreamFrame(items, payloadType, layerModifierIndex, layerModifierRandomState);
 		SendToGuests(frame, reliable);
 	}
+
+	private ProtocolFrame CreateStateStreamFrame(WireStateStream stream, WirePayloadType payloadType) =>
+		new()
+		{
+			Kind = EnvelopeKind.StateStream,
+			StateStream = new StateStreamEnvelope
+			{
+				Header = CreateHeader(payloadType, 0),
+				Stream = stream,
+			},
+		};
 
 	private ProtocolFrame CreateItemStateStreamFrame(IReadOnlyList<WireWorldItemState> items, WirePayloadType payloadType, int layerModifierIndex = 0, byte[]? layerModifierRandomState = null) =>
 		new()
@@ -285,8 +331,10 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 				break;
 			case EnvelopeKind.CommittedBatch:
 			case EnvelopeKind.Checkpoint:
-			case EnvelopeKind.StateStream:
 				_log.LogWarning("Dropped unexpected {Kind} envelope from guest {Sender}.", frame.Kind, sender);
+				break;
+			case EnvelopeKind.StateStream when frame.StateStream is not null:
+				HandleStateStream(sender, frame.StateStream);
 				break;
 			default:
 				_log.LogWarning("Dropped unknown kernel envelope kind {Kind} from {Sender}.", frame.Kind, sender);
@@ -311,7 +359,7 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 				_log.LogWarning("Dropped command envelope from host {Sender}.", sender);
 				break;
 			case EnvelopeKind.StateStream when frame.StateStream is not null:
-				HandleStateStream(frame.StateStream);
+				HandleStateStream(sender, frame.StateStream);
 				break;
 			default:
 				_log.LogWarning("Dropped unknown kernel envelope kind {Kind} from {Sender}.", frame.Kind, sender);
@@ -327,7 +375,7 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 		CommandRejected?.Invoke(itemId, reason);
 	}
 
-	private void HandleStateStream(StateStreamEnvelope envelope)
+	private void HandleStateStream(ulong sender, StateStreamEnvelope envelope)
 	{
 		if (envelope.Stream.ItemMoves.Count > 0)
 		{
@@ -337,6 +385,11 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 		if (envelope.Stream.ItemStates.Count > 0)
 		{
 			ItemStateStreamReceived?.Invoke(envelope.Header.PayloadType, envelope.Stream);
+		}
+
+		if (envelope.Stream.PlayerStates.Count > 0 || envelope.Stream.EnemyStates.Count > 0)
+		{
+			EntityStateStreamReceived?.Invoke(sender, envelope.Header.PayloadType, envelope.Stream);
 		}
 	}
 

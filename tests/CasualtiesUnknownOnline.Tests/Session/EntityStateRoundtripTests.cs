@@ -1,23 +1,24 @@
 using System;
 using System.Linq;
+using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Protocol;
-using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using Xunit;
 
 namespace CasualtiesUnknownOnline.Tests.Session;
 
 /// <summary>
-/// The entity-state wire roundtrip: every pose flag (the packed Flags byte) and
-/// the extended flag bits survive <see cref="EntityStateMsg.ApplyTo"/> exactly
-/// — a flag dropped or cross-wired between bits is a silent presentation bug
-/// (the peer's clone poses wrong). The table is the single source of truth for
-/// the bit → property classification; a new bit in ApplyTo without a table
-/// entry (or an entry without a bit) fails the completeness guard.
+/// The player stream wire roundtrip: every pose flag (the packed Flags byte) and
+/// the extended flag bits survive <see cref="WirePlayerStreamState"/> / the
+/// stream mapper exactly — a flag dropped or cross-wired between bits is a
+/// silent presentation bug (the peer's clone poses wrong). The table is the
+/// single source of truth for the bit → property classification; a new bit in
+/// ApplyTo without a table entry (or an entry without a bit) fails the
+/// completeness guard.
 /// </summary>
 public class EntityStateRoundtripTests
 {
-	/// <summary>The Flags byte's bit → property mapping (8 pose bits, frozen — EntityStateMsg.cs).</summary>
+	/// <summary>The Flags byte's bit → property mapping (8 pose bits, frozen — WirePlayerStreamState).</summary>
 	private static readonly (byte Bit, Func<PlayerEntity, bool> Get)[] FlagBits =
 	[
 		(0x01, e => e.IsRight),
@@ -36,9 +37,6 @@ public class EntityStateRoundtripTests
 	[Fact]
 	public void Flags_EveryBitRoundtrips_AndTableIsComplete()
 	{
-		// Completeness guard: 8 distinct non-zero bits whose union is the full
-		// Flags byte — a new pose flag added to ApplyTo without a table entry,
-		// or a duplicate/missing bit, fails here.
 		var or = 0;
 		foreach (var (bit, _) in FlagBits)
 		{
@@ -53,7 +51,7 @@ public class EntityStateRoundtripTests
 		foreach (var (bit, get) in FlagBits)
 		{
 			var entity = NewEntity();
-			new EntityStateMsg { Flags = bit }.ApplyTo(entity);
+			new WirePlayerStreamState { Flags = bit }.ApplyTo(entity);
 
 			Assert.True(get(entity), $"bit 0x{bit:X2} must set its property");
 			foreach (var (otherBit, otherGet) in FlagBits)
@@ -72,7 +70,7 @@ public class EntityStateRoundtripTests
 	public void ExtendedFlags_IsAttacking_Roundtrips_IntoEntity()
 	{
 		var entity = NewEntity();
-		new EntityStateMsg { ExtendedFlags = 0x01u }.ApplyTo(entity);
+		new WirePlayerStreamState { ExtendedFlags = 0x01u }.ApplyTo(entity);
 
 		Assert.True(entity.IsAttacking);
 	}
@@ -81,7 +79,7 @@ public class EntityStateRoundtripTests
 	public void ExtendedFlags_Zero_ClearsIsAttacking()
 	{
 		var entity = NewEntity(isAttacking: true);
-		new EntityStateMsg { ExtendedFlags = 0u }.ApplyTo(entity);
+		new WirePlayerStreamState { ExtendedFlags = 0u }.ApplyTo(entity);
 
 		Assert.False(entity.IsAttacking);
 	}
@@ -91,13 +89,13 @@ public class EntityStateRoundtripTests
 	{
 		var entity = NewEntity(isAttacking: true);
 
-		Assert.Equal(0x01u, entity.ToEntityStateMsg().ExtendedFlags);
+		Assert.Equal(0x01u, entity.ToWirePlayerStreamState().ExtendedFlags);
 	}
 
 	[Fact]
 	public void IsAttacking_FullRoundtrip()
 	{
-		var wire = NewEntity(isAttacking: true).ToEntityStateMsg();
+		var wire = NewEntity(isAttacking: true).ToWirePlayerStreamState();
 
 		var target = NewEntity();
 		wire.ApplyTo(target);
@@ -109,7 +107,7 @@ public class EntityStateRoundtripTests
 	public void ExtendedFlags_SlidingLeft_RoundtripsIntoEntity()
 	{
 		var entity = NewEntity();
-		new EntityStateMsg { ExtendedFlags = 0x02u }.ApplyTo(entity);
+		new WirePlayerStreamState { ExtendedFlags = 0x02u }.ApplyTo(entity);
 
 		Assert.True(entity.SlidingLeft);
 		Assert.False(entity.SlidingRight);
@@ -119,7 +117,7 @@ public class EntityStateRoundtripTests
 	public void ExtendedFlags_SlidingRight_RoundtripsIntoEntity()
 	{
 		var entity = NewEntity();
-		new EntityStateMsg { ExtendedFlags = 0x04u }.ApplyTo(entity);
+		new WirePlayerStreamState { ExtendedFlags = 0x04u }.ApplyTo(entity);
 
 		Assert.False(entity.SlidingLeft);
 		Assert.True(entity.SlidingRight);
@@ -132,7 +130,7 @@ public class EntityStateRoundtripTests
 		entity.SlidingLeft = true;
 		entity.SlidingRight = true;
 
-		var wire = entity.ToEntityStateMsg();
+		var wire = entity.ToWirePlayerStreamState();
 
 		Assert.Equal(0x06u, wire.ExtendedFlags & 0x06u);
 	}
@@ -144,7 +142,7 @@ public class EntityStateRoundtripTests
 		source.SlidingLeft = true;
 		source.SlidingRight = true;
 
-		var wire = source.ToEntityStateMsg();
+		var wire = source.ToWirePlayerStreamState();
 		var target = NewEntity();
 		wire.ApplyTo(target);
 
@@ -152,15 +150,14 @@ public class EntityStateRoundtripTests
 		Assert.True(target.SlidingRight);
 	}
 
-
 	[Fact]
 	public void SwingSeq_AppliesIntoEntity_AndRoundTripsBackToWire()
 	{
 		var entity = NewEntity();
-		new EntityStateMsg { SwingSeq = 200 }.ApplyTo(entity);
+		new WirePlayerStreamState { SwingSeq = 200 }.ApplyTo(entity);
 
 		Assert.Equal(200, entity.SwingSeq);
-		Assert.Equal(200, entity.ToEntityStateMsg().SwingSeq);
+		Assert.Equal(200, entity.ToWirePlayerStreamState().SwingSeq);
 	}
 
 	[Fact]
@@ -168,17 +165,17 @@ public class EntityStateRoundtripTests
 	{
 		var entity = NewEntity();
 
-		Assert.Equal(0, entity.ToEntityStateMsg().SwingSeq);
+		Assert.Equal(0, entity.ToWirePlayerStreamState().SwingSeq);
 	}
 
 	[Fact]
 	public void WorkoutType_AppliesIntoEntity_AndRoundTripsBackToWire()
 	{
 		var entity = NewEntity();
-		new EntityStateMsg { WorkoutType = 2 }.ApplyTo(entity);
+		new WirePlayerStreamState { WorkoutType = 2 }.ApplyTo(entity);
 
 		Assert.Equal(2, entity.WorkoutType);
-		Assert.Equal(2, entity.ToEntityStateMsg().WorkoutType);
+		Assert.Equal(2, entity.ToWirePlayerStreamState().WorkoutType);
 	}
 
 	[Fact]
@@ -186,7 +183,7 @@ public class EntityStateRoundtripTests
 	{
 		var entity = NewEntity();
 
-		Assert.Equal(0, entity.ToEntityStateMsg().WorkoutType);
+		Assert.Equal(0, entity.ToWirePlayerStreamState().WorkoutType);
 	}
 
 	[Fact]
@@ -194,7 +191,7 @@ public class EntityStateRoundtripTests
 	{
 		var entity = NewEntity();
 		entity.WorkoutType = 3;
-		new EntityStateMsg { WorkoutType = 0 }.ApplyTo(entity);
+		new WirePlayerStreamState { WorkoutType = 0 }.ApplyTo(entity);
 
 		Assert.Equal(0, entity.WorkoutType);
 	}
@@ -203,10 +200,10 @@ public class EntityStateRoundtripTests
 	public void NapVariant_AppliesIntoEntity_AndRoundTripsBackToWire()
 	{
 		var entity = NewEntity();
-		new EntityStateMsg { NapVariant = 1 }.ApplyTo(entity);
+		new WirePlayerStreamState { NapVariant = 1 }.ApplyTo(entity);
 
 		Assert.Equal(1, entity.NapVariant);
-		Assert.Equal(1, entity.ToEntityStateMsg().NapVariant);
+		Assert.Equal(1, entity.ToWirePlayerStreamState().NapVariant);
 	}
 
 	[Fact]
@@ -214,17 +211,17 @@ public class EntityStateRoundtripTests
 	{
 		var entity = NewEntity();
 
-		Assert.Equal(0, entity.ToEntityStateMsg().NapVariant);
+		Assert.Equal(0, entity.ToWirePlayerStreamState().NapVariant);
 	}
 
 	[Fact]
 	public void DogShakeIntensity_AppliesIntoEntity_AndRoundTripsBackToWire()
 	{
 		var entity = NewEntity();
-		new EntityStateMsg { DogShakeIntensity = 0.175f }.ApplyTo(entity);
+		new WirePlayerStreamState { DogShakeIntensity = 0.175f }.ApplyTo(entity);
 
 		Assert.Equal(0.175f, entity.DogShakeIntensity);
-		Assert.Equal(0.175f, entity.ToEntityStateMsg().DogShakeIntensity);
+		Assert.Equal(0.175f, entity.ToWirePlayerStreamState().DogShakeIntensity);
 	}
 
 	[Fact]
@@ -232,7 +229,7 @@ public class EntityStateRoundtripTests
 	{
 		var entity = NewEntity();
 
-		Assert.Equal(0f, entity.ToEntityStateMsg().DogShakeIntensity);
+		Assert.Equal(0f, entity.ToWirePlayerStreamState().DogShakeIntensity);
 	}
 
 	[Fact]
@@ -245,7 +242,7 @@ public class EntityStateRoundtripTests
 		entity.EyePanicTime = 0.6f;
 		entity.EyeCloseTime = 2.25f;
 
-		var wire = entity.ToEntityStateMsg();
+		var wire = entity.ToWirePlayerStreamState();
 		var target = NewEntity();
 		wire.ApplyTo(target);
 
@@ -263,7 +260,7 @@ public class EntityStateRoundtripTests
 	{
 		var entity = NewEntity();
 
-		var wire = entity.ToEntityStateMsg();
+		var wire = entity.ToWirePlayerStreamState();
 
 		Assert.Null(wire.LookOverridePos);
 		Assert.Equal(0f, wire.LookOverrideTime);

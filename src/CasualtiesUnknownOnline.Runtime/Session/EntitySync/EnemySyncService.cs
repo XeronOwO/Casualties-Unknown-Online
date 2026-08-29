@@ -4,6 +4,7 @@ using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.GameState.Domains.Entities;
+using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
@@ -37,6 +38,7 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 
 	private readonly EnemyKernelProjection _enemyKernel;
 	private readonly ItemKernelAuthority _kernelAuthority;
+	private readonly IKernelProtocolControl _kernelProtocol;
 	private readonly Dictionary<NetworkEntityId, ulong> _terminalHealthRevision = [];
 
 	private readonly Dictionary<NetworkEntityId, EnemyEntity> _enemies = [];
@@ -50,7 +52,8 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 
 	public EnemySyncService(ISessionControl session, PacketSender sender, ITimeSource time,
 		IOptionsMonitor<StateStreamOptions> stateStreamOptions, ILogger<EnemySyncService> log,
-		EnemyKernelProjection enemyKernel, ItemKernelAuthority kernelAuthority)
+		EnemyKernelProjection enemyKernel, ItemKernelAuthority kernelAuthority,
+		IKernelProtocolControl kernelProtocol)
 	{
 		_session = session;
 		_sender = sender;
@@ -59,6 +62,8 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 		_log = log;
 		_enemyKernel = enemyKernel;
 		_kernelAuthority = kernelAuthority;
+		_kernelProtocol = kernelProtocol;
+		_kernelProtocol.EntityStateStreamReceived += OnEntityStateStreamReceived;
 		session.SessionEnded += OnSessionEnded;
 		_kernelAuthority.BatchCommitted += OnKernelBatchCommitted;
 		_kernelAuthority.BatchApplied += OnKernelBatchApplied;
@@ -246,7 +251,7 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 
 	uint IEnemySyncControl.LastEnemyStateSeq { get => _lastEnemyStateSeq; set => _lastEnemyStateSeq = value; }
 
-	void IEnemySyncControl.ApplyEnemyState(EnemyStateBatchMsg msg) => ApplyEnemyState(msg);
+	void IEnemySyncControl.ApplyEnemyStream(WireStateStream stream) => ApplyEnemyStream(stream);
 
 	void IEnemySyncControl.ApplyEnemyRemoved(EnemyRemovedMsg msg) => ApplyEnemyRemoved(msg);
 
@@ -293,6 +298,7 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 
 	void IDisposable.Dispose()
 	{
+		_kernelProtocol.EntityStateStreamReceived -= OnEntityStateStreamReceived;
 		_session.SessionEnded -= OnSessionEnded;
 		_kernelAuthority.BatchCommitted -= OnKernelBatchCommitted;
 		_kernelAuthority.BatchApplied -= OnKernelBatchApplied;
@@ -303,19 +309,17 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 
 	private void BroadcastEnemyState()
 	{
-		var payload = new EnemyStateBatchMsg
+		var stream = new WireStateStream
 		{
 			Seq = ++_nextEnemySeq,
 			BaseGlobalRevision = _kernelAuthority.CurrentGlobalRevision,
-			Enemies = [.. _enemies.Values.Select(e => e.ToEnemyStateMsg())],
+			EnemyStates = [.. _enemies.Values.Select(e => e.ToWireEnemyStreamState())],
 		};
-		foreach (var member in _session.Members)
-		{
-			if (member.Handshaken && member.InWorld && member.SteamId != _session.LocalSteamId)
-			{
-				_sender.Send(member.SteamId, NetMsg.EnemyState, payload, reliable: false);
-			}
-		}
+		var targets = _session.Members
+			.Where(m => m.Handshaken && m.InWorld && m.SteamId != _session.LocalSteamId)
+			.Select(m => m.SteamId)
+			.ToList();
+		_kernelProtocol.BroadcastStateStreamTo(targets, stream, WirePayloadType.EnemyStateStream, reliable: false);
 	}
 
 	private void SendEnemySnapshot(ulong steamId)
@@ -372,7 +376,29 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 	/// convergent fields of the enemies it contains but never removes an id that
 	/// is absent from the batch. Aggregate lifecycle travels explicitly via
 	/// <see cref="EnemyRemovedMsg"/>.</summary>
-	private void ApplyEnemyState(EnemyStateBatchMsg msg) => Merge(msg.Enemies, msg.BaseGlobalRevision, EnemyStateReceived);
+	private void ApplyEnemyStream(WireStateStream stream) =>
+		Merge(stream.EnemyStates, stream.BaseGlobalRevision, EnemyStateReceived);
+
+	private void OnEntityStateStreamReceived(ulong sender, WirePayloadType payloadType, WireStateStream stream)
+	{
+		if (payloadType != WirePayloadType.EnemyStateStream || stream.EnemyStates.Count == 0)
+		{
+			return;
+		}
+
+		if (_session.Role != SessionRole.Guest)
+		{
+			return;
+		}
+
+		if (stream.Seq <= _lastEnemyStateSeq)
+		{
+			return;
+		}
+
+		_lastEnemyStateSeq = stream.Seq;
+		ApplyEnemyStream(stream);
+	}
 
 	private void ApplyEnemyRemoved(EnemyRemovedMsg msg)
 	{
@@ -398,11 +424,11 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 	/// If the stream batch predates a newer kernel terminal-health event, the
 	/// terminal fields (health, stunned) are preserved while continuous
 	/// presentation fields (position/velocity/rotation) still update.</summary>
-	private void Merge(IEnumerable<EnemyStateMsg> states, ulong baseGlobalRevision, Action? notify)
+	private void Merge(IEnumerable<WireEnemyStreamState> states, ulong baseGlobalRevision, Action? notify)
 	{
 		foreach (var state in states)
 		{
-			var id = state.Id.ToNetworkEntityId();
+			var id = PlayerStreamWireMapper.ToNetworkEntityId(state.EntityId);
 			if (_removedEnemies.Contains(id))
 			{
 				_log.LogDebug("[Enemy] ignored stream update for removed enemy {Enemy}.", id);

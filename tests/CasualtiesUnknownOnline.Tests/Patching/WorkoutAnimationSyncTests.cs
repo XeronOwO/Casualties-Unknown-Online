@@ -1,7 +1,7 @@
 using System;
 using System.Linq;
 using System.Reflection;
-using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Protocol.Wire;
 using Xunit;
 
 namespace CasualtiesUnknownOnline.Tests.Patching;
@@ -127,8 +127,8 @@ public class WorkoutAnimationSyncTests
 	[Fact]
 	public void EntityStateMsg_HasWorkoutTypeOnTheWire()
 	{
-		var property = typeof(EntityStateMsg).GetProperty("WorkoutType", BindingFlags.Instance | BindingFlags.Public)
-			?? throw new InvalidOperationException("EntityStateMsg.WorkoutType not found.");
+		var property = typeof(WirePlayerStreamState).GetProperty("WorkoutType", BindingFlags.Instance | BindingFlags.Public)
+			?? throw new InvalidOperationException("WirePlayerStreamState.WorkoutType not found.");
 		Assert.Equal(typeof(byte), property.PropertyType);
 	}
 

@@ -29,4 +29,13 @@ public sealed class WireStateStream
 
 	[ProtoMember(7)]
 	public byte[]? LayerModifierRandomState { get; set; }
+
+	[ProtoMember(8)]
+	public uint Seq { get; set; }
+
+	[ProtoMember(9)]
+	public List<WirePlayerStreamState> PlayerStates { get; set; } = [];
+
+	[ProtoMember(10)]
+	public List<WireEnemyStreamState> EnemyStates { get; set; } = [];
 }

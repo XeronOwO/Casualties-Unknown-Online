@@ -1,3 +1,4 @@
+using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Session;
@@ -53,11 +54,22 @@ public class StateStreamFrequencyTests
 					return;
 				}
 
-				if (frame[0] == (byte)NetMsg.PlayerState)
+				if (frame[0] != (byte)NetMsg.KernelEnvelope)
+				{
+					return;
+				}
+
+				var envelope = NetPacket.DecodePayload<ProtocolFrame>(frame);
+				if (envelope.StateStream is null)
+				{
+					return;
+				}
+
+				if (envelope.StateStream.Header.PayloadType == WirePayloadType.PlayerStateStream)
 				{
 					playerFrames++;
 				}
-				else if (frame[0] == (byte)NetMsg.EnemyState)
+				else if (envelope.StateStream.Header.PayloadType == WirePayloadType.EnemyStateStream)
 				{
 					enemyFrames++;
 				}

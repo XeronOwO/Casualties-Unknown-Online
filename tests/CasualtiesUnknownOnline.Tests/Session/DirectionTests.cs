@@ -24,7 +24,6 @@ public class DirectionTests
 	public static TheoryData<NetMsg> GuestToHostMessages => new()
 	{
 		NetMsg.Handshake,
-		NetMsg.PlayerStateReport,
 		NetMsg.HandshakeAckAck,
 		NetMsg.TraderAction,
 		NetMsg.CarriedInventory,
@@ -46,7 +45,6 @@ public class DirectionTests
 		NetMsg.WorldReady,
 		NetMsg.PlayerJoin,
 		NetMsg.PlayerLeave,
-		NetMsg.PlayerState,
 		NetMsg.WorldBlockState,
 		NetMsg.ItemReject,
 		NetMsg.HostCharacterData,
@@ -57,7 +55,6 @@ public class DirectionTests
 		NetMsg.TraderState,
 		NetMsg.TrapLayoutSnapshot,
 		NetMsg.BlockDamageSnapshot,
-		NetMsg.EnemyState,
 		NetMsg.EnemySnapshot,
 		NetMsg.EnemyRemoved,
 		NetMsg.EnemyAttack,

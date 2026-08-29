@@ -2,9 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
+using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Time;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -51,6 +53,10 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 
 	private readonly PlayerKernelStatusProjection _playerStatus;
 
+	private readonly IKernelProtocolControl _kernelProtocol;
+
+	private readonly PlayerStreamExchange _playerStream;
+
 	private readonly PlayerEntity _localPlayer;
 
 	/// <summary>The local swing-presentation window (state belongs to its owner — this service owns the local player's presentation state).</summary>
@@ -67,15 +73,9 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 	private long _nextStateSendMs;
 	private long _nextReportSendMs;
 
-	// Snapshot sequence for the unreliable state stream: the sender numbers
-	// every broadcast/report, the receiver drops anything at or below the last
-	// applied one (the unreliable channel can reorder and duplicate).
-	private uint _nextStateSeq; // host: PlayerState broadcasts
-	private uint _nextReportSeq; // guest: PlayerStateReport broadcasts
-
 	public EntitySyncService(ISessionControl session, PacketSender sender, ITimeSource time,
 		IOptionsMonitor<StateStreamOptions> stateStreamOptions, ILogger<EntitySyncService> log,
-		PlayerKernelStatusProjection playerStatus)
+		PlayerKernelStatusProjection playerStatus, IKernelProtocolControl kernelProtocol)
 	{
 		_session = session;
 
@@ -87,8 +87,11 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 
 		_log = log;
 		_playerStatus = playerStatus;
+		_kernelProtocol = kernelProtocol;
 		_localPlayer = new PlayerEntity(session.LocalSteamId, default, isLocal: true);
+		_playerStream = new PlayerStreamExchange(session, this, kernelProtocol, log);
 
+		_kernelProtocol.EntityStateStreamReceived += _playerStream.OnEntityStateStreamReceived;
 		session.MemberRemoved += OnMemberRemoved;
 		session.SessionEnded += OnSessionEnded;
 	}
@@ -175,7 +178,7 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 	bool IEntitySyncControl.TryGetSynced(ulong steamId, out SyncedEntity member) =>
 		_entities.TryGetValue(steamId, out member!);
 
-	void IEntitySyncControl.ApplyEntityState(EntityStateMsg msg, PlayerEntity target) => ApplyEntityState(msg, target);
+	void IEntitySyncControl.ApplyPlayerState(WirePlayerStreamState msg, PlayerEntity target) => ApplyPlayerStream(msg, target);
 
 	void IEntitySyncControl.FireStateReceived(PlayerEntity entity) => StateReceived?.Invoke(entity);
 
@@ -190,7 +193,11 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 	// ---- Internal surface for the packet handlers (Session/Handlers/) ----
 
 	/// <summary>Guest side: last applied host snapshot seq (stream gate).</summary>
-	internal uint LastStateSeq { get; set; }
+	internal uint LastStateSeq
+	{
+		get => _playerStream.LastStateSeq;
+		set => _playerStream.LastStateSeq = value;
+	}
 
 	internal IEnumerable<SyncedEntity> Members => _entities.Values;
 
@@ -285,17 +292,18 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 		_log.LogInformation("Entity sync ended.");
 	}
 
-	/// <summary>Applies a decoded entity state, preserving the first-snapshot rule
-	/// (Prev = current on the first report — the buffer defaults are (0,0) and
-	/// interpolating from them would slide the proxy in from the world origin).</summary>
-	internal void ApplyEntityState(EntityStateMsg msg, PlayerEntity target)
+	/// <summary>Applies a convergent player-stream field set, preserving the
+	/// first-snapshot rule (Prev = current on the first report — the buffer
+	/// defaults are (0,0) and interpolating from them would slide the proxy in
+	/// from the world origin).</summary>
+	internal void ApplyPlayerStream(WirePlayerStreamState msg, PlayerEntity target)
 	{
 		var firstSnapshot = target.StateReceivedMs < 0;
 		var now = (int)_time.NowMs; // the interpolation buffer's ms stamps (GameAdapter's SessionStatePump diffs them against Environment.TickCount)
 		target.PrevStateMs = firstSnapshot ? now : target.StateReceivedMs;
-		target.PrevPosition = firstSnapshot ? msg.Position.ToNetVector2() : target.Position;
-		target.PrevLookPos = firstSnapshot ? msg.LookPos.ToNetVector2() : target.LookPos;
-		target.PrevVelocity = firstSnapshot ? msg.Velocity.ToNetVector2() : target.Velocity;
+		target.PrevPosition = firstSnapshot ? ToNetVector2(msg.Position) : target.Position;
+		target.PrevLookPos = firstSnapshot ? ToNetVector2(msg.LookPos) : target.LookPos;
+		target.PrevVelocity = firstSnapshot ? ToNetVector2(msg.Velocity) : target.Velocity;
 		msg.ApplyTo(target);
 		target.StateReceivedMs = now;
 		if (_session.Role == SessionRole.Host && target.SteamId != 0)
@@ -303,6 +311,8 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 			_playerStatus.Sync(target.SteamId, target.Alive, target.Conscious);
 		}
 	}
+
+	private static NetVector2 ToNetVector2(WireVector2 value) => new(value.X, value.Y);
 
 	// ---- Lifecycle ----
 
@@ -374,13 +384,13 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 		if (_session.Role == SessionRole.Host && EntitySyncActive && nowMs >= _nextStateSendMs)
 		{
 			_nextStateSendMs = nowMs + (long)(intervalSeconds * 1000f);
-			BroadcastPlayerState();
+			_playerStream.BroadcastPlayerState();
 		}
 
 		if (_session.Role == SessionRole.Guest && EntitySyncActive && nowMs >= _nextReportSendMs)
 		{
 			_nextReportSendMs = nowMs + (long)(intervalSeconds * 1000f);
-			SendPlayerStateReport();
+			_playerStream.SendPlayerStateReport();
 		}
 	}
 
@@ -390,6 +400,7 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 
 	void IDisposable.Dispose()
 	{
+		_kernelProtocol.EntityStateStreamReceived -= _playerStream.OnEntityStateStreamReceived;
 		_session.MemberRemoved -= OnMemberRemoved;
 		_session.SessionEnded -= OnSessionEnded;
 	}
@@ -429,6 +440,7 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 		_selfSyncActive = false;
 		_attackSwing.Reset();
 		_swingSeq = 0;
+		_playerStream.ResetSession();
 	}
 
 	// ---- Sync decisions ----
@@ -473,7 +485,7 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 		}
 
 		BroadcastExcept(presence.SteamId, NetMsg.PlayerJoin, joinMsg); // roster: announce to the others
-		BroadcastPlayerState();
+		_playerStream.BroadcastPlayerState();
 	}
 
 	private PlayerJoinMsg BuildJoinMsg(ulong guestSteamId, NetworkEntityId guestId, NetVector2 guestPosition)
@@ -491,52 +503,6 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 			GuestPosition = guestPosition.ToNetVector2Msg(),
 			DisplayName = displayName,
 		};
-	}
-
-	// ---- State stream ----
-
-	/// <summary>Host side: broadcast the authoritative snapshot (local + every synced member) to all synced members.</summary>
-	private void BroadcastPlayerState()
-	{
-		var synced = _entities.Values.ToList();
-		if (synced.Count == 0)
-		{
-			return;
-		}
-
-		var payload = new PlayerStateMsg
-		{
-			Seq = ++_nextStateSeq,
-			Entities = BuildEntityList(synced),
-		};
-		_sender.SendToAll(synced.Select(m => m.SteamId), NetMsg.PlayerState, payload, reliable: false);
-	}
-
-	private List<EntityStateMsg> BuildEntityList(List<SyncedEntity> synced)
-	{
-		var list = new List<EntityStateMsg>(synced.Count + 1) { _localPlayer.ToEntityStateMsg() };
-		foreach (var member in synced)
-		{
-			list.Add(member.Entity.ToEntityStateMsg());
-		}
-
-		return list;
-	}
-
-	/// <summary>Guest side: report the locally simulated state to the host (20 Hz).</summary>
-	private void SendPlayerStateReport()
-	{
-		if (_session.HostSteamId == 0)
-		{
-			return;
-		}
-
-		_sender.Send(_session.HostSteamId, NetMsg.PlayerStateReport,
-			new PlayerStateReportMsg
-			{
-				Seq = ++_nextReportSeq,
-				Entity = _localPlayer.ToEntityStateMsg(),
-			}, reliable: false);
 	}
 
 	/// <summary>Upsert a remote entity buffer (id updated on rejoin; the buffer is

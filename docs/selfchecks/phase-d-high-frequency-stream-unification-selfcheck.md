@@ -17,8 +17,11 @@ Game Adapter destroys the corresponding frozen guest copy.
 | Guest destruction | `EnemySyncCoordinator.OnEnemyRemoved` | Removes mapping state and destroys the local frozen `BuildingEntity` copy. |
 | Removal tombstone | `EnemySyncService._removedEnemies` | Guest-side session-scoped tombstone set; late/out-of-order state batches and full snapshots cannot resurrect an explicitly removed id. |
 | Full snapshot | `EnemySyncService.ApplyEnemySnapshot` | Remains full-overwrite for world entry / reconnect, where a complete set is correct. |
-| Kernel terminal revision guard | `EnemySyncService` + `EnemyStateBatchMsg.BaseGlobalRevision` | Guest tracks the kernel global revision of each enemy terminal health event; a stale 20 Hz stream older than that event preserves terminal health/stunned while still applying continuous position/velocity. |
-| Player stream lifecycle audit | `PlayerStateHandler` / `PlayerLeaveHandler` / `ProcessPlayerJoin` | Player stream is update-only for existing buffers; explicit `PlayerJoin`/`PlayerLeave` owns aggregate lifecycle, so a state batch missing a player is not a removal. |
+| Kernel terminal revision guard | `EnemySyncService` + `WireStateStream.BaseGlobalRevision` | Guest tracks the kernel global revision of each enemy terminal health event; a stale 20 Hz stream older than that event preserves terminal health/stunned while still applying continuous position/velocity. |
+| Player stream lifecycle audit | `EntitySyncService` + `PlayerJoin`/`PlayerLeave` | Player stream is update-only for existing buffers; explicit `PlayerJoin`/`PlayerLeave` owns aggregate lifecycle, so a state batch missing a player is not a removal. |
+| Unified state-stream wire | `WireStateStream.PlayerStates` / `WireStateStream.EnemyStates` + `WirePlayerStreamState` / `WireEnemyStreamState` | Both player and enemy 20 Hz continuous/presentation streams now ride `StateStreamEnvelope` over `NetMsg.KernelEnvelope`; the old direct `NetMsg.PlayerState`, `NetMsg.PlayerStateReport`, and `NetMsg.EnemyState` high-frequency paths and their handlers/DTOs are removed. |
+| Player report direction | `KernelProtocolService.HandleHostFrame` + `PlayerStreamExchange` | Guest player reports travel as `PlayerStateStream` state-stream envelopes and are seq-gated per synced member on the host. |
+| Player stream owner split | `PlayerStreamExchange` | The player stream send/receive/gate logic lives in a separate class so `EntitySyncService` stays under the architecture line gate; it reads only `IEntitySyncControl` and `IKernelProtocolControl`. |
 
 ## Evidence table
 
@@ -34,11 +37,16 @@ Game Adapter destroys the corresponding frozen guest copy.
 | A player state batch missing a player does not remove the buffer | `StateStreamTests.PlayerStateBatch_MissingPlayer_DoesNotRemoveExistingBuffer`. |
 | PlayerLeave removes the guest's remote player buffer | `StateStreamTests.PlayerLeave_RemovesRemoteBuffer`. |
 | A stale enemy stream cannot overwrite a newer kernel health event | `EnemySyncServiceTests.StaleStream_CannotOverwriteNewerKernelHealth`. |
+| The unified wire preserves player/enemy stream entities | `ProtocolCodecTests.StateStreamEnvelope_RoundTripsPlayerAndEnemyEntityStates`. |
+| Player seq gate works over `KernelEnvelope` | `StateStreamTests.StaleAndDuplicateSequences_Dropped_NewerPass`. |
+| Player stream remains update-only over `KernelEnvelope` | `StateStreamTests.PlayerStateBatch_MissingPlayer_DoesNotRemoveExistingBuffer`. |
+| Guest player report converges to the host synced member | `StateStreamTests.GuestReport_ReachesHostAndUpdatesSyncedMember`. |
+| Enemy seq gate works over `KernelEnvelope` | `EnemySyncServiceTests.StaleAndDuplicateSequences_Dropped_NewerPass`. |
 
 ## Verification
 
 - `dotnet build CasualtiesUnknownOnline.slnx`: 0 warnings / 0 errors.
-- `dotnet test CasualtiesUnknownOnline.slnx`: 1697 passed.
+- `dotnet test CasualtiesUnknownOnline.slnx`: 1694 passed.
 - `dotnet format`: applied.
 - Architecture / event / entity / isolation / delivery gates passed.
 
@@ -53,9 +61,11 @@ Game Adapter destroys the corresponding frozen guest copy.
 
 ## Remaining sub-steps
 
-1. Align player/enemy continuous stream fields with `WireStateStream` /
-   `StateStreamEnvelope` (the player stream lifecycle audit portion is now
-   covered by the update-only/PlayerLeave tests above).
+1. [x] Align player/enemy continuous stream fields with `WireStateStream` /
+   `StateStreamEnvelope`: both 20 Hz paths now ride the unified state-stream
+   envelope over `KernelEnvelope`, and the old direct high-frequency
+   `NetMsg.PlayerState` / `PlayerStateReport` / `EnemyState` handlers and DTOs
+   are removed. Terminal revision protection is preserved on the enemy stream.
 2. [x] Add property/simulation tests for dropped/out-of-order update-only packets
    with explicit removals, and guard the guest buffer against resurrection.
 3. [x] Enemy health/death facts are committed as dedicated kernel events, and

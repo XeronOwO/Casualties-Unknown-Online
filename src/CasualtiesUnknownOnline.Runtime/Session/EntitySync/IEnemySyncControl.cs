@@ -1,3 +1,4 @@
+using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.EntitySync;
@@ -13,8 +14,8 @@ public interface IEnemySyncControl
 	/// <summary>Guest side: last applied enemy-state seq (the unreliable-stream gate).</summary>
 	uint LastEnemyStateSeq { get; set; }
 
-	/// <summary>Guest side: apply an update-only 20 Hz enemy-state batch (never removes an id absent from the batch).</summary>
-	void ApplyEnemyState(EnemyStateBatchMsg msg);
+	/// <summary>Guest side: apply an update-only 20 Hz enemy-state stream (never removes an id absent from the stream).</summary>
+	void ApplyEnemyStream(WireStateStream stream);
 
 	/// <summary>Guest side: apply an explicit enemy aggregate removal (the reliable lifecycle counterpart of the state stream).</summary>
 	void ApplyEnemyRemoved(EnemyRemovedMsg msg);

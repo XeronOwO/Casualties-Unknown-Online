@@ -22,6 +22,12 @@ public interface IKernelProtocolControl
 
 	void BroadcastItemStateStream(IReadOnlyList<WireWorldItemState> items, WirePayloadType payloadType, bool reliable = false, int layerModifierIndex = 0, byte[]? layerModifierRandomState = null);
 
+	void SendStateStreamTo(ulong targetSteamId, WireStateStream stream, WirePayloadType payloadType, bool reliable = false);
+
+	void BroadcastStateStream(WireStateStream stream, WirePayloadType payloadType, bool reliable = false);
+
+	void BroadcastStateStreamTo(IEnumerable<ulong> targets, WireStateStream stream, WirePayloadType payloadType, bool reliable = false);
+
 	void BroadcastCommittedBatch(CommittedBatch batch);
 
 	void SendCheckpoint(ulong targetSteamId);
@@ -29,6 +35,8 @@ public interface IKernelProtocolControl
 	event Action<IReadOnlyList<WireItemMoveEntry>>? ItemMovesReceived;
 
 	event Action<WirePayloadType, WireStateStream>? ItemStateStreamReceived;
+
+	event Action<ulong, WirePayloadType, WireStateStream>? EntityStateStreamReceived;
 
 	event Action<ulong, RejectionReason>? CommandRejected;
 

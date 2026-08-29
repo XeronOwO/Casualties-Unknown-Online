@@ -63,6 +63,8 @@ public enum WirePayloadType
 	StateStream = 301,
 	ItemSnapshotStream = 302,
 	WorldItemsSnapshotStream = 303,
+	PlayerStateStream = 304,
+	EnemyStateStream = 305,
 
 	// Non-critical presentation effects (reserved)
 	PresentationEffect = 1001,

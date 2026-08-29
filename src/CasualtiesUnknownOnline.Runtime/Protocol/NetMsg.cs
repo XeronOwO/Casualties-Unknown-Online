@@ -22,8 +22,6 @@ public enum NetMsg : byte
 	// Entities
 	PlayerJoin = 32, // host → guest: self-activation + roster announcement
 	PlayerLeave = 33, // host → guest: a synced member left the session
-	PlayerState = 35, // host → guest: authoritative entity batch (unreliable stream)
-	PlayerStateReport = 36, // guest → host: local authoritative position (no host-side simulation)
 
 	// Character data (guest → host reports, host → guest restore on reconnect)
 	CharacterData = 37,
@@ -92,7 +90,6 @@ public enum NetMsg : byte
 	// Enemies/NPCs (host authority — the host simulates the AI + physics, the
 	// guests render the frozen copies from the snapshot; same pattern as the
 	// player entity stream)
-	EnemyState = 80, // host → guest (unreliable): the authoritative enemy-state batch (20 Hz, seq-gated)
 	EnemySnapshot = 81, // host → guest: the full enemy snapshot (world entry / late joiner — ids + spawn positions for binding + RuntimeSpawns for materializing runtime-created enemies)
 	EnemyBite = 82, // bidirectional: guest → host report (the victim's local bite already applied); host → guest broadcast relay (source excluded) — an enemy bit a player, carrying the post-bite limb + body state
 	EnemyAttack = 83, // host → guest: the host's enemy simulation decided an attack on a remote player (the victim applies it locally and reports the terminal state)

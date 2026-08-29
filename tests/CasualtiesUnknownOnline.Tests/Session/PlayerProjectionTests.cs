@@ -94,4 +94,84 @@ public class PlayerProjectionTests
 		Assert.True(limb.Dislocated);
 		Assert.True(limb.IsVital);
 	}
+
+	[Fact]
+	public void HostSaveCharacterData_CommitsPlayerKernelBodyTerminalFacts()
+	{
+		var (_, host, _) = HandshakeTests.CreateHostAndGuest();
+		host.Steam.FireLobbyCreated(LobbyId);
+
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		var authority = host.Services.GetRequiredService<ItemKernelAuthority>();
+
+		characters.SaveHostCharacterData(new CharacterDataMsg
+		{
+			OwnerSteamId = HostId,
+			Health = new CharacterHealthMsg
+			{
+				Alive = true,
+				Conscious = true,
+				Disfigured = true,
+				EyeGone = true,
+				BothEyesGone = false,
+				HasPulmonaryEmbolism = true,
+				TriedRollingLastStand = false,
+				SuccesfullyRolledLastStand = true,
+				UsedNeuralBooster = true,
+				FibrillationForced = false,
+				MindwipeScriptPresent = true,
+				MindwipeScriptActive = true,
+			},
+		});
+
+		var player = Assert.Single(authority.QueryPlayers()!.Players);
+		Assert.NotNull(player.Body);
+		Assert.True(player.Body!.Disfigured);
+		Assert.True(player.Body!.EyeGone);
+		Assert.True(player.Body!.HasPulmonaryEmbolism);
+		Assert.True(player.Body!.SuccesfullyRolledLastStand);
+		Assert.True(player.Body!.UsedNeuralBooster);
+		Assert.True(player.Body!.MindwipeScriptPresent);
+		Assert.True(player.Body!.MindwipeScriptActive);
+	}
+
+	[Fact]
+	public void LimbStateEvent_CommitsPlayerKernelBodyTerminalFacts()
+	{
+		var (_, host, _) = HandshakeTests.CreateHostAndGuest();
+		host.Steam.FireLobbyCreated(LobbyId);
+
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		var authority = host.Services.GetRequiredService<ItemKernelAuthority>();
+
+		characters.ApplyLimbStateEvent(new LimbStateEventMsg
+		{
+			OwnerSteamId = HostId,
+			Limbs =
+			[
+				new CharacterLimbMsg { Index = 0, Broken = true, IsHead = true },
+			],
+			Health = new CharacterHealthMsg
+			{
+				Disfigured = false,
+				EyeGone = true,
+				BothEyesGone = true,
+				HasPulmonaryEmbolism = false,
+				TriedRollingLastStand = true,
+				SuccesfullyRolledLastStand = false,
+				UsedNeuralBooster = false,
+				FibrillationForced = true,
+				MindwipeScriptPresent = false,
+				MindwipeScriptActive = true,
+			},
+		});
+
+		var player = Assert.Single(authority.QueryPlayers()!.Players);
+		Assert.NotNull(player.Body);
+		Assert.True(player.Body!.EyeGone);
+		Assert.True(player.Body!.BothEyesGone);
+		Assert.True(player.Body!.TriedRollingLastStand);
+		Assert.True(player.Body!.FibrillationForced);
+		Assert.True(player.Body!.MindwipeScriptActive);
+	}
 }

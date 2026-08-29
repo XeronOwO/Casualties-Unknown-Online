@@ -119,6 +119,7 @@ public static class KernelDomainWireMapper
 			CarrierOfSteamId = state.CarrierOfSteamId ?? 0,
 			CarriedBySteamId = state.CarriedBySteamId ?? 0,
 			Limbs = [.. (state.Limbs ?? []).Select(ToWirePlayerLimbState)],
+			Body = state.Body is null ? null : ToWirePlayerBodyTerminalState(state.Body),
 		};
 
 	public static PlayerState FromWirePlayerState(WirePlayerState state) =>
@@ -128,7 +129,8 @@ public static class KernelDomainWireMapper
 			state.Conscious,
 			state.CarrierOfSteamId == 0 ? null : state.CarrierOfSteamId,
 			state.CarriedBySteamId == 0 ? null : state.CarriedBySteamId,
-			state.Limbs.Count == 0 ? null : [.. state.Limbs.Select(FromWirePlayerLimbState)]);
+			state.Limbs.Count == 0 ? null : [.. state.Limbs.Select(FromWirePlayerLimbState)],
+			state.Body is null ? null : FromWirePlayerBodyTerminalState(state.Body));
 
 	public static WirePlayerLimbState ToWirePlayerLimbState(PlayerLimbState limb) =>
 		new()
@@ -155,6 +157,34 @@ public static class KernelDomainWireMapper
 			limb.BlockedBleeding,
 			limb.IsHead,
 			limb.IsVital);
+
+	public static WirePlayerBodyTerminalState ToWirePlayerBodyTerminalState(PlayerBodyTerminalState body) =>
+		new()
+		{
+			Disfigured = body.Disfigured,
+			EyeGone = body.EyeGone,
+			BothEyesGone = body.BothEyesGone,
+			HasPulmonaryEmbolism = body.HasPulmonaryEmbolism,
+			TriedRollingLastStand = body.TriedRollingLastStand,
+			SuccesfullyRolledLastStand = body.SuccesfullyRolledLastStand,
+			UsedNeuralBooster = body.UsedNeuralBooster,
+			FibrillationForced = body.FibrillationForced,
+			MindwipeScriptPresent = body.MindwipeScriptPresent,
+			MindwipeScriptActive = body.MindwipeScriptActive,
+		};
+
+	public static PlayerBodyTerminalState FromWirePlayerBodyTerminalState(WirePlayerBodyTerminalState body) =>
+		new(
+			body.Disfigured,
+			body.EyeGone,
+			body.BothEyesGone,
+			body.HasPulmonaryEmbolism,
+			body.TriedRollingLastStand,
+			body.SuccesfullyRolledLastStand,
+			body.UsedNeuralBooster,
+			body.FibrillationForced,
+			body.MindwipeScriptPresent,
+			body.MindwipeScriptActive);
 
 	public static WireEntityId ToWireEntityId(EntityId id) =>
 		new()

@@ -10,7 +10,7 @@ data and carry service into the kernel.
 
 | Mechanism | Where | Notes |
 |---|---|---|
-| Player terminal state | `Domains/Players/PlayerState.cs` | SteamID-keyed alive/conscious facts plus discrete limb latches (`PlayerLimbState`). |
+| Player terminal state | `Domains/Players/PlayerState.cs` | SteamID-keyed alive/conscious facts plus discrete limb latches (`PlayerLimbState`) and body-level terminal latches (`PlayerBodyTerminalState`). |
 | Player table | `Domains/Players/PlayerStateTable.cs` | Immutable snapshot with upsert. |
 | Commands | `UpdatePlayerStatusCommand`, `ResetPlayersCommand`, `SetPlayerCarryCommand`, `ClearPlayerCarryCommand` | Host-only commands; reset clears for a new run; carry commands record/release one carrier/one carried relation. |
 | Events | `PlayerStatusUpdatedEvent`, `PlayersResetEvent`, `PlayerCarrySetEvent`, `PlayerCarryClearedEvent` | Reduce into the player table. |
@@ -21,6 +21,7 @@ data and carry service into the kernel.
 | Runtime authority surface | `ItemKernelAuthority.TryUpdatePlayerStatus/TryResetPlayers/QueryPlayers/TrySetPlayerCarry/TryClearPlayerCarry` | Host commands and query entry points. |
 | Entity-sync projection | `PlayerKernelStatusProjection` + `EntitySyncService` | Host `PublishLocalState`/`ApplyEntityState` project alive/conscious changes into kernel status; guests receive the kernel batch through the existing protocol path. |
 | Limb projection | `PlayerKernelLimbProjection` + `CharacterDataStore` | Host character snapshots and limb-latch events project discrete limb latches into kernel `PlayerState`; event + 1 Hz snapshot fallback are both covered. |
+| Body terminal projection | `PlayerKernelLimbProjection` + `CharacterDataStore` | The same character-data/limb-event projection also commits body-level terminal booleans (`Disfigured`, `EyeGone`, `BothEyesGone`, `HasPulmonaryEmbolism`, last-stand/neural booleans, `FibrillationForced`, `MindwipeScriptPresent/Active`) into `PlayerBodyTerminalState`. |
 | Carry production projection | `PlayerKernelCarryProjection` + `PlayerCarryService` | Host `PublishCarryState` also commits the relation into the kernel; guests keep the legacy wire mirror while the kernel owns the durable fact. |
 
 ## Evidence table
@@ -44,11 +45,16 @@ data and carry service into the kernel.
 | Wire/checkpoint/save preserve limb facts | `PlayerDomainKernelTests.WireBatchRoundTrip_PreservesPlayerLimbFacts` / `CheckpointSplitAssemble_RoundTripsPlayerLimbFacts` / `SaveLoad_RoundTripsPlayerLimbFacts`. |
 | Host character data commits limb facts to kernel | `PlayerProjectionTests.HostSaveCharacterData_CommitsPlayerKernelLimbFacts`. |
 | Host limb event commits limb facts to kernel | `PlayerProjectionTests.LimbStateEvent_CommitsPlayerKernelLimbFacts`. |
+| Kernel upserts body terminal facts | `PlayerDomainKernelTests.UpdateStatus_UpsertsBodyTerminalFacts`. |
+| Wire/checkpoint/save preserve body terminal facts | `PlayerDomainKernelTests.WireBatchRoundTrip_PreservesPlayerBodyTerminalFacts` / `CheckpointSplitAssemble_RoundTripsPlayerBodyTerminalFacts` / `SaveLoad_RoundTripsPlayerBodyTerminalFacts`. |
+| Host character data commits body terminal facts | `PlayerProjectionTests.HostSaveCharacterData_CommitsPlayerKernelBodyTerminalFacts`. |
+| Host limb event commits body terminal facts | `PlayerProjectionTests.LimbStateEvent_CommitsPlayerKernelBodyTerminalFacts`. |
+| Cross-player use commits body terminal facts | `PlayerInteractionServiceTests.Guest_UsesMindwipeOnUnhappyHost_AppliesMindwipeScript` asserts kernel `PlayerBodyTerminalState`. |
 
 ## Verification
 
 - `dotnet build CasualtiesUnknownOnline.slnx`: 0 warnings / 0 errors.
-- `dotnet test CasualtiesUnknownOnline.slnx`: 1687 passed.
+- `dotnet test CasualtiesUnknownOnline.slnx`: 1693 passed.
 - `dotnet format`: applied.
 - Architecture/event/entity/isolation gates passed.
 
@@ -64,7 +70,10 @@ data and carry service into the kernel.
 1. [x] Add limb terminal facts to the player domain: `PlayerLimbState`,
    checkpoint/wire/save round-trip, and production projection from character
    data and limb-latch events.
-2. Route other cross-player interaction results (take/heal/use/push) through
+2. [x] Add body-level terminal latches to the player domain:
+   `PlayerBodyTerminalState`, checkpoint/wire/save round-trip, and production
+   projection from character data, limb-latch events, and cross-player use.
+3. Route other cross-player interaction results (take/heal/use/push) through
    kernel commands where they carry durable facts.
 3. Project kernel player facts into character restore/snapshots where the old
    snapshot stream is not sufficient.

@@ -1605,6 +1605,12 @@ public class PlayerInteractionServiceTests
 
 		var hostData = characters.GetHostCharacterData()!;
 		Assert.True(hostData.Health!.MindwipeScriptPresent);
+
+		var authority = host.Services.GetRequiredService<ItemKernelAuthority>();
+		var player = authority.QueryPlayers()!.Players.Single(p => p.SteamId == HostId);
+		Assert.NotNull(player.Body);
+		Assert.True(player.Body!.MindwipeScriptPresent);
+		Assert.False(player.Body!.MindwipeScriptActive);
 	}
 
 	[Fact]

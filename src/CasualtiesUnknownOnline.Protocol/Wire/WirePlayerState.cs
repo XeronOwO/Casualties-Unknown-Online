@@ -26,4 +26,7 @@ public sealed class WirePlayerState
 
 	[ProtoMember(6)]
 	public List<WirePlayerLimbState> Limbs { get; set; } = [];
+
+	[ProtoMember(7)]
+	public WirePlayerBodyTerminalState? Body { get; set; }
 }

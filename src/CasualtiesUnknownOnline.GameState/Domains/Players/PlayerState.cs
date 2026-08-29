@@ -14,7 +14,8 @@ public sealed record PlayerState(
 	bool Conscious,
 	ulong? CarrierOfSteamId = null,
 	ulong? CarriedBySteamId = null,
-	IReadOnlyList<PlayerLimbState>? Limbs = null)
+	IReadOnlyList<PlayerLimbState>? Limbs = null,
+	PlayerBodyTerminalState? Body = null)
 {
 	public IReadOnlyList<PlayerLimbState> LimbFacts => Limbs ?? [];
 
@@ -32,9 +33,15 @@ public sealed record PlayerState(
 			Conscious = conscious,
 		};
 
-	public PlayerState WithLimbs(IReadOnlyList<PlayerLimbState> limbs) =>
+	public PlayerState WithLimbs(IReadOnlyList<PlayerLimbState>? limbs) =>
 		this with
 		{
 			Limbs = limbs,
+		};
+
+	public PlayerState WithBody(PlayerBodyTerminalState body) =>
+		this with
+		{
+			Body = body,
 		};
 }

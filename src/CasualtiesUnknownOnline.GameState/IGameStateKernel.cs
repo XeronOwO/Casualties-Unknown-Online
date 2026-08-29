@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.GameState.Domains.World;
+using CasualtiesUnknownOnline.GameState.Domains.WorldEntities;
 
 namespace CasualtiesUnknownOnline.GameState;
 
@@ -23,4 +24,6 @@ public interface IGameStateKernel
 	ItemState? FindItem(ulong instanceId);
 
 	RunState? QueryRun();
+
+	WorldEntityState? QueryWorldEntities();
 }

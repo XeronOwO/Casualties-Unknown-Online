@@ -30,4 +30,7 @@ public sealed class WireCheckpoint
 
 	[ProtoMember(7)]
 	public WireRunState? Run { get; set; }
+
+	[ProtoMember(8)]
+	public WireWorldEntityState? WorldEntities { get; set; }
 }

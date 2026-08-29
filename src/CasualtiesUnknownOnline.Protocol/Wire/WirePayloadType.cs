@@ -18,6 +18,9 @@ public enum WirePayloadType
 	ItemContainerSyncCommand = 7,
 	RunStartCommand = 8,
 	AdvanceLayerCommand = 9,
+	RecordTrapConsumedCommand = 10,
+	RecordBuildingEntityHealthCommand = 11,
+	RecordOpenedEntityCommand = 12,
 
 	// Kernel events (critical)
 	ItemSpawnedEvent = 101,
@@ -26,6 +29,9 @@ public enum WirePayloadType
 	ItemDataUpdatedEvent = 104,
 	RunStartedEvent = 105,
 	RunAdvancedEvent = 106,
+	TrapConsumedEvent = 107,
+	BuildingEntityHealthUpdatedEvent = 108,
+	OpenedEntityEvent = 109,
 
 	// Envelope families
 	CommittedBatch = 100,

@@ -4,6 +4,7 @@ using System.Linq;
 using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.GameState.Domains.World;
+using CasualtiesUnknownOnline.GameState.Domains.WorldEntities;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using Microsoft.Extensions.Logging;
 
@@ -55,6 +56,8 @@ public sealed class ItemKernelAuthority(ILogger<ItemKernelAuthority> log)
 	public IReadOnlyDictionary<ulong, ItemState> QueryItems() => _kernel.QueryItems();
 
 	public RunState? QueryRun() => _kernel.QueryRun();
+
+	public WorldEntityState? QueryWorldEntities() => _kernel.QueryWorldEntities();
 
 	public GameCheckpoint CreateCheckpoint() => _kernel.CreateCheckpoint();
 
@@ -115,6 +118,45 @@ public sealed class ItemKernelAuthority(ILogger<ItemKernelAuthority> log)
 			AuthorityKind.HostOnly,
 			run);
 		return TryExecute(command, actor, "advance-layer", out batch, out rejection);
+	}
+
+	// ===== World entities (traps/buildings) =====
+
+	public bool TryRecordTrapConsumed(ulong actor, EntityPosition position, int kind, byte extra, long triggeredAtMs, out CommittedBatch? batch, out Rejection? rejection)
+	{
+		var command = new RecordTrapConsumedCommand(
+			NextOperation(),
+			new ActorId(actor),
+			_runEpoch,
+			AuthorityKind.HostOnly,
+			position,
+			kind,
+			extra,
+			triggeredAtMs);
+		return TryExecute(command, actor, "record-trap-consumed", out batch, out rejection);
+	}
+
+	public bool TryRecordBuildingEntityHealth(ulong actor, EntityPosition position, float health, out CommittedBatch? batch, out Rejection? rejection)
+	{
+		var command = new RecordBuildingEntityHealthCommand(
+			NextOperation(),
+			new ActorId(actor),
+			_runEpoch,
+			AuthorityKind.HostOnly,
+			position,
+			health);
+		return TryExecute(command, actor, "record-building-health", out batch, out rejection);
+	}
+
+	public bool TryRecordOpenedEntity(ulong actor, EntityPosition position, out CommittedBatch? batch, out Rejection? rejection)
+	{
+		var command = new RecordOpenedEntityCommand(
+			NextOperation(),
+			new ActorId(actor),
+			_runEpoch,
+			AuthorityKind.HostOnly,
+			position);
+		return TryExecute(command, actor, "record-opened-entity", out batch, out rejection);
 	}
 
 	// ===== Spawn =====

@@ -23,4 +23,7 @@ public sealed class KernelSaveFile
 
 	[ProtoMember(4)]
 	public WireRunState? Run { get; set; }
+
+	[ProtoMember(5)]
+	public WireWorldEntityState? WorldEntities { get; set; }
 }

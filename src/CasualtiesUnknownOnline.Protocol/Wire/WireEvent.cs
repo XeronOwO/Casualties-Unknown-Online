@@ -38,4 +38,19 @@ public sealed class WireEvent
 
 	[ProtoMember(10)]
 	public WireRunState? RunState { get; set; }
+
+	[ProtoMember(11)]
+	public WireEntityPosition? EntityPosition { get; set; }
+
+	[ProtoMember(12)]
+	public int EntityKind { get; set; }
+
+	[ProtoMember(13)]
+	public byte Extra { get; set; }
+
+	[ProtoMember(14)]
+	public float Health { get; set; }
+
+	[ProtoMember(15)]
+	public long TriggeredAtMs { get; set; }
 }

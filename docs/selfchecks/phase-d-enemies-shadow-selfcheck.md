@@ -51,4 +51,6 @@ durable entity identity/health/runtime-spawn facts.
 1. Add enemy combat/terminal-state events (bite/lunge/effect/targeting) as
    cross-domain batches.
 2. Project kernel enemy facts into `EnemyEntity` restore/snapshot paths.
-3. Move to Fluids persistent region domain.
+3. Continue high-frequency stream unification: the 20 Hz enemy batch is now
+   update-only with explicit `EnemyRemovedMsg` lifecycle handling; see
+   `docs/selfchecks/phase-d-high-frequency-stream-unification-selfcheck.md`.

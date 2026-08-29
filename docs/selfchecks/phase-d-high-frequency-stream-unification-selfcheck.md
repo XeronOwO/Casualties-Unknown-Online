@@ -24,12 +24,13 @@ Game Adapter destroys the corresponding frozen guest copy.
 | A state batch missing an id does not remove it | `EnemySyncServiceTests.StateBatch_MissingId_DoesNotRemoveExistingBuffer`. |
 | An explicit removal drops the buffer and raises the event | `EnemySyncServiceTests.RemovalMessage_RemovesEnemyAndRaisesEvent`. |
 | Host shrink still converges on a guest through the removal message | `EnemySyncServiceTests.EnemySnapshot_Overwrites_PreviousBuffer`. |
+| Dropped state batches still converge through a reliable removal | `EnemySyncServiceTests.RemovedEnemy_ConvergesEvenWhenStateBatchDrops`. |
 | The new message is direction-classified | `DirectionTests.EveryNetMsg_IsExplicitlyClassified`. |
 
 ## Verification
 
 - `dotnet build CasualtiesUnknownOnline.slnx`: 0 warnings / 0 errors.
-- `dotnet test CasualtiesUnknownOnline.slnx`: 1675 passed.
+- `dotnet test CasualtiesUnknownOnline.slnx`: 1676 passed.
 - `dotnet format`: applied.
 - Architecture / event / entity / isolation / delivery gates passed.
 

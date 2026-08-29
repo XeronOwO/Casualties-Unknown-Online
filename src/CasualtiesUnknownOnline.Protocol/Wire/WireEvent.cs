@@ -56,4 +56,10 @@ public sealed class WireEvent
 
 	[ProtoMember(16)]
 	public WirePlayerState? PlayerState { get; set; }
+
+	[ProtoMember(17)]
+	public WireEntityId? EntityId { get; set; }
+
+	[ProtoMember(18)]
+	public WireEnemyState? EnemyState { get; set; }
 }

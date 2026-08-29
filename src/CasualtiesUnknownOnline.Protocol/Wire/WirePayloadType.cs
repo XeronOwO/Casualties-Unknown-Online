@@ -24,6 +24,9 @@ public enum WirePayloadType
 	ResetWorldEntitiesCommand = 13,
 	UpdatePlayerStatusCommand = 14,
 	ResetPlayersCommand = 15,
+	UpsertEnemyCommand = 16,
+	RemoveEnemyCommand = 17,
+	ResetEnemiesCommand = 18,
 
 	// Kernel events (critical)
 	ItemSpawnedEvent = 101,
@@ -38,6 +41,9 @@ public enum WirePayloadType
 	WorldEntitiesResetEvent = 110,
 	PlayerStatusUpdatedEvent = 111,
 	PlayersResetEvent = 112,
+	EnemyUpsertedEvent = 113,
+	EnemyRemovedEvent = 114,
+	EnemiesResetEvent = 115,
 
 	// Envelope families
 	CommittedBatch = 100,

@@ -36,4 +36,7 @@ public sealed class WireCheckpoint
 
 	[ProtoMember(9)]
 	public List<WirePlayerState> Players { get; set; } = [];
+
+	[ProtoMember(10)]
+	public List<WireEnemyState> Enemies { get; set; } = [];
 }

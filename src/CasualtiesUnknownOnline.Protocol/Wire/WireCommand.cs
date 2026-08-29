@@ -63,4 +63,10 @@ public sealed class WireCommand
 
 	[ProtoMember(18)]
 	public WirePlayerState? PlayerState { get; set; }
+
+	[ProtoMember(19)]
+	public WireEntityId? EntityId { get; set; }
+
+	[ProtoMember(20)]
+	public WireEnemyState? EnemyState { get; set; }
 }

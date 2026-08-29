@@ -32,6 +32,8 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 
 	private readonly ILogger<EnemySyncService> _log;
 
+	private readonly EnemyKernelProjection _enemyKernel;
+
 	private readonly Dictionary<NetworkEntityId, EnemyEntity> _enemies = [];
 	private IReadOnlyList<EnemySpawnEntryMsg> _runtimeSpawns = [];
 	private uint _nextEnemySeq; // host: EnemyState broadcast seq
@@ -41,13 +43,15 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 	private uint _nextEnemyCounter; // host: enemy-id allocation counter
 
 	public EnemySyncService(ISessionControl session, PacketSender sender, ITimeSource time,
-		IOptionsMonitor<StateStreamOptions> stateStreamOptions, ILogger<EnemySyncService> log)
+		IOptionsMonitor<StateStreamOptions> stateStreamOptions, ILogger<EnemySyncService> log,
+		EnemyKernelProjection enemyKernel)
 	{
 		_session = session;
 		_sender = sender;
 		_time = time;
 		_stateStreamOptions = stateStreamOptions;
 		_log = log;
+		_enemyKernel = enemyKernel;
 		session.SessionEnded += OnSessionEnded;
 	}
 
@@ -215,6 +219,11 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 				.Where(e => e.RuntimeSpawned && e.PrefabId.Length > 0)
 				.Select(e => e.ToEnemySpawnEntryMsg()),
 		];
+
+		if (_session.Role == SessionRole.Host)
+		{
+			_enemyKernel.Sync(published);
+		}
 	}
 
 	// ---- IEnemySyncControl (the packet handlers' control surface) ----

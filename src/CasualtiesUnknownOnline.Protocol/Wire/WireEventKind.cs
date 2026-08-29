@@ -19,4 +19,7 @@ public enum WireEventKind
 	WorldEntitiesReset = 10,
 	PlayerStatusUpdated = 11,
 	PlayersReset = 12,
+	EnemyUpserted = 13,
+	EnemyRemoved = 14,
+	EnemiesReset = 15,
 }

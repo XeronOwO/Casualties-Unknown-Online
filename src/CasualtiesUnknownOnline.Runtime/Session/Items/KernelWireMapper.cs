@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using CasualtiesUnknownOnline.GameState;
+using CasualtiesUnknownOnline.GameState.Domains.Entities;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.GameState.Domains.Players;
 using CasualtiesUnknownOnline.GameState.Domains.World;
@@ -28,112 +29,6 @@ public static class KernelWireMapper
 
 	public static RandomStreamState FromWireRandomStream(WireRandomStream stream) =>
 		new(stream.Name, stream.State, [.. stream.DecidedValues]);
-
-	public static WireRunState ToWireRun(RunState run) =>
-		new()
-		{
-			RunId = run.RunId,
-			RandomState = run.RandomState,
-			BiomeOverride = run.BiomeOverride,
-			BiomeDepth = run.BiomeDepth,
-			TotalTraveled = run.TotalTraveled,
-			LoadedRun = run.LoadedRun,
-			LayerIndex = run.LayerIndex,
-			RunSettings = [.. (run.RunSettings ?? []).Select(ToWireRunSetting)],
-		};
-
-	public static RunState FromWireRun(WireRunState run) =>
-		new(
-			run.RunId,
-			run.RandomState,
-			(byte)run.BiomeOverride,
-			(byte)run.BiomeDepth,
-			run.TotalTraveled,
-			run.LoadedRun,
-			run.RunSettings.Count == 0 ? null : [.. run.RunSettings.Select(FromWireRunSetting)],
-			run.LayerIndex);
-
-	private static WireRunSetting ToWireRunSetting(RunSetting setting) =>
-		new()
-		{
-			Key = setting.Key,
-			Kind = (int)setting.Kind,
-			IntValue = setting.IntValue,
-			FloatValue = setting.FloatValue,
-			BoolValue = setting.BoolValue,
-			StringValue = setting.StringValue,
-		};
-
-	private static RunSetting FromWireRunSetting(WireRunSetting setting) =>
-		new(
-			setting.Key,
-			(RunSettingKind)setting.Kind,
-			setting.IntValue,
-			setting.FloatValue,
-			setting.BoolValue,
-			setting.StringValue);
-
-	public static WireEntityPosition ToWireEntityPosition(EntityPosition position) =>
-		new()
-		{
-			X = position.X,
-			Y = position.Y,
-		};
-
-	public static EntityPosition FromWireEntityPosition(WireEntityPosition position) =>
-		new(position.X, position.Y);
-
-	public static WireWorldEntityState ToWireWorldEntityState(WorldEntityState? state) =>
-		new()
-		{
-			Consumptions = [.. (state?.Consumptions ?? []).Select(c => new WireTrapConsumption
-			{
-				Position = ToWireEntityPosition(c.Position),
-				Kind = c.Kind,
-				Extra = c.Extra,
-				TriggeredAtMs = c.TriggeredAtMs,
-			})],
-			BuildingHealth = [.. (state?.BuildingHealth ?? []).Select(h => new WireBuildingEntityHealth
-			{
-				Position = ToWireEntityPosition(h.Position),
-				Health = h.Health,
-			})],
-			OpenedEntities = [.. (state?.OpenedEntities ?? []).Select(o => new WireOpenedEntity
-			{
-				Position = ToWireEntityPosition(o.Position),
-			})],
-		};
-
-	public static WorldEntityState FromWireWorldEntityState(WireWorldEntityState? state)
-	{
-		if (state is null)
-		{
-			return WorldEntityState.Empty;
-		}
-
-		return new WorldEntityState(
-			[.. state.Consumptions.Select(c => new TrapConsumptionFact(
-				FromWireEntityPosition(c.Position),
-				c.Kind,
-				c.Extra,
-				c.TriggeredAtMs))],
-			[.. state.BuildingHealth.Select(h => new BuildingEntityHealthFact(
-				FromWireEntityPosition(h.Position),
-				h.Health))],
-			[.. state.OpenedEntities.Select(o => new OpenedEntityFact(
-				FromWireEntityPosition(o.Position)))]);
-	}
-
-	public static WirePlayerState ToWirePlayerState(PlayerState state) =>
-		new()
-		{
-			SteamId = state.SteamId,
-			Alive = state.Alive,
-			Conscious = state.Conscious,
-		};
-
-	public static PlayerState FromWirePlayerState(WirePlayerState state) =>
-		new(state.SteamId, state.Alive, state.Conscious);
 
 	public static WireItem ToWireItem(ItemState state) =>
 		new()
@@ -260,17 +155,17 @@ public static class KernelWireMapper
 			RunStartedEvent started => new WireEvent
 			{
 				Kind = WireEventKind.RunStarted,
-				RunState = ToWireRun(started.Run),
+				RunState = KernelDomainWireMapper.ToWireRun(started.Run),
 			},
 			RunAdvancedEvent advanced => new WireEvent
 			{
 				Kind = WireEventKind.RunAdvanced,
-				RunState = ToWireRun(advanced.Run),
+				RunState = KernelDomainWireMapper.ToWireRun(advanced.Run),
 			},
 			TrapConsumedEvent trap => new WireEvent
 			{
 				Kind = WireEventKind.TrapConsumed,
-				EntityPosition = ToWireEntityPosition(trap.Position),
+				EntityPosition = KernelDomainWireMapper.ToWireEntityPosition(trap.Position),
 				EntityKind = trap.Kind,
 				Extra = trap.Extra,
 				TriggeredAtMs = trap.TriggeredAtMs,
@@ -278,13 +173,13 @@ public static class KernelWireMapper
 			BuildingEntityHealthUpdatedEvent health => new WireEvent
 			{
 				Kind = WireEventKind.BuildingEntityHealthUpdated,
-				EntityPosition = ToWireEntityPosition(health.Position),
+				EntityPosition = KernelDomainWireMapper.ToWireEntityPosition(health.Position),
 				Health = health.Health,
 			},
 			OpenedEntityEvent opened => new WireEvent
 			{
 				Kind = WireEventKind.OpenedEntity,
-				EntityPosition = ToWireEntityPosition(opened.Position),
+				EntityPosition = KernelDomainWireMapper.ToWireEntityPosition(opened.Position),
 			},
 			WorldEntitiesResetEvent => new WireEvent
 			{
@@ -293,11 +188,25 @@ public static class KernelWireMapper
 			PlayerStatusUpdatedEvent updated => new WireEvent
 			{
 				Kind = WireEventKind.PlayerStatusUpdated,
-				PlayerState = ToWirePlayerState(updated.State),
+				PlayerState = KernelDomainWireMapper.ToWirePlayerState(updated.State),
 			},
 			PlayersResetEvent => new WireEvent
 			{
 				Kind = WireEventKind.PlayersReset,
+			},
+			EnemyUpsertedEvent upserted => new WireEvent
+			{
+				Kind = WireEventKind.EnemyUpserted,
+				EnemyState = KernelDomainWireMapper.ToWireEnemyState(upserted.State),
+			},
+			EnemyRemovedEvent removed => new WireEvent
+			{
+				Kind = WireEventKind.EnemyRemoved,
+				EntityId = KernelDomainWireMapper.ToWireEntityId(removed.EntityId),
+			},
+			EnemiesResetEvent => new WireEvent
+			{
+				Kind = WireEventKind.EnemiesReset,
 			},
 			_ => throw new ArgumentOutOfRangeException(nameof(@event), @event.GetType().Name, "no wire mapping for kernel event"),
 		};
@@ -386,23 +295,28 @@ public static class KernelWireMapper
 				@event.OldData is null ? ItemData.Empty : FromWireData(@event.OldData),
 				@event.NewData is null ? ItemData.Empty : FromWireData(@event.NewData)),
 			WireEventKind.RunStarted => new RunStartedEvent(
-				FromWireRun(@event.RunState ?? throw new InvalidOperationException("RunStarted event lacks run state"))),
+				KernelDomainWireMapper.FromWireRun(@event.RunState ?? throw new InvalidOperationException("RunStarted event lacks run state"))),
 			WireEventKind.RunAdvanced => new RunAdvancedEvent(
-				FromWireRun(@event.RunState ?? throw new InvalidOperationException("RunAdvanced event lacks run state"))),
+				KernelDomainWireMapper.FromWireRun(@event.RunState ?? throw new InvalidOperationException("RunAdvanced event lacks run state"))),
 			WireEventKind.TrapConsumed => new TrapConsumedEvent(
-				FromWireEntityPosition(@event.EntityPosition ?? throw new InvalidOperationException("TrapConsumed event lacks position")),
+				KernelDomainWireMapper.FromWireEntityPosition(@event.EntityPosition ?? throw new InvalidOperationException("TrapConsumed event lacks position")),
 				@event.EntityKind,
 				@event.Extra,
 				@event.TriggeredAtMs),
 			WireEventKind.BuildingEntityHealthUpdated => new BuildingEntityHealthUpdatedEvent(
-				FromWireEntityPosition(@event.EntityPosition ?? throw new InvalidOperationException("BuildingEntityHealthUpdated event lacks position")),
+				KernelDomainWireMapper.FromWireEntityPosition(@event.EntityPosition ?? throw new InvalidOperationException("BuildingEntityHealthUpdated event lacks position")),
 				@event.Health),
 			WireEventKind.OpenedEntity => new OpenedEntityEvent(
-				FromWireEntityPosition(@event.EntityPosition ?? throw new InvalidOperationException("OpenedEntity event lacks position"))),
+				KernelDomainWireMapper.FromWireEntityPosition(@event.EntityPosition ?? throw new InvalidOperationException("OpenedEntity event lacks position"))),
 			WireEventKind.WorldEntitiesReset => new WorldEntitiesResetEvent(),
 			WireEventKind.PlayerStatusUpdated => new PlayerStatusUpdatedEvent(
-				FromWirePlayerState(@event.PlayerState ?? throw new InvalidOperationException("PlayerStatusUpdated event lacks player state"))),
+				KernelDomainWireMapper.FromWirePlayerState(@event.PlayerState ?? throw new InvalidOperationException("PlayerStatusUpdated event lacks player state"))),
 			WireEventKind.PlayersReset => new PlayersResetEvent(),
+			WireEventKind.EnemyUpserted => new EnemyUpsertedEvent(
+				KernelDomainWireMapper.FromWireEnemyState(@event.EnemyState ?? throw new InvalidOperationException("EnemyUpserted event lacks enemy state"))),
+			WireEventKind.EnemyRemoved => new EnemyRemovedEvent(
+				KernelDomainWireMapper.FromWireEntityId(@event.EntityId ?? throw new InvalidOperationException("EnemyRemoved event lacks entity id"))),
+			WireEventKind.EnemiesReset => new EnemiesResetEvent(),
 			_ => throw new ArgumentOutOfRangeException(nameof(@event.Kind), @event.Kind, "unknown wire event kind"),
 		};
 
@@ -490,19 +404,19 @@ public static class KernelWireMapper
 				actor,
 				epoch,
 				authority,
-				FromWireRun(command.RunState ?? throw new InvalidOperationException("RunStart command lacks run state"))),
+				KernelDomainWireMapper.FromWireRun(command.RunState ?? throw new InvalidOperationException("RunStart command lacks run state"))),
 			WireCommandKind.AdvanceLayer => new AdvanceLayerCommand(
 				operation,
 				actor,
 				epoch,
 				authority,
-				FromWireRun(command.RunState ?? throw new InvalidOperationException("AdvanceLayer command lacks run state"))),
+				KernelDomainWireMapper.FromWireRun(command.RunState ?? throw new InvalidOperationException("AdvanceLayer command lacks run state"))),
 			WireCommandKind.RecordTrapConsumed => new RecordTrapConsumedCommand(
 				operation,
 				actor,
 				epoch,
 				authority,
-				FromWireEntityPosition(command.EntityPosition ?? throw new InvalidOperationException("RecordTrapConsumed command lacks position")),
+				KernelDomainWireMapper.FromWireEntityPosition(command.EntityPosition ?? throw new InvalidOperationException("RecordTrapConsumed command lacks position")),
 				command.EntityKind,
 				command.Extra,
 				command.TriggeredAtMs),
@@ -511,14 +425,14 @@ public static class KernelWireMapper
 				actor,
 				epoch,
 				authority,
-				FromWireEntityPosition(command.EntityPosition ?? throw new InvalidOperationException("RecordBuildingEntityHealth command lacks position")),
+				KernelDomainWireMapper.FromWireEntityPosition(command.EntityPosition ?? throw new InvalidOperationException("RecordBuildingEntityHealth command lacks position")),
 				command.Health),
 			WireCommandKind.RecordOpenedEntity => new RecordOpenedEntityCommand(
 				operation,
 				actor,
 				epoch,
 				authority,
-				FromWireEntityPosition(command.EntityPosition ?? throw new InvalidOperationException("RecordOpenedEntity command lacks position"))),
+				KernelDomainWireMapper.FromWireEntityPosition(command.EntityPosition ?? throw new InvalidOperationException("RecordOpenedEntity command lacks position"))),
 			WireCommandKind.ResetWorldEntities => new ResetWorldEntitiesCommand(
 				operation,
 				actor,
@@ -529,8 +443,25 @@ public static class KernelWireMapper
 				actor,
 				epoch,
 				authority,
-				FromWirePlayerState(command.PlayerState ?? throw new InvalidOperationException("UpdatePlayerStatus command lacks player state"))),
+				KernelDomainWireMapper.FromWirePlayerState(command.PlayerState ?? throw new InvalidOperationException("UpdatePlayerStatus command lacks player state"))),
 			WireCommandKind.ResetPlayers => new ResetPlayersCommand(
+				operation,
+				actor,
+				epoch,
+				authority),
+			WireCommandKind.UpsertEnemy => new UpsertEnemyCommand(
+				operation,
+				actor,
+				epoch,
+				authority,
+				KernelDomainWireMapper.FromWireEnemyState(command.EnemyState ?? throw new InvalidOperationException("UpsertEnemy command lacks enemy state"))),
+			WireCommandKind.RemoveEnemy => new RemoveEnemyCommand(
+				operation,
+				actor,
+				epoch,
+				authority,
+				KernelDomainWireMapper.FromWireEntityId(command.EntityId ?? throw new InvalidOperationException("RemoveEnemy command lacks entity id"))),
+			WireCommandKind.ResetEnemies => new ResetEnemiesCommand(
 				operation,
 				actor,
 				epoch,

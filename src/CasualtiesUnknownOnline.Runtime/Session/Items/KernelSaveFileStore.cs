@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using CasualtiesUnknownOnline.GameState;
+using CasualtiesUnknownOnline.GameState.Domains.Entities;
 using CasualtiesUnknownOnline.GameState.Domains.Players;
 using CasualtiesUnknownOnline.Protocol.Wire;
 using Microsoft.Extensions.Logging;
@@ -46,9 +47,10 @@ public sealed class KernelSaveFileStore(string? filePath, ILogger<KernelSaveFile
 			},
 			Items = [.. checkpoint.Items.Select(KernelWireMapper.ToWireItem)],
 			RandomStreams = [.. checkpoint.RandomStreams?.Select(ToWireRandomStream) ?? []],
-			Run = checkpoint.Run is null ? null : KernelWireMapper.ToWireRun(checkpoint.Run),
-			WorldEntities = checkpoint.WorldEntities is null ? null : KernelWireMapper.ToWireWorldEntityState(checkpoint.WorldEntities),
-			Players = [.. (checkpoint.Players?.Players ?? []).Select(KernelWireMapper.ToWirePlayerState)],
+			Run = checkpoint.Run is null ? null : KernelDomainWireMapper.ToWireRun(checkpoint.Run),
+			WorldEntities = checkpoint.WorldEntities is null ? null : KernelDomainWireMapper.ToWireWorldEntityState(checkpoint.WorldEntities),
+			Players = [.. (checkpoint.Players?.Players ?? []).Select(KernelDomainWireMapper.ToWirePlayerState)],
+			Enemies = [.. (checkpoint.Enemies?.Enemies ?? []).Select(KernelDomainWireMapper.ToWireEnemyState)],
 		};
 
 		return WriteAtomically(file);
@@ -90,11 +92,14 @@ public sealed class KernelSaveFileStore(string? filePath, ILogger<KernelSaveFile
 				file.Header.GlobalRevision,
 				[.. file.Items.Select(KernelWireMapper.FromWireItem)],
 				[.. file.RandomStreams.Select(FromWireRandomStream)],
-				file.Run is null ? null : KernelWireMapper.FromWireRun(file.Run),
-				file.WorldEntities is null ? null : KernelWireMapper.FromWireWorldEntityState(file.WorldEntities),
+				file.Run is null ? null : KernelDomainWireMapper.FromWireRun(file.Run),
+				file.WorldEntities is null ? null : KernelDomainWireMapper.FromWireWorldEntityState(file.WorldEntities),
 				file.Players.Count == 0
 					? null
-					: new PlayerStateTable([.. file.Players.Select(KernelWireMapper.FromWirePlayerState)]));
+					: new PlayerStateTable([.. file.Players.Select(KernelDomainWireMapper.FromWirePlayerState)]),
+				file.Enemies.Count == 0
+					? null
+					: new EnemyStateTable([.. file.Enemies.Select(KernelDomainWireMapper.FromWireEnemyState)]));
 			_log.LogInformation("Loaded kernel checkpoint from {Path}: epoch {Epoch}, revision {Revision}, items {Items}.",
 				_filePath, checkpoint.RunEpoch.Value, checkpoint.GlobalRevision, checkpoint.Items.Count);
 			return true;

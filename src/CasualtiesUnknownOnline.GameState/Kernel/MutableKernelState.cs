@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using CasualtiesUnknownOnline.GameState.Domains.Entities;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.GameState.Domains.Players;
 using CasualtiesUnknownOnline.GameState.Domains.World;
@@ -17,7 +18,8 @@ internal sealed class MutableKernelState(
 	IEnumerable<ItemState> items,
 	RunState? run,
 	WorldEntityState? worldEntities,
-	PlayerStateTable? players)
+	PlayerStateTable? players,
+	EnemyStateTable? enemies)
 {
 	private readonly Dictionary<ulong, ItemState> _items = items.ToDictionary(item => item.Identity.InstanceId);
 
@@ -30,6 +32,8 @@ internal sealed class MutableKernelState(
 	public WorldEntityState? WorldEntities { get; set; } = worldEntities;
 
 	public PlayerStateTable? Players { get; set; } = players;
+
+	public EnemyStateTable? Enemies { get; set; } = enemies;
 
 	public IReadOnlyDictionary<ulong, ItemState> Items => _items;
 

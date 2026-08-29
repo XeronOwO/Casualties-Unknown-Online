@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.GameState.Domains.Players;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
@@ -56,6 +57,54 @@ public class PlayerDomainKernelTests
 	}
 
 	[Fact]
+	public void SetAndClearCarry_DrivePlayerRelation()
+	{
+		var kernel = new GameStateKernel(Epoch);
+		Assert.True(Update(kernel, 1, new PlayerState(2001, true, true)).IsAccepted);
+		Assert.True(Update(kernel, 2, new PlayerState(2002, true, true)).IsAccepted);
+
+		Assert.True(SetCarry(kernel, 3, 2001, 2002).IsAccepted);
+
+		var players = kernel.QueryPlayers()!.Players;
+		var carrier = players.Single(p => p.SteamId == 2001);
+		var carried = players.Single(p => p.SteamId == 2002);
+		Assert.Equal(2002ul, carrier.CarrierOfSteamId);
+		Assert.Equal(2001ul, carried.CarriedBySteamId);
+
+		Assert.True(ClearCarry(kernel, 4, 2001, 2002).IsAccepted);
+		players = kernel.QueryPlayers()!.Players;
+		Assert.Null(players.Single(p => p.SteamId == 2001).CarrierOfSteamId);
+		Assert.Null(players.Single(p => p.SteamId == 2002).CarriedBySteamId);
+	}
+
+	[Fact]
+	public void SelfCarry_IsRejected()
+	{
+		var kernel = new GameStateKernel(Epoch);
+		Assert.True(Update(kernel, 1, new PlayerState(2001, true, true)).IsAccepted);
+
+		var decision = SetCarry(kernel, 2, 2001, 2001);
+
+		Assert.False(decision.IsAccepted);
+		Assert.Equal(RejectionReason.InvalidTransition, decision.Rejection!.Reason);
+	}
+
+	[Fact]
+	public void CarryConflict_IsRejected()
+	{
+		var kernel = new GameStateKernel(Epoch);
+		Assert.True(Update(kernel, 1, new PlayerState(2001, true, true)).IsAccepted);
+		Assert.True(Update(kernel, 2, new PlayerState(2002, true, true)).IsAccepted);
+		Assert.True(Update(kernel, 3, new PlayerState(2003, true, true)).IsAccepted);
+		Assert.True(SetCarry(kernel, 4, 2001, 2002).IsAccepted);
+
+		var decision = SetCarry(kernel, 5, 2001, 2003);
+
+		Assert.False(decision.IsAccepted);
+		Assert.Equal(RejectionReason.Conflict, decision.Rejection!.Reason);
+	}
+
+	[Fact]
 	public void WireBatchRoundTrip_PreservesPlayerStatusEvent()
 	{
 		var source = new GameStateKernel(Epoch);
@@ -108,8 +157,76 @@ public class PlayerDomainKernelTests
 		}
 	}
 
+	[Fact]
+	public void WireBatchRoundTrip_PreservesPlayerCarryEvent()
+	{
+		var source = new GameStateKernel(Epoch);
+		Assert.True(Update(source, 1, new PlayerState(2001, true, true)).IsAccepted);
+		Assert.True(Update(source, 2, new PlayerState(2002, true, true)).IsAccepted);
+		var batch = SetCarry(source, 3, 2001, 2002).Batch!;
+
+		var restored = KernelWireMapper.FromWireBatch(KernelWireMapper.ToWireBatch(batch), Epoch);
+
+		var @event = Assert.IsType<PlayerCarrySetEvent>(Assert.Single(restored.Events));
+		Assert.Equal(2001ul, @event.CarrierSteamId);
+		Assert.Equal(2002ul, @event.CarriedSteamId);
+	}
+
+	[Fact]
+	public void CheckpointSplitAssemble_RoundTripsPlayerCarryFields()
+	{
+		var kernel = new GameStateKernel(Epoch);
+		Assert.True(Update(kernel, 1, new PlayerState(2001, true, true)).IsAccepted);
+		Assert.True(Update(kernel, 2, new PlayerState(2002, true, true)).IsAccepted);
+		Assert.True(SetCarry(kernel, 3, 2001, 2002).IsAccepted);
+
+		var restored = WireCheckpointAssembler.Assemble(WireCheckpointAssembler.Split(kernel.CreateCheckpoint()));
+
+		var carrier = restored.Players!.Players.Single(p => p.SteamId == 2001);
+		Assert.Equal(2002ul, carrier.CarrierOfSteamId);
+		Assert.Null(carrier.CarriedBySteamId);
+	}
+
+	[Fact]
+	public void SaveLoad_RoundTripsPlayerCarryFields()
+	{
+		var path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"cuo-players-carry-{Guid.NewGuid():N}.bin");
+		try
+		{
+			var authority = new ItemKernelAuthority(NullLogger<ItemKernelAuthority>.Instance);
+			Assert.True(authority.TryUpdatePlayerStatus(Host.Value, new PlayerState(2001, true, true), out _, out _));
+			Assert.True(authority.TryUpdatePlayerStatus(Host.Value, new PlayerState(2002, true, true), out _, out _));
+			Assert.True(authority.TrySetPlayerCarry(Host.Value, 2001, 2002, out _, out _));
+
+			var store = new KernelSaveFileStore(path, NullLogger<KernelSaveFileStore>.Instance);
+			Assert.True(store.Save(authority.CreateCheckpoint()));
+			Assert.True(store.TryLoad(out var loaded));
+
+			var carrier = loaded.Players!.Players.Single(p => p.SteamId == 2001);
+			Assert.Equal(2002ul, carrier.CarrierOfSteamId);
+			Assert.Null(carrier.CarriedBySteamId);
+		}
+		finally
+		{
+			if (System.IO.File.Exists(path))
+			{
+				System.IO.File.Delete(path);
+			}
+		}
+	}
+
 	private static Decision Update(GameStateKernel kernel, ulong op, PlayerState state) =>
 		kernel.Execute(
 			new UpdatePlayerStatusCommand(new OperationId(op), Host, Epoch, AuthorityKind.HostOnly, state),
+			new CommandContext(Epoch, Host));
+
+	private static Decision SetCarry(GameStateKernel kernel, ulong op, ulong carrier, ulong carried) =>
+		kernel.Execute(
+			new SetPlayerCarryCommand(new OperationId(op), Host, Epoch, AuthorityKind.HostOnly, carrier, carried),
+			new CommandContext(Epoch, Host));
+
+	private static Decision ClearCarry(GameStateKernel kernel, ulong op, ulong carrier, ulong carried) =>
+		kernel.Execute(
+			new ClearPlayerCarryCommand(new OperationId(op), Host, Epoch, AuthorityKind.HostOnly, carrier, carried),
 			new CommandContext(Epoch, Host));
 }

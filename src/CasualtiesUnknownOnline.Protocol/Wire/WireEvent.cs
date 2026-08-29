@@ -65,4 +65,10 @@ public sealed class WireEvent
 
 	[ProtoMember(19)]
 	public WireFluidRegionState? FluidState { get; set; }
+
+	[ProtoMember(20)]
+	public ulong CarrierSteamId { get; set; }
+
+	[ProtoMember(21)]
+	public ulong CarriedSteamId { get; set; }
 }

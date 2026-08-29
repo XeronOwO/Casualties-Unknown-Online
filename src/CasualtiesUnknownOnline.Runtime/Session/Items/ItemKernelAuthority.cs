@@ -180,26 +180,17 @@ public sealed class ItemKernelAuthority(ILogger<ItemKernelAuthority> log)
 
 	// ===== Players =====
 
-	public bool TryUpdatePlayerStatus(ulong actor, PlayerState state, out CommittedBatch? batch, out Rejection? rejection)
-	{
-		var command = new UpdatePlayerStatusCommand(
-			NextOperation(),
-			new ActorId(actor),
-			_runEpoch,
-			AuthorityKind.HostOnly,
-			state);
-		return TryExecute(command, actor, "update-player-status", out batch, out rejection);
-	}
+	public bool TryUpdatePlayerStatus(ulong actor, PlayerState state, out CommittedBatch? batch, out Rejection? rejection) =>
+		TryExecute(new UpdatePlayerStatusCommand(NextOperation(), new ActorId(actor), _runEpoch, AuthorityKind.HostOnly, state), actor, "update-player-status", out batch, out rejection);
 
-	public bool TryResetPlayers(ulong actor, out CommittedBatch? batch, out Rejection? rejection)
-	{
-		var command = new ResetPlayersCommand(
-			NextOperation(),
-			new ActorId(actor),
-			_runEpoch,
-			AuthorityKind.HostOnly);
-		return TryExecute(command, actor, "reset-players", out batch, out rejection);
-	}
+	public bool TryResetPlayers(ulong actor, out CommittedBatch? batch, out Rejection? rejection) =>
+		TryExecute(new ResetPlayersCommand(NextOperation(), new ActorId(actor), _runEpoch, AuthorityKind.HostOnly), actor, "reset-players", out batch, out rejection);
+
+	public bool TrySetPlayerCarry(ulong actor, ulong carrierSteamId, ulong carriedSteamId, out CommittedBatch? batch, out Rejection? rejection) =>
+		TryExecute(new SetPlayerCarryCommand(NextOperation(), new ActorId(actor), _runEpoch, AuthorityKind.HostOnly, carrierSteamId, carriedSteamId), actor, "set-player-carry", out batch, out rejection);
+
+	public bool TryClearPlayerCarry(ulong actor, ulong carrierSteamId, ulong carriedSteamId, out CommittedBatch? batch, out Rejection? rejection) =>
+		TryExecute(new ClearPlayerCarryCommand(NextOperation(), new ActorId(actor), _runEpoch, AuthorityKind.HostOnly, carrierSteamId, carriedSteamId), actor, "clear-player-carry", out batch, out rejection);
 
 	// ===== Entities =====
 

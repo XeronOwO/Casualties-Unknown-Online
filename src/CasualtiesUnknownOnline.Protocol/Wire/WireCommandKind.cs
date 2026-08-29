@@ -26,6 +26,8 @@ public enum WireCommandKind
 	ResetEnemies = 18,
 	UpdateFluidRegion = 19,
 	ResetFluids = 20,
+	SetPlayerCarry = 21,
+	ClearPlayerCarry = 22,
 
 	// Protocol control (not a gameplay command)
 	RangeRequest = 100,

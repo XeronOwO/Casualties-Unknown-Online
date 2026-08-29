@@ -3777,3 +3777,15 @@ of the legacy direct entity messages.
   player buffer semantics, guest report convergence, stale-terminal revision
   protection, and frequency-count tests were updated to the new path. Full suite
   1694 green.
+
+## 130. Push is transient presentation, not a kernel fact (2026-08-29)
+
+Cross-player push/shove is a presentation-only operation.
+
+- **No kernel command/event** — push creates/updates no durable relation,
+  ownership, health, or item fact; therefore it does not enter the Phase C
+  kernel protocol.
+- **Direct result remains** — `PlayerPushResultMsg` continues as a direct
+  host→all presentation message; each side applies the sound/ragdoll locally.
+- **Fallback** — the resulting target motion is already covered by the existing
+  20 Hz player state stream, so no stream-side kernel change is needed.

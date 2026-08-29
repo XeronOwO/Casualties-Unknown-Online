@@ -273,6 +273,9 @@ public interface IWorldControl
 
 	event Action<IReadOnlyList<TrapLayoutEntryMsg>>? TrapLayoutReceived;
 
+	/// <summary>Host only: commit a coarse fluid-region summary (world chunk totals/types) into the kernel fluid checkpoint.</summary>
+	void ReportFluidRegions(IReadOnlyList<FluidRegionSummary> regions);
+
 	/// <summary>Host only: stream an absolute RLE fluid-grid region to one member (the host simulates the world fluid alone — the guests render the streamed regions).</summary>
 	void SendFluidRegion(ulong targetSteamId, FluidRegionMsg msg);
 

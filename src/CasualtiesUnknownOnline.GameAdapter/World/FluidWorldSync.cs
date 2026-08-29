@@ -22,6 +22,7 @@ internal sealed class FluidWorldSync(
 {
 	private readonly IWorldControl _world = world;
 	private readonly FluidSimulationAuthority _authority = new(world, session, entities, loggerFactory.CreateLogger<FluidSimulationAuthority>());
+	private readonly FluidRegionKernelSync _regionKernel = new(world, session, loggerFactory.CreateLogger<FluidRegionKernelSync>());
 	private readonly FluidRegionApplication _application = new(loggerFactory.CreateLogger<FluidRegionApplication>());
 	private readonly FluidPresentationApplication _presentation = new(loggerFactory.CreateLogger<FluidPresentationApplication>());
 	private readonly FluidInteractionSync _interaction = new(world, session, loggerFactory.CreateLogger<FluidInteractionSync>());
@@ -45,8 +46,12 @@ internal sealed class FluidWorldSync(
 	/// only ever changes through the streamed regions and the local drink).</summary>
 	internal void OnFluidFixedUpdate() => _authority.Step();
 
-	/// <summary>Per frame: the host streams the members' viewports (no-op on guest).</summary>
-	internal void Update() => _authority.Update();
+	/// <summary>Per frame: the host streams the members' viewports and periodically commits the coarse kernel region checkpoint (no-op on guest).</summary>
+	internal void Update()
+	{
+		_authority.Update();
+		_regionKernel.Update();
+	}
 
 	/// <summary>The local player drank (DrinkLiquid ran with the full local
 	/// effect) — report the consumed cell (guest → host; host → broadcast).</summary>

@@ -223,6 +223,7 @@ public static class CuoBootstrap
 		services.AddSingleton<TradeChannel>(); // the trader state/action channel (trade domain)
 		services.AddSingleton<SpeechChannel>(); // the speech-bubble channel (the Talker domain)
 		services.AddSingleton<ChatChannel>(); // the text-chat channel (co-op communication)
+		services.AddSingleton<FluidKernelProjection>();
 		services.AddSingleton<WorldService>();
 		services.AddSingleton<IWorldControl>(p => p.GetRequiredService<WorldService>());
 		// The world-entry backfill fan-out owns the ordered snapshot group +

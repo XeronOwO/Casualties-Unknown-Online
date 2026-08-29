@@ -28,6 +28,7 @@ public sealed class WorldService : IWorldControl, IDisposable
 	private readonly WorldChannelRelay _channels;
 	private readonly WorldStateMessageService _messages;
 	private readonly ItemKernelAuthority _kernelAuthority;
+	private readonly FluidKernelProjection _fluidKernel;
 
 	/// <summary>
 	/// Host only: a run is in progress but the host has not entered the world
@@ -67,7 +68,8 @@ public sealed class WorldService : IWorldControl, IDisposable
 		SpeechChannel speechChannel,
 		ChatChannel chatChannel,
 		BlockDamageRegistry blockDamageRegistry,
-		ItemKernelAuthority kernelAuthority)
+		ItemKernelAuthority kernelAuthority,
+		FluidKernelProjection fluidKernel)
 	{
 		_session = session;
 		_sender = sender;
@@ -76,6 +78,7 @@ public sealed class WorldService : IWorldControl, IDisposable
 		_channels = new WorldChannelRelay(eventChannel, tradeChannel, speechChannel, chatChannel);
 		_messages = new WorldStateMessageService(session, sender, log, eventChannel, blockDamageRegistry);
 		_kernelAuthority = kernelAuthority;
+		_fluidKernel = fluidKernel;
 
 		_kernelAuthority.BatchApplied += OnRunBatchApplied;
 		_kernelAuthority.CheckpointRestored += OnRunCheckpointRestored;
@@ -283,6 +286,8 @@ public sealed class WorldService : IWorldControl, IDisposable
 	public event Action<IReadOnlyList<TrapLayoutEntryMsg>>? TrapLayoutReceived { add => _channels.TrapLayoutReceived += value; remove => _channels.TrapLayoutReceived -= value; }
 
 	public void FireTrapLayoutReceived(IReadOnlyList<TrapLayoutEntryMsg> entries) => _channels.FireTrapLayoutReceived(entries);
+
+	public void ReportFluidRegions(IReadOnlyList<FluidRegionSummary> regions) => _fluidKernel.Sync(regions);
 
 	public void SendFluidRegion(ulong targetSteamId, FluidRegionMsg msg) => _channels.SendFluidRegion(targetSteamId, msg);
 

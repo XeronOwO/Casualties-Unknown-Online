@@ -20,7 +20,7 @@ into kernel-backed projection/snapshot adapters.
 | Wire DTOs | `WireWorldEntityState`, `WireTrapConsumption`, `WireBuildingEntityHealth`, `WireOpenedEntity`, `WireEntityPosition` | Protocol remains GameState-free. |
 | Mapper/save | `KernelWireMapper`, `WireCheckpointAssembler`, `KernelSaveFileStore`, `KernelSaveFile` | World-entity facts round-trip through wire checkpoints and disk saves. |
 | Runtime authority surface | `ItemKernelAuthority.TryRecordTrapConsumed/TryRecordBuildingEntityHealth/TryRecordOpenedEntity/TryResetWorldEntities/QueryWorldEntities` | Host commands and query entry points. |
-| Registry projections | `TrapConsumptionRegistry`, `OpenedEntityRegistry`, `BuildingEntityHealthRegistry` | The three old registries now commit through the kernel and build their snapshot payloads from `QueryWorldEntities`; they are no longer independent fact stores. |
+| Registry projections | `TrapConsumptionRegistry`, `OpenedEntityRegistry`, `BuildingEntityHealthRegistry` | The three old registries now commit through the kernel; they are no longer independent fact stores. The legacy snapshot payload builders were removed with the wire. |
 | Guest checkpoint projection | `WorldEntityKernelProjection` + `EntityEventSync`/`WorldEventSync` | Guest `CheckpointRestored` raises the same flat fact lists the Game Adapter applies, providing the checkpoint-driven rebuild counterpart to the legacy snapshot wire. |
 
 ## Evidence table
@@ -41,7 +41,7 @@ into kernel-backed projection/snapshot adapters.
 ## Verification
 
 - `dotnet build CasualtiesUnknownOnline.slnx`: 0 warnings / 0 errors.
-- `dotnet test CasualtiesUnknownOnline.slnx`: 1684 passed.
+- `dotnet test CasualtiesUnknownOnline.slnx`: 1680 passed.
 - `dotnet format`: applied.
 - Architecture/event/entity/isolation gates passed.
 
@@ -54,9 +54,10 @@ into kernel-backed projection/snapshot adapters.
 
 ## Next sub-steps
 
-1. The guest checkpoint projection has landed; remove the legacy snapshot
-   frames (`TrapStateSnapshot`, `OpenedEntitiesSnapshot`,
-   `BuildingEntityHealthSnapshot`) and their periodic resend path after the
-   checkpoint path is proven.
+1. [x] The guest checkpoint projection has landed; the legacy snapshot frames
+   (`TrapStateSnapshot`, `OpenedEntitiesSnapshot`,
+   `BuildingEntityHealthSnapshot`), their handlers/messages and their periodic
+   resend path were removed. World-entity backfill now rides the kernel
+   checkpoint (`KernelEnvelope`) and `WorldEntityKernelProjection`.
 2. Continue with the remaining player domain supplements and cross-player
    interaction migration.

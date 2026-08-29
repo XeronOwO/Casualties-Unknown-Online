@@ -351,20 +351,8 @@ internal sealed class WorldStateMessageService(
 	public void PublishWorldParams(WorldStartParams parameters)
 	{
 		WorldParams = parameters;
-		if (!_session.SessionActive)
-		{
-			return;
-		}
-
-		var msg = parameters.ToWorldStartParamsMsg();
-		var members = _session.Members.Where(m => m.Handshaken).ToList();
-		foreach (var member in members)
-		{
-			_sender.Send(member.SteamId, NetMsg.WorldStartParams, msg);
-		}
-
-		_log.LogInformation("Published world params ({StateBytes} bytes) to {Members} members.",
-			parameters.RandomState.Length, members.Count);
+		_log.LogInformation("Stored host world params ({StateBytes} bytes); kernel batches carry them to guests.",
+			parameters.RandomState.Length);
 	}
 
 	public void SendBlockDamaged(NetVector2 worldPos, float damage, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops)

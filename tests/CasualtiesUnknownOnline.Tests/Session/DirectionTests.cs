@@ -42,7 +42,6 @@ public class DirectionTests
 	public static TheoryData<NetMsg> HostToGuestMessages => new()
 	{
 		NetMsg.HandshakeAck,
-		NetMsg.WorldStartParams,
 		NetMsg.WorldJoin,
 		NetMsg.WorldReady,
 		NetMsg.PlayerJoin,

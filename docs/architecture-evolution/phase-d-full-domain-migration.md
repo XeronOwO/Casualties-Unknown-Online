@@ -78,13 +78,13 @@ For each domain, complete these steps in order:
 
 ### 4.1 World / Run / Epoch
 
-- [ ] Define `RunState`: run identity, seed, layer, stage, world generation results,
+- [x] Define `RunState`: run identity, seed, layer, stage, world generation results,
       global rules, checkpoint epoch.
-- [ ] Define epoch commands/events: start run, switch epoch, restore epoch.
-- [ ] Move run/seed/world generation facts into kernel; remove session-local cross-run caches.
-- [ ] Make `RunEpoch` the filter for all Commands, Batches, and stream packets.
+- [x] Define epoch commands/events: start run, switch epoch, restore epoch.
+- [x] Move run/seed/world generation facts into kernel; remove session-local cross-run caches.
+- [x] Make `RunEpoch` the filter for all Commands, Batches, and stream packets.
 - [ ] Add epoch isolation property tests: no old-epoch entity survives after switch.
-- [ ] Add world determinism checkpoint fields (random streams/world-gen results).
+- [x] Add world determinism checkpoint fields (random streams/world-gen results).
 
 ### 4.2 Traps and Building Entities
 
@@ -186,6 +186,7 @@ For each domain, complete these steps in order:
 | Date | Scope | Commits | Verification | Notes |
 |---|---|---|---|---|
 | 2026-08-29 | World/Run/Epoch kernel shadow + checkpoint/wire/save integration | `8fa118b` | 1638 tests green; build/format/architecture/event/entity/isolation/delivery gates pass | Kernel `RunState` + `StartRunCommand`/`AdvanceLayerCommand` + `RunStartedEvent`/`RunAdvancedEvent`; legacy `WorldStartParams` production path remains for the next authority-switch cycle. See `docs/selfchecks/phase-d-world-run-epoch-shadow-selfcheck.md`. |
+| 2026-08-29 | World/Run/Epoch authority switch + legacy wire removal | this cycle | 1640 tests green; build/format/architecture/event/entity/isolation/delivery gates pass | Host `PublishWorldParams` commits `StartRunCommand`/`AdvanceLayerCommand`; guest projects run batches/checkpoints into `WorldStartParams`; handshake delivers a kernel checkpoint; `WorldStartParamsMsg`, `WorldParamsHandler`, `SettingEntryMsg`, and `NetMsg.WorldStartParams` removed. |
 
 ## Next actions
 

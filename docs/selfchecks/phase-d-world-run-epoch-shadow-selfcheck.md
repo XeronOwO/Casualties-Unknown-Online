@@ -1,10 +1,9 @@
-# Phase D World/Run/Epoch shadow self-check (2026-08-29)
+# Phase D World/Run/Epoch self-check (2026-08-29)
 
-This fact sheet records the first Phase D delivery cycle: the World/Run/Epoch
-kernel domain, checkpoint persistence, wire mapping, and the runtime save
-round-trip. The production authority switch (world-start params through kernel
-commands and removal of the legacy `WorldStartParams` wire) is deliberately not
-part of this cycle; the kernel model is in place beside the existing path.
+This fact sheet records the Phase D World/Run/Epoch delivery: the kernel domain,
+checkpoint persistence, wire mapping, the runtime save round-trip, the
+production authority switch (world-start params through kernel commands), and
+the removal of the legacy `WorldStartParams` wire.
 
 ## Mechanism inventory
 
@@ -17,7 +16,9 @@ part of this cycle; the kernel model is in place beside the existing path.
 | Kernel integration | `GameStateKernel`, `GameStateStore`, `KernelReadModel`, `MutableKernelState`, `GameCheckpoint` | `GameStateKernel` now owns `RunState?` as a domain table; checkpoints carry it. |
 | Wire DTOs | `WireRunState.cs`, `WireRunSetting.cs`, `WireEventKind.RunStarted/RunAdvanced`, `WireCommandKind.RunStart/AdvanceLayer`, `WireCheckpoint.Run`, `WireCommand.RunState` | Protocol remains GameState-free. |
 | Mapper/save | `KernelWireMapper`, `WireCheckpointAssembler`, `KernelSaveFileStore`, `KernelSaveFile` | Run state round-trips through wire checkpoints and disk saves. |
-| Runtime authority surface | `ItemKernelAuthority.TryStartRun/TryAdvanceLayer/QueryRun` | The existing kernel authority can now commit and query run facts; adapter/host switch is the next cycle. |
+| Runtime authority surface | `ItemKernelAuthority.TryStartRun/TryAdvanceLayer/QueryRun` | The kernel authority commits and queries run facts; `WorldService.PublishWorldParams` now drives it. |
+| Host/guest projection | `WorldService` + `WorldRunStateMapper` | Host commits the run baseline and stores the adapter projection; guest projects `RunStarted`/`RunAdvanced` batches and checkpoints into `WorldStartParams`. |
+| Handshake delivery | `HandshakeHandler` + `IKernelProtocolControl.SendCheckpoint` | A mid-generation joiner receives the kernel checkpoint before `WorldJoin`; the run baseline is restored on the guest. |
 
 ## Evidence table
 
@@ -29,15 +30,18 @@ part of this cycle; the kernel model is in place beside the existing path.
 | A committed RunStarted batch replays on a guest kernel | `WorldDomainKernelTests.Apply_RunStartedBatch_ReplaysRunStateOnGuestKernel`. |
 | Checkpoint chunks preserve run state | `WorldDomainKernelTests.CheckpointSplitAssemble_RoundTripsRunState`. |
 | Save/load preserves run state | `WorldDomainKernelTests.SaveLoad_RoundTripsRunState`. |
+| Host publishing world params commits the kernel run | `WorldRunStateProjectionTests.HostPublishWorldParams_CommitsKernelRunState`. |
+| Guest applying a run batch projects `WorldStartParams` | `WorldRunStateProjectionTests.GuestAppliesRunBatch_ProjectsWorldParams`. |
+| Mid-generation handshake delivers the run baseline via checkpoint | `WorldRunStateProjectionTests.GuestHandshake_ReceivesRunBaselineViaKernelCheckpoint`. |
 
 ## Verification
 
 - `dotnet build CasualtiesUnknownOnline.slnx`: 0 warnings / 0 errors.
-- `dotnet test CasualtiesUnknownOnline.slnx`: 1637 passed.
+- `dotnet test CasualtiesUnknownOnline.slnx`: 1640 passed.
 - `dotnet format`: applied.
 - `tools/check-architecture.ps1`, `tools/check-event-replay.ps1`,
-  `tools/check-entity-event-dispatch.ps1`, `tools/check-gamestate-isolation.ps1`:
-  passed.
+  `tools/check-entity-event-dispatch.ps1`, `tools/check-gamestate-isolation.ps1`,
+  `tools/check-delivery.ps1`: passed.
 
 ## Structure review
 
@@ -46,13 +50,13 @@ part of this cycle; the kernel model is in place beside the existing path.
 - One top-level type per new file; all new classes are small.
 - The world domain is isolated behind the same `IDomainModule` seam as Items;
   cross-domain integration will use CommittedBatch, not direct table access.
+- Legacy `WorldStartParamsMsg`, `WorldParamsHandler`, `SettingEntryMsg`, and
+  `NetMsg.WorldStartParams` are removed; `WorldStartParams` remains only as the
+  adapter-facing projection type.
 
 ## Next sub-steps
 
-1. Switch host `WorldParamsService` capture points to `StartRunCommand` /
-   `AdvanceLayerCommand` and project `RunStarted`/`RunAdvanced` batches on the
-   guest into `WorldStartParams`.
-2. Replace the legacy `WorldStartParams` handshake send/read path with an
-   authoritative batch/checkpoint delivery for mid-generation joiners.
-3. Remove `WorldStartParamsMsg`, `WorldParamsHandler`, and `NetMsg.WorldStartParams`
-   after the new path is covered by protocol/session tests.
+1. Start the next Phase D domain (Traps/Building Entities) with the same
+   shadow -> authority -> projection -> delete template.
+2. Keep RunEpoch filtering and cross-domain batch semantics in mind when trap
+   results create damage/drop facts.

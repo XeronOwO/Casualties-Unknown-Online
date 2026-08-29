@@ -5,6 +5,7 @@ using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.HostRules;
+using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.Runtime.Steam;
@@ -14,7 +15,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 
 /// <summary>Guest → host: protocol negotiation + member creation (new join or reconnect).</summary>
 [PacketHandler(NetMsg.Handshake, NetMessageDirection.GuestToHost)]
-public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandler> log, WorldEntryFanout worldEntryFanout, IHostRules hostRules, IHostBanService hostBans, ISteamService steam) : PacketHandlerBase<HandshakeMsg, IHandshakeHandlerContext>
+public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandler> log, WorldEntryFanout worldEntryFanout, IHostRules hostRules, IHostBanService hostBans, ISteamService steam, IKernelProtocolControl kernelProtocol) : PacketHandlerBase<HandshakeMsg, IHandshakeHandlerContext>
 {
 	private readonly PacketSender _sender = sender;
 	private readonly ILogger<HandshakeHandler> _log = log;
@@ -22,6 +23,7 @@ public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandl
 	private readonly IHostRules _hostRules = hostRules;
 	private readonly IHostBanService _hostBans = hostBans;
 	private readonly ISteamService _steam = steam;
+	private readonly IKernelProtocolControl _kernelProtocol = kernelProtocol;
 
 	protected override void Handle(ulong sender, HandshakeMsg msg, IHandshakeHandlerContext ctx)
 	{
@@ -166,9 +168,10 @@ public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandl
 		var worldParams = ctx.World.WorldParams;
 		if (worldParams is not null)
 		{
-			// Params go whenever they exist: a member joining mid-generation
-			// needs them the moment the host's world-entry re-invite arrives.
-			_sender.Send(sender, NetMsg.WorldStartParams, worldParams.ToWorldStartParamsMsg());
+			// The kernel checkpoint carries the run baseline. A member joining
+			// mid-generation needs it the moment the host's world-entry
+			// re-invite arrives; the later world-entry checkpoint is idempotent.
+			_kernelProtocol.SendCheckpoint(sender);
 			// The explicit enter instruction when the host is in a world right
 			// now, OR mid-generation (HostRunPending — the click-moment invite
 			// went out before this member handshook; following immediately

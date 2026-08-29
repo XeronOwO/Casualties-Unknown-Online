@@ -1,8 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CasualtiesUnknownOnline.GameState;
+using CasualtiesUnknownOnline.GameState.Domains.World;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Time;
 using Microsoft.Extensions.Logging;
 
@@ -24,6 +27,7 @@ public sealed class WorldService : IWorldControl, IDisposable
 	private readonly ILogger<WorldService> _log;
 	private readonly WorldChannelRelay _channels;
 	private readonly WorldStateMessageService _messages;
+	private readonly ItemKernelAuthority _kernelAuthority;
 
 	/// <summary>
 	/// Host only: a run is in progress but the host has not entered the world
@@ -62,7 +66,8 @@ public sealed class WorldService : IWorldControl, IDisposable
 		TradeChannel tradeChannel,
 		SpeechChannel speechChannel,
 		ChatChannel chatChannel,
-		BlockDamageRegistry blockDamageRegistry)
+		BlockDamageRegistry blockDamageRegistry,
+		ItemKernelAuthority kernelAuthority)
 	{
 		_session = session;
 		_sender = sender;
@@ -70,7 +75,10 @@ public sealed class WorldService : IWorldControl, IDisposable
 		_log = log;
 		_channels = new WorldChannelRelay(eventChannel, tradeChannel, speechChannel, chatChannel);
 		_messages = new WorldStateMessageService(session, sender, log, eventChannel, blockDamageRegistry);
+		_kernelAuthority = kernelAuthority;
 
+		_kernelAuthority.BatchApplied += OnRunBatchApplied;
+		_kernelAuthority.CheckpointRestored += OnRunCheckpointRestored;
 		session.SessionEnded += OnSessionEnded;
 	}
 
@@ -203,7 +211,12 @@ public sealed class WorldService : IWorldControl, IDisposable
 
 	private void OnSessionEnded() => ResetSessionState();
 
-	public void Dispose() => _session.SessionEnded -= OnSessionEnded;
+	public void Dispose()
+	{
+		_kernelAuthority.BatchApplied -= OnRunBatchApplied;
+		_kernelAuthority.CheckpointRestored -= OnRunCheckpointRestored;
+		_session.SessionEnded -= OnSessionEnded;
+	}
 
 	// ---- Channel relay ----
 
@@ -429,7 +442,73 @@ public sealed class WorldService : IWorldControl, IDisposable
 
 	public void SendWorldJoinTo(ulong steamId) => _messages.SendWorldJoinTo(steamId);
 
-	public void PublishWorldParams(WorldStartParams parameters) => _messages.PublishWorldParams(parameters);
+	public void PublishWorldParams(WorldStartParams parameters)
+	{
+		CommitRunBaseline(parameters);
+		_messages.PublishWorldParams(parameters);
+	}
+
+	private void CommitRunBaseline(WorldStartParams parameters)
+	{
+		var current = _kernelAuthority.QueryRun();
+		var runId = current?.RunId ?? _kernelAuthority.CreateCheckpoint().RunEpoch.Value;
+		var layerIndex = current is null ? 0 : current.LayerIndex + 1;
+		var run = WorldRunStateMapper.ToRunState(runId, parameters, layerIndex);
+
+		if (current is null)
+		{
+			if (!_kernelAuthority.TryStartRun(_session.LocalSteamId, run, out _, out var rejection))
+			{
+				_log.LogWarning("Kernel run start rejected: {Reason} ({Message}).", rejection!.Reason, rejection.Message);
+				return;
+			}
+
+			_log.LogInformation("Committed kernel run start (run {RunId}, {StateBytes} RNG bytes).",
+				runId, parameters.RandomState.Length);
+		}
+		else
+		{
+			if (!_kernelAuthority.TryAdvanceLayer(_session.LocalSteamId, run, out _, out var rejection))
+			{
+				_log.LogWarning("Kernel layer advance rejected: {Reason} ({Message}).", rejection!.Reason, rejection.Message);
+				return;
+			}
+
+			_log.LogInformation("Committed kernel layer advance (run {RunId}, layer {Layer}).",
+				runId, layerIndex);
+		}
+	}
+
+	private void OnRunBatchApplied(CommittedBatch batch)
+	{
+		foreach (var @event in batch.Events)
+		{
+			switch (@event)
+			{
+				case RunStartedEvent started:
+					ApplyRunProjection(started.Run);
+					break;
+				case RunAdvancedEvent advanced:
+					ApplyRunProjection(advanced.Run);
+					break;
+			}
+		}
+	}
+
+	private void OnRunCheckpointRestored(GameCheckpoint checkpoint)
+	{
+		if (checkpoint.Run is not null)
+		{
+			ApplyRunProjection(checkpoint.Run);
+		}
+	}
+
+	private void ApplyRunProjection(RunState run)
+	{
+		WorldParams = WorldRunStateMapper.ToWorldStartParams(run);
+		_log.LogInformation("Projected kernel run baseline (run {RunId}, layer {Layer}, {StateBytes} RNG bytes).",
+			run.RunId, run.LayerIndex, run.RandomState.Length);
+	}
 
 	public void SendBlockDamaged(NetVector2 worldPos, float damage, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops) => _messages.SendBlockDamaged(worldPos, damage, metalBonus, drops);
 

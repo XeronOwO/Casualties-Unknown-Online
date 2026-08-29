@@ -17,6 +17,7 @@ Game Adapter destroys the corresponding frozen guest copy.
 | Guest destruction | `EnemySyncCoordinator.OnEnemyRemoved` | Removes mapping state and destroys the local frozen `BuildingEntity` copy. |
 | Removal tombstone | `EnemySyncService._removedEnemies` | Guest-side session-scoped tombstone set; late/out-of-order state batches and full snapshots cannot resurrect an explicitly removed id. |
 | Full snapshot | `EnemySyncService.ApplyEnemySnapshot` | Remains full-overwrite for world entry / reconnect, where a complete set is correct. |
+| Player stream lifecycle audit | `PlayerStateHandler` / `PlayerLeaveHandler` / `ProcessPlayerJoin` | Player stream is update-only for existing buffers; explicit `PlayerJoin`/`PlayerLeave` owns aggregate lifecycle, so a state batch missing a player is not a removal. |
 
 ## Evidence table
 
@@ -29,11 +30,13 @@ Game Adapter destroys the corresponding frozen guest copy.
 | A late update-only state batch cannot resurrect a removed enemy | `EnemySyncServiceTests.RemovedEnemy_NotResurrectedByLateStateBatch`. |
 | A full snapshot cannot resurrect a removed enemy | `EnemySyncServiceTests.RemovedEnemy_NotResurrectedByFullSnapshot`. |
 | The new message is direction-classified | `DirectionTests.EveryNetMsg_IsExplicitlyClassified`. |
+| A player state batch missing a player does not remove the buffer | `StateStreamTests.PlayerStateBatch_MissingPlayer_DoesNotRemoveExistingBuffer`. |
+| PlayerLeave removes the guest's remote player buffer | `StateStreamTests.PlayerLeave_RemovesRemoteBuffer`. |
 
 ## Verification
 
 - `dotnet build CasualtiesUnknownOnline.slnx`: 0 warnings / 0 errors.
-- `dotnet test CasualtiesUnknownOnline.slnx`: 1695 passed.
+- `dotnet test CasualtiesUnknownOnline.slnx`: 1696 passed.
 - `dotnet format`: applied.
 - Architecture / event / entity / isolation / delivery gates passed.
 
@@ -49,8 +52,8 @@ Game Adapter destroys the corresponding frozen guest copy.
 ## Remaining sub-steps
 
 1. Align player/enemy continuous stream fields with `WireStateStream` /
-   `StateStreamEnvelope`, or add the same explicit lifecycle policy to the
-   player stream audit.
+   `StateStreamEnvelope` (the player stream lifecycle audit portion is now
+   covered by the update-only/PlayerLeave tests above).
 2. [x] Add property/simulation tests for dropped/out-of-order update-only packets
    with explicit removals, and guard the guest buffer against resurrection.
 3. Consider promoting enemy health/death facts to dedicated domain events

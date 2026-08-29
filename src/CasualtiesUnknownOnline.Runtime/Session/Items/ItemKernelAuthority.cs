@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
+using CasualtiesUnknownOnline.GameState.Domains.World;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using Microsoft.Extensions.Logging;
 
@@ -53,6 +54,8 @@ public sealed class ItemKernelAuthority(ILogger<ItemKernelAuthority> log)
 
 	public IReadOnlyDictionary<ulong, ItemState> QueryItems() => _kernel.QueryItems();
 
+	public RunState? QueryRun() => _kernel.QueryRun();
+
 	public GameCheckpoint CreateCheckpoint() => _kernel.CreateCheckpoint();
 
 	public RestoreResult Restore(GameCheckpoint checkpoint)
@@ -89,6 +92,30 @@ public sealed class ItemKernelAuthority(ILogger<ItemKernelAuthority> log)
 
 	/// <summary>The current authoritative global revision (checkpoint-derived).</summary>
 	public ulong CurrentGlobalRevision => _kernel.CreateCheckpoint().GlobalRevision;
+
+	// ===== World / Run =====
+
+	public bool TryStartRun(ulong actor, RunState run, out CommittedBatch? batch, out Rejection? rejection)
+	{
+		var command = new StartRunCommand(
+			NextOperation(),
+			new ActorId(actor),
+			_runEpoch,
+			AuthorityKind.HostOnly,
+			run);
+		return TryExecute(command, actor, "start-run", out batch, out rejection);
+	}
+
+	public bool TryAdvanceLayer(ulong actor, RunState run, out CommittedBatch? batch, out Rejection? rejection)
+	{
+		var command = new AdvanceLayerCommand(
+			NextOperation(),
+			new ActorId(actor),
+			_runEpoch,
+			AuthorityKind.HostOnly,
+			run);
+		return TryExecute(command, actor, "advance-layer", out batch, out rejection);
+	}
 
 	// ===== Spawn =====
 

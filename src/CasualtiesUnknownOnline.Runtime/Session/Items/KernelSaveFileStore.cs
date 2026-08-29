@@ -45,6 +45,7 @@ public sealed class KernelSaveFileStore(string? filePath, ILogger<KernelSaveFile
 			},
 			Items = [.. checkpoint.Items.Select(KernelWireMapper.ToWireItem)],
 			RandomStreams = [.. checkpoint.RandomStreams?.Select(ToWireRandomStream) ?? []],
+			Run = checkpoint.Run is null ? null : KernelWireMapper.ToWireRun(checkpoint.Run),
 		};
 
 		return WriteAtomically(file);
@@ -85,7 +86,8 @@ public sealed class KernelSaveFileStore(string? filePath, ILogger<KernelSaveFile
 				new RunEpoch(file.Header.RunEpoch),
 				file.Header.GlobalRevision,
 				[.. file.Items.Select(KernelWireMapper.FromWireItem)],
-				[.. file.RandomStreams.Select(FromWireRandomStream)]);
+				[.. file.RandomStreams.Select(FromWireRandomStream)],
+				file.Run is null ? null : KernelWireMapper.FromWireRun(file.Run));
 			_log.LogInformation("Loaded kernel checkpoint from {Path}: epoch {Epoch}, revision {Revision}, items {Items}.",
 				_filePath, checkpoint.RunEpoch.Value, checkpoint.GlobalRevision, checkpoint.Items.Count);
 			return true;

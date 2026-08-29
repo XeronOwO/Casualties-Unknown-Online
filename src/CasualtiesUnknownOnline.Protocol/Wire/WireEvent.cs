@@ -35,4 +35,7 @@ public sealed class WireEvent
 
 	[ProtoMember(9)]
 	public WireTerminalKind TerminalKind { get; set; }
+
+	[ProtoMember(10)]
+	public WireRunState? RunState { get; set; }
 }

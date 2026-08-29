@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
+using CasualtiesUnknownOnline.GameState.Domains.World;
 using CasualtiesUnknownOnline.Protocol.Wire;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.Items;
@@ -25,6 +26,50 @@ public static class KernelWireMapper
 
 	public static RandomStreamState FromWireRandomStream(WireRandomStream stream) =>
 		new(stream.Name, stream.State, [.. stream.DecidedValues]);
+
+	public static WireRunState ToWireRun(RunState run) =>
+		new()
+		{
+			RunId = run.RunId,
+			RandomState = run.RandomState,
+			BiomeOverride = run.BiomeOverride,
+			BiomeDepth = run.BiomeDepth,
+			TotalTraveled = run.TotalTraveled,
+			LoadedRun = run.LoadedRun,
+			LayerIndex = run.LayerIndex,
+			RunSettings = [.. (run.RunSettings ?? []).Select(ToWireRunSetting)],
+		};
+
+	public static RunState FromWireRun(WireRunState run) =>
+		new(
+			run.RunId,
+			run.RandomState,
+			(byte)run.BiomeOverride,
+			(byte)run.BiomeDepth,
+			run.TotalTraveled,
+			run.LoadedRun,
+			run.RunSettings.Count == 0 ? null : [.. run.RunSettings.Select(FromWireRunSetting)],
+			run.LayerIndex);
+
+	private static WireRunSetting ToWireRunSetting(RunSetting setting) =>
+		new()
+		{
+			Key = setting.Key,
+			Kind = (int)setting.Kind,
+			IntValue = setting.IntValue,
+			FloatValue = setting.FloatValue,
+			BoolValue = setting.BoolValue,
+			StringValue = setting.StringValue,
+		};
+
+	private static RunSetting FromWireRunSetting(WireRunSetting setting) =>
+		new(
+			setting.Key,
+			(RunSettingKind)setting.Kind,
+			setting.IntValue,
+			setting.FloatValue,
+			setting.BoolValue,
+			setting.StringValue);
 
 	public static WireItem ToWireItem(ItemState state) =>
 		new()
@@ -148,6 +193,16 @@ public static class KernelWireMapper
 				OldData = ToWireData(updated.OldData),
 				NewData = ToWireData(updated.NewData),
 			},
+			RunStartedEvent started => new WireEvent
+			{
+				Kind = WireEventKind.RunStarted,
+				RunState = ToWireRun(started.Run),
+			},
+			RunAdvancedEvent advanced => new WireEvent
+			{
+				Kind = WireEventKind.RunAdvanced,
+				RunState = ToWireRun(advanced.Run),
+			},
 			_ => throw new ArgumentOutOfRangeException(nameof(@event), @event.GetType().Name, "no wire mapping for kernel event"),
 		};
 
@@ -234,6 +289,10 @@ public static class KernelWireMapper
 				@event.NewRevision,
 				@event.OldData is null ? ItemData.Empty : FromWireData(@event.OldData),
 				@event.NewData is null ? ItemData.Empty : FromWireData(@event.NewData)),
+			WireEventKind.RunStarted => new RunStartedEvent(
+				FromWireRun(@event.RunState ?? throw new InvalidOperationException("RunStarted event lacks run state"))),
+			WireEventKind.RunAdvanced => new RunAdvancedEvent(
+				FromWireRun(@event.RunState ?? throw new InvalidOperationException("RunAdvanced event lacks run state"))),
 			_ => throw new ArgumentOutOfRangeException(nameof(@event.Kind), @event.Kind, "unknown wire event kind"),
 		};
 
@@ -316,6 +375,18 @@ public static class KernelWireMapper
 					c.Identity.DefinitionId,
 					c.ParentItemId,
 					FromWireData(c.Data)))]),
+			WireCommandKind.RunStart => new StartRunCommand(
+				operation,
+				actor,
+				epoch,
+				authority,
+				FromWireRun(command.RunState ?? throw new InvalidOperationException("RunStart command lacks run state"))),
+			WireCommandKind.AdvanceLayer => new AdvanceLayerCommand(
+				operation,
+				actor,
+				epoch,
+				authority,
+				FromWireRun(command.RunState ?? throw new InvalidOperationException("AdvanceLayer command lacks run state"))),
 			_ => throw new ArgumentOutOfRangeException(nameof(command.Kind), command.Kind, "unknown wire command kind"),
 		};
 	}

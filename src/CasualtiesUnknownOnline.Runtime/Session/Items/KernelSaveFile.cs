@@ -20,4 +20,7 @@ public sealed class KernelSaveFile
 
 	[ProtoMember(3)]
 	public List<WireRandomStream> RandomStreams { get; set; } = [];
+
+	[ProtoMember(4)]
+	public WireRunState? Run { get; set; }
 }

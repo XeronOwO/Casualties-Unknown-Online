@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
+using CasualtiesUnknownOnline.GameState.Domains.World;
 using CasualtiesUnknownOnline.GameState.Kernel;
 
 namespace CasualtiesUnknownOnline.GameState;
@@ -14,7 +15,7 @@ namespace CasualtiesUnknownOnline.GameState;
 public sealed class GameStateKernel(RunEpoch runEpoch) : IGameStateKernel
 {
 	private readonly GameStateStore _store = new(runEpoch);
-	private readonly IReadOnlyList<IDomainModule> _modules = [new ItemDomainModule()];
+	private readonly IReadOnlyList<IDomainModule> _modules = [new ItemDomainModule(), new WorldDomainModule()];
 
 	public Decision Execute(GameCommand command, CommandContext context)
 	{
@@ -36,7 +37,7 @@ public sealed class GameStateKernel(RunEpoch runEpoch) : IGameStateKernel
 				$"no domain module handles {command.GetType().Name}"));
 		}
 
-		var decision = module.Decide(command, new KernelReadModel(_store.RunEpoch, _store.GlobalRevision, _store.Items), context);
+		var decision = module.Decide(command, new KernelReadModel(_store.RunEpoch, _store.GlobalRevision, _store.Items, _store.Run), context);
 		if (!decision.Accepted)
 		{
 			return Decision.Rejected(decision.Rejection!);
@@ -50,7 +51,7 @@ public sealed class GameStateKernel(RunEpoch runEpoch) : IGameStateKernel
 
 		try
 		{
-			module.AssertInvariants(new KernelReadModel(working.RunEpoch, working.GlobalRevision, working.Items));
+			module.AssertInvariants(new KernelReadModel(working.RunEpoch, working.GlobalRevision, working.Items, working.Run));
 		}
 		catch (InvalidOperationException e)
 		{
@@ -100,7 +101,7 @@ public sealed class GameStateKernel(RunEpoch runEpoch) : IGameStateKernel
 		{
 			foreach (var module in _modules)
 			{
-				module.AssertInvariants(new KernelReadModel(working.RunEpoch, working.GlobalRevision, working.Items));
+				module.AssertInvariants(new KernelReadModel(working.RunEpoch, working.GlobalRevision, working.Items, working.Run));
 			}
 		}
 		catch (InvalidOperationException e)
@@ -126,4 +127,6 @@ public sealed class GameStateKernel(RunEpoch runEpoch) : IGameStateKernel
 
 	public ItemState? FindItem(ulong instanceId) =>
 		_store.Items.TryGetValue(instanceId, out var item) ? item : null;
+
+	public RunState? QueryRun() => _store.Run;
 }

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
+using CasualtiesUnknownOnline.GameState.Domains.World;
 
 namespace CasualtiesUnknownOnline.GameState.Kernel;
 
@@ -10,13 +11,16 @@ namespace CasualtiesUnknownOnline.GameState.Kernel;
 internal sealed class KernelReadModel(
 	RunEpoch runEpoch,
 	ulong globalRevision,
-	IReadOnlyDictionary<ulong, ItemState> items)
+	IReadOnlyDictionary<ulong, ItemState> items,
+	RunState? run)
 {
 	public RunEpoch RunEpoch { get; } = runEpoch;
 
 	public ulong GlobalRevision { get; } = globalRevision;
 
 	public IReadOnlyDictionary<ulong, ItemState> Items { get; } = items;
+
+	public RunState? Run { get; } = run;
 
 	public ItemState? FindItem(ulong instanceId) =>
 		Items.TryGetValue(instanceId, out var item) ? item : null;

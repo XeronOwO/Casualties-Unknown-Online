@@ -35,6 +35,9 @@ public static class WireCheckpointAssembler
 				RandomStreams = index == 0
 					? [.. checkpoint.RandomStreams?.Select(KernelWireMapper.ToWireRandomStream) ?? []]
 					: [],
+				Run = index == 0 && checkpoint.Run is not null
+					? KernelWireMapper.ToWireRun(checkpoint.Run)
+					: null,
 			});
 		}
 
@@ -85,6 +88,8 @@ public static class WireCheckpointAssembler
 			.Select(KernelWireMapper.FromWireRandomStream)
 			.ToList();
 
-		return new GameCheckpoint(new RunEpoch(first.RunEpoch), first.GlobalRevision, items, randomStreams);
+		var firstRun = ordered[0]!.Run;
+		var run = firstRun is null ? null : KernelWireMapper.FromWireRun(firstRun);
+		return new GameCheckpoint(new RunEpoch(first.RunEpoch), first.GlobalRevision, items, randomStreams, run);
 	}
 }

@@ -54,19 +54,44 @@ public sealed class WorldEntityKernelProjection
 		}
 
 		var state = checkpoint.WorldEntities ?? WorldEntityState.Empty;
-		if (state.Consumptions.Count > 0)
+		var now = _time.NowMs;
+		var projected = new List<EntityEventMsg>();
+		foreach (var consumption in state.Consumptions)
 		{
-			var now = _time.NowMs;
-			TrapSnapshotProjected?.Invoke(
-			[
-				.. state.Consumptions.Select(c => new EntityEventMsg
-				{
-					Kind = (EntityEventKind)c.Kind,
-					Extra = c.Extra,
-					Position = new NetVector2Msg(c.Position.CenterX, c.Position.CenterY),
-					ElapsedSeconds = (now - c.TriggeredAtMs) / 1000f,
-				}),
-			]);
+			projected.Add(new EntityEventMsg
+			{
+				Kind = (EntityEventKind)consumption.Kind,
+				Extra = consumption.Extra,
+				Position = new NetVector2Msg(consumption.Position.CenterX, consumption.Position.CenterY),
+				ElapsedSeconds = (now - consumption.TriggeredAtMs) / 1000f,
+			});
+		}
+
+		// One-shot consumptions already cover their terminal presentation. The
+		// state table adds the non-one-shot machine facts (warning edges,
+		// repeatable clamp/release, turret firing, ...) for a late joiner.
+		foreach (var trapState in state.TrapStates)
+		{
+			if (EntityEventProfiles.IsOneShotConsumption((EntityEventKind)trapState.Kind)
+				|| trapState.Phase == TrapPhase.Warning)
+			{
+				// One-shot consumptions already carry their terminal presentation;
+				// warning edges are transient and intentionally not snapshotted.
+				continue;
+			}
+
+			projected.Add(new EntityEventMsg
+			{
+				Kind = (EntityEventKind)trapState.Kind,
+				Extra = trapState.Extra,
+				Position = new NetVector2Msg(trapState.Position.CenterX, trapState.Position.CenterY),
+				ElapsedSeconds = (now - trapState.TransitionedAtMs) / 1000f,
+			});
+		}
+
+		if (projected.Count > 0)
+		{
+			TrapSnapshotProjected?.Invoke(projected);
 		}
 
 		if (state.OpenedEntities.Count > 0)

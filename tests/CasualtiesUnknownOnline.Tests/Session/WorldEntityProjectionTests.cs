@@ -45,6 +45,33 @@ public class WorldEntityProjectionTests
 	}
 
 	[Fact]
+	public void GuestCheckpointRestore_ProjectsNonOneShotTrapStateFacts()
+	{
+		var (_, host, guest) = HandshakeTests.CreateHostAndGuest();
+		host.Steam.FireLobbyCreated(LobbyId);
+		host.Steam.LobbyMembers = [HostId, 2001];
+		guest.Steam.FireLobbyEntered(LobbyId);
+
+		var hostWorld = host.Services.GetRequiredService<IWorldControl>();
+		var hostAuthority = host.Services.GetRequiredService<ItemKernelAuthority>();
+		hostWorld.ReportTrapState(EntityEventKind.BearTrapClamped, 7.2f, 8.8f, 3);
+
+		var projection = guest.Services.GetRequiredService<WorldEntityKernelProjection>();
+		IReadOnlyList<EntityEventMsg>? traps = null;
+		projection.TrapSnapshotProjected += list => traps = list;
+
+		var guestAuthority = guest.Services.GetRequiredService<ItemKernelAuthority>();
+		Assert.True(guestAuthority.Restore(hostAuthority.CreateCheckpoint()).Success);
+
+		Assert.NotNull(traps);
+		var trap = Assert.Single(traps!);
+		Assert.Equal(EntityEventKind.BearTrapClamped, trap.Kind);
+		Assert.Equal(3, trap.Extra);
+		Assert.Equal(7.5f, trap.Position.X);
+		Assert.Equal(8.5f, trap.Position.Y);
+	}
+
+	[Fact]
 	public void HostReports_CommitKernelTrapStateFacts()
 	{
 		var (_, host, _) = HandshakeTests.CreateHostAndGuest();

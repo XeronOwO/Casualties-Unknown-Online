@@ -34,6 +34,11 @@ public sealed class GameStateKernel(RunEpoch runEpoch) : IGameStateKernel
 				$"command epoch {command.RunEpoch.Value} does not match kernel epoch {_store.RunEpoch.Value}"));
 		}
 
+		if (command is CompositeGameCommand composite)
+		{
+			return ExecuteComposite(composite, context);
+		}
+
 		var module = _modules.FirstOrDefault(m => m.CanHandle(command));
 		if (module is null)
 		{
@@ -72,6 +77,84 @@ public sealed class GameStateKernel(RunEpoch runEpoch) : IGameStateKernel
 			command.Preconditions,
 			[.. decision.Events]);
 
+		_store.ReplaceWith(working);
+		_store.Operations.Add(command.OperationId, batch);
+		return Decision.Accepted(batch);
+	}
+
+	private Decision ExecuteComposite(CompositeGameCommand command, CommandContext context)
+	{
+		var events = new List<GameEvent>();
+		var working = _store.CreateWorkingCopy();
+		var readModel = new KernelReadModel(
+			_store.RunEpoch,
+			_store.GlobalRevision,
+			_store.Items,
+			_store.Run,
+			_store.WorldEntities,
+			_store.Players,
+			_store.Enemies,
+			_store.Fluids);
+
+		foreach (var inner in command.Commands)
+		{
+			var module = _modules.FirstOrDefault(m => m.CanHandle(inner));
+			if (module is null)
+			{
+				return Decision.Rejected(Rejection.Of(RejectionReason.UnknownCommand,
+					$"no domain module handles inner command {inner.GetType().Name}"));
+			}
+
+			var decision = module.Decide(inner, readModel, context);
+			if (!decision.Accepted)
+			{
+				return Decision.Rejected(decision.Rejection!);
+			}
+
+			events.AddRange(decision.Events);
+		}
+
+		foreach (var @event in events)
+		{
+			var module = _modules.FirstOrDefault(m => m.CanReduce(@event));
+			if (module is null)
+			{
+				return Decision.Rejected(Rejection.Of(RejectionReason.UnknownCommand,
+					$"no domain module reduces composite event {@event.GetType().Name}"));
+			}
+
+			module.Reduce(@event, working);
+		}
+
+		try
+		{
+			foreach (var module in _modules)
+			{
+				module.AssertInvariants(new KernelReadModel(
+					working.RunEpoch,
+					working.GlobalRevision,
+					working.Items,
+					working.Run,
+					working.WorldEntities,
+					working.Players,
+					working.Enemies,
+					working.Fluids));
+			}
+		}
+		catch (InvalidOperationException e)
+		{
+			return Decision.Rejected(Rejection.Of(RejectionReason.InvariantViolation, e.Message));
+		}
+
+		working.GlobalRevision = _store.GlobalRevision + 1;
+		var batch = new CommittedBatch(
+			command.OperationId,
+			working.GlobalRevision,
+			command.Actor,
+			command.Authority,
+			command.RunEpoch,
+			command.Preconditions,
+			events);
 		_store.ReplaceWith(working);
 		_store.Operations.Add(command.OperationId, batch);
 		return Decision.Accepted(batch);

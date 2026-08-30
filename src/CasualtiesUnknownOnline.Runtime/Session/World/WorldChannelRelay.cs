@@ -49,6 +49,8 @@ internal sealed class WorldChannelRelay(
 
 	public void ReportTrapConsumed(EntityEventKind kind, float x, float y, byte extra) => _eventChannel.ReportTrapConsumed(kind, x, y, extra);
 
+	public void ReportTrapState(EntityEventKind kind, float x, float y, byte extra) => _eventChannel.ReportTrapState(kind, x, y, extra);
+
 	public event Action<ulong, EntitySpawnedMsg>? EntitySpawnedReceived { add => _eventChannel.EntitySpawnedReceived += value; remove => _eventChannel.EntitySpawnedReceived -= value; }
 
 	public void FireEntitySpawnedReceived(ulong sender, EntitySpawnedMsg msg) => _eventChannel.FireEntitySpawnedReceived(sender, msg);

@@ -14,11 +14,12 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 /// everything else: report up (guest → host), the host applies to its own
 /// world and relays (BroadcastExcept — the source already applied locally).
 /// </summary>
-public sealed class EntityEventChannel(ISessionControl session, PacketSender sender, TrapConsumptionRegistry trapConsumption, OpenedEntityRegistry openedEntities, BuildingEntityHealthRegistry buildingEntityHealth, TrapLayoutRegistry trapLayout)
+public sealed class EntityEventChannel(ISessionControl session, PacketSender sender, TrapConsumptionRegistry trapConsumption, TrapStateRegistry trapState, OpenedEntityRegistry openedEntities, BuildingEntityHealthRegistry buildingEntityHealth, TrapLayoutRegistry trapLayout)
 {
 	private readonly ISessionControl _session = session;
 	private readonly PacketSender _sender = sender;
 	private readonly TrapConsumptionRegistry _trapConsumption = trapConsumption;
+	private readonly TrapStateRegistry _trapState = trapState;
 	private readonly OpenedEntityRegistry _openedEntities = openedEntities;
 	private readonly BuildingEntityHealthRegistry _buildingEntityHealth = buildingEntityHealth;
 	private readonly TrapLayoutRegistry _trapLayout = trapLayout;
@@ -58,6 +59,8 @@ public sealed class EntityEventChannel(ISessionControl session, PacketSender sen
 			{
 				_trapConsumption.Report(msg.Kind, msg.Position.X, msg.Position.Y, msg.Extra);
 			}
+
+			_trapState.Report(msg.Kind, msg.Position.X, msg.Position.Y, msg.Extra);
 
 			_session.Broadcast(NetMsg.EntityEvent, msg);
 		}
@@ -302,6 +305,9 @@ public sealed class EntityEventChannel(ISessionControl session, PacketSender sen
 
 	/// <summary>Host only: record a one-shot trap consumption (position-keyed; Extra rides along for progress-carrying events).</summary>
 	public void ReportTrapConsumed(EntityEventKind kind, float x, float y, byte extra) => _trapConsumption.Report(kind, x, y, extra);
+
+	/// <summary>Host only: record a stateful trap edge into the kernel trap state machine.</summary>
+	public void ReportTrapState(EntityEventKind kind, float x, float y, byte extra) => _trapState.Report(kind, x, y, extra);
 
 	/// <summary>Host only: a new world layer is generating — the consumptions start empty again.</summary>
 	public void ResetConsumptions() => _trapConsumption.Reset();

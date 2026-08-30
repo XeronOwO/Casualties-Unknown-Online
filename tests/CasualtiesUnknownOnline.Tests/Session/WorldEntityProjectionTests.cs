@@ -45,6 +45,29 @@ public class WorldEntityProjectionTests
 	}
 
 	[Fact]
+	public void HostReports_CommitKernelTrapStateFacts()
+	{
+		var (_, host, _) = HandshakeTests.CreateHostAndGuest();
+		host.Steam.FireLobbyCreated(LobbyId);
+
+		var world = host.Services.GetRequiredService<IWorldControl>();
+		var authority = host.Services.GetRequiredService<ItemKernelAuthority>();
+
+		world.ReportTrapState(EntityEventKind.MinePressed, 1.2f, 2.8f, 0);
+		world.ReportTrapState(EntityEventKind.MineExploded, 1.2f, 2.8f, 0);
+
+		var state = authority.QueryWorldEntities();
+		Assert.NotNull(state);
+		Assert.Equal(2, state!.TrapStates.Count);
+		Assert.Contains(state.TrapStates, s => s.Position == new EntityPosition(1, 2)
+			&& s.Kind == (int)EntityEventKind.MinePressed
+			&& s.Phase == TrapPhase.Warning);
+		Assert.Contains(state.TrapStates, s => s.Position == new EntityPosition(1, 2)
+			&& s.Kind == (int)EntityEventKind.MineExploded
+			&& s.Phase == TrapPhase.Triggered);
+	}
+
+	[Fact]
 	public void GuestCheckpointRestore_ProjectsKernelWorldEntities()
 	{
 		var (_, host, guest) = HandshakeTests.CreateHostAndGuest();

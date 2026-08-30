@@ -217,6 +217,9 @@ public interface IWorldControl
 	/// <summary>Host only: record a one-shot trap consumption (position-keyed; Extra rides along for progress-carrying events).</summary>
 	void ReportTrapConsumed(EntityEventKind kind, float x, float y, byte extra);
 
+	/// <summary>Host only: record a stateful trap edge into the kernel trap state machine.</summary>
+	void ReportTrapState(EntityEventKind kind, float x, float y, byte extra);
+
 	/// <summary>
 	/// Report a runtime world-entity creation (outside generation — the spawn
 	/// command): guest → host as a report (the host creates its own copy and

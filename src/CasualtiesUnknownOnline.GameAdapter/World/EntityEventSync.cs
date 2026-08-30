@@ -136,7 +136,7 @@ internal sealed class EntityEventSync(IWorldControl world, ISessionControl sessi
 	/// </summary>
 	private float? ReadDestroyedTrapHealth(EntityEventKind kind, Vector2 position)
 	{
-		if (!IsDestructiveTrapKind(kind))
+		if (!TrapDamageProfiles.IsDestructive(kind))
 		{
 			return null;
 		}
@@ -145,10 +145,4 @@ internal sealed class EntityEventSync(IWorldControl world, ISessionControl sessi
 		var building = hit != null ? hit.GetComponent<BuildingEntity>() : null; // Unity object — ==
 		return building != null && building.health <= 0.5f ? building.health : null; // Unity object — ==
 	}
-
-	private static bool IsDestructiveTrapKind(EntityEventKind kind) => kind is
-		EntityEventKind.MineExploded
-		or EntityEventKind.TurretSelfDestructed
-		or EntityEventKind.CrystalFragileBroken
-		or EntityEventKind.CrystalUnstableExploded;
 }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using CasualtiesUnknownOnline.GameState.Domains.Fluids;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 
@@ -265,6 +266,12 @@ public interface IWorldControl
 
 	/// <summary>Host only: commit a coarse fluid-region summary (world chunk totals/types) into the kernel fluid checkpoint.</summary>
 	void ReportFluidRegions(IReadOnlyList<FluidRegionSummary> regions);
+
+	/// <summary>Guest: the rebuilt kernel fluid-region facts (empty on host).</summary>
+	IReadOnlyList<FluidRegionState> FluidRegionFacts { get; }
+
+	/// <summary>Guest: raised after a checkpoint restore/applied batch rebuilds the kernel fluid-region view.</summary>
+	event Action<IReadOnlyList<FluidRegionState>>? FluidRegionsProjected;
 
 	/// <summary>Host only: stream an absolute RLE fluid-grid region to one member (the host simulates the world fluid alone — the guests render the streamed regions).</summary>
 	void SendFluidRegion(ulong targetSteamId, FluidRegionMsg msg);

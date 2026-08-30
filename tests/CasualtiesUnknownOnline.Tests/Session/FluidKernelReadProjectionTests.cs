@@ -65,6 +65,27 @@ public class FluidKernelReadProjectionTests
 	}
 
 	[Fact]
+	public void GuestCheckpointRestore_SurfacesThroughWorldControl()
+	{
+		var (_, guest) = CreateSession();
+		var world = guest.Services.GetRequiredService<IWorldControl>();
+		var projected = 0;
+		world.FluidRegionsProjected += _ => projected++;
+
+		var authority = guest.Services.GetRequiredService<ItemKernelAuthority>();
+		var checkpoint = new GameCheckpoint(
+			Epoch,
+			10,
+			[],
+			Fluids: new FluidStateTable([RegionA, RegionB]));
+
+		authority.Restore(checkpoint);
+
+		Assert.Equal(2, world.FluidRegionFacts.Count);
+		Assert.Equal(1, projected);
+	}
+
+	[Fact]
 	public void GuestBatchApplied_UpsertsAndReplacesRegionFacts()
 	{
 		var (_, guest) = CreateSession();

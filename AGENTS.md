@@ -140,7 +140,8 @@ See `docs/delivery-checklist.md` for the executable gate.
 
 ## Known Pitfalls
 
-`[REF]` Detailed list: `docs/architecture.md` §10. Keep these in mind:
+`[REF]` Detailed pitfalls list (historical blueprint, still applicable):
+`docs/architecture.md` §10. Keep these in mind:
 
 - After `dotnet format` (or any external tool) modifies a file, re-`read` that file before using Edit; the Edit tool tracks the last-read buffer and refuses stale edits as "file changed since it was read".
 - Steam P2P is not plain LAN UDP; don't mix the two modes.

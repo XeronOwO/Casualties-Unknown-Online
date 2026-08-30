@@ -3991,3 +3991,22 @@ one-shot consumptions.
   (Triggered) ride the late-joiner checkpoint.
 - **Tests** — `WorldEntityProjectionTests.GuestCheckpointRestore_ProjectsNonOneShotTrapStateFacts`.
   Full suite 1719 green.
+
+## 141. Atomic composite kernel commands (2026-08-29)
+
+Cross-domain batches need a kernel primitive before 4.2 trap damage/drop can
+be made atomic.
+
+- **Command** — `CompositeGameCommand` carries a list of inner typed domain
+  commands and is not sent over the wire itself; it is a host-only kernel
+  execution shape.
+- **Atomicity** — the kernel executes all inner decisions against one read
+  model; if any decision rejects, the whole composite is rejected and no state
+  is swapped.
+- **Reduction** — the emitted events are routed to the module that owns each
+  event type, so one composite can reduce item, player, world-entity, enemy, or
+  fluid facts into the same working copy.
+- **Replay** — the resulting `CommittedBatch` is a normal multi-event batch and
+  replays through the existing guest apply path.
+- **Tests** — item+player cross-domain commit, all-or-nothing rejection, and
+  guest replay. Full suite 1740 green.

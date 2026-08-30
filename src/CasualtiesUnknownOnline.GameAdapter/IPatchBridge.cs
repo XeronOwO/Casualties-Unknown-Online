@@ -106,8 +106,10 @@ internal interface IPatchBridge
 	/// <summary>
 	/// Recipe.TryMake prefix: open the craft operation scope and snapshot the
 	/// materials (null when the recipe has no matching materials — the game
-	/// plays the Deny sound and nothing is consumed; no scope, no report). The
-	/// returned state crosses to OnCraftEnd via Harmony __state.
+	/// plays the Deny sound and nothing is consumed; no scope, no report). A
+	/// non-null refusal marker tells the Harmony prefix to skip the native
+	/// consume path (the crafting-content guard). The normal returned state
+	/// crosses to OnCraftEnd via Harmony __state.
 	/// </summary>
 	object? OnCraftBegin(Recipe recipe);
 

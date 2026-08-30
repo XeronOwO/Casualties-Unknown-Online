@@ -1,3 +1,4 @@
+using CasualtiesUnknownOnline.GameAdapter.Items;
 using HarmonyLib;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Patches;
@@ -18,10 +19,31 @@ internal static class CraftingPatches
 	[HarmonyPatch(typeof(Recipe), "TryMake")]
 	internal static class RecipeTryMakePatch
 	{
-		private static void Prefix(Recipe __instance, out object? __state) => __state = PatchBridge.Impl?.OnCraftBegin(__instance);
+		private static bool Prefix(Recipe __instance, out object? __state)
+		{
+			__state = PatchBridge.Impl?.OnCraftBegin(__instance);
+			if (__state is CraftingSync.CraftRefusal)
+			{
+				// The content guard refused the craft — skip the native consume
+				// path and keep the same "not enough/valid materials" feedback.
+				if (PlayerCamera.main != null) // Unity object — ==
+				{
+					PlayerCamera.main.PlayUISound(PlayerCamera.UISoundType.Deny, 1f);
+				}
+
+				return false;
+			}
+
+			return true;
+		}
 
 		private static void Postfix(object? __state)
 		{
+			if (__state is CraftingSync.CraftRefusal)
+			{
+				return; // refused — no terminal state, no inventory-diff re-report
+			}
+
 			PatchBridge.Impl?.OnCraftEnd(__state);
 			// The craft changed the inventory (products consumed/created) — the
 			// character snapshot baseline must re-report. PickUpItem does NOT

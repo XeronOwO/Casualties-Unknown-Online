@@ -60,6 +60,21 @@ internal sealed class CraftingSync(
 			return null;
 		}
 
+		// A destroyable material that still carries contents (battery, container
+		// children, liquid stack) would drop/lose those contents on the craft
+		// path. Refuse the whole operation before the native TryMake consumes
+		// anything — the player empties the item first (CraftingContentsGuard).
+		for (var i = 0; i < materials.Count; i++)
+		{
+			if (CraftingContentsGuard.ShouldRefuse(recipe.items[i], materials[i]))
+			{
+				scope.Dispose();
+				_log.LogWarning("[Crafting] craft refused: material {Material} (index {Index}) still has contents — empty it first.",
+					materials[i].id, i);
+				return CraftRefusal.Instance;
+			}
+		}
+
 		var body = PlayerCamera.main.body;
 		var op = _trace.NextOperationId();
 		_trace.Begin(op, 0, "CraftReport", "Craft");
@@ -408,6 +423,16 @@ internal sealed class CraftingSync(
 		internal HashSet<Item> InventoryBefore { get; } = inventoryBefore;
 
 		internal long Op { get; } = op;
+	}
+
+	/// <summary>Marker returned by <see cref="OnCraftBegin"/> when the content guard refused the craft — the Harmony prefix skips the native operation for this value.</summary>
+	internal sealed class CraftRefusal
+	{
+		internal static readonly CraftRefusal Instance = new();
+
+		private CraftRefusal()
+		{
+		}
 	}
 
 	private sealed class CombineState(

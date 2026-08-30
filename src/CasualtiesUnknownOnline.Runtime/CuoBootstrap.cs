@@ -227,6 +227,7 @@ public static class CuoBootstrap
 		services.AddSingleton<SpeechChannel>(); // the speech-bubble channel (the Talker domain)
 		services.AddSingleton<ChatChannel>(); // the text-chat channel (co-op communication)
 		services.AddSingleton<FluidKernelProjection>();
+		services.AddSingleton<FluidKernelReadProjection>();
 		services.AddSingleton<WorldEntityKernelProjection>();
 		services.AddSingleton<WorldService>();
 		services.AddSingleton<IWorldControl>(p => p.GetRequiredService<WorldService>());

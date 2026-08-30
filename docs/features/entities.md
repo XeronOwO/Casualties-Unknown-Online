@@ -151,9 +151,9 @@ trap's sound/sprite/light.
 
 | entity | trigger | sync | path |
 |---|---|---|---|
-| TraderScript | field | covered | trade domain (`docs/decisions/active.md` #59/#93; `TradeStateSync`/`TradeExecutor`) + TraderSwing hostile swing — host-computed overwrites (TraderState, every interaction + world entry + 5 s fallback); the acting side runs the game method in full and reports TraderAction |
+| TraderScript | field | covered | trade domain (#59/#93; TradeStateSync/TradeExecutor) + TraderSwing hostile swing — host-computed overwrites (TraderState, every interaction + world entry + 5 s fallback); the acting side runs the game method in full and reports TraderAction |
 | Talker | field | covered | SpeechMsg (NetMsg 74) — entity key + text id; clone-side bubble replay |
-| LampScript | collide | covered | trade domain (`docs/decisions/active.md` #59/#93) — LightBroken's flat reputation -40 runs on both sides from the broadcasted base |
+| LampScript | collide | covered | trade domain (#59/#93) — LightBroken's flat reputation -40 runs on both sides from the broadcasted base |
 
 ## Crystals (CrystalBehaviour family)
 
@@ -247,7 +247,7 @@ effects (see `docs/evidence/selfchecks/enemies/animal-death-presentation-selfche
 
 | entity | sync | path |
 |---|---|---|
-| SpiderHandler | covered | EnemyState stream (SpiderLegTargets) + EnemyAttack + kernel `EnemyBiteResultEvent` + ClawAnim replay |
-| CaveTicks | covered | EnemyState stream (SpiderLegTargets) + EnemyAttack + kernel `EnemyBiteResultEvent` + ClawAnim replay |
-| ElderThornbackBehaviour | covered | EnemyState stream + kernel `EnemyEffectResultEvent` horror events |
+| SpiderHandler | covered | EnemyState stream (SpiderLegTargets) + EnemyAttack/EnemyBite events + ClawAnim replay |
+| CaveTicks | covered | EnemyState stream (SpiderLegTargets) + EnemyAttack/EnemyBite events + ClawAnim replay |
+| ElderThornbackBehaviour | covered | EnemyState stream + EnemyEffectMsg horror events |
 | CrystalEnemy | covered | EnemyState stream (CrystalWindup telegraph) + EnemyAttack + kernel `EnemyLungeResultEvent`; runtime crystalenemy tint rides EntitySpawned/EnemySnapshot |

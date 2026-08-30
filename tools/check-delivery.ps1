@@ -1,4 +1,4 @@
-# check-delivery.ps1 - the delivery-gate checklist (docs/delivery-checklist.md).
+# check-delivery.ps1 - the delivery-gate checklist (docs/evidence/delivery-checklist.md).
 # Every delivery cycle: work through the checklist, then commit ONLY with all
 # boxes checked (this script exits 1 otherwise). When the cycle completes
 # (deployed + runtime-verified) run with -Reset to start the next cycle clean.
@@ -11,7 +11,7 @@ param([switch]$Reset)
 
 $ErrorActionPreference = "Stop"
 
-$checklist = Join-Path $PSScriptRoot "..\docs\delivery-checklist.md"
+$checklist = Join-Path $PSScriptRoot "..\docs\evidence\delivery-checklist.md"
 if (-not (Test-Path $checklist)) {
     Write-Error "delivery checklist not found: $checklist"
     exit 1

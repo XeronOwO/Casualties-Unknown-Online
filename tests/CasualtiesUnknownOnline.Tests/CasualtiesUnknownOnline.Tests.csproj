@@ -149,8 +149,8 @@
        consistency gate (EntityFeaturesDocConsistencyTests). -->
   <ItemGroup>
     <None Include="..\..\docs\event-replay-matrix.csv" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="..\..\docs\entity-features-matrix.csv" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="..\..\docs\entity-features.md" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\docs\features\entity-features-matrix.csv" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\docs\features\entities.md" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework.TrimEnd(`0123456789`))' == 'net'">

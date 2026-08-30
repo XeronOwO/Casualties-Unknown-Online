@@ -35,6 +35,8 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 	private readonly ItemProjection _projection;
 	private readonly KernelBatchItemProjection _kernelBatchProjection;
 	private readonly IKernelProtocolControl _kernelProtocol;
+	private uint _lastItemSnapshotSeq;
+	private uint _lastWorldItemsSnapshotSeq;
 
 	public ItemService(ISessionControl session, PacketSender sender, ItemArbitration arbitration, ITimeSource time, ILogger<ItemService> log, ItemKernelAuthority kernelAuthority, IKernelProtocolControl kernelProtocol)
 	{
@@ -287,6 +289,8 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 		_idCoordinator.ResetForSessionEnd();
 		_snapshots.ResetForSessionEnd();
 		_itemTraffic.Reset();
+		_lastItemSnapshotSeq = 0;
+		_lastWorldItemsSnapshotSeq = 0;
 	}
 
 	private void OnSessionEnded() => ResetSessionState();
@@ -497,6 +501,40 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 		ItemRejected?.Invoke(itemId, mappedReason);
 	}
 
+	/// <summary>
+	/// Event-version gate for the unreliable item snapshot keyframe family.
+	/// A full snapshot must never roll back a newer committed kernel event:
+	/// <see cref="WireStateStream.BaseGlobalRevision"/> is compared against the
+	/// guest's applied kernel revision, and <see cref="WireStateStream.Seq"/>
+	/// orders snapshots among themselves for the duplicate/out-of-order case.
+	/// A zero <see cref="WireStateStream.Seq"/> is accepted as a legacy
+	/// unsequenced frame (the production host always assigns one).
+	/// </summary>
+	private bool IsFreshSnapshot(WireStateStream stream, ref uint lastSeq)
+	{
+		var currentRevision = _kernelAuthority.CurrentGlobalRevision;
+		if (stream.BaseGlobalRevision < currentRevision)
+		{
+			_log.LogDebug("[ItemSnapshot] dropped stale snapshot seq {Seq} (kernel {Base}, current {Current}).",
+				stream.Seq, stream.BaseGlobalRevision, currentRevision);
+			return false;
+		}
+
+		if (stream.Seq != 0 && stream.Seq <= lastSeq)
+		{
+			_log.LogDebug("[ItemSnapshot] dropped duplicate/out-of-order snapshot seq {Seq} (last {Last}).",
+				stream.Seq, lastSeq);
+			return false;
+		}
+
+		if (stream.Seq != 0)
+		{
+			lastSeq = stream.Seq;
+		}
+
+		return true;
+	}
+
 	private void OnItemStateStreamReceived(WirePayloadType payloadType, WireStateStream stream)
 	{
 		if (_session.Role != SessionRole.Guest)
@@ -507,6 +545,11 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 		switch (payloadType)
 		{
 			case WirePayloadType.ItemSnapshotStream:
+				if (!IsFreshSnapshot(stream, ref _lastItemSnapshotSeq))
+				{
+					return;
+				}
+
 				FireItemSnapshotReceived(
 					_session.HostSteamId,
 					[.. stream.ItemStates.Select(WireItemStateMapper.ToWorldItem)],
@@ -514,6 +557,11 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 					stream.LayerModifierRandomState);
 				break;
 			case WirePayloadType.WorldItemsSnapshotStream:
+				if (!IsFreshSnapshot(stream, ref _lastWorldItemsSnapshotSeq))
+				{
+					return;
+				}
+
 				FireWorldItemsSnapshotReceived(
 					_session.HostSteamId,
 					[.. stream.ItemStates.Select(WireItemStateMapper.ToWorldItem)],

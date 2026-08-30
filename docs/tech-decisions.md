@@ -3930,3 +3930,29 @@ Since CUO has no released compatibility surface, `ProtocolVersion.Current` is
 reset to 1 instead of continuing the pre-release bump sequence. New wire/save
 shapes do not need a monotonic version until the first released build has to
 talk to older builds.
+
+## 138. Trap state machine kernel shadow (2026-08-29)
+
+Phase D 4.2 starts with a kernel-shadow state vocabulary for traps/mechanisms;
+the native adapter remains the trigger source until the production authority
+switch.
+
+- **State model** — `TrapPhase` (`Armed`, `Warning`, `Triggered`, `Cooldown`,
+  `Disabled`) plus `TrapStateFact` keyed by `(EntityPosition, Kind)`. The kind
+  dimension is needed because one physical entity can expose several event
+  kinds (e.g. `TurretFired` and `TurretSelfDestructed`).
+- **Commands/events** — `RecordTrapStateCommand` /
+  `TrapStateChangedEvent` reduce into `WorldEntityState.TrapStates`.
+- **Transitions** — legal edges are `Armed -> Warning/Triggered/Disabled`,
+  `Warning -> Triggered/Disabled`, `Triggered -> Cooldown/Disabled`,
+  `Cooldown -> Armed/Disabled`; same-phase reports are idempotent and
+  `Disabled` is terminal.
+- **Wire/save** — `WireTrapState`/`WireWorldEntityState.TrapStates` and
+  `WireEventKind.TrapStateChanged`/`WireCommandKind.RecordTrapState` carry the
+  shadow facts through checkpoint, command envelopes, and disk save.
+- **No production hook yet** — the live `EntityEventKind` edges still feed the
+  existing one-shot consumption path; wiring the adapter to
+  `RecordTrapStateCommand` is the next 4.2 sub-step.
+- **Tests** — kernel update/upsert, illegal transition, disabled-terminal,
+  wire event/command round-trip, checkpoint/save round-trip. Full suite 1717
+  green.

@@ -81,7 +81,27 @@ internal static class BodyPatches
 					WallSlidePresentation.UpdateEffects(__instance, wallDriver.SlidingLeft, wallDriver.SlidingRight);
 				}
 			}
-			HandleVisualsMethod.Invoke(__instance, [__instance.GetComponent<Painkillers>()]);
+			// A frozen remote clone cannot physics-drive the visible limbs
+			// during a ragdoll/death/unconscious pose (Body.standing=false skips
+			// the animLimb -> limb copy inside HandleVisuals, Body.cs:3224-3252).
+			// Temporarily present the remote clone as standing to HandleVisuals
+			// so the LayDown/lying clip still drives the limb transforms; the
+			// synced standing value is restored immediately after the visual
+			// pass and remains the semantic state for SessionStatePump/LyingPose.
+			var visualStanding = __instance.standing;
+			if (!visualStanding && __instance.GetComponentInParent<RemoteBodyDriver>() != null)
+			{
+				__instance.standing = true;
+			}
+
+			try
+			{
+				HandleVisualsMethod.Invoke(__instance, [__instance.GetComponent<Painkillers>()]);
+			}
+			finally
+			{
+				__instance.standing = visualStanding;
+			}
 
 			// legSpeedMult is a computed property from leg force (Body.cs:67-95)
 			// that is 0 on a proxy (limb force isn't simulated). HandleVisuals

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.GameState;
+using CasualtiesUnknownOnline.GameState.Domains.Fluids;
 using CasualtiesUnknownOnline.GameState.Domains.World;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
@@ -29,6 +30,7 @@ public sealed class WorldService : IWorldControl, IDisposable
 	private readonly WorldStateMessageService _messages;
 	private readonly ItemKernelAuthority _kernelAuthority;
 	private readonly FluidKernelProjection _fluidKernel;
+	private readonly FluidKernelReadProjection _fluidKernelRead;
 
 	/// <summary>
 	/// Host only: a run is in progress but the host has not entered the world
@@ -69,7 +71,8 @@ public sealed class WorldService : IWorldControl, IDisposable
 		ChatChannel chatChannel,
 		BlockDamageRegistry blockDamageRegistry,
 		ItemKernelAuthority kernelAuthority,
-		FluidKernelProjection fluidKernel)
+		FluidKernelProjection fluidKernel,
+		FluidKernelReadProjection fluidKernelRead)
 	{
 		_session = session;
 		_sender = sender;
@@ -79,6 +82,7 @@ public sealed class WorldService : IWorldControl, IDisposable
 		_messages = new WorldStateMessageService(session, sender, log, eventChannel, blockDamageRegistry);
 		_kernelAuthority = kernelAuthority;
 		_fluidKernel = fluidKernel;
+		_fluidKernelRead = fluidKernelRead;
 
 		_kernelAuthority.BatchApplied += OnRunBatchApplied;
 		_kernelAuthority.CheckpointRestored += OnRunCheckpointRestored;
@@ -268,6 +272,9 @@ public sealed class WorldService : IWorldControl, IDisposable
 	public event Action<IReadOnlyList<TrapLayoutEntryMsg>>? TrapLayoutReceived { add => _channels.TrapLayoutReceived += value; remove => _channels.TrapLayoutReceived -= value; }
 
 	public void FireTrapLayoutReceived(IReadOnlyList<TrapLayoutEntryMsg> entries) => _channels.FireTrapLayoutReceived(entries);
+
+	/// <summary>Guest-side rebuilt fluid-region facts from the kernel projection (host: empty).</summary>
+	public IReadOnlyList<FluidRegionState> FluidRegionFacts => _fluidKernelRead.Regions;
 
 	public void ReportFluidRegions(IReadOnlyList<FluidRegionSummary> regions) => _fluidKernel.Sync(regions);
 

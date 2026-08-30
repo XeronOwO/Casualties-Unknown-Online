@@ -22,6 +22,7 @@ authoritative region checkpoint foundation.
 | Runtime authority surface | `ItemKernelAuthority.TryUpdateFluidRegion/TryResetFluids/QueryFluids` | Host commands and query entry points. |
 | Host grid aggregator | `GameAdapter/World/FluidRegionKernelSync` | At a low cadence it aggregates `FluidManager.fluid` into `WorldGeneration.CHUNKSIZE` chunks (nonzero totals/dominant types). |
 | Host projection | `FluidKernelProjection` + `IWorldControl.ReportFluidRegions` | `WorldService` forwards the summary; the projection change-gates upserts and clears stale positive chunks to zero. |
+| Guest read projection | `FluidKernelReadProjection` + `WorldService.FluidRegionFacts` | Guest-only rebuildable mirror of the kernel fluid-region table from `CheckpointRestored` and `BatchApplied` (`FluidRegionUpdatedEvent`/`FluidsResetEvent`); the high-frequency RLE grid stream remains the live view path. |
 
 ## Evidence table
 
@@ -36,13 +37,17 @@ authoritative region checkpoint foundation.
 | Host region projection is change-gated | `FluidKernelProjectionTests.Sync_DoesNotCommitUnchangedRegionFacts`. |
 | `IWorldControl.ReportFluidRegions` reaches the kernel | `FluidKernelProjectionTests.WorldControlReportFluidRegions_CommitsThroughProjection`. |
 | Random region updates preserve kernel invariants | `FluidDomainKernelTests.RandomUpdates_PreserveRegionInvariants`. |
+| Guest checkpoint restore rebuilds read projection | `FluidKernelReadProjectionTests.GuestCheckpointRestore_RebuildsRegionFacts`. |
+| Guest applied batches upsert/replace the read projection | `FluidKernelReadProjectionTests.GuestBatchApplied_UpsertsAndReplacesRegionFacts`. |
+| Guest reset clears the read projection | `FluidKernelReadProjectionTests.GuestBatchApplied_ResetClearsRegionFacts`. |
+| Host role does not project fluid regions | `FluidKernelReadProjectionTests.HostRole_DoesNotProjectFluidRegions`. |
 
 ## Verification
 
 - `dotnet build CasualtiesUnknownOnline.slnx`: 0 warnings / 0 errors.
-- `dotnet test CasualtiesUnknownOnline.slnx`: 1672 passed.
+- `dotnet test CasualtiesUnknownOnline.slnx`: 1706 passed.
 - `dotnet format`: applied.
-- Architecture/event/entity/isolation gates passed.
+- Architecture/event/entity/isolation/delivery gates passed.
 
 ## Structure review
 
@@ -53,7 +58,8 @@ authoritative region checkpoint foundation.
 
 ## Next sub-steps
 
-1. If a guest-side kernel read projection is needed beyond the existing RLE
-   viewport stream, project checkpoint/fluid-region facts there and cover it
-   with a simulation test.
-2. Continue with high-frequency stream unification.
+1. [x] Guest-side kernel read projection landed: `FluidKernelReadProjection`
+   rebuilds from `CheckpointRestored` and applies `BatchApplied`, with tests.
+2. Continue with high-frequency stream unification and the GameAdapter-side
+   local simulation/coarse view consumption from `FluidRegionFacts` when the
+   live RLE stream no longer covers a restart/reconnect path.

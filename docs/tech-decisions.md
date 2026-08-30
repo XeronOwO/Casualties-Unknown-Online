@@ -3852,3 +3852,19 @@ no legacy bidirectional result wire survives.
   effect-specific body fields.
 - **Tests** — kernel command/wire round-trip tests and host/guest projection
   tests cover bite, lunge, and effect result families. Full suite 1702 green.
+
+## 133. Fluid guest kernel read projection (2026-08-29)
+
+The coarse fluid-region checkpoint needs a guest-side rebuildable read view
+separate from the high-frequency RLE grid stream.
+
+- **Projection** — `FluidKernelReadProjection` mirrors `FluidStateTable` on the
+  guest from `ItemKernelAuthority.CheckpointRestored` and `BatchApplied`
+  (`FluidRegionUpdatedEvent` / `FluidsResetEvent`).
+- **Read surface** — `WorldService.FluidRegionFacts` exposes the rebuilt
+  `IReadOnlyList<FluidRegionState>` while the live RLE grid stream remains the
+  visual/authoritative grid path.
+- **No authority** — the projection never writes commands; it only rebuilds from
+  kernel checkpoints/batches, matching the Phase D projection rule.
+- **Tests** — checkpoint restore, batch upsert/replace, reset, and host no-op
+  cases are covered by `FluidKernelReadProjectionTests`. Full suite 1706 green.

@@ -1,5 +1,9 @@
 # KrokMP Reverse-Engineering Notes
 
+> **Historical reference only.** KrokMP is studied as a source of design context;
+> CUO does not copy its implementation. Current CUO architecture is in
+> [`architecture-evolution/`](architecture-evolution/).
+
 > Findings from decompiling `KrokoshaCasualtiesMP.dll` (game dir:
 > `BepInEx/plugins/KrokMP/`). API signatures, architecture observations, and
 > compatibility-layer feasibility. Raw decompile output lives in

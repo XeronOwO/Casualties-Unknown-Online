@@ -1,5 +1,10 @@
 # Runtime supply refresh audit — mechanism inventory and self-check
 
+> **Historical audit (2026-08-16).** Point-in-time evidence for an item-spawn
+> question. Current item authority/wire behavior is documented in
+> [`architecture-evolution/domains.md`](architecture-evolution/domains.md) and
+> [`architecture-evolution/protocol.md`](architecture-evolution/protocol.md).
+
 Owner cycle: backlog item-domain open question (2026-08-16)
 
 > "Runtime random supply refresh (phase-1 memory, unresolved question): it is

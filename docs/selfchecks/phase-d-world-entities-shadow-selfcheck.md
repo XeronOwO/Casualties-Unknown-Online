@@ -49,7 +49,7 @@ into kernel-backed projection/snapshot adapters.
 | Destructive trap health classification is locked | `TrapDamageProfilesTests.DestructiveKinds_AreClassified`, `NonDestructiveKinds_RemainUnclassified`. |
 | Guest checkpoint restore projects non-one-shot trap state facts | `WorldEntityProjectionTests.GuestCheckpointRestore_ProjectsNonOneShotTrapStateFacts`. |
 | Guest checkpoint restore projects world-entity facts | `WorldEntityProjectionTests.GuestCheckpointRestore_ProjectsKernelWorldEntities`. |
-| Building-death drop provenance is locked | `BuildingDeathDropProvenanceTests` + `BuildingDestructionReplayPatchTests` (call identity, pure marker, `Item.Awake` patch shape, `PatchInventory` contract). |
+| Building-death drop provenance is locked | `BuildingDeathDropProvenanceTests` + `BuildingDestructionReplayPatchTests` (call identity, pure marker, `Item.Awake` patch shape, `PatchInventory` contract, and the `ItemDropProvenanceClassifier` Normal/BlockDrop/BuildingDeathDrop selection). |
 
 ## Verification
 

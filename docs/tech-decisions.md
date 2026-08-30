@@ -4063,7 +4063,9 @@ from block drops and ordinary runtime spawns.
   102, 113), which is why no `Utils.Create` postfix can see these drops.
 - **OnItemInstantiated** — `ItemWorldSync` reads the marker and logs the
   provenance; the submit path is intentionally unchanged at this stage, so the
-  drops still enter the world as standalone spawn reports.
+  drops still enter the world as standalone spawn reports. A pure
+  `ItemDropProvenanceClassifier` locks the Normal/BlockDrop/BuildingDeathDrop
+  selection.
 - **Tests** — `BuildingDeathDropProvenanceTests` locks the origin, the pure
   marker, the `Item.Awake` patch shape, and the `PatchInventory` contract;
   `BuildingDestructionReplayPatchTests` locks the new Prefix/Postfix state

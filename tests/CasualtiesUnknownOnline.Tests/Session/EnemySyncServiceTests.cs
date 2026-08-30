@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.GameState.Domains.Entities;
 using CasualtiesUnknownOnline.Protocol.Versioning;
 using CasualtiesUnknownOnline.Protocol.Wire;
@@ -36,6 +37,21 @@ public class EnemySyncServiceTests
 			Health = health,
 			Stunned = false,
 		};
+
+	private static void ApplyKernelRemoval(TestNode guest, EntityId entityId)
+	{
+		var authority = guest.Services.GetRequiredService<ItemKernelAuthority>();
+		var current = authority.CreateCheckpoint();
+		var batch = new CommittedBatch(
+			new OperationId(1),
+			current.GlobalRevision + 1,
+			new ActorId(HostId),
+			AuthorityKind.HostOnly,
+			current.RunEpoch,
+			[],
+			[new EnemyRemovedEvent(entityId)]);
+		Assert.True(authority.Apply(batch).Success);
+	}
 
 	private static ProtocolFrame EnemyStreamFrame(uint seq, params WireEnemyStreamState[] states) =>
 		new()
@@ -256,7 +272,7 @@ public class EnemySyncServiceTests
 	}
 
 	[Fact]
-	public void RemovalMessage_RemovesEnemyAndRaisesEvent()
+	public void KernelRemovalBatch_RemovesEnemyAndRaisesEvent()
 	{
 		using var w = ItemSimWorld.Create();
 		var g1Enemies = w.G1.Services.GetRequiredService<EnemySyncService>();
@@ -269,7 +285,7 @@ public class EnemySyncServiceTests
 		{
 			EnemyStates = [Enemy(2, 3f, 4f).ToWireEnemyStreamState()],
 		});
-		control.ApplyEnemyRemoved(new EnemyRemovedMsg { Id = id.ToNetworkEntityIdMsg() });
+		ApplyKernelRemoval(w.G1, new EntityId(id.Epoch, id.Counter, id.Generation));
 
 		Assert.Null(g1Enemies.GetEnemy(id));
 		Assert.Equal(id, Assert.Single(removed));
@@ -313,7 +329,7 @@ public class EnemySyncServiceTests
 		{
 			EnemyStates = [Enemy(5, 1f, 1f).ToWireEnemyStreamState()],
 		});
-		control.ApplyEnemyRemoved(new EnemyRemovedMsg { Id = id.ToNetworkEntityIdMsg() });
+		ApplyKernelRemoval(w.G1, new EntityId(id.Epoch, id.Counter, id.Generation));
 		control.ApplyEnemyStream(new WireStateStream
 		{
 			EnemyStates = [Enemy(5, 2f, 2f).ToWireEnemyStreamState()],
@@ -334,7 +350,7 @@ public class EnemySyncServiceTests
 		{
 			EnemyStates = [Enemy(6, 1f, 1f).ToWireEnemyStreamState()],
 		});
-		control.ApplyEnemyRemoved(new EnemyRemovedMsg { Id = id.ToNetworkEntityIdMsg() });
+		ApplyKernelRemoval(w.G1, new EntityId(id.Epoch, id.Counter, id.Generation));
 		control.ApplyEnemySnapshot(new EnemySnapshotMsg
 		{
 			Enemies = [Enemy(6, 3f, 3f).ToEnemyStateMsg()],

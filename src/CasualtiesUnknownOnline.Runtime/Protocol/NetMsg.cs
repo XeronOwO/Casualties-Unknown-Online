@@ -92,7 +92,6 @@ public enum NetMsg : byte
 	// player entity stream)
 	EnemySnapshot = 81, // host → guest: the full enemy snapshot (world entry / late joiner — ids + spawn positions for binding + RuntimeSpawns for materializing runtime-created enemies)
 	EnemyAttack = 83, // host → guest: the host's enemy simulation decided an attack on a remote player (the victim applies it locally and reports the terminal state through kernel combat-result events)
-	EnemyRemoved = 123, // host → guest (reliable): one enemy aggregate left the authoritative host set — the lifecycle fact the 20 Hz state batch no longer implies
 
 	// Mod host commands (Phase 4b Mod API — command execution is host-authoritative:
 	// the guest only sends the request, the host executes its own copy of the mod

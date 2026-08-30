@@ -3881,3 +3881,22 @@ WorldEntities adds the first 4.2 lifecycle invariant.
   spurious rejection.
 - **Tests** — `WorldEntityDomainKernelTests.DestroyedBuilding_RejectsPositiveHealthReport`
   and `DestroyedBuilding_AllowsIdempotentZeroHealthReport`. Full suite 1708 green.
+
+## 135. Enemy aggregate removal rides kernel batches (2026-08-29)
+
+The enemy 20 Hz stream is update-only, so aggregate lifecycle must be explicit.
+It no longer uses a dedicated `NetMsg.EnemyRemoved` frame; removals are committed
+as kernel `EnemyRemovedEvent` and travel inside `KernelEnvelope`.
+
+- **Host commit** — `EnemyKernelProjection.Sync` already commits
+  `RemoveEnemyCommand` for ids that left the host set; the accepted batch is
+  broadcast by `KernelProtocolService`.
+- **Guest projection** — `EnemySyncService.OnKernelBatchApplied` applies each
+  `EnemyRemovedEvent`, removes the guest buffer, records the tombstone, and
+  raises `EnemyRemovedReceived`.
+- **Removed** — `NetMsg.EnemyRemoved`, `EnemyRemovedMsg`, `EnemyRemovedHandler`,
+  `IEnemySyncControl.ApplyEnemyRemoved`, and the host fan-out send path are
+  deleted. `ProtocolVersion.Current` bumped to 53.
+- **Tests** — `EnemySyncServiceTests.KernelRemovalBatch_RemovesEnemyAndRaisesEvent`
+  plus the existing resurrection/convergence tests were moved to kernel batch
+  application. Full suite 1707 green.

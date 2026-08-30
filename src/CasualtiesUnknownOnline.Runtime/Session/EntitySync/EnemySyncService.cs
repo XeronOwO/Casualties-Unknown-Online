@@ -198,7 +198,6 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 		if (_session.Role == SessionRole.Host)
 		{
 			_enemyKernel.Sync(published);
-			SendEnemyRemoved(removed);
 		}
 	}
 
@@ -207,8 +206,6 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 	uint IEnemySyncControl.LastEnemyStateSeq { get => _lastEnemyStateSeq; set => _lastEnemyStateSeq = value; }
 
 	void IEnemySyncControl.ApplyEnemyStream(WireStateStream stream) => ApplyEnemyStream(stream);
-
-	void IEnemySyncControl.ApplyEnemyRemoved(EnemyRemovedMsg msg) => ApplyEnemyRemoved(msg);
 
 	void IEnemySyncControl.ApplyEnemySnapshot(EnemySnapshotMsg msg) => ApplyEnemySnapshot(msg);
 
@@ -292,40 +289,12 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 		_sender.Send(steamId, NetMsg.EnemySnapshot, payload);
 	}
 
-	/// <summary>Host side: send each removed enemy id to every in-world guest as
-	/// a reliable lifecycle fact. The 20 Hz stream is update-only, so this is the
-	/// only path by which a guest learn that an aggregate left the set.</summary>
-	private void SendEnemyRemoved(IReadOnlyList<NetworkEntityId> removedIds)
-	{
-		if (_session.Role != SessionRole.Host || !_session.SessionActive || removedIds.Count == 0)
-		{
-			return;
-		}
-
-		foreach (var id in removedIds)
-		{
-			foreach (var member in _session.Members)
-			{
-				if (member.Handshaken && member.InWorld && member.SteamId != _session.LocalSteamId)
-				{
-					_sender.Send(
-						member.SteamId,
-						NetMsg.EnemyRemoved,
-						new EnemyRemovedMsg { Id = id.ToNetworkEntityIdMsg() },
-						reliable: true);
-				}
-			}
-		}
-
-		_log.LogInformation("[Enemy] host sent {Count} enemy removal(s).", removedIds.Count);
-	}
-
 	// ---- Apply (guest) ----
 
 	/// <summary>Update-only stream semantics: the 20 Hz batch refreshes the
 	/// convergent fields of the enemies it contains but never removes an id that
-	/// is absent from the batch. Aggregate lifecycle travels explicitly via
-	/// <see cref="EnemyRemovedMsg"/>.</summary>
+	/// is absent from the batch. Aggregate lifecycle travels through the kernel
+	/// <c>EnemyRemovedEvent</c> committed batch.</summary>
 	private void ApplyEnemyStream(WireStateStream stream) =>
 		Merge(stream.EnemyStates, stream.BaseGlobalRevision, EnemyStateReceived);
 
@@ -350,15 +319,14 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 		ApplyEnemyStream(stream);
 	}
 
-	private void ApplyEnemyRemoved(EnemyRemovedMsg msg)
+	private void RemoveEnemy(NetworkEntityId id)
 	{
-		var id = msg.Id.ToNetworkEntityId();
 		var wasPresent = _enemies.Remove(id);
 		_removedEnemies.Add(id);
 		_terminalHealthRevision.Remove(id);
 		if (wasPresent)
 		{
-			_log.LogInformation("[Enemy] guest removed enemy {Enemy}.", id);
+			_log.LogInformation("[Enemy] guest removed enemy {Enemy} from kernel batch.", id);
 			EnemyRemovedReceived?.Invoke(id);
 		}
 	}
@@ -443,6 +411,18 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 		if (_session.Role == SessionRole.Guest)
 		{
 			TrackEnemyTerminalRevisions(batch);
+			ApplyEnemyRemovals(batch);
+		}
+	}
+
+	private void ApplyEnemyRemovals(CommittedBatch batch)
+	{
+		foreach (var @event in batch.Events)
+		{
+			if (@event is EnemyRemovedEvent removed)
+			{
+				RemoveEnemy(ToRuntimeId(removed.EntityId));
+			}
 		}
 	}
 

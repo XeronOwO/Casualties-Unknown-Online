@@ -69,6 +69,7 @@ durable entity identity/health/runtime-spawn facts.
    `EnemyKernelRestoreProjection` overlays kernel health/stunned/prefab/runtime-spawn
    onto host world-entry snapshots and guest full-snapshot application;
    continuous presentation fields remain snapshot/stream-owned.
-3. Continue high-frequency stream unification: the 20 Hz enemy batch is now
-   update-only with explicit `EnemyRemovedMsg` lifecycle handling; see
+3. [x] Continue high-frequency stream unification: the 20 Hz enemy batch is now
+   update-only and aggregate removal rides the kernel `EnemyRemovedEvent`
+   committed batch; see
    `docs/selfchecks/phase-d-high-frequency-stream-unification-selfcheck.md`.

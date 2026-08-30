@@ -4205,3 +4205,20 @@ than adding a second grid path.
 - **Tests** — `FluidRleCodecTests`,
   `EntityEventSimulationTests.FluidRegion_LostUnreliableRegion_HealedByTheNextAbsoluteOverwrite`,
   and `FluidDomainKernelTests` lock the projection/aggregate boundaries.
+
+## 151. WorldEntities 4.2 checklist closure (2026-08-30)
+
+The remaining 4.2 items are already implemented by the existing WorldEntities
+kernel and adapter projection path.
+
+- **Building lifecycle** — `BuildingEntityHealthFact` /
+  `BuildingEntityHealthUpdatedEvent` plus `WorldEntityDomainModule`'s
+  destroyed-building invariant (positive health after zero is rejected) defines
+  the lifecycle/health boundary.
+- **Trap presentation** — `TrapVisualReplay` / `EntityEventSync` are replay and
+  projection consumers; the trap trigger/state authority is the kernel table
+  behind `IWorldControl.ReportTrapEvent`.
+- **Replay/snapshot** — guest checkpoint restore is projected through
+  `WorldEntityKernelProjection`; the legacy `TrapStateSnapshot`,
+  `OpenedEntitiesSnapshot`, and `BuildingEntityHealthSnapshot` wire was removed
+  in an earlier Phase D cycle.

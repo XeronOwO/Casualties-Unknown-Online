@@ -21,6 +21,7 @@ into kernel-backed projection/snapshot adapters.
 | Mapper/save | `KernelWireMapper`, `WireCheckpointAssembler`, `KernelSaveFileStore`, `KernelSaveFile` | World-entity facts round-trip through wire checkpoints and disk saves. |
 | Runtime authority surface | `ItemKernelAuthority.TryRecordTrapConsumed/TryRecordBuildingEntityHealth/TryRecordOpenedEntity/TryResetWorldEntities/QueryWorldEntities` | Host commands and query entry points. |
 | Registry projections | `TrapConsumptionRegistry`, `OpenedEntityRegistry`, `BuildingEntityHealthRegistry` | The three old registries now commit through the kernel; they are no longer independent fact stores. The legacy snapshot payload builders were removed with the wire. |
+| Trap state production | `TrapStateProfiles` + `TrapStateRegistry` + `EntityEventSync` | Host-local `EntityEventChannel.SendEntityEvent` and the host-apply path for guest reports commit `RecordTrapStateCommand` for every stateful `EntityEventKind` edge. |
 | Guest checkpoint projection | `WorldEntityKernelProjection` + `EntityEventSync`/`WorldEventSync` | Guest `CheckpointRestored` raises the same flat fact lists the Game Adapter applies, providing the checkpoint-driven rebuild counterpart to the legacy snapshot wire. |
 
 ## Evidence table
@@ -43,12 +44,13 @@ into kernel-backed projection/snapshot adapters.
 | Wire batch preserves a trap state event | `WorldEntityDomainKernelTests.WireBatchRoundTrip_PreservesTrapStateChangedEvent`. |
 | Wire command round-trips `RecordTrapStateCommand` | `WorldEntityDomainKernelTests.WireCommandRoundTrip_BuildsRecordTrapStateCommand`. |
 | Host world control reports commit kernel facts | `WorldEntityProjectionTests.HostReports_CommitKernelWorldEntities`. |
+| Host world control reports commit kernel trap state facts | `WorldEntityProjectionTests.HostReports_CommitKernelTrapStateFacts`. |
 | Guest checkpoint restore projects world-entity facts | `WorldEntityProjectionTests.GuestCheckpointRestore_ProjectsKernelWorldEntities`. |
 
 ## Verification
 
 - `dotnet build CasualtiesUnknownOnline.slnx`: 0 warnings / 0 errors.
-- `dotnet test CasualtiesUnknownOnline.slnx`: 1717 passed.
+- `dotnet test CasualtiesUnknownOnline.slnx`: 1718 passed.
 - `dotnet format`: applied.
 - Architecture/event/entity/isolation gates passed.
 
@@ -71,6 +73,9 @@ into kernel-backed projection/snapshot adapters.
 3. [x] Trap state-machine shadow landed: `TrapPhase`, `TrapStateFact`,
    `RecordTrapStateCommand`, and `TrapStateChangedEvent` define the 4.2 state
    vocabulary in the kernel, with illegal-transition/disabled-terminal
-   invariants and checkpoint/wire/save round-trip. Next is production reporting
-   (mapping live EntityEventKind edges to `RecordTrapStateCommand`) and then
-   projection/presentation migration.
+   invariants and checkpoint/wire/save round-trip.
+4. [x] Live production reporting landed: `TrapStateProfiles` maps
+   `EntityEventKind` edges to `TrapPhase`, and `TrapStateRegistry` commits
+   `RecordTrapStateCommand` from host-local and guest-triggered host-apply
+   paths. Next is guest view projection (BatchApplied → GameAdapter trap
+   presentation) and the cross-domain damage/drop batch.

@@ -3956,3 +3956,21 @@ switch.
 - **Tests** — kernel update/upsert, illegal transition, disabled-terminal,
   wire event/command round-trip, checkpoint/save round-trip. Full suite 1717
   green.
+
+## 139. Trap state live production reporting (2026-08-29)
+
+The 4.2 shadow state machine is now fed by the live entity-event channel.
+
+- **Mapping** — `TrapStateProfiles` maps `EntityEventKind` to `TrapPhase`:
+  pre-trigger edges (`MinePressed`, `CrystalUnstableTicked`) become `Warning`,
+  trigger/consumption edges become `Triggered`, destruction edges become
+  `Disabled`, and `BearTrapReleased` becomes `Armed`; visual-only events return
+  null.
+- **Commit path** — `TrapStateRegistry` builds `RecordTrapStateCommand`
+  directly through `ItemKernelAuthority.TryExecuteHostCommand`, avoiding an
+  authority method that would push the class over the architecture size gate.
+- **Coverage** — host-local `EntityEventChannel.SendEntityEvent` and the
+  host-apply path for guest-triggered events both commit; guests receive the
+  same kernel batches through `KernelEnvelope`.
+- **Next** — guest-side `BatchApplied` projection into the Game Adapter trap
+  presentation and the cross-domain damage/drop batch are still open.

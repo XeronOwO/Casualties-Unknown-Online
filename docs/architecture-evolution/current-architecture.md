@@ -442,7 +442,7 @@ Never mutate authoritative state in order to repair a Unity projection failure.
 
 ## 12. Network protocol (four envelopes)
 
-The protocol is rebuilt around four envelopes:
+The protocol uses four envelopes:
 
 ```text
 CommandEnvelope
@@ -485,10 +485,9 @@ changes.
 
 ### 12.3 Versioning
 
-Even though compatibility can be broken now, start versioning from the first new protocol:
-envelope version, checkpoint schema version, explicit numeric Event payload IDs, hard
-reject unknown critical Events, ignore unknown non-critical presentation Effects, and
-golden wire contract tests.
+Versioning is part of the current protocol: envelope version, checkpoint schema
+version, explicit numeric Event payload IDs, hard reject of unknown critical Events,
+ignore of unknown non-critical presentation Effects, and golden wire contract tests.
 
 ## 13. Save format (checkpoint)
 
@@ -517,9 +516,8 @@ Randomness must be saved as named random streams or already-decided results, not
 re-calling Unity/System random sources at load. Recent N Batches may be attached as a
 diagnostic tail, but load uses the checkpoint as authority.
 
-During development an explicit `SaveSchemaVersion` migrator may exist. Because there is
-no compatibility burden, the first switch may reject old saves outright; do not let old
-DTOs pollute the new domain models.
+There is no compatibility burden: old pre-evolution saves are rejected outright, and no
+old DTOs pollute the current domain models. The current save path is checkpoint-only.
 
 ## 14. Error and recovery
 

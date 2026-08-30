@@ -461,7 +461,11 @@ Only the **Game Adapter** layer may reference game assemblies — CUO Core never
 9. **Ignoring legal/distribution risk** → game EULA (injection allowed? modified assembly redistribution?), anti-cheat triggers, Steamworks DLL redistribution, BepInEx (LGPL-2.1) and dependency licenses, original game assets inside mods, Steam Workshop / third-party hosting policies.
 10. **Harmony patch state leakage** → if a Prefix modifies the target instance's fields to bypass original logic (e.g. clears a filter to let the original method skip), the Postfix MUST restore the original values — even when empty — before returning. Otherwise the field stays corrupted for every other read (UI updates, later refreshes). Pattern: save in `__state` in Prefix, restore in Postfix, then run custom logic.
 
-## 11. Development Phases
+## 11. Development Phases (historical)
+
+The original pre-kernel phase roadmap is listed here for historical context. Phases
+0–4 and the architecture evolution Phases A–E are complete; Phase 5 tooling/ecosystem
+items remain future work in [`backlog.md`](backlog.md).
 
 - **Phase 0 — Feasibility**: BepInEx loads; Steam Lobby create/join; network connection; ping/pong; SteamID readout; both sides show connection state; safe disconnect on exit.
 - **Phase 1 — Single player entity**: join, leave, position, heading, basic input, scene-load state. No inventory/combat/quests/saves.

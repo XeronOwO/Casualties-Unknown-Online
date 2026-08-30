@@ -82,6 +82,10 @@ internal sealed class EntityEventSync(IWorldControl world, ISessionControl sessi
 				// are NOT recorded — each side's copy re-arms naturally.
 				_world.ReportTrapConsumed(msg.Kind, pos.X, pos.Y, msg.Extra);
 			}
+
+			// Stateful trap edges also move the kernel state machine for both
+			// host-local and guest-reported events.
+			_world.ReportTrapState(msg.Kind, pos.X, pos.Y, msg.Extra);
 			_world.BroadcastEntityEvent(sender, msg);
 		}
 		else

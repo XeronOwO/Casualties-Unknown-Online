@@ -212,6 +212,11 @@ internal sealed class EntityEventSimWorld : IDisposable
 					registry.Report(msg.Kind, msg.Position.X, msg.Position.Y, msg.Extra);
 				}
 
+				// The production EntityEventSync also advances the kernel trap
+				// state machine on the host, including guest-triggered events.
+				world.Host.Services.GetRequiredService<IWorldControl>().ReportTrapState(
+					msg.Kind, msg.Position.X, msg.Position.Y, msg.Extra);
+
 				world.HostExecuted?.Invoke(msg);
 			}
 

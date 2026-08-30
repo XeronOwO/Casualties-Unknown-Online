@@ -46,6 +46,7 @@ not here:
 | 156 | Player/item ownership consistency and death preservation are kernel invariants. | `docs/architecture/domains.md` |
 | 157 | Generic Prediction Runtime is future work; current cross-player operations are not client-predicted. | `docs/architecture/domains.md`, `docs/backlog/README.md` |
 | 158 | Kernel reset centralized in `KernelProtocolService`; no-legacy/command-authority/kernel-shape guards are active. | `docs/architecture/guards.md` |
+| 159 | Manual world-time acceleration is cooperative: `Fast`/`SuperFast` never accelerate a shared session while any in-world player is awake; all-unconscious sleep remains the only shared-clock acceleration. | `docs/evidence/selfchecks/world/world-time-selfcheck.md` |
 
 ## Reference rules
 

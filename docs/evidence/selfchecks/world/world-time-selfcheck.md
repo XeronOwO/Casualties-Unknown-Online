@@ -11,7 +11,7 @@ fast-forward / sleep-acceleration). ProtocolVersion 13, NetMsg 90/91.
 | 2 | Unconscious/dying fast-forward | `HandleUnconsciousScreen` calls `SetTimeScale(UnconsciousFast 25× / DyingFast 3.5× / Normal)` when the local black screen is up (PlayerCamera.cs:2235-2244) | all those calls are suppressed in a session (`CallContext.Origin.WorldTimeSleepLocal`); the host's policy applies 25×/3.5× only when EVERY in-world player is unconscious and no one is moving | PlayerCameraHandleUnconsciousScreenPatch; WorldTimePolicy; WorldTimeSync |
 | 3 | Direct timeScale writes | `WorldGeneration.Update` resets `Time.timeScale = 1f` on quake start (:870); ConsoleScript can write arbitrary values | host pump maps actual timeScale back into the domain and broadcasts the correction; guest pump enforces the last host speed when a direct writer moved it to another domain speed | WorldTimeSync.Update |
 | 4 | Guest fast-forward | each side could previously run its own 5×/20×, diverging world timers | guest local SetTimeScale for Normal/Fast/SuperFast is swallowed and sent as a request; Slowmo/Paused stay local-only (existing accepted presentation semantics) | PlayerCameraSetTimeScalePatch |
-| 5 | Host authority | Time.timeScale is process-global Unity state; the host owns the shared world | host accepts guest requests only while nobody is moving; movement or sleep overrides and clears the request; sleep acceleration never re-applies a stale request | WorldTimePolicy (pure) |
+| 5 | Host authority | Time.timeScale is process-global Unity state; the host owns the shared world | manual Fast/SuperFast requests are cooperative: they are ignored while any in-world player is awake; movement or all-sleep overrides and clears the request; sleep acceleration never re-applies a stale request | WorldTimePolicy (pure) |
 | 6 | Late joiner / reconnect | a joiner starts at the game's default 1× regardless of the host's current speed | host re-broadcasts current speed on `RemoteSceneChanged(inWorld=true)` and every 5 s (idempotent) | WorldTimeSync |
 | 7 | Local-only time effects | SurvivorNote/EPda slowmo, PauseHandler pause, forced menu/death resets | unchanged on both sides for Slowmo/Paused/force calls — recorded as local-only; the 5 s host re-broadcast self-heals the next domain-speed write | PlayerCameraSetTimeScalePatch |
 
@@ -23,7 +23,9 @@ fast-forward / sleep-acceleration). ProtocolVersion 13, NetMsg 90/91.
 - `WorldTimePolicy` (pure): any moving player or unknown player state forces
   Normal and clears the request; if every in-world ALIVE player has
   `consciousness <= 20`, the session runs DyingFast (any `brainDying`) or
-  UnconsciousFast; otherwise the requested speed stands.
+  UnconsciousFast; otherwise Normal stands. Manual Fast/SuperFast requests are
+  cooperative — they do not accelerate a world with an awake player, because
+  the only shared-clock acceleration is the all-unconscious sleep policy.
 - `WorldTimeChannel` / `IWorldTimeControl` (Runtime): star-shaped time
   plumbing — guest reports the request, host broadcasts the authoritative
   speed.
@@ -54,10 +56,9 @@ fast-forward / sleep-acceleration). ProtocolVersion 13, NetMsg 90/91.
    `PlayerCamera.HandleUnconsciousScreen` against the game assembly (the new
    patch classes are counted by `PatchInventory`).
 4. Runtime (later, final acceptance only): host F8 + guest join; host presses
-   speed2 → both HUDs show ×5; guest presses speed3 → host adopts and both
-   show ×20; either player moves → both return ×1; both players unconscious →
-   both run ×25 and return to ×1 when one wakes. Logs: `[WorldTime]` lines on
-   both sides.
+   speed2 while anyone is awake → both stay ×1; both players unconscious →
+   both run ×25 and return to ×1 when one wakes; either player moves → ×1.
+   Logs: `[WorldTime]` lines on both sides.
 5. Assertion-validity proof: deleting the policy call or the host broadcast
    turns the new tests red; restored to green.
 
@@ -65,7 +66,7 @@ fast-forward / sleep-acceleration). ProtocolVersion 13, NetMsg 90/91.
 
 | Mechanism | Change | Evidence |
 |---|---|---|
-| Speed hotkeys | host broadcast / guest request | PlayerCameraSetTimeScalePatch; WorldTimeSync |
+| Speed hotkeys | host broadcast / guest request; manual acceleration honored only when the all-sleep branch already applies | PlayerCameraSetTimeScalePatch; WorldTimeSync; WorldTimePolicy |
 | Sleep auto-fast-forward | suppressed locally, host all-sleep policy | PlayerCameraHandleUnconsciousScreenPatch; WorldTimePolicy |
 | Direct timeScale writes | host adopt+broadcast / guest enforce | WorldTimeSync.Update |
 | Guest request | validated Normal/Fast/SuperFast only | WorldTimePolicy.IsGuestRequestSpeed |

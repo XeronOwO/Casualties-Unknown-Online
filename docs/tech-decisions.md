@@ -4332,3 +4332,33 @@ death-drop path.
 - **Tests** — `PlayerDomainKernelTests.CarriedItemWithUnknownOwner_IsRejectedByPlayerInvariant`
   and `DeadStatusUpdate_PreservesCarriedItems`. Full suite 1794 green;
   build/format/architecture/event/entity/delivery gates pass.
+
+## 157. Phase D 4.3 closure: cross-player prediction/rollback boundary (2026-08-30)
+
+The final 4.3 item is resolved as a boundary decision, not a new runtime slice:
+cross-player operations are not client-predicted, and the generic Prediction
+Runtime is deferred to Phase E.
+
+- **No cross-player client prediction** — `PlayerInteractionAuthorityPolicy`
+  already classifies take, heal, use, and carry set/clear as
+  `HostValidatedNoPrediction`, and push as `PresentationOnly` (#154). These
+  operations therefore have no local prediction queue, no rollback of
+  authoritative state, and no `OwnerPredictedHostValidated` path in Phase D.
+  The host is the only writer for the durable cross-player fact.
+- **Generic Prediction Runtime is Phase E** — target architecture §7.2
+  describes a unified runtime for local movement, pickups, drag transients, and
+  the existing ad-hoc seams (`PickupOrigins`, pending-pickup queue,
+  `DropPendingState`, `NativeOperationCoordinator`). Building it is a separate
+  architecture slice and is not a Phase D exit criterion.
+- **What this does not close** — the existing transient/rollback caches remain
+  in the current production code. They are correctness mechanisms for the
+  local/native path, not cross-player prediction, and they are tracked as
+  Phase E residue candidates rather than deleted in Phase D.
+- **Phase E tracking** — Phase E should start with a legacy inventory that
+  includes these ad-hoc caches, the `ItemReject` frame survivor, and the
+  `EnemyCombatOrderPolicy` kernel-process follow-up before removing the
+  remaining dual/legacy surfaces.
+- **Evidence** — pure documentation closure; the behavior is already locked by
+  `PlayerInteractionAuthorityPolicyTests` (#154), the full suite at 1794
+  green, and the Phase D Players self-check. No new code/test was required for
+  this decision.

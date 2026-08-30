@@ -80,6 +80,8 @@ Measurement-first items; do not optimize before data exists.
 - **World-time adjustability / sleep acceleration policy** — currently both host and guests can request `Fast` / `SuperFast`, and the host applies all-unconscious sleep acceleration. Design is open for debate: disallow manual time acceleration, or adopt Minecraft-style "only when all players sleep" cooperative acceleration.
 
 ## Future / low priority
+- **Generic Prediction Runtime — Phase E (deferred from Phase D 4.3)** — cross-player interactions are host-validated without client prediction (tech-decisions.md #157). A unified prediction/rollback runtime for local movement, pickup, and drag transients belongs to Phase E; existing `PickupOrigins`, pending-pickup queue, `DropPendingState`, and `NativeOperationCoordinator` are residue candidates.
+
 
 - **Minecraft-style in-game command console** — a standalone command chain (registration → parsing → permission → execution → feedback), independent of current host-command/mod-command surfaces. The bottom-right text-chat UI is disabled in favor of this eventual surface.
 - Strict validation / anti-cheat hardening — explicitly low; defer until sync domains are stable.

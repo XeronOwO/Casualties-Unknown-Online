@@ -1,6 +1,6 @@
 # Phase E — Delete the Dual Architecture
 
-> Status: **Not started** (depends on Phase D)
+> Status: **Not started** (Phase D completed; generic Prediction Runtime is a Phase E residue item per tech-decisions.md #157)
 > Source: target architecture §15-§18; migration roadmap "Phase E".
 
 ## Objective
@@ -134,6 +134,6 @@ Out of scope:
 
 ## Next actions
 
-1. Read Phase D completion evidence in `status.md`.
+1. Read Phase D completion evidence in `status.md` and the Phase D selfcheck; include the ad-hoc prediction/rollback caches from tech-decisions.md #157 in the legacy inventory.
 2. Create the legacy inventory from `src/` search results.
 3. Delete in small batches with tests; do not leave an in-between dual architecture state longer than necessary.

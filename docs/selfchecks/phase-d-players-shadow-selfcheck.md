@@ -138,3 +138,6 @@ data and carry service into the kernel.
 10. [x] Add player/item ownership consistency: a carried item must reference a
     known kernel player; death status updates preserve carried items without an
     implicit drop/backpack relocation.
+11. [x] Resolve the 4.3 prediction/rollback seam: cross-player operations are
+    `HostValidatedNoPrediction` and push is `PresentationOnly`; the generic
+    Prediction Runtime is deferred to Phase E (see `docs/tech-decisions.md` #157).

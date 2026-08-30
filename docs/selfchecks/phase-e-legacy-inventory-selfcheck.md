@@ -17,7 +17,7 @@ land; it is not a permission to keep legacy code indefinitely.
 | Candidate | Location | Classification | Phase E action |
 |---|---|---|---|
 | `ItemCheckpointStore` | `Runtime/Session/Items/ItemCheckpointStore.cs` | Dead temporary Phase B in-memory checkpoint seam; only DI registration + its own tests reference it | **Remove now** |
-| `ItemDiagnosticsProjection` | `GameState/Projections/ItemDiagnosticsProjection.cs` | Shadow differential diagnostic used only by tests/fake/replay | Evaluate: keep as test-only or remove after shadow replay differential is retired |
+| `ItemDiagnosticsProjection` | `GameState/Projections/ItemDiagnosticsProjection.cs` | Shadow differential diagnostic used only by tests/fake/replay | **Done**: moved to `tests/CasualtiesUnknownOnline.Tests/GameState/ItemDiagnosticsProjection.cs` as a test-only helper; no longer in the GameState kernel project |
 | `ItemService.GetWorldItemsForDiagnostics` / `KernelShadow` | `Runtime/Session/Items/ItemService.cs` | Diagnostic/internal test/production (CraftSyncService uses `KernelShadow`) access | **Done**: renamed `KernelShadow` to `KernelAuthority`; no `Shadow` token remains in `src/` |
 | `ItemKernelAuthority` "Shadow-compatible conveniences" (`ObserveSpawn`/`ObservePickup`/`ObserveDrop`/`ObserveDestroy`) | `Runtime/Session/Items/ItemKernelAuthority.cs` | Convenience entry points used by CraftSyncService and tests; they still route through the kernel | **Done**: section renamed to "Kernel convenience entry points"; methods kept as kernel entry points |
 | `ItemReject` frame | `Runtime/Protocol/NetMsg` + handlers | Last legacy item-frame survivor, required for block-break drop refusal | Keep until block-break drops have a kernel/event path; track as Phase E precondition |
@@ -32,6 +32,7 @@ land; it is not a permission to keep legacy code indefinitely.
 | 2026-08-30 | Remove dead `ItemCheckpointStore` | `ItemCheckpointStore.cs`, `ItemCheckpointStoreTests.cs`, DI registration | `dotnet build` 0 warnings/0 errors; 1792 tests passed; format + architecture/event/entity/delivery gates passed |
 | 2026-08-30 | Rename `KernelShadow` -> `KernelAuthority` and remove `Shadow` naming from `src/` | `ItemService.cs`, `CraftSyncService.cs`, `ItemKernelAuthority.cs`, `ItemSimWorld.cs`, `ReplayTests.cs`, `ItemKernelShadowTests.cs` -> `ItemKernelConvenienceTests.cs` | `dotnet build` 0 warnings/0 errors; 1792 tests passed; format + architecture/event/entity/delivery gates passed |
 | 2026-08-30 | Add Phase E no-legacy guard | `tools/check-no-legacy.ps1`, `tools/check-architecture.ps1`, `docs/architecture-guards.md` | Architecture gate passed (including new no-legacy scan) |
+| 2026-08-30 | Move `ItemDiagnosticsProjection` out of GameState to test-only | `src/CasualtiesUnknownOnline.GameState/Projections/ItemDiagnosticsProjection.cs` -> tests; updated `ItemSimWorld.cs` and `ItemDiagnosticsProjectionTests.cs` | `dotnet build` 0 warnings/0 errors; 1792 tests passed; format + architecture/event/entity/delivery gates passed |
 
 ## Next actions
 

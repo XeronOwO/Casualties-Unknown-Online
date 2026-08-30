@@ -1,13 +1,14 @@
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
+using CasualtiesUnknownOnline.GameState.Projections;
 
-namespace CasualtiesUnknownOnline.GameState.Projections;
+namespace CasualtiesUnknownOnline.Tests.GameState;
 
 /// <summary>
-/// Builds active terminal facts from kernel items and compares them against a
-/// legacy/authority projection. Terminal items are intentionally excluded from
-/// the active comparison: the legacy tables drop them, and the shaded kernel
-/// records them only to enforce no-resurrection.
+/// Test-only terminal-fact comparison helper. It was originally a production
+/// shadow-differential projection; Phase E moved it out of the GameState kernel
+/// project because it is not an authoritative projection and has no production
+/// consumers.
 /// </summary>
 public static class ItemDiagnosticsProjection
 {

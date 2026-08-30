@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
+using CasualtiesUnknownOnline.Tests.GameState;
 using CasualtiesUnknownOnline.GameState.Projections;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;

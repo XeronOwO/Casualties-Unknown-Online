@@ -46,19 +46,20 @@ public static class EnemyCombatArbitration
 
 	/// <summary>
 	/// The spider-bite victim: null while the game's cooldown/stun gates are
-	/// closed, when no player is inside the bite radius, or when the nearest
-	/// player is the local body (the native collision path handles that one).
+	/// closed or when no player is inside the bite radius. The nearest player
+	/// (local or remote) is returned; the caller's order policy decides whether
+	/// the local body rides the native collision path or a remote victim gets a
+	/// host-ordered attack.
 	/// </summary>
 	public static EnemyTargetFact? SelectBiteVictim(IEnumerable<EnemyTargetFact> candidates, NetVector2 origin,
-		float biteRange, float biteCooldown, float stunTime, ulong localSteamId)
+		float biteRange, float biteCooldown, float stunTime)
 	{
 		if (biteCooldown > 0f || stunTime > 0f)
 		{
 			return null;
 		}
 
-		var nearest = SelectNearest(candidates, origin, biteRange);
-		return nearest is { } fact && fact.SteamId != localSteamId ? fact : null;
+		return SelectNearest(candidates, origin, biteRange);
 	}
 
 	/// <summary>

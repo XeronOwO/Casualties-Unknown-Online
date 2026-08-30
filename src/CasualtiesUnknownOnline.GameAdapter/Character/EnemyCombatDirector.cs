@@ -305,7 +305,7 @@ internal sealed class EnemyCombatDirector(
 
 		var cooldown = (float)BiteCooldownField.GetValue(spider);
 		var fact = EnemyCombatArbitration.SelectBiteVictim(
-			_targets.Facts(), ToNetVector2(spider.transform.position), EnemyCombatPolicy.SpiderBiteRange, cooldown, spider.stunTime, _session.LocalSteamId);
+			_targets.Facts(), ToNetVector2(spider.transform.position), EnemyCombatPolicy.SpiderBiteRange, cooldown, spider.stunTime);
 		var target = _targets.Find(fact);
 		if (target is null)
 		{

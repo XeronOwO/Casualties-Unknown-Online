@@ -31,6 +31,7 @@ durable entity identity/health/runtime-spawn facts.
 | Lunge trace detail | `CrystalLungeTrace` | Top-level adapter type split out of `EnemyCombatDirector` so the director stays focused on ordering/reporting. |
 | Target resolver | `EnemyTargetResolver` + `EnemyTarget` | Extracted the candidate-set building/finding/limb-index responsibility from `EnemyCombatDirector`; the director now only orders/reports using the resolver’s results. |
 | Order policy | `EnemyCombatOrderPolicy` | Pure `ApplyPath` decision surface for the remaining `EnemyCombatDirector` ordering choices: remote order vs local native for spider bite/crystal lunge, and host item fallback for item-vs-enemy hits. The director still owns the Unity-side execution/reporting. |
+| Spider-bite arbitration | `EnemyCombatArbitration.SelectBiteVictim` | Returns the nearest in-range victim including the local body; the apply-path decision is delegated to `EnemyCombatOrderPolicy`, so the arbitration no longer hides the local-native branch. |
 
 ## Evidence table
 
@@ -57,6 +58,7 @@ durable entity identity/health/runtime-spawn facts.
 | Enemy combat policy constants are locked | `EnemyCombatPolicyTests` (spider bite range, crystal close range, lunge ray/tolerance). |
 | Enemy target resolver contract is locked | `EnemyTargetResolverContractTests` (resolver exposes `BuildCandidates`/`Find`/`Facts`/`SelectLimbIndex`/`LocalBody`, `EnemyTarget.ToFact`). |
 | Enemy combat order policy is locked | `EnemyCombatOrderPolicyTests` (null/remote/local for spider bite and crystal lunge, native/fallback/none for item hits). |
+| Spider-bite arbitration returns local and order policy owns the apply path | `EnemyCombatArbitrationTests.SelectBiteVictim_LocalVictimIsReturnedForTheOrderPolicy` + `EnemyCombatOrderPolicyTests.SpiderBite_LocalVictim_IsLocalNative`. |
 
 ## Verification
 
@@ -103,3 +105,6 @@ durable entity identity/health/runtime-spawn facts.
    Runtime decision surface with L0 tests. The director remains the Unity-side
    executor/reporter; the next step is deciding whether these apply paths
    become kernel processes/events or stay host-order commands.
+8. [x] Hand the spider-bite local-path decision fully to the order policy:
+   `SelectBiteVictim` now returns the nearest in-range victim including the
+   local body, and `DecideSpiderBite` owns `LocalNative` vs `RemoteOrder`.

@@ -4172,3 +4172,18 @@ branches from `EnemyCombatDirector` into a pure Runtime decision surface.
   command; it is not converted into a kernel presentation event.
 - **Tests** — `EnemyCombatOrderPolicyTests` locks null/remote/local and
   native/fallback/none. Full suite 1780 green.
+
+## 149. Spider-bite local-path handoff to the order policy (2026-08-30)
+
+The spider-bite arbitration no longer encodes the local-exclusion rule; the
+order policy owns the apply path.
+
+- **Arbitration** — `EnemyCombatArbitration.SelectBiteVictim` returns the
+  nearest in-range victim including the local body; the `localSteamId`
+  parameter is removed because the selection itself no longer needs it.
+- **Director** — `TryOrderSpiderBite` still uses `DecideSpiderBite`; a local
+  victim returns `LocalNative` and the native collision path remains
+  authoritative, while a remote victim returns `RemoteOrder`.
+- **Tests** — `EnemyCombatArbitrationTests` now asserts the local victim is
+  returned for the order policy, and `EnemyCombatOrderPolicyTests` locks the
+  subsequent `LocalNative` decision. Full suite 1780 green.

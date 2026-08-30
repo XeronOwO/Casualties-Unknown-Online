@@ -1,5 +1,10 @@
 # Cross-player shrapnel and timed tool use self-check
 
+> **HISTORICAL** — This selfcheck describes a superseded/removed wire path or
+> an intermediate architecture slice. It is retained for audit history, not as
+> current evidence. Check `docs/selfchecks/MANIFEST.md` and
+> `docs/architecture-evolution/protocol.md` before citing.
+
 Owner cycle: backlog "Cross-player item use" remaining tool slices. Decision:
 add `tweezers` (minigame-random shrapnel removal) and `medicalsuture` (timed
 bleed tick) to the existing `PlayerItemUseRequest`/`PlayerItemUseResult`

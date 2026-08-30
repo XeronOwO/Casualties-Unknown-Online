@@ -1,5 +1,10 @@
 # Piggyback drop cleanup — self-check (2026-08-26)
 
+> **HISTORICAL** — This selfcheck describes a superseded/removed wire path or
+> an intermediate architecture slice. It is retained for audit history, not as
+> current evidence. Check `docs/selfchecks/MANIFEST.md` and
+> `docs/architecture-evolution/protocol.md` before citing.
+
 Root-causes the remaining "after Drop the character cannot move" symptom from
 the carry/piggyback follow-ups.
 

@@ -1,5 +1,10 @@
 # Cross-player component medicine self-check
 
+> **HISTORICAL** — This selfcheck describes a superseded/removed wire path or
+> an intermediate architecture slice. It is retained for audit history, not as
+> current evidence. Check `docs/selfchecks/MANIFEST.md` and
+> `docs/architecture-evolution/protocol.md` before citing.
+
 Owner cycle: backlog "Cross-player item use" component-medicine candidate.
 Decision: add the `analgesicgauze` opiate component to the existing
 cross-player heal operation. No new wire message and no protocol bump; the

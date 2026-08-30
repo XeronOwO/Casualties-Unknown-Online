@@ -1,5 +1,10 @@
 # In-Flight Pickup Queue — Self-Check (2026-08-16)
 
+> **HISTORICAL** — This selfcheck describes a superseded/removed wire path or
+> an intermediate architecture slice. It is retained for audit history, not as
+> current evidence. Check `docs/selfchecks/MANIFEST.md` and
+> `docs/architecture-evolution/protocol.md` before citing.
+
 Delivery fact sheet for the pending-pickup hold window that replaces the old
 immediate `UnknownItem` reject when a pickup report beats its spawn report
 (backlog item "In-flight pickup reject friction").

@@ -1,5 +1,10 @@
 # Cross-player consumable use self-check
 
+> **HISTORICAL** — This selfcheck describes a superseded/removed wire path or
+> an intermediate architecture slice. It is retained for audit history, not as
+> current evidence. Check `docs/selfchecks/MANIFEST.md` and
+> `docs/architecture-evolution/protocol.md` before citing.
+
 Owner cycle: backlog "Cross-player item use (give/feed/drink/wear/use an item on
 another player)" first slice. Decision: implement drink/food consumable use only;
 leave wear, injectables and generic tool use as future extensions. The operation

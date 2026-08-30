@@ -1,5 +1,10 @@
 # Remote inventory UI follow-up — openable containers + host take toggle (2026-08-26)
 
+> **HISTORICAL** — This selfcheck describes a superseded/removed wire path or
+> an intermediate architecture slice. It is retained for audit history, not as
+> current evidence. Check `docs/selfchecks/MANIFEST.md` and
+> `docs/architecture-evolution/protocol.md` before citing.
+
 > **Superseded note**: the "native not reused" boundary below was later
 > corrected by `docs/selfchecks/native-remote-backpack-and-door-sound-selfcheck.md`
 > (#118), which ports the native radial backpack view for remote players.

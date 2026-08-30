@@ -31,18 +31,23 @@ and [`../verification.md`](../verification.md).
 
 ## Domain/feature self-checks
 
-Per-domain or per-mechanism fact sheets are named by topic, for example:
+Per-domain or per-mechanism fact sheets are named by topic. Prefer current-evidence
+sheets; use MANIFEST before citing historical ones.
 
-- Items: `item-service-split-selfcheck.md`, `custom-item-data-state-selfcheck.md`,
-  `container-content-sync-selfcheck.md`
-- Players / cross-player: `cross-player-item-use-selfcheck.md`,
-  `cross-player-medicine-use-selfcheck.md`, `carry-interaction-selfcheck.md`,
-  `remote-inventory-view-selfcheck.md`
-- Enemies: `enemy-targeting-selfcheck.md`, `enemy-combat-replay-split-selfcheck.md`,
-  `crystal-teleport-sync-selfcheck.md`
-- World/entities: `world-event-relay`-related sheets, `crystal-*-sync-selfcheck.md`
-- Fluids: `fluid-presentation-selfcheck.md`
-- Mod API: `mod-api`-related sheets (`mod-content-registration-selfcheck.md`,
-  `mod-native-api-selfcheck.md`, `mod-ui-selfcheck.md`, etc.)
+Current examples:
+- Items: `item-keyframe-state-selfcheck.md`,
+  `container-content-sync-selfcheck.md`, `custom-item-data-state-selfcheck.md`
+- Protocol: `netmsg-registry-selfcheck.md`, `world-entry-completion-selfcheck.md`
+- Players: `respawn-rules-selfcheck.md`, `remote-backpack-container-take-selfcheck.md`
+- Architecture: `phase-d-full-domain-migration-selfcheck.md`,
+  `phase-e-legacy-inventory-selfcheck.md`
+- Tooling: `partial-aware-gate-selfcheck.md`, `simtrace-diff-selfcheck.md`
 
-Use `Get-ChildItem docs/selfchecks -Filter *selfcheck.md` for the complete list.
+Historical/superseded examples (bannered as HISTORICAL):
+- `cross-player-item-use-selfcheck.md`, `cross-player-medicine-use-selfcheck.md`,
+  `carry-interaction-selfcheck.md`, `enemy-targeting-selfcheck.md`,
+  `pickup-inflight-selfcheck.md`, `online-ui-selfcheck.md`,
+  `world-item-service-partial-split-selfcheck.md`
+
+Use `Get-ChildItem docs/selfchecks -Filter *selfcheck.md` for the complete list and
+[`MANIFEST.md`](MANIFEST.md) for status.

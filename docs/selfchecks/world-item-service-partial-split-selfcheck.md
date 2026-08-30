@@ -1,5 +1,10 @@
 # WorldService / ItemService partial split — self-check
 
+> **HISTORICAL** — This selfcheck describes a superseded/removed wire path or
+> an intermediate architecture slice. It is retained for audit history, not as
+> current evidence. Check `docs/selfchecks/MANIFEST.md` and
+> `docs/architecture-evolution/protocol.md` before citing.
+
 Owner cycle: backlog architecture watchlist (files at/near the 600-line gate).
 Decision: split the two largest runtime service cursors into focused message-flow
 partials, without changing any behavior, domain ownership, DI registration,

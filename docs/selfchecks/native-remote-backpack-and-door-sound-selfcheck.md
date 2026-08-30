@@ -1,5 +1,10 @@
 # Native remote backpack view + shuttle-door trigger sound live replay — self-check (2026-08-26)
 
+> **HISTORICAL** — This selfcheck describes a superseded/removed wire path or
+> an intermediate architecture slice. It is retained for audit history, not as
+> current evidence. Check `docs/selfchecks/MANIFEST.md` and
+> `docs/architecture-evolution/protocol.md` before citing.
+
 > **Superseded note**: the read-only native backpack boundary described below
 > was later extended by `docs/selfchecks/remote-backpack-container-take-selfcheck.md`
 > (#122). The display proxies themselves are still never mutated; the drag

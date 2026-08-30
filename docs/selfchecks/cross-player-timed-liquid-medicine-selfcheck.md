@@ -1,5 +1,10 @@
 # Cross-player timed/random liquid medicine (injectable) self-check
 
+> **HISTORICAL** — This selfcheck describes a superseded/removed wire path or
+> an intermediate architecture slice. It is retained for audit history, not as
+> current evidence. Check `docs/selfchecks/MANIFEST.md` and
+> `docs/architecture-evolution/protocol.md` before citing.
+
 Owner cycle: backlog "Cross-player item use" remaining timed/random liquid
 medicine branches. Decision: extend the existing
 `PlayerItemUseRequest`/`PlayerItemUseResult` operation with an additive

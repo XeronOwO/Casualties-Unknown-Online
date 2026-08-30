@@ -1,5 +1,10 @@
 # Remote container content view — Online UI projection (no protocol bump)
 
+> **HISTORICAL** — This selfcheck describes a superseded/removed wire path or
+> an intermediate architecture slice. It is retained for audit history, not as
+> current evidence. Check `docs/selfchecks/MANIFEST.md` and
+> `docs/architecture-evolution/protocol.md` before citing.
+
 Owner cycle: backlog "Open another player's inventory/container — content sync
 and clone fact tables are correct, but the renderer does not display a remote
 player's container contents; a remote inventory UI remains." Decision for this

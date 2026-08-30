@@ -1,5 +1,10 @@
 # Enemy Targeting & Host-Ordered Attacks — Self-Check Table
 
+> **HISTORICAL** — This selfcheck describes a superseded/removed wire path or
+> an intermediate architecture slice. It is retained for audit history, not as
+> current evidence. Check `docs/selfchecks/MANIFEST.md` and
+> `docs/architecture-evolution/protocol.md` before citing.
+
 Delivery-cycle fact sheet for the enemy-targeting fix (route A). Every touched mechanism is listed
 with the change and its evidence; verification is L0/contract/simulation/smoke, not manual
 dual-open acceptance.

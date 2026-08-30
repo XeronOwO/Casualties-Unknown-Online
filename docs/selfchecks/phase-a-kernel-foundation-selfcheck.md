@@ -1,5 +1,10 @@
 # Phase A shadow kernel self-check (2026-08-27)
 
+> **HISTORICAL** — This selfcheck describes a superseded/removed wire path or
+> an intermediate architecture slice. It is retained for audit history, not as
+> current evidence. Check `docs/selfchecks/MANIFEST.md` and
+> `docs/architecture-evolution/protocol.md` before citing.
+
 This fact sheet records Phase A completion: the `GameState` project, typed
 deterministic kernel, Items first slice, production shadow wiring, replay
 differential, defect-family evidence, isolation gate, and tests.

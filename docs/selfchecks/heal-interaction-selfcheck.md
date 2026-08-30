@@ -1,5 +1,10 @@
 # Heal another player — direct player interaction slice (ProtocolVersion 28)
 
+> **HISTORICAL** — This selfcheck describes a superseded/removed wire path or
+> an intermediate architecture slice. It is retained for audit history, not as
+> current evidence. Check `docs/selfchecks/MANIFEST.md` and
+> `docs/architecture-evolution/protocol.md` before citing.
+
 Owner cycle: backlog "Direct player interaction (view/take items, carry, view
 vitals, heal)". Decision for this cycle: close the **heal another player**
 slice by making the host the cross-player authority for the healing operation.

@@ -1,5 +1,10 @@
 # Player inventory take — direct player interaction slice (ProtocolVersion 26)
 
+> **HISTORICAL** — This selfcheck describes a superseded/removed wire path or
+> an intermediate architecture slice. It is retained for audit history, not as
+> current evidence. Check `docs/selfchecks/MANIFEST.md` and
+> `docs/architecture-evolution/protocol.md` before citing.
+
 Owner cycle: backlog "Direct player interaction (view/take items, carry, view
 vitals, heal)" — the remaining take half. With view vitals + view items
 already landed, this slice implements the **"take items from another player"**

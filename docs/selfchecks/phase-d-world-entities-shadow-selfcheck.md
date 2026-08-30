@@ -22,7 +22,7 @@ into kernel-backed projection/snapshot adapters.
 | Runtime authority surface | `ItemKernelAuthority.TryRecordTrapConsumed/TryRecordBuildingEntityHealth/TryRecordOpenedEntity/TryResetWorldEntities/QueryWorldEntities` | Host commands and query entry points. |
 | Registry projections | `TrapConsumptionRegistry`, `OpenedEntityRegistry`, `BuildingEntityHealthRegistry` | The three old registries now commit through the kernel; they are no longer independent fact stores. The legacy snapshot payload builders were removed with the wire. |
 | Trap state production | `TrapStateProfiles` + `TrapStateRegistry` + `EntityEventSync` | Host-local `EntityEventChannel.SendEntityEvent` and the host-apply path for guest reports commit `RecordTrapStateCommand` for every stateful `EntityEventKind` edge. |
-| Guest checkpoint projection | `WorldEntityKernelProjection` + `EntityEventSync`/`WorldEventSync` | Guest `CheckpointRestored` raises the same flat fact lists the Game Adapter applies, providing the checkpoint-driven rebuild counterpart to the legacy snapshot wire. |
+| Guest checkpoint projection | `WorldEntityKernelProjection` + `EntityEventSync`/`WorldEventSync` | Guest `CheckpointRestored` raises one-shot consumption facts and non-one-shot trap state facts (transient `Warning` edges excluded) as the flat replay list the Game Adapter applies. |
 
 ## Evidence table
 
@@ -45,12 +45,13 @@ into kernel-backed projection/snapshot adapters.
 | Wire command round-trips `RecordTrapStateCommand` | `WorldEntityDomainKernelTests.WireCommandRoundTrip_BuildsRecordTrapStateCommand`. |
 | Host world control reports commit kernel facts | `WorldEntityProjectionTests.HostReports_CommitKernelWorldEntities`. |
 | Host world control reports commit kernel trap state facts | `WorldEntityProjectionTests.HostReports_CommitKernelTrapStateFacts`. |
+| Guest checkpoint restore projects non-one-shot trap state facts | `WorldEntityProjectionTests.GuestCheckpointRestore_ProjectsNonOneShotTrapStateFacts`. |
 | Guest checkpoint restore projects world-entity facts | `WorldEntityProjectionTests.GuestCheckpointRestore_ProjectsKernelWorldEntities`. |
 
 ## Verification
 
 - `dotnet build CasualtiesUnknownOnline.slnx`: 0 warnings / 0 errors.
-- `dotnet test CasualtiesUnknownOnline.slnx`: 1718 passed.
+- `dotnet test CasualtiesUnknownOnline.slnx`: 1719 passed.
 - `dotnet format`: applied.
 - Architecture/event/entity/isolation gates passed.
 
@@ -77,5 +78,8 @@ into kernel-backed projection/snapshot adapters.
 4. [x] Live production reporting landed: `TrapStateProfiles` maps
    `EntityEventKind` edges to `TrapPhase`, and `TrapStateRegistry` commits
    `RecordTrapStateCommand` from host-local and guest-triggered host-apply
-   paths. Next is guest view projection (BatchApplied → GameAdapter trap
-   presentation) and the cross-domain damage/drop batch.
+   paths.
+5. [x] Guest checkpoint projection landed: non-one-shot trap state facts are
+   included in the late-joiner replay list, while transient `Warning` edges are
+   intentionally not snapshotted. Next is the cross-domain damage/drop
+   batch.

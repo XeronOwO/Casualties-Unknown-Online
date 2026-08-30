@@ -3974,3 +3974,20 @@ The 4.2 shadow state machine is now fed by the live entity-event channel.
   same kernel batches through `KernelEnvelope`.
 - **Next** — guest-side `BatchApplied` projection into the Game Adapter trap
   presentation and the cross-domain damage/drop batch are still open.
+
+## 140. Guest checkpoint projection of non-one-shot trap states (2026-08-29)
+
+Late-joiner trap replay now includes kernel trap state-machine facts, not only
+one-shot consumptions.
+
+- **Rule** — `WorldEntityKernelProjection` emits one-shot consumption facts as
+  before, plus non-one-shot `TrapStateFact` entries as `EntityEventMsg`
+  replayed through the existing `TrapVisualReplay` path.
+- **Warning exclusion** — transient `TrapPhase.Warning` edges
+  (`MinePressed`, `CrystalUnstableTicked`) are intentionally excluded from the
+  checkpoint projection; they are not durable presentation facts and the
+  existing snapshot tests lock that behavior.
+- **Coverage** — non-one-shot durable states such as `BearTrapClamped`
+  (Triggered) ride the late-joiner checkpoint.
+- **Tests** — `WorldEntityProjectionTests.GuestCheckpointRestore_ProjectsNonOneShotTrapStateFacts`.
+  Full suite 1719 green.

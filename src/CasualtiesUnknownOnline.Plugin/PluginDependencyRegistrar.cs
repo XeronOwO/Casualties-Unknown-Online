@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using BepInEx.Configuration;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Configuration;
@@ -196,6 +197,21 @@ internal static class PluginDependencyRegistrar
 		// services and the adapter domains share the same visibility rule.
 		services.Replace(ServiceDescriptor.Singleton<IPlayerInteractionVisibility>(
 			p => p.GetRequiredService<GameAdapterImpl>()));
+
+		// Full-configuration templates: a named snapshot of every bound BepInEx
+		// entry, stored beside the live config. The store is plugin-side because
+		// it needs the concrete ConfigFile; the Runtime owns the mechanics.
+		var configDirectory = Path.GetDirectoryName(config.ConfigFilePath);
+		if (string.IsNullOrEmpty(configDirectory))
+		{
+			configDirectory = Directory.GetCurrentDirectory();
+		}
+
+		var profileDirectory = Path.Combine(configDirectory, "CasualtiesUnknownOnline.Profiles");
+		services.AddSingleton(p => new ConfigurationProfileStore(
+			config,
+			profileDirectory,
+			p.GetRequiredService<Microsoft.Extensions.Logging.ILogger<ConfigurationProfileStore>>()));
 
 		// Persist newly bound configuration entries (e.g. a fresh [UI] Language
 		// section on an existing install) so users can see and edit them.

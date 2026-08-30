@@ -5,6 +5,7 @@ using BepInEx.Configuration;
 using BepInEx.Logging;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime;
+using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Localization;
 using CasualtiesUnknownOnline.Runtime.Networking;
@@ -42,6 +43,7 @@ public class Plugin : BaseUnityPlugin
 	private ILocalizationService _localization = null!;
 	private HostRulesConfigEditor _rulesEditor = null!;
 	private LoggingConfigEditor _loggingEditor = null!;
+	private ConfigurationProfileStore _profileStore = null!;
 	private LocalizationConfigEditor _languageEditor = null!;
 	private EntitySyncService _entities = null!;
 	private RemoteVitalsService _remoteVitals = null!;
@@ -97,6 +99,7 @@ public class Plugin : BaseUnityPlugin
 			_rulesEditor = _services.GetRequiredService<HostRulesConfigEditor>();
 			_loggingEditor = _services.GetRequiredService<LoggingConfigEditor>();
 			_languageEditor = _services.GetRequiredService<LocalizationConfigEditor>();
+			_profileStore = _services.GetRequiredService<ConfigurationProfileStore>();
 			_entities = _services.GetRequiredService<EntitySyncService>();
 			_remoteVitals = _services.GetRequiredService<RemoteVitalsService>();
 			_remoteInventory = _services.GetRequiredService<RemoteInventoryService>();
@@ -125,6 +128,7 @@ public class Plugin : BaseUnityPlugin
 				JoinIp = _ipActions.Join,
 				LeaveIp = _ipActions.Leave,
 				IpConfig = _ipConfig,
+				Profiles = _profileStore,
 				TakeItem = _uiActions.TakeItemFromRemote,
 				OpenRemoteBackpack = (id, name) =>
 				{

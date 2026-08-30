@@ -21,6 +21,9 @@ Open work only. Landed delivery details are not duplicated here; they live in:
 - Architecture split pass completed: the previously near-limit item/session/
   character coordinators now delegate real responsibilities to dedicated
   helper classes and no coordinator is close to the 600-line gate.
+- Custom configuration template system landed (2026-08-31) — full BepInEx
+  config profiles can be saved/applied from the Preferences page; see
+  `docs/evidence/selfchecks/tooling/config-profile-templates-selfcheck.md`.
 
 ## Open bug (2026-08-27)
 
@@ -46,13 +49,6 @@ Open work only. Landed delivery details are not duplicated here; they live in:
   until PvE, rules, and accept-first arbitration are stable.
 - **Other lower-priority KrokMP candidates** — voice, vote-kick, and remaining
   player-list polish.
-
-### Configuration
-
-- **Custom configuration template system** — provide a reusable template system for
-  full configuration profiles (log level, language, display/nameplate/color
-  preferences, IP-direct/network settings). The default/built-in config should also
-  be editable and savable as a template.
 
 ### Networking observability / optimization
 

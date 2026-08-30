@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
+using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Localization;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
@@ -44,6 +45,8 @@ internal sealed class OnlineUiContext
 	internal LoggingConfigEditor? Logging;
 
 	internal LocalizationConfigEditor? Language;
+
+	internal ConfigurationProfileStore? Profiles;
 
 	internal IGameAdapter? Adapter;
 

@@ -29,5 +29,11 @@ internal sealed class OnlineUiWindowState
 
 	internal bool LanguageOptionsOpen;
 
+	internal string ProfileNameInput = "";
+
+	internal string? ProfileStatus;
+
+	internal bool ProfileStatusIsError;
+
 	internal OnlineUiTransportMode TransportMode = OnlineUiTransportMode.Steam;
 }

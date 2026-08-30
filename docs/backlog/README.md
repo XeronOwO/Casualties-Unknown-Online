@@ -18,6 +18,9 @@ Open work only. Landed delivery details are not duplicated here; they live in:
 - Item snapshot event-version gating is implemented: unreliable full-table
   keyframes carry a per-payload sequence plus the host kernel revision, and
   guests drop stale/out-of-order snapshots.
+- Architecture split pass completed: the previously near-limit item/session/
+  character coordinators now delegate real responsibilities to dedicated
+  helper classes and no coordinator is close to the 600-line gate.
 
 ## Open bug (2026-08-27)
 
@@ -119,12 +122,12 @@ Measurement-first items; do not optimize before data exists.
 Files at or near the 600-line gate should be split before the next feature lands in
 them:
 
-Current actual line counts (2026-08-31 check): `ItemApplication.cs` (599),
-`CharacterDataSync.cs` (599), `SessionService.cs` (596), `ItemService.cs` (583),
-`RunCoordinator.cs` (550), `EntitySyncService.cs` (548), `KernelProtocolService.cs` (516),
-`Plugin.cs` (496), `EnemyCombatDirector.cs` (376). `ItemApplication.cs`,
-`CharacterDataSync.cs`, and `SessionService.cs` are closest to the 600-line gate;
-the others are below it today.
+Current actual line counts (2026-08-31 after split pass): `ItemApplication.cs` (238),
+`SessionService.cs` (455), `KernelProtocolService.cs` (516), `ItemService.cs` (520),
+`CharacterDataSync.cs` (529), `EntitySyncService.cs` (548), `RunCoordinator.cs` (550),
+`Plugin.cs` (496), `EnemyCombatDirector.cs` (376). No coordinator is near the
+600-line gate today; the watchlist remains a before-landing check rather than an
+action item.
 
 `docs/decisions/active.md` is also large; future landing entries should consider a
 domain-split index if it keeps growing.

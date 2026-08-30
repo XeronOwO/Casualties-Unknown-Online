@@ -70,6 +70,32 @@ public class WorldEntityDomainKernelTests
 	}
 
 	[Fact]
+	public void DestroyedBuilding_RejectsPositiveHealthReport()
+	{
+		var kernel = new GameStateKernel(Epoch);
+		var position = new EntityPosition(3, 4);
+		Assert.True(RecordHealth(kernel, 1, position, 0f).IsAccepted);
+
+		var decision = RecordHealth(kernel, 2, position, 10f);
+
+		Assert.False(decision.IsAccepted);
+		Assert.Equal(RejectionReason.InvalidTransition, decision.Rejection!.Reason);
+	}
+
+	[Fact]
+	public void DestroyedBuilding_AllowsIdempotentZeroHealthReport()
+	{
+		var kernel = new GameStateKernel(Epoch);
+		var position = new EntityPosition(3, 4);
+		Assert.True(RecordHealth(kernel, 1, position, 0f).IsAccepted);
+
+		var decision = RecordHealth(kernel, 2, position, 0f);
+
+		Assert.True(decision.IsAccepted);
+		Assert.Single(kernel.QueryWorldEntities()!.BuildingHealth);
+	}
+
+	[Fact]
 	public void SamePositionOpened_IsIdempotent()
 	{
 		var kernel = new GameStateKernel(Epoch);

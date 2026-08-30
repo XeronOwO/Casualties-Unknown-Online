@@ -3868,3 +3868,16 @@ separate from the high-frequency RLE grid stream.
   kernel checkpoints/batches, matching the Phase D projection rule.
 - **Tests** — checkpoint restore, batch upsert/replace, reset, and host no-op
   cases are covered by `FluidKernelReadProjectionTests`. Full suite 1706 green.
+
+## 134. Destroyed building entities cannot be revived by health reports (2026-08-29)
+
+WorldEntities adds the first 4.2 lifecycle invariant.
+
+- **Rule** — once `BuildingEntityHealthFact.Health` is recorded as `0`, a later
+  positive health report for the same position is rejected with
+  `RejectionReason.InvalidTransition`.
+- **Idempotent zero** — a repeated zero report is still accepted, so the
+  checkpoint/late-joiner path can re-send a destroyed entity fact without
+  spurious rejection.
+- **Tests** — `WorldEntityDomainKernelTests.DestroyedBuilding_RejectsPositiveHealthReport`
+  and `DestroyedBuilding_AllowsIdempotentZeroHealthReport`. Full suite 1708 green.

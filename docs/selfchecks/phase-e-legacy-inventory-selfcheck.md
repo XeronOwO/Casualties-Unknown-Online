@@ -31,6 +31,7 @@ land; it is not a permission to keep legacy code indefinitely.
 |---|---|---|---|
 | 2026-08-30 | Remove dead `ItemCheckpointStore` | `ItemCheckpointStore.cs`, `ItemCheckpointStoreTests.cs`, DI registration | `dotnet build` 0 warnings/0 errors; 1792 tests passed; format + architecture/event/entity/delivery gates passed |
 | 2026-08-30 | Rename `KernelShadow` -> `KernelAuthority` and remove `Shadow` naming from `src/` | `ItemService.cs`, `CraftSyncService.cs`, `ItemKernelAuthority.cs`, `ItemSimWorld.cs`, `ReplayTests.cs`, `ItemKernelShadowTests.cs` -> `ItemKernelConvenienceTests.cs` | `dotnet build` 0 warnings/0 errors; 1792 tests passed; format + architecture/event/entity/delivery gates passed |
+| 2026-08-30 | Add Phase E no-legacy guard | `tools/check-no-legacy.ps1`, `tools/check-architecture.ps1`, `docs/architecture-guards.md` | Architecture gate passed (including new no-legacy scan) |
 
 ## Next actions
 
@@ -38,5 +39,5 @@ land; it is not a permission to keep legacy code indefinitely.
 2. [x] Rename remaining Shadow-compatible names to non-shadow names where they are production
    entry points, keeping behavior identical.
 3. Audit per-domain session reset paths and move them onto `RunEpoch`/kernel restore.
-4. Add the Phase E guard: a source scan that fails on legacy/double-write patterns that
+4. [x] Add the Phase E guard: a source scan that fails on legacy/double-write patterns that
    remain after the planned removals.

@@ -59,3 +59,7 @@ tokens in `src/CasualtiesUnknownOnline.GameState`.
 Phase B addendum: `tools/check-item-authority.ps1` runs inside the same architecture
 gate and rejects direct mutations of `WorldItemTable`/transfer-table state outside
 the item projection classes, so old tables stay rebuildable projections.
+
+Phase E addendum: `tools/check-no-legacy.ps1` runs inside the same architecture gate
+and rejects dual-architecture type declarations (`Shadow`/`Legacy`/`Compat`/`Dual`)
+plus known removed direct-result/legacy wire markers in `src/`.

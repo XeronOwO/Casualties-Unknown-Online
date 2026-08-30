@@ -10,7 +10,7 @@ Live tracker for the CUO architecture iteration.
 | Current phase | Phase E — Delete dual architecture |
 | Current phase status | In progress — Phase E legacy inventory landed; first dead seam (`ItemCheckpointStore`) removed; generic Prediction Runtime deferred to Phase E (see tech-decisions.md #157) |
 | Last status update | 2026-08-30 |
-| Next work session | Continue Phase E: rename remaining Shadow-compatible production names, audit session reset paths, and add the no-legacy guard before further deletions. |
+| Next work session | Continue Phase E: audit per-domain session reset paths, unify them on `RunEpoch`/kernel restore, and continue deleting legacy surfaces in verified batches. |
 | Protocol/save compatibility | The new four-envelope protocol and checkpoint save stack are the production item paths. Old item packet handlers/DTOs and the corresponding `NetMsg` item enums have been fully removed; the only legacy item-frame survivor is `ItemReject` for block-break drop refusal. World/Run, WorldEntities, Players (status, limb latches, body latches, skills, carry), Enemy, and Fluids kernel/checkpoint baselines now exist; WorldEntities world-entry backfill rides the kernel checkpoint, carry state now rides `KernelEnvelope` committed batches (`NetMsg.PlayerCarryState` removed), enemy combat results (bite/lunge/proximity) now ride journal-only kernel events (`NetMsg.EnemyBite`/`EnemyLunge`/`EnemyEffect` removed), and enemy aggregate removal rides `EnemyRemovedEvent` (`NetMsg.EnemyRemoved` removed). |
 
 ## Phase status

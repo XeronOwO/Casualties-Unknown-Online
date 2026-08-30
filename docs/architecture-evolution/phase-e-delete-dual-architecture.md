@@ -132,6 +132,7 @@ Out of scope:
 |---|---|---|---|---|
 | 2026-08-30 | Phase E start: legacy inventory + remove dead `ItemCheckpointStore` | current | 1792 tests green; build/format/architecture/event/entity/delivery gates pass | Inventory recorded in `docs/selfchecks/phase-e-legacy-inventory-selfcheck.md`; removed the Phase B temporary in-memory checkpoint store and its DI registration/tests. |
 | 2026-08-30 | Phase E second batch: remove `Shadow` naming from production | current | 1792 tests green; build/format/architecture/event/entity/delivery gates pass | Renamed `ItemService.KernelShadow` to `KernelAuthority`, updated CraftSyncService/tests, renamed the kernel convenience test class, and removed the last `Shadow` token from `src/`. |
+| 2026-08-30 | Phase E third batch: add no-legacy architecture guard | current | Architecture gate passed with the new `check-no-legacy.ps1` scan | Created `tools/check-no-legacy.ps1`, wired it into `tools/check-architecture.ps1`, and documented the Phase E addendum in `docs/architecture-evolution/architecture-guards.md`. |
 
 ## Next actions
 

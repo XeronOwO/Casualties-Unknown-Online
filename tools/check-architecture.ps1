@@ -157,5 +157,12 @@ if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
 
+# Phase E: no legacy/shadow/compat type markers or removed direct wire may
+# remain in production source.
+& (Join-Path $PSScriptRoot "check-no-legacy.ps1")
+if ($LASTEXITCODE -ne 0) {
+    exit $LASTEXITCODE
+}
+
 Write-Host "Architecture gate passed." -ForegroundColor Green
 exit 0

@@ -4362,3 +4362,27 @@ Runtime is deferred to Phase E.
   `PlayerInteractionAuthorityPolicyTests` (#154), the full suite at 1794
   green, and the Phase D Players self-check. No new code/test was required for
   this decision.
+
+## 158. Phase E kernel reset centralization and guard suite (2026-08-30)
+
+Phase E cleanup decisions recorded as the first concrete batches land.
+
+- **Kernel reset ownership** — `ItemKernelAuthority.ResetForSession()` is the
+  authoritative fresh-epoch reset. It now lives in
+  `KernelProtocolService.ResetForSessionEnd()`, so the kernel lifecycle is
+  owned by the protocol/kernel service rather than the item domain coordinator.
+  `ItemService` only clears item projections/caches.
+- **No-legacy guard** — `tools/check-no-legacy.ps1` runs inside
+  `check-architecture.ps1` and rejects `Shadow`/`Legacy`/`Compat`/`Dual` type
+  declarations and known removed direct-result wire markers in `src/`.
+- **Command authority guard** — `tools/check-command-authority.ps1` requires
+  every `GameCommand` subclass in GameState to carry an authority policy.
+- **Kernel shape guard** — `tools/check-kernel-shape.ps1` rejects
+  string-keyed/`Hashtable` core state in GameState.
+- **Facade narrowing** — `CraftSyncService` now depends on
+  `ItemKernelAuthority` directly; the `ItemService.KernelAuthority` passthrough
+  and test-only `KernelForDiagnostics` accessor were removed. The
+  `ItemDiagnosticsProjection` shadow differential was moved from GameState to a
+  test-only helper.
+- **Evidence** — full suite 1792 green; build/format/architecture/strict
+  architecture/event/entity/delivery gates pass.

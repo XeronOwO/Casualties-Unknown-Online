@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using CasualtiesUnknownOnline.Runtime.Protocol;
@@ -44,14 +43,11 @@ internal sealed class EnemyCombatDirector(
 		typeof(SpiderHandler).GetField("threatWorkaround", BindingFlags.Instance | BindingFlags.NonPublic);
 
 	private readonly ISessionControl _session = session;
-	private readonly IEntitySyncControl _entities = entities;
 	private readonly EnemySyncService _enemies = enemies;
 	private readonly EnemySyncCoordinator _enemySync = enemySync;
-	private readonly RemotePlayerRenderer _renderer = renderer;
+	private readonly EnemyTargetResolver _targets = new(session, entities, renderer);
 	private readonly ILogger<EnemyCombatDirector> _log = log;
 
-	private readonly List<EnemyTarget> _candidates = [];
-	private int _candidateFrame = -1;
 	private bool _biteFieldMissingLogged;
 
 	/// <summary>Per-frame pump: host-ordered spider-bite arbitration (crystal lunge rides the Lunge patch callback).</summary>
@@ -83,8 +79,8 @@ internal sealed class EnemyCombatDirector(
 			return;
 		}
 
-		var target = FindTarget(EnemyCombatArbitration.SelectNearest(
-			Facts(), ToNetVector2(spider.transform.position), spider.seeDistance));
+		var target = _targets.Find(EnemyCombatArbitration.SelectNearest(
+			_targets.Facts(), ToNetVector2(spider.transform.position), spider.seeDistance));
 		if (target is null)
 		{
 			return;
@@ -107,10 +103,10 @@ internal sealed class EnemyCombatDirector(
 		}
 
 		var fact = EnemyCombatArbitration.SelectNearest(
-			BuildCandidates().Where(c => c.Body != null).Select(c => c.ToFact()),
+			_targets.BuildCandidates().Where(c => c.Body != null).Select(c => c.ToFact()),
 			ToNetVector2(crystal.transform.position),
 			EnemyCombatPolicy.CrystalCloseRange);
-		if (fact is { } selected && FindTarget(selected)?.Body is { } targetBody)
+		if (fact is { } selected && _targets.Find(selected)?.Body is { } targetBody)
 		{
 			body = targetBody;
 		}
@@ -144,8 +140,8 @@ internal sealed class EnemyCombatDirector(
 		var direction = new Vector2(crystal.transform.up.x, crystal.transform.up.y);
 		var groundDistance = FirstGroundDistance(origin, direction, crystal.transform);
 		var fact = EnemyCombatArbitration.SelectLungeVictim(
-			Facts(), ToNetVector2(origin), ToNetVector2(direction), groundDistance, EnemyCombatPolicy.CrystalRayTolerance);
-		var target = FindTarget(fact);
+			_targets.Facts(), ToNetVector2(origin), ToNetVector2(direction), groundDistance, EnemyCombatPolicy.CrystalRayTolerance);
+		var target = _targets.Find(fact);
 		if (target is null)
 		{
 			return null; // no player in the ray — nothing to order or report
@@ -153,7 +149,7 @@ internal sealed class EnemyCombatDirector(
 
 		if (target.SteamId != _session.LocalSteamId)
 		{
-			var limbIndex = SelectLimbIndex(target, origin);
+			var limbIndex = _targets.SelectLimbIndex(target, origin);
 			_enemies.SendEnemyAttack(new EnemyAttackMsg
 			{
 				EnemyId = enemyId.ToNetworkEntityIdMsg(),
@@ -166,7 +162,7 @@ internal sealed class EnemyCombatDirector(
 			return null;
 		}
 
-		var body = LocalBody();
+		var body = _targets.LocalBody();
 		return body != null ? CrystalLungeTrace.Capture(body) : null; // Unity object — ==; the native raycast handles the local hit
 	}
 
@@ -238,14 +234,14 @@ internal sealed class EnemyCombatDirector(
 			return null;
 		}
 
-		var localBody = LocalBody();
+		var localBody = _targets.LocalBody();
 		var nativeHandled = localBody != null &&
 			Vector2.Distance(spider.transform.position, localBody.transform.position) < EnemyItemHitArbitration.PlayerRadius;
 
 		if (!nativeHandled)
 		{
 			var hasNearbyPlayer = EnemyItemHitArbitration.AnyPlayerWithin(
-				BuildCandidates().Select(c => c.ToFact().Position),
+				_targets.BuildCandidates().Select(c => c.ToFact().Position),
 				ToNetVector2(spider.transform.position),
 				EnemyItemHitArbitration.PlayerRadius);
 			if (!hasNearbyPlayer)
@@ -305,8 +301,8 @@ internal sealed class EnemyCombatDirector(
 
 		var cooldown = (float)BiteCooldownField.GetValue(spider);
 		var fact = EnemyCombatArbitration.SelectBiteVictim(
-			Facts(), ToNetVector2(spider.transform.position), EnemyCombatPolicy.SpiderBiteRange, cooldown, spider.stunTime, _session.LocalSteamId);
-		var target = FindTarget(fact);
+			_targets.Facts(), ToNetVector2(spider.transform.position), EnemyCombatPolicy.SpiderBiteRange, cooldown, spider.stunTime, _session.LocalSteamId);
+		var target = _targets.Find(fact);
 		if (target is null)
 		{
 			return; // cooldown/stun closed, nobody in bite range, or the local body rides the native collision path
@@ -318,7 +314,7 @@ internal sealed class EnemyCombatDirector(
 			return;
 		}
 
-		var limbIndex = SelectLimbIndex(target, spider.transform.position);
+		var limbIndex = _targets.SelectLimbIndex(target, spider.transform.position);
 		_enemies.SendEnemyAttack(new EnemyAttackMsg
 		{
 			EnemyId = enemyId.ToNetworkEntityIdMsg(),
@@ -344,27 +340,7 @@ internal sealed class EnemyCombatDirector(
 			enemyId, target.SteamId, limbIndex);
 	}
 
-	// ---- Target resolution ----
-
-	private EnemyTarget? FindTarget(EnemyTargetFact? fact)
-	{
-		if (fact is not { } selected)
-		{
-			return null;
-		}
-
-		foreach (var candidate in BuildCandidates())
-		{
-			if (candidate.SteamId == selected.SteamId)
-			{
-				return candidate;
-			}
-		}
-
-		return null;
-	}
-
-	private IEnumerable<EnemyTargetFact> Facts() => BuildCandidates().Select(c => c.ToFact());
+	// ---- Target resolution helpers ----
 
 	private static NetVector2 ToNetVector2(Vector2 value) => new(value.x, value.y);
 
@@ -386,83 +362,6 @@ internal sealed class EnemyCombatDirector(
 		}
 
 		return best;
-	}
-
-	private int SelectLimbIndex(EnemyTarget target, Vector2 from)
-	{
-		var body = target.SteamId == _session.LocalSteamId
-			? LocalBody()
-			: (_renderer.TryGetRemoteBody(target.SteamId, out var remoteBody) ? remoteBody : null);
-		return body != null ? BodyLimbIndex(body, from) : -1; // Unity object — ==; -1 = the victim picks its closest limb
-	}
-
-	private static int BodyLimbIndex(Body body, Vector2 from)
-	{
-		var limb = body.GetClosestLimb(from);
-		for (var i = 0; i < body.limbs.Length; i++)
-		{
-			if (body.limbs[i] == limb) // Unity object — ==
-			{
-				return i;
-			}
-		}
-
-		return -1;
-	}
-
-	private Body? LocalBody()
-	{
-		var playerCamera = PlayerCamera.main;
-		return playerCamera != null ? playerCamera.body : null; // Unity objects — ==
-	}
-
-	private List<EnemyTarget> BuildCandidates()
-	{
-		if (_candidateFrame == Time.frameCount)
-		{
-			return _candidates;
-		}
-
-		_candidates.Clear();
-		var localBody = LocalBody();
-		if (localBody != null) // Unity object — ==
-		{
-			_candidates.Add(new EnemyTarget(
-				_session.LocalSteamId,
-				new Vector2(localBody.transform.position.x, localBody.transform.position.y),
-				localBody));
-		}
-
-		foreach (var remote in _entities.RemotePlayers)
-		{
-			// StateReceivedMs < 0 = no report yet; the (0,0) buffer default would
-			// drag enemies to the world origin.
-			if (remote.StateReceivedMs < 0 || !_session.IsRemoteInWorld(remote.SteamId))
-			{
-				continue;
-			}
-
-			_renderer.TryGetRemoteBody(remote.SteamId, out var remoteBody);
-			_candidates.Add(new EnemyTarget(
-				remote.SteamId,
-				new Vector2(remote.Position.X, remote.Position.Y),
-				remoteBody));
-		}
-
-		_candidateFrame = Time.frameCount;
-		return _candidates;
-	}
-
-	/// <summary>One in-world player the host-side enemy AI may target (position from the authoritative entity stream; body for limb resolution when a clone exists).</summary>
-	private sealed class EnemyTarget(ulong steamId, Vector2 position, Body? body)
-	{
-		internal ulong SteamId { get; } = steamId;
-
-		internal Vector2 Position { get; } = position;
-
-		internal Body? Body { get; } = body;
-
-		internal EnemyTargetFact ToFact() => new(SteamId, new NetVector2(Position.x, Position.y));
 	}
 
 }

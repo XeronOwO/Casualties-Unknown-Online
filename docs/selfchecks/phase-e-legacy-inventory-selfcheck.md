@@ -40,22 +40,24 @@ land; it is not a permission to keep legacy code indefinitely.
 | 2026-08-30 | Add command-authority architecture guard | `tools/check-command-authority.ps1`, `tools/check-architecture.ps1`, `docs/architecture-guards.md` | Architecture gate passed with command authority scan |
 | 2026-08-30 | Add kernel-shape architecture guard | `tools/check-kernel-shape.ps1`, `tools/check-architecture.ps1`, `docs/architecture-guards.md` | Architecture gate passed with kernel shape scan |
 | 2026-08-30 | Remove `ItemService.KernelAuthority` facade | `CraftSyncService.cs`, `ItemService.cs`, `ItemSimWorld.cs` | `dotnet build` 0 warnings/0 errors; 1792 tests passed; format + architecture/event/entity/delivery gates passed |
+| 2026-08-30 | Centralize kernel reset in `KernelProtocolService` | `KernelProtocolService.cs`, `ItemService.cs` | `dotnet build` 0 warnings/0 errors; 1792 tests passed; format + architecture/event/entity/delivery gates passed |
 
 ## Session reset audit (2026-08-30)
 
 - **Kernel authoritative reset** — `ItemKernelAuthority.ResetForSession()` is the only
   production call site that creates a fresh `GameStateKernel` and increments the
-  `RunEpoch`. It is invoked by the private `ItemService.ResetSessionState()` on `SessionEnded`.
+  `RunEpoch`. It is invoked from `KernelProtocolService.ResetForSessionEnd()` on
+  `SessionEnded`; the item domain no longer owns the kernel reset.
 - **Projection/transient reset** — `CharacterDataStore`, `WorldService`,
   `EntitySyncService`, `EnemySyncService`, `PlayerCarryService`, and the other session
   services clear only projection/transient caches on `SessionEnded`. They do not write
   kernel domain tables directly.
-- **Protocol reset** — `KernelProtocolService.ResetForSessionEnd()` clears journal,
-  checkpoint chunks, and pending batches; `RunEpoch` filtering remains the wire-level
-  guard against old-epoch packets.
-- **Conclusion** — no per-domain session reset bypass was found. The current design is
-  already unified around a single kernel epoch reset plus projection caches; no
-  additional reset coordinator is required.
+- **Protocol/reset lifecycle** — `KernelProtocolService.ResetForSessionEnd()` now
+  performs the kernel authority reset first, then clears journal, checkpoint chunks,
+  and pending batches; `RunEpoch` filtering remains the wire-level guard against
+  old-epoch packets.
+- **Conclusion** — session reset is centralized in the kernel protocol lifecycle.
+  No per-domain reset bypass exists; no additional reset coordinator is required.
 
 
 ## Next actions

@@ -255,7 +255,7 @@ public sealed class WorldService : IWorldControl, IDisposable
 
 	public void ReportTrapState(EntityEventKind kind, float x, float y, byte extra) => _channels.ReportTrapState(kind, x, y, extra);
 
-	public void ReportTrapEvent(EntityEventKind kind, float x, float y, byte extra, float? buildingHealth = null) => _channels.ReportTrapEvent(kind, x, y, extra, buildingHealth);
+	public void ReportTrapEvent(EntityEventKind kind, float x, float y, byte extra, float? buildingHealth = null, IReadOnlyList<BuildingEntityHealthEntryMsg>? additionalHealth = null) => _channels.ReportTrapEvent(kind, x, y, extra, buildingHealth, additionalHealth);
 
 	public event Action<ulong, EntitySpawnedMsg>? EntitySpawnedReceived { add => _channels.EntitySpawnedReceived += value; remove => _channels.EntitySpawnedReceived -= value; }
 

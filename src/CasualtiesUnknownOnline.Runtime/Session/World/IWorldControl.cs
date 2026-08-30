@@ -228,7 +228,7 @@ public interface IWorldControl
 	/// state-machine transition (when the kind has a state profile), and an
 	/// optional destroyed-building health observation together.
 	/// </summary>
-	void ReportTrapEvent(EntityEventKind kind, float x, float y, byte extra, float? buildingHealth = null);
+	void ReportTrapEvent(EntityEventKind kind, float x, float y, byte extra, float? buildingHealth = null, IReadOnlyList<BuildingEntityHealthEntryMsg>? additionalHealth = null);
 
 	/// <summary>
 	/// Report a runtime world-entity creation (outside generation — the spawn

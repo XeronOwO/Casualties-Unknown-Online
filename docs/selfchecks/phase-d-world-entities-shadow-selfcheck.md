@@ -105,3 +105,7 @@ into kernel-backed projection/snapshot adapters.
    `CompositeGameCommand` (via `TryExecuteCommand` so the host projection
    materializes/broadcasts them). Ordinary building deaths without a pending
    trap still use the standalone spawn path.
+9. [x] 4.2 checklist closed: building/entity lifecycle is covered by
+   `BuildingEntityHealthFact`/`BuildingEntityHealthUpdatedEvent` plus the
+   destroyed-building invariant; trap presentation is replay/projection through
+   `TrapVisualReplay` and `WorldEntityKernelProjection`, not authority.

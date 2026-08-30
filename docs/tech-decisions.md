@@ -3900,3 +3900,33 @@ as kernel `EnemyRemovedEvent` and travel inside `KernelEnvelope`.
 - **Tests** — `EnemySyncServiceTests.KernelRemovalBatch_RemovesEnemyAndRaisesEvent`
   plus the existing resurrection/convergence tests were moved to kernel batch
   application. Full suite 1707 green.
+
+## 136. Enemy removal terminal tombstones in kernel (2026-08-29)
+
+Enemy lifecycle is now final in the kernel, not only in the guest runtime buffer.
+
+- **Rule** — `EnemyStateTable.Removed` holds terminal tombstones. A later
+  `UpsertEnemyCommand` for a removed id is rejected with
+  `RejectionReason.InvalidTransition`; `EnemyStateTable.Upsert` also refuses to
+  add an `EnemyUpsertedEvent` replay for a removed id, so replay cannot
+  resurrect a destroyed enemy.
+- **Persistence** — `WireCheckpoint.RemovedEnemies` and
+  `KernelSaveFile.RemovedEnemies` carry the tombstone set through checkpoint
+  wire and disk save; `WireCheckpointAssembler` / `KernelSaveFileStore`
+  reconstruct `EnemyStateTable` with an empty live list and non-empty removed
+  list.
+- **Guest restore** — `EnemySyncService.OnKernelCheckpointRestored` seeds
+  `_removedEnemies` from checkpoint tombstones, so late state batches and full
+  snapshots after a checkpoint restore cannot resurrect a removed id.
+- **Reset** — `ResetEnemiesCommand` clears both live enemies and tombstones,
+  allowing a fresh lifecycle after a kernel reset.
+- **Tests** — domain and session tests cover post-removal rejection, replay
+  no-op, duplicate-removal idempotence, checkpoint/save tombstone round-trip,
+  and guest checkpoint seeding. Full suite 1712 green.
+
+## 137. Protocol version baseline before first release (2026-08-29)
+
+Since CUO has no released compatibility surface, `ProtocolVersion.Current` is
+reset to 1 instead of continuing the pre-release bump sequence. New wire/save
+shapes do not need a monotonic version until the first released build has to
+talk to older builds.

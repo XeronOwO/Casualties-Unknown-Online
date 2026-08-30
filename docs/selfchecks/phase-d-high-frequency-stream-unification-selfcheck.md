@@ -15,7 +15,7 @@ batch, and the Game Adapter destroys the corresponding frozen guest copy.
 | Guest projection | `EnemySyncService.OnKernelBatchApplied` | Guest applies `EnemyRemovedEvent` from the committed batch, removes the buffer, and raises `EnemyRemovedReceived`. |
 | Host diff | `EnemySyncService.PublishEnemyStates` + `EnemyKernelProjection.Sync` | Computes ids that left the previous set and commits `RemoveEnemyCommand`; the accepted batch is broadcast to guests. |
 | Guest destruction | `EnemySyncCoordinator.OnEnemyRemoved` | Removes mapping state and destroys the local frozen `BuildingEntity` copy. |
-| Removal tombstone | `EnemySyncService._removedEnemies` | Guest-side session-scoped tombstone set; late/out-of-order state batches and full snapshots cannot resurrect an explicitly removed id. |
+| Removal tombstone | `EnemySyncService._removedEnemies` + `EnemyStateTable.Removed` | Guest-side session-scoped tombstone set seeded from checkpoint tombstones; late/out-of-order state batches and full snapshots cannot resurrect an explicitly removed id. |
 | Full snapshot | `EnemySyncService.ApplyEnemySnapshot` | Remains full-overwrite for world entry / reconnect, where a complete set is correct. |
 | Kernel terminal revision guard | `EnemySyncService` + `WireStateStream.BaseGlobalRevision` | Guest tracks the kernel global revision of each enemy terminal health event; a stale 20 Hz stream older than that event preserves terminal health/stunned while still applying continuous position/velocity. |
 | Player stream lifecycle audit | `EntitySyncService` + `PlayerJoin`/`PlayerLeave` | Player stream is update-only for existing buffers; explicit `PlayerJoin`/`PlayerLeave` owns aggregate lifecycle, so a state batch missing a player is not a removal. |
@@ -33,6 +33,8 @@ batch, and the Game Adapter destroys the corresponding frozen guest copy.
 | Dropped state batches still converge through a reliable kernel removal | `EnemySyncServiceTests.RemovedEnemy_ConvergesEvenWhenStateBatchDrops`. |
 | A late update-only state batch cannot resurrect a removed enemy | `EnemySyncServiceTests.RemovedEnemy_NotResurrectedByLateStateBatch`. |
 | A full snapshot cannot resurrect a removed enemy | `EnemySyncServiceTests.RemovedEnemy_NotResurrectedByFullSnapshot`. |
+| A checkpoint tombstone seeds the guest removed set | `EnemySyncServiceTests.CheckpointTombstone_SeedsGuestRemovedSet`. |
+| A replay upsert event after removal is a no-op | `EnemyDomainKernelTests.ReplayUpsertAfterRemoval_DoesNotResurrect`. |
 | The legacy removal wire row is removed from direction classification | `DirectionTests` no longer lists `NetMsg.EnemyRemoved`. |
 | A player state batch missing a player does not remove the buffer | `StateStreamTests.PlayerStateBatch_MissingPlayer_DoesNotRemoveExistingBuffer`. |
 | PlayerLeave removes the guest's remote player buffer | `StateStreamTests.PlayerLeave_RemovesRemoteBuffer`. |
@@ -46,7 +48,7 @@ batch, and the Game Adapter destroys the corresponding frozen guest copy.
 ## Verification
 
 - `dotnet build CasualtiesUnknownOnline.slnx`: 0 warnings / 0 errors.
-- `dotnet test CasualtiesUnknownOnline.slnx`: 1707 passed.
+- `dotnet test CasualtiesUnknownOnline.slnx`: 1712 passed.
 - `dotnet format`: applied.
 - Architecture / event / entity / isolation / delivery gates passed.
 
@@ -74,3 +76,7 @@ batch, and the Game Adapter destroys the corresponding frozen guest copy.
    `KernelEnvelope`; `NetMsg.EnemyRemoved`, `EnemyRemovedMsg`, and
    `EnemyRemovedHandler` are removed.
 5. Continue with Phase D player supplements and world-entity snapshot cleanup.
+6. [x] Kernel removal is now terminal and replay-safe: `EnemyStateTable.Removed`
+   tombstones reject post-destruction upserts and make stale replay upserts
+   no-ops; tombstones persist through checkpoint/wire/save and seed the guest
+   runtime removed set.

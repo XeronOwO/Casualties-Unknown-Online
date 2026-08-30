@@ -4,7 +4,10 @@ This file is the landing log for binding technical decisions that were once inli
 workspace instruction file. Each entry states the decision, the reasoning, and enough
 traceability (commit hashes, protocol versions, `file:line` evidence) to audit it later.
 The live rules and conventions stay in the workspace instructions; the architecture
-blueprint stays in [architecture.md](architecture.md).
+reference stays in
+[`architecture-evolution/README.md`](architecture-evolution/README.md) and
+[`architecture-evolution/current-architecture.md`](architecture-evolution/current-architecture.md).
+`docs/architecture.md` is now a historical pre-kernel blueprint.
 
 ## 1. Technical stack & toolchain
 

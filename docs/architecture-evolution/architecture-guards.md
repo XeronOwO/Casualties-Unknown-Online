@@ -1,8 +1,9 @@
 # Architecture Guards
 
-Planned enforcement rules for the new architecture. These are intended to become
-tooling/CI checks as the corresponding phase lands. They are listed here so each phase
-can add the applicable guards early instead of discovering violations later.
+Active enforcement rules for the typed deterministic kernel. They are implemented as
+tools checks inside `tools/check-architecture.ps1`; they were added phase by phase and
+are now a standing guard suite. The list is retained here as the authoritative set of
+kernel-shaped invariants.
 
 ## Mandatory guard list
 

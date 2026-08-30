@@ -14,8 +14,9 @@ simulation with guest input/state sync.
 - Replaceable **Game Adapter**: the only layer that knows the game's private types and
   absorbs game-update churn.
 
-[REF] Architecture: `docs/architecture.md` · Decisions: `docs/tech-decisions.md` ·
-Planned architecture iteration: `docs/architecture-evolution/README.md`.
+[REF] Active architecture: `docs/architecture-evolution/README.md` ·
+Current design: `docs/architecture-evolution/current-architecture.md` ·
+Decisions: `docs/tech-decisions.md` · Evidence: `docs/verification.md`.
 
 ## Repository Layout
 
@@ -83,13 +84,15 @@ powershell -File tools/check-delivery.ps1         # final commit of each deliver
 
 ## Development Phases
 
-Current: **Phase 3 native game-content follow-through**; Phase 4 Mod API core rounds have
-landed and the remainder is MEDIUM until native content is covered. The planned
-typed-deterministic-kernel architecture iteration is tracked separately in
-`docs/architecture-evolution/status.md`.
+Current: **Architecture evolution complete (Phases A–E).** Native game-content sync,
+the Phase 4 Mod API, and the typed-deterministic-kernel migration are complete. The
+typed kernel is the only supported architecture; see
+`docs/architecture-evolution/README.md` for the active architecture and
+`docs/backlog.md` for remaining/future work.
 
 MVP explicitly excludes: host migration, dedicated server, auto mod install, generic
-physics sync, client prediction, full anti-cheat.
+physics sync, client prediction, full anti-cheat. The generic Prediction Runtime is
+a separate future architecture item, not part of the completed evolution.
 
 ## Engineering Conventions (binding)
 

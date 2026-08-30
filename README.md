@@ -6,7 +6,7 @@ The base game ships without multiplayer. CUO adds Steam-based **Host + Guests** 
 
 ## Status
 
-**Active development — architecture evolution complete.** Phases 0–3 (feasibility, single-player entity sync, entity lifecycle, game core loop) are complete and runtime-verified; Phase D (full domain migration to the typed deterministic game-state kernel) and Phase E (delete dual architecture / legacy surfaces) are complete. See [`docs/architecture-evolution/README.md`](docs/architecture-evolution/README.md) for the architecture iteration status, [`docs/architecture.md`](docs/architecture.md) for the blueprint and phases, [`docs/tech-decisions.md`](docs/tech-decisions.md) for landed decisions, and [`docs/mod-api.md`](docs/mod-api.md) for the binding Mod API contract.
+**Active development — architecture evolution complete.** Phases 0–4 (feasibility, single-player entity sync, entity lifecycle, game core loop, public Mod API) are complete and runtime-verified; the typed deterministic game-state kernel migration (Phases A–E) is also complete. See [`docs/README.md`](docs/README.md) for the full documentation map, [`docs/architecture-evolution/README.md`](docs/architecture-evolution/README.md) for the active architecture, [`docs/tech-decisions.md`](docs/tech-decisions.md) for landed decisions, and [`docs/mod-api.md`](docs/mod-api.md) for the binding Mod API contract.
 
 ## Architecture in Brief
 
@@ -30,9 +30,13 @@ All projects target `net48` (BepInEx 5 + the game's Mono runtime). Deployment in
 
 ## Documentation
 
+- [`docs/README.md`](docs/README.md) — semantic documentation map and reading path
 - [`AGENTS.md`](AGENTS.md) — project conventions and instructions for AI-assisted development
-- [`docs/architecture.md`](docs/architecture.md) — architecture blueprint, technical specs, pitfalls, and development phases
-- [`docs/architecture-evolution/README.md`](docs/architecture-evolution/README.md) — planned architecture iteration toward the typed deterministic game-state kernel (phase plans, status, session handoff)
+- [`docs/architecture-evolution/README.md`](docs/architecture-evolution/README.md) — active architecture and completed evolution history
+- [`docs/architecture-evolution/current-architecture.md`](docs/architecture-evolution/current-architecture.md) — current typed deterministic kernel design
+- [`docs/architecture-evolution/domains.md`](docs/architecture-evolution/domains.md) — domain ownership and projections
+- [`docs/architecture-evolution/protocol.md`](docs/architecture-evolution/protocol.md) — four-envelope protocol and data flow
+- [`docs/verification.md`](docs/verification.md) — evidence chain, gates, replay/simulation
 - [`docs/tech-decisions.md`](docs/tech-decisions.md) — landed binding decisions
 - [`docs/mod-api.md`](docs/mod-api.md) — Phase 4 Mod API contract
 

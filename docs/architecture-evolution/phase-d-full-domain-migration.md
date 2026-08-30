@@ -254,12 +254,15 @@ For each domain, complete these steps in order:
 3. [x] Continue high-frequency stream alignment for player/enemy continuous fields
    with `WireStateStream` / `StateStreamEnvelope`, keeping terminal facts on
    domain events.
-4. [ ] Phase E: decide how the extracted `EnemyCombatOrderPolicy` apply paths feed a
-   kernel process/events; `EnemyAttackMsg` stays the host-order local-apply
-   command and is not merged into presentation.
+4. [~] Phase E follow-up: decide how the extracted `EnemyCombatOrderPolicy`
+   apply paths feed a kernel process/events; `EnemyAttackMsg` stays the
+   host-order local-apply command and is not merged into presentation. This
+   remains a future architecture item tracked in `docs/backlog.md`, not a
+   Phase E blocker.
 5. [x] Phase D 4.3: resolve the prediction/rollback boundary. Cross-player operations
    are `HostValidatedNoPrediction`; the generic Prediction Runtime is deferred
    to Phase E (see tech-decisions.md #157).
-6. [ ] Phase E: begin the legacy inventory from `src/` search results and include
+6. [x] Phase E: begin the legacy inventory from `src/` search results and include
    the ad-hoc prediction/rollback caches (`PickupOrigins`, pending-pickup queue,
    `DropPendingState`, `NativeOperationCoordinator`) as residue candidates.
+   Completed in `docs/selfchecks/phase-e-legacy-inventory-selfcheck.md`.

@@ -11,6 +11,11 @@ and [`../verification.md`](../verification.md).
   [`../entity-features.md`](../entity-features.md).
 - Code search / runtime debugging paths are in
   [`../game-internals.md`](../game-internals.md).
+- Older sheets may describe mechanisms that were later replaced (for example the
+  legacy `ItemReject` frame or pre-kernel item wire paths). Those references are
+  snapshots of the delivery at that time, not current behavior. Verify current
+  mechanisms against [`../architecture-evolution/protocol.md`](../architecture-evolution/protocol.md)
+  and [`../tech-decisions.md`](../tech-decisions.md).
 
 ## Architecture evolution self-checks
 

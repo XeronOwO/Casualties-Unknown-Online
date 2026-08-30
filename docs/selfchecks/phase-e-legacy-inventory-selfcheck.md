@@ -22,7 +22,7 @@ land; it is not a permission to keep legacy code indefinitely.
 | `ItemKernelAuthority` "Shadow-compatible conveniences" (`ObserveSpawn`/`ObservePickup`/`ObserveDrop`/`ObserveDestroy`) | `Runtime/Session/Items/ItemKernelAuthority.cs` | Convenience entry points used by CraftSyncService and tests; they still route through the kernel | **Done**: section renamed to "Kernel convenience entry points"; methods kept as kernel entry points |
 | `ItemKernelAuthority.KernelForDiagnostics` | `Runtime/Session/Items/ItemKernelAuthority.cs` | Test-only accessor exposing the internal `GameStateKernel` | **Done**: removed; tests now use the public `FindItem`/`QueryItems` surface |
 | `ItemReject` frame | `Runtime/Protocol/NetMsg` + handlers | Last legacy item-frame survivor, required for block-break drop refusal | **Tracked as guarded exception**: no-legacy guard allows it only in `ItemMessageFlowService.cs` and `ItemRejectHandler.cs` until block-break drops have a kernel/event path |
-| Direct `NetMsg` frames for world/trader/chat/character/enemy-presentation | Runtime handlers/channels | Current active presentation/control paths for non-persistent or continuous features | Not Phase E dual-authority targets unless a kernel path replaces them |
+| Direct `NetMsg` frames for world/trader/chat/character/enemy-presentation | Runtime handlers/channels | Current active presentation/control paths for non-persistent or continuous features | **Done**: classified as active single-path protocol in the Direct NetMsg classification section; not dual-authority targets |
 | Per-domain session reset caches | `ItemService.ResetSessionState`, world/player/enemy resets | Projection/transient caches only | **Done**: centralized kernel reset in `KernelProtocolService.ResetForSessionEnd()`; no bypass found |
 | `EnemyCombatOrderPolicy` kernel-process follow-up | Runtime + phase D next actions | Extracted policy not yet feeding kernel events | Phase E candidate; `EnemyAttackMsg` stays host-order local-apply for now |
 
@@ -42,6 +42,7 @@ land; it is not a permission to keep legacy code indefinitely.
 | 2026-08-30 | Remove `ItemService.KernelAuthority` facade | `CraftSyncService.cs`, `ItemService.cs`, `ItemSimWorld.cs` | `dotnet build` 0 warnings/0 errors; 1792 tests passed; format + architecture/event/entity/delivery gates passed |
 | 2026-08-30 | Centralize kernel reset in `KernelProtocolService` | `KernelProtocolService.cs`, `ItemService.cs` | `dotnet build` 0 warnings/0 errors; 1792 tests passed; format + architecture/event/entity/delivery gates passed |
 | 2026-08-30 | Guard `ItemReject` as single allowed legacy frame | `tools/check-no-legacy.ps1` | Architecture gate passed with ItemReject scoped to two allowed files |
+| 2026-08-30 | Classify all remaining direct `NetMsg` families | `docs/selfchecks/phase-e-legacy-inventory-selfcheck.md` | Docs | Every active direct frame is now recorded as session/control, presentation, request, or non-kernel-domain path, not kernel-dual authority |
 
 ## Session reset audit (2026-08-30)
 
@@ -60,6 +61,24 @@ land; it is not a permission to keep legacy code indefinitely.
 - **Conclusion** — session reset is centralized in the kernel protocol lifecycle.
   No per-domain reset bypass exists; no additional reset coordinator is required.
 
+## Direct NetMsg classification (2026-08-30)
+
+The remaining direct `NetMsg` frames are active single-path protocol frames.
+None of them is a second authoritative store for a kernel-owned fact; they are
+session/control, request/command, presentation, or non-kernel-domain paths.
+
+| Family | NetMsg values | Classification |
+|---|---|---|
+| Session / control | `Handshake`, `HandshakeAck`, `HandshakeAckAck`, `SceneState`, `WorldJoin`, `WorldReady`, `PlayerJoin`, `PlayerLeave`, `WorldSnapshotComplete`, `Ping`, `Pong`, `Kicked`, `Banned`, `WorldTimeRequest`, `WorldTime` | Session lifecycle and control; no kernel dual |
+| World mutation / presentation | `BlockDamaged`, `WorldBlockState`, `BlockPlaced`, `BlockDamageSnapshot`, `BuildingEntityDamaged`, `BuildingEntityOpened`, `EarthquakeStart`, `KeypadCode`, `GeyserStateSnapshot`, `EntityEvent`, `EntitySpawned`, `DynamiteExplosion`, `RadiationLineState`, `WorldBloodSpawn`, `TrapLayoutSnapshot`, `FluidRegion`, `FluidInteraction`, `FluidPresentation` | Active world mutation/presentation paths; not kernel-authoritative duplicates |
+| Character / presentation | `CharacterData`, `HostCharacterData`, `LimbStateEvent`, `CharacterSound`, `CharacterAttackAnim`, `CharacterLandingVisual`, `CharacterRagdoll`, `TutorialClawState` | Active character/continuous or one-shot presentation paths |
+| Enemy | `EnemySnapshot`, `EnemyAttack` | Active host snapshot and host-ordered local-apply command |
+| Trade / chat / speech | `TraderState`, `TraderAction`, `TraderRecruitRequest`, `TraderRecruitResult`, `TraderSwing`, `SpeechMsg`, `Chat` | Active non-kernel domain surfaces |
+| Mod API | `ModMessage`, `ModCommandRequest`, `ModCommandResult` | Active Phase 4 mod API |
+| Player interaction requests | `PlayerInventoryTakeRequest`, `PlayerCarryStartRequest`, `PlayerCarryStopRequest`, `PlayerHealRequest`, `PlayerItemUseRequest`, `PlayerPushRequest`, `PlayerPushResult` | Request/result entry points; durable facts already ride `KernelEnvelope` |
+| Item id / starting inventory | `ItemIdWatermark`, `CarriedInventory` | Active non-kernel id/initialization coordination |
+| Item reject exception | `ItemReject` | Guarded single legacy frame for block-break drop refusal |
+| Kernel path | `KernelEnvelope` | The four-envelope kernel protocol transport |
 
 ## Next actions
 

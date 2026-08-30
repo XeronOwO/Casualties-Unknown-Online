@@ -36,6 +36,7 @@ todo/  →  in-progress/  →  review/  →  done/
 ### Todo
 
 - [Duplicate unsynced item drops (guest-dug tree and world-spawned items)](todo/guest-tree-extra-unsynced-drops.md) — guest action/world drops produce two unsynced frozen copies.
+- [Guest-mined item static-physics desync](todo/guest-mined-item-static-physics-desync.md) — guest item loses gravity early and never reaches host static state.
 - [Ragdoll limb pose not synced remotely](todo/ragdoll-limb-pose-not-synced.md) — collapse is visible, but limb poses still mismatch.
 - [Guest-mined block leaves ghost fragments on host](todo/guest-mined-block-ghost-fragments-on-host.md) — block removed but broken effect remains, "fragmented air".
 - [High sleepiness squint not visible remotely](todo/high-sleepiness-squint-not-visible-remotely.md) — remote eyes stay open when sleepiness is high.

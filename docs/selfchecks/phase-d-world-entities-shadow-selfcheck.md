@@ -49,12 +49,13 @@ into kernel-backed projection/snapshot adapters.
 | Destructive trap health classification is locked | `TrapDamageProfilesTests.DestructiveKinds_AreClassified`, `NonDestructiveKinds_RemainUnclassified`. |
 | Guest checkpoint restore projects non-one-shot trap state facts | `WorldEntityProjectionTests.GuestCheckpointRestore_ProjectsNonOneShotTrapStateFacts`. |
 | Guest checkpoint restore projects world-entity facts | `WorldEntityProjectionTests.GuestCheckpointRestore_ProjectsKernelWorldEntities`. |
-| Building-death drop provenance is locked | `BuildingDeathDropProvenanceTests` + `BuildingDestructionReplayPatchTests` (call identity, pure marker, `Item.Awake` patch shape, `PatchInventory` contract, and the `ItemDropProvenanceClassifier` Normal/BlockDrop/BuildingDeathDrop selection). |
+| Building-death drop provenance is locked | `BuildingDeathDropProvenanceTests` + `BuildingDestructionReplayPatchTests` (call identity, `SpawnPosition` marker shape, `Item.Awake` patch shape, `PatchInventory` contract, and the `ItemDropProvenanceClassifier` Normal/BlockDrop/BuildingDeathDrop selection). |
+| Destructive trap item drops are folded into the atomic trap batch | `TrapDropPendingStateTests` (hold window, nearest-match, reset) + `WorldEntityProjectionTests.HostReportTrapEvent_WithDrops_CommitsTrapAndItemSpawnsInOneBatch` (composite includes `ItemSpawnedEvent`, host `ItemSpawned` projection, kernel item). |
 
 ## Verification
 
 - `dotnet build CasualtiesUnknownOnline.slnx`: 0 warnings / 0 errors.
-- `dotnet test CasualtiesUnknownOnline.slnx`: 1757 passed.
+- `dotnet test CasualtiesUnknownOnline.slnx`: 1764 passed.
 - `dotnet format`: applied.
 - Architecture/event/entity/isolation gates passed.
 
@@ -93,7 +94,14 @@ into kernel-backed projection/snapshot adapters.
    Next is the cross-domain item-drop side-effect collection.
 7. [x] Building-death drop provenance markers landed:
    `BuildingEntityUpdatePatch` opens `CallContext.Origin.BuildingDeathDrop`
-   around the local death branch, `Item.Awake` stamps `BuildingDeathDropOrigin`,
-   and `ItemWorldSync` logs the provenance while the submit path stays
-   standalone. The next sub-step is the pending trap-drop collection + composite
-   flush.
+   around the local death branch, `Item.Awake` stamps `BuildingDeathDropOrigin`
+   with the exact spawn position, and `ItemWorldSync` logs the provenance while
+   the submit path stays standalone. The next sub-step is the pending trap-drop
+   collection + composite flush.
+8. [x] Destructive trap item drops atomic composite landed:
+   `TrapDropPendingState` holds the trigger for two frames, `ItemWorldSync`
+   folds marked drops into `EntityEventMsg.Drops`, and `TrapStateRegistry`
+   executes the trap facts + `SpawnItemCommand`s through one
+   `CompositeGameCommand` (via `TryExecuteCommand` so the host projection
+   materializes/broadcasts them). Ordinary building deaths without a pending
+   trap still use the standalone spawn path.

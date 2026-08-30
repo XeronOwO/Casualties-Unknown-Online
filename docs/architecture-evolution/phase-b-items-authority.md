@@ -1,7 +1,7 @@
 # Phase B — Items Become the First Authoritative Kernel Domain
 
 > Status: **Completed** (2026-08-28; depends on Phase A)
-> Source: target architecture §5-§9, §16; migration roadmap "Phase B".
+> Source: current architecture design §5-§9, §16; migration roadmap "Phase B".
 
 ## Objective
 
@@ -61,7 +61,7 @@ Out of scope:
   - container graph invariants (unique parent, no cycles, no terminal parent).
   - Note: cook is represented as a source-terminal + product-created authority
     projection sequence for now; a single typed cross-domain batch is a Phase C
-    follow-up (target architecture §6.5).
+    follow-up (current architecture design §6.5).
 - [x] Make the host item authority flow through the kernel:
   - item control/service writes become kernel Commands;
   - old tables no longer decide final ownership/location;

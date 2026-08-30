@@ -1,7 +1,7 @@
 # Phase C — Structural Protocol and Save Switch
 
 > Status: **Completed** (depends on Phase B; production item paths use the new four-envelope protocol and checkpoint save; legacy item handlers remain only for test harness replay)
-> Source: target architecture §11-§13; migration roadmap "Phase C".
+> Source: current architecture design §11-§13; migration roadmap "Phase C".
 
 ## Objective
 

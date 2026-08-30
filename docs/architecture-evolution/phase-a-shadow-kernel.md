@@ -1,7 +1,7 @@
 # Phase A — Shadow Kernel
 
 > Status: **Completed** (2026-08-27; see Session log)
-> Source: target architecture §5-§9; migration roadmap "First item slice".
+> Source: current architecture design §5-§9; migration roadmap "First item slice".
 
 ## Objective
 

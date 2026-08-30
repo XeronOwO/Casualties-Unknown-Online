@@ -4358,7 +4358,7 @@ Runtime is deferred to Phase E.
   operations therefore have no local prediction queue, no rollback of
   authoritative state, and no `OwnerPredictedHostValidated` path in Phase D.
   The host is the only writer for the durable cross-player fact.
-- **Generic Prediction Runtime is Phase E** — target architecture §7.2
+- **Generic Prediction Runtime is Phase E** — current architecture design §7.2
   describes a unified runtime for local movement, pickups, drag transients, and
   the existing ad-hoc seams (`PickupOrigins`, pending-pickup queue,
   `DropPendingState`, `NativeOperationCoordinator`). Building it is a separate

@@ -1,5 +1,9 @@
 # Lobby-Domain Refactor — Plan (implemented 2026-08-15)
 
+> **Historical record.** This refactor is implemented. Current session/lobby
+> lifecycle behavior is covered by `docs/tech-decisions.md` and the active
+> architecture docs.
+
 Goal: make the lobby identity a real state machine. Today a client that hosted
 its own lobby and later joins another player's lobby stays `SessionRole.Host`
 forever, so the new host's `HandshakeAck`/`WorldJoin` are dropped and the run

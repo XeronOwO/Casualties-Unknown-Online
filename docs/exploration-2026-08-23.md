@@ -1,5 +1,8 @@
 # CUO Exploration — 2026-08-23
 
+> **Historical exploration.** Point-in-time sweep of sync gaps, KrokMP
+> candidates, and quality debt. Open follow-ups are tracked in `backlog.md`.
+
 Scope: a parallel sub-agent sweep for (a) original-game mechanics that may still
 lack multiplayer support, (b) valuable KrokMP mechanics worth adopting in a
 CUO-native way, and (c) architecture/quality debt found during the sweep.

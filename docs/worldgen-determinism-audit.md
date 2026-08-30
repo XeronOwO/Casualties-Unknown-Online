@@ -1,5 +1,10 @@
 # World-Generation Determinism Audit (2026-08-16)
 
+> **Historical audit.** Point-in-time evidence for world-gen determinism. The
+> current run/epoch and random-stream handling is documented in
+> [`architecture-evolution/domains.md`](architecture-evolution/domains.md) and
+> [`architecture-evolution/protocol.md`](architecture-evolution/protocol.md).
+
 Follow-up to the backlog item inherited from the Claude memory
 (`layer-modifier-sync`): drill holes (block 35) were reported to diverge after
 segment 19 with no visible symptom, and "post-generation `Random` consumers

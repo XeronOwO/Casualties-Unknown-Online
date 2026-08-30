@@ -36,7 +36,7 @@ summary plus the Phase E residue handoff.
 - **Closed by decision**, not by a new runtime. Cross-player take/heal/use/carry
   are `HostValidatedNoPrediction`; push is `PresentationOnly` (tech-decisions.md
   #154).
-- The generic **Prediction Runtime** from target architecture §7.2 is deferred to
+- The generic **Prediction Runtime** from current architecture design §7.2 is deferred to
   Phase E. It is not a Phase D exit requirement.
 - Existing transient/rollback caches (`PickupOrigins`, pending-pickup queue,
   `DropPendingState`, `NativeOperationCoordinator`) remain in production as

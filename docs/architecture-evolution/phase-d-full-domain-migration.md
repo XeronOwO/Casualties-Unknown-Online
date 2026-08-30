@@ -1,7 +1,7 @@
 # Phase D — Full Domain Migration
 
 > Status: **Completed** (Phase D closed on 2026-08-30; 4.3 prediction/rollback boundary resolved by deferring the generic Prediction Runtime to Phase E — see tech-decisions.md #157)
-> Source: target architecture §8-§10; migration roadmap "Phase D".
+> Source: current architecture design §8-§10; migration roadmap "Phase D".
 
 ## Objective
 

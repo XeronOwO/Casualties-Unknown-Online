@@ -1,7 +1,7 @@
 # Phase E — Delete the Dual Architecture
 
 > Status: **Completed** (Phase D prerequisites met; generic Prediction Runtime remains future work, tracked separately from the dual-architecture cleanup)
-> Source: target architecture §15-§18; migration roadmap "Phase E".
+> Source: current architecture design §15-§18; migration roadmap "Phase E".
 
 ## Objective
 

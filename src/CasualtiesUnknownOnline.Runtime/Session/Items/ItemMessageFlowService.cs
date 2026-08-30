@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
+using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
-using Microsoft.Extensions.Logging;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 
@@ -11,14 +11,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 /// The report/receive message-flow surface of the item domain: local-compute
 /// report sends (spawn/drop/use/cook/destroy), wire receive events, block-break
 /// drop registration and snapshot/action receive forwarding. The production
-/// item network path is the Phase C envelope protocol; the only legacy wire
-/// frame still used here is <see cref="NetMsg.ItemReject"/> for block-break
-/// drop refusal.
+/// item network path is the Phase C envelope protocol; block-break drop refusal
+/// also rides `KernelEnvelope` `CommandRejected`.
 /// </summary>
 internal sealed class ItemMessageFlowService(
 	ISessionControl session,
-	PacketSender sender,
-	ILogger<ItemService> log,
 	WorldItemTable worldTable,
 	ItemActionSync itemActionSync,
 	ItemSnapshotService snapshots,
@@ -27,13 +24,10 @@ internal sealed class ItemMessageFlowService(
 	Action<ItemTrafficKind, string> recordTraffic,
 	Func<ulong, string> itemTrafficLabel,
 	Action<WorldItem> onItemSpawned,
-	Action<ulong, ItemRejectMsg.Reason> onItemRejected,
 	IKernelProtocolControl kernelProtocol)
 {
 	private readonly ISessionControl _session = session;
 	private readonly IKernelProtocolControl _kernelProtocol = kernelProtocol;
-	private readonly PacketSender _sender = sender;
-	private readonly ILogger<ItemService> _log = log;
 	private readonly WorldItemTable _worldTable = worldTable;
 	private readonly ItemActionSync _itemActionSync = itemActionSync;
 	private readonly ItemSnapshotService _snapshots = snapshots;
@@ -42,7 +36,6 @@ internal sealed class ItemMessageFlowService(
 	private readonly Action<ItemTrafficKind, string> _recordTraffic = recordTraffic;
 	private readonly Func<ulong, string> _itemTrafficLabel = itemTrafficLabel;
 	private readonly Action<WorldItem> _onItemSpawned = onItemSpawned;
-	private readonly Action<ulong, ItemRejectMsg.Reason> _onItemRejected = onItemRejected;
 
 	// ===== Report side (local compute) =====
 
@@ -193,12 +186,6 @@ internal sealed class ItemMessageFlowService(
 
 	// ===== Receive side (wire handlers) =====
 
-	public void FireItemRejectReceived(ulong sender, ulong itemId, ItemRejectMsg.Reason reason)
-	{
-		_log.LogWarning("Item {ItemId} rejected by the host ({Reason}) — rolling back.", itemId, reason);
-		_onItemRejected(itemId, reason);
-	}
-
 	// ===== Block-break drops =====
 
 	public void RegisterBlockDrops(IReadOnlyList<BlockDropEntryMsg> drops) => _blockDrops.RegisterBlockDrops(drops);
@@ -212,7 +199,12 @@ internal sealed class ItemMessageFlowService(
 			return;
 		}
 
-		_sender.Send(targetSteamId, NetMsg.ItemReject, new ItemRejectMsg { ItemId = itemId, Rejection = reason });
+		var rejection = reason switch
+		{
+			ItemRejectMsg.Reason.BlockAlreadyBroken => RejectionReason.BlockAlreadyBroken,
+			_ => RejectionReason.UnknownAggregate,
+		};
+		_kernelProtocol.SendCommandRejected(targetSteamId, itemId, rejection);
 	}
 
 	public bool RegisterWorldItemIfAbsent(ulong itemId, WorldItem item) =>

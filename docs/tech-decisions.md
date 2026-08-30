@@ -4384,5 +4384,9 @@ Phase E cleanup decisions recorded as the first concrete batches land.
   and test-only `KernelForDiagnostics` accessor were removed. The
   `ItemDiagnosticsProjection` shadow differential was moved from GameState to a
   test-only helper.
-- **Evidence** — full suite 1792 green; build/format/architecture/strict
+- **ItemReject removal** — block-break drop refusal now rides `KernelEnvelope`
+  `CommandRejected` with `RejectionReason.BlockAlreadyBroken`. The dedicated
+  `NetMsg.ItemReject` enum, handler, and old send path were deleted; the
+  no-legacy guard now bans the marker everywhere.
+- **Evidence** — full suite 1791 green; build/format/architecture/strict
   architecture/event/entity/delivery gates pass.

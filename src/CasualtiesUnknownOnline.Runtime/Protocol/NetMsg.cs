@@ -32,10 +32,6 @@ public enum NetMsg : byte
 	WorldBlockState = 41, // host → guest: full block-state snapshot (damage table) on world entry
 	BlockPlaced = 42, // guest → host: report (host arbitrates); host → guest: broadcast relay (source excluded)
 
-	// Item-refusal feedback (block-break drops still ride this one frame; item
-	// kernel rejections use KernelEnvelope CommandRejected)
-	ItemReject = 49, // host → guest: block-break drop refusal — the guest destroys its local copy
-
 	// World entities (player-attacked building entities — plants, crates, creatures)
 	BuildingEntityDamaged = 51, // guest → host: report (host applies + relays); host → guest: broadcast relay (source excluded)
 	BuildingEntityOpened = 52, // guest → host: a crate/lock was opened (health = 0 write path); host → guest: broadcast relay (source excluded)

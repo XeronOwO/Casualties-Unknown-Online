@@ -16,5 +16,5 @@
 @33 expect block_accepted 1 within 500
 @33 expect block_accepted_by g1 1
 @33 expect block_received g2 BlockDamaged 1
-@33 expect block_reject g2 ItemReject 1
+@33 expect block_reject g2 KernelEnvelope 1
 @33 expect block_registered 77

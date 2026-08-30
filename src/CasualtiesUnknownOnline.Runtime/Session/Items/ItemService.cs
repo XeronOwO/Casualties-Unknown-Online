@@ -68,8 +68,6 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 
 		_messageFlow = new ItemMessageFlowService(
 			session,
-			sender,
-			log,
 			_worldTable,
 			_itemActionSync,
 			_snapshots,
@@ -78,7 +76,6 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 			RecordItemTraffic,
 			ItemTrafficLabel,
 			item => ItemSpawned?.Invoke(item),
-			(itemId, reason) => ItemRejected?.Invoke(itemId, reason),
 			_kernelProtocol);
 
 		session.SessionEnded += OnSessionEnded;
@@ -189,9 +186,6 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 		_messageFlow.SendItemDropped(itemId, item, pos, vel, parentItemId, rotation, parentPos, angularVelocity);
 
 	public void SendItemDestroyed(ulong itemId) => _messageFlow.SendItemDestroyed(itemId);
-
-	public void FireItemRejectReceived(ulong sender, ulong itemId, ItemRejectMsg.Reason reason) =>
-		_messageFlow.FireItemRejectReceived(sender, itemId, reason);
 
 	public void RegisterBlockDrops(IReadOnlyList<BlockDropEntryMsg> drops) => _messageFlow.RegisterBlockDrops(drops);
 
@@ -494,8 +488,13 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 			return;
 		}
 
+		var mappedReason = reason switch
+		{
+			RejectionReason.BlockAlreadyBroken => ItemRejectMsg.Reason.BlockAlreadyBroken,
+			_ => ItemRejectMsg.Reason.UnknownItem,
+		};
 		_log.LogWarning("Kernel command for item {ItemId} rejected ({Reason}) — surfacing item reject.", itemId, reason);
-		ItemRejected?.Invoke(itemId, ItemRejectMsg.Reason.UnknownItem);
+		ItemRejected?.Invoke(itemId, mappedReason);
 	}
 
 	private void OnItemStateStreamReceived(WirePayloadType payloadType, WireStateStream stream)

@@ -16,6 +16,8 @@ public interface IKernelProtocolControl
 
 	void SendCommand(WireCommand command, WirePayloadType payloadType);
 
+	void SendCommandRejected(ulong targetSteamId, ulong itemId, RejectionReason reason);
+
 	void SendStateStream(IReadOnlyList<WireItemMoveEntry> itemMoves);
 
 	void SendItemStateStreamTo(ulong targetSteamId, IReadOnlyList<WireWorldItemState> items, WirePayloadType payloadType, bool reliable = true, int layerModifierIndex = 0, byte[]? layerModifierRandomState = null);

@@ -26,10 +26,10 @@ Reverse-engineering findings on the game's structure, from dnSpy decompiles in `
 
 ## World Generation & Saves
 
-- World gen is **not deterministic** (`Random.Range` throughout; block gen uses `lehmer64` PRNG internally). `runSettings` presets (`normal`) drive difficulty knobs.
+- Vanilla world generation is **not deterministic** (`Random.Range` throughout; block gen uses `lehmer64` PRNG internally). CUO isolates generation randomness with `WorldGenRandomIsolation` so a hosted run is reproducible from the captured `Random.state`; see `src/CasualtiesUnknownOnline.GameAdapter/WorldGen/WorldGenerationGenerateWorldPatch.cs` and `src/CasualtiesUnknownOnline.GameAdapter/WorldGen/WorldGenRandomIsolation.cs`. `runSettings` presets (`normal`) drive difficulty knobs.
 - `SaveSystem` + `WorldSaveData` exist — a save file captures a run's world. `SaveSystem.loadedRun` / `ContinueRun` resume it.
 - World time: `WorldGeneration.TotalRunTime()`, `PlayerLayerDepthMeters()`, radiation line, earthquake cycle — all host-authoritative material. The radiation line's `active`/`timeGone` world state is synced via `RadiationLineState` (NetMsg 106); in co-op the host also activates the line through the straggler rule (`RadiationStragglerPolicy`) when a leader reaches the layer bottom while another living player remains above. Earthquake timing is synced via `EarthquakeStart` (NetMsg 55).
-- **World-defining fields verified (star-network Step 5)**: `WorldGeneration.totalTraveled` (public int, WorldGeneration.cs:4162), `biomeDepth` (public int, :4165), `biomeOverride` (public `OverrideSceneType` enum, :4237 — `{None, Tutorial, Debug}`, drives generation branches at :2631-2660 and dungeon/radiation logic at :861-866). All three are read/written via `HarmonyTraverse` (field-access pattern like `runSettings`). `WorldStartParams.LoadedRun` has **no backing field** on WorldGeneration (`PreRunScript.LoadRun`, PreRunScript.cs:294, is the save-flow entry — Phase 3 saves scope), so it stays false on the wire; guest generation otherwise matches via the restored `Random.state`.
+- **World-defining fields verified (star-network Step 5)**: `WorldGeneration.totalTraveled` (public int, WorldGeneration.cs:4162), `biomeDepth` (public int, :4165), `biomeOverride` (public `OverrideSceneType` enum, :4237 — `{None, Tutorial, Debug}`, drives generation branches at :2631-2660 and dungeon/radiation logic at :861-866). All three are read/written via `HarmonyTraverse` (field-access pattern like `runSettings`). `WorldStartParams.LoadedRun` has **no backing field** on WorldGeneration (`PreRunScript.LoadRun`, PreRunScript.cs:294, is the save-flow entry — a historical Phase 3 saves-scope note), so it stays false on the wire; guest generation otherwise matches via the restored `Random.state`.
 
 ## KrokMP's Approach (reference only, not to copy)
 
@@ -41,7 +41,7 @@ From `reversing/KrokMP/KrokoshaCasualtiesMP/` (full decompiled source):
 - **Camera/UI routing**: `PlayerCamera.main.body` is overridden (`BodyGetterOverrider`, `InvButton_get_body` patches) so local camera/UI target the local player's clone.
 - **Worldgen**: `Patched_GenerateWorld` / `Patched_WorldPlacePlayer` (via `HarmonyReversePatch`) replace the original coroutines; server drives world state, clients wait (`WorldChunkSync` tilemap sync etc.).
 
-## Clone & Render Chain (Phase 1 verified findings)
+## Clone & Render Chain (historical Phase 1 verified findings)
 
 Remote player clones are `Instantiate` of the scene `"Experiment"` GameObject (same template KrokMP uses). Per-clone component behavior, verified in the decompiled sources:
 
@@ -54,6 +54,6 @@ Remote player clones are `Instantiate` of the scene `"Experiment"` GameObject (s
 
 Render proxy recipe: frozen physics (`FixedUpdate` skipped, all `Rigidbody2D.simulated=false`, `HingeJoint2D` disabled, `IKHandle` disabled) + live `Body.Update` (animations/poses) + root transform written every frame from the peer's state report (with first-snapshot interpolation guard — see PlayerEntity.StateReceivedMs).
 
-## Sync Model (Phase 1 landed, user-mandated)
+## Sync Model (historical Phase 1 landing, user-mandated)
 
-Each player simulates **only its own body** locally; peer state is exchanged at 20 Hz (`PlayerState` host→guest, `PlayerStateReport` guest→host; both carry position/look/velocity/pose flags). The remote player is a frozen render clone fed by the state stream. "Host-authoritative" does **not** mean the host computes the guest's movement — guest movement is always local (user mandate: "移动必定是在本地计算的,主机只做校验"); authority covers world-state ownership (world-gen seed, saves, later: interactions), not per-frame player simulation. Previous attempt (host shadow-simulating the guest's clone) was reverted (`882a43d`).
+Each player simulates **only its own body** locally; peer state is exchanged at 20 Hz through `StateStreamEnvelope` over `KernelEnvelope` (host→guest and guest→host player reports; both carry position/look/velocity/pose flags). The remote player is a frozen render clone fed by the state stream. "Host-authoritative" does **not** mean the host computes the guest's movement — guest movement is always local (user mandate: "移动必定是在本地计算的,主机只做校验"); authority covers world-state ownership (world-gen seed, saves, later: interactions), not per-frame player simulation. Previous attempt (host shadow-simulating the guest's clone) was reverted (`882a43d`).

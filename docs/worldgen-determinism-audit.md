@@ -33,7 +33,8 @@ Conclusion: as the tree stands, the block-35 path is sealed by the generation
 isolation. The memory claim is stale or predates the current wrapper; there is
 no static path left to fix. Runtime confirmation remains pending and is cheap:
 compare `[GenStream]` segment fingerprints and `[WorldFingerprint]` between
-host and guest during the next dual-side pass.
+host and guest during the next dual-side pass. This is tracked in
+[`docs/backlog.md`](backlog.md) under Final acceptance.
 
 ## 2. Consumers after the last restore
 

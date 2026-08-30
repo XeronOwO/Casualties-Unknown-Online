@@ -4,7 +4,8 @@ Status: first round **landed 2026-08-13**; second round (4b) **landed
 2026-08-16**. This document is the binding contract for mod authors AND for
 the framework's future rounds — the semantics below are locked by tests
 (`tests/.../Mods/`, 761 total green at landing) and the two-process runtime
-verification (host + sandbox guest, ProtocolVersion 10).
+verification (host + sandbox guest; the pre-release ProtocolVersion sequence was
+later reset to `ProtocolVersion.Current = 1` — see tech-decisions #137).
 
 ## 1. Scope
 
@@ -210,7 +211,7 @@ context.Ui.Unregister("status");
   within the same mod is refused; `Unregister` removes the window.
 - **Failure isolation**: a mod draw callback that throws shows an inline error
   in the window and is logged by the plugin; it never breaks the UI frame.
-- **No wire change**: this is local presentation, so ProtocolVersion stays 29.
+- **No wire change**: local presentation only.
 
 ## 4f. Mod content (registration)
 
@@ -246,7 +247,7 @@ context.Content.TryUnregister("wooden.sword");
 - **Framework read view**: `IModContentControl.Entries` exposes every mod's
   registered definitions to other CUO layers (plugin / future native-content
   consumers) as a read-only snapshot.
-- **No wire change**: no content bytes or new NetMsg, so ProtocolVersion stays 29.
+- **No wire change**: no content bytes or new NetMsg.
 
 ## 4g. Read game state (read-only projection)
 
@@ -283,8 +284,7 @@ if (context.GameState.CanRead)
   local-player projection (see §4i). World/item/block/entity global state is
   not exposed yet. The same projection pattern is the forward path for those
   slices.
-- **No wire change**: this surface only projects data that already arrives, so
-  `ProtocolVersion` stays unchanged.
+- **No wire change**: this surface only projects data that already arrives.
 
 ## 4h. Entity spawn
 
@@ -313,7 +313,7 @@ if (context.EntitySpawn.CanSpawn)
   `EntitySpawned` message (guest → host or host → broadcast), so every side
   creates the same prefab at the same position/rotation with the same
   creation-time data handling (geyser liquid type, keypad code, crystal tint)
-  as any native runtime spawn. No new `NetMsg`, no ProtocolVersion bump.
+  as any native runtime spawn. No new `NetMsg`; the existing `EntitySpawned` path is used.
 - **Failure isolation**: invalid prefab ids, non-finite positions, an out-of-
   world session, a missing permission, or an adapter rejection (unknown prefab
   / non-`BuildingEntity` prefab) return false and are logged; a non-entity
@@ -323,7 +323,7 @@ if (context.EntitySpawn.CanSpawn)
   component/state-injection mechanism — a mod that needs per-entity custom
   data still coordinates through `IModNetwork` / `IModCommands` or registers
   it as static content (`IModContent`).
-- **No wire change**: no new `NetMsg`; `ProtocolVersion` stays unchanged.
+- **No wire change**: no new `NetMsg`.
 
 ## 4i. AccessNativeApi (curated native operation registry)
 
@@ -362,13 +362,12 @@ if (context.NativeApi.CanAccess)
   (`ModNativeApiOperations.LocalPlayerState`) returns the local player body's
   position, vitals, consciousness, and derived alive/conscious flags as
   `IModNativeLocalPlayerState`. It is read-only and local-only; no wire
-  message, no authority change, no `ProtocolVersion` bump.
+  message, no authority change.
 - **Policy boundary**: the first slice is deliberately read-only. Write /
   native-mutation operations are not registered until a concrete consumer
   exists and its sync/authority boundary is designed. This is the explicit
   escape-hatch policy decision: a curated allowlist, never open reflection.
-- **No wire change**: this surface only reads local game state; `ProtocolVersion`
-  stays unchanged.
+- **No wire change**: this surface only reads local game state.
 
 ## 5. Handshake consistency (how sessions stay coherent)
 
@@ -402,12 +401,13 @@ commands and remains the two-process verification target).
 
 ## 7. Versioning and protocol discipline
 
-- `ProtocolVersion.Current` is bumped on any behavioral wire change. Current:
-  **34** (v34 adds `CrystalTeleportTriggered` EntityEventKind 33 for the
-  teleport crystal's shared observerlaugh/FlashBrief replay; v33 peers would
-  silently miss the one-shot presentation). `ReadGameState`, content
-  registration, mod UI, mod-state saves and entity spawn are not wire changes,
-  so they do not bump the protocol.
+- `ProtocolVersion.Current` is `1`. The pre-release protocol-version sequence
+  was deliberately reset before first release (tech-decisions #137); earlier
+  numbers such as 10/29/34 in this document are historical and must not be used
+  as current wire versions.
+- Behavioral wire changes after the first release will bump
+  `ProtocolVersion.Current`; local-only/read-only mod surfaces that add no wire
+  change do not bump it.
 - Mod versions are strict SemVer strings, validated at discovery and compared
   by precedence for state-bearing modes.
 - The 64 KiB cap is a policy constant (`ModChannel.MaxPayloadBytes`); raising

@@ -75,7 +75,7 @@ Measurement-first items; do not optimize before data exists.
 
 ### Final acceptance (not development work)
 
-- Trade domain #132 — dual-side runtime pass.
+- Trade domain (#59/#93) — dual-side runtime pass.
 - World determinism / `[WorldFingerprint]` comparison.
 - Block-break first-writer-wins dual-side runtime confirmation (L0 already covered).
 
@@ -120,9 +120,11 @@ Measurement-first items; do not optimize before data exists.
 Files at or near the 600-line gate should be split before the next feature lands in
 them:
 
-`SessionService.cs` (580), `ItemApplication.cs` (599), `CharacterDataSync.cs` (563),
-`EntitySyncService.cs` (548), `EnemyCombatDirector.cs` (547), `Plugin.cs` (522),
-`RunCoordinator.cs` (512).
+Current actual line counts (2026-08-30 audit): `SessionService.cs` (507),
+`ItemApplication.cs` (542), `CharacterDataSync.cs` (525), `EntitySyncService.cs` (462),
+`EnemyCombatDirector.cs` (326), `Plugin.cs` (444), `RunCoordinator.cs` (495).
+`ItemApplication.cs` and `SessionService.cs` remain closest to the 600-line gate;
+the others are below it today.
 
 `docs/tech-decisions.md` is also large; future landing entries should consider a
 domain-split index if it keeps growing.

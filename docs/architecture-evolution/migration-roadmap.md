@@ -1,12 +1,14 @@
-# Migration Roadmap
+# Migration Roadmap (Historical)
 
-High-level route from the current architecture to the typed deterministic kernel.
-Detailed plans live in each phase document.
+This is the completed route from the pre-kernel architecture to the typed
+deterministic kernel. It is retained as history; the active architecture is
+described in [current-architecture.md](current-architecture.md).
+Detailed phase records live in the phase documents.
 
 ## Strategy
 
-The target is bold, but the migration is staged so every phase is runnable and
-verifiable. Each domain follows the same repeated pattern:
+The migration was staged so every phase was runnable and verifiable. Each domain
+followed the same repeated pattern:
 
 ```text
 shadow model → authoritative switch → old tables become projections → delete old state

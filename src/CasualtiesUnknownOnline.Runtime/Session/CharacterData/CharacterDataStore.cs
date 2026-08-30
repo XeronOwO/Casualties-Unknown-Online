@@ -20,6 +20,10 @@ namespace CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 /// host's authoritative record of what the guest owns) over the guest's last
 /// report — the host's data wins where they disagree, and items the guest
 /// never reported yet (a pickup moments before the disconnect) still restore.
+/// Terminal player facts (alive/conscious, limb latches, body-terminal
+/// latches) come from the kernel players table, not from the snapshot's
+/// terminal fields: the snapshot remains the authority for continuous
+/// physiological values, skills, items, and position.
 /// Not an ICuoService: it has no pump, it only reacts to reports and
 /// handshakes. Reads role/session-active through <see cref="ISessionControl"/>
 /// (resolved after the session is built) and the transfer table through
@@ -34,12 +38,14 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable
 	private readonly IItemControl _items;
 	private readonly CharacterDataFileStore _persistence;
 	private readonly PlayerKernelLimbProjection _playerLimbKernel;
+	private readonly PlayerKernelRestoreProjection _playerKernelRestore;
 	private readonly Dictionary<ulong, CharacterDataMsg> _savedCharacters; // host: last report per SteamID
 	private CharacterDataMsg? _hostData; // host: the host's own latest character snapshot (same shape, broadcast to guests)
 
 	public CharacterDataStore(ISessionControl session, PacketSender sender,
 		ILogger<CharacterDataStore> log, IItemControl items, CharacterDataFileStore persistence,
-		PlayerKernelLimbProjection playerLimbKernel)
+		PlayerKernelLimbProjection playerLimbKernel,
+		PlayerKernelRestoreProjection playerKernelRestore)
 	{
 		_session = session;
 		_sender = sender;
@@ -47,6 +53,7 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable
 		_items = items;
 		_persistence = persistence;
 		_playerLimbKernel = playerLimbKernel;
+		_playerKernelRestore = playerKernelRestore;
 
 		// Load the persisted table at construction — a host restart/continue-run
 		// restores reconnecting guests from this file. A missing/disabled file is
@@ -179,6 +186,11 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable
 		if (_savedCharacters.TryGetValue(steamId, out var data))
 		{
 			MergeTransferredItems(steamId, data);
+			// The kernel is the authority for terminal player facts; project it
+			// over the saved snapshot so a reconnect restores the latest
+			// alive/conscious/limb/body facts even if the last 1 Hz report was
+			// captured before a dedicated terminal event landed.
+			_playerKernelRestore.Apply(steamId, data);
 			_sender.Send(steamId, NetMsg.CharacterData, data);
 			_log.LogInformation("Sent saved character data to {Peer} ({Items} items).", steamId, data.Items.Count);
 		}

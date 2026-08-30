@@ -202,6 +202,7 @@ public static class CuoBootstrap
 		services.AddSingleton(p => new CharacterDataFileStore(
 			characterDataFile, p.GetRequiredService<ILogger<CharacterDataFileStore>>()));
 		services.AddSingleton<PlayerKernelLimbProjection>();
+		services.AddSingleton<PlayerKernelRestoreProjection>();
 		services.AddSingleton<CharacterDataStore>();
 		services.AddSingleton<ICharacterDataControl>(p => p.GetRequiredService<CharacterDataStore>());
 		// Remote-vitals cache: the Online UI's read-only view of the latest

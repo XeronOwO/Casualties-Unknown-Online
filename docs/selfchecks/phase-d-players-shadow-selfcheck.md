@@ -26,6 +26,7 @@ data and carry service into the kernel.
 | Cross-player item kernel sync | `PlayerInventoryTakeService` / `PlayerHealService` / `PlayerItemUseService` + `ItemKernelAuthority` | Host-recipient take, host-user heal/use, and wear-to-host now spawn/transfer/update/destroy the carried item in the item kernel, closing the host-side item-ownership gap; guest recipients continue through the transfer-table adopt path. |
 | Player interaction result projection | `PlayerInteractionKernelProjection` + `PlayerInteractionResultAuthority` + `PlayerInteractionKernelCodec` | Take/heal/use results are recorded as journal-only Players domain events; the projection restores `TransferReceived` / `HealReceived` / `UseReceived` on the host (`BatchCommitted`) and guests (`BatchApplied`). Legacy `NetMsg.PlayerInventoryTransfer` / `PlayerHealResult` / `PlayerItemUseResult` IDs and handlers are removed. |
 | Push presentation policy | `PlayerPushService` + `PlayerPushResultMsg` | Push is transient presentation: no kernel command/event, no durable relation/health change; the host result stays a direct host→all presentation message and the resulting motion rides the 20 Hz player stream. |
+| Restore projection | `PlayerKernelRestoreProjection` + `CharacterDataStore.SendSavedCharacter` | Reconnect/re-entry restores are projected from the kernel players table over the saved character snapshot: alive/conscious, limb latches, body-terminal latches, and limb identity are authoritative; continuous physiological values, skills, items, and position remain owned by the snapshot. Carry is not a character-snapshot field and is restored separately by `PlayerKernelCarryProjection` from checkpoints/committed batches. |
 
 ## Evidence table
 
@@ -63,11 +64,13 @@ data and carry service into the kernel.
 | Host character data commits body terminal facts | `PlayerProjectionTests.HostSaveCharacterData_CommitsPlayerKernelBodyTerminalFacts`. |
 | Host limb event commits body terminal facts | `PlayerProjectionTests.LimbStateEvent_CommitsPlayerKernelBodyTerminalFacts`. |
 | Cross-player use commits body terminal facts | `PlayerInteractionServiceTests.Guest_UsesMindwipeOnUnhappyHost_AppliesMindwipeScript` asserts kernel `PlayerBodyTerminalState`. |
+| Reconnect restore projects kernel terminal facts over the saved snapshot | `CharacterDataStoreTests.SendSavedCharacter_ProjectsKernelTerminalFactsOverSnapshot` (alive/conscious, all body-terminal latches, limb latches) and `SendSavedCharacter_AddsKernelLimbFactMissingFromSnapshot`. |
+| Restore projection preserves continuous limb/physiological snapshot fields | `CharacterDataStoreTests.SendSavedCharacter_ProjectsKernelTerminalFactsOverSnapshot` asserts skin/muscle health remain from the snapshot while kernel latches override. |
 
 ## Verification
 
 - `dotnet build CasualtiesUnknownOnline.slnx`: 0 warnings / 0 errors.
-- `dotnet test CasualtiesUnknownOnline.slnx`: 1699 passed.
+- `dotnet test CasualtiesUnknownOnline.slnx`: 1701 passed.
 - `dotnet format`: applied.
 - Architecture/event/entity/isolation gates passed.
 
@@ -100,5 +103,9 @@ data and carry service into the kernel.
    on both host and guest from committed/replayed kernel batches; legacy
    `NetMsg.PlayerInventoryTransfer` / `PlayerHealResult` / `PlayerItemUseResult`
    and their handlers are removed.
-5. Project kernel player facts into character restore/snapshots where the old
-   snapshot stream is not sufficient.
+5. [x] Project kernel player terminal facts into character restore/reconnect
+   snapshots: `PlayerKernelRestoreProjection` overlays alive/conscious, limb
+   latches, body-terminal latches, and limb identity from `PlayerStateTable`
+   onto the saved `CharacterDataMsg` before `SendSavedCharacter` hands it back;
+   continuous physiological values/items/position remain snapshot-owned and
+   carry continues through the checkpoint/committed-batch projection.

@@ -5,6 +5,10 @@ Owner cycle: backlog "Remote ragdoll state not visible". The reliable
 present, but the remote clone still rendered upright because a frozen render
 proxy has no physics to move its visible limbs while `Body.standing` is false.
 
+> **Status: NOT accepted.** The delivery was rejected because the ticket was
+> moved to review without first following the `todo -> in-progress -> review`
+> workflow. This self-check is kept as reference for the reopened ticket only.
+
 ## 1. Mechanism inventory
 
 | # | Mechanism | Evidence |

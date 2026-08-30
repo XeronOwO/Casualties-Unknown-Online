@@ -20,7 +20,7 @@ for the next session to:
 1. Read this file.
 2. Read [status.md](status.md). Identify `Current phase` and its status.
 3. Read the active phase doc under `docs/architecture-evolution/`.
-4. Read [target-architecture.md](target-architecture.md) for the target model.
+4. Read [current-architecture.md](current-architecture.md) for the current model.
 5. Read the active phase doc's `Session log` and `Next actions` sections.
 6. Check the repository status: `git status`, `git log --oneline -5`.
 7. Read any relevant existing docs:

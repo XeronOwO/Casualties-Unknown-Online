@@ -21,7 +21,7 @@ Read before starting:
 - `docs/architecture-evolution/status.md`
 - `docs/architecture-evolution/session-workflow.md`
 - active phase doc
-- `docs/architecture-evolution/target-architecture.md`
+- `docs/architecture-evolution/current-architecture.md`
 - relevant `docs/tech-decisions.md` entries and `docs/selfchecks/` fact sheets
 
 Previous handoff:
@@ -82,4 +82,4 @@ delivery-gate requirement before any code change.
 - [ ] Record decisions in `docs/tech-decisions.md`.
 - [ ] Update `docs/backlog.md` if open work changed.
 - [ ] Update `docs/architecture-evolution/README.md` if directory/phase info changed.
-- [ ] Update `docs/architecture.md` when the target blueprint is superseded.
+- [ ] Update `docs/architecture.md` when the historical blueprint is superseded.

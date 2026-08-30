@@ -1,8 +1,15 @@
-# CUO Architecture Blueprint
+# CUO Architecture Blueprint (Historical — Superseded)
 
-> Companion document to `AGENTS.md`. This is the design reference: architecture, technical stack, sync model, specs, and pitfalls. It is a blueprint, not a code map — implement incrementally per the development phases.
+> **This is the pre-kernel blueprint. It is retained for historical context only and is not the current design.**
 >
-> The typed deterministic game-state kernel iteration is documented separately in [`architecture-evolution/README.md`](architecture-evolution/README.md). The architecture evolution is complete; the active architecture is the typed deterministic kernel described there. This file is retained as the historical pre-kernel blueprint.
+> The **active architecture** is the typed deterministic game-state kernel. Start with
+> [`architecture-evolution/README.md`](architecture-evolution/README.md),
+> [`architecture-evolution/current-architecture.md`](architecture-evolution/current-architecture.md),
+> [`architecture-evolution/domains.md`](architecture-evolution/domains.md), and
+> [`architecture-evolution/protocol.md`](architecture-evolution/protocol.md).
+>
+> This file may be referenced by older code comments for sections such as §3, §5, §7,
+> §8, §10, and §12; those comments are historical anchors to the original design discussions.
 
 ## 1. Overall Architecture
 

@@ -1,39 +1,40 @@
-# Target Architecture: Typed Deterministic Game-State Kernel
+# Current Architecture: Typed Deterministic Game-State Kernel
 
-This document is the target design for the CUO architecture iteration. It is derived
-from the user-provided unified-kernel proposal and kept as the durable English design
-reference. Implementation is decomposed into phases in the sibling phase documents.
+This is the active architecture of CUO after Phases A–E. The typed deterministic
+kernel is the only supported design; Unity objects, UI, remote clones, network
+caches, and saves are projections. Historical phase plans and migration records live
+in the sibling phase documents, not in this file.
 
-> Baseline: `208df31` (2026-08-27).
-> Decision: the project is not published, so the old online protocol and development
-> saves may be broken during this iteration. Compatibility with old formats is not a
-> constraint once a phase explicitly removes them.
+> Status: **Active** (Phase E complete). See
+> [README.md](README.md) for the reading path, [domains.md](domains.md) for domain
+> ownership, and [protocol.md](protocol.md) for wire/data-flow details.
+> Baseline of the architecture evolution: `208df31` (2026-08-27).
+> Compatibility with pre-evolution protocols/saves is intentionally not retained.
 
-## 1. Why now
+## 1. Why this architecture
 
-The core features are largely complete. The remaining defects are mostly caused by
-fact ownership and implicit ordering, not by missing gameplay features. The project is
-also at a rare point where:
+The core features were largely complete before the iteration. The remaining defects
+were caused by fact ownership and implicit ordering, not by missing gameplay
+features, and the project had no public release or save-compatibility burden:
 
-- it has no public release or save-compatibility burden;
 - it already has simulation, replay, race, idempotency, and state-machine tests;
-- several correct low-level pieces already exist:
+- several correct low-level pieces already existed:
   - `DropPendingState` extracts cross-hook timing into a pure state machine;
   - `CraftingSync` and `HeaterCookSync` realize "one operation = one fact batch";
   - `ItemPendingPickupArbiter` makes registration-order races explicit;
   - replay and simulation harnesses cover real defect families;
   - service splits reduce single-file complexity.
 
-What has not been solved is the higher-level authority problem. An item fact is still
-split across `WorldItemTable`, `ItemArbitration._transferred`, `CloneFactTable`, Unity
-`Item`, rollback caches, and the periodic snapshot. Other domains have similar split
-across authority tables, network handlers, adapter state, scene objects, and replay
+The higher-level authority problem was that an item fact was split across
+`WorldItemTable`, `ItemArbitration._transferred`, `CloneFactTable`, Unity `Item`,
+rollback caches, and the periodic snapshot. Other domains had similar split across
+authority tables, network handlers, adapter state, scene objects, and replay
 logic.
 
-Therefore the next step is not "split more classes". It is to build a deep module so
-that accepting a game change becomes one small interface behind one complete behavior.
+The architecture chosen for that problem was to build a deep module with one small
+interface behind one complete behavior.
 
-## 2. Target in one paragraph
+## 2. Architecture in one paragraph
 
 A **typed, deterministic game-state kernel** (`CasualtiesUnknownOnline.GameState`)
 owns all persistent gameplay facts. The Unity scene, UI, network caches, remote
@@ -54,7 +55,7 @@ Command -> Decide -> CommittedBatch -> Reduce -> Effects
 - **Effect**: an action an outer layer must perform (update a Unity object, play a sound,
   send a network batch).
 
-## 4. Target project and dependency structure
+## 4. Project and dependency structure
 
 ```text
 src/
@@ -613,8 +614,8 @@ property tests, and user-observable replay tests.
 
 ## 16. Architecture guards
 
-See [architecture-guards.md](architecture-guards.md) for the planned guard list. In
-summary, the target makes it a build/CI failure when:
+See [architecture-guards.md](architecture-guards.md) for the active guard list. In
+summary, the current architecture makes it a build/CI failure when:
 
 - GameState references Unity, Runtime, Protocol codecs, or network packages;
 - one domain references another domain's internal namespace;

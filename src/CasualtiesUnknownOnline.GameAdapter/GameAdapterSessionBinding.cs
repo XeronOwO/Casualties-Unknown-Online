@@ -67,6 +67,7 @@ internal sealed class GameAdapterSessionBinding(GameAdapterDomains domains, Play
 		domains.ItemWorldSync.Unbind();
 		domains.ItemWorldSync.ResetPending(); // session ended — a pending drop cannot resolve anymore
 		domains.BlockBreakSync.ResetPending(); // a pending break's drops are gone with the world
+		domains.TrapDrops.Reset(); // a pending destructive trap cannot resolve without the world
 		domains.ItemPositionFollow.Unbind();
 		domains.WorldEventSync.Unbind();
 		domains.EntityEventSync.Unbind();
@@ -111,6 +112,7 @@ internal sealed class GameAdapterSessionBinding(GameAdapterDomains domains, Play
 		domains.CharacterDataSync.ResetSessionState();
 		domains.ItemWorldSync.ResetPending();
 		domains.BlockBreakSync.ResetPending();
+		domains.TrapDrops.Reset();
 		domains.CraftingSync.ResetPending();
 		domains.TraderRecruit.Reset();
 		domains.HeaterCookSync.Reset();

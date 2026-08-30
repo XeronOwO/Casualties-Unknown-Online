@@ -9,8 +9,11 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 /// so a Utils.Create postfix can never see them. Item.Awake runs synchronously
 /// inside that Instantiate call; while CallContext.Origin.BuildingDeathDrop is
 /// active this marker is attached so ItemWorldSync can tell a building-death
-/// drop apart from a block drop and an ordinary runtime spawn.
+/// drop apart from a block drop and an ordinary runtime spawn. The marker also
+/// carries the exact spawn position (Item.Awake runs before physics moves the
+/// transform) for deterministic materialization and trap correlation.
 /// </summary>
 internal sealed class BuildingDeathDropOrigin : MonoBehaviour
 {
+	public Vector2 SpawnPosition;
 }

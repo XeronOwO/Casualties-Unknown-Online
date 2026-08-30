@@ -32,7 +32,8 @@ internal static class ItemPatches
 				return;
 			}
 
-			__instance.gameObject.AddComponent<BuildingDeathDropOrigin>();
+			var origin = __instance.gameObject.AddComponent<BuildingDeathDropOrigin>();
+			origin.SpawnPosition = __instance.transform.position;
 		}
 	}
 

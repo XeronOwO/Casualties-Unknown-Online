@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.GameState;
+using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.GameState.Domains.WorldEntities;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
@@ -58,7 +59,7 @@ public sealed class TrapStateRegistry(
 	/// caller supplies a destroyed-health observation), and any additional
 	/// explosion-diff building-health entries captured in the same trap scope.
 	/// </summary>
-	public void ReportBatch(EntityEventKind kind, float x, float y, byte extra, float? buildingHealth = null, IReadOnlyList<BuildingEntityHealthEntryMsg>? additionalHealth = null)
+	public void ReportBatch(EntityEventKind kind, float x, float y, byte extra, float? buildingHealth = null, IReadOnlyList<BuildingEntityHealthEntryMsg>? additionalHealth = null, IReadOnlyList<TrapDropEntryMsg>? drops = null, ulong? dropActor = null)
 	{
 		if (_session.Role != SessionRole.Host)
 		{
@@ -119,6 +120,23 @@ public sealed class TrapStateRegistry(
 			}
 		}
 
+		if (drops is not null)
+		{
+			var actor = dropActor ?? _session.LocalSteamId;
+			foreach (var drop in drops)
+			{
+				commands.Add(new SpawnItemCommand(
+					_kernelAuthority.NextOperationId(),
+					new ActorId(actor),
+					_kernelAuthority.CurrentRunEpoch,
+					AuthorityKind.OwnerPredictedHostValidated,
+					new ItemIdentity(drop.ItemId, drop.Item.ItemId),
+					ItemLocation.World(drop.Position.X, drop.Position.Y),
+					0,
+					ItemKernelAuthority.ToKernelData(drop.Item)));
+			}
+		}
+
 		if (commands.Count == 0)
 		{
 			return;
@@ -130,6 +148,9 @@ public sealed class TrapStateRegistry(
 			_kernelAuthority.CurrentRunEpoch,
 			AuthorityKind.HostOnly,
 			commands);
-		_kernelAuthority.TryExecuteHostCommand(composite, _session.LocalSteamId, "record-trap-event", out _, out _);
+		// TryExecuteCommand (not TryExecuteHostCommand) so item spawns inside
+		// the composite reach the host's external/projection path and are both
+		// broadcast and materialized locally.
+		_kernelAuthority.TryExecuteCommand(composite, _session.LocalSteamId, out _, out _);
 	}
 }

@@ -1,5 +1,7 @@
 using System.Collections.Generic;
+using System.Linq;
 using CasualtiesUnknownOnline.GameState;
+using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.GameState.Domains.WorldEntities;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
@@ -128,6 +130,47 @@ public class WorldEntityProjectionTests
 		Assert.Single(state!.Consumptions);
 		Assert.Single(state.TrapStates);
 		Assert.Equal(2, state.BuildingHealth.Count);
+	}
+
+	[Fact]
+	public void HostReportTrapEvent_WithDrops_CommitsTrapAndItemSpawnsInOneBatch()
+	{
+		var (_, host, _) = HandshakeTests.CreateHostAndGuest();
+		host.Steam.FireLobbyCreated(LobbyId);
+
+		var world = host.Services.GetRequiredService<IWorldControl>();
+		var authority = host.Services.GetRequiredService<ItemKernelAuthority>();
+		var items = host.Services.GetRequiredService<IItemControl>();
+
+		CommittedBatch? captured = null;
+		authority.BatchCommitted += batch => captured = batch;
+		WorldItem? projected = null;
+		items.ItemSpawned += w => projected = w;
+
+		world.ReportTrapEvent(
+			EntityEventKind.MineExploded,
+			1.2f,
+			2.8f,
+			5,
+			0f,
+			null,
+			[
+				new TrapDropEntryMsg
+				{
+					ItemId = 501,
+					Item = new CharacterItemMsg { ItemId = "rock", Condition = 1f },
+					Position = new NetVector2Msg(1.2f, 2.8f),
+				},
+			],
+			dropActor: 2001);
+
+		Assert.NotNull(captured);
+		Assert.Contains(captured!.Events, e => e is TrapConsumedEvent);
+		Assert.Contains(captured.Events, e => e is TrapStateChangedEvent);
+		Assert.Contains(captured.Events, e => e is ItemSpawnedEvent);
+		Assert.Single(authority.QueryItems().Values.Where(i => i.Identity.InstanceId == 501));
+		Assert.NotNull(projected);
+		Assert.Equal(501ul, projected!.Value.ItemId);
 	}
 
 	[Fact]

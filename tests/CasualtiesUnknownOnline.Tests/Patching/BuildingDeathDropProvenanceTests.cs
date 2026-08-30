@@ -56,12 +56,13 @@ public class BuildingDeathDropProvenanceTests
 	}
 
 	[Fact]
-	public void Marker_IsAPureMonoBehaviour()
+	public void Marker_IsAMonoBehaviourWithSpawnPosition()
 	{
 		Assert.True(Marker.BaseType?.FullName == "UnityEngine.MonoBehaviour",
 			$"BuildingDeathDropOrigin must be a MonoBehaviour marker, got base {Marker.BaseType?.FullName}");
-		Assert.True(Marker.GetFields(BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic).Length == 0,
-			"BuildingDeathDropOrigin must stay a pure marker — fields would make it stateful.");
+		var fields = Marker.GetFields(BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+		Assert.True(fields.Length == 1 && fields[0].Name == "SpawnPosition",
+			"BuildingDeathDropOrigin must carry exactly one SpawnPosition field for deterministic trap-drop materialization.");
 	}
 
 	[Fact]

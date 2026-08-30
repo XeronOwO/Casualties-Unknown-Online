@@ -3850,4 +3850,4 @@ no legacy bidirectional result wire survives.
   carry `WireEnemyCombat`, including the full post-hit limb snapshot and the
   effect-specific body fields.
 - **Tests** — kernel command/wire round-trip tests and host/guest projection
-  tests cover bite, lunge, and effect result families. Full suite 1701 green.
+  tests cover bite, lunge, and effect result families. Full suite 1702 green.

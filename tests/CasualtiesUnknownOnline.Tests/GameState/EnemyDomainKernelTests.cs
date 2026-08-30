@@ -198,6 +198,29 @@ public class EnemyDomainKernelTests
 	}
 
 	[Fact]
+	public void WireBatchRoundTrip_PreservesEnemyBiteLimbIndexZero()
+	{
+		var kernel = new GameStateKernel(Epoch);
+		var decision = kernel.Execute(
+			new RecordEnemyBiteCommand(
+				new OperationId(1),
+				Host,
+				Epoch,
+				AuthorityKind.HostOnly,
+				2001,
+				Limb() with { Index = 0 },
+				3f,
+				75f,
+				-0.5f),
+			new CommandContext(Epoch, Host));
+
+		var restored = KernelWireMapper.FromWireBatch(KernelWireMapper.ToWireBatch(decision.Batch!), Epoch);
+
+		var @event = Assert.IsType<EnemyBiteResultEvent>(Assert.Single(restored.Events));
+		Assert.Equal(0, @event.Limb.Index);
+	}
+
+	[Fact]
 	public void WireBatchRoundTrip_PreservesEnemyLungeResultEvent()
 	{
 		var kernel = new GameStateKernel(Epoch);

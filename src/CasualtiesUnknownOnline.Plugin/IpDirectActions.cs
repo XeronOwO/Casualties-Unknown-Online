@@ -51,6 +51,12 @@ internal sealed class IpDirectActions
 			return false;
 		}
 
+		if (!IpDisplayNamePolicy.TryValidate(_config.DisplayName, out _))
+		{
+			LastError = _localization.T("ip.display_name_required");
+			return false;
+		}
+
 		_ipSteam.SetDisplayName(_config.DisplayName);
 		_router.UseIpDirect();
 		if (!_ipSteam.StartHost(_config.ListenPort, out var error))
@@ -74,6 +80,12 @@ internal sealed class IpDirectActions
 		if (string.IsNullOrWhiteSpace(address))
 		{
 			LastError = _localization.T("ip.address_required");
+			return false;
+		}
+
+		if (!IpDisplayNamePolicy.TryValidate(_config.DisplayName, out _))
+		{
+			LastError = _localization.T("ip.display_name_required");
 			return false;
 		}
 

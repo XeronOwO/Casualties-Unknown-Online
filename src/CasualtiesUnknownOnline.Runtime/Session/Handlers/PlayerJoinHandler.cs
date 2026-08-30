@@ -1,5 +1,6 @@
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Steam;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 
@@ -23,7 +24,7 @@ public sealed class PlayerJoinHandler : PacketHandlerBase<PlayerJoinMsg, IEntity
 		if (msg.GuestSteamId != 0 && !string.IsNullOrWhiteSpace(msg.DisplayName))
 		{
 			var member = ctx.Session.GetOrCreateMember(msg.GuestSteamId);
-			member.DisplayName = msg.DisplayName;
+			member.DisplayName = IpDisplayNamePolicy.Normalize(msg.DisplayName);
 		}
 
 		ctx.Entities.ProcessPlayerJoin(msg);

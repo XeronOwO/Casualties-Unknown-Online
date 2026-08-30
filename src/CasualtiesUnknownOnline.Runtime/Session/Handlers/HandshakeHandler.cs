@@ -58,6 +58,18 @@ public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandl
 			return;
 		}
 
+		// The display name is part of the join contract. An empty or malformed
+		// name is rejected before the member is created: it is not a valid
+		// identity under the IP-direct rules, and the UI cannot present a safe
+		// label for it.
+		if (!IpDisplayNamePolicy.TryValidate(msg.DisplayName, out var displayNameError))
+		{
+			_log.LogWarning("Handshake from {Peer} rejected: invalid display name ({Error}).", sender, displayNameError);
+			return;
+		}
+
+		var displayName = IpDisplayNamePolicy.Normalize(msg.DisplayName);
+
 		// Mod-list consistency (Phase 4 Mod API): the host validates the
 		// member's declared mods against its own BEFORE the member is created —
 		// a rejected member never enters the roster. Two deliberate windows:
@@ -86,7 +98,7 @@ public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandl
 		{
 			member = session.GetOrCreateMember(sender);
 			member.InWorld = peerState == SceneStateType.InWorld;
-			member.DisplayName = msg.DisplayName;
+			member.DisplayName = displayName;
 			// Cross-session restore: the disk-backed character save outlives the
 			// session — a returning player gets it back once the host has a live
 			// world (CharacterDataStore.SendSavedCharacter gates on LocalInWorld);
@@ -115,7 +127,7 @@ public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandl
 			}
 
 			member.InWorld = peerState == SceneStateType.InWorld;
-			member.DisplayName = msg.DisplayName;
+			member.DisplayName = displayName;
 			ctx.CharacterData.SendSavedCharacter(sender);
 		}
 

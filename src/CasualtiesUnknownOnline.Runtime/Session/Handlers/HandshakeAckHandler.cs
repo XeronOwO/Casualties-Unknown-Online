@@ -1,5 +1,6 @@
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Steam;
 using Microsoft.Extensions.Logging;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
@@ -30,7 +31,7 @@ public sealed class HandshakeAckHandler(PacketSender sender, ILogger<HandshakeAc
 		var member = session.GetOrCreateMember(sender);
 		member.InWorld = hostState == SceneStateType.InWorld;
 		member.Handshaken = true;
-		member.DisplayName = msg.DisplayName;
+		member.DisplayName = IpDisplayNamePolicy.Normalize(msg.DisplayName);
 		session.FireMemberAdded(sender); // the handshake completed — domains keyed on member readiness hook here (the item domain grants the id watermark on the host)
 
 		var wasActive = session.SessionActive;

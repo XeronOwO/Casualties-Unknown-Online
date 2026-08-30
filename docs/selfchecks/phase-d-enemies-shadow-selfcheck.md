@@ -54,11 +54,12 @@ durable entity identity/health/runtime-spawn facts.
 | Guest combat-result command decodes on host | `EnemyDomainKernelTests.WireCommandRoundTrip_BuildsRecordEnemyBiteCommand`. |
 | Host/guest combat-result projection restores presentation events | `EnemyBiteSyncTests`, `EnemyLungeSyncTests`, `EnemyEffectSyncTests` (host-own and guest-report star semantics; source victim skipped). |
 | Enemy combat policy constants are locked | `EnemyCombatPolicyTests` (spider bite range, crystal close range, lunge ray/tolerance). |
+| Enemy target resolver contract is locked | `EnemyTargetResolverContractTests` (resolver exposes `BuildCandidates`/`Find`/`Facts`/`SelectLimbIndex`/`LocalBody`, `EnemyTarget.ToFact`). |
 
 ## Verification
 
 - `dotnet build CasualtiesUnknownOnline.slnx`: 0 warnings / 0 errors.
-- `dotnet test CasualtiesUnknownOnline.slnx`: 1769 passed.
+- `dotnet test CasualtiesUnknownOnline.slnx`: 1771 passed.
 - `dotnet format`: applied.
 - Architecture/event/entity/isolation/delivery gates passed; architecture split added
   `ItemKernelCodec`, `KernelDomainWireMapper`, `EnemyCombatKernelCodec`, and

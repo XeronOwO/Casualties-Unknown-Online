@@ -39,6 +39,7 @@ own typed model and invariants.
 | [current-architecture.md](current-architecture.md) | **Active** current architecture: kernel core, transaction/authority model, guards, non-goals. |
 | [domains.md](domains.md) | **Active** domain ownership and projection map. |
 | [protocol.md](protocol.md) | **Active** four-envelope protocol and data-flow reference. |
+| [phase-decisions.md](phase-decisions.md) | Compressed Phase A–E decision record. |
 | [status.md](status.md) | Completed phase tracker and handoff state. |
 | [session-workflow.md](session-workflow.md) | Historical process rules for independent phase sessions. |
 | [architecture-guards.md](architecture-guards.md) | Active architecture guard list and landed guard automation. |

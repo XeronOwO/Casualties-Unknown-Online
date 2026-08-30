@@ -122,6 +122,9 @@ a separate future architecture item, not part of the completed evolution.
   evidence. The runtime is the judge, not the plan.
 - `[CRITICAL]` Root cause over patch stacking: prefer changing architecture to eliminate a
   cause; do not accumulate technical debt.
+- `[CRITICAL]` Line-count / architecture gate escapes must be real responsibility splits:
+  never delete comments/blank lines, shrink formatting, or move code between files just to
+  pass the gate. Extract a single-responsibility type, preserve behavior, and keep tests/gates green.
 - `[CRITICAL]` Bug reproduction before fix: add a regression test that fails on current code,
   record the failure, then change implementation.
 - `[CRITICAL]` Tests must cover core scenarios plus edge/special/failure paths.

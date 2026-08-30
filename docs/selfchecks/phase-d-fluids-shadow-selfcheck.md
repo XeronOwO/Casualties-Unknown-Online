@@ -23,6 +23,7 @@ authoritative region checkpoint foundation.
 | Host grid aggregator | `GameAdapter/World/FluidRegionKernelSync` | At a low cadence it aggregates `FluidManager.fluid` into `WorldGeneration.CHUNKSIZE` chunks (nonzero totals/dominant types). |
 | Host projection | `FluidKernelProjection` + `IWorldControl.ReportFluidRegions` | `WorldService` forwards the summary; the projection change-gates upserts and clears stale positive chunks to zero. |
 | Guest read projection | `FluidKernelReadProjection` + `WorldService.FluidRegionFacts` | Guest-only rebuildable mirror of the kernel fluid-region table from `CheckpointRestored` and `BatchApplied` (`FluidRegionUpdatedEvent`/`FluidsResetEvent`); the high-frequency RLE grid stream remains the live view path. |
+| Adapter coarse view | `FluidKernelViewSync` + `IWorldControl.FluidRegionFacts/FluidRegionsProjected` | GameAdapter-side rebuildable coarse mirror/diagnostic for the guest kernel fluid facts, separate from the RLE grid stream. |
 
 ## Evidence table
 
@@ -41,11 +42,12 @@ authoritative region checkpoint foundation.
 | Guest applied batches upsert/replace the read projection | `FluidKernelReadProjectionTests.GuestBatchApplied_UpsertsAndReplacesRegionFacts`. |
 | Guest reset clears the read projection | `FluidKernelReadProjectionTests.GuestBatchApplied_ResetClearsRegionFacts`. |
 | Host role does not project fluid regions | `FluidKernelReadProjectionTests.HostRole_DoesNotProjectFluidRegions`. |
+| `IWorldControl` surfaces guest fluid facts and rebuild event | `FluidKernelReadProjectionTests.GuestCheckpointRestore_SurfacesThroughWorldControl`. |
 
 ## Verification
 
 - `dotnet build CasualtiesUnknownOnline.slnx`: 0 warnings / 0 errors.
-- `dotnet test CasualtiesUnknownOnline.slnx`: 1706 passed.
+- `dotnet test CasualtiesUnknownOnline.slnx`: 1765 passed.
 - `dotnet format`: applied.
 - Architecture/event/entity/isolation/delivery gates passed.
 
@@ -60,6 +62,9 @@ authoritative region checkpoint foundation.
 
 1. [x] Guest-side kernel read projection landed: `FluidKernelReadProjection`
    rebuilds from `CheckpointRestored` and applies `BatchApplied`, with tests.
-2. Continue with high-frequency stream unification and the GameAdapter-side
-   local simulation/coarse view consumption from `FluidRegionFacts` when the
-   live RLE stream no longer covers a restart/reconnect path.
+2. [x] GameAdapter-side coarse view wired: `IWorldControl` exposes
+   `FluidRegionFacts`/`FluidRegionsProjected`; `FluidKernelViewSync` consumes
+   the rebuilt kernel facts through `FluidWorldSync`, separate from the RLE
+   stream.
+3. Continue with the next Phase D domain (EnemyCombatDirector/targeting or the
+   remaining local-simulation use of the rebuilt fluid coarse facts).

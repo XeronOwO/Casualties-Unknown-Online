@@ -4187,3 +4187,21 @@ order policy owns the apply path.
 - **Tests** — `EnemyCombatArbitrationTests` now asserts the local victim is
   returned for the order policy, and `EnemyCombatOrderPolicyTests` locks the
   subsequent `LocalNative` decision. Full suite 1780 green.
+
+## 150. Fluids guest projection and convergence semantics (2026-08-30)
+
+The Phase D fluids checklist is closed by recording the existing design rather
+than adding a second grid path.
+
+- **Guest projection** — the guest never simulates fluid; `FluidRegionApplication`
+  applies host-produced absolute RLE overwrites to the local grid, which is the
+  rebuildable projection path.
+- **Coarse facts** — `FluidKernelReadProjection` / `FluidKernelViewSync` remain
+  a diagnostic and future simulation seam; they do not write the local grid or
+  kernel.
+- **Forbidden stream operations** — the high-frequency region stream is
+  update-only and cannot create/destroy kernel fluid aggregates; grain totals
+  only change through `UpdateFluidRegionCommand` / `ResetFluidsCommand`.
+- **Tests** — `FluidRleCodecTests`,
+  `EntityEventSimulationTests.FluidRegion_LostUnreliableRegion_HealedByTheNextAbsoluteOverwrite`,
+  and `FluidDomainKernelTests` lock the projection/aggregate boundaries.

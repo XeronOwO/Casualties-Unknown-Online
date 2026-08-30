@@ -1,9 +1,11 @@
 using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
+using CasualtiesUnknownOnline.Tests.Fakes;
 using CasualtiesUnknownOnline.Tests.Session;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -13,6 +15,7 @@ namespace CasualtiesUnknownOnline.Tests.World;
 public class PlayerProjectionTests
 {
 	private const ulong HostId = 1001;
+	private const ulong GuestId = 2001;
 	private const ulong LobbyId = 9001;
 
 	[Fact]
@@ -38,6 +41,27 @@ public class PlayerProjectionTests
 		Assert.Equal(HostId, player.SteamId);
 		Assert.False(player.Alive);
 		Assert.False(player.Conscious);
+	}
+
+	[Fact]
+	public void HostStartMemberSync_EnsuresKernelPlayerRosterRow()
+	{
+		var (host, guest) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		using (host)
+		using (guest)
+		{
+			host.Session.ReportSceneState(SceneStateType.InWorld, "SampleScene");
+			guest.Session.ReportSceneState(SceneStateType.InWorld, "SampleScene");
+
+			var entities = host.Services.GetRequiredService<IEntitySyncControl>();
+			var authority = host.Services.GetRequiredService<ItemKernelAuthority>();
+
+			entities.MaybeStartEntitySync();
+
+			var player = authority.QueryPlayers()!.Players.Single(p => p.SteamId == GuestId);
+			Assert.True(player.Alive);
+			Assert.True(player.Conscious);
+		}
 	}
 
 	[Fact]

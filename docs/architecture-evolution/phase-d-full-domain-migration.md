@@ -235,6 +235,7 @@ For each domain, complete these steps in order:
 | 2026-08-30 | Fluids guest projection + convergence semantics closed | `current` | Docs | The guest fluid path is now recorded as the rebuildable RLE absolute-overwrite projection; coarse kernel facts remain a diagnostic/future simulation seam and are not a second grid authority. Fluid stream convergence/forbidden-operation semantics are locked by the existing RLE/absolute-overwrite and kernel command tests. See `docs/selfchecks/phase-d-fluids-shadow-selfcheck.md`. |
 | 2026-08-30 | WorldEntities 4.2 checklist closure | `current` | Docs | Building/entity lifecycle is represented by kernel building-health facts plus the destroyed-building invariant; trap presentation is a replay/projection (`TrapVisualReplay` + `WorldEntityKernelProjection`), not authority; trap replay/snapshot logic rides kernel checkpoint projection and the legacy world-entity snapshot wire was already removed. See `docs/selfchecks/phase-d-world-entities-shadow-selfcheck.md`. |
 | 2026-08-30 | Players skill facts in kernel domain | `current` | 1786 tests green; build/format/architecture/event/entity/isolation/delivery gates pass | `PlayerSkillsState` (strength/resistance/intelligence + exp) is now part of `PlayerState`; `WirePlayerSkills`/wire/checkpoint/save round-trip; `PlayerKernelLimbProjection` commits host character-data skills into the kernel, and `PlayerKernelRestoreProjection` overlays kernel skills on reconnect/re-entry restores. Backpack root remains the item kernel's `Carried` owner set rather than a duplicate root aggregate. See `docs/selfchecks/phase-d-players-shadow-selfcheck.md` and `docs/tech-decisions.md` #152. |
+| 2026-08-30 | Players kernel identity floor on entity-sync start | `current` | 1787 tests green; build/format/architecture/event/entity/isolation/delivery gates pass | `PlayerKernelStatusProjection.Ensure` upserts a default `PlayerState` row when a member's entity sync starts, so carry/relation validation can depend on kernel identity without waiting for the first 20 Hz or 1 Hz report. No new wire command/event. See `docs/selfchecks/phase-d-players-shadow-selfcheck.md` and `docs/tech-decisions.md` #153. |
 
 ## Next actions
 
@@ -251,6 +252,5 @@ For each domain, complete these steps in order:
    kernel process/events; `EnemyAttackMsg` stays the host-order local-apply
    command and is not merged into presentation.
 5. [ ] Continue 4.3 Players: define/implement the remaining player-domain
-   boundary items (identity/join roster, authority-policy annotations,
-   death+inventory/relation consistency invariants, and prediction/rollback
-   seams).
+   boundary items (authority-policy annotations, death+inventory/relation
+   consistency invariants, and prediction/rollback seams).

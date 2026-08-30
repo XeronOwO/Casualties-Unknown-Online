@@ -20,6 +20,7 @@ data and carry service into the kernel.
 | Mapper/save | `KernelWireMapper`, `WireCheckpointAssembler`, `KernelSaveFileStore`, `KernelSaveFile` | Player facts round-trip through wire checkpoints and disk saves. |
 | Runtime authority surface | `ItemKernelAuthority.TryUpdatePlayerStatus/TryResetPlayers/QueryPlayers/TrySetPlayerCarry/TryClearPlayerCarry` | Host commands and query entry points. |
 | Entity-sync projection | `PlayerKernelStatusProjection` + `EntitySyncService` | Host `PublishLocalState`/`ApplyEntityState` project alive/conscious changes into kernel status; guests receive the kernel batch through the existing protocol path. |
+| Player roster ensure | `PlayerKernelStatusProjection.Ensure` + `EntitySyncService.StartMemberSync` | The host creates a default kernel player row the moment a member's entity sync starts, so the player-domain identity floor does not depend on the first 20 Hz report or 1 Hz character snapshot. |
 | Limb projection | `PlayerKernelLimbProjection` + `CharacterDataStore` | Host character snapshots and limb-latch events project discrete limb latches into kernel `PlayerState`; event + 1 Hz snapshot fallback are both covered. |
 | Body terminal projection | `PlayerKernelLimbProjection` + `CharacterDataStore` | The same character-data/limb-event projection also commits body-level terminal booleans (`Disfigured`, `EyeGone`, `BothEyesGone`, `HasPulmonaryEmbolism`, last-stand/neural booleans, `FibrillationForced`, `MindwipeScriptPresent/Active`) into `PlayerBodyTerminalState`. |
 | Skills projection | `PlayerKernelLimbProjection` + `CharacterDataStore` | Host character snapshots now commit durable `PlayerSkillsState` (strength/resistance/intelligence plus exp values) into the kernel player row; `PlayerKernelRestoreProjection` overlays those skills onto reconnect/re-entry snapshots. The character snapshot remains the continuous/fallback projection surface. |
@@ -40,6 +41,7 @@ data and carry service into the kernel.
 | Checkpoint chunks preserve players | `PlayerDomainKernelTests.CheckpointSplitAssemble_RoundTripsPlayers`. |
 | Save/load preserves players | `PlayerDomainKernelTests.SaveLoad_RoundTripsPlayers`. |
 | Host entity-sync publish commits player status | `PlayerProjectionTests.HostPublishLocalState_CommitsPlayerKernelStatus`. |
+| Host start-member-sync ensures a kernel roster row | `PlayerProjectionTests.HostStartMemberSync_EnsuresKernelPlayerRosterRow`. |
 | Carry set/clear drives reciprocal player relation | `PlayerDomainKernelTests.SetAndClearCarry_DrivePlayerRelation`. |
 | Self carry and carry conflicts are rejected | `PlayerDomainKernelTests.SelfCarry_IsRejected` / `CarryConflict_IsRejected`. |
 | Wire batch preserves a carry event | `PlayerDomainKernelTests.WireBatchRoundTrip_PreservesPlayerCarryEvent`. |
@@ -75,7 +77,7 @@ data and carry service into the kernel.
 ## Verification
 
 - `dotnet build CasualtiesUnknownOnline.slnx`: 0 warnings / 0 errors.
-- `dotnet test CasualtiesUnknownOnline.slnx`: 1786 passed.
+- `dotnet test CasualtiesUnknownOnline.slnx`: 1787 passed.
 - `dotnet format`: applied.
 - Architecture/event/entity/isolation gates passed.
 
@@ -117,3 +119,7 @@ data and carry service into the kernel.
 6. [x] Add durable skill facts to the player domain: `PlayerSkillsState`,
    checkpoint/wire/save round-trip, host character-data projection, and
    reconnect restore overlay through `PlayerKernelRestoreProjection`.
+7. [x] Ensure the player identity floor in the kernel: host entity-sync start
+   creates a default `PlayerState` row via `PlayerKernelStatusProjection.Ensure`,
+   so carry/relation validation no longer waits for the first high-frequency
+   player report.

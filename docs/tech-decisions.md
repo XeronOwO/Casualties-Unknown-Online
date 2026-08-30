@@ -4291,3 +4291,23 @@ used by the result journal path.
 - **Tests** — `PlayerInteractionAuthorityPolicyTests` locks the policy table and
   kernel authority mapping. Full suite 1790 green;
   build/format/architecture/event/entity/delivery gates pass.
+
+## 155. Carry carrier liveness invariant (2026-08-30)
+
+The player domain now enforces one missing piece of relation consistency: a
+player who acts as a carrier in a kernel carry relation must be alive and
+conscious.
+
+- **Invariant** — `PlayerDomainModule.AssertCarryFields` rejects a
+  `PlayerCarrySetEvent` (or any state reducing to one) where the carrier is
+  dead or unconscious.
+- **Why only the carrier side** — classic carry intentionally targets
+  unconscious/dead bodies, and piggyback targets a conscious/alive rider;
+  both carried states are legal. Only the carrier's ability to perform the
+  relation is a hard kernel invariant.
+- **Runtime alignment** — `PlayerCarryService` already enforces the same
+  gate before issuing the host command; the invariant closes the kernel-side
+  hole so a replay/checkpoint cannot contain an invalid carrier fact.
+- **Tests** — `PlayerDomainKernelTests.DeadCarrier_IsRejectedByInvariant`
+  and `UnconsciousButAliveCarrier_IsRejectedByInvariant`. Full suite 1792
+  green; build/format/architecture/event/entity/delivery gates pass.

@@ -37,18 +37,6 @@ internal sealed class EnemyCombatDirector(
 	RemotePlayerRenderer renderer,
 	ILogger<EnemyCombatDirector> log)
 {
-	/// <summary>Spider bite range — FixedUpdate stops chasing at 1.5 units (SpiderHandler.cs:125), so contact happens inside that radius.</summary>
-	private const float SpiderBiteRange = 1.5f;
-
-	/// <summary>CrystalEnemy.close threshold (CrystalEnemy.cs:25) — the radius the game itself uses for player proximity.</summary>
-	private const float CrystalCloseRange = 64f;
-
-	/// <summary>Crystal Lunge raycasts 999 units (CrystalEnemy.cs:133) and ignores non-Body/non-Ground hits.</summary>
-	private const float CrystalRayLength = 999f;
-
-	/// <summary>Ray-vs-player tolerance (units) for the host's lunge arbitration — accept-first, not collision-box validation.</summary>
-	private const float CrystalRayTolerance = 2f;
-
 	private static readonly FieldInfo? BiteCooldownField =
 		typeof(SpiderHandler).GetField("biteCooldown", BindingFlags.Instance | BindingFlags.NonPublic);
 
@@ -121,7 +109,7 @@ internal sealed class EnemyCombatDirector(
 		var fact = EnemyCombatArbitration.SelectNearest(
 			BuildCandidates().Where(c => c.Body != null).Select(c => c.ToFact()),
 			ToNetVector2(crystal.transform.position),
-			CrystalCloseRange);
+			EnemyCombatPolicy.CrystalCloseRange);
 		if (fact is { } selected && FindTarget(selected)?.Body is { } targetBody)
 		{
 			body = targetBody;
@@ -156,7 +144,7 @@ internal sealed class EnemyCombatDirector(
 		var direction = new Vector2(crystal.transform.up.x, crystal.transform.up.y);
 		var groundDistance = FirstGroundDistance(origin, direction, crystal.transform);
 		var fact = EnemyCombatArbitration.SelectLungeVictim(
-			Facts(), ToNetVector2(origin), ToNetVector2(direction), groundDistance, CrystalRayTolerance);
+			Facts(), ToNetVector2(origin), ToNetVector2(direction), groundDistance, EnemyCombatPolicy.CrystalRayTolerance);
 		var target = FindTarget(fact);
 		if (target is null)
 		{
@@ -317,7 +305,7 @@ internal sealed class EnemyCombatDirector(
 
 		var cooldown = (float)BiteCooldownField.GetValue(spider);
 		var fact = EnemyCombatArbitration.SelectBiteVictim(
-			Facts(), ToNetVector2(spider.transform.position), SpiderBiteRange, cooldown, spider.stunTime, _session.LocalSteamId);
+			Facts(), ToNetVector2(spider.transform.position), EnemyCombatPolicy.SpiderBiteRange, cooldown, spider.stunTime, _session.LocalSteamId);
 		var target = FindTarget(fact);
 		if (target is null)
 		{
@@ -382,8 +370,8 @@ internal sealed class EnemyCombatDirector(
 
 	private float FirstGroundDistance(Vector2 origin, Vector2 direction, Transform self)
 	{
-		var hits = Physics2D.RaycastAll(origin, direction, CrystalRayLength, LayerMask.GetMask("Ground"));
-		var best = CrystalRayLength;
+		var hits = Physics2D.RaycastAll(origin, direction, EnemyCombatPolicy.CrystalRayLength, LayerMask.GetMask("Ground"));
+		var best = EnemyCombatPolicy.CrystalRayLength;
 		foreach (var hit in hits)
 		{
 			if (hit.collider == null || hit.transform == self || hit.distance < 0.01f) // Unity objects — ==
@@ -477,77 +465,4 @@ internal sealed class EnemyCombatDirector(
 		internal EnemyTargetFact ToFact() => new(SteamId, new NetVector2(Position.x, Position.y));
 	}
 
-	/// <summary>
-	/// The Harmony __state crossing CrystalEnemy.Lunge: the local body and its
-	/// pre-lunge limb values. The postfix finds the one limb the native hit
-	/// actually changed (the game's RaycastAll picks a random non-dismembered
-	/// limb, CrystalEnemy.cs:137-144) — report only after that verified write.
-	/// </summary>
-	private sealed class CrystalLungeTrace
-	{
-		private readonly Body _body;
-		private readonly float[] _skin;
-		private readonly float[] _muscle;
-		private readonly float[] _pain;
-		private readonly float[] _bleed;
-
-		private CrystalLungeTrace(Body body, float[] skin, float[] muscle, float[] pain, float[] bleed)
-		{
-			_body = body;
-			_skin = skin;
-			_muscle = muscle;
-			_pain = pain;
-			_bleed = bleed;
-		}
-
-		internal static CrystalLungeTrace? Capture(Body body)
-		{
-			var skin = new float[body.limbs.Length];
-			var muscle = new float[body.limbs.Length];
-			var pain = new float[body.limbs.Length];
-			var bleed = new float[body.limbs.Length];
-			for (var i = 0; i < body.limbs.Length; i++)
-			{
-				var limb = body.limbs[i];
-				if (limb == null) // Unity object — ==
-				{
-					return null;
-				}
-
-				skin[i] = limb.skinHealth;
-				muscle[i] = limb.muscleHealth;
-				pain[i] = limb.pain;
-				bleed[i] = limb.bleedAmount;
-			}
-
-			return new CrystalLungeTrace(body, skin, muscle, pain, bleed);
-		}
-
-		internal Limb? FindChangedLimb()
-		{
-			if (_body == null) // Unity object — ==
-			{
-				return null;
-			}
-
-			for (var i = 0; i < _body.limbs.Length && i < _skin.Length; i++)
-			{
-				var limb = _body.limbs[i];
-				if (limb == null) // Unity object — ==
-				{
-					continue;
-				}
-
-				if (limb.skinHealth != _skin[i]
-					|| limb.muscleHealth != _muscle[i]
-					|| limb.pain != _pain[i]
-					|| limb.bleedAmount != _bleed[i])
-				{
-					return limb;
-				}
-			}
-
-			return null;
-		}
-	}
 }

@@ -37,6 +37,9 @@ internal static class CallContext
 		/// <summary>Inside a local DamageBlock roll — Utils.Create calls in this scope are block drops (marked with DropOrigin, folded into the pending break report).</summary>
 		DamageBlockOrigin,
 
+		/// <summary>Inside BuildingEntity.Update's local death branch (health &lt; 0.5 without RemoteEntityDeath) — Item.Awake sees this scope and marks each spawned item as a building-death drop.</summary>
+		BuildingDeathDrop,
+
 		/// <summary>Inside a crafting operation (Recipe.TryMake / Body.CombineItems) — the material/product item hooks stay silent (their facts ride the ONE craft report; the end-of-frame destroys ride the destroy-claim set in CraftingSync).</summary>
 		Craft,
 

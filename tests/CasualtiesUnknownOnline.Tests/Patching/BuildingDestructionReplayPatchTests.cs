@@ -19,17 +19,33 @@ public class BuildingDestructionReplayPatchTests
 		throwOnError: true)!;
 
 	[Fact]
-	public void Prefix_RemoteDeathPath_RemainsABuildingEntityPrefix()
+	public void Prefix_HasTheBuildingEntityInstanceAndOutState()
 	{
 		var prefix = Patch.GetMethod("Prefix", BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
 			?? throw new InvalidOperationException("BuildingEntityUpdatePatch.Prefix not found.");
 
 		var parameters = prefix.GetParameters();
-		Assert.True(parameters.Length == 1
+		Assert.True(parameters.Length == 2
 			&& parameters[0].Name == "__instance"
-			&& parameters[0].ParameterType.FullName == "BuildingEntity",
-			$"Prefix must be (BuildingEntity __instance), got {parameters.Length} parameter(s)");
+			&& parameters[0].ParameterType.FullName == "BuildingEntity"
+			&& parameters[1].Name == "__state"
+			&& parameters[1].ParameterType.IsByRef
+			&& parameters[1].ParameterType.GetElementType()!.FullName == "System.IDisposable",
+			$"Prefix must be (BuildingEntity __instance, out IDisposable __state), got {parameters.Length} parameter(s)");
 		Assert.Equal(typeof(bool), prefix.ReturnType);
+	}
+
+	[Fact]
+	public void Postfix_DisposesTheBuildingEntityUpdateScope()
+	{
+		var postfix = Patch.GetMethod("Postfix", BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
+			?? throw new InvalidOperationException("BuildingEntityUpdatePatch.Postfix not found.");
+
+		var parameters = postfix.GetParameters();
+		Assert.True(parameters.Length == 1
+			&& parameters[0].Name == "__state"
+			&& parameters[0].ParameterType.FullName == "System.IDisposable",
+			$"Postfix must have exactly one IDisposable __state, got {parameters.Length} parameter(s)");
 	}
 
 	[Fact]

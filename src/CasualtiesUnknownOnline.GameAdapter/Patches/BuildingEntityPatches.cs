@@ -20,12 +20,15 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 /// sound — BuildingEntity.cs:58-73) so the death reads identically to the
 /// attacker; the animal-specific death presentation is replayed too, while
 /// drops, the experience reward and any other attacker-side side effects stay
-/// on the attacker's side.
+/// on the attacker's side. On the attacker side the patch also opens a
+/// <see cref="CallContext.Origin.BuildingDeathDrop"/> scope around the death
+/// branch so <see cref="ItemPatches.ItemAwakePatch"/> can mark the spawned drops; the
+/// marker is the provenance seed for the trap-drop atomic collection.
 /// </summary>
 [HarmonyPatch(typeof(BuildingEntity), "Update")]
 internal static class BuildingEntityUpdatePatch
 {
-	private static bool Prefix(BuildingEntity __instance)
+	private static bool Prefix(BuildingEntity __instance, out System.IDisposable? __state)
 	{
 		if (__instance.health < 0.5f && __instance.GetComponent<RemoteEntityDeath>() != null) // Unity object — ==
 		{
@@ -34,11 +37,20 @@ internal static class BuildingEntityUpdatePatch
 			// destroyed), after replaying the same destruction visuals/sound.
 			ReplayDestructionVisuals(__instance);
 			Object.Destroy(__instance.gameObject);
+			__state = null;
 			return false;
 		}
 
+		// Local death branch: this side owns the drop roll (BuildingEntity.cs:
+		// 74-120). Open a call-identity scope so Item.Awake can mark every
+		// drop spawned inside the original Update as a building-death drop.
+		__state = __instance.health < 0.5f
+			? CallContext.Enter(CallContext.Origin.BuildingDeathDrop)
+			: null;
 		return true;
 	}
+
+	private static void Postfix(System.IDisposable? __state) => __state?.Dispose();
 
 	/// <summary>
 	/// The remote side's destruction replay — the non-drop part of

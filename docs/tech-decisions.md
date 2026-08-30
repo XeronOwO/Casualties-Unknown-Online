@@ -4150,5 +4150,7 @@ move the target-view responsibility out of the adapter coordinator.
   position, optional render body, `ToFact()`).
 - **Director** — `EnemyCombatDirector` keeps only ordering/reporting and the
   physics-only ground-ray/ToNetVector2 helpers.
+- **Contract** — `EnemyTargetResolverContractTests` locks the resolver and
+  data-carrier shapes.
 - **No behavior change** — the gate/full suite remain green, preserving the
-  existing combat ordering behavior.
+  existing combat ordering behavior. Full suite 1771 green.

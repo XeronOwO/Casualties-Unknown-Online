@@ -4119,3 +4119,21 @@ drive future guest local-simulation/restart coverage.
 - **Tests** —
   `FluidKernelReadProjectionTests.GuestCheckpointRestore_SurfacesThroughWorldControl`
   locks the `IWorldControl` event/property surface. Full suite 1765 green.
+
+## 146. Enemy combat policy extraction (2026-08-29)
+
+First behavior-preserving step toward absorbing `EnemyCombatDirector`/targeting
+into kernel processes: pull the pure thresholds out of the 553-line adapter
+coordinator and split the local lunge-trace state into its own type.
+
+- **Policy** — `EnemyCombatPolicy` (Runtime) owns the spider bite range,
+  crystal close radius, lunge ray length and host lunge tolerance; the
+  GameAdapter references the same constants. `EnemyCombatPolicyTests` locks
+  them.
+- **Trace split** — `CrystalLungeTrace` is now a top-level GameAdapter type
+  instead of a nested detail of the director, keeping the director's
+  responsibility aimed at ordering/reporting.
+- **No behavior change** — all paths and field contracts remain identical; the
+  full suite locks the existing arbitration/policy behavior.
+- **Tests** — `EnemyCombatPolicyTests` + existing
+  `EnemyCombatArbitrationTests`. Full suite 1769 green.

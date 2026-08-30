@@ -32,6 +32,21 @@ public class BuildingDeathDropProvenanceTests
 		throwOnError: true)!;
 
 	[Fact]
+	public void Classifier_DistinguishesOriginMarkers()
+	{
+		var classifier = GameAssemblyHost.Adapter.GetType(
+			"CasualtiesUnknownOnline.GameAdapter.Items.ItemDropProvenanceClassifier",
+			throwOnError: true)!;
+		var classify = classifier.GetMethod("Classify", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic)
+			?? throw new InvalidOperationException("ItemDropProvenanceClassifier.Classify not found.");
+
+		Assert.Equal("Normal", ((Enum)classify.Invoke(null, [false, false])!).ToString());
+		Assert.Equal("BlockDrop", ((Enum)classify.Invoke(null, [true, false])!).ToString());
+		Assert.Equal("BuildingDeathDrop", ((Enum)classify.Invoke(null, [false, true])!).ToString());
+		Assert.Equal("BlockDrop", ((Enum)classify.Invoke(null, [true, true])!).ToString());
+	}
+
+	[Fact]
 	public void CallContext_HasTheBuildingDeathDropOrigin()
 	{
 		var origin = CallContext.GetNestedType("Origin", BindingFlags.NonPublic | BindingFlags.Public)

@@ -208,7 +208,8 @@ internal sealed class ItemWorldSync(
 		var fresh = item.GetComponent<FreshItemDrop>() != null; // Unity object — ==
 		var dropOrigin = item.GetComponent<DropOrigin>(); // Unity object — ==
 		var buildingDrop = item.GetComponent<BuildingDeathDropOrigin>(); // Unity object — ==
-		if (buildingDrop != null && dropOrigin == null) // Unity object — ==
+		var provenance = ItemDropProvenanceClassifier.Classify(dropOrigin != null, buildingDrop != null);
+		if (provenance == ItemDropProvenance.BuildingDeathDrop)
 		{
 			// Provenance only for now: a local building-entity death drop is
 			// still reported as a standalone spawn (the trap-drop composite

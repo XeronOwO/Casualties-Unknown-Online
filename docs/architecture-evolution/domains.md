@@ -20,7 +20,7 @@ projection-dispatch mechanics. Domain rules live in domain modules.
 | `IGameStateKernel` / `GameStateKernel` | `src/CasualtiesUnknownOnline.GameState/GameStateKernel.cs`, `IGameStateKernel.cs` | `Execute`, `Apply`, `CreateCheckpoint`, `Restore`, and read queries. |
 | `CommittedBatch` | `src/CasualtiesUnknownOnline.GameState/CommittedBatch.cs` | One atomic set of accepted facts; the only confirmation channel. |
 | `GameCheckpoint` | `src/CasualtiesUnknownOnline.GameState/GameCheckpoint.cs` | Complete authoritative state snapshot at a revision. |
-| `CommandContext` | `src/CasualtiesUnknownOnline.GameState/CommandContext.cs` | Explicit deterministic inputs (actor, authority, epoch, random). |
+| `CommandContext` | `src/CasualtiesUnknownOnline.GameState/CommandContext.cs` | Explicit deterministic inputs `(RunEpoch, Actor, SimulationTimeMs)`. |
 | `RejectionReason` | `src/CasualtiesUnknownOnline.GameState/RejectionReason.cs` | Typed rejection vocabulary. |
 | `AuthorityKind` | `src/CasualtiesUnknownOnline.GameState/AuthorityKind.cs` | Declared authority policy of a command. |
 | `IDomainModule` | `src/CasualtiesUnknownOnline.GameState/Kernel/IDomainModule.cs` | `Decide` / `Reduce` / `AssertInvariants` per domain. |
@@ -41,7 +41,7 @@ new FluidDomainModule()
 
 | Domain | Kernel state | Representative commands | Representative events | Authority scope | Runtime projections |
 |---|---|---|---|---|---|
-| World / Run | `RunState` | `StartRunCommand`, `AdvanceLayerCommand` | `RunStartedEvent`, `RunAdvancedEvent` | Run identity, seed, layer, stage, global rules, epoch isolation | Kernel checkpoint handoff through `KernelProtocolService` |
+| World / Run | `RunState` (`RunId`, `RandomState`, `BiomeOverride`, `BiomeDepth`, `TotalTraveled`, `LoadedRun`, `RunSettings`, `LayerIndex`) | `StartRunCommand`, `AdvanceLayerCommand` | `RunStartedEvent`, `RunAdvancedEvent` | Run identity, seed, layer, global rules, epoch isolation | `Runtime/Session/World/WorldRunStateMapper.cs`, kernel checkpoint handoff through `KernelProtocolService` |
 | WorldEntities | `WorldEntityState` | `RecordTrapStateCommand`, `RecordTrapConsumedCommand`, `RecordOpenedEntityCommand`, `RecordBuildingEntityHealthCommand`, `ResetWorldEntitiesCommand` | `TrapStateChangedEvent`, `TrapConsumedEvent`, `OpenedEntityEvent`, `BuildingEntityHealthUpdatedEvent`, `WorldEntitiesResetEvent` | Trap phase/consumption, opened-entity facts, building health | `WorldEntityKernelProjection` |
 | Players | `PlayerStateTable` / `PlayerState` | `UpdatePlayerStatusCommand`, `SetPlayerCarryCommand`, `ClearPlayerCarryCommand`, `RecordPlayerInventoryTransferCommand`, `RecordPlayerHealResultCommand`, `RecordPlayerItemUseResultCommand`, `ResetPlayersCommand` | `PlayerStatusUpdatedEvent`, `PlayerCarrySetEvent`, `PlayerCarryClearedEvent`, `PlayerInventoryTransferEvent`, `PlayerHealResultEvent`, `PlayerItemUseResultEvent`, `PlayersResetEvent` | Terminal health, body/limb latches, skills, carry relations, cross-player result facts | `PlayerKernelStatusProjection`, `PlayerKernelLimbProjection`, `PlayerKernelRestoreProjection`, `PlayerKernelCarryProjection`, `PlayerInteractionKernelProjection` |
 | Items | `ItemState` (kernel item table) | `SpawnItemCommand`, `PickUpItemCommand`, `DropItemCommand`, `DestroyItemCommand`, `TransferItemCommand`, `UpdateItemStateCommand`, `SyncContainerItemsCommand`, `CookItemCommand` | `ItemSpawnedEvent`, `ItemRelocatedEvent`, `ItemDestroyedEvent`, `ItemDataUpdatedEvent` | Item identity, location (World/Carried/Contained/Terminal), payload, container graph | `ItemProjection`, `KernelBatchItemProjection` |
@@ -70,10 +70,12 @@ Source roots:
    as kernel events or committed batches, not as the last UDP tick.
 4. **Projections are rebuildable.** A projection may be cleared and rebuilt from
    checkpoint + committed batches. It never corrects authority.
-5. **Cross-domain operations are typed processes, not kernel switch statements.**
-   `CompositeGameCommand` carries inner domain commands; see
+5. **Cross-domain operations use `CompositeGameCommand`.**
+   The kernel executes a flat list of inner commands and emits one
+   `CommittedBatch`; see
    `src/CasualtiesUnknownOnline.GameState/CompositeGameCommand.cs` and
-   `GameStateKernel.ExecuteComposite`.
+   `GameStateKernel.ExecuteComposite`. There is no separate process/policy/read-set
+   layer in the current kernel.
 6. **Kernel isolation is hard.** `CasualtiesUnknownOnline.GameState` has no
    Unity/BepInEx/Steam/network references and no Protocol DTO dependencies. The
    guards in `tools/check-architecture.ps1` enforce this.
@@ -87,7 +89,7 @@ Source roots:
 | WorldEntities | Trap phase/consumption, opened-entity facts, and building health are kernel facts; presentation and Unity components are rebuildable projections. |
 | Entities / Enemies | Enemy lifecycle/health/removal and combat terminal results are kernel facts; continuous presentation/stream fields are projection-owned; a removed enemy cannot be resurrected by a stale stream. |
 | Fluids | Only coarse authoritative region totals/types are kernel facts; per-pixel simulation is a rebuildable local projection. |
-| World / Run | Run identity, epoch, seed, layer, stage, and world-generation results; all old-epoch commands, batches, and stream packets are rejected. |
+| World / Run | Run identity, epoch, seed, layer, run settings, and baseline fields; world-generation result facts live in `WorldEntities`, not `RunState`; all old-epoch commands, batches, and stream packets are rejected. |
 
 ## Native operation layer
 
@@ -114,9 +116,14 @@ Prediction Runtime remains future work in `docs/backlog.md`.
 ## Evidence
 
 - Kernel implementation and domain dispatch: `src/CasualtiesUnknownOnline.GameState/GameStateKernel.cs`
+- Composite cross-domain path: `src/CasualtiesUnknownOnline.GameState/CompositeGameCommand.cs`
 - Checkpoint shape: `src/CasualtiesUnknownOnline.GameState/GameCheckpoint.cs`
 - Domain module interface: `src/CasualtiesUnknownOnline.GameState/Kernel/IDomainModule.cs`
 - Projections live under: `src/CasualtiesUnknownOnline.Runtime/Session/` (Items,
   CharacterData, EntitySync, PlayerInteraction, World)
+- Cross-player authority policy:
+  `src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerInteractionAuthorityPolicy.cs`
+- World/Run mapping:
+  `src/CasualtiesUnknownOnline.Runtime/Session/World/WorldRunStateMapper.cs`
 - Authority/prediction boundary: `docs/tech-decisions.md` #154, #157
 - Phase D full migration evidence: `docs/selfchecks/phase-d-full-domain-migration-selfcheck.md`

@@ -1,9 +1,9 @@
 # Architecture Guards
 
-Active enforcement rules for the typed deterministic kernel. They are implemented as
-tools checks inside `tools/check-architecture.ps1`; they were added phase by phase and
-are now a standing guard suite. The list is retained here as the authoritative set of
-kernel-shaped invariants.
+Active enforcement rules for the typed deterministic kernel. The list is the
+authoritative set of kernel-shaped invariants. Not every item is automated today:
+five are implemented as tool checks inside `tools/check-architecture.ps1`, while the
+rest are currently covered by tests/processes and remain aspirational for tooling.
 
 ## Mandatory guard list
 
@@ -25,6 +25,21 @@ kernel-shaped invariants.
 10. **No silent legacy**: `Legacy`/double-write code must carry a deletion milestone and
     must be zero before Phase E ends.
 
+## Automation status
+
+| Guard | Automated today? |
+|---|---|
+| 1 GameState isolation | ✅ `tools/check-gamestate-isolation.ps1` |
+| 2 Domain isolation | ⚠️ Not a standalone tool in `check-architecture.ps1` |
+| 3 Wire-free domain surface | ✅ covered by GameState isolation scanner (partially) |
+| 4 No Unity in kernel data | ✅ covered by GameState isolation scanner |
+| 5 Event completeness | ❌ not automated; test/process coverage |
+| 6 Authority policy completeness | ✅ `tools/check-command-authority.ps1` |
+| 7 Checkpoint completeness | ❌ not automated; test coverage |
+| 8 Invariant suites | ❌ not automated; test coverage |
+| 9 No generic core state | ✅ `tools/check-kernel-shape.ps1` |
+| 10 No silent legacy | ✅ `tools/check-no-legacy.ps1` |
+
 ## Suggested tooling shape
 
 - A project reference / namespace analyzer run during build.
@@ -41,7 +56,7 @@ kernel-shaped invariants.
 | B | Wire-free item domain surface, all item Commands declare authority, item checkpoint round-trip, capability registry completeness. |
 | C | Event serialization contract for all new wire Events, envelope versioning, golden wire tests. |
 | D | Domain isolation across all migrated domains, checkpoint completeness, invariant suites for all key aggregates. |
-| E | Full 10-item guard list; strict no-legacy failure mode. |
+| E | Full 10-item guard list as the target; the five tool-checked guards are wired into the architecture gate, the rest are test/process-covered. |
 
 ## Relationship to existing gates
 

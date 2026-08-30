@@ -41,8 +41,9 @@ owns all persistent gameplay facts. The Unity scene, UI, network caches, remote
 clones, and saves are projections. Each gameplay domain keeps its own typed model and
 invariants; the shared part is transaction, revision, idempotency, authority policy,
 checkpoint, replay, and projection mechanics. The kernel is not universal ECS, not
-generic CRUD, and not full event sourcing. Production state is typed snapshots; event
-logs serve replication, short-term recovery, replay, and diagnostics.
+generic CRUD, and not full event sourcing. Production state is typed snapshots; a
+bounded committed-batch journal plus checkpoints serve replication, short-term
+recovery, replay, and diagnostics. There is no general event-log store.
 
 ## 3. Core flow
 
@@ -166,8 +167,11 @@ GameStateStore
 └── Operations       (CommittedOperationWindow)
 ```
 
-`CommittedOperationWindow` keeps only the Operation IDs needed to cover the retransmit
-window. It does not grow forever; checkpoints record the necessary watermark.
+`CommittedOperationWindow` stores full `CommittedBatch` objects for idempotency and
+retransmit deduplication, capped at 2048 operations
+(`src/CasualtiesUnknownOnline.GameState/Kernel/CommittedOperationWindow.cs`,
+`GameStateStore.cs`). Restoring a checkpoint clears the operation window; there is no
+separate checkpoint watermark field.
 
 ### 5.3 Domain module internal interface
 
@@ -200,8 +204,11 @@ The kernel owns exactly five mechanism responsibilities:
 
 It must not contain `if item is gun`, trap cooldowns, fluid formulas, or Unity logic.
 Those rules belong to domain modules. Domains must not directly reference other domains'
-internal tables. Cross-domain reads use typed transaction Read Sets; cross-domain writes
-use event drafts and policies.
+internal tables. The current cross-domain mechanism is `CompositeGameCommand`: the
+kernel executes a flat list of inner commands, collects all event drafts, reduces them
+on one working copy, then validates invariants across all domains
+(`GameStateKernel.ExecuteComposite`). There is no separate Process/Policy/ReadSet type
+in the current kernel.
 
 ## 6. Transaction model
 
@@ -225,6 +232,7 @@ public sealed record CommittedBatch(
     ulong GlobalRevision,
     ActorId Actor,
     AuthorityKind Authority,
+    RunEpoch RunEpoch,
     IReadOnlyList<ExpectedRevision> Preconditions,
     IReadOnlyList<GameEvent> Events);
 ```
@@ -233,11 +241,15 @@ Effects are not stored in the persistent event list. They are derived from
 Event -> Projection rules, so replay does not redundantly persist derivable presentation
 information.
 
-### 6.3 Dual revisions
+### 6.3 Revision model
 
-- **Aggregate Revision**: detects stale operations against a single object.
-- **Global Revision**: determines global ordering for cross-domain batches, checkpoints,
-  and network deltas.
+- **GlobalRevision**: a `ulong` on every `CommittedBatch`; it determines global ordering
+  for batches, checkpoints, and network deltas.
+- **Per-item Revision**: `ItemState` carries its own revision for domain-local stale
+  checks (`src/CasualtiesUnknownOnline.GameState/Domains/Items/ItemState.cs`).
+- **Preconditions**: `CommittedBatch` stores `ExpectedRevision` values, but the generic
+  kernel does not validate them. Domain modules perform revision/precondition checks in
+  their `Decide` methods (for example `ItemDomainModule`).
 
 `OperationId` provides retransmission idempotency. If the same Operation ID arrives again,
 the kernel returns the original decision and does not commit a second time.
@@ -245,38 +257,44 @@ the kernel returns the original decision and does not commit a second time.
 ### 6.4 Atomic commit algorithm
 
 ```text
-1. Validate identity, role, and session phase
-2. Validate ExpectedRevision
-3. Create transaction working copy
-4. Each domain Decide, collecting event drafts
-5. Reduce drafts in order on the working copy
-6. Validate domain and cross-domain invariants
-7. Assign GlobalRevision
-8. Atomically replace state and publish Batch
-9. Projections consume the Batch and produce Effects
+1. Check epoch and OperationId idempotency
+2. Create transaction working copy
+3. Each domain Decide, collecting event drafts
+4. Reduce drafts in order on the working copy
+5. Assert invariants (single-domain Execute uses the handling domain;
+   composite/Apply run all domains)
+6. Assign GlobalRevision
+7. Atomically replace state and publish Batch
+8. Projections consume the Batch and produce Effects
 ```
 
-Steps 1-8 must not call network, Unity, or save code. An outer projection failure cannot
-roll back an already committed domain fact; it is handled by projection retry or
-checkpoint rebuild.
+Steps 1-7 must not call network, Unity, or save code. Revision/precondition checks are
+performed inside domain `Decide` methods. An outer projection failure cannot roll back
+an already committed domain fact; the current runtime does not implement a generic
+“projection dirty/rebuild” recovery loop.
 
 ### 6.5 Cross-domain transactions
 
-Cross-domain operations are orchestrated by typed Processes/Policies, not by kernel
-switch statements. Example: Craft:
+Cross-domain operations use `CompositeGameCommand`, not a kernel switch statement or a
+separate process/policy layer. The kernel executes a flat list of inner commands,
+collects all accepted event drafts, reduces them on one working copy, and emits one
+`CommittedBatch`.
+
+Example shape:
 
 ```text
-CraftCommand
+CompositeGameCommand
   ├─ Items: validate and consume materials
   ├─ Items: create product
   ├─ Players: update skill/reward
   └─ World: optionally unlock recipe
        ↓
-  one CommittedBatch
+  reduce all event drafts -> one CommittedBatch
 ```
 
-A Process may use only public domain queries and command drafts. It does not access
-private domain collections.
+Implementation: `src/CasualtiesUnknownOnline.GameState/CompositeGameCommand.cs` and
+`GameStateKernel.ExecuteComposite` (`GameStateKernel.cs`). Inner commands are still
+routed through the same domain modules; there is no private cross-domain table access.
 
 ## 7. Authority policy, prediction, and rollback
 
@@ -291,10 +309,14 @@ Every Command declares a policy:
 | `TriggerObservedHostCommitted` | Native behavior that runs on the triggering side first and is hard to intercept before execution |
 | `PresentationOnly` | Animations, particles, purely local sounds |
 
-"Who simulates" is separated from "who commits the authoritative fact". A player can
-simulate movement while the host validates the acceptable authoritative checkpoint.
+"Who simulates" is separated from "who commits the authoritative fact". In the current
+kernel, `AuthorityKind` is recorded on every command/batch but is **not** enforced by
+`GameStateKernel.Execute` itself; runtime callers (such as item authority services and
+`PlayerInteractionAuthorityPolicy`) choose and enforce the appropriate policy.
 
-### 7.2 Guest prediction model
+### 7.2 Guest prediction model (not implemented in current code)
+
+The planned model is a future design:
 
 ```text
 ConfirmedState
@@ -302,17 +324,11 @@ ConfirmedState
     = LocalProjectedState
 ```
 
-When a Host Batch arrives:
-
-1. apply it to Confirmed State;
-2. remove confirmed, rejected, or expired predictions;
-3. replay remaining valid predictions in original order;
-4. diff old/new LocalProjectedState;
-5. emit the minimal Unity projection diff.
-
-Pickup rollback positions and drag transients belong to Prediction Runtime, not to domain
-authoritative state. Existing `PickupOrigins`, pending/claim/suppress mechanisms are
-eventually absorbed by unified prediction and Native Operation layers.
+There is no `PredictionRuntime`, `ConfirmedState`, or `PendingPrediction` type in the
+current `src/`. Existing `PickupOrigins`, the pending-pickup queue, `DropPendingState`,
+and `NativeOperationCoordinator` remain non-kernel active-path mechanisms, and the
+generic Prediction Runtime is tracked in `docs/backlog.md`. See `domains.md`
+(Predictions and no-prediction boundaries) and `docs/tech-decisions.md` #154/#157.
 
 ### 7.3 What is not predicted
 
@@ -370,19 +386,18 @@ Replay/simulation, selfchecks, and gates are the evidence layer.
 
 ## 16. Architecture guards
 
-See [architecture-guards.md](architecture-guards.md) for the active guard list. In
-summary, the current architecture makes it a build/CI failure when:
+See [architecture-guards.md](architecture-guards.md) for the full guard list. The
+five guards currently automated in `tools/check-architecture.ps1` are:
 
-- GameState references Unity, Runtime, Protocol codecs, or network packages;
-- one domain references another domain's internal namespace;
-- wire DTOs appear in domain public interfaces;
-- Unity types appear in Command/Event/Checkpoint;
-- an Event type lacks a reducer and serialization contract;
-- a Command lacks an Authority Policy;
-- persistent domain fields miss checkpoint round-trip;
-- key aggregates miss invariant suites;
-- core state uses string event names or `Dictionary<string, object>`;
-- `Legacy`/double-write code remains without a deletion milestone after Phase E.
+- GameState project isolation (`check-gamestate-isolation.ps1`);
+- item projection ownership (`check-item-authority.ps1`);
+- no legacy/dual markers (`check-no-legacy.ps1`);
+- every `GameCommand` carries authority (`check-command-authority.ps1`);
+- no string-keyed/Hashtable kernel state (`check-kernel-shape.ps1`).
+
+Other aspirational guards — event reducer/serialization registration, checkpoint
+round-trip enforcement, and invariant-suite registration — are currently covered by
+tests/processes but are **not** automated by `tools/check-architecture.ps1` today.
 
 ## 17. Explicit non-goals
 

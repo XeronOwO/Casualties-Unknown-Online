@@ -75,17 +75,13 @@ internal sealed class EntityEventSync(IWorldControl world, ISessionControl sessi
 			_log.LogInformation("[TrapEvent] kind={Kind} pos=({X:F1},{Y:F1}) origin=HostApply from {Sender}.",
 				msg.Kind, pos.X, pos.Y, sender);
 			_applier.ApplyEvent(msg.Kind, new Vector2(pos.X, pos.Y), msg.Extra);
-			if (EntityEventProfiles.IsOneShotConsumption(msg.Kind))
-			{
-				// One-shot consumptions are position-keyed for the late-joiner
-				// snapshot. Repeatable events (clamps, fences, heat toggles, ...)
-				// are NOT recorded — each side's copy re-arms naturally.
-				_world.ReportTrapConsumed(msg.Kind, pos.X, pos.Y, msg.Extra);
-			}
 
-			// Stateful trap edges also move the kernel state machine for both
-			// host-local and guest-reported events.
-			_world.ReportTrapState(msg.Kind, pos.X, pos.Y, msg.Extra);
+			// Record the whole trigger as one atomic kernel batch: one-shot
+			// consumptions are position-keyed for the late-joiner snapshot,
+			// and stateful edges move the kernel trap state machine for both
+			// host-local and guest-reported events. Repeatable visual-only
+			// events carry no kernel fact.
+			_world.ReportTrapEvent(msg.Kind, pos.X, pos.Y, msg.Extra);
 			_world.BroadcastEntityEvent(sender, msg);
 		}
 		else

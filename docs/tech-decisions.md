@@ -3845,6 +3845,7 @@ no legacy bidirectional result wire survives.
 - **Removed legacy path** — `NetMsg.EnemyBite` (82), `NetMsg.EnemyLunge` (84),
   `NetMsg.EnemyEffect` (85), and their three handlers are deleted.
   `EnemyAttackMsg` remains the separate host-ordered local-apply command.
+  `ProtocolVersion.Current` is bumped to 52 for this breaking wire removal.
 - **Wire mapping** — `WireEventKind.EnemyBiteResult` /
   `EnemyLungeResult` / `EnemyEffectResult` and the corresponding command kinds
   carry `WireEnemyCombat`, including the full post-hit limb snapshot and the

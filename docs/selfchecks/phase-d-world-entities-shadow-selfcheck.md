@@ -45,13 +45,14 @@ into kernel-backed projection/snapshot adapters.
 | Wire command round-trips `RecordTrapStateCommand` | `WorldEntityDomainKernelTests.WireCommandRoundTrip_BuildsRecordTrapStateCommand`. |
 | Host world control reports commit kernel facts | `WorldEntityProjectionTests.HostReports_CommitKernelWorldEntities`. |
 | Host world control reports commit kernel trap state facts | `WorldEntityProjectionTests.HostReports_CommitKernelTrapStateFacts`. |
+| Live `EntityEventKind` → `TrapPhase` classification is locked | `TrapStateProfilesTests.StatefulKinds_MapToExpectedPhase`, `VisualOnlyKinds_RemainUnclassified`. |
 | Guest checkpoint restore projects non-one-shot trap state facts | `WorldEntityProjectionTests.GuestCheckpointRestore_ProjectsNonOneShotTrapStateFacts`. |
 | Guest checkpoint restore projects world-entity facts | `WorldEntityProjectionTests.GuestCheckpointRestore_ProjectsKernelWorldEntities`. |
 
 ## Verification
 
 - `dotnet build CasualtiesUnknownOnline.slnx`: 0 warnings / 0 errors.
-- `dotnet test CasualtiesUnknownOnline.slnx`: 1719 passed.
+- `dotnet test CasualtiesUnknownOnline.slnx`: 1737 passed.
 - `dotnet format`: applied.
 - Architecture/event/entity/isolation gates passed.
 

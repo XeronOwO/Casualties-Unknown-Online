@@ -311,7 +311,7 @@ public sealed class EntityEventChannel(ISessionControl session, PacketSender sen
 	/// state-machine transition (when the kind has a state profile), and an
 	/// optional destroyed-building health observation together.
 	/// </summary>
-	public void ReportTrapEvent(EntityEventKind kind, float x, float y, byte extra, float? buildingHealth = null) => _trapState.ReportBatch(kind, x, y, extra, buildingHealth);
+	public void ReportTrapEvent(EntityEventKind kind, float x, float y, byte extra, float? buildingHealth = null, IReadOnlyList<BuildingEntityHealthEntryMsg>? additionalHealth = null) => _trapState.ReportBatch(kind, x, y, extra, buildingHealth, additionalHealth);
 
 	/// <summary>Host only: a new world layer is generating — the consumptions start empty again.</summary>
 	public void ResetConsumptions() => _trapConsumption.Reset();

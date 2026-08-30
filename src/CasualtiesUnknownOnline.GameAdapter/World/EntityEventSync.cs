@@ -74,16 +74,26 @@ internal sealed class EntityEventSync(IWorldControl world, ISessionControl sessi
 			// consequences must flow out (the crater rides the SetBlock relay).
 			_log.LogInformation("[TrapEvent] kind={Kind} pos=({X:F1},{Y:F1}) origin=HostApply from {Sender}.",
 				msg.Kind, pos.X, pos.Y, sender);
-			_applier.ApplyEvent(msg.Kind, new Vector2(pos.X, pos.Y), msg.Extra);
+
+			IReadOnlyList<BuildingEntityHealthEntryMsg>? additionalHealth = null;
+			using (var scope = TrapBuildingHealthScope.Begin())
+			{
+				_applier.ApplyEvent(msg.Kind, new Vector2(pos.X, pos.Y), msg.Extra);
+				if (scope.Entries.Count > 0)
+				{
+					additionalHealth = [.. scope.Entries];
+				}
+			}
 
 			// Record the whole trigger as one atomic kernel batch: one-shot
 			// consumptions are position-keyed for the late-joiner snapshot,
 			// and stateful edges move the kernel trap state machine for both
 			// host-local and guest-reported events. For destructive trap
 			// kinds the entity's post-trigger zero health also rides the same
-			// batch. Repeatable visual-only events carry no kernel fact.
+			// batch, together with any explosion-diff building health captured
+			// in the scope. Repeatable visual-only events carry no kernel fact.
 			var health = ReadDestroyedTrapHealth(msg.Kind, new Vector2(pos.X, pos.Y));
-			_world.ReportTrapEvent(msg.Kind, pos.X, pos.Y, msg.Extra, health);
+			_world.ReportTrapEvent(msg.Kind, pos.X, pos.Y, msg.Extra, health, additionalHealth);
 			_world.BroadcastEntityEvent(sender, msg);
 		}
 		else

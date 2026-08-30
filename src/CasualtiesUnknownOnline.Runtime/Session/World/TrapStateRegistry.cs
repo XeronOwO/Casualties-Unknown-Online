@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.GameState.Domains.WorldEntities;
 using CasualtiesUnknownOnline.Runtime.Protocol;
+using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Time;
 
@@ -53,10 +54,11 @@ public sealed class TrapStateRegistry(
 	/// Host only: record one live trap trigger as a single atomic kernel
 	/// composite. The composite contains the one-shot consumption (when the
 	/// kind is one-shot), the state-machine transition (when the kind has a
-	/// phase profile), and the trap entity's post-trigger building health
-	/// (when the caller supplies a destroyed-health observation).
+	/// phase profile), the trap entity's post-trigger building health (when the
+	/// caller supplies a destroyed-health observation), and any additional
+	/// explosion-diff building-health entries captured in the same trap scope.
 	/// </summary>
-	public void ReportBatch(EntityEventKind kind, float x, float y, byte extra, float? buildingHealth = null)
+	public void ReportBatch(EntityEventKind kind, float x, float y, byte extra, float? buildingHealth = null, IReadOnlyList<BuildingEntityHealthEntryMsg>? additionalHealth = null)
 	{
 		if (_session.Role != SessionRole.Host)
 		{
@@ -101,6 +103,20 @@ public sealed class TrapStateRegistry(
 				AuthorityKind.HostOnly,
 				EntityPosition.FromWorld(x, y),
 				health));
+		}
+
+		if (additionalHealth is not null)
+		{
+			foreach (var entry in additionalHealth)
+			{
+				commands.Add(new RecordBuildingEntityHealthCommand(
+					_kernelAuthority.NextOperationId(),
+					new ActorId(_session.LocalSteamId),
+					_kernelAuthority.CurrentRunEpoch,
+					AuthorityKind.HostOnly,
+					EntityPosition.FromWorld(entry.X, entry.Y),
+					entry.Health));
+			}
 		}
 
 		if (commands.Count == 0)

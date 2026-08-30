@@ -47,7 +47,11 @@ internal sealed class WorldBuildingEntitySync(
 
 		var pos = entity.transform.position;
 		_world.SendBuildingEntityDamaged(new NetVector2(pos.x, pos.y), damage, playHitSound);
-		_world.ReportBuildingEntityHealth(pos.x, pos.y, entity.health); // host-only — the late-joiner snapshot's fact source
+		if (!TrapBuildingHealthScope.TryAdd(pos.x, pos.y, entity.health))
+		{
+			_world.ReportBuildingEntityHealth(pos.x, pos.y, entity.health); // host-only — the late-joiner snapshot's fact source
+		}
+
 		_trace.End(_trace.NextOperationId(), 0, "OnBuildingEntityDamaged", "Committed(1)", "EntityDamage");
 	}
 

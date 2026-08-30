@@ -10,7 +10,9 @@ Owner cycle: backlog item-domain open question (2026-08-16)
 > "Runtime random supply refresh (phase-1 memory, unresolved question): it is
 > not verified whether any supplies spawn independently of world generation.
 > If such a mechanism exists it needs host-authoritative spawn + broadcast
-> (the #110 pattern); investigate before assuming."
+> (the item-spawn channel pattern; see `docs/item-features.md` Runtime item
+> spawn surface — this is not tech-decisions #110, which is cross-player
+> drinkable medicine); investigate before assuming."
 
 ## Conclusion
 
@@ -53,8 +55,8 @@ every standalone runtime item. This is a docs-only resolution.
      `CorpseScript.cs:35`, `TraderScript.cs:687`, `ConsoleScript.cs`
      (dev commands). None is timer-driven.
 4. Traced the CUO sink for runtime item creations from the Harmony hook to the
-   host arbitration, and confirmed the backlog's requested #110 pattern is the
-   already-landed generic `ItemSpawn` channel.
+   host arbitration, and confirmed the backlog's requested item-spawn pattern is
+   the already-landed generic `ItemSpawn` channel.
 
 ## Runtime item creation inventory
 
@@ -65,7 +67,7 @@ Game file references are `reversing/Assembly-CSharp/Assembly-CSharp/<file>.cs`
 |---|---|---|---|---|---|
 | 1 | `BuildingEntity.cs:79,102,113` (`Update`, `health < 0.5` branch) | Entity destroyed / opened / mined — one roll per entity | No | World | `BuildingEntityUpdatePatch.cs:22-37` lets only the attacker roll the branch (remote deaths are marked and destroyed without rolling); every spawned item hits `ItemPatches.ItemStartPatch` → `ItemWorldSync.OnItemInstantiated` (`ItemWorldSync.cs:177-247`) → `ItemService.SendItemSpawned` (`ItemService.cs:152-180`) → host register + relay (`HandleHostSpawnReport`, `ItemService.PendingPickups.cs:66-104`) |
 | 2 | `WorldGeneration.cs:761,771,778,786,793,809,812,815,825,830` (`DamageBlock`, runtime mining/attack) | Block damaged/destroyed — one roll per block | No | World | `UtilsCreateDropPatch.cs:19-38` stamps `DropOrigin` inside the `DamageBlockOrigin` scope; `ItemWorldSync.OnItemInstantiated` folds the drops into the pending break report (`ItemWorldSync.cs:212-226`) — one break = one `BlockDamaged` message with all drops |
-| 3 | `CorpseScript.cs:36` (`Start`) | Corpse created during generation; `Start` runs while the generation coroutine is suspended at the darken wait | No | World | `GeneratedItemAuthority.cs:60-136` enumerates the host's id-less standalone items at the generation-finished edge and publishes one `WorldItemsSnapshot`; `GeneratedItemApplication.cs:56-126` binds/materializes on the guest and destroys host-unknown locals. #110's original corpse-loot divergence was resolved by this mechanism (commit `61b30a2`) |
+| 3 | `CorpseScript.cs:36` (`Start`) | Corpse created during generation; `Start` runs while the generation coroutine is suspended at the darken wait | No | World | `GeneratedItemAuthority.cs:60-136` enumerates the host's id-less standalone items at the generation-finished edge and publishes one `WorldItemsSnapshot`; `GeneratedItemApplication.cs:56-126` binds/materializes on the guest and destroys host-unknown locals. The original corpse-loot divergence behind the item-spawn question was resolved by this mechanism (commit `61b30a2`) |
 | 4 | `CrystalMetamorphic.cs:30` (`Touched`) | Crystal touch latch — one roll per crystal | No | World | The latch travels as `CrystalMetamorphicTriggered` (`TrapCrystalPatch.cs:115-128`); the trigger side's item drops ride the generic `ItemSpawn` channel and the entity death/drop domains (`TrapStateActions.cs:379-384`) |
 | 5 | `Heater.cs:46` (`OnCollisionEnter2D`) | Heater cooks raw meat — one conversion per collision | No | World | Dedicated `ItemCook` operation: `HeaterCookPatch.cs:19+` + `HeaterCookSync` claim the source destroy and stamp the steak before the generic hooks decompose the conversion (backlog RESOLVED 2026-08-16) |
 | 6 | `GunScript.cs:98` (`UnloadMag`), `:170` (`Update` rack edge) | Player unload/rack — one item per edge | No | Inventory / world | `UnloadMag` immediately auto-picks up → `PickUpItemPatch` (`BodyItemPatches.cs:60-77`) → `PickupSync.OnPickedUp` id-less spawn-then-pickup (`PickupSync.cs:61-198`); the rack-ejected casing/round is standalone → generic `ItemSpawn` |
@@ -88,7 +90,7 @@ counts are 194 spawn sites before classification; the 18 families above are the
 item-producing subset, including the generation-time families from
 `WorldGeneration.cs` that are referenced for completeness.)
 
-## Host-authoritative contingency (the #110 pattern) already exists
+## Host-authoritative contingency (the item-spawn pattern) already exists
 
 The backlog asked for "host-authoritative spawn + broadcast" only if an
 independent refresh existed. That capability is not hypothetical — it is the

@@ -110,7 +110,7 @@ Randomness: see [randomaction](#randomaction—random-behavior-out-of-sync-by-de
 
 **CUO sync: `condition`/`stack` synced; the use itself is a guest-local fact**
 — use reports are adopted unconditionally by the host
-(`CheckUseEvidence`, ItemArbitration.cs:86-107; corrected in #89 — comparing
+(host-side evidence check in `ItemArbitration`; corrected in #89 — comparing
 use evidence would bounce every use back).
 
 ### durability — per-hit tool condition
@@ -135,11 +135,11 @@ lightbulb head-slot burn-in timer (`state += RoundToInt(dt*1000)`,
 Randomness: none (strobe is a time function).
 
 **CUO sync: ✓ since #89** — the state whitelist in
-`CaptureSaveableComponents` (ItemStateCodec.cs:134) admits
+`CaptureSaveableComponents` (`ItemStateCodec.cs`) admits
 `CustomItemBehaviour`; the field rules only let `state` (public int) travel —
 the `Item` reference (private, no `[SerializeField]`) and the `data` array
 (object[], unsupported kind) stay out. Restore matches by component simple
-name (ItemStateCodec.cs:267-309). All 10 carrying paths share this capture/
+name (`ItemStateCodec.cs`). All 10 carrying paths share this capture/
 restore pair — no bypass. Use reports adopted unconditionally (see
 [consumable](#consumable—eatdrinkinject)) so the mode switch is never
 corrected back.
@@ -154,7 +154,7 @@ dynamite fuse flag (Item.cs:6671-6682), liquidcentrifuge cooldown timer
 **CUO sync: partial — the array itself is still unsupported as a generic
 saveable field, but both persistent gameplay states in it now have explicit
 wire faces.** `object[]` is an unsupported field kind
-(ItemStateCodec.cs:155-159). The **liquidcentrifuge cooldown**
+(`ItemStateCodec.cs`, current unsupported-kind handling). The **liquidcentrifuge cooldown**
 (`data[0] = 60f`, Item.cs:5667-5689) gates the use action and is now captured
 as a synthetic `cooldown` component field via `CustomItemDataState` and
 restored through the existing item-state paths (including a one-frame
@@ -168,7 +168,7 @@ one-shot marker, so the 5-second pre-explosion presentation is no longer
 local-only. The remaining payload entry is not
 persistent gameplay state: jetpack throttle is a frame-level transient. The
 dynamite **detonation** travels as a dedicated `DynamiteExplosionMsg`
-(NetMsg 105, ProtocolVersion 30) carrying the one-shot item id + position. See
+(NetMsg 105) carrying the one-shot item id + position. See
 `docs/selfchecks/dynamite-explosion-selfcheck.md`,
 `docs/selfchecks/custom-item-data-state-selfcheck.md` and
 `docs/selfchecks/dynamite-fuse-presentation-selfcheck.md`.
@@ -307,7 +307,10 @@ domain"). Per-surface notes:
   container-item domain (real new world items); noautopickup products ride the
   item domain's spawn path; mindwipe's recipe-static reset (entity domain);
   save-restore recipe INT divergence (multiplayer has no save-load path);
-  Heater cooker (meat→steak) is RESOLVED as one `ItemCook` event (NetMsg 92) — see `docs/selfchecks/heater-cook-selfcheck.md`.
+  Heater cooker (meat→steak) is RESOLVED as one `CookItemCommand` in a single
+  kernel batch (`src/CasualtiesUnknownOnline.GameState/Domains/Items/CookItemCommand.cs`,
+  `ItemKernelAuthority.TryCook`) — see
+  `docs/selfchecks/heater-cook-selfcheck.md`.
 
 ## Known state gaps (documented, not part of #89)
 

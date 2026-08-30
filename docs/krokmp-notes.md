@@ -90,4 +90,7 @@ For the reserved KrokMP compat adapter (`architecture.md` §5.4):
 - `WorldgenPatches` (worldgen events), `RadiationLine`, `GunScript`,
   `AmmoScript`, `UITooltip`
 - Scenes: `SampleScene` is the gameplay scene
-- Unity 5.6-era (modules compile against UnityEngine 5.6 surface)
+- Unity version claim: **unverified** — the notes previously said “Unity 5.6-era”,
+  but the decompiled modules reference Unity 2022-era module assemblies
+  (`UnityEngine.CoreModule`, `UnityEngine.Physics2DModule`, etc.). Do not rely
+  on this as a build-compatibility fact without re-verification.

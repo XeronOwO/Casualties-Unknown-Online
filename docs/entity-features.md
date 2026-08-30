@@ -117,7 +117,7 @@ trap's sound/sprite/light.
 | BearTrap | trigger | repeatable | closeSprite + sound; release replayed (BearTrapReleased) | covered | BearTrapClamped/Released |
 | BarbedFence | trigger | repeatable | hitSprite + fence sound | covered | BarbedFenceHit |
 | CoilScript | collide | repeatable | zap sound + light + shake | covered | CoilShocked |
-| CactusScript | collide | repeatable | gore sound + self-damage health (silent BuildingEntityDamaged relay) | covered | CactusHit + BuildingEntityDamaged silent (PV21) |
+| CactusScript | collide | repeatable | gore sound + self-damage health (silent BuildingEntityDamaged relay) | covered | CactusHit + BuildingEntityDamaged silent |
 | JumpPadScript | collide | repeatable | light blink + jumppad sound | covered | JumpPadLaunched |
 | StalactiteDropper | trigger/detect | yes | Drop() fall + DamagingCrate damage | covered | StalactiteDropped |
 | GeyserScript | trigger | repeatable | TryRumble() + liquid eruption (liquidType synced in Extra) | covered | GeyserActivated |
@@ -136,7 +136,7 @@ trap's sound/sprite/light.
 | ShuttleStartOpen | trigger | covered | ShuttleDoorOpened — door anim + shuttleOpen sound on both sides |
 | LifepodController (heat button) | click | covered | LifepodHeatChanged — Extra = heatState 0/1/2; replay writes heatState/desiredTemp/enabled/sprite |
 | LifepodShower | click | covered | LifepodShowerActivated — one-shot replay particles + activated; one consumption shared |
-| Heater (cooker branch) | field | covered | ItemCook (NetMsg 92) — host conversion event; temperature field excluded (local body effect, rides the 1 Hz character stream) |
+| Heater (cooker branch) | field | covered | `CookItemCommand` kernel batch — host conversion event; temperature field excluded (local body effect, rides the 1 Hz character stream) |
 
 ## Unlocks (one-shot progression — hard gameplay divergence)
 
@@ -151,9 +151,9 @@ trap's sound/sprite/light.
 
 | entity | trigger | sync | path |
 |---|---|---|---|
-| TraderScript | field | covered | trade domain #132 + TraderSwing hostile swing — host-computed overwrites (TraderState, every interaction + world entry + 5 s fallback); the acting side runs the game method in full and reports TraderAction |
+| TraderScript | field | covered | trade domain (`docs/tech-decisions.md` #59/#93; `TradeStateSync`/`TradeExecutor`) + TraderSwing hostile swing — host-computed overwrites (TraderState, every interaction + world entry + 5 s fallback); the acting side runs the game method in full and reports TraderAction |
 | Talker | field | covered | SpeechMsg (NetMsg 74) — entity key + text id; clone-side bubble replay |
-| LampScript | collide | covered | trade domain #132 — LightBroken's flat reputation -40 runs on both sides from the broadcasted base |
+| LampScript | collide | covered | trade domain (`docs/tech-decisions.md` #59/#93) — LightBroken's flat reputation -40 runs on both sides from the broadcasted base |
 
 ## Crystals (CrystalBehaviour family)
 
@@ -166,7 +166,7 @@ Blinding/Irradiated) are excluded: each side's body is simulated locally.
 |---|---|---|
 | CrystalUnstable | covered | CrystalUnstableExploded (26) + CrystalUnstableTicked (32) — the 5 s pre-explosion ticking (glow ramp + jitter + crystaltick sound) rides the transient Ticked event; the explosion (health0 + RemoteEntityDeath) is the durable consumption |
 | CrystalMetamorphic | covered | CrystalMetamorphicTriggered (27) — death + item drops ride the event |
-| CrystalMimic | covered | CrystalMimicTriggered (30); enemies ride EntitySpawned + EnemyRuntimeSpawn; crystalenemy tint rides EntitySpawned/EnemySnapshot (PV24) — activated latch event |
+| CrystalMimic | covered | CrystalMimicTriggered (30); enemies ride EntitySpawned + EnemyRuntimeSpawn; crystalenemy tint rides EntitySpawned/EnemySnapshot — activated latch event |
 | CrystalShy | covered | CrystalShySwapped (28); scan order risk recorded |
 | CrystalTeleport | covered | CrystalTeleportTriggered (EntityEventKind 33) + 20 Hz player stream — the observerlaugh/FlashBrief replay; the body teleport itself rides the player stream |
 | CrystalEMP | covered | CrystalEMPActivated (29) — black visual + battery drain |
@@ -227,14 +227,15 @@ only on `foodbox` (root + the nested copy in `BioContainer`). Every other
 
 ## Creatures
 
-Enemy AI is covered by the host-authoritative enemy-sync domain
-(`docs/enemy-sync.md`): positions/health ride `EnemyState`/`EnemySnapshot`,
-attacks ride `EnemyAttack`/`EnemyBite`/`EnemyLunge`, and the proximity side
-effects of ElderThornback/Xaloris/GrabberPlant ride `EnemyEffectMsg`.
+Enemy AI is covered by the host-authoritative enemy-sync domain (`docs/enemy-sync.md`).
+Continuous enemy fields ride `StateStreamEnvelope` over `KernelEnvelope`;
+`EnemyAttack` remains the host-order local-apply command; combat terminal results
+(bite/lunge/proximity) are kernel journal events
+(`EnemyBiteResultEvent`, `EnemyLungeResultEvent`, `EnemyEffectResultEvent`).
 The `Heater` temperature field on `xaloris` is **excluded by design**: a
 local-body effect that writes only the local player's body temperature, so no
 enemy-sync surface is needed. `LookTarget` gaze/scare and the eye face timers now ride the 20 Hz player
-entity stream (v31) so remote clones turn their head/eyes toward the same world
+`StateStreamEnvelope` so remote clones turn their head/eyes toward the same world
 point and show the owner's scared/panic/closed-eye face.
 
 Remote animal deaths now replay the creature-specific death presentation
@@ -246,7 +247,7 @@ effects (see `docs/selfchecks/animal-death-presentation-selfcheck.md`).
 
 | entity | sync | path |
 |---|---|---|
-| SpiderHandler | covered | EnemyState stream (SpiderLegTargets) + EnemyAttack/EnemyBite events + ClawAnim replay |
-| CaveTicks | covered | EnemyState stream (SpiderLegTargets) + EnemyAttack/EnemyBite events + ClawAnim replay |
-| ElderThornbackBehaviour | covered | EnemyState stream + EnemyEffectMsg horror events |
-| CrystalEnemy | covered | EnemyState stream (CrystalWindup telegraph) + EnemyAttack/EnemyLunge events; runtime crystalenemy tint rides EntitySpawned/EnemySnapshot (PV24) |
+| SpiderHandler | covered | EnemyState stream (SpiderLegTargets) + EnemyAttack + kernel `EnemyBiteResultEvent` + ClawAnim replay |
+| CaveTicks | covered | EnemyState stream (SpiderLegTargets) + EnemyAttack + kernel `EnemyBiteResultEvent` + ClawAnim replay |
+| ElderThornbackBehaviour | covered | EnemyState stream + kernel `EnemyEffectResultEvent` horror events |
+| CrystalEnemy | covered | EnemyState stream (CrystalWindup telegraph) + EnemyAttack + kernel `EnemyLungeResultEvent`; runtime crystalenemy tint rides EntitySpawned/EnemySnapshot |

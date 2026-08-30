@@ -281,14 +281,14 @@ sync model.
 - Original proposal: a completion marker (or batched snapshot message) so
   receivers can distinguish a full world state from partial-best-effort state.
 
-### 3.5 GameAdapter testability / concrete service dependencies — MEDIUM
+### 3.5 GameAdapter testability / concrete service dependencies — CLOSED (partially)
 
 - Several adapter domain objects depend on concrete `SessionService` and reach
   into Unity statics (`FindObjectsOfType`, `Resources.Load`, `Utils.Create`,
   private reflection).
-- Proposed: narrow interfaces for world/object lookups, spawn factories, and
-  session identity; keep pure arbitration in pure-machine classes and make the
-  Unity seam injectable for L0 simulation.
+- **Closed by tech-decisions #75** for the concrete-service dependency portion:
+  the adapter now depends on narrow control interfaces.
+- Remaining future slice: making the Unity seam injectable for L0 simulation.
 
 ### 3.6 Log levels on high-frequency paths — CLOSED (landed 2026-08-23)
 

@@ -129,7 +129,6 @@ cleared only by a real `LobbyLeft`.
   clears `HostRunPending`, start-gate set/timer/`_gateReleased`, `WorldParams`,
   `_damagedBlocks`, trap-consumption/opened-entity/trap-layout registries.
 - `ItemService` subscribes `SessionEnded` and resets:
-  - world table (`ResetIte
   - world table (`ResetItems()`),
   - transfer table (`ItemArbitration.ResetForSessionEnd()` — clears regardless
     of current role),

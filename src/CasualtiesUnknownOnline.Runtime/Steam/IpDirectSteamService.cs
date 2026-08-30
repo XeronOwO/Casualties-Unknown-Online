@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Networking;
+using CasualtiesUnknownOnline.Runtime.OnlineUi;
 using Microsoft.Extensions.Logging;
 
 namespace CasualtiesUnknownOnline.Runtime.Steam;
@@ -18,6 +19,7 @@ public sealed class IpDirectSteamService(IpDirectTransport transport, ILogger<Ip
 	private readonly Dictionary<ulong, string> _personas = [];
 	private bool _isActive;
 	private string _localDisplayName = "";
+	private PlayerColorValue? _localPlayerColor;
 
 	public bool IsInitialized => true;
 
@@ -28,6 +30,10 @@ public sealed class IpDirectSteamService(IpDirectTransport transport, ILogger<Ip
 
 	/// <summary>The configured in-game display name used by IP-direct sessions.</summary>
 	public string LocalDisplayName => _localDisplayName;
+
+	public PlayerColorValue? LocalPlayerColor => _localPlayerColor;
+
+	public void SetLocalPlayerColor(PlayerColorValue? color) => _localPlayerColor = color;
 
 	public event Action<ulong>? LobbyCreated;
 

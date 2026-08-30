@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace CasualtiesUnknownOnline.Runtime.OnlineUi;
 
 /// <summary>
@@ -20,6 +22,25 @@ public static class PlayerColorResolver
 		new(0.95f, 0.45f, 0.72f), // pink
 		new(0.92f, 0.85f, 0.30f), // yellow
 	];
+
+	/// <summary>Returns the stable marker color for a player id.</summary>
+	/// <summary>The selectable palette in display order. Index 0 is the first
+	/// manually selectable color; the auto resolver uses the same palette.</summary>
+	public static IReadOnlyList<PlayerColorValue> PaletteValues => Palette;
+
+	/// <summary>Returns the palette color by its manual selection index, or
+	/// false when the index is outside the selectable range.</summary>
+	public static bool TryGet(int index, out PlayerColorValue color)
+	{
+		if (index >= 0 && index < Palette.Length)
+		{
+			color = Palette[index];
+			return true;
+		}
+
+		color = default;
+		return false;
+	}
 
 	/// <summary>Returns the stable marker color for a player id.</summary>
 	public static PlayerColorValue Resolve(ulong steamId)

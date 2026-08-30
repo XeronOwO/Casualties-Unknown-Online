@@ -174,18 +174,24 @@ internal sealed class SessionPeerMaintenance(
 		ResetWarmup();
 	}
 
-	private HandshakeMsg CreateHandshakeMsg() => new()
+	private HandshakeMsg CreateHandshakeMsg()
 	{
-		Protocol = ProtocolVersion.Current,
-		Scene = new SceneStateMsg { State = (byte)(_state.LocalInWorld ? SceneStateType.InWorld : SceneStateType.InMenu) },
-		// The declared mod list (Phase 4 Mod API consistency check — the host
-		// validates it before admitting the guest). Empty while the first-frame
-		// discovery has not run yet: a guest joining during its own Awake sends
-		// its first handshake with an empty list, the 1 s retry carries the
-		// real one (and a host without requirements accepts the empty list).
-		Mods = _modListProvider.CurrentModInfos(),
-		// The local display name: Steam persona in Steam mode, the configured
-		// custom name in IP-direct mode (the IP adapter answers this query).
-		DisplayName = _steam.GetPersonaName(_steam.LocalSteamId),
-	};
+		var color = _steam.LocalPlayerColor;
+		return new HandshakeMsg
+		{
+			Protocol = ProtocolVersion.Current,
+			Scene = new SceneStateMsg { State = (byte)(_state.LocalInWorld ? SceneStateType.InWorld : SceneStateType.InMenu) },
+			// The declared mod list (Phase 4 Mod API consistency check — the host
+			// validates it before admitting the guest). Empty while the first-frame
+			// discovery has not run yet: a guest joining during its own Awake sends
+			// its first handshake with an empty list, the 1 s retry carries the
+			// real one (and a host without requirements accepts the empty list).
+			Mods = _modListProvider.CurrentModInfos(),
+			// The local display name: Steam persona in Steam mode, the configured
+			// custom name in IP-direct mode (the IP adapter answers this query).
+			DisplayName = _steam.GetPersonaName(_steam.LocalSteamId),
+			HasColor = color.HasValue,
+			Color = color.HasValue ? color.Value.ToNetColorRgba().ToNetColorRgbaMsg() : new(),
+		};
+	}
 }

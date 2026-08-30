@@ -39,7 +39,8 @@ internal static class OnlineUiMemberListDrawer
 			allowRemoteInventoryTake: ctx.HostRules.AllowRemoteInventoryTake,
 			hasLineOfSight: ctx.Visibility is null
 				? null
-				: id => ctx.Visibility!.HasLineOfSight(ctx.Session.LocalSteamId, id));
+				: id => ctx.Visibility!.HasLineOfSight(ctx.Session.LocalSteamId, id),
+			getColor: ctx.PlayerColor);
 	}
 
 	internal static void Draw(OnlineUiContext ctx, IReadOnlyList<OnlineUiMemberRow> rows)
@@ -63,7 +64,8 @@ internal static class OnlineUiMemberListDrawer
 
 		GUILayout.BeginHorizontal();
 		var tags = row.IsLocal ? ctx.T("member.you") : row.IsHost ? ctx.T("member.host") : "";
-		GUILayout.Label($"{row.Name}{tags}", OnlineUiTheme.Label());
+		var colorHex = ColorUtility.ToHtmlStringRGB(ToColor(row.Color));
+		GUILayout.Label($"<color=#{colorHex}>{row.Name}{tags}</color>", OnlineUiTheme.Label());
 		GUILayout.FlexibleSpace();
 		DrawAdminActions(ctx, row);
 		GUILayout.EndHorizontal();
@@ -358,4 +360,6 @@ internal static class OnlineUiMemberListDrawer
 		var name = steam.GetPersonaName(steamId);
 		return string.IsNullOrWhiteSpace(name) ? $"player-{steamId:X}" : name;
 	}
+
+	private static Color ToColor(PlayerColorValue value) => new(value.R, value.G, value.B, value.A);
 }

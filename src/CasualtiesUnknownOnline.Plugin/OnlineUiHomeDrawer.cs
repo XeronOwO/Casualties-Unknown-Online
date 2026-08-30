@@ -21,7 +21,7 @@ internal static class OnlineUiHomeDrawer
 		GUILayout.Label(steamStatus, OnlineUiTheme.Label());
 		if (steam.IsInitialized)
 		{
-			GUILayout.Label(ctx.F("home.persona", ctx.DisplayName(steam.LocalSteamId)), OnlineUiTheme.MutedLabel());
+			GUILayout.Label(ctx.F("home.persona", ColoredName(ctx, steam.LocalSteamId)), OnlineUiTheme.MutedLabel());
 			GUILayout.Label(ctx.F("home.steam_id", steam.LocalSteamId), OnlineUiTheme.MutedLabel());
 		}
 
@@ -31,7 +31,7 @@ internal static class OnlineUiHomeDrawer
 		GUILayout.Label($"{ctx.F("home.role", ctx.RoleName(session.Role))}  {ctx.T(session.SessionActive ? "home.handshake_active" : "home.handshake_idle")} — {sessionText}", OnlineUiTheme.Label());
 		if (ctx.IpDirectActive)
 		{
-			GUILayout.Label(ctx.F("lobby.role_owner", ctx.RoleName(session.Role), ctx.DisplayName(session.HostSteamId)), OnlineUiTheme.MutedLabel());
+			GUILayout.Label(ctx.F("lobby.role_owner", ctx.RoleName(session.Role), ColoredName(ctx, session.HostSteamId)), OnlineUiTheme.MutedLabel());
 		}
 		else
 		{
@@ -40,7 +40,7 @@ internal static class OnlineUiHomeDrawer
 				: ctx.F("home.lobby", steam.CurrentLobbyId), OnlineUiTheme.MutedLabel());
 			if (steam.CurrentLobbyId != 0)
 			{
-				GUILayout.Label(ctx.F("lobby.role_owner", ctx.RoleName(session.Role), ctx.DisplayName(steam.GetLobbyOwner())), OnlineUiTheme.MutedLabel());
+				GUILayout.Label(ctx.F("lobby.role_owner", ctx.RoleName(session.Role), ColoredName(ctx, steam.GetLobbyOwner())), OnlineUiTheme.MutedLabel());
 				GUILayout.Label(ctx.F("lobby.members", steam.GetLobbyMembers().Length), OnlineUiTheme.MutedLabel());
 
 				if (GUILayout.Button(ctx.T("lobby.copy_id"), OnlineUiTheme.Button(), GUILayout.Width(130f)))
@@ -227,5 +227,12 @@ internal static class OnlineUiHomeDrawer
 		{
 			GUILayout.Label(error!, OnlineUiTheme.Status(OnlineUiTheme.Error));
 		}
+	}
+
+	private static string ColoredName(OnlineUiContext ctx, ulong steamId)
+	{
+		var color = ctx.PlayerColor(steamId);
+		var hex = ColorUtility.ToHtmlStringRGB(new Color(color.R, color.G, color.B, color.A));
+		return $"<color=#{hex}>{ctx.DisplayName(steamId)}</color>";
 	}
 }

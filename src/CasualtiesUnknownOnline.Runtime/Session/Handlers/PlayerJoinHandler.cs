@@ -19,12 +19,18 @@ public sealed class PlayerJoinHandler : PacketHandlerBase<PlayerJoinMsg, IEntity
 			return;
 		}
 
-		// Store the roster display name on the presence table so IP-direct UIs
-		// can render the custom name without a Steam persona lookup.
-		if (msg.GuestSteamId != 0 && !string.IsNullOrWhiteSpace(msg.DisplayName))
+		// Store the roster display name and selected color on the presence table
+		// so IP-direct UIs can render the custom name without a Steam persona
+		// lookup and every peer can show the owner's chosen marker color.
+		if (msg.GuestSteamId != 0)
 		{
 			var member = ctx.Session.GetOrCreateMember(msg.GuestSteamId);
-			member.DisplayName = IpDisplayNamePolicy.Normalize(msg.DisplayName);
+			if (!string.IsNullOrWhiteSpace(msg.DisplayName))
+			{
+				member.DisplayName = IpDisplayNamePolicy.Normalize(msg.DisplayName);
+			}
+
+			member.SelectedColor = msg.HasColor ? msg.Color.ToNetColorRgba() : (NetColorRgba?)null;
 		}
 
 		ctx.Entities.ProcessPlayerJoin(msg);

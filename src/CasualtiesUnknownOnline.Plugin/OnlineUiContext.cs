@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Localization;
+using CasualtiesUnknownOnline.Runtime.OnlineUi;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
@@ -63,6 +64,11 @@ internal sealed class OnlineUiContext
 	internal bool IpDirectActive;
 
 	internal IpDirectConfigEditor? IpConfig;
+
+	internal PlayerColorConfigEditor? ColorConfig;
+
+	/// <summary>Applies a local player palette selection change (persist + identity).</summary>
+	internal Action<int>? ChangePlayerColor;
 
 	internal Func<bool>? CreateIpHost;
 
@@ -139,5 +145,31 @@ internal sealed class OnlineUiContext
 
 		var name = Steam.GetPersonaName(id);
 		return string.IsNullOrWhiteSpace(name) ? $"player-{id:X}" : name;
+	}
+
+	/// <summary>
+	/// Resolves the effective marker color for a player: the local configured
+	/// palette choice or the remote member's wire-carried selection when
+	/// present, otherwise the deterministic SteamId auto palette.
+	/// </summary>
+	internal PlayerColorValue PlayerColor(ulong id)
+	{
+		if (id == Session.LocalSteamId && ColorConfig is { } colorConfig)
+		{
+			if (colorConfig.CurrentColor is { } localColor)
+			{
+				return localColor;
+			}
+		}
+
+		foreach (var member in Session.Members)
+		{
+			if (member.SteamId == id && member.SelectedColor is { } selected)
+			{
+				return PlayerColorValue.FromNetColorRgba(selected);
+			}
+		}
+
+		return PlayerColorResolver.Resolve(id);
 	}
 }

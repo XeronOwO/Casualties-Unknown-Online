@@ -114,6 +114,7 @@ All files under `docs/selfchecks/` are historical/per-delivery evidence records.
 | players/player-interaction-service-split-selfcheck.md | Players | current | candidate current evidence; verify before citing |
 | players/player-interaction-visibility-selfcheck.md | Players | current | candidate current evidence; verify before citing |
 | players/player-inventory-take-selfcheck.md | Players | historical | superseded/old-wire; do not cite as current evidence without checking protocol.md |
+| players/player-color-and-head-tags-selfcheck.md | Players | current | candidate current evidence; verify before citing |
 | players/player-push-selfcheck.md | Players | current | candidate current evidence; verify before citing |
 | players/player-quick-panel-selfcheck.md | Players | current | candidate current evidence; verify before citing |
 | world/radiation-line-state-sync-selfcheck.md | World/Entities | current | candidate current evidence; verify before citing |

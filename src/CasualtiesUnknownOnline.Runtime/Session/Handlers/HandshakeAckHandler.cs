@@ -32,6 +32,7 @@ public sealed class HandshakeAckHandler(PacketSender sender, ILogger<HandshakeAc
 		member.InWorld = hostState == SceneStateType.InWorld;
 		member.Handshaken = true;
 		member.DisplayName = IpDisplayNamePolicy.Normalize(msg.DisplayName);
+		member.SelectedColor = msg.HasColor ? msg.Color.ToNetColorRgba() : (NetColorRgba?)null;
 		session.FireMemberAdded(sender); // the handshake completed — domains keyed on member readiness hook here (the item domain grants the id watermark on the host)
 
 		var wasActive = session.SessionActive;

@@ -39,6 +39,83 @@ public class NetPacketTests
 	}
 
 	[Fact]
+	public void Handshake_PlayerColor_RoundTrips()
+	{
+		var msg = new HandshakeMsg
+		{
+			Protocol = ProtocolVersion.Current,
+			HasColor = true,
+			Color = new NetColorRgbaMsg(0.1f, 0.2f, 0.3f, 1f),
+		};
+
+		var decoded = NetPacket.DecodePayload<HandshakeMsg>(NetPacket.Encode(NetMsg.Handshake, msg));
+
+		Assert.True(decoded.HasColor);
+		Assert.Equal(0.1f, decoded.Color.R);
+		Assert.Equal(0.2f, decoded.Color.G);
+		Assert.Equal(0.3f, decoded.Color.B);
+		Assert.Equal(1f, decoded.Color.A);
+	}
+
+	[Fact]
+	public void HandshakeAck_PlayerColor_RoundTrips()
+	{
+		var msg = new HandshakeAckMsg
+		{
+			Protocol = ProtocolVersion.Current,
+			HasColor = true,
+			Color = new NetColorRgbaMsg(0.4f, 0.5f, 0.6f, 1f),
+		};
+
+		var decoded = NetPacket.DecodePayload<HandshakeAckMsg>(NetPacket.Encode(NetMsg.HandshakeAck, msg));
+
+		Assert.True(decoded.HasColor);
+		Assert.Equal(0.4f, decoded.Color.R);
+		Assert.Equal(0.5f, decoded.Color.G);
+		Assert.Equal(0.6f, decoded.Color.B);
+		Assert.Equal(1f, decoded.Color.A);
+	}
+
+	[Fact]
+	public void PlayerJoin_PlayerColor_RoundTrips()
+	{
+		var msg = new PlayerJoinMsg
+		{
+			GuestSteamId = 77ul,
+			HasColor = true,
+			Color = new NetColorRgbaMsg(0.7f, 0.8f, 0.9f, 1f),
+		};
+
+		var decoded = NetPacket.DecodePayload<PlayerJoinMsg>(NetPacket.Encode(NetMsg.PlayerJoin, msg));
+
+		Assert.True(decoded.HasColor);
+		Assert.Equal(0.7f, decoded.Color.R);
+		Assert.Equal(0.8f, decoded.Color.G);
+		Assert.Equal(0.9f, decoded.Color.B);
+		Assert.Equal(1f, decoded.Color.A);
+	}
+
+	[Fact]
+	public void PlayerColorUpdate_RoundTrips()
+	{
+		var msg = new PlayerColorUpdateMsg
+		{
+			SteamId = 42ul,
+			HasColor = true,
+			Color = new NetColorRgbaMsg(0.2f, 0.6f, 0.8f, 1f),
+		};
+
+		var decoded = NetPacket.DecodePayload<PlayerColorUpdateMsg>(NetPacket.Encode(NetMsg.PlayerColorUpdate, msg));
+
+		Assert.Equal(42ul, decoded.SteamId);
+		Assert.True(decoded.HasColor);
+		Assert.Equal(0.2f, decoded.Color.R);
+		Assert.Equal(0.6f, decoded.Color.G);
+		Assert.Equal(0.8f, decoded.Color.B);
+		Assert.Equal(1f, decoded.Color.A);
+	}
+
+	[Fact]
 	public void DecodePayload_ZeroValueOmission_RoundTripsToDefault()
 	{
 		// protobuf-net omits zero values on the wire — a zero field

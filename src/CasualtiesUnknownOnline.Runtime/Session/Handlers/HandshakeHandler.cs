@@ -69,6 +69,7 @@ public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandl
 		}
 
 		var displayName = IpDisplayNamePolicy.Normalize(msg.DisplayName);
+		var selectedColor = msg.HasColor ? msg.Color.ToNetColorRgba() : (NetColorRgba?)null;
 
 		// Mod-list consistency (Phase 4 Mod API): the host validates the
 		// member's declared mods against its own BEFORE the member is created —
@@ -99,6 +100,7 @@ public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandl
 			member = session.GetOrCreateMember(sender);
 			member.InWorld = peerState == SceneStateType.InWorld;
 			member.DisplayName = displayName;
+			member.SelectedColor = selectedColor;
 			// Cross-session restore: the disk-backed character save outlives the
 			// session — a returning player gets it back once the host has a live
 			// world (CharacterDataStore.SendSavedCharacter gates on LocalInWorld);
@@ -128,6 +130,7 @@ public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandl
 
 			member.InWorld = peerState == SceneStateType.InWorld;
 			member.DisplayName = displayName;
+			member.SelectedColor = selectedColor;
 			ctx.CharacterData.SendSavedCharacter(sender);
 		}
 
@@ -166,6 +169,7 @@ public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandl
 		// handshake until it receives one (Steam P2P sessions establish lazily,
 		// first messages can be swallowed — Phase-0 finding). Same for world
 		// params, which are only sent once the session exists.
+		var hostColor = _steam.LocalPlayerColor;
 		_sender.Send(sender, NetMsg.HandshakeAck, new HandshakeAckMsg
 		{
 			Protocol = ProtocolVersion.Current,
@@ -176,6 +180,8 @@ public sealed class HandshakeHandler(PacketSender sender, ILogger<HandshakeHandl
 			// assigned identity for IP-direct guests.
 			AssignedPeerId = sender,
 			DisplayName = _steam.GetPersonaName(_steam.LocalSteamId),
+			HasColor = hostColor.HasValue,
+			Color = hostColor.HasValue ? hostColor.Value.ToNetColorRgba().ToNetColorRgbaMsg() : new(),
 		});
 		var worldParams = ctx.World.WorldParams;
 		if (worldParams is not null)

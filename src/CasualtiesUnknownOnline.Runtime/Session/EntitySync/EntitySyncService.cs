@@ -494,6 +494,9 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 		var displayName = _session.TryGetMember(guestSteamId, out var presence)
 			? presence.DisplayName
 			: "";
+		var selectedColor = _session.TryGetMember(guestSteamId, out presence)
+			? presence.SelectedColor
+			: null;
 		return new PlayerJoinMsg
 		{
 			HostSteamId = _localPlayer.SteamId,
@@ -503,6 +506,8 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 			GuestEntityId = guestId.ToNetworkEntityIdMsg(),
 			GuestPosition = guestPosition.ToNetVector2Msg(),
 			DisplayName = displayName,
+			HasColor = selectedColor.HasValue,
+			Color = selectedColor.HasValue ? selectedColor.Value.ToNetColorRgbaMsg() : new(),
 		};
 	}
 

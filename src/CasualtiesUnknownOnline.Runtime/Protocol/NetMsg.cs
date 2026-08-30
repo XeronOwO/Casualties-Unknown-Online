@@ -221,4 +221,9 @@ public enum NetMsg : byte
 	// CommandEnvelope / CommittedBatchEnvelope / CheckpointEnvelope /
 	// StateStreamEnvelope)
 	KernelEnvelope = 122, // bidirectional: the four-envelope kernel protocol rides one message id
+
+	// Player presentation (cosmetic identity — no gameplay state/authority: a
+	// guest's change is accepted and relayed by the host, a host change is
+	// broadcast; later joiner colors also ride Handshake/PlayerJoin)
+	PlayerColorUpdate = 123, // bidirectional: guest → host report of a local color change; host → guest broadcast/relay
 }

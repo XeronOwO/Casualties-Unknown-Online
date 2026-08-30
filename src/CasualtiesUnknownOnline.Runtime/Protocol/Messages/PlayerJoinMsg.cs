@@ -37,4 +37,14 @@ public sealed class PlayerJoinMsg
 	/// <summary>The joining guest's custom display name (IP-direct sessions; Steam sessions fall back to persona).</summary>
 	[ProtoMember(7)]
 	public string DisplayName { get; set; } = "";
+
+	/// <summary>True when <see cref="Color"/> carries the joining guest's
+	/// selected presentation color. False = the guest uses the automatic palette.</summary>
+	[ProtoMember(8)]
+	public bool HasColor { get; set; }
+
+	/// <summary>The joining guest's selected RGBA marker color (only meaningful
+	/// when <see cref="HasColor"/> is true).</summary>
+	[ProtoMember(9)]
+	public NetColorRgbaMsg Color { get; set; } = new();
 }

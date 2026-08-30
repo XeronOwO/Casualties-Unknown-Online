@@ -42,6 +42,9 @@ internal static class OnlineUiPreferencesDrawer
 		DrawLanguage(ctx);
 
 		GUILayout.Space(10f);
+		DrawColor(ctx);
+
+		GUILayout.Space(10f);
 		DrawProfiles(ctx);
 	}
 
@@ -155,6 +158,50 @@ internal static class OnlineUiPreferencesDrawer
 			Languages,
 			code => language.Set(code));
 		GUILayout.Label(ctx.T("prefs.language_hint"), OnlineUiTheme.MutedLabel());
+	}
+
+	private static readonly string[] ColorKeys =
+	[
+		"red",
+		"blue",
+		"green",
+		"orange",
+		"purple",
+		"cyan",
+		"pink",
+		"yellow",
+	];
+
+	private static void DrawColor(OnlineUiContext ctx)
+	{
+		if (ctx.ColorConfig is not { } color)
+		{
+			return;
+		}
+
+		GUILayout.Label(ctx.T("prefs.player_color"), OnlineUiTheme.Section());
+		GUILayout.Label(ctx.T("prefs.player_color_hint"), OnlineUiTheme.MutedLabel());
+
+		var currentLabel = color.ColorIndex >= 0
+			? ctx.T($"prefs.color.{ColorKeys[color.ColorIndex]}")
+			: ctx.T("prefs.player_color_auto");
+		var options = new List<(string Code, string Label)>
+		{
+			("-1", ctx.T("prefs.player_color_auto")),
+		};
+		for (var i = 0; i < ColorKeys.Length; i++)
+		{
+			options.Add((i.ToString(), ctx.T($"prefs.color.{ColorKeys[i]}")));
+		}
+
+		DrawDropdown(
+			ctx,
+			ctx.T("prefs.player_color_current"),
+			currentLabel,
+			() => ctx.State.ColorOptionsOpen,
+			value => ctx.State.ColorOptionsOpen = value,
+			options,
+			code => ctx.ChangePlayerColor?.Invoke(int.Parse(code)));
 	}
 
 	private static void DrawDropdown(

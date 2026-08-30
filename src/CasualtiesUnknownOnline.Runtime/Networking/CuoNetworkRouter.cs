@@ -1,4 +1,5 @@
 using System;
+using CasualtiesUnknownOnline.Runtime.OnlineUi;
 using CasualtiesUnknownOnline.Runtime.Steam;
 using Microsoft.Extensions.Logging;
 
@@ -69,6 +70,15 @@ public sealed class CuoNetworkRouter : INetworkTransport, ISteamService, IDispos
 
 	public string GetPersonaName(ulong steamId) =>
 		_ipDirectActive ? _ipDirectSteam.GetPersonaName(steamId) : _steamService.GetPersonaName(steamId);
+
+	public PlayerColorValue? LocalPlayerColor =>
+		_ipDirectActive ? _ipDirectSteam.LocalPlayerColor : _steamService.LocalPlayerColor;
+
+	public void SetLocalPlayerColor(PlayerColorValue? color)
+	{
+		_steamService.SetLocalPlayerColor(color);
+		_ipDirectSteam.SetLocalPlayerColor(color);
+	}
 
 	public event Action<ulong>? LobbyCreated;
 

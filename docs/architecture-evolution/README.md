@@ -5,14 +5,12 @@ iteration: replacing scattered authority stores and hook-coupled sync paths with
 typed, deterministic game-state kernel while preserving each gameplay domain's own
 semantics.
 
-> Status: **Phase C — completed**. The typed deterministic kernel is the
-> authoritative item-fact store; the new four-envelope protocol and
-> checkpoint-save stack are the production item paths. Item
-> use/slot/container/cook/snapshot/carried-fact/correction flows have been
-> cut over to CommandEnvelope/CommittedBatch/StateStream. Old item packet
-> handlers, DTOs, and the corresponding `NetMsg` item enums have been fully
-> removed; the only remaining legacy item frame is `ItemReject` for
-> block-break drop refusal.
+> Status: **Phase D — completed**. The typed deterministic kernel is now
+> authoritative across all six Phase D domains; the next phase is
+> Phase E (delete dual architecture). The 4.3 prediction/rollback boundary is
+> closed: cross-player operations are host-validated without client prediction,
+> and the generic Prediction Runtime is deferred to Phase E
+> (see docs/tech-decisions.md #157).
 
 ## Why this exists
 
@@ -62,7 +60,7 @@ invariants.
 | A | Shadow kernel | Replay semantic diff zero for the item slice; shadow explains known defect families; no behavior change. | Completed |
 | B | Items authority | Every item fact has one authoritative write path; old tables are projections. | Completed |
 | C | Protocol/save switch | New envelopes and checkpoint join pass network simulation; old item wire handlers/DTOs/NetMsg enums removed. | Completed |
-| D | Full domain migration | All persistent gameplay facts live in kernel domains; epoch isolation works. | Not started |
+| D | Full domain migration | All persistent gameplay facts live in kernel domains; epoch isolation works. | Completed |
 | E | Delete dual architecture | No `Legacy`/`Compat`/shadow double-write/two authority tables remain. | Not started |
 
 See [migration-roadmap.md](migration-roadmap.md) and the individual phase docs for

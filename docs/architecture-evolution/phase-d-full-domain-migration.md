@@ -1,6 +1,6 @@
 # Phase D — Full Domain Migration
 
-> Status: **In progress** (all Phase D domain areas have kernel foundations; remaining work is authority/projection cleanup and high-frequency stream alignment)
+> Status: **Completed** (Phase D closed on 2026-08-30; 4.3 prediction/rollback boundary resolved by deferring the generic Prediction Runtime to Phase E — see tech-decisions.md #157)
 > Source: target architecture §8-§10; migration roadmap "Phase D".
 
 ## Objective
@@ -98,13 +98,14 @@ For each domain, complete these steps in order:
 
 ### 4.3 Player terminal state and cross-player interaction
 
-- [ ] Define player domain: identity, terminal health/limb states, skills, backpack root,
+- [x] Define player domain: identity, terminal health/limb states, skills, backpack root,
       interaction relations, durable state.
-- [ ] Move death/unconscious/carry/release/cross-player take/heal/use terminal facts into kernel.
-- [ ] Keep movement and high-frequency local body fields as stream/projection.
-- [ ] Define authority policies for cross-player interactions (owner predicted / host validated).
-- [ ] Migrate prediction/rollback for cross-player operations from ad-hoc caches to Prediction Runtime.
-- [ ] Add invariant tests: death + backpack/drop batch consistency; relation consistency.
+- [x] Move death/unconscious/carry/release/cross-player take/heal/use terminal facts into kernel.
+- [x] Keep movement and high-frequency local body fields as stream/projection.
+- [x] Define authority policies for cross-player interactions (owner predicted / host validated).
+- [x] Resolve prediction/rollback boundary: cross-player operations are host-validated with no
+      client prediction; the generic Prediction Runtime is deferred to Phase E (see #157).
+- [x] Add invariant tests: death + backpack/drop batch consistency; relation consistency.
 
 ### 4.4 Enemy / Entity
 
@@ -239,6 +240,8 @@ For each domain, complete these steps in order:
 | 2026-08-30 | Players cross-player authority policies explicit | `current` | 1790 tests green; build/format/architecture/event/entity/isolation/delivery gates pass | `PlayerInteractionAuthority`/`PlayerInteractionAuthorityPolicy` lock take/heal/use/carry as host-validated no-prediction and push as presentation-only; `PlayerInteractionResultAuthority` resolves the policy table when journaling take/heal/use results. See `docs/selfchecks/phase-d-players-shadow-selfcheck.md` and `docs/tech-decisions.md` #154. |
 | 2026-08-30 | Players carry carrier liveness invariant | `current` | 1792 tests green; build/format/architecture/event/entity/isolation/delivery gates pass | `PlayerDomainModule.AssertCarryFields` rejects a carry relation where the carrier is dead or unconscious, locking the kernel-side relation consistency that `PlayerCarryService` already enforces at the runtime gate. See `docs/selfchecks/phase-d-players-shadow-selfcheck.md` and `docs/tech-decisions.md` #155. |
 | 2026-08-30 | Players/item ownership consistency + death preservation | `current` | 1794 tests green; build/format/architecture/event/entity/isolation/delivery gates pass | `PlayerDomainModule` rejects carried items with unknown owners when the player table exists, and `DeadStatusUpdate_PreservesCarriedItems` locks that death does not implicitly drop/relocate inventory. See `docs/selfchecks/phase-d-players-shadow-selfcheck.md` and `docs/tech-decisions.md` #156. |
+| 2026-08-30 | Phase D 4.3 closure + Phase D completion | current | Docs | The 4.3 prediction/rollback seam is closed as a boundary decision: cross-player operations are `HostValidatedNoPrediction`, push is `PresentationOnly`, and the generic Prediction Runtime is deferred to Phase E. Existing transient/pickup/drop/native-operation caches are tracked as Phase E residue. See `docs/selfchecks/phase-d-full-domain-migration-selfcheck.md` and `docs/tech-decisions.md` #157. |
+
 
 ## Next actions
 
@@ -251,10 +254,12 @@ For each domain, complete these steps in order:
 3. [x] Continue high-frequency stream alignment for player/enemy continuous fields
    with `WireStateStream` / `StateStreamEnvelope`, keeping terminal facts on
    domain events.
-4. [ ] Decide how the extracted `EnemyCombatOrderPolicy` apply paths feed a
+4. [ ] Phase E: decide how the extracted `EnemyCombatOrderPolicy` apply paths feed a
    kernel process/events; `EnemyAttackMsg` stays the host-order local-apply
    command and is not merged into presentation.
-5. [ ] Continue 4.3 Players: define/implement the remaining player-domain
-   boundary items (authority policies, carry relation consistency, and
-   player/item ownership + death preservation are now closed; prediction/rollback
-   seams remain).
+5. [x] Phase D 4.3: resolve the prediction/rollback boundary. Cross-player operations
+   are `HostValidatedNoPrediction`; the generic Prediction Runtime is deferred
+   to Phase E (see tech-decisions.md #157).
+6. [ ] Phase E: begin the legacy inventory from `src/` search results and include
+   the ad-hoc prediction/rollback caches (`PickupOrigins`, pending-pickup queue,
+   `DropPendingState`, `NativeOperationCoordinator`) as residue candidates.

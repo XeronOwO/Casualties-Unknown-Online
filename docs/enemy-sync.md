@@ -171,10 +171,11 @@ applies the game's own damage path locally and reports the post-attack terminal 
    trigger) — now covered by the EntitySpawned channel + runtime id binding + late-joiner
    materialization; a future second runtime enemy prefab must reuse the same path and its prefab must
    carry the same `BuildingEntity.id` facts.
-5. **Proximity side effects are now event-synced** — `ElderThornbackBehaviour` (horror tick +
+5. **Proximity side effects are now kernel-event-synced** — `ElderThornbackBehaviour` (horror tick +
    defeat reward), `XalorisScript` (septic tick) and `GrabberPlant` (grab) each report their
-   post-effect terminal state as the dedicated `EnemyEffectMsg` (NetMsg 85); the host merges the
-   terminal state into the saved character immediately and relays. `LookTarget` gaze/scare now
+   post-effect terminal state through `RecordEnemyEffectCommand` / `EnemyEffectResultEvent`;
+   the `EnemyCombatKernelProjection` merges guest reports into the host saved character and
+   restores the presentation event on the peers. `LookTarget` gaze/scare now
    rides the 20 Hz player entity stream (v31); the `Heater` temperature field is
    **excluded by design** — a local-body effect that writes only the local
    player's body temperature (already carried by the 1 Hz character stream),

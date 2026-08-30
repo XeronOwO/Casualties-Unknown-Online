@@ -28,7 +28,6 @@ public sealed class HandlerContext(ISessionControl session, IEntitySyncControl e
 	ICharacterSessionHandlerContext,
 	ICraftHandlerContext,
 	IEnemySessionHandlerContext,
-	IEnemyCharacterSessionHandlerContext,
 	IEntitySessionHandlerContext,
 	IHandshakeHandlerContext,
 	ICharacterDataHandlerContext,

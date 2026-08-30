@@ -78,4 +78,7 @@ public sealed class WireCommand
 
 	[ProtoMember(23)]
 	public ulong CarriedSteamId { get; set; }
+
+	[ProtoMember(24)]
+	public WireEnemyCombat? EnemyCombat { get; set; }
 }

@@ -29,4 +29,7 @@ public enum WireEventKind
 	PlayerInventoryTransfer = 20,
 	PlayerHealResult = 21,
 	PlayerItemUseResult = 22,
+	EnemyBiteResult = 23,
+	EnemyLungeResult = 24,
+	EnemyEffectResult = 25,
 }

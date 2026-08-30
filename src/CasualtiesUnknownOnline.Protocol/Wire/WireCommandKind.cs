@@ -28,6 +28,9 @@ public enum WireCommandKind
 	ResetFluids = 20,
 	SetPlayerCarry = 21,
 	ClearPlayerCarry = 22,
+	RecordEnemyBite = 23,
+	RecordEnemyLunge = 24,
+	RecordEnemyEffect = 25,
 
 	// Protocol control (not a gameplay command)
 	RangeRequest = 100,

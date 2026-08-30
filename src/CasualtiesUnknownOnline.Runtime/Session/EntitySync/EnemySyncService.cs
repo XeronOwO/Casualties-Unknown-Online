@@ -8,6 +8,7 @@ using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Time;
 using Microsoft.Extensions.Logging;
@@ -40,6 +41,8 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 	private readonly EnemyKernelRestoreProjection _enemyKernelRestore;
 	private readonly ItemKernelAuthority _kernelAuthority;
 	private readonly IKernelProtocolControl _kernelProtocol;
+	private readonly EnemyCombatKernelSubmitter _enemyCombatKernel;
+	private readonly EnemyCombatKernelProjection _enemyCombatProjection;
 	private readonly Dictionary<NetworkEntityId, ulong> _terminalHealthRevision = [];
 
 	private readonly Dictionary<NetworkEntityId, EnemyEntity> _enemies = [];
@@ -54,7 +57,8 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 	public EnemySyncService(ISessionControl session, PacketSender sender, ITimeSource time,
 		IOptionsMonitor<StateStreamOptions> stateStreamOptions, ILogger<EnemySyncService> log,
 		EnemyKernelProjection enemyKernel, EnemyKernelRestoreProjection enemyKernelRestore,
-		ItemKernelAuthority kernelAuthority, IKernelProtocolControl kernelProtocol)
+		ItemKernelAuthority kernelAuthority, IKernelProtocolControl kernelProtocol,
+		ICharacterDataControl characterData)
 	{
 		_session = session;
 		_sender = sender;
@@ -65,6 +69,8 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 		_enemyKernelRestore = enemyKernelRestore;
 		_kernelAuthority = kernelAuthority;
 		_kernelProtocol = kernelProtocol;
+		_enemyCombatKernel = new EnemyCombatKernelSubmitter(session, kernelAuthority, kernelProtocol, log);
+		_enemyCombatProjection = new EnemyCombatKernelProjection(kernelAuthority, this, characterData, session, log);
 		_kernelProtocol.EntityStateStreamReceived += OnEntityStateStreamReceived;
 		session.SessionEnded += OnSessionEnded;
 		_kernelAuthority.BatchCommitted += OnKernelBatchCommitted;
@@ -81,16 +87,16 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 	/// <summary>Raised after an explicit enemy aggregate removal is applied (the Game Adapter destroys the frozen copy).</summary>
 	public event Action<NetworkEntityId>? EnemyRemovedReceived;
 
-	/// <summary>Raised when an enemy bite arrives (report or relay) — the Game Adapter applies the post-bite limb/body state to the victim's clone.</summary>
+	/// <summary>Raised when an enemy bite result is projected from the kernel — the Game Adapter applies the post-bite limb/body state to the victim's clone (source victim excluded).</summary>
 	public event Action<ulong, EnemyBiteMsg>? EnemyBiteReceived;
 
 	/// <summary>Raised on the victim's side when a host-ordered enemy attack arrives — the Game Adapter applies it to the local body and reports the terminal state.</summary>
 	public event Action<EnemyAttackMsg>? EnemyAttackReceived;
 
-	/// <summary>Raised when a crystal-lunge terminal state arrives (report or relay) — the Game Adapter applies the post-lunge limb/body state to the victim's clone.</summary>
+	/// <summary>Raised when a crystal-lunge result is projected from the kernel — the Game Adapter applies the post-lunge limb/body state to the victim's clone (source victim excluded).</summary>
 	public event Action<ulong, EnemyLungeMsg>? EnemyLungeReceived;
 
-	/// <summary>Raised when an enemy-proximity side effect arrives (report or relay) — the Game Adapter applies the post-effect body state to the victim's clone.</summary>
+	/// <summary>Raised when an enemy-proximity side-effect result is projected from the kernel — the Game Adapter applies the post-effect body state to the victim's clone (source victim excluded).</summary>
 	public event Action<ulong, EnemyEffectMsg>? EnemyEffectReceived;
 
 	// ---- Public surface (Game Adapter) ----
@@ -108,31 +114,13 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 	public NetworkEntityId AllocateEnemyId() => new(_epoch, _nextEnemyCounter++, 0);
 
 	/// <summary>
-	/// Report/broadcast an enemy bite: a guest reports its own bite to the host
-	/// (the victim is the reporter); the host broadcasts its own bite to every
-	/// guest (its body is already damaged locally). Reliable — a lost event
-	/// self-heals on the next 1 Hz character snapshot, but the event itself must
-	/// arrive to remove the use latency (the trigger rides the event, never the
-	/// snapshot).
+	/// Report an enemy bite: the victim's local body already applied the bite.
+	/// Host reports commit a journal-only kernel command directly; guest reports
+	/// ride the Phase C command envelope to the host. The committed batch is
+	/// projected back through <see cref="EnemyCombatKernelProjection"/> as the
+	/// post-bite presentation event on every peer except the source victim.
 	/// </summary>
-	public void SendEnemyBite(EnemyBiteMsg msg)
-	{
-		if (!_session.SessionActive)
-		{
-			return;
-		}
-
-		if (_session.Role == SessionRole.Host)
-		{
-			_sender.SendToAll(
-				_session.Members.Where(m => m.Handshaken && m.SteamId != _session.LocalSteamId).Select(m => m.SteamId),
-				NetMsg.EnemyBite, msg, reliable: true);
-		}
-		else
-		{
-			_sender.Send(_session.HostSteamId, NetMsg.EnemyBite, msg);
-		}
-	}
+	public void SendEnemyBite(EnemyBiteMsg msg) => _enemyCombatKernel.SendEnemyBite(msg);
 
 	/// <summary>An enemy bite arrived (report or relay) — surface it for the Game Adapter to apply.</summary>
 	public void FireEnemyBiteReceived(ulong sender, EnemyBiteMsg msg)
@@ -166,58 +154,23 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 	public void FireEnemyAttackReceived(EnemyAttackMsg msg) => EnemyAttackReceived?.Invoke(msg);
 
 	/// <summary>
-	/// Report/broadcast a crystal-lunge terminal state (the same star semantics
-	/// as EnemyBite): a guest reports its locally-applied lunge to the host; the
-	/// host broadcasts its own lunge to every guest.
+	/// Report a crystal-lunge terminal state: the victim's local body already
+	/// applied the lunge. Host reports commit a journal-only kernel command
+	/// directly; guest reports ride the Phase C command envelope to the host.
 	/// </summary>
-	public void SendEnemyLunge(EnemyLungeMsg msg)
-	{
-		if (!_session.SessionActive)
-		{
-			return;
-		}
-
-		if (_session.Role == SessionRole.Host)
-		{
-			_sender.SendToAll(
-				_session.Members.Where(m => m.Handshaken && m.SteamId != _session.LocalSteamId).Select(m => m.SteamId),
-				NetMsg.EnemyLunge, msg, reliable: true);
-		}
-		else
-		{
-			_sender.Send(_session.HostSteamId, NetMsg.EnemyLunge, msg);
-		}
-	}
+	public void SendEnemyLunge(EnemyLungeMsg msg) => _enemyCombatKernel.SendEnemyLunge(msg);
 
 	/// <summary>A crystal-lunge terminal state arrived (report or relay) — surface it for the Game Adapter to apply.</summary>
 	public void FireEnemyLungeReceived(ulong sender, EnemyLungeMsg msg)
 		=> EnemyLungeReceived?.Invoke(sender, msg);
 
 	/// <summary>
-	/// Report/broadcast an enemy-proximity side effect (ElderThornback horror,
-	/// Xaloris septic tick, GrabberPlant grab — the same star semantics as
-	/// EnemyBite): a guest reports its own effect to the host; the host
-	/// broadcasts its own effect to every guest. Reliable — the event carries
-	/// the post-effect terminal state, never a delta.
+	/// Report an enemy-proximity side effect (ElderThornback horror, Xaloris
+	/// septic tick, GrabberPlant grab): the affected player's local body already
+	/// applied the effect. Host reports commit a journal-only kernel command
+	/// directly; guest reports ride the Phase C command envelope to the host.
 	/// </summary>
-	public void SendEnemyEffect(EnemyEffectMsg msg)
-	{
-		if (!_session.SessionActive)
-		{
-			return;
-		}
-
-		if (_session.Role == SessionRole.Host)
-		{
-			_sender.SendToAll(
-				_session.Members.Where(m => m.Handshaken && m.SteamId != _session.LocalSteamId).Select(m => m.SteamId),
-				NetMsg.EnemyEffect, msg, reliable: true);
-		}
-		else
-		{
-			_sender.Send(_session.HostSteamId, NetMsg.EnemyEffect, msg);
-		}
-	}
+	public void SendEnemyEffect(EnemyEffectMsg msg) => _enemyCombatKernel.SendEnemyEffect(msg);
 
 	/// <summary>An enemy-proximity side effect arrived (report or relay) — surface it for the Game Adapter to apply.</summary>
 	public void FireEnemyEffectReceived(ulong sender, EnemyEffectMsg msg)
@@ -265,14 +218,6 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 
 	void IEnemySyncControl.FireEnemyAttackReceived(EnemyAttackMsg msg) => FireEnemyAttackReceived(msg);
 
-	void IEnemySyncControl.SendEnemyLunge(EnemyLungeMsg msg) => SendEnemyLunge(msg);
-
-	void IEnemySyncControl.FireEnemyLungeReceived(ulong sender, EnemyLungeMsg msg) => FireEnemyLungeReceived(sender, msg);
-
-	void IEnemySyncControl.SendEnemyEffect(EnemyEffectMsg msg) => SendEnemyEffect(msg);
-
-	void IEnemySyncControl.FireEnemyEffectReceived(ulong sender, EnemyEffectMsg msg) => FireEnemyEffectReceived(sender, msg);
-
 	// ---- ICuoService ----
 
 	void ICuoService.Initialize() => _epoch = (ulong)_time.UtcNowTicks;
@@ -300,6 +245,7 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 
 	void IDisposable.Dispose()
 	{
+		_enemyCombatProjection.Dispose();
 		_kernelProtocol.EntityStateStreamReceived -= OnEntityStateStreamReceived;
 		_session.SessionEnded -= OnSessionEnded;
 		_kernelAuthority.BatchCommitted -= OnKernelBatchCommitted;

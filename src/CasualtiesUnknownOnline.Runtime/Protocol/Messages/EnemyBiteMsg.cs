@@ -4,12 +4,12 @@ namespace CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 
 /// <summary>
 /// An enemy bit a player (SpiderHandler.CheckForLimbDamage → DamageLimb): the
-/// victim's local body already applied the damage (local compute); this event
-/// carries the post-bite terminal state — the bitten limb plus the body's
+/// victim's local body already applied the damage (local compute); this DTO is
+/// the presentation projection of the kernel
+/// <c>EnemyBiteResultEvent</c> — the bitten limb plus the body's
 /// venom/adrenaline/happiness — so every peer applies the exact same state
-/// (exact rebuild, never a delta). Bidirectional: guest → host report (the
-/// victim is the reporter); host → guest broadcast relay (the victim is
-/// <see cref="VictimSteamId"/>). The 1 Hz character snapshot stays the fallback.
+/// (exact rebuild, never a delta). The source victim is not re-projected.
+/// The 1 Hz character snapshot stays the fallback.
 /// </summary>
 [ProtoContract]
 public sealed class EnemyBiteMsg

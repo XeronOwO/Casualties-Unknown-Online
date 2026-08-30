@@ -6,12 +6,12 @@ namespace CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 /// A crystal lunge hit a player (CrystalEnemy.Lunge, CrystalEnemy.cs:133-168):
 /// the victim's local body already applied the damage (local compute — either
 /// the host's own crystal hit the host locally, or a host-ordered EnemyAttack
-/// applied on the victim's side). This event carries the post-lunge terminal
-/// state — the hit limb plus the body's adrenaline/stamina — so every peer
-/// applies the exact same state (exact rebuild, never a delta). Bidirectional:
-/// guest → host report (the victim is the reporter); host → guest broadcast
-/// relay (the victim is <see cref="VictimSteamId"/>). The 1 Hz character
-/// snapshot stays the fallback for the other body fields Ragdoll/Scream change.
+/// applied on the victim's side). This DTO is the presentation projection of the
+/// kernel <c>EnemyLungeResultEvent</c> — the hit limb plus the body's
+/// adrenaline/stamina — so every peer applies the exact same state (exact
+/// rebuild, never a delta). The source victim is not re-projected. The 1 Hz
+/// character snapshot stays the fallback for the other body fields
+/// Ragdoll/Scream change.
 /// </summary>
 [ProtoContract]
 public sealed class EnemyLungeMsg

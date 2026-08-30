@@ -363,7 +363,7 @@ public static class PlayerInteractionWireMapper
 		};
 	}
 
-	private static WirePlayerInteractionLimb ToWireLimb(PlayerInteractionLimb limb) =>
+	public static WirePlayerInteractionLimb ToWireLimb(PlayerInteractionLimb limb) =>
 		new()
 		{
 			Index = limb.Index,
@@ -390,7 +390,7 @@ public static class PlayerInteractionWireMapper
 			IsVital = limb.IsVital,
 		};
 
-	private static PlayerInteractionLimb FromWireLimb(WirePlayerInteractionLimb limb) =>
+	public static PlayerInteractionLimb FromWireLimb(WirePlayerInteractionLimb limb) =>
 		new()
 		{
 			Index = limb.Index,

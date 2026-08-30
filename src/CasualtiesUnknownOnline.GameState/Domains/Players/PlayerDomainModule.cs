@@ -176,6 +176,11 @@ internal sealed class PlayerDomainModule : IDomainModule
 				throw new InvalidOperationException($"player {player.SteamId} cannot carry themself");
 			}
 
+			if (!player.Alive || !player.Conscious)
+			{
+				throw new InvalidOperationException($"player {player.SteamId} is not alive/conscious and cannot carry {carriedSteamId}");
+			}
+
 			if (player.CarriedBySteamId is not null)
 			{
 				throw new InvalidOperationException($"player {player.SteamId} cannot be both carrier and carried");

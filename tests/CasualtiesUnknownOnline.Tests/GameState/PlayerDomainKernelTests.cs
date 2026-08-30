@@ -331,6 +331,32 @@ public class PlayerDomainKernelTests
 	}
 
 	[Fact]
+	public void DeadCarrier_IsRejectedByInvariant()
+	{
+		var kernel = new GameStateKernel(Epoch);
+		Assert.True(Update(kernel, 1, new PlayerState(2001, false, false)).IsAccepted);
+		Assert.True(Update(kernel, 2, new PlayerState(2002, false, false)).IsAccepted);
+
+		var decision = SetCarry(kernel, 3, 2001, 2002);
+
+		Assert.False(decision.IsAccepted);
+		Assert.Equal(RejectionReason.InvariantViolation, decision.Rejection!.Reason);
+	}
+
+	[Fact]
+	public void UnconsciousButAliveCarrier_IsRejectedByInvariant()
+	{
+		var kernel = new GameStateKernel(Epoch);
+		Assert.True(Update(kernel, 1, new PlayerState(2001, true, false)).IsAccepted);
+		Assert.True(Update(kernel, 2, new PlayerState(2002, false, false)).IsAccepted);
+
+		var decision = SetCarry(kernel, 3, 2001, 2002);
+
+		Assert.False(decision.IsAccepted);
+		Assert.Equal(RejectionReason.InvariantViolation, decision.Rejection!.Reason);
+	}
+
+	[Fact]
 	public void WireBatchRoundTrip_PreservesPlayerStatusEvent()
 	{
 		var source = new GameStateKernel(Epoch);

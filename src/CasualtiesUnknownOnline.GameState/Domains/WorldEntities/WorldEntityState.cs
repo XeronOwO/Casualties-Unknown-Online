@@ -11,9 +11,10 @@ namespace CasualtiesUnknownOnline.GameState.Domains.WorldEntities;
 public sealed record WorldEntityState(
 	IReadOnlyList<TrapConsumptionFact> Consumptions,
 	IReadOnlyList<BuildingEntityHealthFact> BuildingHealth,
-	IReadOnlyList<OpenedEntityFact> OpenedEntities)
+	IReadOnlyList<OpenedEntityFact> OpenedEntities,
+	IReadOnlyList<TrapStateFact> TrapStates)
 {
-	public static readonly WorldEntityState Empty = new([], [], []);
+	public static readonly WorldEntityState Empty = new([], [], [], []);
 
 	public WorldEntityState WithConsumption(TrapConsumptionFact fact) =>
 		this with
@@ -31,4 +32,10 @@ public sealed record WorldEntityState(
 		OpenedEntities.Any(o => o.Position == fact.Position)
 			? this
 			: this with { OpenedEntities = [.. OpenedEntities, fact] };
+
+	public WorldEntityState WithTrapState(TrapStateFact fact) =>
+		this with
+		{
+			TrapStates = [.. TrapStates.Where(s => s.Position != fact.Position || s.Kind != fact.Kind), fact],
+		};
 }

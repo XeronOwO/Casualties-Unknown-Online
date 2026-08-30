@@ -18,4 +18,7 @@ public sealed class WireWorldEntityState
 
 	[ProtoMember(3)]
 	public List<WireOpenedEntity> OpenedEntities { get; set; } = [];
+
+	[ProtoMember(4)]
+	public List<WireTrapState> TrapStates { get; set; } = [];
 }

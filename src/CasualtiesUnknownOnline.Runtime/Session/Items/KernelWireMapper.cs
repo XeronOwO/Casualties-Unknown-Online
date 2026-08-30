@@ -188,6 +188,7 @@ public static class KernelWireMapper
 			{
 				Kind = WireEventKind.WorldEntitiesReset,
 			},
+			TrapStateChangedEvent trapState => KernelDomainWireMapper.ToWireTrapStateEvent(trapState),
 			PlayerStatusUpdatedEvent updated => new WireEvent
 			{
 				Kind = WireEventKind.PlayerStatusUpdated,
@@ -363,6 +364,7 @@ public static class KernelWireMapper
 			WireEventKind.OpenedEntity => new OpenedEntityEvent(
 				KernelDomainWireMapper.FromWireEntityPosition(@event.EntityPosition ?? throw new InvalidOperationException("OpenedEntity event lacks position"))),
 			WireEventKind.WorldEntitiesReset => new WorldEntitiesResetEvent(),
+			WireEventKind.TrapStateChanged => KernelDomainWireMapper.FromWireTrapStateEvent(@event),
 			WireEventKind.PlayerStatusUpdated => new PlayerStatusUpdatedEvent(
 				KernelDomainWireMapper.FromWirePlayerState(@event.PlayerState ?? throw new InvalidOperationException("PlayerStatusUpdated event lacks player state"))),
 			WireEventKind.PlayersReset => new PlayersResetEvent(),
@@ -508,6 +510,7 @@ public static class KernelWireMapper
 				epoch,
 				authority,
 				KernelDomainWireMapper.FromWireEntityPosition(command.EntityPosition ?? throw new InvalidOperationException("RecordOpenedEntity command lacks position"))),
+			WireCommandKind.RecordTrapState => KernelDomainWireMapper.FromWireRecordTrapStateCommand(command, operation, actor, epoch, authority),
 			WireCommandKind.ResetWorldEntities => new ResetWorldEntitiesCommand(
 				operation,
 				actor,

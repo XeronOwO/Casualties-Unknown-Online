@@ -14,9 +14,14 @@ internal sealed class WorldEntityDomainModule : IDomainModule
 	private const int MaxConsumptions = 65536;
 	private const int MaxBuildingHealth = 4096;
 	private const int MaxOpenedEntities = 4096;
+	private const int MaxTrapStates = 65536;
 
 	public bool CanHandle(GameCommand command) =>
-		command is RecordTrapConsumedCommand or RecordBuildingEntityHealthCommand or RecordOpenedEntityCommand or ResetWorldEntitiesCommand;
+		command is RecordTrapConsumedCommand
+			or RecordBuildingEntityHealthCommand
+			or RecordOpenedEntityCommand
+			or RecordTrapStateCommand
+			or ResetWorldEntitiesCommand;
 
 	public bool CanReduce(GameEvent @event) => @event is WorldEntityEvent;
 
@@ -26,6 +31,7 @@ internal sealed class WorldEntityDomainModule : IDomainModule
 			RecordTrapConsumedCommand c => DecideRecordTrap(c, state),
 			RecordBuildingEntityHealthCommand c => DecideRecordHealth(c, state),
 			RecordOpenedEntityCommand c => DecideRecordOpened(c, state),
+			RecordTrapStateCommand c => DecideRecordTrapState(c, state),
 			ResetWorldEntitiesCommand => DomainDecision.Accept(new WorldEntitiesResetEvent()),
 			_ => DomainDecision.Reject(RejectionReason.UnknownCommand, $"unknown world-entity command {command.GetType().Name}"),
 		};
@@ -75,6 +81,45 @@ internal sealed class WorldEntityDomainModule : IDomainModule
 		return DomainDecision.Accept(new OpenedEntityEvent(command.Position));
 	}
 
+	private static DomainDecision DecideRecordTrapState(RecordTrapStateCommand command, KernelReadModel state)
+	{
+		var entities = state.WorldEntities ?? WorldEntityState.Empty;
+		var current = entities.TrapStates.FirstOrDefault(s => s.Position == command.Position && s.Kind == command.Kind);
+		if (current is not null && !IsLegalTrapTransition(current.Phase, command.Phase))
+		{
+			return DomainDecision.Reject(RejectionReason.InvalidTransition,
+				$"trap {command.Kind} at ({command.Position.X},{command.Position.Y}) cannot transition from {current.Phase} to {command.Phase}");
+		}
+
+		if (current is null && entities.TrapStates.Count >= MaxTrapStates)
+		{
+			return DomainDecision.Reject(RejectionReason.Conflict,
+				"trap state table is full");
+		}
+
+		return DomainDecision.Accept(new TrapStateChangedEvent(
+			command.Position,
+			command.Kind,
+			command.Phase,
+			command.Extra,
+			command.TransitionedAtMs));
+	}
+
+	private static bool IsLegalTrapTransition(TrapPhase current, TrapPhase next) =>
+		current == next || (current, next) switch
+		{
+			(TrapPhase.Armed, TrapPhase.Warning) => true,
+			(TrapPhase.Armed, TrapPhase.Triggered) => true,
+			(TrapPhase.Armed, TrapPhase.Disabled) => true,
+			(TrapPhase.Warning, TrapPhase.Triggered) => true,
+			(TrapPhase.Warning, TrapPhase.Disabled) => true,
+			(TrapPhase.Triggered, TrapPhase.Cooldown) => true,
+			(TrapPhase.Triggered, TrapPhase.Disabled) => true,
+			(TrapPhase.Cooldown, TrapPhase.Armed) => true,
+			(TrapPhase.Cooldown, TrapPhase.Disabled) => true,
+			_ => false,
+		};
+
 	public void Reduce(GameEvent @event, MutableKernelState state)
 	{
 		var current = state.WorldEntities ?? WorldEntityState.Empty;
@@ -89,6 +134,12 @@ internal sealed class WorldEntityDomainModule : IDomainModule
 				health.Position,
 				health.Health)),
 			OpenedEntityEvent opened => current.WithOpened(new OpenedEntityFact(opened.Position)),
+			TrapStateChangedEvent trapState => current.WithTrapState(new TrapStateFact(
+				trapState.Position,
+				trapState.Kind,
+				trapState.Phase,
+				trapState.Extra,
+				trapState.TransitionedAtMs)),
 			WorldEntitiesResetEvent => WorldEntityState.Empty,
 			_ => throw new InvalidOperationException($"unknown world-entity event {@event.GetType().Name}"),
 		};
@@ -114,6 +165,25 @@ internal sealed class WorldEntityDomainModule : IDomainModule
 			if (float.IsNaN(health.Health) || health.Health < 0f)
 			{
 				throw new InvalidOperationException($"building entity at ({health.Position.X},{health.Position.Y}) has invalid health {health.Health}");
+			}
+		}
+
+		var states = new System.Collections.Generic.HashSet<(EntityPosition Position, int Kind)>();
+		foreach (var trapState in entities.TrapStates)
+		{
+			if (trapState.Kind <= 0)
+			{
+				throw new InvalidOperationException($"trap state at ({trapState.Position.X},{trapState.Position.Y}) has invalid kind {trapState.Kind}");
+			}
+
+			if (!Enum.IsDefined(typeof(TrapPhase), trapState.Phase))
+			{
+				throw new InvalidOperationException($"trap state at ({trapState.Position.X},{trapState.Position.Y}) has invalid phase {trapState.Phase}");
+			}
+
+			if (!states.Add((trapState.Position, trapState.Kind)))
+			{
+				throw new InvalidOperationException($"trap state at ({trapState.Position.X},{trapState.Position.Y}) kind {trapState.Kind} appears more than once");
 			}
 		}
 	}

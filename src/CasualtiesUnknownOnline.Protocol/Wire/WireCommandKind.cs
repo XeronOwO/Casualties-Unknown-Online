@@ -31,6 +31,7 @@ public enum WireCommandKind
 	RecordEnemyBite = 23,
 	RecordEnemyLunge = 24,
 	RecordEnemyEffect = 25,
+	RecordTrapState = 26,
 
 	// Protocol control (not a gameplay command)
 	RangeRequest = 100,

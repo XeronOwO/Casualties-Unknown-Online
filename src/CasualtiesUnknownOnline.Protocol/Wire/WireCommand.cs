@@ -81,4 +81,7 @@ public sealed class WireCommand
 
 	[ProtoMember(24)]
 	public WireEnemyCombat? EnemyCombat { get; set; }
+
+	[ProtoMember(25)]
+	public int TrapPhase { get; set; }
 }

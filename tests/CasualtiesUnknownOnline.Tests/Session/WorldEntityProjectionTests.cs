@@ -107,17 +107,19 @@ public class WorldEntityProjectionTests
 		CommittedBatch? captured = null;
 		authority.BatchCommitted += batch => captured = batch;
 
-		world.ReportTrapEvent(EntityEventKind.MineExploded, 1.2f, 2.8f, 5);
+		world.ReportTrapEvent(EntityEventKind.MineExploded, 1.2f, 2.8f, 5, 0f);
 
 		Assert.NotNull(captured);
-		Assert.Equal(2, captured!.Events.Count);
+		Assert.Equal(3, captured!.Events.Count);
 		Assert.Contains(captured.Events, e => e is TrapConsumedEvent);
 		Assert.Contains(captured.Events, e => e is TrapStateChangedEvent);
+		Assert.Contains(captured.Events, e => e is BuildingEntityHealthUpdatedEvent);
 
 		var state = authority.QueryWorldEntities();
 		Assert.NotNull(state);
 		Assert.Single(state!.Consumptions);
 		Assert.Single(state.TrapStates);
+		Assert.Single(state.BuildingHealth);
 	}
 
 	[Fact]

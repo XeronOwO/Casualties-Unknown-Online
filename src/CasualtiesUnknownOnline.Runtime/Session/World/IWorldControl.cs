@@ -168,9 +168,11 @@ public interface IWorldControl
 	/// <summary>
 	/// Report a locally-triggered world entity event (a trap fired — local
 	/// compute): guest → host as a report (the host applies the event to its own
-	/// world and relays), host → broadcast to all synced members.
+	/// world and relays), host → broadcast to all synced members. On the host,
+	/// <paramref name="buildingHealth"/> may carry the trap entity's post-trigger
+	/// health so it lands in the same atomic kernel batch.
 	/// </summary>
-	void SendEntityEvent(EntityEventMsg msg);
+	void SendEntityEvent(EntityEventMsg msg, float? buildingHealth = null);
 
 	/// <summary>Host only: relay an accepted entity event to the other members (source excluded — it already applied locally).</summary>
 	void BroadcastEntityEvent(ulong excludeSteamId, EntityEventMsg msg);
@@ -222,10 +224,11 @@ public interface IWorldControl
 
 	/// <summary>
 	/// Host only: record a live trap trigger as one atomic kernel batch. The
-	/// batch carries the one-shot consumption (when applicable) and the trap
-	/// state-machine transition (when the kind has a state profile) together.
+	/// batch carries the one-shot consumption (when applicable), the trap
+	/// state-machine transition (when the kind has a state profile), and an
+	/// optional destroyed-building health observation together.
 	/// </summary>
-	void ReportTrapEvent(EntityEventKind kind, float x, float y, byte extra);
+	void ReportTrapEvent(EntityEventKind kind, float x, float y, byte extra, float? buildingHealth = null);
 
 	/// <summary>
 	/// Report a runtime world-entity creation (outside generation — the spawn

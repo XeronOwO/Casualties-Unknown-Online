@@ -52,10 +52,11 @@ public sealed class TrapStateRegistry(
 	/// <summary>
 	/// Host only: record one live trap trigger as a single atomic kernel
 	/// composite. The composite contains the one-shot consumption (when the
-	/// kind is one-shot) and the state-machine transition (when the kind has a
-	/// phase profile), so a guest receives both facts as one CommittedBatch.
+	/// kind is one-shot), the state-machine transition (when the kind has a
+	/// phase profile), and the trap entity's post-trigger building health
+	/// (when the caller supplies a destroyed-health observation).
 	/// </summary>
-	public void ReportBatch(EntityEventKind kind, float x, float y, byte extra)
+	public void ReportBatch(EntityEventKind kind, float x, float y, byte extra, float? buildingHealth = null)
 	{
 		if (_session.Role != SessionRole.Host)
 		{
@@ -89,6 +90,17 @@ public sealed class TrapStateRegistry(
 				phase.Value,
 				extra,
 				_time.NowMs));
+		}
+
+		if (buildingHealth is { } health)
+		{
+			commands.Add(new RecordBuildingEntityHealthCommand(
+				_kernelAuthority.NextOperationId(),
+				new ActorId(_session.LocalSteamId),
+				_kernelAuthority.CurrentRunEpoch,
+				AuthorityKind.HostOnly,
+				EntityPosition.FromWorld(x, y),
+				health));
 		}
 
 		if (commands.Count == 0)

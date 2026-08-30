@@ -40,7 +40,7 @@ public sealed class EntityEventChannel(ISessionControl session, PacketSender sen
 	/// broadcasting (the host is not in its own presence table, so its own
 	/// broadcast never returns through EntityEventHandler).
 	/// </summary>
-	public void SendEntityEvent(EntityEventMsg msg)
+	public void SendEntityEvent(EntityEventMsg msg, float? buildingHealth = null)
 	{
 		if (!_session.SessionActive)
 		{
@@ -56,7 +56,7 @@ public sealed class EntityEventChannel(ISessionControl session, PacketSender sen
 			// guest-triggered events. Without this a late joiner never learns
 			// host-triggered consumptions (mine, spike, mimic, ...). The
 			// composite also advances the trap state machine in the same batch.
-			_trapState.ReportBatch(msg.Kind, msg.Position.X, msg.Position.Y, msg.Extra);
+			_trapState.ReportBatch(msg.Kind, msg.Position.X, msg.Position.Y, msg.Extra, buildingHealth);
 
 			_session.Broadcast(NetMsg.EntityEvent, msg);
 		}
@@ -307,10 +307,11 @@ public sealed class EntityEventChannel(ISessionControl session, PacketSender sen
 
 	/// <summary>
 	/// Host only: record a live trap trigger as one atomic kernel batch. The
-	/// batch carries the one-shot consumption (when applicable) and the trap
-	/// state-machine transition (when the kind has a state profile) together.
+	/// batch carries the one-shot consumption (when applicable), the trap
+	/// state-machine transition (when the kind has a state profile), and an
+	/// optional destroyed-building health observation together.
 	/// </summary>
-	public void ReportTrapEvent(EntityEventKind kind, float x, float y, byte extra) => _trapState.ReportBatch(kind, x, y, extra);
+	public void ReportTrapEvent(EntityEventKind kind, float x, float y, byte extra, float? buildingHealth = null) => _trapState.ReportBatch(kind, x, y, extra, buildingHealth);
 
 	/// <summary>Host only: a new world layer is generating — the consumptions start empty again.</summary>
 	public void ResetConsumptions() => _trapConsumption.Reset();

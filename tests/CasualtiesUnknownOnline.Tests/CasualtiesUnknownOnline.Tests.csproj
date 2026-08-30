@@ -32,7 +32,101 @@
     <ProjectReference Include="..\..\src\CasualtiesUnknownOnline.Runtime\CasualtiesUnknownOnline.Runtime.csproj" />
     <Reference Include="Steamworks.NET">
       <HintPath>..\..\references\Steamworks.NET.dll</HintPath>
-      <Private>False</Private>
+      <Private>True</Private>
+    </Reference>
+    <!-- The reflection-host DLLs are Reference items so Visual Studio groups
+         them under the project Dependencies node. Aliases=GameRef keeps their
+         global types (e.g. Assembly-CSharp.RunSetting) out of the test compile
+         namespace while Private=True places them beside the test assembly. -->
+    <Reference Include="0Harmony">
+      <HintPath>..\..\references\0Harmony.dll</HintPath>
+      <Private>True</Private>
+      <Aliases>GameRef</Aliases>
+    </Reference>
+    <Reference Include="UnityEngine">
+      <HintPath>..\..\references\UnityEngine.dll</HintPath>
+      <Private>True</Private>
+      <Aliases>GameRef</Aliases>
+    </Reference>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>..\..\references\Assembly-CSharp.dll</HintPath>
+      <Private>True</Private>
+      <Aliases>GameRef</Aliases>
+    </Reference>
+    <Reference Include="netstandard">
+      <HintPath>..\..\references\netstandard.dll</HintPath>
+      <Private>True</Private>
+      <Aliases>GameRef</Aliases>
+    </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\..\references\Newtonsoft.Json.dll</HintPath>
+      <Private>True</Private>
+      <Aliases>GameRef</Aliases>
+    </Reference>
+    <Reference Include="UnityEngine.AnimationModule">
+      <HintPath>..\..\references\UnityEngine.AnimationModule.dll</HintPath>
+      <Private>True</Private>
+      <Aliases>GameRef</Aliases>
+    </Reference>
+    <Reference Include="UnityEngine.AudioModule">
+      <HintPath>..\..\references\UnityEngine.AudioModule.dll</HintPath>
+      <Private>True</Private>
+      <Aliases>GameRef</Aliases>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>..\..\references\UnityEngine.CoreModule.dll</HintPath>
+      <Private>True</Private>
+      <Aliases>GameRef</Aliases>
+    </Reference>
+    <Reference Include="UnityEngine.IMGUIModule">
+      <HintPath>..\..\references\UnityEngine.IMGUIModule.dll</HintPath>
+      <Private>True</Private>
+      <Aliases>GameRef</Aliases>
+    </Reference>
+    <Reference Include="UnityEngine.InputLegacyModule">
+      <HintPath>..\..\references\UnityEngine.InputLegacyModule.dll</HintPath>
+      <Private>True</Private>
+      <Aliases>GameRef</Aliases>
+    </Reference>
+    <Reference Include="UnityEngine.ParticleSystemModule">
+      <HintPath>..\..\references\UnityEngine.ParticleSystemModule.dll</HintPath>
+      <Private>True</Private>
+      <Aliases>GameRef</Aliases>
+    </Reference>
+    <Reference Include="UnityEngine.Physics2DModule">
+      <HintPath>..\..\references\UnityEngine.Physics2DModule.dll</HintPath>
+      <Private>True</Private>
+      <Aliases>GameRef</Aliases>
+    </Reference>
+    <Reference Include="UnityEngine.SharedInternalsModule">
+      <HintPath>..\..\references\UnityEngine.SharedInternalsModule.dll</HintPath>
+      <Private>True</Private>
+      <Aliases>GameRef</Aliases>
+    </Reference>
+    <Reference Include="UnityEngine.SubsystemsModule">
+      <HintPath>..\..\references\UnityEngine.SubsystemsModule.dll</HintPath>
+      <Private>True</Private>
+      <Aliases>GameRef</Aliases>
+    </Reference>
+    <Reference Include="UnityEngine.TextRenderingModule">
+      <HintPath>..\..\references\UnityEngine.TextRenderingModule.dll</HintPath>
+      <Private>True</Private>
+      <Aliases>GameRef</Aliases>
+    </Reference>
+    <Reference Include="UnityEngine.TilemapModule">
+      <HintPath>..\..\references\UnityEngine.TilemapModule.dll</HintPath>
+      <Private>True</Private>
+      <Aliases>GameRef</Aliases>
+    </Reference>
+    <Reference Include="UnityEngine.UI">
+      <HintPath>..\..\references\UnityEngine.UI.dll</HintPath>
+      <Private>True</Private>
+      <Aliases>GameRef</Aliases>
+    </Reference>
+    <Reference Include="UnityEngine.UIModule">
+      <HintPath>..\..\references\UnityEngine.UIModule.dll</HintPath>
+      <Private>True</Private>
+      <Aliases>GameRef</Aliases>
     </Reference>
     <!-- Phase-3 contract tests: GameAdapter.dll is loaded REFLECTIVELY (never
          compile-referenced — it binds Unity/game assemblies), so only its
@@ -40,19 +134,6 @@
          references leak into the test compile). -->
     <ProjectReference Include="..\..\src\CasualtiesUnknownOnline.GameAdapter\CasualtiesUnknownOnline.GameAdapter.csproj"
                       ExcludeAssets="compile" Private="true" />
-  </ItemGroup>
-
-  <!-- The reflection host for the contract tests: the game assemblies (from
-       references/, gitignored — see references/README.md) must sit beside the
-       test output. netstandard.dll rides along — the Unity game assemblies
-       reference the netstandard 2.1 facade (Unity's compatibility layer), which
-       net48 does not provide. steam_api64.dll (native, unrelated) is excluded.
-       MISSING references are a test FAILURE (the contract test names them),
-       never a silent skip. -->
-  <ItemGroup>
-    <None Include="..\..\references\*.dll"
-          Exclude="..\..\references\steam_api64.dll"
-          CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <!-- Phase-4 replay archive: every *.replay file ships with the test output —

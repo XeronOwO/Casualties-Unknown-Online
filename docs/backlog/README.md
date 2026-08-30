@@ -47,6 +47,24 @@ Open work only. Landed delivery details are not duplicated here; they live in:
 
 ## Open work
 
+### IP-direct identity / player presentation
+
+- **IP-direct name validation** — the configured display name must be
+  non-empty on both sides: the connecting side refuses to start a join with an
+  empty name, and the accepting host rejects/terminates an inbound peer with an
+  empty or malformed name. Errors must be visible on the Online UI / IP error
+  surface.
+- **Player-selectable colors** — players should be able to set their own color.
+  Name tags, off-screen arrows, player-list rows, and owner/role labels must use
+  the configured color rather than only the current auto-assigned palette.
+- **Head name tags (color-only, join/leave-safe)** — show only the player name
+  above the head, colored per the player's selected color; no redundant vitals,
+  status, or distance text on the head tag. When the target is off-screen, show
+  the corresponding colored arrow + distance in meters. Late joiners must
+  immediately receive existing players' name/color, and mid-session leave,
+  join, and reconnect must add/remove tags without stale entries (KrokMP-style
+  late join currently misses name display).
+
 ### Player interaction / UI
 
 - **PVP** — LOW (reprioritized). No player-to-player damage domain today; defer
@@ -71,6 +89,13 @@ Measurement-first items; do not optimize before data exists.
 - Trade domain (#59/#93) — dual-side runtime pass.
 - World determinism / `[WorldFingerprint]` comparison.
 - Block-break first-writer-wins dual-side runtime confirmation (L0 already covered).
+
+## Open decisions (no code change yet)
+
+- **IP-direct duplicate names** — IP-direct player identity appears to be
+  name-related; decide whether duplicate display names are rejected on accept,
+  auto-disambiguated, or scoped differently. Uniqueness needs to be settled
+  before player-specific state is trusted by name.
 
 ## Future / low priority
 

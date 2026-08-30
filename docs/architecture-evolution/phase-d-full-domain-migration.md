@@ -91,7 +91,7 @@ For each domain, complete these steps in order:
 - [x] Define trap state machines and events (`Armed`, `Warning`, `Triggered`, `Cooldown`,
       `Disabled`).
 - [ ] Define building/entity lifecycle and health events.
-- [ ] Move trap trigger + damage/drop into one cross-domain batch.
+- [x] Move trap trigger + damage/drop into one cross-domain batch.
 - [ ] Turn trap presentation into projection/replay, not authority.
 - [ ] Migrate trap replay/snapshot logic to kernel events.
 - [x] Add invariant tests: traps cannot skip legal states; destroyed entities cannot accept damage.

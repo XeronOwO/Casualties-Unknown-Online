@@ -11,6 +11,18 @@
 > This file may be referenced by older code comments for sections such as §3, §5, §7,
 > §8, §10, and §12; those comments are historical anchors to the original design discussions.
 
+### Historical section map
+
+| This file | Current equivalent |
+|---|---|
+| §3 Multiplayer sync model | `architecture-evolution/protocol.md` + `architecture-evolution/domains.md` |
+| §5 Mod API / Microsoft.Extensions | `docs/mod-api.md`, `docs/tech-decisions.md` |
+| §7 Host migration | `docs/backlog.md` (not planned) |
+| §8 Saves | `architecture-evolution/protocol.md` → Save / persistence |
+| §10 Pitfalls | Still applicable; retained in this historical file |
+| §11 Development phases | Historical in this file; current status in `AGENTS.md` |
+| §12 MVP scope | Historical scope discussion |
+
 ## 1. Overall Architecture
 
 CUO is not "adding a network layer to a single-player game". It injects a new multiplayer runtime via BepInEx and reorganizes the locally-executed game state into a host-authoritative simulation with guest input/state sync.

@@ -82,5 +82,9 @@ into kernel-backed projection/snapshot adapters.
    paths.
 5. [x] Guest checkpoint projection landed: non-one-shot trap state facts are
    included in the late-joiner replay list, while transient `Warning` edges are
-   intentionally not snapshotted. Next is the cross-domain damage/drop
+   intentionally not snapshotted.
+6. [x] Atomic trap trigger kernel facts landed: the host-local channel and the
+   host-apply path commit the one-shot consumption plus the trap state
+   transition as one `CompositeGameCommand` batch through
+   `IWorldControl.ReportTrapEvent`. Next is the cross-domain damage/drop
    batch.

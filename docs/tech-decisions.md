@@ -4010,3 +4010,27 @@ be made atomic.
   replays through the existing guest apply path.
 - **Tests** — item+player cross-domain commit, all-or-nothing rejection, and
   guest replay. Full suite 1740 green.
+
+## 142. Trap trigger kernel facts ride one atomic composite (2026-08-29)
+
+The first production 4.2 use of `CompositeGameCommand`: a live trap trigger's
+kernel facts are now committed as one batch instead of two separate batches.
+
+- **Host-local path** — `EntityEventChannel.SendEntityEvent` host branch calls
+  `TrapStateRegistry.ReportBatch`, which builds a `CompositeGameCommand`
+  containing `RecordTrapConsumedCommand` when the kind is a one-shot
+  consumption and `RecordTrapStateCommand` when `TrapStateProfiles` maps the
+  kind to a phase.
+- **Host-apply path** — `EntityEventSync.OnRemoteEntityEvent` now calls the new
+  `IWorldControl.ReportTrapEvent` after `TrapEffectApplier` applies a
+  guest-triggered event, so the same composite covers guest-originated trap
+  triggers.
+- **Wire** — the composite is host-only; the resulting normal `CommittedBatch`
+  rides `KernelEnvelope` and replays on guests through the existing apply path.
+- **Visual-only events** — no kernel command is emitted when the event is
+  neither one-shot nor stateful, so the composite is a no-op.
+- **Tests** — `WorldEntityProjectionTests.HostReportTrapEvent_CommitsOneAtomicKernelBatch`
+  locks one committed batch with both `TrapConsumedEvent` and
+  `TrapStateChangedEvent`. Full suite 1741 green.
+- **Remaining** — the item drop / building-health side-effect collection is
+  still open as the next 4.2 cross-domain sub-step.

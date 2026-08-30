@@ -4269,3 +4269,25 @@ creates a default `PlayerState` row as soon as a member's entity sync starts.
   protocol change or new event kind is introduced.
 - **Tests** — `PlayerProjectionTests.HostStartMemberSync_EnsuresKernelPlayerRosterRow`.
   Full suite 1787 green; build/format/architecture/event/entity/delivery gates pass.
+
+## 154. Explicit cross-player interaction authority policies (2026-08-30)
+
+The 4.3 "define authority policies" item gains a named runtime contract and is
+used by the result journal path.
+
+- **Policies** — `PlayerInteractionAuthority` distinguishes
+  `HostValidatedNoPrediction`, `OwnerPredictedHostValidated`, and
+  `PresentationOnly`.
+- **Policy table** — `PlayerInteractionAuthorityPolicy` maps take, heal, use,
+  carry set/clear to `HostValidatedNoPrediction`; push is `PresentationOnly`.
+  `ToKernelAuthority` maps no-prediction to `AuthorityKind.HostOnly`, because
+  the kernel currently has no separate no-prediction host kind.
+- **Runtime use** — `PlayerInteractionResultAuthority` now resolves the
+  journaled take/heal/use commands through the policy table instead of
+  hardcoding `AuthorityKind.HostOnly`.
+- **Prediction boundary** — cross-player operations are explicitly not
+  client-predicted; any future generic Prediction Runtime remains outside this
+  4.3 scope.
+- **Tests** — `PlayerInteractionAuthorityPolicyTests` locks the policy table and
+  kernel authority mapping. Full suite 1790 green;
+  build/format/architecture/event/entity/delivery gates pass.

@@ -21,6 +21,7 @@ data and carry service into the kernel.
 | Runtime authority surface | `ItemKernelAuthority.TryUpdatePlayerStatus/TryResetPlayers/QueryPlayers/TrySetPlayerCarry/TryClearPlayerCarry` | Host commands and query entry points. |
 | Entity-sync projection | `PlayerKernelStatusProjection` + `EntitySyncService` | Host `PublishLocalState`/`ApplyEntityState` project alive/conscious changes into kernel status; guests receive the kernel batch through the existing protocol path. |
 | Player roster ensure | `PlayerKernelStatusProjection.Ensure` + `EntitySyncService.StartMemberSync` | The host creates a default kernel player row the moment a member's entity sync starts, so the player-domain identity floor does not depend on the first 20 Hz report or 1 Hz character snapshot. |
+| Authority policy | `PlayerInteractionAuthority` + `PlayerInteractionAuthorityPolicy` | Explicitly labels cross-player take/heal/use/carry as `HostValidatedNoPrediction` and push as `PresentationOnly`; `PlayerInteractionResultAuthority` resolves those policies to kernel `AuthorityKind` when journaling results. |
 | Limb projection | `PlayerKernelLimbProjection` + `CharacterDataStore` | Host character snapshots and limb-latch events project discrete limb latches into kernel `PlayerState`; event + 1 Hz snapshot fallback are both covered. |
 | Body terminal projection | `PlayerKernelLimbProjection` + `CharacterDataStore` | The same character-data/limb-event projection also commits body-level terminal booleans (`Disfigured`, `EyeGone`, `BothEyesGone`, `HasPulmonaryEmbolism`, last-stand/neural booleans, `FibrillationForced`, `MindwipeScriptPresent/Active`) into `PlayerBodyTerminalState`. |
 | Skills projection | `PlayerKernelLimbProjection` + `CharacterDataStore` | Host character snapshots now commit durable `PlayerSkillsState` (strength/resistance/intelligence plus exp values) into the kernel player row; `PlayerKernelRestoreProjection` overlays those skills onto reconnect/re-entry snapshots. The character snapshot remains the continuous/fallback projection surface. |
@@ -42,6 +43,7 @@ data and carry service into the kernel.
 | Save/load preserves players | `PlayerDomainKernelTests.SaveLoad_RoundTripsPlayers`. |
 | Host entity-sync publish commits player status | `PlayerProjectionTests.HostPublishLocalState_CommitsPlayerKernelStatus`. |
 | Host start-member-sync ensures a kernel roster row | `PlayerProjectionTests.HostStartMemberSync_EnsuresKernelPlayerRosterRow`. |
+| Cross-player authority policies are explicit and locked | `PlayerInteractionAuthorityPolicyTests` locks take/heal/use/carry as `HostValidatedNoPrediction`, push as `PresentationOnly`, and the kernel `AuthorityKind` mapping. |
 | Carry set/clear drives reciprocal player relation | `PlayerDomainKernelTests.SetAndClearCarry_DrivePlayerRelation`. |
 | Self carry and carry conflicts are rejected | `PlayerDomainKernelTests.SelfCarry_IsRejected` / `CarryConflict_IsRejected`. |
 | Wire batch preserves a carry event | `PlayerDomainKernelTests.WireBatchRoundTrip_PreservesPlayerCarryEvent`. |
@@ -77,7 +79,7 @@ data and carry service into the kernel.
 ## Verification
 
 - `dotnet build CasualtiesUnknownOnline.slnx`: 0 warnings / 0 errors.
-- `dotnet test CasualtiesUnknownOnline.slnx`: 1787 passed.
+- `dotnet test CasualtiesUnknownOnline.slnx`: 1790 passed.
 - `dotnet format`: applied.
 - Architecture/event/entity/isolation gates passed.
 
@@ -123,3 +125,7 @@ data and carry service into the kernel.
    creates a default `PlayerState` row via `PlayerKernelStatusProjection.Ensure`,
    so carry/relation validation no longer waits for the first high-frequency
    player report.
+8. [x] Define explicit cross-player authority policies:
+   `PlayerInteractionAuthority` / `PlayerInteractionAuthorityPolicy` lock
+   take/heal/use/carry as host-validated no-prediction and push as
+   presentation-only; the result journal maps them to kernel `AuthorityKind`.

@@ -79,7 +79,8 @@ For a mechanism, prefer this order:
 ## Self-checks
 
 `docs/selfchecks/` contains per-delivery fact sheets. They are historical audit
-records, not open-work status. Key architecture-evolution self-checks:
+records, not open-work status. Use [`docs/selfchecks/MANIFEST.md`](selfchecks/MANIFEST.md)
+to separate current from historical before citing. Key architecture-evolution self-checks:
 
 - Phase A–C: historical phase evidence, superseded by later phases:
   `phase-a-kernel-foundation-selfcheck.md`,

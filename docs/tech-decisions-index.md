@@ -1,8 +1,11 @@
 # Tech Decisions Index
 
-Index of `docs/tech-decisions.md` by decision number. The decision log remains
-the binding record; this file is a search aid. Some early entries share numbers
-(`15` and `30` appear twice); the file order is authoritative.
+Traceability index of original decision numbers. The active normative register is
+[`tech-decisions.md`](tech-decisions.md); historical delivery detail is in
+[`tech-decisions-archive.md`](tech-decisions-archive.md); Phase A–E detail is in
+[`architecture-evolution/phase-decisions.md`](architecture-evolution/phase-decisions.md).
+Some early entries share numbers (`15` and `30` appear twice); the file order is
+authoritative.
 
 | # | Decision |
 |---:|---|

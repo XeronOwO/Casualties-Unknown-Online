@@ -74,8 +74,10 @@ Decisions / history / future
 
 | Document | Layer |
 |---|---|
-| [`tech-decisions.md`](tech-decisions.md) | Binding technical decisions with reasoning and traceability |
-| [`tech-decisions-index.md`](tech-decisions-index.md) | Numeric search index of decision entries |
+| [`tech-decisions.md`](tech-decisions.md) | **Active decision register** — the normative decisions that still apply today |
+| [`tech-decisions-archive.md`](tech-decisions-archive.md) | Compressed historical delivery archive |
+| [`architecture-evolution/phase-decisions.md`](architecture-evolution/phase-decisions.md) | Compressed Phase A–E evolution record |
+| [`tech-decisions-index.md`](tech-decisions-index.md) | Numeric traceability index of all original decision numbers |
 
 ## 6. Operations / Tooling / Deployment
 

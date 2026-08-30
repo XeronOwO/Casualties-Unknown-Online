@@ -35,8 +35,10 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
+- [Remote ragdoll state not visible](todo/ragdoll-state-not-visible-to-remote.md) — X ragdoll not shown on remote view; previous fix rejected for workflow, reopen.
 - [Duplicate unsynced item drops (guest-dug tree and world-spawned items)](todo/guest-tree-extra-unsynced-drops.md) — guest action/world drops produce two unsynced frozen copies.
 - [High sleepiness squint not visible remotely](todo/high-sleepiness-squint-not-visible-remotely.md) — remote eyes stay open when sleepiness is high.
+- [Runtime log errors to investigate (2026-08-30)](todo/runtime-log-errors-2026-08-30.md) — log files pinned with last write times.
 - [Name tag font size, head position, and off-screen edge padding](todo/name-tag-font-position-edge-padding.md) — UI/name tag issue.
 - [PVP](todo/pvp.md) — low priority, deferred until PvE/rules stable.
 - [KrokMP lower-priority candidates](todo/krokmp-candidates.md) — voice, vote-kick, player-list polish.
@@ -49,7 +51,6 @@ _None._ (Folder exists for the workflow.)
 
 ### Review
 
-- [Remote ragdoll state not visible](review/ragdoll-state-not-visible-to-remote.md) — X ragdoll not shown on remote view; fix implemented, needs runtime acceptance.
 - [Trade domain dual-side runtime pass](review/trade-domain-dual-side-runtime.md) — #59/#93.
 - [World determinism / WorldFingerprint comparison](review/world-determinism-world-fingerprint.md).
 - [Block-break first-writer-wins dual-side runtime confirmation](review/block-break-first-writer-wins.md).

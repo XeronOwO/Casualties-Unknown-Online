@@ -29,6 +29,7 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 	private readonly List<CommittedBatch> _journal = [];
 	private readonly Dictionary<int, WireCheckpoint> _checkpointChunks = [];
 	private readonly Dictionary<ulong, CommittedBatch> _pendingBatches = [];
+	private readonly KernelStateStreamService _stateStreams;
 	private long _nextMessageId;
 
 	public event Action<IReadOnlyList<WireItemMoveEntry>>? ItemMovesReceived;
@@ -50,6 +51,7 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 		_sender = sender;
 		_authority = authority;
 		_log = log;
+		_stateStreams = new KernelStateStreamService(session, sender, authority, payloadType => CreateHeader(payloadType, 0));
 		_commandHandler = new KernelProtocolCommandHandler(session, sender, authority, time, log);
 		_authority.BatchCommitted += BroadcastCommittedBatch;
 		_session.SessionEnded += ResetForSessionEnd;
@@ -154,109 +156,22 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 		_sender.Send(_session.HostSteamId, NetMsg.KernelEnvelope, frame);
 	}
 
-	public void SendStateStream(IReadOnlyList<WireItemMoveEntry> itemMoves)
-	{
-		if (_session.Role != SessionRole.Host || !_session.SessionActive || itemMoves.Count == 0)
-		{
-			return;
-		}
+	public void SendStateStream(IReadOnlyList<WireItemMoveEntry> itemMoves) => _stateStreams.SendStateStream(itemMoves);
 
-		var frame = new ProtocolFrame
-		{
-			Kind = EnvelopeKind.StateStream,
-			StateStream = new StateStreamEnvelope
-			{
-				Header = CreateHeader(WirePayloadType.StateStream, 0),
-				Stream = new WireStateStream
-				{
-					ItemMoves = [.. itemMoves],
-				},
-			},
-		};
-		SendToGuests(frame, reliable: false);
-	}
+	public void SendStateStreamTo(ulong targetSteamId, WireStateStream stream, WirePayloadType payloadType, bool reliable = false) =>
+		_stateStreams.SendStateStreamTo(targetSteamId, stream, payloadType, reliable);
 
-	public void SendStateStreamTo(ulong targetSteamId, WireStateStream stream, WirePayloadType payloadType, bool reliable = false)
-	{
-		if (!_session.SessionActive || targetSteamId == 0)
-		{
-			return;
-		}
+	public void BroadcastStateStream(WireStateStream stream, WirePayloadType payloadType, bool reliable = false) =>
+		_stateStreams.BroadcastStateStream(stream, payloadType, reliable);
 
-		var frame = CreateStateStreamFrame(stream, payloadType);
-		_sender.Send(targetSteamId, NetMsg.KernelEnvelope, frame, reliable);
-	}
+	public void BroadcastStateStreamTo(IEnumerable<ulong> targets, WireStateStream stream, WirePayloadType payloadType, bool reliable = false) =>
+		_stateStreams.BroadcastStateStreamTo(targets, stream, payloadType, reliable);
 
-	public void BroadcastStateStream(WireStateStream stream, WirePayloadType payloadType, bool reliable = false)
-	{
-		if (_session.Role != SessionRole.Host || !_session.SessionActive)
-		{
-			return;
-		}
+	public void SendItemStateStreamTo(ulong targetSteamId, IReadOnlyList<WireWorldItemState> items, WirePayloadType payloadType, bool reliable = true, int layerModifierIndex = 0, byte[]? layerModifierRandomState = null) =>
+		_stateStreams.SendItemStateStreamTo(targetSteamId, items, payloadType, reliable, layerModifierIndex, layerModifierRandomState);
 
-		var frame = CreateStateStreamFrame(stream, payloadType);
-		SendToGuests(frame, reliable);
-	}
-
-	public void BroadcastStateStreamTo(IEnumerable<ulong> targets, WireStateStream stream, WirePayloadType payloadType, bool reliable = false)
-	{
-		if (!_session.SessionActive)
-		{
-			return;
-		}
-
-		var frame = CreateStateStreamFrame(stream, payloadType);
-		_sender.SendToAll(targets, NetMsg.KernelEnvelope, frame, reliable);
-	}
-
-	public void SendItemStateStreamTo(ulong targetSteamId, IReadOnlyList<WireWorldItemState> items, WirePayloadType payloadType, bool reliable = true, int layerModifierIndex = 0, byte[]? layerModifierRandomState = null)
-	{
-		if (_session.Role != SessionRole.Host || !_session.SessionActive || items.Count == 0 || targetSteamId == 0)
-		{
-			return;
-		}
-
-		var frame = CreateItemStateStreamFrame(items, payloadType, layerModifierIndex, layerModifierRandomState);
-		_sender.Send(targetSteamId, NetMsg.KernelEnvelope, frame, reliable);
-	}
-
-	public void BroadcastItemStateStream(IReadOnlyList<WireWorldItemState> items, WirePayloadType payloadType, bool reliable = false, int layerModifierIndex = 0, byte[]? layerModifierRandomState = null)
-	{
-		if (_session.Role != SessionRole.Host || !_session.SessionActive || items.Count == 0)
-		{
-			return;
-		}
-
-		var frame = CreateItemStateStreamFrame(items, payloadType, layerModifierIndex, layerModifierRandomState);
-		SendToGuests(frame, reliable);
-	}
-
-	private ProtocolFrame CreateStateStreamFrame(WireStateStream stream, WirePayloadType payloadType) =>
-		new()
-		{
-			Kind = EnvelopeKind.StateStream,
-			StateStream = new StateStreamEnvelope
-			{
-				Header = CreateHeader(payloadType, 0),
-				Stream = stream,
-			},
-		};
-
-	private ProtocolFrame CreateItemStateStreamFrame(IReadOnlyList<WireWorldItemState> items, WirePayloadType payloadType, int layerModifierIndex = 0, byte[]? layerModifierRandomState = null) =>
-		new()
-		{
-			Kind = EnvelopeKind.StateStream,
-			StateStream = new StateStreamEnvelope
-			{
-				Header = CreateHeader(payloadType, 0),
-				Stream = new WireStateStream
-				{
-					ItemStates = [.. items],
-					LayerModifierIndex = layerModifierIndex,
-					LayerModifierRandomState = layerModifierRandomState,
-				},
-			},
-		};
+	public void BroadcastItemStateStream(IReadOnlyList<WireWorldItemState> items, WirePayloadType payloadType, bool reliable = false, int layerModifierIndex = 0, byte[]? layerModifierRandomState = null) =>
+		_stateStreams.BroadcastItemStateStream(items, payloadType, reliable, layerModifierIndex, layerModifierRandomState);
 
 	public void HandleFrame(ulong sender, ProtocolFrame frame)
 	{
@@ -297,6 +212,7 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 		_checkpointChunks.Clear();
 		_pendingBatches.Clear();
 		_nextMessageId = 0;
+		_stateStreams.Reset();
 		_commandHandler.Reset();
 	}
 

@@ -12,7 +12,7 @@ namespace CasualtiesUnknownOnline.Tests.World;
 /// The narrative entity-features tables must stay aligned with the matrix on
 /// the columns that are completeness facts: every narrative row names a matrix
 /// entity, every matrix entity appears exactly once, and each row's sync/path
-/// cells carry the matrix's current values. The docs/entity-features.md
+/// cells carry the matrix's current values. The docs/features/entities.md
 /// narrative used to drift after the CSV moved; this test makes the drift a
 /// `dotnet test` failure instead of a documentation review finding.
 /// </summary>
@@ -22,7 +22,7 @@ public class EntityFeaturesDocConsistencyTests
 
 	private static readonly string MatrixPath = Path.Combine(BaseDir, "entity-features-matrix.csv");
 
-	private static readonly string DocPath = Path.Combine(BaseDir, "entity-features.md");
+	private static readonly string DocPath = Path.Combine(BaseDir, "entities.md");
 
 	private sealed record MatrixRow(string Entity, string Sync, string Path);
 
@@ -66,7 +66,7 @@ public class EntityFeaturesDocConsistencyTests
 	private static List<MarkdownTable> LoadTables()
 	{
 		Assert.True(File.Exists(DocPath),
-			"entity-features.md missing from the test output (csproj None copy) — the doc-consistency gate cannot run.");
+			"entities.md missing from the test output (csproj None copy) — the doc-consistency gate cannot run.");
 
 		var lines = File.ReadAllLines(DocPath);
 		var tables = new List<MarkdownTable>();

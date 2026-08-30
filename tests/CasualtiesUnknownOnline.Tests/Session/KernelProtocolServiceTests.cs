@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.Protocol.Versioning;
@@ -499,6 +500,64 @@ public class KernelProtocolServiceTests
 		Assert.Equal(ItemLocationKind.Carried, hostAuthority.FindItem(42)!.Value.Location.Kind);
 	}
 
+	[Fact]
+	public void Guest_StaleItemSnapshotOlderThanAppliedKernelRevision_IsDropped()
+	{
+		var (_, host, guest) = HandshakeTests.CreateHostAndGuest();
+		host.Steam.FireLobbyCreated(LobbyId);
+		guest.Steam.FireLobbyEntered(LobbyId);
+
+		var kernel = guest.Services.GetRequiredService<IKernelProtocolControl>();
+		kernel.HandleFrame(HostId, BatchFrame(SpawnWireBatch(globalRevision: 1, itemId: 42)));
+
+		var received = new List<IReadOnlyList<WorldItem>>();
+		guest.Services.GetRequiredService<IItemControl>().ItemSnapshotReceived += (items, _, _) => received.Add(items);
+
+		kernel.HandleFrame(HostId, SnapshotFrame(WirePayloadType.ItemSnapshotStream, seq: 1, baseRevision: 0, SnapshotItem(42)));
+
+		Assert.Empty(received);
+	}
+
+	[Fact]
+	public void Guest_OutOfOrderItemSnapshot_IsDroppedBySeq()
+	{
+		var (_, host, guest) = HandshakeTests.CreateHostAndGuest();
+		host.Steam.FireLobbyCreated(LobbyId);
+		guest.Steam.FireLobbyEntered(LobbyId);
+
+		var kernel = guest.Services.GetRequiredService<IKernelProtocolControl>();
+		var received = new List<IReadOnlyList<WorldItem>>();
+		guest.Services.GetRequiredService<IItemControl>().ItemSnapshotReceived += (items, _, _) => received.Add(items);
+
+		kernel.HandleFrame(HostId, SnapshotFrame(WirePayloadType.ItemSnapshotStream, seq: 2, baseRevision: 0, SnapshotItem(42)));
+		kernel.HandleFrame(HostId, SnapshotFrame(WirePayloadType.ItemSnapshotStream, seq: 1, baseRevision: 0, SnapshotItem(42)));
+
+		var entry = Assert.Single(received);
+		Assert.Equal(42ul, entry[0].ItemId);
+	}
+
+	[Fact]
+	public void Host_ItemSnapshotBroadcast_CarriesMonotonicEventVersion()
+	{
+		var (network, host, guest) = HandshakeTests.CreateHostAndGuest();
+		host.Steam.FireLobbyCreated(LobbyId);
+		host.Steam.LobbyMembers = [HostId, GuestId];
+		guest.Steam.FireLobbyEntered(LobbyId);
+		var driver = new SimulationDriver(host.Clock, network, host, guest);
+		driver.TickUntil(() => host.Session.Members.Count(m => m.Handshaken) == 1, maxMs: 1000);
+
+		var guestStreams = new List<WireStateStream>();
+		guest.Services.GetRequiredService<IKernelProtocolControl>().ItemStateStreamReceived += (_, stream) => guestStreams.Add(stream);
+
+		var hostKernel = host.Services.GetRequiredService<IKernelProtocolControl>();
+		hostKernel.BroadcastItemStateStream([SnapshotItem(42)], WirePayloadType.ItemSnapshotStream, reliable: true);
+		hostKernel.BroadcastItemStateStream([SnapshotItem(43)], WirePayloadType.ItemSnapshotStream, reliable: true);
+
+		Assert.Equal(2, guestStreams.Count);
+		Assert.Equal(1u, guestStreams[0].Seq);
+		Assert.Equal(2u, guestStreams[1].Seq);
+	}
+
 	private static ProtocolFrame RangeRequestFrame(ulong start, ulong end) =>
 		new()
 		{
@@ -520,6 +579,37 @@ public class KernelProtocolServiceTests
 					RangeEnd = end,
 				},
 			},
+		};
+
+	private static ProtocolFrame SnapshotFrame(WirePayloadType payloadType, uint seq, ulong baseRevision, WireWorldItemState item) =>
+		new()
+		{
+			Kind = EnvelopeKind.StateStream,
+			StateStream = new StateStreamEnvelope
+			{
+				Header = new EnvelopeHeader
+				{
+					ProtocolVersion = ProtocolConstants.EnvelopeVersion,
+					RunEpoch = 1,
+					SenderId = HostId,
+					PayloadType = payloadType,
+				},
+				Stream = new WireStateStream
+				{
+					Seq = seq,
+					BaseGlobalRevision = baseRevision,
+					ItemStates = [item],
+				},
+			},
+		};
+
+	private static WireWorldItemState SnapshotItem(ulong id) =>
+		new()
+		{
+			Identity = new WireItemIdentity { InstanceId = id, DefinitionId = "water" },
+			Data = new WireItemData { Condition = 0.8f },
+			X = 1f,
+			Y = 2f,
 		};
 
 	private static ProtocolFrame BatchFrame(WireCommittedBatch batch) =>

@@ -15,6 +15,9 @@ Open work only. Landed delivery details are not duplicated here; they live in:
   currently have no `missing` rows.
 - The typed deterministic kernel migration (Phases A–E) is complete; future
   architecture work is listed under "Future / low priority".
+- Item snapshot event-version gating is implemented: unreliable full-table
+  keyframes carry a per-payload sequence plus the host kernel revision, and
+  guests drop stale/out-of-order snapshots.
 
 ## Open bug (2026-08-27)
 
@@ -80,11 +83,6 @@ Measurement-first items; do not optimize before data exists.
 - World determinism / `[WorldFingerprint]` comparison.
 - Block-break first-writer-wins dual-side runtime confirmation (L0 already covered).
 
-### Contingency
-
-- **Event-version numbers** — required before any snapshot stream switches to an
-  unreliable channel, to prevent a stale snapshot rolling back an in-flight event.
-
 ## Open decisions (no code change yet)
 
 - **World-time adjustability / sleep acceleration policy** — currently both host
@@ -121,10 +119,11 @@ Measurement-first items; do not optimize before data exists.
 Files at or near the 600-line gate should be split before the next feature lands in
 them:
 
-Current actual line counts (2026-08-30 audit): `SessionService.cs` (507),
-`ItemApplication.cs` (542), `CharacterDataSync.cs` (525), `EntitySyncService.cs` (462),
-`EnemyCombatDirector.cs` (326), `Plugin.cs` (444), `RunCoordinator.cs` (495).
-`ItemApplication.cs` and `SessionService.cs` remain closest to the 600-line gate;
+Current actual line counts (2026-08-31 check): `ItemApplication.cs` (599),
+`CharacterDataSync.cs` (599), `SessionService.cs` (596), `ItemService.cs` (583),
+`RunCoordinator.cs` (550), `EntitySyncService.cs` (548), `KernelProtocolService.cs` (516),
+`Plugin.cs` (496), `EnemyCombatDirector.cs` (376). `ItemApplication.cs`,
+`CharacterDataSync.cs`, and `SessionService.cs` are closest to the 600-line gate;
 the others are below it today.
 
 `docs/decisions/active.md` is also large; future landing entries should consider a

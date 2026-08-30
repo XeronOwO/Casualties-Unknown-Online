@@ -78,6 +78,32 @@ Source roots:
    Unity/BepInEx/Steam/network references and no Protocol DTO dependencies. The
    guards in `tools/check-architecture.ps1` enforce this.
 
+## Domain invariants
+
+| Domain | Core invariants |
+|---|---|
+| Items | One ID has exactly one Location; container graph is acyclic and a child has exactly one parent; Terminal items cannot be resurrected; display proxies are never authoritative; Cook/Craft connect source terminal and product creation in one Batch; replaying the same Operation does not create/destroy/transfer twice. |
+| Players | Terminal status changes are discrete events; limb/body latches and skills are kernel facts; carry relations require a live carrier; a dead player does not implicitly drop/relocate carried items; carried items must reference known players when the player table exists. |
+| WorldEntities | Trap phase/consumption, opened-entity facts, and building health are kernel facts; presentation and Unity components are rebuildable projections. |
+| Entities / Enemies | Enemy lifecycle/health/removal and combat terminal results are kernel facts; continuous presentation/stream fields are projection-owned; a removed enemy cannot be resurrected by a stale stream. |
+| Fluids | Only coarse authoritative region totals/types are kernel facts; per-pixel simulation is a rebuildable local projection. |
+| World / Run | Run identity, epoch, seed, layer, stage, and world-generation results; all old-epoch commands, batches, and stream packets are rejected. |
+
+## Native operation layer
+
+GameAdapter groups multi-hook native operations into one `NativeObservation`:
+
+- `src/CasualtiesUnknownOnline.GameAdapter/Items/NativeOperationCoordinator.cs`
+- Begin/Observe/Complete/Abort with operation id and trace.
+- Tracks RemoteApply/Prediction/Native origin, before state, observed fragments, and
+  terminal state.
+- Suppresses remote-apply echo and aborts all operations on scene/run end.
+- Produces one `NativeObservation` output per native operation.
+
+The existing `DropPendingState`, pending-pickup queue, and `PickupOrigins` remain
+non-kernel active-path mechanisms; they are candidates for the future unified
+Prediction Runtime, not current authority stores.
+
 ## Predictions and no-prediction boundaries
 
 Cross-player interactions are `HostValidatedNoPrediction`: take, heal, use, and

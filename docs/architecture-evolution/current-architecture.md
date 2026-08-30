@@ -320,310 +320,53 @@ Default no-prediction areas: trading, cross-player take, complex crafting, save 
 world generation, and multi-player shared goals. They may show a "request sent"
 presentation without modifying the gameplay projection.
 
-## 8. State frequency layers
+## 8. State layers and domain modules
 
-| Layer | Examples | Replication | Journal |
-|---|---|---|---|
-| Authoritative discrete state | ownership, death, container contents, trap triggers | reliable Batch | yes |
-| Convergent continuous state | position, velocity, aim, regional fluid volume | unreliable State Stream | no |
-| Presentation state | animation phase, local particles, non-critical sounds | Effect/local derivation | no |
-| Checkpoint | full Run/Player/Item/WorldEntities/Enemy/Fluid | reliable chunks | separate save |
+State frequency layers, domain ownership/invariants, native operations, and projection
+rules are maintained in:
 
-Continuous streams have hard limits: they may not create/destroy aggregates, change
-ownership or container relations, or advance key gameplay state machines. They may only
-update convergent fields on existing objects.
+- [domains.md](domains.md) — authoritative domain table, invariants, projection examples,
+  Native Operation layer.
+- [protocol.md](protocol.md) — state-stream limits, common header fields, versioning,
+  save/checkpoint, and error/recovery.
 
-Terminal states that affect later logic (settled, landed, explosion finished, etc.) must
-become domain Events, not remain dependent on the last UDP tick.
+This overview keeps only the kernel mechanics; the active detail lives in those layer
+documents.
 
-## 9. Typed domain modules
+## 9. Domain modules
 
-### 9.1 Items
+The kernel dispatches to typed domain modules: Items, Players, WorldEntities,
+Entities/Enemies, Fluids, and World/Run. See [domains.md](domains.md) for the
+authoritative domain table, invariants, and projection examples.
 
-Core state:
+## 10. Native operations
 
-```text
-ItemState
-├── Identity: InstanceId + DefinitionId
-├── Revision
-├── Location
-│   ├── World(position anchor, optional parent world container)
-│   ├── Carried(owner, slot/path)
-│   ├── Contained(root owner/world, container path)
-│   └── Terminal(consumed | destroyed | replacedBy)
-└── Capabilities
-```
+See [domains.md](domains.md) → Native Operation layer.
 
-Core invariants:
+## 11. Projections
 
-- one ID has exactly one Location at a time;
-- container graph is acyclic and a child has exactly one parent;
-- Terminal items cannot be resurrected;
-- display proxy is never an authoritative object;
-- Cook/Craft connect source terminal and product creation in one Batch;
-- the same Operation replay does not create, destroy, or transfer twice.
+See [domains.md](domains.md) → Ownership rules. Projections are rebuildable; a projection
+failure never mutates authority.
 
-Item capabilities use a composition Registry: Battery, Liquid, Durability, Gun, Ammo,
-Fuse, Cooldown, Consumable, BodyComponent, and similar. Each capability must define all
-of Capture, Restore, Equivalent, Validate, and Presentation; a partial sync path is not
-acceptable.
+## 12. Network protocol
 
-### 9.2 Players
+See [protocol.md](protocol.md) for the four envelopes, join flow, state streams,
+versioning, and command rejection.
 
-Owns player identity, terminal health/limb state, skills, backpack root reference,
-current interaction relations, and durable state. High-frequency coordinates may be
-streamed separately, but death, unconsciousness, carry relations, etc. enter domain
-events.
+## 13. Save format
 
-### 9.3 WorldEntities
-
-Owns trap phase/consumption, opened-entity facts, and building-health facts.
-Trap presentation and Unity components are projections, not authority.
-
-### 9.4 Entities / Enemies
-
-Owns enemy lifecycle, health, removal, and combat terminal facts
-(bite/lunge/proximity effects). Enemy presentation/high-frequency fields are
-stream/projection-owned.
-
-### 9.5 Fluids
-
-Separates:
-
-- persistent authoritative totals/types in regions/containers;
-- high-frequency simulation grids or visual approximations.
-
-Not every fluid pixel is written to the event log. The host periodically commits an
-authoritative region checkpoint; guest local simulation is a rebuildable projection.
-
-### 9.6 World / Run
-
-Owns run identity, seed, layer, stage, world-generation results, global rules, and
-checkpoint epoch. When a new Run switches epochs, all old-epoch Commands, Batches, and
-stream packets are rejected; this removes cross-run residue at the root.
-
-## 10. Native Operation layer
-
-A native game operation often crosses multiple Harmony Prefix/Postfix hooks and delayed
-callbacks. GameAdapter should have `NativeOperationCoordinator`:
-
-```csharp
-Begin(kind, subject, before)
-Observe(token, fragment)
-Complete(token, after)
-Abort(token, reason)
-```
-
-It owns:
-
-- operation ID and trace;
-- RemoteApply/Prediction/Native origin;
-- before state, observed fragments, terminal state;
-- same-frame and cross-frame waits;
-- deferred destroy claims;
-- abort all on scene/run end;
-- one `NativeObservation` output per native operation.
-
-`DropPendingState` may become an internal policy. Craft/Cook use the same transaction
-framework while keeping their own semantics. External code no longer sees
-`ShouldSuppressDestroy`, `PickupOrigins`, or frame caches.
-
-## 11. Projection model
-
-At least:
-
-- `UnityWorldProjection`: real world objects;
-- `LocalPlayerProjection`: local body and backpack;
-- `RemoteCloneProjection`: remote display proxies;
-- `NetworkProjection`: Batch/Checkpoint/Stream encoding;
-- `PersistenceProjection`: save checkpoint;
-- `DiagnosticsProjection`: trace, invariant, diff.
-
-All projections consume the same Batch but may produce different outer Effects.
-`CloneFactTable` eventually becomes a cache owned by `RemoteCloneProjection`, not an
-independent fact store. The cache can be cleared and rebuilt from a Kernel Query.
-
-Projection failure handling:
-
-```text
-Domain commit succeeds
-  ↓
-Projection apply
-  ├─ success: record applied revision
-  └─ failure: mark dirty → rebuild from checkpoint/query
-```
-
-Never mutate authoritative state in order to repair a Unity projection failure.
-
-## 12. Network protocol (four envelopes)
-
-The protocol uses four envelopes:
-
-```text
-CommandEnvelope
-CommittedBatchEnvelope
-CheckpointEnvelope
-StateStreamEnvelope
-```
-
-Common header fields:
-
-```text
-ProtocolVersion
-RunEpoch
-SenderId
-MessageId
-OperationId (when applicable)
-BaseGlobalRevision
-PayloadType
-```
-
-### 12.1 Join flow
-
-```text
-Host: checkpoint at revision N
-Host: checkpoint chunks
-Host: batches N+1..M
-Guest: restore checkpoint → apply tail → Ready(M)
-Host: start normal Batch/Stream
-```
-
-If a Batch gap exists, the guest requests a revision range. If the range exceeds the host
-journal window, the host resends a checkpoint. State Stream may drop; the next frame or
-checkpoint self-heals.
-
-### 12.2 No hook-shaped messages
-
-Wire schemas should be domain facts: `ItemRelocated`, `ItemsTransformed`,
-`TrapTriggered`, not `OnDropPostfixMsg`. Native hook changes should not force protocol
-changes.
-
-### 12.3 Versioning
-
-Versioning is part of the current protocol: envelope version, checkpoint schema
-version, explicit numeric Event payload IDs, hard reject of unknown critical Events,
-ignore of unknown non-critical presentation Effects, and golden wire contract tests.
-
-## 13. Save format (checkpoint)
-
-Saves store authoritative checkpoint, not a Unity object graph:
-
-```text
-SaveHeader
-├── SchemaVersion
-├── GameBuild
-├── ModBuild
-├── RunEpoch
-├── GlobalRevision
-└── CreatedAt
-
-GameCheckpoint
-├── Run/World
-├── Players
-├── Items
-├── WorldEntities
-├── Enemies
-├── Fluids
-└── RandomStreams
-```
-
-Randomness must be saved as named random streams or already-decided results, not by
-re-calling Unity/System random sources at load. Recent N Batches may be attached as a
-diagnostic tail, but load uses the checkpoint as authority.
-
-There is no compatibility burden: old pre-evolution saves are rejected outright, and no
-old DTOs pollute the current domain models. The current save path is checkpoint-only.
+See [protocol.md](protocol.md) → Save / persistence. Saves are checkpoint-only with
+named random streams.
 
 ## 14. Error and recovery
 
-Typed rejection reasons:
-
-```text
-UnknownAggregate
-WrongEpoch
-WrongRevision
-NotAuthorized
-InvalidTransition
-InvariantViolation
-Conflict
-AlreadyCommitted
-MalformedCommand
-```
-
-Recovery table:
-
-| Failure | Handling |
-|---|---|
-| Command retransmission | return original decision |
-| Duplicate Batch | silently idempotent by revision/operation |
-| Batch gap | request journal range |
-| Gap too large | resend checkpoint |
-| Projection exception | mark dirty and rebuild |
-| Invariant failure | do not commit; output complete transaction diagnostics |
-| Wrong epoch | drop; old run must not pollute new run |
-| Unknown critical payload | disconnect and report protocol incompatibility |
+See [protocol.md](protocol.md) → Error and recovery. Typed rejection reasons are defined
+in `src/CasualtiesUnknownOnline.GameState/RejectionReason.cs`.
 
 ## 15. Testing architecture
 
-### 15.1 Kernel contracts
-
-- same Command + State + Context produces same Decision;
-- Event Reduce is deterministic;
-- Batch atomicity;
-- Operation idempotency;
-- revision monotonicity;
-- checkpoint round-trip equivalence.
-
-### 15.2 Domain property tests
-
-Automatically generate operation sequences and continuously check:
-
-- item unique location, acyclic containers, no Terminal resurrection;
-- player death and backpack/drop batch consistency;
-- traps cannot pass through illegal states;
-- entities cannot accept damage after destruction;
-- no old state survives epoch switches.
-
-### 15.3 Model tests
-
-For key domains, keep a minimal reference model. Run random Commands against both the
-reference model and the production kernel, then compare final state and rejection
-results.
-
-### 15.4 Replay and differential testing
-
-Existing `.replay` traces first drive both old and new implementations:
-
-```text
-Same input trace
-  ├─ Legacy path → observed terminal facts
-  └─ New kernel  → committed terminal facts
-                  ↓
-               semantic diff
-```
-
-Compare only semantic facts, not old internal call counts or log text.
-
-### 15.5 Adapter contracts
-
-Verify:
-
-- one native user operation produces exactly one Observation;
-- RemoteApply does not echo;
-- projection rebuild does not produce a local Command;
-- display proxies do not enter authoritative capture.
-
-### 15.6 Network simulation
-
-Under virtual time randomly apply latency, duplication, reordering, loss, disconnect,
-checkpoint insertion, and reconnect. Reliable Batches must eventually converge; State
-Stream only requires subsequent state convergence.
-
-### 15.7 Test replacement principle
-
-When a deep-module interface covers the behavior, delete tests that lock the old shallow
-module cooperation order. Keep wire golden tests, adapter contracts, domain model tests,
-property tests, and user-observable replay tests.
+See [verification.md](../verification.md) → Kernel and domain test architecture.
+Replay/simulation, selfchecks, and gates are the evidence layer.
 
 ## 16. Architecture guards
 
@@ -655,7 +398,7 @@ summary, the current architecture makes it a build/CI failure when:
 
 ## 18. Success criteria
 
-The architecture is complete when:
+The architecture meets these criteria:
 
 - every persistent gameplay fact has exactly one authoritative write entry;
 - one logical operation corresponds to one atomic Batch;

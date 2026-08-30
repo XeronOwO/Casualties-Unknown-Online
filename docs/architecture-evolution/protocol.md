@@ -97,6 +97,60 @@ or change ownership.
 - Player/enemy streams: `src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/PlayerStreamExchange.cs`
 - Stream wire shape: `src/CasualtiesUnknownOnline.Protocol/Wire/WireStateStream.cs`
 
+## Common header fields
+
+All envelopes share `EnvelopeHeader` fields:
+
+```text
+ProtocolVersion
+RunEpoch
+SenderId
+MessageId
+OperationId (when applicable)
+BaseGlobalRevision
+PayloadType
+```
+
+## State frequency layers
+
+| Layer | Examples | Replication | Journal |
+|---|---|---|---|
+| Authoritative discrete state | ownership, death, container contents, trap triggers | reliable Batch | yes |
+| Convergent continuous state | position, velocity, aim, regional fluid volume | unreliable State Stream | no |
+| Presentation state | animation phase, local particles, non-critical sounds | Effect/local derivation | no |
+| Checkpoint | full Run/Player/Item/WorldEntities/Enemy/Fluid | reliable chunks | separate save |
+
+Continuous streams may not create/destroy aggregates, change ownership or container
+relations, or advance a key gameplay state machine. They may only update convergent
+fields on existing objects. Terminal states that affect later logic must become
+domain events.
+
+## Versioning
+
+The current protocol uses:
+
+- explicit envelope version, checkpoint schema version;
+- numeric Event payload IDs;
+- hard reject unknown critical Events;
+- ignore unknown non-critical presentation Effects;
+- golden wire contract tests.
+
+See `src/CasualtiesUnknownOnline.Protocol/Versioning/` and
+`src/CasualtiesUnknownOnline.Protocol/Wire/WirePayloadType.cs`.
+
+## Error and recovery
+
+| Failure | Handling |
+|---|---|
+| Command retransmission | return the original decision |
+| Duplicate Batch | silently idempotent by revision/operation |
+| Batch gap | request journal range |
+| Gap too large | resend checkpoint |
+| Projection exception | mark dirty and rebuild |
+| Invariant failure | do not commit; output complete transaction diagnostics |
+| Wrong epoch | drop; old run must not pollute new run |
+| Unknown critical payload | disconnect and report protocol incompatibility |
+
 ## Command rejection
 
 A rejected command is returned as a `CommandEnvelope` with

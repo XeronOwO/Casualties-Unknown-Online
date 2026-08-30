@@ -40,6 +40,28 @@ Phase E guard suite:
 Pure documentation-only changes skip build/test/gates; run `git diff --check` and
 review the diff. If a documentation change accompanies code, run the full gates.
 
+## Kernel and domain test architecture
+
+- **Kernel contracts** — same Command + State + Context produces same Decision;
+  Event Reduce is deterministic; Batch atomicity; Operation idempotency; revision
+  monotonicity; checkpoint round-trip equivalence.
+- **Domain property tests** — generated operation sequences check item unique
+  location/acyclic containers/no Terminal resurrection, player death/backpack/drop
+  consistency, trap illegal states, damaged/removed entity behavior, and epoch
+  isolation.
+- **Replay and differential testing** — `.replay` traces drive both the legacy and
+  kernel paths and compare only semantic facts, not internal call counts/log text.
+- **Adapter contracts** — one native user operation produces exactly one Observation;
+  RemoteApply does not echo; projection rebuild does not produce a local Command;
+  display proxies do not enter authoritative capture.
+- **Network simulation** — virtual-time latency/duplication/reordering/loss/
+  disconnect/checkpoint/reconnect tests; reliable batches converge, state streams
+  converge on the next subsequent state.
+- **Test replacement principle** — when a deep-module interface covers behavior,
+  delete tests that lock old shallow cooperation order; keep wire golden tests,
+  adapter contracts, domain model tests, property tests, and user-observable replay
+  tests.
+
 ## Evidence chain
 
 For a mechanism, prefer this order:

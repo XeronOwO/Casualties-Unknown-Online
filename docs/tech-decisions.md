@@ -4154,3 +4154,21 @@ move the target-view responsibility out of the adapter coordinator.
   data-carrier shapes.
 - **No behavior change** — the gate/full suite remain green, preserving the
   existing combat ordering behavior. Full suite 1771 green.
+
+## 148. Enemy combat order policy extraction (2026-08-30)
+
+Third behavior-preserving step: extract the remaining host-side apply-path
+branches from `EnemyCombatDirector` into a pure Runtime decision surface.
+
+- **Order policy** — `EnemyCombatOrderPolicy` (Runtime) owns the `ApplyPath`
+  decision for spider bite (`None`/`RemoteOrder`/`LocalNative`), crystal lunge
+  (`None`/`RemoteOrder`/`LocalNative`), and item-vs-enemy hits
+  (`LocalNative`/`HostItemFallback`/`None`).
+- **Director rewiring** — `TryOrderSpiderBite`, `OnCrystalLungeBegin`, and
+  `OnEnemyItemCollision` now consume the policy instead of re-deriving the
+  local/remote/fallback branches inline. Unity-side execution, enemy-id
+  resolution, and reporting remain in the director.
+- **Boundary** — `EnemyAttackMsg` stays the separate host-ordered local-apply
+  command; it is not converted into a kernel presentation event.
+- **Tests** — `EnemyCombatOrderPolicyTests` locks null/remote/local and
+  native/fallback/none. Full suite 1780 green.

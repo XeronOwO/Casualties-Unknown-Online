@@ -37,6 +37,7 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 	private readonly ILogger<EnemySyncService> _log;
 
 	private readonly EnemyKernelProjection _enemyKernel;
+	private readonly EnemyKernelRestoreProjection _enemyKernelRestore;
 	private readonly ItemKernelAuthority _kernelAuthority;
 	private readonly IKernelProtocolControl _kernelProtocol;
 	private readonly Dictionary<NetworkEntityId, ulong> _terminalHealthRevision = [];
@@ -52,8 +53,8 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 
 	public EnemySyncService(ISessionControl session, PacketSender sender, ITimeSource time,
 		IOptionsMonitor<StateStreamOptions> stateStreamOptions, ILogger<EnemySyncService> log,
-		EnemyKernelProjection enemyKernel, ItemKernelAuthority kernelAuthority,
-		IKernelProtocolControl kernelProtocol)
+		EnemyKernelProjection enemyKernel, EnemyKernelRestoreProjection enemyKernelRestore,
+		ItemKernelAuthority kernelAuthority, IKernelProtocolControl kernelProtocol)
 	{
 		_session = session;
 		_sender = sender;
@@ -61,6 +62,7 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 		_stateStreamOptions = stateStreamOptions;
 		_log = log;
 		_enemyKernel = enemyKernel;
+		_enemyKernelRestore = enemyKernelRestore;
 		_kernelAuthority = kernelAuthority;
 		_kernelProtocol = kernelProtocol;
 		_kernelProtocol.EntityStateStreamReceived += OnEntityStateStreamReceived;
@@ -329,12 +331,14 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 			return; // an empty table is a no-op — the member's own generated enemies stay
 		}
 
+		var snapshotEnemies = _enemies.Values.ToList();
+		_enemyKernelRestore.Apply(snapshotEnemies);
 		var payload = new EnemySnapshotMsg
 		{
-			Enemies = [.. _enemies.Values.Select(e => e.ToEnemyStateMsg())],
+			Enemies = [.. snapshotEnemies.Select(e => e.ToEnemyStateMsg())],
 			RuntimeSpawns =
 			[
-				.. _enemies.Values
+				.. snapshotEnemies
 					.Where(e => e.RuntimeSpawned && e.PrefabId.Length > 0)
 					.Select(e => e.ToEnemySpawnEntryMsg()),
 			],
@@ -472,6 +476,9 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 			_enemies[entity.EntityId] = entity;
 		}
 
+		// The kernel is the authority for terminal enemy facts; project it over
+		// the full snapshot before the Game Adapter consumes the restored set.
+		_enemyKernelRestore.Apply(_enemies.Values);
 		notify?.Invoke();
 	}
 

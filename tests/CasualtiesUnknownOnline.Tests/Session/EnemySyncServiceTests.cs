@@ -342,4 +342,81 @@ public class EnemySyncServiceTests
 
 		Assert.Null(g1Enemies.GetEnemy(id));
 	}
+
+	[Fact]
+	public void HostSendEnemySnapshot_ProjectsKernelTerminalFacts()
+	{
+		using var w = ItemSimWorld.Create();
+		var hostEnemies = w.Host.Services.GetRequiredService<EnemySyncService>();
+		var authority = w.Host.Services.GetRequiredService<ItemKernelAuthority>();
+		var g1Enemies = w.G1.Services.GetRequiredService<EnemySyncService>();
+		var received = 0;
+		g1Enemies.EnemySnapshotReceived += () => received++;
+		var id = new NetworkEntityId(1, 0, 0);
+
+		hostEnemies.PublishEnemyStates(
+		[
+			new EnemyEntity(id)
+			{
+				Position = new NetVector2(10f, 20f),
+				Health = 80f,
+				Stunned = false,
+				PrefabId = "cavetick",
+				RuntimeSpawned = false,
+			},
+		]);
+
+		Assert.True(authority.TryUpsertEnemy(
+			w.Host.SteamId,
+			new EnemyState(new EntityId(1, 0, 0), "cavetick", 10f, false, true),
+			out _,
+			out var rejection), rejection?.Message);
+
+		w.G1.Session.ReportSceneState(SceneStateType.InWorld, "SampleScene");
+		w.Driver.Tick(33);
+
+		Assert.True(received > 0, "the world-entry enemy snapshot must arrive");
+		var enemy = g1Enemies.GetEnemy(id);
+		Assert.NotNull(enemy);
+		Assert.Equal(10f, enemy!.Health);
+		Assert.True(enemy.Stunned);
+	}
+
+	[Fact]
+	public void GuestApplyEnemySnapshot_ProjectsKernelTerminalFacts()
+	{
+		using var w = ItemSimWorld.Create();
+		var g1Enemies = w.G1.Services.GetRequiredService<EnemySyncService>();
+		var control = (IEnemySyncControl)g1Enemies;
+		var authority = w.G1.Services.GetRequiredService<ItemKernelAuthority>();
+		var id = new NetworkEntityId(1, 7, 0);
+
+		Assert.True(authority.TryUpsertEnemy(
+			w.G1.SteamId,
+			new EnemyState(new EntityId(1, 7, 0), "cavetick", 10f, true, true),
+			out _,
+			out var rejection), rejection?.Message);
+
+		control.ApplyEnemySnapshot(new EnemySnapshotMsg
+		{
+			Enemies =
+			[
+				new EnemyEntity(id)
+				{
+					Position = new NetVector2(3f, 4f),
+					Health = 90f,
+					Stunned = false,
+					RuntimeSpawned = false,
+				}.ToEnemyStateMsg(),
+			],
+			RuntimeSpawns = [],
+		});
+
+		var enemy = g1Enemies.GetEnemy(id);
+		Assert.NotNull(enemy);
+		Assert.Equal(10f, enemy!.Health);
+		Assert.True(enemy.Stunned);
+		Assert.True(enemy.RuntimeSpawned);
+		Assert.Equal("cavetick", enemy.PrefabId);
+	}
 }

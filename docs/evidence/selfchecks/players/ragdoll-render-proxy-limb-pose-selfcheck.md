@@ -5,10 +5,10 @@ Owner cycle: backlog "Remote ragdoll state not visible". The reliable
 present, but the remote clone still rendered upright because a frozen render
 proxy has no physics to move its visible limbs while `Body.standing` is false.
 
-> **Status: NOT accepted.** The delivery was rejected because it was made
-> without first adding a regression test that fails on the current code (the
-> test-first workflow in AGENTS.md). This self-check is kept as reference for
-> the reopened ticket only.
+> **Status: Accepted.** The original delivery was rejected for missing the
+> failing-regression-test step; the red→green replay was completed and the
+> user confirmed the remote ragdoll collapse is now visible. A separate
+> issue tracks the remaining limb-pose mismatch.
 
 ## 1. Mechanism inventory
 

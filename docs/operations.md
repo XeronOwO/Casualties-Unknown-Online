@@ -7,15 +7,7 @@ operations guidance.
 
 ## Build and verification
 
-```powershell
-dotnet build CasualtiesUnknownOnline.slnx
-dotnet test CasualtiesUnknownOnline.slnx
-dotnet format CasualtiesUnknownOnline.slnx
-powershell -File tools/check-architecture.ps1
-powershell -File tools/check-event-replay.ps1
-powershell -File tools/check-entity-event-dispatch.ps1
-powershell -File tools/check-delivery.ps1
-```
+The authoritative command list is in [`../AGENTS.md`](../AGENTS.md). In brief:
 
 - `tools/check-architecture.ps1` runs the strict structure gates and the Phase E
   guard suite (GameState isolation, item authority, no-legacy, command authority,
@@ -26,8 +18,9 @@ powershell -File tools/check-delivery.ps1
 - Pure documentation-only changes skip these gates; run `git diff --check` and
   review the diff before committing.
 
-See [`verification.md`](verification.md) for the evidence layer and
-[`delivery-checklist.md`](delivery-checklist.md) for the delivery gate.
+See [`verification.md`](verification.md) for the evidence layer,
+[`delivery-checklist.md`](delivery-checklist.md) for the delivery gate, and
+[`../AGENTS.md`](../AGENTS.md) for the binding commands.
 
 ## Deployment
 

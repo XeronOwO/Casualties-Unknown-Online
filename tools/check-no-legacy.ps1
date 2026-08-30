@@ -31,7 +31,10 @@ $removedWireMarkers = @(
     "NetMsg.TrapStateSnapshot",
     "NetMsg.OpenedEntitiesSnapshot",
     "NetMsg.BuildingEntityHealthSnapshot",
-    "ItemCheckpointStore"
+    "ItemCheckpointStore",
+    "KernelShadow",
+    "KernelForDiagnostics",
+    "ItemDiagnosticsProjection"
 )
 
 Get-ChildItem -Path $src -Filter *.cs -Recurse | ForEach-Object {

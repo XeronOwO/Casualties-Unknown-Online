@@ -14,7 +14,7 @@ data and carry service into the kernel.
 | Player table | `Domains/Players/PlayerStateTable.cs` | Immutable snapshot with upsert. |
 | Commands | `UpdatePlayerStatusCommand`, `ResetPlayersCommand`, `SetPlayerCarryCommand`, `ClearPlayerCarryCommand` | Host-only commands; reset clears for a new run; carry commands record/release one carrier/one carried relation. |
 | Events | `PlayerStatusUpdatedEvent`, `PlayersResetEvent`, `PlayerCarrySetEvent`, `PlayerCarryClearedEvent` | Reduce into the player table. |
-| Domain module | `PlayerDomainModule.cs` | Decide/reduce/invariant; dead players cannot be conscious, SteamIDs unique, carry relation reciprocal and conflict-free, and a carrier must be alive/conscious. |
+| Domain module | `PlayerDomainModule.cs` | Decide/reduce/invariant; dead players cannot be conscious, SteamIDs unique, carry relation reciprocal and conflict-free, a carrier must be alive/conscious, and every carried item owner must exist in the player table. |
 | Kernel integration | `GameStateKernel`, `GameStateStore`, `KernelReadModel`, `MutableKernelState`, `GameCheckpoint` | `PlayerStateTable?` is now a kernel domain table and checkpoint field. |
 | Wire DTOs | `WirePlayerState` / `WirePlayerSkills` | Protocol remains GameState-free. |
 | Mapper/save | `KernelWireMapper`, `WireCheckpointAssembler`, `KernelSaveFileStore`, `KernelSaveFile` | Player facts round-trip through wire checkpoints and disk saves. |
@@ -47,6 +47,8 @@ data and carry service into the kernel.
 | Carry set/clear drives reciprocal player relation | `PlayerDomainKernelTests.SetAndClearCarry_DrivePlayerRelation`. |
 | Self carry and carry conflicts are rejected | `PlayerDomainKernelTests.SelfCarry_IsRejected` / `CarryConflict_IsRejected`. |
 | Dead or unconscious carrier is rejected by invariant | `PlayerDomainKernelTests.DeadCarrier_IsRejectedByInvariant` / `UnconsciousButAliveCarrier_IsRejectedByInvariant`. |
+| Carried item must reference a known player | `PlayerDomainKernelTests.CarriedItemWithUnknownOwner_IsRejectedByPlayerInvariant`. |
+| Death preserves carried item ownership (no implicit drop) | `PlayerDomainKernelTests.DeadStatusUpdate_PreservesCarriedItems`. |
 | Wire batch preserves a carry event | `PlayerDomainKernelTests.WireBatchRoundTrip_PreservesPlayerCarryEvent`. |
 | Checkpoint/save preserve carry fields | `PlayerDomainKernelTests.CheckpointSplitAssemble_RoundTripsPlayerCarryFields` / `SaveLoad_RoundTripsPlayerCarryFields`. |
 | Host carry service commits kernel carry | `PlayerInteractionServiceTests.Guest_StartsCarryingHost_CommitsToKernelAndClearsOnStop`. |
@@ -80,7 +82,7 @@ data and carry service into the kernel.
 ## Verification
 
 - `dotnet build CasualtiesUnknownOnline.slnx`: 0 warnings / 0 errors.
-- `dotnet test CasualtiesUnknownOnline.slnx`: 1792 passed.
+- `dotnet test CasualtiesUnknownOnline.slnx`: 1794 passed.
 - `dotnet format`: applied.
 - Architecture/event/entity/isolation gates passed.
 
@@ -133,3 +135,6 @@ data and carry service into the kernel.
 9. [x] Add carry relation consistency invariant: a carrier must be alive and
    conscious, locked by `DeadCarrier_IsRejectedByInvariant` and
    `UnconsciousButAliveCarrier_IsRejectedByInvariant`.
+10. [x] Add player/item ownership consistency: a carried item must reference a
+    known kernel player; death status updates preserve carried items without an
+    implicit drop/backpack relocation.

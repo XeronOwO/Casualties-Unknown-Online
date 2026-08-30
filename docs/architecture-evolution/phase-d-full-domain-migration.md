@@ -238,6 +238,7 @@ For each domain, complete these steps in order:
 | 2026-08-30 | Players kernel identity floor on entity-sync start | `current` | 1787 tests green; build/format/architecture/event/entity/isolation/delivery gates pass | `PlayerKernelStatusProjection.Ensure` upserts a default `PlayerState` row when a member's entity sync starts, so carry/relation validation can depend on kernel identity without waiting for the first 20 Hz or 1 Hz report. No new wire command/event. See `docs/selfchecks/phase-d-players-shadow-selfcheck.md` and `docs/tech-decisions.md` #153. |
 | 2026-08-30 | Players cross-player authority policies explicit | `current` | 1790 tests green; build/format/architecture/event/entity/isolation/delivery gates pass | `PlayerInteractionAuthority`/`PlayerInteractionAuthorityPolicy` lock take/heal/use/carry as host-validated no-prediction and push as presentation-only; `PlayerInteractionResultAuthority` resolves the policy table when journaling take/heal/use results. See `docs/selfchecks/phase-d-players-shadow-selfcheck.md` and `docs/tech-decisions.md` #154. |
 | 2026-08-30 | Players carry carrier liveness invariant | `current` | 1792 tests green; build/format/architecture/event/entity/isolation/delivery gates pass | `PlayerDomainModule.AssertCarryFields` rejects a carry relation where the carrier is dead or unconscious, locking the kernel-side relation consistency that `PlayerCarryService` already enforces at the runtime gate. See `docs/selfchecks/phase-d-players-shadow-selfcheck.md` and `docs/tech-decisions.md` #155. |
+| 2026-08-30 | Players/item ownership consistency + death preservation | `current` | 1794 tests green; build/format/architecture/event/entity/isolation/delivery gates pass | `PlayerDomainModule` rejects carried items with unknown owners when the player table exists, and `DeadStatusUpdate_PreservesCarriedItems` locks that death does not implicitly drop/relocate inventory. See `docs/selfchecks/phase-d-players-shadow-selfcheck.md` and `docs/tech-decisions.md` #156. |
 
 ## Next actions
 
@@ -254,6 +255,6 @@ For each domain, complete these steps in order:
    kernel process/events; `EnemyAttackMsg` stays the host-order local-apply
    command and is not merged into presentation.
 5. [ ] Continue 4.3 Players: define/implement the remaining player-domain
-   boundary items (authority policies and carry relation consistency are now
-   explicit; death+inventory consistency invariants and prediction/rollback
+   boundary items (authority policies, carry relation consistency, and
+   player/item ownership + death preservation are now closed; prediction/rollback
    seams remain).

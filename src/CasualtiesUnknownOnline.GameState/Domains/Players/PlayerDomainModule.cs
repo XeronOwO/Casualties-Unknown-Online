@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.GameState.Kernel;
 
 namespace CasualtiesUnknownOnline.GameState.Domains.Players;
@@ -106,6 +107,17 @@ internal sealed class PlayerDomainModule : IDomainModule
 			}
 
 			AssertCarryFields(player, byId);
+		}
+
+		foreach (var item in state.Items.Values)
+		{
+			if (item.Location.Kind == ItemLocationKind.Carried
+				&& item.Location.Owner.Value != 0
+				&& !byId.ContainsKey(item.Location.Owner.Value))
+			{
+				throw new InvalidOperationException(
+					$"carried item {item.Identity.InstanceId} references unknown player {item.Location.Owner.Value}");
+			}
 		}
 	}
 

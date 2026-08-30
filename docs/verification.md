@@ -83,8 +83,8 @@ at a time.
 
 ## Related pages
 
-- Architecture: `docs/architecture-evolution/current-architecture.md`
-- Domain ownership: `docs/architecture-evolution/domains.md`
-- Protocol/data flow: `docs/architecture-evolution/protocol.md`
-- Decision log: `docs/tech-decisions.md`
-- Open work: `docs/backlog.md`
+- Architecture: [architecture-evolution/current-architecture.md](architecture-evolution/current-architecture.md)
+- Domain ownership: [architecture-evolution/domains.md](architecture-evolution/domains.md)
+- Protocol/data flow: [architecture-evolution/protocol.md](architecture-evolution/protocol.md)
+- Decision log: [tech-decisions.md](tech-decisions.md)
+- Open work: [backlog.md](backlog.md)

@@ -5,7 +5,7 @@ envelopes, how commands/batches/checkpoints/state streams flow, and how the
 authority boundary is enforced on the wire.
 
 Reading path: [domains.md](domains.md) → [protocol.md](protocol.md) →
-[verification.md](../../verification.md).
+[verification.md](../verification.md).
 
 ## Four production envelopes
 

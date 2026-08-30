@@ -9,6 +9,16 @@ reference stays in
 [`architecture-evolution/current-architecture.md`](architecture-evolution/current-architecture.md).
 `docs/architecture.md` is now a historical pre-kernel blueprint.
 
+## Quick reference
+
+- **Current kernel design**: #126 (Phase A), #127 (Phase B), #128 (Phase C), #152–#158 (Phase D/E).
+- **Active protocol/save**: #128, #129, #158.
+- **Authority/prediction boundary**: #154, #157.
+- **Architecture guards / no-legacy**: #158.
+- **Mod API contract**: #9, #19, #20 (and later Mod API entries).
+- Entries before #126 describe the pre-kernel feature and delivery rounds; they are
+  historical context, not the current kernel design.
+
 ## 1. Technical stack & toolchain
 
 - **BepInEx 5.x, not 6** — the game's installed mod ecosystem (KrokMP-derived mods,

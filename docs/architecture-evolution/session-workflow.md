@@ -78,7 +78,8 @@ When a session is ending, perform these updates in the repository:
    - link the evolution area if the open-work view changed.
 5. Update `docs/architecture-evolution/README.md` if the directory map or phase table changed.
 6. If the implemented architecture supersedes an existing blueprint section, update
-   `docs/architecture.md` in the same phase so there is never a stale target design.
+   `docs/architecture.md` in the same phase so there is never a stale design
+   reference.
 7. Update `AGENTS.md` only when the phase changes engineering conventions, current phase,
    or mandatory gates. Do not update it for minor progress.
 

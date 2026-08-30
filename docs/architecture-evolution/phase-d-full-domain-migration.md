@@ -208,6 +208,7 @@ For each domain, complete these steps in order:
 | 2026-08-29 | Enemy stream terminal revision guard | `current` | 1697 tests green; build/format/architecture/event/entity/isolation/delivery gates pass | `EnemyStateBatchMsg` carries the host kernel global revision; the guest tracks terminal health revisions from `EnemyUpsertedEvent`/checkpoint restore and refuses stale streams that would roll back health/stunned, while continuous position/velocity still converge. See `docs/selfchecks/phase-d-high-frequency-stream-unification-selfcheck.md`. |
 | 2026-08-29 | Player/enemy high-frequency stream wire unification | `current` | 1694 tests green; build/format/architecture/event/entity/isolation/delivery gates pass | `WireStateStream` now carries `PlayerStates`/`EnemyStates` + seq; both 20 Hz streams ride `StateStreamEnvelope` over `KernelEnvelope`; old `NetMsg.PlayerState`/`PlayerStateReport`/`EnemyState`, their handlers and DTOs are removed; guest player reports are seq-gated per member on the host. See `docs/selfchecks/phase-d-high-frequency-stream-unification-selfcheck.md`. |
 | 2026-08-29 | Players take/heal/use result kernel-event routing | `current` | 1699 tests green; build/format/architecture/event/entity/isolation/delivery gates pass | `RecordPlayerInventoryTransferCommand`/`RecordPlayerHealResultCommand`/`RecordPlayerItemUseResultCommand` journal take/heal/use results as Players domain events; `PlayerInteractionKernelProjection` restores `TransferReceived`/`HealReceived`/`UseReceived` from `BatchCommitted` (host) and `BatchApplied` (guest); `NetMsg.PlayerInventoryTransfer`/`PlayerHealResult`/`PlayerItemUseResult` and their handlers removed. See `docs/selfchecks/phase-d-players-shadow-selfcheck.md`. |
+| 2026-08-29 | Players restore/reconnect kernel terminal projection | `current` | 1701 tests green; build/format/architecture/event/entity/isolation/delivery gates pass | `PlayerKernelRestoreProjection` overlays `PlayerStateTable` alive/conscious/limb latches/body-terminal latches onto the saved `CharacterDataMsg` in `CharacterDataStore.SendSavedCharacter`; continuous snapshot fields remain the authority for physiological values/items/position; carry continues through the checkpoint/committed-batch carry projection. See `docs/selfchecks/phase-d-players-shadow-selfcheck.md`. |
 
 ## Next actions
 
@@ -215,7 +216,7 @@ For each domain, complete these steps in order:
    through kernel commands/events where they carry durable facts. Take/heal/use
    now ride journal-only Players domain events and the projection restores the
    Game Adapter event surface; push is confirmed presentation-only.
-2. Project kernel player terminal facts into character restore/reconnect
+2. [x] Project kernel player terminal facts into character restore/reconnect
    snapshots where the legacy snapshot stream is no longer authoritative.
 3. [x] Continue high-frequency stream alignment for player/enemy continuous fields
    with `WireStateStream` / `StateStreamEnvelope`, keeping terminal facts on

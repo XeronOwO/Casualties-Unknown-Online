@@ -1,8 +1,10 @@
 using System.Collections.Generic;
+using CasualtiesUnknownOnline.GameState.Domains.Players;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
+using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -188,5 +190,134 @@ public class CharacterDataStoreTests
 		Assert.Equal(20f, saved.Health!.Shock);
 		Assert.Equal(0.5f, saved.Health!.EyePanicTime);
 		Assert.Equal(0f, saved.Health!.SepticShock); // untouched — this kind carries no septic state
+	}
+
+	[Fact]
+	public void SendSavedCharacter_ProjectsKernelTerminalFactsOverSnapshot()
+	{
+		var (host, guest) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		using (host)
+		using (guest)
+		{
+			var received = new List<CharacterDataMsg>();
+			guest.Services.GetRequiredService<CharacterDataStore>().CharacterDataReceived += (_, msg) => received.Add(msg);
+
+			var store = host.Services.GetRequiredService<CharacterDataStore>();
+			var authority = host.Services.GetRequiredService<ItemKernelAuthority>();
+
+			var snapshot = Snapshot(GuestId);
+			snapshot.Health = new CharacterHealthMsg
+			{
+				Alive = true,
+				Conscious = true,
+				BrainHealth = 80f,
+				Disfigured = false,
+				EyeGone = false,
+				BothEyesGone = false,
+				HasPulmonaryEmbolism = false,
+				TriedRollingLastStand = false,
+				SuccesfullyRolledLastStand = false,
+				UsedNeuralBooster = false,
+				FibrillationForced = false,
+				MindwipeScriptPresent = false,
+				MindwipeScriptActive = false,
+			};
+			snapshot.Limbs.Add(new CharacterLimbMsg
+			{
+				Index = 0,
+				SkinHealth = 55f,
+				MuscleHealth = 45f,
+				Broken = false,
+				IsHead = true,
+			});
+			store.SaveCharacterData(GuestId, snapshot);
+
+			var body = new PlayerBodyTerminalState(
+				Disfigured: true,
+				EyeGone: true,
+				BothEyesGone: true,
+				HasPulmonaryEmbolism: true,
+				TriedRollingLastStand: true,
+				SuccesfullyRolledLastStand: true,
+				UsedNeuralBooster: true,
+				FibrillationForced: true,
+				MindwipeScriptPresent: true,
+				MindwipeScriptActive: true);
+			Assert.True(authority.TryUpdatePlayerStatus(
+				HostId,
+				new PlayerState(GuestId, false, false, Limbs:
+				[
+					new PlayerLimbState(0, false, true, true, true, true, true, true, false),
+				], Body: body),
+				out _,
+				out var rejection), rejection?.Message);
+
+			MarkHostInWorld(host);
+			host.Services.GetRequiredService<ICharacterDataControl>().SendSavedCharacter(GuestId);
+
+			var restored = Assert.Single(received);
+			Assert.False(restored.Health!.Alive);
+			Assert.False(restored.Health.Conscious);
+			Assert.True(restored.Health.Disfigured);
+			Assert.True(restored.Health.EyeGone);
+			Assert.True(restored.Health.BothEyesGone);
+			Assert.True(restored.Health.HasPulmonaryEmbolism);
+			Assert.True(restored.Health.TriedRollingLastStand);
+			Assert.True(restored.Health.SuccesfullyRolledLastStand);
+			Assert.True(restored.Health.UsedNeuralBooster);
+			Assert.True(restored.Health.FibrillationForced);
+			Assert.True(restored.Health.MindwipeScriptPresent);
+			Assert.True(restored.Health.MindwipeScriptActive);
+
+			var limb = Assert.Single(restored.Limbs);
+			Assert.Equal(55f, limb.SkinHealth);
+			Assert.Equal(45f, limb.MuscleHealth);
+			Assert.False(limb.Broken);
+			Assert.True(limb.Dismembered);
+			Assert.True(limb.Dislocated);
+			Assert.True(limb.Splinted);
+			Assert.True(limb.Infected);
+			Assert.True(limb.BlockedBleeding);
+			Assert.True(limb.IsHead);
+			Assert.False(limb.IsVital);
+		}
+	}
+
+	[Fact]
+	public void SendSavedCharacter_AddsKernelLimbFactMissingFromSnapshot()
+	{
+		var (host, guest) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		using (host)
+		using (guest)
+		{
+			var received = new List<CharacterDataMsg>();
+			guest.Services.GetRequiredService<CharacterDataStore>().CharacterDataReceived += (_, msg) => received.Add(msg);
+
+			var store = host.Services.GetRequiredService<CharacterDataStore>();
+			var authority = host.Services.GetRequiredService<ItemKernelAuthority>();
+
+			var snapshot = Snapshot(GuestId);
+			snapshot.Health = new CharacterHealthMsg { Alive = true, Conscious = true };
+			store.SaveCharacterData(GuestId, snapshot);
+
+			Assert.True(authority.TryUpdatePlayerStatus(
+				HostId,
+				new PlayerState(GuestId, true, true, Limbs:
+				[
+					new PlayerLimbState(2, false, true, false, true, false, false, false, true),
+				]),
+				out _,
+				out var rejection), rejection?.Message);
+
+			MarkHostInWorld(host);
+			host.Services.GetRequiredService<ICharacterDataControl>().SendSavedCharacter(GuestId);
+
+			var restored = Assert.Single(received);
+			var limb = Assert.Single(restored.Limbs, l => l.Index == 2);
+			Assert.True(limb.Dismembered);
+			Assert.True(limb.Splinted);
+			Assert.True(limb.IsVital);
+			Assert.Equal(0f, limb.SkinHealth);
+		}
 	}
 }

@@ -36,6 +36,8 @@ todo/  →  in-progress/  →  review/  →  done/
 ### Todo
 
 - [Duplicate unsynced item drops (guest-dug tree and world-spawned items)](todo/guest-tree-extra-unsynced-drops.md) — guest action/world drops produce two unsynced frozen copies.
+- [Ragdoll limb pose not synced remotely](todo/ragdoll-limb-pose-not-synced.md) — collapse is visible, but limb poses still mismatch.
+- [Guest-mined block leaves ghost fragments on host](todo/guest-mined-block-ghost-fragments-on-host.md) — block removed but broken effect remains, "fragmented air".
 - [High sleepiness squint not visible remotely](todo/high-sleepiness-squint-not-visible-remotely.md) — remote eyes stay open when sleepiness is high.
 - [Runtime log errors to investigate (2026-08-30)](todo/runtime-log-errors-2026-08-30.md) — log files pinned with last write times.
 - [Name tag font size, head position, and off-screen edge padding](todo/name-tag-font-position-edge-padding.md) — UI/name tag issue.

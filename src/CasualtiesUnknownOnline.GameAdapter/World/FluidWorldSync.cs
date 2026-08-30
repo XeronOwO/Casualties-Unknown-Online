@@ -26,12 +26,14 @@ internal sealed class FluidWorldSync(
 	private readonly FluidRegionApplication _application = new(loggerFactory.CreateLogger<FluidRegionApplication>());
 	private readonly FluidPresentationApplication _presentation = new(loggerFactory.CreateLogger<FluidPresentationApplication>());
 	private readonly FluidInteractionSync _interaction = new(world, session, loggerFactory.CreateLogger<FluidInteractionSync>());
+	private readonly FluidKernelViewSync _kernelView = new(world, loggerFactory.CreateLogger<FluidKernelViewSync>());
 
 	internal void BindToSession()
 	{
 		_world.FluidRegionReceived += _application.Apply;
 		_world.FluidPresentationReceived += _presentation.Apply;
 		_interaction.BindToSession();
+		_kernelView.BindToSession();
 	}
 
 	internal void Unbind()
@@ -39,6 +41,7 @@ internal sealed class FluidWorldSync(
 		_world.FluidRegionReceived -= _application.Apply;
 		_world.FluidPresentationReceived -= _presentation.Apply;
 		_interaction.Unbind();
+		_kernelView.Unbind();
 	}
 
 	/// <summary>Per physical frame: the host drives the multi-member simulation

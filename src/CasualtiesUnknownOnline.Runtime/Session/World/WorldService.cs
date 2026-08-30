@@ -280,6 +280,13 @@ public sealed class WorldService : IWorldControl, IDisposable
 	/// <summary>Guest-side rebuilt fluid-region facts from the kernel projection (host: empty).</summary>
 	public IReadOnlyList<FluidRegionState> FluidRegionFacts => _fluidKernelRead.Regions;
 
+	/// <summary>Guest-side rebuilt fluid-region projection event (raised after checkpoint/batch rebuilds).</summary>
+	public event Action<IReadOnlyList<FluidRegionState>>? FluidRegionsProjected
+	{
+		add => _fluidKernelRead.RegionsProjected += value;
+		remove => _fluidKernelRead.RegionsProjected -= value;
+	}
+
 	public void ReportFluidRegions(IReadOnlyList<FluidRegionSummary> regions) => _fluidKernel.Sync(regions);
 
 	public void SendFluidRegion(ulong targetSteamId, FluidRegionMsg msg) => _channels.SendFluidRegion(targetSteamId, msg);

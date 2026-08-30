@@ -1,12 +1,12 @@
 # Casualties Unknown: Online (CUO)
 
-A multiplayer mod framework for [*Casualties Unknown*](https://store.steampowered.com/) (currently in Demo), built on [BepInEx](https://github.com/BepInEx/BepInEx).
+A multiplayer mod framework for [*[Casualties Unknown*](https://store.steampowered.com/) (currently in Demo), built on [B[epInEx](https://github.com/BepInEx/BepInEx).
 
 The base game ships without multiplayer. CUO adds Steam-based **Host + Guests** co-op (LAN / friends) by injecting a new multiplayer runtime and reorganizing the local-only game state into a **host-authoritative simulation with guest input/state sync** — in the spirit of Minecraft Forge, but starting with a solid multiplayer core rather than a full mod ecosystem.
 
 ## Status
 
-**Active development — architecture evolution complete.** Phases 0–4 (feasibility, single-player entity sync, entity lifecycle, game core loop, public Mod API) are complete and runtime-verified; the typed deterministic game-state kernel migration (Phases A–E) is also complete. See [`docs/README.md`](docs/README.md) for the full documentation map, [`docs/architecture-evolution/README.md`](docs/architecture-evolution/README.md) for the active architecture, [`docs/tech-decisions.md`](docs/tech-decisions.md) for landed decisions, and [`docs/mod-api.md`](docs/mod-api.md) for the binding Mod API contract.
+**Active development — architecture evolution complete.** Phases 0–4 (feasibility, single-player entity sync, entity lifecycle, game core loop, public Mod API) are complete and runtime-verified; the typed deterministic game-state kernel migration (Phases A–E) is also complete. See [`docs/README.md`](docs/README.md) for the full documentation map, [`docs/architecture/README.md`](docs/architecture/README.md) for the active architecture, [`docs/decisions/active.md`](docs/decisions/active.md) for landed decisions, and [`docs/api/mod-api.md`](docs/api/mod-api.md) for the binding Mod API contract.
 
 ## Architecture in Brief
 
@@ -30,22 +30,22 @@ All projects target `net48` (BepInEx 5 + the game's Mono runtime). Deployment in
 
 ## Documentation
 
-- [`docs/README.md`](docs/README.md) — semantic documentation map and reading path
+- [`[docs/README.md`](docs/README.md) — semantic documentation map and reading path
 - [`AGENTS.md`](AGENTS.md) — project conventions and instructions for AI-assisted development
-- [`docs/architecture-evolution/README.md`](docs/architecture-evolution/README.md) — active architecture and completed evolution history
-- [`docs/architecture-evolution/current-architecture.md`](docs/architecture-evolution/current-architecture.md) — current typed deterministic kernel design
-- [`docs/architecture-evolution/domains.md`](docs/architecture-evolution/domains.md) — domain ownership and projections
-- [`docs/architecture-evolution/protocol.md`](docs/architecture-evolution/protocol.md) — four-envelope protocol and data flow
-- [`docs/verification.md`](docs/verification.md) — evidence chain, gates, replay/simulation
-- [`docs/operations.md`](docs/operations.md) — shared operations/tooling/deployment guidance
-- [`docs/tech-decisions.md`](docs/tech-decisions.md) — landed binding decisions
-- [`docs/tech-decisions-index.md`](docs/tech-decisions-index.md) — numeric decision index
-- [`docs/mod-api.md`](docs/mod-api.md) — Phase 4 Mod API contract
-- [`docs/backlog.md`](docs/backlog.md) — open bugs, work, decisions, future
+[- `docs/architecture/README.md`](docs/architecture/README.md) — active architecture and completed evolution history
+[- `docs/architecture/current.md`](docs/architecture/current.md) — current typed deterministic kernel design
+[- `docs/architecture/domains.md`](docs/architecture/domains.md) — domain ownership and projections
+[- `docs/architecture/protocol.md`](docs/architecture/protocol.md) — four-envelope protocol and data flow
+[- `docs/evidence/verification.md`](docs/evidence/verification.md) — evidence chain, gates, replay/simulation
+[- `docs/operations/README.md`](docs/operations/README.md) — shared operations/tooling/deployment guidance
+[- `docs/decisions/active.md`](docs/decisions/active.md) — landed binding decisions
+[- `docs/decisions/index.md`](docs/decisions/index.md) — numeric decision index
+[- `docs/api/mod-api.md`](docs/api/mod-api.md) — Phase 4 Mod API contract
+[- `docs/backlog/README.md`](docs/backlog/README.md) — open bugs, work, decisions, future
 
 ## License
 
-See [LICENSE](LICENSE). BepInEx and its dependencies are under their own licenses — verify before distributing.
+See [L[ICENSE](LICENSE). BepInEx and its dependencies are under their own licenses — verify before distributing.
 
 ## Disclaimer
 

@@ -14,9 +14,9 @@ simulation with guest input/state sync.
 - Replaceable **Game Adapter**: the only layer that knows the game's private types and
   absorbs game-update churn.
 
-[REF] Active architecture: `docs/architecture-evolution/README.md` ·
-Current design: `docs/architecture-evolution/current-architecture.md` ·
-Decisions: `docs/tech-decisions.md` · Evidence: `docs/verification.md`.
+[REF] Active architecture: `docs/architecture/README.md` ·
+Current design: `docs/architecture/current.md` ·
+Decisions: `docs/decisions/active.md` · Evidence: `docs/evidence/verification.md`.
 
 ## Repository Layout
 
@@ -87,8 +87,8 @@ powershell -File tools/check-delivery.ps1         # final commit of each deliver
 Current: **Architecture evolution complete (Phases A–E).** Native game-content sync,
 the Phase 4 Mod API, and the typed-deterministic-kernel migration are complete. The
 typed kernel is the only supported architecture; see
-`docs/architecture-evolution/README.md` for the active architecture and
-`docs/backlog.md` for remaining/future work.
+`docs/architecture/README.md` for the active architecture and
+`docs/backlog/README.md` for remaining/future work.
 
 MVP explicitly excludes: host migration, dedicated server, auto mod install, generic
 physics sync, client prediction, full anti-cheat. The generic Prediction Runtime is
@@ -129,19 +129,19 @@ a separate future architecture item, not part of the completed evolution.
   frequency. An unobservable key path is unfinished.
 - `[CRITICAL]` Development-period verification is simulation/static-evidence based; no manual
   dual-client acceptance during feature development. User will do final acceptance later.
-- `[GATE]` Follow `docs/delivery-checklist.md` + `tools/check-delivery.ps1` for each delivery.
+- `[GATE]` Follow `docs/evidence/delivery-checklist.md` + `tools/check-delivery.ps1` for each delivery.
 - `[GATE]` Check off delivery checklist boxes one line at a time with the Edit tool; bulk
   checking is forbidden.
 - `[RULE]` Hard order: understand → mechanism inventory → adversarial self-check → plan +
   self-check table → user approval (for large changes) → implement → build/gates → deploy →
   runtime verification → structure review → commit.
 
-See `docs/delivery-checklist.md` for the executable gate.
+See `docs/evidence/delivery-checklist.md` for the executable gate.
 
 ## Known Pitfalls
 
 `[REF]` Detailed pitfalls list (historical blueprint, still applicable):
-`docs/architecture.md` §10. Keep these in mind:
+`docs/history/architecture-blueprint.md` §10. Keep these in mind:
 
 - After `dotnet format` (or any external tool) modifies a file, re-`read` that file before using Edit; the Edit tool tracks the last-read buffer and refuses stale edits as "file changed since it was read".
 - Steam P2P is not plain LAN UDP; don't mix the two modes.

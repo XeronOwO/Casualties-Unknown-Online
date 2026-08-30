@@ -39,6 +39,7 @@ land; it is not a permission to keep legacy code indefinitely.
 | 2026-08-30 | Narrow session-reset surface | `ItemService.cs`, `WorldService.cs`, `docs/architecture.md` | `dotnet build` 0 warnings/0 errors; 1792 tests passed; format + architecture/event/entity/delivery gates passed |
 | 2026-08-30 | Add command-authority architecture guard | `tools/check-command-authority.ps1`, `tools/check-architecture.ps1`, `docs/architecture-guards.md` | Architecture gate passed with command authority scan |
 | 2026-08-30 | Add kernel-shape architecture guard | `tools/check-kernel-shape.ps1`, `tools/check-architecture.ps1`, `docs/architecture-guards.md` | Architecture gate passed with kernel shape scan |
+| 2026-08-30 | Remove `ItemService.KernelAuthority` facade | `CraftSyncService.cs`, `ItemService.cs`, `ItemSimWorld.cs` | `dotnet build` 0 warnings/0 errors; 1792 tests passed; format + architecture/event/entity/delivery gates passed |
 
 ## Session reset audit (2026-08-30)
 

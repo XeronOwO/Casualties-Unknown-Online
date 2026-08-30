@@ -19,9 +19,12 @@ namespace CasualtiesUnknownOnline.GameAdapter.World;
 /// policy is pure (WorldTimePolicy): movement forces Normal, sleep
 /// acceleration applies only when EVERY in-world player is unconscious, and a
 /// request is cleared when either override fires — a fast-forward never
-/// re-applies itself later. Direct Time.timeScale writers (quake reset,
-/// console) are re-adopted by the host pump and corrected on guests; the
-/// 5 s resend + world-entry fan-out heal late joiners and local-only effects.
+/// re-applies itself later. Manual Fast/SuperFast requests are cooperative:
+/// while anyone is awake the session stays Normal; when everyone is asleep the
+/// sleep policy already supplies the acceleration. Direct Time.timeScale
+/// writers (quake reset, console) are re-adopted by the host pump and
+/// corrected on guests; the 5 s resend + world-entry fan-out heal late
+/// joiners and local-only effects.
 /// </summary>
 internal sealed class WorldTimeSync(
 	ISessionControl session,

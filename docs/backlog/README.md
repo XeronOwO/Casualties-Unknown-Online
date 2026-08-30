@@ -24,6 +24,10 @@ Open work only. Landed delivery details are not duplicated here; they live in:
 - Custom configuration template system landed (2026-08-31) — full BepInEx
   config profiles can be saved/applied from the Preferences page; see
   `docs/evidence/selfchecks/tooling/config-profile-templates-selfcheck.md`.
+- World-time manual-acceleration policy closed: `Fast`/`SuperFast` are
+  cooperative; they never accelerate a session while any in-world player is
+  awake. The all-unconscious sleep policy remains the only shared-clock
+  acceleration.
 
 ## Open bug (2026-08-27)
 
@@ -67,13 +71,6 @@ Measurement-first items; do not optimize before data exists.
 - Trade domain (#59/#93) — dual-side runtime pass.
 - World determinism / `[WorldFingerprint]` comparison.
 - Block-break first-writer-wins dual-side runtime confirmation (L0 already covered).
-
-## Open decisions (no code change yet)
-
-- **World-time adjustability / sleep acceleration policy** — currently both host
-  and guests can request `Fast` / `SuperFast`, and the host applies all-unconscious
-  sleep acceleration. Design is open for debate: disallow manual time acceleration,
-  or adopt Minecraft-style "only when all players sleep" cooperative acceleration.
 
 ## Future / low priority
 

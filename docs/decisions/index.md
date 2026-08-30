@@ -168,4 +168,5 @@ authoritative.
 | 156 | Player/item ownership consistency and death preservation (2026-08-30) |
 | 157 | Phase D 4.3 closure: cross-player prediction/rollback boundary (2026-08-30) |
 | 158 | Phase E kernel reset centralization and guard suite (2026-08-30) |
+| 159 | Cooperative manual world-time acceleration (2026-08-31) |
 

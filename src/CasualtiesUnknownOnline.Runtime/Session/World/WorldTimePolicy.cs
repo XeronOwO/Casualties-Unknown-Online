@@ -28,11 +28,15 @@ public readonly record struct WorldTimeDecision(WorldTimeSpeed Speed, WorldTimeS
 /// <summary>
 /// Pure world-time policy (no Unity, no clock): the host feeds per-player
 /// state and the current request, this returns the authoritative speed.
-/// Priority: movement (Normal) > all-unconscious sleep acceleration >
-/// requested speed. The game's own black-screen acceleration triggers below
-/// 20 consciousness (PlayerCamera.cs:2220) and picks 3.5× while brain-dying,
-/// otherwise 25× — the session uses the same thresholds and the slowest fair
-/// speed (any dying player ⇒ 3.5×).
+/// Priority: movement (Normal) > all-unconscious sleep acceleration > Normal.
+/// The game's own black-screen acceleration triggers below 20 consciousness
+/// (PlayerCamera.cs:2220) and picks 3.5× while brain-dying, otherwise 25× —
+/// the session uses the same thresholds and the slowest fair speed (any dying
+/// player ⇒ 3.5×).
+/// Manual Fast/SuperFast requests are cooperative: they never move the shared
+/// clock while any in-world player is awake. When every player is asleep the
+/// sleep policy already produces the acceleration, so a manual request adds
+/// nothing outside that window.
 /// </summary>
 public static class WorldTimePolicy
 {
@@ -45,6 +49,10 @@ public static class WorldTimePolicy
 	/// <summary>Guests may only request the three manual speeds — sleep speeds are host-computed, Slowmo/Paused are local-only.</summary>
 	public static bool IsGuestRequestSpeed(WorldTimeSpeed speed) =>
 		speed is WorldTimeSpeed.Normal or WorldTimeSpeed.Fast or WorldTimeSpeed.SuperFast;
+
+	/// <summary>True for the two manual acceleration speeds. These are cooperative in a session: they only have effect while the group is already asleep (where the sleep policy supplies the actual speed).</summary>
+	public static bool IsManualAccelerationSpeed(WorldTimeSpeed speed) =>
+		speed is WorldTimeSpeed.Fast or WorldTimeSpeed.SuperFast;
 
 	/// <summary>True while this player blocks fast-forward: unobserved, or alive + conscious + actually moving.</summary>
 	public static bool IsMoving(in WorldTimePlayerState player)
@@ -108,8 +116,10 @@ public static class WorldTimePolicy
 
 	/// <summary>
 	/// Decides the session speed and the request value to keep. Any moving
-	/// player wins first (Normal + request cleared); otherwise the sleep policy
-	/// wins (its speed + request cleared); otherwise the request stands.
+	/// player wins first (Normal + request cleared); otherwise the all-sleep
+	/// policy wins (its speed + request cleared); otherwise a manual
+	/// acceleration request is ignored unless the group is asleep (it already
+	/// would have been covered by the all-sleep branch) and Normal stands.
 	/// </summary>
 	public static WorldTimeDecision Decide(WorldTimeSpeed requested, IReadOnlyList<WorldTimePlayerState> players)
 	{
@@ -125,6 +135,11 @@ public static class WorldTimePolicy
 		if (sleepSpeed != WorldTimeSpeed.Normal)
 		{
 			return new WorldTimeDecision(sleepSpeed, WorldTimeSpeed.Normal);
+		}
+
+		if (IsManualAccelerationSpeed(requested))
+		{
+			return new WorldTimeDecision(WorldTimeSpeed.Normal, WorldTimeSpeed.Normal);
 		}
 
 		return new WorldTimeDecision(requested, requested);

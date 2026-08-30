@@ -4057,16 +4057,46 @@ from block drops and ordinary runtime spawns.
 - **Call identity** — `CallContext.Origin.BuildingDeathDrop` is opened around
   the local death branch by `BuildingEntityUpdatePatch` (the remote-death path
   already returns before the original method and never opens it).
-- **Marker** — `BuildingDeathDropOrigin` is a pure MonoBehaviour attached from
-  `Item.Awake` while that scope is active. `Item.Awake` runs synchronously
-  inside the death branch's `Object.Instantiate` calls (BuildingEntity.cs:79,
-  102, 113), which is why no `Utils.Create` postfix can see these drops.
+- **Marker** — `BuildingDeathDropOrigin` is a MonoBehaviour attached from
+  `Item.Awake` while that scope is active, carrying the exact spawn position.
+  `Item.Awake` runs synchronously inside the death branch's
+  `Object.Instantiate` calls (BuildingEntity.cs:79, 102, 113), which is why no
+  `Utils.Create` postfix can see these drops.
 - **OnItemInstantiated** — `ItemWorldSync` reads the marker and logs the
   provenance; the submit path is intentionally unchanged at this stage, so the
   drops still enter the world as standalone spawn reports. A pure
   `ItemDropProvenanceClassifier` locks the Normal/BlockDrop/BuildingDeathDrop
   selection.
-- **Tests** — `BuildingDeathDropProvenanceTests` locks the origin, the pure
-  marker, the `Item.Awake` patch shape, and the `PatchInventory` contract;
-  `BuildingDestructionReplayPatchTests` locks the new Prefix/Postfix state
-  shape. Full suite 1757 green.
+- **Tests** — `BuildingDeathDropProvenanceTests` locks the origin, the
+  `SpawnPosition` marker shape, the `Item.Awake` patch shape, and the
+  `PatchInventory` contract; `BuildingDestructionReplayPatchTests` locks the
+  new Prefix/Postfix state shape. Full suite 1757 green.
+
+## 144. Destructive trap item drops ride one atomic composite (2026-08-29)
+
+The 4.2 cross-domain sub-step that was open after the atomic trap trigger
+composite: the item drops produced asynchronously by a destructive trap's
+`BuildingEntity.Update` death branch now travel with the trigger and are
+committed in the same kernel batch.
+
+- **Pending collection** — `TrapDropPendingState` (Runtime, pure) holds
+  destructive trap triggers for two frames; `ItemWorldSync` folds each marked
+  building-death drop into the nearest pending trap by spawn position instead
+  of sending a standalone item spawn.
+- **One message** — `EntityEventMsg` gains `Drops` (`TrapDropEntryMsg`); the
+  triggering side flushes the trap event and its drops together, so the host
+  sees one logical operation.
+- **Atomic composite** — `TrapStateRegistry.ReportBatch` accepts the drop list
+  and adds a `SpawnItemCommand` per drop into the same `CompositeGameCommand`
+  as the trap consumption, state transition, destroyed trap health, and
+  explosion-diff building health.
+- **Host projection** — `ReportBatch` now uses `ItemKernelAuthority
+  .TryExecuteCommand` (instead of `TryExecuteHostCommand`) when it can contain
+  item spawns, so the host's `KernelBatchItemProjection` applies the composite
+  to the world table and `ItemApplication` materializes the drops.
+- **Fallback** — if a building-death drop has no matching pending destructive
+  trap (ordinary attack/open), it still takes the standalone spawn path.
+- **Tests** — `TrapDropPendingStateTests` locks hold/matching/reset;
+  `WorldEntityProjectionTests.HostReportTrapEvent_WithDrops_CommitsTrapAndItemSpawnsInOneBatch`
+  locks the composite batch, host `ItemSpawned` projection, and kernel item.
+  Full suite 1764 green.

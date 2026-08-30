@@ -135,6 +135,7 @@ Out of scope:
 | 2026-08-30 | Phase E third batch: add no-legacy architecture guard | current | Architecture gate passed with the new `check-no-legacy.ps1` scan | Created `tools/check-no-legacy.ps1`, wired it into `tools/check-architecture.ps1`, and documented the Phase E addendum in `docs/architecture-evolution/architecture-guards.md`. |
 | 2026-08-30 | Phase E fourth batch: move shadow-differential helper out of GameState | current | 1792 tests green; build/format/architecture/event/entity/delivery gates pass | `ItemDiagnosticsProjection` moved from the GameState kernel project to the test project as a test-only comparison helper; no production kernel code depends on it. |
 | 2026-08-30 | Phase E fifth batch: remove test-only kernel accessor | current | 1792 tests green; build/format/architecture/event/entity/delivery gates pass | `ItemKernelAuthority.KernelForDiagnostics` removed; tests now use the public `FindItem`/`QueryItems` surface. |
+| 2026-08-30 | Phase E sixth batch: extend no-legacy guard markers | current | Architecture gate passed | Added `KernelShadow`, `KernelForDiagnostics`, and `ItemDiagnosticsProjection` to the prohibited production-source markers. |
 
 ## Next actions
 

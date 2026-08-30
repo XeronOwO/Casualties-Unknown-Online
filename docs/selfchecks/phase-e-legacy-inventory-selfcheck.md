@@ -35,6 +35,7 @@ land; it is not a permission to keep legacy code indefinitely.
 | 2026-08-30 | Add Phase E no-legacy guard | `tools/check-no-legacy.ps1`, `tools/check-architecture.ps1`, `docs/architecture-guards.md` | Architecture gate passed (including new no-legacy scan) |
 | 2026-08-30 | Move `ItemDiagnosticsProjection` out of GameState to test-only | `src/CasualtiesUnknownOnline.GameState/Projections/ItemDiagnosticsProjection.cs` -> tests; updated `ItemSimWorld.cs` and `ItemDiagnosticsProjectionTests.cs` | `dotnet build` 0 warnings/0 errors; 1792 tests passed; format + architecture/event/entity/delivery gates passed |
 | 2026-08-30 | Remove test-only `KernelForDiagnostics` accessor | `ItemKernelAuthority.cs`, `ItemKernelConvenienceTests.cs`, `ItemSimWorld.cs` | `dotnet build` 0 warnings/0 errors; 1792 tests passed; format + architecture/event/entity/delivery gates passed |
+| 2026-08-30 | Extend no-legacy guard with removed diagnostic markers | `tools/check-no-legacy.ps1` | Architecture gate passed with `KernelShadow`/`KernelForDiagnostics`/`ItemDiagnosticsProjection` markers enabled |
 
 ## Next actions
 

@@ -512,7 +512,7 @@ public sealed class ItemKernelAuthority(ILogger<ItemKernelAuthority> log)
 		TryExecuteCommand(command, actor, out _, out _);
 	}
 
-	// ===== Shadow-compatible conveniences (still used by diagnostics/tests) =====
+	// ===== Kernel convenience entry points (used by craft/tests) =====
 
 	public void ObserveSpawn(ulong actor, ulong itemId, string definitionId, float x, float y) =>
 		ObserveSpawn(actor, itemId, definitionId, ItemLocation.World(x, y));

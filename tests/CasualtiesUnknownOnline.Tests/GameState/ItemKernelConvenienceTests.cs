@@ -5,7 +5,7 @@ using Xunit;
 
 namespace CasualtiesUnknownOnline.Tests.GameState;
 
-public class ItemKernelShadowTests
+public class ItemKernelConvenienceTests
 {
 	[Fact]
 	public void ObserveLifecycle_DrivesKernelState()

@@ -221,6 +221,13 @@ public interface IWorldControl
 	void ReportTrapState(EntityEventKind kind, float x, float y, byte extra);
 
 	/// <summary>
+	/// Host only: record a live trap trigger as one atomic kernel batch. The
+	/// batch carries the one-shot consumption (when applicable) and the trap
+	/// state-machine transition (when the kind has a state profile) together.
+	/// </summary>
+	void ReportTrapEvent(EntityEventKind kind, float x, float y, byte extra);
+
+	/// <summary>
 	/// Report a runtime world-entity creation (outside generation — the spawn
 	/// command): guest → host as a report (the host creates its own copy and
 	/// relays), host → broadcast to all synced members.

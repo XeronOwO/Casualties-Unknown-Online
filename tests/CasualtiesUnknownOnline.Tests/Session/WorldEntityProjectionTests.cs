@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.GameState.Domains.WorldEntities;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
@@ -92,6 +93,31 @@ public class WorldEntityProjectionTests
 		Assert.Contains(state.TrapStates, s => s.Position == new EntityPosition(1, 2)
 			&& s.Kind == (int)EntityEventKind.MineExploded
 			&& s.Phase == TrapPhase.Triggered);
+	}
+
+	[Fact]
+	public void HostReportTrapEvent_CommitsOneAtomicKernelBatch()
+	{
+		var (_, host, _) = HandshakeTests.CreateHostAndGuest();
+		host.Steam.FireLobbyCreated(LobbyId);
+
+		var world = host.Services.GetRequiredService<IWorldControl>();
+		var authority = host.Services.GetRequiredService<ItemKernelAuthority>();
+
+		CommittedBatch? captured = null;
+		authority.BatchCommitted += batch => captured = batch;
+
+		world.ReportTrapEvent(EntityEventKind.MineExploded, 1.2f, 2.8f, 5);
+
+		Assert.NotNull(captured);
+		Assert.Equal(2, captured!.Events.Count);
+		Assert.Contains(captured.Events, e => e is TrapConsumedEvent);
+		Assert.Contains(captured.Events, e => e is TrapStateChangedEvent);
+
+		var state = authority.QueryWorldEntities();
+		Assert.NotNull(state);
+		Assert.Single(state!.Consumptions);
+		Assert.Single(state.TrapStates);
 	}
 
 	[Fact]

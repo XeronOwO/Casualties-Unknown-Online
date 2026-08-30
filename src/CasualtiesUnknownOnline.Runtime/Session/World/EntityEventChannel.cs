@@ -49,18 +49,14 @@ public sealed class EntityEventChannel(ISessionControl session, PacketSender sen
 
 		if (_session.Role == SessionRole.Host)
 		{
-			// The host already applied the trigger locally. Record a ONE-SHOT
-			// consumption HERE: the host is not in its own presence table, so
-			// its broadcast never comes back through EntityEventHandler, and
-			// the remote-report path only records guest-triggered events.
-			// Without this a late joiner never learns host-triggered
-			// consumptions (mine, spike, mimic, ...).
-			if (EntityEventProfiles.IsOneShotConsumption(msg.Kind))
-			{
-				_trapConsumption.Report(msg.Kind, msg.Position.X, msg.Position.Y, msg.Extra);
-			}
-
-			_trapState.Report(msg.Kind, msg.Position.X, msg.Position.Y, msg.Extra);
+			// The host already applied the trigger locally. Record the whole
+			// trap trigger as ONE atomic kernel batch HERE: the host is not in
+			// its own presence table, so its broadcast never comes back through
+			// EntityEventHandler, and the remote-report path only records
+			// guest-triggered events. Without this a late joiner never learns
+			// host-triggered consumptions (mine, spike, mimic, ...). The
+			// composite also advances the trap state machine in the same batch.
+			_trapState.ReportBatch(msg.Kind, msg.Position.X, msg.Position.Y, msg.Extra);
 
 			_session.Broadcast(NetMsg.EntityEvent, msg);
 		}
@@ -308,6 +304,13 @@ public sealed class EntityEventChannel(ISessionControl session, PacketSender sen
 
 	/// <summary>Host only: record a stateful trap edge into the kernel trap state machine.</summary>
 	public void ReportTrapState(EntityEventKind kind, float x, float y, byte extra) => _trapState.Report(kind, x, y, extra);
+
+	/// <summary>
+	/// Host only: record a live trap trigger as one atomic kernel batch. The
+	/// batch carries the one-shot consumption (when applicable) and the trap
+	/// state-machine transition (when the kind has a state profile) together.
+	/// </summary>
+	public void ReportTrapEvent(EntityEventKind kind, float x, float y, byte extra) => _trapState.ReportBatch(kind, x, y, extra);
 
 	/// <summary>Host only: a new world layer is generating — the consumptions start empty again.</summary>
 	public void ResetConsumptions() => _trapConsumption.Reset();

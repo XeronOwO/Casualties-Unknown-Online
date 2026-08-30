@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.GameState.Domains.WorldEntities;
 using CasualtiesUnknownOnline.Runtime.Protocol;
@@ -46,5 +47,61 @@ public sealed class TrapStateRegistry(
 			extra,
 			_time.NowMs);
 		_kernelAuthority.TryExecuteHostCommand(command, _session.LocalSteamId, "record-trap-state", out _, out _);
+	}
+
+	/// <summary>
+	/// Host only: record one live trap trigger as a single atomic kernel
+	/// composite. The composite contains the one-shot consumption (when the
+	/// kind is one-shot) and the state-machine transition (when the kind has a
+	/// phase profile), so a guest receives both facts as one CommittedBatch.
+	/// </summary>
+	public void ReportBatch(EntityEventKind kind, float x, float y, byte extra)
+	{
+		if (_session.Role != SessionRole.Host)
+		{
+			return;
+		}
+
+		var commands = new List<GameCommand>();
+		if (EntityEventProfiles.IsOneShotConsumption(kind))
+		{
+			commands.Add(new RecordTrapConsumedCommand(
+				_kernelAuthority.NextOperationId(),
+				new ActorId(_session.LocalSteamId),
+				_kernelAuthority.CurrentRunEpoch,
+				AuthorityKind.HostOnly,
+				EntityPosition.FromWorld(x, y),
+				(int)kind,
+				extra,
+				_time.NowMs));
+		}
+
+		var phase = TrapStateProfiles.Map(kind);
+		if (phase is not null)
+		{
+			commands.Add(new RecordTrapStateCommand(
+				_kernelAuthority.NextOperationId(),
+				new ActorId(_session.LocalSteamId),
+				_kernelAuthority.CurrentRunEpoch,
+				AuthorityKind.HostOnly,
+				EntityPosition.FromWorld(x, y),
+				(int)kind,
+				phase.Value,
+				extra,
+				_time.NowMs));
+		}
+
+		if (commands.Count == 0)
+		{
+			return;
+		}
+
+		var composite = new CompositeGameCommand(
+			_kernelAuthority.NextOperationId(),
+			new ActorId(_session.LocalSteamId),
+			_kernelAuthority.CurrentRunEpoch,
+			AuthorityKind.HostOnly,
+			commands);
+		_kernelAuthority.TryExecuteHostCommand(composite, _session.LocalSteamId, "record-trap-event", out _, out _);
 	}
 }

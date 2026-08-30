@@ -108,11 +108,11 @@ For each domain, complete these steps in order:
 
 ### 4.4 Enemy / Entity
 
-- [ ] Define entity domain: shared identity, lifecycle, health, state, targeting/combat terminal facts.
-- [ ] Move enemy spawn/despawn/health/attack/lunge/bite/effect facts into kernel events.
-- [ ] Keep high-frequency enemy positions/animations as stream/projection.
-- [ ] Absorb existing `EnemyCombatDirector` style host decisions into kernel processes/policies.
-- [ ] Migrate enemy replay/snapshot to kernel events.
+- [x] Define entity domain: shared identity, lifecycle, health, state, targeting/combat terminal facts.
+- [x] Move enemy spawn/despawn/health/attack/lunge/bite/effect facts into kernel events.
+- [x] Keep high-frequency enemy positions/animations as stream/projection.
+- [x] Absorb existing `EnemyCombatDirector` style host decisions into kernel processes/policies.
+- [x] Migrate enemy replay/snapshot to kernel events.
 - [x] Add invariant tests: no post-destroy damage; no duplicate operations on replay.
 
 ### 4.5 Fluids

@@ -16,20 +16,8 @@ is the entry point for that evidence chain.
 
 ## Gates
 
-Run before committing code changes:
-
-```powershell
-dotnet build CasualtiesUnknownOnline.slnx
-dotnet test CasualtiesUnknownOnline.slnx
-dotnet format CasualtiesUnknownOnline.slnx
-powershell -File tools/check-architecture.ps1
-powershell -File tools/check-event-replay.ps1
-powershell -File tools/check-entity-event-dispatch.ps1
-powershell -File tools/check-delivery.ps1
-```
-
-`tools/check-architecture.ps1` includes the strict structural checks plus the
-Phase E guard suite:
+Run the canonical commands from [`AGENTS.md`](../AGENTS.md) before committing code
+changes. The architecture-gate guard suite is:
 
 - `tools/check-gamestate-isolation.ps1` — GameState project isolation
 - `tools/check-item-authority.ps1` — item projection ownership

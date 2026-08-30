@@ -147,23 +147,28 @@ internal sealed class EnemyCombatDirector(
 			return null; // no player in the ray — nothing to order or report
 		}
 
-		if (target.SteamId != _session.LocalSteamId)
+		switch (EnemyCombatOrderPolicy.DecideCrystalLunge(fact, _session.LocalSteamId))
 		{
-			var limbIndex = _targets.SelectLimbIndex(target, origin);
-			_enemies.SendEnemyAttack(new EnemyAttackMsg
-			{
-				EnemyId = enemyId.ToNetworkEntityIdMsg(),
-				VictimSteamId = target.SteamId,
-				Kind = EnemyAttackKind.CrystalLunge,
-				LimbIndex = limbIndex,
-			});
-			_log.LogInformation("[Enemy] host crystal {Enemy} lunge ordered on {Victim} limb {Limb}.",
-				enemyId, target.SteamId, limbIndex);
-			return null;
-		}
+			case EnemyCombatOrderPolicy.ApplyPath.RemoteOrder:
+				var limbIndex = _targets.SelectLimbIndex(target, origin);
+				_enemies.SendEnemyAttack(new EnemyAttackMsg
+				{
+					EnemyId = enemyId.ToNetworkEntityIdMsg(),
+					VictimSteamId = target.SteamId,
+					Kind = EnemyAttackKind.CrystalLunge,
+					LimbIndex = limbIndex,
+				});
+				_log.LogInformation("[Enemy] host crystal {Enemy} lunge ordered on {Victim} limb {Limb}.",
+					enemyId, target.SteamId, limbIndex);
+				return null;
 
-		var body = _targets.LocalBody();
-		return body != null ? CrystalLungeTrace.Capture(body) : null; // Unity object — ==; the native raycast handles the local hit
+			case EnemyCombatOrderPolicy.ApplyPath.LocalNative:
+				var body = _targets.LocalBody();
+				return body != null ? CrystalLungeTrace.Capture(body) : null; // Unity object — ==; the native raycast handles the local hit
+
+			default:
+				return null;
+		}
 	}
 
 	/// <summary>
@@ -237,19 +242,18 @@ internal sealed class EnemyCombatDirector(
 		var localBody = _targets.LocalBody();
 		var nativeHandled = localBody != null &&
 			Vector2.Distance(spider.transform.position, localBody.transform.position) < EnemyItemHitArbitration.PlayerRadius;
+		var anyInWorldPlayer = EnemyItemHitArbitration.AnyPlayerWithin(
+			_targets.BuildCandidates().Select(c => c.ToFact().Position),
+			ToNetVector2(spider.transform.position),
+			EnemyItemHitArbitration.PlayerRadius);
 
-		if (!nativeHandled)
+		switch (EnemyCombatOrderPolicy.DecideItemHit(nativeHandled, anyInWorldPlayer))
 		{
-			var hasNearbyPlayer = EnemyItemHitArbitration.AnyPlayerWithin(
-				_targets.BuildCandidates().Select(c => c.ToFact().Position),
-				ToNetVector2(spider.transform.position),
-				EnemyItemHitArbitration.PlayerRadius);
-			if (!hasNearbyPlayer)
-			{
+			case EnemyCombatOrderPolicy.ApplyPath.HostItemFallback:
+				ApplyNativeItemBranch(spider, item, magnitude, building);
+				break;
+			case EnemyCombatOrderPolicy.ApplyPath.None:
 				return null; // same as the single-player scoping: no player near, no item-vs-enemy effect
-			}
-
-			ApplyNativeItemBranch(spider, item, magnitude, building);
 		}
 
 		var damage = EnemyItemHitArbitration.ComputeHealthDamage(magnitude, item.rb.mass);
@@ -306,6 +310,11 @@ internal sealed class EnemyCombatDirector(
 		if (target is null)
 		{
 			return; // cooldown/stun closed, nobody in bite range, or the local body rides the native collision path
+		}
+
+		if (EnemyCombatOrderPolicy.DecideSpiderBite(fact, _session.LocalSteamId) != EnemyCombatOrderPolicy.ApplyPath.RemoteOrder)
+		{
+			return; // only remote victims need the host-ordered apply; local bites ride the native collision path
 		}
 
 		var building = spider.GetComponentInParent<BuildingEntity>();

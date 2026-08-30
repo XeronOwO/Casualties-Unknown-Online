@@ -252,7 +252,6 @@ public static class CuoBootstrap
 		// journal used by join/reconnect fallback.
 		services.AddSingleton<KernelProtocolService>();
 		services.AddSingleton<IKernelProtocolControl>(p => p.GetRequiredService<KernelProtocolService>());
-		services.AddSingleton<ItemCheckpointStore>();
 		services.AddSingleton<ItemService>();
 		services.AddSingleton<IItemControl>(p => p.GetRequiredService<ItemService>());
 		// Direct player-interaction visibility oracle. The base composition root

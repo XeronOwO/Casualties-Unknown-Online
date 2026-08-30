@@ -6,7 +6,7 @@ The base game ships without multiplayer. CUO adds Steam-based **Host + Guests** 
 
 ## Status
 
-**Active development — Phase 3 native game-content follow-through.** Phases 0–3 (feasibility, single-player entity sync, entity lifecycle, game core loop) are complete and runtime-verified; the remaining base-game coverage is now the priority (see [`docs/backlog.md`](docs/backlog.md)). Phase 4 (Mod API) has landed the core skeleton (discovery / lifecycle / manifest / mod messages / handshake consistency) plus the permission model, host commands, dependency ordering, SemVer versions, mod-state saves, local mod UI, and content registration; the remaining Mod API surface — custom entities — is MEDIUM priority and resumes after the native game content is fully covered. See [`docs/architecture.md`](docs/architecture.md) for the full design and phases, [`docs/tech-decisions.md`](docs/tech-decisions.md) for the landed decisions, and [`docs/mod-api.md`](docs/mod-api.md) for the binding Mod API contract.
+**Active development — Phase E architecture cleanup.** Phases 0–3 (feasibility, single-player entity sync, entity lifecycle, game core loop) are complete and runtime-verified; Phase D (full domain migration to the typed deterministic game-state kernel) is complete, and Phase E (delete dual architecture / legacy surfaces) is in progress. See [`docs/architecture-evolution/README.md`](docs/architecture-evolution/README.md) for the architecture iteration status, [`docs/architecture.md`](docs/architecture.md) for the blueprint and phases, [`docs/tech-decisions.md`](docs/tech-decisions.md) for landed decisions, and [`docs/mod-api.md`](docs/mod-api.md) for the binding Mod API contract.
 
 ## Architecture in Brief
 

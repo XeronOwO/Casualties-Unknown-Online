@@ -1,5 +1,10 @@
 # Building-Entity Health Snapshot — Self-Check (2026-08-16)
 
+> **HISTORICAL** — This selfcheck describes a superseded/removed wire path or
+> an intermediate architecture slice. It is retained for audit history, not as
+> current evidence. Check `docs/selfchecks/MANIFEST.md` and
+> `docs/architecture-evolution/protocol.md` before citing.
+
 Delivery fact sheet for the damaged building-entity late-joiner snapshot
 (ProtocolVersion 11, NetMsg 88).
 

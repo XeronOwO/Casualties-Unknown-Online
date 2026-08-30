@@ -77,6 +77,34 @@ to separate current from historical before citing. Key architecture-evolution se
 - Phase D: `phase-d-full-domain-migration-selfcheck.md`
 - Phase E: `phase-e-legacy-inventory-selfcheck.md`
 
+### Current high-value selfchecks
+
+These are the current-evidence seeds most useful for verifying active mechanisms:
+
+| Selfcheck | Domain |
+|---|---|
+| [`phase-d-full-domain-migration-selfcheck.md`](selfchecks/phase-d-full-domain-migration-selfcheck.md) | Architecture |
+| [`phase-d-high-frequency-stream-unification-selfcheck.md`](selfchecks/phase-d-high-frequency-stream-unification-selfcheck.md) | Protocol/Architecture |
+| [`phase-d-players-shadow-selfcheck.md`](selfchecks/phase-d-players-shadow-selfcheck.md) | Players |
+| [`phase-d-world-entities-shadow-selfcheck.md`](selfchecks/phase-d-world-entities-shadow-selfcheck.md) | World/Entities |
+| [`phase-e-legacy-inventory-selfcheck.md`](selfchecks/phase-e-legacy-inventory-selfcheck.md) | Architecture |
+| [`netmsg-registry-selfcheck.md`](selfchecks/netmsg-registry-selfcheck.md) | Protocol |
+| [`world-entry-completion-selfcheck.md`](selfchecks/world-entry-completion-selfcheck.md) | Protocol/World |
+| [`item-keyframe-state-selfcheck.md`](selfchecks/item-keyframe-state-selfcheck.md) | Items |
+| [`container-content-sync-selfcheck.md`](selfchecks/container-content-sync-selfcheck.md) | Items |
+| [`custom-item-data-state-selfcheck.md`](selfchecks/custom-item-data-state-selfcheck.md) | Items |
+| [`remote-backpack-container-take-selfcheck.md`](selfchecks/remote-backpack-container-take-selfcheck.md) | Players/Items |
+| [`remote-container-destroy-authority-selfcheck.md`](selfchecks/remote-container-destroy-authority-selfcheck.md) | Items |
+| [`respawn-rules-selfcheck.md`](selfchecks/respawn-rules-selfcheck.md) | Players |
+| [`trader-recruit-selfcheck.md`](selfchecks/trader-recruit-selfcheck.md) | Players |
+| [`chat-selfcheck.md`](selfchecks/chat-selfcheck.md) | UI/Protocol |
+| [`host-ban-selfcheck.md`](selfchecks/host-ban-selfcheck.md) | Players/Protocol |
+| [`ip-direct-selfcheck.md`](selfchecks/ip-direct-selfcheck.md) | Protocol |
+| [`partial-aware-gate-selfcheck.md`](selfchecks/partial-aware-gate-selfcheck.md) | Architecture/Tooling |
+| [`simtrace-diff-selfcheck.md`](selfchecks/simtrace-diff-selfcheck.md) | Tooling |
+| latest architecture-split sheets (`world-service-split`, `item-service-split`, `mod-service-split`) | Architecture |
+| [`tutorial-claw-stream-selfcheck.md`](selfchecks/tutorial-claw-stream-selfcheck.md) | World/Entities |
+
 Domain/feature fact sheets are named by mechanism (for example
 `carry-interaction-selfcheck.md`, `cross-player-item-use-selfcheck.md`,
 `fluid-presentation-selfcheck.md`).

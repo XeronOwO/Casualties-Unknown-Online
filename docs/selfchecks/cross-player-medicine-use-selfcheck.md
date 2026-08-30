@@ -1,5 +1,10 @@
 # Cross-player medicine/injectable use self-check
 
+> **HISTORICAL** — This selfcheck describes a superseded/removed wire path or
+> an intermediate architecture slice. It is retained for audit history, not as
+> current evidence. Check `docs/selfchecks/MANIFEST.md` and
+> `docs/architecture-evolution/protocol.md` before citing.
+
 Owner cycle: backlog "Cross-player item use" second slice. Decision: add the
 curated immediate-effect medicine containers to the existing
 `PlayerItemUseRequest`/`PlayerItemUseResult` operation; do not introduce a new

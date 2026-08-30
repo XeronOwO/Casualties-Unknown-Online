@@ -1,5 +1,10 @@
 # GameAdapter construction readability split — self-check
 
+> **HISTORICAL** — This selfcheck describes a superseded/removed wire path or
+> an intermediate architecture slice. It is retained for audit history, not as
+> current evidence. Check `docs/selfchecks/MANIFEST.md` and
+> `docs/architecture-evolution/protocol.md` before citing.
+
 Owner cycle: backlog item #122 "GameAdapter assembly (possible readability
 grouping)". Decision: keep the state-belongs-to-its-owner design and the
 existing direct constructor wiring (no DI collapse, no factory), but move the

@@ -1,5 +1,10 @@
 # Phase C protocol-core self-check (2026-08-28)
 
+> **HISTORICAL** — This selfcheck describes a superseded/removed wire path or
+> an intermediate architecture slice. It is retained for audit history, not as
+> current evidence. Check `docs/selfchecks/MANIFEST.md` and
+> `docs/architecture-evolution/protocol.md` before citing.
+
 This fact sheet records the first Phase C delivery cycle: the new four-envelope
 protocol project, kernel/wire mapping, checkpoint save format, host/guest
 kernel protocol service, production switch for spawn/pickup/drop/destroy item

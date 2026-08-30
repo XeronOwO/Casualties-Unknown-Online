@@ -1,5 +1,10 @@
 # Cross-player wearable use self-check
 
+> **HISTORICAL** — This selfcheck describes a superseded/removed wire path or
+> an intermediate architecture slice. It is retained for audit history, not as
+> current evidence. Check `docs/selfchecks/MANIFEST.md` and
+> `docs/architecture-evolution/protocol.md` before citing.
+
 Owner cycle: backlog "Cross-player item use" wear slice. Decision: add native
 wearable placement to the existing `PlayerItemUseRequest`/`PlayerItemUseResult`
 operation. The host moves the acting player's inventory item onto the target's

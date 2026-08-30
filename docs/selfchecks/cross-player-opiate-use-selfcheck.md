@@ -1,5 +1,10 @@
 # Cross-player opiate use self-check
 
+> **HISTORICAL** — This selfcheck describes a superseded/removed wire path or
+> an intermediate architecture slice. It is retained for audit history, not as
+> current evidence. Check `docs/selfchecks/MANIFEST.md` and
+> `docs/architecture-evolution/protocol.md` before citing.
+
 Owner cycle: backlog "Cross-player item use" opiate slice. Decision: add
 curated injectable opiate/opiate-antagonist liquids to the existing
 `PlayerItemUseRequest`/`PlayerItemUseResult` operation and carry the

@@ -1,5 +1,10 @@
 # Piggyback (conscious-alive ride) + carried-player release self-check
 
+> **HISTORICAL** — This selfcheck describes a superseded/removed wire path or
+> an intermediate architecture slice. It is retained for audit history, not as
+> current evidence. Check `docs/selfchecks/MANIFEST.md` and
+> `docs/architecture-evolution/protocol.md` before citing.
+
 Owner cycle: backlog "Other lower-priority KrokMP candidates" — push/piggyback.
 Decision: implement the **piggyback first slice** by extending the existing
 cross-player carry relation, plus a small adjacent quality item: the carried

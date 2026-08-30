@@ -1,5 +1,10 @@
 # Player-interaction carry/piggyback follow-ups — self-check (2026-08-26)
 
+> **HISTORICAL** — This selfcheck describes a superseded/removed wire path or
+> an intermediate architecture slice. It is retained for audit history, not as
+> current evidence. Check `docs/selfchecks/MANIFEST.md` and
+> `docs/architecture-evolution/protocol.md` before citing.
+
 Closes the four open follow-ups recorded after the piggyback direction +
 drag-use pass: carrier-side real-time rider presentation, piggyback
 weight/encumbrance host rule, release floating-body restore, and the missing

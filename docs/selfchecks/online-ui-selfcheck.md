@@ -1,5 +1,10 @@
 # Online UI self-check
 
+> **HISTORICAL** — This selfcheck describes a superseded/removed wire path or
+> an intermediate architecture slice. It is retained for audit history, not as
+> current evidence. Check `docs/selfchecks/MANIFEST.md` and
+> `docs/architecture-evolution/protocol.md` before citing.
+
 Date: 2026-08-18
 Scope: the remaining `Online UI` backlog item — lobby create/join controls,
 member status, and world nameplates + off-screen arrows.

@@ -1,5 +1,10 @@
 # Piggyback release facing restore — self-check (2026-08-27)
 
+> **HISTORICAL** — This selfcheck describes a superseded/removed wire path or
+> an intermediate architecture slice. It is retained for audit history, not as
+> current evidence. Check `docs/selfchecks/MANIFEST.md` and
+> `docs/architecture-evolution/protocol.md` before citing.
+
 Root-causes the reported "after Drop the released host's body orientation is
 stuck and cannot flip" symptom.
 

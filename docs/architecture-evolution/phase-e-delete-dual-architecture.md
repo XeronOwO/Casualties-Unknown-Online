@@ -134,6 +134,7 @@ Out of scope:
 | 2026-08-30 | Phase E second batch: remove `Shadow` naming from production | current | 1792 tests green; build/format/architecture/event/entity/delivery gates pass | Renamed `ItemService.KernelShadow` to `KernelAuthority`, updated CraftSyncService/tests, renamed the kernel convenience test class, and removed the last `Shadow` token from `src/`. |
 | 2026-08-30 | Phase E third batch: add no-legacy architecture guard | current | Architecture gate passed with the new `check-no-legacy.ps1` scan | Created `tools/check-no-legacy.ps1`, wired it into `tools/check-architecture.ps1`, and documented the Phase E addendum in `docs/architecture-evolution/architecture-guards.md`. |
 | 2026-08-30 | Phase E fourth batch: move shadow-differential helper out of GameState | current | 1792 tests green; build/format/architecture/event/entity/delivery gates pass | `ItemDiagnosticsProjection` moved from the GameState kernel project to the test project as a test-only comparison helper; no production kernel code depends on it. |
+| 2026-08-30 | Phase E fifth batch: remove test-only kernel accessor | current | 1792 tests green; build/format/architecture/event/entity/delivery gates pass | `ItemKernelAuthority.KernelForDiagnostics` removed; tests now use the public `FindItem`/`QueryItems` surface. |
 
 ## Next actions
 

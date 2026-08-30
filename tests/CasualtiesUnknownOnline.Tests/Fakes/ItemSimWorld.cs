@@ -216,7 +216,7 @@ internal sealed class ItemSimWorld : IDisposable
 	internal ItemTerminalDiff CompareKernel() =>
 		ItemDiagnosticsProjection.Compare(
 			BuildLegacyActiveFacts(),
-			ItemDiagnosticsProjection.BuildActiveFacts(Items.KernelAuthority.KernelForDiagnostics.QueryItems().Values),
+			ItemDiagnosticsProjection.BuildActiveFacts(Items.KernelAuthority.QueryItems().Values),
 			includeRevision: false);
 
 	private IReadOnlyDictionary<ulong, ItemTerminalFact> BuildLegacyActiveFacts()

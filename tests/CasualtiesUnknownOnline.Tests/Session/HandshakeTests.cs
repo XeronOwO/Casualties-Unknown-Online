@@ -2,6 +2,7 @@ using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
+using CasualtiesUnknownOnline.Runtime.Steam;
 using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -84,6 +85,30 @@ public class HandshakeTests
 		guest.Update(); // RetryHandshakeIfNeeded re-sends
 
 		Assert.True(host.Session.Members.Single(m => m.SteamId == GuestId).Handshaken);
+	}
+
+	[Fact]
+	public void Handshake_WithEmptyDisplayName_IsRejectedByHost()
+	{
+		var (_, host, guest) = CreateHostAndGuest();
+		host.Steam.FireLobbyCreated(LobbyId);
+		host.Steam.LobbyMembers = [HostId, GuestId];
+		guest.Steam.Personas[GuestId] = "";
+		guest.Steam.FireLobbyEntered(LobbyId);
+
+		Assert.DoesNotContain(host.Session.Members, m => m.SteamId == GuestId);
+	}
+
+	[Fact]
+	public void Handshake_WithTooLongDisplayName_IsRejectedByHost()
+	{
+		var (_, host, guest) = CreateHostAndGuest();
+		host.Steam.FireLobbyCreated(LobbyId);
+		host.Steam.LobbyMembers = [HostId, GuestId];
+		guest.Steam.Personas[GuestId] = new string('x', IpDisplayNamePolicy.MaxLength + 1);
+		guest.Steam.FireLobbyEntered(LobbyId);
+
+		Assert.DoesNotContain(host.Session.Members, m => m.SteamId == GuestId);
 	}
 
 	[Fact]

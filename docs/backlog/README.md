@@ -24,6 +24,10 @@ Open work only. Landed delivery details are not duplicated here; they live in:
 - Custom configuration template system landed (2026-08-31) — full BepInEx
   config profiles can be saved/applied from the Preferences page; see
   `docs/evidence/selfchecks/tooling/config-profile-templates-selfcheck.md`.
+- IP-direct display-name validation landed — the local side refuses
+  host/join with an empty/malformed name and the host rejects inbound peers
+  with an invalid name; see
+  `docs/evidence/selfchecks/protocol/ip-direct-name-validation-selfcheck.md`.
 - World-time manual-acceleration policy closed: `Fast`/`SuperFast` are
   cooperative; they never accelerate a session while any in-world player is
   awake. The all-unconscious sleep policy remains the only shared-clock
@@ -49,11 +53,6 @@ Open work only. Landed delivery details are not duplicated here; they live in:
 
 ### IP-direct identity / player presentation
 
-- **IP-direct name validation** — the configured display name must be
-  non-empty on both sides: the connecting side refuses to start a join with an
-  empty name, and the accepting host rejects/terminates an inbound peer with an
-  empty or malformed name. Errors must be visible on the Online UI / IP error
-  surface.
 - **Player-selectable colors** — players should be able to set their own color.
   Name tags, off-screen arrows, player-list rows, and owner/role labels must use
   the configured color rather than only the current auto-assigned palette.
@@ -91,12 +90,12 @@ Measurement-first items; do not optimize before data exists.
 - World determinism / `[WorldFingerprint]` comparison.
 - Block-break first-writer-wins dual-side runtime confirmation (L0 already covered).
 
-## Open decisions (no code change yet)
+## Resolved decisions
 
-- **IP-direct duplicate names** — IP-direct player identity appears to be
-  name-related; decide whether duplicate display names are rejected on accept,
-  auto-disambiguated, or scoped differently. Uniqueness needs to be settled
-  before player-specific state is trusted by name.
+- **IP-direct duplicate names** — allowed. Identity is always the logical
+  peer id / SteamID; display names are cosmetic presentation labels and no
+  player-specific state is keyed by name. Uniqueness is intentionally not
+  enforced.
 
 ## Future / low priority
 

@@ -57,12 +57,34 @@ public class IpDirectSteamServiceTests : IDisposable
 	[Fact]
 	public void Disconnect_RaisesLobbyLeftAndClearsMembers()
 	{
+		_host.SetDisplayName("Alice");
+		_guest.SetDisplayName("Bob");
 		Assert.True(_host.StartHost(0, out var error), $"host start failed: {error}");
 		Assert.True(_guest.Connect("127.0.0.1", _hostTransport.BoundPort, out error), $"guest connect failed: {error}");
 		var left = 0;
 		_guest.LobbyLeft += _ => left++;
 		_guest.Disconnect();
 		Assert.Equal(1, left);
+		Assert.False(_guest.IsActive);
+		Assert.Empty(_guest.GetLobbyMembers());
+	}
+
+	[Fact]
+	public void StartHost_WithEmptyDisplayName_IsRefused()
+	{
+		Assert.False(_host.StartHost(0, out var error));
+		Assert.Contains("Display name", error);
+		Assert.False(_host.IsActive);
+		Assert.Empty(_hostTransport.ActiveRemotePeers);
+	}
+
+	[Fact]
+	public void Connect_WithEmptyDisplayName_IsRefusedBeforeConnecting()
+	{
+		_host.SetDisplayName("Alice");
+		Assert.True(_host.StartHost(0, out var hostError), $"host start failed: {hostError}");
+		Assert.False(_guest.Connect("127.0.0.1", _hostTransport.BoundPort, out var error));
+		Assert.Contains("Display name", error);
 		Assert.False(_guest.IsActive);
 		Assert.Empty(_guest.GetLobbyMembers());
 	}

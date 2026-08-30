@@ -44,6 +44,8 @@ public class IpDirectSessionIntegrationTests : IDisposable
 	[Fact]
 	public void HostAndGuest_CompleteThreeLegHandshakeOverTcp()
 	{
+		_hostRouter.IpDirectSteam.SetDisplayName("HostPlayer");
+		_guestRouter.IpDirectSteam.SetDisplayName("GuestPlayer");
 		_hostRouter.UseIpDirect();
 		_guestRouter.UseIpDirect();
 		Assert.True(_hostRouter.IpDirectSteam.StartHost(0, out var error), $"host start failed: {error}");

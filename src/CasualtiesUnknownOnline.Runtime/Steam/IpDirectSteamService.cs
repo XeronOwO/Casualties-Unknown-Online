@@ -81,6 +81,11 @@ public sealed class IpDirectSteamService(IpDirectTransport transport, ILogger<Ip
 			return false;
 		}
 
+		if (!IpDisplayNamePolicy.TryValidate(_localDisplayName, out error))
+		{
+			return false;
+		}
+
 		if (!transport.StartHost(port, out error))
 		{
 			return false;
@@ -98,6 +103,11 @@ public sealed class IpDirectSteamService(IpDirectTransport transport, ILogger<Ip
 		if (_isActive)
 		{
 			error = "An IP-direct session is already active.";
+			return false;
+		}
+
+		if (!IpDisplayNamePolicy.TryValidate(_localDisplayName, out error))
+		{
 			return false;
 		}
 

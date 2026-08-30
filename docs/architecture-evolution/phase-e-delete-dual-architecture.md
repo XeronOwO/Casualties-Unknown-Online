@@ -138,6 +138,7 @@ Out of scope:
 | 2026-08-30 | Phase E sixth batch: extend no-legacy guard markers | current | Architecture gate passed | Added `KernelShadow`, `KernelForDiagnostics`, and `ItemDiagnosticsProjection` to the prohibited production-source markers. |
 | 2026-08-30 | Phase E seventh batch: session reset audit | current | Docs | Audit found a single `ItemKernelAuthority.ResetForSession()` kernel reset path plus projection/transient clears on `SessionEnded`; no bypass or reset-coordinator refactor required. Recorded in `docs/selfchecks/phase-e-legacy-inventory-selfcheck.md`. |
 | 2026-08-30 | Phase E eighth batch: narrow reset surface + architecture doc note | current | 1792 tests green; build/format/architecture/event/entity/delivery gates pass | Made `ItemService.ResetSessionState`/`WorldService.ResetSessionState` private and updated `docs/architecture.md` to identify the evolution target as active during Phase E. |
+| 2026-08-30 | Phase E ninth batch: add command-authority guard | current | Architecture gate passed | Added `tools/check-command-authority.ps1` and wired it into `check-architecture.ps1`; every `GameCommand` subclass must now carry an authority policy. |
 
 ## Next actions
 

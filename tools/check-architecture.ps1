@@ -164,5 +164,11 @@ if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
 
+# Phase E: every kernel command must declare an authority policy.
+& (Join-Path $PSScriptRoot "check-command-authority.ps1")
+if ($LASTEXITCODE -ne 0) {
+    exit $LASTEXITCODE
+}
+
 Write-Host "Architecture gate passed." -ForegroundColor Green
 exit 0

@@ -207,6 +207,18 @@ internal sealed class ItemWorldSync(
 		// already ran on the attacker's side — the component is the truth).
 		var fresh = item.GetComponent<FreshItemDrop>() != null; // Unity object — ==
 		var dropOrigin = item.GetComponent<DropOrigin>(); // Unity object — ==
+		var buildingDrop = item.GetComponent<BuildingDeathDropOrigin>(); // Unity object — ==
+		if (buildingDrop != null && dropOrigin == null) // Unity object — ==
+		{
+			// Provenance only for now: a local building-entity death drop is
+			// still reported as a standalone spawn (the trap-drop composite
+			// collection is the next 4.2 step). This line makes the source
+			// observable before any collection logic depends on it.
+			_log.LogInformation("[ItemBuildingDeathDrop] local {Type} (id {ItemId}) at ({X:F1},{Y:F1}), vel ({VX:F1},{VY:F1}), fresh {Fresh} — building-death provenance.",
+				item.id, itemId, item.transform.position.x, item.transform.position.y,
+				item.rb.velocity.x, item.rb.velocity.y, fresh);
+		}
+
 		if (dropOrigin != null) // Unity object — ==
 		{
 			// A block drop: fold into the pending break report (the break postfix

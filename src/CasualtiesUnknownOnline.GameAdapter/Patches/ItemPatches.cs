@@ -1,3 +1,4 @@
+using CasualtiesUnknownOnline.GameAdapter.Items;
 using HarmonyLib;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Patches;
@@ -15,6 +16,24 @@ internal static class ItemPatches
 	internal static class ItemStartPatch
 	{
 		private static void Postfix(Item __instance) => PatchBridge.Impl?.OnItemInstantiated(__instance);
+	}
+
+	[HarmonyPatch(typeof(Item), "Awake")]
+	internal static class ItemAwakePatch
+	{
+		private static void Postfix(Item __instance)
+		{
+			// Awake runs synchronously inside Object.Instantiate, so the
+			// BuildingEntity.Update death-branch scope is still active here.
+			// The marker is consumed at Item.Start (next frame) by
+			// ItemWorldSync.OnItemInstantiated.
+			if (CallContext.Current != CallContext.Origin.BuildingDeathDrop)
+			{
+				return;
+			}
+
+			__instance.gameObject.AddComponent<BuildingDeathDropOrigin>();
+		}
 	}
 
 	[HarmonyPatch(typeof(Item), "OnDestroy")]

@@ -137,6 +137,7 @@ Out of scope:
 | 2026-08-30 | Phase E fifth batch: remove test-only kernel accessor | current | 1792 tests green; build/format/architecture/event/entity/delivery gates pass | `ItemKernelAuthority.KernelForDiagnostics` removed; tests now use the public `FindItem`/`QueryItems` surface. |
 | 2026-08-30 | Phase E sixth batch: extend no-legacy guard markers | current | Architecture gate passed | Added `KernelShadow`, `KernelForDiagnostics`, and `ItemDiagnosticsProjection` to the prohibited production-source markers. |
 | 2026-08-30 | Phase E seventh batch: session reset audit | current | Docs | Audit found a single `ItemKernelAuthority.ResetForSession()` kernel reset path plus projection/transient clears on `SessionEnded`; no bypass or reset-coordinator refactor required. Recorded in `docs/selfchecks/phase-e-legacy-inventory-selfcheck.md`. |
+| 2026-08-30 | Phase E eighth batch: narrow reset surface + architecture doc note | current | 1792 tests green; build/format/architecture/event/entity/delivery gates pass | Made `ItemService.ResetSessionState`/`WorldService.ResetSessionState` private and updated `docs/architecture.md` to identify the evolution target as active during Phase E. |
 
 ## Next actions
 

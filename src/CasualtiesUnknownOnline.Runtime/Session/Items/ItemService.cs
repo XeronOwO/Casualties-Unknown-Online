@@ -286,7 +286,7 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 
 	public void ResetItems() => _projection.Clear();
 
-	public void ResetSessionState()
+	private void ResetSessionState()
 	{
 		_projection.Clear();
 		_arbitration.ResetForSessionEnd();

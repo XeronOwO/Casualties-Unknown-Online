@@ -40,20 +40,6 @@ Open work only. Landed delivery details are not duplicated here; they live in:
 
 ## Open work
 
-### Items / crafting
-
-- **KrokMP crafting loses container contents — OPEN (2026-08-30).** In KrokMP,
-  crafting a recipe from an item that already contains contents (for example a
-  flashlight with a battery used to craft a headlamp, or a liquid container used
-  to craft another container) drops the contained items. Two directions are
-  recorded for a future fix:
-  1. **Exclude contained items from crafting** — simpler and closest to player
-     intuition; the recipe refuses to consume an item with contents until the
-     player empties it.
-  2. **Inherit contents after crafting** — preserves contents across the recipe,
-     but is more complex; special cases include liquid capacity changes and
-     overflow when a smaller container replaces a larger one.
-
 ### Player interaction / UI
 
 - **PVP** — LOW (reprioritized). No player-to-player damage domain today; defer

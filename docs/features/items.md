@@ -278,8 +278,12 @@ domain"). Per-surface notes:
   liquid RESULT merges into an existing container with no new item
   (RecipeResult.cs:36-49) — the coordinator's liquid-fingerprint diff turns
   that container into a Changed entry; the deny path (no materials) reports
-  nothing. The first-craft bonus (happiness +1, INT exp) and the fail-branch
-  injuries ride the 1 Hz CharacterData snapshot (accepted latency).
+  nothing. A destroyable material that still carries contents (battery,
+  container children, or a liquid stack) is refused before the native consume
+  path — `CraftingContentsGuard` — so crafting cannot drop/lose those contents;
+  the player empties the item first. The first-craft bonus (happiness +1, INT
+  exp) and the fail-branch injuries ride the 1 Hz CharacterData snapshot
+  (accepted latency).
 - **Body.CombineItems** (drag-combine, Body.cs:1254): gun/mag and mag/round
   loads destroy the dragged item (its end-of-frame OnDestroy rides the
   destroy-claim set); the condition merge changes both items; a refused load
@@ -302,12 +306,13 @@ domain"). Per-surface notes:
   Update-driven auto-rack steps) are reported through the existing item-use
   fact path via `GunStateSync`, so the host's transfer record and the peer
   clones update immediately; the 1 Hz character snapshot remains the fallback.
-  The remaining recorded items stay as before: the
-  container-material spill (UnloadAllItems children) deliberately rides the
-  container-item domain (real new world items); noautopickup products ride the
-  item domain's spawn path; mindwipe's recipe-static reset (entity domain);
-  save-restore recipe INT divergence (multiplayer has no save-load path);
-  Heater cooker (meat→steak) is RESOLVED as one `CookItemCommand` in a single
+  The remaining recorded items stay as before: non-craft
+  container-material spills (container break, UnloadAllItems children)
+  deliberately ride the container-item domain (real new world items);
+  noautopickup products ride the item domain's spawn path; mindwipe's
+  recipe-static reset (entity domain); save-restore recipe INT divergence
+  (multiplayer has no save-load path); Heater cooker (meat→steak) is RESOLVED
+  as one `CookItemCommand` in a single
   kernel batch (`src/CasualtiesUnknownOnline.GameState/Domains/Items/CookItemCommand.cs`,
   `ItemKernelAuthority.TryCook`) — see
   `docs/evidence/selfchecks/items/heater-cook-selfcheck.md`.

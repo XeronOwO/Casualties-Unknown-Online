@@ -27,16 +27,13 @@ namespace CasualtiesUnknownOnline.Runtime.Session;
 public sealed class SessionService : ICuoService, ISessionControl
 {
 	private const float PingInterval = 5f;
-	private const float MemberCheckInterval = 2f;
-	private const float HandshakeRetryInterval = 1f; // lazy Steam P2P sessions swallow early messages — retry fast so a cold-session join handshakes well before the host clicks start
 
 	private readonly ISteamService _steam;
 	private readonly PacketSender _sender;
 	private readonly NetworkTrafficMonitor _traffic;
 	private readonly ITimeSource _time;
 	private readonly ILogger<SessionService> _log;
-	private readonly IModListProvider _modListProvider;
-
+	private readonly SessionPeerMaintenance _peerMaintenance;
 	private readonly HostKickService _hostKick;
 
 	// Session-owned state — never registered as services (user rule: state
@@ -45,15 +42,10 @@ public sealed class SessionService : ICuoService, ISessionControl
 	private readonly SessionState _state = new();
 	private readonly MemberPresenceTable _presence = new();
 
-	/// <summary>Per-peer warm-up backoff — a peer whose Steam P2P session is broken must not be pinged every retry interval forever (the offline-member `k_EResultConnectFailed` noise).</summary>
-	private readonly PeerWarmupBackoff _warmupBackoff = new();
-
 	/// <summary>The lobby this client currently hosts or joined (0 = none) — tracked here so a real lobby change is distinguishable from a duplicate Steam callback.</summary>
 	private ulong _currentLobbyId;
 
 	private long _nextPingMs;
-	private long _nextMemberCheckMs;
-	private long _nextHandshakeRetryMs;
 
 	public SessionService(ISteamService steam, PacketSender sender, NetworkTrafficMonitor traffic, ITimeSource time,
 		IModListProvider modListProvider, ILogger<SessionService> log)
@@ -62,8 +54,10 @@ public sealed class SessionService : ICuoService, ISessionControl
 		_sender = sender;
 		_traffic = traffic;
 		_time = time;
-		_modListProvider = modListProvider;
 		_log = log;
+		_peerMaintenance = new SessionPeerMaintenance(
+			steam, sender, time, modListProvider, _identity, _state, _presence,
+			new PeerWarmupBackoff(), RemoveMember, EndSession, log);
 		_hostKick = new HostKickService(this, _sender, _log);
 
 		steam.LobbyCreated += OnLobbyCreated;
@@ -250,11 +244,11 @@ public sealed class SessionService : ICuoService, ISessionControl
 		// (Phase-0 finding), and the periodic ping only covers presence members.
 		// Without this a late joiner never gets host→guest traffic and its
 		// handshake dies (5003 connect timeout).
-		SendPeerWarmup();
+		_peerMaintenance.SendPeerWarmup();
 		if (!SessionActive)
 		{
-			RetryHandshakeIfNeeded();
-			CheckPeerPresence();
+			_peerMaintenance.RetryHandshakeIfNeeded();
+			_peerMaintenance.CheckPeerPresence();
 			return;
 		}
 
@@ -268,7 +262,7 @@ public sealed class SessionService : ICuoService, ISessionControl
 		// The entity-sync decisions and the 20 Hz stream run in
 		// EntitySyncService.Update; the receive dispatch in PacketDispatcher
 		// (both registered after us).
-		CheckPeerPresence();
+		_peerMaintenance.CheckPeerPresence();
 	}
 
 	void ICuoService.Stop()
@@ -370,7 +364,7 @@ public sealed class SessionService : ICuoService, ISessionControl
 			_log.LogInformation("Session role: Guest (lobby {LobbyId}, host {Host})", lobbyId, owner);
 		}
 
-		KickHandshake();
+		_peerMaintenance.KickHandshake();
 	}
 
 	private bool IsCurrentHost(ulong lobbyId) =>
@@ -378,127 +372,6 @@ public sealed class SessionService : ICuoService, ISessionControl
 		&& _identity.Role == SessionRole.Host
 		&& _identity.HostSteamId == _steam.LocalSteamId
 		&& SessionActive;
-
-	private void KickHandshake()
-	{
-		// Kick off the handshake: protocol version + our scene state. Retry
-		// periodically until acked (Steam P2P sessions establish lazily and
-		// swallow the first messages — retransmission also drives the session).
-		_nextHandshakeRetryMs = _time.NowMs + (long)(HandshakeRetryInterval * 1000f);
-		_sender.Send(HostSteamId, NetMsg.Handshake, CreateHandshakeMsg());
-	}
-
-	private void RetryHandshakeIfNeeded()
-	{
-		if (Role != SessionRole.Guest || HostSteamId == 0)
-		{
-			return;
-		}
-
-		var nowMs = _time.NowMs;
-		if (nowMs < _nextHandshakeRetryMs)
-		{
-			return;
-		}
-
-		_nextHandshakeRetryMs = nowMs + (long)(HandshakeRetryInterval * 1000f);
-		_sender.Send(HostSteamId, NetMsg.Handshake, CreateHandshakeMsg());
-		_log.LogInformation("Retrying handshake with {Host}…", HostSteamId);
-	}
-
-	/// <summary>Host-side warm-up for un-handshaken lobby peers (Steam P2P needs traffic both ways).</summary>
-	private void SendPeerWarmup()
-	{
-		if (Role != SessionRole.Host)
-		{
-			return;
-		}
-
-		var nowMs = _time.NowMs;
-		if (nowMs < _nextHandshakeRetryMs)
-		{
-			return;
-		}
-
-		_nextHandshakeRetryMs = nowMs + (long)(HandshakeRetryInterval * 1000f);
-		var ping = PingMsg.At(_time.UtcNowTicks);
-		foreach (var peer in _steam.GetLobbyMembers())
-		{
-			if (peer == _steam.LocalSteamId)
-			{
-				continue;
-			}
-
-			// Established members are kept alive by the periodic ping — warming
-			// up only the un-handshaken ones keeps the join window covered.
-			if (_presence.TryGetMember(peer, out var member) && member.Handshaken)
-			{
-				continue;
-			}
-
-			if (!_warmupBackoff.ShouldSend(peer, nowMs))
-			{
-				continue; // a recent failure streak is still backing off — do not hammer the broken session
-			}
-
-			if (_sender.TrySend(peer, NetMsg.Ping, ping))
-			{
-				_warmupBackoff.RecordSuccess(peer);
-			}
-			else
-			{
-				_warmupBackoff.RecordFailure(peer, nowMs);
-			}
-		}
-	}
-
-	// ---- Message handlers moved to Session/Handlers/ (HandshakeHandlers, SceneStateHandler, …) ----
-
-	// ---- Peer presence ----
-
-	private void CheckPeerPresence()
-	{
-		if (Role == SessionRole.None || !SessionActive)
-		{
-			return;
-		}
-
-		var nowMs = _time.NowMs;
-		if (nowMs < _nextMemberCheckMs)
-		{
-			return;
-		}
-
-		_nextMemberCheckMs = nowMs + (long)(MemberCheckInterval * 1000f);
-
-		var lobbyMembers = _steam.GetLobbyMembers();
-		if (Role == SessionRole.Host)
-		{
-			// Remove members that vanished from the lobby (each member is
-			// tracked individually — a 3-person lobby losing one guest keeps
-			// the other). The session itself CONTINUES — the host may be
-			// playing alone, and the next guest handshakes into the SAME
-			// session (ending it here would be irreversible: SessionActive
-			// only re-arms on OnLobbyCreated, so a guest leaving would kill
-			// the lobby the host still holds — observed: the guest quit, the
-			// host's session ended, and the rejoining guest could never
-			// handshake back in). Only the host's own absence ends the
-			// session (the guest branch below).
-			foreach (var memberId in _presence.Members.Select(m => m.SteamId).ToList())
-			{
-				if (!lobbyMembers.Contains(memberId))
-				{
-					RemoveMember(memberId, "left the lobby");
-				}
-			}
-		}
-		else if (!lobbyMembers.Contains(HostSteamId))
-		{
-			// The host is gone — no host migration in the MVP.
-			_log.LogWarning("Host left the lobby — ending session (save kept).");
-			EndSession();
-		}
-	}
 
 	/// <summary>
 	/// Host side: kick a guest out of the session. Sends the dedicated
@@ -560,11 +433,11 @@ public sealed class SessionService : ICuoService, ISessionControl
 
 		_presence.Clear();
 		_identity.HostSteamId = 0;
-		_nextHandshakeRetryMs = 0;
+		_peerMaintenance.ResetHandshakeRetry();
 		if (leaveLobby)
 		{
 			_currentLobbyId = 0;
-			_warmupBackoff.Reset(); // the failure history belongs to the old lobby — the next lobby starts clean
+			_peerMaintenance.ResetWarmup(); // the failure history belongs to the old lobby — the next lobby starts clean
 		}
 
 		if (hadSession)
@@ -578,19 +451,5 @@ public sealed class SessionService : ICuoService, ISessionControl
 		_traffic.Reset(); // per-session traffic and peer-health diagnostics are not reused across lobbies
 	}
 
-	private HandshakeMsg CreateHandshakeMsg() => new()
-	{
-		Protocol = ProtocolVersion.Current,
-		Scene = new SceneStateMsg { State = (byte)(_state.LocalInWorld ? SceneStateType.InWorld : SceneStateType.InMenu) },
-		// The declared mod list (Phase 4 Mod API consistency check — the host
-		// validates it before admitting the guest). Empty while the first-frame
-		// discovery has not run yet: a guest joining during its own Awake sends
-		// its first handshake with an empty list, the 1 s retry carries the
-		// real one (and a host without requirements accepts the empty list).
-		Mods = _modListProvider.CurrentModInfos(),
-		// The local display name: Steam persona in Steam mode, the configured
-		// custom name in IP-direct mode (the IP adapter answers this query).
-		DisplayName = _steam.GetPersonaName(LocalSteamId),
-	};
 	void ISessionControl.EndSession() => EndSession();
 }

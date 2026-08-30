@@ -4047,3 +4047,24 @@ kernel facts are now committed as one batch instead of two separate batches.
   and multiple `BuildingEntityHealthUpdatedEvent`s. Full suite 1751 green.
 - **Remaining** — item drops are still open as the next 4.2 cross-domain
   sub-step.
+
+## 143. Building-death drop provenance markers (2026-08-29)
+
+The first prep step for the trap-drop atomic collection: distinguish the
+cross-frame item drops produced by `BuildingEntity.Update`'s local death branch
+from block drops and ordinary runtime spawns.
+
+- **Call identity** — `CallContext.Origin.BuildingDeathDrop` is opened around
+  the local death branch by `BuildingEntityUpdatePatch` (the remote-death path
+  already returns before the original method and never opens it).
+- **Marker** — `BuildingDeathDropOrigin` is a pure MonoBehaviour attached from
+  `Item.Awake` while that scope is active. `Item.Awake` runs synchronously
+  inside the death branch's `Object.Instantiate` calls (BuildingEntity.cs:79,
+  102, 113), which is why no `Utils.Create` postfix can see these drops.
+- **OnItemInstantiated** — `ItemWorldSync` reads the marker and logs the
+  provenance; the submit path is intentionally unchanged at this stage, so the
+  drops still enter the world as standalone spawn reports.
+- **Tests** — `BuildingDeathDropProvenanceTests` locks the origin, the pure
+  marker, the `Item.Awake` patch shape, and the `PatchInventory` contract;
+  `BuildingDestructionReplayPatchTests` locks the new Prefix/Postfix state
+  shape. Full suite 1757 green.

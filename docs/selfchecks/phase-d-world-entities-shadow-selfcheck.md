@@ -49,11 +49,12 @@ into kernel-backed projection/snapshot adapters.
 | Destructive trap health classification is locked | `TrapDamageProfilesTests.DestructiveKinds_AreClassified`, `NonDestructiveKinds_RemainUnclassified`. |
 | Guest checkpoint restore projects non-one-shot trap state facts | `WorldEntityProjectionTests.GuestCheckpointRestore_ProjectsNonOneShotTrapStateFacts`. |
 | Guest checkpoint restore projects world-entity facts | `WorldEntityProjectionTests.GuestCheckpointRestore_ProjectsKernelWorldEntities`. |
+| Building-death drop provenance is locked | `BuildingDeathDropProvenanceTests` + `BuildingDestructionReplayPatchTests` (call identity, pure marker, `Item.Awake` patch shape, `PatchInventory` contract). |
 
 ## Verification
 
 - `dotnet build CasualtiesUnknownOnline.slnx`: 0 warnings / 0 errors.
-- `dotnet test CasualtiesUnknownOnline.slnx`: 1737 passed.
+- `dotnet test CasualtiesUnknownOnline.slnx`: 1757 passed.
 - `dotnet format`: applied.
 - Architecture/event/entity/isolation gates passed.
 
@@ -90,3 +91,9 @@ into kernel-backed projection/snapshot adapters.
    health entries captured in `TrapBuildingHealthScope` as one
    `CompositeGameCommand` batch through `IWorldControl.ReportTrapEvent`.
    Next is the cross-domain item-drop side-effect collection.
+7. [x] Building-death drop provenance markers landed:
+   `BuildingEntityUpdatePatch` opens `CallContext.Origin.BuildingDeathDrop`
+   around the local death branch, `Item.Awake` stamps `BuildingDeathDropOrigin`,
+   and `ItemWorldSync` logs the provenance while the submit path stays
+   standalone. The next sub-step is the pending trap-drop collection + composite
+   flush.

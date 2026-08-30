@@ -40,6 +40,82 @@ internal static class OnlineUiPreferencesDrawer
 
 		GUILayout.Space(10f);
 		DrawLanguage(ctx);
+
+		GUILayout.Space(10f);
+		DrawProfiles(ctx);
+	}
+
+	private static void DrawProfiles(OnlineUiContext ctx)
+	{
+		if (ctx.Profiles is not { } profiles)
+		{
+			return;
+		}
+
+		GUILayout.Label(ctx.T("prefs.profiles"), OnlineUiTheme.Section());
+		GUILayout.Label(ctx.T("prefs.profiles_hint"), OnlineUiTheme.MutedLabel());
+
+		GUILayout.BeginHorizontal();
+		GUILayout.Label(ctx.T("prefs.profile_name"), OnlineUiTheme.MutedLabel());
+		ctx.State.ProfileNameInput = GUILayout.TextField(ctx.State.ProfileNameInput, 32, GUILayout.Width(200f));
+		if (GUILayout.Button(ctx.T("prefs.profile_save"), OnlineUiTheme.Button(), GUILayout.Width(110f)))
+		{
+			var name = ctx.State.ProfileNameInput.Trim();
+			if (profiles.TrySaveCurrent(name, out var error))
+			{
+				ctx.State.ProfileNameInput = "";
+				SetProfileStatus(ctx, ctx.F("prefs.profile_saved", name), isError: false);
+			}
+			else
+			{
+				SetProfileStatus(ctx, ctx.F("prefs.profile_error", error), isError: true);
+			}
+		}
+
+		GUILayout.EndHorizontal();
+
+		GUILayout.Space(8f);
+		var saved = profiles.ListProfiles();
+		if (saved.Count == 0)
+		{
+			GUILayout.Label(ctx.T("prefs.profiles_empty"), OnlineUiTheme.MutedLabel());
+		}
+
+		foreach (var name in saved)
+		{
+			GUILayout.BeginHorizontal();
+			GUILayout.Label(name, OnlineUiTheme.Label());
+			GUILayout.FlexibleSpace();
+			if (GUILayout.Button(ctx.T("prefs.profile_apply"), OnlineUiTheme.Button(), GUILayout.Width(80f)))
+			{
+				SetProfileStatus(ctx, profiles.TryApply(name, out var error)
+					? ctx.F("prefs.profile_applied", name)
+					: ctx.F("prefs.profile_error", error),
+					isError: error.Length > 0);
+			}
+
+			if (GUILayout.Button(ctx.T("prefs.profile_delete"), OnlineUiTheme.Button(), GUILayout.Width(80f)))
+			{
+				SetProfileStatus(ctx, profiles.TryDelete(name, out var error)
+					? ctx.F("prefs.profile_deleted", name)
+					: ctx.F("prefs.profile_error", error),
+					isError: error.Length > 0);
+			}
+
+			GUILayout.EndHorizontal();
+		}
+
+		if (ctx.State.ProfileStatus is { } status)
+		{
+			var color = ctx.State.ProfileStatusIsError ? OnlineUiTheme.Error : OnlineUiTheme.Positive;
+			GUILayout.Label($"<color=#{ColorUtility.ToHtmlStringRGBA(color)}>{status}</color>", OnlineUiTheme.MutedLabel());
+		}
+	}
+
+	private static void SetProfileStatus(OnlineUiContext ctx, string status, bool isError)
+	{
+		ctx.State.ProfileStatus = status;
+		ctx.State.ProfileStatusIsError = isError;
 	}
 
 	private static void DrawLogLevel(OnlineUiContext ctx)

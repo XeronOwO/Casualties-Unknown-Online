@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
+using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Localization;
 using CasualtiesUnknownOnline.Runtime.OnlineUi;
 using CasualtiesUnknownOnline.Runtime.Session;
@@ -41,6 +42,9 @@ internal sealed class OnlineUiOverlay
 
 	/// <summary>The IP-direct config editor (address/port/display name fields).</summary>
 	internal IpDirectConfigEditor? IpConfig;
+
+	/// <summary>Full CUO config template store (saved named BepInEx profiles).</summary>
+	internal ConfigurationProfileStore? Profiles;
 
 	/// <summary>Set by the plugin each frame; true while the router is on the IP-direct path.</summary>
 	internal bool IpDirectActive;
@@ -156,6 +160,7 @@ internal sealed class OnlineUiOverlay
 			RulesEditor = rulesEditor,
 			Logging = logging,
 			Language = language,
+			Profiles = Profiles,
 			Adapter = adapter,
 			LastJoinError = lastJoinError,
 			State = _window.State,

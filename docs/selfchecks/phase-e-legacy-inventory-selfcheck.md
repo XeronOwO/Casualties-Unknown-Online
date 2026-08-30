@@ -37,11 +37,29 @@ land; it is not a permission to keep legacy code indefinitely.
 | 2026-08-30 | Remove test-only `KernelForDiagnostics` accessor | `ItemKernelAuthority.cs`, `ItemKernelConvenienceTests.cs`, `ItemSimWorld.cs` | `dotnet build` 0 warnings/0 errors; 1792 tests passed; format + architecture/event/entity/delivery gates passed |
 | 2026-08-30 | Extend no-legacy guard with removed diagnostic markers | `tools/check-no-legacy.ps1` | Architecture gate passed with `KernelShadow`/`KernelForDiagnostics`/`ItemDiagnosticsProjection` markers enabled |
 
+## Session reset audit (2026-08-30)
+
+- **Kernel authoritative reset** — `ItemKernelAuthority.ResetForSession()` is the only
+  production call site that creates a fresh `GameStateKernel` and increments the
+  `RunEpoch`. It is invoked from `ItemService.ResetSessionState()` on `SessionEnded`.
+- **Projection/transient reset** — `CharacterDataStore`, `WorldService`,
+  `EntitySyncService`, `EnemySyncService`, `PlayerCarryService`, and the other session
+  services clear only projection/transient caches on `SessionEnded`. They do not write
+  kernel domain tables directly.
+- **Protocol reset** — `KernelProtocolService.ResetForSessionEnd()` clears journal,
+  checkpoint chunks, and pending batches; `RunEpoch` filtering remains the wire-level
+  guard against old-epoch packets.
+- **Conclusion** — no per-domain session reset bypass was found. The current design is
+  already unified around a single kernel epoch reset plus projection caches; no
+  additional reset coordinator is required.
+
+
 ## Next actions
 
 1. [x] Land the `ItemCheckpointStore` removal.
 2. [x] Rename remaining Shadow-compatible names to non-shadow names where they are production
    entry points, keeping behavior identical.
-3. Audit per-domain session reset paths and move them onto `RunEpoch`/kernel restore.
+3. [x] Audit per-domain session reset paths; the audit found a single kernel reset
+   path and no bypass, so no reset-coordinator refactor is required.
 4. [x] Add the Phase E guard: a source scan that fails on legacy/double-write patterns that
    remain after the planned removals.

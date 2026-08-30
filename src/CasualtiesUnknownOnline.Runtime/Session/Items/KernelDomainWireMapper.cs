@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.GameState.Domains.Entities;
 using CasualtiesUnknownOnline.GameState.Domains.Fluids;
 using CasualtiesUnknownOnline.GameState.Domains.Players;
@@ -89,6 +90,14 @@ public static class KernelDomainWireMapper
 			{
 				Position = ToWireEntityPosition(o.Position),
 			})],
+			TrapStates = [.. (state?.TrapStates ?? []).Select(s => new WireTrapState
+			{
+				Position = ToWireEntityPosition(s.Position),
+				Kind = s.Kind,
+				Phase = (int)s.Phase,
+				Extra = s.Extra,
+				TransitionedAtMs = s.TransitionedAtMs,
+			})],
 		};
 
 	public static WorldEntityState FromWireWorldEntityState(WireWorldEntityState? state)
@@ -108,7 +117,13 @@ public static class KernelDomainWireMapper
 				FromWireEntityPosition(h.Position),
 				h.Health))],
 			[.. state.OpenedEntities.Select(o => new OpenedEntityFact(
-				FromWireEntityPosition(o.Position)))]);
+				FromWireEntityPosition(o.Position)))],
+			[.. state.TrapStates.Select(s => new TrapStateFact(
+				FromWireEntityPosition(s.Position),
+				s.Kind,
+				(TrapPhase)s.Phase,
+				s.Extra,
+				s.TransitionedAtMs))]);
 	}
 
 	public static WirePlayerState ToWirePlayerState(PlayerState state) =>
@@ -221,6 +236,42 @@ public static class KernelDomainWireMapper
 
 	public static IReadOnlyList<EntityId> FromWireRemovedEnemyIds(IEnumerable<WireEntityId> removed) =>
 		[.. removed.Select(FromWireEntityId)];
+
+	public static WireEvent ToWireTrapStateEvent(TrapStateChangedEvent state) =>
+		new()
+		{
+			Kind = WireEventKind.TrapStateChanged,
+			EntityPosition = ToWireEntityPosition(state.Position),
+			EntityKind = state.Kind,
+			Extra = state.Extra,
+			TriggeredAtMs = state.TransitionedAtMs,
+			TrapPhase = (int)state.Phase,
+		};
+
+	public static TrapStateChangedEvent FromWireTrapStateEvent(WireEvent @event) =>
+		new(
+			FromWireEntityPosition(@event.EntityPosition ?? throw new System.InvalidOperationException("TrapStateChanged event lacks position")),
+			@event.EntityKind,
+			(TrapPhase)@event.TrapPhase,
+			@event.Extra,
+			@event.TriggeredAtMs);
+
+	public static RecordTrapStateCommand FromWireRecordTrapStateCommand(
+		WireCommand command,
+		OperationId operation,
+		ActorId actor,
+		RunEpoch epoch,
+		AuthorityKind authority) =>
+		new(
+			operation,
+			actor,
+			epoch,
+			authority,
+			FromWireEntityPosition(command.EntityPosition ?? throw new System.InvalidOperationException("RecordTrapState command lacks position")),
+			command.EntityKind,
+			(TrapPhase)command.TrapPhase,
+			command.Extra,
+			command.TriggeredAtMs);
 
 	public static WireFluidRegionState ToWireFluidRegionState(FluidRegionState state) =>
 		new()

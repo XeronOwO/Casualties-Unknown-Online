@@ -34,6 +34,7 @@ public enum WirePayloadType
 	RecordEnemyBiteCommand = 23,
 	RecordEnemyLungeCommand = 24,
 	RecordEnemyEffectCommand = 25,
+	RecordTrapStateCommand = 26,
 
 	// Kernel events (critical)
 	ItemSpawnedEvent = 101,
@@ -61,6 +62,7 @@ public enum WirePayloadType
 	EnemyBiteResultEvent = 123,
 	EnemyLungeResultEvent = 124,
 	EnemyEffectResultEvent = 125,
+	TrapStateChangedEvent = 126,
 
 	// Envelope families
 	CommittedBatch = 100,

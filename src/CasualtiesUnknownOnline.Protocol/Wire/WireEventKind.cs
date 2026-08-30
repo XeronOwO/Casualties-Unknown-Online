@@ -32,4 +32,5 @@ public enum WireEventKind
 	EnemyBiteResult = 23,
 	EnemyLungeResult = 24,
 	EnemyEffectResult = 25,
+	TrapStateChanged = 26,
 }

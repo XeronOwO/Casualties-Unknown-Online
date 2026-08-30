@@ -130,10 +130,10 @@ Out of scope:
 
 | Date | Scope | Commits | Verification | Notes |
 |---|---|---|---|---|
-| _(none yet)_ | | | | |
+| 2026-08-30 | Phase E start: legacy inventory + remove dead `ItemCheckpointStore` | current | 1792 tests green; build/format/architecture/event/entity/delivery gates pass | Inventory recorded in `docs/selfchecks/phase-e-legacy-inventory-selfcheck.md`; removed the Phase B temporary in-memory checkpoint store and its DI registration/tests. |
 
 ## Next actions
 
 1. Read Phase D completion evidence in `status.md` and the Phase D selfcheck; include the ad-hoc prediction/rollback caches from tech-decisions.md #157 in the legacy inventory.
-2. Create the legacy inventory from `src/` search results.
+2. [x] Create the legacy inventory from `src/` search results.
 3. Delete in small batches with tests; do not leave an in-between dual architecture state longer than necessary.

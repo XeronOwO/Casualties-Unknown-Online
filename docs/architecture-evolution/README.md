@@ -5,12 +5,12 @@ iteration: replacing scattered authority stores and hook-coupled sync paths with
 typed, deterministic game-state kernel while preserving each gameplay domain's own
 semantics.
 
-> Status: **Phase D — completed**. The typed deterministic kernel is now
-> authoritative across all six Phase D domains; the next phase is
-> Phase E (delete dual architecture). The 4.3 prediction/rollback boundary is
-> closed: cross-player operations are host-validated without client prediction,
-> and the generic Prediction Runtime is deferred to Phase E
-> (see docs/tech-decisions.md #157).
+> Status: **Phase E — in progress**. Phase D is complete: the typed
+> deterministic kernel is authoritative across all six Phase D domains.
+> The 4.3 prediction/rollback boundary is closed: cross-player operations are
+> host-validated without client prediction, and the generic Prediction Runtime
+> is deferred to Phase E. Phase E has started with the legacy inventory and the
+> first dead-seam removal (see docs/selfchecks/phase-e-legacy-inventory-selfcheck.md).
 
 ## Why this exists
 
@@ -61,7 +61,7 @@ invariants.
 | B | Items authority | Every item fact has one authoritative write path; old tables are projections. | Completed |
 | C | Protocol/save switch | New envelopes and checkpoint join pass network simulation; old item wire handlers/DTOs/NetMsg enums removed. | Completed |
 | D | Full domain migration | All persistent gameplay facts live in kernel domains; epoch isolation works. | Completed |
-| E | Delete dual architecture | No `Legacy`/`Compat`/shadow double-write/two authority tables remain. | Not started |
+| E | Delete dual architecture | No `Legacy`/`Compat`/shadow double-write/two authority tables remain. | In progress |
 
 See [migration-roadmap.md](migration-roadmap.md) and the individual phase docs for
 entry/exit criteria.

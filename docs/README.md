@@ -75,12 +75,14 @@ Decisions / history / future
 | Document | Layer |
 |---|---|
 | [`tech-decisions.md`](tech-decisions.md) | Binding technical decisions with reasoning and traceability |
+| [`tech-decisions-index.md`](tech-decisions-index.md) | Numeric search index of decision entries |
 
 ## 6. Operations / Tooling / Deployment
 
 | Document | Layer |
 |---|---|
-| [`AGENTS.md`](../AGENTS.md) | General build/deploy guidance and gate commands |
+| [`operations.md`](operations.md) | Shared operations layer: build/gates, deployment, git discipline, local tools |
+| [`AGENTS.md`](../AGENTS.md) | Binding conventions and gate commands |
 | `AGENTS.local.md` (gitignored) | Machine-specific paths, sandboxes, HotRepl — never commit |
 | `tools/` | Architecture gates, feature-matrix scripts, replay helpers, deploy script |
 

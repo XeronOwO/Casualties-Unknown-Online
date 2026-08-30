@@ -17,9 +17,6 @@ public interface IEnemySyncControl
 	/// <summary>Guest side: apply an update-only 20 Hz enemy-state stream (never removes an id absent from the stream).</summary>
 	void ApplyEnemyStream(WireStateStream stream);
 
-	/// <summary>Guest side: apply an explicit enemy aggregate removal (the reliable lifecycle counterpart of the state stream).</summary>
-	void ApplyEnemyRemoved(EnemyRemovedMsg msg);
-
 	/// <summary>Guest side: apply the full enemy snapshot (world entry / late joiner — clears + repopulates).</summary>
 	void ApplyEnemySnapshot(EnemySnapshotMsg msg);
 

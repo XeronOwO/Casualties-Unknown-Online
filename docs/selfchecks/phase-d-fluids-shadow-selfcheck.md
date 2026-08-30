@@ -66,5 +66,12 @@ authoritative region checkpoint foundation.
    `FluidRegionFacts`/`FluidRegionsProjected`; `FluidKernelViewSync` consumes
    the rebuilt kernel facts through `FluidWorldSync`, separate from the RLE
    stream.
-3. Continue with the next Phase D domain (EnemyCombatDirector/targeting or the
-   remaining local-simulation use of the rebuilt fluid coarse facts).
+3. [x] Guest local fluid presentation remains the RLE absolute-overwrite
+   projection (`FluidRegionApplication`); there is no guest-side fluid
+   simulation by design. The coarse kernel facts stay a diagnostic/future
+   simulation seam (`FluidKernelViewSync`), not a second grid authority.
+4. [x] Fluid stream convergence/forbidden-operation semantics are locked:
+   every streamed region is an absolute RLE overwrite (`FluidRleCodecTests`,
+   `EntityEventSimulationTests.FluidRegion_LostUnreliableRegion_HealedByTheNextAbsoluteOverwrite`),
+   and kernel fluid aggregates are only changed through `UpdateFluidRegionCommand`
+   / `ResetFluidsCommand`, never by the high-frequency stream.

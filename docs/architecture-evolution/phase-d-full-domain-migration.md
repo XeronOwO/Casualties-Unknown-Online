@@ -119,8 +119,8 @@ For each domain, complete these steps in order:
 
 - [x] Split authoritative fluid region totals/types from simulation/visual grids.
 - [x] Define region checkpoint commands/events and periodic authoritative commits.
-- [ ] Move guest local fluid simulation into rebuildable projection.
-- [ ] Define convergence fields and forbidden stream operations (no aggregate creation/destruction).
+- [x] Move guest local fluid simulation into rebuildable projection.
+- [x] Define convergence fields and forbidden stream operations (no aggregate creation/destruction).
 - [x] Add property tests for region/total invariants under random updates.
 
 ### 4.6 High-frequency stream unification
@@ -232,6 +232,7 @@ For each domain, complete these steps in order:
 | 2026-08-29 | Enemy target resolver extraction | `feac618`, `7adce8f` | 1771 tests green; build/format/architecture/event/entity/isolation/delivery gates pass | `EnemyTargetResolver` plus top-level `EnemyTarget` now own candidate-set building, find-back, and limb-index selection; `EnemyCombatDirector` keeps only the ordering/reporting responsibilities. `EnemyTargetResolverContractTests` locks the shape. Behavior-preserving. See `docs/selfchecks/phase-d-enemies-shadow-selfcheck.md`. |
 | 2026-08-30 | Enemy combat order policy extraction | `current` | 1780 tests green; build/format/architecture/event/entity/isolation/delivery gates pass | `EnemyCombatOrderPolicy` extracts the remaining host-side apply-path decisions (spider bite, crystal lunge, item-hit fallback) out of `EnemyCombatDirector` into a pure Runtime surface; the director is rewired to consume it, and `EnemyCombatOrderPolicyTests` locks null/remote/local/fallback/none. `EnemyAttackMsg` remains the separate host-ordered local-apply command. See `docs/selfchecks/phase-d-enemies-shadow-selfcheck.md`. |
 | 2026-08-30 | Spider-bite local-path handoff to order policy | `current` | 1780 tests green; build/format/architecture/event/entity/isolation/delivery gates pass | `EnemyCombatArbitration.SelectBiteVictim` no longer filters out the local body; it returns the nearest victim inside bite range and `EnemyCombatOrderPolicy.DecideSpiderBite` decides whether the local native path or a remote host-ordered attack applies. The director behavior is unchanged, but the order policy's `LocalNative` branch is now production-reachable and tested through the arbitration contract. See `docs/selfchecks/phase-d-enemies-shadow-selfcheck.md`. |
+| 2026-08-30 | Fluids guest projection + convergence semantics closed | `current` | Docs | The guest fluid path is now recorded as the rebuildable RLE absolute-overwrite projection; coarse kernel facts remain a diagnostic/future simulation seam and are not a second grid authority. Fluid stream convergence/forbidden-operation semantics are locked by the existing RLE/absolute-overwrite and kernel command tests. See `docs/selfchecks/phase-d-fluids-shadow-selfcheck.md`. |
 
 ## Next actions
 

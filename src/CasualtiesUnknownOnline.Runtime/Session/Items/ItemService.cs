@@ -293,7 +293,6 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 		_idCoordinator.ResetForSessionEnd();
 		_snapshots.ResetForSessionEnd();
 		_itemTraffic.Reset();
-		_kernelAuthority.ResetForSession();
 	}
 
 	private void OnSessionEnded() => ResetSessionState();

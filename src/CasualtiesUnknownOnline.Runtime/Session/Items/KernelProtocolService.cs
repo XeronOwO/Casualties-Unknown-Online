@@ -291,6 +291,7 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 
 	public void ResetForSessionEnd()
 	{
+		_authority.ResetForSession();
 		_journal.Clear();
 		_checkpointChunks.Clear();
 		_pendingBatches.Clear();

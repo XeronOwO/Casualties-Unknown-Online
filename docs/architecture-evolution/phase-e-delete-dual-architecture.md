@@ -141,6 +141,7 @@ Out of scope:
 | 2026-08-30 | Phase E ninth batch: add command-authority guard | current | Architecture gate passed | Added `tools/check-command-authority.ps1` and wired it into `check-architecture.ps1`; every `GameCommand` subclass must now carry an authority policy. |
 | 2026-08-30 | Phase E tenth batch: add kernel-shape guard | current | Architecture gate passed | Added `tools/check-kernel-shape.ps1`; GameState kernel rejects string-keyed dictionaries and `Hashtable` state. |
 | 2026-08-30 | Phase E eleventh batch: remove ItemService kernel facade | current | 1792 tests green; build/format/architecture/event/entity/delivery gates pass | `CraftSyncService` now depends on `ItemKernelAuthority` directly; `ItemService.KernelAuthority` passthrough removed. |
+| 2026-08-30 | Phase E twelfth batch: centralize kernel reset in kernel protocol lifecycle | current | 1792 tests green; build/format/architecture/event/entity/delivery gates pass | `KernelProtocolService.ResetForSessionEnd()` now calls `ItemKernelAuthority.ResetForSession()` first; `ItemService` no longer owns the kernel reset. |
 
 ## Next actions
 

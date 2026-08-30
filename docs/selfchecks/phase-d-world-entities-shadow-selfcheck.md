@@ -46,6 +46,7 @@ into kernel-backed projection/snapshot adapters.
 | Host world control reports commit kernel facts | `WorldEntityProjectionTests.HostReports_CommitKernelWorldEntities`. |
 | Host world control reports commit kernel trap state facts | `WorldEntityProjectionTests.HostReports_CommitKernelTrapStateFacts`. |
 | Live `EntityEventKind` → `TrapPhase` classification is locked | `TrapStateProfilesTests.StatefulKinds_MapToExpectedPhase`, `VisualOnlyKinds_RemainUnclassified`. |
+| Destructive trap health classification is locked | `TrapDamageProfilesTests.DestructiveKinds_AreClassified`, `NonDestructiveKinds_RemainUnclassified`. |
 | Guest checkpoint restore projects non-one-shot trap state facts | `WorldEntityProjectionTests.GuestCheckpointRestore_ProjectsNonOneShotTrapStateFacts`. |
 | Guest checkpoint restore projects world-entity facts | `WorldEntityProjectionTests.GuestCheckpointRestore_ProjectsKernelWorldEntities`. |
 

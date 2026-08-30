@@ -230,6 +230,7 @@ For each domain, complete these steps in order:
 | 2026-08-29 | Guest fluid kernel read projection adapter view | `88eafa9` | 1765 tests green; build/format/architecture/event/entity/isolation/delivery gates pass | `IWorldControl` exposes `FluidRegionFacts`/`FluidRegionsProjected`; `FluidKernelViewSync` consumes the guest kernel fluid read projection into a GameAdapter-side rebuildable coarse view and logs rebuilds, separate from the RLE grid stream. See `docs/selfchecks/phase-d-fluids-shadow-selfcheck.md`. |
 | 2026-08-29 | Enemy combat policy extraction | `2800149` | 1769 tests green; build/format/architecture/event/entity/isolation/delivery gates pass | `EnemyCombatPolicy` extracts the pure spider/crystal combat thresholds from `EnemyCombatDirector` into Runtime-testable constants; `CrystalLungeTrace` is split into a top-level adapter type. Behavior-preserving refactor, the first step before kernelizing the director's decisions. See `docs/selfchecks/phase-d-enemies-shadow-selfcheck.md`. |
 | 2026-08-29 | Enemy target resolver extraction | `feac618`, `7adce8f` | 1771 tests green; build/format/architecture/event/entity/isolation/delivery gates pass | `EnemyTargetResolver` plus top-level `EnemyTarget` now own candidate-set building, find-back, and limb-index selection; `EnemyCombatDirector` keeps only the ordering/reporting responsibilities. `EnemyTargetResolverContractTests` locks the shape. Behavior-preserving. See `docs/selfchecks/phase-d-enemies-shadow-selfcheck.md`. |
+| 2026-08-30 | Enemy combat order policy extraction | `current` | 1780 tests green; build/format/architecture/event/entity/isolation/delivery gates pass | `EnemyCombatOrderPolicy` extracts the remaining host-side apply-path decisions (spider bite, crystal lunge, item-hit fallback) out of `EnemyCombatDirector` into a pure Runtime surface; the director is rewired to consume it, and `EnemyCombatOrderPolicyTests` locks null/remote/local/fallback/none. `EnemyAttackMsg` remains the separate host-ordered local-apply command. See `docs/selfchecks/phase-d-enemies-shadow-selfcheck.md`. |
 
 ## Next actions
 
@@ -242,3 +243,6 @@ For each domain, complete these steps in order:
 3. [x] Continue high-frequency stream alignment for player/enemy continuous fields
    with `WireStateStream` / `StateStreamEnvelope`, keeping terminal facts on
    domain events.
+4. [ ] Decide how the extracted `EnemyCombatOrderPolicy` apply paths feed a
+   kernel process/events; `EnemyAttackMsg` stays the host-order local-apply
+   command and is not merged into presentation.

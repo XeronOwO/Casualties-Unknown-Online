@@ -30,6 +30,7 @@ durable entity identity/health/runtime-spawn facts.
 | Combat policy constants | `EnemyCombatPolicy` | Pure Runtime thresholds extracted from `EnemyCombatDirector` (spider bite range, crystal close/ray length, lunge tolerance), lockable by tests. |
 | Lunge trace detail | `CrystalLungeTrace` | Top-level adapter type split out of `EnemyCombatDirector` so the director stays focused on ordering/reporting. |
 | Target resolver | `EnemyTargetResolver` + `EnemyTarget` | Extracted the candidate-set building/finding/limb-index responsibility from `EnemyCombatDirector`; the director now only orders/reports using the resolver’s results. |
+| Order policy | `EnemyCombatOrderPolicy` | Pure `ApplyPath` decision surface for the remaining `EnemyCombatDirector` ordering choices: remote order vs local native for spider bite/crystal lunge, and host item fallback for item-vs-enemy hits. The director still owns the Unity-side execution/reporting. |
 
 ## Evidence table
 
@@ -55,15 +56,16 @@ durable entity identity/health/runtime-spawn facts.
 | Host/guest combat-result projection restores presentation events | `EnemyBiteSyncTests`, `EnemyLungeSyncTests`, `EnemyEffectSyncTests` (host-own and guest-report star semantics; source victim skipped). |
 | Enemy combat policy constants are locked | `EnemyCombatPolicyTests` (spider bite range, crystal close range, lunge ray/tolerance). |
 | Enemy target resolver contract is locked | `EnemyTargetResolverContractTests` (resolver exposes `BuildCandidates`/`Find`/`Facts`/`SelectLimbIndex`/`LocalBody`, `EnemyTarget.ToFact`). |
+| Enemy combat order policy is locked | `EnemyCombatOrderPolicyTests` (null/remote/local for spider bite and crystal lunge, native/fallback/none for item hits). |
 
 ## Verification
 
 - `dotnet build CasualtiesUnknownOnline.slnx`: 0 warnings / 0 errors.
-- `dotnet test CasualtiesUnknownOnline.slnx`: 1771 passed.
+- `dotnet test CasualtiesUnknownOnline.slnx`: 1780 passed.
 - `dotnet format`: applied.
 - Architecture/event/entity/isolation/delivery gates passed; architecture split added
-  `ItemKernelCodec`, `KernelDomainWireMapper`, `EnemyCombatKernelCodec`, and
-  `EnemyCombatWireMapper` to keep large types under 600.
+  `ItemKernelCodec`, `KernelDomainWireMapper`, `EnemyCombatKernelCodec`,
+  `EnemyCombatWireMapper`, and `EnemyCombatOrderPolicy` to keep large types under 600.
 
 ## Structure review
 
@@ -96,3 +98,8 @@ durable entity identity/health/runtime-spawn facts.
    find-back and limb-index responsibilities now live outside the director.
    Behavior-preserving; the next step is moving the remaining ordering decisions
    into a kernel policy/process or a smaller pure layer.
+7. [x] Extract `EnemyCombatOrderPolicy`: the remaining apply-path branches
+   (spider bite, crystal lunge, item hit fallback) now go through a pure
+   Runtime decision surface with L0 tests. The director remains the Unity-side
+   executor/reporter; the next step is deciding whether these apply paths
+   become kernel processes/events or stay host-order commands.

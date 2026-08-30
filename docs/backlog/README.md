@@ -60,7 +60,8 @@ Open work only. Landed delivery details are not duplicated here; they live in:
 - **Head name tags (color-only, join/leave-safe)** — show only the player name
   above the head, colored per the player's selected color; no redundant vitals,
   status, or distance text on the head tag. When the target is off-screen, show
-  the corresponding colored arrow + distance in meters. Late joiners must
+  the corresponding colored arrow + distance in meters **and the player name**;
+  color alone is not sufficient to distinguish players. Late joiners must
   immediately receive existing players' name/color, and mid-session leave,
   join, and reconnect must add/remove tags without stale entries (KrokMP-style
   late join currently misses name display).

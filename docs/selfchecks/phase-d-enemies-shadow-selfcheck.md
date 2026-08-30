@@ -12,13 +12,13 @@ durable entity identity/health/runtime-spawn facts.
 |---|---|---|
 | Entity identity | `Domains/Entities/EntityId.cs` | Epoch/counter/generation matching the Runtime NetworkEntityId shape. |
 | Enemy fact | `Domains/Entities/EnemyState.cs` | Prefab, health, runtime-spawn, stunned. |
-| Enemy table | `Domains/Entities/EnemyStateTable.cs` | Immutable snapshot with upsert/remove. |
-| Commands | `UpsertEnemyCommand`, `RemoveEnemyCommand`, `ResetEnemiesCommand` | Host-only lifecycle/health commands. |
-| Events | `EnemyUpsertedEvent`, `EnemyRemovedEvent`, `EnemiesResetEvent` | Reduce into the table. |
-| Domain module | `EnemyDomainModule.cs` | Decide/reduce/invariant; invalid health rejected, unique entity ids enforced. |
+| Enemy table | `Domains/Entities/EnemyStateTable.cs` | Immutable snapshot with upsert/remove plus terminal `Removed` tombstones. |
+| Commands | `UpsertEnemyCommand`, `RemoveEnemyCommand`, `ResetEnemiesCommand` | Host-only lifecycle/health commands; `UpsertEnemyCommand` rejects a removed id. |
+| Events | `EnemyUpsertedEvent`, `EnemyRemovedEvent`, `EnemiesResetEvent` | Reduce into the table; an upsert event for a removed id is a replay-safe no-op. |
+| Domain module | `EnemyDomainModule.cs` | Decide/reduce/invariant; invalid health rejected, unique entity ids enforced, post-removal upserts rejected. |
 | Kernel integration | `GameStateKernel`, `GameStateStore`, `KernelReadModel`, `MutableKernelState`, `GameCheckpoint` | `EnemyStateTable?` is a kernel domain table and checkpoint field. |
-| Wire DTOs | `WireEnemyState`, `WireEntityId` | Protocol remains GameState-free. |
-| Mapper/save | `KernelDomainWireMapper`, `KernelWireMapper`, `WireCheckpointAssembler`, `KernelSaveFileStore`, `KernelSaveFile` | Enemy facts round-trip through wire checkpoints and disk saves. |
+| Wire DTOs | `WireEnemyState`, `WireEntityId`, `WireCheckpoint.RemovedEnemies`, `KernelSaveFile.RemovedEnemies` | Protocol remains GameState-free; tombstones ride checkpoint and save containers. |
+| Mapper/save | `KernelDomainWireMapper`, `KernelWireMapper`, `WireCheckpointAssembler`, `KernelSaveFileStore`, `KernelSaveFile` | Enemy facts and terminal tombstones round-trip through wire checkpoints and disk saves. |
 | Entity-sync projection | `EnemyKernelProjection` + `EnemySyncService` | Host `PublishEnemyStates` change-gated projects the enemy set into kernel and removes stale entries. |
 | Restore projection | `EnemyKernelRestoreProjection` + `EnemySyncService` | Host world-entry/reconnect snapshots and guest full-snapshot application overlay kernel `EnemyStateTable` terminal facts (health, stunned, prefab, runtime-spawn) onto `EnemyEntity`; continuous presentation fields (position/velocity/rotation/legs/telegraph) remain from the snapshot/stream. |
 | Combat-result payloads | `EnemyCombatLimb`, `EnemyCombatEffectKind` | Kernel-shaped post-bite/lunge limb and proximity-effect discriminator; no Runtime DTOs leak into GameState. |
@@ -37,6 +37,12 @@ durable entity identity/health/runtime-spawn facts.
 | Wire batch preserves an enemy event | `EnemyDomainKernelTests.WireBatchRoundTrip_PreservesEnemyUpsertedEvent`. |
 | Checkpoint chunks preserve enemies | `EnemyDomainKernelTests.CheckpointSplitAssemble_RoundTripsEnemies`. |
 | Save/load preserves enemies | `EnemyDomainKernelTests.SaveLoad_RoundTripsEnemies`. |
+| Post-removal upsert is rejected and reset restarts lifecycle | `EnemyDomainKernelTests.UpsertRemoveAndReset_DriveEnemyTable`. |
+| Replay upsert after removal does not resurrect | `EnemyDomainKernelTests.ReplayUpsertAfterRemoval_DoesNotResurrect`. |
+| Duplicate removal keeps a single tombstone | `EnemyDomainKernelTests.RemoveTwice_KeepsSingleTombstone`. |
+| Checkpoint chunks preserve tombstones | `EnemyDomainKernelTests.CheckpointSplitAssemble_RoundTripsRemovedTombstones`. |
+| Save/load preserves tombstones | `EnemyDomainKernelTests.SaveLoad_RoundTripsRemovedTombstones`. |
+| Guest checkpoint restore seeds the removed set | `EnemySyncServiceTests.CheckpointTombstone_SeedsGuestRemovedSet`. |
 | Host enemy publish commits kernel facts | `EnemyProjectionTests.HostPublishEnemyStates_CommitsKernelEnemyTable`. |
 | Host world-entry snapshot projects kernel terminal facts | `EnemySyncServiceTests.HostSendEnemySnapshot_ProjectsKernelTerminalFacts`. |
 | Guest full-snapshot apply projects kernel terminal facts | `EnemySyncServiceTests.GuestApplyEnemySnapshot_ProjectsKernelTerminalFacts` (health, stunned, prefab, runtime-spawn from kernel; snapshot position remains). |
@@ -48,7 +54,7 @@ durable entity identity/health/runtime-spawn facts.
 ## Verification
 
 - `dotnet build CasualtiesUnknownOnline.slnx`: 0 warnings / 0 errors.
-- `dotnet test CasualtiesUnknownOnline.slnx`: 1702 passed.
+- `dotnet test CasualtiesUnknownOnline.slnx`: 1712 passed.
 - `dotnet format`: applied.
 - Architecture/event/entity/isolation/delivery gates passed; architecture split added
   `ItemKernelCodec`, `KernelDomainWireMapper`, `EnemyCombatKernelCodec`, and
@@ -73,3 +79,6 @@ durable entity identity/health/runtime-spawn facts.
    update-only and aggregate removal rides the kernel `EnemyRemovedEvent`
    committed batch; see
    `docs/selfchecks/phase-d-high-frequency-stream-unification-selfcheck.md`.
+4. [x] Make enemy removal terminal in the kernel: `EnemyStateTable` carries
+   `Removed` tombstones, post-removal upserts are rejected, and tombstones
+   persist through checkpoint/wire/save and seed the guest restore path.

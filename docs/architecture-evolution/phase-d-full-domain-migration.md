@@ -113,7 +113,7 @@ For each domain, complete these steps in order:
 - [ ] Keep high-frequency enemy positions/animations as stream/projection.
 - [ ] Absorb existing `EnemyCombatDirector` style host decisions into kernel processes/policies.
 - [ ] Migrate enemy replay/snapshot to kernel events.
-- [ ] Add invariant tests: no post-destroy damage; no duplicate operations on replay.
+- [x] Add invariant tests: no post-destroy damage; no duplicate operations on replay.
 
 ### 4.5 Fluids
 
@@ -214,6 +214,7 @@ For each domain, complete these steps in order:
 | 2026-08-29 | Fluids guest kernel read projection | `5fc4083` | 1706 tests green; build/format/architecture/event/entity/isolation/delivery gates pass | `FluidKernelReadProjection` rebuilds a guest-side mirror of `FluidStateTable` from `CheckpointRestored` and `BatchApplied` (`FluidRegionUpdatedEvent`/`FluidsResetEvent`); `WorldService.FluidRegionFacts` exposes the read model while the high-frequency RLE grid stream remains the live view path. See `docs/selfchecks/phase-d-fluids-shadow-selfcheck.md`. |
 | 2026-08-29 | WorldEntities destroyed-building invariant | `68eeffa` | 1708 tests green; build/format/architecture/event/entity/isolation/delivery gates pass | `WorldEntityDomainModule` now rejects a positive building-health report after a recorded zero-health (destroyed) fact, while preserving idempotent zero reports. Added invariant tests for both branches. See `docs/selfchecks/phase-d-world-entities-shadow-selfcheck.md`. |
 | 2026-08-29 | Enemy aggregate removal through kernel batches | `09468d5` | 1707 tests green; build/format/architecture/event/entity/isolation/delivery gates pass | Guest `EnemySyncService` now applies `EnemyRemovedEvent` from `BatchApplied` and raises `EnemyRemovedReceived`; host no longer sends `EnemyRemovedMsg`. `NetMsg.EnemyRemoved`, `EnemyRemovedMsg`, `EnemyRemovedHandler`, and `IEnemySyncControl.ApplyEnemyRemoved` are removed; `ProtocolVersion.Current` bumped to 53. See `docs/selfchecks/phase-d-high-frequency-stream-unification-selfcheck.md`. |
+| 2026-08-29 | Enemy removal terminal tombstones + replay safety | `92b1c98`, `9134257` | 1712 tests green; build/format/architecture/event/entity/isolation/delivery gates pass | `EnemyStateTable` now carries terminal `Removed` tombstones; a post-removal `UpsertEnemyCommand` is rejected with `InvalidTransition`; an `EnemyUpsertedEvent` replay for a removed id is a no-op; tombstones ride checkpoint/wire/save (`WireCheckpoint.RemovedEnemies`/`KernelSaveFile.RemovedEnemies`) and guest `EnemySyncService` seeds `_removedEnemies` from checkpoint restore. `ProtocolVersion.Current` reset to 1 as the unreleased baseline. See `docs/selfchecks/phase-d-enemies-shadow-selfcheck.md`. |
 
 ## Next actions
 

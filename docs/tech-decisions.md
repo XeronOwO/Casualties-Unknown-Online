@@ -4025,12 +4025,17 @@ kernel facts are now committed as one batch instead of two separate batches.
   `IWorldControl.ReportTrapEvent` after `TrapEffectApplier` applies a
   guest-triggered event, so the same composite covers guest-originated trap
   triggers.
+- **Building health** — for destructive trap kinds (`MineExploded`,
+  `TurretSelfDestructed`, `CrystalFragileBroken`, `CrystalUnstableExploded`),
+  the host reads the trap entity's post-trigger zero health and adds
+  `RecordBuildingEntityHealthCommand` to the same composite, so the destroyed
+  trap's health fact is atomic with its consumption/state transition.
 - **Wire** — the composite is host-only; the resulting normal `CommittedBatch`
   rides `KernelEnvelope` and replays on guests through the existing apply path.
 - **Visual-only events** — no kernel command is emitted when the event is
   neither one-shot nor stateful, so the composite is a no-op.
 - **Tests** — `WorldEntityProjectionTests.HostReportTrapEvent_CommitsOneAtomicKernelBatch`
-  locks one committed batch with both `TrapConsumedEvent` and
-  `TrapStateChangedEvent`. Full suite 1741 green.
-- **Remaining** — the item drop / building-health side-effect collection is
-  still open as the next 4.2 cross-domain sub-step.
+  locks one committed batch with `TrapConsumedEvent`, `TrapStateChangedEvent`,
+  and `BuildingEntityHealthUpdatedEvent`. Full suite 1741 green.
+- **Remaining** — item drops and affected multi-entity building-health
+  side-effect collection are still open as the next 4.2 cross-domain sub-step.

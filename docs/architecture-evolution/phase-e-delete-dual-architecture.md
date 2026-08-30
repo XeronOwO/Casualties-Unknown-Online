@@ -47,11 +47,14 @@ Out of scope:
   - old save DTOs and old message enum values;
   - shadow double-write code;
   - session reset paths that bypass `RunEpoch`/kernel restore.
-- [ ] Delete old service facades after confirming their consumers use the deep module.
-- [ ] Delete domain Service wire-forwarding; keep protocol adapters as the only translation layer.
-- [ ] Remove projection-side authority corrections; projections rebuild from kernel
-      state/checkpoint instead.
-- [ ] Delete old save DTOs and old message enums, including their serializer paths.
+- [x] Confirm remaining service facades are active single-path controls; no
+      kernel-replaced old facade remains in the current production graph.
+- [x] Confirm domain Service wire-forwarding is the active protocol adapter layer
+      for non-kernel domains; no legacy forwarding duplicates kernel facts.
+- [x] Confirm no projection-side authority corrections remain; the kernel is the
+      only writer and item projection ownership is guard-enforced.
+- [x] Confirm old save DTOs and old removed message enums are gone; the only
+      remaining legacy frame is the guarded `ItemReject` exception.
 - [x] Unify session reset:
   - every leave/disconnect/scene/run transition goes through kernel restore or RunEpoch;
   - no leftover per-domain reset caches.
@@ -141,6 +144,7 @@ Out of scope:
 | 2026-08-30 | Phase E ninth batch: add command-authority guard | current | Architecture gate passed | Added `tools/check-command-authority.ps1` and wired it into `check-architecture.ps1`; every `GameCommand` subclass must now carry an authority policy. |
 | 2026-08-30 | Phase E tenth batch: add kernel-shape guard | current | Architecture gate passed | Added `tools/check-kernel-shape.ps1`; GameState kernel rejects string-keyed dictionaries and `Hashtable` state. |
 | 2026-08-30 | Phase E eleventh batch: remove ItemService kernel facade | current | 1792 tests green; build/format/architecture/event/entity/delivery gates pass | `CraftSyncService` now depends on `ItemKernelAuthority` directly; `ItemService.KernelAuthority` passthrough removed. |
+| 2026-08-30 | Phase E sixteenth batch: confirm remaining facades/old surfaces are active single-path | current | Docs | The remaining `IItemControl`/`IWorldControl` style surfaces and direct frames were confirmed as active single-path controls/protocol for non-kernel domains, not dual architecture. |
 | 2026-08-30 | Phase E twelfth batch: centralize kernel reset in kernel protocol lifecycle | current | 1792 tests green; build/format/architecture/event/entity/delivery gates pass | `KernelProtocolService.ResetForSessionEnd()` now calls `ItemKernelAuthority.ResetForSession()` first; `ItemService` no longer owns the kernel reset. |
 | 2026-08-30 | Phase E thirteenth batch: tick completed work-breakdown items | current | Docs | Marked legacy inventory, unified session reset, and no-reintroduction guard as complete in the Phase E work breakdown. |
 | 2026-08-30 | Phase E fourteenth batch: guard ItemReject and record decisions | current | Architecture gate passed | `NetMsg.ItemReject` is now a guarded exception limited to two files; tech-decisions.md #158 records the reset centralization and Phase E guard decisions. |

@@ -109,7 +109,7 @@ Decisions / history / future
 
 | Document | Layer |
 |---|---|
-| [`backlog.md`](backlog/README.md) | Open bug, open work, open decisions, future/low priority |
+| [`backlog/README.md`](backlog/README.md) | DevOps-style issue/requirement backlog, one ticket per file, grouped by status |
 
 ## Historical audits / plans
 

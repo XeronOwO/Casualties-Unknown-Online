@@ -1,112 +1,80 @@
 # CUO Backlog
 
-Open work only. Landed delivery details are not duplicated here; they live in:
+DevOps-style issue/requirement backlog. Every item has its own ticket file under one
+status folder; moving a ticket to another folder is the status transition.
 
-- [`docs/decisions/active.md`](../decisions/active.md) — binding decisions / landing log
-- [`docs/evidence/selfchecks/`](../evidence/selfchecks/) — per-delivery fact sheets
-- [`docs/features/items.md`](../features/items.md) and
-  [`docs/features/entities.md`](../features/entities.md) — canonical feature sync matrices
+## Workflow
 
-## Status
+```text
+todo/  →  in-progress/  →  review/  →  done/
+                             ↓
+                          future/       (deferred / low priority / future work)
+                          resolved/     (decision recorded, no code action)
+                          watchlist/    (observability / architecture watch items)
+```
 
-- **Host close-room safe exit closed (2026-08-31)** — session teardown defers
-  the menu return out of Steam/UI callbacks and the host persists the native run
-  save before leaving a live world; see
-  `docs/evidence/selfchecks/session/host-close-room-safe-exit-selfcheck.md`.
-- Native game-content sync coverage is complete: item and entity feature matrices
-  currently have no `missing` rows.
-- The typed deterministic kernel migration (Phases A–E) is complete; future
-  architecture work is listed under "Future / low priority".
-- Item snapshot event-version gating is implemented: unreliable full-table
-  keyframes carry a per-payload sequence plus the host kernel revision, and
-  guests drop stale/out-of-order snapshots.
-- Architecture split pass completed: the previously near-limit item/session/
-  character coordinators now delegate real responsibilities to dedicated
-  helper classes and no coordinator is close to the 600-line gate.
-- Custom configuration template system landed (2026-08-31) — full BepInEx
-  config profiles can be saved/applied from the Preferences page; see
-  `docs/evidence/selfchecks/tooling/config-profile-templates-selfcheck.md`.
-- IP-direct display-name validation landed — the local side refuses
-  host/join with an empty/malformed name and the host rejects inbound peers
-  with an invalid name; see
-  `docs/evidence/selfchecks/protocol/ip-direct-name-validation-selfcheck.md`.
-- World-time manual-acceleration policy closed: `Fast`/`SuperFast` are
-  cooperative; they never accelerate a session while any in-world player is
-  awake. The all-unconscious sleep policy remains the only shared-clock
-  acceleration.
-- Player-selectable colors and color-only head name tags landed — a local
-  palette picker is shared through handshake/roster/live updates, head tags
-  show only the colored player name, and off-screen markers keep name + distance.
+- **One ticket = one file.**
+- Copy this README's status table as the index; the ticket files are the source of truth.
+- Status is the parent folder, not a field in the file (the file repeats it for readability).
+- Final user acceptance items live in `review/` until verified.
+- Closed delivery tickets live in `done/` with links to the corresponding selfcheck.
 
-## Open work
+## Status folders
 
-### Player interaction / UI
+| Folder | Meaning |
+|---|---|
+| `todo/` | Open work, not started |
+| `in-progress/` | Active development in progress |
+| `review/` | Code/verification done, needs acceptance/verification pass |
+| `done/` | Landed / closed |
+| `future/` | Deferred, low priority, or future architecture work |
+| `resolved/` | Decisions resolved without further code action |
+| `watchlist/` | Maintainability / architecture watch items |
 
-- **PVP** — LOW (reprioritized). No player-to-player damage domain today; defer
-  until PvE, rules, and accept-first arbitration are stable.
-- **Other lower-priority KrokMP candidates** — voice, vote-kick, and remaining
-  player-list polish.
+## Ticket index
 
-### Networking observability / optimization
+### Todo
 
-Measurement-first items; do not optimize before data exists.
+- [PVP](todo/pvp.md) — low priority, deferred until PvE/rules stable.
+- [KrokMP lower-priority candidates](todo/krokmp-candidates.md) — voice, vote-kick, player-list polish.
+- [State-stream bandwidth reduction](todo/state-stream-bandwidth-reduction.md) — measurement-first.
+- [Snapshot size reduction](todo/snapshot-size-reduction.md) — measurement-first.
 
-- **State-stream bandwidth reduction** — candidates include fixed-point/quantized
-  positions, per-entity update masks / delta encoding, field-dirty batching for
-  20 Hz player/enemy streams and 1 Hz `CharacterDataMsg`. No change before
-  measurement.
-- **Snapshot size reduction** — full world-item / character-data snapshots are
-  correctness-oriented; only optimize after the traffic monitor identifies a
-  dominant family.
+### In progress
 
-### Final acceptance (not development work)
+_None._ (Folder exists for the workflow.)
 
-- Trade domain (#59/#93) — dual-side runtime pass.
-- World determinism / `[WorldFingerprint]` comparison.
-- Block-break first-writer-wins dual-side runtime confirmation (L0 already covered).
+### Review
 
-## Resolved decisions
+- [Trade domain dual-side runtime pass](review/trade-domain-dual-side-runtime.md) — #59/#93.
+- [World determinism / WorldFingerprint comparison](review/world-determinism-world-fingerprint.md).
+- [Block-break first-writer-wins dual-side runtime confirmation](review/block-break-first-writer-wins.md).
 
-- **IP-direct duplicate names** — allowed. Identity is always the logical
-  peer id / SteamID; display names are cosmetic presentation labels and no
-  player-specific state is keyed by name. Uniqueness is intentionally not
-  enforced.
+### Future
 
-## Future / low priority
+- [EnemyCombatOrderPolicy kernel-process follow-up](future/enemy-combat-order-policy-kernel.md).
+- [Generic Prediction Runtime](future/generic-prediction-runtime.md).
+- [Minecraft-style in-game command console](future/in-game-command-console.md).
+- [Strict validation / anti-cheat hardening](future/strict-validation-anti-cheat.md).
+- [Phase 5 tooling & ecosystem](future/phase5-tooling-ecosystem.md).
+- [KrokMP compatibility adapter](future/krokmp-compatibility-adapter.md).
 
-- **EnemyCombatOrderPolicy kernel-process follow-up** — the extracted
-  `EnemyCombatOrderPolicy` owns the enemy apply-path decisions, but those paths do
-  not yet feed a kernel process/event. `EnemyAttackMsg` stays the host-order
-  local-apply command for now. See `docs/evidence/selfchecks/architecture/phase-e-legacy-inventory-selfcheck.md`.
-- **Generic Prediction Runtime — future architecture work (deferred from Phase D
-  4.3)** — cross-player interactions are host-validated without client prediction
-  (`docs/decisions/active.md` #157). A unified prediction/rollback runtime for local
-  movement, pickup, and drag transients remains future work; existing
-  `PickupOrigins`, pending-pickup queue, `DropPendingState`, and
-  `NativeOperationCoordinator` remain non-kernel active-path mechanisms.
-- **Minecraft-style in-game command console** — a standalone command chain
-  (registration → parsing → permission → execution → feedback), independent of
-  current host-command/mod-command surfaces. The bottom-right text-chat UI is
-  disabled in favor of this eventual surface.
-- Strict validation / anti-cheat hardening — explicitly low; defer until sync
-  domains are stable.
-- Phase 5 tooling & ecosystem: mod manager, auto-install, crash reports, network
-  diagnostics, compatibility database, dedicated server (only if public community
-  hosting becomes relevant; host migration is not planned).
-- KrokMP compatibility adapter — reserved; only after the native Mod API stabilizes
-  and real migration demand exists.
+### Resolved
 
-## Architecture watchlist
+- [IP-direct duplicate names allowed](resolved/ip-direct-duplicate-names.md).
 
-Files at or near the 600-line gate should be split before the next feature lands in
-them:
+### Done
 
-Current actual line counts (2026-08-31 after split pass, updated after player presentation landing):
-`ItemApplication.cs` (238), `SessionService.cs` (487), `KernelProtocolService.cs` (516),
-`ItemService.cs` (520), `CharacterDataSync.cs` (529), `EntitySyncService.cs` (553),
-`RunCoordinator.cs` (550), `Plugin.cs` (511), `EnemyCombatDirector.cs` (376).
-No coordinator is near the 600-line gate today; the watchlist remains a
-before-landing check rather than an action item.
+- [Host close-room safe exit](done/host-close-room-safe-exit.md).
+- [Custom configuration template system](done/config-profile-templates.md).
+- [IP-direct display-name validation](done/ip-direct-name-validation.md).
+- [World-time manual acceleration policy](done/world-time-manual-acceleration.md).
+- [Player-selectable colors and color-only head tags](done/player-color-head-tags.md).
+- [Item snapshot event-version gating](done/item-snapshot-event-version-gating.md).
+- [Architecture split pass](done/architecture-split-pass.md).
+- [Typed deterministic kernel migration](done/typed-kernel-migration.md).
+- [Native game-content sync coverage](done/native-game-content-sync-coverage.md).
 
-`docs/decisions/active.md` is also large; future landing entries should consider a
-domain-split index if it keeps growing.
+### Watchlist
+
+- [Architecture watchlist](watchlist/architecture-watchlist.md).

@@ -20,6 +20,7 @@ durable entity identity/health/runtime-spawn facts.
 | Wire DTOs | `WireEnemyState`, `WireEntityId` | Protocol remains GameState-free. |
 | Mapper/save | `KernelDomainWireMapper`, `KernelWireMapper`, `WireCheckpointAssembler`, `KernelSaveFileStore`, `KernelSaveFile` | Enemy facts round-trip through wire checkpoints and disk saves. |
 | Entity-sync projection | `EnemyKernelProjection` + `EnemySyncService` | Host `PublishEnemyStates` change-gated projects the enemy set into kernel and removes stale entries. |
+| Restore projection | `EnemyKernelRestoreProjection` + `EnemySyncService` | Host world-entry/reconnect snapshots and guest full-snapshot application overlay kernel `EnemyStateTable` terminal facts (health, stunned, prefab, runtime-spawn) onto `EnemyEntity`; continuous presentation fields (position/velocity/rotation/legs/telegraph) remain from the snapshot/stream. |
 
 ## Evidence table
 
@@ -31,11 +32,13 @@ durable entity identity/health/runtime-spawn facts.
 | Checkpoint chunks preserve enemies | `EnemyDomainKernelTests.CheckpointSplitAssemble_RoundTripsEnemies`. |
 | Save/load preserves enemies | `EnemyDomainKernelTests.SaveLoad_RoundTripsEnemies`. |
 | Host enemy publish commits kernel facts | `EnemyProjectionTests.HostPublishEnemyStates_CommitsKernelEnemyTable`. |
+| Host world-entry snapshot projects kernel terminal facts | `EnemySyncServiceTests.HostSendEnemySnapshot_ProjectsKernelTerminalFacts`. |
+| Guest full-snapshot apply projects kernel terminal facts | `EnemySyncServiceTests.GuestApplyEnemySnapshot_ProjectsKernelTerminalFacts` (health, stunned, prefab, runtime-spawn from kernel; snapshot position remains). |
 
 ## Verification
 
 - `dotnet build CasualtiesUnknownOnline.slnx`: 0 warnings / 0 errors.
-- `dotnet test CasualtiesUnknownOnline.slnx`: 1662 passed.
+- `dotnet test CasualtiesUnknownOnline.slnx`: 1703 passed.
 - `dotnet format`: applied.
 - Architecture/event/entity/isolation gates passed; architecture split added
   `ItemKernelCodec` and `KernelDomainWireMapper` to keep large types under 600.
@@ -50,7 +53,10 @@ durable entity identity/health/runtime-spawn facts.
 
 1. Add enemy combat/terminal-state events (bite/lunge/effect/targeting) as
    cross-domain batches.
-2. Project kernel enemy facts into `EnemyEntity` restore/snapshot paths.
+2. [x] Project kernel enemy facts into `EnemyEntity` restore/snapshot paths:
+   `EnemyKernelRestoreProjection` overlays kernel health/stunned/prefab/runtime-spawn
+   onto host world-entry snapshots and guest full-snapshot application;
+   continuous presentation fields remain snapshot/stream-owned.
 3. Continue high-frequency stream unification: the 20 Hz enemy batch is now
    update-only with explicit `EnemyRemovedMsg` lifecycle handling; see
    `docs/selfchecks/phase-d-high-frequency-stream-unification-selfcheck.md`.

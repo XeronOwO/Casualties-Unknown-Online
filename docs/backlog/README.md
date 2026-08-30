@@ -9,8 +9,10 @@ Open work only. Landed delivery details are not duplicated here; they live in:
 
 ## Status
 
-- **One open bug report (2026-08-27)** — see "Open bug" below. It is not to be
-  closed by a paper-only claim.
+- **Host close-room safe exit closed (2026-08-31)** — session teardown defers
+  the menu return out of Steam/UI callbacks and the host persists the native run
+  save before leaving a live world; see
+  `docs/evidence/selfchecks/session/host-close-room-safe-exit-selfcheck.md`.
 - Native game-content sync coverage is complete: item and entity feature matrices
   currently have no `missing` rows.
 - The typed deterministic kernel migration (Phases A–E) is complete; future
@@ -35,22 +37,6 @@ Open work only. Landed delivery details are not duplicated here; they live in:
 - Player-selectable colors and color-only head name tags landed — a local
   palette picker is shared through handshake/roster/live updates, head tags
   show only the colored player name, and off-screen markers keep name + distance.
-
-## Open bug (2026-08-27)
-
-### Host closing the lobby exits the game and can destroy the run save
-
-- **Reported**: 2026-08-27.
-- **Observed**: when the host closes the multiplayer lobby, the game exits instead
-  of returning to a safe menu/lobby state. A brief network hiccup or a host wanting
-  to recreate the room therefore ends the whole process.
-- **Impact**: destructive UX for the host; combined with the save authority model
-  this can effectively invalidate/lose the run's save/state. The host should be
-  able to leave/close the session without force-quitting the game, and the save
-  should be preserved or explicitly managed.
-- **Related surfaces**: session/lobby teardown, host lifecycle (`LobbyLeft` /
-  session end), Steam lobby ownership, save authority/run state, `GameAdapter` /
-  `Plugin` shutdown path.
 
 ## Open work
 

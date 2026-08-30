@@ -65,6 +65,13 @@ internal sealed class RunCoordinator(
 	/// <summary>One-shot world fingerprint logged at world entry (peer log comparison).</summary>
 	private bool _worldFingerprintLogged;
 
+	/// <summary>
+	/// Pending return-to-menu after a session teardown. Session-ended events
+	/// run inside Steam/UI callbacks, so the actual scene load is deferred to
+	/// the Update pump (loaded during OnGUI was the host-close exit path).
+	/// </summary>
+	private readonly RunMenuReturnCoordinator _menuReturn = new(session, log);
+
 	/// <summary>The local body while in the world (Unity object — == null when scene-reload-destroyed).</summary>
 	internal Body? LocalBody => _localBody;
 
@@ -127,6 +134,7 @@ internal sealed class RunCoordinator(
 	internal void Update()
 	{
 		UpdateSceneState();
+		_menuReturn.Flush(_inWorld);
 		if (_phase == RunPhase.JoinPending)
 		{
 			TryStartWorldJoin();
@@ -460,11 +468,7 @@ internal sealed class RunCoordinator(
 		if (!inWorld && steamId == _session.HostSteamId && _session.Role == SessionRole.Guest)
 		{
 			_phase = RunPhase.Idle;
-			if (_inWorld && PlayerCamera.main != null) // Unity object — ==
-			{
-				_log.LogInformation("Host left the world — returning to main menu.");
-				PlayerCamera.main.ToMainMenu();
-			}
+			_menuReturn.Request(_session.Role, _inWorld);
 		}
 	}
 
@@ -483,11 +487,7 @@ internal sealed class RunCoordinator(
 		_hostInWorldSinceMs = 0;
 		_worldFingerprintLogged = false;
 		_params.ResetForSessionEnd();
-		if (_inWorld && PlayerCamera.main != null) // Unity object — ==
-		{
-			_log.LogInformation("Session ended while in the world — returning to main menu.");
-			PlayerCamera.main.ToMainMenu();
-		}
+		_menuReturn.Request(_session.Role, _inWorld);
 	}
 
 	// ---- State shuttling ----

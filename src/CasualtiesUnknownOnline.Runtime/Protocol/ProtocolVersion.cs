@@ -2,7 +2,8 @@ namespace CasualtiesUnknownOnline.Runtime.Protocol;
 
 public static class ProtocolVersion
 {
-	/// <summary>Bumped on any breaking wire change.</summary>
-	public const int Current = 53; // v53: enemy aggregate removal rides KernelEnvelope (NetMsg.EnemyRemoved removed)
+	/// <summary>Wire compatibility version for the handshake. No released
+	/// compatibility surface exists yet, so this stays at the initial baseline.</summary>
+	public const int Current = 1;
 
 }

@@ -33,11 +33,13 @@ the removal of the legacy `WorldStartParams` wire.
 | Host publishing world params commits the kernel run | `WorldRunStateProjectionTests.HostPublishWorldParams_CommitsKernelRunState`. |
 | Guest applying a run batch projects `WorldStartParams` | `WorldRunStateProjectionTests.GuestAppliesRunBatch_ProjectsWorldParams`. |
 | Mid-generation handshake delivers the run baseline via checkpoint | `WorldRunStateProjectionTests.GuestHandshake_ReceivesRunBaselineViaKernelCheckpoint`. |
+| A fresh epoch kernel has no residue from an old epoch | `EpochIsolationTests.NewEpochKernel_HasNoResidueFromPreviousEpoch`. |
+| Old-epoch commands/batches are rejected by a new-epoch kernel | `EpochIsolationTests.OldEpochCommand_IsRejectedByNewEpochKernel`, `OldEpochBatch_IsRejectedByNewEpochKernel`. |
 
 ## Verification
 
 - `dotnet build CasualtiesUnknownOnline.slnx`: 0 warnings / 0 errors.
-- `dotnet test CasualtiesUnknownOnline.slnx`: 1640 passed.
+- `dotnet test CasualtiesUnknownOnline.slnx`: 1722 passed.
 - `dotnet format`: applied.
 - `tools/check-architecture.ps1`, `tools/check-event-replay.ps1`,
   `tools/check-entity-event-dispatch.ps1`, `tools/check-gamestate-isolation.ps1`,
@@ -60,3 +62,6 @@ the removal of the legacy `WorldStartParams` wire.
    shadow -> authority -> projection -> delete template.
 2. Keep RunEpoch filtering and cross-domain batch semantics in mind when trap
    results create damage/drop facts.
+3. [x] Epoch-isolation property tests landed: a fresh epoch kernel has no
+   old-epoch residue across all kernel domain tables, and old-epoch
+   commands/batches are rejected.

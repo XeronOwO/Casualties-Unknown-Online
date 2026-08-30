@@ -4030,12 +4030,17 @@ kernel facts are now committed as one batch instead of two separate batches.
   the host reads the trap entity's post-trigger zero health and adds
   `RecordBuildingEntityHealthCommand` to the same composite, so the destroyed
   trap's health fact is atomic with its consumption/state transition.
+- **Explosion-diff health scope** — `EntityEventSync.OnRemoteEntityEvent`
+  wraps the host `TrapEffectApplier` in a `TrapBuildingHealthScope`;
+  `WorldBuildingEntitySync` parks each explosion-diff health observation in
+  that scope instead of committing a separate kernel update, and the scope's
+  entries are folded into the same atomic trap batch.
 - **Wire** — the composite is host-only; the resulting normal `CommittedBatch`
   rides `KernelEnvelope` and replays on guests through the existing apply path.
 - **Visual-only events** — no kernel command is emitted when the event is
   neither one-shot nor stateful, so the composite is a no-op.
 - **Tests** — `WorldEntityProjectionTests.HostReportTrapEvent_CommitsOneAtomicKernelBatch`
   locks one committed batch with `TrapConsumedEvent`, `TrapStateChangedEvent`,
-  and `BuildingEntityHealthUpdatedEvent`. Full suite 1741 green.
-- **Remaining** — item drops and affected multi-entity building-health
-  side-effect collection are still open as the next 4.2 cross-domain sub-step.
+  and multiple `BuildingEntityHealthUpdatedEvent`s. Full suite 1741 green.
+- **Remaining** — item drops are still open as the next 4.2 cross-domain
+  sub-step.

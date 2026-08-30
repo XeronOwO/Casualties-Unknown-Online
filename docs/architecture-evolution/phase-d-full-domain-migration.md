@@ -88,13 +88,13 @@ For each domain, complete these steps in order:
 
 ### 4.2 Traps and Building Entities
 
-- [ ] Define trap state machines and events (`Armed`, `Warning`, `Triggered`, `Cooldown`,
+- [x] Define trap state machines and events (`Armed`, `Warning`, `Triggered`, `Cooldown`,
       `Disabled`).
 - [ ] Define building/entity lifecycle and health events.
 - [ ] Move trap trigger + damage/drop into one cross-domain batch.
 - [ ] Turn trap presentation into projection/replay, not authority.
 - [ ] Migrate trap replay/snapshot logic to kernel events.
-- [ ] Add invariant tests: traps cannot skip legal states; destroyed entities cannot accept damage.
+- [x] Add invariant tests: traps cannot skip legal states; destroyed entities cannot accept damage.
 
 ### 4.3 Player terminal state and cross-player interaction
 
@@ -215,6 +215,7 @@ For each domain, complete these steps in order:
 | 2026-08-29 | WorldEntities destroyed-building invariant | `68eeffa` | 1708 tests green; build/format/architecture/event/entity/isolation/delivery gates pass | `WorldEntityDomainModule` now rejects a positive building-health report after a recorded zero-health (destroyed) fact, while preserving idempotent zero reports. Added invariant tests for both branches. See `docs/selfchecks/phase-d-world-entities-shadow-selfcheck.md`. |
 | 2026-08-29 | Enemy aggregate removal through kernel batches | `09468d5` | 1707 tests green; build/format/architecture/event/entity/isolation/delivery gates pass | Guest `EnemySyncService` now applies `EnemyRemovedEvent` from `BatchApplied` and raises `EnemyRemovedReceived`; host no longer sends `EnemyRemovedMsg`. `NetMsg.EnemyRemoved`, `EnemyRemovedMsg`, `EnemyRemovedHandler`, and `IEnemySyncControl.ApplyEnemyRemoved` are removed; `ProtocolVersion.Current` bumped to 53. See `docs/selfchecks/phase-d-high-frequency-stream-unification-selfcheck.md`. |
 | 2026-08-29 | Enemy removal terminal tombstones + replay safety | `92b1c98`, `9134257` | 1712 tests green; build/format/architecture/event/entity/isolation/delivery gates pass | `EnemyStateTable` now carries terminal `Removed` tombstones; a post-removal `UpsertEnemyCommand` is rejected with `InvalidTransition`; an `EnemyUpsertedEvent` replay for a removed id is a no-op; tombstones ride checkpoint/wire/save (`WireCheckpoint.RemovedEnemies`/`KernelSaveFile.RemovedEnemies`) and guest `EnemySyncService` seeds `_removedEnemies` from checkpoint restore. `ProtocolVersion.Current` reset to 1 as the unreleased baseline. See `docs/selfchecks/phase-d-enemies-shadow-selfcheck.md`. |
+| 2026-08-29 | Trap state machine kernel shadow | `d363168` | 1717 tests green; build/format/architecture/event/entity/isolation/delivery gates pass | Added `TrapPhase` (`Armed`/`Warning`/`Triggered`/`Cooldown`/`Disabled`), `TrapStateFact`, `RecordTrapStateCommand`, and `TrapStateChangedEvent` to the WorldEntities kernel. The domain rejects illegal transitions and treats `Disabled` as terminal; trap states ride checkpoint/wire/save and are covered by wire batch/command round-trip, checkpoint/save round-trip, and invariant tests. Production reporting is not hooked yet — this is the shadow-model foundation for 4.2. See `docs/selfchecks/phase-d-world-entities-shadow-selfcheck.md`. |
 
 ## Next actions
 

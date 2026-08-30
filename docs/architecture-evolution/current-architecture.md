@@ -57,44 +57,43 @@ Command -> Decide -> CommittedBatch -> Reduce -> Effects
 
 ## 4. Project and dependency structure
 
+Actual production layout:
+
 ```text
 src/
-├── CasualtiesUnknownOnline.GameState/
+├── CasualtiesUnknownOnline.Abstractions/   # public mod-only API; no Unity/game/BepInEx
+├── CasualtiesUnknownOnline.GameState/      # typed deterministic kernel; dependency-free
 │   ├── Kernel/
-│   ├── Transactions/
-│   ├── Journal/
-│   ├── Projections/
-│   └── Domains/
-│       ├── Items/
-│       ├── Players/
-│       ├── Entities/
-│       ├── Traps/
-│       ├── Fluids/
-│       └── World/
-│
-├── CasualtiesUnknownOnline.Application/
-│   ├── Commands/
-│   ├── Authority/
-│   ├── Prediction/
-│   └── Synchronization/
-│
-├── CasualtiesUnknownOnline.Protocol/
+│   ├── Domains/
+│   │   ├── Items/
+│   │   ├── Players/
+│   │   ├── Entities/
+│   │   ├── World/
+│   │   ├── WorldEntities/
+│   │   └── Fluids/
+│   └── Projections/
+├── CasualtiesUnknownOnline.Protocol/       # protobuf wire DTOs, codecs, versioning
 │   ├── Wire/
 │   ├── Codecs/
 │   └── Versioning/
-│
-├── CasualtiesUnknownOnline.GameAdapter/
-│   ├── NativeObservation/
-│   ├── UnityProjection/
-│   └── Patches/
-│
-├── CasualtiesUnknownOnline.Runtime/
-│   ├── Networking/
+├── CasualtiesUnknownOnline.Runtime/        # DI, session, networking, kernel protocol,
+│   │                                       # runtime projections, mod API, diagnostics
 │   ├── Session/
-│   ├── Persistence/
-│   └── Diagnostics/
-│
-└── CasualtiesUnknownOnline.Plugin/
+│   ├── Networking/
+│   ├── Protocol/
+│   ├── Patching/
+│   ├── Diagnostics/
+│   └── ...
+├── CasualtiesUnknownOnline.GameAdapter/    # the only layer referencing game assemblies
+│   ├── Character/
+│   ├── Items/
+│   ├── Patches/
+│   ├── Run/
+│   ├── Tutorial/
+│   ├── World/
+│   └── WorldGen/
+├── CasualtiesUnknownOnline.Plugin/         # thin BepInEx entry
+└── CasualtiesUnknownOnline.ModExample/     # example mod
 ```
 
 Dependency direction:
@@ -102,23 +101,25 @@ Dependency direction:
 ```text
 Plugin
   ↓
-Runtime ───────> Application <────── GameAdapter
-  ↓                  ↓
-Protocol         GameState
+Runtime ──────> GameState
+  │
+  └───────────> Protocol
+  │
+  └───────────> Abstractions
 
-GameState references no other CUO project.
-Protocol references only stable wire DTOs, not GameState implementation.
+GameAdapter ──> Runtime + game assemblies
+GameState / Protocol / Abstractions reference no other CUO project.
 ```
 
-`Application` is the use-case orchestration layer. It does not own authoritative
-gameplay state. It owns player/session context, prediction queues, and routing between
-the kernel, network, and adapter.
+There is no separate `Application` project today. Runtime is the orchestration and
+projection layer; the GameState reference from Runtime is the current seam for
+kernel access. GameState remains dependency-free and wire-free.
 
 ## 5. GameStateKernel
 
 ### 5.1 External interface
 
-Keep the public surface small and stable:
+The current kernel surface is small and typed:
 
 ```csharp
 public interface IGameStateKernel
@@ -127,7 +128,14 @@ public interface IGameStateKernel
     ApplyResult Apply(CommittedBatch batch);
     GameCheckpoint CreateCheckpoint();
     RestoreResult Restore(GameCheckpoint checkpoint);
-    QueryResult Query(GameQuery query);
+
+    IReadOnlyDictionary<ulong, ItemState> QueryItems();
+    ItemState? FindItem(ulong instanceId);
+    RunState? QueryRun();
+    WorldEntityState? QueryWorldEntities();
+    PlayerStateTable? QueryPlayers();
+    EnemyStateTable? QueryEnemies();
+    FluidStateTable? QueryFluids();
 }
 ```
 
@@ -136,37 +144,43 @@ Meanings:
 - `Execute`: authoritative side validates a Command, then produces and commits an event batch.
 - `Apply`: non-authoritative side or replay side applies an already-committed batch.
 - `CreateCheckpoint` / `Restore`: complete authoritative state serialization seam.
-- `Query`: read-only entry for UI, save, and diagnostics.
+- Query methods: read-only per-domain views for UI, save, and diagnostics.
 
-Do not expose dozens of per-domain methods on `IGameStateKernel`. Typed Commands and
-Queries are routed to internal domain modules by a dispatcher.
+Do not expose dozens of per-domain methods on `IGameStateKernel`. Typed Commands are
+routed to internal domain modules by a dispatcher; queries are read-only views.
 
 ### 5.2 Kernel state
 
+The authoritative store (`GameStateStore`) contains:
+
 ```text
-GameState
-├── RunState
-├── PlayerStateTable
-├── ItemStateTable
-├── EntityStateTable
-├── TrapStateTable
-├── FluidState
-├── WorldState
+GameStateStore
+├── RunEpoch
 ├── GlobalRevision
-└── CommittedOperationWindow
+├── Items            (ItemState by InstanceId)
+├── Run              (RunState?)
+├── WorldEntities    (WorldEntityState?)
+├── Players          (PlayerStateTable?)
+├── Enemies          (EnemyStateTable?)
+├── Fluids           (FluidStateTable?)
+└── Operations       (CommittedOperationWindow)
 ```
 
 `CommittedOperationWindow` keeps only the Operation IDs needed to cover the retransmit
-window. It does not grow forever. Checkpoints record the necessary watermark.
+window. It does not grow forever; checkpoints record the necessary watermark.
 
 ### 5.3 Domain module internal interface
 
+The internal domain contract is non-generic and dispatches by command/event type:
+
 ```csharp
-internal interface IDomainModule<TCommand>
+internal interface IDomainModule
 {
-    DomainDecision Decide(TCommand command, ReadModel state, CommandContext context);
-    void Reduce(DomainEvent @event, MutableState state);
-    void AssertInvariants(ReadModel state);
+    bool CanHandle(GameCommand command);
+    bool CanReduce(GameEvent @event);
+    DomainDecision Decide(GameCommand command, KernelReadModel state, CommandContext context);
+    void Reduce(GameEvent @event, MutableKernelState state);
+    void AssertInvariants(KernelReadModel state);
 }
 ```
 
@@ -313,7 +327,7 @@ presentation without modifying the gameplay projection.
 | Authoritative discrete state | ownership, death, container contents, trap triggers | reliable Batch | yes |
 | Convergent continuous state | position, velocity, aim, regional fluid volume | unreliable State Stream | no |
 | Presentation state | animation phase, local particles, non-critical sounds | Effect/local derivation | no |
-| Checkpoint | full Run/Player/Item/Entity/Trap/Fluid | reliable chunks | separate save |
+| Checkpoint | full Run/Player/Item/WorldEntities/Enemy/Fluid | reliable chunks | separate save |
 
 Continuous streams have hard limits: they may not create/destroy aggregates, change
 ownership or container relations, or advance key gameplay state machines. They may only
@@ -361,15 +375,16 @@ current interaction relations, and durable state. High-frequency coordinates may
 streamed separately, but death, unconsciousness, carry relations, etc. enter domain
 events.
 
-### 9.3 Entities
+### 9.3 WorldEntities
 
-Owns shared entity identity, lifecycle, health, opened/locked state, and domain traits.
-Display proxies and Unity components are not authoritative entities.
+Owns trap phase/consumption, opened-entity facts, and building-health facts.
+Trap presentation and Unity components are projections, not authority.
 
-### 9.4 Traps
+### 9.4 Entities / Enemies
 
-Uses explicit state machines: `Armed`, `Warning`, `Triggered`, `Cooldown`, `Disabled`.
-Trigger results and resulting damage/drops are submitted as cross-domain batches.
+Owns enemy lifecycle, health, removal, and combat terminal facts
+(bite/lunge/proximity effects). Enemy presentation/high-frequency fields are
+stream/projection-owned.
 
 ### 9.5 Fluids
 
@@ -503,11 +518,11 @@ SaveHeader
 └── CreatedAt
 
 GameCheckpoint
-├── World
+├── Run/World
 ├── Players
 ├── Items
-├── Entities
-├── Traps
+├── WorldEntities
+├── Enemies
 ├── Fluids
 └── RandomStreams
 ```

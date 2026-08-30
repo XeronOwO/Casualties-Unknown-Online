@@ -83,7 +83,7 @@ For each domain, complete these steps in order:
 - [x] Define epoch commands/events: start run, switch epoch, restore epoch.
 - [x] Move run/seed/world generation facts into kernel; remove session-local cross-run caches.
 - [x] Make `RunEpoch` the filter for all Commands, Batches, and stream packets.
-- [ ] Add epoch isolation property tests: no old-epoch entity survives after switch.
+- [x] Add epoch isolation property tests: no old-epoch entity survives after switch.
 - [x] Add world determinism checkpoint fields (random streams/world-gen results).
 
 ### 4.2 Traps and Building Entities
@@ -218,6 +218,7 @@ For each domain, complete these steps in order:
 | 2026-08-29 | Trap state machine kernel shadow | `d363168` | 1717 tests green; build/format/architecture/event/entity/isolation/delivery gates pass | Added `TrapPhase` (`Armed`/`Warning`/`Triggered`/`Cooldown`/`Disabled`), `TrapStateFact`, `RecordTrapStateCommand`, and `TrapStateChangedEvent` to the WorldEntities kernel. The domain rejects illegal transitions and treats `Disabled` as terminal; trap states ride checkpoint/wire/save and are covered by wire batch/command round-trip, checkpoint/save round-trip, and invariant tests. Production reporting is not hooked yet — this is the shadow-model foundation for 4.2. See `docs/selfchecks/phase-d-world-entities-shadow-selfcheck.md`. |
 | 2026-08-29 | Trap state production reporting | `609b825` | 1718 tests green; build/format/architecture/event/entity/isolation/delivery gates pass | `TrapStateProfiles` maps live `EntityEventKind` edges to `TrapPhase`; `TrapStateRegistry` commits `RecordTrapStateCommand` from host-local `SendEntityEvent` and from the host-apply path for guest-triggered events. Guests receive the same kernel state batches through `KernelEnvelope`. Guest view projection is the remaining 4.2 sub-step. See `docs/selfchecks/phase-d-world-entities-shadow-selfcheck.md`. |
 | 2026-08-29 | Trap state guest checkpoint projection | `52394ec` | 1719 tests green; build/format/architecture/event/entity/isolation/delivery gates pass | `WorldEntityKernelProjection` now projects non-one-shot trap state facts alongside one-shot consumptions on guest checkpoint restore, while intentionally skipping transient `Warning` edges. This lets a late joiner replay durable non-one-shot state (clamp, turret fire, heat state, ...) from the kernel checkpoint. See `docs/selfchecks/phase-d-world-entities-shadow-selfcheck.md`. |
+| 2026-08-29 | Epoch isolation property tests | `c3527f1` | 1722 tests green; build/format/architecture/event/entity/isolation/delivery gates pass | New `EpochIsolationTests` cover all kernel domain tables: a fresh epoch kernel has no residue from the previous epoch, and old-epoch commands/batches are rejected. Completes the last 4.1 item. See `docs/selfchecks/phase-d-world-run-epoch-shadow-selfcheck.md`. |
 
 ## Next actions
 

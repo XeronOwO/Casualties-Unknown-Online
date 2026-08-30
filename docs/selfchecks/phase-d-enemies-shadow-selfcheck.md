@@ -27,6 +27,8 @@ durable entity identity/health/runtime-spawn facts.
 | Combat result submitter | `EnemyCombatKernelSubmitter` + `EnemySyncService` | Host reports commit journal commands directly; guest reports ride `CommandEnvelope` to the host. |
 | Combat result projection | `EnemyCombatKernelProjection` + `EnemySyncService` | Restores `EnemyBiteReceived` / `EnemyLungeReceived` / `EnemyEffectReceived` from `BatchCommitted` (host) and `BatchApplied` (guest); host also merges guest reports into the saved character snapshot; source victims are skipped. |
 | Combat result wire | `WireEnemyCombat`, `WireEventKind.EnemyBiteResult/EnemyLungeResult/EnemyEffectResult`, `WireCommandKind.RecordEnemyBite/RecordEnemyLunge/RecordEnemyEffect` | Protocol remains GameState-free; `EnemyCombatWireMapper`/`EnemyCombatKernelCodec` keep the Runtime mapping boundary. |
+| Combat policy constants | `EnemyCombatPolicy` | Pure Runtime thresholds extracted from `EnemyCombatDirector` (spider bite range, crystal close/ray length, lunge tolerance), lockable by tests. |
+| Lunge trace detail | `CrystalLungeTrace` | Top-level adapter type split out of `EnemyCombatDirector` so the director stays focused on ordering/reporting. |
 
 ## Evidence table
 
@@ -50,11 +52,12 @@ durable entity identity/health/runtime-spawn facts.
 | Combat-result wire batch round-trips | `EnemyDomainKernelTests.WireBatchRoundTrip_PreservesEnemyBiteResultEvent`, `WireBatchRoundTrip_PreservesEnemyLungeResultEvent`, `WireBatchRoundTrip_PreservesEnemyEffectResultEvent`. |
 | Guest combat-result command decodes on host | `EnemyDomainKernelTests.WireCommandRoundTrip_BuildsRecordEnemyBiteCommand`. |
 | Host/guest combat-result projection restores presentation events | `EnemyBiteSyncTests`, `EnemyLungeSyncTests`, `EnemyEffectSyncTests` (host-own and guest-report star semantics; source victim skipped). |
+| Enemy combat policy constants are locked | `EnemyCombatPolicyTests` (spider bite range, crystal close range, lunge ray/tolerance). |
 
 ## Verification
 
 - `dotnet build CasualtiesUnknownOnline.slnx`: 0 warnings / 0 errors.
-- `dotnet test CasualtiesUnknownOnline.slnx`: 1712 passed.
+- `dotnet test CasualtiesUnknownOnline.slnx`: 1769 passed.
 - `dotnet format`: applied.
 - Architecture/event/entity/isolation/delivery gates passed; architecture split added
   `ItemKernelCodec`, `KernelDomainWireMapper`, `EnemyCombatKernelCodec`, and
@@ -82,3 +85,8 @@ durable entity identity/health/runtime-spawn facts.
 4. [x] Make enemy removal terminal in the kernel: `EnemyStateTable` carries
    `Removed` tombstones, post-removal upserts are rejected, and tombstones
    persist through checkpoint/wire/save and seed the guest restore path.
+5. [x] Start absorbing `EnemyCombatDirector` policy: extracted
+   `EnemyCombatPolicy` constants into Runtime tests and split
+   `CrystalLungeTrace` into a top-level adapter type. The remaining work is
+   moving the director's ordering/arbitration decisions into a kernel process
+   or a smaller pure policy layer.

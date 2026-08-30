@@ -10,16 +10,17 @@ Reading path: [domains.md](domains.md) → [protocol.md](protocol.md) →
 ## Four production envelopes
 
 The kernel protocol rides one existing transport frame (`NetMsg.KernelEnvelope`,
-id 122) with a `ProtocolFrame` payload. Exactly one envelope is present per frame;
-the kind is explicit so receivers can reject unknown envelopes before decoding the
-body.
+id 122) with a `ProtocolFrame` payload. The frame is designed to carry exactly one
+envelope; the kind is explicit so receivers can reject unknown envelopes before
+decoding the body. (The current runtime does not validate that only one envelope
+slot is populated before selecting a header.)
 
 | Envelope | Direction | Meaning | Source |
 |---|---|---|---|
-| `CommandEnvelope` | Guest → Host | Intent or native observation as a typed command | `src/CasualtiesUnknownOnline.Protocol/Wire/CommandEnvelope.cs` |
+| `CommandEnvelope` | Guest → Host; also Host → Guest for `CommandRejected` | Intent/native observation; command rejection feedback | `src/CasualtiesUnknownOnline.Protocol/Wire/CommandEnvelope.cs` |
 | `CommittedBatchEnvelope` | Host → Guests | One atomic committed kernel batch | `src/CasualtiesUnknownOnline.Protocol/Wire/CommittedBatchEnvelope.cs` |
 | `CheckpointEnvelope` | Host → Guest | One checkpoint chunk during join/reconnect/gap recovery | `src/CasualtiesUnknownOnline.Protocol/Wire/CheckpointEnvelope.cs` |
-| `StateStreamEnvelope` | Host → Guests | Convergent high-frequency field updates | `src/CasualtiesUnknownOnline.Protocol/Wire/StateStreamEnvelope.cs` |
+| `StateStreamEnvelope` | Host → Guests and Guest → Host | Convergent high-frequency field updates (player reports are guest→host) | `src/CasualtiesUnknownOnline.Protocol/Wire/StateStreamEnvelope.cs` |
 
 The frame and enums:
 
@@ -80,10 +81,11 @@ Guest: restore checkpoint → apply tail → Ready(M)
 Host: start normal Batch/Stream
 ```
 
-If a batch gap exists, the guest requests a revision range. If the range exceeds
-the host's journal window, the host resends a checkpoint. See
-`KernelProtocolService.SendCheckpoint` and the guest range-request handling in
-`KernelProtocolCommandHandler`.
+If a batch gap exists, the guest sends a range request (`RequestRange` /
+`WireCommandKind.RangeRequest`). If the range exceeds the host's journal window,
+the host resends a checkpoint. See `KernelProtocolService.SendCheckpoint`,
+`KernelProtocolService.RequestRange`, and `KernelProtocolService.HandleRangeRequest`
+(`src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs`).
 
 ### Host → Guests: state stream
 
@@ -135,8 +137,10 @@ The current protocol uses:
 - ignore unknown non-critical presentation Effects;
 - golden wire contract tests.
 
-See `src/CasualtiesUnknownOnline.Protocol/Versioning/` and
-`src/CasualtiesUnknownOnline.Protocol/Wire/WirePayloadType.cs`.
+See `src/CasualtiesUnknownOnline.Protocol/Versioning/`,
+`src/CasualtiesUnknownOnline.Protocol/Wire/WireEventKind.cs` (per-event numeric
+discriminator), and `src/CasualtiesUnknownOnline.Protocol/Wire/WirePayloadType.cs`
+(payload-type discriminator).
 
 ## Error and recovery
 
@@ -146,10 +150,10 @@ See `src/CasualtiesUnknownOnline.Protocol/Versioning/` and
 | Duplicate Batch | silently idempotent by revision/operation |
 | Batch gap | request journal range |
 | Gap too large | resend checkpoint |
-| Projection exception | mark dirty and rebuild |
 | Invariant failure | do not commit; output complete transaction diagnostics |
 | Wrong epoch | drop; old run must not pollute new run |
-| Unknown critical payload | disconnect and report protocol incompatibility |
+| Unknown critical payload | drop the frame and log (`KernelProtocolService.IsSupportedFrame`); no automatic disconnect is implemented |
+| Projection exception | no generic dirty/rebuild loop is implemented today; the failure is not rolled back and must be handled by the caller |
 
 ## Command rejection
 
@@ -169,7 +173,9 @@ The save path is a projection of the authoritative checkpoint:
 - `KernelSaveFileStore` writes `SaveHeader` + `GameCheckpoint` atomically and
   rejects unknown/corrupt files.
 - `KernelSaveFile` is the on-disk shape.
-- Named random streams are checkpointed and round-trip through wire/save.
+- `GameCheckpoint.RandomStreams` exists in the data model and round-trips through
+  wire/save, but no production domain currently populates it
+  (`GameStateStore.CreateCheckpoint` passes `null` for random streams today).
 
 Sources:
 
@@ -190,8 +196,11 @@ classification).
 ## Evidence
 
 - Four-envelope wire types: `src/CasualtiesUnknownOnline.Protocol/Wire/`
+- Per-event discriminator: `src/CasualtiesUnknownOnline.Protocol/Wire/WireEventKind.cs`
+- Range request/recovery: `src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs`
 - Kernel protocol transport: `src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs`
 - Command execution/rejection: `src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolCommandHandler.cs`
 - Transport entry: `src/CasualtiesUnknownOnline.Runtime/Session/Handlers/KernelEnvelopeHandler.cs`
 - Save/checkpoint: `src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelSaveFileStore.cs`
-- Phase C self-check: `docs/selfchecks/phase-c-protocol-core-selfcheck.md`
+- Guest→host player stream: `src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/PlayerStreamExchange.cs`
+- Phase C self-check: `docs/selfchecks/phase-c-protocol-core-selfcheck.md` (historical)

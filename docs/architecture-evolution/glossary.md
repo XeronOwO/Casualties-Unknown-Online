@@ -12,8 +12,8 @@ Stable vocabulary used across the architecture evolution docs.
 ## Commands, events, effects
 
 - **Command**: a typed request that something should happen; may be rejected.
-- **CommandContext**: explicit inputs that keep the kernel deterministic (actor, role,
-  session phase, time input, random input, observed native state, permissions).
+- **CommandContext**: explicit inputs that keep the kernel deterministic
+  (`RunEpoch`, `Actor`, `SimulationTimeMs`).
 - **Event**: a fact accepted by the kernel, stored in a committed batch.
 - **Effect**: an outer side effect derived from a Batch (Unity update, sound, network send).
 - **Decision**: the kernel's response to a Command: accepted batch or typed rejection.
@@ -22,21 +22,18 @@ Stable vocabulary used across the architecture evolution docs.
 
 - **CommittedBatch**: atomically accepted fact set for one logical operation.
 - **OperationId**: idempotency key for a logical operation.
-- **Aggregate Revision**: per-object revision detecting stale operations.
-- **Global Revision**: global monotonic order for batches, checkpoints, and network deltas.
-- **Preconditions**: expected revisions a batch depends on.
-- **Journal**: bounded recent Batch storage for gap recovery.
-- **CommittedOperationWindow**: compact operation-id window covering retransmit needs.
+- **GlobalRevision**: global monotonic order for batches, checkpoints, and network deltas.
+- **Item Revision**: per-item revision on `ItemState` for domain-local stale checks.
+- **Preconditions**: expected revisions a batch declares; validated by domain modules, not by the generic kernel.
+- **Journal**: bounded recent `CommittedBatch` storage in `KernelProtocolService` for gap recovery.
+- **CommittedOperationWindow**: bounded full-batch idempotency store in `GameStateStore`; restores clear it.
 
 ## Authority and prediction
 
-- **Authority Policy**: declared rule for who may simulate and who commits a Command.
+- **AuthorityKind**: declared authority policy recorded on commands/batches; not enforced inside `GameStateKernel` today.
 - **IntentCommand**: a player/game desired action (usually from a guest).
 - **NativeObservation**: an adapter observation that native code already produced a result.
-- **ConfirmedState**: authoritative state as known by a client.
-- **PendingPrediction**: local optimistic prediction not yet confirmed.
-- **LocalProjectedState**: confirmed state plus pending predictions.
-- **Prediction Runtime**: code that manages predictions, rollback, and replay of pending operations.
+- **ConfirmedState / PendingPrediction / LocalProjectedState / Prediction Runtime**: planned future prediction-model terms; not implemented in current `src/`, tracked in `docs/backlog.md`.
 
 ## Projection
 
@@ -47,7 +44,7 @@ Stable vocabulary used across the architecture evolution docs.
 - **NetworkProjection**: wire encoding of batches/checkpoint/stream.
 - **PersistenceProjection**: save/checkpoint encoding.
 - **DiagnosticsProjection**: traces, invariant results, semantic diffs.
-- **Dirty projection**: projection that failed to apply; rebuilt from checkpoint/query.
+- **Dirty projection**: planned recovery concept; no generic dirty/rebuild loop is implemented in the current runtime.
 
 ## Run and epoch
 
@@ -69,4 +66,4 @@ Stable vocabulary used across the architecture evolution docs.
 - **Terminal**: consumed/destroyed/replacedBy; cannot be resurrected.
 - **Capability Registry**: per-item-type capability composition (Battery, Liquid, Durability, Gun, etc.),
   requiring all of Capture/Restore/Equivalent/Validate/Presentation.
-- **RunState**: run identity, seed, layer, stage, world generation results, global rules.
+- **RunState**: run identity, seed, layer, run settings, and baseline fields (`RunId`, `RandomState`, `BiomeOverride`, `BiomeDepth`, `TotalTraveled`, `LoadedRun`, `RunSettings`, `LayerIndex`). World-generation result facts live in `WorldEntities`.

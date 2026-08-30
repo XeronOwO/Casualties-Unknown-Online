@@ -10,7 +10,7 @@ is the entry point for that evidence chain.
 |---|---|
 | Test suite | **1791 passed** (Phase E closure baseline; see `docs/tech-decisions.md` #158) |
 | Build | `dotnet build` 0 warnings / 0 errors |
-| Format | `dotnet format` clean |
+| Format | Tracked-source `dotnet format` is clean; `--verify-no-changes` currently reports the generated `obj/Debug/net48/MyPluginInfo.cs`, so the documented baseline is “tracked sources clean” |
 | Architecture | `tools/check-architecture.ps1` strict mode passes, including Phase E guards |
 | Event/entity/delivery gates | `tools/check-event-replay.ps1`, `tools/check-entity-event-dispatch.ps1`, `tools/check-delivery.ps1` pass |
 
@@ -54,6 +54,8 @@ review the diff. If a documentation change accompanies code, run the full gates.
 - **Adapter contracts** — one native user operation produces exactly one Observation;
   RemoteApply does not echo; projection rebuild does not produce a local Command;
   display proxies do not enter authoritative capture.
+- **Golden wire contract tests** — `tests/CasualtiesUnknownOnline.Tests/Protocol/ProtocolCodecTests.cs`
+  locks the wire framing/encoding contract.
 - **Network simulation** — virtual-time latency/duplication/reordering/loss/
   disconnect/checkpoint/reconnect tests; reliable batches converge, state streams
   converge on the next subsequent state.
@@ -79,11 +81,12 @@ For a mechanism, prefer this order:
 `docs/selfchecks/` contains per-delivery fact sheets. They are historical audit
 records, not open-work status. Key architecture-evolution self-checks:
 
-- Phase A: `docs/selfchecks/phase-a-kernel-foundation-selfcheck.md`
-- Phase B: `docs/selfchecks/phase-b-item-authority-selfcheck.md`
-- Phase C: `docs/selfchecks/phase-c-protocol-core-selfcheck.md`
-- Phase D: `docs/selfchecks/phase-d-full-domain-migration-selfcheck.md`
-- Phase E: `docs/selfchecks/phase-e-legacy-inventory-selfcheck.md`
+- Phase A–C: historical phase evidence, superseded by later phases:
+  `phase-a-kernel-foundation-selfcheck.md`,
+  `phase-b-item-authority-selfcheck.md`,
+  `phase-c-protocol-core-selfcheck.md`
+- Phase D: `phase-d-full-domain-migration-selfcheck.md`
+- Phase E: `phase-e-legacy-inventory-selfcheck.md`
 
 Domain/feature fact sheets are named by mechanism (for example
 `carry-interaction-selfcheck.md`, `cross-player-item-use-selfcheck.md`,
@@ -92,10 +95,18 @@ Domain/feature fact sheets are named by mechanism (for example
 ## Replay and simulation
 
 The replay archive lives under `tests/.../Replays/*.replay` (one step per line on a
-monotonic timeline). `ReplayParser`, `ReplayRunner`, and `ItemSimWorld` drive the
-same shared 3-node world for item/entity/fluid scenarios; `tools/compare-itemtrace.ps1`
-compares a real log against a replay `SimTrace`. These are the strongest evidence
-that a fix preserved user-observable semantics.
+monotonic timeline). `ReplayRunner` dispatches by domain:
+
+- `ItemSimWorld` — item-domain scenarios;
+- `EntityEventSimWorld` — entity/fluid scenarios;
+- `BlockBreakReplayWorld` — block-break scenarios;
+- `TradeReplayWorld` — trade scenarios.
+
+The legacy-vs-kernel semantic diff (`ItemSimWorld.CompareKernel`) is currently
+item-domain only; entity/fluid/block-break/trade replays do not perform that
+legacy-vs-kernel comparison. `tools/compare-itemtrace.ps1` compares a real log
+against a replay `SimTrace`. These are the strongest evidence that a fix preserved
+user-observable semantics.
 
 ## Delivery checklist
 

@@ -1,5 +1,9 @@
 # NPC / Enemy Synchronization — Design
 
+> Architecture context: enemy terminal facts are kernel-owned; see
+> [`architecture-evolution/domains.md`](architecture-evolution/domains.md) and
+> [`architecture-evolution/protocol.md`](architecture-evolution/protocol.md).
+
 Status: **landed** — host-authoritative enemy sync, multiplayer targeting, host-ordered attacks and the dedicated enemy-proximity effect events are in; the previously listed remaining enemy-interaction gaps are closed (see §6).
 
 ## 1. Current state & problem

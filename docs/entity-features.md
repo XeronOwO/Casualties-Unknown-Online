@@ -1,5 +1,11 @@
 # Entity Features — Casualties Unknown (Demo)
 
+> Architecture context: the current entity/domain ownership and kernel wire path
+> are documented in
+> [`architecture-evolution/domains.md`](architecture-evolution/domains.md) and
+> [`architecture-evolution/protocol.md`](architecture-evolution/protocol.md).
+> This matrix is the canonical game-mechanic/sync-status reference.
+
 The inventory of every world entity that carries state, reacts to players, or
 affects multiplayer sync — the lookup table for "did we miss a mechanism?"
 (the entity-domain twin of [`item-features.md`](item-features.md)). Each

@@ -35,6 +35,8 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
+- [Remote ragdoll state not visible](todo/ragdoll-state-not-visible-to-remote.md) — X ragdoll not shown on remote view.
+- [Name tag font size, head position, and off-screen edge padding](todo/name-tag-font-position-edge-padding.md) — UI/name tag issue.
 - [PVP](todo/pvp.md) — low priority, deferred until PvE/rules stable.
 - [KrokMP lower-priority candidates](todo/krokmp-candidates.md) — voice, vote-kick, player-list polish.
 - [State-stream bandwidth reduction](todo/state-stream-bandwidth-reduction.md) — measurement-first.

@@ -4311,3 +4311,24 @@ conscious.
 - **Tests** — `PlayerDomainKernelTests.DeadCarrier_IsRejectedByInvariant`
   and `UnconsciousButAliveCarrier_IsRejectedByInvariant`. Full suite 1792
   green; build/format/architecture/event/entity/delivery gates pass.
+
+## 156. Player/item ownership consistency and death preservation (2026-08-30)
+
+The 4.3 death + inventory consistency item is addressed as a kernel ownership
+consistency rule plus a behavior lock, without inventing a nonexistent
+death-drop path.
+
+- **Ownership invariant** — when the player table exists, `PlayerDomainModule`
+  rejects any `Carried` item whose owner is not a known player. This closes an
+  item-to-player ownership gap while still allowing item-only kernels (player
+  table absent) to operate for Phase B/item-only tests.
+- **Death preservation** — `DeadStatusUpdate_PreservesCarriedItems` locks that a
+  player becoming dead does not implicitly drop or relocate their carried items;
+  death and inventory are orthogonal until a run/respawn policy explicitly moves
+  them.
+- **Composition** — the invariant is checked on player-domain execution and
+  composite/apply paths; the identity floor from #153 means production players
+  are registered before carry/item relations are evaluated.
+- **Tests** — `PlayerDomainKernelTests.CarriedItemWithUnknownOwner_IsRejectedByPlayerInvariant`
+  and `DeadStatusUpdate_PreservesCarriedItems`. Full suite 1794 green;
+  build/format/architecture/event/entity/delivery gates pass.

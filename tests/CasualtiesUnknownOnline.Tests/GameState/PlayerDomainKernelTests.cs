@@ -357,6 +357,58 @@ public class PlayerDomainKernelTests
 	}
 
 	[Fact]
+	public void CarriedItemWithUnknownOwner_IsRejectedByPlayerInvariant()
+	{
+		var kernel = new GameStateKernel(Epoch);
+		Assert.True(Update(kernel, 1, new PlayerState(2001, true, true)).IsAccepted);
+
+		var spawn = kernel.Execute(
+			new SpawnItemCommand(
+				new OperationId(2),
+				Host,
+				Epoch,
+				AuthorityKind.OwnerPredictedHostValidated,
+				new ItemIdentity(42, "medkit"),
+				ItemLocation.Carried(new ActorId(9999)),
+				0,
+				null),
+			new CommandContext(Epoch, Host));
+		Assert.True(spawn.IsAccepted);
+
+		var decision = Update(kernel, 3, new PlayerState(2002, true, true));
+
+		Assert.False(decision.IsAccepted);
+		Assert.Equal(RejectionReason.InvariantViolation, decision.Rejection!.Reason);
+	}
+
+	[Fact]
+	public void DeadStatusUpdate_PreservesCarriedItems()
+	{
+		var kernel = new GameStateKernel(Epoch);
+		Assert.True(Update(kernel, 1, new PlayerState(2001, true, true)).IsAccepted);
+
+		var spawn = kernel.Execute(
+			new SpawnItemCommand(
+				new OperationId(2),
+				Host,
+				Epoch,
+				AuthorityKind.OwnerPredictedHostValidated,
+				new ItemIdentity(42, "medkit"),
+				ItemLocation.Carried(new ActorId(2001)),
+				0,
+				null),
+			new CommandContext(Epoch, Host));
+		Assert.True(spawn.IsAccepted);
+
+		Assert.True(Update(kernel, 3, new PlayerState(2001, false, false)).IsAccepted);
+
+		var item = kernel.FindItem(42);
+		Assert.NotNull(item);
+		Assert.Equal(ItemLocationKind.Carried, item!.Value.Location.Kind);
+		Assert.Equal(2001ul, item.Value.Location.Owner.Value);
+	}
+
+	[Fact]
 	public void WireBatchRoundTrip_PreservesPlayerStatusEvent()
 	{
 		var source = new GameStateKernel(Epoch);

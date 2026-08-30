@@ -16,6 +16,26 @@ public sealed class PlayerKernelStatusProjection(
 	private readonly ItemKernelAuthority _kernelAuthority = kernelAuthority;
 	private readonly ISessionControl _session = session;
 
+	/// <summary>
+	/// Ensure the player has a kernel roster row. This is the identity/presence
+	/// floor for the player domain: carry and other cross-player relations may
+	/// validate against the kernel before the first high-frequency stream or
+	/// character-data report has arrived.
+	/// </summary>
+	public void Ensure(ulong steamId)
+	{
+		if (_kernelAuthority.QueryPlayers()?.Players.Any(p => p.SteamId == steamId) == true)
+		{
+			return;
+		}
+
+		_kernelAuthority.TryUpdatePlayerStatus(
+			_session.LocalSteamId,
+			new PlayerState(steamId, true, true),
+			out _,
+			out _);
+	}
+
 	public void Sync(ulong steamId, bool alive, bool conscious)
 	{
 		var table = _kernelAuthority.QueryPlayers();

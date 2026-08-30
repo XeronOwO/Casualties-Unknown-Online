@@ -462,6 +462,7 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 			Entity = entity,
 			LastReportSeq = 0, // the member re-joins with a fresh sequence space
 		};
+		_playerStatus.Ensure(presence.SteamId);
 		RemoteJoined?.Invoke(entity);
 
 		var joinMsg = BuildJoinMsg(presence.SteamId, entity.EntityId, presence.ReportedSpawnPos);

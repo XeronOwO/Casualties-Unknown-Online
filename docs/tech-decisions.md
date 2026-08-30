@@ -4252,3 +4252,20 @@ exclusively in the character-data snapshot projection.
   round-trips, `PlayerProjectionTests.HostSaveCharacterData_CommitsPlayerKernelSkills`,
   and `CharacterDataStoreTests.SendSavedCharacter_ProjectsKernelSkillsOverSnapshot`.
   Full suite 1786 green; build/format/architecture/event/entity/delivery gates pass.
+
+## 153. Player kernel identity floor on entity-sync start (2026-08-30)
+
+A second 4.3 slice makes player identity explicit in the kernel: the host
+creates a default `PlayerState` row as soon as a member's entity sync starts.
+
+- **Ensure** — `PlayerKernelStatusProjection.Ensure(steamId)` upserts a default
+  alive/conscious row when the player is absent; `EntitySyncService.StartMemberSync`
+  calls it before the join announcement and first stream broadcast.
+- **Rationale** — carry and other cross-player kernel relations can now validate
+  against an existing player row without depending on the first 20 Hz report or
+  1 Hz character snapshot having arrived.
+- **No new wire command** — the ensure path reuses the existing
+  `UpdatePlayerStatusCommand`/`PlayerStatusUpdatedEvent` projection, so no
+  protocol change or new event kind is introduced.
+- **Tests** — `PlayerProjectionTests.HostStartMemberSync_EnsuresKernelPlayerRosterRow`.
+  Full suite 1787 green; build/format/architecture/event/entity/delivery gates pass.

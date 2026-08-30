@@ -62,7 +62,7 @@ public class EnemyCombatArbitrationTests
 	public void SelectBiteVictim_ReturnsTheNearestRemotePlayer()
 	{
 		var selected = EnemyCombatArbitration.SelectBiteVictim(
-			Candidates(), new NetVector2(2.5f, 0f), biteRange: 1.5f, biteCooldown: 0f, stunTime: 0f, HostId);
+			Candidates(), new NetVector2(2.5f, 0f), biteRange: 1.5f, biteCooldown: 0f, stunTime: 0f);
 
 		Assert.True(selected is { } fact && fact.SteamId == GuestA, "GuestA is the only player inside the 1.5-unit bite radius");
 	}
@@ -71,25 +71,26 @@ public class EnemyCombatArbitrationTests
 	public void SelectBiteVictim_ClosedByCooldownOrStun()
 	{
 		Assert.Null(EnemyCombatArbitration.SelectBiteVictim(
-			Candidates(), new NetVector2(2.5f, 0f), 1.5f, biteCooldown: 0.01f, stunTime: 0f, HostId));
+			Candidates(), new NetVector2(2.5f, 0f), 1.5f, biteCooldown: 0.01f, stunTime: 0f));
 		Assert.Null(EnemyCombatArbitration.SelectBiteVictim(
-			Candidates(), new NetVector2(2.5f, 0f), 1.5f, biteCooldown: 0f, stunTime: 0.01f, HostId));
+			Candidates(), new NetVector2(2.5f, 0f), 1.5f, biteCooldown: 0f, stunTime: 0.01f));
 	}
 
 	[Fact]
-	public void SelectBiteVictim_LocalVictimRidesTheNativeCollisionPath()
+	public void SelectBiteVictim_LocalVictimIsReturnedForTheOrderPolicy()
 	{
 		var selected = EnemyCombatArbitration.SelectBiteVictim(
-			Candidates(), new NetVector2(0f, 0f), 1.5f, 0f, 0f, HostId);
+			Candidates(), new NetVector2(0f, 0f), 1.5f, 0f, 0f);
 
-		Assert.Null(selected);
+		Assert.True(selected is { } fact && fact.SteamId == HostId,
+			"arbitration selects the nearest player; EnemyCombatOrderPolicy decides the local-native path");
 	}
 
 	[Fact]
 	public void SelectBiteVictim_NoCandidateInRange_IsNull()
 	{
 		var selected = EnemyCombatArbitration.SelectBiteVictim(
-			Candidates(), new NetVector2(10f, 0f), 1.5f, 0f, 0f, HostId);
+			Candidates(), new NetVector2(10f, 0f), 1.5f, 0f, 0f);
 
 		Assert.Null(selected);
 	}

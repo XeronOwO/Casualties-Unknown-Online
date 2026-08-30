@@ -27,7 +27,7 @@ internal sealed class WorldChannelRelay(
 
 	public void FireEntityEventReceived(ulong sender, EntityEventMsg msg) => _eventChannel.FireEntityEventReceived(sender, msg);
 
-	public void SendEntityEvent(EntityEventMsg msg) => _eventChannel.SendEntityEvent(msg);
+	public void SendEntityEvent(EntityEventMsg msg, float? buildingHealth = null) => _eventChannel.SendEntityEvent(msg, buildingHealth);
 
 	public void BroadcastEntityEvent(ulong excludeSteamId, EntityEventMsg msg) => _eventChannel.BroadcastEntityEvent(excludeSteamId, msg);
 
@@ -51,7 +51,7 @@ internal sealed class WorldChannelRelay(
 
 	public void ReportTrapState(EntityEventKind kind, float x, float y, byte extra) => _eventChannel.ReportTrapState(kind, x, y, extra);
 
-	public void ReportTrapEvent(EntityEventKind kind, float x, float y, byte extra) => _eventChannel.ReportTrapEvent(kind, x, y, extra);
+	public void ReportTrapEvent(EntityEventKind kind, float x, float y, byte extra, float? buildingHealth = null) => _eventChannel.ReportTrapEvent(kind, x, y, extra, buildingHealth);
 
 	public event Action<ulong, EntitySpawnedMsg>? EntitySpawnedReceived { add => _eventChannel.EntitySpawnedReceived += value; remove => _eventChannel.EntitySpawnedReceived -= value; }
 

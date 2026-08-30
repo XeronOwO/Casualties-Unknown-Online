@@ -59,7 +59,7 @@ internal sealed class EntityEventSync(IWorldControl world, ISessionControl sessi
 			Kind = kind,
 			Position = new NetVector2Msg(position.x, position.y),
 			Extra = extra,
-		});
+		}, _session.Role == SessionRole.Host ? ReadDestroyedTrapHealth(kind, position) : null);
 	}
 
 	private void OnRemoteEntityEvent(ulong sender, EntityEventMsg msg)
@@ -79,9 +79,11 @@ internal sealed class EntityEventSync(IWorldControl world, ISessionControl sessi
 			// Record the whole trigger as one atomic kernel batch: one-shot
 			// consumptions are position-keyed for the late-joiner snapshot,
 			// and stateful edges move the kernel trap state machine for both
-			// host-local and guest-reported events. Repeatable visual-only
-			// events carry no kernel fact.
-			_world.ReportTrapEvent(msg.Kind, pos.X, pos.Y, msg.Extra);
+			// host-local and guest-reported events. For destructive trap
+			// kinds the entity's post-trigger zero health also rides the same
+			// batch. Repeatable visual-only events carry no kernel fact.
+			var health = ReadDestroyedTrapHealth(msg.Kind, new Vector2(pos.X, pos.Y));
+			_world.ReportTrapEvent(msg.Kind, pos.X, pos.Y, msg.Extra, health);
 			_world.BroadcastEntityEvent(sender, msg);
 		}
 		else
@@ -115,4 +117,28 @@ internal sealed class EntityEventSync(IWorldControl world, ISessionControl sessi
 			}
 		}
 	}
+
+	/// <summary>
+	/// Returns the destroyed trap entity's post-trigger building health for the
+	/// destructive trap kinds whose host application writes health = 0. Other
+	/// kinds return null because they do not have a deterministic health fact to
+	/// fold into the atomic trigger batch.
+	/// </summary>
+	private float? ReadDestroyedTrapHealth(EntityEventKind kind, Vector2 position)
+	{
+		if (!IsDestructiveTrapKind(kind))
+		{
+			return null;
+		}
+
+		var hit = Physics2D.OverlapPoint(position);
+		var building = hit != null ? hit.GetComponent<BuildingEntity>() : null; // Unity object — ==
+		return building != null && building.health <= 0.5f ? building.health : null; // Unity object — ==
+	}
+
+	private static bool IsDestructiveTrapKind(EntityEventKind kind) => kind is
+		EntityEventKind.MineExploded
+		or EntityEventKind.TurretSelfDestructed
+		or EntityEventKind.CrystalFragileBroken
+		or EntityEventKind.CrystalUnstableExploded;
 }

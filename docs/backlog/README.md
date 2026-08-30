@@ -48,7 +48,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### In progress
 
-- [Remote ragdoll state not visible](in-progress/ragdoll-state-not-visible-to-remote.md) — X ragdoll not shown on remote view; reworking after rejection for missing failing regression test.
+_None._ (Folder exists for the workflow.)
 
 ### Review
 
@@ -71,6 +71,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Done
 
+- [Remote ragdoll state not visible](done/ragdoll-state-not-visible-to-remote.md) — X ragdoll now visible on remote; user accepted.
 - [Host close-room safe exit](done/host-close-room-safe-exit.md).
 - [Custom configuration template system](done/config-profile-templates.md).
 - [IP-direct display-name validation](done/ip-direct-name-validation.md).

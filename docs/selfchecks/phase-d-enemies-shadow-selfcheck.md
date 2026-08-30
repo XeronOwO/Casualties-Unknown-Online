@@ -48,7 +48,7 @@ durable entity identity/health/runtime-spawn facts.
 ## Verification
 
 - `dotnet build CasualtiesUnknownOnline.slnx`: 0 warnings / 0 errors.
-- `dotnet test CasualtiesUnknownOnline.slnx`: 1701 passed.
+- `dotnet test CasualtiesUnknownOnline.slnx`: 1702 passed.
 - `dotnet format`: applied.
 - Architecture/event/entity/isolation/delivery gates passed; architecture split added
   `ItemKernelCodec`, `KernelDomainWireMapper`, `EnemyCombatKernelCodec`, and

@@ -59,6 +59,7 @@ All files under `docs/selfchecks/` are historical/per-delivery evidence records.
 | presentation/held-light-direction-selfcheck.md | Other | current | candidate current evidence; verify before citing |
 | protocol/high-frequency-small-drops-selfcheck.md | Other | current | candidate current evidence; verify before citing |
 | session/host-ban-selfcheck.md | Other | current | candidate current evidence; verify before citing |
+| session/host-close-room-safe-exit-selfcheck.md | Other | current | candidate current evidence; verify before citing |
 | session/host-kick-selfcheck.md | Other | current | candidate current evidence; verify before citing |
 | session/host-rules-selfcheck.md | Other | current | candidate current evidence; verify before citing |
 | protocol/hot-path-latency-instrumentation-selfcheck.md | Other | current | candidate current evidence; verify before citing |

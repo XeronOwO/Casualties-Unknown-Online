@@ -84,7 +84,7 @@ into kernel-backed projection/snapshot adapters.
    included in the late-joiner replay list, while transient `Warning` edges are
    intentionally not snapshotted.
 6. [x] Atomic trap trigger kernel facts landed: the host-local channel and the
-   host-apply path commit the one-shot consumption plus the trap state
-   transition as one `CompositeGameCommand` batch through
-   `IWorldControl.ReportTrapEvent`. Next is the cross-domain damage/drop
-   batch.
+   host-apply path commit the one-shot consumption, the trap state transition,
+   and (for destructive kinds) the trap entity's zero health as one
+   `CompositeGameCommand` batch through `IWorldControl.ReportTrapEvent`.
+   Next is the cross-domain item-drop/multi-entity damage side-effect batch.

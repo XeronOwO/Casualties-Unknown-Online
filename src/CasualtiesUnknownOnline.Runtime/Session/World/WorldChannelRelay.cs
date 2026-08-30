@@ -51,7 +51,7 @@ internal sealed class WorldChannelRelay(
 
 	public void ReportTrapState(EntityEventKind kind, float x, float y, byte extra) => _eventChannel.ReportTrapState(kind, x, y, extra);
 
-	public void ReportTrapEvent(EntityEventKind kind, float x, float y, byte extra, float? buildingHealth = null, IReadOnlyList<BuildingEntityHealthEntryMsg>? additionalHealth = null) => _eventChannel.ReportTrapEvent(kind, x, y, extra, buildingHealth, additionalHealth);
+	public void ReportTrapEvent(EntityEventKind kind, float x, float y, byte extra, float? buildingHealth = null, IReadOnlyList<BuildingEntityHealthEntryMsg>? additionalHealth = null, IReadOnlyList<TrapDropEntryMsg>? drops = null, ulong? dropActor = null) => _eventChannel.ReportTrapEvent(kind, x, y, extra, buildingHealth, additionalHealth, drops, dropActor);
 
 	public event Action<ulong, EntitySpawnedMsg>? EntitySpawnedReceived { add => _eventChannel.EntitySpawnedReceived += value; remove => _eventChannel.EntitySpawnedReceived -= value; }
 

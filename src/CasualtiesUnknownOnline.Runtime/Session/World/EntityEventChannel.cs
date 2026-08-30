@@ -56,7 +56,7 @@ public sealed class EntityEventChannel(ISessionControl session, PacketSender sen
 			// guest-triggered events. Without this a late joiner never learns
 			// host-triggered consumptions (mine, spike, mimic, ...). The
 			// composite also advances the trap state machine in the same batch.
-			_trapState.ReportBatch(msg.Kind, msg.Position.X, msg.Position.Y, msg.Extra, buildingHealth);
+			_trapState.ReportBatch(msg.Kind, msg.Position.X, msg.Position.Y, msg.Extra, buildingHealth, null, msg.Drops, _session.LocalSteamId);
 
 			_session.Broadcast(NetMsg.EntityEvent, msg);
 		}
@@ -311,7 +311,7 @@ public sealed class EntityEventChannel(ISessionControl session, PacketSender sen
 	/// state-machine transition (when the kind has a state profile), and an
 	/// optional destroyed-building health observation together.
 	/// </summary>
-	public void ReportTrapEvent(EntityEventKind kind, float x, float y, byte extra, float? buildingHealth = null, IReadOnlyList<BuildingEntityHealthEntryMsg>? additionalHealth = null) => _trapState.ReportBatch(kind, x, y, extra, buildingHealth, additionalHealth);
+	public void ReportTrapEvent(EntityEventKind kind, float x, float y, byte extra, float? buildingHealth = null, IReadOnlyList<BuildingEntityHealthEntryMsg>? additionalHealth = null, IReadOnlyList<TrapDropEntryMsg>? drops = null, ulong? dropActor = null) => _trapState.ReportBatch(kind, x, y, extra, buildingHealth, additionalHealth, drops, dropActor);
 
 	/// <summary>Host only: a new world layer is generating — the consumptions start empty again.</summary>
 	public void ResetConsumptions() => _trapConsumption.Reset();

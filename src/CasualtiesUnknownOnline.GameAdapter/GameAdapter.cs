@@ -193,6 +193,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 		_domains.LayerModifierSync.Update(); // guest: apply the host's layer modifier once the local generation finished
 		_domains.CarriedInventoryReporter.Update(); // guest: report the carried inventory with self-assigned ids once the local generation finished
 		_domains.ItemWorldSync.FlushPendingDrop(); // a drop that was not thrown reports at end of frame (one drop = one report)
+		_domains.EntityEventSync.FlushPendingDrops(); // a destructive trap's building-death drops fold into the same event after the hold window
 		_domains.BlockBreakSync.FlushPendingBlockBreak(); // a break's drops fold in one frame after the break — the break + drops go out as ONE message
 		using (_latency.Measure("ItemPosition"))
 		{

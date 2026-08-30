@@ -43,4 +43,12 @@ public sealed class EntityEventMsg
 	/// </summary>
 	[ProtoMember(4)]
 	public float ElapsedSeconds { get; set; }
+
+	/// <summary>
+	/// Items dropped by the destructive trap/building-entity death on the
+	/// triggering side. Empty on ordinary/live replay events; when present the
+	/// host folds these spawns into the same atomic trap composite.
+	/// </summary>
+	[ProtoMember(5)]
+	public System.Collections.Generic.List<TrapDropEntryMsg> Drops { get; set; } = [];
 }

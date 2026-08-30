@@ -17,13 +17,14 @@ namespace CasualtiesUnknownOnline.GameAdapter.World;
 /// sides, so the trap's transform position IS its identity (same pattern as
 /// the building-entity damage/open events).
 /// </summary>
-internal sealed class EntityEventSync(IWorldControl world, ISessionControl session, TrapEffectApplier applier, TrapVisualReplay replay, WorldEntityKernelProjection kernelProjection, ILogger<EntityEventSync> log)
+internal sealed class EntityEventSync(IWorldControl world, ISessionControl session, TrapEffectApplier applier, TrapVisualReplay replay, WorldEntityKernelProjection kernelProjection, TrapDropPendingState pendingDrops, ILogger<EntityEventSync> log)
 {
 	private readonly IWorldControl _world = world;
 	private readonly ISessionControl _session = session;
 	private readonly TrapEffectApplier _applier = applier;
 	private readonly TrapVisualReplay _replay = replay;
 	private readonly WorldEntityKernelProjection _kernelProjection = kernelProjection;
+	private readonly TrapDropPendingState _pendingDrops = pendingDrops;
 	private readonly ILogger<EntityEventSync> _log = log;
 
 	internal void BindToSession()
@@ -52,6 +53,16 @@ internal sealed class EntityEventSync(IWorldControl world, ISessionControl sessi
 			return;
 		}
 
+		if (TrapDamageProfiles.IsDestructive(kind))
+		{
+			// Wait for the local BuildingEntity.Update death branch and the
+			// next-frame Item.Start to fold the drops into the same event.
+			_pendingDrops.Enter(kind, position.x, position.y, extra, Time.frameCount);
+			_log.LogInformation("[TrapDropPending] kind={Kind} pos=({X:F1},{Y:F1}) held for drop collection.",
+				kind, position.x, position.y);
+			return;
+		}
+
 		_log.LogInformation("[TrapEvent] kind={Kind} pos=({X:F1},{Y:F1}) origin={Origin}.",
 			kind, position.x, position.y, _session.Role == SessionRole.Host ? "HostApply" : "Report");
 		_world.SendEntityEvent(new EntityEventMsg
@@ -60,6 +71,28 @@ internal sealed class EntityEventSync(IWorldControl world, ISessionControl sessi
 			Position = new NetVector2Msg(position.x, position.y),
 			Extra = extra,
 		}, _session.Role == SessionRole.Host ? ReadDestroyedTrapHealth(kind, position) : null);
+	}
+
+	/// <summary>
+	/// Frame-end flush: sends every destructive trap event whose drops had a
+	/// chance to be collected. On the host this commits the atomic kernel
+	/// composite directly; on a guest it reports the event + drops to the host.
+	/// </summary>
+	internal void FlushPendingDrops()
+	{
+		if (!_pendingDrops.TryFlush(Time.frameCount, out var events))
+		{
+			return;
+		}
+
+		foreach (var msg in events)
+		{
+			var pos = msg.Position.ToNetVector2();
+			var health = ReadDestroyedTrapHealth(msg.Kind, new Vector2(pos.X, pos.Y));
+			_log.LogInformation("[TrapDropFlush] kind={Kind} pos=({X:F1},{Y:F1}) drops={Count}.",
+				msg.Kind, pos.X, pos.Y, msg.Drops.Count);
+			_world.SendEntityEvent(msg, health);
+		}
 	}
 
 	private void OnRemoteEntityEvent(ulong sender, EntityEventMsg msg)
@@ -93,7 +126,7 @@ internal sealed class EntityEventSync(IWorldControl world, ISessionControl sessi
 			// batch, together with any explosion-diff building health captured
 			// in the scope. Repeatable visual-only events carry no kernel fact.
 			var health = ReadDestroyedTrapHealth(msg.Kind, new Vector2(pos.X, pos.Y));
-			_world.ReportTrapEvent(msg.Kind, pos.X, pos.Y, msg.Extra, health, additionalHealth);
+			_world.ReportTrapEvent(msg.Kind, pos.X, pos.Y, msg.Extra, health, additionalHealth, msg.Drops, sender);
 			_world.BroadcastEntityEvent(sender, msg);
 		}
 		else

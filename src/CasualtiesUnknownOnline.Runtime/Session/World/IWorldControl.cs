@@ -225,10 +225,11 @@ public interface IWorldControl
 	/// <summary>
 	/// Host only: record a live trap trigger as one atomic kernel batch. The
 	/// batch carries the one-shot consumption (when applicable), the trap
-	/// state-machine transition (when the kind has a state profile), and an
-	/// optional destroyed-building health observation together.
+	/// state-machine transition (when the kind has a state profile), an
+	/// optional destroyed-building health observation, and any destructive-trap
+	/// item drops collected by the triggering side — all in one composite.
 	/// </summary>
-	void ReportTrapEvent(EntityEventKind kind, float x, float y, byte extra, float? buildingHealth = null, IReadOnlyList<BuildingEntityHealthEntryMsg>? additionalHealth = null);
+	void ReportTrapEvent(EntityEventKind kind, float x, float y, byte extra, float? buildingHealth = null, IReadOnlyList<BuildingEntityHealthEntryMsg>? additionalHealth = null, IReadOnlyList<TrapDropEntryMsg>? drops = null, ulong? dropActor = null);
 
 	/// <summary>
 	/// Report a runtime world-entity creation (outside generation — the spawn

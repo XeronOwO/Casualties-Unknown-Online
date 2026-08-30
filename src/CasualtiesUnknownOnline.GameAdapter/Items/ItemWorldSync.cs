@@ -27,6 +27,7 @@ internal sealed class ItemWorldSync(
 	DropProtectionGuard guard,
 	ItemDropState dropState,
 	BlockBreakPendingState breakState,
+	TrapDropPendingState trapDropState,
 	OperationTrace trace,
 	ItemReportCommitter reports,
 	ItemIdAllocator ids,
@@ -37,6 +38,7 @@ internal sealed class ItemWorldSync(
 	private readonly DropProtectionGuard _guard = guard;
 	private readonly ItemDropState _dropState = dropState;
 	private readonly BlockBreakPendingState _breakState = breakState;
+	private readonly TrapDropPendingState _trapDropState = trapDropState;
 	private readonly OperationTrace _trace = trace;
 	private readonly ItemReportCommitter _reports = reports;
 	private readonly ItemIdAllocator _ids = ids;
@@ -211,13 +213,31 @@ internal sealed class ItemWorldSync(
 		var provenance = ItemDropProvenanceClassifier.Classify(dropOrigin != null, buildingDrop != null);
 		if (provenance == ItemDropProvenance.BuildingDeathDrop)
 		{
-			// Provenance only for now: a local building-entity death drop is
-			// still reported as a standalone spawn (the trap-drop composite
-			// collection is the next 4.2 step). This line makes the source
-			// observable before any collection logic depends on it.
-			_log.LogInformation("[ItemBuildingDeathDrop] local {Type} (id {ItemId}) at ({X:F1},{Y:F1}), vel ({VX:F1},{VY:F1}), fresh {Fresh} — building-death provenance.",
-				item.id, itemId, item.transform.position.x, item.transform.position.y,
-				item.rb.velocity.x, item.rb.velocity.y, fresh);
+			var trapDrop = new TrapDropEntryMsg
+			{
+				ItemId = itemId,
+				Item = ItemStateCodec.CaptureItem(item, -1),
+				Position = new NetVector2(buildingDrop!.SpawnPosition.x, buildingDrop.SpawnPosition.y).ToNetVector2Msg(),
+				Velocity = new NetVector2(item.rb.velocity.x, item.rb.velocity.y).ToNetVector2Msg(),
+				Rotation = item.transform.eulerAngles.z,
+				FreshItemDrop = fresh,
+				AngularVelocity = item.rb.angularVelocity,
+			};
+
+			// A destructive trap is pending on this side — the drop rides the
+			// trap event so the host commits trigger + drops as ONE atomic
+			// composite. No pending trap means this is an ordinary building
+			// death (attack/open), so it stays on the standalone spawn path.
+			if (_trapDropState.TryAddDrop(trapDrop))
+			{
+				_log.LogInformation("[ItemTrapDrop] local {Type} (id {ItemId}) at ({X:F1},{Y:F1}) captured for pending trap event.",
+					item.id, itemId, trapDrop.Position.X, trapDrop.Position.Y);
+				_trace.End(op, itemId, "OnItemInstantiated", "Committed", "TrapDropCaptured");
+				return;
+			}
+
+			_log.LogInformation("[ItemBuildingDeathDrop] local {Type} (id {ItemId}) at ({X:F1},{Y:F1}) — no pending destructive trap, reporting standalone.",
+				item.id, itemId, buildingDrop.SpawnPosition.x, buildingDrop.SpawnPosition.y);
 		}
 
 		if (dropOrigin != null) // Unity object — ==

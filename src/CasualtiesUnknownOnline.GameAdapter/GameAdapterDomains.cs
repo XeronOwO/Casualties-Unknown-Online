@@ -54,6 +54,7 @@ internal sealed class GameAdapterDomains
 	internal readonly ItemPositionAuthority ItemPositionAuthority;
 	internal readonly ItemPositionFollow ItemPositionFollow;
 	internal readonly BlockBreakSync BlockBreakSync;
+	internal readonly TrapDropPendingState TrapDrops;
 	internal readonly WorldEventSync WorldEventSync;
 	internal readonly LifePodPresentation LifePod;
 	internal readonly RunCoordinator Run;
@@ -145,7 +146,8 @@ internal sealed class GameAdapterDomains
 		ItemIds = new ItemIdAllocator(session, items, loggerFactory.CreateLogger<ItemIdAllocator>()); // ids are (counter, SteamId) — the counter reports the high-water mark and resumes from the host's grant on join/reconnect
 		var itemDropState = new ItemDropState();
 		var blockBreakState = new BlockBreakPendingState();
-		ItemWorldSync = new ItemWorldSync(session, items, DropGuard, itemDropState, blockBreakState, OperationTrace, itemReports, ItemIds, loggerFactory.CreateLogger<ItemWorldSync>());
+		TrapDrops = new TrapDropPendingState();
+		ItemWorldSync = new ItemWorldSync(session, items, DropGuard, itemDropState, blockBreakState, TrapDrops, OperationTrace, itemReports, ItemIds, loggerFactory.CreateLogger<ItemWorldSync>());
 		ItemSlotSync = new ItemSlotSync(items, session, ItemIds, loggerFactory.CreateLogger<ItemSlotSync>());
 		PickupSync = new PickupSync(items, session, ItemApplication, itemDropState, ItemIds, OperationTrace, itemReports, ItemSlotSync);
 		ContainerSync = new ContainerItemSync(items, itemDropState, ItemIds, OperationTrace, itemReports, session, loggerFactory.CreateLogger<ContainerItemSync>());
@@ -169,6 +171,7 @@ internal sealed class GameAdapterDomains
 			new TrapEffectApplier(loggerFactory.CreateLogger<TrapEffectApplier>()),
 			trapVisualReplay,
 			worldEntityKernel,
+			TrapDrops,
 			loggerFactory.CreateLogger<EntityEventSync>());
 		DynamiteExplosionSync = new DynamiteExplosionSync(world, session, trapVisualReplay,
 			loggerFactory.CreateLogger<DynamiteExplosionSync>());

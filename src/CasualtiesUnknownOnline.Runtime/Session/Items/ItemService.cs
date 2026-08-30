@@ -409,7 +409,6 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 	/// <summary>Read-only world-table snapshot for kernel comparison diagnostics (never mutates production state).</summary>
 	internal IReadOnlyList<WorldItem> GetWorldItemsForDiagnostics() => [.. _worldTable.Items.Values];
 
-	internal ItemKernelAuthority KernelAuthority => _kernelAuthority;
 
 	// ===== Phase C guest batch projection =====
 

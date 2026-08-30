@@ -6,7 +6,7 @@ The base game ships without multiplayer. CUO adds Steam-based **Host + Guests** 
 
 ## Status
 
-**Active development — Phase E architecture cleanup.** Phases 0–3 (feasibility, single-player entity sync, entity lifecycle, game core loop) are complete and runtime-verified; Phase D (full domain migration to the typed deterministic game-state kernel) is complete, and Phase E (delete dual architecture / legacy surfaces) is in progress. See [`docs/architecture-evolution/README.md`](docs/architecture-evolution/README.md) for the architecture iteration status, [`docs/architecture.md`](docs/architecture.md) for the blueprint and phases, [`docs/tech-decisions.md`](docs/tech-decisions.md) for landed decisions, and [`docs/mod-api.md`](docs/mod-api.md) for the binding Mod API contract.
+**Active development — architecture evolution complete.** Phases 0–3 (feasibility, single-player entity sync, entity lifecycle, game core loop) are complete and runtime-verified; Phase D (full domain migration to the typed deterministic game-state kernel) and Phase E (delete dual architecture / legacy surfaces) are complete. See [`docs/architecture-evolution/README.md`](docs/architecture-evolution/README.md) for the architecture iteration status, [`docs/architecture.md`](docs/architecture.md) for the blueprint and phases, [`docs/tech-decisions.md`](docs/tech-decisions.md) for landed decisions, and [`docs/mod-api.md`](docs/mod-api.md) for the binding Mod API contract.
 
 ## Architecture in Brief
 

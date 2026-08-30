@@ -2,7 +2,7 @@
 
 > Companion document to `AGENTS.md`. This is the design reference: architecture, technical stack, sync model, specs, and pitfalls. It is a blueprint, not a code map — implement incrementally per the development phases.
 >
-> The typed deterministic game-state kernel iteration is documented separately in [`architecture-evolution/README.md`](architecture-evolution/README.md). During Phase E that evolution is the active architecture target; this file remains the historical pre-kernel blueprint until Phase E completes and supersedes it.
+> The typed deterministic game-state kernel iteration is documented separately in [`architecture-evolution/README.md`](architecture-evolution/README.md). The architecture evolution is complete; the active architecture is the typed deterministic kernel described there. This file is retained as the historical pre-kernel blueprint.
 
 ## 1. Overall Architecture
 

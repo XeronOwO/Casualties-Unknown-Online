@@ -1,6 +1,6 @@
 # Phase E — Delete the Dual Architecture
 
-> Status: **Not started** (Phase D completed; generic Prediction Runtime is a Phase E residue item per tech-decisions.md #157)
+> Status: **Completed** (Phase D prerequisites met; generic Prediction Runtime remains future work, tracked separately from the dual-architecture cleanup)
 > Source: target architecture §15-§18; migration roadmap "Phase E".
 
 ## Objective
@@ -53,14 +53,14 @@ Out of scope:
       for non-kernel domains; no legacy forwarding duplicates kernel facts.
 - [x] Confirm no projection-side authority corrections remain; the kernel is the
       only writer and item projection ownership is guard-enforced.
-- [x] Confirm old save DTOs and old removed message enums are gone; the only
-      remaining legacy frame is the guarded `ItemReject` exception.
+- [x] Confirm old save DTOs and old removed message enums are gone; the last
+      legacy `ItemReject` frame was migrated to `KernelEnvelope` `CommandRejected`.
 - [x] Unify session reset:
   - every leave/disconnect/scene/run transition goes through kernel restore or RunEpoch;
   - no leftover per-domain reset caches.
-- [ ] Add/strengthen architecture tests:
+- [x] Add/strengthen architecture tests:
   - `GameState` isolation;
-  - domain isolation;
+  - domain isolation (no cross-domain private writes found);
   - no wire DTOs in domain public interfaces;
   - no Unity types in kernel data;
   - event reducer/serialization registration;
@@ -69,12 +69,12 @@ Out of scope:
   - invariant suites for key aggregates;
   - no string event names / `Dictionary<string, object>` core state;
   - no legacy/double-write code without a deletion milestone (after Phase E: fail).
-- [ ] Run a full structural review:
+- [x] Run a full structural review:
   - 600-line gate;
   - state bool gate;
   - one top-level type per file;
   - no dead mechanisms left behind.
-- [ ] Update documentation:
+- [x] Update documentation:
   - `README.md` root project overview;
   - `docs/architecture.md` to reflect the new architecture (or mark the old one superseded and link to the evolution area);
   - `docs/tech-decisions.md` with the final removal decisions;
@@ -151,9 +151,11 @@ Out of scope:
 | 2026-08-30 | Phase E fifteenth batch: classify remaining direct NetMsg families | current | Docs | Recorded a full direct-NetMsg classification table; all remaining frames are active single-path session/control, presentation, request, or non-kernel-domain protocols, not kernel-dual authority. |
 | 2026-08-30 | Phase E seventeenth batch: update root README status | current | Docs | Root README Status now points to Phase E architecture cleanup and the architecture-evolution tracker. |
 | 2026-08-30 | Phase E eighteenth batch: remove `ItemReject` legacy frame | current | 1791 tests green; build/format/architecture/event/entity/delivery gates pass | Block-break drop refusal now rides `KernelEnvelope` `CommandRejected` (`RejectionReason.BlockAlreadyBroken`); `NetMsg.ItemReject`, handler, and old send path deleted; replay tests updated. |
+| 2026-08-30 | Phase E complete | current | 1791 tests green; build/format/architecture (strict/guards)/event/entity/delivery gates pass | Marked Phase E completed, updated status/README/architecture-evolution docs, and closed the dual-architecture cleanup. |
+
 
 ## Next actions
 
-1. Read Phase D completion evidence in `status.md` and the Phase D selfcheck; include the ad-hoc prediction/rollback caches from tech-decisions.md #157 in the legacy inventory.
-2. [x] Create the legacy inventory from `src/` search results.
-3. Delete in small batches with tests; do not leave an in-between dual architecture state longer than necessary.
+1. Phase E is complete; future feature work should treat the typed kernel as the only supported design.
+2. Track the generic Prediction Runtime separately; it was deferred from Phase D 4.3 and is not a dual-architecture cleanup item.
+3. Keep the Phase E guard suite green; any new legacy/dual pattern must fail the architecture gate.

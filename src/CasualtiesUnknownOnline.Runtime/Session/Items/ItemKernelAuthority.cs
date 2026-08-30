@@ -28,8 +28,6 @@ public sealed class ItemKernelAuthority(ILogger<ItemKernelAuthority> log)
 	private RunEpoch _runEpoch = new(1);
 	private ulong _nextOperation = 1;
 
-	/// <summary>Test/read-only window into the authoritative kernel state.</summary>
-	internal GameStateKernel KernelForDiagnostics => _kernel;
 
 	/// <summary>Start a fresh authority epoch after a session/run reset.</summary>
 	public void ResetForSession()

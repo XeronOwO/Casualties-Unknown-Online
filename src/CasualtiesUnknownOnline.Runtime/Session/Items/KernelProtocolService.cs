@@ -287,6 +287,7 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 		}
 	}
 
+	public void SendCommandRejected(ulong targetSteamId, ulong itemId, RejectionReason reason) => _commandHandler.SendCommandRejected(targetSteamId, itemId, reason);
 	public void PumpPendingPickups(long nowMs) => _commandHandler.PumpPendingPickups(nowMs);
 
 	public void ResetForSessionEnd()

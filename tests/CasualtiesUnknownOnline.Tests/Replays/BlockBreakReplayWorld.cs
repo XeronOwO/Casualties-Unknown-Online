@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
@@ -66,8 +67,14 @@ internal sealed class BlockBreakReplayWorld : IDisposable
 	/// <summary>How many BlockDamaged frames the node has received (cumulative).</summary>
 	internal int BlockDamagedReceived(TestNode node) => Received(node).Count(r => r.Msg == NetMsg.BlockDamaged);
 
-	/// <summary>How many ItemReject frames the node has received (cumulative — the loser-rollback surface).</summary>
-	internal int ItemRejectsReceived(TestNode node) => Received(node).Count(r => r.Msg == NetMsg.ItemReject);
+	/// <summary>How many KernelEnvelope command rejections the node has received (cumulative — the loser-rollback surface).</summary>
+	internal int ItemRejectsReceived(TestNode node) => Received(node).Count(r => r.Msg == NetMsg.KernelEnvelope && IsCommandRejected(r.Frame));
+
+	private static bool IsCommandRejected(byte[] frame)
+	{
+		var protocol = NetPacket.DecodePayload<ProtocolFrame>(frame);
+		return protocol.Command?.Header?.PayloadType == WirePayloadType.CommandRejected;
+	}
 
 	/// <summary>Whether an accepted break's drop landed in the host's authoritative world-item table.</summary>
 	internal bool IsDropRegistered(ulong itemId) => Host.Services.GetRequiredService<ItemService>().IsWorldItemRegistered(itemId);

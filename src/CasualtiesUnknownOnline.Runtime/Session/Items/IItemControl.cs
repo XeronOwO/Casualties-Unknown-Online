@@ -51,9 +51,6 @@ public interface IItemControl
 
 	// ===== Receive side (packet handlers surface the wire here) =====
 
-	/// <summary>Guest side: the host refused an arbitration — roll back (UnknownItem = a refused pickup, BlockAlreadyBroken = a refused block break's drops to destroy).</summary>
-	void FireItemRejectReceived(ulong sender, ulong itemId, ItemRejectMsg.Reason reason);
-
 	/// <summary>Host/solo: record the drops of a LOCALLY broken block into the authoritative table (the report travels inside BlockDamagedMsg — never a standalone spawn report).</summary>
 	void RegisterBlockDrops(IReadOnlyList<BlockDropEntryMsg> drops);
 

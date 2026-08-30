@@ -141,7 +141,7 @@ internal static partial class ReplayRunner
 			"block_accepted" => () => world.AcceptedCount == Count(step, 1),
 			"block_accepted_by" => () => world.AcceptedBy(world.Node(step.Args[1])) == Count(step, 2),
 			"block_received" => () => MessageName(step, 2) == NetMsg.BlockDamaged && world.BlockDamagedReceived(world.Node(step.Args[1])) == Count(step, 3),
-			"block_reject" => () => MessageName(step, 2) == NetMsg.ItemReject && world.ItemRejectsReceived(world.Node(step.Args[1])) == Count(step, 3),
+			"block_reject" => () => MessageName(step, 2) == NetMsg.KernelEnvelope && world.ItemRejectsReceived(world.Node(step.Args[1])) == Count(step, 3),
 			"block_registered" => () => world.IsDropRegistered(ItemId(step, 1)),
 			_ => throw new InvalidOperationException($"unknown assertion '{kind}' (block_accepted / block_accepted_by / block_received / block_reject / block_registered)"),
 		};
@@ -156,7 +156,7 @@ internal static partial class ReplayRunner
 			"block_accepted" => $"host accepted {world.AcceptedCount} break(s) (expected {step.Args[1]})",
 			"block_accepted_by" => $"{step.Args[1]} accepted {world.AcceptedBy(world.Node(step.Args[1]))} time(s) (expected {step.Args[2]})",
 			"block_received" => $"{step.Args[1]} received {world.BlockDamagedReceived(world.Node(step.Args[1]))} BlockDamaged frame(s) (expected {step.Args[3]})",
-			"block_reject" => $"{step.Args[1]} received {world.ItemRejectsReceived(world.Node(step.Args[1]))} ItemReject frame(s) (expected {step.Args[3]})",
+			"block_reject" => $"{step.Args[1]} received {world.ItemRejectsReceived(world.Node(step.Args[1]))} KernelEnvelope CommandRejected frame(s) (expected {step.Args[3]})",
 			"block_registered" => $"drop {step.Args[1]} is {(world.IsDropRegistered(ItemId(step, 1)) ? "registered" : "not registered")} in the host item table",
 			_ => string.Empty,
 		};

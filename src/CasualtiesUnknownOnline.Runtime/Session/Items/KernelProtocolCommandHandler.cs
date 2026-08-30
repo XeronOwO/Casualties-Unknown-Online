@@ -191,6 +191,13 @@ internal sealed class KernelProtocolCommandHandler(
 			parentId, sender, command.ContainerChildren.Count);
 	}
 
+	internal void SendCommandRejected(ulong targetSteamId, ulong itemId, RejectionReason reason) =>
+		SendCommandRejected(targetSteamId, new WireCommand
+		{
+			Kind = WireCommandKind.CommandRejected,
+			Identity = new WireItemIdentity { InstanceId = itemId },
+		}, reason);
+
 	private void SendCommandRejected(ulong targetSteamId, WireCommand original, RejectionReason reason)
 	{
 		if (_session.Role != SessionRole.Host || !_session.SessionActive || targetSteamId == 0)

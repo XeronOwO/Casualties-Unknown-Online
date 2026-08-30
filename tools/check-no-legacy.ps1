@@ -38,10 +38,6 @@ $removedWireMarkers = @(
     "NetMsg.ItemReject"
 )
 
-# ItemReject is the single documented legacy item-frame survivor, used only for
-# block-break drop refusal. It may appear only in these two files.
-$itemRejectAllowedFiles = @("ItemMessageFlowService.cs", "ItemRejectHandler.cs")
-
 Get-ChildItem -Path $src -Filter *.cs -Recurse | ForEach-Object {
     $relative = $_.FullName.Substring($root.Length + 1)
     $text = [System.IO.File]::ReadAllText($_.FullName)
@@ -54,10 +50,6 @@ Get-ChildItem -Path $src -Filter *.cs -Recurse | ForEach-Object {
     }
 
     foreach ($marker in $removedWireMarkers) {
-        if ($marker -eq "NetMsg.ItemReject" -and $itemRejectAllowedFiles -contains $_.Name) {
-            continue
-        }
-
         if ($text.Contains($marker)) {
             $failures.Add("$relative contains removed wire marker '$marker'")
         }

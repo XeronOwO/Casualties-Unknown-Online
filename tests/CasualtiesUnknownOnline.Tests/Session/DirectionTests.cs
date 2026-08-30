@@ -46,7 +46,6 @@ public class DirectionTests
 		NetMsg.PlayerJoin,
 		NetMsg.PlayerLeave,
 		NetMsg.WorldBlockState,
-		NetMsg.ItemReject,
 		NetMsg.HostCharacterData,
 		NetMsg.EarthquakeStart,
 		NetMsg.KeypadCode,

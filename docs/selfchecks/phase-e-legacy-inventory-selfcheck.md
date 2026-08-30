@@ -21,7 +21,7 @@ land; it is not a permission to keep legacy code indefinitely.
 | `ItemService.GetWorldItemsForDiagnostics` / `KernelShadow` | `Runtime/Session/Items/ItemService.cs` | Diagnostic/internal test/production (CraftSyncService uses `KernelShadow`) access | **Done**: renamed `KernelShadow` to `KernelAuthority`; no `Shadow` token remains in `src/` |
 | `ItemKernelAuthority` "Shadow-compatible conveniences" (`ObserveSpawn`/`ObservePickup`/`ObserveDrop`/`ObserveDestroy`) | `Runtime/Session/Items/ItemKernelAuthority.cs` | Convenience entry points used by CraftSyncService and tests; they still route through the kernel | **Done**: section renamed to "Kernel convenience entry points"; methods kept as kernel entry points |
 | `ItemKernelAuthority.KernelForDiagnostics` | `Runtime/Session/Items/ItemKernelAuthority.cs` | Test-only accessor exposing the internal `GameStateKernel` | **Done**: removed; tests now use the public `FindItem`/`QueryItems` surface |
-| `ItemReject` frame | `Runtime/Protocol/NetMsg` + handlers | Last legacy item-frame survivor, required for block-break drop refusal | **Tracked as guarded exception**: no-legacy guard allows it only in `ItemMessageFlowService.cs` and `ItemRejectHandler.cs` until block-break drops have a kernel/event path |
+| `ItemReject` frame | `Runtime/Protocol/NetMsg` + handlers | Last legacy item-frame survivor; block-break drop refusal | **Done**: migrated to `KernelEnvelope` `CommandRejected` with `RejectionReason.BlockAlreadyBroken`; `NetMsg.ItemReject`, handler, and old send path removed |
 | Direct `NetMsg` frames for world/trader/chat/character/enemy-presentation | Runtime handlers/channels | Current active presentation/control paths for non-persistent or continuous features | **Done**: classified as active single-path protocol in the Direct NetMsg classification section; not dual-authority targets |
 | Per-domain session reset caches | `ItemService.ResetSessionState`, world/player/enemy resets | Projection/transient caches only | **Done**: centralized kernel reset in `KernelProtocolService.ResetForSessionEnd()`; no bypass found |
 | `EnemyCombatOrderPolicy` kernel-process follow-up | Runtime + phase D next actions | Extracted policy not yet feeding kernel events | Phase E candidate; `EnemyAttackMsg` stays host-order local-apply for now |
@@ -43,6 +43,7 @@ land; it is not a permission to keep legacy code indefinitely.
 | 2026-08-30 | Centralize kernel reset in `KernelProtocolService` | `KernelProtocolService.cs`, `ItemService.cs` | `dotnet build` 0 warnings/0 errors; 1792 tests passed; format + architecture/event/entity/delivery gates passed |
 | 2026-08-30 | Guard `ItemReject` as single allowed legacy frame | `tools/check-no-legacy.ps1` | Architecture gate passed with ItemReject scoped to two allowed files |
 | 2026-08-30 | Classify all remaining direct `NetMsg` families | `docs/selfchecks/phase-e-legacy-inventory-selfcheck.md` | Docs | Every active direct frame is now recorded as session/control, presentation, request, or non-kernel-domain path, not kernel-dual authority |
+| 2026-08-30 | Migrate `ItemReject` to `KernelEnvelope` `CommandRejected` | `RejectionReason.cs`, `IKernelProtocolControl.cs`, `KernelProtocolService.cs`, `KernelProtocolCommandHandler.cs`, `ItemMessageFlowService.cs`, `ItemService.cs`, `IItemControl.cs`, `NetMsg.cs`, `ItemRejectHandler.cs`, replay/test updates, `check-no-legacy.ps1` | `dotnet build` 0 warnings/0 errors; 1791 tests passed; format + architecture/event/entity/delivery gates passed |
 
 ## Session reset audit (2026-08-30)
 
@@ -77,7 +78,7 @@ session/control, request/command, presentation, or non-kernel-domain paths.
 | Mod API | `ModMessage`, `ModCommandRequest`, `ModCommandResult` | Active Phase 4 mod API |
 | Player interaction requests | `PlayerInventoryTakeRequest`, `PlayerCarryStartRequest`, `PlayerCarryStopRequest`, `PlayerHealRequest`, `PlayerItemUseRequest`, `PlayerPushRequest`, `PlayerPushResult` | Request/result entry points; durable facts already ride `KernelEnvelope` |
 | Item id / starting inventory | `ItemIdWatermark`, `CarriedInventory` | Active non-kernel id/initialization coordination |
-| Item reject exception | `ItemReject` | Guarded single legacy frame for block-break drop refusal |
+| Item reject (removed) | *(none)* | Migrated to `KernelEnvelope` `CommandRejected`; no dedicated legacy frame remains |
 | Kernel path | `KernelEnvelope` | The four-envelope kernel protocol transport |
 
 ## Next actions

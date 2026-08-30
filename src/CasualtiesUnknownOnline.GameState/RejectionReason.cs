@@ -16,4 +16,5 @@ public enum RejectionReason
 	Conflict,
 	AlreadyCommitted,
 	MalformedCommand,
+	BlockAlreadyBroken,
 }

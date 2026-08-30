@@ -10,4 +10,4 @@
 
 @0 break g1 9 9 drops=99:ore
 @33 expect block_accepted 0 within 500
-@33 expect block_reject g1 ItemReject 1
+@33 expect block_reject g1 KernelEnvelope 1

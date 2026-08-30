@@ -440,7 +440,7 @@ Projection apply
 
 Never mutate authoritative state in order to repair a Unity projection failure.
 
-## 12. New network protocol
+## 12. Network protocol (four envelopes)
 
 The protocol is rebuilt around four envelopes:
 
@@ -490,7 +490,7 @@ envelope version, checkpoint schema version, explicit numeric Event payload IDs,
 reject unknown critical Events, ignore unknown non-critical presentation Effects, and
 golden wire contract tests.
 
-## 13. New save format
+## 13. Save format (checkpoint)
 
 Saves store authoritative checkpoint, not a Unity object graph:
 

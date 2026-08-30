@@ -1,5 +1,10 @@
 # Item Features — Casualties Unknown (Demo)
 
+> Architecture context: the current item authority and wire path are documented in
+> [`architecture-evolution/domains.md`](architecture-evolution/domains.md) and
+> [`architecture-evolution/protocol.md`](architecture-evolution/protocol.md).
+> This matrix is the canonical game-mechanic/sync-status reference.
+
 The inventory of every item trait that carries state, consumes random numbers,
 or affects multiplayer sync — the map for item-sync debugging and testing.
 Each feature section states the mechanic, its decompiled implementation

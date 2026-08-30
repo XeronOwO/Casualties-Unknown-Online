@@ -35,7 +35,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-- [Remote ragdoll state not visible](todo/ragdoll-state-not-visible-to-remote.md) — X ragdoll not shown on remote view; previous fix rejected for workflow, reopen.
 - [Duplicate unsynced item drops (guest-dug tree and world-spawned items)](todo/guest-tree-extra-unsynced-drops.md) — guest action/world drops produce two unsynced frozen copies.
 - [High sleepiness squint not visible remotely](todo/high-sleepiness-squint-not-visible-remotely.md) — remote eyes stay open when sleepiness is high.
 - [Runtime log errors to investigate (2026-08-30)](todo/runtime-log-errors-2026-08-30.md) — log files pinned with last write times.
@@ -47,7 +46,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### In progress
 
-_None._ (Folder exists for the workflow.)
+- [Remote ragdoll state not visible](in-progress/ragdoll-state-not-visible-to-remote.md) — X ragdoll not shown on remote view; reworking after rejection for missing failing regression test.
 
 ### Review
 

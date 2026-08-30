@@ -5,9 +5,10 @@ Owner cycle: backlog "Remote ragdoll state not visible". The reliable
 present, but the remote clone still rendered upright because a frozen render
 proxy has no physics to move its visible limbs while `Body.standing` is false.
 
-> **Status: NOT accepted.** The delivery was rejected because the ticket was
-> moved to review without first following the `todo -> in-progress -> review`
-> workflow. This self-check is kept as reference for the reopened ticket only.
+> **Status: NOT accepted.** The delivery was rejected because it was made
+> without first adding a regression test that fails on the current code (the
+> test-first workflow in AGENTS.md). This self-check is kept as reference for
+> the reopened ticket only.
 
 ## 1. Mechanism inventory
 
@@ -42,15 +43,17 @@ switched to the lying clip.
 
 | Mechanism | Change | Evidence |
 |-----------|--------|----------|
-| Visible limb pose while lying | temporary `standing=true` around `HandleVisuals` | `BodyPatches.cs`:83-104; static evidence `Body.cs:3224-3252` |
+| Pure rule for visual standing | `RenderProxyPose.EffectiveVisualStanding` | `RenderProxyPoseTests` (3 cases) |
+| Visible limb pose while lying | temporary `standing=true` around `HandleVisuals` | `BodyPatches.cs`:83-110; static evidence `Body.cs:3224-3252` |
 | One-shot vs stream replay | conditional `PrevLying` seed | `CharacterRagdollSync.cs`:170-175 |
 | Stale standing suppression | unchanged | `RagdollPoseGateTests` |
-| Full suite | no regressions | 1838 tests green |
+| Full suite | no regressions | 1841 tests green |
 
 ## 5. Verification
 
 - `dotnet build CasualtiesUnknownOnline.slnx`: 0 warnings / 0 errors.
-- `dotnet test CasualtiesUnknownOnline.slnx`: 1838 passed.
+- `dotnet test CasualtiesUnknownOnline.slnx`: 1841 passed (3 new
+  `RenderProxyPoseTests`).
 - `dotnet format`, `check-architecture`, `check-event-replay`,
   `check-entity-event-dispatch`: all pass.
 - Runtime acceptance: not performed (game was closed before this fix was

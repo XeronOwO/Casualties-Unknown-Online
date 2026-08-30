@@ -136,8 +136,9 @@ a separate future architecture item, not part of the completed evolution.
 - `[GATE]` Check off delivery checklist boxes one line at a time with the Edit tool; bulk
   checking is forbidden.
 - `[RULE]` Hard order: understand → mechanism inventory → adversarial self-check → plan +
-  self-check table → user approval (for large changes) → implement → build/gates → deploy →
-  runtime verification → structure review → commit.
+  self-check table → user approval (for large changes) → **add a regression test that fails
+  on current code** → implement → build/gates → deploy → runtime verification → structure
+  review → commit.
 
 See `docs/evidence/delivery-checklist.md` for the executable gate.
 

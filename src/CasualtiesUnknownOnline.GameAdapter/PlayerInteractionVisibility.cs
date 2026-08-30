@@ -14,7 +14,7 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// the gate only stops an action when a wall is confirmed between the pair,
 /// keeping the accept-first/no-missing-sync-blocking model intact.
 /// </summary>
-internal sealed class PlayerInteractionVisibility(
+public sealed class PlayerInteractionVisibility(
 	ISessionControl session,
 	IEntitySyncControl entities,
 	ILogger<PlayerInteractionVisibility> log) : IPlayerInteractionVisibility

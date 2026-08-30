@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using BepInEx.Configuration;
 using CasualtiesUnknownOnline.Abstractions;
+using CasualtiesUnknownOnline.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Diagnostics;
 using CasualtiesUnknownOnline.Runtime.OnlineUi;
@@ -202,11 +203,14 @@ internal static class PluginDependencyRegistrar
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<GameAdapterImpl>());
 		services.Replace(ServiceDescriptor.Singleton<IModEntitySpawner>(p => p.GetRequiredService<GameAdapterImpl>()));
 		services.Replace(ServiceDescriptor.Singleton<IModNativeApiProvider>(p => p.GetRequiredService<GameAdapterImpl>()));
-		// The Game Adapter is also the world-backed line-of-sight oracle. It
-		// replaces the Runtime's allow-all default, so the Runtime interaction
-		// services and the adapter domains share the same visibility rule.
+		// The game-backed line-of-sight oracle is a standalone lightweight
+		// GameAdapter service. It must NOT be registered through GameAdapterImpl:
+		// GameAdapter depends on IPlayerInteractionControl, and
+		// PlayerInteractionService depends on IPlayerInteractionVisibility — routing
+		// visibility through the adapter would create a DI constructor cycle.
+		services.AddSingleton<PlayerInteractionVisibility>();
 		services.Replace(ServiceDescriptor.Singleton<IPlayerInteractionVisibility>(
-			p => p.GetRequiredService<GameAdapterImpl>()));
+			p => p.GetRequiredService<PlayerInteractionVisibility>()));
 
 		// Full-configuration templates: a named snapshot of every bound BepInEx
 		// entry, stored beside the live config. The store is plugin-side because

@@ -85,6 +85,7 @@ into kernel-backed projection/snapshot adapters.
    intentionally not snapshotted.
 6. [x] Atomic trap trigger kernel facts landed: the host-local channel and the
    host-apply path commit the one-shot consumption, the trap state transition,
-   and (for destructive kinds) the trap entity's zero health as one
+   the destructive trap entity's zero health, and the explosion-diff building
+   health entries captured in `TrapBuildingHealthScope` as one
    `CompositeGameCommand` batch through `IWorldControl.ReportTrapEvent`.
-   Next is the cross-domain item-drop/multi-entity damage side-effect batch.
+   Next is the cross-domain item-drop side-effect collection.

@@ -127,6 +127,11 @@ a separate future architecture item, not part of the completed evolution.
   pass the gate. Extract a single-responsibility type, preserve behavior, and keep tests/gates green.
 - `[CRITICAL]` Bug reproduction before fix: add a regression test that fails on current code,
   record the failure, then change implementation.
+- `[CRITICAL]` Red→green is a hard gate: if implementation was made without first seeing the
+  regression test fail, stop and go back to the pre-fix code to record the red before
+  presenting. "The test passes now" is not a substitute for having observed it fail.
+- `[RULE]` The red step only needs the focused failing test to run (no full suite required);
+  the full suite runs after the fix is in place.
 - `[CRITICAL]` Tests must cover core scenarios plus edge/special/failure paths.
 - `[CRITICAL]` Every key path and logical branch must be observable; choose log level by
   frequency. An unobservable key path is unfinished.

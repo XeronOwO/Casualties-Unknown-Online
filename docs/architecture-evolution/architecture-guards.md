@@ -63,3 +63,7 @@ the item projection classes, so old tables stay rebuildable projections.
 Phase E addendum: `tools/check-no-legacy.ps1` runs inside the same architecture gate
 and rejects dual-architecture type declarations (`Shadow`/`Legacy`/`Compat`/`Dual`)
 plus known removed direct-result/legacy wire markers in `src/`.
+
+Phase E addendum: `tools/check-command-authority.ps1` runs inside the same architecture
+gate and requires every `GameCommand` subclass in the GameState kernel to carry an
+`AuthorityKind`/authority policy.

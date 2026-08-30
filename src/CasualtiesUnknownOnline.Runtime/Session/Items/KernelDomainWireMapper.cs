@@ -136,6 +136,7 @@ public static class KernelDomainWireMapper
 			CarriedBySteamId = state.CarriedBySteamId ?? 0,
 			Limbs = [.. (state.Limbs ?? []).Select(ToWirePlayerLimbState)],
 			Body = state.Body is null ? null : ToWirePlayerBodyTerminalState(state.Body),
+			Skills = state.Skills is null ? null : ToWirePlayerSkills(state.Skills),
 		};
 
 	public static PlayerState FromWirePlayerState(WirePlayerState state) =>
@@ -146,7 +147,8 @@ public static class KernelDomainWireMapper
 			state.CarrierOfSteamId == 0 ? null : state.CarrierOfSteamId,
 			state.CarriedBySteamId == 0 ? null : state.CarriedBySteamId,
 			state.Limbs.Count == 0 ? null : [.. state.Limbs.Select(FromWirePlayerLimbState)],
-			state.Body is null ? null : FromWirePlayerBodyTerminalState(state.Body));
+			state.Body is null ? null : FromWirePlayerBodyTerminalState(state.Body),
+			state.Skills is null ? null : FromWirePlayerSkills(state.Skills));
 
 	public static WirePlayerLimbState ToWirePlayerLimbState(PlayerLimbState limb) =>
 		new()
@@ -201,6 +203,26 @@ public static class KernelDomainWireMapper
 			body.FibrillationForced,
 			body.MindwipeScriptPresent,
 			body.MindwipeScriptActive);
+
+	public static WirePlayerSkills ToWirePlayerSkills(PlayerSkillsState skills) =>
+		new()
+		{
+			Strength = skills.Strength,
+			Resistance = skills.Resistance,
+			Intelligence = skills.Intelligence,
+			ExpStrength = skills.ExpStrength,
+			ExpResistance = skills.ExpResistance,
+			ExpIntelligence = skills.ExpIntelligence,
+		};
+
+	public static PlayerSkillsState FromWirePlayerSkills(WirePlayerSkills skills) =>
+		new(
+			skills.Strength,
+			skills.Resistance,
+			skills.Intelligence,
+			skills.ExpStrength,
+			skills.ExpResistance,
+			skills.ExpIntelligence);
 
 	public static WireEntityId ToWireEntityId(EntityId id) =>
 		new()

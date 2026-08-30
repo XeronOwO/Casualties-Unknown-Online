@@ -15,7 +15,8 @@ public sealed record PlayerState(
 	ulong? CarrierOfSteamId = null,
 	ulong? CarriedBySteamId = null,
 	IReadOnlyList<PlayerLimbState>? Limbs = null,
-	PlayerBodyTerminalState? Body = null)
+	PlayerBodyTerminalState? Body = null,
+	PlayerSkillsState? Skills = null)
 {
 	public IReadOnlyList<PlayerLimbState> LimbFacts => Limbs ?? [];
 
@@ -43,5 +44,11 @@ public sealed record PlayerState(
 		this with
 		{
 			Body = body,
+		};
+
+	public PlayerState WithSkills(PlayerSkillsState? skills) =>
+		this with
+		{
+			Skills = skills,
 		};
 }

@@ -320,4 +320,51 @@ public class CharacterDataStoreTests
 			Assert.Equal(0f, limb.SkinHealth);
 		}
 	}
+
+	[Fact]
+	public void SendSavedCharacter_ProjectsKernelSkillsOverSnapshot()
+	{
+		var (host, guest) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		using (host)
+		using (guest)
+		{
+			var received = new List<CharacterDataMsg>();
+			guest.Services.GetRequiredService<CharacterDataStore>().CharacterDataReceived += (_, msg) => received.Add(msg);
+
+			var store = host.Services.GetRequiredService<CharacterDataStore>();
+			var authority = host.Services.GetRequiredService<ItemKernelAuthority>();
+
+			var snapshot = Snapshot(GuestId);
+			snapshot.Health = new CharacterHealthMsg { Alive = true, Conscious = true };
+			snapshot.Skills = new CharacterSkillsMsg
+			{
+				Strength = 8,
+				Resistance = 8,
+				Intelligence = 8,
+				ExpStrength = 0.5f,
+				ExpResistance = 0.5f,
+				ExpIntelligence = 0.5f,
+			};
+			store.SaveCharacterData(GuestId, snapshot);
+
+			var skills = new PlayerSkillsState(15, 12, 9, 3.5f, 2.25f, 1.75f);
+			Assert.True(authority.TryUpdatePlayerStatus(
+				HostId,
+				new PlayerState(GuestId, true, true, Skills: skills),
+				out _,
+				out var rejection), rejection?.Message);
+
+			MarkHostInWorld(host);
+			host.Services.GetRequiredService<ICharacterDataControl>().SendSavedCharacter(GuestId);
+
+			var restored = Assert.Single(received);
+			Assert.NotNull(restored.Skills);
+			Assert.Equal(15, restored.Skills!.Strength);
+			Assert.Equal(12, restored.Skills.Resistance);
+			Assert.Equal(9, restored.Skills.Intelligence);
+			Assert.Equal(3.5f, restored.Skills.ExpStrength);
+			Assert.Equal(2.25f, restored.Skills.ExpResistance);
+			Assert.Equal(1.75f, restored.Skills.ExpIntelligence);
+		}
+	}
 }

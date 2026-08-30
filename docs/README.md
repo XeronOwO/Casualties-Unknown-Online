@@ -1,48 +1,119 @@
-# CUO Documentation Index
+# CUO Documentation Map
 
-Map of this repository's documentation. Start with [architecture.md](architecture.md) for the design, then drill into the domain docs.
+This is the semantic index for the CUO documentation. It is organized by reader
+intent, not by file type. If you only read one page, start here and follow the
+reading path.
 
-## Core design
+## Reading path
 
-- [architecture.md](architecture.md) — the full blueprint: overall architecture, technical stack, sync model, game adapter, mod API design, compatibility, saves, specs, pitfalls, and development phases.
-- [tech-decisions.md](tech-decisions.md) — the landing log of binding decisions (moved out of the workspace instruction file): reasoning + traceability (commit hashes, protocol versions, `file:line`) per decision.
+```
+Why / vision
+  → README.md (repo root)
+  → AGENTS.md (repo root)
 
-## Game reverse-engineering
+Current architecture
+  → architecture-evolution/README.md
+  → architecture-evolution/current-architecture.md
+  → architecture-evolution/domains.md
+  → architecture-evolution/protocol.md
 
-- [game-internals.md](game-internals.md) — scenes & flow, `Body`/input, world generation & saves, the clone/render chain, and the sync-model findings.
-- [krokmp-notes.md](krokmp-notes.md) — KrokMP's deployment layout, public API surface, and internals (reference only, never to copy).
+Domain reference (game mechanics & feature matrices)
+  → item-features.md, entity-features.md, enemy-sync.md
+  → mod-api.md
 
-## Domain features (reverse-engineered + synced)
+Verification / evidence
+  → verification.md
+  → selfchecks/
+  → delivery-checklist.md
 
-- [item-features.md](item-features.md) + `item-features-matrix.csv` — the item feature matrix (battery/liquid/consumable/durability/modeswitch/gun/ammo/…), the crafting operation surfaces, and known state gaps.
-- [entity-features.md](entity-features.md) + `entity-features-matrix.csv` — trap/mechanism entity events, the crystal family, trade, fluid, environment, buildings, creatures.
-- [enemy-sync.md](enemy-sync.md) — enemy simulation/sync design and the runtime component map.
-- [mod-api.md](mod-api.md) — the Phase 4 Mod API contract (the binding reference for mod authors).
-- [selfchecks/](selfchecks/) — per-delivery fact sheets (mechanism × change × evidence + verification design). These are historical delivery records, not the current open-work view.
+Decisions / history / future
+  → tech-decisions.md
+  → architecture-evolution/phase-*.md
+  → backlog.md
+```
 
-## Architecture evolution
+## 1. Project / Vision
 
-- [architecture-evolution/README.md](architecture-evolution/README.md) — planning and tracking home for the typed deterministic game-state kernel iteration.
-- [architecture-evolution/status.md](architecture-evolution/status.md) — live phase tracker and handoff state.
-- [architecture-evolution/session-workflow.md](architecture-evolution/session-workflow.md) — continuity rules for independent phase sessions.
-- [architecture-evolution/target-architecture.md](architecture-evolution/target-architecture.md) — full target design for the kernel, protocol, save, projections, and tests.
-- [architecture-evolution/migration-roadmap.md](architecture-evolution/migration-roadmap.md) — phase-by-phase route and recommended domain order.
+| Document | Layer |
+|---|---|
+| [`README.md`](../README.md) | Project purpose, status, build, documentation links |
+| [`AGENTS.md`](../AGENTS.md) | Binding conventions, build gates, architecture rules |
+| [`mod-api.md`](mod-api.md) | Binding public Mod API contract (the only API mods may use) |
 
-## Audits / plans
+## 2. Architecture / Domain Model
 
-- [lobby-refactor-plan.md](lobby-refactor-plan.md) — lobby-domain refactor plan and acceptance evidence.
-- [runtime-supply-refresh-audit.md](runtime-supply-refresh-audit.md) — runtime item-spawn surface sweep (which calls create items, repeatability).
-- [worldgen-determinism-audit.md](worldgen-determinism-audit.md) — world-generation random-consumer / determinism audit.
-- [exploration-2026-08-23.md](exploration-2026-08-23.md) — 2026-08-23 sweep: original-game sync gaps, KrokMP feature candidates, architecture/quality debt.
+| Document | Layer |
+|---|---|
+| [`architecture-evolution/README.md`](architecture-evolution/README.md) | Entry point to the active architecture and evolution history |
+| [`architecture-evolution/current-architecture.md`](architecture-evolution/current-architecture.md) | Current typed deterministic kernel: core flow, project structure, non-goals |
+| [`architecture-evolution/domains.md`](architecture-evolution/domains.md) | Domain ownership: what is kernel state, what is a projection |
+| [`architecture-evolution/protocol.md`](architecture-evolution/protocol.md) | Four-envelope protocol, join, state stream, save, command rejection |
+| [`architecture.md`](architecture.md) | **Historical pre-kernel blueprint** — retained for context, not the current design |
+| [`enemy-sync.md`](enemy-sync.md) | Enemy simulation/sync design and runtime component map |
+| [`game-internals.md`](game-internals.md) | Reverse-engineering findings: scenes, Body, world generation, clone chain |
 
-## Process & gates
+## 3. Domain Mechanisms / Feature Matrices
 
-- [delivery-checklist.md](delivery-checklist.md) — the delivery-quality-gate checklist (paired with `tools/check-delivery.ps1`).
-- [backlog.md](backlog.md) — open work and future/pending items (landed details live in `tech-decisions.md` and `selfchecks/`).
-- `event-replay-matrix.csv` — the per-mechanism replay audit (paired with `tools/check-event-replay.ps1`).
-- `tools/compare-itemtrace.ps1` — real-log vs replay SimTrace diff automation (whole-session subsequence matching, gzip logs, leak contract; see `selfchecks/simtrace-diff-selfcheck.md`).
+| Document | Layer |
+|---|---|
+| [`item-features.md`](item-features.md) + `item-features-matrix.csv` | Canonical item trait matrix and sync status |
+| [`entity-features.md`](entity-features.md) + `entity-features-matrix.csv` | Canonical entity/trap mechanism matrix and sync status |
+| [`enemy-sync.md`](enemy-sync.md) | Enemy mechanics and sync design |
+| [`mod-api.md`](mod-api.md) | Mod API lifecycle, permissions, host commands, state, UI, content |
 
-## Conventions
+## 4. Verification / Evidence
 
-- [`AGENTS.md`](../AGENTS.md) (repo root) — binding conventions, build gates, and the delivery gate.
-- [`AGENTS.local.md`](../AGENTS.local.md) (repo root, gitignored) — machine-local notes (paths, sandboxes, deployment, HotRepl).
+| Document | Layer |
+|---|---|
+| [`verification.md`](verification.md) | Evidence chain: gates, test baseline, replay/simulation, self-checks |
+| [`selfchecks/`](selfchecks/) | Per-delivery fact sheets (historical audit records) |
+| [`delivery-checklist.md`](delivery-checklist.md) | Delivery quality gate checklist |
+| [`runtime-supply-refresh-audit.md`](runtime-supply-refresh-audit.md) | Runtime item-spawn surface sweep |
+| [`worldgen-determinism-audit.md`](worldgen-determinism-audit.md) | World-generation random-consumer determinism audit |
+| [`simtrace-diff-selfcheck.md`](selfchecks/simtrace-diff-selfcheck.md) | Real-log vs replay diff automation |
+
+## 5. Decision Log
+
+| Document | Layer |
+|---|---|
+| [`tech-decisions.md`](tech-decisions.md) | Binding technical decisions with reasoning and traceability |
+
+## 6. Operations / Tooling / Deployment
+
+| Document | Layer |
+|---|---|
+| [`AGENTS.md`](../AGENTS.md) | General build/deploy guidance and gate commands |
+| `AGENTS.local.md` (gitignored) | Machine-specific paths, sandboxes, HotRepl — never commit |
+| `tools/` | Architecture gates, feature-matrix scripts, replay helpers, deploy script |
+
+## 7. Evolution / History
+
+| Document | Layer |
+|---|---|
+| [`architecture-evolution/README.md`](architecture-evolution/README.md) | Active architecture + completed phase history |
+| [`architecture-evolution/status.md`](architecture-evolution/status.md) | Completed phase tracker |
+| [`architecture-evolution/current-architecture.md`](architecture-evolution/current-architecture.md) | Current design reference |
+| [`architecture-evolution/migration-roadmap.md`](architecture-evolution/migration-roadmap.md) | Completed migration route (historical) |
+| [`architecture-evolution/phase-a-shadow-kernel.md`](architecture-evolution/phase-a-shadow-kernel.md) | Phase A history |
+| [`architecture-evolution/phase-b-items-authority.md`](architecture-evolution/phase-b-items-authority.md) | Phase B history |
+| [`architecture-evolution/phase-c-protocol-save-switch.md`](architecture-evolution/phase-c-protocol-save-switch.md) | Phase C history |
+| [`architecture-evolution/phase-d-full-domain-migration.md`](architecture-evolution/phase-d-full-domain-migration.md) | Phase D history |
+| [`architecture-evolution/phase-e-delete-dual-architecture.md`](architecture-evolution/phase-e-delete-dual-architecture.md) | Phase E history |
+| [`architecture.md`](architecture.md) | Pre-kernel blueprint history |
+
+## 8. Backlog / Future
+
+| Document | Layer |
+|---|---|
+| [`backlog.md`](backlog.md) | Open bug, open work, open decisions, future/low priority |
+
+## Historical audits / plans
+
+These are point-in-time analyses, retained because they contain useful evidence or
+decision context:
+
+- [`lobby-refactor-plan.md`](lobby-refactor-plan.md)
+- [`exploration-2026-08-23.md`](exploration-2026-08-23.md)
+- [`krokmp-notes.md`](krokmp-notes.md)
+- [`runtime-supply-refresh-audit.md`](runtime-supply-refresh-audit.md)
+- [`worldgen-determinism-audit.md`](worldgen-determinism-audit.md)

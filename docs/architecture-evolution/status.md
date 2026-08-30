@@ -1,6 +1,8 @@
 # Architecture Evolution Status
 
-Live tracker for the CUO architecture iteration.
+Historical status record for the completed CUO architecture iteration. The active
+architecture is described in [current-architecture.md](current-architecture.md),
+[domains.md](domains.md), and [protocol.md](protocol.md).
 
 ## Summary
 

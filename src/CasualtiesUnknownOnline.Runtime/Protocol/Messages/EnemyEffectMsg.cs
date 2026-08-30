@@ -5,12 +5,12 @@ namespace CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 /// <summary>
 /// An enemy proximity side effect fired on the LOCAL body (local compute —
 /// the game's own Update/OnWillRenderObject already mutated the player):
-/// carries the post-effect terminal state so every peer applies the exact
-/// same values (exact rebuild, never a delta). Bidirectional star semantics,
-/// the same as EnemyBite: guest → host report (the victim is the reporter);
-/// host → guest broadcast relay (the victim is <see cref="VictimSteamId"/>).
-/// Only the kind-relevant fields are populated; the 1 Hz character snapshot
-/// stays the fallback for the other body fields.
+/// this DTO is the presentation projection of the kernel
+/// <c>EnemyEffectResultEvent</c>, carrying the post-effect terminal state so
+/// every peer applies the exact same values (exact rebuild, never a delta).
+/// The source victim is not re-projected. Only the kind-relevant fields are
+/// populated; the 1 Hz character snapshot stays the fallback for the other
+/// body fields.
 /// </summary>
 [ProtoContract]
 public sealed class EnemyEffectMsg

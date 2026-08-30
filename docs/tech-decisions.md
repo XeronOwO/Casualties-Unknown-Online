@@ -3822,3 +3822,32 @@ the Phase C kernel protocol so no legacy direct result wire survives.
   host-computed result.
 - **Tests** — kernel command/wire round-trip tests and host/guest projection
   tests cover all three result families. Full suite 1699 green.
+
+## 132. Enemy combat results ride journal-only kernel events (2026-08-29)
+
+Enemy bite, crystal lunge, and proximity side-effect results are local-compute
+terminal-state facts. They are now routed through the Phase C kernel protocol so
+no legacy bidirectional result wire survives.
+
+- **Journal-only events** — `EnemyBiteResultEvent`, `EnemyLungeResultEvent`, and
+  `EnemyEffectResultEvent` are Entities domain events accepted by
+  `RecordEnemyBiteCommand`, `RecordEnemyLungeCommand`, and
+  `RecordEnemyEffectCommand`. They are reduced as no-ops: the result payload is a
+  projection/restore payload, not a separate terminal kernel table.
+- **Host commit** — host-local reports commit directly through
+  `EnemyCombatKernelSubmitter`; guest reports ride `CommandEnvelope` with
+  `WireCommandKind.RecordEnemyBite` / `RecordEnemyLunge` / `RecordEnemyEffect`.
+- **Host/guest projection** — `EnemyCombatKernelProjection` raises
+  `EnemyBiteReceived` / `EnemyLungeReceived` / `EnemyEffectReceived` from
+  `ItemKernelAuthority.BatchCommitted` on the host and `BatchApplied` on the
+  guest, converted by `EnemyCombatKernelCodec`; the source victim is skipped and
+  host guest reports are merged into the saved character snapshot.
+- **Removed legacy path** — `NetMsg.EnemyBite` (82), `NetMsg.EnemyLunge` (84),
+  `NetMsg.EnemyEffect` (85), and their three handlers are deleted.
+  `EnemyAttackMsg` remains the separate host-ordered local-apply command.
+- **Wire mapping** — `WireEventKind.EnemyBiteResult` /
+  `EnemyLungeResult` / `EnemyEffectResult` and the corresponding command kinds
+  carry `WireEnemyCombat`, including the full post-hit limb snapshot and the
+  effect-specific body fields.
+- **Tests** — kernel command/wire round-trip tests and host/guest projection
+  tests cover bite, lunge, and effect result families. Full suite 1701 green.

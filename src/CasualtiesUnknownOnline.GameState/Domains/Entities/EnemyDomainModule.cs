@@ -9,7 +9,12 @@ namespace CasualtiesUnknownOnline.GameState.Domains.Entities;
 internal sealed class EnemyDomainModule : IDomainModule
 {
 	public bool CanHandle(GameCommand command) =>
-		command is UpsertEnemyCommand or RemoveEnemyCommand or ResetEnemiesCommand;
+		command is UpsertEnemyCommand
+			or RemoveEnemyCommand
+			or ResetEnemiesCommand
+			or RecordEnemyBiteCommand
+			or RecordEnemyLungeCommand
+			or RecordEnemyEffectCommand;
 
 	public bool CanReduce(GameEvent @event) => @event is EnemyEvent;
 
@@ -19,6 +24,30 @@ internal sealed class EnemyDomainModule : IDomainModule
 			UpsertEnemyCommand c => DomainDecision.Accept(new EnemyUpsertedEvent(c.State)),
 			RemoveEnemyCommand c => DomainDecision.Accept(new EnemyRemovedEvent(c.EntityId)),
 			ResetEnemiesCommand => DomainDecision.Accept(new EnemiesResetEvent()),
+			RecordEnemyBiteCommand c => DomainDecision.Accept(new EnemyBiteResultEvent(
+				c.VictimSteamId,
+				c.Limb,
+				c.VenomTotal,
+				c.Adrenaline,
+				c.Happiness)),
+			RecordEnemyLungeCommand c => DomainDecision.Accept(new EnemyLungeResultEvent(
+				c.VictimSteamId,
+				c.Limb,
+				c.Adrenaline,
+				c.Stamina)),
+			RecordEnemyEffectCommand c => DomainDecision.Accept(new EnemyEffectResultEvent(
+				c.VictimSteamId,
+				c.Kind,
+				c.HorrifiedLevel,
+				c.FocusedLevel,
+				c.Adrenaline,
+				c.Energy,
+				c.Stamina,
+				c.Happiness,
+				c.Caffeinated,
+				c.SepticShock,
+				c.Shock,
+				c.EyePanicTime)),
 			_ => DomainDecision.Reject(RejectionReason.UnknownCommand, $"unknown entity command {command.GetType().Name}"),
 		};
 
@@ -30,6 +59,7 @@ internal sealed class EnemyDomainModule : IDomainModule
 			EnemyUpsertedEvent upserted => current.Upsert(upserted.State),
 			EnemyRemovedEvent removed => current.Remove(removed.EntityId),
 			EnemiesResetEvent => EnemyStateTable.Empty,
+			EnemyBiteResultEvent or EnemyLungeResultEvent or EnemyEffectResultEvent => current,
 			_ => throw new InvalidOperationException($"unknown entity event {@event.GetType().Name}"),
 		};
 	}

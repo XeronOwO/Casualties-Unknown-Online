@@ -21,6 +21,12 @@ durable entity identity/health/runtime-spawn facts.
 | Mapper/save | `KernelDomainWireMapper`, `KernelWireMapper`, `WireCheckpointAssembler`, `KernelSaveFileStore`, `KernelSaveFile` | Enemy facts round-trip through wire checkpoints and disk saves. |
 | Entity-sync projection | `EnemyKernelProjection` + `EnemySyncService` | Host `PublishEnemyStates` change-gated projects the enemy set into kernel and removes stale entries. |
 | Restore projection | `EnemyKernelRestoreProjection` + `EnemySyncService` | Host world-entry/reconnect snapshots and guest full-snapshot application overlay kernel `EnemyStateTable` terminal facts (health, stunned, prefab, runtime-spawn) onto `EnemyEntity`; continuous presentation fields (position/velocity/rotation/legs/telegraph) remain from the snapshot/stream. |
+| Combat-result payloads | `EnemyCombatLimb`, `EnemyCombatEffectKind` | Kernel-shaped post-bite/lunge limb and proximity-effect discriminator; no Runtime DTOs leak into GameState. |
+| Combat-result commands | `RecordEnemyBiteCommand`, `RecordEnemyLungeCommand`, `RecordEnemyEffectCommand` | Host-only journal commands; no table mutation, the events are presentation/result facts for projections. |
+| Combat-result events | `EnemyBiteResultEvent`, `EnemyLungeResultEvent`, `EnemyEffectResultEvent` | Journal-only Entities domain events; `EnemyDomainModule.Reduce` keeps the current enemy table unchanged. |
+| Combat result submitter | `EnemyCombatKernelSubmitter` + `EnemySyncService` | Host reports commit journal commands directly; guest reports ride `CommandEnvelope` to the host. |
+| Combat result projection | `EnemyCombatKernelProjection` + `EnemySyncService` | Restores `EnemyBiteReceived` / `EnemyLungeReceived` / `EnemyEffectReceived` from `BatchCommitted` (host) and `BatchApplied` (guest); host also merges guest reports into the saved character snapshot; source victims are skipped. |
+| Combat result wire | `WireEnemyCombat`, `WireEventKind.EnemyBiteResult/EnemyLungeResult/EnemyEffectResult`, `WireCommandKind.RecordEnemyBite/RecordEnemyLunge/RecordEnemyEffect` | Protocol remains GameState-free; `EnemyCombatWireMapper`/`EnemyCombatKernelCodec` keep the Runtime mapping boundary. |
 
 ## Evidence table
 
@@ -34,14 +40,19 @@ durable entity identity/health/runtime-spawn facts.
 | Host enemy publish commits kernel facts | `EnemyProjectionTests.HostPublishEnemyStates_CommitsKernelEnemyTable`. |
 | Host world-entry snapshot projects kernel terminal facts | `EnemySyncServiceTests.HostSendEnemySnapshot_ProjectsKernelTerminalFacts`. |
 | Guest full-snapshot apply projects kernel terminal facts | `EnemySyncServiceTests.GuestApplyEnemySnapshot_ProjectsKernelTerminalFacts` (health, stunned, prefab, runtime-spawn from kernel; snapshot position remains). |
+| Combat-result commands commit journal events | `EnemyDomainKernelTests.RecordEnemyBite_CommitsJournalEvent`, `RecordEnemyLunge_CommitsJournalEvent`, `RecordEnemyEffect_CommitsJournalEvent`. |
+| Combat-result wire batch round-trips | `EnemyDomainKernelTests.WireBatchRoundTrip_PreservesEnemyBiteResultEvent`, `WireBatchRoundTrip_PreservesEnemyLungeResultEvent`, `WireBatchRoundTrip_PreservesEnemyEffectResultEvent`. |
+| Guest combat-result command decodes on host | `EnemyDomainKernelTests.WireCommandRoundTrip_BuildsRecordEnemyBiteCommand`. |
+| Host/guest combat-result projection restores presentation events | `EnemyBiteSyncTests`, `EnemyLungeSyncTests`, `EnemyEffectSyncTests` (host-own and guest-report star semantics; source victim skipped). |
 
 ## Verification
 
 - `dotnet build CasualtiesUnknownOnline.slnx`: 0 warnings / 0 errors.
-- `dotnet test CasualtiesUnknownOnline.slnx`: 1703 passed.
+- `dotnet test CasualtiesUnknownOnline.slnx`: 1701 passed.
 - `dotnet format`: applied.
-- Architecture/event/entity/isolation gates passed; architecture split added
-  `ItemKernelCodec` and `KernelDomainWireMapper` to keep large types under 600.
+- Architecture/event/entity/isolation/delivery gates passed; architecture split added
+  `ItemKernelCodec`, `KernelDomainWireMapper`, `EnemyCombatKernelCodec`, and
+  `EnemyCombatWireMapper` to keep large types under 600.
 
 ## Structure review
 
@@ -51,8 +62,9 @@ durable entity identity/health/runtime-spawn facts.
 
 ## Next sub-steps
 
-1. Add enemy combat/terminal-state events (bite/lunge/effect/targeting) as
-   cross-domain batches.
+1. [x] Add enemy combat/terminal-state events (bite/lunge/effect) as
+   journal-only kernel batches; `EnemyAttackMsg` remains the separate
+   host-ordered local-apply command.
 2. [x] Project kernel enemy facts into `EnemyEntity` restore/snapshot paths:
    `EnemyKernelRestoreProjection` overlays kernel health/stunned/prefab/runtime-spawn
    onto host world-entry snapshots and guest full-snapshot application;

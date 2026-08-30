@@ -74,4 +74,7 @@ public sealed class WireEvent
 
 	[ProtoMember(22)]
 	public WirePlayerInteraction? PlayerInteraction { get; set; }
+
+	[ProtoMember(23)]
+	public WireEnemyCombat? EnemyCombat { get; set; }
 }

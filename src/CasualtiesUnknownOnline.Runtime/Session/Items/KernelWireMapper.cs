@@ -8,6 +8,7 @@ using CasualtiesUnknownOnline.GameState.Domains.Players;
 using CasualtiesUnknownOnline.GameState.Domains.World;
 using CasualtiesUnknownOnline.GameState.Domains.WorldEntities;
 using CasualtiesUnknownOnline.Protocol.Wire;
+using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.Items;
@@ -223,6 +224,21 @@ public static class KernelWireMapper
 				Kind = WireEventKind.PlayerItemUseResult,
 				PlayerInteraction = PlayerInteractionWireMapper.ToWire(use),
 			},
+			EnemyBiteResultEvent bite => new WireEvent
+			{
+				Kind = WireEventKind.EnemyBiteResult,
+				EnemyCombat = EnemyCombatWireMapper.ToWire(bite),
+			},
+			EnemyLungeResultEvent lunge => new WireEvent
+			{
+				Kind = WireEventKind.EnemyLungeResult,
+				EnemyCombat = EnemyCombatWireMapper.ToWire(lunge),
+			},
+			EnemyEffectResultEvent effect => new WireEvent
+			{
+				Kind = WireEventKind.EnemyEffectResult,
+				EnemyCombat = EnemyCombatWireMapper.ToWire(effect),
+			},
 			EnemyUpsertedEvent upserted => new WireEvent
 			{
 				Kind = WireEventKind.EnemyUpserted,
@@ -362,6 +378,12 @@ public static class KernelWireMapper
 				@event.PlayerInteraction ?? throw new InvalidOperationException("PlayerHealResult event lacks interaction payload")),
 			WireEventKind.PlayerItemUseResult => PlayerInteractionWireMapper.FromWireItemUseResult(
 				@event.PlayerInteraction ?? throw new InvalidOperationException("PlayerItemUseResult event lacks interaction payload")),
+			WireEventKind.EnemyBiteResult => EnemyCombatWireMapper.FromWireBiteResult(
+				@event.EnemyCombat ?? throw new InvalidOperationException("EnemyBiteResult event lacks enemy combat payload")),
+			WireEventKind.EnemyLungeResult => EnemyCombatWireMapper.FromWireLungeResult(
+				@event.EnemyCombat ?? throw new InvalidOperationException("EnemyLungeResult event lacks enemy combat payload")),
+			WireEventKind.EnemyEffectResult => EnemyCombatWireMapper.FromWireEffectResult(
+				@event.EnemyCombat ?? throw new InvalidOperationException("EnemyEffectResult event lacks enemy combat payload")),
 			WireEventKind.EnemyUpserted => new EnemyUpsertedEvent(
 				KernelDomainWireMapper.FromWireEnemyState(@event.EnemyState ?? throw new InvalidOperationException("EnemyUpserted event lacks enemy state"))),
 			WireEventKind.EnemyRemoved => new EnemyRemovedEvent(
@@ -516,6 +538,24 @@ public static class KernelWireMapper
 				authority,
 				command.CarrierSteamId,
 				command.CarriedSteamId),
+			WireCommandKind.RecordEnemyBite => EnemyCombatWireMapper.FromWireBiteCommand(
+				command.EnemyCombat ?? throw new InvalidOperationException("RecordEnemyBite command lacks enemy combat payload"),
+				operation,
+				actor,
+				epoch,
+				authority),
+			WireCommandKind.RecordEnemyLunge => EnemyCombatWireMapper.FromWireLungeCommand(
+				command.EnemyCombat ?? throw new InvalidOperationException("RecordEnemyLunge command lacks enemy combat payload"),
+				operation,
+				actor,
+				epoch,
+				authority),
+			WireCommandKind.RecordEnemyEffect => EnemyCombatWireMapper.FromWireEffectCommand(
+				command.EnemyCombat ?? throw new InvalidOperationException("RecordEnemyEffect command lacks enemy combat payload"),
+				operation,
+				actor,
+				epoch,
+				authority),
 			WireCommandKind.UpsertEnemy => new UpsertEnemyCommand(
 				operation,
 				actor,

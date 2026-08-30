@@ -91,10 +91,7 @@ public enum NetMsg : byte
 	// guests render the frozen copies from the snapshot; same pattern as the
 	// player entity stream)
 	EnemySnapshot = 81, // host → guest: the full enemy snapshot (world entry / late joiner — ids + spawn positions for binding + RuntimeSpawns for materializing runtime-created enemies)
-	EnemyBite = 82, // bidirectional: guest → host report (the victim's local bite already applied); host → guest broadcast relay (source excluded) — an enemy bit a player, carrying the post-bite limb + body state
-	EnemyAttack = 83, // host → guest: the host's enemy simulation decided an attack on a remote player (the victim applies it locally and reports the terminal state)
-	EnemyLunge = 84, // bidirectional: guest → host report (the victim's local lunge already applied); host → guest broadcast relay (source excluded) — a crystal lunge hit a player, carrying the post-lunge limb + body state
-	EnemyEffect = 85, // bidirectional: guest → host report (the victim's local proximity effect already applied); host → guest broadcast relay (source excluded) — ElderThornback/Xaloris/GrabberPlant proximity side effects, carrying the post-effect body state
+	EnemyAttack = 83, // host → guest: the host's enemy simulation decided an attack on a remote player (the victim applies it locally and reports the terminal state through kernel combat-result events)
 	EnemyRemoved = 123, // host → guest (reliable): one enemy aggregate left the authoritative host set — the lifecycle fact the 20 Hz state batch no longer implies
 
 	// Mod host commands (Phase 4b Mod API — command execution is host-authoritative:

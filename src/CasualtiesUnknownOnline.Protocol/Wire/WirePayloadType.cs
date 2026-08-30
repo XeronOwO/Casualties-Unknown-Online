@@ -31,6 +31,9 @@ public enum WirePayloadType
 	ResetFluidsCommand = 20,
 	SetPlayerCarryCommand = 21,
 	ClearPlayerCarryCommand = 22,
+	RecordEnemyBiteCommand = 23,
+	RecordEnemyLungeCommand = 24,
+	RecordEnemyEffectCommand = 25,
 
 	// Kernel events (critical)
 	ItemSpawnedEvent = 101,
@@ -55,6 +58,9 @@ public enum WirePayloadType
 	PlayerInventoryTransferEvent = 120,
 	PlayerHealResultEvent = 121,
 	PlayerItemUseResultEvent = 122,
+	EnemyBiteResultEvent = 123,
+	EnemyLungeResultEvent = 124,
+	EnemyEffectResultEvent = 125,
 
 	// Envelope families
 	CommittedBatch = 100,

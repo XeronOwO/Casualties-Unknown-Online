@@ -16,7 +16,8 @@ Read in this order:
 
 1. [current-architecture.md](current-architecture.md) — the current typed
    deterministic kernel: core flow, project structure, transactions, authority,
-   projections, protocol/save design, non-goals, success criteria.
+   guards, non-goals, success criteria. Domain/protocol detail is split into the
+   next two files.
 2. [domains.md](domains.md) — domain ownership: which state is kernel-owned, which
    is a rebuildable projection, and the current domain table.
 3. [protocol.md](protocol.md) — the four-envelope protocol, join flow, state stream,
@@ -35,7 +36,7 @@ own typed model and invariants.
 
 | File | Purpose |
 |---|---|
-| [current-architecture.md](current-architecture.md) | **Active** current architecture: kernel, transactions, projections, protocol, save, tests, non-goals. |
+| [current-architecture.md](current-architecture.md) | **Active** current architecture: kernel core, transaction/authority model, guards, non-goals. |
 | [domains.md](domains.md) | **Active** domain ownership and projection map. |
 | [protocol.md](protocol.md) | **Active** four-envelope protocol and data-flow reference. |
 | [status.md](status.md) | Completed phase tracker and handoff state. |

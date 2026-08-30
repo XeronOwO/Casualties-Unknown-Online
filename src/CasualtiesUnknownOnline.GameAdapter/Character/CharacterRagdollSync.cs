@@ -167,7 +167,13 @@ internal sealed class CharacterRagdollSync(
 			body.standing = false;
 			if (body.TryGetComponent<RemoteBodyDriver>(out var driver))
 			{
-				driver.PrevLying = true;
+				// If the stream already confirmed the collapse (wasStanding is
+				// false), the stream-driven lying transition is already done and
+				// the one-shot should not cause a duplicate replay. If the
+				// one-shot beat the stream, leave PrevLying=false so the next
+				// Standing=false snapshot replays the lay clip and holds the
+				// pose even if the one-shot clip was not itself persistent.
+				driver.PrevLying = !wasStanding;
 				// The one-shot must not be overwritten by a stale standing=true
 				// snapshot that is still in flight on the unreliable 20 Hz
 				// stream. Keep the collapse latch armed until the stream confirms

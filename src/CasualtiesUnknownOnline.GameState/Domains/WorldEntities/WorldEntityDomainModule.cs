@@ -46,8 +46,14 @@ internal sealed class WorldEntityDomainModule : IDomainModule
 	private static DomainDecision DecideRecordHealth(RecordBuildingEntityHealthCommand command, KernelReadModel state)
 	{
 		var entities = state.WorldEntities ?? WorldEntityState.Empty;
-		var exists = entities.BuildingHealth.Any(h => h.Position == command.Position);
-		if (!exists && entities.BuildingHealth.Count >= MaxBuildingHealth)
+		var current = entities.BuildingHealth.FirstOrDefault(h => h.Position == command.Position);
+		if (current is not null && current.Health <= 0f && command.Health > 0f)
+		{
+			return DomainDecision.Reject(RejectionReason.InvalidTransition,
+				"destroyed building entity cannot accept damage or be revived by a health report");
+		}
+
+		if (current is null && entities.BuildingHealth.Count >= MaxBuildingHealth)
 		{
 			return DomainDecision.Reject(RejectionReason.Conflict,
 				"building-entity health table is full");

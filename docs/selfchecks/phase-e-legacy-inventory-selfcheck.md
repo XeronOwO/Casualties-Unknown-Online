@@ -21,9 +21,9 @@ land; it is not a permission to keep legacy code indefinitely.
 | `ItemService.GetWorldItemsForDiagnostics` / `KernelShadow` | `Runtime/Session/Items/ItemService.cs` | Diagnostic/internal test/production (CraftSyncService uses `KernelShadow`) access | **Done**: renamed `KernelShadow` to `KernelAuthority`; no `Shadow` token remains in `src/` |
 | `ItemKernelAuthority` "Shadow-compatible conveniences" (`ObserveSpawn`/`ObservePickup`/`ObserveDrop`/`ObserveDestroy`) | `Runtime/Session/Items/ItemKernelAuthority.cs` | Convenience entry points used by CraftSyncService and tests; they still route through the kernel | **Done**: section renamed to "Kernel convenience entry points"; methods kept as kernel entry points |
 | `ItemKernelAuthority.KernelForDiagnostics` | `Runtime/Session/Items/ItemKernelAuthority.cs` | Test-only accessor exposing the internal `GameStateKernel` | **Done**: removed; tests now use the public `FindItem`/`QueryItems` surface |
-| `ItemReject` frame | `Runtime/Protocol/NetMsg` + handlers | Last legacy item-frame survivor, required for block-break drop refusal | Keep until block-break drops have a kernel/event path; track as Phase E precondition |
+| `ItemReject` frame | `Runtime/Protocol/NetMsg` + handlers | Last legacy item-frame survivor, required for block-break drop refusal | **Tracked as guarded exception**: no-legacy guard allows it only in `ItemMessageFlowService.cs` and `ItemRejectHandler.cs` until block-break drops have a kernel/event path |
 | Direct `NetMsg` frames for world/trader/chat/character/enemy-presentation | Runtime handlers/channels | Current active presentation/control paths for non-persistent or continuous features | Not Phase E dual-authority targets unless a kernel path replaces them |
-| Per-domain session reset caches | `ItemService.ResetSessionState`, world/player/enemy resets | Reset paths that may bypass unified `RunEpoch`/kernel restore | Audit and unify in later Phase E batches |
+| Per-domain session reset caches | `ItemService.ResetSessionState`, world/player/enemy resets | Projection/transient caches only | **Done**: centralized kernel reset in `KernelProtocolService.ResetForSessionEnd()`; no bypass found |
 | `EnemyCombatOrderPolicy` kernel-process follow-up | Runtime + phase D next actions | Extracted policy not yet feeding kernel events | Phase E candidate; `EnemyAttackMsg` stays host-order local-apply for now |
 
 ## Removed batch log
@@ -41,6 +41,7 @@ land; it is not a permission to keep legacy code indefinitely.
 | 2026-08-30 | Add kernel-shape architecture guard | `tools/check-kernel-shape.ps1`, `tools/check-architecture.ps1`, `docs/architecture-guards.md` | Architecture gate passed with kernel shape scan |
 | 2026-08-30 | Remove `ItemService.KernelAuthority` facade | `CraftSyncService.cs`, `ItemService.cs`, `ItemSimWorld.cs` | `dotnet build` 0 warnings/0 errors; 1792 tests passed; format + architecture/event/entity/delivery gates passed |
 | 2026-08-30 | Centralize kernel reset in `KernelProtocolService` | `KernelProtocolService.cs`, `ItemService.cs` | `dotnet build` 0 warnings/0 errors; 1792 tests passed; format + architecture/event/entity/delivery gates passed |
+| 2026-08-30 | Guard `ItemReject` as single allowed legacy frame | `tools/check-no-legacy.ps1` | Architecture gate passed with ItemReject scoped to two allowed files |
 
 ## Session reset audit (2026-08-30)
 

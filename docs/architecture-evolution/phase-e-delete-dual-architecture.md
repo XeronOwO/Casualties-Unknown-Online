@@ -143,6 +143,7 @@ Out of scope:
 | 2026-08-30 | Phase E eleventh batch: remove ItemService kernel facade | current | 1792 tests green; build/format/architecture/event/entity/delivery gates pass | `CraftSyncService` now depends on `ItemKernelAuthority` directly; `ItemService.KernelAuthority` passthrough removed. |
 | 2026-08-30 | Phase E twelfth batch: centralize kernel reset in kernel protocol lifecycle | current | 1792 tests green; build/format/architecture/event/entity/delivery gates pass | `KernelProtocolService.ResetForSessionEnd()` now calls `ItemKernelAuthority.ResetForSession()` first; `ItemService` no longer owns the kernel reset. |
 | 2026-08-30 | Phase E thirteenth batch: tick completed work-breakdown items | current | Docs | Marked legacy inventory, unified session reset, and no-reintroduction guard as complete in the Phase E work breakdown. |
+| 2026-08-30 | Phase E fourteenth batch: guard ItemReject and record decisions | current | Architecture gate passed | `NetMsg.ItemReject` is now a guarded exception limited to two files; tech-decisions.md #158 records the reset centralization and Phase E guard decisions. |
 
 ## Next actions
 

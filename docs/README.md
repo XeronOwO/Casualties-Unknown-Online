@@ -38,7 +38,6 @@ Decisions / history / future
 |---|---|
 | [`README.md`](../README.md) | Project purpose, status, build, documentation links |
 | [`AGENTS.md`](../AGENTS.md) | Binding conventions, build gates, architecture rules |
-| [`mod-api.md`](mod-api.md) | Binding public Mod API contract (the only API mods may use) |
 
 ## 2. Architecture / Domain Model
 
@@ -68,9 +67,7 @@ Decisions / history / future
 | [`verification.md`](verification.md) | Evidence chain: gates, test baseline, replay/simulation, self-checks |
 | [`selfchecks/`](selfchecks/) | Per-delivery fact sheets (historical audit records) |
 | [`delivery-checklist.md`](delivery-checklist.md) | Delivery quality gate checklist |
-| [`runtime-supply-refresh-audit.md`](runtime-supply-refresh-audit.md) | Runtime item-spawn surface sweep |
-| [`worldgen-determinism-audit.md`](worldgen-determinism-audit.md) | World-generation random-consumer determinism audit |
-| [`simtrace-diff-selfcheck.md`](selfchecks/simtrace-diff-selfcheck.md) | Real-log vs replay diff automation |
+| [`selfchecks/simtrace-diff-selfcheck.md`](selfchecks/simtrace-diff-selfcheck.md) | Real-log vs replay diff automation |
 
 ## 5. Decision Log
 

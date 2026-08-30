@@ -67,3 +67,6 @@ plus known removed direct-result/legacy wire markers in `src/`.
 Phase E addendum: `tools/check-command-authority.ps1` runs inside the same architecture
 gate and requires every `GameCommand` subclass in the GameState kernel to carry an
 `AuthorityKind`/authority policy.
+
+Phase E addendum: `tools/check-kernel-shape.ps1` runs inside the same architecture gate
+and rejects string-keyed dictionaries or `Hashtable` state in the GameState kernel.

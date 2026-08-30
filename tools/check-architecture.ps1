@@ -170,5 +170,11 @@ if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
 
+# Phase E: kernel state must stay typed, not string-keyed generic maps.
+& (Join-Path $PSScriptRoot "check-kernel-shape.ps1")
+if ($LASTEXITCODE -ne 0) {
+    exit $LASTEXITCODE
+}
+
 Write-Host "Architecture gate passed." -ForegroundColor Green
 exit 0

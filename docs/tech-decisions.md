@@ -4137,3 +4137,18 @@ coordinator and split the local lunge-trace state into its own type.
   full suite locks the existing arbitration/policy behavior.
 - **Tests** — `EnemyCombatPolicyTests` + existing
   `EnemyCombatArbitrationTests`. Full suite 1769 green.
+
+## 147. Enemy target resolver extraction (2026-08-29)
+
+Second behavior-preserving step toward kernelizing `EnemyCombatDirector`:
+move the target-view responsibility out of the adapter coordinator.
+
+- **Resolver** — `EnemyTargetResolver` owns the cached candidate set (local
+  body + remote entity-stream positions), the fact → render-candidate
+  find-back, and the limb-index selection for host-ordered attacks.
+- **Data carrier** — `EnemyTarget` is now a top-level type (SteamId, stream
+  position, optional render body, `ToFact()`).
+- **Director** — `EnemyCombatDirector` keeps only ordering/reporting and the
+  physics-only ground-ray/ToNetVector2 helpers.
+- **No behavior change** — the gate/full suite remain green, preserving the
+  existing combat ordering behavior.

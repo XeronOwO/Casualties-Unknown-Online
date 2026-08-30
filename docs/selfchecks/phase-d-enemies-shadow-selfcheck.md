@@ -29,6 +29,7 @@ durable entity identity/health/runtime-spawn facts.
 | Combat result wire | `WireEnemyCombat`, `WireEventKind.EnemyBiteResult/EnemyLungeResult/EnemyEffectResult`, `WireCommandKind.RecordEnemyBite/RecordEnemyLunge/RecordEnemyEffect` | Protocol remains GameState-free; `EnemyCombatWireMapper`/`EnemyCombatKernelCodec` keep the Runtime mapping boundary. |
 | Combat policy constants | `EnemyCombatPolicy` | Pure Runtime thresholds extracted from `EnemyCombatDirector` (spider bite range, crystal close/ray length, lunge tolerance), lockable by tests. |
 | Lunge trace detail | `CrystalLungeTrace` | Top-level adapter type split out of `EnemyCombatDirector` so the director stays focused on ordering/reporting. |
+| Target resolver | `EnemyTargetResolver` + `EnemyTarget` | Extracted the candidate-set building/finding/limb-index responsibility from `EnemyCombatDirector`; the director now only orders/reports using the resolver’s results. |
 
 ## Evidence table
 
@@ -90,3 +91,7 @@ durable entity identity/health/runtime-spawn facts.
    `CrystalLungeTrace` into a top-level adapter type. The remaining work is
    moving the director's ordering/arbitration decisions into a kernel process
    or a smaller pure policy layer.
+6. [x] Extract `EnemyTargetResolver` + `EnemyTarget`: the candidate-building,
+   find-back and limb-index responsibilities now live outside the director.
+   Behavior-preserving; the next step is moving the remaining ordering decisions
+   into a kernel policy/process or a smaller pure layer.

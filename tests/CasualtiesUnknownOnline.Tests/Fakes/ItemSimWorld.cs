@@ -209,13 +209,13 @@ internal sealed class ItemSimWorld : IDisposable
 
 	/// <summary>
 	/// Semantic diff between the legacy host terminal facts (world table +
-	/// transfer table) and the production item kernel shadow. Revision is not
+	/// transfer table) and the production item kernel. Revision is not
 	/// comparable yet because the legacy path has no aggregate revisions.
 	/// </summary>
-	internal ItemTerminalDiff CompareKernelShadow() =>
+	internal ItemTerminalDiff CompareKernel() =>
 		ItemDiagnosticsProjection.Compare(
 			BuildLegacyActiveFacts(),
-			ItemDiagnosticsProjection.BuildActiveFacts(Items.KernelShadow.KernelForDiagnostics.QueryItems().Values),
+			ItemDiagnosticsProjection.BuildActiveFacts(Items.KernelAuthority.KernelForDiagnostics.QueryItems().Values),
 			includeRevision: false);
 
 	private IReadOnlyDictionary<ulong, ItemTerminalFact> BuildLegacyActiveFacts()

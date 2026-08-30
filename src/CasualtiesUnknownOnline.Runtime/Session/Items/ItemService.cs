@@ -406,10 +406,10 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 
 	internal void FireItemSpawned(WorldItem item) => _messageFlow.FireItemSpawned(item);
 
-	/// <summary>Read-only world-table snapshot for the architecture shadow diagnostics (never mutates production state).</summary>
+	/// <summary>Read-only world-table snapshot for kernel comparison diagnostics (never mutates production state).</summary>
 	internal IReadOnlyList<WorldItem> GetWorldItemsForDiagnostics() => [.. _worldTable.Items.Values];
 
-	internal ItemKernelAuthority KernelShadow => _kernelAuthority;
+	internal ItemKernelAuthority KernelAuthority => _kernelAuthority;
 
 	// ===== Phase C guest batch projection =====
 

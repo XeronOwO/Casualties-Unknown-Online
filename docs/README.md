@@ -12,24 +12,24 @@ Why / vision
   → AGENTS.md (repo root)
 
 Current architecture
-  → architecture-evolution/README.md
-  → architecture-evolution/current-architecture.md
-  → architecture-evolution/domains.md
-  → architecture-evolution/protocol.md
+  → architecture/README.md
+  → architecture/current.md
+  → architecture/domains.md
+  → architecture/protocol.md
 
 Domain reference (game mechanics & feature matrices)
-  → item-features.md, entity-features.md, enemy-sync.md
-  → mod-api.md
+  → features/items.md, features/entities.md, features/enemies.md
+  → api/mod-api.md
 
 Verification / evidence
-  → verification.md
-  → selfchecks/
-  → delivery-checklist.md
+  → evidence/verification.md
+  → evidence/selfchecks/
+  → evidence/delivery-checklist.md
 
 Decisions / history / future
-  → tech-decisions.md
-  → architecture-evolution/phase-*.md
-  → backlog.md
+  → decisions/active.md
+  → architecture/evolution/phase-*.md
+  → backlog/README.md
 ```
 
 ## 1. Project / Vision

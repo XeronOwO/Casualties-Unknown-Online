@@ -47,8 +47,9 @@ Decisions / history / future
 | [`architecture-evolution/current-architecture.md`](architecture-evolution/current-architecture.md) | Current typed deterministic kernel: core flow, project structure, non-goals |
 | [`architecture-evolution/domains.md`](architecture-evolution/domains.md) | Domain ownership: what is kernel state, what is a projection |
 | [`architecture-evolution/protocol.md`](architecture-evolution/protocol.md) | Four-envelope protocol, join, state stream, save, command rejection |
+| [`architecture-evolution/architecture-guards.md`](architecture-evolution/architecture-guards.md) | Active kernel-shape/authority/no-legacy guard list |
+| [`architecture-evolution/glossary.md`](architecture-evolution/glossary.md) | Stable vocabulary for kernel/domain/protocol terms |
 | [`architecture.md`](architecture.md) | **Historical pre-kernel blueprint** — retained for context, not the current design |
-| [`enemy-sync.md`](enemy-sync.md) | Enemy simulation/sync design and runtime component map |
 | [`game-internals.md`](game-internals.md) | Reverse-engineering findings: scenes, Body, world generation, clone chain |
 
 ## 3. Domain Mechanisms / Feature Matrices
@@ -96,6 +97,8 @@ Decisions / history / future
 | [`architecture-evolution/phase-c-protocol-save-switch.md`](architecture-evolution/phase-c-protocol-save-switch.md) | Phase C history |
 | [`architecture-evolution/phase-d-full-domain-migration.md`](architecture-evolution/phase-d-full-domain-migration.md) | Phase D history |
 | [`architecture-evolution/phase-e-delete-dual-architecture.md`](architecture-evolution/phase-e-delete-dual-architecture.md) | Phase E history |
+| [`architecture-evolution/session-workflow.md`](architecture-evolution/session-workflow.md) | Historical phase-session workflow |
+| [`architecture-evolution/templates/phase-session.md`](architecture-evolution/templates/phase-session.md) | Historical phase-session template |
 | [`architecture.md`](architecture.md) | Pre-kernel blueprint history |
 
 ## 8. Backlog / Future

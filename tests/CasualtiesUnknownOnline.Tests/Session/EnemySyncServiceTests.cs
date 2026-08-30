@@ -360,6 +360,35 @@ public class EnemySyncServiceTests
 	}
 
 	[Fact]
+	public void CheckpointTombstone_SeedsGuestRemovedSet()
+	{
+		using var w = ItemSimWorld.Create();
+		var g1Enemies = w.G1.Services.GetRequiredService<EnemySyncService>();
+		var control = (IEnemySyncControl)g1Enemies;
+		var authority = w.G1.Services.GetRequiredService<ItemKernelAuthority>();
+		var id = new NetworkEntityId(1, 6, 0);
+
+		var current = authority.CreateCheckpoint();
+		var checkpoint = current with
+		{
+			GlobalRevision = current.GlobalRevision + 10,
+			Enemies = new EnemyStateTable([], [new EntityId(id.Epoch, id.Counter, id.Generation)]),
+		};
+		Assert.True(authority.Restore(checkpoint).Success);
+
+		control.ApplyEnemyStream(new WireStateStream
+		{
+			EnemyStates = [Enemy(6, 2f, 2f).ToWireEnemyStreamState()],
+		});
+		control.ApplyEnemySnapshot(new EnemySnapshotMsg
+		{
+			Enemies = [Enemy(6, 3f, 3f).ToEnemyStateMsg()],
+		});
+
+		Assert.Null(g1Enemies.GetEnemy(id));
+	}
+
+	[Fact]
 	public void HostSendEnemySnapshot_ProjectsKernelTerminalFacts()
 	{
 		using var w = ItemSimWorld.Create();

@@ -434,9 +434,15 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 		}
 
 		_terminalHealthRevision.Clear();
+		_removedEnemies.Clear();
 		if (checkpoint.Enemies is null)
 		{
 			return;
+		}
+
+		foreach (var removed in checkpoint.Enemies.Removed)
+		{
+			_removedEnemies.Add(ToRuntimeId(removed));
 		}
 
 		foreach (var enemy in checkpoint.Enemies.Enemies)

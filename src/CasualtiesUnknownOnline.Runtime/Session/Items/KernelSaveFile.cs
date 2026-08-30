@@ -35,4 +35,7 @@ public sealed class KernelSaveFile
 
 	[ProtoMember(8)]
 	public List<WireFluidRegionState> Fluids { get; set; } = [];
+
+	[ProtoMember(9)]
+	public List<WireEntityId> RemovedEnemies { get; set; } = [];
 }

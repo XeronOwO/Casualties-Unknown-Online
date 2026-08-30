@@ -39,7 +39,7 @@ Out of scope:
 
 ## Work breakdown
 
-- [ ] Inventory every remaining legacy surface:
+- [x] Inventory every remaining legacy surface:
   - `Legacy`/`Compat` names;
   - old service facades;
   - wire-forwarding methods in domain services;
@@ -52,7 +52,7 @@ Out of scope:
 - [ ] Remove projection-side authority corrections; projections rebuild from kernel
       state/checkpoint instead.
 - [ ] Delete old save DTOs and old message enums, including their serializer paths.
-- [ ] Unify session reset:
+- [x] Unify session reset:
   - every leave/disconnect/scene/run transition goes through kernel restore or RunEpoch;
   - no leftover per-domain reset caches.
 - [ ] Add/strengthen architecture tests:
@@ -78,7 +78,7 @@ Out of scope:
   - `docs/backlog.md` to remove completed architecture items;
   - `docs/architecture-evolution/status.md` to mark Phase E complete;
   - `docs/architecture-evolution/README.md` to reflect completion.
-- [ ] Verify the codebase cannot silently reintroduce dual architecture:
+- [x] Verify the codebase cannot silently reintroduce dual architecture:
   - add a search/test for disallowed patterns;
   - make the guard part of CI.
 
@@ -142,6 +142,7 @@ Out of scope:
 | 2026-08-30 | Phase E tenth batch: add kernel-shape guard | current | Architecture gate passed | Added `tools/check-kernel-shape.ps1`; GameState kernel rejects string-keyed dictionaries and `Hashtable` state. |
 | 2026-08-30 | Phase E eleventh batch: remove ItemService kernel facade | current | 1792 tests green; build/format/architecture/event/entity/delivery gates pass | `CraftSyncService` now depends on `ItemKernelAuthority` directly; `ItemService.KernelAuthority` passthrough removed. |
 | 2026-08-30 | Phase E twelfth batch: centralize kernel reset in kernel protocol lifecycle | current | 1792 tests green; build/format/architecture/event/entity/delivery gates pass | `KernelProtocolService.ResetForSessionEnd()` now calls `ItemKernelAuthority.ResetForSession()` first; `ItemService` no longer owns the kernel reset. |
+| 2026-08-30 | Phase E thirteenth batch: tick completed work-breakdown items | current | Docs | Marked legacy inventory, unified session reset, and no-reintroduction guard as complete in the Phase E work breakdown. |
 
 ## Next actions
 

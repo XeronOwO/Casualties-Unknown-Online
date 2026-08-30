@@ -4100,3 +4100,22 @@ committed in the same kernel batch.
   `WorldEntityProjectionTests.HostReportTrapEvent_WithDrops_CommitsTrapAndItemSpawnsInOneBatch`
   locks the composite batch, host `ItemSpawned` projection, and kernel item.
   Full suite 1764 green.
+
+## 145. Guest fluid kernel read projection reaches the Game Adapter (2026-08-29)
+
+The `FluidKernelReadProjection` existed as a Runtime rebuildable view; this adds
+the Game Adapter-side consumer so the coarse fluid facts are observable and can
+drive future guest local-simulation/restart coverage.
+
+- **World surface** — `IWorldControl` now exposes `FluidRegionFacts` and
+  `FluidRegionsProjected`, forwarded from `WorldService` to
+  `FluidKernelReadProjection`.
+- **Adapter consumer** — `FluidKernelViewSync` subscribes through
+  `FluidWorldSync.BindToSession`, keeps a rebuildable `KernelFacts` coarse
+  mirror, and logs each kernel rebuild; it is separate from the high-frequency
+  RLE grid stream that the renderer uses.
+- **Non-authority** — the view is a read-only diagnostic/future simulation seam;
+  it does not write the local grid or kernel.
+- **Tests** —
+  `FluidKernelReadProjectionTests.GuestCheckpointRestore_SurfacesThroughWorldControl`
+  locks the `IWorldControl` event/property surface. Full suite 1765 green.

@@ -37,8 +37,11 @@ All projects target `net48` (BepInEx 5 + the game's Mono runtime). Deployment in
 - [`docs/architecture-evolution/domains.md`](docs/architecture-evolution/domains.md) — domain ownership and projections
 - [`docs/architecture-evolution/protocol.md`](docs/architecture-evolution/protocol.md) — four-envelope protocol and data flow
 - [`docs/verification.md`](docs/verification.md) — evidence chain, gates, replay/simulation
+- [`docs/operations.md`](docs/operations.md) — shared operations/tooling/deployment guidance
 - [`docs/tech-decisions.md`](docs/tech-decisions.md) — landed binding decisions
+- [`docs/tech-decisions-index.md`](docs/tech-decisions-index.md) — numeric decision index
 - [`docs/mod-api.md`](docs/mod-api.md) — Phase 4 Mod API contract
+- [`docs/backlog.md`](docs/backlog.md) — open bugs, work, decisions, future
 
 ## License
 

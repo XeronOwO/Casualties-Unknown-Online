@@ -11,6 +11,8 @@ reference stays in
 
 ## Quick reference
 
+Full numeric index: [tech-decisions-index.md](tech-decisions-index.md).
+
 - **Current kernel design**: #126 (Phase A), #127 (Phase B), #128 (Phase C), #152–#158 (Phase D/E).
 - **Active protocol/save**: #128, #129, #158.
 - **Authority/prediction boundary**: #154, #157.

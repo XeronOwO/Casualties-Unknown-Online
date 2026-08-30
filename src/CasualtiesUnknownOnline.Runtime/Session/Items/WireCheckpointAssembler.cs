@@ -50,6 +50,9 @@ public static class WireCheckpointAssembler
 				Enemies = index == 0
 					? [.. (checkpoint.Enemies?.Enemies ?? []).Select(KernelDomainWireMapper.ToWireEnemyState)]
 					: [],
+				RemovedEnemies = index == 0
+					? [.. KernelDomainWireMapper.ToWireRemovedEnemyIds(checkpoint.Enemies?.Removed ?? [])]
+					: [],
 				Fluids = index == 0
 					? [.. (checkpoint.Fluids?.Regions ?? []).Select(KernelDomainWireMapper.ToWireFluidRegionState)]
 					: [],
@@ -110,9 +113,11 @@ public static class WireCheckpointAssembler
 		var players = ordered[0]!.Players.Count == 0
 			? null
 			: new PlayerStateTable([.. ordered[0]!.Players.Select(KernelDomainWireMapper.FromWirePlayerState)]);
-		var enemies = ordered[0]!.Enemies.Count == 0
+		var enemies = ordered[0]!.Enemies.Count == 0 && ordered[0]!.RemovedEnemies.Count == 0
 			? null
-			: new EnemyStateTable([.. ordered[0]!.Enemies.Select(KernelDomainWireMapper.FromWireEnemyState)]);
+			: new EnemyStateTable(
+				[.. ordered[0]!.Enemies.Select(KernelDomainWireMapper.FromWireEnemyState)],
+				[.. KernelDomainWireMapper.FromWireRemovedEnemyIds(ordered[0]!.RemovedEnemies)]);
 		var fluids = ordered[0]!.Fluids.Count == 0
 			? null
 			: new FluidStateTable([.. ordered[0]!.Fluids.Select(KernelDomainWireMapper.FromWireFluidRegionState)]);

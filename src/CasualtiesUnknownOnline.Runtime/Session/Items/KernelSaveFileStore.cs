@@ -52,6 +52,7 @@ public sealed class KernelSaveFileStore(string? filePath, ILogger<KernelSaveFile
 			WorldEntities = checkpoint.WorldEntities is null ? null : KernelDomainWireMapper.ToWireWorldEntityState(checkpoint.WorldEntities),
 			Players = [.. (checkpoint.Players?.Players ?? []).Select(KernelDomainWireMapper.ToWirePlayerState)],
 			Enemies = [.. (checkpoint.Enemies?.Enemies ?? []).Select(KernelDomainWireMapper.ToWireEnemyState)],
+			RemovedEnemies = [.. KernelDomainWireMapper.ToWireRemovedEnemyIds(checkpoint.Enemies?.Removed ?? [])],
 			Fluids = [.. (checkpoint.Fluids?.Regions ?? []).Select(KernelDomainWireMapper.ToWireFluidRegionState)],
 		};
 
@@ -99,9 +100,11 @@ public sealed class KernelSaveFileStore(string? filePath, ILogger<KernelSaveFile
 				file.Players.Count == 0
 					? null
 					: new PlayerStateTable([.. file.Players.Select(KernelDomainWireMapper.FromWirePlayerState)]),
-				file.Enemies.Count == 0
+				file.Enemies.Count == 0 && file.RemovedEnemies.Count == 0
 					? null
-					: new EnemyStateTable([.. file.Enemies.Select(KernelDomainWireMapper.FromWireEnemyState)]),
+					: new EnemyStateTable(
+						[.. file.Enemies.Select(KernelDomainWireMapper.FromWireEnemyState)],
+						[.. KernelDomainWireMapper.FromWireRemovedEnemyIds(file.RemovedEnemies)]),
 				file.Fluids.Count == 0
 					? null
 					: new FluidStateTable([.. file.Fluids.Select(KernelDomainWireMapper.FromWireFluidRegionState)]));

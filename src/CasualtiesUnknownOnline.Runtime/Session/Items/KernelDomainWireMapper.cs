@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.GameState.Domains.Entities;
 using CasualtiesUnknownOnline.GameState.Domains.Fluids;
@@ -214,6 +215,12 @@ public static class KernelDomainWireMapper
 			state.Health,
 			state.RuntimeSpawned,
 			state.Stunned);
+
+	public static IReadOnlyList<WireEntityId> ToWireRemovedEnemyIds(IEnumerable<EntityId> removed) =>
+		[.. removed.Select(ToWireEntityId)];
+
+	public static IReadOnlyList<EntityId> FromWireRemovedEnemyIds(IEnumerable<WireEntityId> removed) =>
+		[.. removed.Select(FromWireEntityId)];
 
 	public static WireFluidRegionState ToWireFluidRegionState(FluidRegionState state) =>
 		new()

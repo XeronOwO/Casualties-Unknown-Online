@@ -30,11 +30,18 @@ public class EnemyDomainKernelTests
 			new CommandContext(Epoch, Host)).IsAccepted);
 		Assert.Empty(kernel.QueryEnemies()!.Enemies);
 
-		Assert.True(Upsert(kernel, 4, new EnemyState(EnemyId, "crystal", 3f, true, false)).IsAccepted);
+		// Lifecycle is terminal: the same id cannot be resurrected after removal.
+		var resurrect = Upsert(kernel, 4, new EnemyState(EnemyId, "crystal", 3f, true, false));
+		Assert.False(resurrect.IsAccepted);
+		Assert.Equal(RejectionReason.InvalidTransition, resurrect.Rejection!.Reason);
+
 		Assert.True(kernel.Execute(
 			new ResetEnemiesCommand(new OperationId(5), Host, Epoch, AuthorityKind.HostOnly),
 			new CommandContext(Epoch, Host)).IsAccepted);
 		Assert.Empty(kernel.QueryEnemies()!.Enemies);
+		Assert.Empty(kernel.QueryEnemies()!.Removed);
+
+		Assert.True(Upsert(kernel, 6, new EnemyState(EnemyId, "crystal", 3f, true, false)).IsAccepted);
 	}
 
 	[Fact]
@@ -76,6 +83,60 @@ public class EnemyDomainKernelTests
 	}
 
 	[Fact]
+	public void CheckpointSplitAssemble_RoundTripsRemovedTombstones()
+	{
+		var kernel = new GameStateKernel(Epoch);
+		Assert.True(Upsert(kernel, 1, new EnemyState(EnemyId, "spider", 9f, true, true)).IsAccepted);
+		Assert.True(kernel.Execute(
+			new RemoveEnemyCommand(new OperationId(2), Host, Epoch, AuthorityKind.HostOnly, EnemyId),
+			new CommandContext(Epoch, Host)).IsAccepted);
+
+		var restored = WireCheckpointAssembler.Assemble(WireCheckpointAssembler.Split(kernel.CreateCheckpoint()));
+
+		Assert.Empty(restored.Enemies!.Enemies);
+		Assert.Equal(EnemyId, Assert.Single(restored.Enemies.Removed));
+	}
+
+	[Fact]
+	public void ReplayUpsertAfterRemoval_DoesNotResurrect()
+	{
+		var kernel = new GameStateKernel(Epoch);
+		Assert.True(Upsert(kernel, 1, new EnemyState(EnemyId, "spider", 9f, false, false)).IsAccepted);
+		Assert.True(kernel.Execute(
+			new RemoveEnemyCommand(new OperationId(2), Host, Epoch, AuthorityKind.HostOnly, EnemyId),
+			new CommandContext(Epoch, Host)).IsAccepted);
+
+		var result = kernel.Apply(new CommittedBatch(
+			new OperationId(99),
+			kernel.CreateCheckpoint().GlobalRevision + 1,
+			Host,
+			AuthorityKind.HostOnly,
+			Epoch,
+			[],
+			[new EnemyUpsertedEvent(new EnemyState(EnemyId, "spider", 50f, false, false))]));
+
+		Assert.True(result.Success);
+		Assert.Empty(kernel.QueryEnemies()!.Enemies);
+		Assert.Equal(EnemyId, Assert.Single(kernel.QueryEnemies()!.Removed));
+	}
+
+	[Fact]
+	public void RemoveTwice_KeepsSingleTombstone()
+	{
+		var kernel = new GameStateKernel(Epoch);
+		Assert.True(Upsert(kernel, 1, new EnemyState(EnemyId, "spider", 9f, false, false)).IsAccepted);
+		Assert.True(kernel.Execute(
+			new RemoveEnemyCommand(new OperationId(2), Host, Epoch, AuthorityKind.HostOnly, EnemyId),
+			new CommandContext(Epoch, Host)).IsAccepted);
+		Assert.True(kernel.Execute(
+			new RemoveEnemyCommand(new OperationId(3), Host, Epoch, AuthorityKind.HostOnly, EnemyId),
+			new CommandContext(Epoch, Host)).IsAccepted);
+
+		Assert.Empty(kernel.QueryEnemies()!.Enemies);
+		Assert.Equal(EnemyId, Assert.Single(kernel.QueryEnemies()!.Removed));
+	}
+
+	[Fact]
 	public void SaveLoad_RoundTripsEnemies()
 	{
 		var path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"cuo-enemies-{Guid.NewGuid():N}.bin");
@@ -91,6 +152,32 @@ public class EnemyDomainKernelTests
 			var enemy = Assert.Single(loaded.Enemies!.Enemies);
 			Assert.Equal(EnemyId, enemy.EntityId);
 			Assert.Equal("spider", enemy.PrefabId);
+		}
+		finally
+		{
+			if (System.IO.File.Exists(path))
+			{
+				System.IO.File.Delete(path);
+			}
+		}
+	}
+
+	[Fact]
+	public void SaveLoad_RoundTripsRemovedTombstones()
+	{
+		var path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"cuo-enemies-tombstone-{Guid.NewGuid():N}.bin");
+		try
+		{
+			var authority = new ItemKernelAuthority(NullLogger<ItemKernelAuthority>.Instance);
+			Assert.True(authority.TryUpsertEnemy(Host.Value, new EnemyState(EnemyId, "spider", 4f, false, false), out _, out _));
+			Assert.True(authority.TryRemoveEnemy(Host.Value, EnemyId, out _, out _));
+
+			var store = new KernelSaveFileStore(path, NullLogger<KernelSaveFileStore>.Instance);
+			Assert.True(store.Save(authority.CreateCheckpoint()));
+			Assert.True(store.TryLoad(out var loaded));
+
+			Assert.Empty(loaded.Enemies!.Enemies);
+			Assert.Equal(EnemyId, Assert.Single(loaded.Enemies.Removed));
 		}
 		finally
 		{

@@ -206,7 +206,7 @@ public sealed class WorldService : IWorldControl, IDisposable
 
 	// ---- Session reset ----
 
-	public void ResetSessionState()
+	private void ResetSessionState()
 	{
 		HostRunPending = false;
 		_startGate = null;

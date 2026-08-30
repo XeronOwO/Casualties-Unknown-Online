@@ -1,5 +1,6 @@
 using System;
 using CasualtiesUnknownOnline.Abstractions;
+using CasualtiesUnknownOnline.Runtime.OnlineUi;
 using Microsoft.Extensions.Logging;
 using Steamworks;
 
@@ -22,6 +23,7 @@ public sealed class SteamService(ILogger<SteamService> log) : ICuoService, IStea
 	private Callback<LobbyCreated_t>? _lobbyCreated;
 	private Callback<LobbyEnter_t>? _lobbyEntered;
 	private Callback<GameLobbyJoinRequested_t>? _joinRequested;
+	private PlayerColorValue? _localPlayerColor;
 
 	public bool IsInitialized { get; private set; }
 
@@ -77,6 +79,10 @@ public sealed class SteamService(ILogger<SteamService> log) : ICuoService, IStea
 
 		return SteamFriends.GetFriendPersonaName(new CSteamID(steamId));
 	}
+
+	public PlayerColorValue? LocalPlayerColor => _localPlayerColor;
+
+	public void SetLocalPlayerColor(PlayerColorValue? color) => _localPlayerColor = color;
 
 	/// <summary>Raised on the Unity main thread via <see cref="RunCallbacks"/>.</summary>
 	public event Action<ulong>? LobbyCreated;

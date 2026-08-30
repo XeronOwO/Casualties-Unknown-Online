@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Abstractions;
+using CasualtiesUnknownOnline.Runtime.OnlineUi;
 using CasualtiesUnknownOnline.Runtime.Steam;
 
 namespace CasualtiesUnknownOnline.Tests.Fakes;
@@ -36,6 +37,10 @@ internal sealed class FakeSteamService(ulong localSteamId) : ISteamService, ICuo
 
 	public string GetPersonaName(ulong steamId) =>
 		Personas.TryGetValue(steamId, out var name) ? name : $"player-{steamId}";
+
+	public PlayerColorValue? LocalPlayerColor { get; internal set; }
+
+	public void SetLocalPlayerColor(PlayerColorValue? color) => LocalPlayerColor = color;
 
 	internal void FireLobbyCreated(ulong lobbyId) => LobbyCreated?.Invoke(lobbyId);
 

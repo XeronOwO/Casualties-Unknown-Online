@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
+using CasualtiesUnknownOnline.Runtime.OnlineUi;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
@@ -175,6 +176,37 @@ public sealed class SessionService : ICuoService, ISessionControl
 	}
 
 	// ---- Scene / diagnostics (Game Adapter → session) ----
+
+	/// <summary>
+	/// Live player marker-color change. Local only: the caller is the plugin's
+	/// Preferences page after it persists the config. The change is sent to the
+	/// active peer(s) so an already-running session keeps name tags in sync; a
+	/// host update is broadcast, a guest update is sent to the host for relay.
+	/// </summary>
+	public void ReportLocalPlayerColor(PlayerColorValue? color)
+	{
+		if (!SessionActive)
+		{
+			return;
+		}
+
+		var msg = new PlayerColorUpdateMsg
+		{
+			SteamId = LocalSteamId,
+			HasColor = color.HasValue,
+			Color = color.HasValue ? color.Value.ToNetColorRgba().ToNetColorRgbaMsg() : new(),
+		};
+		if (Role == SessionRole.Host)
+		{
+			((ISessionControl)this).Broadcast(NetMsg.PlayerColorUpdate, msg);
+		}
+		else
+		{
+			_sender.Send(HostSteamId, NetMsg.PlayerColorUpdate, msg);
+		}
+
+		_log.LogInformation("Local player color updated (selected: {Selected}).", color.HasValue);
+	}
 
 	/// <summary>
 	/// Either side: report the local scene state (menu / in world). The local

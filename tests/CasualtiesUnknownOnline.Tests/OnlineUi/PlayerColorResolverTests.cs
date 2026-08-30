@@ -44,6 +44,26 @@ public sealed class PlayerColorResolverTests
 		Assert.True(colors.Count >= 4, $"expected a useful spread of teammate colors, got {colors.Count}");
 	}
 
+	[Fact]
+	public void Palette_ExposesEverySelectableColorForThePicker() =>
+		Assert.Equal(8, PlayerColorResolver.PaletteValues.Count);
+
+	[Fact]
+	public void TryGet_ValidIndexReturnsThatPaletteColor()
+	{
+		Assert.True(PlayerColorResolver.TryGet(2, out var color));
+		Assert.Equal(PlayerColorResolver.PaletteValues[2].R, color.R);
+		Assert.Equal(PlayerColorResolver.PaletteValues[2].G, color.G);
+		Assert.Equal(PlayerColorResolver.PaletteValues[2].B, color.B);
+	}
+
+	[Fact]
+	public void TryGet_InvalidIndexReturnsFalse()
+	{
+		Assert.False(PlayerColorResolver.TryGet(-1, out _));
+		Assert.False(PlayerColorResolver.TryGet(8, out _));
+	}
+
 	private static IEnumerable<ulong> SteamIds()
 	{
 		for (ulong i = 1; i <= 64; i++)

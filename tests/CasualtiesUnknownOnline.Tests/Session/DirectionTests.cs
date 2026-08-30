@@ -96,6 +96,7 @@ public class DirectionTests
 		NetMsg.Chat,
 		NetMsg.TraderSwing,
 		NetMsg.KernelEnvelope,
+		NetMsg.PlayerColorUpdate,
 	};
 
 	[Theory]

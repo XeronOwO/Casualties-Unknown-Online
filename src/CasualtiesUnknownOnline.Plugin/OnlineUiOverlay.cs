@@ -43,6 +43,12 @@ internal sealed class OnlineUiOverlay
 	/// <summary>The IP-direct config editor (address/port/display name fields).</summary>
 	internal IpDirectConfigEditor? IpConfig;
 
+	/// <summary>The local player color config editor (palette selection).</summary>
+	internal PlayerColorConfigEditor? ColorConfig;
+
+	/// <summary>Invoked when the user changes the local player color palette index.</summary>
+	internal Action<int>? ChangePlayerColor;
+
 	/// <summary>Full CUO config template store (saved named BepInEx profiles).</summary>
 	internal ConfigurationProfileStore? Profiles;
 
@@ -171,6 +177,8 @@ internal sealed class OnlineUiOverlay
 			JoinIp = JoinIp,
 			LeaveIp = LeaveIp,
 			IpConfig = IpConfig,
+			ColorConfig = ColorConfig,
+			ChangePlayerColor = ChangePlayerColor,
 			IpDirectActive = IpDirectActive,
 			TakeItem = TakeItem,
 			OpenRemoteBackpack = OpenRemoteBackpack,
@@ -207,7 +215,7 @@ internal sealed class OnlineUiOverlay
 		_window.Draw(ctx);
 		UpdateDelayedStatus(ctx);
 		DrawNetworkHud(ctx);
-		DrawNameplatesAndArrows(ctx, entities, vitals);
+		DrawNameplatesAndArrows(ctx, entities);
 		DrawPlayerContextMenu(ctx);
 		_quickPanel.Draw(ctx);
 
@@ -392,7 +400,7 @@ internal sealed class OnlineUiOverlay
 		return result.Count > 0;
 	}
 
-	private static void DrawNameplatesAndArrows(OnlineUiContext ctx, EntitySyncService entities, RemoteVitalsService vitals)
+	private static void DrawNameplatesAndArrows(OnlineUiContext ctx, EntitySyncService entities)
 	{
 		var camera = Camera.main;
 		if (camera == null)
@@ -418,11 +426,11 @@ internal sealed class OnlineUiOverlay
 			var dx = remote.Position.X - local.X;
 			var dy = remote.Position.Y - local.Y;
 			var distance = Mathf.Sqrt((dx * dx) + (dy * dy));
-			var color = ToColor(PlayerColorResolver.Resolve(remote.SteamId));
+			var color = ToColor(ctx.PlayerColor(remote.SteamId));
 			var name = ctx.DisplayName(remote.SteamId);
 			if (placement.Direction == OffScreenArrowDirection.None)
 			{
-				DrawNameplate(placement.X, placement.Y, name, remote, vitals, color);
+				DrawNameplate(placement.X, placement.Y, name, color);
 			}
 			else
 			{
@@ -431,7 +439,7 @@ internal sealed class OnlineUiOverlay
 		}
 	}
 
-	private static void DrawNameplate(float x, float y, string name, PlayerEntity remote, RemoteVitalsService vitals, Color color)
+	private static void DrawNameplate(float x, float y, string name, Color color)
 	{
 		var style = new GUIStyle(GUI.skin.label)
 		{
@@ -439,20 +447,7 @@ internal sealed class OnlineUiOverlay
 			alignment = TextAnchor.MiddleCenter,
 		};
 		style.normal.textColor = color;
-
-		var status = remote.Alive ? (remote.Conscious ? "" : " Zzz") : " \u271D"; // ✝
-		GUI.Label(new Rect(x - 80f, y - 34f, 160f, 20f), name + status, style);
-
-		if (vitals.TryGet(remote.SteamId, out var snapshot))
-		{
-			var vitalsStyle = new GUIStyle(GUI.skin.label)
-			{
-				fontSize = 10,
-				alignment = TextAnchor.MiddleCenter,
-			};
-			vitalsStyle.normal.textColor = Color.white;
-			GUI.Label(new Rect(x - 80f, y - 12f, 160f, 16f), snapshot.ToShortString(), vitalsStyle);
-		}
+		GUI.Label(new Rect(x - 80f, y - 24f, 160f, 20f), name, style);
 	}
 
 	private static void DrawOffScreenArrow(OffScreenArrowPlacement placement, string name, string distanceText, Color color)

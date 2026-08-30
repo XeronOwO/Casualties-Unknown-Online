@@ -29,6 +29,8 @@ internal sealed class OnlineUiWindowState
 
 	internal bool LanguageOptionsOpen;
 
+	internal bool ColorOptionsOpen;
+
 	internal string ProfileNameInput = "";
 
 	internal string? ProfileStatus;

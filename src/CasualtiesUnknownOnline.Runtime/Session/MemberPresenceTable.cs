@@ -30,6 +30,9 @@ public sealed class MemberPresenceTable
 
 		/// <summary>Custom display name for IP-direct sessions (empty = fall back to Steam persona/ID).</summary>
 		public string DisplayName = "";
+
+		/// <summary>The member's selected marker color (null = automatic palette).</summary>
+		public NetColorRgba? SelectedColor;
 	}
 
 	private readonly Dictionary<ulong, MemberPresence> _members = [];

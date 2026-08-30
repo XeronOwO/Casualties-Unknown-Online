@@ -520,6 +520,21 @@ public sealed class OnlineUiMemberProjectionTests
 		Assert.True(rows[1].IsBanned);
 	}
 
+	[Fact]
+	public void RowCarriesTheEffectiveConfiguredColor()
+	{
+		var selected = new PlayerColorValue(0.1f, 0.2f, 0.3f, 1f);
+		var rows = Build(
+			[Remote],
+			[Presence(Remote, handshaken: true, inWorld: false)],
+			null,
+			getColor: id => id == Remote ? selected : PlayerColorResolver.Resolve(id));
+
+		Assert.Equal(selected.R, rows[0].Color.R);
+		Assert.Equal(selected.G, rows[0].Color.G);
+		Assert.Equal(selected.B, rows[0].Color.B);
+	}
+
 	private static IReadOnlyList<OnlineUiMemberRow> Build(
 		IReadOnlyList<ulong> lobbyMembers,
 		IReadOnlyList<MemberPresenceTable.MemberPresence> members,
@@ -532,7 +547,8 @@ public sealed class OnlineUiMemberProjectionTests
 		Func<ulong, RemoteInventorySnapshot?>? getInventory = null,
 		IReadOnlyList<LocalHealItem>? healItems = null,
 		bool allowRemoteInventoryTake = true,
-		Func<ulong, bool>? hasLineOfSight = null)
+		Func<ulong, bool>? hasLineOfSight = null,
+		Func<ulong, PlayerColorValue>? getColor = null)
 	{
 		return OnlineUiMemberProjection.Build(
 			Local,
@@ -549,7 +565,8 @@ public sealed class OnlineUiMemberProjectionTests
 			hasHealItem: hasHealItem,
 			healItems: healItems ?? [],
 			allowRemoteInventoryTake: allowRemoteInventoryTake,
-			hasLineOfSight: hasLineOfSight);
+			hasLineOfSight: hasLineOfSight,
+			getColor: getColor);
 	}
 
 	private static MemberPresenceTable.MemberPresence Presence(ulong steamId, bool handshaken, bool inWorld) =>

@@ -17,6 +17,9 @@ public sealed class OnlineUiMemberRow
 
 	public string Name { get; init; } = "";
 
+	/// <summary>The effective marker color used for the member's name in the UI.</summary>
+	public PlayerColorValue Color { get; init; }
+
 	public bool IsHost { get; init; }
 
 	public bool IsLocal { get; init; }

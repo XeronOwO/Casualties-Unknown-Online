@@ -36,6 +36,7 @@ public class Plugin : BaseUnityPlugin
 	private CuoNetworkRouter _router = null!;
 	private IpDirectSteamService _ipSteam = null!;
 	private IpDirectConfigEditor _ipConfig = null!;
+	private PlayerColorConfigEditor _colorConfig = null!;
 	private IpDirectActions _ipActions = null!;
 	private SessionService _session = null!;
 	private IHostBanService _hostBan = null!;
@@ -91,7 +92,9 @@ public class Plugin : BaseUnityPlugin
 			_router = _services.GetRequiredService<CuoNetworkRouter>();
 			_ipSteam = _router.IpDirectSteam;
 			_ipConfig = _services.GetRequiredService<IpDirectConfigEditor>();
+			_colorConfig = _services.GetRequiredService<PlayerColorConfigEditor>();
 			_ipSteam.SetDisplayName(_ipConfig.DisplayName);
+			_router.SetLocalPlayerColor(_colorConfig.CurrentColor);
 			_session = _services.GetRequiredService<SessionService>();
 			_hostBan = _services.GetRequiredService<IHostBanService>();
 			_hostRules = _services.GetRequiredService<IHostRules>();
@@ -128,6 +131,14 @@ public class Plugin : BaseUnityPlugin
 				JoinIp = _ipActions.Join,
 				LeaveIp = _ipActions.Leave,
 				IpConfig = _ipConfig,
+				ColorConfig = _colorConfig,
+				ChangePlayerColor = index =>
+				{
+					_colorConfig.SetColorIndex(index);
+					var color = _colorConfig.CurrentColor;
+					_router.SetLocalPlayerColor(color);
+					_session.ReportLocalPlayerColor(color);
+				},
 				Profiles = _profileStore,
 				TakeItem = _uiActions.TakeItemFromRemote,
 				OpenRemoteBackpack = (id, name) =>

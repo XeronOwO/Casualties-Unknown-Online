@@ -27,4 +27,15 @@ public sealed class HandshakeMsg
 	/// Steam sessions may send the Steam persona name as a harmless duplicate.</summary>
 	[ProtoMember(4)]
 	public string DisplayName { get; set; } = "";
+
+	/// <summary>True when <see cref="Color"/> carries the sender's manually
+	/// selected presentation color. False = the sender is on the automatic
+	/// SteamId palette and every peer derives the same fallback color locally.</summary>
+	[ProtoMember(5)]
+	public bool HasColor { get; set; }
+
+	/// <summary>The sender's selected RGBA marker color (only meaningful when
+	/// <see cref="HasColor"/> is true).</summary>
+	[ProtoMember(6)]
+	public NetColorRgbaMsg Color { get; set; } = new();
 }

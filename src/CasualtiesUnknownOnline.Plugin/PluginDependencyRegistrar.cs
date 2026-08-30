@@ -4,6 +4,7 @@ using BepInEx.Configuration;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Diagnostics;
+using CasualtiesUnknownOnline.Runtime.OnlineUi;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
@@ -121,6 +122,15 @@ internal static class PluginDependencyRegistrar
 				() => new LocalizationOptions { Language = language.Value },
 				language.Definition)));
 		services.AddSingleton(new LocalizationConfigEditor(config, language));
+
+		// Local player marker color: -1 = automatic SteamId palette, otherwise
+		// a palette index. This is a local preference shared through handshake /
+		// roster messages; config profiles capture it like every other option.
+		var playerColorIndex = config.Bind("UI", "PlayerColorIndex", -1,
+			new ConfigDescription(
+				"Player marker color choice. -1 = automatic per-SteamId palette; 0-7 = one of the shared player palette colors.",
+				new AcceptableValueRange<int>(-1, PlayerColorResolver.PaletteValues.Count - 1)));
+		services.AddSingleton(new PlayerColorConfigEditor(config, playerColorIndex));
 
 		// Host-rule write path for the Online UI Admin page. The runtime reads
 		// through IOptionsMonitor; this editor holds the ConfigEntry references

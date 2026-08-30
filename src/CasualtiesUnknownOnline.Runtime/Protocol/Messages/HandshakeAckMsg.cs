@@ -24,4 +24,14 @@ public sealed class HandshakeAckMsg
 	/// <summary>The host's display name (custom in IP-direct mode, Steam persona otherwise).</summary>
 	[ProtoMember(5)]
 	public string DisplayName { get; set; } = "";
+
+	/// <summary>True when <see cref="Color"/> carries the host's manually
+	/// selected presentation color. False = the host uses the automatic palette.</summary>
+	[ProtoMember(6)]
+	public bool HasColor { get; set; }
+
+	/// <summary>The host's selected RGBA marker color (only meaningful when
+	/// <see cref="HasColor"/> is true).</summary>
+	[ProtoMember(7)]
+	public NetColorRgbaMsg Color { get; set; } = new();
 }

@@ -35,7 +35,8 @@ public static class OnlineUiMemberProjection
 		bool hasHealItem,
 		IReadOnlyList<LocalHealItem> healItems,
 		bool allowRemoteInventoryTake = true,
-		Func<ulong, bool>? hasLineOfSight = null)
+		Func<ulong, bool>? hasLineOfSight = null,
+		Func<ulong, PlayerColorValue>? getColor = null)
 	{
 		var memberMap = members.ToDictionary(m => m.SteamId, m => m);
 		var rows = new List<OnlineUiMemberRow>();
@@ -116,6 +117,7 @@ public static class OnlineUiMemberProjection
 			{
 				SteamId = memberId,
 				Name = displayName(memberId),
+				Color = getColor?.Invoke(memberId) ?? PlayerColorResolver.Resolve(memberId),
 				IsHost = memberId == lobbyOwner,
 				IsLocal = isLocal,
 				Handshaken = member?.Handshaken ?? false,

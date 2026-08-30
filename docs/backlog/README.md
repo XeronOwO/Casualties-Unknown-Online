@@ -32,6 +32,9 @@ Open work only. Landed delivery details are not duplicated here; they live in:
   cooperative; they never accelerate a session while any in-world player is
   awake. The all-unconscious sleep policy remains the only shared-clock
   acceleration.
+- Player-selectable colors and color-only head name tags landed — a local
+  palette picker is shared through handshake/roster/live updates, head tags
+  show only the colored player name, and off-screen markers keep name + distance.
 
 ## Open bug (2026-08-27)
 
@@ -50,20 +53,6 @@ Open work only. Landed delivery details are not duplicated here; they live in:
   `Plugin` shutdown path.
 
 ## Open work
-
-### IP-direct identity / player presentation
-
-- **Player-selectable colors** — players should be able to set their own color.
-  Name tags, off-screen arrows, player-list rows, and owner/role labels must use
-  the configured color rather than only the current auto-assigned palette.
-- **Head name tags (color-only, join/leave-safe)** — show only the player name
-  above the head, colored per the player's selected color; no redundant vitals,
-  status, or distance text on the head tag. When the target is off-screen, show
-  the corresponding colored arrow + distance in meters **and the player name**;
-  color alone is not sufficient to distinguish players. Late joiners must
-  immediately receive existing players' name/color, and mid-session leave,
-  join, and reconnect must add/remove tags without stale entries (KrokMP-style
-  late join currently misses name display).
 
 ### Player interaction / UI
 
@@ -126,12 +115,12 @@ Measurement-first items; do not optimize before data exists.
 Files at or near the 600-line gate should be split before the next feature lands in
 them:
 
-Current actual line counts (2026-08-31 after split pass): `ItemApplication.cs` (238),
-`SessionService.cs` (455), `KernelProtocolService.cs` (516), `ItemService.cs` (520),
-`CharacterDataSync.cs` (529), `EntitySyncService.cs` (548), `RunCoordinator.cs` (550),
-`Plugin.cs` (496), `EnemyCombatDirector.cs` (376). No coordinator is near the
-600-line gate today; the watchlist remains a before-landing check rather than an
-action item.
+Current actual line counts (2026-08-31 after split pass, updated after player presentation landing):
+`ItemApplication.cs` (238), `SessionService.cs` (487), `KernelProtocolService.cs` (516),
+`ItemService.cs` (520), `CharacterDataSync.cs` (529), `EntitySyncService.cs` (553),
+`RunCoordinator.cs` (550), `Plugin.cs` (511), `EnemyCombatDirector.cs` (376).
+No coordinator is near the 600-line gate today; the watchlist remains a
+before-landing check rather than an action item.
 
 `docs/decisions/active.md` is also large; future landing entries should consider a
 domain-split index if it keeps growing.

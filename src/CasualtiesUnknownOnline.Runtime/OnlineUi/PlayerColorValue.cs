@@ -1,3 +1,5 @@
+using CasualtiesUnknownOnline.Runtime.Protocol;
+
 namespace CasualtiesUnknownOnline.Runtime.OnlineUi;
 
 /// <summary>
@@ -14,4 +16,8 @@ public readonly struct PlayerColorValue(float r, float g, float b, float a = 1f)
 	public float B { get; } = b;
 
 	public float A { get; } = a;
+
+	public NetColorRgba ToNetColorRgba() => new(R, G, B, A);
+
+	public static PlayerColorValue FromNetColorRgba(NetColorRgba value) => new(value.R, value.G, value.B, value.A);
 }

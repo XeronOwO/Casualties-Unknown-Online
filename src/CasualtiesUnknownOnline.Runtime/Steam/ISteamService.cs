@@ -1,4 +1,5 @@
 using System;
+using CasualtiesUnknownOnline.Runtime.OnlineUi;
 
 namespace CasualtiesUnknownOnline.Runtime.Steam;
 
@@ -26,6 +27,17 @@ public interface ISteamService
 	/// (Online UI nameplates/status; falls back to the SteamID hex in the UI
 	/// when Steam returns an empty name).</summary>
 	string GetPersonaName(ulong steamId);
+
+	/// <summary>The local player's manually selected marker color, or null when
+	/// the player uses the deterministic SteamId palette assignment. This is
+	/// part of the local identity surface: the handshake and roster messages
+	/// carry it so every peer renders the owner's chosen presentation color.</summary>
+	PlayerColorValue? LocalPlayerColor { get; }
+
+	/// <summary>Sets the local player's selected marker color on every identity
+	/// path (Steam and IP-direct), so a configuration change applies immediately
+	/// and survives a transport mode switch.</summary>
+	void SetLocalPlayerColor(PlayerColorValue? color);
 
 	event Action<ulong>? LobbyCreated;
 

@@ -1,3 +1,5 @@
+using System.Linq;
+using CasualtiesUnknownOnline.Runtime.OnlineUi;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Tests.Fakes;
@@ -121,6 +123,36 @@ public class SessionServiceTests
 		Assert.True(host.Session.LocalInWorld);
 		Assert.True(guest.Session.IsRemoteInWorld(HostId), "the host's scene report drives the guest's clone presence");
 		Assert.Equal(new NetVector2(3f, 4f), guest.Session.GetRemoteSpawnPos(HostId));
+	}
+
+	[Fact]
+	public void ReportLocalPlayerColor_GuestUpdateReachesHostRoster()
+	{
+		var (host, guest) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		var color = new PlayerColorValue(0.1f, 0.2f, 0.3f, 1f);
+
+		guest.Session.ReportLocalPlayerColor(color);
+
+		var member = host.Session.Members.Single(m => m.SteamId == GuestId);
+		Assert.NotNull(member.SelectedColor);
+		Assert.Equal(color.R, member.SelectedColor!.Value.R);
+		Assert.Equal(color.G, member.SelectedColor.Value.G);
+		Assert.Equal(color.B, member.SelectedColor.Value.B);
+	}
+
+	[Fact]
+	public void ReportLocalPlayerColor_HostUpdateReachesGuestRoster()
+	{
+		var (host, guest) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		var color = new PlayerColorValue(0.4f, 0.5f, 0.6f, 1f);
+
+		host.Session.ReportLocalPlayerColor(color);
+
+		var member = guest.Session.Members.Single(m => m.SteamId == HostId);
+		Assert.NotNull(member.SelectedColor);
+		Assert.Equal(color.R, member.SelectedColor!.Value.R);
+		Assert.Equal(color.G, member.SelectedColor.Value.G);
+		Assert.Equal(color.B, member.SelectedColor.Value.B);
 	}
 
 	[Fact]

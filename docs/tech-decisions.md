@@ -4222,3 +4222,33 @@ kernel and adapter projection path.
   `WorldEntityKernelProjection`; the legacy `TrapStateSnapshot`,
   `OpenedEntitiesSnapshot`, and `BuildingEntityHealthSnapshot` wire was removed
   in an earlier Phase D cycle.
+
+## 152. Player durable skills move into the Players kernel domain (2026-08-30)
+
+The first concrete 4.3 slice closes the "skills" open question in the player
+domain boundary: durable skill facts are now kernel-owned instead of remaining
+exclusively in the character-data snapshot projection.
+
+- **Domain fact** — `PlayerSkillsState` (strength, resistance, intelligence,
+  and the three exp accumulators) rides `PlayerState`/`PlayerStateTable`.
+- **Wire/checkpoint/save** — `WirePlayerSkills` is added to `WirePlayerState`
+  as an additive proto field; `KernelDomainWireMapper` keeps the kernel/protocol
+  projection boundary. Checkpoint split/assemble and `KernelSaveFileStore`
+  round-trip the new facts.
+- **Production projection** — `PlayerKernelLimbProjection.SyncFromCharacterData`
+  now also commits the host-side character snapshot's `CharacterSkillsMsg` into
+  the kernel row; limb/body projections continue to preserve the new field.
+- **Restore authority** — `PlayerKernelRestoreProjection` overlays kernel
+  skills over the saved `CharacterSkillsMsg` on reconnect/re-entry, so the
+  snapshot is no longer the authority for durable skills; continuous
+  physiological values, item payloads, and position remain snapshot-owned.
+- **Backpack root** — no separate kernel root ID is added in this slice: the
+  item kernel already owns each `Carried` item's `ActorId` owner and the
+  contained-parent graph, so the conceptual player "backpack root" is the set of
+  `Carried`/`Contained` item facts whose owner is that SteamId. A synthetic root
+  aggregate would duplicate item ownership and is deferred unless a concrete
+  root-container feature requires it.
+- **Tests** — `PlayerDomainKernelTests` skill upsert/wire/checkpoint/save
+  round-trips, `PlayerProjectionTests.HostSaveCharacterData_CommitsPlayerKernelSkills`,
+  and `CharacterDataStoreTests.SendSavedCharacter_ProjectsKernelSkillsOverSnapshot`.
+  Full suite 1786 green; build/format/architecture/event/entity/delivery gates pass.

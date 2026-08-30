@@ -4,7 +4,8 @@ using ProtoBuf;
 namespace CasualtiesUnknownOnline.Protocol.Wire;
 
 /// <summary>
-/// Wire form of one authoritative player terminal-status fact.
+/// Wire form of one authoritative player fact: terminal status, limb/body
+/// latches, carry relation, and durable skill facts.
 /// </summary>
 [ProtoContract]
 public sealed class WirePlayerState
@@ -29,4 +30,7 @@ public sealed class WirePlayerState
 
 	[ProtoMember(7)]
 	public WirePlayerBodyTerminalState? Body { get; set; }
+
+	[ProtoMember(8)]
+	public WirePlayerSkills? Skills { get; set; }
 }

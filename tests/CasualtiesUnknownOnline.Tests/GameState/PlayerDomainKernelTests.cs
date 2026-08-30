@@ -587,6 +587,71 @@ public class PlayerDomainKernelTests
 		Assert.Equal("highgradestimulant", Assert.Single(@event.TimedBodyEffects).EffectId);
 	}
 
+	[Fact]
+	public void UpdateStatus_UpsertsSkills()
+	{
+		var kernel = new GameStateKernel(Epoch);
+		var skills = new PlayerSkillsState(15, 12, 9, 3.5f, 2.25f, 1.75f);
+
+		Assert.True(Update(kernel, 1, new PlayerState(2001, true, true, Skills: skills)).IsAccepted);
+
+		Assert.Equal(skills, Assert.Single(kernel.QueryPlayers()!.Players).Skills);
+	}
+
+	[Fact]
+	public void WireBatchRoundTrip_PreservesPlayerSkills()
+	{
+		var source = new GameStateKernel(Epoch);
+		var skills = new PlayerSkillsState(15, 12, 9, 3.5f, 2.25f, 1.75f);
+		var batch = Update(source, 1, new PlayerState(2001, true, true, Skills: skills)).Batch!;
+
+		var restored = KernelWireMapper.FromWireBatch(KernelWireMapper.ToWireBatch(batch), Epoch);
+
+		var @event = Assert.IsType<PlayerStatusUpdatedEvent>(Assert.Single(restored.Events));
+		Assert.Equal(skills, @event.State.Skills);
+	}
+
+	[Fact]
+	public void CheckpointSplitAssemble_RoundTripsPlayerSkills()
+	{
+		var kernel = new GameStateKernel(Epoch);
+		var skills = new PlayerSkillsState(15, 12, 9, 3.5f, 2.25f, 1.75f);
+		Assert.True(Update(kernel, 1, new PlayerState(2001, true, true, Skills: skills)).IsAccepted);
+
+		var restored = WireCheckpointAssembler.Assemble(WireCheckpointAssembler.Split(kernel.CreateCheckpoint()));
+
+		Assert.Equal(skills, Assert.Single(restored.Players!.Players).Skills);
+	}
+
+	[Fact]
+	public void SaveLoad_RoundTripsPlayerSkills()
+	{
+		var path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"cuo-players-skills-{Guid.NewGuid():N}.bin");
+		try
+		{
+			var authority = new ItemKernelAuthority(NullLogger<ItemKernelAuthority>.Instance);
+			var skills = new PlayerSkillsState(15, 12, 9, 3.5f, 2.25f, 1.75f);
+			Assert.True(authority.TryUpdatePlayerStatus(
+				Host.Value,
+				new PlayerState(2001, true, true, Skills: skills),
+				out _,
+				out _));
+
+			var store = new KernelSaveFileStore(path, NullLogger<KernelSaveFileStore>.Instance);
+			Assert.True(store.Save(authority.CreateCheckpoint()));
+			Assert.True(store.TryLoad(out var loaded));
+
+			Assert.Equal(skills, Assert.Single(loaded.Players!.Players).Skills);
+		}
+		finally
+		{
+			if (System.IO.File.Exists(path))
+			{
+				System.IO.File.Delete(path);
+			}
+		}
+	}
+
 	private static Decision Update(GameStateKernel kernel, ulong op, PlayerState state) =>
 		kernel.Execute(
 			new UpdatePlayerStatusCommand(new OperationId(op), Host, Epoch, AuthorityKind.HostOnly, state),

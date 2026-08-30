@@ -234,6 +234,7 @@ For each domain, complete these steps in order:
 | 2026-08-30 | Spider-bite local-path handoff to order policy | `current` | 1780 tests green; build/format/architecture/event/entity/isolation/delivery gates pass | `EnemyCombatArbitration.SelectBiteVictim` no longer filters out the local body; it returns the nearest victim inside bite range and `EnemyCombatOrderPolicy.DecideSpiderBite` decides whether the local native path or a remote host-ordered attack applies. The director behavior is unchanged, but the order policy's `LocalNative` branch is now production-reachable and tested through the arbitration contract. See `docs/selfchecks/phase-d-enemies-shadow-selfcheck.md`. |
 | 2026-08-30 | Fluids guest projection + convergence semantics closed | `current` | Docs | The guest fluid path is now recorded as the rebuildable RLE absolute-overwrite projection; coarse kernel facts remain a diagnostic/future simulation seam and are not a second grid authority. Fluid stream convergence/forbidden-operation semantics are locked by the existing RLE/absolute-overwrite and kernel command tests. See `docs/selfchecks/phase-d-fluids-shadow-selfcheck.md`. |
 | 2026-08-30 | WorldEntities 4.2 checklist closure | `current` | Docs | Building/entity lifecycle is represented by kernel building-health facts plus the destroyed-building invariant; trap presentation is a replay/projection (`TrapVisualReplay` + `WorldEntityKernelProjection`), not authority; trap replay/snapshot logic rides kernel checkpoint projection and the legacy world-entity snapshot wire was already removed. See `docs/selfchecks/phase-d-world-entities-shadow-selfcheck.md`. |
+| 2026-08-30 | Players skill facts in kernel domain | `current` | 1786 tests green; build/format/architecture/event/entity/isolation/delivery gates pass | `PlayerSkillsState` (strength/resistance/intelligence + exp) is now part of `PlayerState`; `WirePlayerSkills`/wire/checkpoint/save round-trip; `PlayerKernelLimbProjection` commits host character-data skills into the kernel, and `PlayerKernelRestoreProjection` overlays kernel skills on reconnect/re-entry restores. Backpack root remains the item kernel's `Carried` owner set rather than a duplicate root aggregate. See `docs/selfchecks/phase-d-players-shadow-selfcheck.md` and `docs/tech-decisions.md` #152. |
 
 ## Next actions
 
@@ -249,3 +250,7 @@ For each domain, complete these steps in order:
 4. [ ] Decide how the extracted `EnemyCombatOrderPolicy` apply paths feed a
    kernel process/events; `EnemyAttackMsg` stays the host-order local-apply
    command and is not merged into presentation.
+5. [ ] Continue 4.3 Players: define/implement the remaining player-domain
+   boundary items (identity/join roster, authority-policy annotations,
+   death+inventory/relation consistency invariants, and prediction/rollback
+   seams).

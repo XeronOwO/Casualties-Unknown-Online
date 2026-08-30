@@ -10,23 +10,24 @@ data and carry service into the kernel.
 
 | Mechanism | Where | Notes |
 |---|---|---|
-| Player terminal state | `Domains/Players/PlayerState.cs` | SteamID-keyed alive/conscious facts plus discrete limb latches (`PlayerLimbState`) and body-level terminal latches (`PlayerBodyTerminalState`). |
+| Player terminal state | `Domains/Players/PlayerState.cs` | SteamID-keyed alive/conscious facts plus discrete limb latches (`PlayerLimbState`), body-level terminal latches (`PlayerBodyTerminalState`), and durable skill facts (`PlayerSkillsState`). |
 | Player table | `Domains/Players/PlayerStateTable.cs` | Immutable snapshot with upsert. |
 | Commands | `UpdatePlayerStatusCommand`, `ResetPlayersCommand`, `SetPlayerCarryCommand`, `ClearPlayerCarryCommand` | Host-only commands; reset clears for a new run; carry commands record/release one carrier/one carried relation. |
 | Events | `PlayerStatusUpdatedEvent`, `PlayersResetEvent`, `PlayerCarrySetEvent`, `PlayerCarryClearedEvent` | Reduce into the player table. |
 | Domain module | `PlayerDomainModule.cs` | Decide/reduce/invariant; dead players cannot be conscious, SteamIDs unique, carry relation reciprocal and conflict-free. |
 | Kernel integration | `GameStateKernel`, `GameStateStore`, `KernelReadModel`, `MutableKernelState`, `GameCheckpoint` | `PlayerStateTable?` is now a kernel domain table and checkpoint field. |
-| Wire DTOs | `WirePlayerState` | Protocol remains GameState-free. |
+| Wire DTOs | `WirePlayerState` / `WirePlayerSkills` | Protocol remains GameState-free. |
 | Mapper/save | `KernelWireMapper`, `WireCheckpointAssembler`, `KernelSaveFileStore`, `KernelSaveFile` | Player facts round-trip through wire checkpoints and disk saves. |
 | Runtime authority surface | `ItemKernelAuthority.TryUpdatePlayerStatus/TryResetPlayers/QueryPlayers/TrySetPlayerCarry/TryClearPlayerCarry` | Host commands and query entry points. |
 | Entity-sync projection | `PlayerKernelStatusProjection` + `EntitySyncService` | Host `PublishLocalState`/`ApplyEntityState` project alive/conscious changes into kernel status; guests receive the kernel batch through the existing protocol path. |
 | Limb projection | `PlayerKernelLimbProjection` + `CharacterDataStore` | Host character snapshots and limb-latch events project discrete limb latches into kernel `PlayerState`; event + 1 Hz snapshot fallback are both covered. |
 | Body terminal projection | `PlayerKernelLimbProjection` + `CharacterDataStore` | The same character-data/limb-event projection also commits body-level terminal booleans (`Disfigured`, `EyeGone`, `BothEyesGone`, `HasPulmonaryEmbolism`, last-stand/neural booleans, `FibrillationForced`, `MindwipeScriptPresent/Active`) into `PlayerBodyTerminalState`. |
+| Skills projection | `PlayerKernelLimbProjection` + `CharacterDataStore` | Host character snapshots now commit durable `PlayerSkillsState` (strength/resistance/intelligence plus exp values) into the kernel player row; `PlayerKernelRestoreProjection` overlays those skills onto reconnect/re-entry snapshots. The character snapshot remains the continuous/fallback projection surface. |
 | Carry production projection | `PlayerKernelCarryProjection` + `PlayerCarryService` | Host carry mutations are kernel commands; `PlayerKernelCarryProjection` applies committed batches on the host (`BatchCommitted`) and guest (`BatchApplied`) and rebuilds from checkpoint restore. The carry mirror and `CarryStateChanged` now ride the same kernel batch; legacy `NetMsg.PlayerCarryState` and its handler are removed. |
 | Cross-player item kernel sync | `PlayerInventoryTakeService` / `PlayerHealService` / `PlayerItemUseService` + `ItemKernelAuthority` | Host-recipient take, host-user heal/use, and wear-to-host now spawn/transfer/update/destroy the carried item in the item kernel, closing the host-side item-ownership gap; guest recipients continue through the transfer-table adopt path. |
 | Player interaction result projection | `PlayerInteractionKernelProjection` + `PlayerInteractionResultAuthority` + `PlayerInteractionKernelCodec` | Take/heal/use results are recorded as journal-only Players domain events; the projection restores `TransferReceived` / `HealReceived` / `UseReceived` on the host (`BatchCommitted`) and guests (`BatchApplied`). Legacy `NetMsg.PlayerInventoryTransfer` / `PlayerHealResult` / `PlayerItemUseResult` IDs and handlers are removed. |
 | Push presentation policy | `PlayerPushService` + `PlayerPushResultMsg` | Push is transient presentation: no kernel command/event, no durable relation/health change; the host result stays a direct host→all presentation message and the resulting motion rides the 20 Hz player stream. |
-| Restore projection | `PlayerKernelRestoreProjection` + `CharacterDataStore.SendSavedCharacter` | Reconnect/re-entry restores are projected from the kernel players table over the saved character snapshot: alive/conscious, limb latches, body-terminal latches, and limb identity are authoritative; continuous physiological values, skills, items, and position remain owned by the snapshot. Carry is not a character-snapshot field and is restored separately by `PlayerKernelCarryProjection` from checkpoints/committed batches. |
+| Restore projection | `PlayerKernelRestoreProjection` + `CharacterDataStore.SendSavedCharacter` | Reconnect/re-entry restores are projected from the kernel players table over the saved character snapshot: alive/conscious, limb latches, body-terminal latches, limb identity, and durable skill facts are authoritative; continuous physiological values, items, and position remain owned by the snapshot. Carry is not a character-snapshot field and is restored separately by `PlayerKernelCarryProjection` from checkpoints/committed batches. |
 
 ## Evidence table
 
@@ -64,13 +65,17 @@ data and carry service into the kernel.
 | Host character data commits body terminal facts | `PlayerProjectionTests.HostSaveCharacterData_CommitsPlayerKernelBodyTerminalFacts`. |
 | Host limb event commits body terminal facts | `PlayerProjectionTests.LimbStateEvent_CommitsPlayerKernelBodyTerminalFacts`. |
 | Cross-player use commits body terminal facts | `PlayerInteractionServiceTests.Guest_UsesMindwipeOnUnhappyHost_AppliesMindwipeScript` asserts kernel `PlayerBodyTerminalState`. |
+| Kernel upserts skill facts | `PlayerDomainKernelTests.UpdateStatus_UpsertsSkills`. |
+| Wire/checkpoint/save preserve skill facts | `PlayerDomainKernelTests.WireBatchRoundTrip_PreservesPlayerSkills` / `CheckpointSplitAssemble_RoundTripsPlayerSkills` / `SaveLoad_RoundTripsPlayerSkills`. |
+| Host character data commits skill facts to kernel | `PlayerProjectionTests.HostSaveCharacterData_CommitsPlayerKernelSkills`. |
+| Reconnect restore projects kernel skills over the saved snapshot | `CharacterDataStoreTests.SendSavedCharacter_ProjectsKernelSkillsOverSnapshot`. |
 | Reconnect restore projects kernel terminal facts over the saved snapshot | `CharacterDataStoreTests.SendSavedCharacter_ProjectsKernelTerminalFactsOverSnapshot` (alive/conscious, all body-terminal latches, limb latches) and `SendSavedCharacter_AddsKernelLimbFactMissingFromSnapshot`. |
 | Restore projection preserves continuous limb/physiological snapshot fields | `CharacterDataStoreTests.SendSavedCharacter_ProjectsKernelTerminalFactsOverSnapshot` asserts skin/muscle health remain from the snapshot while kernel latches override. |
 
 ## Verification
 
 - `dotnet build CasualtiesUnknownOnline.slnx`: 0 warnings / 0 errors.
-- `dotnet test CasualtiesUnknownOnline.slnx`: 1701 passed.
+- `dotnet test CasualtiesUnknownOnline.slnx`: 1786 passed.
 - `dotnet format`: applied.
 - Architecture/event/entity/isolation gates passed.
 
@@ -109,3 +114,6 @@ data and carry service into the kernel.
    onto the saved `CharacterDataMsg` before `SendSavedCharacter` hands it back;
    continuous physiological values/items/position remain snapshot-owned and
    carry continues through the checkpoint/committed-batch projection.
+6. [x] Add durable skill facts to the player domain: `PlayerSkillsState`,
+   checkpoint/wire/save round-trip, host character-data projection, and
+   reconnect restore overlay through `PlayerKernelRestoreProjection`.

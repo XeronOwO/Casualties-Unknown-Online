@@ -136,6 +136,40 @@ public class PlayerProjectionTests
 	}
 
 	[Fact]
+	public void HostSaveCharacterData_CommitsPlayerKernelSkills()
+	{
+		var (_, host, _) = HandshakeTests.CreateHostAndGuest();
+		host.Steam.FireLobbyCreated(LobbyId);
+
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		var authority = host.Services.GetRequiredService<ItemKernelAuthority>();
+
+		characters.SaveHostCharacterData(new CharacterDataMsg
+		{
+			OwnerSteamId = HostId,
+			Health = new CharacterHealthMsg { Alive = true, Conscious = true },
+			Skills = new CharacterSkillsMsg
+			{
+				Strength = 15,
+				Resistance = 12,
+				Intelligence = 9,
+				ExpStrength = 3.5f,
+				ExpResistance = 2.25f,
+				ExpIntelligence = 1.75f,
+			},
+		});
+
+		var player = Assert.Single(authority.QueryPlayers()!.Players);
+		Assert.NotNull(player.Skills);
+		Assert.Equal(15, player.Skills!.Strength);
+		Assert.Equal(12, player.Skills.Resistance);
+		Assert.Equal(9, player.Skills.Intelligence);
+		Assert.Equal(3.5f, player.Skills.ExpStrength);
+		Assert.Equal(2.25f, player.Skills.ExpResistance);
+		Assert.Equal(1.75f, player.Skills.ExpIntelligence);
+	}
+
+	[Fact]
 	public void LimbStateEvent_CommitsPlayerKernelBodyTerminalFacts()
 	{
 		var (_, host, _) = HandshakeTests.CreateHostAndGuest();

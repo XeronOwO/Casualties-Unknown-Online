@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using CasualtiesUnknownOnline.GameAdapter.Character;
 using CasualtiesUnknownOnline.GameAdapter.Items;
+using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using HarmonyLib;
 using UnityEngine;
 
@@ -88,8 +89,10 @@ internal static class BodyPatches
 			// so the LayDown/lying clip still drives the limb transforms; the
 			// synced standing value is restored immediately after the visual
 			// pass and remains the semantic state for SessionStatePump/LyingPose.
-			var visualStanding = __instance.standing;
-			if (!visualStanding && __instance.GetComponentInParent<RemoteBodyDriver>() != null)
+			var originalStanding = __instance.standing;
+			var isRemoteClone = __instance.GetComponentInParent<RemoteBodyDriver>() != null;
+			var visualStanding = RenderProxyPose.EffectiveVisualStanding(originalStanding, isRemoteClone);
+			if (!originalStanding && visualStanding)
 			{
 				__instance.standing = true;
 			}
@@ -100,7 +103,7 @@ internal static class BodyPatches
 			}
 			finally
 			{
-				__instance.standing = visualStanding;
+				__instance.standing = originalStanding;
 			}
 
 			// legSpeedMult is a computed property from leg force (Body.cs:67-95)

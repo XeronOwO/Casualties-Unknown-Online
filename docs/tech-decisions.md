@@ -4039,8 +4039,11 @@ kernel facts are now committed as one batch instead of two separate batches.
   rides `KernelEnvelope` and replays on guests through the existing apply path.
 - **Visual-only events** — no kernel command is emitted when the event is
   neither one-shot nor stateful, so the composite is a no-op.
+- **Damage profiles** — `TrapDamageProfiles` explicitly classifies the four
+  destructive trap kinds and `TrapDamageProfilesTests` locks both the
+  destructive set and representative non-destructive kinds.
 - **Tests** — `WorldEntityProjectionTests.HostReportTrapEvent_CommitsOneAtomicKernelBatch`
   locks one committed batch with `TrapConsumedEvent`, `TrapStateChangedEvent`,
-  and multiple `BuildingEntityHealthUpdatedEvent`s. Full suite 1741 green.
+  and multiple `BuildingEntityHealthUpdatedEvent`s. Full suite 1751 green.
 - **Remaining** — item drops are still open as the next 4.2 cross-domain
   sub-step.

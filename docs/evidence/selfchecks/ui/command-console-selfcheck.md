@@ -27,6 +27,7 @@ existing text-chat send path; no wire message or protocol version was added.
 | 16 | Undo/redo | `ConsoleInputSession` keeps bounded undo/redo stacks; Ctrl+Z/Ctrl+Y restore editing state. |
 | 17 | No wire change | No `NetMsg`, no packet handler, no `ProtocolVersion` change. |
 | 18 | Real selector command | `/heal <selector>` is the first real CUO command with a `Selector` argument; `CommandSelectorResolver` expands player selectors over `IEntitySyncControl` and the resolved SteamIds ride the existing heal request path. |
+| 19 | IME composition | `ConsoleImeState` is a Unity-free composition gate; the overlay enables legacy IME while open, feeds `Input.compositionCursorPos` from the caret, renders the composition string, and swallows raw keys during composition. |
 
 ## 2. Self-check table
 
@@ -46,6 +47,8 @@ existing text-chat send path; no wire message or protocol version was added.
 | Real selector heal | `/heal @p` resolves the nearest remote and runs the host heal path | `CommandConsoleServiceTests.Heal_WithSelector_SendsRequestToGuest` |
 | Selector resolver core/edge | `@a`/`@e`/`@s`/`@p`/`@r`, unknown, empty, case-insensitive, no-remote paths | `CommandSelectorResolverTests` (10 cases) |
 | Heal argument validation | Missing selector shows usage; unknown selector adds a no-match line | `CommandConsoleServiceTests.Heal_WithoutSelector_ShowsUsage`, `Heal_UnknownSelector_AddsNoMatchLine` |
+| IME composition gate | Initial/active/empty/null/clear composition states are deterministic | `ConsoleImeStateTests` (5 cases) |
+| IME overlay wiring | IME mode toggled on open/close, composition rendered, raw keys swallowed while composing, caret position fed to Input | static review: `CommandConsoleOverlay.Open/Close/HandleKeys/DrawImeComposition/UpdateImeCursorPosition`; OS IME behavior is user-acceptance territory |
 | Specific help command | `/help kick` shows the command usage | `CommandConsoleServiceTests.Help_WithCommandName_ShowsUsage` |
 | Clickable suggestion acceptance | Clicking a suggestion applies it and clears the list | `ConsoleInputSessionTests.AcceptSuggestion_AppliesSpecificCandidateAndClearsList` |
 | Member completion | `/kick <id>` suggests the member id | `CommandConsoleServiceTests.Suggest_ReturnsMemberIdForKickArgument` |
@@ -75,15 +78,17 @@ existing text-chat send path; no wire message or protocol version was added.
   players); generic entity/resource-location completion is still future work.
 - `Json` remains a suggestion scaffold only; no real CUO command consumes a JSON
   argument yet.
-- No IME support yet; printable ASCII/UTF insertion, cursors, word editing,
-  selection and clipboard are covered.
+- IME composition is wired through Unity's legacy Input Manager and the custom
+  caret/render path; per-IME (Chinese/Japanese/Korean, platform-specific)
+  acceptance is user-acceptance territory. Raw key suppression is intentionally
+  conservative while composing.
 
 ## 4. Verification results
 
 | Evidence | Result |
 |---|---|
 | `dotnet build CasualtiesUnknownOnline.slnx` | 0 warnings / 0 errors |
-| `dotnet test CasualtiesUnknownOnline.slnx --no-build` | 1921 passed / 0 failed |
+| `dotnet test CasualtiesUnknownOnline.slnx --no-build` | 1926 passed / 0 failed |
 | `dotnet format CasualtiesUnknownOnline.slnx` | clean |
 | `tools/check-architecture.ps1` | pass (including GameState isolation, item authority, no-legacy, command authority, kernel shape) |
 | `tools/check-event-replay.ps1` | pass (33 events) |
@@ -100,6 +105,8 @@ existing text-chat send path; no wire message or protocol version was added.
   command while keeping command/history policy out of the Unity overlay.
 - `CommandSelectorResolver` is a pure static resolver with no mutable simulator
   state; selector semantics are explicit and covered by core/edge tests.
+- `ConsoleImeState` is a small Unity-free state object; the overlay only polls
+  Unity's legacy Input APIs and renders the result, so IME policy stays testable.
 - `ConsoleInputSession` is one top-level type, Unity-free, and owns all
   interactive input state; the Unity overlay is a thin presenter.
 - `CommandConsoleOverlay` is one top-level type and owns only IMGUI drawing/event

@@ -23,11 +23,13 @@ internal sealed class CommandConsoleOverlay
 	private static GUIStyle? _inputStyle;
 
 	private readonly ConsoleInputSession _session;
+	private readonly ConsoleImeState _ime = new();
 	private Vector2 _scroll;
 	private Vector2 _suggestionScroll;
 	private Rect _inputRect;
 	private int _lastLineCount = -1;
 	private bool _focusPending;
+	private IMECompositionMode _previousImeMode = IMECompositionMode.Auto;
 
 	internal CommandConsoleOverlay(ConsoleInputSession session)
 	{
@@ -38,11 +40,23 @@ internal sealed class CommandConsoleOverlay
 
 	internal void Open()
 	{
+		_previousImeMode = Input.imeCompositionMode;
+		Input.imeCompositionMode = IMECompositionMode.On;
 		_session.Open();
+		_ime.Clear();
 		_focusPending = true;
 	}
 
-	internal void Close() => _session.Close();
+	internal void Close()
+	{
+		if (_session.IsOpen)
+		{
+			Input.imeCompositionMode = _previousImeMode;
+			_ime.Clear();
+		}
+
+		_session.Close();
+	}
 
 	internal void Draw(OnlineUiContext ctx)
 	{
@@ -51,6 +65,7 @@ internal sealed class CommandConsoleOverlay
 			return;
 		}
 
+		_ime.Update(Input.compositionString);
 		HandleKeys();
 		_focusPending = false;
 		if (!_session.IsOpen)
@@ -90,6 +105,14 @@ internal sealed class CommandConsoleOverlay
 		if (_focusPending && evt.keyCode == KeyCode.Slash)
 		{
 			_focusPending = false;
+			evt.Use();
+			return;
+		}
+
+		// While an OS IME composition is active, keystrokes belong to the IME,
+		// not to the console editor (typing pinyin must not leak into the line).
+		if (_ime.IsComposing)
+		{
 			evt.Use();
 			return;
 		}
@@ -361,6 +384,8 @@ internal sealed class CommandConsoleOverlay
 		}
 
 		DrawHighlightedInput(rect, style);
+		DrawImeComposition(rect, style);
+		UpdateImeCursorPosition(rect, style);
 
 		if (ShouldDrawCaret() && _session.IsOpen)
 		{
@@ -377,6 +402,33 @@ internal sealed class CommandConsoleOverlay
 			GUI.DrawTexture(caretRect, Texture2D.whiteTexture);
 			GUI.color = previous;
 		}
+	}
+
+	private void DrawImeComposition(Rect rect, GUIStyle style)
+	{
+		if (!_ime.IsComposing)
+		{
+			return;
+		}
+
+		var caretX = rect.x + style.padding.left + style.CalcSize(new GUIContent(_session.Input.Substring(0, _session.Cursor))).x;
+		var previous = GUI.color;
+		GUI.color = OnlineUiTheme.Muted;
+		GUI.Label(new Rect(caretX, rect.y, style.CalcSize(new GUIContent(_ime.Composition)).x, rect.height), _ime.Composition, style);
+		GUI.color = previous;
+	}
+
+	private void UpdateImeCursorPosition(Rect rect, GUIStyle style)
+	{
+		if (!_session.IsOpen)
+		{
+			return;
+		}
+
+		var caretX = rect.x + style.padding.left + style.CalcSize(new GUIContent(_session.Input.Substring(0, _session.Cursor))).x;
+		// GUI rects use a top-left origin; the legacy Input IME position uses
+		// screen coordinates, so convert the caret's vertical center.
+		Input.compositionCursorPos = new Vector2(caretX, Screen.height - (rect.y + (rect.height * 0.5f)));
 	}
 
 	private void DrawSelectionBackground(Rect rect, GUIStyle style)

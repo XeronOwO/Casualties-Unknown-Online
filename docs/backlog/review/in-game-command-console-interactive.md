@@ -11,7 +11,9 @@ interaction. The local command execution chain and text-chat forwarding stay in
 Runtime; the new interaction model is a first-class UI surface that does not
 require opening the Online UI window. The selector argument provider now also
 feeds a real command: `/heal <selector>` resolves player selectors and sends a
-host-authoritative heal request.
+host-authoritative heal request. The custom input is IME-aware: it enables
+Unity's legacy IME while the console is open, tracks composition in a
+Unity-free state, and renders the composition string at the caret.
 
 Phase plan: `docs/phases/command-console-interactive/README.md`.
 Selfcheck: `docs/evidence/selfchecks/ui/command-console-selfcheck.md`.

@@ -50,6 +50,7 @@ The first slice landed a modal Online UI console page:
 | 12 — Selection/clipboard | Complete | Shift+arrows/Home/End selection, Ctrl+A/C/X/V clipboard, visible selection highlight. |
 | 13 — Undo/redo | Complete | Ctrl+Z/Ctrl+Y undo/redo editing changes, including completion and paste. |
 | 14 — Real selector command | Complete | `/heal <selector>` consumes the Selector argument provider and resolves `@a`/`@p`/`@s`/`@e`/`@r` against CUO's player entity table. |
+| 15 — IME composition support | Complete | Standalone console enables legacy Unity IME, tracks composition in a Unity-free state, renders the composition string at the caret, and prevents raw pinyin from leaking into the editor. |
 
 ## Phases
 
@@ -172,6 +173,18 @@ The first slice landed a modal Online UI console page:
   path (`IPlayerInteractionControl.SendHealRequest`).
 - Outcome: the previously seam-only selector provider is now visible on a real
   command, with resolver core/edge tests and a full interaction round-trip test.
+
+### Phase 15 — IME composition support
+
+- Enable Unity's legacy IME while the standalone console is open
+  (`Input.imeCompositionMode = On`) and restore the previous mode on close.
+- Add a Unity-free `ConsoleImeState` that tracks `Input.compositionString` so
+  the overlay can suppress editor input while composing.
+- Feed `Input.compositionCursorPos` from the custom caret and render the current
+  composition string at the caret so non-Latin input has visible feedback.
+- Outcome: Chinese/Japanese/Korean-style composition no longer leaks raw pinyin
+  into the command line and the IME candidate/caret behaviour is custom-input
+  aware; actual OS IME acceptance remains user-acceptance territory.
 
 ## Non-goals
 

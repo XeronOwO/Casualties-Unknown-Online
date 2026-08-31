@@ -24,7 +24,8 @@ existing text-chat send path; no wire message or protocol version was added.
 | 13 | Input blocking / ESC | The existing `OnlineMenuInputGuard`, `PlayerCameraHandleInputPatch` and `PauseHandlerTogglePausePatch` suppress background UI/game input while modal; the overlay consumes Escape before the game sees it. |
 | 14 | Console page polish | `OnlineUiConsoleDrawer` now applies the same fade to its lines; the standalone overlay shows hints and completion candidates. |
 | 15 | Selection/clipboard | `ConsoleInputSession` owns selection ranges; the overlay renders selection highlight and wires Ctrl+A/C/X/V to the Unity system clipboard. |
-| 16 | No wire change | No `NetMsg`, no packet handler, no `ProtocolVersion` change. |
+| 16 | Undo/redo | `ConsoleInputSession` keeps bounded undo/redo stacks; Ctrl+Z/Ctrl+Y restore editing state. |
+| 17 | No wire change | No `NetMsg`, no packet handler, no `ProtocolVersion` change. |
 
 ## 2. Self-check table
 
@@ -52,6 +53,7 @@ existing text-chat send path; no wire message or protocol version was added.
 | Word editing | Ctrl+Backspace/Ctrl+Delete and Ctrl+Left/Right work on word boundaries | `ConsoleInputSessionTests.BackspaceWord_DeletesWholeWordBeforeCursor`, `DeleteWord_DeletesNextWordAfterCursor`, `MoveWordLeftAndRight_JumpsBetweenWords` |
 | Selection | Select-all, selected text, insert/delete replacing selection, Shift+arrow extension | `ConsoleInputSessionTests.SelectAll_HasSelectionAndSelectedText`, `InsertText_ReplacesSelection`, `DeleteSelection_RemovesRange`, `MoveCursorRight_WithShiftExtendsSelection` |
 | Clipboard wiring | Ctrl+C/X/V use the Unity system clipboard in the overlay | static review: `CommandConsoleOverlay` Ctrl+C/X/V cases; clipboard behavior is user-acceptance territory |
+| Undo/redo | Ctrl+Z/Ctrl+Y revert/reapply typing, deletion and completion | `ConsoleInputSessionTests.InsertChar_ThenUndo_RestoresPreviousInput`, `Undo_ThenRedo_ReappliesChange`, `Completion_ThenUndo_RestoresBeforeCompletion` |
 | Fade policy | Hold, mid-fade, and expired alphas are deterministic | `ConsoleFadePolicyTests` (4 cases) |
 | Input session open/close | Open prefills `/`; Escape closes without executing | `ConsoleInputSessionTests.Open_PrefillsSlashAndSetsOpen`, `Escape_ClosesWithoutExecuting` |
 | Input session submit/history | Submit keeps console open, records history, Up/Down restores draft | `ConsoleInputSessionTests.Submit_ExecutesClearsAndKeepsConsoleOpen`, `History_UpAndDown_RestoresDraft` |
@@ -75,7 +77,7 @@ existing text-chat send path; no wire message or protocol version was added.
 | Evidence | Result |
 |---|---|
 | `dotnet build CasualtiesUnknownOnline.slnx` | 0 warnings / 0 errors |
-| `dotnet test CasualtiesUnknownOnline.slnx --no-build` | 1903 passed / 0 failed |
+| `dotnet test CasualtiesUnknownOnline.slnx --no-build` | 1906 passed / 0 failed |
 | `dotnet format CasualtiesUnknownOnline.slnx` | clean |
 | `tools/check-architecture.ps1` | pass (including GameState isolation, item authority, no-legacy, command authority, kernel shape) |
 | `tools/check-event-replay.ps1` | pass (33 events) |

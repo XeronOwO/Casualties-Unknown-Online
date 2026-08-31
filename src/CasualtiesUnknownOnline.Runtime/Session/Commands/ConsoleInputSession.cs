@@ -6,9 +6,9 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Commands;
 
 /// <summary>
 /// The Unity-independent input state machine for the in-game command console.
-/// It owns open/close, the current line, history navigation, completion cycling
-/// and submission; the Unity overlay only translates IMGUI events into these
-/// methods and renders the state.
+/// It owns open/close, history navigation, completion cycling, submission and
+/// undo/redo; text/cursor/selection editing is delegated to
+/// <see cref="ConsoleInputEditor"/>.
 /// </summary>
 public sealed class ConsoleInputSession(ICommandControl control, ICommandCompletionSource completion)
 {
@@ -16,44 +16,41 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 
 	private readonly ICommandControl _control = control;
 	private readonly ICommandCompletionSource _completion = completion;
+	private readonly ConsoleInputEditor _editor = new();
+	private readonly ConsoleEditHistory _editHistory = new();
 	private readonly List<string> _history = [];
 
 	private bool _open;
-	private string _input = "";
 	private string _draft = "";
 	private int _historyIndex = -1;
-	private int _cursor;
-	private int _selectionStart = -1;
-	private int _selectionEnd = -1;
 	private IReadOnlyList<CommandSuggestion> _completionCandidates = [];
 	private int _completionIndex = -1;
 
 	public bool IsOpen => _open;
 
-	public string Input => _input;
+	public string Input => _editor.Input;
 
-	public int Cursor => _cursor;
+	public int Cursor => _editor.Cursor;
 
-	public int SelectionStart => _selectionStart;
+	public int SelectionStart => _editor.SelectionStart;
 
-	public int SelectionEnd => _selectionEnd;
+	public int SelectionEnd => _editor.SelectionEnd;
 
-	public bool HasSelection => _open
-		&& _selectionStart >= 0
-		&& _selectionEnd >= 0
-		&& _selectionStart != _selectionEnd;
+	public bool HasSelection => _editor.HasSelection;
 
-	public string SelectedText => HasSelection
-		? _input.Substring(_selectionStart, _selectionEnd - _selectionStart)
-		: "";
+	public string SelectedText => _editor.SelectedText;
 
 	public IReadOnlyList<CommandSuggestion> CompletionSuggestions => _completionCandidates;
 
 	public IReadOnlyList<string> CompletionCandidates => [.. _completionCandidates.Select(c => c.Text)];
 
-	public string? Hint => _open ? _completion.GetHint(_input) : null;
+	public string? Hint => _open ? _completion.GetHint(_editor.Input) : null;
 
 	public IReadOnlyList<string> History => _history;
+
+	public bool CanUndo => _editHistory.CanUndo;
+
+	public bool CanRedo => _editHistory.CanRedo;
 
 	public void Open()
 	{
@@ -63,11 +60,10 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 		}
 
 		_open = true;
-		_input = OpenPrefix;
-		_cursor = _input.Length;
+		_editor.SetInput(OpenPrefix);
 		_historyIndex = -1;
 		_draft = "";
-		ClearSelection();
+		ClearUndoRedo();
 		ResetCompletions();
 	}
 
@@ -79,20 +75,16 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 		}
 
 		_open = false;
-		_input = "";
-		_cursor = 0;
+		_editor.SetInput("");
 		_historyIndex = -1;
 		_draft = "";
-		ClearSelection();
+		ClearUndoRedo();
 		ResetCompletions();
 	}
 
 	public void SetInput(string value, int? cursor = null)
 	{
-		var normalized = value ?? "";
-		_input = normalized;
-		_cursor = cursor.HasValue ? ClampCursor(cursor.Value) : normalized.Length;
-		ClearSelection();
+		_editor.SetInput(value, cursor);
 		ResetCompletions();
 	}
 
@@ -100,49 +92,40 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 	{
 		if (_open)
 		{
-			_cursor = ClampCursor(position);
-			ClearSelection();
+			_editor.SetCursor(position);
 		}
 	}
 
 	public void SelectAll()
 	{
-		if (!_open)
+		if (_open)
 		{
-			return;
+			_editor.SelectAll();
 		}
-
-		_selectionStart = 0;
-		_selectionEnd = _input.Length;
-		_cursor = _input.Length;
 	}
 
 	public void SetSelection(int start, int end)
 	{
-		if (!_open)
+		if (_open)
 		{
-			return;
+			_editor.SetSelection(start, end);
 		}
-
-		var a = ClampCursor(start);
-		var b = ClampCursor(end);
-		_selectionStart = Math.Min(a, b);
-		_selectionEnd = Math.Max(a, b);
-		_cursor = _selectionEnd;
 	}
 
 	public bool DeleteSelection()
 	{
-		if (!HasSelection)
+		if (!_open)
 		{
 			return false;
 		}
 
-		_input = _input.Remove(_selectionStart, _selectionEnd - _selectionStart);
-		_cursor = _selectionStart;
-		ClearSelection();
-		ResetCompletions();
-		return true;
+		var deleted = _editor.DeleteSelection();
+		if (deleted)
+		{
+			ResetCompletions();
+		}
+
+		return deleted;
 	}
 
 	public void InsertChar(char c)
@@ -152,9 +135,8 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 			return;
 		}
 
-		DeleteSelection();
-		_input = _input.Substring(0, _cursor) + c + _input.Substring(_cursor);
-		_cursor++;
+		CaptureUndo();
+		_editor.InsertChar(c);
 		ResetCompletions();
 	}
 
@@ -165,9 +147,8 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 			return;
 		}
 
-		DeleteSelection();
-		_input = _input.Substring(0, _cursor) + text + _input.Substring(_cursor);
-		_cursor += text.Length;
+		CaptureUndo();
+		_editor.InsertText(text);
 		ResetCompletions();
 	}
 
@@ -178,20 +159,14 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 			return false;
 		}
 
-		if (DeleteSelection())
+		CaptureUndo();
+		var changed = _editor.Backspace();
+		if (changed)
 		{
-			return true;
+			ResetCompletions();
 		}
 
-		if (_cursor <= 0)
-		{
-			return false;
-		}
-
-		_input = _input.Remove(_cursor - 1, 1);
-		_cursor--;
-		ResetCompletions();
-		return true;
+		return changed;
 	}
 
 	public bool Delete()
@@ -201,110 +176,46 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 			return false;
 		}
 
-		if (DeleteSelection())
+		CaptureUndo();
+		var changed = _editor.Delete();
+		if (changed)
 		{
-			return true;
+			ResetCompletions();
 		}
 
-		if (_cursor >= _input.Length)
-		{
-			return false;
-		}
-
-		_input = _input.Remove(_cursor, 1);
-		ResetCompletions();
-		return true;
+		return changed;
 	}
 
 	public void MoveCursorLeft(bool extendSelection = false)
 	{
-		if (!_open)
+		if (_open)
 		{
-			return;
+			_editor.MoveCursorLeft(extendSelection);
 		}
-
-		if (extendSelection)
-		{
-			var anchor = HasSelection ? _selectionStart : _cursor;
-			var target = Math.Max(0, _cursor - 1);
-			SetSelection(anchor, target);
-			return;
-		}
-
-		if (_cursor > 0)
-		{
-			_cursor--;
-		}
-
-		ClearSelection();
 	}
 
 	public void MoveCursorRight(bool extendSelection = false)
 	{
-		if (!_open)
+		if (_open)
 		{
-			return;
+			_editor.MoveCursorRight(extendSelection);
 		}
-
-		if (extendSelection)
-		{
-			var anchor = HasSelection ? _selectionStart : _cursor;
-			var target = Math.Min(_input.Length, _cursor + 1);
-			SetSelection(anchor, target);
-			return;
-		}
-
-		if (_cursor < _input.Length)
-		{
-			_cursor++;
-		}
-
-		ClearSelection();
 	}
 
 	public void MoveWordLeft()
 	{
-		if (!_open || _cursor <= 0)
+		if (_open)
 		{
-			return;
+			_editor.MoveWordLeft();
 		}
-
-		var start = _cursor;
-		var i = start;
-		while (i > 0 && char.IsWhiteSpace(_input[i - 1]))
-		{
-			i--;
-		}
-
-		while (i > 0 && !char.IsWhiteSpace(_input[i - 1]))
-		{
-			i--;
-		}
-
-		_cursor = i;
-		ClearSelection();
 	}
 
 	public void MoveWordRight()
 	{
-		if (!_open || _cursor >= _input.Length)
+		if (_open)
 		{
-			return;
+			_editor.MoveWordRight();
 		}
-
-		var i = _cursor;
-		while (i < _input.Length && char.IsWhiteSpace(_input[i]))
-		{
-			i++;
-		}
-
-		while (i < _input.Length && !char.IsWhiteSpace(_input[i]))
-		{
-			i++;
-		}
-
-		_cursor = i;
-		ClearSelection();
 	}
 
 	public bool BackspaceWord()
@@ -314,32 +225,14 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 			return false;
 		}
 
-		if (DeleteSelection())
+		CaptureUndo();
+		var changed = _editor.BackspaceWord();
+		if (changed)
 		{
-			return true;
+			ResetCompletions();
 		}
 
-		if (_cursor <= 0)
-		{
-			return false;
-		}
-
-		var start = _cursor;
-		var i = start;
-		while (i > 0 && char.IsWhiteSpace(_input[i - 1]))
-		{
-			i--;
-		}
-
-		while (i > 0 && !char.IsWhiteSpace(_input[i - 1]))
-		{
-			i--;
-		}
-
-		_input = _input.Remove(i, start - i);
-		_cursor = i;
-		ResetCompletions();
-		return true;
+		return changed;
 	}
 
 	public bool DeleteWord()
@@ -349,64 +242,30 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 			return false;
 		}
 
-		if (DeleteSelection())
+		CaptureUndo();
+		var changed = _editor.DeleteWord();
+		if (changed)
 		{
-			return true;
+			ResetCompletions();
 		}
 
-		if (_cursor >= _input.Length)
-		{
-			return false;
-		}
-
-		var i = _cursor;
-		while (i < _input.Length && char.IsWhiteSpace(_input[i]))
-		{
-			i++;
-		}
-
-		while (i < _input.Length && !char.IsWhiteSpace(_input[i]))
-		{
-			i++;
-		}
-
-		_input = _input.Remove(_cursor, i - _cursor);
-		ResetCompletions();
-		return true;
+		return changed;
 	}
 
 	public void MoveHome(bool extendSelection = false)
 	{
-		if (!_open)
+		if (_open)
 		{
-			return;
+			_editor.MoveHome(extendSelection);
 		}
-
-		if (extendSelection)
-		{
-			SetSelection(_cursor, 0);
-			return;
-		}
-
-		_cursor = 0;
-		ClearSelection();
 	}
 
 	public void MoveEnd(bool extendSelection = false)
 	{
-		if (!_open)
+		if (_open)
 		{
-			return;
+			_editor.MoveEnd(extendSelection);
 		}
-
-		if (extendSelection)
-		{
-			SetSelection(_cursor, _input.Length);
-			return;
-		}
-
-		_cursor = _input.Length;
-		ClearSelection();
 	}
 
 	/// <summary>
@@ -421,7 +280,7 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 			return false;
 		}
 
-		var text = _input.Trim();
+		var text = _editor.Input.Trim();
 		if (text.Length == 0)
 		{
 			return false;
@@ -429,11 +288,10 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 
 		_control.TryExecute(text);
 		AddHistory(text);
-		_input = "";
-		_cursor = 0;
+		_editor.SetInput("");
 		_historyIndex = -1;
 		_draft = "";
-		ClearSelection();
+		ClearUndoRedo();
 		ResetCompletions();
 		return true;
 	}
@@ -458,7 +316,7 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 
 		if (_historyIndex == -1)
 		{
-			_draft = _input;
+			_draft = _editor.Input;
 			_historyIndex = _history.Count - 1;
 		}
 		else if (_historyIndex > 0)
@@ -470,9 +328,7 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 			return false;
 		}
 
-		_input = _history[_historyIndex];
-		_cursor = _input.Length;
-		ClearSelection();
+		_editor.SetInput(_history[_historyIndex]);
 		ResetCompletions();
 		return true;
 	}
@@ -488,16 +344,14 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 		if (_historyIndex >= _history.Count)
 		{
 			_historyIndex = -1;
-			_input = _draft;
+			_editor.SetInput(_draft);
 			_draft = "";
 		}
 		else
 		{
-			_input = _history[_historyIndex];
+			_editor.SetInput(_history[_historyIndex]);
 		}
 
-		_cursor = _input.Length;
-		ClearSelection();
 		ResetCompletions();
 		return true;
 	}
@@ -514,12 +368,15 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 			return false;
 		}
 
-		var candidates = _completion.Suggest(_input);
+		var input = _editor.Input;
+		var candidates = _completion.Suggest(input);
 		if (candidates.Count == 0)
 		{
 			ResetCompletions();
 			return false;
 		}
+
+		CaptureUndo();
 
 		if (_completionCandidates.Count == 0)
 		{
@@ -535,9 +392,8 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 			}
 		}
 
-		_input = ReplaceCurrentToken(_input, _completionCandidates[_completionIndex].Text);
-		_cursor = _input.Length;
-		ClearSelection();
+		var completed = ReplaceCurrentToken(input, _editor.Cursor, _completionCandidates[_completionIndex].Text);
+		_editor.SetInput(completed, completed.Length);
 		return true;
 	}
 
@@ -549,10 +405,45 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 			return false;
 		}
 
-		_input = ReplaceCurrentToken(_input, suggestion.Text);
-		_cursor = _input.Length;
-		ClearSelection();
+		CaptureUndo();
+		var input = _editor.Input;
+		var completed = ReplaceCurrentToken(input, _editor.Cursor, suggestion.Text);
+		_editor.SetInput(completed, completed.Length);
 		ResetCompletions();
+		return true;
+	}
+
+	/// <summary>Reverts the most recent editing operation.</summary>
+	public bool Undo()
+	{
+		if (!_open)
+		{
+			return false;
+		}
+
+		if (!_editHistory.TryUndo(_editor.Input, _editor.Cursor, out var input, out var cursor))
+		{
+			return false;
+		}
+
+		RestoreState(input, cursor);
+		return true;
+	}
+
+	/// <summary>Reapplies the most recently undone editing operation.</summary>
+	public bool Redo()
+	{
+		if (!_open)
+		{
+			return false;
+		}
+
+		if (!_editHistory.TryRedo(_editor.Input, _editor.Cursor, out var input, out var cursor))
+		{
+			return false;
+		}
+
+		RestoreState(input, cursor);
 		return true;
 	}
 
@@ -571,17 +462,19 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 		_completionIndex = -1;
 	}
 
-	private void ClearSelection()
+	private void CaptureUndo() => _editHistory.Capture(_editor.Input, _editor.Cursor);
+
+	private void RestoreState(string input, int cursor)
 	{
-		_selectionStart = -1;
-		_selectionEnd = -1;
+		_editor.RestoreState(input, cursor);
+		ResetCompletions();
 	}
 
-	private int ClampCursor(int position) => Math.Max(0, Math.Min(_input.Length, position));
+	private void ClearUndoRedo() => _editHistory.Clear();
 
-	private string ReplaceCurrentToken(string input, string candidate)
+	private static string ReplaceCurrentToken(string input, int cursor, string candidate)
 	{
-		var token = CommandLineTokenizer.TokenAtCursor(input, _cursor);
+		var token = CommandLineTokenizer.TokenAtCursor(input, cursor);
 		var isCommandToken = token.Start == 0
 			&& input.Length > 0
 			&& input[0] == '/'

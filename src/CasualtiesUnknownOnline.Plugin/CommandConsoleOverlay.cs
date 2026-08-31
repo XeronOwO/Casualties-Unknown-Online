@@ -170,6 +170,26 @@ internal sealed class CommandConsoleOverlay
 				}
 
 				break;
+			case KeyCode.Z:
+				if (evt.control)
+				{
+					if (_session.Undo())
+					{
+						evt.Use();
+					}
+				}
+
+				break;
+			case KeyCode.Y:
+				if (evt.control)
+				{
+					if (_session.Redo())
+					{
+						evt.Use();
+					}
+				}
+
+				break;
 			case KeyCode.LeftArrow:
 				if (evt.control)
 				{

@@ -1,6 +1,10 @@
+using CasualtiesUnknownOnline.Runtime.Protocol;
+using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
+using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.Chat;
 using CasualtiesUnknownOnline.Runtime.Session.Commands;
+using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -174,5 +178,138 @@ public class CommandConsoleServiceTests
 		var matches = suggestions.Suggest(CommandArgumentKind.Json, "{\"k");
 
 		Assert.Contains(matches, s => s.Text == "{\"key\": \"value\"}");
+	}
+
+	[Fact]
+	public void Suggest_ForHealSelectorArgument_ReturnsSelectors()
+	{
+		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		var completion = host.Services.GetRequiredService<ICommandCompletionSource>();
+
+		var suggestions = completion.Suggest("/heal @");
+
+		Assert.Contains(suggestions, s => s.Text == "@a");
+		Assert.Contains(suggestions, s => s.Text == "@p");
+	}
+
+	[Fact]
+	public void GetHint_ForHeal_ShowsSelectorUsage()
+	{
+		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		var completion = host.Services.GetRequiredService<ICommandCompletionSource>();
+
+		var hint = completion.GetHint("/heal");
+
+		Assert.Contains("/heal <selector>", hint);
+	}
+
+	[Fact]
+	public void Heal_WithSelector_SendsRequestToGuest()
+	{
+		var (host, guest) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true, Item(77, "bandage", slot: 0)));
+		characters.SaveCharacterData(GuestId, SnapshotWithLimbs(GuestId, conscious: false));
+		SeedHostEntities(host, GuestId, guestX: 10f);
+
+		var console = host.Services.GetRequiredService<ICommandControl>();
+		Assert.True(console.TryExecute("/heal @p"));
+
+		var healed = characters.GetSavedCharacter(GuestId)!;
+		Assert.True(healed.Limbs[1].SkinHealAmount > 0f);
+		Assert.Contains(console.Lines, l => l.Text.Contains("Sent heal request to 1 player(s): 2001"));
+	}
+
+	[Fact]
+	public void Heal_UnknownSelector_AddsNoMatchLine()
+	{
+		var (host, _) = CreateSession();
+		var console = host.Services.GetRequiredService<ICommandControl>();
+
+		Assert.True(console.TryExecute("/heal @z"));
+		Assert.Contains(console.Lines, l => l.Text.Contains("No players match selector '@z'"));
+	}
+
+	[Fact]
+	public void Heal_WithoutSelector_ShowsUsage()
+	{
+		var (host, _) = CreateSession();
+		var console = host.Services.GetRequiredService<ICommandControl>();
+
+		Assert.True(console.TryExecute("/heal"));
+		Assert.Contains(console.Lines, l => l.Text.Contains("Usage: /heal <selector>"));
+	}
+
+	private static (TestNode Host, TestNode Guest) CreateSession()
+	{
+		var (host, guest) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		MarkInWorld(host);
+		MarkInWorld(guest);
+		return (host, guest);
+	}
+
+	private static void MarkInWorld(TestNode node) =>
+		node.Session.ReportSceneState(SceneStateType.InWorld, "SampleScene");
+
+	private static void SeedHostEntities(TestNode host, ulong guestId, float guestX, float guestY = 0f)
+	{
+		var entities = host.Services.GetRequiredService<IEntitySyncControl>();
+		entities.PublishLocalState(
+			new NetVector2(0f, 0f),
+			new NetVector2(1f, 1f),
+			NetVector2.Zero,
+			isRight: true,
+			standing: true,
+			alive: true,
+			conscious: true,
+			crouching: false);
+		entities.ProcessPlayerJoin(new PlayerJoinMsg
+		{
+			HostSteamId = HostId,
+			GuestSteamId = guestId,
+			HostPosition = new NetVector2Msg(0f, 0f),
+			GuestPosition = new NetVector2Msg(guestX, guestY),
+		});
+		var guestEntity = entities.GetRemotePlayer(guestId);
+		if (guestEntity is not null)
+		{
+			guestEntity.Position = new NetVector2(guestX, guestY);
+			guestEntity.Standing = true;
+			guestEntity.Alive = true;
+			guestEntity.Conscious = true;
+		}
+	}
+
+	private static CharacterItemMsg Item(ulong instanceId, string itemId = "bandage", int slot = 0) => new()
+	{
+		InstanceId = instanceId,
+		ItemId = itemId,
+		SlotIndex = slot,
+		Condition = 1f,
+	};
+
+	private static CharacterDataMsg Snapshot(ulong owner, bool conscious, params CharacterItemMsg[] items) => new()
+	{
+		OwnerSteamId = owner,
+		Items = [.. items],
+		Health = new CharacterHealthMsg
+		{
+			Alive = true,
+			Conscious = conscious,
+			BrainHealth = conscious ? 80f : 5f,
+		},
+	};
+
+	private static CharacterDataMsg SnapshotWithLimbs(ulong owner, bool conscious, bool alive = true, params CharacterItemMsg[] items)
+	{
+		var data = Snapshot(owner, conscious, items);
+		data.Health!.Alive = alive;
+		data.Limbs =
+		[
+			new CharacterLimbMsg { Index = 0, SkinHealth = 50f, MuscleHealth = 50f },
+			new CharacterLimbMsg { Index = 1, SkinHealth = 20f, MuscleHealth = 30f },
+			new CharacterLimbMsg { Index = 2, SkinHealth = 80f, MuscleHealth = 80f },
+		];
+		return data;
 	}
 }

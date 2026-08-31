@@ -27,8 +27,8 @@ The first slice landed a modal Online UI console page:
   permission, execution, and a bounded output buffer.
 - `OnlineUiConsoleDrawer` renders the console page inside the modal Online UI
   window.
-- Commands: `/help`, `/clear`, `/players`, `/rtt`, `/whoami`, `/kick`, `/ban`,
-  `/unban`; plain text goes through `ChatService`.
+- Commands: `/help`, `/clear`, `/players`, `/rtt`, `/whoami`, `/heal`, `/kick`,
+  `/ban`, `/unban`; plain text goes through `ChatService`.
 - Tests: `CommandConsoleServiceTests`.
 - Selfcheck: `docs/evidence/selfchecks/ui/command-console-selfcheck.md`.
 
@@ -49,6 +49,7 @@ The first slice landed a modal Online UI console page:
 | 11 — Argument provider seam | Complete | `ICommandArgumentSuggestions` exposes selector/JSON/built-in arguments independently of a specific command. |
 | 12 — Selection/clipboard | Complete | Shift+arrows/Home/End selection, Ctrl+A/C/X/V clipboard, visible selection highlight. |
 | 13 — Undo/redo | Complete | Ctrl+Z/Ctrl+Y undo/redo editing changes, including completion and paste. |
+| 14 — Real selector command | Complete | `/heal <selector>` consumes the Selector argument provider and resolves `@a`/`@p`/`@s`/`@e`/`@r` against CUO's player entity table. |
 
 ## Phases
 
@@ -105,8 +106,8 @@ The first slice landed a modal Online UI console page:
 - Add `/help <command>` specific usage output and command-name completion for
   the help argument.
 - Remaining high-end gaps are tracked in the selfcheck and are not presented as
-  complete Minecraft parity (no entity-selector / resource-location argument
-  trees).
+  complete Minecraft parity (selector expansion is limited to player entities;
+  resource-location argument trees are still future work).
 
 ### Phase 7 — Cursor-aware input/editing
 
@@ -160,6 +161,17 @@ The first slice landed a modal Online UI console page:
 - Ctrl+Z undoes typing, deletion, paste, and completion changes; Ctrl+Y redoes.
 - Undo history resets on submit/open/close.
 - Outcome: command editing is safer and more Minecraft-console-like.
+
+### Phase 14 — Real selector command
+
+- Add `/heal <selector>` as the first real CUO command that declares a
+  `CommandArgumentKind.Selector` argument.
+- Add a Unity-free `CommandSelectorResolver` that expands `@a`/`@p`/`@s`/`@e`/`@r`
+  over CUO's player entity table.
+- Wire the resolved SteamIds into the existing host-authoritative heal request
+  path (`IPlayerInteractionControl.SendHealRequest`).
+- Outcome: the previously seam-only selector provider is now visible on a real
+  command, with resolver core/edge tests and a full interaction round-trip test.
 
 ## Non-goals
 

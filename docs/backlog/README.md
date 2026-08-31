@@ -37,6 +37,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 - [State-stream bandwidth reduction](todo/state-stream-bandwidth-reduction.md) — measurement-first.
 - [Snapshot size reduction](todo/snapshot-size-reduction.md) — measurement-first.
+- [Full-qualified name cleanup](todo/full-qualified-name-cleanup.md) — prefer using directives/aliases; behavior-preserving refactor only.
 
 ### In progress
 

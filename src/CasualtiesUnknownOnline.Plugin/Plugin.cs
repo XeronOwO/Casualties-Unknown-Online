@@ -43,6 +43,7 @@ public class Plugin : BaseUnityPlugin
 	private IHostBanService _hostBan = null!;
 	private IHostRules _hostRules = null!;
 	private ICommandControl _commands = null!;
+	private ConsoleInputSession _consoleInput = null!;
 	private ILocalizationService _localization = null!;
 	private HostRulesConfigEditor _rulesEditor = null!;
 	private LoggingConfigEditor _loggingEditor = null!;
@@ -101,6 +102,7 @@ public class Plugin : BaseUnityPlugin
 			_hostBan = _services.GetRequiredService<IHostBanService>();
 			_hostRules = _services.GetRequiredService<IHostRules>();
 			_commands = _services.GetRequiredService<ICommandControl>();
+			_consoleInput = _services.GetRequiredService<ConsoleInputSession>();
 			_localization = _services.GetRequiredService<ILocalizationService>();
 			_rulesEditor = _services.GetRequiredService<HostRulesConfigEditor>();
 			_loggingEditor = _services.GetRequiredService<LoggingConfigEditor>();
@@ -123,7 +125,7 @@ public class Plugin : BaseUnityPlugin
 				_localization,
 				_services.GetRequiredService<ILogger<IpDirectActions>>());
 			_cuoServices = [.. _services.GetServices<ICuoService>()];
-			_onlineUi = new OnlineUiOverlay
+			_onlineUi = new OnlineUiOverlay(_consoleInput)
 			{
 				// The UI delegates are the same guarded paths the F8/F9 hotkeys
 				// use — one lobby-switch policy, two entry points.
@@ -278,14 +280,23 @@ public class Plugin : BaseUnityPlugin
 			RunLifecycle(service, "Update", s => s.Update());
 		}
 
-		// Keep the game's background UI input suppressed while the Online UI
-		// modal window is open (IMGUI does not participate in UGUI input).
-		if (_adapter is { } adapter)
+		// `/` opens the standalone command console directly in game. While it is
+		// open the same modal guard blocks background UI and game input so the
+		// input box stays the only interactive surface.
+		if (!_onlineUi.IsCommandConsoleOpen && Input.GetKeyDown(KeyCode.Slash))
 		{
-			adapter.SetOnlineUiModal(_onlineUi.IsWindowVisible);
+			_onlineUi.OpenCommandConsole();
 		}
 
-		if (HotkeyPressed(_interactionPanelKey))
+		// Keep the game's background UI input suppressed while the Online UI
+		// modal window or the standalone command console is open (IMGUI does
+		// not participate in UGUI input).
+		if (_adapter is { } adapter)
+		{
+			adapter.SetOnlineUiModal(_onlineUi.IsWindowVisible || _onlineUi.IsCommandConsoleOpen);
+		}
+
+		if (!_onlineUi.IsCommandConsoleOpen && HotkeyPressed(_interactionPanelKey))
 		{
 			_onlineUi.ToggleQuickPanel();
 		}

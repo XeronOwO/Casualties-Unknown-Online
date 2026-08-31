@@ -8,6 +8,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Commands;
 public enum CommandArgumentKind
 {
 	None,
+	CommandName,
 	PlayerOrSteamId,
 	SteamId,
 	Number,

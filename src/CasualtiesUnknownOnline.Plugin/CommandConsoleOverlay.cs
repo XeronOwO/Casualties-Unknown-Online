@@ -19,11 +19,13 @@ internal sealed class CommandConsoleOverlay
 	private const float FadeHoldSeconds = 20f;
 	private const float FadeDurationSeconds = 10f;
 	private const int MaxVisibleLines = 80;
-	private const string InputControlName = "CUO.CommandConsole.Input";
+
+	private static GUIStyle? _inputStyle;
 
 	private readonly ConsoleInputSession _session;
 	private Vector2 _scroll;
 	private Vector2 _suggestionScroll;
+	private Rect _inputRect;
 	private bool _focusPending;
 
 	internal CommandConsoleOverlay(ConsoleInputSession session)
@@ -49,6 +51,7 @@ internal sealed class CommandConsoleOverlay
 		}
 
 		HandleKeys();
+		_focusPending = false;
 		if (!_session.IsOpen)
 		{
 			return;
@@ -69,7 +72,6 @@ internal sealed class CommandConsoleOverlay
 		DrawInput(ctx);
 
 		GUILayout.EndArea();
-		EnsureFocus();
 		DrawTooltip();
 	}
 
@@ -83,9 +85,17 @@ internal sealed class CommandConsoleOverlay
 
 		// The slash that opened the console in Plugin.Update is still the
 		// current IMGUI event on this first OnGUI frame; swallow it so the
-		// newly focused text field does not receive a second '/'.
+		// custom input does not receive a second '/'.
 		if (_focusPending && evt.keyCode == KeyCode.Slash)
 		{
+			_focusPending = false;
+			evt.Use();
+			return;
+		}
+
+		if (evt.character != '\0' && !char.IsControl(evt.character))
+		{
+			_session.InsertChar(evt.character);
 			evt.Use();
 			return;
 		}
@@ -102,6 +112,36 @@ internal sealed class CommandConsoleOverlay
 				break;
 			case KeyCode.Tab:
 				_session.CycleCompletion();
+				evt.Use();
+				break;
+			case KeyCode.Backspace:
+				if (_session.Backspace())
+				{
+					evt.Use();
+				}
+
+				break;
+			case KeyCode.Delete:
+				if (_session.Delete())
+				{
+					evt.Use();
+				}
+
+				break;
+			case KeyCode.LeftArrow:
+				_session.MoveCursorLeft();
+				evt.Use();
+				break;
+			case KeyCode.RightArrow:
+				_session.MoveCursorRight();
+				evt.Use();
+				break;
+			case KeyCode.Home:
+				_session.MoveHome();
+				evt.Use();
+				break;
+			case KeyCode.End:
+				_session.MoveEnd();
 				evt.Use();
 				break;
 			case KeyCode.UpArrow:
@@ -215,11 +255,78 @@ internal sealed class CommandConsoleOverlay
 	{
 		GUILayout.BeginHorizontal();
 		GUILayout.Label(">", OnlineUiTheme.MutedLabel());
-		var value = _session.Input;
-		GUI.SetNextControlName(InputControlName);
-		value = GUILayout.TextField(value, GUILayout.Height(24f), GUILayout.ExpandWidth(true));
-		_session.SetInput(value);
+		_inputRect = GUILayoutUtility.GetRect(GUIContent.none, GUI.skin.textField, GUILayout.Height(24f), GUILayout.ExpandWidth(true));
 		GUILayout.EndHorizontal();
+		DrawCustomInput(_inputRect);
+	}
+
+	private void DrawCustomInput(Rect rect)
+	{
+		var evt = Event.current;
+		if (evt != null && evt.type == EventType.MouseDown && rect.Contains(evt.mousePosition))
+		{
+			_session.SetCursor(GetCursorAtMouse(rect, evt.mousePosition));
+			evt.Use();
+		}
+
+		OnlineUiTheme.DrawBackground(rect);
+		var style = InputStyle();
+		GUI.Label(rect, _session.Input, style);
+
+		if (ShouldDrawCaret() && _session.IsOpen)
+		{
+			var cursor = _session.Cursor;
+			var prefix = _session.Input.Substring(0, cursor);
+			var width = style.CalcSize(new GUIContent(prefix)).x;
+			var caretRect = new Rect(
+				rect.x + style.padding.left + width,
+				rect.y + 4f,
+				1f,
+				rect.height - 8f);
+			var previous = GUI.color;
+			GUI.color = OnlineUiTheme.Accent;
+			GUI.DrawTexture(caretRect, Texture2D.whiteTexture);
+			GUI.color = previous;
+		}
+	}
+
+	private int GetCursorAtMouse(Rect rect, Vector2 mouse)
+	{
+		var style = InputStyle();
+		var text = _session.Input;
+		var best = 0;
+		var bestDistance = float.MaxValue;
+		for (var i = 0; i <= text.Length; i++)
+		{
+			var width = style.CalcSize(new GUIContent(text.Substring(0, i))).x;
+			var x = rect.x + style.padding.left + width;
+			var distance = Mathf.Abs(mouse.x - x);
+			if (distance < bestDistance)
+			{
+				bestDistance = distance;
+				best = i;
+			}
+		}
+
+		return best;
+	}
+
+	private static bool ShouldDrawCaret() => (int)(Time.realtimeSinceStartup * 2f) % 2 == 0;
+
+	private static GUIStyle InputStyle()
+	{
+		if (_inputStyle is null)
+		{
+			_inputStyle = new GUIStyle(GUI.skin.textField)
+			{
+				alignment = TextAnchor.MiddleLeft,
+				clipping = TextClipping.Clip,
+				padding = new RectOffset(6, 6, 4, 4),
+			};
+			_inputStyle.normal.textColor = OnlineUiTheme.Text;
+		}
+
+		return _inputStyle;
 	}
 
 	private void DrawTooltip()
@@ -236,12 +343,4 @@ internal sealed class CommandConsoleOverlay
 		GUI.Label(new Rect(rect.x + 6f, rect.y + 4f, rect.width - 12f, rect.height - 8f), GUI.tooltip, OnlineUiTheme.MutedLabel());
 	}
 
-	private void EnsureFocus()
-	{
-		if (_focusPending || GUI.GetNameOfFocusedControl() != InputControlName)
-		{
-			GUI.FocusControl(InputControlName);
-			_focusPending = false;
-		}
-	}
 }

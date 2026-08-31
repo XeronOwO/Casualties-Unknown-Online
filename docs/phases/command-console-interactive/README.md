@@ -42,6 +42,7 @@ The first slice landed a modal Online UI console page:
 | 4 — Fading + hints | Complete | Overlay and Online UI console page render age-based alpha; hint/completion rows are shown. |
 | 5 — Verification/docs | Complete | Full build/test/gates pass; selfcheck and backlog updated in the final docs commit. |
 | 6 — Rich hints/suggestions | Complete | `CommandSuggestion` metadata, clickable suggestion rows, hover tooltips, `/help <command>` usage. |
+| 7 — Cursor-aware input/editing | Complete | Custom IMGUI input with caret, arrows/Home/End, Backspace/Delete, and Tab completion replaces the token at the cursor. |
 
 ## Phases
 
@@ -99,7 +100,17 @@ The first slice landed a modal Online UI console page:
   the help argument.
 - Remaining high-end gaps are tracked in the selfcheck and are not presented as
   complete Minecraft parity (no full syntax highlighting, no entity-selector /
-  resource-location argument trees, no cursor-position-based token replacement).
+  resource-location argument trees).
+
+### Phase 7 — Cursor-aware input/editing
+
+- Replace the native Unity `TextField` with a custom IMGUI input that owns the
+  cursor in `ConsoleInputSession`.
+- Support mouse-click cursor placement, Left/Right/Home/End, Backspace/Delete,
+  and printable character insertion.
+- Tab completion now replaces the token under the actual cursor, preserving text
+  after the token.
+- Outcome: Minecraft-style in-place editing and completion.
 
 ## Non-goals
 

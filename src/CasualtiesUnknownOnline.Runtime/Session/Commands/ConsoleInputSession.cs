@@ -22,12 +22,15 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 	private string _input = "";
 	private string _draft = "";
 	private int _historyIndex = -1;
+	private int _cursor;
 	private IReadOnlyList<CommandSuggestion> _completionCandidates = [];
 	private int _completionIndex = -1;
 
 	public bool IsOpen => _open;
 
 	public string Input => _input;
+
+	public int Cursor => _cursor;
 
 	public IReadOnlyList<CommandSuggestion> CompletionSuggestions => _completionCandidates;
 
@@ -46,6 +49,7 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 
 		_open = true;
 		_input = OpenPrefix;
+		_cursor = _input.Length;
 		_historyIndex = -1;
 		_draft = "";
 		ResetCompletions();
@@ -60,20 +64,107 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 
 		_open = false;
 		_input = "";
+		_cursor = 0;
 		_historyIndex = -1;
 		_draft = "";
 		ResetCompletions();
 	}
 
-	public void SetInput(string value)
+	public void SetInput(string value, int? cursor = null)
 	{
-		if (string.Equals(_input, value ?? "", StringComparison.Ordinal))
+		var normalized = value ?? "";
+		_input = normalized;
+		_cursor = cursor.HasValue ? ClampCursor(cursor.Value) : normalized.Length;
+		ResetCompletions();
+	}
+
+	public void SetCursor(int position)
+	{
+		if (_open)
+		{
+			_cursor = ClampCursor(position);
+		}
+	}
+
+	public void InsertChar(char c)
+	{
+		if (!_open || char.IsControl(c))
 		{
 			return;
 		}
 
-		_input = value ?? "";
+		_input = _input.Substring(0, _cursor) + c + _input.Substring(_cursor);
+		_cursor++;
 		ResetCompletions();
+	}
+
+	public void InsertText(string text)
+	{
+		if (!_open || string.IsNullOrEmpty(text))
+		{
+			return;
+		}
+
+		_input = _input.Substring(0, _cursor) + text + _input.Substring(_cursor);
+		_cursor += text.Length;
+		ResetCompletions();
+	}
+
+	public bool Backspace()
+	{
+		if (!_open || _cursor <= 0)
+		{
+			return false;
+		}
+
+		_input = _input.Remove(_cursor - 1, 1);
+		_cursor--;
+		ResetCompletions();
+		return true;
+	}
+
+	public bool Delete()
+	{
+		if (!_open || _cursor >= _input.Length)
+		{
+			return false;
+		}
+
+		_input = _input.Remove(_cursor, 1);
+		ResetCompletions();
+		return true;
+	}
+
+	public void MoveCursorLeft()
+	{
+		if (_open && _cursor > 0)
+		{
+			_cursor--;
+		}
+	}
+
+	public void MoveCursorRight()
+	{
+		if (_open && _cursor < _input.Length)
+		{
+			_cursor++;
+		}
+	}
+
+	public void MoveHome()
+	{
+		if (_open)
+		{
+			_cursor = 0;
+		}
+	}
+
+	public void MoveEnd()
+	{
+		if (_open)
+		{
+			_cursor = _input.Length;
+		}
 	}
 
 	/// <summary>
@@ -97,6 +188,7 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 		_control.TryExecute(text);
 		AddHistory(text);
 		_input = "";
+		_cursor = 0;
 		_historyIndex = -1;
 		_draft = "";
 		ResetCompletions();
@@ -136,6 +228,7 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 		}
 
 		_input = _history[_historyIndex];
+		_cursor = _input.Length;
 		ResetCompletions();
 		return true;
 	}
@@ -159,6 +252,7 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 			_input = _history[_historyIndex];
 		}
 
+		_cursor = _input.Length;
 		ResetCompletions();
 		return true;
 	}
@@ -197,6 +291,7 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 		}
 
 		_input = ReplaceCurrentToken(_input, _completionCandidates[_completionIndex].Text);
+		_cursor = _input.Length;
 		return true;
 	}
 
@@ -209,6 +304,7 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 		}
 
 		_input = ReplaceCurrentToken(_input, suggestion.Text);
+		_cursor = _input.Length;
 		ResetCompletions();
 		return true;
 	}
@@ -228,9 +324,11 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 		_completionIndex = -1;
 	}
 
-	private static string ReplaceCurrentToken(string input, string candidate)
+	private int ClampCursor(int position) => Math.Max(0, Math.Min(_input.Length, position));
+
+	private string ReplaceCurrentToken(string input, string candidate)
 	{
-		var token = CommandLineTokenizer.CurrentToken(input);
+		var token = CommandLineTokenizer.TokenAtCursor(input, _cursor);
 		var isCommandToken = token.Start == 0
 			&& input.Length > 0
 			&& input[0] == '/'
@@ -241,7 +339,7 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 
 		if (token.Length == 0)
 		{
-			return input + replacement;
+			return input.Insert(token.Start, replacement);
 		}
 
 		return input.Substring(0, token.Start) + replacement + input.Substring(token.Start + token.Length);

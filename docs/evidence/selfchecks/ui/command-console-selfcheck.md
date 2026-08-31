@@ -14,6 +14,7 @@ existing text-chat send path; no wire message or protocol version was added.
 | 3 | Completion suggestions | `CommandConsoleService.Suggest` returns `CommandSuggestion` items (text + description) for command names, member names/SteamIds, and banned SteamIds based on argument kind. |
 | 4 | Rich hint UI | The standalone overlay renders a scrollable, clickable suggestion list; `GUIContent` tooltips show the candidate description on hover. |
 | 5 | Tokenizer | `CommandLineTokenizer` splits commands while preserving double/single quotes, escapes, `[]`/`{}`/`()` groups, so spaced values, selectors and JSON-like literals survive as one token. |
+| 6 | Cursor-aware input | `ConsoleInputSession` owns the cursor and editing operations; the overlay renders a custom IMGUI field with caret, arrow/Home/End/Backspace/Delete, and click-to-place cursor. |
 | 5 | Input state machine | `ConsoleInputSession` owns open/close, current line, history navigation, completion cycling and submission, all Unity-free. |
 | 6 | Fade policy | `ConsoleFadePolicy.ComputeAlpha` provides the hold/fade curve used by both console surfaces. |
 | 7 | Standalone overlay | `CommandConsoleOverlay` draws a text area + focused input field only when the input session is open, independent of the Online UI window. |
@@ -40,18 +41,31 @@ existing text-chat send path; no wire message or protocol version was added.
 | Usage hint | `/kick` returns a usage hint | `CommandConsoleServiceTests.GetHint_ReturnsUsageForKnownCommand` |
 | Tokenizer quoting | Quoted spaces remain one token and unquote cleanly | `CommandLineTokenizerTests.Tokenize_RespectsDoubleQuotedSpaces`, `Unquote_StripsMatchingQuotes` |
 | Tokenizer JSON/selector group | Brace groups stay one token even with spaces | `CommandLineTokenizerTests.Tokenize_KeepsBraceGroupAsSingleToken` |
+| Token at cursor | A token under an arbitrary cursor is found, whitespace returns empty | `CommandLineTokenizerTests.TokenAtCursor_ReturnsTokenUnderCursor`, `TokenAtCursor_ReturnsEmptyAtWhitespace` |
+| Cursor editing | Insert/backspace/move cursor update input+cursor correctly | `ConsoleInputSessionTests.InsertChar_InsertsAtCursorAndMovesForward`, `Backspace_DeletesBeforeCursor`, `MoveCursorLeftAndRight_AdjustsPosition` |
+| Cursor-aware completion | Tab replaces the token at the cursor and preserves suffix | `ConsoleInputSessionTests.CycleCompletion_ReplacesTokenAtCursorPreservingSuffix` |
 | Fade policy | Hold, mid-fade, and expired alphas are deterministic | `ConsoleFadePolicyTests` (4 cases) |
 | Input session open/close | Open prefills `/`; Escape closes without executing | `ConsoleInputSessionTests.Open_PrefillsSlashAndSetsOpen`, `Escape_ClosesWithoutExecuting` |
 | Input session submit/history | Submit keeps console open, records history, Up/Down restores draft | `ConsoleInputSessionTests.Submit_ExecutesClearsAndKeepsConsoleOpen`, `History_UpAndDown_RestoresDraft` |
 | Input session completion | Command-name and spaced-argument completion quote correctly | `ConsoleInputSessionTests.CycleCompletion_CompletesCommandName`, `CycleCompletion_QuotesSpacedArgument` |
 | Focus/mouse block/ESC in Unity | Focus enforcement, modal routing and ESC consumption are in the overlay/plugin path | static review: `CommandConsoleOverlay.EnsureFocus`, `Plugin.Update`, `OnlineUiOverlay`; Unity IMGUI behavior is user-acceptance territory |
 
-## 3. Verification results
+## 3. Known remaining gaps
+
+- No full Minecraft-style syntax highlighting yet; the custom input renders
+  plain text with a caret.
+- No entity-selector / resource-location / NBT-JSON structural completion
+  providers; the tokenizer preserves those literals but the console does not yet
+  generate structured suggestions for them.
+- No IME/clipboard/selection support in the custom input; printable ASCII/UTF
+  character insertion, arrows, Home/End and Backspace/Delete are covered.
+
+## 4. Verification results
 
 | Evidence | Result |
 |---|---|
 | `dotnet build CasualtiesUnknownOnline.slnx` | 0 warnings / 0 errors |
-| `dotnet test CasualtiesUnknownOnline.slnx --no-build` | 1888 passed / 0 failed |
+| `dotnet test CasualtiesUnknownOnline.slnx --no-build` | 1894 passed / 0 failed |
 | `dotnet format CasualtiesUnknownOnline.slnx` | clean |
 | `tools/check-architecture.ps1` | pass (including GameState isolation, item authority, no-legacy, command authority, kernel shape) |
 | `tools/check-event-replay.ps1` | pass (33 events) |
@@ -59,7 +73,7 @@ existing text-chat send path; no wire message or protocol version was added.
 | `tools/check-delivery.ps1` | pass (7 boxes) |
 | Protocol | unchanged |
 
-## 4. Structure review
+## 5. Structure review
 
 - `CommandConsoleService` remains under the line-count gate and now implements
   both `ICommandControl` and `ICommandCompletionSource`; the completion data is

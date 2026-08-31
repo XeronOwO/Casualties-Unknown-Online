@@ -40,7 +40,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### In progress
 
-_None._ (Folder exists for the workflow.)
+- [Interactive in-game command console](in-progress/in-game-command-console-interactive.md) — slash-opened focused input, completion/history/hints, fading text area.
 
 ### Review
 

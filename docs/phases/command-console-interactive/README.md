@@ -1,0 +1,87 @@
+# Interactive In-Game Command Console — Phase Plan
+
+This directory tracks the phased implementation of the interactive command
+console. It is a working document: each phase notes what was delivered, what
+evidence was produced, and what remains.
+
+## Target behavior
+
+1. The console is split into a text area and an input box.
+2. Pressing `/` directly in game opens the input box without opening the
+   full Online UI window.
+3. New console lines appear in the text area and fade after a configured hold
+   time.
+4. The input box keeps focus, has usage hints, Tab completion, Up/Down history,
+   and best-effort completion for quoted/spaced values, selectors, and JSON-like
+   literals.
+5. While the console input is open it blocks other mouse/keyboard game
+   interaction; Escape exits the input state.
+6. Valuable Minecraft-console interaction patterns (history, completion, usage
+   hints, fading chat) are included; no Minecraft source is committed.
+
+## Current implementation baseline
+
+The first slice landed a modal Online UI console page:
+
+- `CommandConsoleService` owns command registration, slash parsing, role
+  permission, execution, and a bounded output buffer.
+- `OnlineUiConsoleDrawer` renders the console page inside the modal Online UI
+  window.
+- Commands: `/help`, `/clear`, `/players`, `/rtt`, `/whoami`, `/kick`, `/ban`,
+  `/unban`; plain text goes through `ChatService`.
+- Tests: `CommandConsoleServiceTests`.
+- Selfcheck: `docs/evidence/selfchecks/ui/command-console-selfcheck.md`.
+
+## Phases
+
+### Phase 1 — Recon and input-chain evidence
+
+- Document the existing IMGUI/modal chain: `Plugin.Update` →
+  `IGameAdapter.SetOnlineUiModal` → `OnlineMenuInputGuard` →
+  `PlayerCameraHandleInputPatch` / `PauseHandlerTogglePausePatch`.
+- Decide where the slash hotkey and the standalone overlay hook into that chain.
+- Outcome: this README plus the relevant architecture notes; no production code.
+
+### Phase 2 — Runtime command metadata, completion, history model
+
+- Add immutable command metadata (name, description, usage, permission,
+  argument kinds).
+- Add a command completion source that is testable without Unity.
+- Add a `ConsoleInputSession` that owns open/close, history navigation,
+  completion cycling, and line submission.
+- Add a command-line tokenizer that preserves quoted, selector, and JSON-like
+  literals.
+- Add a fade policy primitive for UI line aging.
+- Outcome: pure Runtime behavior covered by unit tests.
+
+### Phase 3 — Standalone modal overlay
+
+- Add a `CommandConsoleOverlay` IMGUI surface that draws only when the input
+  session is open.
+- Wire the `/` hotkey in `Plugin.Update`.
+- Route the existing modal blocker so the overlay blocks background UI and game
+  input.
+- Keep the text field focused and handle Enter/Tab/Up/Down/Escape in the
+  overlay.
+- Outcome: in-game `/` opens a focused, blocked-input console.
+
+### Phase 4 — Fading text area and polish
+
+- Render console lines with age-based alpha using the fade policy.
+- Show usage hints and completion candidates under the input box.
+- Keep history/completion behavior consistent across the overlay and the
+  existing Online UI console page where practical.
+- Outcome: user-visible console text fade and completion UI.
+
+### Phase 5 — Verification, backlog, selfcheck
+
+- Add/expand tests for core and edge paths.
+- Run all required build/gates.
+- Update `docs/backlog/README.md`, the backlog ticket, and the console selfcheck.
+- Commit each completed phase separately, with GPG signatures.
+
+## Non-goals
+
+- No Minecraft code, assets, or reverse-engineered source is committed.
+- No new wire protocol or packet handler.
+- No host/guest command relay; the console remains a local surface.

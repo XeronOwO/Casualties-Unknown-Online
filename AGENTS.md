@@ -115,6 +115,9 @@ a separate future architecture item, not part of the completed evolution.
    proceed without prior approval.)
 9. `[RULE]` Patch hooks report only verified writes; a Prefix that swallows a write must not
    let the same Postfix report it. Re-read the written state or pass the verdict explicitly.
+10. `[RULE]` Prefer `using` directives / `using` aliases over fully qualified type names;
+    use fully qualified names only when unavoidable (e.g., HotRepl eval, where `using`
+    is unavailable).
 
 ## Quality & Delivery (binding)
 

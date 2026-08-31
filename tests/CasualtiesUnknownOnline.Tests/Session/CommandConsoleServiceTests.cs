@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
@@ -5,8 +6,10 @@ using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.Chat;
 using CasualtiesUnknownOnline.Runtime.Session.Commands;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
+using CasualtiesUnknownOnline.Runtime.Session.HostRules;
 using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Xunit;
 
 namespace CasualtiesUnknownOnline.Tests.Session;
@@ -240,6 +243,63 @@ public class CommandConsoleServiceTests
 		Assert.Contains(console.Lines, l => l.Text.Contains("Usage: /heal <selector>"));
 	}
 
+	[Fact]
+	public void Suggest_ForHostRulesJsonArgument_ReturnsTemplates()
+	{
+		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		var completion = host.Services.GetRequiredService<ICommandCompletionSource>();
+
+		var suggestions = completion.Suggest("/hostrules {");
+
+		Assert.Contains(suggestions, s => s.Text == "{\"key\": \"value\"}");
+	}
+
+	[Fact]
+	public void GetHint_ForHostRules_ShowsJsonUsage()
+	{
+		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		var completion = host.Services.GetRequiredService<ICommandCompletionSource>();
+
+		var hint = completion.GetHint("/hostrules");
+
+		Assert.Contains("/hostrules <json>", hint);
+	}
+
+	[Fact]
+	public void HostRules_WithJson_UpdatesEditor()
+	{
+		var editor = new StubHostRulesEditor();
+		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId,
+			extraRegistrations: services => services.Replace(ServiceDescriptor.Singleton<IHostRulesEditor>(editor)));
+		var console = host.Services.GetRequiredService<ICommandControl>();
+
+		Assert.True(console.TryExecute("/hostrules {\"AllowLateJoin\": false}"));
+		Assert.Contains(("AllowLateJoin", "false"), editor.Applied);
+		Assert.Contains(console.Lines, l => l.Text.Contains("Updated 1 host rule(s)"));
+	}
+
+	[Fact]
+	public void HostRules_MalformedJson_AddsError()
+	{
+		var editor = new StubHostRulesEditor();
+		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId,
+			extraRegistrations: services => services.Replace(ServiceDescriptor.Singleton<IHostRulesEditor>(editor)));
+		var console = host.Services.GetRequiredService<ICommandControl>();
+
+		Assert.True(console.TryExecute("/hostrules {\"AllowLateJoin\": false"));
+		Assert.Contains(console.Lines, l => l.Kind == ConsoleLineKind.Success && l.Text.Contains("Unterminated JSON object"));
+	}
+
+	[Fact]
+	public void HostRules_WithoutJson_ShowsUsage()
+	{
+		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		var console = host.Services.GetRequiredService<ICommandControl>();
+
+		Assert.True(console.TryExecute("/hostrules"));
+		Assert.Contains(console.Lines, l => l.Text.Contains("Usage: /hostrules <json>"));
+	}
+
 	private static (TestNode Host, TestNode Guest) CreateSession()
 	{
 		var (host, guest) = TestNode.CreatePair(HostId, GuestId, LobbyId);
@@ -311,5 +371,17 @@ public class CommandConsoleServiceTests
 			new CharacterLimbMsg { Index = 2, SkinHealth = 80f, MuscleHealth = 80f },
 		];
 		return data;
+	}
+
+	private sealed class StubHostRulesEditor : IHostRulesEditor
+	{
+		internal List<(string Property, string Value)> Applied { get; } = [];
+
+		public bool TrySet(string property, string value, out string? error)
+		{
+			Applied.Add((property, value));
+			error = null;
+			return true;
+		}
 	}
 }

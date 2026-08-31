@@ -1,4 +1,6 @@
+using System.Globalization;
 using BepInEx.Configuration;
+using CasualtiesUnknownOnline.Runtime.Session.HostRules;
 
 namespace CasualtiesUnknownOnline;
 
@@ -8,7 +10,7 @@ namespace CasualtiesUnknownOnline;
 /// owns the concrete BepInEx <see cref="ConfigEntry{T}"/> references so the
 /// Admin page can toggle host rules and persist them immediately.
 /// </summary>
-internal sealed class HostRulesConfigEditor
+internal sealed class HostRulesConfigEditor : IHostRulesEditor
 {
 	private readonly ConfigFile _config;
 	private readonly ConfigEntry<bool> _pvp;
@@ -72,6 +74,64 @@ internal sealed class HostRulesConfigEditor
 	internal void SetKeepInventory(bool value) => Set(_keepInventory, value);
 
 	internal void SetKeepSkills(bool value) => Set(_keepSkills, value);
+
+	public bool TrySet(string property, string value, out string? error)
+	{
+		switch (property.Trim().ToLowerInvariant())
+		{
+			case "pvpenabled":
+				return TrySetBool(_pvp, value, out error);
+			case "autocontinue":
+				return TrySetBool(_autoContinue, value, out error);
+			case "allowlatejoin":
+				return TrySetBool(_allowLateJoin, value, out error);
+			case "allowremoteinventorytake":
+				return TrySetBool(_allowRemoteInventoryTake, value, out error);
+			case "widenrunsettings":
+				return TrySetBool(_widenRunSettings, value, out error);
+			case "piggybackweightmultiplier":
+				return TrySetDouble(_piggybackWeight, value, out error);
+			case "permadeath":
+				return TrySetBool(_permadeath, value, out error);
+			case "revivefromtrader":
+				return TrySetBool(_reviveFromTrader, value, out error);
+			case "reviveonnextlevel":
+				return TrySetBool(_reviveOnNextLevel, value, out error);
+			case "keepinventory":
+				return TrySetBool(_keepInventory, value, out error);
+			case "keepskills":
+				return TrySetBool(_keepSkills, value, out error);
+			default:
+				error = $"Unknown host-rule property '{property}'.";
+				return false;
+		}
+	}
+
+	private bool TrySetBool(ConfigEntry<bool> entry, string value, out string? error)
+	{
+		if (!bool.TryParse(value, out var parsed))
+		{
+			error = $"'{value}' is not a boolean.";
+			return false;
+		}
+
+		Set(entry, parsed);
+		error = null;
+		return true;
+	}
+
+	private bool TrySetDouble(ConfigEntry<double> entry, string value, out string? error)
+	{
+		if (!double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed))
+		{
+			error = $"'{value}' is not a number.";
+			return false;
+		}
+
+		Set(entry, parsed);
+		error = null;
+		return true;
+	}
 
 	private void Set(ConfigEntry<bool> entry, bool value)
 	{

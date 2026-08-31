@@ -35,7 +35,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-- [Player-list polish](todo/player-list-polish.md) — split from KrokMP candidates; kept as open work.
 - [State-stream bandwidth reduction](todo/state-stream-bandwidth-reduction.md) — measurement-first.
 - [Snapshot size reduction](todo/snapshot-size-reduction.md) — measurement-first.
 
@@ -52,7 +51,7 @@ _None._ (Folder exists for the workflow.)
 ### Future
 
 - [PVP](future/pvp.md) — low priority, deferred until PvE/rules stable.
-- [KrokMP lower-priority candidates](future/krokmp-candidates.md) — voice, vote-kick; player-list polish is a separate todo.
+- [KrokMP lower-priority candidates](future/krokmp-candidates.md) — voice, vote-kick; player-list polish has landed.
 - [EnemyCombatOrderPolicy kernel-process follow-up](future/enemy-combat-order-policy-kernel.md).
 - [Generic Prediction Runtime](future/generic-prediction-runtime.md).
 - [Minecraft-style in-game command console](future/in-game-command-console.md).
@@ -66,6 +65,8 @@ _None._ (Folder exists for the workflow.)
 - [Runtime log errors (2026-08-30)](resolved/runtime-log-errors-2026-08-30.md) — TypeLoadException is HotRepl, not CUO; the OnlineUiOverlay ArgumentException is not in the captured logs.
 
 ### Done
+
+- [Player-list polish](done/player-list-polish.md) — duplicate-name peer-id disambiguation; selfcheck linked.
 
 - [Guest-mined block leaves ghost fragments on host](done/guest-mined-block-ghost-fragments-on-host.md) — direct air writes now clear stale game BlockDamage; selfcheck linked.
 - [Duplicate unsynced item drops (guest tree / world-spawned)](done/guest-tree-extra-unsynced-drops.md) — same-id materialization dedup; selfcheck linked.

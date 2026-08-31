@@ -134,6 +134,11 @@ internal static class OnlineUiMemberListDrawer
 			state += ctx.T("member.banned");
 		}
 
+		if (!string.IsNullOrEmpty(row.PeerIdHex))
+		{
+			state += ctx.F("member.peer_id", row.PeerIdHex);
+		}
+
 		return state;
 	}
 

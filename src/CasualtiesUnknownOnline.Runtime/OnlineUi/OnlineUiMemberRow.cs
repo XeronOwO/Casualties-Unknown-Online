@@ -20,6 +20,13 @@ public sealed class OnlineUiMemberRow
 	/// <summary>The effective marker color used for the member's name in the UI.</summary>
 	public PlayerColorValue Color { get; init; }
 
+	/// <summary>
+	/// Stable peer/Steam ID in hex, populated only when two or more members in
+	/// the current roster share the same display name (IP-direct allows
+	/// duplicate cosmetic names; identity remains the logical peer id).
+	/// </summary>
+	public string? PeerIdHex { get; init; }
+
 	public bool IsHost { get; init; }
 
 	public bool IsLocal { get; init; }

@@ -41,6 +41,15 @@ public static class OnlineUiMemberProjection
 		var memberMap = members.ToDictionary(m => m.SteamId, m => m);
 		var rows = new List<OnlineUiMemberRow>();
 
+		var duplicateNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+		foreach (var group in lobbyMembers
+			.Select(displayName)
+			.GroupBy(name => name, StringComparer.OrdinalIgnoreCase)
+			.Where(group => group.Count() > 1))
+		{
+			duplicateNames.Add(group.Key);
+		}
+
 		foreach (var memberId in lobbyMembers)
 		{
 			memberMap.TryGetValue(memberId, out var member);
@@ -113,10 +122,14 @@ public static class OnlineUiMemberProjection
 			var takeable = canTake(inventory, vitals, isLocal, member, allowRemoteInventoryTake, canSee);
 			var canAdminMember = canAdmin && !isLocal && member is not null;
 
+			var name = displayName(memberId);
+			var showPeerId = duplicateNames.Contains(name);
+
 			rows.Add(new OnlineUiMemberRow
 			{
 				SteamId = memberId,
-				Name = displayName(memberId),
+				Name = name,
+				PeerIdHex = showPeerId ? memberId.ToString("X") : null,
 				Color = getColor?.Invoke(memberId) ?? PlayerColorResolver.Resolve(memberId),
 				IsHost = memberId == lobbyOwner,
 				IsLocal = isLocal,

@@ -535,6 +535,32 @@ public sealed class OnlineUiMemberProjectionTests
 		Assert.Equal(selected.B, rows[0].Color.B);
 	}
 
+	[Fact]
+	public void DuplicateCaseInsensitiveDisplayNames_PopulatePeerIdOnEveryCollidingRow()
+	{
+		var rows = Build(
+			[Remote, Other],
+			[],
+			null,
+			displayName: id => id == Remote ? "Alice" : "alice");
+
+		Assert.Equal(Remote.ToString("X"), rows[0].PeerIdHex);
+		Assert.Equal(Other.ToString("X"), rows[1].PeerIdHex);
+	}
+
+	[Fact]
+	public void UniqueDisplayNames_DoNotPopulatePeerId()
+	{
+		var rows = Build(
+			[Remote, Other],
+			[],
+			null,
+			displayName: id => id == Remote ? "Alice" : "Bob");
+
+		Assert.Null(rows[0].PeerIdHex);
+		Assert.Null(rows[1].PeerIdHex);
+	}
+
 	private static IReadOnlyList<OnlineUiMemberRow> Build(
 		IReadOnlyList<ulong> lobbyMembers,
 		IReadOnlyList<MemberPresenceTable.MemberPresence> members,
@@ -548,6 +574,7 @@ public sealed class OnlineUiMemberProjectionTests
 		IReadOnlyList<LocalHealItem>? healItems = null,
 		bool allowRemoteInventoryTake = true,
 		Func<ulong, bool>? hasLineOfSight = null,
+		Func<ulong, string>? displayName = null,
 		Func<ulong, PlayerColorValue>? getColor = null)
 	{
 		return OnlineUiMemberProjection.Build(
@@ -555,7 +582,7 @@ public sealed class OnlineUiMemberProjectionTests
 			lobbyOwner: Local,
 			lobbyMembers: lobbyMembers,
 			members: members,
-			displayName: id => $"player-{id}",
+			displayName: displayName ?? (id => $"player-{id}"),
 			getVitals: getVitals ?? (_ => null),
 			getInventory: getInventory ?? (_ => null),
 			playerInteraction: interaction,

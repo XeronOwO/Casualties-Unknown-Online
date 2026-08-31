@@ -259,6 +259,14 @@ internal sealed partial class WorldEventSync(
 			else
 			{
 				WorldGeneration.world.SetBlock(pos, block);
+				if (block == 0)
+				{
+					// A guest receiving the host's air-write relay may have its
+					// own stale BlockDamage at this cell (from local partial
+					// mining) — SetBlock(0) does not remove it, so clear the
+					// game-side crack sprite here too.
+					_blockBreaks.OnBlockAirWrite(pos);
+				}
 			}
 		}
 	}
@@ -450,7 +458,16 @@ internal sealed partial class WorldEventSync(
 
 		foreach (var block in blocks)
 		{
-			WorldGeneration.world.SetBlock(new Vector2Int(block.X, block.Y), block.Block);
+			var pos = new Vector2Int(block.X, block.Y);
+			WorldGeneration.world.SetBlock(pos, block.Block);
+			if (block.Block == 0)
+			{
+				// A block-state snapshot can turn a locally partially-mined
+				// cell into air via direct SetBlock(0); remove the game-side
+				// BlockDamage/sprite so the snapshot does not leave fragmented
+				// air behind.
+				_blockBreaks.OnBlockAirWrite(pos);
+			}
 		}
 
 		_log.LogInformation("Applied host block-state snapshot ({Count} blocks).", blocks.Count);

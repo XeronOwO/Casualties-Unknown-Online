@@ -6,6 +6,7 @@ All files under `docs/selfchecks/` are historical/per-delivery evidence records.
 |---|---|---|---|
 | tooling/adapter-control-surfaces-selfcheck.md | Other | current | candidate current evidence; verify before citing |
 | enemies/animal-death-presentation-selfcheck.md | Enemies/World | current | candidate current evidence; verify before citing |
+| world/air-write-block-damage-cleanup-selfcheck.md | World/Entities | current | candidate current evidence; verify before citing |
 | world/block-damage-progressive-selfcheck.md | Other | current | candidate current evidence; verify before citing |
 | world/blueprint-popup-selfcheck.md | Other | current | candidate current evidence; verify before citing |
 | ui/building-destruction-presentation-selfcheck.md | UI | current | candidate current evidence; verify before citing |

@@ -48,6 +48,11 @@ internal sealed class CommandConsoleOverlay
 		}
 
 		HandleKeys();
+		if (!_session.IsOpen)
+		{
+			return;
+		}
+
 		var rect = new Rect((Screen.width - Width) * 0.5f, Screen.height - Height - BottomMargin, Width, Height);
 		OnlineUiTheme.DrawBackground(rect);
 		GUILayout.BeginArea(new Rect(rect.x + 10f, rect.y + 8f, rect.width - 20f, rect.height - 16f));

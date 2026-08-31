@@ -92,6 +92,9 @@ internal sealed class OnlineUiWindow
 			case OnlineUiPage.Admin:
 				OnlineUiAdminDrawer.Draw(ctx);
 				break;
+			case OnlineUiPage.Console:
+				OnlineUiConsoleDrawer.Draw(ctx);
+				break;
 			case OnlineUiPage.Preferences:
 				OnlineUiPreferencesDrawer.Draw(ctx);
 				break;
@@ -108,6 +111,7 @@ internal sealed class OnlineUiWindow
 		DrawTab(ctx.T("tab.players"), OnlineUiPage.Players);
 		DrawTab(ctx.T("tab.network"), OnlineUiPage.Network);
 		DrawTab(ctx.T("tab.admin"), OnlineUiPage.Admin);
+		DrawTab(ctx.T("tab.console"), OnlineUiPage.Console);
 		DrawTab(ctx.T("tab.preferences"), OnlineUiPage.Preferences);
 		GUILayout.EndHorizontal();
 	}

@@ -7,5 +7,6 @@ internal enum OnlineUiPage
 	Players,
 	Network,
 	Admin,
+	Console,
 	Preferences,
 }

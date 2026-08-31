@@ -11,6 +11,7 @@ using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.Chat;
+using CasualtiesUnknownOnline.Runtime.Session.Commands;
 using CasualtiesUnknownOnline.Runtime.Session.Handlers;
 using CasualtiesUnknownOnline.Runtime.Session.HostRules;
 using CasualtiesUnknownOnline.Runtime.Localization;
@@ -240,6 +241,11 @@ public static class CuoBootstrap
 		// pump — it only reacts to the world channel's receive event and session end).
 		services.AddSingleton<ChatService>();
 		services.AddSingleton<IChatControl>(p => p.GetRequiredService<ChatService>());
+		// In-game command/chat console: local slash-command chain + the chat UI
+		// surface (no wire message, no packet handler — it only rides the
+		// existing ChatService send path).
+		services.AddSingleton<CommandConsoleService>();
+		services.AddSingleton<ICommandControl>(p => p.GetRequiredService<CommandConsoleService>());
 		// Item domain: the authoritative world-item table + pickup arbitration
 		// (ItemService itself reacts to calls and messages; the pending-pickup
 		// hold window's expiry edge is the tiny PendingPickupPump below).

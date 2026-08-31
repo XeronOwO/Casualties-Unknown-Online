@@ -6,6 +6,7 @@ using CasualtiesUnknownOnline.Runtime.Localization;
 using CasualtiesUnknownOnline.Runtime.OnlineUi;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
+using CasualtiesUnknownOnline.Runtime.Session.Commands;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.HostRules;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
@@ -38,6 +39,9 @@ internal sealed class OnlineUiContext
 	internal IHostBanService HostBan = null!;
 
 	internal IHostRules HostRules = null!;
+
+	/// <summary>The in-game command/chat console surface (slash commands + chat send).</summary>
+	internal ICommandControl Commands = null!;
 
 	internal ILocalizationService Localization = null!;
 

@@ -50,6 +50,10 @@ public interface ISessionControl
 
 	void RemoveGuestMember(ulong steamId);
 
+	/// <summary>Host only: kick a guest from the session. The target receives the
+	/// dedicated <see cref="Protocol.Messages.KickedMsg"/> before removal.</summary>
+	bool KickMember(ulong steamId, string reason);
+
 	void EndSession();
 
 	void RecordPong(ulong sender, long ticks);

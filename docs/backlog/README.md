@@ -54,7 +54,6 @@ _None._ (Folder exists for the workflow.)
 - [KrokMP lower-priority candidates](future/krokmp-candidates.md) — voice, vote-kick; player-list polish has landed.
 - [EnemyCombatOrderPolicy kernel-process follow-up](future/enemy-combat-order-policy-kernel.md).
 - [Generic Prediction Runtime](future/generic-prediction-runtime.md).
-- [Minecraft-style in-game command console](future/in-game-command-console.md).
 - [Strict validation / anti-cheat hardening](future/strict-validation-anti-cheat.md).
 - [Phase 5 tooling & ecosystem](future/phase5-tooling-ecosystem.md).
 - [KrokMP compatibility adapter](future/krokmp-compatibility-adapter.md).
@@ -66,6 +65,7 @@ _None._ (Folder exists for the workflow.)
 
 ### Done
 
+- [In-game command console](done/in-game-command-console.md) — modal Online UI console with slash commands + chat input; selfcheck linked.
 - [Player-list polish](done/player-list-polish.md) — duplicate-name peer-id disambiguation; selfcheck linked.
 
 - [Guest-mined block leaves ghost fragments on host](done/guest-mined-block-ghost-fragments-on-host.md) — direct air writes now clear stale game BlockDamage; selfcheck linked.

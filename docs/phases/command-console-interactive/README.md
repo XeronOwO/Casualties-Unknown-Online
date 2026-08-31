@@ -51,6 +51,7 @@ The first slice landed a modal Online UI console page:
 | 13 — Undo/redo | Complete | Ctrl+Z/Ctrl+Y undo/redo editing changes, including completion and paste. |
 | 14 — Real selector command | Complete | `/heal <selector>` consumes the Selector argument provider and resolves `@a`/`@p`/`@s`/`@e`/`@r` against CUO's player entity table. |
 | 15 — IME composition support | Complete | Standalone console enables legacy Unity IME, tracks composition in a Unity-free state, renders the composition string at the caret, and prevents raw pinyin from leaking into the editor. |
+| 16 — Real JSON host-rule command | Complete | `/hostrules <json>` parses a flat JSON object and writes host-rule settings through the plugin's BepInEx ConfigEntry editor. |
 
 ## Phases
 
@@ -185,6 +186,17 @@ The first slice landed a modal Online UI console page:
 - Outcome: Chinese/Japanese/Korean-style composition no longer leaks raw pinyin
   into the command line and the IME candidate/caret behaviour is custom-input
   aware; actual OS IME acceptance remains user-acceptance territory.
+
+### Phase 16 — Real JSON host-rule command
+
+- Add `/hostrules <json>` as the first real CUO command that declares a
+  `CommandArgumentKind.Json` argument.
+- Add a Unity-free flat JSON-object parser and applier so the command stays
+  testable without Unity or BepInEx ConfigEntry.
+- Add a narrow `IHostRulesEditor` seam; the plugin replaces the default disabled
+  editor with the BepInEx-backed `HostRulesConfigEditor`.
+- Outcome: the previously seam-only JSON provider now feeds a real host-only
+  command that persists host/respawn settings from a JSON object.
 
 ## Non-goals
 

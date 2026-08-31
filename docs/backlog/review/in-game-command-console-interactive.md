@@ -13,7 +13,9 @@ require opening the Online UI window. The selector argument provider now also
 feeds a real command: `/heal <selector>` resolves player selectors and sends a
 host-authoritative heal request. The custom input is IME-aware: it enables
 Unity's legacy IME while the console is open, tracks composition in a
-Unity-free state, and renders the composition string at the caret.
+Unity-free state, and renders the composition string at the caret. The JSON
+argument provider also feeds a real host-only command: `/hostrules <json>`
+parses a flat JSON object and persists host/respawn settings.
 
 Phase plan: `docs/phases/command-console-interactive/README.md`.
 Selfcheck: `docs/evidence/selfchecks/ui/command-console-selfcheck.md`.

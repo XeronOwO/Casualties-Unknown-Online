@@ -128,6 +128,9 @@ public static class CuoBootstrap
 		// HandshakeHandler can inject it for the late-join gate.
 		services.AddSingleton<HostRulesService>();
 		services.AddSingleton<IHostRules>(p => p.GetRequiredService<HostRulesService>());
+		// The host-rule write seam defaults to unavailable; the plugin replaces
+		// it with the BepInEx ConfigEntry-backed editor in extraRegistrations.
+		services.AddSingleton<IHostRulesEditor>(new DisabledHostRulesEditor());
 
 		// Localization service: reads the UI language from the config-backed
 		// options monitor and falls back to English for missing keys.

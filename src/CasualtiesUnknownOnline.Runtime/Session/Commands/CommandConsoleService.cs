@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using CasualtiesUnknownOnline.Runtime.Session.Chat;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
+using CasualtiesUnknownOnline.Runtime.Session.HostRules;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using CasualtiesUnknownOnline.Runtime.Time;
 using Microsoft.Extensions.Logging;
@@ -31,6 +32,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 	private readonly IHostBanService _hostBans;
 	private readonly IPlayerInteractionControl _playerInteraction;
 	private readonly IEntitySyncControl _entities;
+	private readonly IHostRulesEditor _hostRulesEditor;
 	private readonly ITimeSource _time;
 	private readonly ILogger<CommandConsoleService> _log;
 	private readonly List<ConsoleLine> _lines = [];
@@ -42,6 +44,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		IHostBanService hostBans,
 		IPlayerInteractionControl playerInteraction,
 		IEntitySyncControl entities,
+		IHostRulesEditor hostRulesEditor,
 		ITimeSource time,
 		ILogger<CommandConsoleService> log)
 	{
@@ -50,6 +53,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		_hostBans = hostBans;
 		_playerInteraction = playerInteraction;
 		_entities = entities;
+		_hostRulesEditor = hostRulesEditor;
 		_time = time;
 		_log = log;
 		_chat.MessageReceived += OnChatLine;
@@ -183,6 +187,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		Register("rtt", "Show the last measured round-trip time.", CommandPermission.Anyone, "/rtt", [], _ => RttText());
 		Register("whoami", "Show local role, SteamId and session state.", CommandPermission.Anyone, "/whoami", [], _ => WhoAmIText());
 		Register("heal", "Use a carried medical item on the selected player(s).", CommandPermission.Anyone, "/heal <selector>", [CommandArgumentKind.Selector], Heal);
+		Register("hostrules", "Host only: update host rules from a JSON object.", CommandPermission.HostOnly, "/hostrules <json>", [CommandArgumentKind.Json], HostRules);
 		Register("kick", "Host only: kick a member by SteamId or display name.", CommandPermission.HostOnly, "/kick <steamId|displayName>", [CommandArgumentKind.PlayerOrSteamId], Kick);
 		Register("ban", "Host only: ban a member by SteamId or display name.", CommandPermission.HostOnly, "/ban <steamId|displayName>", [CommandArgumentKind.PlayerOrSteamId], Ban);
 		Register("unban", "Host only: unban a SteamId.", CommandPermission.HostOnly, "/unban <steamId>", [CommandArgumentKind.SteamId], Unban);
@@ -328,6 +333,22 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		}
 
 		return CommandSelectorResolver.Resolve(selector, targets);
+	}
+
+	private string HostRules(IReadOnlyList<string> args)
+	{
+		if (args.Count < 2)
+		{
+			return "Usage: /hostrules <json>";
+		}
+
+		if (!HostRulesJsonApplier.TryApply(args[1], _hostRulesEditor, out var updated, out var error))
+		{
+			return error ?? "Could not apply host rules.";
+		}
+
+		_log.LogInformation("[Command] /hostrules updated {Count} host-rule setting(s).", updated);
+		return $"Updated {updated} host rule(s).";
 	}
 
 	private string Kick(IReadOnlyList<string> args)

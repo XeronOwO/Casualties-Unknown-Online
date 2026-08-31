@@ -7,6 +7,7 @@ using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Diagnostics;
 using CasualtiesUnknownOnline.Runtime.OnlineUi;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
+using CasualtiesUnknownOnline.Runtime.Session.HostRules;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using Microsoft.Extensions.DependencyInjection;
@@ -149,6 +150,11 @@ internal static class PluginDependencyRegistrar
 			reviveOnNextLevel,
 			keepInventory,
 			keepSkills));
+		// The console's JSON host-rule command writes through this editor; the
+		// Runtime default is a disabled no-op so the Runtime-only composition
+		// still resolves the same interface.
+		services.Replace(ServiceDescriptor.Singleton<IHostRulesEditor>(
+			p => p.GetRequiredService<HostRulesConfigEditor>()));
 
 		// IP-direct (non-Steam) connection settings. The custom display name is
 		// used only in IP-direct sessions; Steam sessions keep using the Steam

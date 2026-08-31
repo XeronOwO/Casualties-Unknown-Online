@@ -115,6 +115,46 @@ public class ConsoleInputSessionTests
 	}
 
 	[Fact]
+	public void InsertChar_ThenUndo_RestoresPreviousInput()
+	{
+		var session = CreateSession(new StubControl(), new StubCompletion(_ => [], _ => null));
+		session.Open();
+		session.SetInput("abc", cursor: 3);
+
+		session.InsertChar('X');
+		Assert.Equal("abcX", session.Input);
+		Assert.True(session.Undo());
+		Assert.Equal("abc", session.Input);
+		Assert.True(session.CanRedo);
+	}
+
+	[Fact]
+	public void Undo_ThenRedo_ReappliesChange()
+	{
+		var session = CreateSession(new StubControl(), new StubCompletion(_ => [], _ => null));
+		session.Open();
+		session.SetInput("abc", cursor: 3);
+
+		session.InsertChar('X');
+		Assert.True(session.Undo());
+		Assert.True(session.Redo());
+		Assert.Equal("abcX", session.Input);
+	}
+
+	[Fact]
+	public void Completion_ThenUndo_RestoresBeforeCompletion()
+	{
+		var session = CreateSession(new StubControl(), new StubCompletion(_ => [new CommandSuggestion("kick")], _ => null));
+		session.Open();
+		session.SetInput("/k");
+
+		session.CycleCompletion();
+		Assert.Equal("/kick", session.Input);
+		Assert.True(session.Undo());
+		Assert.Equal("/k", session.Input);
+	}
+
+	[Fact]
 	public void Backspace_DeletesBeforeCursor()
 	{
 		var session = CreateSession(new StubControl(), new StubCompletion(_ => [], _ => null));

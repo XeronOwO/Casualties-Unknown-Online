@@ -48,6 +48,7 @@ The first slice landed a modal Online UI console page:
 | 10 — Auto-scroll | Complete | Text area jumps to the newest line when the console line count changes. |
 | 11 — Argument provider seam | Complete | `ICommandArgumentSuggestions` exposes selector/JSON/built-in arguments independently of a specific command. |
 | 12 — Selection/clipboard | Complete | Shift+arrows/Home/End selection, Ctrl+A/C/X/V clipboard, visible selection highlight. |
+| 13 — Undo/redo | Complete | Ctrl+Z/Ctrl+Y undo/redo editing changes, including completion and paste. |
 
 ## Phases
 
@@ -152,6 +153,13 @@ The first slice landed a modal Online UI console page:
 - Add Ctrl+C/Ctrl+X/Ctrl+V clipboard support through the Unity system clipboard.
 - Render a visible selection highlight in the custom input.
 - Outcome: text editing no longer lacks selection/copy-paste basics.
+
+### Phase 13 — Undo/redo
+
+- Add bounded undo/redo stacks to `ConsoleInputSession`.
+- Ctrl+Z undoes typing, deletion, paste, and completion changes; Ctrl+Y redoes.
+- Undo history resets on submit/open/close.
+- Outcome: command editing is safer and more Minecraft-console-like.
 
 ## Non-goals
 

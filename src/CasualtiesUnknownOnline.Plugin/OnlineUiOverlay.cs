@@ -109,6 +109,14 @@ internal sealed class OnlineUiOverlay
 	private const float StatusDelaySeconds = 1.5f;
 	private const float StatusHoldSeconds = 15f;
 
+	// Nameplate/off-screen marker style. The edge margin is deliberately larger
+	// than the arrow box so markers keep an inner padding from the screen edge
+	// (game UI can occupy the very edge of the screen).
+	private const float ScreenEdgeMargin = 52f;
+	private const int NameplateFontSize = 15;
+	private const int OffScreenArrowFontSize = 22;
+	private const int OffScreenNameFontSize = 13;
+
 	private string? _statusMessage;
 	private float _statusSetTime = float.NegativeInfinity;
 	private bool _lastHadSession;
@@ -408,7 +416,6 @@ internal sealed class OnlineUiOverlay
 			return;
 		}
 
-		const float margin = 28f;
 		var local = entities.LocalPlayer.Position;
 		foreach (var remote in entities.RemotePlayers)
 		{
@@ -417,11 +424,19 @@ internal sealed class OnlineUiOverlay
 				continue;
 			}
 
+			// Prefer the live render clone's head limb so markers stay on top of
+			// the head while standing/crouching/lying; fall back to the body's
+			// authoritative position before the clone exists.
 			var worldPoint = new Vector3(remote.Position.X, remote.Position.Y, 0f);
+			if (ctx.Adapter?.TryGetRemoteHeadPosition(remote.SteamId, out var headX, out var headY) == true)
+			{
+				worldPoint = new Vector3(headX, headY, 0f);
+			}
+
 			var projected = camera.WorldToScreenPoint(worldPoint);
 			// GUI y grows DOWN; WorldToScreenPoint y grows UP.
 			var gui = new Vector2(projected.x, Screen.height - projected.y);
-			var placement = OffScreenArrowGeometry.Place(gui.x, gui.y, Screen.width, Screen.height, margin);
+			var placement = OffScreenArrowGeometry.Place(gui.x, gui.y, Screen.width, Screen.height, ScreenEdgeMargin);
 
 			var dx = remote.Position.X - local.X;
 			var dy = remote.Position.Y - local.Y;
@@ -443,22 +458,24 @@ internal sealed class OnlineUiOverlay
 	{
 		var style = new GUIStyle(GUI.skin.label)
 		{
-			fontSize = 12,
+			fontSize = NameplateFontSize,
 			alignment = TextAnchor.MiddleCenter,
 		};
 		style.normal.textColor = color;
-		GUI.Label(new Rect(x - 80f, y - 24f, 160f, 20f), name, style);
+		var rect = NameplateLayout.AboveHead(x, y);
+		GUI.Label(new Rect(rect.X, rect.Y, rect.Width, rect.Height), name, style);
 	}
 
 	private static void DrawOffScreenArrow(OffScreenArrowPlacement placement, string name, string distanceText, Color color)
 	{
 		var arrowStyle = new GUIStyle(GUI.skin.label)
 		{
-			fontSize = 18,
+			fontSize = OffScreenArrowFontSize,
 			alignment = TextAnchor.MiddleCenter,
 		};
 		arrowStyle.normal.textColor = color;
 
+		const float arrowSize = 32f;
 		var arrow = placement.Direction switch
 		{
 			OffScreenArrowDirection.Up => "\u25B2",   // ▲
@@ -467,15 +484,15 @@ internal sealed class OnlineUiOverlay
 			OffScreenArrowDirection.Right => "\u25B6", // ►
 			_ => "\u2022",                            // •
 		};
-		GUI.Label(new Rect(placement.X - 12f, placement.Y - 12f, 24f, 24f), arrow, arrowStyle);
+		GUI.Label(new Rect(placement.X - (arrowSize * 0.5f), placement.Y - (arrowSize * 0.5f), arrowSize, arrowSize), arrow, arrowStyle);
 
 		var nameStyle = new GUIStyle(GUI.skin.label)
 		{
-			fontSize = 10,
+			fontSize = OffScreenNameFontSize,
 			alignment = TextAnchor.MiddleCenter,
 		};
 		nameStyle.normal.textColor = color;
-		GUI.Label(new Rect(placement.X - 70f, placement.Y + 12f, 140f, 16f), name + "  " + distanceText, nameStyle);
+		GUI.Label(new Rect(placement.X - 80f, placement.Y + (arrowSize * 0.5f) + 4f, 160f, 20f), name + "  " + distanceText, nameStyle);
 	}
 
 	private static Color ToColor(PlayerColorValue value) => new(value.R, value.G, value.B, value.A);

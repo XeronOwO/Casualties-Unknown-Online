@@ -39,8 +39,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Guest-mined item static-physics desync](todo/guest-mined-item-static-physics-desync.md) — guest item loses gravity early and never reaches host static state.
 - [Ragdoll limb pose not synced remotely](todo/ragdoll-limb-pose-not-synced.md) — collapse is visible, but limb poses still mismatch.
 - [Guest-mined block leaves ghost fragments on host](todo/guest-mined-block-ghost-fragments-on-host.md) — block removed but broken effect remains, "fragmented air".
-- [Runtime log errors to investigate (2026-08-30)](todo/runtime-log-errors-2026-08-30.md) — log files pinned with last write times.
-- [Name tag font size, head position, and off-screen edge padding](todo/name-tag-font-position-edge-padding.md) — UI/name tag issue.
 - [Player-list polish](todo/player-list-polish.md) — split from KrokMP candidates; kept as open work.
 - [State-stream bandwidth reduction](todo/state-stream-bandwidth-reduction.md) — measurement-first.
 - [Snapshot size reduction](todo/snapshot-size-reduction.md) — measurement-first.
@@ -69,10 +67,12 @@ _None._ (Folder exists for the workflow.)
 ### Resolved
 
 - [IP-direct duplicate names allowed](resolved/ip-direct-duplicate-names.md).
+- [Runtime log errors (2026-08-30)](resolved/runtime-log-errors-2026-08-30.md) — TypeLoadException is HotRepl, not CUO; the OnlineUiOverlay ArgumentException is not in the captured logs.
 
 ### Done
 
 - [Remote ragdoll state not visible](done/ragdoll-state-not-visible-to-remote.md) — X ragdoll now visible on remote; user accepted.
+- [Name tag font, head position, and off-screen edge padding](done/name-tag-font-position-edge-padding.md) — markers now head-anchored with larger fonts and UI-safe edge padding.
 - [High sleepiness squint not visible remotely](done/high-sleepiness-squint-not-visible-remotely.md) — remote face now receives face-driving vitals from the 1 Hz snapshot.
 - [Host close-room safe exit](done/host-close-room-safe-exit.md).
 - [Custom configuration template system](done/config-profile-templates.md).

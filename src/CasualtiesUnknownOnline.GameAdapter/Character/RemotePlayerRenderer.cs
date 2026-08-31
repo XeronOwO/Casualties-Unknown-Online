@@ -83,6 +83,26 @@ internal sealed class RemotePlayerRenderer(
 		return false;
 	}
 
+	/// <summary>
+	/// Gets the current world-space head position of one remote render clone
+	/// (Body.limbs[0] is the head — see NetBody.GetHeadPos). Used by the Online
+	/// UI so nameplates and off-screen arrows point at the visible head rather
+	/// than the body-root/center.
+	/// </summary>
+	internal bool TryGetRemoteHeadPosition(ulong steamId, out Vector2 headPosition)
+	{
+		if (_remoteClones.TryGetValue(steamId, out var clone) && clone != null // Unity object — ==
+			&& clone.limbs.Length > 0
+			&& clone.limbs[0] != null) // Unity object — ==
+		{
+			headPosition = clone.limbs[0].transform.position;
+			return true;
+		}
+
+		headPosition = default;
+		return false;
+	}
+
 	/// <summary>Session/entity ended — destroy every render clone.</summary>
 	internal void DestroyAllClones()
 	{

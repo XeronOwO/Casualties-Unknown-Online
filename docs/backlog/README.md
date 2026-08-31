@@ -38,7 +38,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Duplicate unsynced item drops (guest-dug tree and world-spawned items)](todo/guest-tree-extra-unsynced-drops.md) — guest action/world drops produce two unsynced frozen copies.
 - [Guest-mined item static-physics desync](todo/guest-mined-item-static-physics-desync.md) — guest item loses gravity early and never reaches host static state.
 - [Ragdoll limb pose not synced remotely](todo/ragdoll-limb-pose-not-synced.md) — collapse is visible, but limb poses still mismatch.
-- [Guest-mined block leaves ghost fragments on host](todo/guest-mined-block-ghost-fragments-on-host.md) — block removed but broken effect remains, "fragmented air".
 - [Player-list polish](todo/player-list-polish.md) — split from KrokMP candidates; kept as open work.
 - [State-stream bandwidth reduction](todo/state-stream-bandwidth-reduction.md) — measurement-first.
 - [Snapshot size reduction](todo/snapshot-size-reduction.md) — measurement-first.
@@ -71,6 +70,7 @@ _None._ (Folder exists for the workflow.)
 
 ### Done
 
+- [Guest-mined block leaves ghost fragments on host](done/guest-mined-block-ghost-fragments-on-host.md) — direct air writes now clear stale game BlockDamage; selfcheck linked.
 - [Remote ragdoll state not visible](done/ragdoll-state-not-visible-to-remote.md) — X ragdoll now visible on remote; user accepted.
 - [Name tag font, head position, and off-screen edge padding](done/name-tag-font-position-edge-padding.md) — markers now head-anchored with larger fonts and UI-safe edge padding.
 - [High sleepiness squint not visible remotely](done/high-sleepiness-squint-not-visible-remotely.md) — remote face now receives face-driving vitals from the 1 Hz snapshot.

@@ -268,7 +268,16 @@ internal sealed class BlockBreakSync(
 	/// damage — a broken block is carried by the block-state snapshot, never by
 	/// the partial-damage snapshot.
 	/// </summary>
-	internal void OnBlockAirWrite(Vector2Int cell) => _world.RemoveBlockDamage(cell.x, cell.y);
+	internal void OnBlockAirWrite(Vector2Int cell)
+	{
+		_world.RemoveBlockDamage(cell.x, cell.y);
+		var world = WorldGeneration.world;
+		if (world != null && BlockDamageCleaner.ClearForAirWrite(world, cell))
+		{
+			_log.LogDebug("[BlockBreak] cleared stale game BlockDamage at ({X},{Y}) after air write.",
+				cell.x, cell.y);
+		}
+	}
 
 	/// <summary>
 	/// The host's partial block-damage snapshot arrived (world entry / the

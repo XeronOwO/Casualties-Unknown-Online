@@ -273,6 +273,22 @@ internal sealed class RemoteItemSceneOps(ISessionControl session, Logger log)
 	/// </summary>
 	internal void SpawnWorldItem(WorldItem w)
 	{
+		// Idempotency: if a scene object with this instance id already exists,
+		// never materialize a second copy. The most common case is the
+		// originator's own local item: the guest reports an ItemSpawn command,
+		// the host commits and broadcasts the batch back to every guest
+		// (originator included), and without this guard ItemApplication would
+		// instantiate a duplicate beside the local original. Duplicate ids are
+		// also how "one copy syncs with the host, two extra copies are
+		// unsynced/frozen" appears — the position stream can only drive one
+		// object, so the extras stay kinematic/twitching forever.
+		if (FindWorldItem(w.ItemId) != null) // Unity object — ==
+		{
+			_log.LogDebug("[ItemSpawn] {Type} (id {ItemId}) already present locally — skipping duplicate materialization.",
+				w.Item.ItemId, w.ItemId);
+			return;
+		}
+
 		// A generation-time object may already exist at this spot (world-gen
 		// determinism puts the same objects on every side): bind the instance
 		// id to it instead of materializing a duplicate — a second copy would

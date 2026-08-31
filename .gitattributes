@@ -1,0 +1,4 @@
+# Windows-only project: Git stores LF in the index and checks out CRLF in the
+# working tree on every platform. This matches .editorconfig (end_of_line = crlf)
+# and prevents mixed line endings from tools that write LF.
+* text=auto eol=crlf

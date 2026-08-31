@@ -94,4 +94,12 @@ public interface IGameAdapter : IDisposable
 
 	/// <summary>Closes the native remote backpack view (if one is open).</summary>
 	void CloseRemoteBackpack();
+
+	/// <summary>
+	/// Gets the current world-space head position of a remote player's render
+	/// clone. The Online UI uses this to pin nameplates/off-screen indicators
+	/// to the visible head instead of the body-root/center. Returns false when
+	/// no live render clone exists yet.
+	/// </summary>
+	bool TryGetRemoteHeadPosition(ulong steamId, out float x, out float y);
 }

@@ -287,6 +287,20 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 
 	void IGameAdapter.CloseRemoteBackpack() => _domains.RemoteBackpack.Close();
 
+	bool IGameAdapter.TryGetRemoteHeadPosition(ulong steamId, out float x, out float y)
+	{
+		if (_domains.Renderer.TryGetRemoteHeadPosition(steamId, out var head))
+		{
+			x = head.x;
+			y = head.y;
+			return true;
+		}
+
+		x = 0f;
+		y = 0f;
+		return false;
+	}
+
 	// ---- Mod runtime boundaries (Phase 4 Mod API) ----
 
 	bool IModEntitySpawner.TrySpawnEntity(string prefabId, float x, float y, float rotation) =>

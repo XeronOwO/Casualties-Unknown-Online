@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.EntitySync;
@@ -101,6 +102,15 @@ public sealed class PlayerEntity(ulong steamId, NetworkEntityId entityId, bool i
 
 	/// <summary>True while the owner is wall-sliding on the right wall (Body.slidingRight, Body.cs:2600).</summary>
 	public bool SlidingRight { get; set; }
+
+	/// <summary>
+	/// Exact per-limb render pose while the owner is not standing and not
+	/// sleeping (ragdoll/dead/unconscious). Null when standing/sleeping — the
+	/// proxy uses its animator/nap clips instead. The frozen clone has no
+	/// physics, so this is the only way its limb transforms match the owner's
+	/// body.
+	/// </summary>
+	public List<PlayerLimbPose>? LimbPoses { get; set; }
 
 
 	// ---- Render interpolation buffer (guest side only) ----

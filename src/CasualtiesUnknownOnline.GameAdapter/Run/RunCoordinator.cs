@@ -536,6 +536,11 @@ internal sealed class RunCoordinator(
 		// render proxy needs the same flags to replay the Wall clip/particle.
 		var slidingLeft = Traverse.Create(body).Field("slidingLeft").GetValue<bool>();
 		var slidingRight = Traverse.Create(body).Field("slidingRight").GetValue<bool>();
+		// Exact limb poses ride the same 20 Hz state stream while the body is
+		// in a non-standing, non-sleeping lying pose (ragdoll/dead/unconscious).
+		// The remote clone is frozen, so this is the only way its visible limbs
+		// can match the owner's physics-driven pose.
+		var limbPoses = LimbPoseCapture.Capture(body);
 		_entities.PublishLocalState(
 			new NetVector2(pos.x, pos.y),
 			new NetVector2(look.x, look.y),
@@ -545,6 +550,7 @@ internal sealed class RunCoordinator(
 			body.eyePanicTime, body.eyeCloseTime,
 			sitting, body.sleeping, body.currentClimbable != null, // Unity object — ==
 			workoutType, napVariant, dogShakeIntensity,
-			slidingLeft, slidingRight);
+			slidingLeft, slidingRight,
+			limbPoses);
 	}
 }

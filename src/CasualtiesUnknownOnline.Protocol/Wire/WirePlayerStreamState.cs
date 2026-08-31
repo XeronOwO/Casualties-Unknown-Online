@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using ProtoBuf;
 
 namespace CasualtiesUnknownOnline.Protocol.Wire;
@@ -55,4 +56,14 @@ public sealed class WirePlayerStreamState
 
 	[ProtoMember(15)]
 	public float DogShakeIntensity { get; set; }
+
+	/// <summary>
+	/// Exact render-pose per limb while the owner is not standing and not
+	/// sleeping (ragdoll/dead/unconscious). Null when standing/sleeping — the
+	/// proxy uses its animator/nap clips instead. The frozen clone has no
+	/// physics, so this is the only way its limb transforms match the owner's
+	/// body.
+	/// </summary>
+	[ProtoMember(16)]
+	public List<WirePlayerLimbPose>? LimbPoses { get; set; }
 }

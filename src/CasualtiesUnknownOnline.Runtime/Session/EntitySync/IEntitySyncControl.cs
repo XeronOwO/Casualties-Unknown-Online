@@ -30,7 +30,8 @@ public interface IEntitySyncControl
 		float eyePanicTime = 0f, float eyeCloseTime = 0f,
 		bool sitting = false, bool sleeping = false, bool climbing = false,
 		byte workoutType = 0, byte napVariant = 0, float dogShakeIntensity = 0f,
-		bool slidingLeft = false, bool slidingRight = false);
+		bool slidingLeft = false, bool slidingRight = false,
+		List<PlayerLimbPose>? limbPoses = null);
 
 	/// <summary>The local player swung — mark the swing so peers replay the animation via the snapshot flag + sequence.</summary>
 	void MarkLocalAttackSwing();

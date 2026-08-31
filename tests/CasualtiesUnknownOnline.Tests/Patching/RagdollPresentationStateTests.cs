@@ -34,6 +34,10 @@ public class RagdollPresentationStateTests
 		var ms = Driver.GetField("RagdollCollapseMs", BindingFlags.Instance | BindingFlags.Public)
 			?? throw new InvalidOperationException("RemoteBodyDriver.RagdollCollapseMs not found.");
 		Assert.Equal(typeof(long), ms.FieldType);
+
+		var poseActive = Driver.GetField("RagdollPoseActive", BindingFlags.Instance | BindingFlags.Public)
+			?? throw new InvalidOperationException("RemoteBodyDriver.RagdollPoseActive not found.");
+		Assert.Equal(typeof(bool), poseActive.FieldType);
 	}
 
 	[Fact]

@@ -102,6 +102,55 @@ public class ConsoleInputSessionTests
 	}
 
 	[Fact]
+	public void InsertChar_InsertsAtCursorAndMovesForward()
+	{
+		var session = CreateSession(new StubControl(), new StubCompletion(_ => [], _ => null));
+		session.Open();
+		session.SetInput("abc", cursor: 1);
+
+		session.InsertChar('X');
+
+		Assert.Equal("aXbc", session.Input);
+		Assert.Equal(2, session.Cursor);
+	}
+
+	[Fact]
+	public void Backspace_DeletesBeforeCursor()
+	{
+		var session = CreateSession(new StubControl(), new StubCompletion(_ => [], _ => null));
+		session.Open();
+		session.SetInput("abc", cursor: 2);
+
+		Assert.True(session.Backspace());
+		Assert.Equal("ac", session.Input);
+		Assert.Equal(1, session.Cursor);
+	}
+
+	[Fact]
+	public void MoveCursorLeftAndRight_AdjustsPosition()
+	{
+		var session = CreateSession(new StubControl(), new StubCompletion(_ => [], _ => null));
+		session.Open();
+		session.SetInput("abc", cursor: 2);
+
+		session.MoveCursorLeft();
+		Assert.Equal(1, session.Cursor);
+		session.MoveCursorRight();
+		Assert.Equal(2, session.Cursor);
+	}
+
+	[Fact]
+	public void CycleCompletion_ReplacesTokenAtCursorPreservingSuffix()
+	{
+		var session = CreateSession(new StubControl(), new StubCompletion(_ => [new CommandSuggestion("John Doe")], _ => null));
+		session.Open();
+		session.SetInput("/kick Jo rest", cursor: 7);
+
+		Assert.True(session.CycleCompletion());
+		Assert.Equal("/kick \"John Doe\" rest", session.Input);
+	}
+
+	[Fact]
 	public void AcceptSuggestion_AppliesSpecificCandidateAndClearsList()
 	{
 		var session = CreateSession(new StubControl(), new StubCompletion(_ => [new CommandSuggestion("/help", "Show help")], _ => null));

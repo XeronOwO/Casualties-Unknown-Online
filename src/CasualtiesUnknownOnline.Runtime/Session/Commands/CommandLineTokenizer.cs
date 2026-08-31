@@ -165,6 +165,42 @@ public static class CommandLineTokenizer
 		return last;
 	}
 
+	/// <summary>
+	/// Returns the token under an arbitrary cursor position, or an empty token at
+	/// the cursor when the cursor is on whitespace. This lets Tab completion
+	/// replace the right token even when the user edits in the middle of a line.
+	/// </summary>
+	public static Token TokenAtCursor(string text, int cursor)
+	{
+		if (cursor < 0)
+		{
+			cursor = 0;
+		}
+
+		if (cursor > text.Length)
+		{
+			cursor = text.Length;
+		}
+
+		Token? best = null;
+		foreach (var token in Tokenize(text))
+		{
+			var end = token.Start + token.Length;
+			var atWhitespaceBoundary = cursor == end
+				&& end < text.Length
+				&& char.IsWhiteSpace(text[end]);
+			if (cursor >= token.Start && cursor <= end && !atWhitespaceBoundary)
+			{
+				if (best is null || token.Start > best.Value.Start)
+				{
+					best = token;
+				}
+			}
+		}
+
+		return best ?? new Token(string.Empty, cursor, 0, false);
+	}
+
 	/// <summary>Quotes a value when it needs grouping for the command line.</summary>
 	public static string QuoteIfNeeded(string value)
 	{

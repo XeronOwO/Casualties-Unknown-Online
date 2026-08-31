@@ -34,6 +34,24 @@ public class CommandLineTokenizerTests
 	}
 
 	[Fact]
+	public void TokenAtCursor_ReturnsTokenUnderCursor()
+	{
+		var token = CommandLineTokenizer.TokenAtCursor("/kick Jo", 7);
+
+		Assert.Equal("Jo", token.Text);
+		Assert.Equal(6, token.Start);
+	}
+
+	[Fact]
+	public void TokenAtCursor_ReturnsEmptyAtWhitespace()
+	{
+		var token = CommandLineTokenizer.TokenAtCursor("/kick Jo", 5);
+
+		Assert.Equal(0, token.Length);
+		Assert.Equal(5, token.Start);
+	}
+
+	[Fact]
 	public void QuoteIfNeeded_QuotesValuesWithSpaces() =>
 		Assert.Equal("\"John Doe\"", CommandLineTokenizer.QuoteIfNeeded("John Doe"));
 

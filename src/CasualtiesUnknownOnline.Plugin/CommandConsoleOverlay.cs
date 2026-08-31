@@ -271,7 +271,7 @@ internal sealed class CommandConsoleOverlay
 
 		OnlineUiTheme.DrawBackground(rect);
 		var style = InputStyle();
-		GUI.Label(rect, _session.Input, style);
+		DrawHighlightedInput(rect, style);
 
 		if (ShouldDrawCaret() && _session.IsOpen)
 		{
@@ -288,6 +288,60 @@ internal sealed class CommandConsoleOverlay
 			GUI.DrawTexture(caretRect, Texture2D.whiteTexture);
 			GUI.color = previous;
 		}
+	}
+
+	private void DrawHighlightedInput(Rect rect, GUIStyle style)
+	{
+		var tokens = CommandLineTokenizer.Tokenize(_session.Input);
+		var x = rect.x + style.padding.left;
+		var consumed = 0;
+		foreach (var token in tokens)
+		{
+			if (token.Start > consumed)
+			{
+				DrawSegment(rect, x, style, _session.Input.Substring(consumed, token.Start - consumed), OnlineUiTheme.Text, ref x);
+			}
+
+			DrawSegment(rect, x, style, token.Text, TokenColor(token), ref x);
+			consumed = token.Start + token.Length;
+		}
+
+		if (consumed < _session.Input.Length)
+		{
+			DrawSegment(rect, x, style, _session.Input.Substring(consumed), OnlineUiTheme.Text, ref x);
+		}
+	}
+
+	private static void DrawSegment(Rect rect, float x, GUIStyle style, string text, Color color, ref float nextX)
+	{
+		if (text.Length == 0)
+		{
+			return;
+		}
+
+		var previous = GUI.color;
+		GUI.color = color;
+		var width = style.CalcSize(new GUIContent(text)).x;
+		GUI.Label(new Rect(x, rect.y, width, rect.height), text, style);
+		GUI.color = previous;
+		nextX = x + width;
+	}
+
+	private static Color TokenColor(CommandLineTokenizer.Token token)
+	{
+		if (token.Start == 0 && token.Text.StartsWith("/", StringComparison.Ordinal))
+		{
+			return OnlineUiTheme.Accent;
+		}
+
+		if (token.Quoted
+			|| token.Text.StartsWith("{", StringComparison.Ordinal)
+			|| token.Text.StartsWith("[", StringComparison.Ordinal))
+		{
+			return OnlineUiTheme.Muted;
+		}
+
+		return OnlineUiTheme.Text;
 	}
 
 	private int GetCursorAtMouse(Rect rect, Vector2 mouse)
@@ -323,7 +377,7 @@ internal sealed class CommandConsoleOverlay
 				clipping = TextClipping.Clip,
 				padding = new RectOffset(6, 6, 4, 4),
 			};
-			_inputStyle.normal.textColor = OnlineUiTheme.Text;
+			_inputStyle.normal.textColor = Color.white;
 		}
 
 		return _inputStyle;

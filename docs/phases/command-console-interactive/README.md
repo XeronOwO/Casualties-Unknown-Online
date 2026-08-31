@@ -45,6 +45,7 @@ The first slice landed a modal Online UI console page:
 | 7 — Cursor-aware input/editing | Complete | Custom IMGUI input with caret, arrows/Home/End, Backspace/Delete, and Tab completion replaces the token at the cursor. |
 | 8 — Basic syntax highlighting | Complete | Command tokens rendered in accent color, quoted/bracket/brace literals in muted color, plain text in default color. |
 | 9 — Word editing | Complete | Ctrl+Backspace/Ctrl+Delete delete words; Ctrl+Left/Right move by word. |
+| 10 — Auto-scroll | Complete | Text area jumps to the newest line when the console line count changes. |
 
 ## Phases
 
@@ -126,6 +127,12 @@ The first slice landed a modal Online UI console page:
   in the cursor-aware input.
 - Outcome: faster command/chat editing without relying on native TextField
   shortcuts.
+
+### Phase 10 — Auto-scroll
+
+- Track the console line count and reset the text-area scroll to the bottom when
+  new lines arrive.
+- Outcome: new chat/command output is visible without manual scrolling.
 
 ## Non-goals
 

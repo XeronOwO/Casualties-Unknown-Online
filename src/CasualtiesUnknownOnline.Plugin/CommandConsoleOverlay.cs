@@ -26,6 +26,7 @@ internal sealed class CommandConsoleOverlay
 	private Vector2 _scroll;
 	private Vector2 _suggestionScroll;
 	private Rect _inputRect;
+	private int _lastLineCount = -1;
 	private bool _focusPending;
 
 	internal CommandConsoleOverlay(ConsoleInputSession session)
@@ -183,6 +184,11 @@ internal sealed class CommandConsoleOverlay
 		var hold = TimeSpan.FromSeconds(FadeHoldSeconds);
 		var fade = TimeSpan.FromSeconds(FadeDurationSeconds);
 
+		if (lines.Count != _lastLineCount)
+		{
+			_scroll.y = float.MaxValue;
+		}
+
 		_scroll = GUILayout.BeginScrollView(
 			_scroll,
 			GUILayout.ExpandWidth(true),
@@ -207,6 +213,7 @@ internal sealed class CommandConsoleOverlay
 		}
 
 		GUILayout.EndScrollView();
+		_lastLineCount = lines.Count;
 	}
 
 	private static void DrawLine(ConsoleLine line, float alpha)

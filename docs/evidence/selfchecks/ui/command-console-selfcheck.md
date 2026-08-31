@@ -51,6 +51,7 @@ existing text-chat send path; no wire message or protocol version was added.
 | Input session submit/history | Submit keeps console open, records history, Up/Down restores draft | `ConsoleInputSessionTests.Submit_ExecutesClearsAndKeepsConsoleOpen`, `History_UpAndDown_RestoresDraft` |
 | Input session completion | Command-name and spaced-argument completion quote correctly | `ConsoleInputSessionTests.CycleCompletion_CompletesCommandName`, `CycleCompletion_QuotesSpacedArgument` |
 | Basic syntax highlighting | Command/plain/quoted tokens render with different colors | static review: `CommandConsoleOverlay.DrawHighlightedInput`, `TokenColor`; Unity rendering is user-acceptance territory |
+| Auto-scroll | Text area scrolls to newest line when line count changes | static review: `CommandConsoleOverlay.DrawTextArea`, `_lastLineCount` |
 | Focus/mouse block/ESC in Unity | Focus enforcement, modal routing and ESC consumption are in the overlay/plugin path | static review: `CommandConsoleOverlay`, `Plugin.Update`, `OnlineUiOverlay`; Unity IMGUI behavior is user-acceptance territory |
 
 ## 3. Known remaining gaps

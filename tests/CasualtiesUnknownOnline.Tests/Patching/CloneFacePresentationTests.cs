@@ -46,4 +46,18 @@ public class CloneFacePresentationTests
 		Assert.True(capture.IsStatic, "Capture must be a static method (the helper owns no state).");
 		Assert.True(apply.IsStatic, "Apply must be a static method (the helper owns no state).");
 	}
+
+	[Fact]
+	public void Apply_UsesPureFaceVitalsProjection()
+	{
+		var applyVitals = Presentation.GetMethod("ApplyVitals", BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
+			?? throw new InvalidOperationException("CloneFacePresentation.ApplyVitals not found.");
+
+		Assert.True(applyVitals.IsStatic, "ApplyVitals must be a static method (the helper owns no state).");
+		var parameters = applyVitals.GetParameters();
+		Assert.Equal(2, parameters.Length);
+		Assert.Equal("Body", parameters[0].ParameterType.Name);
+		Assert.Equal("CasualtiesUnknownOnline.Runtime.Session.CharacterData.FacePresentationVitals", parameters[1].ParameterType.FullName);
+	}
+
 }

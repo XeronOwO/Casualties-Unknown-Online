@@ -61,6 +61,7 @@ _None._ (Folder exists for the workflow.)
 - [Strict validation / anti-cheat hardening](future/strict-validation-anti-cheat.md).
 - [Phase 5 tooling & ecosystem](future/phase5-tooling-ecosystem.md).
 - [KrokMP compatibility adapter](future/krokmp-compatibility-adapter.md).
+- [Systemic save and backup management](future/systemic-save-backup-management.md) — inspectable ZIP+JSON archives, scheduled/manual backups, restore/load, native game-layer backup.
 
 ### Resolved
 

@@ -18,6 +18,7 @@ All files under `docs/selfchecks/` are historical/per-delivery evidence records.
 | players/character-sound-selfcheck.md | Players | current | candidate current evidence; verify before citing |
 | ui/chat-selfcheck.md | UI | current | candidate current evidence; verify before citing |
 | presentation/clone-face-presentation-selfcheck.md | Other | current | candidate current evidence; verify before citing |
+| presentation/remote-clone-face-vitals-selfcheck.md | Other | current | candidate current evidence; verify before citing |
 | tooling/config-options-selfcheck.md | Other | current | candidate current evidence; verify before citing |
 | items/container-content-sync-selfcheck.md | Items | current | candidate current evidence; verify before citing |
 | players/cross-player-component-medicine-selfcheck.md | Players | historical | superseded/old-wire; do not cite as current evidence without checking protocol.md |

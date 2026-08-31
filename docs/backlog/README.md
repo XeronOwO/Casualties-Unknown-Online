@@ -39,7 +39,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Guest-mined item static-physics desync](todo/guest-mined-item-static-physics-desync.md) — guest item loses gravity early and never reaches host static state.
 - [Ragdoll limb pose not synced remotely](todo/ragdoll-limb-pose-not-synced.md) — collapse is visible, but limb poses still mismatch.
 - [Guest-mined block leaves ghost fragments on host](todo/guest-mined-block-ghost-fragments-on-host.md) — block removed but broken effect remains, "fragmented air".
-- [High sleepiness squint not visible remotely](todo/high-sleepiness-squint-not-visible-remotely.md) — remote eyes stay open when sleepiness is high.
 - [Runtime log errors to investigate (2026-08-30)](todo/runtime-log-errors-2026-08-30.md) — log files pinned with last write times.
 - [Name tag font size, head position, and off-screen edge padding](todo/name-tag-font-position-edge-padding.md) — UI/name tag issue.
 - [PVP](todo/pvp.md) — low priority, deferred until PvE/rules stable.
@@ -73,6 +72,7 @@ _None._ (Folder exists for the workflow.)
 ### Done
 
 - [Remote ragdoll state not visible](done/ragdoll-state-not-visible-to-remote.md) — X ragdoll now visible on remote; user accepted.
+- [High sleepiness squint not visible remotely](done/high-sleepiness-squint-not-visible-remotely.md) — remote face now receives face-driving vitals from the 1 Hz snapshot.
 - [Host close-room safe exit](done/host-close-room-safe-exit.md).
 - [Custom configuration template system](done/config-profile-templates.md).
 - [IP-direct display-name validation](done/ip-direct-name-validation.md).

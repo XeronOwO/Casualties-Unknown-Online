@@ -122,6 +122,11 @@ internal static class SessionStatePump
 		}
 
 		body.standing = effectiveStanding;
+		// Exact owner limb-pose facts (ragdoll/dead/unconscious) beat the
+		// animator's approximate LayDown clip on the frozen proxy. When the
+		// stream stops carrying poses (stand-up/sleeping), clear the override and
+		// let HandleVisuals drive the clone again.
+		RagdollPoseApplication.Apply(body, entity.LimbPoses, driver);
 		// Body.alive/conscious are derived properties (brainHealth > 0, Body.cs:203)
 		// — the proxy's own simulation would keep them consistent locally, but we
 		// render death explicitly: alive=false forces the lying pose immediately

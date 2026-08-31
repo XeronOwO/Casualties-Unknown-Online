@@ -27,6 +27,9 @@ internal sealed class RemoteBodyDriver : MonoBehaviour
 	/// <summary>Environment.TickCount when the ragdoll-collapse event was applied (the suppression window start).</summary>
 	public long RagdollCollapseMs;
 
+	/// <summary>True when the stream has delivered exact owner limb-pose facts; BodyPatches must let those transforms win over the animator skeleton.</summary>
+	public bool RagdollPoseActive;
+
 	/// <summary>Last applied attack-swing flag — the ArmsSwing clip plays only on the flag's rising edge.</summary>
 	public bool PrevAttacking;
 

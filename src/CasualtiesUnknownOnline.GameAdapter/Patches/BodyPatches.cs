@@ -90,8 +90,12 @@ internal static class BodyPatches
 			// synced standing value is restored immediately after the visual
 			// pass and remains the semantic state for SessionStatePump/LyingPose.
 			var originalStanding = __instance.standing;
+			var remoteDriver = __instance.GetComponent<RemoteBodyDriver>(); // Unity object — ==
 			var isRemoteClone = __instance.GetComponentInParent<RemoteBodyDriver>() != null;
-			var visualStanding = RenderProxyPose.EffectiveVisualStanding(originalStanding, isRemoteClone);
+			var visualStanding = RenderProxyPose.EffectiveVisualStanding(
+				originalStanding,
+				isRemoteClone,
+				remoteDriver != null && remoteDriver.RagdollPoseActive);
 			if (!originalStanding && visualStanding)
 			{
 				__instance.standing = true;

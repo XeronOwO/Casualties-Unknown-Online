@@ -124,6 +124,7 @@ All files under `docs/selfchecks/` are historical/per-delivery evidence records.
 | world/radiation-straggler-pressure-selfcheck.md | World/Entities | current | candidate current evidence; verify before citing |
 | players/ragdoll-stale-state-fix-selfcheck.md | Other | current | candidate current evidence; verify before citing |
 | players/ragdoll-render-proxy-limb-pose-selfcheck.md | Players | current | accepted after red-green replay and user verification |
+| players/ragdoll-limb-pose-sync-selfcheck.md | Players | current | exact owner limb poses now ride the 20 Hz player stream |
 | README.md | Other | current | candidate current evidence; verify before citing |
 | items/remote-backpack-container-take-selfcheck.md | Items | current | candidate current evidence; verify before citing |
 | players/remote-backpack-drag-escape-selfcheck.md | Other | current | candidate current evidence; verify before citing |

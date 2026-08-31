@@ -9,5 +9,6 @@ Pressing X enters ragdoll locally; from the other player's view, the character's
 
 Fixed and accepted by the user. The render proxy now presents as standing to
 `HandleVisuals` so the lying clip drives the visible limb transforms, with
-`RenderProxyPoseTests` covering the rule. A newer, separate issue records the
-remaining limb-pose mismatch: `docs/backlog/todo/ragdoll-limb-pose-not-synced.md`.
+`RenderProxyPoseTests` covering the rule. Exact owner limb poses are now
+additionally carried by the player stream; see
+`docs/backlog/done/ragdoll-limb-pose-not-synced.md`.

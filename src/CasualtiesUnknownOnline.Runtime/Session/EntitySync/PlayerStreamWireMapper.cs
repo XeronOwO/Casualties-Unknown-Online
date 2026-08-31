@@ -32,6 +32,12 @@ public static class PlayerStreamWireMapper
 		WorkoutType = entity.WorkoutType,
 		NapVariant = entity.NapVariant,
 		DogShakeIntensity = entity.DogShakeIntensity,
+		LimbPoses = entity.LimbPoses?.ConvertAll(p => new WirePlayerLimbPose
+		{
+			Index = p.Index,
+			LocalPosition = ToWireVector2(p.LocalPosition),
+			RotationZ = p.RotationZ,
+		}),
 	};
 
 	public static void ApplyTo(this WirePlayerStreamState wire, PlayerEntity target)
@@ -59,6 +65,12 @@ public static class PlayerStreamWireMapper
 		target.WorkoutType = wire.WorkoutType;
 		target.NapVariant = wire.NapVariant;
 		target.DogShakeIntensity = wire.DogShakeIntensity;
+		target.LimbPoses = wire.LimbPoses?.ConvertAll(p => new PlayerLimbPose
+		{
+			Index = p.Index,
+			LocalPosition = ToNetVector2(p.LocalPosition),
+			RotationZ = p.RotationZ,
+		});
 	}
 
 	public static WireEntityId ToWireEntityId(NetworkEntityId id) =>

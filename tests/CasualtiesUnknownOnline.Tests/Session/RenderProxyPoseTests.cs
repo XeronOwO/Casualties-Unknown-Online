@@ -16,8 +16,19 @@ public class RenderProxyPoseTests
 	{
 		Assert.True(RenderProxyPose.EffectiveVisualStanding(
 			bodyStanding: false,
-			isRemoteClone: true),
-			"a lying remote clone must render as standing to HandleVisuals so the animator drives its limbs");
+			isRemoteClone: true,
+			hasExactLimbPose: false),
+			"a lying remote clone without exact pose data must render as standing to HandleVisuals so the animator drives its limbs");
+	}
+
+	[Fact]
+	public void RemoteCloneWithExactLimbPose_DoesNotPresentStandingForVisuals()
+	{
+		Assert.False(RenderProxyPose.EffectiveVisualStanding(
+			bodyStanding: false,
+			isRemoteClone: true,
+			hasExactLimbPose: true),
+			"a lying remote clone with exact owner limb poses must not let HandleVisuals overwrite them with the animator skeleton");
 	}
 
 	[Fact]
@@ -25,7 +36,8 @@ public class RenderProxyPoseTests
 	{
 		Assert.False(RenderProxyPose.EffectiveVisualStanding(
 			bodyStanding: false,
-			isRemoteClone: false),
+			isRemoteClone: false,
+			hasExactLimbPose: false),
 			"a non-remote non-standing body must keep its semantic standing value");
 	}
 
@@ -34,9 +46,11 @@ public class RenderProxyPoseTests
 	{
 		Assert.True(RenderProxyPose.EffectiveVisualStanding(
 			bodyStanding: true,
-			isRemoteClone: false));
+			isRemoteClone: false,
+			hasExactLimbPose: false));
 		Assert.True(RenderProxyPose.EffectiveVisualStanding(
 			bodyStanding: true,
-			isRemoteClone: true));
+			isRemoteClone: true,
+			hasExactLimbPose: true));
 	}
 }

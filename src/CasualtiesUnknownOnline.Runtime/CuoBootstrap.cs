@@ -247,6 +247,7 @@ public static class CuoBootstrap
 		// In-game command/chat console: local slash-command chain + the chat UI
 		// surface (no wire message, no packet handler — it only rides the
 		// existing ChatService send path).
+		services.AddSingleton<ConsoleCommandRegistry>();
 		services.AddSingleton<CommandConsoleService>();
 		services.AddSingleton<ICommandControl>(p => p.GetRequiredService<CommandConsoleService>());
 		services.AddSingleton<ICommandCompletionSource>(p => p.GetRequiredService<CommandConsoleService>());

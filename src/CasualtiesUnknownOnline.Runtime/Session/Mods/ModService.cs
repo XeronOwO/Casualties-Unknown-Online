@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
+using CasualtiesUnknownOnline.Runtime.Session.Commands;
 using CasualtiesUnknownOnline.Runtime.Time;
 using Microsoft.Extensions.Logging;
 
@@ -28,6 +29,7 @@ public sealed class ModService : ICuoService, IModsControl, IModUiControl, IModC
 		SessionService session,
 		ModChannel channel,
 		ModRegistry registry,
+		ConsoleCommandRegistry consoleCommands,
 		PacketSender sender,
 		ITimeSource time,
 		ILoggerFactory loggerFactory,
@@ -41,7 +43,7 @@ public sealed class ModService : ICuoService, IModsControl, IModUiControl, IModC
 		_catalog = new ModCatalog();
 		_stateStore = new ModStateStore(stateFile, log);
 		_commands = new ModCommandService(_catalog, session, sender, time, log);
-		_lifecycle = new ModLifecycle(_catalog, _commands, _stateStore, session, channel, registry, time, loggerFactory, log, remoteVitals, remoteInventory, entitySpawner, nativeApiProvider);
+		_lifecycle = new ModLifecycle(_catalog, _commands, consoleCommands, _stateStore, session, channel, registry, time, loggerFactory, log, remoteVitals, remoteInventory, entitySpawner, nativeApiProvider);
 	}
 
 	public void Initialize()

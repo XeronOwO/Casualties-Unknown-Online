@@ -39,7 +39,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Snapshot size reduction](todo/snapshot-size-reduction.md) — measurement-first.
 - [Full-qualified name cleanup](todo/full-qualified-name-cleanup.md) — prefer using directives/aliases; behavior-preserving refactor only.
 - [CUCoreLib migration support](todo/cucorelib-migration-support.md) — evaluate external KrokMP-based project; implement features or provide CUO migration seams.
-- [Command registration Attribute/reflection refactor](todo/command-registration-attribute-refactor.md) — replace hard-coded console command registration with Attribute+reflection and a mod-facing seam.
+
 
 ### In progress
 
@@ -71,6 +71,8 @@ _None._ (Folder exists for the workflow.)
 
 - [In-game command console](done/in-game-command-console.md) — modal Online UI console with slash commands + chat input; selfcheck linked.
 - [Player-list polish](done/player-list-polish.md) — duplicate-name peer-id disambiguation; selfcheck linked.
+
+- [Command registration Attribute/reflection refactor](done/command-registration-attribute-refactor.md) — Attribute/reflection console registry + local mod console command API; selfcheck linked.
 
 - [Guest-mined block leaves ghost fragments on host](done/guest-mined-block-ghost-fragments-on-host.md) — direct air writes now clear stale game BlockDamage; selfcheck linked.
 - [Duplicate unsynced item drops (guest tree / world-spawned)](done/guest-tree-extra-unsynced-drops.md) — same-id materialization dedup; selfcheck linked.

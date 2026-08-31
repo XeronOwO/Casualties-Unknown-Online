@@ -21,6 +21,10 @@ public sealed class TestPermissionlessCommandMod : ICuoMod
 
 	public bool HostActionRegistration { get; private set; }
 
+	public bool ConsoleOrdinaryRegistration { get; private set; }
+
+	public bool ConsoleHostRegistration { get; private set; }
+
 	public List<(ulong Sender, byte[] Payload)> Received { get; } = [];
 
 	public void Bind(IModContext context)
@@ -28,6 +32,10 @@ public sealed class TestPermissionlessCommandMod : ICuoMod
 		Context = context;
 		OrdinaryRegistration = context.Commands.Register(new ModCommand("ordinary", _ => null));
 		HostActionRegistration = context.Commands.Register(new ModCommand("hostaction", _ => null, isHostAction: true));
+		ConsoleOrdinaryRegistration = context.ConsoleCommands.Register(new ModConsoleCommand(
+			"cordinary", "Local no-perm console", "/cordinary", CommandPermission.Anyone, [], _ => null));
+		ConsoleHostRegistration = context.ConsoleCommands.Register(new ModConsoleCommand(
+			"chost", "Local host no-perm console", "/chost", CommandPermission.HostOnly, [], _ => null));
 		context.Network.MessageReceived += (sender, payload) => Received.Add((sender, payload));
 	}
 

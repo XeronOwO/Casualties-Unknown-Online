@@ -22,6 +22,8 @@ public sealed class TestCommandMod : ICuoMod
 
 	public List<(string Name, IReadOnlyList<string> Arguments, ulong Requester)> Executions { get; } = [];
 
+	public List<(string Name, IReadOnlyList<string> Arguments, ulong LocalSteamId)> ConsoleExecutions { get; } = [];
+
 	public void Bind(IModContext context)
 	{
 		Context = context;
@@ -29,6 +31,12 @@ public sealed class TestCommandMod : ICuoMod
 		context.Commands.Register(new ModCommand("hostaction", HostAction, isHostAction: true));
 		context.Commands.Register(new ModCommand("fail", _ => throw new InvalidOperationException("test.commands fail always throws")));
 		context.Commands.Register(new ModCommand("long", _ => new string('x', 64 * 1024)));
+		context.ConsoleCommands.Register(new ModConsoleCommand(
+			"cping", "Local console echo", "/cping <text>", CommandPermission.Anyone,
+			[CommandArgumentKind.Text], ConsoleEcho));
+		context.ConsoleCommands.Register(new ModConsoleCommand(
+			"chost", "Local host-only console echo", "/chost", CommandPermission.HostOnly,
+			[], ConsoleHost));
 	}
 
 	public void Initialize()
@@ -61,5 +69,17 @@ public sealed class TestCommandMod : ICuoMod
 	{
 		Executions.Add((context.Name, [.. context.Arguments], context.RequesterSteamId));
 		return $"host:{context.RequesterSteamId}";
+	}
+
+	private string? ConsoleEcho(IModConsoleCommandContext context)
+	{
+		ConsoleExecutions.Add((context.Name, [.. context.Arguments], context.LocalSteamId));
+		return $"console:{string.Join(" ", context.Arguments)}";
+	}
+
+	private string? ConsoleHost(IModConsoleCommandContext context)
+	{
+		ConsoleExecutions.Add((context.Name, [.. context.Arguments], context.LocalSteamId));
+		return $"host-only:{context.LocalSteamId}";
 	}
 }

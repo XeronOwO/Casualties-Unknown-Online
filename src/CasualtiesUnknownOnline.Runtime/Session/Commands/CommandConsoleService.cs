@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
+using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Session.Chat;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.HostRules;
@@ -14,10 +15,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Commands;
 
 /// <summary>
 /// The local in-game command/chat console. Commands are registered once at
-/// construction, parsed from a slash-prefixed line, gated by a role permission,
-/// executed on this side, and answered into a bounded output buffer. Non-command
-/// lines are forwarded to the existing text-chat domain so the same input
-/// surface doubles as the reworked chat UI.
+/// construction from <see cref="ConsoleCommandAttribute"/>-marked methods into
+/// an immutable command registry, parsed from a slash-prefixed line, gated by a
+/// role permission, executed on this side, and answered into a bounded output
+/// buffer. Non-command lines are forwarded to the existing text-chat domain so
+/// the same input surface doubles as the reworked chat UI.
 /// 
 /// This is deliberately a local console: no new wire protocol, no packet handler,
 /// no host relay. Host-only commands are enforced by role and use the existing
@@ -36,7 +38,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 	private readonly ITimeSource _time;
 	private readonly ILogger<CommandConsoleService> _log;
 	private readonly List<ConsoleLine> _lines = [];
-	private readonly List<CommandDefinition> _commands = [];
+	private readonly ConsoleCommandRegistry _commands;
 
 	public CommandConsoleService(
 		IChatControl chat,
@@ -46,7 +48,8 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		IEntitySyncControl entities,
 		IHostRulesEditor hostRulesEditor,
 		ITimeSource time,
-		ILogger<CommandConsoleService> log)
+		ILogger<CommandConsoleService> log,
+		ConsoleCommandRegistry commandRegistry)
 	{
 		_chat = chat;
 		_session = session;
@@ -56,15 +59,16 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		_hostRulesEditor = hostRulesEditor;
 		_time = time;
 		_log = log;
+		_commands = commandRegistry;
 		_chat.MessageReceived += OnChatLine;
 		_session.SessionEnded += OnSessionEnded;
-		RegisterBuiltIns();
+		_commands.AddBuiltIns(this);
 		AddLine("CUO command console ready. Type /help for available commands, or just type to chat.", ConsoleLineKind.Info);
 	}
 
 	public IReadOnlyList<ConsoleLine> Lines => _lines;
 
-	public IReadOnlyList<CommandSpec> Commands => [.. _commands.Select(c => new CommandSpec(c.Name, c.Description, c.Usage, c.Permission, c.ArgumentKinds))];
+	public IReadOnlyList<CommandSpec> Commands => _commands.ToSpecs();
 
 	public IReadOnlyList<CommandSuggestion> Suggest(string input)
 	{
@@ -88,7 +92,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 				partial = partial.Substring(1);
 			}
 
-			return [.. _commands
+			return [.. _commands.All
 				.Where(c => c.Name.StartsWith(partial, StringComparison.OrdinalIgnoreCase))
 				.Select(c => new CommandSuggestion(c.Name, c.Description))
 				.OrderBy(c => c.Text, StringComparer.OrdinalIgnoreCase)];
@@ -175,33 +179,6 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		_session.SessionEnded -= OnSessionEnded;
 	}
 
-	private void RegisterBuiltIns()
-	{
-		Register("help", "List available commands or show one command's usage.", CommandPermission.Anyone, "/help [command]", [CommandArgumentKind.CommandName], Help);
-		Register("clear", "Clear the console output.", CommandPermission.Anyone, "/clear", [], _ =>
-		{
-			Clear();
-			return string.Empty;
-		});
-		Register("players", "List current session members.", CommandPermission.Anyone, "/players", [], _ => PlayersText());
-		Register("rtt", "Show the last measured round-trip time.", CommandPermission.Anyone, "/rtt", [], _ => RttText());
-		Register("whoami", "Show local role, SteamId and session state.", CommandPermission.Anyone, "/whoami", [], _ => WhoAmIText());
-		Register("heal", "Use a carried medical item on the selected player(s).", CommandPermission.Anyone, "/heal <selector>", [CommandArgumentKind.Selector], Heal);
-		Register("hostrules", "Host only: update host rules from a JSON object.", CommandPermission.HostOnly, "/hostrules <json>", [CommandArgumentKind.Json], HostRules);
-		Register("kick", "Host only: kick a member by SteamId or display name.", CommandPermission.HostOnly, "/kick <steamId|displayName>", [CommandArgumentKind.PlayerOrSteamId], Kick);
-		Register("ban", "Host only: ban a member by SteamId or display name.", CommandPermission.HostOnly, "/ban <steamId|displayName>", [CommandArgumentKind.PlayerOrSteamId], Ban);
-		Register("unban", "Host only: unban a SteamId.", CommandPermission.HostOnly, "/unban <steamId>", [CommandArgumentKind.SteamId], Unban);
-	}
-
-	private void Register(
-		string name,
-		string description,
-		CommandPermission permission,
-		string usage,
-		IReadOnlyList<CommandArgumentKind> argumentKinds,
-		Func<IReadOnlyList<string>, string> handler) =>
-		_commands.Add(new CommandDefinition(name, description, permission, usage, argumentKinds, handler));
-
 	private bool ExecuteCommand(string commandLine)
 	{
 		var tokens = Split(commandLine);
@@ -211,7 +188,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 			return false;
 		}
 
-		var command = _commands.FirstOrDefault(c => string.Equals(c.Name, tokens[0], StringComparison.OrdinalIgnoreCase));
+		var command = FindCommand(tokens[0]);
 		if (command is null)
 		{
 			AddLine($"Unknown command '{tokens[0]}'. Type /help for available commands.", ConsoleLineKind.Error);
@@ -229,7 +206,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 			var output = command.Handler(tokens);
 			if (!string.IsNullOrWhiteSpace(output))
 			{
-				AddLine(output, ConsoleLineKind.Success);
+				AddLine(output!, ConsoleLineKind.Success);
 			}
 
 			return true;
@@ -242,6 +219,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		}
 	}
 
+	[ConsoleCommand("help", "List available commands or show one command's usage.", CommandPermission.Anyone, "/help [command]", CommandArgumentKind.CommandName)]
 	private string Help(IReadOnlyList<string> args)
 	{
 		if (args.Count < 2)
@@ -255,18 +233,15 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 			: $"/{command.Name} — {command.Description}\nUsage: {command.Usage}";
 	}
 
-	private string HelpText()
+	[ConsoleCommand("clear", "Clear the console output.", CommandPermission.Anyone, "/clear")]
+	private string ClearCommand(IReadOnlyList<string> _)
 	{
-		var names = new List<string>(_commands.Count);
-		foreach (var command in _commands)
-		{
-			names.Add($"/{command.Name} — {command.Description}");
-		}
-
-		return string.Join("\n", names);
+		Clear();
+		return string.Empty;
 	}
 
-	private string PlayersText()
+	[ConsoleCommand("players", "List current session members.", CommandPermission.Anyone, "/players")]
+	private string Players(IReadOnlyList<string> _)
 	{
 		var builder = new StringBuilder();
 		builder.Append("Local: ").Append(_session.LocalSteamId).Append(" (").Append(_session.Role).Append(')');
@@ -287,16 +262,19 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		return builder.ToString();
 	}
 
-	private string RttText()
+	[ConsoleCommand("rtt", "Show the last measured round-trip time.", CommandPermission.Anyone, "/rtt")]
+	private string Rtt(IReadOnlyList<string> _)
 	{
 		return _session.LastRttMs < 0f
 			? "No ping measured yet."
 			: $"Last RTT: {_session.LastRttMs:F0} ms";
 	}
 
-	private string WhoAmIText() =>
+	[ConsoleCommand("whoami", "Show local role, SteamId and session state.", CommandPermission.Anyone, "/whoami")]
+	private string WhoAmI(IReadOnlyList<string> _) =>
 		$"Role={_session.Role} SteamId={_session.LocalSteamId} Host={_session.HostSteamId} SessionActive={_session.SessionActive}";
 
+	[ConsoleCommand("heal", "Use a carried medical item on the selected player(s).", CommandPermission.Anyone, "/heal <selector>", CommandArgumentKind.Selector)]
 	private string Heal(IReadOnlyList<string> args)
 	{
 		if (args.Count < 2)
@@ -335,6 +313,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		return CommandSelectorResolver.Resolve(selector, targets);
 	}
 
+	[ConsoleCommand("hostrules", "Host only: update host rules from a JSON object.", CommandPermission.HostOnly, "/hostrules <json>", CommandArgumentKind.Json)]
 	private string HostRules(IReadOnlyList<string> args)
 	{
 		if (args.Count < 2)
@@ -351,6 +330,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		return $"Updated {updated} host rule(s).";
 	}
 
+	[ConsoleCommand("kick", "Host only: kick a member by SteamId or display name.", CommandPermission.HostOnly, "/kick <steamId|displayName>", CommandArgumentKind.PlayerOrSteamId)]
 	private string Kick(IReadOnlyList<string> args)
 	{
 		if (args.Count < 2)
@@ -371,6 +351,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		return $"Kicked member {steamId}.";
 	}
 
+	[ConsoleCommand("ban", "Host only: ban a member by SteamId or display name.", CommandPermission.HostOnly, "/ban <steamId|displayName>", CommandArgumentKind.PlayerOrSteamId)]
 	private string Ban(IReadOnlyList<string> args)
 	{
 		if (args.Count < 2)
@@ -391,6 +372,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		return $"Banned member {steamId}.";
 	}
 
+	[ConsoleCommand("unban", "Host only: unban a SteamId.", CommandPermission.HostOnly, "/unban <steamId>", CommandArgumentKind.SteamId)]
 	private string Unban(IReadOnlyList<string> args)
 	{
 		if (args.Count < 2)
@@ -465,7 +447,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 			name = name.Substring(1);
 		}
 
-		return _commands.FirstOrDefault(c => string.Equals(c.Name, name, StringComparison.OrdinalIgnoreCase));
+		return _commands.Find(name);
 	}
 
 	private static bool IsCommandTokenAtEnd(string input, CommandLineTokenizer.Token token)
@@ -500,7 +482,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 	};
 
 	private IReadOnlyList<CommandSuggestion> SuggestCommandNames(string prefix) =>
-		[.. _commands
+		[.. _commands.All
 			.Where(c => c.Name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
 			.Select(c => new CommandSuggestion(c.Name, c.Description))
 			.OrderBy(c => c.Text, StringComparer.OrdinalIgnoreCase)];
@@ -571,11 +553,14 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 	private static IReadOnlyList<string> Split(string text) =>
 		[.. CommandLineTokenizer.Tokenize(text).Select(t => t.Unquoted)];
 
-	private sealed record CommandDefinition(
-		string Name,
-		string Description,
-		CommandPermission Permission,
-		string Usage,
-		IReadOnlyList<CommandArgumentKind> ArgumentKinds,
-		Func<IReadOnlyList<string>, string> Handler);
+	private string HelpText()
+	{
+		var names = new List<string>(_commands.All.Count);
+		foreach (var command in _commands.All)
+		{
+			names.Add($"/{command.Name} — {command.Description}");
+		}
+
+		return string.Join("\n", names);
+	}
 }

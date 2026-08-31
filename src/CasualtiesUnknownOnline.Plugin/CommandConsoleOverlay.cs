@@ -115,25 +115,41 @@ internal sealed class CommandConsoleOverlay
 				evt.Use();
 				break;
 			case KeyCode.Backspace:
-				if (_session.Backspace())
+				if (evt.control ? _session.BackspaceWord() : _session.Backspace())
 				{
 					evt.Use();
 				}
 
 				break;
 			case KeyCode.Delete:
-				if (_session.Delete())
+				if (evt.control ? _session.DeleteWord() : _session.Delete())
 				{
 					evt.Use();
 				}
 
 				break;
 			case KeyCode.LeftArrow:
-				_session.MoveCursorLeft();
+				if (evt.control)
+				{
+					_session.MoveWordLeft();
+				}
+				else
+				{
+					_session.MoveCursorLeft();
+				}
+
 				evt.Use();
 				break;
 			case KeyCode.RightArrow:
-				_session.MoveCursorRight();
+				if (evt.control)
+				{
+					_session.MoveWordRight();
+				}
+				else
+				{
+					_session.MoveCursorRight();
+				}
+
 				evt.Use();
 				break;
 			case KeyCode.Home:

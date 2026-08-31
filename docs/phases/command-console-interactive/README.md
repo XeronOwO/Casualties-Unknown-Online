@@ -41,6 +41,7 @@ The first slice landed a modal Online UI console page:
 | 3 — Standalone overlay | Complete | `003492e`; slash hotkey, modal routing, focus/ESC handling. |
 | 4 — Fading + hints | Complete | Overlay and Online UI console page render age-based alpha; hint/completion rows are shown. |
 | 5 — Verification/docs | Complete | Full build/test/gates pass; selfcheck and backlog updated in the final docs commit. |
+| 6 — Rich hints/suggestions | Complete | `CommandSuggestion` metadata, clickable suggestion rows, hover tooltips, `/help <command>` usage. |
 
 ## Phases
 
@@ -89,6 +90,16 @@ The first slice landed a modal Online UI console page:
 - Run all required build/gates.
 - Update `docs/backlog/README.md`, the backlog ticket, and the console selfcheck.
 - Commit each completed phase separately, with GPG signatures.
+
+### Phase 6 — Rich hints/suggestions
+
+- Add `CommandSuggestion` metadata so each candidate carries a description.
+- Render suggestions as a scrollable, clickable list with hover tooltips.
+- Add `/help <command>` specific usage output and command-name completion for
+  the help argument.
+- Remaining high-end gaps are tracked in the selfcheck and are not presented as
+  complete Minecraft parity (no full syntax highlighting, no entity-selector /
+  resource-location argument trees, no cursor-position-based token replacement).
 
 ## Non-goals
 

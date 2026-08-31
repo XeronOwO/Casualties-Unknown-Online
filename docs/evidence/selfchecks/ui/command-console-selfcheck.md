@@ -11,8 +11,9 @@ existing text-chat send path; no wire message or protocol version was added.
 |---|---|---|
 | 1 | Command chain | `CommandConsoleService` owns registration, slash parsing, role permission, execution and output buffering. |
 | 2 | Command metadata | `CommandSpec` + `ICommandCompletionSource` expose name/description/usage/permission/argument kinds to the UI without exposing handlers. |
-| 3 | Completion suggestions | `CommandConsoleService.Suggest` returns command names, member names/SteamIds, and banned SteamIds based on argument kind. |
-| 4 | Tokenizer | `CommandLineTokenizer` splits commands while preserving double/single quotes, escapes, `[]`/`{}`/`()` groups, so spaced values, selectors and JSON-like literals survive as one token. |
+| 3 | Completion suggestions | `CommandConsoleService.Suggest` returns `CommandSuggestion` items (text + description) for command names, member names/SteamIds, and banned SteamIds based on argument kind. |
+| 4 | Rich hint UI | The standalone overlay renders a scrollable, clickable suggestion list; `GUIContent` tooltips show the candidate description on hover. |
+| 5 | Tokenizer | `CommandLineTokenizer` splits commands while preserving double/single quotes, escapes, `[]`/`{}`/`()` groups, so spaced values, selectors and JSON-like literals survive as one token. |
 | 5 | Input state machine | `ConsoleInputSession` owns open/close, current line, history navigation, completion cycling and submission, all Unity-free. |
 | 6 | Fade policy | `ConsoleFadePolicy.ComputeAlpha` provides the hold/fade curve used by both console surfaces. |
 | 7 | Standalone overlay | `CommandConsoleOverlay` draws a text area + focused input field only when the input session is open, independent of the Online UI window. |
@@ -32,6 +33,9 @@ existing text-chat send path; no wire message or protocol version was added.
 | Kick/ban/unban commands | Host admin commands round-trip through real session/ban paths | `CommandConsoleServiceTests.HostKick_RemovesMember`, `HostBan_And_Unban_RoundTrip` |
 | Output bounded | Buffer caps at `MaxLines` | code review: `AddLine` removes oldest |
 | Command-name completion | `/k` suggests `kick` | `CommandConsoleServiceTests.Suggest_ReturnsCommandNamesForPrefix` |
+| Rich suggestion descriptions | Command suggestions carry a non-empty description | `CommandConsoleServiceTests.Suggest_IncludesDescriptionForCommand` |
+| Specific help command | `/help kick` shows the command usage | `CommandConsoleServiceTests.Help_WithCommandName_ShowsUsage` |
+| Clickable suggestion acceptance | Clicking a suggestion applies it and clears the list | `ConsoleInputSessionTests.AcceptSuggestion_AppliesSpecificCandidateAndClearsList` |
 | Member completion | `/kick <id>` suggests the member id | `CommandConsoleServiceTests.Suggest_ReturnsMemberIdForKickArgument` |
 | Usage hint | `/kick` returns a usage hint | `CommandConsoleServiceTests.GetHint_ReturnsUsageForKnownCommand` |
 | Tokenizer quoting | Quoted spaces remain one token and unquote cleanly | `CommandLineTokenizerTests.Tokenize_RespectsDoubleQuotedSpaces`, `Unquote_StripsMatchingQuotes` |
@@ -47,7 +51,7 @@ existing text-chat send path; no wire message or protocol version was added.
 | Evidence | Result |
 |---|---|
 | `dotnet build CasualtiesUnknownOnline.slnx` | 0 warnings / 0 errors |
-| `dotnet test CasualtiesUnknownOnline.slnx --no-build` | 1885 passed / 0 failed |
+| `dotnet test CasualtiesUnknownOnline.slnx --no-build` | 1888 passed / 0 failed |
 | `dotnet format CasualtiesUnknownOnline.slnx` | clean |
 | `tools/check-architecture.ps1` | pass (including GameState isolation, item authority, no-legacy, command authority, kernel shape) |
 | `tools/check-event-replay.ps1` | pass (33 events) |

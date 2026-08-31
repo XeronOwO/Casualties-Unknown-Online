@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.Commands;
 
@@ -21,14 +22,16 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 	private string _input = "";
 	private string _draft = "";
 	private int _historyIndex = -1;
-	private IReadOnlyList<string> _completionCandidates = [];
+	private IReadOnlyList<CommandSuggestion> _completionCandidates = [];
 	private int _completionIndex = -1;
 
 	public bool IsOpen => _open;
 
 	public string Input => _input;
 
-	public IReadOnlyList<string> CompletionCandidates => _completionCandidates;
+	public IReadOnlyList<CommandSuggestion> CompletionSuggestions => _completionCandidates;
+
+	public IReadOnlyList<string> CompletionCandidates => [.. _completionCandidates.Select(c => c.Text)];
 
 	public string? Hint => _open ? _completion.GetHint(_input) : null;
 
@@ -193,7 +196,20 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 			}
 		}
 
-		_input = ReplaceCurrentToken(_input, _completionCandidates[_completionIndex]);
+		_input = ReplaceCurrentToken(_input, _completionCandidates[_completionIndex].Text);
+		return true;
+	}
+
+	/// <summary>Applies a specific suggestion chosen from the rendered list.</summary>
+	public bool AcceptSuggestion(CommandSuggestion suggestion)
+	{
+		if (!_open)
+		{
+			return false;
+		}
+
+		_input = ReplaceCurrentToken(_input, suggestion.Text);
+		ResetCompletions();
 		return true;
 	}
 

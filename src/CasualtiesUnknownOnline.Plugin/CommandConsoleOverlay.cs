@@ -23,6 +23,7 @@ internal sealed class CommandConsoleOverlay
 
 	private readonly ConsoleInputSession _session;
 	private Vector2 _scroll;
+	private Vector2 _suggestionScroll;
 	private bool _focusPending;
 
 	internal CommandConsoleOverlay(ConsoleInputSession session)
@@ -69,6 +70,7 @@ internal sealed class CommandConsoleOverlay
 
 		GUILayout.EndArea();
 		EnsureFocus();
+		DrawTooltip();
 	}
 
 	private void HandleKeys()
@@ -174,10 +176,39 @@ internal sealed class CommandConsoleOverlay
 			GUILayout.Label(hint, OnlineUiTheme.Status(OnlineUiTheme.Accent));
 		}
 
-		if (_session.CompletionCandidates.Count > 0)
+		DrawSuggestions();
+	}
+
+	private void DrawSuggestions()
+	{
+		var suggestions = _session.CompletionSuggestions;
+		if (suggestions.Count == 0)
 		{
-			GUILayout.Label(string.Join("   ", _session.CompletionCandidates), OnlineUiTheme.Status(OnlineUiTheme.Muted));
+			return;
 		}
+
+		_suggestionScroll = GUILayout.BeginScrollView(
+			_suggestionScroll,
+			GUILayout.Height(90f),
+			GUILayout.ExpandWidth(true));
+		foreach (var suggestion in suggestions)
+		{
+			GUILayout.BeginHorizontal();
+			var content = new GUIContent(suggestion.Text, suggestion.Description);
+			if (GUILayout.Button(content, OnlineUiTheme.Button(), GUILayout.ExpandWidth(false)))
+			{
+				_session.AcceptSuggestion(suggestion);
+			}
+
+			if (!string.IsNullOrWhiteSpace(suggestion.Description))
+			{
+				GUILayout.Label(suggestion.Description, OnlineUiTheme.MutedLabel(), GUILayout.ExpandWidth(true));
+			}
+
+			GUILayout.EndHorizontal();
+		}
+
+		GUILayout.EndScrollView();
 	}
 
 	private void DrawInput(OnlineUiContext ctx)
@@ -189,6 +220,20 @@ internal sealed class CommandConsoleOverlay
 		value = GUILayout.TextField(value, GUILayout.Height(24f), GUILayout.ExpandWidth(true));
 		_session.SetInput(value);
 		GUILayout.EndHorizontal();
+	}
+
+	private void DrawTooltip()
+	{
+		if (string.IsNullOrEmpty(GUI.tooltip))
+		{
+			return;
+		}
+
+		var mouse = Event.current.mousePosition;
+		var width = Mathf.Min(360f, Screen.width - mouse.x - 24f);
+		var rect = new Rect(mouse.x + 14f, mouse.y + 14f, width, 44f);
+		OnlineUiTheme.DrawBackground(rect);
+		GUI.Label(new Rect(rect.x + 6f, rect.y + 4f, rect.width - 12f, rect.height - 8f), GUI.tooltip, OnlineUiTheme.MutedLabel());
 	}
 
 	private void EnsureFocus()

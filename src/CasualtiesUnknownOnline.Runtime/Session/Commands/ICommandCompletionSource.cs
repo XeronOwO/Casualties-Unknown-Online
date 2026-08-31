@@ -16,7 +16,7 @@ public interface ICommandCompletionSource
 	/// Returns completion candidates for the current command-line token. The
 	/// caller (input session) owns inserting/quoting the chosen candidate.
 	/// </summary>
-	IReadOnlyList<string> Suggest(string input);
+	IReadOnlyList<CommandSuggestion> Suggest(string input);
 
 	/// <summary>
 	/// Returns a short usage/hint line for the current command line, or null

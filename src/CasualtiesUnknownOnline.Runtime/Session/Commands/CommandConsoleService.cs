@@ -54,7 +54,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 
 	public IReadOnlyList<CommandSpec> Commands => [.. _commands.Select(c => new CommandSpec(c.Name, c.Description, c.Usage, c.Permission, c.ArgumentKinds))];
 
-	public IReadOnlyList<string> Suggest(string input)
+	public IReadOnlyList<CommandSuggestion> Suggest(string input)
 	{
 		if (string.IsNullOrWhiteSpace(input))
 		{
@@ -78,8 +78,8 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 
 			return [.. _commands
 				.Where(c => c.Name.StartsWith(partial, StringComparison.OrdinalIgnoreCase))
-				.Select(c => c.Name)
-				.OrderBy(c => c, StringComparer.OrdinalIgnoreCase)];
+				.Select(c => new CommandSuggestion(c.Name, c.Description))
+				.OrderBy(c => c.Text, StringComparer.OrdinalIgnoreCase)];
 		}
 
 		if (!isCommand)
@@ -163,7 +163,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 
 	private void RegisterBuiltIns()
 	{
-		Register("help", "List available commands.", CommandPermission.Anyone, "/help [command]", [], _ => HelpText());
+		Register("help", "List available commands or show one command's usage.", CommandPermission.Anyone, "/help [command]", [CommandArgumentKind.CommandName], Help);
 		Register("clear", "Clear the console output.", CommandPermission.Anyone, "/clear", [], _ =>
 		{
 			Clear();
@@ -224,6 +224,19 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 			AddLine($"Command error: {ex.Message}", ConsoleLineKind.Error);
 			return true;
 		}
+	}
+
+	private string Help(IReadOnlyList<string> args)
+	{
+		if (args.Count < 2)
+		{
+			return HelpText();
+		}
+
+		var command = FindCommand(args[1]);
+		return command is null
+			? $"Unknown command '{args[1]}'. Type /help for available commands."
+			: $"/{command.Name} — {command.Description}\nUsage: {command.Usage}";
 	}
 
 	private string HelpText()
@@ -391,55 +404,62 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		return current.Length == token.Length && current.Start == token.Start;
 	}
 
-	private IReadOnlyList<string> SuggestFor(CommandArgumentKind kind, string prefix) => kind switch
+	private IReadOnlyList<CommandSuggestion> SuggestFor(CommandArgumentKind kind, string prefix) => kind switch
 	{
+		CommandArgumentKind.CommandName => SuggestCommandNames(prefix),
 		CommandArgumentKind.PlayerOrSteamId => SuggestMembers(prefix),
 		CommandArgumentKind.SteamId => SuggestSteamIds(prefix),
 		_ => [],
 	};
 
-	private IReadOnlyList<string> SuggestMembers(string prefix)
+	private IReadOnlyList<CommandSuggestion> SuggestCommandNames(string prefix) =>
+		[.. _commands
+			.Where(c => c.Name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+			.Select(c => new CommandSuggestion(c.Name, c.Description))
+			.OrderBy(c => c.Text, StringComparer.OrdinalIgnoreCase)];
+
+	private IReadOnlyList<CommandSuggestion> SuggestMembers(string prefix)
 	{
-		var result = new List<string>();
+		var result = new List<CommandSuggestion>();
 		foreach (var member in _session.Members)
 		{
 			if (!string.IsNullOrWhiteSpace(member.DisplayName)
 				&& member.DisplayName.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
 			{
-				result.Add(member.DisplayName);
+				result.Add(new CommandSuggestion(member.DisplayName, "Session member display name"));
 			}
 
 			var decimalId = member.SteamId.ToString(CultureInfo.InvariantCulture);
 			if (decimalId.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
 			{
-				result.Add(decimalId);
+				result.Add(new CommandSuggestion(decimalId, "SteamId"));
 			}
 
 			var hexId = "0x" + member.SteamId.ToString("X", CultureInfo.InvariantCulture);
 			if (hexId.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
 			{
-				result.Add(hexId);
+				result.Add(new CommandSuggestion(hexId, "SteamId (hex)"));
 			}
 		}
 
 		return result;
 	}
 
-	private IReadOnlyList<string> SuggestSteamIds(string prefix)
+	private IReadOnlyList<CommandSuggestion> SuggestSteamIds(string prefix)
 	{
-		var result = new List<string>();
+		var result = new List<CommandSuggestion>();
 		foreach (var steamId in _hostBans.BannedSteamIds)
 		{
 			var decimalId = steamId.ToString(CultureInfo.InvariantCulture);
 			if (decimalId.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
 			{
-				result.Add(decimalId);
+				result.Add(new CommandSuggestion(decimalId, "Banned SteamId"));
 			}
 
 			var hexId = "0x" + steamId.ToString("X", CultureInfo.InvariantCulture);
 			if (hexId.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
 			{
-				result.Add(hexId);
+				result.Add(new CommandSuggestion(hexId, "Banned SteamId (hex)"));
 			}
 		}
 

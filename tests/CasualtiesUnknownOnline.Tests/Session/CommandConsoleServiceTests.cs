@@ -108,7 +108,18 @@ public class CommandConsoleServiceTests
 
 		var suggestions = completion.Suggest("/k");
 
-		Assert.Contains("kick", suggestions);
+		Assert.Contains(suggestions, s => s.Text == "kick");
+	}
+
+	[Fact]
+	public void Suggest_IncludesDescriptionForCommand()
+	{
+		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		var completion = host.Services.GetRequiredService<ICommandCompletionSource>();
+
+		var suggestions = completion.Suggest("/k");
+
+		Assert.Contains(suggestions, s => s.Text == "kick" && !string.IsNullOrWhiteSpace(s.Description));
 	}
 
 	[Fact]
@@ -119,7 +130,17 @@ public class CommandConsoleServiceTests
 
 		var suggestions = completion.Suggest($"/kick {GuestId}");
 
-		Assert.Contains(GuestId.ToString(), suggestions);
+		Assert.Contains(suggestions, s => s.Text == GuestId.ToString());
+	}
+
+	[Fact]
+	public void Help_WithCommandName_ShowsUsage()
+	{
+		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		var console = host.Services.GetRequiredService<ICommandControl>();
+
+		Assert.True(console.TryExecute("/help kick"));
+		Assert.Contains(console.Lines, l => l.Text.Contains("Usage: /kick"));
 	}
 
 	[Fact]

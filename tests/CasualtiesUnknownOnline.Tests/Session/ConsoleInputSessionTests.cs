@@ -71,7 +71,7 @@ public class ConsoleInputSessionTests
 	[Fact]
 	public void CycleCompletion_CompletesCommandName()
 	{
-		var session = CreateSession(new StubControl(), new StubCompletion(_ => ["/help", "/whoami"], _ => null));
+		var session = CreateSession(new StubControl(), new StubCompletion(_ => [new CommandSuggestion("/help"), new CommandSuggestion("/whoami")], _ => null));
 		session.Open();
 		session.SetInput("/h");
 
@@ -82,7 +82,7 @@ public class ConsoleInputSessionTests
 	[Fact]
 	public void CycleCompletion_QuotesSpacedArgument()
 	{
-		var session = CreateSession(new StubControl(), new StubCompletion(_ => ["John Doe"], _ => null));
+		var session = CreateSession(new StubControl(), new StubCompletion(_ => [new CommandSuggestion("John Doe")], _ => null));
 		session.Open();
 		session.SetInput("/kick Jo");
 
@@ -99,6 +99,18 @@ public class ConsoleInputSessionTests
 
 		Assert.False(session.CycleCompletion());
 		Assert.Equal("/kick Jo", session.Input);
+	}
+
+	[Fact]
+	public void AcceptSuggestion_AppliesSpecificCandidateAndClearsList()
+	{
+		var session = CreateSession(new StubControl(), new StubCompletion(_ => [new CommandSuggestion("/help", "Show help")], _ => null));
+		session.Open();
+		session.SetInput("/h");
+
+		Assert.True(session.AcceptSuggestion(new CommandSuggestion("/help", "Show help")));
+		Assert.Equal("/help", session.Input);
+		Assert.Empty(session.CompletionSuggestions);
 	}
 
 	[Fact]
@@ -139,14 +151,14 @@ public class ConsoleInputSessionTests
 		}
 	}
 
-	private sealed class StubCompletion(Func<string, IReadOnlyList<string>> suggest, Func<string, string?> hint) : ICommandCompletionSource
+	private sealed class StubCompletion(Func<string, IReadOnlyList<CommandSuggestion>> suggest, Func<string, string?> hint) : ICommandCompletionSource
 	{
-		private readonly Func<string, IReadOnlyList<string>> _suggest = suggest;
+		private readonly Func<string, IReadOnlyList<CommandSuggestion>> _suggest = suggest;
 		private readonly Func<string, string?> _hint = hint;
 
 		public IReadOnlyList<CommandSpec> Commands => [];
 
-		public IReadOnlyList<string> Suggest(string input) => _suggest(input);
+		public IReadOnlyList<CommandSuggestion> Suggest(string input) => _suggest(input);
 
 		public string? GetHint(string input) => _hint(input);
 	}

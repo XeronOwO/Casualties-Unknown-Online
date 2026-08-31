@@ -41,8 +41,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Guest-mined block leaves ghost fragments on host](todo/guest-mined-block-ghost-fragments-on-host.md) — block removed but broken effect remains, "fragmented air".
 - [Runtime log errors to investigate (2026-08-30)](todo/runtime-log-errors-2026-08-30.md) — log files pinned with last write times.
 - [Name tag font size, head position, and off-screen edge padding](todo/name-tag-font-position-edge-padding.md) — UI/name tag issue.
-- [PVP](todo/pvp.md) — low priority, deferred until PvE/rules stable.
-- [KrokMP lower-priority candidates](todo/krokmp-candidates.md) — voice, vote-kick, player-list polish.
+- [Player-list polish](todo/player-list-polish.md) — split from KrokMP candidates; kept as open work.
 - [State-stream bandwidth reduction](todo/state-stream-bandwidth-reduction.md) — measurement-first.
 - [Snapshot size reduction](todo/snapshot-size-reduction.md) — measurement-first.
 
@@ -58,6 +57,8 @@ _None._ (Folder exists for the workflow.)
 
 ### Future
 
+- [PVP](future/pvp.md) — low priority, deferred until PvE/rules stable.
+- [KrokMP lower-priority candidates](future/krokmp-candidates.md) — voice, vote-kick; player-list polish is a separate todo.
 - [EnemyCombatOrderPolicy kernel-process follow-up](future/enemy-combat-order-policy-kernel.md).
 - [Generic Prediction Runtime](future/generic-prediction-runtime.md).
 - [Minecraft-style in-game command console](future/in-game-command-console.md).

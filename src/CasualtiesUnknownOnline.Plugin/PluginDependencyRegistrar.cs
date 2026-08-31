@@ -40,7 +40,7 @@ internal static class PluginDependencyRegistrar
 		var minimumLevel = config.Bind("Logging", "MinimumLevel", "Information",
 			new ConfigDescription(
 				"Minimum CUO log level written to BepInEx and latest.log. Information keeps normal play quiet; Debug enables high-frequency per-frame/per-event traces (clone inventory, character relay, block/sound events).",
-				new AcceptableValueList<string>(new[] { "Information", "Trace", "Debug", "Warning", "Error", "Critical", "None" })));
+				new AcceptableValueList<string>(["Information", "Trace", "Debug", "Warning", "Error", "Critical", "None"])));
 		// Host-authoritative revive/respawn rules (KrokMP-inspired
 		// co-op lifecycle). These are read at decision time, so a
 		// config edit hot-reloads without a restart.
@@ -116,7 +116,7 @@ internal static class PluginDependencyRegistrar
 		var language = config.Bind("UI", "Language", "en",
 			new ConfigDescription(
 				"CUO UI language. Supported: en, zh.",
-				new AcceptableValueList<string>(new[] { "en", "zh" })));
+				new AcceptableValueList<string>(["en", "zh"])));
 		services.Replace(ServiceDescriptor.Singleton<IOptionsMonitor<LocalizationOptions>>(
 			new BepInExOptionsMonitor<LocalizationOptions>(
 				config,

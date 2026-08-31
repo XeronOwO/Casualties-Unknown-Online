@@ -1,4 +1,3 @@
-using System;
 using HarmonyLib;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Patches;
@@ -21,7 +20,7 @@ internal static class GunStatePatches
 			PatchBridge.Impl?.OnGunStateChanged(__instance);
 	}
 
-	[HarmonyPatch(typeof(GunScript), "Fire", new Type[] { typeof(bool) })]
+	[HarmonyPatch(typeof(GunScript), "Fire", [typeof(bool)])]
 	internal static class FirePatch
 	{
 		private static void Postfix(GunScript __instance) =>
@@ -42,7 +41,7 @@ internal static class GunStatePatches
 			PatchBridge.Impl?.OnGunStateChanged(__instance);
 	}
 
-	[HarmonyPatch(typeof(GunScript), "LoadMag", new Type[] { typeof(AmmoScript) })]
+	[HarmonyPatch(typeof(GunScript), "LoadMag", [typeof(AmmoScript)])]
 	internal static class LoadMagPatch
 	{
 		private static void Postfix(GunScript __instance) =>

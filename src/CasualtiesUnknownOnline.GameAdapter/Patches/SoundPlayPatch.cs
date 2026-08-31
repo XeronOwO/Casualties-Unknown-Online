@@ -1,4 +1,3 @@
-using System;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using HarmonyLib;
 using UnityEngine;
@@ -25,8 +24,8 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 /// call (SoundCaptureContext flag, cleared in the postfix).
 /// </summary>
 [HarmonyPatch(typeof(Sound), "Play",
-	new Type[] { typeof(string), typeof(Vector2), typeof(bool), typeof(bool), typeof(Transform),
-		typeof(float), typeof(float), typeof(bool), typeof(bool) })]
+	[typeof(string), typeof(Vector2), typeof(bool), typeof(bool), typeof(Transform),
+		typeof(float), typeof(float), typeof(bool), typeof(bool)])]
 internal static class SoundPlayPatch
 {
 	private static bool Prefix(string clip, Vector2 pos, bool twoDimensional, Transform follow, float volume)

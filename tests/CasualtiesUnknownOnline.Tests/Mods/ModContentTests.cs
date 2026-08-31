@@ -40,7 +40,7 @@ public class ModContentTests
 
 		var sword = mod.Context.Content.Definitions.Single(d => d.Id == "wooden.sword");
 		Assert.Equal("item", sword.Kind);
-		Assert.Equal(new byte[] { 1, 2, 3 }, sword.Data);
+		Assert.Equal([1, 2, 3], sword.Data);
 	}
 
 	[Fact]
@@ -105,7 +105,7 @@ public class ModContentTests
 		firstRead[1] = 8; // caller mutation of the returned copy must not leak either
 
 		var secondRead = content.Definitions.Single(d => d.Id == "copy.test").Data;
-		Assert.Equal(new byte[] { 1, 2, 3 }, secondRead);
+		Assert.Equal([1, 2, 3], secondRead);
 	}
 
 	[Fact]

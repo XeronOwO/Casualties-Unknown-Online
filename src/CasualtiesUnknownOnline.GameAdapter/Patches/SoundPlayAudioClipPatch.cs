@@ -1,4 +1,3 @@
-using System;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using HarmonyLib;
 using UnityEngine;
@@ -20,8 +19,8 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 /// double-reports it.
 /// </summary>
 [HarmonyPatch(typeof(Sound), "Play",
-	new Type[] { typeof(AudioClip), typeof(Vector2), typeof(bool), typeof(bool), typeof(Transform),
-		typeof(float), typeof(float), typeof(bool), typeof(bool) })]
+	[typeof(AudioClip), typeof(Vector2), typeof(bool), typeof(bool), typeof(Transform),
+		typeof(float), typeof(float), typeof(bool), typeof(bool)])]
 internal static class SoundPlayAudioClipPatch
 {
 	private static void Prefix(AudioClip clip, Vector2 pos, bool twoDimensional, Transform follow, float volume)

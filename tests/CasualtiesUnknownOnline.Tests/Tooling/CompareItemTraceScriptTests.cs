@@ -211,7 +211,7 @@ public class CompareItemTraceScriptTests
 	{
 		var script = FindTool("compare-itemtrace.ps1");
 		var arguments = string.Join(" ", new[] { "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", Quote(script) }
-			.Concat(new[] { "-RealLog", files.Path(realFileName) })
+			.Concat(["-RealLog", files.Path(realFileName)])
 			.Concat(args.Select(Quote)));
 
 		var startInfo = new ProcessStartInfo("powershell.exe", arguments)

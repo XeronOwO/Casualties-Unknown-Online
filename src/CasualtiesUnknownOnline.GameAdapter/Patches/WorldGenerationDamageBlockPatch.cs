@@ -20,7 +20,7 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 /// calls inside it get marked as block drops (UtilsCreateDropPatch).
 /// </summary>
 [HarmonyPatch(typeof(WorldGeneration), "DamageBlock",
-	new Type[] { typeof(Vector2), typeof(float), typeof(bool), typeof(bool) })]
+	[typeof(Vector2), typeof(float), typeof(bool), typeof(bool)])]
 internal static class WorldGenerationDamageBlockPatch
 {
 	private static void Prefix(out IDisposable? __state) =>

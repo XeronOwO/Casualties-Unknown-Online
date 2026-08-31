@@ -111,7 +111,7 @@ public class ItemArbitrationVerdictTests
 
 		Assert.True(verdict.Matches, "claimed-but-unknown contents destroy, they never block the action");
 		Assert.False(verdict.NeedsCorrection);
-		Assert.Equal(new ulong[] { 999 }, verdict.ExtraContentIds);
+		Assert.Equal([999], verdict.ExtraContentIds);
 	}
 
 	[Fact]
@@ -145,7 +145,7 @@ public class ItemArbitrationVerdictTests
 		var verdict = ItemArbitration.CheckEvidence(ItemId, authority, evidence);
 
 		Assert.True(verdict.Matches);
-		Assert.Equal(new ulong[] { 999 }, verdict.ExtraContentIds);
+		Assert.Equal([999], verdict.ExtraContentIds);
 	}
 
 	[Fact]

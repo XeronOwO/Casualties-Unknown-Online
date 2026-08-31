@@ -1,4 +1,3 @@
-using System;
 using CasualtiesUnknownOnline.GameAdapter.Character;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using HarmonyLib;
@@ -18,7 +17,7 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 /// Body.HandleVisuals then lerps the extra gunangle back to the synced aim,
 /// which is exactly what recoil looks like.
 /// </summary>
-[HarmonyPatch(typeof(GunScript), "Fire", new Type[] { typeof(bool) })]
+[HarmonyPatch(typeof(GunScript), "Fire", [typeof(bool)])]
 internal static class GunFirePatch
 {
 	private static void Postfix(GunScript __instance)

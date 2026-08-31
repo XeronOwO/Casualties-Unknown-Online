@@ -1,4 +1,3 @@
-using System;
 using CasualtiesUnknownOnline.GameAdapter.Items;
 using HarmonyLib;
 using UnityEngine;
@@ -15,7 +14,7 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 /// report time: the list registers in Item.Start, a frame after Instantiate.
 /// </summary>
 [HarmonyPatch(typeof(Utils), "Create",
-	new Type[] { typeof(string), typeof(Vector2), typeof(float) })]
+	[typeof(string), typeof(Vector2), typeof(float)])]
 internal static class UtilsCreateDropPatch
 {
 	private static void Postfix(GameObject? __result, Vector2 pos)

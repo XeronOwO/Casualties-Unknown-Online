@@ -67,7 +67,7 @@ public class CustomItemDataStateTests
 	[Fact]
 	public void Capture_LiquidCentrifugeCooldown_ReturnsSyntheticFloatField()
 	{
-		var field = CaptureField("liquidcentrifuge", new object[] { 42.5f });
+		var field = CaptureField("liquidcentrifuge", [42.5f]);
 
 		Assert.NotNull(field);
 		Assert.Equal("cooldown", field!.Name);
@@ -78,7 +78,7 @@ public class CustomItemDataStateTests
 
 	[Fact]
 	public void Capture_NonLiquidCentrifuge_ReturnsNull() =>
-		Assert.Null(CaptureField("waterbottle", new object[] { 1f }));
+		Assert.Null(CaptureField("waterbottle", [1f]));
 
 	[Fact]
 	public void Capture_NullOrMissingData_UsesTheNativeDefaultZero()
@@ -94,7 +94,7 @@ public class CustomItemDataStateTests
 
 	[Fact]
 	public void Capture_NonFloatFirstElement_UsesTheNativeDefaultZero() =>
-		Assert.Equal(0f, (float)CaptureField("liquidcentrifuge", new object[] { 1 })!.FloatValue);
+		Assert.Equal(0f, (float)CaptureField("liquidcentrifuge", [1])!.FloatValue);
 
 	[Fact]
 	public void IsCooldownField_OnlyMatchesLiquidCentrifugeFloatCooldown()
@@ -131,7 +131,7 @@ public class CustomItemDataStateTests
 	[Fact]
 	public void Capture_DynamiteFuse_ReturnsSyntheticBoolField()
 	{
-		var field = CaptureFuseField("dynamite", new object[] { true });
+		var field = CaptureFuseField("dynamite", [true]);
 
 		Assert.NotNull(field);
 		Assert.Equal("fuse", field!.Name);
@@ -141,14 +141,14 @@ public class CustomItemDataStateTests
 
 	[Fact]
 	public void Capture_NonDynamite_ReturnsNull() =>
-		Assert.Null(CaptureFuseField("liquidcentrifuge", new object[] { true }));
+		Assert.Null(CaptureFuseField("liquidcentrifuge", [true]));
 
 	[Fact]
 	public void Capture_DynamiteMissingOrFalse_UsesFalse()
 	{
 		var fromNull = CaptureFuseField("dynamite", null);
 		var fromEmpty = CaptureFuseField("dynamite", []);
-		var fromFalse = CaptureFuseField("dynamite", new object[] { false });
+		var fromFalse = CaptureFuseField("dynamite", [false]);
 
 		Assert.NotNull(fromNull);
 		Assert.False(fromNull!.BoolValue);

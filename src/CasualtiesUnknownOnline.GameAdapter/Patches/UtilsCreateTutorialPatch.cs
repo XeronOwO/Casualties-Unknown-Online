@@ -14,7 +14,7 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 /// (TutorialHandler.cs:260).
 /// </summary>
 [HarmonyPatch(typeof(Utils), "Create",
-	new System.Type[] { typeof(string), typeof(Vector2), typeof(float) })]
+	[typeof(string), typeof(Vector2), typeof(float)])]
 internal static class UtilsCreateTutorialPatch
 {
 	private static void Postfix(GameObject? __result)

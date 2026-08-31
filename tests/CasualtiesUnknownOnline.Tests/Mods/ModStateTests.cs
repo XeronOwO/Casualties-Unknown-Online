@@ -36,7 +36,7 @@ public class ModStateTests
 		Assert.True(state.CanWrite);
 		Assert.True(state.TrySet("key", [1, 2, 3]));
 		Assert.True(state.TryGet("key", out var value));
-		Assert.Equal(new byte[] { 1, 2, 3 }, value);
+		Assert.Equal([1, 2, 3], value);
 
 		Assert.True(state.TrySetSchemaVersion(2));
 		Assert.Equal(2, state.SchemaVersion);
@@ -88,7 +88,7 @@ public class ModStateTests
 		firstRead![1] = 8; // caller mutation of the returned copy must not leak either
 
 		Assert.True(state.TryGet("key", out var secondRead));
-		Assert.Equal(new byte[] { 1, 2, 3 }, secondRead);
+		Assert.Equal([1, 2, 3], secondRead);
 	}
 
 	[Fact]
@@ -130,7 +130,7 @@ public class ModStateTests
 			var reopenedState = StateMod(reopened).Context!.State;
 			Assert.Equal(4, reopenedState.SchemaVersion);
 			Assert.True(reopenedState.TryGet("persisted", out var value));
-			Assert.Equal(new byte[] { 9, 8, 7 }, value);
+			Assert.Equal([9, 8, 7], value);
 			reopened.Dispose();
 		}
 		finally

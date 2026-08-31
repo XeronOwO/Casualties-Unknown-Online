@@ -119,10 +119,10 @@ public sealed class ConfigurationProfileStoreTests
 			Assert.True(store.TrySaveCurrent("zeta", out var error), error);
 			Assert.True(store.TrySaveCurrent("alpha", out error), error);
 
-			Assert.Equal(new[] { "alpha", "zeta" }, store.ListProfiles());
+			Assert.Equal(["alpha", "zeta"], store.ListProfiles());
 
 			Assert.True(store.TryDelete("alpha", out error), error);
-			Assert.Equal(new[] { "zeta" }, store.ListProfiles());
+			Assert.Equal(["zeta"], store.ListProfiles());
 			Assert.False(store.TryDelete("missing", out _));
 		}
 		finally

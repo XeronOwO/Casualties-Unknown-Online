@@ -30,7 +30,7 @@ public class TransportTests
 
 		for (byte i = 0; i < 5; i++)
 		{
-			host.SendTo(Guest, new[] { i }, reliable: true);
+			host.SendTo(Guest, [i], reliable: true);
 		}
 
 		Assert.Equal(new byte[] { 0, 1, 2, 3, 4 }, received);
@@ -46,7 +46,7 @@ public class TransportTests
 
 		for (var i = 0; i < 20; i++)
 		{
-			host.SendTo(Guest, new[] { (byte)i }, reliable: false);
+			host.SendTo(Guest, [(byte)i], reliable: false);
 		}
 
 		Assert.True(received > 0, "some messages must get through");
@@ -61,7 +61,7 @@ public class TransportTests
 		var received = 0;
 		guest.MessageReceived += (_, _) => received++;
 
-		host.SendTo(Guest, new[] { (byte)1 }, reliable: true);
+		host.SendTo(Guest, [(byte)1], reliable: true);
 		Assert.Equal(0, received); // not yet due
 
 		network.Advance(99);
@@ -79,7 +79,7 @@ public class TransportTests
 		var received = 0;
 		guest.MessageReceived += (_, _) => received++;
 
-		host.SendTo(Guest, new[] { (byte)1 }, reliable: true);
+		host.SendTo(Guest, [(byte)1], reliable: true);
 
 		Assert.Equal(2, received); // retransmission-style duplicate
 	}
@@ -92,7 +92,7 @@ public class TransportTests
 		var received = 0;
 		guest.MessageReceived += (_, _) => received++;
 
-		var result = host.SendTo(Guest, new[] { (byte)1 }, reliable: true);
+		var result = host.SendTo(Guest, [(byte)1], reliable: true);
 
 		Assert.False(result);
 		Assert.Equal(0, received);
@@ -113,13 +113,13 @@ public class TransportTests
 			delivered.Add(frame[0]);
 			if (frame[0] == 1)
 			{
-				guest.SendTo(Host, new[] { (byte)3 }, reliable: true); // guest echoes inside A's handler
+				guest.SendTo(Host, [(byte)3], reliable: true); // guest echoes inside A's handler
 			}
 		};
 		host.MessageReceived += (_, frame) => delivered.Add(frame[0]);
 
-		host.SendTo(Guest, new[] { (byte)1 }, reliable: true); // A
-		host.SendTo(Guest, new[] { (byte)2 }, reliable: true); // B (same due time, queued before the echo)
+		host.SendTo(Guest, [(byte)1], reliable: true); // A
+		host.SendTo(Guest, [(byte)2], reliable: true); // B (same due time, queued before the echo)
 		network.Advance(100);
 
 		Assert.Equal(new byte[] { 1, 2, 3 }, delivered); // A completes, then B, then the echo
@@ -133,9 +133,9 @@ public class TransportTests
 		var received = new List<byte>();
 		guest.MessageReceived += (_, frame) => received.Add(frame[0]);
 
-		host.SendTo(Guest, new[] { (byte)1 }, reliable: false); // arrives at t+100
+		host.SendTo(Guest, [(byte)1], reliable: false); // arrives at t+100
 		network.SetFaults(Host, Guest, new LinkFaults());
-		host.SendTo(Guest, new[] { (byte)2 }, reliable: false); // arrives now
+		host.SendTo(Guest, [(byte)2], reliable: false); // arrives now
 
 		network.Advance(100);
 

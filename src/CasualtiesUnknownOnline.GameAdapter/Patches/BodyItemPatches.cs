@@ -89,7 +89,7 @@ internal static class BodyItemPatches
 	/// no-op call runs (harmless) without a report. The position read is the
 	/// slot position, identical to the post-drop one (DropItem only re-parents).
 	/// </summary>
-	[HarmonyPatch(typeof(Body), "DropItem", new Type[] { typeof(Item) })]
+	[HarmonyPatch(typeof(Body), "DropItem", [typeof(Item)])]
 	internal static class DropItemPatch
 	{
 		private static void Prefix(Body __instance, Item item)

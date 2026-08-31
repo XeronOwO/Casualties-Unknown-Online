@@ -35,7 +35,7 @@ public class NetPacketTests
 	{
 		var frame = NetPacket.Encode(NetMsg.HandshakeAckAck);
 
-		Assert.Equal(new byte[] { (byte)NetMsg.HandshakeAckAck }, frame);
+		Assert.Equal([(byte)NetMsg.HandshakeAckAck], frame);
 	}
 
 	[Fact]

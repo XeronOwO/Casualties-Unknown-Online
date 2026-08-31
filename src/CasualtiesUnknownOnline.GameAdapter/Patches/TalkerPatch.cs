@@ -18,7 +18,7 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 /// </summary>
 internal static class TalkerPatch
 {
-	[HarmonyPatch(typeof(Talker), "Talk", new[] { typeof(List<string>), typeof(Limb), typeof(bool), typeof(bool) })]
+	[HarmonyPatch(typeof(Talker), "Talk", [typeof(List<string>), typeof(Limb), typeof(bool), typeof(bool)])]
 	internal static class TalkPatch
 	{
 		private static bool Prefix(Talker __instance, out string __state)

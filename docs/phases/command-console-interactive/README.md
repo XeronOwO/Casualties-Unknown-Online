@@ -47,6 +47,7 @@ The first slice landed a modal Online UI console page:
 | 9 — Word editing | Complete | Ctrl+Backspace/Ctrl+Delete delete words; Ctrl+Left/Right move by word. |
 | 10 — Auto-scroll | Complete | Text area jumps to the newest line when the console line count changes. |
 | 11 — Argument provider seam | Complete | `ICommandArgumentSuggestions` exposes selector/JSON/built-in arguments independently of a specific command. |
+| 12 — Selection/clipboard | Complete | Shift+arrows/Home/End selection, Ctrl+A/C/X/V clipboard, visible selection highlight. |
 
 ## Phases
 
@@ -143,6 +144,14 @@ The first slice landed a modal Online UI console page:
   candidates (`{}`, `{"key": "value"}`).
 - Outcome: the completion engine is ready for commands that declare selector or
   JSON arguments; existing commands keep their current providers.
+
+### Phase 12 — Selection and clipboard
+
+- Add selection range state to `ConsoleInputSession`; Shift+arrows/Home/End
+  extend the selection, Ctrl+A selects all.
+- Add Ctrl+C/Ctrl+X/Ctrl+V clipboard support through the Unity system clipboard.
+- Render a visible selection highlight in the custom input.
+- Outcome: text editing no longer lacks selection/copy-paste basics.
 
 ## Non-goals
 

@@ -23,7 +23,8 @@ existing text-chat send path; no wire message or protocol version was added.
 | 12 | Slash hotkey / modal routing | `Plugin.Update` opens the console on `KeyCode.Slash` and calls `IGameAdapter.SetOnlineUiModal` for the console as well as the Online UI window. |
 | 13 | Input blocking / ESC | The existing `OnlineMenuInputGuard`, `PlayerCameraHandleInputPatch` and `PauseHandlerTogglePausePatch` suppress background UI/game input while modal; the overlay consumes Escape before the game sees it. |
 | 14 | Console page polish | `OnlineUiConsoleDrawer` now applies the same fade to its lines; the standalone overlay shows hints and completion candidates. |
-| 15 | No wire change | No `NetMsg`, no packet handler, no `ProtocolVersion` change. |
+| 15 | Selection/clipboard | `ConsoleInputSession` owns selection ranges; the overlay renders selection highlight and wires Ctrl+A/C/X/V to the Unity system clipboard. |
+| 16 | No wire change | No `NetMsg`, no packet handler, no `ProtocolVersion` change. |
 
 ## 2. Self-check table
 
@@ -49,6 +50,8 @@ existing text-chat send path; no wire message or protocol version was added.
 | Cursor editing | Insert/backspace/move cursor update input+cursor correctly | `ConsoleInputSessionTests.InsertChar_InsertsAtCursorAndMovesForward`, `Backspace_DeletesBeforeCursor`, `MoveCursorLeftAndRight_AdjustsPosition` |
 | Cursor-aware completion | Tab replaces the token at the cursor and preserves suffix | `ConsoleInputSessionTests.CycleCompletion_ReplacesTokenAtCursorPreservingSuffix` |
 | Word editing | Ctrl+Backspace/Ctrl+Delete and Ctrl+Left/Right work on word boundaries | `ConsoleInputSessionTests.BackspaceWord_DeletesWholeWordBeforeCursor`, `DeleteWord_DeletesNextWordAfterCursor`, `MoveWordLeftAndRight_JumpsBetweenWords` |
+| Selection | Select-all, selected text, insert/delete replacing selection, Shift+arrow extension | `ConsoleInputSessionTests.SelectAll_HasSelectionAndSelectedText`, `InsertText_ReplacesSelection`, `DeleteSelection_RemovesRange`, `MoveCursorRight_WithShiftExtendsSelection` |
+| Clipboard wiring | Ctrl+C/X/V use the Unity system clipboard in the overlay | static review: `CommandConsoleOverlay` Ctrl+C/X/V cases; clipboard behavior is user-acceptance territory |
 | Fade policy | Hold, mid-fade, and expired alphas are deterministic | `ConsoleFadePolicyTests` (4 cases) |
 | Input session open/close | Open prefills `/`; Escape closes without executing | `ConsoleInputSessionTests.Open_PrefillsSlashAndSetsOpen`, `Escape_ClosesWithoutExecuting` |
 | Input session submit/history | Submit keeps console open, records history, Up/Down restores draft | `ConsoleInputSessionTests.Submit_ExecutesClearsAndKeepsConsoleOpen`, `History_UpAndDown_RestoresDraft` |
@@ -64,15 +67,15 @@ existing text-chat send path; no wire message or protocol version was added.
 - No actual CUO command yet declares `Selector` or `Json` arguments, so the new
   argument providers exist at the seam but are not visible on a real command
   invocation; the tokenizer still preserves those literals.
-- No IME/clipboard/selection support yet; printable ASCII/UTF insertion,
-  arrows, Home/End, Backspace/Delete and word-level editing are covered.
+- No IME support yet; printable ASCII/UTF insertion, cursors, word editing,
+  selection and clipboard are covered.
 
 ## 4. Verification results
 
 | Evidence | Result |
 |---|---|
 | `dotnet build CasualtiesUnknownOnline.slnx` | 0 warnings / 0 errors |
-| `dotnet test CasualtiesUnknownOnline.slnx --no-build` | 1899 passed / 0 failed |
+| `dotnet test CasualtiesUnknownOnline.slnx --no-build` | 1903 passed / 0 failed |
 | `dotnet format CasualtiesUnknownOnline.slnx` | clean |
 | `tools/check-architecture.ps1` | pass (including GameState isolation, item authority, no-legacy, command authority, kernel shape) |
 | `tools/check-event-replay.ps1` | pass (33 events) |

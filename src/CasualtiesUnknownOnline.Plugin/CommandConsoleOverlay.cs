@@ -129,6 +129,47 @@ internal sealed class CommandConsoleOverlay
 				}
 
 				break;
+			case KeyCode.A:
+				if (evt.control)
+				{
+					_session.SelectAll();
+					evt.Use();
+				}
+
+				break;
+			case KeyCode.C:
+				if (evt.control)
+				{
+					if (_session.HasSelection)
+					{
+						GUIUtility.systemCopyBuffer = _session.SelectedText;
+					}
+
+					evt.Use();
+				}
+
+				break;
+			case KeyCode.X:
+				if (evt.control)
+				{
+					if (_session.HasSelection)
+					{
+						GUIUtility.systemCopyBuffer = _session.SelectedText;
+						_session.DeleteSelection();
+					}
+
+					evt.Use();
+				}
+
+				break;
+			case KeyCode.V:
+				if (evt.control)
+				{
+					_session.InsertText(GUIUtility.systemCopyBuffer);
+					evt.Use();
+				}
+
+				break;
 			case KeyCode.LeftArrow:
 				if (evt.control)
 				{
@@ -136,7 +177,7 @@ internal sealed class CommandConsoleOverlay
 				}
 				else
 				{
-					_session.MoveCursorLeft();
+					_session.MoveCursorLeft(evt.shift);
 				}
 
 				evt.Use();
@@ -148,17 +189,17 @@ internal sealed class CommandConsoleOverlay
 				}
 				else
 				{
-					_session.MoveCursorRight();
+					_session.MoveCursorRight(evt.shift);
 				}
 
 				evt.Use();
 				break;
 			case KeyCode.Home:
-				_session.MoveHome();
+				_session.MoveHome(evt.shift);
 				evt.Use();
 				break;
 			case KeyCode.End:
-				_session.MoveEnd();
+				_session.MoveEnd(evt.shift);
 				evt.Use();
 				break;
 			case KeyCode.UpArrow:
@@ -294,6 +335,11 @@ internal sealed class CommandConsoleOverlay
 
 		OnlineUiTheme.DrawBackground(rect);
 		var style = InputStyle();
+		if (_session.HasSelection)
+		{
+			DrawSelectionBackground(rect, style);
+		}
+
 		DrawHighlightedInput(rect, style);
 
 		if (ShouldDrawCaret() && _session.IsOpen)
@@ -311,6 +357,18 @@ internal sealed class CommandConsoleOverlay
 			GUI.DrawTexture(caretRect, Texture2D.whiteTexture);
 			GUI.color = previous;
 		}
+	}
+
+	private void DrawSelectionBackground(Rect rect, GUIStyle style)
+	{
+		var start = _session.SelectionStart;
+		var end = _session.SelectionEnd;
+		var startX = rect.x + style.padding.left + style.CalcSize(new GUIContent(_session.Input.Substring(0, start))).x;
+		var endX = rect.x + style.padding.left + style.CalcSize(new GUIContent(_session.Input.Substring(0, end))).x;
+		var previous = GUI.color;
+		GUI.color = new Color(0.35f, 0.55f, 0.85f, 0.35f);
+		GUI.DrawTexture(new Rect(startX, rect.y + 3f, Mathf.Max(0f, endX - startX), rect.height - 6f), Texture2D.whiteTexture);
+		GUI.color = previous;
 	}
 
 	private void DrawHighlightedInput(Rect rect, GUIStyle style)

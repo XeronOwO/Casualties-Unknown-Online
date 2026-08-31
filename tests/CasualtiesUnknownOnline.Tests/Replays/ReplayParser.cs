@@ -72,7 +72,7 @@ internal static class ReplayParser
 				throw new FormatException($"{sourceName}:{lineNumber}: expected '@<ms> <action>', got '{line}'");
 			}
 
-			var parts = line.Substring(1).Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+			var parts = line.Substring(1).Split([' '], StringSplitOptions.RemoveEmptyEntries);
 			if (parts.Length < 1 || !int.TryParse(parts[0], out var ms))
 			{
 				throw new FormatException($"{sourceName}:{lineNumber}: invalid timestamp in '{line}'");

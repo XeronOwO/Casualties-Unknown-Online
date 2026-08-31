@@ -52,6 +52,8 @@ dotnet_diagnostic.IDE0005.severity = error
 dotnet_diagnostic.IDE0011.severity = error
 # Object/collection initializers
 dotnet_diagnostic.IDE0017.severity = error
+# Use collection expressions everywhere a collection initialization can be simplified
+dotnet_diagnostic.IDE0300.severity = error
 # Collection expressions (C# 12, compiles fine on net48): simplify initializers
 dotnet_diagnostic.IDE0301.severity = error
 # Prefer collection initializers over repeated Add calls

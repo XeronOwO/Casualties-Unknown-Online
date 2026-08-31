@@ -95,7 +95,7 @@ public class AdapterControlSurfaceTests
 		{
 			var items = host.Services.GetRequiredService<IItemControl>();
 			items.LayerModifierRandomState = [9, 8, 7];
-			Assert.Equal(new byte[] { 9, 8, 7 }, items.LayerModifierRandomState);
+			Assert.Equal([9, 8, 7], items.LayerModifierRandomState);
 
 			var entities = host.Services.GetRequiredService<IEntitySyncControl>();
 			Assert.Empty(entities.RemotePlayers);

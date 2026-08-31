@@ -23,6 +23,8 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 	private string _draft = "";
 	private int _historyIndex = -1;
 	private int _cursor;
+	private int _selectionStart = -1;
+	private int _selectionEnd = -1;
 	private IReadOnlyList<CommandSuggestion> _completionCandidates = [];
 	private int _completionIndex = -1;
 
@@ -31,6 +33,19 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 	public string Input => _input;
 
 	public int Cursor => _cursor;
+
+	public int SelectionStart => _selectionStart;
+
+	public int SelectionEnd => _selectionEnd;
+
+	public bool HasSelection => _open
+		&& _selectionStart >= 0
+		&& _selectionEnd >= 0
+		&& _selectionStart != _selectionEnd;
+
+	public string SelectedText => HasSelection
+		? _input.Substring(_selectionStart, _selectionEnd - _selectionStart)
+		: "";
 
 	public IReadOnlyList<CommandSuggestion> CompletionSuggestions => _completionCandidates;
 
@@ -52,6 +67,7 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 		_cursor = _input.Length;
 		_historyIndex = -1;
 		_draft = "";
+		ClearSelection();
 		ResetCompletions();
 	}
 
@@ -67,6 +83,7 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 		_cursor = 0;
 		_historyIndex = -1;
 		_draft = "";
+		ClearSelection();
 		ResetCompletions();
 	}
 
@@ -75,6 +92,7 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 		var normalized = value ?? "";
 		_input = normalized;
 		_cursor = cursor.HasValue ? ClampCursor(cursor.Value) : normalized.Length;
+		ClearSelection();
 		ResetCompletions();
 	}
 
@@ -83,7 +101,48 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 		if (_open)
 		{
 			_cursor = ClampCursor(position);
+			ClearSelection();
 		}
+	}
+
+	public void SelectAll()
+	{
+		if (!_open)
+		{
+			return;
+		}
+
+		_selectionStart = 0;
+		_selectionEnd = _input.Length;
+		_cursor = _input.Length;
+	}
+
+	public void SetSelection(int start, int end)
+	{
+		if (!_open)
+		{
+			return;
+		}
+
+		var a = ClampCursor(start);
+		var b = ClampCursor(end);
+		_selectionStart = Math.Min(a, b);
+		_selectionEnd = Math.Max(a, b);
+		_cursor = _selectionEnd;
+	}
+
+	public bool DeleteSelection()
+	{
+		if (!HasSelection)
+		{
+			return false;
+		}
+
+		_input = _input.Remove(_selectionStart, _selectionEnd - _selectionStart);
+		_cursor = _selectionStart;
+		ClearSelection();
+		ResetCompletions();
+		return true;
 	}
 
 	public void InsertChar(char c)
@@ -93,6 +152,7 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 			return;
 		}
 
+		DeleteSelection();
 		_input = _input.Substring(0, _cursor) + c + _input.Substring(_cursor);
 		_cursor++;
 		ResetCompletions();
@@ -105,6 +165,7 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 			return;
 		}
 
+		DeleteSelection();
 		_input = _input.Substring(0, _cursor) + text + _input.Substring(_cursor);
 		_cursor += text.Length;
 		ResetCompletions();
@@ -112,7 +173,17 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 
 	public bool Backspace()
 	{
-		if (!_open || _cursor <= 0)
+		if (!_open)
+		{
+			return false;
+		}
+
+		if (DeleteSelection())
+		{
+			return true;
+		}
+
+		if (_cursor <= 0)
 		{
 			return false;
 		}
@@ -125,7 +196,17 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 
 	public bool Delete()
 	{
-		if (!_open || _cursor >= _input.Length)
+		if (!_open)
+		{
+			return false;
+		}
+
+		if (DeleteSelection())
+		{
+			return true;
+		}
+
+		if (_cursor >= _input.Length)
 		{
 			return false;
 		}
@@ -135,20 +216,50 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 		return true;
 	}
 
-	public void MoveCursorLeft()
+	public void MoveCursorLeft(bool extendSelection = false)
 	{
-		if (_open && _cursor > 0)
+		if (!_open)
+		{
+			return;
+		}
+
+		if (extendSelection)
+		{
+			var anchor = HasSelection ? _selectionStart : _cursor;
+			var target = Math.Max(0, _cursor - 1);
+			SetSelection(anchor, target);
+			return;
+		}
+
+		if (_cursor > 0)
 		{
 			_cursor--;
 		}
+
+		ClearSelection();
 	}
 
-	public void MoveCursorRight()
+	public void MoveCursorRight(bool extendSelection = false)
 	{
-		if (_open && _cursor < _input.Length)
+		if (!_open)
+		{
+			return;
+		}
+
+		if (extendSelection)
+		{
+			var anchor = HasSelection ? _selectionStart : _cursor;
+			var target = Math.Min(_input.Length, _cursor + 1);
+			SetSelection(anchor, target);
+			return;
+		}
+
+		if (_cursor < _input.Length)
 		{
 			_cursor++;
 		}
+
+		ClearSelection();
 	}
 
 	public void MoveWordLeft()
@@ -171,6 +282,7 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 		}
 
 		_cursor = i;
+		ClearSelection();
 	}
 
 	public void MoveWordRight()
@@ -192,11 +304,22 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 		}
 
 		_cursor = i;
+		ClearSelection();
 	}
 
 	public bool BackspaceWord()
 	{
-		if (!_open || _cursor <= 0)
+		if (!_open)
+		{
+			return false;
+		}
+
+		if (DeleteSelection())
+		{
+			return true;
+		}
+
+		if (_cursor <= 0)
 		{
 			return false;
 		}
@@ -221,7 +344,17 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 
 	public bool DeleteWord()
 	{
-		if (!_open || _cursor >= _input.Length)
+		if (!_open)
+		{
+			return false;
+		}
+
+		if (DeleteSelection())
+		{
+			return true;
+		}
+
+		if (_cursor >= _input.Length)
 		{
 			return false;
 		}
@@ -242,20 +375,38 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 		return true;
 	}
 
-	public void MoveHome()
+	public void MoveHome(bool extendSelection = false)
 	{
-		if (_open)
+		if (!_open)
 		{
-			_cursor = 0;
+			return;
 		}
+
+		if (extendSelection)
+		{
+			SetSelection(_cursor, 0);
+			return;
+		}
+
+		_cursor = 0;
+		ClearSelection();
 	}
 
-	public void MoveEnd()
+	public void MoveEnd(bool extendSelection = false)
 	{
-		if (_open)
+		if (!_open)
 		{
-			_cursor = _input.Length;
+			return;
 		}
+
+		if (extendSelection)
+		{
+			SetSelection(_cursor, _input.Length);
+			return;
+		}
+
+		_cursor = _input.Length;
+		ClearSelection();
 	}
 
 	/// <summary>
@@ -282,6 +433,7 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 		_cursor = 0;
 		_historyIndex = -1;
 		_draft = "";
+		ClearSelection();
 		ResetCompletions();
 		return true;
 	}
@@ -320,6 +472,7 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 
 		_input = _history[_historyIndex];
 		_cursor = _input.Length;
+		ClearSelection();
 		ResetCompletions();
 		return true;
 	}
@@ -344,6 +497,7 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 		}
 
 		_cursor = _input.Length;
+		ClearSelection();
 		ResetCompletions();
 		return true;
 	}
@@ -383,6 +537,7 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 
 		_input = ReplaceCurrentToken(_input, _completionCandidates[_completionIndex].Text);
 		_cursor = _input.Length;
+		ClearSelection();
 		return true;
 	}
 
@@ -396,6 +551,7 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 
 		_input = ReplaceCurrentToken(_input, suggestion.Text);
 		_cursor = _input.Length;
+		ClearSelection();
 		ResetCompletions();
 		return true;
 	}
@@ -413,6 +569,12 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 	{
 		_completionCandidates = [];
 		_completionIndex = -1;
+	}
+
+	private void ClearSelection()
+	{
+		_selectionStart = -1;
+		_selectionEnd = -1;
 	}
 
 	private int ClampCursor(int position) => Math.Max(0, Math.Min(_input.Length, position));

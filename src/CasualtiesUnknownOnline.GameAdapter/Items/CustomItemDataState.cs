@@ -67,7 +67,7 @@ internal static class CustomItemDataState
 			return data;
 		}
 
-		return new object[] { value };
+		return [value];
 	}
 
 	internal static ComponentFieldMsg? CaptureDynamiteFuse(string itemId, object[]? data)
@@ -106,6 +106,6 @@ internal static class CustomItemDataState
 			return data;
 		}
 
-		return new object[] { value };
+		return [value];
 	}
 }

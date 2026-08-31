@@ -177,6 +177,58 @@ public class ConsoleInputSessionTests
 	}
 
 	[Fact]
+	public void SelectAll_HasSelectionAndSelectedText()
+	{
+		var session = CreateSession(new StubControl(), new StubCompletion(_ => [], _ => null));
+		session.Open();
+		session.SetInput("help me");
+
+		session.SelectAll();
+
+		Assert.True(session.HasSelection);
+		Assert.Equal("help me", session.SelectedText);
+	}
+
+	[Fact]
+	public void InsertText_ReplacesSelection()
+	{
+		var session = CreateSession(new StubControl(), new StubCompletion(_ => [], _ => null));
+		session.Open();
+		session.SetInput("hello", cursor: 5);
+		session.SetSelection(0, 5);
+
+		session.InsertText("bye");
+
+		Assert.Equal("bye", session.Input);
+		Assert.False(session.HasSelection);
+	}
+
+	[Fact]
+	public void DeleteSelection_RemovesRange()
+	{
+		var session = CreateSession(new StubControl(), new StubCompletion(_ => [], _ => null));
+		session.Open();
+		session.SetInput("hello world", cursor: 5);
+		session.SetSelection(0, 5);
+
+		Assert.True(session.DeleteSelection());
+		Assert.Equal(" world", session.Input);
+	}
+
+	[Fact]
+	public void MoveCursorRight_WithShiftExtendsSelection()
+	{
+		var session = CreateSession(new StubControl(), new StubCompletion(_ => [], _ => null));
+		session.Open();
+		session.SetInput("abc", cursor: 1);
+
+		session.MoveCursorRight(extendSelection: true);
+
+		Assert.True(session.HasSelection);
+		Assert.Equal("b", session.SelectedText);
+	}
+
+	[Fact]
 	public void CycleCompletion_ReplacesTokenAtCursorPreservingSuffix()
 	{
 		var session = CreateSession(new StubControl(), new StubCompletion(_ => [new CommandSuggestion("John Doe")], _ => null));

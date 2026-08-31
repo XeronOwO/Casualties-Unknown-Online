@@ -91,6 +91,7 @@ All files under `docs/selfchecks/` are historical/per-delivery evidence records.
 | protocol/network-traffic-monitor-selfcheck.md | Other | current | candidate current evidence; verify before citing |
 | players/online-ui-player-awareness-selfcheck.md | Players | current | candidate current evidence; verify before citing |
 | ui/online-ui-polish-selfcheck.md | UI | current | candidate current evidence; verify before citing |
+| ui/player-list-peer-id-disambiguation-selfcheck.md | UI | current | candidate current evidence; verify before citing |
 | ui/online-ui-scoped-passthrough-selfcheck.md | UI | current | candidate current evidence; verify before citing |
 | ui/online-ui-selfcheck.md | UI | historical | superseded/old-wire; do not cite as current evidence without checking protocol.md |
 | ui/online-ui-window-selfcheck.md | UI | current | candidate current evidence; verify before citing |

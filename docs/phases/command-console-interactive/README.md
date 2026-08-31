@@ -43,6 +43,7 @@ The first slice landed a modal Online UI console page:
 | 5 — Verification/docs | Complete | Full build/test/gates pass; selfcheck and backlog updated in the final docs commit. |
 | 6 — Rich hints/suggestions | Complete | `CommandSuggestion` metadata, clickable suggestion rows, hover tooltips, `/help <command>` usage. |
 | 7 — Cursor-aware input/editing | Complete | Custom IMGUI input with caret, arrows/Home/End, Backspace/Delete, and Tab completion replaces the token at the cursor. |
+| 8 — Basic syntax highlighting | Complete | Command tokens rendered in accent color, quoted/bracket/brace literals in muted color, plain text in default color. |
 
 ## Phases
 
@@ -99,8 +100,8 @@ The first slice landed a modal Online UI console page:
 - Add `/help <command>` specific usage output and command-name completion for
   the help argument.
 - Remaining high-end gaps are tracked in the selfcheck and are not presented as
-  complete Minecraft parity (no full syntax highlighting, no entity-selector /
-  resource-location argument trees).
+  complete Minecraft parity (no entity-selector / resource-location argument
+  trees).
 
 ### Phase 7 — Cursor-aware input/editing
 
@@ -111,6 +112,12 @@ The first slice landed a modal Online UI console page:
 - Tab completion now replaces the token under the actual cursor, preserving text
   after the token.
 - Outcome: Minecraft-style in-place editing and completion.
+
+### Phase 8 — Basic syntax highlighting
+
+- Render the custom input with per-token colors: command names in accent,
+  quoted/selector/JSON-like literals in muted, plain text in default color.
+- Outcome: command text is visually distinguishable while typing.
 
 ## Non-goals
 

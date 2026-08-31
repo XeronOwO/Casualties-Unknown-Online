@@ -11,6 +11,7 @@ using CasualtiesUnknownOnline.Runtime.Localization;
 using CasualtiesUnknownOnline.Runtime.Networking;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
+using CasualtiesUnknownOnline.Runtime.Session.Commands;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
 using CasualtiesUnknownOnline.Runtime.Session.HostRules;
@@ -41,6 +42,7 @@ public class Plugin : BaseUnityPlugin
 	private SessionService _session = null!;
 	private IHostBanService _hostBan = null!;
 	private IHostRules _hostRules = null!;
+	private ICommandControl _commands = null!;
 	private ILocalizationService _localization = null!;
 	private HostRulesConfigEditor _rulesEditor = null!;
 	private LoggingConfigEditor _loggingEditor = null!;
@@ -98,6 +100,7 @@ public class Plugin : BaseUnityPlugin
 			_session = _services.GetRequiredService<SessionService>();
 			_hostBan = _services.GetRequiredService<IHostBanService>();
 			_hostRules = _services.GetRequiredService<IHostRules>();
+			_commands = _services.GetRequiredService<ICommandControl>();
 			_localization = _services.GetRequiredService<ILocalizationService>();
 			_rulesEditor = _services.GetRequiredService<HostRulesConfigEditor>();
 			_loggingEditor = _services.GetRequiredService<LoggingConfigEditor>();
@@ -429,7 +432,7 @@ public class Plugin : BaseUnityPlugin
 			_lastJoinError = _ipActions.LastError;
 		}
 
-		_onlineUi.Draw(_steam, _session, _entities, _remoteVitals, _remoteInventory, _playerInteraction, _interactionVisibility, _hostBan, _hostRules, _adapter, _localization, _rulesEditor, _loggingEditor, _languageEditor, _lastJoinError);
+		_onlineUi.Draw(_steam, _session, _entities, _remoteVitals, _remoteInventory, _playerInteraction, _interactionVisibility, _hostBan, _hostRules, _commands, _adapter, _localization, _rulesEditor, _loggingEditor, _languageEditor, _lastJoinError);
 		ModUiDrawing.DrawAll(_modUiControl, e => _log.LogError(e, "Mod UI window threw while drawing."));
 	}
 

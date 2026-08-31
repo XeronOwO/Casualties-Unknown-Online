@@ -35,6 +35,8 @@ internal sealed class OnlineUiWindowState
 
 	internal string? ProfileStatus;
 
+	internal string ConsoleInput = "";
+
 	internal bool ProfileStatusIsError;
 
 	internal OnlineUiTransportMode TransportMode = OnlineUiTransportMode.Steam;

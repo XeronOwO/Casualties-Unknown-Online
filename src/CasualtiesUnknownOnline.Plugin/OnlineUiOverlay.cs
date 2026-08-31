@@ -6,6 +6,7 @@ using CasualtiesUnknownOnline.Runtime.Localization;
 using CasualtiesUnknownOnline.Runtime.OnlineUi;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
+using CasualtiesUnknownOnline.Runtime.Session.Commands;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.HostRules;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
@@ -152,6 +153,7 @@ internal sealed class OnlineUiOverlay
 		IPlayerInteractionVisibility? interactionVisibility,
 		IHostBanService hostBan,
 		IHostRules hostRules,
+		ICommandControl commands,
 		IGameAdapter? adapter,
 		ILocalizationService localization,
 		HostRulesConfigEditor? rulesEditor,
@@ -170,6 +172,7 @@ internal sealed class OnlineUiOverlay
 			Visibility = interactionVisibility,
 			HostBan = hostBan,
 			HostRules = hostRules,
+			Commands = commands,
 			Localization = localization,
 			RulesEditor = rulesEditor,
 			Logging = logging,

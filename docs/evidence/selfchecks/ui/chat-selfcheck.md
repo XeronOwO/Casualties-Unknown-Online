@@ -122,5 +122,6 @@ the plan approval for this cycle; no further interactive approval is required.
   existing Online UI style.
 - **Later note (2026-08-23):** this IMGUI chat panel was disabled/removed from
   the overlay because its input field captured Tab/WASD while playing. The
-  Runtime chat channel/service and wire message remain; the UI will be redone
-  as part of a Minecraft-style command input surface (see `docs/backlog/README.md`).
+  Runtime chat channel/service and wire message remain; the UI is now redone as
+  the modal in-game command console page
+  (`docs/evidence/selfchecks/ui/command-console-selfcheck.md`).

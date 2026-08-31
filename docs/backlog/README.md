@@ -40,10 +40,11 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### In progress
 
-- [Interactive in-game command console](in-progress/in-game-command-console-interactive.md) — slash-opened focused input, completion/history/hints, fading text area.
+_None._ (Folder exists for the workflow.)
 
 ### Review
 
+- [Interactive in-game command console](review/in-game-command-console-interactive.md) — slash-opened focused input, completion/history/hints, fading text area.
 - [Trade domain dual-side runtime pass](review/trade-domain-dual-side-runtime.md) — #59/#93.
 - [World determinism / WorldFingerprint comparison](review/world-determinism-world-fingerprint.md).
 - [Block-break first-writer-wins dual-side runtime confirmation](review/block-break-first-writer-wins.md).

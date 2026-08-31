@@ -16,8 +16,8 @@ evidence was produced, and what remains.
    literals.
 5. While the console input is open it blocks other mouse/keyboard game
    interaction; Escape exits the input state.
-6. Valuable Minecraft-console interaction patterns (history, completion, usage
-   hints, fading chat) are included; no Minecraft source is committed.
+6. Valuable console interaction patterns (history, completion, usage
+   hints, fading chat) are included; no external game source is committed.
 
 ## Current implementation baseline
 
@@ -31,6 +31,16 @@ The first slice landed a modal Online UI console page:
   `/unban`; plain text goes through `ChatService`.
 - Tests: `CommandConsoleServiceTests`.
 - Selfcheck: `docs/evidence/selfchecks/ui/command-console-selfcheck.md`.
+
+## Status
+
+| Phase | Status | Evidence |
+|---|---|---|
+| 1 — Recon/plan | Complete | This plan plus the existing input-chain source (`Plugin.Update`, `OnlineMenuInputGuard`, `PlayerCameraHandleInputPatch`). |
+| 2 — Runtime model | Complete | `cc8224e`; new completion/tokenizer/input-session/fade types, focused tests. |
+| 3 — Standalone overlay | Complete | `003492e`; slash hotkey, modal routing, focus/ESC handling. |
+| 4 — Fading + hints | Complete | Overlay and Online UI console page render age-based alpha; hint/completion rows are shown. |
+| 5 — Verification/docs | Complete | Full build/test/gates pass; selfcheck and backlog updated in the final docs commit. |
 
 ## Phases
 
@@ -82,6 +92,6 @@ The first slice landed a modal Online UI console page:
 
 ## Non-goals
 
-- No Minecraft code, assets, or reverse-engineered source is committed.
+- No external game code, assets, or reverse-engineered source is committed.
 - No new wire protocol or packet handler.
 - No host/guest command relay; the console remains a local surface.

@@ -1,6 +1,6 @@
 # Interactive in-game command console
 
-- Status: In progress
+- Status: Review
 - Priority: Medium
 - Category: Tooling / UI
 
@@ -12,3 +12,5 @@ Runtime; the new interaction model is a first-class UI surface that does not
 require opening the Online UI window.
 
 Phase plan: `docs/phases/command-console-interactive/README.md`.
+Selfcheck: `docs/evidence/selfchecks/ui/command-console-selfcheck.md`.
+

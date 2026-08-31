@@ -14,4 +14,5 @@ public enum CommandArgumentKind
 	Number,
 	Text,
 	Json,
+	Selector,
 }

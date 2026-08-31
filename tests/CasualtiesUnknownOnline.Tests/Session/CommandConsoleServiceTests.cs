@@ -153,4 +153,26 @@ public class CommandConsoleServiceTests
 
 		Assert.Contains("/kick <steamId|displayName>", hint);
 	}
+
+	[Fact]
+	public void ArgumentSuggestions_SelectorKind_ReturnsSelectors()
+	{
+		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		var suggestions = host.Services.GetRequiredService<ICommandArgumentSuggestions>();
+
+		var matches = suggestions.Suggest(CommandArgumentKind.Selector, "@a");
+
+		Assert.Contains(matches, s => s.Text == "@a" && s.Description == "All players");
+	}
+
+	[Fact]
+	public void ArgumentSuggestions_JsonKind_ReturnsTemplates()
+	{
+		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		var suggestions = host.Services.GetRequiredService<ICommandArgumentSuggestions>();
+
+		var matches = suggestions.Suggest(CommandArgumentKind.Json, "{\"k");
+
+		Assert.Contains(matches, s => s.Text == "{\"key\": \"value\"}");
+	}
 }

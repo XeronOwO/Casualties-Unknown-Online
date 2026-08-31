@@ -13,16 +13,17 @@ existing text-chat send path; no wire message or protocol version was added.
 | 2 | Command metadata | `CommandSpec` + `ICommandCompletionSource` expose name/description/usage/permission/argument kinds to the UI without exposing handlers. |
 | 3 | Completion suggestions | `CommandConsoleService.Suggest` returns `CommandSuggestion` items (text + description) for command names, member names/SteamIds, and banned SteamIds based on argument kind. |
 | 4 | Rich hint UI | The standalone overlay renders a scrollable, clickable suggestion list; `GUIContent` tooltips show the candidate description on hover. |
-| 5 | Tokenizer | `CommandLineTokenizer` splits commands while preserving double/single quotes, escapes, `[]`/`{}`/`()` groups, so spaced values, selectors and JSON-like literals survive as one token. |
-| 6 | Cursor-aware input | `ConsoleInputSession` owns the cursor and editing operations; the overlay renders a custom IMGUI field with caret, arrow/Home/End/Backspace/Delete, Ctrl+Left/Right, Ctrl+Backspace/Ctrl+Delete, and click-to-place cursor. |
-| 7 | Basic highlighting | The custom input renders command tokens in accent, quoted/selector/JSON-like literals in muted, and plain text in default color. |
-| 5 | Input state machine | `ConsoleInputSession` owns open/close, current line, history navigation, completion cycling and submission, all Unity-free. |
-| 6 | Fade policy | `ConsoleFadePolicy.ComputeAlpha` provides the hold/fade curve used by both console surfaces. |
-| 7 | Standalone overlay | `CommandConsoleOverlay` draws a text area + focused input field only when the input session is open, independent of the Online UI window. |
-| 8 | Slash hotkey / modal routing | `Plugin.Update` opens the console on `KeyCode.Slash` and calls `IGameAdapter.SetOnlineUiModal` for the console as well as the Online UI window. |
-| 9 | Input blocking / ESC | The existing `OnlineMenuInputGuard`, `PlayerCameraHandleInputPatch` and `PauseHandlerTogglePausePatch` suppress background UI/game input while modal; the overlay consumes Escape before the game sees it. |
-| 10 | Console page polish | `OnlineUiConsoleDrawer` now applies the same fade to its lines; the standalone overlay shows hints and completion candidates. |
-| 11 | No wire change | No `NetMsg`, no packet handler, no `ProtocolVersion` change. |
+| 5 | Argument provider seam | `ICommandArgumentSuggestions` exposes per-kind providers for command names, players/SteamIds, banned SteamIds, selectors and JSON scaffolds. |
+| 6 | Tokenizer | `CommandLineTokenizer` splits commands while preserving double/single quotes, escapes, `[]`/`{}`/`()` groups, so spaced values, selectors and JSON-like literals survive as one token. |
+| 7 | Input state machine | `ConsoleInputSession` owns open/close, current line, history navigation, completion cycling and submission, all Unity-free. |
+| 8 | Cursor-aware input | `ConsoleInputSession` owns the cursor and editing operations; the overlay renders a custom IMGUI field with caret, arrow/Home/End/Backspace/Delete, Ctrl+Left/Right, Ctrl+Backspace/Ctrl+Delete, and click-to-place cursor. |
+| 9 | Basic highlighting | The custom input renders command tokens in accent, quoted/selector/JSON-like literals in muted, and plain text in default color. |
+| 10 | Fade policy | `ConsoleFadePolicy.ComputeAlpha` provides the hold/fade curve used by both console surfaces. |
+| 11 | Standalone overlay | `CommandConsoleOverlay` draws a text area + focused input field only when the input session is open, independent of the Online UI window. |
+| 12 | Slash hotkey / modal routing | `Plugin.Update` opens the console on `KeyCode.Slash` and calls `IGameAdapter.SetOnlineUiModal` for the console as well as the Online UI window. |
+| 13 | Input blocking / ESC | The existing `OnlineMenuInputGuard`, `PlayerCameraHandleInputPatch` and `PauseHandlerTogglePausePatch` suppress background UI/game input while modal; the overlay consumes Escape before the game sees it. |
+| 14 | Console page polish | `OnlineUiConsoleDrawer` now applies the same fade to its lines; the standalone overlay shows hints and completion candidates. |
+| 15 | No wire change | No `NetMsg`, no packet handler, no `ProtocolVersion` change. |
 
 ## 2. Self-check table
 
@@ -36,6 +37,8 @@ existing text-chat send path; no wire message or protocol version was added.
 | Output bounded | Buffer caps at `MaxLines` | code review: `AddLine` removes oldest |
 | Command-name completion | `/k` suggests `kick` | `CommandConsoleServiceTests.Suggest_ReturnsCommandNamesForPrefix` |
 | Rich suggestion descriptions | Command suggestions carry a non-empty description | `CommandConsoleServiceTests.Suggest_IncludesDescriptionForCommand` |
+| Argument provider selectors | `Selector` argument kind returns `@a`/`@p`/... candidates | `CommandConsoleServiceTests.ArgumentSuggestions_SelectorKind_ReturnsSelectors` |
+| Argument provider JSON | `Json` argument kind returns JSON scaffold candidates | `CommandConsoleServiceTests.ArgumentSuggestions_JsonKind_ReturnsTemplates` |
 | Specific help command | `/help kick` shows the command usage | `CommandConsoleServiceTests.Help_WithCommandName_ShowsUsage` |
 | Clickable suggestion acceptance | Clicking a suggestion applies it and clears the list | `ConsoleInputSessionTests.AcceptSuggestion_AppliesSpecificCandidateAndClearsList` |
 | Member completion | `/kick <id>` suggests the member id | `CommandConsoleServiceTests.Suggest_ReturnsMemberIdForKickArgument` |
@@ -58,9 +61,9 @@ existing text-chat send path; no wire message or protocol version was added.
 
 - No semantic highlighting beyond basic token colors (no per-argument error
   highlighting, no rich hover syntax details yet).
-- No entity-selector / resource-location / NBT-JSON structural completion
-  providers; the tokenizer preserves those literals but the console does not yet
-  generate structured suggestions for them.
+- No actual CUO command yet declares `Selector` or `Json` arguments, so the new
+  argument providers exist at the seam but are not visible on a real command
+  invocation; the tokenizer still preserves those literals.
 - No IME/clipboard/selection support yet; printable ASCII/UTF insertion,
   arrows, Home/End, Backspace/Delete and word-level editing are covered.
 
@@ -69,7 +72,7 @@ existing text-chat send path; no wire message or protocol version was added.
 | Evidence | Result |
 |---|---|
 | `dotnet build CasualtiesUnknownOnline.slnx` | 0 warnings / 0 errors |
-| `dotnet test CasualtiesUnknownOnline.slnx --no-build` | 1897 passed / 0 failed |
+| `dotnet test CasualtiesUnknownOnline.slnx --no-build` | 1899 passed / 0 failed |
 | `dotnet format CasualtiesUnknownOnline.slnx` | clean |
 | `tools/check-architecture.ps1` | pass (including GameState isolation, item authority, no-legacy, command authority, kernel shape) |
 | `tools/check-event-replay.ps1` | pass (33 events) |

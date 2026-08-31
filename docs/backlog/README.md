@@ -39,6 +39,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Snapshot size reduction](todo/snapshot-size-reduction.md) — measurement-first.
 - [Full-qualified name cleanup](todo/full-qualified-name-cleanup.md) — prefer using directives/aliases; behavior-preserving refactor only.
 - [CUCoreLib migration support](todo/cucorelib-migration-support.md) — evaluate external KrokMP-based project; implement features or provide CUO migration seams.
+- [Command registration Attribute/reflection refactor](todo/command-registration-attribute-refactor.md) — replace hard-coded console command registration with Attribute+reflection and a mod-facing seam.
 
 ### In progress
 

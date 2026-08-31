@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
+using CasualtiesUnknownOnline.Runtime.Session.Commands;
 using Microsoft.Extensions.Logging;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.Mods;
@@ -22,6 +23,7 @@ internal sealed class ModContext(
 	ModChannel channel,
 	ModStateStore stateStore,
 	ModCommandService commands,
+	ConsoleCommandRegistry consoleCommands,
 	RemoteVitalsService remoteVitals,
 	RemoteInventoryService remoteInventory,
 	IModEntitySpawner entitySpawner,
@@ -30,6 +32,7 @@ internal sealed class ModContext(
 	private readonly ModManifest _manifest = manifest;
 	private readonly ModNetworkAdapter _network = new(channel, manifest, frameworkLog);
 	private readonly ModCommandService.ModCommandAdapter _commands = commands.CreateAdapter(manifest);
+	private readonly ModConsoleCommandAdapter _consoleCommands = new(consoleCommands, manifest, sessionService, frameworkLog);
 	private readonly IModState _state = stateStore.CreateStateAdapter(manifest, sessionService);
 	private readonly ModUiAdapter _ui = new(manifest, frameworkLog);
 	private readonly ModContentAdapter _content = new(manifest, frameworkLog);
@@ -42,6 +45,8 @@ internal sealed class ModContext(
 	public IModNetwork Network => _network;
 
 	public IModCommands Commands => _commands;
+
+	public IModConsoleCommands ConsoleCommands => _consoleCommands;
 
 	public IModState State => _state;
 

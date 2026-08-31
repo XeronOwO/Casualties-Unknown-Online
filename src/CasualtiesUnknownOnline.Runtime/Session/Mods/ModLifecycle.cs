@@ -4,6 +4,7 @@ using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
+using CasualtiesUnknownOnline.Runtime.Session.Commands;
 using CasualtiesUnknownOnline.Runtime.Time;
 using Microsoft.Extensions.Logging;
 
@@ -20,6 +21,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Mods;
 internal sealed class ModLifecycle(
 	ModCatalog catalog,
 	ModCommandService commands,
+	ConsoleCommandRegistry consoleCommands,
 	ModStateStore stateStore,
 	SessionService session,
 	ModChannel channel,
@@ -34,6 +36,7 @@ internal sealed class ModLifecycle(
 {
 	private readonly ModCatalog _catalog = catalog;
 	private readonly ModCommandService _commands = commands;
+	private readonly ConsoleCommandRegistry _consoleCommands = consoleCommands;
 	private readonly ModStateStore _stateStore = stateStore;
 	private readonly SessionService _session = session;
 	private readonly ModChannel _channel = channel;
@@ -144,6 +147,7 @@ internal sealed class ModLifecycle(
 					_channel,
 					_stateStore,
 					_commands,
+					_consoleCommands,
 					_remoteVitals,
 					_remoteInventory,
 					_entitySpawner,

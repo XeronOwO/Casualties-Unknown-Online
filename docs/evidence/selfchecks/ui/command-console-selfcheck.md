@@ -29,6 +29,8 @@ existing text-chat send path; no wire message or protocol version was added.
 | 18 | Real selector command | `/heal <selector>` is the first real CUO command with a `Selector` argument; `CommandSelectorResolver` expands player selectors over `IEntitySyncControl` and the resolved SteamIds ride the existing heal request path. |
 | 19 | IME composition | `ConsoleImeState` is a Unity-free composition gate; the overlay enables legacy IME while open, feeds `Input.compositionCursorPos` from the caret, renders the composition string, and swallows raw keys during composition. |
 | 20 | Real JSON host-rule command | `/hostrules <json>` is the first real CUO command with a `Json` argument; `HostRulesJsonParser`/`HostRulesJsonApplier` parse and apply a flat JSON object through the narrow `IHostRulesEditor` seam. |
+| 21 | Attribute/reflection command registry | `ConsoleCommandAttribute` marks built-in handler methods; `ConsoleCommandRegistry` scans them and builds the read-only command table at startup, replacing the hard-coded `RegisterBuiltIns()` list. |
+| 22 | Mod local console commands | `IModContext.ConsoleCommands` (`IModConsoleCommands`/`ModConsoleCommand`) lets mods register local-only console commands through Abstractions; they share the same registry/completion/help path and never enter the wire protocol. |
 
 ## 2. Self-check table
 
@@ -75,6 +77,12 @@ existing text-chat send path; no wire message or protocol version was added.
 | Basic syntax highlighting | Command/plain/quoted tokens render with different colors | static review: `CommandConsoleOverlay.DrawHighlightedInput`, `TokenColor`; Unity rendering is user-acceptance territory |
 | Auto-scroll | Text area scrolls to newest line when line count changes | static review: `CommandConsoleOverlay.DrawTextArea`, `_lastLineCount` |
 | Focus/mouse block/ESC in Unity | Focus enforcement, modal routing and ESC consumption are in the overlay/plugin path | static review: `CommandConsoleOverlay`, `Plugin.Update`, `OnlineUiOverlay`; Unity IMGUI behavior is user-acceptance territory |
+| Attribute-discovered built-ins | All existing built-ins still register/execute/complete/help through the reflection registry | `CommandConsoleServiceTests` (all command-contract cases) |
+| Mod console command local execution | `/cping` executes locally, enters completion, and hands the mod context local args/SteamId | `ModConsoleCommandTests.ModConsoleCommand_ExecutesLocallyAndAppearsInCompletion` |
+| Mod console metadata | Mod-registered name/description/usage/permission/argument kinds surface through `ICommandCompletionSource.Commands` | `ModConsoleCommandTests.ModConsoleCommand_MetadataIsAvailableToConsoleSurface` |
+| Mod host-only enforcement | A mod host-only console command is refused on a guest | `ModConsoleCommandTests.ModConsoleCommand_HostOnly_IsRefusedForGuest` |
+| Mod permission gates | A permissionless mod cannot register ordinary or host-only local console commands | `ModConsoleCommandTests.PermissionlessMod_CannotRegisterConsoleCommands` |
+| Mod duplicate/unregister policy | Duplicate registrations are refused; unregister removes only the local mod's own command and refuses foreign/unknown names | `ModConsoleCommandTests.DuplicateConsoleCommand_IsRefused`, `Unregister_RemovesOwnConsoleCommand`, `Unregister_ForeignOrUnknownName_IsRefused` |
 
 ## 3. Known remaining gaps
 
@@ -89,13 +97,16 @@ existing text-chat send path; no wire message or protocol version was added.
   caret/render path; per-IME (Chinese/Japanese/Korean, platform-specific)
   acceptance is user-acceptance territory. Raw key suppression is intentionally
   conservative while composing.
+- Mod console commands are intentionally local-only: they appear in the local
+  console and never travel as mod host-command requests; cross-side orchestration
+  remains future work.
 
 ## 4. Verification results
 
 | Evidence | Result |
 |---|---|
 | `dotnet build CasualtiesUnknownOnline.slnx` | 0 warnings / 0 errors |
-| `dotnet test CasualtiesUnknownOnline.slnx --no-build` | 1942 passed / 0 failed |
+| `dotnet test CasualtiesUnknownOnline.slnx --no-build` | 1949 passed / 0 failed |
 | `dotnet format CasualtiesUnknownOnline.slnx` | clean |
 | `tools/check-architecture.ps1` | pass (including GameState isolation, item authority, no-legacy, command authority, kernel shape) |
 | `tools/check-event-replay.ps1` | pass (33 events) |
@@ -110,6 +121,12 @@ existing text-chat send path; no wire message or protocol version was added.
   still owned by the command registry. It composes the narrow
   `IPlayerInteractionControl`/`IEntitySyncControl` seams for the real selector
   command while keeping command/history policy out of the Unity overlay.
+- `ConsoleCommandRegistry` owns command storage/lookup/attribute discovery; the
+  service only composes it and does not hold a mutable registration list.
+  `ConsoleCommandAttribute`/`CommandDefinition` keep metadata beside handlers.
+- `ModConsoleCommandAdapter` is a small per-mod bridge: it validates permissions,
+  converts Abstractions command definitions, and scopes unregister to the owning
+  mod. It has no Unity/UI state and no wire path.
 - `CommandSelectorResolver` is a pure static resolver with no mutable simulator
   state; selector semantics are explicit and covered by core/edge tests.
 - `HostRulesJsonParser`/`HostRulesJsonApplier` keep JSON parsing and apply logic

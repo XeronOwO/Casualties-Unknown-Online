@@ -52,6 +52,7 @@ The first slice landed a modal Online UI console page:
 | 14 — Real selector command | Complete | `/heal <selector>` consumes the Selector argument provider and resolves `@a`/`@p`/`@s`/`@e`/`@r` against CUO's player entity table. |
 | 15 — IME composition support | Complete | Standalone console enables legacy Unity IME, tracks composition in a Unity-free state, renders the composition string at the caret, and prevents raw pinyin from leaking into the editor. |
 | 16 — Real JSON host-rule command | Complete | `/hostrules <json>` parses a flat JSON object and writes host-rule settings through the plugin's BepInEx ConfigEntry editor. |
+| 17 — Attribute/reflection registration + mod API | Complete | `[ConsoleCommand]` + `ConsoleCommandRegistry` replace the hard-coded built-in list; `IModContext.ConsoleCommands` exposes local mod command registration through Abstractions. |
 
 ## Phases
 
@@ -197,6 +198,21 @@ The first slice landed a modal Online UI console page:
   editor with the BepInEx-backed `HostRulesConfigEditor`.
 - Outcome: the previously seam-only JSON provider now feeds a real host-only
   command that persists host/respawn settings from a JSON object.
+
+### Phase 17 — Attribute/reflection registration + local mod command API
+
+- Replace hard-coded `CommandConsoleService.RegisterBuiltIns()` with
+  `[ConsoleCommand]`-marked methods scanned by `ConsoleCommandRegistry` at
+  construction into a read-only command table.
+- Keep name/description/usage/permission/argument-kind metadata beside each
+  handler; the registry exposes the same `CommandSpec` projection to the UI.
+- Add `IModConsoleCommands`/`ModConsoleCommand`/`IModConsoleCommandContext` to
+  Abstractions and expose them as `IModContext.ConsoleCommands`; mod commands are
+  local-only, gated by `ModPermission.RegisterCommand` (and
+  `ExecuteHostAction` for host-only commands), and participate in completion/help
+  without any wire change.
+- Outcome: command registration is discoverable and modular; mods can add custom
+  local console commands without referencing Runtime internals.
 
 ## Non-goals
 

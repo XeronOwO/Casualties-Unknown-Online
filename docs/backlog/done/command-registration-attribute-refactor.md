@@ -1,6 +1,6 @@
 # Command registration Attribute/reflection refactor
 
-- Status: Todo
+- Status: Done
 - Priority: Medium
 - Category: Tooling / UI / Mod API
 
@@ -27,3 +27,13 @@ Constraints:
 - Keep `CommandConsoleService` under the architecture line-count gate by
   extracting real responsibilities (registry/handler discovery, not cosmetic
   splitting).
+
+Landed:
+- Built-ins are discovered via `[ConsoleCommand]`-marked methods into
+  `ConsoleCommandRegistry`; the hard-coded `RegisterBuiltIns()` list is gone.
+- Abstractions now exposes `IModConsoleCommands` / `ModConsoleCommand` through
+  `IModContext.ConsoleCommands` for local mod console commands (no wire relay).
+- `CommandConsoleService`, the registry, the mod adapter and the command
+  context are separate responsibility units; architecture gates pass.
+
+Selfcheck: `docs/evidence/selfchecks/ui/command-console-selfcheck.md`.

@@ -34,6 +34,9 @@ public interface IModContext
 	/// <summary>Host-authoritative commands — the handler always runs on the host's copy of the mod.</summary>
 	IModCommands Commands { get; }
 
+	/// <summary>Local in-game console commands — the handler runs on the local process, with no wire relay.</summary>
+	IModConsoleCommands ConsoleCommands { get; }
+
 	/// <summary>
 	/// Host-persistent per-mod state (opaque key/value bytes, scoped to this mod
 	/// id). Writes require <see cref="ModPermission.WriteGameState"/> and the host

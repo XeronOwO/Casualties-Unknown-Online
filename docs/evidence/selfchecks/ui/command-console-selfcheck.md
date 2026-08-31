@@ -26,6 +26,7 @@ existing text-chat send path; no wire message or protocol version was added.
 | 15 | Selection/clipboard | `ConsoleInputSession` owns selection ranges; the overlay renders selection highlight and wires Ctrl+A/C/X/V to the Unity system clipboard. |
 | 16 | Undo/redo | `ConsoleInputSession` keeps bounded undo/redo stacks; Ctrl+Z/Ctrl+Y restore editing state. |
 | 17 | No wire change | No `NetMsg`, no packet handler, no `ProtocolVersion` change. |
+| 18 | Real selector command | `/heal <selector>` is the first real CUO command with a `Selector` argument; `CommandSelectorResolver` expands player selectors over `IEntitySyncControl` and the resolved SteamIds ride the existing heal request path. |
 
 ## 2. Self-check table
 
@@ -41,6 +42,10 @@ existing text-chat send path; no wire message or protocol version was added.
 | Rich suggestion descriptions | Command suggestions carry a non-empty description | `CommandConsoleServiceTests.Suggest_IncludesDescriptionForCommand` |
 | Argument provider selectors | `Selector` argument kind returns `@a`/`@p`/... candidates | `CommandConsoleServiceTests.ArgumentSuggestions_SelectorKind_ReturnsSelectors` |
 | Argument provider JSON | `Json` argument kind returns JSON scaffold candidates | `CommandConsoleServiceTests.ArgumentSuggestions_JsonKind_ReturnsTemplates` |
+| Real selector completion | `/heal @` suggests selector candidates on a real command | `CommandConsoleServiceTests.Suggest_ForHealSelectorArgument_ReturnsSelectors` |
+| Real selector heal | `/heal @p` resolves the nearest remote and runs the host heal path | `CommandConsoleServiceTests.Heal_WithSelector_SendsRequestToGuest` |
+| Selector resolver core/edge | `@a`/`@e`/`@s`/`@p`/`@r`, unknown, empty, case-insensitive, no-remote paths | `CommandSelectorResolverTests` (10 cases) |
+| Heal argument validation | Missing selector shows usage; unknown selector adds a no-match line | `CommandConsoleServiceTests.Heal_WithoutSelector_ShowsUsage`, `Heal_UnknownSelector_AddsNoMatchLine` |
 | Specific help command | `/help kick` shows the command usage | `CommandConsoleServiceTests.Help_WithCommandName_ShowsUsage` |
 | Clickable suggestion acceptance | Clicking a suggestion applies it and clears the list | `ConsoleInputSessionTests.AcceptSuggestion_AppliesSpecificCandidateAndClearsList` |
 | Member completion | `/kick <id>` suggests the member id | `CommandConsoleServiceTests.Suggest_ReturnsMemberIdForKickArgument` |
@@ -66,9 +71,10 @@ existing text-chat send path; no wire message or protocol version was added.
 
 - No semantic highlighting beyond basic token colors (no per-argument error
   highlighting, no rich hover syntax details yet).
-- No actual CUO command yet declares `Selector` or `Json` arguments, so the new
-  argument providers exist at the seam but are not visible on a real command
-  invocation; the tokenizer still preserves those literals.
+- Selector expansion is player-entity only (`@a`/`@e` are aliases over remote
+  players); generic entity/resource-location completion is still future work.
+- `Json` remains a suggestion scaffold only; no real CUO command consumes a JSON
+  argument yet.
 - No IME support yet; printable ASCII/UTF insertion, cursors, word editing,
   selection and clipboard are covered.
 
@@ -77,7 +83,7 @@ existing text-chat send path; no wire message or protocol version was added.
 | Evidence | Result |
 |---|---|
 | `dotnet build CasualtiesUnknownOnline.slnx` | 0 warnings / 0 errors |
-| `dotnet test CasualtiesUnknownOnline.slnx --no-build` | 1906 passed / 0 failed |
+| `dotnet test CasualtiesUnknownOnline.slnx --no-build` | 1921 passed / 0 failed |
 | `dotnet format CasualtiesUnknownOnline.slnx` | clean |
 | `tools/check-architecture.ps1` | pass (including GameState isolation, item authority, no-legacy, command authority, kernel shape) |
 | `tools/check-event-replay.ps1` | pass (33 events) |
@@ -89,7 +95,11 @@ existing text-chat send path; no wire message or protocol version was added.
 
 - `CommandConsoleService` remains under the line-count gate and now implements
   both `ICommandControl` and `ICommandCompletionSource`; the completion data is
-  still owned by the command registry.
+  still owned by the command registry. It composes the narrow
+  `IPlayerInteractionControl`/`IEntitySyncControl` seams for the real selector
+  command while keeping command/history policy out of the Unity overlay.
+- `CommandSelectorResolver` is a pure static resolver with no mutable simulator
+  state; selector semantics are explicit and covered by core/edge tests.
 - `ConsoleInputSession` is one top-level type, Unity-free, and owns all
   interactive input state; the Unity overlay is a thin presenter.
 - `CommandConsoleOverlay` is one top-level type and owns only IMGUI drawing/event

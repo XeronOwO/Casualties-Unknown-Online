@@ -4,6 +4,8 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using CasualtiesUnknownOnline.Runtime.Session.Chat;
+using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
+using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using CasualtiesUnknownOnline.Runtime.Time;
 using Microsoft.Extensions.Logging;
 
@@ -27,6 +29,8 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 	private readonly IChatControl _chat;
 	private readonly ISessionControl _session;
 	private readonly IHostBanService _hostBans;
+	private readonly IPlayerInteractionControl _playerInteraction;
+	private readonly IEntitySyncControl _entities;
 	private readonly ITimeSource _time;
 	private readonly ILogger<CommandConsoleService> _log;
 	private readonly List<ConsoleLine> _lines = [];
@@ -36,12 +40,16 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		IChatControl chat,
 		ISessionControl session,
 		IHostBanService hostBans,
+		IPlayerInteractionControl playerInteraction,
+		IEntitySyncControl entities,
 		ITimeSource time,
 		ILogger<CommandConsoleService> log)
 	{
 		_chat = chat;
 		_session = session;
 		_hostBans = hostBans;
+		_playerInteraction = playerInteraction;
+		_entities = entities;
 		_time = time;
 		_log = log;
 		_chat.MessageReceived += OnChatLine;
@@ -174,6 +182,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		Register("players", "List current session members.", CommandPermission.Anyone, "/players", [], _ => PlayersText());
 		Register("rtt", "Show the last measured round-trip time.", CommandPermission.Anyone, "/rtt", [], _ => RttText());
 		Register("whoami", "Show local role, SteamId and session state.", CommandPermission.Anyone, "/whoami", [], _ => WhoAmIText());
+		Register("heal", "Use a carried medical item on the selected player(s).", CommandPermission.Anyone, "/heal <selector>", [CommandArgumentKind.Selector], Heal);
 		Register("kick", "Host only: kick a member by SteamId or display name.", CommandPermission.HostOnly, "/kick <steamId|displayName>", [CommandArgumentKind.PlayerOrSteamId], Kick);
 		Register("ban", "Host only: ban a member by SteamId or display name.", CommandPermission.HostOnly, "/ban <steamId|displayName>", [CommandArgumentKind.PlayerOrSteamId], Ban);
 		Register("unban", "Host only: unban a SteamId.", CommandPermission.HostOnly, "/unban <steamId>", [CommandArgumentKind.SteamId], Unban);
@@ -282,6 +291,44 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 
 	private string WhoAmIText() =>
 		$"Role={_session.Role} SteamId={_session.LocalSteamId} Host={_session.HostSteamId} SessionActive={_session.SessionActive}";
+
+	private string Heal(IReadOnlyList<string> args)
+	{
+		if (args.Count < 2)
+		{
+			return "Usage: /heal <selector>";
+		}
+
+		var targets = ResolveSelector(args[1]);
+		if (targets.Count == 0)
+		{
+			return $"No players match selector '{args[1]}'.";
+		}
+
+		foreach (var steamId in targets)
+		{
+			_playerInteraction.SendHealRequest(steamId);
+		}
+
+		var targetText = string.Join(", ", targets.Select(t => t.ToString(CultureInfo.InvariantCulture)));
+		_log.LogInformation("[Command] /heal resolved {Selector} to {Count} player(s): {Targets}.",
+			args[1], targets.Count, targetText);
+		return $"Sent heal request to {targets.Count} player(s): {targetText}.";
+	}
+
+	private IReadOnlyList<ulong> ResolveSelector(string selector)
+	{
+		var targets = new List<CommandSelectorResolver.Target>
+		{
+			new(_entities.LocalPlayer.SteamId, true, _entities.LocalPlayer.Position),
+		};
+		foreach (var remote in _entities.RemotePlayers)
+		{
+			targets.Add(new(remote.SteamId, false, remote.Position));
+		}
+
+		return CommandSelectorResolver.Resolve(selector, targets);
+	}
 
 	private string Kick(IReadOnlyList<string> args)
 	{

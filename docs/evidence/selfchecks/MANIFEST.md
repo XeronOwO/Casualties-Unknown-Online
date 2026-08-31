@@ -129,6 +129,7 @@ All files under `docs/selfchecks/` are historical/per-delivery evidence records.
 | players/remote-backpack-drag-escape-selfcheck.md | Other | current | candidate current evidence; verify before citing |
 | items/remote-container-content-view-selfcheck.md | Items | historical | superseded/old-wire; do not cite as current evidence without checking protocol.md |
 | items/remote-container-destroy-authority-selfcheck.md | Items | current | candidate current evidence; verify before citing |
+| items/remote-world-item-same-id-dedup-selfcheck.md | Items | current | candidate current evidence; verify before citing |
 | ui/remote-inventory-ui-followup-selfcheck.md | UI | historical | superseded/old-wire; do not cite as current evidence without checking protocol.md |
 | players/remote-inventory-view-selfcheck.md | Other | current | candidate current evidence; verify before citing |
 | players/remote-vitals-selfcheck.md | Other | current | candidate current evidence; verify before citing |

@@ -29,6 +29,21 @@ public class ItemRaceTests
 	};
 
 	[Fact]
+	public void OwnSpawnEcho_SurfacesExactlyOneSpawnEvent()
+	{
+		// The host broadcasts the committed batch back to the reporting guest
+		// (originator included). The runtime event surface must be exactly one
+		// ItemSpawned; the GameAdapter materialization additionally has to
+		// reuse the already-present local original (see RemoteWorldItemSpawn
+		// same-id self-check) instead of creating a second scene object.
+		using var w = ItemSimWorld.Create();
+		w.Spawn(w.G1, 42, Item());
+		w.Driver.Tick(33);
+
+		Assert.Equal(1, w.SpawnedEvents(w.G1));
+	}
+
+	[Fact]
 	public void DuplicatedPickupReport_IsIdempotent_NoRejectToTheWinner()
 	{
 		// A Steam-reliable retransmit duplicates the same CommandEnvelope, so

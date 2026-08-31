@@ -107,6 +107,13 @@ internal sealed class OnlineUiOverlay
 
 	private readonly OnlineUiQuickPanel _quickPanel = new();
 
+	private readonly CommandConsoleOverlay _commandOverlay;
+
+	internal OnlineUiOverlay(ConsoleInputSession consoleInput)
+	{
+		_commandOverlay = new CommandConsoleOverlay(consoleInput);
+	}
+
 	private const float StatusDelaySeconds = 1.5f;
 	private const float StatusHoldSeconds = 15f;
 
@@ -125,6 +132,24 @@ internal sealed class OnlineUiOverlay
 	internal bool IsWindowVisible => _window.State.Visible;
 
 	internal bool IsQuickPanelVisible => _quickPanel.IsVisible;
+
+	internal bool IsCommandConsoleOpen => _commandOverlay.IsOpen;
+
+	/// <summary>Opens the standalone command console and closes every other CUO surface so the input state is modal.</summary>
+	internal void OpenCommandConsole()
+	{
+		if (_commandOverlay.IsOpen)
+		{
+			return;
+		}
+
+		_window.State.Visible = false;
+		_quickPanel.Close();
+		_commandOverlay.Open();
+	}
+
+	/// <summary>Closes the standalone command console.</summary>
+	internal void CloseCommandConsole() => _commandOverlay.Close();
 
 	/// <summary>Programmatic close (ESC hotkey); the modal guard sees it on the next frame's adapter call.</summary>
 	internal void CloseWindow() => _window.State.Visible = false;
@@ -212,9 +237,11 @@ internal sealed class OnlineUiOverlay
 		// ESC closes the modal Online UI. The native PlayerCamera.HandleInput
 		// pause/menu handling is already short-circuited by the adapter when
 		// the modal is open, and this OnGUI frame runs after Update, so the
-		// same key cannot reach the game's pause path.
+		// same key cannot reach the game's pause path. The standalone command
+		// overlay handles its own Escape below.
 		var esc = Event.current;
-		if (_window.State.Visible
+		if (_commandOverlay.IsOpen == false
+			&& _window.State.Visible
 			&& esc != null
 			&& esc.type == EventType.KeyDown
 			&& esc.keyCode == KeyCode.Escape)
@@ -223,17 +250,23 @@ internal sealed class OnlineUiOverlay
 			esc.Use();
 		}
 
-		_window.Draw(ctx);
-		UpdateDelayedStatus(ctx);
-		DrawNetworkHud(ctx);
-		DrawNameplatesAndArrows(ctx, entities);
-		DrawPlayerContextMenu(ctx);
-		_quickPanel.Draw(ctx);
+		if (!_commandOverlay.IsOpen)
+		{
+			_window.Draw(ctx);
+			UpdateDelayedStatus(ctx);
+			DrawNetworkHud(ctx);
+			DrawNameplatesAndArrows(ctx, entities);
+			DrawPlayerContextMenu(ctx);
+			_quickPanel.Draw(ctx);
+		}
+
+		_commandOverlay.Draw(ctx);
 
 		// Non-modal CUO surfaces (quick panel, right-click context menu) are
 		// IMGUI and invisible to UGUI; scoped blockers keep their pixels from
 		// leaking to the menu/world without blocking the rest of the screen.
-		adapter?.SetOnlineUiScopedBlocks(CollectScopedBlocks());
+		// The command console is handled by the full modal guard, not scoped blocks.
+		adapter?.SetOnlineUiScopedBlocks(_commandOverlay.IsOpen ? [] : CollectScopedBlocks());
 	}
 
 	private IReadOnlyList<OnlineUiBlockRect> CollectScopedBlocks()

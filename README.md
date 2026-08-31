@@ -1,6 +1,6 @@
 # Casualties Unknown: Online (CUO)
 
-A multiplayer mod framework for [*[Casualties Unknown*](https://store.steampowered.com/) (currently in Demo), built on [B[epInEx](https://github.com/BepInEx/BepInEx).
+A multiplayer mod framework for [*Casualties Unknown*](https://store.steampowered.com/) (currently in Demo), built on [BepInEx](https://github.com/BepInEx/BepInEx).
 
 The base game ships without multiplayer. CUO adds Steam-based **Host + Guests** co-op (LAN / friends) by injecting a new multiplayer runtime and reorganizing the local-only game state into a **host-authoritative simulation with guest input/state sync** — in the spirit of Minecraft Forge, but starting with a solid multiplayer core rather than a full mod ecosystem.
 
@@ -30,22 +30,22 @@ All projects target `net48` (BepInEx 5 + the game's Mono runtime). Deployment in
 
 ## Documentation
 
-- [`[docs/README.md`](docs/README.md) — semantic documentation map and reading path
+- [`docs/README.md`](docs/README.md) — semantic documentation map and reading path
 - [`AGENTS.md`](AGENTS.md) — project conventions and instructions for AI-assisted development
-[- `docs/architecture/README.md`](docs/architecture/README.md) — active architecture and completed evolution history
-[- `docs/architecture/current.md`](docs/architecture/current.md) — current typed deterministic kernel design
-[- `docs/architecture/domains.md`](docs/architecture/domains.md) — domain ownership and projections
-[- `docs/architecture/protocol.md`](docs/architecture/protocol.md) — four-envelope protocol and data flow
-[- `docs/evidence/verification.md`](docs/evidence/verification.md) — evidence chain, gates, replay/simulation
-[- `docs/operations/README.md`](docs/operations/README.md) — shared operations/tooling/deployment guidance
-[- `docs/decisions/active.md`](docs/decisions/active.md) — landed binding decisions
-[- `docs/decisions/index.md`](docs/decisions/index.md) — numeric decision index
-[- `docs/api/mod-api.md`](docs/api/mod-api.md) — Phase 4 Mod API contract
-[- `docs/backlog/README.md`](docs/backlog/README.md) — open bugs, work, decisions, future
+- [`docs/architecture/README.md`](docs/architecture/README.md) — active architecture and completed evolution history
+- [`docs/architecture/current.md`](docs/architecture/current.md) — current typed deterministic kernel design
+- [`docs/architecture/domains.md`](docs/architecture/domains.md) — domain ownership and projections
+- [`docs/architecture/protocol.md`](docs/architecture/protocol.md) — four-envelope protocol and data flow
+- [`docs/evidence/verification.md`](docs/evidence/verification.md) — evidence chain, gates, replay/simulation
+- [`docs/operations/README.md`](docs/operations/README.md) — shared operations/tooling/deployment guidance
+- [`docs/decisions/active.md`](docs/decisions/active.md) — landed binding decisions
+- [`docs/decisions/index.md`](docs/decisions/index.md) — numeric decision index
+- [`docs/api/mod-api.md`](docs/api/mod-api.md) — Phase 4 Mod API contract
+- [`docs/backlog/README.md`](docs/backlog/README.md) — open bugs, work, decisions, future
 
 ## License
 
-See [L[ICENSE](LICENSE). BepInEx and its dependencies are under their own licenses — verify before distributing.
+See [LICENSE](LICENSE). BepInEx and its dependencies are under their own licenses — verify before distributing.
 
 ## Disclaimer
 

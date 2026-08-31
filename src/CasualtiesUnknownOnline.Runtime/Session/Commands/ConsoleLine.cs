@@ -3,5 +3,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Commands;
 /// <summary>
 /// One immutable line in the command-console output buffer. The buffer is owned
 /// by <see cref="CommandConsoleService"/>; the UI only reads this projection.
+/// <see cref="CreatedAtUtcTicks"/> lets the UI apply the fade policy without
+/// owning Runtime timing state.
 /// </summary>
-public sealed record ConsoleLine(ConsoleLineKind Kind, string Text);
+public sealed record ConsoleLine(ConsoleLineKind Kind, string Text, long CreatedAtUtcTicks);

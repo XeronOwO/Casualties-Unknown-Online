@@ -246,6 +246,10 @@ public static class CuoBootstrap
 		// existing ChatService send path).
 		services.AddSingleton<CommandConsoleService>();
 		services.AddSingleton<ICommandControl>(p => p.GetRequiredService<CommandConsoleService>());
+		services.AddSingleton<ICommandCompletionSource>(p => p.GetRequiredService<CommandConsoleService>());
+		// Pure console input state machine: history, completion cycling, ESC/Enter
+		// behavior. It is Unity-free and shared by the standalone overlay.
+		services.AddSingleton<ConsoleInputSession>();
 		// Item domain: the authoritative world-item table + pickup arbitration
 		// (ItemService itself reacts to calls and messages; the pending-pickup
 		// hold window's expiry edge is the tiny PendingPickupPump below).

@@ -46,6 +46,7 @@ The first slice landed a modal Online UI console page:
 | 8 — Basic syntax highlighting | Complete | Command tokens rendered in accent color, quoted/bracket/brace literals in muted color, plain text in default color. |
 | 9 — Word editing | Complete | Ctrl+Backspace/Ctrl+Delete delete words; Ctrl+Left/Right move by word. |
 | 10 — Auto-scroll | Complete | Text area jumps to the newest line when the console line count changes. |
+| 11 — Argument provider seam | Complete | `ICommandArgumentSuggestions` exposes selector/JSON/built-in arguments independently of a specific command. |
 
 ## Phases
 
@@ -133,6 +134,15 @@ The first slice landed a modal Online UI console page:
 - Track the console line count and reset the text-area scroll to the bottom when
   new lines arrive.
 - Outcome: new chat/command output is visible without manual scrolling.
+
+### Phase 11 — Argument provider seam
+
+- Add `ICommandArgumentSuggestions` so any argument kind can be asked for
+  candidates without coupling to a specific command.
+- Add selector candidates (`@a`, `@p`, `@s`, `@e`, `@r`) and JSON scaffold
+  candidates (`{}`, `{"key": "value"}`).
+- Outcome: the completion engine is ready for commands that declare selector or
+  JSON arguments; existing commands keep their current providers.
 
 ## Non-goals
 

@@ -247,6 +247,7 @@ public static class CuoBootstrap
 		services.AddSingleton<CommandConsoleService>();
 		services.AddSingleton<ICommandControl>(p => p.GetRequiredService<CommandConsoleService>());
 		services.AddSingleton<ICommandCompletionSource>(p => p.GetRequiredService<CommandConsoleService>());
+		services.AddSingleton<ICommandArgumentSuggestions>(p => p.GetRequiredService<CommandConsoleService>());
 		// Pure console input state machine: history, completion cycling, ESC/Enter
 		// behavior. It is Unity-free and shared by the standalone overlay.
 		services.AddSingleton<ConsoleInputSession>();

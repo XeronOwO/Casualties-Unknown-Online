@@ -20,7 +20,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Commands;
 /// no host relay. Host-only commands are enforced by role and use the existing
 /// session/ban services on the host process.
 /// </summary>
-public sealed class CommandConsoleService : ICommandControl, ICommandCompletionSource
+public sealed class CommandConsoleService : ICommandControl, ICommandCompletionSource, ICommandArgumentSuggestions
 {
 	private const int MaxLines = 200;
 
@@ -104,6 +104,8 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		var prefix = current.Length == 0 ? "" : current.Unquoted;
 		return SuggestFor(kind, prefix);
 	}
+
+	public IReadOnlyList<CommandSuggestion> Suggest(CommandArgumentKind kind, string prefix) => SuggestFor(kind, prefix);
 
 	public string? GetHint(string input)
 	{
@@ -404,11 +406,28 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		return current.Length == token.Length && current.Start == token.Start;
 	}
 
+	private static readonly CommandSuggestion[] SelectorSuggestions =
+	[
+		new("@a", "All players"),
+		new("@p", "Nearest player"),
+		new("@s", "Self"),
+		new("@e", "All entities"),
+		new("@r", "Random player"),
+	];
+
+	private static readonly CommandSuggestion[] JsonSuggestions =
+	[
+		new("{}", "Empty JSON object"),
+		new("{\"key\": \"value\"}", "JSON object template"),
+	];
+
 	private IReadOnlyList<CommandSuggestion> SuggestFor(CommandArgumentKind kind, string prefix) => kind switch
 	{
 		CommandArgumentKind.CommandName => SuggestCommandNames(prefix),
 		CommandArgumentKind.PlayerOrSteamId => SuggestMembers(prefix),
 		CommandArgumentKind.SteamId => SuggestSteamIds(prefix),
+		CommandArgumentKind.Selector => [.. SelectorSuggestions.Where(s => s.Text.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))],
+		CommandArgumentKind.Json => [.. JsonSuggestions.Where(s => s.Text.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))],
 		_ => [],
 	};
 

@@ -99,4 +99,37 @@ public class CommandConsoleServiceTests
 		console.Clear();
 		Assert.Empty(console.Lines);
 	}
+
+	[Fact]
+	public void Suggest_ReturnsCommandNamesForPrefix()
+	{
+		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		var completion = host.Services.GetRequiredService<ICommandCompletionSource>();
+
+		var suggestions = completion.Suggest("/k");
+
+		Assert.Contains("kick", suggestions);
+	}
+
+	[Fact]
+	public void Suggest_ReturnsMemberIdForKickArgument()
+	{
+		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		var completion = host.Services.GetRequiredService<ICommandCompletionSource>();
+
+		var suggestions = completion.Suggest($"/kick {GuestId}");
+
+		Assert.Contains(GuestId.ToString(), suggestions);
+	}
+
+	[Fact]
+	public void GetHint_ReturnsUsageForKnownCommand()
+	{
+		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		var completion = host.Services.GetRequiredService<ICommandCompletionSource>();
+
+		var hint = completion.GetHint("/kick");
+
+		Assert.Contains("/kick <steamId|displayName>", hint);
+	}
 }

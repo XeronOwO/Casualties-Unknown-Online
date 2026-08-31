@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using CasualtiesUnknownOnline.Runtime.Session.Chat;
+using CasualtiesUnknownOnline.Runtime.Time;
 using Microsoft.Extensions.Logging;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.Commands;
@@ -19,13 +20,14 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Commands;
 /// no host relay. Host-only commands are enforced by role and use the existing
 /// session/ban services on the host process.
 /// </summary>
-public sealed class CommandConsoleService : ICommandControl
+public sealed class CommandConsoleService : ICommandControl, ICommandCompletionSource
 {
 	private const int MaxLines = 200;
 
 	private readonly IChatControl _chat;
 	private readonly ISessionControl _session;
 	private readonly IHostBanService _hostBans;
+	private readonly ITimeSource _time;
 	private readonly ILogger<CommandConsoleService> _log;
 	private readonly List<ConsoleLine> _lines = [];
 	private readonly List<CommandDefinition> _commands = [];
@@ -34,11 +36,13 @@ public sealed class CommandConsoleService : ICommandControl
 		IChatControl chat,
 		ISessionControl session,
 		IHostBanService hostBans,
+		ITimeSource time,
 		ILogger<CommandConsoleService> log)
 	{
 		_chat = chat;
 		_session = session;
 		_hostBans = hostBans;
+		_time = time;
 		_log = log;
 		_chat.MessageReceived += OnChatLine;
 		_session.SessionEnded += OnSessionEnded;
@@ -47,6 +51,81 @@ public sealed class CommandConsoleService : ICommandControl
 	}
 
 	public IReadOnlyList<ConsoleLine> Lines => _lines;
+
+	public IReadOnlyList<CommandSpec> Commands => [.. _commands.Select(c => new CommandSpec(c.Name, c.Description, c.Usage, c.Permission, c.ArgumentKinds))];
+
+	public IReadOnlyList<string> Suggest(string input)
+	{
+		if (string.IsNullOrWhiteSpace(input))
+		{
+			return [];
+		}
+
+		var tokens = CommandLineTokenizer.Tokenize(input);
+		if (tokens.Count == 0)
+		{
+			return [];
+		}
+
+		var isCommand = input.StartsWith("/", StringComparison.Ordinal);
+		if (isCommand && tokens.Count == 1 && IsCommandTokenAtEnd(input, tokens[0]))
+		{
+			var partial = tokens[0].Unquoted;
+			if (partial.StartsWith("/", StringComparison.Ordinal))
+			{
+				partial = partial.Substring(1);
+			}
+
+			return [.. _commands
+				.Where(c => c.Name.StartsWith(partial, StringComparison.OrdinalIgnoreCase))
+				.Select(c => c.Name)
+				.OrderBy(c => c, StringComparer.OrdinalIgnoreCase)];
+		}
+
+		if (!isCommand)
+		{
+			return [];
+		}
+
+		var command = FindCommand(tokens[0].Unquoted);
+		if (command is null)
+		{
+			return [];
+		}
+
+		var current = CommandLineTokenizer.CurrentToken(input);
+		var argumentIndex = current.Length == 0 ? tokens.Count : tokens.Count - 1;
+		if (argumentIndex < 1 || argumentIndex > command.ArgumentKinds.Count)
+		{
+			return [];
+		}
+
+		var kind = command.ArgumentKinds[argumentIndex - 1];
+		var prefix = current.Length == 0 ? "" : current.Unquoted;
+		return SuggestFor(kind, prefix);
+	}
+
+	public string? GetHint(string input)
+	{
+		if (string.IsNullOrWhiteSpace(input) || !input.StartsWith("/", StringComparison.Ordinal))
+		{
+			return null;
+		}
+
+		var tokens = CommandLineTokenizer.Tokenize(input);
+		if (tokens.Count == 0)
+		{
+			return null;
+		}
+
+		var command = FindCommand(tokens[0].Unquoted);
+		if (command is null)
+		{
+			return $"Unknown command '{tokens[0].Unquoted}'. Type /help for available commands.";
+		}
+
+		return $"Usage: {command.Usage} — {command.Description}";
+	}
 
 	public bool TryExecute(string input)
 	{
@@ -84,22 +163,28 @@ public sealed class CommandConsoleService : ICommandControl
 
 	private void RegisterBuiltIns()
 	{
-		Register("help", "List available commands.", CommandPermission.Anyone, _ => HelpText());
-		Register("clear", "Clear the console output.", CommandPermission.Anyone, _ =>
+		Register("help", "List available commands.", CommandPermission.Anyone, "/help [command]", [], _ => HelpText());
+		Register("clear", "Clear the console output.", CommandPermission.Anyone, "/clear", [], _ =>
 		{
 			Clear();
 			return string.Empty;
 		});
-		Register("players", "List current session members.", CommandPermission.Anyone, _ => PlayersText());
-		Register("rtt", "Show the last measured round-trip time.", CommandPermission.Anyone, _ => RttText());
-		Register("whoami", "Show local role, SteamId and session state.", CommandPermission.Anyone, _ => WhoAmIText());
-		Register("kick", "Host only: kick a member by SteamId or display name.", CommandPermission.HostOnly, Kick);
-		Register("ban", "Host only: ban a member by SteamId or display name.", CommandPermission.HostOnly, Ban);
-		Register("unban", "Host only: unban a SteamId.", CommandPermission.HostOnly, Unban);
+		Register("players", "List current session members.", CommandPermission.Anyone, "/players", [], _ => PlayersText());
+		Register("rtt", "Show the last measured round-trip time.", CommandPermission.Anyone, "/rtt", [], _ => RttText());
+		Register("whoami", "Show local role, SteamId and session state.", CommandPermission.Anyone, "/whoami", [], _ => WhoAmIText());
+		Register("kick", "Host only: kick a member by SteamId or display name.", CommandPermission.HostOnly, "/kick <steamId|displayName>", [CommandArgumentKind.PlayerOrSteamId], Kick);
+		Register("ban", "Host only: ban a member by SteamId or display name.", CommandPermission.HostOnly, "/ban <steamId|displayName>", [CommandArgumentKind.PlayerOrSteamId], Ban);
+		Register("unban", "Host only: unban a SteamId.", CommandPermission.HostOnly, "/unban <steamId>", [CommandArgumentKind.SteamId], Unban);
 	}
 
-	private void Register(string name, string description, CommandPermission permission, Func<IReadOnlyList<string>, string> handler) =>
-		_commands.Add(new CommandDefinition(name, description, permission, handler));
+	private void Register(
+		string name,
+		string description,
+		CommandPermission permission,
+		string usage,
+		IReadOnlyList<CommandArgumentKind> argumentKinds,
+		Func<IReadOnlyList<string>, string> handler) =>
+		_commands.Add(new CommandDefinition(name, description, permission, usage, argumentKinds, handler));
 
 	private bool ExecuteCommand(string commandLine)
 	{
@@ -290,6 +375,77 @@ public sealed class CommandConsoleService : ICommandControl
 		return $"player-{line.SenderSteamId:X}: {line.Text}";
 	}
 
+	private CommandDefinition? FindCommand(string name)
+	{
+		if (name.StartsWith("/", StringComparison.Ordinal))
+		{
+			name = name.Substring(1);
+		}
+
+		return _commands.FirstOrDefault(c => string.Equals(c.Name, name, StringComparison.OrdinalIgnoreCase));
+	}
+
+	private static bool IsCommandTokenAtEnd(string input, CommandLineTokenizer.Token token)
+	{
+		var current = CommandLineTokenizer.CurrentToken(input);
+		return current.Length == token.Length && current.Start == token.Start;
+	}
+
+	private IReadOnlyList<string> SuggestFor(CommandArgumentKind kind, string prefix) => kind switch
+	{
+		CommandArgumentKind.PlayerOrSteamId => SuggestMembers(prefix),
+		CommandArgumentKind.SteamId => SuggestSteamIds(prefix),
+		_ => [],
+	};
+
+	private IReadOnlyList<string> SuggestMembers(string prefix)
+	{
+		var result = new List<string>();
+		foreach (var member in _session.Members)
+		{
+			if (!string.IsNullOrWhiteSpace(member.DisplayName)
+				&& member.DisplayName.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+			{
+				result.Add(member.DisplayName);
+			}
+
+			var decimalId = member.SteamId.ToString(CultureInfo.InvariantCulture);
+			if (decimalId.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+			{
+				result.Add(decimalId);
+			}
+
+			var hexId = "0x" + member.SteamId.ToString("X", CultureInfo.InvariantCulture);
+			if (hexId.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+			{
+				result.Add(hexId);
+			}
+		}
+
+		return result;
+	}
+
+	private IReadOnlyList<string> SuggestSteamIds(string prefix)
+	{
+		var result = new List<string>();
+		foreach (var steamId in _hostBans.BannedSteamIds)
+		{
+			var decimalId = steamId.ToString(CultureInfo.InvariantCulture);
+			if (decimalId.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+			{
+				result.Add(decimalId);
+			}
+
+			var hexId = "0x" + steamId.ToString("X", CultureInfo.InvariantCulture);
+			if (hexId.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+			{
+				result.Add(hexId);
+			}
+		}
+
+		return result;
+	}
+
 	private void OnSessionEnded()
 	{
 		_lines.Clear();
@@ -298,55 +454,21 @@ public sealed class CommandConsoleService : ICommandControl
 
 	private void AddLine(string text, ConsoleLineKind kind)
 	{
-		_lines.Add(new ConsoleLine(kind, text));
+		_lines.Add(new ConsoleLine(kind, text, _time.UtcNowTicks));
 		if (_lines.Count > MaxLines)
 		{
 			_lines.RemoveAt(0);
 		}
 	}
 
-	private static IReadOnlyList<string> Split(string text)
-	{
-		var tokens = new List<string>();
-		var current = new StringBuilder();
-		var inQuotes = false;
-		foreach (var ch in text)
-		{
-			if (ch == '"')
-			{
-				inQuotes = !inQuotes;
-			}
-			else if (char.IsWhiteSpace(ch) && !inQuotes)
-			{
-				if (current.Length > 0)
-				{
-					tokens.Add(current.ToString());
-					current.Clear();
-				}
-			}
-			else
-			{
-				current.Append(ch);
-			}
-		}
-
-		if (current.Length > 0)
-		{
-			tokens.Add(current.ToString());
-		}
-
-		return tokens;
-	}
-
-	private enum CommandPermission
-	{
-		Anyone,
-		HostOnly,
-	}
+	private static IReadOnlyList<string> Split(string text) =>
+		[.. CommandLineTokenizer.Tokenize(text).Select(t => t.Unquoted)];
 
 	private sealed record CommandDefinition(
 		string Name,
 		string Description,
 		CommandPermission Permission,
+		string Usage,
+		IReadOnlyList<CommandArgumentKind> ArgumentKinds,
 		Func<IReadOnlyList<string>, string> Handler);
 }

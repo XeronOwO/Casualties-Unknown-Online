@@ -14,7 +14,7 @@ existing text-chat send path; no wire message or protocol version was added.
 | 3 | Completion suggestions | `CommandConsoleService.Suggest` returns `CommandSuggestion` items (text + description) for command names, member names/SteamIds, and banned SteamIds based on argument kind. |
 | 4 | Rich hint UI | The standalone overlay renders a scrollable, clickable suggestion list; `GUIContent` tooltips show the candidate description on hover. |
 | 5 | Tokenizer | `CommandLineTokenizer` splits commands while preserving double/single quotes, escapes, `[]`/`{}`/`()` groups, so spaced values, selectors and JSON-like literals survive as one token. |
-| 6 | Cursor-aware input | `ConsoleInputSession` owns the cursor and editing operations; the overlay renders a custom IMGUI field with caret, arrow/Home/End/Backspace/Delete, and click-to-place cursor. |
+| 6 | Cursor-aware input | `ConsoleInputSession` owns the cursor and editing operations; the overlay renders a custom IMGUI field with caret, arrow/Home/End/Backspace/Delete, Ctrl+Left/Right, Ctrl+Backspace/Ctrl+Delete, and click-to-place cursor. |
 | 7 | Basic highlighting | The custom input renders command tokens in accent, quoted/selector/JSON-like literals in muted, and plain text in default color. |
 | 5 | Input state machine | `ConsoleInputSession` owns open/close, current line, history navigation, completion cycling and submission, all Unity-free. |
 | 6 | Fade policy | `ConsoleFadePolicy.ComputeAlpha` provides the hold/fade curve used by both console surfaces. |
@@ -45,6 +45,7 @@ existing text-chat send path; no wire message or protocol version was added.
 | Token at cursor | A token under an arbitrary cursor is found, whitespace returns empty | `CommandLineTokenizerTests.TokenAtCursor_ReturnsTokenUnderCursor`, `TokenAtCursor_ReturnsEmptyAtWhitespace` |
 | Cursor editing | Insert/backspace/move cursor update input+cursor correctly | `ConsoleInputSessionTests.InsertChar_InsertsAtCursorAndMovesForward`, `Backspace_DeletesBeforeCursor`, `MoveCursorLeftAndRight_AdjustsPosition` |
 | Cursor-aware completion | Tab replaces the token at the cursor and preserves suffix | `ConsoleInputSessionTests.CycleCompletion_ReplacesTokenAtCursorPreservingSuffix` |
+| Word editing | Ctrl+Backspace/Ctrl+Delete and Ctrl+Left/Right work on word boundaries | `ConsoleInputSessionTests.BackspaceWord_DeletesWholeWordBeforeCursor`, `DeleteWord_DeletesNextWordAfterCursor`, `MoveWordLeftAndRight_JumpsBetweenWords` |
 | Fade policy | Hold, mid-fade, and expired alphas are deterministic | `ConsoleFadePolicyTests` (4 cases) |
 | Input session open/close | Open prefills `/`; Escape closes without executing | `ConsoleInputSessionTests.Open_PrefillsSlashAndSetsOpen`, `Escape_ClosesWithoutExecuting` |
 | Input session submit/history | Submit keeps console open, records history, Up/Down restores draft | `ConsoleInputSessionTests.Submit_ExecutesClearsAndKeepsConsoleOpen`, `History_UpAndDown_RestoresDraft` |
@@ -59,15 +60,15 @@ existing text-chat send path; no wire message or protocol version was added.
 - No entity-selector / resource-location / NBT-JSON structural completion
   providers; the tokenizer preserves those literals but the console does not yet
   generate structured suggestions for them.
-- No IME/clipboard/selection support in the custom input; printable ASCII/UTF
-  character insertion, arrows, Home/End and Backspace/Delete are covered.
+- No IME/clipboard/selection support yet; printable ASCII/UTF insertion,
+  arrows, Home/End, Backspace/Delete and word-level editing are covered.
 
 ## 4. Verification results
 
 | Evidence | Result |
 |---|---|
 | `dotnet build CasualtiesUnknownOnline.slnx` | 0 warnings / 0 errors |
-| `dotnet test CasualtiesUnknownOnline.slnx --no-build` | 1894 passed / 0 failed |
+| `dotnet test CasualtiesUnknownOnline.slnx --no-build` | 1897 passed / 0 failed |
 | `dotnet format CasualtiesUnknownOnline.slnx` | clean |
 | `tools/check-architecture.ps1` | pass (including GameState isolation, item authority, no-legacy, command authority, kernel shape) |
 | `tools/check-event-replay.ps1` | pass (33 events) |

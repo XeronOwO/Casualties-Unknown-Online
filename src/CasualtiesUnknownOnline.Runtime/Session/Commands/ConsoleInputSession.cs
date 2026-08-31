@@ -151,6 +151,97 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 		}
 	}
 
+	public void MoveWordLeft()
+	{
+		if (!_open || _cursor <= 0)
+		{
+			return;
+		}
+
+		var start = _cursor;
+		var i = start;
+		while (i > 0 && char.IsWhiteSpace(_input[i - 1]))
+		{
+			i--;
+		}
+
+		while (i > 0 && !char.IsWhiteSpace(_input[i - 1]))
+		{
+			i--;
+		}
+
+		_cursor = i;
+	}
+
+	public void MoveWordRight()
+	{
+		if (!_open || _cursor >= _input.Length)
+		{
+			return;
+		}
+
+		var i = _cursor;
+		while (i < _input.Length && char.IsWhiteSpace(_input[i]))
+		{
+			i++;
+		}
+
+		while (i < _input.Length && !char.IsWhiteSpace(_input[i]))
+		{
+			i++;
+		}
+
+		_cursor = i;
+	}
+
+	public bool BackspaceWord()
+	{
+		if (!_open || _cursor <= 0)
+		{
+			return false;
+		}
+
+		var start = _cursor;
+		var i = start;
+		while (i > 0 && char.IsWhiteSpace(_input[i - 1]))
+		{
+			i--;
+		}
+
+		while (i > 0 && !char.IsWhiteSpace(_input[i - 1]))
+		{
+			i--;
+		}
+
+		_input = _input.Remove(i, start - i);
+		_cursor = i;
+		ResetCompletions();
+		return true;
+	}
+
+	public bool DeleteWord()
+	{
+		if (!_open || _cursor >= _input.Length)
+		{
+			return false;
+		}
+
+		var i = _cursor;
+		while (i < _input.Length && char.IsWhiteSpace(_input[i]))
+		{
+			i++;
+		}
+
+		while (i < _input.Length && !char.IsWhiteSpace(_input[i]))
+		{
+			i++;
+		}
+
+		_input = _input.Remove(_cursor, i - _cursor);
+		ResetCompletions();
+		return true;
+	}
+
 	public void MoveHome()
 	{
 		if (_open)

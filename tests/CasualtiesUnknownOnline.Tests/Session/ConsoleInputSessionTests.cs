@@ -140,6 +140,43 @@ public class ConsoleInputSessionTests
 	}
 
 	[Fact]
+	public void BackspaceWord_DeletesWholeWordBeforeCursor()
+	{
+		var session = CreateSession(new StubControl(), new StubCompletion(_ => [], _ => null));
+		session.Open();
+		session.SetInput("kick John", cursor: 9);
+
+		Assert.True(session.BackspaceWord());
+		Assert.Equal("kick ", session.Input);
+		Assert.Equal(5, session.Cursor);
+	}
+
+	[Fact]
+	public void DeleteWord_DeletesNextWordAfterCursor()
+	{
+		var session = CreateSession(new StubControl(), new StubCompletion(_ => [], _ => null));
+		session.Open();
+		session.SetInput("kick John", cursor: 5);
+
+		Assert.True(session.DeleteWord());
+		Assert.Equal("kick ", session.Input);
+		Assert.Equal(5, session.Cursor);
+	}
+
+	[Fact]
+	public void MoveWordLeftAndRight_JumpsBetweenWords()
+	{
+		var session = CreateSession(new StubControl(), new StubCompletion(_ => [], _ => null));
+		session.Open();
+		session.SetInput("kick John", cursor: 9);
+
+		session.MoveWordLeft();
+		Assert.Equal(5, session.Cursor);
+		session.MoveWordRight();
+		Assert.Equal(9, session.Cursor);
+	}
+
+	[Fact]
 	public void CycleCompletion_ReplacesTokenAtCursorPreservingSuffix()
 	{
 		var session = CreateSession(new StubControl(), new StubCompletion(_ => [new CommandSuggestion("John Doe")], _ => null));

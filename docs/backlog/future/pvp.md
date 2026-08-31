@@ -1,6 +1,6 @@
 # PVP
 
-- Status: Todo
+- Status: Future
 - Priority: Low
 - Category: Player interaction / UI
 - Source: original backlog — Open work

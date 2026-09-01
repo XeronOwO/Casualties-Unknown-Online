@@ -74,21 +74,41 @@ content binders can build on:
   `IModContent.TryRegister(id, kind, data, schemaVersion)` overload — a mod
   can version its opaque content schema; the framework stores the version
   verbatim and never migrates it.
+- `ModItemDefinition` in Abstractions — the first well-known typed item
+  payload, with `ToPayload()` / `FromPayload()` using the BCL
+  DataContractSerializer (no new package, no game/Unity type).
 - `IModContentCatalog` / `ModContentCatalog` in Runtime — a read-only,
   payload-agnostic catalog over every mod's registered content. It supports
   kind filtering, unique kind+id resolution, and cross-mod duplicate /
   schema-version conflict diagnostics. It deliberately makes no ownership
   choice and does not interpret bytes.
+- `IContentBindingProvider` + `ModContentBinder` in Runtime — the generic
+  content-binding skeleton. It runs after first-frame mod discovery and
+  routes each content entry to the provider registered for its kind. It only
+  binds content from **shared-content network modes** (`Synchronized`,
+  `Authoritative`, `RequiresAllPlayers`); local-only and HostOnly content is
+  skipped to avoid remote materialization desync.
+- `GameAdapterItemContentProvider` — the first concrete provider. It accepts
+  `ModItemDefinition`, waits for the vanilla item table, and injects the
+  static `ItemInfo` into `Item.GlobalItems`. It does not yet build runtime
+  prefabs or spawn custom items; those remain future extensions.
 - Tests for version storage/validation, catalog enumeration/filtering,
   unique resolution, duplicate/version conflicts, empty-catalog behavior,
-  and null-argument edges.
+  null-argument edges, DTO round-trip, binder routing/shared-mode
+  filtering/error isolation, and DI integration.
 - Evidence: `docs/evidence/selfchecks/mod-api/mod-content-migration-base-selfcheck.md`.
 
-Still explicitly **not** implemented: a GameAdapter content binder that
-turns these definitions into actual vanilla item/recipe/tile/building/
-liquid registries; typed per-kind content DTOs; and custom spawn via
-`IModEntitySpawn`. Those remain the future content-binding path described
-below.
+Still explicitly **not** implemented:
+- runtime prefab/template creation and custom item spawning;
+- typed per-kind DTOs for recipe/tile/building/liquid/status/moodle;
+- actual GameAdapter binding providers for those kinds;
+- a full **runtime mod-data sync model** (the static-content side of the
+  local-only vs public/shared distinction is handled by the binder's
+  shared-content network-mode filter; runtime mod state/synchronized data
+  remains a dedicated future item, see
+  `docs/backlog/todo/mod-data-sync-model.md`).
+
+Those remain the future content-binding path described below.
 
 ## Migration function matrix
 

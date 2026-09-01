@@ -315,6 +315,11 @@ public static class CuoBootstrap
 		services.AddSingleton<ModContentCatalog>();
 		services.AddSingleton<IModContentCatalog>(p => p.GetRequiredService<ModContentCatalog>());
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<ModService>());
+		// The generic content binder must run AFTER ModService's first-frame
+		// discovery: mods register content during Bind, and only then can the
+		// binder route definitions to per-kind providers.
+		services.AddSingleton<ModContentBinder>();
+		services.AddSingleton<ICuoService>(p => p.GetRequiredService<ModContentBinder>());
 
 		extraRegistrations?.Invoke(services);
 

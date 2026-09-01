@@ -1,6 +1,6 @@
 # Command registration Attribute/reflection refactor
 
-- Status: Done
+- Status: Review
 - Priority: Medium
 - Category: Tooling / UI / Mod API
 

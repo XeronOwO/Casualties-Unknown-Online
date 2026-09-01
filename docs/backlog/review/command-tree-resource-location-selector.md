@@ -1,6 +1,6 @@
 # Command tree, resource-location completion, and selector filters
 
-- Status: Done
+- Status: Review
 - Priority: Medium
 - Category: Tooling / UI / Mod API
 

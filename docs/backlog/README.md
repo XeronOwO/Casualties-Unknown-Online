@@ -48,6 +48,8 @@ _None._ (Folder exists for the workflow.)
 ### Review
 
 - [Interactive in-game command console](review/in-game-command-console-interactive.md) — slash-opened focused input, completion/history/hints, fading text area, real selector-backed `/heal` command, IME-aware custom input, JSON host-rule command.
+- [Command registration Attribute/reflection refactor](review/command-registration-attribute-refactor.md) — Attribute/reflection console registry + local mod console command API; selfcheck linked.
+- [Command tree, resource-location completion, and selector filters](review/command-tree-resource-location-selector.md) — tree/argument-position completion, namespaced candidate catalog, bracketed selector filters; selfcheck linked.
 - [Trade domain dual-side runtime pass](review/trade-domain-dual-side-runtime.md) — #59/#93.
 - [World determinism / WorldFingerprint comparison](review/world-determinism-world-fingerprint.md).
 - [Block-break first-writer-wins dual-side runtime confirmation](review/block-break-first-writer-wins.md).
@@ -72,9 +74,6 @@ _None._ (Folder exists for the workflow.)
 
 - [In-game command console](done/in-game-command-console.md) — modal Online UI console with slash commands + chat input; selfcheck linked.
 - [Player-list polish](done/player-list-polish.md) — duplicate-name peer-id disambiguation; selfcheck linked.
-
-- [Command registration Attribute/reflection refactor](done/command-registration-attribute-refactor.md) — Attribute/reflection console registry + local mod console command API; selfcheck linked.
-- [Command tree, resource-location completion, and selector filters](done/command-tree-resource-location-selector.md) — tree/argument-position completion, namespaced candidate catalog, bracketed selector filters; selfcheck linked.
 
 - [Guest-mined block leaves ghost fragments on host](done/guest-mined-block-ghost-fragments-on-host.md) — direct air writes now clear stale game BlockDamage; selfcheck linked.
 - [Duplicate unsynced item drops (guest tree / world-spawned)](done/guest-tree-extra-unsynced-drops.md) — same-id materialization dedup; selfcheck linked.

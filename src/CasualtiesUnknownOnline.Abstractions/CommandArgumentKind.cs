@@ -17,4 +17,5 @@ public enum CommandArgumentKind
 	Text,
 	Json,
 	Selector,
+	ResourceLocation,
 }

@@ -53,6 +53,7 @@ The first slice landed a modal Online UI console page:
 | 15 — IME composition support | Complete | Standalone console enables legacy Unity IME, tracks composition in a Unity-free state, renders the composition string at the caret, and prevents raw pinyin from leaking into the editor. |
 | 16 — Real JSON host-rule command | Complete | `/hostrules <json>` parses a flat JSON object and writes host-rule settings through the plugin's BepInEx ConfigEntry editor. |
 | 17 — Attribute/reflection registration + mod API | Complete | `[ConsoleCommand]` + `ConsoleCommandRegistry` replace the hard-coded built-in list; `IModContext.ConsoleCommands` exposes local mod command registration through Abstractions. |
+| 18 — Command tree, resource-location, selector filters | Complete | `CommandTree`/`CommandNode` drive argument-position completion; `ResourceLocation` + catalog and bracketed selector filters/resolution (`type`, `name`, `distance`, `limit`, `sort`) are covered by core/edge tests. |
 
 ## Phases
 
@@ -213,6 +214,22 @@ The first slice landed a modal Online UI console page:
   without any wire change.
 - Outcome: command registration is discoverable and modular; mods can add custom
   local console commands without referencing Runtime internals.
+
+### Phase 18 — Command tree, resource-location completion, selector filters
+
+- Add `CommandArgumentKind.ResourceLocation` and a `CommandTree`/`CommandNode`
+  model that drives argument-position completion (linear today, literal
+  branches can layer on later).
+- Add `ConsoleResourceLocationCatalog` so `ResourceLocation` arguments complete
+  namespaced candidates (`cuo:player`, `cuo:bandage`, ...); mods get this through
+  the existing Abstractions console command API.
+- Extend `CommandSelectorResolver` with bracketed filters: `type`, `name`,
+  `distance` (including ranges), `limit`, `sort`; unknown/malformed selectors
+  fail closed.
+- Add bracket-aware selector completion so `/heal @a[` guides filter keys and
+  known values.
+- Outcome: command completion is tree-driven and selector resolution supports
+  the common Minecraft-style filter vocabulary over CUO player entities.
 
 ## Non-goals
 

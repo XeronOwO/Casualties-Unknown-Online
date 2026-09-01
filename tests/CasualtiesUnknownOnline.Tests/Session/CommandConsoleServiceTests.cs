@@ -185,6 +185,18 @@ public class CommandConsoleServiceTests
 	}
 
 	[Fact]
+	public void ArgumentSuggestions_ResourceLocationKind_ReturnsCatalog()
+	{
+		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		var suggestions = host.Services.GetRequiredService<ICommandArgumentSuggestions>();
+
+		var matches = suggestions.Suggest(CommandArgumentKind.ResourceLocation, "cuo:");
+
+		Assert.Contains(matches, s => s.Text == "cuo:player");
+		Assert.Contains(matches, s => s.Text == "cuo:bandage");
+	}
+
+	[Fact]
 	public void Suggest_ForHealSelectorArgument_ReturnsSelectors()
 	{
 		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId);
@@ -194,6 +206,19 @@ public class CommandConsoleServiceTests
 
 		Assert.Contains(suggestions, s => s.Text == "@a");
 		Assert.Contains(suggestions, s => s.Text == "@p");
+	}
+
+	[Fact]
+	public void Suggest_ForHealSelectorBracket_ReturnsFilterKeys()
+	{
+		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		var completion = host.Services.GetRequiredService<ICommandCompletionSource>();
+
+		var suggestions = completion.Suggest("/heal @a[");
+
+		Assert.Contains(suggestions, s => s.Text == "@a[type=");
+		Assert.Contains(suggestions, s => s.Text == "@a[name=");
+		Assert.Contains(suggestions, s => s.Text == "@a[sort=");
 	}
 
 	[Fact]

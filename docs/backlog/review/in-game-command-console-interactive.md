@@ -15,7 +15,10 @@ host-authoritative heal request. The custom input is IME-aware: it enables
 Unity's legacy IME while the console is open, tracks composition in a
 Unity-free state, and renders the composition string at the caret. The JSON
 argument provider also feeds a real host-only command: `/hostrules <json>`
-parses a flat JSON object and persists host/respawn settings.
+parses a flat JSON object and persists host/respawn settings. Completion now
+uses a command-tree/argument-node model with resource-location candidates, and
+selectors support bracketed filters (`type`, `name`, `distance`, `limit`,
+`sort`).
 
 Phase plan: `docs/phases/command-console-interactive/README.md`.
 Selfcheck: `docs/evidence/selfchecks/ui/command-console-selfcheck.md`.

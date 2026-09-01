@@ -37,6 +37,9 @@ public sealed class TestCommandMod : ICuoMod
 		context.ConsoleCommands.Register(new ModConsoleCommand(
 			"chost", "Local host-only console echo", "/chost", CommandPermission.HostOnly,
 			[], ConsoleHost));
+		context.ConsoleCommands.Register(new ModConsoleCommand(
+			"cresource", "Local resource-location echo", "/cresource <location>", CommandPermission.Anyone,
+			[CommandArgumentKind.ResourceLocation], ConsoleResource));
 	}
 
 	public void Initialize()
@@ -81,5 +84,11 @@ public sealed class TestCommandMod : ICuoMod
 	{
 		ConsoleExecutions.Add((context.Name, [.. context.Arguments], context.LocalSteamId));
 		return $"host-only:{context.LocalSteamId}";
+	}
+
+	private string? ConsoleResource(IModConsoleCommandContext context)
+	{
+		ConsoleExecutions.Add((context.Name, [.. context.Arguments], context.LocalSteamId));
+		return $"resource:{string.Join(" ", context.Arguments)}";
 	}
 }

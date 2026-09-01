@@ -94,4 +94,41 @@ public class CommandSelectorResolverTests
 
 		Assert.Equal([11UL, 10UL], result);
 	}
+
+	[Fact]
+	public void BracketedTypeFilter_AcceptsPlayerAndRejectsOtherTypes()
+	{
+		var withNames = new[] { Local, Close with { DisplayName = "Alice" }, Far with { DisplayName = "Bob" } };
+
+		Assert.Equal([10UL, 11UL], CommandSelectorResolver.Resolve("@a[type=player]", withNames));
+		Assert.Empty(CommandSelectorResolver.Resolve("@a[type=zombie]", withNames));
+	}
+
+	[Fact]
+	public void BracketedNameFilter_MatchesCaseInsensitively()
+	{
+		var withNames = new[] { Local, Close with { DisplayName = "Alice" }, Far with { DisplayName = "Bob" } };
+
+		Assert.Equal([10UL], CommandSelectorResolver.Resolve("@a[name=alice]", withNames));
+		Assert.Empty(CommandSelectorResolver.Resolve("@a[name=charlie]", withNames));
+	}
+
+	[Fact]
+	public void BracketedDistanceLimitSort_FilterAndOrder()
+	{
+		var withNames = new[] { Local, Close, Far };
+
+		Assert.Equal([10UL], CommandSelectorResolver.Resolve("@a[distance=2..10]", withNames));
+		Assert.Equal([11UL], CommandSelectorResolver.Resolve("@a[distance=20..99,sort=nearest]", withNames));
+		Assert.Equal([10UL], CommandSelectorResolver.Resolve("@e[distance=1..99,limit=1,sort=nearest]", withNames));
+	}
+
+	[Fact]
+	public void IncompleteOrUnknownBracketFilters_ReturnEmpty()
+	{
+		var withNames = new[] { Local, Close, Far };
+
+		Assert.Empty(CommandSelectorResolver.Resolve("@a[type=player", withNames));
+		Assert.Empty(CommandSelectorResolver.Resolve("@a[unknown=1]", withNames));
+	}
 }

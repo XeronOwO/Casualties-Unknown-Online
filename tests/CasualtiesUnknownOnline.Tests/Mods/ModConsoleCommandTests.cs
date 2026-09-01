@@ -61,6 +61,31 @@ public class ModConsoleCommandTests
 	}
 
 	[Fact]
+	public void ModConsoleCommand_ResourceLocationCompletion_ReturnsCatalog()
+	{
+		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		var completion = host.Services.GetRequiredService<ICommandCompletionSource>();
+
+		var suggestions = completion.Suggest("/cresource cuo:");
+
+		Assert.Contains(suggestions, s => s.Text == "cuo:player");
+		Assert.Contains(suggestions, s => s.Text == "cuo:bandage");
+	}
+
+	[Fact]
+	public void ModConsoleCommand_ResourceLocation_ExecutesLocally()
+	{
+		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		var mod = CommandMod(host);
+		var console = host.Services.GetRequiredService<ICommandControl>();
+
+		Assert.True(console.TryExecute("/cresource cuo:player"));
+
+		Assert.Contains(console.Lines, l => l.Text == "resource:cuo:player");
+		Assert.Contains(mod.ConsoleExecutions, e => e.Name == "cresource" && e.LocalSteamId == HostId);
+	}
+
+	[Fact]
 	public void ModConsoleCommand_HostOnly_IsRefusedForGuest()
 	{
 		var (_, guest) = TestNode.CreatePair(HostId, GuestId, LobbyId);

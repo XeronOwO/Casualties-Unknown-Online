@@ -31,6 +31,8 @@ existing text-chat send path; no wire message or protocol version was added.
 | 20 | Real JSON host-rule command | `/hostrules <json>` is the first real CUO command with a `Json` argument; `HostRulesJsonParser`/`HostRulesJsonApplier` parse and apply a flat JSON object through the narrow `IHostRulesEditor` seam. |
 | 21 | Attribute/reflection command registry | `ConsoleCommandAttribute` marks built-in handler methods; `ConsoleCommandRegistry` scans them and builds the read-only command table at startup, replacing the hard-coded `RegisterBuiltIns()` list. |
 | 22 | Mod local console commands | `IModContext.ConsoleCommands` (`IModConsoleCommands`/`ModConsoleCommand`) lets mods register local-only console commands through Abstractions; they share the same registry/completion/help path and never enter the wire protocol. |
+| 23 | Command tree / resource-location completion | `CommandNode`/`ConsoleCommandTree` model argument positions; `CommandArgumentKind.ResourceLocation` + `ConsoleResourceLocationCatalog` provide namespaced candidates for built-ins and mod commands. |
+| 24 | Bracketed selector filters | `CommandSelectorFilter`/`CommandSelectorFilterParser` parse `type`, `name`, `distance`, `limit`, `sort` inside `@a[...]`; resolver applies filters and sort/limit, and `CommandSelectorSuggestions` guides bracket entry. |
 
 ## 2. Self-check table
 
@@ -83,16 +85,23 @@ existing text-chat send path; no wire message or protocol version was added.
 | Mod host-only enforcement | A mod host-only console command is refused on a guest | `ModConsoleCommandTests.ModConsoleCommand_HostOnly_IsRefusedForGuest` |
 | Mod permission gates | A permissionless mod cannot register ordinary or host-only local console commands | `ModConsoleCommandTests.PermissionlessMod_CannotRegisterConsoleCommands` |
 | Mod duplicate/unregister policy | Duplicate registrations are refused; unregister removes only the local mod's own command and refuses foreign/unknown names | `ModConsoleCommandTests.DuplicateConsoleCommand_IsRefused`, `Unregister_RemovesOwnConsoleCommand`, `Unregister_ForeignOrUnknownName_IsRefused` |
+| Command tree foundation | Argument/order nodes are built from declared kinds; out-of-range and literal nodes are covered | `ConsoleCommandTreeTests` (3 cases) |
+| Resource-location provider | `ResourceLocation` kind returns catalog candidates through the argument seam | `CommandConsoleServiceTests.ArgumentSuggestions_ResourceLocationKind_ReturnsCatalog` |
+| Mod resource-location completion | A mod command with `ResourceLocation` completes and executes locally | `ModConsoleCommandTests.ModConsoleCommand_ResourceLocationCompletion_ReturnsCatalog`, `ModConsoleCommand_ResourceLocation_ExecutesLocally` |
+| Selector bracket completion | `/heal @a[` suggests filter keys; `@a[type=`/`@a[sort=` suggest values | `CommandConsoleServiceTests.Suggest_ForHealSelectorBracket_ReturnsFilterKeys`, `CommandSelectorSuggestionsTests` |
+| Selector filter parser | Known keys parse; unknown/malformed/negative/zero fail; quoted names work | `CommandSelectorFilterTests` (7 cases) |
+| Selector filter resolution | `type`/`name`/`distance`/`limit`/`sort` filter remote player targets; incomplete/unknown brackets fail closed | `CommandSelectorResolverTests.BracketedTypeFilter_AcceptsPlayerAndRejectsOtherTypes`, `BracketedNameFilter_MatchesCaseInsensitively`, `BracketedDistanceLimitSort_FilterAndOrder`, `IncompleteOrUnknownBracketFilters_ReturnEmpty` |
 
 ## 3. Known remaining gaps
 
 - No semantic highlighting beyond basic token colors (no per-argument error
   highlighting, no rich hover syntax details yet).
 - Selector expansion is player-entity only (`@a`/`@e` are aliases over remote
-  players); generic entity/resource-location completion is still future work.
+  players); non-player entities and a game-content-driven resource-location
+  catalog remain future work (the built-in namespaced catalog is static).
 - The JSON command parser is intentionally flat-object only; generic nested
-  JSON arguments, JSON arrays, and command-tree/resource-location completion
-  remain future work.
+  JSON arguments, JSON arrays, and literal subcommand branches in command trees
+  remain future work (the tree/argument-position foundation is in place).
 - IME composition is wired through Unity's legacy Input Manager and the custom
   caret/render path; per-IME (Chinese/Japanese/Korean, platform-specific)
   acceptance is user-acceptance territory. Raw key suppression is intentionally
@@ -106,7 +115,7 @@ existing text-chat send path; no wire message or protocol version was added.
 | Evidence | Result |
 |---|---|
 | `dotnet build CasualtiesUnknownOnline.slnx` | 0 warnings / 0 errors |
-| `dotnet test CasualtiesUnknownOnline.slnx --no-build` | 1949 passed / 0 failed |
+| `dotnet test CasualtiesUnknownOnline.slnx --no-build` | 1972 passed / 0 failed |
 | `dotnet format CasualtiesUnknownOnline.slnx` | clean |
 | `tools/check-architecture.ps1` | pass (including GameState isolation, item authority, no-legacy, command authority, kernel shape) |
 | `tools/check-event-replay.ps1` | pass (33 events) |
@@ -129,6 +138,13 @@ existing text-chat send path; no wire message or protocol version was added.
   mod. It has no Unity/UI state and no wire path.
 - `CommandSelectorResolver` is a pure static resolver with no mutable simulator
   state; selector semantics are explicit and covered by core/edge tests.
+- `CommandNode`/`ConsoleCommandTree` are one-type-per-file Unity-free tree
+  primitives; the service builds the tree from argument-kind metadata without
+  owning a mutable tree.
+- `ConsoleResourceLocationCatalog` is a static candidate source;
+  `CommandSelectorFilter`, `CommandSelectorFilterParser`, `SelectorSort`, and
+  `CommandSelectorSuggestions` each keep one selector sub-responsibility and are
+  directly unit-tested.
 - `HostRulesJsonParser`/`HostRulesJsonApplier` keep JSON parsing and apply logic
   out of `CommandConsoleService`; `IHostRulesEditor` is the narrow write seam and
   the plugin supplies the real ConfigEntry-backed implementation.

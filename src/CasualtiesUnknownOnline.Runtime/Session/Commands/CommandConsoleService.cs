@@ -116,9 +116,15 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 			return [];
 		}
 
-		var kind = command.ArgumentKinds[argumentIndex - 1];
+		var tree = ConsoleCommandTree.FromArgumentKinds(command.ArgumentKinds);
+		var kind = tree.GetArgumentKind(argumentIndex - 1);
+		if (kind is null)
+		{
+			return [];
+		}
+
 		var prefix = current.Length == 0 ? "" : current.Unquoted;
-		return SuggestFor(kind, prefix);
+		return SuggestFor(kind.Value, prefix);
 	}
 
 	public IReadOnlyList<CommandSuggestion> Suggest(CommandArgumentKind kind, string prefix) => SuggestFor(kind, prefix);
@@ -303,15 +309,18 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 	{
 		var targets = new List<CommandSelectorResolver.Target>
 		{
-			new(_entities.LocalPlayer.SteamId, true, _entities.LocalPlayer.Position),
+			new(_entities.LocalPlayer.SteamId, true, _entities.LocalPlayer.Position, GetDisplayName(_entities.LocalPlayer.SteamId)),
 		};
 		foreach (var remote in _entities.RemotePlayers)
 		{
-			targets.Add(new(remote.SteamId, false, remote.Position));
+			targets.Add(new(remote.SteamId, false, remote.Position, GetDisplayName(remote.SteamId)));
 		}
 
 		return CommandSelectorResolver.Resolve(selector, targets);
 	}
+
+	private string? GetDisplayName(ulong steamId) =>
+		_session.Members.FirstOrDefault(m => m.SteamId == steamId)?.DisplayName;
 
 	[ConsoleCommand("hostrules", "Host only: update host rules from a JSON object.", CommandPermission.HostOnly, "/hostrules <json>", CommandArgumentKind.Json)]
 	private string HostRules(IReadOnlyList<string> args)
@@ -456,15 +465,6 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		return current.Length == token.Length && current.Start == token.Start;
 	}
 
-	private static readonly CommandSuggestion[] SelectorSuggestions =
-	[
-		new("@a", "All players"),
-		new("@p", "Nearest player"),
-		new("@s", "Self"),
-		new("@e", "All entities"),
-		new("@r", "Random player"),
-	];
-
 	private static readonly CommandSuggestion[] JsonSuggestions =
 	[
 		new("{}", "Empty JSON object"),
@@ -476,8 +476,9 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		CommandArgumentKind.CommandName => SuggestCommandNames(prefix),
 		CommandArgumentKind.PlayerOrSteamId => SuggestMembers(prefix),
 		CommandArgumentKind.SteamId => SuggestSteamIds(prefix),
-		CommandArgumentKind.Selector => [.. SelectorSuggestions.Where(s => s.Text.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))],
+		CommandArgumentKind.Selector => CommandSelectorSuggestions.Suggest(prefix),
 		CommandArgumentKind.Json => [.. JsonSuggestions.Where(s => s.Text.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))],
+		CommandArgumentKind.ResourceLocation => ConsoleResourceLocationCatalog.Suggest(prefix),
 		_ => [],
 	};
 

@@ -74,6 +74,7 @@ _None._ (Folder exists for the workflow.)
 - [Player-list polish](done/player-list-polish.md) — duplicate-name peer-id disambiguation; selfcheck linked.
 
 - [Command registration Attribute/reflection refactor](done/command-registration-attribute-refactor.md) — Attribute/reflection console registry + local mod console command API; selfcheck linked.
+- [Command tree, resource-location completion, and selector filters](done/command-tree-resource-location-selector.md) — tree/argument-position completion, namespaced candidate catalog, bracketed selector filters; selfcheck linked.
 
 - [Guest-mined block leaves ghost fragments on host](done/guest-mined-block-ghost-fragments-on-host.md) — direct air writes now clear stale game BlockDamage; selfcheck linked.
 - [Duplicate unsynced item drops (guest tree / world-spawned)](done/guest-tree-extra-unsynced-drops.md) — same-id materialization dedup; selfcheck linked.

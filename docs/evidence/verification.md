@@ -8,7 +8,7 @@ is the entry point for that evidence chain.
 
 | Item | Value |
 |---|---|
-| Test suite | **1791 passed** (Phase E closure baseline; see `docs/decisions/active.md` #158) |
+| Test suite | **1983 passed** (2026-09-01 content migration base; see `docs/evidence/selfchecks/mod-api/mod-content-migration-base-selfcheck.md`) |
 | Build | `dotnet build` 0 warnings / 0 errors |
 | Format | Tracked-source `dotnet format` is clean; `--verify-no-changes` currently reports the generated `obj/Debug/net48/MyPluginInfo.cs`, so the documented baseline is “tracked sources clean” |
 | Architecture | `tools/check-architecture.ps1` strict mode passes, including Phase E guards |

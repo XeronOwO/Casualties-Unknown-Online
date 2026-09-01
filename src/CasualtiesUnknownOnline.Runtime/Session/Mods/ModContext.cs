@@ -144,7 +144,10 @@ internal sealed class ModContext(
 
 		public IReadOnlyCollection<ModContentDefinition> Definitions => [.. _definitions];
 
-		public bool TryRegister(string id, string kind, byte[] data)
+		public bool TryRegister(string id, string kind, byte[] data) =>
+			TryRegister(id, kind, data, 1);
+
+		public bool TryRegister(string id, string kind, byte[] data, int schemaVersion)
 		{
 			if (!ModPermissionGate.Try(log, manifest, ModPermission.RegisterContent))
 			{
@@ -162,6 +165,13 @@ internal sealed class ModContext(
 			{
 				log.LogWarning("[Mods] {ModId} tried to register content {Id} with an invalid kind {Kind} — refused.",
 					manifest.Id, id, kind);
+				return false;
+			}
+
+			if (!ModContentPolicy.IsValidSchemaVersion(schemaVersion))
+			{
+				log.LogWarning("[Mods] {ModId} tried to register content {Id} with invalid schema version {SchemaVersion} — refused.",
+					manifest.Id, id, schemaVersion);
 				return false;
 			}
 
@@ -186,9 +196,10 @@ internal sealed class ModContext(
 				return false;
 			}
 
-			_definitions.Add(new ModContentDefinition(id, kind, data));
-			log.LogInformation("[Mods] {ModId} registered content {Id} ({Kind}, {Length} bytes).",
-				manifest.Id, id, kind, data.Length);
+			var definition = new ModContentDefinition(id, kind, data, schemaVersion);
+			_definitions.Add(definition);
+			log.LogInformation("[Mods] {ModId} registered content {Id} ({Kind}, schema {SchemaVersion}, {Length} bytes).",
+				manifest.Id, id, kind, definition.SchemaVersion, data.Length);
 			return true;
 		}
 

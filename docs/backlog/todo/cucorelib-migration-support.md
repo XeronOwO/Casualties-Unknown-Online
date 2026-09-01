@@ -61,6 +61,35 @@ Recommended direction:
   read-only projections are exposed today through `IModNativeApi` /
   `IModGameState`; write operations need a real authority design first.
 
+## Implemented minimal migration base (2026-09-01)
+
+This round intentionally does **not** port full CUCoreLib content
+functionality. It lands the foundation that CUCoreLib-style mods and future
+content binders can build on:
+
+- `ModContentKind` in Abstractions — a stable base vocabulary for common
+  content kinds (item, recipe, liquid, tile, building, structure, status,
+  moodle, setting, locale).
+- `ModContentDefinition.SchemaVersion` and the
+  `IModContent.TryRegister(id, kind, data, schemaVersion)` overload — a mod
+  can version its opaque content schema; the framework stores the version
+  verbatim and never migrates it.
+- `IModContentCatalog` / `ModContentCatalog` in Runtime — a read-only,
+  payload-agnostic catalog over every mod's registered content. It supports
+  kind filtering, unique kind+id resolution, and cross-mod duplicate /
+  schema-version conflict diagnostics. It deliberately makes no ownership
+  choice and does not interpret bytes.
+- Tests for version storage/validation, catalog enumeration/filtering,
+  unique resolution, duplicate/version conflicts, empty-catalog behavior,
+  and null-argument edges.
+- Evidence: `docs/evidence/selfchecks/mod-api/mod-content-migration-base-selfcheck.md`.
+
+Still explicitly **not** implemented: a GameAdapter content binder that
+turns these definitions into actual vanilla item/recipe/tile/building/
+liquid registries; typed per-kind content DTOs; and custom spawn via
+`IModEntitySpawn`. Those remain the future content-binding path described
+below.
+
 ## Migration function matrix
 
 Source basis: CUCoreLib README/CHANGELOG, `CUCoreLibWebapp` machine docs

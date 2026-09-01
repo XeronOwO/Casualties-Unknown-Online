@@ -219,7 +219,7 @@ context.Ui.Unregister("status");
 if (context.Content.CanRegister)
 {
     context.Content.TryRegister("wooden.sword", "item", myItemDefinitionBytes);
-    context.Content.TryRegister("healing.recipe", "recipe", myRecipeDefinitionBytes);
+    context.Content.TryRegister("healing.recipe", "recipe", myRecipeDefinitionBytes, schemaVersion: 2);
 }
 var itemDefs = context.Content.Definitions; // snapshot; payloads are copied on read
 context.Content.TryUnregister("wooden.sword");
@@ -228,8 +228,10 @@ context.Content.TryUnregister("wooden.sword");
 - **Scope**: `IModContent` is a per-mod registry of opaque content
   definitions (item defs, weapon stats, NPC types, recipes, skills, map
   entries, etc.). A mod registers an id + kind + opaque payload in `Bind`;
-  the framework never interprets or serializes the payload, so the mod owns
-  its own content schema/versioning.
+  it may also declare a positive `schemaVersion` (defaults to 1). The
+  framework never interprets, serializes, or migrates the payload, so the mod
+  owns its own content schema/versioning; the stored version is carried
+  verbatim on every definition read.
 - **Permission**: registration requires `ModPermission.RegisterContent`.
   `CanRegister` reflects whether this mod copy declared the flag; every
   `TryRegister` call also enforces it. The permission policy already refuses
@@ -240,13 +242,18 @@ context.Content.TryUnregister("wooden.sword");
   SemVer / permissions / network mode) is the consistency boundary; a mod
   that needs client-specific dynamic content must coordinate through
   `IModNetwork` / `IModCommands` instead.
-- **Rules**: empty id/kind, a null or over-cap payload, or a duplicate id
-  within the same mod is refused; `TryUnregister` removes a definition.
-  Safety rails: id ≤128 chars, kind ≤64 chars, payload ≤64 KiB, ≤1024
+- **Rules**: empty id/kind, a null or over-cap payload, a non-positive
+  schema version, or a duplicate id within the same mod is refused;
+  `TryUnregister` removes a definition. Safety rails: id ≤128 chars,
+  kind ≤64 chars, schema version must be positive, payload ≤64 KiB, ≤1024
   definitions per mod. Errors are refused with a log, never silently truncated.
 - **Framework read view**: `IModContentControl.Entries` exposes every mod's
   registered definitions to other CUO layers (plugin / future native-content
-  consumers) as a read-only snapshot.
+  consumers) as a read-only snapshot. The runtime content catalog
+  (`IModContentCatalog`) adds kind filtering, unique kind+id resolution, and
+  cross-mod duplicate/schema-version conflict diagnostics without
+  interpreting payloads; it is the intended base for a future native-content
+  binder.
 - **No wire change**: no content bytes or new NetMsg.
 
 ## 4g. Read game state (read-only projection)
@@ -421,7 +428,7 @@ permission policy (`ModPermissionPolicyTests`), SemVer (`SemanticVersionTests`),
 lifecycle (`ModLifecycleTests`), message routing + permission/rate gates
 (`ModMessageTests`), host commands (`ModCommandTests`), mod-state saves
 (`ModStateTests`), local mod UI (`ModUiTests`), mod content registration
-(`ModContentTests`), read game state (`ModGameStateTests`), entity spawn
+(`ModContentTests`, `ModContentCatalogTests`), read game state (`ModGameStateTests`), entity spawn
 (`ModEntitySpawnTests`), native API (`ModNativeApiTests` +
 `GameAdapterNativeApiContractTests`), handshake matrix
 (`ModHandshakeTests`), rate limiter (`ModRateLimiterTests`), direction rows

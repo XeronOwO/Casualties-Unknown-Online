@@ -217,6 +217,11 @@ internal static class PluginDependencyRegistrar
 		services.AddSingleton<GameAdapterItemContentProvider>();
 		services.AddSingleton<IContentBindingProvider>(p => p.GetRequiredService<GameAdapterItemContentProvider>());
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<GameAdapterItemContentProvider>());
+		// Recipe content binding: the same generic binder routes
+		// ModContentKind.Recipe definitions to this Game Adapter provider.
+		services.AddSingleton<GameAdapterRecipeContentProvider>();
+		services.AddSingleton<IContentBindingProvider>(p => p.GetRequiredService<GameAdapterRecipeContentProvider>());
+		services.AddSingleton<ICuoService>(p => p.GetRequiredService<GameAdapterRecipeContentProvider>());
 		// The game-backed line-of-sight oracle is a standalone lightweight
 		// GameAdapter service. It must NOT be registered through GameAdapterImpl:
 		// GameAdapter depends on IPlayerInteractionControl, and

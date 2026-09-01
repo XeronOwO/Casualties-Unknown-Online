@@ -128,14 +128,20 @@ internal sealed class CloneInventoryRenderer(ILogger<CloneInventoryRenderer> log
 			return;
 		}
 
-		var prefab = Resources.Load(wanted.ItemId);
+		var prefab = ItemPrefabResolver.Load(wanted.ItemId);
 		if (prefab == null) // Unity object — ==
 		{
 			return;
 		}
 
 		var obj = UnityEngine.Object.Instantiate(prefab, parent) as GameObject;
-		obj!.transform.localPosition = Vector3.zero;
+		if (obj == null) // Unity object — ==
+		{
+			return;
+		}
+
+		obj.SetActive(true);
+		obj.transform.localPosition = Vector3.zero;
 		var item = obj.GetComponent<Item>();
 
 		// Apply the snapshot's component state so the clone shows the owner's

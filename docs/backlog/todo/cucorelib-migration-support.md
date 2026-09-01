@@ -89,17 +89,25 @@ content binders can build on:
   `Authoritative`, `RequiresAllPlayers`); local-only and HostOnly content is
   skipped to avoid remote materialization desync.
 - `GameAdapterItemContentProvider` — the first concrete provider. It accepts
-  `ModItemDefinition`, waits for the vanilla item table, and injects the
-  static `ItemInfo` into `Item.GlobalItems`. It does not yet build runtime
-  prefabs or spawn custom items; those remain future extensions.
+  `ModItemDefinition`, waits for the vanilla item table, injects the
+  static `ItemInfo` into `Item.GlobalItems`, and — when the DTO supplies a
+  `TemplateId` — builds an inactive runtime template from that vanilla prefab,
+  attaches the requested `SpawnComponents`, and serves it to CUO's item
+  prefab resolution seam. `Utils.Create`, CUO's restore/spawn paths, and
+  targeted transpilers for the game's native building-drop/save-restore
+  resource loads can materialize those custom items; no game/Unity type is
+  exposed to mods.
 - Tests for version storage/validation, catalog enumeration/filtering,
   unique resolution, duplicate/version conflicts, empty-catalog behavior,
   null-argument edges, DTO round-trip, binder routing/shared-mode
   filtering/error isolation, and DI integration.
-- Evidence: `docs/evidence/selfchecks/mod-api/mod-content-migration-base-selfcheck.md`.
+- Evidence: `docs/evidence/selfchecks/mod-api/mod-content-migration-base-selfcheck.md`
+  and `docs/evidence/selfchecks/mod-api/mod-item-content-binding-selfcheck.md`.
 
 Still explicitly **not** implemented:
-- runtime prefab/template creation and custom item spawning;
+- custom item spawning through a mod-facing `IModEntitySpawn`-style item API;
+  current support is limited to CUO's already-existing item domain/restore
+  paths plus the `Utils.Create` fallback for game-called spawns;
 - typed per-kind DTOs for recipe/tile/building/liquid/status/moodle;
 - actual GameAdapter binding providers for those kinds;
 - a full **runtime mod-data sync model** (the static-content side of the

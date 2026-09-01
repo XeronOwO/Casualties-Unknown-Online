@@ -30,6 +30,9 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 
 	public bool IsHostMode => domains.Session.Role == SessionRole.Host && domains.Session.SessionActive;
 
+	public bool TryResolveItemTemplate(string id, out GameObject? template) =>
+		domains.ItemContent.TryResolveTemplate(id, out template);
+
 	public bool IsReplayingLifePodSound => domains.LifePod.IsReplayingSound;
 
 	public bool IsHeaterCookAuthority =>

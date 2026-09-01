@@ -297,7 +297,7 @@ internal sealed class TraderRecruitCoordinator(
 	/// </summary>
 	private CharacterItemMsg? CreateGiftItem(string itemId, int slot)
 	{
-		var prefab = (GameObject?)Resources.Load(itemId);
+		var prefab = ItemPrefabResolver.Load(itemId);
 		if (prefab == null) // Unity object — ==
 		{
 			_log.LogWarning("[TradeRecruit] gifted item {ItemId} has no prefab — skipped.", itemId);

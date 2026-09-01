@@ -345,7 +345,7 @@ internal sealed class RemoteItemSceneOps(ISessionControl session, Logger log)
 
 		_log.LogInformation("[ItemSpawn] materializing {Type} (id {ItemId}) at ({X:F1},{Y:F1}), vel ({VX:F1},{VY:F1}), container {ContainerId}.",
 			w.Item.ItemId, w.ItemId, w.Pos.X, w.Pos.Y, w.Vel.X, w.Vel.Y, w.ParentItemId);
-		var prefab = Resources.Load(w.Item.ItemId);
+		var prefab = ItemPrefabResolver.Load(w.Item.ItemId);
 		if (prefab == null) // Unity object — ==
 		{
 			_log.LogWarning("Cannot materialize item {ItemId}: definition '{Type}' not found.", w.ItemId, w.Item.ItemId);
@@ -353,7 +353,14 @@ internal sealed class RemoteItemSceneOps(ISessionControl session, Logger log)
 		}
 
 		var obj = UnityEngine.Object.Instantiate(prefab, new Vector3(w.Pos.X, w.Pos.Y, 0f), Quaternion.Euler(0f, 0f, w.Rotation)) as GameObject;
-		var item = obj!.GetComponent<Item>(); // the definition prefab carries Item — Instantiate succeeded, so it exists
+		if (obj == null) // Unity object — ==
+		{
+			_log.LogWarning("Cannot materialize item {ItemId}: instantiate returned null.", w.ItemId);
+			return;
+		}
+
+		obj.SetActive(true); // the cached custom template is inactive; every item instance must be live
+		var item = obj.GetComponent<Item>(); // the definition prefab carries Item — Instantiate succeeded, so it exists
 		item.condition = w.Item.Condition; // direct write, like the save restore (SaveSystem.cs:306) — SetCondition would drain water by ratio
 		item.favourited = w.Item.Favourited;
 		item.gameObject.AddComponent<ItemInstanceId>().Id = w.ItemId;

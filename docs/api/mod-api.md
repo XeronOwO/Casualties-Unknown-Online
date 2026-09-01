@@ -275,6 +275,13 @@ context.Content.TryUnregister("wooden.sword");
   extensible `CustomData` dictionary. A mod serializes it with `ToPayload()`
   and registers the bytes through `IModContent`; the framework still stores
   bytes opaquely.
+- **Typed recipe content**: `ModRecipeDefinition` is the second well-known
+  Abstractions DTO. It carries the result item/liquid, result amount and
+  condition, intelligence requirement, recipe category, repair flag, and an
+  ordered list of `ModRecipeIngredient` entries (specific item id or crafting
+  quality, liquid flag, minimum condition, destroy flag). The Game Adapter
+  recipe provider builds the vanilla recipe object and injects it into
+  `Recipes.recipes` once the game table is ready.
 - **Shared-content binding boundary**: the runtime content binder only routes
   content from mods whose network mode guarantees a matching copy on every
   player that can receive the content instances
@@ -293,6 +300,10 @@ context.Content.TryUnregister("wooden.sword");
   `BuildingEntity.Update` and `SaveSystem.TryLoadGame` resource loads can
   therefore materialize a custom item; no game type is exposed to mods and no
   new wire message is used.
+- **Current recipe binding scope**: `GameAdapterRecipeContentProvider` decodes
+  `ModRecipeDefinition`, waits for `Recipes.recipes`, deduplicates against the
+  existing recipe table, and injects each accepted recipe with its game-category
+  mapping. No game type is exposed to mods and no new wire message is used.
 - **No wire change**: no content bytes or new NetMsg.
 
 ## 4g. Read game state (read-only projection)

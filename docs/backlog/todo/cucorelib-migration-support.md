@@ -97,18 +97,24 @@ content binders can build on:
   targeted transpilers for the game's native building-drop/save-restore
   resource loads can materialize those custom items; no game/Unity type is
   exposed to mods.
+- `ModRecipeDefinition` + `GameAdapterRecipeContentProvider` — the second
+  typed content kind. The plain DTO carries result/ingredients/category and
+  the Game Adapter provider injects built `Recipe` objects into
+  `Recipes.recipes` once the table exists, with recipe-table-rebuild
+  re-injection and duplicate protection.
 - Tests for version storage/validation, catalog enumeration/filtering,
   unique resolution, duplicate/version conflicts, empty-catalog behavior,
   null-argument edges, DTO round-trip, binder routing/shared-mode
   filtering/error isolation, and DI integration.
-- Evidence: `docs/evidence/selfchecks/mod-api/mod-content-migration-base-selfcheck.md`
-  and `docs/evidence/selfchecks/mod-api/mod-item-content-binding-selfcheck.md`.
+- Evidence: `docs/evidence/selfchecks/mod-api/mod-content-migration-base-selfcheck.md`,
+  `docs/evidence/selfchecks/mod-api/mod-item-content-binding-selfcheck.md`,
+  and `docs/evidence/selfchecks/mod-api/mod-recipe-content-binding-selfcheck.md`.
 
 Still explicitly **not** implemented:
 - custom item spawning through a mod-facing `IModEntitySpawn`-style item API;
   current support is limited to CUO's already-existing item domain/restore
   paths plus the `Utils.Create` fallback for game-called spawns;
-- typed per-kind DTOs for recipe/tile/building/liquid/status/moodle;
+- typed per-kind DTOs for tile/building/liquid/status/moodle;
 - actual GameAdapter binding providers for those kinds;
 - a full **runtime mod-data sync model** (the static-content side of the
   local-only vs public/shared distinction is handled by the binder's
@@ -133,8 +139,8 @@ Source basis: CUCoreLib README/CHANGELOG, `CUCoreLibWebapp` machine docs
 | 4 | Generic mod messaging / channels | `MultiplayerApi` / `MultiplayerBridge`: `RegisterServerHandler`, `RegisterClientHandler`, `SendToServer`, `SendToClient`, `Broadcast`, `RequestServer`, arbitrary string channels, JToken payloads. | `IModNetwork`: `SendToHost`, `SendToPeer`, `Broadcast`, `MessageReceived`, opaque `byte[]`, mod-id routed, 64 KiB cap, star topology. | **Do not port.** Only provide migration mapping. CUO already has a typed, permission-gated message surface; arbitrary public channels would duplicate/mod-add a new protocol. |
 | 5 | Generic snapshot sync | `MultiplayerApi.RegisterSyncModule(key, capture, apply)` + `BroadcastSnapshot`/`ApplySnapshot`; JObject full-snapshot modules for arbitrary mod state. | No generic snapshot API. CUO uses a typed deterministic kernel: discrete committed batches, high-frequency state streams, per-domain state. | **Out of scope / anti-architecture.** Do not add a generic JObject snapshot registry. Mod durable state belongs in `IModState` (host-persistent) or through `IModNetwork`/`IModCommands`; synced gameplay facts belong in kernel domains. |
 | 6 | Asset / resource loading | `AssetLoader`, `FileLoader`: embedded/loose sprites, audio, text, AssetBundles, bundle registration/cache, sprite animations, sprite-sheet helpers. | No asset API in Abstractions. `IModNativeApi` is the only safe game seam and is currently read-only local player state. | **Out of scope for CUO core.** Asset loading is a local packaging concern; it should not become wire content. If a future content pipeline needs assets, they remain mod-local and are referenced by the content definition, not synced. A later local-only resource helper may be useful, but it is not required for multiplayer correctness. |
-| 7 | Custom item definitions | `ItemRegistry.Register(id, ItemInfo/CustomItemInfo, icon, spawnFrequency)`; `CustomItemInfo` fields (container, battery, light, tool, gun, worn sprites, liquid mask, drop pool, world spawn, custom data); `TryGetOwnerModGuid`, `HasCustomData`, `SetCustomData`, custom item MonoBehaviours. | `IModContent` stores opaque per-mod definitions (`TryRegister(id, kind, data)`); `IModEntitySpawn` only spawns existing `BuildingEntity` prefabs; `IModGameState` reads player inventory/vitals only. | **High-value gap — implement as a CUO content seam.** Keep `IModContent` as the registration surface; add a Runtime/GameAdapter content binder that consumes `IModContentControl` entries, validates IDs/ownership, and calls vanilla item registration before world generation. Typed DTOs for well-known kinds may live in Abstractions; game/Unity types stay in GameAdapter. No new wire protocol: static content is part of the mod and the existing mod handshake is the consistency boundary. |
-| 8 | Custom recipes | `RecipeRegistry.Register(Recipe)`, owner-GUID queries, invalid-recipe rejection, crafting-quality locale. | Same opaque `IModContent`; no recipe consumer in Runtime/GameAdapter. | **High-value gap — same content seam as items.** Recipes are static content; map into the content binder and reuse the existing crafting/kernel item flow once item IDs are known. |
+| 7 | Custom item definitions | `ItemRegistry.Register(id, ItemInfo/CustomItemInfo, icon, spawnFrequency)`; `CustomItemInfo` fields (container, battery, light, tool, gun, worn sprites, liquid mask, drop pool, world spawn, custom data); `TryGetOwnerModGuid`, `HasCustomData`, `SetCustomData`, custom item MonoBehaviours. | `ModItemDefinition` + `GameAdapterItemContentProvider`: typed DTO, static `ItemInfo`, runtime templates, custom component attach, and materialization through CUO item paths/native resource fallbacks. | **Landed at the content seam.** Remaining: full drop-pool/worldgen integration and a mod-facing item spawn API if mod demand appears. |
+| 8 | Custom recipes | `RecipeRegistry.Register(Recipe)`, owner-GUID queries, invalid-recipe rejection, crafting-quality locale. | `ModRecipeDefinition` + `GameAdapterRecipeContentProvider`: typed DTO, recipe table injection, category mapping, duplicate/rebuild protection. | **Landed at the content seam.** Recipes are static content injected through the same binder; crafting runtime flow remains CUO's existing item/crafting kernel. |
 | 9 | Custom liquids | `LiquidRegistry.Register(id, CustomLiquidInfo)`, container liquid stacks, owner-GUID query. | No custom liquid definition API. CUO already has a `Fluid` kernel domain for coarse fluid state, but it is built for vanilla fluids/regions. | **Content seam + existing Fluid domain.** Static liquid definitions belong in the content binder; runtime fluid facts remain in the Fluid domain. Do not port CUCoreLib's JObject fluid snapshots. |
 | 10 | Liquid tiles / world liquids | `LiquidTileRegistry.Register/Place/FloodFill/GenerateWorldTiles`, world bytes, body touch/drink/visual helpers, snapshot helpers. | No custom liquid-tile API; CUO has a Fluid kernel domain and Tilemap/WorldEntity adapter coverage for vanilla content. | **Content seam + worldgen.** Static liquid-tile definitions are content; placement/runtime effects need a GameAdapter translator. This is larger than a simple API shim and should be scheduled after item/recipe content binding. |
 | 11 | Terrain tiles and worldgen | `TileRegistry.Register`, `SetBlock`, `TryGetTile/Definition/Index`, layer masks, ore-style generation, drops, custom data. | No custom tile definition API; CUO syncs vanilla block/world facts through the World/Run and WorldEntity kernel domains. | **High-value gap — content seam + worldgen projection.** Static tile definitions must be identical on all peers and are registered by the content binder; world-generation output should remain kernel-driven. |

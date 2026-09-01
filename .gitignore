@@ -81,3 +81,6 @@ reversing/*
 
 # J-Space task workspace (created by the j-space skill in the task directory)
 .jspace/
+
+# Chat-only handoff/planning artifacts — never commit these to the repo
+docs/handoff/

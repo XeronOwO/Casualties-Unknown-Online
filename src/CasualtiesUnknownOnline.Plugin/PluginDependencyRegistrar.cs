@@ -3,6 +3,7 @@ using System.IO;
 using BepInEx.Configuration;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.GameAdapter;
+using CasualtiesUnknownOnline.GameAdapter.Content;
 using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Diagnostics;
 using CasualtiesUnknownOnline.Runtime.OnlineUi;
@@ -209,6 +210,13 @@ internal static class PluginDependencyRegistrar
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<GameAdapterImpl>());
 		services.Replace(ServiceDescriptor.Singleton<IModEntitySpawner>(p => p.GetRequiredService<GameAdapterImpl>()));
 		services.Replace(ServiceDescriptor.Singleton<IModNativeApiProvider>(p => p.GetRequiredService<GameAdapterImpl>()));
+		// Item content binding: the runtime binder routes ModContentKind.Item
+		// definitions to this Game Adapter provider. It runs after ModService in
+		// the ICuoService pump so the first-frame discovery has already loaded the
+		// mods and their content registrations.
+		services.AddSingleton<GameAdapterItemContentProvider>();
+		services.AddSingleton<IContentBindingProvider>(p => p.GetRequiredService<GameAdapterItemContentProvider>());
+		services.AddSingleton<ICuoService>(p => p.GetRequiredService<GameAdapterItemContentProvider>());
 		// The game-backed line-of-sight oracle is a standalone lightweight
 		// GameAdapter service. It must NOT be registered through GameAdapterImpl:
 		// GameAdapter depends on IPlayerInteractionControl, and

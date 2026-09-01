@@ -78,6 +78,7 @@ All files under `docs/selfchecks/` are historical/per-delivery evidence records.
 | presentation/mine-press-visual-selfcheck.md | Other | current | candidate current evidence; verify before citing |
 | mod-api/mod-content-registration-selfcheck.md | Mod API | current | candidate current evidence; verify before citing |
 | mod-api/mod-content-migration-base-selfcheck.md | Mod API | current | candidate current evidence; verify before citing |
+| mod-api/mod-item-content-binding-selfcheck.md | Mod API | current | candidate current evidence; verify before citing |
 | mod-api/mod-entity-spawn-selfcheck.md | Mod API | current | candidate current evidence; verify before citing |
 | mod-api/mod-game-state-selfcheck.md | Mod API | current | candidate current evidence; verify before citing |
 | mod-api/mod-native-api-selfcheck.md | Mod API | current | candidate current evidence; verify before citing |

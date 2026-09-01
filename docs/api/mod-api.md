@@ -218,8 +218,18 @@ context.Ui.Unregister("status");
 ```csharp
 if (context.Content.CanRegister)
 {
-    context.Content.TryRegister("wooden.sword", "item", myItemDefinitionBytes);
-    context.Content.TryRegister("healing.recipe", "recipe", myRecipeDefinitionBytes, schemaVersion: 2);
+    var itemBytes = new ModItemDefinition
+    {
+        DisplayName = "Wooden Sword",
+        Description = "A simple wooden sword.",
+        Weight = 1f,
+        Value = 5,
+        Usable = true,
+        Tags = "weapon"
+    }.ToPayload();
+
+    context.Content.TryRegister("wooden.sword", ModContentKind.Item, itemBytes);
+    context.Content.TryRegister("healing.recipe", ModContentKind.Recipe, myRecipeDefinitionBytes, schemaVersion: 2);
 }
 var itemDefs = context.Content.Definitions; // snapshot; payloads are copied on read
 context.Content.TryUnregister("wooden.sword");
@@ -254,6 +264,26 @@ context.Content.TryUnregister("wooden.sword");
   cross-mod duplicate/schema-version conflict diagnostics without
   interpreting payloads; it is the intended base for a future native-content
   binder.
+- **Typed item content (first well-known kind)**: `ModItemDefinition` is a
+  plain Abstractions DTO for the `ModContentKind.Item` payload. It carries
+  display name, description, category, weight, value, usability flags, wear
+  flag, destruction flag, tags, spawn frequency, and an extensible
+  `CustomData` dictionary. A mod serializes it with `ToPayload()` and
+  registers the bytes through `IModContent`; the framework still stores bytes
+  opaquely.
+- **Shared-content binding boundary**: the runtime content binder only routes
+  content from mods whose network mode guarantees a matching copy on every
+  player that can receive the content instances
+  (`Synchronized`, `Authoritative`, `RequiresAllPlayers`). `HostOnly`,
+  `ClientOnly`, and `Cosmetic` content is never bound into shared world state:
+  a guest without the same mod cannot safely materialize a host-only item.
+  This is the first concrete implementation of the local-only vs
+  public/shared mod-data distinction for static content.
+- **Current item binding scope**: the Game Adapter provider decodes
+  `ModItemDefinition` and owns the registration into the vanilla item table
+  (`Item.GlobalItems`). It deliberately does not yet build runtime prefabs,
+  attach custom MonoBehaviours, or spawn custom items; those are future
+  extensions on the same binding provider. No new wire message is used.
 - **No wire change**: no content bytes or new NetMsg.
 
 ## 4g. Read game state (read-only projection)

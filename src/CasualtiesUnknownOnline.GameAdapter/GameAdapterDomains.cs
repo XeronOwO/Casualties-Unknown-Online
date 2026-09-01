@@ -1,4 +1,5 @@
 using CasualtiesUnknownOnline.GameAdapter.Character;
+using CasualtiesUnknownOnline.GameAdapter.Content;
 using CasualtiesUnknownOnline.GameAdapter.Items;
 using CasualtiesUnknownOnline.GameAdapter.Patches;
 using CasualtiesUnknownOnline.GameAdapter.Run;
@@ -32,6 +33,7 @@ internal sealed class GameAdapterDomains
 {
 	internal readonly ISessionControl Session;
 	internal readonly IItemControl Items;
+	internal readonly GameAdapterItemContentProvider ItemContent;
 	internal readonly IEntitySyncControl Entities;
 	internal readonly IHostRules HostRules;
 	internal readonly IPlayerInteractionVisibility InteractionVisibility;
@@ -115,10 +117,12 @@ internal sealed class GameAdapterDomains
 		IKernelProtocolControl kernelProtocol,
 		ILogger<GameAdapter> log,
 		IMapper mapper,
-		ILoggerFactory loggerFactory)
+		ILoggerFactory loggerFactory,
+		GameAdapterItemContentProvider itemContent)
 	{
 		Session = session;
 		Items = items;
+		ItemContent = itemContent;
 		Entities = entities;
 		HostRules = hostRules;
 		PlayerInteraction = playerInteraction;

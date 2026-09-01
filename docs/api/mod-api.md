@@ -225,7 +225,9 @@ if (context.Content.CanRegister)
         Weight = 1f,
         Value = 5,
         Usable = true,
-        Tags = "weapon"
+        Tags = "weapon",
+        TemplateId = "stone",
+        SpawnComponents = ["Example.WoodenSwordBehaviour, ExampleMod"]
     }.ToPayload();
 
     context.Content.TryRegister("wooden.sword", ModContentKind.Item, itemBytes);
@@ -267,10 +269,12 @@ context.Content.TryUnregister("wooden.sword");
 - **Typed item content (first well-known kind)**: `ModItemDefinition` is a
   plain Abstractions DTO for the `ModContentKind.Item` payload. It carries
   display name, description, category, weight, value, usability flags, wear
-  flag, destruction flag, tags, spawn frequency, and an extensible
-  `CustomData` dictionary. A mod serializes it with `ToPayload()` and
-  registers the bytes through `IModContent`; the framework still stores bytes
-  opaquely.
+  flag, destruction flag, tags, spawn frequency, an optional vanilla
+  `TemplateId` (the runtime prefab base), optional `SpawnComponents` (component
+  type names attached by the Game Adapter at template build time), and an
+  extensible `CustomData` dictionary. A mod serializes it with `ToPayload()`
+  and registers the bytes through `IModContent`; the framework still stores
+  bytes opaquely.
 - **Shared-content binding boundary**: the runtime content binder only routes
   content from mods whose network mode guarantees a matching copy on every
   player that can receive the content instances
@@ -280,10 +284,15 @@ context.Content.TryUnregister("wooden.sword");
   This is the first concrete implementation of the local-only vs
   public/shared mod-data distinction for static content.
 - **Current item binding scope**: the Game Adapter provider decodes
-  `ModItemDefinition` and owns the registration into the vanilla item table
-  (`Item.GlobalItems`). It deliberately does not yet build runtime prefabs,
-  attach custom MonoBehaviours, or spawn custom items; those are future
-  extensions on the same binding provider. No new wire message is used.
+  `ModItemDefinition`, owns the registration into the vanilla item table
+  (`Item.GlobalItems`), and — when `TemplateId` is set — builds an inactive
+  runtime template from that vanilla prefab, renames it to the custom item id,
+  attaches the requested `SpawnComponents`, and serves it through CUO's item
+  prefab resolution seam. CUO's own restore/spawn paths, a narrow
+  `Utils.Create` prefix, and targeted transpilers for the native
+  `BuildingEntity.Update` and `SaveSystem.TryLoadGame` resource loads can
+  therefore materialize a custom item; no game type is exposed to mods and no
+  new wire message is used.
 - **No wire change**: no content bytes or new NetMsg.
 
 ## 4g. Read game state (read-only projection)

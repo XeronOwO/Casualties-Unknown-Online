@@ -60,8 +60,24 @@ public sealed class ModItemDefinition
 	[DataMember(Order = 11)]
 	public int SpawnFrequency { get; set; } = 1;
 
-	/// <summary>Extensible mod-owned metadata for future binders/features.</summary>
+	/// <summary>
+	/// The vanilla prefab id used as the runtime template base. Empty means the
+	/// definition is static-item-info only; the Game Adapter cannot materialize
+	/// a prefab for it.
+	/// </summary>
 	[DataMember(Order = 12)]
+	public string TemplateId { get; set; } = "";
+
+	/// <summary>
+	/// Component type names (assembly-qualified or simple names) attached to the
+	/// runtime template before it is instantiated. The Game Adapter resolves
+	/// the types from loaded assemblies and refuses non-Component types.
+	/// </summary>
+	[DataMember(Order = 13)]
+	public List<string> SpawnComponents { get; set; } = [];
+
+	/// <summary>Extensible mod-owned metadata for future binders/features.</summary>
+	[DataMember(Order = 14)]
 	public Dictionary<string, string> CustomData { get; set; } = [];
 
 	/// <summary>Serialize this definition into the opaque payload format.</summary>

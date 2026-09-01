@@ -27,6 +27,8 @@ public class ModItemDefinitionTests
 			DestroyAtZeroCondition = true,
 			Tags = "test,shard",
 			SpawnFrequency = 3,
+			TemplateId = "stone",
+			SpawnComponents = ["Example.ShardBehaviour, ExampleMod"],
 			CustomData = new Dictionary<string, string>
 			{
 				["mod.metadata"] = "kept"
@@ -47,6 +49,8 @@ public class ModItemDefinitionTests
 		Assert.True(restored.DestroyAtZeroCondition);
 		Assert.Equal(original.Tags, restored.Tags);
 		Assert.Equal(original.SpawnFrequency, restored.SpawnFrequency);
+		Assert.Equal(original.TemplateId, restored.TemplateId);
+		Assert.Equal(original.SpawnComponents, restored.SpawnComponents);
 		Assert.Equal("kept", restored.CustomData["mod.metadata"]);
 	}
 

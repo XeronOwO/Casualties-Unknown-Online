@@ -1,6 +1,7 @@
 using System;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.GameAdapter.Character;
+using CasualtiesUnknownOnline.GameAdapter.Content;
 using CasualtiesUnknownOnline.GameAdapter.Patches;
 using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Diagnostics;
@@ -67,11 +68,12 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 		ILogger<GameAdapter> log,
 		LatencyInstrumentation latency,
 		IMapper mapper,
-		ILoggerFactory loggerFactory)
+		ILoggerFactory loggerFactory,
+		GameAdapterItemContentProvider itemContent)
 	{
 		_latency = latency;
 		_domains = new GameAdapterDomains(session, entities, characterData, world, items, craft, arbitration,
-			enemies, worldTime, playerInteraction, tutorialClaw, respawnOptions, hostRules, worldEntityKernel, kernelProtocol, log, mapper, loggerFactory);
+			enemies, worldTime, playerInteraction, tutorialClaw, respawnOptions, hostRules, worldEntityKernel, kernelProtocol, log, mapper, loggerFactory, itemContent);
 		_bridge = new GameAdapterBridge(_domains);
 		_playerInteraction = new PlayerInteractionApply(_domains);
 		var pushApply = new PlayerPushApply(_domains);

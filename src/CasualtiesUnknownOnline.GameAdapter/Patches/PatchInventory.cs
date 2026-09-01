@@ -153,8 +153,8 @@ internal static class PatchInventory
 	}
 
 	/// <summary>The patch methods' (Prefix/Postfix/Transpiler) parameter names
-	/// minus the special names — the ones Harmony matches against the target by
-	/// name.</summary>
+	/// minus the special names and the transpiler instruction enumerable — the
+	/// ones Harmony matches against the target by name.</summary>
 	private static List<string> PatchParameterNames(Type patchClass)
 	{
 		var names = new List<string>();
@@ -168,10 +168,14 @@ internal static class PatchInventory
 
 			foreach (var parameter in method.GetParameters())
 			{
-				if (!SpecialParameterNames.Contains(parameter.Name))
+				if (SpecialParameterNames.Contains(parameter.Name)
+					|| (method.Name == "Transpiler"
+						&& parameter.ParameterType == typeof(IEnumerable<CodeInstruction>)))
 				{
-					names.Add(parameter.Name!);
+					continue;
 				}
+
+				names.Add(parameter.Name!);
 			}
 		}
 

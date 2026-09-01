@@ -181,6 +181,13 @@ internal interface IPatchBridge
 	/// <summary>True when this side is the session host (earthquake authority, host-only drops).</summary>
 	bool IsHostMode { get; }
 
+	/// <summary>
+	/// Resolve a mod-registered runtime item template by item id. Returns false
+	/// when the id has no custom template; the caller falls back to
+	/// <c>Resources.Load</c> for vanilla items.
+	/// </summary>
+	bool TryResolveItemTemplate(string id, out GameObject? template);
+
 	/// <summary>An earthquake just started in WorldGeneration.Update — the host broadcasts it (timing sync + the next delay; guests re-align their timer).</summary>
 	void OnEarthquakeStarted(float duration, float nextDelay);
 

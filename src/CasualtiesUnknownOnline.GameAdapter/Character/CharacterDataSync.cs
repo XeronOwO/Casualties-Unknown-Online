@@ -490,8 +490,15 @@ internal sealed class CharacterDataSync(
 			return;
 		}
 
-		var go = UnityEngine.Object.Instantiate((GameObject)Resources.Load(itemData.ItemId),
-			body.transform.position, Quaternion.identity);
+		var prefab = ItemPrefabResolver.Load(itemData.ItemId);
+		if (prefab == null) // Unity object — ==
+		{
+			_log.LogWarning("Restore: {ItemId} has no prefab — skipped.", itemData.ItemId);
+			return;
+		}
+
+		var go = UnityEngine.Object.Instantiate(prefab, body.transform.position, Quaternion.identity);
+		go.SetActive(true);
 		var item = go.GetComponent<Item>();
 		if (item == null) // Unity object — ==
 		{

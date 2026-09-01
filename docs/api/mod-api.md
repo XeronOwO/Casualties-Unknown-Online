@@ -282,6 +282,11 @@ context.Content.TryUnregister("wooden.sword");
   quality, liquid flag, minimum condition, destroy flag). The Game Adapter
   recipe provider builds the vanilla recipe object and injects it into
   `Recipes.recipes` once the game table is ready.
+- **Typed liquid content**: `ModLiquidDefinition` is the third well-known
+  Abstractions DTO. It carries display/description text, RGBA tint, value per
+  liter, health/injection flags, injection sickness, locale-from-item flag,
+  and crafting qualities. The Game Adapter liquid provider maps the static
+  fields into `Liquids.Registry` and applies local UI locale entries.
 - **Shared-content binding boundary**: the runtime content binder only routes
   content from mods whose network mode guarantees a matching copy on every
   player that can receive the content instances
@@ -304,6 +309,10 @@ context.Content.TryUnregister("wooden.sword");
   `ModRecipeDefinition`, waits for `Recipes.recipes`, deduplicates against the
   existing recipe table, and injects each accepted recipe with its game-category
   mapping. No game type is exposed to mods and no new wire message is used.
+- **Current liquid binding scope**: `GameAdapterLiquidContentProvider` decodes
+  `ModLiquidDefinition`, waits for `Liquids.Registry`, refuses to overwrite a
+  known liquid, and applies the static fields plus local locale entries. No
+  game delegate is passed from mods; no new wire message is used.
 - **No wire change**: no content bytes or new NetMsg.
 
 ## 4g. Read game state (read-only projection)

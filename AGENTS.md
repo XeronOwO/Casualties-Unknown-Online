@@ -146,10 +146,6 @@ a separate future architecture item, not part of the completed evolution.
   frequency. An unobservable key path is unfinished.
 - `[CRITICAL]` Development-period verification is simulation/static-evidence based; no manual
   dual-client acceptance during feature development. User will do final acceptance later.
-- `[RULE]` Per-feature acceptance is not requested. When code/gates are done, move the
-  backlog ticket to `review/` and continue working; do not repeatedly ask or report
-  "awaiting acceptance". The user performs one unified acceptance pass only after all
-  high-priority backlog items are complete.
 - `[GATE]` Follow `docs/evidence/delivery-checklist.md` + `tools/check-delivery.ps1` for each delivery.
 - `[GATE]` Check off delivery checklist boxes one line at a time with the Edit tool; bulk
   checking is forbidden.
@@ -159,26 +155,6 @@ a separate future architecture item, not part of the completed evolution.
   review → commit.
 
 See `docs/evidence/delivery-checklist.md` for the executable gate.
-
-## Repeat-Mistake Prevention (binding)
-
-- `[CRITICAL]` Never create a repository file merely to hold chat output. If the
-  user asks for a handoff prompt, plan, summary, or any ephemeral text, answer in
-  chat; only write a file when the user explicitly asks to persist it.
-- `[CRITICAL]` Never commit absolute/local machine paths, user home paths, or
-  this machine's repository paths. Use relative paths and placeholders in
-  committed docs and commit messages.
-- `[CRITICAL]` Before `git add`, review the diff for chat-only artifacts,
-  handoff directories, and any absolute path text; if found, stop and fix before
-  staging.
-- `[RULE]` Do not create new directories/files for handoff, brainstorming, or
-  organizational purposes unless the task explicitly requires a persistent
-  artifact.
-- `[RULE]` When uncertain whether the user wants a file or a chat answer, default
-  to a chat answer and do not commit.
-- `[RULE]` Do not frame a completed item as "awaiting acceptance". Move the
-  backlog ticket to `review/` when code/gates are done and continue working; do
-  not repeat acceptance language.
 
 ## Known Pitfalls
 

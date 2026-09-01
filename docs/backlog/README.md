@@ -16,8 +16,11 @@ todo/  →  in-progress/  →  review/  →  done/
 - **One ticket = one file.**
 - Copy this README's status table as the index; the ticket files are the source of truth.
 - Status is the parent folder, not a field in the file (the file repeats it for readability).
-- Final user acceptance items live in `review/` until verified.
-- Closed delivery tickets live in `done/` with links to the corresponding selfcheck.
+- Code-complete items are moved to `review/` immediately; review is the waiting state
+  for the single unified user acceptance pass after all high-priority backlog items
+  are complete. Do not stop for per-ticket acceptance.
+- Only the final unified-acceptance transition moves tickets from `review/` to `done/`;
+  until then, `done/` holds previously accepted/closed delivery tickets.
 
 ## Status folders
 
@@ -25,7 +28,7 @@ todo/  →  in-progress/  →  review/  →  done/
 |---|---|
 | `todo/` | Open work, not started |
 | `in-progress/` | Active development in progress |
-| `review/` | Code/verification done, needs acceptance/verification pass |
+| `review/` | Code/verification done; waiting for the final unified acceptance pass after high-priority backlog items are complete |
 | `done/` | Landed / closed |
 | `future/` | Deferred, low priority, or future architecture work |
 | `resolved/` | Decisions resolved without further code action |

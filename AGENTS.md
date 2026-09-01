@@ -146,6 +146,10 @@ a separate future architecture item, not part of the completed evolution.
   frequency. An unobservable key path is unfinished.
 - `[CRITICAL]` Development-period verification is simulation/static-evidence based; no manual
   dual-client acceptance during feature development. User will do final acceptance later.
+- `[RULE]` Per-feature acceptance is not requested. When code/gates are done, move the
+  backlog ticket to `review/` and continue working; do not repeatedly ask or report
+  "awaiting acceptance". The user performs one unified acceptance pass only after all
+  high-priority backlog items are complete.
 - `[GATE]` Follow `docs/evidence/delivery-checklist.md` + `tools/check-delivery.ps1` for each delivery.
 - `[GATE]` Check off delivery checklist boxes one line at a time with the Edit tool; bulk
   checking is forbidden.

@@ -43,6 +43,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Full-qualified name cleanup](todo/full-qualified-name-cleanup.md) — prefer using directives/aliases; behavior-preserving refactor only.
 - [CUCoreLib migration support](todo/cucorelib-migration-support.md) — evaluate external KrokMP-based project; minimal content catalog/version base + first item binding landed; full content binding still future.
 - [Mod data sync model](todo/mod-data-sync-model.md) — distinguish local-only vs shared/public mod runtime data; no ad-hoc snapshot protocol.
+- [check-architecture.ps1 performance](todo/check-architecture-performance.md) — ~90s in the pre-commit gate; reduce runtime without weakening checks.
 
 
 ### In progress

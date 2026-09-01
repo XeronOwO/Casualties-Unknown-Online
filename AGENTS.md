@@ -160,6 +160,26 @@ a separate future architecture item, not part of the completed evolution.
 
 See `docs/evidence/delivery-checklist.md` for the executable gate.
 
+## Repeat-Mistake Prevention (binding)
+
+- `[CRITICAL]` Never create a repository file merely to hold chat output. If the
+  user asks for a handoff prompt, plan, summary, or any ephemeral text, answer in
+  chat; only write a file when the user explicitly asks to persist it.
+- `[CRITICAL]` Never commit absolute/local machine paths, user home paths, or
+  this machine's repository paths. Use relative paths and placeholders in
+  committed docs and commit messages.
+- `[CRITICAL]` Before `git add`, review the diff for chat-only artifacts,
+  handoff directories, and any absolute path text; if found, stop and fix before
+  staging.
+- `[RULE]` Do not create new directories/files for handoff, brainstorming, or
+  organizational purposes unless the task explicitly requires a persistent
+  artifact.
+- `[RULE]` When uncertain whether the user wants a file or a chat answer, default
+  to a chat answer and do not commit.
+- `[RULE]` Do not frame a completed item as "awaiting acceptance". Move the
+  backlog ticket to `review/` when code/gates are done and continue working; do
+  not repeat acceptance language.
+
 ## Known Pitfalls
 
 `[REF]` Detailed pitfalls list (historical blueprint, still applicable):

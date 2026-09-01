@@ -10,7 +10,7 @@ namespace CasualtiesUnknownOnline.Abstractions;
 /// and every read of <see cref="Data"/> returns a defensive copy, so a mod
 /// cannot mutate the registry's stored bytes through a definition it received.
 /// </summary>
-public sealed class ModContentDefinition(string id, string kind, byte[] data)
+public sealed class ModContentDefinition(string id, string kind, byte[] data, int schemaVersion = 1)
 {
 	private readonly byte[] _data = (byte[])data.Clone();
 
@@ -19,6 +19,9 @@ public sealed class ModContentDefinition(string id, string kind, byte[] data)
 
 	/// <summary>The content kind — a mod-defined type tag (for example "item", "recipe", "npc").</summary>
 	public string Kind { get; } = kind;
+
+	/// <summary>The mod-owned content schema version. Starts at 1; the framework stores it verbatim and never migrates it.</summary>
+	public int SchemaVersion { get; } = schemaVersion;
 
 	/// <summary>The opaque content payload. Each access returns a defensive copy.</summary>
 	public byte[] Data => (byte[])_data.Clone();

@@ -27,12 +27,20 @@ public interface IModContent
 	bool CanRegister { get; }
 
 	/// <summary>
-	/// Register one content definition. Returns false (with a framework log)
-	/// when the mod lacks <see cref="ModPermission.RegisterContent"/>, the
-	/// id/kind/payload fails the content policy rails, or the id is already
+	/// Register one content definition with schema version 1. Returns false (with
+	/// a framework log) when the mod lacks <see cref="ModPermission.RegisterContent"/>,
+	/// the id/kind/payload fails the content policy rails, or the id is already
 	/// registered by this mod. Register during <see cref="ICuoMod.Bind"/>.
 	/// </summary>
 	bool TryRegister(string id, string kind, byte[] data);
+
+	/// <summary>
+	/// Register one content definition with a mod-owned schema version. The
+	/// framework stores the version verbatim and never migrates the payload, so
+	/// the mod owns schema compatibility. Returns false for the same reasons as
+	/// the version-1 overload plus a non-positive schema version.
+	/// </summary>
+	bool TryRegister(string id, string kind, byte[] data, int schemaVersion);
 
 	/// <summary>Remove a previously registered definition by id. Returns false when no such id exists.</summary>
 	bool TryUnregister(string id);

@@ -44,6 +44,44 @@ public class ModContentTests
 	}
 
 	[Fact]
+	public void SchemaVersion_IsStoredAndRead()
+	{
+		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		var mod = ContentMod(host);
+		var sword = mod.Context!.Content.Definitions.Single(d => d.Id == "wooden.sword");
+		var recipe = mod.Context.Content.Definitions.Single(d => d.Id == "healing.recipe");
+
+		Assert.Equal(2, sword.SchemaVersion);
+		Assert.Equal(1, recipe.SchemaVersion);
+	}
+
+	[Fact]
+	public void InvalidSchemaVersion_IsRefused()
+	{
+		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		var content = ContentMod(host).Context!.Content;
+		var originalCount = content.Count;
+
+		Assert.False(content.TryRegister("bad.schema", "item", [1], 0));
+		Assert.False(content.TryRegister("bad.schema", "item", [1], -1));
+		Assert.False(content.IsRegistered("bad.schema"));
+		Assert.Equal(originalCount, content.Count);
+	}
+
+	[Fact]
+	public void ContentCatalog_ReadsRealModStack()
+	{
+		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		var catalog = host.Services.GetRequiredService<IModContentCatalog>();
+
+		Assert.True(catalog.TryResolve("item", "wooden.sword", out var entry));
+		Assert.NotNull(entry);
+		Assert.Equal("test.content", entry!.ModId);
+		Assert.Equal(2, entry.Definition.SchemaVersion);
+		Assert.False(catalog.HasConflicts);
+	}
+
+	[Fact]
 	public void MissingRegisterContentPermission_IsRefused()
 	{
 		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId);

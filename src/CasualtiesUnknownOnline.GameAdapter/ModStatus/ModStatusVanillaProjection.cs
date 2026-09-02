@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using UnityEngine;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
 using Microsoft.Extensions.Logging;
+using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 namespace CasualtiesUnknownOnline.GameAdapter.ModStatus;
 
@@ -16,10 +18,11 @@ namespace CasualtiesUnknownOnline.GameAdapter.ModStatus;
 ///
 /// This class is the ONLY layer that may turn a runtime status value into a
 /// game behavior. It never exposes a game/Unity type through Abstractions and
-/// it never touches arbitrary opaque status payloads. The first projection
-/// slice covers body values that are recomputed from scratch (encumbrance,
-/// immunity, jump speed, average pain) and limb physiology values that are
-/// already modified additively by the native limb update.
+/// it never touches arbitrary opaque status payloads. The projection
+/// covers body values that are recomputed from scratch (encumbrance,
+/// immunity, jump speed, average pain), circulation offsets wrapped around
+/// Body.HandleCirculation, and limb physiology values that are modified
+/// additively by the native limb update.
 /// </summary>
 internal sealed class ModStatusVanillaProjection
 {
@@ -30,6 +33,13 @@ internal sealed class ModStatusVanillaProjection
 		Immunity,
 		JumpSpeed,
 		AveragePain,
+	}
+
+	private enum CirculationField
+	{
+		HeartRate,
+		RespiratoryRate,
+		BloodPressure,
 	}
 
 	private enum LimbField
@@ -51,6 +61,7 @@ internal sealed class ModStatusVanillaProjection
 	private readonly List<ActiveLimbProjection> _limbProjections = [];
 	private readonly Dictionary<BodyField, float> _appliedBody = [];
 	private readonly Dictionary<(int LimbSlot, LimbField Field), float> _appliedLimb = [];
+	private readonly Dictionary<CirculationField, float> _appliedCirculation = [];
 	private Body? _appliedBodyOwner; // Unity object — ==
 	private bool _dirty = true;
 
@@ -73,6 +84,7 @@ internal sealed class ModStatusVanillaProjection
 		{
 			_appliedBody.Clear();
 			_appliedLimb.Clear();
+			_appliedCirculation.Clear();
 			_appliedBodyOwner = body;
 		}
 
@@ -121,6 +133,7 @@ internal sealed class ModStatusVanillaProjection
 		{
 			_appliedBody.Clear();
 			_appliedLimb.Clear();
+			_appliedCirculation.Clear();
 			_appliedBodyOwner = body;
 		}
 
@@ -153,6 +166,66 @@ internal sealed class ModStatusVanillaProjection
 		ApplyLimbField(ref limb.muscleHealth, muscleHealth, limbSlot, LimbField.MuscleHealth);
 		ApplyLimbField(ref limb.infectionAmount, infectionAmount, limbSlot, LimbField.InfectionAmount);
 	}
+
+	internal void ApplyCirculationPrefix(Body body)
+	{
+		if (body == null) // Unity object — ==
+		{
+			return;
+		}
+
+		if (_appliedBodyOwner != body) // Unity object — ==
+		{
+			_appliedBody.Clear();
+			_appliedLimb.Clear();
+			_appliedCirculation.Clear();
+			_appliedBodyOwner = body;
+		}
+
+		// Remove the mod circulation overlay before the native formula runs.
+		// The native method recomputes these fields from their unmodified base
+		// every frame, so a post-update-only overlay would be erased or would
+		// drift. Removing the previous offset here and reapplying it in the
+		// postfix keeps the exposed value = native base + stable mod offset.
+		body.heartRate -= GetAppliedCirculation(CirculationField.HeartRate);
+		body.respiratoryRate -= GetAppliedCirculation(CirculationField.RespiratoryRate);
+		body.bloodPressure -= GetAppliedCirculation(CirculationField.BloodPressure);
+		_appliedCirculation.Clear();
+	}
+
+	internal void ApplyCirculationPostfix(Body body)
+	{
+		if (body == null) // Unity object — ==
+		{
+			return;
+		}
+
+		if (_appliedBodyOwner != body) // Unity object — ==
+		{
+			_appliedBody.Clear();
+			_appliedLimb.Clear();
+			_appliedCirculation.Clear();
+			_appliedBodyOwner = body;
+		}
+
+		EnsureFresh();
+		var heartRateOffset = 0f;
+		var respiratoryRateOffset = 0f;
+		var bloodPressureOffset = 0f;
+		foreach (var active in _bodyProjections)
+		{
+			var projection = active.Projection;
+			heartRateOffset += projection.HeartRateOffset;
+			respiratoryRateOffset += projection.RespiratoryRateOffset;
+			bloodPressureOffset += projection.BloodPressureOffset;
+		}
+
+		ApplyCirculationField(ref body.heartRate, heartRateOffset, CirculationField.HeartRate);
+		ApplyCirculationField(ref body.respiratoryRate, respiratoryRateOffset, CirculationField.RespiratoryRate);
+		ApplyCirculationField(ref body.bloodPressure, bloodPressureOffset, CirculationField.BloodPressure);
+		RefreshCirculationReadouts(body);
+	}
+
 
 	private void MarkDirty() => _dirty = true;
 
@@ -228,4 +301,23 @@ internal sealed class ModStatusVanillaProjection
 
 		_appliedLimb[key] = next;
 	}
+
+	private float GetAppliedCirculation(CirculationField field) =>
+		_appliedCirculation.TryGetValue(field, out var value) ? value : 0f;
+
+	private void ApplyCirculationField(ref float current, float next, CirculationField field)
+	{
+		current += next;
+		_appliedCirculation[field] = next;
+	}
+
+	private static void RefreshCirculationReadouts(Body body)
+	{
+		// Mirror the native readout lines (Body.cs HandleCirculation) after the
+		// overlay is reapplied so the in-game vitals text includes the mod offset.
+		body.bloodPressureReadout = Mathf.RoundToInt(body.bloodPressure).ToString() + "/" + Mathf.RoundToInt(body.bloodPressure * 0.66f).ToString();
+		var respiratoryReadout = Mathf.RoundToInt(body.respiratoryRate * 0.25f).ToString() + "/m";
+		HarmonyLib.Traverse.Create(body).Property("respiratoryRateReadout").SetValue(respiratoryReadout);
+	}
+
 }

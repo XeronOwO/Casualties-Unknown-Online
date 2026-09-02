@@ -400,6 +400,22 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 			domains.StatusProjection.ApplyLimb(body, limb);
 		}
 	}
+	public void ApplyBodyCirculationPrefix(Body body)
+	{
+		if (body == domains.Run.LocalBody) // Unity objects — ==
+		{
+			domains.StatusProjection.ApplyCirculationPrefix(body);
+		}
+	}
+
+	public void ApplyBodyCirculationPostfix(Body body)
+	{
+		if (body == domains.Run.LocalBody) // Unity objects — ==
+		{
+			domains.StatusProjection.ApplyCirculationPostfix(body);
+		}
+	}
+
 
 	public void OnLimbStateEvent(Limb limb) => domains.CharacterDataSync.ReportLimbStateEvent(limb);
 

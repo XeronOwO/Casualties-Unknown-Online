@@ -32,6 +32,25 @@ public class ModStatusProjectionContractTests
 	}
 
 	[Fact]
+	public void VanillaProjection_HasCirculationApplyMethods()
+	{
+		var type = GameAssemblyHost.Adapter.GetType(
+			"CasualtiesUnknownOnline.GameAdapter.ModStatus.ModStatusVanillaProjection",
+			throwOnError: true)!;
+
+		var prefix = type.GetMethod("ApplyCirculationPrefix", BindingFlags.Instance | BindingFlags.NonPublic)
+			?? throw new InvalidOperationException("ApplyCirculationPrefix not found.");
+		Assert.Single(prefix.GetParameters());
+		Assert.Equal("Body", prefix.GetParameters()[0].ParameterType.Name);
+
+		var postfix = type.GetMethod("ApplyCirculationPostfix", BindingFlags.Instance | BindingFlags.NonPublic)
+			?? throw new InvalidOperationException("ApplyCirculationPostfix not found.");
+		Assert.Single(postfix.GetParameters());
+		Assert.Equal("Body", postfix.GetParameters()[0].ParameterType.Name);
+	}
+
+
+	[Fact]
 	public void ProjectionPatches_HaveBodyAndLimbPostfixes()
 	{
 		var patches = GameAssemblyHost.Adapter.GetType(
@@ -42,6 +61,9 @@ public class ModStatusProjectionContractTests
 		Assert.Contains(nested, t => t.Name == "BodyStatusProjectionPatch"
 			&& t.GetMethod("Postfix", BindingFlags.Static | BindingFlags.NonPublic) is not null);
 		Assert.Contains(nested, t => t.Name == "LimbStatusProjectionPatch"
+			&& t.GetMethod("Postfix", BindingFlags.Static | BindingFlags.NonPublic) is not null);
+		Assert.Contains(nested, t => t.Name == "BodyCirculationProjectionPatch"
+			&& t.GetMethod("Prefix", BindingFlags.Static | BindingFlags.NonPublic) is not null
 			&& t.GetMethod("Postfix", BindingFlags.Static | BindingFlags.NonPublic) is not null);
 	}
 }

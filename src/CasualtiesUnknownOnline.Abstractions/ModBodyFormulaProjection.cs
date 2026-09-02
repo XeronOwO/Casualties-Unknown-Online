@@ -12,13 +12,13 @@ namespace CasualtiesUnknownOnline.Abstractions;
 /// status slot; the Game Adapter decodes it and applies the contributed
 /// deltas to the local vanilla body.
 ///
-/// The field set is deliberately limited to the body values that are safe to
-/// project as an additive overlay after the native body update: encumbrance,
-/// immunity, jump speed, and average pain. Continuous circulation targets
-/// (heart rate, respiratory rate, blood pressure) are intentionally not in
-/// this first slice because a post-update additive overlay cannot express a
-/// target offset without changing the native formula; those need a later
-/// dedicated GameAdapter target patch seam.
+/// The field set covers body values that are safe to project as an additive
+/// overlay after the native body update (encumbrance, immunity, jump speed,
+/// average pain) plus continuous circulation targets (heart rate, respiratory
+/// rate, blood pressure). Circulation targets use a dedicated GameAdapter
+/// formula seam: the overlay is removed before <c>Body.HandleCirculation</c>
+/// runs, the native formula sees the unmodified base, and the current mod
+/// offset is reapplied after the formula so it stays stable frame to frame.
 /// </summary>
 [DataContract]
 public sealed class ModBodyFormulaProjection
@@ -42,6 +42,18 @@ public sealed class ModBodyFormulaProjection
 	/// <summary>Contribution to <c>Body.averagePain</c>.</summary>
 	[DataMember(Order = 5)]
 	public float AveragePain { get; set; }
+
+	/// <summary>Stable offset exposed on <c>Body.heartRate</c> around the native circulation formula.</summary>
+	[DataMember(Order = 6)]
+	public float HeartRateOffset { get; set; }
+
+	/// <summary>Stable offset exposed on <c>Body.respiratoryRate</c> around the native circulation formula.</summary>
+	[DataMember(Order = 7)]
+	public float RespiratoryRateOffset { get; set; }
+
+	/// <summary>Stable offset exposed on <c>Body.bloodPressure</c> around the native circulation formula.</summary>
+	[DataMember(Order = 8)]
+	public float BloodPressureOffset { get; set; }
 
 	/// <summary>Serialize this projection into the opaque status value payload.</summary>
 	public byte[] ToPayload()

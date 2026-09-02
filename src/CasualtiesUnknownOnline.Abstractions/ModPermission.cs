@@ -13,8 +13,9 @@ namespace CasualtiesUnknownOnline.Abstractions;
 /// channel (<see cref="IModNetwork"/>), the host-command domain
 /// (<see cref="IModCommands"/>), the mod-state store (<see cref="IModState"/>),
 /// content registration (<see cref="IModContent"/>), the read-only game-state
-/// projection (<see cref="IModGameState"/>), entity spawn
-/// (<see cref="IModEntitySpawn"/>) and the native operation registry
+/// projection (<see cref="IModGameState"/>), entity/item spawn and tile
+/// placement (<see cref="IModEntitySpawn"/>, <see cref="IModItemSpawn"/>,
+/// <see cref="IModTilePlacement"/>) and the native operation registry
 /// (<see cref="IModNativeApi"/>).
 /// </summary>
 [Flags]
@@ -29,7 +30,7 @@ public enum ModPermission
 	/// <summary>Write game state through a framework surface (enforced by <see cref="IModState"/> for host-persistent mod state).</summary>
 	WriteGameState = 1 << 1,
 
-	/// <summary>Spawn world entities/items via <see cref="IModEntitySpawn"/> / <see cref="IModItemSpawn"/> (enforced at the spawn surface).</summary>
+	/// <summary>Spawn world entities/items or place custom tiles via <see cref="IModEntitySpawn"/> / <see cref="IModItemSpawn"/> / <see cref="IModTilePlacement"/> (enforced at each surface).</summary>
 	SpawnEntity = 1 << 2,
 
 	/// <summary>Use <see cref="IModNetwork"/> (send and receive). Enforced at the channel.</summary>

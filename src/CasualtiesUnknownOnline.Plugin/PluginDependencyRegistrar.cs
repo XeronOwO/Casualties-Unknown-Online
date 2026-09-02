@@ -210,6 +210,7 @@ internal static class PluginDependencyRegistrar
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<GameAdapterImpl>());
 		services.Replace(ServiceDescriptor.Singleton<IModEntitySpawner>(p => p.GetRequiredService<GameAdapterImpl>()));
 		services.Replace(ServiceDescriptor.Singleton<IModItemSpawner>(p => p.GetRequiredService<GameAdapterImpl>()));
+		services.Replace(ServiceDescriptor.Singleton<IModTilePlacer>(p => p.GetRequiredService<GameAdapterImpl>()));
 		services.Replace(ServiceDescriptor.Singleton<IModNativeApiProvider>(p => p.GetRequiredService<GameAdapterImpl>()));
 		// Item content binding: the runtime binder routes ModContentKind.Item
 		// definitions to this Game Adapter provider. It runs after ModService in

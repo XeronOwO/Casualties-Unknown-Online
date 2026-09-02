@@ -308,6 +308,10 @@ public static class CuoBootstrap
 		// Game Adapter replaces it with the real item-domain-backed
 		// implementation.
 		services.AddSingleton<IModItemSpawner>(new DisabledModItemSpawner());
+		// The default mod tile placer is disabled for the same reason; the
+		// Game Adapter replaces it with the real WorldGeneration.SetBlock-backed
+		// implementation.
+		services.AddSingleton<IModTilePlacer>(new DisabledModTilePlacer());
 		// The default mod native-API provider is disabled for the same reason:
 		// only the Game Adapter knows the game-private operations. Tests may
 		// replace it with a recording fake.

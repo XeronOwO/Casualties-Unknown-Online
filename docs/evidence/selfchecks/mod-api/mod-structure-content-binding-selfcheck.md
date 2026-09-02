@@ -6,9 +6,11 @@ Owner cycle: CUCoreLib migration support — sixth concrete typed content kind
 Decision: expose static multi-block structure data through the same
 `IModContent` + content-binder + GameAdapter-provider seam used by the earlier
 kinds. Mods keep a plain Abstractions DTO; the Game Adapter validates and
-compiles the authored marker grid into non-air cells. Automatic worldgen
-distribution and spawn-count consumption are deliberately not part of this
-initial seam; runtime placement is exposed through `IModStructurePlacement`.
+compiles the authored marker grid into non-air cells. In this initial seam,
+automatic worldgen distribution is not part of the provider itself; it is a
+separate later seam (see
+`mod-structure-worldgen-distribution-selfcheck.md`). Runtime placement is
+exposed through `IModStructurePlacement`.
 
 ## 1. Mechanism inventory
 
@@ -16,7 +18,7 @@ initial seam; runtime placement is exposed through `IModStructurePlacement`.
 |---|---|---|
 | 1 | Typed structure payload | `ModStructureDefinition` in `CUO.Abstractions` with `ToPayload()`/`FromPayload()` via DataContractSerializer. |
 | 2 | Grid authoring shape | Width/height + top-to-bottom `Rows`; `'.'`/`' '` are air; single-character marker maps to vanilla block indices or custom tile content ids. |
-| 3 | Future worldgen metadata | `SpawnCounts` list is carried and validated non-negative, but not consumed by a worldgen provider in this cycle. |
+| 3 | Worldgen metadata | `SpawnCounts` list is carried and validated non-negative; the dedicated worldgen distribution seam consumes it (see `mod-structure-worldgen-distribution-selfcheck.md`). |
 | 4 | Game Adapter provider | `GameAdapterStructureContentProvider` decodes `ModStructureDefinition`, validates dimensions/marker maps/row lengths, and compiles cells (bottom-based Y offsets). |
 | 5 | Safety limits | Width/height caps (128 each), total cell cap (4096), no duplicate markers across vanilla/tile maps, no all-air structures. |
 | 6 | Shared-content filter | Existing `ModContentBinder` applies the same network-mode filter as all other static content kinds. |
@@ -52,7 +54,8 @@ initial seam; runtime placement is exposed through `IModStructurePlacement`.
   verified through the full solution build and the existing generic binder
   contract tests.
 - Static evidence: no game/Unity type in Abstractions; no new wire message;
-  no automatic worldgen distribution added in this seam.
+  this provider seam does not add automatic worldgen distribution (that is the
+  dedicated distribution seam).
 
 ## 5. Verification results
 

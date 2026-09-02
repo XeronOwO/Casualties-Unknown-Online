@@ -62,9 +62,10 @@ public sealed class ModStructureDefinition
 	public Dictionary<string, string> TileIds { get; set; } = [];
 
 	/// <summary>
-	/// Optional future worldgen distribution counts, one per depth. This seam
-	/// stores the authored values for later worldgen providers but does not
-	/// perform automatic distribution yet.
+	/// Optional worldgen distribution counts, one per biome depth. An absent
+	/// entry for a depth means the structure is not distributed at that depth;
+	/// a present value is clamped to zero (negative authored counts are invalid
+	/// and never placed).
 	/// </summary>
 	[DataMember(Order = 8)]
 	public List<int> SpawnCounts { get; set; } = [];
@@ -72,6 +73,24 @@ public sealed class ModStructureDefinition
 	/// <summary>Extensible mod-owned metadata for future binders/features.</summary>
 	[DataMember(Order = 9)]
 	public Dictionary<string, string> CustomData { get; set; } = [];
+
+	/// <summary>
+	/// Resolve the worldgen spawn count for one biome depth. Returns false when
+	/// the structure has no spawn-count table for that depth; a present entry
+	/// is clamped to zero (negative authored counts are invalid and never
+	/// placed).
+	/// </summary>
+	public bool TryGetSpawnCount(int depth, out int count)
+	{
+		count = 0;
+		if (SpawnCounts is null || depth < 0 || depth >= SpawnCounts.Count)
+		{
+			return false;
+		}
+
+		count = Math.Max(0, SpawnCounts[depth]);
+		return true;
+	}
 
 	/// <summary>Serialize this definition into the opaque payload format.</summary>
 	public byte[] ToPayload()

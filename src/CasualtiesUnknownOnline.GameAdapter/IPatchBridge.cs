@@ -1,3 +1,4 @@
+using System.Collections;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using UnityEngine;
@@ -35,6 +36,15 @@ internal interface IPatchBridge
 
 	/// <summary>SceneManager.LoadScene(string) prefix — the old scene unloads inside the load: engage the destroy-report suppression BEFORE the teardown destroys (#191).</summary>
 	void OnSceneLoadBegin();
+
+	/// <summary>
+	/// Wrap the vanilla <c>WorldGenerateWorldBorders</c> iterator so the Game
+	/// Adapter can distribute mod-bound structures after the vanilla worldgen
+	/// has finished its terrain/structures but before the collider pass. The
+	/// returned coroutine is driven by <see cref="WorldGenRandomIsolation"/>,
+	/// so its Random consumption stays on the sealed generation stream.
+	/// </summary>
+	IEnumerator WrapStructureWorldGen(IEnumerator original, WorldGeneration world);
 
 	void OnBlockSet(Vector2Int pos, ushort block);
 

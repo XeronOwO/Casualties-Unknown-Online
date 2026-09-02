@@ -312,11 +312,14 @@ context.Content.TryUnregister("wooden.sword");
 - **Typed structure content**: `ModStructureDefinition` is the sixth well-known
   Abstractions DTO. It carries display/description text, a width/height grid of
   rows, marker maps from single-character markers to either vanilla block
-  indices or custom tile content ids, optional per-depth spawn counts, and an
-  extensible `CustomData` dictionary. The Game Adapter structure provider
-  validates and compiles the grid; multi-block runtime placement is exposed
-  through `IModStructurePlacement` (§4h). Automatic worldgen distribution is
-  deliberately not part of this initial seam.
+  indices or custom tile content ids, per-depth spawn counts, and an extensible
+  `CustomData` dictionary. The Game Adapter structure provider validates and
+  compiles the grid; multi-block runtime placement is exposed through
+  `IModStructurePlacement` (§4h). Non-empty per-depth spawn counts are consumed
+  automatically during world generation: the Game Adapter distributes the
+  static block grid after vanilla worldgen, inside CUO's isolated generation
+  stream, and before the collider/UpdateWorld pass. No entity/loot/background
+  layer is distributed and no new wire message is used.
 - **Shared-content binding boundary**: the runtime content binder only routes
   content from mods whose network mode guarantees a matching copy on every
   player that can receive the content instances
@@ -359,10 +362,14 @@ context.Content.TryUnregister("wooden.sword");
   wire message is used.
 - **Current structure binding scope**: `GameAdapterStructureContentProvider`
   decodes `ModStructureDefinition`, validates the authored grid/marker maps,
-  and compiles it into non-air cells. It intentionally does not perform
-  automatic worldgen distribution or spawn-count placement; multi-cell runtime
-  placement is exposed through `IModStructurePlacement` (§4h). No game/Unity
-  type is exposed to mods and no new wire message is used.
+  and compiles it into non-air cells. Multi-cell runtime placement is exposed
+  through `IModStructurePlacement` (§4h). When `SpawnCounts` is present for the
+  current biome depth, `StructureWorldGenDistribution` also places the compiled
+  static block grid during generation; it runs inside `WorldGenRandomIsolation`
+  (same stream on every side), writes through the vanilla `SetBlock` path while
+  `generatingWorld` is true (the existing block relay/difference table therefore
+  treats it as baseline), and refuses tutorial worlds. No game/Unity type is
+  exposed to mods and no new wire message is used.
 - **No wire change**: no content bytes or new NetMsg.
 
 ## 4g. Read game state (read-only projection)
@@ -498,8 +505,10 @@ if (context.ItemSpawn.CanSpawn)
   guest → host report + host arbitration/broadcast works exactly like native
   block placement. No new `NetMsg`.
 - **Structure placement boundary (this slice)**: only structures registered as
-  static content are addressable; no automatic worldgen distribution or spawn
-  counts are applied yet.
+  static content are addressable; this runtime placement surface does not
+  apply worldgen distribution or spawn counts. Automatic worldgen placement is
+  a separate generation-time seam described in the typed structure content
+  section above.
 - **No wire change**: no new `NetMsg`.
 
 ## 4i. AccessNativeApi (curated native operation registry)

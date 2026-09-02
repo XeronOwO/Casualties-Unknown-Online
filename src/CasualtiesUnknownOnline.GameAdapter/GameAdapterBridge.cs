@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Linq;
 using CasualtiesUnknownOnline.GameAdapter.Character;
 using CasualtiesUnknownOnline.GameAdapter.Items;
@@ -148,6 +149,9 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 	public bool EnsureGuestWorldParams() => domains.WorldParams.EnsureGuestApplied();
 
 	public void ResetGenStreamToBaseline() => domains.WorldParams.ResetGenStreamToBaseline();
+
+	public IEnumerator WrapStructureWorldGen(IEnumerator original, WorldGeneration world) =>
+		domains.StructureWorldGen.Wrap(original, world);
 
 	public void OnEarthquakeStarted(float duration, float nextDelay) =>
 		domains.WorldEventSync.OnEarthquakeStarted(duration, nextDelay);

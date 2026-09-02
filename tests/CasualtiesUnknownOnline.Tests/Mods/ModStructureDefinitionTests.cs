@@ -75,6 +75,45 @@ public class ModStructureDefinitionTests
 	}
 
 	[Fact]
+	public void TryGetSpawnCount_ReturnsTheDepthValue()
+	{
+		var definition = new ModStructureDefinition
+		{
+			SpawnCounts = [2, 1, 0, 3, 5]
+		};
+
+		Assert.True(definition.TryGetSpawnCount(1, out var one));
+		Assert.Equal(1, one);
+		Assert.True(definition.TryGetSpawnCount(4, out var four));
+		Assert.Equal(5, four);
+	}
+
+	[Fact]
+	public void TryGetSpawnCount_MissingOrEmptyDepth_ReturnsFalse()
+	{
+		var definition = new ModStructureDefinition
+		{
+			SpawnCounts = [2, 3]
+		};
+
+		Assert.False(definition.TryGetSpawnCount(2, out _));
+		Assert.False(definition.TryGetSpawnCount(-1, out _));
+		Assert.False(new ModStructureDefinition().TryGetSpawnCount(0, out _));
+	}
+
+	[Fact]
+	public void TryGetSpawnCount_NegativeValue_IsClampedToZero()
+	{
+		var definition = new ModStructureDefinition
+		{
+			SpawnCounts = [4, -1]
+		};
+
+		Assert.True(definition.TryGetSpawnCount(1, out var count));
+		Assert.Equal(0, count);
+	}
+
+	[Fact]
 	public void InvalidPayload_ReturnsNull()
 	{
 		Assert.Null(ModStructureDefinition.FromPayload([]));

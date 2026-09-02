@@ -138,14 +138,16 @@ content binders can build on:
   `IModStructurePlacement` + `IModStructurePlacer` + the Game Adapter
   implementation — the mod-facing typed multi-block structure seam. The plain
   DTO carries a validated marker grid (vanilla block indices and/or custom tile
-  content ids) plus optional future spawn counts; the Game Adapter provider
-  compiles it into non-air cells. The placement surface uses the same
+  content ids) plus per-depth spawn counts; the Game Adapter provider compiles
+  it into non-air cells. The placement surface uses the same
   `SpawnEntity` permission and policy rails as spawn, preflights the entire
   structure on air/in-world cells, then calls the vanilla
   `WorldGeneration.SetBlock` path per cell; the existing `BlockPlaced` relay
-  replicates every write. Automatic worldgen distribution is not part of this
-  seam yet. No new wire message and no game/Unity type crosses the mod
-  boundary.
+  replicates every write. Automatic worldgen distribution consumes
+  `SpawnCounts` during the isolated generation stream, after vanilla worldgen
+  but before the collider/UpdateWorld pass, and places only the static block
+  grid — no entity/loot/background layer. No new wire message and no game/Unity
+  type crosses the mod boundary.
 - Tests for version storage/validation, catalog enumeration/filtering,
   unique resolution, duplicate/version conflicts, empty-catalog behavior,
   null-argument edges, DTO round-trip, binder routing/shared-mode
@@ -158,14 +160,12 @@ content binders can build on:
   `docs/evidence/selfchecks/mod-api/mod-tile-placement-selfcheck.md`,
   `docs/evidence/selfchecks/mod-api/mod-structure-content-binding-selfcheck.md`,
   `docs/evidence/selfchecks/mod-api/mod-structure-placement-selfcheck.md`,
+  `docs/evidence/selfchecks/mod-api/mod-structure-worldgen-distribution-selfcheck.md`,
   and `docs/evidence/selfchecks/mod-api/mod-item-spawn-selfcheck.md`.
 
 Still explicitly **not** implemented:
 - typed per-kind DTOs for status/moodle;
 - actual GameAdapter binding providers for those kinds (status/moodle);
-- automatic structure worldgen distribution (the typed structure DTO carries
-  spawn counts and the GameAdapter provider stores them, but placement is
-  runtime-only in this cycle);
 - a full **runtime mod-data sync model** (the static-content side of the
   local-only vs public/shared distinction is handled by the binder's
   shared-content network-mode filter; runtime mod state/synchronized data
@@ -195,7 +195,7 @@ Source basis: CUCoreLib README/CHANGELOG, `CUCoreLibWebapp` machine docs
 | 10 | Liquid tiles / world liquids | `LiquidTileRegistry.Register/Place/FloodFill/GenerateWorldTiles`, world bytes, body touch/drink/visual helpers, snapshot helpers. | No custom liquid-tile API; CUO has a Fluid kernel domain and Tilemap/WorldEntity adapter coverage for vanilla content. | **Content seam + worldgen.** Static liquid-tile definitions are content; placement/runtime effects need a GameAdapter translator. This is larger than a simple API shim and should be scheduled after item/recipe content binding. |
 | 11 | Terrain tiles and worldgen | `TileRegistry.Register`, `SetBlock`, `TryGetTile/Definition/Index`, layer masks, ore-style generation, drops, custom data. | `ModTileDefinition` + `GameAdapterTileContentProvider` + `IModTilePlacement`: typed DTO, deterministic custom block indices, `WorldGeneration.tiles` injection, a `GetBlockInfo` prefix, and a single-cell placement surface by stable tile id. | **Landed at the static content + single-cell placement seam.** Remaining: optional ore/drop projection, worldgen distribution, and layer masks; all future work; world-generation output stays kernel-driven. |
 | 12 | Building entities / custom spawn | `BuildingEntityRegistry.Register/Spawn/PlaceOnSurface/DistributeInWorld`, prefab hooks, components, drops, worldgen density, owner queries. | `IModEntitySpawn.TrySpawn(prefabId, x, y, rotation)` supports existing game `BuildingEntity` prefabs only; no way to register a new prefab definition from a mod. | **High-value gap — extend the entity-spawn/content seam.** Add custom building definitions to the content binder and route `IModEntitySpawn` through the existing `EntitySpawned` runtime channel. No new NetMsg; no mod access to Unity prefab types. |
-| 13 | Multi-block structures | `StructureRegistry.RegisterFromJson/EmbeddedJson/File`, spawn counts, `Place`, JSON payload from the structure editor. | `ModStructureDefinition` + `GameAdapterStructureContentProvider` + `IModStructurePlacement`: typed marker grid, validated GameAdapter compile, runtime placement through existing `SetBlock`/`BlockPlaced`, optional spawn counts stored for future worldgen. | **Landed at the static content + runtime placement seam.** Automatic worldgen distribution is not part of this cycle; the DTO carries spawn counts but the GameAdapter does not consume them yet. Not a wire feature. |
+| 13 | Multi-block structures | `StructureRegistry.RegisterFromJson/EmbeddedJson/File`, spawn counts, `Place`, JSON payload from the structure editor. | `ModStructureDefinition` + `GameAdapterStructureContentProvider` + `IModStructurePlacement`: typed marker grid, validated GameAdapter compile, runtime placement through existing `SetBlock`/`BlockPlaced`, per-depth spawn counts consumed by deterministic worldgen distribution. | **Landed at the static content + runtime placement + automatic worldgen seam.** Distribution runs inside the isolated generation stream, static block grid only, no new wire. |
 | 14 | Statuses / per-body per-limb custom state | `StatusRegistry` + `BodyStatus`/`LimbStatus` inheritance, `[StatusOptions]`, `GetStatus<T>()`, save providers, network snapshots. | No per-player per-limb status extension exposed to mods. `IModState` gives host-persistent opaque mod state; `IModGameState` gives read-only projected vitals/inventory. | **Out of scope until a real per-player status domain is designed.** CUO already owns terminal player/limb facts in the `Players` kernel domain; arbitrary reflection-free status bags may be useful but need authority and sync boundaries. For now, mods should persist opaque data in `IModState` and coordinate through `IModNetwork`/`IModCommands`. |
 | 15 | Moodles / player status UI | `MoodleRegistry.AddMoodle/AddAnimatedMoodle`, `RegisterBody/RegisterLimb`; custom status icons in the vanilla moodle row. | `IModUi` offers local immediate-mode windows only; no vanilla moodle/status indicator integration. | **Out of scope / future UI seam.** Moodles are presentation state; if a concrete CUO mod needs it, the safe path is a local UI projection and a typed status source, not direct vanilla moodle mutation from Abstractions. |
 | 16 | Native settings menu / mod options | `ModOptionsRegistry.Register`, `ModOptionDefinition`, category/locale handling, optional BepInEx config mirroring. | No native settings API. `IModUi` is a local window surface; `IModState` can persist mod settings. | **Out of scope for CUO core.** Settings are local UX; a future `IModSettings` or settings-menu seam is acceptable only if demand appears. It is not multiplayer/wire work. |

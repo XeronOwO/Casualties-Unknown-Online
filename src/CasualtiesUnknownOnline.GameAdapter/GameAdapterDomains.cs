@@ -37,6 +37,7 @@ internal sealed class GameAdapterDomains
 	internal readonly GameAdapterBuildingContentProvider BuildingContent;
 	internal readonly GameAdapterTileContentProvider TileContent;
 	internal readonly GameAdapterStructureContentProvider StructureContent;
+	internal readonly StructureWorldGenDistribution StructureWorldGen;
 	internal readonly IEntitySyncControl Entities;
 	internal readonly IHostRules HostRules;
 	internal readonly IPlayerInteractionVisibility InteractionVisibility;
@@ -132,6 +133,8 @@ internal sealed class GameAdapterDomains
 		BuildingContent = buildingContent;
 		TileContent = tileContent;
 		StructureContent = structureContent;
+		StructureWorldGen = new StructureWorldGenDistribution(
+			structureContent, tileContent, loggerFactory.CreateLogger<StructureWorldGenDistribution>());
 		Entities = entities;
 		HostRules = hostRules;
 		PlayerInteraction = playerInteraction;

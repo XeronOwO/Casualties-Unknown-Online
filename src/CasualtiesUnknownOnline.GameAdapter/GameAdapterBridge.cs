@@ -36,6 +36,9 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 	public bool TryResolveBuildingTemplate(string id, out GameObject? template) =>
 		domains.BuildingContent.TryResolveTemplate(id, out template);
 
+	public BlockInfo? TryGetCustomBlockInfo(ushort block) =>
+		domains.TileContent.TryGetBlockInfo(block);
+
 	public bool IsReplayingLifePodSound => domains.LifePod.IsReplayingSound;
 
 	public bool IsHeaterCookAuthority =>

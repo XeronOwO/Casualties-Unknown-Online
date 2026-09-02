@@ -195,6 +195,15 @@ internal interface IPatchBridge
 	/// </summary>
 	bool TryResolveBuildingTemplate(string id, out GameObject? template);
 
+	/// <summary>
+	/// Returns the mod-authored <see cref="BlockInfo"/> for a custom tile
+	/// index, or null when the block is vanilla/unregistered. The
+	/// <c>WorldGeneration.GetBlockInfo</c> patch uses this to let the original
+	/// switch continue handling every vanilla block while supplying behavior for
+	/// static custom tiles.
+	/// </summary>
+	BlockInfo? TryGetCustomBlockInfo(ushort block);
+
 	/// <summary>An earthquake just started in WorldGeneration.Update — the host broadcasts it (timing sync + the next delay; guests re-align their timer).</summary>
 	void OnEarthquakeStarted(float duration, float nextDelay);
 

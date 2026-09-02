@@ -19,6 +19,7 @@ using HarmonyLib;
 using MapsterMapper;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using UnityEngine;
 using IGameAdapter = CasualtiesUnknownOnline.Runtime.GameAdapter.IGameAdapter;
 
 namespace CasualtiesUnknownOnline.GameAdapter;
@@ -32,7 +33,7 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// top-level collaborators, and the deep domain logic lives in the modules
 /// composed by <see cref="GameAdapterDomains"/>.
 /// </summary>
-public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, IModNativeApiProvider, IPlayerInteractionVisibility
+public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, IModItemSpawner, IModNativeApiProvider, IPlayerInteractionVisibility
 {
 	/// <summary>
 	/// Set when the game was launched via a Steam friends "Join Game"
@@ -309,6 +310,32 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 
 	bool IModEntitySpawner.TrySpawnEntity(string prefabId, float x, float y, float rotation) =>
 		_domains.EntitySpawnSync.TrySpawnFromMod(prefabId, x, y, rotation);
+
+	bool IModItemSpawner.TrySpawnItem(string itemId, float x, float y, float rotation)
+	{
+		if (!_domains.Session.SessionActive || string.IsNullOrWhiteSpace(itemId))
+		{
+			return false;
+		}
+
+		var createdGo = Utils.Create(itemId, new Vector2(x, y), 0f);
+		if (createdGo == null) // Unity object — ==
+		{
+			return false;
+		}
+
+		var created = createdGo.GetComponent<Item>();
+		if (created == null) // Unity object — ==
+		{
+			_domains.Log.LogWarning("[ItemSpawn] mod-requested id {Id} has no Item — the local copy is destroyed.", itemId);
+			UnityEngine.Object.Destroy(createdGo);
+			return false;
+		}
+
+		created.transform.eulerAngles = new Vector3(0f, 0f, rotation);
+		_domains.Log.LogInformation("[ItemSpawn] mod-requested {Id} created at ({X:F1},{Y:F1}); the Item.Start report will replicate it.", itemId, x, y);
+		return true;
+	}
 
 	bool IModNativeApiProvider.IsRegistered(string operation) =>
 		operation == ModNativeApiOperations.LocalPlayerState;

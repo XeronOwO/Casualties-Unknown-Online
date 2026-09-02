@@ -29,7 +29,7 @@ public enum ModPermission
 	/// <summary>Write game state through a framework surface (enforced by <see cref="IModState"/> for host-persistent mod state).</summary>
 	WriteGameState = 1 << 1,
 
-	/// <summary>Spawn world entities via <see cref="IModEntitySpawn"/> (enforced at the spawn surface).</summary>
+	/// <summary>Spawn world entities/items via <see cref="IModEntitySpawn"/> / <see cref="IModItemSpawn"/> (enforced at the spawn surface).</summary>
 	SpawnEntity = 1 << 2,
 
 	/// <summary>Use <see cref="IModNetwork"/> (send and receive). Enforced at the channel.</summary>

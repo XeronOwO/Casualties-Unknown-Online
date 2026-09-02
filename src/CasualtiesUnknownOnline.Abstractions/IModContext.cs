@@ -72,6 +72,13 @@ public interface IModContext
 	IModEntitySpawn EntitySpawn { get; }
 
 	/// <summary>
+	/// The world item-spawn surface. Spawning requires
+	/// <see cref="ModPermission.SpawnEntity"/> — see <see cref="IModItemSpawn"/>
+	/// for the full contract.
+	/// </summary>
+	IModItemSpawn ItemSpawn { get; }
+
+	/// <summary>
 	/// The permission-gated native/game-private operation registry. Invoking
 	/// requires <see cref="ModPermission.AccessNativeApi"/> — see
 	/// <see cref="IModNativeApi"/> for the full contract and value-safety policy.

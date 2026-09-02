@@ -32,6 +32,7 @@ internal sealed class ModLifecycle(
 	RemoteVitalsService remoteVitals,
 	RemoteInventoryService remoteInventory,
 	IModEntitySpawner entitySpawner,
+	IModItemSpawner itemSpawner,
 	IModNativeApiProvider nativeApiProvider)
 {
 	private readonly ModCatalog _catalog = catalog;
@@ -47,6 +48,7 @@ internal sealed class ModLifecycle(
 	private readonly RemoteVitalsService _remoteVitals = remoteVitals;
 	private readonly RemoteInventoryService _remoteInventory = remoteInventory;
 	private readonly IModEntitySpawner _entitySpawner = entitySpawner;
+	private readonly IModItemSpawner _itemSpawner = itemSpawner;
 	private readonly IModNativeApiProvider _nativeApiProvider = nativeApiProvider;
 	private readonly Dictionary<ulong, ModRateLimiter> _messageRateLimiters = [];
 	private bool _discovered;
@@ -151,6 +153,7 @@ internal sealed class ModLifecycle(
 					_remoteVitals,
 					_remoteInventory,
 					_entitySpawner,
+					_itemSpawner,
 					_nativeApiProvider);
 				instance.Bind(context);
 				instance.Initialize();

@@ -28,6 +28,7 @@ internal sealed class ModContext(
 	RemoteInventoryService remoteInventory,
 	IModEntitySpawner entitySpawner,
 	IModItemSpawner itemSpawner,
+	IModTilePlacer tilePlacer,
 	IModNativeApiProvider nativeApiProvider) : IModContext
 {
 	private readonly ModManifest _manifest = manifest;
@@ -40,6 +41,7 @@ internal sealed class ModContext(
 	private readonly ModGameStateAdapter _gameState = new(manifest, sessionService, remoteVitals, remoteInventory, frameworkLog);
 	private readonly ModEntitySpawnAdapter _entitySpawn = new(manifest, sessionService, entitySpawner, frameworkLog);
 	private readonly ModItemSpawnAdapter _itemSpawn = new(manifest, sessionService, itemSpawner, frameworkLog);
+	private readonly ModTilePlacementAdapter _tilePlacement = new(manifest, sessionService, tilePlacer, frameworkLog);
 	private readonly ModNativeApiAdapter _nativeApi = new(manifest, nativeApiProvider, frameworkLog);
 
 	public ILogger Logger { get; } = logger;
@@ -61,6 +63,7 @@ internal sealed class ModContext(
 	public IModEntitySpawn EntitySpawn => _entitySpawn;
 
 	public IModItemSpawn ItemSpawn => _itemSpawn;
+	public IModTilePlacement TilePlacement => _tilePlacement;
 
 	public IModNativeApi NativeApi => _nativeApi;
 

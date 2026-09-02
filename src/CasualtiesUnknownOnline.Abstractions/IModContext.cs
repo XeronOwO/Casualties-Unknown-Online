@@ -79,6 +79,13 @@ public interface IModContext
 	IModItemSpawn ItemSpawn { get; }
 
 	/// <summary>
+	/// The world tile/block placement surface. Placing requires
+	/// <see cref="ModPermission.SpawnEntity"/> — see <see cref="IModTilePlacement"/>
+	/// for the full contract.
+	/// </summary>
+	IModTilePlacement TilePlacement { get; }
+
+	/// <summary>
 	/// The permission-gated native/game-private operation registry. Invoking
 	/// requires <see cref="ModPermission.AccessNativeApi"/> — see
 	/// <see cref="IModNativeApi"/> for the full contract and value-safety policy.

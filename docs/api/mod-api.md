@@ -83,8 +83,9 @@ public sealed class MyMod : ICuoMod   // ICuoService lifecycle + Bind
   `WriteGameState` gates host-persistent mod-state writes (`IModState`);
   `RegisterContent` gates mod content registration (`IModContent`);
   `ReadGameState` gates the read-only game-state projection (`IModGameState`);
-  `SpawnEntity` gates the world entity-spawn surface (`IModEntitySpawn`)
-  and the world item-spawn surface (`IModItemSpawn`);
+  `SpawnEntity` gates the world entity-spawn surface (`IModEntitySpawn`),
+  the world item-spawn surface (`IModItemSpawn`) and the world tile/block
+  placement surface (`IModTilePlacement`);
   `AccessNativeApi` gates the curated native/game-private operation registry
   (`IModNativeApi`).
 - **`Dependencies`** are mod ids loaded before the dependent; missing or
@@ -104,6 +105,7 @@ public sealed class MyMod : ICuoMod   // ICuoService lifecycle + Bind
 | `GameState` | read-only player-state projection — see §4g. |
 | `EntitySpawn` | world entity spawn — see §4h. |
 | `ItemSpawn` | world item spawn — see §4h. |
+| `TilePlacement` | world tile/block placement — see §4h. |
 | `NativeApi` | curated native/game-private operation registry — see §4i. |
 | `SessionActivated` | the first member handshake completed. **Host side: never** — read the snapshot. |
 | `PlayerJoined` / `PlayerLeft` | a member's handshake completed / a member was removed (host side). NOT the in-world entity join. Each member exactly once, including yourself. |
@@ -343,9 +345,10 @@ context.Content.TryUnregister("wooden.sword");
   `ModTileDefinition`, allocates a stable custom block index starting at 36,
   injects a built `Tile` into every fresh `WorldGeneration.tiles` palette, and
   answers `WorldGeneration.GetBlockInfo` for custom indices through the
-  provider. It intentionally does not add ore/worldgen placement or runtime
-  drop behaviour yet. No game/Unity type is exposed to mods and no new wire
-  message is used.
+  provider. It intentionally does not add ore/worldgen distribution or
+  runtime drop behaviour; single-cell runtime placement is exposed through
+  `IModTilePlacement` (§4h). No game/Unity type is exposed to mods and no new
+  wire message is used.
 - **No wire change**: no content bytes or new NetMsg.
 
 ## 4g. Read game state (read-only projection)
@@ -443,6 +446,28 @@ if (context.ItemSpawn.CanSpawn)
   surface, not a generic item-state/custom-data injection mechanism — mod
   state still belongs in `IModState` or explicit `IModNetwork` /
   `IModCommands` coordination.
+- **Tile/block placement scope**: `IModTilePlacement` lets a synchronized/
+  authoritative mod place one custom terrain tile at integer block
+  coordinates. The tile is addressed by the stable content id registered
+  through `ModContentKind.Tile`; the Game Adapter resolves that id to its
+  deterministic custom block index and calls the vanilla
+  `WorldGeneration.SetBlock` path. No Unity or game-assembly type crosses
+  the boundary.
+- **Tile placement permission**: the surface reuses
+  `ModPermission.SpawnEntity`. `CanPlace` reflects the declared flag and every
+  `TryPlaceBlock` call also enforces it (false + log otherwise). It also
+  requires an active in-world session.
+- **Tile placement replication reuses the existing block channel**: the write
+  goes through the vanilla `SetBlock` path already monitored by the CUO
+  `BlockPlaced` relay, so guest → host report + host arbitration/broadcast
+  works exactly like native block placement. No new `NetMsg`.
+- **Tile placement precondition**: the target block must currently be air;
+  the Game Adapter refuses a placement over an occupied cell before calling
+  `SetBlock`, matching the existing `BlockPlaced` arbitration rule.
+- **Tile placement boundary (this slice)**: only custom tiles registered as
+  static content are addressable by stable id; vanilla block indices are not
+  exposed through this seam. It writes one block cell, not a structure or a
+  worldgen distribution.
 - **No wire change**: no new `NetMsg`.
 
 ## 4i. AccessNativeApi (curated native operation registry)
@@ -542,7 +567,8 @@ lifecycle (`ModLifecycleTests`), message routing + permission/rate gates
 (`ModMessageTests`), host commands (`ModCommandTests`), mod-state saves
 (`ModStateTests`), local mod UI (`ModUiTests`), mod content registration
 (`ModContentTests`, `ModContentCatalogTests`), read game state (`ModGameStateTests`), entity spawn
-(`ModEntitySpawnTests`), item spawn (`ModItemSpawnTests`), native API
+(`ModEntitySpawnTests`), item spawn (`ModItemSpawnTests`), tile placement
+(`ModTilePlacementTests`), native API
 (`ModNativeApiTests` + `GameAdapterNativeApiContractTests`), handshake matrix
 (`ModHandshakeTests`), rate limiter (`ModRateLimiterTests`), direction rows
 (`DirectionTests`) and wire round-trips (`ModHandshakeProtocolTests`).

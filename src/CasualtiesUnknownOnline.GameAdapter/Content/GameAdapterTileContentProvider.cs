@@ -161,6 +161,33 @@ public sealed class GameAdapterTileContentProvider(
 	internal bool TryGetTileIndex(string id, out ushort index) =>
 		_indicesById.TryGetValue(id, out index);
 
+	/// <summary>
+	/// Resolve a custom tile id for runtime placement and ensure it is injected
+	/// into the current world palette before the caller writes it with
+	/// <c>SetBlock</c>. Returns false for unknown/failed definitions or when the
+	/// world/tile palette is not ready.
+	/// </summary>
+	internal bool TryPrepareForPlacement(string id, WorldGeneration world, out ushort index)
+	{
+		index = 0;
+		if (world is null || world.tiles is null || !_definitions.TryGetValue(id, out var definition))
+		{
+			return false;
+		}
+
+		if (_failedIds.Contains(id))
+		{
+			return false;
+		}
+
+		if (!_injectedIds.Contains(id))
+		{
+			EnsureInjected(id, definition, world);
+		}
+
+		return _injectedIds.Contains(id) && _indicesById.TryGetValue(id, out index);
+	}
+
 	private void EnsureInjected(string id, ModTileDefinition definition, WorldGeneration world)
 	{
 		if (_injectedIds.Contains(id) || _failedIds.Contains(id))

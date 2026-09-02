@@ -33,7 +33,7 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// top-level collaborators, and the deep domain logic lives in the modules
 /// composed by <see cref="GameAdapterDomains"/>.
 /// </summary>
-public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, IModItemSpawner, IModNativeApiProvider, IPlayerInteractionVisibility
+public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, IModItemSpawner, IModTilePlacer, IModNativeApiProvider, IPlayerInteractionVisibility
 {
 	/// <summary>
 	/// Set when the game was launched via a Steam friends "Join Game"
@@ -334,6 +334,33 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 
 		created.transform.eulerAngles = new Vector3(0f, 0f, rotation);
 		_domains.Log.LogInformation("[ItemSpawn] mod-requested {Id} created at ({X:F1},{Y:F1}); the Item.Start report will replicate it.", itemId, x, y);
+		return true;
+	}
+
+	bool IModTilePlacer.TryPlaceBlock(string tileId, int x, int y)
+	{
+		var world = WorldGeneration.world;
+		if (world == null) // Unity object — ==
+		{
+			_domains.Log.LogWarning("[TilePlacement] mod-requested tile {Id} was refused because no world is active.", tileId);
+			return false;
+		}
+
+		if (!_domains.TileContent.TryPrepareForPlacement(tileId, world, out var index))
+		{
+			_domains.Log.LogWarning("[TilePlacement] mod-requested tile {Id} is not a bound custom tile in the current world — refused.", tileId);
+			return false;
+		}
+
+		var blockPos = new Vector2Int(x, y);
+		if (world.GetBlock(blockPos) != 0)
+		{
+			_domains.Log.LogWarning("[TilePlacement] mod-requested tile {Id} at block ({X},{Y}) is not air — refused.", tileId, x, y);
+			return false;
+		}
+
+		world.SetBlock(blockPos, index);
+		_domains.Log.LogInformation("[TilePlacement] mod-requested tile {Id} placed at block ({X},{Y}); the SetBlock relay will replicate it.", tileId, x, y);
 		return true;
 	}
 

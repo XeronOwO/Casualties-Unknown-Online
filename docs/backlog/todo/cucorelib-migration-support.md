@@ -127,6 +127,13 @@ content binders can build on:
   via `Utils.Create`, and the existing `ItemSpawned` item-domain path
   replicates it. No new wire message and no game/Unity type crosses the mod
   boundary.
+- `IModTilePlacement` + `IModTilePlacer` + the Game Adapter implementation —
+  the mod-facing single-cell tile placement seam. It uses the same
+  `SpawnEntity` permission and policy rails as spawn; the Game Adapter
+  resolves a custom tile content id to its deterministic block index and calls
+  the vanilla `WorldGeneration.SetBlock` path, and the existing `BlockPlaced`
+  relay replicates the write. No new wire message and no game/Unity type
+  crosses the mod boundary.
 - Tests for version storage/validation, catalog enumeration/filtering,
   unique resolution, duplicate/version conflicts, empty-catalog behavior,
   null-argument edges, DTO round-trip, binder routing/shared-mode
@@ -136,6 +143,7 @@ content binders can build on:
   `docs/evidence/selfchecks/mod-api/mod-recipe-content-binding-selfcheck.md`,
   `docs/evidence/selfchecks/mod-api/mod-liquid-content-binding-selfcheck.md`,
   `docs/evidence/selfchecks/mod-api/mod-tile-content-binding-selfcheck.md`,
+  `docs/evidence/selfchecks/mod-api/mod-tile-placement-selfcheck.md`,
   and `docs/evidence/selfchecks/mod-api/mod-item-spawn-selfcheck.md`.
 
 Still explicitly **not** implemented:
@@ -168,7 +176,7 @@ Source basis: CUCoreLib README/CHANGELOG, `CUCoreLibWebapp` machine docs
 | 8 | Custom recipes | `RecipeRegistry.Register(Recipe)`, owner-GUID queries, invalid-recipe rejection, crafting-quality locale. | `ModRecipeDefinition` + `GameAdapterRecipeContentProvider`: typed DTO, recipe table injection, category mapping, duplicate/rebuild protection. | **Landed at the content seam.** Recipes are static content injected through the same binder; crafting runtime flow remains CUO's existing item/crafting kernel. |
 | 9 | Custom liquids | `LiquidRegistry.Register(id, CustomLiquidInfo)`, container liquid stacks, owner-GUID query. | `ModLiquidDefinition` + `GameAdapterLiquidContentProvider`: typed DTO, static `LiquidType` fields, locale entries. | **Landed at the static content seam.** Runtime fluid facts remain in CUO's Fluid domain; CUCoreLib's JObject fluid snapshots are not ported. |
 | 10 | Liquid tiles / world liquids | `LiquidTileRegistry.Register/Place/FloodFill/GenerateWorldTiles`, world bytes, body touch/drink/visual helpers, snapshot helpers. | No custom liquid-tile API; CUO has a Fluid kernel domain and Tilemap/WorldEntity adapter coverage for vanilla content. | **Content seam + worldgen.** Static liquid-tile definitions are content; placement/runtime effects need a GameAdapter translator. This is larger than a simple API shim and should be scheduled after item/recipe content binding. |
-| 11 | Terrain tiles and worldgen | `TileRegistry.Register`, `SetBlock`, `TryGetTile/Definition/Index`, layer masks, ore-style generation, drops, custom data. | `ModTileDefinition` + `GameAdapterTileContentProvider`: typed DTO, deterministic custom block indices, `WorldGeneration.tiles` injection, and a `GetBlockInfo` prefix. | **Landed at the static content seam.** Remaining: a mod-facing block set/placement surface and the optional ore/drop projection, both future work; world-generation output stays kernel-driven. |
+| 11 | Terrain tiles and worldgen | `TileRegistry.Register`, `SetBlock`, `TryGetTile/Definition/Index`, layer masks, ore-style generation, drops, custom data. | `ModTileDefinition` + `GameAdapterTileContentProvider` + `IModTilePlacement`: typed DTO, deterministic custom block indices, `WorldGeneration.tiles` injection, a `GetBlockInfo` prefix, and a single-cell placement surface by stable tile id. | **Landed at the static content + single-cell placement seam.** Remaining: optional ore/drop projection, worldgen distribution, and layer masks; all future work; world-generation output stays kernel-driven. |
 | 12 | Building entities / custom spawn | `BuildingEntityRegistry.Register/Spawn/PlaceOnSurface/DistributeInWorld`, prefab hooks, components, drops, worldgen density, owner queries. | `IModEntitySpawn.TrySpawn(prefabId, x, y, rotation)` supports existing game `BuildingEntity` prefabs only; no way to register a new prefab definition from a mod. | **High-value gap — extend the entity-spawn/content seam.** Add custom building definitions to the content binder and route `IModEntitySpawn` through the existing `EntitySpawned` runtime channel. No new NetMsg; no mod access to Unity prefab types. |
 | 13 | Multi-block structures | `StructureRegistry.RegisterFromJson/EmbeddedJson/File`, spawn counts, `Place`, JSON payload from the structure editor. | No structure-registration API; no static structure content consumer. | **Content seam.** Structure definitions are static authored worldgen content; a binder can consume the same JSON and hand it to GameAdapter worldgen. Not a wire feature. |
 | 14 | Statuses / per-body per-limb custom state | `StatusRegistry` + `BodyStatus`/`LimbStatus` inheritance, `[StatusOptions]`, `GetStatus<T>()`, save providers, network snapshots. | No per-player per-limb status extension exposed to mods. `IModState` gives host-persistent opaque mod state; `IModGameState` gives read-only projected vitals/inventory. | **Out of scope until a real per-player status domain is designed.** CUO already owns terminal player/limb facts in the `Players` kernel domain; arbitrary reflection-free status bags may be useful but need authority and sync boundaries. For now, mods should persist opaque data in `IModState` and coordinate through `IModNetwork`/`IModCommands`. |

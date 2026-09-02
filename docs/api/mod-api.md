@@ -363,6 +363,18 @@ context.Content.TryUnregister("wooden.sword");
   `ModLiquidDefinition`, waits for `Liquids.Registry`, refuses to overwrite a
   known liquid, and applies the static fields plus local locale entries. No
   game delegate is passed from mods; no new wire message is used.
+- **Current liquid-tile binding scope**: `ModLiquidTileDefinition` carries the
+  static world-liquid fields (logical `LiquidId`, fill liquid, buoyancy/drag,
+  per-second body-touch rates, visual base byte/tint, spawn amount/layers,
+  flood-fill cap, consume-on-drink). `GameAdapterLiquidTileContentProvider`
+  allocates deterministic custom world-fluid bytes starting at 7 in stable id
+  order, maps them through `FluidManager.WorldFluidToLiquidID`, and supplies
+  local projection surfaces (water info, display colour/name, body touch,
+  drink, render). `LiquidTileWorldGenDistribution` runs from the same vanilla
+  `GenerateOres` postfix as tile ore, inside CUO's isolated generation stream;
+  the grid changes ride the existing FluidRegion/FluidInteraction sync. No
+  JObject snapshot, no new wire message, and no game/Unity type or delegate
+  crosses Abstractions.
 - **Current building binding scope**: `GameAdapterBuildingContentProvider`
   decodes `ModBuildingDefinition`, builds an inactive runtime template from
   the mod's vanilla `TemplateId`, applies optional `BuildingEntity` overrides,

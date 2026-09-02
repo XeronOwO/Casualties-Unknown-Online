@@ -53,6 +53,13 @@ internal interface IPatchBridge
 	/// </summary>
 	void OnCustomTileOreGeneration(WorldGeneration world);
 
+	/// <summary>
+	/// Vanilla <c>WorldGeneration.GenerateOres</c> finished — distribute
+	/// mod-bound liquid-tile pools after the vanilla ore pass, inside the same
+	/// sealed generation stream.
+	/// </summary>
+	void OnCustomLiquidWorldGeneration(WorldGeneration world);
+
 	void OnBlockSet(Vector2Int pos, ushort block);
 
 	void OnBlockDamaged(Vector2 pos, float dmg, bool bonusMetal);
@@ -343,6 +350,36 @@ internal interface IPatchBridge
 
 	/// <summary>The local player drank (DrinkLiquid ran with the full local effect) — report the consumed cell (guest → host; host → broadcast).</summary>
 	void OnFluidDrinkReported(Vector2Int pos);
+
+	/// <summary>
+	/// <c>FluidManager.RenderFluids</c> is about to render. Returns true when
+	/// custom liquid tiles are present and the adapter rendered them (the
+	/// original must be skipped); false keeps the vanilla render path.
+	/// </summary>
+	bool TryRenderCustomLiquids(FluidManager manager);
+
+	/// <summary>Resolve the display colour for a custom world-fluid byte. Returns false for vanilla bytes.</summary>
+	bool TryGetCustomLiquidColor(byte worldByte, out Color color);
+
+	/// <summary>Resolve water info for a custom world-fluid byte. Returns false for vanilla bytes.</summary>
+	bool TryGetCustomWaterInfo(byte worldByte, out float buoyancy, out float drag, out int type);
+
+	/// <summary>Resolve display name/description for a custom world-fluid byte. Returns false for vanilla bytes.</summary>
+	bool TryGetCustomLiquidName(byte worldByte, out string name, out string description);
+
+	/// <summary>
+	/// <c>FluidManager.DrinkLiquid</c> is about to run on a custom world-fluid
+	/// byte. Returns true when the adapter applied the drink (the original must
+	/// be skipped); false lets the vanilla method handle it.
+	/// </summary>
+	bool TryDrinkCustomLiquid(FluidManager fluid, Vector2Int pos, Body body);
+
+	/// <summary>
+	/// <c>Body.HandleVariableUpdates</c> finished — re-apply the local body's
+	/// per-second liquid-tile touch rates. The projection class filters to the
+	/// local body.
+	/// </summary>
+	void ApplyLiquidTileBodyTouch(Body body);
 
 	/// <summary>
 	/// A trader interaction ran locally (the full game method — the acting

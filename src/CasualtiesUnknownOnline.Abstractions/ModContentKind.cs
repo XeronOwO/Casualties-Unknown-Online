@@ -17,6 +17,9 @@ public static class ModContentKind
 	/// <summary>A logical liquid definition.</summary>
 	public const string Liquid = "liquid";
 
+	/// <summary>A world-fluid liquid-tile definition.</summary>
+	public const string LiquidTile = "liquidtile";
+
 	/// <summary>A terrain/block tile definition.</summary>
 	public const string Tile = "tile";
 

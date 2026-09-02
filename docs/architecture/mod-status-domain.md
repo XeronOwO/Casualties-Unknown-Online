@@ -1,6 +1,7 @@
 # Mod Status Runtime Domain Boundary
 
-Status: Design proposal — not implemented.
+Status: Design proposal with phase 1 landed (Runtime status table + typed API,
+no vanilla integration, no wire).
 
 This document answers the remaining CUCoreLib migration question for dynamic
 statuses: when a mod wants per-player or per-limb status runtime values, where
@@ -174,12 +175,14 @@ Semantics:
 
 ## 7. Implementation phases
 
-1. **Runtime table + typed API (no wire)**
-   - Add `ModStatusStore` in Runtime, `ModStatusPolicy`, and `IModStatusRuntime`
-     in Abstractions.
-   - Support local-only status values and host-owned shared values with
+1. **Runtime table + typed API (no wire) — landed**
+   - Added `ModStatusStore` in Runtime, `ModStatusPolicy`, and
+     `IModStatusRuntime` in Abstractions.
+   - Supports local-only status values and host-owned shared values with
      explicit guest apply (same shape as `IModData` but with player/limb keys).
-   - Add pure-managed tests over the session stack.
+   - Added pure-managed tests over the session stack
+     (`ModStatusRuntimeTests`), selfcheck under
+     `docs/evidence/selfchecks/mod-api/mod-status-runtime-selfcheck.md`.
 2. **Host commands / dedicated update message**
    - If real mods need network status updates, add a dedicated
      `ModStatusUpdatedMsg` or route through `IModCommands`.

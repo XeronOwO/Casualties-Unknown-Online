@@ -18,8 +18,8 @@ SemVer versions, and per-sender rate limits.
 
 **UI is landed (see §4e), content registration is landed (see §4f),
 ReadGameState is landed (see §4g), entity and item spawn are landed (see §4h),
-AccessNativeApi is landed (see §4i), and the runtime mod-data scope seam is
-landed (see §4j).**
+AccessNativeApi is landed (see §4i), the runtime mod-data scope seam is
+landed (see §4j), and the phase-1 runtime status table is landed (see §4k).**
 The mod surface lives in **`CUO.Abstractions`** — the ONLY
 assembly mods may reference (architecture.md §5.5). A mod never touches
 BepInEx, Steamworks, the game assemblies, or CUO.Runtime. **Mod-state saves
@@ -102,6 +102,7 @@ public sealed class MyMod : ICuoMod   // ICuoService lifecycle + Bind
 | `Commands` | host-authoritative commands — see §4b. |
 | `State` | host-persistent per-mod state — see §4d. |
 | `Data` | runtime scope-declared per-mod data — see §4j. |
+| `StatusRuntime` | runtime per-player/per-limb mod status values — see §4k. |
 | `Ui` | local immediate-mode mod UI windows — see §4e. |
 | `Content` | mod content registration — see §4f. |
 | `GameState` | read-only player-state projection — see §4g. |
@@ -644,6 +645,32 @@ if (context.Data.TryDeclare("hostSecret", ModDataScope.HostAuthoritative))
   JObject snapshot registry.
 - **No wire change**: no new NetMsg is introduced by this surface.
 
+## 4k. Runtime mod status (phase 1)
+
+```csharp
+if (context.StatusRuntime.TryDeclare("bleeding", ModStatusScope.Limb, ModDataScope.Shared))
+{
+    // Host only:
+    context.StatusRuntime.TrySetLimbStatus("bleeding", playerSteamId, limbSlot, payload);
+
+    // Guest, when applying a value received from the host over IModNetwork:
+    context.StatusRuntime.TryApplyLimbStatus(
+        "bleeding", playerSteamId, limbSlot, payload, senderSteamId);
+}
+```
+
+- **Scope**: `IModStatusRuntime` is the per-mod runtime counterpart to static
+  `ModStatusDefinition` content. Values are ephemeral, process-local, and keyed
+  by `(status id, player SteamId, optional limb slot)`. The mod owns the byte
+  payload schema/version.
+- **Scopes**: the same `ModDataScope` rules as `IModData`: `LocalOnly` any
+  role; `Shared` host-write + explicit guest apply; `HostAuthoritative` host
+  only with no guest mirror.
+- **Boundary**: this phase does not integrate with vanilla `Body` / `Limb`
+  behavior or the vanilla moodle row. GameAdapter remains the only layer that
+  can translate a status into a game effect or presentation.
+- **No wire change**: no new NetMsg and no automatic sync in this phase.
+
 ## 5. Handshake consistency (how sessions stay coherent)
 
 The guest's declared mod list rides the handshake (`HandshakeMsg.Mods`). The
@@ -697,7 +724,7 @@ lifecycle (`ModLifecycleTests`), message routing + permission/rate gates
 (`ModMessageTests`), host commands (`ModCommandTests`), mod-state saves
 (`ModStateTests`), local mod UI (`ModUiTests`), mod content registration
 (`ModContentTests`, `ModContentCatalogTests`), runtime mod data
-(`ModDataTests`), read game state (`ModGameStateTests`), entity spawn
+(`ModDataTests`, `ModStatusRuntimeTests`), read game state (`ModGameStateTests`), entity spawn
 (`ModEntitySpawnTests`), item spawn (`ModItemSpawnTests`), tile placement
 (`ModTilePlacementTests`), native API
 (`ModNativeApiTests` + `GameAdapterNativeApiContractTests`), handshake matrix

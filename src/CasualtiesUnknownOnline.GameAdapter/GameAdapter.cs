@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.GameAdapter.Character;
 using CasualtiesUnknownOnline.GameAdapter.Content;
@@ -33,7 +34,7 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// top-level collaborators, and the deep domain logic lives in the modules
 /// composed by <see cref="GameAdapterDomains"/>.
 /// </summary>
-public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, IModItemSpawner, IModTilePlacer, IModNativeApiProvider, IPlayerInteractionVisibility
+public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, IModItemSpawner, IModTilePlacer, IModStructurePlacer, IModNativeApiProvider, IPlayerInteractionVisibility
 {
 	/// <summary>
 	/// Set when the game was launched via a Steam friends "Join Game"
@@ -72,11 +73,12 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 		ILoggerFactory loggerFactory,
 		GameAdapterItemContentProvider itemContent,
 		GameAdapterBuildingContentProvider buildingContent,
-		GameAdapterTileContentProvider tileContent)
+		GameAdapterTileContentProvider tileContent,
+		GameAdapterStructureContentProvider structureContent)
 	{
 		_latency = latency;
 		_domains = new GameAdapterDomains(session, entities, characterData, world, items, craft, arbitration,
-			enemies, worldTime, playerInteraction, tutorialClaw, respawnOptions, hostRules, worldEntityKernel, kernelProtocol, log, mapper, loggerFactory, itemContent, buildingContent, tileContent);
+			enemies, worldTime, playerInteraction, tutorialClaw, respawnOptions, hostRules, worldEntityKernel, kernelProtocol, log, mapper, loggerFactory, itemContent, buildingContent, tileContent, structureContent);
 		_bridge = new GameAdapterBridge(_domains);
 		_playerInteraction = new PlayerInteractionApply(_domains);
 		var pushApply = new PlayerPushApply(_domains);
@@ -278,13 +280,13 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 
 	bool IGameAdapter.HasLocalHealItem() => _playerInteraction.HasLocalHealItem();
 
-	System.Collections.Generic.IReadOnlyList<LocalHealItem> IGameAdapter.GetLocalHealItems() => _playerInteraction.GetLocalHealItems();
+	IReadOnlyList<LocalHealItem> IGameAdapter.GetLocalHealItems() => _playerInteraction.GetLocalHealItems();
 
 	bool IGameAdapter.TryRequestTraderRecruit(ulong targetSteamId) => _domains.TraderRecruit.TryRequest(targetSteamId);
 
 	void IGameAdapter.SetOnlineUiModal(bool visible) => _domains.MenuInput.SetModal(visible);
 
-	void IGameAdapter.SetOnlineUiScopedBlocks(System.Collections.Generic.IReadOnlyList<OnlineUiBlockRect> blocks) =>
+	void IGameAdapter.SetOnlineUiScopedBlocks(IReadOnlyList<OnlineUiBlockRect> blocks) =>
 		_domains.MenuInput.SetScopedBlocks(blocks);
 
 	bool IGameAdapter.OpenRemoteBackpack(ulong targetSteamId, string displayName) =>
@@ -361,6 +363,74 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 
 		world.SetBlock(blockPos, index);
 		_domains.Log.LogInformation("[TilePlacement] mod-requested tile {Id} placed at block ({X},{Y}); the SetBlock relay will replicate it.", tileId, x, y);
+		return true;
+	}
+
+	bool IModStructurePlacer.TryPlaceStructure(string structureId, int originX, int originY)
+	{
+		var world = WorldGeneration.world;
+		if (world == null) // Unity object — ==
+		{
+			_domains.Log.LogWarning("[StructurePlacement] mod-requested structure {Id} was refused because no world is active.", structureId);
+			return false;
+		}
+
+		if (!_domains.StructureContent.TryGetCompiled(structureId, out var structure))
+		{
+			_domains.Log.LogWarning("[StructurePlacement] mod-requested structure {Id} is not a bound custom structure — refused.", structureId);
+			return false;
+		}
+
+		var worldWidth = (int)world.width;
+		var worldHeight = (int)world.height;
+		var writes = new List<(Vector2Int Pos, ushort Block)>();
+		foreach (var cell in structure.Cells)
+		{
+			var x = originX + cell.X;
+			var y = originY + cell.Y;
+			if (x < 0 || y < 0 || x >= worldWidth || y >= worldHeight)
+			{
+				_domains.Log.LogWarning(
+					"[StructurePlacement] mod-requested structure {Id} at ({X},{Y}) has cell offset ({OffsetX},{OffsetY}) outside the world — refused.",
+					structureId, originX, originY, cell.X, cell.Y);
+				return false;
+			}
+
+			var blockPos = new Vector2Int(x, y);
+			if (world.GetBlock(blockPos) != 0)
+			{
+				_domains.Log.LogWarning(
+					"[StructurePlacement] mod-requested structure {Id} at ({X},{Y}) cell ({CellX},{CellY}) is not air — refused.",
+					structureId, originX, originY, x, y);
+				return false;
+			}
+
+			if (cell.IsCustomTile)
+			{
+				if (!_domains.TileContent.TryPrepareForPlacement(cell.TileId!, world, out var customIndex))
+				{
+					_domains.Log.LogWarning(
+						"[StructurePlacement] mod-requested structure {Id} references custom tile {TileId}, which is not available in the current world — refused.",
+						structureId, cell.TileId);
+					return false;
+				}
+
+				writes.Add((blockPos, customIndex));
+			}
+			else
+			{
+				writes.Add((blockPos, (ushort)cell.VanillaBlockIndex));
+			}
+		}
+
+		foreach (var write in writes)
+		{
+			world.SetBlock(write.Pos, write.Block);
+		}
+
+		_domains.Log.LogInformation(
+			"[StructurePlacement] mod-requested structure {Id} placed at block ({X},{Y}) ({CellCount} cells); the SetBlock relay will replicate each write.",
+			structureId, originX, originY, writes.Count);
 		return true;
 	}
 

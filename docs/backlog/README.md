@@ -41,7 +41,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [State-stream bandwidth reduction](todo/state-stream-bandwidth-reduction.md) — measurement-first.
 - [Snapshot size reduction](todo/snapshot-size-reduction.md) — measurement-first.
 - [Full-qualified name cleanup](todo/full-qualified-name-cleanup.md) — prefer using directives/aliases; behavior-preserving refactor only.
-- [CUCoreLib migration support](todo/cucorelib-migration-support.md) — evaluate external KrokMP-based project; typed item/recipe/liquid/building binding landed; tile/structure/status/moodle binding still future.
+- [CUCoreLib migration support](todo/cucorelib-migration-support.md) — evaluate external KrokMP-based project; typed item/recipe/liquid/building/tile/structure binding landed; status/moodle binding still future.
 - [Mod data sync model](todo/mod-data-sync-model.md) — distinguish local-only vs shared/public mod runtime data; no ad-hoc snapshot protocol.
 - [check-architecture.ps1 performance](todo/check-architecture-performance.md) — ~90s in the pre-commit gate; reduce runtime without weakening checks.
 

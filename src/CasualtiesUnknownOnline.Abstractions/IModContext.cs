@@ -86,6 +86,13 @@ public interface IModContext
 	IModTilePlacement TilePlacement { get; }
 
 	/// <summary>
+	/// The multi-block structure placement surface. Placing requires
+	/// <see cref="ModPermission.SpawnEntity"/> — see
+	/// <see cref="IModStructurePlacement"/> for the full contract.
+	/// </summary>
+	IModStructurePlacement StructurePlacement { get; }
+
+	/// <summary>
 	/// The permission-gated native/game-private operation registry. Invoking
 	/// requires <see cref="ModPermission.AccessNativeApi"/> — see
 	/// <see cref="IModNativeApi"/> for the full contract and value-safety policy.

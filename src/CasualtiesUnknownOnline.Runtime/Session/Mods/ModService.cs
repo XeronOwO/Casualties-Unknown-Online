@@ -40,12 +40,13 @@ public sealed class ModService : ICuoService, IModsControl, IModUiControl, IModC
 		IModEntitySpawner entitySpawner,
 		IModItemSpawner itemSpawner,
 		IModTilePlacer tilePlacer,
+		IModStructurePlacer structurePlacer,
 		IModNativeApiProvider nativeApiProvider)
 	{
 		_catalog = new ModCatalog();
 		_stateStore = new ModStateStore(stateFile, log);
 		_commands = new ModCommandService(_catalog, session, sender, time, log);
-		_lifecycle = new ModLifecycle(_catalog, _commands, consoleCommands, _stateStore, session, channel, registry, time, loggerFactory, log, remoteVitals, remoteInventory, entitySpawner, itemSpawner, tilePlacer, nativeApiProvider);
+		_lifecycle = new ModLifecycle(_catalog, _commands, consoleCommands, _stateStore, session, channel, registry, time, loggerFactory, log, remoteVitals, remoteInventory, entitySpawner, itemSpawner, tilePlacer, structurePlacer, nativeApiProvider);
 	}
 
 	public void Initialize()

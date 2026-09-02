@@ -29,6 +29,7 @@ internal sealed class ModContext(
 	IModEntitySpawner entitySpawner,
 	IModItemSpawner itemSpawner,
 	IModTilePlacer tilePlacer,
+	IModStructurePlacer structurePlacer,
 	IModNativeApiProvider nativeApiProvider) : IModContext
 {
 	private readonly ModManifest _manifest = manifest;
@@ -42,6 +43,7 @@ internal sealed class ModContext(
 	private readonly ModEntitySpawnAdapter _entitySpawn = new(manifest, sessionService, entitySpawner, frameworkLog);
 	private readonly ModItemSpawnAdapter _itemSpawn = new(manifest, sessionService, itemSpawner, frameworkLog);
 	private readonly ModTilePlacementAdapter _tilePlacement = new(manifest, sessionService, tilePlacer, frameworkLog);
+	private readonly ModStructurePlacementAdapter _structurePlacement = new(manifest, sessionService, structurePlacer, frameworkLog);
 	private readonly ModNativeApiAdapter _nativeApi = new(manifest, nativeApiProvider, frameworkLog);
 
 	public ILogger Logger { get; } = logger;
@@ -64,6 +66,7 @@ internal sealed class ModContext(
 
 	public IModItemSpawn ItemSpawn => _itemSpawn;
 	public IModTilePlacement TilePlacement => _tilePlacement;
+	public IModStructurePlacement StructurePlacement => _structurePlacement;
 
 	public IModNativeApi NativeApi => _nativeApi;
 

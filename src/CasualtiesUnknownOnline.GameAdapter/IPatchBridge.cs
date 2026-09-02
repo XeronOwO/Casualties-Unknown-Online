@@ -460,5 +460,14 @@ internal interface IPatchBridge
 	/// </summary>
 	void ApplyBodyCirculationPostfix(Body body);
 
+	/// <summary>
+	/// The vanilla moodle manager is rebuilding its rows. Add the active mod
+	/// moodles whose static definition belongs to <paramref name="importantRow"/>
+	/// (true = main row, before the native side-row switch; false = side row,
+	/// after the native side moodles).
+	/// </summary>
+	void ApplyModMoodles(MoodleManager manager, bool importantRow);
+
+
 
 }

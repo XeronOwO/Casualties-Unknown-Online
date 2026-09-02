@@ -64,7 +64,8 @@ status classes or JObject snapshots.
   pressure) are now in the body DTO and are applied through the dedicated
   `Body.HandleCirculation` prefix/postfix formula seam, not a post-update
   additive overlay.
-- Vanilla moodle row feeding is still a future local UI/GameAdapter seam.
+- Vanilla moodle row feeding is landed through `ModStatusMoodleProjection`;
+  advanced per-limb/animated moodles remain future.
 - No generic snapshot, no reflection-based status registry, no game/Unity type
   in Abstractions.
 
@@ -73,7 +74,7 @@ status classes or JObject snapshots.
 | Evidence | Result |
 |---|---|
 | `dotnet build CasualtiesUnknownOnline.slnx` | 0 warnings / 0 errors |
-| `dotnet test CasualtiesUnknownOnline.slnx` | 2069 passed / 0 failed |
+| `dotnet test CasualtiesUnknownOnline.slnx` | 2072 passed / 0 failed |
 | `dotnet format CasualtiesUnknownOnline.slnx` | clean |
 | `tools/check-architecture.ps1` | pass |
 | `tools/check-event-replay.ps1` | pass |

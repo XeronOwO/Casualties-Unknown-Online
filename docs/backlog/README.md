@@ -41,7 +41,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [State-stream bandwidth reduction](todo/state-stream-bandwidth-reduction.md) — measurement-first.
 - [Snapshot size reduction](todo/snapshot-size-reduction.md) — measurement-first.
 - [Full-qualified name cleanup](todo/full-qualified-name-cleanup.md) — prefer using directives/aliases; behavior-preserving refactor only.
-- [CUCoreLib migration support](todo/cucorelib-migration-support.md) — evaluate external KrokMP-based project; typed item/recipe/liquid/building/tile/structure binding landed; status/moodle static binding landed; runtime status table + transport + GameAdapter body/limb + circulation projection landed.
+- [CUCoreLib migration support](todo/cucorelib-migration-support.md) — evaluate external KrokMP-based project; typed item/recipe/liquid/building/tile/structure binding landed; status/moodle static binding landed; runtime status table + transport + GameAdapter body/limb + circulation projection + vanilla moodle-row seam landed.
 
 
 ### In progress

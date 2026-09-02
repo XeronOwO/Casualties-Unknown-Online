@@ -49,6 +49,34 @@ public class ModStatusProjectionContractTests
 		Assert.Equal("Body", postfix.GetParameters()[0].ParameterType.Name);
 	}
 
+	[Fact]
+	public void MoodleProjection_HasApplyMethod()
+	{
+		var type = GameAssemblyHost.Adapter.GetType(
+			"CasualtiesUnknownOnline.GameAdapter.ModStatus.ModStatusMoodleProjection",
+			throwOnError: true)!;
+
+		var apply = type.GetMethod("ApplyModMoodles", BindingFlags.Instance | BindingFlags.NonPublic)
+			?? throw new InvalidOperationException("ApplyModMoodles not found.");
+		Assert.Equal(2, apply.GetParameters().Length);
+		Assert.Equal("MoodleManager", apply.GetParameters()[0].ParameterType.Name);
+		Assert.Equal(typeof(bool), apply.GetParameters()[1].ParameterType);
+	}
+
+	[Fact]
+	public void MoodlePatches_HavePrefixAndPostfix()
+	{
+		var patches = GameAssemblyHost.Adapter.GetType(
+			"CasualtiesUnknownOnline.GameAdapter.Patches.ModStatusMoodlePatches",
+			throwOnError: true)!;
+
+		var nested = patches.GetNestedTypes(BindingFlags.NonPublic | BindingFlags.Public);
+		var patch = Assert.Single(nested, t => t.Name == "ModMoodlePatch");
+		Assert.NotNull(patch.GetMethod("Prefix", BindingFlags.Static | BindingFlags.NonPublic));
+		Assert.NotNull(patch.GetMethod("Postfix", BindingFlags.Static | BindingFlags.NonPublic));
+	}
+
+
 
 	[Fact]
 	public void ProjectionPatches_HaveBodyAndLimbPostfixes()

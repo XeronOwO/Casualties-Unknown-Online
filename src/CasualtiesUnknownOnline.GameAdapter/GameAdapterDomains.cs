@@ -41,6 +41,7 @@ internal sealed class GameAdapterDomains
 	internal readonly GameAdapterStructureContentProvider StructureContent;
 	internal readonly StructureWorldGenDistribution StructureWorldGen;
 	internal readonly ModStatusVanillaProjection StatusProjection;
+	internal readonly ModStatusMoodleProjection MoodleProjection;
 	internal readonly IEntitySyncControl Entities;
 	internal readonly IHostRules HostRules;
 	internal readonly IPlayerInteractionVisibility InteractionVisibility;
@@ -129,6 +130,8 @@ internal sealed class GameAdapterDomains
 		GameAdapterBuildingContentProvider buildingContent,
 		GameAdapterTileContentProvider tileContent,
 		GameAdapterStructureContentProvider structureContent,
+		GameAdapterStatusContentProvider statusContent,
+		GameAdapterMoodleContentProvider moodleContent,
 		ModService modService)
 	{
 		Session = session;
@@ -141,6 +144,9 @@ internal sealed class GameAdapterDomains
 			structureContent, tileContent, loggerFactory.CreateLogger<StructureWorldGenDistribution>());
 		StatusProjection = new ModStatusVanillaProjection(
 			modService.StatusStore, session, loggerFactory.CreateLogger<ModStatusVanillaProjection>());
+		MoodleProjection = new ModStatusMoodleProjection(
+			modService.StatusStore, session, statusContent, moodleContent,
+			loggerFactory.CreateLogger<ModStatusMoodleProjection>());
 		Entities = entities;
 		HostRules = hostRules;
 		PlayerInteraction = playerInteraction;

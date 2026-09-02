@@ -20,7 +20,7 @@ SemVer versions, and per-sender rate limits.
 ReadGameState is landed (see §4g), entity and item spawn are landed (see §4h),
 AccessNativeApi is landed (see §4i), the runtime mod-data scope seam is
 landed (see §4j), and the runtime status table + typed status transport +
-GameAdapter projection slices are landed (see §4k).**
+GameAdapter projection slices and the vanilla moodle-row seam are landed (see §4k).**
 The mod surface lives in **`CUO.Abstractions`** — the ONLY
 assembly mods may reference (architecture.md §5.5). A mod never touches
 BepInEx, Steamworks, the game assemblies, or CUO.Runtime. **Mod-state saves
@@ -335,8 +335,8 @@ context.Content.TryUnregister("wooden.sword");
   intensity, a stable icon/resource id key, critical/chipped/important
   presentation flags, hold seconds, and an extensible `CustomData` dictionary.
   The Game Adapter moodle provider validates and stores the static descriptor;
-  feeding the vanilla moodle manager is a future local UI/GameAdapter seam,
-  not a wire feature.
+  `ModStatusMoodleProjection` later feeds active status-linked moodles into
+  the vanilla moodle manager. Moodle content is still never a wire feature.
 - **Shared-content binding boundary**: the runtime content binder only routes
   content from mods whose network mode guarantees a matching copy on every
   player that can receive the content instances
@@ -395,8 +395,9 @@ context.Content.TryUnregister("wooden.sword");
   message is used.
 - **Current moodle binding scope**: `GameAdapterMoodleContentProvider` decodes
   `ModMoodleDefinition`, validates the icon/intensity/hold fields, and stores
-  the static descriptor as migration base. It does not feed the vanilla moodle
-  row. No game/Unity type is exposed to mods and no new wire message is used.
+  the static descriptor as migration base. ModStatusMoodleProjection feeds
+  the vanilla moodle row for active status-linked moodles. No game/Unity type
+  is exposed to mods and no new wire message is used.
 - **No wire change**: no content bytes or new NetMsg.
 
 ## 4g. Read game state (read-only projection)
@@ -713,8 +714,9 @@ if (context.StatusRuntime.TryDeclare("bleeding", ModStatusScope.Limb, ModDataSco
   the previous offset is removed before the native formula and the current
   offset is reapplied after it, so these continuously recomputed values remain
   at native base + mod offset rather than being erased every frame. The
-  vanilla moodle row is deliberately not projected yet; it needs a UI/GameAdapter
-  seam, not an additive overlay.
+  vanilla moodle row is fed by `ModStatusMoodleProjection` through
+  `MoodleManager.AddAllMoodles` prefix/postfix patches, not an additive
+  body overlay.
 - **Boundary**: opaque `None` statuses are never interpreted by the
   GameAdapter. Only body/limb projection statuses reach the vanilla layer; the
   store change event is internal and does not add a wire message.

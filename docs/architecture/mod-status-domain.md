@@ -3,7 +3,8 @@
 Status: Design with phases 1–2 and phase 3's GameAdapter projection slices
 landed (Runtime status table + typed API + typed status transport over
 the existing mod-message channel + typed body/limb projection DTOs and a
-GameAdapter vanilla overlay + circulation-target formula patch; no dedicated
+GameAdapter vanilla overlay + circulation-target formula patch + vanilla
+moodle-row local feed; no dedicated
 NetMsg, no JObject snapshot).
 
 This document answers the remaining CUCoreLib migration question for dynamic
@@ -236,7 +237,11 @@ Semantics:
      recomputed circulation values stay at native base + mod offset without
      being erased each frame. The native readout strings are refreshed after
      the overlay.
-   - The vanilla moodle row remains a future seam.
+   - Vanilla moodle-row slice adds `ModStatusMoodleProjection` plus
+     `MoodleManager.AddAllMoodles` prefix/postfix patches. It reads active
+     status presences for the local player, resolves linked static
+     `ModMoodleDefinition`s, and feeds important moodles into the main row and
+     non-important moodles into the side row. No wire message is added.
 4. **Migration guide**
    - CUCoreLib `GetStatus<T>()` maps to `IModStatusRuntime.TryGet*` with a
      stable status id and opaque mod payload.

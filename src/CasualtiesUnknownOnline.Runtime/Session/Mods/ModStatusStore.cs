@@ -308,6 +308,39 @@ internal sealed class ModStatusStore(ILogger log)
 		return snapshots;
 	}
 
+	/// <summary>
+	/// List every runtime status value currently stored for one player,
+	/// regardless of projection kind. This is the GameAdapter read seam for
+	/// presentation-only features such as the vanilla moodle row: it returns
+	/// status identity/scope/slot without exposing mod-owned payload bytes.
+	/// </summary>
+	internal IReadOnlyList<StatusPresence> GetStatusPresences(ulong playerSteamId)
+	{
+		var presences = new List<StatusPresence>();
+		foreach (var outer in _statuses)
+		{
+			foreach (var status in outer.Value)
+			{
+				var entry = status.Value;
+				if (entry.BodyValues.ContainsKey(playerSteamId))
+				{
+					presences.Add(new StatusPresence(outer.Key, status.Key, entry.Scope, -1));
+				}
+
+				if (entry.LimbValues.TryGetValue(playerSteamId, out var limbs))
+				{
+					foreach (var limbSlot in limbs.Keys)
+					{
+						presences.Add(new StatusPresence(outer.Key, status.Key, entry.Scope, limbSlot));
+					}
+				}
+			}
+		}
+
+		return presences;
+	}
+
+
 	internal IReadOnlyList<string> GetStatusIds(string modId, Func<ModStatusEntry, bool> filter) =>
 		_statuses.TryGetValue(modId, out var table)
 			? [.. table.Where(p => filter(p.Value)).Select(p => p.Key)]
@@ -338,6 +371,9 @@ internal sealed class ModStatusStore(ILogger log)
 
 		return table;
 	}
+
+	/// <summary>One runtime status presence for a player and optional limb slot.</summary>
+	internal sealed record StatusPresence(string ModId, string StatusId, ModStatusScope Scope, int LimbSlot);
 
 	/// <summary>One mod's declared runtime status metadata + per-player value table.</summary>
 	internal sealed class ModStatusEntry(

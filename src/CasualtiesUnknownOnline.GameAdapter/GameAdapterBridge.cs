@@ -416,6 +416,15 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 		}
 	}
 
+	public void ApplyModMoodles(MoodleManager manager, bool importantRow)
+	{
+		if (manager == MoodleManager.main) // Unity object — ==
+		{
+			domains.MoodleProjection.ApplyModMoodles(manager, importantRow);
+		}
+	}
+
+
 
 	public void OnLimbStateEvent(Limb limb) => domains.CharacterDataSync.ReportLimbStateEvent(limb);
 

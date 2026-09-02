@@ -144,4 +144,26 @@ public class ModStatusProjectionStoreTests
 
 		Assert.Empty(store.GetProjectionSnapshots(HostId));
 	}
+
+	[Fact]
+	public void StatusPresences_IncludeOpaqueAndLimbValues_ForRequestedPlayer()
+	{
+		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		var status = StatusOf(host);
+		var store = StoreOf(host);
+
+		Assert.True(status.TryDeclare("opaque.body", ModStatusScope.Body, ModDataScope.LocalOnly));
+		Assert.True(status.TrySetBodyStatus("opaque.body", HostId, [1, 2, 3]));
+
+		Assert.True(status.TryDeclare("opaque.limb", ModStatusScope.Limb, ModDataScope.LocalOnly));
+		Assert.True(status.TrySetLimbStatus("opaque.limb", HostId, 3, [4, 5]));
+
+		var presences = store.GetStatusPresences(HostId);
+		Assert.Equal(2, presences.Count);
+		Assert.Contains(presences, p => p.StatusId == "opaque.body" && p.Scope == ModStatusScope.Body && p.LimbSlot == -1);
+		Assert.Contains(presences, p => p.StatusId == "opaque.limb" && p.Scope == ModStatusScope.Limb && p.LimbSlot == 3);
+
+		Assert.Empty(store.GetStatusPresences(GuestId));
+	}
+
 }

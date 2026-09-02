@@ -9,9 +9,12 @@ namespace CasualtiesUnknownOnline.Abstractions;
 ///
 /// Spawning requires <see cref="ModPermission.SpawnEntity"/>: nothing is
 /// implicit, and the permission policy already refuses that flag on local-only
-/// network modes. The surface currently supports existing game
-/// <c>BuildingEntity</c> prefabs (identified by the game's prefab id); it is
-/// not a generic custom-component/payload injection surface.
+/// network modes. The surface supports existing game <c>BuildingEntity</c>
+/// prefabs (identified by the game's prefab id), and a shared-content mod can
+/// additionally register a custom building definition through
+/// <see cref="IModContent"/> so the same prefab id materializes a runtime
+/// building template. It is not a generic custom-component/payload injection
+/// surface.
 /// </summary>
 public interface IModEntitySpawn
 {

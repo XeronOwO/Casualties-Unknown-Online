@@ -287,6 +287,13 @@ context.Content.TryUnregister("wooden.sword");
   liter, health/injection flags, injection sickness, locale-from-item flag,
   and crafting qualities. The Game Adapter liquid provider maps the static
   fields into `Liquids.Registry` and applies local UI locale entries.
+- **Typed building content**: `ModBuildingDefinition` is the fourth well-known
+  Abstractions DTO. It carries display/description text, a vanilla
+  `TemplateId` base prefab, optional `BuildingEntity` field overrides, optional
+  `SpawnComponents`, and an extensible `CustomData` dictionary. The Game
+  Adapter building provider builds an inactive runtime building template from
+  the base prefab and serves it through the existing `Utils.Create` /
+  `EntitySpawned` materialization path.
 - **Shared-content binding boundary**: the runtime content binder only routes
   content from mods whose network mode guarantees a matching copy on every
   player that can receive the content instances
@@ -313,6 +320,12 @@ context.Content.TryUnregister("wooden.sword");
   `ModLiquidDefinition`, waits for `Liquids.Registry`, refuses to overwrite a
   known liquid, and applies the static fields plus local locale entries. No
   game delegate is passed from mods; no new wire message is used.
+- **Current building binding scope**: `GameAdapterBuildingContentProvider`
+  decodes `ModBuildingDefinition`, builds an inactive runtime template from
+  the mod's vanilla `TemplateId`, applies optional `BuildingEntity` overrides,
+  attaches `SpawnComponents`, and exposes the template to `Utils.Create` so the
+  existing `EntitySpawned` channel can replicate a mod spawn. No game/Unity
+  type is exposed to mods; no new wire message is used.
 - **No wire change**: no content bytes or new NetMsg.
 
 ## 4g. Read game state (read-only projection)
@@ -384,11 +397,12 @@ if (context.EntitySpawn.CanSpawn)
   world session, a missing permission, or an adapter rejection (unknown prefab
   / non-`BuildingEntity` prefab) return false and are logged; a non-entity
   prefab created by the adapter is destroyed, never left as a local-only ghost.
-- **Boundary (this slice)**: only existing game `BuildingEntity` prefabs are
-  supported. This is a spawn/replication surface, not a generic custom-
-  component/state-injection mechanism — a mod that needs per-entity custom
-  data still coordinates through `IModNetwork` / `IModCommands` or registers
-  it as static content (`IModContent`).
+- **Boundary (this slice)**: existing game `BuildingEntity` prefabs and
+  custom building definitions registered as static content
+  (`ModContentKind.Building`) are supported. This is a spawn/replication
+  surface, not a generic custom-component/state-injection mechanism — a mod
+  that needs per-entity custom data still coordinates through `IModNetwork` /
+  `IModCommands` or registers it as static content (`IModContent`).
 - **No wire change**: no new `NetMsg`.
 
 ## 4i. AccessNativeApi (curated native operation registry)

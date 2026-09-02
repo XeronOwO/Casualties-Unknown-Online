@@ -106,6 +106,13 @@ content binders can build on:
   typed content kind. Static liquid fields (tint, value, health/injection
   flags, qualities) are mapped into `Liquids.Registry`; locale display text is
   applied locally. Game delegates are not part of the DTO.
+- `ModBuildingDefinition` + `GameAdapterBuildingContentProvider` — the fourth
+  typed content kind. A plain DTO carries a vanilla `TemplateId`, optional
+  `BuildingEntity` field overrides, and `SpawnComponents`; the Game Adapter
+  builds an inactive runtime building template and serves it through the
+  existing `Utils.Create`/`EntitySpawned` materialization path, so
+  `IModEntitySpawn.TrySpawn` can create custom buildings without exposing game
+  or Unity types.
 - Tests for version storage/validation, catalog enumeration/filtering,
   unique resolution, duplicate/version conflicts, empty-catalog behavior,
   null-argument edges, DTO round-trip, binder routing/shared-mode
@@ -119,7 +126,7 @@ Still explicitly **not** implemented:
 - custom item spawning through a mod-facing `IModEntitySpawn`-style item API;
   current support is limited to CUO's already-existing item domain/restore
   paths plus the `Utils.Create` fallback for game-called spawns;
-- typed per-kind DTOs for tile/building/status/moodle;
+- typed per-kind DTOs for tile/structure/status/moodle;
 - actual GameAdapter binding providers for those kinds;
 - a full **runtime mod-data sync model** (the static-content side of the
   local-only vs public/shared distinction is handled by the binder's

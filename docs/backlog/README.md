@@ -42,7 +42,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Snapshot size reduction](todo/snapshot-size-reduction.md) — measurement-first.
 - [Full-qualified name cleanup](todo/full-qualified-name-cleanup.md) — prefer using directives/aliases; behavior-preserving refactor only.
 - [CUCoreLib migration support](todo/cucorelib-migration-support.md) — evaluate external KrokMP-based project; typed item/recipe/liquid/building/tile/structure binding landed; status/moodle binding still future.
-- [check-architecture.ps1 performance](todo/check-architecture-performance.md) — ~90s in the pre-commit gate; reduce runtime without weakening checks.
 
 
 ### In progress
@@ -58,6 +57,7 @@ _None._ (Folder exists for the workflow.)
 - [Trade domain dual-side runtime pass](review/trade-domain-dual-side-runtime.md) — #59/#93.
 - [World determinism / WorldFingerprint comparison](review/world-determinism-world-fingerprint.md).
 - [Block-break first-writer-wins dual-side runtime confirmation](review/block-break-first-writer-wins.md).
+- [check-architecture.ps1 performance](review/check-architecture-performance.md) — full gate ~32.4s → ~2.15s; selfcheck linked.
 
 ### Future
 

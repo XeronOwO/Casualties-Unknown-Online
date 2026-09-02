@@ -229,6 +229,11 @@ internal static class PluginDependencyRegistrar
 		services.AddSingleton<GameAdapterLiquidContentProvider>();
 		services.AddSingleton<IContentBindingProvider>(p => p.GetRequiredService<GameAdapterLiquidContentProvider>());
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<GameAdapterLiquidContentProvider>());
+		// Liquid-tile content binding: typed static world-fluid DTOs into the
+		// vanilla FluidManager grid and local GameAdapter projection seams.
+		services.AddSingleton<GameAdapterLiquidTileContentProvider>();
+		services.AddSingleton<IContentBindingProvider>(p => p.GetRequiredService<GameAdapterLiquidTileContentProvider>());
+		services.AddSingleton<ICuoService>(p => p.GetRequiredService<GameAdapterLiquidTileContentProvider>());
 		// Building content binding: typed building DTOs build runtime
 		// BuildingEntity templates and feed the existing EntitySpawned channel.
 		services.AddSingleton<GameAdapterBuildingContentProvider>();

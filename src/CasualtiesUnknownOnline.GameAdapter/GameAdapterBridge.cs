@@ -159,6 +159,9 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 	public void OnCustomTileOreGeneration(WorldGeneration world) =>
 		domains.TileWorldGen.Distribute(world);
 
+	public void OnCustomLiquidWorldGeneration(WorldGeneration world) =>
+		domains.LiquidTileWorldGen.Distribute(world);
+
 	public void OnEarthquakeStarted(float duration, float nextDelay) =>
 		domains.WorldEventSync.OnEarthquakeStarted(duration, nextDelay);
 
@@ -333,6 +336,24 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 	public void OnFluidFixedUpdate() => domains.FluidSync.OnFluidFixedUpdate();
 
 	public void OnFluidDrinkReported(Vector2Int pos) => domains.FluidSync.OnDrinkReported(pos);
+
+	public bool TryRenderCustomLiquids(FluidManager manager) =>
+		domains.LiquidTileRender.TryRender(manager);
+
+	public bool TryGetCustomLiquidColor(byte worldByte, out Color color) =>
+		domains.LiquidTileContent.TryGetDisplayColor(worldByte, out color);
+
+	public bool TryGetCustomWaterInfo(byte worldByte, out float buoyancy, out float drag, out int type) =>
+		domains.LiquidTileContent.TryGetWaterInfo(worldByte, out buoyancy, out drag, out type);
+
+	public bool TryGetCustomLiquidName(byte worldByte, out string name, out string description) =>
+		domains.LiquidTileContent.TryGetDisplayName(worldByte, out name, out description);
+
+	public bool TryDrinkCustomLiquid(FluidManager fluid, Vector2Int pos, Body body) =>
+		domains.LiquidTileDrink.TryDrink(fluid, pos, body);
+
+	public void ApplyLiquidTileBodyTouch(Body body) =>
+		domains.LiquidTileBodyTouch.Apply(body);
 
 	public void OnTraderActionReported(TraderScript trader, TraderActionKind action, string itemId, int itemValue, Item? purchaseItem) =>
 		domains.TradeSync.OnTraderActionReported(trader, action, itemId, itemValue, purchaseItem);

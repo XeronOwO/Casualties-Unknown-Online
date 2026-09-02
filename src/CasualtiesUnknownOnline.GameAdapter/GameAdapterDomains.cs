@@ -38,9 +38,14 @@ internal sealed class GameAdapterDomains
 	internal readonly GameAdapterItemContentProvider ItemContent;
 	internal readonly GameAdapterBuildingContentProvider BuildingContent;
 	internal readonly GameAdapterTileContentProvider TileContent;
+	internal readonly GameAdapterLiquidTileContentProvider LiquidTileContent;
 	internal readonly GameAdapterStructureContentProvider StructureContent;
 	internal readonly StructureWorldGenDistribution StructureWorldGen;
 	internal readonly TileWorldGenDistribution TileWorldGen;
+	internal readonly LiquidTileWorldGenDistribution LiquidTileWorldGen;
+	internal readonly LiquidTileRender LiquidTileRender;
+	internal readonly LiquidTileBodyTouch LiquidTileBodyTouch;
+	internal readonly LiquidTileDrink LiquidTileDrink;
 	internal readonly ModStatusVanillaProjection StatusProjection;
 	internal readonly ModStatusMoodleProjection MoodleProjection;
 	internal readonly IEntitySyncControl Entities;
@@ -130,6 +135,7 @@ internal sealed class GameAdapterDomains
 		GameAdapterItemContentProvider itemContent,
 		GameAdapterBuildingContentProvider buildingContent,
 		GameAdapterTileContentProvider tileContent,
+		GameAdapterLiquidTileContentProvider liquidTileContent,
 		GameAdapterStructureContentProvider structureContent,
 		GameAdapterStatusContentProvider statusContent,
 		GameAdapterMoodleContentProvider moodleContent,
@@ -140,11 +146,20 @@ internal sealed class GameAdapterDomains
 		ItemContent = itemContent;
 		BuildingContent = buildingContent;
 		TileContent = tileContent;
+		LiquidTileContent = liquidTileContent;
 		StructureContent = structureContent;
 		StructureWorldGen = new StructureWorldGenDistribution(
 			structureContent, tileContent, loggerFactory.CreateLogger<StructureWorldGenDistribution>());
 		TileWorldGen = new TileWorldGenDistribution(
 			tileContent, loggerFactory.CreateLogger<TileWorldGenDistribution>());
+		LiquidTileWorldGen = new LiquidTileWorldGenDistribution(
+			liquidTileContent, loggerFactory.CreateLogger<LiquidTileWorldGenDistribution>());
+		LiquidTileRender = new LiquidTileRender(
+			liquidTileContent, loggerFactory.CreateLogger<LiquidTileRender>());
+		LiquidTileBodyTouch = new LiquidTileBodyTouch(
+			liquidTileContent, loggerFactory.CreateLogger<LiquidTileBodyTouch>());
+		LiquidTileDrink = new LiquidTileDrink(
+			liquidTileContent, loggerFactory.CreateLogger<LiquidTileDrink>());
 		StatusProjection = new ModStatusVanillaProjection(
 			modService.StatusStore, session, loggerFactory.CreateLogger<ModStatusVanillaProjection>());
 		MoodleProjection = new ModStatusMoodleProjection(

@@ -161,6 +161,13 @@ content binders can build on:
   presentation flags and hold seconds; the Game Adapter provider validates and
   stores the descriptor. Feeding the vanilla moodle manager remains a future
   local UI/GameAdapter seam, not a static content wire feature.
+- `ModDataScope` + `IModData` + `ModDataStore`/`ModDataPolicy` — the runtime
+  mod-data scope seam. It gives mods an ephemeral, per-process slot store with
+  explicit `LocalOnly` / `Shared` / `HostAuthoritative` declarations. Shared
+  mirrors are applied explicitly from a host-originated value received over
+  `IModNetwork`; the framework does not auto-replicate and does not add a
+  generic snapshot protocol. `IModState` remains the host-persistent special
+  case.
 - Tests for version storage/validation, catalog enumeration/filtering,
   unique resolution, duplicate/version conflicts, empty-catalog behavior,
   null-argument edges, DTO round-trip, binder routing/shared-mode
@@ -175,6 +182,7 @@ content binders can build on:
   `docs/evidence/selfchecks/mod-api/mod-structure-placement-selfcheck.md`,
   `docs/evidence/selfchecks/mod-api/mod-structure-worldgen-distribution-selfcheck.md`,
   `docs/evidence/selfchecks/mod-api/mod-status-moodle-content-binding-selfcheck.md`,
+  `docs/evidence/selfchecks/mod-api/mod-runtime-data-selfcheck.md`,
   and `docs/evidence/selfchecks/mod-api/mod-item-spawn-selfcheck.md`.
 
 Still explicitly **not** implemented:
@@ -183,11 +191,10 @@ Still explicitly **not** implemented:
   landed; the runtime instance model still needs the mod-data sync design);
 - actual vanilla-moodle presentation binding (static moodle descriptors are
   landed; feeding the vanilla moodle row remains a future UI/GameAdapter seam);
-- a full **runtime mod-data sync model** (the static-content side of the
-  local-only vs public/shared distinction is handled by the binder's
-  shared-content network-mode filter; runtime mod state/synchronized data
-  remains a dedicated future item, see
-  `docs/backlog/todo/mod-data-sync-model.md`).
+- an **automatic runtime mod-data sync engine** (the scope seam is landed:
+  `IModData` declares/keeps local-only, shared-mirror, and host-authoritative
+  values; actual transport remains explicit through `IModNetwork` /
+  `IModCommands`, and the dedicated design ticket has moved to review).
 
 Those remain the future content-binding path described below.
 
@@ -204,7 +211,7 @@ Source basis: CUCoreLib README/CHANGELOG, `CUCoreLibWebapp` machine docs
 | 2 | Session / player membership events | No stable equivalent; CUCoreLib only adds a few gameplay callbacks (`OnHeal`, `OnLastStand`). | `IModContext.SessionActivated`, `PlayerJoined`, `PlayerLeft`, `SessionEnded`; `ISessionInfo` snapshot. | **Already native.** No new seam. Migration: subscribe to CUO session events instead of custom/informal MP hooks. |
 | 3 | Host-authoritative commands / remote actions | Not a first-class API; mods used KrokMP channels (`RequestServer`, `SendToServer`, `Broadcast`) to ask the server for decisions. | `IModCommands` (`Register`, `TryExecute`), `ModCommand`, `IModCommandContext/Result`, permissions, rate limits, directed reliable result. | **Already native and safer.** No new seam. Migration: replace request/response JToken channels with `IModCommands`; the host copy is the only handler. |
 | 4 | Generic mod messaging / channels | `MultiplayerApi` / `MultiplayerBridge`: `RegisterServerHandler`, `RegisterClientHandler`, `SendToServer`, `SendToClient`, `Broadcast`, `RequestServer`, arbitrary string channels, JToken payloads. | `IModNetwork`: `SendToHost`, `SendToPeer`, `Broadcast`, `MessageReceived`, opaque `byte[]`, mod-id routed, 64 KiB cap, star topology. | **Do not port.** Only provide migration mapping. CUO already has a typed, permission-gated message surface; arbitrary public channels would duplicate/mod-add a new protocol. |
-| 5 | Generic snapshot sync | `MultiplayerApi.RegisterSyncModule(key, capture, apply)` + `BroadcastSnapshot`/`ApplySnapshot`; JObject full-snapshot modules for arbitrary mod state. | No generic snapshot API. CUO uses a typed deterministic kernel: discrete committed batches, high-frequency state streams, per-domain state. | **Out of scope / anti-architecture.** Do not add a generic JObject snapshot registry. Mod durable state belongs in `IModState` (host-persistent) or through `IModNetwork`/`IModCommands`; synced gameplay facts belong in kernel domains. |
+| 5 | Generic snapshot sync | `MultiplayerApi.RegisterSyncModule(key, capture, apply)` + `BroadcastSnapshot`/`ApplySnapshot`; JObject full-snapshot modules for arbitrary mod state. | No generic snapshot API. `IModData` provides scope-declared runtime slots (`LocalOnly`, `Shared`, `HostAuthoritative`) with explicit apply, no automatic replication. CUO uses a typed deterministic kernel: discrete committed batches, high-frequency state streams, per-domain state. | **Out of scope / anti-architecture.** Do not add a generic JObject snapshot registry. Mod durable state belongs in `IModState` (host-persistent), runtime scoped values in `IModData`, and transport through `IModNetwork`/`IModCommands`; synced gameplay facts belong in kernel domains. |
 | 6 | Asset / resource loading | `AssetLoader`, `FileLoader`: embedded/loose sprites, audio, text, AssetBundles, bundle registration/cache, sprite animations, sprite-sheet helpers. | No asset API in Abstractions. `IModNativeApi` is the only safe game seam and is currently read-only local player state. | **Out of scope for CUO core.** Asset loading is a local packaging concern; it should not become wire content. If a future content pipeline needs assets, they remain mod-local and are referenced by the content definition, not synced. A later local-only resource helper may be useful, but it is not required for multiplayer correctness. |
 | 7 | Custom item definitions | `ItemRegistry.Register(id, ItemInfo/CustomItemInfo, icon, spawnFrequency)`; `CustomItemInfo` fields (container, battery, light, tool, gun, worn sprites, liquid mask, drop pool, world spawn, custom data); `TryGetOwnerModGuid`, `HasCustomData`, `SetCustomData`, custom item MonoBehaviours. | `ModItemDefinition` + `GameAdapterItemContentProvider` + `IModItemSpawn`: typed DTO, static `ItemInfo`, runtime templates, custom component attach, and a mod-facing world-item spawn surface. | **Landed at the content + spawn seam.** Remaining: full drop-pool/worldgen integration if mod demand appears. |
 | 8 | Custom recipes | `RecipeRegistry.Register(Recipe)`, owner-GUID queries, invalid-recipe rejection, crafting-quality locale. | `ModRecipeDefinition` + `GameAdapterRecipeContentProvider`: typed DTO, recipe table injection, category mapping, duplicate/rebuild protection. | **Landed at the content seam.** Recipes are static content injected through the same binder; crafting runtime flow remains CUO's existing item/crafting kernel. |

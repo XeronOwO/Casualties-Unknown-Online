@@ -42,7 +42,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Snapshot size reduction](todo/snapshot-size-reduction.md) — measurement-first.
 - [Full-qualified name cleanup](todo/full-qualified-name-cleanup.md) — prefer using directives/aliases; behavior-preserving refactor only.
 - [CUCoreLib migration support](todo/cucorelib-migration-support.md) — evaluate external KrokMP-based project; typed item/recipe/liquid/building/tile/structure binding landed; status/moodle binding still future.
-- [Mod data sync model](todo/mod-data-sync-model.md) — distinguish local-only vs shared/public mod runtime data; no ad-hoc snapshot protocol.
 - [check-architecture.ps1 performance](todo/check-architecture-performance.md) — ~90s in the pre-commit gate; reduce runtime without weakening checks.
 
 
@@ -55,6 +54,7 @@ _None._ (Folder exists for the workflow.)
 - [Interactive in-game command console](review/in-game-command-console-interactive.md) — slash-opened focused input, completion/history/hints, fading text area, real selector-backed `/heal` command, IME-aware custom input, JSON host-rule command.
 - [Command registration Attribute/reflection refactor](review/command-registration-attribute-refactor.md) — Attribute/reflection console registry + local mod console command API; selfcheck linked.
 - [Command tree, resource-location completion, and selector filters](review/command-tree-resource-location-selector.md) — tree/argument-position completion, namespaced candidate catalog, bracketed selector filters; selfcheck linked.
+- [Mod data sync model](review/mod-data-sync-model.md) — runtime scope seam landed: local-only / shared / host-authoritative mod data; no generic snapshot protocol.
 - [Trade domain dual-side runtime pass](review/trade-domain-dual-side-runtime.md) — #59/#93.
 - [World determinism / WorldFingerprint comparison](review/world-determinism-world-fingerprint.md).
 - [Block-break first-writer-wins dual-side runtime confirmation](review/block-break-first-writer-wins.md).

@@ -1,8 +1,10 @@
 # Mod Status Runtime Domain Boundary
 
-Status: Design with phases 1–2 landed (Runtime status table + typed API +
-typed status transport over the existing mod-message channel; no vanilla
-integration, no dedicated NetMsg, no JObject snapshot).
+Status: Design with phases 1–2 and phase 3's first GameAdapter projection
+slice landed (Runtime status table + typed API + typed status transport over
+the existing mod-message channel + typed body/limb projection DTOs and a
+GameAdapter vanilla overlay; no dedicated NetMsg, no JObject snapshot, no
+continuous circulation-target patch yet).
 
 This document answers the remaining CUCoreLib migration question for dynamic
 statuses: when a mod wants per-player or per-limb status runtime values, where
@@ -212,10 +214,21 @@ Semantics:
    - Guest-to-host change requests remain explicit `IModCommands` semantics:
      the host's command handler validates and then publishes the committed
      result with the broadcast helpers.
-3. **GameAdapter vanilla projection**
-   - Add a narrow GameAdapter seam to apply status values to body/limb
-     behavior.
-   - Add a local/UI moodle feed using the existing static moodle descriptors.
+3. **GameAdapter vanilla projection — first slice landed**
+   - Added `ModStatusProjectionKind` plus typed `ModBodyFormulaProjection`
+     / `ModLimbProjection` DTOs in Abstractions. A mod declares a runtime
+     status slot as `BodyFormula` or `LimbPhysiology` and publishes the
+     matching typed payload; the framework still treats the value as opaque
+     bytes on the wire.
+   - Added an internal `ModStatusStore` change event and a GameAdapter-facing
+     projection snapshot read seam. `ModStatusVanillaProjection` (GameAdapter
+     only) decodes those well-known payloads and applies additive overlays to
+     the local `Body`/`Limb` through `Body.Update`/`Limb.Update` postfixes.
+   - First slice covers body values that are recomputed from scratch
+     (encumbrance, immunity, jump speed, average pain) and limb physiology
+     fields that the native limb update already modifies additively (bleed,
+     skin/muscle health, infection). Continuous circulation targets and the
+     vanilla moodle row remain future seams.
 4. **Migration guide**
    - CUCoreLib `GetStatus<T>()` maps to `IModStatusRuntime.TryGet*` with a
      stable status id and opaque mod payload.

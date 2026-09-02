@@ -180,6 +180,16 @@ content binders can build on:
   channel and applies/removes guest mirrors with `TryApplyRemove*`. It adds no
   new NetMsg, no protocol bump, and no generic JObject snapshot; guest-to-host
   change requests remain explicit `IModCommands` semantics.
+- `ModStatusProjectionKind` + `ModBodyFormulaProjection` +
+  `ModLimbProjection` + `ModStatusVanillaProjection` — the phase-3 first
+  GameAdapter projection slice. A mod can declare a runtime status slot as
+  `BodyFormula` or `LimbPhysiology` and publish the matching typed payload;
+  the GameAdapter decodes only those well-known payloads and applies additive
+  body/limb overlays through `Body.Update`/`Limb.Update` postfixes. The first
+  slice covers encumbrance/immunity/jump/average-pain body contributions and
+  bleed/skin/muscle/infection limb fields; continuous circulation targets and
+  the vanilla moodle row remain future seams. No game/Unity type crosses
+  Abstractions and no new wire message is added.
 - Tests for version storage/validation, catalog enumeration/filtering,
   unique resolution, duplicate/version conflicts, empty-catalog behavior,
   null-argument edges, DTO round-trip, binder routing/shared-mode
@@ -197,14 +207,16 @@ content binders can build on:
   `docs/evidence/selfchecks/mod-api/mod-runtime-data-selfcheck.md`,
   `docs/evidence/selfchecks/mod-api/mod-status-runtime-selfcheck.md`,
   `docs/evidence/selfchecks/mod-api/mod-status-wire-selfcheck.md`,
+  `docs/evidence/selfchecks/mod-api/mod-status-projection-selfcheck.md`,
   and `docs/evidence/selfchecks/mod-api/mod-item-spawn-selfcheck.md`.
 
 Still explicitly **not** implemented:
-- the vanilla integration half of dynamic per-player / per-limb status
-  runtime values (static status descriptors are landed; the runtime-status
-  table + typed API phase 1 and the typed status transport phase 2 are landed;
-  the domain design is in `docs/architecture/mod-status-domain.md`;
-  GameAdapter vanilla body/limb projection remains future);
+- full vanilla integration for every dynamic per-player / per-limb status
+  shape (static descriptors are landed; runtime table + typed API phase 1,
+  typed status transport phase 2, and the first GameAdapter body/limb
+  projection slice phase 3 are landed; the domain design is in
+  `docs/architecture/mod-status-domain.md`; continuous circulation target
+  patches and arbitrary mod-defined status classes remain future);
 - actual vanilla-moodle presentation binding (static moodle descriptors are
   landed; feeding the vanilla moodle row remains a future UI/GameAdapter seam);
 - an **automatic runtime mod-data sync engine** (the scope seam is landed:
@@ -236,7 +248,7 @@ Source basis: CUCoreLib README/CHANGELOG, `CUCoreLibWebapp` machine docs
 | 11 | Terrain tiles and worldgen | `TileRegistry.Register`, `SetBlock`, `TryGetTile/Definition/Index`, layer masks, ore-style generation, drops, custom data. | `ModTileDefinition` + `GameAdapterTileContentProvider` + `IModTilePlacement`: typed DTO, deterministic custom block indices, `WorldGeneration.tiles` injection, a `GetBlockInfo` prefix, and a single-cell placement surface by stable tile id. | **Landed at the static content + single-cell placement seam.** Remaining: optional ore/drop projection, worldgen distribution, and layer masks; all future work; world-generation output stays kernel-driven. |
 | 12 | Building entities / custom spawn | `BuildingEntityRegistry.Register/Spawn/PlaceOnSurface/DistributeInWorld`, prefab hooks, components, drops, worldgen density, owner queries. | `ModBuildingDefinition` + `GameAdapterBuildingContentProvider` + `IModEntitySpawn`: typed DTO, vanilla `TemplateId` base prefab, optional `BuildingEntity` overrides and `SpawnComponents`, runtime template creation, and the existing `EntitySpawned` channel for replication. | **Landed at the content + entity spawn seam.** Custom buildings use `IModEntitySpawn`; no new NetMsg and no mod access to Unity prefab types. Remaining: prefab hooks/drop/worldgen-density options if real demand appears. |
 | 13 | Multi-block structures | `StructureRegistry.RegisterFromJson/EmbeddedJson/File`, spawn counts, `Place`, JSON payload from the structure editor. | `ModStructureDefinition` + `GameAdapterStructureContentProvider` + `IModStructurePlacement`: typed marker grid, validated GameAdapter compile, runtime placement through existing `SetBlock`/`BlockPlaced`, per-depth spawn counts consumed by deterministic worldgen distribution. | **Landed at the static content + runtime placement + automatic worldgen seam.** Distribution runs inside the isolated generation stream, static block grid only, no new wire. |
-| 14 | Statuses / per-body per-limb custom state | `StatusRegistry` + `BodyStatus`/`LimbStatus` inheritance, `[StatusOptions]`, `GetStatus<T>()`, save providers, network snapshots. | `ModStatusDefinition` + `ModStatusScope` + `GameAdapterStatusContentProvider` for static descriptors; `IModStatusRuntime` + `IModStatusTransport` + `ModStatusUpdate` for per-player/per-limb runtime values and typed shared-status transport. `IModState` remains host-persistent opaque mod state. | **Landed at static descriptor + runtime table + typed status transport seam.** Guest mirror set/remove rides the existing `IModNetwork` mod-message channel; no new NetMsg and no JObject snapshot. GameAdapter vanilla body/limb projection remains future; arbitrary reflection-free status bags are not ported. |
+| 14 | Statuses / per-body per-limb custom state | `StatusRegistry` + `BodyStatus`/`LimbStatus` inheritance, `[StatusOptions]`, `GetStatus<T>()`, save providers, network snapshots. | `ModStatusDefinition` + `ModStatusScope` + `GameAdapterStatusContentProvider` for static descriptors; `IModStatusRuntime` + `IModStatusTransport` + `ModStatusUpdate` for per-player/per-limb runtime values and typed shared-status transport; `ModStatusProjectionKind` + `ModBodyFormulaProjection`/`ModLimbProjection` + GameAdapter `ModStatusVanillaProjection` for the first typed body/limb overlay. `IModState` remains host-persistent opaque mod state. | **Landed at static descriptor + runtime table + typed status transport + first typed GameAdapter body/limb projection seam.** Guest mirror set/remove rides the existing `IModNetwork` mod-message channel; no new NetMsg and no JObject snapshot. Continuous circulation target patches, arbitrary reflection-free status bags, and the vanilla moodle row are not ported. |
 | 15 | Moodles / player status UI | `MoodleRegistry.AddMoodle/AddAnimatedMoodle`, `RegisterBody/RegisterLimb`; custom status icons in the vanilla moodle row. | `ModMoodleDefinition` + `GameAdapterMoodleContentProvider`: typed static moodle descriptors with icon key, intensity, presentation flags and hold seconds. `IModUi` remains the local immediate-mode surface. | **Landed at the static moodle-descriptor seam.** Feeding the vanilla moodle row is a future local UI/GameAdapter seam; it is not a wire feature and does not expose Unity types through Abstractions. |
 | 16 | Native settings menu / mod options | `ModOptionsRegistry.Register`, `ModOptionDefinition`, category/locale handling, optional BepInEx config mirroring. | No native settings API. `IModUi` is a local window surface; `IModState` can persist mod settings. | **Out of scope for CUO core.** Settings are local UX; a future `IModSettings` or settings-menu seam is acceptable only if demand appears. It is not multiplayer/wire work. |
 | 17 | Localization | `LocaleRegistry`, `LocaleLoader`, generated locale files, locale categories, crafting-quality labels. | No locale API in Abstractions. | **Out of scope / mod-local.** Localization is a normal mod packaging concern. CUO should not own locale unless a future content pipeline needs display-name resolution; keep it out of the wire. |

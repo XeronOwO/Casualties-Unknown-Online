@@ -433,4 +433,18 @@ internal interface IPatchBridge
 	/// </summary>
 	void OnWorldBloodSpawn(Vector2 position, bool ground);
 
+	/// <summary>
+	/// The local player's <c>Body.Update</c> finished. Re-assert the decoded
+	/// mod-status body projection on this body (the bridge checks it is the
+	/// local body and the projection service owns the effect).
+	/// </summary>
+	void ApplyBodyStatusProjection(Body body);
+
+	/// <summary>
+	/// The local player's <c>Limb.Update</c> finished. Re-assert the decoded
+	/// mod-status limb projection on this limb (the bridge checks the limb
+	/// belongs to the local body and the projection service owns the effect).
+	/// </summary>
+	void ApplyLimbStatusProjection(Body body, Limb limb);
+
 }

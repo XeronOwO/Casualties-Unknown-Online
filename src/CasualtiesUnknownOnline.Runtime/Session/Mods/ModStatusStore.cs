@@ -23,6 +23,14 @@ internal sealed class ModStatusStore(ILogger log)
 	private readonly Dictionary<string, Dictionary<string, ModStatusEntry>> _statuses =
 		[with(StringComparer.Ordinal)];
 
+	/// <summary>
+	/// Raised after any stored status value is written or removed. It carries no
+	/// payload because the GameAdapter projection consumer refreshes the whole
+	/// local-player projection set from the store on each change; status changes
+	/// are discrete and low-volume.
+	/// </summary>
+	internal event Action? StatusChanged;
+
 	internal IModStatusRuntime CreateStatusAdapter(ModManifest manifest, SessionService session) =>
 		new ModStatusAdapter(this, session, manifest, _log);
 
@@ -33,7 +41,8 @@ internal sealed class ModStatusStore(ILogger log)
 		string statusId,
 		ModStatusScope scope,
 		ModDataScope runtimeScope,
-		int schemaVersion)
+		int schemaVersion,
+		ModStatusProjectionKind projectionKind)
 	{
 		if (!ModStatusPolicy.IsValidStatusId(statusId))
 		{
@@ -46,6 +55,13 @@ internal sealed class ModStatusStore(ILogger log)
 		{
 			_log.LogWarning("[Mods] {ModId} tried to declare runtime status {StatusId} with invalid schema version {Version} — refused.",
 				modId, statusId, schemaVersion);
+			return false;
+		}
+
+		if (!ModStatusPolicy.IsValidProjectionKind(projectionKind, scope))
+		{
+			_log.LogWarning("[Mods] {ModId} tried to declare runtime status {StatusId} with projection kind {ProjectionKind} that does not match scope {Scope} — refused.",
+				modId, statusId, projectionKind, scope);
 			return false;
 		}
 
@@ -64,9 +80,9 @@ internal sealed class ModStatusStore(ILogger log)
 			return false;
 		}
 
-		table[statusId] = new ModStatusEntry(scope, runtimeScope, schemaVersion);
-		_log.LogInformation("[Mods] {ModId} declared runtime status {StatusId} ({Scope}, runtime {RuntimeScope}, schema {SchemaVersion}).",
-			modId, statusId, scope, runtimeScope, schemaVersion);
+		table[statusId] = new ModStatusEntry(scope, runtimeScope, schemaVersion, projectionKind);
+		_log.LogInformation("[Mods] {ModId} declared runtime status {StatusId} ({Scope}, runtime {RuntimeScope}, schema {SchemaVersion}, projection {ProjectionKind}).",
+			modId, statusId, scope, runtimeScope, schemaVersion, projectionKind);
 		return true;
 	}
 
@@ -95,6 +111,7 @@ internal sealed class ModStatusStore(ILogger log)
 		}
 
 		entry.BodyValues[playerSteamId] = (byte[])value.Clone();
+		StatusChanged?.Invoke();
 		return true;
 	}
 
@@ -105,7 +122,13 @@ internal sealed class ModStatusStore(ILogger log)
 			return false;
 		}
 
-		return entry.BodyValues.Remove(playerSteamId);
+		if (!entry.BodyValues.Remove(playerSteamId))
+		{
+			return false;
+		}
+
+		StatusChanged?.Invoke();
+		return true;
 	}
 
 	internal bool TryGetLimbValue(string modId, string statusId, ulong playerSteamId, int limbSlot, out byte[]? value)
@@ -143,6 +166,7 @@ internal sealed class ModStatusStore(ILogger log)
 		}
 
 		limbs[limbSlot] = (byte[])value.Clone();
+		StatusChanged?.Invoke();
 		return true;
 	}
 
@@ -165,6 +189,7 @@ internal sealed class ModStatusStore(ILogger log)
 			entry.LimbValues.Remove(playerSteamId);
 		}
 
+		StatusChanged?.Invoke();
 		return true;
 	}
 
@@ -204,6 +229,85 @@ internal sealed class ModStatusStore(ILogger log)
 		return true;
 	}
 
+	internal bool TryGetProjectionKind(string modId, string statusId, out ModStatusProjectionKind projectionKind)
+	{
+		projectionKind = ModStatusProjectionKind.None;
+		if (!TryGetEntry(modId, statusId, out var entry))
+		{
+			return false;
+		}
+
+		projectionKind = entry.ProjectionKind;
+		return true;
+	}
+
+	/// <summary>
+	/// Snapshot every non-opaque projection value stored for one player. This is
+	/// the GameAdapter-facing read seam: it returns defensive copies and all
+	/// projection metadata needed to apply/remove the vanilla overlay without the
+	/// GameAdapter reaching into the mod API or interpreting arbitrary statuses.
+	/// </summary>
+	internal IReadOnlyList<ModStatusProjectionSnapshot> GetProjectionSnapshots(ulong playerSteamId)
+	{
+		var snapshots = new List<ModStatusProjectionSnapshot>();
+		foreach (var outer in _statuses)
+		{
+			var modId = outer.Key;
+			foreach (var status in outer.Value)
+			{
+				var statusId = status.Key;
+				var entry = status.Value;
+				if (entry.ProjectionKind == ModStatusProjectionKind.None)
+				{
+					continue;
+				}
+
+				foreach (var bodyEntry in entry.BodyValues)
+				{
+					if (bodyEntry.Key != playerSteamId)
+					{
+						continue;
+					}
+
+					snapshots.Add(new ModStatusProjectionSnapshot(
+						modId,
+						statusId,
+						entry.Scope,
+						entry.RuntimeScope,
+						entry.ProjectionKind,
+						entry.SchemaVersion,
+						bodyEntry.Key,
+						-1,
+						(byte[])bodyEntry.Value.Clone()));
+				}
+
+				foreach (var limbOwner in entry.LimbValues)
+				{
+					if (limbOwner.Key != playerSteamId)
+					{
+						continue;
+					}
+
+					foreach (var limbEntry in limbOwner.Value)
+					{
+						snapshots.Add(new ModStatusProjectionSnapshot(
+							modId,
+							statusId,
+							entry.Scope,
+							entry.RuntimeScope,
+							entry.ProjectionKind,
+							entry.SchemaVersion,
+							limbOwner.Key,
+							limbEntry.Key,
+							(byte[])limbEntry.Value.Clone()));
+					}
+				}
+			}
+		}
+
+		return snapshots;
+	}
+
 	internal IReadOnlyList<string> GetStatusIds(string modId, Func<ModStatusEntry, bool> filter) =>
 		_statuses.TryGetValue(modId, out var table)
 			? [.. table.Where(p => filter(p.Value)).Select(p => p.Key)]
@@ -236,7 +340,11 @@ internal sealed class ModStatusStore(ILogger log)
 	}
 
 	/// <summary>One mod's declared runtime status metadata + per-player value table.</summary>
-	internal sealed class ModStatusEntry(ModStatusScope scope, ModDataScope runtimeScope, int schemaVersion)
+	internal sealed class ModStatusEntry(
+		ModStatusScope scope,
+		ModDataScope runtimeScope,
+		int schemaVersion,
+		ModStatusProjectionKind projectionKind)
 	{
 		public ModStatusScope Scope { get; } = scope;
 
@@ -244,244 +352,10 @@ internal sealed class ModStatusStore(ILogger log)
 
 		public int SchemaVersion { get; } = schemaVersion;
 
+		public ModStatusProjectionKind ProjectionKind { get; } = projectionKind;
+
 		public Dictionary<ulong, byte[]> BodyValues { get; } = [];
 
 		public Dictionary<ulong, Dictionary<int, byte[]>> LimbValues { get; } = [];
-	}
-
-	// ---- Per-mod API adapter ----
-
-	private sealed class ModStatusAdapter(
-		ModStatusStore store,
-		SessionService session,
-		ModManifest manifest,
-		ILogger log) : IModStatusRuntime
-	{
-		public bool TryDeclare(string statusId, ModStatusScope scope, ModDataScope runtimeScope, int schemaVersion)
-		{
-			if (!ModStatusPolicy.IsValidRuntimeScopeFor(manifest, runtimeScope))
-			{
-				log.LogWarning("[Mods] {ModId} tried to declare runtime status {StatusId} with runtime scope {RuntimeScope} that is invalid for network mode {Mode} — refused.",
-					manifest.Id, statusId, runtimeScope, manifest.NetworkMode);
-				return false;
-			}
-
-			return store.TryDeclare(manifest.Id, statusId, scope, runtimeScope, schemaVersion);
-		}
-
-		public bool TryGetBodyStatus(string statusId, ulong playerSteamId, out byte[]? value)
-		{
-			value = null;
-			if (!CanReadStatus(statusId))
-			{
-				return false;
-			}
-
-			return store.TryGetBodyValue(manifest.Id, statusId, playerSteamId, out value);
-		}
-
-		public bool TryGetLimbStatus(string statusId, ulong playerSteamId, int limbSlot, out byte[]? value)
-		{
-			value = null;
-			if (!CanReadStatus(statusId))
-			{
-				return false;
-			}
-
-			return store.TryGetLimbValue(manifest.Id, statusId, playerSteamId, limbSlot, out value);
-		}
-
-		public bool TrySetBodyStatus(string statusId, ulong playerSteamId, byte[] value)
-		{
-			if (!TryWriteGuard(statusId))
-			{
-				return false;
-			}
-
-			return store.TrySetBodyValue(manifest.Id, statusId, playerSteamId, value);
-		}
-
-		public bool TrySetLimbStatus(string statusId, ulong playerSteamId, int limbSlot, byte[] value)
-		{
-			if (!TryWriteGuard(statusId))
-			{
-				return false;
-			}
-
-			return store.TrySetLimbValue(manifest.Id, statusId, playerSteamId, limbSlot, value);
-		}
-
-		public bool TryApplyBodyStatus(string statusId, ulong playerSteamId, byte[] value, ulong senderSteamId)
-		{
-			if (!TryApplyGuard(statusId, senderSteamId))
-			{
-				return false;
-			}
-
-			return store.TrySetBodyValue(manifest.Id, statusId, playerSteamId, value);
-		}
-
-		public bool TryApplyLimbStatus(string statusId, ulong playerSteamId, int limbSlot, byte[] value, ulong senderSteamId)
-		{
-			if (!TryApplyGuard(statusId, senderSteamId))
-			{
-				return false;
-			}
-
-			return store.TrySetLimbValue(manifest.Id, statusId, playerSteamId, limbSlot, value);
-		}
-
-		public bool TryApplyRemoveBodyStatus(string statusId, ulong playerSteamId, ulong senderSteamId)
-		{
-			if (!TryApplyGuard(statusId, senderSteamId))
-			{
-				return false;
-			}
-
-			return store.TryRemoveBodyValue(manifest.Id, statusId, playerSteamId);
-		}
-
-		public bool TryApplyRemoveLimbStatus(string statusId, ulong playerSteamId, int limbSlot, ulong senderSteamId)
-		{
-			if (!TryApplyGuard(statusId, senderSteamId))
-			{
-				return false;
-			}
-
-			return store.TryRemoveLimbValue(manifest.Id, statusId, playerSteamId, limbSlot);
-		}
-
-		public bool TryRemoveBodyStatus(string statusId, ulong playerSteamId)
-		{
-			if (!TryRemoveGuard(statusId))
-			{
-				return false;
-			}
-
-			return store.TryRemoveBodyValue(manifest.Id, statusId, playerSteamId);
-		}
-
-		public bool TryRemoveLimbStatus(string statusId, ulong playerSteamId, int limbSlot)
-		{
-			if (!TryRemoveGuard(statusId))
-			{
-				return false;
-			}
-
-			return store.TryRemoveLimbValue(manifest.Id, statusId, playerSteamId, limbSlot);
-		}
-
-		public bool TryGetScope(string statusId, out ModStatusScope scope)
-		{
-			scope = default;
-			return CanReadStatus(statusId) && store.TryGetScope(manifest.Id, statusId, out scope);
-		}
-
-		public bool TryGetRuntimeScope(string statusId, out ModDataScope runtimeScope)
-		{
-			runtimeScope = default;
-			return CanReadStatus(statusId) && store.TryGetRuntimeScope(manifest.Id, statusId, out runtimeScope);
-		}
-
-		public bool TryGetSchemaVersion(string statusId, out int schemaVersion)
-		{
-			schemaVersion = 0;
-			return CanReadStatus(statusId) && store.TryGetSchemaVersion(manifest.Id, statusId, out schemaVersion);
-		}
-
-		public IReadOnlyCollection<string> StatusIds => store.GetStatusIds(manifest.Id, IsVisible);
-
-		public int StatusCount => store.GetStatusCount(manifest.Id, IsVisible);
-
-		private bool CanReadStatus(string statusId)
-		{
-			if (!store.TryGetRuntimeScope(manifest.Id, statusId, out var runtimeScope))
-			{
-				return false;
-			}
-
-			if (runtimeScope == ModDataScope.HostAuthoritative && session.Role != SessionRole.Host)
-			{
-				log.LogWarning("[Mods] {ModId} tried to read host-authoritative runtime status {StatusId} on a guest copy — refused.",
-					manifest.Id, statusId);
-				return false;
-			}
-
-			return true;
-		}
-
-		private bool TryWriteGuard(string statusId)
-		{
-			if (!store.TryGetRuntimeScope(manifest.Id, statusId, out var runtimeScope))
-			{
-				log.LogWarning("[Mods] {ModId} tried to write undeclared runtime status {StatusId} — refused.",
-					manifest.Id, statusId);
-				return false;
-			}
-
-			if (runtimeScope != ModDataScope.LocalOnly && session.Role != SessionRole.Host)
-			{
-				log.LogWarning("[Mods] {ModId} tried to write {RuntimeScope} runtime status {StatusId} from a guest — refused.",
-					manifest.Id, runtimeScope, statusId);
-				return false;
-			}
-
-			return true;
-		}
-
-		private bool TryApplyGuard(string statusId, ulong senderSteamId)
-		{
-			if (!store.TryGetRuntimeScope(manifest.Id, statusId, out var runtimeScope))
-			{
-				log.LogWarning("[Mods] {ModId} tried to apply undeclared runtime status {StatusId} — refused.",
-					manifest.Id, statusId);
-				return false;
-			}
-
-			if (runtimeScope != ModDataScope.Shared)
-			{
-				log.LogWarning("[Mods] {ModId} tried to apply runtime status {StatusId} as shared but its runtime scope is {RuntimeScope} — refused.",
-					manifest.Id, statusId, runtimeScope);
-				return false;
-			}
-
-			if (session.Role == SessionRole.Host)
-			{
-				log.LogWarning("[Mods] {ModId} tried to apply runtime status {StatusId} on the host — refused; the host writes with TrySet, not TryApply.",
-					manifest.Id, statusId);
-				return false;
-			}
-
-			if (senderSteamId != session.HostSteamId)
-			{
-				log.LogWarning("[Mods] {ModId} tried to apply runtime status {StatusId} from non-host sender {Sender} — refused.",
-					manifest.Id, statusId, senderSteamId);
-				return false;
-			}
-
-			return true;
-		}
-
-		private bool TryRemoveGuard(string statusId)
-		{
-			if (!store.TryGetRuntimeScope(manifest.Id, statusId, out var runtimeScope))
-			{
-				log.LogWarning("[Mods] {ModId} tried to remove undeclared runtime status {StatusId} — refused.",
-					manifest.Id, statusId);
-				return false;
-			}
-
-			if (runtimeScope != ModDataScope.LocalOnly && session.Role != SessionRole.Host)
-			{
-				log.LogWarning("[Mods] {ModId} tried to remove {RuntimeScope} runtime status {StatusId} from a guest — refused.",
-					manifest.Id, runtimeScope, statusId);
-				return false;
-			}
-
-			return true;
-		}
-
-		private bool IsVisible(ModStatusEntry entry) =>
-			entry.RuntimeScope != ModDataScope.HostAuthoritative || session.Role == SessionRole.Host;
 	}
 }

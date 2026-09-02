@@ -26,10 +26,18 @@ public interface IModStatusRuntime
 	/// Declare one status runtime slot. The status id is mod-scoped; the scope
 	/// tells the framework whether the value is body-level or per-limb. The
 	/// runtime scope tells the framework whether the value is local, shared, or
-	/// host-authoritative. Returns false for invalid ids/scopes, duplicate
-	/// declarations, or a runtime scope the mod's network mode cannot use.
+	/// host-authoritative. <paramref name="projectionKind"/> tells the Game
+	/// Adapter which well-known typed payload shape to decode (opaque by
+	/// default). Returns false for invalid ids/scopes/projection kinds,
+	/// duplicate declarations, or a runtime scope the mod's network mode cannot
+	/// use.
 	/// </summary>
-	bool TryDeclare(string statusId, ModStatusScope scope, ModDataScope runtimeScope, int schemaVersion = 1);
+	bool TryDeclare(
+		string statusId,
+		ModStatusScope scope,
+		ModDataScope runtimeScope,
+		int schemaVersion = 1,
+		ModStatusProjectionKind projectionKind = ModStatusProjectionKind.None);
 
 	/// <summary>Read a body-level status value. Returns false for absent/undeclared values or hidden host-authoritative guest slots.</summary>
 	bool TryGetBodyStatus(string statusId, ulong playerSteamId, out byte[]? value);

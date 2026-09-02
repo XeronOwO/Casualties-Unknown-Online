@@ -104,4 +104,9 @@ public sealed class ModService : ICuoService, IModsControl, IModUiControl, IModC
 
 	/// <summary>Test seam (InternalsVisibleTo): the loaded instances, in discovery order — the lifecycle tests assert on them.</summary>
 	internal IReadOnlyList<ICuoMod> LoadedMods => _lifecycle.LoadedMods;
+
+	/// <summary>GameAdapter-facing status table seam (InternalsVisibleTo). The
+	/// adapter is the only layer allowed to translate runtime statuses into
+	/// vanilla Body/Limb behavior; it reads this internal store directly.</summary>
+	internal ModStatusStore StatusStore => _statusStore;
 }

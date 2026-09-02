@@ -27,6 +27,15 @@ internal static class ModStatusPolicy
 
 	public static bool IsValidLimbSlot(int limbSlot) => limbSlot >= 0 && limbSlot <= MaxLimbSlot;
 
+	public static bool IsValidProjectionKind(ModStatusProjectionKind projectionKind, ModStatusScope scope) =>
+		projectionKind switch
+		{
+			ModStatusProjectionKind.None => true,
+			ModStatusProjectionKind.BodyFormula => scope == ModStatusScope.Body,
+			ModStatusProjectionKind.LimbPhysiology => scope == ModStatusScope.Limb,
+			_ => false,
+		};
+
 	public static bool CanAddStatus(int currentStatusCount) => currentStatusCount < MaxStatusesPerMod;
 
 	public static bool IsValidRuntimeScopeFor(ModManifest manifest, ModDataScope runtimeScope) =>

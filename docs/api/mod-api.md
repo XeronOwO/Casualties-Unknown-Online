@@ -19,7 +19,8 @@ SemVer versions, and per-sender rate limits.
 **UI is landed (see §4e), content registration is landed (see §4f),
 ReadGameState is landed (see §4g), entity and item spawn are landed (see §4h),
 AccessNativeApi is landed (see §4i), the runtime mod-data scope seam is
-landed (see §4j), and the phase-1 runtime status table is landed (see §4k).**
+landed (see §4j), and the runtime status table + typed status transport +
+first GameAdapter projection slice are landed (see §4k).**
 The mod surface lives in **`CUO.Abstractions`** — the ONLY
 assembly mods may reference (architecture.md §5.5). A mod never touches
 BepInEx, Steamworks, the game assemblies, or CUO.Runtime. **Mod-state saves
@@ -645,9 +646,21 @@ if (context.Data.TryDeclare("hostSecret", ModDataScope.HostAuthoritative))
   JObject snapshot registry.
 - **No wire change**: no new NetMsg is introduced by this surface.
 
-## 4k. Runtime mod status (phases 1–2)
+## 4k. Runtime mod status (phases 1–3)
 
 ```csharp
+// Declare a typed body-formula status the GameAdapter knows how to project:
+if (context.StatusRuntime.TryDeclare(
+        "strength.potion",
+        ModStatusScope.Body,
+        ModDataScope.Shared,
+        projectionKind: ModStatusProjectionKind.BodyFormula))
+{
+    var projection = new ModBodyFormulaProjection { MaxEncumbrance = 2f, Immunity = 5f };
+    context.StatusTransport.TryBroadcastBodyStatus(
+        "strength.potion", playerSteamId, projection.ToPayload());
+}
+
 if (context.StatusRuntime.TryDeclare("bleeding", ModStatusScope.Limb, ModDataScope.Shared))
 {
     // Host only after the mod's own validation/commit:
@@ -685,9 +698,22 @@ if (context.StatusRuntime.TryDeclare("bleeding", ModStatusScope.Limb, ModDataSco
   that needs the host to change a shared/host-authoritative status still uses
   `IModCommands`; the host command handler is the semantic validator and then
   calls a `TryBroadcast*` helper to publish the committed result.
-- **Boundary**: this phase does not integrate with vanilla `Body` / `Limb`
-  behavior or the vanilla moodle row. GameAdapter remains the only layer that
-  can translate a status into a game effect or presentation.
+- **Typed projection (phase 3, first slice)**: `TryDeclare` accepts an optional
+  `ModStatusProjectionKind` (`BodyFormula` or `LimbPhysiology`). When set, the
+  mod's opaque status value should be the matching typed DTO
+  (`ModBodyFormulaProjection` / `ModLimbProjection`). The GameAdapter decodes
+  only those well-known payloads and applies additive overlays to the local
+  vanilla `Body`/`Limb` after their native updates. The mod still owns the
+  payload bytes and serialization; no game/Unity type crosses Abstractions.
+- **Projection scope (this slice)**: body fields are MaxEncumbrance,
+  TotalEncumbrance, Immunity, JumpSpeed, and AveragePain; limb fields are
+  BleedAmount, SkinHealth, MuscleHealth, and InfectionAmount. Continuous
+  circulation targets (heart rate, respiratory rate, blood pressure) and the
+  vanilla moodle row are deliberately not projected yet; they need a target
+  patch/UI seam, not an additive overlay.
+- **Boundary**: opaque `None` statuses are never interpreted by the
+  GameAdapter. Only body/limb projection statuses reach the vanilla layer; the
+  store change event is internal and does not add a wire message.
 - **No dedicated wire change**: no new NetMsg and no protocol bump; the typed
   frames ride the existing `NetMsg.ModMessage` channel. No generic JObject
   snapshot is introduced.
@@ -745,7 +771,9 @@ lifecycle (`ModLifecycleTests`), message routing + permission/rate gates
 (`ModMessageTests`), host commands (`ModCommandTests`), mod-state saves
 (`ModStateTests`), local mod UI (`ModUiTests`), mod content registration
 (`ModContentTests`, `ModContentCatalogTests`), runtime mod data
-(`ModDataTests`, `ModStatusRuntimeTests`, `ModStatusWireTests`, `ModStatusUpdateTests`), read game state (`ModGameStateTests`), entity spawn
+(`ModDataTests`, `ModStatusRuntimeTests`, `ModStatusWireTests`, `ModStatusUpdateTests`,
+`ModStatusProjectionStoreTests`, `ModBodyFormulaProjectionTests`,
+`ModLimbProjectionTests`, `ModStatusProjectionContractTests`), read game state (`ModGameStateTests`), entity spawn
 (`ModEntitySpawnTests`), item spawn (`ModItemSpawnTests`), tile placement
 (`ModTilePlacementTests`), native API
 (`ModNativeApiTests` + `GameAdapterNativeApiContractTests`), handshake matrix

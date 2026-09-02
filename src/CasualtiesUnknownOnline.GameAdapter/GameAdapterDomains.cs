@@ -1,6 +1,7 @@
 using CasualtiesUnknownOnline.GameAdapter.Character;
 using CasualtiesUnknownOnline.GameAdapter.Content;
 using CasualtiesUnknownOnline.GameAdapter.Items;
+using CasualtiesUnknownOnline.GameAdapter.ModStatus;
 using CasualtiesUnknownOnline.GameAdapter.Patches;
 using CasualtiesUnknownOnline.GameAdapter.Run;
 using CasualtiesUnknownOnline.GameAdapter.Tutorial;
@@ -11,6 +12,7 @@ using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.HostRules;
+using CasualtiesUnknownOnline.Runtime.Session.Mods;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using CasualtiesUnknownOnline.Runtime.Session.Tutorial;
@@ -38,6 +40,7 @@ internal sealed class GameAdapterDomains
 	internal readonly GameAdapterTileContentProvider TileContent;
 	internal readonly GameAdapterStructureContentProvider StructureContent;
 	internal readonly StructureWorldGenDistribution StructureWorldGen;
+	internal readonly ModStatusVanillaProjection StatusProjection;
 	internal readonly IEntitySyncControl Entities;
 	internal readonly IHostRules HostRules;
 	internal readonly IPlayerInteractionVisibility InteractionVisibility;
@@ -125,7 +128,8 @@ internal sealed class GameAdapterDomains
 		GameAdapterItemContentProvider itemContent,
 		GameAdapterBuildingContentProvider buildingContent,
 		GameAdapterTileContentProvider tileContent,
-		GameAdapterStructureContentProvider structureContent)
+		GameAdapterStructureContentProvider structureContent,
+		ModService modService)
 	{
 		Session = session;
 		Items = items;
@@ -135,6 +139,8 @@ internal sealed class GameAdapterDomains
 		StructureContent = structureContent;
 		StructureWorldGen = new StructureWorldGenDistribution(
 			structureContent, tileContent, loggerFactory.CreateLogger<StructureWorldGenDistribution>());
+		StatusProjection = new ModStatusVanillaProjection(
+			modService.StatusStore, session, loggerFactory.CreateLogger<ModStatusVanillaProjection>());
 		Entities = entities;
 		HostRules = hostRules;
 		PlayerInteraction = playerInteraction;

@@ -188,6 +188,13 @@ internal interface IPatchBridge
 	/// </summary>
 	bool TryResolveItemTemplate(string id, out GameObject? template);
 
+	/// <summary>
+	/// Resolve a mod-registered runtime building template by building id.
+	/// Returns false when the id has no custom template; the caller falls back
+	/// to <c>Resources.Load</c> for vanilla buildings.
+	/// </summary>
+	bool TryResolveBuildingTemplate(string id, out GameObject? template);
+
 	/// <summary>An earthquake just started in WorldGeneration.Update — the host broadcasts it (timing sync + the next delay; guests re-align their timer).</summary>
 	void OnEarthquakeStarted(float duration, float nextDelay);
 

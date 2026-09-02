@@ -5,19 +5,19 @@ using UnityEngine;
 namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 
 /// <summary>
-/// Materializes CUO custom item templates from <c>Utils.Create</c> when no
-/// vanilla prefab exists for the requested id. The native method stays on the
-/// vanilla path (including its throw-on-missing behavior); the prefix only
-/// takes over for ids that have a mod-registered runtime template.
+/// Materializes CUO custom item and building templates from <c>Utils.Create</c>
+/// when no vanilla prefab exists for the requested id. The native method stays
+/// on the vanilla path (including its throw-on-missing behavior); the prefix
+/// only takes over for ids that have a mod-registered runtime template.
 /// </summary>
-internal static class UtilsCreateCustomItemPatch
+internal static class UtilsCreateCustomPrefabPatch
 {
 	[HarmonyPatch(typeof(Utils), "Create", [typeof(string), typeof(Vector2), typeof(float)])]
 	internal static class PositionPatch
 	{
 		private static bool Prefix(string id, Vector2 pos, float rot, ref GameObject __result)
 		{
-			if (string.IsNullOrWhiteSpace(id) || !ItemPrefabResolver.TryGetCustomTemplate(id, out var template))
+			if (string.IsNullOrWhiteSpace(id) || !TryResolveCustomTemplate(id, out var template))
 			{
 				return true;
 			}
@@ -41,7 +41,7 @@ internal static class UtilsCreateCustomItemPatch
 	{
 		private static bool Prefix(string id, Transform trans, ref GameObject __result)
 		{
-			if (string.IsNullOrWhiteSpace(id) || !ItemPrefabResolver.TryGetCustomTemplate(id, out var template))
+			if (string.IsNullOrWhiteSpace(id) || !TryResolveCustomTemplate(id, out var template))
 			{
 				return true;
 			}
@@ -57,5 +57,24 @@ internal static class UtilsCreateCustomItemPatch
 			__result = created;
 			return false;
 		}
+	}
+
+	private static bool TryResolveCustomTemplate(string id, out GameObject? template)
+	{
+		if (ItemPrefabResolver.TryGetCustomTemplate(id, out var itemTemplate))
+		{
+			template = itemTemplate;
+			return true;
+		}
+
+		if (PatchBridge.Impl?.TryResolveBuildingTemplate(id, out var buildingTemplate) == true
+			&& buildingTemplate != null) // Unity object — ==
+		{
+			template = buildingTemplate;
+			return true;
+		}
+
+		template = null;
+		return false;
 	}
 }

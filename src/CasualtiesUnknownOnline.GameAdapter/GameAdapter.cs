@@ -69,11 +69,12 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 		LatencyInstrumentation latency,
 		IMapper mapper,
 		ILoggerFactory loggerFactory,
-		GameAdapterItemContentProvider itemContent)
+		GameAdapterItemContentProvider itemContent,
+		GameAdapterBuildingContentProvider buildingContent)
 	{
 		_latency = latency;
 		_domains = new GameAdapterDomains(session, entities, characterData, world, items, craft, arbitration,
-			enemies, worldTime, playerInteraction, tutorialClaw, respawnOptions, hostRules, worldEntityKernel, kernelProtocol, log, mapper, loggerFactory, itemContent);
+			enemies, worldTime, playerInteraction, tutorialClaw, respawnOptions, hostRules, worldEntityKernel, kernelProtocol, log, mapper, loggerFactory, itemContent, buildingContent);
 		_bridge = new GameAdapterBridge(_domains);
 		_playerInteraction = new PlayerInteractionApply(_domains);
 		var pushApply = new PlayerPushApply(_domains);

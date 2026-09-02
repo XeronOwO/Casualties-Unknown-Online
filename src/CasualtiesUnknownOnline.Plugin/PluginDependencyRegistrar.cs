@@ -241,10 +241,22 @@ internal static class PluginDependencyRegistrar
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<GameAdapterTileContentProvider>());
 		// Structure content binding: typed static structure DTOs are stored in a
 		// GameAdapter registry and served through the mod structure placement
-		// seam; no automatic worldgen distribution in this slice.
+		// seam; automatic worldgen distribution runs from the same registry.
 		services.AddSingleton<GameAdapterStructureContentProvider>();
 		services.AddSingleton<IContentBindingProvider>(p => p.GetRequiredService<GameAdapterStructureContentProvider>());
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<GameAdapterStructureContentProvider>());
+		// Status content binding: typed static status descriptors are validated
+		// and stored as migration base. Per-player/per-limb runtime values are
+		// intentionally not part of this seam.
+		services.AddSingleton<GameAdapterStatusContentProvider>();
+		services.AddSingleton<IContentBindingProvider>(p => p.GetRequiredService<GameAdapterStatusContentProvider>());
+		services.AddSingleton<ICuoService>(p => p.GetRequiredService<GameAdapterStatusContentProvider>());
+		// Moodle content binding: typed static moodle/presentation descriptors
+		// are validated and stored; feeding the vanilla moodle manager remains
+		// a future local UI/GameAdapter seam.
+		services.AddSingleton<GameAdapterMoodleContentProvider>();
+		services.AddSingleton<IContentBindingProvider>(p => p.GetRequiredService<GameAdapterMoodleContentProvider>());
+		services.AddSingleton<ICuoService>(p => p.GetRequiredService<GameAdapterMoodleContentProvider>());
 		// The game-backed line-of-sight oracle is a standalone lightweight
 		// GameAdapter service. It must NOT be registered through GameAdapterImpl:
 		// GameAdapter depends on IPlayerInteractionControl, and

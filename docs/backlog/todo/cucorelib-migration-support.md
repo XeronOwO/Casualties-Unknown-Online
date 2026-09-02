@@ -148,6 +148,19 @@ content binders can build on:
   but before the collider/UpdateWorld pass, and places only the static block
   grid — no entity/loot/background layer. No new wire message and no game/Unity
   type crosses the mod boundary.
+- `ModStatusDefinition` + `ModStatusScope` +
+  `GameAdapterStatusContentProvider` — the typed static status-descriptor
+  seam. The plain DTO carries body/limb scope, player-facing text,
+  save-enabled metadata and an optional moodle id; the Game Adapter provider
+  validates and stores the descriptor as migration base. Dynamic per-player /
+  per-limb runtime status values are deliberately not part of this seam and
+  belong to the future typed mod-data domain.
+- `ModMoodleDefinition` + `GameAdapterMoodleContentProvider` — the typed
+  static moodle/presentation-descriptor seam. The plain DTO carries intensity,
+  a stable icon id/resource key, display text, critical/chipped/important
+  presentation flags and hold seconds; the Game Adapter provider validates and
+  stores the descriptor. Feeding the vanilla moodle manager remains a future
+  local UI/GameAdapter seam, not a static content wire feature.
 - Tests for version storage/validation, catalog enumeration/filtering,
   unique resolution, duplicate/version conflicts, empty-catalog behavior,
   null-argument edges, DTO round-trip, binder routing/shared-mode
@@ -161,11 +174,15 @@ content binders can build on:
   `docs/evidence/selfchecks/mod-api/mod-structure-content-binding-selfcheck.md`,
   `docs/evidence/selfchecks/mod-api/mod-structure-placement-selfcheck.md`,
   `docs/evidence/selfchecks/mod-api/mod-structure-worldgen-distribution-selfcheck.md`,
+  `docs/evidence/selfchecks/mod-api/mod-status-moodle-content-binding-selfcheck.md`,
   and `docs/evidence/selfchecks/mod-api/mod-item-spawn-selfcheck.md`.
 
 Still explicitly **not** implemented:
-- typed per-kind DTOs for status/moodle;
-- actual GameAdapter binding providers for those kinds (status/moodle);
+- dynamic per-player / per-limb status runtime values and the
+  host-authoritative mod-status domain boundary (static status descriptors are
+  landed; the runtime instance model still needs the mod-data sync design);
+- actual vanilla-moodle presentation binding (static moodle descriptors are
+  landed; feeding the vanilla moodle row remains a future UI/GameAdapter seam);
 - a full **runtime mod-data sync model** (the static-content side of the
   local-only vs public/shared distinction is handled by the binder's
   shared-content network-mode filter; runtime mod state/synchronized data
@@ -196,8 +213,8 @@ Source basis: CUCoreLib README/CHANGELOG, `CUCoreLibWebapp` machine docs
 | 11 | Terrain tiles and worldgen | `TileRegistry.Register`, `SetBlock`, `TryGetTile/Definition/Index`, layer masks, ore-style generation, drops, custom data. | `ModTileDefinition` + `GameAdapterTileContentProvider` + `IModTilePlacement`: typed DTO, deterministic custom block indices, `WorldGeneration.tiles` injection, a `GetBlockInfo` prefix, and a single-cell placement surface by stable tile id. | **Landed at the static content + single-cell placement seam.** Remaining: optional ore/drop projection, worldgen distribution, and layer masks; all future work; world-generation output stays kernel-driven. |
 | 12 | Building entities / custom spawn | `BuildingEntityRegistry.Register/Spawn/PlaceOnSurface/DistributeInWorld`, prefab hooks, components, drops, worldgen density, owner queries. | `ModBuildingDefinition` + `GameAdapterBuildingContentProvider` + `IModEntitySpawn`: typed DTO, vanilla `TemplateId` base prefab, optional `BuildingEntity` overrides and `SpawnComponents`, runtime template creation, and the existing `EntitySpawned` channel for replication. | **Landed at the content + entity spawn seam.** Custom buildings use `IModEntitySpawn`; no new NetMsg and no mod access to Unity prefab types. Remaining: prefab hooks/drop/worldgen-density options if real demand appears. |
 | 13 | Multi-block structures | `StructureRegistry.RegisterFromJson/EmbeddedJson/File`, spawn counts, `Place`, JSON payload from the structure editor. | `ModStructureDefinition` + `GameAdapterStructureContentProvider` + `IModStructurePlacement`: typed marker grid, validated GameAdapter compile, runtime placement through existing `SetBlock`/`BlockPlaced`, per-depth spawn counts consumed by deterministic worldgen distribution. | **Landed at the static content + runtime placement + automatic worldgen seam.** Distribution runs inside the isolated generation stream, static block grid only, no new wire. |
-| 14 | Statuses / per-body per-limb custom state | `StatusRegistry` + `BodyStatus`/`LimbStatus` inheritance, `[StatusOptions]`, `GetStatus<T>()`, save providers, network snapshots. | No per-player per-limb status extension exposed to mods. `IModState` gives host-persistent opaque mod state; `IModGameState` gives read-only projected vitals/inventory. | **Out of scope until a real per-player status domain is designed.** CUO already owns terminal player/limb facts in the `Players` kernel domain; arbitrary reflection-free status bags may be useful but need authority and sync boundaries. For now, mods should persist opaque data in `IModState` and coordinate through `IModNetwork`/`IModCommands`. |
-| 15 | Moodles / player status UI | `MoodleRegistry.AddMoodle/AddAnimatedMoodle`, `RegisterBody/RegisterLimb`; custom status icons in the vanilla moodle row. | `IModUi` offers local immediate-mode windows only; no vanilla moodle/status indicator integration. | **Out of scope / future UI seam.** Moodles are presentation state; if a concrete CUO mod needs it, the safe path is a local UI projection and a typed status source, not direct vanilla moodle mutation from Abstractions. |
+| 14 | Statuses / per-body per-limb custom state | `StatusRegistry` + `BodyStatus`/`LimbStatus` inheritance, `[StatusOptions]`, `GetStatus<T>()`, save providers, network snapshots. | `ModStatusDefinition` + `ModStatusScope` + `GameAdapterStatusContentProvider`: typed static status descriptors, body/limb scope, save metadata, optional moodle link. `IModState` remains host-persistent opaque mod state; no per-player runtime status bag is exposed yet. | **Landed at the static status-descriptor seam.** Dynamic per-player/per-limb runtime values still require the host-authoritative mod-status domain design and belong with the mod-data sync model; arbitrary reflection-free status bags are not ported. |
+| 15 | Moodles / player status UI | `MoodleRegistry.AddMoodle/AddAnimatedMoodle`, `RegisterBody/RegisterLimb`; custom status icons in the vanilla moodle row. | `ModMoodleDefinition` + `GameAdapterMoodleContentProvider`: typed static moodle descriptors with icon key, intensity, presentation flags and hold seconds. `IModUi` remains the local immediate-mode surface. | **Landed at the static moodle-descriptor seam.** Feeding the vanilla moodle row is a future local UI/GameAdapter seam; it is not a wire feature and does not expose Unity types through Abstractions. |
 | 16 | Native settings menu / mod options | `ModOptionsRegistry.Register`, `ModOptionDefinition`, category/locale handling, optional BepInEx config mirroring. | No native settings API. `IModUi` is a local window surface; `IModState` can persist mod settings. | **Out of scope for CUO core.** Settings are local UX; a future `IModSettings` or settings-menu seam is acceptable only if demand appears. It is not multiplayer/wire work. |
 | 17 | Localization | `LocaleRegistry`, `LocaleLoader`, generated locale files, locale categories, crafting-quality labels. | No locale API in Abstractions. | **Out of scope / mod-local.** Localization is a normal mod packaging concern. CUO should not own locale unless a future content pipeline needs display-name resolution; keep it out of the wire. |
 | 18 | Save providers | `SaveRegistry.RegisterGlobal/Item/Body/Limb/WorldProvider`, `ICustomSaveProvider`, `IItemSaveProvider`, `IBodySaveProvider`, `ILimbSaveProvider`, `IWorldSaveProvider`, hooking into vanilla `save.sv`. | `IModState` is host-persistent, per-mod, versioned, opaque key/value bytes. Writes are host-only and require `WriteGameState`. | **Already superseded — no port.** Migration: move CUCoreLib save-provider payloads into `IModState` under a mod-owned schema/version. If per-item/body/world granularity is genuinely needed, that belongs in a future typed kernel domain, not a vanilla-save provider registry. |

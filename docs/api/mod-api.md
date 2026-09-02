@@ -320,6 +320,19 @@ context.Content.TryUnregister("wooden.sword");
   static block grid after vanilla worldgen, inside CUO's isolated generation
   stream, and before the collider/UpdateWorld pass. No entity/loot/background
   layer is distributed and no new wire message is used.
+- **Typed status content**: `ModStatusDefinition` is the seventh well-known
+  Abstractions DTO. It carries display/description text, a body/limb scope,
+  save-enabled metadata, an optional moodle id, and an extensible `CustomData`
+  dictionary. The Game Adapter status provider validates and stores the static
+  descriptor; per-player/per-limb runtime values are deliberately not part of
+  this content seam.
+- **Typed moodle content**: `ModMoodleDefinition` is the eighth well-known
+  Abstractions DTO. It carries display/description text, a vanilla moodle
+  intensity, a stable icon/resource id key, critical/chipped/important
+  presentation flags, hold seconds, and an extensible `CustomData` dictionary.
+  The Game Adapter moodle provider validates and stores the static descriptor;
+  feeding the vanilla moodle manager is a future local UI/GameAdapter seam,
+  not a wire feature.
 - **Shared-content binding boundary**: the runtime content binder only routes
   content from mods whose network mode guarantees a matching copy on every
   player that can receive the content instances
@@ -370,6 +383,16 @@ context.Content.TryUnregister("wooden.sword");
   `generatingWorld` is true (the existing block relay/difference table therefore
   treats it as baseline), and refuses tutorial worlds. No game/Unity type is
   exposed to mods and no new wire message is used.
+- **Current status binding scope**: `GameAdapterStatusContentProvider` decodes
+  `ModStatusDefinition`, validates the scope/id/save fields, and stores the
+  static descriptor as migration base. It does not create a per-player or
+  per-limb status bag; dynamic runtime values belong to the future typed
+  mod-data domain. No game/Unity type is exposed to mods and no new wire
+  message is used.
+- **Current moodle binding scope**: `GameAdapterMoodleContentProvider` decodes
+  `ModMoodleDefinition`, validates the icon/intensity/hold fields, and stores
+  the static descriptor as migration base. It does not feed the vanilla moodle
+  row. No game/Unity type is exposed to mods and no new wire message is used.
 - **No wire change**: no content bytes or new NetMsg.
 
 ## 4g. Read game state (read-only projection)

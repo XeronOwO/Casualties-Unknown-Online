@@ -36,10 +36,12 @@ if (Test-Path $debtPath) {
 # Aggregate per logical top-level type across all files (including partials).
 $types = @{}
 
-Get-ChildItem -Path $src -Filter *.cs -Recurse | ForEach-Object {
+Get-ChildItem -Path $src -Filter *.cs -Recurse -File | ForEach-Object {
     $path = $_.FullName
     $relative = $_.FullName.Substring($root.Length + 1)
-    $lines = Get-Content -Path $path
+    # ReadAllLines/ReadAllText are significantly faster than Get-Content for
+    # this scan; the gate only needs plain text and line boundaries.
+    $lines = [System.IO.File]::ReadAllLines($path)
     $text = [System.IO.File]::ReadAllText($path)
 
     # Namespace (file-scoped or classic).
@@ -55,7 +57,9 @@ Get-ChildItem -Path $src -Filter *.cs -Recurse | ForEach-Object {
     $topLevelTypes = [System.Collections.Generic.List[string]]::new()
     foreach ($line in $lines) {
         $trimmed = $line.Trim()
-        $braceDelta = ($trimmed.ToCharArray() | Where-Object { $_ -eq '{' }).Count - ($trimmed.ToCharArray() | Where-Object { $_ -eq '}' }).Count
+        # Count brace characters without creating per-line char pipelines;
+        # this was the scanner's dominant cost on large trees.
+        $braceDelta = ($trimmed.Split('{').Length - 1) - ($trimmed.Split('}').Length - 1)
         if ($depth -eq 0 -and $trimmed -match '^(public\s+|internal\s+|sealed\s+|static\s+|abstract\s+|partial\s+)*(class|struct|interface|enum|record)\s+(\w+)') {
             $topLevelTypes.Add($Matches[3])
         }

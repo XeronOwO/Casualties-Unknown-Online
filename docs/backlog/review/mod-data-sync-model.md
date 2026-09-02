@@ -65,7 +65,8 @@ generic channels.
 
 - Per-player / per-limb mod status runtime values still need a
   host-authoritative status domain boundary; that is tracked separately under
-  the CUCoreLib migration ticket and is not part of this ticket.
+  the CUCoreLib migration ticket (`docs/architecture/mod-status-domain.md`)
+  and is not part of this ticket.
 - If a future mod genuinely needs framework-owned replicated state (not just a
   local mirror fed by explicit mod messages), that should be designed as a
   typed kernel domain with dedicated events, not as a generic snapshot API.

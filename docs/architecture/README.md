@@ -38,6 +38,7 @@ own typed model and invariants.
 |---|---|
 | [current-architecture.md](current.md) | **Active** current architecture: kernel core, transaction/authority model, guards, non-goals. |
 | [domains.md](domains.md) | **Active** domain ownership and projection map. |
+| [mod-status-domain.md](mod-status-domain.md) | Design proposal for the runtime mod-status domain boundary (not implemented). |
 | [protocol.md](protocol.md) | **Active** four-envelope protocol and data-flow reference. |
 | [phase-decisions.md](phase-decisions.md) | Compressed Phase A–E decision record. |
 | [status.md](evolution/status.md) | Completed phase tracker and handoff state. |

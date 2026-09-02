@@ -106,6 +106,32 @@ public class ModStatusRuntimeTests
 	}
 
 	[Fact]
+	public void Shared_BodyStatus_GuestCanApplyHostRemoval_AndRefusesNonHostRemoval()
+	{
+		var (host, guest) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		var hostStatus = StatusOf(host);
+		var guestStatus = StatusOf(guest);
+
+		Assert.True(hostStatus.TryDeclare("infection", ModStatusScope.Body, ModDataScope.Shared));
+		Assert.True(guestStatus.TryDeclare("infection", ModStatusScope.Body, ModDataScope.Shared));
+		Assert.True(hostStatus.TrySetBodyStatus("infection", HostId, [1, 2]));
+		Assert.True(guestStatus.TryApplyBodyStatus("infection", HostId, [3, 4], HostId));
+
+		// A host-originated removal clears the guest mirror, not the declaration.
+		Assert.True(guestStatus.TryApplyRemoveBodyStatus("infection", HostId, HostId));
+		Assert.False(guestStatus.TryGetBodyStatus("infection", HostId, out _));
+		Assert.True(guestStatus.TryGetRuntimeScope("infection", out var runtimeScope));
+		Assert.Equal(ModDataScope.Shared, runtimeScope);
+
+		// Re-set for the rejection case.
+		Assert.True(guestStatus.TryApplyBodyStatus("infection", HostId, [3, 4], HostId));
+		Assert.False(guestStatus.TryApplyRemoveBodyStatus("infection", HostId, GuestId), "a guest must not remove with its own id as sender.");
+		Assert.True(guestStatus.TryGetBodyStatus("infection", HostId, out _));
+
+		Assert.False(hostStatus.TryApplyRemoveBodyStatus("infection", HostId, HostId), "the host does not apply mirrors.");
+	}
+
+	[Fact]
 	public void HostAuthoritative_BodyStatus_IsVisibleOnlyOnHost()
 	{
 		var (host, guest) = TestNode.CreatePair(HostId, GuestId, LobbyId);

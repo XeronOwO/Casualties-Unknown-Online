@@ -35,12 +35,15 @@ internal sealed class ModContext(
 	IModNativeApiProvider nativeApiProvider) : IModContext
 {
 	private readonly ModManifest _manifest = manifest;
+	private readonly SessionService _sessionService = sessionService;
+	private readonly ILogger _frameworkLog = frameworkLog;
 	private readonly ModNetworkAdapter _network = new(channel, manifest, frameworkLog);
 	private readonly ModCommandService.ModCommandAdapter _commands = commands.CreateAdapter(manifest);
 	private readonly ModConsoleCommandAdapter _consoleCommands = new(consoleCommands, manifest, sessionService, frameworkLog);
 	private readonly IModState _state = stateStore.CreateStateAdapter(manifest, sessionService);
 	private readonly IModData _data = dataStore.CreateDataAdapter(manifest, sessionService);
 	private readonly IModStatusRuntime _statusRuntime = statusStore.CreateStatusAdapter(manifest, sessionService);
+	private ModStatusTransport? _statusTransport;
 	private readonly ModUiAdapter _ui = new(manifest, frameworkLog);
 	private readonly ModContentAdapter _content = new(manifest, frameworkLog);
 	private readonly ModGameStateAdapter _gameState = new(manifest, sessionService, remoteVitals, remoteInventory, frameworkLog);
@@ -63,6 +66,9 @@ internal sealed class ModContext(
 	public IModData Data => _data;
 
 	public IModStatusRuntime StatusRuntime => _statusRuntime;
+
+	public IModStatusTransport StatusTransport =>
+		_statusTransport ??= new(_statusRuntime, _network, _manifest, _sessionService, _frameworkLog);
 
 	public IModUi Ui => _ui;
 

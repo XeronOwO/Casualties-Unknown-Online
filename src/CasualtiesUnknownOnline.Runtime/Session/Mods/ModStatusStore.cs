@@ -331,6 +331,26 @@ internal sealed class ModStatusStore(ILogger log)
 			return store.TrySetLimbValue(manifest.Id, statusId, playerSteamId, limbSlot, value);
 		}
 
+		public bool TryApplyRemoveBodyStatus(string statusId, ulong playerSteamId, ulong senderSteamId)
+		{
+			if (!TryApplyGuard(statusId, senderSteamId))
+			{
+				return false;
+			}
+
+			return store.TryRemoveBodyValue(manifest.Id, statusId, playerSteamId);
+		}
+
+		public bool TryApplyRemoveLimbStatus(string statusId, ulong playerSteamId, int limbSlot, ulong senderSteamId)
+		{
+			if (!TryApplyGuard(statusId, senderSteamId))
+			{
+				return false;
+			}
+
+			return store.TryRemoveLimbValue(manifest.Id, statusId, playerSteamId, limbSlot);
+		}
+
 		public bool TryRemoveBodyStatus(string statusId, ulong playerSteamId)
 		{
 			if (!TryRemoveGuard(statusId))

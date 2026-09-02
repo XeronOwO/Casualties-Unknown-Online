@@ -645,17 +645,25 @@ if (context.Data.TryDeclare("hostSecret", ModDataScope.HostAuthoritative))
   JObject snapshot registry.
 - **No wire change**: no new NetMsg is introduced by this surface.
 
-## 4k. Runtime mod status (phase 1)
+## 4k. Runtime mod status (phases 1–2)
 
 ```csharp
 if (context.StatusRuntime.TryDeclare("bleeding", ModStatusScope.Limb, ModDataScope.Shared))
 {
-    // Host only:
-    context.StatusRuntime.TrySetLimbStatus("bleeding", playerSteamId, limbSlot, payload);
+    // Host only after the mod's own validation/commit:
+    context.StatusTransport.TryBroadcastLimbStatus(
+        "bleeding", playerSteamId, limbSlot, payload);
 
-    // Guest, when applying a value received from the host over IModNetwork:
-    context.StatusRuntime.TryApplyLimbStatus(
-        "bleeding", playerSteamId, limbSlot, payload, senderSteamId);
+    // Route mod-message frames through the typed status handle first:
+    context.Network.MessageReceived += (sender, payload) =>
+    {
+        if (context.StatusTransport.TryHandleStatusPayload(sender, payload))
+        {
+            return;
+        }
+
+        // Other mod-message traffic continues here.
+    };
 }
 ```
 
@@ -666,10 +674,23 @@ if (context.StatusRuntime.TryDeclare("bleeding", ModStatusScope.Limb, ModDataSco
 - **Scopes**: the same `ModDataScope` rules as `IModData`: `LocalOnly` any
   role; `Shared` host-write + explicit guest apply; `HostAuthoritative` host
   only with no guest mirror.
+- **Typed transport (phase 2)**: `IModStatusTransport` publishes committed
+  shared values as versioned `ModStatusUpdate` frames over the existing
+  `IModNetwork` channel. The host calls `TryBroadcastBodyStatus` /
+  `TryBroadcastLimbStatus` (and the remove overloads); every side calls
+  `TryHandleStatusPayload` from its mod-message handler so guest mirrors are
+  applied/removed automatically from a host-originated frame. The host
+  consumes its own broadcast echo without re-applying.
+- **Guest request path**: this seam does not add a framework command. A guest
+  that needs the host to change a shared/host-authoritative status still uses
+  `IModCommands`; the host command handler is the semantic validator and then
+  calls a `TryBroadcast*` helper to publish the committed result.
 - **Boundary**: this phase does not integrate with vanilla `Body` / `Limb`
   behavior or the vanilla moodle row. GameAdapter remains the only layer that
   can translate a status into a game effect or presentation.
-- **No wire change**: no new NetMsg and no automatic sync in this phase.
+- **No dedicated wire change**: no new NetMsg and no protocol bump; the typed
+  frames ride the existing `NetMsg.ModMessage` channel. No generic JObject
+  snapshot is introduced.
 
 ## 5. Handshake consistency (how sessions stay coherent)
 
@@ -724,7 +745,7 @@ lifecycle (`ModLifecycleTests`), message routing + permission/rate gates
 (`ModMessageTests`), host commands (`ModCommandTests`), mod-state saves
 (`ModStateTests`), local mod UI (`ModUiTests`), mod content registration
 (`ModContentTests`, `ModContentCatalogTests`), runtime mod data
-(`ModDataTests`, `ModStatusRuntimeTests`), read game state (`ModGameStateTests`), entity spawn
+(`ModDataTests`, `ModStatusRuntimeTests`, `ModStatusWireTests`, `ModStatusUpdateTests`), read game state (`ModGameStateTests`), entity spawn
 (`ModEntitySpawnTests`), item spawn (`ModItemSpawnTests`), tile placement
 (`ModTilePlacementTests`), native API
 (`ModNativeApiTests` + `GameAdapterNativeApiContractTests`), handshake matrix

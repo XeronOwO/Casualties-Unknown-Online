@@ -49,6 +49,20 @@ public interface IModStatusRuntime
 	/// <summary>Apply a shared limb status value received from the host into this guest's local mirror.</summary>
 	bool TryApplyLimbStatus(string statusId, ulong playerSteamId, int limbSlot, byte[] value, ulong senderSteamId);
 
+	/// <summary>
+	/// Apply a shared body status removal received from the host into this
+	/// guest's local mirror. The slot declaration remains; only the value is
+	/// cleared. Requires the same rules as <see cref="TryApplyBodyStatus"/>.
+	/// </summary>
+	bool TryApplyRemoveBodyStatus(string statusId, ulong playerSteamId, ulong senderSteamId);
+
+	/// <summary>
+	/// Apply a shared limb status removal received from the host into this
+	/// guest's local mirror. The slot declaration remains; only the value is
+	/// cleared. Requires the same rules as <see cref="TryApplyLimbStatus"/>.
+	/// </summary>
+	bool TryApplyRemoveLimbStatus(string statusId, ulong playerSteamId, int limbSlot, ulong senderSteamId);
+
 	/// <summary>Remove a body status value (slot declaration remains). Local-only any-role; shared/host-authoritative host-only.</summary>
 	bool TryRemoveBodyStatus(string statusId, ulong playerSteamId);
 

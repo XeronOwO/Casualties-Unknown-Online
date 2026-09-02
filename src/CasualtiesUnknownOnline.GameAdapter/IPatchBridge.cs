@@ -46,9 +46,23 @@ internal interface IPatchBridge
 	/// </summary>
 	IEnumerator WrapStructureWorldGen(IEnumerator original, WorldGeneration world);
 
+	/// <summary>
+	/// Vanilla <c>WorldGeneration.GenerateOres</c> finished — distribute
+	/// mod-bound custom tile ore after the vanilla ore pass but before the
+	/// structure/liquid passes, all inside the sealed generation stream.
+	/// </summary>
+	void OnCustomTileOreGeneration(WorldGeneration world);
+
 	void OnBlockSet(Vector2Int pos, ushort block);
 
 	void OnBlockDamaged(Vector2 pos, float dmg, bool bonusMetal);
+
+	/// <summary>
+	/// A local block break hit a custom tile index. The Game Adapter spawns the
+	/// tile's authored drops while still inside the damage-block scope so they
+	/// ride the pending break report like vanilla block drops.
+	/// </summary>
+	void OnCustomTileBroken(WorldGeneration world, Vector2Int cell, ushort block);
 
 	/// <summary>
 	/// PlayerCamera.SetTimeScale is starting (outside CUO apply/sleep-suppress

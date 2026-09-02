@@ -371,12 +371,16 @@ context.Content.TryUnregister("wooden.sword");
   type is exposed to mods; no new wire message is used.
 - **Current tile binding scope**: `GameAdapterTileContentProvider` decodes
   `ModTileDefinition`, allocates a stable custom block index starting at 36,
-  injects a built `Tile` into every fresh `WorldGeneration.tiles` palette, and
+  injects a built `Tile` into every fresh `WorldGeneration.tiles` palette,
   answers `WorldGeneration.GetBlockInfo` for custom indices through the
-  provider. It intentionally does not add ore/worldgen distribution or
-  runtime drop behaviour; single-cell runtime placement is exposed through
-  `IModTilePlacement` (§4h). No game/Unity type is exposed to mods and no new
-  wire message is used.
+  provider, and stores optional ore/worldgen/drop fields. `SpawnAmount`,
+  `SpawnLayers`, and `GenerationStyle` are consumed by
+  `TileWorldGenDistribution` from the vanilla `GenerateOres` postfix inside
+  CUO's isolated generation stream, so both peers generate the same custom ore
+  deposits without a wire message. `Drops` are spawned by the Game Adapter when
+  a local custom tile breaks and ride the existing block-break/drop report.
+  Single-cell runtime placement is exposed through `IModTilePlacement` (§4h).
+  No game/Unity type is exposed to mods and no new wire message is used.
 - **Current structure binding scope**: `GameAdapterStructureContentProvider`
   decodes `ModStructureDefinition`, validates the authored grid/marker maps,
   and compiles it into non-air cells. Multi-cell runtime placement is exposed

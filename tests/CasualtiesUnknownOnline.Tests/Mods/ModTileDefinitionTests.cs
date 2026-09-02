@@ -84,6 +84,59 @@ public class ModTileDefinitionTests
 	}
 
 	[Fact]
+	public void RoundTrip_PreservesWorldGenerationAndDrops()
+	{
+		var original = new ModTileDefinition
+		{
+			DisplayName = "Auric Ore",
+			SpawnAmount = 1.5f,
+			SpawnLayers = ModTileDefinition.LayersToMask(4, 5, 6),
+			GenerationStyle = ModTileGenerationStyle.HeavyVeins | ModTileGenerationStyle.Inner,
+			Drops =
+			[
+				new ModTileDrop { ItemId = "auricfragment", Chance = 0.8f, MinCondition = 0.2f, MaxCondition = 0.9f }
+			]
+		};
+
+		var restored = ModTileDefinition.FromPayload(original.ToPayload());
+
+		Assert.NotNull(restored);
+		Assert.Equal(original.SpawnAmount, restored!.SpawnAmount);
+		Assert.Equal(original.SpawnLayers, restored.SpawnLayers);
+		Assert.Equal(original.GenerationStyle, restored.GenerationStyle);
+		var drop = Assert.Single(restored.Drops);
+		Assert.Equal("auricfragment", drop.ItemId);
+		Assert.Equal(0.8f, drop.Chance);
+		Assert.Equal(0.2f, drop.MinCondition);
+		Assert.Equal(0.9f, drop.MaxCondition);
+	}
+
+	[Fact]
+	public void CanSpawnInLayer_HandlesAllZeroAndDepthBounds()
+	{
+		var all = new ModTileDefinition { SpawnLayers = ModTileDefinition.AllSpawnLayers };
+		var none = new ModTileDefinition { SpawnLayers = 0 };
+		var layers = new ModTileDefinition { SpawnLayers = ModTileDefinition.LayersToMask(1, 3) };
+
+		Assert.True(all.CanSpawnInLayer(0));
+		Assert.True(all.CanSpawnInLayer(30));
+		Assert.False(all.CanSpawnInLayer(-1));
+		Assert.False(none.CanSpawnInLayer(0));
+		Assert.True(layers.CanSpawnInLayer(0));
+		Assert.False(layers.CanSpawnInLayer(1));
+		Assert.True(layers.CanSpawnInLayer(2));
+		Assert.False(layers.CanSpawnInLayer(31));
+	}
+
+	[Fact]
+	public void LayerMaskHelpers_BuildExpectedMasks()
+	{
+		Assert.Equal(1 | 4, ModTileDefinition.LayersToMask(1, 3));
+		Assert.Equal(ModTileDefinition.AllSpawnLayers, ModTileDefinition.AllLayersExcept());
+		Assert.Equal(~(1 | 4), ModTileDefinition.AllLayersExcept(1, 3));
+	}
+
+	[Fact]
 	public void InvalidPayload_ReturnsNull()
 	{
 		Assert.Null(ModTileDefinition.FromPayload([]));

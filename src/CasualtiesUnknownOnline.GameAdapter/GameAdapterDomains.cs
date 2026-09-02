@@ -40,6 +40,7 @@ internal sealed class GameAdapterDomains
 	internal readonly GameAdapterTileContentProvider TileContent;
 	internal readonly GameAdapterStructureContentProvider StructureContent;
 	internal readonly StructureWorldGenDistribution StructureWorldGen;
+	internal readonly TileWorldGenDistribution TileWorldGen;
 	internal readonly ModStatusVanillaProjection StatusProjection;
 	internal readonly ModStatusMoodleProjection MoodleProjection;
 	internal readonly IEntitySyncControl Entities;
@@ -142,6 +143,8 @@ internal sealed class GameAdapterDomains
 		StructureContent = structureContent;
 		StructureWorldGen = new StructureWorldGenDistribution(
 			structureContent, tileContent, loggerFactory.CreateLogger<StructureWorldGenDistribution>());
+		TileWorldGen = new TileWorldGenDistribution(
+			tileContent, loggerFactory.CreateLogger<TileWorldGenDistribution>());
 		StatusProjection = new ModStatusVanillaProjection(
 			modService.StatusStore, session, loggerFactory.CreateLogger<ModStatusVanillaProjection>());
 		MoodleProjection = new ModStatusMoodleProjection(

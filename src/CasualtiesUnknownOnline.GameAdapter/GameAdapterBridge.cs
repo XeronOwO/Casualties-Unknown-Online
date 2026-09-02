@@ -385,6 +385,21 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 	public void OnWorldBloodSpawn(Vector2 position, bool ground) =>
 		domains.WorldBloodSync.Report(position, ground);
 
+	public void ApplyBodyStatusProjection(Body body)
+	{
+		if (body == domains.Run.LocalBody) // Unity objects — ==
+		{
+			domains.StatusProjection.ApplyBody(body);
+		}
+	}
+
+	public void ApplyLimbStatusProjection(Body body, Limb limb)
+	{
+		if (body == domains.Run.LocalBody) // Unity objects — ==
+		{
+			domains.StatusProjection.ApplyLimb(body, limb);
+		}
+	}
 
 	public void OnLimbStateEvent(Limb limb) => domains.CharacterDataSync.ReportLimbStateEvent(limb);
 

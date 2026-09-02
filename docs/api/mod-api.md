@@ -17,8 +17,8 @@ for the live surfaces), host-authoritative commands, dependency ordering,
 SemVer versions, and per-sender rate limits.
 
 **UI is landed (see §4e), content registration is landed (see §4f),
-ReadGameState is landed (see §4g), entity spawn is landed (see §4h), and
-AccessNativeApi is landed (see §4i).**
+ReadGameState is landed (see §4g), entity and item spawn are landed (see §4h),
+and AccessNativeApi is landed (see §4i).**
 The mod surface lives in **`CUO.Abstractions`** — the ONLY
 assembly mods may reference (architecture.md §5.5). A mod never touches
 BepInEx, Steamworks, the game assemblies, or CUO.Runtime. **Mod-state saves
@@ -83,7 +83,8 @@ public sealed class MyMod : ICuoMod   // ICuoService lifecycle + Bind
   `WriteGameState` gates host-persistent mod-state writes (`IModState`);
   `RegisterContent` gates mod content registration (`IModContent`);
   `ReadGameState` gates the read-only game-state projection (`IModGameState`);
-  `SpawnEntity` gates the world entity-spawn surface (`IModEntitySpawn`);
+  `SpawnEntity` gates the world entity-spawn surface (`IModEntitySpawn`)
+  and the world item-spawn surface (`IModItemSpawn`);
   `AccessNativeApi` gates the curated native/game-private operation registry
   (`IModNativeApi`).
 - **`Dependencies`** are mod ids loaded before the dependent; missing or
@@ -102,6 +103,7 @@ public sealed class MyMod : ICuoMod   // ICuoService lifecycle + Bind
 | `Content` | mod content registration — see §4f. |
 | `GameState` | read-only player-state projection — see §4g. |
 | `EntitySpawn` | world entity spawn — see §4h. |
+| `ItemSpawn` | world item spawn — see §4h. |
 | `NativeApi` | curated native/game-private operation registry — see §4i. |
 | `SessionActivated` | the first member handshake completed. **Host side: never** — read the snapshot. |
 | `PlayerJoined` / `PlayerLeft` | a member's handshake completed / a member was removed (host side). NOT the in-world entity join. Each member exactly once, including yourself. |
@@ -383,19 +385,24 @@ if (context.GameState.CanRead)
   slices.
 - **No wire change**: this surface only projects data that already arrives.
 
-## 4h. Entity spawn
+## 4h. Entity and item spawn
 
 ```csharp
 if (context.EntitySpawn.CanSpawn)
 {
     context.EntitySpawn.TrySpawn("landmine", 10f, 20f, 45f);
 }
+
+if (context.ItemSpawn.CanSpawn)
+{
+    context.ItemSpawn.TrySpawn("wooden.sword", 10f, 20f, 45f);
+}
 ```
 
-- **Scope**: `IModEntitySpawn` lets a synchronized/authoritative mod create a
-  runtime world entity by the game's prefab id (`BuildingEntity.id`, the same
-  id `Utils.Create` accepts). The method signature is the full public surface
-  for this slice: prefab id + world X/Y + z rotation. No Unity or
+- **Entity scope**: `IModEntitySpawn` lets a synchronized/authoritative mod
+  create a runtime world entity by the game's prefab id (`BuildingEntity.id`,
+  the same id `Utils.Create` accepts). The method signature is the full public
+  surface for this slice: prefab id + world X/Y + z rotation. No Unity or
   game-assembly type crosses the boundary.
 - **Permission**: spawning requires `ModPermission.SpawnEntity`.
   `CanSpawn` reflects the declared flag; every `TrySpawn` call also enforces it
@@ -421,6 +428,21 @@ if (context.EntitySpawn.CanSpawn)
   surface, not a generic custom-component/state-injection mechanism — a mod
   that needs per-entity custom data still coordinates through `IModNetwork` /
   `IModCommands` or registers it as static content (`IModContent`).
+- **Item scope**: `IModItemSpawn` lets a synchronized/authoritative mod create
+  one world-item prefab by the game's item id (or a custom item id registered
+  through `ModContentKind.Item`). The signature takes item id + world X/Y + z
+  rotation and returns false when the request cannot be fulfilled. No Unity or
+  game-assembly type crosses the boundary.
+- **Item replication reuses the item-domain channel**: the Game Adapter
+  creates the local `Item` copy via `Utils.Create`; the normal `Item.Start`
+  report path sends the existing `ItemSpawned` channel (guest → host or host →
+  broadcast), so every side creates the same item at the same place. No new
+  `NetMsg`.
+- **Item boundary (this slice)**: vanilla item prefabs and custom item
+  definitions registered as static content are supported. It is a spawn
+  surface, not a generic item-state/custom-data injection mechanism — mod
+  state still belongs in `IModState` or explicit `IModNetwork` /
+  `IModCommands` coordination.
 - **No wire change**: no new `NetMsg`.
 
 ## 4i. AccessNativeApi (curated native operation registry)
@@ -520,8 +542,8 @@ lifecycle (`ModLifecycleTests`), message routing + permission/rate gates
 (`ModMessageTests`), host commands (`ModCommandTests`), mod-state saves
 (`ModStateTests`), local mod UI (`ModUiTests`), mod content registration
 (`ModContentTests`, `ModContentCatalogTests`), read game state (`ModGameStateTests`), entity spawn
-(`ModEntitySpawnTests`), native API (`ModNativeApiTests` +
-`GameAdapterNativeApiContractTests`), handshake matrix
+(`ModEntitySpawnTests`), item spawn (`ModItemSpawnTests`), native API
+(`ModNativeApiTests` + `GameAdapterNativeApiContractTests`), handshake matrix
 (`ModHandshakeTests`), rate limiter (`ModRateLimiterTests`), direction rows
 (`DirectionTests`) and wire round-trips (`ModHandshakeProtocolTests`).
 

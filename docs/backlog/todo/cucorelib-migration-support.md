@@ -188,7 +188,8 @@ content binders can build on:
 Still explicitly **not** implemented:
 - dynamic per-player / per-limb status runtime values and the
   host-authoritative mod-status domain boundary (static status descriptors are
-  landed; the runtime instance model still needs the mod-data sync design);
+  landed; the runtime domain boundary is designed in
+  `docs/architecture/mod-status-domain.md`; implementation is not started);
 - actual vanilla-moodle presentation binding (static moodle descriptors are
   landed; feeding the vanilla moodle row remains a future UI/GameAdapter seam);
 - an **automatic runtime mod-data sync engine** (the scope seam is landed:

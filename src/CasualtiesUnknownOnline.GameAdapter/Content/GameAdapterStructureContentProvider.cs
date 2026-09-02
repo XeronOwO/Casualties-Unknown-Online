@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
 using Microsoft.Extensions.Logging;
@@ -103,6 +104,15 @@ public sealed class GameAdapterStructureContentProvider(
 	/// <summary>Resolve the original typed definition (includes future worldgen spawn counts).</summary>
 	internal bool TryGetDefinition(string id, out ModStructureDefinition definition) =>
 		_definitions.TryGetValue(id, out definition!);
+
+	/// <summary>
+	/// Snapshot every compiled structure in stable id order for deterministic
+	/// world-generation distribution. Static content is not on the wire, so both
+	/// sides must iterate the same set in the same order when consuming the
+	/// shared generation random stream.
+	/// </summary>
+	internal IReadOnlyList<KeyValuePair<string, CompiledStructure>> GetCompiledForWorldGen() =>
+		[.. _compiled.OrderBy(pair => pair.Key, StringComparer.Ordinal)];
 
 	private bool TryCompile(string id, ModStructureDefinition definition, out CompiledStructure compiled)
 	{

@@ -35,6 +35,7 @@ internal sealed class GameAdapterDomains
 	internal readonly IItemControl Items;
 	internal readonly GameAdapterItemContentProvider ItemContent;
 	internal readonly GameAdapterBuildingContentProvider BuildingContent;
+	internal readonly GameAdapterTileContentProvider TileContent;
 	internal readonly IEntitySyncControl Entities;
 	internal readonly IHostRules HostRules;
 	internal readonly IPlayerInteractionVisibility InteractionVisibility;
@@ -120,12 +121,14 @@ internal sealed class GameAdapterDomains
 		IMapper mapper,
 		ILoggerFactory loggerFactory,
 		GameAdapterItemContentProvider itemContent,
-		GameAdapterBuildingContentProvider buildingContent)
+		GameAdapterBuildingContentProvider buildingContent,
+		GameAdapterTileContentProvider tileContent)
 	{
 		Session = session;
 		Items = items;
 		ItemContent = itemContent;
 		BuildingContent = buildingContent;
+		TileContent = tileContent;
 		Entities = entities;
 		HostRules = hostRules;
 		PlayerInteraction = playerInteraction;

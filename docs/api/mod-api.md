@@ -294,6 +294,17 @@ context.Content.TryUnregister("wooden.sword");
   Adapter building provider builds an inactive runtime building template from
   the base prefab and serves it through the existing `Utils.Create` /
   `EntitySpawned` materialization path.
+- **Typed tile content**: `ModTileDefinition` is the fifth well-known
+  Abstractions DTO. It carries display/description text, an optional sprite
+  resource path, an optional vanilla tile index used as the visual base,
+  BlockInfo-style static behavior fields (health, hit/step sounds, sleep
+  quality, metallic/toxicity/slippery flags, variation flag, RGBA tint,
+  collider type), and an extensible `CustomData` dictionary. The Game Adapter
+  tile provider allocates a deterministic custom block index, injects a Unity
+  `Tile` into the current `WorldGeneration.tiles` palette, and supplies the
+  matching `BlockInfo` through a narrow `GetBlockInfo` prefix. No random
+  world generation and no wire message are involved — mods choose where
+  static tiles appear.
 - **Shared-content binding boundary**: the runtime content binder only routes
   content from mods whose network mode guarantees a matching copy on every
   player that can receive the content instances
@@ -326,6 +337,13 @@ context.Content.TryUnregister("wooden.sword");
   attaches `SpawnComponents`, and exposes the template to `Utils.Create` so the
   existing `EntitySpawned` channel can replicate a mod spawn. No game/Unity
   type is exposed to mods; no new wire message is used.
+- **Current tile binding scope**: `GameAdapterTileContentProvider` decodes
+  `ModTileDefinition`, allocates a stable custom block index starting at 36,
+  injects a built `Tile` into every fresh `WorldGeneration.tiles` palette, and
+  answers `WorldGeneration.GetBlockInfo` for custom indices through the
+  provider. It intentionally does not add ore/worldgen placement or runtime
+  drop behaviour yet. No game/Unity type is exposed to mods and no new wire
+  message is used.
 - **No wire change**: no content bytes or new NetMsg.
 
 ## 4g. Read game state (read-only projection)

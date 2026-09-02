@@ -113,6 +113,14 @@ content binders can build on:
   existing `Utils.Create`/`EntitySpawned` materialization path, so
   `IModEntitySpawn.TrySpawn` can create custom buildings without exposing game
   or Unity types.
+- `ModTileDefinition` + `GameAdapterTileContentProvider` — the fifth typed
+  content kind. The plain DTO carries a sprite resource path or a vanilla tile
+  index as the visual source, static BlockInfo behavior fields, RGBA tint, and
+  collider type. The Game Adapter allocates a deterministic custom block index
+  (never a vanilla index), injects a built `Tile` into every fresh
+  `WorldGeneration.tiles` palette, and answers `WorldGeneration.GetBlockInfo`
+  for custom indices through a narrow Harmony prefix. No random world
+  generation and no wire change are part of this seam.
 - Tests for version storage/validation, catalog enumeration/filtering,
   unique resolution, duplicate/version conflicts, empty-catalog behavior,
   null-argument edges, DTO round-trip, binder routing/shared-mode
@@ -120,14 +128,15 @@ content binders can build on:
 - Evidence: `docs/evidence/selfchecks/mod-api/mod-content-migration-base-selfcheck.md`,
   `docs/evidence/selfchecks/mod-api/mod-item-content-binding-selfcheck.md`,
   `docs/evidence/selfchecks/mod-api/mod-recipe-content-binding-selfcheck.md`,
-  and `docs/evidence/selfchecks/mod-api/mod-liquid-content-binding-selfcheck.md`.
+  `docs/evidence/selfchecks/mod-api/mod-liquid-content-binding-selfcheck.md`,
+  and `docs/evidence/selfchecks/mod-api/mod-tile-content-binding-selfcheck.md`.
 
 Still explicitly **not** implemented:
 - custom item spawning through a mod-facing `IModEntitySpawn`-style item API;
   current support is limited to CUO's already-existing item domain/restore
   paths plus the `Utils.Create` fallback for game-called spawns;
-- typed per-kind DTOs for tile/structure/status/moodle;
-- actual GameAdapter binding providers for those kinds;
+- typed per-kind DTOs for structure/status/moodle;
+- actual GameAdapter binding providers for those kinds (structure/status/moodle);
 - a full **runtime mod-data sync model** (the static-content side of the
   local-only vs public/shared distinction is handled by the binder's
   shared-content network-mode filter; runtime mod state/synchronized data
@@ -155,7 +164,7 @@ Source basis: CUCoreLib README/CHANGELOG, `CUCoreLibWebapp` machine docs
 | 8 | Custom recipes | `RecipeRegistry.Register(Recipe)`, owner-GUID queries, invalid-recipe rejection, crafting-quality locale. | `ModRecipeDefinition` + `GameAdapterRecipeContentProvider`: typed DTO, recipe table injection, category mapping, duplicate/rebuild protection. | **Landed at the content seam.** Recipes are static content injected through the same binder; crafting runtime flow remains CUO's existing item/crafting kernel. |
 | 9 | Custom liquids | `LiquidRegistry.Register(id, CustomLiquidInfo)`, container liquid stacks, owner-GUID query. | `ModLiquidDefinition` + `GameAdapterLiquidContentProvider`: typed DTO, static `LiquidType` fields, locale entries. | **Landed at the static content seam.** Runtime fluid facts remain in CUO's Fluid domain; CUCoreLib's JObject fluid snapshots are not ported. |
 | 10 | Liquid tiles / world liquids | `LiquidTileRegistry.Register/Place/FloodFill/GenerateWorldTiles`, world bytes, body touch/drink/visual helpers, snapshot helpers. | No custom liquid-tile API; CUO has a Fluid kernel domain and Tilemap/WorldEntity adapter coverage for vanilla content. | **Content seam + worldgen.** Static liquid-tile definitions are content; placement/runtime effects need a GameAdapter translator. This is larger than a simple API shim and should be scheduled after item/recipe content binding. |
-| 11 | Terrain tiles and worldgen | `TileRegistry.Register`, `SetBlock`, `TryGetTile/Definition/Index`, layer masks, ore-style generation, drops, custom data. | No custom tile definition API; CUO syncs vanilla block/world facts through the World/Run and WorldEntity kernel domains. | **High-value gap — content seam + worldgen projection.** Static tile definitions must be identical on all peers and are registered by the content binder; world-generation output should remain kernel-driven. |
+| 11 | Terrain tiles and worldgen | `TileRegistry.Register`, `SetBlock`, `TryGetTile/Definition/Index`, layer masks, ore-style generation, drops, custom data. | `ModTileDefinition` + `GameAdapterTileContentProvider`: typed DTO, deterministic custom block indices, `WorldGeneration.tiles` injection, and a `GetBlockInfo` prefix. | **Landed at the static content seam.** Remaining: a mod-facing block set/placement surface and the optional ore/drop projection, both future work; world-generation output stays kernel-driven. |
 | 12 | Building entities / custom spawn | `BuildingEntityRegistry.Register/Spawn/PlaceOnSurface/DistributeInWorld`, prefab hooks, components, drops, worldgen density, owner queries. | `IModEntitySpawn.TrySpawn(prefabId, x, y, rotation)` supports existing game `BuildingEntity` prefabs only; no way to register a new prefab definition from a mod. | **High-value gap — extend the entity-spawn/content seam.** Add custom building definitions to the content binder and route `IModEntitySpawn` through the existing `EntitySpawned` runtime channel. No new NetMsg; no mod access to Unity prefab types. |
 | 13 | Multi-block structures | `StructureRegistry.RegisterFromJson/EmbeddedJson/File`, spawn counts, `Place`, JSON payload from the structure editor. | No structure-registration API; no static structure content consumer. | **Content seam.** Structure definitions are static authored worldgen content; a binder can consume the same JSON and hand it to GameAdapter worldgen. Not a wire feature. |
 | 14 | Statuses / per-body per-limb custom state | `StatusRegistry` + `BodyStatus`/`LimbStatus` inheritance, `[StatusOptions]`, `GetStatus<T>()`, save providers, network snapshots. | No per-player per-limb status extension exposed to mods. `IModState` gives host-persistent opaque mod state; `IModGameState` gives read-only projected vitals/inventory. | **Out of scope until a real per-player status domain is designed.** CUO already owns terminal player/limb facts in the `Players` kernel domain; arbitrary reflection-free status bags may be useful but need authority and sync boundaries. For now, mods should persist opaque data in `IModState` and coordinate through `IModNetwork`/`IModCommands`. |

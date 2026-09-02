@@ -231,6 +231,11 @@ internal static class PluginDependencyRegistrar
 		services.AddSingleton<GameAdapterBuildingContentProvider>();
 		services.AddSingleton<IContentBindingProvider>(p => p.GetRequiredService<GameAdapterBuildingContentProvider>());
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<GameAdapterBuildingContentProvider>());
+		// Tile content binding: typed static tile DTOs are injected into the
+		// vanilla WorldGeneration.tiles palette and GetBlockInfo lookup.
+		services.AddSingleton<GameAdapterTileContentProvider>();
+		services.AddSingleton<IContentBindingProvider>(p => p.GetRequiredService<GameAdapterTileContentProvider>());
+		services.AddSingleton<ICuoService>(p => p.GetRequiredService<GameAdapterTileContentProvider>());
 		// The game-backed line-of-sight oracle is a standalone lightweight
 		// GameAdapter service. It must NOT be registered through GameAdapterImpl:
 		// GameAdapter depends on IPlayerInteractionControl, and

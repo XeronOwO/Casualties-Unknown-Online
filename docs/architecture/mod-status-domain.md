@@ -1,7 +1,8 @@
 # Mod Status Runtime Domain Boundary
 
-Status: Design proposal with phase 1 landed (Runtime status table + typed API,
-no vanilla integration, no wire).
+Status: Design with phases 1–2 landed (Runtime status table + typed API +
+typed status transport over the existing mod-message channel; no vanilla
+integration, no dedicated NetMsg, no JObject snapshot).
 
 This document answers the remaining CUCoreLib migration question for dynamic
 statuses: when a mod wants per-player or per-limb status runtime values, where
@@ -109,22 +110,37 @@ Projections may be read by:
   vanilla effect;
 - future local UI through the same projection.
 
-### 4.3 Proposed Abstractions surface (not yet implemented)
+### 4.3 Landed Abstractions surface
+
+The exact shape lives in `IModStatusRuntime` and `IModStatusTransport`; the
+key operations are:
 
 ```csharp
 public interface IModStatusRuntime
 {
+    bool TryDeclare(string statusId, ModStatusScope scope, ModDataScope runtimeScope, int schemaVersion = 1);
     bool TryGetBodyStatus(string statusId, ulong playerSteamId, out byte[]? value);
     bool TryGetLimbStatus(string statusId, ulong playerSteamId, int limbSlot, out byte[]? value);
-
     bool TrySetBodyStatus(string statusId, ulong playerSteamId, byte[] value);
     bool TrySetLimbStatus(string statusId, ulong playerSteamId, int limbSlot, byte[] value);
-
     bool TryApplyBodyStatus(string statusId, ulong playerSteamId, byte[] value, ulong senderSteamId);
     bool TryApplyLimbStatus(string statusId, ulong playerSteamId, int limbSlot, byte[] value, ulong senderSteamId);
-
+    bool TryApplyRemoveBodyStatus(string statusId, ulong playerSteamId, ulong senderSteamId);
+    bool TryApplyRemoveLimbStatus(string statusId, ulong playerSteamId, int limbSlot, ulong senderSteamId);
+    bool TryRemoveBodyStatus(string statusId, ulong playerSteamId);
+    bool TryRemoveLimbStatus(string statusId, ulong playerSteamId, int limbSlot);
+    bool TryGetScope(string statusId, out ModStatusScope scope);
+    bool TryGetRuntimeScope(string statusId, out ModDataScope runtimeScope);
     bool TryGetSchemaVersion(string statusId, out int schemaVersion);
-    IReadOnlyCollection<string> StatusIds { get; }
+}
+
+public interface IModStatusTransport
+{
+    bool TryBroadcastBodyStatus(string statusId, ulong playerSteamId, byte[] value);
+    bool TryBroadcastLimbStatus(string statusId, ulong playerSteamId, int limbSlot, byte[] value);
+    bool TryBroadcastRemoveBodyStatus(string statusId, ulong playerSteamId);
+    bool TryBroadcastRemoveLimbStatus(string statusId, ulong playerSteamId, int limbSlot);
+    bool TryHandleStatusPayload(ulong senderSteamId, byte[] payload);
 }
 ```
 
@@ -132,8 +148,10 @@ Semantics:
 
 - `TrySet*`: host-only for shared/gameplay-affecting statuses; local-only
   statuses may be written by any role.
-- `TryApply*`: guest-only mirror apply; requires the sender to be the session
-  host and the status to be shared/authoritative.
+- `TryApply*` / `TryApplyRemove*`: guest-only mirror apply; requires the
+  sender to be the session host and the status to be shared.
+- `TryBroadcast*`: host-only publish of a shared status through the existing
+  `IModNetwork` mod-message frame; no dedicated NetMsg.
 - The mod owns serialization; only opaque bytes cross the boundary.
 
 ### 4.4 Scope split
@@ -141,8 +159,8 @@ Semantics:
 | Scope | Runtime behavior | Transport |
 |---|---|---|
 | Local-only status | Local per-process value, any role, no wire | none |
-| Shared status | Host owns authoritative value; guest keeps an explicit mirror | existing `IModNetwork` / `IModCommands`, or future dedicated `ModStatusUpdated` event |
-| Host-authoritative status | Host-only table, guest has no mirror; guest requests through commands/messages | host decision + directed result or broadcast |
+| Shared status | Host owns authoritative value; guest keeps an explicit mirror | typed `ModStatusUpdate` over existing `IModNetwork` (via `IModStatusTransport`); guest requests still use `IModCommands` |
+| Host-authoritative status | Host-only table, guest has no mirror; guest requests through commands/messages | host decision + directed result or broadcast (not the status mirror seam) |
 
 ## 5. Authority and sync rules
 
@@ -152,9 +170,10 @@ Semantics:
    body formula, a limb effect, or any shared simulation fact, the host owns
    the committed value; guests report/request, never silently mutate the
    authoritative table.
-3. **Discrete events, not snapshots.** If a dedicated wire path is added, it is
-   a typed `ModStatusUpdated` message carrying the stable key + payload +
-   schema version, not a JObject full snapshot.
+3. **Discrete events, not snapshots.** The landed transport uses a typed
+   `ModStatusUpdate` DTO over the existing `IModNetwork` mod-message frame,
+   carrying the stable key + payload + schema version. It is not a JObject full
+   snapshot and it did not require a new `NetMsg`.
 4. **Static content stays off wire.** The status/moodle descriptors remain
    static content; only runtime values travel (and only if needed).
 5. **Persistence remains `IModState`** for durable statuses. The runtime
@@ -169,7 +188,7 @@ Semantics:
 | `ModContentKind.Moodle` / `ModMoodleDefinition` | Static presentation descriptor. |
 | `IModData` | Generic per-mod runtime value store; not a per-player/per-limb semantic status bag. |
 | `IModState` | Host-persistent durable mod state. |
-| `IModNetwork` / `IModCommands` | Transport/authority for status updates after the status service is added. |
+| `IModNetwork` / `IModCommands` | Existing transport/authority surfaces: typed status frames ride `IModNetwork`; guest change requests remain host-command semantics via `IModCommands`. |
 | GameAdapter | Only layer allowed to translate a status into vanilla `Body` / `Limb` effects or a vanilla moodle row. |
 | Existing Players kernel domain | Unchanged; native terminal player facts stay kernel-owned. |
 
@@ -183,10 +202,16 @@ Semantics:
    - Added pure-managed tests over the session stack
      (`ModStatusRuntimeTests`), selfcheck under
      `docs/evidence/selfchecks/mod-api/mod-status-runtime-selfcheck.md`.
-2. **Host commands / dedicated update message**
-   - If real mods need network status updates, add a dedicated
-     `ModStatusUpdatedMsg` or route through `IModCommands`.
-   - Keep payload opaque; bump protocol only if a new message is required.
+2. **Typed status transport / command seam — landed**
+   - Added `ModStatusUpdate` (typed payload DTO), `IModStatusTransport`
+     (host broadcast + guest handle) and apply-remove methods on
+     `IModStatusRuntime`.
+   - Shared status results travel as typed frames over the existing
+     `IModNetwork` mod-message channel; no dedicated `NetMsg`, no protocol
+     bump, no JObject snapshot.
+   - Guest-to-host change requests remain explicit `IModCommands` semantics:
+     the host's command handler validates and then publishes the committed
+     result with the broadcast helpers.
 3. **GameAdapter vanilla projection**
    - Add a narrow GameAdapter seam to apply status values to body/limb
      behavior.

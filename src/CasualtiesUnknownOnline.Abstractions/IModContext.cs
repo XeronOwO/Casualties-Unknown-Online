@@ -62,6 +62,15 @@ public interface IModContext
 	IModStatusRuntime StatusRuntime { get; }
 
 	/// <summary>
+	/// Typed status wire helpers — phase 2. It publishes committed shared
+	/// status values over the existing <see cref="IModNetwork"/> channel as
+	/// <see cref="ModStatusUpdate"/> frames and applies host-originated frames
+	/// to the local guest mirror. See <see cref="IModStatusTransport"/> for the
+	/// full contract and authority rules.
+	/// </summary>
+	IModStatusTransport StatusTransport { get; }
+
+	/// <summary>
 	/// Local mod UI windows (immediate-mode drawings on the local client). This
 	/// surface is local-only and requires no permission — see <see cref="IModUi"/>.
 	/// </summary>

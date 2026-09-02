@@ -4,7 +4,9 @@ using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
 using Microsoft.Extensions.Logging;
+using UnityEngine;
 using UnityEngine.Tilemaps;
+using Random = UnityEngine.Random;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Content;
 
@@ -80,6 +82,11 @@ public sealed class GameAdapterTileContentProvider(
 			_log.LogWarning(
 				"[TileContent] {ModId}/{Id} is already registered by another tile-content provider/definition — refused.",
 				registration.ModId, id);
+			return false;
+		}
+
+		if (!TryValidateDefinition(id, definition))
+		{
 			return false;
 		}
 
@@ -160,6 +167,94 @@ public sealed class GameAdapterTileContentProvider(
 	/// <summary>Resolve the stable content id to its allocated custom block index.</summary>
 	internal bool TryGetTileIndex(string id, out ushort index) =>
 		_indicesById.TryGetValue(id, out index);
+
+	/// <summary>Resolve the original typed definition by stable content id.</summary>
+	internal bool TryGetDefinition(string id, out ModTileDefinition definition) =>
+		_definitions.TryGetValue(id, out definition!);
+
+	/// <summary>Resolve a bound definition by its allocated custom block index.</summary>
+	internal bool TryGetDefinitionByIndex(ushort block, out ModTileDefinition definition)
+	{
+		definition = null!;
+		return _idsByIndex.TryGetValue(block, out var id) && _definitions.TryGetValue(id, out definition!);
+	}
+
+	/// <summary>
+	/// Snapshot every accepted tile definition in stable id order for deterministic
+	/// world-generation distribution. Both sides must iterate the same set in the
+	/// same order when consuming the shared generation random stream.
+	/// </summary>
+	internal IReadOnlyList<KeyValuePair<string, ModTileDefinition>> GetDefinitionsForWorldGen() =>
+		[.. _definitions.OrderBy(pair => pair.Key, StringComparer.Ordinal)];
+
+	/// <summary>
+	/// Spawn the authored custom drops for a broken custom tile. Returns true when
+	/// at least one drop was created. The caller is expected to be inside the
+	/// <c>DamageBlockOrigin</c> scope so the newly created items fold into the
+	/// pending block-break report like vanilla block drops.
+	/// </summary>
+	internal bool TrySpawnDrops(WorldGeneration world, Vector2Int cell, ushort block)
+	{
+		if (world is null) // Unity object — ==
+		{
+			return false;
+		}
+
+		if (!_idsByIndex.TryGetValue(block, out var id) || !_definitions.TryGetValue(id, out var definition))
+		{
+			return false;
+		}
+
+		if (definition.Drops is not { Count: > 0 })
+		{
+			return false;
+		}
+
+		var worldPosition = world.BlockToWorldPos(cell);
+		var spawned = 0;
+		foreach (var drop in definition.Drops)
+		{
+			if (drop is null || string.IsNullOrWhiteSpace(drop.ItemId))
+			{
+				_log.LogWarning("[TileContent] {Id} contains an invalid empty drop entry — skipped.", id);
+				continue;
+			}
+
+			if (Random.Range(0f, 1f) >= Mathf.Clamp01(drop.Chance))
+			{
+				continue;
+			}
+
+			try
+			{
+				var created = Utils.Create(drop.ItemId, worldPosition, 0f);
+				if (created is null) // Unity object — ==
+				{
+					_log.LogWarning("[TileContent] {Id} drop {DropId} could not be created — skipped.", id, drop.ItemId);
+					continue;
+				}
+
+				var item = created.GetComponent<Item>();
+				if (item != null) // Unity object — ==
+				{
+					item.condition = drop.RollCondition(Random.Range(0f, 1f));
+				}
+
+				spawned++;
+			}
+			catch (Exception ex)
+			{
+				_log.LogWarning(ex, "[TileContent] {Id} drop {DropId} failed to spawn — skipped.", id, drop.ItemId);
+			}
+		}
+
+		if (spawned > 0)
+		{
+			_log.LogInformation("[TileContent] {Id} spawned {Count} drop(s) at ({X},{Y}).", id, spawned, cell.x, cell.y);
+		}
+
+		return spawned > 0;
+	}
 
 	/// <summary>
 	/// Resolve a custom tile id for runtime placement and ensure it is injected
@@ -253,6 +348,44 @@ public sealed class GameAdapterTileContentProvider(
 		index = 0;
 		_log.LogError("[TileContent] {Id} could not allocate a custom block index.", id);
 		return false;
+	}
+
+	private bool TryValidateDefinition(string id, ModTileDefinition definition)
+	{
+		if (float.IsNaN(definition.SpawnAmount) || float.IsInfinity(definition.SpawnAmount) || definition.SpawnAmount < 0f)
+		{
+			_log.LogWarning("[TileContent] {Id} has invalid SpawnAmount {SpawnAmount} — refused.", id, definition.SpawnAmount);
+			return false;
+		}
+
+		foreach (var drop in definition.Drops ?? [])
+		{
+			if (drop is null || string.IsNullOrWhiteSpace(drop.ItemId))
+			{
+				_log.LogWarning("[TileContent] {Id} has an empty tile-drop item id — refused.", id);
+				return false;
+			}
+
+			if (float.IsNaN(drop.Chance) || float.IsInfinity(drop.Chance) || drop.Chance < 0f || drop.Chance > 1f)
+			{
+				_log.LogWarning("[TileContent] {Id} drop {DropId} has invalid Chance {Chance} — refused.", id, drop.ItemId, drop.Chance);
+				return false;
+			}
+
+			if (float.IsNaN(drop.MinCondition) || float.IsInfinity(drop.MinCondition)
+				|| float.IsNaN(drop.MaxCondition) || float.IsInfinity(drop.MaxCondition)
+				|| drop.MinCondition < 0f || drop.MinCondition > 1f
+				|| drop.MaxCondition < 0f || drop.MaxCondition > 1f
+				|| drop.MaxCondition < drop.MinCondition)
+			{
+				_log.LogWarning(
+					"[TileContent] {Id} drop {DropId} has invalid condition range [{Min}..{Max}] — refused.",
+					id, drop.ItemId, drop.MinCondition, drop.MaxCondition);
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	private static BlockInfo BuildBlockInfo(string id, ModTileDefinition definition)

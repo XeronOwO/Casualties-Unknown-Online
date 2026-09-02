@@ -103,6 +103,92 @@ public sealed class ModTileDefinition
 	[DataMember(Order = 19)]
 	public Dictionary<string, string> CustomData { get; set; } = [];
 
+	/// <summary>
+	/// Copper-relative world-generation multiplier. Zero disables automatic
+	/// spawning; 2f means twice as much as copper, 0.5f means half as much.
+	/// </summary>
+	[DataMember(Order = 20)]
+	public float SpawnAmount { get; set; }
+
+	/// <summary>
+	/// Bitmask of allowed world layers for automatic spawning. -1 means every
+	/// layer; 0 disables automatic spawning. Layer N is bit N-1 (N starts at 1).
+	/// </summary>
+	[DataMember(Order = 21)]
+	public int SpawnLayers { get; set; } = AllSpawnLayers;
+
+	/// <summary>Preset world-generation shapes used when <see cref="SpawnAmount"/> is greater than zero.</summary>
+	[DataMember(Order = 22)]
+	public ModTileGenerationStyle GenerationStyle { get; set; } = ModTileGenerationStyle.Vein;
+
+	/// <summary>Optional item drops spawned when the tile breaks. Empty means no custom drops.</summary>
+	[DataMember(Order = 23)]
+	public List<ModTileDrop> Drops { get; set; } = [];
+
+	/// <summary>Bitmask that allows spawning on every world layer.</summary>
+	public const int AllSpawnLayers = -1;
+
+	/// <summary>Build a layer bitmask from one-based layer numbers.</summary>
+	public static int LayersToMask(params int[] layerNumbers)
+	{
+		if (layerNumbers is null)
+		{
+			return 0;
+		}
+
+		var mask = 0;
+		foreach (var layer in layerNumbers)
+		{
+			if (layer > 0 && layer <= 31)
+			{
+				mask |= 1 << (layer - 1);
+			}
+		}
+
+		return mask;
+	}
+
+	/// <summary>Build an all-layers bitmask excluding one-based layer numbers.</summary>
+	public static int AllLayersExcept(params int[] excludedLayerNumbers)
+	{
+		if (excludedLayerNumbers is null || excludedLayerNumbers.Length == 0)
+		{
+			return AllSpawnLayers;
+		}
+
+		var mask = AllSpawnLayers;
+		foreach (var layer in excludedLayerNumbers)
+		{
+			if (layer > 0 && layer <= 31)
+			{
+				mask &= ~(1 << (layer - 1));
+			}
+		}
+
+		return mask;
+	}
+
+	/// <summary>
+	/// Whether this tile is permitted to spawn automatically on a zero-based
+	/// biome depth. Depth 0 is layer 1; a negative or too-large depth has no
+	/// layer bit and returns false.
+	/// </summary>
+	public bool CanSpawnInLayer(int biomeDepth)
+	{
+		if (SpawnLayers == 0 || biomeDepth < 0)
+		{
+			return false;
+		}
+
+		if (SpawnLayers == AllSpawnLayers)
+		{
+			return true;
+		}
+
+		var layerNumber = biomeDepth + 1;
+		return layerNumber > 0 && layerNumber <= 31 && (SpawnLayers & (1 << (layerNumber - 1))) != 0;
+	}
+
 	/// <summary>Serialize this definition into the opaque payload format.</summary>
 	public byte[] ToPayload()
 	{

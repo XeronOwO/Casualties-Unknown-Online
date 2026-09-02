@@ -81,6 +81,9 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 
 	public void OnBlockDamaged(Vector2 pos, float dmg, bool bonusMetal) => domains.BlockBreakSync.OnBlockDamaged(pos, dmg, bonusMetal);
 
+	public void OnCustomTileBroken(WorldGeneration world, Vector2Int cell, ushort block) =>
+		domains.TileContent.TrySpawnDrops(world, cell, block);
+
 	public void OnBuildingEntityDamaged(BuildingEntity entity, float damage, bool playHitSound)
 	{
 		domains.WorldEventSync.OnBuildingEntityDamaged(entity, damage, playHitSound);
@@ -152,6 +155,9 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 
 	public IEnumerator WrapStructureWorldGen(IEnumerator original, WorldGeneration world) =>
 		domains.StructureWorldGen.Wrap(original, world);
+
+	public void OnCustomTileOreGeneration(WorldGeneration world) =>
+		domains.TileWorldGen.Distribute(world);
 
 	public void OnEarthquakeStarted(float duration, float nextDelay) =>
 		domains.WorldEventSync.OnEarthquakeStarted(duration, nextDelay);

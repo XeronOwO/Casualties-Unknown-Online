@@ -18,7 +18,8 @@ SemVer versions, and per-sender rate limits.
 
 **UI is landed (see §4e), content registration is landed (see §4f),
 ReadGameState is landed (see §4g), entity and item spawn are landed (see §4h),
-and AccessNativeApi is landed (see §4i).**
+AccessNativeApi is landed (see §4i), and the runtime mod-data scope seam is
+landed (see §4j).**
 The mod surface lives in **`CUO.Abstractions`** — the ONLY
 assembly mods may reference (architecture.md §5.5). A mod never touches
 BepInEx, Steamworks, the game assemblies, or CUO.Runtime. **Mod-state saves
@@ -100,6 +101,7 @@ public sealed class MyMod : ICuoMod   // ICuoService lifecycle + Bind
 | `Session` | a **SNAPSHOT at bind time**, not a live view — the host never fires `SessionActivated` (it activated at lobby creation), and events fired before discovery are lost. The snapshot is the only reliable "current state". `MemberSteamIds` is the peer member set (the local peer is `LocalSteamId`). |
 | `Commands` | host-authoritative commands — see §4b. |
 | `State` | host-persistent per-mod state — see §4d. |
+| `Data` | runtime scope-declared per-mod data — see §4j. |
 | `Ui` | local immediate-mode mod UI windows — see §4e. |
 | `Content` | mod content registration — see §4f. |
 | `GameState` | read-only player-state projection — see §4g. |
@@ -578,6 +580,70 @@ if (context.NativeApi.CanAccess)
   escape-hatch policy decision: a curated allowlist, never open reflection.
 - **No wire change**: this surface only reads local game state.
 
+## 4j. Runtime mod data (scope-declared ephemeral values)
+
+```csharp
+// Local-only presentation/config/debug state: never leaves this process.
+if (context.Data.TryDeclare("settings", ModDataScope.LocalOnly))
+{
+    context.Data.TrySet("settings", myBytes);
+    context.Data.TryGet("settings", out var current);
+}
+
+// Shared state: host owns the value; a guest keeps a mirror only after
+// applying a host-originated value received over context.Network.
+if (context.Data.TryDeclare("score", ModDataScope.Shared))
+{
+    // Host only:
+    context.Data.TrySet("score", scoreBytes);
+    context.Network.Broadcast(scoreBytes); // mod-owned payload/serialization
+
+    // Guest, in MessageReceived from the host:
+    context.Data.TryApplyShared("score", payload, senderSteamId);
+}
+
+// Host-authoritative state: the framework keeps no guest mirror.
+if (context.Data.TryDeclare("hostSecret", ModDataScope.HostAuthoritative))
+{
+    if (context.Session.IsHost)
+    {
+        context.Data.TrySet("hostSecret", secretBytes);
+    }
+}
+```
+
+- **Scope**: `IModData` is a per-mod, process-local, **ephemeral** runtime store.
+  It is not `IModState` and it is not a generic snapshot service. The mod
+  declares each slot's scope once (`LocalOnly`, `Shared`, or
+  `HostAuthoritative`), then reads/writes opaque `byte[]` values with the same
+  key/value caps as the durable state store (key ≤128, value ≤64 KiB, ≤1024
+  slots per mod).
+- **No persistence and no automatic sync**: values exist only for the current
+  process. Durable values belong in `IModState`; cooperative gameplay facts
+  belong in CUO's typed kernel domains. The framework never sends a runtime
+  data value. Shared mirrors are applied explicitly by the mod from a value it
+  received over `IModNetwork`, so there is no hidden JToken/JObject snapshot
+  protocol.
+- **Scopes**:
+  - `LocalOnly` — every network mode may declare. Any role may set/get/remove.
+  - `Shared` — only state-bearing modes (`Synchronized`, `Authoritative`,
+    `RequiresAllPlayers`) and only when the mod declares
+    `SendNetworkMessage` (the transport that makes a mirror meaningful). The
+    host is the only writer; guests call `TryApplyShared` with the session
+    host's SteamId to store a local mirror.
+  - `HostAuthoritative` — state-bearing modes plus `HostOnly`. The host is the
+    only writer/reader in the framework store; guests get no mirror and must
+    coordinate through `IModCommands` / `IModNetwork` if they need the value.
+- **Role gates**: `TrySet` and `TryRemove` on `Shared`/`HostAuthoritative`
+  slots require the host role. `TryApplyShared` requires a guest copy, a
+  `Shared` slot, and a sender that equals the session host. These checks are
+  logged and return false; nothing is silently ignored.
+- **Migration mapping**: CUCoreLib's ad-hoc custom data / snapshot modules map
+  to this seam by declaring a scope and then using the existing typed
+  `IModNetwork` / `IModCommands` surfaces for transport. Do not port a generic
+  JObject snapshot registry.
+- **No wire change**: no new NetMsg is introduced by this surface.
+
 ## 5. Handshake consistency (how sessions stay coherent)
 
 The guest's declared mod list rides the handshake (`HandshakeMsg.Mods`). The
@@ -630,7 +696,8 @@ permission policy (`ModPermissionPolicyTests`), SemVer (`SemanticVersionTests`),
 lifecycle (`ModLifecycleTests`), message routing + permission/rate gates
 (`ModMessageTests`), host commands (`ModCommandTests`), mod-state saves
 (`ModStateTests`), local mod UI (`ModUiTests`), mod content registration
-(`ModContentTests`, `ModContentCatalogTests`), read game state (`ModGameStateTests`), entity spawn
+(`ModContentTests`, `ModContentCatalogTests`), runtime mod data
+(`ModDataTests`), read game state (`ModGameStateTests`), entity spawn
 (`ModEntitySpawnTests`), item spawn (`ModItemSpawnTests`), tile placement
 (`ModTilePlacementTests`), native API
 (`ModNativeApiTests` + `GameAdapterNativeApiContractTests`), handshake matrix

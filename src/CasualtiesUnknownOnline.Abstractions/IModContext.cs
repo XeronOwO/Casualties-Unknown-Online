@@ -45,6 +45,15 @@ public interface IModContext
 	IModState State { get; }
 
 	/// <summary>
+	/// Per-mod runtime data — ephemeral, process-local, scope-declared values.
+	/// Local-only data never crosses the wire; shared and host-authoritative
+	/// data is transport-explicit through <see cref="IModNetwork"/> /
+	/// <see cref="IModCommands"/> rather than an automatic snapshot protocol.
+	/// See <see cref="IModData"/> for the full contract.
+	/// </summary>
+	IModData Data { get; }
+
+	/// <summary>
 	/// Local mod UI windows (immediate-mode drawings on the local client). This
 	/// surface is local-only and requires no permission — see <see cref="IModUi"/>.
 	/// </summary>

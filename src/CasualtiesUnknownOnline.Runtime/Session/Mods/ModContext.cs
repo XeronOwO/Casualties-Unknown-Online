@@ -22,6 +22,7 @@ internal sealed class ModContext(
 	SessionService sessionService,
 	ModChannel channel,
 	ModStateStore stateStore,
+	ModDataStore dataStore,
 	ModCommandService commands,
 	ConsoleCommandRegistry consoleCommands,
 	RemoteVitalsService remoteVitals,
@@ -37,6 +38,7 @@ internal sealed class ModContext(
 	private readonly ModCommandService.ModCommandAdapter _commands = commands.CreateAdapter(manifest);
 	private readonly ModConsoleCommandAdapter _consoleCommands = new(consoleCommands, manifest, sessionService, frameworkLog);
 	private readonly IModState _state = stateStore.CreateStateAdapter(manifest, sessionService);
+	private readonly IModData _data = dataStore.CreateDataAdapter(manifest, sessionService);
 	private readonly ModUiAdapter _ui = new(manifest, frameworkLog);
 	private readonly ModContentAdapter _content = new(manifest, frameworkLog);
 	private readonly ModGameStateAdapter _gameState = new(manifest, sessionService, remoteVitals, remoteInventory, frameworkLog);
@@ -55,6 +57,8 @@ internal sealed class ModContext(
 	public IModConsoleCommands ConsoleCommands => _consoleCommands;
 
 	public IModState State => _state;
+
+	public IModData Data => _data;
 
 	public IModUi Ui => _ui;
 

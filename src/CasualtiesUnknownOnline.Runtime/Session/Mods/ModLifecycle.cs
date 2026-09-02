@@ -23,6 +23,7 @@ internal sealed class ModLifecycle(
 	ModCommandService commands,
 	ConsoleCommandRegistry consoleCommands,
 	ModStateStore stateStore,
+	ModDataStore dataStore,
 	SessionService session,
 	ModChannel channel,
 	ModRegistry registry,
@@ -41,6 +42,7 @@ internal sealed class ModLifecycle(
 	private readonly ModCommandService _commands = commands;
 	private readonly ConsoleCommandRegistry _consoleCommands = consoleCommands;
 	private readonly ModStateStore _stateStore = stateStore;
+	private readonly ModDataStore _dataStore = dataStore;
 	private readonly SessionService _session = session;
 	private readonly ModChannel _channel = channel;
 	private readonly ModRegistry _registry = registry;
@@ -152,6 +154,7 @@ internal sealed class ModLifecycle(
 					_session,
 					_channel,
 					_stateStore,
+					_dataStore,
 					_commands,
 					_consoleCommands,
 					_remoteVitals,

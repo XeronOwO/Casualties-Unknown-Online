@@ -211,6 +211,7 @@ internal static class PluginDependencyRegistrar
 		services.Replace(ServiceDescriptor.Singleton<IModEntitySpawner>(p => p.GetRequiredService<GameAdapterImpl>()));
 		services.Replace(ServiceDescriptor.Singleton<IModItemSpawner>(p => p.GetRequiredService<GameAdapterImpl>()));
 		services.Replace(ServiceDescriptor.Singleton<IModTilePlacer>(p => p.GetRequiredService<GameAdapterImpl>()));
+		services.Replace(ServiceDescriptor.Singleton<IModStructurePlacer>(p => p.GetRequiredService<GameAdapterImpl>()));
 		services.Replace(ServiceDescriptor.Singleton<IModNativeApiProvider>(p => p.GetRequiredService<GameAdapterImpl>()));
 		// Item content binding: the runtime binder routes ModContentKind.Item
 		// definitions to this Game Adapter provider. It runs after ModService in
@@ -238,6 +239,12 @@ internal static class PluginDependencyRegistrar
 		services.AddSingleton<GameAdapterTileContentProvider>();
 		services.AddSingleton<IContentBindingProvider>(p => p.GetRequiredService<GameAdapterTileContentProvider>());
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<GameAdapterTileContentProvider>());
+		// Structure content binding: typed static structure DTOs are stored in a
+		// GameAdapter registry and served through the mod structure placement
+		// seam; no automatic worldgen distribution in this slice.
+		services.AddSingleton<GameAdapterStructureContentProvider>();
+		services.AddSingleton<IContentBindingProvider>(p => p.GetRequiredService<GameAdapterStructureContentProvider>());
+		services.AddSingleton<ICuoService>(p => p.GetRequiredService<GameAdapterStructureContentProvider>());
 		// The game-backed line-of-sight oracle is a standalone lightweight
 		// GameAdapter service. It must NOT be registered through GameAdapterImpl:
 		// GameAdapter depends on IPlayerInteractionControl, and

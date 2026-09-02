@@ -309,6 +309,14 @@ context.Content.TryUnregister("wooden.sword");
   matching `BlockInfo` through a narrow `GetBlockInfo` prefix. No random
   world generation and no wire message are involved — mods choose where
   static tiles appear.
+- **Typed structure content**: `ModStructureDefinition` is the sixth well-known
+  Abstractions DTO. It carries display/description text, a width/height grid of
+  rows, marker maps from single-character markers to either vanilla block
+  indices or custom tile content ids, optional per-depth spawn counts, and an
+  extensible `CustomData` dictionary. The Game Adapter structure provider
+  validates and compiles the grid; multi-block runtime placement is exposed
+  through `IModStructurePlacement` (§4h). Automatic worldgen distribution is
+  deliberately not part of this initial seam.
 - **Shared-content binding boundary**: the runtime content binder only routes
   content from mods whose network mode guarantees a matching copy on every
   player that can receive the content instances
@@ -349,6 +357,12 @@ context.Content.TryUnregister("wooden.sword");
   runtime drop behaviour; single-cell runtime placement is exposed through
   `IModTilePlacement` (§4h). No game/Unity type is exposed to mods and no new
   wire message is used.
+- **Current structure binding scope**: `GameAdapterStructureContentProvider`
+  decodes `ModStructureDefinition`, validates the authored grid/marker maps,
+  and compiles it into non-air cells. It intentionally does not perform
+  automatic worldgen distribution or spawn-count placement; multi-cell runtime
+  placement is exposed through `IModStructurePlacement` (§4h). No game/Unity
+  type is exposed to mods and no new wire message is used.
 - **No wire change**: no content bytes or new NetMsg.
 
 ## 4g. Read game state (read-only projection)
@@ -468,6 +482,24 @@ if (context.ItemSpawn.CanSpawn)
   static content are addressable by stable id; vanilla block indices are not
   exposed through this seam. It writes one block cell, not a structure or a
   worldgen distribution.
+- **Structure placement scope**: `IModStructurePlacement` lets a synchronized/
+  authoritative mod place one static structure at integer block coordinates
+  (`originX`, `originY` is the structure's bottom-left block). The structure is
+  addressed by the stable content id registered through
+  `ModContentKind.Structure`; the Game Adapter resolves every non-air cell to
+  either a vanilla block index or a custom tile content id and calls the
+  vanilla `WorldGeneration.SetBlock` path for each cell. No Unity or
+  game-assembly type crosses the boundary.
+- **Structure placement precondition**: all non-air cells must be inside the
+  current world and on air. The Game Adapter preflights the entire structure
+  before the first write, so a failed request never leaves a partial structure.
+- **Structure placement replication**: each write goes through the vanilla
+  `SetBlock` path already monitored by the CUO `BlockPlaced` relay, so
+  guest → host report + host arbitration/broadcast works exactly like native
+  block placement. No new `NetMsg`.
+- **Structure placement boundary (this slice)**: only structures registered as
+  static content are addressable; no automatic worldgen distribution or spawn
+  counts are applied yet.
 - **No wire change**: no new `NetMsg`.
 
 ## 4i. AccessNativeApi (curated native operation registry)

@@ -54,6 +54,14 @@ public interface IModContext
 	IModData Data { get; }
 
 	/// <summary>
+	/// Per-mod runtime status values — the typed phase-1 counterpart to static
+	/// <see cref="ModStatusDefinition"/> content. It is keyed by player and
+	/// optional limb slot and uses the same scope rules as <see cref="IModData"/>.
+	/// See <see cref="IModStatusRuntime"/> for the full contract.
+	/// </summary>
+	IModStatusRuntime StatusRuntime { get; }
+
+	/// <summary>
 	/// Local mod UI windows (immediate-mode drawings on the local client). This
 	/// surface is local-only and requires no permission — see <see cref="IModUi"/>.
 	/// </summary>

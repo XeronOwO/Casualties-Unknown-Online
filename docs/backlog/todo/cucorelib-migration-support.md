@@ -168,6 +168,12 @@ content binders can build on:
   `IModNetwork`; the framework does not auto-replicate and does not add a
   generic snapshot protocol. `IModState` remains the host-persistent special
   case.
+- `IModStatusRuntime` + `ModStatusStore`/`ModStatusPolicy` — the phase-1
+  runtime status table. It adds an ephemeral per-mod status store keyed by
+  status id, player SteamId, and optional limb slot, with the same
+  local/shared/host-authoritative scope rules as `IModData`. It does not touch
+  vanilla `Body`/`Limb` or feed the vanilla moodle row yet; the domain design
+  is in `docs/architecture/mod-status-domain.md`.
 - Tests for version storage/validation, catalog enumeration/filtering,
   unique resolution, duplicate/version conflicts, empty-catalog behavior,
   null-argument edges, DTO round-trip, binder routing/shared-mode
@@ -183,13 +189,16 @@ content binders can build on:
   `docs/evidence/selfchecks/mod-api/mod-structure-worldgen-distribution-selfcheck.md`,
   `docs/evidence/selfchecks/mod-api/mod-status-moodle-content-binding-selfcheck.md`,
   `docs/evidence/selfchecks/mod-api/mod-runtime-data-selfcheck.md`,
+  `docs/evidence/selfchecks/mod-api/mod-status-runtime-selfcheck.md`,
   and `docs/evidence/selfchecks/mod-api/mod-item-spawn-selfcheck.md`.
 
 Still explicitly **not** implemented:
-- dynamic per-player / per-limb status runtime values and the
-  host-authoritative mod-status domain boundary (static status descriptors are
-  landed; the runtime domain boundary is designed in
-  `docs/architecture/mod-status-domain.md`; implementation is not started);
+- full dynamic per-player / per-limb status runtime values and the vanilla
+  integration half (static status descriptors are landed; the runtime-status
+  table + typed API phase 1 is landed in `IModStatusRuntime`; the domain
+  design is in `docs/architecture/mod-status-domain.md`; host
+  commands/dedicated wire and GameAdapter vanilla projection are still
+  future);
 - actual vanilla-moodle presentation binding (static moodle descriptors are
   landed; feeding the vanilla moodle row remains a future UI/GameAdapter seam);
 - an **automatic runtime mod-data sync engine** (the scope seam is landed:

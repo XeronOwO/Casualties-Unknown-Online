@@ -1,10 +1,10 @@
 # Mod Status Runtime Domain Boundary
 
-Status: Design with phases 1–2 and phase 3's first GameAdapter projection
-slice landed (Runtime status table + typed API + typed status transport over
+Status: Design with phases 1–2 and phase 3's GameAdapter projection slices
+landed (Runtime status table + typed API + typed status transport over
 the existing mod-message channel + typed body/limb projection DTOs and a
-GameAdapter vanilla overlay; no dedicated NetMsg, no JObject snapshot, no
-continuous circulation-target patch yet).
+GameAdapter vanilla overlay + circulation-target formula patch; no dedicated
+NetMsg, no JObject snapshot).
 
 This document answers the remaining CUCoreLib migration question for dynamic
 statuses: when a mod wants per-player or per-limb status runtime values, where
@@ -214,7 +214,7 @@ Semantics:
    - Guest-to-host change requests remain explicit `IModCommands` semantics:
      the host's command handler validates and then publishes the committed
      result with the broadcast helpers.
-3. **GameAdapter vanilla projection — first slice landed**
+3. **GameAdapter vanilla projection — body/limb + circulation landed**
    - Added `ModStatusProjectionKind` plus typed `ModBodyFormulaProjection`
      / `ModLimbProjection` DTOs in Abstractions. A mod declares a runtime
      status slot as `BodyFormula` or `LimbPhysiology` and publishes the
@@ -224,11 +224,19 @@ Semantics:
      projection snapshot read seam. `ModStatusVanillaProjection` (GameAdapter
      only) decodes those well-known payloads and applies additive overlays to
      the local `Body`/`Limb` through `Body.Update`/`Limb.Update` postfixes.
-   - First slice covers body values that are recomputed from scratch
-     (encumbrance, immunity, jump speed, average pain) and limb physiology
-     fields that the native limb update already modifies additively (bleed,
-     skin/muscle health, infection). Continuous circulation targets and the
-     vanilla moodle row remain future seams.
+   - Body slice covers values that are recomputed from scratch (encumbrance,
+     immunity, jump speed, average pain); limb slice covers physiology fields
+     that the native limb update already modifies additively (bleed,
+     skin/muscle health, infection).
+   - Circulation slice adds `HeartRateOffset`, `RespiratoryRateOffset`, and
+     `BloodPressureOffset` to `ModBodyFormulaProjection`.
+     `ModStatusProjectionPatches` wraps `Body.HandleCirculation` with a
+     prefix/postfix pair: the previous offset is removed before the native
+     formula runs and the current offset is reapplied after it, so continuously
+     recomputed circulation values stay at native base + mod offset without
+     being erased each frame. The native readout strings are refreshed after
+     the overlay.
+   - The vanilla moodle row remains a future seam.
 4. **Migration guide**
    - CUCoreLib `GetStatus<T>()` maps to `IModStatusRuntime.TryGet*` with a
      stable status id and opaque mod payload.

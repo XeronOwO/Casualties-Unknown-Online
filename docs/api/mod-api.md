@@ -20,7 +20,7 @@ SemVer versions, and per-sender rate limits.
 ReadGameState is landed (see §4g), entity and item spawn are landed (see §4h),
 AccessNativeApi is landed (see §4i), the runtime mod-data scope seam is
 landed (see §4j), and the runtime status table + typed status transport +
-first GameAdapter projection slice are landed (see §4k).**
+GameAdapter projection slices are landed (see §4k).**
 The mod surface lives in **`CUO.Abstractions`** — the ONLY
 assembly mods may reference (architecture.md §5.5). A mod never touches
 BepInEx, Steamworks, the game assemblies, or CUO.Runtime. **Mod-state saves
@@ -656,7 +656,7 @@ if (context.StatusRuntime.TryDeclare(
         ModDataScope.Shared,
         projectionKind: ModStatusProjectionKind.BodyFormula))
 {
-    var projection = new ModBodyFormulaProjection { MaxEncumbrance = 2f, Immunity = 5f };
+    var projection = new ModBodyFormulaProjection { MaxEncumbrance = 2f, Immunity = 5f, HeartRateOffset = 12f };
     context.StatusTransport.TryBroadcastBodyStatus(
         "strength.potion", playerSteamId, projection.ToPayload());
 }
@@ -698,19 +698,23 @@ if (context.StatusRuntime.TryDeclare("bleeding", ModStatusScope.Limb, ModDataSco
   that needs the host to change a shared/host-authoritative status still uses
   `IModCommands`; the host command handler is the semantic validator and then
   calls a `TryBroadcast*` helper to publish the committed result.
-- **Typed projection (phase 3, first slice)**: `TryDeclare` accepts an optional
+- **Typed projection (phase 3)**: `TryDeclare` accepts an optional
   `ModStatusProjectionKind` (`BodyFormula` or `LimbPhysiology`). When set, the
   mod's opaque status value should be the matching typed DTO
   (`ModBodyFormulaProjection` / `ModLimbProjection`). The GameAdapter decodes
   only those well-known payloads and applies additive overlays to the local
   vanilla `Body`/`Limb` after their native updates. The mod still owns the
   payload bytes and serialization; no game/Unity type crosses Abstractions.
-- **Projection scope (this slice)**: body fields are MaxEncumbrance,
-  TotalEncumbrance, Immunity, JumpSpeed, and AveragePain; limb fields are
-  BleedAmount, SkinHealth, MuscleHealth, and InfectionAmount. Continuous
-  circulation targets (heart rate, respiratory rate, blood pressure) and the
-  vanilla moodle row are deliberately not projected yet; they need a target
-  patch/UI seam, not an additive overlay.
+- **Projection scope**: body fields are MaxEncumbrance,
+  TotalEncumbrance, Immunity, JumpSpeed, AveragePain, plus HeartRateOffset,
+  RespiratoryRateOffset, and BloodPressureOffset; limb fields are BleedAmount,
+  SkinHealth, MuscleHealth, and InfectionAmount. The circulation offsets are
+  applied through a dedicated `Body.HandleCirculation` prefix/postfix seam:
+  the previous offset is removed before the native formula and the current
+  offset is reapplied after it, so these continuously recomputed values remain
+  at native base + mod offset rather than being erased every frame. The
+  vanilla moodle row is deliberately not projected yet; it needs a UI/GameAdapter
+  seam, not an additive overlay.
 - **Boundary**: opaque `None` statuses are never interpreted by the
   GameAdapter. Only body/limb projection statuses reach the vanilla layer; the
   store change event is internal and does not add a wire message.

@@ -446,5 +446,19 @@ internal interface IPatchBridge
 	/// belongs to the local body and the projection service owns the effect).
 	/// </summary>
 	void ApplyLimbStatusProjection(Body body, Limb limb);
+	/// <summary>
+	/// The local player's <c>Body.HandleCirculation</c> is about to run. Remove
+	/// the previously reapplied mod circulation offset so the native formula
+	/// computes from the unmodified base (the bridge checks local body).
+	/// </summary>
+	void ApplyBodyCirculationPrefix(Body body);
+
+	/// <summary>
+	/// The local player's <c>Body.HandleCirculation</c> finished. Reapply the
+	/// current decoded mod circulation offsets and refresh the native readout
+	/// strings (the bridge checks local body).
+	/// </summary>
+	void ApplyBodyCirculationPostfix(Body body);
+
 
 }

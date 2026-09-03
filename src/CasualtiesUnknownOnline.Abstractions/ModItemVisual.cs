@@ -50,4 +50,29 @@ public sealed class ModItemVisual
 	/// </summary>
 	[DataMember(Order = 6)]
 	public List<ModItemLimbWornSprite> MultiWornSprites { get; set; } = [];
+
+	/// <summary>
+	/// Optional frame animation for the item's primary/held sprite when the item
+	/// is not wearing a dedicated worn sprite. The first frame is also used as
+	/// the static fallback icon.
+	/// </summary>
+	[DataMember(Order = 7)]
+	public ModItemSpriteAnimation? BaseSpriteAnimation { get; set; }
+
+	/// <summary>
+	/// Optional frame animation for the worn sprite. When present it supersedes
+	/// the static worn sprite at runtime; the first frame is used as the fallback
+	/// worn sprite when no separate <see cref="WornSpritePath"/> is authored.
+	/// </summary>
+	[DataMember(Order = 8)]
+	public ModItemSpriteAnimation? WornSpriteAnimation { get; set; }
+
+	/// <summary>
+	/// Optional frame animation for the contained-liquid fill mask. When present
+	/// it supersedes the static liquid mask; the first frame is used as the
+	/// fallback liquid fill sprite when no separate <see cref="LiquidMaskPath"/>
+	/// is authored.
+	/// </summary>
+	[DataMember(Order = 9)]
+	public ModItemSpriteAnimation? LiquidMaskAnimation { get; set; }
 }

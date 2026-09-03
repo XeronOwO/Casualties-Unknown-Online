@@ -213,6 +213,57 @@ internal static class CustomItemBehaviorValidator
 			}
 		}
 
+		if (!ValidateSpriteAnimation(modId, id, "base", visual.BaseSpriteAnimation, log)
+			|| !ValidateSpriteAnimation(modId, id, "worn", visual.WornSpriteAnimation, log)
+			|| !ValidateSpriteAnimation(modId, id, "liquid", visual.LiquidMaskAnimation, log))
+		{
+			return false;
+		}
+
+		return true;
+	}
+
+	private static bool ValidateSpriteAnimation(
+		string modId,
+		string id,
+		string kind,
+		ModItemSpriteAnimation? animation,
+		ILogger log)
+	{
+		if (animation is null)
+		{
+			return true;
+		}
+
+		if (animation.FramePaths is not { Count: > 0 }
+			|| float.IsNaN(animation.FramesPerSecond)
+			|| float.IsInfinity(animation.FramesPerSecond)
+			|| animation.FramesPerSecond <= 0f)
+		{
+			log.LogWarning(
+				"[ItemContent] {ModId}/{Id} has an invalid {Kind} sprite animation — refused.",
+				modId, id, kind);
+			return false;
+		}
+
+		var hasFrame = false;
+		foreach (var path in animation.FramePaths)
+		{
+			if (!string.IsNullOrWhiteSpace(path))
+			{
+				hasFrame = true;
+				break;
+			}
+		}
+
+		if (!hasFrame)
+		{
+			log.LogWarning(
+				"[ItemContent] {ModId}/{Id} has an empty {Kind} sprite animation — refused.",
+				modId, id, kind);
+			return false;
+		}
+
 		return true;
 	}
 

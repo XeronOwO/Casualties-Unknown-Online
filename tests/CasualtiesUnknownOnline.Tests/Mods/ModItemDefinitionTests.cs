@@ -192,7 +192,25 @@ public class ModItemDefinitionTests
 						OffsetX = 2f,
 						OffsetY = 0.25f
 					}
-				]
+				],
+				BaseSpriteAnimation = new ModItemSpriteAnimation
+				{
+					FramePaths = ["Fx/TestBase0", "Fx/TestBase1"],
+					FramesPerSecond = 8f,
+					Loop = false
+				},
+				WornSpriteAnimation = new ModItemSpriteAnimation
+				{
+					FramePaths = ["Fx/TestWorn0", "Fx/TestWorn1", "Fx/TestWorn2"],
+					FramesPerSecond = 10f,
+					Loop = true
+				},
+				LiquidMaskAnimation = new ModItemSpriteAnimation
+				{
+					FramePaths = ["Fx/TestMask0", "Fx/TestMask1"],
+					FramesPerSecond = 6f,
+					Loop = false
+				}
 			}
 		};
 
@@ -215,6 +233,18 @@ public class ModItemDefinitionTests
 		Assert.Equal("Clothing/TestPack", restored.Visual.MultiWornSprites[1].SpritePath);
 		Assert.Equal(2f, restored.Visual.MultiWornSprites[1].OffsetX);
 		Assert.Equal(0.25f, restored.Visual.MultiWornSprites[1].OffsetY);
+		Assert.NotNull(restored.Visual.BaseSpriteAnimation);
+		Assert.Equal(["Fx/TestBase0", "Fx/TestBase1"], restored.Visual.BaseSpriteAnimation.FramePaths);
+		Assert.Equal(8f, restored.Visual.BaseSpriteAnimation.FramesPerSecond);
+		Assert.False(restored.Visual.BaseSpriteAnimation.Loop);
+		Assert.NotNull(restored.Visual.WornSpriteAnimation);
+		Assert.Equal(["Fx/TestWorn0", "Fx/TestWorn1", "Fx/TestWorn2"], restored.Visual.WornSpriteAnimation.FramePaths);
+		Assert.Equal(10f, restored.Visual.WornSpriteAnimation.FramesPerSecond);
+		Assert.True(restored.Visual.WornSpriteAnimation.Loop);
+		Assert.NotNull(restored.Visual.LiquidMaskAnimation);
+		Assert.Equal(["Fx/TestMask0", "Fx/TestMask1"], restored.Visual.LiquidMaskAnimation.FramePaths);
+		Assert.Equal(6f, restored.Visual.LiquidMaskAnimation.FramesPerSecond);
+		Assert.False(restored.Visual.LiquidMaskAnimation.Loop);
 	}
 
 	[Fact]

@@ -1,4 +1,5 @@
 using System.Collections;
+using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using UnityEngine;
@@ -233,6 +234,13 @@ internal interface IPatchBridge
 	/// to <c>Resources.Load</c> for vanilla buildings.
 	/// </summary>
 	bool TryResolveBuildingTemplate(string id, out GameObject? template);
+
+	/// <summary>
+	/// Resolve the synthetic <c>ItemLootPool</c> category for a fixed drop
+	/// source. Returns false when no custom items have been registered for that
+	/// source or the loot pool is not ready yet.
+	/// </summary>
+	bool TryGetModDropSourceCategory(ModItemDropSource source, out string category);
 
 	/// <summary>
 	/// Returns the mod-authored <see cref="BlockInfo"/> for a custom tile

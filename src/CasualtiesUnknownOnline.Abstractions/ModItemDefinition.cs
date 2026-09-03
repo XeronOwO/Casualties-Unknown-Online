@@ -89,6 +89,15 @@ public sealed class ModItemDefinition
 	[DataMember(Order = 15)]
 	public float? WorldSpawnPerChunk { get; set; }
 
+	/// <summary>
+	/// Optional explicit fixed drop-source pools. When set, the item is not added
+	/// to the generic vanilla category loot pool; instead it is registered only in
+	/// the selected source pools (corpse, built-in crates, trader stock). Leave
+	/// null to use the vanilla category fallback.
+	/// </summary>
+	[DataMember(Order = 16)]
+	public ModItemDropSource? DropSources { get; set; }
+
 	/// <summary>Serialize this definition into the opaque payload format.</summary>
 	public byte[] ToPayload()
 	{

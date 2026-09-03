@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Linq;
+using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.GameAdapter.Character;
 using CasualtiesUnknownOnline.GameAdapter.Items;
 using CasualtiesUnknownOnline.Runtime.Protocol;
@@ -36,6 +37,9 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 
 	public bool TryResolveBuildingTemplate(string id, out GameObject? template) =>
 		domains.BuildingContent.TryResolveTemplate(id, out template);
+
+	public bool TryGetModDropSourceCategory(ModItemDropSource source, out string category) =>
+		domains.ItemContent.TryGetDropSourceCategory(source, out category);
 
 	public BlockInfo? TryGetCustomBlockInfo(ushort block) =>
 		domains.TileContent.TryGetBlockInfo(block);

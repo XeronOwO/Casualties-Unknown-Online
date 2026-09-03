@@ -288,7 +288,9 @@ context.Content.TryUnregister("wooden.sword");
   display name, description, category, weight, value, usability flags, wear
   flag, destruction flag, tags, spawn frequency, an optional vanilla
   `TemplateId` (the runtime prefab base), optional `SpawnComponents` (component
-  type names attached by the Game Adapter at template build time), and an
+  type names attached by the Game Adapter at template build time), optional
+  `WorldSpawnPerChunk` (loose world-gen distribution), optional
+  `DropSources` (explicit fixed corpse/crate/trader loot pools), and an
   extensible `CustomData` dictionary. A mod serializes it with `ToPayload()`
   and registers the bytes through `IModContent`; the framework still stores
   bytes opaquely.
@@ -364,6 +366,17 @@ context.Content.TryUnregister("wooden.sword");
   `BuildingEntity.Update` and `SaveSystem.TryLoadGame` resource loads can
   therefore materialize a custom item; no game type is exposed to mods and no
   new wire message is used.
+- **Current item fixed drop-source scope**: `ModItemDefinition.DropSources`
+  lets a mod opt a custom item into explicit vanilla loot containers instead of
+  (or in addition to) the generic category pool. The Game Adapter provider
+  registers the item under stable synthetic `ItemLootPool` categories for
+  corpse, built-in medical/food/container crates, drop capsules, capsule
+  containers, and trader 1-3 stock; narrow `CorpseScript.Start`,
+  `BuildingEntity.Start`, and host-side `TraderScript.GenerateSingleItemList`
+  patches add those source categories to the existing vanilla loot flow. The
+  item is removed from its generic category pool, so "fixed source" means the
+  authored sources are authoritative. No game/Unity type crosses Abstractions
+  and no new wire message is used.
 - **Current recipe binding scope**: `GameAdapterRecipeContentProvider` decodes
   `ModRecipeDefinition`, waits for `Recipes.recipes`, deduplicates against the
   existing recipe table, and injects each accepted recipe with its game-category

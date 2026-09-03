@@ -26,7 +26,21 @@ public sealed class GameAdapterItemContentProvider(
 	private readonly Dictionary<string, GameObject> _templates = [];
 	private readonly HashSet<string> _templateFailures = [];
 	private readonly HashSet<string> _lootPoolIds = [];
+	private readonly Dictionary<ModItemDropSource, HashSet<string>> _dropSourceSeeded = [];
 	private Dictionary<string, List<string>>? _lastLootPool;
+
+	private static readonly ModItemDropSource[] SingleDropSources =
+	[
+		ModItemDropSource.Corpse,
+		ModItemDropSource.MedicalCrate,
+		ModItemDropSource.FoodCrate,
+		ModItemDropSource.ContainerCrate,
+		ModItemDropSource.Trader1,
+		ModItemDropSource.Trader2,
+		ModItemDropSource.Trader3,
+		ModItemDropSource.DropCapsule,
+		ModItemDropSource.CapsuleContainer
+	];
 
 	/// <inheritdoc />
 	public string Kind => ModContentKind.Item;
@@ -104,6 +118,7 @@ public sealed class GameAdapterItemContentProvider(
 
 			EnsureTemplate(pair.Key, pair.Value);
 			EnsureLootPool(pair.Key, pair.Value);
+			EnsureDropSources(pair.Key, pair.Value);
 		}
 	}
 
@@ -164,9 +179,25 @@ public sealed class GameAdapterItemContentProvider(
 		{
 			_lastLootPool = pool;
 			_lootPoolIds.Clear();
+			_dropSourceSeeded.Clear();
 		}
 
-		if (pool is null || _lootPoolIds.Contains(id) || definition.WorldSpawnPerChunk is > 0f)
+		if (pool is null)
+		{
+			return;
+		}
+
+		if (definition.WorldSpawnPerChunk is > 0f || definition.DropSources is not null)
+		{
+			// The game's own ItemLootPool.InitializePool rebuilds from
+			// Item.GlobalItems and would otherwise place an explicit-source or
+			// world-spawn-only item into its vanilla category. Remove that
+			// generic entry so the authored source selections stay authoritative.
+			RemoveFromLootCategory(pool, definition.Category ?? string.Empty, id);
+			return;
+		}
+
+		if (_lootPoolIds.Contains(id))
 		{
 			return;
 		}
@@ -199,6 +230,124 @@ public sealed class GameAdapterItemContentProvider(
 		_log.LogInformation("[ItemContent] added {Id} to loot category {Category} (frequency {Frequency}).",
 			id, category, frequency);
 	}
+
+	/// <summary>
+	/// Add a bound custom item to the explicit fixed drop-source pools selected
+	/// by the mod. Each active source gets its own synthetic <c>ItemLootPool</c>
+	/// category (not a vanilla category), so corpse/crate/trader patches can opt
+	/// that source into the existing vanilla loot machinery without exposing a
+	/// game type to mods. The item is deliberately NOT added to its generic
+	/// category pool when a mod explicitly chooses fixed sources.
+	/// </summary>
+	private void EnsureDropSources(string id, ModItemDefinition definition)
+	{
+		if (definition.DropSources is not { } sources)
+		{
+			return;
+		}
+
+		var pool = ItemLootPool.pool;
+		if (pool is null)
+		{
+			return;
+		}
+
+		var frequency = Math.Max(0, definition.SpawnFrequency);
+		if (frequency <= 0 || sources == ModItemDropSource.None)
+		{
+			return;
+		}
+
+		foreach (var source in SingleDropSources)
+		{
+			if ((sources & source) == 0)
+			{
+				continue;
+			}
+
+			var category = GetDropSourceCategory(source);
+			if (string.IsNullOrEmpty(category))
+			{
+				continue;
+			}
+
+			if (!_dropSourceSeeded.TryGetValue(source, out var seeded))
+			{
+				seeded = [];
+				_dropSourceSeeded.Add(source, seeded);
+			}
+
+			if (seeded.Contains(id))
+			{
+				continue;
+			}
+
+			if (!pool.TryGetValue(category, out var entries))
+			{
+				entries = [];
+				pool.Add(category, entries);
+			}
+
+			for (var i = 0; i < frequency; i++)
+			{
+				entries.Add(id);
+			}
+
+			seeded.Add(id);
+			_log.LogInformation("[ItemContent] added {Id} to fixed drop source {Source} (frequency {Frequency}).",
+				id, source, frequency);
+		}
+	}
+
+	/// <summary>
+	/// Resolve the synthetic loot-pool category that holds items for a single
+	/// fixed drop source. Returns false when no items have been registered for
+	/// that source (or the pool is not ready).
+	/// </summary>
+	internal bool TryGetDropSourceCategory(ModItemDropSource source, out string category)
+	{
+		category = GetDropSourceCategory(source);
+		if (string.IsNullOrEmpty(category))
+		{
+			return false;
+		}
+
+		var pool = ItemLootPool.pool;
+		if (pool is null || !pool.TryGetValue(category, out var entries) || entries.Count == 0)
+		{
+			return false;
+		}
+
+		return true;
+	}
+
+	private static void RemoveFromLootCategory(
+		Dictionary<string, List<string>> pool,
+		string category,
+		string id)
+	{
+		if (string.IsNullOrWhiteSpace(category) || !pool.TryGetValue(category, out var entries))
+		{
+			return;
+		}
+
+		entries.RemoveAll(entry => string.Equals(entry, id, StringComparison.Ordinal));
+	}
+
+	private static string GetDropSourceCategory(ModItemDropSource source) =>
+		source switch
+		{
+			ModItemDropSource.Corpse => "cuo_drop_corpse",
+			ModItemDropSource.MedicalCrate => "cuo_drop_medical_crate",
+			ModItemDropSource.FoodCrate => "cuo_drop_food_crate",
+			ModItemDropSource.ContainerCrate => "cuo_drop_container_crate",
+			ModItemDropSource.Trader1 => "cuo_drop_trader1",
+			ModItemDropSource.Trader2 => "cuo_drop_trader2",
+			ModItemDropSource.Trader3 => "cuo_drop_trader3",
+			ModItemDropSource.DropCapsule => "cuo_drop_capsule",
+			ModItemDropSource.CapsuleContainer => "cuo_drop_capsule_container",
+			_ => string.Empty
+		};
 
 	private void EnsureTemplate(string id, ModItemDefinition definition)
 	{

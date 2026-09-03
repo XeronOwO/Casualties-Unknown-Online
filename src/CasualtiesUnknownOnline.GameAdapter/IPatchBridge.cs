@@ -62,6 +62,14 @@ internal interface IPatchBridge
 	void OnCustomLiquidWorldGeneration(WorldGeneration world);
 
 	/// <summary>
+	/// Vanilla <c>WorldGeneration.PlaceCrystals</c> finished — distribute
+	/// mod-bound custom building entities after colliders exist, inside the same
+	/// sealed generation stream. The deterministic buildings never need a wire
+	/// message; runtime Start reports are suppressed during generation.
+	/// </summary>
+	void OnCustomBuildingWorldGeneration(WorldGeneration world);
+
+	/// <summary>
 	/// Vanilla <c>WorldGeneration.PlaceCrystals</c> finished — scatter
 	/// mod-bound custom items' loose world spawns, inside the same sealed
 	/// generation stream. The resulting ground items are later bound by the

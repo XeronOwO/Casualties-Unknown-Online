@@ -76,6 +76,138 @@ public sealed class ModBuildingDefinition
 	[DataMember(Order = 13)]
 	public Dictionary<string, string> CustomData { get; set; } = [];
 
+	/// <summary>
+	/// Chance-based drops spawned when the building is destroyed. Empty means no
+	/// authored chance drops; the vanilla building's own drop table still applies
+	/// when the base prefab carries one.
+	/// </summary>
+	[DataMember(Order = 14)]
+	public List<ModBuildingDrop> DropOnDestroy { get; set; } = [];
+
+	/// <summary>
+	/// Drops always spawned when the building is destroyed, regardless of chance.
+	/// These are rolled after chance-based drops and are not multiplied by
+	/// <see cref="DropChanceMultiplier"/>.
+	/// </summary>
+	[DataMember(Order = 15)]
+	public List<ModBuildingDrop> AlwaysDrop { get; set; } = [];
+
+	/// <summary>
+	/// Additional vanilla item-loot categories included in the building's
+	/// guaranteed category drops. Used together with
+	/// <see cref="GuaranteedDropAmount"/>.
+	/// </summary>
+	[DataMember(Order = 16)]
+	public List<string> ItemCategoriesToAdd { get; set; } = [];
+
+	/// <summary>
+	/// Minimum automatic world-spawn attempts per chunk. Null means no automatic
+	/// building distribution; a positive value enables it when
+	/// <see cref="GenerationStyle"/> is not <see cref="ModBuildingGenerationStyle.None"/>.
+	/// </summary>
+	[DataMember(Order = 17)]
+	public float? SpawnMinPerChunk { get; set; }
+
+	/// <summary>
+	/// Maximum automatic world-spawn attempts per chunk. Null means no automatic
+	/// building distribution; a positive value enables it when
+	/// <see cref="GenerationStyle"/> is not <see cref="ModBuildingGenerationStyle.None"/>.
+	/// </summary>
+	[DataMember(Order = 18)]
+	public float? SpawnMaxPerChunk { get; set; }
+
+	/// <summary>
+	/// Bitmask of allowed world layers for automatic building distribution.
+	/// -1 means every layer; 0 disables automatic distribution. Layer N is bit
+	/// N-1 (N starts at 1).
+	/// </summary>
+	[DataMember(Order = 19)]
+	public int SpawnLayers { get; set; } = AllSpawnLayers;
+
+	/// <summary>Automatic world-generation placement style. Default None.</summary>
+	[DataMember(Order = 20)]
+	public ModBuildingGenerationStyle GenerationStyle { get; set; } = ModBuildingGenerationStyle.None;
+
+	/// <summary>Surface this building attaches to when distributed automatically.</summary>
+	[DataMember(Order = 21)]
+	public ModBuildingPlacement Placement { get; set; } = ModBuildingPlacement.Floor;
+
+	/// <summary>Allows the entity to spawn embedded in ground tiles.</summary>
+	[DataMember(Order = 22)]
+	public bool SpawnInGround { get; set; }
+
+	/// <summary>Offset from the placement surface to the rendered object.</summary>
+	[DataMember(Order = 23)]
+	public float? SurfaceOffset { get; set; }
+
+	/// <summary>Allows random horizontal sprite flipping on automatic spawn. Default true when null.</summary>
+	[DataMember(Order = 24)]
+	public bool? RandomFlip { get; set; }
+
+	/// <summary>A bitmask that allows spawning on every world layer.</summary>
+	public const int AllSpawnLayers = -1;
+
+	/// <summary>Build a layer bitmask from one-based layer numbers.</summary>
+	public static int LayersToMask(params int[] layerNumbers)
+	{
+		if (layerNumbers is null)
+		{
+			return 0;
+		}
+
+		var mask = 0;
+		foreach (var layer in layerNumbers)
+		{
+			if (layer > 0 && layer <= 31)
+			{
+				mask |= 1 << (layer - 1);
+			}
+		}
+
+		return mask;
+	}
+
+	/// <summary>Build an all-layers bitmask excluding one-based layer numbers.</summary>
+	public static int AllLayersExcept(params int[] excludedLayerNumbers)
+	{
+		if (excludedLayerNumbers is null || excludedLayerNumbers.Length == 0)
+		{
+			return AllSpawnLayers;
+		}
+
+		var mask = AllSpawnLayers;
+		foreach (var layer in excludedLayerNumbers)
+		{
+			if (layer > 0 && layer <= 31)
+			{
+				mask &= ~(1 << (layer - 1));
+			}
+		}
+
+		return mask;
+	}
+
+	/// <summary>
+	/// Whether this building is permitted to distribute automatically on a
+	/// zero-based biome depth. Depth 0 is layer 1; a negative or too-large depth
+	/// has no layer bit and returns false.
+	/// </summary>
+	public bool CanSpawnInLayer(int biomeDepth)
+	{
+		if (SpawnLayers == 0 || biomeDepth < 0)
+		{
+			return false;
+		}
+
+		if (SpawnLayers == AllSpawnLayers)
+		{
+			return true;
+		}
+
+		var layerNumber = biomeDepth + 1;
+		return layerNumber > 0 && layerNumber <= 31 && (SpawnLayers & (1 << (layerNumber - 1))) != 0;
+	}
+
 	/// <summary>Serialize this definition into the opaque payload format.</summary>
 	public byte[] ToPayload()
 	{

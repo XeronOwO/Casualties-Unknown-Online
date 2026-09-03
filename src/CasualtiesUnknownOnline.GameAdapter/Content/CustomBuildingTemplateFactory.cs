@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using CasualtiesUnknownOnline.Abstractions;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
@@ -98,7 +99,57 @@ internal static class CustomBuildingTemplateFactory
 			building.guaranteedDropAmount = definition.GuaranteedDropAmount.Value;
 		}
 
+		building.itemsDropOnDestroy = ToItemDrops(definition.DropOnDestroy);
+		building.alwaysDrop = ToItemDrops(definition.AlwaysDrop);
+		building.itemCategoriesToAdd = ToItemCategories(definition.ItemCategoriesToAdd);
+
 		CustomComponentAttach.Attach(template, definition.SpawnComponents, log, "BuildingContent");
 		return template;
+	}
+
+	private static ItemDrop[] ToItemDrops(IEnumerable<ModBuildingDrop>? drops)
+	{
+		if (drops is null)
+		{
+			return [];
+		}
+
+		var result = new List<ItemDrop>();
+		foreach (var drop in drops)
+		{
+			if (drop is null || string.IsNullOrWhiteSpace(drop.ItemId))
+			{
+				continue;
+			}
+
+			result.Add(new ItemDrop
+			{
+				id = drop.ItemId,
+				chance = Mathf.Clamp01(drop.Chance),
+				conditionMin = Mathf.Clamp01(drop.MinCondition),
+				conditionMax = Mathf.Clamp01(drop.MaxCondition)
+			});
+		}
+
+		return [.. result];
+	}
+
+	private static string[] ToItemCategories(IEnumerable<string>? categories)
+	{
+		if (categories is null)
+		{
+			return [];
+		}
+
+		var result = new List<string>();
+		foreach (var category in categories)
+		{
+			if (!string.IsNullOrWhiteSpace(category))
+			{
+				result.Add(category);
+			}
+		}
+
+		return [.. result];
 	}
 }

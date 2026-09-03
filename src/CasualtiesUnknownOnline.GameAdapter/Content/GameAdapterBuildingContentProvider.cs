@@ -69,6 +69,12 @@ public sealed class GameAdapterBuildingContentProvider(
 			return false;
 		}
 
+		if (!ValidateWorldGen(registration.ModId, id, definition)
+			|| !ValidateDrops(registration.ModId, id, definition))
+		{
+			return false;
+		}
+
 		_definitions.Add(id, definition);
 		_log.LogInformation(
 			"[BuildingContent] accepted {ModId}/{Id} (schema {SchemaVersion}); template construction waits for the first update.",
@@ -127,6 +133,100 @@ public sealed class GameAdapterBuildingContentProvider(
 
 		template = null;
 		return false;
+	}
+
+	/// <summary>
+	/// Snapshot every accepted building definition with automatic world
+	/// generation enabled, in stable id order for deterministic distribution.
+	/// Both sides must iterate the same set in the same order when consuming the
+	/// shared generation random stream.
+	/// </summary>
+	internal IReadOnlyList<KeyValuePair<string, ModBuildingDefinition>> GetDefinitionsForWorldGen() =>
+		[.. _definitions
+			.Where(pair => pair.Value.GenerationStyle != ModBuildingGenerationStyle.None
+				&& (pair.Value.SpawnMinPerChunk is > 0f || pair.Value.SpawnMaxPerChunk is > 0f))
+			.OrderBy(pair => pair.Key, StringComparer.Ordinal)];
+
+	private bool ValidateWorldGen(string modId, string id, ModBuildingDefinition definition)
+	{
+		foreach (var (label, value) in new[]
+		{
+			("SpawnMinPerChunk", definition.SpawnMinPerChunk),
+			("SpawnMaxPerChunk", definition.SpawnMaxPerChunk),
+			("SurfaceOffset", definition.SurfaceOffset)
+		})
+		{
+			if (value is { } number && (float.IsNaN(number) || float.IsInfinity(number) || number < 0f))
+			{
+				LogInvalidField(modId, id, label, number);
+				return false;
+			}
+		}
+
+		if (definition.SpawnMinPerChunk is { } min && definition.SpawnMaxPerChunk is { } max && min > max)
+		{
+			LogInvalidField(modId, id, "SpawnMinPerChunk > SpawnMaxPerChunk", max);
+			return false;
+		}
+
+		return true;
+	}
+
+	private bool ValidateDrops(string modId, string id, ModBuildingDefinition definition)
+	{
+		if (definition.DropOnDestroy is not null)
+		{
+			foreach (var drop in definition.DropOnDestroy)
+			{
+				if (!IsValidDrop(drop))
+				{
+					LogInvalidField(modId, id, "DropOnDestroy", 0f);
+					return false;
+				}
+			}
+		}
+
+		if (definition.AlwaysDrop is not null)
+		{
+			foreach (var drop in definition.AlwaysDrop)
+			{
+				if (!IsValidDrop(drop))
+				{
+					LogInvalidField(modId, id, "AlwaysDrop", 0f);
+					return false;
+				}
+			}
+		}
+
+		return true;
+	}
+
+	private static bool IsValidDrop(ModBuildingDrop? drop)
+	{
+		if (drop is null || string.IsNullOrWhiteSpace(drop.ItemId))
+		{
+			return false;
+		}
+
+		if (float.IsNaN(drop.Chance) || float.IsInfinity(drop.Chance) || drop.Chance < 0f || drop.Chance > 1f)
+		{
+			return false;
+		}
+
+		if (drop.MinCondition < 0f || drop.MinCondition > 1f
+			|| drop.MaxCondition < 0f || drop.MaxCondition > 1f
+			|| drop.MinCondition > drop.MaxCondition)
+		{
+			return false;
+		}
+
+		return true;
+	}
+
+	private void LogInvalidField(string modId, string id, string field, float value)
+	{
+		_log.LogWarning("[BuildingContent] {ModId}/{Id} has invalid {Field} {Value} — refused.",
+			modId, id, field, value);
 	}
 
 	private void EnsureTemplate(string id, ModBuildingDefinition definition)

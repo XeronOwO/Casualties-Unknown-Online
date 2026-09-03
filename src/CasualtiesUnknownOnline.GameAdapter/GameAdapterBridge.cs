@@ -166,6 +166,9 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 	public void OnCustomLiquidWorldGeneration(WorldGeneration world) =>
 		domains.LiquidTileWorldGen.Distribute(world);
 
+	public void OnCustomBuildingWorldGeneration(WorldGeneration world) =>
+		domains.BuildingWorldGen.Distribute(world);
+
 	public void OnCustomItemWorldGeneration(WorldGeneration world) =>
 		domains.ItemWorldGen.Scatter(world);
 

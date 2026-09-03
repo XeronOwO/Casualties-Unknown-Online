@@ -127,6 +127,10 @@ public sealed class ModItemDefinition
 	[DataMember(Order = 22)]
 	public float DecayMinutes { get; set; }
 
+	/// <summary>Optional visual presentation (worn sprite and liquid mask).</summary>
+	[DataMember(Order = 23)]
+	public ModItemVisual? Visual { get; set; }
+
 	/// <summary>Serialize this definition into the opaque payload format.</summary>
 	public byte[] ToPayload()
 	{

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using CasualtiesUnknownOnline.GameAdapter.Content;
 using CasualtiesUnknownOnline.GameAdapter.Items;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using Microsoft.Extensions.Logging;
@@ -199,6 +200,14 @@ internal sealed class CloneInventoryRenderer(ILogger<CloneInventoryRenderer> log
 			sr.sortingOrder = wearLimb != null
 				? wearLimb.GetComponent<SpriteRenderer>().sortingOrder + item.Stats.wearableVisualOffset
 				: sortOrder;
+		}
+
+		// Remote worn items are display proxies parented directly to the clone
+		// limb; apply the custom worn sprite/offset here because the clone path
+		// never runs the vanilla WearWearable flow.
+		if (wearLimb != null)
+		{
+			item.GetComponent<CustomItemVisualState>()?.ApplyWornVisual();
 		}
 
 		// Every clone render gets the marker now: limb parents still use it to

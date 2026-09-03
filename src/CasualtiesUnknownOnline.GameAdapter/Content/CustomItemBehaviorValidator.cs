@@ -45,6 +45,11 @@ internal static class CustomItemBehaviorValidator
 			valid &= ValidateGun(modId, id, gun, log);
 		}
 
+		if (definition.Visual is { } visual)
+		{
+			valid &= ValidateVisual(modId, id, visual, log);
+		}
+
 		return valid;
 	}
 
@@ -177,8 +182,29 @@ internal static class CustomItemBehaviorValidator
 		return true;
 	}
 
+	private static bool ValidateVisual(
+		string modId,
+		string id,
+		ModItemVisual visual,
+		ILogger log)
+	{
+		if (IsInvalidFinite(visual.WornSpriteOffsetX)
+			|| IsInvalidFinite(visual.WornSpriteOffsetY))
+		{
+			log.LogWarning(
+				"[ItemContent] {ModId}/{Id} has an invalid Visual offset value — refused.",
+				modId, id);
+			return false;
+		}
+
+		return true;
+	}
+
 	private static bool IsInvalidNonNegative(float value) =>
 		float.IsNaN(value) || float.IsInfinity(value) || value < 0f;
+
+	private static bool IsInvalidFinite(float value) =>
+		float.IsNaN(value) || float.IsInfinity(value);
 
 	private static bool IsInvalidNullableNonNegative(float? value) =>
 		value is { } number && IsInvalidNonNegative(number);

@@ -165,6 +165,32 @@ public class ModItemDefinitionTests
 	}
 
 	[Fact]
+	public void RoundTrip_PreservesVisualFields()
+	{
+		var original = new ModItemDefinition
+		{
+			Visual = new ModItemVisual
+			{
+				WornSpritePath = "Clothing/TestWorn",
+				WornSpriteOffsetX = 1.5f,
+				WornSpriteOffsetY = -2.5f,
+				WornSpriteSortingOrder = 12,
+				LiquidMaskPath = "Containers/TestMask"
+			}
+		};
+
+		var restored = ModItemDefinition.FromPayload(original.ToPayload());
+
+		Assert.NotNull(restored);
+		Assert.NotNull(restored!.Visual);
+		Assert.Equal("Clothing/TestWorn", restored.Visual.WornSpritePath);
+		Assert.Equal(1.5f, restored.Visual.WornSpriteOffsetX);
+		Assert.Equal(-2.5f, restored.Visual.WornSpriteOffsetY);
+		Assert.Equal(12, restored.Visual.WornSpriteSortingOrder);
+		Assert.Equal("Containers/TestMask", restored.Visual.LiquidMaskPath);
+	}
+
+	[Fact]
 	public void InvalidPayload_ReturnsNull()
 	{
 		Assert.Null(ModItemDefinition.FromPayload([]));

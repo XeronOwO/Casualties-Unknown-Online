@@ -1,8 +1,10 @@
 using System.Collections.Generic;
+using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.GameAdapter.Content;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
 using Microsoft.Extensions.Logging;
+using UnityEngine;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 namespace CasualtiesUnknownOnline.GameAdapter.ModStatus;
@@ -33,6 +35,7 @@ internal sealed class ModStatusMoodleProjection(
 	private readonly GameAdapterMoodleContentProvider _moodleContent = moodleContent;
 	private readonly ILogger _log = log;
 	private readonly HashSet<string> _warnedMoodles = [];
+	private readonly Dictionary<string, Sprite[]> _animationFrames = [];
 
 	internal void ApplyModMoodles(MoodleManager manager, bool importantRow)
 	{
@@ -73,9 +76,37 @@ internal sealed class ModStatusMoodleProjection(
 				continue;
 			}
 
-			if (!manager.icons.ContainsKey(moodle.IconId))
+			var iconKey = moodle.IconId;
+			if (moodle.IconAnimation is { } iconAnimation)
 			{
-				WarnOnce(moodleId, $"icon '{moodle.IconId}' is not available in the vanilla moodle icon set");
+				if (!_animationFrames.TryGetValue(moodleId, out var frames))
+				{
+					frames = LoadAnimationFrames(moodleId, iconAnimation);
+					if (frames.Length > 0)
+					{
+						_animationFrames[moodleId] = frames;
+					}
+				}
+
+				if (frames.Length > 0)
+				{
+					iconKey = "cuo.moodle." + moodleId;
+					manager.icons[iconKey] = frames[0];
+					MoodleAnimationRegistry.Register(
+						iconKey,
+						frames,
+						iconAnimation.FramesPerSecond,
+						iconAnimation.Loop);
+				}
+				else
+				{
+					WarnOnce(moodleId, "moodle icon animation frames could not be resolved");
+				}
+			}
+
+			if (!manager.icons.ContainsKey(iconKey))
+			{
+				WarnOnce(moodleId, $"icon '{iconKey}' is not available in the vanilla moodle icon set");
 				continue;
 			}
 
@@ -89,12 +120,45 @@ internal sealed class ModStatusMoodleProjection(
 
 			manager.AddMoodle(
 				moodle.Intensity,
-				moodle.IconId,
+				iconKey,
 				moodle.DisplayName,
 				moodle.Description,
 				moodle.Critical,
 				moodle.ChippedOnly);
 		}
+	}
+
+	private Sprite[] LoadAnimationFrames(string moodleId, ModMoodleAnimation animation)
+	{
+		if (animation.FramePaths is not { Count: > 0 } framePaths)
+		{
+			return [];
+		}
+
+		var frames = new List<Sprite>(framePaths.Count);
+		foreach (var path in framePaths)
+		{
+			if (string.IsNullOrWhiteSpace(path))
+			{
+				_log.LogWarning(
+					"[StatusMoodle] skipping empty animation frame for moodle {MoodleId}.",
+					moodleId);
+				continue;
+			}
+
+			var sprite = Resources.Load<Sprite>(path);
+			if (sprite == null) // Unity object — ==
+			{
+				_log.LogWarning(
+					"[StatusMoodle] cannot resolve animation frame for moodle {MoodleId}: {Path}.",
+					moodleId, path);
+				continue;
+			}
+
+			frames.Add(sprite);
+		}
+
+		return [.. frames];
 	}
 
 	private void WarnOnce(string moodleId, string reason)

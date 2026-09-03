@@ -58,6 +58,14 @@ public sealed class ModMoodleDefinition
 	[DataMember(Order = 9)]
 	public Dictionary<string, string> CustomData { get; set; } = [];
 
+	/// <summary>
+	/// Optional frame animation for the moodle icon. When present, the Game
+	/// Adapter registers the first frame as the static icon and drives the
+	/// vanilla moodle UI image from the ordered resource-path frames.
+	/// </summary>
+	[DataMember(Order = 10)]
+	public ModMoodleAnimation? IconAnimation { get; set; }
+
 	/// <summary>Serialize this definition into the opaque payload format.</summary>
 	public byte[] ToPayload()
 	{

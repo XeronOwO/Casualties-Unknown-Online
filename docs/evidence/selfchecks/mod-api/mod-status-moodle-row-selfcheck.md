@@ -17,19 +17,22 @@ Abstractions.
 | 3 | Main/side row split | Important moodles are added in the `MoodleManager.AddAllMoodles` prefix (before the native side-row switch); non-important moodles are added in the postfix (side row). |
 | 4 | Dedup/safety | Duplicate moodles are prevented per refresh; missing icon/out-of-range intensity are skipped and warned once. |
 | 5 | Harmony bridge | `ModStatusMoodlePatches.ModMoodlePatch` forwards to `PatchBridge.Impl.ApplyModMoodles(MoodleManager, importantRow)`. |
-| 6 | No wire change | Moodle row feeding is local presentation only; no NetMsg, no protocol bump, no JObject snapshot. |
-| 7 | No Abstractions leak | `ModStatusMoodleProjection` lives in GameAdapter and never exposes `MoodleManager`/`Sprite` to mods. |
+| 6 | Animated moodle icons | `ModStatusMoodleProjection` resolves `ModMoodleAnimation` frames to a synthetic icon key; `MoodleAnimationRegistry` stores the mapping and `ModStatusMoodlePatches.MoodleAnimationPatch` drives the vanilla moodle UI `Image` through `CustomImageAnimator`. |
+| 7 | No wire change | Moodle row feeding is local presentation only; no NetMsg, no protocol bump, no JObject snapshot. |
+| 8 | No Abstractions leak | `ModStatusMoodleProjection` lives in GameAdapter and never exposes `MoodleManager`/`Sprite` to mods. |
 
 ## 2. Whole-family audit
 
 | Family member | Change |
 |---|---|
 | `ModStatusStore` | Added `StatusPresence` nested record and `GetStatusPresences(player)`. |
-| `ModStatusMoodleProjection` | New GameAdapter moodle-row applier. |
-| `ModStatusMoodlePatches` | New Harmony prefix/postfix on `MoodleManager.AddAllMoodles`. |
+| `ModStatusMoodleProjection` | New GameAdapter moodle-row applier; now resolves animated moodle frames into synthetic icon keys. |
+| `MoodleAnimationRegistry` | New GameAdapter local mapping from synthetic moodle icon keys to resolved frame animations. |
+| `CustomImageAnimator` | New GameAdapter MonoBehaviour that drives a vanilla moodle UI `Image` from resolved frames. |
+| `ModStatusMoodlePatches` | New Harmony prefix/postfix on `MoodleManager.AddAllMoodles` plus a `Moodle.Start` patch for animated icons. |
 | `IPatchBridge` / `GameAdapterBridge` | Added `ApplyModMoodles(MoodleManager, bool)`. |
 | `GameAdapterDomains` / `GameAdapter` | Wired status/moodle content providers and moodle projection. |
-| Tests | Store presence test + reflective moodle projection/patch contract tests. |
+| Tests | Store presence test + reflective moodle projection/patch contract tests including the animation patch. |
 | Protocol version | Unchanged (no wire). |
 
 ## 3. Self-check table
@@ -39,6 +42,7 @@ Abstractions.
 | Presence read | Opaque body/limb statuses are both returned for the requested player | `ModStatusProjectionStoreTests.StatusPresences_IncludeOpaqueAndLimbValues_ForRequestedPlayer` |
 | Moodle applier contract | `ModStatusMoodleProjection.ApplyModMoodles(MoodleManager, bool)` exists | `ModStatusProjectionContractTests.MoodleProjection_HasApplyMethod` |
 | Moodle patch contract | `ModStatusMoodlePatches.ModMoodlePatch` has Prefix and Postfix | `ModStatusProjectionContractTests.MoodlePatches_HavePrefixAndPostfix` |
+| Animation patch contract | `ModStatusMoodlePatches.MoodleAnimationPatch` has a `Postfix` | `ModStatusProjectionContractTests.MoodleAnimationPatch_HasPostfix` |
 | Direct moodle safety | Missing vanilla icon/out-of-range intensity are skipped, not thrown | code path + contract tests |
 | No wire change | No new NetMsg / protocol bump | full protocol tests pass |
 
@@ -47,7 +51,7 @@ Abstractions.
 | Evidence | Result |
 |---|---|
 | `dotnet build CasualtiesUnknownOnline.slnx` | 0 warnings / 0 errors |
-| `dotnet test CasualtiesUnknownOnline.slnx` | 2072 passed / 0 failed |
+| `dotnet test CasualtiesUnknownOnline.slnx` | 2113 passed / 0 failed |
 | `dotnet format CasualtiesUnknownOnline.slnx` | clean |
 | `tools/check-architecture.ps1` | pass |
 | `tools/check-event-replay.ps1` | pass |

@@ -24,6 +24,12 @@ public class ModMoodleDefinitionTests
 			ChippedOnly = true,
 			Important = false,
 			HoldSeconds = 1.5f,
+			IconAnimation = new ModMoodleAnimation
+			{
+				FramePaths = ["Fx/Moodle0", "Fx/Moodle1", "Fx/Moodle2"],
+				FramesPerSecond = 11f,
+				Loop = false
+			},
 			CustomData = new Dictionary<string, string>
 			{
 				["mod.metadata"] = "kept"
@@ -41,6 +47,10 @@ public class ModMoodleDefinitionTests
 		Assert.True(restored.ChippedOnly);
 		Assert.False(restored.Important);
 		Assert.Equal(1.5f, restored.HoldSeconds);
+		Assert.NotNull(restored.IconAnimation);
+		Assert.Equal(["Fx/Moodle0", "Fx/Moodle1", "Fx/Moodle2"], restored.IconAnimation.FramePaths);
+		Assert.Equal(11f, restored.IconAnimation.FramesPerSecond);
+		Assert.False(restored.IconAnimation.Loop);
 		Assert.Equal("kept", restored.CustomData["mod.metadata"]);
 	}
 

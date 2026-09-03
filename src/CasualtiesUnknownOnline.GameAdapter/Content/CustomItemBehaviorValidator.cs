@@ -197,6 +197,22 @@ internal static class CustomItemBehaviorValidator
 			return false;
 		}
 
+		if (visual.MultiWornSprites is not null)
+		{
+			foreach (var multi in visual.MultiWornSprites)
+			{
+				if (multi is null
+					|| IsInvalidFinite(multi.OffsetX)
+					|| IsInvalidFinite(multi.OffsetY))
+				{
+					log.LogWarning(
+						"[ItemContent] {ModId}/{Id} has an invalid MultiWornSprites entry — refused.",
+						modId, id);
+					return false;
+				}
+			}
+		}
+
 		return true;
 	}
 

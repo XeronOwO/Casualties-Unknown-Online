@@ -168,7 +168,17 @@ public class ItemAdvancedBehaviorProviderTests
 				WornSpriteOffsetX = 1f,
 				WornSpriteOffsetY = -1f,
 				WornSpriteSortingOrder = 5,
-				LiquidMaskPath = "Containers/TestMask"
+				LiquidMaskPath = "Containers/TestMask",
+				MultiWornSprites =
+				[
+					new ModItemLimbWornSprite
+					{
+						LimbName = "Head",
+						SpritePath = "Clothing/TestHat",
+						OffsetX = 0.5f,
+						OffsetY = -0.25f
+					}
+				]
 			}
 		}));
 	}
@@ -214,6 +224,22 @@ public class ItemAdvancedBehaviorProviderTests
 		Assert.False(TryBind(provider, "bad_visual", new ModItemDefinition
 		{
 			Visual = new ModItemVisual { WornSpriteOffsetX = float.NaN }
+		}));
+		Assert.False(TryBind(provider, "bad_visual_multi", new ModItemDefinition
+		{
+			Visual = new ModItemVisual
+			{
+				MultiWornSprites =
+				[
+					new ModItemLimbWornSprite
+					{
+						LimbName = "Head",
+						SpritePath = "Clothing/TestHat",
+						OffsetX = float.PositiveInfinity,
+						OffsetY = 0f
+					}
+				]
+			}
 		}));
 	}
 }

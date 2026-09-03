@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Runtime.Serialization;
 
 namespace CasualtiesUnknownOnline.Abstractions;
@@ -40,4 +41,13 @@ public sealed class ModItemVisual
 	/// </summary>
 	[DataMember(Order = 5)]
 	public string LiquidMaskPath { get; set; } = "";
+
+	/// <summary>
+	/// Optional additive worn sprites keyed to vanilla limb names. Each entry
+	/// is rendered as its own secondary sprite while the item is worn, on top
+	/// of the primary item sprite. The Game Adapter filters entries whose limb
+	/// does not exist on the target body at wear time.
+	/// </summary>
+	[DataMember(Order = 6)]
+	public List<ModItemLimbWornSprite> MultiWornSprites { get; set; } = [];
 }

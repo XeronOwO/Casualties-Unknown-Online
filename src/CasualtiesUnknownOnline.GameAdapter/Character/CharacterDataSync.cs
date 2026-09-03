@@ -538,5 +538,6 @@ internal sealed class CharacterDataSync(
 		// visual must be applied here because the restore path never runs the
 		// vanilla WearWearable flow (and therefore neither the wear patch).
 		item.GetComponent<CustomItemVisualState>()?.ApplyWornVisual();
+		item.GetComponent<CustomItemVisualState>()?.EnsureSecondarySprites(body);
 	}
 }

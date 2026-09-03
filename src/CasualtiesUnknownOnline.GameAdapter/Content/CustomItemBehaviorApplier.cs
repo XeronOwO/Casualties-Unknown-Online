@@ -89,6 +89,36 @@ internal static class CustomItemBehaviorApplier
 			state.WornSortingOrder = sortingOrder;
 		}
 
+		if (visual.MultiWornSprites is not null)
+		{
+			foreach (var multi in visual.MultiWornSprites)
+			{
+				if (multi is null
+					|| string.IsNullOrWhiteSpace(multi.LimbName)
+					|| string.IsNullOrWhiteSpace(multi.SpritePath))
+				{
+					continue;
+				}
+
+				var sprite = Resources.Load<Sprite>(multi.SpritePath);
+				if (sprite == null) // Unity object — ==
+				{
+					log.LogWarning(
+						"[ItemContent] cannot resolve multi-worn sprite resource for template {Template}, limb {Limb}: {Path}.",
+						template.name, multi.LimbName, multi.SpritePath);
+					continue;
+				}
+
+				state.AddMultiWornSprite(multi.LimbName, sprite, new Vector2(multi.OffsetX, multi.OffsetY));
+			}
+		}
+
+		if (state.HasMultiWornSprites)
+		{
+			var wearable = EnsureWearableComponent(template);
+			state.ConfigureWearableSecondarySprites(wearable, null);
+		}
+
 		if (!string.IsNullOrWhiteSpace(visual.LiquidMaskPath))
 		{
 			var liquidMask = Resources.Load<Sprite>(visual.LiquidMaskPath);
@@ -106,6 +136,17 @@ internal static class CustomItemBehaviorApplier
 		}
 
 		state.ApplyLiquidMask();
+	}
+
+	private static Wearable EnsureWearableComponent(GameObject template)
+	{
+		var wearable = template.GetComponent<Wearable>();
+		if (wearable == null) // Unity object — ==
+		{
+			wearable = template.AddComponent<Wearable>();
+		}
+
+		return wearable;
 	}
 
 	private static void ApplyContainer(GameObject template, ModItemContainer container)

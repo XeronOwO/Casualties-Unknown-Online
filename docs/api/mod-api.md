@@ -277,6 +277,12 @@ context.Content.TryUnregister("wooden.sword");
   cross-mod duplicate/schema-version conflict diagnostics without
   interpreting payloads; it is the intended base for a future native-content
   binder.
+- **Content ownership query**: `context.ContentOwners.TryGetOwner(kind, id, out owner)`
+  resolves the owning mod id for any framework-wide content registration.
+  It is the migration replacement for CUCoreLib's per-kind
+  `TryGetOwnerModGuid`; the query is read-only, needs no permission, and
+  follows the same ordinal matching / ambiguity policy as the runtime
+  catalog — a duplicate kind+id returns false.
 - **Typed item content (first well-known kind)**: `ModItemDefinition` is a
   plain Abstractions DTO for the `ModContentKind.Item` payload. It carries
   display name, description, category, weight, value, usability flags, wear

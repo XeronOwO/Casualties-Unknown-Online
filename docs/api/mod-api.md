@@ -292,7 +292,8 @@ context.Content.TryUnregister("wooden.sword");
   `WorldSpawnPerChunk` (loose world-gen distribution), optional
   `DropSources` (explicit fixed corpse/crate/trader loot pools), optional
   `DecayMinutes`, optional `Container` / `Battery` / `Light` / `Tool` / `Gun`
-  behavior DTOs, optional `Visual` (worn-sprite and liquid-mask resource paths),
+  behavior DTOs, optional `Visual` (worn-sprite, liquid-mask resource paths,
+  and frame-animation definitions for the base, worn, and liquid-fill sprites),
   and an extensible `CustomData` dictionary. A mod serializes it
   with `ToPayload()`
   and registers the bytes through `IModContent`; the framework still stores
@@ -400,7 +401,11 @@ context.Content.TryUnregister("wooden.sword");
   additionally authors additive sprites on named vanilla limbs through the
   vanilla `Wearable.CreateSprites` path; the Game Adapter filters missing
   limbs at wear time and applies per-limb offsets/sorting order after
-  creation. No new wire message is used.
+  creation. `Visual.BaseSpriteAnimation`, `WornSpriteAnimation`, and
+  `LiquidMaskAnimation` are `ModItemSpriteAnimation` values that accept
+  ordered frame-path lists plus frames-per-second/loop settings; the Game
+  Adapter resolves them into a local sprite animator for the primary, worn,
+  and liquid-fill renderers. No new wire message is used.
 - **Current recipe binding scope**: `GameAdapterRecipeContentProvider` decodes
   `ModRecipeDefinition`, waits for `Recipes.recipes`, deduplicates against the
   existing recipe table, and injects each accepted recipe with its game-category

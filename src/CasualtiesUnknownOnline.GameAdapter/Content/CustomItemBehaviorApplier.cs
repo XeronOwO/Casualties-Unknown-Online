@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Reflection;
 using CasualtiesUnknownOnline.Abstractions;
 using Microsoft.Extensions.Logging;
@@ -119,6 +120,29 @@ internal static class CustomItemBehaviorApplier
 			state.ConfigureWearableSecondarySprites(wearable, null);
 		}
 
+		if (visual.BaseSpriteAnimation is { } baseAnimation)
+		{
+			var frames = LoadAnimationFrames(template, baseAnimation, log, "base");
+			if (frames.Length > 0)
+			{
+				state.SetBaseAnimation(frames, baseAnimation.FramesPerSecond, baseAnimation.Loop);
+			}
+		}
+
+		if (visual.WornSpriteAnimation is { } wornAnimation)
+		{
+			var frames = LoadAnimationFrames(template, wornAnimation, log, "worn");
+			if (frames.Length > 0)
+			{
+				state.SetWornAnimation(frames, wornAnimation.FramesPerSecond, wornAnimation.Loop);
+				if (!state.HasWornSprite)
+				{
+					state.HasWornSprite = true;
+					state.WornSprite = frames[0];
+				}
+			}
+		}
+
 		if (!string.IsNullOrWhiteSpace(visual.LiquidMaskPath))
 		{
 			var liquidMask = Resources.Load<Sprite>(visual.LiquidMaskPath);
@@ -135,7 +159,53 @@ internal static class CustomItemBehaviorApplier
 			}
 		}
 
+		if (visual.LiquidMaskAnimation is { } liquidAnimation)
+		{
+			var frames = LoadAnimationFrames(template, liquidAnimation, log, "liquid");
+			if (frames.Length > 0)
+			{
+				state.SetLiquidMaskAnimation(frames, liquidAnimation.FramesPerSecond, liquidAnimation.Loop);
+			}
+		}
+
 		state.ApplyLiquidMask();
+	}
+
+	private static Sprite[] LoadAnimationFrames(
+		GameObject template,
+		ModItemSpriteAnimation animation,
+		Microsoft.Extensions.Logging.ILogger log,
+		string kind)
+	{
+		if (animation.FramePaths is not { Count: > 0 } framePaths)
+		{
+			return [];
+		}
+
+		var frames = new List<Sprite>(framePaths.Count);
+		foreach (var path in framePaths)
+		{
+			if (string.IsNullOrWhiteSpace(path))
+			{
+				log.LogWarning(
+					"[ItemContent] skipping empty {Kind} sprite-animation frame for template {Template}.",
+					kind, template.name);
+				continue;
+			}
+
+			var sprite = Resources.Load<Sprite>(path);
+			if (sprite == null) // Unity object — ==
+			{
+				log.LogWarning(
+					"[ItemContent] cannot resolve {Kind} sprite-animation frame for template {Template}: {Path}.",
+					kind, template.name, path);
+				continue;
+			}
+
+			frames.Add(sprite);
+		}
+
+		return [.. frames];
 	}
 
 	private static Wearable EnsureWearableComponent(GameObject template)

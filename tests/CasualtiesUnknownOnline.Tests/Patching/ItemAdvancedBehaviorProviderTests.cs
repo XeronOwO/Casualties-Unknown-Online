@@ -178,7 +178,25 @@ public class ItemAdvancedBehaviorProviderTests
 						OffsetX = 0.5f,
 						OffsetY = -0.25f
 					}
-				]
+				],
+				BaseSpriteAnimation = new ModItemSpriteAnimation
+				{
+					FramePaths = ["Fx/TestBase0", "Fx/TestBase1"],
+					FramesPerSecond = 12f,
+					Loop = true
+				},
+				WornSpriteAnimation = new ModItemSpriteAnimation
+				{
+					FramePaths = ["Fx/TestWorn0", "Fx/TestWorn1"],
+					FramesPerSecond = 9f,
+					Loop = false
+				},
+				LiquidMaskAnimation = new ModItemSpriteAnimation
+				{
+					FramePaths = ["Fx/TestMask0", "Fx/TestMask1"],
+					FramesPerSecond = 7f,
+					Loop = true
+				}
 			}
 		}));
 	}
@@ -239,6 +257,39 @@ public class ItemAdvancedBehaviorProviderTests
 						OffsetY = 0f
 					}
 				]
+			}
+		}));
+		Assert.False(TryBind(provider, "bad_visual_animation_fps", new ModItemDefinition
+		{
+			Visual = new ModItemVisual
+			{
+				BaseSpriteAnimation = new ModItemSpriteAnimation
+				{
+					FramePaths = ["Fx/TestBase0"],
+					FramesPerSecond = float.NaN
+				}
+			}
+		}));
+		Assert.False(TryBind(provider, "bad_visual_animation_zero_fps", new ModItemDefinition
+		{
+			Visual = new ModItemVisual
+			{
+				LiquidMaskAnimation = new ModItemSpriteAnimation
+				{
+					FramePaths = ["Fx/TestMask0", "Fx/TestMask1"],
+					FramesPerSecond = 0f
+				}
+			}
+		}));
+		Assert.False(TryBind(provider, "bad_visual_animation_empty", new ModItemDefinition
+		{
+			Visual = new ModItemVisual
+			{
+				WornSpriteAnimation = new ModItemSpriteAnimation
+				{
+					FramePaths = [],
+					FramesPerSecond = 12f
+				}
 			}
 		}));
 	}

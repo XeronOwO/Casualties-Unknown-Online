@@ -9,9 +9,9 @@ namespace CasualtiesUnknownOnline.GameAdapter.Content;
 /// Per-instance visual state for a custom item template. The Game Adapter
 /// attaches this component when a <see cref="ModItemVisual"/> is authored; it
 /// remembers the base sprite/sorting order and holds the resolved worn-sprite,
-/// multi-limb worn-sprite and liquid-mask resources so the wear/drop and
-/// water-container paths can restore the item's normal presentation without
-/// consulting the mod definition again.
+/// multi-limb worn-sprite, liquid-mask and frame-animation resources so the
+/// wear/drop and water-container paths can restore the item's normal
+/// presentation without consulting the mod definition again.
 /// </summary>
 internal sealed class CustomItemVisualState : MonoBehaviour
 {
@@ -25,9 +25,22 @@ internal sealed class CustomItemVisualState : MonoBehaviour
 	internal Sprite? LiquidMaskSprite { get; set; }
 	internal bool HasLiquidMask { get; set; }
 
+	private SpriteAnimationData? _baseAnimation;
+	private SpriteAnimationData? _wornAnimation;
+	private SpriteAnimationData? _liquidMaskAnimation;
+
 	private readonly List<MultiWornVisualEntry> _multiWornSprites = [];
 
 	internal bool HasMultiWornSprites => _multiWornSprites.Count > 0;
+
+	internal void SetBaseAnimation(Sprite[] frames, float framesPerSecond, bool loop) =>
+		_baseAnimation = SpriteAnimationData.Create(frames, framesPerSecond, loop);
+
+	internal void SetWornAnimation(Sprite[] frames, float framesPerSecond, bool loop) =>
+		_wornAnimation = SpriteAnimationData.Create(frames, framesPerSecond, loop);
+
+	internal void SetLiquidMaskAnimation(Sprite[] frames, float framesPerSecond, bool loop) =>
+		_liquidMaskAnimation = SpriteAnimationData.Create(frames, framesPerSecond, loop);
 
 	internal void AddMultiWornSprite(string limbName, Sprite sprite, Vector2 offset)
 	{
@@ -37,6 +50,21 @@ internal sealed class CustomItemVisualState : MonoBehaviour
 		}
 
 		_multiWornSprites.Add(new MultiWornVisualEntry(limbName, sprite, offset));
+	}
+
+	private void Start()
+	{
+		// A clone starts active; apply the normal/base presentation before the
+		// first frame. If this instance is already on a limb (restore paths
+		// usually parent it before the next frame), leave the worn presentation
+		// to the wear/restore hooks.
+		var parent = transform.parent;
+		if (parent != null && parent.GetComponent<Limb>() != null) // Unity objects — ==
+		{
+			return;
+		}
+
+		ApplyBaseSprite();
 	}
 
 	internal void ApplyWornVisual()
@@ -53,12 +81,52 @@ internal sealed class CustomItemVisualState : MonoBehaviour
 			{
 				renderer.sortingOrder = WornSortingOrder;
 			}
+
+			if (_wornAnimation is not null)
+			{
+				ApplyAnimation(renderer, _wornAnimation);
+			}
+			else if (HasWornSprite)
+			{
+				StopAnimation(renderer);
+			}
+			else if (_baseAnimation is not null)
+			{
+				ApplyAnimation(renderer, _baseAnimation);
+			}
+			else
+			{
+				StopAnimation(renderer);
+			}
 		}
 
 		if (HasWornSprite)
 		{
 			var local = transform.localPosition;
 			transform.localPosition = new Vector3(WornOffset.x, WornOffset.y, local.z);
+		}
+	}
+
+	internal void ApplyBaseSprite()
+	{
+		var renderer = GetComponent<SpriteRenderer>();
+		if (renderer == null) // Unity object — ==
+		{
+			return;
+		}
+
+		if (NormalSprite != null) // Unity object — ==
+		{
+			renderer.sprite = NormalSprite;
+		}
+
+		if (_baseAnimation is not null)
+		{
+			ApplyAnimation(renderer, _baseAnimation);
+		}
+		else
+		{
+			StopAnimation(renderer);
 		}
 	}
 
@@ -76,6 +144,15 @@ internal sealed class CustomItemVisualState : MonoBehaviour
 			{
 				renderer.sortingOrder = NormalSortingOrder;
 			}
+
+			if (_baseAnimation is not null)
+			{
+				ApplyAnimation(renderer, _baseAnimation);
+			}
+			else
+			{
+				StopAnimation(renderer);
+			}
 		}
 
 		var local = transform.localPosition;
@@ -84,7 +161,8 @@ internal sealed class CustomItemVisualState : MonoBehaviour
 
 	internal void ApplyLiquidMask()
 	{
-		if (!HasLiquidMask || LiquidMaskSprite == null) // Unity object — ==
+		var fillSprite = _liquidMaskAnimation?.FirstFrame ?? (HasLiquidMask ? LiquidMaskSprite : null);
+		if (fillSprite == null) // Unity object — ==
 		{
 			return;
 		}
@@ -92,13 +170,14 @@ internal sealed class CustomItemVisualState : MonoBehaviour
 		var water = GetComponent<WaterContainerItem>();
 		if (water != null) // Unity object — ==
 		{
-			water.fillSprite = LiquidMaskSprite;
+			water.fillSprite = fillSprite;
 		}
 
 		var fillRenderer = FindLiquidFillRenderer();
 		if (fillRenderer != null) // Unity object — ==
 		{
-			fillRenderer.sprite = LiquidMaskSprite;
+			fillRenderer.sprite = fillSprite;
+			ApplyAnimation(fillRenderer, _liquidMaskAnimation);
 		}
 	}
 
@@ -203,6 +282,42 @@ internal sealed class CustomItemVisualState : MonoBehaviour
 		ApplySecondarySpritePresentation(wearable);
 	}
 
+	private static void ApplyAnimation(SpriteRenderer renderer, SpriteAnimationData? animation)
+	{
+		if (renderer == null) // Unity object — ==
+		{
+			return;
+		}
+
+		if (animation is null)
+		{
+			StopAnimation(renderer);
+			return;
+		}
+
+		var animator = renderer.GetComponent<CustomSpriteAnimator>();
+		if (animator == null) // Unity object — ==
+		{
+			animator = renderer.gameObject.AddComponent<CustomSpriteAnimator>();
+		}
+
+		animator.SetAnimation(animation.Frames, animation.FramesPerSecond, animation.Loop);
+	}
+
+	private static void StopAnimation(SpriteRenderer renderer)
+	{
+		if (renderer == null) // Unity object — ==
+		{
+			return;
+		}
+
+		var animator = renderer.GetComponent<CustomSpriteAnimator>();
+		if (animator != null) // Unity object — ==
+		{
+			animator.StopAnimation();
+		}
+	}
+
 	private MultiWornVisualEntry? FindMultiWornSprite(string limbName)
 	{
 		foreach (var entry in _multiWornSprites)
@@ -230,6 +345,32 @@ internal sealed class CustomItemVisualState : MonoBehaviour
 		}
 
 		return null;
+	}
+
+	private sealed class SpriteAnimationData
+	{
+		private SpriteAnimationData(Sprite[] frames, float framesPerSecond, bool loop)
+		{
+			Frames = frames;
+			FramesPerSecond = framesPerSecond;
+			Loop = loop;
+		}
+
+		internal static SpriteAnimationData? Create(Sprite[] frames, float framesPerSecond, bool loop)
+		{
+			if (frames == null || frames.Length == 0) // Unity object — ==
+			{
+				return null;
+			}
+
+			return new SpriteAnimationData(frames, framesPerSecond, loop);
+		}
+
+		internal Sprite[] Frames { get; }
+		internal float FramesPerSecond { get; }
+		internal bool Loop { get; }
+
+		internal Sprite FirstFrame => Frames[0];
 	}
 
 	private sealed class MultiWornVisualEntry

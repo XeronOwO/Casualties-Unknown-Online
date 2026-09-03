@@ -60,6 +60,14 @@ internal interface IPatchBridge
 	/// </summary>
 	void OnCustomLiquidWorldGeneration(WorldGeneration world);
 
+	/// <summary>
+	/// Vanilla <c>WorldGeneration.PlaceCrystals</c> finished — scatter
+	/// mod-bound custom items' loose world spawns, inside the same sealed
+	/// generation stream. The resulting ground items are later bound by the
+	/// existing generation-item snapshot.
+	/// </summary>
+	void OnCustomItemWorldGeneration(WorldGeneration world);
+
 	void OnBlockSet(Vector2Int pos, ushort block);
 
 	void OnBlockDamaged(Vector2 pos, float dmg, bool bonusMetal);

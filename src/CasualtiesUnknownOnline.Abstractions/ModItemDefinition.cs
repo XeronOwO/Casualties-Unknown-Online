@@ -80,6 +80,15 @@ public sealed class ModItemDefinition
 	[DataMember(Order = 14)]
 	public Dictionary<string, string> CustomData { get; set; } = [];
 
+	/// <summary>
+	/// Average loose world-spawn count per worldgen chunk. Null or zero disables
+	/// automatic world spawning; a positive value makes the Game Adapter scatter
+	/// the item on ground inside the isolated generation stream. The existing
+	/// generation-item snapshot synchronizes both sides — no new wire is needed.
+	/// </summary>
+	[DataMember(Order = 15)]
+	public float? WorldSpawnPerChunk { get; set; }
+
 	/// <summary>Serialize this definition into the opaque payload format.</summary>
 	public byte[] ToPayload()
 	{

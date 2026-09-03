@@ -29,6 +29,7 @@ public class ModItemDefinitionTests
 			SpawnFrequency = 3,
 			TemplateId = "stone",
 			SpawnComponents = ["Example.ShardBehaviour, ExampleMod"],
+			WorldSpawnPerChunk = 0.5f,
 			CustomData = new Dictionary<string, string>
 			{
 				["mod.metadata"] = "kept"
@@ -51,6 +52,7 @@ public class ModItemDefinitionTests
 		Assert.Equal(original.SpawnFrequency, restored.SpawnFrequency);
 		Assert.Equal(original.TemplateId, restored.TemplateId);
 		Assert.Equal(original.SpawnComponents, restored.SpawnComponents);
+		Assert.Equal(original.WorldSpawnPerChunk, restored.WorldSpawnPerChunk);
 		Assert.Equal("kept", restored.CustomData["mod.metadata"]);
 	}
 

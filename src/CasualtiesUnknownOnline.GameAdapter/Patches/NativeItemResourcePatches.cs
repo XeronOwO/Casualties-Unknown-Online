@@ -9,9 +9,10 @@ using UnityEngine;
 namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 
 /// <summary>
-/// Transpiles the two native game methods that load item prefabs directly
+/// Transpiles the native game methods that load item prefabs directly
 /// through <c>Resources.Load</c> rather than <c>Utils.Create</c>: building-entity
-/// death drops (<c>BuildingEntity.Update</c>) and vanilla save restore
+/// death drops (<c>BuildingEntity.Update</c>), corpse loot
+/// (<c>CorpseScript.Start</c>) and vanilla save restore
 /// (<c>SaveSystem.TryLoadGame</c>). The resource and instantiate calls are
 /// redirected through <see cref="ItemPrefabResolver"/> so CUO custom item
 /// templates are served and their clones are activated; non-item resource
@@ -65,6 +66,13 @@ internal static class NativeItemResourcePatches
 
 	[HarmonyPatch(typeof(BuildingEntity), "Update")]
 	internal static class BuildingEntityCustomItemResourcePatch
+	{
+		private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions) =>
+			RedirectItemResourceLoads(instructions);
+	}
+
+	[HarmonyPatch(typeof(CorpseScript), "Start")]
+	internal static class CorpseScriptCustomItemResourcePatch
 	{
 		private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions) =>
 			RedirectItemResourceLoads(instructions);

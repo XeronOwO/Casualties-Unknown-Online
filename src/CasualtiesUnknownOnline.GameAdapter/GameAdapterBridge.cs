@@ -162,6 +162,9 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 	public void OnCustomLiquidWorldGeneration(WorldGeneration world) =>
 		domains.LiquidTileWorldGen.Distribute(world);
 
+	public void OnCustomItemWorldGeneration(WorldGeneration world) =>
+		domains.ItemWorldGen.Scatter(world);
+
 	public void OnEarthquakeStarted(float duration, float nextDelay) =>
 		domains.WorldEventSync.OnEarthquakeStarted(duration, nextDelay);
 

@@ -25,6 +25,8 @@ public sealed class GameAdapterItemContentProvider(
 	private readonly Dictionary<string, ModItemDefinition> _definitions = [];
 	private readonly Dictionary<string, GameObject> _templates = [];
 	private readonly HashSet<string> _templateFailures = [];
+	private readonly HashSet<string> _lootPoolIds = [];
+	private Dictionary<string, List<string>>? _lastLootPool;
 
 	/// <inheritdoc />
 	public string Kind => ModContentKind.Item;
@@ -61,6 +63,15 @@ public sealed class GameAdapterItemContentProvider(
 			return false;
 		}
 
+		if (definition.WorldSpawnPerChunk is { } perChunk
+			&& (float.IsNaN(perChunk) || float.IsInfinity(perChunk) || perChunk < 0f))
+		{
+			_log.LogWarning(
+				"[ItemContent] {ModId}/{Id} has invalid WorldSpawnPerChunk {PerChunk} — refused.",
+				registration.ModId, id, perChunk);
+			return false;
+		}
+
 		_definitions.Add(id, definition);
 		_log.LogInformation(
 			"[ItemContent] accepted {ModId}/{Id} (schema {SchemaVersion}); injection waits for the vanilla item table.",
@@ -85,14 +96,14 @@ public sealed class GameAdapterItemContentProvider(
 
 		foreach (var pair in _definitions.ToArray())
 		{
-			if (Item.GlobalItems.ContainsKey(pair.Key))
+			if (!Item.GlobalItems.ContainsKey(pair.Key))
 			{
-				continue;
+				Item.GlobalItems.Add(pair.Key, BuildItemInfo(pair.Key, pair.Value));
+				_log.LogInformation("[ItemContent] injected {Id} into Item.GlobalItems.", pair.Key);
 			}
 
-			Item.GlobalItems.Add(pair.Key, BuildItemInfo(pair.Key, pair.Value));
-			_log.LogInformation("[ItemContent] injected {Id} into Item.GlobalItems.", pair.Key);
 			EnsureTemplate(pair.Key, pair.Value);
+			EnsureLootPool(pair.Key, pair.Value);
 		}
 	}
 
@@ -123,6 +134,70 @@ public sealed class GameAdapterItemContentProvider(
 
 		template = null;
 		return false;
+	}
+
+	/// <summary>
+	/// Snapshot every accepted item definition with a positive
+	/// <c>WorldSpawnPerChunk</c> in stable id order for deterministic world-gen
+	/// distribution. Both sides must iterate the same set in the same order when
+	/// consuming the shared generation random stream.
+	/// </summary>
+	internal IReadOnlyList<KeyValuePair<string, ModItemDefinition>> GetDefinitionsForWorldSpawn() =>
+		[.. _definitions
+			.Where(pair => pair.Value.WorldSpawnPerChunk is > 0f)
+			.OrderBy(pair => pair.Key, StringComparer.Ordinal)];
+
+	/// <summary>
+	/// Add a bound custom item to the vanilla category loot pool so corpses,
+	/// building-entity guaranteed drops, traders and dev-console spawners see it
+	/// the same way they see vanilla items. The game builds the pool once from
+	/// <c>Item.GlobalItems</c>, so items bound after that call must be injected
+	/// here; re-injection is idempotent and a replaced pool is re-seeded. A
+	/// positive <c>WorldSpawnPerChunk</c> opts the item out of the generic
+	/// category pool (it appears only as a world spawn), matching CUCoreLib's
+	/// fallback rule.
+	/// </summary>
+	private void EnsureLootPool(string id, ModItemDefinition definition)
+	{
+		var pool = ItemLootPool.pool;
+		if (!ReferenceEquals(_lastLootPool, pool))
+		{
+			_lastLootPool = pool;
+			_lootPoolIds.Clear();
+		}
+
+		if (pool is null || _lootPoolIds.Contains(id) || definition.WorldSpawnPerChunk is > 0f)
+		{
+			return;
+		}
+
+		var category = definition.Category ?? string.Empty;
+		if (string.IsNullOrWhiteSpace(category) || string.Equals(category, "nospawn", StringComparison.OrdinalIgnoreCase))
+		{
+			return;
+		}
+
+		if (!pool.TryGetValue(category, out var entries))
+		{
+			entries = [];
+			pool.Add(category, entries);
+		}
+
+		if (entries.Contains(id))
+		{
+			_lootPoolIds.Add(id);
+			return;
+		}
+
+		var frequency = Math.Max(0, definition.SpawnFrequency);
+		for (var i = 0; i < frequency; i++)
+		{
+			entries.Add(id);
+		}
+
+		_lootPoolIds.Add(id);
+		_log.LogInformation("[ItemContent] added {Id} to loot category {Category} (frequency {Frequency}).",
+			id, category, frequency);
 	}
 
 	private void EnsureTemplate(string id, ModItemDefinition definition)

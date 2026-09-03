@@ -290,8 +290,10 @@ context.Content.TryUnregister("wooden.sword");
   `TemplateId` (the runtime prefab base), optional `SpawnComponents` (component
   type names attached by the Game Adapter at template build time), optional
   `WorldSpawnPerChunk` (loose world-gen distribution), optional
-  `DropSources` (explicit fixed corpse/crate/trader loot pools), and an
-  extensible `CustomData` dictionary. A mod serializes it with `ToPayload()`
+  `DropSources` (explicit fixed corpse/crate/trader loot pools), optional
+  `DecayMinutes`, optional `Container` / `Battery` / `Light` / `Tool` / `Gun`
+  behavior DTOs, and an extensible `CustomData` dictionary. A mod serializes it
+  with `ToPayload()`
   and registers the bytes through `IModContent`; the framework still stores
   bytes opaquely.
 - **Typed recipe content**: `ModRecipeDefinition` is the second well-known
@@ -382,6 +384,16 @@ context.Content.TryUnregister("wooden.sword");
   item is removed from its generic category pool, so "fixed source" means the
   authored sources are authoritative. No game/Unity type crosses Abstractions
   and no new wire message is used.
+- **Current item advanced behavior scope**: `ModItemDefinition.Container`,
+  `Battery`, `Light`, `Tool` and `Gun` let a mod author the minimal vanilla
+  behavior slice without exposing game delegates or Unity types. The Game
+  Adapter provider validates numeric values, applies tool/gun static use
+  defaults and battery decay flags to `ItemInfo`, and configures
+  `Container` / `BatteryItem` / `GunScript` components on the runtime item
+  template. Light uses the existing GameAdapter reflection convention for the
+  URP `Light2D` type because URP is not in the reference graph. Worn sprites
+  and liquid-mask visual modes are not part of this slice; no new wire message
+  is used.
 - **Current recipe binding scope**: `GameAdapterRecipeContentProvider` decodes
   `ModRecipeDefinition`, waits for `Recipes.recipes`, deduplicates against the
   existing recipe table, and injects each accepted recipe with its game-category

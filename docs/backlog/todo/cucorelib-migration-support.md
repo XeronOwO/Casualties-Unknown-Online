@@ -171,6 +171,18 @@ content binders can build on:
   host-side `TraderScript.GenerateSingleItemList` patches add the source
   category to the existing vanilla loot flow. No new wire message, no JObject
   snapshot, and no game/Unity type crosses Abstractions.
+- `ModItemContainer` / `ModItemBattery` / `ModItemLight` / `ModItemTool` /
+  `ModItemGun` + `CustomItemBehaviorValidator` +
+  `CustomItemBehaviorApplier` — the advanced item behavior seam. Plain
+  Abstractions DTOs carry the vanilla-compatible container capacity,
+  battery preset/charge, light shape/color/offset, melee AttackInfo fields and
+  gun nullable overrides; the Game Adapter provider validates them and maps
+  tool/gun/battery onto the static `ItemInfo` surface (use action, auto attack,
+  gun tag, battery decay flag). The runtime item template factory additionally
+  configures vanilla `Container`/`BatteryItem`/`GunScript` components and
+  creates `Light2D` through the existing reflection convention for URP types.
+  Game delegates/Unity types never cross Abstractions and no new wire message
+  is used; worn sprites and liquid-mask visual modes are still future.
 - `IModTilePlacement` + `IModTilePlacer` + the Game Adapter implementation —
   the mod-facing single-cell tile placement seam. It uses the same
   `SpawnEntity` permission and policy rails as spawn; the Game Adapter
@@ -268,6 +280,7 @@ content binders can build on:
   `docs/evidence/selfchecks/mod-api/mod-item-spawn-selfcheck.md`,
   `docs/evidence/selfchecks/mod-api/mod-item-worldgen-loot-selfcheck.md`,
   `docs/evidence/selfchecks/mod-api/mod-item-fixed-drop-sources-selfcheck.md`,
+  `docs/evidence/selfchecks/mod-api/mod-item-advanced-behavior-selfcheck.md`,
   and `docs/evidence/selfchecks/mod-api/mod-building-drop-worldgen-selfcheck.md`.
 
 Still explicitly **not** implemented:
@@ -280,10 +293,11 @@ Still explicitly **not** implemented:
 - advanced moodle presentation details (animated moodles, richer per-limb
   row behavior) remain future; the first static-descriptor-driven vanilla
   moodle-row seam is landed;
-- CUCoreLib's advanced item behaviours
-  (container/battery/light/tool/gun/worn sprites) remain future; the explicit
-  fixed drop-source pools is landed on top of the category loot-pool +
-  world-spawn seam and the mod-facing content owner query;
+- CUCoreLib's worn sprites and liquid-mask visual modes remain future;
+  the container/battery/light/tool/gun minimal behavior slice is now landed on
+  top of the typed item DTO seam; the explicit fixed drop-source pools is
+  landed on top of the category loot-pool + world-spawn seam and the
+  mod-facing content owner query;
 - CUCoreLib's building prefab configure hooks (runtime callbacks that edit the
   prefab/instance after creation) remain future; authored drop rules and
   worldgen density are now landed through typed DTO fields;
@@ -309,7 +323,7 @@ Source basis: CUCoreLib README/CHANGELOG, `CUCoreLibWebapp` machine docs
 | 4 | Generic mod messaging / channels | `MultiplayerApi` / `MultiplayerBridge`: `RegisterServerHandler`, `RegisterClientHandler`, `SendToServer`, `SendToClient`, `Broadcast`, `RequestServer`, arbitrary string channels, JToken payloads. | `IModNetwork`: `SendToHost`, `SendToPeer`, `Broadcast`, `MessageReceived`, opaque `byte[]`, mod-id routed, 64 KiB cap, star topology. | **Do not port.** Only provide migration mapping. CUO already has a typed, permission-gated message surface; arbitrary public channels would duplicate/mod-add a new protocol. |
 | 5 | Generic snapshot sync | `MultiplayerApi.RegisterSyncModule(key, capture, apply)` + `BroadcastSnapshot`/`ApplySnapshot`; JObject full-snapshot modules for arbitrary mod state. | No generic snapshot API. `IModData` provides scope-declared runtime slots (`LocalOnly`, `Shared`, `HostAuthoritative`) with explicit apply, no automatic replication. CUO uses a typed deterministic kernel: discrete committed batches, high-frequency state streams, per-domain state. | **Out of scope / anti-architecture.** Do not add a generic JObject snapshot registry. Mod durable state belongs in `IModState` (host-persistent), runtime scoped values in `IModData`, and transport through `IModNetwork`/`IModCommands`; synced gameplay facts belong in kernel domains. |
 | 6 | Asset / resource loading | `AssetLoader`, `FileLoader`: embedded/loose sprites, audio, text, AssetBundles, bundle registration/cache, sprite animations, sprite-sheet helpers. | No asset API in Abstractions. `IModNativeApi` is the only safe game seam and is currently read-only local player state. | **Out of scope for CUO core.** Asset loading is a local packaging concern; it should not become wire content. If a future content pipeline needs assets, they remain mod-local and are referenced by the content definition, not synced. A later local-only resource helper may be useful, but it is not required for multiplayer correctness. |
-| 7 | Custom item definitions | `ItemRegistry.Register(id, ItemInfo/CustomItemInfo, icon, spawnFrequency)`; `CustomItemInfo` fields (container, battery, light, tool, gun, worn sprites, liquid mask, drop pool, world spawn, custom data); `TryGetOwnerModGuid`, `HasCustomData`, `SetCustomData`, custom item MonoBehaviours. | `ModItemDefinition` + `GameAdapterItemContentProvider` + `IModItemSpawn`: typed DTO, static `ItemInfo`, runtime templates, custom component attach, a mod-facing world-item spawn surface, category loot-pool injection (`Category` + `SpawnFrequency`), `WorldSpawnPerChunk` loose-worldgen distribution, and `DropSources` explicit fixed corpse/crate/trader pools. | **Landed at the content + spawn + category loot-pool/world-spawn + explicit fixed drop-source seam.** Remaining: advanced item behaviours (container/battery/light/tool/gun/worn sprites) if real demand appears. |
+| 7 | Custom item definitions | `ItemRegistry.Register(id, ItemInfo/CustomItemInfo, icon, spawnFrequency)`; `CustomItemInfo` fields (container, battery, light, tool, gun, worn sprites, liquid mask, drop pool, world spawn, custom data); `TryGetOwnerModGuid`, `HasCustomData`, `SetCustomData`, custom item MonoBehaviours. | `ModItemDefinition` + `GameAdapterItemContentProvider` + `IModItemSpawn`: typed DTO, static `ItemInfo`, runtime templates, custom component attach, a mod-facing world-item spawn surface, category loot-pool injection (`Category` + `SpawnFrequency`), `WorldSpawnPerChunk` loose-worldgen distribution, `DropSources` explicit fixed corpse/crate/trader pools, and typed container/battery/light/tool/gun behavior DTOs mapped by `CustomItemBehaviorApplier`. | **Landed at the content + spawn + category loot-pool/world-spawn + explicit fixed drop-source + advanced behavior seam.** Remaining: worn sprites and liquid-mask visual modes if real demand appears. |
 | 8 | Custom recipes | `RecipeRegistry.Register(Recipe)`, owner-GUID queries, invalid-recipe rejection, crafting-quality locale. | `ModRecipeDefinition` + `GameAdapterRecipeContentProvider`: typed DTO, recipe table injection, category mapping, duplicate/rebuild protection. | **Landed at the content seam.** Recipes are static content injected through the same binder; crafting runtime flow remains CUO's existing item/crafting kernel. |
 | 9 | Custom liquids | `LiquidRegistry.Register(id, CustomLiquidInfo)`, container liquid stacks, owner-GUID query. | `ModLiquidDefinition` + `GameAdapterLiquidContentProvider`: typed DTO, static `LiquidType` fields, locale entries. | **Landed at the static content seam.** Runtime fluid facts remain in CUO's Fluid domain; CUCoreLib's JObject fluid snapshots are not ported. |
 | 10 | Liquid tiles / world liquids | `LiquidTileRegistry.Register/Place/FloodFill/GenerateWorldTiles`, world bytes, body touch/drink/visual helpers, snapshot helpers. | `ModLiquidTileDefinition` + `GameAdapterLiquidTileContentProvider` + `IModLiquidPlacement`: typed DTO, deterministic custom world bytes, `FluidManager.WorldFluidToLiquidID` mapping, worldgen through the sealed generation stream, local body-touch/drink/colour/name rendering projection, host-authoritative runtime placement/flood fill through the existing FluidRegion stream, and existing FluidInteraction sync. | **Landed at the typed content + worldgen + local projection + host-authoritative runtime placement/flood-fill seam.** Mod-authored liquid tiles ride CUO's existing fluid domain; no CUCoreLib JObject snapshot, no new NetMsg, and no game delegates in Abstractions. Snapshot helpers and the CUCoreLib asset-backed visual modes are not ported. |

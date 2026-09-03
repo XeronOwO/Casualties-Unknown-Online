@@ -57,6 +57,7 @@ internal static class CustomItemTemplateFactory
 
 		item.id = id;
 
+		CustomItemBehaviorApplier.Apply(template, definition, log);
 		CustomComponentAttach.Attach(template, definition.SpawnComponents, log, "ItemContent");
 		return template;
 	}

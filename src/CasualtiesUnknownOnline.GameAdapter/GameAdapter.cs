@@ -34,7 +34,7 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// top-level collaborators, and the deep domain logic lives in the modules
 /// composed by <see cref="GameAdapterDomains"/>.
 /// </summary>
-public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, IModItemSpawner, IModTilePlacer, IModStructurePlacer, IModNativeApiProvider, IPlayerInteractionVisibility
+public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, IModItemSpawner, IModTilePlacer, IModStructurePlacer, IModLiquidPlacer, IModNativeApiProvider, IPlayerInteractionVisibility
 {
 	/// <summary>
 	/// Set when the game was launched via a Steam friends "Join Game"
@@ -437,6 +437,12 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 			structureId, originX, originY, writes.Count);
 		return true;
 	}
+
+	bool IModLiquidPlacer.TryPlaceLiquid(string liquidTileId, int x, int y) =>
+		_domains.LiquidTilePlacement.TryPlaceLiquid(liquidTileId, x, y);
+
+	bool IModLiquidPlacer.TryFloodFill(string liquidTileId, int startX, int startY, int maxFill) =>
+		_domains.LiquidTilePlacement.TryFloodFill(liquidTileId, startX, startY, maxFill);
 
 	bool IModNativeApiProvider.IsRegistered(string operation) =>
 		operation == ModNativeApiOperations.LocalPlayerState;

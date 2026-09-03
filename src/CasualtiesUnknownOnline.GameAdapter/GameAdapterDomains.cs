@@ -46,6 +46,7 @@ internal sealed class GameAdapterDomains
 	internal readonly LiquidTileRender LiquidTileRender;
 	internal readonly LiquidTileBodyTouch LiquidTileBodyTouch;
 	internal readonly LiquidTileDrink LiquidTileDrink;
+	internal readonly LiquidTilePlacement LiquidTilePlacement;
 	internal readonly ModStatusVanillaProjection StatusProjection;
 	internal readonly ModStatusMoodleProjection MoodleProjection;
 	internal readonly IEntitySyncControl Entities;
@@ -160,6 +161,8 @@ internal sealed class GameAdapterDomains
 			liquidTileContent, loggerFactory.CreateLogger<LiquidTileBodyTouch>());
 		LiquidTileDrink = new LiquidTileDrink(
 			liquidTileContent, loggerFactory.CreateLogger<LiquidTileDrink>());
+		LiquidTilePlacement = new LiquidTilePlacement(
+			liquidTileContent, session, loggerFactory.CreateLogger<LiquidTilePlacement>());
 		StatusProjection = new ModStatusVanillaProjection(
 			modService.StatusStore, session, loggerFactory.CreateLogger<ModStatusVanillaProjection>());
 		MoodleProjection = new ModStatusMoodleProjection(

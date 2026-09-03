@@ -86,8 +86,9 @@ public sealed class MyMod : ICuoMod   // ICuoService lifecycle + Bind
   `RegisterContent` gates mod content registration (`IModContent`);
   `ReadGameState` gates the read-only game-state projection (`IModGameState`);
   `SpawnEntity` gates the world entity-spawn surface (`IModEntitySpawn`),
-  the world item-spawn surface (`IModItemSpawn`) and the world tile/block
-  placement surface (`IModTilePlacement`);
+  the world item-spawn surface (`IModItemSpawn`) and the world tile/block,
+  structure and liquid placement surfaces (`IModTilePlacement`,
+  `IModStructurePlacement`, `IModLiquidPlacement`);
   `AccessNativeApi` gates the curated native/game-private operation registry
   (`IModNativeApi`).
 - **`Dependencies`** are mod ids loaded before the dependent; missing or
@@ -110,6 +111,8 @@ public sealed class MyMod : ICuoMod   // ICuoService lifecycle + Bind
 | `EntitySpawn` | world entity spawn — see §4h. |
 | `ItemSpawn` | world item spawn — see §4h. |
 | `TilePlacement` | world tile/block placement — see §4h. |
+| `StructurePlacement` | world multi-block structure placement — see §4h. |
+| `LiquidPlacement` | world liquid-tile placement/flood fill — see §4h. |
 | `NativeApi` | curated native/game-private operation registry — see §4i. |
 | `SessionActivated` | the first member handshake completed. **Host side: never** — read the snapshot. |
 | `PlayerJoined` / `PlayerLeft` | a member's handshake completed / a member was removed (host side). NOT the in-world entity join. Each member exactly once, including yourself. |
@@ -370,7 +373,9 @@ context.Content.TryUnregister("wooden.sword");
   allocates deterministic custom world-fluid bytes starting at 7 in stable id
   order, maps them through `FluidManager.WorldFluidToLiquidID`, and supplies
   local projection surfaces (water info, display colour/name, body touch,
-  drink, render). `LiquidTileWorldGenDistribution` runs from the same vanilla
+  drink, render) plus host-authoritative runtime placement/flood fill
+  (`IModLiquidPlacement`). `LiquidTileWorldGenDistribution` runs from the
+  same vanilla
   `GenerateOres` postfix as tile ore, inside CUO's isolated generation stream;
   the grid changes ride the existing FluidRegion/FluidInteraction sync. No
   JObject snapshot, no new wire message, and no game/Unity type or delegate
@@ -553,6 +558,33 @@ if (context.ItemSpawn.CanSpawn)
   apply worldgen distribution or spawn counts. Automatic worldgen placement is
   a separate generation-time seam described in the typed structure content
   section above.
+- **Liquid-tile placement scope**: `IModLiquidPlacement` lets a synchronized/
+  authoritative mod place one custom world-liquid cell (`TryPlaceLiquid`) or
+  start a flood fill (`TryFloodFill`) at integer block coordinates. The tile is
+  addressed by the stable content id registered through
+  `ModContentKind.LiquidTile`; the Game Adapter resolves it to its
+  deterministic custom world-fluid byte and calls the vanilla
+  `FluidManager.SetLiquid` / `StartFill` path. No Unity or game-assembly type
+  crosses the boundary.
+- **Liquid placement permission**: the surface reuses
+  `ModPermission.SpawnEntity`. `CanPlace` reflects the declared flag and every
+  call also enforces it (false + log otherwise). It also requires an active
+  in-world session.
+- **Liquid placement authority**: CUO's world fluid grid is host-authoritative
+  (the host simulates alone and streams each guest's viewport through the
+  existing `FluidRegion` channel). This surface writes only on the host/solo
+  copy; a guest call is refused with a log and guest-initiated placement should
+  be requested through `IModCommands`' host-authoritative execution. No new
+  `NetMsg`; the host fluid stream replicates the grid write.
+- **Liquid placement preconditions**: `TryPlaceLiquid` requires the target cell
+  to be inside the world and on air. `TryFloodFill` requires the seed cell to
+  be inside the world; a non-positive `maxFill` uses the definition's authored
+  `MaxFloodFill` cap. The Game Adapter refuses an unknown/mapped-failed liquid
+  tile before any write.
+- **Liquid placement boundary (this slice)**: only custom liquid tiles
+  registered as static content are addressable; vanilla fluid bytes and
+  asset-backed visual modes are not exposed through this seam. Automatic
+  worldgen distribution remains a separate generation-time seam.
 - **No wire change**: no new `NetMsg`.
 
 ## 4i. AccessNativeApi (curated native operation registry)

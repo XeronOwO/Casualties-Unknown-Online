@@ -316,6 +316,10 @@ public static class CuoBootstrap
 		// Game Adapter replaces it with the real multi-block SetBlock-backed
 		// implementation.
 		services.AddSingleton<IModStructurePlacer>(new DisabledModStructurePlacer());
+		// The default mod liquid placer is disabled for the same reason; the
+		// Game Adapter replaces it with the real FluidManager.SetLiquid/StartFill
+		// backed implementation.
+		services.AddSingleton<IModLiquidPlacer>(new DisabledModLiquidPlacer());
 		// The default mod native-API provider is disabled for the same reason:
 		// only the Game Adapter knows the game-private operations. Tests may
 		// replace it with a recording fake.

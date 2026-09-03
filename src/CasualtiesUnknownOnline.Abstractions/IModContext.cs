@@ -119,6 +119,13 @@ public interface IModContext
 	IModStructurePlacement StructurePlacement { get; }
 
 	/// <summary>
+	/// The world liquid-tile placement/flood-fill surface. Placing requires
+	/// <see cref="ModPermission.SpawnEntity"/> — see
+	/// <see cref="IModLiquidPlacement"/> for the full contract.
+	/// </summary>
+	IModLiquidPlacement LiquidPlacement { get; }
+
+	/// <summary>
 	/// The permission-gated native/game-private operation registry. Invoking
 	/// requires <see cref="ModPermission.AccessNativeApi"/> — see
 	/// <see cref="IModNativeApi"/> for the full contract and value-safety policy.

@@ -37,6 +37,7 @@ internal sealed class ModLifecycle(
 	IModItemSpawner itemSpawner,
 	IModTilePlacer tilePlacer,
 	IModStructurePlacer structurePlacer,
+	IModLiquidPlacer liquidPlacer,
 	IModNativeApiProvider nativeApiProvider)
 {
 	private readonly ModCatalog _catalog = catalog;
@@ -57,6 +58,7 @@ internal sealed class ModLifecycle(
 	private readonly IModTilePlacer _tilePlacer = tilePlacer;
 	private readonly IModItemSpawner _itemSpawner = itemSpawner;
 	private readonly IModStructurePlacer _structurePlacer = structurePlacer;
+	private readonly IModLiquidPlacer _liquidPlacer = liquidPlacer;
 	private readonly IModNativeApiProvider _nativeApiProvider = nativeApiProvider;
 	private readonly Dictionary<ulong, ModRateLimiter> _messageRateLimiters = [];
 	private bool _discovered;
@@ -166,6 +168,7 @@ internal sealed class ModLifecycle(
 					_itemSpawner,
 					_tilePlacer,
 					_structurePlacer,
+					_liquidPlacer,
 					_nativeApiProvider);
 				instance.Bind(context);
 				instance.Initialize();

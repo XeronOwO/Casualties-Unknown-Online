@@ -396,7 +396,11 @@ context.Content.TryUnregister("wooden.sword");
   resolves resource-path sprites into a per-instance visual state component;
   worn-sprite hooks apply/restore the sprite on wear/drop and on remote
   clone/restore paths, while liquid-mask hooks reapply the water-container
-  fill sprite after `WaterContainerItem.Start`. No new wire message is used.
+  fill sprite after `WaterContainerItem.Start`. `Visual.MultiWornSprites`
+  additionally authors additive sprites on named vanilla limbs through the
+  vanilla `Wearable.CreateSprites` path; the Game Adapter filters missing
+  limbs at wear time and applies per-limb offsets/sorting order after
+  creation. No new wire message is used.
 - **Current recipe binding scope**: `GameAdapterRecipeContentProvider` decodes
   `ModRecipeDefinition`, waits for `Recipes.recipes`, deduplicates against the
   existing recipe table, and injects each accepted recipe with its game-category

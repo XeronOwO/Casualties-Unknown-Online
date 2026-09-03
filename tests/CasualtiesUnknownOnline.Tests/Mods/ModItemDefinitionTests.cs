@@ -175,7 +175,24 @@ public class ModItemDefinitionTests
 				WornSpriteOffsetX = 1.5f,
 				WornSpriteOffsetY = -2.5f,
 				WornSpriteSortingOrder = 12,
-				LiquidMaskPath = "Containers/TestMask"
+				LiquidMaskPath = "Containers/TestMask",
+				MultiWornSprites =
+				[
+					new ModItemLimbWornSprite
+					{
+						LimbName = "Head",
+						SpritePath = "Clothing/TestHat",
+						OffsetX = 0.5f,
+						OffsetY = -1f
+					},
+					new ModItemLimbWornSprite
+					{
+						LimbName = "UpTorso",
+						SpritePath = "Clothing/TestPack",
+						OffsetX = 2f,
+						OffsetY = 0.25f
+					}
+				]
 			}
 		};
 
@@ -188,6 +205,16 @@ public class ModItemDefinitionTests
 		Assert.Equal(-2.5f, restored.Visual.WornSpriteOffsetY);
 		Assert.Equal(12, restored.Visual.WornSpriteSortingOrder);
 		Assert.Equal("Containers/TestMask", restored.Visual.LiquidMaskPath);
+		Assert.NotNull(restored.Visual.MultiWornSprites);
+		Assert.Equal(2, restored.Visual.MultiWornSprites.Count);
+		Assert.Equal("Head", restored.Visual.MultiWornSprites[0].LimbName);
+		Assert.Equal("Clothing/TestHat", restored.Visual.MultiWornSprites[0].SpritePath);
+		Assert.Equal(0.5f, restored.Visual.MultiWornSprites[0].OffsetX);
+		Assert.Equal(-1f, restored.Visual.MultiWornSprites[0].OffsetY);
+		Assert.Equal("UpTorso", restored.Visual.MultiWornSprites[1].LimbName);
+		Assert.Equal("Clothing/TestPack", restored.Visual.MultiWornSprites[1].SpritePath);
+		Assert.Equal(2f, restored.Visual.MultiWornSprites[1].OffsetX);
+		Assert.Equal(0.25f, restored.Visual.MultiWornSprites[1].OffsetY);
 	}
 
 	[Fact]

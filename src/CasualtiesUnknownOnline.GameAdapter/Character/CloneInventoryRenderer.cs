@@ -208,6 +208,7 @@ internal sealed class CloneInventoryRenderer(ILogger<CloneInventoryRenderer> log
 		if (wearLimb != null)
 		{
 			item.GetComponent<CustomItemVisualState>()?.ApplyWornVisual();
+			item.GetComponent<CustomItemVisualState>()?.EnsureSecondarySprites(wearLimb.GetComponentInParent<Body>());
 		}
 
 		// Every clone render gets the marker now: limb parents still use it to

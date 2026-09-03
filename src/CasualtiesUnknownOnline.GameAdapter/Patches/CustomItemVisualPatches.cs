@@ -55,4 +55,40 @@ internal static class CustomItemVisualPatches
 			__instance.GetComponent<CustomItemVisualState>()?.ApplyLiquidMask();
 		}
 	}
+
+	[HarmonyPatch(typeof(Wearable), "CreateSprites")]
+	internal static class CreateSpritesMultiWornPatch
+	{
+		private static void Prefix(Wearable __instance, Body body)
+		{
+			if (__instance == null) // Unity object — ==
+			{
+				return;
+			}
+
+			var item = __instance.GetComponent<Item>();
+			if (item == null) // Unity object — ==
+			{
+				return;
+			}
+
+			item.GetComponent<CustomItemVisualState>()?.ConfigureWearableSecondarySprites(__instance, body);
+		}
+
+		private static void Postfix(Wearable __instance)
+		{
+			if (__instance == null) // Unity object — ==
+			{
+				return;
+			}
+
+			var item = __instance.GetComponent<Item>();
+			if (item == null) // Unity object — ==
+			{
+				return;
+			}
+
+			item.GetComponent<CustomItemVisualState>()?.ApplySecondarySpritePresentation(__instance);
+		}
+	}
 }

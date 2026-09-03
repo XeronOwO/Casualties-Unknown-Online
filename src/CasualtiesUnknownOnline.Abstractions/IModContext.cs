@@ -84,6 +84,13 @@ public interface IModContext
 	IModContent Content { get; }
 
 	/// <summary>
+	/// Read-only framework-wide content ownership lookup. It resolves which mod
+	/// registered a given content kind + id, without exposing Runtime internals
+	/// or interpreting payloads. See <see cref="IModContentOwnerQuery"/>.
+	/// </summary>
+	IModContentOwnerQuery ContentOwners { get; }
+
+	/// <summary>
 	/// The read-only game-state projection (currently the latest known player
 	/// character state). Reading requires <see cref="ModPermission.ReadGameState"/>
 	/// — see <see cref="IModGameState"/> for the full contract.

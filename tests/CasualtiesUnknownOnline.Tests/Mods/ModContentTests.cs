@@ -82,6 +82,17 @@ public class ModContentTests
 	}
 
 	[Fact]
+	public void ContentOwnerQuery_ReadsRealModStack()
+	{
+		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		var mod = ContentMod(host);
+
+		Assert.True(mod.Context!.ContentOwners.TryGetOwner("item", "wooden.sword", out var owner));
+		Assert.Equal("test.content", owner);
+		Assert.False(mod.Context.ContentOwners.TryGetOwner("item", "missing", out _));
+	}
+
+	[Fact]
 	public void MissingRegisterContentPermission_IsRefused()
 	{
 		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId);

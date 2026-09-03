@@ -353,10 +353,13 @@ context.Content.TryUnregister("wooden.sword");
 - **Typed moodle content**: `ModMoodleDefinition` is the eighth well-known
   Abstractions DTO. It carries display/description text, a vanilla moodle
   intensity, a stable icon/resource id key, critical/chipped/important
-  presentation flags, hold seconds, and an extensible `CustomData` dictionary.
+  presentation flags, hold seconds, an optional `ModMoodleAnimation`
+  frame-path icon animation, and an extensible `CustomData` dictionary.
   The Game Adapter moodle provider validates and stores the static descriptor;
   `ModStatusMoodleProjection` later feeds active status-linked moodles into
-  the vanilla moodle manager. Moodle content is still never a wire feature.
+  the vanilla moodle manager, and the moodle animation patch drives the
+  vanilla moodle UI image from the authored frames. Moodle content is still
+  never a wire feature.
 - **Shared-content binding boundary**: the runtime content binder only routes
   content from mods whose network mode guarantees a matching copy on every
   player that can receive the content instances
@@ -468,10 +471,13 @@ context.Content.TryUnregister("wooden.sword");
   mod-data domain. No game/Unity type is exposed to mods and no new wire
   message is used.
 - **Current moodle binding scope**: `GameAdapterMoodleContentProvider` decodes
-  `ModMoodleDefinition`, validates the icon/intensity/hold fields, and stores
-  the static descriptor as migration base. ModStatusMoodleProjection feeds
-  the vanilla moodle row for active status-linked moodles. No game/Unity type
-  is exposed to mods and no new wire message is used.
+  `ModMoodleDefinition`, validates the icon/intensity/hold/animation fields, and
+  stores the static descriptor as migration base. `ModStatusMoodleProjection`
+  feeds the vanilla moodle row for active status-linked moodles; when a moodle
+  authors `IconAnimation`, the projection registers a synthetic icon key with
+  the first frame and a local `Moodle.Start` patch drives the vanilla moodle UI
+  `Image` from the resolved frame list. No game/Unity type is exposed to mods
+  and no new wire message is used.
 - **No wire change**: no content bytes or new NetMsg.
 
 ## 4g. Read game state (read-only projection)

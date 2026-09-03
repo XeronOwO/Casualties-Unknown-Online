@@ -66,13 +66,46 @@ public class StatusMoodleContentProviderTests
 			"CasualtiesUnknownOnline.GameAdapter.Content.GameAdapterMoodleContentProvider");
 
 		var valid = new ModMoodleDefinition { IconId = "icons.lead", Intensity = 2, HoldSeconds = 1f };
+		var validAnimated = new ModMoodleDefinition
+		{
+			IconId = "icons.lead",
+			Intensity = 2,
+			HoldSeconds = 1f,
+			IconAnimation = new ModMoodleAnimation
+			{
+				FramePaths = ["Fx/Moodle0", "Fx/Moodle1"],
+				FramesPerSecond = 10f,
+				Loop = true
+			}
+		};
 		var missingIcon = new ModMoodleDefinition { IconId = "" };
 		var negativeHold = new ModMoodleDefinition { IconId = "icons.lead", HoldSeconds = -1f };
 		var negativeIntensity = new ModMoodleDefinition { IconId = "icons.lead", Intensity = -1 };
+		var invalidAnimationFps = new ModMoodleDefinition
+		{
+			IconId = "icons.lead",
+			IconAnimation = new ModMoodleAnimation
+			{
+				FramePaths = ["Fx/Moodle0"],
+				FramesPerSecond = float.NaN
+			}
+		};
+		var invalidAnimationEmpty = new ModMoodleDefinition
+		{
+			IconId = "icons.lead",
+			IconAnimation = new ModMoodleAnimation
+			{
+				FramePaths = [],
+				FramesPerSecond = 12f
+			}
+		};
 
 		Assert.True(TryBind(provider, ModContentKind.Moodle, "moodle.valid", valid.ToPayload()));
+		Assert.True(TryBind(provider, ModContentKind.Moodle, "moodle.valid-animated", validAnimated.ToPayload()));
 		Assert.False(TryBind(provider, ModContentKind.Moodle, "moodle.no-icon", missingIcon.ToPayload()));
 		Assert.False(TryBind(provider, ModContentKind.Moodle, "moodle.neg-hold", negativeHold.ToPayload()));
 		Assert.False(TryBind(provider, ModContentKind.Moodle, "moodle.neg-int", negativeIntensity.ToPayload()));
+		Assert.False(TryBind(provider, ModContentKind.Moodle, "moodle.bad-anim-fps", invalidAnimationFps.ToPayload()));
+		Assert.False(TryBind(provider, ModContentKind.Moodle, "moodle.bad-anim-empty", invalidAnimationEmpty.ToPayload()));
 	}
 }

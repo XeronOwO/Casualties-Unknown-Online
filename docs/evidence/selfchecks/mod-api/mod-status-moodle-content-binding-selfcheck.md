@@ -17,9 +17,9 @@ mod-data domain boundary and therefore remain separate future work.
 |---|---|---|
 | 1 | Status DTO | `ModStatusDefinition` in `CUO.Abstractions` with body/limb scope, save metadata, optional moodle id, and `CustomData`. |
 | 2 | Scope enum | `ModStatusScope.Body` / `ModStatusScope.Limb` keeps the CUCoreLib body-vs-limb distinction without coupling Abstractions to game types. |
-| 3 | Moodle DTO | `ModMoodleDefinition` with intensity, stable icon key, display text, critical/chipped/important flags, hold seconds, and `CustomData`. No Unity `Sprite` in Abstractions. |
+| 3 | Moodle DTO | `ModMoodleDefinition` with intensity, stable icon key, display text, critical/chipped/important flags, hold seconds, optional `ModMoodleAnimation` frame-path animation, and `CustomData`. No Unity `Sprite` in Abstractions. |
 | 4 | Status provider | `GameAdapterStatusContentProvider` decodes, validates, and stores the static descriptor registry. |
-| 5 | Moodle provider | `GameAdapterMoodleContentProvider` decodes, validates, and stores the static descriptor registry. |
+| 5 | Moodle provider | `GameAdapterMoodleContentProvider` decodes, validates (including icon-animation fps/frames), and stores the static descriptor registry. |
 | 6 | Shared-content filter | Existing `ModContentBinder` applies the same shared-content network-mode filter as all other static content kinds. |
 | 7 | Runtime boundary kept open | The provided registries do not attach to `PlayerState`, `Body`, or `Limb`; dynamic per-player values are explicitly deferred to the mod-data sync model. |
 | 8 | No wire | Status/moodle descriptors are static content; no new NetMsg or snapshot protocol. |
@@ -31,6 +31,7 @@ mod-data domain boundary and therefore remain separate future work.
 | `ModStatusScope` | New Abstractions enum. |
 | `ModStatusDefinition` | New Abstractions DTO + serialization helpers. |
 | `ModMoodleDefinition` | New Abstractions DTO + serialization helpers. |
+| `ModMoodleAnimation` | New Abstractions DTO for ordered moodle icon animation frames. |
 | `GameAdapterStatusContentProvider` | New GameAdapter provider (validation + static registry). |
 | `GameAdapterMoodleContentProvider` | New GameAdapter provider (validation + static registry). |
 | `PluginDependencyRegistrar` | Registered both providers as `IContentBindingProvider` and `ICuoService`. |
@@ -43,10 +44,10 @@ mod-data domain boundary and therefore remain separate future work.
 | Mechanism | Change | Evidence |
 |---|---|---|
 | Status DTO round-trip | `ModStatusDefinition.ToPayload`/`FromPayload` preserves scope/save/moodle/custom data | `ModStatusDefinitionTests.RoundTrip_*` |
-| Moodle DTO round-trip | `ModMoodleDefinition.ToPayload`/`FromPayload` preserves presentation fields | `ModMoodleDefinitionTests.RoundTrip_*` |
+| Moodle DTO round-trip | `ModMoodleDefinition.ToPayload`/`FromPayload` preserves presentation fields including `IconAnimation` | `ModMoodleDefinitionTests.RoundTrip_*` |
 | Invalid payloads | Malformed bytes return null | `ModStatusDefinitionTests.InvalidPayload_ReturnsNull`, `ModMoodleDefinitionTests.InvalidPayload_ReturnsNull` |
 | Status provider validation | Body/limb descriptors bind; malformed payload refused | `StatusMoodleContentProviderTests.StatusProvider_*` |
-| Moodle provider validation | Valid descriptor binds; missing icon/negative numeric fields refused | `StatusMoodleContentProviderTests.MoodleProvider_*` |
+| Moodle provider validation | Valid descriptor with/without icon animation binds; missing icon, negative numeric fields, invalid animation fps/frames refused | `StatusMoodleContentProviderTests.MoodleProvider_*` |
 | Binder routing | New providers join the generic kind-routing provider map | full build + existing `ModContentBinderTests` |
 | No Abstractions leak | DTOs contain no Unity/game type; providers remain in GameAdapter | `docs/api/mod-api.md`, full build |
 
@@ -62,7 +63,7 @@ mod-data domain boundary and therefore remain separate future work.
 | Evidence | Result |
 |---|---|
 | `dotnet build CasualtiesUnknownOnline.slnx` | 0 warnings / 0 errors |
-| `dotnet test CasualtiesUnknownOnline.slnx` | 2032 passed / 0 failed |
+| `dotnet test CasualtiesUnknownOnline.slnx` | 2113 passed / 0 failed |
 | `dotnet format CasualtiesUnknownOnline.slnx` | clean |
 | `tools/check-architecture.ps1` | pass |
 | `tools/check-event-replay.ps1` | pass |

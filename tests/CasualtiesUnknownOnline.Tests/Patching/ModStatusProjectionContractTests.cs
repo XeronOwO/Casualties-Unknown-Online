@@ -79,6 +79,18 @@ public class ModStatusProjectionContractTests
 
 
 	[Fact]
+	public void MoodleAnimationPatch_HasPostfix()
+	{
+		var patches = GameAssemblyHost.Adapter.GetType(
+			"CasualtiesUnknownOnline.GameAdapter.Patches.ModStatusMoodlePatches",
+			throwOnError: true)!;
+
+		var nested = patches.GetNestedTypes(BindingFlags.NonPublic | BindingFlags.Public);
+		var patch = Assert.Single(nested, t => t.Name == "MoodleAnimationPatch");
+		Assert.NotNull(patch.GetMethod("Postfix", BindingFlags.Static | BindingFlags.NonPublic));
+	}
+
+	[Fact]
 	public void ProjectionPatches_HaveBodyAndLimbPostfixes()
 	{
 		var patches = GameAssemblyHost.Adapter.GetType(

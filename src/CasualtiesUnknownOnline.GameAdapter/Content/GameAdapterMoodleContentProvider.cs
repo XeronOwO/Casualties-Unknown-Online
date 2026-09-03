@@ -78,6 +78,11 @@ public sealed class GameAdapterMoodleContentProvider(
 			return false;
 		}
 
+		if (!ValidateAnimation(registration.ModId, id, definition.IconAnimation))
+		{
+			return false;
+		}
+
 		if (_definitions.ContainsKey(id))
 		{
 			_log.LogWarning(
@@ -90,6 +95,45 @@ public sealed class GameAdapterMoodleContentProvider(
 		_log.LogInformation(
 			"[MoodleContent] accepted {ModId}/{Id} (intensity {Intensity}, icon {Icon}; schema {SchemaVersion}).",
 			registration.ModId, id, definition.Intensity, definition.IconId, registration.Definition.SchemaVersion);
+		return true;
+	}
+
+	private bool ValidateAnimation(string modId, string id, ModMoodleAnimation? animation)
+	{
+		if (animation is null)
+		{
+			return true;
+		}
+
+		if (animation.FramePaths is not { Count: > 0 }
+			|| float.IsNaN(animation.FramesPerSecond)
+			|| float.IsInfinity(animation.FramesPerSecond)
+			|| animation.FramesPerSecond <= 0f)
+		{
+			_log.LogWarning(
+				"[MoodleContent] {ModId}/{Id} has an invalid icon animation — refused.",
+				modId, id);
+			return false;
+		}
+
+		var hasFrame = false;
+		foreach (var path in animation.FramePaths)
+		{
+			if (!string.IsNullOrWhiteSpace(path))
+			{
+				hasFrame = true;
+				break;
+			}
+		}
+
+		if (!hasFrame)
+		{
+			_log.LogWarning(
+				"[MoodleContent] {ModId}/{Id} has an empty icon animation — refused.",
+				modId, id);
+			return false;
+		}
+
 		return true;
 	}
 

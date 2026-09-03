@@ -309,10 +309,15 @@ context.Content.TryUnregister("wooden.sword");
 - **Typed building content**: `ModBuildingDefinition` is the fourth well-known
   Abstractions DTO. It carries display/description text, a vanilla
   `TemplateId` base prefab, optional `BuildingEntity` field overrides, optional
-  `SpawnComponents`, and an extensible `CustomData` dictionary. The Game
-  Adapter building provider builds an inactive runtime building template from
-  the base prefab and serves it through the existing `Utils.Create` /
-  `EntitySpawned` materialization path.
+  `SpawnComponents`, authored `DropOnDestroy`/`AlwaysDrop`/`ItemCategoriesToAdd`
+  drop rules, optional worldgen density (`SpawnMinPerChunk`,
+  `SpawnMaxPerChunk`, `SpawnLayers`, `GenerationStyle`, `Placement`,
+  `SpawnInGround`, `SurfaceOffset`, `RandomFlip`), and an extensible
+  `CustomData` dictionary. The Game Adapter building provider builds an inactive
+  runtime building template from the base prefab, applies the drop tables to the
+  `BuildingEntity`, and serves it through the existing `Utils.Create` /
+  `EntitySpawned` materialization path; enabled worldgen definitions are later
+  distributed deterministically from the `PlaceCrystals` generation stream.
 - **Typed tile content**: `ModTileDefinition` is the fifth well-known
   Abstractions DTO. It carries display/description text, an optional sprite
   resource path, an optional vanilla tile index used as the visual base,
@@ -402,9 +407,14 @@ context.Content.TryUnregister("wooden.sword");
 - **Current building binding scope**: `GameAdapterBuildingContentProvider`
   decodes `ModBuildingDefinition`, builds an inactive runtime template from
   the mod's vanilla `TemplateId`, applies optional `BuildingEntity` overrides,
-  attaches `SpawnComponents`, and exposes the template to `Utils.Create` so the
-  existing `EntitySpawned` channel can replicate a mod spawn. No game/Unity
-  type is exposed to mods; no new wire message is used.
+  attaches `SpawnComponents`, applies authored chance/always drop tables and
+  guaranteed-drop categories to the runtime `BuildingEntity`, and exposes the
+  template to `Utils.Create` so the existing `EntitySpawned` channel can
+  replicate a mod spawn. When worldgen density/style is enabled,
+  `BuildingWorldGenDistribution` distributes custom buildings from the
+  `WorldGeneration.PlaceCrystals` postfix inside the sealed generation stream;
+  generation-time starts are suppressed, so no wire message is needed. No
+  game/Unity type is exposed to mods; no new wire message is used.
 - **Current tile binding scope**: `GameAdapterTileContentProvider` decodes
   `ModTileDefinition`, allocates a stable custom block index starting at 36,
   injects a built `Tile` into every fresh `WorldGeneration.tiles` palette,

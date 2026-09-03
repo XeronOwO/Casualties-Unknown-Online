@@ -44,6 +44,7 @@ internal sealed class GameAdapterDomains
 	internal readonly TileWorldGenDistribution TileWorldGen;
 	internal readonly LiquidTileWorldGenDistribution LiquidTileWorldGen;
 	internal readonly ItemWorldGenDistribution ItemWorldGen;
+	internal readonly BuildingWorldGenDistribution BuildingWorldGen;
 	internal readonly LiquidTileRender LiquidTileRender;
 	internal readonly LiquidTileBodyTouch LiquidTileBodyTouch;
 	internal readonly LiquidTileDrink LiquidTileDrink;
@@ -158,6 +159,8 @@ internal sealed class GameAdapterDomains
 			liquidTileContent, loggerFactory.CreateLogger<LiquidTileWorldGenDistribution>());
 		ItemWorldGen = new ItemWorldGenDistribution(
 			itemContent, loggerFactory.CreateLogger<ItemWorldGenDistribution>());
+		BuildingWorldGen = new BuildingWorldGenDistribution(
+			buildingContent, loggerFactory.CreateLogger<BuildingWorldGenDistribution>());
 		LiquidTileRender = new LiquidTileRender(
 			liquidTileContent, loggerFactory.CreateLogger<LiquidTileRender>());
 		LiquidTileBodyTouch = new LiquidTileBodyTouch(

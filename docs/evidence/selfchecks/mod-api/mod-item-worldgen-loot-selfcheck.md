@@ -23,7 +23,7 @@ JToken snapshot channel. A mod can now:
 | 3 | Category loot-pool injection | The provider adds each bound custom item to `ItemLootPool.pool[category]` with `SpawnFrequency` repeats, exactly like the game's own `ItemLootPool.InitializePool`; re-injection is idempotent and a replaced pool is re-seeded. A positive `WorldSpawnPerChunk` opts the item out of the generic category pool, matching CUCoreLib's fallback rule. |
 | 4 | Stable world-spawn snapshot | `GameAdapterItemContentProvider.GetDefinitionsForWorldSpawn()` returns only items with a positive `WorldSpawnPerChunk` in ordinal id order, so both peers consume the shared generation random stream in the same order. |
 | 5 | World-gen scatter | `ItemWorldGenDistribution` picks ground points with `Physics2D` and materializes items through `Utils.Create`; it runs from a `WorldGeneration.PlaceCrystals` postfix inside the sealed generation stream. |
-| 6 | Patch boundary | `WorldGenerationItemWorldGenPatch` → `IPatchBridge.OnCustomItemWorldGeneration` → `GameAdapterDomains.ItemWorldGen`. |
+| 6 | Patch boundary | `WorldGenerationPlaceCrystalsPatch` → `IPatchBridge.OnCustomItemWorldGeneration` → `GameAdapterDomains.ItemWorldGen`. |
 | 7 | Corpse loot custom prefabs | `NativeItemResourcePatches` now also transpiles `CorpseScript.Start`, so the vanilla direct `Resources.Load` corpse-loot path serves CUO custom item templates (the same cover already existing for `BuildingEntity.Update` and save restore). |
 | 8 | Sync | No new wire: generation-time items are picked up by the existing `GeneratedItemAuthority` / `GeneratedItemApplication` host snapshot. |
 | 9 | Non-goals | Explicit CUCoreLib fixed drop-source pools (corpse/crate/trader flags) and its asset-backed visuals remain non-goals for this round; the category loot-pool seam covers real custom-item loot demand without adding a new protocol. |
@@ -35,7 +35,7 @@ JToken snapshot channel. A mod can now:
 | `ModItemDefinition` | Added `WorldSpawnPerChunk` nullable field. |
 | `GameAdapterItemContentProvider` | Added world-spawn validation, stable `GetDefinitionsForWorldSpawn()`, and idempotent `ItemLootPool` category injection. |
 | `ItemWorldGenDistribution` | New GameAdapter worldgen domain class. |
-| `WorldGenerationItemWorldGenPatch` | New `PlaceCrystals` postfix hook. |
+| `WorldGenerationPlaceCrystalsPatch` | New `PlaceCrystals` postfix hook. |
 | `IPatchBridge` / `GameAdapterBridge` | Added `OnCustomItemWorldGeneration`. |
 | `GameAdapterDomains` | Added `ItemWorldGen`. |
 | `NativeItemResourcePatches` | Added `CorpseScript.Start` transpiler. |

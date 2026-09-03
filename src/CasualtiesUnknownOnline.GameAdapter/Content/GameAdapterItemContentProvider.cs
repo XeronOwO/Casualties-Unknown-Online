@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
 using Microsoft.Extensions.Logging;
@@ -83,6 +84,11 @@ public sealed class GameAdapterItemContentProvider(
 			_log.LogWarning(
 				"[ItemContent] {ModId}/{Id} has invalid WorldSpawnPerChunk {PerChunk} — refused.",
 				registration.ModId, id, perChunk);
+			return false;
+		}
+
+		if (!CustomItemBehaviorValidator.Validate(registration.ModId, id, definition, _log))
+		{
 			return false;
 		}
 
@@ -397,11 +403,111 @@ public sealed class GameAdapterItemContentProvider(
 			tags = definition.Tags ?? string.Empty
 		};
 
-		if (!string.IsNullOrWhiteSpace(definition.Tags))
+		if (definition.DecayMinutes > 0f)
 		{
-			info.SetTags();
+			info.decayMinutes = definition.DecayMinutes;
+			info.rotSpeed = 1.666f / definition.DecayMinutes;
+		}
+
+		if (definition.Tool is { } tool)
+		{
+			info.usable = true;
+			info.usableWithLMB = true;
+			info.autoAttack = true;
+			info.useAction = (body, item) => UseTool(body, item, tool);
+		}
+
+		if (definition.Gun is not null)
+		{
+			info.usable = true;
+			info.usableWithLMB = true;
+			info.autoAttack = true;
+			info.useAction = (body, item) =>
+			{
+				if (item != null) // Unity object — ==
+				{
+					var gun = item.GetComponent<GunScript>();
+					if (gun != null) // Unity object — ==
+					{
+						gun.triggerPressed = true;
+					}
+				}
+			};
+			info.tags = AddTag(info.tags, "gun");
+		}
+
+		if (definition.Battery is not null)
+		{
+			info.destroyAtZeroCondition = false;
+			info.decayInfo |= (byte)ItemInfo.DecayType.BatteryDecay;
+		}
+
+		if (!string.IsNullOrWhiteSpace(info.tags))
+		{
+			ApplyTags(info);
 		}
 
 		return info;
+	}
+
+	private static void ApplyTags(ItemInfo info)
+	{
+		var field = typeof(ItemInfo).GetField("actualTags", BindingFlags.Instance | BindingFlags.NonPublic);
+		if (field is null)
+		{
+			info.SetTags();
+			return;
+		}
+
+		field.SetValue(info, (info.tags ?? string.Empty).Split(','));
+	}
+
+	private static void UseTool(Body? body, Item? item, ModItemTool tool)
+	{
+		if (body == null || item == null) // Unity objects — ==
+		{
+			return;
+		}
+
+		var attack = new AttackInfo
+		{
+			damage = tool.Damage,
+			structuralDamage = tool.StructuralDamage,
+			attackCooldownMult = tool.AttackCooldownMultiplier,
+			distance = tool.Distance,
+			knockBack = tool.KnockBack,
+			cooldown = tool.Cooldown,
+			attackAnim = string.IsNullOrWhiteSpace(tool.AttackAnimation)
+				? null
+				: Resources.Load<GameObject>(tool.AttackAnimation),
+			staminaUse = tool.StaminaUse,
+			piercing = tool.Piercing,
+			swingSounds = tool.SwingSounds?.ToArray() ?? [],
+			volume = tool.Volume,
+			physicalSwing = tool.PhysicalSwing,
+			rotateAmount = tool.RotateAmount,
+			doAttackAnim = tool.DoAttackAnimation,
+			metalMoreDamage = tool.MetalMoreDamage
+		};
+
+		if (body.Attack(attack, 0))
+		{
+			item.condition -= tool.ConditionLossOnHit;
+		}
+	}
+
+	private static string AddTag(string? tags, string tag)
+	{
+		if (string.IsNullOrWhiteSpace(tags))
+		{
+			return tag;
+		}
+
+		if (tags!.Split(',').Any(entry => string.Equals(entry.Trim(), tag, StringComparison.OrdinalIgnoreCase)))
+		{
+			return tags;
+		}
+
+		return tags.TrimEnd(',') + "," + tag;
 	}
 }

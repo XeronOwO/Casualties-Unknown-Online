@@ -98,6 +98,35 @@ public sealed class ModItemDefinition
 	[DataMember(Order = 16)]
 	public ModItemDropSource? DropSources { get; set; }
 
+	/// <summary>Optional container behavior applied to the runtime item template.</summary>
+	[DataMember(Order = 17)]
+	public ModItemContainer? Container { get; set; }
+
+	/// <summary>Optional battery behavior applied to the runtime item template.</summary>
+	[DataMember(Order = 18)]
+	public ModItemBattery? Battery { get; set; }
+
+	/// <summary>Optional light behavior applied to the runtime item template.</summary>
+	[DataMember(Order = 19)]
+	public ModItemLight? Light { get; set; }
+
+	/// <summary>Optional melee/tool behavior applied to the item's static use action.</summary>
+	[DataMember(Order = 20)]
+	public ModItemTool? Tool { get; set; }
+
+	/// <summary>Optional firearm behavior applied to the runtime item template and static use action.</summary>
+	[DataMember(Order = 21)]
+	public ModItemGun? Gun { get; set; }
+
+	/// <summary>
+	/// Vanilla decay time in in-game minutes. Zero disables time-based decay;
+	/// a positive value also sets the computed <c>rotSpeed</c> used by the
+	/// vanilla decay path (including battery-powered drain when
+	/// <see cref="Battery"/> is present).
+	/// </summary>
+	[DataMember(Order = 22)]
+	public float DecayMinutes { get; set; }
+
 	/// <summary>Serialize this definition into the opaque payload format.</summary>
 	public byte[] ToPayload()
 	{

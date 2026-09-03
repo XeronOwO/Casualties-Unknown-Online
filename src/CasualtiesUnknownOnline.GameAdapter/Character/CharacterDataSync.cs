@@ -7,6 +7,7 @@ using MapsterMapper;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
 
+using CasualtiesUnknownOnline.GameAdapter.Content;
 using CasualtiesUnknownOnline.GameAdapter.Items;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Character;
@@ -532,5 +533,10 @@ internal sealed class CharacterDataSync(
 		{
 			sr.sortingOrder = limb.GetComponent<SpriteRenderer>().sortingOrder + item.Stats.wearableVisualOffset;
 		}
+
+		// A restored worn item is already on its limb; a custom worn-sprite
+		// visual must be applied here because the restore path never runs the
+		// vanilla WearWearable flow (and therefore neither the wear patch).
+		item.GetComponent<CustomItemVisualState>()?.ApplyWornVisual();
 	}
 }

@@ -44,6 +44,68 @@ internal static class CustomItemBehaviorApplier
 		{
 			ApplyLight(template, light, log);
 		}
+
+		if (definition.Visual is { } visual)
+		{
+			ApplyVisual(template, visual, log);
+		}
+	}
+
+	private static void ApplyVisual(GameObject template, ModItemVisual visual, Microsoft.Extensions.Logging.ILogger log)
+	{
+		var state = template.GetComponent<CustomItemVisualState>();
+		if (state == null) // Unity object — ==
+		{
+			state = template.AddComponent<CustomItemVisualState>();
+		}
+
+		var renderer = template.GetComponent<SpriteRenderer>();
+		if (renderer != null) // Unity object — ==
+		{
+			state.NormalSprite = renderer.sprite;
+			state.NormalSortingOrder = renderer.sortingOrder;
+		}
+
+		if (!string.IsNullOrWhiteSpace(visual.WornSpritePath))
+		{
+			var wornSprite = Resources.Load<Sprite>(visual.WornSpritePath);
+			if (wornSprite == null) // Unity object — ==
+			{
+				log.LogWarning(
+					"[ItemContent] cannot resolve worn sprite resource for template {Template}: {Path}.",
+					template.name, visual.WornSpritePath);
+			}
+			else
+			{
+				state.HasWornSprite = true;
+				state.WornSprite = wornSprite;
+			}
+		}
+
+		state.WornOffset = new Vector2(visual.WornSpriteOffsetX, visual.WornSpriteOffsetY);
+		if (visual.WornSpriteSortingOrder is { } sortingOrder)
+		{
+			state.HasWornSortingOrder = true;
+			state.WornSortingOrder = sortingOrder;
+		}
+
+		if (!string.IsNullOrWhiteSpace(visual.LiquidMaskPath))
+		{
+			var liquidMask = Resources.Load<Sprite>(visual.LiquidMaskPath);
+			if (liquidMask == null) // Unity object — ==
+			{
+				log.LogWarning(
+					"[ItemContent] cannot resolve liquid-mask sprite resource for template {Template}: {Path}.",
+					template.name, visual.LiquidMaskPath);
+			}
+			else
+			{
+				state.HasLiquidMask = true;
+				state.LiquidMaskSprite = liquidMask;
+			}
+		}
+
+		state.ApplyLiquidMask();
 	}
 
 	private static void ApplyContainer(GameObject template, ModItemContainer container)

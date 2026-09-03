@@ -292,7 +292,8 @@ context.Content.TryUnregister("wooden.sword");
   `WorldSpawnPerChunk` (loose world-gen distribution), optional
   `DropSources` (explicit fixed corpse/crate/trader loot pools), optional
   `DecayMinutes`, optional `Container` / `Battery` / `Light` / `Tool` / `Gun`
-  behavior DTOs, and an extensible `CustomData` dictionary. A mod serializes it
+  behavior DTOs, optional `Visual` (worn-sprite and liquid-mask resource paths),
+  and an extensible `CustomData` dictionary. A mod serializes it
   with `ToPayload()`
   and registers the bytes through `IModContent`; the framework still stores
   bytes opaquely.
@@ -385,15 +386,17 @@ context.Content.TryUnregister("wooden.sword");
   authored sources are authoritative. No game/Unity type crosses Abstractions
   and no new wire message is used.
 - **Current item advanced behavior scope**: `ModItemDefinition.Container`,
-  `Battery`, `Light`, `Tool` and `Gun` let a mod author the minimal vanilla
-  behavior slice without exposing game delegates or Unity types. The Game
-  Adapter provider validates numeric values, applies tool/gun static use
-  defaults and battery decay flags to `ItemInfo`, and configures
+  `Battery`, `Light`, `Tool`, `Gun` and `Visual` let a mod author the minimal
+  vanilla behavior and visual slice without exposing game delegates or Unity
+  types. The Game Adapter provider validates numeric values, applies tool/gun
+  static use defaults and battery decay flags to `ItemInfo`, and configures
   `Container` / `BatteryItem` / `GunScript` components on the runtime item
   template. Light uses the existing GameAdapter reflection convention for the
-  URP `Light2D` type because URP is not in the reference graph. Worn sprites
-  and liquid-mask visual modes are not part of this slice; no new wire message
-  is used.
+  URP `Light2D` type because URP is not in the reference graph. `Visual`
+  resolves resource-path sprites into a per-instance visual state component;
+  worn-sprite hooks apply/restore the sprite on wear/drop and on remote
+  clone/restore paths, while liquid-mask hooks reapply the water-container
+  fill sprite after `WaterContainerItem.Start`. No new wire message is used.
 - **Current recipe binding scope**: `GameAdapterRecipeContentProvider` decodes
   `ModRecipeDefinition`, waits for `Recipes.recipes`, deduplicates against the
   existing recipe table, and injects each accepted recipe with its game-category

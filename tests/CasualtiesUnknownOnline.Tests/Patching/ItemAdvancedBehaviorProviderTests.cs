@@ -157,6 +157,23 @@ public class ItemAdvancedBehaviorProviderTests
 	}
 
 	[Fact]
+	public void TryBind_AcceptsVisualDto()
+	{
+		var provider = CreateProvider();
+		Assert.True(TryBind(provider, "custom_visual", new ModItemDefinition
+		{
+			Visual = new ModItemVisual
+			{
+				WornSpritePath = "Clothing/TestWorn",
+				WornSpriteOffsetX = 1f,
+				WornSpriteOffsetY = -1f,
+				WornSpriteSortingOrder = 5,
+				LiquidMaskPath = "Containers/TestMask"
+			}
+		}));
+	}
+
+	[Fact]
 	public void TryBind_RejectsInvalidAdvancedBehaviorValues()
 	{
 		var provider = CreateProvider();
@@ -193,6 +210,10 @@ public class ItemAdvancedBehaviorProviderTests
 		Assert.False(TryBind(provider, "bad_gun_shots", new ModItemDefinition
 		{
 			Gun = new ModItemGun { ShotsPerFire = 0 }
+		}));
+		Assert.False(TryBind(provider, "bad_visual", new ModItemDefinition
+		{
+			Visual = new ModItemVisual { WornSpriteOffsetX = float.NaN }
 		}));
 	}
 }

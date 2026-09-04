@@ -21,6 +21,7 @@ Abstractions.
 | 7 | Per-limb row routing | `ModStatusDefinition.ShowPerLimbMoodles` opts a limb-scoped status into one row per affected limb; `LimbMoodles` maps a limb name to a distinct moodle id; `ModMoodleDefinition.LimbDisplayNameFormat` / `LimbDescriptionFormat` format limb-aware tooltip text. |
 | 8 | No wire change | Moodle row feeding is local presentation only; no NetMsg, no protocol bump, no JObject snapshot. |
 | 9 | No Abstractions leak | `ModStatusMoodleProjection` lives in GameAdapter and never exposes `MoodleManager`/`Sprite` to mods. |
+| 10 | Runtime moodle resolver | `IModMoodleRuntime` lets a mod register one resolver per runtime status id; `ModStatusMoodleProjection` calls it with a plain `ModStatusMoodleRequest` (opaque payload + stable player/limb identity) before static routing and falls back on absence/exception. No `Limb`/game delegate crosses Abstractions. |
 
 ## 2. Whole-family audit
 
@@ -28,7 +29,8 @@ Abstractions.
 |---|---|
 | `ModStatusStore` | Added `StatusPresence` nested record and `GetStatusPresences(player)`. |
 | `ModStatusDefinition` / `ModMoodleDefinition` | Added static per-limb moodle routing fields (`ShowPerLimbMoodles`, `LimbMoodles`) and per-limb display/description templates (`LimbDisplayNameFormat`, `LimbDescriptionFormat`). |
-| `ModStatusMoodleProjection` | New GameAdapter moodle-row applier; resolves animated moodle frames into synthetic icon keys and applies per-limb routing/dedup/tooltip templates. |
+| `ModStatusMoodleProjection` | New GameAdapter moodle-row applier; resolves animated moodle frames into synthetic icon keys, applies per-limb routing/dedup/tooltip templates, and invokes mod-registered runtime moodle resolvers. |
+| `IModMoodleRuntime` / `ModStatusMoodleRequest` / `ModStatusMoodleRuntimeAdapter` | New Abstractions interface + request DTO + Runtime per-mod adapter for local abstraction-safe moodle resolvers. |
 | `MoodleAnimationRegistry` | New GameAdapter local mapping from synthetic moodle icon keys to resolved frame animations. |
 | `CustomImageAnimator` | New GameAdapter MonoBehaviour that drives a vanilla moodle UI `Image` from resolved frames. |
 | `ModStatusMoodlePatches` | New Harmony prefix/postfix on `MoodleManager.AddAllMoodles` plus a `Moodle.Start` patch for animated icons. |
@@ -45,6 +47,7 @@ Abstractions.
 | Per-limb routing DTO | `ModStatusDefinition.ResolveMoodleId` honors `LimbMoodles` when per-limb rows are enabled, ignores them otherwise | `ModStatusDefinitionTests.ResolveMoodleId_*` |
 | Per-limb format DTO | `ModMoodleDefinition.FormatLimbDisplayName` / `FormatLimbDescription` use authored templates and fall back to plain text | `ModMoodleDefinitionTests.FormatLimbText_UsesAuthoredTemplates_AndFallsBack` |
 | Provider validation | Body-scoped per-limb, bindings without per-limb flag, duplicate limbs, and overlong formats are refused | `StatusMoodleContentProviderTests.StatusProvider_ValidatesPerLimbMoodleRouting`, `MoodleProvider_RejectsOverlongLimbDisplayFormats` |
+| Runtime resolver registration | Resolver happy path, null/invalid/duplicate rejection, no status-declaration requirement, and store lookup scoped by mod | `ModStatusMoodleRuntimeTests.Register_Has_Unregister_HappyPath`, `Register_RejectsNullInvalidAndDuplicate`, `Resolver_DoesNotRequireRuntimeStatusDeclaration`, `Resolver_StoreReturnsRegisteredDelegateAndScopesByModImplicitly` |
 | Moodle applier contract | `ModStatusMoodleProjection.ApplyModMoodles(MoodleManager, bool)` exists | `ModStatusProjectionContractTests.MoodleProjection_HasApplyMethod` |
 | Moodle patch contract | `ModStatusMoodlePatches.ModMoodlePatch` has Prefix and Postfix | `ModStatusProjectionContractTests.MoodlePatches_HavePrefixAndPostfix` |
 | Animation patch contract | `ModStatusMoodlePatches.MoodleAnimationPatch` has a `Postfix` | `ModStatusProjectionContractTests.MoodleAnimationPatch_HasPostfix` |
@@ -56,7 +59,7 @@ Abstractions.
 | Evidence | Result |
 |---|---|
 | `dotnet build CasualtiesUnknownOnline.slnx` | 0 warnings / 0 errors |
-| `dotnet test CasualtiesUnknownOnline.slnx` | 2118 passed / 0 failed |
+| `dotnet test CasualtiesUnknownOnline.slnx` | 2122 passed / 0 failed |
 | `dotnet format CasualtiesUnknownOnline.slnx` | clean |
 | `tools/check-architecture.ps1` | pass |
 | `tools/check-event-replay.ps1` | pass |

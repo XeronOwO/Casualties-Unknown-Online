@@ -67,8 +67,11 @@ status classes or JObject snapshots.
 - Vanilla moodle row feeding is landed through `ModStatusMoodleProjection`;
   animated moodle icons and richer per-limb moodle row routing/templates are
   landed through `ModMoodleAnimation`, `ShowPerLimbMoodles`, `LimbMoodles`,
-  and the moodle-level limb display templates. CUCoreLib-style per-limb
-  runtime callbacks that build a moodle from a live `Limb` remain future.
+  and the moodle-level limb display templates. An abstraction-safe
+  `IModMoodleRuntime` resolver seam is landed for mods that need to route a
+  runtime status payload to a static moodle id without passing a `Limb`/game
+  delegate. CUCoreLib-style per-limb runtime callbacks that build a moodle from
+  a live `Limb` remain non-goal.
 - No generic snapshot, no reflection-based status registry, no game/Unity type
   in Abstractions.
 
@@ -77,7 +80,7 @@ status classes or JObject snapshots.
 | Evidence | Result |
 |---|---|
 | `dotnet build CasualtiesUnknownOnline.slnx` | 0 warnings / 0 errors |
-| `dotnet test CasualtiesUnknownOnline.slnx` | 2072 passed / 0 failed |
+| `dotnet test CasualtiesUnknownOnline.slnx` | 2122 passed / 0 failed |
 | `dotnet format CasualtiesUnknownOnline.slnx` | clean |
 | `tools/check-architecture.ps1` | pass |
 | `tools/check-event-replay.ps1` | pass |

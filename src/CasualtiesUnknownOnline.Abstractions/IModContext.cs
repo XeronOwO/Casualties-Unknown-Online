@@ -71,6 +71,15 @@ public interface IModContext
 	IModStatusTransport StatusTransport { get; }
 
 	/// <summary>
+	/// Per-mod local moodle-presentation resolvers. A mod can register a
+	/// resolver per runtime status id and route active body/limb statuses to a
+	/// static <see cref="ModMoodleDefinition"/> from its own opaque payload.
+	/// This is local-only presentation; it never exposes game/Unity types and
+	/// adds no wire surface. See <see cref="IModMoodleRuntime"/>.
+	/// </summary>
+	IModMoodleRuntime MoodleRuntime { get; }
+
+	/// <summary>
 	/// Local mod UI windows (immediate-mode drawings on the local client). This
 	/// surface is local-only and requires no permission — see <see cref="IModUi"/>.
 	/// </summary>

@@ -105,6 +105,7 @@ public sealed class MyMod : ICuoMod   // ICuoService lifecycle + Bind
 | `State` | host-persistent per-mod state — see §4d. |
 | `Data` | runtime scope-declared per-mod data — see §4j. |
 | `StatusRuntime` | runtime per-player/per-limb mod status values — see §4k. |
+| `MoodleRuntime` | local per-status moodle-presentation resolvers — see §4k. |
 | `Ui` | local immediate-mode mod UI windows — see §4e. |
 | `Content` | mod content registration — see §4f. |
 | `GameState` | read-only player-state projection — see §4g. |
@@ -835,6 +836,15 @@ if (context.StatusRuntime.TryDeclare("bleeding", ModStatusScope.Limb, ModDataSco
   moodle descriptors with `LimbMoodles`, and use the moodle-level
   `LimbDisplayNameFormat` / `LimbDescriptionFormat` templates for limb-aware
   tooltip text.
+- **Local moodle resolver (runtime callback)**: `IModMoodleRuntime` lets a mod
+  register one resolver per runtime status id. The resolver receives a plain
+  `ModStatusMoodleRequest` (status/player/limb identity plus the mod-owned
+  payload) and returns a static moodle id. The GameAdapter's local moodle-row
+  projection calls it for each active body/limb presence and falls back to the
+  static status/moodle routing when the resolver is absent or returns null.
+  This is the CUO-safe replacement for CUCoreLib's `RegisterBody` /
+  `RegisterLimb` callbacks: no `Body`/`Limb`/game delegate crosses
+  Abstractions, and it is local-only presentation with no wire message.
 - **Boundary**: opaque `None` statuses are never interpreted by the
   GameAdapter. Only body/limb projection statuses reach the vanilla layer; the
   store change event is internal and does not add a wire message.
@@ -895,7 +905,7 @@ lifecycle (`ModLifecycleTests`), message routing + permission/rate gates
 (`ModMessageTests`), host commands (`ModCommandTests`), mod-state saves
 (`ModStateTests`), local mod UI (`ModUiTests`), mod content registration
 (`ModContentTests`, `ModContentCatalogTests`), runtime mod data
-(`ModDataTests`, `ModStatusRuntimeTests`, `ModStatusWireTests`, `ModStatusUpdateTests`,
+(`ModDataTests`, `ModStatusRuntimeTests`, `ModStatusMoodleRuntimeTests`, `ModStatusWireTests`, `ModStatusUpdateTests`,
 `ModStatusProjectionStoreTests`, `ModBodyFormulaProjectionTests`,
 `ModLimbProjectionTests`, `ModStatusProjectionContractTests`), read game state (`ModGameStateTests`), entity spawn
 (`ModEntitySpawnTests`), item spawn (`ModItemSpawnTests`), tile placement

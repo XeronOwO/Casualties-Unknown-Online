@@ -22,6 +22,8 @@ internal sealed class ModStatusStore(ILogger log)
 	private readonly ILogger _log = log;
 	private readonly Dictionary<string, Dictionary<string, ModStatusEntry>> _statuses =
 		[with(StringComparer.Ordinal)];
+	private readonly Dictionary<string, Dictionary<string, Func<ModStatusMoodleRequest, string?>>> _moodleResolvers =
+		[with(StringComparer.Ordinal)];
 
 	/// <summary>
 	/// Raised after any stored status value is written or removed. It carries no
@@ -33,6 +35,87 @@ internal sealed class ModStatusStore(ILogger log)
 
 	internal IModStatusRuntime CreateStatusAdapter(ModManifest manifest, SessionService session) =>
 		new ModStatusAdapter(this, session, manifest, _log);
+
+	// ---- Moodle resolver table (local presentation only; no role checks) ----
+
+	internal bool TryRegisterMoodleResolver(
+		string modId,
+		string statusId,
+		Func<ModStatusMoodleRequest, string?> resolver)
+	{
+		if (!ModStatusPolicy.IsValidStatusId(statusId) || resolver is null)
+		{
+			return false;
+		}
+
+		var table = GetOrCreateMoodleTable(modId);
+		if (table.ContainsKey(statusId))
+		{
+			_log.LogWarning(
+				"[Mods] {ModId} already registered a moodle resolver for {StatusId} — duplicate refused.",
+				modId, statusId);
+			return false;
+		}
+
+		if (!ModStatusPolicy.CanAddMoodleResolver(table.Count))
+		{
+			_log.LogWarning(
+				"[Mods] {ModId} reached the {Cap}-moodle-resolver cap — {StatusId} refused.",
+				modId, ModStatusPolicy.MaxMoodleResolversPerMod, statusId);
+			return false;
+		}
+
+		table[statusId] = resolver;
+		_log.LogInformation("[Mods] {ModId} registered a moodle resolver for status {StatusId}.", modId, statusId);
+		return true;
+	}
+
+	internal bool TryUnregisterMoodleResolver(string modId, string statusId)
+	{
+		if (!ModStatusPolicy.IsValidStatusId(statusId)
+			|| !_moodleResolvers.TryGetValue(modId, out var table)
+			|| !table.Remove(statusId))
+		{
+			return false;
+		}
+
+		_log.LogInformation("[Mods] {ModId} unregistered the moodle resolver for status {StatusId}.", modId, statusId);
+		return true;
+	}
+
+	internal bool HasMoodleResolver(string modId, string statusId) =>
+		_moodleResolvers.TryGetValue(modId, out var table) && table.ContainsKey(statusId);
+
+	internal bool TryGetMoodleResolver(string modId, string statusId, out Func<ModStatusMoodleRequest, string?>? resolver)
+	{
+		if (_moodleResolvers.TryGetValue(modId, out var table) && table.TryGetValue(statusId, out var found))
+		{
+			resolver = found;
+			return true;
+		}
+
+		resolver = null;
+		return false;
+	}
+
+	internal IReadOnlyList<string> GetMoodleResolverStatusIds(string modId) =>
+		_moodleResolvers.TryGetValue(modId, out var table)
+			? [.. table.Keys]
+			: [];
+
+	internal int GetMoodleResolverCount(string modId) =>
+		_moodleResolvers.TryGetValue(modId, out var table) ? table.Count : 0;
+
+	private Dictionary<string, Func<ModStatusMoodleRequest, string?>> GetOrCreateMoodleTable(string modId)
+	{
+		if (!_moodleResolvers.TryGetValue(modId, out var table))
+		{
+			table = [with(StringComparer.Ordinal)];
+			_moodleResolvers[modId] = table;
+		}
+
+		return table;
+	}
 
 	// ---- Primitive status-table access (no role checks; the adapter gates them) ----
 

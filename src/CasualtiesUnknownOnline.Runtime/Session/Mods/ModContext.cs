@@ -45,6 +45,7 @@ internal sealed class ModContext(
 	private readonly IModState _state = stateStore.CreateStateAdapter(manifest, sessionService);
 	private readonly IModData _data = dataStore.CreateDataAdapter(manifest, sessionService);
 	private readonly IModStatusRuntime _statusRuntime = statusStore.CreateStatusAdapter(manifest, sessionService);
+	private readonly IModMoodleRuntime _moodleRuntime = new ModStatusMoodleRuntimeAdapter(statusStore, manifest, frameworkLog);
 	private ModStatusTransport? _statusTransport;
 	private readonly ModUiAdapter _ui = new(manifest, frameworkLog);
 	private readonly ModContentAdapter _content = new(manifest, frameworkLog);
@@ -73,6 +74,8 @@ internal sealed class ModContext(
 
 	public IModStatusTransport StatusTransport =>
 		_statusTransport ??= new(_statusRuntime, _network, _manifest, _sessionService, _frameworkLog);
+
+	public IModMoodleRuntime MoodleRuntime => _moodleRuntime;
 
 	public IModUi Ui => _ui;
 

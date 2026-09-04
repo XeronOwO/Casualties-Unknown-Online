@@ -66,7 +66,7 @@ mod-data domain boundary and therefore remain separate future work.
 | Evidence | Result |
 |---|---|
 | `dotnet build CasualtiesUnknownOnline.slnx` | 0 warnings / 0 errors |
-| `dotnet test CasualtiesUnknownOnline.slnx` | 2118 passed / 0 failed |
+| `dotnet test CasualtiesUnknownOnline.slnx` | 2122 passed / 0 failed |
 | `dotnet format CasualtiesUnknownOnline.slnx` | clean |
 | `tools/check-architecture.ps1` | pass |
 | `tools/check-event-replay.ps1` | pass |

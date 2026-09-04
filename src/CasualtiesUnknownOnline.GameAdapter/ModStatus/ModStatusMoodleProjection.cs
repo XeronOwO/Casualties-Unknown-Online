@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.GameAdapter.Content;
@@ -35,6 +36,7 @@ internal sealed class ModStatusMoodleProjection(
 	private readonly GameAdapterMoodleContentProvider _moodleContent = moodleContent;
 	private readonly ILogger _log = log;
 	private readonly HashSet<string> _warnedMoodles = [];
+	private readonly HashSet<string> _warnedRuntimeResolvers = [];
 	private readonly Dictionary<string, Sprite[]> _animationFrames = [];
 
 	internal void ApplyModMoodles(MoodleManager manager, bool importantRow)
@@ -53,16 +55,28 @@ internal sealed class ModStatusMoodleProjection(
 		HashSet<string> added = [];
 		foreach (var presence in _statusStore.GetStatusPresences(_session.LocalSteamId))
 		{
-			if (!_statusContent.TryGetDefinition(presence.StatusId, out var statusDefinition))
-			{
-				continue;
-			}
-
 			var limb = GetLimb(body, presence.Scope, presence.LimbSlot);
-			var moodleId = statusDefinition.ResolveMoodleId(limb?.name);
-			if (string.IsNullOrWhiteSpace(moodleId))
+			var runtimeMoodleId = ResolveRuntimeMoodleId(presence, limb);
+			var useRuntimeMoodle = !string.IsNullOrWhiteSpace(runtimeMoodleId);
+			string moodleId;
+			ModStatusDefinition? statusDefinition = null;
+			if (useRuntimeMoodle)
 			{
-				continue;
+				moodleId = runtimeMoodleId!;
+			}
+			else
+			{
+				if (!_statusContent.TryGetDefinition(presence.StatusId, out var found))
+				{
+					continue;
+				}
+
+				statusDefinition = found;
+				moodleId = statusDefinition.ResolveMoodleId(limb?.name);
+				if (string.IsNullOrWhiteSpace(moodleId))
+				{
+					continue;
+				}
 			}
 
 			if (!_moodleContent.TryGetDefinition(moodleId, out var moodle))
@@ -76,7 +90,8 @@ internal sealed class ModStatusMoodleProjection(
 				continue;
 			}
 
-			var showPerLimb = presence.Scope == ModStatusScope.Limb && statusDefinition.ShowsPerLimbMoodles;
+			var showPerLimb = presence.Scope == ModStatusScope.Limb
+				&& (useRuntimeMoodle || statusDefinition?.ShowsPerLimbMoodles == true);
 			if (!added.Add(BuildDedupeKey(moodleId, presence.Scope, presence.LimbSlot, showPerLimb, limb?.name)))
 			{
 				continue;
@@ -143,6 +158,76 @@ internal sealed class ModStatusMoodleProjection(
 
 		var limb = body.limbs[limbSlot];
 		return limb == null ? null : limb; // Unity object — ==
+	}
+
+	private string? ResolveRuntimeMoodleId(ModStatusStore.StatusPresence presence, Limb? limb)
+	{
+		if (!_statusStore.TryGetMoodleResolver(presence.ModId, presence.StatusId, out var resolver)
+			|| resolver is null)
+		{
+			return null;
+		}
+
+		byte[]? payload;
+		if (presence.Scope == ModStatusScope.Body)
+		{
+			if (!_statusStore.TryGetBodyValue(presence.ModId, presence.StatusId, _session.LocalSteamId, out payload))
+			{
+				return null;
+			}
+		}
+		else
+		{
+			if (!_statusStore.TryGetLimbValue(
+				presence.ModId,
+				presence.StatusId,
+				_session.LocalSteamId,
+				presence.LimbSlot,
+				out payload))
+			{
+				return null;
+			}
+		}
+
+		var request = new ModStatusMoodleRequest
+		{
+			ModId = presence.ModId,
+			StatusId = presence.StatusId,
+			PlayerSteamId = _session.LocalSteamId,
+			Scope = presence.Scope,
+			LimbSlot = presence.LimbSlot,
+			LimbName = GetLimbName(limb),
+			Payload = payload ?? []
+		};
+
+		try
+		{
+			var resolved = resolver(request);
+			return string.IsNullOrWhiteSpace(resolved) ? null : resolved;
+		}
+		catch (Exception e)
+		{
+			if (_warnedRuntimeResolvers.Add(presence.ModId + "|" + presence.StatusId))
+			{
+				_log.LogError(
+					e,
+					"[StatusMoodle] runtime moodle resolver for {ModId}/{StatusId} threw — falling back to static routing.",
+					presence.ModId,
+					presence.StatusId);
+			}
+
+			return null;
+		}
+	}
+
+	private static string? GetLimbName(Limb? limb)
+	{
+		if (limb == null) // Unity object — ==
+		{
+			return null;
+		}
+
+		return !string.IsNullOrWhiteSpace(limb.shortName) ? limb.shortName : limb.name;
 	}
 
 	private static string BuildDedupeKey(

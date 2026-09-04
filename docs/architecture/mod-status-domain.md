@@ -4,7 +4,7 @@ Status: Design with phases 1–2 and phase 3's GameAdapter projection slices
 landed (Runtime status table + typed API + typed status transport over
 the existing mod-message channel + typed body/limb projection DTOs and a
 GameAdapter vanilla overlay + circulation-target formula patch + vanilla
-moodle-row local feed; no dedicated
+moodle-row local feed + abstraction-safe runtime moodle resolver; no dedicated
 NetMsg, no JObject snapshot).
 
 This document answers the remaining CUCoreLib migration question for dynamic
@@ -157,6 +157,14 @@ Semantics:
   `IModNetwork` mod-message frame; no dedicated NetMsg.
 - The mod owns serialization; only opaque bytes cross the boundary.
 
+The local moodle-presentation half also lives in Abstractions through
+`IModMoodleRuntime` / `ModStatusMoodleRequest`. It is deliberately narrower
+than CUCoreLib's `RegisterBody` / `RegisterLimb` callbacks: a mod registers one
+resolver per runtime status id, and the resolver receives an opaque payload
+plus stable player/limb identity instead of a live `Body`/`Limb`. The
+GameAdapter's local moodle-row projection calls it and falls back to static
+routing on absence or exception.
+
 ### 4.4 Scope split
 
 | Scope | Runtime behavior | Transport |
@@ -245,7 +253,10 @@ Semantics:
      one row per affected limb through `ShowPerLimbMoodles`, route a specific
      limb to its own moodle descriptor through `LimbMoodles`, and format the
      row title/description with the affected limb name through the moodle-level
-     limb display templates. No wire message is added.
+     limb display templates. A mod can additionally register an
+      `IModMoodleRuntime` resolver per status id to route presences from its
+      own runtime payload to a static moodle id without exposing a `Limb`/game
+      delegate. No wire message is added.
 4. **Migration guide**
    - CUCoreLib `GetStatus<T>()` maps to `IModStatusRuntime.TryGet*` with a
      stable status id and opaque mod payload.

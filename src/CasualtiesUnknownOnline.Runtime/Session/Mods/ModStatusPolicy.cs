@@ -15,6 +15,7 @@ internal static class ModStatusPolicy
 	public const int MaxStatusIdLength = 128;
 	public const int MaxValueBytes = 64 * 1024;
 	public const int MaxStatusesPerMod = 1024;
+	public const int MaxMoodleResolversPerMod = 1024;
 	public const int MaxLimbSlot = 255;
 
 	public static bool IsValidStatusId(string? statusId) =>
@@ -37,6 +38,8 @@ internal static class ModStatusPolicy
 		};
 
 	public static bool CanAddStatus(int currentStatusCount) => currentStatusCount < MaxStatusesPerMod;
+
+	public static bool CanAddMoodleResolver(int currentResolverCount) => currentResolverCount < MaxMoodleResolversPerMod;
 
 	public static bool IsValidRuntimeScopeFor(ModManifest manifest, ModDataScope runtimeScope) =>
 		ModDataPolicy.IsValidScopeFor(manifest, runtimeScope);

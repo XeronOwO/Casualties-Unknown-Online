@@ -3,6 +3,7 @@ using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.Tests.Session;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
+using System.Collections.Generic;
 
 namespace CasualtiesUnknownOnline.Tests.World;
 
@@ -25,7 +26,7 @@ public class WorldRunStateProjectionTests
 			BiomeOverride = 1,
 			BiomeDepth = 2,
 			TotalTraveled = 10,
-			RunSettings = new System.Collections.Generic.Dictionary<string, object>
+			RunSettings = new Dictionary<string, object>
 			{
 				["speed"] = 1.5f,
 			},

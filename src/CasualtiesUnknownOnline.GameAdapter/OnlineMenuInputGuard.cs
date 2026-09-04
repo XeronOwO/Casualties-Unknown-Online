@@ -4,6 +4,7 @@ using CasualtiesUnknownOnline.Runtime.Session;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
 using UnityEngine.UI;
+using Object = UnityEngine.Object;
 
 namespace CasualtiesUnknownOnline.GameAdapter;
 
@@ -91,7 +92,7 @@ internal sealed class OnlineMenuInputGuard(
 
 	private void CaptureAdaptiveButtons()
 	{
-		foreach (var button in UnityEngine.Object.FindObjectsOfType<AdaptiveButton>())
+		foreach (var button in Object.FindObjectsOfType<AdaptiveButton>())
 		{
 			if (button == null || !button.enabled) // Unity object — ==
 			{
@@ -128,7 +129,7 @@ internal sealed class OnlineMenuInputGuard(
 
 	private void CreateRaycastBlockers()
 	{
-		foreach (var canvas in UnityEngine.Object.FindObjectsOfType<Canvas>())
+		foreach (var canvas in Object.FindObjectsOfType<Canvas>())
 		{
 			if (canvas == null || !canvas.gameObject.activeInHierarchy) // Unity object — ==
 			{
@@ -165,7 +166,7 @@ internal sealed class OnlineMenuInputGuard(
 		{
 			if (blocker != null) // Unity object — ==
 			{
-				UnityEngine.Object.Destroy(blocker);
+				Object.Destroy(blocker);
 			}
 		}
 
@@ -174,7 +175,7 @@ internal sealed class OnlineMenuInputGuard(
 
 	private void CreateScopedBlockers()
 	{
-		foreach (var canvas in UnityEngine.Object.FindObjectsOfType<Canvas>())
+		foreach (var canvas in Object.FindObjectsOfType<Canvas>())
 		{
 			if (canvas == null || !canvas.gameObject.activeInHierarchy) // Unity object — ==
 			{
@@ -213,7 +214,7 @@ internal sealed class OnlineMenuInputGuard(
 		{
 			if (blocker != null) // Unity object — ==
 			{
-				UnityEngine.Object.Destroy(blocker);
+				Object.Destroy(blocker);
 			}
 		}
 

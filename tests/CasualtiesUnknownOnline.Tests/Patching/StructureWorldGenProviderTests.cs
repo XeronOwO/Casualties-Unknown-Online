@@ -5,6 +5,7 @@ using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
+using System.Collections.Generic;
 
 namespace CasualtiesUnknownOnline.Tests.Patching;
 
@@ -40,7 +41,7 @@ public class StructureWorldGenProviderTests
 			"GetCompiledForWorldGen", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
 			?? throw new InvalidOperationException("GetCompiledForWorldGen not found.");
 		var snapshot = (IEnumerable)method.Invoke(provider, null)!;
-		var ids = new System.Collections.Generic.List<string>();
+		var ids = new List<string>();
 		foreach (var item in snapshot)
 		{
 			var key = item.GetType().GetProperty("Key")!.GetValue(item);
@@ -63,7 +64,7 @@ public class StructureWorldGenProviderTests
 			Width = 1,
 			Height = 1,
 			Rows = ["#"],
-			VanillaBlocks = new System.Collections.Generic.Dictionary<string, int> { ["#"] = 5 },
+			VanillaBlocks = new Dictionary<string, int> { ["#"] = 5 },
 			SpawnCounts = [2]
 		};
 		var alpha = new ModStructureDefinition
@@ -71,7 +72,7 @@ public class StructureWorldGenProviderTests
 			Width = 1,
 			Height = 1,
 			Rows = ["#"],
-			VanillaBlocks = new System.Collections.Generic.Dictionary<string, int> { ["#"] = 5 },
+			VanillaBlocks = new Dictionary<string, int> { ["#"] = 5 },
 			SpawnCounts = [1]
 		};
 

@@ -1,5 +1,6 @@
 using System;
 using CasualtiesUnknownOnline.GameState.Kernel;
+using System.Collections.Generic;
 
 namespace CasualtiesUnknownOnline.GameState.Domains.Entities;
 
@@ -83,7 +84,7 @@ internal sealed class EnemyDomainModule : IDomainModule
 			return;
 		}
 
-		var seen = new System.Collections.Generic.HashSet<EntityId>();
+		var seen = new HashSet<EntityId>();
 		foreach (var enemy in entities.Enemies)
 		{
 			if (!seen.Add(enemy.EntityId))
@@ -97,7 +98,7 @@ internal sealed class EnemyDomainModule : IDomainModule
 			}
 		}
 
-		var removedSeen = new System.Collections.Generic.HashSet<EntityId>();
+		var removedSeen = new HashSet<EntityId>();
 		foreach (var removed in entities.Removed)
 		{
 			if (seen.Contains(removed))

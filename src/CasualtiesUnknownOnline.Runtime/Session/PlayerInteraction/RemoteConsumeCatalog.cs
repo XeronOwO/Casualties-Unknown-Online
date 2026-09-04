@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using System;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 
@@ -17,7 +18,7 @@ public static class RemoteConsumeCatalog
 	public const float DrinkAmountMl = 100f;
 
 	private static readonly IReadOnlyDictionary<string, RemoteFoodEffect> Food =
-		new Dictionary<string, RemoteFoodEffect>(System.StringComparer.Ordinal)
+		new Dictionary<string, RemoteFoodEffect>(StringComparer.Ordinal)
 		{
 			["bread"] = new("bread", 0.34f, Hunger: 9f, Thirst: 2f, WeightOffset: 0.5f),
 			["cake"] = new("cake", 0.10f, Hunger: 8f, WeightOffset: 1.25f, Happiness: 0.8f),
@@ -47,7 +48,7 @@ public static class RemoteConsumeCatalog
 		};
 
 	private static readonly IReadOnlyDictionary<string, RemoteLiquidEffect> Liquids =
-		new Dictionary<string, RemoteLiquidEffect>(System.StringComparer.Ordinal)
+		new Dictionary<string, RemoteLiquidEffect>(StringComparer.Ordinal)
 		{
 			["water"] = new("water", ThirstPer100Ml: 9f, TemperaturePer100Ml: -0.25f),
 			["carbonatedwater"] = new("carbonatedwater", ThirstPer100Ml: 9f, HappinessPer100Ml: 0.8f, TemperaturePer100Ml: -0.25f),

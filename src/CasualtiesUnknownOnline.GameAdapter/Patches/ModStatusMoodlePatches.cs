@@ -3,6 +3,7 @@ using CasualtiesUnknownOnline.GameAdapter.ModStatus;
 using HarmonyLib;
 using UnityEngine;
 using UnityEngine.UI;
+using System;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 
@@ -72,7 +73,7 @@ internal static class ModStatusMoodlePatches
 			}
 
 			var stripped = StripTrailingDigits(type);
-			if (!string.Equals(stripped, type, System.StringComparison.Ordinal)
+			if (!string.Equals(stripped, type, StringComparison.Ordinal)
 				&& MoodleAnimationRegistry.TryGet(stripped, out frames, out framesPerSecond, out loop))
 			{
 				return true;

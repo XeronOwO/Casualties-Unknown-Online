@@ -6,6 +6,7 @@ using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Character;
 
@@ -58,7 +59,7 @@ internal sealed class EnemyCombatDirector(
 			return;
 		}
 
-		foreach (var spider in UnityEngine.Object.FindObjectsOfType<SpiderHandler>())
+		foreach (var spider in Object.FindObjectsOfType<SpiderHandler>())
 		{
 			TryOrderSpiderBite(spider);
 		}

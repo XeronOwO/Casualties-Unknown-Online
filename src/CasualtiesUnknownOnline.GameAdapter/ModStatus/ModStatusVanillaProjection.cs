@@ -6,6 +6,7 @@ using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
 using Microsoft.Extensions.Logging;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
+using HarmonyLib;
 
 namespace CasualtiesUnknownOnline.GameAdapter.ModStatus;
 
@@ -317,7 +318,7 @@ internal sealed class ModStatusVanillaProjection
 		// overlay is reapplied so the in-game vitals text includes the mod offset.
 		body.bloodPressureReadout = Mathf.RoundToInt(body.bloodPressure).ToString() + "/" + Mathf.RoundToInt(body.bloodPressure * 0.66f).ToString();
 		var respiratoryReadout = Mathf.RoundToInt(body.respiratoryRate * 0.25f).ToString() + "/m";
-		HarmonyLib.Traverse.Create(body).Property("respiratoryRateReadout").SetValue(respiratoryReadout);
+		Traverse.Create(body).Property("respiratoryRateReadout").SetValue(respiratoryReadout);
 	}
 
 }

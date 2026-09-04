@@ -1,5 +1,6 @@
 using System.Reflection;
 using UnityEngine;
+using System;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Character;
 
@@ -16,15 +17,15 @@ internal static class WallSlidePresentation
 {
 	private static readonly FieldInfo SlidingLeftField =
 		typeof(Body).GetField("slidingLeft", BindingFlags.Instance | BindingFlags.NonPublic)
-		?? throw new System.InvalidOperationException("Body.slidingLeft not found.");
+		?? throw new InvalidOperationException("Body.slidingLeft not found.");
 
 	private static readonly FieldInfo SlidingRightField =
 		typeof(Body).GetField("slidingRight", BindingFlags.Instance | BindingFlags.NonPublic)
-		?? throw new System.InvalidOperationException("Body.slidingRight not found.");
+		?? throw new InvalidOperationException("Body.slidingRight not found.");
 
 	private static readonly FieldInfo SlideSourceField =
 		typeof(Body).GetField("slideSource", BindingFlags.Instance | BindingFlags.NonPublic)
-		?? throw new System.InvalidOperationException("Body.slideSource not found.");
+		?? throw new InvalidOperationException("Body.slideSource not found.");
 
 	/// <summary>Re-assert the synced wall-slide direction onto the clone's private body fields before HandleVisuals reads them.</summary>
 	internal static void Apply(Body body, bool slidingLeft, bool slidingRight)

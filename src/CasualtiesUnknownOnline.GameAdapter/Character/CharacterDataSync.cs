@@ -6,6 +6,7 @@ using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using MapsterMapper;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 using CasualtiesUnknownOnline.GameAdapter.Content;
 using CasualtiesUnknownOnline.GameAdapter.Items;
@@ -424,7 +425,7 @@ internal sealed class CharacterDataSync(
 			var holder = body.slots[slot].transform;
 			for (var i = holder.childCount - 1; i >= 0; i--)
 			{
-				UnityEngine.Object.Destroy(holder.GetChild(i).gameObject);
+				Object.Destroy(holder.GetChild(i).gameObject);
 			}
 		}
 
@@ -498,12 +499,12 @@ internal sealed class CharacterDataSync(
 			return;
 		}
 
-		var go = UnityEngine.Object.Instantiate(prefab, body.transform.position, Quaternion.identity);
+		var go = Object.Instantiate(prefab, body.transform.position, Quaternion.identity);
 		go.SetActive(true);
 		var item = go.GetComponent<Item>();
 		if (item == null) // Unity object — ==
 		{
-			UnityEngine.Object.Destroy(go);
+			Object.Destroy(go);
 			_log.LogWarning("Restore: {ItemId} has no Item component — skipped.", itemData.ItemId);
 			return;
 		}

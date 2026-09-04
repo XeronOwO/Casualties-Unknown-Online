@@ -338,7 +338,7 @@ internal sealed class CustomItemVisualState : MonoBehaviour
 		{
 			if (renderer != null
 				&& renderer.transform.parent == transform
-				&& string.Equals(renderer.gameObject.name, "LiquidFill", System.StringComparison.Ordinal))
+				&& string.Equals(renderer.gameObject.name, "LiquidFill", StringComparison.Ordinal))
 			{
 				return renderer;
 			}

@@ -4,6 +4,7 @@ using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.GameState.Domains.Players;
 using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
+using System;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 
@@ -83,7 +84,7 @@ public static class PlayerInteractionWireMapper
 		new(
 			p.FromSteamId,
 			p.ToSteamId,
-			FromWireItem(p.ItemIdentity, p.ItemData, p.ItemContents) ?? throw new System.InvalidOperationException("inventory transfer event lacks item payload"));
+			FromWireItem(p.ItemIdentity, p.ItemData, p.ItemContents) ?? throw new InvalidOperationException("inventory transfer event lacks item payload"));
 
 	public static PlayerHealResultEvent FromWireHealResult(WirePlayerInteraction p) =>
 		new(

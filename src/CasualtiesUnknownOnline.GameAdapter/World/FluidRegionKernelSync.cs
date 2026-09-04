@@ -3,6 +3,7 @@ using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
+using System;
 
 namespace CasualtiesUnknownOnline.GameAdapter.World;
 
@@ -59,7 +60,7 @@ internal sealed class FluidRegionKernelSync(
 			for (var chunkX = 0; chunkX < width; chunkX += chunkSize)
 			{
 				var x1 = Mathf.Min(chunkX + chunkSize, width);
-				System.Array.Clear(counts, 0, counts.Length);
+				Array.Clear(counts, 0, counts.Length);
 				var total = 0;
 				for (var y = chunkY; y < y1; y++)
 				{

@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
 using Xunit;
+using System;
 
 namespace CasualtiesUnknownOnline.Tests.GameState;
 
@@ -15,7 +16,7 @@ public class ItemDomainInvariantTests
 	public void RandomOperationSequence_NeverViolatesItemInvariants()
 	{
 		var kernel = new GameStateKernel(Epoch);
-		var random = new System.Random(1234);
+		var random = new Random(1234);
 		var known = new HashSet<ulong>();
 		var terminal = new HashSet<ulong>();
 		var op = 0ul;

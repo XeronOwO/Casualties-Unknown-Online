@@ -129,8 +129,8 @@ internal sealed class OnlineUiContext
 
 	internal string RoleName(SessionRole role) => role switch
 	{
-		Runtime.Session.SessionRole.Host => T("common.role_host"),
-		Runtime.Session.SessionRole.Guest => T("common.role_guest"),
+		SessionRole.Host => T("common.role_host"),
+		SessionRole.Guest => T("common.role_guest"),
 		_ => T("common.role_none"),
 	};
 

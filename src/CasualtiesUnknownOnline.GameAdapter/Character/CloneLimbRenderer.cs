@@ -2,6 +2,8 @@ using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
+using Object = UnityEngine.Object;
+using Random = UnityEngine.Random;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Character;
 
@@ -78,7 +80,7 @@ internal sealed class CloneLimbRenderer(ILogger<CloneLimbRenderer> log)
 		}
 		else if (!limbData.Broken && bone != null)
 		{
-			UnityEngine.Object.Destroy(bone);
+			Object.Destroy(bone);
 		}
 
 		// State mirrors (inert on the frozen clone — fidelity for the visuals
@@ -142,7 +144,7 @@ internal sealed class CloneLimbRenderer(ILogger<CloneLimbRenderer> log)
 		var bone = new GameObject("RemoteBrokenBone", typeof(SpriteRenderer));
 		bone.transform.SetParent(limb.transform);
 		bone.transform.localPosition = Vector3.zero;
-		bone.transform.eulerAngles = new Vector3(0f, 0f, UnityEngine.Random.Range(0f, 360f));
+		bone.transform.eulerAngles = new Vector3(0f, 0f, Random.Range(0f, 360f));
 		var boneRenderer = bone.GetComponent<SpriteRenderer>();
 		boneRenderer.sprite = sprite;
 		boneRenderer.sortingOrder = limb.GetComponent<SpriteRenderer>().sortingOrder + 1;

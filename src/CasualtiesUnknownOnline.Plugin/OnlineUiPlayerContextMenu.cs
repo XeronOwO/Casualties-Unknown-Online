@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Runtime.OnlineUi;
 using UnityEngine;
+using System;
 
 namespace CasualtiesUnknownOnline;
 
@@ -266,7 +267,7 @@ internal sealed class OnlineUiPlayerContextMenu
 
 	private sealed class MenuAction
 	{
-		internal MenuAction(string label, System.Action action)
+		internal MenuAction(string label, Action action)
 		{
 			Label = label;
 			Action = action;
@@ -274,6 +275,6 @@ internal sealed class OnlineUiPlayerContextMenu
 
 		internal string Label { get; }
 
-		internal System.Action Action { get; }
+		internal Action Action { get; }
 	}
 }

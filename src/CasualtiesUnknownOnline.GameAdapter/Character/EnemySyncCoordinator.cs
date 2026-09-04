@@ -6,6 +6,7 @@ using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using MapsterMapper;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Character;
 
@@ -113,7 +114,7 @@ internal sealed partial class EnemySyncCoordinator
 		_healthReconcile.Remove(id);
 		if (entity != null) // Unity object — ==
 		{
-			UnityEngine.Object.Destroy(entity.gameObject);
+			Object.Destroy(entity.gameObject);
 			_log.LogInformation("[Enemy] guest destroyed removed enemy {Enemy}.", id);
 		}
 	}
@@ -232,7 +233,7 @@ internal sealed partial class EnemySyncCoordinator
 	}
 
 	private static List<BuildingEntity> FindAnimals() =>
-		[.. UnityEngine.Object.FindObjectsOfType<BuildingEntity>().Where(e => e.animal)];
+		[.. Object.FindObjectsOfType<BuildingEntity>().Where(e => e.animal)];
 
 	// ---- Guest: freeze at generation finish, then bind on the snapshot ----
 

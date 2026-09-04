@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.GameState.Projections;
+using System;
 
 namespace CasualtiesUnknownOnline.Tests.GameState;
 
@@ -69,7 +70,7 @@ public static class ItemDiagnosticsProjection
 			&& ApproxEqual(a.Y, b.Y)
 			&& (!includeRevision || a.Revision == b.Revision);
 
-	private static bool ApproxEqual(float a, float b) => System.Math.Abs(a - b) < 0.001f;
+	private static bool ApproxEqual(float a, float b) => Math.Abs(a - b) < 0.001f;
 
 	private static string Format(ItemTerminalFact fact) =>
 		$"{fact.LocationKind} owner={fact.Owner} parent={fact.ParentItemId} ({fact.X:0.###},{fact.Y:0.###}) rev={fact.Revision}";

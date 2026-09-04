@@ -3,6 +3,7 @@ using System.Linq;
 using CasualtiesUnknownOnline.GameAdapter.Items;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using Microsoft.Extensions.Logging;
+using Object = UnityEngine.Object;
 
 namespace CasualtiesUnknownOnline.GameAdapter.WorldGen;
 
@@ -99,7 +100,7 @@ internal sealed class GeneratedItemApplication(
 					continue;
 				}
 
-				UnityEngine.Object.Destroy(item.gameObject);
+				Object.Destroy(item.gameObject);
 				destroyed++;
 			}
 

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 
@@ -42,7 +43,7 @@ internal static class SaveableFieldKind
 			return String;
 		}
 
-		if (type == typeof(System.Collections.Generic.List<string>))
+		if (type == typeof(List<string>))
 		{
 			return StringList;
 		}

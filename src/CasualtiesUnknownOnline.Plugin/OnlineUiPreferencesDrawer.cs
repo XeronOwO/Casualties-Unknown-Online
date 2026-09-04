@@ -148,7 +148,7 @@ internal static class OnlineUiPreferencesDrawer
 		}
 
 		GUILayout.Label(ctx.T("prefs.language"), OnlineUiTheme.Section());
-		var currentLabel = language.Current.StartsWith("zh", System.StringComparison.OrdinalIgnoreCase) ? "简体中文" : "English";
+		var currentLabel = language.Current.StartsWith("zh", StringComparison.OrdinalIgnoreCase) ? "简体中文" : "English";
 		DrawDropdown(
 			ctx,
 			ctx.T("prefs.language_current"),

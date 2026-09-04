@@ -4,6 +4,7 @@ using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
+using System.Reflection;
 
 namespace CasualtiesUnknownOnline.Tests.Mods;
 
@@ -19,7 +20,7 @@ public class ModDiscoveryTests
 {
 	private static ModRegistry CreateRegistry() => new(NullLogger<ModRegistry>.Instance);
 
-	private static System.Reflection.Assembly[] TestAssembly => [typeof(ModDiscoveryTests).Assembly];
+	private static Assembly[] TestAssembly => [typeof(ModDiscoveryTests).Assembly];
 
 	[Fact]
 	public void HealthyMod_DiscoveredWithFullManifest()

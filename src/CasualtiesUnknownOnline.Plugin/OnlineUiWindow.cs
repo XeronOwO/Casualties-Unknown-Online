@@ -1,4 +1,5 @@
 using UnityEngine;
+using CasualtiesUnknownOnline.Runtime.Session;
 
 namespace CasualtiesUnknownOnline;
 
@@ -49,7 +50,7 @@ internal sealed class OnlineUiWindow
 		if (GUI.Button(rect, label, OnlineUiTheme.Launcher()))
 		{
 			_state.Visible = !_state.Visible;
-			if (_state.Visible && _state.Page == OnlineUiPage.Home && ctx.Session.Role != Runtime.Session.SessionRole.None)
+			if (_state.Visible && _state.Page == OnlineUiPage.Home && ctx.Session.Role != SessionRole.None)
 			{
 				_state.Page = OnlineUiPage.Players;
 			}

@@ -4,6 +4,8 @@ using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
+using System;
+using System.IO;
 
 namespace CasualtiesUnknownOnline.Tests.GameState;
 
@@ -248,7 +250,7 @@ public class WorldEntityDomainKernelTests
 	[Fact]
 	public void SaveLoad_RoundTripsWorldEntityState()
 	{
-		var path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"cuo-world-entities-{System.Guid.NewGuid():N}.bin");
+		var path = Path.Combine(Path.GetTempPath(), $"cuo-world-entities-{Guid.NewGuid():N}.bin");
 		try
 		{
 			var kernel = new GameStateKernel(Epoch);
@@ -271,9 +273,9 @@ public class WorldEntityDomainKernelTests
 		}
 		finally
 		{
-			if (System.IO.File.Exists(path))
+			if (File.Exists(path))
 			{
-				System.IO.File.Delete(path);
+				File.Delete(path);
 			}
 		}
 	}

@@ -7,6 +7,7 @@ using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Time;
 using Microsoft.Extensions.Logging;
+using System;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.World;
 
@@ -38,13 +39,13 @@ public sealed class WorldEntityKernelProjection
 	}
 
 	/// <summary>Raised when a restored checkpoint carries trap consumptions.</summary>
-	public event System.Action<IReadOnlyList<EntityEventMsg>>? TrapSnapshotProjected;
+	public event Action<IReadOnlyList<EntityEventMsg>>? TrapSnapshotProjected;
 
 	/// <summary>Raised when a restored checkpoint carries opened lockable entities.</summary>
-	public event System.Action<IReadOnlyList<NetVector2Msg>>? OpenedEntitiesProjected;
+	public event Action<IReadOnlyList<NetVector2Msg>>? OpenedEntitiesProjected;
 
 	/// <summary>Raised when a restored checkpoint carries building-entity health facts.</summary>
-	public event System.Action<IReadOnlyList<BuildingEntityHealthEntryMsg>>? BuildingHealthProjected;
+	public event Action<IReadOnlyList<BuildingEntityHealthEntryMsg>>? BuildingHealthProjected;
 
 	public void Project(GameCheckpoint checkpoint)
 	{

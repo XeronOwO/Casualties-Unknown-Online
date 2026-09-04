@@ -4,6 +4,7 @@ using System.Reflection;
 using CasualtiesUnknownOnline.Abstractions;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
+using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Content;
 
@@ -19,7 +20,7 @@ internal static class CustomItemBehaviorApplier
 {
 	private static Type? _light2DType;
 
-	internal static void Apply(GameObject template, ModItemDefinition definition, Microsoft.Extensions.Logging.ILogger log)
+	internal static void Apply(GameObject template, ModItemDefinition definition, ILogger log)
 	{
 		if (template == null) // Unity object — ==
 		{
@@ -52,7 +53,7 @@ internal static class CustomItemBehaviorApplier
 		}
 	}
 
-	private static void ApplyVisual(GameObject template, ModItemVisual visual, Microsoft.Extensions.Logging.ILogger log)
+	private static void ApplyVisual(GameObject template, ModItemVisual visual, ILogger log)
 	{
 		var state = template.GetComponent<CustomItemVisualState>();
 		if (state == null) // Unity object — ==
@@ -174,7 +175,7 @@ internal static class CustomItemBehaviorApplier
 	private static Sprite[] LoadAnimationFrames(
 		GameObject template,
 		ModItemSpriteAnimation animation,
-		Microsoft.Extensions.Logging.ILogger log,
+		ILogger log,
 		string kind)
 	{
 		if (animation.FramePaths is not { Count: > 0 } framePaths)
@@ -345,7 +346,7 @@ internal static class CustomItemBehaviorApplier
 		ApplyGunSpriteFallbacks(template, gunScript);
 	}
 
-	private static void ApplyLight(GameObject template, ModItemLight light, Microsoft.Extensions.Logging.ILogger log)
+	private static void ApplyLight(GameObject template, ModItemLight light, ILogger log)
 	{
 		LightItem? lightItem = null;
 		if (light.AddLightItem)

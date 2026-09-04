@@ -3,6 +3,7 @@ using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
+using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 
 namespace CasualtiesUnknownOnline.Tests.Session;
 
@@ -84,7 +85,7 @@ public class EnemyBiteSyncTests
 	public void GuestReport_MergesIntoHostSavedCharacter()
 	{
 		using var w = ItemSimWorld.Create();
-		var hostData = w.Host.Services.GetRequiredService<Runtime.Session.CharacterData.CharacterDataStore>();
+		var hostData = w.Host.Services.GetRequiredService<CharacterDataStore>();
 		hostData.SaveCharacterData(w.G1.SteamId, new CharacterDataMsg
 		{
 			OwnerSteamId = w.G1.SteamId,

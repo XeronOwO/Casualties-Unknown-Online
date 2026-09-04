@@ -3,6 +3,7 @@ using System.Linq;
 using System.Reflection;
 using CasualtiesUnknownOnline.Protocol.Wire;
 using Xunit;
+using System.Collections;
 
 namespace CasualtiesUnknownOnline.Tests.Patching;
 
@@ -139,7 +140,7 @@ public class WorkoutAnimationSyncTests
 			?? throw new InvalidOperationException("PatchInventory type not found.");
 		var build = inventory.GetMethod("BuildContracts", BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
 			?? throw new InvalidOperationException("PatchInventory.BuildContracts not found.");
-		var contracts = (System.Collections.IEnumerable)build.Invoke(null, null)!;
+		var contracts = (IEnumerable)build.Invoke(null, null)!;
 		var found = contracts.Cast<object>().Any(c =>
 		{
 			var type = c.GetType();

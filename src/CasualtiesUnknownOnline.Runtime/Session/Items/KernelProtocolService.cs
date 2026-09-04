@@ -7,6 +7,7 @@ using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Time;
 using Microsoft.Extensions.Logging;
+using System.Threading;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 
@@ -142,7 +143,7 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 			return;
 		}
 
-		var messageId = (ulong)System.Threading.Interlocked.Increment(ref _nextMessageId);
+		var messageId = (ulong)Interlocked.Increment(ref _nextMessageId);
 		var header = CreateHeader(payloadType, EncodeOperationId(_session.LocalSteamId, messageId));
 		var frame = new ProtocolFrame
 		{
@@ -508,7 +509,7 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 			ProtocolVersion = ProtocolConstants.EnvelopeVersion,
 			RunEpoch = batch?.RunEpoch.Value ?? _authority.CreateCheckpoint().RunEpoch.Value,
 			SenderId = _session.LocalSteamId,
-			MessageId = (ulong)System.Threading.Interlocked.Increment(ref _nextMessageId),
+			MessageId = (ulong)Interlocked.Increment(ref _nextMessageId),
 			OperationId = operationId,
 			BaseGlobalRevision = baseRevision ?? (batch is null ? 0 : batch.GlobalRevision - 1),
 			PayloadType = payloadType,

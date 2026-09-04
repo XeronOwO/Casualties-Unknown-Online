@@ -7,6 +7,7 @@ using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
+using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 
 namespace CasualtiesUnknownOnline.Tests.Session;
 
@@ -125,7 +126,7 @@ public class AdapterControlSurfaceTests
 
 			var received = 0;
 			characters.CharacterDataReceived += (_, _) => received++;
-			characters.FireCharacterDataReceived(GuestId, new Runtime.Protocol.Messages.CharacterDataMsg());
+			characters.FireCharacterDataReceived(GuestId, new CharacterDataMsg());
 			Assert.Equal(1, received);
 		}
 	}

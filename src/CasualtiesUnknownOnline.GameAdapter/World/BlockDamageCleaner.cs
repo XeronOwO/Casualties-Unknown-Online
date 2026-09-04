@@ -1,5 +1,7 @@
 using System.Reflection;
 using UnityEngine;
+using System;
+using Object = UnityEngine.Object;
 
 namespace CasualtiesUnknownOnline.GameAdapter.World;
 
@@ -18,7 +20,7 @@ internal static class BlockDamageCleaner
 {
 	private static readonly FieldInfo SpriteField =
 		typeof(BlockDamage).GetField("spr", BindingFlags.Instance | BindingFlags.NonPublic)
-		?? throw new System.InvalidOperationException("BlockDamage.spr not found.");
+		?? throw new InvalidOperationException("BlockDamage.spr not found.");
 
 	/// <summary>
 	/// Removes the block's current partial-damage visual from the game's

@@ -5,6 +5,7 @@ using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
+using System.Collections.Generic;
 
 namespace CasualtiesUnknownOnline.Tests.Items;
 
@@ -97,7 +98,7 @@ public class CraftSyncSimulationTests
 		// channel (ItemApplication.OnItemCorrection on every side).
 		using var w = ItemSimWorld.Create();
 		w.Spawn(w.G1, 42, WorldItem(42));
-		var corrections = new System.Collections.Generic.List<CharacterItemMsg>();
+		var corrections = new List<CharacterItemMsg>();
 		w.Host.Services.GetRequiredService<IItemControl>().ItemCorrectionReceived += corrections.Add;
 
 		w.Craft(w.G1, new CraftReportMsg { Entries = [Changed(42, 0.6f)] });

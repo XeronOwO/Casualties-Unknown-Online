@@ -3,6 +3,7 @@ using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Tests.Fakes;
 using Xunit;
+using CasualtiesUnknownOnline.Runtime.Protocol;
 
 namespace CasualtiesUnknownOnline.Tests.Session;
 
@@ -199,7 +200,7 @@ public class SessionSimulationTests
 		var pings = 0;
 		guest.Transport.MessageReceived += (_, frame) =>
 		{
-			if ((Runtime.Protocol.NetMsg)frame[0] == CasualtiesUnknownOnline.Runtime.Protocol.NetMsg.Ping)
+			if ((NetMsg)frame[0] == NetMsg.Ping)
 			{
 				pings++;
 			}

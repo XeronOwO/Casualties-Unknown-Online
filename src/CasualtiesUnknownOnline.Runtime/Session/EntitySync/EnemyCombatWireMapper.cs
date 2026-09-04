@@ -3,6 +3,7 @@ using CasualtiesUnknownOnline.GameState.Domains.Entities;
 using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
+using System;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 
@@ -89,7 +90,7 @@ public static class EnemyCombatWireMapper
 	public static EnemyBiteResultEvent FromWireBiteResult(WireEnemyCombat wire) =>
 		new(
 			wire.VictimSteamId,
-			FromWireLimb(wire.Limb) ?? throw new System.InvalidOperationException("enemy bite result lacks limb payload"),
+			FromWireLimb(wire.Limb) ?? throw new InvalidOperationException("enemy bite result lacks limb payload"),
 			wire.VenomTotal,
 			wire.Adrenaline,
 			wire.Happiness);
@@ -97,7 +98,7 @@ public static class EnemyCombatWireMapper
 	public static EnemyLungeResultEvent FromWireLungeResult(WireEnemyCombat wire) =>
 		new(
 			wire.VictimSteamId,
-			FromWireLimb(wire.Limb) ?? throw new System.InvalidOperationException("enemy lunge result lacks limb payload"),
+			FromWireLimb(wire.Limb) ?? throw new InvalidOperationException("enemy lunge result lacks limb payload"),
 			wire.Adrenaline,
 			wire.Stamina);
 
@@ -128,7 +129,7 @@ public static class EnemyCombatWireMapper
 			epoch,
 			authority,
 			wire.VictimSteamId,
-			FromWireLimb(wire.Limb) ?? throw new System.InvalidOperationException("enemy bite command lacks limb payload"),
+			FromWireLimb(wire.Limb) ?? throw new InvalidOperationException("enemy bite command lacks limb payload"),
 			wire.VenomTotal,
 			wire.Adrenaline,
 			wire.Happiness);
@@ -145,7 +146,7 @@ public static class EnemyCombatWireMapper
 			epoch,
 			authority,
 			wire.VictimSteamId,
-			FromWireLimb(wire.Limb) ?? throw new System.InvalidOperationException("enemy lunge command lacks limb payload"),
+			FromWireLimb(wire.Limb) ?? throw new InvalidOperationException("enemy lunge command lacks limb payload"),
 			wire.Adrenaline,
 			wire.Stamina);
 

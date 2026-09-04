@@ -9,6 +9,7 @@ using CasualtiesUnknownOnline.Runtime.Session.Items;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
 using Logger = Microsoft.Extensions.Logging.ILogger;
+using Object = UnityEngine.Object;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Items;
 
@@ -66,7 +67,7 @@ internal sealed class RemoteItemSceneOps(ISessionControl session, Logger log)
 			}
 		}
 
-		UnityEngine.Object.Destroy(item.gameObject);
+		Object.Destroy(item.gameObject);
 	}
 
 	private IEnumerator KillNextFrame(Item item)
@@ -95,7 +96,7 @@ internal sealed class RemoteItemSceneOps(ISessionControl session, Logger log)
 			}
 		}
 
-		foreach (var item in UnityEngine.Object.FindObjectsOfType<Item>())
+		foreach (var item in Object.FindObjectsOfType<Item>())
 		{
 			var idComp = item.GetComponent<ItemInstanceId>();
 			if (idComp != null && idComp.Id == itemId) // Unity object — ==
@@ -166,7 +167,7 @@ internal sealed class RemoteItemSceneOps(ISessionControl session, Logger log)
 		// generous: the container may have been nudged by physics since the
 		// report; a lone unbound container of the same type is accepted as a
 		// fallback.
-		var candidates = UnityEngine.Object.FindObjectsOfType<Container>();
+		var candidates = Object.FindObjectsOfType<Container>();
 		foreach (var container in candidates)
 		{
 			var containerItem = container.GetComponent<Item>();
@@ -352,7 +353,7 @@ internal sealed class RemoteItemSceneOps(ISessionControl session, Logger log)
 			return;
 		}
 
-		var obj = UnityEngine.Object.Instantiate(prefab, new Vector3(w.Pos.X, w.Pos.Y, 0f), Quaternion.Euler(0f, 0f, w.Rotation)) as GameObject;
+		var obj = Object.Instantiate(prefab, new Vector3(w.Pos.X, w.Pos.Y, 0f), Quaternion.Euler(0f, 0f, w.Rotation)) as GameObject;
 		if (obj == null) // Unity object — ==
 		{
 			_log.LogWarning("Cannot materialize item {ItemId}: instantiate returned null.", w.ItemId);

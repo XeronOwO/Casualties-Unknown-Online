@@ -16,6 +16,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using MelLogLevel = Microsoft.Extensions.Logging.LogLevel;
 using GameAdapterImpl = CasualtiesUnknownOnline.GameAdapter.GameAdapter;
+using Microsoft.Extensions.Logging;
 
 namespace CasualtiesUnknownOnline;
 
@@ -285,7 +286,7 @@ internal static class PluginDependencyRegistrar
 		services.AddSingleton(p => new ConfigurationProfileStore(
 			config,
 			profileDirectory,
-			p.GetRequiredService<Microsoft.Extensions.Logging.ILogger<ConfigurationProfileStore>>()));
+			p.GetRequiredService<ILogger<ConfigurationProfileStore>>()));
 
 		// Persist newly bound configuration entries (e.g. a fresh [UI] Language
 		// section on an existing install) so users can see and edit them.

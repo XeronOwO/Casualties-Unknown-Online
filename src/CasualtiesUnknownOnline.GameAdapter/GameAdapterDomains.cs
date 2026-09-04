@@ -227,6 +227,7 @@ internal sealed class GameAdapterDomains
 			trapVisualReplay,
 			worldEntityKernel,
 			TrapDrops,
+			ItemApplication,
 			loggerFactory.CreateLogger<EntityEventSync>());
 		DynamiteExplosionSync = new DynamiteExplosionSync(world, session, trapVisualReplay,
 			loggerFactory.CreateLogger<DynamiteExplosionSync>());

@@ -45,7 +45,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Carry/piggyback riding movement teleport and rider/carrier position mismatch](todo/carry-piggyback-rider-position-smoothing.md) — host/guest riding while moving shows frame snaps and rider/carrier misalignment on both sides.
 - [Carry/piggyback vertical placement asymmetry](todo/carry-piggyback-vertical-placement-asymmetry.md) — rider appears above the carrier in one participant's view but below in the other's.
 - [Suppress native idle-sit while carried](todo/carried-player-idle-sit-suppression.md) — carried characters still sit after idle despite the existing render-proxy idle reset.
-- [Entity destruction drops lose fresh-drop presentation/initial motion on the guest view](todo/entity-destruction-drop-guest-fresh-state-loss.md) — building/entity destruction drops on the guest lack the fresh glow/no-gravity state and show fall-then-pull-back.
 - [Guest background window plays ghost item friction/ground sounds](todo/guest-background-ghost-item-ground-sounds.md) — backgrounding the guest causes intermittent item ground/friction sounds that are absent in the foreground.
 - [Guest container contents periodically appear as world drops on the host view](todo/guest-container-contents-ghost-drops-on-host.md) — dog food in a guest's trash bag intermittently drops from the guest body on the host view while the guest view is unaffected.
 - [Remote player medical/health panel](todo/remote-player-medical-panel.md) — cannot open another player's medical panel/body condition view; unimplemented or not enabled.
@@ -69,6 +68,7 @@ _None._ (Folder exists for the workflow.)
 - [Middle-click location marker](review/middle-click-location-marker.md) — dedicated one-shot location ping: middle click circle, quick second click exclamation, star relay, 5s fade; selfcheck linked.
 - [CUCoreLib migration support](review/cucorelib-migration-support.md) — external KrokMP-based evaluation complete; typed content/status/moodle/runtime seams landed; remaining rows are future/non-goal; selfchecks linked.
 - [Protocol frame envelope validation](review/protocol-frame-validation.md) — unified frame validator before kernel handlers; malformed/forged/oversized frames dropped, presentation payloads remain non-fatal.
+- [Entity destruction drops fresh presentation](review/entity-destruction-drop-guest-fresh-state-loss.md) — trap/building-death drops now replay with the full transient fresh/velocity state from `EntityEventMsg.Drops`; selfcheck linked.
 - [Full-qualified name cleanup](review/full-qualified-name-cleanup.md) — prefer using directives/aliases; behavior-preserving refactor only.
 - [Composite command sequential semantics](review/composite-command-sequential-semantics.md) — inner commands decide/reduce in declaration order on one working copy; atomic rollback and duplicate composite OperationId covered; selfcheck linked.
 - [Projection failure auto-recovery](review/projection-failure-auto-recovery.md) — per-domain dirty/rebuild loop: items/fluids/world-entities, degraded after repeated failures; selfcheck linked.

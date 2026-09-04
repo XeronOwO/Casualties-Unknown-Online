@@ -15,9 +15,9 @@ mod-data domain boundary and therefore remain separate future work.
 
 | # | Mechanism | Evidence / decision |
 |---|---|---|
-| 1 | Status DTO | `ModStatusDefinition` in `CUO.Abstractions` with body/limb scope, save metadata, optional moodle id, and `CustomData`. |
+| 1 | Status DTO | `ModStatusDefinition` in `CUO.Abstractions` with body/limb scope, save metadata, optional moodle id, optional per-limb moodle routing (`ShowPerLimbMoodles`/`LimbMoodles`), and `CustomData`. |
 | 2 | Scope enum | `ModStatusScope.Body` / `ModStatusScope.Limb` keeps the CUCoreLib body-vs-limb distinction without coupling Abstractions to game types. |
-| 3 | Moodle DTO | `ModMoodleDefinition` with intensity, stable icon key, display text, critical/chipped/important flags, hold seconds, optional `ModMoodleAnimation` frame-path animation, and `CustomData`. No Unity `Sprite` in Abstractions. |
+| 3 | Moodle DTO | `ModMoodleDefinition` with intensity, stable icon key, display text, critical/chipped/important flags, hold seconds, optional `ModMoodleAnimation` frame-path animation, optional limb display/description templates (`LimbDisplayNameFormat` / `LimbDescriptionFormat`), and `CustomData`. No Unity `Sprite` in Abstractions. |
 | 4 | Status provider | `GameAdapterStatusContentProvider` decodes, validates, and stores the static descriptor registry. |
 | 5 | Moodle provider | `GameAdapterMoodleContentProvider` decodes, validates (including icon-animation fps/frames), and stores the static descriptor registry. |
 | 6 | Shared-content filter | Existing `ModContentBinder` applies the same shared-content network-mode filter as all other static content kinds. |
@@ -29,8 +29,9 @@ mod-data domain boundary and therefore remain separate future work.
 | Family member | Change |
 |---|---|
 | `ModStatusScope` | New Abstractions enum. |
-| `ModStatusDefinition` | New Abstractions DTO + serialization helpers. |
-| `ModMoodleDefinition` | New Abstractions DTO + serialization helpers. |
+| `ModStatusDefinition` | New Abstractions DTO + serialization helpers; now includes per-limb moodle routing fields and `ResolveMoodleId`. |
+| `ModMoodleDefinition` | New Abstractions DTO + serialization helpers; now includes limb display/description templates and formatting helpers. |
+| `ModLimbMoodleBinding` | New Abstractions DTO mapping a vanilla limb name to a moodle id. |
 | `ModMoodleAnimation` | New Abstractions DTO for ordered moodle icon animation frames. |
 | `GameAdapterStatusContentProvider` | New GameAdapter provider (validation + static registry). |
 | `GameAdapterMoodleContentProvider` | New GameAdapter provider (validation + static registry). |
@@ -43,8 +44,10 @@ mod-data domain boundary and therefore remain separate future work.
 
 | Mechanism | Change | Evidence |
 |---|---|---|
-| Status DTO round-trip | `ModStatusDefinition.ToPayload`/`FromPayload` preserves scope/save/moodle/custom data | `ModStatusDefinitionTests.RoundTrip_*` |
-| Moodle DTO round-trip | `ModMoodleDefinition.ToPayload`/`FromPayload` preserves presentation fields including `IconAnimation` | `ModMoodleDefinitionTests.RoundTrip_*` |
+| Status DTO round-trip | `ModStatusDefinition.ToPayload`/`FromPayload` preserves scope/save/moodle/per-limb routing/custom data | `ModStatusDefinitionTests.RoundTrip_*` |
+| Status per-limb resolve | Resolve honors `LimbMoodles` only when per-limb rows are enabled | `ModStatusDefinitionTests.ResolveMoodleId_*` |
+| Moodle DTO round-trip | `ModMoodleDefinition.ToPayload`/`FromPayload` preserves presentation fields including `IconAnimation` and limb text templates | `ModMoodleDefinitionTests.RoundTrip_*` |
+| Moodle format helpers | Limb title/description templates replace `{name}`/`{description}`/`{limb}` and fall back to plain text | `ModMoodleDefinitionTests.FormatLimbText_UsesAuthoredTemplates_AndFallsBack` |
 | Invalid payloads | Malformed bytes return null | `ModStatusDefinitionTests.InvalidPayload_ReturnsNull`, `ModMoodleDefinitionTests.InvalidPayload_ReturnsNull` |
 | Status provider validation | Body/limb descriptors bind; malformed payload refused | `StatusMoodleContentProviderTests.StatusProvider_*` |
 | Moodle provider validation | Valid descriptor with/without icon animation binds; missing icon, negative numeric fields, invalid animation fps/frames refused | `StatusMoodleContentProviderTests.MoodleProvider_*` |
@@ -63,7 +66,7 @@ mod-data domain boundary and therefore remain separate future work.
 | Evidence | Result |
 |---|---|
 | `dotnet build CasualtiesUnknownOnline.slnx` | 0 warnings / 0 errors |
-| `dotnet test CasualtiesUnknownOnline.slnx` | 2113 passed / 0 failed |
+| `dotnet test CasualtiesUnknownOnline.slnx` | 2118 passed / 0 failed |
 | `dotnet format CasualtiesUnknownOnline.slnx` | clean |
 | `tools/check-architecture.ps1` | pass |
 | `tools/check-event-replay.ps1` | pass |

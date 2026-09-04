@@ -60,6 +60,58 @@ public class StatusMoodleContentProviderTests
 	}
 
 	[Fact]
+	public void StatusProvider_ValidatesPerLimbMoodleRouting()
+	{
+		var provider = CreateProvider(
+			"CasualtiesUnknownOnline.GameAdapter.Content.GameAdapterStatusContentProvider");
+
+		var valid = new ModStatusDefinition
+		{
+			Scope = ModStatusScope.Limb,
+			MoodleId = "moodle.default",
+			ShowPerLimbMoodles = true,
+			LimbMoodles =
+			[
+				new ModLimbMoodleBinding { LimbName = "LeftArm", MoodleId = "moodle.left" }
+			]
+		};
+
+		var bodyWithPerLimb = new ModStatusDefinition
+		{
+			Scope = ModStatusScope.Body,
+			MoodleId = "moodle.default",
+			ShowPerLimbMoodles = true
+		};
+
+		var bindingsWithoutFlag = new ModStatusDefinition
+		{
+			Scope = ModStatusScope.Limb,
+			MoodleId = "moodle.default",
+			LimbMoodles =
+			[
+				new ModLimbMoodleBinding { LimbName = "LeftArm", MoodleId = "moodle.left" }
+			]
+		};
+
+		var duplicateLimb = new ModStatusDefinition
+		{
+			Scope = ModStatusScope.Limb,
+			MoodleId = "moodle.default",
+			ShowPerLimbMoodles = true,
+			LimbMoodles =
+			[
+				new ModLimbMoodleBinding { LimbName = "LeftArm", MoodleId = "moodle.left" },
+				new ModLimbMoodleBinding { LimbName = "leftarm", MoodleId = "moodle.left-dup" }
+			]
+		};
+
+		Assert.True(TryBind(provider, ModContentKind.Status, "status.perlimb", valid.ToPayload()));
+		Assert.False(TryBind(provider, ModContentKind.Status, "status.body-perlimb", bodyWithPerLimb.ToPayload()));
+		Assert.False(TryBind(provider, ModContentKind.Status, "status.bindings-no-flag", bindingsWithoutFlag.ToPayload()));
+		Assert.False(TryBind(provider, ModContentKind.Status, "status.duplicate-limb", duplicateLimb.ToPayload()));
+	}
+
+	[Fact]
 	public void MoodleProvider_RequiresIconAndRejectsInvalidNumericFields()
 	{
 		var provider = CreateProvider(
@@ -107,5 +159,20 @@ public class StatusMoodleContentProviderTests
 		Assert.False(TryBind(provider, ModContentKind.Moodle, "moodle.neg-int", negativeIntensity.ToPayload()));
 		Assert.False(TryBind(provider, ModContentKind.Moodle, "moodle.bad-anim-fps", invalidAnimationFps.ToPayload()));
 		Assert.False(TryBind(provider, ModContentKind.Moodle, "moodle.bad-anim-empty", invalidAnimationEmpty.ToPayload()));
+	}
+
+	[Fact]
+	public void MoodleProvider_RejectsOverlongLimbDisplayFormats()
+	{
+		var provider = CreateProvider(
+			"CasualtiesUnknownOnline.GameAdapter.Content.GameAdapterMoodleContentProvider");
+
+		var tooLong = new ModMoodleDefinition
+		{
+			IconId = "icons.lead",
+			LimbDisplayNameFormat = new string('x', 257)
+		};
+
+		Assert.False(TryBind(provider, ModContentKind.Moodle, "moodle.long-limb-format", tooLong.ToPayload()));
 	}
 }

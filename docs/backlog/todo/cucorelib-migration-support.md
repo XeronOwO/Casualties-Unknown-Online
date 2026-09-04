@@ -272,8 +272,12 @@ content binders can build on:
   moodles go to the main row and non-important moodles to the side row.
   Authored `ModMoodleAnimation` frame lists are resolved into a synthetic
   canonical icon key and driven by a `Moodle.Start` postfix on the vanilla
-  moodle UI image. No wire message, no reflection-based moodle registry, and no
-  game/Unity type in Abstractions.
+  moodle UI image. Limb-scoped statuses can opt into one moodle row per
+  affected limb through `ShowPerLimbMoodles`, route individual limbs to
+  distinct moodle descriptors through `LimbMoodles`, and format per-limb
+  tooltip text with `LimbDisplayNameFormat` / `LimbDescriptionFormat`. No
+  wire message, no reflection-based moodle registry, and no game/Unity type
+  in Abstractions.
 - Tests for version storage/validation, catalog enumeration/filtering,
   unique resolution, duplicate/version conflicts, empty-catalog behavior,
   null-argument edges, DTO round-trip, binder routing/shared-mode
@@ -310,8 +314,12 @@ Still explicitly **not** implemented:
   `docs/architecture/mod-status-domain.md`; arbitrary mod-defined status
   classes remain future);
 - advanced moodle presentation details: frame-animated moodle icons are now
-  landed through `ModMoodleAnimation`; richer per-limb row behavior remains
-  future. The static-descriptor-driven vanilla moodle-row seam is landed;
+  landed through `ModMoodleAnimation`, and richer per-limb row behavior is
+  now landed through static `ShowPerLimbMoodles` / `LimbMoodles` routing plus
+  per-limb display/description templates. The static-descriptor-driven
+  vanilla moodle-row seam is landed; only CUCoreLib-style per-limb runtime
+  callbacks (which would require passing a `Limb`/game delegate through
+  Abstractions) remain future;
 - CUCoreLib's frame-based animated sprite modes are now landed for the
   primary/worn and liquid-fill sprites through `ModItemSpriteAnimation`
   resource-path frame lists; asset-backed visual modes (Material / Sprite /
@@ -354,7 +362,7 @@ Source basis: CUCoreLib README/CHANGELOG, `CUCoreLibWebapp` machine docs
 | 12 | Building entities / custom spawn | `BuildingEntityRegistry.Register/Spawn/PlaceOnSurface/DistributeInWorld`, prefab hooks, components, drops, worldgen density, owner queries. | `ModBuildingDefinition` + `GameAdapterBuildingContentProvider` + `IModEntitySpawn`: typed DTO, vanilla `TemplateId` base prefab, optional `BuildingEntity` overrides and `SpawnComponents`, runtime template creation, authored drop rules + item categories, worldgen density/layers/placement, and the existing `EntitySpawned` channel for replication. | **Landed at the content + entity spawn + authored drop/worldgen-density seam.** Custom buildings use `IModEntitySpawn`; no new NetMsg and no mod access to Unity prefab types. Remaining: runtime prefab configure hooks if real demand appears. |
 | 13 | Multi-block structures | `StructureRegistry.RegisterFromJson/EmbeddedJson/File`, spawn counts, `Place`, JSON payload from the structure editor. | `ModStructureDefinition` + `GameAdapterStructureContentProvider` + `IModStructurePlacement`: typed marker grid, validated GameAdapter compile, runtime placement through existing `SetBlock`/`BlockPlaced`, per-depth spawn counts consumed by deterministic worldgen distribution. | **Landed at the static content + runtime placement + automatic worldgen seam.** Distribution runs inside the isolated generation stream, static block grid only, no new wire. |
 | 14 | Statuses / per-body per-limb custom state | `StatusRegistry` + `BodyStatus`/`LimbStatus` inheritance, `[StatusOptions]`, `GetStatus<T>()`, save providers, network snapshots. | `ModStatusDefinition` + `ModStatusScope` + `GameAdapterStatusContentProvider` for static descriptors; `IModStatusRuntime` + `IModStatusTransport` + `ModStatusUpdate` for per-player/per-limb runtime values and typed shared-status transport; `ModStatusProjectionKind` + `ModBodyFormulaProjection`/`ModLimbProjection` + GameAdapter `ModStatusVanillaProjection` for typed body/limb and circulation overlays. `IModState` remains host-persistent opaque mod state. | **Landed at static descriptor + runtime table + typed status transport + typed GameAdapter body/limb + circulation projection seam.** Guest mirror set/remove rides the existing `IModNetwork` mod-message channel; no new NetMsg and no JObject snapshot. Arbitrary reflection-free status bags are not ported; the vanilla moodle-row local seam is landed. |
-| 15 | Moodles / player status UI | `MoodleRegistry.AddMoodle/AddAnimatedMoodle`, `RegisterBody/RegisterLimb`; custom status icons in the vanilla moodle row. | `ModMoodleDefinition` + `ModMoodleAnimation` + `GameAdapterMoodleContentProvider`: typed static moodle descriptors with icon key, intensity, presentation flags, hold seconds and optional frame animation; `ModStatusMoodleProjection` feeds active status-linked moodles into `MoodleManager.AddMoodle`, and the `Moodle.Start` patch drives animated moodle icons. `IModUi` remains the local immediate-mode surface. | **Landed at the static moodle-descriptor + local vanilla moodle-row + animated moodle icon seam.** Active status-linked descriptors are fed to `MoodleManager.AddMoodle`; it is not a wire feature and does not expose Unity types through Abstractions. |
+| 15 | Moodles / player status UI | `MoodleRegistry.AddMoodle/AddAnimatedMoodle`, `RegisterBody/RegisterLimb`; custom status icons in the vanilla moodle row. | `ModMoodleDefinition` + `ModMoodleAnimation` + `GameAdapterMoodleContentProvider`: typed static moodle descriptors with icon key, intensity, presentation flags, hold seconds, optional frame animation and per-limb display templates; `ModStatusDefinition.ShowPerLimbMoodles` + `LimbMoodles` route limb-scoped statuses to per-limb rows and distinct moodle descriptors; `ModStatusMoodleProjection` feeds active status-linked moodles into `MoodleManager.AddMoodle`, and the `Moodle.Start` patch drives animated moodle icons. `IModUi` remains the local immediate-mode surface. | **Landed at the static moodle-descriptor + local vanilla moodle-row + animated/per-limb moodle row seam.** Active status-linked descriptors are fed to `MoodleManager.AddMoodle`; it is not a wire feature and does not expose Unity types through Abstractions. |
 | 16 | Native settings menu / mod options | `ModOptionsRegistry.Register`, `ModOptionDefinition`, category/locale handling, optional BepInEx config mirroring. | No native settings API. `IModUi` is a local window surface; `IModState` can persist mod settings. | **Out of scope for CUO core.** Settings are local UX; a future `IModSettings` or settings-menu seam is acceptable only if demand appears. It is not multiplayer/wire work. |
 | 17 | Localization | `LocaleRegistry`, `LocaleLoader`, generated locale files, locale categories, crafting-quality labels. | No locale API in Abstractions. | **Out of scope / mod-local.** Localization is a normal mod packaging concern. CUO should not own locale unless a future content pipeline needs display-name resolution; keep it out of the wire. |
 | 18 | Save providers | `SaveRegistry.RegisterGlobal/Item/Body/Limb/WorldProvider`, `ICustomSaveProvider`, `IItemSaveProvider`, `IBodySaveProvider`, `ILimbSaveProvider`, `IWorldSaveProvider`, hooking into vanilla `save.sv`. | `IModState` is host-persistent, per-mod, versioned, opaque key/value bytes. Writes are host-only and require `WriteGameState`. | **Already superseded — no port.** Migration: move CUCoreLib save-provider payloads into `IModState` under a mod-owned schema/version. If per-item/body/world granularity is genuinely needed, that belongs in a future typed kernel domain, not a vanilla-save provider registry. |

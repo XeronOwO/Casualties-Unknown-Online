@@ -241,7 +241,11 @@ Semantics:
      `MoodleManager.AddAllMoodles` prefix/postfix patches. It reads active
      status presences for the local player, resolves linked static
      `ModMoodleDefinition`s, and feeds important moodles into the main row and
-     non-important moodles into the side row. No wire message is added.
+     non-important moodles into the side row. Limb-scoped statuses can opt into
+     one row per affected limb through `ShowPerLimbMoodles`, route a specific
+     limb to its own moodle descriptor through `LimbMoodles`, and format the
+     row title/description with the affected limb name through the moodle-level
+     limb display templates. No wire message is added.
 4. **Migration guide**
    - CUCoreLib `GetStatus<T>()` maps to `IModStatusRuntime.TryGet*` with a
      stable status id and opaque mod payload.

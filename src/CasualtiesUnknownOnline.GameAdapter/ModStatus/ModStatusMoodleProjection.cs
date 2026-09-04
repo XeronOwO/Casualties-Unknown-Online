@@ -53,13 +53,18 @@ internal sealed class ModStatusMoodleProjection(
 		HashSet<string> added = [];
 		foreach (var presence in _statusStore.GetStatusPresences(_session.LocalSteamId))
 		{
-			if (!_statusContent.TryGetDefinition(presence.StatusId, out var statusDefinition)
-				|| string.IsNullOrWhiteSpace(statusDefinition.MoodleId))
+			if (!_statusContent.TryGetDefinition(presence.StatusId, out var statusDefinition))
 			{
 				continue;
 			}
 
-			var moodleId = statusDefinition.MoodleId;
+			var limb = GetLimb(body, presence.Scope, presence.LimbSlot);
+			var moodleId = statusDefinition.ResolveMoodleId(limb?.name);
+			if (string.IsNullOrWhiteSpace(moodleId))
+			{
+				continue;
+			}
+
 			if (!_moodleContent.TryGetDefinition(moodleId, out var moodle))
 			{
 				WarnOnce(moodleId, "bound moodle definition is not registered");
@@ -71,7 +76,8 @@ internal sealed class ModStatusMoodleProjection(
 				continue;
 			}
 
-			if (!added.Add(moodleId))
+			var showPerLimb = presence.Scope == ModStatusScope.Limb && statusDefinition.ShowsPerLimbMoodles;
+			if (!added.Add(BuildDedupeKey(moodleId, presence.Scope, presence.LimbSlot, showPerLimb, limb?.name)))
 			{
 				continue;
 			}
@@ -121,11 +127,59 @@ internal sealed class ModStatusMoodleProjection(
 			manager.AddMoodle(
 				moodle.Intensity,
 				iconKey,
-				moodle.DisplayName,
-				moodle.Description,
+				FormatLimbDisplayName(moodle, limb, showPerLimb),
+				FormatLimbDescription(moodle, limb, showPerLimb),
 				moodle.Critical,
 				moodle.ChippedOnly);
 		}
+	}
+
+	private static Limb? GetLimb(Body body, ModStatusScope scope, int limbSlot)
+	{
+		if (scope != ModStatusScope.Limb || body.limbs is null || limbSlot < 0 || limbSlot >= body.limbs.Length)
+		{
+			return null;
+		}
+
+		var limb = body.limbs[limbSlot];
+		return limb == null ? null : limb; // Unity object — ==
+	}
+
+	private static string BuildDedupeKey(
+		string moodleId,
+		ModStatusScope scope,
+		int limbSlot,
+		bool showPerLimb,
+		string? limbName)
+	{
+		if (scope == ModStatusScope.Limb && showPerLimb)
+		{
+			return moodleId + "|limb|" + limbSlot + "|" + (limbName ?? "");
+		}
+
+		return moodleId;
+	}
+
+	private static string FormatLimbDisplayName(ModMoodleDefinition moodle, Limb? limb, bool showPerLimb)
+	{
+		if (!showPerLimb || limb == null) // Unity object — ==
+		{
+			return moodle.DisplayName;
+		}
+
+		var limbName = !string.IsNullOrWhiteSpace(limb.shortName) ? limb.shortName : limb.name;
+		return moodle.FormatLimbDisplayName(limbName);
+	}
+
+	private static string FormatLimbDescription(ModMoodleDefinition moodle, Limb? limb, bool showPerLimb)
+	{
+		if (!showPerLimb || limb == null) // Unity object — ==
+		{
+			return moodle.Description;
+		}
+
+		var limbName = !string.IsNullOrWhiteSpace(limb.shortName) ? limb.shortName : limb.name;
+		return moodle.FormatLimbDescription(limbName);
 	}
 
 	private Sprite[] LoadAnimationFrames(string moodleId, ModMoodleAnimation animation)

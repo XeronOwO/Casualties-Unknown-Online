@@ -120,6 +120,9 @@ internal sealed class OnlineUiContext
 	/// <summary>Opens the game's native radial backpack UI focused on a remote player's render clone.</summary>
 	internal Func<ulong, string, bool>? OpenRemoteBackpack;
 
+	/// <summary>Opens the CUO read-only medical panel for a remote player.</summary>
+	internal Action<ulong>? OpenMedical;
+
 	internal string T(string key) => Localization.T(key);
 
 	internal string F(string key, params object?[] args) => Localization.Format(key, args);

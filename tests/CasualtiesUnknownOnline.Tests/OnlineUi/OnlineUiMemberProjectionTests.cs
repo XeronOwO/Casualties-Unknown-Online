@@ -561,6 +561,71 @@ public sealed class OnlineUiMemberProjectionTests
 		Assert.Null(rows[1].PeerIdHex);
 	}
 
+	[Fact]
+	public void InWorldRemoteWithVitals_CanViewMedical()
+	{
+		var vitals = new Dictionary<ulong, RemoteVitalsSnapshot>
+		{
+			[Remote] = RemoteVitalsSnapshot.From(new CharacterHealthMsg { Alive = true, Conscious = true })!,
+		};
+
+		var rows = Build(
+			[Local, Remote],
+			[Presence(Remote, handshaken: true, inWorld: true)],
+			null,
+			localInWorld: true,
+			getVitals: id => vitals.TryGetValue(id, out var v) ? v : null);
+
+		Assert.True(rows[1].CanViewMedical);
+		Assert.False(rows[0].CanViewMedical);
+	}
+
+	[Fact]
+	public void CanViewMedical_DoesNotRequireLineOfSight()
+	{
+		var vitals = new Dictionary<ulong, RemoteVitalsSnapshot>
+		{
+			[Remote] = RemoteVitalsSnapshot.From(new CharacterHealthMsg { Alive = true, Conscious = true })!,
+		};
+
+		var rows = Build(
+			[Local, Remote],
+			[Presence(Remote, handshaken: true, inWorld: true)],
+			null,
+			localInWorld: true,
+			getVitals: id => vitals.TryGetValue(id, out var v) ? v : null,
+			hasLineOfSight: _ => false);
+
+		Assert.True(rows[1].CanViewMedical);
+		Assert.False(rows[1].CanSee);
+	}
+
+	[Fact]
+	public void RemoteWithoutVitalsOrNotInWorld_CannotViewMedical()
+	{
+		var rows = Build(
+			[Local, Remote],
+			[Presence(Remote, handshaken: true, inWorld: true)],
+			null,
+			localInWorld: true);
+
+		Assert.False(rows[1].CanViewMedical);
+
+		var vitals = new Dictionary<ulong, RemoteVitalsSnapshot>
+		{
+			[Remote] = RemoteVitalsSnapshot.From(new CharacterHealthMsg { Alive = true, Conscious = true })!,
+		};
+
+		var menuRows = Build(
+			[Local, Remote],
+			[Presence(Remote, handshaken: true, inWorld: false)],
+			null,
+			localInWorld: true,
+			getVitals: id => vitals.TryGetValue(id, out var v) ? v : null);
+
+		Assert.False(menuRows[1].CanViewMedical);
+	}
+
 	private static IReadOnlyList<OnlineUiMemberRow> Build(
 		IReadOnlyList<ulong> lobbyMembers,
 		IReadOnlyList<MemberPresenceTable.MemberPresence> members,

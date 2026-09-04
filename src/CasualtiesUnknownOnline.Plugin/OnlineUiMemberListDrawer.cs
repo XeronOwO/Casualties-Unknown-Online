@@ -167,7 +167,8 @@ internal static class OnlineUiMemberListDrawer
 			|| row.CanHeal
 			|| row.CanPush
 			|| row.CanRecruit
-			|| row.CanTake;
+			|| row.CanTake
+			|| row.CanViewMedical;
 		if (!hasAction)
 		{
 			return;
@@ -217,6 +218,11 @@ internal static class OnlineUiMemberListDrawer
 		if (row.CanRecruit && GUILayout.Button(ctx.T("member.recruit"), OnlineUiTheme.Button(), GUILayout.Width(70f)))
 		{
 			ctx.RecruitPlayer?.Invoke(row.SteamId);
+		}
+
+		if (row.CanViewMedical && GUILayout.Button(ctx.T("member.open_medical"), OnlineUiTheme.Button(), GUILayout.Width(80f)))
+		{
+			ctx.OpenMedical?.Invoke(row.SteamId);
 		}
 
 		if (row.CanTake)

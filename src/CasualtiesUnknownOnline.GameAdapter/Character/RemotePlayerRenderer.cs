@@ -154,6 +154,17 @@ internal sealed class RemotePlayerRenderer(
 				}
 			}
 
+			// Mark the clone as the local player's carried rider BEFORE
+			// applying stream state so SessionStatePump can suppress the native
+			// sit replay in the same frame; all other clones are cleared first.
+			var isLocalCarriedRider = localBody != null // Unity object — ==
+				&& _playerInteraction.TryGetCarried(_session.LocalSteamId, out var carriedId)
+				&& carriedId == remote.SteamId;
+			if (clone.TryGetComponent<RemoteBodyDriver>(out var cloneDriver))
+			{
+				cloneDriver.IsCarriedRider = isLocalCarriedRider;
+			}
+
 			SessionStatePump.Apply(remote, clone);
 			ApplyLocalCarrierFollow(localBody, remote, clone);
 		}

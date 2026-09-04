@@ -61,7 +61,13 @@ internal static class BodyPatches
 			UpdateCrouchAmount(__instance);
 			// The 12s idle timer makes the original sit down (Body.cs:3162-3166);
 			// a render proxy must stay in its standing pose — reset the timer.
-			if (__instance.idleTime > 11f)
+			// A carried-ride body (local rider or carrier-side rider clone) is
+			// held at zero every frame, not only after the 11s pre-sit threshold,
+			// so the sit condition can never begin accumulating on a ride.
+			var remoteDriver = __instance.GetComponent<RemoteBodyDriver>(); // Unity object — ==
+			var isCarriedRide = CarriedBodyDriver.IsCarrying(__instance)
+				|| (remoteDriver != null && remoteDriver.IsCarriedRider);
+			if (CarriedBodyPose.ShouldZeroIdleTimer(isCarriedRide) || __instance.idleTime > 11f)
 			{
 				__instance.idleTime = 0f;
 			}
@@ -92,7 +98,6 @@ internal static class BodyPatches
 			// synced standing value is restored immediately after the visual
 			// pass and remains the semantic state for SessionStatePump/LyingPose.
 			var originalStanding = __instance.standing;
-			var remoteDriver = __instance.GetComponent<RemoteBodyDriver>(); // Unity object — ==
 			var isRemoteClone = __instance.GetComponentInParent<RemoteBodyDriver>() != null;
 			var visualStanding = RenderProxyPose.EffectiveVisualStanding(
 				originalStanding,
@@ -110,6 +115,16 @@ internal static class BodyPatches
 			finally
 			{
 				__instance.standing = originalStanding;
+			}
+
+			// A carried-ride body that was already in the native sit clip when
+			// the carry began must actively leave it: resetting idleTime alone
+			// does not make HandleVisuals exit an already-playing ExperimentSit
+			// clip when the proxy still presents as standing to the animator.
+			if (CarriedBodyPose.ShouldExitSit(isCarriedRide, IsCurrentClipSit(__instance)))
+			{
+				__instance.bodyAnimator.Play("Grounded");
+				__instance.armsAnimator.Play("Grounded");
 			}
 
 			// legSpeedMult is a computed property from leg force (Body.cs:67-95)
@@ -143,6 +158,23 @@ internal static class BodyPatches
 			{
 				limb.rb.simulated = false;
 			}
+		}
+
+		/// <summary>
+		/// True when either the body or arms animator is currently on the native
+		/// idle-sit clip (Body.cs:3152-3160 uses the same clip names to decide
+		/// when to leave sit after the idle condition resets).
+		/// </summary>
+		private static bool IsCurrentClipSit(Body body)
+		{
+			var bodyClips = body.bodyAnimator.GetCurrentAnimatorClipInfo(0);
+			if (bodyClips.Length != 0 && bodyClips[0].clip.name == "ExperimentSit")
+			{
+				return true;
+			}
+
+			var armClips = body.armsAnimator.GetCurrentAnimatorClipInfo(0);
+			return armClips.Length != 0 && armClips[0].clip.name == "ArmsSit";
 		}
 
 		/// <summary>Ground probe mirroring Body.HandleGroundedState (Body.cs:2597), minus its side effects.</summary>

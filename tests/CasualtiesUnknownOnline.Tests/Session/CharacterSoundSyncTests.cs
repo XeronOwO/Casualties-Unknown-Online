@@ -31,11 +31,15 @@ public class CharacterSoundSyncTests
 			CharacterSoundKind.GunFire => "rifleshot",
 			CharacterSoundKind.Footstep => "footstep/Rock/RockStep1",
 			CharacterSoundKind.LandingImpact => "bodyFall1",
+			CharacterSoundKind.Pain => "pain1",
+			CharacterSoundKind.Bark => "bark2",
+			CharacterSoundKind.Growl => "growl7",
+			CharacterSoundKind.Yawn => "yawn1",
 			_ => "BSSwing3",
 		},
 		Position = new NetVector2Msg { X = 10f, Y = 20f },
 		Volume = 0.7f,
-		FollowOwner = kind != CharacterSoundKind.ThrowSwing && kind != CharacterSoundKind.GunFire,
+		FollowOwner = kind != CharacterSoundKind.ThrowSwing && kind != CharacterSoundKind.GunFire && kind != CharacterSoundKind.Bark,
 		TwoDimensional = kind == CharacterSoundKind.Exert || kind == CharacterSoundKind.GunFire,
 		RecoilDegrees = recoilDegrees,
 	};
@@ -84,6 +88,25 @@ public class CharacterSoundSyncTests
 			NetPacket.Encode(NetMsg.CharacterSound, Sound(kind: CharacterSoundKind.LandingImpact)));
 		Assert.Equal(CharacterSoundKind.LandingImpact, landing.Kind);
 		Assert.Equal("bodyFall1", landing.Clip);
+	}
+
+	[Fact]
+	public void PantSoundVocalizations_RoundTripTheirKindsAndFollowFacts()
+	{
+		foreach (var kind in new[]
+		{
+			CharacterSoundKind.Pain,
+			CharacterSoundKind.Bark,
+			CharacterSoundKind.Growl,
+			CharacterSoundKind.Yawn,
+		})
+		{
+			var decoded = NetPacket.DecodePayload<CharacterSoundMsg>(
+				NetPacket.Encode(NetMsg.CharacterSound, Sound(kind: kind)));
+			Assert.Equal(kind, decoded.Kind);
+			Assert.Equal(kind == CharacterSoundKind.Pain ? "pain1" : kind == CharacterSoundKind.Bark ? "bark2" : kind == CharacterSoundKind.Growl ? "growl7" : "yawn1", decoded.Clip);
+			Assert.Equal(kind == CharacterSoundKind.Bark, !decoded.FollowOwner);
+		}
 	}
 
 	[Fact]

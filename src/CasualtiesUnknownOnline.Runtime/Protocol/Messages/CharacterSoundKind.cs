@@ -27,4 +27,22 @@ public enum CharacterSoundKind : byte
 	/// <summary><c>Body.HandleGroundedState</c> played a landing impact (Body.cs:2729-2737,
 	/// the <c>impactSmall/Medium/Large</c> <c>bodyFallN</c> clips).</summary>
 	LandingImpact = 6,
+
+	/// <summary><c>PantSound.Update</c> played a one-shot pain vocalization
+	/// (<c>PantSound.cs:55-67</c>) — the pain sound fires only when
+	/// <c>averagePain &gt; 20</c> and the 30-50 s pain timer reaches zero; the
+	/// receiver replays it without the continuous pant loop.</summary>
+	Pain = 7,
+
+	/// <summary><c>PantSound.Bark</c> played the B-key bark
+	/// (<c>PlayerCamera.cs:980-982</c>, <c>PantSound.cs:22-30</c>).</summary>
+	Bark = 8,
+
+	/// <summary><c>PantSound.TryGrowl</c> played a low-happiness growl
+	/// (<c>Body.cs:3434</c>, <c>PantSound.cs:33-39</c>).</summary>
+	Growl = 9,
+
+	/// <summary><c>PantSound.Update</c> played a low-energy yawn
+	/// (<c>PantSound.cs:72-80</c>).</summary>
+	Yawn = 10,
 }

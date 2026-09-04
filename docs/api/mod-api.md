@@ -5,7 +5,7 @@ Status: first round **landed 2026-08-13**; second round (4b) **landed
 the framework's future rounds — the semantics below are locked by tests
 (`tests/.../Mods/`, 761 total green at landing) and the two-process runtime
 verification (host + sandbox guest; the pre-release ProtocolVersion sequence was
-later reset to `ProtocolVersion.Current = 1` — see tech-decisions #137).
+later reset and subsequently bumped to `ProtocolVersion.Current = 2` — see tech-decisions #137).
 
 ## 1. Scope
 
@@ -896,10 +896,11 @@ commands and remains the two-process verification target).
 
 ## 7. Versioning and protocol discipline
 
-- `ProtocolVersion.Current` is `1`. The pre-release protocol-version sequence
-  was deliberately reset before first release (tech-decisions #137); earlier
-  numbers such as 10/29/34 in this document are historical and must not be used
-  as current wire versions.
+- `ProtocolVersion.Current` is `2`. The pre-release protocol-version sequence
+  was deliberately reset before first release (tech-decisions #137), and 2 is
+  the first post-reset bump after the PantSound `CharacterSoundKind` extension;
+  earlier numbers such as 10/29/34 in this document are historical and must not
+  be used as current wire versions.
 - Behavioral wire changes after the first release will bump
   `ProtocolVersion.Current`; local-only/read-only mod surfaces that add no wire
   change do not bump it.

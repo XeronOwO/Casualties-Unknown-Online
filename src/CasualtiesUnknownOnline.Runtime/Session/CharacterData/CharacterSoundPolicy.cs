@@ -9,10 +9,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 /// <see cref="CharacterSoundKind"/>. The GameAdapter's <c>Sound.Play</c>
 /// patches run this inside the call-identity scopes opened around
 /// <c>Body.Attack</c> / <c>Body.ThrowItem</c> / <c>Body.TryExertSound</c> /
-/// <c>Body.FootStep</c> / <c>Body.HandleGroundedState</c>; any block hit
-/// sound that fires during an attack is excluded before this policy sees it,
-/// because <c>WorldGeneration.DamageBlock</c> opens its own innermost
-/// <c>DamageBlockOrigin</c> scope.
+/// <c>Body.FootStep</c> / <c>Body.HandleGroundedState</c> /
+/// <c>PantSound.Update</c> / <c>PantSound.Bark</c> / <c>PantSound.TryGrowl</c>;
+/// any block hit sound that fires during an attack is excluded before this
+/// policy sees it, because <c>WorldGeneration.DamageBlock</c> opens its own
+/// innermost <c>DamageBlockOrigin</c> scope.
 /// </summary>
 public static class CharacterSoundPolicy
 {
@@ -25,6 +26,10 @@ public static class CharacterSoundPolicy
 		Exert = 3,
 		Footstep = 4,
 		LandingImpact = 5,
+		Pain = 6,
+		Bark = 7,
+		Growl = 8,
+		Yawn = 9,
 	}
 
 	/// <summary>
@@ -52,6 +57,10 @@ public static class CharacterSoundPolicy
 			Origin.Attack => IsExertClip(clip) ? CharacterSoundKind.Exert : CharacterSoundKind.AttackSwing,
 			Origin.Footstep => CharacterSoundKind.Footstep,
 			Origin.LandingImpact => CharacterSoundKind.LandingImpact,
+			Origin.Pain => CharacterSoundKind.Pain,
+			Origin.Bark => CharacterSoundKind.Bark,
+			Origin.Growl => CharacterSoundKind.Growl,
+			Origin.Yawn => CharacterSoundKind.Yawn,
 			_ => null,
 		};
 	}

@@ -1,5 +1,12 @@
 # Remote-backpack drag escape — display-proxy release containment (2026-08-27)
 
+> **HISTORICAL** — This selfcheck describes the earlier fix that cancelled any
+> held proxy when the remote backpack view closed. The native parity cycle
+> replaced that cancellation with a release-time safety rule so a held proxy can
+> legally continue into the Tab-switch transfer path; see
+> `docs/evidence/selfchecks/items/remote-backpack-native-interaction-parity-selfcheck.md`
+> for the current behavior.
+
 Closes the open bug "Remote-backpack drag can duplicate a water bottle into
 both inventories". A remote-clone display proxy could be dragged from the native
 remote-backpack view, the view could be closed while the drag was still held,

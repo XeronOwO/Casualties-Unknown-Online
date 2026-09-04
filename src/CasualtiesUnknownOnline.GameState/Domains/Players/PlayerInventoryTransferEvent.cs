@@ -9,4 +9,5 @@ namespace CasualtiesUnknownOnline.GameState.Domains.Players;
 public sealed record PlayerInventoryTransferEvent(
 	ulong FromSteamId,
 	ulong ToSteamId,
-	PlayerInteractionItem Item) : PlayerEvent;
+	PlayerInteractionItem Item,
+	ulong TargetParentItemId = 0) : PlayerEvent;

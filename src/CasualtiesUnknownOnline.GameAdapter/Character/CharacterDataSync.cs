@@ -192,7 +192,8 @@ internal sealed class CharacterDataSync(
 	/// snapshot — pure display (the renderer's single entry; matching items
 	/// stay and their component state refreshes, changed ones swap, the emptied
 	/// disappear). Called when a clone appears and when a snapshot updates.</summary>
-	internal void ApplyCloneInventory(Body clone, CharacterDataMsg data) => _inventoryRenderer.ApplyCloneInventory(clone, data);
+	internal void ApplyCloneInventory(Body clone, CharacterDataMsg data, ulong ownerSteamId) =>
+		_inventoryRenderer.ApplyCloneInventory(clone, data, ownerSteamId);
 
 	/// <summary>Pump: re-report the character snapshot on the 1 Hz interval (only when the body exists).</summary>
 	internal void Update(Body? localBody)

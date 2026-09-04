@@ -36,6 +36,7 @@ public class DirectionTests
 		NetMsg.PlayerItemUseRequest,
 		NetMsg.PlayerPushRequest,
 		NetMsg.TraderRecruitRequest,
+		NetMsg.RemoteInventoryOperationRequest,
 	};
 
 	public static TheoryData<NetMsg> HostToGuestMessages => new()

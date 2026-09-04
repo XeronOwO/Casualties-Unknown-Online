@@ -306,6 +306,18 @@ internal interface IPatchBridge
 	/// </summary>
 	bool TryHandleRemoteBackpackTake(Item dragItem);
 
+	/// <summary>Remote-backpack edge drop: sends a host-authoritative drop request for the dragged remote display proxy's authoritative item.</summary>
+	bool TryHandleRemoteBackpackDrop(Item dragItem);
+
+	/// <summary>Remote-backpack container move: sends a host-authoritative move-to-container request for the dragged remote display proxy into the focused remote player's container.</summary>
+	bool TryHandleRemoteBackpackMoveToContainer(Item dragItem, Item targetContainer);
+
+	/// <summary>Remote-backpack pour/dump: sends a host-authoritative request to empty the dragged remote water container's liquid stacks.</summary>
+	bool TryHandleRemoteBackpackPour(Item dragItem);
+
+	/// <summary>Tab-switch transfer: sends the existing host-authoritative take request for a remote display proxy released into the local inventory after the remote view was closed.</summary>
+	bool TryHandleRemoteProxyTransferToLocal(Item dragItem);
+
 	/// <summary>
 	/// Cancels an active drag whose item is a remote-clone display proxy. The
 	/// proxy must never escape into the native local-body/cross-player release

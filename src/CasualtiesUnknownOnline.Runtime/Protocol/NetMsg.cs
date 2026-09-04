@@ -232,4 +232,10 @@ public enum NetMsg : byte
 	// host fires the received event on its own world and relays to the other
 	// members, source excluded)
 	LocationPing = 124, // bidirectional: guest → host report of a local middle-click marker; host → guest broadcast/relay
+
+	// Remote backpack native-interaction parity (host authority: the native
+	// remote-backpack view maps pour/drop/container gestures to host-validated
+	// semantic operations; take/transfer-to-local continues to ride the existing
+	// PlayerInventoryTakeRequest path)
+	RemoteInventoryOperationRequest = 125, // guest → host: perform a remote-player inventory operation (drop / move-to-container / pour)
 }

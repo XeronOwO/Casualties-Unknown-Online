@@ -20,6 +20,12 @@ public interface IPlayerInteractionControl
 	/// <summary>Host only: a take request arrived (from the wire or the host's own UI).</summary>
 	void HandleTakeRequest(ulong sender, PlayerInventoryTakeRequestMsg msg);
 
+	/// <summary>Any role: request a remote-backpack inventory operation (drop / move-to-container / pour) — guest → host on the wire, host handles locally.</summary>
+	void SendRemoteInventoryOperation(RemoteInventoryOperationRequestMsg msg);
+
+	/// <summary>Host only: a remote-backpack inventory operation request arrived (from the wire or the host's own UI).</summary>
+	void HandleRemoteInventoryOperation(ulong sender, RemoteInventoryOperationRequestMsg msg);
+
 	/// <summary>Raise a received transfer for the Game Adapter to apply locally (kernel projection path).</summary>
 	void FireTransferReceived(PlayerInventoryTransferMsg msg);
 

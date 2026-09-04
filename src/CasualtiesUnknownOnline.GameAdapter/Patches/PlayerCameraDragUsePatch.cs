@@ -1,22 +1,29 @@
+using System.Collections.Generic;
 using CasualtiesUnknownOnline.GameAdapter.Character;
 using HarmonyLib;
+using UnityEngine;
+using UnityEngine.EventSystems;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 
 /// <summary>
-/// Cross-player native drag release. Two operations share this seam:
+/// Cross-player native drag release. The seams covered here:
 /// (1) remote-backpack take — while the native remote backpack view is open,
 /// dragging a display-proxy item out is a host-authoritative take request, never
-/// a local body mutation; (2) KrokMP-style cross-player item use by drag — when
-/// the native drag release happens over an in-world remote player, route the
-/// dragged usable item to the existing cross-player use request and skip the
-/// native drop path. Remote clones have no colliders, so overlap is world-space
-/// around the authoritative stream position.
+/// a local body mutation; (2) remote-backpack pour/drop/container gestures — the
+/// same release is mapped to host-authoritative semantic operations instead of
+/// mutating a display proxy; (3) KrokMP-style cross-player item use by drag —
+/// when the native drag release happens over an in-world remote player, route
+/// the dragged usable item to the existing cross-player use request and skip the
+/// native drop path; (4) Tab-switch transfer — a remote proxy released into the
+/// local inventory after the remote view closed becomes the existing take
+/// request. Remote clones have no colliders, so overlap is world-space around
+/// the authoritative stream position.
 /// </summary>
 [HarmonyPatch(typeof(PlayerCamera), "HandleReleaseDragging")]
 internal static class PlayerCameraDragUsePatch
 {
-	private static bool Prefix(PlayerCamera __instance)
+	private static bool Prefix(PlayerCamera __instance, List<RaycastResult> uiCasts)
 	{
 		if (RemoteBackpackView.IsOpen)
 		{
@@ -26,10 +33,20 @@ internal static class PlayerCameraDragUsePatch
 				return false;
 			}
 
-			// The remote backpack surface is read-only except for the take
-			// operation above. Any other dragged item (a world/local item picked
-			// up while the view is open) must be dropped rather than allowed to
-			// mutate the display clone through the original release path.
+			// The remote backpack surface may only be consumed by the dedicated
+			// host-authoritative operations below. Any other dragged item (a
+			// world/local item picked up while the view is open) must be dropped
+			// rather than allowed to mutate the display clone through the
+			// original release path.
+			if (IsRemoteProxy(__instance.dragItem))
+			{
+				if (TryHandleRemoteProxyRelease(__instance.dragItem, uiCasts))
+				{
+					ClearDrag(__instance);
+					return false;
+				}
+			}
+
 			if (__instance.dragItem != null) // Unity object — ==
 			{
 				CancelDrag(__instance, "remote backpack view did not consume the drag");
@@ -40,10 +57,17 @@ internal static class PlayerCameraDragUsePatch
 		}
 
 		// A display proxy picked up from the remote view is the only drag that
-		// can legally outlive that view. It may ONLY be consumed by the
-		// remote-take path; if the view is closed (or the take did not happen)
-		// the proxy must be cancelled before the original native release or the
+		// can legally outlive that view. It may be consumed by the remote-take
+		// path OR by a Tab-switch transfer into the local inventory; any other
+		// release must be cancelled before the original native release or the
 		// cross-player use path can move it into an authoritative inventory.
+		if (RemoteProxyDragPolicy.ShouldCancelProxyRelease(IsRemoteProxy(__instance.dragItem), remoteTakeHandled: false)
+			&& TryHandleRemoteProxyTransferToLocalOverLocalInventory(__instance.dragItem, uiCasts))
+		{
+			ClearDrag(__instance);
+			return false;
+		}
+
 		if (RemoteProxyDragPolicy.ShouldCancelProxyRelease(IsRemoteProxy(__instance.dragItem), remoteTakeHandled: false))
 		{
 			CancelDrag(__instance, "remote display proxy released outside the remote backpack view");
@@ -57,6 +81,93 @@ internal static class PlayerCameraDragUsePatch
 		}
 
 		return true;
+	}
+
+	/// <summary>
+	/// Route one remote display-proxy release while the remote view is open.
+	/// Container move has priority over edge gestures, then pour (water + left
+	/// edge), then drop (left/right edge).
+	/// </summary>
+	private static bool TryHandleRemoteProxyRelease(Item dragItem, List<RaycastResult> uiCasts)
+	{
+		if (TryFindRemoteContainerTarget(uiCasts, out var target))
+		{
+			return PatchBridge.Impl?.TryHandleRemoteBackpackMoveToContainer(dragItem, target) == true;
+		}
+
+		if (IsPourGesture(dragItem))
+		{
+			return PatchBridge.Impl?.TryHandleRemoteBackpackPour(dragItem) == true;
+		}
+
+		if (IsEdgeDrop())
+		{
+			return PatchBridge.Impl?.TryHandleRemoteBackpackDrop(dragItem) == true;
+		}
+
+		return false;
+	}
+
+	private static bool TryHandleRemoteProxyTransferToLocalOverLocalInventory(Item dragItem, List<RaycastResult> uiCasts)
+	{
+		if (!IsRemoteProxy(dragItem) || !IsLocalInventoryRelease(uiCasts))
+		{
+			return false;
+		}
+
+		return PatchBridge.Impl?.TryHandleRemoteProxyTransferToLocal(dragItem) == true;
+	}
+
+	private static bool TryFindRemoteContainerTarget(List<RaycastResult> uiCasts, out Item target)
+	{
+		foreach (var raycastResult in uiCasts)
+		{
+			var button = raycastResult.gameObject.GetComponent<InvButton>();
+			if (button == null || !button.Overlaps(uiCasts)) // Unity object — ==
+			{
+				continue;
+			}
+
+			var item = button.GetItem();
+			if (item != null && item.GetComponent<RemoteCloneRender>() != null // Unity objects — ==
+				&& item.GetComponent<Container>() != null) // Unity object — ==
+			{
+				target = item;
+				return true;
+			}
+		}
+
+		target = null!;
+		return false;
+	}
+
+	private static bool IsPourGesture(Item dragItem)
+	{
+		if (dragItem.GetComponent<WaterContainerItem>() == null) // Unity object — ==
+		{
+			return false;
+		}
+
+		return Input.mousePosition.x < 100f;
+	}
+
+	private static bool IsEdgeDrop()
+	{
+		var x = Input.mousePosition.x;
+		return x < 100f || x > Screen.width - 100f;
+	}
+
+	private static bool IsLocalInventoryRelease(List<RaycastResult> uiCasts)
+	{
+		foreach (var raycastResult in uiCasts)
+		{
+			if (raycastResult.gameObject.GetComponent<InvButton>() != null) // Unity object — ==
+			{
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	private static bool IsRemoteProxy(Item? dragItem) =>

@@ -39,7 +39,6 @@ todo/  →  in-progress/  →  review/  →  done/
 ### Todo
 
 - [Snapshot size reduction](todo/snapshot-size-reduction.md) — measurement-first.
-- [Remote backpack native interaction parity](todo/remote-backpack-native-interaction-parity.md) — opening another player's backpack currently supports only take; normal pour/drop/container/Tab-transfer backpack operations are missing.
 
 
 ### In progress
@@ -48,6 +47,7 @@ _None._ (Folder exists for the workflow.)
 
 ### Review
 
+- [Remote backpack native interaction parity](review/remote-backpack-native-interaction-parity.md) — native remote-backpack pour/drop/container/Tab-transfer gestures now route to host-authoritative operations instead of mutating display proxies; selfcheck linked.
 - [Guest background window plays ghost item friction/ground sounds](review/guest-background-ghost-item-ground-sounds.md) — non-authoritative guest item impact presentation (drop/step/squeak/dust) suppressed; selfcheck linked.
 - [Interactive in-game command console](review/in-game-command-console-interactive.md) — slash-opened focused input, completion/history/hints, fading text area, real selector-backed `/heal` command, IME-aware custom input, JSON host-rule command.
 - [Command registration Attribute/reflection refactor](review/command-registration-attribute-refactor.md) — Attribute/reflection console registry + local mod console command API; selfcheck linked.

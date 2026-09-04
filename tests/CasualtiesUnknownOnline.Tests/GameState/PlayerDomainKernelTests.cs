@@ -561,6 +561,21 @@ public class PlayerDomainKernelTests
 	}
 
 	[Fact]
+	public void WireBatchRoundTrip_PreservesContainerMoveParentOnTransferEvent()
+	{
+		var source = new GameStateKernel(Epoch);
+		var item = new PlayerInteractionItem(new ItemIdentity(42, "waterbottle"), ItemData.Empty);
+		var batch = source.Execute(
+			new RecordPlayerInventoryTransferCommand(new OperationId(1), Host, Epoch, AuthorityKind.HostOnly, 2001, 2001, item, 500UL),
+			new CommandContext(Epoch, Host)).Batch!;
+
+		var restored = KernelWireMapper.FromWireBatch(KernelWireMapper.ToWireBatch(batch), Epoch);
+
+		var @event = Assert.IsType<PlayerInventoryTransferEvent>(Assert.Single(restored.Events));
+		Assert.Equal(500UL, @event.TargetParentItemId);
+	}
+
+	[Fact]
 	public void RecordPlayerHealResult_CommitsJournalEvent()
 	{
 		var kernel = new GameStateKernel(Epoch);

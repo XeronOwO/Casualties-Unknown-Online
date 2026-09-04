@@ -168,4 +168,5 @@ All files under `docs/selfchecks/` are historical/per-delivery evidence records.
 | items/world-item-service-partial-split-selfcheck.md | Items | historical | superseded/old-wire; do not cite as current evidence without checking protocol.md |
 | world/world-service-split-selfcheck.md | World/Entities | current | candidate current evidence; verify before citing |
 | world/world-time-selfcheck.md | World/Entities | current | candidate current evidence; verify before citing |
+| items/remote-clone-display-content-id-free-selfcheck.md | Items | current | remote clone container contents no longer carry item-domain instance ids |
 

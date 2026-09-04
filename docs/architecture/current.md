@@ -205,8 +205,9 @@ The kernel owns exactly five mechanism responsibilities:
 It must not contain `if item is gun`, trap cooldowns, fluid formulas, or Unity logic.
 Those rules belong to domain modules. Domains must not directly reference other domains'
 internal tables. The current cross-domain mechanism is `CompositeGameCommand`: the
-kernel executes a flat list of inner commands, collects all event drafts, reduces them
-on one working copy, then validates invariants across all domains
+kernel executes inner commands in declaration order, each `Decide` against the current
+working copy and each accepted event reduced immediately, so a later inner command sees
+earlier staged results; then it validates invariants across all domains
 (`GameStateKernel.ExecuteComposite`). There is no separate Process/Policy/ReadSet type
 in the current kernel.
 
@@ -276,9 +277,11 @@ an already committed domain fact; the current runtime does not implement a gener
 ### 6.5 Cross-domain transactions
 
 Cross-domain operations use `CompositeGameCommand`, not a kernel switch statement or a
-separate process/policy layer. The kernel executes a flat list of inner commands,
-collects all accepted event drafts, reduces them on one working copy, and emits one
-`CommittedBatch`.
+separate process/policy layer. The kernel executes inner commands in declaration order:
+each `Decide` sees the working copy after all previous inner events have been reduced,
+its accepted events are reduced immediately, and the whole list then emits one
+`CommittedBatch`. If any inner command is rejected, the working copy is discarded and
+nothing is committed.
 
 Example shape:
 

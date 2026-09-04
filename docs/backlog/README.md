@@ -42,7 +42,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Snapshot size reduction](todo/snapshot-size-reduction.md) — measurement-first.
 - [Network traffic baseline and regression gate](todo/network-traffic-baseline.md) — concrete bytes/frame-size/checkpoint metrics before optimization (Loomi review 2026-09-04).
 - [DI cycle guard / cycle-path diagnostics](todo/di-cycle-guard.md) — prevent composition-root circular dependencies or log the exact service chain when a cycle occurs.
-- [Remove legacy "View items" remote-inventory detail path](todo/remove-legacy-view-items-remote-inventory-detail.md) — confirm and remove the pre-native-backpack right-click "View items" fallback if the current native backpack/right-click menu covers it.
 - [Remote backpack native interaction parity](todo/remote-backpack-native-interaction-parity.md) — opening another player's backpack currently supports only take; normal pour/drop/container/Tab-transfer backpack operations are missing.
 - [Carry/piggyback riding movement teleport and rider/carrier position mismatch](todo/carry-piggyback-rider-position-smoothing.md) — host/guest riding while moving shows frame snaps and rider/carrier misalignment on both sides.
 - [Carry/piggyback vertical placement asymmetry](todo/carry-piggyback-vertical-placement-asymmetry.md) — rider appears above the carrier in one participant's view but below in the other's.
@@ -76,6 +75,7 @@ _None._ (Folder exists for the workflow.)
 - [Composite command sequential semantics](review/composite-command-sequential-semantics.md) — inner commands decide/reduce in declaration order on one working copy; atomic rollback and duplicate composite OperationId covered; selfcheck linked.
 - [Projection failure auto-recovery](review/projection-failure-auto-recovery.md) — per-domain dirty/rebuild loop: items/fluids/world-entities, degraded after repeated failures; selfcheck linked.
 - [ModService ↔ GameAdapter DI cycle](review/mod-service-gameadapter-di-cycle.md) — startup hang fixed by injecting ModStatusStore instead of ModService into the adapter; regression contract test added.
+- [Remove legacy "View items" remote-inventory detail path](review/remove-legacy-view-items-remote-inventory-detail.md) — custom inline inventory expansion and right-click fallback removed; native remote backpack remains the only remote-inventory surface.
 
 ### Future
 

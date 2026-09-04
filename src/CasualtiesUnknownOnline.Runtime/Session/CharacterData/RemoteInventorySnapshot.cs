@@ -59,46 +59,4 @@ public sealed class RemoteInventorySnapshot
 
 	/// <summary>Compact status-line text for the member list.</summary>
 	public string ToShortString() => Count == 0 ? "no items" : $"{Count} item(s)";
-
-	/// <summary>
-	/// One display line per carried/worn item, in snapshot order. Negative slot
-	/// indexes are worn items (the game encodes wear as -(limbIndex + 2)).
-	/// Container children are rendered indented beneath their parent with a
-	/// ↳ marker so the Online UI can show what is inside a remote container.
-	/// </summary>
-	public IReadOnlyList<string> ToDisplayLines()
-	{
-		if (Count == 0)
-		{
-			return ["(empty)"];
-		}
-
-		var lines = new List<string>();
-		foreach (var entry in Items)
-		{
-			lines.Add(FormatTopLevel(entry));
-			AppendContents(lines, entry.Contents, "        ");
-		}
-
-		return lines;
-	}
-
-	private static string FormatTopLevel(RemoteInventoryEntry entry)
-	{
-		var slot = entry.SlotIndex >= 0 ? $"slot {entry.SlotIndex}" : "worn";
-		var suffix = entry.ContentsCount > 0 ? $" (+{entry.ContentsCount} inside)" : "";
-		var favourite = entry.Favourited ? " ★" : "";
-		return $"{slot}: {entry.ItemId}{suffix}{favourite}";
-	}
-
-	private static void AppendContents(List<string> lines, IReadOnlyList<RemoteInventoryEntry> contents, string indent)
-	{
-		foreach (var child in contents)
-		{
-			var favourite = child.Favourited ? " ★" : "";
-			var suffix = child.ContentsCount > 0 ? $" ({child.ContentsCount} inside)" : "";
-			lines.Add($"{indent}↳ {child.ItemId}{suffix}{favourite}");
-			AppendContents(lines, child.Contents, indent + "    ");
-		}
-	}
 }

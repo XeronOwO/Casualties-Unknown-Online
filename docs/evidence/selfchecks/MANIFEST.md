@@ -126,6 +126,7 @@ All files under `docs/selfchecks/` are historical/per-delivery evidence records.
 | players/player-color-and-head-tags-selfcheck.md | Players | current | candidate current evidence; verify before citing |
 | players/player-push-selfcheck.md | Players | current | candidate current evidence; verify before citing |
 | players/player-quick-panel-selfcheck.md | Players | current | candidate current evidence; verify before citing |
+| players/remove-legacy-view-items-remote-inventory-selfcheck.md | Players | current | candidate current evidence; verify before citing |
 | world/radiation-line-state-sync-selfcheck.md | World/Entities | current | candidate current evidence; verify before citing |
 | world/radiation-straggler-pressure-selfcheck.md | World/Entities | current | candidate current evidence; verify before citing |
 | players/ragdoll-stale-state-fix-selfcheck.md | Other | current | candidate current evidence; verify before citing |

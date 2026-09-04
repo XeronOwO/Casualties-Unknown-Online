@@ -5,8 +5,8 @@ namespace CasualtiesUnknownOnline;
 /// <summary>
 /// Players page: the in-world member roster. Session/lobby identity and
 /// session controls live on the Home page; this page shows the local player
-/// state and every member card with vitals, inventory expansion and direct
-/// player-interaction actions.
+/// state and every member card with vitals, native remote-backpack access and
+/// direct player-interaction actions.
 /// </summary>
 internal static class OnlineUiPlayersDrawer
 {

@@ -173,7 +173,6 @@ public class RemoteInventoryServiceTests
 		var empty = RemoteInventorySnapshot.From(Snapshot(0))!;
 		Assert.Equal(0, empty.Count);
 		Assert.Equal("no items", empty.ToShortString());
-		Assert.Equal("(empty)", Assert.Single(empty.ToDisplayLines()));
 
 		var nonEmpty = RemoteInventorySnapshot.From(Snapshot(
 			0,
@@ -182,12 +181,6 @@ public class RemoteInventoryServiceTests
 			Item("hat", -2)))!;
 		Assert.Equal(3, nonEmpty.Count);
 		Assert.Equal("3 item(s)", nonEmpty.ToShortString());
-		var lines = nonEmpty.ToDisplayLines();
-		Assert.Contains(lines, line => line.Contains("slot 0: medkit ★"));
-		Assert.Contains(lines, line => line.Contains("slot 1: backpack (+2 inside) ★"));
-		Assert.Contains(lines, line => line.Contains("↳ backpack-content-0"));
-		Assert.Contains(lines, line => line.Contains("↳ backpack-content-1"));
-		Assert.Contains(lines, line => line.Contains("worn: hat ★"));
 	}
 
 	[Fact]
@@ -220,11 +213,6 @@ public class RemoteInventoryServiceTests
 		Assert.Equal("inner", projectedInner.ItemId);
 		Assert.True(projectedInner.Favourited);
 		Assert.Equal("deep", Assert.Single(projectedInner.Contents).ItemId);
-
-		var lines = snapshot.ToDisplayLines();
-		Assert.Contains(lines, line => line.Contains("slot 1: backpack (+1 inside)"));
-		Assert.Contains(lines, line => line.Contains("↳ inner (1 inside) ★"));
-		Assert.Contains(lines, line => line.Contains("↳ deep"));
 	}
 
 	[Fact]

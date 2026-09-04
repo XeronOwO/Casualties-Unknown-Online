@@ -106,6 +106,42 @@ internal sealed class KernelBatchItemProjection(
 		}
 	}
 
+	/// <summary>
+	/// Rebuild the world-item projection from the current kernel read model.
+	/// This is the per-domain recovery path used after a projection failure;
+	/// unlike a checkpoint rebuild it uses the live authoritative state without
+	/// a full checkpoint round-trip.
+	/// </summary>
+	public void RebuildFromKernel()
+	{
+		_worldTable.Clear();
+		foreach (var item in _authority.QueryItems().Values)
+		{
+			if (item.Location.Kind != ItemLocationKind.World)
+			{
+				continue;
+			}
+
+			var world = ToWorldItem(item);
+			_worldTable.Set(world.ItemId, world);
+			_onItemSpawned(world);
+		}
+
+		if (_onCarriedSync is null)
+		{
+			return;
+		}
+
+		foreach (var root in _authority.QueryItems().Values.Where(i => i.Location.Kind == ItemLocationKind.Carried))
+		{
+			var fact = BuildFullItem(root.Identity.InstanceId);
+			if (fact is not null)
+			{
+				_onCarriedSync(root.Location.Owner.Value, fact, fact.SlotIndex != -1);
+			}
+		}
+	}
+
 	private void ApplyKernelEventToProjection(GameEvent @event)
 	{
 		switch (@event)

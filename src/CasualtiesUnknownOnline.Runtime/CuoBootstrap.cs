@@ -8,6 +8,7 @@ using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Time;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
+using CasualtiesUnknownOnline.Runtime.Session.ProjectionHealth;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.Chat;
@@ -266,6 +267,8 @@ public static class CuoBootstrap
 		// hold window's expiry edge is the tiny PendingPickupPump below).
 		// ItemArbitration is DI-registered so the crafting domain composes the
 		// same transfer table (RemoveTransferred/AdoptEvidence/RegisterCarried).
+		services.AddSingleton<ProjectionHealthCoordinator>();
+		services.AddSingleton<ICuoService>(p => p.GetRequiredService<ProjectionHealthCoordinator>());
 		services.AddSingleton<ItemArbitration>();
 		services.AddSingleton<ItemKernelAuthority>();
 		// Phase C four-envelope kernel protocol: executes wire commands on the

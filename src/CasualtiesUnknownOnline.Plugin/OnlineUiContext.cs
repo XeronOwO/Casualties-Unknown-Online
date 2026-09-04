@@ -117,9 +117,6 @@ internal sealed class OnlineUiContext
 
 	internal Func<bool>? HasHealItem;
 
-	/// <summary>Opens the standalone player-interaction quick panel pinned to a remote player (the right-click "View items" path).</summary>
-	internal Action<ulong>? OpenQuickPanel;
-
 	/// <summary>Opens the game's native radial backpack UI focused on a remote player's render clone.</summary>
 	internal Func<ulong, string, bool>? OpenRemoteBackpack;
 

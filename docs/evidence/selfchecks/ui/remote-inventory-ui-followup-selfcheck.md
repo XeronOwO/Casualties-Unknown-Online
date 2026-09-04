@@ -9,6 +9,9 @@
 > corrected by `docs/evidence/selfchecks/players/native-remote-backpack-and-door-sound-selfcheck.md`
 > (#118), which ports the native radial backpack view for remote players.
 > This sheet remains the record for the collapsible-container + host-rule slice.
+> The custom collapsible Online UI inventory described below was removed on
+> 2026-09-04; the native remote backpack is now the only remote-inventory
+> surface.
 
 Closes the backlog "Remote-player inventory UI should reuse the game backpack
 UI" as far as the CUO architecture permits. The native game radial/backpack

@@ -183,14 +183,6 @@ internal sealed class OnlineUiOverlay
 		return _contextMenu.IsOpen && _contextMenu.Contains(gui);
 	}
 
-	/// <summary>Opens the standalone quick panel pinned to a right-clicked remote, expands that member's inventory immediately, and closes the full Online window so the independent panel is the active surface.</summary>
-	internal void OpenQuickPanelFor(ulong steamId)
-	{
-		_window.State.Visible = false;
-		_quickPanel.Open(steamId);
-		_window.State.ExpandedMember = steamId;
-	}
-
 	internal void Draw(
 		SteamService steam,
 		SessionService session,
@@ -258,7 +250,6 @@ internal sealed class OnlineUiOverlay
 			UnbanMember = UnbanMember,
 			GetLocalHealItems = GetLocalHealItems,
 			HasHealItem = HasHealItem,
-			OpenQuickPanel = OpenQuickPanelFor,
 		};
 
 		// ESC closes the modal Online UI. The native PlayerCamera.HandleInput

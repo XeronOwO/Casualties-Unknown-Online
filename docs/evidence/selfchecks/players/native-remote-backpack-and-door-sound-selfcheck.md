@@ -9,7 +9,9 @@
 > was later extended by `docs/evidence/selfchecks/items/remote-backpack-container-take-selfcheck.md`
 > (#122). The display proxies themselves are still never mutated; the drag
 > release in the remote view now routes to the existing host-authoritative take
-> request instead of being blocked.
+> request instead of being blocked. The legacy custom "View items" fallback
+> described in §2 was removed on 2026-09-04; the native remote backpack is now
+> the only remote-inventory surface.
 
 Follow-up to the previous remote-inventory cycle: the user correctly observed
 that (1) the shuttle-door trigger sound was still missing on guests, because
@@ -50,8 +52,8 @@ native radial backpack. This cycle fixes both.
   display clone.
 - **UI action** — "Open backpack" appears in the Players page, quick panel and
   right-click context menu. It closes the CUO windows/panels and calls
-  `IGameAdapter.OpenRemoteBackpack`; the custom item list remains available via
-  the existing "View items" detail path.
+  `IGameAdapter.OpenRemoteBackpack`; the custom item-list detail fallback
+  ("View items") was later removed as legacy.
 
 ## 3. Self-check table
 
@@ -87,5 +89,6 @@ native radial backpack. This cycle fixes both.
 - No new expression-state bools; the native view focus is a transient static
   presentation state owned by the adapter, cleared when the radial closes or
   the clone disappears.
-- Dead mechanisms: the old custom remote inventory UI is kept as the explicit
-  detail fallback, not duplicated in the native path.
+- Dead mechanisms: the old custom remote inventory UI was later removed as the
+  explicit detail fallback; the native backpack is no longer duplicated by a
+  second inventory surface.

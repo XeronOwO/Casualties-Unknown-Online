@@ -78,4 +78,15 @@ public sealed class LocalizationServiceTests
 
 		Assert.Equal("zh", changed);
 	}
+
+	[Fact]
+	public void LegacyInventoryExpansionKeysAreRemoved()
+	{
+		Assert.False(LocalizationCatalog.English.ContainsKey("member.view_items"));
+		Assert.False(LocalizationCatalog.English.ContainsKey("member.hide_items"));
+		Assert.False(LocalizationCatalog.Chinese.ContainsKey("member.view_items"));
+		Assert.False(LocalizationCatalog.Chinese.ContainsKey("member.hide_items"));
+		Assert.True(LocalizationCatalog.English.ContainsKey("member.open_backpack"));
+		Assert.True(LocalizationCatalog.Chinese.ContainsKey("member.open_backpack"));
+	}
 }

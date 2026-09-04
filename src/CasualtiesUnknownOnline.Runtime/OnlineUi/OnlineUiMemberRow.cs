@@ -98,9 +98,6 @@ public sealed class OnlineUiMemberRow
 	/// <summary>True when this member is currently carried by another player.</summary>
 	public bool IsCarried { get; init; }
 
-	/// <summary>The member's inventory snapshot, or null when no snapshot is cached yet.</summary>
-	public IReadOnlyList<RemoteInventoryEntry>? Inventory { get; init; }
-
 	/// <summary>The concrete slot items that can be taken (empty unless <see cref="CanTake"/> is true).</summary>
 	public IReadOnlyList<RemoteInventoryEntry> TakeableItems { get; init; } = [];
 

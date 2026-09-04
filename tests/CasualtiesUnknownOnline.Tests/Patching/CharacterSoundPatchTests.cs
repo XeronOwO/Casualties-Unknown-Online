@@ -74,6 +74,9 @@ public class CharacterSoundPatchTests
 		Assert.True(HasContract("Body", "TryExertSound"), "the Body.TryExertSound capture-scope contract must be declared");
 		Assert.True(HasContract("Body", "FootStep"), "the Body.FootStep capture-scope contract must be declared");
 		Assert.True(HasContract("Body", "HandleGroundedState"), "the Body.HandleGroundedState capture-scope contract must be declared");
+		Assert.True(HasContract("PantSound", "Update"), "the PantSound.Update vocalization capture-scope contract must be declared");
+		Assert.True(HasContract("PantSound", "Bark"), "the PantSound.Bark capture-scope contract must be declared");
+		Assert.True(HasContract("PantSound", "TryGrowl"), "the PantSound.TryGrowl capture-scope contract must be declared");
 	}
 
 	[Fact]
@@ -202,6 +205,17 @@ public class CharacterSoundPatchTests
 			$"HandleGroundedState.Postfix must be (Body __instance, LandingState __state), got {postfixParameters.Length} parameter(s)");
 	}
 
+
+	[Fact]
+	public void PantSoundPatches_DeclareVocalizationCaptureScopes()
+	{
+		var container = GameAssemblyHost.Adapter.GetType(
+			"CasualtiesUnknownOnline.GameAdapter.Patches.PantSoundPatches",
+			throwOnError: true)!;
+		Assert.NotNull(container.GetNestedType("PantSoundUpdatePatch", BindingFlags.NonPublic | BindingFlags.Public));
+		Assert.NotNull(container.GetNestedType("PantSoundBarkPatch", BindingFlags.NonPublic | BindingFlags.Public));
+		Assert.NotNull(container.GetNestedType("PantSoundTryGrowlPatch", BindingFlags.NonPublic | BindingFlags.Public));
+	}
 
 	[Fact]
 	public void SoundSyncReport_TakesTheFullCaptureFact()

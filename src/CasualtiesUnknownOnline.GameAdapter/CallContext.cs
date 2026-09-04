@@ -66,6 +66,15 @@ internal static class CallContext
 
 		/// <summary>Inside Body.HandleGroundedState — the local landing impact AudioClip reports from this scope (the nested FootStep call reports as CharacterFootstep).</summary>
 		CharacterLandingImpact,
+
+		/// <summary>Inside PantSound.Update — the local one-shot pain (AudioClip) and yawn (string) vocalizations report from this scope. The continuous pant AudioSource is not a Sound.Play call and is never captured.</summary>
+		CharacterVocalization,
+
+		/// <summary>Inside PantSound.Bark — the local B-key bark AudioClip reports from this scope.</summary>
+		CharacterBark,
+
+		/// <summary>Inside PantSound.TryGrowl — the local low-happiness growl string reports from this scope.</summary>
+		CharacterGrowl,
 	}
 
 	/// <summary>Stack bound — real nesting is 2-3 levels (remote apply → container load → hooks).</summary>

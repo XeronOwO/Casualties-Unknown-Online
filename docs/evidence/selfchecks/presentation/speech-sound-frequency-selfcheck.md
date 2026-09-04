@@ -18,7 +18,7 @@ or are local UI/body effects whose volume does not justify per-event wire traffi
 | 2 | Remote speech bubbles are already synced as text: `SpeechMsg` (NetMsg 74) reports player bubbles / broadcasts trader bubbles, and `SpeechSync.Replay` writes the FINAL `currentString` + `timeSinceTalked = 0` into the peer's clone/trader Talker. | `src/.../World/SpeechSync.cs:35-66,84-144`; `src/.../Patches/TalkerPatch.cs:21-58` | One message per bubble; reliable |
 | 3 | After a `SpeechSync.Replay`, the SAME `Talker.Update` path types the text out and therefore plays the SAME speech blips locally on the receiving side — no dedicated sound event is needed. | Inventory row 1 + row 2; the replay runs outside `RemoteApply` for the sound (only the bubble write is scoped) | Reconstructed locally, identical clip/cadence |
 | 4 | Remote clones/guest traders are blocked from starting their OWN divergent bubbles (`TalkPatch.Prefix` returns false for `RemoteBodyDriver` clones and guest-side traders), so the only remote speech source is the synced text. | `TalkerPatch.cs:32-43` | Suppression, not audio suppression |
-| 5 | Panting is a continuous looping `AudioSource` (`Sounds/pant`) on the local player's body, volume/pitch driven every frame by local stamina/consciousness; pain groans, yawns and growls are one-shot `Sound.Play` calls from the same component at 30-60 s timers or random chances. | `reversing/.../PantSound.cs:8-82`; `Body.cs:3434` (TryGrowl), `PlayerCamera.cs:982` (Bark) | Continuous loop + sparse one-shots; local physiological state is not a wire fact |
+| 5 | Panting is a continuous looping `AudioSource` (`Sounds/pant`) on the local player's body, volume/pitch driven every frame by local stamina/consciousness; pain groans, yawns, growls and the B-key bark are one-shot `Sound.Play` calls from `PantSound` at 30-60 s timers, random chances or key input. | `reversing/.../PantSound.cs:8-82`; `Body.cs:3434` (TryGrowl), `PlayerCamera.cs:982` (Bark) | Continuous pant loop stays local-only; the sparse one-shot vocalizations now ride `CharacterSoundMsg` (Pain/Bark/Growl/Yawn) |
 | 6 | Heart-thump is a screen-space 2D sound gated on `PlayerCamera.main.woundView` / critical dying — a local monitor/UI presentation. | `Body.cs:907-924` | Local UI; not spatial/peer-visible |
 | 7 | Other one-shot player-body sounds are discrete action/damage effects: climb start (`Body.cs:477`), hand-switch (`Body.cs:1131/1427`), water pour (`Body.cs:1250`), combine (`Body.cs:1284`), gore (`Body.cs:2445`), nap stretch (`Body.cs:2510`), dog shake (`Body.cs:2553`), burp (`Body.cs:3142`), limb damage/break (Limb.cs:98/201/231/369/388/393), last-stand laugh (`Body.cs:1005`). | Decompiled call sites | Discrete one-shots, not per-frame; either ride their owning domain or are accepted local presentation |
 
@@ -28,15 +28,20 @@ or are local UI/body effects whose volume does not justify per-event wire traffi
   the native `Talker.Update` typing animation whose `currentString` came from the
   synced speech text. Eventing them would double the work and, worse, risk
   double-audio if the local clone is ever replayed.
-- **Pant loop / pain / yawn / growl / bark:** local-only. They are continuous or
-  long-timer personal-body sounds driven by physiological state that is not a
-  peer-visible fact; a dedicated event stream would be the first per-frame sound
-  domain and has no observed volume evidence (the backlog's explicit
-  prerequisite).
+- **Pant loop:** local-only. It is a continuous physiological sound driven by
+  local stamina/consciousness; the peer's physiological fields are not a wire
+  fact and the remote clone's `PantSound` is disabled. No per-frame stream is
+  added.
+- **Pain / yawn / growl / bark:** one-shot vocalizations now synced through the
+  existing dedicated `CharacterSoundMsg` event (new `Pain` / `Bark` / `Growl` /
+  `Yawn` kinds). They are sparse (30-60 s timers, random chances or a key), so
+  the reliable channel is not flooded, and the continuous pant `AudioSource` is
+  never captured because it is not a `Sound.Play` call.
 - **Other one-shot body/UI sounds:** accepted local presentation or already
   owned by their sync domains (item slot, crafting, limb state, block/building
   hit). No new wire traffic in this pass.
-- **No protocol change:** `ProtocolVersion` stays at 20.
+- **Protocol change:** `ProtocolVersion` bumped to 2 for the new
+  `CharacterSoundKind` values.
 
 ## 3. Self-check table (mechanism × change × evidence)
 
@@ -45,7 +50,8 @@ or are local UI/body effects whose volume does not justify per-event wire traffi
 | Speech blips on the speaking side | None (native `Talker.Update`) | `Talker.cs:380-414` |
 | Speech blips on the receiving side | None (existing `SpeechSync.Replay` → native `Talker.Update`) | `SpeechSync.cs:131-144` + `Talker.cs:384-405` |
 | No divergent re-talk on clones/guest traders | None (existing `TalkPatch.Prefix` suppression) | `TalkerPatch.cs:32-43` |
-| Continuous pant / pain / yawn / growl / bark | None (local-only, recorded) | `PantSound.cs:8-82`; `Body.cs:3434`; `PlayerCamera.cs:982` |
+| Continuous pant | None (local-only, recorded) | `PantSound.cs:8-82` (AudioSource loop) |
+| Pain / yawn / growl / bark | Dedicated `CharacterSoundMsg` kinds + PantSound capture scopes | `PantSoundPatches.cs`; `CharacterSoundKind.cs`; `CharacterSoundPolicy.cs`; `PlayerCamera.cs:982` |
 | Local UI sounds (heart-thump) | None (local-only, recorded) | `Body.cs:907-924` |
 | Wire format | Unchanged | `ProtocolVersion` unchanged; `DirectionTests` green |
 | Patch-surface guard | New reflective tests lock the speech replay surface | `SpeechBlipReplayContractTests` (see §4) |
@@ -76,7 +82,7 @@ or are local UI/body effects whose volume does not justify per-event wire traffi
 | `SpeechBlipReplayContractTests` focused filter | 3 passed (SpeechBlipReplayContractTests × 3) |
 | `dotnet format CasualtiesUnknownOnline.slnx` | clean |
 | architecture / event-replay / entity-event gates | all passed |
-| ProtocolVersion | unchanged (20) |
+| ProtocolVersion | bumped to 2 for the new `CharacterSoundKind` values |
 
 ## 6. Accepted residuals (recorded, not re-discovered)
 
@@ -84,7 +90,9 @@ or are local UI/body effects whose volume does not justify per-event wire traffi
   physiological fields (stamina/pain/energy) are not on the 20 Hz or 1 Hz
   character wire, so a remote clone's `PantSound` uses template/default state.
   It is normally silent (default stamina = 100 → volume 0) and is accepted as a
-  local presentation boundary, not a sync bug.
+  local presentation boundary, not a sync bug. The sparse one-shot
+  vocalizations are no longer part of this residual because they travel as
+  dedicated `CharacterSoundMsg` events.
 - **One-shot body sounds not already owned by a sync domain** (stretch, dog
   shake, burp, hand-switch foley, gore, etc.) remain local-only; re-open only
   with observed runtime volume data showing they are audible-missing on peers.
@@ -102,8 +110,10 @@ the plan approval for this cycle; no further interactive approval is required.
 
 ## 8. Structure review
 
-- Touched code: none in production paths (docs + tests only). The new test file
-  is a single top-level type `SpeechBlipReplayContractTests`; no class crosses
-  the 600-line gate, no new state bools, no dead mechanisms. The speech/bubble
-  path remains the only source of remote speech text and therefore the only
-  source of remote speech blips.
+- Original speech-blip pass touched no production paths (docs + tests only);
+  the new test file is a single top-level type `SpeechBlipReplayContractTests`.
+- The later PantSound vocalization pass added `PantSoundPatches.cs` (one
+  top-level container with nested Harmony patch types, 58 lines) and extended
+  the existing `CharacterSoundKind` / `CharacterSoundPolicy` /
+  `SoundPlayPatch` / `SoundPlayAudioClipPatch` files. No class crosses the
+  600-line gate; no new state bools; the continuous pant path remains local.

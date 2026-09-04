@@ -46,7 +46,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Carry/piggyback vertical placement asymmetry](todo/carry-piggyback-vertical-placement-asymmetry.md) — rider appears above the carrier in one participant's view but below in the other's.
 - [Suppress native idle-sit while carried](todo/carried-player-idle-sit-suppression.md) — carried characters still sit after idle despite the existing render-proxy idle reset.
 - [Entity destruction drops lose fresh-drop presentation/initial motion on the guest view](todo/entity-destruction-drop-guest-fresh-state-loss.md) — building/entity destruction drops on the guest lack the fresh glow/no-gravity state and show fall-then-pull-back.
-- [Sync player pain vocalizations and B-key bark to remote players](todo/sync-player-pain-vocalizations-and-bark.md) — host pain screams and B-key bark are not heard on the guest; reverse direction must also be self-checked during the fix.
 - [Guest background window plays ghost item friction/ground sounds](todo/guest-background-ghost-item-ground-sounds.md) — backgrounding the guest causes intermittent item ground/friction sounds that are absent in the foreground.
 - [Guest container contents periodically appear as world drops on the host view](todo/guest-container-contents-ghost-drops-on-host.md) — dog food in a guest's trash bag intermittently drops from the guest body on the host view while the guest view is unaffected.
 - [Remote player medical/health panel](todo/remote-player-medical-panel.md) — cannot open another player's medical panel/body condition view; unimplemented or not enabled.
@@ -76,6 +75,7 @@ _None._ (Folder exists for the workflow.)
 - [ModService ↔ GameAdapter DI cycle](review/mod-service-gameadapter-di-cycle.md) — startup hang fixed by injecting ModStatusStore instead of ModService into the adapter; regression contract test added.
 - [DI cycle guard / cycle-path diagnostics](review/di-cycle-guard.md) — composition-root ValidateOnBuild + factory re-entrancy guard; cycle chains logged to BepInEx and latest.log; selfcheck linked.
 - [Remove legacy "View items" remote-inventory detail path](review/remove-legacy-view-items-remote-inventory-detail.md) — custom inline inventory expansion and right-click fallback removed; native remote backpack remains the only remote-inventory surface.
+- [Sync player pain vocalizations and B-key bark](review/sync-player-pain-vocalizations-and-bark.md) — PantSound pain/yawn/growl/B-bark now ride the existing CharacterSoundMsg event; continuous pant remains local; reverse direction covered by star relay.
 
 ### Future
 

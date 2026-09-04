@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Configuration;
@@ -21,6 +22,7 @@ using CasualtiesUnknownOnline.Runtime.Session.NetworkTraffic;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using CasualtiesUnknownOnline.Runtime.Session.Tutorial;
 using CasualtiesUnknownOnline.Runtime.Steam;
+using CasualtiesUnknownOnline.Runtime.Diagnostics;
 using ManualLogSource = BepInEx.Logging.ManualLogSource;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -360,6 +362,66 @@ public static class CuoBootstrap
 
 		extraRegistrations?.Invoke(services);
 
-		return services.BuildServiceProvider();
+		// Fail fast on DI cycles at the composition root. ValidateOnBuild
+		// catches constructor/implementation-type cycles before startup; the
+		// factory wrapper catches factory-mediated re-entrant resolution that
+		// static validation cannot see.
+		DiCycleGuard.WrapFactoryDescriptors(
+			services,
+			exception => LogCompositionRootFailure(bepinExLogSource, logDirectory, legacyLogPath, exception));
+		try
+		{
+			return services.BuildServiceProvider(new ServiceProviderOptions { ValidateOnBuild = true });
+		}
+		catch (Exception ex)
+		{
+			LogCompositionRootFailure(bepinExLogSource, logDirectory, legacyLogPath, ex);
+			throw;
+		}
+	}
+
+	private static void LogCompositionRootFailure(
+		ManualLogSource bepinExLogSource,
+		string logDirectory,
+		string? legacyLogPath,
+		Exception exception)
+	{
+		var message = $"CUO composition root validation failed: {exception}";
+		bepinExLogSource.LogError(message);
+
+		try
+		{
+			using var provider = new RollingFileLoggerProvider(
+				logDirectory,
+				legacyLogPath,
+				new MutableOptionsMonitor<LoggingOptions>(new LoggingOptions()));
+			provider.CreateLogger(nameof(CuoBootstrap))
+				.LogError(exception, "CUO composition root validation failed.");
+			if (provider.IsEnabled)
+			{
+				return;
+			}
+		}
+		catch
+		{
+			// Fall through to the direct append below.
+		}
+
+		// If a standalone rolling provider cannot take the file (for example a
+		// factory cycle is detected after the DI provider already owns
+		// latest.log), append the startup failure directly so the CUO log still
+		// gets the diagnostic.
+		try
+		{
+			Directory.CreateDirectory(logDirectory);
+			var latestLog = Path.Combine(logDirectory, "latest.log");
+			File.AppendAllText(
+				latestLog,
+				$"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] [ERR] [{nameof(CuoBootstrap)}] CUO composition root validation failed: {exception}{Environment.NewLine}");
+		}
+		catch
+		{
+			// Startup diagnostics must never mask the original build failure.
+		}
 	}
 }

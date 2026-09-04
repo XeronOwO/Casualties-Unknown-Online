@@ -1,6 +1,6 @@
 # DI cycle guard / cycle-path diagnostics
 
-- Status: Todo
+- Status: Review
 - Type: Framework hardening
 - Category: Composition root / DI observability
 - Source: 2026-09-04 ModService ↔ GameAdapter startup hang. The cycle surfaced only after deploying the current source; the game hung with no useful startup error because the recursion happened while resolving the production composition root.
@@ -42,3 +42,24 @@ The immediate fix was to inject `ModStatusStore` into the adapter instead of `Mo
 - The production startup continues to succeed with the current acyclic graph.
 - The check adds no meaningful startup cost (< 50 ms) and no behavior change for valid graphs.
 - Existing tests + gates stay green.
+
+## Implementation
+
+- `CuoBootstrap.BuildServiceProvider` now builds the container with
+  `ServiceProviderOptions.ValidateOnBuild = true`; constructor/implementation-type
+  cycles fail at composition-root build time with the MS DI service chain instead
+  of hanging later.
+- Added `DiCycleGuard` (Runtime/Diagnostics) and wired it into
+  `CuoBootstrap.BuildServiceProvider`. It wraps every factory descriptor so
+  factory-mediated re-entrant resolution is recorded; a service already on the
+  resolution chain throws immediately with the full service path.
+- Startup diagnostics are written through both the BepInEx log source
+  (`LogOutput.log`) and the rolling file provider (`latest.log`) when a
+  composition-root build fails or a factory cycle is detected.
+- Regression coverage: `DiCycleGuardTests` covers constructor-cycle validation,
+  factory self-cycle, factory-to-constructor cycle, a valid factory chain, and
+  descriptor-order preservation.
+- Selfcheck: `docs/evidence/selfchecks/architecture/di-cycle-guard-selfcheck.md`.
+- Verification: `dotnet build` 0 warnings/errors, `dotnet test` 2186 passed,
+  `dotnet format`, architecture/event-replay/entity-event-dispatch/delivery
+  gates all pass.

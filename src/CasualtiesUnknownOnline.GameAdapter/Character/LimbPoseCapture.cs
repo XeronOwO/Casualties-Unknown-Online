@@ -7,9 +7,11 @@ namespace CasualtiesUnknownOnline.GameAdapter.Character;
 /// <summary>
 /// Captures the local body's current visible-limb transform poses for the 20 Hz
 /// player state stream. A frozen remote clone cannot reproduce the owner's
-/// physics-driven ragdoll/dead/unconscious pose, so the owner publishes the
-/// local-space position + z rotation of each limb and the peer writes them
-/// directly onto the clone.
+/// physics-driven ragdoll/dead/unconscious pose, so the owner publishes each
+/// limb's world-space position and z rotation and the peer writes them directly
+/// onto the clone. World-space is required because the visible limb transforms
+/// are not reliably centered on the Body transform; local offsets would be
+/// parent-relative and can leave the clone upright/underground.
 /// </summary>
 internal static class LimbPoseCapture
 {
@@ -37,12 +39,12 @@ internal static class LimbPoseCapture
 				continue;
 			}
 
-			var position = limb.transform.localPosition;
+			var position = limb.transform.position;
 			poses.Add(new PlayerLimbPose
 			{
 				Index = i,
-				LocalPosition = new NetVector2(position.x, position.y),
-				RotationZ = limb.transform.localEulerAngles.z,
+				WorldPosition = new NetVector2(position.x, position.y),
+				RotationZ = limb.transform.eulerAngles.z,
 			});
 		}
 

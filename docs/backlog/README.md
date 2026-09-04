@@ -41,7 +41,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [State-stream bandwidth reduction](todo/state-stream-bandwidth-reduction.md) — measurement-first.
 - [Snapshot size reduction](todo/snapshot-size-reduction.md) — measurement-first.
 - [Full-qualified name cleanup](todo/full-qualified-name-cleanup.md) — prefer using directives/aliases; behavior-preserving refactor only.
-- [CUCoreLib migration support](todo/cucorelib-migration-support.md) — evaluate external KrokMP-based project; typed item/recipe/liquid/building/tile/structure binding landed; item advanced container/battery/light/tool/gun behavior + worn-sprite/multi-limb/liquid-mask visuals + frame-based base/worn/liquid sprite animations landed; tile ore/drop/worldgen projection landed; liquid-tile content + worldgen + local touch/drink/visual projection landed; building drop rules + worldgen density landed; status/moodle static binding landed; runtime status table + transport + GameAdapter body/limb + circulation projection + vanilla moodle-row + animated moodle icon + richer per-limb moodle row + abstraction-safe runtime moodle resolver seam landed; abstraction-safe building prefab/instance component hooks landed.
 
 
 ### In progress
@@ -59,6 +58,7 @@ _None._ (Folder exists for the workflow.)
 - [Block-break first-writer-wins dual-side runtime confirmation](review/block-break-first-writer-wins.md).
 - [check-architecture.ps1 performance](review/check-architecture-performance.md) — full gate ~32.4s → ~2.15s; selfcheck linked.
 - [Middle-click location marker](review/middle-click-location-marker.md) — dedicated one-shot location ping: middle click circle, quick second click exclamation, star relay, 5s fade; selfcheck linked.
+- [CUCoreLib migration support](review/cucorelib-migration-support.md) — external KrokMP-based evaluation complete; typed content/status/moodle/runtime seams landed; remaining rows are future/non-goal; selfchecks linked.
 
 ### Future
 

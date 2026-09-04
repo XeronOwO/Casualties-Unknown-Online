@@ -1,9 +1,14 @@
 # CUCoreLib migration support
 
-- Status: Todo
+- Status: Review
 - Priority: Medium
 - Category: Mod ecosystem / migration
 - Source: External project — <https://github.com/jimmyking9999999/CUCoreLib> (based on KrokMP)
+- Evidence: `docs/evidence/selfchecks/mod-api/*` (content, status, moodle, item, building, tile, structure, runtime, worldgen, visual, and migration-base selfchecks)
+
+This ticket is now code-complete on the CUO-side migration seams. The remaining
+items in the matrix are future/non-goal, not open implementation work inside
+this ticket; it waits in Review for the unified acceptance pass.
 
 Evaluate the external CUCoreLib project and either:
 
@@ -39,12 +44,15 @@ lifecycle, permissions, host commands, local console commands, an opaque
 content registry, host-persistent mod state, local UI, read-only game state,
 entity spawn, curated native API, and a typed mod message channel.
 
-The largest genuine gap is **actual semantic content support**. CUO's
-`IModContent` stores opaque bytes and currently has no consumer that turns
-those bytes into game content (items, recipes, tiles, buildings, liquids).
-The KrokMP channel/snapshot layer, by contrast, should not be ported: CUO's
-typed kernel, discrete events, state streams, and `IModNetwork`/`IModCommands`
-already cover the same needs with explicit authority semantics.
+The original evaluation identified **actual semantic content support** as the
+largest genuine gap. That gap is now closed on the CUO side: typed
+content DTOs and Runtime binding providers cover items, recipes, liquids,
+liquid tiles, tiles, buildings, structures, statuses, and moodles, plus
+spawn/placement, worldgen density/drops, advanced item behavior/visuals, and
+the local status/moodle runtime projections. The KrokMP channel/snapshot
+layer remains deliberately not ported: CUO's typed kernel, discrete events,
+state streams, and `IModNetwork`/`IModCommands` already cover the same needs
+with explicit authority semantics.
 
 Recommended direction:
 
@@ -61,11 +69,12 @@ Recommended direction:
   read-only projections are exposed today through `IModNativeApi` /
   `IModGameState`; write operations need a real authority design first.
 
-## Implemented minimal migration base (2026-09-01)
+## Implemented migration base (2026-09-01)
 
-This round intentionally does **not** port full CUCoreLib content
-functionality. It lands the foundation that CUCoreLib-style mods and future
-content binders can build on:
+This is the landed CUO-side migration foundation. It intentionally does not
+port full CUCoreLib functionality (the non-goal rows below remain out of
+scope), but it now covers the content-binding family that CUCoreLib-style
+mods need:
 
 - `ModContentKind` in Abstractions — a stable base vocabulary for common
   content kinds (item, recipe, liquid, tile, building, structure, status,
@@ -327,7 +336,7 @@ content binders can build on:
   `docs/evidence/selfchecks/mod-api/mod-building-drop-worldgen-selfcheck.md`,
   and `docs/evidence/selfchecks/mod-api/mod-building-runtime-hooks-selfcheck.md`.
 
-Still explicitly **not** implemented:
+Remaining non-goals / future (not open implementation work in this ticket):
 - full vanilla integration for every dynamic per-player / per-limb status
   shape (static descriptors are landed; runtime table + typed API phase 1,
   typed status transport phase 2, and the GameAdapter body/limb +
@@ -365,7 +374,9 @@ Still explicitly **not** implemented:
   values; actual transport remains explicit through `IModNetwork` /
   `IModCommands`, and the dedicated design ticket has moved to review).
 
-Those remain the future content-binding path described below.
+Those remain future/non-goal after this ticket. The ticket itself is
+code-complete on the migrated seams and is in Review for the unified
+acceptance pass.
 
 ## Migration function matrix
 
@@ -401,31 +412,27 @@ Source basis: CUCoreLib README/CHANGELOG, `CUCoreLibWebapp` machine docs
 | 23 | KrokMP compatibility adapter | `MultiplayerBridge.TryConfigureLocalIdentity`, quick-test host/client, `MultiplayerApi.IsAvailable/IsRunning/IsHost/IsClient/IsServer`. | CUO has Steam and IP-direct session modes; no KrokMP dependency. | **Out of scope.** `docs/backlog/future/krokmp-compatibility-adapter.md` reserves this only if real binary compatibility becomes necessary; it is not needed for CUO-native mods. |
 | 24 | Ownership/discovery of registered content | `TryGetOwnerModGuid` on item/liquid/building/tile/recipe registries. | `IModContentControl` enumerates every mod's opaque definitions with mod id; `IModContentOwnerQuery` exposes the mod-facing read-only kind+id → owner lookup and follows the catalog's ambiguity policy. | **Landed at the content catalog/owner-query seam.** No new wire, no Runtime internals, and no payload interpretation; the query is the generic migration replacement for the per-kind `TryGetOwnerModGuid` methods. |
 
-## What to implement first (if the ticket becomes code)
+## What landed (CUO-side migration support)
 
-The matrix points to one coherent feature family as the real migration path:
-**static game-content binding**.
+The matrix's coherent feature family — **static game-content binding** — is
+implemented across the seams this ticket scoped:
 
-1. Keep `IModContent` as the mod-facing registration surface (opaque id/kind/
-   payload); do not replace it or expose Runtime internals.
-2. Add a Runtime content-binder service that collects `IModContentControl`
-   entries after mod discovery, before a lobby/world needs them. It should:
-   - validate per-kind schemas, duplicate IDs, cross-mod ID collisions, and
-     owner attribution;
-   - call narrow GameAdapter content-registration interfaces
-     (item, recipe, liquid, tile, building, structure);
-   - not send content bytes over the wire;
-   - rely on the existing Mod API handshake/mode/permission rules for
-     consistency.
-3. If real mod authors need a typed surface instead of opaque bytes, add plain
-   DTOs to Abstractions for the supported content kinds. No game/Unity type may
-   appear in Abstractions.
-4. Extend `IModEntitySpawn` only after custom building definitions can be turned
-   into real prefabs by the GameAdapter; keep using the existing
-   `EntitySpawned` runtime channel so no new wire message is created.
-5. For any custom item state that must persist/sync (CUCoreLib-style custom
-   data), map it into CUO's existing typed `ItemComponentState` / item
-   capability pipeline rather than inventing a new generic bag.
+- `IModContent` remains the mod-facing registration surface; the Runtime
+  content-binder service routes registered content to kind-specific
+  GameAdapter providers and does not send content bytes over the wire.
+- Plain typed DTOs were added to Abstractions for item, recipe, liquid,
+  liquid tile, tile, building, structure, status, and moodle content; no
+  game/Unity type appears in Abstractions.
+- `IModEntitySpawn`, tile/structure/liquid placement, building/structure
+  worldgen distribution, item worldgen/loot/fixed drops, advanced item
+  behavior/visuals, status/moodle runtime projections, and the
+  abstraction-safe building runtime hooks are all covered by narrow typed
+  seams.
+- Custom item runtime state maps into CUO's typed item capability pipeline;
+  no generic JObject/JToken bag was added.
+- The detailed inventory lives in the "Implemented minimal migration base"
+  section above; the selfchecks are listed in the evidence block near the
+  end of that section.
 
 ## Migration guide for CUCoreLib mod authors
 

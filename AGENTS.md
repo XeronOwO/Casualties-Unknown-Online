@@ -131,6 +131,12 @@ a separate future architecture item, not part of the completed evolution.
   evidence. The runtime is the judge, not the plan.
 - `[CRITICAL]` Root cause over patch stacking: prefer changing architecture to eliminate a
   cause; do not accumulate technical debt.
+- `[CRITICAL]` **Architecture over feature/patch stacking**: when adding a feature or fixing
+  a problem, if a sound architecture change can fully satisfy the requirement and remove
+  the root cause, use it. Do not satisfy the need by piling on feature switches, narrow
+  patches, per-case workarounds, or local hacks. A patch is acceptable only when it is the
+  clearer/less-costly choice and the architecture alternative is explicitly documented as
+  not justified in the same cycle.
 - `[CRITICAL]` Line-count / architecture gate escapes must be real responsibility splits:
   never delete comments/blank lines, shrink formatting, or move code between files just to
   pass the gate. Extract a single-responsibility type, preserve behavior, and keep tests/gates green.

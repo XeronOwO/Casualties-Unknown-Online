@@ -47,6 +47,8 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Carry/piggyback riding movement teleport and rider/carrier position mismatch](todo/carry-piggyback-rider-position-smoothing.md) — host/guest riding while moving shows frame snaps and rider/carrier misalignment on both sides.
 - [Carry/piggyback vertical placement asymmetry](todo/carry-piggyback-vertical-placement-asymmetry.md) — rider appears above the carrier in one participant's view but below in the other's.
 - [Suppress native idle-sit while carried](todo/carried-player-idle-sit-suppression.md) — carried characters still sit after idle despite the existing render-proxy idle reset.
+- [Entity destruction drops lose fresh-drop presentation/initial motion on the guest view](todo/entity-destruction-drop-guest-fresh-state-loss.md) — building/entity destruction drops on the guest lack the fresh glow/no-gravity state and show fall-then-pull-back.
+- [Sync player pain vocalizations and B-key bark to remote players](todo/sync-player-pain-vocalizations-and-bark.md) — host pain screams and B-key bark are not heard on the guest; reverse direction must also be self-checked during the fix.
 
 
 ### In progress

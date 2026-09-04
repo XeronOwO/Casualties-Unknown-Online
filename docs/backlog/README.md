@@ -43,7 +43,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Network traffic baseline and regression gate](todo/network-traffic-baseline.md) — concrete bytes/frame-size/checkpoint metrics before optimization (Loomi review 2026-09-04).
 - [Remote backpack native interaction parity](todo/remote-backpack-native-interaction-parity.md) — opening another player's backpack currently supports only take; normal pour/drop/container/Tab-transfer backpack operations are missing.
 - [Guest background window plays ghost item friction/ground sounds](todo/guest-background-ghost-item-ground-sounds.md) — backgrounding the guest causes intermittent item ground/friction sounds that are absent in the foreground.
-- [Guest container contents periodically appear as world drops on the host view](todo/guest-container-contents-ghost-drops-on-host.md) — dog food in a guest's trash bag intermittently drops from the guest body on the host view while the guest view is unaffected.
 
 
 ### In progress
@@ -76,6 +75,7 @@ _None._ (Folder exists for the workflow.)
 - [Suppress native idle-sit while carried](review/carried-player-idle-sit-suppression.md) — carried characters no longer publish/replay/linger in the native sit pose; shared pure CarriedBodyPose rule applied across rider/carrier/peer views.
 - [Carry/piggyback riding movement teleport and rider/carrier position mismatch](review/carry-piggyback-rider-position-smoothing.md) — rider now follows the smoothed carrier render clone; shared ride-pose path and body-root stream anchor prevent participant/third-party drift; selfcheck linked.
 - [Carry/piggyback vertical placement asymmetry](review/carry-piggyback-vertical-placement-asymmetry.md) — carried riders publish body root instead of the non-standing torso anchor; shared ride-pose path also mirrors crouch state; selfcheck linked.
+- [Guest container contents periodically appear as world drops on the host view](review/guest-container-contents-ghost-drops-on-host.md) — remote clone nested display proxies no longer carry item instance ids; domain lookup cannot address them; selfcheck linked.
 
 ### Future
 

@@ -169,4 +169,5 @@ All files under `docs/selfchecks/` are historical/per-delivery evidence records.
 | world/world-service-split-selfcheck.md | World/Entities | current | candidate current evidence; verify before citing |
 | world/world-time-selfcheck.md | World/Entities | current | candidate current evidence; verify before citing |
 | items/remote-clone-display-content-id-free-selfcheck.md | Items | current | remote clone container contents no longer carry item-domain instance ids |
+| items/guest-background-ghost-item-ground-sounds-selfcheck.md | Items | current | guest non-authoritative item impact presentation (drop/step/squeak/dust) suppressed |
 

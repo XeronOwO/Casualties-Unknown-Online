@@ -226,4 +226,10 @@ public enum NetMsg : byte
 	// guest's change is accepted and relayed by the host, a host change is
 	// broadcast; later joiner colors also ride Handshake/PlayerJoin)
 	PlayerColorUpdate = 123, // bidirectional: guest → host report of a local color change; host → guest broadcast/relay
+
+	// Co-op location ping (transient UI presentation — no authority, no
+	// persistent state: the pinger's client already rendered the marker; the
+	// host fires the received event on its own world and relays to the other
+	// members, source excluded)
+	LocationPing = 124, // bidirectional: guest → host report of a local middle-click marker; host → guest broadcast/relay
 }

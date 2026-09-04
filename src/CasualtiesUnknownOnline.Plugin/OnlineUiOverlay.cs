@@ -10,7 +10,9 @@ using CasualtiesUnknownOnline.Runtime.Session.Commands;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.HostRules;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
+using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.Runtime.Steam;
+using CasualtiesUnknownOnline.Runtime.Time;
 using UnityEngine;
 
 namespace CasualtiesUnknownOnline;
@@ -160,6 +162,27 @@ internal sealed class OnlineUiOverlay
 	/// <summary>Toggles the standalone player-interaction quick panel (configurable session hotkey).</summary>
 	internal void ToggleQuickPanel() => _quickPanel.Toggle();
 
+	/// <summary>
+	/// True when a world middle-click should not become a location ping:
+	/// the modal command console/window is open, or the pointer is inside a
+	/// non-modal CUO surface (quick panel / player context menu).
+	/// </summary>
+	internal bool IsPointerOverUi(Vector2 mousePosition)
+	{
+		if (IsCommandConsoleOpen || IsWindowVisible)
+		{
+			return true;
+		}
+
+		var gui = new Vector2(mousePosition.x, Screen.height - mousePosition.y);
+		if (_quickPanel.IsVisible && _quickPanel.Contains(gui))
+		{
+			return true;
+		}
+
+		return _contextMenu.IsOpen && _contextMenu.Contains(gui);
+	}
+
 	/// <summary>Opens the standalone quick panel pinned to a right-clicked remote, expands that member's inventory immediately, and closes the full Online window so the independent panel is the active surface.</summary>
 	internal void OpenQuickPanelFor(ulong steamId)
 	{
@@ -179,6 +202,8 @@ internal sealed class OnlineUiOverlay
 		IHostBanService hostBan,
 		IHostRules hostRules,
 		ICommandControl commands,
+		ILocationPingControl locationPings,
+		ITimeSource time,
 		IGameAdapter? adapter,
 		ILocalizationService localization,
 		HostRulesConfigEditor? rulesEditor,
@@ -198,6 +223,8 @@ internal sealed class OnlineUiOverlay
 			HostBan = hostBan,
 			HostRules = hostRules,
 			Commands = commands,
+			LocationPings = locationPings,
+			Time = time,
 			Localization = localization,
 			RulesEditor = rulesEditor,
 			Logging = logging,
@@ -256,6 +283,7 @@ internal sealed class OnlineUiOverlay
 			UpdateDelayedStatus(ctx);
 			DrawNetworkHud(ctx);
 			DrawNameplatesAndArrows(ctx, entities);
+			LocationPingOverlay.Draw(ctx);
 			DrawPlayerContextMenu(ctx);
 			_quickPanel.Draw(ctx);
 		}

@@ -16,7 +16,9 @@ using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
 using CasualtiesUnknownOnline.Runtime.Session.HostRules;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
+using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.Runtime.Steam;
+using CasualtiesUnknownOnline.Runtime.Time;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
@@ -56,6 +58,9 @@ public class Plugin : BaseUnityPlugin
 	private IPlayerInteractionVisibility _interactionVisibility = null!;
 	private IModUiControl _modUiControl = null!;
 	private IGameAdapter? _adapter;
+	private ILocationPingControl _locationPings = null!;
+	private ITimeSource _time = null!;
+	private LocationPingInputHandler _locationPingInput = null!;
 	private ConfigEntry<string> _interactionPanelKey = null!;
 	private ulong? _pendingJoinLobbyId;
 	private string? _lastJoinError;
@@ -172,6 +177,14 @@ public class Plugin : BaseUnityPlugin
 				UnbanMember = _uiActions.UnbanMemberFromUi,
 			};
 
+			_locationPings = _services.GetRequiredService<ILocationPingControl>();
+			_time = _services.GetRequiredService<ITimeSource>();
+			_locationPingInput = new LocationPingInputHandler(
+				_session,
+				_locationPings,
+				_onlineUi,
+				_services.GetRequiredService<ILogger<LocationPingInputHandler>>());
+
 			// Publish the container on the static diagnostics seam (HotRepl etc.).
 			CuoBootstrap.Services = _services;
 
@@ -287,6 +300,8 @@ public class Plugin : BaseUnityPlugin
 		{
 			_onlineUi.OpenCommandConsole();
 		}
+
+		_locationPingInput.TryHandle();
 
 		// Keep the game's background UI input suppressed while the Online UI
 		// modal window or the standalone command console is open (IMGUI does
@@ -443,7 +458,7 @@ public class Plugin : BaseUnityPlugin
 			_lastJoinError = _ipActions.LastError;
 		}
 
-		_onlineUi.Draw(_steam, _session, _entities, _remoteVitals, _remoteInventory, _playerInteraction, _interactionVisibility, _hostBan, _hostRules, _commands, _adapter, _localization, _rulesEditor, _loggingEditor, _languageEditor, _lastJoinError);
+		_onlineUi.Draw(_steam, _session, _entities, _remoteVitals, _remoteInventory, _playerInteraction, _interactionVisibility, _hostBan, _hostRules, _commands, _locationPings, _time, _adapter, _localization, _rulesEditor, _loggingEditor, _languageEditor, _lastJoinError);
 		ModUiDrawing.DrawAll(_modUiControl, e => _log.LogError(e, "Mod UI window threw while drawing."));
 	}
 

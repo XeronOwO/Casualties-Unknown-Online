@@ -97,6 +97,7 @@ public class DirectionTests
 		NetMsg.TraderSwing,
 		NetMsg.KernelEnvelope,
 		NetMsg.PlayerColorUpdate,
+		NetMsg.LocationPing,
 	};
 
 	[Theory]

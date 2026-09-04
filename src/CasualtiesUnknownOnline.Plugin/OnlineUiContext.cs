@@ -10,7 +10,9 @@ using CasualtiesUnknownOnline.Runtime.Session.Commands;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.HostRules;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
+using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.Runtime.Steam;
+using CasualtiesUnknownOnline.Runtime.Time;
 
 namespace CasualtiesUnknownOnline;
 
@@ -42,6 +44,12 @@ internal sealed class OnlineUiContext
 
 	/// <summary>The in-game command/chat console surface (slash commands + chat send).</summary>
 	internal ICommandControl Commands = null!;
+
+	/// <summary>Transient middle-click location pings (local only, presentation).</summary>
+	internal ILocationPingControl LocationPings = null!;
+
+	/// <summary>The runtime monotonic clock used for ping fade/expiry.</summary>
+	internal ITimeSource Time = null!;
 
 	internal ILocalizationService Localization = null!;
 

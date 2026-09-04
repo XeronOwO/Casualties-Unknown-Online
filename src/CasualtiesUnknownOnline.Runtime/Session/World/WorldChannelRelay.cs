@@ -16,12 +16,14 @@ internal sealed class WorldChannelRelay(
 	EntityEventChannel eventChannel,
 	TradeChannel tradeChannel,
 	SpeechChannel speechChannel,
-	ChatChannel chatChannel)
+	ChatChannel chatChannel,
+	LocationPingChannel locationPingChannel)
 {
 	private readonly EntityEventChannel _eventChannel = eventChannel;
 	private readonly TradeChannel _tradeChannel = tradeChannel;
 	private readonly SpeechChannel _speechChannel = speechChannel;
 	private readonly ChatChannel _chatChannel = chatChannel;
+	private readonly LocationPingChannel _locationPingChannel = locationPingChannel;
 
 	public event Action<ulong, EntityEventMsg>? EntityEventReceived { add => _eventChannel.EntityEventReceived += value; remove => _eventChannel.EntityEventReceived -= value; }
 
@@ -140,4 +142,12 @@ internal sealed class WorldChannelRelay(
 	public event Action<ulong, ChatMsg>? ChatReceived { add => _chatChannel.ChatReceived += value; remove => _chatChannel.ChatReceived -= value; }
 
 	public void FireChatReceived(ulong sender, ChatMsg msg) => _chatChannel.FireChatReceived(sender, msg);
+
+	public void SendLocationPing(LocationPingMsg msg) => _locationPingChannel.SendLocationPing(msg);
+
+	public void BroadcastLocationPing(ulong excludeSteamId, LocationPingMsg msg) => _locationPingChannel.BroadcastLocationPing(excludeSteamId, msg);
+
+	public event Action<ulong, LocationPingMsg>? LocationPingReceived { add => _locationPingChannel.LocationPingReceived += value; remove => _locationPingChannel.LocationPingReceived -= value; }
+
+	public void FireLocationPingReceived(ulong sender, LocationPingMsg msg) => _locationPingChannel.FireLocationPingReceived(sender, msg);
 }

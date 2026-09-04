@@ -106,6 +106,7 @@ public sealed class MyMod : ICuoMod   // ICuoService lifecycle + Bind
 | `Data` | runtime scope-declared per-mod data — see §4j. |
 | `StatusRuntime` | runtime per-player/per-limb mod status values — see §4k. |
 | `MoodleRuntime` | local per-status moodle-presentation resolvers — see §4k. |
+| `BuildingRuntime` | per-mod building prefab/instance hooks — see §4f. |
 | `Ui` | local immediate-mode mod UI windows — see §4e. |
 | `Content` | mod content registration — see §4f. |
 | `GameState` | read-only player-state projection — see §4g. |
@@ -445,6 +446,17 @@ context.Content.TryUnregister("wooden.sword");
   `WorldGeneration.PlaceCrystals` postfix inside the sealed generation stream;
   generation-time starts are suppressed, so no wire message is needed. No
   game/Unity type is exposed to mods; no new wire message is used.
+- **Current building runtime hook scope**: `context.BuildingRuntime` lets a
+  mod register one prefab hook and/or one instance hook per custom building
+  id. A prefab hook receives a plain `ModBuildingPrefabRequest`
+  (building/template id) and returns component type names; the Game Adapter
+  attaches them to the inactive runtime template before it is cached. An
+  instance hook receives a `ModBuildingInstanceRequest` (building/template id
+  plus world X/Y/rotation) and returns component type names; the Game Adapter
+  attaches them to each custom building clone before it becomes active. Only
+  the owning mod's hooks are consulted. No live `GameObject`, game type, or
+  Unity type crosses Abstractions and no wire message is added; a mod-authored
+  component owns its own initialization.
 - **Current tile binding scope**: `GameAdapterTileContentProvider` decodes
   `ModTileDefinition`, allocates a stable custom block index starting at 36,
   injects a built `Tile` into every fresh `WorldGeneration.tiles` palette,
@@ -905,7 +917,7 @@ lifecycle (`ModLifecycleTests`), message routing + permission/rate gates
 (`ModMessageTests`), host commands (`ModCommandTests`), mod-state saves
 (`ModStateTests`), local mod UI (`ModUiTests`), mod content registration
 (`ModContentTests`, `ModContentCatalogTests`), runtime mod data
-(`ModDataTests`, `ModStatusRuntimeTests`, `ModStatusMoodleRuntimeTests`, `ModStatusWireTests`, `ModStatusUpdateTests`,
+(`ModDataTests`, `ModStatusRuntimeTests`, `ModStatusMoodleRuntimeTests`, `ModBuildingRuntimeTests`, `ModStatusWireTests`, `ModStatusUpdateTests`,
 `ModStatusProjectionStoreTests`, `ModBodyFormulaProjectionTests`,
 `ModLimbProjectionTests`, `ModStatusProjectionContractTests`), read game state (`ModGameStateTests`), entity spawn
 (`ModEntitySpawnTests`), item spawn (`ModItemSpawnTests`), tile placement

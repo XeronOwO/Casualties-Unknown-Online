@@ -244,6 +244,13 @@ internal interface IPatchBridge
 	bool TryResolveBuildingTemplate(string id, out GameObject? template);
 
 	/// <summary>
+	/// Apply a registered runtime building instance hook to a freshly
+	/// instantiated custom building. The instance is still inactive when this is
+	/// called, so hook-returned components attach before <c>Awake</c> runs.
+	/// </summary>
+	void ApplyCustomBuildingInstanceHooks(string id, GameObject instance);
+
+	/// <summary>
 	/// Resolve the synthetic <c>ItemLootPool</c> category for a fixed drop
 	/// source. Returns false when no custom items have been registered for that
 	/// source or the loot pool is not ready yet.

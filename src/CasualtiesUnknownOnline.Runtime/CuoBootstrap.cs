@@ -324,6 +324,11 @@ public static class CuoBootstrap
 		// only the Game Adapter knows the game-private operations. Tests may
 		// replace it with a recording fake.
 		services.AddSingleton<IModNativeApiProvider>(new DisabledModNativeApiProvider());
+		// Runtime building hook table: shared by ModService (per-mod adapter) and
+		// the Game Adapter building content provider (the only consumer that can
+		// turn hook results into Unity components).
+		services.AddSingleton(p => new ModBuildingRuntimeStore(
+			p.GetRequiredService<ILogger<ModBuildingRuntimeStore>>()));
 		services.AddSingleton<ModService>();
 		services.AddSingleton<IModsControl>(p => p.GetRequiredService<ModService>());
 		services.AddSingleton<IModUiControl>(p => p.GetRequiredService<ModService>());

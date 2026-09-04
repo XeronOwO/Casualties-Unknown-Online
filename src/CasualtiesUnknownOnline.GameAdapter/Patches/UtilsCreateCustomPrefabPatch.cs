@@ -30,6 +30,7 @@ internal static class UtilsCreateCustomPrefabPatch
 				return false;
 			}
 
+			PatchBridge.Impl?.ApplyCustomBuildingInstanceHooks(id, created);
 			created.SetActive(true); // the cached template is inactive; every instance must be live
 			__result = created;
 			return false;
@@ -53,6 +54,7 @@ internal static class UtilsCreateCustomPrefabPatch
 				return false;
 			}
 
+			PatchBridge.Impl?.ApplyCustomBuildingInstanceHooks(id, created);
 			created.SetActive(true);
 			__result = created;
 			return false;

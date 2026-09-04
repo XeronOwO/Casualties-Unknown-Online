@@ -18,13 +18,18 @@ namespace CasualtiesUnknownOnline.GameAdapter.Content;
 /// served through <see cref="TryResolveTemplate"/>.
 /// </summary>
 public sealed class GameAdapterBuildingContentProvider(
-	ILogger<GameAdapterBuildingContentProvider> log) : IContentBindingProvider, ICuoService
+	ILogger<GameAdapterBuildingContentProvider> log,
+	ModBuildingRuntimeStore buildingRuntime) : IContentBindingProvider, ICuoService
 {
 	private readonly ILogger<GameAdapterBuildingContentProvider> _log = log;
+	private readonly ModBuildingRuntimeStore _buildingRuntime = buildingRuntime;
 	private readonly Dictionary<string, ModBuildingDefinition> _definitions = [];
+	private readonly Dictionary<string, string> _owners = [];
 	private readonly Dictionary<string, GameObject> _templates = [];
 	private readonly HashSet<string> _templateFailures = [];
 	private readonly HashSet<string> _vanillaIds = [];
+	private readonly HashSet<string> _prefabHookFailures = [];
+	private readonly HashSet<string> _instanceHookFailures = [];
 
 	/// <inheritdoc />
 	public string Kind => ModContentKind.Building;
@@ -76,6 +81,7 @@ public sealed class GameAdapterBuildingContentProvider(
 		}
 
 		_definitions.Add(id, definition);
+		_owners.Add(id, registration.ModId);
 		_log.LogInformation(
 			"[BuildingContent] accepted {ModId}/{Id} (schema {SchemaVersion}); template construction waits for the first update.",
 			registration.ModId, id, registration.Definition.SchemaVersion);
@@ -251,11 +257,108 @@ public sealed class GameAdapterBuildingContentProvider(
 			return;
 		}
 
+		ApplyPrefabHook(id, definition.TemplateId, template);
 		_templates.Add(id, template);
 		ApplyLocale(id, definition);
 		_log.LogInformation(
 			"[BuildingContent] built runtime template for {Id} (base {TemplateId}, components {ComponentCount}).",
 			id, definition.TemplateId, definition.SpawnComponents.Count);
+	}
+
+	internal void ApplyInstanceHook(string id, GameObject instance)
+	{
+		if (instance == null
+			|| instance.GetComponent<CustomBuildingTemplateMarker>() == null // Unity object — ==
+			|| !_owners.TryGetValue(id, out var owner)
+			|| _instanceHookFailures.Contains(id))
+		{
+			return;
+		}
+
+		if (!_buildingRuntime.TryGetInstanceHook(owner, id, out var hook) || hook is null)
+		{
+			return;
+		}
+
+		_definitions.TryGetValue(id, out var definition);
+		var transform = instance.transform;
+		var request = new ModBuildingInstanceRequest
+		{
+			BuildingId = id,
+			TemplateId = definition?.TemplateId ?? "",
+			X = transform.position.x,
+			Y = transform.position.y,
+			Rotation = transform.eulerAngles.z
+		};
+
+		try
+		{
+			var components = hook(request);
+			if (components is null)
+			{
+				return;
+			}
+
+			AttachHookComponents(owner, id, "instance", instance, components);
+		}
+		catch (Exception e)
+		{
+			_instanceHookFailures.Add(id);
+			_log.LogWarning(e, "[BuildingContent] instance hook for {ModId}/{Id} threw — instance hook disabled.", owner, id);
+		}
+	}
+
+	private void ApplyPrefabHook(string id, string templateId, GameObject template)
+	{
+		if (!_owners.TryGetValue(id, out var owner) || _prefabHookFailures.Contains(id))
+		{
+			return;
+		}
+
+		if (!_buildingRuntime.TryGetPrefabHook(owner, id, out var hook) || hook is null)
+		{
+			return;
+		}
+
+		var request = new ModBuildingPrefabRequest
+		{
+			BuildingId = id,
+			TemplateId = templateId
+		};
+
+		try
+		{
+			var components = hook(request);
+			if (components is null)
+			{
+				return;
+			}
+
+			AttachHookComponents(owner, id, "prefab", template, components);
+		}
+		catch (Exception e)
+		{
+			_prefabHookFailures.Add(id);
+			_log.LogWarning(e, "[BuildingContent] prefab hook for {ModId}/{Id} threw — prefab hook disabled.", owner, id);
+		}
+	}
+
+	private void AttachHookComponents(
+		string owner,
+		string id,
+		string phase,
+		GameObject target,
+		IReadOnlyList<string> components)
+	{
+		const int MaxHookComponents = 64;
+		if (components.Count > MaxHookComponents)
+		{
+			_log.LogWarning(
+				"[BuildingContent] {ModId}/{Id} {Phase} hook returned {Count} components — only the first {Max} are attached.",
+				owner, id, phase, components.Count, MaxHookComponents);
+		}
+
+		CustomComponentAttach.Attach(target, components.Take(MaxHookComponents), _log, "BuildingContent");
 	}
 
 	private static void ApplyLocale(string id, ModBuildingDefinition definition)

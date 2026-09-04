@@ -38,6 +38,9 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 	public bool TryResolveBuildingTemplate(string id, out GameObject? template) =>
 		domains.BuildingContent.TryResolveTemplate(id, out template);
 
+	public void ApplyCustomBuildingInstanceHooks(string id, GameObject instance) =>
+		domains.BuildingContent.ApplyInstanceHook(id, instance);
+
 	public bool TryGetModDropSourceCategory(ModItemDropSource source, out string category) =>
 		domains.ItemContent.TryGetDropSourceCategory(source, out category);
 

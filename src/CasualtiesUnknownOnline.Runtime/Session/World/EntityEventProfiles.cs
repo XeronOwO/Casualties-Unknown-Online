@@ -36,5 +36,20 @@ internal static class EntityEventProfiles
 		EntityEventKind.CrystalMimicTriggered,
 	];
 
+	/// <summary>
+	/// Repeatable TRAP-STATE events that are transient presentation only: the
+	/// entity's native cooldown/reload re-arms it, so the kernel must not keep
+	/// a permanent Triggered fact and replay it on every periodic checkpoint.
+	/// Durable repeatable state (bear-trap clamp, lifepod heat) is NOT here.
+	/// </summary>
+	private static readonly HashSet<EntityEventKind> TransientTrapStates =
+	[
+		EntityEventKind.GeyserActivated,
+		EntityEventKind.TurretFired,
+	];
+
 	internal static bool IsOneShotConsumption(EntityEventKind kind) => OneShotConsumptions.Contains(kind);
+
+	/// <summary>True for repeatable trap-state events that must not be snapshotted/projected as durable state.</summary>
+	internal static bool IsTransientTrapState(EntityEventKind kind) => TransientTrapStates.Contains(kind);
 }

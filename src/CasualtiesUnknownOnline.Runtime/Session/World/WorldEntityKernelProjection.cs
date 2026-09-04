@@ -77,14 +77,19 @@ public sealed class WorldEntityKernelProjection
 
 		// One-shot consumptions already cover their terminal presentation. The
 		// state table adds the non-one-shot machine facts (warning edges,
-		// repeatable clamp/release, turret firing, ...) for a late joiner.
+		// durable repeatable clamp/heat, ...) for a late joiner. Transient
+		// repeatable cooldown presentation (turret shot, geyser eruption) is
+		// explicitly skipped: the entity re-arms natively, so re-sending the old
+		// fact would replay a stale shot/eruption on every periodic checkpoint.
 		foreach (var trapState in state.TrapStates)
 		{
 			if (EntityEventProfiles.IsOneShotConsumption((EntityEventKind)trapState.Kind)
+				|| EntityEventProfiles.IsTransientTrapState((EntityEventKind)trapState.Kind)
 				|| trapState.Phase == TrapPhase.Warning)
 			{
 				// One-shot consumptions already carry their terminal presentation;
-				// warning edges are transient and intentionally not snapshotted.
+				// transient repeatable states are not durable; warning edges are
+				// transient and intentionally not snapshotted.
 				continue;
 			}
 

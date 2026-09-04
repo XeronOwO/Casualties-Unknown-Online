@@ -45,7 +45,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Guest background window plays ghost item friction/ground sounds](todo/guest-background-ghost-item-ground-sounds.md) — backgrounding the guest causes intermittent item ground/friction sounds that are absent in the foreground.
 - [Guest container contents periodically appear as world drops on the host view](todo/guest-container-contents-ghost-drops-on-host.md) — dog food in a guest's trash bag intermittently drops from the guest body on the host view while the guest view is unaffected.
 - [Remote player medical/health panel](todo/remote-player-medical-panel.md) — cannot open another player's medical panel/body condition view; unimplemented or not enabled.
-- [Auto turret trap fires unexpectedly after reload](todo/turret-stray-fire-after-reload.md) — turret sometimes "走火" after a completed reload; investigate whether related to the container ghost-drop issue.
 
 
 ### In progress
@@ -66,6 +65,7 @@ _None._ (Folder exists for the workflow.)
 - [CUCoreLib migration support](review/cucorelib-migration-support.md) — external KrokMP-based evaluation complete; typed content/status/moodle/runtime seams landed; remaining rows are future/non-goal; selfchecks linked.
 - [Protocol frame envelope validation](review/protocol-frame-validation.md) — unified frame validator before kernel handlers; malformed/forged/oversized frames dropped, presentation payloads remain non-fatal.
 - [Entity destruction drops fresh presentation](review/entity-destruction-drop-guest-fresh-state-loss.md) — trap/building-death drops now replay with the full transient fresh/velocity state from `EntityEventMsg.Drops`; selfcheck linked.
+- [Auto turret trap fires unexpectedly after reload](review/turret-stray-fire-after-reload.md) — stale periodic checkpoint replay of transient turret/geyser trap states removed; live relay unchanged; selfcheck linked.
 - [Full-qualified name cleanup](review/full-qualified-name-cleanup.md) — prefer using directives/aliases; behavior-preserving refactor only.
 - [Composite command sequential semantics](review/composite-command-sequential-semantics.md) — inner commands decide/reduce in declaration order on one working copy; atomic rollback and duplicate composite OperationId covered; selfcheck linked.
 - [Projection failure auto-recovery](review/projection-failure-auto-recovery.md) — per-domain dirty/rebuild loop: items/fluids/world-entities, degraded after repeated failures; selfcheck linked.

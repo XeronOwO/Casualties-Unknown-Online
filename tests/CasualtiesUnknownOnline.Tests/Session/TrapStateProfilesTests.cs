@@ -35,4 +35,10 @@ public class TrapStateProfilesTests
 	[InlineData(EntityEventKind.CrystalTeleportTriggered)]
 	public void VisualOnlyKinds_RemainUnclassified(EntityEventKind kind) =>
 		Assert.Null(TrapStateProfiles.Map(kind));
+
+	[Theory]
+	[InlineData(EntityEventKind.GeyserActivated)]
+	[InlineData(EntityEventKind.TurretFired)]
+	public void TransientRepeatableKinds_RemainUnclassified(EntityEventKind kind) =>
+		Assert.Null(TrapStateProfiles.Map(kind));
 }

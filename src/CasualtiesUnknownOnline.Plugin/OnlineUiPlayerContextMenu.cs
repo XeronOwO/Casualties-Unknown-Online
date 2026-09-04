@@ -172,6 +172,14 @@ internal sealed class OnlineUiPlayerContextMenu
 	private static List<MenuAction> BuildActions(OnlineUiContext ctx, OnlineUiMemberRow row)
 	{
 		var actions = new List<MenuAction>();
+
+		// The medical panel is read-only display, not a physical interaction, so
+		// it remains available even when line-of-sight hides the action buttons.
+		if (row.CanViewMedical)
+		{
+			actions.Add(new MenuAction(ctx.T("member.open_medical"), () => ctx.OpenMedical?.Invoke(row.SteamId)));
+		}
+
 		if (!row.CanSee)
 		{
 			return actions;

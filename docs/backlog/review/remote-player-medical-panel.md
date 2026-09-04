@@ -1,9 +1,26 @@
 # Remote player medical/health panel is missing or not enabled
 
-- Status: Todo
+- Status: Review
 - Priority: Medium
 - Category: Remote player UI / medical inspection
 - Source: User report (2026-09-04) — it is not possible to open another player's medical panel and view their body condition. This may be an unimplemented feature or an existing-but-not-enabled path. Record only; no code action taken yet.
+
+## Landed
+
+Implemented a CUO-side read-only medical panel fed by the existing 1 Hz
+character-data stream. No native medical UI focus was attempted; the panel uses
+the same already-synced data model and keeps all display-only invariants.
+
+- `RemoteVitalsService` now caches a full `RemoteMedicalSnapshot` (all
+  `CharacterHealthMsg` fields) plus `RemoteLimbSnapshot` entries alongside the
+  existing compact vitals projection.
+- New `OnlineUiMedicalPanel` renders general/nutrition/circulation/trauma/
+  status/limb sections; it is reachable from the Players page, quick panel,
+  and in-world right-click menu.
+- The panel is read-only: no remote clone mutation, no authority message, no
+  protocol change.
+
+Selfcheck: `docs/evidence/selfchecks/players/remote-medical-panel-selfcheck.md`.
 
 ## Goal
 

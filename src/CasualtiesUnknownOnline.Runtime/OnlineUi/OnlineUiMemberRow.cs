@@ -83,6 +83,9 @@ public sealed class OnlineUiMemberRow
 	/// <summary>True when this member is on the host's persisted ban list.</summary>
 	public bool IsBanned { get; init; }
 
+	/// <summary>True when this non-local member has cached character data and the read-only medical panel can be opened.</summary>
+	public bool CanViewMedical { get; init; }
+
 	/// <summary>True when this member's cached vitals show a dead body.</summary>
 	public bool IsDead { get; init; }
 

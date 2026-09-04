@@ -393,4 +393,20 @@ public interface IWorldControl
 	void FireChatReceived(ulong sender, ChatMsg msg);
 
 	event Action<ulong, ChatMsg>? ChatReceived;
+
+	/// <summary>
+	/// Report a locally-placed co-op location ping: guest → host as a report
+	/// (the host adds it to its own UI and relays), host → broadcast to all
+	/// synced members. The reporting player's client already added the marker
+	/// locally. Ping is transient UI presentation — no authority/world state.
+	/// </summary>
+	void SendLocationPing(LocationPingMsg msg);
+
+	/// <summary>Host only: relay an accepted location ping to the other members (source excluded — it already added the marker locally).</summary>
+	void BroadcastLocationPing(ulong excludeSteamId, LocationPingMsg msg);
+
+	void FireLocationPingReceived(ulong sender, LocationPingMsg msg);
+
+	/// <summary>A location ping arrived — the receiver adds the transient marker locally (host: after a guest report; guest: the host's relay).</summary>
+	event Action<ulong, LocationPingMsg>? LocationPingReceived;
 }

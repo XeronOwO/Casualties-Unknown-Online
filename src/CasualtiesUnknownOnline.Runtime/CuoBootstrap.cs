@@ -231,6 +231,7 @@ public static class CuoBootstrap
 		services.AddSingleton<TradeChannel>(); // the trader state/action channel (trade domain)
 		services.AddSingleton<SpeechChannel>(); // the speech-bubble channel (the Talker domain)
 		services.AddSingleton<ChatChannel>(); // the text-chat channel (co-op communication)
+		services.AddSingleton<LocationPingChannel>(); // the transient middle-click location-ping channel (co-op presentation)
 		services.AddSingleton<FluidKernelProjection>();
 		services.AddSingleton<FluidKernelReadProjection>();
 		services.AddSingleton<WorldEntityKernelProjection>();
@@ -244,6 +245,11 @@ public static class CuoBootstrap
 		// pump — it only reacts to the world channel's receive event and session end).
 		services.AddSingleton<ChatService>();
 		services.AddSingleton<IChatControl>(p => p.GetRequiredService<ChatService>());
+		// Location-ping domain: the local one-marker-per-player buffer + the
+		// middle-click double-click rule. No pump — it reacts to the world
+		// channel's receive event, session end, and UI placement calls.
+		services.AddSingleton<LocationPingService>();
+		services.AddSingleton<ILocationPingControl>(p => p.GetRequiredService<LocationPingService>());
 		// In-game command/chat console: local slash-command chain + the chat UI
 		// surface (no wire message, no packet handler — it only rides the
 		// existing ChatService send path).

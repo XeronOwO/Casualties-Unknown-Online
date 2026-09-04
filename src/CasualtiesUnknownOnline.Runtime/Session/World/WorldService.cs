@@ -69,6 +69,7 @@ public sealed class WorldService : IWorldControl, IDisposable
 		TradeChannel tradeChannel,
 		SpeechChannel speechChannel,
 		ChatChannel chatChannel,
+		LocationPingChannel locationPingChannel,
 		BlockDamageRegistry blockDamageRegistry,
 		ItemKernelAuthority kernelAuthority,
 		FluidKernelProjection fluidKernel,
@@ -78,7 +79,7 @@ public sealed class WorldService : IWorldControl, IDisposable
 		_sender = sender;
 		_time = time;
 		_log = log;
-		_channels = new WorldChannelRelay(eventChannel, tradeChannel, speechChannel, chatChannel);
+		_channels = new WorldChannelRelay(eventChannel, tradeChannel, speechChannel, chatChannel, locationPingChannel);
 		_messages = new WorldStateMessageService(session, sender, log, eventChannel, blockDamageRegistry);
 		_kernelAuthority = kernelAuthority;
 		_fluidKernel = fluidKernel;
@@ -356,6 +357,14 @@ public sealed class WorldService : IWorldControl, IDisposable
 	public event Action<ulong, ChatMsg>? ChatReceived { add => _channels.ChatReceived += value; remove => _channels.ChatReceived -= value; }
 
 	public void FireChatReceived(ulong sender, ChatMsg msg) => _channels.FireChatReceived(sender, msg);
+
+	public void SendLocationPing(LocationPingMsg msg) => _channels.SendLocationPing(msg);
+
+	public void BroadcastLocationPing(ulong excludeSteamId, LocationPingMsg msg) => _channels.BroadcastLocationPing(excludeSteamId, msg);
+
+	public event Action<ulong, LocationPingMsg>? LocationPingReceived { add => _channels.LocationPingReceived += value; remove => _channels.LocationPingReceived -= value; }
+
+	public void FireLocationPingReceived(ulong sender, LocationPingMsg msg) => _channels.FireLocationPingReceived(sender, msg);
 
 	// ---- World message flow ----
 

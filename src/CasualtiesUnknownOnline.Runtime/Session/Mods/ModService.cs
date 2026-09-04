@@ -23,6 +23,7 @@ public sealed class ModService : ICuoService, IModsControl, IModUiControl, IModC
 	private readonly ModStateStore _stateStore;
 	private readonly ModDataStore _dataStore;
 	private readonly ModStatusStore _statusStore;
+	private readonly ModBuildingRuntimeStore _buildingRuntime;
 	private readonly ModCommandService _commands;
 	private readonly ModLifecycle _lifecycle;
 	private bool _disposed; // the container may dispose the same singleton once per registration (3.1 behaviour) — the ICuoService contract requires idempotent dispose
@@ -44,14 +45,16 @@ public sealed class ModService : ICuoService, IModsControl, IModUiControl, IModC
 		IModTilePlacer tilePlacer,
 		IModStructurePlacer structurePlacer,
 		IModLiquidPlacer liquidPlacer,
-		IModNativeApiProvider nativeApiProvider)
+		IModNativeApiProvider nativeApiProvider,
+		ModBuildingRuntimeStore buildingRuntime)
 	{
 		_catalog = new ModCatalog();
 		_stateStore = new ModStateStore(stateFile, log);
 		_dataStore = new ModDataStore(log);
 		_statusStore = new ModStatusStore(log);
+		_buildingRuntime = buildingRuntime;
 		_commands = new ModCommandService(_catalog, session, sender, time, log);
-		_lifecycle = new ModLifecycle(_catalog, _commands, consoleCommands, _stateStore, _dataStore, _statusStore, session, channel, registry, time, loggerFactory, log, remoteVitals, remoteInventory, entitySpawner, itemSpawner, tilePlacer, structurePlacer, liquidPlacer, nativeApiProvider, this);
+		_lifecycle = new ModLifecycle(_catalog, _commands, consoleCommands, _stateStore, _dataStore, _statusStore, _buildingRuntime, session, channel, registry, time, loggerFactory, log, remoteVitals, remoteInventory, entitySpawner, itemSpawner, tilePlacer, structurePlacer, liquidPlacer, nativeApiProvider, this);
 	}
 
 	public void Initialize()
@@ -110,4 +113,9 @@ public sealed class ModService : ICuoService, IModsControl, IModUiControl, IModC
 	/// adapter is the only layer allowed to translate runtime statuses into
 	/// vanilla Body/Limb behavior; it reads this internal store directly.</summary>
 	internal ModStatusStore StatusStore => _statusStore;
+
+	/// <summary>GameAdapter-facing building hook table seam (InternalsVisibleTo).
+	/// The adapter is the only layer allowed to turn hook results into Unity
+	/// components; it reads this internal store directly.</summary>
+	internal ModBuildingRuntimeStore BuildingRuntimeStore => _buildingRuntime;
 }

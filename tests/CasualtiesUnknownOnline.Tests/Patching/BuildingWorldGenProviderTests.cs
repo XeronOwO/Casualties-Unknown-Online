@@ -29,7 +29,8 @@ public class BuildingWorldGenProviderTests
 		var logger = loggerType.GetProperty("Instance", BindingFlags.Public | BindingFlags.Static)?.GetValue(null)
 			?? loggerType.GetField("Instance", BindingFlags.Public | BindingFlags.Static)?.GetValue(null)
 			?? throw new InvalidOperationException("NullLogger.Instance not found.");
-		return Activator.CreateInstance(ProviderType, [logger])!;
+		var buildingRuntime = new ModBuildingRuntimeStore(NullLogger<ModBuildingRuntimeStore>.Instance);
+		return Activator.CreateInstance(ProviderType, [logger, buildingRuntime])!;
 	}
 
 	private static bool TryBind(object provider, string id, ModBuildingDefinition definition)

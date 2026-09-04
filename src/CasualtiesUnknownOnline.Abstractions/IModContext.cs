@@ -80,6 +80,15 @@ public interface IModContext
 	IModMoodleRuntime MoodleRuntime { get; }
 
 	/// <summary>
+	/// Per-mod runtime building hooks. A mod can register prefab and instance
+	/// hooks that return component type names for the Game Adapter to attach to
+	/// its custom building template/instances. This is the CUO-safe replacement
+	/// for CUCoreLib's GameObject callbacks: it never exposes Unity/game types
+	/// and adds no wire surface. See <see cref="IModBuildingRuntime"/>.
+	/// </summary>
+	IModBuildingRuntime BuildingRuntime { get; }
+
+	/// <summary>
 	/// Local mod UI windows (immediate-mode drawings on the local client). This
 	/// surface is local-only and requires no permission — see <see cref="IModUi"/>.
 	/// </summary>

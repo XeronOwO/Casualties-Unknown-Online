@@ -25,7 +25,7 @@ active, so no wire message and no new NetMsg are needed.
 | 7 | Distribution | `BuildingWorldGenDistribution` places `Standard` buildings by surface raycast and `DropPod` buildings at random impact points through `Utils.Create`; both are inside the isolated generation stream. |
 | 8 | Patch boundary | `WorldGenerationPlaceCrystalsPatch` calls `IPatchBridge.OnCustomBuildingWorldGeneration` before `OnCustomItemWorldGeneration`, then `GameAdapterDomains.BuildingWorldGen`. |
 | 9 | No wire | `BuildingEntityStartPatch` / `EntitySpawnSync` already skip reports while `HarmonyTraverse.IsGenerating()` is true; deterministic generation needs no new NetMsg. |
-| 10 | Non-goals | Prefab configure hooks (runtime callbacks) remain future; only string-based `SpawnComponents` and the typed DTO fields are part of this seam. |
+| 10 | Non-goals | Raw GameObject prefab configure hooks remain non-goal at this seam; only string-based `SpawnComponents` and typed DTO fields were part of this delivery. The later `IModBuildingRuntime` component-returning hook seam is documented in `mod-building-runtime-hooks-selfcheck.md`. |
 
 ## 2. Whole-family audit
 

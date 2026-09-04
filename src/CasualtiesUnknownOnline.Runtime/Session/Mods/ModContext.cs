@@ -24,6 +24,7 @@ internal sealed class ModContext(
 	ModStateStore stateStore,
 	ModDataStore dataStore,
 	ModStatusStore statusStore,
+	ModBuildingRuntimeStore buildingRuntime,
 	ModCommandService commands,
 	ConsoleCommandRegistry consoleCommands,
 	RemoteVitalsService remoteVitals,
@@ -46,6 +47,7 @@ internal sealed class ModContext(
 	private readonly IModData _data = dataStore.CreateDataAdapter(manifest, sessionService);
 	private readonly IModStatusRuntime _statusRuntime = statusStore.CreateStatusAdapter(manifest, sessionService);
 	private readonly IModMoodleRuntime _moodleRuntime = new ModStatusMoodleRuntimeAdapter(statusStore, manifest, frameworkLog);
+	private readonly IModBuildingRuntime _buildingRuntime = new ModBuildingRuntimeAdapter(buildingRuntime, manifest, frameworkLog);
 	private ModStatusTransport? _statusTransport;
 	private readonly ModUiAdapter _ui = new(manifest, frameworkLog);
 	private readonly ModContentAdapter _content = new(manifest, frameworkLog);
@@ -76,6 +78,8 @@ internal sealed class ModContext(
 		_statusTransport ??= new(_statusRuntime, _network, _manifest, _sessionService, _frameworkLog);
 
 	public IModMoodleRuntime MoodleRuntime => _moodleRuntime;
+
+	public IModBuildingRuntime BuildingRuntime => _buildingRuntime;
 
 	public IModUi Ui => _ui;
 

@@ -286,6 +286,18 @@ content binders can build on:
   static routing and falls back on absence/exception. It is the CUO-safe local
   replacement for CUCoreLib's `RegisterBody` / `RegisterLimb` callbacks: no
   game/Unity delegate crosses Abstractions and no wire message is added.
+- `IModBuildingRuntime` + `ModBuildingPrefabRequest` +
+  `ModBuildingInstanceRequest` + `ModBuildingRuntimeStore` +
+  `ModBuildingRuntimeAdapter` — the local abstraction-safe building
+  prefab/instance hook seam. A mod registers one prefab hook and/or one
+  instance hook per custom building id; each hook receives a plain request
+  (building/template identity, and instance world transform for the instance
+  hook) and returns component type names for the Game Adapter to attach. The
+  prefab hook runs when the inactive runtime template is created; the
+  instance hook runs on every custom building clone before it becomes active.
+  It is the CUO-safe replacement for CUCoreLib's `ConfigurePrefab` /
+  `ConfigureInstance` GameObject callbacks: no Unity/game type crosses
+  Abstractions and no wire message is added.
 - Tests for version storage/validation, catalog enumeration/filtering,
   unique resolution, duplicate/version conflicts, empty-catalog behavior,
   null-argument edges, DTO round-trip, binder routing/shared-mode
@@ -312,7 +324,8 @@ content binders can build on:
   `docs/evidence/selfchecks/mod-api/mod-item-fixed-drop-sources-selfcheck.md`,
   `docs/evidence/selfchecks/mod-api/mod-item-advanced-behavior-selfcheck.md`,
   `docs/evidence/selfchecks/mod-api/mod-item-visual-selfcheck.md`,
-  and `docs/evidence/selfchecks/mod-api/mod-building-drop-worldgen-selfcheck.md`.
+  `docs/evidence/selfchecks/mod-api/mod-building-drop-worldgen-selfcheck.md`,
+  and `docs/evidence/selfchecks/mod-api/mod-building-runtime-hooks-selfcheck.md`.
 
 Still explicitly **not** implemented:
 - full vanilla integration for every dynamic per-player / per-limb status
@@ -341,9 +354,12 @@ Still explicitly **not** implemented:
   slice is landed, the explicit fixed drop-source pools is landed on top of
   the category loot-pool + world-spawn seam and the mod-facing content owner
   query;
-- CUCoreLib's building prefab configure hooks (runtime callbacks that edit the
-  prefab/instance after creation) remain future; authored drop rules and
-  worldgen density are now landed through typed DTO fields;
+- CUCoreLib's raw building prefab configure hooks (runtime callbacks that
+  receive a live `GameObject` and edit arbitrary prefab/instance state) remain
+  non-goal; authored drop rules and worldgen density are landed through typed
+  DTO fields, and the component-returning `IModBuildingRuntime`
+  prefab/instance hook seam is the CUO-safe replacement. Direct arbitrary
+  GameObject mutation stays outside Abstractions;
 - an **automatic runtime mod-data sync engine** (the scope seam is landed:
   `IModData` declares/keeps local-only, shared-mirror, and host-authoritative
   values; actual transport remains explicit through `IModNetwork` /
@@ -371,7 +387,7 @@ Source basis: CUCoreLib README/CHANGELOG, `CUCoreLibWebapp` machine docs
 | 9 | Custom liquids | `LiquidRegistry.Register(id, CustomLiquidInfo)`, container liquid stacks, owner-GUID query. | `ModLiquidDefinition` + `GameAdapterLiquidContentProvider`: typed DTO, static `LiquidType` fields, locale entries. | **Landed at the static content seam.** Runtime fluid facts remain in CUO's Fluid domain; CUCoreLib's JObject fluid snapshots are not ported. |
 | 10 | Liquid tiles / world liquids | `LiquidTileRegistry.Register/Place/FloodFill/GenerateWorldTiles`, world bytes, body touch/drink/visual helpers, snapshot helpers. | `ModLiquidTileDefinition` + `GameAdapterLiquidTileContentProvider` + `IModLiquidPlacement`: typed DTO, deterministic custom world bytes, `FluidManager.WorldFluidToLiquidID` mapping, worldgen through the sealed generation stream, local body-touch/drink/colour/name rendering projection, host-authoritative runtime placement/flood fill through the existing FluidRegion stream, and existing FluidInteraction sync. | **Landed at the typed content + worldgen + local projection + host-authoritative runtime placement/flood-fill seam.** Mod-authored liquid tiles ride CUO's existing fluid domain; no CUCoreLib JObject snapshot, no new NetMsg, and no game delegates in Abstractions. Snapshot helpers and the CUCoreLib asset-backed visual modes are not ported. |
 | 11 | Terrain tiles and worldgen | `TileRegistry.Register`, `SetBlock`, `TryGetTile/Definition/Index`, layer masks, ore-style generation, drops, custom data. | `ModTileDefinition` + `GameAdapterTileContentProvider` + `IModTilePlacement`: typed DTO, deterministic custom block indices, `WorldGeneration.tiles` injection, a `GetBlockInfo` prefix, single-cell placement, typed `SpawnAmount`/`SpawnLayers`/`ModTileGenerationStyle`/`ModTileDrop`, `TileWorldGenDistribution` inside the sealed generation stream, and local custom-tile drop spawning through the existing block-break report. | **Landed at the static content + single-cell placement + ore/drop/worldgen projection seam.** World-generation output stays kernel-driven; no new wire message or JObject snapshot. |
-| 12 | Building entities / custom spawn | `BuildingEntityRegistry.Register/Spawn/PlaceOnSurface/DistributeInWorld`, prefab hooks, components, drops, worldgen density, owner queries. | `ModBuildingDefinition` + `GameAdapterBuildingContentProvider` + `IModEntitySpawn`: typed DTO, vanilla `TemplateId` base prefab, optional `BuildingEntity` overrides and `SpawnComponents`, runtime template creation, authored drop rules + item categories, worldgen density/layers/placement, and the existing `EntitySpawned` channel for replication. | **Landed at the content + entity spawn + authored drop/worldgen-density seam.** Custom buildings use `IModEntitySpawn`; no new NetMsg and no mod access to Unity prefab types. Remaining: runtime prefab configure hooks if real demand appears. |
+| 12 | Building entities / custom spawn | `BuildingEntityRegistry.Register/Spawn/PlaceOnSurface/DistributeInWorld`, prefab hooks, components, drops, worldgen density, owner queries. | `ModBuildingDefinition` + `GameAdapterBuildingContentProvider` + `IModEntitySpawn`: typed DTO, vanilla `TemplateId` base prefab, optional `BuildingEntity` overrides and `SpawnComponents`, runtime template creation, authored drop rules + item categories, worldgen density/layers/placement, the existing `EntitySpawned` channel for replication, and `IModBuildingRuntime` prefab/instance hooks that return component type names. | **Landed at the content + entity spawn + authored drop/worldgen-density + abstraction-safe prefab/instance hook seam.** Custom buildings use `IModEntitySpawn`; no new NetMsg and no mod access to Unity prefab types. Raw `ConfigurePrefab`/`ConfigureInstance` callbacks that receive a live `GameObject` remain non-goal; component-returning hooks are the CUO-safe replacement. |
 | 13 | Multi-block structures | `StructureRegistry.RegisterFromJson/EmbeddedJson/File`, spawn counts, `Place`, JSON payload from the structure editor. | `ModStructureDefinition` + `GameAdapterStructureContentProvider` + `IModStructurePlacement`: typed marker grid, validated GameAdapter compile, runtime placement through existing `SetBlock`/`BlockPlaced`, per-depth spawn counts consumed by deterministic worldgen distribution. | **Landed at the static content + runtime placement + automatic worldgen seam.** Distribution runs inside the isolated generation stream, static block grid only, no new wire. |
 | 14 | Statuses / per-body per-limb custom state | `StatusRegistry` + `BodyStatus`/`LimbStatus` inheritance, `[StatusOptions]`, `GetStatus<T>()`, save providers, network snapshots. | `ModStatusDefinition` + `ModStatusScope` + `GameAdapterStatusContentProvider` for static descriptors; `IModStatusRuntime` + `IModStatusTransport` + `ModStatusUpdate` for per-player/per-limb runtime values and typed shared-status transport; `ModStatusProjectionKind` + `ModBodyFormulaProjection`/`ModLimbProjection` + GameAdapter `ModStatusVanillaProjection` for typed body/limb and circulation overlays. `IModState` remains host-persistent opaque mod state. | **Landed at static descriptor + runtime table + typed status transport + typed GameAdapter body/limb + circulation projection seam.** Guest mirror set/remove rides the existing `IModNetwork` mod-message channel; no new NetMsg and no JObject snapshot. Arbitrary reflection-free status bags are not ported; the vanilla moodle-row local seam is landed. |
 | 15 | Moodles / player status UI | `MoodleRegistry.AddMoodle/AddAnimatedMoodle`, `RegisterBody/RegisterLimb`; custom status icons in the vanilla moodle row. | `ModMoodleDefinition` + `ModMoodleAnimation` + `GameAdapterMoodleContentProvider`: typed static moodle descriptors with icon key, intensity, presentation flags, hold seconds, optional frame animation and per-limb display templates; `ModStatusDefinition.ShowPerLimbMoodles` + `LimbMoodles` route limb-scoped statuses to per-limb rows and distinct moodle descriptors; `ModStatusMoodleProjection` feeds active status-linked moodles into `MoodleManager.AddMoodle`, and the `Moodle.Start` patch drives animated moodle icons; `IModMoodleRuntime` lets a mod route active status presences from its own opaque payload to a static moodle id. `IModUi` remains the local immediate-mode surface. | **Landed at the static moodle-descriptor + local vanilla moodle-row + animated/per-limb moodle row + abstraction-safe runtime moodle resolver seam.** Active status-linked descriptors are fed to `MoodleManager.AddMoodle`; it is not a wire feature and does not expose Unity types through Abstractions. |

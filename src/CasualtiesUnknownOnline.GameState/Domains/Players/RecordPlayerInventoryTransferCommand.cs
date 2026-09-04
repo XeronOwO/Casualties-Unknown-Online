@@ -13,4 +13,5 @@ public sealed record RecordPlayerInventoryTransferCommand(
 	AuthorityKind Authority,
 	ulong FromSteamId,
 	ulong ToSteamId,
-	PlayerInteractionItem Item) : GameCommand(OperationId, Actor, RunEpoch, Authority, []);
+	PlayerInteractionItem Item,
+	ulong TargetParentItemId = 0) : GameCommand(OperationId, Actor, RunEpoch, Authority, []);

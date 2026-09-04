@@ -76,7 +76,7 @@ session/control, request/command, presentation, or non-kernel-domain paths.
 | Enemy | `EnemySnapshot`, `EnemyAttack` | Active host snapshot and host-ordered local-apply command |
 | Trade / chat / speech | `TraderState`, `TraderAction`, `TraderRecruitRequest`, `TraderRecruitResult`, `TraderSwing`, `SpeechMsg`, `Chat` | Active non-kernel domain surfaces |
 | Mod API | `ModMessage`, `ModCommandRequest`, `ModCommandResult` | Active Phase 4 mod API |
-| Player interaction requests | `PlayerInventoryTakeRequest`, `PlayerCarryStartRequest`, `PlayerCarryStopRequest`, `PlayerHealRequest`, `PlayerItemUseRequest`, `PlayerPushRequest`, `PlayerPushResult` | Request/result entry points; durable facts already ride `KernelEnvelope` |
+| Player interaction requests | `PlayerInventoryTakeRequest`, `RemoteInventoryOperationRequest`, `PlayerCarryStartRequest`, `PlayerCarryStopRequest`, `PlayerHealRequest`, `PlayerItemUseRequest`, `PlayerPushRequest`, `PlayerPushResult` | Request/result entry points; durable facts already ride `KernelEnvelope` |
 | Item id / starting inventory | `ItemIdWatermark`, `CarriedInventory` | Active non-kernel id/initialization coordination |
 | Item reject (removed) | *(none)* | Migrated to `KernelEnvelope` `CommandRejected`; no dedicated legacy frame remains |
 | Kernel path | `KernelEnvelope` | The four-envelope kernel protocol transport |

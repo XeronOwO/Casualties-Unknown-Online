@@ -24,6 +24,7 @@ public static class PlayerInteractionWireMapper
 			ItemIdentity = ToWireIdentity(e.Item.Identity),
 			ItemData = ToWireData(e.Item.Data),
 			ItemContents = [.. e.Item.Children.Select(ToWireItem)],
+			TargetParentItemId = e.TargetParentItemId,
 		};
 
 	public static WirePlayerInteraction ToWire(PlayerHealResultEvent e) =>
@@ -84,7 +85,8 @@ public static class PlayerInteractionWireMapper
 		new(
 			p.FromSteamId,
 			p.ToSteamId,
-			FromWireItem(p.ItemIdentity, p.ItemData, p.ItemContents) ?? throw new InvalidOperationException("inventory transfer event lacks item payload"));
+			FromWireItem(p.ItemIdentity, p.ItemData, p.ItemContents) ?? throw new InvalidOperationException("inventory transfer event lacks item payload"),
+			p.TargetParentItemId);
 
 	public static PlayerHealResultEvent FromWireHealResult(WirePlayerInteraction p) =>
 		new(

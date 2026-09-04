@@ -25,7 +25,7 @@ internal sealed class CloneInventoryRenderer(ILogger<CloneInventoryRenderer> log
 {
 	private readonly ILogger<CloneInventoryRenderer> _log = log;
 
-	internal void ApplyCloneInventory(Body clone, CharacterDataMsg data)
+	internal void ApplyCloneInventory(Body clone, CharacterDataMsg data, ulong ownerSteamId)
 	{
 		_log.LogDebug("[CloneRender] apply {Count} items to clone slots ({Slots} slots).", data.Items.Count, clone.slots.Length);
 		foreach (var slot in clone.slots)
@@ -36,7 +36,7 @@ internal sealed class CloneInventoryRenderer(ILogger<CloneInventoryRenderer> log
 			}
 
 			var wanted = data.Items.FirstOrDefault(x => x.SlotIndex == slot.slot);
-			RenderItemInto(slot.transform, wanted, slot.spriteSortOrder, wearLimb: null);
+			RenderItemInto(slot.transform, wanted, slot.spriteSortOrder, wearLimb: null, ownerSteamId);
 		}
 
 		for (var i = 0; i < clone.limbs.Length; i++)
@@ -48,7 +48,7 @@ internal sealed class CloneInventoryRenderer(ILogger<CloneInventoryRenderer> log
 			}
 
 			var worn = data.Items.FirstOrDefault(x => x.SlotIndex == -(i + 2));
-			RenderItemInto(limb.transform, worn, 0, wearLimb: limb);
+			RenderItemInto(limb.transform, worn, 0, wearLimb: limb, ownerSteamId);
 		}
 	}
 
@@ -58,7 +58,7 @@ internal sealed class CloneInventoryRenderer(ILogger<CloneInventoryRenderer> log
 	/// game's own children (bones/decorations) and clear only our previous
 	/// renders (RemoteCloneRender-marked).
 	/// </summary>
-	private static void RenderItemInto(Transform parent, CharacterItemMsg? wanted, int sortOrder, Limb? wearLimb)
+	private static void RenderItemInto(Transform parent, CharacterItemMsg? wanted, int sortOrder, Limb? wearLimb, ulong ownerSteamId)
 	{
 		// A matching render stays — the 1 Hz rebuild used to recreate every clone
 		// every second: a freshly Instantiated clone starts at the prefab's
@@ -96,8 +96,8 @@ internal sealed class CloneInventoryRenderer(ILogger<CloneInventoryRenderer> log
 					matches[0].gameObject.AddComponent<RemoteCloneRender>();
 				}
 
-				SetRemoteInventoryItemId(matches[0], wanted.InstanceId);
-				RestoreRemoteContents(matches[0], wanted.Contents);
+				SetRemoteInventoryItemId(matches[0], wanted.InstanceId, ownerSteamId);
+				RestoreRemoteContents(matches[0], wanted.Contents, ownerSteamId);
 				return;
 			}
 		}
@@ -217,8 +217,8 @@ internal sealed class CloneInventoryRenderer(ILogger<CloneInventoryRenderer> log
 		// clear only our renders, and the uniform marker lets presentation code
 		// identify a display-proxy item without depending on slot internals.
 		obj.AddComponent<RemoteCloneRender>();
-		SetRemoteInventoryItemId(item, wanted.InstanceId);
-		RestoreRemoteContents(item, wanted.Contents);
+		SetRemoteInventoryItemId(item, wanted.InstanceId, ownerSteamId);
+		RestoreRemoteContents(item, wanted.Contents, ownerSteamId);
 	}
 
 	/// <summary>
@@ -228,7 +228,7 @@ internal sealed class CloneInventoryRenderer(ILogger<CloneInventoryRenderer> log
 	/// contents must materialise those children on the display clone; they are
 	/// marked as remote render proxies (no authority, no physics).
 	/// </summary>
-	private static void RestoreRemoteContents(Item containerItem, List<CharacterItemMsg> contents)
+	private static void RestoreRemoteContents(Item containerItem, List<CharacterItemMsg> contents, ulong ownerSteamId)
 	{
 		if (containerItem == null) // Unity object — ==
 		{
@@ -262,14 +262,14 @@ internal sealed class CloneInventoryRenderer(ILogger<CloneInventoryRenderer> log
 		{
 			foreach (var childData in contents)
 			{
-				RestoreRemoteContent(containerItem, container, childData);
+				RestoreRemoteContent(containerItem, container, childData, ownerSteamId);
 			}
 		}
 
 		MarkRemoteCloneTree(containerItem);
 	}
 
-	private static void RestoreRemoteContent(Item containerItem, Container container, CharacterItemMsg childData)
+	private static void RestoreRemoteContent(Item containerItem, Container container, CharacterItemMsg childData, ulong ownerSteamId)
 	{
 		var prefab = ItemPrefabResolver.Load(childData.ItemId);
 		if (prefab == null) // Unity object — ==
@@ -288,14 +288,14 @@ internal sealed class CloneInventoryRenderer(ILogger<CloneInventoryRenderer> log
 
 		child.condition = childData.Condition;
 		child.favourited = childData.Favourited;
-		SetRemoteInventoryItemId(child, childData.InstanceId);
+		SetRemoteInventoryItemId(child, childData.InstanceId, ownerSteamId);
 		ItemStateCodec.RestoreLiquids(child, childData.Liquids);
 		ItemStateCodec.RestoreComponentStates(child, childData.Components);
-		RestoreRemoteContents(child, childData.Contents);
+		RestoreRemoteContents(child, childData.Contents, ownerSteamId);
 		container.LoadItem(child);
 	}
 
-	private static void SetRemoteInventoryItemId(Item item, ulong instanceId)
+	private static void SetRemoteInventoryItemId(Item item, ulong instanceId, ulong ownerSteamId)
 	{
 		if (instanceId == 0)
 		{
@@ -309,6 +309,7 @@ internal sealed class CloneInventoryRenderer(ILogger<CloneInventoryRenderer> log
 		}
 
 		marker.Id = instanceId;
+		marker.OwnerSteamId = ownerSteamId;
 	}
 
 	private static void MarkRemoteCloneTree(Item root)

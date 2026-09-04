@@ -679,6 +679,14 @@ public sealed class OnlineUiMemberProjectionTests
 		{
 		}
 
+		public void SendRemoteInventoryOperation(RemoteInventoryOperationRequestMsg msg)
+		{
+		}
+
+		public void HandleRemoteInventoryOperation(ulong sender, RemoteInventoryOperationRequestMsg msg)
+		{
+		}
+
 		public void FireTransferReceived(PlayerInventoryTransferMsg msg)
 		{
 		}

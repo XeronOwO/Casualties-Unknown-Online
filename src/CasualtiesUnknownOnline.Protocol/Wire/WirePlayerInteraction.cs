@@ -68,4 +68,8 @@ public sealed class WirePlayerInteraction
 
 	[ProtoMember(19)]
 	public List<WirePlayerInteractionItem> WornItemContents { get; set; } = [];
+
+	/// <summary>For a same-owner container move, the destination container's instance id.</summary>
+	[ProtoMember(20)]
+	public ulong TargetParentItemId { get; set; }
 }

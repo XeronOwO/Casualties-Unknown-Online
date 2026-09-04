@@ -282,6 +282,7 @@ public static class PlayerInteractionKernelCodec
 			FromSteamId = e.FromSteamId,
 			ToSteamId = e.ToSteamId,
 			Item = ToCharacterItem(e.Item),
+			TargetParentItemId = e.TargetParentItemId,
 		};
 
 	public static PlayerHealResultMsg ToHealMessage(PlayerHealResultEvent e) =>

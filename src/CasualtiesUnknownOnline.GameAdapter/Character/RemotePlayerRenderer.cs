@@ -60,7 +60,7 @@ internal sealed class RemotePlayerRenderer(
 		if (_remoteClones.TryGetValue(steamId, out var clone) && clone != null
 			&& _characterData.CloneData.TryGetValue(steamId, out var data))
 		{
-			_characterData.ApplyCloneInventory(clone, data);
+			_characterData.ApplyCloneInventory(clone, data, steamId);
 			_limbRenderer.ApplyCloneLimbs(clone, data);
 			CloneFacePresentation.Apply(clone, data.Health);
 		}
@@ -148,7 +148,7 @@ internal sealed class RemotePlayerRenderer(
 				// snapshot (a fresh report follows within 1 s at the latest).
 				if (_characterData.CloneData.TryGetValue(remote.SteamId, out var data))
 				{
-					_characterData.ApplyCloneInventory(clone, data);
+					_characterData.ApplyCloneInventory(clone, data, remote.SteamId);
 					_limbRenderer.ApplyCloneLimbs(clone, data);
 					CloneFacePresentation.Apply(clone, data.Health);
 				}

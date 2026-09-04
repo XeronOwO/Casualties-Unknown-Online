@@ -42,7 +42,15 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains)
 
 			if (msg.ToSteamId == domains.Session.LocalSteamId && msg.Item is { } item)
 			{
-				AddCarriedItemToLocalBody(body, item);
+				if (msg.TargetParentItemId != 0)
+				{
+					AddCarriedItemToLocalContainer(body, item, msg.TargetParentItemId);
+				}
+				else
+				{
+					AddCarriedItemToLocalBody(body, item);
+				}
+
 				changed = true;
 			}
 		}
@@ -395,6 +403,31 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains)
 		item.SlotIndex = slot;
 		ItemStateCodec.RestoreItem(item, body);
 		domains.Log.LogInformation("[PlayerInteraction] placed {ItemId} (id {InstanceId}) in local slot {Slot}.", item.ItemId, item.InstanceId, slot);
+	}
+
+	private void AddCarriedItemToLocalContainer(Body body, CharacterItemMsg item, ulong parentItemId)
+	{
+		var parent = FindCarriedItemById(body, parentItemId);
+		if (parent == null) // Unity object — ==
+		{
+			domains.Log.LogWarning("[PlayerInteraction] cannot place {ItemId} (id {InstanceId}) into container {Parent} — parent not found on the local body; falling back to a slot.",
+				item.ItemId, item.InstanceId, parentItemId);
+			AddCarriedItemToLocalBody(body, item);
+			return;
+		}
+
+		var container = parent.GetComponent<Container>();
+		if (container == null) // Unity object — ==
+		{
+			domains.Log.LogWarning("[PlayerInteraction] cannot place {ItemId} (id {InstanceId}) into {Parent} — target is not a container; falling back to a slot.",
+				item.ItemId, item.InstanceId, parentItemId);
+			AddCarriedItemToLocalBody(body, item);
+			return;
+		}
+
+		ItemStateCodec.RestoreContent(parent, container, item);
+		domains.Log.LogInformation("[PlayerInteraction] placed {ItemId} (id {InstanceId}) into container {Parent} ({ParentId}).",
+			item.ItemId, item.InstanceId, parent.id, parentItemId);
 	}
 
 	private static bool HasHealItemChild(Transform parent)

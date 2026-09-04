@@ -15,4 +15,11 @@ namespace CasualtiesUnknownOnline.GameAdapter.Character;
 internal sealed class RemoteInventoryItemId : MonoBehaviour
 {
 	internal ulong Id;
+
+	/// <summary>
+	/// The SteamId of the remote player whose authoritative item this display
+	/// proxy represents. The take/release path needs the owner even after the
+	/// remote view has closed (Tab-switch transfer into the local backpack).
+	/// </summary>
+	internal ulong OwnerSteamId;
 }

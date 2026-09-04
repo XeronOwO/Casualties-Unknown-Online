@@ -20,6 +20,8 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// </summary>
 internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBridge
 {
+	private readonly RemoteBackpackOperationHandler _remoteBackpackOps = new(domains);
+
 	public bool IsWorldGenIsolated => true;
 
 	public bool IsWaitingForReady => domains.Gate.WaitingForReady;
@@ -229,6 +231,15 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 			dragItem.id, itemId, owner);
 		return true;
 	}
+
+	public bool TryHandleRemoteBackpackDrop(Item dragItem) => _remoteBackpackOps.TryDrop(dragItem);
+
+	public bool TryHandleRemoteBackpackMoveToContainer(Item dragItem, Item targetContainer) =>
+		_remoteBackpackOps.TryMoveToContainer(dragItem, targetContainer);
+
+	public bool TryHandleRemoteBackpackPour(Item dragItem) => _remoteBackpackOps.TryPour(dragItem);
+
+	public bool TryHandleRemoteProxyTransferToLocal(Item dragItem) => _remoteBackpackOps.TryTransferToLocal(dragItem);
 
 	public bool CancelRemoteProxyDrag(PlayerCamera camera, string reason)
 	{

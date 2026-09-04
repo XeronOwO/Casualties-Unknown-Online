@@ -10,7 +10,7 @@ in-world right-click context menu remains the transient cursor-based entry.
 | Mechanism | Evidence |
 |---|---|
 | Existing interaction eligibility | `OnlineUiMemberProjection.Build` produces `OnlineUiMemberRow` action flags (carry/piggyback/drop/heal/use/push/recruit/take) from the runtime session surfaces; the Players page and right-click menu both consume it. |
-| Existing row rendering | `OnlineUiMemberListDrawer.Draw` renders one member card with status, world actions, explicit heal/use selectors and inventory expansion. |
+| Existing row rendering | `OnlineUiMemberListDrawer.Draw` renders one member card with status, world actions, explicit heal/use selectors and the native remote-backpack access button. |
 | Remote positions | `EntitySyncService.RemotePlayers` / `GetRemotePlayer` provide authoritative world positions; the OL overlay already uses them for nameplates/arrows and right-click hit-testing. |
 | Local position | `EntitySyncService.LocalPlayer.Position` is the local player's authoritative position. |
 | Hotkey pattern | `Plugin` already binds `[Session] CreateLobbyKey / JoinLobbyKey / PingPeerKey` and calls `HotkeyPressed` each frame; the new panel key follows the same pattern. |
@@ -33,10 +33,12 @@ in-world right-click context menu remains the transient cursor-based entry.
   toggles the panel; `ESC` closes it.
 - **Input boundary** — right-clicks inside the quick panel are ignored by the
   world context-menu handler.
-- **Right-click integration** — the context menu's "View items" fallback now
-  calls `OnlineUiOverlay.OpenQuickPanelFor`, pinning the quick panel to the
-  right-clicked remote and expanding its inventory, instead of opening the full
-  Online window.
+- **Right-click integration** — the context menu originally had a "View items"
+  fallback that called `OnlineUiOverlay.OpenQuickPanelFor`, pinning the quick
+  panel to the right-clicked remote and expanding its inventory. That legacy
+  path was removed on 2026-09-04; the quick panel is now opened only from the
+  session hotkey, and the context menu opens the native remote backpack
+  directly.
 - **Carried release** — the panel also shows a "Get down" button when the local
   player is the carried rider, so the standalone UI can release a piggyback
   without switching to the full Players page.

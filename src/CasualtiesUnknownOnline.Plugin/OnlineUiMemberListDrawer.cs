@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Runtime.OnlineUi;
-using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Steam;
 using UnityEngine;
 using CasualtiesUnknownOnline.Runtime.Session;
@@ -76,9 +75,9 @@ internal static class OnlineUiMemberListDrawer
 
 		DrawWorldActions(ctx, row);
 
-		if (row.Inventory is { Count: > 0 })
+		if (row.InventoryText is not null)
 		{
-			DrawInventoryToggle(ctx, row);
+			DrawInventoryActions(ctx, row);
 		}
 
 		GUILayout.EndVertical();
@@ -255,111 +254,21 @@ internal static class OnlineUiMemberListDrawer
 		}
 	}
 
-	private static void DrawInventoryToggle(OnlineUiContext ctx, OnlineUiMemberRow row)
+	private static void DrawInventoryActions(OnlineUiContext ctx, OnlineUiMemberRow row)
 	{
-		if (!row.CanSee)
+		if (!row.CanSee || row.IsLocal || !row.InWorld || ctx.OpenRemoteBackpack is not { } open)
 		{
 			return;
 		}
 
 		GUILayout.BeginHorizontal();
-		if (!row.IsLocal && row.InWorld && ctx.OpenRemoteBackpack is { } open)
+		if (GUILayout.Button(ctx.T("member.open_backpack"), OnlineUiTheme.Button(), GUILayout.Width(130f)))
 		{
-			if (GUILayout.Button(ctx.T("member.open_backpack"), OnlineUiTheme.Button(), GUILayout.Width(130f)))
-			{
-				open(row.SteamId, ctx.DisplayName(row.SteamId));
-			}
-		}
-
-		if (GUILayout.Button(ctx.State.ExpandedMember == row.SteamId ? ctx.T("member.hide_items") : ctx.T("member.view_items"), OnlineUiTheme.Button(), GUILayout.Width(110f)))
-		{
-			ctx.State.ExpandedMember = ctx.State.ExpandedMember == row.SteamId ? null : row.SteamId;
+			open(row.SteamId, ctx.DisplayName(row.SteamId));
 		}
 
 		GUILayout.EndHorizontal();
-
-		if (ctx.State.ExpandedMember == row.SteamId)
-		{
-			if (row.Inventory is { } inventory)
-			{
-				foreach (var entry in inventory)
-				{
-					DrawInventoryEntry(ctx, row.SteamId, entry, 0, row.CanTake);
-				}
-			}
-			else
-			{
-				GUILayout.Label(ctx.T("member.empty"), OnlineUiTheme.MutedLabel());
-			}
-		}
 	}
-
-	private static void DrawInventoryEntry(OnlineUiContext ctx, ulong ownerSteamId, RemoteInventoryEntry entry, int depth, bool canTake)
-	{
-		var slot = entry.SlotIndex >= 0 ? ctx.F("member.slot", entry.SlotIndex) : ctx.T("member.worn");
-		var suffix = entry.ContentsCount > 0 ? ctx.F("member.inside", entry.ContentsCount) : "";
-		var favourite = entry.Favourited ? " ★" : "";
-		var indent = new string(' ', depth * 4);
-		var label = $"{indent}{slot}: {entry.ItemId}{suffix}{favourite}";
-
-		if (entry.ContentsCount == 0)
-		{
-			GUILayout.BeginHorizontal();
-			GUILayout.Label(label, OnlineUiTheme.MutedLabel(), GUILayout.ExpandWidth(true));
-			DrawTakeButton(ctx, ownerSteamId, entry, depth, canTake);
-			GUILayout.EndHorizontal();
-			return;
-		}
-
-		var key = ContainerKey(ownerSteamId, entry);
-		var expanded = ctx.State.ExpandedContainers.Contains(key);
-		GUILayout.BeginHorizontal();
-		GUILayout.Label(label, OnlineUiTheme.MutedLabel(), GUILayout.ExpandWidth(true));
-		DrawTakeButton(ctx, ownerSteamId, entry, depth, canTake);
-		if (GUILayout.Button(expanded ? ctx.T("member.close_container") : ctx.T("member.open_container"), OnlineUiTheme.Button(), GUILayout.Width(76f)))
-		{
-			if (expanded)
-			{
-				ctx.State.ExpandedContainers.Remove(key);
-			}
-			else
-			{
-				ctx.State.ExpandedContainers.Add(key);
-			}
-		}
-
-		GUILayout.EndHorizontal();
-
-		if (!expanded)
-		{
-			return;
-		}
-
-		foreach (var child in entry.Contents)
-		{
-			DrawInventoryEntry(ctx, ownerSteamId, child, depth + 1, canTake);
-		}
-	}
-
-	private static void DrawTakeButton(OnlineUiContext ctx, ulong ownerSteamId, RemoteInventoryEntry entry, int depth, bool canTake)
-	{
-		// Top-level slot items already have Take buttons in the member action
-		// row (TakeableItems). The recursive container view needs its own action
-		// for nested entries, so the cross-player take operation is available
-		// at every container depth — not only for the container itself.
-		if (!canTake || depth == 0 || entry.SlotIndex < 0 || entry.InstanceId == 0)
-		{
-			return;
-		}
-
-		if (GUILayout.Button(ctx.F("member.take", entry.ItemId, entry.SlotIndex), OnlineUiTheme.Button(), GUILayout.Width(150f)))
-		{
-			ctx.TakeItem?.Invoke(ownerSteamId, entry.InstanceId);
-		}
-	}
-
-	private static string ContainerKey(ulong ownerSteamId, RemoteInventoryEntry entry) =>
-		$"{ownerSteamId}:{entry.InstanceId}";
 
 	private static string DisplayName(SteamService steam, ulong steamId)
 	{

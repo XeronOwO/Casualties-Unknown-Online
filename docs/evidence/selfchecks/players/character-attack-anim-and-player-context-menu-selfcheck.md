@@ -32,9 +32,10 @@ This cycle closes two user-visible gaps found during play:
   the native visual.
 - `OnlineUiPlayerContextMenu` — right-click near a remote player's stream
   position opens a context menu with the exact same eligibility rows/actions as
-  the Players page, plus an always-available "View items" fallback that opens
-  the standalone `OnlineUiQuickPanel` pinned to that member and expands its
-  inventory (never the full Online window). The menu measures each row with
+  the Players page, plus a "View items" fallback at the time. The fallback
+  opened the standalone `OnlineUiQuickPanel` pinned to that member and expanded
+  its inventory (never the full Online window); it was removed on 2026-09-04 in
+  favor of the native remote backpack. The menu measures each row with
   `GUIStyle.CalcHeight` and uses a zero-margin menu button style so its height
   adapts to the action list instead of overflowing the panel.
 - `OnlineUiOverlay` — right-click hit-testing against authoritative remote

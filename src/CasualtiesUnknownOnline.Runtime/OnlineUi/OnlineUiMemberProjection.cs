@@ -157,7 +157,6 @@ public static class OnlineUiMemberProjection
 				IsUnconscious = vitals is not null && vitals.Alive && !vitals.Conscious,
 				IsCarryingSomeone = isCarryingSomeone,
 				IsCarried = isAlreadyCarried,
-				Inventory = inventory?.Items,
 				TakeableItems = takeable,
 				HealItems = canHeal ? healItems : [],
 			});

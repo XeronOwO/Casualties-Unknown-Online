@@ -20,7 +20,7 @@ Evidence:
 - `src/CasualtiesUnknownOnline.GameAdapter/GameAdapterBridge.cs:193-256` — the only implemented release outcome is a cross-player take request; `CancelRemoteProxyDrag` handles every other display-proxy release.
 - `src/CasualtiesUnknownOnline.GameAdapter/RemoteProxyDragPolicy.cs` — any remote display-proxy release that is not consumed by remote take must be cancelled.
 - `docs/evidence/selfchecks/items/remote-backpack-container-take-selfcheck.md` — the current supported native backpack interaction after this slice is recursive take (including drag release from the native remote view).
-- `docs/evidence/selfchecks/players/native-remote-backpack-and-door-sound-selfcheck.md` — describes the native remote backpack view as the replacement for the old custom UI, with the custom item list retained as a detail fallback.
+- `docs/evidence/selfchecks/players/native-remote-backpack-and-door-sound-selfcheck.md` — describes the native remote backpack view as the replacement for the old custom UI; the custom item-list detail fallback was later removed on 2026-09-04.
 
 ## Reported missing interactions
 

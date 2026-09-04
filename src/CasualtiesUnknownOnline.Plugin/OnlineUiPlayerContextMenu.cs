@@ -182,8 +182,6 @@ internal sealed class OnlineUiPlayerContextMenu
 			actions.Add(new MenuAction(ctx.T("member.open_backpack"), () => open(row.SteamId, ctx.DisplayName(row.SteamId))));
 		}
 
-		actions.Add(new MenuAction(ctx.T("member.view_items"), () => OpenPlayerDetails(ctx, row.SteamId)));
-
 		if (row.CanCarry)
 		{
 			actions.Add(new MenuAction(ctx.T("member.carry"), () => ctx.CarryRemote?.Invoke(row.SteamId)));
@@ -240,19 +238,6 @@ internal sealed class OnlineUiPlayerContextMenu
 		}
 
 		return actions;
-	}
-
-	private static void OpenPlayerDetails(OnlineUiContext ctx, ulong steamId)
-	{
-		if (ctx.OpenQuickPanel is { } open)
-		{
-			open(steamId);
-			return;
-		}
-
-		ctx.State.Visible = true;
-		ctx.State.Page = OnlineUiPage.Players;
-		ctx.State.ExpandedMember = steamId;
 	}
 
 	private static GUIStyle MenuButton()

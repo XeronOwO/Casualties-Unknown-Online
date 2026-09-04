@@ -5,6 +5,7 @@ using CasualtiesUnknownOnline.GameState.Domains.WorldEntities;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
+using CasualtiesUnknownOnline.Runtime.Session.ProjectionHealth;
 using CasualtiesUnknownOnline.Runtime.Time;
 using Microsoft.Extensions.Logging;
 using System;
@@ -24,18 +25,22 @@ public sealed class WorldEntityKernelProjection
 	private readonly ISessionControl _session;
 	private readonly ITimeSource _time;
 	private readonly ILogger<WorldEntityKernelProjection> _log;
+	private readonly ProjectionHealthCoordinator _projectionHealth;
 
 	public WorldEntityKernelProjection(
 		ItemKernelAuthority kernelAuthority,
 		ISessionControl session,
 		ITimeSource time,
-		ILogger<WorldEntityKernelProjection> log)
+		ILogger<WorldEntityKernelProjection> log,
+		ProjectionHealthCoordinator projectionHealth)
 	{
 		_kernelAuthority = kernelAuthority;
 		_session = session;
 		_time = time;
 		_log = log;
+		_projectionHealth = projectionHealth;
 		_kernelAuthority.CheckpointRestored += OnCheckpointRestored;
+		_projectionHealth.Register("world-entities", RebuildFromKernel, () => _kernelAuthority.CurrentGlobalRevision);
 	}
 
 	/// <summary>Raised when a restored checkpoint carries trap consumptions.</summary>
@@ -47,14 +52,16 @@ public sealed class WorldEntityKernelProjection
 	/// <summary>Raised when a restored checkpoint carries building-entity health facts.</summary>
 	public event Action<IReadOnlyList<BuildingEntityHealthEntryMsg>>? BuildingHealthProjected;
 
-	public void Project(GameCheckpoint checkpoint)
+	public void Project(GameCheckpoint checkpoint) =>
+		ProjectState(checkpoint.WorldEntities ?? WorldEntityState.Empty, checkpoint.GlobalRevision);
+
+	private void ProjectState(WorldEntityState state, ulong revision)
 	{
 		if (_session.Role != SessionRole.Guest)
 		{
 			return;
 		}
 
-		var state = checkpoint.WorldEntities ?? WorldEntityState.Empty;
 		var now = _time.NowMs;
 		var projected = new List<EntityEventMsg>();
 		foreach (var consumption in state.Consumptions)
@@ -118,8 +125,12 @@ public sealed class WorldEntityKernelProjection
 
 		_log.LogDebug(
 			"[WorldEntityKernel] projected checkpoint {Revision}: consumptions={Consumptions}, opened={Opened}, health={Health}.",
-			checkpoint.GlobalRevision, state.Consumptions.Count, state.OpenedEntities.Count, state.BuildingHealth.Count);
+			revision, state.Consumptions.Count, state.OpenedEntities.Count, state.BuildingHealth.Count);
 	}
 
-	private void OnCheckpointRestored(GameCheckpoint checkpoint) => Project(checkpoint);
+	private void RebuildFromKernel() =>
+		ProjectState(_kernelAuthority.QueryWorldEntities() ?? WorldEntityState.Empty, _kernelAuthority.CurrentGlobalRevision);
+
+	private void OnCheckpointRestored(GameCheckpoint checkpoint) =>
+		_projectionHealth.Run("world-entities", checkpoint.GlobalRevision, () => Project(checkpoint));
 }

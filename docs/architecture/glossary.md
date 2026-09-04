@@ -44,7 +44,7 @@ Stable vocabulary used across the architecture evolution docs.
 - **NetworkProjection**: wire encoding of batches/checkpoint/stream.
 - **PersistenceProjection**: save/checkpoint encoding.
 - **DiagnosticsProjection**: traces, invariant results, semantic diffs.
-- **Dirty projection**: planned recovery concept; no generic dirty/rebuild loop is implemented in the current runtime.
+- **Dirty projection**: a projection marked after an apply failure; rebuilt by the runtime's `ProjectionHealthCoordinator` from the kernel read model on the main-thread pump.
 
 ## Run and epoch
 

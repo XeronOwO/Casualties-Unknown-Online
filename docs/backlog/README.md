@@ -40,7 +40,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 - [State-stream bandwidth reduction](todo/state-stream-bandwidth-reduction.md) — measurement-first.
 - [Snapshot size reduction](todo/snapshot-size-reduction.md) — measurement-first.
-- [Projection failure auto-recovery](todo/projection-failure-auto-recovery.md) — dirty/rebuild loop for failed Unity projections (Loomi review 2026-09-04).
 - [Network traffic baseline and regression gate](todo/network-traffic-baseline.md) — concrete bytes/frame-size/checkpoint metrics before optimization (Loomi review 2026-09-04).
 
 
@@ -63,6 +62,7 @@ _None._ (Folder exists for the workflow.)
 - [Protocol frame envelope validation](review/protocol-frame-validation.md) — unified frame validator before kernel handlers; malformed/forged/oversized frames dropped, presentation payloads remain non-fatal.
 - [Full-qualified name cleanup](review/full-qualified-name-cleanup.md) — prefer using directives/aliases; behavior-preserving refactor only.
 - [Composite command sequential semantics](review/composite-command-sequential-semantics.md) — inner commands decide/reduce in declaration order on one working copy; atomic rollback and duplicate composite OperationId covered; selfcheck linked.
+- [Projection failure auto-recovery](review/projection-failure-auto-recovery.md) — per-domain dirty/rebuild loop: items/fluids/world-entities, degraded after repeated failures; selfcheck linked.
 
 ### Future
 

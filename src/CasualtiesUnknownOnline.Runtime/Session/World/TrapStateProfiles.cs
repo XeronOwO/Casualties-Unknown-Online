@@ -17,14 +17,17 @@ internal static class TrapStateProfiles
 		EntityEventKind.MinePressed => TrapPhase.Warning,
 		EntityEventKind.CrystalUnstableTicked => TrapPhase.Warning,
 
-		// Trigger/consumption edges.
+		// Trigger/consumption edges. TurretFired and GeyserActivated are
+		// deliberately NOT here: they are repeatable cooldown-driven
+		// presentation (the native turret reload / geyser cooldown re-arms the
+		// entity), so there is no durable kernel state to restore. Recording
+		// them as a permanent Triggered fact made the 60 s checkpoint resend
+		// replay the old shot/eruption on every cycle.
 		EntityEventKind.MineExploded => TrapPhase.Triggered,
 		EntityEventKind.SpikeStabbed => TrapPhase.Triggered,
 		EntityEventKind.BearTrapClamped => TrapPhase.Triggered,
 		EntityEventKind.StalactiteDropped => TrapPhase.Triggered,
-		EntityEventKind.GeyserActivated => TrapPhase.Triggered,
 		EntityEventKind.SoundCannonFired => TrapPhase.Triggered,
-		EntityEventKind.TurretFired => TrapPhase.Triggered,
 		EntityEventKind.CrystalFragileBroken => TrapPhase.Triggered,
 		EntityEventKind.CaveTicksSpawned => TrapPhase.Triggered,
 		EntityEventKind.ShuttleDoorOpened => TrapPhase.Triggered,

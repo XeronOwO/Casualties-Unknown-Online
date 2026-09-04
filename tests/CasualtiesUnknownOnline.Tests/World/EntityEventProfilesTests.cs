@@ -49,4 +49,34 @@ public class EntityEventProfilesTests
 	public void OneShotCount_Matches() =>
 		// The count is an audit line: a classification change must be deliberate.
 		Assert.Equal(18, Declared.Count(row => row.OneShot));
+
+	[Fact]
+	public void IsTransientTrapState_MatchesTheDeclaredTable()
+	{
+		foreach (var kind in (EntityEventKind[])Enum.GetValues(typeof(EntityEventKind)))
+		{
+			Assert.Equal(EntityEventArchives.IsTransientTrapState(kind), EntityEventProfiles.IsTransientTrapState(kind));
+		}
+	}
+
+	[Fact]
+	public void TransientTrapStates_AreRepeatableCooldownKinds()
+	{
+		// These two are repeatable cooldown-driven presentation: the native
+		// entity re-arms, so the kernel must never project a permanent fact.
+		Assert.True(EntityEventProfiles.IsTransientTrapState(EntityEventKind.GeyserActivated));
+		Assert.True(EntityEventProfiles.IsTransientTrapState(EntityEventKind.TurretFired));
+
+		// Durable repeatable state stays snapshotted/projected.
+		Assert.False(EntityEventProfiles.IsTransientTrapState(EntityEventKind.BearTrapClamped));
+		Assert.False(EntityEventProfiles.IsTransientTrapState(EntityEventKind.LifepodHeatChanged));
+
+		// Transient entries must not be one-shot consumptions as well.
+		Assert.False(EntityEventProfiles.IsOneShotConsumption(EntityEventKind.GeyserActivated));
+		Assert.False(EntityEventProfiles.IsOneShotConsumption(EntityEventKind.TurretFired));
+	}
+
+	[Fact]
+	public void UnknownKind_NotTransient() =>
+		Assert.False(EntityEventProfiles.IsTransientTrapState((EntityEventKind)200), "an unclassified kind must not be treated as transient");
 }

@@ -75,6 +75,88 @@ public class WorldEntityProjectionTests
 	}
 
 	[Fact]
+	public void GuestCheckpointRestore_SkipsTransientRepeatableTrapStates()
+	{
+		var (_, host, guest) = HandshakeTests.CreateHostAndGuest();
+		host.Steam.FireLobbyCreated(LobbyId);
+		host.Steam.LobbyMembers = [HostId, 2001];
+		guest.Steam.FireLobbyEntered(LobbyId);
+
+		var hostWorld = host.Services.GetRequiredService<IWorldControl>();
+		var hostAuthority = host.Services.GetRequiredService<ItemKernelAuthority>();
+		hostWorld.ReportTrapState(EntityEventKind.TurretFired, 1.2f, 2.8f, 0);
+		hostWorld.ReportTrapState(EntityEventKind.GeyserActivated, 3.4f, 4.6f, 0);
+		hostWorld.ReportTrapState(EntityEventKind.BearTrapClamped, 7.2f, 8.8f, 3);
+
+		var projection = guest.Services.GetRequiredService<WorldEntityKernelProjection>();
+		IReadOnlyList<EntityEventMsg>? traps = null;
+		projection.TrapSnapshotProjected += list => traps = list;
+
+		var guestAuthority = guest.Services.GetRequiredService<ItemKernelAuthority>();
+		Assert.True(guestAuthority.Restore(hostAuthority.CreateCheckpoint()).Success);
+
+		Assert.NotNull(traps);
+		Assert.DoesNotContain(traps!, t => t.Kind == EntityEventKind.TurretFired);
+		Assert.DoesNotContain(traps!, t => t.Kind == EntityEventKind.GeyserActivated);
+		Assert.Contains(traps!, t => t.Kind == EntityEventKind.BearTrapClamped);
+	}
+
+	[Fact]
+	public void GuestCheckpointRestore_FiltersPreExistingTransientTrapStateFacts()
+	{
+		var (_, host, guest) = HandshakeTests.CreateHostAndGuest();
+		host.Steam.FireLobbyCreated(LobbyId);
+		host.Steam.LobbyMembers = [HostId, 2001];
+		guest.Steam.FireLobbyEntered(LobbyId);
+
+		// Seed old transient facts directly into the kernel state table. This
+		// simulates a checkpoint created before the classification fix: the
+		// projection must filter them even when they already exist.
+		var hostAuthority = host.Services.GetRequiredService<ItemKernelAuthority>();
+		Assert.True(hostAuthority.TryExecuteCommand(
+			new RecordTrapStateCommand(
+				new OperationId(1),
+				new ActorId(HostId),
+				new RunEpoch(1),
+				AuthorityKind.HostOnly,
+				new EntityPosition(1, 2),
+				(int)EntityEventKind.TurretFired,
+				TrapPhase.Triggered,
+				0,
+				100),
+			HostId,
+			out _,
+			out _));
+		Assert.True(hostAuthority.TryExecuteCommand(
+			new RecordTrapStateCommand(
+				new OperationId(2),
+				new ActorId(HostId),
+				new RunEpoch(1),
+				AuthorityKind.HostOnly,
+				new EntityPosition(3, 4),
+				(int)EntityEventKind.GeyserActivated,
+				TrapPhase.Triggered,
+				0,
+				200),
+			HostId,
+			out _,
+			out _));
+
+		var projection = guest.Services.GetRequiredService<WorldEntityKernelProjection>();
+		IReadOnlyList<EntityEventMsg>? traps = null;
+		projection.TrapSnapshotProjected += list => traps = list;
+
+		var guestAuthority = guest.Services.GetRequiredService<ItemKernelAuthority>();
+		Assert.True(guestAuthority.Restore(hostAuthority.CreateCheckpoint()).Success);
+
+		// The projection only raises when at least one non-skipped state exists,
+		// so null is the correct "no transient facts projected" result here.
+		Assert.True(traps is null || traps.Count == 0, "transient turret/geyser state must not reach the checkpoint projection");
+		Assert.DoesNotContain(traps ?? [], t => t.Kind == EntityEventKind.TurretFired);
+		Assert.DoesNotContain(traps ?? [], t => t.Kind == EntityEventKind.GeyserActivated);
+	}
+
+	[Fact]
 	public void HostReports_CommitKernelTrapStateFacts()
 	{
 		var (_, host, _) = HandshakeTests.CreateHostAndGuest();

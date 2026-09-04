@@ -53,8 +53,21 @@ internal static class EntityEventArchives
 		(EntityEventKind.CrystalTeleportTriggered, false), // repeatable teleport — no latch; the body teleport rides the 20 Hz player stream, this event only replays the shared laugh/flash
 	];
 
+	/// <summary>
+	/// Repeatable cooldown-driven trap-state events that are transient
+	/// presentation, not durable kernel state. The runtime profile must agree
+	/// with this set; the profile tests assert the cross-check for every kind.
+	/// </summary>
+	internal static readonly HashSet<EntityEventKind> TransientTrapStates =
+	[
+		EntityEventKind.GeyserActivated,
+		EntityEventKind.TurretFired,
+	];
+
 	/// <summary>The archive kinds, one row per value — the combinatorial data source.</summary>
 	internal static IEnumerable<EntityEventKind> AllKinds => Declared.Select(row => row.Kind);
 
 	internal static bool IsOneShot(EntityEventKind kind) => Declared.Single(row => row.Kind == kind).OneShot;
+
+	internal static bool IsTransientTrapState(EntityEventKind kind) => TransientTrapStates.Contains(kind);
 }

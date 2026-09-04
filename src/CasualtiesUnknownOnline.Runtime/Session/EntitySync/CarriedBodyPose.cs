@@ -52,4 +52,17 @@ public static class CarriedBodyPose
 	/// </summary>
 	public static bool ShouldZeroIdleTimer(bool isCarriedRide)
 		=> isCarriedRide;
+
+	/// <summary>
+	/// Whether the 20 Hz player stream should publish the body-root transform
+	/// as the entity position for a carried rider. A carried body is placed by
+	/// the shared ride-pose path at the carrier's back using its body-root
+	/// transform; it is not a ragdoll, so publishing the non-standing torso
+	/// anchor (the ragdoll convention) would make third-party viewers place the
+	/// rider at a different vertical/reference point from the two participant
+	/// views. Carried bodies therefore always use the body root as their stream
+	/// anchor.
+	/// </summary>
+	public static bool ShouldPublishBodyRoot(bool isCarried)
+		=> isCarried;
 }

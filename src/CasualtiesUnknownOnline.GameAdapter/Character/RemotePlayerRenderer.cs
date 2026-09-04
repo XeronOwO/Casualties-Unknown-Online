@@ -189,17 +189,13 @@ internal sealed class RemotePlayerRenderer(
 			return;
 		}
 
-		var position = CarriedBodyPlacement.BackOffset(
+		CarriedBodyPlacement.ApplyRidePose(
+			clone,
 			localBody.transform.position,
 			localBody.isRight,
-			localBody.crouching);
-		clone.transform.position = position;
-		clone.rb.velocity = localBody.rb.velocity;
-		clone.isRight = localBody.isRight;
-		BodyFacing.Apply(clone);
-		clone.standing = false;
-		clone.moveDir = Vector2.zero;
-		clone.targetLookPos = localBody.targetLookPos;
+			localBody.crouching,
+			localBody.rb.velocity,
+			localBody.targetLookPos);
 	}
 
 	private Vector2 AnchorFor(PlayerEntity remote) =>
@@ -234,8 +230,13 @@ internal sealed class RemotePlayerRenderer(
 			var reported = remote is not null
 				? new Vector2(remote.Position.X, remote.Position.Y)
 				: Vector2.zero;
-			_log.LogDebug("Clone {SteamId}: at ({PX:F1}, {PY:F1}), reported ({RX:F1}, {RY:F1}), active {Active}",
-				steamId, pos.x, pos.y, reported.x, reported.y, clone != null && clone.gameObject.activeInHierarchy);
+			var isRiderClone = _playerInteraction.TryGetCarried(_session.LocalSteamId, out var carriedId)
+				&& carriedId == steamId;
+			var isCarrierClone = _playerInteraction.TryGetCarrier(_session.LocalSteamId, out var carrierId)
+				&& carrierId == steamId;
+			var carryTag = isRiderClone ? ", carried-rider-clone" : isCarrierClone ? ", carrier-clone" : "";
+			_log.LogDebug("Clone {SteamId}: at ({PX:F1}, {PY:F1}), reported ({RX:F1}, {RY:F1}), active {Active}{CarryTag}",
+				steamId, pos.x, pos.y, reported.x, reported.y, clone != null && clone.gameObject.activeInHierarchy, carryTag);
 		}
 	}
 

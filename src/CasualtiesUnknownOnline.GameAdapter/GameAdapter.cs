@@ -189,7 +189,6 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 		}
 
 		_lastLocalBody = localBody;
-		_playerInteraction.UpdateCarriedBody(localBody); // a carried local body follows its carrier's entity state
 		using (_latency.Measure("StartGate"))
 		{
 			_domains.Gate.Update(_domains.Run.LocalBody);
@@ -240,6 +239,13 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 		{
 			_domains.Renderer.Update(localBody);
 		}
+
+		// A carried local body follows the remote carrier's RENDER clone. The
+		// renderer must run first so the carrier clone has already received this
+		// frame's SessionStatePump interpolation; reading the raw entity buffer
+		// there would reintroduce the step/snap the render path intentionally
+		// smooths away.
+		_playerInteraction.UpdateCarriedBody(localBody);
 
 		_domains.CharacterRagdollSync.Update(); // flush clone-creation-race ragdoll one-shots after the renderer created clones
 		_domains.RemoteBackpack.Update();

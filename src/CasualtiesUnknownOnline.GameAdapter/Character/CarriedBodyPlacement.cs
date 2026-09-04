@@ -25,6 +25,39 @@ internal static class CarriedBodyPlacement
 	}
 
 	/// <summary>
+	/// Applies the complete rider presentation onto a carried/rider Body using
+	/// one shared rule. Both the rider's own client (following the remote
+	/// carrier) and the carrier's client (pinning the remote rider clone) call
+	/// this, so every presentation field — position, velocity, facing,
+	/// crouching pose, standing/move-dir gates and look target — can never
+	/// diverge between the two sides.
+	/// </summary>
+	public static void ApplyRidePose(
+		Body body,
+		Vector3 carrierPosition,
+		bool carrierIsRight,
+		bool carrierCrouching,
+		Vector2 carrierVelocity,
+		Vector2? carrierLookTarget)
+	{
+		body.transform.position = BackOffset(carrierPosition, carrierIsRight, carrierCrouching);
+		body.rb.velocity = carrierVelocity;
+		body.isRight = carrierIsRight;
+		body.crouching = carrierCrouching;
+		body.standing = false;
+		body.moveDir = Vector2.zero;
+		if (carrierLookTarget is { } lookTarget)
+		{
+			body.targetLookPos = lookTarget;
+		}
+
+		// Facing is rendered through transform.localScale.x; Body.Update is
+		// skipped on both carry paths, so the shared write must reconcile the
+		// visual scale with logical facing every time.
+		BodyFacing.Apply(body);
+	}
+
+	/// <summary>
 	/// Release-side restore for a LOCAL body that was carried. The carried
 	/// presentation path froze the body and limb rigidbodies (the same
 	/// render-proxy freeze used for remote clones), so destroying the driver

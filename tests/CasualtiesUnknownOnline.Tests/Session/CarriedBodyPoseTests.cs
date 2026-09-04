@@ -1,3 +1,5 @@
+using System;
+using System.Reflection;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using Xunit;
 
@@ -105,4 +107,19 @@ public class CarriedBodyPoseTests
 	[Fact]
 	public void NonCarriedBody_DoesNotForceIdleTimerZero() =>
 		Assert.False(CarriedBodyPose.ShouldZeroIdleTimer(isCarriedRide: false));
+
+	private static bool ShouldPublishBodyRoot(bool isCarried)
+	{
+		var method = typeof(CarriedBodyPose).GetMethod("ShouldPublishBodyRoot", BindingFlags.Static | BindingFlags.Public)
+			?? throw new InvalidOperationException("CarriedBodyPose.ShouldPublishBodyRoot not found.");
+		return (bool)method.Invoke(null, [isCarried])!;
+	}
+
+	[Fact]
+	public void CarriedRide_PublishesBodyRootAsStreamAnchor() =>
+		Assert.True(ShouldPublishBodyRoot(isCarried: true));
+
+	[Fact]
+	public void NonCarriedRagdollBody_KeepsTorsoAnchorConvention() =>
+		Assert.False(ShouldPublishBodyRoot(isCarried: false));
 }

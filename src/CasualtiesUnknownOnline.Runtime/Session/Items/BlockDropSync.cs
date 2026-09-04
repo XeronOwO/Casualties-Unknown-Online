@@ -31,7 +31,7 @@ public sealed class BlockDropSync(ISessionControl session, ItemService items)
 
 		foreach (var drop in drops)
 		{
-			_items.RegisterWorldItemIfAbsent(drop.ItemId, ToWorldItem(drop));
+			_items.RegisterWorldItemIfAbsent(drop.ItemId, InitialDropStateMapper.ToWorldItem(drop));
 		}
 	}
 
@@ -48,16 +48,13 @@ public sealed class BlockDropSync(ISessionControl session, ItemService items)
 
 		foreach (var drop in drops)
 		{
+			var world = InitialDropStateMapper.ToWorldItem(drop);
 			if (_session.Role == SessionRole.Host)
 			{
-				_items.RegisterWorldItemIfAbsent(drop.ItemId, ToWorldItem(drop));
+				_items.RegisterWorldItemIfAbsent(drop.ItemId, world);
 			}
 
-			_items.FireItemSpawned(ToWorldItem(drop));
+			_items.FireItemSpawned(world);
 		}
 	}
-
-	private static WorldItem ToWorldItem(BlockDropEntryMsg drop) => new(
-		drop.ItemId, drop.Item, drop.Position.ToNetVector2(), drop.Velocity.ToNetVector2(),
-		0, drop.Rotation, drop.FreshItemDrop, AngularVelocity: drop.AngularVelocity);
 }

@@ -1,9 +1,9 @@
 # Entity destruction drops lose fresh-drop presentation/initial motion on the guest view
 
-- Status: Todo
+- Status: Review
 - Priority: Medium
 - Category: Item sync / entity destruction presentation
-- Source: User report (2026-09-04) — when the host destroys an entity/building, the dropped items on the guest view have no highlight and no no-gravity/fresh-drop feel, and the guest sees the item fall then get pulled back. Record only; no code action taken yet.
+- Source: User report (2026-09-04) — when the host destroys an entity/building, the dropped items on the guest view have no highlight and no no-gravity/fresh-drop feel, and the guest sees the item fall then get pulled back. Implemented in the 2026-09-04 cycle; waiting for unified acceptance.
 
 ## Goal
 
@@ -45,6 +45,19 @@ Make destruction drops from building/trap/entity death appear on every peer with
 - Keep the block-drop path working; do not regress its existing fresh-drop behavior.
 - Add regression/runtime evidence for both host-triggered and guest-triggered entity destruction, and for a third-party peer view.
 
+## Implementation (2026-09-04)
+
+- Added `InitialDropStateMapper` (Runtime) as the single pure mapping for both
+  block and trap/building initial-drop entries; `BlockDropSync` now reuses it.
+- Added `ItemApplication.ApplyTrapDropPresentation`, which materializes a
+  missing drop with the event's full state or enriches an already-projected
+  world item with the missing fresh/velocity/rotation/angular-state facts.
+- `EntityEventSync` now calls that path on the host-apply branch (guest-triggered
+  traps) and on the guest-replay branch (host-triggered & third-party views).
+- No wire/protocol change; `EntityEventMsg.Drops` remains the transient
+  presentation source.
+- Evidence: `docs/evidence/selfchecks/items/entity-destruction-drop-fresh-presentation-selfcheck.md`.
+
 ## Acceptance criteria (for the later implementation cycle)
 
 - On a guest (and any other peer), entity destruction drops show the same fresh-drop highlight/floating presentation as the host/attacker view.
@@ -57,4 +70,4 @@ Make destruction drops from building/trap/entity death appear on every peer with
 
 - Not adding continuous item physics into the kernel.
 - Not changing entity/trap authority or the atomic composite design.
-- Not implementing in this cycle — this ticket is a backlog record only.
+- No wire/protocol change was introduced; the existing entity-event drop payload is the transient presentation source.

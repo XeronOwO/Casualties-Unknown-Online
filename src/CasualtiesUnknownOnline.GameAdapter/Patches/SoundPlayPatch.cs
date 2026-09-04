@@ -13,7 +13,8 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 /// heard it as a slowed, lowered groan. Defer it: the gate release plays it,
 /// together with everyone else's release.
 /// 2. Character action-sound capture: inside the Body.Attack / ThrowItem /
-/// TryExertSound / FootStep call-identity scopes, every real string sound is
+/// TryExertSound / FootStep / PantSound.Update / PantSound.TryGrowl
+/// call-identity scopes, every real string sound is
 /// reported with its EXACT clip. Block hit sounds are excluded by the innermost
 /// DamageBlockOrigin scope (WorldGeneration.DamageBlock opens it around the
 /// native roll), and replays are excluded by the RemoteApply scope — the
@@ -49,6 +50,8 @@ internal static class SoundPlayPatch
 				CallContext.Origin.CharacterExert => CharacterSoundPolicy.Origin.Exert,
 				CallContext.Origin.CharacterFootstep => CharacterSoundPolicy.Origin.Footstep,
 				CallContext.Origin.CharacterLandingImpact => CharacterSoundPolicy.Origin.LandingImpact,
+				CallContext.Origin.CharacterVocalization => CharacterSoundPolicy.Origin.Yawn,
+				CallContext.Origin.CharacterGrowl => CharacterSoundPolicy.Origin.Growl,
 				_ => CharacterSoundPolicy.Origin.None,
 			};
 			if (CharacterSoundPolicy.Classify(origin, clip) is { } kind)

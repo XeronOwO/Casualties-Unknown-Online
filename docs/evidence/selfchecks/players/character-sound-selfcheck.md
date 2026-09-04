@@ -15,6 +15,11 @@ the existing `BuildingEntityDamaged` relay (no extra message).
 > Note (ProtocolVersion 19): the same `CharacterSoundMsg` event was later
 > extended with `CharacterSoundKind.Footstep` + `LandingImpact` — see
 > `footstep-sound-selfcheck.md`.
+> Note (ProtocolVersion 2 after the pre-release reset): the same
+> `CharacterSoundMsg` event was later extended with
+> `CharacterSoundKind.Pain` / `Bark` / `Growl` / `Yawn` for the sparse
+> PantSound vocalizations — see
+> `speech-sound-frequency-selfcheck.md`.
 
 ## 1. Mechanism inventory
 

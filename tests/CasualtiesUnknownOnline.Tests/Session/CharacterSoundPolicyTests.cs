@@ -1,3 +1,4 @@
+using System;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using Xunit;
@@ -61,6 +62,37 @@ public class CharacterSoundPolicyTests
 	{
 		Assert.Equal(CharacterSoundKind.LandingImpact,
 			CharacterSoundPolicy.Classify(CharacterSoundPolicy.Origin.LandingImpact, "bodyFall1"));
+	}
+
+	[Fact]
+	public void VocalizationScopes_ClassifyAsTheirKinds()
+	{
+		Assert.Equal(CharacterSoundKind.Pain,
+			CharacterSoundPolicy.Classify(CharacterSoundPolicy.Origin.Pain, "pain1"));
+		Assert.Equal(CharacterSoundKind.Bark,
+			CharacterSoundPolicy.Classify(CharacterSoundPolicy.Origin.Bark, "bark2"));
+		Assert.Equal(CharacterSoundKind.Growl,
+			CharacterSoundPolicy.Classify(CharacterSoundPolicy.Origin.Growl, "growl7"));
+		Assert.Equal(CharacterSoundKind.Yawn,
+			CharacterSoundPolicy.Classify(CharacterSoundPolicy.Origin.Yawn, "yawn1"));
+	}
+
+	[Fact]
+	public void VocalizationKinds_AreDefinedInTheWireEnum()
+	{
+		Assert.True(Enum.IsDefined(typeof(CharacterSoundKind), (CharacterSoundKind)7),
+			"CharacterSoundKind.Pain must be defined for the pain-vocalization event.");
+		Assert.True(Enum.IsDefined(typeof(CharacterSoundKind), (CharacterSoundKind)8),
+			"CharacterSoundKind.Bark must be defined for the B-key bark event.");
+	}
+
+	[Fact]
+	public void VocalizationOrigins_ExistInThePolicyOriginEnum()
+	{
+		var origin = typeof(CharacterSoundPolicy).GetNestedType("Origin")
+			?? throw new InvalidOperationException("CharacterSoundPolicy.Origin not found.");
+		Assert.NotNull(origin.GetField("Pain"));
+		Assert.NotNull(origin.GetField("Bark"));
 	}
 
 	[Fact]

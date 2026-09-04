@@ -45,6 +45,8 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Remove legacy "View items" remote-inventory detail path](todo/remove-legacy-view-items-remote-inventory-detail.md) — confirm and remove the pre-native-backpack right-click "View items" fallback if the current native backpack/right-click menu covers it.
 - [Remote backpack native interaction parity](todo/remote-backpack-native-interaction-parity.md) — opening another player's backpack currently supports only take; normal pour/drop/container/Tab-transfer backpack operations are missing.
 - [Carry/piggyback riding movement teleport and rider/carrier position mismatch](todo/carry-piggyback-rider-position-smoothing.md) — host/guest riding while moving shows frame snaps and rider/carrier misalignment on both sides.
+- [Carry/piggyback vertical placement asymmetry](todo/carry-piggyback-vertical-placement-asymmetry.md) — rider appears above the carrier in one participant's view but below in the other's.
+- [Suppress native idle-sit while carried](todo/carried-player-idle-sit-suppression.md) — carried characters still sit after idle despite the existing render-proxy idle reset.
 
 
 ### In progress

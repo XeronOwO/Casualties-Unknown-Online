@@ -126,6 +126,7 @@ public class RemoteVitalsServiceTests
 
 			Assert.Equal(0, vitals.Count);
 			Assert.False(vitals.TryGet(HostId, out _));
+			Assert.False(vitals.TryGetMedical(HostId, out _));
 		}
 	}
 
@@ -145,6 +146,7 @@ public class RemoteVitalsServiceTests
 
 			Assert.Equal(0, vitals.Count);
 			Assert.False(vitals.TryGet(HostId, out _));
+			Assert.False(vitals.TryGetMedical(HostId, out _));
 		}
 	}
 
@@ -169,4 +171,55 @@ public class RemoteVitalsServiceTests
 		Assert.Equal(45.4f, snapshot.Stamina);
 		Assert.Equal("HP 64 H -4 T 121 St 45", snapshot.ToShortString());
 	}
+
+	[Fact]
+	public void Host_CachesFullMedicalSnapshotForGuestReport()
+	{
+		using var host = TestNode.CreatePair(HostId, GuestId, LobbyId).Host;
+		var vitals = host.Services.GetRequiredService<RemoteVitalsService>();
+
+		host.Services.GetRequiredService<ICharacterDataControl>()
+			.FireCharacterDataReceived(GuestId, MedicalSnapshot());
+
+		Assert.True(vitals.TryGetMedical(GuestId, out var medical));
+		Assert.Equal(42f, medical.BrainHealth);
+		Assert.Equal(0.8f, medical.BloodOxygen);
+		Assert.Equal(2, medical.Limbs.Count);
+		Assert.True(medical.Limbs[0].Broken);
+		Assert.True(medical.Limbs[1].Infected);
+	}
+
+	[Fact]
+	public void MedicalSnapshot_ProjectsNullAndFullHealth()
+	{
+		Assert.Null(RemoteMedicalSnapshot.From(null));
+
+		var medical = RemoteMedicalSnapshot.From(MedicalSnapshot())!;
+
+		Assert.Equal(42f, medical.BrainHealth);
+		Assert.Equal(120f, medical.HeartRate);
+		Assert.False(medical.Conscious);
+		Assert.Equal(2, medical.Limbs.Count);
+		Assert.Equal(3, medical.Limbs[0].Index);
+		Assert.Equal(9.5f, medical.Limbs[0].BleedAmount);
+		Assert.True(medical.Limbs[1].Dismembered);
+	}
+
+	private static CharacterDataMsg MedicalSnapshot() => new()
+	{
+		OwnerSteamId = GuestId,
+		Health = new CharacterHealthMsg
+		{
+			BrainHealth = 42f,
+			HeartRate = 120f,
+			BloodOxygen = 0.8f,
+			Alive = true,
+			Conscious = false,
+		},
+		Limbs =
+		{
+			new CharacterLimbMsg { Index = 3, SkinHealth = 20f, MuscleHealth = 30f, Broken = true, BleedAmount = 9.5f },
+			new CharacterLimbMsg { Index = 4, SkinHealth = 5f, MuscleHealth = 8f, Infected = true, Dismembered = true },
+		},
+	};
 }

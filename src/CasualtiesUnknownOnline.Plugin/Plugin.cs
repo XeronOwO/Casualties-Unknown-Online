@@ -158,6 +158,7 @@ public class Plugin : BaseUnityPlugin
 					{
 						_onlineUi.CloseWindow();
 						_onlineUi.CloseQuickPanel();
+						_onlineUi.CloseMedicalPanel();
 					}
 
 					return opened;

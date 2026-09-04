@@ -59,6 +59,9 @@ public static class OnlineUiMemberProjection
 			var canSee = isLocal || (member is { InWorld: true }
 				&& localInWorld
 				&& (hasLineOfSight?.Invoke(memberId) ?? true));
+			var canViewMedical = !isLocal
+				&& member is { InWorld: true }
+				&& vitals is not null;
 
 			var isCarryingThis = !isLocal
 				&& playerInteraction?.TryGetCarried(localSteamId, out var carried) == true
@@ -153,6 +156,7 @@ public static class OnlineUiMemberProjection
 				CanKick = canAdminMember,
 				CanBan = canAdminMember,
 				IsBanned = hostBan?.IsBanned(memberId) ?? false,
+				CanViewMedical = canViewMedical,
 				IsDead = vitals is not null && !vitals.Alive,
 				IsUnconscious = vitals is not null && vitals.Alive && !vitals.Conscious,
 				IsCarryingSomeone = isCarryingSomeone,

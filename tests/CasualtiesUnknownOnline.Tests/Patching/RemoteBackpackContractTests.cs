@@ -46,6 +46,10 @@ public class RemoteBackpackContractTests
 		var id = marker.GetField("Id", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
 		Assert.NotNull(id);
 		Assert.Equal(typeof(ulong), id!.FieldType);
+
+		var owner = marker.GetField("OwnerSteamId", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
+		Assert.NotNull(owner);
+		Assert.Equal(typeof(ulong), owner!.FieldType);
 	}
 
 	[Fact]
@@ -67,5 +71,18 @@ public class RemoteBackpackContractTests
 		Assert.Equal(2, cancelParameters.Length);
 		Assert.Equal("PlayerCamera", cancelParameters[0].ParameterType.Name);
 		Assert.Equal(typeof(string), cancelParameters[1].ParameterType);
+
+		foreach (var name in new[]
+		{
+			"TryHandleRemoteBackpackDrop",
+			"TryHandleRemoteBackpackMoveToContainer",
+			"TryHandleRemoteBackpackPour",
+			"TryHandleRemoteProxyTransferToLocal",
+		})
+		{
+			var method = bridge.GetMethod(name);
+			Assert.NotNull(method);
+			Assert.Equal(typeof(bool), method!.ReturnType);
+		}
 	}
 }

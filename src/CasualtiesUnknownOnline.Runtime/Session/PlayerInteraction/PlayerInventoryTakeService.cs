@@ -249,6 +249,7 @@ internal sealed class PlayerInventoryTakeService(
 			msg.FromSteamId,
 			msg.ToSteamId,
 			PlayerInteractionKernelCodec.FromCharacterItem(msg.Item!),
+			msg.TargetParentItemId,
 			out _,
 			out var rejection))
 		{

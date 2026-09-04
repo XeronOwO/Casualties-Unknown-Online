@@ -20,6 +20,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 public sealed class PlayerInteractionService : IPlayerInteractionControl, IDisposable
 {
 	private readonly PlayerInventoryTakeService _take;
+	private readonly PlayerRemoteInventoryService _remoteInventory;
 	private readonly PlayerCarryService _carry;
 	private readonly PlayerKernelCarryProjection _carryKernelProjection;
 	private readonly PlayerHealService _heal;
@@ -72,6 +73,7 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, IDispo
 		var access = new PlayerCharacterAccess(session, characters);
 		var resultAuthority = new PlayerInteractionResultAuthority(kernelAuthority);
 		_take = new PlayerInventoryTakeService(session, sender, access, items, hostRules, visibility, kernelAuthority, resultAuthority, log);
+		_remoteInventory = new PlayerRemoteInventoryService(session, sender, access, items, hostRules, visibility, kernelAuthority, resultAuthority, log);
 		_carry = new PlayerCarryService(
 			session,
 			sender,
@@ -95,6 +97,12 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, IDispo
 
 	public void HandleTakeRequest(ulong sender, PlayerInventoryTakeRequestMsg msg) =>
 		_take.HandleTakeRequest(sender, msg);
+
+	public void SendRemoteInventoryOperation(RemoteInventoryOperationRequestMsg msg) =>
+		_remoteInventory.SendRemoteInventoryOperation(msg);
+
+	public void HandleRemoteInventoryOperation(ulong sender, RemoteInventoryOperationRequestMsg msg) =>
+		_remoteInventory.HandleRemoteInventoryOperation(sender, msg);
 
 	public void FireTransferReceived(PlayerInventoryTransferMsg msg) =>
 		_take.FireTransferReceived(msg);

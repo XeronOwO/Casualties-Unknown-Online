@@ -25,4 +25,8 @@ public sealed class PlayerInventoryTransferMsg
 	/// <summary>The full authoritative item fact (instance ids + state + contents).</summary>
 	[ProtoMember(3)]
 	public CharacterItemMsg? Item { get; set; }
+
+	/// <summary>For same-owner container moves: the authoritative destination container's instance id. 0 = place directly into an inventory slot.</summary>
+	[ProtoMember(4)]
+	public ulong TargetParentItemId { get; set; }
 }

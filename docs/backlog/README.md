@@ -51,6 +51,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Sync player pain vocalizations and B-key bark to remote players](todo/sync-player-pain-vocalizations-and-bark.md) — host pain screams and B-key bark are not heard on the guest; reverse direction must also be self-checked during the fix.
 - [Guest background window plays ghost item friction/ground sounds](todo/guest-background-ghost-item-ground-sounds.md) — backgrounding the guest causes intermittent item ground/friction sounds that are absent in the foreground.
 - [Guest container contents periodically appear as world drops on the host view](todo/guest-container-contents-ghost-drops-on-host.md) — dog food in a guest's trash bag intermittently drops from the guest body on the host view while the guest view is unaffected.
+- [Remote player medical/health panel](todo/remote-player-medical-panel.md) — cannot open another player's medical panel/body condition view; unimplemented or not enabled.
 
 
 ### In progress

@@ -63,6 +63,11 @@ public sealed class GameAdapterStatusContentProvider(
 			return false;
 		}
 
+		if (!ValidateLimbMoodleRouting(registration.ModId, id, definition))
+		{
+			return false;
+		}
+
 		if (_definitions.ContainsKey(id))
 		{
 			_log.LogWarning(
@@ -75,6 +80,56 @@ public sealed class GameAdapterStatusContentProvider(
 		_log.LogInformation(
 			"[StatusContent] accepted {ModId}/{Id} (scope {Scope}, save {SaveEnabled}; schema {SchemaVersion}).",
 			registration.ModId, id, definition.Scope, definition.SaveEnabled, registration.Definition.SchemaVersion);
+		return true;
+	}
+
+	private bool ValidateLimbMoodleRouting(string modId, string id, ModStatusDefinition definition)
+	{
+		if (definition.ShowPerLimbMoodles && definition.Scope != ModStatusScope.Limb)
+		{
+			_log.LogWarning(
+				"[StatusContent] {ModId}/{Id} enables ShowPerLimbMoodles on a body-scoped status — refused.",
+				modId, id);
+			return false;
+		}
+
+		if (definition.LimbMoodles is not { Count: > 0 })
+		{
+			return true;
+		}
+
+		if (!definition.ShowPerLimbMoodles || definition.Scope != ModStatusScope.Limb)
+		{
+			_log.LogWarning(
+				"[StatusContent] {ModId}/{Id} has limb moodle bindings without per-limb rows enabled on a limb-scoped status — refused.",
+				modId, id);
+			return false;
+		}
+
+		var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+		foreach (var binding in definition.LimbMoodles)
+		{
+			if (binding is null
+				|| string.IsNullOrWhiteSpace(binding.LimbName)
+				|| string.IsNullOrWhiteSpace(binding.MoodleId)
+				|| binding.LimbName.Length > 64
+				|| binding.MoodleId.Length > 128)
+			{
+				_log.LogWarning(
+					"[StatusContent] {ModId}/{Id} has an invalid limb moodle binding (empty limb/moodle id or overlong field) — refused.",
+					modId, id);
+				return false;
+			}
+
+			if (!seen.Add(binding.LimbName))
+			{
+				_log.LogWarning(
+					"[StatusContent] {ModId}/{Id} has duplicate limb moodle binding for {Limb} — refused.",
+					modId, id, binding.LimbName);
+				return false;
+			}
+		}
+
 		return true;
 	}
 

@@ -66,6 +66,62 @@ public sealed class ModMoodleDefinition
 	[DataMember(Order = 10)]
 	public ModMoodleAnimation? IconAnimation { get; set; }
 
+	/// <summary>
+	/// Optional <see cref="ModStatusDefinition.ShowPerLimbMoodles"/> name
+	/// template. Only used when the status feeds one row per affected limb.
+	/// <c>{name}</c> is replaced by <see cref="DisplayName"/> and
+	/// <c>{limb}</c> by the affected vanilla limb's short display name.
+	/// Empty means the moodle title is used unchanged.
+	/// </summary>
+	[DataMember(Order = 11)]
+	public string LimbDisplayNameFormat { get; set; } = "";
+
+	/// <summary>
+	/// Optional per-limb description template used when a limb-scoped status
+	/// shows one row per affected limb. <c>{description}</c> is replaced by
+	/// <see cref="Description"/> and <c>{limb}</c> by the affected vanilla
+	/// limb's short display name. Empty means the moodle description is used
+	/// unchanged.
+	/// </summary>
+	[DataMember(Order = 12)]
+	public string LimbDescriptionFormat { get; set; } = "";
+
+	/// <summary>
+	/// Format the moodle title for one affected limb using
+	/// <see cref="LimbDisplayNameFormat"/>. When no format is authored the
+	/// plain <see cref="DisplayName"/> is returned. <c>{name}</c> and
+	/// <c>{limb}</c> tokens are replaced by the title and the limb name.
+	/// </summary>
+	public string FormatLimbDisplayName(string limbName)
+	{
+		if (string.IsNullOrWhiteSpace(limbName) || string.IsNullOrWhiteSpace(LimbDisplayNameFormat))
+		{
+			return DisplayName;
+		}
+
+		return LimbDisplayNameFormat
+			.Replace("{name}", DisplayName)
+			.Replace("{limb}", limbName);
+	}
+
+	/// <summary>
+	/// Format the moodle description for one affected limb using
+	/// <see cref="LimbDescriptionFormat"/>. When no format is authored the
+	/// plain <see cref="Description"/> is returned. <c>{description}</c> and
+	/// <c>{limb}</c> tokens are replaced by the description and the limb name.
+	/// </summary>
+	public string FormatLimbDescription(string limbName)
+	{
+		if (string.IsNullOrWhiteSpace(limbName) || string.IsNullOrWhiteSpace(LimbDescriptionFormat))
+		{
+			return Description;
+		}
+
+		return LimbDescriptionFormat
+			.Replace("{description}", Description)
+			.Replace("{limb}", limbName);
+	}
+
 	/// <summary>Serialize this definition into the opaque payload format.</summary>
 	public byte[] ToPayload()
 	{

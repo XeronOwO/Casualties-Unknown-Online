@@ -30,6 +30,8 @@ public class ModMoodleDefinitionTests
 				FramesPerSecond = 11f,
 				Loop = false
 			},
+			LimbDisplayNameFormat = "{name} ({limb})",
+			LimbDescriptionFormat = "{limb}: {description}",
 			CustomData = new Dictionary<string, string>
 			{
 				["mod.metadata"] = "kept"
@@ -51,6 +53,8 @@ public class ModMoodleDefinitionTests
 		Assert.Equal(["Fx/Moodle0", "Fx/Moodle1", "Fx/Moodle2"], restored.IconAnimation.FramePaths);
 		Assert.Equal(11f, restored.IconAnimation.FramesPerSecond);
 		Assert.False(restored.IconAnimation.Loop);
+		Assert.Equal("{name} ({limb})", restored.LimbDisplayNameFormat);
+		Assert.Equal("{limb}: {description}", restored.LimbDescriptionFormat);
 		Assert.Equal("kept", restored.CustomData["mod.metadata"]);
 	}
 
@@ -65,6 +69,25 @@ public class ModMoodleDefinitionTests
 		Assert.True(restored!.Important);
 		Assert.Equal(0.75f, restored.HoldSeconds);
 		Assert.Empty(restored.IconId);
+		Assert.Empty(restored.LimbDisplayNameFormat);
+		Assert.Empty(restored.LimbDescriptionFormat);
+	}
+
+	[Fact]
+	public void FormatLimbText_UsesAuthoredTemplates_AndFallsBack()
+	{
+		var moodle = new ModMoodleDefinition
+		{
+			DisplayName = "Bleeding",
+			Description = "You are bleeding.",
+			LimbDisplayNameFormat = "{name} ({limb})",
+			LimbDescriptionFormat = "{limb}: {description}"
+		};
+
+		Assert.Equal("Bleeding (Left Arm)", moodle.FormatLimbDisplayName("Left Arm"));
+		Assert.Equal("Left Arm: You are bleeding.", moodle.FormatLimbDescription("Left Arm"));
+		Assert.Equal("Bleeding", moodle.FormatLimbDisplayName(""));
+		Assert.Equal("You are bleeding.", moodle.FormatLimbDescription(""));
 	}
 
 	[Fact]

@@ -78,7 +78,8 @@ public sealed class GameAdapterMoodleContentProvider(
 			return false;
 		}
 
-		if (!ValidateAnimation(registration.ModId, id, definition.IconAnimation))
+		if (!ValidateAnimation(registration.ModId, id, definition.IconAnimation)
+			|| !ValidateLimbTextFormats(registration.ModId, id, definition))
 		{
 			return false;
 		}
@@ -130,6 +131,20 @@ public sealed class GameAdapterMoodleContentProvider(
 		{
 			_log.LogWarning(
 				"[MoodleContent] {ModId}/{Id} has an empty icon animation — refused.",
+				modId, id);
+			return false;
+		}
+
+		return true;
+	}
+
+	private bool ValidateLimbTextFormats(string modId, string id, ModMoodleDefinition definition)
+	{
+		if (definition.LimbDisplayNameFormat is { Length: > 256 }
+			|| definition.LimbDescriptionFormat is { Length: > 256 })
+		{
+			_log.LogWarning(
+				"[MoodleContent] {ModId}/{Id} has a per-limb display format longer than the 256-character seam limit — refused.",
 				modId, id);
 			return false;
 		}

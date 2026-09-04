@@ -65,7 +65,10 @@ status classes or JObject snapshots.
   `Body.HandleCirculation` prefix/postfix formula seam, not a post-update
   additive overlay.
 - Vanilla moodle row feeding is landed through `ModStatusMoodleProjection`;
-  advanced per-limb/animated moodles remain future.
+  animated moodle icons and richer per-limb moodle row routing/templates are
+  landed through `ModMoodleAnimation`, `ShowPerLimbMoodles`, `LimbMoodles`,
+  and the moodle-level limb display templates. CUCoreLib-style per-limb
+  runtime callbacks that build a moodle from a live `Limb` remain future.
 - No generic snapshot, no reflection-based status registry, no game/Unity type
   in Abstractions.
 

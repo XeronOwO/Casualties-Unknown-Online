@@ -249,7 +249,12 @@ internal sealed class CloneInventoryRenderer(ILogger<CloneInventoryRenderer> log
 			return;
 		}
 
-		ItemStateCodec.RestoreContents(containerItem, contents);
+		// Display proxies must never receive item-domain instance ids. The
+		// snapshot contents carry the ids for authoritative matching, but this
+		// renderer only needs the visual data; passing the raw tree into the
+		// shared restore would stamp ids onto proxy children and make the world
+		// item lookup able to confuse them with the owner's real items.
+		ItemStateCodec.RestoreContents(containerItem, CloneInventoryContentSanitizer.WithoutInstanceIds(contents));
 		MarkRemoteCloneTree(containerItem);
 	}
 

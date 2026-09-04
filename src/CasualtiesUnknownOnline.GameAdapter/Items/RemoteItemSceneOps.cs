@@ -89,6 +89,15 @@ internal sealed class RemoteItemSceneOps(ISessionControl session, Logger log)
 	{
 		foreach (var item in Item.allItems)
 		{
+			// Remote clone inventory items are display proxies, not domain
+			// objects. Even if an id leaks into a proxy, domain application
+			// must never address the proxy (a drop/correction would unparent it
+			// from the clone and produce a ghost world item).
+			if (item.GetComponentInParent<RemoteCloneRender>() != null) // Unity object — ==
+			{
+				continue;
+			}
+
 			var idComp = item.GetComponent<ItemInstanceId>();
 			if (idComp != null && idComp.Id == itemId) // Unity object — ==
 			{
@@ -98,6 +107,11 @@ internal sealed class RemoteItemSceneOps(ISessionControl session, Logger log)
 
 		foreach (var item in Object.FindObjectsOfType<Item>())
 		{
+			if (item.GetComponentInParent<RemoteCloneRender>() != null) // Unity object — ==
+			{
+				continue;
+			}
+
 			var idComp = item.GetComponent<ItemInstanceId>();
 			if (idComp != null && idComp.Id == itemId) // Unity object — ==
 			{
@@ -116,6 +130,12 @@ internal sealed class RemoteItemSceneOps(ISessionControl session, Logger log)
 		var target = new Vector2(pos.X, pos.Y);
 		foreach (var item in Item.allItems)
 		{
+			// A remote clone proxy is never a world-generation bind target.
+			if (item.GetComponentInParent<RemoteCloneRender>() != null) // Unity object — ==
+			{
+				continue;
+			}
+
 			if (item.id != itemId || !ItemWorldSync.IsWorldItem(item)) // Unity object — ==
 			{
 				continue;

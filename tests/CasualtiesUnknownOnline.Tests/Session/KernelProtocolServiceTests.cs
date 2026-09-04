@@ -558,6 +558,62 @@ public class KernelProtocolServiceTests
 		Assert.Equal(2u, guestStreams[1].Seq);
 	}
 
+	[Fact]
+	public void Host_DropsMalformedFrameWithMultipleEnvelopes()
+	{
+		var (_, host, _) = HandshakeTests.CreateHostAndGuest();
+		host.Steam.FireLobbyCreated(LobbyId);
+
+		var kernel = host.Services.GetRequiredService<IKernelProtocolControl>();
+		var frame = SpawnCommandFrame();
+		frame.CommittedBatch = new CommittedBatchEnvelope
+		{
+			Header = new EnvelopeHeader
+			{
+				ProtocolVersion = ProtocolConstants.EnvelopeVersion,
+				RunEpoch = 1,
+				SenderId = GuestId,
+				OperationId = 1,
+				PayloadType = WirePayloadType.CommittedBatch,
+			},
+			Batch = new WireCommittedBatch(),
+		};
+
+		kernel.HandleFrame(GuestId, frame);
+
+		Assert.Null(host.Services.GetRequiredService<ItemKernelAuthority>().FindItem(42));
+	}
+
+	[Fact]
+	public void Host_DropsCommandWithForgedSender()
+	{
+		var (_, host, _) = HandshakeTests.CreateHostAndGuest();
+		host.Steam.FireLobbyCreated(LobbyId);
+
+		var kernel = host.Services.GetRequiredService<IKernelProtocolControl>();
+		var frame = SpawnCommandFrame();
+		frame.Command!.Header.SenderId = 5555;
+
+		kernel.HandleFrame(GuestId, frame);
+
+		Assert.Null(host.Services.GetRequiredService<ItemKernelAuthority>().FindItem(42));
+	}
+
+	[Fact]
+	public void Guest_DropsBatchWithMismatchedPayload()
+	{
+		var (_, host, guest) = HandshakeTests.CreateHostAndGuest();
+		host.Steam.FireLobbyCreated(LobbyId);
+
+		var kernel = guest.Services.GetRequiredService<IKernelProtocolControl>();
+		var frame = BatchFrame(SpawnWireBatch(globalRevision: 1, itemId: 42));
+		frame.CommittedBatch!.Header.PayloadType = WirePayloadType.StateStream;
+
+		kernel.HandleFrame(HostId, frame);
+
+		Assert.Null(guest.Services.GetRequiredService<ItemKernelAuthority>().FindItem(42));
+	}
+
 	private static ProtocolFrame RangeRequestFrame(ulong start, ulong end) =>
 		new()
 		{

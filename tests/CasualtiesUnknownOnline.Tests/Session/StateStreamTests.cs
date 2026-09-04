@@ -33,6 +33,7 @@ public class StateStreamTests
 				Header = new EnvelopeHeader
 				{
 					ProtocolVersion = ProtocolConstants.EnvelopeVersion,
+					SenderId = HostId,
 					PayloadType = WirePayloadType.PlayerStateStream,
 				},
 				Stream = new WireStateStream

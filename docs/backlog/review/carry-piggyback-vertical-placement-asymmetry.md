@@ -19,6 +19,9 @@ Root-caused the reference-point split in the carried-ride presentation family:
 - The shared `ApplyRidePose` write also sets the rider's crouch state to match
   the carrier on both sides, removing the remaining facing/crouch presentation
   divergence.
+- Third-party remote rider clones are attached to the carrier clone after
+  interpolation, so the same reference point is used on every screen, not only
+  the two participants.
 
 No carry authority, wire protocol, release semantics, or host rules changed.
 

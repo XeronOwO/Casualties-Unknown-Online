@@ -154,48 +154,92 @@ internal sealed class RemotePlayerRenderer(
 				}
 			}
 
-			// Mark the clone as the local player's carried rider BEFORE
-			// applying stream state so SessionStatePump can suppress the native
-			// sit replay in the same frame; all other clones are cleared first.
-			var isLocalCarriedRider = localBody != null // Unity object — ==
-				&& _playerInteraction.TryGetCarried(_session.LocalSteamId, out var carriedId)
-				&& carriedId == remote.SteamId;
+			// Mark any remote clone that is a carried rider BEFORE applying
+			// stream state so SessionStatePump can suppress the native sit
+			// replay in the same frame. This is not limited to the local
+			// carrier's view: a third-party rider clone also rides, and the
+			// second-pass attach below forces its visible position anyway.
+			var isCarriedRider = _playerInteraction.TryGetCarrier(remote.SteamId, out var carrierId)
+				&& carrierId != 0;
 			if (clone.TryGetComponent<RemoteBodyDriver>(out var cloneDriver))
 			{
-				cloneDriver.IsCarriedRider = isLocalCarriedRider;
+				cloneDriver.IsCarriedRider = isCarriedRider;
 			}
 
 			SessionStatePump.Apply(remote, clone);
-			ApplyLocalCarrierFollow(localBody, remote, clone);
 		}
+
+		// Second pass: after every clone has been placed by SessionStatePump,
+		// pin every carried rider clone to its carrier's VISUAL position. This
+		// covers the local-carrier view and every third-party view alike, so
+		// independent per-clone interpolation can never make the pair appear
+		// detached. The rider's own local body uses the same rule later in
+		// GameAdapter.Update.
+		ApplyRemoteCarrierAttachAll(localBody);
 
 		LogClonePosition();
 	}
 
 	/// <summary>
-	/// Carrier-side presentation: when the LOCAL player is the carrier of this
-	/// remote, pin that remote's render clone directly to the local body instead
-	/// of waiting for the rider's 20 Hz state stream. This is presentation-only;
-	/// the rider's own client still reports its authoritative position through
-	/// the ordinary stream for every other peer.
+	/// Pins every remote clone that is currently a carried rider to its
+	/// carrier's visual position after all clones have been interpolated this
+	/// frame. For a local carrier the anchor is the local body; for any other
+	/// carrier (third-party view) the anchor is that carrier's already-smoothed
+	/// render clone. This keeps the carry pair visually rigid on every side —
+	/// the per-entity interpolator may lag, but the rider always rides the same
+	/// displayed carrier, never an independent smoothed point.
 	/// </summary>
-	private void ApplyLocalCarrierFollow(Body? localBody, PlayerEntity remote, Body clone)
+	private void ApplyRemoteCarrierAttachAll(Body? localBody)
 	{
-		if (localBody == null // Unity object — ==
-			|| localBody == clone // Unity objects — ==
-			|| !_playerInteraction.TryGetCarried(_session.LocalSteamId, out var carriedId)
-			|| carriedId != remote.SteamId)
+		foreach (var entry in _remoteClones)
 		{
-			return;
-		}
+			var riderSteamId = entry.Key;
+			var riderClone = entry.Value;
+			// == null on Unity clones — a scene reload can destroy one between
+			// the first pass and this diagnostic/second pass.
+			if (riderClone == null)
+			{
+				continue;
+			}
 
-		CarriedBodyPlacement.ApplyRidePose(
-			clone,
-			localBody.transform.position,
-			localBody.isRight,
-			localBody.crouching,
-			localBody.rb.velocity,
-			localBody.targetLookPos);
+			if (!_playerInteraction.TryGetCarrier(riderSteamId, out var carrierSteamId)
+				|| carrierSteamId == 0)
+			{
+				continue;
+			}
+
+			if (carrierSteamId == _session.LocalSteamId)
+			{
+				if (localBody == null || localBody == riderClone) // Unity objects — ==
+				{
+					continue;
+				}
+
+				CarriedBodyPlacement.ApplyRidePose(
+					riderClone,
+					localBody.transform.position,
+					localBody.isRight,
+					localBody.crouching,
+					localBody.rb.velocity,
+					localBody.targetLookPos);
+				continue;
+			}
+
+			if (_remoteClones.TryGetValue(carrierSteamId, out var carrierClone)
+				&& carrierClone != null) // Unity object — ==
+			{
+				CarriedBodyPlacement.ApplyRidePose(
+					riderClone,
+					carrierClone.transform.position,
+					carrierClone.isRight,
+					carrierClone.crouching,
+					carrierClone.rb.velocity,
+					carrierClone.targetLookPos);
+			}
+
+			// No carrier clone yet (still creating or in a menu scene): keep
+			// the ordinary SessionStatePump fallback until the carrier exists.
+		}
 	}
 
 	private Vector2 AnchorFor(PlayerEntity remote) =>

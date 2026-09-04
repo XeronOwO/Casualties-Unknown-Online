@@ -31,7 +31,7 @@ Two user-visible symptoms from the same presentation family:
 |---|---|---|
 | 1 | Carried local body driver | `src/CasualtiesUnknownOnline.GameAdapter/Character/CarriedBodyDriver.cs` — active-carrier marker, proxy freeze |
 | 2 | Rider own-client placement | `src/CasualtiesUnknownOnline.GameAdapter/PlayerInteractionApply.cs` — `UpdateCarriedBody` wrote transform from `PlayerEntity.Position` |
-| 3 | Carrier-side rider clone pin | `src/CasualtiesUnknownOnline.GameAdapter/Character/RemotePlayerRenderer.cs` — `ApplyLocalCarrierFollow` |
+| 3 | Carrier-side/third-party rider clone pin | `src/CasualtiesUnknownOnline.GameAdapter/Character/RemotePlayerRenderer.cs` — `ApplyRemoteCarrierAttachAll` |
 | 4 | Remote clone smoothing | `src/CasualtiesUnknownOnline.GameAdapter/Character/SessionStatePump.cs` — `Lerp(PrevPosition, Position, alpha)` with adaptive interval |
 | 5 | Local player state publisher | `src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs` — `PublishBodyState` |
 | 6 | Non-standing stream anchor rule | `RunCoordinator.PublishBodyState` — published `limbs[1]` (upper torso) for `!standing` |
@@ -45,7 +45,8 @@ Two user-visible symptoms from the same presentation family:
 | `CarriedBodyPose` (Runtime) | New pure rule `ShouldPublishBodyRoot(isCarried)`: carried bodies report the body root, non-carried ragdolls keep the torso anchor |
 | `CarriedBodyPlacement` | New `ApplyRidePose`: one shared write that sets position, velocity, facing, crouching, standing/move-dir gates and look target |
 | `PlayerInteractionApply.UpdateCarriedBody` | Prefers the remote carrier's render clone (already smoothed this frame) as the anchor; entity buffer stays as the pre-clone fallback |
-| `RemotePlayerRenderer.ApplyLocalCarrierFollow` | Calls `ApplyRidePose`, so the carrier-side clone gets exactly the same posture fields as the rider's own client |
+| `RemotePlayerRenderer` first pass | Marks every remote clone that is a carried rider (not only the local carrier's rider), so sit/idle suppression is identical on third-party views too |
+| `RemotePlayerRenderer.ApplyRemoteCarrierAttachAll` | After all clones are interpolated, pins every carried rider clone to its carrier's visual position (local body for local carrier, carrier clone for third-party views), so the pair is rigid on every screen |
 | `RemotePlayerRenderer.LogClonePosition` | 1 Hz clone diagnostics now tag carried-rider/carrier clones for runtime placement tracing |
 | `RunCoordinator.PublishBodyState` | While carried, publishes `body.transform.position` instead of the ragdoll torso anchor |
 | `GameAdapter.Update` | Moved `UpdateCarriedBody` after `Renderer.Update` so the carrier clone has this frame's interpolation before the rider follows it |
@@ -60,7 +61,7 @@ host rules, or the ordinary 20 Hz player stream shape.
 | Carried body stream anchor | carried bodies use body root; non-carried ragdolls keep torso anchor | `CarriedBodyPoseTests.CarriedRide_PublishesBodyRootAsStreamAnchor`, `NonCarriedRagdollBody_KeepsTorsoAnchorConvention` (red observed before the implementation) |
 | One shared ride-pose path | both participant paths call the same method, cannot drift field-by-field | `CarriedBodyReleaseTests.RidePoseEntryPoint_IsTheSingleSharedReplacementPath` |
 | Rider follows smoothed carrier | `UpdateCarriedBody` uses the remote carrier render clone after `Renderer.Update` | static code evidence: `GameAdapter` ordering + `RemotePlayerRenderer.TryGetRemoteBody` |
-| Third-party viewer alignment | stream no longer publishes torso anchor for a carried rider | `RunCoordinator.PublishBodyState` + pure rule |
+| Third-party viewer alignment | every remote rider clone is pinned to its carrier clone after interpolation; stream no longer publishes torso anchor for a carried rider | `RemotePlayerRenderer.ApplyRemoteCarrierAttachAll` + `RunCoordinator.PublishBodyState` + pure rule |
 | Observability | 1 Hz clone logs identify carried-rider/carrier clones | `RemotePlayerRenderer.LogClonePosition` carry tag |
 
 ## 5. Verification design and results

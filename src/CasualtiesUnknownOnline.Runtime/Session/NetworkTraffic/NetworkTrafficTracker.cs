@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.NetworkTraffic;
@@ -20,6 +21,8 @@ internal sealed class NetworkTrafficTracker
 	private readonly Dictionary<NetMsg, MessageAccumulator> _send = [];
 	private readonly Dictionary<NetMsg, MessageAccumulator> _receive = [];
 	private readonly Dictionary<ulong, PeerAccumulator> _peers = [];
+	private readonly Dictionary<WirePayloadType, PayloadAccumulator> _sendByPayload = [];
+	private readonly Dictionary<WirePayloadType, PayloadAccumulator> _receiveByPayload = [];
 	private long _windowStartMs;
 	private long _sendBytes;
 	private long _receiveBytes;
@@ -42,7 +45,7 @@ internal sealed class NetworkTrafficTracker
 
 	internal long WindowStartMs => _windowStartMs;
 
-	internal void RecordSend(ulong peer, NetMsg msg, int byteCount, bool success)
+	internal void RecordSend(ulong peer, NetMsg msg, int byteCount, bool success, WirePayloadType? payloadType = null)
 	{
 		_sendCount++;
 		_sendBytes += byteCount;
@@ -59,6 +62,19 @@ internal sealed class NetworkTrafficTracker
 		{
 			message.FailedCount++;
 			message.FailedBytes += byteCount;
+		}
+
+		if (payloadType is { } type)
+		{
+			var payload = GetOrCreatePayload(_sendByPayload, type);
+			payload.Count++;
+			payload.Bytes += byteCount;
+			payload.RecordSize(byteCount);
+			if (!success)
+			{
+				payload.FailedCount++;
+				payload.FailedBytes += byteCount;
+			}
 		}
 
 		var peerCounter = GetPeer(peer);
@@ -83,6 +99,14 @@ internal sealed class NetworkTrafficTracker
 		var peerCounter = GetPeer(peer);
 		peerCounter.ReceiveCount++;
 		peerCounter.ReceiveBytes += byteCount;
+	}
+
+	internal void RecordReceivePayload(ulong peer, WirePayloadType payloadType, int byteCount)
+	{
+		var payload = GetOrCreatePayload(_receiveByPayload, payloadType);
+		payload.Count++;
+		payload.Bytes += byteCount;
+		payload.RecordSize(byteCount);
 	}
 
 	internal bool TryCollectWindow(long nowMs, out NetworkTrafficWindow window)
@@ -127,6 +151,13 @@ internal sealed class NetworkTrafficTracker
 					kv.Value.FailedSendCount,
 					kv.Value.FailedSendBytes));
 
+		var sendByPayload = _sendByPayload
+			.Where(kv => kv.Value.Count > 0)
+			.ToDictionary(kv => kv.Key, kv => kv.Value.ToPayloadTraffic());
+		var receiveByPayload = _receiveByPayload
+			.Where(kv => kv.Value.Count > 0)
+			.ToDictionary(kv => kv.Key, kv => kv.Value.ToPayloadTraffic());
+
 		return new NetworkTrafficWindow(
 			startMs,
 			endMs,
@@ -138,7 +169,9 @@ internal sealed class NetworkTrafficTracker
 			_failedSendBytes,
 			sendByMessage,
 			receiveByMessage,
-			byPeer);
+			byPeer,
+			sendByPayload,
+			receiveByPayload);
 	}
 
 	private void ResetTo(long startMs)
@@ -146,6 +179,8 @@ internal sealed class NetworkTrafficTracker
 		_send.Clear();
 		_receive.Clear();
 		_peers.Clear();
+		_sendByPayload.Clear();
+		_receiveByPayload.Clear();
 		_sendBytes = 0;
 		_receiveBytes = 0;
 		_failedSendBytes = 0;
@@ -177,12 +212,70 @@ internal sealed class NetworkTrafficTracker
 		return accumulator;
 	}
 
+	private static PayloadAccumulator GetOrCreatePayload(Dictionary<WirePayloadType, PayloadAccumulator> map, WirePayloadType payloadType)
+	{
+		if (!map.TryGetValue(payloadType, out var accumulator))
+		{
+			accumulator = new PayloadAccumulator();
+			map[payloadType] = accumulator;
+		}
+
+		return accumulator;
+	}
+
 	private sealed class MessageAccumulator
 	{
 		public int Count;
 		public long Bytes;
 		public int FailedCount;
 		public long FailedBytes;
+	}
+
+	private sealed class PayloadAccumulator
+	{
+		private readonly Dictionary<int, int> _sizes = [];
+
+		public int Count;
+		public long Bytes;
+		public int FailedCount;
+		public long FailedBytes;
+
+		public void RecordSize(int byteCount) =>
+			_sizes[byteCount] = _sizes.TryGetValue(byteCount, out var count) ? count + 1 : 1;
+
+		public NetworkTrafficWindow.PayloadTraffic ToPayloadTraffic()
+		{
+			var sorted = _sizes
+				.OrderBy(kv => kv.Key)
+				.ToList();
+			var min = sorted[0].Key;
+			var max = sorted[sorted.Count - 1].Key;
+			return new NetworkTrafficWindow.PayloadTraffic(
+				Count,
+				Bytes,
+				Percentile(sorted, 0.50),
+				Percentile(sorted, 0.95),
+				min,
+				max,
+				FailedCount,
+				FailedBytes);
+		}
+
+		private int Percentile(List<KeyValuePair<int, int>> sorted, double percentile)
+		{
+			var rank = Math.Max(1, (int)Math.Ceiling(Count * percentile));
+			var seen = 0;
+			foreach (var pair in sorted)
+			{
+				seen += pair.Value;
+				if (seen >= rank)
+				{
+					return pair.Key;
+				}
+			}
+
+			return sorted[sorted.Count - 1].Key;
+		}
 	}
 
 	private sealed class PeerAccumulator

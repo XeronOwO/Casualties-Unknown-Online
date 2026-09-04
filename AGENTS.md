@@ -137,6 +137,10 @@ a separate future architecture item, not part of the completed evolution.
   patches, per-case workarounds, or local hacks. A patch is acceptable only when it is the
   clearer/less-costly choice and the architecture alternative is explicitly documented as
   not justified in the same cycle.
+- `[CRITICAL]` **Fix the family, not just the reported case**: when fixing a problem, do not
+  stop at the single symptom or function. Actively inspect similar functions, sibling
+  mechanisms, and other modules for the same defect pattern; align the whole family in the
+  same cycle, or record a backlog item if the remaining cases are genuinely out of scope.
 - `[CRITICAL]` Line-count / architecture gate escapes must be real responsibility splits:
   never delete comments/blank lines, shrink formatting, or move code between files just to
   pass the gate. Extract a single-responsibility type, preserve behavior, and keep tests/gates green.

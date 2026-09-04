@@ -44,6 +44,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [DI cycle guard / cycle-path diagnostics](todo/di-cycle-guard.md) — prevent composition-root circular dependencies or log the exact service chain when a cycle occurs.
 - [Remove legacy "View items" remote-inventory detail path](todo/remove-legacy-view-items-remote-inventory-detail.md) — confirm and remove the pre-native-backpack right-click "View items" fallback if the current native backpack/right-click menu covers it.
 - [Remote backpack native interaction parity](todo/remote-backpack-native-interaction-parity.md) — opening another player's backpack currently supports only take; normal pour/drop/container/Tab-transfer backpack operations are missing.
+- [Carry/piggyback riding movement teleport and rider/carrier position mismatch](todo/carry-piggyback-rider-position-smoothing.md) — host/guest riding while moving shows frame snaps and rider/carrier misalignment on both sides.
 
 
 ### In progress

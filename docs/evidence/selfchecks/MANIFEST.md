@@ -114,6 +114,7 @@ All files under `docs/selfchecks/` are historical/per-delivery evidence records.
 | architecture/phase-d-world-entities-shadow-selfcheck.md | Architecture | current | candidate current evidence; verify before citing |
 | architecture/phase-d-world-run-epoch-shadow-selfcheck.md | Architecture | current | candidate current evidence; verify before citing |
 | architecture/phase-e-legacy-inventory-selfcheck.md | Architecture | current | candidate current evidence; verify before citing |
+| architecture/composite-command-sequential-semantics-selfcheck.md | Architecture | current | candidate current evidence; verify before citing |
 | items/pickup-inflight-selfcheck.md | Items | historical | superseded/old-wire; do not cite as current evidence without checking protocol.md |
 | players/piggyback-drop-cleanup-selfcheck.md | Players | historical | superseded/old-wire; do not cite as current evidence without checking protocol.md |
 | players/piggyback-facing-restore-selfcheck.md | Players | historical | superseded/old-wire; do not cite as current evidence without checking protocol.md |

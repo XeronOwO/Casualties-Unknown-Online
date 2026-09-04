@@ -71,8 +71,9 @@ Source roots:
 4. **Projections are rebuildable.** A projection may be cleared and rebuilt from
    checkpoint + committed batches. It never corrects authority.
 5. **Cross-domain operations use `CompositeGameCommand`.**
-   The kernel executes a flat list of inner commands and emits one
-   `CommittedBatch`; see
+   The kernel executes inner commands in declaration order; later commands see the
+   staged result of earlier commands, and the whole composite emits one
+   `CommittedBatch` (or rejects atomically); see
    `src/CasualtiesUnknownOnline.GameState/CompositeGameCommand.cs` and
    `GameStateKernel.ExecuteComposite`. There is no separate process/policy/read-set
    layer in the current kernel.

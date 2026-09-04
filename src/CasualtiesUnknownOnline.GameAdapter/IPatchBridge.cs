@@ -325,6 +325,12 @@ internal interface IPatchBridge
 	/// <summary>Item.Update's nullable dereference is about to throw (rb null / no WorldGeneration.world) — the diagnostic report, deduped by the domain (the menu-scene NRE burst hunt).</summary>
 	void OnBrokenItemUpdate(Item item, string reason);
 
+	/// <summary>A guest-side standalone world-item copy produced a native impact
+	/// effect (drop/step sound, dust, plush squeak) that was suppressed because
+	/// the host owns the physics. Logged so this authority boundary is
+	/// observable without making collision callbacks noisy at normal levels.</summary>
+	void OnNonAuthoritativeItemImpactSuppressed(Item item, string source);
+
 	void OnItemDestroyed(Item item);
 
 	/// <summary>True while this side may run the Heater cooker's native conversion (host/solo, or a guest without an active session). A guest in a live session returns false — its world items are layer-isolated and the host's ItemCook broadcast owns the conversion.</summary>

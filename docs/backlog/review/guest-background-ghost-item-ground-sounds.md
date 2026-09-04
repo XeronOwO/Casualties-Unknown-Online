@@ -1,9 +1,9 @@
 # Guest background window plays ghost item friction/ground sounds
 
-- Status: Todo
+- Status: Review
 - Priority: Medium
 - Category: Guest item physics / audio / background focus
-- Source: User report (2026-09-04) — when the guest game is switched to the background, intermittent item friction/ground-drop sounds are heard; after switching back to the foreground the sound disappears. User recalls a possible earlier mention; current backlog search did not find an existing matching ticket. Treat this as a new record / reopen if an older historical ticket is located. Record only; no code action taken yet.
+- Source: User report (2026-09-04) — when the guest game is switched to the background, intermittent item friction/ground-drop sounds are heard; after switching back to the foreground the sound disappears. User recalls a possible earlier mention; current backlog search did not find an existing matching ticket. Treat this as a new record / reopen if an older historical ticket is located.
 
 ## Goal
 
@@ -47,7 +47,27 @@ Eliminate the spurious item friction/ground sounds that a backgrounded guest cli
 - No wire/protocol/save authority change unless demonstrated necessary.
 - Existing tests, gates, and runtime-focused evidence cover the background/foreground transition.
 
+## Implementation (landed)
+
+Root cause: `Item.OnCollisionEnter2D` (Item.cs:238-247) and
+`PlushScript.OnCollisionEnter2D` (PlushScript.cs:17-23) are native impact
+presentation on every world-item prefab. Guest world-item copies are
+non-authoritative local simulations (`ItemPositionFollow`); their collisions
+play drop/step/squeak/dust on the local machine, and frame/background cadence
+can make that fake presentation appear only while unfocused.
+
+Fix: a pure `NonAuthoritativeItemImpactPolicy` and a shared
+`NonAuthoritativeItemImpactGuard` suppress the two native item-prefab
+collision presentation paths whenever the side is a live guest and the item is
+a standalone world item. Host/solo keeps the original native impact. The
+suppression is role/session-driven, not focus-driven, so foreground and
+background behave identically and the session keeps running.
+
+Evidence: `docs/evidence/selfchecks/items/guest-background-ghost-item-ground-sounds-selfcheck.md`.
+
 ## Non-goals
 
 - Not blocking multiplayer from running while the window is in the background.
-- Not implementing in this cycle — this ticket is a backlog record only.
+- Not adding a host-authored item-impact sound stream; the host already does
+  not broadcast these one-shot physical sounds, and the fix removes only the
+  non-authoritative local echo.

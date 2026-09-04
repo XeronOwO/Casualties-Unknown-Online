@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Networking;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Session.NetworkTraffic;
@@ -43,7 +44,7 @@ public sealed class PacketSender(INetworkTransport transport, NetworkTrafficMoni
 		EnsureRegistered(msg);
 		var frame = NetPacket.Encode(msg, payload);
 		var success = _transport.SendTo(steamId, frame, reliable);
-		_traffic.RecordSend(steamId, msg, frame.Length, success);
+		_traffic.RecordSend(steamId, msg, frame.Length, success, ClassifyPayloadType(payload));
 		return success;
 	}
 
@@ -59,15 +60,19 @@ public sealed class PacketSender(INetworkTransport transport, NetworkTrafficMoni
 	{
 		EnsureRegistered(msg);
 		var frame = NetPacket.Encode(msg, payload);
+		var payloadType = ClassifyPayloadType(payload);
 		foreach (var steamId in steamIds)
 		{
 			if (steamId != 0 && steamId != excludeSteamId)
 			{
 				var success = _transport.SendTo(steamId, frame, reliable);
-				_traffic.RecordSend(steamId, msg, frame.Length, success);
+				_traffic.RecordSend(steamId, msg, frame.Length, success, payloadType);
 			}
 		}
 	}
+
+	private static WirePayloadType? ClassifyPayloadType(object? payload) =>
+		payload is ProtocolFrame frame ? ProtocolFrameTrafficClassifier.TryGetPayloadType(frame) : null;
 
 	private static void EnsureRegistered(NetMsg msg)
 	{

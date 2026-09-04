@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.NetworkTraffic;
@@ -23,7 +25,9 @@ internal sealed class NetworkTrafficWindow
 		long failedSendBytes,
 		IReadOnlyDictionary<NetMsg, MessageTraffic> sendByMessage,
 		IReadOnlyDictionary<NetMsg, MessageTraffic> receiveByMessage,
-		IReadOnlyDictionary<ulong, PeerTraffic> byPeer)
+		IReadOnlyDictionary<ulong, PeerTraffic> byPeer,
+		IReadOnlyDictionary<WirePayloadType, PayloadTraffic> sendByPayloadType,
+		IReadOnlyDictionary<WirePayloadType, PayloadTraffic> receiveByPayloadType)
 	{
 		StartMs = startMs;
 		EndMs = endMs;
@@ -36,6 +40,8 @@ internal sealed class NetworkTrafficWindow
 		SendByMessage = sendByMessage;
 		ReceiveByMessage = receiveByMessage;
 		ByPeer = byPeer;
+		SendByPayloadType = sendByPayloadType;
+		ReceiveByPayloadType = receiveByPayloadType;
 	}
 
 	internal long StartMs { get; }
@@ -60,12 +66,29 @@ internal sealed class NetworkTrafficWindow
 
 	internal IReadOnlyDictionary<ulong, PeerTraffic> ByPeer { get; }
 
+	/// <summary>Semantic kernel-payload send frames grouped by <see cref="WirePayloadType"/>.</summary>
+	internal IReadOnlyDictionary<WirePayloadType, PayloadTraffic> SendByPayloadType { get; }
+
+	/// <summary>Semantic kernel-payload receive frames grouped by <see cref="WirePayloadType"/>.</summary>
+	internal IReadOnlyDictionary<WirePayloadType, PayloadTraffic> ReceiveByPayloadType { get; }
+
 	internal long TotalBytes => SendBytes + ReceiveBytes;
 
 	internal long TotalFrames => SendCount + ReceiveCount;
 
+	internal double ElapsedSeconds => Math.Max(1, EndMs - StartMs) / 1000.0;
+
+	internal double SendBytesPerSecond => SendBytes / ElapsedSeconds;
+
+	internal double ReceiveBytesPerSecond => ReceiveBytes / ElapsedSeconds;
+
+	internal double TotalBytesPerSecond => TotalBytes / ElapsedSeconds;
+
 	/// <summary>One message family's counts in one direction.</summary>
 	internal sealed record MessageTraffic(int Count, long Bytes, int FailedCount, long FailedBytes);
+
+	/// <summary>One kernel payload family's frame-size distribution in one direction.</summary>
+	internal sealed record PayloadTraffic(int Count, long Bytes, int P50Bytes, int P95Bytes, int MinBytes, int MaxBytes, int FailedCount, long FailedBytes);
 
 	/// <summary>One peer's totals in one window.</summary>
 	internal sealed record PeerTraffic(

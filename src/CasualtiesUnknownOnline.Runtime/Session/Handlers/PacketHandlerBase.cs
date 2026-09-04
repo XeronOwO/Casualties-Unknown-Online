@@ -17,6 +17,14 @@ public abstract class PacketHandlerBase<TPacket, TContext> : IPacketHandler
 	where TPacket : class
 	where TContext : class
 {
+	/// <summary>
+	/// The wire byte length of the frame currently being processed. Set only for
+	/// the duration of <see cref="Handle"/>; observability consumers (for
+	/// example the kernel traffic classifier) use it without changing the packet
+	/// handler contract.
+	/// </summary>
+	protected int CurrentFrameLength { get; private set; }
+
 	public void Process(ulong sender, byte[] frame, HandlerContext ctx)
 	{
 		if (ctx is not TContext narrow)
@@ -26,7 +34,15 @@ public abstract class PacketHandlerBase<TPacket, TContext> : IPacketHandler
 				+ $"but received {ctx.GetType().Name}.");
 		}
 
-		Handle(sender, NetPacket.DecodePayload<TPacket>(frame), narrow);
+		CurrentFrameLength = frame.Length;
+		try
+		{
+			Handle(sender, NetPacket.DecodePayload<TPacket>(frame), narrow);
+		}
+		finally
+		{
+			CurrentFrameLength = 0;
+		}
 	}
 
 	protected abstract void Handle(ulong sender, TPacket msg, TContext ctx);

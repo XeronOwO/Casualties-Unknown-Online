@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
+using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Time;
 using Microsoft.Extensions.Logging;
@@ -24,11 +25,14 @@ public sealed class NetworkTrafficMonitor(ITimeSource time, ILogger<NetworkTraff
 	private readonly ITimeSource _time = time;
 	private readonly ILogger<NetworkTrafficMonitor> _log = log;
 
-	internal void RecordSend(ulong steamId, NetMsg msg, int byteCount, bool success) =>
-		_tracker.RecordSend(steamId, msg, byteCount, success);
+	internal void RecordSend(ulong steamId, NetMsg msg, int byteCount, bool success, WirePayloadType? payloadType = null) =>
+		_tracker.RecordSend(steamId, msg, byteCount, success, payloadType);
 
 	internal void RecordReceive(ulong steamId, NetMsg msg, int byteCount) =>
 		_tracker.RecordReceive(steamId, msg, byteCount);
+
+	internal void RecordReceivePayload(ulong steamId, WirePayloadType payloadType, int byteCount) =>
+		_tracker.RecordReceivePayload(steamId, payloadType, byteCount);
 
 	internal void RecordPingSent(ulong steamId, long sendTicks, long nowMs) =>
 		_health.RecordPingSent(steamId, sendTicks, nowMs);

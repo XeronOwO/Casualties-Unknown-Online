@@ -271,8 +271,8 @@ the kernel returns the original decision and does not commit a second time.
 
 Steps 1-7 must not call network, Unity, or save code. Revision/precondition checks are
 performed inside domain `Decide` methods. An outer projection failure cannot roll back
-an already committed domain fact; the current runtime does not implement a generic
-“projection dirty/rebuild” recovery loop.
+an already committed domain fact; `ProjectionHealthCoordinator` marks the affected
+domain dirty and rebuilds it from the kernel read model on the main-thread pump.
 
 ### 6.5 Cross-domain transactions
 

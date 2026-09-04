@@ -8,6 +8,7 @@ using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
+using CasualtiesUnknownOnline.Runtime.Session.ProjectionHealth;
 using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -314,7 +315,7 @@ public class KernelProtocolServiceTests
 	}
 
 	[Fact]
-	public void ProjectionFailure_DoesNotRevertAuthoritativeKernel()
+	public void ProjectionFailure_MarksDirtyAndRebuildsWithoutRevertingKernel()
 	{
 		var (_, host, guest) = HandshakeTests.CreateHostAndGuest();
 		host.Steam.FireLobbyCreated(LobbyId);
@@ -322,13 +323,30 @@ public class KernelProtocolServiceTests
 		guest.Steam.FireLobbyEntered(LobbyId);
 
 		var items = guest.Services.GetRequiredService<ItemService>();
-		items.ItemSpawned += _ => throw new InvalidOperationException("projection failure");
+		var allowFailure = true;
+		items.ItemSpawned += _ =>
+		{
+			if (allowFailure)
+			{
+				throw new InvalidOperationException("projection failure");
+			}
+		};
 
 		var kernel = guest.Services.GetRequiredService<IKernelProtocolControl>();
-		Assert.ThrowsAny<Exception>(() =>
-			kernel.HandleFrame(HostId, BatchFrame(SpawnWireBatch(globalRevision: 1, itemId: 42))));
+		kernel.HandleFrame(HostId, BatchFrame(SpawnWireBatch(globalRevision: 1, itemId: 42)));
 
 		Assert.NotNull(guest.Services.GetRequiredService<ItemKernelAuthority>().FindItem(42));
+
+		var health = guest.Services.GetRequiredService<ProjectionHealthCoordinator>();
+		Assert.True(health.IsDirty("items"), "projection failure must mark the item domain dirty");
+
+		// Simulate a stale Unity projection, then let the main-thread pump rebuild it.
+		items.ResetItems();
+		allowFailure = false;
+		guest.Update();
+
+		Assert.Contains(items.GetWorldItemsForDiagnostics(), w => w.ItemId == 42);
+		Assert.False(health.IsDirty("items"), "successful rebuild must clear the dirty marker");
 	}
 
 	[Fact]

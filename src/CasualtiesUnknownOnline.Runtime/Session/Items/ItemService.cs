@@ -6,6 +6,7 @@ using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session.ProjectionHealth;
 using CasualtiesUnknownOnline.Runtime.Time;
 using Microsoft.Extensions.Logging;
 
@@ -36,14 +37,16 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 	private readonly KernelBatchItemProjection _kernelBatchProjection;
 	private readonly IKernelProtocolControl _kernelProtocol;
 	private readonly ItemSnapshotStreamReceiver _snapshotStreamReceiver;
+	private readonly ProjectionHealthCoordinator _projectionHealth;
 
-	public ItemService(ISessionControl session, PacketSender sender, ItemArbitration arbitration, ITimeSource time, ILogger<ItemService> log, ItemKernelAuthority kernelAuthority, IKernelProtocolControl kernelProtocol)
+	public ItemService(ISessionControl session, PacketSender sender, ItemArbitration arbitration, ITimeSource time, ILogger<ItemService> log, ItemKernelAuthority kernelAuthority, IKernelProtocolControl kernelProtocol, ProjectionHealthCoordinator projectionHealth)
 	{
 		_session = session;
 		_log = log;
 		_arbitration = arbitration;
 		_kernelAuthority = kernelAuthority;
 		_kernelProtocol = kernelProtocol;
+		_projectionHealth = projectionHealth;
 		_kernelProtocol.ItemMovesReceived += OnItemMovesReceived;
 		_kernelProtocol.ItemStateStreamReceived += OnItemStateStreamReceived;
 		_kernelProtocol.CommandRejected += OnCommandRejected;
@@ -61,6 +64,7 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 			itemId => ItemDestroyed?.Invoke(itemId),
 			(owner, item, _) => PublishCarriedSyncLocal(owner, item),
 			item => FireCorrectionLocal(item));
+		_projectionHealth.Register("items", RebuildItemProjectionFromKernel, () => _kernelAuthority.CurrentGlobalRevision);
 		_carriedSync = new ItemCarriedSyncService();
 		_itemActionSync = new(session, this, _kernelProtocol);
 		_snapshots = new(session, () => (IReadOnlyCollection<WorldItem>)_worldTable.Items.Values, _kernelProtocol, log);
@@ -420,8 +424,11 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 			return;
 		}
 
-		_kernelBatchProjection.Apply(batch);
-		_arbitration.RebuildCarriedTableFromKernel();
+		_projectionHealth.Run("items", batch.GlobalRevision, () =>
+		{
+			_kernelBatchProjection.Apply(batch);
+			_arbitration.RebuildCarriedTableFromKernel();
+		});
 	}
 
 	private void OnBatchApplied(CommittedBatch batch)
@@ -431,8 +438,11 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 			return;
 		}
 
-		_kernelBatchProjection.Apply(batch);
-		FireCookedEventFromBatch(batch);
+		_projectionHealth.Run("items", batch.GlobalRevision, () =>
+		{
+			_kernelBatchProjection.Apply(batch);
+			FireCookedEventFromBatch(batch);
+		});
 	}
 
 	private void FireCookedEventFromBatch(CommittedBatch batch)
@@ -476,7 +486,16 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 			return;
 		}
 
-		_kernelBatchProjection.Rebuild(checkpoint);
+		_projectionHealth.Run("items", checkpoint.GlobalRevision, () => _kernelBatchProjection.Rebuild(checkpoint));
+	}
+
+	private void RebuildItemProjectionFromKernel()
+	{
+		_kernelBatchProjection.RebuildFromKernel();
+		if (_session.Role == SessionRole.Host)
+		{
+			_arbitration.RebuildCarriedTableFromKernel();
+		}
 	}
 
 	private void OnItemMovesReceived(IReadOnlyList<WireItemMoveEntry> moves)

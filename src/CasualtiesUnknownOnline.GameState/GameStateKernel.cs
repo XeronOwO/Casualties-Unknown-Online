@@ -86,15 +86,6 @@ public sealed class GameStateKernel(RunEpoch runEpoch) : IGameStateKernel
 	{
 		var events = new List<GameEvent>();
 		var working = _store.CreateWorkingCopy();
-		var readModel = new KernelReadModel(
-			_store.RunEpoch,
-			_store.GlobalRevision,
-			_store.Items,
-			_store.Run,
-			_store.WorldEntities,
-			_store.Players,
-			_store.Enemies,
-			_store.Fluids);
 
 		foreach (var inner in command.Commands)
 		{
@@ -105,25 +96,34 @@ public sealed class GameStateKernel(RunEpoch runEpoch) : IGameStateKernel
 					$"no domain module handles inner command {inner.GetType().Name}"));
 			}
 
+			var readModel = new KernelReadModel(
+				working.RunEpoch,
+				working.GlobalRevision,
+				working.Items,
+				working.Run,
+				working.WorldEntities,
+				working.Players,
+				working.Enemies,
+				working.Fluids);
+
 			var decision = module.Decide(inner, readModel, context);
 			if (!decision.Accepted)
 			{
 				return Decision.Rejected(decision.Rejection!);
 			}
 
-			events.AddRange(decision.Events);
-		}
-
-		foreach (var @event in events)
-		{
-			var module = _modules.FirstOrDefault(m => m.CanReduce(@event));
-			if (module is null)
+			foreach (var @event in decision.Events)
 			{
-				return Decision.Rejected(Rejection.Of(RejectionReason.UnknownCommand,
-					$"no domain module reduces composite event {@event.GetType().Name}"));
-			}
+				var reducer = _modules.FirstOrDefault(m => m.CanReduce(@event));
+				if (reducer is null)
+				{
+					return Decision.Rejected(Rejection.Of(RejectionReason.UnknownCommand,
+						$"no domain module reduces composite event {@event.GetType().Name}"));
+				}
 
-			module.Reduce(@event, working);
+				reducer.Reduce(@event, working);
+				events.Add(@event);
+			}
 		}
 
 		try

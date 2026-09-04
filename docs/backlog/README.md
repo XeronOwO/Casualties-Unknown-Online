@@ -44,7 +44,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Remote backpack native interaction parity](todo/remote-backpack-native-interaction-parity.md) — opening another player's backpack currently supports only take; normal pour/drop/container/Tab-transfer backpack operations are missing.
 - [Carry/piggyback riding movement teleport and rider/carrier position mismatch](todo/carry-piggyback-rider-position-smoothing.md) — host/guest riding while moving shows frame snaps and rider/carrier misalignment on both sides.
 - [Carry/piggyback vertical placement asymmetry](todo/carry-piggyback-vertical-placement-asymmetry.md) — rider appears above the carrier in one participant's view but below in the other's.
-- [Suppress native idle-sit while carried](todo/carried-player-idle-sit-suppression.md) — carried characters still sit after idle despite the existing render-proxy idle reset.
 - [Guest background window plays ghost item friction/ground sounds](todo/guest-background-ghost-item-ground-sounds.md) — backgrounding the guest causes intermittent item ground/friction sounds that are absent in the foreground.
 - [Guest container contents periodically appear as world drops on the host view](todo/guest-container-contents-ghost-drops-on-host.md) — dog food in a guest's trash bag intermittently drops from the guest body on the host view while the guest view is unaffected.
 - [Remote player medical/health panel](todo/remote-player-medical-panel.md) — cannot open another player's medical panel/body condition view; unimplemented or not enabled.
@@ -76,6 +75,7 @@ _None._ (Folder exists for the workflow.)
 - [DI cycle guard / cycle-path diagnostics](review/di-cycle-guard.md) — composition-root ValidateOnBuild + factory re-entrancy guard; cycle chains logged to BepInEx and latest.log; selfcheck linked.
 - [Remove legacy "View items" remote-inventory detail path](review/remove-legacy-view-items-remote-inventory-detail.md) — custom inline inventory expansion and right-click fallback removed; native remote backpack remains the only remote-inventory surface.
 - [Sync player pain vocalizations and B-key bark](review/sync-player-pain-vocalizations-and-bark.md) — PantSound pain/yawn/growl/B-bark now ride the existing CharacterSoundMsg event; continuous pant remains local; reverse direction covered by star relay.
+- [Suppress native idle-sit while carried](review/carried-player-idle-sit-suppression.md) — carried characters no longer publish/replay/linger in the native sit pose; shared pure CarriedBodyPose rule applied across rider/carrier/peer views.
 
 ### Future
 

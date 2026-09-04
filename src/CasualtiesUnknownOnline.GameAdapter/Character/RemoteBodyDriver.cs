@@ -12,6 +12,15 @@ internal sealed class RemoteBodyDriver : MonoBehaviour
 	/// <summary>Last applied sitting pose — sit clips play only on transitions.</summary>
 	public bool PrevSitting;
 
+	/// <summary>
+	/// True while this remote clone is the rider of a carry relation whose
+	/// carrier is the local player. Set by <see cref="RemotePlayerRenderer"/>
+	/// before applying state each frame; used by SessionStatePump to suppress
+	/// the native sit replay and by BodyPatches to force an already-playing sit
+	/// clip back to the ride/standing presentation.
+	/// </summary>
+	public bool IsCarriedRider;
+
 	/// <summary>Last applied sleeping pose — lay-down clips play only on transitions.</summary>
 	public bool PrevSleeping;
 

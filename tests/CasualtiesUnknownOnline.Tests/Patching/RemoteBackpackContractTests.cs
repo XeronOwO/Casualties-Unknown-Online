@@ -1,3 +1,4 @@
+using System.Reflection;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using Xunit;
 
@@ -34,6 +35,17 @@ public class RemoteBackpackContractTests
 			"CasualtiesUnknownOnline.GameAdapter.GameAdapter",
 			throwOnError: true)!;
 		Assert.True(typeof(IGameAdapter).IsAssignableFrom(adapter));
+	}
+
+	[Fact]
+	public void GameAdapter_ExposesRemoteProxyIdentityMarker()
+	{
+		var marker = GameAssemblyHost.Adapter.GetType(
+			"CasualtiesUnknownOnline.GameAdapter.Character.RemoteInventoryItemId",
+			throwOnError: true)!;
+		var id = marker.GetField("Id", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
+		Assert.NotNull(id);
+		Assert.Equal(typeof(ulong), id!.FieldType);
 	}
 
 	[Fact]

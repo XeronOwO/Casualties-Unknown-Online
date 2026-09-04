@@ -16,6 +16,7 @@ The native remote-backpack view is intentionally a read-only presentation surfac
 Evidence:
 
 - `src/CasualtiesUnknownOnline.GameAdapter/RemoteBackpackView.cs:5-12` — the focus is presentation-only; remote clones are display proxies, so the native UI "must never be allowed to mutate the focused clone".
+- `src/CasualtiesUnknownOnline.GameAdapter/Character/RemoteInventoryItemId.cs` — after the id-free display boundary, remote clone items no longer carry domain `ItemInstanceId`; this display-only marker carries the authoritative instance id for the remote-backpack gesture path without re-introducing domain lookup ambiguity. The take path reads this marker.
 - `src/CasualtiesUnknownOnline.GameAdapter/Patches/PlayerCameraDragUsePatch.cs:21-39` — while the remote view is open, only `TryHandleRemoteBackpackTake` is allowed; any other dragged item released during the remote view is cancelled.
 - `src/CasualtiesUnknownOnline.GameAdapter/GameAdapterBridge.cs:193-256` — the only implemented release outcome is a cross-player take request; `CancelRemoteProxyDrag` handles every other display-proxy release.
 - `src/CasualtiesUnknownOnline.GameAdapter/RemoteProxyDragPolicy.cs` — any remote display-proxy release that is not consumed by remote take must be cancelled.

@@ -43,16 +43,22 @@ public sealed class PlayerStreamExchange(
 			return;
 		}
 
-		var stream = new WireStateStream
+		// Send one stream per recipient. A player already knows its own local
+		// state, so echoing that entry back wastes bytes on every 20 Hz frame;
+		// each guest still receives the host and every other member's state.
+		foreach (var target in synced)
 		{
-			Seq = ++_nextStateSeq,
-			PlayerStates = BuildPlayerStreamList(synced),
-		};
-		kernelProtocol.BroadcastStateStreamTo(
-			synced.Select(m => m.SteamId),
-			stream,
-			WirePayloadType.PlayerStateStream,
-			reliable: false);
+			var stream = new WireStateStream
+			{
+				Seq = ++_nextStateSeq,
+				PlayerStates = BuildPlayerStreamList(synced, target.SteamId),
+			};
+			kernelProtocol.BroadcastStateStreamTo(
+				[target.SteamId],
+				stream,
+				WirePayloadType.PlayerStateStream,
+				reliable: false);
+		}
 	}
 
 	public void SendPlayerStateReport()
@@ -132,15 +138,22 @@ public sealed class PlayerStreamExchange(
 		}
 	}
 
-	private List<WirePlayerStreamState> BuildPlayerStreamList(List<EntitySyncService.SyncedEntity> synced)
+	private List<WirePlayerStreamState> BuildPlayerStreamList(
+		List<EntitySyncService.SyncedEntity> synced,
+		ulong excludeSteamId = 0)
 	{
-		var list = new List<WirePlayerStreamState>(synced.Count + 1)
+		var list = new List<WirePlayerStreamState>(synced.Count + 1);
+		if (entities.LocalPlayer.SteamId != excludeSteamId)
 		{
-			entities.LocalPlayer.ToWirePlayerStreamState(),
-		};
+			list.Add(entities.LocalPlayer.ToWirePlayerStreamState());
+		}
+
 		foreach (var member in synced)
 		{
-			list.Add(member.Entity.ToWirePlayerStreamState());
+			if (member.SteamId != excludeSteamId)
+			{
+				list.Add(member.Entity.ToWirePlayerStreamState());
+			}
 		}
 
 		return list;

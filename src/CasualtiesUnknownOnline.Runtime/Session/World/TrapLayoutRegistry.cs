@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using System;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.World;
 
@@ -33,7 +34,7 @@ public sealed class TrapLayoutRegistry(ISessionControl session, PacketSender sen
 			return;
 		}
 
-		var key = (kind, (int)System.Math.Floor(x), (int)System.Math.Floor(y));
+		var key = (kind, (int)Math.Floor(x), (int)Math.Floor(y));
 		if (_layout.Count >= MaxEntries && !_layout.ContainsKey(key))
 		{
 			return;

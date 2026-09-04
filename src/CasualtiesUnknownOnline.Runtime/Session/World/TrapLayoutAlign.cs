@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using System;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.World;
 
@@ -46,7 +47,7 @@ internal static class TrapLayoutAlign
 
 				var dx = localLayout[i].X - host.X;
 				var dy = localLayout[i].Y - host.Y;
-				var distance = (float)System.Math.Sqrt((dx * dx) + (dy * dy));
+				var distance = (float)Math.Sqrt((dx * dx) + (dy * dy));
 				if (distance < bestDistance)
 				{
 					best = i;

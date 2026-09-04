@@ -2,6 +2,7 @@ using CasualtiesUnknownOnline.Abstractions;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
 using UnityEngine.Tilemaps;
+using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Content;
 
@@ -19,7 +20,7 @@ internal static class CustomTileFactory
 		string id,
 		ModTileDefinition definition,
 		WorldGeneration world,
-		Microsoft.Extensions.Logging.ILogger log)
+		ILogger log)
 	{
 		var sprite = ResolveSprite(id, definition, world, log);
 		if (sprite is null) // Unity object — ==
@@ -43,7 +44,7 @@ internal static class CustomTileFactory
 		string id,
 		ModTileDefinition definition,
 		WorldGeneration world,
-		Microsoft.Extensions.Logging.ILogger log)
+		ILogger log)
 	{
 		if (!string.IsNullOrWhiteSpace(definition.SpritePath))
 		{

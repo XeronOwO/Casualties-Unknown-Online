@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
+using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Content;
 
@@ -17,7 +18,7 @@ internal static class CustomComponentAttach
 	internal static void Attach(
 		GameObject target,
 		IEnumerable<string> componentTypeNames,
-		Microsoft.Extensions.Logging.ILogger log,
+		ILogger log,
 		string logContext)
 	{
 		foreach (var componentTypeName in componentTypeNames)

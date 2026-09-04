@@ -41,7 +41,7 @@ public class IpDirectSteamServiceTests : IDisposable
 		Assert.True(_guest.Connect("127.0.0.1", _hostTransport.BoundPort, out error), $"guest connect failed: {error}");
 		Assert.Equal(1, hostCreated);
 		Assert.Equal(1, guestEntered);
-		Assert.Equal(CasualtiesUnknownOnline.Runtime.Networking.IpDirectTransport.HostPeerId, _host.LocalSteamId);
+		Assert.Equal(IpDirectTransport.HostPeerId, _host.LocalSteamId);
 		Assert.NotEqual(0ul, _guest.LocalSteamId);
 		Assert.Equal("Alice", _host.GetPersonaName(_host.LocalSteamId));
 		Assert.Equal("Bob", _guest.GetPersonaName(_guest.LocalSteamId));
@@ -49,9 +49,9 @@ public class IpDirectSteamServiceTests : IDisposable
 		var hostSeesGuest = WaitFor(() => _hostTransport.ActiveRemotePeers.SingleOrDefault(), () => _hostTransport.ActiveRemotePeers.Count > 0);
 		Assert.NotEqual(0ul, hostSeesGuest);
 		Assert.Contains(hostSeesGuest, _host.GetLobbyMembers());
-		Assert.Contains(CasualtiesUnknownOnline.Runtime.Networking.IpDirectTransport.HostPeerId, _guest.GetLobbyMembers());
-		Assert.Equal(CasualtiesUnknownOnline.Runtime.Networking.IpDirectTransport.HostPeerId, _host.GetLobbyOwner());
-		Assert.Equal(CasualtiesUnknownOnline.Runtime.Networking.IpDirectTransport.HostPeerId, _guest.GetLobbyOwner());
+		Assert.Contains(IpDirectTransport.HostPeerId, _guest.GetLobbyMembers());
+		Assert.Equal(IpDirectTransport.HostPeerId, _host.GetLobbyOwner());
+		Assert.Equal(IpDirectTransport.HostPeerId, _guest.GetLobbyOwner());
 	}
 
 	[Fact]

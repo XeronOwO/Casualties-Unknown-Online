@@ -5,6 +5,7 @@ using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using MapsterMapper;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
+using System;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Character;
 
@@ -20,14 +21,14 @@ internal sealed class EnemyCombatReplay(
 	EnemySyncService enemies,
 	IMapper mapper,
 	CharacterDataSync characterData,
-	System.Func<NetworkEntityId, BuildingEntity?> findEntity,
+	Func<NetworkEntityId, BuildingEntity?> findEntity,
 	ILogger<EnemySyncCoordinator> log)
 {
 	private readonly ISessionControl _session = session;
 	private readonly EnemySyncService _enemies = enemies;
 	private readonly IMapper _mapper = mapper;
 	private readonly CharacterDataSync _characterData = characterData;
-	private readonly System.Func<NetworkEntityId, BuildingEntity?> _findEntity = findEntity;
+	private readonly Func<NetworkEntityId, BuildingEntity?> _findEntity = findEntity;
 	private readonly ILogger<EnemySyncCoordinator> _log = log;
 
 	// ---- Host-ordered enemy attacks (the dedicated command — never the snapshot) ----

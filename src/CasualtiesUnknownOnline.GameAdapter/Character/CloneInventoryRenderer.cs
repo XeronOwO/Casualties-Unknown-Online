@@ -5,6 +5,7 @@ using CasualtiesUnknownOnline.GameAdapter.Items;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Character;
 
@@ -81,7 +82,7 @@ internal sealed class CloneInventoryRenderer(ILogger<CloneInventoryRenderer> log
 				// them.
 				for (var i = 1; i < matches.Length; i++)
 				{
-					UnityEngine.Object.Destroy(matches[i].gameObject);
+					Object.Destroy(matches[i].gameObject);
 				}
 
 				if (wanted.Components is { Count: > 0 })
@@ -109,7 +110,7 @@ internal sealed class CloneInventoryRenderer(ILogger<CloneInventoryRenderer> log
 			// appear after inventory shuffling.
 			for (var c = parent.childCount - 1; c >= 0; c--)
 			{
-				UnityEngine.Object.Destroy(parent.GetChild(c).gameObject);
+				Object.Destroy(parent.GetChild(c).gameObject);
 			}
 		}
 		else
@@ -119,7 +120,7 @@ internal sealed class CloneInventoryRenderer(ILogger<CloneInventoryRenderer> log
 				var child = parent.GetChild(c);
 				if (child.GetComponent<RemoteCloneRender>() != null) // Unity object — ==
 				{
-					UnityEngine.Object.Destroy(child.gameObject);
+					Object.Destroy(child.gameObject);
 				}
 			}
 		}
@@ -135,7 +136,7 @@ internal sealed class CloneInventoryRenderer(ILogger<CloneInventoryRenderer> log
 			return;
 		}
 
-		var obj = UnityEngine.Object.Instantiate(prefab, parent) as GameObject;
+		var obj = Object.Instantiate(prefab, parent) as GameObject;
 		if (obj == null) // Unity object — ==
 		{
 			return;
@@ -240,7 +241,7 @@ internal sealed class CloneInventoryRenderer(ILogger<CloneInventoryRenderer> log
 			.ToArray();
 		foreach (var old in previous)
 		{
-			UnityEngine.Object.Destroy(old.gameObject);
+			Object.Destroy(old.gameObject);
 		}
 
 		if (contents.Count == 0)

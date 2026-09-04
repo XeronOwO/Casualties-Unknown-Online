@@ -3,6 +3,7 @@ using System.Linq;
 using System.Reflection;
 using CasualtiesUnknownOnline.Runtime.Patching;
 using Xunit;
+using System.Collections.Generic;
 
 namespace CasualtiesUnknownOnline.Tests.Patching;
 
@@ -52,12 +53,12 @@ public class GunStatePatchTests
 			$"gun-state patch surface is incomplete ({missing.Count}):\n" + string.Join("\n", missing));
 	}
 
-	private static System.Collections.Generic.List<PatchContract> BuildContracts()
+	private static List<PatchContract> BuildContracts()
 	{
 		var inventory = GameAssemblyHost.Adapter.GetType("CasualtiesUnknownOnline.GameAdapter.Patches.PatchInventory")
 			?? throw new InvalidOperationException("PatchInventory type not found.");
 		var build = inventory.GetMethod("BuildContracts", BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
 			?? throw new InvalidOperationException("PatchInventory.BuildContracts not found.");
-		return (System.Collections.Generic.List<PatchContract>)build.Invoke(null, null)!;
+		return (List<PatchContract>)build.Invoke(null, null)!;
 	}
 }

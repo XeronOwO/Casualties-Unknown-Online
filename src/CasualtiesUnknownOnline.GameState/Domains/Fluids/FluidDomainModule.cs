@@ -1,5 +1,6 @@
 using System;
 using CasualtiesUnknownOnline.GameState.Kernel;
+using System.Collections.Generic;
 
 namespace CasualtiesUnknownOnline.GameState.Domains.Fluids;
 
@@ -39,7 +40,7 @@ internal sealed class FluidDomainModule : IDomainModule
 			return;
 		}
 
-		var seen = new System.Collections.Generic.HashSet<(int, int)>();
+		var seen = new HashSet<(int, int)>();
 		foreach (var region in fluids.Regions)
 		{
 			if (!seen.Add((region.ChunkX, region.ChunkY)))

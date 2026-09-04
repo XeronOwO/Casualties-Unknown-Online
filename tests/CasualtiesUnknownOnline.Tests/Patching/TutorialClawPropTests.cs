@@ -3,6 +3,7 @@ using System.Collections;
 using System.Linq;
 using System.Reflection;
 using Xunit;
+using System.Collections.Generic;
 
 namespace CasualtiesUnknownOnline.Tests.Patching;
 
@@ -109,7 +110,7 @@ public class TutorialClawPropTests
 			var method = type.GetProperty("MethodName", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)?.GetValue(c) as string;
 			var parameters = type.GetProperty("ParameterTypes", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)?.GetValue(c);
 			return target == "Utils" && method == "Create"
-				&& parameters is System.Collections.Generic.List<string> names
+				&& parameters is List<string> names
 				&& names.Count == 3
 				&& names[0] == "System.String"
 				&& names[1] == "UnityEngine.Vector2"

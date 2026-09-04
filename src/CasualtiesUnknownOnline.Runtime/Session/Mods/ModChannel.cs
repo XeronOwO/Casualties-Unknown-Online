@@ -1,6 +1,7 @@
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using Microsoft.Extensions.Logging;
+using System;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.Mods;
 
@@ -69,7 +70,7 @@ public sealed class ModChannel(ISessionControl session, PacketSender sender, ILo
 	}
 
 	/// <summary>A mod frame arrived: a report on the host, a directed/broadcast frame on a guest.</summary>
-	public event System.Action<ulong, ModMessageMsg>? ModMessageReceived;
+	public event Action<ulong, ModMessageMsg>? ModMessageReceived;
 
 	public void FireModMessageReceived(ulong sender, ModMessageMsg msg) => ModMessageReceived?.Invoke(sender, msg);
 

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 
@@ -11,7 +12,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 public static class RemoteLimbToolCatalog
 {
 	private static readonly IReadOnlyDictionary<string, RemoteLimbToolProfile> Registry =
-		new Dictionary<string, RemoteLimbToolProfile>(System.StringComparer.Ordinal)
+		new Dictionary<string, RemoteLimbToolProfile>(StringComparer.Ordinal)
 		{
 			// Full-use effects from Item.cs SetupItems:
 			// boneweldingtool (693-705), clottingmush (1582-1591),

@@ -1,5 +1,7 @@
 using HarmonyLib;
 using UnityEngine;
+using System;
+using Object = UnityEngine.Object;
 
 using CasualtiesUnknownOnline.GameAdapter.World;
 
@@ -28,7 +30,7 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 [HarmonyPatch(typeof(BuildingEntity), "Update")]
 internal static class BuildingEntityUpdatePatch
 {
-	private static bool Prefix(BuildingEntity __instance, out System.IDisposable? __state)
+	private static bool Prefix(BuildingEntity __instance, out IDisposable? __state)
 	{
 		if (__instance.health < 0.5f && __instance.GetComponent<RemoteEntityDeath>() != null) // Unity object — ==
 		{
@@ -50,7 +52,7 @@ internal static class BuildingEntityUpdatePatch
 		return true;
 	}
 
-	private static void Postfix(System.IDisposable? __state) => __state?.Dispose();
+	private static void Postfix(IDisposable? __state) => __state?.Dispose();
 
 	/// <summary>
 	/// The remote side's destruction replay — the non-drop part of

@@ -4,6 +4,7 @@ using CasualtiesUnknownOnline.Runtime.Session;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
 using UnityEngine.UI;
+using Object = UnityEngine.Object;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Run;
 
@@ -52,7 +53,7 @@ internal sealed class GuestMenuGuard(
 	{
 		var blocking = _session.Role == SessionRole.Guest && _session.HostSteamId != 0;
 
-		foreach (var ab in UnityEngine.Object.FindObjectsOfType<AdaptiveButton>())
+		foreach (var ab in Object.FindObjectsOfType<AdaptiveButton>())
 		{
 			if (ab == null) // Unity object — ==
 			{
@@ -115,7 +116,7 @@ internal sealed class GuestMenuGuard(
 		}
 
 		_blockedButtons.Clear();
-		foreach (var btn in UnityEngine.Object.FindObjectsOfType<Button>())
+		foreach (var btn in Object.FindObjectsOfType<Button>())
 		{
 			if (btn == null) // Unity object — ==
 			{

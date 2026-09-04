@@ -4,6 +4,7 @@ using CasualtiesUnknownOnline.Runtime.Session.Mods;
 using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
+using System.Collections.Generic;
 
 namespace CasualtiesUnknownOnline.Tests.Mods;
 
@@ -205,9 +206,9 @@ public class ModMessageTests
 		Assert.Equal(ModRateLimitPolicy.ModMessageBurst, hostEcho.Received.Count);
 	}
 
-	private static System.Collections.Generic.List<(ulong Sender, byte[] Frame)> RecordInbound(TestNode node)
+	private static List<(ulong Sender, byte[] Frame)> RecordInbound(TestNode node)
 	{
-		var frames = new System.Collections.Generic.List<(ulong Sender, byte[] Frame)>();
+		var frames = new List<(ulong Sender, byte[] Frame)>();
 		node.Transport.MessageReceived += (sender, frame) => frames.Add((sender, frame));
 		return frames;
 	}

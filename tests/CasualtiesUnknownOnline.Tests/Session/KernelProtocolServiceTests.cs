@@ -266,7 +266,7 @@ public class KernelProtocolServiceTests
 		var hostCommands = new List<ProtocolFrame>();
 		host.Transport.MessageReceived += (_, frame) =>
 		{
-			if ((NetMsg)frame[0] == Runtime.Protocol.NetMsg.KernelEnvelope)
+			if ((NetMsg)frame[0] == NetMsg.KernelEnvelope)
 			{
 				hostCommands.Add(NetPacket.DecodePayload<ProtocolFrame>(frame));
 			}

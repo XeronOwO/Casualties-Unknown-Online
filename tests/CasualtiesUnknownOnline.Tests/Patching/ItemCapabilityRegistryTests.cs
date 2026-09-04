@@ -1,4 +1,6 @@
 using Xunit;
+using CasualtiesUnknownOnline.GameAdapter.Items;
+using System;
 
 namespace CasualtiesUnknownOnline.Tests.Patching;
 
@@ -7,7 +9,7 @@ public class ItemCapabilityRegistryTests
 	[Fact]
 	public void DefaultRegistry_IsCompleteAndHasCurrentFeatureCapabilities()
 	{
-		var registry = CasualtiesUnknownOnline.GameAdapter.Items.ItemCapabilityRegistry.CreateDefault();
+		var registry = ItemCapabilityRegistry.CreateDefault();
 
 		registry.AssertComplete();
 
@@ -20,13 +22,13 @@ public class ItemCapabilityRegistryTests
 	[Fact]
 	public void DuplicateName_IsRejectedByCompletenessGate()
 	{
-		var registry = new GameAdapter.Items.ItemCapabilityRegistry(
+		var registry = new ItemCapabilityRegistry(
 		[
-			new GameAdapter.Items.SavedStateItemCapability(),
-			new GameAdapter.Items.SavedStateItemCapability(),
+			new SavedStateItemCapability(),
+			new SavedStateItemCapability(),
 		]);
 
-		var exception = Assert.Throws<System.InvalidOperationException>(() => registry.AssertComplete());
+		var exception = Assert.Throws<InvalidOperationException>(() => registry.AssertComplete());
 		Assert.Contains("Duplicate", exception.Message);
 	}
 }

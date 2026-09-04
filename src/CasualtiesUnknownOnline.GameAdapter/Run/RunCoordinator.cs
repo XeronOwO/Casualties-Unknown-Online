@@ -7,6 +7,7 @@ using CasualtiesUnknownOnline.GameAdapter.Character;
 using CasualtiesUnknownOnline.GameAdapter.World;
 using Microsoft.Extensions.Logging;
 using HarmonyLib;
+using UnityEngine.SceneManagement;
 
 using System;
 
@@ -347,7 +348,7 @@ internal sealed class RunCoordinator(
 			_phase = RunPhase.WaitingReady;
 		}
 
-		var sceneName = inWorld ? UnityEngine.SceneManagement.SceneManager.GetActiveScene().name : "PreGen";
+		var sceneName = inWorld ? SceneManager.GetActiveScene().name : "PreGen";
 		var pos = inWorld && _localBody != null // Unity object — ==
 			? new NetVector2(_localBody.transform.position.x, _localBody.transform.position.y)
 			: (NetVector2?)null;
@@ -446,7 +447,7 @@ internal sealed class RunCoordinator(
 			return;
 		}
 
-		var sceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+		var sceneName = SceneManager.GetActiveScene().name;
 		var pos = new NetVector2(_localBody.transform.position.x, _localBody.transform.position.y);
 		_session.ReportSceneState(SceneStateType.InWorld, sceneName, pos);
 	}

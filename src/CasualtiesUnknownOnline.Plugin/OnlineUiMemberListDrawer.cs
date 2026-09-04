@@ -4,6 +4,7 @@ using CasualtiesUnknownOnline.Runtime.OnlineUi;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Steam;
 using UnityEngine;
+using CasualtiesUnknownOnline.Runtime.Session;
 
 namespace CasualtiesUnknownOnline;
 
@@ -32,7 +33,7 @@ internal static class OnlineUiMemberListDrawer
 			getInventory: id => ctx.Inventory.TryGet(id, out var inv) ? inv : null,
 			playerInteraction: ctx.PlayerInteraction,
 			hostBan: ctx.HostBan,
-			canAdmin: ctx.Session.Role == Runtime.Session.SessionRole.Host && ctx.Session.SessionActive,
+			canAdmin: ctx.Session.Role == SessionRole.Host && ctx.Session.SessionActive,
 			localInWorld: ctx.Session.LocalInWorld,
 			hasHealItem: ctx.HasHealItem?.Invoke() ?? false,
 			healItems: ctx.GetLocalHealItems?.Invoke() ?? [],

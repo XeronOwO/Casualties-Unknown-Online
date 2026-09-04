@@ -1,5 +1,6 @@
 using CasualtiesUnknownOnline.GameAdapter.Content;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Items;
 
@@ -61,7 +62,7 @@ internal static class ItemPrefabResolver
 		Vector3 position,
 		Quaternion rotation)
 	{
-		var instance = UnityEngine.Object.Instantiate(original!, position, rotation);
+		var instance = Object.Instantiate(original!, position, rotation);
 		if (instance is GameObject gameObject
 			&& original is GameObject source
 			&& source.GetComponent<CustomItemTemplateMarker>() != null) // Unity object — ==

@@ -9,6 +9,7 @@ using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.GameAdapter.Tutorial;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Items;
 
@@ -83,7 +84,7 @@ internal sealed class ItemWorldSync(
 
 		_log.LogWarning("[BrokenItemUpdate] {Type} '{ItemId}' ({Reason}) in '{Scene}' at ({X:F1},{Y:F1}) — Item.Update NREs every frame while it lives.",
 			item.name, item.id, reason,
-			UnityEngine.SceneManagement.SceneManager.GetActiveScene().name,
+			SceneManager.GetActiveScene().name,
 			item.transform.position.x, item.transform.position.y);
 	}
 

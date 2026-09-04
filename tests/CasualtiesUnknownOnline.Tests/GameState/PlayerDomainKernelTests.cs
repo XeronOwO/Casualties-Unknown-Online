@@ -6,6 +6,7 @@ using CasualtiesUnknownOnline.GameState.Domains.Players;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
+using System.IO;
 
 namespace CasualtiesUnknownOnline.Tests.GameState;
 
@@ -139,7 +140,7 @@ public class PlayerDomainKernelTests
 	[Fact]
 	public void SaveLoad_RoundTripsPlayerLimbFacts()
 	{
-		var path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"cuo-players-limbs-{Guid.NewGuid():N}.bin");
+		var path = Path.Combine(Path.GetTempPath(), $"cuo-players-limbs-{Guid.NewGuid():N}.bin");
 		try
 		{
 			var authority = new ItemKernelAuthority(NullLogger<ItemKernelAuthority>.Instance);
@@ -169,9 +170,9 @@ public class PlayerDomainKernelTests
 		}
 		finally
 		{
-			if (System.IO.File.Exists(path))
+			if (File.Exists(path))
 			{
-				System.IO.File.Delete(path);
+				File.Delete(path);
 			}
 		}
 	}
@@ -246,7 +247,7 @@ public class PlayerDomainKernelTests
 	[Fact]
 	public void SaveLoad_RoundTripsPlayerBodyTerminalFacts()
 	{
-		var path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"cuo-players-body-{Guid.NewGuid():N}.bin");
+		var path = Path.Combine(Path.GetTempPath(), $"cuo-players-body-{Guid.NewGuid():N}.bin");
 		try
 		{
 			var authority = new ItemKernelAuthority(NullLogger<ItemKernelAuthority>.Instance);
@@ -275,9 +276,9 @@ public class PlayerDomainKernelTests
 		}
 		finally
 		{
-			if (System.IO.File.Exists(path))
+			if (File.Exists(path))
 			{
-				System.IO.File.Delete(path);
+				File.Delete(path);
 			}
 		}
 	}
@@ -438,7 +439,7 @@ public class PlayerDomainKernelTests
 	[Fact]
 	public void SaveLoad_RoundTripsPlayers()
 	{
-		var path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"cuo-players-{Guid.NewGuid():N}.bin");
+		var path = Path.Combine(Path.GetTempPath(), $"cuo-players-{Guid.NewGuid():N}.bin");
 		try
 		{
 			var authority = new ItemKernelAuthority(NullLogger<ItemKernelAuthority>.Instance);
@@ -454,9 +455,9 @@ public class PlayerDomainKernelTests
 		}
 		finally
 		{
-			if (System.IO.File.Exists(path))
+			if (File.Exists(path))
 			{
-				System.IO.File.Delete(path);
+				File.Delete(path);
 			}
 		}
 	}
@@ -494,7 +495,7 @@ public class PlayerDomainKernelTests
 	[Fact]
 	public void SaveLoad_RoundTripsPlayerCarryFields()
 	{
-		var path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"cuo-players-carry-{Guid.NewGuid():N}.bin");
+		var path = Path.Combine(Path.GetTempPath(), $"cuo-players-carry-{Guid.NewGuid():N}.bin");
 		try
 		{
 			var authority = new ItemKernelAuthority(NullLogger<ItemKernelAuthority>.Instance);
@@ -512,9 +513,9 @@ public class PlayerDomainKernelTests
 		}
 		finally
 		{
-			if (System.IO.File.Exists(path))
+			if (File.Exists(path))
 			{
-				System.IO.File.Delete(path);
+				File.Delete(path);
 			}
 		}
 	}
@@ -704,7 +705,7 @@ public class PlayerDomainKernelTests
 	[Fact]
 	public void SaveLoad_RoundTripsPlayerSkills()
 	{
-		var path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"cuo-players-skills-{Guid.NewGuid():N}.bin");
+		var path = Path.Combine(Path.GetTempPath(), $"cuo-players-skills-{Guid.NewGuid():N}.bin");
 		try
 		{
 			var authority = new ItemKernelAuthority(NullLogger<ItemKernelAuthority>.Instance);
@@ -723,9 +724,9 @@ public class PlayerDomainKernelTests
 		}
 		finally
 		{
-			if (System.IO.File.Exists(path))
+			if (File.Exists(path))
 			{
-				System.IO.File.Delete(path);
+				File.Delete(path);
 			}
 		}
 	}

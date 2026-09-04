@@ -7,6 +7,7 @@ using CasualtiesUnknownOnline.Runtime.Session.Items;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
 using Log = Microsoft.Extensions.Logging.ILogger;
+using Object = UnityEngine.Object;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Items;
 
@@ -288,12 +289,12 @@ internal static class ItemStateCodec
 			return;
 		}
 
-		var go = UnityEngine.Object.Instantiate(prefab, body.transform.position, Quaternion.identity);
+		var go = Object.Instantiate(prefab, body.transform.position, Quaternion.identity);
 		go.SetActive(true);
 		var item = go.GetComponent<Item>();
 		if (item == null) // Unity object — ==
 		{
-			UnityEngine.Object.Destroy(go);
+			Object.Destroy(go);
 			_log?.LogWarning("Restore: {ItemId} has no Item component — skipped.", itemData.ItemId);
 			return;
 		}
@@ -457,12 +458,12 @@ internal static class ItemStateCodec
 			return;
 		}
 
-		var go = UnityEngine.Object.Instantiate(prefab, containerItem.transform.position, Quaternion.identity);
+		var go = Object.Instantiate(prefab, containerItem.transform.position, Quaternion.identity);
 		go.SetActive(true);
 		var child = go.GetComponent<Item>();
 		if (child == null) // Unity object — ==
 		{
-			UnityEngine.Object.Destroy(go);
+			Object.Destroy(go);
 			_log?.LogWarning("Restore: {ItemId} has no Item component — skipped.", childData.ItemId);
 			return;
 		}

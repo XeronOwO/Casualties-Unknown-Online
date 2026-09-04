@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
+using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 namespace CasualtiesUnknownOnline.GameAdapter;
 
@@ -15,7 +16,7 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// </summary>
 internal static class TimedLimbEffectApply
 {
-	public static void Apply(Body body, IReadOnlyList<TimedLimbEffectMsg> effects, Microsoft.Extensions.Logging.ILogger log)
+	public static void Apply(Body body, IReadOnlyList<TimedLimbEffectMsg> effects, ILogger log)
 	{
 		if (effects.Count == 0)
 		{

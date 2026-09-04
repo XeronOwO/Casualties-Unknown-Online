@@ -22,6 +22,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using UnityEngine;
 using IGameAdapter = CasualtiesUnknownOnline.Runtime.GameAdapter.IGameAdapter;
+using Object = UnityEngine.Object;
 
 namespace CasualtiesUnknownOnline.GameAdapter;
 
@@ -334,7 +335,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 		if (created == null) // Unity object — ==
 		{
 			_domains.Log.LogWarning("[ItemSpawn] mod-requested id {Id} has no Item — the local copy is destroyed.", itemId);
-			UnityEngine.Object.Destroy(createdGo);
+			Object.Destroy(createdGo);
 			return false;
 		}
 

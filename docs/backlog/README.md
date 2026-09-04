@@ -40,7 +40,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 - [State-stream bandwidth reduction](todo/state-stream-bandwidth-reduction.md) — measurement-first.
 - [Snapshot size reduction](todo/snapshot-size-reduction.md) — measurement-first.
-- [Full-qualified name cleanup](todo/full-qualified-name-cleanup.md) — prefer using directives/aliases; behavior-preserving refactor only.
 
 
 ### In progress
@@ -59,6 +58,7 @@ _None._ (Folder exists for the workflow.)
 - [check-architecture.ps1 performance](review/check-architecture-performance.md) — full gate ~32.4s → ~2.15s; selfcheck linked.
 - [Middle-click location marker](review/middle-click-location-marker.md) — dedicated one-shot location ping: middle click circle, quick second click exclamation, star relay, 5s fade; selfcheck linked.
 - [CUCoreLib migration support](review/cucorelib-migration-support.md) — external KrokMP-based evaluation complete; typed content/status/moodle/runtime seams landed; remaining rows are future/non-goal; selfchecks linked.
+- [Full-qualified name cleanup](review/full-qualified-name-cleanup.md) — prefer using directives/aliases; behavior-preserving refactor only.
 
 ### Future
 

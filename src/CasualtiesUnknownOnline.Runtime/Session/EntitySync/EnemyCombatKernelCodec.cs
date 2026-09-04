@@ -4,6 +4,7 @@ using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.GameState.Domains.Players;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using System;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 
@@ -165,7 +166,7 @@ public static class EnemyCombatKernelCodec
 			EnemyCombatEffectKind.ElderHorrorDefeat => EnemyEffectKind.ElderHorrorDefeat,
 			EnemyCombatEffectKind.XalorisSepticTick => EnemyEffectKind.XalorisSepticTick,
 			EnemyCombatEffectKind.GrabberGrabbed => EnemyEffectKind.GrabberGrabbed,
-			_ => throw new System.ArgumentOutOfRangeException(nameof(kind), kind, "unknown enemy combat effect kind"),
+			_ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "unknown enemy combat effect kind"),
 		};
 
 	public static EnemyCombatEffectKind FromRuntimeEffectKind(EnemyEffectKind kind) =>
@@ -175,7 +176,7 @@ public static class EnemyCombatKernelCodec
 			EnemyEffectKind.ElderHorrorDefeat => EnemyCombatEffectKind.ElderHorrorDefeat,
 			EnemyEffectKind.XalorisSepticTick => EnemyCombatEffectKind.XalorisSepticTick,
 			EnemyEffectKind.GrabberGrabbed => EnemyCombatEffectKind.GrabberGrabbed,
-			_ => throw new System.ArgumentOutOfRangeException(nameof(kind), kind, "unknown enemy combat effect kind"),
+			_ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "unknown enemy combat effect kind"),
 		};
 
 	private static ItemComponentState ToKernelComponent(ComponentStateMsg component) =>

@@ -1,6 +1,6 @@
 # Full-qualified name cleanup
 
-- Status: Todo
+- Status: Review
 - Priority: Low
 - Category: Code quality / convention
 

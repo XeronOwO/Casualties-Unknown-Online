@@ -258,7 +258,7 @@ internal sealed class TrapVisualReplay(ILogger<TrapVisualReplay> log)
 	/// </summary>
 	private void LogGoneWithNearest<T>(EntityEventKind kind, Vector2 position) where T : Component
 	{
-		var nearest = UnityEngine.Object.FindObjectsOfType<T>()
+		var nearest = Object.FindObjectsOfType<T>()
 			.Select(t => (Trap: t, Distance: Vector2.Distance(t.transform.position, position)))
 			.OrderBy(x => x.Distance)
 			.FirstOrDefault();

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 
@@ -12,7 +13,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 public static class RemoteHealProfiles
 {
 	private static readonly IReadOnlyDictionary<string, RemoteHealProfile> Registry =
-		new Dictionary<string, RemoteHealProfile>(System.StringComparer.Ordinal)
+		new Dictionary<string, RemoteHealProfile>(StringComparer.Ordinal)
 		{
 			["bandage"] = new("bandage", 1f, SkinHealAmount: 30f, BandageSlowAmount: 45f, Pain: -60f, BoneHealTimer: -20f, DislocationTimer: -20f),
 			["rippeddressing"] = new("rippeddressing", 1f, SkinHealAmount: 8f, BandageSlowAmount: 18f, Pain: -40f, BoneHealTimer: -5f, DislocationTimer: -5f),

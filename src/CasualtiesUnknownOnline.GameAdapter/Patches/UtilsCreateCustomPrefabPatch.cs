@@ -1,6 +1,7 @@
 using CasualtiesUnknownOnline.GameAdapter.Items;
 using HarmonyLib;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 
@@ -22,7 +23,7 @@ internal static class UtilsCreateCustomPrefabPatch
 				return true;
 			}
 
-			var created = UnityEngine.Object.Instantiate(
+			var created = Object.Instantiate(
 				template, new Vector3(pos.x, pos.y, 0f), Quaternion.Euler(0f, 0f, rot)) as GameObject;
 			if (created == null) // Unity object — ==
 			{
@@ -47,7 +48,7 @@ internal static class UtilsCreateCustomPrefabPatch
 				return true;
 			}
 
-			var created = UnityEngine.Object.Instantiate(template, trans) as GameObject;
+			var created = Object.Instantiate(template, trans) as GameObject;
 			if (created == null) // Unity object — ==
 			{
 				__result = null!;

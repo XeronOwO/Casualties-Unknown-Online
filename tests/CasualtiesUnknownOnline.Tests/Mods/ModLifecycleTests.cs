@@ -6,6 +6,8 @@ using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Xunit;
+using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session;
 
 namespace CasualtiesUnknownOnline.Tests.Mods;
 
@@ -179,7 +181,7 @@ public class ModLifecycleTests
 		var left = 0ul;
 		EchoOf(host).Context!.PlayerLeft += id => left = id;
 
-		((Runtime.Session.ISessionControl)host.Session).RemoveGuestMember(GuestId);
+		((ISessionControl)host.Session).RemoveGuestMember(GuestId);
 
 		Assert.Equal(GuestId, left);
 	}
@@ -207,15 +209,15 @@ public class ModLifecycleTests
 			_manifests = manifests;
 		}
 
-		public void FireModMessageReceived(ulong sender, Runtime.Protocol.Messages.ModMessageMsg msg)
+		public void FireModMessageReceived(ulong sender, ModMessageMsg msg)
 		{
 		}
 
-		public void FireModCommandRequestReceived(ulong sender, Runtime.Protocol.Messages.ModCommandRequestMsg msg)
+		public void FireModCommandRequestReceived(ulong sender, ModCommandRequestMsg msg)
 		{
 		}
 
-		public void FireModCommandResultReceived(ulong sender, Runtime.Protocol.Messages.ModCommandResultMsg msg)
+		public void FireModCommandResultReceived(ulong sender, ModCommandResultMsg msg)
 		{
 		}
 

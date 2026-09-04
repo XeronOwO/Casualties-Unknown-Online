@@ -4,6 +4,7 @@ using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
+using CasualtiesUnknownOnline.Runtime.Protocol;
 
 namespace CasualtiesUnknownOnline.Tests.World;
 
@@ -66,7 +67,7 @@ public class WorldEventRelayTests
 
 		// g1's attack (local compute) — report → host applies to its own copy
 		// (which rolls the host-side drops) and relays, the source excluded.
-		w.G1.Services.GetRequiredService<IWorldControl>().SendBuildingEntityDamaged(new Runtime.Protocol.NetVector2(7f, 8f), 3.5f);
+		w.G1.Services.GetRequiredService<IWorldControl>().SendBuildingEntityDamaged(new NetVector2(7f, 8f), 3.5f);
 		w.Driver.Tick(50);
 
 		Assert.True(hostDamages.Count == 1, $"the host must apply the report, got {hostDamages.Count}");
@@ -86,7 +87,7 @@ public class WorldEventRelayTests
 		w.G1.Services.GetRequiredService<IWorldControl>().BuildingEntityDamagedReceived += (p, d, s) => g1Damages.Add((p.X, p.Y, d, s));
 		w.G2.Services.GetRequiredService<IWorldControl>().BuildingEntityDamagedReceived += (p, d, s) => g2Damages.Add((p.X, p.Y, d, s));
 
-		w.Host.Services.GetRequiredService<IWorldControl>().SendBuildingEntityDamaged(new Runtime.Protocol.NetVector2(1f, 2f), 9f);
+		w.Host.Services.GetRequiredService<IWorldControl>().SendBuildingEntityDamaged(new NetVector2(1f, 2f), 9f);
 		w.Driver.Tick(50);
 
 		Assert.True(g1Damages.Count == 1 && g2Damages.Count == 1,
@@ -106,7 +107,7 @@ public class WorldEventRelayTests
 
 		// Cactus collision self-damage: the trigger side never plays the entity
 		// hitSound, so the report must carry playHitSound=false through the star.
-		w.G1.Services.GetRequiredService<IWorldControl>().SendBuildingEntityDamaged(new Runtime.Protocol.NetVector2(3f, 4f), 30f, playHitSound: false);
+		w.G1.Services.GetRequiredService<IWorldControl>().SendBuildingEntityDamaged(new NetVector2(3f, 4f), 30f, playHitSound: false);
 		w.Driver.Tick(50);
 
 		Assert.True(hostDamages.Count == 1, $"the host must receive the silent damage report, got {hostDamages.Count}");

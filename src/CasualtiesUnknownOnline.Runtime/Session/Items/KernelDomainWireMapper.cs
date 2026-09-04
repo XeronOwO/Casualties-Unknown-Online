@@ -7,6 +7,7 @@ using CasualtiesUnknownOnline.GameState.Domains.Players;
 using CasualtiesUnknownOnline.GameState.Domains.World;
 using CasualtiesUnknownOnline.GameState.Domains.WorldEntities;
 using CasualtiesUnknownOnline.Protocol.Wire;
+using System;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 
@@ -272,7 +273,7 @@ public static class KernelDomainWireMapper
 
 	public static TrapStateChangedEvent FromWireTrapStateEvent(WireEvent @event) =>
 		new(
-			FromWireEntityPosition(@event.EntityPosition ?? throw new System.InvalidOperationException("TrapStateChanged event lacks position")),
+			FromWireEntityPosition(@event.EntityPosition ?? throw new InvalidOperationException("TrapStateChanged event lacks position")),
 			@event.EntityKind,
 			(TrapPhase)@event.TrapPhase,
 			@event.Extra,
@@ -289,7 +290,7 @@ public static class KernelDomainWireMapper
 			actor,
 			epoch,
 			authority,
-			FromWireEntityPosition(command.EntityPosition ?? throw new System.InvalidOperationException("RecordTrapState command lacks position")),
+			FromWireEntityPosition(command.EntityPosition ?? throw new InvalidOperationException("RecordTrapState command lacks position")),
 			command.EntityKind,
 			(TrapPhase)command.TrapPhase,
 			command.Extra,

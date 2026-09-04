@@ -5,6 +5,7 @@ using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
+using System.Collections.Generic;
 
 namespace CasualtiesUnknownOnline.Tests.Patching;
 
@@ -49,7 +50,7 @@ public class LiquidTileContentProviderTests
 			"GetDefinitionsForWorldGen", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
 			?? throw new InvalidOperationException("GetDefinitionsForWorldGen not found.");
 		var snapshot = (IEnumerable)method.Invoke(provider, null)!;
-		var ids = new System.Collections.Generic.List<string>();
+		var ids = new List<string>();
 		foreach (var item in snapshot)
 		{
 			var key = item.GetType().GetProperty("Key")!.GetValue(item);

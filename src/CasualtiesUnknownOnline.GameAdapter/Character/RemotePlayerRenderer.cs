@@ -5,6 +5,7 @@ using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Character;
 
@@ -111,7 +112,7 @@ internal sealed class RemotePlayerRenderer(
 		{
 			if (clone != null)
 			{
-				UnityEngine.Object.Destroy(clone.transform.parent.gameObject);
+				Object.Destroy(clone.transform.parent.gameObject);
 			}
 		}
 
@@ -244,7 +245,7 @@ internal sealed class RemotePlayerRenderer(
 	{
 		if (!inWorld && _remoteClones.TryGetValue(steamId, out var clone) && clone != null) // Unity object — ==
 		{
-			UnityEngine.Object.Destroy(clone.transform.parent.gameObject);
+			Object.Destroy(clone.transform.parent.gameObject);
 			_remoteClones.Remove(steamId);
 		}
 

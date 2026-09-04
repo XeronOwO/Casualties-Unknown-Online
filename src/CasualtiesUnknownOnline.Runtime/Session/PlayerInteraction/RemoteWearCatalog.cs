@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 
@@ -13,7 +14,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 public static class RemoteWearCatalog
 {
 	private static readonly IReadOnlyDictionary<string, RemoteWearProfile> Registry =
-		new Dictionary<string, RemoteWearProfile>(System.StringComparer.Ordinal)
+		new Dictionary<string, RemoteWearProfile>(StringComparer.Ordinal)
 		{
 			// Back/upper-torso wearables (Item.cs 5887-5971, 6367-6385, 6508-6526).
 			["smallpack"] = new("smallpack", "back", 1),

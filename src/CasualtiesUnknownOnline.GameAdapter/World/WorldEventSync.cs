@@ -10,6 +10,7 @@ using CasualtiesUnknownOnline.GameAdapter.Patches;
 using HarmonyLib;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace CasualtiesUnknownOnline.GameAdapter.World;
 
@@ -364,7 +365,7 @@ internal sealed partial class WorldEventSync(
 	private void SendKeypadCodes()
 	{
 		var codes = new List<KeypadEntryMsg>();
-		foreach (var openable in UnityEngine.Object.FindObjectsOfType<Openable>())
+		foreach (var openable in Object.FindObjectsOfType<Openable>())
 		{
 			if (!openable.isKeypad)
 			{
@@ -418,7 +419,7 @@ internal sealed partial class WorldEventSync(
 		}
 
 		var applied = 0;
-		foreach (var openable in UnityEngine.Object.FindObjectsOfType<Openable>())
+		foreach (var openable in Object.FindObjectsOfType<Openable>())
 		{
 			if (!openable.isKeypad)
 			{

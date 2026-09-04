@@ -2,6 +2,8 @@ using System.Collections.Generic;
 using CasualtiesUnknownOnline.Abstractions;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
+using Object = UnityEngine.Object;
+using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Content;
 
@@ -16,7 +18,7 @@ namespace CasualtiesUnknownOnline.GameAdapter.Content;
 /// </summary>
 internal static class CustomBuildingTemplateFactory
 {
-	internal static GameObject? Create(string id, ModBuildingDefinition definition, Microsoft.Extensions.Logging.ILogger log)
+	internal static GameObject? Create(string id, ModBuildingDefinition definition, ILogger log)
 	{
 		var templateId = definition.TemplateId;
 		if (string.IsNullOrWhiteSpace(templateId))
@@ -33,7 +35,7 @@ internal static class CustomBuildingTemplateFactory
 			return null;
 		}
 
-		var template = UnityEngine.Object.Instantiate(basePrefab) as GameObject;
+		var template = Object.Instantiate(basePrefab) as GameObject;
 		if (template == null) // Unity object — ==
 		{
 			log.LogWarning(
@@ -45,12 +47,12 @@ internal static class CustomBuildingTemplateFactory
 		template.name = id;
 		template.SetActive(false);
 		template.AddComponent<CustomBuildingTemplateMarker>();
-		UnityEngine.Object.DontDestroyOnLoad(template);
+		Object.DontDestroyOnLoad(template);
 
 		var building = template.GetComponent<BuildingEntity>();
 		if (building == null) // Unity object — ==
 		{
-			UnityEngine.Object.Destroy(template);
+			Object.Destroy(template);
 			log.LogWarning(
 				"[BuildingContent] cannot build runtime template {Id}: base prefab {Template} has no BuildingEntity component.",
 				id, templateId);

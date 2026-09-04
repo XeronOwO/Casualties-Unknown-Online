@@ -5,6 +5,7 @@ using System.Reflection.Emit;
 using CasualtiesUnknownOnline.GameAdapter.Items;
 using HarmonyLib;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 
@@ -34,7 +35,7 @@ internal static class NativeItemResourcePatches
 	private static readonly MethodInfo InstantiateMethod = typeof(Object)
 		.GetMethods(BindingFlags.Public | BindingFlags.Static)
 		.First(method =>
-			method.Name == nameof(UnityEngine.Object.Instantiate)
+			method.Name == nameof(Object.Instantiate)
 			&& !method.IsGenericMethod
 			&& method.GetParameters().Length == 3
 			&& method.GetParameters()[0].ParameterType == typeof(Object)

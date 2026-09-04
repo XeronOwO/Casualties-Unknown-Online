@@ -7,6 +7,7 @@ using CasualtiesUnknownOnline.Runtime.Session.Mods;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
+using HarmonyLib;
 
 namespace CasualtiesUnknownOnline.GameAdapter.ModStatus;
 
@@ -46,7 +47,7 @@ internal sealed class ModStatusMoodleProjection(
 			return;
 		}
 
-		var body = HarmonyLib.Traverse.Create(manager).Field("body").GetValue<Body>();
+		var body = Traverse.Create(manager).Field("body").GetValue<Body>();
 		if (body == null || !body.alive) // Unity object — ==
 		{
 			return;

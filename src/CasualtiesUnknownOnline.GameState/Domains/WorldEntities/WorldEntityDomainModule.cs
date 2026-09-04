@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using CasualtiesUnknownOnline.GameState.Kernel;
+using System.Collections.Generic;
 
 namespace CasualtiesUnknownOnline.GameState.Domains.WorldEntities;
 
@@ -168,7 +169,7 @@ internal sealed class WorldEntityDomainModule : IDomainModule
 			}
 		}
 
-		var states = new System.Collections.Generic.HashSet<(EntityPosition Position, int Kind)>();
+		var states = new HashSet<(EntityPosition Position, int Kind)>();
 		foreach (var trapState in entities.TrapStates)
 		{
 			if (trapState.Kind <= 0)

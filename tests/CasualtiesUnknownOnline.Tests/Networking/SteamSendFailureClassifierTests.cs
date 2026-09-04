@@ -1,6 +1,7 @@
 using CasualtiesUnknownOnline.Runtime.Networking;
 using Steamworks;
 using Xunit;
+using System;
 
 namespace CasualtiesUnknownOnline.Tests.Networking;
 
@@ -87,7 +88,7 @@ public class SteamSendFailureClassifierTests
 	[Fact]
 	public void EveryKind_HasARemediation()
 	{
-		foreach (SteamSendFailureKind kind in System.Enum.GetValues(typeof(SteamSendFailureKind)))
+		foreach (SteamSendFailureKind kind in Enum.GetValues(typeof(SteamSendFailureKind)))
 		{
 			Assert.False(string.IsNullOrWhiteSpace(SteamSendFailureClassifier.Remediation(kind)),
 				$"missing remediation for {kind}");

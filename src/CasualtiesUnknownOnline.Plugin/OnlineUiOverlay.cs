@@ -320,7 +320,7 @@ internal sealed class OnlineUiOverlay
 	{
 		var hadSession = ctx.IpDirectActive
 			|| ctx.Session.SessionActive
-			|| ctx.Session.Role != Runtime.Session.SessionRole.None;
+			|| ctx.Session.Role != SessionRole.None;
 		if (hadSession == _lastHadSession)
 		{
 			return;
@@ -330,8 +330,8 @@ internal sealed class OnlineUiOverlay
 		if (hadSession)
 		{
 			var message = ctx.IpDirectActive
-				? ctx.T(ctx.Session.Role == Runtime.Session.SessionRole.Host ? "hud.ip_host_started" : "hud.ip_guest_joined")
-				: ctx.T(ctx.Session.Role == Runtime.Session.SessionRole.Host ? "hud.steam_host_started" : "hud.steam_guest_joined");
+				? ctx.T(ctx.Session.Role == SessionRole.Host ? "hud.ip_host_started" : "hud.ip_guest_joined")
+				: ctx.T(ctx.Session.Role == SessionRole.Host ? "hud.steam_host_started" : "hud.steam_guest_joined");
 			Notify(message);
 		}
 		else
@@ -348,7 +348,7 @@ internal sealed class OnlineUiOverlay
 
 	private void DrawNetworkHud(OnlineUiContext ctx)
 	{
-		if (!ctx.IpDirectActive && ctx.Steam.CurrentLobbyId == 0 && ctx.Session.Role == Runtime.Session.SessionRole.None)
+		if (!ctx.IpDirectActive && ctx.Steam.CurrentLobbyId == 0 && ctx.Session.Role == SessionRole.None)
 		{
 			return;
 		}

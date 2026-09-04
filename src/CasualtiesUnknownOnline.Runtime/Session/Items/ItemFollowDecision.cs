@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 
@@ -131,7 +132,7 @@ internal sealed class ItemFollowDecision
 		return decision;
 	}
 
-	private static float Sqrt(float v) => (float)System.Math.Sqrt(v);
+	private static float Sqrt(float v) => (float)Math.Sqrt(v);
 
 	private static float Abs(float v) => v < 0f ? -v : v;
 

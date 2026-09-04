@@ -1,4 +1,5 @@
 using ProtoBuf;
+using System.Collections.Generic;
 
 namespace CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 
@@ -50,5 +51,5 @@ public sealed class EntityEventMsg
 	/// host folds these spawns into the same atomic trap composite.
 	/// </summary>
 	[ProtoMember(5)]
-	public System.Collections.Generic.List<TrapDropEntryMsg> Drops { get; set; } = [];
+	public List<TrapDropEntryMsg> Drops { get; set; } = [];
 }

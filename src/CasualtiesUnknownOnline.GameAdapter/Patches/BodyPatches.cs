@@ -6,6 +6,8 @@ using CasualtiesUnknownOnline.GameAdapter.Items;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using HarmonyLib;
 using UnityEngine;
+using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using Object = UnityEngine.Object;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 
@@ -49,7 +51,7 @@ internal static class BodyPatches
 				// the release restores it in GameAdapter.UpdateStartGate.
 				if (PatchBridge.Impl is { IsWaitingForReady: true })
 				{
-					HarmonyLib.Traverse.Create(__instance).Field("movingAllowed").SetValue(false);
+					Traverse.Create(__instance).Field("movingAllowed").SetValue(false);
 				}
 
 				return true; // local player: original behavior
@@ -254,7 +256,7 @@ internal static class BodyPatches
 					: null,
 			};
 
-			foreach (var entity in UnityEngine.Object.FindObjectsOfType<BuildingEntity>())
+			foreach (var entity in Object.FindObjectsOfType<BuildingEntity>())
 			{
 				__state.Entities.Add((entity, entity.health));
 			}
@@ -421,8 +423,8 @@ internal static class BodyPatches
 			}
 
 			return impact < -body.jumpSpeed - 5f
-				? CasualtiesUnknownOnline.Runtime.Protocol.Messages.CharacterLandingVisualMsg.CloudBig
-				: CasualtiesUnknownOnline.Runtime.Protocol.Messages.CharacterLandingVisualMsg.CloudSmall;
+				? CharacterLandingVisualMsg.CloudBig
+				: CharacterLandingVisualMsg.CloudSmall;
 		}
 	}
 	[HarmonyPatch(typeof(Body), "WearWearable")]
@@ -502,7 +504,7 @@ internal static class BodyPatches
 			Physics2D.IgnoreLayerCollision(
 				LayerMask.GetMask("Player"), LayerMask.GetMask("Player"), true);
 
-			var bodies = UnityEngine.Object.FindObjectsOfType<Body>();
+			var bodies = Object.FindObjectsOfType<Body>();
 			if (bodies.Length < 2)
 			{
 				return;

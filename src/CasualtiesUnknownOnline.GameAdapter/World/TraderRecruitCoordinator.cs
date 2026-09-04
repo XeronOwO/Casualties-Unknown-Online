@@ -12,6 +12,7 @@ using CasualtiesUnknownOnline.Runtime.Session.World;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace CasualtiesUnknownOnline.GameAdapter.World;
 
@@ -389,7 +390,7 @@ internal sealed class TraderRecruitCoordinator(
 	{
 		TraderScript? best = null; // Unity object — ==
 		var bestDistance = float.MaxValue;
-		foreach (var trader in UnityEngine.Object.FindObjectsOfType<TraderScript>())
+		foreach (var trader in Object.FindObjectsOfType<TraderScript>())
 		{
 			var distance = Vector2.Distance(trader.transform.position, position);
 			if (distance <= TraderRecruitPolicy.RecruitRange && distance < bestDistance)
@@ -405,7 +406,7 @@ internal sealed class TraderRecruitCoordinator(
 	/// <summary>Position-keyed trader lookup — same identity rule as the trade domain.</summary>
 	private static TraderScript? FindTraderAt(NetVector2Msg position)
 	{
-		foreach (var trader in UnityEngine.Object.FindObjectsOfType<TraderScript>())
+		foreach (var trader in Object.FindObjectsOfType<TraderScript>())
 		{
 			if (Vector2.Distance(trader.transform.position, new Vector2(position.X, position.Y)) < PositionTolerance)
 			{

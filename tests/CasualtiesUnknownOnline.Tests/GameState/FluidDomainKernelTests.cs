@@ -5,6 +5,7 @@ using CasualtiesUnknownOnline.GameState.Domains.Fluids;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
+using System.IO;
 
 namespace CasualtiesUnknownOnline.Tests.GameState;
 
@@ -71,7 +72,7 @@ public class FluidDomainKernelTests
 	[Fact]
 	public void SaveLoad_RoundTripsFluids()
 	{
-		var path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"cuo-fluids-{Guid.NewGuid():N}.bin");
+		var path = Path.Combine(Path.GetTempPath(), $"cuo-fluids-{Guid.NewGuid():N}.bin");
 		try
 		{
 			var authority = new ItemKernelAuthority(NullLogger<ItemKernelAuthority>.Instance);
@@ -87,9 +88,9 @@ public class FluidDomainKernelTests
 		}
 		finally
 		{
-			if (System.IO.File.Exists(path))
+			if (File.Exists(path))
 			{
-				System.IO.File.Delete(path);
+				File.Delete(path);
 			}
 		}
 	}

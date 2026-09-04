@@ -3,6 +3,8 @@ using CasualtiesUnknownOnline.GameState.Domains.World;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
+using System;
+using System.IO;
 
 namespace CasualtiesUnknownOnline.Tests.GameState;
 
@@ -120,7 +122,7 @@ public class WorldDomainKernelTests
 	[Fact]
 	public void SaveLoad_RoundTripsRunState()
 	{
-		var path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"cuo-world-run-{System.Guid.NewGuid():N}.bin");
+		var path = Path.Combine(Path.GetTempPath(), $"cuo-world-run-{Guid.NewGuid():N}.bin");
 		try
 		{
 			var authority = new ItemKernelAuthority(NullLogger<ItemKernelAuthority>.Instance);
@@ -141,9 +143,9 @@ public class WorldDomainKernelTests
 		}
 		finally
 		{
-			if (System.IO.File.Exists(path))
+			if (File.Exists(path))
 			{
-				System.IO.File.Delete(path);
+				File.Delete(path);
 			}
 		}
 	}

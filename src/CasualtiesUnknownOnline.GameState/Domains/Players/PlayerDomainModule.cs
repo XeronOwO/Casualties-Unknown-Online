@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.GameState.Kernel;
+using System.Collections.Generic;
 
 namespace CasualtiesUnknownOnline.GameState.Domains.Players;
 
@@ -75,7 +76,7 @@ internal sealed class PlayerDomainModule : IDomainModule
 			return;
 		}
 
-		var seen = new System.Collections.Generic.HashSet<ulong>();
+		var seen = new HashSet<ulong>();
 		var byId = players.Players.ToDictionary(p => p.SteamId);
 		foreach (var player in players.Players)
 		{
@@ -91,7 +92,7 @@ internal sealed class PlayerDomainModule : IDomainModule
 
 			if (player.Limbs is { } limbs)
 			{
-				var limbIndices = new System.Collections.Generic.HashSet<int>();
+				var limbIndices = new HashSet<int>();
 				foreach (var limb in limbs)
 				{
 					if (limb.Index < 0)
@@ -179,7 +180,7 @@ internal sealed class PlayerDomainModule : IDomainModule
 
 	private static void AssertCarryFields(
 		PlayerState player,
-		System.Collections.Generic.Dictionary<ulong, PlayerState> byId)
+		Dictionary<ulong, PlayerState> byId)
 	{
 		if (player.CarrierOfSteamId is { } carriedSteamId)
 		{

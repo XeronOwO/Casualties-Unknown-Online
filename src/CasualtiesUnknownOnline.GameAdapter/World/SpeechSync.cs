@@ -3,6 +3,8 @@ using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
+using HarmonyLib;
+using Object = UnityEngine.Object;
 
 namespace CasualtiesUnknownOnline.GameAdapter.World;
 
@@ -105,7 +107,7 @@ internal sealed class SpeechSync(IWorldControl world, ISessionControl session, I
 			return;
 		}
 
-		foreach (var trader in UnityEngine.Object.FindObjectsOfType<TraderScript>())
+		foreach (var trader in Object.FindObjectsOfType<TraderScript>())
 		{
 			if (Vector2.Distance(trader.transform.position, new Vector2(pos.X, pos.Y)) < 2f)
 			{
@@ -132,13 +134,13 @@ internal sealed class SpeechSync(IWorldControl world, ISessionControl session, I
 	{
 		using (CallContext.Enter(CallContext.Origin.RemoteApply))
 		{
-			var fields = HarmonyLib.Traverse.Create(talker);
+			var fields = Traverse.Create(talker);
 			fields.Field("currentString").SetValue(text);
 			fields.Field("timeSinceTalked").SetValue(0f);
 			var bubble = fields.Field("text").GetValue(); // the TextMeshPro — untouched if null (the bubble GameObject is lazily created)
 			if (bubble != null)
 			{
-				HarmonyLib.Traverse.Create(bubble).Property("text").SetValue("");
+				Traverse.Create(bubble).Property("text").SetValue("");
 			}
 		}
 	}

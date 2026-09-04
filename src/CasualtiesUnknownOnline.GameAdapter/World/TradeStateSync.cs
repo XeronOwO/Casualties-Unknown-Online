@@ -6,6 +6,8 @@ using CasualtiesUnknownOnline.Runtime.Session.World;
 using HarmonyLib;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
+using System;
+using Object = UnityEngine.Object;
 
 namespace CasualtiesUnknownOnline.GameAdapter.World;
 
@@ -319,7 +321,7 @@ internal sealed class TradeStateSync(
 		return (offset, scale, post);
 	}
 
-	private static bool Execute(System.Action action, bool accepted)
+	private static bool Execute(Action action, bool accepted)
 	{
 		action();
 		return accepted;

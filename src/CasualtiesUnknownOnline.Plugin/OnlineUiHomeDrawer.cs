@@ -1,4 +1,5 @@
 using UnityEngine;
+using CasualtiesUnknownOnline.Runtime.Session;
 
 namespace CasualtiesUnknownOnline;
 
@@ -63,7 +64,7 @@ internal static class OnlineUiHomeDrawer
 
 		if (ctx.IpDirectActive || steam.CurrentLobbyId != 0)
 		{
-			var leaveLabel = session.Role == Runtime.Session.SessionRole.Host ? ctx.T("lobby.close_room") : ctx.T("lobby.leave_lobby");
+			var leaveLabel = session.Role == SessionRole.Host ? ctx.T("lobby.close_room") : ctx.T("lobby.leave_lobby");
 			if (GUILayout.Button(ctx.IpDirectActive ? ctx.T("ip.leave") : leaveLabel, OnlineUiTheme.Button(), GUILayout.Width(150f)))
 			{
 				if (ctx.IpDirectActive)

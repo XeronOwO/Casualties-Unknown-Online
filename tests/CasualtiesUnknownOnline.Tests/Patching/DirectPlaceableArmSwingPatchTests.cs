@@ -1,6 +1,7 @@
 using System;
 using System.Reflection;
 using Xunit;
+using System.Collections;
 
 namespace CasualtiesUnknownOnline.Tests.Patching;
 
@@ -118,7 +119,7 @@ public class DirectPlaceableArmSwingPatchTests
 			?? throw new InvalidOperationException("PatchInventory type not found.");
 		var build = inventory.GetMethod("BuildContracts", BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
 			?? throw new InvalidOperationException("PatchInventory.BuildContracts not found.");
-		var contracts = (System.Collections.IEnumerable)build.Invoke(null, null)!;
+		var contracts = (IEnumerable)build.Invoke(null, null)!;
 		var foundUseItem = false;
 		var foundUseItemInHand = false;
 		foreach (var contract in contracts)

@@ -9,6 +9,7 @@ using CasualtiesUnknownOnline.Runtime.Session.NetworkTraffic;
 using CasualtiesUnknownOnline.Runtime.Steam;
 using CasualtiesUnknownOnline.Runtime.Time;
 using Microsoft.Extensions.Logging;
+using System.Collections.Generic;
 
 namespace CasualtiesUnknownOnline.Runtime.Session;
 
@@ -116,7 +117,7 @@ public sealed class SessionService : ICuoService, ISessionControl
 	public ulong LocalSteamId => _steam.LocalSteamId;
 
 	/// <summary>The member presence table (read-only; the table itself is owned internally).</summary>
-	public System.Collections.Generic.IEnumerable<MemberPresenceTable.MemberPresence> Members => _presence.Members;
+	public IEnumerable<MemberPresenceTable.MemberPresence> Members => _presence.Members;
 
 	SceneStateType ISessionControl.LocalSceneState => _state.LocalInWorld ? SceneStateType.InWorld : SceneStateType.InMenu;
 

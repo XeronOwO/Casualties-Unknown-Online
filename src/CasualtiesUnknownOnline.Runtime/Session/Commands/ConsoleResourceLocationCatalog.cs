@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using System;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.Commands;
 
@@ -22,5 +23,5 @@ internal static class ConsoleResourceLocationCatalog
 	];
 
 	public static IReadOnlyList<CommandSuggestion> Suggest(string prefix) =>
-		[.. Candidates.Where(c => c.Text.StartsWith(prefix, System.StringComparison.OrdinalIgnoreCase))];
+		[.. Candidates.Where(c => c.Text.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))];
 }

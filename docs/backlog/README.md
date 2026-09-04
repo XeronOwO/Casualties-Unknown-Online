@@ -40,6 +40,10 @@ todo/  →  in-progress/  →  review/  →  done/
 
 - [State-stream bandwidth reduction](todo/state-stream-bandwidth-reduction.md) — measurement-first.
 - [Snapshot size reduction](todo/snapshot-size-reduction.md) — measurement-first.
+- [Projection failure auto-recovery](todo/projection-failure-auto-recovery.md) — dirty/rebuild loop for failed Unity projections (Loomi review 2026-09-04).
+- [Protocol frame envelope validation](todo/protocol-frame-validation.md) — single shape/kind/sender validation before business handlers (Loomi review 2026-09-04).
+- [Composite command sequential semantics](todo/composite-command-sequential-semantics.md) — decide whether inner commands see staged results or must be independent (Loomi review 2026-09-04).
+- [Network traffic baseline and regression gate](todo/network-traffic-baseline.md) — concrete bytes/frame-size/checkpoint metrics before optimization (Loomi review 2026-09-04).
 
 
 ### In progress
@@ -70,6 +74,9 @@ _None._ (Folder exists for the workflow.)
 - [Phase 5 tooling & ecosystem](future/phase5-tooling-ecosystem.md).
 - [KrokMP compatibility adapter](future/krokmp-compatibility-adapter.md).
 - [Systemic save and backup management](future/systemic-save-backup-management.md) — inspectable ZIP+JSON archives, scheduled/manual backups, restore/load, native game-layer backup.
+- [Command authorization gateway](future/command-authorization-gateway.md) — central actor/AuthorityKind enforcement in front of the kernel (Loomi review 2026-09-04).
+- [Runtime DI feature registration and lifecycle contract](future/runtime-di-feature-registration-lifecycle.md) — feature-scoped composition modules + verified reset/unbind/graph/update-order (Loomi review 2026-09-04).
+- [Kernel replication namespace relocation](future/kernel-replication-namespace-relocation.md) — move item-scoped kernel protocol/save services to a neutral namespace (Loomi review 2026-09-04).
 
 ### Resolved
 

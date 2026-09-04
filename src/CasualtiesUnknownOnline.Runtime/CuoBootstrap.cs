@@ -308,6 +308,13 @@ public static class CuoBootstrap
 		services.AddSingleton<ModRegistry>();
 		services.AddSingleton<IModListProvider>(p => p.GetRequiredService<ModRegistry>());
 		services.AddSingleton<ModChannel>();
+		// The mod status store is the Game Adapter's only ModService dependency
+		// (the vanilla body/limb status projection reads it). Registering the
+		// store separately breaks the ModService ↔ GameAdapter DI cycle: the
+		// adapter must not depend on ModService because ModService's IMod*
+		// spawner/tile/... seams are replaced by the adapter itself.
+		services.AddSingleton(p => new ModStatusStore(
+			p.GetRequiredService<ILogger<ModStatusStore>>()));
 		// The default mod entity spawner is disabled: the Game Adapter is
 		// registered by the plugin through extraRegistrations and replaces this
 		// with the real Utils.Create-backed implementation. Tests may also

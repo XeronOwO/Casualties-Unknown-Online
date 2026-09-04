@@ -79,11 +79,11 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 		GameAdapterStructureContentProvider structureContent,
 		GameAdapterStatusContentProvider statusContent,
 		GameAdapterMoodleContentProvider moodleContent,
-		ModService modService)
+		ModStatusStore modStatusStore)
 	{
 		_latency = latency;
 		_domains = new GameAdapterDomains(session, entities, characterData, world, items, craft, arbitration,
-			enemies, worldTime, playerInteraction, tutorialClaw, respawnOptions, hostRules, worldEntityKernel, kernelProtocol, log, mapper, loggerFactory, itemContent, buildingContent, tileContent, liquidTileContent, structureContent, statusContent, moodleContent, modService);
+			enemies, worldTime, playerInteraction, tutorialClaw, respawnOptions, hostRules, worldEntityKernel, kernelProtocol, log, mapper, loggerFactory, itemContent, buildingContent, tileContent, liquidTileContent, structureContent, statusContent, moodleContent, modStatusStore);
 		_bridge = new GameAdapterBridge(_domains);
 		_playerInteraction = new PlayerInteractionApply(_domains);
 		var pushApply = new PlayerPushApply(_domains);

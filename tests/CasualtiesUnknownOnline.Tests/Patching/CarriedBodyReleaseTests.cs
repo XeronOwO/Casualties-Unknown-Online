@@ -52,4 +52,13 @@ public class CarriedBodyReleaseTests
 		Assert.Single(method.GetParameters());
 		Assert.Equal("Body", method.GetParameters()[0].ParameterType.Name);
 	}
+
+	[Fact]
+	public void RidePoseEntryPoint_IsTheSingleSharedReplacementPath()
+	{
+		var method = Placement.GetMethod("ApplyRidePose", BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
+			?? throw new InvalidOperationException("CarriedBodyPlacement.ApplyRidePose not found.");
+		Assert.Equal("Body", method.GetParameters()[0].ParameterType.Name);
+		Assert.True(method.GetParameters().Length >= 6, "the shared ride-pose rule must accept body, anchor, facing, crouch, velocity and look target.");
+	}
 }

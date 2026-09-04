@@ -1,9 +1,28 @@
 # Carry/piggyback vertical placement asymmetry (rider appears above on one side, below on the other)
 
-- Status: Todo
+- Status: Review
 - Priority: Medium
 - Category: Player interaction / carry-piggyback presentation
 - Source: User report (2026-09-04) — when the host rides on a guest's back, the host's own view shows the host body higher than the guest, while the guest's view shows the host body lower than the guest. Suspected addition/subtraction/offset asymmetry. Record only; no code action taken yet.
+
+## Landed
+
+Root-caused the reference-point split in the carried-ride presentation family:
+
+- The rider's 20 Hz stream was publishing the non-standing upper-torso anchor
+  (`limbs[1]`) because a carried body is held with `standing = false`, while
+  both participant-side placement paths use the Body root. This made
+  stream-driven views and pin-driven views disagree vertically.
+- `RunCoordinator.PublishBodyState` now uses a pure
+  `CarriedBodyPose.ShouldPublishBodyRoot` rule to publish the body root for any
+  carried rider, preserving the torso anchor for non-carried ragdolls.
+- The shared `ApplyRidePose` write also sets the rider's crouch state to match
+  the carrier on both sides, removing the remaining facing/crouch presentation
+  divergence.
+
+No carry authority, wire protocol, release semantics, or host rules changed.
+
+Selfcheck: `docs/evidence/selfchecks/players/carried-rider-placement-smoothing-selfcheck.md`.
 
 ## Goal
 
@@ -44,4 +63,4 @@ Both paths add the same positive vertical offset, so a plain sign mismatch in `B
 
 - Not changing carry relation authority or release semantics.
 - Not merging into the general carry movement-smoothing ticket; this is a distinct placement/reference asymmetry.
-- Not implementing in this cycle — this ticket is a backlog record only.
+- The placement/reference fix landed in this cycle; see the selfcheck linked above.

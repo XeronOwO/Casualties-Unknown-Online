@@ -18,6 +18,7 @@ All files under `docs/selfchecks/` are historical/per-delivery evidence records.
 | players/character-ragdoll-toggle-sync-selfcheck.md | Players | current | candidate current evidence; verify before citing |
 | players/character-sound-selfcheck.md | Players | current | candidate current evidence; verify before citing |
 | players/carried-idle-sit-suppression-selfcheck.md | Players | current | carried-ride idle-sit suppression landed |
+| players/carried-rider-placement-smoothing-selfcheck.md | Players | current | carried-ride placement smoothing and vertical consistency landed |
 | ui/chat-selfcheck.md | UI | current | candidate current evidence; verify before citing |
 | presentation/clone-face-presentation-selfcheck.md | Other | current | candidate current evidence; verify before citing |
 | presentation/remote-clone-face-vitals-selfcheck.md | Other | current | candidate current evidence; verify before citing |

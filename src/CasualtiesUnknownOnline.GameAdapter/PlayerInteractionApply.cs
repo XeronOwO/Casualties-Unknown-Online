@@ -85,19 +85,37 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains)
 			return;
 		}
 
+		// Use the remote carrier's RENDER clone as the anchor when it exists:
+		// that clone is already smoothed by SessionStatePump, so the local rider
+		// follows the same visual carrier position the player sees instead of
+		// stepping to the raw 20 Hz buffer. The entity buffer is the fallback
+		// before the clone exists (or if the carrier is not in the render table).
+		if (domains.Renderer.TryGetRemoteBody(driver.CarrierSteamId, out var carrierBody)
+			&& carrierBody != null) // Unity object — ==
+		{
+			CarriedBodyPlacement.ApplyRidePose(
+				localBody,
+				carrierBody.transform.position,
+				carrierBody.isRight,
+				carrierBody.crouching,
+				carrierBody.rb.velocity,
+				carrierBody.targetLookPos);
+			return;
+		}
+
 		var carrier = domains.Entities.GetRemotePlayer(driver.CarrierSteamId);
 		if (carrier is null)
 		{
 			return;
 		}
 
-		var carrierPosition = new Vector3(carrier.Position.X, carrier.Position.Y, 0f);
-		localBody.transform.position = CarriedBodyPlacement.BackOffset(carrierPosition, carrier.IsRight, carrier.Crouching);
-		localBody.rb.velocity = new Vector2(carrier.Velocity.X, carrier.Velocity.Y);
-		localBody.isRight = carrier.IsRight;
-		BodyFacing.Apply(localBody);
-		localBody.standing = false;
-		localBody.moveDir = Vector2.zero;
+		CarriedBodyPlacement.ApplyRidePose(
+			localBody,
+			new Vector3(carrier.Position.X, carrier.Position.Y, 0f),
+			carrier.IsRight,
+			carrier.Crouching,
+			new Vector2(carrier.Velocity.X, carrier.Velocity.Y),
+			new Vector2(carrier.LookPos.X, carrier.LookPos.Y));
 	}
 
 	public void OnPlayerHealReceived(PlayerHealResultMsg msg)

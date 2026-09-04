@@ -1,9 +1,29 @@
 # Carry/piggyback riding movement teleport and rider/carrier position mismatch
 
-- Status: Todo
+- Status: Review
 - Priority: Medium
 - Category: Player interaction / movement sync / carry-piggyback presentation
 - Source: User report (2026-09-04) — host riding guest or guest riding host while moving produces frame-snap/teleport feel on both sides, and the two players' positions/ride alignment do not match. Record only; no code action taken yet.
+
+## Landed
+
+Implemented the shared carried-ride presentation path:
+
+- The rider's own client now follows the remote carrier's RENDER clone (already
+  smoothed by `SessionStatePump`) instead of the raw 20 Hz entity buffer.
+- `GameAdapter.Update` runs `UpdateCarriedBody` after `RemotePlayerRenderer.Update`,
+  so the carrier clone receives this frame's interpolation before the rider uses it as the anchor.
+- One shared `CarriedBodyPlacement.ApplyRidePose` replaces the duplicated
+  field-by-field placement in both participant paths, so position, velocity,
+  facing, crouch, standing/move-dir and look target cannot diverge.
+- The rider's stream now publishes the body root while carried (not the
+  ragdoll torso anchor), so third-party peers use the same reference point as
+  the two participant views.
+- 1 Hz clone diagnostics tag carried-rider/carrier clones.
+
+No carry authority, wire protocol, release semantics, or host rules changed.
+
+Selfcheck: `docs/evidence/selfchecks/players/carried-rider-placement-smoothing-selfcheck.md`.
 
 ## Goal
 
@@ -71,4 +91,4 @@ Make carried/piggyback rider movement visually stable on both participant sides.
 
 - Not adding client prediction or remote-side simulation of the carrier.
 - Not changing carry/release authority, host rules, or the carry relation lifecycle.
-- Not implementing in this cycle — this ticket is a backlog record only.
+- The presentation/order-only fix landed in this cycle; see the selfcheck linked above.

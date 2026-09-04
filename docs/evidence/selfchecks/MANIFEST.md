@@ -155,6 +155,7 @@ All files under `docs/selfchecks/` are historical/per-delivery evidence records.
 | enemies/trader-recruit-selfcheck.md | Enemies/World | current | candidate current evidence; verify before citing |
 | enemies/trader-swing-sync-selfcheck.md | Enemies/World | current | candidate current evidence; verify before citing |
 | presentation/turret-light-sprite-selfcheck.md | Other | current | candidate current evidence; verify before citing |
+| world/transient-trap-state-checkpoint-selfcheck.md | World/Entities | current | turret/geyser transient trap state no longer replayed by periodic checkpoint |
 | world/tutorial-claw-selfcheck.md | World/Entities | current | candidate current evidence; verify before citing |
 | world/tutorial-claw-stream-selfcheck.md | World/Entities | current | candidate current evidence; verify before citing |
 | mod-api/ui-modal-input-blocker-selfcheck.md | Mod API | current | candidate current evidence; verify before citing |

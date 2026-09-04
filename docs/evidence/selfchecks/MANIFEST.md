@@ -95,6 +95,7 @@ All files under `docs/selfchecks/` are historical/per-delivery evidence records.
 | protocol/netmsg-registry-selfcheck.md | Other | current | candidate current evidence; verify before citing |
 | players/network-health-metrics-selfcheck.md | Other | current | candidate current evidence; verify before citing |
 | protocol/network-traffic-monitor-selfcheck.md | Other | current | candidate current evidence; verify before citing |
+| protocol/network-traffic-baseline-selfcheck.md | Other | current | network traffic baseline and regression gate landed |
 | players/online-ui-player-awareness-selfcheck.md | Players | current | candidate current evidence; verify before citing |
 | ui/online-ui-polish-selfcheck.md | UI | current | candidate current evidence; verify before citing |
 | ui/player-list-peer-id-disambiguation-selfcheck.md | UI | current | candidate current evidence; verify before citing |

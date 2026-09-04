@@ -500,7 +500,17 @@ internal sealed class RunCoordinator(
 		// Body transform; KrokMP's inspected sync packet uses limbs[1] as the
 		// ragdoll position anchor. Keeping the stream anchor on the torso also
 		// makes the remote clone root/UI follow the collapsed body.
-		var upperTorso = !body.standing && body.limbs.Length > 1 ? body.limbs[1] : null;
+		// A CARRIED rider is the deliberate exception: it is placed by the
+		// shared ride-pose path at the carrier's back using its body-root
+		// transform, not a ragdoll. Publishing the torso anchor would make the
+		// rider's own/carrier-side views agree with each other while every
+		// third-party clone is offset differently — the reported vertical
+		// placement asymmetry. Carried bodies always publish the body root.
+		var upperTorso = !body.standing
+			&& !CarriedBodyPose.ShouldPublishBodyRoot(CarriedBodyDriver.IsCarrying(body))
+			&& body.limbs.Length > 1
+			? body.limbs[1]
+			: null;
 		var pos = !body.standing && upperTorso != null // Unity object — ==
 			? upperTorso.transform.position
 			: body.transform.position;

@@ -303,6 +303,13 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 
 	public void OnBrokenItemUpdate(Item item, string reason) => domains.ItemWorldSync.OnBrokenItemUpdate(item, reason);
 
+	public void OnNonAuthoritativeItemImpactSuppressed(Item item, string source)
+	{
+		var id = item.GetComponent<ItemInstanceId>()?.Id ?? 0;
+		domains.Log.LogDebug("[ItemImpact] suppressed non-authoritative {Source} on {Type} (id {ItemId}) — guest copies are not the world-item physics authority.",
+			source, item.id, id);
+	}
+
 	public void OnItemDestroyed(Item item) => domains.ItemWorldSync.OnItemDestroyed(item);
 
 	public void OnItemPickupStart(Item item) => domains.PickupSync.OnPickupStart(item);

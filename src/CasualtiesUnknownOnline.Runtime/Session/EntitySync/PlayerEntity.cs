@@ -108,7 +108,7 @@ public sealed class PlayerEntity(ulong steamId, NetworkEntityId entityId, bool i
 	/// sleeping (ragdoll/dead/unconscious). Null when standing/sleeping — the
 	/// proxy uses its animator/nap clips instead. The frozen clone has no
 	/// physics, so this is the only way its limb transforms match the owner's
-	/// body.
+	/// body. Each pose is the owner's world-space limb transform.
 	/// </summary>
 	public List<PlayerLimbPose>? LimbPoses { get; set; }
 

@@ -35,7 +35,7 @@ public static class PlayerStreamWireMapper
 		LimbPoses = entity.LimbPoses?.ConvertAll(p => new WirePlayerLimbPose
 		{
 			Index = p.Index,
-			LocalPosition = ToWireVector2(p.LocalPosition),
+			WorldPosition = ToWireVector2(p.WorldPosition),
 			RotationZ = p.RotationZ,
 		}),
 	};
@@ -68,7 +68,7 @@ public static class PlayerStreamWireMapper
 		target.LimbPoses = wire.LimbPoses?.ConvertAll(p => new PlayerLimbPose
 		{
 			Index = p.Index,
-			LocalPosition = ToNetVector2(p.LocalPosition),
+			WorldPosition = ToNetVector2(p.WorldPosition),
 			RotationZ = p.RotationZ,
 		});
 	}

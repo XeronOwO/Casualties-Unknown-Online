@@ -238,8 +238,8 @@ public class EntityStateRoundtripTests
 		var source = NewEntity();
 		source.LimbPoses =
 		[
-			new PlayerLimbPose { Index = 0, LocalPosition = new NetVector2(1.25f, -2.5f), RotationZ = 45f },
-			new PlayerLimbPose { Index = 3, LocalPosition = new NetVector2(-0.75f, 3.5f), RotationZ = -120f },
+			new PlayerLimbPose { Index = 0, WorldPosition = new NetVector2(1.25f, -2.5f), RotationZ = 45f },
+			new PlayerLimbPose { Index = 3, WorldPosition = new NetVector2(-0.75f, 3.5f), RotationZ = -120f },
 		];
 
 		var wire = source.ToWirePlayerStreamState();
@@ -249,12 +249,12 @@ public class EntityStateRoundtripTests
 		Assert.NotNull(target.LimbPoses);
 		Assert.Equal(2, target.LimbPoses!.Count);
 		Assert.Equal(0, target.LimbPoses[0].Index);
-		Assert.Equal(1.25f, target.LimbPoses[0].LocalPosition.X);
-		Assert.Equal(-2.5f, target.LimbPoses[0].LocalPosition.Y);
+		Assert.Equal(1.25f, target.LimbPoses[0].WorldPosition.X);
+		Assert.Equal(-2.5f, target.LimbPoses[0].WorldPosition.Y);
 		Assert.Equal(45f, target.LimbPoses[0].RotationZ);
 		Assert.Equal(3, target.LimbPoses[1].Index);
-		Assert.Equal(-0.75f, target.LimbPoses[1].LocalPosition.X);
-		Assert.Equal(3.5f, target.LimbPoses[1].LocalPosition.Y);
+		Assert.Equal(-0.75f, target.LimbPoses[1].WorldPosition.X);
+		Assert.Equal(3.5f, target.LimbPoses[1].WorldPosition.Y);
 		Assert.Equal(-120f, target.LimbPoses[1].RotationZ);
 	}
 
@@ -264,7 +264,7 @@ public class EntityStateRoundtripTests
 		var entity = NewEntity();
 		entity.LimbPoses =
 		[
-			new PlayerLimbPose { Index = 0, LocalPosition = new NetVector2(1f, 2f), RotationZ = 3f },
+			new PlayerLimbPose { Index = 0, WorldPosition = new NetVector2(1f, 2f), RotationZ = 3f },
 		];
 
 		Assert.NotNull(entity.ToWirePlayerStreamState().LimbPoses);

@@ -495,7 +495,15 @@ internal sealed class RunCoordinator(
 
 	private void PublishBodyState(Body body)
 	{
-		var pos = body.transform.position;
+		// Ragdoll/dead/unconscious: track the upper-torso world position, not
+		// the Body transform. The visible limbs are not reliably centered on the
+		// Body transform; KrokMP's inspected sync packet uses limbs[1] as the
+		// ragdoll position anchor. Keeping the stream anchor on the torso also
+		// makes the remote clone root/UI follow the collapsed body.
+		var upperTorso = !body.standing && body.limbs.Length > 1 ? body.limbs[1] : null;
+		var pos = !body.standing && upperTorso != null // Unity object — ==
+			? upperTorso.transform.position
+			: body.transform.position;
 		var look = body.targetLookPos;
 		var vel = body.rb.velocity;
 		// LookTarget/CorpseScript drive Body.overrideLookPos/Time on the local

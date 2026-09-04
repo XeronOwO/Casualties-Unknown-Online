@@ -232,6 +232,58 @@ internal sealed class ItemApplication
 
 	internal void SpawnWorldItem(WorldItem w) => _scene.SpawnWorldItem(w);
 
+	/// <summary>
+	/// Entity-event replay side: materialize or enrich a destructive-trap /
+	/// building-death drop from the full initial state carried by the event.
+	/// The committed kernel batch is the authoritative item fact source; the
+	/// event's <see cref="TrapDropEntryMsg"/> entries carry the transient
+	/// presentation facts (fresh flag, velocity, rotation, angular velocity)
+	/// that the kernel projection intentionally does not own.
+	/// </summary>
+	internal void ApplyTrapDropPresentation(IReadOnlyList<TrapDropEntryMsg> drops)
+	{
+		if (drops.Count == 0)
+		{
+			return;
+		}
+
+		using (CallContext.Enter(CallContext.Origin.RemoteApply))
+		{
+			foreach (var drop in drops)
+			{
+				var world = InitialDropStateMapper.ToWorldItem(drop);
+				var item = FindWorldItem(world.ItemId);
+				if (item == null) // Unity object — ==
+				{
+					_scene.SpawnWorldItem(world);
+					continue;
+				}
+
+				// A received drop only enriches a WORLD copy. If the same id was
+				// picked up before this presentation arrived, it is no longer a
+				// world fact and must not be yanked back into the world.
+				if (!ItemWorldSync.IsWorldItem(item)) // Unity object — ==
+				{
+					_log.LogDebug("[TrapDropPresentation] {Type} (id {ItemId}) already left the world — initial drop state skipped.",
+						item.id, world.ItemId);
+					continue;
+				}
+
+				if (world.FreshItemDrop && item.GetComponent<FreshItemDrop>() == null) // Unity object — ==
+				{
+					item.gameObject.AddComponent<FreshItemDrop>();
+				}
+
+				item.transform.position = new Vector3(world.Pos.X, world.Pos.Y, 0f);
+				item.transform.eulerAngles = new Vector3(0f, 0f, world.Rotation);
+				item.rb.velocity = new Vector2(world.Vel.X, world.Vel.Y);
+				item.rb.angularVelocity = world.AngularVelocity;
+				_log.LogInformation("[TrapDropPresentation] {Type} (id {ItemId}) enriched with initial drop state at ({X:F1},{Y:F1}).",
+					item.id, world.ItemId, world.Pos.X, world.Pos.Y);
+			}
+		}
+	}
+
 	internal static Item? FindWorldItem(ulong itemId) => RemoteItemSceneOps.FindWorldItem(itemId);
 
 	internal static Item? FindExistingAt(NetVector2 pos, string itemId) => RemoteItemSceneOps.FindExistingAt(pos, itemId);

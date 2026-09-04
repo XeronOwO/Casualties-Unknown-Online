@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using CasualtiesUnknownOnline.GameAdapter.Items;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
@@ -17,7 +18,7 @@ namespace CasualtiesUnknownOnline.GameAdapter.World;
 /// sides, so the trap's transform position IS its identity (same pattern as
 /// the building-entity damage/open events).
 /// </summary>
-internal sealed class EntityEventSync(IWorldControl world, ISessionControl session, TrapEffectApplier applier, TrapVisualReplay replay, WorldEntityKernelProjection kernelProjection, TrapDropPendingState pendingDrops, ILogger<EntityEventSync> log)
+internal sealed class EntityEventSync(IWorldControl world, ISessionControl session, TrapEffectApplier applier, TrapVisualReplay replay, WorldEntityKernelProjection kernelProjection, TrapDropPendingState pendingDrops, ItemApplication itemApplication, ILogger<EntityEventSync> log)
 {
 	private readonly IWorldControl _world = world;
 	private readonly ISessionControl _session = session;
@@ -25,6 +26,7 @@ internal sealed class EntityEventSync(IWorldControl world, ISessionControl sessi
 	private readonly TrapVisualReplay _replay = replay;
 	private readonly WorldEntityKernelProjection _kernelProjection = kernelProjection;
 	private readonly TrapDropPendingState _pendingDrops = pendingDrops;
+	private readonly ItemApplication _itemApplication = itemApplication;
 	private readonly ILogger<EntityEventSync> _log = log;
 
 	internal void BindToSession()
@@ -128,16 +130,24 @@ internal sealed class EntityEventSync(IWorldControl world, ISessionControl sessi
 			var health = ReadDestroyedTrapHealth(msg.Kind, new Vector2(pos.X, pos.Y));
 			_world.ReportTrapEvent(msg.Kind, pos.X, pos.Y, msg.Extra, health, additionalHealth, msg.Drops, sender);
 			_world.BroadcastEntityEvent(sender, msg);
+
+			// The guest's local drop objects do not exist on the host (the
+			// host's copy is killed as a remote death by the applier above);
+			// the kernel batch provides the authoritative item facts, while
+			// the event's Drops carries the transient initial presentation.
+			_itemApplication.ApplyTrapDropPresentation(msg.Drops);
 		}
 		else
 		{
 			// The host's relay — replay the event: pure visual + real-body
-			// effects + entity consumption. RemoteApply: the replay must never
-			// re-report (the trap patches check the origin).
+			// effects + entity consumption + the drop initial presentation.
+			// RemoteApply: the replay must never re-report (the trap patches
+			// check the origin).
 			using (CallContext.Enter(CallContext.Origin.RemoteApply))
 			{
 				_log.LogInformation("[TrapEvent] kind={Kind} pos=({X:F1},{Y:F1}) origin=Replay.", msg.Kind, pos.X, pos.Y);
 				_replay.Replay(msg.Kind, new Vector2(pos.X, pos.Y), msg.Extra);
+				_itemApplication.ApplyTrapDropPresentation(msg.Drops);
 			}
 		}
 	}

@@ -96,6 +96,7 @@ internal sealed class CloneInventoryRenderer(ILogger<CloneInventoryRenderer> log
 					matches[0].gameObject.AddComponent<RemoteCloneRender>();
 				}
 
+				SetRemoteInventoryItemId(matches[0], wanted.InstanceId);
 				RestoreRemoteContents(matches[0], wanted.Contents);
 				return;
 			}
@@ -216,6 +217,7 @@ internal sealed class CloneInventoryRenderer(ILogger<CloneInventoryRenderer> log
 		// clear only our renders, and the uniform marker lets presentation code
 		// identify a display-proxy item without depending on slot internals.
 		obj.AddComponent<RemoteCloneRender>();
+		SetRemoteInventoryItemId(item, wanted.InstanceId);
 		RestoreRemoteContents(item, wanted.Contents);
 	}
 
@@ -251,11 +253,62 @@ internal sealed class CloneInventoryRenderer(ILogger<CloneInventoryRenderer> log
 
 		// Display proxies must never receive item-domain instance ids. The
 		// snapshot contents carry the ids for authoritative matching, but this
-		// renderer only needs the visual data; passing the raw tree into the
-		// shared restore would stamp ids onto proxy children and make the world
-		// item lookup able to confuse them with the owner's real items.
-		ItemStateCodec.RestoreContents(containerItem, CloneInventoryContentSanitizer.WithoutInstanceIds(contents));
+		// renderer only needs the visual data plus a display-only id marker for
+		// the remote-backpack gesture path; passing the raw tree into the shared
+		// restore would stamp ItemInstanceId onto proxy children and make the
+		// world item lookup able to confuse them with the owner's real items.
+		var container = containerItem.GetComponent<Container>();
+		if (container != null) // Unity object — ==
+		{
+			foreach (var childData in contents)
+			{
+				RestoreRemoteContent(containerItem, container, childData);
+			}
+		}
+
 		MarkRemoteCloneTree(containerItem);
+	}
+
+	private static void RestoreRemoteContent(Item containerItem, Container container, CharacterItemMsg childData)
+	{
+		var prefab = ItemPrefabResolver.Load(childData.ItemId);
+		if (prefab == null) // Unity object — ==
+		{
+			return;
+		}
+
+		var go = Object.Instantiate(prefab, containerItem.transform.position, Quaternion.identity);
+		go.SetActive(true);
+		var child = go.GetComponent<Item>();
+		if (child == null) // Unity object — ==
+		{
+			Object.Destroy(go);
+			return;
+		}
+
+		child.condition = childData.Condition;
+		child.favourited = childData.Favourited;
+		SetRemoteInventoryItemId(child, childData.InstanceId);
+		ItemStateCodec.RestoreLiquids(child, childData.Liquids);
+		ItemStateCodec.RestoreComponentStates(child, childData.Components);
+		RestoreRemoteContents(child, childData.Contents);
+		container.LoadItem(child);
+	}
+
+	private static void SetRemoteInventoryItemId(Item item, ulong instanceId)
+	{
+		if (instanceId == 0)
+		{
+			return;
+		}
+
+		var marker = item.GetComponent<RemoteInventoryItemId>();
+		if (marker == null) // Unity object — ==
+		{
+			marker = item.gameObject.AddComponent<RemoteInventoryItemId>();
+		}
+
+		marker.Id = instanceId;
 	}
 
 	private static void MarkRemoteCloneTree(Item root)

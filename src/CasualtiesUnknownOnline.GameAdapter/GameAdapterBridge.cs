@@ -202,8 +202,8 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 			return false;
 		}
 
-		var id = dragItem.GetComponent<ItemInstanceId>();
-		if (id == null || id.Id == 0) // Unity object — ==
+		var itemId = GetRemoteProxyItemId(dragItem);
+		if (itemId == 0)
 		{
 			domains.Log.LogWarning("[BackpackView] refused remote take: dragged display item {ItemId} has no bound instance id.", dragItem.id);
 			return false;
@@ -224,9 +224,9 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 			return false;
 		}
 
-		domains.PlayerInteraction.SendTakeRequest(owner, id.Id);
+		domains.PlayerInteraction.SendTakeRequest(owner, itemId);
 		domains.Log.LogInformation("[BackpackView] requested take of {ItemId} (id {InstanceId}) from {Owner}.",
-			dragItem.id, id.Id, owner);
+			dragItem.id, itemId, owner);
 		return true;
 	}
 
@@ -243,7 +243,7 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 			return false;
 		}
 
-		var id = item.GetComponent<ItemInstanceId>();
+		var itemId = GetRemoteProxyItemId(item);
 		if (camera.dragImage != null) // Unity object — ==
 		{
 			camera.dragImage.enabled = false;
@@ -251,7 +251,7 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 
 		camera.dragItem = null;
 		domains.Log.LogWarning("[BackpackView] cancelled remote display-proxy drag ({Reason}) for {ItemId} (id {InstanceId}).",
-			reason, item.id, id?.Id ?? 0);
+			reason, item.id, itemId);
 		return true;
 	}
 
@@ -487,4 +487,17 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 		domains.HeaterCookSync.OnCookCompleted(sourceItemId, cookedItem, sourceCondition, sourcePosition);
 
 	public void OnHeaterCookCaptureFailed(ulong sourceItemId) => domains.HeaterCookSync.OnCaptureFailed(sourceItemId);
+
+	private static ulong GetRemoteProxyItemId(Item item)
+	{
+		var marker = item.GetComponent<RemoteInventoryItemId>();
+		if (marker != null && marker.Id != 0) // Unity object — ==
+		{
+			return marker.Id;
+		}
+
+		// Legacy fallback: extremely old clone renders may still carry a domain
+		// item id from before the id-free display boundary.
+		return item.GetComponent<ItemInstanceId>()?.Id ?? 0;
+	}
 }

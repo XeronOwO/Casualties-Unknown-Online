@@ -19,6 +19,11 @@ Implemented the shared carried-ride presentation path:
 - The rider's stream now publishes the body root while carried (not the
   ragdoll torso anchor), so third-party peers use the same reference point as
   the two participant views.
+- After all clones are interpolated each frame, `RemotePlayerRenderer` pins
+  every remote rider clone to its carrier's visual position — not just on the
+  local-carrier screen, but also on third-party screens. Therefore the pair is
+  rigidly attached everywhere and interpolation cannot introduce visible
+  detachment.
 - 1 Hz clone diagnostics tag carried-rider/carrier clones.
 
 No carry authority, wire protocol, release semantics, or host rules changed.

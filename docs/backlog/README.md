@@ -49,6 +49,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Suppress native idle-sit while carried](todo/carried-player-idle-sit-suppression.md) — carried characters still sit after idle despite the existing render-proxy idle reset.
 - [Entity destruction drops lose fresh-drop presentation/initial motion on the guest view](todo/entity-destruction-drop-guest-fresh-state-loss.md) — building/entity destruction drops on the guest lack the fresh glow/no-gravity state and show fall-then-pull-back.
 - [Sync player pain vocalizations and B-key bark to remote players](todo/sync-player-pain-vocalizations-and-bark.md) — host pain screams and B-key bark are not heard on the guest; reverse direction must also be self-checked during the fix.
+- [Guest background window plays ghost item friction/ground sounds](todo/guest-background-ghost-item-ground-sounds.md) — backgrounding the guest causes intermittent item ground/friction sounds that are absent in the foreground.
 
 
 ### In progress

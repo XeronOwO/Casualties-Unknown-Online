@@ -41,7 +41,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [State-stream bandwidth reduction](todo/state-stream-bandwidth-reduction.md) — measurement-first.
 - [Snapshot size reduction](todo/snapshot-size-reduction.md) — measurement-first.
 - [Projection failure auto-recovery](todo/projection-failure-auto-recovery.md) — dirty/rebuild loop for failed Unity projections (Loomi review 2026-09-04).
-- [Protocol frame envelope validation](todo/protocol-frame-validation.md) — single shape/kind/sender validation before business handlers (Loomi review 2026-09-04).
 - [Composite command sequential semantics](todo/composite-command-sequential-semantics.md) — decide whether inner commands see staged results or must be independent (Loomi review 2026-09-04).
 - [Network traffic baseline and regression gate](todo/network-traffic-baseline.md) — concrete bytes/frame-size/checkpoint metrics before optimization (Loomi review 2026-09-04).
 
@@ -62,6 +61,7 @@ _None._ (Folder exists for the workflow.)
 - [check-architecture.ps1 performance](review/check-architecture-performance.md) — full gate ~32.4s → ~2.15s; selfcheck linked.
 - [Middle-click location marker](review/middle-click-location-marker.md) — dedicated one-shot location ping: middle click circle, quick second click exclamation, star relay, 5s fade; selfcheck linked.
 - [CUCoreLib migration support](review/cucorelib-migration-support.md) — external KrokMP-based evaluation complete; typed content/status/moodle/runtime seams landed; remaining rows are future/non-goal; selfchecks linked.
+- [Protocol frame envelope validation](review/protocol-frame-validation.md) — unified frame validator before kernel handlers; malformed/forged/oversized frames dropped, presentation payloads remain non-fatal.
 - [Full-qualified name cleanup](review/full-qualified-name-cleanup.md) — prefer using directives/aliases; behavior-preserving refactor only.
 
 ### Future

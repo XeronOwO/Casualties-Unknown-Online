@@ -182,10 +182,10 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 			return;
 		}
 
-		if (!IsSupportedFrame(frame))
+		if (!ProtocolFrameValidator.TryValidate(frame, sender, out var validationError))
 		{
-			_log.LogWarning("Dropped unsupported kernel protocol frame from {Sender} ({Kind}).",
-				sender, frame.Kind);
+			_log.LogWarning("Dropped invalid kernel protocol frame from {Sender}: {Reason}.",
+				sender, validationError);
 			return;
 		}
 
@@ -215,30 +215,6 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 		_nextMessageId = 0;
 		_stateStreams.Reset();
 		_commandHandler.Reset();
-	}
-
-	private bool IsSupportedFrame(ProtocolFrame frame)
-	{
-		var header = frame.Command?.Header
-			?? frame.CommittedBatch?.Header
-			?? frame.Checkpoint?.Header
-			?? frame.StateStream?.Header;
-		if (header is null)
-		{
-			return false;
-		}
-
-		if (header.ProtocolVersion != ProtocolConstants.EnvelopeVersion)
-		{
-			return false;
-		}
-
-		if (!Enum.IsDefined(typeof(WirePayloadType), header.PayloadType))
-		{
-			return (int)header.PayloadType >= ProtocolConstants.PresentationPayloadStart;
-		}
-
-		return true;
 	}
 
 	private void HandleHostFrame(ulong sender, ProtocolFrame frame)

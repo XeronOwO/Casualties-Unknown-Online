@@ -62,6 +62,7 @@ public class EnemySyncServiceTests
 				Header = new EnvelopeHeader
 				{
 					ProtocolVersion = ProtocolConstants.EnvelopeVersion,
+					SenderId = HostId,
 					PayloadType = WirePayloadType.EnemyStateStream,
 				},
 				Stream = new WireStateStream

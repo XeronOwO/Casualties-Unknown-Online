@@ -192,7 +192,7 @@ public class ProtocolCodecTests
 								new WirePlayerLimbPose
 								{
 									Index = 2,
-									LocalPosition = new WireVector2 { X = 1.5f, Y = -0.5f },
+									WorldPosition = new WireVector2 { X = 1.5f, Y = -0.5f },
 									RotationZ = 37f,
 								},
 							],
@@ -222,8 +222,8 @@ public class ProtocolCodecTests
 		Assert.Equal(0.25f, player.DogShakeIntensity);
 		var limbPose = Assert.Single(player.LimbPoses!);
 		Assert.Equal(2, limbPose.Index);
-		Assert.Equal(1.5f, limbPose.LocalPosition.X);
-		Assert.Equal(-0.5f, limbPose.LocalPosition.Y);
+		Assert.Equal(1.5f, limbPose.WorldPosition.X);
+		Assert.Equal(-0.5f, limbPose.WorldPosition.Y);
 		Assert.Equal(37f, limbPose.RotationZ);
 		var enemy = Assert.Single(stream.EnemyStates);
 		Assert.Equal(42f, enemy.Health);

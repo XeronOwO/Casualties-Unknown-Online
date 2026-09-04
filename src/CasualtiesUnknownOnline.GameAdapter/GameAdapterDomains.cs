@@ -142,7 +142,7 @@ internal sealed class GameAdapterDomains
 		GameAdapterStructureContentProvider structureContent,
 		GameAdapterStatusContentProvider statusContent,
 		GameAdapterMoodleContentProvider moodleContent,
-		ModService modService)
+		ModStatusStore modStatusStore)
 	{
 		Session = session;
 		Items = items;
@@ -170,9 +170,9 @@ internal sealed class GameAdapterDomains
 		LiquidTilePlacement = new LiquidTilePlacement(
 			liquidTileContent, session, loggerFactory.CreateLogger<LiquidTilePlacement>());
 		StatusProjection = new ModStatusVanillaProjection(
-			modService.StatusStore, session, loggerFactory.CreateLogger<ModStatusVanillaProjection>());
+			modStatusStore, session, loggerFactory.CreateLogger<ModStatusVanillaProjection>());
 		MoodleProjection = new ModStatusMoodleProjection(
-			modService.StatusStore, session, statusContent, moodleContent,
+			modStatusStore, session, statusContent, moodleContent,
 			loggerFactory.CreateLogger<ModStatusMoodleProjection>());
 		Entities = entities;
 		HostRules = hostRules;

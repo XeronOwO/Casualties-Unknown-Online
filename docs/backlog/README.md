@@ -43,6 +43,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Network traffic baseline and regression gate](todo/network-traffic-baseline.md) — concrete bytes/frame-size/checkpoint metrics before optimization (Loomi review 2026-09-04).
 - [DI cycle guard / cycle-path diagnostics](todo/di-cycle-guard.md) — prevent composition-root circular dependencies or log the exact service chain when a cycle occurs.
 - [Remove legacy "View items" remote-inventory detail path](todo/remove-legacy-view-items-remote-inventory-detail.md) — confirm and remove the pre-native-backpack right-click "View items" fallback if the current native backpack/right-click menu covers it.
+- [Remote backpack native interaction parity](todo/remote-backpack-native-interaction-parity.md) — opening another player's backpack currently supports only take; normal pour/drop/container/Tab-transfer backpack operations are missing.
 
 
 ### In progress

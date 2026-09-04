@@ -145,11 +145,23 @@ internal static class SessionStatePump
 		{
 			if (entity.Sitting != driver.PrevSitting)
 			{
+				var wasSitting = driver.PrevSitting;
 				driver.PrevSitting = entity.Sitting;
 				if (entity.Sitting)
 				{
-					body.bodyAnimator.Play("ExperimentSit");
-					body.armsAnimator.Play("ArmsSit");
+					if (CarriedBodyPose.ShouldReplaySit(driver.IsCarriedRider, entity.Sitting))
+					{
+						body.bodyAnimator.Play("ExperimentSit");
+						body.armsAnimator.Play("ArmsSit");
+					}
+				}
+				else if (CarriedBodyPose.ShouldRestoreGroundedOnSitEnd(entity.Sitting, wasSitting))
+				{
+					// Leaving the sit state is also an explicit transition: the
+					// animator will not drop the ExperimentSit clip by itself on
+					// a stationary proxy, so replay the normal standing clips.
+					body.bodyAnimator.Play("Grounded");
+					body.armsAnimator.Play("Grounded");
 				}
 			}
 

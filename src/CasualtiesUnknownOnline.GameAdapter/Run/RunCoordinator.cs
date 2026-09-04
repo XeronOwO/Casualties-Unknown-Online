@@ -516,10 +516,15 @@ internal sealed class RunCoordinator(
 			: (NetVector2?)null;
 		// Pose flags mirror the game's own pose rules:
 		// - sitting: idle sit condition (Body.cs:3162), minus movingAllowed
-		//   (private; sleeping is covered by the sleeping flag).
+		//   (private; sleeping is covered by the sleeping flag), and never while
+		//   the local body is a carried rider — the ride presentation replaces
+		//   the native sit state and must not leak onto the wire.
 		// - sleeping: Body.cs:3961.
 		// - climbing: currentClimbable (Body.cs:470).
-		var sitting = body.idleTime > 12f && !body.exercising;
+		var sitting = CarriedBodyPose.ShouldPublishSitting(
+			CarriedBodyDriver.IsCarrying(body),
+			body.idleTime > 12f,
+			body.exercising);
 		// Workout/exercise: Body.DoWorkout is a coroutine that does not expose
 		// the active workout type as a public field, so BodyWorkoutPatch stores
 		// the requested WorkoutType on a tiny local-body tracker. The

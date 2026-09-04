@@ -17,7 +17,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Mods;
 /// effect. No automatic replication is implemented here; shared values are
 /// applied explicitly by the guest from a host-originated message.
 /// </summary>
-internal sealed class ModStatusStore(ILogger log)
+public sealed class ModStatusStore(ILogger log)
 {
 	private readonly ILogger _log = log;
 	private readonly Dictionary<string, Dictionary<string, ModStatusEntry>> _statuses =

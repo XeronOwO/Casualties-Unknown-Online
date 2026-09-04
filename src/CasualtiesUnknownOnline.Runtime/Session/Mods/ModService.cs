@@ -38,6 +38,7 @@ public sealed class ModService : ICuoService, IModsControl, IModUiControl, IModC
 		ILoggerFactory loggerFactory,
 		ILogger<ModService> log,
 		ModStateFileStore stateFile,
+		ModStatusStore statusStore,
 		RemoteVitalsService remoteVitals,
 		RemoteInventoryService remoteInventory,
 		IModEntitySpawner entitySpawner,
@@ -51,7 +52,7 @@ public sealed class ModService : ICuoService, IModsControl, IModUiControl, IModC
 		_catalog = new ModCatalog();
 		_stateStore = new ModStateStore(stateFile, log);
 		_dataStore = new ModDataStore(log);
-		_statusStore = new ModStatusStore(log);
+		_statusStore = statusStore;
 		_buildingRuntime = buildingRuntime;
 		_commands = new ModCommandService(_catalog, session, sender, time, log);
 		_lifecycle = new ModLifecycle(_catalog, _commands, consoleCommands, _stateStore, _dataStore, _statusStore, _buildingRuntime, session, channel, registry, time, loggerFactory, log, remoteVitals, remoteInventory, entitySpawner, itemSpawner, tilePlacer, structurePlacer, liquidPlacer, nativeApiProvider, this);

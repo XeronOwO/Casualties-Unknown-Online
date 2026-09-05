@@ -98,13 +98,15 @@ Cover at least:
   scan over `src/` and `tests/`.
 - Added `docs/evidence/normative-gates.md`, the normative rule → automation
   status inventory requested by the ticket.
-- Added `ExistingPowerShellGateTests`, which invokes every
-  `tools/check-*.ps1` from the ordinary `dotnet test` run, so the remaining
-  repo-wide/data/process PowerShell gates are no longer optional commit-time
-  scripts.
+- Ported every `tools/check-*.ps1` repo/data/process gate to C# xUnit tests:
+  `SourceShapeGateTests` covers architecture, GameState isolation, item
+  authority, no-legacy, command authority, and kernel shape; `RepositoryGateTests`
+  covers no-absolute-paths, event-replay matrix, entity-event dispatch, and
+  delivery checklist. The PowerShell scripts remain as standalone commit-time
+  commands, but the C# ports are part of `dotnet test`.
 - Cleaned the small set of existing fully qualified names that the new gate
   caught (`System.StringComparison`, `System.InvalidOperationException`,
   `System.Collections.Generic.IReadOnlyDictionary`).
-- Full `dotnet test` (2335 existing + 6 new), `dotnet format`,
+- Full `dotnet test` (2335 existing + 16 new), `dotnet format`,
   `check-architecture`, `check-event-replay`, `check-entity-event-dispatch`,
   `check-no-absolute-paths`, and `check-delivery` pass.

@@ -93,6 +93,7 @@ All files under `docs/selfchecks/` are historical/per-delivery evidence records.
 | presentation/muzzle-flash-sync-selfcheck.md | Other | current | candidate current evidence; verify before citing |
 | presentation/remote-clone-facing-auto-flip-selfcheck.md | Other | current | stale render-clone facing auto-flip inputs neutralized |
 | presentation/remote-clone-head-mouth-sync-selfcheck.md | Other | current | owner head/mouth state replayed on remote clones; host fall-injury mouth desync |
+| presentation/remote-clone-legspeed-pose-selfcheck.md | Other | current | owner leg-speed multiplier replayed as CrouchAmount weakness/slouch input; severe-sleepiness posture desync |
 | presentation/nap-and-dog-shake-sync-selfcheck.md | Other | current | candidate current evidence; verify before citing |
 | players/native-remote-backpack-and-door-sound-selfcheck.md | Other | historical | superseded/old-wire; do not cite as current evidence without checking protocol.md |
 | protocol/netmsg-registry-selfcheck.md | Other | current | candidate current evidence; verify before citing |

@@ -280,4 +280,15 @@ public sealed class CharacterHealthMsg
 	/// </summary>
 	[ProtoMember(79)]
 	public float EatTime { get; set; }
+
+	/// <summary>
+	/// The owner's computed leg-speed multiplier (Body.legSpeedMult, 0-1).
+	/// HandleVisuals uses it as the weakness/slouch input for the CrouchAmount
+	/// animator parameter; the remote render clone cannot recompute it because
+	/// its limbs are frozen, so the 1 Hz snapshot carries the owner's actual
+	/// value. Severe sleepiness, low consciousness/stamina, hunger, and other
+	/// movement-debility facts all flow through this one pose input.
+	/// </summary>
+	[ProtoMember(80)]
+	public float LegSpeedMult { get; set; }
 }

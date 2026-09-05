@@ -82,6 +82,14 @@ internal sealed class RemoteBodyDriver : MonoBehaviour
 	/// </summary>
 	public HeadMouthState HeadMouth;
 
+	/// <summary>
+	/// The owner's computed leg-speed multiplier (0-1) from the 1 Hz character
+	/// snapshot. It drives the weakness/slouch CrouchAmount input on the proxy
+	/// (<see cref="BodyPosePresentation.ProxyCrouchInput"/>); default 1 means
+	/// full strength/standing before the first snapshot arrives.
+	/// </summary>
+	public float LegSpeedMult = 1f;
+
 	/// <summary>Last snapshot arrival (TickCount) — snapshot-change detection for the arrival-interval estimate.</summary>
 	public long LastStateMs;
 

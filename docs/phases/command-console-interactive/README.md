@@ -54,7 +54,7 @@ The first slice landed a modal Online UI console page:
 | 16 — Real JSON host-rule command | Complete | `/hostrules <json>` parses a flat JSON object and writes host-rule settings through the plugin's BepInEx ConfigEntry editor. |
 | 17 — Attribute/reflection registration + mod API | Complete | `[ConsoleCommand]` + `ConsoleCommandRegistry` replace the hard-coded built-in list; `IModContext.ConsoleCommands` exposes local mod command registration through Abstractions. |
 | 18 — Command tree, resource-location, selector filters | Complete | `CommandTree`/`CommandNode` drive argument-position completion; `ResourceLocation` + catalog and bracketed selector filters/resolution (`type`, `name`, `distance`, `limit`, `sort`) are covered by core/edge tests. |
-| 19 — Rejected UI redo | Complete | Compact translucent bottom overlay, aligned prompt/input, live Minecraft-style suggestions on `/`, full no-fade history while open, closed-panel fading notifications. ESC interception fixed with a one-frame modal suppression after console close (`CommandConsoleModalSuppression` + `Plugin.Update`); dedicated ticket at `docs/backlog/review/command-console-esc-not-intercepted.md`. Input drawing split into `CommandConsoleInputRenderer`. |
+| 19 — Rejected UI redo | Complete | Compact translucent bottom overlay, aligned prompt/input, live Minecraft-style suggestions on `/`, full no-fade history while open, closed-panel fading notifications. ESC interception fixed with a one-frame modal suppression after any CUO ESC-closing surface closes (`CuoEscCloseSuppression` + `Plugin.Update`); dedicated ticket at `docs/backlog/review/command-console-esc-not-intercepted.md`. Input drawing split into `CommandConsoleInputRenderer`. |
 
 ## Phases
 

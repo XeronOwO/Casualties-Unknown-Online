@@ -71,9 +71,10 @@ selectors support bracketed filters (`type`, `name`, `distance`, `limit`,
 ## ESC interception resolved
 
 The previous ESC re-report is now closed by a one-frame modal suppression:
-`Plugin.Update` keeps `SetOnlineUiModal(true)` for the first frame after the
-standalone console closes, so the closing ESC cannot be seen by the game's
-native pause input in the same frame. The dedicated ticket is
+`Plugin.Update` keeps `SetOnlineUiModal(true)` for the first frame after any
+CUO ESC-closing surface (standalone console, Online UI window, quick panel)
+closes, so the closing ESC cannot be seen by the game's native pause input in
+the same frame. The dedicated ticket is
 `docs/backlog/review/command-console-esc-not-intercepted.md`.
 
 Phase plan: `docs/phases/command-console-interactive/README.md`.

@@ -75,8 +75,10 @@ internal sealed class EnemyTargetResolver(
 				localBody));
 		}
 
-		foreach (var remote in _entities.RemotePlayers)
+		var remotePlayers = _entities.RemotePlayers;
+		for (var i = 0; i < remotePlayers.Count; i++)
 		{
+			var remote = remotePlayers[i];
 			// StateReceivedMs < 0 = no report yet; the (0,0) buffer default would
 			// drag enemies to the world origin.
 			if (remote.StateReceivedMs < 0 || !_session.IsRemoteInWorld(remote.SteamId))

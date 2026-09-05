@@ -311,8 +311,10 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		{
 			new(_entities.LocalPlayer.SteamId, true, _entities.LocalPlayer.Position, GetDisplayName(_entities.LocalPlayer.SteamId)),
 		};
-		foreach (var remote in _entities.RemotePlayers)
+		var remotePlayers = _entities.RemotePlayers;
+		for (var i = 0; i < remotePlayers.Count; i++)
 		{
+			var remote = remotePlayers[i];
 			targets.Add(new(remote.SteamId, false, remote.Position, GetDisplayName(remote.SteamId)));
 		}
 

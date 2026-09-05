@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
@@ -62,7 +61,8 @@ internal sealed class ItemPositionFollow(IItemControl items, DropProtectionGuard
 			return;
 		}
 
-		foreach (var key in _follow.Keys.ToList()) // copy — removed while iterating
+		List<ulong>? removed = null;
+		foreach (var key in _follow.Keys) // no per-frame copy; removals are deferred until after the walk
 		{
 			var item = ItemApplication.FindWorldItem(key);
 			// Unity object — ==. Gone (picked up/destroyed), not yet materialized,
@@ -73,7 +73,7 @@ internal sealed class ItemPositionFollow(IItemControl items, DropProtectionGuard
 			// after picking things up).
 			if (item == null || !ItemWorldSync.IsStandaloneWorldItem(item))
 			{
-				_follow.Remove(key);
+				(removed ??= []).Add(key);
 				_guard.Remove(key);
 				continue;
 			}
@@ -119,6 +119,14 @@ internal sealed class ItemPositionFollow(IItemControl items, DropProtectionGuard
 					item.transform.eulerAngles = new Vector3(0f, 0f, d.TargetRot);
 					_log.LogInformation("[ItemPhysics] snap {Id} d={Dist:F1}.", key, d.Dist);
 				}
+			}
+		}
+
+		if (removed is not null)
+		{
+			foreach (var key in removed)
+			{
+				_follow.Remove(key);
 			}
 		}
 	}

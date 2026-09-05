@@ -18,7 +18,7 @@ public interface IEntitySyncControl
 	PlayerEntity LocalPlayer { get; }
 
 	/// <summary>All synced remote entities (host: one per guest; guest: host + roster guests).</summary>
-	IEnumerable<PlayerEntity> RemotePlayers { get; }
+	IReadOnlyList<PlayerEntity> RemotePlayers { get; }
 
 	/// <summary>Synced remote entity by SteamId, or null.</summary>
 	PlayerEntity? GetRemotePlayer(ulong steamId);

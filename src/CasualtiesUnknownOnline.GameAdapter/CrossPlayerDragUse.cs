@@ -49,8 +49,10 @@ internal sealed class CrossPlayerDragUse(GameAdapterDomains domains)
 		var mouseWorld = camera.ScreenToWorldPoint(Input.mousePosition);
 		PlayerEntity? target = null;
 		var bestSquared = OverlapRadius * OverlapRadius;
-		foreach (var remote in domains.Entities.RemotePlayers)
+		var remotePlayers = domains.Entities.RemotePlayers;
+		for (var i = 0; i < remotePlayers.Count; i++)
 		{
+			var remote = remotePlayers[i];
 			if (remote.IsLocal || !domains.Session.IsRemoteInWorld(remote.SteamId))
 			{
 				continue;

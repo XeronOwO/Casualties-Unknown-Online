@@ -118,6 +118,7 @@ public class StateStreamTests
 			GuestPosition = new NetVector2Msg(10f, 0f),
 		});
 		Assert.NotNull(entities.GetRemotePlayer(HostId));
+		Assert.Contains(entities.RemotePlayers, p => p.SteamId == HostId);
 
 		sender.Send(GuestId, NetMsg.PlayerLeave, new PlayerLeaveMsg
 		{
@@ -126,6 +127,7 @@ public class StateStreamTests
 		}, reliable: true);
 
 		Assert.Null(entities.GetRemotePlayer(HostId));
+		Assert.Empty(entities.RemotePlayers);
 	}
 
 	[Fact]

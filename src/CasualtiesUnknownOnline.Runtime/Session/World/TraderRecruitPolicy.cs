@@ -179,6 +179,7 @@ internal static class TraderRecruitPolicy
 				DisfiguredIndex = original.DisfiguredIndex,
 				DisfiguredTimeFullSkin = original.DisfiguredTimeFullSkin,
 				EyeTimeHealed = original.EyeTimeHealed,
+				LegSpeedMult = 1f,
 			}
 			: new CharacterHealthMsg
 			{
@@ -197,6 +198,7 @@ internal static class TraderRecruitPolicy
 				Alive = true,
 				Conscious = true,
 				Temperature = 37f,
+				LegSpeedMult = 1f,
 			};
 
 		return new CharacterDataMsg

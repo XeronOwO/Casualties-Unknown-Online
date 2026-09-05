@@ -370,4 +370,23 @@ public class NetPacketTests
 		Assert.Equal(0.75f, decoded.Health.EatTime);
 	}
 
+	[Fact]
+	public void CharacterHealth_LegSpeedMult_RoundTrips()
+	{
+		// The 1 Hz character snapshot carries the owner's computed leg-speed
+		// multiplier so the remote render proxy can reproduce the
+		// weakness/slouch CrouchAmount input (severe sleepiness postures).
+		var msg = new CharacterDataMsg
+		{
+			Health = new CharacterHealthMsg
+			{
+				LegSpeedMult = 0.31f,
+			},
+		};
+
+		var decoded = NetPacket.DecodePayload<CharacterDataMsg>(NetPacket.Encode(NetMsg.CharacterData, msg));
+
+		Assert.Equal(0.31f, decoded.Health!.LegSpeedMult);
+	}
+
 }

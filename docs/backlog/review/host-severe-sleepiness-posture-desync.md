@@ -1,9 +1,26 @@
 # Host severe sleepiness posture not synced to guest
 
-- Status: Todo
+- Status: Review
 - Priority: High
 - Category: Body pose sync / remote presentation (systemic)
 - Source: User report (2026-09-05) — when the host is severely sleepy, the host's body cannot stand straight (posture is visibly slouched/bent), but the guest's view shows the host standing straight.
+
+## Landed (2026-09-05)
+
+The systemic root cause was not a missing one-off slouch patch: the owner's
+HandleVisuals feeds `max(crouchAmount, 1 - legSpeedMult)` into the CrouchAmount
+animator parameter, and the frozen render proxy could not compute
+`legSpeedMult` (it is a get-only property over limb physics). The 1 Hz
+character snapshot now carries the owner's computed `legSpeedMult`
+(CharacterHealthMsg ProtoMember 80); the proxy stores it on
+`RemoteBodyDriver.LegSpeedMult` and reconstructs the same CrouchAmount input
+through the pure `BodyPosePresentation.ProxyCrouchInput` rule. This covers the
+whole weakness/slouch family (severe sleepiness, low consciousness/stamina,
+hunger, etc.) through one pose input rather than a per-symptom patch.
+
+Selfcheck: `docs/evidence/selfchecks/presentation/remote-clone-legspeed-pose-selfcheck.md`.
+
+- [ ] Awaiting final unified acceptance.
 
 ## Observed symptom
 

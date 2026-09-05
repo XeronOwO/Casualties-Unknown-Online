@@ -22,24 +22,29 @@ cross-player heal/use slice with a selected-limb fact.
 | Wire can express limb 0 | request messages store `limbIndex + 1` (`LimbSelection`); C# `LimbIndex` maps back | `PlayerHealRequestMsg`, `PlayerItemUseRequestMsg` |
 | Host honors native selected limb | `RemoteHealApplication.ResolveLimbIndex` used by heal, medicine, topical and limb-tool application | `RemoteHealApplication.cs`, `PlayerHealService.cs`, `PlayerItemUseService.cs`, `RemoteMedicineApplication.cs`, `RemoteTopicalApplication.cs`, `RemoteLimbToolApplication.cs` |
 | Native WoundView limb drag routes instead of mutating display body | `RemoteMedicalPatches.TryPerformSpecialUIAction` calls the bridge only for `WoundViewLimb`; all other special actions remain blocked | `RemoteMedicalPatches.cs` |
-| Remote medical view reaches its own routing before world-overlap drag-use | `PlayerCameraDragUsePatch` returns to native when `RemoteMedicalView.IsOpen` | `PlayerCameraDragUsePatch.cs` |
-| Special removal actions cannot mutate display body | `PlayerCamera.WoundSpecialAction` prefixed off in remote focus | `RemoteMedicalPatches.cs` |
+| Remote medical view reaches its own routing before world-overlap drag-use | `PlayerCameraDragUsePatch` returns to native when `RemoteMedicalView.IsOpen && !RemoteBackpackView.IsOpen` | `PlayerCameraDragUsePatch.cs` |
+| Special removal and direct ApplyWoundItem cannot mutate display body | `PlayerCamera.WoundSpecialAction` and `PlayerCamera.ApplyWoundItem` both prefixed off in remote focus | `RemoteMedicalPatches.cs` |
+| Medical view and backpack view cannot overlap | opening one closes the other; `RemoteBackpackView.Close` clears native radial-open state | `RemoteBackpackCoordinator.cs`, `RemoteMedicalCoordinator.cs`, `RemoteBackpackView.cs` |
+| Medical limb eligibility excludes non-limb surfaces | `LocalUseItemEligibility.IsMedicalLimbUseItem` accepts only heal/medicine/topical/limb-tool and rejects zero-condition/wear/food/drink | `LocalUseItemEligibility.cs` |
 | Protocol mixed-version rejection | `ProtocolVersion.Current` 8 → 9 | `ProtocolVersion.cs` |
 
 ## 3. Regression coverage
 
 - `PlayerInteractionServiceTests.HealRequest_RoundTripsSelectedLimbIndex` — protobuf roundtrip of limb 0 (previously lost by default-zero omission).
+- `PlayerInteractionServiceTests.HealRequest_RoundTripsAutoLimbSelection` — protobuf roundtrip of auto (-1).
 - `PlayerInteractionServiceTests.UseRequest_RoundTripsSelectedLimbIndex` — protobuf roundtrip of positive limb selection.
 - `PlayerInteractionServiceTests.Guest_HealsSelectedLimbOnHost_AppliesRequestedLimbNotAutoPick` — host applies to requested limb 0, not auto-picked limb 1.
 - `PlayerInteractionServiceTests.Guest_UsesTopicalOnSelectedLimb_AppliesRequestedLimbNotAutoPick` — host applies topical to requested limb 0, not auto-picked limb 1.
 - `RemoteLimbToolApplicationTests.ApplyMusharm_RequestedLimbWinsOverMostInjuredAutoPick` — pure limb-tool selection path.
-- `RemoteHealApplicationTests.ResolveLimbIndex_UsesRequestedValidLimb` and fallback tests — selection/fallback boundaries.
+- `RemoteMedicineApplicationTests.ApplyAntiserum_RequestedLimbWinsOverMostInjuredAutoPick` and invalid/dismembered fallback — medicine selection boundaries.
+- `RemoteTopicalApplicationTests.ApplyReliefcream_RequestedLimbWinsOverMostInjuredAutoPick` — topical selection path.
+- `RemoteHealApplicationTests.ResolveLimbIndex_UsesRequestedValidLimb`, fallback, and unordered-semantic-index tests — selection/fallback boundaries.
 - `RemoteMedicalContractTests.MedicalBridge_ExposesLimbUseRouting` — adapter bridge surface contract.
 
 ## 4. Verification
 
 - `dotnet build CasualtiesUnknownOnline.slnx --no-restore` — 0 warnings / 0 errors.
-- `dotnet test CasualtiesUnknownOnline.slnx --no-build --no-restore` — 2299 passed / 0 failed.
+- `dotnet test CasualtiesUnknownOnline.slnx --no-build --no-restore` — 2304 passed / 0 failed.
 - `dotnet format CasualtiesUnknownOnline.slnx --no-restore` — run.
 - `tools/check-architecture.ps1`, `check-event-replay.ps1`, `check-entity-event-dispatch.ps1` — pass.
 - Protocol version bumped; mixed-version sessions are rejected by the existing handshake.

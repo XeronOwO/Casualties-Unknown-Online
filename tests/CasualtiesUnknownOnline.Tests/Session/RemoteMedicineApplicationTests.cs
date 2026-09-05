@@ -210,6 +210,51 @@ public sealed class RemoteMedicineApplicationTests
 	}
 
 	[Fact]
+	public void ApplyAntiserum_RequestedLimbWinsOverMostInjuredAutoPick()
+	{
+		var health = new CharacterHealthMsg
+		{
+			BloodVolume = 100f,
+			SepticShock = 50f,
+			AntibioticImmunityTime = 0f,
+		};
+		var limbs = new List<CharacterLimbMsg>
+		{
+			new() { Index = 0, SkinHealth = 80f, MuscleHealth = 80f },
+			new() { Index = 1, SkinHealth = 20f, MuscleHealth = 30f },
+		};
+		var plan = new List<LiquidStackMsg> { new() { LiquidId = "antiserum", Amount = 50f } };
+
+		RemoteMedicineApplication.Apply(health, limbs, plan, requestedLimbIndex: 0);
+
+		Assert.True(Math.Abs(limbs[0].DisinfectionTime - 180f) < 0.001f);
+		Assert.Equal(0f, limbs[1].DisinfectionTime);
+	}
+
+	[Fact]
+	public void ApplyAntiserum_InvalidOrDismemberedRequestFallsBackToMostInjured()
+	{
+		var health = new CharacterHealthMsg
+		{
+			BloodVolume = 100f,
+			SepticShock = 50f,
+			AntibioticImmunityTime = 0f,
+		};
+		var limbs = new List<CharacterLimbMsg>
+		{
+			new() { Index = 0, SkinHealth = 80f, MuscleHealth = 80f },
+			new() { Index = 1, SkinHealth = 20f, MuscleHealth = 30f },
+			new() { Index = 2, Dismembered = true },
+		};
+		var plan = new List<LiquidStackMsg> { new() { LiquidId = "antiserum", Amount = 50f } };
+
+		RemoteMedicineApplication.Apply(health, limbs, plan, requestedLimbIndex: 2);
+
+		Assert.True(Math.Abs(limbs[1].DisinfectionTime - 180f) < 0.001f);
+		Assert.Equal(0f, limbs[0].DisinfectionTime);
+	}
+
+	[Fact]
 	public void Catalog_ExposesTimedMedicineItemsAndLiquids()
 	{
 		Assert.True(RemoteMedicineCatalog.IsInjectableItem("bloodcoagulant"));

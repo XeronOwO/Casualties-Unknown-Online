@@ -65,6 +65,16 @@ internal static class RemoteBackpackView
 		_focusedBody = null;
 		_focusedSteamId = 0;
 		_focusedName = "";
+
+		// Closing the focus also exits the native radial-open state. This keeps
+		// the remote backpack and remote medical views mutually exclusive: if the
+		// user opens the medical panel while a remote backpack is open,
+		// PlayerCamera.WoundViewButton can proceed without tripping the native
+		// "radial menu already open" guard.
+		if (PlayerCamera.main != null) // Unity object — ==
+		{
+			PlayerCamera.main.radialOpen = false;
+		}
 	}
 
 	internal static void UpdateSmoothPosition(Vector2 target) =>

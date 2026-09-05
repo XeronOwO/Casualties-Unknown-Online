@@ -42,7 +42,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Remote player medical/health panel](todo/remote-player-medical-panel.md) — rejected in review: previous CUO IMGUI panel did not reuse the game's existing medical UI; re-open requires native UI reuse like the remote backpack.
 - [Remote backpack native interaction parity](todo/remote-backpack-native-interaction-parity.md) — rejected in review: still cannot perform most item operations in another player's backpack; re-open requires full native operation parity, not documented future-only gaps.
 - [Carry/piggyback riding movement teleport and rider/carrier position mismatch](todo/carry-piggyback-rider-position-smoothing.md) — rejected in review: only half fixed; carrier/participant views still see the carried player misaligned/teleporting while moving.
-- [Host severe sleepiness posture not synced to guest](todo/host-severe-sleepiness-posture-desync.md) — host cannot stand straight when severely sleepy, but guest sees a straight body; systemic body-pose sync analysis/rewrite required, not another local patch.
 
 
 ### In progress
@@ -52,6 +51,7 @@ _None._ (Folder exists for the workflow.)
 ### Review
 
 - [Guest remote pose / head-orientation desync on host view](review/guest-remote-pose-head-orientation-desync.md) — stale render-clone attackCooldown/moveDir auto-flip inputs neutralized; regression contract and selfcheck linked.
+- [Host severe sleepiness posture not synced to guest](review/host-severe-sleepiness-posture-desync.md) — owner leg-speed multiplier now rides the 1 Hz character snapshot and is replayed as the CrouchAmount weakness/slouch input on remote clones; selfcheck linked.
 - [Host fall injury mouth-expression desync](review/host-fall-injury-mouth-expression-desync.md) — owner head/mouth state now rides the 1 Hz character snapshot and is replayed on remote clones; root cause, not a cosmetic remote-face patch; selfcheck linked.
 - [Guest background window plays ghost item friction/ground sounds](review/guest-background-ghost-item-ground-sounds.md) — non-authoritative guest item impact presentation (drop/step/squeak/dust) suppressed; selfcheck linked.
 - [Interactive in-game command console](review/in-game-command-console-interactive.md) — slash-opened focused input, completion/history/hints, fading text area, real selector-backed `/heal` command, IME-aware custom input, JSON host-rule command.

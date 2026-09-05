@@ -122,8 +122,13 @@ internal static class BodyUpdatePatch
 		// feeds it into the CrouchAmount animator parameter
 		// (Body.cs:3260: max(crouchAmount, 1 - legSpeedMult)), which pins the
 		// state machine in the crouch clip (observed: ExperimentIdleCrouch).
-		// Override: crouch pose is driven by the synced crouchAmount alone.
-		var crouchParam = Body.InOutSine(Mathf.Clamp01(__instance.crouchAmount)) * 10000f;
+		// Override with the owner's reported leg-speed multiplier so the
+		// weakness/slouch portion of the CrouchAmount input is reproduced too:
+		// severe sleepiness etc. reduce legSpeedMult on the owner, and a proxy
+		// that ignored it would stand straight while the owner visibly slouches.
+		var proxyLegSpeed = remoteDriver != null ? remoteDriver.LegSpeedMult : 1f; // Unity object — ==
+		var crouchParam = Body.InOutSine(Mathf.Clamp01(
+			BodyPosePresentation.ProxyCrouchInput(__instance.crouchAmount, proxyLegSpeed))) * 10000f;
 		__instance.bodyAnimator.SetFloat("CrouchAmount", crouchParam);
 		__instance.armsAnimator.SetFloat("CrouchAmount", crouchParam);
 

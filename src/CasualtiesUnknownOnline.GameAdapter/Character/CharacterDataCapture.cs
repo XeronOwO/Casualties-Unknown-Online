@@ -16,6 +16,7 @@ internal static class CharacterDataCapture
 	{
 		var health = mapper.Map<CharacterHealthMsg>(body);
 		CloneFacePresentation.Capture(body, health);
+		CloneBodyPosePresentation.Capture(body, health);
 		CharacterComponentSync.Capture(body, health);
 
 		var msg = new CharacterDataMsg

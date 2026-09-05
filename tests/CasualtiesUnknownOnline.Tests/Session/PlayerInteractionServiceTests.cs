@@ -2060,6 +2060,16 @@ public class PlayerInteractionServiceTests
 		Assert.NotNull(kernelItem);
 		Assert.Equal(ItemLocationKind.Contained, kernelItem!.Value.Location.Kind);
 		Assert.Equal(501UL, kernelItem.Value.Location.ParentItemId);
+
+		// The nested target container itself must remain Contained under the
+		// top-level backpack. If SyncContainerItemsCommand is issued against the
+		// nested node and that node is absent from the kernel, the old code
+		// spawned it as a Carried root, which made EmitCarriedFactsForBatch lift
+		// the trash bag to the clone's top level (visible→invisible cycle).
+		var innerKernel = authority.FindItem(501);
+		Assert.NotNull(innerKernel);
+		Assert.Equal(ItemLocationKind.Contained, innerKernel!.Value.Location.Kind);
+		Assert.Equal(500UL, innerKernel.Value.Location.ParentItemId);
 	}
 
 	[Fact]

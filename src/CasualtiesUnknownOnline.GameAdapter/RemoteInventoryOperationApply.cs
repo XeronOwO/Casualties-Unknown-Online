@@ -108,6 +108,7 @@ internal sealed class RemoteInventoryOperationApply(GameAdapterDomains domains)
 		}
 
 		var sourceSlot = ItemStateCodec.SlotOf(source);
+		Item? swappedTarget = null;
 		if (sourceSlot >= 0 && sourceSlot < body.slots.Length && body.HoldingItem(sourceSlot))
 		{
 			var targetItem = body.GetItem(targetSlot);
@@ -125,10 +126,10 @@ internal sealed class RemoteInventoryOperationApply(GameAdapterDomains domains)
 		}
 		else
 		{
-			// A source inside a container has no direct slot/limb home. The native
-			// drag path unloads it from the container before placing it into a
-			// body slot; the owner-side apply must do the same, otherwise
-			// PickUpItem cannot actually remove the item from the container.
+			// A source inside a container has no direct slot/limb home. The
+			// native drag path lets Body.PickUpItem unload it from the container
+			// inside the guarded path; the owner-side apply does the same and
+			// only handles the occupied-slot swap beforehand.
 			var sourceContainer = source.transform.parent != null
 				? source.transform.parent.GetComponent<Container>() // Unity object — ==
 				: null;
@@ -154,15 +155,28 @@ internal sealed class RemoteInventoryOperationApply(GameAdapterDomains domains)
 						targetSlot);
 					return;
 				}
+
+				swappedTarget = targetItem;
 			}
 
-			if (sourceContainer != null) // Unity object — ==
-			{
-				sourceContainer.UnloadItem(source);
-			}
+			// Do NOT unload the source here. Body.PickUpItem performs its own
+			// container-unload inside the native guarded path: it only unloads
+			// after the slot/hand/distance checks pass, so a refused move never
+			// orphans the item out of its container.
 		}
 
 		body.PickUpItem(source, targetSlot, force: true);
+
+		// If the swap's PickUpItem did not land (e.g. a source item that can
+		// only be held in hands was aimed at a non-hand slot), restore the
+		// occupying item to the slot instead of leaving it embedded in the
+		// container while the source remains there too.
+		if (swappedTarget != null && body.GetItem(targetSlot) != source) // Unity object — ==
+		{
+			_log.LogWarning("[RemoteApply] move-to-slot source did not land in slot {Slot}; restoring the swapped occupying item.",
+				targetSlot);
+			body.PickUpItem(swappedTarget, targetSlot, force: true);
+		}
 	}
 
 	private void ReportAffectedState(Item item)

@@ -1,6 +1,6 @@
 # Remote backpack native interaction parity
 
-- Status: In Progress (critical / super-priority; code-complete, final deployment deferred by user request while playing)
+- Status: Review (critical / super-priority; code-complete, latest DLLs deployed and artifact-verified, awaiting final user dual-client acceptance)
 - Priority: Critical
 - Category: Remote inventory / co-op interaction parity / container sync
 - Source: User report (2026-09-04); rejected by user (2026-09-05) — opening another player's backpack still could not perform most item operations; rejected again as a whole (2026-09-05) on container/trash-bag interaction; user now reports the remote-backpack operation problem still exists with behavior identical to before any fix and marks it a super-priority issue.
@@ -74,10 +74,41 @@ move out of container, deep move out keeping ancestors, worn move).
 `dotnet test` full suite: **2317 passed / 0 failed**. Architecture,
 event-replay, entity-event-dispatch, and delivery gates all pass.
 
-**Deployment status**: the final DLLs are NOT deployed to the game because the
-user asked to stop deploying while playing. The previous deployed build is the
-pre-fix build; do not use the current game copy for acceptance until this code
-is deployed after the session.
+**Deployment status**: the latest DLLs are deployed to the entity game
+directory (`tools/deploy.ps1 -GameDir <game-dir>`) and artifact timestamps/hashes
+are verified against the build output. The previously deployed pre-fix build has
+been replaced.
+
+## Autonomous re-fix cycle (2026-09-06)
+
+The container/trash-bag paths were re-analyzed end to end; the following
+additional root-cause fixes landed in this cycle:
+
+1. **Move-to-container now syncs the top-level carried root**, not the target
+   node. The old code could spawn a missing nested target as a `Carried` kernel
+   item, which made the clone fact table lift the trash bag to the top level
+   until the next 1 Hz snapshot (visible→invisible cycle). The root sync keeps
+   nested containers `Contained` under their real ancestor.
+2. **Local nested container reports also use the top-level root**, so a guest's
+   own container move into a nested bag does not recreate the same wrong-root
+   kernel fact.
+3. **Open remote container background drops are now routed** as
+   `MoveToContainer`, matching the native `ContainerBack` gesture. Previously
+   such a release could be swallowed as a take/cancel.
+4. **No premature container unload before load**, and `MoveToSlot` now lets the
+   native guarded `Body.PickUpItem` unload the source; the occupied-slot swap
+   rolls back if the source fails to land. This prevents an item being orphaned
+   when the native container refuses the move.
+5. **Transfer removal detaches before deferred `Destroy`**, so the immediate
+   re-report cannot capture a still-parented ghost child after taking an item
+   out of a container.
+
+Regression coverage:
+- Nested target remains `Contained` under the top-level backpack in the kernel.
+- Cross-container move prunes the old container copy from the clone fact tree.
+
+Full suite: **2324 passed / 0 failed**. Build, format, architecture,
+event-replay, entity-event-dispatch, and no-absolute-paths gates all pass.
 
 ## Goal
 

@@ -169,6 +169,40 @@ public class CloneFactTableNestedCarriedSyncTests
 	}
 
 	[Fact]
+	public void ApplyCarriedSync_WhenItemMovesBetweenContainers_PrunesOldContainerCopy()
+	{
+		var table = CreateTable();
+		const ulong owner = 2001;
+		var bottle = new CharacterItemMsg { InstanceId = 202, ItemId = "waterbottle" };
+		var trashbag = new CharacterItemMsg
+		{
+			InstanceId = 101,
+			ItemId = "trashbag",
+			Contents = [bottle],
+		};
+		var backpack = new CharacterItemMsg { InstanceId = 303, ItemId = "backpack" };
+		Invoke(table, "ApplySnapshot", owner, new CharacterDataMsg
+		{
+			OwnerSteamId = owner,
+			Items = [trashbag, backpack],
+		});
+
+		var updatedBackpack = new CharacterItemMsg
+		{
+			InstanceId = 303,
+			ItemId = "backpack",
+			Contents = [bottle],
+		};
+		Invoke(table, "ApplyCarriedSync", owner, updatedBackpack, true);
+
+		var cloneData = CloneData(table);
+		var storedTrashbag = cloneData[owner].Items.Single(i => i.InstanceId == 101);
+		var storedBackpack = cloneData[owner].Items.Single(i => i.InstanceId == 303);
+		Assert.Empty(storedTrashbag.Contents);
+		Assert.Equal(202ul, Assert.Single(storedBackpack.Contents).InstanceId);
+	}
+
+	[Fact]
 	public void ApplyCarriedSync_WhenDeepNestedItemMovesToWorn_KeepsAncestorContainers()
 	{
 		var table = CreateTable();

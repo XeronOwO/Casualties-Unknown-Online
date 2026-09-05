@@ -60,6 +60,7 @@ internal sealed class GameAdapterDomains
 	internal readonly CharacterDataSync CharacterDataSync;
 	internal readonly RemotePlayerRenderer Renderer;
 	internal readonly RemoteBackpackCoordinator RemoteBackpack;
+	internal readonly RemoteMedicalCoordinator RemoteMedical;
 	internal readonly DropProtectionGuard DropGuard;
 	internal readonly ItemApplication ItemApplication;
 	internal readonly ItemReconcile ItemReconcile;
@@ -193,6 +194,7 @@ internal sealed class GameAdapterDomains
 			loggerFactory.CreateLogger<CharacterDataSync>());
 		Renderer = new RemotePlayerRenderer(session, entities, CharacterDataSync, new CloneLimbRenderer(loggerFactory.CreateLogger<CloneLimbRenderer>()), playerInteraction, loggerFactory.CreateLogger<RemotePlayerRenderer>());
 		RemoteBackpack = new RemoteBackpackCoordinator(session, Renderer, InteractionVisibility, loggerFactory.CreateLogger<RemoteBackpackCoordinator>());
+		RemoteMedical = new RemoteMedicalCoordinator(session, CharacterDataSync, mapper, loggerFactory.CreateLogger<RemoteMedicalCoordinator>());
 		DropGuard = new DropProtectionGuard();
 		ItemApplication = new ItemApplication(items, session, loggerFactory.CreateLogger<ItemApplication>());
 		ItemReconcile = new ItemReconcile(items, ItemApplication, DropGuard, loggerFactory.CreateLogger<ItemReconcile>());

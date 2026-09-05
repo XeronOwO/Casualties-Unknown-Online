@@ -222,7 +222,7 @@ internal static class OnlineUiMemberListDrawer
 
 		if (row.CanViewMedical && GUILayout.Button(ctx.T("member.open_medical"), OnlineUiTheme.Button(), GUILayout.Width(80f)))
 		{
-			ctx.OpenMedical?.Invoke(row.SteamId);
+			ctx.OpenRemoteMedical?.Invoke(row.SteamId, ctx.DisplayName(row.SteamId));
 		}
 
 		if (row.CanTake)

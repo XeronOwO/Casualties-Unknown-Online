@@ -64,6 +64,9 @@ internal sealed class OnlineUiOverlay
 	/// <summary>Invoked when the user wants to open a remote player's inventory in the game's native radial backpack UI.</summary>
 	internal Func<ulong, string, bool>? OpenRemoteBackpack;
 
+	/// <summary>Invoked when the user wants to open the game's native medical UI for a remote player.</summary>
+	internal Func<ulong, string, bool>? OpenRemoteMedical;
+
 	/// <summary>Invoked when the user clicks Carry on an unconscious/dead remote player.</summary>
 	internal Func<ulong, bool>? CarryRemote;
 
@@ -109,8 +112,6 @@ internal sealed class OnlineUiOverlay
 
 	private readonly OnlineUiQuickPanel _quickPanel = new();
 
-	private readonly OnlineUiMedicalPanel _medicalPanel = new();
-
 	private readonly CommandConsoleOverlay _commandOverlay;
 
 	internal OnlineUiOverlay(ConsoleInputSession consoleInput)
@@ -149,7 +150,6 @@ internal sealed class OnlineUiOverlay
 
 		_window.State.Visible = false;
 		_quickPanel.Close();
-		_medicalPanel.Close();
 		_commandOverlay.Open();
 	}
 
@@ -165,16 +165,10 @@ internal sealed class OnlineUiOverlay
 	/// <summary>Toggles the standalone player-interaction quick panel (configurable session hotkey).</summary>
 	internal void ToggleQuickPanel() => _quickPanel.Toggle();
 
-	/// <summary>Opens the read-only CUO medical panel for a remote player.</summary>
-	internal void OpenMedicalPanel(ulong steamId) => _medicalPanel.Open(steamId);
-
-	/// <summary>Closes the read-only CUO medical panel.</summary>
-	internal void CloseMedicalPanel() => _medicalPanel.Close();
-
 	/// <summary>
 	/// True when a world middle-click should not become a location ping:
 	/// the modal command console/window is open, or the pointer is inside a
-	/// non-modal CUO surface (medical panel / quick panel / player context menu).
+	/// non-modal CUO surface (quick panel / player context menu).
 	/// </summary>
 	internal bool IsPointerOverUi(Vector2 mousePosition)
 	{
@@ -185,11 +179,6 @@ internal sealed class OnlineUiOverlay
 
 		var gui = new Vector2(mousePosition.x, Screen.height - mousePosition.y);
 		if (_quickPanel.IsVisible && _quickPanel.Contains(gui))
-		{
-			return true;
-		}
-
-		if (_medicalPanel.IsVisible && _medicalPanel.Contains(gui))
 		{
 			return true;
 		}
@@ -251,7 +240,7 @@ internal sealed class OnlineUiOverlay
 			IpDirectActive = IpDirectActive,
 			TakeItem = TakeItem,
 			OpenRemoteBackpack = OpenRemoteBackpack,
-			OpenMedical = OpenMedicalPanel,
+			OpenRemoteMedical = OpenRemoteMedical,
 			CarryRemote = CarryRemote,
 			PiggybackRemote = PiggybackRemote,
 			CarryOnBackRemote = CarryOnBackRemote,
@@ -292,22 +281,21 @@ internal sealed class OnlineUiOverlay
 			LocationPingOverlay.Draw(ctx);
 			DrawPlayerContextMenu(ctx);
 			_quickPanel.Draw(ctx);
-			_medicalPanel.Draw(ctx);
 		}
 
 		_commandOverlay.Draw(ctx);
 
-		// Non-modal CUO surfaces (medical panel, quick panel, right-click
-		// context menu) are IMGUI and invisible to UGUI; scoped blockers keep
-		// their pixels from leaking to the menu/world without blocking the rest
-		// of the screen. The command console is handled by the full modal
-		// guard, not scoped blocks.
+		// Non-modal CUO surfaces (quick panel, right-click context menu) are
+		// IMGUI and invisible to UGUI; scoped blockers keep their pixels from
+		// leaking to the menu/world without blocking the rest of the screen.
+		// The command console is handled by the full modal guard, not scoped
+		// blocks.
 		adapter?.SetOnlineUiScopedBlocks(_commandOverlay.IsOpen ? [] : CollectScopedBlocks());
 	}
 
 	private IReadOnlyList<OnlineUiBlockRect> CollectScopedBlocks()
 	{
-		var blocks = new List<OnlineUiBlockRect>(3);
+		var blocks = new List<OnlineUiBlockRect>(2);
 		if (_contextMenu.IsOpen)
 		{
 			blocks.Add(FromRect(_contextMenu.Bounds));
@@ -316,11 +304,6 @@ internal sealed class OnlineUiOverlay
 		if (_quickPanel.IsVisible)
 		{
 			blocks.Add(FromRect(_quickPanel.Bounds));
-		}
-
-		if (_medicalPanel.IsVisible)
-		{
-			blocks.Add(FromRect(_medicalPanel.Bounds));
 		}
 
 		return blocks;

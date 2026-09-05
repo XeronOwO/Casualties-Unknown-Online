@@ -249,6 +249,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 
 		_domains.CharacterRagdollSync.Update(); // flush clone-creation-race ragdoll one-shots after the renderer created clones
 		_domains.RemoteBackpack.Update();
+		_domains.RemoteMedical.Update();
 		using (_latency.Measure("EnemySync"))
 		{
 			_domains.EnemySync.Update(); // host: capture + publish the simulated enemies; guest: (event-driven bind/apply)
@@ -304,6 +305,11 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 		_domains.RemoteBackpack.Open(targetSteamId, displayName);
 
 	void IGameAdapter.CloseRemoteBackpack() => _domains.RemoteBackpack.Close();
+
+	bool IGameAdapter.OpenRemoteMedical(ulong targetSteamId, string displayName) =>
+		_domains.RemoteMedical.Open(targetSteamId, displayName);
+
+	void IGameAdapter.CloseRemoteMedical() => _domains.RemoteMedical.Close();
 
 	bool IGameAdapter.TryGetRemoteHeadPosition(ulong steamId, out float x, out float y)
 	{

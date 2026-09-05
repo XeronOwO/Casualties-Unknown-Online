@@ -87,6 +87,18 @@ internal sealed class RemoteItemSceneOps(ISessionControl session, Logger log)
 	/// (slow, but only on the miss path) to cover the not-yet-registered window.</summary>
 	internal static Item? FindWorldItem(ulong itemId)
 	{
+		// O(1) fast path: the ItemInstanceId index is maintained when ids are
+		// stamped/zeroed/destroyed, so the guest's per-frame item-follow pump
+		// no longer scans every item in the scene for every followed id.
+		if (ItemInstanceId.TryFindItem(itemId, out var indexed)
+			&& indexed.GetComponentInParent<RemoteCloneRender>() == null) // Unity object — ==
+		{
+			return indexed;
+		}
+
+		// Fallback for any historical/edge path where an id-bearing object was
+		// not registered (or the indexed hit was a display proxy). This is not
+		// on the steady-state hot path any more.
 		foreach (var item in Item.allItems)
 		{
 			// Remote clone inventory items are display proxies, not domain

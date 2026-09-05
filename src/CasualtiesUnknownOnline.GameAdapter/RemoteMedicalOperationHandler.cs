@@ -46,19 +46,19 @@ internal sealed class RemoteMedicalOperationHandler(GameAdapterDomains domains)
 			return false;
 		}
 
+		if (!LocalUseItemEligibility.IsMedicalLimbUseItem(dragItem))
+		{
+			domains.Log.LogWarning("[MedicalView] refused limb use: {ItemId} is not a supported remote medical/limb-treatment item.",
+				dragItem.id);
+			return false;
+		}
+
 		if (RemoteHealProfiles.IsHealItem(dragItem.id))
 		{
 			domains.PlayerInteraction.SendHealRequest(target, instance.Id, limbIndex);
 			domains.Log.LogInformation("[MedicalView] requested heal of {Target} limb {Limb} with {ItemId} (id {InstanceId}).",
 				target, limbIndex, dragItem.id, instance.Id);
 			return true;
-		}
-
-		if (!LocalUseItemEligibility.IsUseItem(dragItem))
-		{
-			domains.Log.LogWarning("[MedicalView] refused limb use: {ItemId} is not in the remote medical/heal/use catalog.",
-				dragItem.id);
-			return false;
 		}
 
 		domains.PlayerInteraction.SendUseRequest(target, instance.Id, limbIndex);

@@ -40,6 +40,11 @@ This cycle adds the native WoundView **drag-a-local-medical-item-onto-a-remote-l
 - Topical treatment from `RemoteTopicalCatalog` → `PlayerItemUseRequest` (host-authoritative topical apply, selected limb).
 - Non-liquid limb tools from `RemoteLimbToolCatalog` (splint, tourniquet, icepack, clottingmush, medicalsuture, etc.) → `PlayerItemUseRequest` (host-authoritative limb-tool apply, selected limb).
 
+Wearable, food and drink-only items are deliberately **not** accepted by the
+medical limb gesture: the native WoundView limb target is not their entry point,
+so routing them would incorrectly become a remote wear/feed action from the
+wrong UI.
+
 ### Explicitly not supported in this cycle
 
 - Native WoundView **special-removal actions** (`WoundSpecialAction`: remove
@@ -70,11 +75,18 @@ This cycle adds the native WoundView **drag-a-local-medical-item-onto-a-remote-l
   `IRemoteMedicalPatchBridge` / `RemoteMedicalOperationHandler`: checks the
   remote focus target, requires a local item with an authoritative instance id,
   rejects remote display proxies, and dispatches to `SendHealRequest` or
-  `SendUseRequest` with the selected limb.
-- **Read-only guarantee** — `PlayerCamera.WoundSpecialAction` is now also
-  blocked in remote focus, closing the one remaining native special-action
-  mutation path; the remote display body is never written by this treatment
-  path.
+  `SendUseRequest` with the selected limb. The local eligibility check
+  (`LocalUseItemEligibility.IsMedicalLimbUseItem`) accepts only the medical
+  limb-treatment surfaces above and rejects zero-condition items.
+- **Read-only guarantee** — `PlayerCamera.WoundSpecialAction` and
+  `PlayerCamera.ApplyWoundItem` are both blocked in remote focus, so no native
+  path can mutate the display body; the remote display body is never written by
+  this treatment path.
+- **Remote view mutual exclusion** — opening the remote medical panel closes an
+  open remote backpack, and opening a remote backpack closes an open remote
+  medical panel. `RemoteBackpackView.Close` also clears the native radial-open
+  state so the two native surfaces cannot overlap and bypass the backpack proxy
+  protections.
 
 ## Acceptance criteria
 

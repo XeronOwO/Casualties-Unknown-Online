@@ -42,6 +42,15 @@ internal sealed class RemoteBackpackCoordinator(
 			return false;
 		}
 
+		// The remote backpack and remote medical views are distinct native
+		// surfaces; only one can own the interaction focus at a time. If the
+		// remote medical panel is currently open, close it before switching.
+		if (RemoteMedicalView.IsOpen)
+		{
+			_log.LogInformation("[BackpackView] closing remote medical view before opening backpack for {SteamId}.", steamId);
+			RemoteMedicalView.Close();
+		}
+
 		RemoteBackpackView.Open(body, steamId, displayName);
 		_log.LogInformation("[BackpackView] opened native backpack view for {SteamId} ({Name}).", steamId, displayName);
 		return true;

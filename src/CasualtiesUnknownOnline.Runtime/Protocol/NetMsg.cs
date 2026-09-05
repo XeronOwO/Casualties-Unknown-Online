@@ -237,5 +237,7 @@ public enum NetMsg : byte
 	// remote-backpack view maps pour/drop/container gestures to host-validated
 	// semantic operations; take/transfer-to-local continues to ride the existing
 	// PlayerInventoryTakeRequest path)
-	RemoteInventoryOperationRequest = 125, // guest → host: perform a remote-player inventory operation (drop / move-to-container / pour)
+	RemoteInventoryOperationRequest = 125, // guest → host: perform a remote-player inventory operation (drop / move-to-container / pour / combine / use / wear / battery / slot / favourite)
+
+	RemoteInventoryApply = 126, // host → owner: execute the host-validated native inventory operation on the owner's own local body
 }

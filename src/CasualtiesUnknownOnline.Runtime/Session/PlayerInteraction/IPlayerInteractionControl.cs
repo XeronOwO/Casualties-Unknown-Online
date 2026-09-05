@@ -26,6 +26,12 @@ public interface IPlayerInteractionControl
 	/// <summary>Host only: a remote-backpack inventory operation request arrived (from the wire or the host's own UI).</summary>
 	void HandleRemoteInventoryOperation(ulong sender, RemoteInventoryOperationRequestMsg msg);
 
+	/// <summary>Any role: a host-validated native remote-backpack operation must be applied to the local player's own body.</summary>
+	void FireRemoteInventoryApplyReceived(RemoteInventoryApplyMsg msg);
+
+	/// <summary>An authoritative host-validated native remote-backpack operation arrived for the local player's own body.</summary>
+	event Action<RemoteInventoryApplyMsg>? RemoteInventoryApplyReceived;
+
 	/// <summary>Raise a received transfer for the Game Adapter to apply locally (kernel projection path).</summary>
 	void FireTransferReceived(PlayerInventoryTransferMsg msg);
 

@@ -48,6 +48,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 	private readonly GameAdapterDomains _domains;
 	private readonly GameAdapterBridge _bridge;
 	private readonly PlayerInteractionApply _playerInteraction;
+	private readonly RemoteInventoryOperationApply _remoteInventoryApply;
 	private readonly GameAdapterSessionBinding _sessionBinding;
 	private readonly LatencyInstrumentation _latency;
 	private Harmony? _harmony;
@@ -87,8 +88,9 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 			enemies, worldTime, playerInteraction, tutorialClaw, respawnOptions, hostRules, worldEntityKernel, kernelProtocol, log, mapper, loggerFactory, itemContent, buildingContent, tileContent, liquidTileContent, structureContent, statusContent, moodleContent, modStatusStore);
 		_bridge = new GameAdapterBridge(_domains);
 		_playerInteraction = new PlayerInteractionApply(_domains);
+		_remoteInventoryApply = new RemoteInventoryOperationApply(_domains);
 		var pushApply = new PlayerPushApply(_domains);
-		_sessionBinding = new GameAdapterSessionBinding(_domains, _playerInteraction, pushApply);
+		_sessionBinding = new GameAdapterSessionBinding(_domains, _playerInteraction, _remoteInventoryApply, pushApply);
 		PatchBridge.Bind(_bridge); // the only static seam — Harmony patches read the narrow surface, never this instance
 	}
 

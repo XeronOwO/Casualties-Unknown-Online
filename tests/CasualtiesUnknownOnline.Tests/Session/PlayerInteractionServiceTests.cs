@@ -1998,6 +1998,79 @@ public class PlayerInteractionServiceTests
 	}
 
 	[Fact]
+	public void HostOwner_NativeUseRequest_RaisesApplyOnHost()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true, Item(42, "waterbottle")));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true));
+
+		RemoteInventoryApplyMsg? apply = null;
+		host.Services.GetRequiredService<IPlayerInteractionControl>().RemoteInventoryApplyReceived += m => apply = m;
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendRemoteInventoryOperation(new RemoteInventoryOperationRequestMsg
+			{
+				Kind = RemoteInventoryOperationKind.Use,
+				OwnerSteamId = HostId,
+				ItemInstanceId = 42,
+			});
+
+		Assert.NotNull(apply);
+		Assert.Equal(RemoteInventoryOperationKind.Use, apply!.Kind);
+		Assert.Equal(HostId, apply.OwnerSteamId);
+		Assert.Equal(42UL, apply.ItemInstanceId);
+		Assert.Contains(characters.GetHostCharacterData()!.Items, i => i.InstanceId == 42);
+	}
+
+	[Fact]
+	public void GuestOwner_NativeUseRequest_HostSendsApplyToGuest()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, Item(42, "waterbottle")));
+
+		host.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendRemoteInventoryOperation(new RemoteInventoryOperationRequestMsg
+			{
+				Kind = RemoteInventoryOperationKind.Use,
+				OwnerSteamId = GuestId,
+				ItemInstanceId = 42,
+			});
+
+		var frame = received.Single(r => r.Msg == NetMsg.RemoteInventoryApply).Frame;
+		var apply = NetPacket.DecodePayload<RemoteInventoryApplyMsg>(frame);
+		Assert.Equal(RemoteInventoryOperationKind.Use, apply.Kind);
+		Assert.Equal(GuestId, apply.OwnerSteamId);
+		Assert.Equal(42UL, apply.ItemInstanceId);
+	}
+
+	[Fact]
+	public void NativeCombine_MissingSecondItem_IsRefusedWithoutApply()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true, Item(42)));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true));
+
+		RemoteInventoryApplyMsg? apply = null;
+		host.Services.GetRequiredService<IPlayerInteractionControl>().RemoteInventoryApplyReceived += m => apply = m;
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendRemoteInventoryOperation(new RemoteInventoryOperationRequestMsg
+			{
+				Kind = RemoteInventoryOperationKind.Combine,
+				OwnerSteamId = HostId,
+				ItemInstanceId = 42,
+				TargetItemInstanceId = 999,
+			});
+
+		Assert.Null(apply);
+		Assert.DoesNotContain(received, r => r.Msg == NetMsg.RemoteInventoryApply);
+	}
+
+	[Fact]
 	public void RemoteOperation_BlockedByLineOfSight_IsRefused()
 	{
 		var (host, guest, received) = CreateBlockedSession();

@@ -687,6 +687,16 @@ public sealed class OnlineUiMemberProjectionTests
 		{
 		}
 
+		public void FireRemoteInventoryApplyReceived(RemoteInventoryApplyMsg msg)
+		{
+		}
+
+		public event Action<RemoteInventoryApplyMsg>? RemoteInventoryApplyReceived
+		{
+			add { }
+			remove { }
+		}
+
 		public void FireTransferReceived(PlayerInventoryTransferMsg msg)
 		{
 		}

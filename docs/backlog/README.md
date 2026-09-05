@@ -38,7 +38,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-- [Remote backpack native interaction parity](todo/remote-backpack-native-interaction-parity.md) — rejected in review: still cannot perform most item operations in another player's backpack; re-open requires full native operation parity, not documented future-only gaps.
+_None._ (Folder exists for the workflow.)
 
 
 ### In progress
@@ -46,6 +46,7 @@ todo/  →  in-progress/  →  review/  →  done/
 _None._ (Folder exists for the workflow.)
 
 ### Review
+- [Remote backpack native interaction parity](review/remote-backpack-native-interaction-parity.md) — full native operation parity: combine/use/wear/battery/favourite/slot move/swap plus container/craft windows routed through host-validated requests; owner client executes exact native operations; no display-proxy mutation.
 - [Guest frame rate lower than host with frame drops](review/guest-frame-rate-lower-than-host.md) — guest frame-rate baseline telemetry landed; per-frame RemotePlayers enumeration and guest item-follow key snapshot allocations removed; selfcheck linked.
 
 - [Remote player medical/health panel](review/remote-player-medical-panel.md) — native WoundView reuse: display-only body copy fed from the 1 Hz character snapshot; custom CUO IMGUI panel removed; selfcheck linked.

@@ -61,6 +61,7 @@ public class DirectionTests
 		NetMsg.WorldTime,
 		NetMsg.FluidPresentation,
 		NetMsg.PlayerPushResult,
+		NetMsg.RemoteInventoryApply,
 		NetMsg.TutorialClawState,
 		NetMsg.RadiationLineState,
 		NetMsg.TraderRecruitResult,

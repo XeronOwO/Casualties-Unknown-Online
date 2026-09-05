@@ -46,7 +46,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Trap destruction drops desync in item quantity between host and guest](todo/trap-destruction-drop-quantity-desync.md) — host sees circuit board + two metal scraps while guest initially sees only one circuit board; periodic sync eventually restores count.
 - [Host severe sleepiness posture not synced to guest](todo/host-severe-sleepiness-posture-desync.md) — host cannot stand straight when severely sleepy, but guest sees a straight body; systemic body-pose sync analysis/rewrite required, not another local patch.
 - [Host fall injury mouth-expression desync](todo/host-fall-injury-mouth-expression-desync.md) — guest sees host's mouth open after fall injury while host's own view does not; needs root-cause investigation rather than a cosmetic remote-face patch.
-- [Sleep behavior policy decision](todo/sleep-behavior-policy.md) — open decision on allow/disable sleep in sessions, including forced-sleep effects such as mushroom tail.
 - [Snapshot size reduction](todo/snapshot-size-reduction.md) — measurement-first.
 
 
@@ -102,6 +101,7 @@ _None._ (Folder exists for the workflow.)
 
 - [IP-direct duplicate names allowed](resolved/ip-direct-duplicate-names.md).
 - [Runtime log errors (2026-08-30)](resolved/runtime-log-errors-2026-08-30.md) — TypeLoadException is HotRepl, not CUO; the OnlineUiOverlay ArgumentException is not in the captured logs.
+- [Sleep behavior policy decision](resolved/sleep-behavior-policy.md) — resolved: normal and forced sleep stay allowed; world-time acceleration remains host-authoritative all-unconscious, no new sleep gate/protocol.
 
 ### Done
 

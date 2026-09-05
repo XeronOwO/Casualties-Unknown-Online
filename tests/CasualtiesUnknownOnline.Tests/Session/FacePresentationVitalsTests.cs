@@ -22,6 +22,7 @@ public class FacePresentationVitalsTests
 			InternalBleeding = 7f,
 			BloodPressure = 118f,
 			Happiness = -35f,
+			HeadMouth = HeadMouthState.HalfOpen,
 		};
 
 		var vitals = FacePresentationVitals.From(health);
@@ -37,6 +38,7 @@ public class FacePresentationVitalsTests
 		Assert.Equal(7f, vitals.InternalBleeding);
 		Assert.Equal(118f, vitals.BloodPressure);
 		Assert.Equal(-35f, vitals.Happiness);
+		Assert.Equal(HeadMouthState.HalfOpen, vitals.HeadMouth);
 	}
 
 	[Fact]
@@ -48,5 +50,6 @@ public class FacePresentationVitalsTests
 		Assert.Equal(0f, vitals.Energy);
 		Assert.Equal(0f, vitals.BadSleepAmount);
 		Assert.Equal(0f, vitals.Happiness);
+		Assert.Equal(HeadMouthState.Closed, vitals.HeadMouth);
 	}
 }

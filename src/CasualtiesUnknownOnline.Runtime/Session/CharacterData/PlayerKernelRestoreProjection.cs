@@ -65,6 +65,11 @@ public sealed class PlayerKernelRestoreProjection(
 			ApplySkills(data.Skills, skills);
 		}
 
+		// The kernel is the restore authority for disfigured/limb-latch facts;
+		// recompute the presentation-only mouth decision after those facts are
+		// overlaid so a re-enter/restore never carries stale head/mouth state.
+		HeadMouthRule.Refresh(data);
+
 		_log.LogDebug("[PlayerKernelRestore] projected kernel player facts for {Player}.", steamId);
 	}
 

@@ -22,7 +22,8 @@ internal readonly record struct FacePresentationVitals(
 	float Temperature,
 	float InternalBleeding,
 	float BloodPressure,
-	float Happiness)
+	float Happiness,
+	HeadMouthState HeadMouth)
 {
 	internal static FacePresentationVitals From(CharacterHealthMsg health) => new(
 		health.Consciousness,
@@ -35,5 +36,6 @@ internal readonly record struct FacePresentationVitals(
 		health.Temperature,
 		health.InternalBleeding,
 		health.BloodPressure,
-		health.Happiness);
+		health.Happiness,
+		health.HeadMouth);
 }

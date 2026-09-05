@@ -353,6 +353,8 @@ public class NetPacketTests
 				DisfiguredIndex = 2,
 				DisfiguredTimeFullSkin = 123.5f,
 				EyeTimeHealed = 456.25f,
+				HeadMouth = HeadMouthState.Open,
+				EatTime = 0.75f,
 			},
 		};
 
@@ -364,6 +366,8 @@ public class NetPacketTests
 		Assert.Equal(2, decoded.Health.DisfiguredIndex);
 		Assert.Equal(123.5f, decoded.Health.DisfiguredTimeFullSkin);
 		Assert.Equal(456.25f, decoded.Health.EyeTimeHealed);
+		Assert.Equal(HeadMouthState.Open, decoded.Health.HeadMouth);
+		Assert.Equal(0.75f, decoded.Health.EatTime);
 	}
 
 }

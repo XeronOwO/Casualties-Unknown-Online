@@ -41,6 +41,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Tab opens backpack then closes immediately](todo/tab-backpack-open-close-immediately.md) — pressing Tab opens the backpack and it closes instantly, as if Tab was pressed twice.
 - [Command console ESC still opens the game's ESC/pause menu](todo/command-console-esc-not-intercepted.md) — pressing ESC while the command console is open still opens the game's ESC menu instead of only closing the console.
 - [Carry/piggyback rider position smoothing and movement teleport](todo/carry-piggyback-rider-position-smoothing.md) — **Critical / super-priority**: user re-reports the rider teleport problem still exists after the shared ride-pose/LateUpdate re-pin work; moved back to open todo and the exact reproduction is not accepted as fixed.
+- [Remote backpack native interaction parity](todo/remote-backpack-native-interaction-parity.md) — **Critical / super-priority**: user re-reports operating on another player's backpack still behaves exactly as before any fix; moved back to open todo and implementation claims are not accepted.
 
 
 ### In progress
@@ -52,7 +53,6 @@ _None._ (Folder exists for the workflow.)
 - [Interactive in-game command console](review/in-game-command-console-interactive.md) — redo landed: compact translucent bottom overlay, live Minecraft-style suggestions on `/`, full no-fade history while open, closed-panel fading notifications, aligned input; ESC interception still has an open user-reported issue (see `todo/command-console-esc-not-intercepted.md`); selfcheck linked.
 - [Guest frame rate lower than host with frame drops](review/guest-frame-rate-lower-than-host.md) — guest frame-rate baseline telemetry landed; per-frame RemotePlayers enumeration and guest item-follow key snapshot allocations removed; selfcheck linked.
 - [Host entity hit red flash not visible on guest](review/host-entity-hit-red-flash-not-visible-on-guest.md) — melee red HitFlash now rides the existing BuildingEntityDamaged relay as a presentation-only flag; non-attacker/third-party views replay the native flash; selfcheck linked.
-- [Remote backpack native interaction parity](review/remote-backpack-native-interaction-parity.md) — container/nested apply follow-up landed: recursive local-body item lookup, container unload before slot pickup, and same-owner nested container placement; selfcheck linked.
 
 - [Remote player medical/health panel](review/remote-player-medical-panel.md) — native WoundView reuse: display-only body copy fed from the 1 Hz character snapshot; custom CUO IMGUI panel removed; selfcheck linked.
 - [Remote medical treatment operations](review/remote-medical-treatment-operations.md) — native WoundView limb drag routes through the existing host-validated heal/use path with selected-limb support; selfcheck linked.

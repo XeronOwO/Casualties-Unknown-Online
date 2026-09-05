@@ -1,9 +1,19 @@
 # Remote backpack native interaction parity
 
-- Status: Review (rejected 2026-09-05; container/nested apply follow-up landed 2026-09-05)
-- Priority: High
+- Status: Todo (Critical / super-priority; re-opened after latest user re-report)
+- Priority: Critical
 - Category: Remote inventory / co-op interaction parity / container sync
-- Source: User report (2026-09-04); rejected by user (2026-09-05) — opening another player's backpack still could not perform most item operations; rejected again as a whole (2026-09-05) on container/trash-bag interaction.
+- Source: User report (2026-09-04); rejected by user (2026-09-05) — opening another player's backpack still could not perform most item operations; rejected again as a whole (2026-09-05) on container/trash-bag interaction; user now reports the remote-backpack operation problem still exists with behavior identical to before any fix and marks it a super-priority issue.
+
+## Rejected again (latest user re-report — super priority)
+
+The user reports the problem of operating on another player's backpack items
+still exists and has been sent back many times. The observed behavior is
+described as **exactly the same as before the fix**, with no visible
+improvement. This ticket is marked **Critical / super-priority** and moved back
+to open todo. All "Landed"/implementation notes below are not accepted as
+complete: the exact user reproduction must be re-tested on deployed artifacts
+until remote-backpack operations work as intended.
 
 ## Rejected as a whole (2026-09-05 user re-test)
 

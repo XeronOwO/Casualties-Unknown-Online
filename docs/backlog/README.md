@@ -39,7 +39,6 @@ todo/  →  in-progress/  →  review/  →  done/
 ### Todo
 
 - [Guest frame rate lower than host with frame drops](todo/guest-frame-rate-lower-than-host.md) — guest runs at a noticeably lower frame rate than host; needs baseline and guest-only overhead isolation.
-- [Remote player medical/health panel](todo/remote-player-medical-panel.md) — rejected in review: previous CUO IMGUI panel did not reuse the game's existing medical UI; re-open requires native UI reuse like the remote backpack.
 - [Remote backpack native interaction parity](todo/remote-backpack-native-interaction-parity.md) — rejected in review: still cannot perform most item operations in another player's backpack; re-open requires full native operation parity, not documented future-only gaps.
 - [Carry/piggyback riding movement teleport and rider/carrier position mismatch](todo/carry-piggyback-rider-position-smoothing.md) — rejected in review: only half fixed; carrier/participant views still see the carried player misaligned/teleporting while moving.
 
@@ -50,6 +49,7 @@ _None._ (Folder exists for the workflow.)
 
 ### Review
 
+- [Remote player medical/health panel](review/remote-player-medical-panel.md) — native WoundView reuse: display-only body copy fed from the 1 Hz character snapshot; custom CUO IMGUI panel removed; selfcheck linked.
 - [Guest remote pose / head-orientation desync on host view](review/guest-remote-pose-head-orientation-desync.md) — stale render-clone attackCooldown/moveDir auto-flip inputs neutralized; regression contract and selfcheck linked.
 - [Host severe sleepiness posture not synced to guest](review/host-severe-sleepiness-posture-desync.md) — owner leg-speed multiplier now rides the 1 Hz character snapshot and is replayed as the CrouchAmount weakness/slouch input on remote clones; selfcheck linked.
 - [Host fall injury mouth-expression desync](review/host-fall-injury-mouth-expression-desync.md) — owner head/mouth state now rides the 1 Hz character snapshot and is replayed on remote clones; root cause, not a cosmetic remote-face patch; selfcheck linked.

@@ -40,12 +40,11 @@ todo/  →  in-progress/  →  review/  →  done/
 
 - [Command console ESC still opens the game's ESC/pause menu](todo/command-console-esc-not-intercepted.md) — pressing ESC while the command console is open still opens the game's ESC menu instead of only closing the console.
 - [Carry/piggyback rider position smoothing and movement teleport](todo/carry-piggyback-rider-position-smoothing.md) — **Critical / super-priority**: user re-reports the rider teleport problem still exists after the shared ride-pose/LateUpdate re-pin work; moved back to open todo and the exact reproduction is not accepted as fixed.
-- [Remote backpack native interaction parity](todo/remote-backpack-native-interaction-parity.md) — **Critical / super-priority**: user re-reports operating on another player's backpack still behaves exactly as before any fix; moved back to open todo and implementation claims are not accepted.
 
 
 ### In progress
 
-_None._ (Folder exists for the workflow.)
+- [Remote backpack native interaction parity](in-progress/remote-backpack-native-interaction-parity.md) — **Critical / super-priority**: code-complete fact-tree prune and incremental remote-container rendering; final deployment deferred per user request while playing; awaits deployed-artifact re-test.
 
 ### Review
 - [Tab opens backpack then closes immediately](review/tab-backpack-open-close-immediately.md) — remote-backpack Close no longer writes the native radial state when no remote focus exists; local Tab now stays open; regression test linked.

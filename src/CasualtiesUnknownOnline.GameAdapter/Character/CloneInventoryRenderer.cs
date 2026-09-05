@@ -71,9 +71,14 @@ internal sealed class CloneInventoryRenderer(ILogger<CloneInventoryRenderer> log
 		// we own (RemoteCloneRender), never the game's own children.
 		if (wanted != null)
 		{
-			var matches = parent.GetComponentsInChildren<Item>(true)
-				.Where(i => i.id == wanted.ItemId
-					&& (wearLimb == null || i.GetComponent<RemoteCloneRender>() != null)).ToArray();
+			// Slots and limbs contain only their own carried/worn item. Matching
+			// only direct children prevents a nested container child with the
+			// same item id from being mistaken for the slot/worn item and
+			// destroyed as a "stray"; on limbs we additionally require the CUO
+			// render marker so the game's own limb children are never matched.
+			var matches = wearLimb == null
+				? FindDirectSlotMatches(parent, wanted.ItemId)
+				: FindDirectLimbMatches(parent, wanted.ItemId);
 			if (matches.Length > 0)
 			{
 				// Keep the first; destroy any further copies — the reason the
@@ -82,7 +87,13 @@ internal sealed class CloneInventoryRenderer(ILogger<CloneInventoryRenderer> log
 				// them.
 				for (var i = 1; i < matches.Length; i++)
 				{
-					Object.Destroy(matches[i].gameObject);
+					var duplicate = matches[i];
+					if (duplicate.GetComponent<Container>() != null) // Unity object — ==
+					{
+						RemoteBackpackView.NotifyOpenContainerProxyRemoved(duplicate);
+					}
+
+					Object.Destroy(duplicate.gameObject);
 				}
 
 				if (wanted.Components is { Count: > 0 })
@@ -111,7 +122,14 @@ internal sealed class CloneInventoryRenderer(ILogger<CloneInventoryRenderer> log
 			// appear after inventory shuffling.
 			for (var c = parent.childCount - 1; c >= 0; c--)
 			{
-				Object.Destroy(parent.GetChild(c).gameObject);
+				var child = parent.GetChild(c);
+				var childItem = child.GetComponent<Item>();
+				if (childItem != null && childItem.GetComponent<Container>() != null) // Unity objects — ==
+				{
+					RemoteBackpackView.NotifyOpenContainerProxyRemoved(childItem);
+				}
+
+				Object.Destroy(child.gameObject);
 			}
 		}
 		else
@@ -121,6 +139,12 @@ internal sealed class CloneInventoryRenderer(ILogger<CloneInventoryRenderer> log
 				var child = parent.GetChild(c);
 				if (child.GetComponent<RemoteCloneRender>() != null) // Unity object — ==
 				{
+					var childItem = child.GetComponent<Item>();
+					if (childItem != null && childItem.GetComponent<Container>() != null) // Unity objects — ==
+					{
+						RemoteBackpackView.NotifyOpenContainerProxyRemoved(childItem);
+					}
+
 					Object.Destroy(child.gameObject);
 				}
 			}
@@ -221,6 +245,39 @@ internal sealed class CloneInventoryRenderer(ILogger<CloneInventoryRenderer> log
 		RestoreRemoteContents(item, wanted.Contents, ownerSteamId);
 	}
 
+	private static Item[] FindDirectSlotMatches(Transform parent, string itemId)
+	{
+		var matches = new List<Item>();
+		for (var i = 0; i < parent.childCount; i++)
+		{
+			var child = parent.GetChild(i).GetComponent<Item>();
+			if (child != null && child.id == itemId) // Unity object — ==
+			{
+				matches.Add(child);
+			}
+		}
+
+		return [.. matches];
+	}
+
+	private static Item[] FindDirectLimbMatches(Transform parent, string itemId)
+	{
+		var matches = new List<Item>();
+		for (var i = 0; i < parent.childCount; i++)
+		{
+			var child = parent.GetChild(i);
+			var item = child.GetComponent<Item>();
+			if (item != null
+				&& item.id == itemId
+				&& item.GetComponent<RemoteCloneRender>() != null) // Unity objects — ==
+			{
+				matches.Add(item);
+			}
+		}
+
+		return [.. matches];
+	}
+
 	/// <summary>
 	/// Rebuilds a remote clone container's child items from the snapshot's
 	/// recursive contents. The native container/backpack UI reads a real
@@ -235,38 +292,146 @@ internal sealed class CloneInventoryRenderer(ILogger<CloneInventoryRenderer> log
 			return;
 		}
 
-		// Remove only our previous proxy child items. Destroy is deferred, so a
-		// changed container may briefly show both old and new children in the
-		// same frame; the next frame is clean.
-		var previous = containerItem.GetComponentsInChildren<Item>(true)
-			.Where(c => c != containerItem && c.GetComponent<RemoteCloneRender>() != null) // Unity object — == marker check
-			.ToArray();
-		foreach (var old in previous)
+		var container = containerItem.GetComponent<Container>();
+		var previous = new List<Item>();
+		if (container != null) // Unity object — ==
 		{
-			Object.Destroy(old.gameObject);
+			// Only direct children of this container are this level's contents.
+			// A recursive GetComponentsInChildren scan would also see proxies
+			// inside nested containers and could match a child to the wrong
+			// depth (especially for id=0/unbound items).
+			for (var i = 0; i < container.transform.childCount; i++)
+			{
+				var child = container.transform.GetChild(i).GetComponent<Item>();
+				if (child != null && child.GetComponent<RemoteCloneRender>() != null) // Unity objects — ==
+				{
+					previous.Add(child);
+				}
+			}
 		}
 
-		if (contents.Count == 0)
+		var used = new List<Item>();
+		var structureChanged = false;
+
+		if (container != null) // Unity object — ==
+		{
+			// Incremental reconciliation: keep an existing proxy when the same
+			// authoritative instance id is still present, so an open native
+			// container window (whose buttons hold direct Item references) never
+			// loses the item it is displaying and a user dragging a container
+			// child is not destroyed by a periodic snapshot. Only removed/new
+			// children are destroyed/created, and those are unloaded from the
+			// container immediately to avoid the one-frame double weight.
+			foreach (var childData in contents)
+			{
+				var match = FindExistingProxy(previous, used, childData);
+				if (match != null) // Unity object — ==
+				{
+					used.Add(match);
+					UpdateRemoteContent(match, childData, ownerSteamId);
+					continue;
+				}
+
+				RestoreRemoteContent(containerItem, container, childData, ownerSteamId);
+				structureChanged = true;
+			}
+		}
+
+		foreach (var old in previous)
+		{
+			if (used.Contains(old)) // Unity object — == list calls operator overload
+			{
+				continue;
+			}
+
+			if (container != null && old.transform.parent == container.transform) // Unity objects — ==
+			{
+				container.UnloadItem(old);
+			}
+
+			// A removed child may be the container the native window is showing
+			// (nested container re-homed/replaced) — let the open window re-bind
+			// on the next frame before it disappears from the UI.
+			RemoteBackpackView.NotifyOpenContainerProxyRemoved(old);
+
+			// UnloadItem re-enables the proxy's rigidbody/sprite as part of the
+			// native container contract; this item is being removed, so hide it
+			// immediately rather than letting it appear as a ghost for the rest
+			// of the frame.
+			old.gameObject.SetActive(false);
+			Object.Destroy(old.gameObject);
+			structureChanged = true;
+		}
+
+		MarkRemoteCloneTree(containerItem);
+		if (structureChanged)
+		{
+			RefreshOpenRemoteContainer(container);
+		}
+	}
+
+	private static Item? FindExistingProxy(
+		IReadOnlyList<Item> previous,
+		List<Item> used,
+		CharacterItemMsg childData)
+	{
+		foreach (var candidate in previous)
+		{
+			if (used.Contains(candidate)) // Unity object — ==
+			{
+				continue;
+			}
+
+			var marker = candidate.GetComponent<RemoteInventoryItemId>();
+			if (childData.InstanceId != 0)
+			{
+				// The authoritative id is the stable identity; a proxy marker
+				// carries exactly that id. Unbound items (id 0) are matched by
+				// item id below only when no marker has been assigned yet.
+				if (marker != null && marker.Id == childData.InstanceId) // Unity object — ==
+				{
+					return candidate;
+				}
+			}
+			else if (marker == null && candidate.id == childData.ItemId) // Unity objects — ==
+			{
+				return candidate;
+			}
+		}
+
+		return null;
+	}
+
+	private static void UpdateRemoteContent(Item item, CharacterItemMsg data, ulong ownerSteamId)
+	{
+		SetRemoteInventoryItemId(item, data.InstanceId, ownerSteamId);
+		item.condition = data.Condition;
+		item.favourited = data.Favourited;
+		ItemStateCodec.RestoreLiquids(item, data.Liquids);
+		ItemStateCodec.RestoreComponentStates(item, data.Components);
+		RemoteItemPresentation.Apply(item, data);
+		RestoreRemoteContents(item, data.Contents, ownerSteamId);
+	}
+
+	private static void RefreshOpenRemoteContainer(Container? container)
+	{
+		if (container == null || !RemoteBackpackView.IsOpen || PlayerCamera.main == null) // Unity objects — ==
 		{
 			return;
 		}
 
-		// Display proxies must never receive item-domain instance ids. The
-		// snapshot contents carry the ids for authoritative matching, but this
-		// renderer only needs the visual data plus a display-only id marker for
-		// the remote-backpack gesture path; passing the raw tree into the shared
-		// restore would stamp ItemInstanceId onto proxy children and make the
-		// world item lookup able to confuse them with the owner's real items.
-		var container = containerItem.GetComponent<Container>();
-		if (container != null) // Unity object — ==
+		// The native container window is populated once on open and does not
+		// auto-refresh when the remote clone's container children are re-rendered
+		// asynchronously. Without this, the open window keeps buttons to the old
+		// destroyed proxy items (visible → invisible after a snapshot) until the
+		// user closes/reopens. Repopulating is deferred one frame so the next
+		// frame sees the old proxy children already destroyed.
+		if (PlayerCamera.main.currentContainer != container) // Unity objects — ==
 		{
-			foreach (var childData in contents)
-			{
-				RestoreRemoteContent(containerItem, container, childData, ownerSteamId);
-			}
+			return;
 		}
 
-		MarkRemoteCloneTree(containerItem);
+		RemoteBackpackView.RequestOpenContainerRefresh();
 	}
 
 	private static void RestoreRemoteContent(Item containerItem, Container container, CharacterItemMsg childData, ulong ownerSteamId)
@@ -291,6 +456,34 @@ internal sealed class CloneInventoryRenderer(ILogger<CloneInventoryRenderer> log
 		SetRemoteInventoryItemId(child, childData.InstanceId, ownerSteamId);
 		ItemStateCodec.RestoreLiquids(child, childData.Liquids);
 		ItemStateCodec.RestoreComponentStates(child, childData.Components);
+
+		var childContainer = child.GetComponent<Container>();
+		if (childContainer != null && childData.Contents.Count > 0) // Unity object — ==
+		{
+			// Native Container.LoadItem refuses a container that already holds
+			// items (stacking guard), but remote display proxies must be able to
+			// represent a nested container with contents. Attach it manually with
+			// the same presentation contract and let RestoreRemoteContents fill
+			// the tree while it is already parented.
+			child.transform.SetParent(container.transform);
+			child.transform.localPosition = Vector3.zero;
+			child.transform.localEulerAngles = Vector3.zero;
+			if (child.rb != null) // Unity object — ==
+			{
+				child.rb.simulated = false;
+			}
+
+			var sr = child.GetComponent<SpriteRenderer>();
+			if (sr != null) // Unity object — ==
+			{
+				sr.enabled = container.itemsVisible;
+			}
+
+			Container.UpdateItemLight(child.gameObject, !container.itemsVisible);
+			RestoreRemoteContents(child, childData.Contents, ownerSteamId);
+			return;
+		}
+
 		RestoreRemoteContents(child, childData.Contents, ownerSteamId);
 		container.LoadItem(child);
 	}

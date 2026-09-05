@@ -60,9 +60,27 @@ internal sealed class CloneFactTable(ILogger log)
 		{
 			// A nested container moved (a pouch inside a backpack): replace it
 			// inside the parent's recursive contents — the full parent capture
-			// is the event, so the clone's fact tree stays exact.
+			// is the event, so the clone's fact tree stays exact. When the
+			// event also has a real top-level slot/limb home (slotKnown +
+			// non-(-1) SlotIndex), the item has left that container: move it
+			// from any nested position to the top-level fact list instead of
+			// leaving the stale nested copy behind.
 			if (TryReplaceNested(data.Items, item))
 			{
+				if (slotKnown && item.SlotIndex != -1)
+				{
+					for (var i = 0; i < data.Items.Count; i++)
+					{
+						if (RemoveNested(data.Items[i], item.InstanceId))
+						{
+							break;
+						}
+					}
+
+					data.Items.Add(item);
+				}
+
+				RemoveMovedDescendantDuplicates(data.Items, item);
 				HeadMouthRule.Refresh(data);
 				_log.LogInformation("[CarriedSync] applied {Type} (id {ItemId}) to {Owner}'s snapshot contents — re-rendering the clone.", item.ItemId, item.InstanceId, owner);
 				CloneSnapshotUpdated?.Invoke(owner);
@@ -78,6 +96,7 @@ internal sealed class CloneFactTable(ILogger log)
 			// A freshly picked-up item — append it (the clone renders it in its
 			// slot; a worn item's limb encoding matches the wear loop).
 			data.Items.Add(item);
+			RemoveMovedDescendantDuplicates(data.Items, item);
 			_log.LogInformation("[CarriedSync] added {Type} (id {ItemId}) to {Owner}'s snapshot — re-rendering the clone.", item.ItemId, item.InstanceId, owner);
 		}
 		else
@@ -90,6 +109,7 @@ internal sealed class CloneFactTable(ILogger log)
 			}
 
 			data.Items[idx] = item;
+			RemoveMovedDescendantDuplicates(data.Items, item);
 			_log.LogInformation("[CarriedSync] applied {Type} (id {ItemId}) to {Owner}'s snapshot — re-rendering the clone.", item.ItemId, item.InstanceId, owner);
 		}
 
@@ -175,13 +195,20 @@ internal sealed class CloneFactTable(ILogger log)
 
 	private static bool RemoveNested(CharacterItemMsg entry, ulong itemId)
 	{
-		foreach (var content in entry.Contents)
+		for (var i = 0; i < entry.Contents.Count; i++)
 		{
-			// The remove exits the loop immediately — no collection-modified
-			// hazard from the foreach.
-			if (content.InstanceId == itemId || RemoveNested(content, itemId))
+			var content = entry.Contents[i];
+			if (content.InstanceId == itemId)
 			{
-				entry.Contents.Remove(content);
+				entry.Contents.RemoveAt(i);
+				return true;
+			}
+
+			if (RemoveNested(content, itemId))
+			{
+				// The target was found deeper inside `content`; that recursive
+				// call already removed it. `content` itself is only the ancestor
+				// container and must stay in place.
 				return true;
 			}
 		}
@@ -209,6 +236,72 @@ internal sealed class CloneFactTable(ILogger log)
 		}
 
 		return false;
+	}
+
+	/// <summary>
+	/// A carried-sync event is a subtree fact: when it updates a parent with
+	/// contents, any item that now lives inside that subtree must be removed
+	/// from its previous fact-table position. Without this prune an event that
+	/// moves a bottle into a carried container leaves the old top-level copy in
+	/// the table too, so the clone renders the same item in both places until
+	/// the next full snapshot replaces the tree and the divergence monitor
+	/// reports a missed event.
+	/// </summary>
+	private static void RemoveMovedDescendantDuplicates(List<CharacterItemMsg> entries, CharacterItemMsg updated)
+	{
+		if (updated.Contents.Count == 0)
+		{
+			return;
+		}
+
+		var movedIds = CollectDescendantIds(updated);
+		if (movedIds.Count == 0)
+		{
+			return;
+		}
+
+		RemoveDuplicateEntries(entries, movedIds, updated.InstanceId);
+	}
+
+	private static void RemoveDuplicateEntries(
+		List<CharacterItemMsg> entries,
+		HashSet<ulong> movedIds,
+		ulong keepRootId)
+	{
+		for (var i = entries.Count - 1; i >= 0; i--)
+		{
+			var entry = entries[i];
+			if (entry.InstanceId == keepRootId)
+			{
+				// The updated subtree is the authoritative new location; keep
+				// it and do not prune its own newly placed contents.
+				continue;
+			}
+
+			if (entry.InstanceId != 0 && movedIds.Contains(entry.InstanceId))
+			{
+				entries.RemoveAt(i);
+				continue;
+			}
+
+			RemoveDuplicateEntries(entry.Contents, movedIds, keepRootId);
+		}
+	}
+
+	private static HashSet<ulong> CollectDescendantIds(CharacterItemMsg parent)
+	{
+		var ids = new HashSet<ulong>();
+		foreach (var child in parent.Contents)
+		{
+			if (child.InstanceId != 0)
+			{
+				ids.Add(child.InstanceId);
+			}
+
+			ids.UnionWith(CollectDescendantIds(child));
+		}
+
+		return ids;
 	}
 
 	/// <summary>Recursive content-tree equality for the divergence monitor:

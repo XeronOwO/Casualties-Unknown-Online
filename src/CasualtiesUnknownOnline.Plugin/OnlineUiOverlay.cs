@@ -352,22 +352,28 @@ internal sealed class OnlineUiOverlay
 		// Minimal top-left readout: no background panel (the game shows the
 		// hand-held item there), only the live RTT plus the latest delayed
 		// session event. Full details are in the Online UI window.
+		//
+		// This uses explicit GUI.Label rects, not GUILayout: the status line is
+		// time-gated, and a GUILayout control that appears/disappears between
+		// IMGUI Layout and Repaint passes throws "Getting control 1's position in
+		// a group with only 1 controls". A fixed non-layout overlay cannot drift
+		// between passes.
+		const float rowHeight = 20f;
 		var rect = new Rect(8f, 8f, 220f, 48f);
-		GUILayout.BeginArea(rect);
 		var rtt = ctx.Session.LastRttMs >= 0f ? $"{ctx.Session.LastRttMs:F0} ms" : ctx.T("common.pending");
-		GUILayout.Label($"{ctx.T("hud.rtt")}: {rtt}", OnlineUiTheme.MutedLabel());
+		GUI.Label(new Rect(rect.x, rect.y, rect.width, rowHeight),
+			$"{ctx.T("hud.rtt")}: {rtt}", OnlineUiTheme.MutedLabel());
 
 		var elapsed = Time.realtimeSinceStartup - _statusSetTime;
 		if (_statusMessage is not null && elapsed >= StatusDelaySeconds && elapsed <= StatusDelaySeconds + StatusHoldSeconds)
 		{
-			GUILayout.Label(_statusMessage, OnlineUiTheme.Status(OnlineUiTheme.Positive));
+			GUI.Label(new Rect(rect.x, rect.y + rowHeight, rect.width, rowHeight),
+				_statusMessage, OnlineUiTheme.Status(OnlineUiTheme.Positive));
 		}
 		else if (_statusMessage is not null && elapsed > StatusDelaySeconds + StatusHoldSeconds)
 		{
 			_statusMessage = null;
 		}
-
-		GUILayout.EndArea();
 	}
 
 	private void DrawPlayerContextMenu(OnlineUiContext ctx)

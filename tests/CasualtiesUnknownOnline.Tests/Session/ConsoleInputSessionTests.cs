@@ -21,6 +21,29 @@ public class ConsoleInputSessionTests
 	}
 
 	[Fact]
+	public void LiveSuggestions_ReturnsCurrentCompletionWithoutTab()
+	{
+		var session = CreateSession(
+			new StubControl(),
+			new StubCompletion(_ => [new CommandSuggestion("/help", "Show help")], _ => null));
+
+		session.Open();
+
+		Assert.Contains(session.LiveSuggestions, s => s.Text == "/help");
+		Assert.NotEmpty(session.LiveSuggestions);
+	}
+
+	[Fact]
+	public void LiveSuggestions_AreEmptyWhenClosed()
+	{
+		var session = CreateSession(
+			new StubControl(),
+			new StubCompletion(_ => [new CommandSuggestion("/help")], _ => null));
+
+		Assert.Empty(session.LiveSuggestions);
+	}
+
+	[Fact]
 	public void Submit_ExecutesClearsAndKeepsConsoleOpen()
 	{
 		var control = new StubControl();

@@ -38,7 +38,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-- [Command console ESC still opens the game's ESC/pause menu](todo/command-console-esc-not-intercepted.md) — pressing ESC while the command console is open still opens the game's ESC menu instead of only closing the console.
 - [Convert non-.editorconfig normative requirements into unit-testable gates](todo/normative-style-unit-test-gates.md) — turn prose-only `AGENTS.md` rules (e.g. unnecessary fully qualified names) and source-shape `tools/` checks into unit-test-form gates using official Roslyn syntax-analysis libraries where appropriate.
 
 
@@ -46,7 +45,8 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Remote backpack native interaction parity](review/remote-backpack-native-interaction-parity.md) — **Critical / super-priority**: top-level root container sync, open-container background drop, guarded owner-side container apply, and detach-before-destroy transfer removal landed; latest DLLs deployed and artifact-verified; awaiting final user dual-client acceptance.
 - [Tab opens backpack then closes immediately](review/tab-backpack-open-close-immediately.md) — remote-backpack Close no longer writes the native radial state when no remote focus exists; local Tab now stays open; regression test linked.
 - [Entity destruction drops lose fresh-drop presentation/initial motion on the guest view](review/entity-destruction-drop-guest-fresh-state-loss.md) — kernel item-spawn path now preserves full transient initial drop state (velocity/rotation/fresh/angular) to all peers; covers ordinary building/entity deaths in both directions and third-party views; selfcheck linked.
-- [Interactive in-game command console](review/in-game-command-console-interactive.md) — redo landed: compact translucent bottom overlay, live Minecraft-style suggestions on `/`, full no-fade history while open, closed-panel fading notifications, aligned input; ESC interception still has an open user-reported issue (see `todo/command-console-esc-not-intercepted.md`); selfcheck linked.
+- [Interactive in-game command console](review/in-game-command-console-interactive.md) — redo landed: compact translucent bottom overlay, live Minecraft-style suggestions on `/`, full no-fade history while open, closed-panel fading notifications, aligned input; ESC interception resolved via one-frame modal suppression (see [command console ESC fully intercepted](review/command-console-esc-not-intercepted.md)); selfcheck linked.
+- [Command console ESC fully intercepted](review/command-console-esc-not-intercepted.md) — one-frame modal suppression after console close swallows the closing ESC before the game's native pause input; regression tests + deployed artifact hash verified.
 - [Guest frame rate lower than host with frame drops](review/guest-frame-rate-lower-than-host.md) — guest frame-rate baseline telemetry landed; per-frame RemotePlayers enumeration and guest item-follow key snapshot allocations removed; selfcheck linked.
 - [Host entity hit red flash not visible on guest](review/host-entity-hit-red-flash-not-visible-on-guest.md) — melee red HitFlash now rides the existing BuildingEntityDamaged relay as a presentation-only flag; non-attacker/third-party views replay the native flash; selfcheck linked.
 

@@ -68,13 +68,13 @@ uses a command-tree/argument-node model with resource-location candidates, and
 selectors support bracketed filters (`type`, `name`, `distance`, `limit`,
 `sort`).
 
-## Still open (user re-report)
+## ESC interception resolved
 
-User reports that the ESC problem still exists: pressing ESC while the console is
-open also opens the game's ESC/pause menu, so the game's ESC menu is not
-intercepted. The previous claim that ESC is fully consumed is not accepted as
-verified. This specific issue is extracted into:
-`docs/backlog/todo/command-console-esc-not-intercepted.md`.
+The previous ESC re-report is now closed by a one-frame modal suppression:
+`Plugin.Update` keeps `SetOnlineUiModal(true)` for the first frame after the
+standalone console closes, so the closing ESC cannot be seen by the game's
+native pause input in the same frame. The dedicated ticket is
+`docs/backlog/review/command-console-esc-not-intercepted.md`.
 
 Phase plan: `docs/phases/command-console-interactive/README.md`.
 Selfcheck: `docs/evidence/selfchecks/ui/command-console-selfcheck.md`.

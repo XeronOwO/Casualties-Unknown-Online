@@ -1,9 +1,23 @@
 # Carry/piggyback riding movement teleport and rider/carrier position mismatch
 
-- Status: Review
+- Status: Todo (rejected in review)
 - Priority: Medium
 - Category: Player interaction / movement sync / carry-piggyback presentation
-- Source: User report (2026-09-04) — host riding guest or guest riding host while moving produces frame-snap/teleport feel on both sides, and the two players' positions/ride alignment do not match. Record only; no code action taken yet.
+- Source: User report (2026-09-04); rejected by user (2026-09-05) — the fix only covers half of the carry presentation family.
+
+## Rejected
+
+User reports the fix is only half done:
+
+- When the carrier moves, the carrier still sees the rider misaligned/teleporting;
+  the rider's own view is normal.
+- The reverse direction also shows the same class of problem.
+- In short, the carried/ridden presentation still has a visible mismatch on the
+  side that should be showing the carried player; the fix did not cover every
+  participant/third-party view.
+
+This ticket is re-opened as TODO. The next implementation must satisfy the
+acceptance criteria from all relevant views, not just the rider's own client.
 
 ## Landed
 

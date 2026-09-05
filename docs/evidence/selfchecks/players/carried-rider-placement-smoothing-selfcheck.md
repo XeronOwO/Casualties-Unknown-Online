@@ -1,10 +1,12 @@
 # Carried rider placement smoothing and vertical consistency self-check
 
-> **Status: In review (2026-09-05).** The first movement-smoothing attempt was
-> rejected because the carrier/participant view still saw the rider
-> misaligned/teleporting while the rider's own view looked normal. The follow-up
-> cycle closes the remaining presentation gaps below. This selfcheck is now the
-> historical evidence for the full rework in
+> **Status: In review (2026-09-05, re-review after the second rejection).** The
+> first movement-smoothing attempt was rejected because the carrier/participant
+> view still saw the rider misaligned/teleporting while the rider's own view
+> looked normal. The follow-up cycle closes the remaining presentation gaps below;
+> after the user's second re-test on host movement, a final `LateUpdate`
+> carrier-side re-pin was added. This selfcheck is the historical evidence for
+> the full rework in
 > `docs/backlog/review/carry-piggyback-rider-position-smoothing.md`.
 
 Owner cycle: backlog `carry-piggyback-rider-position-smoothing` and
@@ -60,6 +62,7 @@ Two user-visible symptoms from the same presentation family:
 | `RenderProxyPose` | New carry-proxy arm of `EffectiveVisualStanding`: a conscious/alive local carried rider presents as standing to `HandleVisuals`, matching the remote clone path |
 | `BodyUpdatePatch` | Calls `OnLocalCarrierBodyUpdated` after the local carrier's native `Body.Update`; re-pins remote rider clones to the just-updated local body |
 | `GameAdapterBridge` | Implements `OnLocalCarrierBodyUpdated` → `RemotePlayerRenderer.RefreshLocalCarrierAttach` |
+| `Plugin.LateUpdate` → `GameAdapter.LateUpdateCarryPresentation` | Runs after every `Update`/`Body.Update` has completed and re-pins every remote rider clone to the carrier's final transform before render |
 | `RunCoordinator.RefreshLocalBodyState` | Re-publishes the local entity buffer after the carried-follow placement, so the stream carries the rider's final visual position/limb poses |
 | `BodyUpdatePatch` | Local carried proxy uses `Body.legSpeedMult` for the CrouchAmount slouch input, matching the value the 1 Hz snapshot sends to the remote clone |
 
@@ -76,6 +79,7 @@ host rules, or the ordinary 20 Hz player stream shape.
 | Third-party viewer alignment | every remote rider clone is pinned to its carrier clone after interpolation; stream no longer publishes torso anchor for a carried rider | `RemotePlayerRenderer.ApplyRemoteCarrierAttachAll` + `RunCoordinator.PublishBodyState` + pure rule |
 | Local carried rider visual consistency | conscious/alive local carried body presents as a visual proxy so `HandleVisuals` keeps driving its limbs | `RenderProxyPoseTests.CarriedFrozenRiderNotStanding_PresentsStandingForVisuals` + `BodyUpdatePatch` carry-proxy call |
 | Carrier-side no one-frame lag | rider clones are re-pinned after the native local carrier `Body.Update` finishes | `BodyUpdatePatch.Postfix` → `OnLocalCarrierBodyUpdated` → `RefreshLocalCarrierAttach` |
+| Carrier-side final before-render pin | every remote rider clone is re-pinned once more after all Update methods, so the rendered frame matches the carrier's final transform | `Plugin.LateUpdate` → `GameAdapter.LateUpdateCarryPresentation` → `RefreshLocalCarrierAttach` |
 | Stream fallback freshness | local entity buffer is refreshed after the carried-follow placement | `RunCoordinator.RefreshLocalBodyState` called from `PlayerInteractionApply.UpdateCarriedBody` |
 | Observability | 1 Hz clone logs identify carried-rider/carrier clones | `RemotePlayerRenderer.LogClonePosition` carry tag |
 
@@ -87,7 +91,7 @@ host rules, or the ordinary 20 Hz player stream shape.
   `CarriedBodyPlacement.ApplyRidePose not found`).
 - **Focused regression**: `RenderProxyPoseTests` + `CarriedBodyPoseTests` +
   `CarriedBodyReleaseTests` — **31 passed / 0 failed** after the rework.
-- **L0**: `dotnet test CasualtiesUnknownOnline.slnx --no-build` — **2280 passed / 0 failed**.
+- **L0**: `dotnet test CasualtiesUnknownOnline.slnx --no-build` — **2312 passed / 0 failed** after adding the final `LateUpdate` re-pin.
 - **Build**: `dotnet build CasualtiesUnknownOnline.slnx --no-restore` — 0 warnings / 0 errors.
 - **Gates**: `check-architecture.ps1`, `check-event-replay.ps1`,
   `check-entity-event-dispatch.ps1`, `check-delivery.ps1` all pass.

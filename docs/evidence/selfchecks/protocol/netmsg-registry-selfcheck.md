@@ -56,7 +56,7 @@ The whole direction family was aligned in one pass:
 | `tools/check-architecture.ps1` | passed |
 | `tools/check-event-replay.ps1` | passed (33 events) |
 | `tools/check-entity-event-dispatch.ps1` | passed (33 kinds × 3 tables) |
-| `tools/deploy.ps1 -GameDir "E:\SteamLibrary\steamapps\common\Casualties Unknown Demo"` | deployed to real game dir |
+| `tools/deploy.ps1 -GameDir "<game-dir>"` | deployed to real game dir |
 | Protocol | unchanged |
 
 ## 5. Verification design (development-period, no manual acceptance)

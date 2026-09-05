@@ -11,10 +11,10 @@ System.*) plus Steamworks.NET.dll and steam_api64.dll from references/ into
 Path to the game installation. If omitted, reads the CUO_GAME_DIR environment variable.
 
 .EXAMPLE
-./tools/deploy.ps1 -GameDir "C:\path\to\game"
+./tools/deploy.ps1 -GameDir "<game-dir>"
 
 .EXAMPLE
-$env:CUO_GAME_DIR = "C:\path\to\game"
+$env:CUO_GAME_DIR = "<game-dir>"
 ./tools/deploy.ps1
 #>
 param(
@@ -31,7 +31,7 @@ if ([string]::IsNullOrWhiteSpace($GameDir)) {
     exit 1
 }
 
-# Sandboxie paths (e.g. E:\Sandbox\Steam1\drive\...) are a redirection layer —
+# Sandboxie paths (e.g. <sandbox-root>\Steam1\drive\...) are a redirection layer —
 # the sandbox instance reads through to the host's game directory, so deploying
 # there is both redundant and a way to corrupt the sandbox copy. This guard is
 # the hard gate: deploy to the real game directory only.

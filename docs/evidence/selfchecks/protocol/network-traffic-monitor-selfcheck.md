@@ -73,7 +73,7 @@ these numbers yet.
 | `dotnet test CasualtiesUnknownOnline.slnx` | 1124 passed / 0 failed (7 new network-traffic tests) |
 | `dotnet format CasualtiesUnknownOnline.slnx` | clean |
 | `check-architecture.ps1` / `check-event-replay.ps1` / `check-entity-event-dispatch.ps1` | pass |
-| `tools/deploy.ps1 -GameDir "E:\SteamLibrary\steamapps\common\Casualties Unknown Demo"` | deployed to the real game directory only |
+| `tools/deploy.ps1 -GameDir "<game-dir>"` | deployed to the real game directory only |
 | `check-delivery.ps1` | pass (checked boxes tracked in `../delivery-checklist.md`) |
 | No manual acceptance | per development-period rule |
 

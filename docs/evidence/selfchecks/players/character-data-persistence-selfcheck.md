@@ -156,7 +156,7 @@ evidence, marked `no manual acceptance`.
 - `dotnet build` — 0 warnings, 0 errors (warnings-as-errors);
   `dotnet format` clean; `check-architecture`, `check-event-replay` and
   `check-entity-event-dispatch` all passed.
-- `tools/deploy.ps1 -GameDir "E:\SteamLibrary\steamapps\common\Casualties Unknown Demo"`
+- `tools/deploy.ps1 -GameDir "<game-dir>"`
   completed: all 25 build-output DLLs + Steamworks.NET/steam_api64 deployed to
   the real game directory; the script's process/lock gates prove no game was
   running during deployment.

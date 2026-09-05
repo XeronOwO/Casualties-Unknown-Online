@@ -58,7 +58,7 @@ wire surface or protocol. This is the same shape already used for
 | `tools/check-architecture.ps1` | passed |
 | `tools/check-event-replay.ps1` | passed (32 events) |
 | `tools/check-entity-event-dispatch.ps1` | passed (32 kinds × 3 tables) |
-| `tools/deploy.ps1 -GameDir "E:\SteamLibrary\steamapps\common\Casualties Unknown Demo"` | deployed to the real game dir only (see §5) |
+| `tools/deploy.ps1 -GameDir "<game-dir>"` | deployed to the real game dir only (see §5) |
 | Protocol | unchanged (32) |
 
 ## 5. Verification design (development-period, no manual acceptance)

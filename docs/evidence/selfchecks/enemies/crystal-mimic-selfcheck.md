@@ -60,7 +60,7 @@ mechanism. Plan approved by the user before deployment.
 - Gates: `dotnet format`, `check-architecture`, `check-event-replay`,
   `check-entity-event-dispatch` all pass (30 kinds × 3 dispatch tables;
   30 audited event rows).
-- Deploy: `tools/deploy.ps1 -GameDir "E:\SteamLibrary\steamapps\common\Casualties Unknown Demo"`
+- Deploy: `tools/deploy.ps1 -GameDir "<game-dir>"`
   built 0 warnings/errors and deployed the full plugin set to the real game
   directory. No manual acceptance, per the development-period rule; runtime
   verification is recorded as L0 simulation + static evidence + contract

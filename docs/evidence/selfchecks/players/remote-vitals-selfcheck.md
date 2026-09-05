@@ -66,7 +66,7 @@ needs a read-only projection of data that is already arriving.
 | `dotnet test CasualtiesUnknownOnline.slnx --no-build` | 1010 passed / 0 failed |
 | `dotnet format CasualtiesUnknownOnline.slnx` | clean |
 | `check-architecture.ps1` / `check-event-replay.ps1` / `check-entity-event-dispatch.ps1` | all passed |
-| `tools/deploy.ps1 -GameDir "E:\SteamLibrary\steamapps\common\Casualties Unknown Demo"` | 26 files deployed to the real game dir only |
+| `tools/deploy.ps1 -GameDir "<game-dir>"` | 26 files deployed to the real game dir only |
 | Protocol | unchanged (no bump) |
 
 ## 6. Structure review

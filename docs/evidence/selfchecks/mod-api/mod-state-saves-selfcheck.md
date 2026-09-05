@@ -60,5 +60,5 @@ rather than writing a local save file. No wire change, no protocol bump.
 | `dotnet test CasualtiesUnknownOnline.slnx` | 1079 passed / 0 failed |
 | `dotnet format CasualtiesUnknownOnline.slnx` | clean (source files; the ignored generated `obj/MyPluginInfo.cs` is outside git) |
 | `check-architecture.ps1` / `check-event-replay.ps1` / `check-entity-event-dispatch.ps1` | passed (32 events / 32 kinds × 3 tables) |
-| `tools/deploy.ps1 -GameDir "E:\SteamLibrary\steamapps\common\Casualties Unknown Demo"` | deployed to the real game directory only |
+| `tools/deploy.ps1 -GameDir "<game-dir>"` | deployed to the real game directory only |
 | No manual acceptance | per development-period rule |

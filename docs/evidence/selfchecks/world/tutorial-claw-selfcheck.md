@@ -95,7 +95,7 @@ verification box is checked on L0 reflection + static evidence (user rule
 | `TutorialClawPropTests` + `PatchContractTests` focused filter | 16 passed (TutorialClawPropTests × 5 + PatchContractTests × 11) |
 | `dotnet format CasualtiesUnknownOnline.slnx` | clean |
 | `check-architecture.ps1` / `check-event-replay.ps1` / `check-entity-event-dispatch.ps1` | all passed |
-| `tools/deploy.ps1 -GameDir "E:\SteamLibrary\steamapps\common\Casualties Unknown Demo"` | 26 files deployed to the real game dir only |
+| `tools/deploy.ps1 -GameDir "<game-dir>"` | 26 files deployed to the real game dir only |
 | Patch contract | `PatchInventory.BuildContracts` contains `TutorialHandler.Update` + `Utils.Create(string, Vector2, float)`; `PatchContractTests` loaded the real game assembly and passed |
 | Static evidence | Native creation path `TutorialHandler.cs:255-271`; marker-before-Start timing; id-less props invisible to stream/keyframe/reconcile |
 

@@ -1,5 +1,10 @@
 # Remote backpack native interaction parity — self-check
 
+> **Status: Rejected in review (2026-09-05).** The user rejected this slice
+> because opening another player's backpack still cannot perform most item
+> operations. Retained as historical evidence; full native operation parity is
+> the re-opened requirement in `docs/backlog/todo/remote-backpack-native-interaction-parity.md`.
+
 Closes the backlog item "Remote backpack native interaction parity". The native
 remote-backpack view previously supported only a host-authoritative take on drag
 release. This cycle maps the remaining natural native gestures (edge drop, move

@@ -1,13 +1,28 @@
 # Remote backpack native interaction parity
 
-- Status: Review
+- Status: Todo (rejected in review)
 - Priority: Medium
 - Category: Remote inventory / co-op interaction parity
-- Source: User report (2026-09-04) — opening another player's backpack only supports a small subset of native backpack interactions. Implemented in the native remote-backpack cycle; selfcheck linked.
+- Source: User report (2026-09-04); rejected by user (2026-09-05) — opening another player's backpack still cannot perform most item operations.
+
+## Rejected
+
+The user rejected the current native remote-backpack parity implementation:
+opening another player's backpack still only supports a small subset of
+operations; most normal backpack item operations cannot be performed. The
+previous implementation treated combine/use/wear/etc. as unsupported/future,
+but the user does not accept that as complete parity.
+
+This ticket is re-opened as TODO. The next implementation must cover the
+remaining native backpack operations rather than documenting them as future
+work.
 
 ## Goal
 
-Make the native remote-backpack view behave like the player's own backpack for the normal inventory interactions that should be valid in co-op, while preserving host authority and never mutating remote display proxies directly.
+Make the native remote-backpack view behave like the player's own backpack for
+the normal inventory interactions that should be valid in co-op, including the
+operations that are still unavailable, while preserving host authority and
+never mutating remote display proxies directly.
 
 ## Current behavior (after implementation)
 
@@ -63,4 +78,4 @@ Unsupported native gestures (combine, use, wear, battery load/unload, favorite, 
 
 - Not merely relaxing the read-only/cancel guard — the supported gestures now have real semantic operations.
 - Not inventing arbitrary owner permissions beyond the existing host rules and the normal backpack interaction vocabulary.
-- Combine/use/wear and other non-carry inventory actions on a remote proxy are deliberately left as future work; they are documented and observable rather than silently mutating a proxy.
+- Combine/use/wear and other currently unsupported native backpack actions are no longer accepted as future-only non-goals; they are now part of the required rework scope for full parity.

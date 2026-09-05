@@ -34,24 +34,48 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains)
 		var changed = false;
 		using (CallContext.Enter(CallContext.Origin.RemoteApply))
 		{
-			if (msg.FromSteamId == domains.Session.LocalSteamId)
+			if (msg.FromSteamId == domains.Session.LocalSteamId
+				&& msg.ToSteamId == domains.Session.LocalSteamId
+				&& msg.TargetParentItemId != 0
+				&& msg.Item is { } sameOwnerItem)
 			{
-				RemoveCarriedItemFromLocalBody(body, msg.Item?.InstanceId ?? 0);
-				changed = true;
-			}
-
-			if (msg.ToSteamId == domains.Session.LocalSteamId && msg.Item is { } item)
-			{
-				if (msg.TargetParentItemId != 0)
+				// Same-owner container move: re-home the existing real item instead
+				// of Destroy + RestoreContent. The destroy+rebuild path leaves the
+				// old object alive until the end of the frame, so the immediate
+				// re-report captures two children with the same instance id and the
+				// container weight/display doubles for one frame.
+				if (TryMoveExistingItemToLocalContainer(body, sameOwnerItem, msg.TargetParentItemId))
 				{
-					AddCarriedItemToLocalContainer(body, item, msg.TargetParentItemId);
+					changed = true;
 				}
 				else
 				{
-					AddCarriedItemToLocalBody(body, item);
+					RemoveCarriedItemFromLocalBody(body, sameOwnerItem.InstanceId);
+					AddCarriedItemToLocalContainer(body, sameOwnerItem, msg.TargetParentItemId);
+					changed = true;
+				}
+			}
+			else
+			{
+				if (msg.FromSteamId == domains.Session.LocalSteamId)
+				{
+					RemoveCarriedItemFromLocalBody(body, msg.Item?.InstanceId ?? 0);
+					changed = true;
 				}
 
-				changed = true;
+				if (msg.ToSteamId == domains.Session.LocalSteamId && msg.Item is { } item)
+				{
+					if (msg.TargetParentItemId != 0)
+					{
+						AddCarriedItemToLocalContainer(body, item, msg.TargetParentItemId);
+					}
+					else
+					{
+						AddCarriedItemToLocalBody(body, item);
+					}
+
+					changed = true;
+				}
 			}
 		}
 
@@ -142,7 +166,7 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains)
 		{
 			if (msg.HealerSteamId == domains.Session.LocalSteamId)
 			{
-				var item = FindCarriedItemById(body, msg.ItemInstanceId);
+				var item = CarriedItemLocator.FindById(body, msg.ItemInstanceId);
 				if (item == null) // Unity object — ==
 				{
 					domains.Log.LogWarning("[Heal] local healer item {ItemId} not found — consumed state skipped.", msg.ItemInstanceId);
@@ -192,7 +216,7 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains)
 		{
 			if (msg.UserSteamId == domains.Session.LocalSteamId)
 			{
-				var item = FindCarriedItemById(body, msg.ItemInstanceId);
+				var item = CarriedItemLocator.FindById(body, msg.ItemInstanceId);
 				if (item == null) // Unity object — ==
 				{
 					domains.Log.LogWarning("[ItemUse] local user item {ItemId} not found — consumed state skipped.", msg.ItemInstanceId);
@@ -246,17 +270,17 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains)
 			return false;
 		}
 
-		foreach (var slot in body.slots)
+		// Recursive full-subtree scan: a heal item inside a carried container is
+		// just as requestable as one in a direct slot, and the rest of this file
+		// now resolves carried items recursively.
+		foreach (var item in body.GetComponentsInChildren<Item>(true))
 		{
-			if (slot != null && HasHealItemChild(slot.transform)) // Unity object — ==
+			if (item == null || item.GetComponentInParent<RemoteCloneRender>() != null) // Unity objects — ==
 			{
-				return true;
+				continue;
 			}
-		}
 
-		foreach (var limb in body.limbs)
-		{
-			if (limb != null && HasHealItemChild(limb.transform)) // Unity object — ==
+			if (RemoteHealProfiles.IsHealItem(item.id))
 			{
 				return true;
 			}
@@ -274,29 +298,24 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains)
 			return result;
 		}
 
-		// Only inventory slots are requestable: the host's heal finder skips
-		// worn items (SlotIndex < 0), so a selector that lists worn items would
-		// only produce refused requests.
-		foreach (var slot in body.slots)
+		// Recursive full-subtree scan (same reason as HasLocalHealItem): the
+		// selector must not miss heal items inside a carried container.
+		foreach (var item in body.GetComponentsInChildren<Item>(true))
 		{
-			if (slot == null) // Unity object — ==
+			if (item == null || item.GetComponentInParent<RemoteCloneRender>() != null) // Unity objects — ==
 			{
 				continue;
 			}
 
-			for (var c = 0; c < slot.transform.childCount; c++)
+			if (!RemoteHealProfiles.IsHealItem(item.id))
 			{
-				var item = slot.transform.GetChild(c).GetComponent<Item>();
-				if (item == null || !RemoteHealProfiles.IsHealItem(item.id)) // Unity object — ==
-				{
-					continue;
-				}
+				continue;
+			}
 
-				var id = item.GetComponent<ItemInstanceId>();
-				if (id != null && id.Id != 0) // Unity object — ==
-				{
-					result.Add(new LocalHealItem(id.Id, item.id));
-				}
+			var id = item.GetComponent<ItemInstanceId>();
+			if (id != null && id.Id != 0) // Unity object — ==
+			{
+				result.Add(new LocalHealItem(id.Id, item.id));
 			}
 		}
 
@@ -407,9 +426,45 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains)
 		domains.Log.LogInformation("[PlayerInteraction] placed {ItemId} (id {InstanceId}) in local slot {Slot}.", item.ItemId, item.InstanceId, slot);
 	}
 
+	private bool TryMoveExistingItemToLocalContainer(Body body, CharacterItemMsg item, ulong parentItemId)
+	{
+		var source = CarriedItemLocator.FindById(body, item.InstanceId);
+		var parent = CarriedItemLocator.FindById(body, parentItemId);
+		if (source == null || parent == null) // Unity objects — ==
+		{
+			return false;
+		}
+
+		var container = parent.GetComponent<Container>();
+		if (container == null) // Unity object — ==
+		{
+			return false;
+		}
+
+		var oldContainer = source.transform.parent != null
+			? source.transform.parent.GetComponent<Container>() // Unity object — ==
+			: null;
+		if (oldContainer != null) // Unity object — ==
+		{
+			oldContainer.UnloadItem(source);
+		}
+
+		container.LoadItem(source);
+		if (source.transform.parent != container.transform) // Unity object — ==
+		{
+			domains.Log.LogWarning("[PlayerInteraction] same-owner container move failed: {ItemId} (id {InstanceId}) did not land in {Parent} ({ParentId}).",
+				item.ItemId, item.InstanceId, parent.id, parentItemId);
+			return false;
+		}
+
+		domains.Log.LogInformation("[PlayerInteraction] re-homed existing {ItemId} (id {InstanceId}) into container {Parent} ({ParentId}).",
+			item.ItemId, item.InstanceId, parent.id, parentItemId);
+		return true;
+	}
+
 	private void AddCarriedItemToLocalContainer(Body body, CharacterItemMsg item, ulong parentItemId)
 	{
-		var parent = FindCarriedItemById(body, parentItemId);
+		var parent = CarriedItemLocator.FindById(body, parentItemId);
 		if (parent == null) // Unity object — ==
 		{
 			domains.Log.LogWarning("[PlayerInteraction] cannot place {ItemId} (id {InstanceId}) into container {Parent} — parent not found on the local body; falling back to a slot.",
@@ -432,68 +487,4 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains)
 			item.ItemId, item.InstanceId, parent.id, parentItemId);
 	}
 
-	private static bool HasHealItemChild(Transform parent)
-	{
-		for (var c = 0; c < parent.childCount; c++)
-		{
-			var item = parent.GetChild(c).GetComponent<Item>();
-			if (item != null && RemoteHealProfiles.IsHealItem(item.id)) // Unity object — ==
-			{
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-	private static Item? FindCarriedItemById(Body body, ulong instanceId)
-	{
-		foreach (var slot in body.slots)
-		{
-			if (slot != null) // Unity object — ==
-			{
-				for (var c = 0; c < slot.transform.childCount; c++)
-				{
-					if (TryGetCarriedById(slot.transform.GetChild(c).GetComponent<Item>(), instanceId, out var item))
-					{
-						return item;
-					}
-				}
-			}
-		}
-
-		foreach (var limb in body.limbs)
-		{
-			if (limb != null) // Unity object — ==
-			{
-				for (var c = 0; c < limb.transform.childCount; c++)
-				{
-					if (TryGetCarriedById(limb.transform.GetChild(c).GetComponent<Item>(), instanceId, out var item))
-					{
-						return item;
-					}
-				}
-			}
-		}
-
-		return null;
-	}
-
-	private static bool TryGetCarriedById(Item? item, ulong instanceId, out Item result)
-	{
-		result = null!;
-		if (item == null || instanceId == 0) // Unity object — ==
-		{
-			return false;
-		}
-
-		var id = item.GetComponent<ItemInstanceId>();
-		if (id != null && id.Id == instanceId) // Unity object — ==
-		{
-			result = item;
-			return true;
-		}
-
-		return false;
-	}
 }

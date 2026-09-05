@@ -1,3 +1,4 @@
+using CasualtiesUnknownOnline.GameAdapter.Character;
 using CasualtiesUnknownOnline.GameAdapter.Items;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
@@ -32,7 +33,7 @@ internal sealed class RemoteInventoryOperationApply(GameAdapterDomains domains)
 			return;
 		}
 
-		var source = FindCarriedItemById(body, msg.ItemInstanceId);
+		var source = CarriedItemLocator.FindById(body, msg.ItemInstanceId);
 		if (source == null) // Unity object — ==
 		{
 			_log.LogWarning("[RemoteApply] native {Kind} skipped: item {ItemId} not found on the local body.",
@@ -41,7 +42,7 @@ internal sealed class RemoteInventoryOperationApply(GameAdapterDomains domains)
 		}
 
 		var target = msg.TargetItemInstanceId != 0
-			? FindCarriedItemById(body, msg.TargetItemInstanceId)
+			? CarriedItemLocator.FindById(body, msg.TargetItemInstanceId)
 			: null;
 		if (NeedsTarget(msg.Kind) && target == null) // Unity object — ==
 		{
@@ -122,6 +123,44 @@ internal sealed class RemoteInventoryOperationApply(GameAdapterDomains domains)
 
 			body.DropItem(source);
 		}
+		else
+		{
+			// A source inside a container has no direct slot/limb home. The native
+			// drag path unloads it from the container before placing it into a
+			// body slot; the owner-side apply must do the same, otherwise
+			// PickUpItem cannot actually remove the item from the container.
+			var sourceContainer = source.transform.parent != null
+				? source.transform.parent.GetComponent<Container>() // Unity object — ==
+				: null;
+			var targetItem = body.GetItem(targetSlot);
+			if (targetItem != null)
+			{
+				// For a container-source slot move, the occupying slot item goes
+				// into the source's old container (the native swap direction for
+				// a container→slot move). If the container cannot accept it,
+				// refuse without unloading the source so the item never becomes
+				// an unsynchronized orphan.
+				if (sourceContainer == null || targetItem.transform.parent == sourceContainer.transform)
+				{
+					_log.LogWarning("[RemoteApply] move-to-slot refused: target slot {Slot} is occupied and the container source cannot swap with the occupying item.",
+						targetSlot);
+					return;
+				}
+
+				sourceContainer.LoadItem(targetItem);
+				if (targetItem.transform.parent != sourceContainer.transform) // Unity object — ==
+				{
+					_log.LogWarning("[RemoteApply] move-to-slot refused: target slot {Slot} is occupied and the container could not hold the occupying item.",
+						targetSlot);
+					return;
+				}
+			}
+
+			if (sourceContainer != null) // Unity object — ==
+			{
+				sourceContainer.UnloadItem(source);
+			}
+		}
 
 		body.PickUpItem(source, targetSlot, force: true);
 	}
@@ -157,64 +196,4 @@ internal sealed class RemoteInventoryOperationApply(GameAdapterDomains domains)
 		kind is RemoteInventoryOperationKind.Combine
 			or RemoteInventoryOperationKind.BatteryLoad
 			or RemoteInventoryOperationKind.BatteryUnload;
-
-	private static Item? FindCarriedItemById(Body body, ulong instanceId)
-	{
-		if (instanceId == 0)
-		{
-			return null;
-		}
-
-		foreach (var slot in body.slots)
-		{
-			if (slot == null) // Unity object — ==
-			{
-				continue;
-			}
-
-			for (var c = 0; c < slot.transform.childCount; c++)
-			{
-				if (TryGetById(slot.transform.GetChild(c).GetComponent<Item>(), instanceId, out var item))
-				{
-					return item;
-				}
-			}
-		}
-
-		foreach (var limb in body.limbs)
-		{
-			if (limb == null) // Unity object — ==
-			{
-				continue;
-			}
-
-			for (var c = 0; c < limb.transform.childCount; c++)
-			{
-				if (TryGetById(limb.transform.GetChild(c).GetComponent<Item>(), instanceId, out var item))
-				{
-					return item;
-				}
-			}
-		}
-
-		return null;
-	}
-
-	private static bool TryGetById(Item? item, ulong instanceId, out Item result)
-	{
-		result = null!;
-		if (item == null || instanceId == 0) // Unity object — ==
-		{
-			return false;
-		}
-
-		var id = item.GetComponent<ItemInstanceId>();
-		if (id != null && id.Id == instanceId) // Unity object — ==
-		{
-			result = item;
-			return true;
-		}
-
-		return false;
-	}
 }

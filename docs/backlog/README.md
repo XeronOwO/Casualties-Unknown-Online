@@ -38,6 +38,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
+- [Host fall injury mouth-expression desync](todo/host-fall-injury-mouth-expression-desync.md) — guest sees host's mouth open after fall injury while host's own view does not; needs root-cause investigation rather than a cosmetic remote-face patch.
 - [Sleep behavior policy decision](todo/sleep-behavior-policy.md) — open decision on allow/disable sleep in sessions, including forced-sleep effects such as mushroom tail.
 - [Snapshot size reduction](todo/snapshot-size-reduction.md) — measurement-first.
 

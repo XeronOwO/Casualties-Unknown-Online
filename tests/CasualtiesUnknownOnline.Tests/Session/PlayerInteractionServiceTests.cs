@@ -596,6 +596,27 @@ public class PlayerInteractionServiceTests
 	}
 
 	[Fact]
+	public void Guest_HealsSelectedLimbOnHost_AppliesRequestedLimbNotAutoPick()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, conscious: false));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, Item(42, "bandage", slot: 0)));
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendHealRequest(HostId, 42, targetLimbIndex: 0);
+
+		var result = HealResult(received);
+		Assert.Equal(0, result.HealedLimbIndex);
+
+		var hostData = characters.GetHostCharacterData()!;
+		Assert.True(Math.Abs(hostData.Limbs[0].SkinHealAmount - 30f) < 0.001f);
+		Assert.True(Math.Abs(hostData.Limbs[0].BandageSlowAmount - 45f) < 0.001f);
+		Assert.Equal(0f, hostData.Limbs[1].SkinHealAmount);
+		Assert.Equal(0f, hostData.Limbs[1].BandageSlowAmount);
+	}
+
+	[Fact]
 	public void Guest_HealResult_ProjectsHealEventOnBothParticipants()
 	{
 		var (host, guest, received) = CreateSession();
@@ -987,6 +1008,32 @@ public class PlayerInteractionServiceTests
 		Assert.True(Math.Abs(saved.Liquids.Single(l => l.LiquidId == "reliefcream").Amount - 90f) < 0.001f);
 		var transferred = items.GetTransferredItems(GuestId).Single(w => w.Item.InstanceId == 42);
 		Assert.True(Math.Abs(transferred.Item.Liquids.Single(l => l.LiquidId == "reliefcream").Amount - 90f) < 0.001f);
+	}
+
+	[Fact]
+	public void Guest_UsesTopicalOnSelectedLimb_AppliesRequestedLimbNotAutoPick()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		var items = host.Services.GetRequiredService<IItemControl>();
+		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, conscious: true));
+		var cream = TopicalBottle(42, "paincream", "reliefcream", amount: 100f);
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, cream));
+		items.AdoptTransferredItem(GuestId, 42, cream);
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendUseRequest(HostId, 42, targetLimbIndex: 0);
+
+		var result = UseResult(received);
+		Assert.Equal(GuestId, result.UserSteamId);
+		Assert.Equal(HostId, result.TargetSteamId);
+		Assert.Equal(42UL, result.ItemInstanceId);
+
+		var hostData = characters.GetHostCharacterData()!;
+		Assert.True(Math.Abs(hostData.Limbs[0].SkinHealAmount - 3f) < 0.001f);
+		Assert.True(Math.Abs(hostData.Limbs[0].DisinfectionTime - 300f) < 0.001f);
+		Assert.Equal(0f, hostData.Limbs[1].SkinHealAmount);
+		Assert.Equal(0f, hostData.Limbs[1].DisinfectionTime);
 	}
 
 	[Fact]
@@ -2088,6 +2135,42 @@ public class PlayerInteractionServiceTests
 
 		Assert.DoesNotContain(KernelEvents(received), e => e.Kind is WireEventKind.ItemRelocated or WireEventKind.PlayerInventoryTransfer);
 		Assert.Contains(characters.GetHostCharacterData()!.Items, i => i.InstanceId == 42);
+	}
+
+	[Fact]
+	public void HealRequest_RoundTripsSelectedLimbIndex()
+	{
+		var msg = new PlayerHealRequestMsg
+		{
+			TargetSteamId = HostId,
+			ItemInstanceId = 42,
+			LimbIndex = 0,
+		};
+
+		var decoded = NetPacket.DecodePayload<PlayerHealRequestMsg>(
+			NetPacket.Encode(NetMsg.PlayerHealRequest, msg));
+
+		Assert.Equal(HostId, decoded.TargetSteamId);
+		Assert.Equal(42UL, decoded.ItemInstanceId);
+		Assert.Equal(0, decoded.LimbIndex);
+	}
+
+	[Fact]
+	public void UseRequest_RoundTripsSelectedLimbIndex()
+	{
+		var msg = new PlayerItemUseRequestMsg
+		{
+			TargetSteamId = HostId,
+			ItemInstanceId = 42,
+			LimbIndex = 2,
+		};
+
+		var decoded = NetPacket.DecodePayload<PlayerItemUseRequestMsg>(
+			NetPacket.Encode(NetMsg.PlayerItemUseRequest, msg));
+
+		Assert.Equal(HostId, decoded.TargetSteamId);
+		Assert.Equal(42UL, decoded.ItemInstanceId);
+		Assert.Equal(2, decoded.LimbIndex);
 	}
 
 	private static (TestNode Host, TestNode Guest, List<(NetMsg Msg, byte[] Frame)> Received) CreateBlockedSession() =>

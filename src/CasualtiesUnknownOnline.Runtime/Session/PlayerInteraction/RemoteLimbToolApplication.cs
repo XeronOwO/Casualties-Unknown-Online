@@ -27,6 +27,7 @@ public static class RemoteLimbToolApplication
 		IReadOnlyList<CharacterLimbMsg> limbs,
 		RemoteLimbToolProfile profile,
 		out int limbIndex,
+		int requestedLimbIndex = -1,
 		float itemCondition = 1f)
 	{
 		limbIndex = -1;
@@ -54,7 +55,7 @@ public static class RemoteLimbToolApplication
 		}
 		else
 		{
-			limbIndex = RemoteHealApplication.PickMostInjuredLimb(limbs);
+			limbIndex = RemoteHealApplication.ResolveLimbIndex(limbs, requestedLimbIndex);
 			if (limbIndex < 0)
 			{
 				return false;

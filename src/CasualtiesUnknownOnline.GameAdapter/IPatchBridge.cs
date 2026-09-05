@@ -13,7 +13,7 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// patches read only this interface — never the service itself (user
 /// architecture rule: state belongs to its owner, DI owns behavior).
 /// </summary>
-internal interface IPatchBridge : IRemoteBackpackPatchBridge
+internal interface IPatchBridge : IRemoteBackpackPatchBridge, IRemoteMedicalPatchBridge
 {
 	bool IsWorldGenIsolated { get; }
 

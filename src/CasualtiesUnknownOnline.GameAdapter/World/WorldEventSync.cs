@@ -79,8 +79,8 @@ internal sealed partial class WorldEventSync(
 	}
 
 	/// <summary>Building-entity patch entry: report a local damage write (delegated to the building-entity sync).</summary>
-	internal void OnBuildingEntityDamaged(BuildingEntity entity, float damage, bool playHitSound = true) =>
-		_buildingEntities.OnBuildingEntityDamaged(entity, damage, playHitSound);
+	internal void OnBuildingEntityDamaged(BuildingEntity entity, float damage, bool playHitSound = true, bool playHitFlash = false) =>
+		_buildingEntities.OnBuildingEntityDamaged(entity, damage, playHitSound, playHitFlash);
 
 	/// <summary>Building-entity patch entry: report a local open write (delegated to the building-entity sync).</summary>
 	internal void OnBuildingEntityOpened(BuildingEntity entity) =>

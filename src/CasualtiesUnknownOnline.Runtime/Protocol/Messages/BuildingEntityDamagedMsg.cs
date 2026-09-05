@@ -12,9 +12,12 @@ namespace CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 /// self-damage from CactusScript.OnCollisionEnter2D — the trigger side plays
 /// only the player-local gore sound); <see cref="PlayHitSound"/> keeps that
 /// distinction explicit instead of burying it in receiver-side component
-/// checks. The entity is identified by its world position: world entities are
-/// generated deterministically, so both sides have the same object at the same
-/// place.
+/// checks. <see cref="PlayHitFlash"/> marks the one-shot red HitFlash that
+/// Body.Attack spawns on the attacker's side (Body.cs:1948-1951); explosion
+/// and silent damage sources leave it false so a receiver never invents a
+/// presentation the trigger side did not play. The entity is identified by its
+/// world position: world entities are generated deterministically, so both
+/// sides have the same object at the same place.
 /// </summary>
 [ProtoContract]
 public sealed class BuildingEntityDamagedMsg
@@ -27,4 +30,7 @@ public sealed class BuildingEntityDamagedMsg
 
 	[ProtoMember(3)]
 	public bool PlayHitSound { get; set; } // false is the protobuf default — attack/explosion sends explicitly set true so the field is serialized
+
+	[ProtoMember(4)]
+	public bool PlayHitFlash { get; set; } // false is the protobuf default — Body.Attack sends explicit true so the receiver replays the native red HitFlash
 }

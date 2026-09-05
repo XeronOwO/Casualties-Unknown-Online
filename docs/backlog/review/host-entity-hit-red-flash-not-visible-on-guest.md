@@ -1,9 +1,31 @@
 # Host entity hit red flash not visible on guest
 
-- Status: Todo
+- Status: Review
 - Priority: Medium
 - Category: Enemy/entity presentation sync
 - Source: User report (2026-09-05) — when the host attacks an entity, the entity has a red flashing/hit effect locally, but the guest cannot see it.
+
+## Landed (2026-09-05)
+
+The melee red HitFlash now rides the existing `BuildingEntityDamaged` relay as a
+presentation-only flag:
+
+- `BuildingEntityDamagedMsg` gains `PlayHitFlash` (protobuf member 4);
+  `ProtocolVersion.Current` 7 → 8 (behavioral wire extension, mixed-version
+  sessions rejected by handshake).
+- `BodyPatches.BodyAttackPatch` sets `playHitFlash: true` only for the native
+  `Body.Attack` melee hit; explosion, silent cactus self-damage and
+  item-vs-enemy damage keep it false because those paths do not spawn the red
+  flash locally.
+- `WorldBuildingEntitySync.OnRemoteBuildingEntityDamaged` replays the exact
+  native red flash through `WorldGeneration.CreateHitFlash` with the local
+  deterministic copy's sprite/position/rotation and `Color.red`. The replay is
+  presentation-only and does not mutate health, authority, drops or CUO state.
+- Because the existing star relay already covers host → guest, guest → host and
+  third-party views, every non-attacker view receives the same flag by the same
+  remote-apply path.
+- Evidence:
+  `docs/evidence/selfchecks/presentation/building-entity-hit-flash-sync-selfcheck.md`.
 
 ## Problem
 

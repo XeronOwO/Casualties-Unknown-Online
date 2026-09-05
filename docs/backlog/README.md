@@ -39,7 +39,6 @@ todo/  →  in-progress/  →  review/  →  done/
 ### Todo
 
 - [Remote medical treatment operations](todo/remote-medical-treatment-operations.md) — remote medical/health panel is currently view-only; add real treatment actions through the native medical UI (e.g. syringe/injection) via the existing cross-player validated path.
-- [Host entity hit red flash not visible on guest](todo/host-entity-hit-red-flash-not-visible-on-guest.md) — host's attack shows a red hit flash on the entity locally, but the guest cannot see it; replicate the presentation through the existing enemy/entity effect channel without re-simulating damage.
 - [Entity destruction drops lose fresh-drop presentation/initial motion on the guest view](todo/entity-destruction-drop-guest-fresh-state-loss.md) — rejected again, bidirectional: whichever side (host or guest) destroys an entity, the non-destroying peer cannot see the white fresh-drop highlight; needs deployed-artifact verification of both directions and third-party views.
 - [Interactive in-game command console](todo/in-game-command-console-interactive.md) — rejected as a whole; redo as Minecraft-like translucent bottom overlay: fix input alignment, remove instruction hints, show command suggestions/autocomplete on `/`, show full history while open (fade only for closed-panel notifications), and fully intercept ESC so it does not open the game pause menu.
 - [Remote backpack native interaction parity](todo/remote-backpack-native-interaction-parity.md) — rejected as a whole: remote container/trash-bag operations are not immediate, bottle appears then disappears after periodic sync, weight display jumps/doubles, and dragged-out items cannot actually be taken out.
@@ -52,6 +51,7 @@ _None._ (Folder exists for the workflow.)
 
 ### Review
 - [Guest frame rate lower than host with frame drops](review/guest-frame-rate-lower-than-host.md) — guest frame-rate baseline telemetry landed; per-frame RemotePlayers enumeration and guest item-follow key snapshot allocations removed; selfcheck linked.
+- [Host entity hit red flash not visible on guest](review/host-entity-hit-red-flash-not-visible-on-guest.md) — melee red HitFlash now rides the existing BuildingEntityDamaged relay as a presentation-only flag; non-attacker/third-party views replay the native flash; selfcheck linked.
 
 - [Remote player medical/health panel](review/remote-player-medical-panel.md) — native WoundView reuse: display-only body copy fed from the 1 Hz character snapshot; custom CUO IMGUI panel removed; selfcheck linked.
 - [Remote context menu Medical visible when target is not visible](review/remote-context-menu-medical-visible-when-target-not-visible.md) — Medical now follows the same line-of-sight/visibility gate as the other remote actions; fixed in the shared member projection so context menu, Players page, and quick panel stay consistent; selfcheck linked.

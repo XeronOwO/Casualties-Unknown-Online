@@ -148,7 +148,7 @@ All files under `docs/selfchecks/` are historical/per-delivery evidence records.
 | players/ragdoll-limb-pose-sync-selfcheck.md | Players | current | exact owner limb poses now ride the 20 Hz player stream |
 | README.md | Other | current | candidate current evidence; verify before citing |
 | items/remote-backpack-container-take-selfcheck.md | Items | current | candidate current evidence; verify before citing |
-| items/remote-backpack-native-interaction-parity-selfcheck.md | Items | current | full native remote-backpack operation parity plus container/nested apply follow-up (recursive local lookup, container unload before slot pickup) |
+| items/remote-backpack-native-interaction-parity-selfcheck.md | Items | current (re-opened) | full native remote-backpack operation parity plus container/nested apply follow-up; latest user re-report says behavior is unchanged from before the fix; not accepted as complete |
 | players/remote-backpack-drag-escape-selfcheck.md | Other | historical | superseded by native remote-backpack parity cycle (Tab-switch transfer) |
 | items/remote-container-content-view-selfcheck.md | Items | historical | superseded/old-wire; do not cite as current evidence without checking protocol.md |
 | items/remote-container-destroy-authority-selfcheck.md | Items | current | candidate current evidence; verify before citing |

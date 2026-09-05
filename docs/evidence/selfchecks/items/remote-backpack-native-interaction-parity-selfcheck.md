@@ -1,10 +1,11 @@
 # Remote backpack native interaction parity — self-check
 
-> **Status: Current.** This selfcheck supersedes the rejected 2026-09-05 slice.
-> The native remote-backpack view now reaches full normal-inventory parity:
-> take/drop/pour/container and the previously missing combine/use/wear/battery/
-> favourite/slot move/swap/craft/container-window gestures all work through
-> host-validated requests and never mutate a remote display proxy.
+> **Status: Critical / re-opened (latest user re-report).** This selfcheck no
+> longer counts as conclusive acceptance. The user reports operating on another
+> player's backpack still behaves exactly as before any fix and marks it a
+> super-priority issue. The native remote-backpack parity work below is
+> historical implementation evidence, not proof that the user reproduction is
+> resolved.
 
 ## 1. Mechanism inventory (evidence-first)
 

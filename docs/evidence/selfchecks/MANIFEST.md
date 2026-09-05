@@ -44,6 +44,7 @@ All files under `docs/selfchecks/` are historical/per-delivery evidence records.
 | items/custom-item-data-state-selfcheck.md | Items | current | candidate current evidence; verify before citing |
 | items/building-support-drop-sync-selfcheck.md | Items | current | support-loss building drops ride the block-break message with full transient state |
 | items/entity-destruction-drop-fresh-presentation-selfcheck.md | Items | current | entity-destruction trap/building drops keep full transient spawn state on replay |
+| items/item-spawn-presentation-kernel-selfcheck.md | Items | current | item-spawn kernel/command/event now carry the full transient initial-drop state to every peer |
 | presentation/direct-placeable-arm-swing-selfcheck.md | Other | current | candidate current evidence; verify before citing |
 | items/dynamite-explosion-selfcheck.md | Other | current | candidate current evidence; verify before citing |
 | items/dynamite-fuse-presentation-selfcheck.md | Other | current | candidate current evidence; verify before citing |

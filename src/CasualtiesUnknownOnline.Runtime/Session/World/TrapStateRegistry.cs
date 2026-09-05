@@ -133,7 +133,12 @@ public sealed class TrapStateRegistry(
 					new ItemIdentity(drop.ItemId, drop.Item.ItemId),
 					ItemLocation.World(drop.Position.X, drop.Position.Y),
 					0,
-					ItemKernelAuthority.ToKernelData(drop.Item)));
+					ItemKernelAuthority.ToKernelData(drop.Item),
+					drop.Velocity.X,
+					drop.Velocity.Y,
+					drop.Rotation,
+					drop.FreshItemDrop,
+					drop.AngularVelocity));
 			}
 		}
 

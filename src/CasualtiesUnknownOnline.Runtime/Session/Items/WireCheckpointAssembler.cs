@@ -38,6 +38,10 @@ public static class WireCheckpointAssembler
 			}
 		}
 
+		// A table is only useful when the same definition id repeats. If every
+		// item has a unique id, the old direct-string encoding is already optimal;
+		// adding a table and per-item indices would make the checkpoint larger.
+		var useDefinitionTable = definitionIndexes.Count < items.Count;
 		for (var index = 0; index < chunkCount; index++)
 		{
 			var slice = items.Skip(index * ProtocolConstants.CheckpointChunkItemCount)
@@ -45,9 +49,13 @@ public static class WireCheckpointAssembler
 				.Select(item =>
 				{
 					var wire = KernelWireMapper.ToWireItem(item);
-					var definitionIndex = definitionIndexes[item.Identity.DefinitionId];
-					wire.Identity.DefinitionIndex = definitionIndex + 1;
-					wire.Identity.DefinitionId = "";
+					if (useDefinitionTable)
+					{
+						var definitionIndex = definitionIndexes[item.Identity.DefinitionId];
+						wire.Identity.DefinitionIndex = definitionIndex + 1;
+						wire.Identity.DefinitionId = "";
+					}
+
 					return wire;
 				})
 				.ToList();
@@ -58,7 +66,7 @@ public static class WireCheckpointAssembler
 				RunEpoch = checkpoint.RunEpoch.Value,
 				GlobalRevision = checkpoint.GlobalRevision,
 				Items = slice,
-				ItemDefinitionTable = index == 0 ? [.. definitionTable] : [],
+				ItemDefinitionTable = index == 0 && useDefinitionTable ? [.. definitionTable] : [],
 				RandomStreams = index == 0
 					? [.. checkpoint.RandomStreams?.Select(KernelWireMapper.ToWireRandomStream) ?? []]
 					: [],

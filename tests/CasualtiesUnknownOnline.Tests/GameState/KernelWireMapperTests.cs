@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
@@ -101,6 +102,64 @@ public class KernelWireMapperTests
 		var restored = WireCheckpointAssembler.Assemble(chunks);
 		Assert.Equal(3, restored.Items.Count);
 		Assert.All(restored.Items, item => Assert.Equal("shell", item.Identity.DefinitionId));
+	}
+
+	[Fact]
+	public void CheckpointSplit_UniqueDefinitionIdsKeepDirectStrings()
+	{
+		var source = new GameStateKernel(Epoch);
+		var ids = new[] { "shell", "stone", "wood" };
+		for (var i = 0; i < ids.Length; i++)
+		{
+			Assert.True(source.Execute(
+				new SpawnItemCommand(
+					new OperationId((ulong)(i + 1)),
+					Host,
+					Epoch,
+					AuthorityKind.HostOnly,
+					new ItemIdentity((ulong)(i + 1), ids[i]),
+					ItemLocation.World(i, 0f),
+					0,
+					new ItemData(1f, false, -1, [], [])),
+				new CommandContext(Epoch, Host)).IsAccepted);
+		}
+
+		var checkpoint = source.CreateCheckpoint();
+		var chunks = WireCheckpointAssembler.Split(checkpoint);
+
+		Assert.Empty(chunks[0].ItemDefinitionTable);
+		Assert.All(chunks.SelectMany(c => c.Items), item =>
+		{
+			Assert.Equal(0, item.Identity.DefinitionIndex);
+			Assert.Contains(item.Identity.DefinitionId, ids);
+		});
+
+		var restored = WireCheckpointAssembler.Assemble(chunks);
+		Assert.Equal(3, restored.Items.Count);
+		Assert.Equal(["shell", "stone", "wood"], restored.Items.Select(i => i.Identity.DefinitionId).ToArray());
+	}
+
+	[Fact]
+	public void CheckpointAssemble_InvalidDefinitionIndex_Throws()
+	{
+		var source = new GameStateKernel(Epoch);
+		Assert.True(source.Execute(
+			new SpawnItemCommand(
+				new OperationId(1),
+				Host,
+				Epoch,
+				AuthorityKind.HostOnly,
+				new ItemIdentity(42, "shell"),
+				ItemLocation.World(0f, 0f),
+				0,
+				new ItemData(1f, false, -1, [], [])),
+			new CommandContext(Epoch, Host)).IsAccepted);
+
+		var chunks = WireCheckpointAssembler.Split(source.CreateCheckpoint());
+		chunks[0].Items[0].Identity.DefinitionIndex = 5;
+		chunks[0].ItemDefinitionTable = [];
+
+		Assert.Throws<InvalidOperationException>(() => WireCheckpointAssembler.Assemble(chunks));
 	}
 
 	[Fact]

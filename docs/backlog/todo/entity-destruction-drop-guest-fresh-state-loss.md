@@ -1,9 +1,28 @@
 # Entity destruction drops lose fresh-drop presentation/initial motion on the guest view
 
-- Status: Review
+- Status: Todo (rejected in review)
 - Priority: Medium
 - Category: Item sync / entity destruction presentation
-- Source: User report (2026-09-04) — when the host destroys an entity/building, the dropped items on the guest view have no highlight and no no-gravity/fresh-drop feel, and the guest sees the item fall then get pulled back. Implemented in the 2026-09-04 cycle; waiting for unified acceptance.
+- Source: User report (2026-09-04); rejected by user (2026-09-05) with a jump-pad trap destruction reproduction.
+
+## Rejected
+
+User re-tested the entity/trap destruction drop scenario with the host
+destroying the support block under a jump-pad trap. The previous fix was still
+rejected:
+
+- Host view: the dropped items have the white border/highlight and the
+  no-gravity/fresh-drop effect.
+- Guest view: the dropped item does not have the white border/highlight, and
+  because only one item is visible on the guest side it cannot be confirmed
+  whether no-gravity/fresh-drop is present.
+- The guest also has a separate quantity/desync issue for the same destruction
+  (see `todo/trap-destruction-drop-quantity-desync.md`), which may affect
+  observable presentation.
+
+This ticket is re-opened as TODO. The fresh-drop presentation must match the
+host side on all peers, and the missing/desynced drops must not hide the
+verification.
 
 ## Goal
 

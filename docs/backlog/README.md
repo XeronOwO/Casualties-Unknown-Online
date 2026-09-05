@@ -42,11 +42,8 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Convert non-.editorconfig normative requirements into unit-testable gates](todo/normative-style-unit-test-gates.md) — turn prose-only `AGENTS.md` rules (e.g. unnecessary fully qualified names) and source-shape `tools/` checks into unit-test-form gates using official Roslyn syntax-analysis libraries where appropriate.
 
 
-### In progress
-
-- [Remote backpack native interaction parity](in-progress/remote-backpack-native-interaction-parity.md) — **Critical / super-priority**: code-complete fact-tree prune and incremental remote-container rendering; final deployment deferred per user request while playing; awaits deployed-artifact re-test.
-
 ### Review
+- [Remote backpack native interaction parity](review/remote-backpack-native-interaction-parity.md) — **Critical / super-priority**: top-level root container sync, open-container background drop, guarded owner-side container apply, and detach-before-destroy transfer removal landed; latest DLLs deployed and artifact-verified; awaiting final user dual-client acceptance.
 - [Tab opens backpack then closes immediately](review/tab-backpack-open-close-immediately.md) — remote-backpack Close no longer writes the native radial state when no remote focus exists; local Tab now stays open; regression test linked.
 - [Entity destruction drops lose fresh-drop presentation/initial motion on the guest view](review/entity-destruction-drop-guest-fresh-state-loss.md) — kernel item-spawn path now preserves full transient initial drop state (velocity/rotation/fresh/angular) to all peers; covers ordinary building/entity deaths in both directions and third-party views; selfcheck linked.
 - [Interactive in-game command console](review/in-game-command-console-interactive.md) — redo landed: compact translucent bottom overlay, live Minecraft-style suggestions on `/`, full no-fade history while open, closed-panel fading notifications, aligned input; ESC interception still has an open user-reported issue (see `todo/command-console-esc-not-intercepted.md`); selfcheck linked.

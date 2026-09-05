@@ -393,6 +393,11 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains)
 		var id = item.GetComponent<ItemInstanceId>();
 		if (id != null && id.Id == instanceId) // Unity object — ==
 		{
+			// Detach before Destroy. Object.Destroy is deferred to the end of
+			// the frame; if a nested container child is left parented, the
+			// immediate re-report after the transfer still captures the item
+			// (one ghost frame / visible→invisible after the next snapshot).
+			item.transform.SetParent(null);
 			Object.Destroy(item.gameObject);
 			return true;
 		}
@@ -441,14 +446,11 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains)
 			return false;
 		}
 
-		var oldContainer = source.transform.parent != null
-			? source.transform.parent.GetComponent<Container>() // Unity object — ==
-			: null;
-		if (oldContainer != null) // Unity object — ==
-		{
-			oldContainer.UnloadItem(source);
-		}
-
+		// The native container move routes through Container.LoadItem only:
+		// it re-parents the item from its old slot/container directly and
+		// leaves it untouched when the target cannot hold it. Do NOT unload the
+		// source first — that would orphan the real item if LoadItem refuses
+		// (wrong weight/tag/distance) and the fallback would have to rebuild.
 		container.LoadItem(source);
 		if (source.transform.parent != container.transform) // Unity object — ==
 		{

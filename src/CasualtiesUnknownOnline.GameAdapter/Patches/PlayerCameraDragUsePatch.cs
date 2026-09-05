@@ -152,6 +152,11 @@ internal static class PlayerCameraDragUsePatch
 			return PatchBridge.Impl?.TryHandleRemoteBackpackMoveToContainer(dragItem, target) == true;
 		}
 
+		if (TryHandleRemoteOpenContainerBack(dragItem, uiCasts))
+		{
+			return true;
+		}
+
 		if (TryHandleRadialCenter(dragItem, uiCasts))
 		{
 			return true;
@@ -315,6 +320,41 @@ internal static class PlayerCameraDragUsePatch
 		}
 
 		target = null!;
+		return false;
+	}
+
+	/// <summary>
+	/// Native open-container background drop. The vanilla release path maps the
+	/// <c>ContainerBack</c> UI hit to
+	/// <c>currentContainer.UnloadItem + LoadItem</c>, which is exactly a
+	/// container-move gesture. The remote view must route that same release to
+	/// the host-authoritative move request instead of letting it fall through to
+	/// the take fallback (which could refuse or attempt a local transfer).
+	/// </summary>
+	private static bool TryHandleRemoteOpenContainerBack(Item dragItem, List<RaycastResult> uiCasts)
+	{
+		var camera = PlayerCamera.main;
+		if (camera == null || camera.currentContainer == null) // Unity objects — ==
+		{
+			return false;
+		}
+
+		foreach (var raycastResult in uiCasts)
+		{
+			if (!raycastResult.gameObject.CompareTag("ContainerBack"))
+			{
+				continue;
+			}
+
+			var target = camera.currentContainer.GetComponent<Item>();
+			if (target == null || target.GetComponent<RemoteCloneRender>() == null) // Unity objects — ==
+			{
+				return false;
+			}
+
+			return PatchBridge.Impl?.TryHandleRemoteBackpackMoveToContainer(dragItem, target) == true;
+		}
+
 		return false;
 	}
 

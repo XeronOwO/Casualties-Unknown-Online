@@ -68,6 +68,7 @@ Decisions / history / future
 | [`verification.md`](evidence/verification.md) | Evidence chain: gates, test baseline, replay/simulation, self-checks |
 | [`selfchecks/`](evidence/selfchecks/) | Per-delivery fact sheets (historical audit records) |
 | [`delivery-checklist.md`](evidence/delivery-checklist.md) | Delivery quality gate checklist |
+| [`normative-gates.md`](evidence/normative-gates.md) | Normative rule → automation-gate inventory, including the Roslyn fully-qualified-name gate |
 | [`selfchecks/tooling/simtrace-diff-selfcheck.md`](evidence/selfchecks/tooling/simtrace-diff-selfcheck.md) | Real-log vs replay diff automation |
 
 ## 5. Decision Log

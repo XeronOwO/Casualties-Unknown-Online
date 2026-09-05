@@ -2,6 +2,7 @@ using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
+using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.GameAdapter.Character;
 using CasualtiesUnknownOnline.GameAdapter.World;
@@ -31,6 +32,7 @@ internal sealed class RunCoordinator(
 	GuestMenuGuard guestMenu,
 	WorldParamsService worldParams,
 	ItemArbitration arbitration,
+	IPlayerInteractionControl playerInteraction,
 	ILogger<RunCoordinator> log)
 {
 	/// <summary>Guest run-follow phases — one enum replaces the scattered booleans (pending/started/ready/frozen).</summary>
@@ -51,6 +53,7 @@ internal sealed class RunCoordinator(
 	private readonly GuestMenuGuard _guestMenu = guestMenu;
 	private readonly WorldParamsService _params = worldParams;
 	private readonly ItemArbitration _arbitration = arbitration;
+	private readonly IPlayerInteractionControl _playerInteraction = playerInteraction;
 	private readonly ILogger<RunCoordinator> _log = log;
 
 	private RunPhase _phase = RunPhase.Idle;
@@ -527,12 +530,15 @@ internal sealed class RunCoordinator(
 		// Pose flags mirror the game's own pose rules:
 		// - sitting: idle sit condition (Body.cs:3162), minus movingAllowed
 		//   (private; sleeping is covered by the sleeping flag), and never while
-		//   the local body is a carried rider — the ride presentation replaces
-		//   the native sit state and must not leak onto the wire.
+		//   the local body is either half of a carry relation — the ride/carry
+		//   presentation replaces the native sit state and must not leak onto
+		//   the wire.
 		// - sleeping: Body.cs:3961.
 		// - climbing: currentClimbable (Body.cs:470).
+		var isCarryParticipant = _playerInteraction.TryGetCarrier(_session.LocalSteamId, out _)
+			|| _playerInteraction.TryGetCarried(_session.LocalSteamId, out _);
 		var sitting = CarriedBodyPose.ShouldPublishSitting(
-			CarriedBodyDriver.IsCarrying(body),
+			isCarryParticipant,
 			body.idleTime > 12f,
 			body.exercising);
 		// Workout/exercise: Body.DoWorkout is a coroutine that does not expose

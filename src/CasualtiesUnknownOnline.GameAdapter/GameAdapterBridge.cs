@@ -158,6 +158,14 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 		return contribution;
 	}
 
+	public bool IsLocalCarrier(Body body)
+	{
+		var local = domains.Run.LocalBody;
+		return local != null
+			&& local == body // Unity objects — ==
+			&& domains.PlayerInteraction.TryGetCarried(domains.Session.LocalSteamId, out _);
+	}
+
 	public bool EnsureGuestWorldParams() => domains.WorldParams.EnsureGuestApplied();
 
 	public void ResetGenStreamToBaseline() => domains.WorldParams.ResetGenStreamToBaseline();

@@ -257,7 +257,7 @@ internal sealed class GameAdapterDomains
 		RunSettingsRange = new RunSettingsRangeService(session, hostRules, loggerFactory.CreateLogger<RunSettingsRangeService>());
 		MenuInput = new OnlineMenuInputGuard(session, loggerFactory.CreateLogger<OnlineMenuInputGuard>());
 		WorldParams = new WorldParamsService(world, loggerFactory.CreateLogger<WorldParamsService>());
-		Run = new RunCoordinator(session, world, entities, CharacterDataSync, GuestMenu, WorldParams, arbitration, loggerFactory.CreateLogger<RunCoordinator>());
+		Run = new RunCoordinator(session, world, entities, CharacterDataSync, GuestMenu, WorldParams, arbitration, playerInteraction, loggerFactory.CreateLogger<RunCoordinator>());
 		Gate = new StartGateCoordinator(session, world, LifePod, Run, loggerFactory.CreateLogger<StartGateCoordinator>());
 		WorldTimeSync = new WorldTimeSync(session, entities, characterData, Run, Gate, worldTime, loggerFactory.CreateLogger<WorldTimeSync>());
 		DragUse = new CrossPlayerDragUse(this);

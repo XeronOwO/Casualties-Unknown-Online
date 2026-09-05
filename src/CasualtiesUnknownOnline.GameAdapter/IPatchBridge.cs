@@ -221,6 +221,15 @@ internal interface IPatchBridge
 	/// </summary>
 	float GetCarriedEncumbrance(Body body);
 
+	/// <summary>
+	/// True when the given body is the LOCAL player's body and that player is
+	/// currently the carrier half of a carry/piggyback relation. Harmony pose
+	/// patches use this to suppress the native idle-sit while carrying; the
+	/// runtime carry mirror is the single source of truth (no extra local
+	/// marker to keep in sync).
+	/// </summary>
+	bool IsLocalCarrier(Body body);
+
 	// ---- World items (runtime-generated item entities) ----
 
 	/// <summary>True in a live session — the spawn landing sound is deferred until the start-gate release.</summary>

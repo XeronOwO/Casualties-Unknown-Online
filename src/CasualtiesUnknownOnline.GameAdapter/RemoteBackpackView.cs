@@ -56,6 +56,16 @@ internal static class RemoteBackpackView
 
 	internal static void Close()
 	{
+		// Without any remote focus this is a no-op. This method is also called
+		// from the per-frame stale check and from InvButtonBodyPatch while the
+		// player's OWN native radial backpack is open; if it unconditionally
+		// cleared radialOpen there, a normal Tab press would open the backpack
+		// and then immediately close it (the reported instant-close bug).
+		if (_focusedBody == null && _focusedSteamId == 0)
+		{
+			return;
+		}
+
 		// A display-proxy drag may outlive the focused view (the user closed the
 		// backpack while holding an item). It is NOT cancelled here: the drag can
 		// legally continue into the Tab-switch transfer path (close remote view,

@@ -16,10 +16,13 @@ and each `WireItemIdentity` carries a 1-based index.
 - `WireItemIdentity.DefinitionIndex` (0 = direct-string fallback) added.
 - `WireCheckpoint.ItemDefinitionTable` added (chunk 0 only).
 - `WireCheckpointAssembler.Split` builds the unique table and writes compact
-  indexed identities; `Assemble` expands them before restoring.
+  indexed identities (when a definition id repeats; all-unique checkpoints keep
+  the direct-string form); `Assemble` expands them before restoring.
 - No change to item kernel model, command/event wire, state-stream payloads,
-  chunk batching, or reliability semantics. `CheckpointSchemaVersion` bumped
-  1 → 2 for the wire checkpoint shape change.
+  chunk batching, or reliability semantics. `ProtocolVersion.Current` bumped
+  4 → 5 and `CheckpointSchemaVersion` bumped 1 → 2 for the wire checkpoint
+  shape change; the existing handshake rejects mixed-version sessions before
+  any checkpoint is exchanged.
 - Regression: repeated 600-item checkpoint encoded size drops from 25,732 bytes
   to 23,939 bytes (-1,793 bytes, ~7%); the size-budget test was red before the
   implementation and green after.

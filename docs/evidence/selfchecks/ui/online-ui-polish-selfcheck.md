@@ -24,8 +24,9 @@ world-time sound annoyance.
 - **Modal background click + ESC** — `OnlineUiTheme.Window` now neutralizes
   hover/active/focused window backgrounds so clicking the UI does not tint it;
   `PlayerCamera.HandleInput` and `PauseHandler.TogglePause` are suppressed while
-  the Online UI modal is open; ESC closes the modal in `OnGUI` (after the game's
-  Update input path has already been suppressed).
+  the Online UI modal is open; ESC closes the modal in `OnGUI`, and the one-frame
+  `CuoEscCloseSuppression` keeps the modal guard active on that closing frame so
+  the same ESC cannot open the native pause menu regardless of Unity event order.
 - **World-time sound** — `WorldTimeSync.OnTimeReceived` now ignores an
   authoritative speed that equals the already-applied speed, so the 5 s
   periodic resend no longer replays the switch sound. A real speed change still

@@ -45,6 +45,7 @@ internal sealed class OnlineUiQuickPanel
 		var evt = Event.current;
 		if (evt != null && evt.type == EventType.KeyDown && evt.keyCode == KeyCode.Escape)
 		{
+			Plugin.Logger.LogInfo("Quick panel ESC consumed; closing panel.");
 			Close();
 			evt.Use();
 			return;

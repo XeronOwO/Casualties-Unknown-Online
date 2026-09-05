@@ -52,6 +52,7 @@ dotnet format CasualtiesUnknownOnline.slnx        # mandatory before every commi
 powershell -File tools/check-architecture.ps1     # ≤600-line classes, ≤5 state bools, one type/file
 powershell -File tools/check-event-replay.ps1     # event mechanism changes update matrix row
 powershell -File tools/check-entity-event-dispatch.ps1
+powershell -File tools/check-no-absolute-paths.ps1 # hard red line: no absolute machine paths in tracked files
 powershell -File tools/check-delivery.ps1         # final commit of each delivery cycle
 ```
 
@@ -113,8 +114,12 @@ a separate future architecture item, not part of the completed evolution.
    their container.
 4. `[RULE]` Evidence-based changes: cite decompiled sources (`reversing/`, file:line) before
    touching code; fix root causes, not symptoms.
-5. `[RULE]` Clean git hygiene: no artifacts, personal preferences, machine paths, or secrets
-   in commits. Use placeholders like `<game-dir>`.
+5. `[CRITICAL]` **Absolute-machine-path red line**: no absolute machine path may ever enter
+   git. Existing tracked absolute paths must be removed, not merely left as historical
+   debt. Before every commit run `tools/check-no-absolute-paths.ps1`; local machine paths
+   belong only in gitignored `AGENTS.local.md` or in placeholders such as `<game-dir>`,
+   `<sandbox-root>`. No drive-letter path, UNC path, or any Unix-style absolute path
+   rooted at home, user, temp, var, opt, etc may appear in tracked files.
 6. `[RULE]` Requirement triage: personal/specific → `AGENTS.local.md`; shared/beneficial → commit;
    ambiguous → ask the user.
 7. `[RULE]` Self-learning: record reusable, generalizable knowledge in `AGENTS.md`, `docs/`,

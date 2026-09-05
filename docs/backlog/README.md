@@ -39,7 +39,6 @@ todo/  →  in-progress/  →  review/  →  done/
 ### Todo
 
 - [Entity destruction drops lose fresh-drop presentation/initial motion on the guest view](todo/entity-destruction-drop-guest-fresh-state-loss.md) — rejected again, bidirectional: whichever side (host or guest) destroys an entity, the non-destroying peer cannot see the white fresh-drop highlight; needs deployed-artifact verification of both directions and third-party views.
-- [Interactive in-game command console](todo/in-game-command-console-interactive.md) — rejected as a whole; redo as Minecraft-like translucent bottom overlay: fix input alignment, remove instruction hints, show command suggestions/autocomplete on `/`, show full history while open (fade only for closed-panel notifications), and fully intercept ESC so it does not open the game pause menu.
 - [Remote backpack native interaction parity](todo/remote-backpack-native-interaction-parity.md) — rejected as a whole: remote container/trash-bag operations are not immediate, bottle appears then disappears after periodic sync, weight display jumps/doubles, and dragged-out items cannot actually be taken out.
 - [Carry/piggyback rider position smoothing and movement teleport](todo/carry-piggyback-rider-position-smoothing.md) — rejected again: guest rides on host, host moves, and in the host's view the guest teleports instead of being rigidly attached; movement attachment must be fixed on the participant view.
 
@@ -49,6 +48,7 @@ todo/  →  in-progress/  →  review/  →  done/
 _None._ (Folder exists for the workflow.)
 
 ### Review
+- [Interactive in-game command console](review/in-game-command-console-interactive.md) — redo landed: compact translucent bottom overlay, live Minecraft-style suggestions on `/`, full no-fade history while open, closed-panel fading notifications, aligned input and ESC interception; selfcheck linked.
 - [Guest frame rate lower than host with frame drops](review/guest-frame-rate-lower-than-host.md) — guest frame-rate baseline telemetry landed; per-frame RemotePlayers enumeration and guest item-follow key snapshot allocations removed; selfcheck linked.
 - [Host entity hit red flash not visible on guest](review/host-entity-hit-red-flash-not-visible-on-guest.md) — melee red HitFlash now rides the existing BuildingEntityDamaged relay as a presentation-only flag; non-attacker/third-party views replay the native flash; selfcheck linked.
 

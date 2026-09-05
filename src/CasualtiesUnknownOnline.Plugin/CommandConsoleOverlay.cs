@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Session.Commands;
 using UnityEngine;
 
@@ -6,27 +7,27 @@ namespace CasualtiesUnknownOnline;
 
 /// <summary>
 /// The standalone in-game command console overlay. It is independent from the
-/// modal Online UI window: pressing `/` opens it directly, it owns the focused
-/// IMGUI input field, and it renders the Runtime console buffer with an
-/// age-based fade. All interaction policy (history, completion, ESC) lives in
+/// modal Online UI window: pressing `/` opens it directly and it renders a
+/// Minecraft-like translucent history panel plus a focused input line. All
+/// interaction policy (history, completion, ESC) lives in
 /// <see cref="ConsoleInputSession"/>; this class only translates IMGUI events.
 /// </summary>
 internal sealed class CommandConsoleOverlay
 {
-	private const float Width = 760f;
-	private const float Height = 340f;
-	private const float BottomMargin = 24f;
-	private const float FadeHoldSeconds = 20f;
-	private const float FadeDurationSeconds = 10f;
-	private const int MaxVisibleLines = 80;
-
-	private static GUIStyle? _inputStyle;
+	private const float Width = 680f;
+	private const float Height = 260f;
+	private const float BottomMargin = 14f;
+	private const float InputHeight = 30f;
+	private const float SuggestionMaxHeight = 150f;
+	private const int MaxNotificationLines = 5;
+	private const float NotificationHoldSeconds = 8f;
+	private const float NotificationFadeSeconds = 5f;
 
 	private readonly ConsoleInputSession _session;
 	private readonly ConsoleImeState _ime = new();
+	private readonly CommandConsoleInputRenderer _inputRenderer = new();
 	private Vector2 _scroll;
 	private Vector2 _suggestionScroll;
-	private Rect _inputRect;
 	private int _lastLineCount = -1;
 	private bool _focusPending;
 	private IMECompositionMode _previousImeMode = IMECompositionMode.Auto;
@@ -62,6 +63,7 @@ internal sealed class CommandConsoleOverlay
 	{
 		if (!_session.IsOpen)
 		{
+			DrawClosedNotifications(ctx);
 			return;
 		}
 
@@ -73,22 +75,63 @@ internal sealed class CommandConsoleOverlay
 			return;
 		}
 
-		var rect = new Rect((Screen.width - Width) * 0.5f, Screen.height - Height - BottomMargin, Width, Height);
-		OnlineUiTheme.DrawBackground(rect);
-		GUILayout.BeginArea(new Rect(rect.x + 10f, rect.y + 8f, rect.width - 20f, rect.height - 16f));
+		var width = Mathf.Min(Width, Screen.width - 24f);
+		var height = Mathf.Min(Height, Screen.height * 0.4f);
+		var rect = new Rect((Screen.width - width) * 0.5f, Screen.height - height - BottomMargin, width, height);
+		OnlineUiTheme.DrawOverlayBackground(rect);
 
-		GUILayout.BeginHorizontal();
-		GUILayout.Label(ctx.T("console.title"), OnlineUiTheme.Section());
-		GUILayout.FlexibleSpace();
-		GUILayout.Label(ctx.T("console.overlay.controls"), OnlineUiTheme.MutedLabel());
-		GUILayout.EndHorizontal();
+		DrawHistory(ctx, rect);
+		DrawSuggestions(rect);
+		DrawInput(rect);
+		DrawTooltip();
+	}
 
-		DrawTextArea(ctx);
-		DrawHints(ctx);
-		DrawInput(ctx);
+	private void DrawClosedNotifications(OnlineUiContext ctx)
+	{
+		var lines = ctx.Commands.Lines;
+		if (lines.Count == 0)
+		{
+			return;
+		}
+
+		var now = DateTime.UtcNow;
+		var hold = TimeSpan.FromSeconds(NotificationHoldSeconds);
+		var fade = TimeSpan.FromSeconds(NotificationFadeSeconds);
+		var visible = new List<ConsoleLine>(MaxNotificationLines);
+		for (var i = lines.Count - 1; i >= 0 && visible.Count < MaxNotificationLines; i--)
+		{
+			var line = lines[i];
+			var alpha = ConsoleFadePolicy.ComputeAlpha(
+				now - new DateTime(line.CreatedAtUtcTicks, DateTimeKind.Utc),
+				hold,
+				fade);
+			if (alpha > 0.01f)
+			{
+				visible.Add(line);
+			}
+		}
+
+		if (visible.Count == 0)
+		{
+			return;
+		}
+
+		var width = Mathf.Min(Width, Screen.width - 24f);
+		var height = 24f + (visible.Count * 22f);
+		var rect = new Rect((Screen.width - width) * 0.5f, Screen.height - height - BottomMargin, width, height);
+		OnlineUiTheme.DrawOverlayBackground(rect);
+		GUILayout.BeginArea(new Rect(rect.x + 8f, rect.y + 4f, rect.width - 16f, rect.height - 4f));
+		for (var i = visible.Count - 1; i >= 0; i--)
+		{
+			var line = visible[i];
+			var alpha = ConsoleFadePolicy.ComputeAlpha(
+				now - new DateTime(line.CreatedAtUtcTicks, DateTimeKind.Utc),
+				hold,
+				fade);
+			DrawLine(line, alpha);
+		}
 
 		GUILayout.EndArea();
-		DrawTooltip();
 	}
 
 	private void HandleKeys()
@@ -260,15 +303,27 @@ internal sealed class CommandConsoleOverlay
 		}
 	}
 
-	private void DrawTextArea(OnlineUiContext ctx)
+	private void DrawHistory(OnlineUiContext ctx, Rect panel)
 	{
-		var lines = ctx.Commands.Lines;
-		var start = Math.Max(0, lines.Count - MaxVisibleLines);
-		var now = DateTime.UtcNow;
-		var hold = TimeSpan.FromSeconds(FadeHoldSeconds);
-		var fade = TimeSpan.FromSeconds(FadeDurationSeconds);
+		var suggestions = _session.LiveSuggestions;
+		var suggestionHeight = suggestions.Count == 0
+			? 0f
+			: Mathf.Min(SuggestionMaxHeight, 14f + (suggestions.Count * 22f));
+		var inputRect = InputRect(panel);
+		var historyHeight = inputRect.y - panel.y - 8f - (suggestionHeight > 0f ? suggestionHeight + 6f : 0f);
+		if (historyHeight < 40f)
+		{
+			historyHeight = 40f;
+		}
 
-		if (lines.Count != _lastLineCount)
+		var historyRect = new Rect(panel.x + 8f, panel.y + 6f, panel.width - 16f, historyHeight);
+		GUILayout.BeginArea(historyRect);
+		if (ctx.Commands.Lines.Count == 0)
+		{
+			GUILayout.Label(ctx.T("console.overlay.empty"), OnlineUiTheme.MutedLabel());
+		}
+
+		if (ctx.Commands.Lines.Count != _lastLineCount)
 		{
 			_scroll.y = float.MaxValue;
 		}
@@ -276,29 +331,18 @@ internal sealed class CommandConsoleOverlay
 		_scroll = GUILayout.BeginScrollView(
 			_scroll,
 			GUILayout.ExpandWidth(true),
-			GUILayout.ExpandHeight(true),
-			GUILayout.Height(Height * 0.52f));
-		if (lines.Count == 0)
+			GUILayout.ExpandHeight(true));
+		foreach (var line in ctx.Commands.Lines)
 		{
-			GUILayout.Label(ctx.T("console.overlay.empty"), OnlineUiTheme.MutedLabel());
-		}
-
-		for (var i = start; i < lines.Count; i++)
-		{
-			var line = lines[i];
-			var age = now - new DateTime(line.CreatedAtUtcTicks, DateTimeKind.Utc);
-			var alpha = ConsoleFadePolicy.ComputeAlpha(age, hold, fade);
-			if (alpha <= 0.01f)
-			{
-				continue;
-			}
-
-			DrawLine(line, alpha);
+			DrawLine(line);
 		}
 
 		GUILayout.EndScrollView();
-		_lastLineCount = lines.Count;
+		GUILayout.EndArea();
+		_lastLineCount = ctx.Commands.Lines.Count;
 	}
+
+	private static void DrawLine(ConsoleLine line) => DrawLine(line, 1f);
 
 	private static void DrawLine(ConsoleLine line, float alpha)
 	{
@@ -315,29 +359,28 @@ internal sealed class CommandConsoleOverlay
 		GUI.color = previous;
 	}
 
-	private void DrawHints(OnlineUiContext ctx)
+	private void DrawSuggestions(Rect panel)
 	{
-		var hint = _session.Hint;
-		if (!string.IsNullOrWhiteSpace(hint))
-		{
-			GUILayout.Label(hint, OnlineUiTheme.Status(OnlineUiTheme.Accent));
-		}
-
-		DrawSuggestions();
-	}
-
-	private void DrawSuggestions()
-	{
-		var suggestions = _session.CompletionSuggestions;
+		var suggestions = _session.LiveSuggestions;
 		if (suggestions.Count == 0)
 		{
 			return;
 		}
 
+		var inputRect = InputRect(panel);
+		var height = Mathf.Min(SuggestionMaxHeight, 12f + (suggestions.Count * 22f));
+		if (height < 22f)
+		{
+			height = 22f;
+		}
+
+		var rect = new Rect(panel.x + 8f, inputRect.y - height - 4f, panel.width - 16f, height);
+		OnlineUiTheme.DrawOverlayBackground(rect);
+		GUILayout.BeginArea(new Rect(rect.x + 2f, rect.y + 2f, rect.width - 4f, rect.height - 4f));
 		_suggestionScroll = GUILayout.BeginScrollView(
 			_suggestionScroll,
-			GUILayout.Height(90f),
-			GUILayout.ExpandWidth(true));
+			GUILayout.ExpandWidth(true),
+			GUILayout.ExpandHeight(true));
 		foreach (var suggestion in suggestions)
 		{
 			GUILayout.BeginHorizontal();
@@ -356,185 +399,18 @@ internal sealed class CommandConsoleOverlay
 		}
 
 		GUILayout.EndScrollView();
+		GUILayout.EndArea();
 	}
 
-	private void DrawInput(OnlineUiContext ctx)
+	private void DrawInput(Rect panel)
 	{
-		GUILayout.BeginHorizontal();
-		GUILayout.Label(">", OnlineUiTheme.MutedLabel());
-		_inputRect = GUILayoutUtility.GetRect(GUIContent.none, GUI.skin.textField, GUILayout.Height(24f), GUILayout.ExpandWidth(true));
-		GUILayout.EndHorizontal();
-		DrawCustomInput(_inputRect);
+		var rect = InputRect(panel);
+		GUI.Label(new Rect(rect.x, rect.y, 18f, rect.height), ">", _inputRenderer.PromptStyle());
+		_inputRenderer.Draw(new Rect(rect.x + 18f, rect.y, rect.width - 18f, rect.height), _session, _ime);
 	}
 
-	private void DrawCustomInput(Rect rect)
-	{
-		var evt = Event.current;
-		if (evt != null && evt.type == EventType.MouseDown && rect.Contains(evt.mousePosition))
-		{
-			_session.SetCursor(GetCursorAtMouse(rect, evt.mousePosition));
-			evt.Use();
-		}
-
-		OnlineUiTheme.DrawBackground(rect);
-		var style = InputStyle();
-		if (_session.HasSelection)
-		{
-			DrawSelectionBackground(rect, style);
-		}
-
-		DrawHighlightedInput(rect, style);
-		DrawImeComposition(rect, style);
-		UpdateImeCursorPosition(rect, style);
-
-		if (ShouldDrawCaret() && _session.IsOpen)
-		{
-			var cursor = _session.Cursor;
-			var prefix = _session.Input.Substring(0, cursor);
-			var width = style.CalcSize(new GUIContent(prefix)).x;
-			var caretRect = new Rect(
-				rect.x + style.padding.left + width,
-				rect.y + 4f,
-				1f,
-				rect.height - 8f);
-			var previous = GUI.color;
-			GUI.color = OnlineUiTheme.Accent;
-			GUI.DrawTexture(caretRect, Texture2D.whiteTexture);
-			GUI.color = previous;
-		}
-	}
-
-	private void DrawImeComposition(Rect rect, GUIStyle style)
-	{
-		if (!_ime.IsComposing)
-		{
-			return;
-		}
-
-		var caretX = rect.x + style.padding.left + style.CalcSize(new GUIContent(_session.Input.Substring(0, _session.Cursor))).x;
-		var previous = GUI.color;
-		GUI.color = OnlineUiTheme.Muted;
-		GUI.Label(new Rect(caretX, rect.y, style.CalcSize(new GUIContent(_ime.Composition)).x, rect.height), _ime.Composition, style);
-		GUI.color = previous;
-	}
-
-	private void UpdateImeCursorPosition(Rect rect, GUIStyle style)
-	{
-		if (!_session.IsOpen)
-		{
-			return;
-		}
-
-		var caretX = rect.x + style.padding.left + style.CalcSize(new GUIContent(_session.Input.Substring(0, _session.Cursor))).x;
-		// GUI rects use a top-left origin; the legacy Input IME position uses
-		// screen coordinates, so convert the caret's vertical center.
-		Input.compositionCursorPos = new Vector2(caretX, Screen.height - (rect.y + (rect.height * 0.5f)));
-	}
-
-	private void DrawSelectionBackground(Rect rect, GUIStyle style)
-	{
-		var start = _session.SelectionStart;
-		var end = _session.SelectionEnd;
-		var startX = rect.x + style.padding.left + style.CalcSize(new GUIContent(_session.Input.Substring(0, start))).x;
-		var endX = rect.x + style.padding.left + style.CalcSize(new GUIContent(_session.Input.Substring(0, end))).x;
-		var previous = GUI.color;
-		GUI.color = new Color(0.35f, 0.55f, 0.85f, 0.35f);
-		GUI.DrawTexture(new Rect(startX, rect.y + 3f, Mathf.Max(0f, endX - startX), rect.height - 6f), Texture2D.whiteTexture);
-		GUI.color = previous;
-	}
-
-	private void DrawHighlightedInput(Rect rect, GUIStyle style)
-	{
-		var tokens = CommandLineTokenizer.Tokenize(_session.Input);
-		var x = rect.x + style.padding.left;
-		var consumed = 0;
-		foreach (var token in tokens)
-		{
-			if (token.Start > consumed)
-			{
-				DrawSegment(rect, x, style, _session.Input.Substring(consumed, token.Start - consumed), OnlineUiTheme.Text, ref x);
-			}
-
-			DrawSegment(rect, x, style, token.Text, TokenColor(token), ref x);
-			consumed = token.Start + token.Length;
-		}
-
-		if (consumed < _session.Input.Length)
-		{
-			DrawSegment(rect, x, style, _session.Input.Substring(consumed), OnlineUiTheme.Text, ref x);
-		}
-	}
-
-	private static void DrawSegment(Rect rect, float x, GUIStyle style, string text, Color color, ref float nextX)
-	{
-		if (text.Length == 0)
-		{
-			return;
-		}
-
-		var previous = GUI.color;
-		GUI.color = color;
-		var width = style.CalcSize(new GUIContent(text)).x;
-		GUI.Label(new Rect(x, rect.y, width, rect.height), text, style);
-		GUI.color = previous;
-		nextX = x + width;
-	}
-
-	private static Color TokenColor(CommandLineTokenizer.Token token)
-	{
-		if (token.Start == 0 && token.Text.StartsWith("/", StringComparison.Ordinal))
-		{
-			return OnlineUiTheme.Accent;
-		}
-
-		if (token.Quoted
-			|| token.Text.StartsWith("{", StringComparison.Ordinal)
-			|| token.Text.StartsWith("[", StringComparison.Ordinal))
-		{
-			return OnlineUiTheme.Muted;
-		}
-
-		return OnlineUiTheme.Text;
-	}
-
-	private int GetCursorAtMouse(Rect rect, Vector2 mouse)
-	{
-		var style = InputStyle();
-		var text = _session.Input;
-		var best = 0;
-		var bestDistance = float.MaxValue;
-		for (var i = 0; i <= text.Length; i++)
-		{
-			var width = style.CalcSize(new GUIContent(text.Substring(0, i))).x;
-			var x = rect.x + style.padding.left + width;
-			var distance = Mathf.Abs(mouse.x - x);
-			if (distance < bestDistance)
-			{
-				bestDistance = distance;
-				best = i;
-			}
-		}
-
-		return best;
-	}
-
-	private static bool ShouldDrawCaret() => (int)(Time.realtimeSinceStartup * 2f) % 2 == 0;
-
-	private static GUIStyle InputStyle()
-	{
-		if (_inputStyle is null)
-		{
-			_inputStyle = new GUIStyle(GUI.skin.textField)
-			{
-				alignment = TextAnchor.MiddleLeft,
-				clipping = TextClipping.Clip,
-				padding = new RectOffset(6, 6, 4, 4),
-			};
-			_inputStyle.normal.textColor = Color.white;
-		}
-
-		return _inputStyle;
-	}
+	private static Rect InputRect(Rect panel) =>
+		new(panel.x + 10f, panel.y + panel.height - InputHeight - 8f, panel.width - 20f, InputHeight);
 
 	private void DrawTooltip()
 	{
@@ -546,8 +422,7 @@ internal sealed class CommandConsoleOverlay
 		var mouse = Event.current.mousePosition;
 		var width = Mathf.Min(360f, Screen.width - mouse.x - 24f);
 		var rect = new Rect(mouse.x + 14f, mouse.y + 14f, width, 44f);
-		OnlineUiTheme.DrawBackground(rect);
+		OnlineUiTheme.DrawOverlayBackground(rect);
 		GUI.Label(new Rect(rect.x + 6f, rect.y + 4f, rect.width - 12f, rect.height - 8f), GUI.tooltip, OnlineUiTheme.MutedLabel());
 	}
-
 }

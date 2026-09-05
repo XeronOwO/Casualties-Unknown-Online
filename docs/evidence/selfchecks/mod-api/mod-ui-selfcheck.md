@@ -62,6 +62,6 @@ no protocol bump.
 | `dotnet test CasualtiesUnknownOnline.slnx` | 1085 passed / 0 failed |
 | `dotnet format CasualtiesUnknownOnline.slnx` | clean for tracked/untracked source (only ignored `obj/MyPluginInfo.cs` reports; outside git) |
 | `check-architecture.ps1` / `check-event-replay.ps1` / `check-entity-event-dispatch.ps1` | pass (arch 600-line/state-bool/one-type gates) |
-| `tools/deploy.ps1 -GameDir "E:\SteamLibrary\steamapps\common\Casualties Unknown Demo"` | deployed to the real game directory only |
+| `tools/deploy.ps1 -GameDir "<game-dir>"` | deployed to the real game directory only |
 | `check-delivery.ps1` | pass (checked boxes tracked in `../delivery-checklist.md`) |
 | No manual acceptance | per development-period rule |

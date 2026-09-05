@@ -59,5 +59,5 @@ remain by design (decision #28).
 | `dotnet test CasualtiesUnknownOnline.slnx` | 1072 passed / 0 failed |
 | `dotnet format CasualtiesUnknownOnline.slnx` | see below (clean after format) |
 | `check-architecture.ps1` / `check-event-replay.ps1` / `check-entity-event-dispatch.ps1` | passed |
-| `tools/deploy.ps1 -GameDir "E:\SteamLibrary\steamapps\common\Casualties Unknown Demo"` | deployed to the real game dir only |
+| `tools/deploy.ps1 -GameDir "<game-dir>"` | deployed to the real game dir only |
 | Static evidence | TutorialHandler.cs:223-231,272-287; Tech-decisions #28 |

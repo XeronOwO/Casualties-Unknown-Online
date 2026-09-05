@@ -107,7 +107,7 @@ the plan approval for this cycle; no further interactive approval is required.
 | `dotnet test CasualtiesUnknownOnline.slnx --no-build` | 1066 passed / 0 failed |
 | `dotnet format CasualtiesUnknownOnline.slnx` | clean on source |
 | `check-architecture.ps1` / `check-event-replay.ps1` / `check-entity-event-dispatch.ps1` | all passed |
-| `tools/deploy.ps1 -GameDir "E:\SteamLibrary\steamapps\common\Casualties Unknown Demo"` | deployed to the real game dir only |
+| `tools/deploy.ps1 -GameDir "<game-dir>"` | deployed to the real game dir only |
 | Protocol | 28 (new NetMsg 102-103) |
 
 ## 7. Structure review

@@ -230,6 +230,13 @@ internal interface IPatchBridge
 	/// </summary>
 	bool IsLocalCarrier(Body body);
 
+	/// <summary>
+	/// The local carrier's <c>Body.Update</c> finished. Re-pin the remote rider
+	/// clones to the just-updated local carrier transform; CUO's own update pump
+	/// may have pinned them before the game moved the local body this frame.
+	/// </summary>
+	void OnLocalCarrierBodyUpdated();
+
 	// ---- World items (runtime-generated item entities) ----
 
 	/// <summary>True in a live session — the spawn landing sound is deferred until the start-gate release.</summary>

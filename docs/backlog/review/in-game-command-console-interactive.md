@@ -45,8 +45,8 @@ perspective. Specific rejection points:
 - While the console is open the full command/chat history renders with no fade;
   `ConsoleFadePolicy` is now used only for the small closed-panel notification
   strip that shows the most recent lines for a short time.
-- ESC continues to be consumed by the overlay and the existing modal guard
-  suppresses the game's pause path.
+- ESC handling is present in the overlay, but the user re-tested and reports it
+  is still not fully intercepted (see the open issue below).
 - Input presentation (caret, selection, highlighting, IME) was split into
   `CommandConsoleInputRenderer`, keeping the overlay under the architecture line
   gate and preserving the single-responsibility split.
@@ -67,6 +67,14 @@ parses a flat JSON object and persists host/respawn settings. Completion now
 uses a command-tree/argument-node model with resource-location candidates, and
 selectors support bracketed filters (`type`, `name`, `distance`, `limit`,
 `sort`).
+
+## Still open (user re-report)
+
+User reports that the ESC problem still exists: pressing ESC while the console is
+open also opens the game's ESC/pause menu, so the game's ESC menu is not
+intercepted. The previous claim that ESC is fully consumed is not accepted as
+verified. This specific issue is extracted into:
+`docs/backlog/todo/command-console-esc-not-intercepted.md`.
 
 Phase plan: `docs/phases/command-console-interactive/README.md`.
 Selfcheck: `docs/evidence/selfchecks/ui/command-console-selfcheck.md`.

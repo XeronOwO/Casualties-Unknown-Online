@@ -1,11 +1,10 @@
 # Remote backpack native interaction parity — self-check
 
-> **Status: Critical / re-opened (latest user re-report).** This selfcheck no
-> longer counts as conclusive acceptance. The user reports operating on another
-> player's backpack still behaves exactly as before any fix and marks it a
-> super-priority issue. The native remote-backpack parity work below is
-> historical implementation evidence, not proof that the user reproduction is
-> resolved.
+> **Status: Critical; code-complete and deployed, awaiting final user
+> dual-client acceptance.** The historical implementation evidence below plus
+> the 2026-09-06 autonomous re-fix cycle address the rejected container/trash-bag
+> paths. This selfcheck is machine/static evidence only; the exact user
+> reproduction must still be re-tested against the deployed artifacts.
 
 ## 1. Mechanism inventory (evidence-first)
 

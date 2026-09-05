@@ -18,7 +18,7 @@ All files under `docs/selfchecks/` are historical/per-delivery evidence records.
 | players/character-ragdoll-toggle-sync-selfcheck.md | Players | current | candidate current evidence; verify before citing |
 | players/character-sound-selfcheck.md | Players | current | candidate current evidence; verify before citing |
 | players/carried-idle-sit-suppression-selfcheck.md | Players | current | carried-ride idle-sit suppression landed |
-| players/carried-rider-placement-smoothing-selfcheck.md | Players | current | carried-ride placement smoothing and vertical consistency landed |
+| players/carried-rider-placement-smoothing-selfcheck.md | Players | current | carried-ride placement smoothing, vertical consistency, and local-carrier mount rework landed |
 | ui/chat-selfcheck.md | UI | current | candidate current evidence; verify before citing |
 | presentation/building-entity-hit-flash-sync-selfcheck.md | Other | current | melee red HitFlash replays on non-attacker views through BuildingEntityDamaged |
 | presentation/clone-face-presentation-selfcheck.md | Other | current | candidate current evidence; verify before citing |

@@ -173,8 +173,9 @@ internal sealed class OnlineUiPlayerContextMenu
 	{
 		var actions = new List<MenuAction>();
 
-		// The medical panel is read-only display, not a physical interaction, so
-		// it remains available even when line-of-sight hides the action buttons.
+		// The medical panel is still a remote-player action from this menu. Its
+		// eligibility follows the same line-of-sight gate as the other actions;
+		// it must never appear alone when the target cannot be seen.
 		if (row.CanViewMedical)
 		{
 			actions.Add(new MenuAction(ctx.T("member.open_medical"), () => ctx.OpenRemoteMedical?.Invoke(row.SteamId, ctx.DisplayName(row.SteamId))));

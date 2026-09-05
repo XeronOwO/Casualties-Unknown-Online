@@ -108,6 +108,7 @@ All files under `docs/selfchecks/` are historical/per-delivery evidence records.
 | ui/online-ui-scoped-passthrough-selfcheck.md | UI | current | candidate current evidence; verify before citing |
 | ui/online-ui-selfcheck.md | UI | historical | superseded/old-wire; do not cite as current evidence without checking protocol.md |
 | ui/online-ui-window-selfcheck.md | UI | current | candidate current evidence; verify before citing |
+| ui/remote-context-menu-medical-visibility-selfcheck.md | UI | current | Medical remote-action visibility now follows the shared line-of-sight gate on context menu/Players/quick panel |
 | world/openable-keypad-prefabs-selfcheck.md | Other | current | candidate current evidence; verify before citing |
 | presentation/owner-local-body-auto-events-selfcheck.md | Other | current | candidate current evidence; verify before citing |
 | tooling/partial-aware-gate-selfcheck.md | Other | current | candidate current evidence; verify before citing |

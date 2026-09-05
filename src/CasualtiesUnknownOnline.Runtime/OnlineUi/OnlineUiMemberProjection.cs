@@ -61,6 +61,8 @@ public static class OnlineUiMemberProjection
 				&& (hasLineOfSight?.Invoke(memberId) ?? true));
 			var canViewMedical = !isLocal
 				&& member is { InWorld: true }
+				&& localInWorld
+				&& canSee
 				&& vitals is not null;
 
 			var isCarryingThis = !isLocal

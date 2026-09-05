@@ -28,8 +28,10 @@ internal static class PlayerCameraDragUsePatch
 		// The remote medical view owns its own drag-to-limb treatment routing.
 		// Let the native UI reach TryPerformSpecialUIAction so the WoundView
 		// limb gesture is consumed by RemoteMedicalPatches instead of being
-		// preempted by the world-overlap cross-player use path.
-		if (RemoteMedicalView.IsOpen)
+		// preempted by the world-overlap cross-player use path. If the remote
+		// backpack is somehow also open, keep the backpack proxy protections
+		// ahead of the medical path.
+		if (RemoteMedicalView.IsOpen && !RemoteBackpackView.IsOpen)
 		{
 			return true;
 		}

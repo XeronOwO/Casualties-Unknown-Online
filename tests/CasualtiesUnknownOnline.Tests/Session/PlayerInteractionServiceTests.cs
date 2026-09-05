@@ -2156,6 +2156,22 @@ public class PlayerInteractionServiceTests
 	}
 
 	[Fact]
+	public void HealRequest_RoundTripsAutoLimbSelection()
+	{
+		var msg = new PlayerHealRequestMsg
+		{
+			TargetSteamId = HostId,
+			ItemInstanceId = 42,
+			LimbIndex = -1,
+		};
+
+		var decoded = NetPacket.DecodePayload<PlayerHealRequestMsg>(
+			NetPacket.Encode(NetMsg.PlayerHealRequest, msg));
+
+		Assert.Equal(-1, decoded.LimbIndex);
+	}
+
+	[Fact]
 	public void UseRequest_RoundTripsSelectedLimbIndex()
 	{
 		var msg = new PlayerItemUseRequestMsg

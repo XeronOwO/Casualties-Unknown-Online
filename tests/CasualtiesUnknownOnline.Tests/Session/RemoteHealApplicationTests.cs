@@ -49,6 +49,18 @@ public class RemoteHealApplicationTests
 	}
 
 	[Fact]
+	public void ResolveLimbIndex_MatchesSemanticIndexWhenListIsUnordered()
+	{
+		var limbs = new List<CharacterLimbMsg>
+		{
+			new() { Index = 1, SkinHealth = 10f, MuscleHealth = 40f },
+			new() { Index = 0, SkinHealth = 70f, MuscleHealth = 70f },
+		};
+
+		Assert.Equal(1, RemoteHealApplication.ResolveLimbIndex(limbs, 0));
+	}
+
+	[Fact]
 	public void ResolveLimbIndex_FallsBackToMostInjuredForInvalidOrDismemberedRequest()
 	{
 		var limbs = new List<CharacterLimbMsg>

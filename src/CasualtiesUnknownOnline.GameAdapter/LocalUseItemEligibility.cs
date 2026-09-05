@@ -1,3 +1,4 @@
+using System;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 
 namespace CasualtiesUnknownOnline.GameAdapter;
@@ -98,6 +99,63 @@ internal static class LocalUseItemEligibility
 		foreach (var liquid in water.stack)
 		{
 			if (!RemoteConsumeCatalog.IsKnownLiquid(liquid.liquidId))
+			{
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	/// <summary>
+	/// The narrower eligibility for the native WoundView remote-limb treatment
+	/// gesture: only medical/limb-treatment surfaces may be dragged onto a
+	/// remote body image. Wearable, food, and drink-only items are deliberately
+	/// excluded because the native WoundView limb target is not their entry
+	/// point, and they would otherwise be routed as a remote wear/feed action
+	/// from the wrong UI.
+	/// </summary>
+	public static bool IsMedicalLimbUseItem(Item item)
+	{
+		if (item == null || item.condition <= 0f) // Unity object — ==
+		{
+			return false;
+		}
+
+		if (RemoteHealProfiles.IsHealItem(item.id))
+		{
+			return true;
+		}
+
+		if (RemoteLimbToolCatalog.IsToolItem(item.id))
+		{
+			return true;
+		}
+
+		if (RemoteMedicineCatalog.IsInjectableItem(item.id))
+		{
+			return HasValidLiquid(item, RemoteMedicineCatalog.IsSupportedMedicineLiquid);
+		}
+
+		if (RemoteTopicalCatalog.IsTopicalItem(item.id))
+		{
+			return HasValidLiquid(item, RemoteTopicalCatalog.IsSupportedTopicalLiquid);
+		}
+
+		return false;
+	}
+
+	private static bool HasValidLiquid(Item item, Func<string, bool> isSupportedLiquid)
+	{
+		var container = item.GetComponent<WaterContainerItem>();
+		if (container == null || container.CurrentTotal <= 0f) // Unity object — ==
+		{
+			return false;
+		}
+
+		foreach (var liquid in container.stack)
+		{
+			if (!isSupportedLiquid(liquid.liquidId))
 			{
 				return false;
 			}

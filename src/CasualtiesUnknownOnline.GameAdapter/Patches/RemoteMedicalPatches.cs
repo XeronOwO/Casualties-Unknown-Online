@@ -77,6 +77,12 @@ internal static class RemoteMedicalPatches
 		private static bool Prefix() => !RemoteMedicalView.IsOpen;
 	}
 
+	[HarmonyPatch(typeof(PlayerCamera), "ApplyWoundItem")]
+	internal static class RemoteMedicalBlockApplyWoundItemPatch
+	{
+		private static bool Prefix() => !RemoteMedicalView.IsOpen;
+	}
+
 	[HarmonyPatch(typeof(PlayerCamera), "TryPerformSpecialUIAction")]
 	internal static class RemoteMedicalBlockSpecialActionPatch
 	{

@@ -51,11 +51,14 @@ public static class RemoteHealApplication
 	/// </summary>
 	public static int ResolveLimbIndex(IReadOnlyList<CharacterLimbMsg> limbs, int requestedLimbIndex)
 	{
-		if (requestedLimbIndex >= 0
-			&& requestedLimbIndex < limbs.Count
-			&& !limbs[requestedLimbIndex].Dismembered)
+		// Match by the semantic CharacterLimbMsg.Index, not by list position.
+		// The wire/restore paths may not guarantee limbs are ordered by index.
+		for (var i = 0; i < limbs.Count; i++)
 		{
-			return requestedLimbIndex;
+			if (limbs[i].Index == requestedLimbIndex && !limbs[i].Dismembered)
+			{
+				return i;
+			}
 		}
 
 		return PickMostInjuredLimb(limbs);

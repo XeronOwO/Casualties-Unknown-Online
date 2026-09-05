@@ -197,6 +197,7 @@ public sealed class OnlineUiMemberProjectionTests
 		Assert.False(rows[1].CanRecruit);
 		Assert.False(rows[1].CanHeal);
 		Assert.False(rows[1].CanPush);
+		Assert.False(rows[1].CanViewMedical);
 	}
 
 	[Fact]
@@ -581,7 +582,7 @@ public sealed class OnlineUiMemberProjectionTests
 	}
 
 	[Fact]
-	public void CanViewMedical_DoesNotRequireLineOfSight()
+	public void CanViewMedical_RequiresLineOfSight()
 	{
 		var vitals = new Dictionary<ulong, RemoteVitalsSnapshot>
 		{
@@ -596,8 +597,26 @@ public sealed class OnlineUiMemberProjectionTests
 			getVitals: id => vitals.TryGetValue(id, out var v) ? v : null,
 			hasLineOfSight: _ => false);
 
-		Assert.True(rows[1].CanViewMedical);
+		Assert.False(rows[1].CanViewMedical);
 		Assert.False(rows[1].CanSee);
+	}
+
+	[Fact]
+	public void CanViewMedical_RequiresLocalInWorld()
+	{
+		var vitals = new Dictionary<ulong, RemoteVitalsSnapshot>
+		{
+			[Remote] = RemoteVitalsSnapshot.From(new CharacterHealthMsg { Alive = true, Conscious = true })!,
+		};
+
+		var rows = Build(
+			[Local, Remote],
+			[Presence(Remote, handshaken: true, inWorld: true)],
+			null,
+			localInWorld: false,
+			getVitals: id => vitals.TryGetValue(id, out var v) ? v : null);
+
+		Assert.False(rows[1].CanViewMedical);
 	}
 
 	[Fact]

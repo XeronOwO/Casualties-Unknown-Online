@@ -36,7 +36,7 @@ remote inventory.
 | `RemoteLimbSnapshot` | New immutable per-limb projection |
 | `OnlineUiMemberRow` / `OnlineUiMemberProjection` | New `CanViewMedical` flag for non-local in-world players with cached vitals |
 | `OnlineUiMemberListDrawer` | "Medical" button on member cards |
-| `OnlineUiPlayerContextMenu` | "Medical" action, available even without line-of-sight because it is display-only |
+| `OnlineUiPlayerContextMenu` | "Medical" action in this rejected/historical design (superseded by the shared line-of-sight gate; see `ui/remote-context-menu-medical-visibility-selfcheck.md`) |
 | `OnlineUiMedicalPanel` | New read-only IMGUI panel with general/nutrition/circulation/trauma/status/limb sections |
 | `OnlineUiOverlay` | Draws the panel, adds pointer-over/scoped-block coverage |
 | Localization | English + Chinese strings for all panel labels |
@@ -50,7 +50,7 @@ remote inventory.
 | Full health/limbs project correctly | `RemoteMedicalSnapshot.From(CharacterDataMsg)` copies health fields and limbs | `MedicalSnapshot_ProjectsNullAndFullHealth` |
 | Existing compact vitals still work | The same service still exposes `TryGet` | existing `RemoteVitalsServiceTests` remain green |
 | Read-only panel is offered only for real remote players | `CanViewMedical` is false for local, out-of-world, and no-data rows | `InWorldRemoteWithVitals_CanViewMedical`, `RemoteWithoutVitalsOrNotInWorld_CannotViewMedical` |
-| Medical display is not a physical action | It does not require line-of-sight | `CanViewMedical_DoesNotRequireLineOfSight` |
+| Medical display is not a physical action | Historical behavior only: this rejected design did not require line-of-sight. Current behavior requires the shared visibility gate | `CanViewMedical_RequiresLineOfSight` (current) / superseded historical note above |
 | No cache leak after leaving world | `RemoteSceneChanged(false)` removes the medical entry too | `RemoteLeavingWorld_ClearsThatPlayersVitals` now also checks `TryGetMedical` |
 | No cross-session leak | `SessionEnded` clears the medical entry too | `SessionEnd_ClearsTheCache` now also checks `TryGetMedical` |
 

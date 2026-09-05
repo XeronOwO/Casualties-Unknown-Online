@@ -1,9 +1,20 @@
 # Carry/piggyback riding movement teleport and rider/carrier position mismatch
 
-- Status: Review
-- Priority: Medium
+- Status: Todo (rejected again after user re-test)
+- Priority: High
 - Category: Player interaction / movement sync / carry-piggyback presentation
-- Source: User report (2026-09-04); rejected in review (2026-09-05) — the first fix only covered half of the carry presentation family.
+- Source: User report (2026-09-04); rejected in review (2026-09-05) — the first fix only covered half of the carry presentation family; rejected again (2026-09-05) on host movement with a riding guest.
+
+## Rejected again (2026-09-05 user re-test)
+
+User re-tested the carry/piggyback movement while the guest rides on the host:
+
+- The guest is riding on the host.
+- The host moves.
+- In the host's own view, the guest's body is not rigidly fixed to the carry
+  position; the guest visibly teleports / jumps rather than staying attached.
+- The carry presentation is rejected; the rider must stay firmly attached to
+  the carrier during movement on the participant's view.
 
 ## Goal
 

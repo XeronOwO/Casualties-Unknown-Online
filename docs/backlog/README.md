@@ -38,7 +38,12 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-_None._ (Folder exists for the workflow.)
+- [Remote medical treatment operations](todo/remote-medical-treatment-operations.md) — remote medical/health panel is currently view-only; add real treatment actions through the native medical UI (e.g. syringe/injection) via the existing cross-player validated path.
+- [Host entity hit red flash not visible on guest](todo/host-entity-hit-red-flash-not-visible-on-guest.md) — host's attack shows a red hit flash on the entity locally, but the guest cannot see it; replicate the presentation through the existing enemy/entity effect channel without re-simulating damage.
+- [Entity destruction drops lose fresh-drop presentation/initial motion on the guest view](todo/entity-destruction-drop-guest-fresh-state-loss.md) — rejected again, bidirectional: whichever side (host or guest) destroys an entity, the non-destroying peer cannot see the white fresh-drop highlight; needs deployed-artifact verification of both directions and third-party views.
+- [Interactive in-game command console](todo/in-game-command-console-interactive.md) — rejected as a whole; redo as Minecraft-like translucent bottom overlay: fix input alignment, remove instruction hints, show command suggestions/autocomplete on `/`, show full history while open (fade only for closed-panel notifications), and fully intercept ESC so it does not open the game pause menu.
+- [Remote backpack native interaction parity](todo/remote-backpack-native-interaction-parity.md) — rejected as a whole: remote container/trash-bag operations are not immediate, bottle appears then disappears after periodic sync, weight display jumps/doubles, and dragged-out items cannot actually be taken out.
+- [Carry/piggyback rider position smoothing and movement teleport](todo/carry-piggyback-rider-position-smoothing.md) — rejected again: guest rides on host, host moves, and in the host's view the guest teleports instead of being rigidly attached; movement attachment must be fixed on the participant view.
 
 
 ### In progress
@@ -46,15 +51,14 @@ _None._ (Folder exists for the workflow.)
 _None._ (Folder exists for the workflow.)
 
 ### Review
-- [Remote backpack native interaction parity](review/remote-backpack-native-interaction-parity.md) — full native operation parity: combine/use/wear/battery/favourite/slot move/swap plus container/craft windows routed through host-validated requests; owner client executes exact native operations; no display-proxy mutation.
 - [Guest frame rate lower than host with frame drops](review/guest-frame-rate-lower-than-host.md) — guest frame-rate baseline telemetry landed; per-frame RemotePlayers enumeration and guest item-follow key snapshot allocations removed; selfcheck linked.
 
 - [Remote player medical/health panel](review/remote-player-medical-panel.md) — native WoundView reuse: display-only body copy fed from the 1 Hz character snapshot; custom CUO IMGUI panel removed; selfcheck linked.
+- [Remote context menu Medical visible when target is not visible](review/remote-context-menu-medical-visible-when-target-not-visible.md) — Medical now follows the same line-of-sight/visibility gate as the other remote actions; fixed in the shared member projection so context menu, Players page, and quick panel stay consistent; selfcheck linked.
 - [Guest remote pose / head-orientation desync on host view](review/guest-remote-pose-head-orientation-desync.md) — stale render-clone attackCooldown/moveDir auto-flip inputs neutralized; regression contract and selfcheck linked.
 - [Host severe sleepiness posture not synced to guest](review/host-severe-sleepiness-posture-desync.md) — owner leg-speed multiplier now rides the 1 Hz character snapshot and is replayed as the CrouchAmount weakness/slouch input on remote clones; selfcheck linked.
 - [Host fall injury mouth-expression desync](review/host-fall-injury-mouth-expression-desync.md) — owner head/mouth state now rides the 1 Hz character snapshot and is replayed on remote clones; root cause, not a cosmetic remote-face patch; selfcheck linked.
 - [Guest background window plays ghost item friction/ground sounds](review/guest-background-ghost-item-ground-sounds.md) — non-authoritative guest item impact presentation (drop/step/squeak/dust) suppressed; selfcheck linked.
-- [Interactive in-game command console](review/in-game-command-console-interactive.md) — slash-opened focused input, completion/history/hints, fading text area, real selector-backed `/heal` command, IME-aware custom input, JSON host-rule command.
 - [Command registration Attribute/reflection refactor](review/command-registration-attribute-refactor.md) — Attribute/reflection console registry + local mod console command API; selfcheck linked.
 - [Command tree, resource-location completion, and selector filters](review/command-tree-resource-location-selector.md) — tree/argument-position completion, namespaced candidate catalog, bracketed selector filters; selfcheck linked.
 - [Mod data sync model](review/mod-data-sync-model.md) — runtime scope seam landed: local-only / shared / host-authoritative mod data; no generic snapshot protocol.
@@ -79,10 +83,8 @@ _None._ (Folder exists for the workflow.)
 - [Suppress native idle-sit while carried](review/carried-player-idle-sit-suppression.md) — carried characters no longer publish/replay/linger in the native sit pose; shared pure CarriedBodyPose rule applied across rider/carrier/peer views.
 - [Carrier can sit while carrying a player](review/carrier-sit-while-carrying.md) — carrier half of the same family closed: local carrier cannot enter/linger in native sit, mirror-backed via IPatchBridge.IsLocalCarrier; remote carrier clones suppress sit replay on every peer; selfcheck linked.
 - [Carry/piggyback vertical placement asymmetry](review/carry-piggyback-vertical-placement-asymmetry.md) — carried riders publish body root instead of the non-standing torso anchor; shared ride-pose path also mirrors crouch state; selfcheck linked.
-- [Carry/piggyback rider position smoothing and movement teleport](review/carry-piggyback-rider-position-smoothing.md) — shared ride-pose path, rider follows smoothed carrier clone, every rider clone attached after interpolation, local carried body render-proxy visual standing, post-native-Body.Update carrier re-pin, and post-placement stream refresh; selfcheck linked.
 - [Guest container contents periodically appear as world drops on the host view](review/guest-container-contents-ghost-drops-on-host.md) — remote clone nested display proxies no longer carry item instance ids; domain lookup cannot address them; selfcheck linked.
 - [Trap destruction drops desync in item quantity between host and guest](review/trap-destruction-drop-quantity-desync.md) — support-loss building drops now ride the same `BlockDamagedMsg` as the break; non-breaker sides are marked remote death and receive the full initial drop set; selfcheck linked.
-- [Entity destruction drops lose fresh-drop presentation/initial motion on the guest view](review/entity-destruction-drop-guest-fresh-state-loss.md) — support-loss building drops carry fresh/velocity/rotation/angular state through `BlockDamagedMsg.BuildingDrops`; destructive-trap event path unchanged; selfcheck linked.
 
 ### Future
 

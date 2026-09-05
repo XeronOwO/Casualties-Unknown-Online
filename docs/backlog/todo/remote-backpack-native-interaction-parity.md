@@ -1,9 +1,28 @@
 # Remote backpack native interaction parity
 
-- Status: Review (re-opened after rejection 2026-09-05; full native operation parity implemented 2026-09-XX)
-- Priority: Medium
-- Category: Remote inventory / co-op interaction parity
-- Source: User report (2026-09-04); rejected by user (2026-09-05) — opening another player's backpack still could not perform most item operations.
+- Status: Todo (rejected as a whole after user re-test)
+- Priority: High
+- Category: Remote inventory / co-op interaction parity / container sync
+- Source: User report (2026-09-04); rejected by user (2026-09-05) — opening another player's backpack still could not perform most item operations; rejected again as a whole (2026-09-05) on container/trash-bag interaction.
+
+## Rejected as a whole (2026-09-05 user re-test)
+
+User re-tested opening another player's backpack and using container/trash-bag
+interaction. The behavior is not accepted:
+
+- Dragging a water bottle from the remote backpack into a trash bag does not
+  enter immediately; it only appears to be placed through the periodic sync /
+  fallback mechanism.
+- After dragging the bottle in, opening the trash bag can show the water bottle;
+  after the next periodic sync the bottle disappears from the container view.
+  Re-opening the trash bag repeats the visible → invisible cycle.
+- The trash bag's weight/mass display has intermittent jumps; it appears to
+  double for one frame at times.
+- Quickly trying to take the water bottle back out of the trash bag: the item can
+  be dragged, but cannot actually be removed.
+- The whole remote-backpack native interaction feature is rejected and must be
+  redone/fixed until these container paths work immediately, stay stable through
+  periodic sync, and allow take-out.
 
 ## Goal
 

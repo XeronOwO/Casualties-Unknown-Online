@@ -896,11 +896,11 @@ commands and remains the two-process verification target).
 
 ## 7. Versioning and protocol discipline
 
-- `ProtocolVersion.Current` is `2`. The pre-release protocol-version sequence
-  was deliberately reset before first release (tech-decisions #137), and 2 is
-  the first post-reset bump after the PantSound `CharacterSoundKind` extension;
-  earlier numbers such as 10/29/34 in this document are historical and must not
-  be used as current wire versions.
+- `ProtocolVersion.Current` is `6`. The pre-release protocol-version sequence
+  was deliberately reset before first release (tech-decisions #137), and 6 is
+  the post-reset bump after the latest `CharacterHealthMsg` head/mouth
+  presentation-field addition; earlier numbers such as 10/29/34 in this
+  document are historical and must not be used as current wire versions.
 - Behavioral wire changes after the first release will bump
   `ProtocolVersion.Current`; local-only/read-only mod surfaces that add no wire
   change do not bump it.

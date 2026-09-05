@@ -261,4 +261,23 @@ public sealed class CharacterHealthMsg
 
 	[ProtoMember(77)]
 	public bool MindwipeScriptActive { get; set; }
+
+	/// <summary>
+	/// The owner's actual head/mouth sprite state (closed, half-open, or open)
+	/// as chosen by the owner's live <c>FacialExpression.Update</c>. The remote
+	/// clone replays this exact state rather than deriving its head sprite from
+	/// clone-local slot contents / limb latches / eat-time, which can disagree
+	/// with the owner's own view after falls or other pose transitions.
+	/// </summary>
+	[ProtoMember(78)]
+	public HeadMouthState HeadMouth { get; set; }
+
+	/// <summary>
+	/// The owner's live eating/drinking timer. It is the one mouth trigger that
+	/// is not otherwise represented in the character snapshot, and it lets the
+	/// receiving side recompute <see cref="HeadMouth"/> after slot/limb events
+	/// without waiting for the next full snapshot.
+	/// </summary>
+	[ProtoMember(79)]
+	public float EatTime { get; set; }
 }

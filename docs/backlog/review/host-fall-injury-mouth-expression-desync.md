@@ -1,6 +1,6 @@
 # Host fall injury mouth-expression desync
 
-- Status: Todo
+- Status: Review (code-complete)
 - Priority: Medium
 - Category: Player presentation / sync root cause
 - Source: User report (2026-09-05) — host falls and is injured; on the guest's view the host's mouth opens, but on the host's own view it does not.
@@ -35,6 +35,19 @@ peer but not applied on the owner).
   the guest-visible mouth directly.
 - Check whether this is related to the existing pain vocalization/face-vitals
   sync tickets and to the host-authoritative physiological sync surface.
+
+## Root cause (this cycle)
+
+The remote clone's head/mouth sprite is derived on the receiving side from
+clone-local proxy inputs (`Body.HoldingItem(2)`, `limbs[0].dislocated`, and
+the zeroed inheritance of `eatTime`). After a fall injury, those inputs can
+disagree with the owner's own `FacialExpression` visual, producing the
+remote-only open mouth. The 1 Hz character snapshot now carries the owner's
+actual mouth decision (`HeadMouthState`), and a remote-clone postfix restores
+that exact head sprite after the game's own `FacialExpression.Update` has run.
+No gameplay or authority state changed.
+
+Selfcheck: `docs/evidence/selfchecks/presentation/remote-clone-head-mouth-sync-selfcheck.md`.
 
 ## Non-goals
 

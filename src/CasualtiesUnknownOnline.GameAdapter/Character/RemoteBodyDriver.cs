@@ -1,3 +1,4 @@
+using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using UnityEngine;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Character;
@@ -71,6 +72,15 @@ internal sealed class RemoteBodyDriver : MonoBehaviour
 
 	/// <summary>Last applied nap variant — the lay-down clip pair replays when the variant changes.</summary>
 	public byte PrevNapVariant;
+
+	/// <summary>
+	/// The owner's actual head/mouth sprite state from the 1 Hz character
+	/// snapshot. <c>FacialExpressionHeadPatch</c> restores this on the clone
+	/// after the game's own <c>FacialExpression.Update</c>, so clone-local
+	/// mouth triggers (slot contents, head-limb dislocated, inherited eat-time)
+	/// can never override the owner's visual truth.
+	/// </summary>
+	public HeadMouthState HeadMouth;
 
 	/// <summary>Last snapshot arrival (TickCount) — snapshot-change detection for the arrival-interval estimate.</summary>
 	public long LastStateMs;

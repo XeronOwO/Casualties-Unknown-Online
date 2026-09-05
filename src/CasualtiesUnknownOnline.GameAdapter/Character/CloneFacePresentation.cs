@@ -9,13 +9,15 @@ namespace CasualtiesUnknownOnline.GameAdapter.Character;
 /// disfigurement and eye-loss latches that live on the owner's Body
 /// (<c>disfigured</c>/<c>eyeGone</c>/<c>bothEyesGone</c>), the owner's random
 /// disfigurement head index and long-run heal presentation timers on the
-/// <see cref="FacialExpression"/> component, and the face-driving body vitals
+/// <see cref="FacialExpression"/> component, the face-driving body vitals
 /// (consciousness, energy, bad-sleep, pain/sickness/radiation inputs) that the
-/// game's own sprite formula reads. A render clone's <c>Body.Update</c> is
+/// game's own sprite formula reads, and the owner's actual
+/// <see cref="HeadMouthState"/>. A render clone's <c>Body.Update</c> is
 /// skipped, so the clone's <c>FacialExpression.Update</c> still runs but would
-/// normally see template-default vitals; these values are written from the 1 Hz
-/// <see cref="CharacterHealthMsg"/> and the face sprite then follows the game's
-/// own visual rules.
+/// normally see template-default or proxy-local inputs; the vitals are written
+/// from the 1 Hz <see cref="CharacterHealthMsg"/> and the head sprite is
+/// restored to the owner's captured mouth state by
+/// <see cref="Patches.FacialExpressionHeadPatch"/>.
 /// </summary>
 internal static class CloneFacePresentation
 {
@@ -24,6 +26,19 @@ internal static class CloneFacePresentation
 	/// <see cref="FacialExpression"/> child, not on <see cref="Body"/>.</summary>
 	internal static void Capture(Body body, CharacterHealthMsg health)
 	{
+		// The owner's live mouth choice is the source of truth. The remote
+		// clone independently derives the same sprite from clone-local
+		// slot/limb/eat-time state, but those inputs are furnished by the
+		// render-proxy path and have already diverged from the owner after
+		// falls/injuries. Capture the game's own mouth decision here and let
+		// the peer replay it instead of re-deriving it.
+		health.EatTime = body.eatTime;
+		health.HeadMouth = HeadMouthRule.Evaluate(
+			body.disfigured,
+			health.EatTime,
+			body.HoldingItem(2),
+			body.limbs.Length > 0 && body.limbs[0].dislocated);
+
 		var face = body.GetComponentInChildren<FacialExpression>();
 		if (face == null) // Unity object — ==
 		{
@@ -35,13 +50,14 @@ internal static class CloneFacePresentation
 		health.EyeTimeHealed = face.eyeTimeHealed;
 	}
 
-	/// <summary>Applies the owner's face latches and face-driving vitals to a
-	/// render clone. The Body booleans are what <c>FacialExpression.Update</c>
-	/// reads directly; the child component fields keep the same disfigurement
-	/// variant and heal-progress sprite choice as the owner; the vital fields
-	/// feed the same sprite-selection branches the local body's simulated
-	/// values would. The pure field projection is
-	/// <see cref="FacePresentationVitals"/>.</summary>
+	/// <summary>Applies the owner's face latches, face-driving vitals, and the
+	/// owner's captured mouth state to a render clone. The Body booleans are
+	/// what <c>FacialExpression.Update</c> reads directly; the child component
+	/// fields keep the same disfigurement variant and heal-progress sprite
+	/// choice as the owner; the vital fields feed the same sprite-selection
+	/// branches the local body's simulated values would; the mouth state is
+	/// stashed on <see cref="RemoteBodyDriver"/> for the head-sprite postfix.
+	/// The pure field projection is <see cref="FacePresentationVitals"/>.</summary>
 	internal static void Apply(Body clone, CharacterHealthMsg? health)
 	{
 		if (health is null)
@@ -85,5 +101,14 @@ internal static class CloneFacePresentation
 		clone.internalBleeding = vitals.InternalBleeding;
 		clone.bloodPressure = vitals.BloodPressure;
 		clone.happiness = vitals.Happiness;
+
+		// Stash the owner's mouth choice on the remote-managed body so the
+		// FacialExpression postfix can restore the exact owner head sprite
+		// after the game's formula has run on the frozen clone.
+		var driver = clone.GetComponent<RemoteBodyDriver>();
+		if (driver != null) // Unity object — ==
+		{
+			driver.HeadMouth = vitals.HeadMouth;
+		}
 	}
 }

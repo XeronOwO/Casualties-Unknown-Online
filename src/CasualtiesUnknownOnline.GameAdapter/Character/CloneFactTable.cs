@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using Microsoft.Extensions.Logging;
 
@@ -62,6 +63,7 @@ internal sealed class CloneFactTable(ILogger log)
 			// is the event, so the clone's fact tree stays exact.
 			if (TryReplaceNested(data.Items, item))
 			{
+				HeadMouthRule.Refresh(data);
 				_log.LogInformation("[CarriedSync] applied {Type} (id {ItemId}) to {Owner}'s snapshot contents — re-rendering the clone.", item.ItemId, item.InstanceId, owner);
 				CloneSnapshotUpdated?.Invoke(owner);
 				return;
@@ -91,6 +93,7 @@ internal sealed class CloneFactTable(ILogger log)
 			_log.LogInformation("[CarriedSync] applied {Type} (id {ItemId}) to {Owner}'s snapshot — re-rendering the clone.", item.ItemId, item.InstanceId, owner);
 		}
 
+		HeadMouthRule.Refresh(data);
 		CloneSnapshotUpdated?.Invoke(owner);
 	}
 
@@ -129,6 +132,11 @@ internal sealed class CloneFactTable(ILogger log)
 			_cloneData[owner] = new CharacterDataMsg { OwnerSteamId = owner, Items = [.. items] };
 		}
 
+		if (_cloneData.TryGetValue(owner, out var merged))
+		{
+			HeadMouthRule.Refresh(merged);
+		}
+
 		_log.LogInformation("[CarriedSync] merged {Count} starting supplies into {Owner}'s snapshot.", items.Count, owner);
 		CloneSnapshotUpdated?.Invoke(owner);
 	}
@@ -146,6 +154,7 @@ internal sealed class CloneFactTable(ILogger log)
 			var data = _cloneData[owner];
 			if (data.Items.RemoveAll(i => i.InstanceId == itemId) > 0)
 			{
+				HeadMouthRule.Refresh(data);
 				_log.LogInformation("[CarriedSync] removed {ItemId} from {Owner}'s snapshot — re-rendering the clone.", itemId, owner);
 				CloneSnapshotUpdated?.Invoke(owner);
 				continue;
@@ -155,6 +164,7 @@ internal sealed class CloneFactTable(ILogger log)
 			{
 				if (RemoveNested(entry, itemId))
 				{
+					HeadMouthRule.Refresh(data);
 					_log.LogInformation("[CarriedSync] removed {ItemId} from {Owner}'s snapshot contents — re-rendering the clone.", itemId, owner);
 					CloneSnapshotUpdated?.Invoke(owner);
 					break;
@@ -246,6 +256,7 @@ internal sealed class CloneFactTable(ILogger log)
 		}
 
 		EnemyTerminalStateApplier.ApplyBite(data, msg);
+		HeadMouthRule.Refresh(data);
 		_log.LogInformation("[EnemyBite] applied to {Victim}'s limb {Limb}.", msg.VictimSteamId, msg.Limb.Index);
 		CloneSnapshotUpdated?.Invoke(msg.VictimSteamId);
 	}
@@ -265,6 +276,7 @@ internal sealed class CloneFactTable(ILogger log)
 		}
 
 		EnemyTerminalStateApplier.ApplyLunge(data, msg);
+		HeadMouthRule.Refresh(data);
 		_log.LogInformation("[EnemyLunge] applied to {Victim}'s limb {Limb}.", msg.VictimSteamId, msg.Limb.Index);
 		CloneSnapshotUpdated?.Invoke(msg.VictimSteamId);
 	}
@@ -284,6 +296,7 @@ internal sealed class CloneFactTable(ILogger log)
 		}
 
 		EnemyTerminalStateApplier.ApplyEffect(data, msg);
+		HeadMouthRule.Refresh(data);
 		_log.LogInformation("[EnemyEffect] applied {Kind} to {Victim}.", msg.Kind, msg.VictimSteamId);
 		CloneSnapshotUpdated?.Invoke(msg.VictimSteamId);
 	}
@@ -303,6 +316,7 @@ internal sealed class CloneFactTable(ILogger log)
 		}
 
 		EnemyTerminalStateApplier.ApplyLimbState(data, msg);
+		HeadMouthRule.Refresh(data);
 		_log.LogInformation("[LimbEvent] applied {Limbs} limbs to {Owner}.", msg.Limbs.Count, owner);
 		CloneSnapshotUpdated?.Invoke(owner);
 	}

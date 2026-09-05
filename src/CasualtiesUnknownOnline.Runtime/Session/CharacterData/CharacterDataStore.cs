@@ -104,6 +104,7 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable
 		if (_savedCharacters.TryGetValue(msg.VictimSteamId, out var data))
 		{
 			EnemyTerminalStateApplier.ApplyBite(data, msg);
+			HeadMouthRule.Refresh(data);
 			PersistTable();
 		}
 	}
@@ -114,6 +115,7 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable
 		if (_savedCharacters.TryGetValue(msg.VictimSteamId, out var data))
 		{
 			EnemyTerminalStateApplier.ApplyLunge(data, msg);
+			HeadMouthRule.Refresh(data);
 			PersistTable();
 		}
 	}
@@ -124,6 +126,7 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable
 		if (_savedCharacters.TryGetValue(msg.VictimSteamId, out var data))
 		{
 			EnemyTerminalStateApplier.ApplyEffect(data, msg);
+			HeadMouthRule.Refresh(data);
 			PersistTable();
 		}
 	}
@@ -327,6 +330,7 @@ public sealed class CharacterDataStore : ICharacterDataControl, IDisposable
 		if (_savedCharacters.TryGetValue(msg.OwnerSteamId, out var data))
 		{
 			EnemyTerminalStateApplier.ApplyLimbState(data, msg);
+			HeadMouthRule.Refresh(data);
 			PersistTable();
 		}
 

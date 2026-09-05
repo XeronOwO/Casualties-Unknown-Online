@@ -153,10 +153,7 @@ internal sealed class OnlineUiOverlay
 		_commandOverlay.Open();
 	}
 
-	/// <summary>Closes the standalone command console.</summary>
-	internal void CloseCommandConsole() => _commandOverlay.Close();
-
-	/// <summary>Programmatic close (ESC hotkey); the modal guard sees it on the next frame's adapter call.</summary>
+	/// <summary>Programmatic close (ESC, X button, or a remote-open path); the modal guard sees it on the next frame's adapter call.</summary>
 	internal void CloseWindow() => _window.State.Visible = false;
 
 	/// <summary>Closes the standalone player-interaction quick panel.</summary>
@@ -257,10 +254,12 @@ internal sealed class OnlineUiOverlay
 		};
 
 		// ESC closes the modal Online UI. The native PlayerCamera.HandleInput
-		// pause/menu handling is already short-circuited by the adapter when
-		// the modal is open, and this OnGUI frame runs after Update, so the
-		// same key cannot reach the game's pause path. The standalone command
-		// overlay handles its own Escape below.
+		// pause/menu handling is short-circuited by the adapter while the modal
+		// is open, and the one-frame `CuoEscCloseSuppression` keeps the modal
+		// guard active on this closing frame regardless of whether OnGUI is
+		// observed before or after Update, so the same key cannot reach the
+		// game's pause path. The standalone command overlay handles its own
+		// Escape below.
 		var esc = Event.current;
 		if (_commandOverlay.IsOpen == false
 			&& _window.State.Visible

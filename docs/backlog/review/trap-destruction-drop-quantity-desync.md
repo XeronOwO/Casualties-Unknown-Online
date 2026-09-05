@@ -1,6 +1,6 @@
 # Trap destruction drops desync in item quantity between host and guest
 
-- Status: Todo
+- Status: Review (code-complete)
 - Priority: Medium
 - Category: Item sync / entity destruction drops
 - Source: User report (2026-09-05) — host destroys the support block under a jump-pad trap; the two sides see different drop sets for a while, then periodic sync restores the count.
@@ -37,6 +37,28 @@ materialization path that does not deliver the complete drop set immediately.
   periodic sync, not to rely on it.
 - Cross-check with `todo/entity-destruction-drop-guest-fresh-state-loss.md`: the
   same scenario also has fresh-drop presentation rejection on the guest.
+
+## Landed (this cycle)
+
+Root cause: a `requireGround` building death from a removed support block is
+not a destructive trap event. The non-breaker side was not marked
+`RemoteEntityDeath`, so it could roll its own local drop set, and building
+drops that did not fold into a trap event went through the standalone kernel
+spawn path without transient initial state.
+
+Fix:
+
+- `WorldEventSync` / `WorldBuildingEntitySync` now mark nearby
+  `requireGround` buildings as `RemoteEntityDeath` when a remote air-write or
+  block-state snapshot removes the support block.
+- `BlockDamagedMsg` now carries `BuildingDrops` (`TrapDropEntryMsg` list);
+  `BlockBreakPendingState` and `ItemWorldSync` fold support-loss building
+  drops into the same block-break message as the break.
+- `BlockDropSync` materializes those drops through `InitialDropStateMapper`,
+  preserving fresh flag/velocity/rotation/angular velocity on the peers.
+- `ProtocolVersion.Current` bumped 3 → 4 for the new wire field.
+
+Evidence: `docs/evidence/selfchecks/items/building-support-drop-sync-selfcheck.md`.
 
 ## Non-goals
 

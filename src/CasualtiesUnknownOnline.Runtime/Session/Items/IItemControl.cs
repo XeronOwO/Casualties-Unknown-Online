@@ -57,6 +57,12 @@ public interface IItemControl
 	/// <summary>A break with drops was applied — register (host only) and materialize every drop.</summary>
 	void FireBlockDropsReceived(ulong sender, IReadOnlyList<BlockDropEntryMsg> drops);
 
+	/// <summary>Host/solo: record the building-death drops caused by a LOCALLY broken support block into the authoritative table (they travel inside the same BlockDamagedMsg as the break).</summary>
+	void RegisterBuildingDrops(IReadOnlyList<TrapDropEntryMsg> drops);
+
+	/// <summary>A break with building-death drops was applied — register (host only) and materialize every drop with its full transient initial state.</summary>
+	void FireBuildingDropsReceived(ulong sender, IReadOnlyList<TrapDropEntryMsg> drops);
+
 	/// <summary>Host only: refuse a reported break's drops (the break was already applied — first-writer-wins) — the reporter destroys its local drops.</summary>
 	void SendItemReject(ulong targetSteamId, ulong itemId, ItemRejectMsg.Reason reason);
 

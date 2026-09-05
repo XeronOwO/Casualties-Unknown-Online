@@ -1,6 +1,6 @@
 # Entity destruction drops lose fresh-drop presentation/initial motion on the guest view
 
-- Status: Todo (rejected in review)
+- Status: Review (code-complete; final unified acceptance pending)
 - Priority: Medium
 - Category: Item sync / entity destruction presentation
 - Source: User report (2026-09-04); rejected by user (2026-09-05) with a jump-pad trap destruction reproduction.
@@ -85,8 +85,33 @@ Make destruction drops from building/trap/entity death appear on every peer with
 - Existing item/entity sync tests and repo gates remain green.
 - No wire or authority regression; if a new field is needed, it must be documented and versioned appropriately.
 
+## Landed (2026-09-05 second cycle)
+
+The rejected jump-pad/support-block reproduction is now closed on the
+support-loss building-death path:
+
+- The non-breaker side is marked `RemoteEntityDeath` when a remote air-write
+  removes a `requireGround` building's support block, so it no longer rolls its
+  own (different) drop set.
+- `BlockDamagedMsg.BuildingDrops` carries the breaker's building-death drops
+  with the full transient initial state; `BlockBreakPendingState` collects them
+  and `BlockDropSync` materializes them through `InitialDropStateMapper`.
+- The existing destructive-trap `EntityEventMsg.Drops` presentation path remains
+  unchanged for trap kinds.
+
+Evidence:
+`docs/evidence/selfchecks/items/building-support-drop-sync-selfcheck.md`.
+
+## Acceptance criteria (for the later implementation cycle)
+
+- On a guest (and any other peer), entity destruction drops show the same fresh-drop highlight/floating presentation as the host/attacker view.
+- The guest drops do not visibly fall-then-pull-back; they start at the same position/velocity phase and are later softly corrected by the normal item position stream.
+- The fix works for destructive trap/building deaths, not only block breaks.
+- Existing item/entity sync tests and repo gates remain green.
+- No wire or authority regression; if a new field is needed, it must be documented and versioned appropriately.
+
 ## Non-goals
 
 - Not adding continuous item physics into the kernel.
 - Not changing entity/trap authority or the atomic composite design.
-- No wire/protocol change was introduced; the existing entity-event drop payload is the transient presentation source.
+- The existing entity-event drop payload remains the transient presentation source for destructive trap kinds; support-loss building drops ride `BlockDamagedMsg.BuildingDrops` instead.

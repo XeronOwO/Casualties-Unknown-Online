@@ -19,5 +19,5 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 public sealed class BlockDamagedHandler : PacketHandlerBase<BlockDamagedMsg, IWorldHandlerContext>
 {
 	protected override void Handle(ulong sender, BlockDamagedMsg msg, IWorldHandlerContext ctx) =>
-		ctx.World.FireBlockDamagedReceived(sender, msg.Position.ToNetVector2(), msg.Damage, msg.MetalBonus, msg.Drops);
+		ctx.World.FireBlockDamagedReceived(sender, msg.Position.ToNetVector2(), msg.Damage, msg.MetalBonus, msg.Drops, msg.BuildingDrops);
 }

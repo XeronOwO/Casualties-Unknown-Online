@@ -30,15 +30,15 @@ public interface IWorldControl
 	void SetHostRunPending(bool pending);
 
 	/// <summary>Host: a guest reported damage (sender = the reporter; drops ride the break — the host arbitrates; MetalBonus preserves the ×10 metallic multiplier). Guest: the host broadcast it.</summary>
-	void FireBlockDamagedReceived(ulong sender, NetVector2 pos, float damage, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops);
+	void FireBlockDamagedReceived(ulong sender, NetVector2 pos, float damage, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops);
 
-	event Action<ulong, NetVector2, float, bool, IReadOnlyList<BlockDropEntryMsg>?>? BlockDamagedReceived;
+	event Action<ulong, NetVector2, float, bool, IReadOnlyList<BlockDropEntryMsg>?, IReadOnlyList<TrapDropEntryMsg>?>? BlockDamagedReceived;
 
-	/// <summary>Report a locally-performed block damage (drops = the break's drops, null/empty = damage only): guest → host report, host → broadcast to all synced members.</summary>
-	void SendBlockDamaged(NetVector2 worldPos, float damage, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops);
+	/// <summary>Report a locally-performed block damage (drops = the break's drops, null/empty = damage only; buildingDrops = building-death drops from the same break, null/empty = none): guest → host report, host → broadcast to all synced members.</summary>
+	void SendBlockDamaged(NetVector2 worldPos, float damage, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops);
 
 	/// <summary>Host only: relay an ACCEPTED guest break report to the other members (source excluded).</summary>
-	void BroadcastBlockDamaged(ulong excludeSteamId, NetVector2 worldPos, float damage, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops);
+	void BroadcastBlockDamaged(ulong excludeSteamId, NetVector2 worldPos, float damage, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops);
 
 	void FireWorldJoinReceived(bool isTutorial);
 

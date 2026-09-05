@@ -56,10 +56,10 @@ internal sealed class WorldStateMessageService(
 
 	// ---- World message flow ----
 
-	public event Action<ulong, NetVector2, float, bool, IReadOnlyList<BlockDropEntryMsg>?>? BlockDamagedReceived;
+	public event Action<ulong, NetVector2, float, bool, IReadOnlyList<BlockDropEntryMsg>?, IReadOnlyList<TrapDropEntryMsg>?>? BlockDamagedReceived;
 
-	public void FireBlockDamagedReceived(ulong sender, NetVector2 pos, float damage, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops) =>
-		BlockDamagedReceived?.Invoke(sender, pos, damage, metalBonus, drops);
+	public void FireBlockDamagedReceived(ulong sender, NetVector2 pos, float damage, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops) =>
+		BlockDamagedReceived?.Invoke(sender, pos, damage, metalBonus, drops, buildingDrops);
 
 	public event Action<bool>? WorldJoinReceived;
 
@@ -355,7 +355,7 @@ internal sealed class WorldStateMessageService(
 			parameters.RandomState.Length);
 	}
 
-	public void SendBlockDamaged(NetVector2 worldPos, float damage, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops)
+	public void SendBlockDamaged(NetVector2 worldPos, float damage, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops)
 	{
 		if (!_session.SessionActive)
 		{
@@ -368,6 +368,7 @@ internal sealed class WorldStateMessageService(
 			Damage = damage,
 			MetalBonus = metalBonus,
 			Drops = drops is { Count: > 0 } ? [.. drops] : null,
+			BuildingDrops = buildingDrops is { Count: > 0 } ? [.. buildingDrops] : null,
 		};
 		if (_session.Role == SessionRole.Host)
 		{
@@ -379,7 +380,7 @@ internal sealed class WorldStateMessageService(
 		}
 	}
 
-	public void BroadcastBlockDamaged(ulong excludeSteamId, NetVector2 worldPos, float damage, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops)
+	public void BroadcastBlockDamaged(ulong excludeSteamId, NetVector2 worldPos, float damage, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops)
 	{
 		if (_session.Role != SessionRole.Host || !_session.SessionActive)
 		{
@@ -392,6 +393,7 @@ internal sealed class WorldStateMessageService(
 			Damage = damage,
 			MetalBonus = metalBonus,
 			Drops = drops is { Count: > 0 } ? [.. drops] : null,
+			BuildingDrops = buildingDrops is { Count: > 0 } ? [.. buildingDrops] : null,
 		};
 		_session.BroadcastExcept(excludeSteamId, NetMsg.BlockDamaged, msg);
 	}

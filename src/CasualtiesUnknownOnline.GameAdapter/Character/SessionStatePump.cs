@@ -149,7 +149,7 @@ internal static class SessionStatePump
 				driver.PrevSitting = entity.Sitting;
 				if (entity.Sitting)
 				{
-					if (CarriedBodyPose.ShouldReplaySit(driver.IsCarriedRider, entity.Sitting))
+					if (CarriedBodyPose.ShouldReplaySit(driver.IsCarriedRider || driver.IsCarrier, entity.Sitting))
 					{
 						body.bodyAnimator.Play("ExperimentSit");
 						body.armsAnimator.Play("ArmsSit");

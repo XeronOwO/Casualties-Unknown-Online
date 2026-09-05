@@ -154,16 +154,19 @@ internal sealed class RemotePlayerRenderer(
 				}
 			}
 
-			// Mark any remote clone that is a carried rider BEFORE applying
-			// stream state so SessionStatePump can suppress the native sit
-			// replay in the same frame. This is not limited to the local
+			// Mark any remote clone that is a carried rider or a carrier BEFORE
+			// applying stream state so SessionStatePump can suppress the native
+			// sit replay in the same frame. This is not limited to the local
 			// carrier's view: a third-party rider clone also rides, and the
-			// second-pass attach below forces its visible position anyway.
+			// second-pass attach below forces its visible position anyway. A
+			// carrier participates in the same whole-family sit suppression.
 			var isCarriedRider = _playerInteraction.TryGetCarrier(remote.SteamId, out var carrierId)
 				&& carrierId != 0;
+			var isCarrier = _playerInteraction.TryGetCarried(remote.SteamId, out _);
 			if (clone.TryGetComponent<RemoteBodyDriver>(out var cloneDriver))
 			{
 				cloneDriver.IsCarriedRider = isCarriedRider;
+				cloneDriver.IsCarrier = isCarrier;
 			}
 
 			SessionStatePump.Apply(remote, clone);

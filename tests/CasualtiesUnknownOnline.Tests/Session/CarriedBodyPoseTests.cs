@@ -6,11 +6,12 @@ using Xunit;
 namespace CasualtiesUnknownOnline.Tests.Session;
 
 /// <summary>
-/// The pure carried-ride pose rule behind the "carried character sits after
-/// long idle" regression. While a body is being carried/piggybacked, the
-/// native idle-sit must be suppressed on every presentation path:
-/// - the rider's own state publisher must not send Sitting=true;
-/// - a carrier-side rider clone must not replay sit clips from the stream;
+/// The pure carry-participant pose rule behind the "carried character sits
+/// after long idle" and "carrier can sit while carrying" regressions. While a
+/// body is either half of a carry/piggyback relation, the native idle-sit must
+/// be suppressed on every presentation path:
+/// - a carry participant's own state publisher must not send Sitting=true;
+/// - a carry-participant clone must not replay sit clips from the stream;
 /// - an already-playing sit clip must be actively left;
 /// - the idle timer must be held at zero so the sit condition cannot start.
 /// Normal non-carried idle-sit behavior must remain unchanged.
@@ -20,52 +21,71 @@ public class CarriedBodyPoseTests
 	[Fact]
 	public void NonCarriedIdleBody_MayPublishSitting() =>
 		Assert.True(CarriedBodyPose.ShouldPublishSitting(
-			isCarried: false,
+			isCarryParticipant: false,
 			idleTimeExceeded: true,
 			exercising: false));
 
 	[Fact]
-	public void CarriedBody_NeverPublishesSittingEvenWhenIdleTimerExceeded() =>
+	public void CarriedRider_NeverPublishesSittingEvenWhenIdleTimerExceeded() =>
 		Assert.False(CarriedBodyPose.ShouldPublishSitting(
-			isCarried: true,
+			isCarryParticipant: true,
+			idleTimeExceeded: true,
+			exercising: false));
+
+	[Fact]
+	public void Carrier_NeverPublishesSittingEvenWhenIdleTimerExceeded() =>
+		Assert.False(CarriedBodyPose.ShouldPublishSitting(
+			isCarryParticipant: true,
 			idleTimeExceeded: true,
 			exercising: false));
 
 	[Fact]
 	public void ExercisingBody_DoesNotPublishSitting() =>
 		Assert.False(CarriedBodyPose.ShouldPublishSitting(
-			isCarried: false,
+			isCarryParticipant: false,
 			idleTimeExceeded: true,
 			exercising: true));
 
 	[Fact]
 	public void NonCarriedRemote_MayReplaySitFromStream() =>
 		Assert.True(CarriedBodyPose.ShouldReplaySit(
-			isCarriedRider: false,
+			isCarryParticipant: false,
 			entitySitting: true));
 
 	[Fact]
 	public void CarriedRiderClone_DoesNotReplaySitFromStream() =>
 		Assert.False(CarriedBodyPose.ShouldReplaySit(
-			isCarriedRider: true,
+			isCarryParticipant: true,
+			entitySitting: true));
+
+	[Fact]
+	public void CarrierClone_DoesNotReplaySitFromStream() =>
+		Assert.False(CarriedBodyPose.ShouldReplaySit(
+			isCarryParticipant: true,
 			entitySitting: true));
 
 	[Fact]
 	public void CarriedRider_WithSitClip_ActivelyExitsSit() =>
 		Assert.True(CarriedBodyPose.ShouldExitSit(
-			isCarriedRider: true,
+			isCarryParticipant: true,
+			currentClipIsSit: true));
+
+	[Fact]
+	public void Carrier_WithSitClip_ActivelyExitsSit() =>
+		Assert.True(CarriedBodyPose.ShouldExitSit(
+			isCarryParticipant: true,
 			currentClipIsSit: true));
 
 	[Fact]
 	public void NonCarriedBody_WithSitClip_IsNotForcedOutOfSit() =>
 		Assert.False(CarriedBodyPose.ShouldExitSit(
-			isCarriedRider: false,
+			isCarryParticipant: false,
 			currentClipIsSit: true));
 
 	[Fact]
 	public void CarriedRider_WithoutSitClip_NoExitNeeded() =>
 		Assert.False(CarriedBodyPose.ShouldExitSit(
-			isCarriedRider: true,
+			isCarryParticipant: true,
 			currentClipIsSit: false));
 
 	[Fact]
@@ -102,11 +122,15 @@ public class CarriedBodyPoseTests
 
 	[Fact]
 	public void CarriedRide_HoldsIdleTimerAtZero() =>
-		Assert.True(CarriedBodyPose.ShouldZeroIdleTimer(isCarriedRide: true));
+		Assert.True(CarriedBodyPose.ShouldZeroIdleTimer(isCarryParticipant: true));
+
+	[Fact]
+	public void Carrier_HoldsIdleTimerAtZero() =>
+		Assert.True(CarriedBodyPose.ShouldZeroIdleTimer(isCarryParticipant: true));
 
 	[Fact]
 	public void NonCarriedBody_DoesNotForceIdleTimerZero() =>
-		Assert.False(CarriedBodyPose.ShouldZeroIdleTimer(isCarriedRide: false));
+		Assert.False(CarriedBodyPose.ShouldZeroIdleTimer(isCarryParticipant: false));
 
 	private static bool ShouldPublishBodyRoot(bool isCarried)
 	{

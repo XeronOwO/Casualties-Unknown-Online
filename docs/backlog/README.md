@@ -42,8 +42,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Remote player medical/health panel](todo/remote-player-medical-panel.md) — rejected in review: previous CUO IMGUI panel did not reuse the game's existing medical UI; re-open requires native UI reuse like the remote backpack.
 - [Remote backpack native interaction parity](todo/remote-backpack-native-interaction-parity.md) — rejected in review: still cannot perform most item operations in another player's backpack; re-open requires full native operation parity, not documented future-only gaps.
 - [Carry/piggyback riding movement teleport and rider/carrier position mismatch](todo/carry-piggyback-rider-position-smoothing.md) — rejected in review: only half fixed; carrier/participant views still see the carried player misaligned/teleporting while moving.
-- [Entity destruction drops lose fresh-drop presentation/initial motion on the guest view](todo/entity-destruction-drop-guest-fresh-state-loss.md) — rejected in review: jump-pad trap destruction still lacks the host-side white border/fresh-drop presentation on the guest; re-open.
-- [Trap destruction drops desync in item quantity between host and guest](todo/trap-destruction-drop-quantity-desync.md) — host sees circuit board + two metal scraps while guest initially sees only one circuit board; periodic sync eventually restores count.
 - [Host severe sleepiness posture not synced to guest](todo/host-severe-sleepiness-posture-desync.md) — host cannot stand straight when severely sleepy, but guest sees a straight body; systemic body-pose sync analysis/rewrite required, not another local patch.
 - [Host fall injury mouth-expression desync](todo/host-fall-injury-mouth-expression-desync.md) — guest sees host's mouth open after fall injury while host's own view does not; needs root-cause investigation rather than a cosmetic remote-face patch.
 - [Snapshot size reduction](todo/snapshot-size-reduction.md) — measurement-first.
@@ -82,6 +80,8 @@ _None._ (Folder exists for the workflow.)
 - [Carrier can sit while carrying a player](review/carrier-sit-while-carrying.md) — carrier half of the same family closed: local carrier cannot enter/linger in native sit, mirror-backed via IPatchBridge.IsLocalCarrier; remote carrier clones suppress sit replay on every peer; selfcheck linked.
 - [Carry/piggyback vertical placement asymmetry](review/carry-piggyback-vertical-placement-asymmetry.md) — carried riders publish body root instead of the non-standing torso anchor; shared ride-pose path also mirrors crouch state; selfcheck linked.
 - [Guest container contents periodically appear as world drops on the host view](review/guest-container-contents-ghost-drops-on-host.md) — remote clone nested display proxies no longer carry item instance ids; domain lookup cannot address them; selfcheck linked.
+- [Trap destruction drops desync in item quantity between host and guest](review/trap-destruction-drop-quantity-desync.md) — support-loss building drops now ride the same `BlockDamagedMsg` as the break; non-breaker sides are marked remote death and receive the full initial drop set; selfcheck linked.
+- [Entity destruction drops lose fresh-drop presentation/initial motion on the guest view](review/entity-destruction-drop-guest-fresh-state-loss.md) — support-loss building drops carry fresh/velocity/rotation/angular state through `BlockDamagedMsg.BuildingDrops`; destructive-trap event path unchanged; selfcheck linked.
 
 ### Future
 

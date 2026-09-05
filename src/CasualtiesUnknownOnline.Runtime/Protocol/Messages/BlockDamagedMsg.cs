@@ -32,4 +32,16 @@ public sealed class BlockDamagedMsg
 	/// </summary>
 	[ProtoMember(4)]
 	public bool MetalBonus { get; set; }
+
+	/// <summary>
+	/// Building/entity death drops caused by the same block break (a
+	/// <c>requireGround</c> building loses its support block and dies in the
+	/// same operation). Empty/null when the break did not destroy a building.
+	/// These ride the same one-message/one-verdict path as block drops so the
+	/// non-breaker sides never roll their own drop set and receive the full
+	/// transient initial state (fresh flag, velocity, rotation, angular
+	/// velocity).
+	/// </summary>
+	[ProtoMember(5)]
+	public List<TrapDropEntryMsg>? BuildingDrops { get; set; }
 }

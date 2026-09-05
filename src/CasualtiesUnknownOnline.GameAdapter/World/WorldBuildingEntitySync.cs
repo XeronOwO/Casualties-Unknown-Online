@@ -192,6 +192,37 @@ internal sealed class WorldBuildingEntitySync(
 	}
 
 	/// <summary>
+	/// Marks every <see cref="BuildingEntity"/> that lost its support block
+	/// through a REMOTE air-write as a remote death. This side must not roll
+	/// its own drop set: the breaker's side is the single drop owner and the
+	/// building-death drops ride that side's <see cref="BlockDamagedMsg"/>.
+	/// </summary>
+	internal void MarkSupportLossRemote(Vector2Int blockCell)
+	{
+		if (WorldGeneration.world == null) // Unity object — ==
+		{
+			return;
+		}
+
+		foreach (var building in Object.FindObjectsOfType<BuildingEntity>())
+		{
+			if (!building.requireGround || building.blockPlacedOn != blockCell) // Unity object — ==
+			{
+				continue;
+			}
+
+			if (building.GetComponent<RemoteEntityDeath>() != null) // Unity object — ==
+			{
+				continue;
+			}
+
+			MarkRemoteEntityDeath(building, replayAnimalDeath: false);
+			_log.LogInformation("[BuildingSupport] marked remote death for requireGround building at ({X},{Y}) after remote air-write.",
+				building.transform.position.x, building.transform.position.y);
+		}
+	}
+
+	/// <summary>
 	/// Adds (or reuses) the <see cref="RemoteEntityDeath"/> marker and records
 	/// whether this death was a live remote event or a late-joiner snapshot
 	/// application. The flag lets <see cref="BuildingEntityUpdatePatch"/> replay

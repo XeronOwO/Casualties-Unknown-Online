@@ -368,9 +368,9 @@ public sealed class WorldService : IWorldControl, IDisposable
 
 	// ---- World message flow ----
 
-	public event Action<ulong, NetVector2, float, bool, IReadOnlyList<BlockDropEntryMsg>?>? BlockDamagedReceived { add => _messages.BlockDamagedReceived += value; remove => _messages.BlockDamagedReceived -= value; }
+	public event Action<ulong, NetVector2, float, bool, IReadOnlyList<BlockDropEntryMsg>?, IReadOnlyList<TrapDropEntryMsg>?>? BlockDamagedReceived { add => _messages.BlockDamagedReceived += value; remove => _messages.BlockDamagedReceived -= value; }
 
-	public void FireBlockDamagedReceived(ulong sender, NetVector2 pos, float damage, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops) => _messages.FireBlockDamagedReceived(sender, pos, damage, metalBonus, drops);
+	public void FireBlockDamagedReceived(ulong sender, NetVector2 pos, float damage, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops) => _messages.FireBlockDamagedReceived(sender, pos, damage, metalBonus, drops, buildingDrops);
 
 	public event Action<bool>? WorldJoinReceived { add => _messages.WorldJoinReceived += value; remove => _messages.WorldJoinReceived -= value; }
 
@@ -524,7 +524,7 @@ public sealed class WorldService : IWorldControl, IDisposable
 			run.RunId, run.LayerIndex, run.RandomState.Length);
 	}
 
-	public void SendBlockDamaged(NetVector2 worldPos, float damage, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops) => _messages.SendBlockDamaged(worldPos, damage, metalBonus, drops);
+	public void SendBlockDamaged(NetVector2 worldPos, float damage, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops) => _messages.SendBlockDamaged(worldPos, damage, metalBonus, drops, buildingDrops);
 
-	public void BroadcastBlockDamaged(ulong excludeSteamId, NetVector2 worldPos, float damage, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops) => _messages.BroadcastBlockDamaged(excludeSteamId, worldPos, damage, metalBonus, drops);
+	public void BroadcastBlockDamaged(ulong excludeSteamId, NetVector2 worldPos, float damage, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops) => _messages.BroadcastBlockDamaged(excludeSteamId, worldPos, damage, metalBonus, drops, buildingDrops);
 }

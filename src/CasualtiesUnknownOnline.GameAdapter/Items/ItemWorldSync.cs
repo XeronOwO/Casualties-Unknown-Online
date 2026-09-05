@@ -227,8 +227,7 @@ internal sealed class ItemWorldSync(
 
 			// A destructive trap is pending on this side — the drop rides the
 			// trap event so the host commits trigger + drops as ONE atomic
-			// composite. No pending trap means this is an ordinary building
-			// death (attack/open), so it stays on the standalone spawn path.
+			// composite.
 			if (_trapDropState.TryAddDrop(trapDrop))
 			{
 				_log.LogInformation("[ItemTrapDrop] local {Type} (id {ItemId}) at ({X:F1},{Y:F1}) captured for pending trap event.",
@@ -237,7 +236,21 @@ internal sealed class ItemWorldSync(
 				return;
 			}
 
-			_log.LogInformation("[ItemBuildingDeathDrop] local {Type} (id {ItemId}) at ({X:F1},{Y:F1}) — no pending destructive trap, reporting standalone.",
+			// A block break is pending under this building (the support block
+			// was broken locally) — the building-death drop rides the SAME
+			// BlockDamagedMsg as the break, so the non-breaker sides receive
+			// the full transient initial state and never roll their own set.
+			if (_breakState.TryAddBuildingDrop(trapDrop))
+			{
+				_log.LogInformation("[ItemBuildingDeathDrop] local {Type} (id {ItemId}) at ({X:F1},{Y:F1}) captured for pending block-break report.",
+					item.id, itemId, trapDrop.Position.X, trapDrop.Position.Y);
+				_trace.End(op, itemId, "OnItemInstantiated", "Committed", "BuildingDropCaptured");
+				return;
+			}
+
+			// No pending trap/break — an ordinary building death (attack/open),
+			// so it stays on the standalone spawn path.
+			_log.LogInformation("[ItemBuildingDeathDrop] local {Type} (id {ItemId}) at ({X:F1},{Y:F1}) — no pending destructive trap/break, reporting standalone.",
 				item.id, itemId, buildingDrop.SpawnPosition.x, buildingDrop.SpawnPosition.y);
 		}
 

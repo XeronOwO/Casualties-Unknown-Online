@@ -192,6 +192,10 @@ internal sealed class ItemMessageFlowService(
 
 	public void FireBlockDropsReceived(ulong sender, IReadOnlyList<BlockDropEntryMsg> drops) => _blockDrops.FireBlockDropsReceived(sender, drops);
 
+	public void RegisterBuildingDrops(IReadOnlyList<TrapDropEntryMsg> drops) => _blockDrops.RegisterBuildingDrops(drops);
+
+	public void FireBuildingDropsReceived(ulong sender, IReadOnlyList<TrapDropEntryMsg> drops) => _blockDrops.FireBuildingDropsReceived(sender, drops);
+
 	public void SendItemReject(ulong targetSteamId, ulong itemId, ItemRejectMsg.Reason reason)
 	{
 		if (_session.Role != SessionRole.Host || !_session.SessionActive)

@@ -219,7 +219,8 @@ internal sealed class GameAdapterDomains
 		LayerModifierApplyPatch.IsModifierAuthority = () => Session.Role != SessionRole.Guest; // the host/solo side rolls the world's modifier; guests replay it locally and fall back to the snapshot
 		LayerModifierApplyPatch.ReportLocalDecision = LayerModifierSync.OnLocalDecision; // the guest's local replay — the adapter defers Initialize until the generation finished
 		MineScriptPatches.ShouldShieldItems = () => Session.Role == SessionRole.Guest; // a locally simulated item must not trip a mine on the guest side (the trigger checks only !isKinematic)
-		BlockBreakSync = new BlockBreakSync(session, world, items, blockBreakState, OperationTrace, loggerFactory.CreateLogger<BlockBreakSync>());
+		var buildingEntities = new WorldBuildingEntitySync(session, world, OperationTrace, loggerFactory.CreateLogger<WorldEventSync>());
+		BlockBreakSync = new BlockBreakSync(session, world, items, blockBreakState, buildingEntities, OperationTrace, loggerFactory.CreateLogger<BlockBreakSync>());
 		WorldEventSync = new WorldEventSync(session, world, BlockBreakSync, OperationTrace, worldEntityKernel, kernelProtocol, loggerFactory.CreateLogger<WorldEventSync>());
 		var trapVisualReplay = new TrapVisualReplay(loggerFactory.CreateLogger<TrapVisualReplay>());
 		EntityEventSync = new EntityEventSync(world, session,

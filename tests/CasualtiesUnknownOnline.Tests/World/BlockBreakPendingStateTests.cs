@@ -25,6 +25,15 @@ public class BlockBreakPendingStateTests
 		Velocity = new NetVector2Msg { X = 0f, Y = 0f },
 	};
 
+	private static TrapDropEntryMsg BuildingDrop(ulong itemId) => new()
+	{
+		ItemId = itemId,
+		Item = new CharacterItemMsg { ItemId = "metalscrap" },
+		Position = new NetVector2Msg { X = 1f, Y = 2f },
+		Velocity = new NetVector2Msg { X = 3f, Y = -4f },
+		FreshItemDrop = true,
+	};
+
 	[Fact]
 	public void EnterBreak_CurrentBroken()
 	{
@@ -102,6 +111,31 @@ public class BlockBreakPendingStateTests
 
 		state.TryFlush(BreakFrame + 1, out var flushed);
 		Assert.Equal(2, flushed.Drops.Count);
+	}
+
+	[Fact]
+	public void TryAddBuildingDrop_FoldsIntoThePendingList()
+	{
+		var state = new BlockBreakPendingState();
+		state.EnterBreak(5f, -3f, 40f, true, Op, BreakFrame);
+
+		Assert.True(state.TryAddBuildingDrop(BuildingDrop(9)));
+		Assert.True(state.TryAddBuildingDrop(BuildingDrop(10)));
+
+		state.TryFlush(BreakFrame + 1, out var flushed);
+		Assert.Equal(2, flushed.BuildingDrops.Count);
+		Assert.Equal(9ul, flushed.BuildingDrops[0].ItemId);
+		Assert.Equal(10ul, flushed.BuildingDrops[1].ItemId);
+		Assert.True(flushed.BuildingDrops[0].FreshItemDrop);
+	}
+
+	[Fact]
+	public void TryAddBuildingDrop_WithoutBreak_False()
+	{
+		var state = new BlockBreakPendingState();
+
+		// The building drop falls back to a standalone spawn report.
+		Assert.False(state.TryAddBuildingDrop(BuildingDrop(1)));
 	}
 
 	[Fact]

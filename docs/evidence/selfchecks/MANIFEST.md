@@ -41,6 +41,7 @@ All files under `docs/selfchecks/` are historical/per-delivery evidence records.
 | enemies/crystal-ticking-selfcheck.md | Enemies/World | current | candidate current evidence; verify before citing |
 | enemies/crystal-windup-telegraph-sync-selfcheck.md | Enemies/World | current | candidate current evidence; verify before citing |
 | items/custom-item-data-state-selfcheck.md | Items | current | candidate current evidence; verify before citing |
+| items/building-support-drop-sync-selfcheck.md | Items | current | support-loss building drops ride the block-break message with full transient state |
 | items/entity-destruction-drop-fresh-presentation-selfcheck.md | Items | current | entity-destruction trap/building drops keep full transient spawn state on replay |
 | presentation/direct-placeable-arm-swing-selfcheck.md | Other | current | candidate current evidence; verify before citing |
 | items/dynamite-explosion-selfcheck.md | Other | current | candidate current evidence; verify before citing |

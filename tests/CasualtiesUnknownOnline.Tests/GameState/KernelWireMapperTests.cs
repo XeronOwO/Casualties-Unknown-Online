@@ -1,3 +1,4 @@
+using System.Linq;
 using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.Protocol.Wire;
@@ -64,7 +65,42 @@ public class KernelWireMapperTests
 		Assert.Equal(checkpoint.GlobalRevision, restoredCheckpoint.GlobalRevision);
 		var item = Assert.Single(restoredCheckpoint.Items);
 		Assert.Equal(42ul, item.Identity.InstanceId);
+		Assert.Equal("water", item.Identity.DefinitionId);
 		Assert.Equal(0.8f, item.Data.Condition);
+	}
+
+	[Fact]
+	public void CheckpointSplit_CompressesRepeatedDefinitionIdsIntoTable()
+	{
+		var source = new GameStateKernel(Epoch);
+		for (var i = 0; i < 3; i++)
+		{
+			Assert.True(source.Execute(
+				new SpawnItemCommand(
+					new OperationId((ulong)(i + 1)),
+					Host,
+					Epoch,
+					AuthorityKind.HostOnly,
+					new ItemIdentity((ulong)(i + 1), "shell"),
+					ItemLocation.World(i, 0f),
+					0,
+					new ItemData(1f, false, -1, [], [])),
+				new CommandContext(Epoch, Host)).IsAccepted);
+		}
+
+		var checkpoint = source.CreateCheckpoint();
+		var chunks = WireCheckpointAssembler.Split(checkpoint);
+
+		Assert.Equal(["shell"], chunks[0].ItemDefinitionTable);
+		Assert.All(chunks.SelectMany(c => c.Items), item =>
+		{
+			Assert.Equal("", item.Identity.DefinitionId);
+			Assert.Equal(1, item.Identity.DefinitionIndex);
+		});
+
+		var restored = WireCheckpointAssembler.Assemble(chunks);
+		Assert.Equal(3, restored.Items.Count);
+		Assert.All(restored.Items, item => Assert.Equal("shell", item.Identity.DefinitionId));
 	}
 
 	[Fact]

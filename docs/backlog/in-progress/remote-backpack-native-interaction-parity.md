@@ -1,6 +1,6 @@
 # Remote backpack native interaction parity
 
-- Status: Todo (Critical / super-priority; re-opened after latest user re-report)
+- Status: In Progress (critical / super-priority; code-complete, final deployment deferred by user request while playing)
 - Priority: Critical
 - Category: Remote inventory / co-op interaction parity / container sync
 - Source: User report (2026-09-04); rejected by user (2026-09-05) — opening another player's backpack still could not perform most item operations; rejected again as a whole (2026-09-05) on container/trash-bag interaction; user now reports the remote-backpack operation problem still exists with behavior identical to before any fix and marks it a super-priority issue.
@@ -33,6 +33,51 @@ interaction. The behavior is not accepted:
 - The whole remote-backpack native interaction feature is rejected and must be
   redone/fixed until these container paths work immediately, stay stable through
   periodic sync, and allow take-out.
+
+## Autonomous fix cycle (2026-09-05)
+
+The container/trash-bag symptoms traced to two concrete gaps in the display/fact
+chain:
+
+1. **Carried-fact moves did not keep the fact tree exact.** A container move
+   event replaced the destination container in `CloneFactTable` but left the
+   moved child in its old top-level/nested position until the next full
+   snapshot. This produced duplicate views, the divergence warning, and the
+   visible→invisible instability.
+2. **The remote clone container renderer rebuilt all children on every
+   snapshot/event.** It destroyed existing proxy children before the native open
+   container window could refresh, so buttons kept references to destroyed
+   items; it also briefly showed old+new children (double weight), and nested
+   containers with contents were rejected by the native `Container.LoadItem`
+   stacking guard.
+
+Fixes landed in this cycle:
+
+- `CloneFactTable.ApplyCarriedSync` now prunes moved descendants from their old
+  positions and, when an item-level event carries a real slot/limb home, moves
+  the item from any nested container to the top-level fact list. `RemoveNested`
+  now removes only the target item, never an ancestor container.
+- `CloneInventoryRenderer` now reconciles container children incrementally by
+  direct-child/instance-id matching, unloads removed children before destroy
+  (no double weight), hides them immediately after unload (no ghost), and
+  manually parents nested containers with contents (bypassing the stacking
+  guard). Slot/limb rendering matches only direct children, preventing
+  same-item-id nested children from being destroyed as duplicates.
+- `RemoteBackpackView` now tracks the open remote container by authoritative
+  instance id, and `RemoteBackpackCoordinator` / the renderer's removal paths
+  schedule a one-frame open-container repopulate/re-bind whenever the open
+  container (or an ancestor/limb container) is replaced, so the native window
+  never keeps buttons to destroyed proxies.
+
+Regression coverage: 3 new `CloneFactTable` cases (move into container,
+move out of container, deep move out keeping ancestors, worn move).
+`dotnet test` full suite: **2317 passed / 0 failed**. Architecture,
+event-replay, entity-event-dispatch, and delivery gates all pass.
+
+**Deployment status**: the final DLLs are NOT deployed to the game because the
+user asked to stop deploying while playing. The previous deployed build is the
+pre-fix build; do not use the current game copy for acceptance until this code
+is deployed after the session.
 
 ## Goal
 

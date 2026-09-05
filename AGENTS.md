@@ -57,6 +57,7 @@ powershell -File tools/check-delivery.ps1         # final commit of each deliver
 ```
 
 - `[GATE]` All of the above must pass before commit; `dotnet format` is build-enforced.
+- `[RULE]` `dotnet test` also runs `tests/CasualtiesUnknownOnline.NormativeGates.Tests`: the Roslyn fully-qualified-name gate plus C# unit-test ports of every `tools/check-*.ps1` source/repo/process gate. The rule-to-gate map is `docs/evidence/normative-gates.md`.
 - `[RULE]` Pure documentation-only changes (no `src/`, `tests/`, or `tools/` modifications) skip build/test/gates; review the diff and commit directly. If docs describe a code change, commit them with the code change and run the gates in that same commit.
 - Target: `net48`, `LangVersion = preview`, nullable enabled, warnings-as-errors.
 - NuGet sources: nuget.org + nuget.bepinex.dev + nuget.samboy.dev.
@@ -111,15 +112,17 @@ a separate future architecture item, not part of the completed evolution.
    name collisions. **Unity objects are the exception**: use `== null` / `!= null` because
    the overload detects scene-reload-destroyed objects.
 3. `[RULE]` One top-level type per file; file name matches type name. Nested types stay with
-   their container.
+   their container. Enforced by `tools/check-architecture.ps1` and the C# port in
+   `SourceShapeGateTests.Architecture_OneTopLevelTypePerFileAndAggregateLimits`.
 4. `[RULE]` Evidence-based changes: cite decompiled sources (`reversing/`, file:line) before
    touching code; fix root causes, not symptoms.
 5. `[CRITICAL]` **Absolute-machine-path red line**: no absolute machine path may ever enter
    git. Existing tracked absolute paths must be removed, not merely left as historical
-   debt. Before every commit run `tools/check-no-absolute-paths.ps1`; local machine paths
-   belong only in gitignored `AGENTS.local.md` or in placeholders such as `<game-dir>`,
-   `<sandbox-root>`. No drive-letter path, UNC path, or any Unix-style absolute path
-   rooted at home, user, temp, var, opt, etc may appear in tracked files.
+   debt. Local machine paths belong only in gitignored `AGENTS.local.md` or in placeholders
+   such as `<game-dir>`, `<sandbox-root>`. No drive-letter path, UNC path, or any Unix-style
+   absolute path rooted at home, user, temp, var, opt, etc may appear in tracked files.
+   Enforced by `tools/check-no-absolute-paths.ps1` and the C# port in
+   `RepositoryGateTests.NoAbsolutePaths_NoTrackedMachinePaths`.
 6. `[RULE]` Requirement triage: personal/specific → `AGENTS.local.md`; shared/beneficial → commit;
    ambiguous → ask the user.
 7. `[RULE]` Self-learning: record reusable, generalizable knowledge in `AGENTS.md`, `docs/`,
@@ -131,7 +134,7 @@ a separate future architecture item, not part of the completed evolution.
    let the same Postfix report it. Re-read the written state or pass the verdict explicitly.
 10. `[RULE]` Prefer `using` directives / `using` aliases over fully qualified type names;
     use fully qualified names only when unavoidable (e.g., HotRepl eval, where `using`
-    is unavailable).
+    is unavailable). Enforced by the Roslyn gate in `FullyQualifiedNameGateTests`.
 11. `[RULE]` For large families of similar registration code (commands, handlers,
     providers, packets), prefer discoverable Attribute + reflection registration and
     a startup-built read-only route table over hard-coded linear registration. Keep

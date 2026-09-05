@@ -9,6 +9,9 @@ part of the ordinary `dotnet test` loop.
 Automation status legend:
 
 - **dotnet test** — a unit-test gate in `tests/CasualtiesUnknownOnline.NormativeGates.Tests`.
+- **dotnet test (script wrapper)** — the canonical `tools/check-*.ps1` script is
+  invoked by `ExistingPowerShellGateTests`, so the PowerShell gate is part of the
+  ordinary `dotnet test` run while keeping one implementation.
 - **PowerShell gate** — one of the `tools/check-*.ps1` scripts listed in the
   repository commit gate (`AGENTS.md` Build / Commit Gates).
 - **dotnet format / .editorconfig** — build-enforced formatting and code-style
@@ -24,9 +27,9 @@ Automation status legend:
 | #1 English in code/comments/docs | Review / process | Not reliably automatable; no language-quality gate. |
 | #2 Modern idiomatic C# (`var`, nullable, `is null`, collection expressions) | dotnet format / .editorconfig | `.editorconfig` + `EnforceCodeStyleInBuild`; nullable is project-wide. |
 | #2 Unity objects use `== null` / `!= null` | Review / process | Documented Unity exception; IDE0031 deliberately disabled because a global `?.` rewrite would break Unity object semantics. |
-| #3 One top-level type per file; file name matches type name | PowerShell gate | `tools/check-architecture.ps1` (also aggregates logical line counts and bool-flag debt). |
+| #3 One top-level type per file; file name matches type name | dotnet test (script wrapper) + PowerShell gate | `tools/check-architecture.ps1` (also aggregates logical line counts and bool-flag debt), run by `ExistingPowerShellGateTests`. |
 | #4 Evidence-based changes / cite decompiled sources | Review / process | Human process; not a source-shape rule. |
-| #5 Absolute-machine-path red line | PowerShell gate | `tools/check-no-absolute-paths.ps1`; scans tracked files via `git grep`. |
+| #5 Absolute-machine-path red line | dotnet test (script wrapper) + PowerShell gate | `tools/check-no-absolute-paths.ps1`; scans tracked files via `git grep`, run by `ExistingPowerShellGateTests`. |
 | #6 Requirement triage | Review / process | Human judgment. |
 | #7 Self-learning / record reusable knowledge | Review / process | Human process. |
 | #8 Architecture-first, get consent | Review / process | Approval process before risky changes. |
@@ -41,30 +44,30 @@ Automation status legend:
 |---|---|---|
 | No self-assumption; every claim needs evidence | Review / process | Human/process; reflected in self-check fact sheets. |
 | Root cause over patch stacking | Review / process | Human architecture review. |
-| Line-count / architecture gate escapes are real responsibility splits | PowerShell gate | `tools/check-architecture.ps1` + `docs/architecture-debt.json`. |
+| Line-count / architecture gate escapes are real responsibility splits | dotnet test (script wrapper) + PowerShell gate | `tools/check-architecture.ps1` + `docs/architecture-debt.json`, run by `ExistingPowerShellGateTests`. |
 | Red→green hard gate | Review / process | Process rule; deliverable evidence is the failing-test commit. |
 | Core + edge/failure test coverage | dotnet test | Existing xUnit suite; coverage breadth is a review/size question. |
 | Every key path observable | Review / process | Logging discipline; not a single source-shape gate. |
 | Acceptance-readiness audit | Review / process | `docs/evidence/delivery-checklist.md`. |
 | User-found issues are hard blockers | Review / process | Backlog/human process. |
 | Independent adversarial self-check | Review / process | Human/process. |
-| Delivery checklist | PowerShell gate | `tools/check-delivery.ps1` + `docs/evidence/delivery-checklist.md`. |
+| Delivery checklist | dotnet test (script wrapper) + PowerShell gate | `tools/check-delivery.ps1` + `docs/evidence/delivery-checklist.md`, run by `ExistingPowerShellGateTests`. |
 | Deployment/artifact verification | PowerShell + process | `tools/deploy.ps1` and deployment hash/file check. |
 
 ## Existing tools checks
 
 | Tool | What it checks | Status |
 |---|---|---|
-| `tools/check-architecture.ps1` | One type/file, logical line count, bool-flag debt, plus the Phase E guard suite below. | Kept as PowerShell gate; also the canonical commit-time architecture gate. |
-| `tools/check-gamestate-isolation.ps1` | GameState project isolation from runtime/game/network dependencies. | Kept as PowerShell gate; depends on project file + whole-source scan. |
-| `tools/check-item-authority.ps1` | Legacy item projection tables only mutated by their owners. | Kept as PowerShell gate; path/family-specific text gate. |
-| `tools/check-no-legacy.ps1` | No removed dual-architecture markers in production source. | Kept as PowerShell gate; currently text-based and is part of `check-architecture.ps1`. |
-| `tools/check-command-authority.ps1` | Every `GameCommand` carries an `AuthorityKind` policy. | Kept as PowerShell gate. |
-| `tools/check-kernel-shape.ps1` | No string-keyed dictionaries / `Hashtable` kernel state. | Kept as PowerShell gate. |
-| `tools/check-event-replay.ps1` | Event-replay matrix completeness; also guarded by `ReplayMatrixDataTests`. | Kept as PowerShell gate + dotnet test data integrity. |
-| `tools/check-entity-event-dispatch.ps1` | Entity event dispatch matrix. | Kept as PowerShell gate. |
-| `tools/check-no-absolute-paths.ps1` | Tracked-file absolute machine paths. | Kept as PowerShell gate; repo-wide and applies to non-C# files too. |
-| `tools/check-delivery.ps1` | Delivery checklist/forbidden-box integrity. | Kept as PowerShell gate. |
+| `tools/check-architecture.ps1` | One type/file, logical line count, bool-flag debt, plus the Phase E guard suite below. | dotnet test (script wrapper) + PowerShell gate; run by `ExistingPowerShellGateTests`. |
+| `tools/check-gamestate-isolation.ps1` | GameState project isolation from runtime/game/network dependencies. | dotnet test (script wrapper) + PowerShell gate; part of `check-architecture` and also run by the wrapper. |
+| `tools/check-item-authority.ps1` | Legacy item projection tables only mutated by their owners. | dotnet test (script wrapper) + PowerShell gate; part of `check-architecture` and also run by the wrapper. |
+| `tools/check-no-legacy.ps1` | No removed dual-architecture markers in production source. | dotnet test (script wrapper) + PowerShell gate; currently text-based and is part of `check-architecture.ps1`. |
+| `tools/check-command-authority.ps1` | Every `GameCommand` carries an `AuthorityKind` policy. | dotnet test (script wrapper) + PowerShell gate; part of `check-architecture` and also run by the wrapper. |
+| `tools/check-kernel-shape.ps1` | No string-keyed dictionaries / `Hashtable` kernel state. | dotnet test (script wrapper) + PowerShell gate; part of `check-architecture` and also run by the wrapper. |
+| `tools/check-event-replay.ps1` | Event-replay matrix completeness; also guarded by `ReplayMatrixDataTests`. | dotnet test (script wrapper) + PowerShell gate + dotnet test data integrity. |
+| `tools/check-entity-event-dispatch.ps1` | Entity event dispatch matrix. | dotnet test (script wrapper) + PowerShell gate. |
+| `tools/check-no-absolute-paths.ps1` | Tracked-file absolute machine paths. | dotnet test (script wrapper) + PowerShell gate; repo-wide and applies to non-C# files too. |
+| `tools/check-delivery.ps1` | Delivery checklist/forbidden-box integrity. | dotnet test (script wrapper) + PowerShell gate. |
 
 ## Why the FQ-name rule became a unit-test gate
 
@@ -84,9 +87,25 @@ The gate lives in `tests/CasualtiesUnknownOnline.NormativeGates.Tests` and is
 therefore part of the standard `dotnet test` run, not an optional PowerShell
 check.
 
+## Why the remaining PowerShell gates are wrapped, not rewritten
+
+The remaining `tools/check-*.ps1` scripts are not all pure C# syntax rules:
+
+- some are repo-wide and cover non-C# files too (`check-no-absolute-paths`);
+- some cover project/process state (`check-delivery`, event/entity data matrices);
+- some are deliberately textual/scriptable checks with history and edge-case
+  behavior already validated (`check-architecture` family).
+
+Rewriting all of them as C# would duplicate the existing implementations and
+risk two divergent gates. Instead, `ExistingPowerShellGateTests` invokes every
+`tools/check-*.ps1` from the normal `dotnet test` run. The scripts stay the
+single canonical implementation, but they are no longer optional: a failed
+PowerShell gate now fails the test suite too.
+
 ## Related
 
 - `AGENTS.md` Engineering Conventions #10
 - `tests/CasualtiesUnknownOnline.NormativeGates.Tests/FullyQualifiedNameGate.cs`
 - `tests/CasualtiesUnknownOnline.NormativeGates.Tests/FullyQualifiedNameGateTests.cs`
+- `tests/CasualtiesUnknownOnline.NormativeGates.Tests/ExistingPowerShellGateTests.cs`
 - `docs/evidence/delivery-checklist.md`

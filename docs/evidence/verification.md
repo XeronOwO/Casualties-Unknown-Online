@@ -20,9 +20,10 @@ Run the canonical commands from [`AGENTS.md`](../../AGENTS.md) before committing
 changes. The normative source-shape gate is now part of `dotnet test`:
 
 - `tests/CasualtiesUnknownOnline.NormativeGates.Tests` — Roslyn syntax-tree gate
-  for AGENTS.md #10 (prefer `using`/aliases over fully qualified names). The
-  inventory of every normative rule's automation status is in
-  [`normative-gates.md`](normative-gates.md).
+  for AGENTS.md #10 (prefer `using`/aliases over fully qualified names), plus
+  `ExistingPowerShellGateTests` which runs every `tools/check-*.ps1` gate as
+  part of `dotnet test`. The inventory of every normative rule's automation
+  status is in [`normative-gates.md`](normative-gates.md).
 
 The architecture-gate guard suite is:
 

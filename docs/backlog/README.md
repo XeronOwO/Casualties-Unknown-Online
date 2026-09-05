@@ -39,6 +39,7 @@ todo/  →  in-progress/  →  review/  →  done/
 ### Todo
 
 - [Tab opens backpack then closes immediately](todo/tab-backpack-open-close-immediately.md) — pressing Tab opens the backpack and it closes instantly, as if Tab was pressed twice.
+- [Command console ESC still opens the game's ESC/pause menu](todo/command-console-esc-not-intercepted.md) — pressing ESC while the command console is open still opens the game's ESC menu instead of only closing the console.
 
 
 ### In progress
@@ -47,7 +48,7 @@ _None._ (Folder exists for the workflow.)
 
 ### Review
 - [Entity destruction drops lose fresh-drop presentation/initial motion on the guest view](review/entity-destruction-drop-guest-fresh-state-loss.md) — kernel item-spawn path now preserves full transient initial drop state (velocity/rotation/fresh/angular) to all peers; covers ordinary building/entity deaths in both directions and third-party views; selfcheck linked.
-- [Interactive in-game command console](review/in-game-command-console-interactive.md) — redo landed: compact translucent bottom overlay, live Minecraft-style suggestions on `/`, full no-fade history while open, closed-panel fading notifications, aligned input and ESC interception; selfcheck linked.
+- [Interactive in-game command console](review/in-game-command-console-interactive.md) — redo landed: compact translucent bottom overlay, live Minecraft-style suggestions on `/`, full no-fade history while open, closed-panel fading notifications, aligned input; ESC interception still has an open user-reported issue (see `todo/command-console-esc-not-intercepted.md`); selfcheck linked.
 - [Guest frame rate lower than host with frame drops](review/guest-frame-rate-lower-than-host.md) — guest frame-rate baseline telemetry landed; per-frame RemotePlayers enumeration and guest item-follow key snapshot allocations removed; selfcheck linked.
 - [Host entity hit red flash not visible on guest](review/host-entity-hit-red-flash-not-visible-on-guest.md) — melee red HitFlash now rides the existing BuildingEntityDamaged relay as a presentation-only flag; non-attacker/third-party views replay the native flash; selfcheck linked.
 - [Remote backpack native interaction parity](review/remote-backpack-native-interaction-parity.md) — container/nested apply follow-up landed: recursive local-body item lookup, container unload before slot pickup, and same-owner nested container placement; selfcheck linked.

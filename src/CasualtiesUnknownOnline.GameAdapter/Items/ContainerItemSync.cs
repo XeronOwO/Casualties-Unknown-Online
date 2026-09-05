@@ -104,25 +104,39 @@ internal sealed class ContainerItemSync(
 					return;
 				}
 
-				var parentId = _ids.EnsureId(parent);
-				if (parentId == 0)
+				// A nested container (trash bag inside a backpack) must not be
+				// reported as a standalone carried root: kernel container sync
+				// spawns a missing parent as Carried, which lifts the nested node
+				// out of its real ancestor in the clone fact tree (visible →
+				// invisible on the next snapshot). Report the top-level carried
+				// root so the whole subtree keeps its contained ancestry.
+				var root = FindCarriedRootItem(parent);
+				if (root == null) // Unity object — ==
+				{
+					_trace.End(op, itemId, "OnItemLoadedIntoContainer", "Skipped", "BodyInternalNoRoot");
+					return;
+				}
+
+				var rootId = _ids.EnsureId(root);
+				if (rootId == 0)
 				{
 					_trace.End(op, itemId, "OnItemLoadedIntoContainer", "Skipped", "BodyInternalNoId");
 					return;
 				}
 
-				var capture = ItemStateCodec.CaptureItem(parent, ItemStateCodec.SlotOf(parent));
+				var capture = ItemStateCodec.CaptureItem(root, ItemStateCodec.SlotOf(root));
 				if (_session.Role == SessionRole.Host && _session.SessionActive)
 				{
 					_items.SendItemCarriedSync(_session.LocalSteamId, capture);
 				}
 				else
 				{
-					_items.SendItemContainerContent(parentId, capture);
+					_items.SendItemContainerContent(rootId, capture);
 				}
 
 				_trace.End(op, itemId, "OnItemLoadedIntoContainer", "Committed", "ContainerContent");
-				_log.LogInformation("[ContainerLoad] {Type} (id {ItemId}) moved inside body container {ContainerType} (id {ContainerId}) — nested content event.", item.id, itemId, parent.id, parentId);
+				_log.LogInformation("[ContainerLoad] {Type} (id {ItemId}) moved inside body container {ContainerType} — root content event up to {RootType} (id {RootId}).",
+					item.id, itemId, parent.id, root.id, rootId);
 			}
 
 			return;
@@ -262,5 +276,34 @@ internal sealed class ContainerItemSync(
 				_trace.End(op, 0, "OnContainerUnloadedAll", "Skipped", "NoId");
 			}
 		}
+	}
+
+	/// <summary>
+	/// Walks up the Unity hierarchy from a carried container to the outermost
+	/// item whose parent is no longer an item (the body slot/limb root). This is
+	/// the subtree identified by <c>SyncContainerItemsCommand</c> as Carried; a
+	/// nested container must never be reported as that root on its own.
+	/// </summary>
+	private static Item? FindCarriedRootItem(Item item)
+	{
+		var current = item;
+		while (current != null) // Unity object — ==
+		{
+			var parentTransform = current.transform.parent;
+			if (parentTransform == null)
+			{
+				break;
+			}
+
+			var parentItem = parentTransform.GetComponent<Item>();
+			if (parentItem == null)
+			{
+				break;
+			}
+
+			current = parentItem;
+		}
+
+		return current;
 	}
 }

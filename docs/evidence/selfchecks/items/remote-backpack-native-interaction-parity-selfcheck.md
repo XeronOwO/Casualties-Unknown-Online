@@ -158,3 +158,49 @@ container.
   dual-client acceptance. The adapter now has runtime evidence points
   (`RemoteApply` logs, `ReportInventoryChanged` immediate re-report) and the
   previously missing local-body path is present in code.
+
+## 7. Autonomous re-fix cycle (2026-09-06)
+
+This cycle re-analyzed the container/trash-bag paths that were rejected as a
+whole. It added the following root-cause fixes on top of the previous
+implementation:
+
+1. **Nested target root sync** — `PlayerRemoteInventoryService.HandleMoveToContainer`
+   now issues `SyncContainerItemsCommand` against the **top-level carried root**
+   that owns the target container, not against the target node itself. The old
+   code could spawn a missing nested container as `Carried`, which made
+   `EmitCarriedFactsForBatch` treat it as a standalone carried root and lift it
+   to the clone's top level until the next 1 Hz snapshot. Syncing the root keeps
+   every nested container `Contained` under its real ancestor and lets the
+   clone fact tree stay exact after the event.
+2. **Local nested container report root** — `ContainerItemSync` now reports body
+   internal container moves from the outermost carried root instead of the
+   immediate nested parent, so guest→host `ItemContainerSync` and host carried
+   facts preserve the same contained ancestry.
+3. **Open-container background drop** — the remote release patch now maps the
+   native `ContainerBack` gesture to the host-authoritative
+   `MoveToContainer` request. Previously that release fell through to the take
+   fallback, so dropping an item into the currently open remote trash bag could
+   be consumed as a take/cancel instead of a container move.
+4. **No premature unload before native load** — same-owner container re-home
+   no longer calls `Container.UnloadItem` before `Container.LoadItem`, and the
+   remote `MoveToSlot` apply lets `Body.PickUpItem` perform its guarded
+   container unload. A refused load no longer orphans the real item; the
+   occupied-slot swap also rolls back if the source fails to land.
+5. **Detach before deferred Destroy on transfer removal** — cross-player take
+   removal now detaches the item from its container/slot before
+   `Object.Destroy`, so the immediate re-report does not capture a still-parented
+   ghost child (the visible→invisible / one-frame double family).
+
+Regression coverage added:
+- `PlayerInteractionServiceTests.Guest_MovesRemotePlayersItemIntoNestedRemoteContainer_UpdatesDeepTreeAndSendsParentTransfer`
+  now also asserts the nested target remains `Contained` under the top-level
+  backpack (not `Carried`).
+- `CloneFactTableNestedCarriedSyncTests.ApplyCarriedSync_WhenItemMovesBetweenContainers_PrunesOldContainerCopy`
+  locks the fact-tree prune for a cross-container move.
+
+Verification:
+- Full suite **2324 passed / 0 failed**.
+- Build, format, architecture, event-replay, entity-event-dispatch,
+  no-absolute-paths gates all pass.
+- Deployment follows after build; artifact identity is verified separately.

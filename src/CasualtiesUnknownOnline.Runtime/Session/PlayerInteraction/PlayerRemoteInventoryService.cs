@@ -255,9 +255,15 @@ internal sealed class PlayerRemoteInventoryService(
 			return;
 		}
 
-		if (!TryFindItem(cloned.Items, targetContainerId, out var clonedTarget))
+		// Sync the TOP-LEVEL carried root that owns the target container, not
+		// the target node itself. SyncContainerItemsCommand spawns a missing
+		// parent as a Carried root, which is correct only for a top-level
+		// container. A nested trash bag must stay Contained under its real
+		// ancestor; syncing the root subtree preserves that ancestry and gives
+		// EmitCarriedFactsForBatch the real carried root for the clone fact tree.
+		if (!TryFindCarriedRoot(cloned.Items, targetContainerId, out var syncRoot))
 		{
-			_log.LogWarning("[RemoteInventory] refused MoveToContainer: target {Target} is not in the cloned snapshot.", targetContainerId);
+			_log.LogWarning("[RemoteInventory] refused MoveToContainer: cannot locate the carried root of target {Target} in the cloned snapshot.", targetContainerId);
 			return;
 		}
 
@@ -266,9 +272,9 @@ internal sealed class PlayerRemoteInventoryService(
 			new ActorId(owner),
 			_kernelAuthority.CurrentRunEpoch,
 			AuthorityKind.OwnerPredictedHostValidated,
-			new ItemIdentity(clonedTarget.InstanceId, clonedTarget.ItemId),
-			ItemKernelAuthority.ToKernelData(clonedTarget),
-			FlattenContainerChildren(clonedTarget));
+			new ItemIdentity(syncRoot.InstanceId, syncRoot.ItemId),
+			ItemKernelAuthority.ToKernelData(syncRoot),
+			FlattenContainerChildren(syncRoot));
 		if (!TryExecuteItemCommand(sync, out var rejection))
 		{
 			return;
@@ -428,6 +434,34 @@ internal sealed class PlayerRemoteInventoryService(
 		}
 
 		return facts;
+	}
+
+	private static bool TryFindCarriedRoot(List<CharacterItemMsg> items, ulong itemId, out CharacterItemMsg root)
+	{
+		foreach (var item in items)
+		{
+			if (item.InstanceId == itemId || ContainsDescendant(item, itemId))
+			{
+				root = item;
+				return true;
+			}
+		}
+
+		root = null!;
+		return false;
+	}
+
+	private static bool ContainsDescendant(CharacterItemMsg item, ulong itemId)
+	{
+		foreach (var child in item.Contents)
+		{
+			if (child.InstanceId == itemId || ContainsDescendant(child, itemId))
+			{
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	private static bool TryFindItem(List<CharacterItemMsg> items, ulong instanceId, out CharacterItemMsg found)

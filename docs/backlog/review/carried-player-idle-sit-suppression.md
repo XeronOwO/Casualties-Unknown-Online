@@ -23,3 +23,9 @@ whole presentation family:
 No carry authority, wire protocol, or release semantics changed.
 
 Selfcheck: `docs/evidence/selfchecks/players/carried-idle-sit-suppression-selfcheck.md`.
+
+## Remaining family gap
+
+This landed slice covers the carried rider. It does not yet cover the carrier:
+a player can still sit down while carrying someone. That gap is tracked as
+`todo/carrier-sit-while-carrying.md`.

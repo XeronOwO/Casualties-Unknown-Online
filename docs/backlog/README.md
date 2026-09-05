@@ -40,6 +40,9 @@ todo/  →  in-progress/  →  review/  →  done/
 
 - [Guest frame rate lower than host with frame drops](todo/guest-frame-rate-lower-than-host.md) — guest runs at a noticeably lower frame rate than host; needs baseline and guest-only overhead isolation.
 - [Remote player medical/health panel](todo/remote-player-medical-panel.md) — rejected in review: previous CUO IMGUI panel did not reuse the game's existing medical UI; re-open requires native UI reuse like the remote backpack.
+- [Remote backpack native interaction parity](todo/remote-backpack-native-interaction-parity.md) — rejected in review: still cannot perform most item operations in another player's backpack; re-open requires full native operation parity, not documented future-only gaps.
+- [Carry/piggyback riding movement teleport and rider/carrier position mismatch](todo/carry-piggyback-rider-position-smoothing.md) — rejected in review: only half fixed; carrier/participant views still see the carried player misaligned/teleporting while moving.
+- [Carrier can sit while carrying a player](todo/carrier-sit-while-carrying.md) — new gap: carrier can sit on the ground while carrying someone; whole-family carrier-side sit suppression needed.
 - [Guest remote pose / head-orientation desync on host view](todo/guest-remote-pose-head-orientation-desync.md) — refined dual-instance reproduction: mouse moving to the guest's left while the guest still faces right causes wrong host-side facing/head angle and an abrupt head jump across the 180° ray; water-current pose/clipping is a related variant.
 - [Host fall injury mouth-expression desync](todo/host-fall-injury-mouth-expression-desync.md) — guest sees host's mouth open after fall injury while host's own view does not; needs root-cause investigation rather than a cosmetic remote-face patch.
 - [Sleep behavior policy decision](todo/sleep-behavior-policy.md) — open decision on allow/disable sleep in sessions, including forced-sleep effects such as mushroom tail.
@@ -52,7 +55,6 @@ _None._ (Folder exists for the workflow.)
 
 ### Review
 
-- [Remote backpack native interaction parity](review/remote-backpack-native-interaction-parity.md) — native remote-backpack pour/drop/container/Tab-transfer gestures now route to host-authoritative operations instead of mutating display proxies; selfcheck linked.
 - [Guest background window plays ghost item friction/ground sounds](review/guest-background-ghost-item-ground-sounds.md) — non-authoritative guest item impact presentation (drop/step/squeak/dust) suppressed; selfcheck linked.
 - [Interactive in-game command console](review/in-game-command-console-interactive.md) — slash-opened focused input, completion/history/hints, fading text area, real selector-backed `/heal` command, IME-aware custom input, JSON host-rule command.
 - [Command registration Attribute/reflection refactor](review/command-registration-attribute-refactor.md) — Attribute/reflection console registry + local mod console command API; selfcheck linked.
@@ -77,7 +79,6 @@ _None._ (Folder exists for the workflow.)
 - [Remove legacy "View items" remote-inventory detail path](review/remove-legacy-view-items-remote-inventory-detail.md) — custom inline inventory expansion and right-click fallback removed; native remote backpack remains the only remote-inventory surface.
 - [Sync player pain vocalizations and B-key bark](review/sync-player-pain-vocalizations-and-bark.md) — PantSound pain/yawn/growl/B-bark now ride the existing CharacterSoundMsg event; continuous pant remains local; reverse direction covered by star relay.
 - [Suppress native idle-sit while carried](review/carried-player-idle-sit-suppression.md) — carried characters no longer publish/replay/linger in the native sit pose; shared pure CarriedBodyPose rule applied across rider/carrier/peer views.
-- [Carry/piggyback riding movement teleport and rider/carrier position mismatch](review/carry-piggyback-rider-position-smoothing.md) — rider now follows the smoothed carrier render clone; shared ride-pose path and body-root stream anchor prevent participant/third-party drift; selfcheck linked.
 - [Carry/piggyback vertical placement asymmetry](review/carry-piggyback-vertical-placement-asymmetry.md) — carried riders publish body root instead of the non-standing torso anchor; shared ride-pose path also mirrors crouch state; selfcheck linked.
 - [Guest container contents periodically appear as world drops on the host view](review/guest-container-contents-ghost-drops-on-host.md) — remote clone nested display proxies no longer carry item instance ids; domain lookup cannot address them; selfcheck linked.
 

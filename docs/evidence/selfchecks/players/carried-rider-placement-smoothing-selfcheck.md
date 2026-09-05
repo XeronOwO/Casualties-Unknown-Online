@@ -1,5 +1,12 @@
 # Carried rider placement smoothing and vertical consistency self-check
 
+> **Status: Rejected in review (2026-09-05).** The movement-smoothing portion
+> was not accepted by the user: when the carrier moves, the carrier/participant
+> view still sees the rider misaligned/teleporting, even though the rider's own
+> view is normal; the reverse direction shows the same class of problem.
+> Retained as historical evidence; the ticket is re-opened as
+> `docs/backlog/todo/carry-piggyback-rider-position-smoothing.md`.
+
 Owner cycle: backlog `carry-piggyback-rider-position-smoothing` and
 `carry-piggyback-vertical-placement-asymmetry`. Decision: close both reports by
 making the carried-ride presentation one shared path and by keeping every view

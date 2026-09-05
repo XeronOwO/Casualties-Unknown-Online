@@ -1,57 +1,60 @@
 namespace CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 
 /// <summary>
-/// Pure carried-ride presentation rule (no Unity): while a body is a carried
-/// rider, the native idle-sit pose must never be published, replayed, or
-/// allowed to linger. The rule is shared by the rider's own state publication,
-/// the carrier-side remote-rider clone, and every other peer's render path so
-/// the three views cannot drift.
+/// Pure carry-participant presentation rule (no Unity): while a body is either
+/// the carried rider or the carrier half of a carry/piggyback relation, the
+/// native idle-sit pose must never be published, replayed, or allowed to
+/// linger. The rule is shared by both participants' state publication, the
+/// remote clone render paths, and every other peer's view so the whole family
+/// cannot drift.
 /// </summary>
 public static class CarriedBodyPose
 {
 	/// <summary>
 	/// Whether the 20 Hz player stream may present this body as sitting.
-	/// A carried rider is never "idle-sitting": the ride presentation replaces
-	/// the native sit state, so even a stale/inflated idleTime must not leak
-	/// onto the wire.
+	/// A carry participant is never "idle-sitting": the ride/carry presentation
+	/// replaces the native sit state, so even a stale/inflated idleTime must
+	/// not leak onto the wire.
 	/// </summary>
-	public static bool ShouldPublishSitting(bool isCarried, bool idleTimeExceeded, bool exercising)
-		=> !isCarried && idleTimeExceeded && !exercising;
+	public static bool ShouldPublishSitting(bool isCarryParticipant, bool idleTimeExceeded, bool exercising)
+		=> !isCarryParticipant && idleTimeExceeded && !exercising;
 
 	/// <summary>
 	/// Whether the render proxy may replay the sit clips from the entity stream.
-	/// A carrier-side rider clone is pinned to the carrier and must not switch
-	/// to the native sit clips even if a stale Sitting=true snapshot arrives.
+	/// A carry-participant clone is pinned to the carry presentation and must
+	/// not switch to the native sit clips even if a stale Sitting=true snapshot
+	/// arrives.
 	/// </summary>
-	public static bool ShouldReplaySit(bool isCarriedRider, bool entitySitting)
-		=> !isCarriedRider && entitySitting;
+	public static bool ShouldReplaySit(bool isCarryParticipant, bool entitySitting)
+		=> !isCarryParticipant && entitySitting;
 
 	/// <summary>
 	/// Whether the render path must actively leave an already-playing sit clip.
-	/// This covers the transition into carry from a previously sitting body:
-	/// resetting the idle timer alone does not make HandleVisuals leave an
-	/// already-active ExperimentSit clip when the body still presents as
-	/// standing to the animator.
+	/// This covers the transition into a carry relation from a previously
+	/// sitting body: resetting the idle timer alone does not make HandleVisuals
+	/// leave an already-active ExperimentSit clip when the body still presents
+	/// as standing to the animator.
 	/// </summary>
-	public static bool ShouldExitSit(bool isCarriedRider, bool currentClipIsSit)
-		=> isCarriedRider && currentClipIsSit;
+	public static bool ShouldExitSit(bool isCarryParticipant, bool currentClipIsSit)
+		=> isCarryParticipant && currentClipIsSit;
 
 	/// <summary>
 	/// Whether a remote clone must replay the normal standing clips when the
 	/// entity stream ends a sit state. This is the general sit-exit transition
-	/// (used by SessionStatePump) and also the boundary that lets a carried
-	/// rider return to the ride presentation rather than lingering in sit.
+	/// (used by SessionStatePump) and also the boundary that lets a carry
+	/// participant return to the carry/standing presentation rather than
+	/// lingering in sit.
 	/// </summary>
 	public static bool ShouldRestoreGroundedOnSitEnd(bool entitySitting, bool previousSitting)
 		=> !entitySitting && previousSitting;
 
 	/// <summary>
-	/// Whether a carried-ride body must keep the native idle timer at zero
+	/// Whether a carry-participant body must keep the native idle timer at zero
 	/// every frame (not only after the 11 s pre-sit threshold), so the sit
-	/// condition can never begin accumulating on a ride.
+	/// condition can never begin accumulating on either half of the relation.
 	/// </summary>
-	public static bool ShouldZeroIdleTimer(bool isCarriedRide)
-		=> isCarriedRide;
+	public static bool ShouldZeroIdleTimer(bool isCarryParticipant)
+		=> isCarryParticipant;
 
 	/// <summary>
 	/// Whether the 20 Hz player stream should publish the body-root transform

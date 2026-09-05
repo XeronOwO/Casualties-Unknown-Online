@@ -131,6 +131,7 @@ internal static class PlayerCameraDragUsePatch
 			&& Vector2.Distance(Input.mousePosition, camera.clickPos) < 10f)
 		{
 			camera.OpenContainer(container);
+			RemoteBackpackView.TrackOpenRemoteContainer(container);
 			return true;
 		}
 

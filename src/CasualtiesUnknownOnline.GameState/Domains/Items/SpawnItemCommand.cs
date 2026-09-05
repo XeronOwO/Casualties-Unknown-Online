@@ -13,4 +13,9 @@ public sealed record SpawnItemCommand(
 	ItemIdentity Identity,
 	ItemLocation Location,
 	ulong ExpectedRevision,
-	ItemData? Data = null) : GameCommand(OperationId, Actor, RunEpoch, Authority, [new ExpectedRevision(Identity.InstanceId, ExpectedRevision)]);
+	ItemData? Data = null,
+	float VelocityX = 0f,
+	float VelocityY = 0f,
+	float Rotation = 0f,
+	bool FreshItemDrop = false,
+	float AngularVelocity = 0f) : GameCommand(OperationId, Actor, RunEpoch, Authority, [new ExpectedRevision(Identity.InstanceId, ExpectedRevision)]);

@@ -84,4 +84,19 @@ public sealed class WireCommand
 
 	[ProtoMember(25)]
 	public int TrapPhase { get; set; }
+
+	[ProtoMember(26)]
+	public float VelocityX { get; set; }
+
+	[ProtoMember(27)]
+	public float VelocityY { get; set; }
+
+	[ProtoMember(28)]
+	public float Rotation { get; set; }
+
+	[ProtoMember(29)]
+	public bool FreshItemDrop { get; set; }
+
+	[ProtoMember(30)]
+	public float AngularVelocity { get; set; }
 }

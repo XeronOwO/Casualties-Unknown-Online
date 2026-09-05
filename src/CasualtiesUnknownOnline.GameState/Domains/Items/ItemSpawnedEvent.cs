@@ -8,4 +8,9 @@ public sealed record ItemSpawnedEvent(
 	ItemIdentity Identity,
 	ulong Revision,
 	ItemLocation Location,
-	ItemData? Data = null) : ItemEvent(Identity);
+	ItemData? Data = null,
+	float VelocityX = 0f,
+	float VelocityY = 0f,
+	float Rotation = 0f,
+	bool FreshItemDrop = false,
+	float AngularVelocity = 0f) : ItemEvent(Identity);

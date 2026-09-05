@@ -114,14 +114,7 @@ public static class KernelWireMapper
 	public static WireEvent ToWireEvent(GameEvent @event) =>
 		@event switch
 		{
-			ItemSpawnedEvent spawned => new WireEvent
-			{
-				Kind = WireEventKind.ItemSpawned,
-				Identity = ToWireIdentity(spawned.Identity),
-				NewRevision = spawned.Revision,
-				NewLocation = ToWireLocation(spawned.Location),
-				NewData = spawned.Data is null ? null : ToWireData(spawned.Data.Value),
-			},
+			ItemSpawnedEvent spawned => ItemSpawnWireMapper.ToWireEvent(spawned),
 			ItemRelocatedEvent relocated => new WireEvent
 			{
 				Kind = WireEventKind.ItemRelocated,
@@ -320,11 +313,7 @@ public static class KernelWireMapper
 	public static GameEvent FromWireEvent(WireEvent @event) =>
 		@event.Kind switch
 		{
-			WireEventKind.ItemSpawned => new ItemSpawnedEvent(
-				FromWireIdentity(@event.Identity),
-				@event.NewRevision,
-				FromWireLocation(@event.NewLocation ?? new WireItemLocation { Kind = WireItemLocationKind.Terminal }),
-				@event.NewData is null ? null : FromWireData(@event.NewData)),
+			WireEventKind.ItemSpawned => ItemSpawnWireMapper.FromWireEvent(@event),
 			WireEventKind.ItemRelocated => new ItemRelocatedEvent(
 				FromWireIdentity(@event.Identity),
 				@event.OldRevision,
@@ -407,15 +396,7 @@ public static class KernelWireMapper
 
 		return command.Kind switch
 		{
-			WireCommandKind.ItemSpawn => new SpawnItemCommand(
-				operation,
-				actor,
-				epoch,
-				authority,
-				identity,
-				FromWireLocation(command.Location ?? throw new InvalidOperationException("spawn command lacks location")),
-				0,
-				command.Data is null ? null : FromWireData(command.Data)),
+			WireCommandKind.ItemSpawn => ItemSpawnWireMapper.FromWireCommand(command, operation, actor, epoch, authority, identity),
 			WireCommandKind.ItemPickup => new PickUpItemCommand(
 				operation,
 				actor,

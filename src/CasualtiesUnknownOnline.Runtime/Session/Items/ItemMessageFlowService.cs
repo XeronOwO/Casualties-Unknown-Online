@@ -61,6 +61,11 @@ internal sealed class ItemMessageFlowService(
 				Identity = WireIdentity(itemId, item.ItemId),
 				Location = WorldLocation(pos, 0),
 				Data = ToWireItemData(item),
+				VelocityX = vel.X,
+				VelocityY = vel.Y,
+				Rotation = rotation,
+				FreshItemDrop = freshItemDrop,
+				AngularVelocity = angularVelocity,
 			}, WirePayloadType.ItemSpawnCommand);
 		}
 		// Host broadcasts are unnecessary: the accepted kernel batch is already

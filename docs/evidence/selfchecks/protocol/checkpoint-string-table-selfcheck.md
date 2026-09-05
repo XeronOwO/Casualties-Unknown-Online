@@ -25,8 +25,10 @@ checkpoint baseline from `NetworkTrafficBaselineTests` was **25,732 bytes** over
 - The table is optional/backward-compatible: an item with `DefinitionIndex == 0`
   still carries the direct `DefinitionId`, so old/mixed checkpoint data remains
   restorable.
-- `CheckpointSchemaVersion` is bumped 1 → 2 because the wire checkpoint shape
-  gains the table/index fields.
+- `ProtocolVersion.Current` is bumped 4 → 5 and `CheckpointSchemaVersion` is
+  bumped 1 → 2 because the wire checkpoint shape gains the table/index fields;
+  mixed-version sessions are rejected by the existing handshake before any
+  checkpoint is exchanged.
 
 ## 3. Self-check table
 
@@ -35,7 +37,9 @@ checkpoint baseline from `NetworkTrafficBaselineTests` was **25,732 bytes** over
 | Repeated definition ids | one table entry per unique id instead of one string per item | `WireCheckpointAssembler.Split` definition-table build |
 | Compact wire identity | `DefinitionIndex` rides the item; `DefinitionId` empty in checkpoint chunks | `WireItemIdentity.cs` |
 | Restore | indexed identities are expanded before kernel mapping | `WireCheckpointAssembler.Assemble` + `ExpandItemDefinition` |
-| Backward-compatible direct ids | index 0 leaves `DefinitionId` untouched | `ExpandItemDefinition` early return |
+| Backward-compatible direct ids | index 0 leaves `DefinitionId` untouched | `ExpandItemDefinition` early return; `CheckpointSplit_UniqueDefinitionIdsKeepDirectStrings` |
+| No-benefit fallback | a table is only used when a definition id repeats; all-unique checkpoints keep direct strings | `WireCheckpointAssembler.Split` `useDefinitionTable` guard; `CheckpointSplit_UniqueDefinitionIdsKeepDirectStrings` |
+| Invalid index fail-loud | out-of-range table index throws instead of silently losing the id | `CheckpointAssemble_InvalidDefinitionIndex_Throws` |
 | Size regression | 600 repeated "shell" items: 25,732 → 23,939 bytes (-1,793 bytes, ~7%) | `NetworkTrafficBaselineTests.CheckpointSnapshotSize_RepeatedDefinitionIds_OverheadBudget` |
 
 ## 4. Red → green

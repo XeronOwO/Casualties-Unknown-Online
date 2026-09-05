@@ -161,6 +161,17 @@ a separate future architecture item, not part of the completed evolution.
   frequency. An unobservable key path is unfinished.
 - `[CRITICAL]` Development-period verification is simulation/static-evidence based; no manual
   dual-client acceptance during feature development. User will do final acceptance later.
+- `[CRITICAL]` **Acceptance-readiness audit before review**: for every user-facing feature,
+  before moving it to `review/`, answer explicitly with evidence:
+  1. Does the game already have a native UI for this surface? If yes, reuse it;
+     no parallel custom UI without a documented blocker and user direction.
+  2. Was the whole family audited across all roles, directions, participants,
+     and third-party views, not only the reported side?
+  3. Was the exact user reproduction covered by a test or runtime trace against
+     the latest deployed DLLs, not by generic unit coverage or static reasoning?
+  4. Were unsupported features/operations left as future only with explicit user
+     acceptance? A self-imposed "future" is not a completed parity claim.
+  Passing tests and repo gates is necessary, not sufficient.
 - `[GATE]` Follow `docs/evidence/delivery-checklist.md` + `tools/check-delivery.ps1` for each delivery.
 - `[GATE]` Check off delivery checklist boxes one line at a time with the Edit tool; bulk
   checking is forbidden.

@@ -63,17 +63,24 @@ public class BlockBreakSimulationTests
 		var acceptedByG2 = new Counter();
 		var world = host.Services.GetRequiredService<IWorldControl>();
 		var items = host.Services.GetRequiredService<IItemControl>();
-		world.BlockDamagedReceived += (sender, pos, damage, metalBonus, drops) =>
+		world.BlockDamagedReceived += (sender, pos, damage, metalBonus, drops, buildingDrops) =>
 		{
 			// The executor: first-writer-wins — an accepted break relays, a
 			// refused one (the record was already consumed) rolls every drop
 			// back to the breaker via ItemReject(BlockAlreadyBroken).
-			// Damage-only reports (drops == null) are ignored here.
 			if (!arbitration.TryAccept(sender, (int)Math.Floor(pos.X), (int)Math.Floor(pos.Y)))
 			{
-				if (drops is { Count: > 0 })
+				if (drops is not null)
 				{
 					foreach (var drop in drops)
+					{
+						items.SendItemReject(sender, drop.ItemId, ItemRejectMsg.Reason.BlockAlreadyBroken);
+					}
+				}
+
+				if (buildingDrops is not null)
+				{
+					foreach (var drop in buildingDrops)
 					{
 						items.SendItemReject(sender, drop.ItemId, ItemRejectMsg.Reason.BlockAlreadyBroken);
 					}
@@ -88,13 +95,15 @@ public class BlockBreakSimulationTests
 				acceptedByG2.Value++; // G2's own accepted breaks relay EXCLUDING G2
 			}
 
-			world.BroadcastBlockDamaged(sender, pos, damage, metalBonus, drops);
+			items.FireBlockDropsReceived(sender, drops ?? []);
+			items.FireBuildingDropsReceived(sender, buildingDrops ?? []);
+			world.BroadcastBlockDamaged(sender, pos, damage, metalBonus, drops, buildingDrops);
 		};
 
 		return new SimWorld(driver, host, g1, g2, g2Received, arbitration, accepted, acceptedByG2);
 	}
 
-	private static void ReportBreak(TestNode guest, int cellX, int cellY, List<BlockDropEntryMsg>? drops = null, bool metalBonus = false)
+	private static void ReportBreak(TestNode guest, int cellX, int cellY, List<BlockDropEntryMsg>? drops = null, List<TrapDropEntryMsg>? buildingDrops = null, bool metalBonus = false)
 	{
 		var sender = guest.Services.GetRequiredService<PacketSender>();
 		sender.Send(HostId, NetMsg.BlockDamaged, new BlockDamagedMsg
@@ -103,6 +112,7 @@ public class BlockBreakSimulationTests
 			Damage = 100f,
 			MetalBonus = metalBonus,
 			Drops = drops,
+			BuildingDrops = buildingDrops,
 		});
 	}
 
@@ -154,6 +164,38 @@ public class BlockBreakSimulationTests
 		var relay = w.G2Received.Single(r => r.Msg == NetMsg.BlockDamaged).Frame;
 		var msg = NetPacket.DecodePayload<BlockDamagedMsg>(relay);
 		Assert.True(msg.Drops != null && msg.Drops.Count == 1 && msg.Drops[0].ItemId == 77, "the accepted break's drops ride the relay");
+	}
+
+	[Fact]
+	public void BuildingDropsRideTheAcceptedBreakRelay()
+	{
+		var w = CreateWorld();
+		w.Arbitration.RecordAppliedAirWrite(G1Id, 3, 4, now: 0);
+
+		ReportBreak(w.G1, 3, 4,
+			buildingDrops:
+			[
+				new TrapDropEntryMsg
+				{
+					ItemId = 90,
+					Item = new CharacterItemMsg { ItemId = "metalscrap", Condition = 1f },
+					Position = new NetVector2Msg(3.5f, 4.5f),
+					Velocity = new NetVector2Msg(1f, -2f),
+					Rotation = 45f,
+					FreshItemDrop = true,
+					AngularVelocity = 8f,
+				},
+			]);
+		w.Driver.Tick(33);
+
+		var relay = w.G2Received.Single(r => r.Msg == NetMsg.BlockDamaged).Frame;
+		var msg = NetPacket.DecodePayload<BlockDamagedMsg>(relay);
+		var drop = Assert.Single(msg.BuildingDrops!);
+		Assert.Equal(90ul, drop.ItemId);
+		Assert.Equal("metalscrap", drop.Item.ItemId);
+		Assert.True(drop.FreshItemDrop);
+		Assert.Equal(1f, drop.Velocity.X);
+		Assert.Equal(-2f, drop.Velocity.Y);
 	}
 
 	[Fact]

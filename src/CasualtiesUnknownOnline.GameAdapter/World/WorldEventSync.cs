@@ -255,6 +255,7 @@ internal sealed partial class WorldEventSync(
 					// quake/environment write (expires unused in BlockBreakSync).
 					_blockBreaks.OnBlockAirWrite(pos);
 					_blockBreaks.OnRemoteAirWriteApplied(sender, pos);
+					_buildingEntities.MarkSupportLossRemote(pos);
 				}
 			}
 			else
@@ -267,6 +268,7 @@ internal sealed partial class WorldEventSync(
 					// mining) — SetBlock(0) does not remove it, so clear the
 					// game-side crack sprite here too.
 					_blockBreaks.OnBlockAirWrite(pos);
+					_buildingEntities.MarkSupportLossRemote(pos);
 				}
 			}
 		}
@@ -468,6 +470,7 @@ internal sealed partial class WorldEventSync(
 				// BlockDamage/sprite so the snapshot does not leave fragmented
 				// air behind.
 				_blockBreaks.OnBlockAirWrite(pos);
+				_buildingEntities.MarkSupportLossRemote(pos);
 			}
 		}
 

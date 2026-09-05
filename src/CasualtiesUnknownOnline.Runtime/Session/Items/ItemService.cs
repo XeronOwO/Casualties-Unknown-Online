@@ -202,6 +202,10 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 
 	public void FireBlockDropsReceived(ulong sender, IReadOnlyList<BlockDropEntryMsg> drops) => _messageFlow.FireBlockDropsReceived(sender, drops);
 
+	public void RegisterBuildingDrops(IReadOnlyList<TrapDropEntryMsg> drops) => _messageFlow.RegisterBuildingDrops(drops);
+
+	public void FireBuildingDropsReceived(ulong sender, IReadOnlyList<TrapDropEntryMsg> drops) => _messageFlow.FireBuildingDropsReceived(sender, drops);
+
 	public void SendItemReject(ulong targetSteamId, ulong itemId, ItemRejectMsg.Reason reason) =>
 		_messageFlow.SendItemReject(targetSteamId, itemId, reason);
 

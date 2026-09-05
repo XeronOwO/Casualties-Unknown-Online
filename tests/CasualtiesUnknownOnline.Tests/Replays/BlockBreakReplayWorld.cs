@@ -120,12 +120,12 @@ internal sealed class BlockBreakReplayWorld : IDisposable
 
 		var worldControl = host.Services.GetRequiredService<IWorldControl>();
 		var items = host.Services.GetRequiredService<IItemControl>();
-		worldControl.BlockDamagedReceived += (sender, pos, damage, metalBonus, drops) =>
+		worldControl.BlockDamagedReceived += (sender, pos, damage, metalBonus, drops, buildingDrops) =>
 		{
 			// The production BlockBreakSync executor shape: only a BREAK (drops
 			// attached) consults the one-shot record; a refused break rejects
 			// every drop back to the breaker, never double-applies.
-			if (drops is not { Count: > 0 })
+			if (drops is not { Count: > 0 } && buildingDrops is not { Count: > 0 })
 			{
 				return;
 			}
@@ -134,9 +134,20 @@ internal sealed class BlockBreakReplayWorld : IDisposable
 			var cellY = (int)Math.Floor(pos.Y);
 			if (!world._arbitration.TryAccept(sender, cellX, cellY))
 			{
-				foreach (var drop in drops)
+				if (drops is not null)
 				{
-					items.SendItemReject(sender, drop.ItemId, ItemRejectMsg.Reason.BlockAlreadyBroken);
+					foreach (var drop in drops)
+					{
+						items.SendItemReject(sender, drop.ItemId, ItemRejectMsg.Reason.BlockAlreadyBroken);
+					}
+				}
+
+				if (buildingDrops is not null)
+				{
+					foreach (var drop in buildingDrops)
+					{
+						items.SendItemReject(sender, drop.ItemId, ItemRejectMsg.Reason.BlockAlreadyBroken);
+					}
 				}
 
 				return;
@@ -144,8 +155,9 @@ internal sealed class BlockBreakReplayWorld : IDisposable
 
 			world._accepted.Value++;
 			world._acceptedBy[sender] = world._acceptedBy.TryGetValue(sender, out var count) ? count + 1 : 1;
-			items.FireBlockDropsReceived(sender, drops);
-			worldControl.BroadcastBlockDamaged(sender, pos, damage, metalBonus, drops);
+			items.FireBlockDropsReceived(sender, drops ?? []);
+			items.FireBuildingDropsReceived(sender, buildingDrops ?? []);
+			worldControl.BroadcastBlockDamaged(sender, pos, damage, metalBonus, drops, buildingDrops);
 		};
 
 		return world;

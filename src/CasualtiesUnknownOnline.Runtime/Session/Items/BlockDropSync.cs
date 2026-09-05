@@ -57,4 +57,45 @@ public sealed class BlockDropSync(ISessionControl session, ItemService items)
 			_items.FireItemSpawned(world);
 		}
 	}
+
+	/// <summary>Host/solo: record the building-death drops caused by a LOCALLY
+	/// broken support block into the authoritative table. The local drop objects
+	/// already exist — this only registers, never materializes.</summary>
+	public void RegisterBuildingDrops(IReadOnlyList<TrapDropEntryMsg> drops)
+	{
+		if (_session.Role == SessionRole.Guest || drops.Count == 0)
+		{
+			return;
+		}
+
+		foreach (var drop in drops)
+		{
+			_items.RegisterWorldItemIfAbsent(drop.ItemId, InitialDropStateMapper.ToWorldItem(drop));
+		}
+	}
+
+	/// <summary>
+	/// A break with building-death drops was APPLIED — register (host only) and
+	/// materialize every drop with its full transient initial state, so the
+	/// non-breaker side gets the same fresh/velocity/rotation phase as the
+	/// breaker instead of a later periodic correction.
+	/// </summary>
+	public void FireBuildingDropsReceived(ulong sender, IReadOnlyList<TrapDropEntryMsg> drops)
+	{
+		if (drops.Count == 0)
+		{
+			return;
+		}
+
+		foreach (var drop in drops)
+		{
+			var world = InitialDropStateMapper.ToWorldItem(drop);
+			if (_session.Role == SessionRole.Host)
+			{
+				_items.RegisterWorldItemIfAbsent(drop.ItemId, world);
+			}
+
+			_items.FireItemSpawned(world);
+		}
+	}
 }

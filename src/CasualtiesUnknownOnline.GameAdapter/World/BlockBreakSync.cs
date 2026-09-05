@@ -27,12 +27,14 @@ internal sealed class BlockBreakSync(
 	IWorldControl world,
 	IItemControl items,
 	BlockBreakPendingState breakState,
+	WorldBuildingEntitySync buildingEntities,
 	OperationTrace trace,
 	ILogger<BlockBreakSync> log)
 {
 	private readonly ISessionControl _session = session;
 	private readonly IWorldControl _world = world;
 	private readonly IItemControl _items = items;
+	private readonly WorldBuildingEntitySync _buildingEntities = buildingEntities;
 	private readonly BlockBreakPendingState _breakState = breakState;
 	private readonly OperationTrace _trace = trace;
 	private readonly ILogger<BlockBreakSync> _log = log;
@@ -104,7 +106,7 @@ internal sealed class BlockBreakSync(
 		{
 			// Damage only (the block survived) — report it immediately and
 			// record the post-write absolute damage (the snapshot's fact).
-			_world.SendBlockDamaged(new NetVector2(pos.x, pos.y), dmg, bonusMetal, null);
+			_world.SendBlockDamaged(new NetVector2(pos.x, pos.y), dmg, bonusMetal, null, null);
 			ReportBlockDamageFromGame(world, cell);
 			_trace.End(op, 0, "OnBlockDamaged", "Committed(1)", "Damage");
 			return;
@@ -121,9 +123,10 @@ internal sealed class BlockBreakSync(
 	/// <summary>
 	/// Frame-end flush of a pending break: register the drops (host/solo — the
 	/// authoritative table must know them before the periodic keyframe) and
-	/// send ONE BlockDamagedMsg carrying the break + all drops + MetalBonus.
-	/// The local drop objects are the original (never materialized again); the
-	/// peers materialize from the message.
+	/// send ONE BlockDamagedMsg carrying the break + all block drops and
+	/// building-death drops + MetalBonus. The local drop objects are the
+	/// original (never materialized again); the peers materialize from the
+	/// message.
 	/// </summary>
 	internal void FlushPendingBlockBreak()
 	{
@@ -135,10 +138,17 @@ internal sealed class BlockBreakSync(
 		if (_session.Role != SessionRole.Guest)
 		{
 			_items.RegisterBlockDrops(flushed.Drops);
+			_items.RegisterBuildingDrops(flushed.BuildingDrops);
 		}
 
-		_world.SendBlockDamaged(new NetVector2(flushed.PosX, flushed.PosY), flushed.Dmg, flushed.MetalBonus, flushed.Drops);
-		_trace.End(flushed.Op, 0, "FlushPendingBlockBreak", $"Committed({flushed.Drops.Count})", "Break", "Drop");
+		_world.SendBlockDamaged(
+			new NetVector2(flushed.PosX, flushed.PosY),
+			flushed.Dmg,
+			flushed.MetalBonus,
+			flushed.Drops,
+			flushed.BuildingDrops);
+		_trace.End(flushed.Op, 0, "FlushPendingBlockBreak",
+			$"Committed({flushed.Drops.Count}+{flushed.BuildingDrops.Count})", "Break", "Drop", "BuildingDrop");
 	}
 
 	/// <summary>The world was left (scene switch / session end) — a pending break cannot resolve anymore; cancel it so the operation trace stays balanced.</summary>
@@ -167,7 +177,7 @@ internal sealed class BlockBreakSync(
 	/// the game's own metallic multiplier (WorldGeneration.cs:715) is applied
 	/// identically everywhere.
 	/// </summary>
-	internal void OnRemoteBlockDamaged(ulong sender, NetVector2 pos, float dmg, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops)
+	internal void OnRemoteBlockDamaged(ulong sender, NetVector2 pos, float dmg, bool metalBonus, IReadOnlyList<BlockDropEntryMsg>? drops, IReadOnlyList<TrapDropEntryMsg>? buildingDrops)
 	{
 		var world = WorldGeneration.world;
 		if (world == null) // Unity object — ==
@@ -179,28 +189,42 @@ internal sealed class BlockBreakSync(
 		{
 			var cell = world.WorldToBlockPos(new Vector2(pos.X, pos.Y));
 			var blockIsAir = world.GetBlock(cell) == 0;
+			var hasDropPayload = (drops is { Count: > 0 }) || (buildingDrops is { Count: > 0 });
 			if (IsHostMode)
 			{
-				if (drops is { Count: > 0 } && blockIsAir)
+				if (hasDropPayload && blockIsAir)
 				{
 					// A BREAK with drops: first-writer-wins on the sender's
 					// applied air-write record.
 					if (_arbitration.TryAccept(sender, cell.x, cell.y))
 					{
-						_items.FireBlockDropsReceived(sender, drops);
-						_world.BroadcastBlockDamaged(sender, pos, dmg, metalBonus, drops);
-						_log.LogInformation("[BlockBreak] {Sender}'s break at ({X},{Y}) accepted — {Count} drop(s) registered + relayed.",
-							sender, cell.x, cell.y, drops.Count);
+						_buildingEntities.MarkSupportLossRemote(cell);
+						_items.FireBlockDropsReceived(sender, drops ?? []);
+						_items.FireBuildingDropsReceived(sender, buildingDrops ?? []);
+						_world.BroadcastBlockDamaged(sender, pos, dmg, metalBonus, drops, buildingDrops);
+						_log.LogInformation("[BlockBreak] {Sender}'s break at ({X},{Y}) accepted — {BlockCount} block drop(s) + {BuildingCount} building drop(s) registered + relayed.",
+							sender, cell.x, cell.y, drops?.Count ?? 0, buildingDrops?.Count ?? 0);
 					}
 					else
 					{
-						foreach (var drop in drops)
+						if (drops is not null)
 						{
-							_items.SendItemReject(sender, drop.ItemId, ItemRejectMsg.Reason.BlockAlreadyBroken);
+							foreach (var drop in drops)
+							{
+								_items.SendItemReject(sender, drop.ItemId, ItemRejectMsg.Reason.BlockAlreadyBroken);
+							}
 						}
 
-						_log.LogInformation("[BlockBreak] {Sender}'s break at ({X},{Y}) refused (already broken) — {Count} drop(s) rejected.",
-							sender, cell.x, cell.y, drops.Count);
+						if (buildingDrops is not null)
+						{
+							foreach (var drop in buildingDrops)
+							{
+								_items.SendItemReject(sender, drop.ItemId, ItemRejectMsg.Reason.BlockAlreadyBroken);
+							}
+						}
+
+						_log.LogInformation("[BlockBreak] {Sender}'s break at ({X},{Y}) refused (already broken) — {BlockCount} block drop(s) + {BuildingCount} building drop(s) rejected.",
+							sender, cell.x, cell.y, drops?.Count ?? 0, buildingDrops?.Count ?? 0);
 					}
 
 					return;
@@ -223,7 +247,7 @@ internal sealed class BlockBreakSync(
 				if (world.GetBlock(cell) != 0)
 				{
 					ReportBlockDamageFromGame(world, cell);
-					_world.BroadcastBlockDamaged(sender, pos, dmg, metalBonus, null);
+					_world.BroadcastBlockDamaged(sender, pos, dmg, metalBonus, null, null);
 				}
 				else
 				{
@@ -236,11 +260,17 @@ internal sealed class BlockBreakSync(
 			// Guest: the host's broadcast — apply. An already-air cell has no
 			// block to damage; its drops (an accepted break relay whose
 			// BlockPlaced already made the cell air here) still materialize.
+			_buildingEntities.MarkSupportLossRemote(cell);
 			if (blockIsAir)
 			{
 				if (drops is { Count: > 0 })
 				{
 					_items.FireBlockDropsReceived(sender, drops);
+				}
+
+				if (buildingDrops is { Count: > 0 })
+				{
+					_items.FireBuildingDropsReceived(sender, buildingDrops);
 				}
 
 				return;
@@ -250,6 +280,11 @@ internal sealed class BlockBreakSync(
 			if (drops is { Count: > 0 })
 			{
 				_items.FireBlockDropsReceived(sender, drops);
+			}
+
+			if (buildingDrops is { Count: > 0 })
+			{
+				_items.FireBuildingDropsReceived(sender, buildingDrops);
 			}
 		}
 	}

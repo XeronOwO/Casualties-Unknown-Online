@@ -412,11 +412,11 @@ public sealed class WorldService : IWorldControl, IDisposable
 
 	public void BroadcastBlockPlaced(ulong excludeSteamId, int x, int y, ushort block) => _messages.BroadcastBlockPlaced(excludeSteamId, x, y, block);
 
-	public event Action<NetVector2, float, bool>? BuildingEntityDamagedReceived { add => _messages.BuildingEntityDamagedReceived += value; remove => _messages.BuildingEntityDamagedReceived -= value; }
+	public event Action<NetVector2, float, bool, bool>? BuildingEntityDamagedReceived { add => _messages.BuildingEntityDamagedReceived += value; remove => _messages.BuildingEntityDamagedReceived -= value; }
 
-	public void FireBuildingEntityDamagedReceived(NetVector2 pos, float damage, bool playHitSound) => _messages.FireBuildingEntityDamagedReceived(pos, damage, playHitSound);
+	public void FireBuildingEntityDamagedReceived(NetVector2 pos, float damage, bool playHitSound, bool playHitFlash) => _messages.FireBuildingEntityDamagedReceived(pos, damage, playHitSound, playHitFlash);
 
-	public void SendBuildingEntityDamaged(NetVector2 pos, float damage, bool playHitSound = true) => _messages.SendBuildingEntityDamaged(pos, damage, playHitSound);
+	public void SendBuildingEntityDamaged(NetVector2 pos, float damage, bool playHitSound = true, bool playHitFlash = false) => _messages.SendBuildingEntityDamaged(pos, damage, playHitSound, playHitFlash);
 
 	public event Action<NetVector2>? BuildingEntityOpenedReceived { add => _messages.BuildingEntityOpenedReceived += value; remove => _messages.BuildingEntityOpenedReceived -= value; }
 

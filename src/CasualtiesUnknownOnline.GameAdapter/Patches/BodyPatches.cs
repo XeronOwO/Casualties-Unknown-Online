@@ -114,7 +114,7 @@ internal static class BodyPatches
 			{
 				if (entity != null && entity.health < before) // Unity object — ==
 				{
-					PatchBridge.Impl?.OnBuildingEntityDamaged(entity, before - entity.health, playHitSound: true);
+					PatchBridge.Impl?.OnBuildingEntityDamaged(entity, before - entity.health, playHitSound: true, playHitFlash: true);
 				}
 			}
 		}

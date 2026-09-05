@@ -58,12 +58,12 @@ public class WorldEventRelayTests
 	public void BuildingDamaged_GuestReport_RelayedToOtherGuest_SourceExcluded()
 	{
 		using var w = ItemSimWorld.Create();
-		var hostDamages = new List<(float X, float Y, float Damage, bool PlayHitSound)>();
-		var g1Damages = new List<(float X, float Y, float Damage, bool PlayHitSound)>();
-		var g2Damages = new List<(float X, float Y, float Damage, bool PlayHitSound)>();
-		w.Host.Services.GetRequiredService<IWorldControl>().BuildingEntityDamagedReceived += (p, d, s) => hostDamages.Add((p.X, p.Y, d, s));
-		w.G1.Services.GetRequiredService<IWorldControl>().BuildingEntityDamagedReceived += (p, d, s) => g1Damages.Add((p.X, p.Y, d, s));
-		w.G2.Services.GetRequiredService<IWorldControl>().BuildingEntityDamagedReceived += (p, d, s) => g2Damages.Add((p.X, p.Y, d, s));
+		var hostDamages = new List<(float X, float Y, float Damage, bool PlayHitSound, bool PlayHitFlash)>();
+		var g1Damages = new List<(float X, float Y, float Damage, bool PlayHitSound, bool PlayHitFlash)>();
+		var g2Damages = new List<(float X, float Y, float Damage, bool PlayHitSound, bool PlayHitFlash)>();
+		w.Host.Services.GetRequiredService<IWorldControl>().BuildingEntityDamagedReceived += (p, d, s, f) => hostDamages.Add((p.X, p.Y, d, s, f));
+		w.G1.Services.GetRequiredService<IWorldControl>().BuildingEntityDamagedReceived += (p, d, s, f) => g1Damages.Add((p.X, p.Y, d, s, f));
+		w.G2.Services.GetRequiredService<IWorldControl>().BuildingEntityDamagedReceived += (p, d, s, f) => g2Damages.Add((p.X, p.Y, d, s, f));
 
 		// g1's attack (local compute) — report → host applies to its own copy
 		// (which rolls the host-side drops) and relays, the source excluded.
@@ -75,6 +75,7 @@ public class WorldEventRelayTests
 		Assert.True(hostDamages[0].PlayHitSound, "attack damage must default to replaying the entity hitSound");
 		Assert.True(g2Damages.Count == 1, $"the other guest must get the relay, got {g2Damages.Count}");
 		Assert.True(g2Damages[0].PlayHitSound, "the relay must carry the attack's playHitSound=true");
+		Assert.True(g2Damages[0].PlayHitFlash == false, "a non-melee damage source must not invent the red HitFlash");
 		Assert.True(g1Damages.Count == 0, $"the source already applied locally — no echo, got {g1Damages.Count}");
 	}
 
@@ -82,10 +83,10 @@ public class WorldEventRelayTests
 	public void BuildingDamaged_HostBroadcast_ReachesEveryGuest()
 	{
 		using var w = ItemSimWorld.Create();
-		var g1Damages = new List<(float X, float Y, float Damage, bool PlayHitSound)>();
-		var g2Damages = new List<(float X, float Y, float Damage, bool PlayHitSound)>();
-		w.G1.Services.GetRequiredService<IWorldControl>().BuildingEntityDamagedReceived += (p, d, s) => g1Damages.Add((p.X, p.Y, d, s));
-		w.G2.Services.GetRequiredService<IWorldControl>().BuildingEntityDamagedReceived += (p, d, s) => g2Damages.Add((p.X, p.Y, d, s));
+		var g1Damages = new List<(float X, float Y, float Damage, bool PlayHitSound, bool PlayHitFlash)>();
+		var g2Damages = new List<(float X, float Y, float Damage, bool PlayHitSound, bool PlayHitFlash)>();
+		w.G1.Services.GetRequiredService<IWorldControl>().BuildingEntityDamagedReceived += (p, d, s, f) => g1Damages.Add((p.X, p.Y, d, s, f));
+		w.G2.Services.GetRequiredService<IWorldControl>().BuildingEntityDamagedReceived += (p, d, s, f) => g2Damages.Add((p.X, p.Y, d, s, f));
 
 		w.Host.Services.GetRequiredService<IWorldControl>().SendBuildingEntityDamaged(new NetVector2(1f, 2f), 9f);
 		w.Driver.Tick(50);
@@ -97,13 +98,34 @@ public class WorldEventRelayTests
 	}
 
 	[Fact]
+	public void BuildingDamaged_HitFlashFlag_RidesThroughRelay()
+	{
+		using var w = ItemSimWorld.Create();
+		var hostDamages = new List<(float X, float Y, float Damage, bool PlayHitSound, bool PlayHitFlash)>();
+		var g2Damages = new List<(float X, float Y, float Damage, bool PlayHitSound, bool PlayHitFlash)>();
+		w.Host.Services.GetRequiredService<IWorldControl>().BuildingEntityDamagedReceived += (p, d, s, f) => hostDamages.Add((p.X, p.Y, d, s, f));
+		w.G2.Services.GetRequiredService<IWorldControl>().BuildingEntityDamagedReceived += (p, d, s, f) => g2Damages.Add((p.X, p.Y, d, s, f));
+
+		// A Body.Attack melee hit: the source side played the native red
+		// HitFlash, so the report must carry playHitFlash=true through the star.
+		w.G1.Services.GetRequiredService<IWorldControl>()
+			.SendBuildingEntityDamaged(new NetVector2(5f, 6f), 4f, playHitSound: true, playHitFlash: true);
+		w.Driver.Tick(50);
+
+		Assert.True(hostDamages.Count == 1, $"the host must receive the hit-flash report, got {hostDamages.Count}");
+		Assert.True(hostDamages[0].PlayHitFlash, "the host must know a red HitFlash belongs to this attack");
+		Assert.True(g2Damages.Count == 1, $"the other guest must receive the hit-flash relay, got {g2Damages.Count}");
+		Assert.True(g2Damages[0].PlayHitFlash, "the relay must keep the melee hit-flash presentation flag");
+	}
+
+	[Fact]
 	public void BuildingDamaged_SilentDamageFlag_RidesThroughRelay()
 	{
 		using var w = ItemSimWorld.Create();
-		var hostDamages = new List<(float X, float Y, float Damage, bool PlayHitSound)>();
-		var g2Damages = new List<(float X, float Y, float Damage, bool PlayHitSound)>();
-		w.Host.Services.GetRequiredService<IWorldControl>().BuildingEntityDamagedReceived += (p, d, s) => hostDamages.Add((p.X, p.Y, d, s));
-		w.G2.Services.GetRequiredService<IWorldControl>().BuildingEntityDamagedReceived += (p, d, s) => g2Damages.Add((p.X, p.Y, d, s));
+		var hostDamages = new List<(float X, float Y, float Damage, bool PlayHitSound, bool PlayHitFlash)>();
+		var g2Damages = new List<(float X, float Y, float Damage, bool PlayHitSound, bool PlayHitFlash)>();
+		w.Host.Services.GetRequiredService<IWorldControl>().BuildingEntityDamagedReceived += (p, d, s, f) => hostDamages.Add((p.X, p.Y, d, s, f));
+		w.G2.Services.GetRequiredService<IWorldControl>().BuildingEntityDamagedReceived += (p, d, s, f) => g2Damages.Add((p.X, p.Y, d, s, f));
 
 		// Cactus collision self-damage: the trigger side never plays the entity
 		// hitSound, so the report must carry playHitSound=false through the star.

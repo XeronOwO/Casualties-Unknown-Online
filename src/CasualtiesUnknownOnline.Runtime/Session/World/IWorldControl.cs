@@ -54,8 +54,11 @@ public interface IWorldControl
 	/// replays the entity's own hitSound) and false for silent damage sources
 	/// such as cactus collision self-damage (the trigger side plays only the
 	/// player-local gore sound, never the entity hitSound).
+	/// <paramref name="playHitFlash"/> is true only for a Body.Attack melee hit
+	/// (the receiver replays the native red HitFlash); explosion and silent
+	/// damage sources leave it false.
 	/// </summary>
-	void SendBuildingEntityDamaged(NetVector2 pos, float damage, bool playHitSound = true);
+	void SendBuildingEntityDamaged(NetVector2 pos, float damage, bool playHitSound = true, bool playHitFlash = false);
 
 	/// <summary>Guest: a block was placed locally — report it to the host (host arbitrates + relays).</summary>
 	void SendBlockPlacedReport(int x, int y, ushort block);
@@ -67,10 +70,10 @@ public interface IWorldControl
 
 	event Action<ulong, int, int, ushort>? BlockPlacedReceived;
 
-	void FireBuildingEntityDamagedReceived(NetVector2 pos, float damage, bool playHitSound);
+	void FireBuildingEntityDamagedReceived(NetVector2 pos, float damage, bool playHitSound, bool playHitFlash);
 
-	/// <summary>A building entity was damaged — apply the damage to the entity at Pos. If <c>playHitSound</c> is true the receiver also replays the entity's own hitSound (attack damage); silent damage sources pass false.</summary>
-	event Action<NetVector2, float, bool>? BuildingEntityDamagedReceived;
+	/// <summary>A building entity was damaged — apply the damage to the entity at Pos. If <c>playHitSound</c> is true the receiver also replays the entity's own hitSound (attack damage); silent damage sources pass false. If <c>playHitFlash</c> is true the receiver also replays the native red HitFlash (Body.Attack only).</summary>
+	event Action<NetVector2, float, bool, bool>? BuildingEntityDamagedReceived;
 
 	/// <summary>
 	/// Report a locally-opened lockable entity (instant-open/lockpick/keypad —

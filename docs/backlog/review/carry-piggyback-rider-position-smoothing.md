@@ -1,9 +1,9 @@
 # Carry/piggyback riding movement teleport and rider/carrier position mismatch
 
-- Status: Todo (Critical / super-priority; re-opened after latest user re-report)
+- Status: Review (latest autonomous full-rework cycle completed; deployed artifacts 2026-09-05; awaiting unified acceptance)
 - Priority: Critical
 - Category: Player interaction / movement sync / carry-piggyback presentation
-- Source: User report (2026-09-04); rejected in review (2026-09-05) — the first fix only covered half of the carry presentation family; rejected again (2026-09-05) on host movement with a riding guest; reworked again with a final LateUpdate carrier-side re-pin; the user now reports the teleport problem still exists and is marked a super-priority fix.
+- Source: User report (2026-09-04); rejected in review (2026-09-05) — the first fix only covered half of the carry presentation family; rejected again (2026-09-05) on host movement with a riding guest; reworked again with a final LateUpdate carrier-side re-pin; the user re-reported that the teleport still exists, so this cycle replaced the pin-only approach on the participant carrier side with a true transform-parent carry mount.
 
 ## Rejected again (latest user re-report — super priority)
 
@@ -24,6 +24,44 @@ User re-tested the carry/piggyback movement while the guest rides on the host:
 - The carry presentation is rejected; the rider must stay firmly attached to
   the carrier during movement on the participant's view.
 
+## Autonomous rework (2026-09-05, super-priority full-rework)
+
+The previous cycles kept the rider clone as an independent scene root and only
+re-pinned it to the local carrier during CUO `Update`, `Body.Update` postfix and
+`LateUpdate`. That repeatedly failed on the participant's own view because the
+local carrier is a physics-driven `Rigidbody2D`: Unity may move its rendered
+transform after `LateUpdate` (Rigidbody render interpolation/final transform
+application), so a world-space pin read in `LateUpdate` is still not guaranteed
+to match the frame that is actually rendered. The rework therefore stops
+patching the symptom and makes the rider a real descendant of the local
+carrier.
+
+- `RemotePlayerRenderer` now creates a neutral-scale `CUO_CarryMount` child
+  under the LOCAL carrier's `Body`. The mount's scale is the inverse of the
+  carrier's world scale, so the rider keeps its own ordinary facing scale.
+- When the carrier is the local player, the rider clone ROOT is re-parented
+  under that mount with `SetParent(..., worldPositionStays: true)`. Because the
+  rider becomes a true child of the carrier, it follows the carrier's final
+  rendered transform no matter what happens after the CUO pin — render-time
+  interpolation, final script ordering, or a later transform write.
+- The existing world-space `ApplyRidePose` call is retained as the per-frame
+  placement (position/velocity/facing/crouch/look), and `Plugin.LateUpdate`
+  still re-runs the pass for the final before-render placement.
+- Third-party views keep the existing world-space pin, not mounting: both
+  remote bodies are frozen CUO-driven clones with no Unity Rigidbody render
+  interpolation, and mounting one remote clone under another would make it
+  collateral for that carrier clone's destruction.
+- 1 Hz clone diagnostics now append `mounted-to-local-carrier` when the mount
+  path is active, so the artifact can be checked without a visual dual-client.
+- Regression contract: `CarriedRiderMountTests` locks the create/attach/detach
+  mount surface and adds five behavior cases for
+  `CarriedBodyPlacement.CarryMountScale` (right/left facing, non-unit scale,
+  zero fallback).
+
+No carry authority, wire protocol, release semantics, or host rules changed.
+The latest artifacts were deployed to the real game directory and SHA256
+verified against the build output.
+
 ## Follow-up fix before re-review
 
 The previous cycle already pinned remote rider clones to the local carrier
@@ -34,7 +72,7 @@ show the rider on the previous transform. The follow-up adds a final
 `LateUpdate` pass that re-pins every remote rider clone to the local carrier's
 final body transform immediately before rendering. It also keeps the existing
 rider own-client placement unchanged, so the 20 Hz stream timing is not
-disrupted.
+disrupted. (This pass remains, but the mount is the structural fix.)
 
 ## Goal
 
@@ -52,7 +90,8 @@ The carry/piggyback presentation is now a single shared path with the same refer
 - **Post-native-`Body.Update` carrier re-pin** — `BodyUpdatePatch.Postfix` calls `IPatchBridge.OnLocalCarrierBodyUpdated()` after the local carrier's native body simulation. The CUO render pump may run before the game moves the local carrier in the same frame; this second pass ensures the carrier's own view never shows the rider one frame behind.
 - **Post-placement stream refresh** — `PlayerInteractionApply.UpdateCarriedBody` calls `RunCoordinator.RefreshLocalBodyState()` after placing the rider, so the next 20 Hz stream snapshot carries the rider's final visual position/limb world-poses instead of the pre-follow state.
 - **Final LateUpdate carrier re-pin** — `Plugin.LateUpdate` calls `GameAdapter.LateUpdateCarryPresentation`, which re-runs `RemotePlayerRenderer.RefreshLocalCarrierAttach` after every `Update`/`Body.Update` has finished. Even if a game script or Unity physics ordering moves the local carrier after the CUO pump, the frame that renders cannot show the rider on the previous transform.
-- **Observability** — 1 Hz clone diagnostics tag carried-rider/carrier clones.
+- **Local-carrier mount (structural fix)** — `RemotePlayerRenderer.GetOrCreateCarryMount` creates a neutral-scale `CUO_CarryMount` under the local carrier Body, and `AttachCarriedRiderRoot` re-parents the remote rider clone root under it. The rider is no longer an independent scene root on the participant view, so it follows the carrier's final rendered transform even when Unity applies Rigidbody render interpolation after `LateUpdate`.
+- **Observability** — 1 Hz clone diagnostics tag carried-rider/carrier clones and `mounted-to-local-carrier` when the mount path is active.
 
 No carry authority, wire protocol, release semantics, or host rules changed.
 
@@ -65,6 +104,7 @@ No carry authority, wire protocol, release semantics, or host rules changed.
 - The render-proxy visual-standing rule lives in `RenderProxyPose.EffectiveVisualStanding`.
 - The post-update re-pin entry is `IPatchBridge.OnLocalCarrierBodyUpdated()` → `RemotePlayerRenderer.RefreshLocalCarrierAttach`.
 - The final before-render re-pin entry is `Plugin.LateUpdate` → `GameAdapter.LateUpdateCarryPresentation` → `RemotePlayerRenderer.RefreshLocalCarrierAttach`.
+- The local-carrier mount entry is `RemotePlayerRenderer.GetOrCreateCarryMount` + `AttachCarriedRiderRoot` + `DetachCarriedRiderRoot`; only local carriers mount the rider root, third-party remote carriers remain pinned by world-space placement.
 - The stream refresh entry is `RunCoordinator.RefreshLocalBodyState()`.
 
 ## Acceptance criteria
@@ -86,6 +126,9 @@ No carry authority, wire protocol, release semantics, or host rules changed.
 - Visual proxy rule: `src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/RenderProxyPose.cs`
 - Post-update re-pin: `src/CasualtiesUnknownOnline.GameAdapter/Patches/BodyUpdatePatch.cs` + `src/CasualtiesUnknownOnline.GameAdapter/GameAdapterBridge.cs`
 - Final LateUpdate re-pin: `src/CasualtiesUnknownOnline.Plugin/Plugin.cs` + `src/CasualtiesUnknownOnline.GameAdapter/GameAdapter.cs`
+- Local-carrier mount: `src/CasualtiesUnknownOnline.GameAdapter/Character/RemotePlayerRenderer.cs` (`GetOrCreateCarryMount`, `AttachCarriedRiderRoot`, `DetachCarriedRiderRoot`)
+- Pure mount scale: `src/CasualtiesUnknownOnline.GameAdapter/Character/CarriedBodyPlacement.cs` (`CarryMountScale`)
+- Mount contract + behavior test: `tests/CasualtiesUnknownOnline.Tests/Patching/CarriedRiderMountTests.cs`
 - Stream refresh: `src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs`
 
 ## Non-goals

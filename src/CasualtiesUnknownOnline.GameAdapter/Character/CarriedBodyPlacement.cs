@@ -25,6 +25,26 @@ internal static class CarriedBodyPlacement
 	}
 
 	/// <summary>
+	/// The local scale that turns a carry mount into a world-space identity
+	/// transform when the mount is a direct child of a carrier Body. The
+	/// carrier's Body uses <c>localScale.x</c> sign for facing; cancelling the
+	/// whole carrier world scale here lets the rider root keep its normal
+	/// facing/scale semantics without inheriting the carrier's flip.
+	/// </summary>
+	public static Vector3 CarryMountScale(Vector3 carrierWorldScale)
+	{
+		if (carrierWorldScale.x == 0f || carrierWorldScale.y == 0f || carrierWorldScale.z == 0f)
+		{
+			return Vector3.one;
+		}
+
+		return new Vector3(
+			1f / carrierWorldScale.x,
+			1f / carrierWorldScale.y,
+			1f / carrierWorldScale.z);
+	}
+
+	/// <summary>
 	/// Applies the complete rider presentation onto a carried/rider Body using
 	/// one shared rule. Both the rider's own client (following the remote
 	/// carrier) and the carrier's client (pinning the remote rider clone) call

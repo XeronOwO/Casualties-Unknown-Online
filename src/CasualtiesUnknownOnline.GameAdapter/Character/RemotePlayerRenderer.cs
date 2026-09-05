@@ -34,6 +34,16 @@ internal sealed class RemotePlayerRenderer(
 	private readonly Dictionary<ulong, Body> _remoteClones = [];
 	private long _nextCloneLogMs;
 
+	/// <summary>
+	/// Name of the neutral-scale child mount placed under a carrier's Body
+	/// transform. Remote rider clone roots are re-parented under this mount so
+	/// the rider is a true descendant of the carrier and follows the carrier's
+	/// final rendered transform (including any physics interpolation Unity
+	/// applies after LateUpdate). The mount's scale is the inverse of the
+	/// carrier's world scale, so the rider keeps its own normal facing scale.
+	/// </summary>
+	private const string CarryMountName = "CUO_CarryMount";
+
 	internal void BindToSession()
 	{
 		_entities.RemoteJoined += OnRemoteJoined;
@@ -212,6 +222,15 @@ internal sealed class RemotePlayerRenderer(
 	/// render clone. This keeps the carry pair visually rigid on every side —
 	/// the per-entity interpolator may lag, but the rider always rides the same
 	/// displayed carrier, never an independent smoothed point.
+	/// In addition to writing the world position, a rider clone whose carrier
+	/// is the LOCAL player is re-parented under a neutral-scale mount on the
+	/// carrier Body. A true descendant follows the local carrier's final
+	/// rendered transform no matter what moves the carrier after this pass
+	/// (frame ordering, Rigidbody render interpolation, or a final render-time
+	/// pose). Third-party remote carriers use the world-space pin only, because
+	/// their clones are CUO-driven frozen transforms with no render
+	/// interpolation and should not become children of another remote clone's
+	/// hierarchy.
 	/// </summary>
 	private void ApplyRemoteCarrierAttachAll(Body? localBody)
 	{
@@ -229,6 +248,7 @@ internal sealed class RemotePlayerRenderer(
 			if (!_playerInteraction.TryGetCarrier(riderSteamId, out var carrierSteamId)
 				|| carrierSteamId == 0)
 			{
+				DetachCarriedRiderRoot(riderClone);
 				continue;
 			}
 
@@ -236,9 +256,12 @@ internal sealed class RemotePlayerRenderer(
 			{
 				if (localBody == null || localBody == riderClone) // Unity objects — ==
 				{
+					DetachCarriedRiderRoot(riderClone);
 					continue;
 				}
 
+				var mount = GetOrCreateCarryMount(localBody.transform);
+				AttachCarriedRiderRoot(riderClone, mount);
 				CarriedBodyPlacement.ApplyRidePose(
 					riderClone,
 					localBody.transform.position,
@@ -252,6 +275,14 @@ internal sealed class RemotePlayerRenderer(
 			if (_remoteClones.TryGetValue(carrierSteamId, out var carrierClone)
 				&& carrierClone != null) // Unity object — ==
 			{
+				// Third-party views have two CUO-driven frozen clones; they are
+				// already placed by the same SessionStatePump pass and never go
+				// through Unity Rigidbody render interpolation, so the existing
+				// world-space pin is sufficient here. Mounting under a remote
+				// carrier would make the rider clone a child of another remote's
+				// hierarchy and therefore be destroyed when that carrier clone
+				// leaves — unnecessary collateral for this case.
+				DetachCarriedRiderRoot(riderClone);
 				CarriedBodyPlacement.ApplyRidePose(
 					riderClone,
 					carrierClone.transform.position,
@@ -259,10 +290,80 @@ internal sealed class RemotePlayerRenderer(
 					carrierClone.crouching,
 					carrierClone.rb.velocity,
 					carrierClone.targetLookPos);
+				continue;
 			}
 
 			// No carrier clone yet (still creating or in a menu scene): keep
 			// the ordinary SessionStatePump fallback until the carrier exists.
+			DetachCarriedRiderRoot(riderClone);
+		}
+	}
+
+	/// <summary>
+	/// Finds or creates the neutral-scale carry mount under a carrier Body.
+	/// The mount is an empty direct child; its localScale is the inverse of the
+	/// carrier's world scale so a rider parented beneath it keeps the same
+	/// world-space scale/meaning it had before being attached.
+	/// </summary>
+	private static Transform GetOrCreateCarryMount(Transform carrierTransform)
+	{
+		var mount = carrierTransform.Find(CarryMountName);
+		if (mount == null) // Unity object — ==
+		{
+			var mountObject = new GameObject(CarryMountName);
+			mount = mountObject.transform;
+			mount.SetParent(carrierTransform, false);
+		}
+
+		mount.localScale = CarriedBodyPlacement.CarryMountScale(carrierTransform.lossyScale);
+		return mount;
+	}
+
+	/// <summary>
+	/// Re-parents a remote clone root under a carry mount. The clone root stays
+	/// the parent of the Body, so the existing destroy path
+	/// (<c>Object.Destroy(clone.transform.parent.gameObject)</c>) still removes
+	/// the whole remote player.
+	/// </summary>
+	private static void AttachCarriedRiderRoot(Body riderClone, Transform mount)
+	{
+		var root = riderClone.transform.parent;
+		if (root == null) // Unity object — ==
+		{
+			return;
+		}
+
+		if (root.parent != mount) // Unity object — ==
+		{
+			root.SetParent(mount, worldPositionStays: true);
+		}
+	}
+
+	/// <summary>
+	/// Restores a remote clone root to the scene root when it is no longer a
+	/// carried rider (release, cleared relation, missing carrier clone, or a
+	/// scene reload). Without this, a formerly carried clone would keep
+	/// inheriting the old carrier's transform and could not be driven by the
+	/// ordinary state stream again.
+	/// </summary>
+	private static void DetachCarriedRiderRoot(Body riderClone)
+	{
+		var root = riderClone.transform.parent;
+		if (root == null) // Unity object — ==
+		{
+			return;
+		}
+
+		var parent = root.parent;
+		if (parent == null || parent.name != CarryMountName) // Unity object — ==
+		{
+			return;
+		}
+
+		root.SetParent(null, worldPositionStays: true);
+		if (parent.childCount == 0)
+		{
+			Object.Destroy(parent.gameObject);
 		}
 	}
 
@@ -302,7 +403,16 @@ internal sealed class RemotePlayerRenderer(
 				&& carriedId == steamId;
 			var isCarrierClone = _playerInteraction.TryGetCarrier(_session.LocalSteamId, out var carrierId)
 				&& carrierId == steamId;
+			var isMountedToLocalCarrier = clone != null
+				&& clone.transform.parent != null
+				&& clone.transform.parent.parent != null
+				&& clone.transform.parent.parent.name == CarryMountName;
 			var carryTag = isRiderClone ? ", carried-rider-clone" : isCarrierClone ? ", carrier-clone" : "";
+			if (isMountedToLocalCarrier)
+			{
+				carryTag += ", mounted-to-local-carrier";
+			}
+
 			_log.LogDebug("Clone {SteamId}: at ({PX:F1}, {PY:F1}), reported ({RX:F1}, {RY:F1}), active {Active}{CarryTag}",
 				steamId, pos.x, pos.y, reported.x, reported.y, clone != null && clone.gameObject.activeInHierarchy, carryTag);
 		}

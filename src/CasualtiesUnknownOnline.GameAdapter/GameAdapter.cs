@@ -272,6 +272,26 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 		_latency.Flush();
 	}
 
+	/// <summary>
+	/// Late-frame carry presentation pass. Called from the plugin's
+	/// <c>LateUpdate</c> after every game/cuo Update has run. This is the final
+	/// carrier-side pin: every remote rider clone must sit on the local
+	/// carrier's final body transform for the frame that is about to render,
+	/// even if a game script (or the native body simulation) moved the carrier
+	/// after <see cref="RemotePlayerRenderer.Update"/> or after
+	/// <see cref="BodyUpdatePatch"/> re-pinned it.
+	/// </summary>
+	public void LateUpdateCarryPresentation()
+	{
+		var localBody = _domains.Run.LocalBody;
+		if (localBody == null) // Unity object — ==
+		{
+			return;
+		}
+
+		_domains.Renderer.RefreshLocalCarrierAttach(localBody);
+	}
+
 	void ICuoService.Stop() => Uninstall();
 
 	void IDisposable.Dispose()

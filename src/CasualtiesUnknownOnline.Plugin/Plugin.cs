@@ -328,6 +328,18 @@ public class Plugin : BaseUnityPlugin
 		}
 	}
 
+	private void LateUpdate()
+	{
+		// The carry presentation must be pinned after every frame's Update
+		// phase (game Body updates, CUO renderer, Body.Update postfix). The
+		// only Unity phase after Update and before render is LateUpdate, so
+		// that is where the final local-carrier/rider attach pass belongs.
+		if (_adapter is GameAdapterImpl adapter)
+		{
+			adapter.LateUpdateCarryPresentation();
+		}
+	}
+
 	/// <summary>Returns true when the configured hotkey string maps to a valid Unity KeyCode and that key was pressed this frame.</summary>
 	private bool HotkeyPressed(ConfigEntry<string> entry)
 	{

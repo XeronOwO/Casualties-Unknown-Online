@@ -10,7 +10,7 @@ public static class ProtocolConstants
 	public const int EnvelopeVersion = 1;
 
 	/// <summary>Version of the wire checkpoint schema.</summary>
-	public const int CheckpointSchemaVersion = 1;
+	public const int CheckpointSchemaVersion = 2;
 
 	/// <summary>Maximum checkpoint chunk item count (simple, deterministic batching).</summary>
 	public const int CheckpointChunkItemCount = 256;

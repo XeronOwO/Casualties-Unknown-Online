@@ -238,7 +238,7 @@ public class ProtocolCodecTests
 	public void EnvelopeVersion_IsCurrentStableConstant()
 	{
 		Assert.Equal(1, ProtocolConstants.EnvelopeVersion);
-		Assert.Equal(1, ProtocolConstants.CheckpointSchemaVersion);
+		Assert.Equal(2, ProtocolConstants.CheckpointSchemaVersion);
 		Assert.Equal(256, ProtocolConstants.CheckpointChunkItemCount);
 	}
 

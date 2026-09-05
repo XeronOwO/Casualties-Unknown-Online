@@ -22,11 +22,34 @@ public static class WireCheckpointAssembler
 		var chunks = new List<WireCheckpoint>();
 		var items = checkpoint.Items;
 		var chunkCount = Math.Max(1, (items.Count + ProtocolConstants.CheckpointChunkItemCount - 1) / ProtocolConstants.CheckpointChunkItemCount);
+
+		// Build the checkpoint-local item-definition string table up front. The
+		// same game definition id repeats on most world/container items, so
+		// encoding it once per checkpoint instead of once per item is the
+		// largest safe reduction in a correctness snapshot.
+		var definitionTable = new List<string>();
+		var definitionIndexes = new Dictionary<string, int>(StringComparer.Ordinal);
+		foreach (var item in items)
+		{
+			if (!definitionIndexes.ContainsKey(item.Identity.DefinitionId))
+			{
+				definitionIndexes[item.Identity.DefinitionId] = definitionTable.Count;
+				definitionTable.Add(item.Identity.DefinitionId);
+			}
+		}
+
 		for (var index = 0; index < chunkCount; index++)
 		{
 			var slice = items.Skip(index * ProtocolConstants.CheckpointChunkItemCount)
 				.Take(ProtocolConstants.CheckpointChunkItemCount)
-				.Select(KernelWireMapper.ToWireItem)
+				.Select(item =>
+				{
+					var wire = KernelWireMapper.ToWireItem(item);
+					var definitionIndex = definitionIndexes[item.Identity.DefinitionId];
+					wire.Identity.DefinitionIndex = definitionIndex + 1;
+					wire.Identity.DefinitionId = "";
+					return wire;
+				})
 				.ToList();
 			chunks.Add(new WireCheckpoint
 			{
@@ -35,6 +58,7 @@ public static class WireCheckpointAssembler
 				RunEpoch = checkpoint.RunEpoch.Value,
 				GlobalRevision = checkpoint.GlobalRevision,
 				Items = slice,
+				ItemDefinitionTable = index == 0 ? [.. definitionTable] : [],
 				RandomStreams = index == 0
 					? [.. checkpoint.RandomStreams?.Select(KernelWireMapper.ToWireRandomStream) ?? []]
 					: [],
@@ -97,9 +121,14 @@ public static class WireCheckpointAssembler
 			throw new InvalidOperationException("Checkpoint is incomplete; at least one chunk is missing.");
 		}
 
+		var definitionTable = ordered[0]!.ItemDefinitionTable;
 		var items = ordered
 			.SelectMany(c => c!.Items)
-			.Select(KernelWireMapper.FromWireItem)
+			.Select(item =>
+			{
+				ExpandItemDefinition(item, definitionTable);
+				return KernelWireMapper.FromWireItem(item);
+			})
 			.ToList();
 
 		var randomStreams = ordered[0]!.RandomStreams
@@ -122,5 +151,22 @@ public static class WireCheckpointAssembler
 			? null
 			: new FluidStateTable([.. ordered[0]!.Fluids.Select(KernelDomainWireMapper.FromWireFluidRegionState)]);
 		return new GameCheckpoint(new RunEpoch(first.RunEpoch), first.GlobalRevision, items, randomStreams, run, worldEntities, players, enemies, fluids);
+	}
+
+	private static void ExpandItemDefinition(WireItem item, IReadOnlyList<string> table)
+	{
+		if (item.Identity.DefinitionIndex == 0)
+		{
+			return;
+		}
+
+		var index = item.Identity.DefinitionIndex - 1;
+		if (index < 0 || index >= table.Count)
+		{
+			throw new InvalidOperationException(
+				$"Checkpoint item definition index {item.Identity.DefinitionIndex} is outside the table (count {table.Count}).");
+		}
+
+		item.Identity.DefinitionId = table[index];
 	}
 }

@@ -130,8 +130,10 @@ internal sealed class RadiationLineSync(
 		var bottomY = -(float)world.halfHeight + 3.1f;
 		_playerProgress.Clear();
 		AddProgress(_entities.LocalPlayer);
-		foreach (var remote in _entities.RemotePlayers)
+		var remotePlayers = _entities.RemotePlayers;
+		for (var i = 0; i < remotePlayers.Count; i++)
 		{
+			var remote = remotePlayers[i];
 			AddProgress(remote);
 		}
 

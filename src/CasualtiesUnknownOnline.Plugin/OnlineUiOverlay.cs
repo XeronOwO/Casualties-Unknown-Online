@@ -439,8 +439,10 @@ internal sealed class OnlineUiOverlay
 
 		const float radius = 48f;
 		var screenTargets = new List<RemoteScreenTarget>();
-		foreach (var remote in ctx.Entities.RemotePlayers)
+		var remotePlayers = ctx.Entities.RemotePlayers;
+		for (var i = 0; i < remotePlayers.Count; i++)
 		{
+			var remote = remotePlayers[i];
 			if (remote.IsLocal || !ctx.Session.IsRemoteInWorld(remote.SteamId))
 			{
 				continue;
@@ -477,8 +479,10 @@ internal sealed class OnlineUiOverlay
 		}
 
 		var local = entities.LocalPlayer.Position;
-		foreach (var remote in entities.RemotePlayers)
+		var remotePlayers = entities.RemotePlayers;
+		for (var i = 0; i < remotePlayers.Count; i++)
 		{
+			var remote = remotePlayers[i];
 			if (remote.IsLocal || !ctx.Session.IsRemoteInWorld(remote.SteamId))
 			{
 				continue;

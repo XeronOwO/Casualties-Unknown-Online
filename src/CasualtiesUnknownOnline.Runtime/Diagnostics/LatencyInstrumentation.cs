@@ -13,8 +13,8 @@ namespace CasualtiesUnknownOnline.Runtime.Diagnostics;
 /// <see cref="LatencyOptions.Enabled"/> is false, <c>Measure</c> returns null
 /// (or invokes the action directly in the one-line form), so normal play sees
 /// only a disabled branch. When enabled, it aggregates call count / total /
-/// max per named domain and emits one summary line per name on the configured
-/// log interval.
+/// max per named domain, plus one whole-frame summary (including the slow-frame
+/// count), and emits one line per name on the configured log interval.
 /// </summary>
 public sealed class LatencyInstrumentation(
 	IOptionsMonitor<LatencyOptions> options,
@@ -24,7 +24,11 @@ public sealed class LatencyInstrumentation(
 	private readonly ILogger<LatencyInstrumentation> _log = log;
 	private readonly object _sync = new();
 	private readonly Dictionary<string, Accumulator> _samples = [];
+	private readonly FrameAccumulator _frame = new();
 	private long _nextLogMs;
+
+	/// <summary>True when the latency instrumentation is collecting (and the caller may run a stopwatch).</summary>
+	public bool IsEnabled => _options.CurrentValue.Enabled;
 
 	/// <summary>
 	/// Measure one named call with an explicit <see cref="IDisposable"/> scope.
@@ -32,7 +36,7 @@ public sealed class LatencyInstrumentation(
 	/// </summary>
 	public IDisposable? Measure(string name)
 	{
-		if (!_options.CurrentValue.Enabled)
+		if (!IsEnabled)
 		{
 			return null;
 		}
@@ -48,7 +52,7 @@ public sealed class LatencyInstrumentation(
 			throw new ArgumentNullException(nameof(action));
 		}
 
-		if (!_options.CurrentValue.Enabled)
+		if (!IsEnabled)
 		{
 			action();
 			return;
@@ -62,6 +66,25 @@ public sealed class LatencyInstrumentation(
 		finally
 		{
 			Record(name, stopwatch.Elapsed.TotalMilliseconds);
+		}
+	}
+
+	/// <summary>
+	/// Record one whole GameAdapter update-pump frame. The Game Adapter calls
+	/// this only when <see cref="IsEnabled"/> is true, so the disabled path has
+	/// no stopwatch/collection overhead.
+	/// </summary>
+	public void RecordFrame(double elapsedMs)
+	{
+		if (!IsEnabled)
+		{
+			return;
+		}
+
+		var thresholdMs = Math.Max(0.0, _options.CurrentValue.SlowFrameThresholdMs);
+		lock (_sync)
+		{
+			_frame.Record(elapsedMs, thresholdMs);
 		}
 	}
 
@@ -80,7 +103,8 @@ public sealed class LatencyInstrumentation(
 
 		var intervalMs = (long)(Math.Max(0.0, current.LogIntervalSeconds) * 1000.0);
 		var now = Environment.TickCount;
-		Sample[]? snapshot;
+		Sample[]? snapshot = null;
+		FrameSample? frame = null;
 		lock (_sync)
 		{
 			if (now < _nextLogMs)
@@ -89,27 +113,46 @@ public sealed class LatencyInstrumentation(
 			}
 
 			_nextLogMs = now + Math.Max(1, intervalMs);
-			if (_samples.Count == 0)
+			if (_samples.Count == 0 && _frame.Calls == 0)
 			{
 				return;
 			}
 
-			snapshot = [.. _samples
-				.Select(pair => new Sample(
-					pair.Key,
-					pair.Value.Calls,
-					pair.Value.TotalMs,
-					pair.Value.TotalMs / Math.Max(1, pair.Value.Calls),
-					pair.Value.MaxMs))
-				.OrderByDescending(sample => sample.TotalMs)];
-			_samples.Clear();
+			if (_samples.Count > 0)
+			{
+				snapshot = [.. _samples
+					.Select(pair => new Sample(
+						pair.Key,
+						pair.Value.Calls,
+						pair.Value.TotalMs,
+						pair.Value.TotalMs / Math.Max(1, pair.Value.Calls),
+						pair.Value.MaxMs))
+					.OrderByDescending(sample => sample.TotalMs)];
+				_samples.Clear();
+			}
+
+			if (_frame.Calls > 0)
+			{
+				frame = _frame.Snapshot();
+				_frame.Reset();
+			}
 		}
 
-		foreach (var sample in snapshot!)
+		if (snapshot is not null)
+		{
+			foreach (var sample in snapshot)
+			{
+				_log.LogInformation(
+					"[Latency] {Name}: calls={Calls} total={Total:F2}ms avg={Avg:F2}ms max={Max:F2}ms",
+					sample.Name, sample.Calls, sample.TotalMs, sample.AverageMs, sample.MaxMs);
+			}
+		}
+
+		if (frame is not null)
 		{
 			_log.LogInformation(
-				"[Latency] {Name}: calls={Calls} total={Total:F2}ms avg={Avg:F2}ms max={Max:F2}ms",
-				sample.Name, sample.Calls, sample.TotalMs, sample.AverageMs, sample.MaxMs);
+				"[Latency] Frame: calls={Calls} total={Total:F2}ms avg={Avg:F2}ms max={Max:F2}ms slow={SlowCalls}",
+				frame.Calls, frame.TotalMs, frame.AverageMs, frame.MaxMs, frame.SlowCalls);
 		}
 	}
 
@@ -128,6 +171,18 @@ public sealed class LatencyInstrumentation(
 						pair.Value.TotalMs,
 						pair.Value.TotalMs / Math.Max(1, pair.Value.Calls),
 						pair.Value.MaxMs));
+			}
+		}
+	}
+
+	/// <summary>Test seam: current unflushed frame aggregate.</summary>
+	internal FrameSample CurrentFrame
+	{
+		get
+		{
+			lock (_sync)
+			{
+				return _frame.Snapshot();
 			}
 		}
 	}
@@ -164,11 +219,53 @@ public sealed class LatencyInstrumentation(
 		double AverageMs,
 		double MaxMs);
 
+	/// <summary>One whole-frame timing aggregate, including the slow-frame count.</summary>
+	public sealed record FrameSample(
+		int Calls,
+		double TotalMs,
+		double AverageMs,
+		double MaxMs,
+		int SlowCalls);
+
 	private sealed class Accumulator
 	{
 		internal int Calls;
 		internal double TotalMs;
 		internal double MaxMs;
+	}
+
+	private sealed class FrameAccumulator
+	{
+		internal int Calls;
+		internal double TotalMs;
+		internal double MaxMs;
+		internal int SlowCalls;
+
+		internal void Record(double elapsedMs, double thresholdMs)
+		{
+			Calls++;
+			TotalMs += elapsedMs;
+			if (elapsedMs > MaxMs)
+			{
+				MaxMs = elapsedMs;
+			}
+
+			if (elapsedMs >= thresholdMs)
+			{
+				SlowCalls++;
+			}
+		}
+
+		internal FrameSample Snapshot() =>
+			new(Calls, TotalMs, TotalMs / Math.Max(1, Calls), MaxMs, SlowCalls);
+
+		internal void Reset()
+		{
+			Calls = 0;
+			TotalMs = 0;
+			MaxMs = 0;
+			SlowCalls = 0;
+		}
 	}
 
 	private sealed class Scope(LatencyInstrumentation owner, string name, Stopwatch stopwatch) : IDisposable

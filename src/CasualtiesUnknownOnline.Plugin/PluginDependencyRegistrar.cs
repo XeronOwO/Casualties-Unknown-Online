@@ -190,6 +190,10 @@ internal static class PluginDependencyRegistrar
 			new ConfigDescription(
 				"Seconds between aggregated hot-path latency log lines.",
 				new AcceptableValueRange<double>(0.1, 60.0)));
+		var latencySlowFrameThreshold = config.Bind("Diagnostics", "SlowFrameThresholdMs", 25.0,
+			new ConfigDescription(
+				"Whole-frame latency above this many milliseconds is counted as a slow/frame-drop sample.",
+				new AcceptableValueRange<double>(0.0, 1000.0)));
 		services.Replace(ServiceDescriptor.Singleton<IOptionsMonitor<LatencyOptions>>(
 			new BepInExOptionsMonitor<LatencyOptions>(
 				config,
@@ -197,8 +201,9 @@ internal static class PluginDependencyRegistrar
 				{
 					Enabled = latencyEnabled.Value,
 					LogIntervalSeconds = Math.Max(0.1, latencyInterval.Value),
+					SlowFrameThresholdMs = Math.Max(0.0, latencySlowFrameThreshold.Value),
 				},
-				latencyEnabled.Definition, latencyInterval.Definition)));
+				latencyEnabled.Definition, latencyInterval.Definition, latencySlowFrameThreshold.Definition)));
 		services.AddSingleton<LatencyInstrumentation>();
 
 		// Character-data mapping (Mapster). Mapster 6.0.0 core ships

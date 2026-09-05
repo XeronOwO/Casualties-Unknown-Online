@@ -334,10 +334,12 @@ public class Plugin : BaseUnityPlugin
 		// Keep the game's background UI input suppressed while the Online UI
 		// modal window or the standalone command console is open (IMGUI does
 		// not participate in UGUI input). A non-modal quick panel is not in the
-		// modal guard while open, but its close frame is covered above.
+		// modal guard while open, but its pause-toggle suppression is set below;
+		// its close frame is covered by escCloseFrame.
 		if (_adapter is { } adapter)
 		{
 			adapter.SetOnlineUiModal(windowVisible || consoleOpen || escCloseFrame);
+			adapter.SetOnlineUiEscapeSurfaceVisible(quickPanelVisible);
 		}
 
 		if (!_onlineUi.IsCommandConsoleOpen && HotkeyPressed(_interactionPanelKey))

@@ -22,6 +22,9 @@ internal interface IPatchBridge : IRemoteBackpackPatchBridge, IRemoteMedicalPatc
 	/// <summary>True while the CUO Online UI modal window is open — the adapter suppresses the game's native input handling (pause/ESC) behind it.</summary>
 	bool IsOnlineUiModalOpen { get; }
 
+	/// <summary>True while a non-modal CUO ESC-closing surface (currently the quick panel) is visible — the pause toggle must not open the native pause menu behind it.</summary>
+	bool IsNonModalEscapeSurfaceOpen { get; }
+
 	/// <summary>Guest: generation finished (or finishing) but the start gate still holds — the GlobalDark fade must not black out the kept loading screen.</summary>
 	bool IsInGateWindow { get; }
 

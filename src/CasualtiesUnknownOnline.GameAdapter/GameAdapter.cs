@@ -327,6 +327,9 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 
 	void IGameAdapter.SetOnlineUiModal(bool visible) => _domains.MenuInput.SetModal(visible);
 
+	void IGameAdapter.SetOnlineUiEscapeSurfaceVisible(bool visible) =>
+		_domains.MenuInput.SetNonModalEscapeSurfaceVisible(visible);
+
 	void IGameAdapter.SetOnlineUiScopedBlocks(IReadOnlyList<OnlineUiBlockRect> blocks) =>
 		_domains.MenuInput.SetScopedBlocks(blocks);
 

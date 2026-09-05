@@ -27,6 +27,8 @@ world-time sound annoyance.
   the Online UI modal is open; ESC closes the modal in `OnGUI`, and the one-frame
   `CuoEscCloseSuppression` keeps the modal guard active on that closing frame so
   the same ESC cannot open the native pause menu regardless of Unity event order.
+  The non-modal quick panel also suppresses `PauseHandler.TogglePause` while it
+  is open through `IPatchBridge.IsNonModalEscapeSurfaceOpen`.
 - **World-time sound** — `WorldTimeSync.OnTimeReceived` now ignores an
   authoritative speed that equals the already-applied speed, so the 5 s
   periodic resend no longer replays the switch sound. A real speed change still

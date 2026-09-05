@@ -33,6 +33,16 @@ public class OnlineMenuInputGuardContractTests
 	}
 
 	[Fact]
+	public void IGameAdapter_ExposesEscapeSurfaceSetter()
+	{
+		var method = typeof(IGameAdapter).GetMethod("SetOnlineUiEscapeSurfaceVisible");
+		Assert.NotNull(method);
+		Assert.Equal(typeof(void), method!.ReturnType);
+		var parameter = Assert.Single(method.GetParameters());
+		Assert.Equal(typeof(bool), parameter.ParameterType);
+	}
+
+	[Fact]
 	public void OnlineMenuInputGuard_HasScopedBlockSetter()
 	{
 		var guard = GameAssemblyHost.Adapter.GetType(
@@ -42,6 +52,18 @@ public class OnlineMenuInputGuardContractTests
 		Assert.NotNull(setter);
 		var parameter = Assert.Single(setter!.GetParameters());
 		Assert.Equal(typeof(IReadOnlyList<OnlineUiBlockRect>), parameter.ParameterType);
+	}
+
+	[Fact]
+	public void OnlineMenuInputGuard_HasEscapeSurfaceSetter()
+	{
+		var guard = GameAssemblyHost.Adapter.GetType(
+			"CasualtiesUnknownOnline.GameAdapter.OnlineMenuInputGuard",
+			throwOnError: true)!;
+		var setter = guard.GetMethod("SetNonModalEscapeSurfaceVisible", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+		Assert.NotNull(setter);
+		var parameter = Assert.Single(setter!.GetParameters());
+		Assert.Equal(typeof(bool), parameter.ParameterType);
 	}
 
 	[Fact]

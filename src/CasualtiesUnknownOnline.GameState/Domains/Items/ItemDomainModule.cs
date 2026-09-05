@@ -119,7 +119,16 @@ internal sealed class ItemDomainModule : IDomainModule
 			}
 		}
 
-		return DomainDecision.Accept(new ItemSpawnedEvent(command.Identity, 1, command.Location, command.Data ?? ItemData.Empty));
+		return DomainDecision.Accept(new ItemSpawnedEvent(
+			command.Identity,
+			1,
+			command.Location,
+			command.Data ?? ItemData.Empty,
+			command.VelocityX,
+			command.VelocityY,
+			command.Rotation,
+			command.FreshItemDrop,
+			command.AngularVelocity));
 	}
 
 	private static DomainDecision DecidePickup(PickUpItemCommand command, KernelReadModel state)

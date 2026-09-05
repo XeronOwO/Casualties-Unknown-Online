@@ -18,7 +18,8 @@ internal sealed class ItemProjection(ItemKernelAuthority authority, WorldItemTab
 
 	public bool ApplySpawn(ulong actor, ulong itemId, CharacterItemMsg item, NetVector2 pos, NetVector2 vel, float rotation, bool freshItemDrop, float angularVelocity)
 	{
-		if (!_authority.TrySpawn(actor, new ItemIdentity(itemId, item.ItemId), ItemLocation.World(pos.X, pos.Y), item, out _, out _))
+		if (!_authority.TrySpawn(actor, new ItemIdentity(itemId, item.ItemId), ItemLocation.World(pos.X, pos.Y), item, out _, out _,
+				vel.X, vel.Y, rotation, freshItemDrop, angularVelocity))
 		{
 			return false;
 		}
@@ -95,7 +96,8 @@ internal sealed class ItemProjection(ItemKernelAuthority authority, WorldItemTab
 			return false;
 		}
 
-		if (!_authority.TrySpawn(actor, new ItemIdentity(item.ItemId, item.Item.ItemId), ItemLocation.World(item.Pos.X, item.Pos.Y, item.ParentItemId), item.Item, out _, out _))
+		if (!_authority.TrySpawn(actor, new ItemIdentity(item.ItemId, item.Item.ItemId), ItemLocation.World(item.Pos.X, item.Pos.Y, item.ParentItemId), item.Item, out _, out _,
+				item.Vel.X, item.Vel.Y, item.Rotation, item.FreshItemDrop, item.AngularVelocity))
 		{
 			return false;
 		}

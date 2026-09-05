@@ -43,6 +43,39 @@ public class KernelWireMapperTests
 	}
 
 	[Fact]
+	public void BatchRoundTrip_PreservesSpawnPresentationFields()
+	{
+		var source = new GameStateKernel(Epoch);
+		var decision = source.Execute(
+			new SpawnItemCommand(
+				new OperationId(7),
+				Host,
+				Epoch,
+				AuthorityKind.OwnerPredictedHostValidated,
+				new ItemIdentity(77, "metalscrap"),
+				ItemLocation.World(10f, 20f),
+				0,
+				new ItemData(0.9f, false, -1, [], []),
+				VelocityX: 3.5f,
+				VelocityY: -2f,
+				Rotation: 45f,
+				FreshItemDrop: true,
+				AngularVelocity: 8f),
+			new CommandContext(Epoch, Host));
+		Assert.True(decision.IsAccepted);
+
+		var wire = KernelWireMapper.ToWireBatch(decision.Batch!);
+		var restored = KernelWireMapper.FromWireBatch(wire, Epoch);
+
+		var spawned = Assert.IsType<ItemSpawnedEvent>(Assert.Single(restored.Events));
+		Assert.Equal(3.5f, spawned.VelocityX);
+		Assert.Equal(-2f, spawned.VelocityY);
+		Assert.Equal(45f, spawned.Rotation);
+		Assert.True(spawned.FreshItemDrop);
+		Assert.Equal(8f, spawned.AngularVelocity);
+	}
+
+	[Fact]
 	public void CheckpointSplitAndAssemble_RoundTripsItemsAndRevision()
 	{
 		var source = new GameStateKernel(Epoch);

@@ -1,6 +1,6 @@
 # Entity destruction drops lose fresh-drop presentation/initial motion on the guest view
 
-- Status: Todo (re-opened after another user rejection)
+- Status: Review (kernel spawn-presentation cycle landed; waiting for unified acceptance)
 - Priority: Medium
 - Category: Item sync / entity destruction presentation
 - Source: User report (2026-09-04); rejected by user (2026-09-05) with a jump-pad trap destruction reproduction.
@@ -125,6 +125,28 @@ Evidence:
 - The fix works for destructive trap/building deaths, not only block breaks.
 - Existing item/entity sync tests and repo gates remain green.
 - No wire or authority regression; if a new field is needed, it must be documented and versioned appropriately.
+
+## Landed (2026-09-05 third cycle — ordinary building/entity death family)
+
+The remaining rejected family is now closed at the shared item-spawn root:
+ordinary building/entity death drops (melee attack, open, non-trap deaths)
+previously went through the standalone `ItemSpawn` kernel path as zero/false,
+so the non-destroying peer never got the white fresh-drop presentation or the
+same initial velocity/rotation phase. The kernel spawn representation now
+carries the transient initial-drop state:
+
+- `SpawnItemCommand` / `ItemSpawnedEvent` / `WireCommand` / `WireEvent` carry
+  `VelocityX`, `VelocityY`, `Rotation`, `FreshItemDrop`, `AngularVelocity`.
+- Guest item-spawn reports, host item-spawn projections, trap-batch spawns and
+  block-drop registration all preserve those fields into the committed batch.
+- `KernelBatchItemProjection` materializes a newly projected world item from
+  the event's transient fields instead of always zeroing them.
+- `ProtocolVersion.Current` bumped 9 → 10; no new message type.
+- This does not make continuous physics a kernel fact: the values are
+  presentation metadata on the spawn command/event, not stored in `ItemState`.
+
+Evidence:
+`docs/evidence/selfchecks/items/item-spawn-presentation-kernel-selfcheck.md`.
 
 ## Non-goals
 

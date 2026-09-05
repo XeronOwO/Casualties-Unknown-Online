@@ -249,7 +249,8 @@ public sealed class ItemKernelAuthority(ILogger<ItemKernelAuthority> log)
 
 	// ===== Spawn =====
 
-	public bool TrySpawn(ulong actor, ItemIdentity identity, ItemLocation location, CharacterItemMsg item, out CommittedBatch? batch, out Rejection? rejection)
+	public bool TrySpawn(ulong actor, ItemIdentity identity, ItemLocation location, CharacterItemMsg item, out CommittedBatch? batch, out Rejection? rejection,
+		float velocityX = 0f, float velocityY = 0f, float rotation = 0f, bool freshItemDrop = false, float angularVelocity = 0f)
 	{
 		var command = new SpawnItemCommand(
 			NextOperation(),
@@ -259,7 +260,12 @@ public sealed class ItemKernelAuthority(ILogger<ItemKernelAuthority> log)
 			identity,
 			location,
 			0,
-			ToKernelData(item));
+			ToKernelData(item),
+			velocityX,
+			velocityY,
+			rotation,
+			freshItemDrop,
+			angularVelocity);
 		return TryExecute(command, actor, "spawn", out batch, out rejection);
 	}
 

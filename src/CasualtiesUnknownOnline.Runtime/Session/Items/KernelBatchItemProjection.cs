@@ -174,7 +174,7 @@ internal sealed class KernelBatchItemProjection(
 			return;
 		}
 
-		var world = ToWorldItem(current.Value);
+		var world = ToWorldItem(current.Value, spawned);
 		_worldTable.Set(world.ItemId, world);
 		_onItemSpawned(world);
 	}
@@ -362,5 +362,20 @@ internal sealed class KernelBatchItemProjection(
 			parentItemId,
 			0f,
 			false);
+	}
+
+	private static WorldItem ToWorldItem(ItemState state, ItemSpawnedEvent spawned)
+	{
+		var item = ItemKernelAuthority.ToCharacterItem(state);
+		var parentItemId = state.Location.Kind == ItemLocationKind.World ? state.Location.ParentItemId : 0;
+		return new WorldItem(
+			state.Identity.InstanceId,
+			item,
+			new NetVector2(state.Location.X, state.Location.Y),
+			new NetVector2(spawned.VelocityX, spawned.VelocityY),
+			parentItemId,
+			spawned.Rotation,
+			spawned.FreshItemDrop,
+			AngularVelocity: spawned.AngularVelocity);
 	}
 }

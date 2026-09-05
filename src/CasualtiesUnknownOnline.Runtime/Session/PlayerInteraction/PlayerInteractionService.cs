@@ -34,6 +34,12 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, IDispo
 		remove => _take.TransferReceived -= value;
 	}
 
+	public event Action<RemoteInventoryApplyMsg>? RemoteInventoryApplyReceived
+	{
+		add => _remoteInventory.ApplyReceived += value;
+		remove => _remoteInventory.ApplyReceived -= value;
+	}
+
 	public event Action<PlayerCarryStateMsg>? CarryStateChanged
 	{
 		add => _carry.CarryStateChanged += value;
@@ -103,6 +109,9 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, IDispo
 
 	public void HandleRemoteInventoryOperation(ulong sender, RemoteInventoryOperationRequestMsg msg) =>
 		_remoteInventory.HandleRemoteInventoryOperation(sender, msg);
+
+	public void FireRemoteInventoryApplyReceived(RemoteInventoryApplyMsg msg) =>
+		_remoteInventory.FireRemoteInventoryApplyReceived(msg);
 
 	public void FireTransferReceived(PlayerInventoryTransferMsg msg) =>
 		_take.FireTransferReceived(msg);

@@ -1,5 +1,8 @@
+using System.Collections.Generic;
+using CasualtiesUnknownOnline.GameAdapter.Character;
 using HarmonyLib;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 
@@ -16,7 +19,7 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 [HarmonyPatch(typeof(PlayerCamera), "HandleWhileDragging")]
 internal static class PlayerCameraHandleWhileDraggingPatch
 {
-	private static bool Prefix(PlayerCamera __instance)
+	private static bool Prefix(PlayerCamera __instance, List<RaycastResult> uiCasts)
 	{
 		if (!RemoteBackpackView.IsOpen || RemoteBackpackView.FocusedBody is not { } focused)
 		{
@@ -26,6 +29,11 @@ internal static class PlayerCameraHandleWhileDraggingPatch
 			}
 
 			return true;
+		}
+
+		if (Input.GetKeyDown(KeyBinds.GetBind("favourite")))
+		{
+			TryToggleFavoriteOnHoveredRemoteItem(uiCasts);
 		}
 
 		if (Camera.main == null) // Unity object — ==
@@ -46,5 +54,24 @@ internal static class PlayerCameraHandleWhileDraggingPatch
 		}
 
 		return false;
+	}
+
+	private static void TryToggleFavoriteOnHoveredRemoteItem(List<RaycastResult> uiCasts)
+	{
+		foreach (var raycastResult in uiCasts)
+		{
+			var button = raycastResult.gameObject.GetComponent<InvButton>();
+			if (button == null || !button.Overlaps(uiCasts)) // Unity object — ==
+			{
+				continue;
+			}
+
+			var item = button.GetItem();
+			if (item != null && item.GetComponent<RemoteCloneRender>() != null) // Unity objects — ==
+			{
+				PatchBridge.Impl?.TryHandleRemoteBackpackFavoriteToggle(item);
+				return;
+			}
+		}
 	}
 }

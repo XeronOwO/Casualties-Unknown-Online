@@ -13,7 +13,7 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// patches read only this interface — never the service itself (user
 /// architecture rule: state belongs to its owner, DI owns behavior).
 /// </summary>
-internal interface IPatchBridge
+internal interface IPatchBridge : IRemoteBackpackPatchBridge
 {
 	bool IsWorldGenIsolated { get; }
 
@@ -312,35 +312,6 @@ internal interface IPatchBridge
 	/// path run.
 	/// </summary>
 	bool TryHandleDraggedItemUseOnRemote(Item dragItem, Body localBody);
-
-	/// <summary>
-	/// Remote-backpack drag release: while the native remote backpack view is
-	/// open, the dragged item is a display proxy under the focused remote clone.
-	/// Sends the existing host-authoritative take request for that instance id
-	/// and returns true so the native non-mutating path is skipped. Returns
-	/// false when the drag is not a remote clone item or the view is closed.
-	/// </summary>
-	bool TryHandleRemoteBackpackTake(Item dragItem);
-
-	/// <summary>Remote-backpack edge drop: sends a host-authoritative drop request for the dragged remote display proxy's authoritative item.</summary>
-	bool TryHandleRemoteBackpackDrop(Item dragItem);
-
-	/// <summary>Remote-backpack container move: sends a host-authoritative move-to-container request for the dragged remote display proxy into the focused remote player's container.</summary>
-	bool TryHandleRemoteBackpackMoveToContainer(Item dragItem, Item targetContainer);
-
-	/// <summary>Remote-backpack pour/dump: sends a host-authoritative request to empty the dragged remote water container's liquid stacks.</summary>
-	bool TryHandleRemoteBackpackPour(Item dragItem);
-
-	/// <summary>Tab-switch transfer: sends the existing host-authoritative take request for a remote display proxy released into the local inventory after the remote view was closed.</summary>
-	bool TryHandleRemoteProxyTransferToLocal(Item dragItem);
-
-	/// <summary>
-	/// Cancels an active drag whose item is a remote-clone display proxy. The
-	/// proxy must never escape into the native local-body/cross-player release
-	/// flows; the bridge logs the cancellation so the rare UI path is
-	/// observable. Returns true when it cancelled a proxy drag.
-	/// </summary>
-	bool CancelRemoteProxyDrag(PlayerCamera camera, string reason);
 
 	/// <summary>PickUpItem ran — where the item ended up (slot / container / world): the takeout-flow outcome diagnostic.</summary>
 	void OnPickUpResult(string itemId, int slot, string home, Vector2 position);

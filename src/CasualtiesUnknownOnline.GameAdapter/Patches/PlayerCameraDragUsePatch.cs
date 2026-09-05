@@ -27,10 +27,33 @@ internal static class PlayerCameraDragUsePatch
 	{
 		if (RemoteBackpackView.IsOpen)
 		{
-			if (PatchBridge.Impl?.TryHandleRemoteBackpackTake(__instance.dragItem) == true)
+			// Every named remote-backpack native gesture is mapped to a
+			// host-authoritative request first. Only when no specific gesture
+			// matched do we fall back to the legacy remote-take path, so a
+			// container/center/slot release is never swallowed as a take.
+			if (IsRemoteProxy(__instance.dragItem))
 			{
-				ClearDrag(__instance);
-				return false;
+				// Craft/container windows are pure local UI on a display proxy:
+				// they do not need a host authority request, and they must not
+				// fall into the old native release path (which could unload a
+				// remote container proxy).
+				if (TryHandleRemoteUiOnlyGesture(__instance, __instance.dragItem, uiCasts))
+				{
+					ClearDrag(__instance);
+					return false;
+				}
+
+				if (TryHandleRemoteProxyRelease(__instance.dragItem, uiCasts))
+				{
+					ClearDrag(__instance);
+					return false;
+				}
+
+				if (TryHandleRemoteBackpackTake(__instance.dragItem, uiCasts))
+				{
+					ClearDrag(__instance);
+					return false;
+				}
 			}
 
 			// The remote backpack surface may only be consumed by the dedicated
@@ -38,15 +61,6 @@ internal static class PlayerCameraDragUsePatch
 			// world/local item picked up while the view is open) must be dropped
 			// rather than allowed to mutate the display clone through the
 			// original release path.
-			if (IsRemoteProxy(__instance.dragItem))
-			{
-				if (TryHandleRemoteProxyRelease(__instance.dragItem, uiCasts))
-				{
-					ClearDrag(__instance);
-					return false;
-				}
-			}
-
 			if (__instance.dragItem != null) // Unity object — ==
 			{
 				CancelDrag(__instance, "remote backpack view did not consume the drag");
@@ -84,15 +98,56 @@ internal static class PlayerCameraDragUsePatch
 	}
 
 	/// <summary>
+	/// UI-only remote-proxy gestures: opening the crafting screen from a dragged
+	/// remote item and opening a remote container's window. Both are
+	/// presentation-only on display proxies and intentionally do not travel to
+	/// the host — the owner's real inventory is never mutated by these actions.
+	/// </summary>
+	private static bool TryHandleRemoteUiOnlyGesture(PlayerCamera camera, Item dragItem, List<RaycastResult> uiCasts)
+	{
+		foreach (var raycastResult in uiCasts)
+		{
+			if (raycastResult.gameObject == camera.craftButton) // Unity object — ==
+			{
+				camera.OpenCraftScreen();
+				camera.SeeRecipesWithItem(dragItem);
+				return true;
+			}
+		}
+
+		var container = dragItem.GetComponent<Container>();
+		if (container != null // Unity object — ==
+			&& Vector2.Distance(Input.mousePosition, camera.clickPos) < 10f)
+		{
+			camera.OpenContainer(container);
+			return true;
+		}
+
+		return false;
+	}
+
+	/// <summary>
 	/// Route one remote display-proxy release while the remote view is open.
-	/// Container move has priority over edge gestures, then pour (water + left
-	/// edge), then drop (left/right edge).
+	/// Named gestures are ordered like the native inventory UI: container
+	/// move, radial centre use/wear, inventory-button battery/combine/slot
+	/// actions, then pour and edge drop. A release that matches no named
+	/// gesture falls through to the legacy remote-take fallback.
 	/// </summary>
 	private static bool TryHandleRemoteProxyRelease(Item dragItem, List<RaycastResult> uiCasts)
 	{
 		if (TryFindRemoteContainerTarget(uiCasts, out var target))
 		{
 			return PatchBridge.Impl?.TryHandleRemoteBackpackMoveToContainer(dragItem, target) == true;
+		}
+
+		if (TryHandleRadialCenter(dragItem, uiCasts))
+		{
+			return true;
+		}
+
+		if (TryHandleInventoryButton(dragItem, uiCasts))
+		{
+			return true;
 		}
 
 		if (IsPourGesture(dragItem))
@@ -106,6 +161,116 @@ internal static class PlayerCameraDragUsePatch
 		}
 
 		return false;
+	}
+
+	// The fallback is the pre-existing take request. It is only reached after
+	// every named native gesture failed to match, so it can never swallow a
+	// container/centre/slot release anymore.
+	private static bool TryHandleRemoteBackpackTake(Item dragItem, List<RaycastResult> uiCasts) =>
+		PatchBridge.Impl?.TryHandleRemoteBackpackTake(dragItem) == true;
+
+	private static bool TryHandleRadialCenter(Item dragItem, List<RaycastResult> uiCasts)
+	{
+		foreach (var raycastResult in uiCasts)
+		{
+			if (!raycastResult.gameObject.CompareTag("RadialCenter"))
+			{
+				continue;
+			}
+
+			var bridge = PatchBridge.Impl;
+			if (dragItem.Stats.wearable && bridge?.TryHandleRemoteBackpackWear(dragItem) == true)
+			{
+				return true;
+			}
+
+			if (dragItem.Stats.usable && bridge?.TryHandleRemoteBackpackUse(dragItem) == true)
+			{
+				return true;
+			}
+
+			// The radial centre is a named drop target even when the dragged
+			// item is neither wearable nor usable; consume the release so it is
+			// never misrouted as a take.
+			return true;
+		}
+
+		return false;
+	}
+
+	private static bool TryHandleInventoryButton(Item dragItem, List<RaycastResult> uiCasts)
+	{
+		foreach (var raycastResult in uiCasts)
+		{
+			var button = raycastResult.gameObject.GetComponent<InvButton>();
+			if (button == null || !button.Overlaps(uiCasts)) // Unity object — ==
+			{
+				continue;
+			}
+
+			var target = button.GetItem();
+			if (target == null)
+			{
+				return button.isBody
+					&& PatchBridge.Impl?.TryHandleRemoteBackpackMoveToSlot(dragItem, button.slot) == true;
+			}
+
+			if (!IsRemoteProxy(target))
+			{
+				continue;
+			}
+
+			if (TryHandleBattery(dragItem, target))
+			{
+				return true;
+			}
+
+			if (target.GetComponent<Container>() != null) // Unity object — ==
+			{
+				return PatchBridge.Impl?.TryHandleRemoteBackpackMoveToContainer(dragItem, target) == true;
+			}
+
+			if (CanCombineRemote(dragItem, target))
+			{
+				return PatchBridge.Impl?.TryHandleRemoteBackpackCombine(dragItem, target) == true;
+			}
+
+			if (button.isBody)
+			{
+				return PatchBridge.Impl?.TryHandleRemoteBackpackMoveToSlot(dragItem, button.slot) == true;
+			}
+
+			return false;
+		}
+
+		return false;
+	}
+
+	private static bool TryHandleBattery(Item dragItem, Item target)
+	{
+		if (target.battery == null) // Unity object — ==
+		{
+			return false;
+		}
+
+		var bridge = PatchBridge.Impl;
+		if (dragItem.Stats.HasTag("battery"))
+		{
+			return bridge?.TryHandleRemoteBackpackBatteryLoad(dragItem, target) == true;
+		}
+
+		if (dragItem.Stats.HasTag("tool"))
+		{
+			return bridge?.TryHandleRemoteBackpackBatteryUnload(dragItem, target) == true;
+		}
+
+		return false;
+	}
+
+	private static bool CanCombineRemote(Item dragItem, Item target)
+	{
+		var focused = RemoteBackpackView.FocusedBody;
+		return focused != null && focused.CanCombine(target, dragItem); // Unity object — ==
 	}
 
 	private static bool TryHandleRemoteProxyTransferToLocalOverLocalInventory(Item dragItem, List<RaycastResult> uiCasts)

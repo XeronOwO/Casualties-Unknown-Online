@@ -108,6 +108,24 @@ public sealed class RemoteLimbToolApplicationTests
 	}
 
 	[Fact]
+	public void ApplyMusharm_RequestedLimbWinsOverMostInjuredAutoPick()
+	{
+		var health = new CharacterHealthMsg();
+		var limbs = new List<CharacterLimbMsg>
+		{
+			new() { Index = 0, SkinHealth = 80f, MuscleHealth = 80f },
+			new() { Index = 1, SkinHealth = 5f, MuscleHealth = 5f },
+		};
+		Assert.True(RemoteLimbToolCatalog.TryGet("musharm", out var profile));
+
+		Assert.True(RemoteLimbToolApplication.TryApply(health, limbs, profile, out var limbIndex, requestedLimbIndex: 0));
+		Assert.Equal(0, limbIndex);
+		Assert.True(Math.Abs(limbs[0].SkinHealAmount - 8f) < 0.001f);
+		Assert.True(Math.Abs(limbs[0].BandageSlowAmount - 10f) < 0.001f);
+		Assert.Equal(0f, limbs[1].SkinHealAmount);
+	}
+
+	[Fact]
 	public void ApplySplint_AddsSplintComponentAndMarksSplinted()
 	{
 		var health = new CharacterHealthMsg();

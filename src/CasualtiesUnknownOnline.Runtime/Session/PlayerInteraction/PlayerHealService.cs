@@ -38,7 +38,7 @@ internal sealed class PlayerHealService(
 	public event Action<PlayerHealResultMsg>? HealReceived;
 
 	/// <summary>Online UI entry: the local player uses one carried medical item on another player (0 = host auto-select).</summary>
-	public void SendHealRequest(ulong targetSteamId, ulong itemInstanceId = 0)
+	public void SendHealRequest(ulong targetSteamId, ulong itemInstanceId = 0, int targetLimbIndex = -1)
 	{
 		if (!_session.SessionActive || !_session.LocalInWorld)
 		{
@@ -49,6 +49,7 @@ internal sealed class PlayerHealService(
 		{
 			TargetSteamId = targetSteamId,
 			ItemInstanceId = itemInstanceId,
+			LimbIndex = targetLimbIndex,
 		};
 
 		if (_session.Role == SessionRole.Host)
@@ -128,7 +129,7 @@ internal sealed class PlayerHealService(
 			return;
 		}
 
-		var limbIndex = RemoteHealApplication.PickMostInjuredLimb(targetData.Limbs);
+		var limbIndex = RemoteHealApplication.ResolveLimbIndex(targetData.Limbs, msg.LimbIndex);
 		if (limbIndex < 0)
 		{
 			_log.LogWarning("[Heal] refused: {Target} has no healable limb.", target);

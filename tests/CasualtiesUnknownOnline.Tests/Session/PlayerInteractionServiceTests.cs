@@ -2014,6 +2014,96 @@ public class PlayerInteractionServiceTests
 	}
 
 	[Fact]
+	public void Guest_MovesRemotePlayersItemIntoNestedRemoteContainer_UpdatesDeepTreeAndSendsParentTransfer()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		var inner = new CharacterItemMsg
+		{
+			InstanceId = 501,
+			ItemId = "innerbox",
+			SlotIndex = 0,
+		};
+		var backpack = new CharacterItemMsg
+		{
+			InstanceId = 500,
+			ItemId = "backpack",
+			SlotIndex = 0,
+			Contents = [inner],
+		};
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true, backpack, Item(42, "waterbottle")));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true));
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendRemoteInventoryOperation(new RemoteInventoryOperationRequestMsg
+			{
+				Kind = RemoteInventoryOperationKind.MoveToContainer,
+				OwnerSteamId = HostId,
+				ItemInstanceId = 42,
+				TargetContainerInstanceId = 501,
+			});
+
+		var transfer = TransferResult(received);
+		Assert.Equal(HostId, transfer.FromSteamId);
+		Assert.Equal(HostId, transfer.ToSteamId);
+		Assert.Equal(501UL, transfer.TargetParentItemId);
+		Assert.Equal(42UL, transfer.Item!.InstanceId);
+
+		var hostData = characters.GetHostCharacterData()!;
+		var remainingBackpack = Assert.Single(hostData.Items);
+		var remainingInner = Assert.Single(remainingBackpack.Contents);
+		Assert.Equal(501UL, remainingInner.InstanceId);
+		Assert.Contains(remainingInner.Contents, i => i.InstanceId == 42);
+
+		var authority = host.Services.GetRequiredService<ItemKernelAuthority>();
+		var kernelItem = authority.FindItem(42);
+		Assert.NotNull(kernelItem);
+		Assert.Equal(ItemLocationKind.Contained, kernelItem!.Value.Location.Kind);
+		Assert.Equal(501UL, kernelItem.Value.Location.ParentItemId);
+	}
+
+	[Fact]
+	public void Guest_MovesNestedRemoteItemToSlot_RaisesOwnerApplyWithRecursiveSource()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		var inner = new CharacterItemMsg
+		{
+			InstanceId = 501,
+			ItemId = "innerbox",
+			SlotIndex = 0,
+			Contents = [Item(42, "waterbottle")],
+		};
+		var backpack = new CharacterItemMsg
+		{
+			InstanceId = 500,
+			ItemId = "backpack",
+			SlotIndex = 0,
+			Contents = [inner],
+		};
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true, backpack));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true));
+
+		RemoteInventoryApplyMsg? apply = null;
+		host.Services.GetRequiredService<IPlayerInteractionControl>().RemoteInventoryApplyReceived += m => apply = m;
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendRemoteInventoryOperation(new RemoteInventoryOperationRequestMsg
+			{
+				Kind = RemoteInventoryOperationKind.MoveToSlot,
+				OwnerSteamId = HostId,
+				ItemInstanceId = 42,
+				TargetSlotIndex = 1,
+			});
+
+		Assert.NotNull(apply);
+		Assert.Equal(RemoteInventoryOperationKind.MoveToSlot, apply!.Kind);
+		Assert.Equal(HostId, apply.OwnerSteamId);
+		Assert.Equal(42UL, apply.ItemInstanceId);
+		Assert.Equal(1, apply.TargetSlotIndex);
+	}
+
+	[Fact]
 	public void Guest_PoursRemotePlayersWater_EmptiesLiquidAndSendsStateResult()
 	{
 		var (host, guest, received) = CreateSession();

@@ -66,6 +66,7 @@ public class Plugin : BaseUnityPlugin
 	private string? _lastJoinError;
 	private OnlineUiOverlay _onlineUi = null!;
 	private OnlineUiActions _uiActions = null!;
+	private readonly CommandConsoleModalSuppression _commandConsoleModalSuppression = new();
 
 	private void Awake()
 	{
@@ -314,12 +315,25 @@ public class Plugin : BaseUnityPlugin
 
 		_locationPingInput.TryHandle();
 
+		// The console closes on ESC inside OnGUI, but the game's native pause
+		// input runs in Update. Depending on Unity event ordering, this Update
+		// may observe the console as already closed in the same frame the ESC is
+		// still active. Keep the modal guard active for that first closed frame
+		// so PlayerCamera.HandleInput cannot see the same ESC and open the pause
+		// menu; the next frame clears it.
+		var consoleOpen = _onlineUi.IsCommandConsoleOpen;
+		var consoleCloseFrame = _commandConsoleModalSuppression.Update(consoleOpen);
+		if (consoleCloseFrame)
+		{
+			_log.LogInformation("Command console closed this frame — keeping native input modal for one frame to swallow the closing ESC.");
+		}
+
 		// Keep the game's background UI input suppressed while the Online UI
 		// modal window or the standalone command console is open (IMGUI does
 		// not participate in UGUI input).
 		if (_adapter is { } adapter)
 		{
-			adapter.SetOnlineUiModal(_onlineUi.IsWindowVisible || _onlineUi.IsCommandConsoleOpen);
+			adapter.SetOnlineUiModal(_onlineUi.IsWindowVisible || consoleOpen || consoleCloseFrame);
 		}
 
 		if (!_onlineUi.IsCommandConsoleOpen && HotkeyPressed(_interactionPanelKey))

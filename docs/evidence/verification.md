@@ -11,8 +11,8 @@ is the entry point for that evidence chain.
 | Test suite | **1991 passed** (2026-09-01 item content binding; see `docs/evidence/selfchecks/mod-api/mod-item-content-binding-selfcheck.md`) |
 | Build | `dotnet build` 0 warnings / 0 errors |
 | Format | Tracked-source `dotnet format` is clean; `--verify-no-changes` currently reports the generated `obj/Debug/net48/MyPluginInfo.cs`, so the documented baseline is “tracked sources clean” |
-| Architecture | `tools/check-architecture.ps1` strict mode passes, including Phase E guards |
-| Event/entity/delivery gates | `tools/check-event-replay.ps1`, `tools/check-entity-event-dispatch.ps1`, `tools/check-delivery.ps1` pass |
+| Architecture | `SourceShapeGateTests.Architecture_OneTopLevelTypePerFileAndAggregateLimits` passes, including the former Phase E guard ports |
+| Event/entity/delivery gates | `RepositoryGateTests` event-replay, entity-event-dispatch, and delivery-checklist tests pass |
 
 ## Gates
 
@@ -21,18 +21,18 @@ changes. The normative source-shape gate is now part of `dotnet test`:
 
 - `tests/CasualtiesUnknownOnline.NormativeGates.Tests` — Roslyn syntax-tree gate
   for AGENTS.md #10 (prefer `using`/aliases over fully qualified names), plus
-  C# unit-test ports of every `tools/check-*.ps1` gate in
+  C# unit-test ports of the former `tools/check-*.ps1` gates in
   `SourceShapeGateTests` and `RepositoryGateTests`. The inventory of every
   normative rule's automation status is in
   [`normative-gates.md`](normative-gates.md).
 
-The architecture-gate guard suite is:
+The source/repo gate suite is now:
 
-- `tools/check-gamestate-isolation.ps1` — GameState project isolation
-- `tools/check-item-authority.ps1` — item projection ownership
-- `tools/check-no-legacy.ps1` — no `Shadow`/`Legacy`/`Compat`/`Dual`/removed marker
-- `tools/check-command-authority.ps1` — every `GameCommand` declares authority
-- `tools/check-kernel-shape.ps1` — no string-keyed/Hashtable kernel state
+- `SourceShapeGateTests.GameStateIsolation_NoForbiddenReferencesOrTokens` — GameState project isolation
+- `SourceShapeGateTests.ItemAuthority_NoDirectProjectionMutation` — item projection ownership
+- `SourceShapeGateTests.NoLegacy_NoRemovedDualArchitectureMarkers` — no `Shadow`/`Legacy`/`Compat`/`Dual`/removed marker
+- `SourceShapeGateTests.CommandAuthority_EveryGameCommandDeclaresAuthority` — every `GameCommand` declares authority
+- `SourceShapeGateTests.KernelShape_NoStringKeyedStateOrHashtable` — no string-keyed/Hashtable kernel state
 
 Pure documentation-only changes skip build/test/gates; run `git diff --check` and
 review the diff. If a documentation change accompanies code, run the full gates.
@@ -136,9 +136,9 @@ user-observable semantics.
 
 ## Delivery checklist
 
-`docs/evidence/delivery-checklist.md` is the project's delivery-quality gate and is paired
-with `tools/check-delivery.ps1`. Follow it for each delivery cycle; check boxes one
-at a time.
+`docs/evidence/delivery-checklist.md` is the project's delivery-quality gate;
+its integrity is checked by `RepositoryGateTests.DeliveryChecklist_NoIncompleteRequiredBoxes`.
+Follow it for each delivery cycle; check boxes one at a time.
 
 ## Related pages
 

@@ -390,17 +390,17 @@ Replay/simulation, selfchecks, and gates are the evidence layer.
 ## 16. Architecture guards
 
 [See architecture-guards.md](guards.md) for the full guard list. The
-five guards currently automated in `tools/check-architecture.ps1` are:
+five guards currently automated in `SourceShapeGateTests` are:
 
-- GameState project isolation (`check-gamestate-isolation.ps1`);
-- item projection ownership (`check-item-authority.ps1`);
-- no legacy/dual markers (`check-no-legacy.ps1`);
-- every `GameCommand` carries authority (`check-command-authority.ps1`);
-- no string-keyed/Hashtable kernel state (`check-kernel-shape.ps1`).
+- GameState project isolation (`GameStateIsolation_NoForbiddenReferencesOrTokens`);
+- item projection ownership (`ItemAuthority_NoDirectProjectionMutation`);
+- no legacy/dual markers (`NoLegacy_NoRemovedDualArchitectureMarkers`);
+- every `GameCommand` carries authority (`CommandAuthority_EveryGameCommandDeclaresAuthority`);
+- no string-keyed/Hashtable kernel state (`KernelShape_NoStringKeyedStateOrHashtable`).
 
 Other aspirational guards — event reducer/serialization registration, checkpoint
 round-trip enforcement, and invariant-suite registration — are currently covered by
-tests/processes but are **not** automated by `tools/check-architecture.ps1` today.
+tests/processes but are **not** automated by the C# source-shape gates today.
 
 ## 17. Explicit non-goals
 

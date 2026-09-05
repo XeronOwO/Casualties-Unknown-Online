@@ -49,15 +49,10 @@ See `docs/README.md` for the documentation index.
 dotnet build CasualtiesUnknownOnline.slnx
 dotnet test CasualtiesUnknownOnline.slnx          # must pass before every commit
 dotnet format CasualtiesUnknownOnline.slnx        # mandatory before every commit
-powershell -File tools/check-architecture.ps1     # ≤600-line classes, ≤5 state bools, one type/file
-powershell -File tools/check-event-replay.ps1     # event mechanism changes update matrix row
-powershell -File tools/check-entity-event-dispatch.ps1
-powershell -File tools/check-no-absolute-paths.ps1 # hard red line: no absolute machine paths in tracked files
-powershell -File tools/check-delivery.ps1         # final commit of each delivery cycle
 ```
 
 - `[GATE]` All of the above must pass before commit; `dotnet format` is build-enforced.
-- `[RULE]` `dotnet test` also runs `tests/CasualtiesUnknownOnline.NormativeGates.Tests`: the Roslyn fully-qualified-name gate plus C# unit-test ports of every `tools/check-*.ps1` source/repo/process gate. The rule-to-gate map is `docs/evidence/normative-gates.md`.
+- `[RULE]` `dotnet test` also runs `tests/CasualtiesUnknownOnline.NormativeGates.Tests`: the Roslyn fully-qualified-name gate plus C# unit-test ports of the former `tools/check-*.ps1` source/repo/process gates. The rule-to-gate map is `docs/evidence/normative-gates.md`.
 - `[RULE]` Pure documentation-only changes (no `src/`, `tests/`, or `tools/` modifications) skip build/test/gates; review the diff and commit directly. If docs describe a code change, commit them with the code change and run the gates in that same commit.
 - Target: `net48`, `LangVersion = preview`, nullable enabled, warnings-as-errors.
 - NuGet sources: nuget.org + nuget.bepinex.dev + nuget.samboy.dev.
@@ -112,7 +107,7 @@ a separate future architecture item, not part of the completed evolution.
    name collisions. **Unity objects are the exception**: use `== null` / `!= null` because
    the overload detects scene-reload-destroyed objects.
 3. `[RULE]` One top-level type per file; file name matches type name. Nested types stay with
-   their container. Enforced by `tools/check-architecture.ps1` and the C# port in
+   their container. Enforced by
    `SourceShapeGateTests.Architecture_OneTopLevelTypePerFileAndAggregateLimits`.
 4. `[RULE]` Evidence-based changes: cite decompiled sources (`reversing/`, file:line) before
    touching code; fix root causes, not symptoms.
@@ -121,8 +116,7 @@ a separate future architecture item, not part of the completed evolution.
    debt. Local machine paths belong only in gitignored `AGENTS.local.md` or in placeholders
    such as `<game-dir>`, `<sandbox-root>`. No drive-letter path, UNC path, or any Unix-style
    absolute path rooted at home, user, temp, var, opt, etc may appear in tracked files.
-   Enforced by `tools/check-no-absolute-paths.ps1` and the C# port in
-   `RepositoryGateTests.NoAbsolutePaths_NoTrackedMachinePaths`.
+   Enforced by `RepositoryGateTests.NoAbsolutePaths_NoTrackedMachinePaths`.
 6. `[RULE]` Requirement triage: personal/specific → `AGENTS.local.md`; shared/beneficial → commit;
    ambiguous → ask the user.
 7. `[RULE]` Self-learning: record reusable, generalizable knowledge in `AGENTS.md`, `docs/`,
@@ -215,7 +209,7 @@ a separate future architecture item, not part of the completed evolution.
 - `[CRITICAL]` **Rejection root-cause loop**: when the user rejects a delivered
   item, perform a "why was it missed" analysis and record the process lesson.
   Moving the ticket back is not enough; the leak must be understood.
-- `[GATE]` Follow `docs/evidence/delivery-checklist.md` + `tools/check-delivery.ps1` for each delivery.
+- `[GATE]` Follow `docs/evidence/delivery-checklist.md`; the checklist integrity is verified by `RepositoryGateTests.DeliveryChecklist_NoIncompleteRequiredBoxes`.
 - `[GATE]` Check off delivery checklist boxes one line at a time with the Edit tool; bulk
   checking is forbidden.
 - `[RULE]` Hard order: understand → mechanism inventory → adversarial self-check → plan +

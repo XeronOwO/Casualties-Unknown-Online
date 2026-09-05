@@ -14,13 +14,22 @@ internal static class InvButtonBodyPatch
 {
 	private static void Postfix(InvButton __instance, ref Body __result)
 	{
+		// If there is no remote focus at all, this is the player's OWN native
+		// radial inventory. Do not call Close here: the old close path wrote
+		// radialOpen=false even for an empty focus, so merely rendering the
+		// local backpack's first InvButton immediately closed it.
+		if (RemoteBackpackView.FocusedBody is not { } focused)
+		{
+			return;
+		}
+
 		if (!RemoteBackpackView.IsOpen)
 		{
 			RemoteBackpackView.Close();
 			return;
 		}
 
-		if (RemoteBackpackView.FocusedBody is { } focused && focused != PlayerCamera.main.body) // Unity objects — ==
+		if (focused != PlayerCamera.main.body) // Unity objects — ==
 		{
 			__result = focused;
 		}

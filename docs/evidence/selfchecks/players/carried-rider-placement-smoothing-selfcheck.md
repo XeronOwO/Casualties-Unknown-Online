@@ -1,13 +1,14 @@
 # Carried rider placement smoothing and vertical consistency self-check
 
-> **Status: In review (2026-09-05, re-review after the second rejection).** The
+> **Status: Critical / re-opened (latest user re-report 2026-09-05).** The
 > first movement-smoothing attempt was rejected because the carrier/participant
 > view still saw the rider misaligned/teleporting while the rider's own view
 > looked normal. The follow-up cycle closes the remaining presentation gaps below;
 > after the user's second re-test on host movement, a final `LateUpdate`
-> carrier-side re-pin was added. This selfcheck is the historical evidence for
-> the full rework in
-> `docs/backlog/review/carry-piggyback-rider-position-smoothing.md`.
+> carrier-side re-pin was added. The user now reports the teleport problem still
+> exists and it is marked as a super-priority fix. This selfcheck is historical
+> evidence for the full rework in
+> `docs/backlog/todo/carry-piggyback-rider-position-smoothing.md`.
 
 Owner cycle: backlog `carry-piggyback-rider-position-smoothing` and
 `carry-piggyback-vertical-placement-asymmetry`. Decision: close both reports by

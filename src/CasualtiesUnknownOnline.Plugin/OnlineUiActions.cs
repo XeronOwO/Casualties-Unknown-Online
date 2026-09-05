@@ -43,6 +43,16 @@ internal sealed class OnlineUiActions(
 		return _adapter?.OpenRemoteBackpack(targetSteamId, displayName) == true;
 	}
 
+	public bool OpenRemoteMedicalFromUi(ulong targetSteamId, string displayName)
+	{
+		if (!_session.SessionActive)
+		{
+			return false;
+		}
+
+		return _adapter?.OpenRemoteMedical(targetSteamId, displayName) == true;
+	}
+
 	public bool CarryRemoteFromUi(ulong targetSteamId)
 	{
 		if (!_session.SessionActive)

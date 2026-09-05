@@ -177,7 +177,7 @@ internal sealed class OnlineUiPlayerContextMenu
 		// it remains available even when line-of-sight hides the action buttons.
 		if (row.CanViewMedical)
 		{
-			actions.Add(new MenuAction(ctx.T("member.open_medical"), () => ctx.OpenMedical?.Invoke(row.SteamId)));
+			actions.Add(new MenuAction(ctx.T("member.open_medical"), () => ctx.OpenRemoteMedical?.Invoke(row.SteamId, ctx.DisplayName(row.SteamId))));
 		}
 
 		if (!row.CanSee)

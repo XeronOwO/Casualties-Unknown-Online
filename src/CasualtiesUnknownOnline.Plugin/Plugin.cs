@@ -158,7 +158,17 @@ public class Plugin : BaseUnityPlugin
 					{
 						_onlineUi.CloseWindow();
 						_onlineUi.CloseQuickPanel();
-						_onlineUi.CloseMedicalPanel();
+					}
+
+					return opened;
+				},
+				OpenRemoteMedical = (id, name) =>
+				{
+					var opened = _uiActions.OpenRemoteMedicalFromUi(id, name);
+					if (opened)
+					{
+						_onlineUi.CloseWindow();
+						_onlineUi.CloseQuickPanel();
 					}
 
 					return opened;

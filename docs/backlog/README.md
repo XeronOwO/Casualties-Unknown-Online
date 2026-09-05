@@ -38,6 +38,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
+- [Sleep behavior policy decision](todo/sleep-behavior-policy.md) — open decision on allow/disable sleep in sessions, including forced-sleep effects such as mushroom tail.
 - [Snapshot size reduction](todo/snapshot-size-reduction.md) — measurement-first.
 
 

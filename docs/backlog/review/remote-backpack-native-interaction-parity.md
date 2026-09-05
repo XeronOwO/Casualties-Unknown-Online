@@ -1,6 +1,6 @@
 # Remote backpack native interaction parity
 
-- Status: Todo (rejected as a whole after user re-test)
+- Status: Review (rejected 2026-09-05; container/nested apply follow-up landed 2026-09-05)
 - Priority: High
 - Category: Remote inventory / co-op interaction parity / container sync
 - Source: User report (2026-09-04); rejected by user (2026-09-05) — opening another player's backpack still could not perform most item operations; rejected again as a whole (2026-09-05) on container/trash-bag interaction.

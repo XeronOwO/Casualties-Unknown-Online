@@ -44,7 +44,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Carry/piggyback riding movement teleport and rider/carrier position mismatch](todo/carry-piggyback-rider-position-smoothing.md) — rejected in review: only half fixed; carrier/participant views still see the carried player misaligned/teleporting while moving.
 - [Entity destruction drops lose fresh-drop presentation/initial motion on the guest view](todo/entity-destruction-drop-guest-fresh-state-loss.md) — rejected in review: jump-pad trap destruction still lacks the host-side white border/fresh-drop presentation on the guest; re-open.
 - [Trap destruction drops desync in item quantity between host and guest](todo/trap-destruction-drop-quantity-desync.md) — host sees circuit board + two metal scraps while guest initially sees only one circuit board; periodic sync eventually restores count.
-- [Guest remote pose / head-orientation desync on host view](todo/guest-remote-pose-head-orientation-desync.md) — refined dual-instance reproduction: mouse moving to the guest's left while the guest still faces right causes wrong host-side facing/head angle and an abrupt head jump across the 180° ray; water-current pose/clipping is a related variant.
 - [Host severe sleepiness posture not synced to guest](todo/host-severe-sleepiness-posture-desync.md) — host cannot stand straight when severely sleepy, but guest sees a straight body; systemic body-pose sync analysis/rewrite required, not another local patch.
 - [Host fall injury mouth-expression desync](todo/host-fall-injury-mouth-expression-desync.md) — guest sees host's mouth open after fall injury while host's own view does not; needs root-cause investigation rather than a cosmetic remote-face patch.
 - [Sleep behavior policy decision](todo/sleep-behavior-policy.md) — open decision on allow/disable sleep in sessions, including forced-sleep effects such as mushroom tail.
@@ -57,6 +56,7 @@ _None._ (Folder exists for the workflow.)
 
 ### Review
 
+- [Guest remote pose / head-orientation desync on host view](review/guest-remote-pose-head-orientation-desync.md) — stale render-clone attackCooldown/moveDir auto-flip inputs neutralized; regression contract and selfcheck linked.
 - [Guest background window plays ghost item friction/ground sounds](review/guest-background-ghost-item-ground-sounds.md) — non-authoritative guest item impact presentation (drop/step/squeak/dust) suppressed; selfcheck linked.
 - [Interactive in-game command console](review/in-game-command-console-interactive.md) — slash-opened focused input, completion/history/hints, fading text area, real selector-backed `/heal` command, IME-aware custom input, JSON host-rule command.
 - [Command registration Attribute/reflection refactor](review/command-registration-attribute-refactor.md) — Attribute/reflection console registry + local mod console command API; selfcheck linked.

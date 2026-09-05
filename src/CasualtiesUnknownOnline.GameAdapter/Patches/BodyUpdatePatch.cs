@@ -236,6 +236,23 @@ internal static class BodyUpdatePatch
 		body.accelRot = 0f;
 		body.attackRot = 0f;
 		body.armOffset = 0f;
+		// HandleVisuals auto-flips a character when the look target is on the
+		// opposite side AND moveDir != 0 OR attackCooldown > 0 (Body.cs:3131).
+		// A render proxy never runs the original Body.Update, so a stale
+		// template/inherited positive attackCooldown never decays and can drag
+		// the clone's facing away from the owner's synced isRight/targetLookPos
+		// — the guest-remote-pose/head-orientation desync. Zero both inputs
+		// before HandleVisuals; SessionStatePump already zeroes moveDir, but
+		// keeping the whole auto-flip input family here makes the proxy path
+		// self-contained.
+		body.attackCooldown = 0f;
+		body.moveDir = Vector2.zero;
+		// FacialExpression.Update reads Body.eatTime to select the mouth sprite
+		// (defaultHeadMouth when > 0.15). A render clone never runs the original
+		// Body.Update, so an inherited eatTime would stick forever and show a
+		// stale open mouth/face on the remote view — same stale-clone-input
+		// family as the facing auto-flip.
+		body.eatTime = 0f;
 		// NOTE: legSpeedMult is a read-only property (Body.cs:67) — cannot
 		// be reset here; it feeds the crouch animation parameter
 		// (Body.cs:3260: max(crouchAmount, 1 - legSpeedMult)). A template

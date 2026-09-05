@@ -44,7 +44,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Carry/piggyback riding movement teleport and rider/carrier position mismatch](todo/carry-piggyback-rider-position-smoothing.md) — rejected in review: only half fixed; carrier/participant views still see the carried player misaligned/teleporting while moving.
 - [Host severe sleepiness posture not synced to guest](todo/host-severe-sleepiness-posture-desync.md) — host cannot stand straight when severely sleepy, but guest sees a straight body; systemic body-pose sync analysis/rewrite required, not another local patch.
 - [Host fall injury mouth-expression desync](todo/host-fall-injury-mouth-expression-desync.md) — guest sees host's mouth open after fall injury while host's own view does not; needs root-cause investigation rather than a cosmetic remote-face patch.
-- [Snapshot size reduction](todo/snapshot-size-reduction.md) — measurement-first.
 
 
 ### In progress
@@ -68,6 +67,7 @@ _None._ (Folder exists for the workflow.)
 - [Protocol frame envelope validation](review/protocol-frame-validation.md) — unified frame validator before kernel handlers; malformed/forged/oversized frames dropped, presentation payloads remain non-fatal.
 - [Network traffic baseline and regression gate](review/network-traffic-baseline.md) — per-payload P50/P95 frame stats, live per-peer bytes, checkpoint chunk/size/restore baseline; selfcheck linked.
 - [State-stream bandwidth reduction](review/state-stream-bandwidth-reduction.md) — per-recipient player-state stream no longer echoes a guest's own entry; selfcheck linked.
+- [Snapshot size reduction](review/snapshot-size-reduction.md) — checkpoint item-definition string table compresses repeated definition ids; selfcheck linked.
 - [Auto turret trap fires unexpectedly after reload](review/turret-stray-fire-after-reload.md) — stale periodic checkpoint replay of transient turret/geyser trap states removed; live relay unchanged; selfcheck linked.
 - [Full-qualified name cleanup](review/full-qualified-name-cleanup.md) — prefer using directives/aliases; behavior-preserving refactor only.
 - [Composite command sequential semantics](review/composite-command-sequential-semantics.md) — inner commands decide/reduce in declaration order on one working copy; atomic rollback and duplicate composite OperationId covered; selfcheck linked.

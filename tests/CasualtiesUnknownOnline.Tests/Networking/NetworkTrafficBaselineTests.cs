@@ -107,6 +107,29 @@ public class NetworkTrafficBaselineTests
 	}
 
 	[Fact]
+	public void CheckpointSnapshotSize_RepeatedDefinitionIds_OverheadBudget()
+	{
+		var checkpoint = CreateCheckpoint(600);
+		var chunks = WireCheckpointAssembler.Split(checkpoint);
+
+		var frames = chunks
+			.Select(chunk => NetPacket.Encode(NetMsg.KernelEnvelope, new ProtocolFrame
+			{
+				Kind = EnvelopeKind.Checkpoint,
+				Checkpoint = new CheckpointEnvelope
+				{
+					Header = new EnvelopeHeader { PayloadType = WirePayloadType.CheckpointChunk },
+					Checkpoint = chunk,
+				},
+			}))
+			.ToList();
+
+		var totalBytes = frames.Sum(f => f.Length);
+		Assert.True(totalBytes < 24_000,
+			$"600-item repeated-definition checkpoint should be under 24 KB after checkpoint string-table compression; was {totalBytes}.");
+	}
+
+	[Fact]
 	public void CheckpointBaseline_RecordsChunkCountSizeAndRestoreTime()
 	{
 		var checkpoint = CreateCheckpoint(600);

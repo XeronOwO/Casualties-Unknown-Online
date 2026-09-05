@@ -45,4 +45,12 @@ public sealed class WireCheckpoint
 
 	[ProtoMember(12)]
 	public List<WireEntityId> RemovedEnemies { get; set; } = [];
+
+	/// <summary>
+	/// The checkpoint-local string table for repeated game item definition ids.
+	/// Only chunk 0 carries the table; every chunk's <see cref="WireItemIdentity"/>
+	/// entries may use <see cref="WireItemIdentity.DefinitionIndex"/> to reference it.
+	/// </summary>
+	[ProtoMember(13)]
+	public List<string> ItemDefinitionTable { get; set; } = [];
 }

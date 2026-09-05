@@ -896,9 +896,9 @@ commands and remains the two-process verification target).
 
 ## 7. Versioning and protocol discipline
 
-- `ProtocolVersion.Current` is `6`. The pre-release protocol-version sequence
-  was deliberately reset before first release (tech-decisions #137), and 6 is
-  the post-reset bump after the latest `CharacterHealthMsg` head/mouth
+- `ProtocolVersion.Current` is `8`. The pre-release protocol-version sequence
+  was deliberately reset before first release (tech-decisions #137), and 8 is
+  the post-reset bump after the `BuildingEntityDamagedMsg.PlayHitFlash`
   presentation-field addition; earlier numbers such as 10/29/34 in this
   document are historical and must not be used as current wire versions.
 - Behavioral wire changes after the first release will bump

@@ -93,9 +93,9 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 	public void OnCustomTileBroken(WorldGeneration world, Vector2Int cell, ushort block) =>
 		domains.TileContent.TrySpawnDrops(world, cell, block);
 
-	public void OnBuildingEntityDamaged(BuildingEntity entity, float damage, bool playHitSound)
+	public void OnBuildingEntityDamaged(BuildingEntity entity, float damage, bool playHitSound, bool playHitFlash)
 	{
-		domains.WorldEventSync.OnBuildingEntityDamaged(entity, damage, playHitSound);
+		domains.WorldEventSync.OnBuildingEntityDamaged(entity, damage, playHitSound, playHitFlash);
 		domains.EnemySync.RecordLocalAttack(entity, damage); // a guest's local drop on a frozen enemy must not flash-revert on the next batch
 	}
 

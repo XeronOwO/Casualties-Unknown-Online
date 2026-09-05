@@ -132,10 +132,10 @@ internal sealed class WorldStateMessageService(
 	public void FireBlockPlacedReceived(ulong sender, int x, int y, ushort block) =>
 		BlockPlacedReceived?.Invoke(sender, x, y, block);
 
-	public event Action<NetVector2, float, bool>? BuildingEntityDamagedReceived;
+	public event Action<NetVector2, float, bool, bool>? BuildingEntityDamagedReceived;
 
-	public void FireBuildingEntityDamagedReceived(NetVector2 pos, float damage, bool playHitSound) =>
-		BuildingEntityDamagedReceived?.Invoke(pos, damage, playHitSound);
+	public void FireBuildingEntityDamagedReceived(NetVector2 pos, float damage, bool playHitSound, bool playHitFlash) =>
+		BuildingEntityDamagedReceived?.Invoke(pos, damage, playHitSound, playHitFlash);
 
 	public event Action<NetVector2>? BuildingEntityOpenedReceived;
 
@@ -168,7 +168,7 @@ internal sealed class WorldStateMessageService(
 		}
 	}
 
-	public void SendBuildingEntityDamaged(NetVector2 pos, float damage, bool playHitSound = true)
+	public void SendBuildingEntityDamaged(NetVector2 pos, float damage, bool playHitSound = true, bool playHitFlash = false)
 	{
 		if (!_session.SessionActive)
 		{
@@ -180,6 +180,7 @@ internal sealed class WorldStateMessageService(
 			Position = pos.ToNetVector2Msg(),
 			Damage = damage,
 			PlayHitSound = playHitSound,
+			PlayHitFlash = playHitFlash,
 		};
 		if (_session.Role == SessionRole.Host)
 		{

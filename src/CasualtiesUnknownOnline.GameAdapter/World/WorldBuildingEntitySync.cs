@@ -37,8 +37,10 @@ internal sealed class WorldBuildingEntitySync(
 	/// which otherwise stays local and the peer's copy of the entity never
 	/// loses health): report it, position-keyed (world entities are generated
 	/// deterministically, so both sides have the same object at the same place).
+	/// <paramref name="playHitFlash"/> is true only for a Body.Attack melee hit;
+	/// the receiver replays the native red HitFlash alongside the hitSound.
 	/// </summary>
-	internal void OnBuildingEntityDamaged(BuildingEntity entity, float damage, bool playHitSound = true)
+	internal void OnBuildingEntityDamaged(BuildingEntity entity, float damage, bool playHitSound = true, bool playHitFlash = false)
 	{
 		if (IsRemoteApply || !_session.SessionActive)
 		{
@@ -46,7 +48,7 @@ internal sealed class WorldBuildingEntitySync(
 		}
 
 		var pos = entity.transform.position;
-		_world.SendBuildingEntityDamaged(new NetVector2(pos.x, pos.y), damage, playHitSound);
+		_world.SendBuildingEntityDamaged(new NetVector2(pos.x, pos.y), damage, playHitSound, playHitFlash);
 		if (!TrapBuildingHealthScope.TryAdd(pos.x, pos.y, entity.health))
 		{
 			_world.ReportBuildingEntityHealth(pos.x, pos.y, entity.health); // host-only — the late-joiner snapshot's fact source
@@ -66,7 +68,7 @@ internal sealed class WorldBuildingEntitySync(
 	/// sources (cactus collision self-damage) pass playHitSound = false because
 	/// the trigger side never played the entity hitSound.
 	/// </summary>
-	internal void OnRemoteBuildingEntityDamaged(NetVector2 pos, float damage, bool playHitSound)
+	internal void OnRemoteBuildingEntityDamaged(NetVector2 pos, float damage, bool playHitSound, bool playHitFlash)
 	{
 		using (CallContext.Enter(CallContext.Origin.RemoteApply))
 		{
@@ -80,6 +82,14 @@ internal sealed class WorldBuildingEntitySync(
 				{
 					Sound.Play(entity.hitSound, entity.transform.position, false, true, null, 1f, 1f, false, false);
 				}
+				// Attack damage also spawned a red HitFlash on the attacker's side
+				// (Body.cs:1948-1951). Replay the same native one-shot here so the
+				// non-attacker view shows the same hit feedback; the flash is
+				// presentation-only and never mutates entity state.
+				if (playHitFlash)
+				{
+					ReplayHitFlash(entity);
+				}
 				if (entity.health < 0.5f)
 				{
 					MarkRemoteEntityDeath(entity, replayAnimalDeath: true);
@@ -92,6 +102,40 @@ internal sealed class WorldBuildingEntitySync(
 				_log.LogWarning("Building entity damage at {Pos} — no entity there (moved or already gone).", pos);
 			}
 		}
+	}
+
+	/// <summary>
+	/// Replays the exact red HitFlash Body.Attack spawns when it hits a
+	/// BuildingEntity (Body.cs:1948-1951): same sprite, position, rotation,
+	/// parent follow and red color through the game's own
+	/// <c>WorldGeneration.CreateHitFlash</c> entry. If the entity has no
+	/// SpriteRenderer (or the world is not ready), the one-shot is skipped with
+	/// a debug log; it has no persistent state to heal.
+	/// </summary>
+	private void ReplayHitFlash(BuildingEntity entity)
+	{
+		if (WorldGeneration.world == null || !entity.TryGetComponent(out SpriteRenderer spriteRenderer)) // Unity object — ==
+		{
+			_log.LogDebug("[BuildingHitFlash] replay skipped — no world or no SpriteRenderer at ({X:F1},{Y:F1}).",
+				entity.transform.position.x, entity.transform.position.y);
+			return;
+		}
+
+		if (spriteRenderer.sprite == null) // Unity object — ==
+		{
+			_log.LogDebug("[BuildingHitFlash] replay skipped — entity sprite is null at ({X:F1},{Y:F1}).",
+				entity.transform.position.x, entity.transform.position.y);
+			return;
+		}
+
+		WorldGeneration.world.CreateHitFlash(
+			spriteRenderer.sprite,
+			entity.transform.position,
+			entity.transform.rotation,
+			Color.red,
+			entity.transform);
+		_log.LogDebug("[BuildingHitFlash] replayed red hit flash at ({X:F1},{Y:F1}).",
+			entity.transform.position.x, entity.transform.position.y);
 	}
 
 	/// <summary>

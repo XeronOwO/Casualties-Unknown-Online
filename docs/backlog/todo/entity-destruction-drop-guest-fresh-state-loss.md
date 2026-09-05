@@ -1,6 +1,6 @@
 # Entity destruction drops lose fresh-drop presentation/initial motion on the guest view
 
-- Status: Review (code-complete; final unified acceptance pending)
+- Status: Todo (re-opened after another user rejection)
 - Priority: Medium
 - Category: Item sync / entity destruction presentation
 - Source: User report (2026-09-04); rejected by user (2026-09-05) with a jump-pad trap destruction reproduction.
@@ -24,9 +24,25 @@ This ticket is re-opened as TODO. The fresh-drop presentation must match the
 host side on all peers, and the missing/desynced drops must not hide the
 verification.
 
+## Rejected again (2026-09-05 acceptance)
+
+User re-tested entity destruction drop presentation in both directions:
+
+- Host destroys an entity:
+  - Host view: the dropped items show the white fresh-drop highlight.
+  - Guest view: the same dropped items do not show the white highlight.
+- Guest destroys an entity:
+  - Guest view: the dropped items show the white fresh-drop highlight.
+  - Host view: the same dropped items do not show the white highlight.
+
+This is the same fresh-drop presentation family, and it is bidirectional:
+the non-destroying peer is missing the highlight regardless of which side
+destroyed the entity. The ticket stays open in `todo/` until both directions
+(and third-party views) are fixed and verified on the deployed artifacts.
+
 ## Goal
 
-Make destruction drops from building/trap/entity death appear on every peer with the same fresh-drop presentation and the same initial motion phase as the attacker/host side, without causing the guest to first fall/step and then be yanked back by the authority stream.
+Make destruction drops from building/trap/entity death appear on every peer with the same fresh-drop presentation and the same initial motion phase as the attacker side, regardless of which peer (host or guest) destroyed the entity, without causing the non-destroying peer to first fall/step and then be yanked back by the authority stream.
 
 ## Current behavior / suspected root cause
 

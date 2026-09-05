@@ -1,3 +1,4 @@
+using System;
 using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.Protocol.Wire;
@@ -48,7 +49,7 @@ internal static class ItemSpawnWireMapper
 			epoch,
 			authority,
 			identity,
-			KernelWireMapper.FromWireLocation(command.Location ?? throw new System.InvalidOperationException("spawn command lacks location")),
+			KernelWireMapper.FromWireLocation(command.Location ?? throw new InvalidOperationException("spawn command lacks location")),
 			0,
 			command.Data is null ? null : KernelWireMapper.FromWireData(command.Data),
 			command.VelocityX,

@@ -39,7 +39,7 @@ todo/  →  in-progress/  →  review/  →  done/
 ### Todo
 
 - [Guest frame rate lower than host with frame drops](todo/guest-frame-rate-lower-than-host.md) — guest runs at a noticeably lower frame rate than host; needs baseline and guest-only overhead isolation.
-- [Guest water-current pose/height desync on host view](todo/guest-water-current-pose-height-desync.md) — host sees a different lying/water pose and temporary underground clipping for a guest carried by water; needs root-cause investigation.
+- [Guest remote pose / head-orientation desync on host view](todo/guest-remote-pose-head-orientation-desync.md) — refined dual-instance reproduction: mouse moving to the guest's left while the guest still faces right causes wrong host-side facing/head angle and an abrupt head jump across the 180° ray; water-current pose/clipping is a related variant.
 - [Host fall injury mouth-expression desync](todo/host-fall-injury-mouth-expression-desync.md) — guest sees host's mouth open after fall injury while host's own view does not; needs root-cause investigation rather than a cosmetic remote-face patch.
 - [Sleep behavior policy decision](todo/sleep-behavior-policy.md) — open decision on allow/disable sleep in sessions, including forced-sleep effects such as mushroom tail.
 - [Snapshot size reduction](todo/snapshot-size-reduction.md) — measurement-first.

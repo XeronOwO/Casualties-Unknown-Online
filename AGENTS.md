@@ -2,6 +2,15 @@
 
 Instructions for AI coding agents and contributors working in this repository.
 
+## Document Scope & Classification
+
+- `AGENTS.md` is the shared, portable rule set for every contributor.
+- `AGENTS.local.md` is the machine/person-specific companion: local paths,
+  personal preferences, detailed examples, and past mistakes. It is gitignored
+  and never committed.
+- The same rule may exist in both files. `AGENTS.md` states the objective/general
+  principle; `AGENTS.local.md` may carry the local detail, examples, and rationale.
+
 ## Project Overview
 
 **Casualties Unknown: Online (CUO)** is a BepInEx multiplayer mod framework for
@@ -172,6 +181,32 @@ a separate future architecture item, not part of the completed evolution.
   4. Were unsupported features/operations left as future only with explicit user
      acceptance? A self-imposed "future" is not a completed parity claim.
   Passing tests and repo gates is necessary, not sufficient.
+- `[CRITICAL]` **User-found issues are hard release blockers**: every issue
+  reported by the user must be fixed until the exact reproduction is resolved
+  and verified, not merely until tests/gates pass. Do not stop at "unit tests
+  are green", do not leave a known failing scenario as future work, and do not
+  move it to `review/` while any part of the user-reported behavior is still
+  unverified. Only stop when the fix is demonstrably complete against the user's
+  scenario and no known regression remains; if an external blocker prevents
+  completion, state it explicitly and keep the issue open rather than declaring
+  it done.
+- `[CRITICAL]` **Prefer architectural rewrite when it is the right solution**:
+  when a better, cleaner architecture or solution exists, proactively overhaul
+  rather than continuing to patch an inferior structure. Local patches on a
+  fundamentally wrong design tend to either fail to fix the problem or create
+  new problems.
+- `[CRITICAL]` **Deployment/artifact verification is part of completion**:
+  after any runtime behavior change, build and deploy the latest artifacts,
+  then verify the deployed artifact identity (hash/timestamp) before reporting
+  the change as complete. A build passing without the latest DLLs running is
+  not completion.
+- `[CRITICAL]` **Adversarial self-check must be independent**: after a fix, run
+  an adversarial review in a fresh/independent context, not only from the same
+  reasoning path that produced the fix. Cover reverse directions, third-party
+  views, edge cases, and regressions of adjacent features.
+- `[CRITICAL]` **Rejection root-cause loop**: when the user rejects a delivered
+  item, perform a "why was it missed" analysis and record the process lesson.
+  Moving the ticket back is not enough; the leak must be understood.
 - `[GATE]` Follow `docs/evidence/delivery-checklist.md` + `tools/check-delivery.ps1` for each delivery.
 - `[GATE]` Check off delivery checklist boxes one line at a time with the Edit tool; bulk
   checking is forbidden.
@@ -179,6 +214,19 @@ a separate future architecture item, not part of the completed evolution.
   self-check table → user approval (for large changes) → **add a regression test that fails
   on current code** → implement → build/gates → deploy → runtime verification → structure
   review → commit.
+
+### Definition of Done for user-facing changes
+
+A user-facing change is not complete just because tests and gates pass. Before
+moving to `review/` or reporting completion:
+
+- the exact user reproduction no longer reproduces;
+- all roles, directions, participant views, and third-party views are verified;
+- the game's existing native UI is reused where one exists;
+- the latest build is deployed and artifact identity is verified;
+- an independent adversarial self-check has passed;
+- no known failing scenario is left as "future" without explicit user acceptance;
+- the root cause is addressed, not patch-stacked.
 
 See `docs/evidence/delivery-checklist.md` for the executable gate.
 

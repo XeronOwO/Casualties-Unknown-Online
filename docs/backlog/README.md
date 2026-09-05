@@ -59,7 +59,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Trade domain dual-side runtime pass](review/trade-domain-dual-side-runtime.md) — #59/#93.
 - [World determinism / WorldFingerprint comparison](review/world-determinism-world-fingerprint.md).
 - [Block-break first-writer-wins dual-side runtime confirmation](review/block-break-first-writer-wins.md).
-- [check-architecture.ps1 performance](review/check-architecture-performance.md) — full gate ~32.4s → ~2.15s; selfcheck linked.
 - [Middle-click location marker](review/middle-click-location-marker.md) — dedicated one-shot location ping: middle click circle, quick second click exclamation, star relay, 5s fade; selfcheck linked.
 - [CUCoreLib migration support](review/cucorelib-migration-support.md) — external KrokMP-based evaluation complete; typed content/status/moodle/runtime seams landed; remaining rows are future/non-goal; selfchecks linked.
 - [Protocol frame envelope validation](review/protocol-frame-validation.md) — unified frame validator before kernel handlers; malformed/forged/oversized frames dropped, presentation payloads remain non-fatal.
@@ -98,6 +97,7 @@ todo/  →  in-progress/  →  review/  →  done/
 ### Resolved
 
 - [IP-direct duplicate names allowed](resolved/ip-direct-duplicate-names.md).
+- [check-architecture.ps1 performance](resolved/check-architecture-performance.md) — resolved: PowerShell script removed after the architecture gate was ported to C# unit tests; no further work needed.
 - [Runtime log errors (2026-08-30)](resolved/runtime-log-errors-2026-08-30.md) — TypeLoadException is HotRepl, not CUO; the OnlineUiOverlay ArgumentException is not in the captured logs.
 - [Sleep behavior policy decision](resolved/sleep-behavior-policy.md) — resolved: normal and forced sleep stay allowed; world-time acceleration remains host-authoritative all-unconscious, no new sleep gate/protocol.
 

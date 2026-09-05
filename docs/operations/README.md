@@ -9,12 +9,12 @@ operations guidance.
 
 The authoritative command list is in [`[../AGENTS.md`](../../AGENTS.md). In brief:
 
-- `tools/check-architecture.ps1` runs the strict structure gates and the Phase E
-  guard suite (GameState isolation, item authority, no-legacy, command authority,
-  kernel shape).
-- `tools/check-event-replay.ps1` covers the per-mechanism replay matrix.
-- `tools/check-entity-event-dispatch.ps1` covers entity-event dispatch completeness.
-- `tools/check-delivery.ps1` is the delivery-cycle gate.
+- `tests/CasualtiesUnknownOnline.NormativeGates.Tests` contains the C# gates that
+  replaced the former `tools/check-*.ps1` scripts: strict structure/Phase E guards,
+  event-replay matrix, entity-event dispatch, absolute-path scan, and delivery
+  checklist. They run as part of `dotnet test`.
+- The former PowerShell check scripts were removed after their logic was ported
+  into this test project.
 - Pure documentation-only changes skip these gates; run `git diff --check` and
   review the diff before committing.
 

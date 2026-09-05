@@ -79,7 +79,7 @@ Source roots:
    layer in the current kernel.
 6. **Kernel isolation is hard.** `CasualtiesUnknownOnline.GameState` has no
    Unity/BepInEx/Steam/network references and no Protocol DTO dependencies. The
-   guards in `tools/check-architecture.ps1` enforce this.
+   guards in `SourceShapeGateTests.GameStateIsolation_NoForbiddenReferencesOrTokens` enforce this.
 
 ## Domain invariants
 

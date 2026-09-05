@@ -2,8 +2,8 @@
 
 Active enforcement rules for the typed deterministic kernel. The list is the
 authoritative set of kernel-shaped invariants. Not every item is automated today:
-five are implemented as tool checks inside `tools/check-architecture.ps1`, while the
-rest are currently covered by tests/processes and remain aspirational for tooling.
+five are implemented as C# gates in `SourceShapeGateTests`, while the rest are
+currently covered by tests/processes and remain aspirational for tooling.
 
 ## Mandatory guard list
 
@@ -29,21 +29,21 @@ rest are currently covered by tests/processes and remain aspirational for toolin
 
 | Guard | Automated today? |
 |---|---|
-| 1 GameState isolation | ✅ `tools/check-gamestate-isolation.ps1` |
-| 2 Domain isolation | ⚠️ Not a standalone tool in `check-architecture.ps1` |
-| 3 Wire-free domain surface | ✅ covered by GameState isolation scanner (partially) |
-| 4 No Unity in kernel data | ✅ covered by GameState isolation scanner |
+| 1 GameState isolation | ✅ `SourceShapeGateTests.GameStateIsolation_NoForbiddenReferencesOrTokens` |
+| 2 Domain isolation | ⚠️ Not covered by a standalone C# gate yet |
+| 3 Wire-free domain surface | ✅ covered by GameState isolation C# gate (partially) |
+| 4 No Unity in kernel data | ✅ covered by GameState isolation C# gate |
 | 5 Event completeness | ❌ not automated; test/process coverage |
-| 6 Authority policy completeness | ✅ `tools/check-command-authority.ps1` |
+| 6 Authority policy completeness | ✅ `SourceShapeGateTests.CommandAuthority_EveryGameCommandDeclaresAuthority` |
 | 7 Checkpoint completeness | ❌ not automated; test coverage |
 | 8 Invariant suites | ❌ not automated; test coverage |
-| 9 No generic core state | ✅ `tools/check-kernel-shape.ps1` |
-| 10 No silent legacy | ✅ `tools/check-no-legacy.ps1` |
+| 9 No generic core state | ✅ `SourceShapeGateTests.KernelShape_NoStringKeyedStateOrHashtable` |
+| 10 No silent legacy | ✅ `SourceShapeGateTests.NoLegacy_NoRemovedDualArchitectureMarkers` |
 
 ## Suggested tooling shape
 
 - A project reference / namespace analyzer run during build.
-- A reflection or source-scan pass in `tools/check-architecture.ps1` or a successor.
+- A reflection or source-scan pass in `SourceShapeGateTests` or a successor.
 - Golden serialization tests for every wire Event and checkpoint schema.
 - A registry test that enumerates Commands/Events and verifies required metadata.
 - A dependency-direction test that fails if `GameState` pulls in a forbidden project.
@@ -56,7 +56,7 @@ rest are currently covered by tests/processes and remain aspirational for toolin
 | B | Wire-free item domain surface, all item Commands declare authority, item checkpoint round-trip, capability registry completeness. |
 | C | Event serialization contract for all new wire Events, envelope versioning, golden wire tests. |
 | D | Domain isolation across all migrated domains, checkpoint completeness, invariant suites for all key aggregates. |
-| E | Full 10-item guard list as the target; the five tool-checked guards are wired into the architecture gate, the rest are test/process-covered. |
+| E | Full 10-item guard list as the target; the five C#-checked guards are wired into `SourceShapeGateTests`, the rest are test/process-covered. |
 
 ## Relationship to existing gates
 
@@ -66,23 +66,25 @@ are additions for the new deep architecture, not replacements.
 
 ## Landed guard automation
 
-Guard 1 (GameState isolation) is automated by `tools/check-gamestate-isolation.ps1`
-and runs inside `tools/check-architecture.ps1`. It rejects CUO project references,
-Unity/BepInEx/Steam/network packages, raw assembly references, forbidden source
-namespaces, ambient random/wall-clock usage, and (Phase B) Protocol DTO/protobuf
-tokens in `src/CasualtiesUnknownOnline.GameState`.
+Guard 1 (GameState isolation) is automated by
+`SourceShapeGateTests.GameStateIsolation_NoForbiddenReferencesOrTokens`. It rejects
+CUO project references, Unity/BepInEx/Steam/network packages, raw assembly
+references, forbidden source namespaces, ambient random/wall-clock usage, and
+(Phase B) Protocol DTO/protobuf tokens in
+`src/CasualtiesUnknownOnline.GameState`.
 
-Phase B addendum: `tools/check-item-authority.ps1` runs inside the same architecture
-gate and rejects direct mutations of `WorldItemTable`/transfer-table state outside
-the item projection classes, so old tables stay rebuildable projections.
+Phase B addendum: `SourceShapeGateTests.ItemAuthority_NoDirectProjectionMutation`
+rejects direct mutations of `WorldItemTable`/transfer-table state outside the item
+projection classes, so old tables stay rebuildable projections.
 
-Phase E addendum: `tools/check-no-legacy.ps1` runs inside the same architecture gate
-and rejects dual-architecture type declarations (`Shadow`/`Legacy`/`Compat`/`Dual`)
+Phase E addendum: `SourceShapeGateTests.NoLegacy_NoRemovedDualArchitectureMarkers`
+rejects dual-architecture type declarations (`Shadow`/`Legacy`/`Compat`/`Dual`)
 plus known removed direct-result/legacy wire markers in `src/`.
 
-Phase E addendum: `tools/check-command-authority.ps1` runs inside the same architecture
-gate and requires every `GameCommand` subclass in the GameState kernel to carry an
+Phase E addendum:
+`SourceShapeGateTests.CommandAuthority_EveryGameCommandDeclaresAuthority` requires
+every `GameCommand` subclass in the GameState kernel to carry an
 `AuthorityKind`/authority policy.
 
-Phase E addendum: `tools/check-kernel-shape.ps1` runs inside the same architecture gate
-and rejects string-keyed dictionaries or `Hashtable` state in the GameState kernel.
+Phase E addendum: `SourceShapeGateTests.KernelShape_NoStringKeyedStateOrHashtable`
+rejects string-keyed dictionaries or `Hashtable` state in the GameState kernel.

@@ -27,7 +27,7 @@ not here:
 | 49 | Mod entity spawn is permission-gated native prefab replication. | `docs/api/mod-api.md` |
 | 50 | `AccessNativeApi` is a curated read-only registry, never open reflection. | `docs/api/mod-api.md` |
 | 63 | NetMsg direction registry is fail-closed; unregistered/incorrect-direction ids are rejected. | `docs/architecture/protocol.md` |
-| 65 | Partial-aware architecture gate + debt ledger. | `AGENTS.md`, `tools/check-architecture.ps1` |
+| 65 | Partial-aware architecture gate + debt ledger. | `AGENTS.md`, `SourceShapeGateTests.Architecture_OneTopLevelTypePerFileAndAggregateLimits` |
 | 73 | HandlerContext per-domain narrowing via capability interfaces. | `docs/architecture/current.md` |
 | 75 | GameAdapter depends on narrow control interfaces, not concrete session services. | `AGENTS.md`, `docs/architecture/domains.md` |
 | 82 | IP-direct TCP transport is a supported non-Steam mode. | `docs/evidence/selfchecks/protocol/ip-direct-selfcheck.md` |

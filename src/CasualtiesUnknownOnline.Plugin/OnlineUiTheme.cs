@@ -14,6 +14,8 @@ internal static class OnlineUiTheme
 
 	internal static readonly Color PanelLight = new(0.07f, 0.09f, 0.12f, 0.98f);
 
+	internal static readonly Color OverlayPanel = new(0.02f, 0.02f, 0.02f, 0.58f);
+
 	internal static readonly Color Border = new(0.72f, 0.58f, 0.24f, 0.9f);
 
 	internal static readonly Color Accent = new(0.85f, 0.72f, 0.38f, 1f);
@@ -87,6 +89,13 @@ internal static class OnlineUiTheme
 		GUI.DrawTexture(new Rect(rect.x, rect.y, 1f, rect.height), Texture2D.whiteTexture, ScaleMode.StretchToFill, false, 0f, Border, 0f, 0f);
 		GUI.DrawTexture(new Rect(rect.xMax - 1f, rect.y, 1f, rect.height), Texture2D.whiteTexture, ScaleMode.StretchToFill, false, 0f, Border, 0f, 0f);
 	}
+
+	/// <summary>Full-screen-facing overlay background for transient/compact
+	/// surfaces such as the Minecraft-like command console. Unlike the modal
+	/// Online UI panel, this remains translucent so the world stays visible
+	/// behind the command history.</summary>
+	internal static void DrawOverlayBackground(Rect rect) =>
+		GUI.DrawTexture(rect, Texture2D.whiteTexture, ScaleMode.StretchToFill, false, 0f, OverlayPanel, 0f, 0f);
 
 	private static GUIStyle CreateWindow()
 	{

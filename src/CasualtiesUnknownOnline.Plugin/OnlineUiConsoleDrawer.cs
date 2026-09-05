@@ -1,4 +1,3 @@
-using System;
 using CasualtiesUnknownOnline.Runtime.Session.Commands;
 using UnityEngine;
 
@@ -15,7 +14,6 @@ internal static class OnlineUiConsoleDrawer
 	internal static void Draw(OnlineUiContext ctx)
 	{
 		GUILayout.Label(ctx.T("console.title"), OnlineUiTheme.Section());
-		GUILayout.Label(ctx.T("console.hint"), OnlineUiTheme.MutedLabel());
 		GUILayout.Space(6f);
 
 		foreach (var line in ctx.Commands.Lines)
@@ -40,13 +38,6 @@ internal static class OnlineUiConsoleDrawer
 
 	private static void DrawLine(ConsoleLine line)
 	{
-		var age = DateTime.UtcNow - new DateTime(line.CreatedAtUtcTicks, DateTimeKind.Utc);
-		var alpha = ConsoleFadePolicy.ComputeAlpha(age, TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(10));
-		if (alpha <= 0.01f)
-		{
-			return;
-		}
-
 		var previous = GUI.color;
 		var color = line.Kind switch
 		{
@@ -54,7 +45,6 @@ internal static class OnlineUiConsoleDrawer
 			ConsoleLineKind.Error => OnlineUiTheme.Error,
 			_ => OnlineUiTheme.Text,
 		};
-		color.a *= alpha;
 		GUI.color = color;
 		GUILayout.Label(line.Text, OnlineUiTheme.MutedLabel());
 		GUI.color = previous;

@@ -12,17 +12,17 @@ existing text-chat send path; no wire message or protocol version was added.
 | 1 | Command chain | `CommandConsoleService` owns registration, slash parsing, role permission, execution and output buffering. |
 | 2 | Command metadata | `CommandSpec` + `ICommandCompletionSource` expose name/description/usage/permission/argument kinds to the UI without exposing handlers. |
 | 3 | Completion suggestions | `CommandConsoleService.Suggest` returns `CommandSuggestion` items (text + description) for command names, member names/SteamIds, and banned SteamIds based on argument kind. |
-| 4 | Rich hint UI | The standalone overlay renders a scrollable, clickable suggestion list; `GUIContent` tooltips show the candidate description on hover. |
+| 4 | Minecraft-style live suggestions | The standalone overlay renders a scrollable, clickable suggestion list immediately as the user types (pressing `/` shows command names without requiring Tab); `GUIContent` tooltips show the candidate description on hover. |
 | 5 | Argument provider seam | `ICommandArgumentSuggestions` exposes per-kind providers for command names, players/SteamIds, banned SteamIds, selectors and JSON scaffolds. |
 | 6 | Tokenizer | `CommandLineTokenizer` splits commands while preserving double/single quotes, escapes, `[]`/`{}`/`()` groups, so spaced values, selectors and JSON-like literals survive as one token. |
 | 7 | Input state machine | `ConsoleInputSession` owns open/close, current line, history navigation, completion cycling and submission, all Unity-free. |
 | 8 | Cursor-aware input | `ConsoleInputSession` owns the cursor and editing operations; the overlay renders a custom IMGUI field with caret, arrow/Home/End/Backspace/Delete, Ctrl+Left/Right, Ctrl+Backspace/Ctrl+Delete, and click-to-place cursor. |
 | 9 | Basic highlighting | The custom input renders command tokens in accent, quoted/selector/JSON-like literals in muted, and plain text in default color. |
-| 10 | Fade policy | `ConsoleFadePolicy.ComputeAlpha` provides the hold/fade curve used by both console surfaces. |
-| 11 | Standalone overlay | `CommandConsoleOverlay` draws a text area + focused input field only when the input session is open, independent of the Online UI window. |
+| 10 | Fade policy | `ConsoleFadePolicy.ComputeAlpha` is used only for non-open-panel notifications; while the console panel is open all command/chat history renders at full alpha with no fading. |
+| 11 | Standalone overlay | `CommandConsoleOverlay` draws a compact translucent bottom panel with full history and a focused input only when the input session is open; recent console lines are also shown as fading notifications while the panel is closed. |
 | 12 | Slash hotkey / modal routing | `Plugin.Update` opens the console on `KeyCode.Slash` and calls `IGameAdapter.SetOnlineUiModal` for the console as well as the Online UI window. |
 | 13 | Input blocking / ESC | The existing `OnlineMenuInputGuard`, `PlayerCameraHandleInputPatch` and `PauseHandlerTogglePausePatch` suppress background UI/game input while modal; the overlay consumes Escape before the game sees it. |
-| 14 | Console page polish | `OnlineUiConsoleDrawer` now applies the same fade to its lines; the standalone overlay shows hints and completion candidates. |
+| 14 | Console page polish | `OnlineUiConsoleDrawer` removes the instruction hint and renders full history with no fade, matching the standalone console. |
 | 15 | Selection/clipboard | `ConsoleInputSession` owns selection ranges; the overlay renders selection highlight and wires Ctrl+A/C/X/V to the Unity system clipboard. |
 | 16 | Undo/redo | `ConsoleInputSession` keeps bounded undo/redo stacks; Ctrl+Z/Ctrl+Y restore editing state. |
 | 17 | No wire change | No `NetMsg`, no packet handler, no `ProtocolVersion` change. |
@@ -61,6 +61,7 @@ existing text-chat send path; no wire message or protocol version was added.
 | Host-rule command validation | Missing JSON shows usage; malformed JSON adds an error line | `CommandConsoleServiceTests.HostRules_WithoutJson_ShowsUsage`, `HostRules_MalformedJson_AddsError` |
 | Specific help command | `/help kick` shows the command usage | `CommandConsoleServiceTests.Help_WithCommandName_ShowsUsage` |
 | Clickable suggestion acceptance | Clicking a suggestion applies it and clears the list | `ConsoleInputSessionTests.AcceptSuggestion_AppliesSpecificCandidateAndClearsList` |
+| Live suggestions on `/` | Open/typed input exposes completions without Tab; closed session returns none | `ConsoleInputSessionTests.LiveSuggestions_ReturnsCurrentCompletionWithoutTab`, `LiveSuggestions_AreEmptyWhenClosed` |
 | Member completion | `/kick <id>` suggests the member id | `CommandConsoleServiceTests.Suggest_ReturnsMemberIdForKickArgument` |
 | Usage hint | `/kick` returns a usage hint | `CommandConsoleServiceTests.GetHint_ReturnsUsageForKnownCommand` |
 | Tokenizer quoting | Quoted spaces remain one token and unquote cleanly | `CommandLineTokenizerTests.Tokenize_RespectsDoubleQuotedSpaces`, `Unquote_StripsMatchingQuotes` |
@@ -77,7 +78,7 @@ existing text-chat send path; no wire message or protocol version was added.
 | Input session submit/history | Submit keeps console open, records history, Up/Down restores draft | `ConsoleInputSessionTests.Submit_ExecutesClearsAndKeepsConsoleOpen`, `History_UpAndDown_RestoresDraft` |
 | Input session completion | Command-name and spaced-argument completion quote correctly | `ConsoleInputSessionTests.CycleCompletion_CompletesCommandName`, `CycleCompletion_QuotesSpacedArgument` |
 | Basic syntax highlighting | Command/plain/quoted tokens render with different colors | static review: `CommandConsoleOverlay.DrawHighlightedInput`, `TokenColor`; Unity rendering is user-acceptance territory |
-| Auto-scroll | Text area scrolls to newest line when line count changes | static review: `CommandConsoleOverlay.DrawTextArea`, `_lastLineCount` |
+| Auto-scroll | History area scrolls to newest line when line count changes | static review: `CommandConsoleOverlay.DrawHistory`, `_lastLineCount` |
 | Focus/mouse block/ESC in Unity | Focus enforcement, modal routing and ESC consumption are in the overlay/plugin path | static review: `CommandConsoleOverlay`, `Plugin.Update`, `OnlineUiOverlay`; Unity IMGUI behavior is user-acceptance territory |
 | Attribute-discovered built-ins | All existing built-ins still register/execute/complete/help through the reflection registry | `CommandConsoleServiceTests` (all command-contract cases) |
 | Mod console command local execution | `/cping` executes locally, enters completion, and hands the mod context local args/SteamId | `ModConsoleCommandTests.ModConsoleCommand_ExecutesLocallyAndAppearsInCompletion` |
@@ -115,7 +116,7 @@ existing text-chat send path; no wire message or protocol version was added.
 | Evidence | Result |
 |---|---|
 | `dotnet build CasualtiesUnknownOnline.slnx` | 0 warnings / 0 errors |
-| `dotnet test CasualtiesUnknownOnline.slnx --no-build` | 1972 passed / 0 failed |
+| `dotnet test CasualtiesUnknownOnline.slnx --no-build` | 2306 passed / 0 failed |
 | `dotnet format CasualtiesUnknownOnline.slnx` | clean |
 | `tools/check-architecture.ps1` | pass (including GameState isolation, item authority, no-legacy, command authority, kernel shape) |
 | `tools/check-event-replay.ps1` | pass (33 events) |
@@ -152,8 +153,14 @@ existing text-chat send path; no wire message or protocol version was added.
   Unity's legacy Input APIs and renders the result, so IME policy stays testable.
 - `ConsoleInputSession` is one top-level type, Unity-free, and owns all
   interactive input state; the Unity overlay is a thin presenter.
-- `CommandConsoleOverlay` is one top-level type and owns only IMGUI drawing/event
-  translation; it does not own command/history policy.
+- `CommandConsoleOverlay` is one top-level type and owns panel/history/suggestion/
+  closed-notification layout plus IMGUI event translation; it does not own
+  command/history policy.
+- `CommandConsoleInputRenderer` is the focused input-line presenter: caret,
+  selection, syntax highlighting and IME composition all live there, keeping the
+  overlay under the architecture line gate and giving the input field a single
+  responsibility.
 - `CommandLineTokenizer` and `ConsoleFadePolicy` are pure static helpers with no
-  mutable state.
+  mutable state; `ConsoleFadePolicy` is used by closed-panel notifications while
+  open-panel history stays at full alpha.
 - No new booleans exceeding the architecture gate; no dead mechanisms left behind.

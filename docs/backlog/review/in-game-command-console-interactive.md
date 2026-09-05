@@ -1,9 +1,9 @@
 # Interactive in-game command console
 
-- Status: Todo (rejected as a whole; must be redone)
+- Status: Review (code complete; waiting for the final unified acceptance pass)
 - Priority: High
 - Category: Tooling / UI / Minecraft-style command console
-- Source: User rejection (2026-09-05) — the whole feature is rejected and must be redone.
+- Source: User rejection (2026-09-05) — the whole feature was rejected and has been redone in this cycle.
 
 ## Rejected as a whole — user feedback
 
@@ -32,6 +32,25 @@ perspective. Specific rejection points:
 - The user explicitly provided Minecraft server and reverse-engineering resources
   for this purpose. The redo must study the Minecraft command/chat UI rather than
   inventing a new design.
+
+## Redo completed (2026-09-05)
+
+- Replaced the large opaque modal panel with a compact, translucent,
+  bottom-anchored console overlay; the world remains visible behind history.
+- Removed the title/header and the key-instruction line; the input prompt and
+  field are aligned in one manual input row.
+- Added live Minecraft-style suggestions: `ConsoleInputSession.LiveSuggestions`
+  always reflects the current input, so pressing `/` immediately shows command
+  candidates and typing narrows them without requiring Tab.
+- While the console is open the full command/chat history renders with no fade;
+  `ConsoleFadePolicy` is now used only for the small closed-panel notification
+  strip that shows the most recent lines for a short time.
+- ESC continues to be consumed by the overlay and the existing modal guard
+  suppresses the game's pause path.
+- Input presentation (caret, selection, highlighting, IME) was split into
+  `CommandConsoleInputRenderer`, keeping the overlay under the architecture line
+  gate and preserving the single-responsibility split.
+- Added `LiveSuggestions` regression tests (open/closed behavior).
 
 Expand the initial modal Online UI console into a standalone interactive
 in-game command console: `/` opens a focused input box, text lines fade,

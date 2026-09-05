@@ -42,6 +42,14 @@ public sealed class ConsoleInputSession(ICommandControl control, ICommandComplet
 
 	public IReadOnlyList<CommandSuggestion> CompletionSuggestions => _completionCandidates;
 
+	/// <summary>The Minecraft-style live suggestion view: recomputed from the
+	/// current input every access, independent of the Tab-cycling candidate
+	/// list. The overlay shows this list while typing so pressing `/` or a
+	/// command prefix immediately presents candidates without requiring Tab.</summary>
+	public IReadOnlyList<CommandSuggestion> LiveSuggestions => _open
+		? _completion.Suggest(_editor.Input)
+		: [];
+
 	public IReadOnlyList<string> CompletionCandidates => [.. _completionCandidates.Select(c => c.Text)];
 
 	public string? Hint => _open ? _completion.GetHint(_editor.Input) : null;

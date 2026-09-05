@@ -1,9 +1,17 @@
 # Carry/piggyback riding movement teleport and rider/carrier position mismatch
 
-- Status: Review
-- Priority: High
+- Status: Todo (Critical / super-priority; re-opened after latest user re-report)
+- Priority: Critical
 - Category: Player interaction / movement sync / carry-piggyback presentation
-- Source: User report (2026-09-04); rejected in review (2026-09-05) — the first fix only covered half of the carry presentation family; rejected again (2026-09-05) on host movement with a riding guest; reworked again with a final LateUpdate carrier-side re-pin.
+- Source: User report (2026-09-04); rejected in review (2026-09-05) — the first fix only covered half of the carry presentation family; rejected again (2026-09-05) on host movement with a riding guest; reworked again with a final LateUpdate carrier-side re-pin; the user now reports the teleport problem still exists and is marked a super-priority fix.
+
+## Rejected again (latest user re-report — super priority)
+
+The user reports the carry/piggyback rider teleport problem still exists and has
+been rejected/repeatedly sent back many times. This is now marked **Critical /
+super-priority fix**. The existing "Landed" notes below are not accepted as
+conclusive: the exact user reproduction must be re-tested on deployed artifacts
+until the rider stays visually attached during movement.
 
 ## Rejected again (2026-09-05 user re-test)
 

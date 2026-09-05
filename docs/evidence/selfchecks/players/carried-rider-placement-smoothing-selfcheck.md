@@ -1,14 +1,14 @@
 # Carried rider placement smoothing and vertical consistency self-check
 
-> **Status: Critical / re-opened (latest user re-report 2026-09-05).** The
-> first movement-smoothing attempt was rejected because the carrier/participant
-> view still saw the rider misaligned/teleporting while the rider's own view
-> looked normal. The follow-up cycle closes the remaining presentation gaps below;
-> after the user's second re-test on host movement, a final `LateUpdate`
-> carrier-side re-pin was added. The user now reports the teleport problem still
-> exists and it is marked as a super-priority fix. This selfcheck is historical
-> evidence for the full rework in
-> `docs/backlog/todo/carry-piggyback-rider-position-smoothing.md`.
+> **Status: Review (2026-09-05 autonomous full-rework + deploy).** The first
+> movement-smoothing attempt was rejected because the carrier/participant view
+> still saw the rider misaligned/teleporting; a second `LateUpdate` re-pin still
+> failed on the user's re-test. The final cycle replaced pin-only behavior on
+> the local-carrier participant view with a structural carry-mount reparent,
+> so the rider follows the carrier's final rendered transform instead of being
+> an independent scene root re-pinned before render. This selfcheck is the
+> evidence for the ticket now in
+> `docs/backlog/review/carry-piggyback-rider-position-smoothing.md`.
 
 Owner cycle: backlog `carry-piggyback-rider-position-smoothing` and
 `carry-piggyback-vertical-placement-asymmetry`. Decision: close both reports by
@@ -66,6 +66,8 @@ Two user-visible symptoms from the same presentation family:
 | `Plugin.LateUpdate` → `GameAdapter.LateUpdateCarryPresentation` | Runs after every `Update`/`Body.Update` has completed and re-pins every remote rider clone to the carrier's final transform before render |
 | `RunCoordinator.RefreshLocalBodyState` | Re-publishes the local entity buffer after the carried-follow placement, so the stream carries the rider's final visual position/limb poses |
 | `BodyUpdatePatch` | Local carried proxy uses `Body.legSpeedMult` for the CrouchAmount slouch input, matching the value the 1 Hz snapshot sends to the remote clone |
+| `RemotePlayerRenderer` local-carrier mount | Creates a neutral-scale `CUO_CarryMount` under the local carrier Body and re-parents the rider clone ROOT under it; the rider follows the carrier's final rendered transform (Rigidbody render interpolation included) rather than only a LateUpdate world-space pin |
+| `RemotePlayerRenderer` third-party pin | Third-party remote carriers keep world-space pin only — both are frozen CUO clones without Unity Rigidbody render interpolation, and mounting would make the rider collateral for the carrier clone's destruction |
 
 Not changed: carry relation authority, `PlayerCarryStateMsg`, release semantics,
 host rules, or the ordinary 20 Hz player stream shape.
@@ -81,30 +83,42 @@ host rules, or the ordinary 20 Hz player stream shape.
 | Local carried rider visual consistency | conscious/alive local carried body presents as a visual proxy so `HandleVisuals` keeps driving its limbs | `RenderProxyPoseTests.CarriedFrozenRiderNotStanding_PresentsStandingForVisuals` + `BodyUpdatePatch` carry-proxy call |
 | Carrier-side no one-frame lag | rider clones are re-pinned after the native local carrier `Body.Update` finishes | `BodyUpdatePatch.Postfix` → `OnLocalCarrierBodyUpdated` → `RefreshLocalCarrierAttach` |
 | Carrier-side final before-render pin | every remote rider clone is re-pinned once more after all Update methods, so the rendered frame matches the carrier's final transform | `Plugin.LateUpdate` → `GameAdapter.LateUpdateCarryPresentation` → `RefreshLocalCarrierAttach` |
+| Local-carrier structural attach | the rider clone root is a real child of the local carrier's neutral mount, so it cannot be separated by render interpolation/order after the pin | `RemotePlayerRenderer.GetOrCreateCarryMount` + `AttachCarriedRiderRoot` + `CarriedRiderMountTests` |
+| Mount scale neutralization | the mount local scale inverts the carrier world scale, preserving the rider's own facing/scale under both left/right carrier facing and non-unit scales | `CarriedBodyPlacement.CarryMountScale` + `CarriedRiderMountTests.CarryMountScale_NeutralizesCarrierWorldScale` (5 cases) |
+| Mount detach/restore | a released rider root returns to the scene root so the ordinary state stream can drive it again | `RemotePlayerRenderer.DetachCarriedRiderRoot` |
 | Stream fallback freshness | local entity buffer is refreshed after the carried-follow placement | `RunCoordinator.RefreshLocalBodyState` called from `PlayerInteractionApply.UpdateCarriedBody` |
-| Observability | 1 Hz clone logs identify carried-rider/carrier clones | `RemotePlayerRenderer.LogClonePosition` carry tag |
+| Observability | 1 Hz clone logs identify carried-rider/carrier clones and mounted state | `RemotePlayerRenderer.LogClonePosition` carry tag + `mounted-to-local-carrier` tag |
 
 ## 5. Verification design and results
 
 - **Before-red**: the two `ShouldPublishBodyRoot` tests and the
   `ApplyRidePose` entry-point test were run against the pre-fix source; all
   three failed at runtime (`CarriedBodyPose.ShouldPublishBodyRoot not found`,
-  `CarriedBodyPlacement.ApplyRidePose not found`).
+  `CarriedBodyPlacement.ApplyRidePose not found`). The new
+  `CarriedRiderMountTests` are reflection-hosted and fail against the pre-mount
+  assembly because `GetOrCreateCarryMount` / `AttachCarriedRiderRoot` /
+  `DetachCarriedRiderRoot` / `CarryMountScale` did not exist before the rework.
 - **Focused regression**: `RenderProxyPoseTests` + `CarriedBodyPoseTests` +
-  `CarriedBodyReleaseTests` — **31 passed / 0 failed** after the rework.
-- **L0**: `dotnet test CasualtiesUnknownOnline.slnx --no-build` — **2312 passed / 0 failed** after adding the final `LateUpdate` re-pin.
+  `CarriedBodyReleaseTests` + `CarriedRiderMountTests` (contract surface + 5
+  `CarryMountScale` behavior cases: ±1, non-unit, zero fallback) — all pass after the mount rework.
+- **L0**: `dotnet test CasualtiesUnknownOnline.slnx --no-build` — **2323 passed / 0 failed** after the mount rework.
 - **Build**: `dotnet build CasualtiesUnknownOnline.slnx --no-restore` — 0 warnings / 0 errors.
 - **Gates**: `check-architecture.ps1`, `check-event-replay.ps1`,
-  `check-entity-event-dispatch.ps1`, `check-delivery.ps1` all pass.
+  `check-entity-event-dispatch.ps1` all pass.
 - **Format**: `dotnet format` run; `--verify-no-changes` only reports the
   known gitignored generated `obj/.../MyPluginInfo.cs`, as documented.
+- **Deploy**: `tools/deploy.ps1 -GameDir "<game-dir>"` succeeded on the real game directory; SHA256 of deployed `CasualtiesUnknownOnline.dll`, `CasualtiesUnknownOnline.GameAdapter.dll`, and `CasualtiesUnknownOnline.Runtime.dll` matches the build output.
 
 ## 6. Structure review
 
 - New code is a single pure rule in the existing pure `CarriedBodyPose` and a
-  single shared helper in `CarriedBodyPlacement`; no new stateful class, no new
-  wire field, no added authority.
+  single shared helper in `CarriedBodyPlacement`; the mount surface stays inside
+  `RemotePlayerRenderer` as narrow private helpers, no new stateful service, no
+  new wire field, no added authority.
 - The two duplicated participant placement bodies were replaced by one call
   path, eliminating the family of "forgot a field on one side" bugs.
+- The local-carrier mount avoids global mutable state: the mount is an empty
+  child owned by the carrier body, and the detach restore keeps the clone
+  recoverable by the normal stream.
 - No touched file approached the line/state gates; no top-level type count
   changed.

@@ -263,6 +263,25 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 
 	public bool TryHandleRemoteBackpackPour(Item dragItem) => _remoteBackpackOps.TryPour(dragItem);
 
+	public bool TryHandleRemoteBackpackCombine(Item dragItem, Item target) =>
+		_remoteBackpackOps.TryCombine(dragItem, target);
+
+	public bool TryHandleRemoteBackpackUse(Item dragItem) => _remoteBackpackOps.TryUse(dragItem);
+
+	public bool TryHandleRemoteBackpackWear(Item dragItem) => _remoteBackpackOps.TryWear(dragItem);
+
+	public bool TryHandleRemoteBackpackBatteryLoad(Item dragItem, Item target) =>
+		_remoteBackpackOps.TryLoadBattery(dragItem, target);
+
+	public bool TryHandleRemoteBackpackBatteryUnload(Item dragItem, Item target) =>
+		_remoteBackpackOps.TryUnloadBattery(dragItem, target);
+
+	public bool TryHandleRemoteBackpackFavoriteToggle(Item item) =>
+		_remoteBackpackOps.TryToggleFavorite(item);
+
+	public bool TryHandleRemoteBackpackMoveToSlot(Item dragItem, int targetSlot) =>
+		_remoteBackpackOps.TryMoveToSlot(dragItem, targetSlot);
+
 	public bool TryHandleRemoteProxyTransferToLocal(Item dragItem) => _remoteBackpackOps.TryTransferToLocal(dragItem);
 
 	public bool CancelRemoteProxyDrag(PlayerCamera camera, string reason)

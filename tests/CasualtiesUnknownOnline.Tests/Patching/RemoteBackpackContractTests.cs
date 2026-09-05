@@ -1,3 +1,4 @@
+using System;
 using System.Reflection;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using Xunit;
@@ -58,13 +59,18 @@ public class RemoteBackpackContractTests
 		var bridge = GameAssemblyHost.Adapter.GetType(
 			"CasualtiesUnknownOnline.GameAdapter.IPatchBridge",
 			throwOnError: true)!;
-		var take = bridge.GetMethod("TryHandleRemoteBackpackTake");
+		var remoteBridge = GameAssemblyHost.Adapter.GetType(
+			"CasualtiesUnknownOnline.GameAdapter.IRemoteBackpackPatchBridge",
+			throwOnError: true)!;
+		Assert.True(Array.Exists(bridge.GetInterfaces(), i => i == remoteBridge));
+
+		var take = remoteBridge.GetMethod("TryHandleRemoteBackpackTake");
 		Assert.NotNull(take);
 		Assert.Equal(typeof(bool), take!.ReturnType);
 		var parameter = Assert.Single(take.GetParameters());
 		Assert.Equal("Item", parameter.ParameterType.Name);
 
-		var cancel = bridge.GetMethod("CancelRemoteProxyDrag");
+		var cancel = remoteBridge.GetMethod("CancelRemoteProxyDrag");
 		Assert.NotNull(cancel);
 		Assert.Equal(typeof(bool), cancel!.ReturnType);
 		var cancelParameters = cancel.GetParameters();
@@ -77,10 +83,17 @@ public class RemoteBackpackContractTests
 			"TryHandleRemoteBackpackDrop",
 			"TryHandleRemoteBackpackMoveToContainer",
 			"TryHandleRemoteBackpackPour",
+			"TryHandleRemoteBackpackCombine",
+			"TryHandleRemoteBackpackUse",
+			"TryHandleRemoteBackpackWear",
+			"TryHandleRemoteBackpackBatteryLoad",
+			"TryHandleRemoteBackpackBatteryUnload",
+			"TryHandleRemoteBackpackFavoriteToggle",
+			"TryHandleRemoteBackpackMoveToSlot",
 			"TryHandleRemoteProxyTransferToLocal",
 		})
 		{
-			var method = bridge.GetMethod(name);
+			var method = remoteBridge.GetMethod(name);
 			Assert.NotNull(method);
 			Assert.Equal(typeof(bool), method!.ReturnType);
 		}

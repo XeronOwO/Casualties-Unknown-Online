@@ -40,6 +40,11 @@ internal sealed class PlayerRemoteInventoryService(
 	private readonly PlayerInteractionResultAuthority _resultAuthority = resultAuthority;
 	private readonly ILogger _log = log;
 
+	/// <summary>A host-validated native operation must be executed on the owner's own local body.</summary>
+	public event Action<RemoteInventoryApplyMsg>? ApplyReceived;
+
+	public void FireRemoteInventoryApplyReceived(RemoteInventoryApplyMsg msg) => ApplyReceived?.Invoke(msg);
+
 	public void SendRemoteInventoryOperation(RemoteInventoryOperationRequestMsg msg)
 	{
 		if (!_session.SessionActive || !_session.LocalInWorld)
@@ -104,9 +109,12 @@ internal sealed class PlayerRemoteInventoryService(
 			return;
 		}
 
-		if (original.SlotIndex < 0)
+		if (original.SlotIndex < 0
+			&& msg.Kind is RemoteInventoryOperationKind.Drop
+				or RemoteInventoryOperationKind.MoveToContainer
+				or RemoteInventoryOperationKind.Pour)
 		{
-			_log.LogInformation("[RemoteInventory] refused {Kind}: item {Item} is worn (slot {Slot}) — native remote-backpack operations only cover inventory/container items in this slice.",
+			_log.LogInformation("[RemoteInventory] refused {Kind}: item {Item} is worn (slot {Slot}) — this operation only covers inventory/container items.",
 				msg.Kind, msg.ItemInstanceId, original.SlotIndex);
 			return;
 		}
@@ -122,10 +130,75 @@ internal sealed class PlayerRemoteInventoryService(
 			case RemoteInventoryOperationKind.Pour:
 				HandlePour(requester, owner, source, original);
 				break;
+			case RemoteInventoryOperationKind.Combine:
+			case RemoteInventoryOperationKind.Use:
+			case RemoteInventoryOperationKind.Wear:
+			case RemoteInventoryOperationKind.BatteryLoad:
+			case RemoteInventoryOperationKind.BatteryUnload:
+			case RemoteInventoryOperationKind.FavoriteToggle:
+			case RemoteInventoryOperationKind.MoveToSlot:
+				HandleApplyOperation(requester, owner, source, original, msg);
+				break;
 			default:
 				_log.LogWarning("[RemoteInventory] refused unknown operation kind {Kind}.", msg.Kind);
 				break;
 		}
+	}
+
+	private void HandleApplyOperation(
+		ulong requester,
+		ulong owner,
+		CharacterDataMsg source,
+		CharacterItemMsg original,
+		RemoteInventoryOperationRequestMsg msg)
+	{
+		switch (msg.Kind)
+		{
+			case RemoteInventoryOperationKind.Combine:
+			case RemoteInventoryOperationKind.BatteryLoad:
+			case RemoteInventoryOperationKind.BatteryUnload:
+				if (msg.TargetItemInstanceId == 0
+					|| msg.TargetItemInstanceId == original.InstanceId
+					|| !TryFindItem(source.Items, msg.TargetItemInstanceId, out _))
+				{
+					_log.LogWarning("[RemoteInventory] refused {Kind}: invalid second item {Target} for {Owner}.",
+						msg.Kind, msg.TargetItemInstanceId, owner);
+					return;
+				}
+
+				break;
+			case RemoteInventoryOperationKind.MoveToSlot:
+				var slotCount = source.SlotCount > 0 ? source.SlotCount : 3;
+				if (msg.TargetSlotIndex < 0 || msg.TargetSlotIndex >= slotCount)
+				{
+					_log.LogWarning("[RemoteInventory] refused {Kind}: target slot {Slot} is outside the {Count}-slot inventory of {Owner}.",
+						msg.Kind, msg.TargetSlotIndex, slotCount, owner);
+					return;
+				}
+
+				break;
+		}
+
+		var apply = new RemoteInventoryApplyMsg
+		{
+			Kind = msg.Kind,
+			OwnerSteamId = owner,
+			ItemInstanceId = original.InstanceId,
+			TargetItemInstanceId = msg.TargetItemInstanceId,
+			TargetSlotIndex = msg.TargetSlotIndex,
+		};
+
+		if (owner == _session.LocalSteamId)
+		{
+			ApplyReceived?.Invoke(apply);
+		}
+		else
+		{
+			_sender.Send(owner, NetMsg.RemoteInventoryApply, apply);
+		}
+
+		_log.LogInformation("[RemoteInventory] {Requester} requested native {Kind} for {Owner} (item {Item}, target {Target}, slot {Slot}).",
+			requester, msg.Kind, owner, original.InstanceId, msg.TargetItemInstanceId, msg.TargetSlotIndex);
 	}
 
 	private void HandleDrop(ulong requester, ulong owner, CharacterDataMsg source, CharacterItemMsg original)

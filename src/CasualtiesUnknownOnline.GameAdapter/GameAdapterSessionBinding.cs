@@ -10,7 +10,11 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// Previously this lived in the GameAdapter coordinator partials; as a real
 /// top-level class it keeps the facade free of the event/subscription surface.
 /// </summary>
-internal sealed class GameAdapterSessionBinding(GameAdapterDomains domains, PlayerInteractionApply playerInteraction, PlayerPushApply pushApply)
+internal sealed class GameAdapterSessionBinding(
+	GameAdapterDomains domains,
+	PlayerInteractionApply playerInteraction,
+	RemoteInventoryOperationApply remoteInventoryApply,
+	PlayerPushApply pushApply)
 {
 	public void Bind()
 	{
@@ -55,6 +59,7 @@ internal sealed class GameAdapterSessionBinding(GameAdapterDomains domains, Play
 		domains.PlayerInteraction.CarryStateChanged += playerInteraction.OnCarryStateChanged; // cross-player carry: set/clear the local carried-body driver
 		domains.PlayerInteraction.HealReceived += playerInteraction.OnPlayerHealReceived; // cross-player heal: consume the local item and/or apply the target's post-heal state
 		domains.PlayerInteraction.UseReceived += playerInteraction.OnPlayerItemUseReceived; // cross-player consumable use: consume/update the user's item and/or apply the target's post-use state
+		domains.PlayerInteraction.RemoteInventoryApplyReceived += remoteInventoryApply.Apply; // native remote-backpack operations execute on the owner's real local body
 		domains.PlayerInteraction.PushReceived += pushApply.Apply; // cross-player push: apply local target ragdoll/pusher cost and play the push sound
 	}
 
@@ -104,6 +109,7 @@ internal sealed class GameAdapterSessionBinding(GameAdapterDomains domains, Play
 		domains.PlayerInteraction.CarryStateChanged -= playerInteraction.OnCarryStateChanged;
 		domains.PlayerInteraction.HealReceived -= playerInteraction.OnPlayerHealReceived;
 		domains.PlayerInteraction.UseReceived -= playerInteraction.OnPlayerItemUseReceived;
+		domains.PlayerInteraction.RemoteInventoryApplyReceived -= remoteInventoryApply.Apply;
 		domains.PlayerInteraction.PushReceived -= pushApply.Apply;
 	}
 

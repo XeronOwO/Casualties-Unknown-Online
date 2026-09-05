@@ -28,4 +28,12 @@ public sealed class RemoteInventoryOperationRequestMsg
 	/// <summary>The stable instance id of the destination container for <see cref="RemoteInventoryOperationKind.MoveToContainer"/> (0 for other operations).</summary>
 	[ProtoMember(4)]
 	public ulong TargetContainerInstanceId { get; set; }
+
+	/// <summary>The second item involved in a two-item native operation (combine, battery load/unload). 0 when not used.</summary>
+	[ProtoMember(5)]
+	public ulong TargetItemInstanceId { get; set; }
+
+	/// <summary>The destination body-slot index for <see cref="RemoteInventoryOperationKind.MoveToSlot"/>; -1 when not used.</summary>
+	[ProtoMember(6)]
+	public int TargetSlotIndex { get; set; } = -1;
 }

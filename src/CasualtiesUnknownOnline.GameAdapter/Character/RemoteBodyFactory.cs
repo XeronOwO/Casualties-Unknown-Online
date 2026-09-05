@@ -8,11 +8,11 @@ namespace CasualtiesUnknownOnline.GameAdapter.Character;
 
 /// <summary>
 /// Creates remote player bodies by cloning the scene's player character
-/// ("Experiment" GameObject — same template KrokMP uses). On the host the clone
-/// is simulated (driven by guest input); on the guest it is a render proxy that
-/// reflects host state. The clone spawns exactly at the peer's position
-/// (reported spawn point / PlayerJoin anchor) — no offset: a constant offset
-/// would keep the two simulations permanently divergent.
+/// ("Experiment" GameObject — same template KrokMP uses). Every remote body is
+/// a frozen render proxy that reflects the owner's synced state; no side
+/// simulates another player's body. The clone spawns exactly at the peer's
+/// position (reported spawn point / PlayerJoin anchor) — no offset: a constant
+/// offset would keep the two presentations permanently divergent.
 /// </summary>
 internal static class RemoteBodyFactory
 {
@@ -49,10 +49,17 @@ internal static class RemoteBodyFactory
 		// Visual-input fields the clone copies from the template at Instantiate
 		// time are stale (the simulation that would keep them current is skipped
 		// — Body.Update is replaced by the render-only patch). Zero the pose
-		// state so the clone stands: crouch amount, water/climb flags.
+		// state so the clone stands: crouch amount, water/climb flags, and the
+		// facing auto-flip inputs (Body.HandleVisuals flips on moveDir/attackCooldown
+		// — Body.cs:3131). The per-frame neutralizer in BodyUpdatePatch is the
+		// invariant, but zeroing at creation removes the one-frame window before
+		// the first Body.Update.
 		body.crouchAmount = 0f;
 		body.inWater = false;
 		body.currentClimbable = null;
+		body.attackCooldown = 0f;
+		body.moveDir = Vector2.zero;
+		body.eatTime = 0f; // FacialExpression uses this for the mouth/head sprite; stale on a frozen clone
 
 		// Freeze ALL physics and joints — the limbs are separate
 		// Rigidbody2D+HingeJoint rigs that would otherwise keep simulating and

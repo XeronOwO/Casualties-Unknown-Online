@@ -1,6 +1,6 @@
 # Guest remote pose / head-orientation desync on host view
 
-- Status: Todo
+- Status: Review (code-complete)
 - Priority: Medium
 - Category: Player presentation / sync root cause
 - Source: User report (2026-09-05), refined reproduction — dual-instance test; the original water-current scenario is included as one observed variant.
@@ -52,6 +52,40 @@ guest's local simulation, especially around the 180° angle boundary.
   a downstream effect of the same orientation/pose divergence.
 - Check the existing player state stream / remote clone pose family and whether
   this scenario should be covered by one root-cause fix.
+
+## Root cause (this cycle)
+
+The refined mouse-crossing reproduction is caused by a stale auto-flip input
+leaking from the template into the render clone:
+
+- `Body.HandleVisuals` flips a character when the look target crosses the 180°
+  ray and `moveDir != 0 || attackCooldown > 0` (`reversing/.../Body.cs:3131`).
+- A render clone does not run the original `Body.Update`, so a positive
+  `attackCooldown` inherited at clone creation never decays
+  (`reversing/.../Body.cs:3375`).
+- `RemoteBodyFactory` reset `crouchAmount` / `inWater` / `currentClimbable`
+  but not `attackCooldown` / `moveDir`.
+- `BodyUpdatePatch.NeutralizePoseInputs` zeroed the other pose modifiers but
+  not the facing auto-flip inputs.
+
+## Landed
+
+- `BodyUpdatePatch.NeutralizePoseInputs` now zeroes `body.attackCooldown`,
+  `body.moveDir` and `body.eatTime` before every proxy/carry visual pass, so
+  `HandleVisuals` can no longer auto-flip a remote clone away from the owner's
+  synced `isRight` / `LookPos`, and `FacialExpression` cannot show a stale
+  inherited eating/mouth sprite.
+- `RemoteBodyFactory.CreateRemoteBody` also clears `attackCooldown`, `moveDir`
+  and `eatTime` at clone creation, removing the one-frame window before the
+  first per-frame neutralizer runs.
+- No wire/protocol, authority, or local-player behavior change.
+- Regression: `RemoteCloneFacingNeutralizationTests` red→green; see
+  `docs/evidence/selfchecks/presentation/remote-clone-facing-auto-flip-selfcheck.md`.
+- Deployed to the real game directory and verified the deployed
+  `CasualtiesUnknownOnline.GameAdapter.dll` hash matches the build output.
+- The earlier water-current/clipping variant is part of the broader systemic
+  body-pose family (see `todo/host-severe-sleepiness-posture-desync.md`) and
+  is not independently closed by this presentation-only facing fix.
 
 ## Non-goals
 

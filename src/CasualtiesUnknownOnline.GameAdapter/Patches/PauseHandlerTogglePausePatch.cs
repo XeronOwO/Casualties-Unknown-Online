@@ -16,6 +16,9 @@ internal static class PauseHandlerTogglePausePatch
 	private static bool Prefix()
 	{
 		var bridge = PatchBridge.Impl;
-		return bridge is null || (!bridge.IsWaitingForReady && !bridge.IsOnlineUiModalOpen);
+		return bridge is null
+			|| (!bridge.IsWaitingForReady
+				&& !bridge.IsOnlineUiModalOpen
+				&& !bridge.IsNonModalEscapeSurfaceOpen);
 	}
 }

@@ -29,8 +29,13 @@ internal sealed class OnlineMenuInputGuard(
 	private IReadOnlyList<OnlineUiBlockRect> _scopedBlocks = [];
 
 	private bool _modal;
+	private bool _nonModalEscapeSurfaceOpen;
 
 	internal bool IsModal => _modal;
+
+	internal bool IsNonModalEscapeSurfaceOpen => _nonModalEscapeSurfaceOpen;
+
+	internal void SetNonModalEscapeSurfaceVisible(bool visible) => _nonModalEscapeSurfaceOpen = visible;
 
 	internal void SetModal(bool modal)
 	{

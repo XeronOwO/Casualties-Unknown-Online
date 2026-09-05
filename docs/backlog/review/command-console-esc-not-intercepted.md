@@ -17,7 +17,8 @@ The command console overlay closes on ESC inside IMGUI `OnGUI`. The game's nativ
 
 - Added a Unity-free `CuoEscCloseSuppression` policy in Runtime that tracks the command console, Online UI window, and quick panel visibility states, and returns one-frame suppression when any of them closes.
 - `Plugin.Update` now keeps `IGameAdapter.SetOnlineUiModal(true)` for the first frame after an ESC-closing CUO surface closes, so the closing ESC is swallowed by the existing modal input guard. The next frame clears the modal state.
-- Covered the whole ESC-closing family: standalone command console, Online UI modal window, and the non-modal quick panel. Added an information log when the close-frame suppression is active, so a deployed run can confirm the guard held on the closing frame.
+- Added `IGameAdapter.SetOnlineUiEscapeSurfaceVisible` / `IPatchBridge.IsNonModalEscapeSurfaceOpen`: while the non-modal quick panel is visible, `PauseHandlerTogglePausePatch` suppresses only the native pause toggle, without making the panel fully modal.
+- Covered the whole ESC-closing family: standalone command console, Online UI modal window, and the non-modal quick panel. Added per-surface ESC-consumed logs and a close-frame log, so a deployed run can confirm the guard held on the closing frame.
 
 ## Expected behavior after fix
 
@@ -27,8 +28,8 @@ The command console overlay closes on ESC inside IMGUI `OnGUI`. The game's nativ
 
 ## Evidence / verification
 
-- New regression tests: `CuoEscCloseSuppressionTests` — command-console close, Online window close, quick-panel close, dangerous OnGUI-before-Update order, next-frame release, stay-open, one-surface-closes-while-another-remains-open, closed-from-start, reopen-then-close (9 cases).
-- Full test suite: 2333 passed / 0 failed.
+- New regression tests: `CuoEscCloseSuppressionTests` — command-console close, Online window close, quick-panel close, dangerous OnGUI-before-Update order, next-frame release, stay-open, one-surface-closes-while-another-remains-open, closed-from-start, reopen-then-close (9 cases); plus 2 input-guard contract tests for the new escape-surface setter.
+- Full test suite: 2335 passed / 0 failed.
 - `dotnet build`, `dotnet format`, `check-architecture`, `check-event-replay`, `check-entity-event-dispatch`, `check-no-absolute-paths`, `check-delivery` all pass.
 - Deployed to the physical game directory with `tools/deploy.ps1`; deployed plugin/Runtime/GameAdapter/Abstractions hashes match build output.
 - Final dual-client visual acceptance remains the user's unified acceptance pass; no claim of actual two-client manual verification is made here.

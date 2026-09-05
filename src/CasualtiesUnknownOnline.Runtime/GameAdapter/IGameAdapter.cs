@@ -85,6 +85,14 @@ public interface IGameAdapter : IDisposable
 	void SetOnlineUiScopedBlocks(IReadOnlyList<OnlineUiBlockRect> blocks);
 
 	/// <summary>
+	/// Tells the Game Adapter whether a non-modal CUO surface that closes on ESC
+	/// (currently the quick panel) is visible. It is used only to suppress the
+	/// native pause toggle while such a surface is open, without making the
+	/// surface fully modal.
+	/// </summary>
+	void SetOnlineUiEscapeSurfaceVisible(bool visible);
+
+	/// <summary>
 	/// Opens the game's native radial backpack UI focused on one in-world remote
 	/// player's render clone. Returns false when no session/world/remote clone is
 	/// available yet. The view is read-only presentation; the clone is never the

@@ -29,6 +29,8 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 
 	public bool IsOnlineUiModalOpen => domains.MenuInput.IsModal;
 
+	public bool IsNonModalEscapeSurfaceOpen => domains.MenuInput.IsNonModalEscapeSurfaceOpen;
+
 	public bool IsInGateWindow => domains.Run.IsInGateWindow;
 
 	public bool IsSessionActive => domains.Session.SessionActive;

@@ -39,6 +39,7 @@ todo/  →  in-progress/  →  review/  →  done/
 ### Todo
 
 - [Command console ESC still opens the game's ESC/pause menu](todo/command-console-esc-not-intercepted.md) — pressing ESC while the command console is open still opens the game's ESC menu instead of only closing the console.
+- [Convert non-.editorconfig normative requirements into unit-testable gates](todo/normative-style-unit-test-gates.md) — turn prose-only `AGENTS.md` rules (e.g. unnecessary fully qualified names) and source-shape `tools/` checks into unit-test-form gates using official Roslyn syntax-analysis libraries where appropriate.
 
 
 ### In progress

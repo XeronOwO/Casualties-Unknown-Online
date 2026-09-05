@@ -124,6 +124,11 @@ a separate future architecture item, not part of the completed evolution.
     the explicit list when it is genuinely clearer/more auditable, but if such
     refactor space is found during development, refactor it or add a backlog item in
     the same cycle instead of leaving it.
+12. `[RULE]` Reuse the game's existing native UI whenever a player-facing feature
+    already has one (e.g., backpack, medical panel); do not build a parallel CUO
+    UI to replace it. Prefer a thin adapter focus + patches. If a native UI cannot
+    be reused, record the concrete blocker with evidence and get user direction
+    before adding custom UI.
 
 ## Quality & Delivery (binding)
 

@@ -39,6 +39,7 @@ todo/  →  in-progress/  →  review/  →  done/
 ### Todo
 
 - [Guest frame rate lower than host with frame drops](todo/guest-frame-rate-lower-than-host.md) — guest runs at a noticeably lower frame rate than host; needs baseline and guest-only overhead isolation.
+- [Remote player medical/health panel](todo/remote-player-medical-panel.md) — rejected in review: previous CUO IMGUI panel did not reuse the game's existing medical UI; re-open requires native UI reuse like the remote backpack.
 - [Guest remote pose / head-orientation desync on host view](todo/guest-remote-pose-head-orientation-desync.md) — refined dual-instance reproduction: mouse moving to the guest's left while the guest still faces right causes wrong host-side facing/head angle and an abrupt head jump across the 180° ray; water-current pose/clipping is a related variant.
 - [Host fall injury mouth-expression desync](todo/host-fall-injury-mouth-expression-desync.md) — guest sees host's mouth open after fall injury while host's own view does not; needs root-cause investigation rather than a cosmetic remote-face patch.
 - [Sleep behavior policy decision](todo/sleep-behavior-policy.md) — open decision on allow/disable sleep in sessions, including forced-sleep effects such as mushroom tail.
@@ -74,7 +75,6 @@ _None._ (Folder exists for the workflow.)
 - [ModService ↔ GameAdapter DI cycle](review/mod-service-gameadapter-di-cycle.md) — startup hang fixed by injecting ModStatusStore instead of ModService into the adapter; regression contract test added.
 - [DI cycle guard / cycle-path diagnostics](review/di-cycle-guard.md) — composition-root ValidateOnBuild + factory re-entrancy guard; cycle chains logged to BepInEx and latest.log; selfcheck linked.
 - [Remove legacy "View items" remote-inventory detail path](review/remove-legacy-view-items-remote-inventory-detail.md) — custom inline inventory expansion and right-click fallback removed; native remote backpack remains the only remote-inventory surface.
-- [Remote player medical/health panel](review/remote-player-medical-panel.md) — CUO read-only medical panel from already-synced full health/limb data; Players page/quick panel/right-click entry; selfcheck linked.
 - [Sync player pain vocalizations and B-key bark](review/sync-player-pain-vocalizations-and-bark.md) — PantSound pain/yawn/growl/B-bark now ride the existing CharacterSoundMsg event; continuous pant remains local; reverse direction covered by star relay.
 - [Suppress native idle-sit while carried](review/carried-player-idle-sit-suppression.md) — carried characters no longer publish/replay/linger in the native sit pose; shared pure CarriedBodyPose rule applied across rider/carrier/peer views.
 - [Carry/piggyback riding movement teleport and rider/carrier position mismatch](review/carry-piggyback-rider-position-smoothing.md) — rider now follows the smoothed carrier render clone; shared ride-pose path and body-root stream anchor prevent participant/third-party drift; selfcheck linked.

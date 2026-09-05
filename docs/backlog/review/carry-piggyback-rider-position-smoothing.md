@@ -1,9 +1,9 @@
 # Carry/piggyback riding movement teleport and rider/carrier position mismatch
 
-- Status: Todo (rejected again after user re-test)
+- Status: Review
 - Priority: High
 - Category: Player interaction / movement sync / carry-piggyback presentation
-- Source: User report (2026-09-04); rejected in review (2026-09-05) — the first fix only covered half of the carry presentation family; rejected again (2026-09-05) on host movement with a riding guest.
+- Source: User report (2026-09-04); rejected in review (2026-09-05) — the first fix only covered half of the carry presentation family; rejected again (2026-09-05) on host movement with a riding guest; reworked again with a final LateUpdate carrier-side re-pin.
 
 ## Rejected again (2026-09-05 user re-test)
 
@@ -15,6 +15,18 @@ User re-tested the carry/piggyback movement while the guest rides on the host:
   position; the guest visibly teleports / jumps rather than staying attached.
 - The carry presentation is rejected; the rider must stay firmly attached to
   the carrier during movement on the participant's view.
+
+## Follow-up fix before re-review
+
+The previous cycle already pinned remote rider clones to the local carrier
+during the CUO Update pump and again in `Body.Update`'s postfix. The remaining
+window was after all `Update` methods: if any game script/physics ordering moved
+the local carrier after those pins, the frame that actually rendered could still
+show the rider on the previous transform. The follow-up adds a final
+`LateUpdate` pass that re-pins every remote rider clone to the local carrier's
+final body transform immediately before rendering. It also keeps the existing
+rider own-client placement unchanged, so the 20 Hz stream timing is not
+disrupted.
 
 ## Goal
 
@@ -31,6 +43,7 @@ The carry/piggyback presentation is now a single shared path with the same refer
 - **Local carried rider presents as a visual proxy** — a conscious/alive local rider now goes through the same `RenderProxyPose.EffectiveVisualStanding(..., isCarryRenderProxy: true)` path as a remote clone. `HandleVisuals` continues driving the visible limbs instead of freezing in the pre-carry pose; dead/unconscious carries keep the non-standing presentation. The local rider also uses its own live `legSpeedMult` for the slouch/crouch animation input, the same value the 1 Hz snapshot sends to remote clones.
 - **Post-native-`Body.Update` carrier re-pin** — `BodyUpdatePatch.Postfix` calls `IPatchBridge.OnLocalCarrierBodyUpdated()` after the local carrier's native body simulation. The CUO render pump may run before the game moves the local carrier in the same frame; this second pass ensures the carrier's own view never shows the rider one frame behind.
 - **Post-placement stream refresh** — `PlayerInteractionApply.UpdateCarriedBody` calls `RunCoordinator.RefreshLocalBodyState()` after placing the rider, so the next 20 Hz stream snapshot carries the rider's final visual position/limb world-poses instead of the pre-follow state.
+- **Final LateUpdate carrier re-pin** — `Plugin.LateUpdate` calls `GameAdapter.LateUpdateCarryPresentation`, which re-runs `RemotePlayerRenderer.RefreshLocalCarrierAttach` after every `Update`/`Body.Update` has finished. Even if a game script or Unity physics ordering moves the local carrier after the CUO pump, the frame that renders cannot show the rider on the previous transform.
 - **Observability** — 1 Hz clone diagnostics tag carried-rider/carrier clones.
 
 No carry authority, wire protocol, release semantics, or host rules changed.
@@ -43,6 +56,7 @@ No carry authority, wire protocol, release semantics, or host rules changed.
 - The shared placement rule lives in `CarriedBodyPlacement.ApplyRidePose`.
 - The render-proxy visual-standing rule lives in `RenderProxyPose.EffectiveVisualStanding`.
 - The post-update re-pin entry is `IPatchBridge.OnLocalCarrierBodyUpdated()` → `RemotePlayerRenderer.RefreshLocalCarrierAttach`.
+- The final before-render re-pin entry is `Plugin.LateUpdate` → `GameAdapter.LateUpdateCarryPresentation` → `RemotePlayerRenderer.RefreshLocalCarrierAttach`.
 - The stream refresh entry is `RunCoordinator.RefreshLocalBodyState()`.
 
 ## Acceptance criteria
@@ -63,6 +77,7 @@ No carry authority, wire protocol, release semantics, or host rules changed.
 - Remote rider-clone attach: `src/CasualtiesUnknownOnline.GameAdapter/Character/RemotePlayerRenderer.cs`
 - Visual proxy rule: `src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/RenderProxyPose.cs`
 - Post-update re-pin: `src/CasualtiesUnknownOnline.GameAdapter/Patches/BodyUpdatePatch.cs` + `src/CasualtiesUnknownOnline.GameAdapter/GameAdapterBridge.cs`
+- Final LateUpdate re-pin: `src/CasualtiesUnknownOnline.Plugin/Plugin.cs` + `src/CasualtiesUnknownOnline.GameAdapter/GameAdapter.cs`
 - Stream refresh: `src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs`
 
 ## Non-goals

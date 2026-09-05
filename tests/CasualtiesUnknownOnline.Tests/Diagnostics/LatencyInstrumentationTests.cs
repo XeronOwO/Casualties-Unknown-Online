@@ -89,4 +89,55 @@ public sealed class LatencyInstrumentationTests
 		Assert.Single(instrumentation.CurrentSamples);
 		Assert.Equal("Run", instrumentation.CurrentSamples.Keys.Single());
 	}
+
+	[Fact]
+	public void Disabled_RecordFrameDoesNotCollect()
+	{
+		var monitor = new MutableOptionsMonitor<LatencyOptions>(new LatencyOptions { Enabled = false });
+		var instrumentation = Create(monitor);
+
+		instrumentation.RecordFrame(42.0);
+
+		Assert.Equal(0, instrumentation.CurrentFrame.Calls);
+	}
+
+	[Fact]
+	public void Enabled_RecordFrameAggregatesCallsAndSlowCount()
+	{
+		var monitor = new MutableOptionsMonitor<LatencyOptions>(new LatencyOptions
+		{
+			Enabled = true,
+			LogIntervalSeconds = 0,
+			SlowFrameThresholdMs = 25.0,
+		});
+		var instrumentation = Create(monitor);
+
+		instrumentation.RecordFrame(10.0);
+		instrumentation.RecordFrame(30.0);
+
+		var frame = instrumentation.CurrentFrame;
+		Assert.Equal(2, frame.Calls);
+		Assert.Equal(40.0, frame.TotalMs, 3);
+		Assert.Equal(20.0, frame.AverageMs, 3);
+		Assert.Equal(30.0, frame.MaxMs, 3);
+		Assert.Equal(1, frame.SlowCalls);
+	}
+
+	[Fact]
+	public void Flush_ClearsFrameSummary()
+	{
+		var monitor = new MutableOptionsMonitor<LatencyOptions>(new LatencyOptions
+		{
+			Enabled = true,
+			LogIntervalSeconds = 0,
+			SlowFrameThresholdMs = 25.0,
+		});
+		var instrumentation = Create(monitor);
+
+		instrumentation.RecordFrame(10.0);
+		instrumentation.Flush();
+
+		Assert.Equal(0, instrumentation.CurrentFrame.Calls);
+	}
+
 }

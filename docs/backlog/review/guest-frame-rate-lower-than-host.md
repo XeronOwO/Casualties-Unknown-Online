@@ -1,9 +1,22 @@
 # Guest frame rate lower than host with frame drops
 
-- Status: Todo
+- Status: Review
 - Priority: Medium
 - Category: Performance / guest-side runtime
 - Source: User report (2026-09-05) — the guest's frame rate is noticeably lower than the host's and the guest experiences frame drops.
+
+## Completed in this cycle
+
+- Landed opt-in whole-frame latency telemetry (`[Latency] Frame`) plus the
+  existing per-domain summaries, with a configurable slow/frame-drop threshold
+  (`Diagnostics:SlowFrameThresholdMs`).
+- Removed avoidable per-frame allocations: `RemotePlayers` is now a cached
+  `IReadOnlyList` rebuilt only on entity-table mutations, and hot consumers
+  iterate it by index; the guest item-follow pump no longer takes a
+  `Keys.ToList()` snapshot every frame.
+- Selfcheck: `docs/evidence/selfchecks/tooling/guest-frame-rate-baseline-selfcheck.md`.
+- Verification: full test suite 2283 passed / 0 failed; architecture, event
+  replay, and entity-event dispatch gates pass.
 
 ## Observed symptom
 

@@ -112,6 +112,7 @@ All files under `docs/selfchecks/` are historical/per-delivery evidence records.
 | presentation/owner-local-body-auto-events-selfcheck.md | Other | current | candidate current evidence; verify before citing |
 | tooling/partial-aware-gate-selfcheck.md | Other | current | candidate current evidence; verify before citing |
 | tooling/check-architecture-performance-selfcheck.md | Other | current | candidate current evidence; verify before citing |
+| tooling/guest-frame-rate-baseline-selfcheck.md | Other | current | guest frame-rate baseline telemetry and cached RemotePlayers hot-path allocation removal |
 | tooling/patch-contract-overload-selfcheck.md | Other | current | candidate current evidence; verify before citing |
 | architecture/phase-a-kernel-foundation-selfcheck.md | Architecture | historical | superseded/old-wire; do not cite as current evidence without checking protocol.md |
 | architecture/phase-b-item-authority-selfcheck.md | Architecture | historical | superseded/old-wire; do not cite as current evidence without checking protocol.md |

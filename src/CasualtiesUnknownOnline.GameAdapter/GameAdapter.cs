@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.GameAdapter.Character;
@@ -165,6 +166,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 
 	void ICuoService.Update()
 	{
+		var frameStopwatch = _latency.IsEnabled ? Stopwatch.StartNew() : null;
 		_domains.GuestMenu.Update();
 		_domains.RunSettingsRange.Update();
 		_domains.MenuInput.Update();
@@ -260,6 +262,11 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 			_domains.EnemyCombat.Update(); // host: enemy combat decisions (target guidance rides the patch callbacks; bite arbitration here)
 		}
 		_domains.TutorialClawSync.Update(); // host: publish the tutorial-claw presentation state (Runtime throttles the 20 Hz fan-out)
+		if (frameStopwatch != null)
+		{
+			_latency.RecordFrame(frameStopwatch.Elapsed.TotalMilliseconds);
+		}
+
 		_latency.Flush();
 	}
 

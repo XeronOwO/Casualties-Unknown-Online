@@ -126,8 +126,10 @@ internal sealed class RemotePlayerRenderer(
 		// Lazy per-member ensure: a roster join can arrive before the member's
 		// world exists (the menu scene has no "Experiment" template), and members
 		// can join mid-session — retrying every frame absorbs all ordering races.
-		foreach (var remote in _entities.RemotePlayers)
+		var remotePlayers = _entities.RemotePlayers;
+		for (var i = 0; i < remotePlayers.Count; i++)
 		{
+			var remote = remotePlayers[i];
 			if (!_session.IsRemoteInWorld(remote.SteamId))
 			{
 				continue; // in a menu/loading — no clone

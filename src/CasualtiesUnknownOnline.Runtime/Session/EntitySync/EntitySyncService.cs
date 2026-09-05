@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Configuration;
@@ -66,6 +65,7 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 	private byte _swingSeq;
 
 	private readonly Dictionary<ulong, SyncedEntity> _entities = [];
+	private readonly List<PlayerEntity> _remotePlayers = [];
 	private ulong _epoch;
 	private uint _nextEntityCounter;
 	private bool _selfSyncActive; // guest: self sync state (host derives from the entity table)
@@ -111,11 +111,26 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 		: _selfSyncActive;
 
 	/// <summary>All synced remote entities (host: one per guest; guest: the host plus roster guests).</summary>
-	public IEnumerable<PlayerEntity> RemotePlayers => _entities.Values.Select(m => m.Entity);
+	public IReadOnlyList<PlayerEntity> RemotePlayers => _remotePlayers;
 
 	/// <summary>Synced remote entity by SteamId, or null.</summary>
 	public PlayerEntity? GetRemotePlayer(ulong steamId) =>
 		_entities.TryGetValue(steamId, out var member) ? member.Entity : null;
+
+	/// <summary>
+	/// Rebuilds the cached remote-player view after the entity table changes.
+	/// Join/leave/session-teardown are low frequency, so rebuilding here is
+	/// intentional; the per-frame render/UI consumers get a stable list without
+	/// allocating a LINQ enumerator every frame.
+	/// </summary>
+	private void RefreshRemotePlayers()
+	{
+		_remotePlayers.Clear();
+		foreach (var member in _entities.Values)
+		{
+			_remotePlayers.Add(member.Entity);
+		}
+	}
 
 	/// <summary>Host side: current authoritative state of the local body.</summary>
 	public void PublishLocalState(NetVector2 position, NetVector2 lookPos, NetVector2 velocity,
@@ -264,6 +279,7 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 	{
 		if (_entities.Remove(steamId))
 		{
+			RefreshRemotePlayers();
 			_log.LogInformation("Entity sync ended for {Member}.", steamId);
 		}
 	}
@@ -281,6 +297,7 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 			}
 
 			_entities.Clear();
+			RefreshRemotePlayers();
 			_log.LogInformation("Entity sync ended for all members.");
 			return;
 		}
@@ -421,6 +438,7 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 		}
 
 		_entities.Remove(steamId);
+		RefreshRemotePlayers();
 		if (_session.Role == SessionRole.Host)
 		{
 			BroadcastExcept(steamId, NetMsg.PlayerLeave, new PlayerLeaveMsg
@@ -439,6 +457,7 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 	private void OnSessionEnded()
 	{
 		_entities.Clear();
+		RefreshRemotePlayers();
 		_selfSyncActive = false;
 		_attackSwing.Reset();
 		_swingSeq = 0;
@@ -464,6 +483,7 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 			Entity = entity,
 			LastReportSeq = 0, // the member re-joins with a fresh sequence space
 		};
+		RefreshRemotePlayers();
 		_playerStatus.Ensure(presence.SteamId);
 		RemoteJoined?.Invoke(entity);
 
@@ -525,6 +545,7 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 				Entity = new PlayerEntity(steamId, entityId, isLocal: false),
 			};
 			_entities[steamId] = member;
+			RefreshRemotePlayers();
 		}
 
 		member.Entity.EntityId = entityId;

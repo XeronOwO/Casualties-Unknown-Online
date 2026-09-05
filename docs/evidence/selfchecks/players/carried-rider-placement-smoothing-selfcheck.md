@@ -1,11 +1,11 @@
 # Carried rider placement smoothing and vertical consistency self-check
 
-> **Status: Rejected in review (2026-09-05).** The movement-smoothing portion
-> was not accepted by the user: when the carrier moves, the carrier/participant
-> view still sees the rider misaligned/teleporting, even though the rider's own
-> view is normal; the reverse direction shows the same class of problem.
-> Retained as historical evidence; the ticket is re-opened as
-> `docs/backlog/todo/carry-piggyback-rider-position-smoothing.md`.
+> **Status: In review (2026-09-05).** The first movement-smoothing attempt was
+> rejected because the carrier/participant view still saw the rider
+> misaligned/teleporting while the rider's own view looked normal. The follow-up
+> cycle closes the remaining presentation gaps below. This selfcheck is now the
+> historical evidence for the full rework in
+> `docs/backlog/review/carry-piggyback-rider-position-smoothing.md`.
 
 Owner cycle: backlog `carry-piggyback-rider-position-smoothing` and
 `carry-piggyback-vertical-placement-asymmetry`. Decision: close both reports by
@@ -57,6 +57,11 @@ Two user-visible symptoms from the same presentation family:
 | `RemotePlayerRenderer.LogClonePosition` | 1 Hz clone diagnostics now tag carried-rider/carrier clones for runtime placement tracing |
 | `RunCoordinator.PublishBodyState` | While carried, publishes `body.transform.position` instead of the ragdoll torso anchor |
 | `GameAdapter.Update` | Moved `UpdateCarriedBody` after `Renderer.Update` so the carrier clone has this frame's interpolation before the rider follows it |
+| `RenderProxyPose` | New carry-proxy arm of `EffectiveVisualStanding`: a conscious/alive local carried rider presents as standing to `HandleVisuals`, matching the remote clone path |
+| `BodyUpdatePatch` | Calls `OnLocalCarrierBodyUpdated` after the local carrier's native `Body.Update`; re-pins remote rider clones to the just-updated local body |
+| `GameAdapterBridge` | Implements `OnLocalCarrierBodyUpdated` → `RemotePlayerRenderer.RefreshLocalCarrierAttach` |
+| `RunCoordinator.RefreshLocalBodyState` | Re-publishes the local entity buffer after the carried-follow placement, so the stream carries the rider's final visual position/limb poses |
+| `BodyUpdatePatch` | Local carried proxy uses `Body.legSpeedMult` for the CrouchAmount slouch input, matching the value the 1 Hz snapshot sends to the remote clone |
 
 Not changed: carry relation authority, `PlayerCarryStateMsg`, release semantics,
 host rules, or the ordinary 20 Hz player stream shape.
@@ -69,6 +74,9 @@ host rules, or the ordinary 20 Hz player stream shape.
 | One shared ride-pose path | both participant paths call the same method, cannot drift field-by-field | `CarriedBodyReleaseTests.RidePoseEntryPoint_IsTheSingleSharedReplacementPath` |
 | Rider follows smoothed carrier | `UpdateCarriedBody` uses the remote carrier render clone after `Renderer.Update` | static code evidence: `GameAdapter` ordering + `RemotePlayerRenderer.TryGetRemoteBody` |
 | Third-party viewer alignment | every remote rider clone is pinned to its carrier clone after interpolation; stream no longer publishes torso anchor for a carried rider | `RemotePlayerRenderer.ApplyRemoteCarrierAttachAll` + `RunCoordinator.PublishBodyState` + pure rule |
+| Local carried rider visual consistency | conscious/alive local carried body presents as a visual proxy so `HandleVisuals` keeps driving its limbs | `RenderProxyPoseTests.CarriedFrozenRiderNotStanding_PresentsStandingForVisuals` + `BodyUpdatePatch` carry-proxy call |
+| Carrier-side no one-frame lag | rider clones are re-pinned after the native local carrier `Body.Update` finishes | `BodyUpdatePatch.Postfix` → `OnLocalCarrierBodyUpdated` → `RefreshLocalCarrierAttach` |
+| Stream fallback freshness | local entity buffer is refreshed after the carried-follow placement | `RunCoordinator.RefreshLocalBodyState` called from `PlayerInteractionApply.UpdateCarriedBody` |
 | Observability | 1 Hz clone logs identify carried-rider/carrier clones | `RemotePlayerRenderer.LogClonePosition` carry tag |
 
 ## 5. Verification design and results
@@ -77,9 +85,9 @@ host rules, or the ordinary 20 Hz player stream shape.
   `ApplyRidePose` entry-point test were run against the pre-fix source; all
   three failed at runtime (`CarriedBodyPose.ShouldPublishBodyRoot not found`,
   `CarriedBodyPlacement.ApplyRidePose not found`).
-- **Focused regression**: `CarriedBodyPoseTests` + `CarriedBodyReleaseTests` —
-  21 passed / 0 failed after the fix.
-- **L0**: `dotnet test CasualtiesUnknownOnline.slnx --no-build` — **2212 passed / 0 failed**.
+- **Focused regression**: `RenderProxyPoseTests` + `CarriedBodyPoseTests` +
+  `CarriedBodyReleaseTests` — **31 passed / 0 failed** after the rework.
+- **L0**: `dotnet test CasualtiesUnknownOnline.slnx --no-build` — **2280 passed / 0 failed**.
 - **Build**: `dotnet build CasualtiesUnknownOnline.slnx --no-restore` — 0 warnings / 0 errors.
 - **Gates**: `check-architecture.ps1`, `check-event-replay.ps1`,
   `check-entity-event-dispatch.ps1`, `check-delivery.ps1` all pass.

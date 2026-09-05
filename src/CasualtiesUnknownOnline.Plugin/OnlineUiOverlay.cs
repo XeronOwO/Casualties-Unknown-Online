@@ -268,6 +268,7 @@ internal sealed class OnlineUiOverlay
 			&& esc.type == EventType.KeyDown
 			&& esc.keyCode == KeyCode.Escape)
 		{
+			Plugin.Logger.LogInfo("Online UI window ESC consumed; closing window.");
 			CloseWindow();
 			esc.Use();
 		}

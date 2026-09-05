@@ -21,7 +21,7 @@ existing text-chat send path; no wire message or protocol version was added.
 | 10 | Fade policy | `ConsoleFadePolicy.ComputeAlpha` is used only for non-open-panel notifications; while the console panel is open all command/chat history renders at full alpha with no fading. |
 | 11 | Standalone overlay | `CommandConsoleOverlay` draws a compact translucent bottom panel with full history and a focused input only when the input session is open; recent console lines are also shown as fading notifications while the panel is closed. |
 | 12 | Slash hotkey / modal routing | `Plugin.Update` opens the console on `KeyCode.Slash` and calls `IGameAdapter.SetOnlineUiModal` for the console as well as the Online UI window. |
-| 13 | Input blocking / ESC | The existing `OnlineMenuInputGuard`, `PlayerCameraHandleInputPatch` and `PauseHandlerTogglePausePatch` suppress background UI/game input while modal; the overlay handles Escape. `CommandConsoleModalSuppression` + `Plugin.Update` keep the modal guard active for the first frame after the console closes so the closing ESC cannot also trigger the native pause menu. This issue is now tracked at `docs/backlog/review/command-console-esc-not-intercepted.md`. |
+| 13 | Input blocking / ESC | The existing `OnlineMenuInputGuard`, `PlayerCameraHandleInputPatch` and `PauseHandlerTogglePausePatch` suppress background UI/game input while modal; the overlay handles Escape. `CuoEscCloseSuppression` + `Plugin.Update` keep the modal guard active for the first frame after any CUO ESC-closing surface closes so the closing ESC cannot also trigger the native pause menu. This issue is now tracked at `docs/backlog/review/command-console-esc-not-intercepted.md`. |
 | 14 | Console page polish | `OnlineUiConsoleDrawer` removes the instruction hint and renders full history with no fade, matching the standalone console. |
 | 15 | Selection/clipboard | `ConsoleInputSession` owns selection ranges; the overlay renders selection highlight and wires Ctrl+A/C/X/V to the Unity system clipboard. |
 | 16 | Undo/redo | `ConsoleInputSession` keeps bounded undo/redo stacks; Ctrl+Z/Ctrl+Y restore editing state. |
@@ -33,7 +33,7 @@ existing text-chat send path; no wire message or protocol version was added.
 | 22 | Mod local console commands | `IModContext.ConsoleCommands` (`IModConsoleCommands`/`ModConsoleCommand`) lets mods register local-only console commands through Abstractions; they share the same registry/completion/help path and never enter the wire protocol. |
 | 23 | Command tree / resource-location completion | `CommandNode`/`ConsoleCommandTree` model argument positions; `CommandArgumentKind.ResourceLocation` + `ConsoleResourceLocationCatalog` provide namespaced candidates for built-ins and mod commands. |
 | 24 | Bracketed selector filters | `CommandSelectorFilter`/`CommandSelectorFilterParser` parse `type`, `name`, `distance`, `limit`, `sort` inside `@a[...]`; resolver applies filters and sort/limit, and `CommandSelectorSuggestions` guides bracket entry. |
-| 25 | ESC one-frame modal suppression | `CommandConsoleModalSuppression` is a Unity-free frame-state policy; `Plugin.Update` keeps `SetOnlineUiModal(true)` for the first frame after the standalone console closes, so the closing ESC is swallowed by the existing native input guard. |
+| 25 | ESC one-frame modal suppression | `CuoEscCloseSuppression` is a Unity-free frame-state policy for command console, Online UI window, and quick panel; `Plugin.Update` keeps `SetOnlineUiModal(true)` for the first frame after any of them closes, so the closing ESC is swallowed by the existing native input guard. |
 
 ## 2. Self-check table
 
@@ -80,7 +80,7 @@ existing text-chat send path; no wire message or protocol version was added.
 | Input session completion | Command-name and spaced-argument completion quote correctly | `ConsoleInputSessionTests.CycleCompletion_CompletesCommandName`, `CycleCompletion_QuotesSpacedArgument` |
 | Basic syntax highlighting | Command/plain/quoted tokens render with different colors | static review: `CommandConsoleOverlay.DrawHighlightedInput`, `TokenColor`; Unity rendering is user-acceptance territory |
 | Auto-scroll | History area scrolls to newest line when line count changes | static review: `CommandConsoleOverlay.DrawHistory`, `_lastLineCount` |
-| Focus/mouse block/ESC in Unity | Focus enforcement and modal routing are in the overlay/plugin path; one-frame modal suppression after console close prevents the closing ESC from reaching the native pause input | static review: `CommandConsoleOverlay`, `Plugin.Update`, `OnlineUiOverlay`, `CommandConsoleModalSuppression`; regression tests: `CommandConsoleModalSuppressionTests` (4 cases); deployed-artifact runtime confirmation is still part of the user's final dual-client acceptance |
+| Focus/mouse block/ESC in Unity | Focus enforcement and modal routing are in the overlay/plugin path; one-frame modal suppression after any CUO ESC-closing surface close prevents the closing ESC from reaching the native pause input | static review: `CommandConsoleOverlay`, `Plugin.Update`, `OnlineUiOverlay`, `CuoEscCloseSuppression`; regression tests: `CuoEscCloseSuppressionTests` (9 cases); surface ESC-consumed logs added for console/window/quick-panel; deployed-artifact runtime confirmation is still part of the user's final dual-client acceptance |
 | Attribute-discovered built-ins | All existing built-ins still register/execute/complete/help through the reflection registry | `CommandConsoleServiceTests` (all command-contract cases) |
 | Mod console command local execution | `/cping` executes locally, enters completion, and hands the mod context local args/SteamId | `ModConsoleCommandTests.ModConsoleCommand_ExecutesLocallyAndAppearsInCompletion` |
 | Mod console metadata | Mod-registered name/description/usage/permission/argument kinds surface through `ICommandCompletionSource.Commands` | `ModConsoleCommandTests.ModConsoleCommand_MetadataIsAvailableToConsoleSurface` |
@@ -117,7 +117,7 @@ existing text-chat send path; no wire message or protocol version was added.
 | Evidence | Result |
 |---|---|
 | `dotnet build CasualtiesUnknownOnline.slnx` | 0 warnings / 0 errors |
-| `dotnet test CasualtiesUnknownOnline.slnx --no-build` | 2328 passed / 0 failed |
+| `dotnet test CasualtiesUnknownOnline.slnx --no-build` | 2333 passed / 0 failed |
 | `dotnet format CasualtiesUnknownOnline.slnx` | clean |
 | `tools/check-architecture.ps1` | pass (including GameState isolation, item authority, no-legacy, command authority, kernel shape) |
 | `tools/check-event-replay.ps1` | pass (33 events) |
@@ -155,9 +155,9 @@ existing text-chat send path; no wire message or protocol version was added.
   Unity's legacy Input APIs and renders the result, so IME policy stays testable.
 - `ConsoleInputSession` is one top-level type, Unity-free, and owns all
   interactive input state; the Unity overlay is a thin presenter.
-- `CommandConsoleModalSuppression` is a tiny Unity-free frame-state policy; the
-  plugin keeps the only state transition and the modal call, so the ESC-close
-  frame remains testable without Unity or IMGUI.
+- `CuoEscCloseSuppression` is a tiny Unity-free frame-state policy for the
+  CUO ESC-closing surface family; the plugin keeps the only state transition and
+  the modal call, so the ESC-close frame remains testable without Unity or IMGUI.
 - `CommandConsoleOverlay` is one top-level type and owns panel/history/suggestion/
   closed-notification layout plus IMGUI event translation; it does not own
   command/history policy.

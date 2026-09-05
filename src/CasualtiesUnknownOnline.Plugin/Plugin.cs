@@ -66,7 +66,7 @@ public class Plugin : BaseUnityPlugin
 	private string? _lastJoinError;
 	private OnlineUiOverlay _onlineUi = null!;
 	private OnlineUiActions _uiActions = null!;
-	private readonly CommandConsoleModalSuppression _commandConsoleModalSuppression = new();
+	private readonly CuoEscCloseSuppression _escCloseSuppression = new();
 
 	private void Awake()
 	{
@@ -315,25 +315,29 @@ public class Plugin : BaseUnityPlugin
 
 		_locationPingInput.TryHandle();
 
-		// The console closes on ESC inside OnGUI, but the game's native pause
-		// input runs in Update. Depending on Unity event ordering, this Update
-		// may observe the console as already closed in the same frame the ESC is
-		// still active. Keep the modal guard active for that first closed frame
-		// so PlayerCamera.HandleInput cannot see the same ESC and open the pause
+		// The command console, Online UI window, and quick panel can all close
+		// on ESC inside OnGUI, while the game's native pause input runs in
+		// Update. Depending on Unity event ordering, this Update may observe a
+		// surface as already closed in the same frame the ESC is still active.
+		// Keep the modal guard active for that first closed frame so
+		// PlayerCamera.HandleInput cannot see the same ESC and open the pause
 		// menu; the next frame clears it.
 		var consoleOpen = _onlineUi.IsCommandConsoleOpen;
-		var consoleCloseFrame = _commandConsoleModalSuppression.Update(consoleOpen);
-		if (consoleCloseFrame)
+		var windowVisible = _onlineUi.IsWindowVisible;
+		var quickPanelVisible = _onlineUi.IsQuickPanelVisible;
+		var escCloseFrame = _escCloseSuppression.Update(consoleOpen, windowVisible, quickPanelVisible);
+		if (escCloseFrame)
 		{
-			_log.LogInformation("Command console closed this frame — keeping native input modal for one frame to swallow the closing ESC.");
+			_log.LogInformation("CUO ESC-closing surface closed this frame — keeping native input modal for one frame to swallow the closing ESC.");
 		}
 
 		// Keep the game's background UI input suppressed while the Online UI
 		// modal window or the standalone command console is open (IMGUI does
-		// not participate in UGUI input).
+		// not participate in UGUI input). A non-modal quick panel is not in the
+		// modal guard while open, but its close frame is covered above.
 		if (_adapter is { } adapter)
 		{
-			adapter.SetOnlineUiModal(_onlineUi.IsWindowVisible || consoleOpen || consoleCloseFrame);
+			adapter.SetOnlineUiModal(windowVisible || consoleOpen || escCloseFrame);
 		}
 
 		if (!_onlineUi.IsCommandConsoleOpen && HotkeyPressed(_interactionPanelKey))

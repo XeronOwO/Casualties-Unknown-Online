@@ -297,6 +297,7 @@ internal sealed class CommandConsoleOverlay
 				evt.Use();
 				break;
 			case KeyCode.Escape:
+				Plugin.Logger.LogInfo("Command console ESC consumed; closing overlay.");
 				Close();
 				evt.Use();
 				break;

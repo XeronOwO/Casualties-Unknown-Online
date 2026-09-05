@@ -98,6 +98,10 @@ Cover at least:
   scan over `src/` and `tests/`.
 - Added `docs/evidence/normative-gates.md`, the normative rule → automation
   status inventory requested by the ticket.
+- Added `ExistingPowerShellGateTests`, which invokes every
+  `tools/check-*.ps1` from the ordinary `dotnet test` run, so the remaining
+  repo-wide/data/process PowerShell gates are no longer optional commit-time
+  scripts.
 - Cleaned the small set of existing fully qualified names that the new gate
   caught (`System.StringComparison`, `System.InvalidOperationException`,
   `System.Collections.Generic.IReadOnlyDictionary`).

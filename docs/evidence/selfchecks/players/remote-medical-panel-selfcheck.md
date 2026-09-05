@@ -1,5 +1,11 @@
 # Remote medical panel — mechanism inventory and self-check
 
+> **Status: Rejected in review (2026-09-05).** The CUO-side IMGUI panel was not
+> accepted because it did not reuse the game's existing medical UI. This file is
+> retained as historical evidence; any future implementation must follow the
+> native-UI reuse direction in
+> `docs/backlog/todo/remote-player-medical-panel.md`.
+
 Owner cycle: backlog `remote-player-medical-panel.md`. Decision for this cycle:
 build the CUO-side read-only medical panel, fed by the already-synced 1 Hz
 character-data stream, rather than attempting to focus the game's own medical

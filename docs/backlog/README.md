@@ -38,7 +38,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-_None._ (Folder exists for the workflow.)
+- [Tab opens backpack then closes immediately](todo/tab-backpack-open-close-immediately.md) — pressing Tab opens the backpack and it closes instantly, as if Tab was pressed twice.
 
 
 ### In progress

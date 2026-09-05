@@ -1,6 +1,6 @@
 # Convert non-.editorconfig normative requirements into unit-testable gates
 
-- Status: Todo
+- Status: Review
 - Priority: High
 - Category: Tooling / engineering gates / Roslyn analyzers / maintainability
 - Source: User request (2026-09-05) — normative checks that live only in
@@ -81,3 +81,26 @@ Cover at least:
   `tools/check-no-absolute-paths.ps1`, `tools/check-delivery.ps1`.
 - Candidate official libraries: `Microsoft.CodeAnalysis.CSharp`,
   `Microsoft.CodeAnalysis.CSharp.Workspaces`.
+
+## Implementation / evidence (2026-09-06)
+
+- Added a dedicated Roslyn gate test project:
+  `tests/CasualtiesUnknownOnline.NormativeGates.Tests` (net8.0, xUnit,
+  `Microsoft.CodeAnalysis.CSharp` 4.8.0). It is part of the solution and the
+  normal `dotnet test` run.
+- Implemented `FullyQualifiedNameGate`: a Roslyn syntax-tree scanner for
+  AGENTS.md #10. It reports unnecessary fully qualified type names and
+  namespace-qualified static/type member accesses, while excluding using
+  directives, namespace declaration names, string literals, and enclosing-type
+  member-name collisions.
+- Added tests for the violation, accepted forms, file-scoped namespace body
+  handling, the `System.IO.Path` member-collision exception, and a repository
+  scan over `src/` and `tests/`.
+- Added `docs/evidence/normative-gates.md`, the normative rule → automation
+  status inventory requested by the ticket.
+- Cleaned the small set of existing fully qualified names that the new gate
+  caught (`System.StringComparison`, `System.InvalidOperationException`,
+  `System.Collections.Generic.IReadOnlyDictionary`).
+- Full `dotnet test` (2335 existing + 6 new), `dotnet format`,
+  `check-architecture`, `check-event-replay`, `check-entity-event-dispatch`,
+  `check-no-absolute-paths`, and `check-delivery` pass.

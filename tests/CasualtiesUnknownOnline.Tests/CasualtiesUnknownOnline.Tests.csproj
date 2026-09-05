@@ -132,8 +132,7 @@
          compile-referenced — it binds Unity/game assemblies), so only its
          build output is copied here (ExcludeAssets="compile" — no type
          references leak into the test compile). -->
-    <ProjectReference Include="..\..\src\CasualtiesUnknownOnline.GameAdapter\CasualtiesUnknownOnline.GameAdapter.csproj"
-                      ExcludeAssets="compile" Private="true" />
+    <ProjectReference Include="..\..\src\CasualtiesUnknownOnline.GameAdapter\CasualtiesUnknownOnline.GameAdapter.csproj" ExcludeAssets="compile" Private="true" />
   </ItemGroup>
 
   <!-- Phase-4 replay archive: every *.replay file ships with the test output —

@@ -1,3 +1,4 @@
+using System;
 using CasualtiesUnknownOnline.Runtime.Session.Commands;
 using UnityEngine;
 
@@ -154,14 +155,14 @@ internal sealed class CommandConsoleInputRenderer
 
 	private static Color TokenColor(CommandLineTokenizer.Token token)
 	{
-		if (token.Start == 0 && token.Text.StartsWith("/", System.StringComparison.Ordinal))
+		if (token.Start == 0 && token.Text.StartsWith("/", StringComparison.Ordinal))
 		{
 			return OnlineUiTheme.Accent;
 		}
 
 		if (token.Quoted
-			|| token.Text.StartsWith("{", System.StringComparison.Ordinal)
-			|| token.Text.StartsWith("[", System.StringComparison.Ordinal))
+			|| token.Text.StartsWith("{", StringComparison.Ordinal)
+			|| token.Text.StartsWith("[", StringComparison.Ordinal))
 		{
 			return OnlineUiTheme.Muted;
 		}

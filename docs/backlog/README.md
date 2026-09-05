@@ -36,12 +36,8 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ## Ticket index
 
-### Todo
-
-- [Convert non-.editorconfig normative requirements into unit-testable gates](todo/normative-style-unit-test-gates.md) — turn prose-only `AGENTS.md` rules (e.g. unnecessary fully qualified names) and source-shape `tools/` checks into unit-test-form gates using official Roslyn syntax-analysis libraries where appropriate.
-
-
 ### Review
+- [Convert non-.editorconfig normative requirements into unit-testable gates](review/normative-style-unit-test-gates.md) — Roslyn `dotnet test` gate for unnecessary fully qualified names landed; normative-rule inventory added in `docs/evidence/normative-gates.md`.
 - [Remote backpack native interaction parity](review/remote-backpack-native-interaction-parity.md) — **Critical / super-priority**: top-level root container sync, open-container background drop, guarded owner-side container apply, and detach-before-destroy transfer removal landed; latest DLLs deployed and artifact-verified; awaiting final user dual-client acceptance.
 - [Tab opens backpack then closes immediately](review/tab-backpack-open-close-immediately.md) — remote-backpack Close no longer writes the native radial state when no remote focus exists; local Tab now stays open; regression test linked.
 - [Entity destruction drops lose fresh-drop presentation/initial motion on the guest view](review/entity-destruction-drop-guest-fresh-state-loss.md) — kernel item-spawn path now preserves full transient initial drop state (velocity/rotation/fresh/angular) to all peers; covers ordinary building/entity deaths in both directions and third-party views; selfcheck linked.

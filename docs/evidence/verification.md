@@ -17,7 +17,14 @@ is the entry point for that evidence chain.
 ## Gates
 
 Run the canonical commands from [`AGENTS.md`](../../AGENTS.md) before committing code
-changes. The architecture-gate guard suite is:
+changes. The normative source-shape gate is now part of `dotnet test`:
+
+- `tests/CasualtiesUnknownOnline.NormativeGates.Tests` — Roslyn syntax-tree gate
+  for AGENTS.md #10 (prefer `using`/aliases over fully qualified names). The
+  inventory of every normative rule's automation status is in
+  [`normative-gates.md`](normative-gates.md).
+
+The architecture-gate guard suite is:
 
 - `tools/check-gamestate-isolation.ps1` — GameState project isolation
 - `tools/check-item-authority.ps1` — item projection ownership

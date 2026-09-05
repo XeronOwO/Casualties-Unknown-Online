@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using CasualtiesUnknownOnline.GameState;
@@ -189,7 +190,7 @@ public class NetworkTrafficBaselineTests
 	}
 
 	private static NetworkTrafficWindow.PayloadTraffic AssertPayload(
-		System.Collections.Generic.IReadOnlyDictionary<WirePayloadType, NetworkTrafficWindow.PayloadTraffic> map,
+		IReadOnlyDictionary<WirePayloadType, NetworkTrafficWindow.PayloadTraffic> map,
 		WirePayloadType payloadType)
 	{
 		Assert.True(map.TryGetValue(payloadType, out var traffic), $"missing payload stats for {payloadType}");

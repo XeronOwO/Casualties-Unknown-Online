@@ -7,4 +7,5 @@
   <Project Path="src/CasualtiesUnknownOnline.Plugin/CasualtiesUnknownOnline.Plugin.csproj" />
   <Project Path="src/CasualtiesUnknownOnline.ModExample/CasualtiesUnknownOnline.ModExample.csproj" />
   <Project Path="tests/CasualtiesUnknownOnline.Tests/CasualtiesUnknownOnline.Tests.csproj" />
+  <Project Path="tests/CasualtiesUnknownOnline.NormativeGates.Tests/CasualtiesUnknownOnline.NormativeGates.Tests.csproj" />
 </Solution>

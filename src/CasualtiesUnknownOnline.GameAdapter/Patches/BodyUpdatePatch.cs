@@ -88,10 +88,19 @@ internal static class BodyUpdatePatch
 		// pass and remains the semantic state for SessionStatePump/LyingPose.
 		var originalStanding = __instance.standing;
 		var isRemoteClone = __instance.GetComponentInParent<RemoteBodyDriver>() != null;
+		// A conscious/alive local rider is a frozen carry presentation, not a
+		// corpse: HandleVisuals must keep driving its standing limbs just like
+		// it does for a remote rider clone, otherwise the rider's own view can
+		// freeze in the pre-carry pose while the carrier/third-party clones
+		// continue to animate — the visible mismatch behind the carry family.
+		var isCarryRenderProxy = CarriedBodyDriver.IsCarrying(__instance)
+			&& __instance.alive
+			&& __instance.conscious;
 		var visualStanding = RenderProxyPose.EffectiveVisualStanding(
 			originalStanding,
 			isRemoteClone,
-			remoteDriver != null && remoteDriver.RagdollPoseActive);
+			remoteDriver != null && remoteDriver.RagdollPoseActive,
+			isCarryRenderProxy);
 		if (!originalStanding && visualStanding)
 		{
 			__instance.standing = true;
@@ -126,7 +135,9 @@ internal static class BodyUpdatePatch
 		// weakness/slouch portion of the CrouchAmount input is reproduced too:
 		// severe sleepiness etc. reduce legSpeedMult on the owner, and a proxy
 		// that ignored it would stand straight while the owner visibly slouches.
-		var proxyLegSpeed = remoteDriver != null ? remoteDriver.LegSpeedMult : 1f; // Unity object — ==
+		var proxyLegSpeed = remoteDriver != null
+			? remoteDriver.LegSpeedMult
+			: __instance.legSpeedMult; // local carried body: use its own owner-computed value; the 1 Hz snapshot sends the same value to remote clones
 		var crouchParam = Body.InOutSine(Mathf.Clamp01(
 			BodyPosePresentation.ProxyCrouchInput(__instance.crouchAmount, proxyLegSpeed))) * 10000f;
 		__instance.bodyAnimator.SetFloat("CrouchAmount", crouchParam);
@@ -164,6 +175,12 @@ internal static class BodyUpdatePatch
 			__instance.bodyAnimator.Play("Grounded");
 			__instance.armsAnimator.Play("Grounded");
 		}
+
+		// The native Body.Update may run after the CUO Renderer pin in the same
+		// frame. Re-pin every remote rider clone to the just-updated local
+		// carrier transform here, so the carrier's own view cannot show the
+		// rider one frame behind the moving body.
+		PatchBridge.Impl?.OnLocalCarrierBodyUpdated();
 	}
 
 	private static bool IsLocalCarrier(Body body) =>

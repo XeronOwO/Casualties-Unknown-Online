@@ -108,6 +108,7 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains)
 				carrierBody.crouching,
 				carrierBody.rb.velocity,
 				carrierBody.targetLookPos);
+			domains.Run.RefreshLocalBodyState();
 			return;
 		}
 
@@ -124,6 +125,7 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains)
 			carrier.Crouching,
 			new Vector2(carrier.Velocity.X, carrier.Velocity.Y),
 			new Vector2(carrier.LookPos.X, carrier.LookPos.Y));
+		domains.Run.RefreshLocalBodyState();
 	}
 
 	public void OnPlayerHealReceived(PlayerHealResultMsg msg)

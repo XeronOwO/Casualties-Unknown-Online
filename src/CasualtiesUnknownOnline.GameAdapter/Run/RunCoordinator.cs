@@ -402,6 +402,15 @@ internal sealed class RunCoordinator(
 			blockHashes[4], blockHashes[5], blockHashes[6], blockHashes[7], total);
 	}
 
+	/// <summary>Re-publish the local body stream after a carried-follow placement; the stream must carry the rider's final visual position.</summary>
+	internal void RefreshLocalBodyState()
+	{
+		if (_localBody != null) // Unity object — ==
+		{
+			PublishBodyState(_localBody);
+		}
+	}
+
 	/// <summary>Guest side: the host released the start gate — start playing.</summary>
 	private void OnRemoteWorldReady()
 	{

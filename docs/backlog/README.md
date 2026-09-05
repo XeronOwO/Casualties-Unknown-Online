@@ -40,7 +40,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 - [Guest frame rate lower than host with frame drops](todo/guest-frame-rate-lower-than-host.md) — guest runs at a noticeably lower frame rate than host; needs baseline and guest-only overhead isolation.
 - [Remote backpack native interaction parity](todo/remote-backpack-native-interaction-parity.md) — rejected in review: still cannot perform most item operations in another player's backpack; re-open requires full native operation parity, not documented future-only gaps.
-- [Carry/piggyback riding movement teleport and rider/carrier position mismatch](todo/carry-piggyback-rider-position-smoothing.md) — rejected in review: only half fixed; carrier/participant views still see the carried player misaligned/teleporting while moving.
 
 
 ### In progress
@@ -79,6 +78,7 @@ _None._ (Folder exists for the workflow.)
 - [Suppress native idle-sit while carried](review/carried-player-idle-sit-suppression.md) — carried characters no longer publish/replay/linger in the native sit pose; shared pure CarriedBodyPose rule applied across rider/carrier/peer views.
 - [Carrier can sit while carrying a player](review/carrier-sit-while-carrying.md) — carrier half of the same family closed: local carrier cannot enter/linger in native sit, mirror-backed via IPatchBridge.IsLocalCarrier; remote carrier clones suppress sit replay on every peer; selfcheck linked.
 - [Carry/piggyback vertical placement asymmetry](review/carry-piggyback-vertical-placement-asymmetry.md) — carried riders publish body root instead of the non-standing torso anchor; shared ride-pose path also mirrors crouch state; selfcheck linked.
+- [Carry/piggyback rider position smoothing and movement teleport](review/carry-piggyback-rider-position-smoothing.md) — shared ride-pose path, rider follows smoothed carrier clone, every rider clone attached after interpolation, local carried body render-proxy visual standing, post-native-Body.Update carrier re-pin, and post-placement stream refresh; selfcheck linked.
 - [Guest container contents periodically appear as world drops on the host view](review/guest-container-contents-ghost-drops-on-host.md) — remote clone nested display proxies no longer carry item instance ids; domain lookup cannot address them; selfcheck linked.
 - [Trap destruction drops desync in item quantity between host and guest](review/trap-destruction-drop-quantity-desync.md) — support-loss building drops now ride the same `BlockDamagedMsg` as the break; non-breaker sides are marked remote death and receive the full initial drop set; selfcheck linked.
 - [Entity destruction drops lose fresh-drop presentation/initial motion on the guest view](review/entity-destruction-drop-guest-fresh-state-loss.md) — support-loss building drops carry fresh/velocity/rotation/angular state through `BlockDamagedMsg.BuildingDrops`; destructive-trap event path unchanged; selfcheck linked.

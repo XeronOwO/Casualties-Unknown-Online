@@ -186,6 +186,23 @@ internal sealed class RemotePlayerRenderer(
 	}
 
 	/// <summary>
+	/// Re-runs the rider-clone attach pass after the local carrier's native
+	/// Body.Update completed. CUO's own update pump may run before the game
+	/// moves the local carrier in the same frame; without this second pass the
+	/// carrier's own view can pin the rider to the previous-frame transform and
+	/// show a one-frame lag/teleport while moving.
+	/// </summary>
+	internal void RefreshLocalCarrierAttach(Body? localBody)
+	{
+		if (localBody == null) // Unity object — ==
+		{
+			return;
+		}
+
+		ApplyRemoteCarrierAttachAll(localBody);
+	}
+
+	/// <summary>
 	/// Pins every remote clone that is currently a carried rider to its
 	/// carrier's visual position after all clones have been interpolated this
 	/// frame. For a local carrier the anchor is the local body; for any other

@@ -42,6 +42,28 @@ public class RenderProxyPoseTests
 	}
 
 	[Fact]
+	public void CarriedFrozenRiderNotStanding_PresentsStandingForVisuals()
+	{
+		Assert.True(RenderProxyPose.EffectiveVisualStanding(
+			bodyStanding: false,
+			isRemoteClone: false,
+			hasExactLimbPose: false,
+			isCarryRenderProxy: true),
+			"a conscious/alive local carried rider is a frozen presentation the same as a remote clone; HandleVisuals must keep driving its limbs");
+	}
+
+	[Fact]
+	public void CarriedFrozenRiderWithExactPose_DoesNotPresentStandingForVisuals()
+	{
+		Assert.False(RenderProxyPose.EffectiveVisualStanding(
+			bodyStanding: false,
+			isRemoteClone: false,
+			hasExactLimbPose: true,
+			isCarryRenderProxy: true),
+			"exact owner limb poses must still win over the animator skeleton on a carried body");
+	}
+
+	[Fact]
 	public void StandingBody_AlwaysPresentsStanding()
 	{
 		Assert.True(RenderProxyPose.EffectiveVisualStanding(

@@ -1,5 +1,6 @@
 using CasualtiesUnknownOnline.GameAdapter.Character;
 using HarmonyLib;
+using UnityEngine.EventSystems;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 
@@ -70,18 +71,43 @@ internal static class RemoteMedicalPatches
 		}
 	}
 
+	[HarmonyPatch(typeof(PlayerCamera), "WoundSpecialAction")]
+	internal static class RemoteMedicalBlockWoundSpecialActionPatch
+	{
+		private static bool Prefix() => !RemoteMedicalView.IsOpen;
+	}
+
 	[HarmonyPatch(typeof(PlayerCamera), "TryPerformSpecialUIAction")]
 	internal static class RemoteMedicalBlockSpecialActionPatch
 	{
-		private static bool Prefix(ref bool __result)
+		private static bool Prefix(PlayerCamera __instance, RaycastResult hit, ref bool __result)
 		{
-			if (RemoteMedicalView.IsOpen)
+			if (!RemoteMedicalView.IsOpen)
 			{
-				__result = false;
+				return true;
+			}
+
+			// The one allowed remote-medical treatment gesture: the acting
+			// player drops a local medical item onto the displayed body's limb.
+			// It is routed through the host-authoritative heal/use request path;
+			// the native display-only body is never mutated.
+			var woundView = __instance.woundView != null // Unity object — ==
+				? __instance.woundView.GetComponent<WoundView>()
+				: null; // Unity object — ==
+			if (hit.gameObject.GetComponent<WoundViewLimb>() != null // Unity object — ==
+				&& __instance.dragItem != null // Unity object — ==
+				&& PatchBridge.Impl?.TryHandleRemoteMedicalLimbUse(
+					__instance.dragItem,
+					woundView != null ? woundView.limbLookingAt : -1) == true)
+			{
+				__result = true;
 				return false;
 			}
 
-			return true;
+			// Every other native special/limb action stays read-only while the
+			// remote focus is open.
+			__result = false;
+			return false;
 		}
 	}
 

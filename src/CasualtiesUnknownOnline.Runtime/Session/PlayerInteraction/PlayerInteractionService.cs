@@ -140,8 +140,8 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, IDispo
 	public bool TryGetCarried(ulong carrierSteamId, out ulong carriedSteamId) =>
 		_carry.TryGetCarried(carrierSteamId, out carriedSteamId);
 
-	public void SendHealRequest(ulong targetSteamId, ulong itemInstanceId = 0) =>
-		_heal.SendHealRequest(targetSteamId, itemInstanceId);
+	public void SendHealRequest(ulong targetSteamId, ulong itemInstanceId = 0, int targetLimbIndex = -1) =>
+		_heal.SendHealRequest(targetSteamId, itemInstanceId, targetLimbIndex);
 
 	public void HandleHealRequest(ulong sender, PlayerHealRequestMsg msg) =>
 		_heal.HandleHealRequest(sender, msg);
@@ -149,8 +149,8 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, IDispo
 	public void FireHealReceived(PlayerHealResultMsg msg) =>
 		_heal.FireHealReceived(msg);
 
-	public void SendUseRequest(ulong targetSteamId, ulong itemInstanceId = 0) =>
-		_itemUse.SendUseRequest(targetSteamId, itemInstanceId);
+	public void SendUseRequest(ulong targetSteamId, ulong itemInstanceId = 0, int targetLimbIndex = -1) =>
+		_itemUse.SendUseRequest(targetSteamId, itemInstanceId, targetLimbIndex);
 
 	public void HandleUseRequest(ulong sender, PlayerItemUseRequestMsg msg) =>
 		_itemUse.HandleUseRequest(sender, msg);

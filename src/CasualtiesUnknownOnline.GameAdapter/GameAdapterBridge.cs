@@ -21,6 +21,7 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBridge
 {
 	private readonly RemoteBackpackOperationHandler _remoteBackpackOps = new(domains);
+	private readonly RemoteMedicalOperationHandler _remoteMedicalOps = new(domains);
 
 	public bool IsWorldGenIsolated => true;
 
@@ -215,6 +216,9 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 
 	public bool TryHandleDraggedItemUseOnRemote(Item dragItem, Body localBody) =>
 		domains.DragUse.TryHandleRelease(dragItem, localBody);
+
+	public bool TryHandleRemoteMedicalLimbUse(Item dragItem, int limbIndex) =>
+		_remoteMedicalOps.TryHandleLimbUse(dragItem, limbIndex);
 
 	public bool TryHandleRemoteBackpackTake(Item dragItem)
 	{

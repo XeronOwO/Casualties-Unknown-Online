@@ -45,6 +45,23 @@ public static class RemoteHealApplication
 	}
 
 	/// <summary>
+	/// Resolve a non-negative native-UI limb selection; falls back to the
+	/// most-injured automatic pick when the requested limb is absent or
+	/// dismembered. -1 means auto.
+	/// </summary>
+	public static int ResolveLimbIndex(IReadOnlyList<CharacterLimbMsg> limbs, int requestedLimbIndex)
+	{
+		if (requestedLimbIndex >= 0
+			&& requestedLimbIndex < limbs.Count
+			&& !limbs[requestedLimbIndex].Dismembered)
+		{
+			return requestedLimbIndex;
+		}
+
+		return PickMostInjuredLimb(limbs);
+	}
+
+	/// <summary>
 	/// Apply one medical item's full-use effect to a limb snapshot. Values are
 	/// clamped to non-negative where the game's fields are non-negative counts
 	/// (pain, timers, bleed); skin/muscle immediate heals stay within 0-100.

@@ -37,6 +37,33 @@ public class RemoteHealApplicationTests
 	}
 
 	[Fact]
+	public void ResolveLimbIndex_UsesRequestedValidLimb()
+	{
+		var limbs = new List<CharacterLimbMsg>
+		{
+			new() { Index = 0, SkinHealth = 70f, MuscleHealth = 70f },
+			new() { Index = 1, SkinHealth = 10f, MuscleHealth = 40f },
+		};
+
+		Assert.Equal(0, RemoteHealApplication.ResolveLimbIndex(limbs, 0));
+	}
+
+	[Fact]
+	public void ResolveLimbIndex_FallsBackToMostInjuredForInvalidOrDismemberedRequest()
+	{
+		var limbs = new List<CharacterLimbMsg>
+		{
+			new() { Index = 0, SkinHealth = 70f, MuscleHealth = 70f },
+			new() { Index = 1, SkinHealth = 10f, MuscleHealth = 40f },
+			new() { Index = 2, Dismembered = true },
+		};
+
+		Assert.Equal(1, RemoteHealApplication.ResolveLimbIndex(limbs, -1));
+		Assert.Equal(1, RemoteHealApplication.ResolveLimbIndex(limbs, 9));
+		Assert.Equal(1, RemoteHealApplication.ResolveLimbIndex(limbs, 2));
+	}
+
+	[Fact]
 	public void Apply_AddsHealingFieldsAndClampsNonNegative()
 	{
 		var limb = new CharacterLimbMsg

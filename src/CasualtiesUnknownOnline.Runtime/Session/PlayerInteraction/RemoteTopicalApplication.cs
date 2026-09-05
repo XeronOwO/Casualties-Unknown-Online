@@ -19,14 +19,15 @@ public static class RemoteTopicalApplication
 	public static void Apply(
 		CharacterHealthMsg health,
 		IReadOnlyList<CharacterLimbMsg> limbs,
-		IReadOnlyList<LiquidStackMsg> plan)
+		IReadOnlyList<LiquidStackMsg> plan,
+		int requestedLimbIndex = -1)
 	{
 		if (health is null || plan.Count == 0)
 		{
 			return;
 		}
 
-		var limbIndex = RemoteHealApplication.PickMostInjuredLimb(limbs);
+		var limbIndex = RemoteHealApplication.ResolveLimbIndex(limbs, requestedLimbIndex);
 		var limb = limbIndex >= 0 && limbIndex < limbs.Count ? limbs[limbIndex] : null;
 
 		foreach (var dose in plan)

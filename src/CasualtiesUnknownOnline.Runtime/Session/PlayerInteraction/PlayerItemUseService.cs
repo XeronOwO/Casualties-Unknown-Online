@@ -42,7 +42,7 @@ internal sealed class PlayerItemUseService(
 	public event Action<PlayerItemUseResultMsg>? UseReceived;
 
 	/// <summary>Online UI entry: the local player uses one carried consumable on another player (0 = host auto-select).</summary>
-	public void SendUseRequest(ulong targetSteamId, ulong itemInstanceId = 0)
+	public void SendUseRequest(ulong targetSteamId, ulong itemInstanceId = 0, int targetLimbIndex = -1)
 	{
 		if (!_session.SessionActive || !_session.LocalInWorld)
 		{
@@ -53,6 +53,7 @@ internal sealed class PlayerItemUseService(
 		{
 			TargetSteamId = targetSteamId,
 			ItemInstanceId = itemInstanceId,
+			LimbIndex = targetLimbIndex,
 		};
 
 		if (_session.Role == SessionRole.Host)
@@ -159,7 +160,7 @@ internal sealed class PlayerItemUseService(
 		}
 		else if (RemoteMedicineCatalog.TryCreatePlan(originalItem.Liquids, originalItem.ItemId, out var medicinePlan))
 		{
-			RemoteMedicineApplication.Apply(newTargetData.Health!, newTargetData.Limbs, medicinePlan);
+			RemoteMedicineApplication.Apply(newTargetData.Health!, newTargetData.Limbs, medicinePlan, msg.LimbIndex);
 			timedBodyEffects = RemoteMedicineApplication.BuildTimedEffects(medicinePlan);
 			ApplyDrain(newItem, medicinePlan);
 		}
@@ -177,12 +178,18 @@ internal sealed class PlayerItemUseService(
 		}
 		else if (RemoteTopicalCatalog.TryCreatePlan(originalItem.Liquids, originalItem.ItemId, out var topicalPlan))
 		{
-			RemoteTopicalApplication.Apply(newTargetData.Health!, newTargetData.Limbs, topicalPlan);
+			RemoteTopicalApplication.Apply(newTargetData.Health!, newTargetData.Limbs, topicalPlan, msg.LimbIndex);
 			ApplyDrain(newItem, topicalPlan);
 		}
 		else if (RemoteLimbToolCatalog.TryGet(originalItem.ItemId, out var tool))
 		{
-			if (!RemoteLimbToolApplication.TryApply(newTargetData.Health!, newTargetData.Limbs, tool, out var limbIndex, originalItem.Condition))
+			if (!RemoteLimbToolApplication.TryApply(
+				newTargetData.Health!,
+				newTargetData.Limbs,
+				tool,
+				out var limbIndex,
+				msg.LimbIndex,
+				originalItem.Condition))
 			{
 				_log.LogWarning("[ItemUse] refused: {ItemId} (id {InstanceId}) cannot be applied to {Target} — required limb missing, no limb data, or component ineligible.", originalItem.ItemId, originalItem.InstanceId, target);
 				return;

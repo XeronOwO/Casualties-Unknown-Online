@@ -25,6 +25,15 @@ internal static class PlayerCameraDragUsePatch
 {
 	private static bool Prefix(PlayerCamera __instance, List<RaycastResult> uiCasts)
 	{
+		// The remote medical view owns its own drag-to-limb treatment routing.
+		// Let the native UI reach TryPerformSpecialUIAction so the WoundView
+		// limb gesture is consumed by RemoteMedicalPatches instead of being
+		// preempted by the world-overlap cross-player use path.
+		if (RemoteMedicalView.IsOpen)
+		{
+			return true;
+		}
+
 		if (RemoteBackpackView.IsOpen)
 		{
 			// Every named remote-backpack native gesture is mapped to a

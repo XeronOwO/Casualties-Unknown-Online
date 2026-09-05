@@ -37,6 +37,24 @@ public class RemoteMedicalContractTests
 	}
 
 	[Fact]
+	public void MedicalBridge_ExposesLimbUseRouting()
+	{
+		var bridge = GameAssemblyHost.Adapter.GetType(
+			"CasualtiesUnknownOnline.GameAdapter.GameAdapterBridge",
+			throwOnError: true)!;
+
+		var method = bridge.GetMethod(
+			"TryHandleRemoteMedicalLimbUse",
+			BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+		Assert.NotNull(method);
+		var parameters = method!.GetParameters();
+		Assert.Equal(2, parameters.Length);
+		Assert.Equal("Item", parameters[0].ParameterType.Name);
+		Assert.Equal(typeof(int), parameters[1].ParameterType);
+		Assert.Equal(typeof(bool), method.ReturnType);
+	}
+
+	[Fact]
 	public void RemoteMedicalView_ExposesOpenCloseState()
 	{
 		var view = GameAssemblyHost.Adapter.GetType(

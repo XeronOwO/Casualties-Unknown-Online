@@ -796,7 +796,7 @@ public sealed class OnlineUiMemberProjectionTests
 			return false;
 		}
 
-		public void SendHealRequest(ulong targetSteamId, ulong itemInstanceId = 0)
+		public void SendHealRequest(ulong targetSteamId, ulong itemInstanceId = 0, int targetLimbIndex = -1)
 		{
 		}
 
@@ -814,7 +814,7 @@ public sealed class OnlineUiMemberProjectionTests
 			remove { }
 		}
 
-		public void SendUseRequest(ulong targetSteamId, ulong itemInstanceId = 0)
+		public void SendUseRequest(ulong targetSteamId, ulong itemInstanceId = 0, int targetLimbIndex = -1)
 		{
 		}
 

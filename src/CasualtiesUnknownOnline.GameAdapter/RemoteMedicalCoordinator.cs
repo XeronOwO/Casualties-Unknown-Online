@@ -194,6 +194,7 @@ internal sealed class RemoteMedicalCoordinator(
 		{
 			_mapper.Map(health, body);
 			CharacterComponentSync.Apply(body, health);
+			ApplyDisplayDerived(body, health);
 		}
 
 		if (data.Skills is { } skills)
@@ -225,6 +226,54 @@ internal sealed class RemoteMedicalCoordinator(
 		// facts so the read-only display matches the owner's own panel.
 		body.averagePain = ComputeAveragePain(body);
 		body.totalBleedSpeed = ComputeTotalBleedSpeed(body);
+	}
+
+	/// <summary>
+	/// Fill the display-only body fields that are normally produced by the
+	/// owner's live <c>Body.Update</c> / component updates. The display clone is
+	/// deliberately inactive, so those Update methods never run; without this
+	/// projection the remote WoundView would show a stale/default heart readout,
+	/// miss opiate/antidepressant happiness, and leave the native mood/medical
+	/// cross-checks inconsistent.
+	/// </summary>
+	private static void ApplyDisplayDerived(Body body, CharacterHealthMsg health)
+	{
+		// Explicitly carry the critical readouts too: Mapster covers matching
+		// fields, but the inactive clone must never fall back to template
+		// defaults for the values the native panel displays directly.
+		body.heartRate = health.HeartRate;
+		body.bloodPressure = health.BloodPressure;
+		body.bloodPressureReadout = $"{Mathf.RoundToInt(health.BloodPressure)}/{Mathf.RoundToInt(health.BloodPressure * 0.66f)}";
+
+		// Opiate happiness is produced by Painkillers.Update on a live body.
+		var opiateReception = health.ActualOpiateReception;
+		body.opiateHappiness = opiateReception > 0f
+			? opiateReception
+			: Mathf.Max(-80f, opiateReception * 1.66f);
+
+		// Antidepressant happiness is produced by Antidepressants.Update; the
+		// component only contributes while its amount is non-zero, and the
+		// currentAmount determines the live ramp.
+		body.antidepressantHappiness = health.AntidepressantsAmount > 0f
+			? -body.happiness * 0.6f * Mathf.Clamp01(health.AntidepressantsCurrentAmount * 0.0166f)
+			: 0f;
+
+		// Mindwipe is assigned by Body.Update's half-second pass (Body.cs:3569).
+		// The display clone may still carry a component from an earlier snapshot;
+		// remove it when the authoritative snapshot says the state is gone.
+		if (health.MindwipeScriptPresent)
+		{
+			body.mindWipe = body.GetComponent<MindwipeScript>();
+		}
+		else
+		{
+			body.mindWipe = null;
+			var staleMindwipe = body.GetComponent<MindwipeScript>();
+			if (staleMindwipe != null) // Unity object — ==
+			{
+				Object.Destroy(staleMindwipe);
+			}
+		}
 	}
 
 	private static float ComputeAveragePain(Body body)

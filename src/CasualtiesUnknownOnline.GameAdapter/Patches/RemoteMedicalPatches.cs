@@ -25,6 +25,79 @@ internal static class RemoteMedicalPatches
 
 			__instance.body = display;
 		}
+
+		private static void Postfix(WoundView __instance)
+		{
+			if (!RemoteMedicalView.IsOpen)
+			{
+				return;
+			}
+
+			// The native UpdateView sets napbutton.interactable from the
+			// display body's canTakeNap every frame. In remote focus the nap
+			// action is already blocked by the TakeANap prefix, but the button
+			// must also be visibly disabled so the viewer is never invited to
+			// sleep on another player's display body.
+			if (__instance.napbutton != null) // Unity object — ==
+			{
+				__instance.napbutton.interactable = false;
+			}
+		}
+	}
+
+	[HarmonyPatch(typeof(ECGVisualizer), "get_body")]
+	internal static class RemoteMedicalEcgBodyPatch
+	{
+		private static void Prefix(ECGVisualizer __instance, ref Body __result)
+		{
+			if (!RemoteMedicalView.IsOpen || RemoteMedicalView.DisplayBody is not { } display)
+			{
+				return;
+			}
+
+			// Only redirect the ECG inside the active native WoundView panel.
+			// The same getter is used by the consciousness overlay and the
+			// manual defibrillator minigame; those must keep drawing the local
+			// body even while the remote medical view is open.
+			if (WoundView.view == null // Unity object — ==
+				|| !__instance.transform.IsChildOf(WoundView.view.transform))
+			{
+				return;
+			}
+
+			// The native ECG waveform is hard-wired to PlayerCamera.main.body
+			// (ECGVisualizer.cs:10-16). While the remote WoundView is open it
+			// would keep drawing the viewer's own heartbeat next to the remote
+			// readout; redirect it to the same display body the panel reads.
+			__result = display;
+		}
+	}
+
+	[HarmonyPatch(typeof(MoodleManager), "UpdateMoodles")]
+	internal static class RemoteMedicalMoodleBodyPatch
+	{
+		private static void Prefix(MoodleManager __instance, out Body? __state)
+		{
+			__state = null;
+			if (!RemoteMedicalView.IsOpen || RemoteMedicalView.DisplayBody is not { } display)
+			{
+				return;
+			}
+
+			var traverse = Traverse.Create(__instance);
+			__state = traverse.Field("body").GetValue<Body>();
+			traverse.Field("body").SetValue(display);
+		}
+
+		private static void Postfix(MoodleManager __instance, Body? __state)
+		{
+			if (__state == null)
+			{
+				return;
+			}
+
+			Traverse.Create(__instance).Field("body").SetValue(__state);
+		}
 	}
 
 	[HarmonyPatch(typeof(WoundView), "TakeANap")]
@@ -132,5 +205,11 @@ internal static class RemoteMedicalPatches
 				RemoteMedicalView.Close();
 			}
 		}
+	}
+
+	[HarmonyPatch(typeof(MinigameBase), "EndMinigame")]
+	internal static class RemoteMedicalSyringeEndPatch
+	{
+		private static void Postfix() => RemoteMedicalOperationHandler.CompleteActiveSyringeUse();
 	}
 }

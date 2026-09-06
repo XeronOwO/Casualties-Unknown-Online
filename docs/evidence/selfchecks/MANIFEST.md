@@ -157,6 +157,7 @@ All files under `docs/selfchecks/` are historical/per-delivery evidence records.
 | players/remote-inventory-view-selfcheck.md | Other | current | candidate current evidence; verify before citing |
 | players/remote-vitals-selfcheck.md | Other | current | candidate current evidence; verify before citing |
 | players/remote-native-medical-view-selfcheck.md | Players | current | native WoundView reuse; custom IMGUI medical panel removed |
+| players/remote-medical-fidelity-and-syringe-minigame-selfcheck.md | Players | current | native syringe minigame routes cross-player injectable doses; remote WoundView display projection plus ECG/moodle/nap redirection |
 | players/respawn-rules-selfcheck.md | Other | current | candidate current evidence; verify before citing |
 | session/run-settings-range-selfcheck.md | Other | current | candidate current evidence; verify before citing |
 | tooling/simtrace-diff-selfcheck.md | Other | current | candidate current evidence; verify before citing |

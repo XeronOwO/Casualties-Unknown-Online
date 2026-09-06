@@ -149,8 +149,8 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, IDispo
 	public void FireHealReceived(PlayerHealResultMsg msg) =>
 		_heal.FireHealReceived(msg);
 
-	public void SendUseRequest(ulong targetSteamId, ulong itemInstanceId = 0, int targetLimbIndex = -1) =>
-		_itemUse.SendUseRequest(targetSteamId, itemInstanceId, targetLimbIndex);
+	public void SendUseRequest(ulong targetSteamId, ulong itemInstanceId = 0, int targetLimbIndex = -1, float doseAmount = 0f) =>
+		_itemUse.SendUseRequest(targetSteamId, itemInstanceId, targetLimbIndex, doseAmount);
 
 	public void HandleUseRequest(ulong sender, PlayerItemUseRequestMsg msg) =>
 		_itemUse.HandleUseRequest(sender, msg);

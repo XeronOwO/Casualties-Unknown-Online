@@ -41,8 +41,8 @@ internal sealed class PlayerItemUseService(
 	/// <summary>An authoritative cross-player consumable use result arrived — the Game Adapter applies the local participant half.</summary>
 	public event Action<PlayerItemUseResultMsg>? UseReceived;
 
-	/// <summary>Online UI entry: the local player uses one carried consumable on another player (0 = host auto-select).</summary>
-	public void SendUseRequest(ulong targetSteamId, ulong itemInstanceId = 0, int targetLimbIndex = -1)
+	/// <summary>Online UI entry: the local player uses one carried consumable on another player (0 = host auto-select; doseAmount 0 = normal per-use medicine amount).</summary>
+	public void SendUseRequest(ulong targetSteamId, ulong itemInstanceId = 0, int targetLimbIndex = -1, float doseAmount = 0f)
 	{
 		if (!_session.SessionActive || !_session.LocalInWorld)
 		{
@@ -54,6 +54,7 @@ internal sealed class PlayerItemUseService(
 			TargetSteamId = targetSteamId,
 			ItemInstanceId = itemInstanceId,
 			LimbIndex = targetLimbIndex,
+			DoseAmount = doseAmount,
 		};
 
 		if (_session.Role == SessionRole.Host)
@@ -158,7 +159,7 @@ internal sealed class PlayerItemUseService(
 			newItem.Condition -= food.ConditionCost;
 			destroyed = newItem.Condition <= 0f;
 		}
-		else if (RemoteMedicineCatalog.TryCreatePlan(originalItem.Liquids, originalItem.ItemId, out var medicinePlan))
+		else if (RemoteMedicineCatalog.TryCreatePlan(originalItem.Liquids, originalItem.ItemId, msg.DoseAmount, out var medicinePlan))
 		{
 			RemoteMedicineApplication.Apply(newTargetData.Health!, newTargetData.Limbs, medicinePlan, msg.LimbIndex);
 			timedBodyEffects = RemoteMedicineApplication.BuildTimedEffects(medicinePlan);

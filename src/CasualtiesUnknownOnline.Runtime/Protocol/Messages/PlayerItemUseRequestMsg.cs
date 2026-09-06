@@ -23,6 +23,15 @@ public sealed class PlayerItemUseRequestMsg
 	[ProtoMember(2)]
 	public ulong ItemInstanceId { get; set; }
 
+	/// <summary>
+	/// The exact millilitre dose the acting player delivered through the native
+	/// syringe minigame, or 0 to let the host use the item's normal per-use
+	/// injection amount. Only used for injectable/IV medicine requests; other
+	/// item-use slices ignore it.
+	/// </summary>
+	[ProtoMember(4)]
+	public float DoseAmount { get; set; }
+
 	private int _limbSelection;
 
 	/// <summary>

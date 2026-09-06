@@ -1,4 +1,5 @@
 using System;
+using System.Reflection;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using Xunit;
@@ -93,6 +94,25 @@ public class CharacterSoundPolicyTests
 			?? throw new InvalidOperationException("CharacterSoundPolicy.Origin not found.");
 		Assert.NotNull(origin.GetField("Pain"));
 		Assert.NotNull(origin.GetField("Bark"));
+	}
+
+	[Fact]
+	public void LockpickPainOrigin_ExistsAndClassifiesOnlyGore2AsPain()
+	{
+		var origin = typeof(CharacterSoundPolicy).GetNestedType("Origin")
+			?? throw new InvalidOperationException("CharacterSoundPolicy.Origin not found.");
+		var field = origin.GetField("LockpickPain");
+		Assert.NotNull(field);
+
+		var lockpickPain = field!.GetValue(null)!;
+		var classify = typeof(CharacterSoundPolicy).GetMethod("Classify", BindingFlags.Public | BindingFlags.Static)
+			?? throw new InvalidOperationException("CharacterSoundPolicy.Classify not found.");
+
+		var painResult = classify.Invoke(null, [lockpickPain, "gore2"]);
+		Assert.Equal(CharacterSoundKind.Pain, painResult);
+
+		var unlockResult = classify.Invoke(null, [lockpickPain, "unlock"]);
+		Assert.Null(unlockResult);
 	}
 
 	[Fact]

@@ -38,7 +38,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-_No open todo items._
+- [Remote medical native minigame/action parity audit](todo/remote-medical-native-minigame-parity.md) — **High**: syringe is only one native medical minigame; bandages, shrapnel/splint/tourniquet removal, dislocation fix, AED/defib, amputation and other WoundView actions are either direct-applied without the native minigame or blocked; comprehensive parity audit backlog added after user follow-up.
 
 ### Review
 - [Convert non-.editorconfig normative requirements into unit-testable gates](review/normative-style-unit-test-gates.md) — Roslyn `dotnet test` gate for unnecessary fully qualified names landed; normative-rule inventory added in `docs/evidence/normative-gates.md`.

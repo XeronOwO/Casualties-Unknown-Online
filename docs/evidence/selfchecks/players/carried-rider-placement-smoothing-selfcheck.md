@@ -8,7 +8,7 @@
 > so the rider follows the carrier's final rendered transform instead of being
 > an independent scene root re-pinned before render. This selfcheck is the
 > evidence for the ticket now in
-> `docs/backlog/review/carry-piggyback-rider-position-smoothing.md`.
+> `docs/backlog/todo/carry-piggyback-rider-position-smoothing.md`.
 
 Owner cycle: backlog `carry-piggyback-rider-position-smoothing` and
 `carry-piggyback-vertical-placement-asymmetry`. Decision: close both reports by

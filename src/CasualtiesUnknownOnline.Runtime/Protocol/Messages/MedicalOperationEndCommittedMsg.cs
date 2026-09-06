@@ -44,4 +44,8 @@ public sealed class MedicalOperationEndCommittedMsg
 
 	[ProtoMember(11)]
 	public List<TimedBodyEffectMsg> TimedBodyEffects { get; set; } = [];
+
+	/// <summary>Final shared shrapnel piece state (empty for injection).</summary>
+	[ProtoMember(12)]
+	public List<ShrapnelPieceMsg> ShrapnelPieces { get; set; } = [];
 }

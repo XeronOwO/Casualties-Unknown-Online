@@ -159,7 +159,7 @@ public class DirectionTests
 		var classified = GuestToHostMessages
 			.Concat(HostToGuestMessages)
 			.Concat(BidirectionalMessages)
-			.Select(row => (NetMsg)row[0])
+			.Select(row => (NetMsg)((ITheoryDataRow)row).GetData()[0]!)
 			.ToHashSet();
 
 		var missing = all.Except(classified).ToList();

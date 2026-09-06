@@ -34,6 +34,7 @@ internal sealed class MedicalOperationSessionService : IMedicalOperationControl,
 	private readonly ILogger _log;
 	private readonly PlayerCharacterAccess _access;
 	private readonly MedicalOperationInjectionApplier _applier;
+	private readonly ShrapnelOperationSessionService _shrapnel;
 
 	private readonly Dictionary<ulong, OperationSession> _active = [];
 	private readonly HashSet<ulong> _reservedItems = [];
@@ -59,6 +60,20 @@ internal sealed class MedicalOperationSessionService : IMedicalOperationControl,
 		_log = log;
 		_access = new PlayerCharacterAccess(session, characters);
 		_applier = new MedicalOperationInjectionApplier(_access, _items, kernelAuthority, session, log);
+		_shrapnel = new ShrapnelOperationSessionService(
+			session,
+			sender,
+			_access,
+			_items,
+			_visibility,
+			_time,
+			kernelAuthority,
+			_reservedItems,
+			operation => _active.Values.Any(s => s.Operator == operation),
+			log);
+		_shrapnel.StartAckReceived += FireStartAckReceived;
+		_shrapnel.StateReceived += FireStateReceived;
+		_shrapnel.EndCommittedReceived += FireEndCommittedReceived;
 
 		_session.MemberRemoved += OnMemberRemoved;
 		_session.SessionEnded += OnSessionEnded;
@@ -149,12 +164,41 @@ internal sealed class MedicalOperationSessionService : IMedicalOperationControl,
 		}
 	}
 
+	// ---- IMedicalOperationControl: shrapnel session surface ----
+	// Stage 2 shared shrapnel sessions use the same session envelope; the
+	// shrapnel-specific multi-operator state lives in the shrapnel domain
+	// service and is forwarded here through the same Start/State/End events.
+
+	public void SendShrapnelStartRequest(ulong targetSteamId, ulong itemInstanceId, int targetLimbIndex) =>
+		_shrapnel.SendStartRequest(targetSteamId, itemInstanceId, targetLimbIndex);
+
+	public void HandleShrapnelStartRequest(ulong sender, MedicalOperationStartRequestMsg msg) =>
+		_shrapnel.HandleStartRequest(sender, msg);
+
+	public void SendShrapnelUpdate(ulong operationId, ShrapnelPieceUpdate update) =>
+		_shrapnel.SendUpdate(operationId, update);
+
+	public void HandleShrapnelUpdate(ulong sender, MedicalOperationUpdateMsg msg) =>
+		_shrapnel.HandleUpdate(sender, msg);
+
+	public void SendShrapnelEndRequest(ulong operationId) =>
+		_shrapnel.SendEndRequest(operationId);
+
+	public void HandleShrapnelEndRequest(ulong sender, MedicalOperationEndRequestMsg msg) =>
+		_shrapnel.HandleEndRequest(sender, msg);
+
 	// ---- IMedicalOperationControl: host handlers ----
 
 	public void HandleStartRequest(ulong sender, MedicalOperationStartRequestMsg msg)
 	{
 		if (_session.Role != SessionRole.Host || !_session.SessionActive || !_session.LocalInWorld)
 		{
+			return;
+		}
+
+		if (msg.Kind != MedicalOperationKind.Injection)
+		{
+			HandleShrapnelStartRequest(sender, msg);
 			return;
 		}
 
@@ -286,6 +330,12 @@ internal sealed class MedicalOperationSessionService : IMedicalOperationControl,
 
 		if (!_active.TryGetValue(msg.OperationId, out var session) || session.Operator != sender)
 		{
+			if (_shrapnel.IsShrapnelOperation(msg.OperationId))
+			{
+				HandleShrapnelUpdate(sender, msg);
+				return;
+			}
+
 			_log.LogWarning("[MedicalOps] update refused for unknown/wrong operation {OperationId} from {Sender}.", msg.OperationId, sender);
 			return;
 		}
@@ -317,6 +367,12 @@ internal sealed class MedicalOperationSessionService : IMedicalOperationControl,
 
 		if (!_active.TryGetValue(msg.OperationId, out var session) || session.Operator != sender)
 		{
+			if (_shrapnel.IsShrapnelOperation(msg.OperationId))
+			{
+				HandleShrapnelEndRequest(sender, msg);
+				return;
+			}
+
 			_log.LogWarning("[MedicalOps] end refused for unknown/wrong operation {OperationId} from {Sender}.", msg.OperationId, sender);
 			return;
 		}
@@ -342,6 +398,12 @@ internal sealed class MedicalOperationSessionService : IMedicalOperationControl,
 
 		if (!_active.TryGetValue(msg.OperationId, out var session) || session.Operator != sender)
 		{
+			if (_shrapnel.IsShrapnelOperation(msg.OperationId))
+			{
+				_shrapnel.HandleCancelRequest(sender, msg);
+				return;
+			}
+
 			_log.LogWarning("[MedicalOps] cancel refused for unknown/wrong operation {OperationId} from {Sender}.", msg.OperationId, sender);
 			return;
 		}
@@ -372,6 +434,7 @@ internal sealed class MedicalOperationSessionService : IMedicalOperationControl,
 
 	void ICuoService.Update()
 	{
+		_shrapnel.Update();
 		if (_session.Role != SessionRole.Host || !_session.SessionActive)
 		{
 			return;
@@ -402,6 +465,7 @@ internal sealed class MedicalOperationSessionService : IMedicalOperationControl,
 		_disposed = true;
 		_session.MemberRemoved -= OnMemberRemoved;
 		_session.SessionEnded -= OnSessionEnded;
+		_shrapnel.Dispose();
 	}
 
 	// ---- Host-side lifecycle ----
@@ -477,6 +541,7 @@ internal sealed class MedicalOperationSessionService : IMedicalOperationControl,
 			return;
 		}
 
+		_shrapnel.OnMemberRemoved(steamId);
 		foreach (var session in _active.Values.ToList())
 		{
 			if (session.Operator == steamId || session.Target == steamId)
@@ -489,6 +554,7 @@ internal sealed class MedicalOperationSessionService : IMedicalOperationControl,
 
 	private void OnSessionEnded()
 	{
+		_shrapnel.Clear();
 		_active.Clear();
 		_reservedItems.Clear();
 		_reservedTargetLimbs.Clear();

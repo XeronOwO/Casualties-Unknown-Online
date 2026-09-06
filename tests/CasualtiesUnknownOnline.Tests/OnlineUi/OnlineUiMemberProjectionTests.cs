@@ -702,6 +702,12 @@ public sealed class OnlineUiMemberProjectionTests
 			public void HandleEndRequest(ulong sender, MedicalOperationEndRequestMsg msg) { }
 			public void SendCancelRequest(ulong operationId) { }
 			public void HandleCancelRequest(ulong sender, MedicalOperationCancelMsg msg) { }
+			public void SendShrapnelStartRequest(ulong targetSteamId, ulong itemInstanceId, int targetLimbIndex) { }
+			public void HandleShrapnelStartRequest(ulong sender, MedicalOperationStartRequestMsg msg) { }
+			public void SendShrapnelUpdate(ulong operationId, ShrapnelPieceUpdate update) { }
+			public void HandleShrapnelUpdate(ulong sender, MedicalOperationUpdateMsg msg) { }
+			public void SendShrapnelEndRequest(ulong operationId) { }
+			public void HandleShrapnelEndRequest(ulong sender, MedicalOperationEndRequestMsg msg) { }
 			public void FireStartAckReceived(MedicalOperationStartAckMsg msg) => StartAckReceived?.Invoke(msg);
 			public void FireStateReceived(MedicalOperationStateMsg msg) => StateReceived?.Invoke(msg);
 			public void FireEndCommittedReceived(MedicalOperationEndCommittedMsg msg) => EndCommittedReceived?.Invoke(msg);

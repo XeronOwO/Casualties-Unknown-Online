@@ -17,4 +17,12 @@ internal interface IRemoteMedicalPatchBridge
 	/// or the item has no authoritative instance id.
 	/// </summary>
 	bool TryHandleRemoteMedicalLimbUse(Item dragItem, int limbIndex);
+
+	/// <summary>
+	/// Remote-medical WoundView special action on a limb with shrapnel: starts
+	/// the native shrapnel minigame on the display body and joins/routes the
+	/// shared host-authoritative shrapnel session. Returns true when the action
+	/// was handled (the original local-body special action must be skipped).
+	/// </summary>
+	bool TryStartRemoteShrapnelSpecial(Limb limb);
 }

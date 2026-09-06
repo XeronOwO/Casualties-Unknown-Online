@@ -26,12 +26,14 @@ internal sealed class RemoteMedicalOperationHandler
 	private static readonly HashSet<ulong> AuthoritativeItemIds = [];
 
 	private readonly GameAdapterDomains _domains;
+	private readonly RemoteShrapnelOperationHandler _shrapnelOps;
 
 	internal RemoteMedicalOperationHandler(GameAdapterDomains domains)
 	{
 		_domains = domains;
 		_cancelRequestSender = id => domains.PlayerInteraction.MedicalOperations.SendCancelRequest(id);
 		_endRequestSender = (id, total) => domains.PlayerInteraction.MedicalOperations.SendEndRequest(id, total);
+		_shrapnelOps = new RemoteShrapnelOperationHandler(domains);
 		domains.PlayerInteraction.MedicalOperations.StartAckReceived += OnStartAckReceived;
 	}
 
@@ -87,11 +89,19 @@ internal sealed class RemoteMedicalOperationHandler
 			return TryStartRemoteSyringeUse(dragItem, limbIndex, target, instance.Id);
 		}
 
+		if (dragItem.id == "tweezers")
+		{
+			return _shrapnelOps.TryStartRemoteShrapnelUse(dragItem, limbIndex, target, instance.Id);
+		}
+
 		_domains.PlayerInteraction.SendUseRequest(target, instance.Id, limbIndex);
 		_domains.Log.LogInformation("[MedicalView] requested use of {Target} limb {Limb} with {ItemId} (id {InstanceId}).",
 			target, limbIndex, dragItem.id, instance.Id);
 		return true;
 	}
+
+	internal bool TryStartRemoteShrapnelSpecial(Limb limb) =>
+		_shrapnelOps.TryStartRemoteShrapnelSpecial(limb);
 
 	/// <summary>
 	/// Called when the native minigame system ends the active remote syringe
@@ -344,6 +354,30 @@ internal sealed class RemoteMedicalOperationHandler
 			session.RestoreCondition();
 		}
 	}
+
+	// ---- Shrapnel shared-session forwarding seam ----
+	// The shrapnel-specific state and native-minigame adapter live in
+	// RemoteShrapnelOperationHandler; these small forwards keep the existing
+	// static call sites (patches, remote view close, medical apply) unchanged.
+
+	internal static void CompleteActiveShrapnelUse() => RemoteShrapnelOperationHandler.CompleteActiveShrapnelUse();
+
+	internal static bool CancelActiveShrapnelUse() => RemoteShrapnelOperationHandler.CancelActiveShrapnelUse();
+
+	internal static void OnShrapnelHostTerminal(ulong operationId) =>
+		RemoteShrapnelOperationHandler.OnShrapnelHostTerminal(operationId);
+
+	internal static void ApplyShrapnelState(MedicalOperationStateMsg msg) =>
+		RemoteShrapnelOperationHandler.ApplyShrapnelState(msg);
+
+	internal static void ReportShrapnelUpdate(ShrapnelPieceUpdate update) =>
+		RemoteShrapnelOperationHandler.ReportShrapnelUpdate(update);
+
+	internal static bool IsActiveShrapnelMinigame(ShrapnelMinigame minigame) =>
+		RemoteShrapnelOperationHandler.IsActiveShrapnelMinigame(minigame);
+
+	internal static bool IsShrapnelPieceOwnedByOther(int pieceIndex) =>
+		RemoteShrapnelOperationHandler.IsShrapnelPieceOwnedByOther(pieceIndex);
 
 	private sealed class RemoteSyringeUseSession
 	{

@@ -229,35 +229,10 @@ public sealed class RemoteLimbToolApplicationTests
 	}
 
 	[Fact]
-	public void ApplyTweezers_RemovesMostShrapnelLimb()
-	{
-		var health = new CharacterHealthMsg();
-		var limbs = new List<CharacterLimbMsg>
-		{
-			new() { Index = 0, SkinHealth = 50f, MuscleHealth = 50f, Shrapnel = 1 },
-			new() { Index = 1, SkinHealth = 50f, MuscleHealth = 50f, Shrapnel = 4 },
-		};
-		Assert.True(RemoteLimbToolCatalog.TryGet("tweezers", out var profile));
-
-		Assert.True(RemoteLimbToolApplication.TryApply(health, limbs, profile, out var limbIndex));
-
-		Assert.Equal(1, limbIndex);
-		Assert.Equal(0, limbs[1].Shrapnel);
-		Assert.Equal(1, limbs[0].Shrapnel);
-	}
-
-	[Fact]
-	public void ApplyTweezers_NoShrapnelLimb_IsRefused()
-	{
-		var health = new CharacterHealthMsg();
-		var limbs = new List<CharacterLimbMsg>
-		{
-			new() { Index = 0, SkinHealth = 50f, MuscleHealth = 50f },
-		};
-		Assert.True(RemoteLimbToolCatalog.TryGet("tweezers", out var profile));
-
-		Assert.False(RemoteLimbToolApplication.TryApply(health, limbs, profile, out _));
-	}
+	public void Tweezers_AreNoLongerADirectRemoteLimbTool() =>
+		// Stage 2: tweezers must route through the shared shrapnel session, never
+		// through the old one-shot remote limb-tool catalog.
+		Assert.False(RemoteLimbToolCatalog.TryGet("tweezers", out _));
 
 	[Fact]
 	public void ApplyMedicalsuture_AppliesImmediateEffectsAndExposesTimedProfile()

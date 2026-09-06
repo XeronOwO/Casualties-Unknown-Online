@@ -1514,32 +1514,24 @@ public class PlayerInteractionServiceTests
 	}
 
 	[Fact]
-	public void Guest_UsesTweezersOnHost_RemovesShrapnelAndSendsResult()
+	public void DirectUseRequest_WithTweezers_IsRefused_AndShrapnelStays()
 	{
 		var (host, guest, received) = CreateSession();
 		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
-		var items = host.Services.GetRequiredService<IItemControl>();
 		var hostSnapshot = SnapshotWithLimbs(HostId, conscious: true);
 		hostSnapshot.Limbs[1].Shrapnel = 3;
 		characters.SaveHostCharacterData(hostSnapshot);
 		var tweezers = Item(42, "tweezers", slot: 0);
 		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, tweezers));
-		items.AdoptTransferredItem(GuestId, 42, tweezers);
 
 		guest.Services.GetRequiredService<IPlayerInteractionControl>()
 			.SendUseRequest(HostId, 42);
 
-		var result = UseResult(received);
-		Assert.Equal(GuestId, result.UserSteamId);
-		Assert.Equal(HostId, result.TargetSteamId);
-		Assert.Equal(42UL, result.ItemInstanceId);
-		Assert.False(result.ItemDestroyed);
-		Assert.NotNull(result.ItemAfter);
-		Assert.True(Math.Abs(result.ItemAfter!.Condition - 0.74f) < 0.001f);
-
+		// The one-shot tweezers path is gone; it must not emit a use result or
+		// mutate the authoritative limb. Shrapnel goes through the shared session.
+		Assert.DoesNotContain(KernelEvents(received), e => e.Kind == WireEventKind.PlayerItemUseResult);
 		var hostData = characters.GetHostCharacterData()!;
-		Assert.Equal(0, hostData.Limbs[1].Shrapnel);
-		Assert.Empty(result.TimedEffects);
+		Assert.Equal(3, hostData.Limbs[1].Shrapnel);
 		Assert.Contains(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);
 	}
 

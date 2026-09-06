@@ -43,7 +43,7 @@ public sealed class BepInExLoggerProvider(ManualLogSource source, IOptionsMonito
 		private readonly BepInExLoggerProvider _provider = provider;
 		private readonly string _category = category;
 
-		public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
+		public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
 		{
 			if (!IsEnabled(logLevel))
 			{
@@ -80,6 +80,6 @@ public sealed class BepInExLoggerProvider(ManualLogSource source, IOptionsMonito
 		public bool IsEnabled(LogLevel logLevel) =>
 			logLevel != LogLevel.None && logLevel >= _provider._options.CurrentValue.MinimumLevel;
 
-		public IDisposable BeginScope<TState>(TState state) => NullScope.Instance;
+		public IDisposable? BeginScope<TState>(TState state) where TState : notnull => NullScope.Instance;
 	}
 }

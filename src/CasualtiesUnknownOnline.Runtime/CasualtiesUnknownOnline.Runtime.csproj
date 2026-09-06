@@ -11,6 +11,10 @@
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <Nullable>enable</Nullable>
     <RootNamespace>CasualtiesUnknownOnline.Runtime</RootNamespace>
+    <!-- protobuf-net 3.4.x PBN0020/PBN0022 are migration artifacts for the
+         existing wire/save DTOs' pre-IsRequired/DefaultValue fields; the wire
+         shapes are stable and these analyzers are not part of the CUO gates. -->
+    <NoWarn>$(NoWarn);PBN0020;PBN0022</NoWarn>
     <RestoreAdditionalProjectSources>
       https://api.nuget.org/v3/index.json;
       https://nuget.bepinex.dev/v3/index.json;
@@ -34,15 +38,15 @@
   </ItemGroup>
 
   <!--
-    Microsoft.Extensions 3.1.x (net48-compatible line) — CUO owns these DLLs;
+    Microsoft.Extensions 10.x — aligned with the Abstractions package version;
     mods never ship their own. BepInEx.Core only for the ManualLogSource bridge.
   -->
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="3.1.32" />
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="3.1.32" />
-      <PackageReference Include="Microsoft.Extensions.Options" Version="3.1.32" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.11" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.11" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.11" />
     <PackageReference Include="BepInEx.Core" Version="5.*" />
-    <PackageReference Include="protobuf-net" Version="3.2.56" />
+    <PackageReference Include="protobuf-net" Version="3.4.21" />
   </ItemGroup>
 
   <!--
@@ -58,6 +62,6 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework.TrimEnd(`0123456789`))' == 'net'">
-    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.2" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
   </ItemGroup>
 </Project>

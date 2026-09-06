@@ -9,6 +9,7 @@ using CasualtiesUnknownOnline.GameAdapter.World;
 using CasualtiesUnknownOnline.GameAdapter.WorldGen;
 using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Session;
+using CasualtiesUnknownOnline.Runtime.Session.AdaptiveSync;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.HostRules;
@@ -119,6 +120,7 @@ internal sealed class GameAdapterDomains
 
 	public GameAdapterDomains(
 		ISessionControl session,
+		AdaptiveStreamRateService adaptiveRates,
 		IEntitySyncControl entities,
 		ICharacterDataControl characterData,
 		IWorldControl world,
@@ -210,7 +212,7 @@ internal sealed class GameAdapterDomains
 		ContainerSync = new ContainerItemSync(items, itemDropState, ItemIds, OperationTrace, itemReports, session, loggerFactory.CreateLogger<ContainerItemSync>());
 		ItemUseSync = new ItemUseSync(items, session, ItemIds, loggerFactory.CreateLogger<ItemUseSync>());
 		GunStateSync = new GunStateSync(ItemUseSync, loggerFactory.CreateLogger<GunStateSync>());
-		ItemPositionAuthority = new ItemPositionAuthority(items);
+		ItemPositionAuthority = new ItemPositionAuthority(items, session, adaptiveRates);
 		ItemPositionFollow = new ItemPositionFollow(items, DropGuard, session, loggerFactory.CreateLogger<ItemPositionFollow>());
 		GenItemAuthority = new GeneratedItemAuthority(session, items, ItemIds, loggerFactory.CreateLogger<GeneratedItemAuthority>());
 		GenItemApplication = new GeneratedItemApplication(items, ItemApplication, loggerFactory.CreateLogger<GeneratedItemApplication>());
@@ -237,8 +239,8 @@ internal sealed class GameAdapterDomains
 		EntitySpawnSync = new EntitySpawnSync(world, session, loggerFactory.CreateLogger<EntitySpawnSync>());
 		GeyserStateSync = new GeyserStateSync(world, session, loggerFactory.CreateLogger<GeyserStateSync>());
 		RadiationLineSync = new RadiationLineSync(world, session, entities, loggerFactory.CreateLogger<RadiationLineSync>());
-		FluidSync = new FluidWorldSync(world, session, entities, loggerFactory);
-		TradeSync = new TradeStateSync(world, session, new TradeExecutor(), loggerFactory.CreateLogger<TradeStateSync>());
+		FluidSync = new FluidWorldSync(world, session, entities, adaptiveRates, loggerFactory);
+		TradeSync = new TradeStateSync(world, session, new TradeExecutor(), adaptiveRates, loggerFactory.CreateLogger<TradeStateSync>());
 		TraderSwingSync = new TraderSwingSync(world, session, loggerFactory.CreateLogger<TraderSwingSync>());
 		TraderRecruit = new TraderRecruitCoordinator(session, world, characterData, CharacterDataSync, respawnOptions, items, ItemIds, InteractionVisibility, loggerFactory.CreateLogger<TraderRecruitCoordinator>());
 		Respawn = new RespawnCoordinator(session, world, characterData, CharacterDataSync, respawnOptions, loggerFactory.CreateLogger<RespawnCoordinator>());

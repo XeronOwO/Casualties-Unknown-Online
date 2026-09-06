@@ -24,6 +24,7 @@ public sealed class AdaptiveStreamRateService : IDisposable
 	private readonly AdaptiveRatePolicy _policy = new();
 	private readonly AdaptiveTrafficEstimator _trafficEstimator = new();
 	private readonly Dictionary<(AdaptiveStreamId StreamId, ulong PeerId), int> _lastEffectiveHz = [];
+	private readonly Dictionary<(AdaptiveStreamId StreamId, ulong PeerId), long> _lastEffectiveIntervalMs = [];
 
 	public AdaptiveStreamRateService(
 		NetworkTrafficMonitor traffic,
@@ -90,14 +91,75 @@ public sealed class AdaptiveStreamRateService : IDisposable
 
 	/// <summary>Send interval for a unicast stream, in milliseconds.</summary>
 	public long GetSendIntervalMs(AdaptiveStreamId streamId, ulong peerId) =>
-		1000L / GetEffectiveHz(streamId, peerId);
+		GetEffectiveIntervalMs(streamId, peerId);
 
 	/// <summary>Send interval for a broadcast stream, in milliseconds.</summary>
 	public long GetSendIntervalMs(AdaptiveStreamId streamId, IEnumerable<ulong> peerIds) =>
-		1000L / GetEffectiveHz(streamId, peerIds);
+		GetEffectiveIntervalMs(streamId, peerIds);
 
-	/// <summary>Clears the per-session rate-change cache when network health resets.</summary>
-	public void Reset() => _lastEffectiveHz.Clear();
+	/// <summary>
+	/// Effective send interval for a unicast stream in milliseconds. For Hz-based
+	/// streams this delegates to the existing cadence query; for interval-based
+	/// streams the policy applies the same pressure/priority factor to the
+	/// profile's base interval.
+	/// </summary>
+	public long GetEffectiveIntervalMs(AdaptiveStreamId streamId, ulong peerId)
+	{
+		if (!AdaptiveStreamCatalog.TryGet(streamId, out var profile) || profile.BaseIntervalMs <= 0)
+		{
+			return 1000L / GetEffectiveHz(streamId, peerId);
+		}
+
+		var traffic = Estimate(streamId, peerId);
+		return GetEffectiveIntervalMsForPeer(streamId, peerId, profile, traffic);
+	}
+
+	/// <summary>
+	/// Effective send interval for a broadcast stream in milliseconds. Uses the
+	/// most constrained peer (longest interval); if there are no peers the
+	/// stream's optimal base interval is returned.
+	/// </summary>
+	public long GetEffectiveIntervalMs(AdaptiveStreamId streamId, IEnumerable<ulong> peerIds)
+	{
+		if (!AdaptiveStreamCatalog.TryGet(streamId, out var profile) || profile.BaseIntervalMs <= 0)
+		{
+			return 1000L / GetEffectiveHz(streamId, peerIds);
+		}
+
+		var any = false;
+		long max = 0;
+		NetworkTrafficWindow? currentWindow = null;
+		NetworkTrafficWindow? lastWindow = null;
+		foreach (var peerId in peerIds)
+		{
+			if (!any)
+			{
+				currentWindow = _traffic.CurrentWindow;
+				lastWindow = _traffic.LastCompletedWindow;
+				any = true;
+			}
+
+			var traffic = Estimate(currentWindow!, lastWindow, streamId, peerId);
+			max = Math.Max(max, GetEffectiveIntervalMsForPeer(streamId, peerId, profile, traffic));
+		}
+
+		if (any)
+		{
+			return max;
+		}
+
+		return _policy.GetEffectiveIntervalMs(
+			profile,
+			AdaptivePressureLevel.Optimal,
+			profile.BaseIntervalMs);
+	}
+
+	/// <summary>Clears the per-session rate-change caches when network health resets.</summary>
+	public void Reset()
+	{
+		_lastEffectiveHz.Clear();
+		_lastEffectiveIntervalMs.Clear();
+	}
 
 	public void Dispose() => _traffic.ResetCompleted -= Reset;
 
@@ -151,6 +213,58 @@ public sealed class AdaptiveStreamRateService : IDisposable
 			traffic.AverageSendBytes);
 		LogRateChange(streamId, peerId, profile.Name, pressure, effective);
 		return effective;
+	}
+
+	private long GetEffectiveIntervalMsForPeer(
+		AdaptiveStreamId streamId,
+		ulong peerId,
+		AdaptiveStreamProfile profile,
+		AdaptiveTrafficEstimate traffic)
+	{
+		var pressure = Classify(peerId, traffic);
+		var effective = _policy.GetEffectiveIntervalMs(
+			profile,
+			pressure,
+			profile.BaseIntervalMs,
+			traffic.AverageSendBytes);
+		LogIntervalChange(streamId, peerId, profile.Name, pressure, effective);
+		return effective;
+	}
+
+	private void LogIntervalChange(
+		AdaptiveStreamId streamId,
+		ulong peerId,
+		string streamName,
+		AdaptivePressureLevel pressure,
+		long effectiveIntervalMs)
+	{
+		var key = (streamId, peerId);
+		if (_lastEffectiveIntervalMs.TryGetValue(key, out var previous))
+		{
+			if (previous == effectiveIntervalMs)
+			{
+				return;
+			}
+
+			_log.LogDebug(
+				"[AdaptiveSync] {Stream} peer {Peer} interval {Previous}ms -> {Effective}ms (pressure {Pressure}).",
+				streamName,
+				peerId,
+				previous,
+				effectiveIntervalMs,
+				pressure);
+		}
+		else
+		{
+			_log.LogDebug(
+				"[AdaptiveSync] {Stream} peer {Peer} initial interval {Effective}ms (pressure {Pressure}).",
+				streamName,
+				peerId,
+				effectiveIntervalMs,
+				pressure);
+		}
+
+		_lastEffectiveIntervalMs[key] = effectiveIntervalMs;
 	}
 
 	private int GetBaseHz(AdaptiveStreamProfile profile) =>

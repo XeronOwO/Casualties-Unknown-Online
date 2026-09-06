@@ -42,4 +42,14 @@ public sealed class FluidRegionMsg
 	/// </summary>
 	[ProtoMember(6)]
 	public byte[] Cells { get; set; } = [];
+
+	/// <summary>
+	/// Sender-side traffic-classification hint only; intentionally not a
+	/// <c>ProtoMember</c> so it never changes the wire shape. True when this
+	/// region is the full-viewport reconciliation snapshot, false for a
+	/// changed-cell diff. A diff that happens to cover the entire viewport must
+	/// still be counted as diff, so the adaptive estimates cannot be
+	/// cross-polluted by a dimension heuristic.
+	/// </summary>
+	public bool FullViewport { get; set; }
 }

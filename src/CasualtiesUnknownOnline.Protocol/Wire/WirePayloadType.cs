@@ -83,6 +83,12 @@ public enum WirePayloadType
 	MedicalShrapnelPositionUpdate = 307,
 	MedicalOperationOtherUpdate = 308,
 
+	// Direct fluid-region traffic classification (not a ProtocolFrame envelope
+	// type; these values only group adaptive traffic observations so the diff
+	// and full-viewport cadences do not cross-pollute each other's estimates).
+	FluidRegionDiff = 309,
+	FluidRegionFull = 310,
+
 	// Non-critical presentation effects (reserved)
 	PresentationEffect = 1001,
 }

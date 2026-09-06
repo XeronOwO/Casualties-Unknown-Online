@@ -18,7 +18,12 @@ public sealed class TradeChannel(ISessionControl session, PacketSender sender)
 	private readonly ISessionControl _session = session;
 	private readonly PacketSender _sender = sender;
 
-	/// <summary>Host only: send one trader's authoritative state to one member (world entry, the 5 s fallback).</summary>
+	/// <summary>Host only: send one trader's authoritative state to one member
+	/// (world entry, the 5 s fallback). The payload is an absolute full-state
+	/// overwrite and the immediate action-driven broadcast also rides this
+	/// message, so the fallback stays reliable to preserve FIFO ordering between
+	/// the fallback and the authoritative interaction result; the adaptive
+	/// governor only lowers the fallback cadence.</summary>
 	public void SendTraderState(ulong targetSteamId, TraderStateMsg msg)
 	{
 		if (_session.Role != SessionRole.Host || !_session.SessionActive)

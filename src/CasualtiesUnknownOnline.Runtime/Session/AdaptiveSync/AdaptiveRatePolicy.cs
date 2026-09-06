@@ -44,6 +44,43 @@ public sealed class AdaptiveRatePolicy
 		return Clamp(effective, profile.MinHz, profile.MaxHz);
 	}
 
+	/// <summary>
+	/// Returns the effective send interval for an interval-based stream
+	/// (low-frequency reconciliation/fallback streams whose base cadence is
+	/// expressed in milliseconds rather than whole Hz). Pressure lowers the
+	/// rate, so the interval grows by the same pressure factor; a byte budget
+	/// can only push the interval longer, never shorter. If a byte budget
+	/// requires an interval longer than <c>MaxIntervalMs</c>, the hard cap wins
+	/// and byte preservation is best-effort.
+	/// </summary>
+	public long GetEffectiveIntervalMs(
+		AdaptiveStreamProfile profile,
+		AdaptivePressureLevel pressure,
+		int baseIntervalMs,
+		double averageFrameBytes = 0)
+	{
+		if (profile.DeliveryMode == AdaptiveStreamDeliveryMode.ReliableControl)
+		{
+			return baseIntervalMs;
+		}
+
+		var factor = PressureFactor(pressure, profile.Priority);
+		var effective = (long)Math.Round(baseIntervalMs / factor);
+
+		if (profile.MaxBytesPerSecond > 0 && averageFrameBytes > 0)
+		{
+			var minIntervalByBytes = (long)Math.Ceiling(averageFrameBytes * 1000d / profile.MaxBytesPerSecond);
+			effective = Math.Max(effective, minIntervalByBytes);
+		}
+
+		if (profile.MaxIntervalMs > 0)
+		{
+			effective = Math.Min(effective, profile.MaxIntervalMs);
+		}
+
+		return Math.Max(1, effective);
+	}
+
 	private static int Clamp(int value, int min, int max) =>
 		Math.Max(min, Math.Min(max, value));
 

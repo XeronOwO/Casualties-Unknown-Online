@@ -46,6 +46,26 @@ internal static class AdaptiveStreamWireMapper
 				payloadType = WirePayloadType.MedicalShrapnelPositionUpdate;
 				message = null;
 				return true;
+			case AdaptiveStreamId.WorldItemMoveStream:
+				payloadType = WirePayloadType.StateStream;
+				message = null;
+				return true;
+			case AdaptiveStreamId.WorldItemSnapshotStream:
+				payloadType = WirePayloadType.ItemSnapshotStream;
+				message = null;
+				return true;
+			case AdaptiveStreamId.FluidRegionDiffStream:
+				payloadType = WirePayloadType.FluidRegionDiff;
+				message = null;
+				return true;
+			case AdaptiveStreamId.FluidRegionFullStream:
+				payloadType = WirePayloadType.FluidRegionFull;
+				message = null;
+				return true;
+			case AdaptiveStreamId.TraderStateStream:
+				payloadType = null;
+				message = NetMsg.TraderState;
+				return true;
 			default:
 				payloadType = null;
 				message = null;

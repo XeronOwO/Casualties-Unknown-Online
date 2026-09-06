@@ -1,7 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Protocol;
+using CasualtiesUnknownOnline.Runtime.Session;
+using CasualtiesUnknownOnline.Runtime.Session.AdaptiveSync;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using UnityEngine;
 
@@ -17,35 +20,56 @@ namespace CasualtiesUnknownOnline.GameAdapter.Items;
 /// gate lives in the caller (GameAdapter dispatches by session mode);
 /// IItemControl re-checks on send. The settled throttle (which items ride the
 /// 1 Hz round — <see cref="SettledStreamThrottle"/>) is pure; this class is
-/// the scene-read shell.
+/// the scene-read shell. The send rates now come from the shared adaptive
+/// rate service so network pressure can lower the 10 Hz movement stream and
+/// lengthen the 5 s keyframe fallback.
 /// </summary>
-internal sealed class ItemPositionAuthority(IItemControl items)
+internal sealed class ItemPositionAuthority(
+	IItemControl items,
+	ISessionControl session,
+	AdaptiveStreamRateService adaptiveRates)
 {
 	private readonly IItemControl _items = items;
+	private readonly ISessionControl _session = session;
+	private readonly AdaptiveStreamRateService _adaptiveRates = adaptiveRates;
 
-	private const int ItemMoveIntervalMs = 100; // position stream (unreliable, 10 Hz)
 	private long _nextItemMoveMs;
-
-	private const int ItemSnapshotIntervalMs = 5000; // periodic world-item keyframe (unreliable)
 	private long _nextItemSnapshotMs;
 
 	private readonly SettledStreamThrottle _throttle = new();
 
 	internal void Update()
 	{
-		if (Environment.TickCount >= _nextItemMoveMs)
+		var now = Environment.TickCount;
+		if (now >= _nextItemMoveMs)
 		{
-			_nextItemMoveMs = Environment.TickCount + ItemMoveIntervalMs;
+			_nextItemMoveMs = now + _adaptiveRates.GetSendIntervalMs(
+				AdaptiveStreamId.WorldItemMoveStream,
+				GuestSteamIds());
 			SendMovingItemMoves();
 		}
 
-		if (Environment.TickCount >= _nextItemSnapshotMs)
+		if (now >= _nextItemSnapshotMs)
 		{
-			_nextItemSnapshotMs = Environment.TickCount + ItemSnapshotIntervalMs;
+			_nextItemSnapshotMs = now + _adaptiveRates.GetSendIntervalMs(
+				AdaptiveStreamId.WorldItemSnapshotStream,
+				GuestSteamIds());
 			RefreshWorldItemStates();
 			_items.SendPeriodicItemSnapshot();
 		}
 	}
+
+	internal void ResetSessionState()
+	{
+		_nextItemMoveMs = 0;
+		_nextItemSnapshotMs = 0;
+		_throttle.Reset();
+	}
+
+	private IEnumerable<ulong> GuestSteamIds() =>
+		_session.Members
+			.Where(m => m.Handshaken && m.SteamId != _session.LocalSteamId)
+			.Select(m => m.SteamId);
 
 	/// <summary>
 	/// Broadcast every world item's authoritative position (10 Hz, unreliable —

@@ -1,9 +1,10 @@
-# Remote fentanyl injection bypass and remote medical panel desync
+# Comprehensive medical UI / medical-item minigame gap audit (fentanyl is a surface symptom)
 
 - Status: Todo
 - Priority: Critical
 - Category: Remote medical / cross-player medicine
 - Source: User report (2026-09-06) — a guest used fentanyl on the host through the remote medical panel. The guest saw the whole syringe drain instantly with no native injection minigame; the host's medical panel did not show the fentanyl happiness change, heart rate displayed 0 while the waveform still animated, and the remote medical panel leaked the viewer's own bottom status icons and left the sleep button enabled.
+- User direction (2026-09-06): **do not treat fentanyl as a single bug and do not start a narrow analysis now.** The medical interface has a very large number of values and the medical item-use surface has many native minigames; the fentanyl symptom is only the visible tip of a larger content-coverage gap. This ticket must be updated/planned as a comprehensive reverse-engineering audit before any implementation is attempted.
 
 ## Problem
 
@@ -50,6 +51,13 @@ redirected to the viewed player.
    The native medical panel should not allow sleeping on another player's
    display body when the panel is in remote focus.
 
+6. **Character health/vitals sync is only 1 Hz, so the medical panel's
+   real-time feel is poor.**
+   The remote medical panel is fed from the existing 1 Hz character snapshot;
+   values appear stale/choppy compared with the local medical UI. The
+   comprehensive audit must also decide whether a focused/higher-rate medical
+   stream or event-driven deltas are needed for a good real-time readout.
+
 ## Investigation scope / suspected gaps
 
 - **Native injection minigame is missing from the cross-player medicine path.**
@@ -86,6 +94,13 @@ redirected to the viewed player.
   entry used by the native medical panel. Sleep/nap must be suppressed while
   the remote medical focus is open, just like the read-only guarantee for
   other special WoundView actions.
+
+- **Medical panel refresh rate is too coarse.**
+  The current source is the 1 Hz character snapshot; for a real-time-feeling
+  medical panel the audit must determine whether a dedicated higher-rate
+  medical snapshot, event-driven per-field deltas, or a local projection from
+  existing higher-frequency streams is the right architecture. Do not assume
+  “just raise 1 Hz” before understanding the protocol/bandwidth tradeoff.
 
 ## Acceptance criteria
 

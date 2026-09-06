@@ -1,6 +1,6 @@
 # Global adaptive report-rate / sync-frequency flow control — roadmap
 
-- Status: Todo
+- Status: Review
 - Priority: Medium (promoted by user from future on 2026-09-06)
 - Category: Network / adaptive sync / flow control
 - Source: User selection — "做上报率框架吧。如果觉得比较复杂，可以拆分成多阶段分阶段实施，一个会话一个阶段，不要 goal 一次性做完，拆分后不保留原文档。有些数据包是允许不可靠的，有些数据包是要求可靠的，需要做区分"
@@ -22,10 +22,10 @@ No wire-protocol version change: only message rate changes.
 
 | Stage | Ticket | Scope |
 |---|---|---|
-| 1 | [Global stream taxonomy + health-driven overwrite governor](review/global-adaptive-report-rate-stage-1-global-governor.md) | `AdaptiveStreamId`/delivery-mode catalog, pure pressure classifier + rate policy, `AdaptiveStreamRateService`, and integration of Player/Enemy/Tutorial overwrite streams |
-| 2 | [Per-stream/per-peer traffic/bandwidth estimates](review/global-adaptive-report-rate-stage-2-traffic-bandwidth.md) | Per-peer × per-stream traffic/bandwidth estimates, richer pressure inputs and policy tuning |
-| 3 | [Cumulative stream coalescing](review/global-adaptive-report-rate-stage-3-cumulative-streams.md) | Cumulative stream support: reliable injection delta coalescing, per-piece shrapnel ordinary position coalescing, medical traffic classification, shared operation ids |
-| 4 | [Remaining high-frequency domain streams](review/global-adaptive-report-rate-stage-4-high-frequency-domains.md) | Remaining frequent domains: item move/snapshot, fluid, trader state, other future streams |
+| 1 | [Global stream taxonomy + health-driven overwrite governor](global-adaptive-report-rate-stage-1-global-governor.md) | `AdaptiveStreamId`/delivery-mode catalog, pure pressure classifier + rate policy, `AdaptiveStreamRateService`, and integration of Player/Enemy/Tutorial overwrite streams |
+| 2 | [Per-stream/per-peer traffic/bandwidth estimates](global-adaptive-report-rate-stage-2-traffic-bandwidth.md) | Per-peer × per-stream traffic/bandwidth estimates, richer pressure inputs and policy tuning |
+| 3 | [Cumulative stream coalescing](global-adaptive-report-rate-stage-3-cumulative-streams.md) | Cumulative stream support: reliable injection delta coalescing, per-piece shrapnel ordinary position coalescing, medical traffic classification, shared operation ids |
+| 4 | [Remaining high-frequency domain streams](global-adaptive-report-rate-stage-4-high-frequency-domains.md) | Remaining frequent domains: item move/snapshot, fluid, trader state, other future streams |
 
 ## Candidate streams
 

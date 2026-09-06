@@ -36,11 +36,8 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ## Ticket index
 
-### Todo
-
-- [Global adaptive report-rate / sync-frequency flow control](todo/global-adaptive-report-rate-flow-control.md) — **Medium (user-promoted from future)**: global framework for all frequent-report, loss-tolerant streams; split into stages; Stages 1-4 are in review and any remaining stage tickets are created as sessions reach them.
-
 ### Review
+- [Global adaptive report-rate / sync-frequency flow control — roadmap](review/global-adaptive-report-rate-flow-control.md) — **Medium (user-promoted from future)**: umbrella roadmap; Stages 1-4 all code-complete and in review; awaiting final unified acceptance pass.
 - [Global adaptive report-rate flow control — Stage 4: remaining high-frequency domain streams](review/global-adaptive-report-rate-stage-4-high-frequency-domains.md) — **Medium**: interval-based adaptive cadence for item move/snapshot, fluid diff/full, and trader fallback; item/fluid/trader senders query the shared rate service; session reset coverage; full build, 2481 + 16 gates, two independent adversarial self-checks, deployed-hash verification complete; awaiting final unified acceptance pass.
 - [Global adaptive report-rate flow control — Stage 3: cumulative stream coalescing](review/global-adaptive-report-rate-stage-3-cumulative-streams.md) — **Medium**: reliable coalescing for medical injection frame-level deltas, per-piece shrapnel ordinary position coalescing, per-stream `BaseHz`, dedicated medical traffic classification, shared operation-id allocator; full build, 2462 + 16 gates, three independent adversarial self-checks, deployed-hash verification complete; awaiting final unified acceptance pass.
 - [Global adaptive report-rate flow control — Stage 1: stream taxonomy + health-driven overwrite governor](review/global-adaptive-report-rate-stage-1-global-governor.md) — **Medium**: explicit reliable/unreliable/cumulative delivery modes, pressure classifier + rate policy, shared `AdaptiveStreamRateService`, and Player/Enemy/Tutorial overwrite streams integrated; full build, 2417 + 16 gates, independent adversarial self-check, deployed-hash verification complete; awaiting final unified acceptance pass.

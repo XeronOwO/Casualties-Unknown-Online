@@ -3,7 +3,7 @@
 - Status: Review
 - Priority: Medium
 - Category: Network / adaptive sync / flow control
-- Parent: `../todo/global-adaptive-report-rate-flow-control.md`
+- Parent: `global-adaptive-report-rate-flow-control.md`
 
 ## Objective
 

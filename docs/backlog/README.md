@@ -36,6 +36,15 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ## Ticket index
 
+### Todo
+
+- [Remote fentanyl injection bypass and remote medical panel desync](todo/remote-fentanyl-injection-and-medical-panel-desync.md) — **Critical**: guest→host fentanyl use bypasses the native injection minigame and drains the whole container; remote medical panel does not reflect host happiness / shows heart rate 0, leaks viewer's own status icons, and leaves sleep enabled; deep investigation into the cross-player medicine and native WoundView projection gaps.
+- [Dead-player right-click context menu should show a dead status suffix in the title](todo/dead-player-right-click-name-suffix.md) — right-click context-menu title should show the dead suffix (`名称(死掉了)`); `IsDead` already exists on the projected row, so this is a UI projection + localization polish.
+
+### In Progress
+
+- [Sync player pain vocalizations and B-key bark](in-progress/sync-player-pain-vocalizations-and-bark.md) — re-opened after review rejection: PantSound pain/yawn/growl/B-bark ride CharacterSoundMsg, but the lockpick-failure `gore2` pain sound is still missing from the capture path; regression contract added, implementation pending.
+
 ### Review
 - [Convert non-.editorconfig normative requirements into unit-testable gates](review/normative-style-unit-test-gates.md) — Roslyn `dotnet test` gate for unnecessary fully qualified names landed; normative-rule inventory added in `docs/evidence/normative-gates.md`.
 - [Remote backpack native interaction parity](review/remote-backpack-native-interaction-parity.md) — **Critical / super-priority**: top-level root container sync, open-container background drop, guarded owner-side container apply, and detach-before-destroy transfer removal landed; latest DLLs deployed and artifact-verified; awaiting final user dual-client acceptance.
@@ -72,7 +81,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [ModService ↔ GameAdapter DI cycle](review/mod-service-gameadapter-di-cycle.md) — startup hang fixed by injecting ModStatusStore instead of ModService into the adapter; regression contract test added.
 - [DI cycle guard / cycle-path diagnostics](review/di-cycle-guard.md) — composition-root ValidateOnBuild + factory re-entrancy guard; cycle chains logged to BepInEx and latest.log; selfcheck linked.
 - [Remove legacy "View items" remote-inventory detail path](review/remove-legacy-view-items-remote-inventory-detail.md) — custom inline inventory expansion and right-click fallback removed; native remote backpack remains the only remote-inventory surface.
-- [Sync player pain vocalizations and B-key bark](review/sync-player-pain-vocalizations-and-bark.md) — PantSound pain/yawn/growl/B-bark now ride the existing CharacterSoundMsg event; continuous pant remains local; reverse direction covered by star relay.
 - [Suppress native idle-sit while carried](review/carried-player-idle-sit-suppression.md) — carried characters no longer publish/replay/linger in the native sit pose; shared pure CarriedBodyPose rule applied across rider/carrier/peer views.
 - [Carrier can sit while carrying a player](review/carrier-sit-while-carrying.md) — carrier half of the same family closed: local carrier cannot enter/linger in native sit, mirror-backed via IPatchBridge.IsLocalCarrier; remote carrier clones suppress sit replay on every peer; selfcheck linked.
 - [Carry/piggyback vertical placement asymmetry](review/carry-piggyback-vertical-placement-asymmetry.md) — carried riders publish body root instead of the non-standing torso anchor; shared ride-pose path also mirrors crouch state; selfcheck linked.

@@ -1,13 +1,14 @@
 # Sync player pain vocalizations and B-key bark to remote players
 
-- Status: Review
+- Status: In Progress
 - Priority: Medium
 - Category: Character audio / player presentation sync
 - Source: User report (2026-09-04) — the host's pain scream/groan and the sound triggered by pressing B are not heard on the guest client. The reverse direction (guest → host) was not tested by the user and is covered by the same star-relay path during the fix.
+- Review rejection (2026-09-06): the first review pass was rejected because the lockpick-failure pain sound is still not heard on the guest. When the host fails to pick a lock, `LockpingMinigame.Update` plays `gore2` at the body and raises limb pain / damages claw health (`LockpingMinigame.cs:144-156`); that path is outside the existing `PantSound` scopes, so the first delivery only covered PantSound pain/yawn/growl/bark, not this lockpick-failure pain source.
 
 ## Goal
 
-Make the host's pain vocalizations and B-key bark audible to the guest (and verify the reverse direction). The fix fits the existing dedicated character-sound event path; no per-frame audio stream is introduced.
+Make the host's pain vocalizations and B-key bark audible to the guest (and verify the reverse direction). The fix fits the existing dedicated character-sound event path; no per-frame audio stream is introduced. The lockpick-failure `gore2` pain sound must also ride that same event path.
 
 ## Implementation
 
@@ -32,7 +33,7 @@ Make the host's pain vocalizations and B-key bark audible to the guest (and veri
 
 ## Acceptance status
 
-Code-complete; moved to `review/` for the final unified acceptance pass. The reverse direction uses the same bidirectional star-relay (`CharacterDataStore.SendCharacterSound` → host broadcast/relay) and is covered by the existing `CharacterSoundSyncTests` guest-report/relay scenarios.
+Rejected from `review/` and re-opened in-progress: the lockpick-failure pain sound (`gore2` from `LockpingMinigame.Update`) is not captured/replayed remotely. A regression contract has been added to `CharacterSoundPatchTests` to cover the missing LockpingMinigame pain-capture scope; the implementation and full red→green verification are still pending in this cycle.
 
 ## Non-goals
 

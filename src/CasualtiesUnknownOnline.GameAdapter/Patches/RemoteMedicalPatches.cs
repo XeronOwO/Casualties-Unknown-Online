@@ -48,27 +48,33 @@ internal static class RemoteMedicalPatches
 	[HarmonyPatch(typeof(ECGVisualizer), "get_body")]
 	internal static class RemoteMedicalEcgBodyPatch
 	{
-		private static void Prefix(ECGVisualizer __instance, ref Body __result)
+		// Postfix, not Prefix: the native getter's own return value must be
+		// replaced AFTER it runs. A Prefix that sets ref __result without
+		// returning false is overwritten by the original getter.
+		private static void Postfix(ECGVisualizer __instance, ref Body __result)
 		{
 			if (!RemoteMedicalView.IsOpen || RemoteMedicalView.DisplayBody is not { } display)
 			{
 				return;
 			}
 
-			// Only redirect the ECG inside the active native WoundView panel.
-			// The same getter is used by the consciousness overlay and the
-			// manual defibrillator minigame; those must keep drawing the local
-			// body even while the remote medical view is open.
-			if (WoundView.view == null // Unity object — ==
-				|| !__instance.transform.IsChildOf(WoundView.view.transform))
+			// The consciousness overlay's ECG belongs to the viewer's own body
+			// even while a remote WoundView is open; keep it on the local body.
+			var camera = PlayerCamera.main;
+			if (camera != null // Unity object — ==
+				&& camera.consciousnessECG != null // Unity object — ==
+				&& ReferenceEquals(camera.consciousnessECG, __instance))
 			{
 				return;
 			}
 
 			// The native ECG waveform is hard-wired to PlayerCamera.main.body
-			// (ECGVisualizer.cs:10-16). While the remote WoundView is open it
-			// would keep drawing the viewer's own heartbeat next to the remote
-			// readout; redirect it to the same display body the panel reads.
+			// (ECGVisualizer.cs:10-16). While a remote medical view or a
+			// remote medical minigame is open, every other ECG visualizer (the
+			// WoundView readout and the manual-defibrillator minigame) must
+			// draw the display body, not the viewer's own heart. The earlier
+			// WoundView.child-of check missed the panel/minigame layout and
+			// left the viewer's own ECG on the remote panel.
 			__result = display;
 		}
 	}

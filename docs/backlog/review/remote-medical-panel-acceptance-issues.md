@@ -1,13 +1,37 @@
 # Remote medical panel acceptance issues (mood cadence / breathing icon / ECG)
 
-- Status: Todo
+- Status: Review
 - Priority: High
 - Category: Remote medical / WoundView display / real-time injection
 - Parents:
   - `docs/backlog/review/remote-fentanyl-injection-and-medical-panel-desync.md`
   - `docs/backlog/review/remote-player-medical-panel.md`
   - `docs/backlog/review/remote-medical-stage-1-injection-session.md`
-- Source: User acceptance findings (2026-09-06). Record only; no code change in this cycle.
+- Source: User acceptance findings (2026-09-06).
+
+## Landed (2026-09-06 follow-up)
+
+The three reported display issues were fixed at the display-body projection root
+rather than as isolated patches:
+
+- **Mood cadence**: the inactive display body now carries a raw opiate actual
+  and runs the native `Painkillers` 5-units/sec ramp toward the committed
+  `OpiateAmount - OpiateTolerance` every frame, so the remote medical view
+  follows the owner's curve at the committed-dose cadence instead of waiting
+  for the 1 Hz snapshot.
+- **Breathing icon**: `Body.breathing` is projected from
+  `Alive && RespiratoryRate > 10` (native `Body.cs:2770`), so a stopped remote
+  breath produces the critical `cantbreathe` moodle instead of the generic
+  `hypoventilation` one.
+- **ECG**: `ECGVisualizer.get_body` redirect is now a Harmony Postfix (the old
+  Prefix was overwritten by the native getter), excluding only the viewer's own
+  consciousness ECG. The display body's `heartProg` is advanced every frame so
+  the redirected waveform animates and stops at `heartRate <= 0`.
+
+Selfcheck:
+`docs/evidence/selfchecks/players/remote-medical-panel-acceptance-projection-selfcheck.md`.
+
+- [ ] Awaiting final unified acceptance.
 
 ## Reported issues
 
@@ -44,7 +68,10 @@
 | Host heart stops; guest watches host medical panel | ECG stops / reflects host heart state | ECG is guest's own and keeps beating |
 | Other bottom icons | sync with host | currently sync normally (isolated issue) |
 
-## Non-goals
+## Non-goals / known boundaries
 
-- No code change in this cycle; this ticket is a record.
-- Not proposing a specific implementation design yet.
+- No parallel CUO medical panel; the native WoundView remains the only medical
+  UI surface.
+- Deepest negative opiate clamp and `randomFibrillationVariation` /
+  `defibShockedFrames` ECG presentation remain approximate/not carried in the
+  display projection; they are outside the three reported acceptance issues.

@@ -38,6 +38,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
+- [Unified remote display projection rework](todo/unified-remote-display-projection-rework.md) — **High**: architecture replacement for the repeated per-field projection failures (medical, pose/face/carry, backpack); must be deep-analyzed and split into multiple phases before implementation.
 - [Carry/piggyback rider position smoothing and movement teleport](todo/carry-piggyback-rider-position-smoothing.md) — **Critical**: explicitly rejected by the user on 2026-09-06; the rider teleport remains unresolved; moved out of `review/`; not accepted, not in progress.
 - [Remote backpack item projection acceptance issues (projection rework needed)](todo/remote-backpack-item-projection-acceptance-issues.md) — **High**: user acceptance found durability mismatch, selective trash-bag moves, failed Tab transfer in both directions, failed pour/edge-drop, host-side trash-bag take-out vanishing, no main-hand placement, and missing held-remote-item + Tab-close + R-medical-use flow; host↔guest directions are asymmetric, projection mechanism likely needs a full audit or rework.
 

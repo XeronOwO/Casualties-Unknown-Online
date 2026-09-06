@@ -6,6 +6,17 @@
 - Source: User report (2026-09-06) — a guest used fentanyl on the host through the remote medical panel. The guest saw the whole syringe drain instantly with no native injection minigame; the host's medical panel did not show the fentanyl happiness change, heart rate displayed 0 while the waveform still animated, and the remote medical panel leaked the viewer's own bottom status icons and left the sleep button enabled.
 - Landed: 2026-09-06 — native syringe minigame routing for cross-player injectable/IV medicines, partial-dose wire, remote WoundView display projection, ECG/Moodle redirection and sleep-button disable all implemented; full gates green; latest DLLs deployed and artifact-verified; awaiting final user dual-client acceptance.
 
+## Acceptance findings (2026-09-06)
+
+The user opened this review ticket for acceptance and found the following
+issues. They are recorded in
+`docs/backlog/todo/remote-medical-panel-acceptance-issues.md`; this ticket is
+**not accepted** until they are resolved.
+
+1. Guest injects fentanyl into the host; the guest sees the host's mood/happiness update only at 1 Hz, not the rapid post-fentanyl rise.
+2. Host breathing stops; the guest sees the host's medical panel bottom icon show "通气不足" instead of the correct host state (other icons sync).
+3. The guest sees the host's medical panel ECG that is still the guest's own, not the host's; after the host's heart stops, the ECG still beats normally.
+
 ## Problem
 
 The current remote medical treatment path supports injectable/IV medicines through `PlayerItemUseRequest` → `RemoteMedicineCatalog` / `RemoteMedicineApplication`. That path was host-authoritative and pure-snapshot based: it applied the curated per-ml effects to a character snapshot and drained the item, but it did not reproduce the native `SyringeMinigame` flow that local fentanyl injection uses (`Item.cs:1035-1057`, `WaterContainerItem.Inject`).

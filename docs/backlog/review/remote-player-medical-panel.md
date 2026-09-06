@@ -5,6 +5,18 @@
 - Category: Remote player UI / native UI reuse
 - Source: User report (2026-09-04); rejected in an earlier review (2026-09-05) because the previous delivery used a CUO-side IMGUI panel instead of the game's native medical UI.
 
+## Acceptance findings (2026-09-06)
+
+The user opened the remote medical panel during acceptance and found display
+issues; they are recorded in
+`docs/backlog/todo/remote-medical-panel-acceptance-issues.md`. This ticket is
+**not accepted** until the display-fidelity issues are resolved:
+
+- Fentanyl mood/happiness updates only at 1 Hz, not in real time.
+- Host breathing stop shows "通气不足" on the guest's remote panel view.
+- Remote medical panel ECG still shows the viewer's own heart, not the host's;
+  it keeps beating after the host's heart stops.
+
 ## Goal
 
 Allow a player to open another player's medical/health panel and view their

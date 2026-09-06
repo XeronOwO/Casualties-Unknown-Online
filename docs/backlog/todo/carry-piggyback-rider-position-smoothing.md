@@ -1,6 +1,6 @@
 # Carry/piggyback riding movement teleport and rider/carrier position mismatch
 
-- Status: Review (latest autonomous full-rework cycle completed; deployed artifacts 2026-09-05; awaiting unified acceptance)
+- Status: Rejected (explicitly rejected by user on 2026-09-06; moved out of `review/`; the rider teleport remains unresolved and must be reworked/root-caused before acceptance)
 - Priority: Critical
 - Category: Player interaction / movement sync / carry-piggyback presentation
 - Source: User report (2026-09-04); rejected in review (2026-09-05) — the first fix only covered half of the carry presentation family; rejected again (2026-09-05) on host movement with a riding guest; reworked again with a final LateUpdate carrier-side re-pin; the user re-reported that the teleport still exists, so this cycle replaced the pin-only approach on the participant carrier side with a true transform-parent carry mount.

@@ -43,13 +43,41 @@ complete rework rather than more point patches.
    - The operation map claims pour/edge drop are implemented, but the accepted
      behavior is not present for this item/role path.
 
+5. **Host-side trash-bag take-out to a guest slot makes the item vanish**
+   - Host opens the guest's backpack.
+   - Host can drag guest items into the guest's trash bag.
+   - When the host drags an item out of the trash bag back to a guest slot, the
+     item disappears.
+   - The trash-bag → slot take/write path is broken on the host-view side.
+
+6. **Host cannot place an item into the guest's main hand**
+   - Host can place items into most guest positions/slots.
+   - Host cannot place an item into the guest's main hand (primary hand slot).
+   - This is a role/direction-specific gap.
+
+## Direction-difference note
+
+The reported behaviors now include both guest→host and host→guest directions,
+and the two directions are **not symmetric**:
+
+- Guest→host: selective trash-bag insertion, Tab transfer failure, pour/edge
+  failure, durability projection mismatch.
+- Host→guest: trash-bag insertion works, but take-out to a slot vanishes, and
+  the guest's main hand cannot receive an item.
+
+This confirms a systematic direction/role-dependent projection problem rather
+than one isolated item path. A whole-family audit must cover both directions
+and the same operation in each direction.
+
 ## Likely scope
 
 - Remote item projection state (durability, container membership, slots,
-  interactions) needs to be checked as a family, not as four isolated fixes.
-- The four symptoms may share a common projection root: remote proxies carry
+  interactions) needs to be checked as a family, not as isolated fixes.
+- The reported symptoms may share a common projection root: remote proxies carry
   too little authoritative item state and/or the native projection is not
   reconstructed faithfully enough for non-trivial item behaviors.
+- The audit must compare host-open-guest vs guest-open-host for the same
+  operations; no single direction can be considered fixed alone.
 - A deep audit or redesign of the remote backpack projection is expected before
   acceptance can pass.
 
@@ -65,6 +93,10 @@ complete rework rather than more point patches.
 | Guest double-Tab transfers a host item to self | succeeds | fails |
 | Guest pours out host water bottle | succeeds | fails |
 | Guest edge-drops host water bottle | succeeds | fails |
+| Host moves guest item into guest trash bag | succeeds | succeeds |
+| Host drags guest item out of guest trash bag to guest slot | item returns to slot | item disappears |
+| Host places item into guest main hand | succeeds | fails |
+| Host places item into other guest slots | succeeds | succeeds |
 
 ## Non-goals
 

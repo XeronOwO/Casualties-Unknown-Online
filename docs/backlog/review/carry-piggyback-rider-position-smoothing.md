@@ -24,6 +24,20 @@ User re-tested the carry/piggyback movement while the guest rides on the host:
 - The carry presentation is rejected; the rider must stay firmly attached to
   the carrier during movement on the participant's view.
 
+## Rejected again (2026-09-06 user re-test — still unresolved)
+
+The user reports the same carry teleport is still present after the mount
+rework, and that this has been unresolved for many cycles:
+
+- Guest rides on the host's back.
+- The host moves.
+- On the host's own view, the guest still has an instant displacement / teleport.
+- The guest's own view is pinned to the host's back, so the rider side looks correct.
+- The reverse direction is reported as equally unresolved (host rides on guest,
+  guest's view shows the host's instant displacement).
+- This ticket is **still not accepted**. The existing mount/pin/LateUpdate
+  approach has not eliminated the reported participant-carrier-view teleport.
+
 ## Autonomous rework (2026-09-05, super-priority full-rework)
 
 The previous cycles kept the rider clone as an independent scene root and only

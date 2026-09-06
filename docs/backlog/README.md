@@ -36,6 +36,10 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ## Ticket index
 
+### Todo
+
+- [Host metal-scrap block placement sound not heard on guest](todo/host-metal-scrap-block-place-sound-not-synced-to-guest.md) — **Medium**: user report (2026-09-06); host places metal scrap as a block and the guest misses the placement sound.
+
 ### Review
 - [Global adaptive report-rate / sync-frequency flow control — roadmap](review/global-adaptive-report-rate-flow-control.md) — **Medium (user-promoted from future)**: umbrella roadmap; Stages 1-4 all code-complete and in review; awaiting final unified acceptance pass.
 - [Global adaptive report-rate flow control — Stage 4: remaining high-frequency domain streams](review/global-adaptive-report-rate-stage-4-high-frequency-domains.md) — **Medium**: interval-based adaptive cadence for item move/snapshot, fluid diff/full, and trader fallback; item/fluid/trader senders query the shared rate service; session reset coverage; full build, 2481 + 16 gates, two independent adversarial self-checks, deployed-hash verification complete; awaiting final unified acceptance pass.

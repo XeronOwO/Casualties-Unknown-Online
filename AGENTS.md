@@ -146,6 +146,10 @@ a separate future architecture item, not part of the completed evolution.
     Once the design and requirements are clear, follow the project specifications
     and this file without asking about routine implementation details; ask only
     when a decision is architecture-affecting or not covered by the conventions.
+14. `[RULE]` **Future backlog items are not work items.** `future/` means
+    "deferred by decision", not "pending implementation". Future items are not
+    included in handoff prompts and are not proactively implemented unless the
+    user explicitly promotes them to `todo/` because a clear need has appeared.
 
 ## General Development Workflow (binding)
 

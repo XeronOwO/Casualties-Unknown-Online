@@ -1,3 +1,5 @@
+using System;
+using System.Linq;
 using CasualtiesUnknownOnline.GameAdapter.Items;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using MapsterMapper;
@@ -42,6 +44,10 @@ internal static class CharacterDataCapture
 			limbMsg.IsHead = body.limbs[i].isHead;
 			limbMsg.IsVital = body.limbs[i].isVital;
 			limbMsg.Components = LimbComponentStateCodec.Capture(body.limbs[i]);
+			limbMsg.ConnectedLimbIndices = [.. body.limbs[i].connectedLimbs
+				.Select(l => Array.IndexOf(body.limbs, l))
+				.Where(idx => idx >= 0)];
+			limbMsg.DistanceToHeart = body.limbs[i].distanceToHeart;
 			msg.Limbs.Add(limbMsg);
 		}
 

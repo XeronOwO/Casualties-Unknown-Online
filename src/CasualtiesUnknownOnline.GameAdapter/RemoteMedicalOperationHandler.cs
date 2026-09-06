@@ -27,6 +27,7 @@ internal sealed class RemoteMedicalOperationHandler
 
 	private readonly GameAdapterDomains _domains;
 	private readonly RemoteShrapnelOperationHandler _shrapnelOps;
+	private readonly RemoteOtherMedicalOperationHandler _otherOps;
 
 	internal RemoteMedicalOperationHandler(GameAdapterDomains domains)
 	{
@@ -34,6 +35,7 @@ internal sealed class RemoteMedicalOperationHandler
 		_cancelRequestSender = id => domains.PlayerInteraction.MedicalOperations.SendCancelRequest(id);
 		_endRequestSender = (id, total) => domains.PlayerInteraction.MedicalOperations.SendEndRequest(id, total);
 		_shrapnelOps = new RemoteShrapnelOperationHandler(domains);
+		_otherOps = new RemoteOtherMedicalOperationHandler(domains);
 		domains.PlayerInteraction.MedicalOperations.StartAckReceived += OnStartAckReceived;
 	}
 
@@ -76,6 +78,36 @@ internal sealed class RemoteMedicalOperationHandler
 			return false;
 		}
 
+		if (RemoteBandageMinigameCatalog.IsBandageItem(dragItem.id))
+		{
+			return _otherOps.TryStartRemoteBandageUse(dragItem, limbIndex, target, instance.Id);
+		}
+
+		if (RemoteOtherMedicalCatalog.IsAed(dragItem.id))
+		{
+			return _otherOps.TryStartRemoteAedUse(dragItem, limbIndex, target, instance.Id);
+		}
+
+		if (RemoteOtherMedicalCatalog.IsManualDefibrillator(dragItem.id))
+		{
+			return _otherOps.TryStartRemoteManualDefibUse(dragItem, limbIndex, target, instance.Id);
+		}
+
+		if (RemoteOtherMedicalCatalog.IsAmputationTool(dragItem.id))
+		{
+			return _otherOps.TryStartRemoteAmputationUse(dragItem, limbIndex, target, instance.Id);
+		}
+
+		if (RemoteOtherMedicalCatalog.IsDislocationWrench(dragItem.id)
+			&& RemoteMedicalView.DisplayBody is { } dislocationDisplay
+			&& limbIndex >= 0
+			&& limbIndex < dislocationDisplay.limbs.Length
+			&& dislocationDisplay.limbs[limbIndex] is { } wrenchLimb
+			&& wrenchLimb.dislocated)
+		{
+			return _otherOps.TryStartRemoteDislocationUse(wrenchLimb, wrench: true, dragItem, target, instance.Id);
+		}
+
 		if (RemoteHealProfiles.IsHealItem(dragItem.id))
 		{
 			_domains.PlayerInteraction.SendHealRequest(target, instance.Id, limbIndex);
@@ -102,6 +134,41 @@ internal sealed class RemoteMedicalOperationHandler
 
 	internal bool TryStartRemoteShrapnelSpecial(Limb limb) =>
 		_shrapnelOps.TryStartRemoteShrapnelSpecial(limb);
+
+	internal bool TryStartRemoteWoundSpecial(Limb limb)
+	{
+		if (limb == null) // Unity object — ==
+		{
+			return false;
+		}
+
+		if (limb.GetComponent<TourniquetScript>() != null) // Unity object — ==
+		{
+			return _otherOps.TryStartRemoteRemoval(limb, MedicalOperationKind.TourniquetRemoval);
+		}
+
+		if (limb.hasShrapnel)
+		{
+			return _shrapnelOps.TryStartRemoteShrapnelSpecial(limb);
+		}
+
+		if (limb.GetComponent<SplintLimb>() != null) // Unity object — ==
+		{
+			return _otherOps.TryStartRemoteRemoval(limb, MedicalOperationKind.SplintRemoval);
+		}
+
+		if (limb.dislocated)
+		{
+			return _otherOps.TryStartRemoteDislocationUse(
+				limb,
+				wrench: false,
+				item: null,
+				RemoteMedicalView.TargetSteamId,
+				0);
+		}
+
+		return false;
+	}
 
 	/// <summary>
 	/// Called when the native minigame system ends the active remote syringe

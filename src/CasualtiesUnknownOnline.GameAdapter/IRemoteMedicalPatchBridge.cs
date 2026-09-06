@@ -25,4 +25,12 @@ internal interface IRemoteMedicalPatchBridge
 	/// was handled (the original local-body special action must be skipped).
 	/// </summary>
 	bool TryStartRemoteShrapnelSpecial(Limb limb);
+
+	/// <summary>
+	/// Remote-medical WoundView special action on any eligible limb: routes
+	/// tourniquet removal, shrapnel, splint removal or dislocation fix through
+	/// the host-authoritative medical operation session. Returns true when
+	/// handled, false when read-only must remain.
+	/// </summary>
+	bool TryStartRemoteWoundSpecial(Limb limb);
 }

@@ -116,4 +116,16 @@ foreach ($name in @("Steamworks.NET.dll", "steam_api64.dll")) {
     Write-Host "  deployed $name"
 }
 
+# Keep the plugin directory in sync with the current build: remove stale DLLs
+# from older dependency versions so the Mono loader can never accidentally bind
+# a file that is no longer part of the resolved graph (e.g. 10.x-era
+# Microsoft.Extensions leftovers after a 3.1.x rollback).
+$expectedNames = @($dlls.Name) + @("Steamworks.NET.dll", "steam_api64.dll")
+$stale = Get-ChildItem -LiteralPath $targetDir -Filter *.dll -File |
+    Where-Object { $expectedNames -notcontains $_.Name }
+foreach ($file in $stale) {
+    Remove-Item -LiteralPath $file.FullName -Force
+    Write-Host "  removed stale $($file.Name)"
+}
+
 Write-Host "Deployed CUO to $targetDir"

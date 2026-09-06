@@ -32,6 +32,7 @@ Automation status legend:
 | #10 Prefer `using` / aliases over fully qualified names | **dotnet test** | Roslyn gate: `FullyQualifiedNameGateTests`. |
 | #11 Attribute/reflection registration for large families | Review / process | Design preference; no reliable syntax gate without false positives. |
 | #12 Reuse native game UI | Review / process | Acceptance-readiness audit; explicitly a human acceptance decision. |
+| Dependency pin — Microsoft.Extensions 3.1.x on net48 (architecture blueprint §5) | dotnet test (C# port) | `SourceShapeGateTests.MicrosoftExtensionsPinnedToNet48CompatibleLine`. |
 
 ## Quality and delivery rules
 

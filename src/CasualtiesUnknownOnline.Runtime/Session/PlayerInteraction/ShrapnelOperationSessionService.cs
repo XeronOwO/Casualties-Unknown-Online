@@ -13,10 +13,12 @@ namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 /// Host-authoritative shared shrapnel session domain. One session is created
 /// per target limb when the first operator starts the native shrapnel
 /// minigame; later operators join the same session. The host owns per-piece
-/// positions and short lease ownership, rejects non-owner movement, releases
-/// leases on release/cancel/disconnect, commits removed pieces into the
+/// positions and per-piece ownership, rejects non-owner movement, releases
+/// ownership on release/cancel/disconnect, commits removed pieces into the
 /// authoritative limb snapshot and emits one terminal EndCommitted only when
-/// the whole shared session ends.
+/// the whole shared session ends. A grab keeps the piece owned until it is
+/// removed, released, broken or the operator leaves, so a drag-to-drop is one
+/// atomic operation.
 /// </summary>
 internal sealed class ShrapnelOperationSessionService(
 	ISessionControl session,
@@ -27,12 +29,12 @@ internal sealed class ShrapnelOperationSessionService(
 	ITimeSource time,
 	ItemKernelAuthority kernelAuthority,
 	HashSet<ulong> sharedReservedItems,
+	HashSet<(ulong Target, int Limb)> sharedReservedTargetLimbs,
 	Func<ulong, bool> hasActiveInjection,
 	ILogger log)
 {
 	private const int MaxPieces = 5;
 	private const float RemoveThresholdY = 35f;
-	private const long LeaseMs = 150;
 	private const int IdleTimeoutMs = 15000;
 
 	private readonly ISessionControl _session = session;
@@ -41,6 +43,7 @@ internal sealed class ShrapnelOperationSessionService(
 	private readonly IPlayerInteractionVisibility _visibility = visibility;
 	private readonly ITimeSource _time = time;
 	private readonly HashSet<ulong> _sharedReservedItems = sharedReservedItems;
+	private readonly HashSet<(ulong Target, int Limb)> _sharedReservedTargetLimbs = sharedReservedTargetLimbs;
 	private readonly Func<ulong, bool> _hasActiveInjection = hasActiveInjection;
 	private readonly ILogger _log = log;
 
@@ -96,6 +99,7 @@ internal sealed class ShrapnelOperationSessionService(
 			Grabbed = update.Grabbed,
 			Released = update.Released,
 			BreakGrasp = update.BreakGrasp,
+			OwnershipChange = update.OwnershipChange,
 		};
 
 		if (_session.Role == SessionRole.Host)
@@ -104,8 +108,7 @@ internal sealed class ShrapnelOperationSessionService(
 		}
 		else
 		{
-			var semantic = update.Grabbed || update.Released || update.BreakGrasp;
-			_sender.Send(_session.HostSteamId, NetMsg.MedicalOperationUpdate, msg, reliable: semantic);
+			_sender.Send(_session.HostSteamId, NetMsg.MedicalOperationUpdate, msg, reliable: update.OwnershipChange);
 		}
 	}
 
@@ -214,6 +217,12 @@ internal sealed class ShrapnelOperationSessionService(
 		var key = (target, msg.LimbIndex);
 		if (!_sessions.TryGetValue(key, out var shrapnel))
 		{
+			if (_sharedReservedTargetLimbs.Contains(key))
+			{
+				RejectStart(sender, target, msg, "Target limb is already reserved.");
+				return;
+			}
+
 			shrapnel = new ShrapnelOperationSession
 			{
 				OperationId = _nextOperationId++,
@@ -223,6 +232,7 @@ internal sealed class ShrapnelOperationSessionService(
 			};
 			_writer.InitializePieces(shrapnel, targetLimb.Shrapnel);
 			_sessions.Add(key, shrapnel);
+			_sharedReservedTargetLimbs.Add(key);
 			_log.LogInformation("[Shrapnel] session {OperationId} created for {Target} limb {Limb} ({Count} pieces).",
 				shrapnel.OperationId, target, msg.LimbIndex, targetLimb.Shrapnel);
 		}
@@ -267,8 +277,7 @@ internal sealed class ShrapnelOperationSessionService(
 		}
 
 		var now = _time.NowMs;
-		var owner = piece.Owner == sender || piece.Owner == 0 || piece.LeaseExpiryMs <= now;
-		if (!owner)
+		if (piece.Owner != 0 && piece.Owner != sender)
 		{
 			_log.LogInformation("[Shrapnel] session {OperationId} rejected non-owner move on piece {Piece} from {Sender} (owner {Owner}).",
 				shrapnel.OperationId, msg.PieceIndex, sender, piece.Owner);
@@ -277,35 +286,39 @@ internal sealed class ShrapnelOperationSessionService(
 
 		if (msg.BreakGrasp)
 		{
+			if (piece.Owner != sender)
+			{
+				return;
+			}
+
 			_writer.ApplyBreakGrasp(shrapnel);
 			piece.Owner = 0;
-			piece.LeaseExpiryMs = 0;
 		}
 		else
 		{
+			// A held-position report without an ownership transition must not
+			// re-acquire a released piece: only the current owner may keep
+			// moving it, and an owner-less stale move is dropped.
+			if (msg.Grabbed && !msg.OwnershipChange && piece.Owner != sender)
+			{
+				return;
+			}
+
 			piece.X = ClampX(msg.X);
 			piece.Y = ClampY(msg.Y);
-			if (msg.Grabbed)
+			if (msg.OwnershipChange && msg.Grabbed)
 			{
 				piece.Owner = sender;
-				piece.LeaseExpiryMs = now + LeaseMs;
 			}
 			else if (msg.Released)
 			{
 				piece.Owner = 0;
-				piece.LeaseExpiryMs = 0;
-			}
-			else if (piece.Owner != sender)
-			{
-				piece.Owner = sender;
-				piece.LeaseExpiryMs = now + LeaseMs;
 			}
 
 			if (piece.Y >= RemoveThresholdY)
 			{
 				piece.Removed = true;
 				piece.Owner = 0;
-				piece.LeaseExpiryMs = 0;
 				_log.LogInformation("[Shrapnel] session {OperationId} piece {Piece} removed by {Sender}.", shrapnel.OperationId, msg.PieceIndex, sender);
 			}
 		}
@@ -400,6 +413,7 @@ internal sealed class ShrapnelOperationSessionService(
 		foreach (var shrapnel in _sessions.Values)
 		{
 			ReleaseItems(shrapnel);
+			_sharedReservedTargetLimbs.Remove((shrapnel.Target, shrapnel.LimbIndex));
 		}
 
 		_sessions.Clear();
@@ -468,7 +482,6 @@ internal sealed class ShrapnelOperationSessionService(
 			if (piece.Owner == operatorId)
 			{
 				piece.Owner = 0;
-				piece.LeaseExpiryMs = 0;
 			}
 		}
 	}
@@ -497,12 +510,14 @@ internal sealed class ShrapnelOperationSessionService(
 
 	private void PublishState(ShrapnelOperationSession shrapnel)
 	{
-		var state = _writer.BuildState(shrapnel);
-		StateReceived?.Invoke(state);
-		_sender.SendToAll(
-			_session.Members.Where(m => m.Handshaken && m.SteamId != _session.LocalSteamId).Select(m => m.SteamId),
-			NetMsg.MedicalOperationState,
-			state);
+		StateReceived?.Invoke(_writer.BuildState(shrapnel, _session.LocalSteamId));
+		foreach (var member in _session.Members.Where(m => m.Handshaken && m.SteamId != _session.LocalSteamId))
+		{
+			_sender.Send(
+				member.SteamId,
+				NetMsg.MedicalOperationState,
+				_writer.BuildState(shrapnel, member.SteamId));
+		}
 	}
 
 	private void Terminate(ShrapnelOperationSession shrapnel, MedicalOperationTerminalReason reason)
@@ -514,6 +529,7 @@ internal sealed class ShrapnelOperationSessionService(
 		}
 
 		ReleaseItems(shrapnel);
+		_sharedReservedTargetLimbs.Remove(key);
 		var end = _writer.BuildTerminal(shrapnel, reason);
 		_log.LogInformation("[Shrapnel] session {OperationId} terminal {Reason}.", shrapnel.OperationId, reason);
 		EndCommittedReceived?.Invoke(end);

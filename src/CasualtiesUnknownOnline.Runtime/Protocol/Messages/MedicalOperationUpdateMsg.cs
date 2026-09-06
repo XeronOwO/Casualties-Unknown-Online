@@ -39,4 +39,12 @@ public sealed class MedicalOperationUpdateMsg
 
 	[ProtoMember(9)]
 	public bool BreakGrasp { get; set; }
+
+	/// <summary>
+	/// True when this update is an ownership/semantic transition (initial grab,
+	/// release, break-grasp). Ordinary held-piece position reports are false so
+	/// a stale unreliable move can never re-acquire a released piece.
+	/// </summary>
+	[ProtoMember(10)]
+	public bool OwnershipChange { get; set; }
 }

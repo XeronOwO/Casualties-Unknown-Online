@@ -92,7 +92,7 @@ internal sealed class ShrapnelSessionStateWriter(
 		limb.SkinHealth = Math.Max(0f, limb.SkinHealth - RandomInRange(4f, 6f));
 		limb.BleedAmount = Math.Max(0f, limb.BleedAmount + RandomInRange(0.4f, 1f));
 		limb.Pain = Math.Max(0f, limb.Pain + RandomInRange(9f, 16f));
-		if (limb.IsHead && newData.Health is not null)
+		if (limb.IsHead && newData.Health is not null && RandomInRange(0f, 1f) < 0.8f)
 		{
 			newData.Health.BrainHealth = Math.Max(0f, newData.Health.BrainHealth - RandomInRange(0f, 1f));
 		}
@@ -117,16 +117,32 @@ internal sealed class ShrapnelSessionStateWriter(
 	}
 
 	internal MedicalOperationStateMsg BuildState(ShrapnelOperationSession shrapnel)
+		=> BuildState(shrapnel, shrapnel.Operators.FirstOrDefault());
+
+	internal MedicalOperationStateMsg BuildState(ShrapnelOperationSession shrapnel, ulong recipient)
 	{
 		var targetData = _access.GetCharacterData(shrapnel.Target);
+		var isOperator = shrapnel.Operators.Contains(recipient);
+		var operatorId = isOperator ? recipient : shrapnel.Operators.FirstOrDefault();
+
+		ulong itemInstanceId = 0;
+		CharacterItemMsg? itemAfter = null;
+		if (isOperator && shrapnel.OperatorItems.TryGetValue(recipient, out var itemId))
+		{
+			itemInstanceId = itemId;
+			itemAfter = FindItemAfter(recipient, itemId);
+		}
+
 		return new MedicalOperationStateMsg
 		{
 			OperationId = shrapnel.OperationId,
-			OperatorSteamId = shrapnel.Operators.FirstOrDefault(),
+			OperatorSteamId = operatorId,
 			TargetSteamId = shrapnel.Target,
+			ItemInstanceId = itemInstanceId,
 			LimbIndex = shrapnel.LimbIndex,
 			Sequence = shrapnel.Sequence,
 			ShrapnelPieces = BuildPieces(shrapnel),
+			ItemAfter = itemAfter,
 			TargetHealth = targetData?.Health,
 			TargetLimbs = targetData?.Limbs is null ? [] : [.. targetData.Limbs],
 		};
@@ -157,6 +173,18 @@ internal sealed class ShrapnelSessionStateWriter(
 		OwnerSteamId = p.Owner,
 		Removed = p.Removed,
 	})];
+
+	private CharacterItemMsg? FindItemAfter(ulong steamId, ulong itemInstanceId)
+	{
+		var data = _access.GetCharacterData(steamId);
+		if (data is null)
+		{
+			return null;
+		}
+
+		var index = FindUseItemIndex(data, itemInstanceId);
+		return index < 0 || index >= data.Items.Count ? null : PlayerCharacterAccess.CloneItem(data.Items[index]);
+	}
 
 	private static int FindUseItemIndex(CharacterDataMsg data, ulong itemInstanceId)
 	{

@@ -4,7 +4,7 @@ namespace CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 
 /// <summary>
 /// One authoritative piece of a shared shrapnel session. The host owns the
-/// mapping from native minigame slot to position, current lease owner and
+/// mapping from native minigame slot to position, current owning player and
 /// removed state; every participating client mirrors this exact piece.
 /// </summary>
 [ProtoContract]

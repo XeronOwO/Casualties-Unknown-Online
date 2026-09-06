@@ -17,15 +17,31 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 /// </summary>
 internal static class RemoteShrapnelMinigamePatch
 {
+	internal static void ResetLastHeld()
+	{
+		UpdatePatch._lastHeld = -1;
+		UpdatePatch._removalReportedFor = -1;
+	}
+
 	[HarmonyPatch(typeof(ShrapnelMinigame), "Update")]
 	internal static class UpdatePatch
 	{
-		private static int _lastHeld = -1;
+		internal static int _lastHeld = -1;
+		internal static int _removalReportedFor = -1;
 
 		private static void Prefix(ShrapnelMinigame __instance, List<RaycastResult> uiCasts)
 		{
 			if (!RemoteMedicalView.IsOpen || !RemoteMedicalOperationHandler.IsActiveShrapnelMinigame(__instance))
 			{
+				return;
+			}
+
+			if (RemoteMedicalOperationHandler.IsObserverShrapnelMinigame(__instance))
+			{
+				// An observer watches the authoritative piece positions without
+				// participating; suppress the native grab/click input.
+				MinigameBase.main.handStartedClicking = false;
+				MinigameBase.main.handStoppedClicking = false;
 				return;
 			}
 
@@ -66,12 +82,20 @@ internal static class RemoteShrapnelMinigamePatch
 				if (index >= 0)
 				{
 					var position = held.anchoredPosition;
+					var isNewGrab = _lastHeld != index;
+					var isRemovalTransition = position.y >= 35f && _removalReportedFor != index;
+					if (isRemovalTransition)
+					{
+						_removalReportedFor = index;
+					}
+
 					RemoteMedicalOperationHandler.ReportShrapnelUpdate(new ShrapnelPieceUpdate
 					{
 						PieceIndex = index,
 						X = position.x,
 						Y = position.y,
 						Grabbed = true,
+						OwnershipChange = isNewGrab || isRemovalTransition,
 					});
 					_lastHeld = index;
 				}
@@ -82,6 +106,7 @@ internal static class RemoteShrapnelMinigamePatch
 				{
 					PieceIndex = _lastHeld,
 					Released = true,
+					OwnershipChange = true,
 				});
 				_lastHeld = -1;
 			}
@@ -120,6 +145,7 @@ internal static class RemoteShrapnelMinigamePatch
 			{
 				PieceIndex = __state,
 				BreakGrasp = true,
+				OwnershipChange = true,
 			});
 		}
 	}

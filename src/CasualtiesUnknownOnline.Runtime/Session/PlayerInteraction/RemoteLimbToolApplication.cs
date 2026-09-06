@@ -36,15 +36,7 @@ public static class RemoteLimbToolApplication
 			return false;
 		}
 
-		if (profile.RequiresShrapnel)
-		{
-			limbIndex = PickMostShrapnelLimb(limbs);
-			if (limbIndex < 0)
-			{
-				return false;
-			}
-		}
-		else if (profile.RequiredLimbIndex >= 0)
+		if (profile.RequiredLimbIndex >= 0)
 		{
 			if (profile.RequiredLimbIndex >= limbs.Count)
 			{
@@ -81,31 +73,7 @@ public static class RemoteLimbToolApplication
 		health.Temperature += profile.Temperature;
 
 		ApplyComponent(limb, profile, itemCondition);
-		if (profile.RequiresShrapnel)
-		{
-			limb.Shrapnel = 0;
-		}
-
 		return true;
-	}
-
-	private static int PickMostShrapnelLimb(IReadOnlyList<CharacterLimbMsg> limbs)
-	{
-		var best = -1;
-		var bestShrapnel = 0;
-		for (var i = 0; i < limbs.Count; i++)
-		{
-			var limb = limbs[i];
-			if (limb.Dismembered || limb.Shrapnel <= bestShrapnel)
-			{
-				continue;
-			}
-
-			best = i;
-			bestShrapnel = limb.Shrapnel;
-		}
-
-		return best;
 	}
 
 	private static bool CanApplyComponent(CharacterLimbMsg limb, RemoteLimbToolProfile profile)

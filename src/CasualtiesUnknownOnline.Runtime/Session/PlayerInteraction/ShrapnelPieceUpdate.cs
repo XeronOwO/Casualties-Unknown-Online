@@ -24,4 +24,11 @@ public sealed class ShrapnelPieceUpdate
 
 	/// <summary>True when the native break-grasp failure occurred on this piece.</summary>
 	public bool BreakGrasp { get; set; }
+
+	/// <summary>
+	/// True when this report is a semantic ownership/terminal transition (initial
+	/// grab, release or break-grasp); it tells the transport that this message is
+	/// reliable. Ordinary held-piece position reports remain unreliable.
+	/// </summary>
+	public bool OwnershipChange { get; set; }
 }

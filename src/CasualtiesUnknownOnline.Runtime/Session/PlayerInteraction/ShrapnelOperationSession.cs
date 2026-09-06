@@ -5,7 +5,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 /// <summary>
 /// One host-owned shared shrapnel session. Unlike the single-operator
 /// injection session, this object represents a whole target limb and allows
-/// multiple operators to join; per-piece lease state lives in
+/// multiple operators to join; per-piece ownership state lives in
 /// <see cref="ShrapnelPieceState"/>.
 /// </summary>
 internal sealed class ShrapnelOperationSession

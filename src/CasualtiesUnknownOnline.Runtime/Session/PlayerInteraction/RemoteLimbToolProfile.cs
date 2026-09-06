@@ -4,9 +4,10 @@ namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 /// The host-authoritative effect of one non-liquid limb tool when it is used on
 /// another player. The values mirror the immediate parts of the game's
 /// <c>ItemInfo.useLimbAction</c> delegates (Item.cs SetupItems) plus the
-/// component-bearing subset (splint/tourniquet/icepack), the shrapnel-removal
-/// minigame tool (tweezers) and the timed tool (medicalsuture). Pure data — no
-/// game assembly dependency, no state.
+/// component-bearing subset (splint/tourniquet/icepack) and the timed tool
+/// (medicalsuture). Pure data — no game assembly dependency, no state.
+/// Shrapnel removal is not a direct limb-tool use; it goes through the shared
+/// shrapnel session.
 /// </summary>
 public sealed record RemoteLimbToolProfile(
 	string ItemId,
@@ -30,6 +31,5 @@ public sealed record RemoteLimbToolProfile(
 	float ComponentTimeLeft = 0f,
 	float ComponentMaxTime = 0f,
 	bool DestroyAtZero = true,
-	bool RequiresShrapnel = false,
 	float TimedBleedPerSecond = 0f,
 	float TimedBleedDurationSeconds = 0f);

@@ -69,6 +69,7 @@ internal sealed class MedicalOperationSessionService : IMedicalOperationControl,
 			_time,
 			kernelAuthority,
 			_reservedItems,
+			_reservedTargetLimbs,
 			operation => _active.Values.Any(s => s.Operator == operation),
 			log);
 		_shrapnel.StartAckReceived += FireStartAckReceived;
@@ -256,7 +257,7 @@ internal sealed class MedicalOperationSessionService : IMedicalOperationControl,
 			return;
 		}
 
-		if (_active.Values.Any(s => s.Operator == operation))
+		if (_active.Values.Any(s => s.Operator == operation) || _shrapnel.HasActiveShrapnelOperator(operation))
 		{
 			_log.LogWarning("[MedicalOps] refused start: {Operator} already has an active medical operation.", operation);
 			RejectStart(operation, target, msg, "Operator already has an active operation.");

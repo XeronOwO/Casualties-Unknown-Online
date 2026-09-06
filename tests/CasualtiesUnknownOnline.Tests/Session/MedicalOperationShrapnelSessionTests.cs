@@ -14,7 +14,7 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 /// <summary>
 /// Stage 2 shared shrapnel session tests. The old remote tweezers path was a
 /// one-shot full-limb removal; Stage 2 replaces it with one host-owned shared
-/// session per target limb, multiple operators, per-piece leases, authoritative
+/// session per target limb, multiple operators, per-piece ownership, authoritative
 /// piece state, and correct cancel/disconnect/partial semantics.
 /// </summary>
 public sealed class MedicalOperationShrapnelSessionTests
@@ -90,7 +90,7 @@ public sealed class MedicalOperationShrapnelSessionTests
 		var states = new List<MedicalOperationStateMsg>();
 		w.Host.Transport.MessageReceived += (from, data) => frames.Add((from, data));
 		Ops(w.Host).StateReceived += states.Add;
-		g1Ops.SendShrapnelUpdate(ack!.OperationId, new ShrapnelPieceUpdate { PieceIndex = 0, X = 10f, Y = -100f, Grabbed = true });
+		g1Ops.SendShrapnelUpdate(ack!.OperationId, new ShrapnelPieceUpdate { PieceIndex = 0, X = 10f, Y = -100f, Grabbed = true, OwnershipChange = true });
 
 		Assert.Contains(frames, f => f.From == Guest1Id && f.Frame.Length > 0 && (NetMsg)f.Frame[0] == NetMsg.MedicalOperationUpdate);
 		Assert.NotEmpty(states);
@@ -123,6 +123,7 @@ public sealed class MedicalOperationShrapnelSessionTests
 			X = 10f,
 			Y = -100f,
 			Grabbed = true,
+			OwnershipChange = true,
 		});
 
 		var state = Assert.Single(states);
@@ -159,7 +160,7 @@ public sealed class MedicalOperationShrapnelSessionTests
 	}
 
 	[Fact]
-	public void SamePiece_NonOwnerMove_IsRejectedWhileLeaseHeld()
+	public void SamePiece_NonOwnerMove_IsRejectedWhileOwned()
 	{
 		var w = CreateThreeNode();
 		var characters = w.Host.Services.GetRequiredService<Runtime.Session.CharacterData.ICharacterDataControl>();
@@ -192,6 +193,7 @@ public sealed class MedicalOperationShrapnelSessionTests
 			X = 10f,
 			Y = -100f,
 			Grabbed = true,
+			OwnershipChange = true,
 		});
 
 		var afterFirst = states.LastOrDefault(m => m.ShrapnelPieces.Any(p => p.PieceIndex == 0));
@@ -205,6 +207,7 @@ public sealed class MedicalOperationShrapnelSessionTests
 			X = 99f,
 			Y = -99f,
 			Grabbed = true,
+			OwnershipChange = true,
 		});
 
 		var afterSecond = states.LastOrDefault(m => m.ShrapnelPieces.Any(p => p.PieceIndex == 0));
@@ -240,8 +243,8 @@ public sealed class MedicalOperationShrapnelSessionTests
 		var states = new List<MedicalOperationStateMsg>();
 		Ops(w.Host).StateReceived += states.Add;
 
-		g1Ops.SendShrapnelUpdate(ack!.OperationId, new ShrapnelPieceUpdate { PieceIndex = 0, X = 10f, Y = -100f, Grabbed = true });
-		g2Ops.SendShrapnelUpdate(ack.OperationId, new ShrapnelPieceUpdate { PieceIndex = 1, X = 40f, Y = -120f, Grabbed = true });
+		g1Ops.SendShrapnelUpdate(ack!.OperationId, new ShrapnelPieceUpdate { PieceIndex = 0, X = 10f, Y = -100f, Grabbed = true, OwnershipChange = true });
+		g2Ops.SendShrapnelUpdate(ack.OperationId, new ShrapnelPieceUpdate { PieceIndex = 1, X = 40f, Y = -120f, Grabbed = true, OwnershipChange = true });
 
 		var last = states.LastOrDefault(m => m.ShrapnelPieces.Count >= 2);
 		Assert.NotNull(last);
@@ -275,13 +278,65 @@ public sealed class MedicalOperationShrapnelSessionTests
 		var states = new List<MedicalOperationStateMsg>();
 		Ops(w.Host).StateReceived += states.Add;
 
-		g1Ops.SendShrapnelUpdate(ack!.OperationId, new ShrapnelPieceUpdate { PieceIndex = 0, X = 10f, Y = -100f, Grabbed = true });
+		g1Ops.SendShrapnelUpdate(ack!.OperationId, new ShrapnelPieceUpdate { PieceIndex = 0, X = 10f, Y = -100f, Grabbed = true, OwnershipChange = true });
 		var held = states.Last(m => m.ShrapnelPieces.Any(p => p.PieceIndex == 0));
 		Assert.Equal(Guest1Id, held.ShrapnelPieces.Single(p => p.PieceIndex == 0).OwnerSteamId);
 
 		g1Ops.SendCancelRequest(ack.OperationId);
 		var released = states.Last(m => m.ShrapnelPieces.Any(p => p.PieceIndex == 0));
 		Assert.Equal(0UL, released.ShrapnelPieces.Single(p => p.PieceIndex == 0).OwnerSteamId);
+	}
+
+	[Fact]
+	public void StaleNonOwnershipMove_AfterRelease_DoesNotReacquirePiece()
+	{
+		var w = CreateThreeNode();
+		var characters = w.Host.Services.GetRequiredService<Runtime.Session.CharacterData.ICharacterDataControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true));
+		characters.SaveCharacterData(Guest1Id, Snapshot(Guest1Id, conscious: true));
+		MarkInWorld(w.Host);
+		MarkInWorld(w.Guest1);
+
+		MedicalOperationStartAckMsg? ack = null;
+		var g1Ops = Ops(w.Guest1);
+		g1Ops.StartAckReceived += m => ack = m;
+		g1Ops.SendShrapnelStartRequest(HostId, 0, 1);
+		Assert.NotNull(ack);
+
+		var states = new List<MedicalOperationStateMsg>();
+		Ops(w.Host).StateReceived += states.Add;
+
+		g1Ops.SendShrapnelUpdate(ack!.OperationId, new ShrapnelPieceUpdate
+		{
+			PieceIndex = 0,
+			X = 10f,
+			Y = -100f,
+			Grabbed = true,
+			OwnershipChange = true,
+		});
+		Assert.Equal(Guest1Id, states.Last().ShrapnelPieces.Single(p => p.PieceIndex == 0).OwnerSteamId);
+
+		g1Ops.SendShrapnelUpdate(ack.OperationId, new ShrapnelPieceUpdate
+		{
+			PieceIndex = 0,
+			Released = true,
+			OwnershipChange = true,
+		});
+		Assert.Equal(0UL, states.Last().ShrapnelPieces.Single(p => p.PieceIndex == 0).OwnerSteamId);
+
+		// A stale unreliable held-move that was queued before the release must
+		// not re-acquire the piece: only an explicit OwnershipChange grab may.
+		g1Ops.SendShrapnelUpdate(ack.OperationId, new ShrapnelPieceUpdate
+		{
+			PieceIndex = 0,
+			X = 20f,
+			Y = -90f,
+			Grabbed = true,
+			OwnershipChange = false,
+		});
+
+		var finalState = states.Last(m => m.ShrapnelPieces.Any(p => p.PieceIndex == 0));
+		Assert.Equal(0UL, finalState.ShrapnelPieces.Single(p => p.PieceIndex == 0).OwnerSteamId);
 	}
 
 	[Fact]
@@ -313,6 +368,7 @@ public sealed class MedicalOperationShrapnelSessionTests
 				X = 0f,
 				Y = 50f,
 				Grabbed = true,
+				OwnershipChange = true,
 			});
 		}
 
@@ -325,7 +381,7 @@ public sealed class MedicalOperationShrapnelSessionTests
 	}
 
 	[Fact]
-	public void OperatorDisconnect_ReleasesLease_OtherOperatorKeepsSession()
+	public void OperatorDisconnect_ReleasesOwnership_OtherOperatorKeepsSession()
 	{
 		var w = CreateThreeNode();
 		var characters = w.Host.Services.GetRequiredService<Runtime.Session.CharacterData.ICharacterDataControl>();
@@ -346,7 +402,7 @@ public sealed class MedicalOperationShrapnelSessionTests
 
 		var states = new List<MedicalOperationStateMsg>();
 		Ops(w.Host).StateReceived += states.Add;
-		g1Ops.SendShrapnelUpdate(ack!.OperationId, new ShrapnelPieceUpdate { PieceIndex = 0, X = 10f, Y = -100f, Grabbed = true });
+		g1Ops.SendShrapnelUpdate(ack!.OperationId, new ShrapnelPieceUpdate { PieceIndex = 0, X = 10f, Y = -100f, Grabbed = true, OwnershipChange = true });
 		Assert.Equal(Guest1Id, states.Last().ShrapnelPieces.Single(p => p.PieceIndex == 0).OwnerSteamId);
 
 		((ISessionControl)w.Host.Session).RemoveGuestMember(Guest1Id);
@@ -372,7 +428,7 @@ public sealed class MedicalOperationShrapnelSessionTests
 
 		var states = new List<MedicalOperationStateMsg>();
 		Ops(w.Host).StateReceived += states.Add;
-		g1Ops.SendShrapnelUpdate(ack!.OperationId, new ShrapnelPieceUpdate { PieceIndex = 0, X = 10f, Y = -100f, Grabbed = true });
+		g1Ops.SendShrapnelUpdate(ack!.OperationId, new ShrapnelPieceUpdate { PieceIndex = 0, X = 10f, Y = -100f, Grabbed = true, OwnershipChange = true });
 		g1Ops.SendShrapnelUpdate(ack.OperationId, new ShrapnelPieceUpdate { PieceIndex = 0, BreakGrasp = true });
 
 		var state = states.Last(m => m.ShrapnelPieces.Any(p => p.PieceIndex == 0));
@@ -409,6 +465,168 @@ public sealed class MedicalOperationShrapnelSessionTests
 	}
 
 	[Fact]
+	public void OperatorJoin_ReceivesOwnTweezersItemAfterInState()
+	{
+		var w = CreateThreeNode();
+		var characters = w.Host.Services.GetRequiredService<Runtime.Session.CharacterData.ICharacterDataControl>();
+		var items = w.Host.Services.GetRequiredService<Runtime.Session.Items.IItemControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true));
+		var tweezers1 = new CharacterItemMsg { InstanceId = 42, ItemId = "tweezers", Condition = 1f, SlotIndex = 0 };
+		var tweezers2 = new CharacterItemMsg { InstanceId = 43, ItemId = "tweezers", Condition = 1f, SlotIndex = 1 };
+		characters.SaveCharacterData(Guest1Id, Snapshot(Guest1Id, conscious: true, tweezers1));
+		characters.SaveCharacterData(Guest2Id, Snapshot(Guest2Id, conscious: true, tweezers2));
+		items.AdoptTransferredItem(Guest1Id, 42, tweezers1);
+		items.AdoptTransferredItem(Guest2Id, 43, tweezers2);
+		MarkInWorld(w.Host);
+		MarkInWorld(w.Guest1);
+		MarkInWorld(w.Guest2);
+
+		MedicalOperationStartAckMsg? first = null;
+		MedicalOperationStartAckMsg? second = null;
+		var g1Ops = Ops(w.Guest1);
+		var g2Ops = Ops(w.Guest2);
+		var g1States = new List<MedicalOperationStateMsg>();
+		var g2States = new List<MedicalOperationStateMsg>();
+		g1Ops.StartAckReceived += m => first = m;
+		g2Ops.StartAckReceived += m => second = m;
+		g1Ops.StateReceived += g1States.Add;
+		g2Ops.StateReceived += g2States.Add;
+
+		g1Ops.SendShrapnelStartRequest(HostId, 42, 1);
+		Assert.NotNull(first);
+		Assert.True(first!.Accepted);
+		g2Ops.SendShrapnelStartRequest(HostId, 43, 1);
+		Assert.NotNull(second);
+		Assert.True(second!.Accepted);
+
+		var g1State = g1States.Last(m => m.ShrapnelPieces.Count > 0);
+		Assert.Equal(42UL, g1State.ItemInstanceId);
+		Assert.NotNull(g1State.ItemAfter);
+		Assert.True(Math.Abs(g1State.ItemAfter!.Condition - 0.99f) < 0.001f);
+
+		var g2State = g2States.Last(m => m.ShrapnelPieces.Count > 0);
+		Assert.Equal(43UL, g2State.ItemInstanceId);
+		Assert.NotNull(g2State.ItemAfter);
+		Assert.True(Math.Abs(g2State.ItemAfter!.Condition - 0.99f) < 0.001f);
+	}
+
+	[Fact]
+	public void TwoOperators_RemoveDifferentPieces_CommitBothAndKeepRemaining()
+	{
+		var w = CreateThreeNode();
+		var characters = w.Host.Services.GetRequiredService<Runtime.Session.CharacterData.ICharacterDataControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true));
+		characters.SaveCharacterData(Guest1Id, Snapshot(Guest1Id, conscious: true));
+		characters.SaveCharacterData(Guest2Id, Snapshot(Guest2Id, conscious: true));
+		MarkInWorld(w.Host);
+		MarkInWorld(w.Guest1);
+		MarkInWorld(w.Guest2);
+
+		MedicalOperationStartAckMsg? first = null;
+		MedicalOperationStartAckMsg? second = null;
+		var g1Ops = Ops(w.Guest1);
+		var g2Ops = Ops(w.Guest2);
+		g1Ops.StartAckReceived += m => first = m;
+		g2Ops.StartAckReceived += m => second = m;
+		g1Ops.SendShrapnelStartRequest(HostId, 0, 1);
+		Assert.NotNull(first);
+		g2Ops.SendShrapnelStartRequest(HostId, 0, 1);
+		Assert.NotNull(second);
+
+		var states = new List<MedicalOperationStateMsg>();
+		Ops(w.Host).StateReceived += states.Add;
+
+		g1Ops.SendShrapnelUpdate(first!.OperationId, new ShrapnelPieceUpdate { PieceIndex = 0, X = 0f, Y = 50f, Grabbed = true, OwnershipChange = true });
+		g2Ops.SendShrapnelUpdate(second!.OperationId, new ShrapnelPieceUpdate { PieceIndex = 1, X = 0f, Y = 50f, Grabbed = true, OwnershipChange = true });
+
+		var state = states.Last(m => m.ShrapnelPieces.Count >= 2);
+		Assert.True(state.ShrapnelPieces.Single(p => p.PieceIndex == 0).Removed);
+		Assert.True(state.ShrapnelPieces.Single(p => p.PieceIndex == 1).Removed);
+		Assert.Equal(1, state.ShrapnelPieces.Count(p => !p.Removed));
+		Assert.Equal(1, characters.GetHostCharacterData()!.Limbs.Single(l => l.Index == 1).Shrapnel);
+	}
+
+	[Fact]
+	public void ThirdParty_ReceivesAuthoritativeShrapnelState()
+	{
+		var w = CreateThreeNode();
+		var characters = w.Host.Services.GetRequiredService<Runtime.Session.CharacterData.ICharacterDataControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true));
+		characters.SaveCharacterData(Guest1Id, Snapshot(Guest1Id, conscious: true));
+		characters.SaveCharacterData(Guest2Id, Snapshot(Guest2Id, conscious: true));
+		MarkInWorld(w.Host);
+		MarkInWorld(w.Guest1);
+		MarkInWorld(w.Guest2);
+
+		MedicalOperationStartAckMsg? ack = null;
+		var g1Ops = Ops(w.Guest1);
+		g1Ops.StartAckReceived += m => ack = m;
+		g1Ops.SendShrapnelStartRequest(HostId, 0, 1);
+		Assert.NotNull(ack);
+
+		var g2States = new List<MedicalOperationStateMsg>();
+		Ops(w.Guest2).StateReceived += g2States.Add;
+
+		g1Ops.SendShrapnelUpdate(ack!.OperationId, new ShrapnelPieceUpdate
+		{
+			PieceIndex = 0,
+			X = 12f,
+			Y = -80f,
+			Grabbed = true,
+			OwnershipChange = true,
+		});
+
+		var state = g2States.Last(m => m.ShrapnelPieces.Any(p => p.PieceIndex == 0));
+		var piece = state.ShrapnelPieces.Single(p => p.PieceIndex == 0);
+		Assert.Equal(Guest1Id, piece.OwnerSteamId);
+		Assert.True(Math.Abs(piece.X - 12f) < 0.001f);
+		Assert.True(Math.Abs(piece.Y - -80f) < 0.001f);
+	}
+
+	[Fact]
+	public void ShrapnelSessionActive_BlocksInjectionForSameOperator()
+	{
+		var w = CreateThreeNode();
+		var characters = w.Host.Services.GetRequiredService<Runtime.Session.CharacterData.ICharacterDataControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true));
+		var morphine = new CharacterItemMsg
+		{
+			InstanceId = 44,
+			ItemId = "morphine",
+			Condition = 1f,
+			SlotIndex = 1,
+			Liquids = [new LiquidStackMsg { LiquidId = "morphine", Amount = 100f }],
+		};
+		characters.SaveCharacterData(Guest1Id, Snapshot(Guest1Id, conscious: true, morphine));
+		MarkInWorld(w.Host);
+		MarkInWorld(w.Guest1);
+
+		var g1Ops = Ops(w.Guest1);
+		MedicalOperationStartAckMsg? shrapnelAck = null;
+		MedicalOperationStartAckMsg? injectionAck = null;
+		g1Ops.StartAckReceived += m =>
+		{
+			if (m.Kind == MedicalOperationKind.Shrapnel)
+			{
+				shrapnelAck = m;
+			}
+			else
+			{
+				injectionAck = m;
+			}
+		};
+
+		g1Ops.SendShrapnelStartRequest(HostId, 0, 1);
+		Assert.NotNull(shrapnelAck);
+		Assert.True(shrapnelAck!.Accepted);
+
+		g1Ops.SendStartRequest(HostId, 44, -1);
+		Assert.NotNull(injectionAck);
+		Assert.False(injectionAck!.Accepted);
+		Assert.Equal("Operator already has an active operation.", injectionAck.RejectReason);
+	}
+
+	[Fact]
 	public void PartialRemoval_KeepsRemainingPiecesInSession()
 	{
 		var w = CreateThreeNode();
@@ -429,7 +647,7 @@ public sealed class MedicalOperationShrapnelSessionTests
 		var states = new List<MedicalOperationStateMsg>();
 		Ops(w.Host).StateReceived += states.Add;
 
-		g1Ops.SendShrapnelUpdate(ack!.OperationId, new ShrapnelPieceUpdate { PieceIndex = 0, X = 0f, Y = 50f, Grabbed = true });
+		g1Ops.SendShrapnelUpdate(ack!.OperationId, new ShrapnelPieceUpdate { PieceIndex = 0, X = 0f, Y = 50f, Grabbed = true, OwnershipChange = true });
 		var state = states.Last(m => m.ShrapnelPieces.Any(p => p.PieceIndex == 0));
 		Assert.True(state.ShrapnelPieces.Single(p => p.PieceIndex == 0).Removed);
 		Assert.Equal(2, state.ShrapnelPieces.Count(p => !p.Removed));
@@ -459,7 +677,7 @@ public sealed class MedicalOperationShrapnelSessionTests
 
 		var states = new List<MedicalOperationStateMsg>();
 		hostOps.StateReceived += states.Add;
-		hostOps.SendShrapnelUpdate(ack.OperationId, new ShrapnelPieceUpdate { PieceIndex = 0, X = 10f, Y = -100f, Grabbed = true });
+		hostOps.SendShrapnelUpdate(ack.OperationId, new ShrapnelPieceUpdate { PieceIndex = 0, X = 10f, Y = -100f, Grabbed = true, OwnershipChange = true });
 		var state = states.Last(m => m.ShrapnelPieces.Any(p => p.PieceIndex == 0));
 		Assert.Equal(HostId, state.ShrapnelPieces.Single(p => p.PieceIndex == 0).OwnerSteamId);
 	}

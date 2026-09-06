@@ -11,10 +11,8 @@
     <Nullable>enable</Nullable>
     <RootNamespace>CasualtiesUnknownOnline.Tests</RootNamespace>
     <IsPackable>false</IsPackable>
-    <OutputType>Exe</OutputType>
-    <!-- xunit v3 analyzer/style migration: the existing test suite is deliberately
-         not rewritten one-by-one in this dependency-upgrade pass; analyzer
-         suggestions are not part of the CUO normative gates. -->
+    <!-- xunit analyzer/style suggestions are not part of the CUO normative
+         gates; the suite intentionally keeps its established assertion style. -->
     <NoWarn>$(NoWarn);xUnit2013;xUnit2020;xUnit2029;xUnit2031;IDE0028;IDE0305</NoWarn>
     <!-- BepInEx.Core comes via the Runtime project reference — its package source must be restored too -->
     <RestoreAdditionalProjectSources>
@@ -26,8 +24,11 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.9.0" />
-    <PackageReference Include="xunit.v3.mtp-off" Version="3.2.2" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="4.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 
   <ItemGroup>

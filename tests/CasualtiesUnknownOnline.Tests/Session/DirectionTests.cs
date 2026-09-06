@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Session;
@@ -156,10 +157,10 @@ public class DirectionTests
 	public void EveryNetMsg_IsExplicitlyClassified()
 	{
 		var all = Enum.GetValues(typeof(NetMsg)).Cast<NetMsg>().ToHashSet();
-		var classified = GuestToHostMessages
-			.Concat(HostToGuestMessages)
-			.Concat(BidirectionalMessages)
-			.Select(row => (NetMsg)((ITheoryDataRow)row).GetData()[0]!)
+		var classified = ((IEnumerable<object[]>)GuestToHostMessages)
+			.Concat((IEnumerable<object[]>)HostToGuestMessages)
+			.Concat((IEnumerable<object[]>)BidirectionalMessages)
+			.Select(row => (NetMsg)row[0])
 			.ToHashSet();
 
 		var missing = all.Except(classified).ToList();

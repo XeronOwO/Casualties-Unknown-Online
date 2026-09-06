@@ -1,6 +1,6 @@
 # Remote medical Stage 2: multiplayer shrapnel session self-check
 
-Owner cycle: backlog `todo/remote-medical-stage-2-shrapnel-multiplayer.md`.
+Owner cycle: backlog `review/remote-medical-stage-2-shrapnel-multiplayer.md`.
 
 ## 1. Mechanism inventory
 
@@ -18,9 +18,9 @@ Owner cycle: backlog `todo/remote-medical-stage-2-shrapnel-multiplayer.md`.
 
 ## 2. Verification
 
-- **L0 tests**: `MedicalOperationShrapnelSessionTests` now covers shared join, same-piece contention, concurrent different-piece movement/removal, cancel, operator disconnect, all-removed terminal, break-grasp, per-operator item-after state, third-party wire state, and shrapnel-blocks-injection; full suite 2369 tests + 16 gate tests green.
+- **L0 tests**: `MedicalOperationShrapnelSessionTests` now covers shared join, same-piece contention, concurrent different-piece movement/removal, cancel, operator disconnect, all-removed terminal, break-grasp, per-operator item-after state, third-party wire state, shrapnel-blocks-injection and stale-move-after-release; full suite 2370 tests + 16 gate tests green.
 - **Build**: `dotnet build CasualtiesUnknownOnline.slnx` 0 warnings / 0 errors.
 - **Format**: `dotnet format CasualtiesUnknownOnline.slnx` clean.
 - **Adversarial self-check**: independent subagent reviewed Stage 2 before finalization; it found the native `EndMinigame` ordering blocker (final removal lost), missing third-party position display, reliable/unreliable boundary violation, asymmetric cross-type arbitration, and stale `_lastHeld` cleanup. All were fixed in this cycle.
 - **Deployment**: latest build deployed to the real game directory with artifact hash verification (see delivery record).
-- **Development-period rule**: L0 + static evidence; real dual-client visuals remain for user acceptance.
+- **Development-period rule**: L0 + static evidence; real dual-client visuals remain for the final unified user acceptance pass.

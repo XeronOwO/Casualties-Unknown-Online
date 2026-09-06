@@ -8,8 +8,8 @@ Delivery-cycle fact sheet for
 
 | # | Mechanism | Evidence |
 |---|---|---|
-| 1 | The owner's `Body.HandleVisuals` feeds `max(crouchAmount, 1 - legSpeedMult)` into the CrouchAmount animator parameter | `reversing/Body.decompiled.cs:3259` (dnSpy decompile) |
-| 2 | `Body.legSpeedMult` is a computed get-only property from limb force/consciousness/stamina/hunger/temperature/weight etc | `reversing/Body.decompiled.cs:67-87` |
+| 1 | The owner's `Body.HandleVisuals` feeds `max(crouchAmount, 1 - legSpeedMult)` into the CrouchAmount animator parameter | `reversing/Assembly-CSharp/Assembly-CSharp/Body.cs:3259` (dnSpy decompile) |
+| 2 | `Body.legSpeedMult` is a computed get-only property from limb force/consciousness/stamina/hunger/temperature/weight etc | `reversing/Assembly-CSharp/Assembly-CSharp/Body.cs:67-87` |
 | 3 | A remote render proxy skips `Body.Update` and freezes limb rigidbodies, so the proxy's own `legSpeedMult` collapses toward 0 and cannot reproduce the owner's value | `BodyUpdatePatch.cs`; `RemoteBodyFactory.cs`; `BodyPatches.cs` |
 | 4 | The existing proxy override set the CrouchAmount parameter from `crouchAmount` only, so severe sleepiness/weakness (low owner `legSpeedMult`) was lost | `BodyUpdatePatch.cs` pre-change |
 | 5 | The 1 Hz `CharacterHealthMsg` is the self-healing carrier for remote-clone presentation data; it already carries the face vitals and head/mouth state | `CharacterDataSync.cs`; `CharacterHealthMsg.cs` |

@@ -45,4 +45,10 @@ public enum CharacterSoundKind : byte
 	/// <summary><c>PantSound.Update</c> played a low-energy yawn
 	/// (<c>PantSound.cs:72-80</c>).</summary>
 	Yawn = 10,
+
+	/// <summary>A direct placeable-item use played its placement sound
+	/// (<c>scrapmetal</c> / <c>climbingrope</c> / <c>scaffoldingpack</c>,
+	/// Item.cs:2203/2246/2287 — the exact one-shot <c>"scrapmetal"</c> /
+	/// <c>"ropeplace"</c> clip at the placement point).</summary>
+	ItemPlacement = 11,
 }

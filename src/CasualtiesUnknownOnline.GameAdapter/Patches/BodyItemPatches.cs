@@ -16,6 +16,19 @@ namespace CasualtiesUnknownOnline.GameAdapter.Patches;
 internal static class BodyItemPatches
 {
 	/// <summary>
+	/// Per-call state for the direct placeable-use hooks: the item condition
+	/// before the native use (the success signal) plus the placement-sound
+	/// capture scope. The scope must be limited to the direct placeable family;
+	/// opening it for every item use would misclassify eating/syringe/other
+	/// one-shot sounds as placement sounds.
+	/// </summary>
+	private sealed class DirectPlaceableUseState
+	{
+		internal float ConditionBefore;
+		internal IDisposable? SoundScope;
+	}
+
+	/// <summary>
 	/// Scope while Body.SwapSlots re-parents items between slots (the drag UI):
 	/// it internally drops and picks up both items, but nothing left the world —
 	/// the reports would be false "placed"/"picked up" broadcasts. SwitchHands
@@ -174,13 +187,23 @@ internal static class BodyItemPatches
 	[HarmonyPatch(typeof(Body), "UseItem")]
 	internal static class DirectPlaceableUseItemPatch
 	{
-		private static void Prefix(Body __instance, Item item, out float __state) =>
-			__state = item.condition;
-
-		private static void Postfix(Body __instance, Item item, float __state)
+		private static void Prefix(Body __instance, Item item, out DirectPlaceableUseState __state)
 		{
+			__state = new DirectPlaceableUseState
+			{
+				ConditionBefore = item.condition,
+				SoundScope = IsEligibleLocalUse(__instance)
+					&& DirectPlaceableArmSwingPolicy.ShouldOpenPlacementSoundScope(item.id, __instance.conscious)
+					? CallContext.Enter(CallContext.Origin.CharacterItemPlacement)
+					: null,
+			};
+		}
+
+		private static void Postfix(Body __instance, Item item, DirectPlaceableUseState __state)
+		{
+			__state.SoundScope?.Dispose();
 			if (IsEligibleLocalUse(__instance)
-				&& DirectPlaceableArmSwingPolicy.ShouldReport(item.id, __state, item.condition))
+				&& DirectPlaceableArmSwingPolicy.ShouldReport(item.id, __state.ConditionBefore, item.condition))
 			{
 				PatchBridge.Impl?.OnArmSwing();
 			}
@@ -192,23 +215,35 @@ internal static class BodyItemPatches
 	/// <c>Stats.useAction</c> directly, not <c>Body.UseItem</c>, so the
 	/// <see cref="DirectPlaceableUseItemPatch"/> alone would miss the normal
 	/// placeable LMB action. This second hook covers the whole direct
-	/// placeable-item family before the swing reaches the peers.
+	/// placeable-item family before the swing reaches the peers. The
+	/// placement-sound scope opens only while conscious: an unconscious
+	/// <c>UseItemInHand</c> falls back to <c>Body.Attack</c> and must never be
+	/// reported as an item placement.
 	/// </summary>
 	[HarmonyPatch(typeof(Body), "UseItemInHand")]
 	internal static class DirectPlaceableUseItemInHandPatch
 	{
-		private static void Prefix(Body __instance, out float __state)
+		private static void Prefix(Body __instance, out DirectPlaceableUseState __state)
 		{
 			var item = __instance.GetItem(__instance.handSlot);
-			__state = item != null ? item.condition : -1f; // Unity object — ==
+			__state = new DirectPlaceableUseState
+			{
+				ConditionBefore = item != null ? item.condition : -1f, // Unity object — ==
+				SoundScope = item != null
+					&& DirectPlaceableArmSwingPolicy.ShouldOpenPlacementSoundScope(item.id, __instance.conscious)
+					&& IsEligibleLocalUse(__instance)
+					? CallContext.Enter(CallContext.Origin.CharacterItemPlacement)
+					: null,
+			};
 		}
 
-		private static void Postfix(Body __instance, float __state)
+		private static void Postfix(Body __instance, DirectPlaceableUseState __state)
 		{
+			__state.SoundScope?.Dispose();
 			var item = __instance.GetItem(__instance.handSlot);
 			if (item != null // Unity object — ==
 				&& IsEligibleLocalUse(__instance)
-				&& DirectPlaceableArmSwingPolicy.ShouldReport(item.id, __state, item.condition))
+				&& DirectPlaceableArmSwingPolicy.ShouldReport(item.id, __state.ConditionBefore, item.condition))
 			{
 				PatchBridge.Impl?.OnArmSwing();
 			}

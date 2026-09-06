@@ -24,6 +24,10 @@ public class DirectPlaceableArmSwingPatchTests
 		"CasualtiesUnknownOnline.GameAdapter.Items.DirectPlaceableArmSwingPolicy",
 		throwOnError: true)!;
 
+	private static readonly Type DirectPlaceableUseState = BodyItemPatches.GetNestedType(
+		"DirectPlaceableUseState",
+		BindingFlags.NonPublic | BindingFlags.Public)!;
+
 	[Fact]
 	public void Policy_ReportsOnlySuccessfulDirectPlaceableUses()
 	{
@@ -48,8 +52,47 @@ public class DirectPlaceableArmSwingPatchTests
 			"non-placeable items must not be reported");
 		Assert.False((bool)should.Invoke(null, ["scrapmetal", 1f, 1f])!,
 			"a gated/failed placement that did not consume condition must not be reported");
+
 		Assert.False((bool)should.Invoke(null, ["scrapmetal", 0.5f, 0.6f])!,
 			"a condition increase (not a placeable use) must not be reported");
+	}
+
+	[Fact]
+	public void Policy_IsPlaceableOnlyForTheDirectPlaceableFamily()
+	{
+		var isPlaceable = Policy.GetMethod("IsPlaceable", BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
+			?? throw new InvalidOperationException("DirectPlaceableArmSwingPolicy.IsPlaceable not found.");
+
+		Assert.True((bool)isPlaceable.Invoke(null, ["scrapmetal"])!);
+		Assert.True((bool)isPlaceable.Invoke(null, ["climbingrope"])!);
+		Assert.True((bool)isPlaceable.Invoke(null, ["scaffoldingpack"])!);
+		Assert.False((bool)isPlaceable.Invoke(null, ["bandage"])!);
+	}
+
+	[Fact]
+	public void ScopePolicy_RequiresConsciousAndDirectPlaceableFamily()
+	{
+		var opens = Policy.GetMethod("ShouldOpenPlacementSoundScope", BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
+			?? throw new InvalidOperationException("DirectPlaceableArmSwingPolicy.ShouldOpenPlacementSoundScope not found.");
+
+		Assert.True((bool)opens.Invoke(null, ["scrapmetal", true])!);
+		Assert.True((bool)opens.Invoke(null, ["climbingrope", true])!);
+		Assert.True((bool)opens.Invoke(null, ["scaffoldingpack", true])!);
+		Assert.False((bool)opens.Invoke(null, ["scrapmetal", false])!);
+		Assert.False((bool)opens.Invoke(null, ["bandage", true])!);
+	}
+
+	[Fact]
+	public void DirectPlaceableUseState_CarriesConditionBeforeAndThePlacementSoundScope()
+	{
+		var state = DirectPlaceableUseState;
+		var condition = state.GetField("ConditionBefore", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+		Assert.NotNull(condition);
+		Assert.Equal(typeof(float), condition!.FieldType);
+
+		var scope = state.GetField("SoundScope", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+		Assert.NotNull(scope);
+		Assert.Equal(typeof(IDisposable), scope!.FieldType);
 	}
 
 	[Fact]
@@ -68,8 +111,8 @@ public class DirectPlaceableArmSwingPatchTests
 			&& prefixParameters[1].ParameterType.FullName == "Item"
 			&& prefixParameters[2].Name == "__state"
 			&& prefixParameters[2].ParameterType.IsByRef
-			&& prefixParameters[2].ParameterType.GetElementType() == typeof(float),
-			$"Prefix must be (Body __instance, Item item, out float __state), got {prefixParameters.Length} parameter(s)");
+			&& prefixParameters[2].ParameterType.GetElementType() == DirectPlaceableUseState,
+			$"Prefix must be (Body __instance, Item item, out DirectPlaceableUseState __state), got {prefixParameters.Length} parameter(s)");
 
 		var postfix = patch.GetMethod("Postfix", BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
 			?? throw new InvalidOperationException("Postfix not found.");
@@ -80,8 +123,8 @@ public class DirectPlaceableArmSwingPatchTests
 			&& postfixParameters[1].Name == "item"
 			&& postfixParameters[1].ParameterType.FullName == "Item"
 			&& postfixParameters[2].Name == "__state"
-			&& postfixParameters[2].ParameterType == typeof(float),
-			$"Postfix must be (Body __instance, Item item, float __state), got {postfixParameters.Length} parameter(s)");
+			&& postfixParameters[2].ParameterType == DirectPlaceableUseState,
+			$"Postfix must be (Body __instance, Item item, DirectPlaceableUseState __state), got {postfixParameters.Length} parameter(s)");
 	}
 
 	[Fact]
@@ -98,8 +141,8 @@ public class DirectPlaceableArmSwingPatchTests
 			&& prefixParameters[0].ParameterType.FullName == "Body"
 			&& prefixParameters[1].Name == "__state"
 			&& prefixParameters[1].ParameterType.IsByRef
-			&& prefixParameters[1].ParameterType.GetElementType() == typeof(float),
-			$"Prefix must be (Body __instance, out float __state), got {prefixParameters.Length} parameter(s)");
+			&& prefixParameters[1].ParameterType.GetElementType() == DirectPlaceableUseState,
+			$"Prefix must be (Body __instance, out DirectPlaceableUseState __state), got {prefixParameters.Length} parameter(s)");
 
 		var postfix = patch.GetMethod("Postfix", BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
 			?? throw new InvalidOperationException("Postfix not found.");
@@ -108,8 +151,8 @@ public class DirectPlaceableArmSwingPatchTests
 			&& postfixParameters[0].Name == "__instance"
 			&& postfixParameters[0].ParameterType.FullName == "Body"
 			&& postfixParameters[1].Name == "__state"
-			&& postfixParameters[1].ParameterType == typeof(float),
-			$"Postfix must be (Body __instance, float __state), got {postfixParameters.Length} parameter(s)");
+			&& postfixParameters[1].ParameterType == DirectPlaceableUseState,
+			$"Postfix must be (Body __instance, DirectPlaceableUseState __state), got {postfixParameters.Length} parameter(s)");
 	}
 
 	[Fact]

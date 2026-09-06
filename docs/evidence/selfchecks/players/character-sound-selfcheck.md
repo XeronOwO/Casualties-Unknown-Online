@@ -20,6 +20,11 @@ the existing `BuildingEntityDamaged` relay (no extra message).
 > `CharacterSoundKind.Pain` / `Bark` / `Growl` / `Yawn` for the sparse
 > PantSound vocalizations — see
 > `speech-sound-frequency-selfcheck.md`.
+> Note (ProtocolVersion 15): the same `CharacterSoundMsg` event was later
+> extended with `CharacterSoundKind.ItemPlacement` so direct
+> scrapmetal/climbingrope/scaffoldingpack placement sounds replay through the
+> existing dedicated one-shot event path — see
+> `direct-placeable-arm-swing-selfcheck.md`.
 
 ## 1. Mechanism inventory
 

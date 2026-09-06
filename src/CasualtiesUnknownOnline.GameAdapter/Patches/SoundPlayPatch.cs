@@ -47,6 +47,7 @@ internal static class SoundPlayPatch
 			{
 				CallContext.Origin.CharacterAttack => CharacterSoundPolicy.Origin.Attack,
 				CallContext.Origin.CharacterThrow => CharacterSoundPolicy.Origin.Throw,
+				CallContext.Origin.CharacterItemPlacement => CharacterSoundPolicy.Origin.ItemPlacement,
 				CallContext.Origin.CharacterExert => CharacterSoundPolicy.Origin.Exert,
 				CallContext.Origin.CharacterFootstep => CharacterSoundPolicy.Origin.Footstep,
 				CallContext.Origin.CharacterLandingImpact => CharacterSoundPolicy.Origin.LandingImpact,

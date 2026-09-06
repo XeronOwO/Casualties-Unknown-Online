@@ -1,4 +1,4 @@
-# Direct placeable-item ArmsSwing sync — self-check (2026-08-23)
+# Direct placeable-item ArmsSwing + placement sound sync — self-check (2026-08-23, extended 2026-09-06)
 
 The animation-audit row for `scrapmetal`, `climbingrope` and `scaffoldingpack`
 was open: their `ItemInfo.useAction` delegates play `ArmsSwing` directly
@@ -23,16 +23,29 @@ clones did not replay the swing.
 - `DirectPlaceableUseItemPatch` / `DirectPlaceableUseItemInHandPatch` — the
   `Body.UseItem` drag path and the `Body.UseItemInHand` LMB hand path both
   capture condition and call `OnArmSwing` for a successful local-action
-  placement only (not remote/carried/craft/internal scopes).
-- No wire or protocol change: the report rides the existing
-  `IsAttacking` / `SwingSeq` 20 Hz entity stream.
+  placement only (not remote/carried/craft/internal scopes); for the
+  direct-placeable family they also open
+  `CallContext.Origin.CharacterItemPlacement` around the native use.
+- `CharacterSoundKind.ItemPlacement` +
+  `CharacterSoundPolicy.Origin.ItemPlacement` +
+  `CallContext.Origin.CharacterItemPlacement` — the real `"scrapmetal"` /
+  `"ropeplace"` string sound is captured by `SoundPlayPatch` and rides the
+  existing dedicated reliable `CharacterSoundMsg` path (host broadcast,
+  guest→host report, third-party host relay), no per-frame audio stream.
+  The classifier is a clip whitelist (`scrapmetal` / `ropeplace`), so an
+  unconscious `UseItemInHand` fallback Attack can never be misreported as an
+  item placement; both direct placeable scopes also require a conscious local
+  body.
+- No new `NetMsg`; `ProtocolVersion.Current` bumped 14→15 because the
+  existing CharacterSound event gains a new `CharacterSoundKind`.
 
 ## 3. Verification results
 
 | Evidence | Result |
 |---|---|
 | `dotnet build CasualtiesUnknownOnline.slnx --no-restore` | 0 warnings / 0 errors |
-| `DirectPlaceableArmSwingPatchTests` | 5 passed: pure success rule, no-op/unknown/item increases, both patch surfaces, PatchInventory contracts |
+| `DirectPlaceableArmSwingPatchTests` | passed: pure success rule, no-op/unknown/item increases, `IsPlaceable` family filter, placement-sound scope state, both patch surfaces, PatchInventory contracts |
+| `CharacterSoundPolicyTests` / `CharacterSoundSyncTests` / `CharacterSoundPatchTests` | passed: `ItemPlacement` origin/kind classification, protobuf roundtrip and spatial facts, existing character-sound patch contracts |
 | `dotnet format CasualtiesUnknownOnline.slnx --no-restore` | passed |
 | `tools/check-architecture.ps1` | passed |
 | `tools/check-event-replay.ps1` / `tools/check-entity-event-dispatch.ps1` | no event mechanism touched |

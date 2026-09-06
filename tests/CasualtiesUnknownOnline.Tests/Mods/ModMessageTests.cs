@@ -67,9 +67,15 @@ public class ModMessageTests
 
 		Echo(w.Host).Context!.Network.Broadcast(payload);
 
-		Assert.Equal([(HostId, payload)], Echo(w.Host).Received); // the local fire rides the same sender semantics
-		Assert.Equal([(HostId, payload)], Echo(w.G1).Received);
-		Assert.Equal([(HostId, payload)], Echo(w.G2).Received);
+		var hostReceived = Assert.Single(Echo(w.Host).Received);
+		Assert.Equal(HostId, hostReceived.Sender);
+		Assert.Equal(payload, hostReceived.Payload); // the local fire rides the same sender semantics
+		var g1Received = Assert.Single(Echo(w.G1).Received);
+		Assert.Equal(HostId, g1Received.Sender);
+		Assert.Equal(payload, g1Received.Payload);
+		var g2Received = Assert.Single(Echo(w.G2).Received);
+		Assert.Equal(HostId, g2Received.Sender);
+		Assert.Equal(payload, g2Received.Payload);
 	}
 
 	[Fact]
@@ -79,7 +85,9 @@ public class ModMessageTests
 
 		Echo(w.Host).Context!.Network.SendToPeer(G2Id, [1, 2, 3]);
 
-		Assert.Equal([(HostId, new byte[] { 1, 2, 3 })], Echo(w.G2).Received);
+		var directed = Assert.Single(Echo(w.G2).Received);
+		Assert.Equal(HostId, directed.Sender);
+		Assert.Equal([1, 2, 3], directed.Payload);
 		Assert.Empty(Echo(w.G1).Received);
 		Assert.Empty(Echo(w.Host).Received); // directed — no local fire
 	}
@@ -162,7 +170,9 @@ public class ModMessageTests
 
 		Echo(host).Context!.Network.Broadcast([7]);
 
-		Assert.Equal([(HostId, new byte[] { 7 })], Echo(host).Received);
+		var local = Assert.Single(Echo(host).Received);
+		Assert.Equal(HostId, local.Sender);
+		Assert.Equal([7], local.Payload);
 	}
 	[Fact]
 	public void ModWithoutSendNetworkMessage_SendIsRefused()

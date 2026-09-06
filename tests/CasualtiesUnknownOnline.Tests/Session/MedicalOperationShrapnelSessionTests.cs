@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
@@ -91,7 +92,7 @@ public sealed class MedicalOperationShrapnelSessionTests
 		Ops(w.Host).StateReceived += states.Add;
 		g1Ops.SendShrapnelUpdate(ack!.OperationId, new ShrapnelPieceUpdate { PieceIndex = 0, X = 10f, Y = -100f, Grabbed = true });
 
-		Assert.Contains(frames, f => f.From == Guest1Id && f.Frame.Length > 0 && (Runtime.Protocol.NetMsg)f.Frame[0] == CasualtiesUnknownOnline.Runtime.Protocol.NetMsg.MedicalOperationUpdate);
+		Assert.Contains(frames, f => f.From == Guest1Id && f.Frame.Length > 0 && (NetMsg)f.Frame[0] == NetMsg.MedicalOperationUpdate);
 		Assert.NotEmpty(states);
 		var state = Assert.Single(states);
 		Assert.Equal(Guest1Id, state.ShrapnelPieces.Single(p => p.PieceIndex == 0).OwnerSteamId);

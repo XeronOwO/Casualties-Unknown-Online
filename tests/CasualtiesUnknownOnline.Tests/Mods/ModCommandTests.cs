@@ -46,7 +46,10 @@ public class ModCommandTests
 		Assert.True(result!.Success);
 		Assert.Equal("a b", result.Output);
 		Assert.Equal(HostId, result.RequesterSteamId);
-		Assert.Equal([("echo", new[] { "a", "b" }, HostId)], mod.Executions.Select(e => (e.Name, e.Arguments.ToArray(), e.Requester)).ToList());
+		var execution = Assert.Single(mod.Executions);
+		Assert.Equal("echo", execution.Name);
+		Assert.Equal(["a", "b"], execution.Arguments);
+		Assert.Equal(HostId, execution.Requester);
 	}
 
 	[Fact]

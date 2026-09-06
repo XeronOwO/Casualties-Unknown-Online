@@ -19,7 +19,7 @@ public sealed class RemoteLimbToolApplicationTests
 		Assert.True(RemoteLimbToolCatalog.IsToolItem("carcasssplint"));
 		Assert.True(RemoteLimbToolCatalog.IsToolItem("tourniquet"));
 		Assert.True(RemoteLimbToolCatalog.IsToolItem("icepack"));
-		Assert.True(RemoteLimbToolCatalog.IsToolItem("tweezers"));
+		Assert.False(RemoteLimbToolCatalog.IsToolItem("tweezers"));
 		Assert.True(RemoteLimbToolCatalog.IsToolItem("medicalsuture"));
 		Assert.False(RemoteLimbToolCatalog.IsToolItem("mysterytool"));
 		Assert.True(RemoteLimbToolCatalog.TryGet("boneweldingtool", out _));

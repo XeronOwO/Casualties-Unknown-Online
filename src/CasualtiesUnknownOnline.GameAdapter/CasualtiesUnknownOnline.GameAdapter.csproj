@@ -36,7 +36,7 @@
       (STR→Strength etc.), configured explicitly in CharacterDataMapper.cs.
       emit-based like protobuf-net — smoke-tested at runtime.
     -->
-    <PackageReference Include="Mapster" Version="10.0.12" />
+    <PackageReference Include="Mapster" Version="6.0.0" />
   </ItemGroup>
 
   <!--

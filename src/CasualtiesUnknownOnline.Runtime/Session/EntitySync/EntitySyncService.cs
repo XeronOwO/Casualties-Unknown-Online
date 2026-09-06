@@ -2,13 +2,12 @@ using System;
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Protocol.Wire;
-using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session.AdaptiveSync;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Time;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 
@@ -46,9 +45,9 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 
 	private readonly ITimeSource _time;
 
-	private readonly IOptionsMonitor<StateStreamOptions> _stateStreamOptions;
-
 	private readonly ILogger<EntitySyncService> _log;
+
+	private readonly AdaptiveStreamRateService _adaptiveRates;
 
 	private readonly PlayerKernelStatusProjection _playerStatus;
 
@@ -74,7 +73,7 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 	private long _nextReportSendMs;
 
 	public EntitySyncService(ISessionControl session, PacketSender sender, ITimeSource time,
-		IOptionsMonitor<StateStreamOptions> stateStreamOptions, ILogger<EntitySyncService> log,
+		AdaptiveStreamRateService adaptiveRates, ILogger<EntitySyncService> log,
 		PlayerKernelStatusProjection playerStatus, IKernelProtocolControl kernelProtocol)
 	{
 		_session = session;
@@ -83,7 +82,7 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 
 		_time = time;
 
-		_stateStreamOptions = stateStreamOptions;
+		_adaptiveRates = adaptiveRates;
 
 		_log = log;
 		_playerStatus = playerStatus;
@@ -354,8 +353,14 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 	/// </summary>
 	private void ConfigureSwingHold()
 	{
-		var intervalMs = Math.Max(1L, (long)(_stateStreamOptions.CurrentValue.SendIntervalSeconds * 1000f));
-		_attackSwing.SetStreamHoldMs(intervalMs * 6);
+		var streamId = _session.Role == SessionRole.Host
+			? AdaptiveStreamId.PlayerStateBroadcast
+			: AdaptiveStreamId.PlayerStateReport;
+		IEnumerable<ulong> targets = _session.Role == SessionRole.Host
+			? _entities.Keys
+			: new[] { _session.HostSteamId };
+		var intervalMs = _adaptiveRates.GetSendIntervalMs(streamId, targets);
+		_attackSwing.SetStreamHoldMs(Math.Max(1L, intervalMs * 6));
 	}
 
 	void ICuoService.Update()
@@ -398,17 +403,20 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 			MaybeStartEntitySync();
 		}
 
-		var intervalSeconds = _stateStreamOptions.CurrentValue.SendIntervalSeconds;
 		var nowMs = _time.NowMs;
 		if (_session.Role == SessionRole.Host && EntitySyncActive && nowMs >= _nextStateSendMs)
 		{
-			_nextStateSendMs = nowMs + (long)(intervalSeconds * 1000f);
+			_nextStateSendMs = nowMs + _adaptiveRates.GetSendIntervalMs(
+				AdaptiveStreamId.PlayerStateBroadcast,
+				_entities.Keys);
 			_playerStream.BroadcastPlayerState();
 		}
 
 		if (_session.Role == SessionRole.Guest && EntitySyncActive && nowMs >= _nextReportSendMs)
 		{
-			_nextReportSendMs = nowMs + (long)(intervalSeconds * 1000f);
+			_nextReportSendMs = nowMs + _adaptiveRates.GetSendIntervalMs(
+				AdaptiveStreamId.PlayerStateReport,
+				_session.HostSteamId);
 			_playerStream.SendPlayerStateReport();
 		}
 	}

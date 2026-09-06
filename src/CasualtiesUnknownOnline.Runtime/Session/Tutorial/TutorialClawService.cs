@@ -1,11 +1,11 @@
 using System;
+using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
-using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session.AdaptiveSync;
 using CasualtiesUnknownOnline.Runtime.Time;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.Tutorial;
 
@@ -24,7 +24,7 @@ public sealed class TutorialClawService : ICuoService, ITutorialClawControl
 	private readonly ISessionControl _session;
 	private readonly PacketSender _sender;
 	private readonly ITimeSource _time;
-	private readonly IOptionsMonitor<StateStreamOptions> _stateStreamOptions;
+	private readonly AdaptiveStreamRateService _adaptiveRates;
 	private readonly ILogger<TutorialClawService> _log;
 
 	private TutorialClawStateMsg? _latest;
@@ -33,12 +33,12 @@ public sealed class TutorialClawService : ICuoService, ITutorialClawControl
 	private long _nextSendMs;
 
 	public TutorialClawService(ISessionControl session, PacketSender sender, ITimeSource time,
-		IOptionsMonitor<StateStreamOptions> stateStreamOptions, ILogger<TutorialClawService> log)
+		AdaptiveStreamRateService adaptiveRates, ILogger<TutorialClawService> log)
 	{
 		_session = session;
 		_sender = sender;
 		_time = time;
-		_stateStreamOptions = stateStreamOptions;
+		_adaptiveRates = adaptiveRates;
 		_log = log;
 		_session.SessionEnded += OnSessionEnded;
 	}
@@ -90,7 +90,11 @@ public sealed class TutorialClawService : ICuoService, ITutorialClawControl
 			return;
 		}
 
-		_nextSendMs = nowMs + (long)(_stateStreamOptions.CurrentValue.SendIntervalSeconds * 1000f);
+		_nextSendMs = nowMs + _adaptiveRates.GetSendIntervalMs(
+			AdaptiveStreamId.TutorialClawBroadcast,
+			_session.Members
+				.Where(m => m.Handshaken && m.InWorld && m.SteamId != _session.LocalSteamId)
+				.Select(m => m.SteamId));
 		Broadcast();
 	}
 

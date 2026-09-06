@@ -18,6 +18,7 @@ using CasualtiesUnknownOnline.Runtime.Session.Handlers;
 using CasualtiesUnknownOnline.Runtime.Session.HostRules;
 using CasualtiesUnknownOnline.Runtime.Localization;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
+using CasualtiesUnknownOnline.Runtime.Session.AdaptiveSync;
 using CasualtiesUnknownOnline.Runtime.Session.NetworkTraffic;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using CasualtiesUnknownOnline.Runtime.Session.Tutorial;
@@ -167,6 +168,11 @@ public static class CuoBootstrap
 		// only — no batching/rate-limit decision is made from these numbers yet).
 		services.AddSingleton<NetworkTrafficMonitor>();
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<NetworkTrafficMonitor>());
+		// Adaptive stream-rate query surface: reads the same peer-health
+		// observation and the stream catalog, then answers the effective cadence
+		// for loss-tolerant streams. No rate decision is made from traffic here
+		// beyond the health/policy abstraction.
+		services.AddSingleton<AdaptiveStreamRateService>();
 		services.AddSingleton(p => new HandlerContext(
 			p.GetRequiredService<ISessionControl>(),
 			p.GetRequiredService<IEntitySyncControl>(),

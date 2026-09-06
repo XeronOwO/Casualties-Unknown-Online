@@ -55,6 +55,24 @@ complete rework rather than more point patches.
    - Host cannot place an item into the guest's main hand (primary hand slot).
    - This is a role/direction-specific gap.
 
+7. **Host cannot double-Tab a held guest item into the host's own inventory**
+   - Host holds a guest item (e.g. from the guest backpack).
+   - Host presses Tab twice to transfer it to the host's own inventory.
+   - This fails, matching the already-recorded guest-side double-Tab failure.
+   - The Tab-transfer family is therefore also direction-asymmetric / broken on
+     both sides.
+
+8. **Special supported-scenario gap: held guest item + Tab-close + R medical use**
+   - Expected supported flow:
+     1. Host holds a guest item from the guest backpack.
+     2. Host presses Tab to close the inventory/backpack view.
+     3. Host presses R to open the medical interface.
+     4. Host uses the held guest item on the host's own body.
+   - Currently this flow is not supported.
+   - This is not an exotic edge case for the user: it is a realistic
+     item-use/interaction chain that should work once remote-held-item context
+     is correct.
+
 ## Direction-difference note
 
 The reported behaviors now include both guest→host and host→guest directions,
@@ -62,8 +80,11 @@ and the two directions are **not symmetric**:
 
 - Guest→host: selective trash-bag insertion, Tab transfer failure, pour/edge
   failure, durability projection mismatch.
-- Host→guest: trash-bag insertion works, but take-out to a slot vanishes, and
-  the guest's main hand cannot receive an item.
+- Host→guest: trash-bag insertion works, but take-out to a slot vanishes, the
+  guest's main hand cannot receive an item, and Tab transfer also fails.
+- Both directions also fail Tab-transfer to the opener's own inventory.
+- The R-medical use chain is currently untested/unsupported in either
+  direction and needs gameplay-level investigation.
 
 This confirms a systematic direction/role-dependent projection problem rather
 than one isolated item path. A whole-family audit must cover both directions
@@ -78,8 +99,12 @@ and the same operation in each direction.
   reconstructed faithfully enough for non-trivial item behaviors.
 - The audit must compare host-open-guest vs guest-open-host for the same
   operations; no single direction can be considered fixed alone.
-- A deep audit or redesign of the remote backpack projection is expected before
-  acceptance can pass.
+- The "held remote item + Tab close + R native medical use" chain means this is
+  not only a display-projection issue: the temporary held/remote item context
+  must survive across native UI transitions and be usable in native gameplay
+  flows.
+- A deep gameplay-level audit, and likely a complete projection rework, is
+  expected before acceptance can pass.
 
 ## Acceptance matrix placeholder
 
@@ -97,6 +122,8 @@ and the same operation in each direction.
 | Host drags guest item out of guest trash bag to guest slot | item returns to slot | item disappears |
 | Host places item into guest main hand | succeeds | fails |
 | Host places item into other guest slots | succeeds | succeeds |
+| Host double-Tab transfers a held guest item to self | succeeds | fails |
+| Host holds guest item, presses Tab to close, then R opens medical and uses item on self | supported and usable | not supported |
 
 ## Non-goals
 

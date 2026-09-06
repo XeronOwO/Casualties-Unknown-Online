@@ -18,12 +18,15 @@ ticket is **not accepted** until those issues are resolved.
 4. Guest cannot pour out or edge-drop the host's water bottle.
 5. Host opens the guest backpack, can move guest items into the guest's trash bag, but dragging an item out of the trash bag back to a guest slot makes the item vanish.
 6. Host cannot place an item into the guest's main hand; other guest positions accept placement.
+7. Host also cannot hold a guest item and double-Tab to transfer it to the host's own inventory.
+8. A supported flow is missing: host holds a guest item, presses Tab to close the backpack, presses R to open the medical interface, and uses the held guest item on the host's own body.
 
 The user also stated that the item projection layer appears to have many
 problems, that earlier development did not consider this interaction family,
 that the two directions (host-open-guest and guest-open-host) still behave
 asymmetrically, and that the projection mechanism likely needs a careful audit
-or a complete rework rather than more point patches.
+or a complete rework rather than more point patches. The held-remote-item +
+Tab-close + R-medical-use chain also needs deep gameplay-level investigation.
 
 ## Rejected again (latest user re-report — super priority)
 

@@ -1,9 +1,10 @@
 # Dead-player right-click context menu should show a dead status suffix in the title
 
-- Status: Todo
+- Status: Review
 - Priority: Medium
 - Category: Remote player UI / context menu polish
 - Source: User report (2026-09-06) — right-clicking a dead character shows only the player's plain name in the context-menu title. The user expects the title to read `名称(死掉了)` (for example `Alice(死掉了)`), making the dead state visible at the moment of right-click.
+- Landed: 2026-09-06 — context-menu title and duplicate-name target selector buttons now append the localized dead suffix from the existing `OnlineUiMemberRow.IsDead` projection; Players-list dead rendering and wire/protocol unchanged. Evidence: `docs/evidence/selfchecks/ui/dead-player-context-menu-title-selfcheck.md`.
 
 ## Goal
 

@@ -70,9 +70,10 @@ internal sealed class OnlineUiPlayerContextMenu
 		var contentWidth = Width - (FramePadding * 2f);
 		var buttonStyle = MenuButton();
 		var titleStyle = OnlineUiTheme.Section();
+		var title = BuildContextTitle(ctx, row);
 
-		var titleHeight = Mathf.Max(TitleHeight - 4f, titleStyle.CalcHeight(new GUIContent(row.Name), contentWidth));
-		var selectorHeight = MeasureTargetSelectorHeight(ctx, contentWidth);
+		var titleHeight = Mathf.Max(TitleHeight - 4f, titleStyle.CalcHeight(new GUIContent(title), contentWidth));
+		var selectorHeight = MeasureTargetSelectorHeight(ctx, rows, contentWidth);
 		var actionsHeight = 0f;
 		foreach (var action in actions)
 		{
@@ -90,12 +91,12 @@ internal sealed class OnlineUiPlayerContextMenu
 
 		var left = rect.x + FramePadding;
 		var yCursor = rect.y + FramePadding;
-		GUI.Label(new Rect(left, yCursor, contentWidth, titleHeight), row.Name, titleStyle);
+		GUI.Label(new Rect(left, yCursor, contentWidth, titleHeight), title, titleStyle);
 		yCursor += titleHeight;
 
 		if (_candidateSteamIds.Count > 1)
 		{
-			yCursor = DrawTargetSelector(ctx, left, yCursor, contentWidth, selectorHeight, buttonStyle);
+			yCursor = DrawTargetSelector(ctx, rows, left, yCursor, contentWidth, selectorHeight, buttonStyle);
 		}
 
 		foreach (var action in actions)
@@ -114,6 +115,7 @@ internal sealed class OnlineUiPlayerContextMenu
 
 	private float DrawTargetSelector(
 		OnlineUiContext ctx,
+		IReadOnlyList<OnlineUiMemberRow> rows,
 		float left,
 		float y,
 		float width,
@@ -129,7 +131,7 @@ internal sealed class OnlineUiPlayerContextMenu
 		var bx = left + TargetLabelWidth;
 		foreach (var candidate in _candidateSteamIds)
 		{
-			var label = ctx.DisplayName(candidate);
+			var label = ContextTitle(ctx, rows, candidate);
 			var rowHeight = Mathf.Max(SelectorHeight - 4f, buttonStyle.CalcHeight(new GUIContent(label), buttonWidth) + 4f);
 			if (GUI.Button(new Rect(bx, y, buttonWidth, rowHeight), label, buttonStyle))
 			{
@@ -142,7 +144,10 @@ internal sealed class OnlineUiPlayerContextMenu
 		return y + height;
 	}
 
-	private float MeasureTargetSelectorHeight(OnlineUiContext ctx, float width)
+	private float MeasureTargetSelectorHeight(
+		OnlineUiContext ctx,
+		IReadOnlyList<OnlineUiMemberRow> rows,
+		float width)
 	{
 		if (_candidateSteamIds.Count <= 1)
 		{
@@ -156,12 +161,21 @@ internal sealed class OnlineUiPlayerContextMenu
 		var height = SelectorHeight;
 		foreach (var candidate in _candidateSteamIds)
 		{
-			var label = ctx.DisplayName(candidate);
+			var label = ContextTitle(ctx, rows, candidate);
 			height = Mathf.Max(height, buttonStyle.CalcHeight(new GUIContent(label), buttonWidth) + 4f);
 		}
 
 		return height;
 	}
+
+	private static string ContextTitle(OnlineUiContext ctx, IReadOnlyList<OnlineUiMemberRow> rows, ulong steamId)
+	{
+		var row = rows.FirstOrDefault(r => r.SteamId == steamId);
+		return row is null ? ctx.DisplayName(steamId) : BuildContextTitle(ctx, row);
+	}
+
+	private static string BuildContextTitle(OnlineUiContext ctx, OnlineUiMemberRow row)
+		=> OnlineUiMemberLabel.FormatContextTitle(row.Name, row.IsDead, ctx.T("member.context_dead"));
 
 	private static float ButtonHeight(string label, GUIStyle style, float width)
 	{

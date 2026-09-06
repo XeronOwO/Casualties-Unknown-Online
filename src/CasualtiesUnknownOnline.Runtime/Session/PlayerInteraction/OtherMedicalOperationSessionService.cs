@@ -27,6 +27,7 @@ internal sealed class OtherMedicalOperationSessionService(
 	HashSet<ulong> sharedReservedItems,
 	HashSet<(ulong Target, int Limb)> sharedReservedTargetLimbs,
 	Func<ulong, bool> hasActiveInjectionOrShrapnel,
+	MedicalOperationIdAllocator operationIds,
 	ILogger log)
 {
 	private const int OperationTimeoutMs = 20000;
@@ -39,12 +40,12 @@ internal sealed class OtherMedicalOperationSessionService(
 	private readonly HashSet<ulong> _sharedReservedItems = sharedReservedItems;
 	private readonly HashSet<(ulong Target, int Limb)> _sharedReservedTargetLimbs = sharedReservedTargetLimbs;
 	private readonly Func<ulong, bool> _hasActiveInjectionOrShrapnel = hasActiveInjectionOrShrapnel;
+	private readonly MedicalOperationIdAllocator _operationIds = operationIds;
 	private readonly ILogger _log = log;
 	private readonly OtherMedicalOperationApplier _applier = new(access, items, kernelAuthority, session);
 	private readonly OtherMedicalRemovalApplier _removal = new(access, items, kernelAuthority, session, log);
 
 	private readonly Dictionary<ulong, OtherMedicalOperationSession> _sessions = [];
-	private ulong _nextOperationId = 1;
 	private bool _disposed;
 
 	public event Action<MedicalOperationStartAckMsg>? StartAckReceived;
@@ -176,7 +177,7 @@ internal sealed class OtherMedicalOperationSessionService(
 			return;
 		}
 
-		var itemIndex = msg.ItemInstanceId == 0 ? -1 : FindItemIndex(operatorData, msg.ItemInstanceId);
+		var itemIndex = msg.ItemInstanceId == 0 ? -1 : PlayerItemIndex.Find(operatorData, msg.ItemInstanceId);
 		var originalItem = itemIndex >= 0 ? operatorData.Items[itemIndex] : null;
 
 		if (msg.ItemInstanceId != 0)
@@ -218,7 +219,7 @@ internal sealed class OtherMedicalOperationSessionService(
 		var now = _time.NowMs;
 		var newSession = new OtherMedicalOperationSession
 		{
-			OperationId = _nextOperationId++,
+			OperationId = _operationIds.Next(),
 			Operator = sender,
 			Target = target,
 			ItemInstanceId = msg.ItemInstanceId,
@@ -516,18 +517,5 @@ internal sealed class OtherMedicalOperationSessionService(
 			or MedicalOperationKind.Aed
 			or MedicalOperationKind.ManualDefib
 			or MedicalOperationKind.Amputation;
-
-	private static int FindItemIndex(CharacterDataMsg data, ulong itemInstanceId)
-	{
-		for (var i = 0; i < data.Items.Count; i++)
-		{
-			if (data.Items[i].InstanceId == itemInstanceId)
-			{
-				return i;
-			}
-		}
-
-		return -1;
-	}
 
 }

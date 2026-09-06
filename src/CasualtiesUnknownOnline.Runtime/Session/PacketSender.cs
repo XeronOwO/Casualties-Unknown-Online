@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Networking;
 using CasualtiesUnknownOnline.Runtime.Protocol;
+using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.NetworkTraffic;
 
 namespace CasualtiesUnknownOnline.Runtime.Session;
@@ -72,7 +73,31 @@ public sealed class PacketSender(INetworkTransport transport, NetworkTrafficMoni
 	}
 
 	private static WirePayloadType? ClassifyPayloadType(object? payload) =>
-		payload is ProtocolFrame frame ? ProtocolFrameTrafficClassifier.TryGetPayloadType(frame) : null;
+		payload switch
+		{
+			ProtocolFrame frame => ProtocolFrameTrafficClassifier.TryGetPayloadType(frame),
+			MedicalOperationUpdateMsg update => ClassifyMedicalUpdate(update),
+			_ => null,
+		};
+
+	private static WirePayloadType? ClassifyMedicalUpdate(MedicalOperationUpdateMsg update)
+	{
+		if (update.Action != 0)
+		{
+			return WirePayloadType.MedicalOperationOtherUpdate;
+		}
+
+		if (update.PieceIndex >= 0)
+		{
+			// Ordinary shrapnel positions are the loss-tolerant stream; semantic
+			// ownership transitions stay outside that adaptive estimate.
+			return update.OwnershipChange || update.BreakGrasp || update.Released
+				? WirePayloadType.MedicalOperationOtherUpdate
+				: WirePayloadType.MedicalShrapnelPositionUpdate;
+		}
+
+		return update.DeltaMl > 0 ? WirePayloadType.MedicalInjectionUpdate : null;
+	}
 
 	private static void EnsureRegistered(NetMsg msg)
 	{

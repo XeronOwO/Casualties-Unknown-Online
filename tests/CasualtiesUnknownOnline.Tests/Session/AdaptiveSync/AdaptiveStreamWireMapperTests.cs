@@ -29,6 +29,18 @@ public class AdaptiveStreamWireMapperTests
 	}
 
 	[Fact]
+	public void MedicalStreams_MapToDedicatedPayloadTypes()
+	{
+		Assert.True(AdaptiveStreamWireMapper.TryGet(AdaptiveStreamId.MedicalInjectionReport, out var injectionPayload, out var injectionMessage));
+		Assert.Equal(WirePayloadType.MedicalInjectionUpdate, injectionPayload);
+		Assert.Null(injectionMessage);
+
+		Assert.True(AdaptiveStreamWireMapper.TryGet(AdaptiveStreamId.ShrapnelPositionReport, out var shrapnelPayload, out var shrapnelMessage));
+		Assert.Equal(WirePayloadType.MedicalShrapnelPositionUpdate, shrapnelPayload);
+		Assert.Null(shrapnelMessage);
+	}
+
+	[Fact]
 	public void UnknownStream_ReturnsFalse() =>
 		Assert.False(AdaptiveStreamWireMapper.TryGet((AdaptiveStreamId)999, out _, out _));
 

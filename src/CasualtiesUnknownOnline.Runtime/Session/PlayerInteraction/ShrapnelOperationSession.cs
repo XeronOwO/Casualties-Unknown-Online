@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 
@@ -18,4 +19,6 @@ internal sealed class ShrapnelOperationSession
 	internal readonly HashSet<ulong> Operators = [];
 	internal readonly Dictionary<ulong, ulong> OperatorItems = [];
 	internal readonly Dictionary<int, ShrapnelPieceState> Pieces = [];
+
+	internal bool AllPiecesRemoved => Pieces.Values.All(p => p.Removed);
 }

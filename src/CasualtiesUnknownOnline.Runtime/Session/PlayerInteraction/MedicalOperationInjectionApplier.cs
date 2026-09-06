@@ -48,7 +48,7 @@ internal sealed class MedicalOperationInjectionApplier(
 			return false;
 		}
 
-		var itemIndex = FindUseItemIndex(userData, session.ItemInstanceId);
+		var itemIndex = PlayerItemIndex.Find(userData, session.ItemInstanceId);
 		if (itemIndex < 0 || itemIndex >= userData.Items.Count)
 		{
 			_log.LogWarning("[MedicalOps] operation {OperationId} delta skipped: item lost from {Operator}.", session.OperationId, session.Operator);
@@ -103,7 +103,7 @@ internal sealed class MedicalOperationInjectionApplier(
 
 		if (userData is not null)
 		{
-			var idx = FindUseItemIndex(userData, session.ItemInstanceId);
+			var idx = PlayerItemIndex.Find(userData, session.ItemInstanceId);
 			if (idx >= 0 && idx < userData.Items.Count)
 			{
 				itemAfter = PlayerCharacterAccess.CloneItem(userData.Items[idx]);
@@ -156,16 +156,4 @@ internal sealed class MedicalOperationInjectionApplier(
 		}
 	}
 
-	private static int FindUseItemIndex(CharacterDataMsg data, ulong itemInstanceId)
-	{
-		for (var i = 0; i < data.Items.Count; i++)
-		{
-			if (data.Items[i].InstanceId == itemInstanceId)
-			{
-				return i;
-			}
-		}
-
-		return -1;
-	}
 }

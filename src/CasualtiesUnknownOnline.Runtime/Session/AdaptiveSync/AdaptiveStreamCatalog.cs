@@ -47,6 +47,24 @@ public static class AdaptiveStreamCatalog
 				MaxHz,
 				Priority: 2,
 				MaxBytesPerSecond: 32 * 1024),
+			[AdaptiveStreamId.MedicalInjectionReport] = new(
+				AdaptiveStreamId.MedicalInjectionReport,
+				"MedicalInjectionReport",
+				AdaptiveStreamDeliveryMode.Cumulative,
+				MinHz,
+				MaxHz,
+				Priority: 2,
+				MaxBytesPerSecond: 32 * 1024,
+				BaseHz: 60),
+			[AdaptiveStreamId.ShrapnelPositionReport] = new(
+				AdaptiveStreamId.ShrapnelPositionReport,
+				"ShrapnelPositionReport",
+				AdaptiveStreamDeliveryMode.LatestWins,
+				MinHz,
+				MaxHz,
+				Priority: 2,
+				MaxBytesPerSecond: 32 * 1024,
+				BaseHz: 60),
 		};
 
 	/// <summary>All registered adaptive stream profiles.</summary>

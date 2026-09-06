@@ -14,4 +14,5 @@ public sealed record AdaptiveStreamProfile(
 	int MinHz,
 	int MaxHz,
 	int Priority,
-	long MaxBytesPerSecond = 0);
+	long MaxBytesPerSecond = 0,
+	int BaseHz = 0);

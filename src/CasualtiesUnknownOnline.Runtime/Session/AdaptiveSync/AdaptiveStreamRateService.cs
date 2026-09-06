@@ -85,7 +85,7 @@ public sealed class AdaptiveStreamRateService : IDisposable
 		return _policy.GetEffectiveHz(
 			profile,
 			AdaptivePressureLevel.Optimal,
-			_stateStreamOptions.CurrentValue.StateStreamHz);
+			GetBaseHz(profile));
 	}
 
 	/// <summary>Send interval for a unicast stream, in milliseconds.</summary>
@@ -147,11 +147,14 @@ public sealed class AdaptiveStreamRateService : IDisposable
 		var effective = _policy.GetEffectiveHz(
 			profile,
 			pressure,
-			_stateStreamOptions.CurrentValue.StateStreamHz,
+			GetBaseHz(profile),
 			traffic.AverageSendBytes);
 		LogRateChange(streamId, peerId, profile.Name, pressure, effective);
 		return effective;
 	}
+
+	private int GetBaseHz(AdaptiveStreamProfile profile) =>
+		profile.BaseHz > 0 ? profile.BaseHz : _stateStreamOptions.CurrentValue.StateStreamHz;
 
 	private AdaptivePressureLevel Classify(ulong peerId, AdaptiveTrafficEstimate traffic)
 	{

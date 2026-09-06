@@ -53,6 +53,15 @@ public class AdaptiveStreamRateServiceTests
 	}
 
 	[Fact]
+	public void MedicalStreams_UseProfileBaseHzInOptimal()
+	{
+		var service = CreateService();
+
+		Assert.Equal(60, service.GetEffectiveHz(AdaptiveStreamId.MedicalInjectionReport, HealthyPeer));
+		Assert.Equal(60, service.GetEffectiveHz(AdaptiveStreamId.ShrapnelPositionReport, HealthyPeer));
+	}
+
+	[Fact]
 	public void HighPerStreamBandwidth_LowersCadence()
 	{
 		var (service, monitor, clock) = CreateServiceWithMonitor();

@@ -50,7 +50,7 @@ internal sealed class ShrapnelSessionStateWriter(
 	internal void DrainTweezers(ulong operatorId, ulong itemInstanceId, CharacterDataMsg userData)
 	{
 		var newData = PlayerCharacterAccess.CloneCharacter(userData);
-		var index = FindUseItemIndex(newData, itemInstanceId);
+		var index = PlayerItemIndex.Find(newData, itemInstanceId);
 		if (index < 0 || index >= newData.Items.Count)
 		{
 			return;
@@ -157,6 +157,7 @@ internal sealed class ShrapnelSessionStateWriter(
 			OperatorSteamId = shrapnel.Operators.FirstOrDefault(),
 			TargetSteamId = shrapnel.Target,
 			LimbIndex = shrapnel.LimbIndex,
+			Kind = MedicalOperationKind.Shrapnel,
 			TerminalReason = reason,
 			ShrapnelPieces = BuildPieces(shrapnel),
 			TargetHealth = targetData?.Health,
@@ -182,21 +183,8 @@ internal sealed class ShrapnelSessionStateWriter(
 			return null;
 		}
 
-		var index = FindUseItemIndex(data, itemInstanceId);
+		var index = PlayerItemIndex.Find(data, itemInstanceId);
 		return index < 0 || index >= data.Items.Count ? null : PlayerCharacterAccess.CloneItem(data.Items[index]);
-	}
-
-	private static int FindUseItemIndex(CharacterDataMsg data, ulong itemInstanceId)
-	{
-		for (var i = 0; i < data.Items.Count; i++)
-		{
-			if (data.Items[i].InstanceId == itemInstanceId)
-			{
-				return i;
-			}
-		}
-
-		return -1;
 	}
 
 	private static float RandomInRange(float min, float max) => (float)(new Random().NextDouble() * (max - min) + min);

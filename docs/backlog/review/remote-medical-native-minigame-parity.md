@@ -1,6 +1,6 @@
 # Remote medical native minigame/action parity — roadmap
 
-- Status: Todo
+- Status: Review
 - Priority: High
 - Category: Remote medical / native medical minigame parity
 - Source: User follow-up (2026-09-06) — "注射只是其中一种医疗 minigame，还有很多别的有实现吗？例如拔出破片等。如果没实现，为什么你没考虑到？你需要将待办加入 backlog。" Follow-up: "对于部分医疗功能，是可以支持多人同时操作的，例如拔破片，具体可以参考 KrokMP 的实现；对于多人操作需要考虑数据同步，该大改就大改。"
@@ -24,7 +24,7 @@ The user confirmed the design before implementation:
 | 1 | [Medical operation session + real-time injection](remote-medical-stage-1-injection-session.md) | Generic `MedicalOperationSession` protocol and the migration of syringe/IV medicine to real-time incremental injection |
 | 2 | [Multiplayer shrapnel removal](remote-medical-stage-2-shrapnel-multiplayer.md) | Shared shrapnel minigame session with per-piece ownership, concurrent operators, force-ungrab and end/abort semantics |
 | 3 | [Remaining native medical minigames/actions](remote-medical-stage-3-other-actions.md) | Bandage/dressing minigame, splint/tourniquet removal, dislocation, AED, manual defibrillation, amputation and remaining WoundView actions |
-| Future | [CPR enhancement](future/remote-medical-cpr.md) | KrokMP custom CPR; not native parity, deferred to future |
+| Future | [CPR enhancement](../future/remote-medical-cpr.md) | KrokMP custom CPR; not native parity, deferred to future |
 
 ## Global acceptance criteria
 

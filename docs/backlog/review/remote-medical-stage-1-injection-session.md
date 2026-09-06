@@ -66,7 +66,7 @@ For injection, the update payload carries the newly injected ml since the last r
 ### Injection cadence
 
 - The operator runs the native `SyringeMinigame` locally for input/feel.
-- The operator sends the ml delivered since the last report on every native minigame frame that actually delivers more liquid (per-frame report); the host applies each accepted delta and broadcasts authoritative progress in the same frame. A future adaptive-flow-control item may lower this cadence dynamically under bandwidth pressure (see `future/remote-medical-frame-report-adaptive-flow-control.md`).
+- The operator sends the ml delivered since the last report on every native minigame frame that actually delivers more liquid (per-frame report); the host applies each accepted delta and broadcasts authoritative progress in the same frame. A future global adaptive-flow-control item may lower this cadence dynamically under bandwidth pressure (see `future/global-adaptive-report-rate-flow-control.md`).
 - The host applies each accepted delta to the authoritative character snapshot and broadcasts progress.
 - The item is reserved at start and drained in the same increments. The final end message carries the exact terminal item/health/limb state.
 

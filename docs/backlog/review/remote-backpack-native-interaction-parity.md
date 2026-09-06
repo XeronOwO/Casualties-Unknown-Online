@@ -5,6 +5,23 @@
 - Category: Remote inventory / co-op interaction parity / container sync
 - Source: User report (2026-09-04); rejected by user (2026-09-05) — opening another player's backpack still could not perform most item operations; rejected again as a whole (2026-09-05) on container/trash-bag interaction; user now reports the remote-backpack operation problem still exists with behavior identical to before any fix and marks it a super-priority issue.
 
+## Acceptance findings (2026-09-06)
+
+The user opened this review ticket for acceptance and found the following
+issues. They are recorded in
+`docs/backlog/todo/remote-backpack-item-projection-acceptance-issues.md`; this
+ticket is **not accepted** until those issues are resolved.
+
+1. Host holds metal scrap at 75% durability; guest opens the host backpack and sees 100% durability.
+2. Guest cannot put the host's water bottle, dog food, or lantern into the host's trash bag; metal scrap can be moved in, shows 75% correctly, and can be taken back out.
+3. Guest cannot take a host item and use double-Tab to transfer it to the guest's own inventory.
+4. Guest cannot pour out or edge-drop the host's water bottle.
+
+The user also stated that the item projection layer appears to have many
+problems, that earlier development did not consider this interaction family,
+and that the projection mechanism likely needs a careful audit or a complete
+rework rather than more point patches.
+
 ## Rejected again (latest user re-report — super priority)
 
 The user reports the problem of operating on another player's backpack items

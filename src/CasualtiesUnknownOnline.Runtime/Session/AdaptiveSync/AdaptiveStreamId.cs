@@ -25,4 +25,19 @@ public enum AdaptiveStreamId
 
 	/// <summary>Guest → host: shrapnel ordinary held-piece position reports (latest per piece, unreliable).</summary>
 	ShrapnelPositionReport,
+
+	/// <summary>Host → guests: the 10 Hz world-item movement stream (absolute overwrite, unreliable).</summary>
+	WorldItemMoveStream,
+
+	/// <summary>Host → guests: the periodic world-item full-table snapshot (absolute overwrite, unreliable).</summary>
+	WorldItemSnapshotStream,
+
+	/// <summary>Host → guests: the 10 Hz fluid changed-region diff stream (absolute RLE overwrite, unreliable).</summary>
+	FluidRegionDiffStream,
+
+	/// <summary>Host → guests: the 1 Hz fluid full-viewport reconciliation stream (absolute RLE overwrite, unreliable).</summary>
+	FluidRegionFullStream,
+
+	/// <summary>Host → guests: the trader-state fallback full-state broadcast (absolute overwrite, cadence-adapted only).</summary>
+	TraderStateStream,
 }

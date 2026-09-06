@@ -178,6 +178,81 @@ public class AdaptiveRatePolicyTests
 		Assert.Equal(1, result);
 	}
 
+	[Fact]
+	public void IntervalStream_Optimal_KeepsConfiguredBaseInterval()
+	{
+		var profile = Get(AdaptiveStreamId.WorldItemSnapshotStream);
+
+		var result = _policy.GetEffectiveIntervalMs(profile, AdaptivePressureLevel.Optimal, profile.BaseIntervalMs);
+
+		Assert.Equal(5000, result);
+	}
+
+	[Theory]
+	[InlineData(AdaptivePressureLevel.Moderate)]
+	[InlineData(AdaptivePressureLevel.High)]
+	[InlineData(AdaptivePressureLevel.Critical)]
+	public void IntervalStream_Pressure_IncreasesInterval(AdaptivePressureLevel pressure)
+	{
+		var profile = Get(AdaptiveStreamId.TraderStateStream);
+
+		var result = _policy.GetEffectiveIntervalMs(profile, pressure, profile.BaseIntervalMs);
+
+		Assert.True(result > 5000, $"{pressure} must lengthen an interval-based fallback stream.");
+	}
+
+	[Fact]
+	public void IntervalStream_MaxInterval_CapsPressureGrowth()
+	{
+		var profile = Get(AdaptiveStreamId.WorldItemSnapshotStream);
+
+		var result = _policy.GetEffectiveIntervalMs(profile, AdaptivePressureLevel.Critical, profile.BaseIntervalMs);
+
+		Assert.True(result <= profile.MaxIntervalMs, "the interval must stay inside the profile's max interval.");
+	}
+
+	[Fact]
+	public void IntervalStream_ByteBudget_OnlyLengthensInterval()
+	{
+		var profile = Get(AdaptiveStreamId.TraderStateStream) with
+		{
+			MaxBytesPerSecond = 1,
+			MaxIntervalMs = 0,
+		};
+
+		var result = _policy.GetEffectiveIntervalMs(profile, AdaptivePressureLevel.Optimal, 5000, averageFrameBytes: 100);
+
+		Assert.True(result >= 5000, "a byte budget must never shorten the configured fallback interval.");
+		Assert.Equal(100_000L, result);
+	}
+
+	[Fact]
+	public void IntervalStream_HardMaxCapWinsOverByteBudget()
+	{
+		var profile = Get(AdaptiveStreamId.TraderStateStream) with { MaxBytesPerSecond = 1 };
+
+		var result = _policy.GetEffectiveIntervalMs(profile, AdaptivePressureLevel.Optimal, 5000, averageFrameBytes: 100);
+
+		Assert.Equal(profile.MaxIntervalMs, result);
+	}
+
+	[Fact]
+	public void IntervalStream_ReliableControl_IsNeverAdapted()
+	{
+		var profile = new AdaptiveStreamProfile(
+			AdaptiveStreamId.TraderStateStream,
+			"ReliableInterval",
+			AdaptiveStreamDeliveryMode.ReliableControl,
+			MinHz: 1,
+			MaxHz: 60,
+			Priority: 1,
+			BaseIntervalMs: 5000);
+
+		var result = _policy.GetEffectiveIntervalMs(profile, AdaptivePressureLevel.Critical, 5000);
+
+		Assert.Equal(5000, result);
+	}
+
 	private static AdaptiveStreamProfile Get(AdaptiveStreamId id)
 	{
 		Assert.True(AdaptiveStreamCatalog.TryGet(id, out var profile), $"missing profile {id}");

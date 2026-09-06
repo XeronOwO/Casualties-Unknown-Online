@@ -1,6 +1,8 @@
 using System.Collections.Generic;
+using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
+using CasualtiesUnknownOnline.Runtime.Session.AdaptiveSync;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using Microsoft.Extensions.Logging;
@@ -23,17 +25,17 @@ namespace CasualtiesUnknownOnline.GameAdapter.World;
 /// baseline, so it gets the full viewport immediately.
 /// </summary>
 internal sealed class FluidSimulationAuthority(
-	IWorldControl world, ISessionControl session, IEntitySyncControl entities, ILogger<FluidSimulationAuthority> log)
+	IWorldControl world, ISessionControl session, IEntitySyncControl entities,
+	AdaptiveStreamRateService adaptiveRates, ILogger<FluidSimulationAuthority> log)
 {
 	private const int ViewWidth = 128;   // mirrors SimulationRange (FluidManager.cs:27-65)
 	private const int ViewHeight = 112;  // y: center - 64 .. center + 48 (the 7 x 16-cell bands)
 	private const int BandHeight = 16;
-	private const float DiffInterval = 0.1f; // 10 Hz
-	private const float FullInterval = 1.0f; // 1 Hz
 
 	private readonly IWorldControl _world = world;
 	private readonly ISessionControl _session = session;
 	private readonly IEntitySyncControl _entities = entities;
+	private readonly AdaptiveStreamRateService _adaptiveRates = adaptiveRates;
 	private readonly ILogger<FluidSimulationAuthority> _log = log;
 	private readonly Dictionary<ulong, MemberView> _views = [];
 	private int _simIndex;
@@ -248,7 +250,9 @@ internal sealed class FluidSimulationAuthority(
 
 	/// <summary>Per frame: stream each member's viewport — the 10 Hz changed-box
 	/// diff and the 1 Hz full snapshot (the fallback: packet loss, late joiners,
-	/// the bath-soiled water, members entering a new area).</summary>
+	/// the bath-soiled water, members entering a new area). Both cadences come
+	/// from the shared adaptive rate service: network pressure lowers the diff
+	/// rate and lengthens the full-viewport reconciliation interval.</summary>
 	internal void Update()
 	{
 		if (_session.Role != SessionRole.Host || !_session.SessionActive)
@@ -268,7 +272,16 @@ internal sealed class FluidSimulationAuthority(
 			return;
 		}
 
-		foreach (var pair in MemberAnchors(world))
+		var anchors = MemberAnchors(world);
+		var guestIds = anchors.Keys.Where(id => id != _session.LocalSteamId).ToList();
+		var diffIntervalMs = _adaptiveRates.GetSendIntervalMs(
+			AdaptiveStreamId.FluidRegionDiffStream,
+			guestIds);
+		var fullIntervalMs = _adaptiveRates.GetSendIntervalMs(
+			AdaptiveStreamId.FluidRegionFullStream,
+			guestIds);
+
+		foreach (var pair in anchors)
 		{
 			var id = pair.Key;
 			var anchor = pair.Value; // net48: KeyValuePair has no Deconstruct
@@ -286,30 +299,41 @@ internal sealed class FluidSimulationAuthority(
 			if (view.Center != anchor)
 			{
 				view.Center = anchor;
-				SyncRegion(id, view, 0, 0, ViewWidth, ViewHeight); // the diff baseline was for the old center — full viewport
+				SyncRegion(id, view, 0, 0, ViewWidth, ViewHeight, fullViewport: true); // the diff baseline was for the old center — full viewport
 				continue;
 			}
 
 			if (now >= _nextDiff && DiffBox(view, world) is { } box)
 			{
-				SyncRegion(id, view, box.X0, box.Y0, box.X1, box.Y1);
+				SyncRegion(id, view, box.X0, box.Y0, box.X1, box.Y1, fullViewport: false);
 			}
 
 			if (now >= _nextFull)
 			{
-				SyncRegion(id, view, 0, 0, ViewWidth, ViewHeight);
+				SyncRegion(id, view, 0, 0, ViewWidth, ViewHeight, fullViewport: true);
 			}
 		}
 
 		if (now >= _nextDiff)
 		{
-			_nextDiff = now + DiffInterval;
+			_nextDiff = now + diffIntervalMs / 1000f;
 		}
 
 		if (now >= _nextFull)
 		{
-			_nextFull = now + FullInterval;
+			_nextFull = now + fullIntervalMs / 1000f;
 		}
+	}
+
+	internal void ResetSessionState()
+	{
+		_views.Clear();
+		_simIndex = 0;
+		_tileCooldown = 0;
+		_waterMoveCount = 0;
+		_nextDiff = 0;
+		_nextFull = 0;
+		_seq = 0;
 	}
 
 	/// <summary>Every member's current block position: the host's own body plus
@@ -397,7 +421,7 @@ internal sealed class FluidSimulationAuthority(
 	/// <summary>Send one viewport rectangle as an ABSOLUTE RLE snapshot and fold
 	/// it into the member's diff baseline (single read pass — encode + baseline
 	/// together). Trailing zero runs are omitted; the receiver clears the rest.</summary>
-	private void SyncRegion(ulong target, MemberView view, int x0, int y0, int x1, int y1)
+	private void SyncRegion(ulong target, MemberView view, int x0, int y0, int x1, int y1, bool fullViewport)
 	{
 		var fluid = FluidManager.main;
 		var world = WorldGeneration.world;
@@ -458,6 +482,7 @@ internal sealed class FluidSimulationAuthority(
 			Width = (byte)(x1 - x0),
 			Height = (byte)(y1 - y0),
 			Cells = [.. runs],
+			FullViewport = fullViewport,
 		});
 		_log.LogDebug("[Fluid] region=(x={X},y={Y},w={W},h={H}) cells={N} seq={S} → {Target}.",
 			view.Center.x - 64 + x0, view.Center.y - 64 + y0, x1 - x0, y1 - y0, runs.Count, _seq, target);

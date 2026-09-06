@@ -24,6 +24,11 @@ public class AdaptiveStreamCatalogTests
 		Assert.True(AdaptiveStreamCatalog.TryGet(AdaptiveStreamId.TutorialClawBroadcast, out _));
 		Assert.True(AdaptiveStreamCatalog.TryGet(AdaptiveStreamId.MedicalInjectionReport, out _));
 		Assert.True(AdaptiveStreamCatalog.TryGet(AdaptiveStreamId.ShrapnelPositionReport, out _));
+		Assert.True(AdaptiveStreamCatalog.TryGet(AdaptiveStreamId.WorldItemMoveStream, out _));
+		Assert.True(AdaptiveStreamCatalog.TryGet(AdaptiveStreamId.WorldItemSnapshotStream, out _));
+		Assert.True(AdaptiveStreamCatalog.TryGet(AdaptiveStreamId.FluidRegionDiffStream, out _));
+		Assert.True(AdaptiveStreamCatalog.TryGet(AdaptiveStreamId.FluidRegionFullStream, out _));
+		Assert.True(AdaptiveStreamCatalog.TryGet(AdaptiveStreamId.TraderStateStream, out _));
 	}
 
 	[Fact]
@@ -35,7 +40,26 @@ public class AdaptiveStreamCatalogTests
 			Assert.True(p.MaxHz >= p.MinHz);
 			Assert.True(p.MaxBytesPerSecond >= 0);
 			Assert.True(p.BaseHz == 0 || (p.BaseHz >= p.MinHz && p.BaseHz <= p.MaxHz));
+			Assert.True(p.BaseIntervalMs == 0 || p.BaseIntervalMs >= 1000);
+			Assert.True(p.MaxIntervalMs == 0 || p.MaxIntervalMs >= p.BaseIntervalMs);
 		});
+	}
+
+	[Fact]
+	public void Stage4Streams_UseExpectedBaseCadences()
+	{
+		Assert.True(AdaptiveStreamCatalog.TryGet(AdaptiveStreamId.WorldItemMoveStream, out var itemMove));
+		Assert.True(AdaptiveStreamCatalog.TryGet(AdaptiveStreamId.WorldItemSnapshotStream, out var itemSnapshot));
+		Assert.True(AdaptiveStreamCatalog.TryGet(AdaptiveStreamId.FluidRegionDiffStream, out var fluidDiff));
+		Assert.True(AdaptiveStreamCatalog.TryGet(AdaptiveStreamId.FluidRegionFullStream, out var fluidFull));
+		Assert.True(AdaptiveStreamCatalog.TryGet(AdaptiveStreamId.TraderStateStream, out var trader));
+
+		Assert.Equal(10, itemMove!.BaseHz);
+		Assert.Equal(0, itemMove.BaseIntervalMs);
+		Assert.Equal(5000, itemSnapshot!.BaseIntervalMs);
+		Assert.Equal(10, fluidDiff!.BaseHz);
+		Assert.Equal(1000, fluidFull!.BaseIntervalMs);
+		Assert.Equal(5000, trader!.BaseIntervalMs);
 	}
 
 	[Fact]

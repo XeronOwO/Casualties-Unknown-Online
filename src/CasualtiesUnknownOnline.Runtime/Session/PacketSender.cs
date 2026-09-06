@@ -77,6 +77,7 @@ public sealed class PacketSender(INetworkTransport transport, NetworkTrafficMoni
 		{
 			ProtocolFrame frame => ProtocolFrameTrafficClassifier.TryGetPayloadType(frame),
 			MedicalOperationUpdateMsg update => ClassifyMedicalUpdate(update),
+			FluidRegionMsg region => ClassifyFluidRegion(region),
 			_ => null,
 		};
 
@@ -98,6 +99,11 @@ public sealed class PacketSender(INetworkTransport transport, NetworkTrafficMoni
 
 		return update.DeltaMl > 0 ? WirePayloadType.MedicalInjectionUpdate : null;
 	}
+
+	private static WirePayloadType? ClassifyFluidRegion(FluidRegionMsg region) =>
+		region.FullViewport
+			? WirePayloadType.FluidRegionFull
+			: WirePayloadType.FluidRegionDiff;
 
 	private static void EnsureRegistered(NetMsg msg)
 	{

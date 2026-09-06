@@ -41,6 +41,30 @@ public class AdaptiveStreamWireMapperTests
 	}
 
 	[Fact]
+	public void Stage4Streams_MapToWireObservations()
+	{
+		Assert.True(AdaptiveStreamWireMapper.TryGet(AdaptiveStreamId.WorldItemMoveStream, out var itemMovePayload, out var itemMoveMessage));
+		Assert.Equal(WirePayloadType.StateStream, itemMovePayload);
+		Assert.Null(itemMoveMessage);
+
+		Assert.True(AdaptiveStreamWireMapper.TryGet(AdaptiveStreamId.WorldItemSnapshotStream, out var itemSnapshotPayload, out var itemSnapshotMessage));
+		Assert.Equal(WirePayloadType.ItemSnapshotStream, itemSnapshotPayload);
+		Assert.Null(itemSnapshotMessage);
+
+		Assert.True(AdaptiveStreamWireMapper.TryGet(AdaptiveStreamId.FluidRegionDiffStream, out var fluidDiffPayload, out var fluidDiffMessage));
+		Assert.Equal(WirePayloadType.FluidRegionDiff, fluidDiffPayload);
+		Assert.Null(fluidDiffMessage);
+
+		Assert.True(AdaptiveStreamWireMapper.TryGet(AdaptiveStreamId.FluidRegionFullStream, out var fluidFullPayload, out var fluidFullMessage));
+		Assert.Equal(WirePayloadType.FluidRegionFull, fluidFullPayload);
+		Assert.Null(fluidFullMessage);
+
+		Assert.True(AdaptiveStreamWireMapper.TryGet(AdaptiveStreamId.TraderStateStream, out var traderPayload, out var traderMessage));
+		Assert.Null(traderPayload);
+		Assert.Equal(NetMsg.TraderState, traderMessage);
+	}
+
+	[Fact]
 	public void UnknownStream_ReturnsFalse() =>
 		Assert.False(AdaptiveStreamWireMapper.TryGet((AdaptiveStreamId)999, out _, out _));
 

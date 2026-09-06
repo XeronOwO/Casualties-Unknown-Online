@@ -131,6 +131,9 @@ internal sealed class GameAdapterSessionBinding(
 		domains.HeaterCookSync.Reset();
 		domains.CharacterRagdollSync.Reset();
 		domains.Gate.ResetSessionState();
+		domains.ItemPositionAuthority.ResetSessionState();
+		domains.FluidSync.ResetSessionState();
+		domains.TradeSync.ResetSessionState();
 		domains.Renderer.DestroyAllClones();
 	}
 

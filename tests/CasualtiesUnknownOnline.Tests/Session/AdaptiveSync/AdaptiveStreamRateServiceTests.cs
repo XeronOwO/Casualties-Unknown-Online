@@ -62,6 +62,36 @@ public class AdaptiveStreamRateServiceTests
 	}
 
 	[Fact]
+	public void IntervalStreams_UseProfileBaseIntervalInOptimal()
+	{
+		var service = CreateService();
+
+		Assert.Equal(5000, service.GetEffectiveIntervalMs(AdaptiveStreamId.WorldItemSnapshotStream, HealthyPeer));
+		Assert.Equal(1000, service.GetEffectiveIntervalMs(AdaptiveStreamId.FluidRegionFullStream, HealthyPeer));
+		Assert.Equal(5000, service.GetEffectiveIntervalMs(AdaptiveStreamId.TraderStateStream, HealthyPeer));
+	}
+
+	[Fact]
+	public void IntervalBroadcast_UsesLongestWorstPeerInterval()
+	{
+		var service = CreateService(withBadPeer: true);
+
+		var result = service.GetEffectiveIntervalMs(
+			AdaptiveStreamId.TraderStateStream,
+			[BadPeer, HealthyPeer]);
+
+		Assert.True(result > 5000, "a bad peer must lengthen the broadcast fallback interval.");
+	}
+
+	[Fact]
+	public void IntervalBroadcast_EmptyPeers_ReturnsOptimalBase()
+	{
+		var service = CreateService();
+
+		Assert.Equal(5000, service.GetEffectiveIntervalMs(AdaptiveStreamId.TraderStateStream, []));
+	}
+
+	[Fact]
 	public void HighPerStreamBandwidth_LowersCadence()
 	{
 		var (service, monitor, clock) = CreateServiceWithMonitor();

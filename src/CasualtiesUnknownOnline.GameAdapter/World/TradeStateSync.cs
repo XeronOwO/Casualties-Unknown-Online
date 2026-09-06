@@ -2,6 +2,7 @@ using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
+using CasualtiesUnknownOnline.Runtime.Session.AdaptiveSync;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using HarmonyLib;
 using Microsoft.Extensions.Logging;
@@ -20,21 +21,24 @@ namespace CasualtiesUnknownOnline.GameAdapter.World;
 /// replaced, which also rolls back a rejected concurrent purchase); the guests
 /// apply the overwrite. The deterministic game paths (hostility MoveTowards,
 /// LightBroken's flat -40, the last-slept bump) run on both sides from the
-/// broadcasted base. World entry sends every trader's snapshot; a 5 s
-/// fallback covers missed broadcasts and a new layer's traders.
+/// broadcasted base. A 5 s reliable fallback covers new layers and members
+/// who were not in world when an interaction broadcast happened; the shared
+/// adaptive governor can lengthen that fallback under network pressure while
+/// every sent fallback frame still arrives reliably and in order.
 /// </summary>
 internal sealed class TradeStateSync(
 	IWorldControl world,
 	ISessionControl session,
 	TradeExecutor executor,
+	AdaptiveStreamRateService adaptiveRates,
 	ILogger<TradeStateSync> log)
 {
-	private const float SnapshotInterval = 5f; // the unreliable fallback broadcast
 	private const float PositionTolerance = 2f; // matching tolerance (the trader's transform is the position key)
 
 	private readonly IWorldControl _world = world;
 	private readonly ISessionControl _session = session;
 	private readonly TradeExecutor _executor = executor;
+	private readonly AdaptiveStreamRateService _adaptiveRates = adaptiveRates;
 	private readonly ILogger<TradeStateSync> _log = log;
 	private float _lastSnapshot;
 	private Item? _pendingPurchase; // the acting side's last locally-bought item — destroyed on a rejected purchase (the overwrite alone would leave it in the inventory)
@@ -51,6 +55,12 @@ internal sealed class TradeStateSync(
 		_world.TraderStateReceived -= OnTraderStateReceived;
 	}
 
+	internal void ResetSessionState()
+	{
+		_lastSnapshot = 0;
+		_pendingPurchase = null;
+	}
+
 	internal void Update()
 	{
 		if (_session.Role != SessionRole.Host || !_session.SessionActive)
@@ -58,7 +68,12 @@ internal sealed class TradeStateSync(
 			return;
 		}
 
-		if (Time.unscaledTime - _lastSnapshot <= SnapshotInterval)
+		var snapshotIntervalMs = _adaptiveRates.GetSendIntervalMs(
+			AdaptiveStreamId.TraderStateStream,
+			_session.Members
+				.Where(m => m.InWorld && m.SteamId != _session.LocalSteamId)
+				.Select(m => m.SteamId));
+		if (Time.unscaledTime - _lastSnapshot <= snapshotIntervalMs / 1000f)
 		{
 			return;
 		}

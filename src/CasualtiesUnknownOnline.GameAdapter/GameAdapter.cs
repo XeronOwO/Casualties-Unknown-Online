@@ -9,6 +9,7 @@ using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Diagnostics;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Session;
+using CasualtiesUnknownOnline.Runtime.Session.AdaptiveSync;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.HostRules;
@@ -56,6 +57,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 
 	public GameAdapter(
 		ISessionControl session,
+		AdaptiveStreamRateService adaptiveRates,
 		IEntitySyncControl entities,
 		ICharacterDataControl characterData,
 		IWorldControl world,
@@ -84,7 +86,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 		ModStatusStore modStatusStore)
 	{
 		_latency = latency;
-		_domains = new GameAdapterDomains(session, entities, characterData, world, items, craft, arbitration,
+		_domains = new GameAdapterDomains(session, adaptiveRates, entities, characterData, world, items, craft, arbitration,
 			enemies, worldTime, playerInteraction, tutorialClaw, respawnOptions, hostRules, worldEntityKernel, kernelProtocol, log, mapper, loggerFactory, itemContent, buildingContent, tileContent, liquidTileContent, structureContent, statusContent, moodleContent, modStatusStore);
 		_bridge = new GameAdapterBridge(_domains);
 		_playerInteraction = new PlayerInteractionApply(_domains);

@@ -1,4 +1,5 @@
 using CasualtiesUnknownOnline.Runtime.Session;
+using CasualtiesUnknownOnline.Runtime.Session.AdaptiveSync;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using Microsoft.Extensions.Logging;
@@ -18,10 +19,11 @@ namespace CasualtiesUnknownOnline.GameAdapter.World;
 /// the bridge's OnFluidFixedUpdate / OnFluidDrinkReported.
 /// </summary>
 internal sealed class FluidWorldSync(
-	IWorldControl world, ISessionControl session, IEntitySyncControl entities, ILoggerFactory loggerFactory)
+	IWorldControl world, ISessionControl session, IEntitySyncControl entities,
+	AdaptiveStreamRateService adaptiveRates, ILoggerFactory loggerFactory)
 {
 	private readonly IWorldControl _world = world;
-	private readonly FluidSimulationAuthority _authority = new(world, session, entities, loggerFactory.CreateLogger<FluidSimulationAuthority>());
+	private readonly FluidSimulationAuthority _authority = new(world, session, entities, adaptiveRates, loggerFactory.CreateLogger<FluidSimulationAuthority>());
 	private readonly FluidRegionKernelSync _regionKernel = new(world, session, loggerFactory.CreateLogger<FluidRegionKernelSync>());
 	private readonly FluidRegionApplication _application = new(loggerFactory.CreateLogger<FluidRegionApplication>());
 	private readonly FluidPresentationApplication _presentation = new(loggerFactory.CreateLogger<FluidPresentationApplication>());
@@ -42,6 +44,12 @@ internal sealed class FluidWorldSync(
 		_world.FluidPresentationReceived -= _presentation.Apply;
 		_interaction.Unbind();
 		_kernelView.Unbind();
+	}
+
+	internal void ResetSessionState()
+	{
+		_authority.ResetSessionState();
+		_regionKernel.ResetSessionState();
 	}
 
 	/// <summary>Per physical frame: the host drives the multi-member simulation

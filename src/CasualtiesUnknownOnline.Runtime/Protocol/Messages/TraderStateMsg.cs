@@ -8,8 +8,10 @@ namespace CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 /// the guest's local copy rides the broadcast; the game's own deterministic
 /// paths — hostility MoveTowards, LightBroken's flat -40 — run on both sides
 /// from the broadcasted base). Sent on every interaction, on world entry
-/// (snapshot), and every 5 s as the unreliable fallback (a new layer's
-/// traders, a missed broadcast). Position-keyed like the entity events — both
+/// (snapshot), and every 5 s as the reliable fallback whose cadence the
+/// adaptive governor may lower (a new layer's traders, a missed broadcast);
+/// the fallback stays reliable so an older full-state frame cannot arrive
+/// after a newer interaction result. Position-keyed like the entity events — both
 /// sides generated the same trader at the same place (WorldGeneration.cs:
 /// 3438-3447). <see cref="RejectedAction"/> is the concurrent-purchase
 /// refusal: the acting side already created the item locally (its only spawn),

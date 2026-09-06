@@ -22,6 +22,13 @@ internal sealed class SettledStreamThrottle
 
 	internal int SettledCount => _settledItems.Count;
 
+	internal void Reset()
+	{
+		_settledTick = 0;
+		_settledRound = false;
+		_settledItems.Clear();
+	}
+
 	/// <summary>Start one pump round: the 1 Hz re-align round flag is derived
 	/// from the tick counter (every 10th pump — global, not per item).</summary>
 	internal void BeginPump()

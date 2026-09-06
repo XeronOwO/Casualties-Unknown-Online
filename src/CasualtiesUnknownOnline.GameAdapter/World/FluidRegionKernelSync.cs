@@ -26,6 +26,8 @@ internal sealed class FluidRegionKernelSync(
 	private readonly ILogger<FluidRegionKernelSync> _log = log;
 	private float _nextSummary;
 
+	internal void ResetSessionState() => _nextSummary = 0;
+
 	internal void Update()
 	{
 		if (_session.Role != SessionRole.Host || !_session.SessionActive)

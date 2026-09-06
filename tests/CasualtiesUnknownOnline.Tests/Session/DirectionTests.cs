@@ -37,6 +37,10 @@ public class DirectionTests
 		NetMsg.PlayerPushRequest,
 		NetMsg.TraderRecruitRequest,
 		NetMsg.RemoteInventoryOperationRequest,
+		NetMsg.MedicalOperationStartRequest,
+		NetMsg.MedicalOperationUpdate,
+		NetMsg.MedicalOperationEndRequest,
+		NetMsg.MedicalOperationCancel,
 	};
 
 	public static TheoryData<NetMsg> HostToGuestMessages => new()
@@ -68,6 +72,9 @@ public class DirectionTests
 		NetMsg.WorldSnapshotComplete,
 		NetMsg.Kicked,
 		NetMsg.Banned,
+		NetMsg.MedicalOperationStartAck,
+		NetMsg.MedicalOperationState,
+		NetMsg.MedicalOperationEndCommitted,
 	};
 
 	public static TheoryData<NetMsg> BidirectionalMessages => new()

@@ -27,6 +27,11 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, IDispo
 	private readonly PlayerItemUseService _itemUse;
 	private readonly PlayerPushService _push;
 	private readonly PlayerInteractionKernelProjection _resultProjection;
+	private readonly IMedicalOperationControl _medicalOperations;
+	public IMedicalOperationControl MedicalOperations => _medicalOperations;
+
+
+
 
 	public event Action<PlayerInventoryTransferMsg>? TransferReceived
 	{
@@ -74,8 +79,12 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, IDispo
 		IPlayerInteractionVisibility visibility,
 		ITimeSource time,
 		ItemKernelAuthority kernelAuthority,
+		IMedicalOperationControl medicalOperations,
+
 		ILogger<PlayerInteractionService> log)
 	{
+		_medicalOperations = medicalOperations;
+
 		var access = new PlayerCharacterAccess(session, characters);
 		var resultAuthority = new PlayerInteractionResultAuthority(kernelAuthority);
 		_take = new PlayerInventoryTakeService(session, sender, access, items, hostRules, visibility, kernelAuthority, resultAuthority, log);
@@ -149,8 +158,8 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, IDispo
 	public void FireHealReceived(PlayerHealResultMsg msg) =>
 		_heal.FireHealReceived(msg);
 
-	public void SendUseRequest(ulong targetSteamId, ulong itemInstanceId = 0, int targetLimbIndex = -1, float doseAmount = 0f) =>
-		_itemUse.SendUseRequest(targetSteamId, itemInstanceId, targetLimbIndex, doseAmount);
+	public void SendUseRequest(ulong targetSteamId, ulong itemInstanceId = 0, int targetLimbIndex = -1) =>
+		_itemUse.SendUseRequest(targetSteamId, itemInstanceId, targetLimbIndex);
 
 	public void HandleUseRequest(ulong sender, PlayerItemUseRequestMsg msg) =>
 		_itemUse.HandleUseRequest(sender, msg);

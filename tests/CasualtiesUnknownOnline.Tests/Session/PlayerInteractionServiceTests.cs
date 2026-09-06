@@ -920,41 +920,6 @@ public class PlayerInteractionServiceTests
 	}
 
 	[Fact]
-	public void Guest_InjectSalineOnHost_AppliesFluidAndSendsResult()
-	{
-		var (host, guest, received) = CreateSession();
-		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
-		var items = host.Services.GetRequiredService<IItemControl>();
-		var hostSnapshot = SnapshotWithLimbs(HostId, conscious: true);
-		hostSnapshot.Health!.BloodVolume = 100f;
-		hostSnapshot.Health.Thirst = 50f;
-		characters.SaveHostCharacterData(hostSnapshot);
-		var saline = MedicineBottle(42, "saline", "saline");
-		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, saline));
-		items.AdoptTransferredItem(GuestId, 42, saline);
-
-		guest.Services.GetRequiredService<IPlayerInteractionControl>()
-			.SendUseRequest(HostId, 42);
-
-		var result = UseResult(received);
-		Assert.Equal(GuestId, result.UserSteamId);
-		Assert.Equal(HostId, result.TargetSteamId);
-		Assert.Equal(42UL, result.ItemInstanceId);
-		Assert.False(result.ItemDestroyed);
-		Assert.NotNull(result.ItemAfter);
-		Assert.True(Math.Abs(result.ItemAfter!.Condition - (670f / 750f)) < 0.001f);
-
-		var hostData = characters.GetHostCharacterData()!;
-		Assert.True(Math.Abs(hostData.Health!.BloodVolume - 104.2666667f) < 0.001f);
-		Assert.True(Math.Abs(hostData.Health.Thirst - 57.4666667f) < 0.001f);
-
-		var saved = characters.GetSavedCharacter(GuestId)!.Items.Single(i => i.InstanceId == 42);
-		Assert.True(Math.Abs(saved.Liquids.Single(l => l.LiquidId == "saline").Amount - 670f) < 0.001f);
-		var transferred = items.GetTransferredItems(GuestId).Single(w => w.Item.InstanceId == 42);
-		Assert.True(Math.Abs(transferred.Item.Liquids.Single(l => l.LiquidId == "saline").Amount - 670f) < 0.001f);
-	}
-
-	[Fact]
 	public void Use_UnknownMedicineLiquid_IsRefused()
 	{
 		var (host, guest, received) = CreateSession();
@@ -1321,64 +1286,6 @@ public class PlayerInteractionServiceTests
 	}
 
 	[Fact]
-	public void Guest_InjectMorphineOnHost_AppliesOpiateAndSendsResult()
-	{
-		var (host, guest, received) = CreateSession();
-		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
-		var items = host.Services.GetRequiredService<IItemControl>();
-		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, conscious: true));
-		var morphine = MedicineBottle(42, "morphine", "morphine", amount: 100f);
-		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, morphine));
-		items.AdoptTransferredItem(GuestId, 42, morphine);
-
-		guest.Services.GetRequiredService<IPlayerInteractionControl>()
-			.SendUseRequest(HostId, 42);
-
-		var result = UseResult(received);
-		Assert.Equal(GuestId, result.UserSteamId);
-		Assert.Equal(HostId, result.TargetSteamId);
-		Assert.Equal(42UL, result.ItemInstanceId);
-		Assert.False(result.ItemDestroyed);
-		Assert.NotNull(result.ItemAfter);
-		Assert.True(Math.Abs(result.ItemAfter!.Condition - 0f) < 0.001f);
-
-		var hostData = characters.GetHostCharacterData()!;
-		Assert.True(Math.Abs(hostData.Health!.OpiateAmount - 90f) < 0.001f);
-
-		var saved = characters.GetSavedCharacter(GuestId)!.Items.Single(i => i.InstanceId == 42);
-		Assert.Empty(saved.Liquids);
-		var transferred = items.GetTransferredItems(GuestId).Single(w => w.Item.InstanceId == 42);
-		Assert.Empty(transferred.Item.Liquids);
-	}
-
-	[Fact]
-	public void Guest_InjectPartialMorphineDoseOnHost_AppliesExactMinigameMl()
-	{
-		var (host, guest, received) = CreateSession();
-		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
-		var items = host.Services.GetRequiredService<IItemControl>();
-		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, conscious: true));
-		var morphine = MedicineBottle(42, "morphine", "morphine", amount: 100f, condition: 1f);
-		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, morphine));
-		items.AdoptTransferredItem(GuestId, 42, morphine);
-
-		guest.Services.GetRequiredService<IPlayerInteractionControl>()
-			.SendUseRequest(HostId, 42, doseAmount: 50f);
-
-		var result = UseResult(received);
-		Assert.Equal(GuestId, result.UserSteamId);
-		Assert.Equal(HostId, result.TargetSteamId);
-		Assert.Equal(42UL, result.ItemInstanceId);
-		Assert.False(result.ItemDestroyed);
-		Assert.NotNull(result.ItemAfter);
-		Assert.True(Math.Abs(result.ItemAfter!.Condition - 0.5f) < 0.001f);
-		Assert.True(Math.Abs(result.ItemAfter!.Liquids.Single().Amount - 50f) < 0.001f);
-
-		var hostData = characters.GetHostCharacterData()!;
-		Assert.True(Math.Abs(hostData.Health!.OpiateAmount - 45f) < 0.001f);
-	}
-
-	[Fact]
 	public void Guest_UsesBoneweldingToolOnHost_AppliesToolAndSendsResult()
 	{
 		var (host, guest, received) = CreateSession();
@@ -1691,7 +1598,7 @@ public class PlayerInteractionServiceTests
 	[Fact]
 	public void Guest_UsesCombatPenOnHost_CarriesTimedBodyEffects()
 	{
-		var (host, guest, received) = CreateSession();
+		var (host, guest, _) = CreateSession();
 		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
 		var items = host.Services.GetRequiredService<IItemControl>();
 		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, conscious: true));
@@ -1711,17 +1618,20 @@ public class PlayerInteractionServiceTests
 		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, pen));
 		items.AdoptTransferredItem(GuestId, 42, pen);
 
-		guest.Services.GetRequiredService<IPlayerInteractionControl>()
-			.SendUseRequest(HostId, 42);
+		MedicalOperationStartAckMsg? ack = null;
+		var ends = new List<MedicalOperationEndCommittedMsg>();
+		var ops = guest.Services.GetRequiredService<IPlayerInteractionControl>().MedicalOperations;
+		ops.StartAckReceived += m => ack = m;
+		ops.EndCommittedReceived += ends.Add;
 
-		var result = UseResult(received);
-		Assert.Equal(GuestId, result.UserSteamId);
-		Assert.Equal(HostId, result.TargetSteamId);
-		Assert.False(result.ItemDestroyed);
+		ops.SendStartRequest(HostId, 42, -1);
+		Assert.NotNull(ack);
+		Assert.True(ack!.Accepted);
+		ops.SendEndRequest(ack.OperationId, 100f);
+		var result = Assert.Single(ends);
+		Assert.Equal(MedicalOperationTerminalReason.Completed, result.TerminalReason);
 		Assert.NotNull(result.ItemAfter);
 		Assert.Empty(result.ItemAfter!.Liquids);
-		Assert.Empty(result.TimedEffects);
-
 		Assert.Equal(3, result.TimedBodyEffects.Count);
 		Assert.Equal("highgradestimulant", result.TimedBodyEffects[0].EffectId);
 		Assert.True(Math.Abs(result.TimedBodyEffects[0].DurationSeconds - 144f) < 0.001f);
@@ -1737,7 +1647,7 @@ public class PlayerInteractionServiceTests
 	[Fact]
 	public void Guest_UsesBloodCoagulantOnHost_CarriesTimedBodyEffect()
 	{
-		var (host, guest, received) = CreateSession();
+		var (host, guest, _) = CreateSession();
 		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
 		var items = host.Services.GetRequiredService<IItemControl>();
 		var hostSnapshot = SnapshotWithLimbs(HostId, conscious: true);
@@ -1747,20 +1657,25 @@ public class PlayerInteractionServiceTests
 		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, coagulant));
 		items.AdoptTransferredItem(GuestId, 42, coagulant);
 
-		guest.Services.GetRequiredService<IPlayerInteractionControl>()
-			.SendUseRequest(HostId, 42);
+		MedicalOperationStartAckMsg? ack = null;
+		var ends = new List<MedicalOperationEndCommittedMsg>();
+		var ops = guest.Services.GetRequiredService<IPlayerInteractionControl>().MedicalOperations;
+		ops.StartAckReceived += m => ack = m;
+		ops.EndCommittedReceived += ends.Add;
 
-		var result = UseResult(received);
-		Assert.Equal(GuestId, result.UserSteamId);
-		Assert.Equal(HostId, result.TargetSteamId);
-		Assert.False(result.ItemDestroyed);
+		ops.SendStartRequest(HostId, 42, -1);
+		Assert.NotNull(ack);
+		Assert.True(ack!.Accepted);
+		// bloodcoagulant's native per-use amount is 33.334 ml; the medical
+		// session commits exactly that and carries the scaled timed effect.
+		ops.SendEndRequest(ack.OperationId, 33.334f);
+		var result = Assert.Single(ends);
 		Assert.NotNull(result.ItemAfter);
 		Assert.True(Math.Abs(result.ItemAfter!.Liquids.Single().Amount - 66.666f) < 0.001f);
 
 		var timedBody = Assert.Single(result.TimedBodyEffects);
 		Assert.Equal("procoagulant", timedBody.EffectId);
 		Assert.True(Math.Abs(timedBody.DurationSeconds - 20f) < 0.01f);
-		Assert.Empty(result.TimedEffects);
 	}
 
 	[Fact]
@@ -2314,26 +2229,6 @@ public class PlayerInteractionServiceTests
 		Assert.Equal(HostId, decoded.TargetSteamId);
 		Assert.Equal(42UL, decoded.ItemInstanceId);
 		Assert.Equal(2, decoded.LimbIndex);
-	}
-
-	[Fact]
-	public void UseRequest_RoundTripsMinigameDoseAmount()
-	{
-		var msg = new PlayerItemUseRequestMsg
-		{
-			TargetSteamId = HostId,
-			ItemInstanceId = 42,
-			LimbIndex = -1,
-			DoseAmount = 37.5f,
-		};
-
-		var decoded = NetPacket.DecodePayload<PlayerItemUseRequestMsg>(
-			NetPacket.Encode(NetMsg.PlayerItemUseRequest, msg));
-
-		Assert.Equal(HostId, decoded.TargetSteamId);
-		Assert.Equal(42UL, decoded.ItemInstanceId);
-		Assert.Equal(-1, decoded.LimbIndex);
-		Assert.True(Math.Abs(decoded.DoseAmount - 37.5f) < 0.001f);
 	}
 
 	private static (TestNode Host, TestNode Guest, List<(NetMsg Msg, byte[] Frame)> Received) CreateBlockedSession() =>

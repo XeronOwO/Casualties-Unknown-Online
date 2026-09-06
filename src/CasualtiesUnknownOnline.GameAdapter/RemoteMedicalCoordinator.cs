@@ -1,4 +1,6 @@
 using CasualtiesUnknownOnline.GameAdapter.Character;
+using System.Collections.Generic;
+
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using Microsoft.Extensions.Logging;
@@ -145,6 +147,54 @@ internal sealed class RemoteMedicalCoordinator(
 			ApplySnapshot(display, data);
 		}
 	}
+	/// <summary>
+	/// Apply an authoritative medical-operation progress/terminal snapshot to
+	/// the active remote WoundView display (if it is focused on the same target).
+	/// The display copy remains read-only; this only refreshes its presentation.
+	/// </summary>
+	internal void ApplyMedicalState(ulong targetSteamId, CharacterHealthMsg? health, IReadOnlyList<CharacterLimbMsg>? limbs)
+	{
+		if (!RemoteMedicalView.IsOpen
+			|| RemoteMedicalView.TargetSteamId != targetSteamId
+			|| RemoteMedicalView.DisplayBody is not { } display)
+		{
+			return;
+		}
+
+		if (health is not null)
+		{
+			_mapper.Map(health, display);
+			CharacterComponentSync.Apply(display, health);
+			ApplyDisplayDerived(display, health);
+		}
+
+		if (limbs is null)
+		{
+			return;
+		}
+
+		foreach (var limbData in limbs)
+		{
+			if (limbData.Index < 0 || limbData.Index >= display.limbs.Length)
+			{
+				continue;
+			}
+
+			var limb = display.limbs[limbData.Index]; // Unity object — ==
+			if (limb == null)
+			{
+				continue;
+			}
+
+			_mapper.Map(limbData, limb);
+			LimbComponentStateCodec.Apply(limb, limbData.Components);
+		}
+
+		display.averagePain = ComputeAveragePain(display);
+		display.totalBleedSpeed = ComputeTotalBleedSpeed(display);
+	}
+
+
 
 	private bool TryCreateDisplayBody(ulong steamId, CharacterDataMsg data, out Body displayBody)
 	{

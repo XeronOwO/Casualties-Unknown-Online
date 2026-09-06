@@ -90,7 +90,9 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 		_playerInteraction = new PlayerInteractionApply(_domains);
 		_remoteInventoryApply = new RemoteInventoryOperationApply(_domains);
 		var pushApply = new PlayerPushApply(_domains);
-		_sessionBinding = new GameAdapterSessionBinding(_domains, _playerInteraction, _remoteInventoryApply, pushApply);
+		var medicalOperationApply = new MedicalOperationApply(_domains);
+
+		_sessionBinding = new GameAdapterSessionBinding(_domains, _playerInteraction, _remoteInventoryApply, pushApply, medicalOperationApply);
 		PatchBridge.Bind(_bridge); // the only static seam — Harmony patches read the narrow surface, never this instance
 	}
 

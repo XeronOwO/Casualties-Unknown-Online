@@ -11,6 +11,9 @@ namespace CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 /// applies the target-side body effect to the saved state and sends the two
 /// participants an authoritative result. An item instance id of 0 means "let
 /// the host choose the first usable consumable" (the Online UI auto button).
+/// Injectable/IV medicine is NOT a direct one-shot request in the new
+/// architecture: it must go through the medical operation session so delivered
+/// ml is progressive and the host retains reservation/terminal semantics.
 /// </summary>
 [ProtoContract]
 public sealed class PlayerItemUseRequestMsg
@@ -22,15 +25,6 @@ public sealed class PlayerItemUseRequestMsg
 	/// <summary>The acting player's item instance to consume, or 0 for host auto-select.</summary>
 	[ProtoMember(2)]
 	public ulong ItemInstanceId { get; set; }
-
-	/// <summary>
-	/// The exact millilitre dose the acting player delivered through the native
-	/// syringe minigame, or 0 to let the host use the item's normal per-use
-	/// injection amount. Only used for injectable/IV medicine requests; other
-	/// item-use slices ignore it.
-	/// </summary>
-	[ProtoMember(4)]
-	public float DoseAmount { get; set; }
 
 	private int _limbSelection;
 

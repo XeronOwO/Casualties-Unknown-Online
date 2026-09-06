@@ -94,6 +94,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [PVP](future/pvp.md) — low priority, deferred until PvE/rules stable.
 - [KrokMP lower-priority candidates](future/krokmp-candidates.md) — voice, vote-kick; player-list polish has landed.
 - [Remote medical CPR enhancement](future/remote-medical-cpr.md) — KrokMP custom CPR is not native; deferred to future as an enhancement.
+- [Remote medical frame-report adaptive flow control](future/remote-medical-frame-report-adaptive-flow-control.md) — Stage 1 is frame-level; design dynamic report/sync-frequency adaptation under bandwidth/latency pressure.
 - [EnemyCombatOrderPolicy kernel-process follow-up](future/enemy-combat-order-policy-kernel.md).
 - [Generic Prediction Runtime](future/generic-prediction-runtime.md).
 - [Strict validation / anti-cheat hardening](future/strict-validation-anti-cheat.md).

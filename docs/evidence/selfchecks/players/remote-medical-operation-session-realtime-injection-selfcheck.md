@@ -11,7 +11,7 @@ Owner cycle: backlog `review/remote-medical-stage-1-injection-session.md`.
 | 3 | Incremental injection deltas apply to authoritative snapshot and broadcast as non-terminal `MedicalOperationState` | `MedicalOperationInjectionApplier.TryApplyDelta`, `MedicalOperationSessionService.HandleUpdate/PublishState` |
 | 4 | Single terminal result `MedicalOperationEndCommitted` | `MedicalOperationSessionService.Terminate` |
 | 5 | Cancel / disconnect / timeout keep committed ml and release reservations | `HandleCancelRequest`, `OnMemberRemoved`, `ICuoService.Update` timeout |
-| 6 | Operator adapter streams native `SyringeMinigame` progress and handles ack/end/cancel, including pre-ack endings | `RemoteMedicalOperationHandler` |
+| 6 | Operator adapter streams native `SyringeMinigame` progress every frame that delivers liquid and handles ack/end/cancel, including pre-ack endings | `RemoteMedicalOperationHandler.MaybeSendProgress` |
 | 7 | Target/operator/third-party apply and display refresh | `MedicalOperationApply`, `CharacterDataSync.ApplyMedicalState`, `RemoteMedicalCoordinator.ApplyMedicalState` |
 | 8 | One-shot injectable request path removed; strict protocol bump | `PlayerItemUseRequestMsg.DoseAmount` deleted, `PlayerItemUseService` refuses injectables, `ProtocolVersion.Current = 12` |
 

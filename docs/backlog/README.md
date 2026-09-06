@@ -38,7 +38,10 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-- [Remote medical native minigame/action parity audit](todo/remote-medical-native-minigame-parity.md) — **High**: syringe is only one native medical minigame; bandages, shrapnel/splint/tourniquet removal, dislocation fix, AED/defib, amputation and other WoundView actions are either direct-applied without the native minigame or blocked; comprehensive parity audit backlog added after user follow-up.
+- [Remote medical native minigame/action parity — roadmap](todo/remote-medical-native-minigame-parity.md) — **High**: umbrella ticket with confirmed design decisions and stage index for syringe, shrapnel, bandage, splint/tourniquet removal, dislocation, AED/defib, amputation and related WoundView actions.
+- [Remote medical parity — Stage 1: medical operation session + real-time injection](todo/remote-medical-stage-1-injection-session.md) — **High**: generic MedicalOperationSession protocol and migration from end-of-minigame dose reporting to real-time incremental syringe/IV injection.
+- [Remote medical parity — Stage 2: multiplayer shrapnel removal](todo/remote-medical-stage-2-shrapnel-multiplayer.md) — **High**: shared shrapnel session with per-piece ownership, concurrent operators, force-ungrab, progress/third-party propagation and failure/cancel semantics.
+- [Remote medical parity — Stage 3: remaining native medical minigames/actions](todo/remote-medical-stage-3-other-actions.md) — **High**: bandage/dressing minigame, splint/tourniquet removal, dislocation fix, AED, manual defibrillation, amputation and remaining WoundView actions.
 
 ### Review
 - [Convert non-.editorconfig normative requirements into unit-testable gates](review/normative-style-unit-test-gates.md) — Roslyn `dotnet test` gate for unnecessary fully qualified names landed; normative-rule inventory added in `docs/evidence/normative-gates.md`.
@@ -90,6 +93,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 - [PVP](future/pvp.md) — low priority, deferred until PvE/rules stable.
 - [KrokMP lower-priority candidates](future/krokmp-candidates.md) — voice, vote-kick; player-list polish has landed.
+- [Remote medical CPR enhancement](future/remote-medical-cpr.md) — KrokMP custom CPR is not native; deferred to future as an enhancement.
 - [EnemyCombatOrderPolicy kernel-process follow-up](future/enemy-combat-order-policy-kernel.md).
 - [Generic Prediction Runtime](future/generic-prediction-runtime.md).
 - [Strict validation / anti-cheat hardening](future/strict-validation-anti-cheat.md).

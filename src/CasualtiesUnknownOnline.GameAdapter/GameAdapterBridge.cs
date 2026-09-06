@@ -222,6 +222,9 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 	public bool TryHandleRemoteMedicalLimbUse(Item dragItem, int limbIndex) =>
 		_remoteMedicalOps.TryHandleLimbUse(dragItem, limbIndex);
 
+	public bool TryStartRemoteShrapnelSpecial(Limb limb) =>
+		_remoteMedicalOps.TryStartRemoteShrapnelSpecial(limb);
+
 	public bool TryHandleRemoteBackpackTake(Item dragItem)
 	{
 		if (!RemoteBackpackView.IsOpen || dragItem == null) // Unity object — ==

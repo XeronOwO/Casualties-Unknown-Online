@@ -38,12 +38,8 @@ public static class RemoteLimbToolCatalog
 				ConditionCost: 1f,
 				SkinHealAmount: 8f,
 				BandageSlowAmount: 10f),
-			// Minigame-random tool from Item.cs SetupItems:
-			// tweezers (1687-1706) starts ShrapnelMinigame; full success removes
-			// every shrapnel piece and consumes a tiny condition.
-			["tweezers"] = new("tweezers",
-				ConditionCost: 0.01f,
-				RequiresShrapnel: true),
+			// Shrapnel removal is NOT a direct limb-tool use in the remote path:
+			// tweezers now starts the shared shrapnel session (Stage 2).
 			// Timed tool from Item.cs SetupItems: medicalsuture (368-390) adds
 			// immediate pain/skin-heal and then ticks bleed -4.5 per second for
 			// 10 seconds through CoUtils.DoTimedOp.

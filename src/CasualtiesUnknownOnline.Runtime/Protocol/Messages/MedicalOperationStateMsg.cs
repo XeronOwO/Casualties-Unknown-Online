@@ -40,4 +40,8 @@ public sealed class MedicalOperationStateMsg
 
 	[ProtoMember(10)]
 	public List<CharacterLimbMsg> TargetLimbs { get; set; } = [];
+
+	/// <summary>Shared shrapnel session piece state (empty for injection).</summary>
+	[ProtoMember(11)]
+	public List<ShrapnelPieceMsg> ShrapnelPieces { get; set; } = [];
 }

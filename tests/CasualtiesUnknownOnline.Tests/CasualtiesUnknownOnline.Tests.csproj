@@ -11,6 +11,11 @@
     <Nullable>enable</Nullable>
     <RootNamespace>CasualtiesUnknownOnline.Tests</RootNamespace>
     <IsPackable>false</IsPackable>
+    <OutputType>Exe</OutputType>
+    <!-- xunit v3 analyzer/style migration: the existing test suite is deliberately
+         not rewritten one-by-one in this dependency-upgrade pass; analyzer
+         suggestions are not part of the CUO normative gates. -->
+    <NoWarn>$(NoWarn);xUnit2013;xUnit2020;xUnit2029;xUnit2031;IDE0028;IDE0305</NoWarn>
     <!-- BepInEx.Core comes via the Runtime project reference — its package source must be restored too -->
     <RestoreAdditionalProjectSources>
       https://api.nuget.org/v3/index.json;
@@ -20,9 +25,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
-    <PackageReference Include="xunit" Version="2.4.2" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.9.0" />
+    <PackageReference Include="xunit.v3.mtp-off" Version="3.2.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" />
   </ItemGroup>
 
   <ItemGroup>
@@ -153,6 +158,6 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework.TrimEnd(`0123456789`))' == 'net'">
-    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.2" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
   </ItemGroup>
 </Project>

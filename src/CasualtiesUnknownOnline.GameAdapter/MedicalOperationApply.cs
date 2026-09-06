@@ -15,7 +15,13 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 /// </summary>
 internal sealed class MedicalOperationApply(GameAdapterDomains domains)
 {
-	public void OnStateReceived(MedicalOperationStateMsg msg) =>
+	public void OnStateReceived(MedicalOperationStateMsg msg)
+	{
+		if (msg.ShrapnelPieces.Count > 0)
+		{
+			RemoteMedicalOperationHandler.ApplyShrapnelState(msg);
+		}
+
 		ApplyProgress(
 			msg.OperationId,
 			msg.OperatorSteamId,
@@ -26,8 +32,15 @@ internal sealed class MedicalOperationApply(GameAdapterDomains domains)
 			msg.TargetLimbs,
 			[],
 			terminal: false);
+	}
 
-	public void OnEndCommittedReceived(MedicalOperationEndCommittedMsg msg) =>
+	public void OnEndCommittedReceived(MedicalOperationEndCommittedMsg msg)
+	{
+		if (msg.ShrapnelPieces.Count > 0)
+		{
+			RemoteMedicalOperationHandler.OnShrapnelHostTerminal(msg.OperationId);
+		}
+
 		ApplyProgress(
 			msg.OperationId,
 			msg.OperatorSteamId,
@@ -38,6 +51,7 @@ internal sealed class MedicalOperationApply(GameAdapterDomains domains)
 			msg.TargetLimbs,
 			msg.TimedBodyEffects,
 			terminal: true);
+	}
 
 	private void ApplyProgress(
 		ulong operationId,

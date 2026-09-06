@@ -147,7 +147,25 @@ internal static class RemoteMedicalPatches
 	[HarmonyPatch(typeof(PlayerCamera), "WoundSpecialAction")]
 	internal static class RemoteMedicalBlockWoundSpecialActionPatch
 	{
-		private static bool Prefix() => !RemoteMedicalView.IsOpen;
+		private static bool Prefix(PlayerCamera __instance)
+		{
+			if (!RemoteMedicalView.IsOpen)
+			{
+				return true;
+			}
+
+			// The one allowed remote special action: shrapnel removal. It is
+			// routed through the shared host-authoritative shrapnel session and
+			// started on the display body; every other special stays read-only.
+			if (__instance.selectedLimb != null // Unity object — ==
+				&& __instance.selectedLimb.hasShrapnel
+				&& PatchBridge.Impl?.TryStartRemoteShrapnelSpecial(__instance.selectedLimb) == true)
+			{
+				return false;
+			}
+
+			return false;
+		}
 	}
 
 	[HarmonyPatch(typeof(PlayerCamera), "ApplyWoundItem")]
@@ -210,6 +228,10 @@ internal static class RemoteMedicalPatches
 	[HarmonyPatch(typeof(MinigameBase), "EndMinigame")]
 	internal static class RemoteMedicalSyringeEndPatch
 	{
-		private static void Postfix() => RemoteMedicalOperationHandler.CompleteActiveSyringeUse();
+		private static void Postfix()
+		{
+			RemoteMedicalOperationHandler.CompleteActiveShrapnelUse();
+			RemoteMedicalOperationHandler.CompleteActiveSyringeUse();
+		}
 	}
 }

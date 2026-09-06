@@ -35,6 +35,24 @@ public interface IMedicalOperationControl
 	/// <summary>Host only: a medical-operation cancel request arrived.</summary>
 	void HandleCancelRequest(ulong sender, MedicalOperationCancelMsg msg);
 
+	/// <summary>Any role: request joining or starting the shared shrapnel session for a remote limb (guest → host on the wire; host handles locally).</summary>
+	void SendShrapnelStartRequest(ulong targetSteamId, ulong itemInstanceId, int targetLimbIndex);
+
+	/// <summary>Host only: a shrapnel session start/join request arrived.</summary>
+	void HandleShrapnelStartRequest(ulong sender, MedicalOperationStartRequestMsg msg);
+
+	/// <summary>Any role: send one shrapnel piece report (grab/move/release/break/remove) for an accepted shared session.</summary>
+	void SendShrapnelUpdate(ulong operationId, ShrapnelPieceUpdate update);
+
+	/// <summary>Host only: a shrapnel piece report arrived.</summary>
+	void HandleShrapnelUpdate(ulong sender, MedicalOperationUpdateMsg msg);
+
+	/// <summary>Any role: report that the local shrapnel minigame ended (operator leaves the shared session).</summary>
+	void SendShrapnelEndRequest(ulong operationId);
+
+	/// <summary>Host only: a shrapnel end/leave request arrived.</summary>
+	void HandleShrapnelEndRequest(ulong sender, MedicalOperationEndRequestMsg msg);
+
 	/// <summary>Raise a received start ack for the Game Adapter.</summary>
 	void FireStartAckReceived(MedicalOperationStartAckMsg msg);
 

@@ -50,7 +50,7 @@ public class CommandSelectorResolverTests
 		var result = CommandSelectorResolver.Resolve("@r", [Local, Close, Far]);
 
 		var single = Assert.Single(result);
-		Assert.Contains(single, [10UL, 11UL]);
+		Assert.True(single == 10UL || single == 11UL);
 	}
 
 	[Fact]

@@ -27,7 +27,11 @@ internal sealed class NetworkTrafficWindow
 		IReadOnlyDictionary<NetMsg, MessageTraffic> receiveByMessage,
 		IReadOnlyDictionary<ulong, PeerTraffic> byPeer,
 		IReadOnlyDictionary<WirePayloadType, PayloadTraffic> sendByPayloadType,
-		IReadOnlyDictionary<WirePayloadType, PayloadTraffic> receiveByPayloadType)
+		IReadOnlyDictionary<WirePayloadType, PayloadTraffic> receiveByPayloadType,
+		IReadOnlyDictionary<(ulong PeerId, NetMsg Msg), MessageTraffic> sendByPeerMessage,
+		IReadOnlyDictionary<(ulong PeerId, NetMsg Msg), MessageTraffic> receiveByPeerMessage,
+		IReadOnlyDictionary<(ulong PeerId, WirePayloadType PayloadType), PayloadTraffic> sendByPeerPayloadType,
+		IReadOnlyDictionary<(ulong PeerId, WirePayloadType PayloadType), PayloadTraffic> receiveByPeerPayloadType)
 	{
 		StartMs = startMs;
 		EndMs = endMs;
@@ -42,6 +46,10 @@ internal sealed class NetworkTrafficWindow
 		ByPeer = byPeer;
 		SendByPayloadType = sendByPayloadType;
 		ReceiveByPayloadType = receiveByPayloadType;
+		SendByPeerMessage = sendByPeerMessage;
+		ReceiveByPeerMessage = receiveByPeerMessage;
+		SendByPeerPayloadType = sendByPeerPayloadType;
+		ReceiveByPeerPayloadType = receiveByPeerPayloadType;
 	}
 
 	internal long StartMs { get; }
@@ -71,6 +79,18 @@ internal sealed class NetworkTrafficWindow
 
 	/// <summary>Semantic kernel-payload receive frames grouped by <see cref="WirePayloadType"/>.</summary>
 	internal IReadOnlyDictionary<WirePayloadType, PayloadTraffic> ReceiveByPayloadType { get; }
+
+	/// <summary>Send frames grouped per peer and per concrete <see cref="NetMsg"/>.</summary>
+	internal IReadOnlyDictionary<(ulong PeerId, NetMsg Msg), MessageTraffic> SendByPeerMessage { get; }
+
+	/// <summary>Receive frames grouped per peer and per concrete <see cref="NetMsg"/>.</summary>
+	internal IReadOnlyDictionary<(ulong PeerId, NetMsg Msg), MessageTraffic> ReceiveByPeerMessage { get; }
+
+	/// <summary>Semantic kernel-payload send frames grouped per peer and per <see cref="WirePayloadType"/>.</summary>
+	internal IReadOnlyDictionary<(ulong PeerId, WirePayloadType PayloadType), PayloadTraffic> SendByPeerPayloadType { get; }
+
+	/// <summary>Semantic kernel-payload receive frames grouped per peer and per <see cref="WirePayloadType"/>.</summary>
+	internal IReadOnlyDictionary<(ulong PeerId, WirePayloadType PayloadType), PayloadTraffic> ReceiveByPeerPayloadType { get; }
 
 	internal long TotalBytes => SendBytes + ReceiveBytes;
 

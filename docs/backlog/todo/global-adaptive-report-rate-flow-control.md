@@ -23,7 +23,7 @@ No wire-protocol version change: only message rate changes.
 | Stage | Ticket | Scope |
 |---|---|---|
 | 1 | [Global stream taxonomy + health-driven overwrite governor](review/global-adaptive-report-rate-stage-1-global-governor.md) | `AdaptiveStreamId`/delivery-mode catalog, pure pressure classifier + rate policy, `AdaptiveStreamRateService`, and integration of Player/Enemy/Tutorial overwrite streams |
-| 2 | (not yet created) | Per-stream/per-peer traffic/bandwidth estimates, richer pressure inputs and policy tuning |
+| 2 | [Per-stream/per-peer traffic/bandwidth estimates](review/global-adaptive-report-rate-stage-2-traffic-bandwidth.md) | Per-peer × per-stream traffic/bandwidth estimates, richer pressure inputs and policy tuning |
 | 3 | (not yet created) | Cumulative stream support: coalescing/lightening for medical frame-level deltas, shrapnel ordinary positions, etc. |
 | 4 | (not yet created) | Remaining frequent domains: item move/snapshot, fluid, trader state, other future streams |
 

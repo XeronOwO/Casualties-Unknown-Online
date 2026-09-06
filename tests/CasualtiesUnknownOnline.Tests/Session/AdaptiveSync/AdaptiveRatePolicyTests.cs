@@ -103,6 +103,67 @@ public class AdaptiveRatePolicyTests
 		Assert.True(highResult >= lowResult, "high-priority streams must be preserved longer than low-priority streams.");
 	}
 
+	[Fact]
+	public void LatestWins_ByteBudget_CapsEffectiveHz()
+	{
+		var profile = Get(AdaptiveStreamId.PlayerStateBroadcast) with
+		{
+			MaxBytesPerSecond = 1000,
+			MinHz = 1,
+			MaxHz = 60,
+		};
+
+		var result = _policy.GetEffectiveHz(profile, AdaptivePressureLevel.Optimal, 20, averageFrameBytes: 100);
+
+		Assert.Equal(10, result);
+	}
+
+	[Fact]
+	public void LatestWins_ByteBudget_DoesNotRaiseAbovePressureResult()
+	{
+		var profile = Get(AdaptiveStreamId.PlayerStateBroadcast) with
+		{
+			MaxBytesPerSecond = 100_000,
+			MinHz = 1,
+			MaxHz = 60,
+		};
+
+		var result = _policy.GetEffectiveHz(profile, AdaptivePressureLevel.Critical, 20, averageFrameBytes: 100);
+
+		// Critical priority-1 factor is 0.25 -> 5 Hz; a generous byte budget does not raise it.
+		Assert.Equal(5, result);
+	}
+
+	[Fact]
+	public void LatestWins_ZeroByteBudget_DoesNotCap()
+	{
+		var profile = Get(AdaptiveStreamId.PlayerStateBroadcast) with
+		{
+			MaxBytesPerSecond = 0,
+			MinHz = 1,
+			MaxHz = 60,
+		};
+
+		var result = _policy.GetEffectiveHz(profile, AdaptivePressureLevel.Optimal, 20, averageFrameBytes: 100);
+
+		Assert.Equal(20, result);
+	}
+
+	[Fact]
+	public void LatestWins_ByteBudget_BelowMinHz_ClampsToMinHz()
+	{
+		var profile = Get(AdaptiveStreamId.PlayerStateBroadcast) with
+		{
+			MaxBytesPerSecond = 50,
+			MinHz = 1,
+			MaxHz = 60,
+		};
+
+		var result = _policy.GetEffectiveHz(profile, AdaptivePressureLevel.Critical, 20, averageFrameBytes: 100);
+
+		Assert.Equal(1, result);
+	}
+
 	private static AdaptiveStreamProfile Get(AdaptiveStreamId id)
 	{
 		Assert.True(AdaptiveStreamCatalog.TryGet(id, out var profile), $"missing profile {id}");

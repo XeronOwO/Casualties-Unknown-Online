@@ -21,28 +21,32 @@ public static class AdaptiveStreamCatalog
 				AdaptiveStreamDeliveryMode.LatestWins,
 				MinHz,
 				MaxHz,
-				Priority: 1),
+				Priority: 1,
+				MaxBytesPerSecond: 128 * 1024),
 			[AdaptiveStreamId.PlayerStateReport] = new(
 				AdaptiveStreamId.PlayerStateReport,
 				"PlayerStateReport",
 				AdaptiveStreamDeliveryMode.LatestWins,
 				MinHz,
 				MaxHz,
-				Priority: 1),
+				Priority: 1,
+				MaxBytesPerSecond: 64 * 1024),
 			[AdaptiveStreamId.EnemyStateBroadcast] = new(
 				AdaptiveStreamId.EnemyStateBroadcast,
 				"EnemyStateBroadcast",
 				AdaptiveStreamDeliveryMode.LatestWins,
 				MinHz,
 				MaxHz,
-				Priority: 1),
+				Priority: 1,
+				MaxBytesPerSecond: 256 * 1024),
 			[AdaptiveStreamId.TutorialClawBroadcast] = new(
 				AdaptiveStreamId.TutorialClawBroadcast,
 				"TutorialClawBroadcast",
 				AdaptiveStreamDeliveryMode.LatestWins,
 				MinHz,
 				MaxHz,
-				Priority: 2),
+				Priority: 2,
+				MaxBytesPerSecond: 32 * 1024),
 		};
 
 	/// <summary>All registered adaptive stream profiles.</summary>

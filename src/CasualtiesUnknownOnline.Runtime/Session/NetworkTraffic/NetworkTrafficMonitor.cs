@@ -26,6 +26,7 @@ public sealed class NetworkTrafficMonitor(ITimeSource time, ILogger<NetworkTraff
 	private readonly PeerHealthTracker _health = new();
 	private readonly ITimeSource _time = time;
 	private readonly ILogger<NetworkTrafficMonitor> _log = log;
+	private NetworkTrafficWindow? _lastCompletedWindow;
 
 	/// <summary>Raised after a per-session reset so dependent rate caches can clear.</summary>
 	internal event Action? ResetCompleted;
@@ -45,7 +46,10 @@ public sealed class NetworkTrafficMonitor(ITimeSource time, ILogger<NetworkTraff
 	internal void RecordPong(ulong steamId, float rttMs, long echoTicks) =>
 		_health.RecordPong(steamId, rttMs, echoTicks);
 
-	internal NetworkTrafficWindow CurrentWindow => _tracker.Snapshot();
+	internal NetworkTrafficWindow CurrentWindow => _tracker.Snapshot(_time.NowMs);
+
+	/// <summary>The most recent window collected by <see cref="Update"/>; retained so rate queries still have a stable estimate immediately after a window roll.</summary>
+	internal NetworkTrafficWindow? LastCompletedWindow => _lastCompletedWindow;
 
 	internal IReadOnlyList<PeerHealthTracker.PeerHealthSnapshot> HealthSnapshots =>
 		_health.Snapshots();
@@ -55,8 +59,9 @@ public sealed class NetworkTrafficMonitor(ITimeSource time, ILogger<NetworkTraff
 
 	internal void Reset()
 	{
-		_tracker.Reset();
+		_tracker.Reset(_time.NowMs);
 		_health.Reset();
+		_lastCompletedWindow = null;
 		ResetCompleted?.Invoke();
 	}
 
@@ -75,6 +80,7 @@ public sealed class NetworkTrafficMonitor(ITimeSource time, ILogger<NetworkTraff
 			return;
 		}
 
+		_lastCompletedWindow = window;
 		if (window.TotalFrames > 0)
 		{
 			_log.LogInformation("[NetworkTraffic] {Window}", NetworkTrafficWindowLog.Format(window));

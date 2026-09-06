@@ -35,11 +35,12 @@ public class CharacterSoundSyncTests
 			CharacterSoundKind.Bark => "bark2",
 			CharacterSoundKind.Growl => "growl7",
 			CharacterSoundKind.Yawn => "yawn1",
+			CharacterSoundKind.ItemPlacement => "scrapmetal",
 			_ => "BSSwing3",
 		},
 		Position = new NetVector2Msg { X = 10f, Y = 20f },
 		Volume = 0.7f,
-		FollowOwner = kind != CharacterSoundKind.ThrowSwing && kind != CharacterSoundKind.GunFire && kind != CharacterSoundKind.Bark,
+		FollowOwner = kind != CharacterSoundKind.ThrowSwing && kind != CharacterSoundKind.GunFire && kind != CharacterSoundKind.Bark && kind != CharacterSoundKind.ItemPlacement,
 		TwoDimensional = kind == CharacterSoundKind.Exert || kind == CharacterSoundKind.GunFire,
 		RecoilDegrees = recoilDegrees,
 	};
@@ -91,6 +92,32 @@ public class CharacterSoundSyncTests
 	}
 
 	[Fact]
+	public void ItemPlacement_RoundTripsItsKindClipAndSpatialFacts()
+	{
+		var decoded = NetPacket.DecodePayload<CharacterSoundMsg>(
+			NetPacket.Encode(NetMsg.CharacterSound, Sound(kind: CharacterSoundKind.ItemPlacement)));
+
+		Assert.Equal(CharacterSoundKind.ItemPlacement, decoded.Kind);
+		Assert.Equal("scrapmetal", decoded.Clip);
+		Assert.False(decoded.FollowOwner);
+		Assert.False(decoded.TwoDimensional);
+	}
+
+	[Fact]
+	public void ItemPlacement_RopePlaceRoundTripsItsKindAndClip()
+	{
+		var source = Sound(kind: CharacterSoundKind.ItemPlacement);
+		source.Clip = "ropeplace";
+
+		var decoded = NetPacket.DecodePayload<CharacterSoundMsg>(
+			NetPacket.Encode(NetMsg.CharacterSound, source));
+
+		Assert.Equal(CharacterSoundKind.ItemPlacement, decoded.Kind);
+		Assert.Equal("ropeplace", decoded.Clip);
+	}
+
+
+	[Fact]
 	public void PantSoundVocalizations_RoundTripTheirKindsAndFollowFacts()
 	{
 		foreach (var kind in new[]
@@ -135,6 +162,22 @@ public class CharacterSoundSyncTests
 		Assert.True(w.ReceivedCount(w.G1, NetMsg.CharacterSound) == 1, "the host's own sound must reach G1");
 		Assert.True(w.ReceivedCount(w.G2, NetMsg.CharacterSound) == 1, "the host's own sound must reach G2");
 	}
+
+	[Fact]
+	public void HostItemPlacementSound_BroadcastsToBothGuests()
+	{
+		using var w = ItemSimWorld.Create();
+
+		w.Host.Services.GetRequiredService<CharacterDataStore>()
+			.SendCharacterSound(Sound(HostId, kind: CharacterSoundKind.ItemPlacement));
+		w.Driver.Tick(33);
+
+		Assert.True(w.ReceivedCount(w.G1, NetMsg.CharacterSound) == 1,
+			"the host's placement sound must reach G1");
+		Assert.True(w.ReceivedCount(w.G2, NetMsg.CharacterSound) == 1,
+			"the host's placement sound must reach G2");
+	}
+
 
 	[Fact]
 	public void GuestRelay_FiresTheEventOnTheOtherGuest()

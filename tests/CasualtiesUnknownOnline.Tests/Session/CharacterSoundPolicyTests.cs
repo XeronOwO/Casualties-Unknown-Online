@@ -116,6 +116,26 @@ public class CharacterSoundPolicyTests
 	}
 
 	[Fact]
+	public void ItemPlacementOrigin_ExistsAndClassifiesPlacementClips()
+	{
+		var originType = typeof(CharacterSoundPolicy).GetNestedType("Origin")
+			?? throw new InvalidOperationException("CharacterSoundPolicy.Origin not found.");
+		var placementField = originType.GetField("ItemPlacement");
+		Assert.NotNull(placementField);
+
+		var kindType = typeof(CharacterSoundKind);
+		var placementKindField = kindType.GetField("ItemPlacement");
+		Assert.NotNull(placementKindField);
+
+		var placementOrigin = placementField!.GetValue(null)!;
+		var placementKind = placementKindField!.GetValue(null)!;
+		Assert.Equal(placementKind, CharacterSoundPolicy.Classify((CharacterSoundPolicy.Origin)placementOrigin, "scrapmetal"));
+		Assert.Equal(placementKind, CharacterSoundPolicy.Classify((CharacterSoundPolicy.Origin)placementOrigin, "ropeplace"));
+		Assert.Null(CharacterSoundPolicy.Classify((CharacterSoundPolicy.Origin)placementOrigin, "BSSwing3"));
+		Assert.Null(CharacterSoundPolicy.Classify((CharacterSoundPolicy.Origin)placementOrigin, "unlock"));
+	}
+
+	[Fact]
 	public void EmptyOrUnknownCalls_AreNotReportable()
 	{
 		Assert.Null(CharacterSoundPolicy.Classify(CharacterSoundPolicy.Origin.Attack, ""));
@@ -124,5 +144,6 @@ public class CharacterSoundPolicyTests
 		Assert.Null(CharacterSoundPolicy.Classify(CharacterSoundPolicy.Origin.None, ""));
 		Assert.Null(CharacterSoundPolicy.Classify(CharacterSoundPolicy.Origin.Footstep, ""));
 		Assert.Null(CharacterSoundPolicy.Classify(CharacterSoundPolicy.Origin.LandingImpact, ""));
+		Assert.Null(CharacterSoundPolicy.Classify(CharacterSoundPolicy.Origin.ItemPlacement, ""));
 	}
 }

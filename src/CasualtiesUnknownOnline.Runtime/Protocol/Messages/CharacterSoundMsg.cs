@@ -5,7 +5,8 @@ namespace CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 /// <summary>
 /// ONE player-character action presentation event (attack swing / throw
 /// swing / exert / gun fire / footstep / landing impact / pain / bark /
-/// growl / yawn) — the dedicated trigger event, star semantics.
+/// growl / yawn / direct placeable-item placement) — the dedicated trigger
+/// event, star semantics.
 /// The owner's local simulation already played the sound (the patch captured
 /// it from the real <c>Sound.Play</c> call, so the clip string is the EXACT
 /// chosen clip; GunFire also carries the recoil kick); the host applies it to

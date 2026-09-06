@@ -11,7 +11,8 @@ namespace CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 /// <c>Body.Attack</c> / <c>Body.ThrowItem</c> / <c>Body.TryExertSound</c> /
 /// <c>Body.FootStep</c> / <c>Body.HandleGroundedState</c> /
 /// <c>PantSound.Update</c> / <c>PantSound.Bark</c> / <c>PantSound.TryGrowl</c> /
-/// <c>LockpingMinigame.Update</c>;
+/// <c>LockpingMinigame.Update</c> / direct placeable-item uses
+/// (<c>Body.UseItem</c> / <c>Body.UseItemInHand</c>);
 /// any block hit sound that fires during an attack is excluded before this
 /// policy sees it, because <c>WorldGeneration.DamageBlock</c> opens its own
 /// innermost <c>DamageBlockOrigin</c> scope.
@@ -32,6 +33,7 @@ public static class CharacterSoundPolicy
 		Growl = 8,
 		Yawn = 9,
 		LockpickPain = 10,
+		ItemPlacement = 11,
 	}
 
 	/// <summary>
@@ -64,6 +66,7 @@ public static class CharacterSoundPolicy
 			Origin.Growl => CharacterSoundKind.Growl,
 			Origin.Yawn => CharacterSoundKind.Yawn,
 			Origin.LockpickPain => clip == "gore2" ? CharacterSoundKind.Pain : null,
+			Origin.ItemPlacement => clip is "scrapmetal" or "ropeplace" ? CharacterSoundKind.ItemPlacement : null,
 			_ => null,
 		};
 	}

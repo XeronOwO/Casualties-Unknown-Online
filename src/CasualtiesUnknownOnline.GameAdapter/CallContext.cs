@@ -58,6 +58,12 @@ internal static class CallContext
 		/// <summary>Inside Body.ThrowItem — the local throw swing sound reports from this scope.</summary>
 		CharacterThrow,
 
+		/// <summary>Inside a local direct placeable-item use (Body.UseItem /
+		/// Body.UseItemInHand for scrapmetal / climbingrope / scaffoldingpack) —
+		/// the string placement sound (<c>"scrapmetal"</c> / <c>"ropeplace"</c>)
+		/// reports from this scope.</summary>
+		CharacterItemPlacement,
+
 		/// <summary>Inside Body.TryExertSound — the local exertion sound reports from this scope.</summary>
 		CharacterExert,
 

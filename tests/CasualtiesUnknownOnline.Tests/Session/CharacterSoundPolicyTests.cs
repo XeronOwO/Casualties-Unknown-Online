@@ -78,6 +78,15 @@ public class CharacterSoundPolicyTests
 	}
 
 	[Fact]
+	public void LockpickPainOrigin_ClassifiesOnlyTheFailureClipAsPain()
+	{
+		Assert.Equal(CharacterSoundKind.Pain,
+			CharacterSoundPolicy.Classify(CharacterSoundPolicy.Origin.LockpickPain, "gore2"));
+		Assert.Null(CharacterSoundPolicy.Classify(CharacterSoundPolicy.Origin.LockpickPain, "unlock"));
+		Assert.Null(CharacterSoundPolicy.Classify(CharacterSoundPolicy.Origin.LockpickPain, ""));
+	}
+
+	[Fact]
 	public void VocalizationKinds_AreDefinedInTheWireEnum()
 	{
 		Assert.True(Enum.IsDefined(typeof(CharacterSoundKind), (CharacterSoundKind)7),
@@ -93,6 +102,7 @@ public class CharacterSoundPolicyTests
 			?? throw new InvalidOperationException("CharacterSoundPolicy.Origin not found.");
 		Assert.NotNull(origin.GetField("Pain"));
 		Assert.NotNull(origin.GetField("Bark"));
+		Assert.NotNull(origin.GetField("LockpickPain"));
 	}
 
 	[Fact]

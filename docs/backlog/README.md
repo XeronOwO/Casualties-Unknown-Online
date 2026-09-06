@@ -41,12 +41,9 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Remote fentanyl injection bypass and remote medical panel desync](todo/remote-fentanyl-injection-and-medical-panel-desync.md) — **Critical**: guest→host fentanyl use bypasses the native injection minigame and drains the whole container; remote medical panel does not reflect host happiness / shows heart rate 0, leaks viewer's own status icons, and leaves sleep enabled; deep investigation into the cross-player medicine and native WoundView projection gaps.
 - [Dead-player right-click context menu should show a dead status suffix in the title](todo/dead-player-right-click-name-suffix.md) — right-click context-menu title should show the dead suffix (`名称(死掉了)`); `IsDead` already exists on the projected row, so this is a UI projection + localization polish.
 
-### In Progress
-
-- [Sync player pain vocalizations and B-key bark](in-progress/sync-player-pain-vocalizations-and-bark.md) — re-opened after review rejection: PantSound pain/yawn/growl/B-bark ride CharacterSoundMsg, but the lockpick-failure `gore2` pain sound is still missing from the capture path; regression contract added, implementation pending.
-
 ### Review
 - [Convert non-.editorconfig normative requirements into unit-testable gates](review/normative-style-unit-test-gates.md) — Roslyn `dotnet test` gate for unnecessary fully qualified names landed; normative-rule inventory added in `docs/evidence/normative-gates.md`.
+- [Sync player pain vocalizations and B-key bark](review/sync-player-pain-vocalizations-and-bark.md) — PantSound pain/yawn/growl/B-bark plus the lockpick-failure `gore2` pain now ride the existing CharacterSoundMsg event; continuous pant remains local; full suite green.
 - [Remote backpack native interaction parity](review/remote-backpack-native-interaction-parity.md) — **Critical / super-priority**: top-level root container sync, open-container background drop, guarded owner-side container apply, and detach-before-destroy transfer removal landed; latest DLLs deployed and artifact-verified; awaiting final user dual-client acceptance.
 - [Tab opens backpack then closes immediately](review/tab-backpack-open-close-immediately.md) — remote-backpack Close no longer writes the native radial state when no remote focus exists; local Tab now stays open; regression test linked.
 - [Entity destruction drops lose fresh-drop presentation/initial motion on the guest view](review/entity-destruction-drop-guest-fresh-state-loss.md) — kernel item-spawn path now preserves full transient initial drop state (velocity/rotation/fresh/angular) to all peers; covers ordinary building/entity deaths in both directions and third-party views; selfcheck linked.

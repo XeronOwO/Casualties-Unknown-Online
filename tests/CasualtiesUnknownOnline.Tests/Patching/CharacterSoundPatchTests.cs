@@ -77,6 +77,7 @@ public class CharacterSoundPatchTests
 		Assert.True(HasContract("PantSound", "Update"), "the PantSound.Update vocalization capture-scope contract must be declared");
 		Assert.True(HasContract("PantSound", "Bark"), "the PantSound.Bark capture-scope contract must be declared");
 		Assert.True(HasContract("PantSound", "TryGrowl"), "the PantSound.TryGrowl capture-scope contract must be declared");
+		Assert.True(HasContract("LockpingMinigamePainPatch", "LockpingMinigame", "Update"), "the LockpingMinigame.Update lockpick-pain capture-scope contract must be declared");
 	}
 
 	[Fact]
@@ -215,6 +216,36 @@ public class CharacterSoundPatchTests
 		Assert.NotNull(container.GetNestedType("PantSoundUpdatePatch", BindingFlags.NonPublic | BindingFlags.Public));
 		Assert.NotNull(container.GetNestedType("PantSoundBarkPatch", BindingFlags.NonPublic | BindingFlags.Public));
 		Assert.NotNull(container.GetNestedType("PantSoundTryGrowlPatch", BindingFlags.NonPublic | BindingFlags.Public));
+	}
+
+	[Fact]
+	public void LockpingSoundPatches_OpenAndCloseTheLockpickPainScope()
+	{
+		var container = GameAssemblyHost.Adapter.GetType(
+			"CasualtiesUnknownOnline.GameAdapter.Patches.LockpingSoundPatches",
+			throwOnError: false);
+		Assert.NotNull(container);
+
+		var patch = container!.GetNestedType("LockpingMinigamePainPatch", BindingFlags.NonPublic | BindingFlags.Public)
+			?? throw new InvalidOperationException("LockpingSoundPatches.LockpingMinigamePainPatch not found.");
+
+		var prefix = patch.GetMethod("Prefix", BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
+			?? throw new InvalidOperationException("Prefix not found.");
+		var prefixParameters = prefix.GetParameters();
+		Assert.True(prefixParameters.Length == 2
+			&& prefixParameters[0].Name == "__instance"
+			&& prefixParameters[0].ParameterType.FullName == "LockpingMinigame"
+			&& prefixParameters[1].Name == "__state"
+			&& prefixParameters[1].ParameterType == typeof(IDisposable).MakeByRefType(),
+			$"LockpingMinigamePainPatch.Prefix must be (LockpingMinigame __instance, out IDisposable? __state), got {prefixParameters.Length} parameter(s)");
+
+		var postfix = patch.GetMethod("Postfix", BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
+			?? throw new InvalidOperationException("Postfix not found.");
+		var postfixParameters = postfix.GetParameters();
+		Assert.True(postfixParameters.Length == 1
+			&& postfixParameters[0].Name == "__state"
+			&& postfixParameters[0].ParameterType == typeof(IDisposable),
+			$"LockpingMinigamePainPatch.Postfix must be (IDisposable? __state), got {postfixParameters.Length} parameter(s)");
 	}
 
 	[Fact]

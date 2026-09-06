@@ -1,4 +1,5 @@
 using System.Linq;
+using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.NetworkTraffic;
@@ -94,5 +95,37 @@ public class PacketTrafficMonitorTests
 		Assert.Equal(1, window.ByPeer[2].SendCount);
 		Assert.Equal(1, window.ByPeer[3].SendCount);
 		Assert.Equal(2, window.SendByMessage[NetMsg.Ping].Count);
+	}
+
+	[Fact]
+	public void Update_RetainsLastCompletedWindow_AfterRoll()
+	{
+		var clock = new FakeClock();
+		var monitor = new NetworkTrafficMonitor(clock, NullLogger<NetworkTrafficMonitor>.Instance);
+		monitor.RecordSend(2, NetMsg.Ping, 10, true);
+
+		clock.Advance(10_000);
+		((ICuoService)monitor).Update();
+
+		Assert.NotNull(monitor.LastCompletedWindow);
+		Assert.Equal(1, monitor.LastCompletedWindow!.SendCount);
+		Assert.Equal(0, monitor.CurrentWindow.SendCount);
+	}
+
+	[Fact]
+	public void Reset_ClearsLastCompletedWindow()
+	{
+		var clock = new FakeClock();
+		var monitor = new NetworkTrafficMonitor(clock, NullLogger<NetworkTrafficMonitor>.Instance);
+		monitor.RecordSend(2, NetMsg.Ping, 10, true);
+
+		clock.Advance(10_000);
+		((ICuoService)monitor).Update();
+		Assert.NotNull(monitor.LastCompletedWindow);
+
+		monitor.Reset();
+
+		Assert.Null(monitor.LastCompletedWindow);
+		Assert.Equal(0, monitor.CurrentWindow.SendCount);
 	}
 }

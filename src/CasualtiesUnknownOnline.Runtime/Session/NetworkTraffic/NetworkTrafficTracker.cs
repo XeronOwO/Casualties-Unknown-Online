@@ -23,6 +23,10 @@ internal sealed class NetworkTrafficTracker
 	private readonly Dictionary<ulong, PeerAccumulator> _peers = [];
 	private readonly Dictionary<WirePayloadType, PayloadAccumulator> _sendByPayload = [];
 	private readonly Dictionary<WirePayloadType, PayloadAccumulator> _receiveByPayload = [];
+	private readonly Dictionary<(ulong Peer, WirePayloadType Type), PayloadAccumulator> _sendByPeerPayload = [];
+	private readonly Dictionary<(ulong Peer, WirePayloadType Type), PayloadAccumulator> _receiveByPeerPayload = [];
+	private readonly Dictionary<(ulong Peer, NetMsg Msg), MessageAccumulator> _sendByPeerMessage = [];
+	private readonly Dictionary<(ulong Peer, NetMsg Msg), MessageAccumulator> _receiveByPeerMessage = [];
 	private long _windowStartMs;
 	private long _sendBytes;
 	private long _receiveBytes;
@@ -64,6 +68,15 @@ internal sealed class NetworkTrafficTracker
 			message.FailedBytes += byteCount;
 		}
 
+		var peerMessage = GetOrCreatePeerMessage(_sendByPeerMessage, peer, msg);
+		peerMessage.Count++;
+		peerMessage.Bytes += byteCount;
+		if (!success)
+		{
+			peerMessage.FailedCount++;
+			peerMessage.FailedBytes += byteCount;
+		}
+
 		if (payloadType is { } type)
 		{
 			var payload = GetOrCreatePayload(_sendByPayload, type);
@@ -74,6 +87,16 @@ internal sealed class NetworkTrafficTracker
 			{
 				payload.FailedCount++;
 				payload.FailedBytes += byteCount;
+			}
+
+			var peerPayload = GetOrCreatePeerPayload(_sendByPeerPayload, peer, type);
+			peerPayload.Count++;
+			peerPayload.Bytes += byteCount;
+			peerPayload.RecordSize(byteCount);
+			if (!success)
+			{
+				peerPayload.FailedCount++;
+				peerPayload.FailedBytes += byteCount;
 			}
 		}
 
@@ -96,6 +119,10 @@ internal sealed class NetworkTrafficTracker
 		message.Count++;
 		message.Bytes += byteCount;
 
+		var peerMessage = GetOrCreatePeerMessage(_receiveByPeerMessage, peer, msg);
+		peerMessage.Count++;
+		peerMessage.Bytes += byteCount;
+
 		var peerCounter = GetPeer(peer);
 		peerCounter.ReceiveCount++;
 		peerCounter.ReceiveBytes += byteCount;
@@ -107,6 +134,11 @@ internal sealed class NetworkTrafficTracker
 		payload.Count++;
 		payload.Bytes += byteCount;
 		payload.RecordSize(byteCount);
+
+		var peerPayload = GetOrCreatePeerPayload(_receiveByPeerPayload, peer, payloadType);
+		peerPayload.Count++;
+		peerPayload.Bytes += byteCount;
+		peerPayload.RecordSize(byteCount);
 	}
 
 	internal bool TryCollectWindow(long nowMs, out NetworkTrafficWindow window)
@@ -122,9 +154,14 @@ internal sealed class NetworkTrafficTracker
 		return true;
 	}
 
-	internal NetworkTrafficWindow Snapshot() => Build(_windowStartMs, _windowStartMs + _windowMs);
+	internal NetworkTrafficWindow Snapshot() => Snapshot(_windowStartMs + _windowMs);
+
+	internal NetworkTrafficWindow Snapshot(long nowMs) =>
+		Build(_windowStartMs, Math.Max(_windowStartMs + 1, nowMs));
 
 	internal void Reset() => ResetTo(_windowStartMs);
+
+	internal void Reset(long nowMs) => ResetTo(nowMs);
 
 	private NetworkTrafficWindow Build(long startMs, long endMs)
 	{
@@ -157,6 +194,20 @@ internal sealed class NetworkTrafficTracker
 		var receiveByPayload = _receiveByPayload
 			.Where(kv => kv.Value.Count > 0)
 			.ToDictionary(kv => kv.Key, kv => kv.Value.ToPayloadTraffic());
+		var sendByPeerMessage = _sendByPeerMessage
+			.Where(kv => kv.Value.Count > 0)
+			.ToDictionary(kv => kv.Key, kv => new NetworkTrafficWindow.MessageTraffic(
+				kv.Value.Count, kv.Value.Bytes, kv.Value.FailedCount, kv.Value.FailedBytes));
+		var receiveByPeerMessage = _receiveByPeerMessage
+			.Where(kv => kv.Value.Count > 0)
+			.ToDictionary(kv => kv.Key, kv => new NetworkTrafficWindow.MessageTraffic(
+				kv.Value.Count, kv.Value.Bytes, 0, 0));
+		var sendByPeerPayload = _sendByPeerPayload
+			.Where(kv => kv.Value.Count > 0)
+			.ToDictionary(kv => kv.Key, kv => kv.Value.ToPayloadTraffic());
+		var receiveByPeerPayload = _receiveByPeerPayload
+			.Where(kv => kv.Value.Count > 0)
+			.ToDictionary(kv => kv.Key, kv => kv.Value.ToPayloadTraffic());
 
 		return new NetworkTrafficWindow(
 			startMs,
@@ -171,7 +222,11 @@ internal sealed class NetworkTrafficTracker
 			receiveByMessage,
 			byPeer,
 			sendByPayload,
-			receiveByPayload);
+			receiveByPayload,
+			sendByPeerMessage,
+			receiveByPeerMessage,
+			sendByPeerPayload,
+			receiveByPeerPayload);
 	}
 
 	private void ResetTo(long startMs)
@@ -181,6 +236,10 @@ internal sealed class NetworkTrafficTracker
 		_peers.Clear();
 		_sendByPayload.Clear();
 		_receiveByPayload.Clear();
+		_sendByPeerPayload.Clear();
+		_receiveByPeerPayload.Clear();
+		_sendByPeerMessage.Clear();
+		_receiveByPeerMessage.Clear();
 		_sendBytes = 0;
 		_receiveBytes = 0;
 		_failedSendBytes = 0;
@@ -218,6 +277,30 @@ internal sealed class NetworkTrafficTracker
 		{
 			accumulator = new PayloadAccumulator();
 			map[payloadType] = accumulator;
+		}
+
+		return accumulator;
+	}
+
+	private static MessageAccumulator GetOrCreatePeerMessage(Dictionary<(ulong Peer, NetMsg Msg), MessageAccumulator> map, ulong peer, NetMsg msg)
+	{
+		var key = (peer, msg);
+		if (!map.TryGetValue(key, out var accumulator))
+		{
+			accumulator = new MessageAccumulator();
+			map[key] = accumulator;
+		}
+
+		return accumulator;
+	}
+
+	private static PayloadAccumulator GetOrCreatePeerPayload(Dictionary<(ulong Peer, WirePayloadType Type), PayloadAccumulator> map, ulong peer, WirePayloadType type)
+	{
+		var key = (peer, type);
+		if (!map.TryGetValue(key, out var accumulator))
+		{
+			accumulator = new PayloadAccumulator();
+			map[key] = accumulator;
 		}
 
 		return accumulator;

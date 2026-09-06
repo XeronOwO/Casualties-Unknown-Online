@@ -1,4 +1,5 @@
 using System;
+using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Session.NetworkTraffic;
 using Xunit;
@@ -47,6 +48,54 @@ public class NetworkTrafficTrackerTests
 		Assert.Equal(11, peer2.ReceiveBytes);
 		Assert.Equal(1, peer2.FailedSendCount);
 		Assert.Equal(8, peer2.FailedSendBytes);
+	}
+
+	[Fact]
+	public void RecordSendAndReceive_AccumulatePerPeerCrossAggregates()
+	{
+		var tracker = new NetworkTrafficTracker(1000);
+		tracker.RecordSend(1, NetMsg.KernelEnvelope, 100, true, WirePayloadType.PlayerStateStream);
+		tracker.RecordSend(1, NetMsg.KernelEnvelope, 200, true, WirePayloadType.PlayerStateStream);
+		tracker.RecordSend(1, NetMsg.TutorialClawState, 50, true);
+		tracker.RecordReceive(2, NetMsg.TutorialClawState, 60);
+		tracker.RecordReceivePayload(2, WirePayloadType.PlayerStateStream, 70);
+
+		var window = tracker.Snapshot();
+
+		var playerSend = window.SendByPeerPayloadType[(1, WirePayloadType.PlayerStateStream)];
+		Assert.Equal(2, playerSend.Count);
+		Assert.Equal(300, playerSend.Bytes);
+		Assert.Equal(100, playerSend.P50Bytes);
+
+		var clawSend = window.SendByPeerMessage[(1, NetMsg.TutorialClawState)];
+		Assert.Equal(1, clawSend.Count);
+		Assert.Equal(50, clawSend.Bytes);
+
+		var clawReceive = window.ReceiveByPeerMessage[(2, NetMsg.TutorialClawState)];
+		Assert.Equal(1, clawReceive.Count);
+		Assert.Equal(60, clawReceive.Bytes);
+
+		var playerReceive = window.ReceiveByPeerPayloadType[(2, WirePayloadType.PlayerStateStream)];
+		Assert.Equal(1, playerReceive.Count);
+		Assert.Equal(70, playerReceive.Bytes);
+	}
+
+	[Fact]
+	public void Reset_ClearsPerPeerCrossAggregates()
+	{
+		var tracker = new NetworkTrafficTracker(1000);
+		tracker.RecordSend(1, NetMsg.KernelEnvelope, 100, true, WirePayloadType.PlayerStateStream);
+		tracker.RecordSend(1, NetMsg.TutorialClawState, 50, true);
+		tracker.RecordReceive(2, NetMsg.TutorialClawState, 60);
+		tracker.RecordReceivePayload(2, WirePayloadType.PlayerStateStream, 70);
+
+		tracker.Reset();
+		var window = tracker.Snapshot();
+
+		Assert.Empty(window.SendByPeerPayloadType);
+		Assert.Empty(window.ReceiveByPeerPayloadType);
+		Assert.Empty(window.SendByPeerMessage);
+		Assert.Empty(window.ReceiveByPeerMessage);
 	}
 
 	[Fact]

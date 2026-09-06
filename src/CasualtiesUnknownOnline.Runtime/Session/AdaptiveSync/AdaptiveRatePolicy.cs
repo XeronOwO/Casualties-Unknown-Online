@@ -14,12 +14,15 @@ public sealed class AdaptiveRatePolicy
 	/// Returns the effective Hz for a stream. <paramref name="baseHz"/> is the
 	/// user/global configured cadence. For adapted <c>LatestWins</c> streams
 	/// the result is clamped to the profile min/max; non-adapted streams
-	/// preserve the base cadence exactly.
+	/// preserve the base cadence exactly. When the profile has a non-zero
+	/// <c>MaxBytesPerSecond</c> byte budget and <paramref name="averageFrameBytes"/>
+	/// is known, the result is also capped by that budget.
 	/// </summary>
 	public int GetEffectiveHz(
 		AdaptiveStreamProfile profile,
 		AdaptivePressureLevel pressure,
-		int baseHz)
+		int baseHz,
+		double averageFrameBytes = 0)
 	{
 		if (profile.DeliveryMode != AdaptiveStreamDeliveryMode.LatestWins)
 		{
@@ -31,6 +34,13 @@ public sealed class AdaptiveRatePolicy
 
 		var factor = PressureFactor(pressure, profile.Priority);
 		var effective = (int)Math.Round(baseHz * factor);
+
+		if (profile.MaxBytesPerSecond > 0 && averageFrameBytes > 0)
+		{
+			var maxHzByBytes = (int)(profile.MaxBytesPerSecond / averageFrameBytes);
+			effective = Math.Min(effective, maxHzByBytes);
+		}
+
 		return Clamp(effective, profile.MinHz, profile.MaxHz);
 	}
 

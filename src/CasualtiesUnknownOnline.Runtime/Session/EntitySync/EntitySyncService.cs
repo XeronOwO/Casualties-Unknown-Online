@@ -353,6 +353,15 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 	/// </summary>
 	private void ConfigureSwingHold()
 	{
+		if (!EntitySyncActive)
+		{
+			// No remote stream exists; a local swing only needs the clip span.
+			// Avoid querying adaptive rates (and traffic snapshots) every frame
+			// in single-player/no-sync mode.
+			_attackSwing.SetStreamHoldMs(300);
+			return;
+		}
+
 		var streamId = _session.Role == SessionRole.Host
 			? AdaptiveStreamId.PlayerStateBroadcast
 			: AdaptiveStreamId.PlayerStateReport;
@@ -379,9 +388,14 @@ public sealed class EntitySyncService : ICuoService, IEntitySyncControl
 
 		// The swing window ticks unconditionally — even a solo swing (no sync
 		// active) must expire so a later lobby open never re-sends a stale flag.
-		// Its hold follows the configured stream cadence (six ticks, at least the
-		// clip span) so the rising edge survives drops at any frequency.
-		ConfigureSwingHold();
+		// While a swing is actually held, refresh the hold from the current
+		// adaptive cadence so a sync role change or member leave shortens/extend
+		// the window correctly; idle frames do not query adaptive rates.
+		if (_attackSwing.IsAttacking)
+		{
+			ConfigureSwingHold();
+		}
+
 		_attackSwing.Tick(_time.NowMs);
 
 		// Either side leaving the world ends the sync: the peer renders our clone

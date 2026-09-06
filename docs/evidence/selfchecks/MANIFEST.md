@@ -103,6 +103,7 @@ All files under `docs/selfchecks/` are historical/per-delivery evidence records.
 | protocol/network-traffic-monitor-selfcheck.md | Other | current | candidate current evidence; verify before citing |
 | protocol/network-traffic-baseline-selfcheck.md | Other | current | network traffic baseline and regression gate landed |
 | protocol/state-stream-bandwidth-reduction-selfcheck.md | Other | current | player-state per-recipient echo removal landed |
+| protocol/global-adaptive-report-rate-stage-2-traffic-bandwidth-selfcheck.md | Other | current | per-peer/per-stream traffic estimates, bandwidth/failed-send pressure and byte-budget policy landed |
 | protocol/checkpoint-string-table-selfcheck.md | Other | current | checkpoint item-definition string table compression landed |
 | players/online-ui-player-awareness-selfcheck.md | Players | current | candidate current evidence; verify before citing |
 | ui/online-ui-polish-selfcheck.md | UI | current | candidate current evidence; verify before citing |

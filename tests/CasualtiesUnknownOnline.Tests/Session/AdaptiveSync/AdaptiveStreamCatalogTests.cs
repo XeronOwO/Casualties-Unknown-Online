@@ -29,6 +29,7 @@ public class AdaptiveStreamCatalogTests
 		{
 			Assert.True(p.MinHz > 0);
 			Assert.True(p.MaxHz >= p.MinHz);
+			Assert.True(p.MaxBytesPerSecond >= 0);
 		});
 	}
 }

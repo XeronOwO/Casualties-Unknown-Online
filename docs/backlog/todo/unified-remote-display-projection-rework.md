@@ -36,10 +36,13 @@ one oversized implementation task.** When this item is picked up:
    path and every native read point it feeds.
 2. Split the work into explicit phases/steps in the ticket (or a companion plan
    document) before implementation.
-3. Implement phase by phase, with each phase producing a buildable, testable,
+3. If the deep analysis produces detailed sub-tickets, the original umbrella
+   ticket may be removed rather than retained; do not keep it only to preserve
+   a parent/umbrella shape.
+4. Implement phase by phase, with each phase producing a buildable, testable,
    verifiable result and its own handoff/summary if a new session continues the
    work.
-4. Do not start another per-field point patch as the resolution path.
+5. Do not start another per-field point patch as the resolution path.
 
 ## Intended direction (to be confirmed/refined by the first phase)
 

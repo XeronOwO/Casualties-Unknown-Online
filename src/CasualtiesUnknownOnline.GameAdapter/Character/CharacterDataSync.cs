@@ -389,6 +389,14 @@ internal sealed class CharacterDataSync(
 	}
 
 	/// <summary>
+	/// Store an authoritative medical-operation progress/terminal snapshot in
+	/// the fact table (not the local body) so the remote WoundView and clone
+	/// renderer read the live state instead of the last 1 Hz snapshot.
+	/// </summary>
+	internal void ApplyMedicalState(ulong owner, CharacterHealthMsg? health, IReadOnlyList<CharacterLimbMsg>? limbs) =>
+		_factTable.ApplyMedicalState(owner, health, limbs);
+
+	/// <summary>
 	/// Apply a host-authoritative cross-player heal result to the LOCAL body:
 	/// map the post-heal body health and limb state directly, without touching
 	/// inventory or running the restore wipe. Called inside a RemoteApply scope;

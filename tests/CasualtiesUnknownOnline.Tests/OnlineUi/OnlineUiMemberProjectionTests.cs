@@ -686,6 +686,27 @@ public sealed class OnlineUiMemberProjectionTests
 	private sealed class FakeInteraction : IPlayerInteractionControl
 	{
 		public ulong? CarriedByLocal;
+		public IMedicalOperationControl MedicalOperations { get; } = new FakeMedicalOperations();
+
+		private sealed class FakeMedicalOperations : IMedicalOperationControl
+		{
+			public event Action<MedicalOperationStartAckMsg>? StartAckReceived;
+			public event Action<MedicalOperationStateMsg>? StateReceived;
+			public event Action<MedicalOperationEndCommittedMsg>? EndCommittedReceived;
+
+			public void SendStartRequest(ulong targetSteamId, ulong itemInstanceId, int targetLimbIndex) { }
+			public void HandleStartRequest(ulong sender, MedicalOperationStartRequestMsg msg) { }
+			public void SendUpdate(ulong operationId, float deltaMl) { }
+			public void HandleUpdate(ulong sender, MedicalOperationUpdateMsg msg) { }
+			public void SendEndRequest(ulong operationId, float totalMl) { }
+			public void HandleEndRequest(ulong sender, MedicalOperationEndRequestMsg msg) { }
+			public void SendCancelRequest(ulong operationId) { }
+			public void HandleCancelRequest(ulong sender, MedicalOperationCancelMsg msg) { }
+			public void FireStartAckReceived(MedicalOperationStartAckMsg msg) => StartAckReceived?.Invoke(msg);
+			public void FireStateReceived(MedicalOperationStateMsg msg) => StateReceived?.Invoke(msg);
+			public void FireEndCommittedReceived(MedicalOperationEndCommittedMsg msg) => EndCommittedReceived?.Invoke(msg);
+		}
+
 		public ulong? CarrierOfLocal;
 		public ulong? CarriedByRemote;
 		public ulong? CarrierOfRemote;
@@ -814,7 +835,7 @@ public sealed class OnlineUiMemberProjectionTests
 			remove { }
 		}
 
-		public void SendUseRequest(ulong targetSteamId, ulong itemInstanceId = 0, int targetLimbIndex = -1, float doseAmount = 0f)
+		public void SendUseRequest(ulong targetSteamId, ulong itemInstanceId = 0, int targetLimbIndex = -1)
 		{
 		}
 

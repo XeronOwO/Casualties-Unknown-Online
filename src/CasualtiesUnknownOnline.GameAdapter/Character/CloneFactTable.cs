@@ -395,6 +395,34 @@ internal sealed class CloneFactTable(ILogger log)
 	}
 
 	/// <summary>
+	/// An authoritative medical-operation progress/terminal state arrived for a
+	/// remote owner: update the fact-table health/limbs so the remote WoundView
+	/// display and clone renderer see the live progression instead of the last
+	/// 1 Hz snapshot. The full snapshot remains the fallback.
+	/// </summary>
+	internal void ApplyMedicalState(ulong owner, CharacterHealthMsg? health, IReadOnlyList<CharacterLimbMsg>? limbs)
+	{
+		if (!_cloneData.TryGetValue(owner, out var data))
+		{
+			data = new CharacterDataMsg { OwnerSteamId = owner };
+			_cloneData[owner] = data;
+		}
+
+		if (health is not null)
+		{
+			data.Health = health;
+		}
+
+		if (limbs is not null)
+		{
+			data.Limbs = [.. limbs];
+		}
+
+		HeadMouthRule.Refresh(data);
+		CloneSnapshotUpdated?.Invoke(owner);
+	}
+
+	/// <summary>
 	/// A limb-latch event arrived (the dedicated event — never the 1 Hz
 	/// snapshot): update the owner's fact-table limb + body entry (full
 	/// terminal state, exact rebuild) and re-render its clone. An owner with

@@ -14,6 +14,9 @@ namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 /// </summary>
 public interface IPlayerInteractionControl
 {
+	/// <summary>The generic remote medical operation session surface (incremental injection in Stage 1; shared minigame sessions in later stages).</summary>
+	IMedicalOperationControl MedicalOperations { get; }
+
 	/// <summary>Any role: request a take from the Online UI (guest → host on the wire; host handles locally).</summary>
 	void SendTakeRequest(ulong ownerSteamId, ulong itemInstanceId);
 
@@ -77,8 +80,8 @@ public interface IPlayerInteractionControl
 	/// <summary>An authoritative cross-player heal result arrived — the Game Adapter consumes the healer's item and/or applies the target's post-heal state.</summary>
 	event Action<PlayerHealResultMsg>? HealReceived;
 
-	/// <summary>Any role: request a consumable use from the Online UI (guest → host on the wire; host handles locally). ItemInstanceId 0 = host auto-selects a carried drink/food; targetLimbIndex -1 = most-injured auto pick; doseAmount 0 = the item's normal per-use injection amount for injectable medicines.</summary>
-	void SendUseRequest(ulong targetSteamId, ulong itemInstanceId = 0, int targetLimbIndex = -1, float doseAmount = 0f);
+	/// <summary>Any role: request a consumable use from the Online UI (guest → host on the wire; host handles locally). ItemInstanceId 0 = host auto-selects a carried drink/food; targetLimbIndex -1 = most-injured auto pick. Injectable/IV medicine is not accepted through this one-shot path.</summary>
+	void SendUseRequest(ulong targetSteamId, ulong itemInstanceId = 0, int targetLimbIndex = -1);
 
 	/// <summary>Host only: a consumable-use request arrived (from the wire or the host's own UI).</summary>
 	void HandleUseRequest(ulong sender, PlayerItemUseRequestMsg msg);

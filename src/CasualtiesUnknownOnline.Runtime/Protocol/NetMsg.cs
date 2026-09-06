@@ -240,4 +240,16 @@ public enum NetMsg : byte
 	RemoteInventoryOperationRequest = 125, // guest → host: perform a remote-player inventory operation (drop / move-to-container / pour / combine / use / wear / battery / slot / favourite)
 
 	RemoteInventoryApply = 126, // host → owner: execute the host-validated native inventory operation on the owner's own local body
+
+	// Remote medical operation sessions (host authority: the host owns the
+	// operation registry, item/limb reservations, incremental progress and the
+	// single terminal commit; intermediate updates are not final).
+	MedicalOperationStartRequest = 127, // guest → host: begin a medical operation
+	MedicalOperationStartAck = 128, // host → operator: accepted/rejected with the operation id
+	MedicalOperationUpdate = 129, // operator → host: incremental progress delta
+	MedicalOperationState = 130, // host → clients: non-terminal authoritative progress
+	MedicalOperationEndRequest = 131, // operator → host: native minigame ended with exact total ml
+	MedicalOperationEndCommitted = 132, // host → clients: the single terminal result
+	MedicalOperationCancel = 133, // operator → host: cancel an active session
+
 }

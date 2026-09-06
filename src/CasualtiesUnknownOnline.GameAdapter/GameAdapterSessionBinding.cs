@@ -14,7 +14,8 @@ internal sealed class GameAdapterSessionBinding(
 	GameAdapterDomains domains,
 	PlayerInteractionApply playerInteraction,
 	RemoteInventoryOperationApply remoteInventoryApply,
-	PlayerPushApply pushApply)
+	PlayerPushApply pushApply,
+	MedicalOperationApply medicalOperationApply)
 {
 	public void Bind()
 	{
@@ -61,6 +62,9 @@ internal sealed class GameAdapterSessionBinding(
 		domains.PlayerInteraction.UseReceived += playerInteraction.OnPlayerItemUseReceived; // cross-player consumable use: consume/update the user's item and/or apply the target's post-use state
 		domains.PlayerInteraction.RemoteInventoryApplyReceived += remoteInventoryApply.Apply; // native remote-backpack operations execute on the owner's real local body
 		domains.PlayerInteraction.PushReceived += pushApply.Apply; // cross-player push: apply local target ragdoll/pusher cost and play the push sound
+		domains.PlayerInteraction.MedicalOperations.StateReceived += medicalOperationApply.OnStateReceived; // medical session: refresh local item/body/display with authoritative progress
+		domains.PlayerInteraction.MedicalOperations.EndCommittedReceived += medicalOperationApply.OnEndCommittedReceived; // medical session: single terminal local apply
+
 	}
 
 	public void Unbind()
@@ -111,6 +115,9 @@ internal sealed class GameAdapterSessionBinding(
 		domains.PlayerInteraction.UseReceived -= playerInteraction.OnPlayerItemUseReceived;
 		domains.PlayerInteraction.RemoteInventoryApplyReceived -= remoteInventoryApply.Apply;
 		domains.PlayerInteraction.PushReceived -= pushApply.Apply;
+		domains.PlayerInteraction.MedicalOperations.StateReceived -= medicalOperationApply.OnStateReceived;
+		domains.PlayerInteraction.MedicalOperations.EndCommittedReceived -= medicalOperationApply.OnEndCommittedReceived;
+
 	}
 
 	private void OnSessionEnded()

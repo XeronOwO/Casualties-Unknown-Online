@@ -284,6 +284,13 @@ public static class CuoBootstrap
 		// permits every pair; the plugin replaces it with the Game Adapter's
 		// world-backed line-of-sight implementation in extraRegistrations.
 		services.AddSingleton<IPlayerInteractionVisibility>(new AllowAllPlayerInteractionVisibility());
+		// Remote medical operation session domain: generic start/update/end/cancel
+		// plus host-side reservations and timeout/disconnect cleanup. Stage 1 uses
+		// it for real-time injection; later stages reuse the same session envelope.
+		services.AddSingleton<MedicalOperationSessionService>();
+		services.AddSingleton<IMedicalOperationControl>(p => p.GetRequiredService<MedicalOperationSessionService>());
+		services.AddSingleton<ICuoService>(p => p.GetRequiredService<MedicalOperationSessionService>());
+
 		// Direct player interaction (cross-player inventory take) — depends on the
 		// session, character-data and item control surfaces; no pump.
 		services.AddSingleton<PlayerInteractionService>();

@@ -31,6 +31,7 @@ internal sealed class MedicalOperationApply(GameAdapterDomains domains)
 			msg.TargetHealth,
 			msg.TargetLimbs,
 			[],
+			null,
 			terminal: false);
 	}
 
@@ -50,6 +51,7 @@ internal sealed class MedicalOperationApply(GameAdapterDomains domains)
 			msg.TargetHealth,
 			msg.TargetLimbs,
 			msg.TimedBodyEffects,
+			msg.AwardedItem,
 			terminal: true);
 	}
 
@@ -62,11 +64,13 @@ internal sealed class MedicalOperationApply(GameAdapterDomains domains)
 		CharacterHealthMsg? health,
 		IReadOnlyList<CharacterLimbMsg> limbs,
 		IReadOnlyList<TimedBodyEffectMsg> timedBodyEffects,
+		CharacterItemMsg? awardedItem,
 		bool terminal)
 	{
 		if (terminal)
 		{
 			RemoteMedicalOperationHandler.OnHostTerminal(operationId);
+			RemoteOtherMedicalOperationHandler.OnHostTerminal(operationId);
 		}
 
 		if (health is null && itemAfter is null)
@@ -100,9 +104,17 @@ internal sealed class MedicalOperationApply(GameAdapterDomains domains)
 					ItemStateCodec.RestoreLiquids(item, after.Liquids);
 					ItemStateCodec.RestoreComponentStates(item, after.Components);
 					RemoteMedicalOperationHandler.MarkAuthoritativeItemApplied(itemInstanceId);
+					RemoteOtherMedicalItemRestore.MarkApplied(itemInstanceId);
 					domains.Log.LogInformation("[MedicalOps] local item {ItemId} updated to condition {Condition:F2}.", itemInstanceId, after.Condition);
 					changed = true;
 				}
+			}
+
+			if (operatorLocal && awardedItem is { } awarded)
+			{
+				RestoreAwardedItem(body, awarded);
+				RemoteOtherMedicalItemRestore.MarkApplied(awarded.InstanceId);
+				changed = true;
 			}
 
 			if (targetLocal && health is { } targetHealth)
@@ -129,5 +141,36 @@ internal sealed class MedicalOperationApply(GameAdapterDomains domains)
 		{
 			domains.CharacterDataSync.ReportInventoryChanged(body);
 		}
+	}
+
+	private void RestoreAwardedItem(Body body, CharacterItemMsg item)
+	{
+		var existing = CarriedItemLocator.FindById(body, item.InstanceId);
+		if (existing != null) // Unity object — ==
+		{
+			existing.condition = item.Condition;
+			ItemStateCodec.RestoreLiquids(existing, item.Liquids);
+			ItemStateCodec.RestoreComponentStates(existing, item.Components);
+			domains.Log.LogInformation("[MedicalOps] local awarded item {ItemId} (id {InstanceId}) already present; condition updated.",
+				item.ItemId, item.InstanceId);
+			return;
+		}
+
+		if (item.SlotIndex < 0 || item.SlotIndex >= body.slots.Length || body.HoldingItem(item.SlotIndex))
+		{
+			var empty = body.FirstEmptySlot();
+			if (empty is not { } fallback)
+			{
+				domains.Log.LogWarning("[MedicalOps] cannot hand awarded {ItemId} (id {InstanceId}) — no empty local slot.",
+					item.ItemId, item.InstanceId);
+				return;
+			}
+
+			item.SlotIndex = fallback;
+		}
+
+		ItemStateCodec.RestoreItem(item, body);
+		domains.Log.LogInformation("[MedicalOps] local operator awarded {ItemId} (id {InstanceId}) in slot {Slot}.",
+			item.ItemId, item.InstanceId, item.SlotIndex);
 	}
 }

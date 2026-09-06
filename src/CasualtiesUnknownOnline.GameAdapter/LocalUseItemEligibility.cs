@@ -132,6 +132,26 @@ internal static class LocalUseItemEligibility
 			return true;
 		}
 
+		if (RemoteBandageMinigameCatalog.IsBandageItem(item.id))
+		{
+			return true;
+		}
+
+		if (RemoteOtherMedicalCatalog.IsDefibrillator(item.id))
+		{
+			return true;
+		}
+
+		if (RemoteOtherMedicalCatalog.IsAmputationTool(item.id))
+		{
+			return true;
+		}
+
+		if (RemoteOtherMedicalCatalog.IsDislocationWrench(item.id))
+		{
+			return true;
+		}
+
 		if (RemoteMedicineCatalog.IsInjectableItem(item.id))
 		{
 			return HasValidLiquid(item, RemoteMedicineCatalog.IsSupportedMedicineLiquid);

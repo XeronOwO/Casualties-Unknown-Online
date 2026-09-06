@@ -47,4 +47,22 @@ public sealed class MedicalOperationUpdateMsg
 	/// </summary>
 	[ProtoMember(10)]
 	public bool OwnershipChange { get; set; }
+
+	// Stage 3 generic action payload. These fields are meaningful only for
+	// Bandage/Dislocation/Aed/ManualDefib/Amputation operations; injection and
+	// shrapnel handlers ignore them.
+	[ProtoMember(11)]
+	public int Action { get; set; }
+
+	[ProtoMember(12)]
+	public float Value1 { get; set; }
+
+	[ProtoMember(13)]
+	public float Value2 { get; set; }
+
+	[ProtoMember(14)]
+	public float Value3 { get; set; }
+
+	[ProtoMember(15)]
+	public bool Flag1 { get; set; }
 }

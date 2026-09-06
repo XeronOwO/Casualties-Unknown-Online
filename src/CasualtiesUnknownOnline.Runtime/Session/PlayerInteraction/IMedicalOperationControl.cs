@@ -53,6 +53,15 @@ public interface IMedicalOperationControl
 	/// <summary>Host only: a shrapnel end/leave request arrived.</summary>
 	void HandleShrapnelEndRequest(ulong sender, MedicalOperationEndRequestMsg msg);
 
+	/// <summary>Any role: start a Stage 3 medical operation (bandage/removal/dislocation/defib/amputation).</summary>
+	void SendOtherStartRequest(ulong targetSteamId, ulong itemInstanceId, int targetLimbIndex, MedicalOperationKind kind);
+
+	/// <summary>Any role: send one Stage 3 semantic update for an accepted operation.</summary>
+	void SendOtherUpdate(ulong operationId, MedicalOperationUpdateAction action, float value1 = 0f, float value2 = 0f, float value3 = 0f, bool flag1 = false);
+
+	/// <summary>Any role: report the Stage 3 native minigame ended, with the final scalar (success/progress) where applicable.</summary>
+	void SendOtherEndRequest(ulong operationId, float total = 0f);
+
 	/// <summary>Raise a received start ack for the Game Adapter.</summary>
 	void FireStartAckReceived(MedicalOperationStartAckMsg msg);
 

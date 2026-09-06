@@ -89,4 +89,20 @@ public sealed class CharacterLimbMsg
 	/// </summary>
 	[ProtoMember(22)]
 	public bool IsVital { get; set; }
+
+	/// <summary>
+	/// Indices of the limbs directly connected to this limb in the body graph.
+	/// Captured from the live body for host-side tourniquet/amputation effects;
+	/// the host does not instantiate Unity bodies, so wire-carried topology is
+	/// the only source for connected-limb semantics.
+	/// </summary>
+	[ProtoMember(23)]
+	public List<int> ConnectedLimbIndices { get; set; } = [];
+
+	/// <summary>
+	/// Native <c>distanceToHeart</c> for this limb. Tourniquet lower-limb
+	/// traversal uses it the same way the game's <c>GetLowerLimbs</c> does.
+	/// </summary>
+	[ProtoMember(24)]
+	public int DistanceToHeart { get; set; }
 }

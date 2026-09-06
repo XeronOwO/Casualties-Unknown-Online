@@ -154,12 +154,12 @@ internal static class RemoteMedicalPatches
 				return true;
 			}
 
-			// The one allowed remote special action: shrapnel removal. It is
-			// routed through the shared host-authoritative shrapnel session and
+			// The allowed remote special actions: tourniquet removal, shrapnel
+			// removal, splint removal and dislocation fix. They are routed
+			// through the host-authoritative medical operation session and
 			// started on the display body; every other special stays read-only.
 			if (__instance.selectedLimb != null // Unity object — ==
-				&& __instance.selectedLimb.hasShrapnel
-				&& PatchBridge.Impl?.TryStartRemoteShrapnelSpecial(__instance.selectedLimb) == true)
+				&& PatchBridge.Impl?.TryStartRemoteWoundSpecial(__instance.selectedLimb) == true)
 			{
 				return false;
 			}
@@ -230,6 +230,7 @@ internal static class RemoteMedicalPatches
 	{
 		private static void Postfix()
 		{
+			RemoteOtherMedicalOperationHandler.CompleteActiveUse();
 			RemoteMedicalOperationHandler.CompleteActiveShrapnelUse();
 			RemoteMedicalOperationHandler.CompleteActiveSyringeUse();
 		}

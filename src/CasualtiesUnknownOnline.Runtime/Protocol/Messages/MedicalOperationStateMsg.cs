@@ -41,6 +41,14 @@ public sealed class MedicalOperationStateMsg
 	[ProtoMember(10)]
 	public List<CharacterLimbMsg> TargetLimbs { get; set; } = [];
 
+	/// <summary>The operation category; non-injection/shrapnel clients use it to route active local minigame cleanup/apply.</summary>
+	[ProtoMember(12)]
+	public MedicalOperationKind Kind { get; set; } = MedicalOperationKind.Injection;
+
+	/// <summary>Generic action progress for Stage 3 actions (bandage consumed fraction, amputation cut, defibrillator stage).</summary>
+	[ProtoMember(13)]
+	public float ActionProgress { get; set; }
+
 	/// <summary>Shared shrapnel session piece state (empty for injection).</summary>
 	[ProtoMember(11)]
 	public List<ShrapnelPieceMsg> ShrapnelPieces { get; set; } = [];

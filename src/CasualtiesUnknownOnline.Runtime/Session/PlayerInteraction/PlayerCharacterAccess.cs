@@ -105,5 +105,7 @@ internal sealed class PlayerCharacterAccess(ISessionControl session, ICharacterD
 		Components = [.. limb.Components],
 		IsHead = limb.IsHead,
 		IsVital = limb.IsVital,
+		ConnectedLimbIndices = [.. limb.ConnectedLimbIndices],
+		DistanceToHeart = limb.DistanceToHeart,
 	};
 }

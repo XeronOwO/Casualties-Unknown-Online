@@ -1,6 +1,6 @@
 # Remote medical parity — Stage 3: remaining native medical minigames/actions
 
-- Status: Todo
+- Status: Review
 - Priority: High
 - Category: Remote medical / native minigame parity / special actions
 - Parent: `remote-medical-native-minigame-parity.md`

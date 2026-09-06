@@ -4,19 +4,22 @@ namespace CasualtiesUnknownOnline.Runtime.Session.AdaptiveSync;
 
 /// <summary>
 /// Pure policy: maps a stream profile plus the current pressure level to an
-/// effective cadence. Only <see cref="AdaptiveStreamDeliveryMode.LatestWins"/>
-/// streams are adapted in Stage 1; reliable control and cumulative streams
-/// keep their configured cadence (cumulative coalescing is a later stage).
+/// effective cadence. <see cref="AdaptiveStreamDeliveryMode.LatestWins"/> and
+/// <see cref="AdaptiveStreamDeliveryMode.Cumulative"/> streams are adapted;
+/// reliable control streams keep their configured cadence exactly. Cumulative
+/// coalescing in Stage 3 uses the same pressure factors because the stream
+/// owner is responsible for merging deltas/latest value before each send.
 /// </summary>
 public sealed class AdaptiveRatePolicy
 {
 	/// <summary>
 	/// Returns the effective Hz for a stream. <paramref name="baseHz"/> is the
-	/// user/global configured cadence. For adapted <c>LatestWins</c> streams
-	/// the result is clamped to the profile min/max; non-adapted streams
-	/// preserve the base cadence exactly. When the profile has a non-zero
-	/// <c>MaxBytesPerSecond</c> byte budget and <paramref name="averageFrameBytes"/>
-	/// is known, the result is also capped by that budget.
+	/// stream/global configured cadence. For adapted <c>LatestWins</c> and
+	/// <c>Cumulative</c> streams the result is clamped to the profile min/max;
+	/// non-adapted reliable-control streams preserve the base cadence exactly.
+	/// When the profile has a non-zero <c>MaxBytesPerSecond</c> byte budget and
+	/// <paramref name="averageFrameBytes"/> is known, the result is also capped
+	/// by that budget.
 	/// </summary>
 	public int GetEffectiveHz(
 		AdaptiveStreamProfile profile,
@@ -24,11 +27,8 @@ public sealed class AdaptiveRatePolicy
 		int baseHz,
 		double averageFrameBytes = 0)
 	{
-		if (profile.DeliveryMode != AdaptiveStreamDeliveryMode.LatestWins)
+		if (profile.DeliveryMode == AdaptiveStreamDeliveryMode.ReliableControl)
 		{
-			// Reliable control and cumulative streams are not adapted by this
-			// policy: preserve the exact configured cadence (cumulative
-			// coalescing is a later stage), never clamp to adaptive bounds.
 			return baseHz;
 		}
 

@@ -38,6 +38,14 @@ internal static class AdaptiveStreamWireMapper
 				payloadType = null;
 				message = NetMsg.TutorialClawState;
 				return true;
+			case AdaptiveStreamId.MedicalInjectionReport:
+				payloadType = WirePayloadType.MedicalInjectionUpdate;
+				message = null;
+				return true;
+			case AdaptiveStreamId.ShrapnelPositionReport:
+				payloadType = WirePayloadType.MedicalShrapnelPositionUpdate;
+				message = null;
+				return true;
 			default:
 				payloadType = null;
 				message = null;

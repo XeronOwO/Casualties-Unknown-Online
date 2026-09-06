@@ -19,4 +19,10 @@ public enum AdaptiveStreamId
 
 	/// <summary>Host → guests: the 20 Hz tutorial-claw presentation stream.</summary>
 	TutorialClawBroadcast,
+
+	/// <summary>Guest → host: medical injection frame-level deltas (cumulative, reliably coalesced).</summary>
+	MedicalInjectionReport,
+
+	/// <summary>Guest → host: shrapnel ordinary held-piece position reports (latest per piece, unreliable).</summary>
+	ShrapnelPositionReport,
 }

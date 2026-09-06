@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session.AdaptiveSync;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Time;
 using Microsoft.Extensions.Logging;
@@ -31,6 +32,8 @@ internal sealed class ShrapnelOperationSessionService(
 	HashSet<ulong> sharedReservedItems,
 	HashSet<(ulong Target, int Limb)> sharedReservedTargetLimbs,
 	Func<ulong, bool> hasActiveInjection,
+	AdaptiveStreamRateService adaptiveRates,
+	MedicalOperationIdAllocator operationIds,
 	ILogger log)
 {
 	private const int MaxPieces = 5;
@@ -45,11 +48,13 @@ internal sealed class ShrapnelOperationSessionService(
 	private readonly HashSet<ulong> _sharedReservedItems = sharedReservedItems;
 	private readonly HashSet<(ulong Target, int Limb)> _sharedReservedTargetLimbs = sharedReservedTargetLimbs;
 	private readonly Func<ulong, bool> _hasActiveInjection = hasActiveInjection;
+	private readonly MedicalOperationIdAllocator _operationIds = operationIds;
 	private readonly ILogger _log = log;
 
 	private readonly ShrapnelSessionStateWriter _writer = new(access, items, kernelAuthority, session, log);
+	private readonly ShrapnelPositionReportBuffer _positionReports = new(session, sender, adaptiveRates, time, log);
+	private readonly ShrapnelStatePublisher _statePublisher = new(session, sender, new(access, items, kernelAuthority, session, log));
 	private readonly Dictionary<(ulong Target, int Limb), ShrapnelOperationSession> _sessions = [];
-	private ulong _nextOperationId = 1;
 	private bool _disposed;
 
 	public event Action<MedicalOperationStartAckMsg>? StartAckReceived;
@@ -90,26 +95,47 @@ internal sealed class ShrapnelOperationSessionService(
 			return;
 		}
 
-		var msg = new MedicalOperationUpdateMsg
-		{
-			OperationId = operationId,
-			PieceIndex = update.PieceIndex,
-			X = update.X,
-			Y = update.Y,
-			Grabbed = update.Grabbed,
-			Released = update.Released,
-			BreakGrasp = update.BreakGrasp,
-			OwnershipChange = update.OwnershipChange,
-		};
-
 		if (_session.Role == SessionRole.Host)
 		{
-			HandleUpdate(_session.LocalSteamId, msg);
+			HandleUpdate(_session.LocalSteamId, new MedicalOperationUpdateMsg
+			{
+				OperationId = operationId,
+				PieceIndex = update.PieceIndex,
+				X = update.X,
+				Y = update.Y,
+				Grabbed = update.Grabbed,
+				Released = update.Released,
+				BreakGrasp = update.BreakGrasp,
+				OwnershipChange = update.OwnershipChange,
+			});
+			return;
 		}
-		else
+
+		if (update.OwnershipChange || update.BreakGrasp || update.Released)
 		{
-			_sender.Send(_session.HostSteamId, NetMsg.MedicalOperationUpdate, msg, reliable: update.OwnershipChange);
+			// Semantic ownership transitions are reliable and bypass the
+			// position coalescer. The latest buffered ordinary move is flushed
+			// first so release/break/end never silently drops the final
+			// position; then the buffer is cleared because the transition
+			// supersedes later ordinary moves. BreakGrasp/Released are treated
+			// as semantic even when the caller omits OwnershipChange.
+			_positionReports.Flush(operationId);
+			_positionReports.Clear(operationId);
+			_sender.Send(_session.HostSteamId, NetMsg.MedicalOperationUpdate, new MedicalOperationUpdateMsg
+			{
+				OperationId = operationId,
+				PieceIndex = update.PieceIndex,
+				X = update.X,
+				Y = update.Y,
+				Grabbed = update.Grabbed,
+				Released = update.Released,
+				BreakGrasp = update.BreakGrasp,
+				OwnershipChange = update.OwnershipChange,
+			}, reliable: true);
+			return;
 		}
+
+		_positionReports.QueueOrdinary(operationId, update);
 	}
 
 	public void SendEndRequest(ulong operationId)
@@ -126,6 +152,8 @@ internal sealed class ShrapnelOperationSessionService(
 		}
 		else
 		{
+			_positionReports.Flush(operationId);
+			_positionReports.Clear(operationId);
 			_sender.Send(_session.HostSteamId, NetMsg.MedicalOperationEndRequest, msg);
 		}
 	}
@@ -193,7 +221,7 @@ internal sealed class ShrapnelOperationSessionService(
 		var itemInstanceId = msg.ItemInstanceId;
 		if (itemInstanceId != 0)
 		{
-			var itemIndex = FindUseItemIndex(userData, itemInstanceId);
+			var itemIndex = PlayerItemIndex.Find(userData, itemInstanceId);
 			if (itemIndex < 0 || itemIndex >= userData.Items.Count)
 			{
 				RejectStart(sender, target, msg, "Tweezers not found.");
@@ -225,7 +253,7 @@ internal sealed class ShrapnelOperationSessionService(
 
 			shrapnel = new ShrapnelOperationSession
 			{
-				OperationId = _nextOperationId++,
+				OperationId = _operationIds.Next(),
 				Target = target,
 				LimbIndex = msg.LimbIndex,
 				LastUpdateMs = _time.NowMs,
@@ -260,7 +288,7 @@ internal sealed class ShrapnelOperationSessionService(
 			return;
 		}
 
-		if (!TryGet(msg.OperationId, out var shrapnel) || !shrapnel!.Operators.Contains(sender))
+		if (!ShrapnelSessionLookup.TryGet(_sessions, msg.OperationId, out var shrapnel) || !shrapnel!.Operators.Contains(sender))
 		{
 			_log.LogWarning("[Shrapnel] update refused for unknown/wrong session {OperationId} from {Sender}.", msg.OperationId, sender);
 			return;
@@ -304,8 +332,15 @@ internal sealed class ShrapnelOperationSessionService(
 				return;
 			}
 
-			piece.X = ClampX(msg.X);
-			piece.Y = ClampY(msg.Y);
+			// A release report from the native minigame carries no meaningful
+			// position; preserve the last authoritative piece position instead
+			// of resetting it to the release message's default origin.
+			if (!msg.Released)
+			{
+				piece.X = ShrapnelBounds.ClampX(msg.X);
+				piece.Y = ShrapnelBounds.ClampY(msg.Y);
+			}
+
 			if (msg.OwnershipChange && msg.Grabbed)
 			{
 				piece.Owner = sender;
@@ -327,7 +362,7 @@ internal sealed class ShrapnelOperationSessionService(
 		shrapnel.Sequence++;
 		_writer.UpdateAuthoritativeLimb(shrapnel);
 
-		if (AllRemoved(shrapnel))
+		if (shrapnel.AllPiecesRemoved)
 		{
 			Terminate(shrapnel, MedicalOperationTerminalReason.Completed);
 			return;
@@ -343,7 +378,7 @@ internal sealed class ShrapnelOperationSessionService(
 			return;
 		}
 
-		if (!TryGet(msg.OperationId, out var shrapnel) || !shrapnel!.Operators.Contains(sender))
+		if (!ShrapnelSessionLookup.TryGet(_sessions, msg.OperationId, out var shrapnel) || !shrapnel!.Operators.Contains(sender))
 		{
 			return;
 		}
@@ -358,7 +393,7 @@ internal sealed class ShrapnelOperationSessionService(
 			return;
 		}
 
-		if (!TryGet(msg.OperationId, out var shrapnel) || !shrapnel!.Operators.Contains(sender))
+		if (!ShrapnelSessionLookup.TryGet(_sessions, msg.OperationId, out var shrapnel) || !shrapnel!.Operators.Contains(sender))
 		{
 			return;
 		}
@@ -366,10 +401,16 @@ internal sealed class ShrapnelOperationSessionService(
 		LeaveOperator(shrapnel, sender, MedicalOperationTerminalReason.Cancelled);
 	}
 
+	internal void ClearPending(ulong operationId) => _positionReports.Clear(operationId);
+
+	internal void FlushBeforeTerminal(ulong operationId) =>
+		_positionReports.FlushBeforeTerminal(operationId);
+
 	// ---- Lifecycle ----
 
 	public void Update()
 	{
+		_positionReports.FlushDue();
 		if (_session.Role != SessionRole.Host || !_session.SessionActive)
 		{
 			return;
@@ -417,6 +458,7 @@ internal sealed class ShrapnelOperationSessionService(
 		}
 
 		_sessions.Clear();
+		_positionReports.ClearAll();
 	}
 
 	public bool HasActiveShrapnelOperator(ulong steamId) =>
@@ -460,7 +502,7 @@ internal sealed class ShrapnelOperationSessionService(
 		shrapnel.LastUpdateMs = _time.NowMs;
 		_log.LogInformation("[Shrapnel] operator {Operator} left session {OperationId} ({Reason}).", operatorId, shrapnel.OperationId, reason);
 
-		if (AllRemoved(shrapnel))
+		if (shrapnel.AllPiecesRemoved)
 		{
 			Terminate(shrapnel, MedicalOperationTerminalReason.Completed);
 			return;
@@ -505,20 +547,8 @@ internal sealed class ShrapnelOperationSessionService(
 		shrapnel.OperatorItems.Clear();
 	}
 
-	private bool AllRemoved(ShrapnelOperationSession shrapnel) =>
-		shrapnel.Pieces.Values.All(p => p.Removed);
-
-	private void PublishState(ShrapnelOperationSession shrapnel)
-	{
-		StateReceived?.Invoke(_writer.BuildState(shrapnel, _session.LocalSteamId));
-		foreach (var member in _session.Members.Where(m => m.Handshaken && m.SteamId != _session.LocalSteamId))
-		{
-			_sender.Send(
-				member.SteamId,
-				NetMsg.MedicalOperationState,
-				_writer.BuildState(shrapnel, member.SteamId));
-		}
-	}
+	private void PublishState(ShrapnelOperationSession shrapnel) =>
+		_statePublisher.Publish(shrapnel, StateReceived);
 
 	private void Terminate(ShrapnelOperationSession shrapnel, MedicalOperationTerminalReason reason)
 	{
@@ -566,35 +596,4 @@ internal sealed class ShrapnelOperationSessionService(
 		}, sender);
 	}
 
-	private bool TryGet(ulong operationId, out ShrapnelOperationSession? shrapnel)
-	{
-		foreach (var session in _sessions.Values)
-		{
-			if (session.OperationId == operationId)
-			{
-				shrapnel = session;
-				return true;
-			}
-		}
-
-		shrapnel = null;
-		return false;
-	}
-
-	private static int FindUseItemIndex(CharacterDataMsg data, ulong itemInstanceId)
-	{
-		for (var i = 0; i < data.Items.Count; i++)
-		{
-			if (data.Items[i].InstanceId == itemInstanceId)
-			{
-				return i;
-			}
-		}
-
-		return -1;
-	}
-
-	private static float ClampX(float x) => Math.Max(-524f, Math.Min(524f, x));
-
-	private static float ClampY(float y) => Math.Max(-364f, Math.Min(524f, y));
 }

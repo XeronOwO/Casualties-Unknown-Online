@@ -58,7 +58,7 @@ public class AdaptiveRatePolicyTests
 	}
 
 	[Fact]
-	public void Cumulative_IsNotAdaptedInStage1()
+	public void Cumulative_IsAdaptedInStage3()
 	{
 		var profile = new AdaptiveStreamProfile(
 			AdaptiveStreamId.PlayerStateBroadcast,
@@ -70,18 +70,16 @@ public class AdaptiveRatePolicyTests
 
 		var result = _policy.GetEffectiveHz(profile, AdaptivePressureLevel.Critical, 20);
 
-		Assert.Equal(20, result);
+		Assert.Equal(5, result);
 	}
 
-	[Theory]
-	[InlineData(AdaptiveStreamDeliveryMode.ReliableControl)]
-	[InlineData(AdaptiveStreamDeliveryMode.Cumulative)]
-	public void NonLatestWins_IgnoresAdaptiveBounds(AdaptiveStreamDeliveryMode mode)
+	[Fact]
+	public void ReliableControl_IgnoresAdaptiveBounds()
 	{
 		var profile = new AdaptiveStreamProfile(
 			AdaptiveStreamId.PlayerStateBroadcast,
-			"NonLatestWinsTest",
-			mode,
+			"ReliableControlTest",
+			AdaptiveStreamDeliveryMode.ReliableControl,
 			MinHz: 5,
 			MaxHz: 10,
 			Priority: 1);
@@ -89,6 +87,22 @@ public class AdaptiveRatePolicyTests
 		var result = _policy.GetEffectiveHz(profile, AdaptivePressureLevel.Critical, 1);
 
 		Assert.Equal(1, result);
+	}
+
+	[Fact]
+	public void Cumulative_RespectsAdaptiveBounds()
+	{
+		var profile = new AdaptiveStreamProfile(
+			AdaptiveStreamId.PlayerStateBroadcast,
+			"CumulativeBoundsTest",
+			AdaptiveStreamDeliveryMode.Cumulative,
+			MinHz: 5,
+			MaxHz: 10,
+			Priority: 1);
+
+		var result = _policy.GetEffectiveHz(profile, AdaptivePressureLevel.Critical, 1);
+
+		Assert.Equal(5, result);
 	}
 
 	[Fact]

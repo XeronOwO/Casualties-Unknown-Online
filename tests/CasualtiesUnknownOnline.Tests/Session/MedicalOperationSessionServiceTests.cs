@@ -303,4 +303,75 @@ public sealed class MedicalOperationSessionServiceTests
 		Assert.True(secondAck!.Accepted);
 		Assert.NotEqual(firstAck!.OperationId, secondAck.OperationId);
 	}
+
+	[Fact]
+	public void Guest_InjectionCancel_FlushesBufferedDeltaBeforeCancel()
+	{
+		var (host, guest, _) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		var items = host.Services.GetRequiredService<IItemControl>();
+		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, conscious: true));
+		var morphine = MedicineBag(42, "morphine", "morphine", amount: 100f);
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, morphine));
+		items.AdoptTransferredItem(GuestId, 42, morphine);
+
+		MedicalOperationStartAckMsg? ack = null;
+		var hostEnds = new List<MedicalOperationEndCommittedMsg>();
+		var guestOps = guest.Services.GetRequiredService<IPlayerInteractionControl>().MedicalOperations;
+		var hostOps = host.Services.GetRequiredService<IPlayerInteractionControl>().MedicalOperations;
+		guestOps.StartAckReceived += m => ack = m;
+		hostOps.EndCommittedReceived += hostEnds.Add;
+
+		guestOps.SendStartRequest(HostId, 42, targetLimbIndex: -1);
+		Assert.NotNull(ack);
+		Assert.True(ack!.Accepted);
+
+		guestOps.SendUpdate(ack.OperationId, 10f);
+		guestOps.SendUpdate(ack.OperationId, 5f); // second frame is coalesced/buffered
+		guestOps.SendCancelRequest(ack.OperationId);
+
+		var end = Assert.Single(hostEnds);
+		Assert.Equal(MedicalOperationTerminalReason.Cancelled, end.TerminalReason);
+		Assert.True(Math.Abs(end.CommittedMl - 15f) < 0.001f);
+		Assert.True(Math.Abs(end.TargetHealth!.OpiateAmount - 13.5f) < 0.001f);
+	}
+
+	[Fact]
+	public void Guest_InjectionBurst_CoalescesIntoOneReliableFrameAfterInterval()
+	{
+		var (host, guest, _) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		var items = host.Services.GetRequiredService<IItemControl>();
+		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, conscious: true));
+		var morphine = MedicineBag(42, "morphine", "morphine", amount: 100f);
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, morphine));
+		items.AdoptTransferredItem(GuestId, 42, morphine);
+
+		MedicalOperationStartAckMsg? ack = null;
+		var updates = new List<MedicalOperationUpdateMsg>();
+		host.Transport.MessageReceived += (_, data) =>
+		{
+			if (data.Length > 0 && (NetMsg)data[0] == NetMsg.MedicalOperationUpdate)
+			{
+				updates.Add(NetPacket.DecodePayload<MedicalOperationUpdateMsg>(data));
+			}
+		};
+
+		var guestOps = guest.Services.GetRequiredService<IPlayerInteractionControl>().MedicalOperations;
+		guestOps.StartAckReceived += m => ack = m;
+		guestOps.SendStartRequest(HostId, 42, targetLimbIndex: -1);
+		Assert.NotNull(ack);
+		Assert.True(ack!.Accepted);
+
+		guestOps.SendUpdate(ack.OperationId, 10f);
+		Assert.Single(updates);
+		guestOps.SendUpdate(ack.OperationId, 5f);
+		Assert.Single(updates);
+
+		guest.Clock.Advance(50);
+		guest.Update();
+
+		Assert.Equal(2, updates.Count);
+		Assert.True(Math.Abs(updates[1].DeltaMl - 5f) < 0.001f);
+	}
 }

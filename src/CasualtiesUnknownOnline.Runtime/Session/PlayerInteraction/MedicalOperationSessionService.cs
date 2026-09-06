@@ -4,6 +4,7 @@ using System.Linq;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session.AdaptiveSync;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Time;
@@ -37,11 +38,12 @@ internal sealed class MedicalOperationSessionService : IMedicalOperationControl,
 	private readonly ShrapnelOperationSessionService _shrapnel;
 	private readonly OtherMedicalOperationSessionService _other;
 	private readonly MedicalOperationSessionPublisher _publisher;
+	private readonly MedicalInjectionReportBuffer _injectionReports;
 
 	private readonly Dictionary<ulong, OperationSession> _active = [];
 	private readonly HashSet<ulong> _reservedItems = [];
 	private readonly HashSet<(ulong Target, int Limb)> _reservedTargetLimbs = [];
-	private ulong _nextOperationId = 1;
+	private readonly MedicalOperationIdAllocator _operationIds = new();
 	private bool _disposed;
 
 	public MedicalOperationSessionService(
@@ -52,6 +54,7 @@ internal sealed class MedicalOperationSessionService : IMedicalOperationControl,
 		IPlayerInteractionVisibility visibility,
 		ITimeSource time,
 		ItemKernelAuthority kernelAuthority,
+		AdaptiveStreamRateService adaptiveRates,
 		ILogger<MedicalOperationSessionService> log)
 	{
 		_session = session;
@@ -60,6 +63,7 @@ internal sealed class MedicalOperationSessionService : IMedicalOperationControl,
 		_visibility = visibility;
 		_time = time;
 		_log = log;
+		_injectionReports = new MedicalInjectionReportBuffer(session, sender, adaptiveRates, time, log);
 		_access = new PlayerCharacterAccess(session, characters);
 		_applier = new MedicalOperationInjectionApplier(_access, _items, kernelAuthority, session, log);
 		_shrapnel = new ShrapnelOperationSessionService(
@@ -74,6 +78,8 @@ internal sealed class MedicalOperationSessionService : IMedicalOperationControl,
 			_reservedTargetLimbs,
 			operation => _active.Values.Any(s => s.Operator == operation)
 				|| (_other is { } other ? other.HasActiveOtherOperator(operation) : false),
+			adaptiveRates,
+			_operationIds,
 			log);
 		_other = new OtherMedicalOperationSessionService(
 			session,
@@ -86,6 +92,7 @@ internal sealed class MedicalOperationSessionService : IMedicalOperationControl,
 			_reservedItems,
 			_reservedTargetLimbs,
 			operation => _active.Values.Any(s => s.Operator == operation) || _shrapnel.HasActiveShrapnelOperator(operation),
+			_operationIds,
 			log);
 		_shrapnel.StartAckReceived += FireStartAckReceived;
 		_shrapnel.StateReceived += FireStateReceived;
@@ -143,20 +150,18 @@ internal sealed class MedicalOperationSessionService : IMedicalOperationControl,
 			return;
 		}
 
-		var msg = new MedicalOperationUpdateMsg
-		{
-			OperationId = operationId,
-			DeltaMl = deltaMl,
-		};
-
 		if (_session.Role == SessionRole.Host)
 		{
-			HandleUpdate(_session.LocalSteamId, msg);
+			HandleUpdate(_session.LocalSteamId, new MedicalOperationUpdateMsg
+			{
+				OperationId = operationId,
+				PieceIndex = -1,
+				DeltaMl = deltaMl,
+			});
+			return;
 		}
-		else
-		{
-			_sender.Send(_session.HostSteamId, NetMsg.MedicalOperationUpdate, msg);
-		}
+
+		_injectionReports.Queue(operationId, deltaMl);
 	}
 
 	public void SendEndRequest(ulong operationId, float totalMl)
@@ -173,6 +178,7 @@ internal sealed class MedicalOperationSessionService : IMedicalOperationControl,
 		}
 		else
 		{
+			_injectionReports.FlushBeforeTerminal(operationId);
 			_sender.Send(_session.HostSteamId, NetMsg.MedicalOperationEndRequest, msg);
 		}
 	}
@@ -186,6 +192,8 @@ internal sealed class MedicalOperationSessionService : IMedicalOperationControl,
 		}
 		else
 		{
+			_injectionReports.FlushBeforeTerminal(operationId);
+			_shrapnel.FlushBeforeTerminal(operationId);
 			_sender.Send(_session.HostSteamId, NetMsg.MedicalOperationCancel, msg);
 		}
 	}
@@ -282,7 +290,7 @@ internal sealed class MedicalOperationSessionService : IMedicalOperationControl,
 			return;
 		}
 
-		var itemIndex = FindUseItemIndex(userData, msg.ItemInstanceId);
+		var itemIndex = PlayerItemIndex.Find(userData, msg.ItemInstanceId);
 		if (itemIndex < 0 || itemIndex >= userData.Items.Count)
 		{
 			_log.LogWarning("[MedicalOps] refused start: {Operator} has no usable item (requested {ItemId}).", operation, msg.ItemInstanceId);
@@ -329,7 +337,7 @@ internal sealed class MedicalOperationSessionService : IMedicalOperationControl,
 
 		var session = new OperationSession
 		{
-			OperationId = _nextOperationId++,
+			OperationId = _operationIds.Next(),
 			Operator = operation,
 			Target = target,
 			ItemInstanceId = originalItem.InstanceId,
@@ -481,7 +489,12 @@ internal sealed class MedicalOperationSessionService : IMedicalOperationControl,
 
 	public void FireStateReceived(MedicalOperationStateMsg msg) => StateReceived?.Invoke(msg);
 
-	public void FireEndCommittedReceived(MedicalOperationEndCommittedMsg msg) => EndCommittedReceived?.Invoke(msg);
+	public void FireEndCommittedReceived(MedicalOperationEndCommittedMsg msg)
+	{
+		_injectionReports.Clear(msg.OperationId);
+		_shrapnel.ClearPending(msg.OperationId);
+		EndCommittedReceived?.Invoke(msg);
+	}
 
 	// ---- ICuoService ----
 
@@ -495,6 +508,7 @@ internal sealed class MedicalOperationSessionService : IMedicalOperationControl,
 
 	void ICuoService.Update()
 	{
+		_injectionReports.FlushDue();
 		_shrapnel.Update();
 		_other.Update();
 		if (_session.Role != SessionRole.Host || !_session.SessionActive)
@@ -527,6 +541,7 @@ internal sealed class MedicalOperationSessionService : IMedicalOperationControl,
 		_disposed = true;
 		_session.MemberRemoved -= OnMemberRemoved;
 		_session.SessionEnded -= OnSessionEnded;
+		_injectionReports.ClearAll();
 		_shrapnel.Dispose();
 		_other.Dispose();
 	}
@@ -577,20 +592,8 @@ internal sealed class MedicalOperationSessionService : IMedicalOperationControl,
 		_shrapnel.Clear();
 		_other.Clear();
 		_active.Clear();
+		_injectionReports.ClearAll();
 		_reservedItems.Clear();
 		_reservedTargetLimbs.Clear();
-	}
-
-	private static int FindUseItemIndex(CharacterDataMsg data, ulong itemInstanceId)
-	{
-		for (var i = 0; i < data.Items.Count; i++)
-		{
-			if (data.Items[i].InstanceId == itemInstanceId)
-			{
-				return i;
-			}
-		}
-
-		return -1;
 	}
 }

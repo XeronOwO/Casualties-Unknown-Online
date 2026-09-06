@@ -77,6 +77,12 @@ public enum WirePayloadType
 	PlayerStateStream = 304,
 	EnemyStateStream = 305,
 
+	// Direct medical operation update traffic classification (not a ProtocolFrame
+	// envelope type; these values only group adaptive traffic observations).
+	MedicalInjectionUpdate = 306,
+	MedicalShrapnelPositionUpdate = 307,
+	MedicalOperationOtherUpdate = 308,
+
 	// Non-critical presentation effects (reserved)
 	PresentationEffect = 1001,
 }

@@ -140,6 +140,56 @@ a separate future architecture item, not part of the completed evolution.
     UI to replace it. Prefer a thin adapter focus + patches. If a native UI cannot
     be reused, record the concrete blocker with evidence and get user direction
     before adding custom UI.
+13. `[RULE]` **Ask on functional design; execute on implementation**: when the
+    functional design is ambiguous, has multiple reasonable options, or has
+    user-visible tradeoffs, ask the user and confirm the direction before coding.
+    Once the design and requirements are clear, follow the project specifications
+    and this file without asking about routine implementation details; ask only
+    when a decision is architecture-affecting or not covered by the conventions.
+
+## General Development Workflow (binding)
+
+This workflow applies to normal work by default—features, bug fixes, user-facing
+changes, and internal improvements. It is not reserved for previously rejected
+items or user-reported problems only.
+
+1. **Frame the task from the user's perspective.**
+   - For user-reported issues: write the exact reproduction steps, expected
+     behavior, and an acceptance matrix covering roles, directions, views, and
+     related families.
+   - For feature work: state the functional intent, user-visible behavior, and
+     scope before coding.
+
+2. **Resolve functional design before implementation.**
+   - If the functional design is ambiguous or has user-visible tradeoffs, ask the
+     user and confirm the direction before implementing.
+   - Once design and requirements are clear, proceed autonomously on implementation
+     detail and follow the project conventions; do not over-ask.
+
+3. **Check for reusable game UI/mechanisms first.** If the game already has a
+   native surface for the feature, reuse it. If not, document the evidence and get
+   user direction before building custom UI.
+
+4. **Make the expected failure visible before fixing.** Add a regression test or
+   runtime probe that fails on current code, covering the reported scenario and
+   adjacent scenarios. Record the red before implementing.
+
+5. **Implement, then verify against the full matrix.** Build → deploy the latest
+   artifacts → verify deployed artifact identity (hash/timestamp) → run
+   runtime/log/dual-client checks where applicable → confirm every row of the
+   acceptance matrix passes before moving to `review/`.
+
+6. **Run an independent adversarial self-check.** Use a fresh/independent context,
+   not the same reasoning path that produced the change. Cover reverse directions,
+   third-party views, edge cases, and regressions of adjacent features.
+
+7. **When a delivery is rejected or verification fails, run a root-cause loop.**
+   Analyze "why was it missed", record the process lesson, and fix the leak before
+   moving on.
+
+8. **Keep incomplete or unverified work open.** Do not claim completion, do not
+   reclassify known gaps as future, and do not move to `review/` until the exact
+   scenario and full acceptance matrix are verified.
 
 ## Quality & Delivery (binding)
 

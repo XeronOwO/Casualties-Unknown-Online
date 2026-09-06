@@ -16,11 +16,14 @@ ticket is **not accepted** until those issues are resolved.
 2. Guest cannot put the host's water bottle, dog food, or lantern into the host's trash bag; metal scrap can be moved in, shows 75% correctly, and can be taken back out.
 3. Guest cannot take a host item and use double-Tab to transfer it to the guest's own inventory.
 4. Guest cannot pour out or edge-drop the host's water bottle.
+5. Host opens the guest backpack, can move guest items into the guest's trash bag, but dragging an item out of the trash bag back to a guest slot makes the item vanish.
+6. Host cannot place an item into the guest's main hand; other guest positions accept placement.
 
 The user also stated that the item projection layer appears to have many
 problems, that earlier development did not consider this interaction family,
-and that the projection mechanism likely needs a careful audit or a complete
-rework rather than more point patches.
+that the two directions (host-open-guest and guest-open-host) still behave
+asymmetrically, and that the projection mechanism likely needs a careful audit
+or a complete rework rather than more point patches.
 
 ## Rejected again (latest user re-report — super priority)
 

@@ -39,7 +39,7 @@ todo/  →  in-progress/  →  review/  →  done/
 ### Todo
 
 - [Remote medical panel acceptance issues (mood cadence / breathing icon / ECG)](todo/remote-medical-panel-acceptance-issues.md) — **High**: user acceptance found fentanyl mood updates only at 1 Hz, wrong breathing-stop icon, and remote ECG still showing the viewer's own heart.
-- [Remote backpack item projection acceptance issues (projection rework needed)](todo/remote-backpack-item-projection-acceptance-issues.md) — **High**: user acceptance found durability mismatch, selective trash-bag moves, failed Tab transfer, and failed pour/edge-drop on the host's water bottle; projection mechanism likely needs a full audit or rework.
+- [Remote backpack item projection acceptance issues (projection rework needed)](todo/remote-backpack-item-projection-acceptance-issues.md) — **High**: user acceptance found durability mismatch, selective trash-bag moves, failed Tab transfer, failed pour/edge-drop, host-side trash-bag take-out vanishing, and no main-hand placement; host↔guest directions are asymmetric, projection mechanism likely needs a full audit or rework.
 - [Host metal-scrap block placement sound not heard on guest](todo/host-metal-scrap-block-place-sound-not-synced-to-guest.md) — **Medium**: user report (2026-09-06); host places metal scrap as a block and the guest misses the placement sound.
 
 ### Review

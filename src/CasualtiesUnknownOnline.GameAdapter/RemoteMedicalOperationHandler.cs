@@ -378,8 +378,6 @@ internal sealed class RemoteMedicalOperationHandler
 
 		internal bool CancelledBeforeAck { get; set; }
 
-		private float _lastProgressSendAt;
-
 		internal void Accumulate(float ml)
 		{
 			InjectedMl += ml;
@@ -400,18 +398,19 @@ internal sealed class RemoteMedicalOperationHandler
 			}
 
 			var delta = InjectedMl - SentMl;
-			if (delta < 0.01f)
+			if (delta < 0.001f)
 			{
 				return;
 			}
 
-			var now = Time.realtimeSinceStartup;
-			if (_lastProgressSendAt == 0f || now - _lastProgressSendAt >= 0.5f || delta >= 10f)
-			{
-				Progress(OperationId, delta);
-				SentMl += delta;
-				_lastProgressSendAt = now;
-			}
+			// Per-frame report: every native minigame Update that actually
+			// delivered more liquid sends its delta immediately. The host
+			// broadcasts one authoritative State per accepted update, so the
+			// target/third-party view follows the syringe at frame granularity.
+			// Future adaptive flow control can lower this cadence dynamically
+			// without changing the protocol (see backlog future ticket).
+			Progress(OperationId, delta);
+			SentMl += delta;
 		}
 	}
 }

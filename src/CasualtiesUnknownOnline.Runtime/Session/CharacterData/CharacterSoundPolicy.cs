@@ -10,7 +10,8 @@ namespace CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 /// patches run this inside the call-identity scopes opened around
 /// <c>Body.Attack</c> / <c>Body.ThrowItem</c> / <c>Body.TryExertSound</c> /
 /// <c>Body.FootStep</c> / <c>Body.HandleGroundedState</c> /
-/// <c>PantSound.Update</c> / <c>PantSound.Bark</c> / <c>PantSound.TryGrowl</c>;
+/// <c>PantSound.Update</c> / <c>PantSound.Bark</c> / <c>PantSound.TryGrowl</c> /
+/// <c>LockpingMinigame.Update</c>;
 /// any block hit sound that fires during an attack is excluded before this
 /// policy sees it, because <c>WorldGeneration.DamageBlock</c> opens its own
 /// innermost <c>DamageBlockOrigin</c> scope.
@@ -30,6 +31,7 @@ public static class CharacterSoundPolicy
 		Bark = 7,
 		Growl = 8,
 		Yawn = 9,
+		LockpickPain = 10,
 	}
 
 	/// <summary>
@@ -61,6 +63,7 @@ public static class CharacterSoundPolicy
 			Origin.Bark => CharacterSoundKind.Bark,
 			Origin.Growl => CharacterSoundKind.Growl,
 			Origin.Yawn => CharacterSoundKind.Yawn,
+			Origin.LockpickPain => clip == "gore2" ? CharacterSoundKind.Pain : null,
 			_ => null,
 		};
 	}

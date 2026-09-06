@@ -70,9 +70,6 @@ internal static class CallContext
 		/// <summary>Inside PantSound.Update — the local one-shot pain (AudioClip) and yawn (string) vocalizations report from this scope. The continuous pant AudioSource is not a Sound.Play call and is never captured.</summary>
 		CharacterVocalization,
 
-		/// <summary>Inside LockpingMinigame.Update — the local lockpick-failure pain sound (<c>"gore2"</c>) reports from this scope. The success <c>"unlock"</c> sound is not classified by this scope.</summary>
-		CharacterLockpickPain,
-
 		/// <summary>Inside PantSound.Bark — the local B-key bark AudioClip reports from this scope.</summary>
 		CharacterBark,
 

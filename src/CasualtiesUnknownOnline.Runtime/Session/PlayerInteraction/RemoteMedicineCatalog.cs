@@ -119,6 +119,20 @@ public static class RemoteMedicineCatalog
 	public static bool TryCreatePlan(
 		IReadOnlyList<LiquidStackMsg>? liquids,
 		string itemId,
+		out List<LiquidStackMsg> drained) =>
+		TryCreatePlan(liquids, itemId, 0f, out drained);
+
+	/// <summary>
+	/// Build a medicine plan for an explicit minigame-delivered dose. A
+	/// non-positive <paramref name="explicitAmount"/> falls back to the item's
+	/// normal per-use injection amount; the actual draw is still capped by the
+	/// remaining liquid total, and the draw remains proportional across every
+	/// liquid stack.
+	/// </summary>
+	public static bool TryCreatePlan(
+		IReadOnlyList<LiquidStackMsg>? liquids,
+		string itemId,
+		float explicitAmount,
 		out List<LiquidStackMsg> drained)
 	{
 		drained = [];
@@ -148,7 +162,8 @@ public static class RemoteMedicineCatalog
 			return false;
 		}
 
-		var draw = Math.Min(amount, total);
+		var requested = explicitAmount > 0f ? explicitAmount : amount;
+		var draw = Math.Min(requested, total);
 		foreach (var liquid in liquids)
 		{
 			drained.Add(new LiquidStackMsg

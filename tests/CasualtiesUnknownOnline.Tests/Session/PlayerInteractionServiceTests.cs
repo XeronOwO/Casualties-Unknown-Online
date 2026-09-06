@@ -1352,6 +1352,33 @@ public class PlayerInteractionServiceTests
 	}
 
 	[Fact]
+	public void Guest_InjectPartialMorphineDoseOnHost_AppliesExactMinigameMl()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		var items = host.Services.GetRequiredService<IItemControl>();
+		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, conscious: true));
+		var morphine = MedicineBottle(42, "morphine", "morphine", amount: 100f, condition: 1f);
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, morphine));
+		items.AdoptTransferredItem(GuestId, 42, morphine);
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendUseRequest(HostId, 42, doseAmount: 50f);
+
+		var result = UseResult(received);
+		Assert.Equal(GuestId, result.UserSteamId);
+		Assert.Equal(HostId, result.TargetSteamId);
+		Assert.Equal(42UL, result.ItemInstanceId);
+		Assert.False(result.ItemDestroyed);
+		Assert.NotNull(result.ItemAfter);
+		Assert.True(Math.Abs(result.ItemAfter!.Condition - 0.5f) < 0.001f);
+		Assert.True(Math.Abs(result.ItemAfter!.Liquids.Single().Amount - 50f) < 0.001f);
+
+		var hostData = characters.GetHostCharacterData()!;
+		Assert.True(Math.Abs(hostData.Health!.OpiateAmount - 45f) < 0.001f);
+	}
+
+	[Fact]
 	public void Guest_UsesBoneweldingToolOnHost_AppliesToolAndSendsResult()
 	{
 		var (host, guest, received) = CreateSession();
@@ -2287,6 +2314,26 @@ public class PlayerInteractionServiceTests
 		Assert.Equal(HostId, decoded.TargetSteamId);
 		Assert.Equal(42UL, decoded.ItemInstanceId);
 		Assert.Equal(2, decoded.LimbIndex);
+	}
+
+	[Fact]
+	public void UseRequest_RoundTripsMinigameDoseAmount()
+	{
+		var msg = new PlayerItemUseRequestMsg
+		{
+			TargetSteamId = HostId,
+			ItemInstanceId = 42,
+			LimbIndex = -1,
+			DoseAmount = 37.5f,
+		};
+
+		var decoded = NetPacket.DecodePayload<PlayerItemUseRequestMsg>(
+			NetPacket.Encode(NetMsg.PlayerItemUseRequest, msg));
+
+		Assert.Equal(HostId, decoded.TargetSteamId);
+		Assert.Equal(42UL, decoded.ItemInstanceId);
+		Assert.Equal(-1, decoded.LimbIndex);
+		Assert.True(Math.Abs(decoded.DoseAmount - 37.5f) < 0.001f);
 	}
 
 	private static (TestNode Host, TestNode Guest, List<(NetMsg Msg, byte[] Frame)> Received) CreateBlockedSession() =>

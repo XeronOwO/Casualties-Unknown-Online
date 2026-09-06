@@ -53,6 +53,31 @@ public sealed class RemoteMedicineApplicationTests
 	}
 
 	[Fact]
+	public void Plan_DrawsExplicitPartialDoseProportionallyAcrossStacks()
+	{
+		var mixed = new List<LiquidStackMsg>
+		{
+			new() { LiquidId = "fentanyl", Amount = 10f },
+			new() { LiquidId = "water", Amount = 90f },
+		};
+
+		Assert.True(RemoteMedicineCatalog.TryCreatePlan(mixed, "fentanyl", 50f, out var plan));
+		Assert.Equal(2, plan.Count);
+		Assert.True(Math.Abs(plan[0].Amount - 5f) < 0.001f);
+		Assert.True(Math.Abs(plan[1].Amount - 45f) < 0.001f);
+	}
+
+	[Fact]
+	public void Plan_ExplicitDoseCapsAtRemainingLiquidTotal()
+	{
+		var small = new List<LiquidStackMsg> { new() { LiquidId = "morphine", Amount = 30f } };
+
+		Assert.True(RemoteMedicineCatalog.TryCreatePlan(small, "morphine", 100f, out var plan));
+		var drain = Assert.Single(plan);
+		Assert.True(Math.Abs(drain.Amount - 30f) < 0.001f);
+	}
+
+	[Fact]
 	public void ApplyMorphine_AddsOpiateAmount()
 	{
 		var health = new CharacterHealthMsg { OpiateAmount = 0f };

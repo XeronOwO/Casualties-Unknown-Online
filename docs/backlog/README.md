@@ -38,7 +38,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-- [Remote fentanyl injection bypass and remote medical panel desync](todo/remote-fentanyl-injection-and-medical-panel-desync.md) — **Critical**: guest→host fentanyl use bypasses the native injection minigame and drains the whole container; remote medical panel does not reflect host happiness / shows heart rate 0, leaks viewer's own status icons, and leaves sleep enabled; deep investigation into the cross-player medicine and native WoundView projection gaps.
+_No open todo items._
 
 ### Review
 - [Convert non-.editorconfig normative requirements into unit-testable gates](review/normative-style-unit-test-gates.md) — Roslyn `dotnet test` gate for unnecessary fully qualified names landed; normative-rule inventory added in `docs/evidence/normative-gates.md`.
@@ -53,6 +53,7 @@ todo/  →  in-progress/  →  review/  →  done/
 
 - [Remote player medical/health panel](review/remote-player-medical-panel.md) — native WoundView reuse: display-only body copy fed from the 1 Hz character snapshot; custom CUO IMGUI panel removed; selfcheck linked.
 - [Remote medical treatment operations](review/remote-medical-treatment-operations.md) — native WoundView limb drag routes through the existing host-validated heal/use path with selected-limb support; selfcheck linked.
+- [Remote fentanyl injection bypass and remote medical panel desync](review/remote-fentanyl-injection-and-medical-panel-desync.md) — **Critical**: native syringe minigame now routes cross-player injectable/IV doses with exact delivered ml; remote WoundView display projection, ECG/Moodle redirection and sleep-button disable landed; selfcheck linked; awaiting final user dual-client acceptance.
 - [Remote context menu Medical visible when target is not visible](review/remote-context-menu-medical-visible-when-target-not-visible.md) — Medical now follows the same line-of-sight/visibility gate as the other remote actions; fixed in the shared member projection so context menu, Players page, and quick panel stay consistent; selfcheck linked.
 - [Dead-player right-click context menu should show a dead status suffix in the title](review/dead-player-right-click-name-suffix.md) — context-menu title and duplicate-name target selector append the localized dead suffix from the existing `IsDead` projection; Players-list dead rendering and wire/protocol unchanged; selfcheck linked.
 - [Guest remote pose / head-orientation desync on host view](review/guest-remote-pose-head-orientation-desync.md) — stale render-clone attackCooldown/moveDir auto-flip inputs neutralized; regression contract and selfcheck linked.

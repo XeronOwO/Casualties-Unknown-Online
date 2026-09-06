@@ -65,6 +65,11 @@ internal static class RemoteMedicalView
 	/// </summary>
 	internal static void Close()
 	{
+		// Any in-flight remote syringe belongs to this focus. Cancel it first
+		// (restores the item condition and ends only the exact native minigame),
+		// so the destroyed display body can never later complete a stale request.
+		RemoteMedicalOperationHandler.CancelActiveSyringeUse();
+
 		var display = DisplayBody;
 		var wasOpen = IsOpen;
 

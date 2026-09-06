@@ -3,10 +3,11 @@ using System;
 namespace CasualtiesUnknownOnline.Runtime.Configuration;
 
 /// <summary>
-/// State-stream cadence configuration. One frequency drives both state
-/// streams that were hard-coded at 20 Hz: the player entity stream
-/// (<c>EntitySyncService</c> host broadcast + guest report) and the
-/// host-authoritative enemy stream (<c>EnemySyncService</c>). The value is
+/// State-stream cadence configuration. This is the base frequency consumed by
+/// <c>AdaptiveStreamRateService</c> for the 20 Hz overwrite streams: the
+/// player entity stream (<c>EntitySyncService</c> host broadcast + guest
+/// report), the host-authoritative enemy stream (<c>EnemySyncService</c>), and
+/// the tutorial-claw stream (<c>TutorialClawService</c>). The value is
 /// normalized into the supported 1-60 Hz band here so every consumer reads
 /// one safe number; the Game Adapter's 1 Hz character snapshot is deliberately
 /// NOT part of this option (it is the full-fact fallback, not a state stream).

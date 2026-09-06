@@ -38,7 +38,10 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
+- [Global adaptive report-rate / sync-frequency flow control](todo/global-adaptive-report-rate-flow-control.md) — **Medium (user-promoted from future)**: global framework for all frequent-report, loss-tolerant streams; split into stages; Stage 1 is in review and the remaining stage tickets are created as sessions reach them.
+
 ### Review
+- [Global adaptive report-rate flow control — Stage 1: stream taxonomy + health-driven overwrite governor](review/global-adaptive-report-rate-stage-1-global-governor.md) — **Medium**: explicit reliable/unreliable/cumulative delivery modes, pressure classifier + rate policy, shared `AdaptiveStreamRateService`, and Player/Enemy/Tutorial overwrite streams integrated; full build, 2417 + 16 gates, independent adversarial self-check, deployed-hash verification complete; awaiting final unified acceptance pass.
 - [Remote medical parity — Stage 1: medical operation session + real-time injection](review/remote-medical-stage-1-injection-session.md) — **High**: generic MedicalOperationSession protocol, host reservations/terminal semantics, incremental syringe/IV deltas, one-shot injectable path removed, protocol bumped to 12; red→green, full suite, independent adversarial self-check and deployed-hash verification complete; awaiting the final unified acceptance pass.
 - [Remote medical parity — Stage 2: multiplayer shrapnel removal](review/remote-medical-stage-2-shrapnel-multiplayer.md) — **High**: shared shrapnel session with atomic per-piece ownership, concurrent operators, read-only observer piece positions, per-operator tweezers item sync, force-ungrab, progress/third-party propagation and failure/cancel semantics; full suite, independent adversarial self-check and deployed-hash verification complete; awaiting the final unified acceptance pass.
 - [Remote medical parity — Stage 3: remaining native medical minigames/actions](review/remote-medical-stage-3-other-actions.md) — **High**: bandage/dressing minigame, splint/tourniquet removal, dislocation fix, AED, manual defibrillation, amputation and remaining WoundView actions; full suite, independent adversarial self-check and deployed-hash verification complete; awaiting the final unified acceptance pass.
@@ -93,7 +96,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [PVP](future/pvp.md) — low priority, deferred until PvE/rules stable.
 - [KrokMP lower-priority candidates](future/krokmp-candidates.md) — voice, vote-kick; player-list polish has landed.
 - [Remote medical CPR enhancement](future/remote-medical-cpr.md) — KrokMP custom CPR is not native; deferred to future as an enhancement.
-- [Global adaptive report-rate / sync-frequency flow control](future/global-adaptive-report-rate-flow-control.md) — global framework for all frequent-report, loss-tolerant streams; first candidate is Stage 1 medical frame-level reporting.
 - [EnemyCombatOrderPolicy kernel-process follow-up](future/enemy-combat-order-policy-kernel.md).
 - [Generic Prediction Runtime](future/generic-prediction-runtime.md).
 - [Strict validation / anti-cheat hardening](future/strict-validation-anti-cheat.md).

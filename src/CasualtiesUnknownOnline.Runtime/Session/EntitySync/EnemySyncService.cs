@@ -5,14 +5,13 @@ using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.GameState.Domains.Entities;
 using CasualtiesUnknownOnline.Protocol.Wire;
-using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session.AdaptiveSync;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Time;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 
@@ -33,9 +32,9 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 	private readonly PacketSender _sender;
 	private readonly ITimeSource _time;
 
-	private readonly IOptionsMonitor<StateStreamOptions> _stateStreamOptions;
-
 	private readonly ILogger<EnemySyncService> _log;
+
+	private readonly AdaptiveStreamRateService _adaptiveRates;
 
 	private readonly EnemyKernelProjection _enemyKernel;
 	private readonly EnemyKernelRestoreProjection _enemyKernelRestore;
@@ -55,7 +54,7 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 	private uint _nextEnemyCounter; // host: enemy-id allocation counter
 
 	public EnemySyncService(ISessionControl session, PacketSender sender, ITimeSource time,
-		IOptionsMonitor<StateStreamOptions> stateStreamOptions, ILogger<EnemySyncService> log,
+		AdaptiveStreamRateService adaptiveRates, ILogger<EnemySyncService> log,
 		EnemyKernelProjection enemyKernel, EnemyKernelRestoreProjection enemyKernelRestore,
 		ItemKernelAuthority kernelAuthority, IKernelProtocolControl kernelProtocol,
 		ICharacterDataControl characterData)
@@ -63,7 +62,7 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 		_session = session;
 		_sender = sender;
 		_time = time;
-		_stateStreamOptions = stateStreamOptions;
+		_adaptiveRates = adaptiveRates;
 		_log = log;
 		_enemyKernel = enemyKernel;
 		_enemyKernelRestore = enemyKernelRestore;
@@ -230,7 +229,9 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 			var nowMs = _time.NowMs;
 			if (nowMs >= _nextStateSendMs)
 			{
-				_nextStateSendMs = nowMs + (long)(_stateStreamOptions.CurrentValue.SendIntervalSeconds * 1000f);
+				_nextStateSendMs = nowMs + _adaptiveRates.GetSendIntervalMs(
+					AdaptiveStreamId.EnemyStateBroadcast,
+					InWorldGuestSteamIds());
 				BroadcastEnemyState();
 			}
 		}
@@ -252,6 +253,11 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 
 	// ---- Broadcast / snapshot ----
 
+	private IEnumerable<ulong> InWorldGuestSteamIds() =>
+		_session.Members
+			.Where(m => m.Handshaken && m.InWorld && m.SteamId != _session.LocalSteamId)
+			.Select(m => m.SteamId);
+
 	private void BroadcastEnemyState()
 	{
 		var stream = new WireStateStream
@@ -260,10 +266,7 @@ public sealed class EnemySyncService : ICuoService, IEnemySyncControl
 			BaseGlobalRevision = _kernelAuthority.CurrentGlobalRevision,
 			EnemyStates = [.. _enemies.Values.Select(e => e.ToWireEnemyStreamState())],
 		};
-		var targets = _session.Members
-			.Where(m => m.Handshaken && m.InWorld && m.SteamId != _session.LocalSteamId)
-			.Select(m => m.SteamId)
-			.ToList();
+		var targets = InWorldGuestSteamIds().ToList();
 		_kernelProtocol.BroadcastStateStreamTo(targets, stream, WirePayloadType.EnemyStateStream, reliable: false);
 	}
 

@@ -15,8 +15,10 @@ namespace CasualtiesUnknownOnline.Runtime.Session.NetworkTraffic;
 /// <see cref="PacketReceiver"/> only report raw send/receive facts to it, and
 /// <see cref="SessionService"/> reports the ping/pong probe results. It also
 /// owns the pure <see cref="PeerHealthTracker"/> (RTT samples, jitter,
-/// probe loss). Observability-only — no batching, no rate-limit, no bandwidth
-/// decision is made from these numbers yet.
+/// probe loss). The traffic counters remain observability-only; the peer
+/// health snapshot is also consumed by <c>AdaptiveStreamRateService</c> for
+/// the rate policy, while the rate decision itself lives in the adaptive-sync
+/// layer rather than here.
 /// </summary>
 public sealed class NetworkTrafficMonitor(ITimeSource time, ILogger<NetworkTrafficMonitor> log) : ICuoService
 {
@@ -24,6 +26,9 @@ public sealed class NetworkTrafficMonitor(ITimeSource time, ILogger<NetworkTraff
 	private readonly PeerHealthTracker _health = new();
 	private readonly ITimeSource _time = time;
 	private readonly ILogger<NetworkTrafficMonitor> _log = log;
+
+	/// <summary>Raised after a per-session reset so dependent rate caches can clear.</summary>
+	internal event Action? ResetCompleted;
 
 	internal void RecordSend(ulong steamId, NetMsg msg, int byteCount, bool success, WirePayloadType? payloadType = null) =>
 		_tracker.RecordSend(steamId, msg, byteCount, success, payloadType);
@@ -45,10 +50,14 @@ public sealed class NetworkTrafficMonitor(ITimeSource time, ILogger<NetworkTraff
 	internal IReadOnlyList<PeerHealthTracker.PeerHealthSnapshot> HealthSnapshots =>
 		_health.Snapshots();
 
+	internal bool TryGetHealthSnapshot(ulong steamId, out PeerHealthTracker.PeerHealthSnapshot snapshot) =>
+		_health.TryGetSnapshot(steamId, out snapshot);
+
 	internal void Reset()
 	{
 		_tracker.Reset();
 		_health.Reset();
+		ResetCompleted?.Invoke();
 	}
 
 	void ICuoService.Initialize()

@@ -11,8 +11,8 @@ namespace CasualtiesUnknownOnline.Runtime.Session.NetworkTraffic;
 /// already-lost probe can never be mistaken for the current outstanding probe.
 /// It owns no transport/session state and is fed only by
 /// <see cref="NetworkTrafficMonitor"/> from the session's ping callbacks.
-/// This is observability-only — no route, retry or rate-limit decision is made
-/// from these numbers.
+/// It does not make route/retry decisions itself; the adaptive rate layer
+/// may consume the snapshots for loss-tolerant stream cadence changes.
 /// </summary>
 internal sealed class PeerHealthTracker
 {

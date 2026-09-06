@@ -7,6 +7,5 @@ internal sealed class ShrapnelPieceState
 	internal float X;
 	internal float Y;
 	internal ulong Owner;
-	internal long LeaseExpiryMs;
 	internal bool Removed;
 }

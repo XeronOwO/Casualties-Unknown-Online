@@ -1,6 +1,6 @@
 # Remote medical parity — Stage 2: multiplayer shrapnel removal
 
-- Status: Todo
+- Status: Review
 - Priority: High
 - Category: Remote medical / multiplayer shrapnel / concurrent ownership
 - Parent: `remote-medical-native-minigame-parity.md`
@@ -56,7 +56,7 @@ The remote focus is no longer read-only for this specific action.
 ### Ownership and concurrency
 
 - Host is the authority for which piece is held by whom.
-- First plausible update claiming a free piece grants a short lease (KrokMP uses roughly 150 ms of ownership per movement message).
+- First plausible update claiming a free piece grants ownership that is held until the piece is released, removed, broken, or the operator leaves/cancels/disconnects. A drag-to-drop is one atomic operation: while one operator owns the piece, no other operator can select or move it (confirmed 2026-09-06).
 - While a piece has an owner, non-owners cannot move it; their local minigame must force-ungrab or visually mark it unavailable.
 - Different pieces can be operated by different players simultaneously.
 - Removing a piece commits immediately: the authoritative limb `Shrapnel` count decreases and progress is broadcast.
@@ -87,7 +87,7 @@ The remote focus is no longer read-only for this specific action.
 | 1 | Two guests remove different shrapnel pieces from the same limb simultaneously | Both succeed without overwriting each other |
 | 2 | Two players try to grab the same piece | Only the lease owner moves it; the other is force-ungrabbed |
 | 3 | Host and guest operate on the same limb | Both directions work through the host session |
-| 4 | Third party watches the shrapnel minigame | They see authoritative piece positions and ownership |
+| 4 | Third party watches the shrapnel minigame | They see authoritative piece positions in real time; ownership is not required to be displayed, but non-owners cannot select/move a held piece |
 | 5 | Operator cancels mid-removal | Held piece is released; already removed pieces stay removed |
 | 6 | Operator disconnects while holding a piece | Host releases the lease and terminates/updates the session |
 | 7 | All pieces removed | Session ends with final authoritative limb state |

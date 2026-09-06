@@ -376,6 +376,9 @@ internal sealed class RemoteMedicalOperationHandler
 	internal static bool IsActiveShrapnelMinigame(ShrapnelMinigame minigame) =>
 		RemoteShrapnelOperationHandler.IsActiveShrapnelMinigame(minigame);
 
+	internal static bool IsObserverShrapnelMinigame(ShrapnelMinigame minigame) =>
+		RemoteShrapnelOperationHandler.IsObserverShrapnelMinigame(minigame);
+
 	internal static bool IsShrapnelPieceOwnedByOther(int pieceIndex) =>
 		RemoteShrapnelOperationHandler.IsShrapnelPieceOwnedByOther(pieceIndex);
 

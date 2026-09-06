@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.GameAdapter.Character;
+using CasualtiesUnknownOnline.GameAdapter.Patches;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using HarmonyLib;
@@ -19,6 +20,7 @@ namespace CasualtiesUnknownOnline.GameAdapter;
 internal sealed class RemoteShrapnelOperationHandler
 {
 	private static RemoteShrapnelUseSession? _activeShrapnel;
+	private static RemoteShrapnelUseSession? _observerShrapnel;
 	private static Action<ulong>? _cancelRequestSender;
 	private static Action<ulong>? _shrapnelEndRequestSender;
 	private static Action<ulong, ShrapnelPieceUpdate>? _shrapnelUpdateSender;
@@ -78,6 +80,13 @@ internal sealed class RemoteShrapnelOperationHandler
 
 	internal static void CompleteActiveShrapnelUse()
 	{
+		if (_observerShrapnel is not null)
+		{
+			_observerShrapnel = null;
+			RemoteShrapnelMinigamePatch.ResetLastHeld();
+			return;
+		}
+
 		var session = _activeShrapnel;
 		if (session == null)
 		{
@@ -86,11 +95,18 @@ internal sealed class RemoteShrapnelOperationHandler
 
 		if (session.OperationId != 0)
 		{
+			// The native ShrapnelMinigame calls EndMinigame from inside its
+			// Update method, before this minigame's Update Postfix can report
+			// the final removal. Report the currently held piece at the removal
+			// threshold before clearing the session and asking the host to end.
+			ReportFinalHeldRemoval(session);
+			RemoteShrapnelMinigamePatch.ResetLastHeld();
 			_activeShrapnel = null;
 			_shrapnelEndRequestSender?.Invoke(session.OperationId);
 			return;
 		}
 
+		RemoteShrapnelMinigamePatch.ResetLastHeld();
 		session.EngineEnded = true;
 		if (!RemoteMedicalView.IsOpen)
 		{
@@ -100,6 +116,20 @@ internal sealed class RemoteShrapnelOperationHandler
 
 	internal static bool CancelActiveShrapnelUse()
 	{
+		if (_observerShrapnel is { } observer)
+		{
+			_observerShrapnel = null;
+			RemoteShrapnelMinigamePatch.ResetLastHeld();
+			if (observer.Minigame != null
+				&& MinigameBase.main != null // Unity object — ==
+				&& ReferenceEquals(MinigameBase.main.currentMinigame, observer.Minigame))
+			{
+				MinigameBase.main.EndMinigame();
+			}
+
+			return true;
+		}
+
 		var session = _activeShrapnel;
 		if (session == null)
 		{
@@ -107,6 +137,7 @@ internal sealed class RemoteShrapnelOperationHandler
 		}
 
 		var minigame = session.Minigame;
+		RemoteShrapnelMinigamePatch.ResetLastHeld();
 		if (session.OperationId != 0)
 		{
 			_activeShrapnel = null;
@@ -130,6 +161,21 @@ internal sealed class RemoteShrapnelOperationHandler
 
 	internal static void OnShrapnelHostTerminal(ulong operationId)
 	{
+		if (_observerShrapnel is { } observer
+			&& (observer.OperationId == 0 || observer.OperationId == operationId))
+		{
+			_observerShrapnel = null;
+			RemoteShrapnelMinigamePatch.ResetLastHeld();
+			if (observer.Minigame != null
+				&& MinigameBase.main != null // Unity object — ==
+				&& ReferenceEquals(MinigameBase.main.currentMinigame, observer.Minigame))
+			{
+				MinigameBase.main.EndMinigame();
+			}
+
+			return;
+		}
+
 		var session = _activeShrapnel;
 		if (session == null)
 		{
@@ -141,6 +187,7 @@ internal sealed class RemoteShrapnelOperationHandler
 			return;
 		}
 
+		RemoteShrapnelMinigamePatch.ResetLastHeld();
 		_activeShrapnel = null;
 		var minigame = session.Minigame;
 		if (minigame != null
@@ -153,13 +200,32 @@ internal sealed class RemoteShrapnelOperationHandler
 
 	internal static void ApplyShrapnelState(MedicalOperationStateMsg msg)
 	{
-		var session = _activeShrapnel;
-		if (session == null || (session.OperationId != 0 && session.OperationId != msg.OperationId))
+		if (_activeShrapnel is { } active
+			&& (active.OperationId == 0 || active.OperationId == msg.OperationId))
 		{
+			active.AuthoritativePieces = [.. msg.ShrapnelPieces];
+			ApplyStateToMinigame(active, msg);
 			return;
 		}
 
-		session.AuthoritativePieces = [.. msg.ShrapnelPieces];
+		if (_observerShrapnel is { } observer
+			&& (observer.OperationId == 0 || observer.OperationId == msg.OperationId))
+		{
+			ApplyStateToMinigame(observer, msg);
+			return;
+		}
+
+		if (_activeShrapnel is null
+			&& RemoteMedicalView.IsOpen
+			&& RemoteMedicalView.TargetSteamId == msg.TargetSteamId
+			&& TryStartObserver(msg) is { } newObserver)
+		{
+			ApplyStateToMinigame(newObserver, msg);
+		}
+	}
+
+	private static void ApplyStateToMinigame(RemoteShrapnelUseSession session, MedicalOperationStateMsg msg)
+	{
 		if (session.Minigame == null
 			|| MinigameBase.main == null // Unity object — ==
 			|| !ReferenceEquals(MinigameBase.main.currentMinigame, session.Minigame))
@@ -205,6 +271,47 @@ internal sealed class RemoteShrapnelOperationHandler
 		}
 	}
 
+	private static RemoteShrapnelUseSession? TryStartObserver(MedicalOperationStateMsg msg)
+	{
+		if (_observerShrapnel != null
+			|| MinigameBase.main == null // Unity object — ==
+			|| MinigameBase.main.currentMinigame != null)
+		{
+			return null;
+		}
+
+		var display = RemoteMedicalView.DisplayBody;
+		if (display == null
+			|| msg.LimbIndex < 0
+			|| msg.LimbIndex >= display.limbs.Length
+			|| display.limbs[msg.LimbIndex] == null) // Unity object — ==
+		{
+			return null;
+		}
+
+		var limb = display.limbs[msg.LimbIndex];
+		if (limb.dismembered || !limb.hasShrapnel)
+		{
+			return null;
+		}
+
+		var minigame = new ShrapnelMinigame(limb, false);
+		MinigameBase.main.StartMinigame(minigame, null);
+		if (!ReferenceEquals(MinigameBase.main.currentMinigame, minigame))
+		{
+			return null;
+		}
+
+		var observer = new RemoteShrapnelUseSession(msg.TargetSteamId, 0, 0)
+		{
+			Minigame = minigame,
+			OperationId = msg.OperationId,
+		};
+		_observerShrapnel = observer;
+		RemoteShrapnelMinigamePatch.ResetLastHeld();
+		return observer;
+	}
+
 	internal static void ReportShrapnelUpdate(ShrapnelPieceUpdate update)
 	{
 		if (_activeShrapnel is { OperationId: not 0 } session)
@@ -213,8 +320,50 @@ internal sealed class RemoteShrapnelOperationHandler
 		}
 	}
 
+	private static void ReportFinalHeldRemoval(RemoteShrapnelUseSession session)
+	{
+		var minigame = session.Minigame;
+		if (minigame == null)
+		{
+			return;
+		}
+
+		var traverse = Traverse.Create(minigame);
+		var objects = traverse.Field("objects").GetValue<List<RectTransform>>();
+		var held = traverse.Field("currentlyHeld").GetValue<RectTransform>();
+		if (objects is null || held == null)
+		{
+			return;
+		}
+
+		var index = objects.IndexOf(held);
+		if (index < 0)
+		{
+			return;
+		}
+
+		var position = held.anchoredPosition;
+		if (position.y < 35f)
+		{
+			return;
+		}
+
+		ReportShrapnelUpdate(new ShrapnelPieceUpdate
+		{
+			PieceIndex = index,
+			X = position.x,
+			Y = position.y,
+			Grabbed = true,
+			OwnershipChange = true,
+		});
+	}
+
 	internal static bool IsActiveShrapnelMinigame(ShrapnelMinigame minigame) =>
-		_activeShrapnel?.Minigame is not null && ReferenceEquals(_activeShrapnel.Minigame, minigame);
+		(_activeShrapnel?.Minigame is not null && ReferenceEquals(_activeShrapnel.Minigame, minigame))
+		|| (_observerShrapnel?.Minigame is not null && ReferenceEquals(_observerShrapnel.Minigame, minigame));
+
+	internal static bool IsObserverShrapnelMinigame(ShrapnelMinigame minigame) =>
+		_observerShrapnel?.Minigame is not null && ReferenceEquals(_observerShrapnel.Minigame, minigame);
 
 	internal static bool IsShrapnelPieceOwnedByOther(int pieceIndex)
 	{
@@ -256,6 +405,7 @@ internal sealed class RemoteShrapnelOperationHandler
 		}
 
 		_activeShrapnel = session;
+		RemoteShrapnelMinigamePatch.ResetLastHeld();
 		_domains.PlayerInteraction.MedicalOperations.SendShrapnelStartRequest(target, itemInstanceId, Array.IndexOf(limb.body.limbs, limb));
 		_domains.Log.LogInformation("[MedicalView] started remote shrapnel minigame for {Target} limb {Limb} (tweezers={Tweezers}).",
 			target, Array.IndexOf(limb.body.limbs, limb), tweezers);
@@ -274,6 +424,7 @@ internal sealed class RemoteShrapnelOperationHandler
 		{
 			_domains.Log.LogWarning("[MedicalView] remote shrapnel start rejected for {Target}: {Reason}.",
 				msg.TargetSteamId, msg.RejectReason);
+			RemoteShrapnelMinigamePatch.ResetLastHeld();
 			_activeShrapnel = null;
 			var minigame = session.Minigame;
 			if (minigame != null
@@ -294,6 +445,7 @@ internal sealed class RemoteShrapnelOperationHandler
 		session.OperationId = msg.OperationId;
 		if (session.CancelledBeforeAck)
 		{
+			RemoteShrapnelMinigamePatch.ResetLastHeld();
 			_activeShrapnel = null;
 			_cancelRequestSender?.Invoke(msg.OperationId);
 			return;
@@ -301,6 +453,7 @@ internal sealed class RemoteShrapnelOperationHandler
 
 		if (session.EngineEnded)
 		{
+			RemoteShrapnelMinigamePatch.ResetLastHeld();
 			_activeShrapnel = null;
 			_shrapnelEndRequestSender?.Invoke(msg.OperationId);
 		}

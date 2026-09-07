@@ -117,6 +117,9 @@ public class Plugin : BaseUnityPlugin
 			_entities = _services.GetRequiredService<EntitySyncService>();
 			_remoteVitals = _services.GetRequiredService<RemoteVitalsService>();
 			_remoteInventory = _services.GetRequiredService<RemoteInventoryService>();
+			// Ensure the registry-backed remote-presentation domain is alive and
+			// subscribed to the character-data stream even before any UI opens.
+			_ = _services.GetRequiredService<RemoteCharacterPresentationStore>();
 			_playerInteraction = _services.GetRequiredService<PlayerInteractionService>();
 			_interactionVisibility = _services.GetRequiredService<IPlayerInteractionVisibility>();
 			_modUiControl = _services.GetRequiredService<IModUiControl>();

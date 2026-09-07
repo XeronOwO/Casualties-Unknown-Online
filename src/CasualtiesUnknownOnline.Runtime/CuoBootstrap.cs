@@ -226,6 +226,10 @@ public static class CuoBootstrap
 		// Remote-inventory cache: the Online UI's read-only view of the latest
 		// carried/worn item snapshots (same events and lifecycle as vitals).
 		services.AddSingleton<RemoteInventoryService>();
+		// Registry-backed unified remote-presentation read model: the same
+		// character-data stream projected into RemoteCharacterPresentation.State
+		// under the global ProjectionHealthCoordinator contract.
+		services.AddSingleton<RemoteCharacterPresentationStore>();
 		// World domain: world-start parameters + block-damage reports (no pump,
 		// not an ICuoService — it only reacts to calls and messages).
 		services.AddSingleton<TrapConsumptionRegistry>(); // the one-shot trap-consumption table

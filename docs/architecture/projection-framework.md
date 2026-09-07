@@ -74,16 +74,30 @@ Implemented now:
 - A concrete typed read model for remote player presentation:
   `RemoteCharacterPresentation` (face, body pose, medical derived state,
   inventory view).
+- Three additional runtime read-model domains are registered through the
+  global contract:
+  - `run` — `WorldService` maps the kernel `RunState` into the adapter-facing
+    `WorldStartParams` projection and rebuilds it from `QueryRun()`.
+  - `players-carry` — `PlayerKernelCarryProjection` rebuilds the
+    `PlayerCarryService` carry mirror from the kernel player table.
+  - `remote-character-presentation` — `RemoteCharacterPresentationStore` keeps
+    deep copies of the latest character-data source snapshots and rebuilds the
+    typed presentation model. It is the registry-backed domain read model;
+    the existing `RemoteVitalsService` and `RemoteInventoryService` remain
+    separate session caches for their UI-specific snapshot shapes.
 
 Remaining migration:
 
-- Player/enemy/carry/character-data projection classes that are currently
-  event-driven or delegate-only can be wrapped as `IProjectionDomain` where a
-  real rebuild path exists.
-- Remote character display should be split into a registered domain with a
-  stable revision (currently it is an adapter-side projection seam).
-- `ProjectionHealthCoordinator.Snapshot()` should become the single observability
-  surface for all projection domains.
+- Player/enemy character-data classes that are currently write-side adapters,
+  stateless restore appliers, or one-shot event fan-outs are not registered as
+  `IProjectionDomain` because they do not have a rebuildable read model; this
+  boundary is documented in the ticket.
+- The remaining genuinely rebuildable read-model surfaces (mod-status local
+  projection and any future enemy/runtime full-read projection) still need a
+  separate design pass before they can join the inventory.
+- `ProjectionHealthCoordinator.Snapshot()` is the observability surface for all
+  currently registered projection domains; the existing domains and the three
+  new domains above are all listed there.
 
 ## 6. Rules
 

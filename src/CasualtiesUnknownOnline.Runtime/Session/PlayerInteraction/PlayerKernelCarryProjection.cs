@@ -2,6 +2,7 @@ using System;
 using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.GameState.Domains.Players;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
+using CasualtiesUnknownOnline.Runtime.Session.ProjectionHealth;
 using Microsoft.Extensions.Logging;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
@@ -19,18 +20,22 @@ internal sealed class PlayerKernelCarryProjection : IDisposable
 	private readonly ItemKernelAuthority _kernelAuthority;
 	private readonly PlayerCarryService _carry;
 	private readonly ISessionControl _session;
+	private readonly ProjectionHealthCoordinator _projectionHealth;
 	private readonly ILogger _log;
 
 	public PlayerKernelCarryProjection(
 		ItemKernelAuthority kernelAuthority,
 		PlayerCarryService carry,
 		ISessionControl session,
+		ProjectionHealthCoordinator projectionHealth,
 		ILogger log)
 	{
 		_kernelAuthority = kernelAuthority;
 		_carry = carry;
 		_session = session;
+		_projectionHealth = projectionHealth;
 		_log = log;
+		_projectionHealth.Register(new ProjectionDomain("players-carry", RebuildFromKernel, () => _kernelAuthority.CurrentGlobalRevision));
 		_kernelAuthority.BatchCommitted += OnBatchCommitted;
 		_kernelAuthority.BatchApplied += OnBatchApplied;
 		_kernelAuthority.CheckpointRestored += OnCheckpointRestored;
@@ -47,7 +52,7 @@ internal sealed class PlayerKernelCarryProjection : IDisposable
 	{
 		if (_session.Role == SessionRole.Host)
 		{
-			ApplyCarryBatch(batch);
+			_projectionHealth.Run("players-carry", batch.GlobalRevision, () => ApplyCarryBatch(batch));
 		}
 	}
 
@@ -55,15 +60,25 @@ internal sealed class PlayerKernelCarryProjection : IDisposable
 	{
 		if (_session.Role == SessionRole.Guest)
 		{
-			ApplyCarryBatch(batch);
+			_projectionHealth.Run("players-carry", batch.GlobalRevision, () => ApplyCarryBatch(batch));
 		}
 	}
 
 	private void OnCheckpointRestored(GameCheckpoint checkpoint)
 	{
-		_carry.RebuildFromCheckpoint(checkpoint.Players);
-		_log.LogInformation("[CarryKernel] rebuilt carry mirror from checkpoint at revision {Revision}.",
-			checkpoint.GlobalRevision);
+		_projectionHealth.Run("players-carry", checkpoint.GlobalRevision, () =>
+		{
+			_carry.RebuildFromCheckpoint(checkpoint.Players);
+			_log.LogInformation("[CarryKernel] rebuilt carry mirror from checkpoint at revision {Revision}.",
+				checkpoint.GlobalRevision);
+		});
+	}
+
+	private void RebuildFromKernel()
+	{
+		_carry.RebuildFromCheckpoint(_kernelAuthority.QueryPlayers());
+		_log.LogInformation("[CarryKernel] rebuilt carry mirror from kernel player table at revision {Revision}.",
+			_kernelAuthority.CurrentGlobalRevision);
 	}
 
 	private void ApplyCarryBatch(CommittedBatch batch)

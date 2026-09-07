@@ -1,5 +1,10 @@
 # Remote Clone Face Vitals — Self-Check
 
+> **Superseded**: `CloneFacePresentation.ApplyVitals` has been absorbed into
+> `RemoteCharacterDisplayProjection.ApplyRenderClone` by the unified remote
+> display projection rework. See
+> `unified-remote-display-projection-selfcheck.md` for the current seam.
+
 Closes the backlog item **High sleepiness squint not visible remotely**. The
 remote clone already ran the game's own `FacialExpression.Update`, but its
 `Body` still had template-default vitals because `Body.Update` is skipped on

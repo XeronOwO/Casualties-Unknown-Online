@@ -1,5 +1,12 @@
 # Remote medical fidelity and syringe minigame self-check
 
+> **Superseded**: `RemoteMedicalCoordinator.ApplyDisplayDerived` and
+> `RemoteMedicalDisplayProjection` have been absorbed into
+> `RemoteCharacterDisplayProjection` by the unified remote display projection
+> rework. See
+> `../presentation/unified-remote-display-projection-selfcheck.md` for the
+> current seam.
+
 Owner cycle: backlog `todo/remote-fentanyl-injection-and-medical-panel-desync.md`.
 
 ## 1. Mechanism inventory

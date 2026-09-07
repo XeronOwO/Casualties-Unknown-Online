@@ -72,8 +72,7 @@ internal sealed class RemotePlayerRenderer(
 		{
 			_characterData.ApplyCloneInventory(clone, data, steamId);
 			_limbRenderer.ApplyCloneLimbs(clone, data);
-			CloneFacePresentation.Apply(clone, data.Health);
-			CloneBodyPosePresentation.Apply(clone, data.Health);
+			RemoteCharacterDisplayProjection.ApplyRenderClone(clone, data.Health);
 		}
 	}
 
@@ -163,8 +162,7 @@ internal sealed class RemotePlayerRenderer(
 				{
 					_characterData.ApplyCloneInventory(clone, data, remote.SteamId);
 					_limbRenderer.ApplyCloneLimbs(clone, data);
-					CloneFacePresentation.Apply(clone, data.Health);
-					CloneBodyPosePresentation.Apply(clone, data.Health);
+					RemoteCharacterDisplayProjection.ApplyRenderClone(clone, data.Health);
 				}
 			}
 

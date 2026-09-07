@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Reflection;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using Xunit;
@@ -168,6 +169,49 @@ public class RemoteItemPresentationTests
 
 		Assert.False(IsDynamiteFuseLit(data),
 			"a CustomItemBehaviour without the fuse field must not present a lit fuse.");
+	}
+
+	[Fact]
+	public void SourceValues_IncludeConditionFavouriteLiquids()
+	{
+		var method = Presentation.GetMethod("SourceValuesFrom",
+			BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
+			?? throw new InvalidOperationException("RemoteItemPresentation.SourceValuesFrom not found.");
+		var data = new CharacterItemMsg
+		{
+			Condition = 0.75f,
+			Favourited = true,
+			Liquids = [new LiquidStackMsg { LiquidId = "water", Amount = 0.4f }],
+		};
+
+		var result = method.Invoke(null, [data])!;
+		Assert.NotNull(result);
+		var type = result.GetType();
+		var condition = (float)type.GetProperty("Condition")!.GetValue(result)!;
+		var favourited = (bool)type.GetProperty("Favourited")!.GetValue(result)!;
+		var liquids = (IEnumerable)type.GetProperty("Liquids")!.GetValue(result)!;
+		var count = 0;
+		foreach (var _ in liquids)
+		{
+			count++;
+		}
+
+		Assert.Equal(0.75f, condition, 3);
+		Assert.True(favourited);
+		Assert.Equal(1, count);
+	}
+
+	[Fact]
+	public void Adapter_ExposesApplySourceValuesSurface()
+	{
+		var method = Presentation.GetMethod("ApplySourceValues",
+			BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
+			?? throw new InvalidOperationException("RemoteItemPresentation.ApplySourceValues not found.");
+		Assert.True(method.IsStatic);
+		var parameters = method.GetParameters();
+		Assert.Equal(2, parameters.Length);
+		Assert.Equal("Item", parameters[0].ParameterType.Name);
+		Assert.Equal("CasualtiesUnknownOnline.Runtime.Protocol.Messages.CharacterItemMsg", parameters[1].ParameterType.FullName);
 	}
 
 	[Fact]

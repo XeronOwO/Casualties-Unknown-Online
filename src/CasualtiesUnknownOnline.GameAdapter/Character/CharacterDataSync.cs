@@ -127,8 +127,11 @@ internal sealed class CharacterDataSync(
 	private LimbStateEventMsg CaptureLimbStateEvent(Body body)
 	{
 		var health = _mapper.Map<CharacterHealthMsg>(body);
-		CloneFacePresentation.Capture(body, health);
-		CharacterComponentSync.Capture(body, health);
+		// Unified capture: face latches/mouth, component state and the
+		// leg-speed pose multiplier now ride the same dedicated event as the
+		// 1 Hz snapshot, so a limb-latch update also refreshes the full remote
+		// presentation without waiting for the next snapshot.
+		RemoteCharacterDisplayProjection.Capture(body, health);
 
 		var msg = new LimbStateEventMsg
 		{

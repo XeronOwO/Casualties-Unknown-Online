@@ -105,8 +105,9 @@ Audited boundaries:
 - The enemy runtime buffer (`EnemySyncService._enemies`) is not registered as a
   projection domain. Its continuous fields (position/velocity/rotation/
   presentation flags) are produced by the host's game-side simulation and
-  travel as an unreliable state stream; the runtime has no authoritative full
-  read query for those fields. Kernel-owned terminal enemy facts are already
+  travel as an unreliable state stream; the runtime buffer's read accessors are
+  a live stream cache, not a rebuildable kernel-authoritative read model for
+  those continuous fields. Kernel-owned terminal enemy facts are already
   projected by `EnemyKernelProjection` / `EnemyKernelRestoreProjection` into
   that buffer, and `EnemyCombatKernelProjection` is a one-shot event fan-out —
   none is a rebuildable read model.

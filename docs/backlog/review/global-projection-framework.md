@@ -1,6 +1,6 @@
 # Global unified projection framework
 
-- Status: In Progress
+- Status: Review
 - Priority: High
 - Category: Architecture / projection framework
 - Source: User direction (2026-09-07) — the earlier unified remote display projection work was only one projection domain; a macro/global projection system is required so items, players, world entities, fluids, enemies and remote presentation all converge on the same contract.
@@ -52,13 +52,17 @@ dirty/rebuild/degraded story.
 
 ## Verification status
 
-- `dotnet build` and `dotnet format` pass.
+- `dotnet build` and `dotnet format` pass (re-run in the closure cycle).
 - Full test suite: 2516 `CasualtiesUnknownOnline.Tests` + 17 normative gates pass.
-- Two independent adversarial reviews were run; the host-authoritative presence
+- Three independent adversarial reviews were run: two during development plus an
+  additional fresh-context closure-cycle review; the host-authoritative presence
   leak found in the second review was fixed and covered by a regression test.
-- Deployed to the entity game directory and build/deploy SHA256 comparison passed.
-- This ticket intentionally remains `in-progress/` per the global-framework
-  staging discipline; it is not yet claimed complete or moved to `review/`.
+- Deployed to the real game directory; build/deploy SHA256 comparison passed for
+  all six CUO assemblies.
+- This ticket is now in `review/`; it does not claim user acceptance. Real
+  dual-client visual acceptance remains the final unified acceptance pass.
+- Regression surface:
+  `tests/CasualtiesUnknownOnline.Tests/Session/GlobalProjectionFrameworkTests.cs`.
 
 ## Remaining scope / audited boundary
 
@@ -70,13 +74,16 @@ dirty/rebuild/degraded story.
    - `EnemyKernelProjection`, `EnemyKernelRestoreProjection`,
      `EnemyCombatKernelProjection`, `FluidKernelProjection` (host-side input
      path, while `FluidKernelReadProjection` is already registered).
-2. Mod-status local projection is implemented through `mod-status` in the
-   inventory. Enemy/player continuous runtime full-read projections were
-   audited and confirmed non-rebuildable (documented in the architecture doc),
-   so they are not new domains. Remote presentation store unification was
-   evaluated and deliberately deferred: the store only tracks full snapshots,
-   while the live adapter display cache is event-enriched; unification needs
-   first-class event projection plus dual-client runtime verification.
+2. Mod-status local projection is implemented through the `mod-status` domain
+   in the global projection inventory. Enemy/player continuous runtime
+   projections were audited and confirmed non-rebuildable from a kernel
+   authoritative source (documented in the architecture doc), so they are not
+   new domains. The remote-character-presentation domain is a registered typed
+   read model and diagnostics/inventory base, but it is intentionally not made
+   the adapter's sole production display source in this cycle: the store only
+   tracks full snapshots while the live adapter display cache is
+   event-enriched; unification needs first-class event projection plus
+   dual-client runtime verification.
 3. Keep `ProjectionHealthCoordinator.Snapshot()` as the single observability
    surface for every registered projection domain.
 4. Keep the existing guarantee: projections never mutate authority and are

@@ -70,11 +70,11 @@ not hidden under this umbrella.
 
 This ticket is the remote-character-display slice of the projection work, not
 the complete macro projection system. The global framework is tracked in
-`docs/backlog/todo/global-projection-framework.md`: typed `IProjectionDomain` /
-`ProjectionDomain` core and architecture doc have landed, `items`/`fluids`/
-`world-entities` now register through the typed contract, and the remaining
-full typed read-model/rebuild migrations (players, enemies, carry, remote
-display registration) are still open.
+`docs/backlog/review/global-projection-framework.md`: typed `IProjectionDomain` /
+`ProjectionDomain` core, the typed health-tracked domains, and the additional
+`run` / `players-carry` / `remote-character-presentation` / `mod-status`
+domains have landed; enemy/player continuous projection and remote-presentation
+read-source boundaries were audited and are documented in the architecture doc.
 
 The user-visible interactive remote-backpack issues (trash-bag selective
 insertion, double-Tab transfer, pour/edge-drop, main-hand placement,

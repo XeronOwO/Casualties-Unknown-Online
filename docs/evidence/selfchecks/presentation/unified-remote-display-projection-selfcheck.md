@@ -76,5 +76,5 @@ WoundView/backpack rendering and carry/pose movement.
 The same cycle also landed the global projection framework core
 (`IProjectionDomain`, `ProjectionDomain`,
 `ProjectionHealthCoordinator.Register(IProjectionDomain)`) and the architecture
-doc `docs/architecture/projection-framework.md`; full domain migration remains
-tracked in `docs/backlog/todo/global-projection-framework.md`.
+doc `docs/architecture/projection-framework.md`; the full domain migration is
+tracked in `docs/backlog/review/global-projection-framework.md`.

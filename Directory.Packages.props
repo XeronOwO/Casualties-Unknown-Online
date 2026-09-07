@@ -1,0 +1,30 @@
+<Project>
+  <!-- https://learn.microsoft.com/en-us/nuget/consume-packages/central-package-management -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- BepInEx 5 line (net48-compatible) -->
+    <PackageVersion Include="BepInEx.Analyzers" Version="1.0.8" />
+    <PackageVersion Include="BepInEx.Core" Version="5.4.21" />
+    <PackageVersion Include="BepInEx.PluginInfoProps" Version="2.1.0" />
+
+    <!-- Microsoft.Extensions 3.1.x is the net48-compatible line -->
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="3.1.32" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="3.1.32" />
+    <PackageVersion Include="Microsoft.Extensions.Logging" Version="3.1.32" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="3.1.32" />
+    <PackageVersion Include="Microsoft.Extensions.Options" Version="3.1.32" />
+
+    <!-- Misc / wire / mapping -->
+    <PackageVersion Include="Mapster" Version="6.0.0" />
+    <PackageVersion Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" />
+    <PackageVersion Include="protobuf-net" Version="3.4.21" />
+
+    <!-- Test tooling -->
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.9.0" />
+    <PackageVersion Include="xunit" Version="2.9.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.0" />
+  </ItemGroup>
+</Project>

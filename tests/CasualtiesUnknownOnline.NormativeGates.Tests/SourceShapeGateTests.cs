@@ -287,28 +287,22 @@ public class SourceShapeGateTests
 	[Fact]
 	public void MicrosoftExtensionsPinnedToNet48CompatibleLine()
 	{
-		var csprojFiles = Directory.EnumerateFiles(Src, "*.csproj", SearchOption.AllDirectories)
-			.Where(f => !f.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
-				&& !f.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal));
-
 		var failures = new List<string>();
-		foreach (var csproj in csprojFiles)
-		{
-			var relative = Relative(csproj);
-			var doc = XDocument.Load(csproj);
-			foreach (var package in doc.Descendants().Where(e => e.Name.LocalName == "PackageReference"))
-			{
-				var id = package.Attribute("Include")?.Value;
-				if (id is null || !id.StartsWith("Microsoft.Extensions", StringComparison.Ordinal))
-				{
-					continue;
-				}
+		var centralPackagesPath = RepositoryPaths.File("Directory.Packages.props");
+		var doc = XDocument.Load(centralPackagesPath);
 
-				var version = package.Attribute("Version")?.Value;
-				if (version is null || !version.StartsWith("3.1.", StringComparison.Ordinal))
-				{
-					failures.Add($"{relative}: {id} {version} must use the net48-compatible Microsoft.Extensions 3.1.x line (architecture blueprint §5)");
-				}
+		foreach (var package in doc.Descendants().Where(e => e.Name.LocalName == "PackageVersion"))
+		{
+			var id = package.Attribute("Include")?.Value;
+			if (id is null || !id.StartsWith("Microsoft.Extensions", StringComparison.Ordinal))
+			{
+				continue;
+			}
+
+			var version = package.Attribute("Version")?.Value;
+			if (version is null || !version.StartsWith("3.1.", StringComparison.Ordinal))
+			{
+				failures.Add($"{Relative(centralPackagesPath)}: {id} {version} must use the net48-compatible Microsoft.Extensions 3.1.x line (architecture blueprint §5)");
 			}
 		}
 

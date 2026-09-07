@@ -67,7 +67,7 @@ dotnet format CasualtiesUnknownOnline.slnx        # mandatory before every commi
 - Summary starts with an imperative verb, uses lowercase after the type/scope prefix (proper nouns and acronyms may keep their case), and has no trailing period.
 - Use one line for the summary; optional body text starts after a blank line and is wrapped for readability.
 - Pure documentation/backlog-only changes use `docs(scope): ...`, with `backlog` as the common scope.
-- The history from `8727300d1934d89e647d74911dde013193d5ab8d` onward has been normalized to this convention.
+- The history from `2c3b6af9278637546331f301f45b9b24d3f10423` onward has been normalized to this convention.
 
 ## Non-Negotiable Architecture Rules
 

@@ -1,11 +1,13 @@
 using System;
 using System.Linq;
 using System.Reflection;
+using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
+using CasualtiesUnknownOnline.Runtime.Session.Mods;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using CasualtiesUnknownOnline.Runtime.Session.ProjectionHealth;
 using CasualtiesUnknownOnline.Runtime.Session.World;
@@ -39,6 +41,7 @@ public class GlobalProjectionFrameworkTests
 			_ = host.Services.GetRequiredService<IWorldControl>();
 			_ = host.Services.GetRequiredService<IPlayerInteractionControl>();
 			_ = host.Services.GetRequiredService<RemoteCharacterPresentationStore>();
+			_ = host.Services.GetRequiredService<ModStatusProjectionReadModel>();
 
 			var coordinator = host.Services.GetRequiredService<ProjectionHealthCoordinator>();
 			var domains = coordinator.Snapshot().Select(i => i.Domain).ToHashSet();
@@ -46,6 +49,7 @@ public class GlobalProjectionFrameworkTests
 			Assert.Contains("run", domains);
 			Assert.Contains("players-carry", domains);
 			Assert.Contains("remote-character-presentation", domains);
+			Assert.Contains("mod-status", domains);
 		}
 	}
 
@@ -238,6 +242,96 @@ public class GlobalProjectionFrameworkTests
 
 			((ISessionControl)guest.Session).EndSession();
 			Assert.Equal(0, store.Count);
+		}
+	}
+
+	[Fact]
+	public void ModStatus_RegisteredDomain_RecoversFromInjectedFailureAndKeepsReadModel()
+	{
+		var (host, guest) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		using (host)
+		using (guest)
+		{
+			var store = host.Services.GetRequiredService<ModService>().StatusStore;
+			Assert.True(store.TryDeclare(
+				"test.mod",
+				"body.proj",
+				ModStatusScope.Body,
+				ModDataScope.LocalOnly,
+				1,
+				ModStatusProjectionKind.BodyFormula));
+			Assert.True(store.TrySetBodyValue("test.mod", "body.proj", HostId, [1, 2, 3]));
+
+			var readModel = host.Services.GetRequiredService<ModStatusProjectionReadModel>();
+			Assert.Contains(readModel.ProjectionSnapshots, s => s.StatusId == "body.proj" && s.PlayerSteamId == HostId);
+
+			var coordinator = host.Services.GetRequiredService<ProjectionHealthCoordinator>();
+			coordinator.Run("mod-status", 42, static () => throw new InvalidOperationException("mod-status boom"));
+
+			var dirty = Assert.Single(coordinator.Snapshot(), i => i.Domain == "mod-status");
+			Assert.True(dirty.Dirty);
+			Assert.Equal(42ul, dirty.LastFailedRevision);
+			Assert.Equal("mod-status boom", dirty.LastError);
+
+			coordinator.Pump();
+
+			var recovered = Assert.Single(coordinator.Snapshot(), i => i.Domain == "mod-status");
+			Assert.False(recovered.Dirty);
+			Assert.False(recovered.Degraded);
+			Assert.Null(recovered.LastError);
+			Assert.Contains(readModel.ProjectionSnapshots, s => s.StatusId == "body.proj" && s.PlayerSteamId == HostId);
+		}
+	}
+
+	[Fact]
+	public void ModStatus_GuestHidesHostAuthoritativeProjectionSnapshots()
+	{
+		var (host, guest) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		using (host)
+		using (guest)
+		{
+			var store = guest.Services.GetRequiredService<ModService>().StatusStore;
+			Assert.True(store.TryDeclare(
+				"test.mod",
+				"host.secret",
+				ModStatusScope.Body,
+				ModDataScope.HostAuthoritative,
+				1,
+				ModStatusProjectionKind.BodyFormula));
+			Assert.True(store.TrySetBodyValue("test.mod", "host.secret", GuestId, [1]));
+
+			var readModel = guest.Services.GetRequiredService<ModStatusProjectionReadModel>();
+			Assert.DoesNotContain(readModel.ProjectionSnapshots, s => s.StatusId == "host.secret");
+			Assert.DoesNotContain(readModel.StatusPresences, p => p.StatusId == "host.secret");
+		}
+	}
+
+	[Fact]
+	public void ModStatus_ReadModelRefreshesWhenLateSteamIdArrives()
+	{
+		var steam = new FakeSteamService(0);
+		var node = TestNode.Create(0, new FakeNetwork(), steam, pumpFirstFrame: true);
+		using (node)
+		{
+			var store = node.Services.GetRequiredService<ModService>().StatusStore;
+			Assert.True(store.TryDeclare(
+				"test.mod",
+				"late.id",
+				ModStatusScope.Body,
+				ModDataScope.LocalOnly,
+				1,
+				ModStatusProjectionKind.BodyFormula));
+			Assert.True(store.TrySetBodyValue("test.mod", "late.id", 0, [1]));
+
+			var readModel = node.Services.GetRequiredService<ModStatusProjectionReadModel>();
+			Assert.Contains(readModel.ProjectionSnapshots, s => s.StatusId == "late.id" && s.PlayerSteamId == 0);
+
+			steam.LocalSteamId = HostId;
+			node.Update();
+
+			Assert.DoesNotContain(readModel.ProjectionSnapshots, s => s.PlayerSteamId == 0);
+			Assert.True(store.TrySetBodyValue("test.mod", "late.id", HostId, [2]));
+			Assert.Contains(readModel.ProjectionSnapshots, s => s.StatusId == "late.id" && s.PlayerSteamId == HostId);
 		}
 	}
 }

@@ -334,6 +334,12 @@ public static class CuoBootstrap
 		// spawner/tile/... seams are replaced by the adapter itself.
 		services.AddSingleton(p => new ModStatusStore(
 			p.GetRequiredService<ILogger<ModStatusStore>>()));
+		// Registry-backed local mod-status projection read model: the same
+		// store projected into the global ProjectionHealthCoordinator contract.
+		// It is an ICuoService only to refresh when Steam/local identity changes
+		// after late Steam initialization; it has no other pump work.
+		services.AddSingleton<ModStatusProjectionReadModel>();
+		services.AddSingleton<ICuoService>(p => p.GetRequiredService<ModStatusProjectionReadModel>());
 		// The default mod entity spawner is disabled: the Game Adapter is
 		// registered by the plugin through extraRegistrations and replaces this
 		// with the real Utils.Create-backed implementation. Tests may also

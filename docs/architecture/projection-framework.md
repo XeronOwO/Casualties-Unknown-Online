@@ -85,19 +85,45 @@ Implemented now:
     typed presentation model. It is the registry-backed domain read model;
     the existing `RemoteVitalsService` and `RemoteInventoryService` remain
     separate session caches for their UI-specific snapshot shapes.
+- `mod-status` — `ModStatusProjectionReadModel` projects the local player's
+  `ModStatusStore` table into a typed, registry-backed read model. The store
+  now carries a monotonic revision; the domain rebuilds projection snapshots
+  and status presences from the store on the coordinator pump, hiding
+  host-authoritative entries on a guest. The read model is also an `ICuoService`
+  so it can refresh when the local SteamId/role changes after late Steam
+  initialization or lobby transitions. The GameAdapter
+  `ModStatusVanillaProjection` and `ModStatusMoodleProjection` consume this
+  read model for body/limb formulas and moodle presences; the store remains the
+  runtime state source and never sees projection writes.
 
-Remaining migration:
+Audited boundaries:
 
 - Player/enemy character-data classes that are currently write-side adapters,
   stateless restore appliers, or one-shot event fan-outs are not registered as
   `IProjectionDomain` because they do not have a rebuildable read model; this
   boundary is documented in the ticket.
-- The remaining genuinely rebuildable read-model surfaces (mod-status local
-  projection and any future enemy/runtime full-read projection) still need a
-  separate design pass before they can join the inventory.
+- The enemy runtime buffer (`EnemySyncService._enemies`) is not registered as a
+  projection domain. Its continuous fields (position/velocity/rotation/
+  presentation flags) are produced by the host's game-side simulation and
+  travel as an unreliable state stream; the runtime has no authoritative full
+  read query for those fields. Kernel-owned terminal enemy facts are already
+  projected by `EnemyKernelProjection` / `EnemyKernelRestoreProjection` into
+  that buffer, and `EnemyCombatKernelProjection` is a one-shot event fan-out —
+  none is a rebuildable read model.
+- The player continuous state stream is likewise not a rebuildable full-read
+  projection. The rebuildable remote-character read model is
+  `RemoteCharacterPresentationStore` (snapshot-based, deep-copied source
+  snapshots), while the GameAdapter `CharacterDataSync.CloneData` /
+  `CloneFactTable` is an event-enriched live display cache (carried sync,
+  limb-state, medical progress, enemy-bite/lunge/effect). The store is
+  deliberately NOT made the adapter's sole display source in this stage: it
+  only tracks full character-data snapshots and would lose the event-enriched
+  window; making it the unique source requires first-class event projection
+  into the store and actual dual-client runtime verification.
 - `ProjectionHealthCoordinator.Snapshot()` is the observability surface for all
-  currently registered projection domains; the existing domains and the three
-  new domains above are all listed there.
+  currently registered projection domains; the existing domains plus `run`,
+  `players-carry`, `remote-character-presentation` and `mod-status` are all
+  listed there.
 
 ## 6. Rules
 

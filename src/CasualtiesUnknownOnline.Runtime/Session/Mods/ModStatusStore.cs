@@ -24,14 +24,26 @@ public sealed class ModStatusStore(ILogger log)
 		[with(StringComparer.Ordinal)];
 	private readonly Dictionary<string, Dictionary<string, Func<ModStatusMoodleRequest, string?>>> _moodleResolvers =
 		[with(StringComparer.Ordinal)];
+	private ulong _revision;
 
 	/// <summary>
-	/// Raised after any stored status value is written or removed. It carries no
-	/// payload because the GameAdapter projection consumer refreshes the whole
-	/// local-player projection set from the store on each change; status changes
-	/// are discrete and low-volume.
+	/// Raised after any stored status value is written or removed, or after a
+	/// moodle resolver is registered/unregistered. It carries no payload because
+	/// the GameAdapter projection consumer refreshes the whole local-player
+	/// projection set from the store on each change; status changes are discrete
+	/// and low-volume.
 	/// </summary>
 	internal event Action? StatusChanged;
+
+	/// <summary>
+	/// Monotonic revision of the mod-status projection source. It is bumped on
+	/// every status value write/removal and moodle-resolver registration change,
+	/// so the global projection domain can expose a stable revision for health
+	/// tracking and rebuilds. Static declarations are metadata only and do not
+	/// alter projection output until a value is written, so they deliberately do
+	/// not bump the revision.
+	/// </summary>
+	internal ulong CurrentRevision => _revision;
 
 	internal IModStatusRuntime CreateStatusAdapter(ModManifest manifest, SessionService session) =>
 		new ModStatusAdapter(this, session, manifest, _log);
@@ -66,6 +78,8 @@ public sealed class ModStatusStore(ILogger log)
 		}
 
 		table[statusId] = resolver;
+		_revision = unchecked(_revision + 1);
+		StatusChanged?.Invoke();
 		_log.LogInformation("[Mods] {ModId} registered a moodle resolver for status {StatusId}.", modId, statusId);
 		return true;
 	}
@@ -79,6 +93,8 @@ public sealed class ModStatusStore(ILogger log)
 			return false;
 		}
 
+		_revision = unchecked(_revision + 1);
+		StatusChanged?.Invoke();
 		_log.LogInformation("[Mods] {ModId} unregistered the moodle resolver for status {StatusId}.", modId, statusId);
 		return true;
 	}
@@ -194,6 +210,7 @@ public sealed class ModStatusStore(ILogger log)
 		}
 
 		entry.BodyValues[playerSteamId] = (byte[])value.Clone();
+		_revision = unchecked(_revision + 1);
 		StatusChanged?.Invoke();
 		return true;
 	}
@@ -210,6 +227,7 @@ public sealed class ModStatusStore(ILogger log)
 			return false;
 		}
 
+		_revision = unchecked(_revision + 1);
 		StatusChanged?.Invoke();
 		return true;
 	}
@@ -249,6 +267,7 @@ public sealed class ModStatusStore(ILogger log)
 		}
 
 		limbs[limbSlot] = (byte[])value.Clone();
+		_revision = unchecked(_revision + 1);
 		StatusChanged?.Invoke();
 		return true;
 	}
@@ -272,6 +291,7 @@ public sealed class ModStatusStore(ILogger log)
 			entry.LimbValues.Remove(playerSteamId);
 		}
 
+		_revision = unchecked(_revision + 1);
 		StatusChanged?.Invoke();
 		return true;
 	}

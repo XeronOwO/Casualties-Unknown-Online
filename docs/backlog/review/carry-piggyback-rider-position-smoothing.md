@@ -1,9 +1,56 @@
 # Carry/piggyback riding movement teleport and rider/carrier position mismatch
 
-- Status: Rejected (explicitly rejected by user on 2026-09-06; moved out of `review/`; the rider teleport remains unresolved and must be reworked/root-caused before acceptance)
+- Status: Review (2026-09-07 root-cause exact-limb-pose suppression; code-complete, full suite + independent adversarial review + deployed-hash verification complete; awaiting final unified acceptance pass)
 - Priority: Critical
 - Category: Player interaction / movement sync / carry-piggyback presentation
 - Source: User report (2026-09-04); rejected in review (2026-09-05) — the first fix only covered half of the carry presentation family; rejected again (2026-09-05) on host movement with a riding guest; reworked again with a final LateUpdate carrier-side re-pin; the user re-reported that the teleport still exists, so this cycle replaced the pin-only approach on the participant carrier side with a true transform-parent carry mount.
+
+## Root-cause fix (2026-09-07)
+
+The mount rework fixed the Body-root hierarchy, but the visible limbs still
+teleported because the carried rider's own 20 Hz stream published **exact
+world-space limb poses** while `body.standing == false`:
+
+1. The local carried rider was placed by the ride-pose path with
+   `standing = false`.
+2. `RunCoordinator.PublishBodyState` called `LimbPoseCapture.Capture(body)`,
+   so the stream carried exact non-standing limb world positions.
+3. On the carrier's view, `RagdollPoseApplication` wrote those world positions
+   onto the remote rider clone's limbs and set `RagdollPoseActive = true`.
+4. `BodyUpdatePatch` therefore did not let `HandleVisuals` re-attach the limbs
+   to the mounted Body root; the mount moved only the Body root and the visible
+   limbs stayed at the previous world coordinates until the next pose tick —
+   the reported frame teleport.
+
+Fix:
+
+- Added `CarriedBodyPose.ShouldPublishExactLimbPoses(isCarried, alive, conscious)`:
+  a conscious/alive carried rider no longer publishes exact limb poses; the
+  remote clone returns to the visual-standing render path and `HandleVisuals`
+  re-attaches its limbs to the mounted Body.
+- `RunCoordinator.PublishBodyState` now uses the local Body's active
+  `CarriedBodyDriver.IsCarrying(body)` as the carried-rider source, matching
+  the existing body-root stream-anchor rule, and suppresses exact limb poses
+  only for that case.
+- Dead/unconscious carried bodies and non-carried ragdolls keep the exact
+  limb-pose stream, preserving corpse/comatose presentation.
+
+Regression coverage:
+
+- `CarriedBodyPoseTests` pure matrix: conscious/alive carried rider suppresses,
+  dead/unconscious carried and non-carried lying still publish.
+- Source contract test pins `RunCoordinator` to `CarriedBodyDriver.IsCarrying(body)`
+  instead of the reverse `PlayerInteraction.TryGetCarried` mirror.
+- Focused red→green was recorded before implementation (method absent →
+  focused tests failed at runtime).
+
+Verification:
+
+- Full suite: `2521` `CasualtiesUnknownOnline.Tests` + `17`
+  `CasualtiesUnknownOnline.NormativeGates.Tests` pass.
+- `dotnet format --verify-no-changes` on the changed files passes.
+- Latest DLLs deployed to the real game directory; SHA256 of all six CUO
+  assemblies matches the build output.
 
 ## Rejected again (latest user re-report — super priority)
 

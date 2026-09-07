@@ -16,6 +16,39 @@ making the carried-ride presentation one shared path and by keeping every view
 on the same body-root stream anchor. No carry authority, wire protocol, release
 semantics, or host rules changed.
 
+## Root-cause limb-pose suppression (2026-09-07)
+
+After the mount rework, the rider teleport was still reported. The missing root
+cause was not the Body-root hierarchy; it was the exact world-space limb pose
+stream:
+
+- A carried rider's local body has `standing = false`, so
+  `LimbPoseCapture.Capture` published exact non-standing limb world positions
+  in the 20 Hz stream.
+- On the carrier's view, `RagdollPoseApplication` wrote those world positions
+  onto the remote rider clone's limbs and set `RagdollPoseActive = true`.
+- `BodyUpdatePatch` then kept `HandleVisuals` from re-attaching the visible
+  limbs to the mounted Body root, so the carrier-side mount moved only the Body
+  root while the limbs stayed at the rider's previous world coordinates until
+  the next pose tick — the persistent frame teleport.
+
+Fix in this cycle:
+
+- New pure rule `CarriedBodyPose.ShouldPublishExactLimbPoses(isCarried, alive, conscious)`
+  suppresses exact limb poses for conscious/alive carried riders only.
+- `RunCoordinator.PublishBodyState` derives `isCarried` from the local Body's
+  active `CarriedBodyDriver.IsCarrying(body)`, aligned with the body-root
+  stream-anchor rule, and sets `limbPoses = null` for that carry-visual path.
+- Dead/unconscious carried bodies and non-carried ragdolls keep exact poses.
+
+Regression:
+
+- `CarriedBodyPoseTests` matrix plus a source-contract test pinning the
+  `RunCoordinator` isCarried source.
+- Full suite: `2521` + `17` normative gates pass.
+- Changed-file `dotnet format --verify-no-changes` passes.
+- Latest DLLs deployed; SHA256 of all six CUO assemblies matches build output.
+
 ## 1. Problem evidence
 
 Two user-visible symptoms from the same presentation family:

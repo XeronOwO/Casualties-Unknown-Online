@@ -15,11 +15,6 @@
          existing wire/save DTOs' pre-IsRequired/DefaultValue fields; the wire
          shapes are stable and these analyzers are not part of the CUO gates. -->
     <NoWarn>$(NoWarn);PBN0020;PBN0022</NoWarn>
-    <RestoreAdditionalProjectSources>
-      https://api.nuget.org/v3/index.json;
-      https://nuget.bepinex.dev/v3/index.json;
-      https://nuget.samboy.dev/v3/index.json
-    </RestoreAdditionalProjectSources>
   </PropertyGroup>
 
   <!--
@@ -43,11 +38,9 @@
     ManualLogSource bridge.
   -->
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="3.1.32" />
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="3.1.32" />
-    <PackageReference Include="Microsoft.Extensions.Options" Version="3.1.32" />
-    <PackageReference Include="BepInEx.Core" Version="5.*" />
-    <PackageReference Include="protobuf-net" Version="3.4.21" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="Microsoft.Extensions.Logging" />
+    <PackageReference Include="BepInEx.Core" />
   </ItemGroup>
 
   <!--
@@ -63,6 +56,6 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework.TrimEnd(`0123456789`))' == 'net'">
-    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" PrivateAssets="all" />
   </ItemGroup>
 </Project>

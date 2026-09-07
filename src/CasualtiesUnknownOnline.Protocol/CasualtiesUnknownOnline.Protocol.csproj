@@ -14,11 +14,6 @@
          existing wire DTOs' pre-IsRequired reference fields; the wire shapes are
          stable and the analyzer is not part of the CUO normative gates. -->
     <NoWarn>$(NoWarn);PBN0022</NoWarn>
-    <RestoreAdditionalProjectSources>
-      https://api.nuget.org/v3/index.json;
-      https://nuget.bepinex.dev/v3/index.json;
-      https://nuget.samboy.dev/v3/index.json
-    </RestoreAdditionalProjectSources>
   </PropertyGroup>
 
   <!--
@@ -29,10 +24,10 @@
     into the deterministic kernel.
   -->
   <ItemGroup>
-    <PackageReference Include="protobuf-net" Version="3.4.21" />
+    <PackageReference Include="protobuf-net" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework.TrimEnd(`0123456789`))' == 'net'">
-    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" PrivateAssets="all" />
   </ItemGroup>
 </Project>

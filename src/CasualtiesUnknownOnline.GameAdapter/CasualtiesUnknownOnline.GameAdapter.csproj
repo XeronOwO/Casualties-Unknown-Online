@@ -11,11 +11,6 @@
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <Nullable>enable</Nullable>
     <RootNamespace>CasualtiesUnknownOnline.GameAdapter</RootNamespace>
-    <RestoreAdditionalProjectSources>
-      https://api.nuget.org/v3/index.json;
-      https://nuget.bepinex.dev/v3/index.json;
-      https://nuget.samboy.dev/v3/index.json
-    </RestoreAdditionalProjectSources>
   </PropertyGroup>
 
   <!--
@@ -28,7 +23,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="BepInEx.Core" Version="5.*" />
     <!--
       Mapster 6.0.0 (7.x is net6+-only — NU1202 on net48): maps the full
       character-data surface (Body/Limb fields ↔ CharacterDataMsg,
@@ -36,7 +30,7 @@
       (STR→Strength etc.), configured explicitly in CharacterDataMapper.cs.
       emit-based like protobuf-net — smoke-tested at runtime.
     -->
-    <PackageReference Include="Mapster" Version="6.0.0" />
+    <PackageReference Include="Mapster" />
   </ItemGroup>
 
   <!--
@@ -122,6 +116,6 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework.TrimEnd(`0123456789`))' == 'net'">
-    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" PrivateAssets="all" />
   </ItemGroup>
 </Project>

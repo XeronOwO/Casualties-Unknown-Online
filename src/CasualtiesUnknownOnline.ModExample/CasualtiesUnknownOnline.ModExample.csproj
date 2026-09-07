@@ -9,11 +9,6 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <Nullable>enable</Nullable>
-    <RestoreAdditionalProjectSources>
-      https://api.nuget.org/v3/index.json;
-      https://nuget.bepinex.dev/v3/index.json;
-      https://nuget.samboy.dev/v3/index.json
-    </RestoreAdditionalProjectSources>
     <RootNamespace>CasualtiesUnknownOnline.ModExample</RootNamespace>
   </PropertyGroup>
 
@@ -26,7 +21,7 @@
     runtime verification target for the Phase 4 Mod API.
   -->
   <ItemGroup>
-    <PackageReference Include="BepInEx.Core" Version="5.*" />
+    <PackageReference Include="BepInEx.Core" />
     <ProjectReference Include="..\CasualtiesUnknownOnline.Abstractions\CasualtiesUnknownOnline.Abstractions.csproj" />
   </ItemGroup>
 
@@ -47,6 +42,6 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework.TrimEnd(`0123456789`))' == 'net'">
-    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" PrivateAssets="all" />
   </ItemGroup>
 </Project>

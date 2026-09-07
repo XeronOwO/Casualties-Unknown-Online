@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Session;
+using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using Microsoft.Extensions.Logging;
@@ -72,7 +73,7 @@ internal sealed class RemotePlayerRenderer(
 		{
 			_characterData.ApplyCloneInventory(clone, data, steamId);
 			_limbRenderer.ApplyCloneLimbs(clone, data);
-			RemoteCharacterDisplayProjection.ApplyRenderClone(clone, data.Health);
+			RemoteCharacterDisplayProjection.ApplyRenderClone(clone, RemoteCharacterPresentation.State.From(data));
 		}
 	}
 
@@ -162,7 +163,7 @@ internal sealed class RemotePlayerRenderer(
 				{
 					_characterData.ApplyCloneInventory(clone, data, remote.SteamId);
 					_limbRenderer.ApplyCloneLimbs(clone, data);
-					RemoteCharacterDisplayProjection.ApplyRenderClone(clone, data.Health);
+					RemoteCharacterDisplayProjection.ApplyRenderClone(clone, RemoteCharacterPresentation.State.From(data));
 				}
 			}
 

@@ -40,7 +40,7 @@ public sealed class WorldEntityKernelProjection
 		_log = log;
 		_projectionHealth = projectionHealth;
 		_kernelAuthority.CheckpointRestored += OnCheckpointRestored;
-		_projectionHealth.Register("world-entities", RebuildFromKernel, () => _kernelAuthority.CurrentGlobalRevision);
+		_projectionHealth.Register(new ProjectionDomain("world-entities", RebuildFromKernel, () => _kernelAuthority.CurrentGlobalRevision));
 	}
 
 	/// <summary>Raised when a restored checkpoint carries trap consumptions.</summary>

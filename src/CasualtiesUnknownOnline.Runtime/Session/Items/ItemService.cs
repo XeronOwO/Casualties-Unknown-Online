@@ -64,7 +64,7 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 			itemId => ItemDestroyed?.Invoke(itemId),
 			(owner, item, _) => PublishCarriedSyncLocal(owner, item),
 			item => FireCorrectionLocal(item));
-		_projectionHealth.Register("items", RebuildItemProjectionFromKernel, () => _kernelAuthority.CurrentGlobalRevision);
+		_projectionHealth.Register(new ProjectionDomain("items", RebuildItemProjectionFromKernel, () => _kernelAuthority.CurrentGlobalRevision));
 		_carriedSync = new ItemCarriedSyncService();
 		_itemActionSync = new(session, this, _kernelProtocol);
 		_snapshots = new(session, () => (IReadOnlyCollection<WorldItem>)_worldTable.Items.Values, _kernelProtocol, log);

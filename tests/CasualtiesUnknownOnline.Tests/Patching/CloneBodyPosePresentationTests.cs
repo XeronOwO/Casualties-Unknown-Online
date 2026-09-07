@@ -40,7 +40,7 @@ public class CloneBodyPosePresentationTests
 		var applyParameters = apply.GetParameters();
 		Assert.Equal(2, applyParameters.Length);
 		Assert.Equal("Body", applyParameters[0].ParameterType.Name);
-		Assert.Equal("CasualtiesUnknownOnline.Runtime.Protocol.Messages.CharacterHealthMsg", applyParameters[1].ParameterType.FullName);
+		Assert.Equal("CasualtiesUnknownOnline.Runtime.Session.CharacterData.RemoteCharacterPresentation+State", applyParameters[1].ParameterType.FullName);
 	}
 
 	[Fact]

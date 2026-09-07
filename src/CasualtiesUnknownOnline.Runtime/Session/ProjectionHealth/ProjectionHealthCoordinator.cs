@@ -25,6 +25,17 @@ public sealed class ProjectionHealthCoordinator(ILogger<ProjectionHealthCoordina
 	private readonly Dictionary<string, DomainState> _domains = [];
 	private readonly ILogger<ProjectionHealthCoordinator> _log = log;
 
+	/// <summary>Register a rebuildable projection domain through the typed global contract.</summary>
+	public void Register(IProjectionDomain domain)
+	{
+		if (domain is null)
+		{
+			throw new ArgumentNullException(nameof(domain));
+		}
+
+		Register(domain.Domain, domain.Rebuild, () => domain.CurrentRevision);
+	}
+
 	/// <summary>Register a rebuildable projection domain.</summary>
 	public void Register(string domain, Action rebuild, Func<ulong> currentRevision)
 	{

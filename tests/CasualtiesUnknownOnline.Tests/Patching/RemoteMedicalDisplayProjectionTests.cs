@@ -22,34 +22,6 @@ public class RemoteMedicalDisplayProjectionTests
 	public void ProjectionType_Exists() => Assert.NotNull(Projection);
 
 	[Fact]
-	public void ProjectBreathing_UsesAuthoritativeRespiratoryRate()
-	{
-		var method = GetStaticMethod("ProjectBreathing");
-
-		var stopped = new CharacterHealthMsg { Alive = true, RespiratoryRate = 0f };
-		var normal = new CharacterHealthMsg { Alive = true, RespiratoryRate = 80f };
-		var threshold = new CharacterHealthMsg { Alive = true, RespiratoryRate = 10f };
-		var dead = new CharacterHealthMsg { Alive = false, RespiratoryRate = 80f };
-
-		Assert.False((bool)Invoke(method, stopped)!);
-		Assert.True((bool)Invoke(method, normal)!);
-		Assert.False((bool)Invoke(method, threshold)!);
-		Assert.False((bool)Invoke(method, dead)!);
-	}
-
-	[Fact]
-	public void ProjectRespiratoryRateReadout_UsesNativeQuarterFormula()
-	{
-		var method = GetStaticMethod("ProjectRespiratoryRateReadout");
-
-		var normal = new CharacterHealthMsg { RespiratoryRate = 80f };
-		var stopped = new CharacterHealthMsg { RespiratoryRate = 0f };
-
-		Assert.Equal("20/m", (string)Invoke(method, normal)!);
-		Assert.Equal("0/m", (string)Invoke(method, stopped)!);
-	}
-
-	[Fact]
 	public void AdvanceOpiateReception_MovesTowardCommittedOpiateDose()
 	{
 		var method = GetStaticMethod("AdvanceOpiateReception");

@@ -62,11 +62,19 @@ not hidden under this umbrella.
    clone-inventory renderer branches (new, matched, container update, container
    create) now apply `Condition`, `Favourited` and `Liquids` through one seam;
    the top-level durability mismatch is fixed.
-6. **Hardening** — full build, format, 2501 + 17 tests, normative gates,
+6. **Hardening** — full build, format, 2506 + 17 tests, normative gates,
    independent adversarial subagent review, and latest DLL deployment/hash
    verification are complete for this development cycle.
 
 ## Remaining boundary
+
+This ticket is the remote-character-display slice of the projection work, not
+the complete macro projection system. The global framework is tracked in
+`docs/backlog/todo/global-projection-framework.md`: typed `IProjectionDomain` /
+`ProjectionDomain` core and architecture doc have landed, `items`/`fluids`/
+`world-entities` now register through the typed contract, and the remaining
+full typed read-model/rebuild migrations (players, enemies, carry, remote
+display registration) are still open.
 
 The user-visible interactive remote-backpack issues (trash-bag selective
 insertion, double-Tab transfer, pour/edge-drop, main-hand placement,
@@ -83,7 +91,7 @@ review-stage tickets.
   deleted; no dual parallel projection paths remain. — **Met**: the three old
   helpers are deleted; the item source-value copies are consolidated.
 - Full build, formatting, normative gates, full test suite and independent
-  adversarial review pass. — **Met**: 0 warnings/errors, 2501 + 17 tests,
+  adversarial review pass. — **Met**: 0 warnings/errors, 2506 + 17 tests,
   independent subagent review passed.
 - Latest DLLs deployed and artifact-verified for each runtime-behavior phase.
   — **Met for this cycle** (deployment hash verification recorded below).

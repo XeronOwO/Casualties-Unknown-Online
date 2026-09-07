@@ -54,36 +54,36 @@ internal static class RemoteCharacterDisplayProjection
 
 	// ===== Apply: remote render clone =====
 
-	internal static void ApplyRenderClone(Body clone, CharacterHealthMsg? health)
+	internal static void ApplyRenderClone(Body clone, RemoteCharacterPresentation.State? presentation)
 	{
-		if (health is null)
+		if (presentation?.Face is not { } faceState || presentation.BodyPose is not { } pose)
 		{
 			return;
 		}
 
-		clone.disfigured = health.Disfigured;
-		clone.eyeGone = health.EyeGone;
-		clone.bothEyesGone = health.BothEyesGone;
+		clone.disfigured = faceState.Disfigured;
+		clone.eyeGone = faceState.EyeGone;
+		clone.bothEyesGone = faceState.BothEyesGone;
 
 		// Face-driving body vitals: Body.Update is skipped on a render clone, so
-		// these are written from the owner's 1 Hz snapshot. The game's own
+		// these are written from the owner's presentation model. The game's own
 		// FacialExpression.Update remains the sprite authority.
-		ApplyFaceVitals(clone, FacePresentationVitals.From(health));
+		ApplyFaceVitals(clone, faceState.Vitals);
 
 		var face = clone.GetComponentInChildren<FacialExpression>();
 		if (face != null) // Unity object — ==
 		{
 			var count = face.disfiguredHead?.Length ?? 0;
-			face.disfiguredIndex = count > 0 ? Mathf.Clamp(health.DisfiguredIndex, 0, count - 1) : 0;
-			face.disfiguredTimeFullSkin = health.DisfiguredTimeFullSkin;
-			face.eyeTimeHealed = health.EyeTimeHealed;
+			face.disfiguredIndex = count > 0 ? Mathf.Clamp(faceState.DisfiguredIndex, 0, count - 1) : 0;
+			face.disfiguredTimeFullSkin = faceState.DisfiguredTimeFullSkin;
+			face.eyeTimeHealed = faceState.EyeTimeHealed;
 		}
 
 		var driver = clone.GetComponent<RemoteBodyDriver>();
 		if (driver != null) // Unity object — ==
 		{
-			driver.HeadMouth = health.HeadMouth;
-			driver.LegSpeedMult = Mathf.Clamp01(health.LegSpeedMult);
+			driver.HeadMouth = faceState.HeadMouth;
+			driver.LegSpeedMult = Mathf.Clamp01(pose.LegSpeedMult);
 		}
 	}
 
@@ -104,9 +104,9 @@ internal static class RemoteCharacterDisplayProjection
 
 	// ===== Apply: remote WoundView display-only body =====
 
-	internal static void ApplyMedicalDisplay(Body body, CharacterHealthMsg? health)
+	internal static void ApplyMedicalDisplay(Body body, RemoteCharacterPresentation.State? presentation)
 	{
-		if (health is null)
+		if (presentation?.Health is not { } health || presentation.Medical is not { } medical)
 		{
 			return;
 		}
@@ -117,32 +117,29 @@ internal static class RemoteCharacterDisplayProjection
 		// the projected actual after this authoritative snapshot reset.
 		CharacterComponentSync.Apply(body, health);
 
-		body.heartRate = health.HeartRate;
-		body.bloodPressure = health.BloodPressure;
-		body.bloodPressureReadout = $"{Mathf.RoundToInt(health.BloodPressure)}/{Mathf.RoundToInt(health.BloodPressure * 0.66f)}";
+		body.heartRate = medical.HeartRate;
+		body.bloodPressure = medical.BloodPressure;
+		body.bloodPressureReadout = $"{Mathf.RoundToInt(medical.BloodPressure)}/{Mathf.RoundToInt(medical.BloodPressure * 0.66f)}";
 
-		// Breathing is recomputed by Body.Update on a live body; the inactive
-		// display clone must project it from the authoritative snapshot so a
-		// stopped remote breath shows the native "cannot breathe" moodle, not
-		// the generic hypoventilation one.
-		body.breathing = ProjectBreathing(health);
+		// Breathing is a presentation-finished value in the model.
+		body.breathing = medical.Breathing;
 
 		// WoundView's respiratory line reads the private-set property that the
 		// live body's circulation pass fills; project it for the inactive clone.
 		Traverse.Create(body).Property("respiratoryRateReadout")
-			.SetValue(ProjectRespiratoryRateReadout(health));
+			.SetValue(medical.RespiratoryRateReadout);
 
 		// Antidepressant happiness is produced by Antidepressants.Update; the
 		// component only contributes while its amount is non-zero, and the
 		// currentAmount determines the live ramp.
-		body.antidepressantHappiness = health.AntidepressantsAmount > 0f
-			? -body.happiness * 0.6f * Mathf.Clamp01(health.AntidepressantsCurrentAmount * 0.0166f)
+		body.antidepressantHappiness = medical.AntidepressantsAmount > 0f
+			? -body.happiness * 0.6f * Mathf.Clamp01(medical.AntidepressantsCurrentAmount * 0.0166f)
 			: 0f;
 
 		// Mindwipe is assigned by Body.Update's half-second pass. The display
 		// clone may still carry a component from an earlier snapshot; remove it
 		// when the authoritative snapshot says the state is gone.
-		if (health.MindwipeScriptPresent)
+		if (medical.MindwipeScriptPresent)
 		{
 			body.mindWipe = body.GetComponent<MindwipeScript>();
 		}
@@ -159,10 +156,15 @@ internal static class RemoteCharacterDisplayProjection
 
 	internal static void AdvanceMedicalDisplay(
 		Body display,
-		CharacterHealthMsg health,
+		RemoteCharacterPresentation.State? presentation,
 		float deltaTime,
 		float unscaledDeltaTime)
 	{
+		if (presentation?.Health is not { } health || presentation.Medical is not { } medical)
+		{
+			return;
+		}
+
 		// The display body is inactive, so the native heart progression never
 		// runs; advance it here so the redirected ECG waveform is not frozen at
 		// a constant progress.
@@ -178,9 +180,9 @@ internal static class RemoteCharacterDisplayProjection
 		// it is identical; for negative it is invertible) so 1 Hz/state
 		// component sync cannot reset the curve.
 		var currentActual = ToActualReception(display.opiateHappiness);
-		if (currentActual == 0f && health.ActualOpiateReception != 0f)
+		if (currentActual == 0f && medical.ActualOpiateReception != 0f)
 		{
-			currentActual = health.ActualOpiateReception;
+			currentActual = medical.ActualOpiateReception;
 		}
 
 		var actual = AdvanceOpiateReception(
@@ -200,17 +202,6 @@ internal static class RemoteCharacterDisplayProjection
 	}
 
 	// ===== Pure medical-display rules =====
-
-	/// <summary>
-	/// Native <c>Body.Update</c> recomputes <c>breathing</c> every frame as
-	/// <c>alive &amp;&amp; respiratoryRate &gt; 10</c> (Body.cs:2770). The display
-	/// body never runs that pass, so without this projection a stopped remote
-	/// breathing state would keep the template's default <c>breathing=true</c>
-	/// and the moodle manager would show only hypoventilation instead of the
-	/// critical "cannot breathe" icon.
-	/// </summary>
-	internal static bool ProjectBreathing(CharacterHealthMsg health) =>
-		health.Alive && health.RespiratoryRate > 10f;
 
 	/// <summary>
 	/// The display's opiate actual-reception must advance with the
@@ -264,15 +255,6 @@ internal static class RemoteCharacterDisplayProjection
 
 		return 0f;
 	}
-
-	/// <summary>
-	/// The native WoundView respiratory line reads
-	/// <c>Body.respiratoryRateReadout</c>, which is generated only by the live
-	/// body's circulation pass (Body.cs:931). The display body never runs that
-	/// pass, so the readout must be projected here.
-	/// </summary>
-	internal static string ProjectRespiratoryRateReadout(CharacterHealthMsg health) =>
-		Math.Round(health.RespiratoryRate * 0.25f).ToString("0") + "/m";
 
 	/// <summary>
 	/// Native ECG animation is driven by <c>Body.heartProg</c>, which only

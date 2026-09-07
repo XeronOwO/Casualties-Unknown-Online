@@ -35,7 +35,7 @@ public sealed class FluidKernelReadProjection : IDisposable
 		_projectionHealth = projectionHealth;
 		_kernelAuthority.BatchApplied += OnBatchApplied;
 		_kernelAuthority.CheckpointRestored += OnCheckpointRestored;
-		_projectionHealth.Register("fluids", RebuildFromKernel, () => _kernelAuthority.CurrentGlobalRevision);
+		_projectionHealth.Register(new ProjectionDomain("fluids", RebuildFromKernel, () => _kernelAuthority.CurrentGlobalRevision));
 	}
 
 	/// <summary>The current rebuilt fluid-region snapshot.</summary>

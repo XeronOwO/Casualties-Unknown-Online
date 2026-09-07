@@ -3,6 +3,7 @@ using System.Collections.Generic;
 
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
+using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using Microsoft.Extensions.Logging;
 using MapsterMapper;
 using UnityEngine;
@@ -144,10 +145,11 @@ internal sealed class RemoteMedicalCoordinator(
 			&& data.Health is not null
 			&& RemoteMedicalView.DisplayBody is { } display) // Unity object — ==
 		{
-			ApplySnapshot(display, data);
+			var presentation = RemoteCharacterPresentation.State.From(data);
+			ApplySnapshot(display, data, presentation);
 			RemoteCharacterDisplayProjection.AdvanceMedicalDisplay(
 				display,
-				data.Health,
+				presentation,
 				Time.deltaTime,
 				Time.unscaledDeltaTime);
 		}
@@ -169,7 +171,9 @@ internal sealed class RemoteMedicalCoordinator(
 		if (health is not null)
 		{
 			_mapper.Map(health, display);
-			RemoteCharacterDisplayProjection.ApplyMedicalDisplay(display, health);
+			RemoteCharacterDisplayProjection.ApplyMedicalDisplay(
+				display,
+				RemoteCharacterPresentation.State.From(health, limbs));
 		}
 
 		if (limbs is null)
@@ -242,12 +246,16 @@ internal sealed class RemoteMedicalCoordinator(
 		return true;
 	}
 
-	private void ApplySnapshot(Body body, CharacterDataMsg data)
+	private void ApplySnapshot(
+		Body body,
+		CharacterDataMsg data,
+		RemoteCharacterPresentation.State? presentation = null)
 	{
+		presentation ??= RemoteCharacterPresentation.State.From(data);
 		if (data.Health is { } health)
 		{
 			_mapper.Map(health, body);
-			RemoteCharacterDisplayProjection.ApplyMedicalDisplay(body, health);
+			RemoteCharacterDisplayProjection.ApplyMedicalDisplay(body, presentation);
 		}
 
 		if (data.Skills is { } skills)

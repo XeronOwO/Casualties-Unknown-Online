@@ -15,7 +15,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 public class RemoteMedicalDisplayProjectionTests
 {
 	private static readonly Type Projection = GameAssemblyHost.Adapter.GetType(
-		"CasualtiesUnknownOnline.GameAdapter.Character.RemoteMedicalDisplayProjection",
+		"CasualtiesUnknownOnline.GameAdapter.Character.RemoteCharacterDisplayProjection",
 		throwOnError: false)!;
 
 	[Fact]
@@ -178,7 +178,7 @@ public class RemoteMedicalDisplayProjectionTests
 	{
 		Assert.NotNull(Projection);
 		var method = Projection!.GetMethod(name, BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
-			?? throw new InvalidOperationException($"RemoteMedicalDisplayProjection.{name} not found.");
+			?? throw new InvalidOperationException($"RemoteCharacterDisplayProjection.{name} not found.");
 		Assert.True(method.IsStatic);
 		return method;
 	}

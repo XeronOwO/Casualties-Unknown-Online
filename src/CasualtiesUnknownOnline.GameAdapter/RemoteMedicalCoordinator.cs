@@ -1,6 +1,5 @@
 using CasualtiesUnknownOnline.GameAdapter.Character;
 using System.Collections.Generic;
-using HarmonyLib;
 
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
@@ -146,40 +145,11 @@ internal sealed class RemoteMedicalCoordinator(
 			&& RemoteMedicalView.DisplayBody is { } display) // Unity object — ==
 		{
 			ApplySnapshot(display, data);
-			// The display body is inactive, so the native heart progression
-			// never runs; advance it here so the redirected ECG waveform is
-			// not frozen at a constant progress.
-			display.heartProg = RemoteMedicalDisplayProjection.AdvanceHeartProgress(
-				display.heartRate,
-				display.heartProg,
-				Time.unscaledDeltaTime);
-
-			// The display body is also inactive for Painkillers.Update; run
-			// the same 5-units/sec opiate-reception ramp here so the remote
-			// mood advances between the committed-dose state updates. The raw
-			// actual is carried in the display body's opiateHappiness (for
-			// positive opiates it is identical; for negative it is invertible)
-			// so 1 Hz/state component sync cannot reset the curve.
-			var currentActual = RemoteMedicalDisplayProjection.ToActualReception(display.opiateHappiness);
-			if (currentActual == 0f && data.Health.ActualOpiateReception != 0f)
-			{
-				currentActual = data.Health.ActualOpiateReception;
-			}
-
-			var actual = RemoteMedicalDisplayProjection.AdvanceOpiateReception(
+			RemoteCharacterDisplayProjection.AdvanceMedicalDisplay(
+				display,
 				data.Health,
-				currentActual,
-				Time.deltaTime);
-			display.opiateHappiness = RemoteMedicalDisplayProjection.OpiateHappinessFromReception(actual);
-
-			// The native MoodleManager reads Painkillers.actualOpiateReception
-			// for the overdose/withdrawal row; keep the display component's
-			// actual aligned with the projected ramp after the snapshot reset.
-			var painkillers = display.GetComponent<Painkillers>();
-			if (painkillers != null) // Unity object — ==
-			{
-				painkillers.actualOpiateReception = actual;
-			}
+				Time.deltaTime,
+				Time.unscaledDeltaTime);
 		}
 	}
 	/// <summary>
@@ -199,12 +169,7 @@ internal sealed class RemoteMedicalCoordinator(
 		if (health is not null)
 		{
 			_mapper.Map(health, display);
-			// Keep the display body's Painkillers component in sync too: the
-			// native MoodleManager reads its actualOpiateReception for the
-			// overdose/withdrawal row. The per-frame Update re-writes the
-			// projected actual after this authoritative snapshot reset.
-			CharacterComponentSync.Apply(display, health);
-			ApplyDisplayDerived(display, health);
+			RemoteCharacterDisplayProjection.ApplyMedicalDisplay(display, health);
 		}
 
 		if (limbs is null)
@@ -282,12 +247,7 @@ internal sealed class RemoteMedicalCoordinator(
 		if (data.Health is { } health)
 		{
 			_mapper.Map(health, body);
-			// Keep the display body's Painkillers component in sync too: the
-			// native MoodleManager reads its actualOpiateReception for the
-			// overdose/withdrawal row. The per-frame Update re-writes the
-			// projected actual after this authoritative snapshot reset.
-			CharacterComponentSync.Apply(body, health);
-			ApplyDisplayDerived(body, health);
+			RemoteCharacterDisplayProjection.ApplyMedicalDisplay(body, health);
 		}
 
 		if (data.Skills is { } skills)
@@ -319,64 +279,6 @@ internal sealed class RemoteMedicalCoordinator(
 		// facts so the read-only display matches the owner's own panel.
 		body.averagePain = ComputeAveragePain(body);
 		body.totalBleedSpeed = ComputeTotalBleedSpeed(body);
-	}
-
-	/// <summary>
-	/// Fill the display-only body fields that are normally produced by the
-	/// owner's live <c>Body.Update</c> / component updates. The display clone is
-	/// deliberately inactive, so those Update methods never run; without this
-	/// projection the remote WoundView would show a stale/default heart readout,
-	/// miss opiate/antidepressant happiness, and leave the native mood/medical
-	/// cross-checks inconsistent.
-	/// </summary>
-	private static void ApplyDisplayDerived(Body body, CharacterHealthMsg health)
-	{
-		// Explicitly carry the critical readouts too: Mapster covers matching
-		// fields, but the inactive clone must never fall back to template
-		// defaults for the values the native panel displays directly.
-		body.heartRate = health.HeartRate;
-		body.bloodPressure = health.BloodPressure;
-		body.bloodPressureReadout = $"{Mathf.RoundToInt(health.BloodPressure)}/{Mathf.RoundToInt(health.BloodPressure * 0.66f)}";
-
-		// Breathing is recomputed by Body.Update on a live body; the inactive
-		// display clone must project it from the authoritative snapshot so a
-		// stopped remote breath shows the native "cannot breathe" moodle, not
-		// the generic hypoventilation one.
-		body.breathing = RemoteMedicalDisplayProjection.ProjectBreathing(health);
-
-		// WoundView's respiratory line reads the private-set property that the
-		// live body's circulation pass fills; project it for the inactive clone.
-		Traverse.Create(body).Property("respiratoryRateReadout")
-			.SetValue(RemoteMedicalDisplayProjection.ProjectRespiratoryRateReadout(health));
-
-		// Opiate happiness is produced by Painkillers.Update on a live body.
-		// It is intentionally NOT reset here: the per-frame Update advances the
-		// raw actual carried in body.opiateHappiness toward the committed dose,
-		// so a stale 1 Hz ActualOpiateReception cannot reset the curve.
-
-		// Antidepressant happiness is produced by Antidepressants.Update; the
-		// component only contributes while its amount is non-zero, and the
-		// currentAmount determines the live ramp.
-		body.antidepressantHappiness = health.AntidepressantsAmount > 0f
-			? -body.happiness * 0.6f * Mathf.Clamp01(health.AntidepressantsCurrentAmount * 0.0166f)
-			: 0f;
-
-		// Mindwipe is assigned by Body.Update's half-second pass (Body.cs:3569).
-		// The display clone may still carry a component from an earlier snapshot;
-		// remove it when the authoritative snapshot says the state is gone.
-		if (health.MindwipeScriptPresent)
-		{
-			body.mindWipe = body.GetComponent<MindwipeScript>();
-		}
-		else
-		{
-			body.mindWipe = null;
-			var staleMindwipe = body.GetComponent<MindwipeScript>();
-			if (staleMindwipe != null) // Unity object — ==
-			{
-				Object.Destroy(staleMindwipe);
-			}
-		}
 	}
 
 	private static float ComputeAveragePain(Body body)

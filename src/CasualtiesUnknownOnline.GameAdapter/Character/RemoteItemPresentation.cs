@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.GameAdapter.Items;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
@@ -19,6 +20,24 @@ namespace CasualtiesUnknownOnline.GameAdapter.Character;
 /// </summary>
 internal static class RemoteItemPresentation
 {
+	internal readonly record struct SourceValues(
+		float Condition,
+		bool Favourited,
+		IReadOnlyList<LiquidStackMsg> Liquids)
+	{
+		internal static SourceValues From(CharacterItemMsg data) =>
+			new(data.Condition, data.Favourited, data.Liquids);
+	}
+
+	internal static void ApplySourceValues(Item item, CharacterItemMsg data)
+	{
+		item.condition = data.Condition;
+		item.favourited = data.Favourited;
+		ItemStateCodec.RestoreLiquids(item, data.Liquids);
+	}
+
+	internal static SourceValues SourceValuesFrom(CharacterItemMsg data) => SourceValues.From(data);
+
 	internal static void Apply(Item item, CharacterItemMsg data)
 	{
 		var grapple = item.GetComponent<GrapplingHook>();

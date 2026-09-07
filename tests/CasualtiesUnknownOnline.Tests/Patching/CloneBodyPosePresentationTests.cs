@@ -5,15 +5,16 @@ using Xunit;
 namespace CasualtiesUnknownOnline.Tests.Patching;
 
 /// <summary>
-/// Reflective surface for the remote-clone body-pose presentation helper. The
-/// adapter is compile-excluded from the test project, so the capture/apply
-/// shape and the clone driver field are locked here the same way as the other
-/// adapter contract tests.
+/// Reflective surface for the unified remote character display projection's
+/// body-pose half. The adapter is compile-excluded from the test project, so
+/// the capture/apply shape and the clone driver field are locked here the same
+/// way as the other adapter contract tests. The old per-domain helper
+/// CloneBodyPosePresentation has been absorbed into the unified projection.
 /// </summary>
 public class CloneBodyPosePresentationTests
 {
-	private static readonly Type Presentation = GameAssemblyHost.Adapter.GetType(
-		"CasualtiesUnknownOnline.GameAdapter.Character.CloneBodyPosePresentation",
+	private static readonly Type Projection = GameAssemblyHost.Adapter.GetType(
+		"CasualtiesUnknownOnline.GameAdapter.Character.RemoteCharacterDisplayProjection",
 		throwOnError: true)!;
 
 	private static readonly Type Driver = GameAssemblyHost.Adapter.GetType(
@@ -23,10 +24,10 @@ public class CloneBodyPosePresentationTests
 	[Fact]
 	public void Surface_HasStaticCaptureAndApply()
 	{
-		var capture = Presentation.GetMethod("Capture", BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
-			?? throw new InvalidOperationException("CloneBodyPosePresentation.Capture not found.");
-		var apply = Presentation.GetMethod("Apply", BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
-			?? throw new InvalidOperationException("CloneBodyPosePresentation.Apply not found.");
+		var capture = Projection.GetMethod("Capture", BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
+			?? throw new InvalidOperationException("RemoteCharacterDisplayProjection.Capture not found.");
+		var apply = Projection.GetMethod("ApplyRenderClone", BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public)
+			?? throw new InvalidOperationException("RemoteCharacterDisplayProjection.ApplyRenderClone not found.");
 
 		Assert.True(capture.IsStatic);
 		Assert.True(apply.IsStatic);

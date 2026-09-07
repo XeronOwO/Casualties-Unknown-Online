@@ -1,5 +1,10 @@
 # Remote Clone Head/Mouth Sync — Host Fall-Injury Mouth-Expression Desync Self-Check
 
+> **Superseded**: `CloneFacePresentation` has been absorbed into
+> `RemoteCharacterDisplayProjection` by the unified remote display projection
+> rework. See
+> `unified-remote-display-projection-selfcheck.md` for the current seam.
+
 Delivery-cycle fact sheet for the re-opened
 `docs/backlog/todo/host-fall-injury-mouth-expression-desync.md` item
 (moved to `docs/backlog/review/` after this cycle).

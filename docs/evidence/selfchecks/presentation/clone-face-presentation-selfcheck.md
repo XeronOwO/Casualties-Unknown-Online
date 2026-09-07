@@ -1,5 +1,10 @@
 # Remote Clone FacialExpression Disfigurement / Eye-Loss Presentation — Self-Check
 
+> **Superseded**: `CloneFacePresentation` has been absorbed into
+> `RemoteCharacterDisplayProjection` by the unified remote display projection
+> rework. See
+> `unified-remote-display-projection-selfcheck.md` for the current seam.
+
 Owner cycle: autonomous backlog selection. The user instructed this session to
 pick one backlog item autonomously and complete it, then write the result back
 into `../backlog.md` ("由你来自主挑选一个并完成，记得在完成之后回写 backlog").

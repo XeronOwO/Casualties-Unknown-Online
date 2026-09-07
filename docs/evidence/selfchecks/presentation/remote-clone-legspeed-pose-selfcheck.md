@@ -1,5 +1,10 @@
 # Remote Clone Leg-Speed Pose Sync — Host Severe Sleepiness Posture Desync Self-Check
 
+> **Superseded**: `CloneBodyPosePresentation` has been absorbed into
+> `RemoteCharacterDisplayProjection` by the unified remote display projection
+> rework. See
+> `unified-remote-display-projection-selfcheck.md` for the current seam.
+
 Delivery-cycle fact sheet for
 `docs/backlog/todo/host-severe-sleepiness-posture-desync.md`
 (moved to `docs/backlog/review/` after this cycle).

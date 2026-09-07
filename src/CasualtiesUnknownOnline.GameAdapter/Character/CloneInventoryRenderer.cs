@@ -96,6 +96,7 @@ internal sealed class CloneInventoryRenderer(ILogger<CloneInventoryRenderer> log
 					Object.Destroy(duplicate.gameObject);
 				}
 
+				RemoteItemPresentation.ApplySourceValues(matches[0], wanted);
 				if (wanted.Components is { Count: > 0 })
 				{
 					ItemStateCodec.RestoreComponentStates(matches[0], wanted.Components);
@@ -170,6 +171,12 @@ internal sealed class CloneInventoryRenderer(ILogger<CloneInventoryRenderer> log
 		obj.SetActive(true);
 		obj.transform.localPosition = Vector3.zero;
 		var item = obj.GetComponent<Item>();
+
+		// Apply the snapshot's authoritative condition/favourite/liquid state.
+		// The prefab starts at author-time values, so without this a remote
+		// backpack shows a 100% template item even when the owner holds a worn
+		// metal scrap at 75% (the acceptance regression).
+		RemoteItemPresentation.ApplySourceValues(item, wanted);
 
 		// Apply the snapshot's component state so the clone shows the owner's
 		// real state (CustomItemBehaviour.state — flashlight modes). The prefab
@@ -405,9 +412,7 @@ internal sealed class CloneInventoryRenderer(ILogger<CloneInventoryRenderer> log
 	private static void UpdateRemoteContent(Item item, CharacterItemMsg data, ulong ownerSteamId)
 	{
 		SetRemoteInventoryItemId(item, data.InstanceId, ownerSteamId);
-		item.condition = data.Condition;
-		item.favourited = data.Favourited;
-		ItemStateCodec.RestoreLiquids(item, data.Liquids);
+		RemoteItemPresentation.ApplySourceValues(item, data);
 		ItemStateCodec.RestoreComponentStates(item, data.Components);
 		RemoteItemPresentation.Apply(item, data);
 		RestoreRemoteContents(item, data.Contents, ownerSteamId);
@@ -451,10 +456,8 @@ internal sealed class CloneInventoryRenderer(ILogger<CloneInventoryRenderer> log
 			return;
 		}
 
-		child.condition = childData.Condition;
-		child.favourited = childData.Favourited;
 		SetRemoteInventoryItemId(child, childData.InstanceId, ownerSteamId);
-		ItemStateCodec.RestoreLiquids(child, childData.Liquids);
+		RemoteItemPresentation.ApplySourceValues(child, childData);
 		ItemStateCodec.RestoreComponentStates(child, childData.Components);
 
 		var childContainer = child.GetComponent<Container>();

@@ -14,6 +14,15 @@ The user's judgment: the projection mechanism was not designed for these
 interactions and feels fundamentally weak; it needs a thorough audit or a
 complete rework rather than more point patches.
 
+## Partial progress (2026-09-07 unified projection cycle)
+
+The durability mismatch (row 1 in the acceptance matrix) was addressed as part
+of the unified remote display projection rework: all clone-inventory renderer
+branches now apply `Condition`, `Favourited`, and `Liquids` through
+`RemoteItemPresentation.ApplySourceValues`.
+The remaining interaction issues in this ticket are still open and are not
+claimed done by the unified projection ticket.
+
 ## Reported issues
 
 1. **Durability projection mismatch**

@@ -4,6 +4,7 @@ using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.HostRules;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
+using CasualtiesUnknownOnline.Runtime.Session.ProjectionHealth;
 using CasualtiesUnknownOnline.Runtime.Time;
 using Microsoft.Extensions.Logging;
 
@@ -80,6 +81,7 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, IDispo
 		ITimeSource time,
 		ItemKernelAuthority kernelAuthority,
 		IMedicalOperationControl medicalOperations,
+		ProjectionHealthCoordinator projectionHealth,
 
 		ILogger<PlayerInteractionService> log)
 	{
@@ -100,6 +102,7 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, IDispo
 			kernelAuthority,
 			_carry,
 			session,
+			projectionHealth,
 			log);
 		_heal = new PlayerHealService(session, sender, access, items, visibility, kernelAuthority, resultAuthority, log);
 		_itemUse = new PlayerItemUseService(session, sender, access, items, visibility, kernelAuthority, resultAuthority, log);

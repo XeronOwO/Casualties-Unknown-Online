@@ -175,10 +175,10 @@ public sealed class ProjectionHealthCoordinator(ILogger<ProjectionHealthCoordina
 		lock (_sync)
 		{
 			state.LastSuccessfulRevision = revision;
-			state.Dirty = false;
-			state.ConsecutiveFailures = 0;
-			state.Degraded = false;
-			state.LastError = null;
+			// Intentionally do not clear Dirty/Degraded/LastError here. A later
+			// incremental projection cannot prove that a previously failed
+			// projection was fully rebuilt; only a successful Pump/Rebuild may
+			// clear the dirty/degraded diagnostic state.
 		}
 	}
 

@@ -42,6 +42,26 @@ public class ProjectionHealthCoordinatorTests
 	}
 
 	[Fact]
+	public void Run_SuccessAfterFailure_KeepsDirtyUntilPumpRebuild()
+	{
+		var coordinator = CreateCoordinator();
+		var rebuilds = 0;
+
+		coordinator.Register("items", () => rebuilds++, static () => 7);
+		coordinator.Run("items", 5, static () => throw new InvalidOperationException("first boom"));
+		coordinator.Run("items", 6, static () => { });
+
+		var info = Assert.Single(coordinator.Snapshot());
+		Assert.True(info.Dirty, "an unrelated later projection success must not clear a failed domain");
+		Assert.Equal(6ul, info.LastSuccessfulRevision);
+
+		coordinator.Pump();
+
+		Assert.Equal(1, rebuilds);
+		Assert.False(coordinator.IsDirty("items"));
+	}
+
+	[Fact]
 	public void Pump_RebuildsDirtyDomainFromKernelReadModelAndClearsDirty()
 	{
 		var coordinator = CreateCoordinator();

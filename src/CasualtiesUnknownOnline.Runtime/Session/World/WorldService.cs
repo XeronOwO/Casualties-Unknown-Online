@@ -7,6 +7,7 @@ using CasualtiesUnknownOnline.GameState.Domains.World;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
+using CasualtiesUnknownOnline.Runtime.Session.ProjectionHealth;
 using CasualtiesUnknownOnline.Runtime.Time;
 using Microsoft.Extensions.Logging;
 
@@ -31,6 +32,7 @@ public sealed class WorldService : IWorldControl, IDisposable
 	private readonly ItemKernelAuthority _kernelAuthority;
 	private readonly FluidKernelProjection _fluidKernel;
 	private readonly FluidKernelReadProjection _fluidKernelRead;
+	private readonly ProjectionHealthCoordinator _projectionHealth;
 
 	/// <summary>
 	/// Host only: a run is in progress but the host has not entered the world
@@ -73,7 +75,8 @@ public sealed class WorldService : IWorldControl, IDisposable
 		BlockDamageRegistry blockDamageRegistry,
 		ItemKernelAuthority kernelAuthority,
 		FluidKernelProjection fluidKernel,
-		FluidKernelReadProjection fluidKernelRead)
+		FluidKernelReadProjection fluidKernelRead,
+		ProjectionHealthCoordinator projectionHealth)
 	{
 		_session = session;
 		_sender = sender;
@@ -84,8 +87,11 @@ public sealed class WorldService : IWorldControl, IDisposable
 		_kernelAuthority = kernelAuthority;
 		_fluidKernel = fluidKernel;
 		_fluidKernelRead = fluidKernelRead;
+		_projectionHealth = projectionHealth;
+		_projectionHealth.Register(new ProjectionDomain("run", RebuildRunFromKernel, () => _kernelAuthority.CurrentGlobalRevision));
 
 		_kernelAuthority.BatchApplied += OnRunBatchApplied;
+		_kernelAuthority.BatchCommitted += OnRunBatchCommitted;
 		_kernelAuthority.CheckpointRestored += OnRunCheckpointRestored;
 		session.SessionEnded += OnSessionEnded;
 	}
@@ -222,6 +228,7 @@ public sealed class WorldService : IWorldControl, IDisposable
 	public void Dispose()
 	{
 		_kernelAuthority.BatchApplied -= OnRunBatchApplied;
+		_kernelAuthority.BatchCommitted -= OnRunBatchCommitted;
 		_kernelAuthority.CheckpointRestored -= OnRunCheckpointRestored;
 		_session.SessionEnded -= OnSessionEnded;
 	}
@@ -493,28 +500,54 @@ public sealed class WorldService : IWorldControl, IDisposable
 		}
 	}
 
-	private void OnRunBatchApplied(CommittedBatch batch)
+	private void OnRunBatchCommitted(CommittedBatch batch) => RunBatchProjection(batch);
+
+	private void OnRunBatchApplied(CommittedBatch batch) => RunBatchProjection(batch);
+
+	private void RunBatchProjection(CommittedBatch batch)
 	{
-		foreach (var @event in batch.Events)
+		_projectionHealth.Run("run", batch.GlobalRevision, () =>
 		{
-			switch (@event)
+			foreach (var @event in batch.Events)
 			{
-				case RunStartedEvent started:
-					ApplyRunProjection(started.Run);
-					break;
-				case RunAdvancedEvent advanced:
-					ApplyRunProjection(advanced.Run);
-					break;
+				switch (@event)
+				{
+					case RunStartedEvent started:
+						ApplyRunProjection(started.Run);
+						break;
+					case RunAdvancedEvent advanced:
+						ApplyRunProjection(advanced.Run);
+						break;
+				}
 			}
-		}
+		});
 	}
 
 	private void OnRunCheckpointRestored(GameCheckpoint checkpoint)
 	{
-		if (checkpoint.Run is not null)
+		_projectionHealth.Run("run", checkpoint.GlobalRevision, () =>
 		{
-			ApplyRunProjection(checkpoint.Run);
+			if (checkpoint.Run is not null)
+			{
+				ApplyRunProjection(checkpoint.Run);
+			}
+		});
+	}
+
+	private void RebuildRunFromKernel()
+	{
+		var run = _kernelAuthority.QueryRun();
+		if (run is not null)
+		{
+			ApplyRunProjection(run);
 		}
+		else
+		{
+			WorldParams = null;
+			_log.LogInformation("[RunProjection] kernel run is null; cleared the world-start projection.");
+		}
+
+		_log.LogDebug("[RunProjection] rebuilt from kernel at revision {Revision}.", _kernelAuthority.CurrentGlobalRevision);
 	}
 
 	private void ApplyRunProjection(RunState run)

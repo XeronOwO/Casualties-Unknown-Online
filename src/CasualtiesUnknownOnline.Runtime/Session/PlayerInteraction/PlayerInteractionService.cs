@@ -90,7 +90,8 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, IDispo
 		var access = new PlayerCharacterAccess(session, characters);
 		var resultAuthority = new PlayerInteractionResultAuthority(kernelAuthority);
 		_take = new PlayerInventoryTakeService(session, sender, access, items, hostRules, visibility, kernelAuthority, resultAuthority, log);
-		_remoteInventory = new PlayerRemoteInventoryService(session, sender, access, items, hostRules, visibility, kernelAuthority, resultAuthority, log);
+		_itemUse = new PlayerItemUseService(session, sender, access, items, visibility, kernelAuthority, resultAuthority, log);
+		_remoteInventory = new PlayerRemoteInventoryService(session, sender, access, items, hostRules, visibility, kernelAuthority, resultAuthority, _itemUse, _take, log);
 		_carry = new PlayerCarryService(
 			session,
 			sender,
@@ -105,7 +106,6 @@ public sealed class PlayerInteractionService : IPlayerInteractionControl, IDispo
 			projectionHealth,
 			log);
 		_heal = new PlayerHealService(session, sender, access, items, visibility, kernelAuthority, resultAuthority, log);
-		_itemUse = new PlayerItemUseService(session, sender, access, items, visibility, kernelAuthority, resultAuthority, log);
 		_resultProjection = new PlayerInteractionKernelProjection(kernelAuthority, this, session, log);
 		_push = new PlayerPushService(session, sender, access, entities, _carry, time, visibility, log);
 	}

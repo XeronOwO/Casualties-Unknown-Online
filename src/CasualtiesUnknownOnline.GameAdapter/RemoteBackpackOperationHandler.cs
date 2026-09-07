@@ -218,9 +218,35 @@ internal sealed class RemoteBackpackOperationHandler(GameAdapterDomains domains)
 			return false;
 		}
 
-		domains.PlayerInteraction.SendTakeRequest(owner, itemId);
+		domains.PlayerInteraction.SendRemoteInventoryOperation(new RemoteInventoryOperationRequestMsg
+		{
+			Kind = RemoteInventoryOperationKind.TransferToRequester,
+			OwnerSteamId = owner,
+			ItemInstanceId = itemId,
+		});
 		domains.Log.LogInformation("[BackpackView] requested Tab-switch transfer of {ItemId} (id {InstanceId}) from {Owner} to the local backpack.",
 			dragItem.id, itemId, owner);
+		return true;
+	}
+
+	internal bool TryUseOnSelf(Item dragItem, int limbIndex)
+	{
+		if (limbIndex < 0
+			|| !TryGetRemoteProxyIdentity(dragItem, out var owner, out var itemId)
+			|| owner == 0)
+		{
+			return false;
+		}
+
+		domains.PlayerInteraction.SendRemoteInventoryOperation(new RemoteInventoryOperationRequestMsg
+		{
+			Kind = RemoteInventoryOperationKind.UseOnSelf,
+			OwnerSteamId = owner,
+			ItemInstanceId = itemId,
+			TargetLimbIndex = limbIndex,
+		});
+		domains.Log.LogInformation("[BackpackView] requested held-item self-use of {ItemId} (id {InstanceId}) from {Owner} (limb {Limb}).",
+			dragItem.id, itemId, owner, limbIndex);
 		return true;
 	}
 

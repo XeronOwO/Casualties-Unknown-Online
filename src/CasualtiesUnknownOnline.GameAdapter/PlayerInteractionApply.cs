@@ -44,15 +44,23 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains)
 				// old object alive until the end of the frame, so the immediate
 				// re-report captures two children with the same instance id and the
 				// container weight/display doubles for one frame.
+				//
+				// If the native container cannot accept the item, absolutely do NOT
+				// destroy-and-rebuild. The old fallback removed the real source
+				// first, then attempted a rebuild that could also be refused,
+				// leaving the authoritative character/snapshot thinking the move
+				// happened while the real body lost the item (the "drag out of a
+				// trash bag makes the item vanish" family). Leave the original in
+				// place so the next character report re-converges to the real body.
 				if (TryMoveExistingItemToLocalContainer(body, sameOwnerItem, msg.TargetParentItemId))
 				{
 					changed = true;
 				}
 				else
 				{
-					RemoveCarriedItemFromLocalBody(body, sameOwnerItem.InstanceId);
-					AddCarriedItemToLocalContainer(body, sameOwnerItem, msg.TargetParentItemId);
-					changed = true;
+					domains.Log.LogWarning(
+						"[PlayerInteraction] same-owner container move refused by the native container: {ItemId} (id {InstanceId}) stays in its current location; no destructive rebuild was performed.",
+						sameOwnerItem.ItemId, sameOwnerItem.InstanceId);
 				}
 			}
 			else
@@ -451,10 +459,19 @@ internal sealed class PlayerInteractionApply(GameAdapterDomains domains)
 		// leaves it untouched when the target cannot hold it. Do NOT unload the
 		// source first — that would orphan the real item if LoadItem refuses
 		// (wrong weight/tag/distance) and the fallback would have to rebuild.
+		if (!container.CanHoldItem(source))
+		{
+			domains.Log.LogWarning(
+				"[PlayerInteraction] same-owner container move refused by native capacity/tags: {ItemId} (id {InstanceId}, weight {Weight:F2}) into {Parent} ({ParentId}, maxPerItem {MaxPerItem:F2}, maxTotal {MaxTotal:F2}, current {Current:F2}).",
+				item.ItemId, item.InstanceId, source.totalWeight, parent.id, parentItemId,
+				container.maxWeightPerItem, container.maxWeight, container.GetHoldingWeight());
+			return false;
+		}
+
 		container.LoadItem(source);
 		if (source.transform.parent != container.transform) // Unity object — ==
 		{
-			domains.Log.LogWarning("[PlayerInteraction] same-owner container move failed: {ItemId} (id {InstanceId}) did not land in {Parent} ({ParentId}).",
+			domains.Log.LogWarning("[PlayerInteraction] same-owner container move failed: {ItemId} (id {InstanceId}) did not land in {Parent} ({ParentId}) despite CanHoldItem.",
 				item.ItemId, item.InstanceId, parent.id, parentItemId);
 			return false;
 		}

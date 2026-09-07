@@ -81,6 +81,18 @@ internal static class PlayerCameraDragUsePatch
 			return true;
 		}
 
+		// Held-remote-item + Tab-close + R medical use: after the remote
+		// backpack view closes, the remote display proxy can legally be released
+		// on the local WoundView. Route that release to the host-authoritative
+		// UseOnSelf operation instead of cancelling it (the proxy must still
+		// never be handed to the native local-item medical path).
+		if (IsRemoteProxy(__instance.dragItem)
+			&& TryHandleRemoteHeldItemUseOnLocalWoundView(__instance.dragItem, uiCasts))
+		{
+			ClearDrag(__instance);
+			return false;
+		}
+
 		// A display proxy picked up from the remote view is the only drag that
 		// can legally outlive that view. It may be consumed by the remote-take
 		// path OR by a Tab-switch transfer into the local inventory; any other
@@ -167,11 +179,16 @@ internal static class PlayerCameraDragUsePatch
 			return true;
 		}
 
-		if (IsPourGesture(dragItem))
+		if (TryHandleRemoteDrainGesture(dragItem, uiCasts))
 		{
-			return PatchBridge.Impl?.TryHandleRemoteBackpackPour(dragItem) == true;
+			return true;
 		}
 
+		// The native drain object is the explicit pour gesture; the left/right
+		// screen edges remain the drop gesture for every item, including water
+		// containers. Previously any left-edge release of a water container was
+		// swallowed as "pour", which made edge-dropping a remote water bottle
+		// impossible and left no native-faithful pour shortcut either.
 		if (IsEdgeDrop())
 		{
 			return PatchBridge.Impl?.TryHandleRemoteBackpackDrop(dragItem) == true;
@@ -220,7 +237,19 @@ internal static class PlayerCameraDragUsePatch
 		foreach (var raycastResult in uiCasts)
 		{
 			var button = raycastResult.gameObject.GetComponent<InvButton>();
-			if (button == null || !button.Overlaps(uiCasts)) // Unity object — ==
+			if (button == null) // Unity object — ==
+			{
+				continue;
+			}
+
+			// The native InvButton.Overlaps filter excludes the radial centre's
+			// inner buttons (including the main hand) based on distance from the
+			// radial centre. While the remote backpack is open those same body
+			// slot buttons must still be routable as MoveToSlot targets; skipping
+			// them makes "host cannot place an item into the guest's main hand"
+			// (other slots work). Remote body slots are ignored only by the
+			// gesture map, never by the native center-button distance rule.
+			if (!button.Overlaps(uiCasts) && !(RemoteBackpackView.IsOpen && button.isBody))
 			{
 				continue;
 			}
@@ -358,20 +387,58 @@ internal static class PlayerCameraDragUsePatch
 		return false;
 	}
 
-	private static bool IsPourGesture(Item dragItem)
+	private static bool TryHandleRemoteDrainGesture(Item dragItem, List<RaycastResult> uiCasts)
 	{
+		var camera = PlayerCamera.main;
+		if (camera == null || camera.liquidDrainObject == null) // Unity objects — ==
+		{
+			return false;
+		}
+
 		if (dragItem.GetComponent<WaterContainerItem>() == null) // Unity object — ==
 		{
 			return false;
 		}
 
-		return Input.mousePosition.x < 100f;
+		foreach (var raycastResult in uiCasts)
+		{
+			if (raycastResult.gameObject != camera.liquidDrainObject) // Unity object — ==
+			{
+				continue;
+			}
+
+			return PatchBridge.Impl?.TryHandleRemoteBackpackPour(dragItem) == true;
+		}
+
+		return false;
 	}
 
 	private static bool IsEdgeDrop()
 	{
 		var x = Input.mousePosition.x;
 		return x < 100f || x > Screen.width - 100f;
+	}
+
+	private static bool TryHandleRemoteHeldItemUseOnLocalWoundView(Item dragItem, List<RaycastResult> uiCasts)
+	{
+		var camera = PlayerCamera.main;
+		if (camera == null || camera.woundView == null || !camera.woundView.activeSelf) // Unity objects — ==
+		{
+			return false;
+		}
+
+		foreach (var raycastResult in uiCasts)
+		{
+			var limb = raycastResult.gameObject.GetComponent<WoundViewLimb>();
+			if (limb == null) // Unity object — ==
+			{
+				continue;
+			}
+
+			return PatchBridge.Impl?.TryHandleRemoteHeldItemUse(dragItem, limb.limb) == true;
+		}
+
+		return false;
 	}
 
 	private static bool IsLocalInventoryRelease(List<RaycastResult> uiCasts)

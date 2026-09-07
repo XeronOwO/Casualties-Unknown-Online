@@ -81,16 +81,96 @@ internal sealed class PlayerItemUseService(
 			return;
 		}
 
-		if (!_characters.IsInWorld(user) || !_characters.IsInWorld(target))
+		TryExecuteUse(
+			user, target, msg.ItemInstanceId, msg.LimbIndex,
+			requireUserConscious: true,
+			visibilityRequester: user,
+			visibilityTarget: target);
+	}
+
+	/// <summary>
+	/// Host-authoritative use of a remote player's carried item on the
+	/// requesting player's own body. This is the "held-remote-item + Tab close +
+	/// R medical use" family: the item owner retains ownership (and their local
+	/// item state is updated/consumed by the authoritative use result), while the
+	/// requester receives the body-side effect. The item owner does not have to
+	/// be conscious — the requester is the active user; the requester must be
+	/// conscious/alive and able to see the owner.
+	/// </summary>
+	internal void HandleRemoteHeldItemUse(
+		ulong requester,
+		ulong itemOwner,
+		ulong itemInstanceId,
+		int targetLimbIndex)
+	{
+		if (_session.Role != SessionRole.Host || !_session.SessionActive || !_session.LocalInWorld)
 		{
-			_log.LogWarning("[ItemUse] refused: {User} or {Target} is not in-world.", user, target);
 			return;
 		}
 
-		if (!_visibility.HasLineOfSight(user, target))
+		if (requester == 0 || itemOwner == 0 || itemOwner == requester)
 		{
-			_log.LogInformation("[ItemUse] refused: {User} cannot see {Target}.", user, target);
+			_log.LogWarning("[HeldItemUse] refused invalid requester/owner pair ({Requester} -> {Owner}).", requester, itemOwner);
 			return;
+		}
+
+		if (!_characters.IsInWorld(requester) || !_characters.IsInWorld(itemOwner))
+		{
+			_log.LogWarning("[HeldItemUse] refused: requester {Requester} or owner {Owner} is not in-world.", requester, itemOwner);
+			return;
+		}
+
+		if (!_visibility.HasLineOfSight(requester, itemOwner))
+		{
+			_log.LogInformation("[HeldItemUse] refused: {Requester} cannot see item owner {Owner}.", requester, itemOwner);
+			return;
+		}
+
+		// The requester is the person physically using the item on their own
+		// body, so they must be conscious/alive. The owner is only the item
+		// source and may be unconscious/dead (the common remote-backpack case).
+		if (_characters.GetCharacterData(requester)?.Health is not { } requesterHealth
+			|| !requesterHealth.Conscious
+			|| !requesterHealth.Alive)
+		{
+			_log.LogInformation("[HeldItemUse] refused: requester {Requester} is not conscious/alive.", requester);
+			return;
+		}
+
+		TryExecuteUse(
+			itemOwner, requester, itemInstanceId, targetLimbIndex,
+			requireUserConscious: false,
+			visibilityRequester: requester,
+			visibilityTarget: itemOwner);
+	}
+
+	/// <summary>
+	/// Shared cross-player use execution. The kernel authoritative item is
+	/// consumed/updated on <paramref name="user"/>'s character data, the body
+	/// effect is applied to <paramref name="target"/>'s character data, and the
+	/// result event is published for both participants. The item lookup and
+	/// replacement are recursive so container-nested remote items (trash bags,
+	/// backpacks) work exactly like direct slots.
+	/// </summary>
+	private bool TryExecuteUse(
+		ulong user,
+		ulong target,
+		ulong itemInstanceId,
+		int limbIndex,
+		bool requireUserConscious,
+		ulong visibilityRequester,
+		ulong visibilityTarget)
+	{
+		if (!_characters.IsInWorld(user) || !_characters.IsInWorld(target))
+		{
+			_log.LogWarning("[ItemUse] refused: {User} or {Target} is not in-world.", user, target);
+			return false;
+		}
+
+		if (!_visibility.HasLineOfSight(visibilityRequester, visibilityTarget))
+		{
+			_log.LogInformation("[ItemUse] refused: {Requester} cannot see {Target}.", visibilityRequester, visibilityTarget);
+			return false;
 		}
 
 		var userData = _characters.GetCharacterData(user);
@@ -98,33 +178,45 @@ internal sealed class PlayerItemUseService(
 		if (userData is null || targetData is null)
 		{
 			_log.LogWarning("[ItemUse] refused: no character snapshot for {User}/{Target}.", user, target);
-			return;
+			return false;
 		}
 
-		if (userData.Health is not { } userHealth || !userHealth.Conscious || !userHealth.Alive)
+		if (requireUserConscious
+			&& (userData.Health is not { } userHealth || !userHealth.Conscious || !userHealth.Alive))
 		{
 			_log.LogInformation("[ItemUse] refused: {User} is not conscious/alive and cannot use an item.", user);
-			return;
+			return false;
 		}
 
 		if (targetData.Health is not { } targetHealth || !targetHealth.Conscious || !targetHealth.Alive)
 		{
 			_log.LogInformation("[ItemUse] refused: {Target} is not conscious/alive and cannot receive a consumable.", target);
-			return;
+			return false;
 		}
 
-		var itemIndex = FindUseItemIndex(userData, msg.ItemInstanceId);
-		if (itemIndex < 0)
+		CharacterItemMsg? originalItem;
+		if (itemInstanceId != 0)
 		{
-			_log.LogWarning("[ItemUse] refused: {User} has no usable consumable (requested {ItemId}).", user, msg.ItemInstanceId);
-			return;
+			if (!TryFindCarriedItem(userData.Items, itemInstanceId, out originalItem))
+			{
+				_log.LogWarning("[ItemUse] refused: {User} has no usable consumable (requested {ItemId}).", user, itemInstanceId);
+				return false;
+			}
+		}
+		else
+		{
+			originalItem = FindFirstUsableCarriedItem(userData.Items);
+			if (originalItem is null)
+			{
+				_log.LogWarning("[ItemUse] refused: {User} has no usable consumable to auto-select.", user);
+				return false;
+			}
 		}
 
-		var originalItem = userData.Items[itemIndex];
 		if (!IsActuallyUsable(originalItem))
 		{
 			_log.LogWarning("[ItemUse] refused: {ItemId} (id {InstanceId}) is empty or not in the catalog.", originalItem.ItemId, originalItem.InstanceId);
-			return;
+			return false;
 		}
 
 		var newUserData = PlayerCharacterAccess.CloneCharacter(userData);
@@ -140,7 +232,7 @@ internal sealed class PlayerItemUseService(
 			if (!RemoteWearApplication.TryCreateWornItem(newTargetData.Limbs, newTargetData.Items, originalItem, out wornItem))
 			{
 				_log.LogWarning("[ItemUse] refused: {ItemId} (id {InstanceId}) cannot be placed on {Target} — target limb missing/dismembered or wear slot already occupied.", originalItem.ItemId, originalItem.InstanceId, target);
-				return;
+				return false;
 			}
 
 			newTargetData.Items.Add(wornItem);
@@ -162,14 +254,14 @@ internal sealed class PlayerItemUseService(
 		{
 			_log.LogWarning("[ItemUse] refused: injectable/IV medicine {ItemId} (id {InstanceId}) must use the medical operation session, not the one-shot request path.",
 				originalItem.ItemId, originalItem.InstanceId);
-			return;
+			return false;
 		}
 		else if (RemoteDrinkMedicineCatalog.TryCreatePlan(originalItem.Liquids, originalItem.ItemId, out var drinkMedicinePlan))
 		{
 			if (RemoteDrinkMedicineCatalog.IsMindwipeBlocked(originalItem.ItemId, newTargetData.Health!))
 			{
 				_log.LogInformation("[ItemUse] refused: {Target} is still mentally healthy for mindwipe.", target);
-				return;
+				return false;
 			}
 
 			RemoteDrinkMedicineApplication.Apply(newTargetData.Health!, drinkMedicinePlan);
@@ -178,7 +270,7 @@ internal sealed class PlayerItemUseService(
 		}
 		else if (RemoteTopicalCatalog.TryCreatePlan(originalItem.Liquids, originalItem.ItemId, out var topicalPlan))
 		{
-			RemoteTopicalApplication.Apply(newTargetData.Health!, newTargetData.Limbs, topicalPlan, msg.LimbIndex);
+			RemoteTopicalApplication.Apply(newTargetData.Health!, newTargetData.Limbs, topicalPlan, limbIndex);
 			ApplyDrain(newItem, topicalPlan);
 		}
 		else if (RemoteLimbToolCatalog.TryGet(originalItem.ItemId, out var tool))
@@ -187,12 +279,12 @@ internal sealed class PlayerItemUseService(
 				newTargetData.Health!,
 				newTargetData.Limbs,
 				tool,
-				out var limbIndex,
-				msg.LimbIndex,
+				out var resolvedLimbIndex,
+				limbIndex,
 				originalItem.Condition))
 			{
 				_log.LogWarning("[ItemUse] refused: {ItemId} (id {InstanceId}) cannot be applied to {Target} — required limb missing, no limb data, or component ineligible.", originalItem.ItemId, originalItem.InstanceId, target);
-				return;
+				return false;
 			}
 
 			newItem.Condition -= tool.ConditionCost;
@@ -201,7 +293,7 @@ internal sealed class PlayerItemUseService(
 			{
 				timedEffects.Add(new TimedLimbEffectMsg
 				{
-					LimbIndex = limbIndex,
+					LimbIndex = resolvedLimbIndex,
 					DurationSeconds = tool.TimedBleedDurationSeconds,
 					BleedPerSecond = tool.TimedBleedPerSecond,
 				});
@@ -210,16 +302,16 @@ internal sealed class PlayerItemUseService(
 		else
 		{
 			_log.LogWarning("[ItemUse] refused: {ItemId} (id {InstanceId}) is not in the remote-consumable/medicine/topical/limb-tool catalog.", originalItem.ItemId, originalItem.InstanceId);
-			return;
+			return false;
 		}
 
 		if (destroyed)
 		{
-			newUserData.Items.RemoveAll(i => i.InstanceId == originalItem.InstanceId);
+			RemoveCarriedItem(newUserData.Items, originalItem.InstanceId);
 		}
 		else
 		{
-			newUserData.Items[itemIndex] = newItem;
+			ReplaceCarriedItem(newUserData.Items, originalItem.InstanceId, newItem);
 		}
 
 		_characters.SaveCharacterData(user, newUserData);
@@ -277,6 +369,7 @@ internal sealed class PlayerItemUseService(
 			TimedEffects = timedEffects,
 			TimedBodyEffects = timedBodyEffects,
 		});
+		return true;
 	}
 
 	/// <summary>Kernel projection path: a use result event arrived — surface it for the Game Adapter.</summary>
@@ -396,30 +489,89 @@ internal sealed class PlayerItemUseService(
 			: 0f;
 	}
 
-	private static int FindUseItemIndex(CharacterDataMsg data, ulong itemInstanceId)
+	private static bool TryFindCarriedItem(IReadOnlyList<CharacterItemMsg> items, ulong instanceId, out CharacterItemMsg item)
 	{
-		for (var i = 0; i < data.Items.Count; i++)
+		foreach (var candidate in items)
 		{
-			var item = data.Items[i];
-			if (item.SlotIndex < 0 || item.InstanceId == 0)
+			// Worn items (negative SlotIndex) are not selectable through the
+			// one-shot consume/use path; container contents carry the parent's
+			// non-negative slot, so recursion below still covers nested items.
+			if (candidate.SlotIndex < 0 || candidate.InstanceId == 0)
 			{
 				continue;
 			}
 
-			if (itemInstanceId != 0)
+			if (instanceId != 0 && candidate.InstanceId == instanceId)
 			{
-				if (item.InstanceId == itemInstanceId)
-				{
-					return i;
-				}
+				item = candidate;
+				return true;
 			}
-			else if (IsActuallyUsable(item))
+
+			if (TryFindCarriedItem(candidate.Contents, instanceId, out item))
 			{
-				return i;
+				return true;
 			}
 		}
 
-		return -1;
+		item = null!;
+		return false;
+	}
+
+	private static CharacterItemMsg? FindFirstUsableCarriedItem(IReadOnlyList<CharacterItemMsg> items)
+	{
+		foreach (var candidate in items)
+		{
+			if (candidate.SlotIndex >= 0 && candidate.InstanceId != 0 && IsActuallyUsable(candidate))
+			{
+				return candidate;
+			}
+
+			var nested = FindFirstUsableCarriedItem(candidate.Contents);
+			if (nested is not null)
+			{
+				return nested;
+			}
+		}
+
+		return null;
+	}
+
+	private static bool RemoveCarriedItem(List<CharacterItemMsg> items, ulong instanceId)
+	{
+		for (var i = 0; i < items.Count; i++)
+		{
+			if (items[i].InstanceId == instanceId)
+			{
+				items.RemoveAt(i);
+				return true;
+			}
+
+			if (RemoveCarriedItem(items[i].Contents, instanceId))
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	private static bool ReplaceCarriedItem(List<CharacterItemMsg> items, ulong instanceId, CharacterItemMsg replacement)
+	{
+		for (var i = 0; i < items.Count; i++)
+		{
+			if (items[i].InstanceId == instanceId)
+			{
+				items[i] = replacement;
+				return true;
+			}
+
+			if (ReplaceCarriedItem(items[i].Contents, instanceId, replacement))
+			{
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	private static bool IsActuallyUsable(CharacterItemMsg item)

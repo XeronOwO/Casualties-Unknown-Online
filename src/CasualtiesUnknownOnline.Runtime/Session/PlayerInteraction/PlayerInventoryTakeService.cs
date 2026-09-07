@@ -66,16 +66,33 @@ internal sealed class PlayerInventoryTakeService(
 	}
 
 	/// <summary>Host only: a take request arrived — the guest→host wire and the host's own UI share this path.</summary>
-	public void HandleTakeRequest(ulong sender, PlayerInventoryTakeRequestMsg msg)
+	public void HandleTakeRequest(ulong sender, PlayerInventoryTakeRequestMsg msg) =>
+		HandleTakeCore(sender, msg.OwnerSteamId, msg.ItemInstanceId, allowConsciousSource: false);
+
+	/// <summary>
+	/// Host-only remote-backpack Tab-transfer path. The remote backpack is an
+	/// explicit co-op inventory surface, so transferring an item to the opener's
+	/// own inventory is allowed for a conscious remote owner as long as
+	/// <c>AllowRemoteInventoryTake</c> is enabled; the Online UI's unconscious-only
+	/// take rules are not applied to this dedicated gesture.
+	/// </summary>
+	public void HandleRemoteBackpackTake(ulong requester, ulong owner, ulong itemId) =>
+		HandleTakeCore(requester, owner, itemId, allowConsciousSource: true);
+
+	private void HandleTakeCore(
+		ulong sender,
+		ulong owner,
+		ulong itemId,
+		bool allowConsciousSource)
 	{
 		if (_session.Role != SessionRole.Host || !_session.SessionActive || !_session.LocalInWorld)
 		{
 			return;
 		}
 
-		var from = msg.OwnerSteamId;
+		var from = owner;
 		var to = sender;
-		if (from == to || from == 0 || to == 0 || msg.ItemInstanceId == 0)
+		if (from == to || from == 0 || to == 0 || itemId == 0)
 		{
 			return;
 		}
@@ -108,20 +125,23 @@ internal sealed class PlayerInventoryTakeService(
 		}
 
 		// The game's direct-interaction rule (KrokMP-compatible default): a
-		// conscious player's inventory is not takeable. Only an unconscious or
-		// dead body can be searched/taken from; the Online UI surfaces the
-		// button only in that state, and the host re-checks the authoritative
-		// snapshot here.
-		if (source.Health is not { } health || (health.Conscious && health.Alive))
+		// conscious player's inventory is not takeable through the normal
+		// Online UI take path. Only an unconscious or dead body can be
+		// searched/taken from; the host re-checks the authoritative snapshot.
+		// The remote-backpack Tab-transfer path is an explicit exception when
+		// the caller selected it.
+		if (!allowConsciousSource
+			&& (source.Health is not { } health
+				|| (health.Conscious && health.Alive)))
 		{
-			_log.LogInformation("[Take] refused: {From} is conscious/alive and not takeable.", from);
+			_log.LogInformation("[Take] refused: {From} is conscious/alive and not takeable (or has no health snapshot).", from);
 			return;
 		}
 
 		var newSource = PlayerCharacterAccess.CloneCharacter(source);
-		if (!TryFindAndRemove(newSource.Items, msg.ItemInstanceId, out var original))
+		if (!TryFindAndRemove(newSource.Items, itemId, out var original))
 		{
-			_log.LogWarning("[Take] refused: {From} has no item instance {ItemId}.", from, msg.ItemInstanceId);
+			_log.LogWarning("[Take] refused: {From} has no item instance {ItemId}.", from, itemId);
 			return;
 		}
 
@@ -129,7 +149,7 @@ internal sealed class PlayerInventoryTakeService(
 		{
 			// Worn items are excluded in this slice — the character restore path
 			// handles them separately and the Online UI only offers slot items.
-			_log.LogInformation("[Take] refused: item {ItemId} is worn (slot {Slot}) — only backpack/hand slot items are takeable in this slice.", msg.ItemInstanceId, original.SlotIndex);
+			_log.LogInformation("[Take] refused: item {ItemId} is worn (slot {Slot}) — only backpack/hand slot items are takeable in this slice.", itemId, original.SlotIndex);
 			return;
 		}
 
@@ -152,19 +172,20 @@ internal sealed class PlayerInventoryTakeService(
 		// reconnect restore merge — move the entry with the transfer.
 		if (from != _session.LocalSteamId)
 		{
-			_items.RemoveTransferredItem(from, msg.ItemInstanceId);
+			_items.RemoveTransferredItem(from, itemId);
 		}
 
 		if (to != _session.LocalSteamId)
 		{
-			_items.AdoptTransferredItem(to, msg.ItemInstanceId, transferred);
+			_items.AdoptTransferredItem(to, itemId, transferred);
 		}
 		else
 		{
-			CommitCarriedToHost(msg.ItemInstanceId, transferred);
+			CommitCarriedToHost(itemId, transferred);
 		}
 
-		_log.LogInformation("[Take] {To} takes {ItemId} (id {InstanceId}) from {From}.", to, original.ItemId, msg.ItemInstanceId, from);
+		_log.LogInformation("[Take] {To} takes {ItemId} (id {InstanceId}) from {From} (remote-backpack allowConscious={AllowConscious}).",
+			to, original.ItemId, itemId, from, allowConsciousSource);
 		PublishTransfer(new PlayerInventoryTransferMsg
 		{
 			FromSteamId = from,

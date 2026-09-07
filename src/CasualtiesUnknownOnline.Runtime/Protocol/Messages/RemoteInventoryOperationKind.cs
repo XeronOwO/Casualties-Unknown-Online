@@ -2,9 +2,11 @@ namespace CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 
 /// <summary>
 /// The host-authoritative remote-backpack operations a local viewer can request
-/// against another player's carried inventory. Take/transfer-to-local is not
-/// part of this enum: it already travels through the existing cross-player
-/// inventory-take request path.
+/// against another player's carried inventory. Ordinary drag-out take still
+/// travels through the existing cross-player inventory-take request path; the
+/// dedicated Tab-switch remote-backpack transfer is represented here as
+/// <see cref="TransferToRequester"/> so it can use the remote-backpack
+/// conscious-owner exception.
 /// </summary>
 public enum RemoteInventoryOperationKind
 {
@@ -37,4 +39,10 @@ public enum RemoteInventoryOperationKind
 
 	/// <summary>Move one remote player's carried item to a specific inventory slot of that same owner.</summary>
 	MoveToSlot = 10,
+
+	/// <summary>Use one remote player's carried item on the requesting player's own body (the held-remote-item medical flow after closing the remote backpack).</summary>
+	UseOnSelf = 11,
+
+	/// <summary>Transfer one remote player's carried item to the requesting player's own inventory (the double-Tab remote-backpack transfer path).</summary>
+	TransferToRequester = 12,
 }

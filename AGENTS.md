@@ -59,6 +59,16 @@ dotnet format CasualtiesUnknownOnline.slnx        # mandatory before every commi
 - Game assemblies are copyrighted and only the Game Adapter may reference them.
 - Packaged plugin deploys via `tools/deploy.ps1` (machine path in `AGENTS.local.md`).
 
+## Commit Message Convention
+
+- `[RULE]` Use Conventional Commits for every commit: `type(scope): summary`.
+- Allowed types: `feat`, `fix`, `docs`, `test`, `chore`, `refactor`, `perf`, `revert`, `build`, `ci`, `style`.
+- Scope is a short lowercase domain/path name (for example `protocol`, `carry`, `backlog`, `projection`, `character-sound`, `adaptive-sync`); omit the scope when there is no clear domain.
+- Summary starts with an imperative verb, uses lowercase after the type/scope prefix (proper nouns and acronyms may keep their case), and has no trailing period.
+- Use one line for the summary; optional body text starts after a blank line and is wrapped for readability.
+- Pure documentation/backlog-only changes use `docs(scope): ...`, with `backlog` as the common scope.
+- The history from `8727300d1934d89e647d74911dde013193d5ab8d` onward has been normalized to this convention.
+
 ## Non-Negotiable Architecture Rules
 
 - `[CRITICAL]` **Local compute, remote verify/sync**: each player simulates its own

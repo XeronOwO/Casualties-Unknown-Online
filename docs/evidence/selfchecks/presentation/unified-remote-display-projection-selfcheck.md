@@ -61,7 +61,7 @@ is L0-tested.
 | Evidence | Result |
 |---|---|
 | `dotnet build CasualtiesUnknownOnline.slnx` | 0 warnings / 0 errors |
-| `dotnet test CasualtiesUnknownOnline.slnx` | 2501 + 17 passed / 0 failed |
+| `dotnet test CasualtiesUnknownOnline.slnx` | 2506 + 17 passed / 0 failed |
 | `dotnet format CasualtiesUnknownOnline.slnx` | clean |
 | `RemoteCharacterDisplayProjection` reflective tests | capture/apply/medical surface locked |
 | `RemoteItemPresentationTests.SourceValues_IncludeConditionFavouriteLiquids` | source values locked |
@@ -72,3 +72,9 @@ is L0-tested.
 This is development-cycle verification only. Real dual-client visual acceptance
 is still the user's final unified acceptance pass, especially for remote
 WoundView/backpack rendering and carry/pose movement.
+
+The same cycle also landed the global projection framework core
+(`IProjectionDomain`, `ProjectionDomain`,
+`ProjectionHealthCoordinator.Register(IProjectionDomain)`) and the architecture
+doc `docs/architecture/projection-framework.md`; full domain migration remains
+tracked in `docs/backlog/todo/global-projection-framework.md`.

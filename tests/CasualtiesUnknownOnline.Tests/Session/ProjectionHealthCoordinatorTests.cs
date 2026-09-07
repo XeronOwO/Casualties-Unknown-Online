@@ -114,6 +114,45 @@ public class ProjectionHealthCoordinatorTests
 			coordinator.Register("items", static () => { }, static () => 1));
 	}
 
+	[Fact]
+	public void Register_TypedDomain_GoesThroughGlobalContract()
+	{
+		var coordinator = CreateCoordinator();
+		var rebuilds = 0;
+		var revision = 3ul;
+
+		coordinator.Register(new ProjectionDomain("typed-domain", () =>
+		{
+			rebuilds++;
+		}, () => revision));
+
+		coordinator.Run("typed-domain", 3, static () => throw new InvalidOperationException("boom"));
+		Assert.True(coordinator.IsDirty("typed-domain"));
+
+		coordinator.Pump();
+
+		Assert.Equal(1, rebuilds);
+		Assert.False(coordinator.IsDirty("typed-domain"));
+		var info = Assert.Single(coordinator.Snapshot());
+		Assert.Equal("typed-domain", info.Domain);
+		Assert.Equal(3ul, info.LastSuccessfulRevision);
+	}
+
+	[Fact]
+	public void Register_TypedNullDomain_Throws()
+	{
+		var coordinator = CreateCoordinator();
+		Assert.Throws<ArgumentNullException>(() => coordinator.Register((IProjectionDomain)null!));
+	}
+
+	[Fact]
+	public void ProjectionDomain_NullArguments_Throw()
+	{
+		Assert.Throws<ArgumentNullException>(() => new ProjectionDomain(null!, static () => { }, static () => 1));
+		Assert.Throws<ArgumentNullException>(() => new ProjectionDomain("x", null!, static () => 1));
+		Assert.Throws<ArgumentNullException>(() => new ProjectionDomain("x", static () => { }, null!));
+	}
+
 	private static ProjectionHealthCoordinator CreateCoordinator() =>
 		new(NullLogger<ProjectionHealthCoordinator>.Instance);
 }

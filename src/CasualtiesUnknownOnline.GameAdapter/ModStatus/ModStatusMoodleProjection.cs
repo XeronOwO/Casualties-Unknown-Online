@@ -26,12 +26,14 @@ namespace CasualtiesUnknownOnline.GameAdapter.ModStatus;
 /// </summary>
 internal sealed class ModStatusMoodleProjection(
 	ModStatusStore statusStore,
+	ModStatusProjectionReadModel readModel,
 	ISessionControl session,
 	GameAdapterStatusContentProvider statusContent,
 	GameAdapterMoodleContentProvider moodleContent,
 	ILogger<ModStatusMoodleProjection> log)
 {
 	private readonly ModStatusStore _statusStore = statusStore;
+	private readonly ModStatusProjectionReadModel _readModel = readModel;
 	private readonly ISessionControl _session = session;
 	private readonly GameAdapterStatusContentProvider _statusContent = statusContent;
 	private readonly GameAdapterMoodleContentProvider _moodleContent = moodleContent;
@@ -54,7 +56,7 @@ internal sealed class ModStatusMoodleProjection(
 		}
 
 		HashSet<string> added = [];
-		foreach (var presence in _statusStore.GetStatusPresences(_session.LocalSteamId))
+		foreach (var presence in _readModel.StatusPresences)
 		{
 			var limb = GetLimb(body, presence.Scope, presence.LimbSlot);
 			var runtimeMoodleId = ResolveRuntimeMoodleId(presence, limb);

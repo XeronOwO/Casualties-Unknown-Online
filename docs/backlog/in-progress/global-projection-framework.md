@@ -39,25 +39,44 @@ dirty/rebuild/degraded story.
     presentation model as the registry-backed domain read model; the existing
     `RemoteVitalsService` / `RemoteInventoryService` remain separate session
     caches for their UI-specific snapshot shapes.
+  - `mod-status` — `ModStatusProjectionReadModel` registers the local
+    mod-status projection domain: the store now has a monotonic revision, the
+    read model rebuilds projection snapshots/status presences from the store,
+    and the GameAdapter vanilla body/limb + moodle projections consume that
+    read model.
+- Boundary audit completed for enemy/player continuous runtime projections and
+  remote-presentation read-source unification; see
+  `docs/architecture/projection-framework.md`.
 - Regression/rebuild coverage for these domains; architecture document updated:
   `docs/architecture/projection-framework.md`.
 
-## Remaining scope
+## Verification status
 
-1. Separately audit and migrate the remaining named projection classes. The
-   global contract only applies to domains with a real rebuildable read model;
-   the following classes are not registered because they are write-side adapters
-   into kernel authority, stateless restore appliers, or one-shot event fan-outs
-   rather than rebuildable projections:
+- `dotnet build` and `dotnet format` pass.
+- Full test suite: 2516 `CasualtiesUnknownOnline.Tests` + 17 normative gates pass.
+- Two independent adversarial reviews were run; the host-authoritative presence
+  leak found in the second review was fixed and covered by a regression test.
+- Deployed to the entity game directory and build/deploy SHA256 comparison passed.
+- This ticket intentionally remains `in-progress/` per the global-framework
+  staging discipline; it is not yet claimed complete or moved to `review/`.
+
+## Remaining scope / audited boundary
+
+1. The named non-rebuildable projection classes remain intentionally outside
+   the global contract. They are write-side adapters into kernel authority,
+   stateless restore appliers, or one-shot event fan-outs:
    - `PlayerKernelStatusProjection`, `PlayerKernelLimbProjection`,
      `PlayerKernelRestoreProjection`, `PlayerInteractionKernelProjection`;
    - `EnemyKernelProjection`, `EnemyKernelRestoreProjection`,
      `EnemyCombatKernelProjection`, `FluidKernelProjection` (host-side input
      path, while `FluidKernelReadProjection` is already registered).
-2. Design/implement the remaining genuinely rebuildable projection surfaces:
-   - mod-status local projection (status store -> vanilla body/limb/moodle);
-   - any future enemy/player continuous runtime full-read projection that should
-     be observable in the same inventory.
+2. Mod-status local projection is implemented through `mod-status` in the
+   inventory. Enemy/player continuous runtime full-read projections were
+   audited and confirmed non-rebuildable (documented in the architecture doc),
+   so they are not new domains. Remote presentation store unification was
+   evaluated and deliberately deferred: the store only tracks full snapshots,
+   while the live adapter display cache is event-enriched; unification needs
+   first-class event projection plus dual-client runtime verification.
 3. Keep `ProjectionHealthCoordinator.Snapshot()` as the single observability
    surface for every registered projection domain.
 4. Keep the existing guarantee: projections never mutate authority and are

@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using CasualtiesUnknownOnline.Abstractions;
-using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
 using Microsoft.Extensions.Logging;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
@@ -56,7 +55,7 @@ internal sealed class ModStatusVanillaProjection
 	private sealed record ActiveLimbProjection(string ModId, string StatusId, int LimbSlot, ModLimbProjection Projection);
 
 	private readonly ModStatusStore _statusStore;
-	private readonly ISessionControl _session;
+	private readonly ModStatusProjectionReadModel _readModel;
 	private readonly ILogger _log;
 	private readonly List<ActiveBodyProjection> _bodyProjections = [];
 	private readonly List<ActiveLimbProjection> _limbProjections = [];
@@ -66,12 +65,16 @@ internal sealed class ModStatusVanillaProjection
 	private Body? _appliedBodyOwner; // Unity object — ==
 	private bool _dirty = true;
 
-	public ModStatusVanillaProjection(ModStatusStore statusStore, ISessionControl session, ILogger<ModStatusVanillaProjection> log)
+	public ModStatusVanillaProjection(
+		ModStatusStore statusStore,
+		ModStatusProjectionReadModel readModel,
+		ILogger<ModStatusVanillaProjection> log)
 	{
 		_statusStore = statusStore;
-		_session = session;
+		_readModel = readModel;
 		_log = log;
 		_statusStore.StatusChanged += MarkDirty;
+		_readModel.Changed += MarkDirty;
 	}
 
 	internal void ApplyBody(Body body)
@@ -242,13 +245,8 @@ internal sealed class ModStatusVanillaProjection
 	{
 		_bodyProjections.Clear();
 		_limbProjections.Clear();
-		foreach (var snapshot in _statusStore.GetProjectionSnapshots(_session.LocalSteamId))
+		foreach (var snapshot in _readModel.ProjectionSnapshots)
 		{
-			if (snapshot.RuntimeScope == ModDataScope.HostAuthoritative && _session.Role != SessionRole.Host)
-			{
-				continue;
-			}
-
 			if (snapshot.ProjectionKind == ModStatusProjectionKind.BodyFormula
 				&& snapshot.Scope == ModStatusScope.Body)
 			{

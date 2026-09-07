@@ -38,7 +38,9 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-_No open todo items._
+- [Namespaced ID system](todo/id-system-namespaced-ids.md) — **Medium**: `namespace:id` IDs, built-in `cu` namespace, mods register their own namespace, covers items/entities and more.
+- [Command completion for the ID system: id/name search](todo/command-id-name-completion.md) — **Medium**: command completion accepts id or localized name and inserts the canonical `cu:id`.
+- [CasualtiesUnknownOnline.Pinyin: pinyin search for CUO](todo/pinyin-search-mod.md) — **Medium**: port standalone pinyin search into a CUO mod; crafting UI pinyin search plus command completion by id/name/pinyin; extra interface extraction needed for command-side pinyin support; pinyin search is a configurable toggle defaulting to on for Simplified Chinese players.
 
 ### Review
 - [Remote backpack item projection acceptance issues](review/remote-backpack-item-projection-acceptance-issues.md) — **High**: dedicated remote-backpack Tab transfer (`TransferToRequester`), held-remote-item self-use (`UseOnSelf`), drain-object pour/edge-drop routing, non-destructive same-owner container apply, main-hand slot routing, and unified source-value durability projection landed; 2529 + 17 tests, full gates, deployed-hash verification complete; awaiting final unified acceptance pass.

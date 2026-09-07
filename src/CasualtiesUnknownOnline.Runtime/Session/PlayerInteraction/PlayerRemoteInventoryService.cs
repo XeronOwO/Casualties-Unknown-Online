@@ -28,6 +28,8 @@ internal sealed class PlayerRemoteInventoryService(
 	IPlayerInteractionVisibility visibility,
 	ItemKernelAuthority kernelAuthority,
 	PlayerInteractionResultAuthority resultAuthority,
+	PlayerItemUseService itemUse,
+	PlayerInventoryTakeService take,
 	ILogger log)
 {
 	private readonly ISessionControl _session = session;
@@ -38,6 +40,8 @@ internal sealed class PlayerRemoteInventoryService(
 	private readonly IPlayerInteractionVisibility _visibility = visibility;
 	private readonly ItemKernelAuthority _kernelAuthority = kernelAuthority;
 	private readonly PlayerInteractionResultAuthority _resultAuthority = resultAuthority;
+	private readonly PlayerItemUseService _itemUse = itemUse;
+	private readonly PlayerInventoryTakeService _take = take;
 	private readonly ILogger _log = log;
 
 	/// <summary>A host-validated native operation must be executed on the owner's own local body.</summary>
@@ -112,7 +116,8 @@ internal sealed class PlayerRemoteInventoryService(
 		if (original.SlotIndex < 0
 			&& msg.Kind is RemoteInventoryOperationKind.Drop
 				or RemoteInventoryOperationKind.MoveToContainer
-				or RemoteInventoryOperationKind.Pour)
+				or RemoteInventoryOperationKind.Pour
+				or RemoteInventoryOperationKind.UseOnSelf)
 		{
 			_log.LogInformation("[RemoteInventory] refused {Kind}: item {Item} is worn (slot {Slot}) — this operation only covers inventory/container items.",
 				msg.Kind, msg.ItemInstanceId, original.SlotIndex);
@@ -138,6 +143,12 @@ internal sealed class PlayerRemoteInventoryService(
 			case RemoteInventoryOperationKind.FavoriteToggle:
 			case RemoteInventoryOperationKind.MoveToSlot:
 				HandleApplyOperation(requester, owner, source, original, msg);
+				break;
+			case RemoteInventoryOperationKind.UseOnSelf:
+				HandleUseOnSelf(requester, owner, original, msg);
+				break;
+			case RemoteInventoryOperationKind.TransferToRequester:
+				HandleTransferToRequester(requester, owner, original);
 				break;
 			default:
 				_log.LogWarning("[RemoteInventory] refused unknown operation kind {Kind}.", msg.Kind);
@@ -199,6 +210,38 @@ internal sealed class PlayerRemoteInventoryService(
 
 		_log.LogInformation("[RemoteInventory] {Requester} requested native {Kind} for {Owner} (item {Item}, target {Target}, slot {Slot}).",
 			requester, msg.Kind, owner, original.InstanceId, msg.TargetItemInstanceId, msg.TargetSlotIndex);
+	}
+
+	private void HandleTransferToRequester(
+		ulong requester,
+		ulong owner,
+		CharacterItemMsg original)
+	{
+		// The remote-backpack Tab-transfer family uses the dedicated remote
+		// take path: it still requires AllowRemoteInventoryTake and the same
+		// LOS/in-world/ownership checks, but a conscious remote owner is allowed
+		// because the user is explicitly interacting through the backpack view
+		// (the Online UI unconscious-only take rule is not applied here).
+		_log.LogInformation(
+			"[RemoteInventory] {Requester} requested Tab transfer of {Type} (id {Item}) from {Owner}.",
+			requester, original.ItemId, original.InstanceId, owner);
+		_take.HandleRemoteBackpackTake(requester, owner, original.InstanceId);
+	}
+
+	private void HandleUseOnSelf(
+		ulong requester,
+		ulong owner,
+		CharacterItemMsg original,
+		RemoteInventoryOperationRequestMsg msg)
+	{
+		// The requester is using the remote player's item on their own body.
+		// The character-data validation already found the item; the shared
+		// cross-player use execution consumes/updates the owner's authoritative
+		// item and applies the body effect to the requester's own snapshot.
+		_log.LogInformation(
+			"[RemoteInventory] {Requester} requested held-item self-use of {Type} (id {Item}) owned by {Owner} (limb {Limb}).",
+			requester, original.ItemId, original.InstanceId, owner, msg.TargetLimbIndex);
+		_itemUse.HandleRemoteHeldItemUse(requester, owner, original.InstanceId, msg.TargetLimbIndex);
 	}
 
 	private void HandleDrop(ulong requester, ulong owner, CharacterDataMsg source, CharacterItemMsg original)

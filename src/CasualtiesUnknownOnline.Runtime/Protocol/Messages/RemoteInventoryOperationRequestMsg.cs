@@ -4,7 +4,8 @@ namespace CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 
 /// <summary>
 /// Guest → host request for one host-authoritative remote-backpack inventory
-/// operation (drop, move into a remote container, pour/dump). The host is the
+/// operation (drop, move into a remote container, pour/dump, native apply,
+/// held-item self-use, or Tab transfer to the requester). The host is the
 /// cross-player authority: it validates the owner/item/container against its
 /// authoritative character and kernel state, performs the durable mutation, and
 /// records the participant-result event that makes the affected player's body
@@ -36,4 +37,8 @@ public sealed class RemoteInventoryOperationRequestMsg
 	/// <summary>The destination body-slot index for <see cref="RemoteInventoryOperationKind.MoveToSlot"/>; -1 when not used.</summary>
 	[ProtoMember(6)]
 	public int TargetSlotIndex { get; set; } = -1;
+
+	/// <summary>The target limb for <see cref="RemoteInventoryOperationKind.UseOnSelf"/>; -1 when not used.</summary>
+	[ProtoMember(7)]
+	public int TargetLimbIndex { get; set; } = -1;
 }

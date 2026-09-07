@@ -48,8 +48,11 @@ internal interface IRemoteBackpackPatchBridge
 	/// <summary>Remote-backpack slot move/swap: sends a host-authoritative native move-to-slot request for a remote display-proxy item.</summary>
 	bool TryHandleRemoteBackpackMoveToSlot(Item dragItem, int targetSlot);
 
-	/// <summary>Tab-switch transfer: sends the existing host-authoritative take request for a remote display proxy released into the local inventory after the remote view was closed.</summary>
+	/// <summary>Tab-switch transfer: sends the dedicated host-authoritative remote-backpack transfer request for a remote display proxy released into the local inventory after the remote view was closed.</summary>
 	bool TryHandleRemoteProxyTransferToLocal(Item dragItem);
+
+	/// <summary>Held-remote-item self-use: sends a host-authoritative request to use a remote display proxy's item on the local player's own body (Tab-close + R medical flow).</summary>
+	bool TryHandleRemoteHeldItemUse(Item dragItem, int limbIndex);
 
 	/// <summary>
 	/// Cancels an active drag whose item is a remote-clone display proxy. The

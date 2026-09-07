@@ -319,6 +319,25 @@ public class PlayerInteractionServiceTests
 	}
 
 	[Fact]
+	public void Take_SourceWithoutHealthSnapshot_IsRefused()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(new CharacterDataMsg
+		{
+			OwnerSteamId = HostId,
+			Items = [Item(42)],
+		});
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true));
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendTakeRequest(HostId, 42);
+
+		Assert.DoesNotContain(KernelEvents(received), e => e.Kind == WireEventKind.PlayerInventoryTransfer);
+		Assert.Contains(characters.GetHostCharacterData()!.Items, i => i.InstanceId == 42);
+	}
+
+	[Fact]
 	public void Take_NestedItemFromConsciousPlayer_IsRefused()
 	{
 		var (host, guest, received) = CreateSession();
@@ -2168,6 +2187,211 @@ public class PlayerInteractionServiceTests
 			});
 
 		Assert.DoesNotContain(KernelEvents(received), e => e.Kind is WireEventKind.ItemRelocated or WireEventKind.PlayerInventoryTransfer);
+		Assert.Contains(characters.GetHostCharacterData()!.Items, i => i.InstanceId == 42);
+	}
+
+	[Fact]
+	public void Host_UsesRemoteHeldGuestWaterOnSelf_AppliesToOwnerAndHost()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		var items = host.Services.GetRequiredService<IItemControl>();
+		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, conscious: true));
+		var water = WaterBottle(42);
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, water));
+		items.AdoptTransferredItem(GuestId, 42, water);
+
+		host.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendRemoteInventoryOperation(new RemoteInventoryOperationRequestMsg
+			{
+				Kind = RemoteInventoryOperationKind.UseOnSelf,
+				OwnerSteamId = GuestId,
+				ItemInstanceId = 42,
+				TargetLimbIndex = -1,
+			});
+
+		var result = UseResult(received);
+		Assert.Equal(GuestId, result.UserSteamId);
+		Assert.Equal(HostId, result.TargetSteamId);
+		Assert.Equal(42UL, result.ItemInstanceId);
+		Assert.False(result.ItemDestroyed);
+		Assert.NotNull(result.ItemAfter);
+		Assert.True(Math.Abs(result.ItemAfter!.Condition - 0.8f) < 0.001f);
+
+		var hostData = characters.GetHostCharacterData()!;
+		Assert.True(Math.Abs(hostData.Health!.Thirst - 9f) < 0.001f);
+		var saved = characters.GetSavedCharacter(GuestId)!.Items.Single(i => i.InstanceId == 42);
+		Assert.True(Math.Abs(saved.Condition - 0.8f) < 0.001f);
+		Assert.True(Math.Abs(saved.Liquids.Single(l => l.LiquidId == "water").Amount - 400f) < 0.001f);
+		var transferred = items.GetTransferredItems(GuestId).Single(w => w.Item.InstanceId == 42);
+		Assert.True(Math.Abs(transferred.Item.Condition - 0.8f) < 0.001f);
+	}
+
+	[Fact]
+	public void Host_UsesRemoteHeldGuestItemInsideNestedContainerOnSelf_FindsRecursively()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		var items = host.Services.GetRequiredService<IItemControl>();
+		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, conscious: true));
+		var water = WaterBottle(42);
+		var backpack = new CharacterItemMsg
+		{
+			InstanceId = 500,
+			ItemId = "backpack",
+			SlotIndex = 0,
+			Contents = [water],
+		};
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, backpack));
+		items.AdoptTransferredItem(GuestId, 42, water);
+
+		host.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendRemoteInventoryOperation(new RemoteInventoryOperationRequestMsg
+			{
+				Kind = RemoteInventoryOperationKind.UseOnSelf,
+				OwnerSteamId = GuestId,
+				ItemInstanceId = 42,
+				TargetLimbIndex = -1,
+			});
+
+		var result = UseResult(received);
+		Assert.Equal(GuestId, result.UserSteamId);
+		Assert.Equal(HostId, result.TargetSteamId);
+		Assert.Equal(42UL, result.ItemInstanceId);
+
+		var saved = characters.GetSavedCharacter(GuestId)!.Items.Single(i => i.InstanceId == 500);
+		var nested = Assert.Single(saved.Contents);
+		Assert.Equal(42UL, nested.InstanceId);
+		Assert.True(Math.Abs(nested.Liquids.Single(l => l.LiquidId == "water").Amount - 400f) < 0.001f);
+	}
+
+	[Fact]
+	public void Guest_UsesRemoteHeldHostWaterOnSelf_ReverseDirectionWorks()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, conscious: true, alive: true, WaterBottle(77)));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true));
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendRemoteInventoryOperation(new RemoteInventoryOperationRequestMsg
+			{
+				Kind = RemoteInventoryOperationKind.UseOnSelf,
+				OwnerSteamId = HostId,
+				ItemInstanceId = 77,
+				TargetLimbIndex = -1,
+			});
+
+		var result = UseResult(received);
+		Assert.Equal(HostId, result.UserSteamId);
+		Assert.Equal(GuestId, result.TargetSteamId);
+		Assert.Equal(77UL, result.ItemInstanceId);
+
+		var guestData = characters.GetSavedCharacter(GuestId)!;
+		Assert.True(Math.Abs(guestData.Health!.Thirst - 9f) < 0.001f);
+		var hostData = characters.GetHostCharacterData()!;
+		var saved = Assert.Single(hostData.Items);
+		Assert.True(Math.Abs(saved.Condition - 0.8f) < 0.001f);
+	}
+
+	[Fact]
+	public void Host_UsesRemoteHeldItemFromUnconsciousGuest_AllowsOwnerUnconscious()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		var items = host.Services.GetRequiredService<IItemControl>();
+		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, conscious: true));
+		var water = WaterBottle(42);
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: false, water));
+		items.AdoptTransferredItem(GuestId, 42, water);
+
+		host.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendRemoteInventoryOperation(new RemoteInventoryOperationRequestMsg
+			{
+				Kind = RemoteInventoryOperationKind.UseOnSelf,
+				OwnerSteamId = GuestId,
+				ItemInstanceId = 42,
+				TargetLimbIndex = -1,
+			});
+
+		var result = UseResult(received);
+		Assert.Equal(GuestId, result.UserSteamId);
+		Assert.Equal(HostId, result.TargetSteamId);
+		var hostData = characters.GetHostCharacterData()!;
+		Assert.True(Math.Abs(hostData.Health!.Thirst - 9f) < 0.001f);
+	}
+
+	[Fact]
+	public void UseOnSelf_WornRemoteItem_IsRefused()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(SnapshotWithLimbs(HostId, conscious: true));
+		// Worn items encode a negative SlotIndex; the remote item use path must
+		// only operate on backpack/hand/container items, matching Take/Move/Pour.
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, Item(42, "bandage", slot: -2)));
+
+		host.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendRemoteInventoryOperation(new RemoteInventoryOperationRequestMsg
+			{
+				Kind = RemoteInventoryOperationKind.UseOnSelf,
+				OwnerSteamId = GuestId,
+				ItemInstanceId = 42,
+				TargetLimbIndex = -1,
+			});
+
+		Assert.DoesNotContain(KernelEvents(received), e => e.Kind == WireEventKind.PlayerItemUseResult);
+		Assert.Contains(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);
+	}
+
+	[Fact]
+	public void Guest_DoubleTabTransfersConsciousHostItemToSelf()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true, Item(42)));
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true));
+
+		guest.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendRemoteInventoryOperation(new RemoteInventoryOperationRequestMsg
+			{
+				Kind = RemoteInventoryOperationKind.TransferToRequester,
+				OwnerSteamId = HostId,
+				ItemInstanceId = 42,
+			});
+
+		var transfer = TransferResult(received);
+		Assert.Equal(HostId, transfer.FromSteamId);
+		Assert.Equal(GuestId, transfer.ToSteamId);
+		Assert.Equal(42UL, transfer.Item!.InstanceId);
+		Assert.DoesNotContain(characters.GetHostCharacterData()!.Items, i => i.InstanceId == 42);
+		Assert.Contains(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);
+	}
+
+	[Fact]
+	public void Host_DoubleTabTransfersConsciousGuestItemToSelf()
+	{
+		var (host, guest, received) = CreateSession();
+		var characters = host.Services.GetRequiredService<ICharacterDataControl>();
+		var items = host.Services.GetRequiredService<IItemControl>();
+		characters.SaveHostCharacterData(Snapshot(HostId, conscious: true));
+		var water = WaterBottle(42);
+		characters.SaveCharacterData(GuestId, Snapshot(GuestId, conscious: true, water));
+		items.AdoptTransferredItem(GuestId, 42, water);
+
+		host.Services.GetRequiredService<IPlayerInteractionControl>()
+			.SendRemoteInventoryOperation(new RemoteInventoryOperationRequestMsg
+			{
+				Kind = RemoteInventoryOperationKind.TransferToRequester,
+				OwnerSteamId = GuestId,
+				ItemInstanceId = 42,
+			});
+
+		var transfer = TransferResult(received);
+		Assert.Equal(GuestId, transfer.FromSteamId);
+		Assert.Equal(HostId, transfer.ToSteamId);
+		Assert.Equal(42UL, transfer.Item!.InstanceId);
+		Assert.DoesNotContain(characters.GetSavedCharacter(GuestId)!.Items, i => i.InstanceId == 42);
 		Assert.Contains(characters.GetHostCharacterData()!.Items, i => i.InstanceId == 42);
 	}
 

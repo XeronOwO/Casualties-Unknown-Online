@@ -296,6 +296,9 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 
 	public bool TryHandleRemoteProxyTransferToLocal(Item dragItem) => _remoteBackpackOps.TryTransferToLocal(dragItem);
 
+	public bool TryHandleRemoteHeldItemUse(Item dragItem, int limbIndex) =>
+		_remoteBackpackOps.TryUseOnSelf(dragItem, limbIndex);
+
 	public bool CancelRemoteProxyDrag(PlayerCamera camera, string reason)
 	{
 		if (camera == null || camera.dragItem == null) // Unity objects — ==

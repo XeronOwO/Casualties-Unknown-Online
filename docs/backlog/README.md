@@ -38,7 +38,6 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
-- [Carry/piggyback rider position smoothing and movement teleport](todo/carry-piggyback-rider-position-smoothing.md) — **Critical**: explicitly rejected by the user on 2026-09-06; the rider teleport remains unresolved; moved out of `review/`; not accepted, not in progress.
 - [Remote backpack item projection acceptance issues (projection rework needed)](todo/remote-backpack-item-projection-acceptance-issues.md) — **High**: user acceptance found durability mismatch, selective trash-bag moves, failed Tab transfer in both directions, failed pour/edge-drop, host-side trash-bag take-out vanishing, no main-hand placement, and missing held-remote-item + Tab-close + R-medical-use flow; host↔guest directions are asymmetric, projection mechanism likely needs a full audit or rework.
 
 ### Review
@@ -96,6 +95,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Suppress native idle-sit while carried](review/carried-player-idle-sit-suppression.md) — carried characters no longer publish/replay/linger in the native sit pose; shared pure CarriedBodyPose rule applied across rider/carrier/peer views.
 - [Carrier can sit while carrying a player](review/carrier-sit-while-carrying.md) — carrier half of the same family closed: local carrier cannot enter/linger in native sit, mirror-backed via IPatchBridge.IsLocalCarrier; remote carrier clones suppress sit replay on every peer; selfcheck linked.
 - [Carry/piggyback vertical placement asymmetry](review/carry-piggyback-vertical-placement-asymmetry.md) — carried riders publish body root instead of the non-standing torso anchor; shared ride-pose path also mirrors crouch state; selfcheck linked.
+- [Carry/piggyback rider position smoothing and movement teleport](review/carry-piggyback-rider-position-smoothing.md) — **Critical**: root cause found in the exact world-space limb-pose stream; conscious/alive carried riders now suppress exact limb poses so remote clones keep HandleVisuals attached to the local-carrier mount; dead/unconscious carry and non-carried ragdolls keep exact poses; full suite 2521 + 17, independent adversarial review, deployed-hash verification complete; awaiting final unified acceptance pass.
 - [Guest container contents periodically appear as world drops on the host view](review/guest-container-contents-ghost-drops-on-host.md) — remote clone nested display proxies no longer carry item instance ids; domain lookup cannot address them; selfcheck linked.
 - [Trap destruction drops desync in item quantity between host and guest](review/trap-destruction-drop-quantity-desync.md) — support-loss building drops now ride the same `BlockDamagedMsg` as the break; non-breaker sides are marked remote death and receive the full initial drop set; selfcheck linked.
 

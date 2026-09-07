@@ -546,6 +546,7 @@ internal sealed class RunCoordinator(
 		// - climbing: currentClimbable (Body.cs:470).
 		var isCarryParticipant = _playerInteraction.TryGetCarrier(_session.LocalSteamId, out _)
 			|| _playerInteraction.TryGetCarried(_session.LocalSteamId, out _);
+		var isCarried = CarriedBodyDriver.IsCarrying(body);
 		var sitting = CarriedBodyPose.ShouldPublishSitting(
 			isCarryParticipant,
 			body.idleTime > 12f,
@@ -578,8 +579,12 @@ internal sealed class RunCoordinator(
 		// Exact limb poses ride the same 20 Hz state stream while the body is
 		// in a non-standing, non-sleeping lying pose (ragdoll/dead/unconscious).
 		// The remote clone is frozen, so this is the only way its visible limbs
-		// can match the owner's physics-driven pose.
-		var limbPoses = LimbPoseCapture.Capture(body);
+		// can match the owner's physics-driven pose. A carried rider is not a
+		// ragdoll on the visual path: it must keep the carry mount/visual-standing
+		// presentation so the carrier-side rider clone's limbs stay attached.
+		var limbPoses = CarriedBodyPose.ShouldPublishExactLimbPoses(isCarried, body.alive, body.conscious)
+			? LimbPoseCapture.Capture(body)
+			: null;
 		_entities.PublishLocalState(
 			new NetVector2(pos.x, pos.y),
 			new NetVector2(look.x, look.y),

@@ -16,7 +16,8 @@ Make the test suite's parallelism **explicit, safe and effective**:
 
 ## Current state (measured, not assumed)
 
-Baseline recorded in `docs/evidence/test-parallelization.md`:
+Stage 1 baseline recorded in `docs/evidence/test-parallelization.md` (Stage 2
+numbers are in §7 of the same document):
 
 | Metric | Value |
 |---|---|
@@ -57,13 +58,13 @@ This ticket is multi-stage by design: implement one stage per session, each stag
 - [x] Split the dominant critical-path class `EntityEventBehaviorTests` (135 cases in one class) into five behavior-family classes sharing one MemberData source; case count unchanged.
 - [x] Verify: full build + full `dotnet test` + `dotnet format`, three consecutive green runs.
 
-### Stage 2 — Cut the remaining critical path and the summed work
+### Stage 2 — Cut the remaining critical path and the summed work (complete)
 
-- Split the next critical-path classes, largest first, into separate classes with balanced loads: `PlayerInteractionServiceTests` (92 cases), `EntityEventSimulationTests`, `DirectionTests` (77 cases), `Replays.ReplayTests`, then the next tier from a fresh measurement. If the new entity-event family classes are still the longest after re-measurement, partition their `MemberData` by kind subset into more classes — never duplicate rows.
-- Splitting is behavior-preserving: same assertions, same helpers, no shared mutable fixture. A shared stateless helper/base is allowed; `partial` files are not.
-- Now that the reference host is throughput-bound, attack summed work as well: profile the per-node setup cost (`TestNode.Create` builds the full production DI graph, ≈500 node constructions per full run) and reduce it without weakening isolation. Record a written reason for any cost that is deliberately kept.
-- Re-measure with the three-run median method after each batch; target a lower median wall clock and no single class above ~5 s.
-- Verify: same test count (or a documented, justified delta), full suite green, before/after evidence recorded in `docs/evidence/test-parallelization.md`.
+- [x] Split the next critical-path classes, largest first, into separate classes with balanced loads: `PlayerInteractionServiceTests` (92 → 13 behaviour families), `EntityEventSimulationTests` (23 → 4 scenarios), `DirectionTests` (77 → 3 direction classes + completeness fact), `Replays.ReplayTests` (23 → 4 domains + validation), then the fresh-measurement tier: the entity-event family `MemberData` partitioned by kind shard (5 families × 3 crystal/trap/machine classes, a partition of the archive — never duplicated rows), `MedicalOperationShrapnelSessionTests` (21 → 3), `CommandConsoleServiceTests` (27 → 4) and `CompareItemTraceScriptTests` (9 → 3). Shared stateless helpers only; no shared mutable fixture; no `partial` files.
+- [x] Splitting is behavior-preserving: same assertions, same helpers. Test count 2 593 → 2 595 (+2 guard facts: the behavior-family partition and the replay-domain integrity guard); all pre-existing cases unchanged.
+- [x] Profile the per-node setup cost: the DI graph build is 0.41 ms — the ticket's premise was wrong. The real per-node cost is the first-frame mod discovery + load (~4.3 ms) on top of 1.1–1.5 ms container/lifecycle; a full run constructs 2 260 nodes (not ≈500). Reduced where isolation allowed: `DirectionTests` now shares one read-only `DirectionProbe` query facade per class (152 → 6 node constructions, −146 total); the per-test fresh session/world and the per-node mod load are deliberately kept and the reasons recorded in `docs/evidence/test-parallelization.md` §7.1.
+- [x] Re-measure with the three-run median method: paired interleaved A/B on the same host window puts Stage 2 at 36.3 s vs the Stage 1 tree at 40.1 s (≈9.5 % faster, every pair); no class is structurally above ~5 s (clean-window maximum ≈4.2 s; contention spikes on the loaded reference host inflate individual classes — see §7.4). A `maxParallelThreads` sweep was measured and handed to Stage 3 (§7.5).
+- [x] Verify: full suite green (2 595), build + `dotnet format` clean; before/after evidence in `docs/evidence/test-parallelization.md` §7.
 
 ### Stage 3 — Fast feedback, anti-rot guard, final measurement
 

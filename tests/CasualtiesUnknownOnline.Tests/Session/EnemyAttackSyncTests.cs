@@ -14,6 +14,7 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 /// the attack locally and reports the post-attack terminal state through the
 /// kernel combat-result events.
 /// </summary>
+[Trait("Category", "Integration")]
 public class EnemyAttackSyncTests
 {
 	private const ulong HostId = 1001;

@@ -14,6 +14,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// are accepted as typed static descriptors, while invalid schema/scope data is
 /// refused before any future runtime domain consumes it.
 /// </summary>
+[Trait("Category", "Integration")]
 public class StatusMoodleContentProviderTests
 {
 	private static object CreateProvider(string typeName)

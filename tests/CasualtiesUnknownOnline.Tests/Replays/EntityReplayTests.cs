@@ -12,6 +12,7 @@ namespace CasualtiesUnknownOnline.Tests.Replays;
 /// (<see cref="ReplayHarness"/>) owns the assertions; splitting the folder by
 /// domain keeps xUnit v2 from serializing every replay in one class collection.
 /// </summary>
+[Trait("Category", "Integration")]
 public class EntityReplayTests
 {
 	public static IEnumerable<object[]> Files => ReplayHarness.FilesOfDomain("entity");

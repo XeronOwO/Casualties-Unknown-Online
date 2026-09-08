@@ -11,6 +11,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// the report surface and the patch-contract declarations. The Runtime half
 /// is covered by CharacterSoundPolicyTests / CharacterSoundSyncTests.
 /// </summary>
+[Trait("Category", "Integration")]
 public class CharacterSoundPatchTests
 {
 	private static readonly Type BodyPatches = GameAssemblyHost.Adapter.GetType(

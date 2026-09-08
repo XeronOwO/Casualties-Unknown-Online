@@ -11,6 +11,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// run through the same patch helper. This locks the shape so a rename/removal
 /// fails in dotnet test rather than in a live session.
 /// </summary>
+[Trait("Category", "Integration")]
 public class AnimalDeathReplayPatchTests
 {
 	private static readonly Type ReplayType = GameAssemblyHost.Adapter.GetType(

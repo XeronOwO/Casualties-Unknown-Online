@@ -14,6 +14,7 @@ namespace CasualtiesUnknownOnline.Tests.Mods;
 /// and returns component type names for the Game Adapter to attach. The hook
 /// table is per-mod, local-only, and does not require a static content binding.
 /// </summary>
+[Trait("Category", "Integration")]
 public class ModBuildingRuntimeTests
 {
 	private const ulong HostId = 1001;

@@ -18,6 +18,7 @@ namespace CasualtiesUnknownOnline.Tests.Items;
 /// the patch-surface/reflection tests; this locks the Runtime half of the
 /// chain.
 /// </summary>
+[Trait("Category", "Integration")]
 public class ItemCookSimulationTests
 {
 	private static CharacterItemMsg Steak(float condition) => new()

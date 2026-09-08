@@ -13,6 +13,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// same host as the other contract tests. The Runtime half of the channel is
 /// covered by ItemCookSimulationTests.
 /// </summary>
+[Trait("Category", "Integration")]
 public class HeaterCookPatchTests
 {
 	private static readonly Type Patch = GameAssemblyHost.Adapter.GetType(

@@ -12,6 +12,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// once more in the same frame and re-freeze the just-restored body/limbs —
 /// the reported "after Drop the character cannot move" symptom.
 /// </summary>
+[Trait("Category", "Integration")]
 public class CarriedBodyReleaseTests
 {
 	private static readonly Type Driver = GameAssemblyHost.Adapter.GetType(

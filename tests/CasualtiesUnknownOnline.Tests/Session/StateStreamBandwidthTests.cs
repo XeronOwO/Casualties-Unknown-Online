@@ -17,6 +17,7 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 /// high-frequency frame. The stream must still carry the host and every other
 /// member so remote clones keep rendering.
 /// </summary>
+[Trait("Category", "Integration")]
 public class StateStreamBandwidthTests
 {
 	[Fact]

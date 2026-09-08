@@ -15,6 +15,7 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 /// unregistered ids must fail closed at the receiver instead of defaulting to
 /// valid (the old PacketReceiver.IsValidDirection behavior).
 /// </summary>
+[Trait("Category", "Integration")]
 public class NetMessageRegistryTests
 {
 	private const ulong HostId = 1001;

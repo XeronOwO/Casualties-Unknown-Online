@@ -12,6 +12,7 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 /// guest: the star topology relays to every member except the source, so a
 /// duplicate relay would show up there.
 /// </summary>
+[Trait("Category", "Integration")]
 public class ItemIdempotencyTests
 {
 	[Fact]

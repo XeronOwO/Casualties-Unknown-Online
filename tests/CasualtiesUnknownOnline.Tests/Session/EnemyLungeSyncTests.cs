@@ -13,6 +13,7 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 /// <see cref="EnemyCombatKernelProjection"/> restores the post-lunge
 /// presentation event on every peer except the source victim.
 /// </summary>
+[Trait("Category", "Integration")]
 public class EnemyLungeSyncTests
 {
 	private const ulong HostId = 1001;

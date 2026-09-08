@@ -15,6 +15,7 @@ namespace CasualtiesUnknownOnline.Tests.Items;
 /// guest's self-assigned starting-supply ids, registered in the transfer table
 /// so its use/slot reports arbitrate normally).
 /// </summary>
+[Trait("Category", "Integration")]
 public class ItemIdCoordinatorTests
 {
 	[Fact]

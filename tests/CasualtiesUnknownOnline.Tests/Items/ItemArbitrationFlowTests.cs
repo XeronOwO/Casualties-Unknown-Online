@@ -15,6 +15,7 @@ namespace CasualtiesUnknownOnline.Tests.Items;
 /// facts/rejections through the item-domain events. No GameAdapter — the
 /// guest side is the runtime event surface.
 /// </summary>
+[Trait("Category", "Integration")]
 public class ItemArbitrationFlowTests
 {
 	private const ulong HostId = 1001;

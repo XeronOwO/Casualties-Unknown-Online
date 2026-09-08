@@ -15,6 +15,7 @@ namespace CasualtiesUnknownOnline.Tests.Mods;
 /// to completion/help, host-only is enforced by role, permissionless mods are
 /// refused, duplicate/foreign unregister attempts are safe.
 /// </summary>
+[Trait("Category", "Integration")]
 public class ModConsoleCommandTests
 {
 	private const ulong HostId = 1001;

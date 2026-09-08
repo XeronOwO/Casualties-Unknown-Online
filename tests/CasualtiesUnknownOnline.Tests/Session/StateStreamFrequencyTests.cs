@@ -17,6 +17,7 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 /// snapshots per second — an options change through DI must move the real
 /// send throttle, not just a settings property.
 /// </summary>
+[Trait("Category", "Integration")]
 public class StateStreamFrequencyTests
 {
 	private const ulong HostId = 1001;

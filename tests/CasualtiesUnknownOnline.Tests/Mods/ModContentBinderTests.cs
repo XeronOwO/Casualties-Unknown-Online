@@ -15,6 +15,7 @@ namespace CasualtiesUnknownOnline.Tests.Mods;
 /// per-kind providers after mod discovery, and it only binds content from
 /// network modes that guarantee all peers have the same static content.
 /// </summary>
+[Trait("Category", "Integration")]
 public class ModContentBinderTests
 {
 	[Fact]

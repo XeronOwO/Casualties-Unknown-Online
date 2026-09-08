@@ -8,7 +8,8 @@ is the entry point for that evidence chain.
 
 | Item | Value |
 |---|---|
-| Test suite | **2593 + 19 passed** (main suite + normative gates, Debug, 2026-09-08; parallel model, runtime measurements and the parallel-safety inventory are in [`test-parallelization.md`](test-parallelization.md)) |
+| Test suite | **2597 + 20 passed** (main suite + normative gates, Debug, 2026-09-09; final three-run median 40.1 s wall; fast `Category!=Integration` subset is 1 291 cases in ~14.5 s; parallel model, thread decision and the anti-rot gate are in [`test-parallelization.md`](test-parallelization.md)) |
+| Test feedback tiers | `Integration` trait on 219 full-stack/game-assembly/socket classes (1 306 cases); `TestClassSizeGateTests` caps any class at 40 real xUnit cases/data rows (current maximum 35) |
 | Build | `dotnet build` 0 warnings / 0 errors |
 | Format | Tracked-source `dotnet format` is clean; `--verify-no-changes` currently reports the generated `obj/Debug/net48/MyPluginInfo.cs`, so the documented baseline is “tracked sources clean” |
 | Architecture | `SourceShapeGateTests.Architecture_OneTopLevelTypePerFileAndAggregateLimits` passes, including the former Phase E guard ports |
@@ -33,6 +34,13 @@ The source/repo gate suite is now:
 - `SourceShapeGateTests.NoLegacy_NoRemovedDualArchitectureMarkers` — no `Shadow`/`Legacy`/`Compat`/`Dual`/removed marker
 - `SourceShapeGateTests.CommandAuthority_EveryGameCommandDeclaresAuthority` — every `GameCommand` declares authority
 - `SourceShapeGateTests.KernelShape_NoStringKeyedStateOrHashtable` — no string-keyed/Hashtable kernel state
+
+The main test project also carries the runtime anti-rot gate:
+
+- `TestClassSizeGateTests.NoTestClass_ExceedsTheCaseLimit` — no test class may
+  exceed 40 real xUnit cases/data rows, including `MemberData` expansion and
+  inherited/static test methods; the counting and limit contract is asserted by
+  `TestClassSizeGateTests.CaseCounting_SeesMemberDataRowsAndFlagsTheLimit`.
 
 Pure documentation-only changes skip build/test/gates; run `git diff --check` and
 review the diff. If a documentation change accompanies code, run the full gates.

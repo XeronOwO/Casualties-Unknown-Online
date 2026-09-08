@@ -11,6 +11,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// shape that <c>CharacterDataSync</c> calls from the 1 Hz snapshot and host
 /// results.
 /// </summary>
+[Trait("Category", "Integration")]
 public sealed class MedicationComponentsSyncTests
 {
 	private static readonly Type Sync = GameAssemblyHost.Adapter.GetType(

@@ -15,6 +15,7 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 /// makes the 600 ms round trip exact). Every scenario runs on the production
 /// handlers over the fake network, with the virtual clock replacing wall time.
 /// </summary>
+[Trait("Category", "Integration")]
 public class SessionSimulationTests
 {
 	private const ulong HostId = 1001;

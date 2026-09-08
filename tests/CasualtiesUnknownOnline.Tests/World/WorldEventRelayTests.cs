@@ -15,6 +15,7 @@ namespace CasualtiesUnknownOnline.Tests.World;
 /// report applies on the host and relays to the other guests, the source
 /// excluded — it already applied locally).
 /// </summary>
+[Trait("Category", "Integration")]
 public class WorldEventRelayTests
 {
 	[Fact]

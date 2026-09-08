@@ -20,6 +20,7 @@ namespace CasualtiesUnknownOnline.Tests.Items;
 /// seeded random lifecycle whose host-table state is checked against an oracle
 /// that replays the ACTUAL delivery order of the Phase C commands.
 /// </summary>
+[Trait("Category", "Integration")]
 public class ItemRaceTests
 {
 	private static CharacterItemMsg Item(string type = "test_item", float condition = 1f) => new()

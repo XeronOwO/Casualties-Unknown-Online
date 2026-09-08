@@ -14,6 +14,7 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 /// marker locally, so it is excluded from the relay. One ping = one message;
 /// transient UI presentation has no snapshot fallback.
 /// </summary>
+[Trait("Category", "Integration")]
 public class LocationPingSyncTests
 {
 	private const ulong HostId = 1001;

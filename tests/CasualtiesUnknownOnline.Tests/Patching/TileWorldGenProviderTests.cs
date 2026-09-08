@@ -18,6 +18,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// consuming the shared generation random stream, and invalid authored drop
 /// values must be refused before they can enter the world.
 /// </summary>
+[Trait("Category", "Integration")]
 public class TileWorldGenProviderTests
 {
 	private static Type ProviderType => GameAssemblyHost.Adapter.GetType(

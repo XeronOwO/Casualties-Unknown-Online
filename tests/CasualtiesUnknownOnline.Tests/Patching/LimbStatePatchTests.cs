@@ -13,6 +13,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// reflectively — the same host as the other contract tests. The Runtime half
 /// of the channel is covered by LimbStateSyncTests.
 /// </summary>
+[Trait("Category", "Integration")]
 public class LimbStatePatchTests
 {
 	private static readonly Type Patches = GameAssemblyHost.Adapter.GetType(

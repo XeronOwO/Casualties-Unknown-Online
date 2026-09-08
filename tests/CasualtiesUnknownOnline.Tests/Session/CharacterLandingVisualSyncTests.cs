@@ -16,6 +16,7 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 /// host's own landing broadcasts to every guest. One landing = one message;
 /// there is no snapshot fallback to assert (the visual has no persistent state).
 /// </summary>
+[Trait("Category", "Integration")]
 public class CharacterLandingVisualSyncTests
 {
 	private const ulong HostId = 1001;

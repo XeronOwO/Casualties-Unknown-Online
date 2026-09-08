@@ -9,6 +9,7 @@ using Xunit;
 
 namespace CasualtiesUnknownOnline.Tests.Session;
 
+[Trait("Category", "Integration")]
 public class FluidKernelReadProjectionTests
 {
 	private const ulong HostId = 1001;

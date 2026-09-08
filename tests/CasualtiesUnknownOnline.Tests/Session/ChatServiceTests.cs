@@ -16,6 +16,7 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 /// sender is dropped at the host. This is the same star relay the production
 /// plugin uses, with no manual acceptance.
 /// </summary>
+[Trait("Category", "Integration")]
 public class ChatServiceTests
 {
 	private const ulong HostId = 1001;

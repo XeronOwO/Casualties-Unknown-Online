@@ -13,6 +13,7 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 /// echo/invalid-kind rejection. The wire star relay is covered by
 /// <see cref="LocationPingSyncTests"/>.
 /// </summary>
+[Trait("Category", "Integration")]
 public class LocationPingServiceTests
 {
 	private const ulong HostId = 1001;

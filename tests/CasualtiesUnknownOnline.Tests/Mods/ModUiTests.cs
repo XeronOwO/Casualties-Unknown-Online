@@ -15,6 +15,7 @@ namespace CasualtiesUnknownOnline.Tests.Mods;
 /// registered windows with their draw callbacks intact (the plugin is the only
 /// Unity-aware consumer; tests drive the callback through a recording fake).
 /// </summary>
+[Trait("Category", "Integration")]
 public class ModUiTests
 {
 	private const ulong HostId = 1001;

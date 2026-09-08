@@ -16,6 +16,7 @@ namespace CasualtiesUnknownOnline.Tests.World;
 /// only the 60 s periodic resend, so a rejoin saw spent traps fire up to a
 /// minute late and opened doors closed (the reconnect-restore round).
 /// </summary>
+[Trait("Category", "Integration")]
 public class WorldEntrySnapshotTests
 {
 	[Fact]

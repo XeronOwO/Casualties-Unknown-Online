@@ -14,6 +14,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// <c>blockDamages</c> list — the "fragmented air" on the host. This locks the
 /// cleanup helper that all direct air-write paths must call.
 /// </summary>
+[Trait("Category", "Integration")]
 public class BlockDamageCleanerTests
 {
 	[Fact]

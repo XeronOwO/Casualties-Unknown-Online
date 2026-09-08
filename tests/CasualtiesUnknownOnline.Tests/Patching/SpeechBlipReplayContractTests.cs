@@ -18,6 +18,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// typing/audio path. The Runtime half is covered by SpeechChannelTests, and the
 /// Talker fields are locked by GameFieldContractTests.
 /// </summary>
+[Trait("Category", "Integration")]
 public class SpeechBlipReplayContractTests
 {
 	private static readonly Type TalkerPatch = GameAssemblyHost.Adapter.GetType(

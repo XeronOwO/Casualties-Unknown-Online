@@ -21,6 +21,7 @@ namespace CasualtiesUnknownOnline.Tests.Mods;
 /// NetworkMode) is rejected; a handshake arriving before the discovery scan is
 /// refused as "pending" and passes on the retry.
 /// </summary>
+[Trait("Category", "Integration")]
 public class ModHandshakeTests
 {
 	private const ulong HostId = 1001;

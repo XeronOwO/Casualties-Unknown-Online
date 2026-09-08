@@ -10,6 +10,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// carry the collapse latch used by <c>SessionStatePump</c>, and the ragdoll
 /// sync domain must expose the clone-creation queue flush.
 /// </summary>
+[Trait("Category", "Integration")]
 public class RagdollPresentationStateTests
 {
 	private static readonly Type Driver = GameAssemblyHost.Adapter.GetType(

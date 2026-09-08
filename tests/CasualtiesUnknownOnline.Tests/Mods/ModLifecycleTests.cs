@@ -20,6 +20,7 @@ namespace CasualtiesUnknownOnline.Tests.Mods;
 /// timing completes before any Update) and the host-side SessionActivated
 /// that never fires at all.
 /// </summary>
+[Trait("Category", "Integration")]
 public class ModLifecycleTests
 {
 	private const ulong HostId = 1001;

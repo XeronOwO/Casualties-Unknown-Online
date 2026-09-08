@@ -14,6 +14,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// silently drops the fired/hookLatched/pulling state — this test fails before
 /// it reaches the runtime.
 /// </summary>
+[Trait("Category", "Integration")]
 public class GrapplingHookComponentSyncContractTests
 {
 	private static readonly string[] GrappleFields = ["fired", "hookLatched", "pulling"];

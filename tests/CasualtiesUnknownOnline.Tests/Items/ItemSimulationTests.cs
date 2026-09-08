@@ -18,6 +18,7 @@ namespace CasualtiesUnknownOnline.Tests.Items;
 /// with the phase-4 replay runner (ItemSimWorld); the replay files fossilize
 /// the fixed scenarios, these tests keep the random/property coverage.
 /// </summary>
+[Trait("Category", "Integration")]
 public class ItemSimulationTests
 {
 	private static CharacterItemMsg Item(string type = "test_item", float condition = 1f) => new()

@@ -7,6 +7,7 @@ using Xunit;
 
 namespace CasualtiesUnknownOnline.Tests.Items;
 
+[Trait("Category", "Integration")]
 public class ItemServiceTrafficTests
 {
 	[Fact]

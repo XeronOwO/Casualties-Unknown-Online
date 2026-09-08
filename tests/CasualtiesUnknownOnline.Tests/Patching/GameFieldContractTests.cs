@@ -22,6 +22,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// (existence-only — members read WITHOUT a generic type argument, where the
 /// adapter does not depend on the type).
 /// </summary>
+[Trait("Category", "Integration")]
 public class GameFieldContractTests
 {
 	private enum Kind

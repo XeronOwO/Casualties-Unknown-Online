@@ -14,6 +14,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// item-submit path is intentionally unchanged at this stage — the marker is
 /// observable but does not yet fold into a trap composite.
 /// </summary>
+[Trait("Category", "Integration")]
 public class BuildingDeathDropProvenanceTests
 {
 	private static readonly Type Marker = GameAssemblyHost.Adapter.GetType(

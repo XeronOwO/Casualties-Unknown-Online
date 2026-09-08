@@ -11,6 +11,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// this locks the helper shape that CharacterDataSync calls from the 1 Hz
 /// snapshot and cross-player item-use results.
 /// </summary>
+[Trait("Category", "Integration")]
 public sealed class LimbComponentStateCodecTests
 {
 	private static readonly Type Codec = GameAssemblyHost.Adapter.GetType(

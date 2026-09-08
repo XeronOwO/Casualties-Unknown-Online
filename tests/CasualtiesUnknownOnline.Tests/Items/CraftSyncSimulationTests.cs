@@ -17,6 +17,7 @@ namespace CasualtiesUnknownOnline.Tests.Items;
 /// never decomposed into per-entry broadcasts). Accept-with-adopt, never
 /// reject: the sender's consumption is irreversible.
 /// </summary>
+[Trait("Category", "Integration")]
 public class CraftSyncSimulationTests
 {
 	private static CraftEntryMsg Destroyed(ulong id) =>

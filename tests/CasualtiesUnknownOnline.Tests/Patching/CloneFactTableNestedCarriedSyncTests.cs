@@ -15,6 +15,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// the fact table must replace the exact node in the recursive contents — never
 /// append the nested container as a phantom top-level item.
 /// </summary>
+[Trait("Category", "Integration")]
 public class CloneFactTableNestedCarriedSyncTests
 {
 	private static readonly Type CloneFactTable = GameAssemblyHost.Adapter.GetType(

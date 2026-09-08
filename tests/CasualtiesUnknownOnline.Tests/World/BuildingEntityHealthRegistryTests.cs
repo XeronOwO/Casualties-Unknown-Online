@@ -11,6 +11,7 @@ namespace CasualtiesUnknownOnline.Tests.World;
 /// fact source): position-keyed latest-health semantics, reset lifecycle,
 /// empty-table no-send, and the guest-side report no-op.
 /// </summary>
+[Trait("Category", "Integration")]
 public class BuildingEntityHealthRegistryTests
 {
 	[Fact]

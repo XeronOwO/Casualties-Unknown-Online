@@ -13,6 +13,7 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 /// presence checks (a vanished member ends the session; a fresh session must
 /// not inherit the "had members" flag) and the scene-state propagation.
 /// </summary>
+[Trait("Category", "Integration")]
 public class SessionServiceTests
 {
 	private const ulong HostId = 1001;

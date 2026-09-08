@@ -19,6 +19,7 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 /// so the fresh run's starting supplies survive. The restore travels the wire
 /// (the reconnecting guest receives the saved snapshot).
 /// </summary>
+[Trait("Category", "Integration")]
 public class CharacterDataStoreTests
 {
 	private const ulong HostId = 1001;

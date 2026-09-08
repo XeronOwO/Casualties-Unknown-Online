@@ -13,6 +13,7 @@ namespace CasualtiesUnknownOnline.Tests.World;
 /// not serialize every hand-written simulation in one collection. The world and
 /// the host-executor shell stay shared in EntityEventSimWorld.
 /// </summary>
+[Trait("Category", "Integration")]
 public class EntityEventSimulationRelayTests
 {
 	[Fact]

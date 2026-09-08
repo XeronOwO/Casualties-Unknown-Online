@@ -15,6 +15,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// helper is exercised reflectively (the same host as the other contract
 /// tests).
 /// </summary>
+[Trait("Category", "Integration")]
 public class RemoteItemPresentationTests
 {
 	private static readonly Type Presentation = GameAssemblyHost.Adapter.GetType(

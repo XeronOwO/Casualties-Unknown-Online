@@ -12,6 +12,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// surface a game update could break: the type exists, derives from
 /// MonoBehaviour, and exposes Begin(TurretScript) + LateUpdate.
 /// </summary>
+[Trait("Category", "Integration")]
 public class TurretLightSpriteGateTests
 {
 	[Fact]

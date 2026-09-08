@@ -12,6 +12,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// the pure multiplier are exercised reflectively through the shared
 /// <see cref="GameAssemblyHost"/>.
 /// </summary>
+[Trait("Category", "Integration")]
 public class CarryEncumbrancePatchTests
 {
 	private static readonly Type Calculator = GameAssemblyHost.Adapter.GetType(

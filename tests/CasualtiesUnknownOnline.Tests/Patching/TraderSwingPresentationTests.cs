@@ -10,6 +10,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// peer's same-position trader must keep their surfaces stable. The adapter is
 /// loaded reflectively because it references Unity/game types.
 /// </summary>
+[Trait("Category", "Integration")]
 public class TraderSwingPresentationTests
 {
 	private const string SyncTypeName =

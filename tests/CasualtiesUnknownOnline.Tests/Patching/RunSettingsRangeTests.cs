@@ -12,6 +12,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// GameAdapter is compile-excluded from the test project (it binds game
 /// assemblies).
 /// </summary>
+[Trait("Category", "Integration")]
 public class RunSettingsRangeTests
 {
 	private static readonly Type Policy = GameAssemblyHost.Adapter.GetType(

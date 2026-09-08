@@ -17,6 +17,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// The eligibility rule mirrors the codec: public, or private with
 /// [SerializeField]; never static or initonly.
 /// </summary>
+[Trait("Category", "Integration")]
 public class CraftCodecContractTests
 {
 	/// <summary>One row per gun/mag field the digest covers (eligible) or deliberately skips (ineligible).</summary>

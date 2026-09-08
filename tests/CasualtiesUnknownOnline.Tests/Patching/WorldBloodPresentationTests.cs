@@ -10,6 +10,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// a peer's world must keep their surfaces stable. The adapter is loaded
 /// reflectively because it references Unity/game types.
 /// </summary>
+[Trait("Category", "Integration")]
 public class WorldBloodPresentationTests
 {
 	private const string SyncTypeName =

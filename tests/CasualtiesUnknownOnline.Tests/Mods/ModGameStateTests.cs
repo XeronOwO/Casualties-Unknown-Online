@@ -15,6 +15,7 @@ namespace CasualtiesUnknownOnline.Tests.Mods;
 /// remote character facts the Online UI already consumes, without exposing
 /// Unity or game-assembly types.
 /// </summary>
+[Trait("Category", "Integration")]
 public class ModGameStateTests
 {
 	private const ulong HostId = 1001;

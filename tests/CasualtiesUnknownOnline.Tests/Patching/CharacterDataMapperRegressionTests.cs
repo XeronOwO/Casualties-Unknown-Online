@@ -19,6 +19,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// the map compiles; this test calls the real config and maps a real game
 /// <see cref="Limb"/> object through Mapster.
 /// </summary>
+[Trait("Category", "Integration")]
 public sealed class CharacterDataMapperRegressionTests
 {
 	private static readonly Assembly MapsterAssembly = LoadMapster();

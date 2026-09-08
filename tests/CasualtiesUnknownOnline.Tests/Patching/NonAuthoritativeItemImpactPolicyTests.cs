@@ -11,6 +11,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// presentation (drop/step sounds, dust, plush squeak) must only play on the
 /// host/solo side where the simulation is authoritative.
 /// </summary>
+[Trait("Category", "Integration")]
 public class NonAuthoritativeItemImpactPolicyTests
 {
 	private static readonly Type Policy = GameAssemblyHost.Adapter.GetType(

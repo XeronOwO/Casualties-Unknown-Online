@@ -16,6 +16,7 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 /// SteamID, and rejects its later handshakes. Ban is host-only, never applies
 /// to the host itself, and an unbanned player may rejoin normally.
 /// </summary>
+[Trait("Category", "Integration")]
 public class HostBanTests
 {
 	private const ulong HostId = 1001;

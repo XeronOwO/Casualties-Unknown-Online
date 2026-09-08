@@ -11,6 +11,7 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 /// result messages travel over the real receive dispatch and direction table
 /// (same fake-network stack as every other message test).
 /// </summary>
+[Trait("Category", "Integration")]
 public class TraderRecruitChannelTests
 {
 	private const ulong HostId = 1001;

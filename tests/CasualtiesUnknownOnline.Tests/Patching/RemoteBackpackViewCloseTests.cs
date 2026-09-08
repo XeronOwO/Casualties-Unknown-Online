@@ -15,6 +15,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// same CUO update or on the first inventory button render).
 /// </summary>
 [Collection(GameAssemblyCollection.Name)]
+[Trait("Category", "Integration")]
 public class RemoteBackpackViewCloseTests
 {
 	[Fact]

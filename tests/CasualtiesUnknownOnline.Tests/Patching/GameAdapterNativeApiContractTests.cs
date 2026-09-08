@@ -13,6 +13,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// adapter must implement the Runtime seam, register the documented local-player
 /// operation, and own a framework-DTO result type that does not leak Unity.
 /// </summary>
+[Trait("Category", "Integration")]
 public class GameAdapterNativeApiContractTests
 {
 	[Fact]

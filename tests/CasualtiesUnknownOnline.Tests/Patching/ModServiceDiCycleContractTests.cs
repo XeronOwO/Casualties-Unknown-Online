@@ -13,6 +13,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// into GameAdapter (observed as a startup hang). The fix is to inject only
 /// ModStatusStore into the adapter, not the whole ModService.
 /// </summary>
+[Trait("Category", "Integration")]
 public class ModServiceDiCycleContractTests
 {
 	[Fact]

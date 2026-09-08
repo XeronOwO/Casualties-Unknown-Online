@@ -10,6 +10,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// assemblies), so these assertions lock the type names/method shapes the
 /// Harmony postfixes and the bridge rely on.
 /// </summary>
+[Trait("Category", "Integration")]
 public class ModStatusProjectionContractTests
 {
 	[Fact]

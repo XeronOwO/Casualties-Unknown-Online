@@ -14,6 +14,7 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 /// member must be rejected when the host is already in-world and late join is
 /// disabled, while menu-side/new-run joins stay allowed.
 /// </summary>
+[Trait("Category", "Integration")]
 public class HostRulesHandshakeTests
 {
 	private const ulong HostId = 1001;

@@ -11,6 +11,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// The adapter is compile-excluded, so the pure decision surface is exercised
 /// reflectively.
 /// </summary>
+[Trait("Category", "Integration")]
 public class CraftingContentsGuardTests
 {
 	private static readonly Type Guard = GameAssemblyHost.Adapter.GetType(

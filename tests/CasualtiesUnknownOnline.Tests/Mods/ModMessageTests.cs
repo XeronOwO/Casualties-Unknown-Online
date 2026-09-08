@@ -16,6 +16,7 @@ namespace CasualtiesUnknownOnline.Tests.Mods;
 /// call is a no-op (a host "sending to host" talks to itself locally — it
 /// must not loop back a frame to its own SteamId).
 /// </summary>
+[Trait("Category", "Integration")]
 public class ModMessageTests
 {
 	private const ulong HostId = 1001;

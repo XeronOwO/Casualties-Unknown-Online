@@ -7,6 +7,7 @@ using Xunit;
 
 namespace CasualtiesUnknownOnline.Tests.Session;
 
+[Trait("Category", "Integration")]
 public class ConsoleInputSessionTests
 {
 	[Fact]

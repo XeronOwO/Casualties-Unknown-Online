@@ -14,6 +14,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// declaration are locked reflectively (the adapter is compile-excluded from
 /// the test project).
 /// </summary>
+[Trait("Category", "Integration")]
 public class DirectPlaceableArmSwingPatchTests
 {
 	private static readonly Type BodyItemPatches = GameAssemblyHost.Adapter.GetType(

@@ -12,6 +12,7 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 /// link is retried at the backoff schedule and a success resets the peer to
 /// the normal 1 s cadence.
 /// </summary>
+[Trait("Category", "Integration")]
 public class WarmupBackoffSimulationTests
 {
 	private const ulong HostId = 1001;

@@ -17,6 +17,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// the same structures in the same order when consuming the shared generation
 /// random stream.
 /// </summary>
+[Trait("Category", "Integration")]
 public class StructureWorldGenProviderTests
 {
 	private static Type ProviderType => GameAssemblyHost.Adapter.GetType(

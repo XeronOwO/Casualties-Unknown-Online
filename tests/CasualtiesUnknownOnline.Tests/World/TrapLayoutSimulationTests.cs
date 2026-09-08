@@ -15,6 +15,7 @@ namespace CasualtiesUnknownOnline.Tests.World;
 /// distribution runs physics queries outside the random isolation — the
 /// sides' layouts diverge while the block fingerprint stays identical).
 /// </summary>
+[Trait("Category", "Integration")]
 public class TrapLayoutSimulationTests
 {
 	[Fact]

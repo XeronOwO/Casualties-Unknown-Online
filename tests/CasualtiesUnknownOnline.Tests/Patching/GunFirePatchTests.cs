@@ -14,6 +14,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// CharacterSoundSync; these tests lock the patch shape, the contract, and the
 /// protocol field the wire carries.
 /// </summary>
+[Trait("Category", "Integration")]
 public class GunFirePatchTests
 {
 	private static readonly Type Patch = GameAssemblyHost.Adapter.GetType(

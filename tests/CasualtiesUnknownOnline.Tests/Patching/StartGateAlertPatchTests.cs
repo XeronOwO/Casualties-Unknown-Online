@@ -12,6 +12,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// patch shape are exercised reflectively — the same host as the other
 /// contract tests.
 /// </summary>
+[Trait("Category", "Integration")]
 public class StartGateAlertPatchTests
 {
 	private static readonly Type Queue = GameAssemblyHost.Adapter.GetType(

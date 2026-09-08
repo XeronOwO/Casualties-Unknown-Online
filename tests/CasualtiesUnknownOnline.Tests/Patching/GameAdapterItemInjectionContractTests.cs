@@ -20,6 +20,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// this test locks the wiring that decides which ids count as injected.
 /// </summary>
 [Collection(GameAssemblyCollection.Name)]
+[Trait("Category", "Integration")]
 public class GameAdapterItemInjectionContractTests
 {
 	[Fact]

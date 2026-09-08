@@ -14,6 +14,7 @@ namespace CasualtiesUnknownOnline.Tests.Mods;
 /// the adapter seam, unsafe provider results are refused after it, and the
 /// read-only local-player projection works through the typed convenience.
 /// </summary>
+[Trait("Category", "Integration")]
 public class ModNativeApiTests
 {
 	private const ulong HostId = 1001;

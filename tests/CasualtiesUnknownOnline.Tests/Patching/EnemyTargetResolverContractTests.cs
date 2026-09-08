@@ -10,6 +10,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// future kernelization cannot silently merge the responsibility back into
 /// <c>EnemyCombatDirector</c>.
 /// </summary>
+[Trait("Category", "Integration")]
 public class EnemyTargetResolverContractTests
 {
 	private static readonly Type Resolver = GameAssemblyHost.Adapter.GetType(

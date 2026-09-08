@@ -17,6 +17,7 @@ namespace CasualtiesUnknownOnline.Tests.Session.AdaptiveSync;
 /// a reduced cadence over the real fake network. Reliable/control traffic is
 /// not routed through this service and is intentionally untouched.
 /// </summary>
+[Trait("Category", "Integration")]
 public class AdaptiveStreamRateIntegrationTests
 {
 	private const ulong HostId = 1001;

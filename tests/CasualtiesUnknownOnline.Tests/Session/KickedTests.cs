@@ -12,6 +12,7 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 /// tears its session down immediately. The remaining members are untouched (the
 /// entity domain handles the PlayerLeave fan-out on the host side).
 /// </summary>
+[Trait("Category", "Integration")]
 public class KickedTests
 {
 	private const ulong HostId = 1001;

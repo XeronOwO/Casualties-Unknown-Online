@@ -15,6 +15,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// from the owner's actual facing. The proxy visual path must neutralize that
 /// input before <c>HandleVisuals</c> runs.
 /// </summary>
+[Trait("Category", "Integration")]
 public class RemoteCloneFacingNeutralizationTests
 {
 	[Fact]

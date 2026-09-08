@@ -17,6 +17,7 @@ namespace CasualtiesUnknownOnline.Tests.Items;
 /// The layer-modifier projection rides every snapshot (wire encoding
 /// modifierIndex + 1 — Foggy's raw index IS 0, see ItemSnapshotService).
 /// </summary>
+[Trait("Category", "Integration")]
 public class ItemSnapshotSimulationTests
 {
 	private static CharacterItemMsg Item(string id) => new() { ItemId = id, Condition = 1f };

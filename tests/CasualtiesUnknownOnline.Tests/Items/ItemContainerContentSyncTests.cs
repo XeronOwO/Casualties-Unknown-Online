@@ -16,6 +16,7 @@ namespace CasualtiesUnknownOnline.Tests.Items;
 /// clones re-render immediately (the 1 Hz snapshot stays only as the reliable
 /// fallback).
 /// </summary>
+[Trait("Category", "Integration")]
 public class ItemContainerContentSyncTests
 {
 	[Fact]

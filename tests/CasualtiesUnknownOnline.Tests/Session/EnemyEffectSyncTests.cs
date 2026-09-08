@@ -14,6 +14,7 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 /// Entities domain event and the projection restores the presentation event on
 /// every peer except the source victim. No legacy direct result wire remains.
 /// </summary>
+[Trait("Category", "Integration")]
 public class EnemyEffectSyncTests
 {
 	private const ulong HostId = 1001;

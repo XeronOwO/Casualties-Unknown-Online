@@ -13,6 +13,7 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 /// host's 20 Hz stream is dropped as "no member with that entity id"
 /// (observed 2026-08-15, sandbox guest whose Steam client started later).
 /// </summary>
+[Trait("Category", "Integration")]
 public class LateSteamInitTests
 {
 	[Fact]

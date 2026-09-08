@@ -13,6 +13,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// clip mapping, the local tracker/patch shape, the wire field and the clone
 /// driver state so a game update cannot silently drop the visual.
 /// </summary>
+[Trait("Category", "Integration")]
 public class WorkoutAnimationSyncTests
 {
 	private static readonly Type Presentation = GameAssemblyHost.Adapter.GetType(

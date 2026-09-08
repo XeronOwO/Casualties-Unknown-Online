@@ -18,6 +18,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// random stream, and invalid authored numeric fields must be refused before
 /// they can enter the fluid grid.
 /// </summary>
+[Trait("Category", "Integration")]
 public class LiquidTileContentProviderTests
 {
 	private static Type ProviderType => GameAssemblyHost.Adapter.GetType(

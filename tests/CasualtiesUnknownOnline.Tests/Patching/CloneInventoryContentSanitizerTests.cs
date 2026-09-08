@@ -13,6 +13,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// through the reflection host because the test project does not compile against
 /// the GameAdapter assembly.
 /// </summary>
+[Trait("Category", "Integration")]
 public class CloneInventoryContentSanitizerTests
 {
 	private static readonly Type Sanitizer = GameAssemblyHost.Adapter.GetType(

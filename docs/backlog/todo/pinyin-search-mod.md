@@ -35,10 +35,14 @@ Planned features:
      string itself.
    - This part requires **extra interface extraction** before implementation:
      the pinyin matcher/catalog should be pluggable behind a clean seam instead
-     of being hard-coded into `CommandConsoleService` or the current
-     `ConsoleResourceLocationCatalog`. The exact interface shape should be
-     decided during implementation; candidates include a resource-id search
-     provider and a completion-source extension point in Abstractions/Runtime.
+     of being hard-coded into `CommandConsoleService` or the content catalog.
+     The namespaced-id cycle landed the seam it builds on:
+     `IResourceLocationCatalog` / `IResourceLocationSource`
+     (`src/CasualtiesUnknownOnline.Runtime/Session/Content/`) already own the
+     canonical id + display-name matching, so pinyin is a new matcher/rank stage
+     rather than a rewrite. The exact interface shape should be decided during
+     implementation; candidates include a resource-id search provider and a
+     completion-source extension point in Abstractions/Runtime.
 
 3. **Pinyin search on/off switch**
    - Pinyin search must be a configurable toggle.

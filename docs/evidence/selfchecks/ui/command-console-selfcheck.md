@@ -31,7 +31,7 @@ existing text-chat send path; no wire message or protocol version was added.
 | 20 | Real JSON host-rule command | `/hostrules <json>` is the first real CUO command with a `Json` argument; `HostRulesJsonParser`/`HostRulesJsonApplier` parse and apply a flat JSON object through the narrow `IHostRulesEditor` seam. |
 | 21 | Attribute/reflection command registry | `ConsoleCommandAttribute` marks built-in handler methods; `ConsoleCommandRegistry` scans them and builds the read-only command table at startup, replacing the hard-coded `RegisterBuiltIns()` list. |
 | 22 | Mod local console commands | `IModContext.ConsoleCommands` (`IModConsoleCommands`/`ModConsoleCommand`) lets mods register local-only console commands through Abstractions; they share the same registry/completion/help path and never enter the wire protocol. |
-| 23 | Command tree / resource-location completion | `CommandNode`/`ConsoleCommandTree` model argument positions; `CommandArgumentKind.ResourceLocation` + `ConsoleResourceLocationCatalog` provide namespaced candidates for built-ins and mod commands. |
+| 23 | Command tree / resource-location completion | `CommandNode`/`ConsoleCommandTree` model argument positions; `CommandArgumentKind.ResourceLocation` + `IResourceLocationCatalog` provide canonical `namespace:path` candidates for built-ins and mod commands. The static phase-18 `ConsoleResourceLocationCatalog` was replaced by the content-driven catalog — see `docs/evidence/selfchecks/tooling/content-id-selfcheck.md`. |
 | 24 | Bracketed selector filters | `CommandSelectorFilter`/`CommandSelectorFilterParser` parse `type`, `name`, `distance`, `limit`, `sort` inside `@a[...]`; resolver applies filters and sort/limit, and `CommandSelectorSuggestions` guides bracket entry. |
 | 25 | ESC one-frame modal suppression | `CuoEscCloseSuppression` is a Unity-free frame-state policy for command console, Online UI window, and quick panel; `Plugin.Update` keeps `SetOnlineUiModal(true)` for the first frame after any of them closes, so the closing ESC is swallowed by the existing native input guard. |
 | 26 | Non-modal ESC surface pause guard | `IGameAdapter.SetOnlineUiEscapeSurfaceVisible` feeds `IPatchBridge.IsNonModalEscapeSurfaceOpen`; while the quick panel is visible, `PauseHandlerTogglePausePatch` suppresses only `PauseHandler.TogglePause`, keeping the panel non-modal. |
@@ -100,8 +100,12 @@ existing text-chat send path; no wire message or protocol version was added.
 - No semantic highlighting beyond basic token colors (no per-argument error
   highlighting, no rich hover syntax details yet).
 - Selector expansion is player-entity only (`@a`/`@e` are aliases over remote
-  players); non-player entities and a game-content-driven resource-location
-  catalog remain future work (the built-in namespaced catalog is static).
+  players). The resource-location catalog is now content-driven (vanilla items
+  + mod content + `cu:player`), but enumerating game **entity prefabs** as
+  `cu:<prefab id>` is still future work: the only authoritative source is the
+  expensive `Resources.LoadAll<GameObject>("")` scan the game itself runs when
+  its own console opens (`reversing/.../ConsoleScript.cs:98-100`). See
+  `docs/evidence/selfchecks/tooling/content-id-selfcheck.md` §5.
 - The JSON command parser is intentionally flat-object only; generic nested
   JSON arguments, JSON arrays, and literal subcommand branches in command trees
   remain future work (the tree/argument-position foundation is in place).
@@ -145,7 +149,8 @@ existing text-chat send path; no wire message or protocol version was added.
 - `CommandNode`/`ConsoleCommandTree` are one-type-per-file Unity-free tree
   primitives; the service builds the tree from argument-kind metadata without
   owning a mutable tree.
-- `ConsoleResourceLocationCatalog` is a static candidate source;
+- `ConsoleResourceLocationCatalog` was deleted; `IResourceLocationCatalog` /
+  `ResourceLocationCatalog` now own the merged content vocabulary, and
   `CommandSelectorFilter`, `CommandSelectorFilterParser`, `SelectorSort`, and
   `CommandSelectorSuggestions` each keep one selector sub-responsibility and are
   directly unit-tested.

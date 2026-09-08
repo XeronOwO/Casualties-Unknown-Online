@@ -38,7 +38,7 @@ Conclusions (method and full numbers in `docs/evidence/test-parallelization.md`)
 ## Scope
 
 - **A. Runner contract** — `xunit.runner.json` + output copy; document the model.
-- **B. Parallel safety** — game-assembly static state collection, no shared process-global test artifact (no per-node log file), gate-enforced.
+- **B. Parallel safety** — non-parallel `GameAssembly` collection for game-assembly static state, no shared process-global test artifact (no per-node log file), gate-enforced.
 - **C. Long-pole removal** — split the largest test classes into genuinely separate classes (partial files do not help: xUnit still sees one class).
 - **D. Fast feedback** — category traits + documented filters for the inner loop.
 - **E. Measurement + guard + docs** — reproducible measurement method, anti-rot gate, doc updates.
@@ -51,9 +51,9 @@ This ticket is multi-stage by design: implement one stage per session, each stag
 
 - [x] Record the measurement method and baseline in `docs/evidence/test-parallelization.md`.
 - [x] Add `xunit.runner.json` (`parallelizeTestCollections`, `maxParallelThreads: "1x"`, `parallelAlgorithm: conservative`, `longRunningTestSeconds`) and copy it beside the test assembly; prove the runner reads it (the runner's `Starting: ... [N threads]` line changed when the value changed).
-- [x] Introduce the `GameAssembly` collection definition and move every test class that writes a game-assembly/Unity static into it.
+- [x] Introduce the `GameAssembly` collection definition with `DisableParallelization = true` (a shared collection alone would only serialize the writers; no other collection may run while a game-assembly static is being replaced) and move every test class that writes a game-assembly/Unity static into it.
 - [x] Remove the per-node rolling file sink from the test composition (`Fakes/TestLogging.cs`, wired in `TestNode` and the IP-direct tests): it removes the shared-file race, the temp directory per node and ~19 % of the summed test work; the sink keeps direct coverage in `LoggingOptionsTests`.
-- [x] Add the normative gate `TestIsolationGateTests` so a new static write without the collection fails `dotnet test`.
+- [x] Add the normative gate `TestIsolationGateTests`: Roslyn parses each test class and requires the collection for any static `SetValue(null, ...)`, and the gate carries its own negative/positive unit test so it cannot silently rot.
 - [x] Split the dominant critical-path class `EntityEventBehaviorTests` (135 cases in one class) into five behavior-family classes sharing one MemberData source; case count unchanged.
 - [x] Verify: full build + full `dotnet test` + `dotnet format`, three consecutive green runs.
 

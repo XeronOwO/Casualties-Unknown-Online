@@ -140,7 +140,7 @@
        collection per class by default) instead of relying on framework
        defaults. Must sit beside the test assembly for the runner to read it. -->
   <ItemGroup>
-    <None Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <!-- Phase-4 replay archive: every *.replay file ships with the test output —

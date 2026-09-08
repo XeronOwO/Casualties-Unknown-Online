@@ -38,7 +38,7 @@ Automation status legend:
 
 | Rule | Automation status | Gate / evidence |
 |---|---|---|
-| A test that writes a process-global static field must join the `GameAssembly` collection (xUnit v2 runs different collections in parallel, so two such classes would race on the same game-assembly/Unity static) | dotnet test (C# port) | `TestIsolationGateTests.StaticGameStateMutations_JoinTheGameAssemblyCollection`, `TestIsolationGateTests.GameAssemblyCollection_IsDeclaredWithTheExpectedName` |
+| A test class that writes a process-global static field must join the non-parallel `GameAssembly` collection (xUnit v2 runs different collections in parallel, so two such classes would race on the same game-assembly/Unity static, and a reader in another collection could observe a half-applied write) | dotnet test (C# port) | `TestIsolationGateTests.StaticGameStateMutations_JoinTheGameAssemblyCollection` (Roslyn per-class detection) + `TestIsolationGateTests.StaticGameStateMutationDetection_FlagsUnisolatedTestClasses` (the gate's own negative/positive contract) + `TestIsolationGateTests.GameAssemblyCollection_IsDeclaredAsTheNonParallelCollection` |
 | The test composition must not write a rolling file log per node (shared file name, exclusive write handle, temp directory per node) | Review / process | `tests/CasualtiesUnknownOnline.Tests/Fakes/TestLogging.cs`; the sink keeps direct coverage in `LoggingOptionsTests`. |
 | The parallel model and the long-pole policy stay measured | Review / process | [`test-parallelization.md`](test-parallelization.md) — three-run median method and the current numbers. |
 

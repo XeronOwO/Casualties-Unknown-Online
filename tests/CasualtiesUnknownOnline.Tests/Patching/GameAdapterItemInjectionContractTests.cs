@@ -19,6 +19,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// entry mapping is covered by <see cref="VanillaItemResourceLocationSourceContractTests"/>;
 /// this test locks the wiring that decides which ids count as injected.
 /// </summary>
+[Collection(GameAssemblyCollection.Name)]
 public class GameAdapterItemInjectionContractTests
 {
 	[Fact]

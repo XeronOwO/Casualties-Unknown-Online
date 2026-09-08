@@ -43,6 +43,10 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Systemic save and backup management](todo/systemic-save-backup-management.md) — **Medium (user-promoted from future)**: manual/scheduled backup, retention, restore/import, native game-layer backup, migration; reuses the save-system package format, does not define a second one.
 - [CasualtiesUnknownOnline.Pinyin: pinyin search for CUO](todo/pinyin-search-mod.md) — **Medium**: port standalone pinyin search into a CUO mod; crafting UI pinyin search plus command completion by id/name/pinyin; extra interface extraction needed for command-side pinyin support; pinyin search is a configurable toggle defaulting to on for Simplified Chinese players.
 
+### In progress
+
+- [Test suite parallelization and runtime efficiency](in-progress/test-suite-parallelization.md) — **Medium**: make the xUnit v2 suite's parallelism explicit, safe and effective; Stage 1 landed (explicit runner contract, `GameAssembly` static-state collection + gate, per-node file sink removed from the test composition, the 135-case critical-path class split into five), Stage 2 splits the remaining long-pole classes and cuts the summed setup work, Stage 3 adds fast-feedback traits, the anti-rot guard and the final benchmark.
+
 ### Review
 - [Namespaced ID system](review/id-system-namespaced-ids.md) — **Medium**: `ContentId` (`namespace:path`) vocabulary in Abstractions, `cu` built-in namespace, `[CuoMod(Namespace=...)]` declaration validated at discovery with per-candidate identity claims, canonical mod content ids, and a content-driven resource-location catalog; 2593 + 17 tests, format clean, deployed-hash verification, two independent adversarial review rounds closed; awaiting the final unified acceptance pass.
 - [Command completion for the ID system: id/name search](review/command-id-name-completion.md) — **Medium**: bundled with the namespaced ID system; `ResourceLocation` completion by canonical id, bare path, or localized display name, always inserting the canonical `cu:id`; awaiting the final unified acceptance pass.

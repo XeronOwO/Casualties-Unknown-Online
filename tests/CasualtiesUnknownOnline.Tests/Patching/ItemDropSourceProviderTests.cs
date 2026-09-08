@@ -16,6 +16,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// replace generic category fallback" rule reflectively. Both peers must see the
 /// same synthetic categories and the same frequency weights.
 /// </summary>
+[Collection(GameAssemblyCollection.Name)]
 public class ItemDropSourceProviderTests
 {
 	private static Type ProviderType => GameAssemblyHost.Adapter.GetType(

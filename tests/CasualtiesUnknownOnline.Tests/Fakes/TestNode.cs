@@ -15,7 +15,8 @@ namespace CasualtiesUnknownOnline.Tests.Fakes;
 /// <summary>
 /// One full session stack: the production composition root (CuoBootstrap —
 /// every handler, the dispatcher, the domains) with the transport and the
-/// Steam surface replaced by fakes. Host and guest nodes talk over the shared
+/// Steam surface replaced by fakes and the rolling file sink removed (see
+/// <see cref="TestLogging"/>). Host and guest nodes talk over the shared
 /// FakeNetwork exactly like two processes over Steam — same code path, no
 /// game, no Steamworks DLLs.
 /// </summary>
@@ -51,7 +52,10 @@ internal sealed class TestNode : IDisposable
 	{
 		var transport = new FakeTransport(steamId, network);
 		clock ??= new FakeClock();
-		var logDirectory = Path.Combine(Path.GetTempPath(), "cuo-tests", $"node-{steamId}");
+		// Unique per node so that a test which deliberately re-enables the file
+		// sink (or a composition-root failure log) never shares a latest.log with
+		// a parallel node. The default test composition does not create the file.
+		var logDirectory = Path.Combine(Path.GetTempPath(), "cuo-tests", $"node-{steamId}-{Guid.NewGuid():N}");
 		var services = CuoBootstrap.BuildServiceProvider(
 			new ManualLogSource("test"),
 			logDirectory,
@@ -72,6 +76,7 @@ internal sealed class TestNode : IDisposable
 				// remaining match: the SteamService entry, then the transport's.
 				s.Replace(ServiceDescriptor.Singleton(_ => (ICuoService)steam));
 				s.Replace(ServiceDescriptor.Singleton(_ => (ICuoService)transport));
+				TestLogging.RemoveFileSink(s); // before the test's overrides, so a test may still re-add a sink
 				extraRegistrations?.Invoke(s); // the test's overrides (e.g. stub mod control surfaces) — last, so they win
 			});
 

@@ -8,14 +8,14 @@ using Xunit;
 namespace CasualtiesUnknownOnline.Tests.World;
 
 /// <summary>
-/// Behavior family: resetting consumptions (a new layer is generating) clears
-/// the one-shot table, so a checkpoint after the reset sends nothing. One row
-/// per archived one-shot kind (see <see cref="EntityEventArchives"/>).
+/// Behavior family: resetting consumptions (a new layer is generating) clears the one-shot table, so a checkpoint after the reset sends nothing.
+/// Shard: trap/hazard entities (a partition of the archive — no row is duplicated;
+/// see <see cref="EntityEventBehaviorData"/>). One row per archived kind in this shard.
 /// </summary>
-public class EntityEventResetTests
+public class EntityEventResetTrapTests
 {
 	[Theory]
-	[MemberData(nameof(EntityEventBehaviorData.OneShotKinds), MemberType = typeof(EntityEventBehaviorData))]
+	[MemberData(nameof(EntityEventBehaviorData.TrapOneShotKinds), MemberType = typeof(EntityEventBehaviorData))]
 	public void Reset_ClearsConsumptions_NewWorldStartsEmpty(EntityEventKind kind)
 	{
 		var w = EntityEventSimWorld.Create();

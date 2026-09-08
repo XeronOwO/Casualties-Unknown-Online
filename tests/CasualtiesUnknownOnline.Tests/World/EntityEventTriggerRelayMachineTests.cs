@@ -8,17 +8,14 @@ using Xunit;
 namespace CasualtiesUnknownOnline.Tests.World;
 
 /// <summary>
-/// Behavior family: one report triggers the host execution exactly once, relays
-/// to the other guests and never back to the source; a one-shot consumption is
-/// recorded for the late-joiner snapshot. One row per archived entity-event
-/// kind (see <see cref="EntityEventArchives"/>). The host executor is the shell
-/// (the real TrapConsumptionRegistry + the guard shape the production executor
-/// applies); the wire path is the real stack.
+/// Behavior family: one report triggers the host execution exactly once, relays to the other guests and never back to the source; a one-shot consumption is recorded for the late-joiner snapshot.
+/// Shard: machine/station entities (a partition of the archive — no row is duplicated;
+/// see <see cref="EntityEventBehaviorData"/>). One row per archived kind in this shard.
 /// </summary>
-public class EntityEventTriggerRelayTests
+public class EntityEventTriggerRelayMachineTests
 {
 	[Theory]
-	[MemberData(nameof(EntityEventBehaviorData.AllKinds), MemberType = typeof(EntityEventBehaviorData))]
+	[MemberData(nameof(EntityEventBehaviorData.MachineKinds), MemberType = typeof(EntityEventBehaviorData))]
 	public void Trigger_RelaysAndExecutes(EntityEventKind kind)
 	{
 		var w = EntityEventSimWorld.Create();

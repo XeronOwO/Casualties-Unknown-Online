@@ -4,15 +4,14 @@ using Xunit;
 namespace CasualtiesUnknownOnline.Tests.World;
 
 /// <summary>
-/// Behavior family: two guests trigger the SAME entity (same position key) —
-/// the classic one-shot race; whichever report the host processes first
-/// consumes, the other is dropped by the guard, while repeatables execute both.
-/// One row per archived entity-event kind (see <see cref="EntityEventArchives"/>).
+/// Behavior family: two guests trigger the SAME entity (same position key) - the classic one-shot race; whichever report the host processes first consumes, the other is dropped by the guard, while repeatables execute both.
+/// Shard: machine/station entities (a partition of the archive — no row is duplicated;
+/// see <see cref="EntityEventBehaviorData"/>). One row per archived kind in this shard.
 /// </summary>
-public class EntityEventRaceTests
+public class EntityEventRaceMachineTests
 {
 	[Theory]
-	[MemberData(nameof(EntityEventBehaviorData.AllKinds), MemberType = typeof(EntityEventBehaviorData))]
+	[MemberData(nameof(EntityEventBehaviorData.MachineKinds), MemberType = typeof(EntityEventBehaviorData))]
 	public void DoubleTriggerRace_OneConsumptionPerSide(EntityEventKind kind)
 	{
 		var w = EntityEventSimWorld.Create();

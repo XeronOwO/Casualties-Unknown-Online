@@ -8,15 +8,14 @@ using Xunit;
 namespace CasualtiesUnknownOnline.Tests.World;
 
 /// <summary>
-/// Behavior family: a one-shot entity that progresses keeps only its LATEST
-/// consumption (the registry is the fact source, later writes overwrite), and
-/// the late-joiner snapshot replays exactly that. One row per archived one-shot
-/// kind (see <see cref="EntityEventArchives"/>).
+/// Behavior family: a one-shot entity that progresses keeps only its LATEST consumption (the registry is the fact source, later writes overwrite), and the late-joiner snapshot replays exactly that.
+/// Shard: crystal entities (a partition of the archive — no row is duplicated;
+/// see <see cref="EntityEventBehaviorData"/>). One row per archived kind in this shard.
 /// </summary>
-public class EntityEventSnapshotExtraTests
+public class EntityEventSnapshotExtraCrystalTests
 {
 	[Theory]
-	[MemberData(nameof(EntityEventBehaviorData.OneShotKinds), MemberType = typeof(EntityEventBehaviorData))]
+	[MemberData(nameof(EntityEventBehaviorData.CrystalOneShotKinds), MemberType = typeof(EntityEventBehaviorData))]
 	public void OneShot_SnapshotCarriesLatestExtra(EntityEventKind kind)
 	{
 		var w = EntityEventSimWorld.Create();

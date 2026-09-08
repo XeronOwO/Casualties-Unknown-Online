@@ -4,15 +4,14 @@ using Xunit;
 namespace CasualtiesUnknownOnline.Tests.World;
 
 /// <summary>
-/// Behavior family: a retransmitted report relays unconditionally (the message
-/// layer is not the guard), while the host guard drops the re-execution for
-/// one-shots only. One row per archived entity-event kind (see
-/// <see cref="EntityEventArchives"/>).
+/// Behavior family: a retransmitted report relays unconditionally (the message layer is not the guard), while the host guard drops the re-execution for one-shots only.
+/// Shard: crystal entities (a partition of the archive — no row is duplicated;
+/// see <see cref="EntityEventBehaviorData"/>). One row per archived kind in this shard.
 /// </summary>
-public class EntityEventDuplicateGuardTests
+public class EntityEventDuplicateGuardCrystalTests
 {
 	[Theory]
-	[MemberData(nameof(EntityEventBehaviorData.AllKinds), MemberType = typeof(EntityEventBehaviorData))]
+	[MemberData(nameof(EntityEventBehaviorData.CrystalKinds), MemberType = typeof(EntityEventBehaviorData))]
 	public void DuplicateReport_GuardPerKind(EntityEventKind kind)
 	{
 		var w = EntityEventSimWorld.Create();

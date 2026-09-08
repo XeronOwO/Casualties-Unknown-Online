@@ -38,6 +38,9 @@ todo/  →  in-progress/  →  review/  →  done/
 
 ### Todo
 
+- [Save system: layer-end and mid-run saves](todo/save-system-mid-run-and-layer-end.md) — **High**: layer-end + mid-run saves; new JSON-based, directory-level archive format; mid-run consistency (consistent cut, no over/under-generation); native `save.sv` is layer-boundary only and the kernel checkpoint store is currently unwired; multi-stage, split into stage tickets at implementation start.
+- [Sync completeness audit: event-level sync + periodic fallback](todo/sync-event-and-periodic-fallback-coverage-audit.md) — **High**: per-feature evidence matrix for every synced domain (event sync + periodic fallback + backfill/reconnect), gap classification; world blocks are the user-reported seed (host→guest 60 s resend exists, guest→host has no periodic re-report).
+- [Systemic save and backup management](todo/systemic-save-backup-management.md) — **Medium (user-promoted from future)**: manual/scheduled backup, retention, restore/import, native game-layer backup, migration; reuses the save-system package format, does not define a second one.
 - [Namespaced ID system](todo/id-system-namespaced-ids.md) — **Medium**: `namespace:id` IDs, built-in `cu` namespace, mods register their own namespace, covers items/entities and more.
 - [Command completion for the ID system: id/name search](todo/command-id-name-completion.md) — **Medium**: command completion accepts id or localized name and inserts the canonical `cu:id`.
 - [CasualtiesUnknownOnline.Pinyin: pinyin search for CUO](todo/pinyin-search-mod.md) — **Medium**: port standalone pinyin search into a CUO mod; crafting UI pinyin search plus command completion by id/name/pinyin; extra interface extraction needed for command-side pinyin support; pinyin search is a configurable toggle defaulting to on for Simplified Chinese players.
@@ -112,7 +115,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Strict validation / anti-cheat hardening](future/strict-validation-anti-cheat.md).
 - [Phase 5 tooling & ecosystem](future/phase5-tooling-ecosystem.md).
 - [KrokMP compatibility adapter](future/krokmp-compatibility-adapter.md).
-- [Systemic save and backup management](future/systemic-save-backup-management.md) — inspectable ZIP+JSON archives, scheduled/manual backups, restore/load, native game-layer backup.
 - [Command authorization gateway](future/command-authorization-gateway.md) — central actor/AuthorityKind enforcement in front of the kernel (Loomi review 2026-09-04).
 - [Runtime DI feature registration and lifecycle contract](future/runtime-di-feature-registration-lifecycle.md) — feature-scoped composition modules + verified reset/unbind/graph/update-order (Loomi review 2026-09-04).
 - [Kernel replication namespace relocation](future/kernel-replication-namespace-relocation.md) — move item-scoped kernel protocol/save services to a neutral namespace (Loomi review 2026-09-04).

@@ -27,6 +27,17 @@ public sealed class CuoModAttribute(string id, string displayName, string versio
 	/// <summary>SemVer version (major.minor.patch[-prerelease][+build]) — discovery rejects non-SemVer strings, and state-bearing handshakes compare it by precedence.</summary>
 	public string Version { get; } = version;
 
+	/// <summary>
+	/// The mod's content-id namespace (<c>namespace:path</c>). Optional: a mod
+	/// that registers no content can omit it. When set, discovery validates the
+	/// grammar, refuses the reserved built-in namespace
+	/// <see cref="ContentId.BuiltInNamespace"/> and refuses a namespace another
+	/// loaded mod already declared — the same fail-closed place as a duplicate
+	/// mod id. Content registered by this mod is addressable as
+	/// <c>&lt;namespace&gt;:&lt;content id&gt;</c>.
+	/// </summary>
+	public string? Namespace { get; set; }
+
 	/// <summary>The mod's network contract — see <see cref="NetworkMode"/>.</summary>
 	public NetworkMode NetworkMode { get; set; }
 

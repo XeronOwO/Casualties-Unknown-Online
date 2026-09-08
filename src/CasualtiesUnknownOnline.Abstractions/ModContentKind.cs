@@ -26,6 +26,9 @@ public static class ModContentKind
 	/// <summary>A world building entity definition.</summary>
 	public const string Building = "building";
 
+	/// <summary>A world entity type (a non-item spawnable, for example the built-in player entity).</summary>
+	public const string Entity = "entity";
+
 	/// <summary>An authored multi-block structure definition.</summary>
 	public const string Structure = "structure";
 

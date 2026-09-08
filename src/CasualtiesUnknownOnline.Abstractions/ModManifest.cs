@@ -9,7 +9,7 @@ namespace CasualtiesUnknownOnline.Abstractions;
 /// handshake actually carry). Mods never construct this themselves.
 /// </summary>
 public sealed class ModManifest(string id, string displayName, string version, NetworkMode networkMode, string? description,
-	ModPermission permissions = ModPermission.None, IReadOnlyList<string>? dependencies = null)
+	ModPermission permissions = ModPermission.None, IReadOnlyList<string>? dependencies = null, string? @namespace = null)
 {
 	public string Id { get; } = id;
 
@@ -27,4 +27,11 @@ public sealed class ModManifest(string id, string displayName, string version, N
 	public IReadOnlyList<string> Dependencies { get; } = dependencies is null ? [] : [.. dependencies];
 
 	public string? Description { get; } = description;
+
+	/// <summary>
+	/// The mod's declared content-id namespace, or null when it registered no
+	/// content vocabulary. Discovery guarantees it is a valid namespace, is not
+	/// the built-in one, and is unique across loaded mods.
+	/// </summary>
+	public string? Namespace { get; } = @namespace;
 }

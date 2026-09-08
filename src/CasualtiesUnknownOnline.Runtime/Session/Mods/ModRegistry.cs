@@ -35,7 +35,6 @@ public sealed class ModRegistry(ILogger<ModRegistry> log) : IModListProvider
 	{
 		_discovered.Clear();
 		var candidates = new List<DiscoveredMod>();
-		var seen = new HashSet<string>(StringComparer.Ordinal);
 
 		foreach (var type in assemblies
 			.SelectMany(a => SafeGetTypes(a))
@@ -79,10 +78,33 @@ public sealed class ModRegistry(ILogger<ModRegistry> log) : IModListProvider
 				continue;
 			}
 
-			if (!seen.Add(id))
+			// Duplicate mod ids and namespace ownership are BOTH decided after
+			// dependency ordering (see ResolveIdentities): a candidate that is
+			// later rejected must never consume an id or a namespace another
+			// valid mod could own.
+			//
+			// The declared content-id namespace is validated here. Any non-null
+			// declaration must be valid — an empty/whitespace value is a typo,
+			// not "no namespace".
+			var @namespace = attribute.Namespace;
+			if (@namespace is not null)
 			{
-				_log.LogWarning("[Mods] duplicated mod id {Id} — the later declaration is skipped (one id = one mod).", id);
-				continue;
+				@namespace = @namespace.ToLowerInvariant();
+				if (!ContentId.IsValidNamespace(@namespace))
+				{
+					_log.LogWarning(
+						"[Mods] {Id} declares an invalid content namespace '{Namespace}' (expected [a-z][a-z0-9_]* up to {Max} chars) — skipped.",
+						id, attribute.Namespace, ContentId.MaxNamespaceLength);
+					continue;
+				}
+
+				if (string.Equals(@namespace, ContentId.BuiltInNamespace, StringComparison.Ordinal))
+				{
+					_log.LogWarning(
+						"[Mods] {Id} declares the reserved built-in content namespace '{Namespace}' — skipped.",
+						id, @namespace);
+					continue;
+				}
 			}
 
 			var dependencies = attribute.Dependencies ?? [];
@@ -92,13 +114,13 @@ public sealed class ModRegistry(ILogger<ModRegistry> log) : IModListProvider
 			}
 
 			var manifest = new ModManifest(id, attribute.DisplayName, attribute.Version, attribute.NetworkMode,
-				attribute.Description, attribute.Permissions, dependencies);
+				attribute.Description, attribute.Permissions, dependencies, @namespace);
 			candidates.Add(new DiscoveredMod(manifest, type));
-			_log.LogInformation("[Mods] discovered {Id} {Version} ({Mode}, permissions {Permissions}) — {DisplayName}.",
-				id, manifest.Version, manifest.NetworkMode, manifest.Permissions, manifest.DisplayName);
+			_log.LogInformation("[Mods] discovered {Id} {Version} ({Mode}, permissions {Permissions}, namespace {Namespace}) — {DisplayName}.",
+				id, manifest.Version, manifest.NetworkMode, manifest.Permissions, @namespace ?? "-", manifest.DisplayName);
 		}
 
-		_discovered.AddRange(OrderByDependencies(candidates));
+		_discovered.AddRange(ClaimNamespaces(OrderByDependencies(candidates)));
 
 		if (_discovered.Count == 0)
 		{
@@ -117,6 +139,50 @@ public sealed class ModRegistry(ILogger<ModRegistry> log) : IModListProvider
 			NetworkMode = d.Manifest.NetworkMode,
 			Permissions = d.Manifest.Permissions,
 		})];
+
+	/// <summary>
+	/// Claim at most one content namespace per surviving mod, in load
+	/// (topological) order. Ownership is decided here rather than during
+	/// candidate validation so a mod rejected earlier can never deny a namespace
+	/// to a valid mod. A dependent of a namespace-rejected mod is dropped too,
+	/// exactly like a dependent of a missing dependency (fail-closed).
+	/// </summary>
+	private List<DiscoveredMod> ClaimNamespaces(List<DiscoveredMod> ordered)
+	{
+		var owners = new Dictionary<string, string>(StringComparer.Ordinal);
+		var rejectedIds = new HashSet<string>(StringComparer.Ordinal);
+		var accepted = new List<DiscoveredMod>(ordered.Count);
+		foreach (var candidate in ordered)
+		{
+			var manifest = candidate.Manifest;
+			var blockedDependency = manifest.Dependencies.FirstOrDefault(rejectedIds.Contains);
+			if (blockedDependency is not null)
+			{
+				_log.LogWarning("[Mods] {Id} depends on {Dependency}, which was rejected — skipped.",
+					manifest.Id, blockedDependency);
+				rejectedIds.Add(manifest.Id);
+				continue;
+			}
+
+			if (manifest.Namespace is { } @namespace)
+			{
+				if (owners.TryGetValue(@namespace, out var owner))
+				{
+					_log.LogWarning(
+						"[Mods] content namespace {Namespace} is already declared by {Owner} — {Id} is skipped.",
+						@namespace, owner, manifest.Id);
+					rejectedIds.Add(manifest.Id);
+					continue;
+				}
+
+				owners.Add(@namespace, manifest.Id);
+			}
+
+			accepted.Add(candidate);
+		}
+
+		return accepted;
+	}
 
 	private static IEnumerable<Type> SafeGetTypes(Assembly assembly)
 	{
@@ -181,46 +247,82 @@ public sealed class ModRegistry(ILogger<ModRegistry> log) : IModListProvider
 			return ordered;
 		}
 
-		var byId = candidates.ToDictionary(c => c.Manifest.Id, StringComparer.Ordinal);
-		var rejected = new HashSet<string>(StringComparer.Ordinal);
+		// Rejection is tracked per CANDIDATE, not per mod id: two candidates may
+		// declare the same id, and a rejected one must not deny that id to the
+		// other (see the duplicate-id pass below).
+		var knownIds = new HashSet<string>(candidates.Select(c => c.Manifest.Id), StringComparer.Ordinal);
+		var rejected = new HashSet<DiscoveredMod>();
 		foreach (var candidate in candidates)
 		{
 			foreach (var dependency in candidate.Manifest.Dependencies)
 			{
-				if (!byId.ContainsKey(dependency))
+				if (knownIds.Contains(dependency))
 				{
-					_log.LogWarning("[Mods] {Id} depends on missing mod {Dependency} — skipped.", candidate.Manifest.Id, dependency);
-					rejected.Add(candidate.Manifest.Id);
-					break;
+					continue;
 				}
+
+				_log.LogWarning("[Mods] {Id} depends on missing mod {Dependency} — skipped.", candidate.Manifest.Id, dependency);
+				rejected.Add(candidate);
+				break;
 			}
 		}
 
-		// Closure: a mod whose own dependency was rejected is just as unsatisfied
-		// as one whose dependency is missing — fail it too (transitive
-		// dependencies must load, or the dependent must not).
+		// Closure: a mod whose dependency id has no surviving candidate is just
+		// as unsatisfied as one whose dependency is missing — fail it too
+		// (transitive dependencies must load, or the dependent must not). The
+		// duplicate-id pass below never kills an id (it keeps one candidate), so
+		// this closure can run before it.
 		var changed = true;
 		while (changed)
 		{
 			changed = false;
+			var aliveIds = new HashSet<string>(
+				candidates.Where(c => !rejected.Contains(c)).Select(c => c.Manifest.Id),
+				StringComparer.Ordinal);
 			foreach (var candidate in candidates)
 			{
-				if (rejected.Contains(candidate.Manifest.Id)
-					|| !candidate.Manifest.Dependencies.Any(d => rejected.Contains(d)))
+				if (rejected.Contains(candidate))
 				{
 					continue;
 				}
+
+				var blocked = candidate.Manifest.Dependencies.FirstOrDefault(dependency => !aliveIds.Contains(dependency));
+				if (blocked is null)
+				{
+					continue;
+				}
+
 				_log.LogWarning("[Mods] {Id} depends on rejected mod {Dependency} — skipped.",
-					candidate.Manifest.Id, candidate.Manifest.Dependencies.First(d => rejected.Contains(d)));
-				rejected.Add(candidate.Manifest.Id);
+					candidate.Manifest.Id, blocked);
+				rejected.Add(candidate);
 				changed = true;
 			}
 		}
 
-		var remaining = candidates.Where(c => !rejected.Contains(c.Manifest.Id)).ToList();
+		// One id = one mod: the first still-loadable declaration wins, so a
+		// duplicate whose twin was rejected above is kept instead of blocking
+		// the id.
+		var uniqueIds = new HashSet<string>(StringComparer.Ordinal);
+		foreach (var candidate in candidates)
+		{
+			if (rejected.Contains(candidate))
+			{
+				continue;
+			}
+
+			if (!uniqueIds.Add(candidate.Manifest.Id))
+			{
+				_log.LogWarning("[Mods] duplicated mod id {Id} — the later declaration is skipped (one id = one mod).",
+					candidate.Manifest.Id);
+				rejected.Add(candidate);
+			}
+		}
+
+		var remaining = candidates.Where(c => !rejected.Contains(c)).ToList();
+		var survivingIds = new HashSet<string>(remaining.Select(c => c.Manifest.Id), StringComparer.Ordinal);
 		var indegree = remaining.ToDictionary(
 			c => c.Manifest.Id,
-			c => c.Manifest.Dependencies.Count(d => !rejected.Contains(d)),
+			c => c.Manifest.Dependencies.Count(survivingIds.Contains),
 			StringComparer.Ordinal);
 
 		while (remaining.Count > 0)

@@ -35,7 +35,7 @@ public class CommandSelectorSuggestionsTests
 		var suggestions = CommandSelectorSuggestions.Suggest("@a[type=");
 
 		Assert.Contains(suggestions, s => s.Text == "@a[type=player");
-		Assert.Contains(suggestions, s => s.Text == "@a[type=cuo:player");
+		Assert.Contains(suggestions, s => s.Text == "@a[type=cu:player");
 	}
 
 	[Fact]

@@ -101,6 +101,8 @@ public class CommandSelectorResolverTests
 		var withNames = new[] { Local, Close with { DisplayName = "Alice" }, Far with { DisplayName = "Bob" } };
 
 		Assert.Equal([10UL, 11UL], CommandSelectorResolver.Resolve("@a[type=player]", withNames));
+		Assert.Equal([10UL, 11UL], CommandSelectorResolver.Resolve("@a[type=cu:player]", withNames));
+		Assert.Empty(CommandSelectorResolver.Resolve("@a[type=cuo:player]", withNames));
 		Assert.Empty(CommandSelectorResolver.Resolve("@a[type=zombie]", withNames));
 	}
 

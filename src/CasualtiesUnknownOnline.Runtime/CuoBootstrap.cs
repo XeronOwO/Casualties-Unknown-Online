@@ -14,6 +14,7 @@ using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.Chat;
 using CasualtiesUnknownOnline.Runtime.Session.Commands;
+using CasualtiesUnknownOnline.Runtime.Session.Content;
 using CasualtiesUnknownOnline.Runtime.Session.Handlers;
 using CasualtiesUnknownOnline.Runtime.Session.HostRules;
 using CasualtiesUnknownOnline.Runtime.Localization;
@@ -263,6 +264,16 @@ public static class CuoBootstrap
 		// channel's receive event, session end, and UI placement calls.
 		services.AddSingleton<LocationPingService>();
 		services.AddSingleton<ILocationPingControl>(p => p.GetRequiredService<LocationPingService>());
+		// Content-id vocabulary: the canonical namespace:path catalog the console
+		// completes resource arguments from. Runtime owns the built-in and
+		// mod-content sources; the plugin registers the Game Adapter's vanilla
+		// game-content source (the only layer allowed to read game tables).
+		services.AddSingleton<BuiltInResourceLocationSource>();
+		services.AddSingleton<IResourceLocationSource>(p => p.GetRequiredService<BuiltInResourceLocationSource>());
+		services.AddSingleton<ModContentResourceLocationSource>();
+		services.AddSingleton<IResourceLocationSource>(p => p.GetRequiredService<ModContentResourceLocationSource>());
+		services.AddSingleton<ResourceLocationCatalog>();
+		services.AddSingleton<IResourceLocationCatalog>(p => p.GetRequiredService<ResourceLocationCatalog>());
 		// In-game command/chat console: local slash-command chain + the chat UI
 		// surface (no wire message, no packet handler — it only rides the
 		// existing ChatService send path).

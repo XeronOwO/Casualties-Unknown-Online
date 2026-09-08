@@ -61,6 +61,24 @@ public class ModContentOwnerQueryTests
 	}
 
 	[Fact]
+	public void OwnerQuery_ResolvesCanonicalIdAndKeepsLegacyBareId()
+	{
+		var query = CreateQuery(
+			new ModContentRegistration("mod.a", new ModContentDefinition("sword", ModContentKind.Item, [1], 1), "mymod"),
+			new ModContentRegistration("mod.b", new ModContentDefinition("legacy", ModContentKind.Item, [2], 1)));
+
+		Assert.True(query.TryGetOwner(ModContentKind.Item, "mymod:sword", out var owner));
+		Assert.Equal("mod.a", owner);
+		Assert.True(query.TryGetOwner(ModContentKind.Item, "MyMod:Sword", out owner));
+		Assert.Equal("mod.a", owner);
+		Assert.True(query.TryGetOwner(ModContentKind.Item, "sword", out owner));
+		Assert.Equal("mod.a", owner);
+		Assert.True(query.TryGetOwner(ModContentKind.Item, "legacy", out owner));
+		Assert.Equal("mod.b", owner);
+		Assert.False(query.TryGetOwner(ModContentKind.Item, "other:sword", out _));
+	}
+
+	[Fact]
 	public void OwnerQuery_EmptyCatalog_ReturnsFalse()
 	{
 		var query = CreateQuery();

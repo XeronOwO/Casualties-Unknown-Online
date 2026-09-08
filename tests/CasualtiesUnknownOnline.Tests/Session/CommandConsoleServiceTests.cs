@@ -190,10 +190,22 @@ public class CommandConsoleServiceTests
 		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId);
 		var suggestions = host.Services.GetRequiredService<ICommandArgumentSuggestions>();
 
-		var matches = suggestions.Suggest(CommandArgumentKind.ResourceLocation, "cuo:");
+		var matches = suggestions.Suggest(CommandArgumentKind.ResourceLocation, "cu:");
 
-		Assert.Contains(matches, s => s.Text == "cuo:player");
-		Assert.Contains(matches, s => s.Text == "cuo:bandage");
+		Assert.Contains(matches, s => s.Text == "cu:player" && !string.IsNullOrWhiteSpace(s.Description));
+	}
+
+	[Fact]
+	public void ArgumentSuggestions_ResourceLocationKind_CompletesModContentByBareIdAndNamespace()
+	{
+		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		var suggestions = host.Services.GetRequiredService<ICommandArgumentSuggestions>();
+
+		var byBareId = suggestions.Suggest(CommandArgumentKind.ResourceLocation, "wooden");
+		var byNamespace = suggestions.Suggest(CommandArgumentKind.ResourceLocation, "testcontent:wood");
+
+		Assert.Contains(byBareId, s => s.Text == "testcontent:wooden.sword");
+		Assert.Contains(byNamespace, s => s.Text == "testcontent:wooden.sword");
 	}
 
 	[Fact]

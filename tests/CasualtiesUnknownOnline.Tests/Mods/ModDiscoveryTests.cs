@@ -160,6 +160,59 @@ public class ModDiscoveryTests
 		Assert.Empty(echo.Manifest.Dependencies);
 	}
 
+	[Fact]
+	public void DeclaredNamespace_IsCarriedInTheManifest()
+	{
+		var discovered = CreateRegistry().Discover(TestAssembly);
+
+		var namespaced = discovered.Single(d => d.Manifest.Id == "test.nsok");
+		Assert.Equal("testns", namespaced.Manifest.Namespace);
+		Assert.Null(discovered.Single(d => d.Manifest.Id == "test.echo").Manifest.Namespace);
+	}
+
+	[Fact]
+	public void ReservedOrInvalidNamespace_Rejected()
+	{
+		var discovered = CreateRegistry().Discover(TestAssembly);
+
+		Assert.DoesNotContain(discovered, d => d.Manifest.Id == "test.nsreserved");
+		Assert.DoesNotContain(discovered, d => d.Manifest.Id == "test.nsinvalid");
+		Assert.DoesNotContain(discovered, d => d.Manifest.Id == "test.nsempty");
+		Assert.DoesNotContain(discovered, d => d.Manifest.Id == "test.nsblank");
+	}
+
+	[Fact]
+	public void RejectedMod_DoesNotConsumeItsModId()
+	{
+		var discovered = CreateRegistry().Discover(TestAssembly);
+
+		// The first test.idreclaim declaration is rejected for a missing
+		// dependency; the second declaration of the same id must still load
+		// (a rejected candidate may not consume the id).
+		var winner = Assert.Single(discovered, d => d.Manifest.Id == "test.idreclaim");
+		Assert.Equal("reclaimns", winner.Manifest.Namespace);
+	}
+
+	[Fact]
+	public void DuplicatedNamespace_OnlyFirstWins()
+	{
+		var discovered = CreateRegistry().Discover(TestAssembly);
+
+		var winner = Assert.Single(discovered, d => d.Manifest.Namespace == "testdupns");
+		Assert.Equal("test.nsdup.a", winner.Manifest.Id);
+	}
+
+	[Fact]
+	public void RejectedMod_DoesNotConsumeItsNamespace()
+	{
+		var discovered = CreateRegistry().Discover(TestAssembly);
+
+		// test.nslost declares lostns but is rejected for a missing dependency;
+		// the namespace must remain available to the valid test.nsrecover.
+		Assert.DoesNotContain(discovered, d => d.Manifest.Id == "test.nslost");
+		Assert.Contains(discovered, d => d.Manifest.Id == "test.nsrecover" && d.Manifest.Namespace == "lostns");
+	}
+
 	// ---- The malformed candidates (nested — they belong to this test) ----
 
 	[CuoMod("test.unspecified", "No Mode", "1.0.0")] // NetworkMode defaults to Unspecified — fail-closed
@@ -490,4 +543,231 @@ public class ModDiscoveryTests
 		public void Dispose() => throw new InvalidOperationException("must never load");
 	}
 
+	// ---- Namespaced-id candidates (nested — they belong to this test) ----
+
+	[CuoMod("test.nsok", "Namespaced OK", "1.0.0", NetworkMode = NetworkMode.ClientOnly, Namespace = "testns")]
+	public sealed class NamespacedMod : ICuoMod
+	{
+		public void Bind(IModContext context)
+		{
+		}
+
+		public void Initialize()
+		{
+		}
+
+		public void Start()
+		{
+		}
+
+		public void Update()
+		{
+		}
+
+		public void Stop()
+		{
+		}
+
+		public void Dispose()
+		{
+		}
+	}
+
+	[CuoMod("test.nsreserved", "Reserved Namespace", "1.0.0", NetworkMode = NetworkMode.ClientOnly, Namespace = "cu")]
+	public sealed class ReservedNamespaceMod : ICuoMod
+	{
+		public void Bind(IModContext context) => throw new InvalidOperationException("must never load");
+
+		public void Initialize() => throw new InvalidOperationException("must never load");
+
+		public void Start() => throw new InvalidOperationException("must never load");
+
+		public void Update() => throw new InvalidOperationException("must never load");
+
+		public void Stop() => throw new InvalidOperationException("must never load");
+
+		public void Dispose() => throw new InvalidOperationException("must never load");
+	}
+
+	[CuoMod("test.nsinvalid", "Invalid Namespace", "1.0.0", NetworkMode = NetworkMode.ClientOnly, Namespace = "Test NS!")]
+	public sealed class InvalidNamespaceMod : ICuoMod
+	{
+		public void Bind(IModContext context) => throw new InvalidOperationException("must never load");
+
+		public void Initialize() => throw new InvalidOperationException("must never load");
+
+		public void Start() => throw new InvalidOperationException("must never load");
+
+		public void Update() => throw new InvalidOperationException("must never load");
+
+		public void Stop() => throw new InvalidOperationException("must never load");
+
+		public void Dispose() => throw new InvalidOperationException("must never load");
+	}
+
+	[CuoMod("test.nsdup.a", "Duplicate Namespace A", "1.0.0", NetworkMode = NetworkMode.ClientOnly, Namespace = "testdupns")]
+	public sealed class DuplicateNamespaceAMod : ICuoMod
+	{
+		public void Bind(IModContext context)
+		{
+		}
+
+		public void Initialize()
+		{
+		}
+
+		public void Start()
+		{
+		}
+
+		public void Update()
+		{
+		}
+
+		public void Stop()
+		{
+		}
+
+		public void Dispose()
+		{
+		}
+	}
+
+	[CuoMod("test.nsdup.b", "Duplicate Namespace B", "1.0.0", NetworkMode = NetworkMode.ClientOnly, Namespace = "testdupns")]
+	public sealed class DuplicateNamespaceBMod : ICuoMod
+	{
+		public void Bind(IModContext context) => throw new InvalidOperationException("must never load");
+
+		public void Initialize() => throw new InvalidOperationException("must never load");
+
+		public void Start() => throw new InvalidOperationException("must never load");
+
+		public void Update() => throw new InvalidOperationException("must never load");
+
+		public void Stop() => throw new InvalidOperationException("must never load");
+
+		public void Dispose() => throw new InvalidOperationException("must never load");
+	}
+
+	[CuoMod("test.nslost", "Namespace Loser", "1.0.0", NetworkMode = NetworkMode.ClientOnly,
+		Namespace = "lostns", Dependencies = new[] { "test.depmissing" })]
+	public sealed class RejectedNamespaceOwnerMod : ICuoMod
+	{
+		public void Bind(IModContext context) => throw new InvalidOperationException("must never load");
+
+		public void Initialize() => throw new InvalidOperationException("must never load");
+
+		public void Start() => throw new InvalidOperationException("must never load");
+
+		public void Update() => throw new InvalidOperationException("must never load");
+
+		public void Stop() => throw new InvalidOperationException("must never load");
+
+		public void Dispose() => throw new InvalidOperationException("must never load");
+	}
+
+	[CuoMod("test.nsrecover", "Namespace Recover", "1.0.0", NetworkMode = NetworkMode.ClientOnly, Namespace = "lostns")]
+	public sealed class RecoveredNamespaceMod : ICuoMod
+	{
+		public void Bind(IModContext context)
+		{
+		}
+
+		public void Initialize()
+		{
+		}
+
+		public void Start()
+		{
+		}
+
+		public void Update()
+		{
+		}
+
+		public void Stop()
+		{
+		}
+
+		public void Dispose()
+		{
+		}
+	}
+
+	[CuoMod("test.nsempty", "Empty Namespace", "1.0.0", NetworkMode = NetworkMode.ClientOnly, Namespace = "")]
+	public sealed class EmptyNamespaceMod : ICuoMod
+	{
+		public void Bind(IModContext context) => throw new InvalidOperationException("must never load");
+
+		public void Initialize() => throw new InvalidOperationException("must never load");
+
+		public void Start() => throw new InvalidOperationException("must never load");
+
+		public void Update() => throw new InvalidOperationException("must never load");
+
+		public void Stop() => throw new InvalidOperationException("must never load");
+
+		public void Dispose() => throw new InvalidOperationException("must never load");
+	}
+
+	[CuoMod("test.nsblank", "Blank Namespace", "1.0.0", NetworkMode = NetworkMode.ClientOnly, Namespace = "   ")]
+	public sealed class BlankNamespaceMod : ICuoMod
+	{
+		public void Bind(IModContext context) => throw new InvalidOperationException("must never load");
+
+		public void Initialize() => throw new InvalidOperationException("must never load");
+
+		public void Start() => throw new InvalidOperationException("must never load");
+
+		public void Update() => throw new InvalidOperationException("must never load");
+
+		public void Stop() => throw new InvalidOperationException("must never load");
+
+		public void Dispose() => throw new InvalidOperationException("must never load");
+	}
+
+	[CuoMod("test.idreclaim", "Rejected Id Owner", "1.0.0", NetworkMode = NetworkMode.ClientOnly,
+		Namespace = "reclaimns", Dependencies = new[] { "test.depmissing" })]
+	public sealed class RejectedIdOwnerMod : ICuoMod
+	{
+		public void Bind(IModContext context) => throw new InvalidOperationException("must never load");
+
+		public void Initialize() => throw new InvalidOperationException("must never load");
+
+		public void Start() => throw new InvalidOperationException("must never load");
+
+		public void Update() => throw new InvalidOperationException("must never load");
+
+		public void Stop() => throw new InvalidOperationException("must never load");
+
+		public void Dispose() => throw new InvalidOperationException("must never load");
+	}
+
+	[CuoMod("test.idreclaim", "Reclaimed Id", "1.0.0", NetworkMode = NetworkMode.ClientOnly, Namespace = "reclaimns")]
+	public sealed class ReclaimedIdMod : ICuoMod
+	{
+		public void Bind(IModContext context)
+		{
+		}
+
+		public void Initialize()
+		{
+		}
+
+		public void Start()
+		{
+		}
+
+		public void Update()
+		{
+		}
+
+		public void Stop()
+		{
+		}
+
+		public void Dispose()
+		{
+		}
+	}
 }

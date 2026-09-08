@@ -66,10 +66,21 @@ public class ModConsoleCommandTests
 		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId);
 		var completion = host.Services.GetRequiredService<ICommandCompletionSource>();
 
-		var suggestions = completion.Suggest("/cresource cuo:");
+		var suggestions = completion.Suggest("/cresource cu:");
 
-		Assert.Contains(suggestions, s => s.Text == "cuo:player");
-		Assert.Contains(suggestions, s => s.Text == "cuo:bandage");
+		Assert.Contains(suggestions, s => s.Text == "cu:player");
+	}
+
+	[Fact]
+	public void ModConsoleCommand_ResourceLocationCompletion_InsertsCanonicalModId()
+	{
+		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		var completion = host.Services.GetRequiredService<ICommandCompletionSource>();
+
+		var suggestions = completion.Suggest("/cresource wooden");
+
+		Assert.Contains(suggestions, s => s.Text == "testcontent:wooden.sword");
+		Assert.DoesNotContain(suggestions, s => s.Text == "wooden.sword");
 	}
 
 	[Fact]
@@ -79,9 +90,9 @@ public class ModConsoleCommandTests
 		var mod = CommandMod(host);
 		var console = host.Services.GetRequiredService<ICommandControl>();
 
-		Assert.True(console.TryExecute("/cresource cuo:player"));
+		Assert.True(console.TryExecute("/cresource cu:player"));
 
-		Assert.Contains(console.Lines, l => l.Text == "resource:cuo:player");
+		Assert.Contains(console.Lines, l => l.Text == "resource:cu:player");
 		Assert.Contains(mod.ConsoleExecutions, e => e.Name == "cresource" && e.LocalSteamId == HostId);
 	}
 

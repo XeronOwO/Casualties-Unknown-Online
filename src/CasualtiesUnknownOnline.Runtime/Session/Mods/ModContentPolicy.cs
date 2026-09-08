@@ -1,22 +1,27 @@
+using CasualtiesUnknownOnline.Abstractions;
+
 namespace CasualtiesUnknownOnline.Runtime.Session.Mods;
 
 /// <summary>
 /// The pure safety rails for the mod content registry. Content definitions are
 /// opaque and process-local, but without caps a broken or hostile mod could
 /// grow the framework's memory without bound or poison the registry with
-/// unusable ids. Ids/kinds are bounded by length/count, payloads by size — all
-/// errors are refused with a log, never silently truncated.
+/// unusable ids. Ids/kinds are bounded by grammar/length/count, payloads by
+/// size — all errors are refused with a log, never silently truncated.
 /// </summary>
 internal static class ModContentPolicy
 {
-	public const int MaxIdLength = 128;
 	public const int MaxKindLength = 64;
 	public const int MaxDefinitionBytes = 64 * 1024;
 	public const int MaxDefinitionsPerMod = 1024;
 
-	/// <summary>Content ids must be non-empty, not all whitespace, and within the length cap.</summary>
-	public static bool IsValidId(string? id) =>
-		!string.IsNullOrWhiteSpace(id) && id!.Length <= MaxIdLength;
+	/// <summary>
+	/// Content ids must already be canonical <see cref="ContentId"/> path
+	/// segments: lower-case ASCII <c>[a-z0-9][a-z0-9_.-]{0,95}</c>. Upper-case,
+	/// whitespace, the namespace separator, and over-length ids are refused so
+	/// the framework can always derive an unambiguous <c>namespace:id</c>.
+	/// </summary>
+	public static bool IsValidId(string? id) => ContentId.IsValidPath(id);
 
 	/// <summary>Content kinds must be non-empty, not all whitespace, and within the length cap.</summary>
 	public static bool IsValidKind(string? kind) =>

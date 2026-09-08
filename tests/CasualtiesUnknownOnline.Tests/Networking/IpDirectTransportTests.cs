@@ -13,6 +13,7 @@ namespace CasualtiesUnknownOnline.Tests.Networking;
 /// They run against real loopback TCP on the test machine, so they validate the
 /// same transport-level hello/framing code the game uses on a LAN.
 /// </summary>
+[Trait("Category", "Integration")]
 public class IpDirectTransportTests : IDisposable
 {
 	private readonly IpDirectTransport _host = new(NullLogger<IpDirectTransport>.Instance);

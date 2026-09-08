@@ -11,6 +11,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// way as the other adapter contract tests. The old per-domain helper
 /// CloneBodyPosePresentation has been absorbed into the unified projection.
 /// </summary>
+[Trait("Category", "Integration")]
 public class CloneBodyPosePresentationTests
 {
 	private static readonly Type Projection = GameAssemblyHost.Adapter.GetType(

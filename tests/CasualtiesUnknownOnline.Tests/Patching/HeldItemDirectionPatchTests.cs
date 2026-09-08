@@ -12,6 +12,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// helper and the patch shape are exercised reflectively — the same host as
 /// the other contract tests.
 /// </summary>
+[Trait("Category", "Integration")]
 public class HeldItemDirectionPatchTests
 {
 	private static readonly Type Direction = GameAssemblyHost.Adapter.GetType(

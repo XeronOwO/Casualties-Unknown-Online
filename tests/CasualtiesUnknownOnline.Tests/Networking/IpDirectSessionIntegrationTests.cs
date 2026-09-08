@@ -19,6 +19,7 @@ namespace CasualtiesUnknownOnline.Tests.Networking;
 /// session/handshake/entity code paths as production. The Steam service is
 /// deliberately not initialized; only IP-direct is active.
 /// </summary>
+[Trait("Category", "Integration")]
 public class IpDirectSessionIntegrationTests : IDisposable
 {
 	private const ulong HostId = IpDirectTransport.HostPeerId;

@@ -11,6 +11,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// that makes the full-canvas transparent blocker only intercept inside CUO
 /// panel rectangles must stay on the adapter assembly.
 /// </summary>
+[Trait("Category", "Integration")]
 public class OnlineMenuInputGuardContractTests
 {
 	[Fact]

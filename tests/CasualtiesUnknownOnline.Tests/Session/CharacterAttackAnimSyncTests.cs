@@ -15,6 +15,7 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 /// host's own visual broadcasts to every guest. One animation = one message;
 /// there is no snapshot fallback to assert (the visual has no persistent state).
 /// </summary>
+[Trait("Category", "Integration")]
 public class CharacterAttackAnimSyncTests
 {
 	private const ulong HostId = 1001;

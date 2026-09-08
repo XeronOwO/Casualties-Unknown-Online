@@ -19,6 +19,7 @@ namespace CasualtiesUnknownOnline.Tests.Mods;
 /// handler exceptions become failure results, results are capped, and pending
 /// callbacks are settled when the session ends.
 /// </summary>
+[Trait("Category", "Integration")]
 public class ModCommandTests
 {
 	private const ulong HostId = 1001;

@@ -12,6 +12,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// reflective contract because the test project never compile-references the
 /// Game Adapter (it binds Unity/game assemblies).
 /// </summary>
+[Trait("Category", "Integration")]
 public class AdaptiveStage4ContractTests
 {
 	[Fact]

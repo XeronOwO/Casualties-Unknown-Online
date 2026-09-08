@@ -12,6 +12,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// push-cadence helper. The tests load the adapter reflectively (the test
 /// project never compile-references GameAdapter).
 /// </summary>
+[Trait("Category", "Integration")]
 public class FluidPresentationContractTests
 {
 	[Fact]

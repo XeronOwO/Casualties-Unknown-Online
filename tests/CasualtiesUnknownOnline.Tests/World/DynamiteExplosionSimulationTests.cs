@@ -15,6 +15,7 @@ namespace CasualtiesUnknownOnline.Tests.World;
 /// existing block/building/item channels and are already covered by their own
 /// simulation suites; this locks the new dedicated event's topology.
 /// </summary>
+[Trait("Category", "Integration")]
 public class DynamiteExplosionSimulationTests
 {
 	[Fact]

@@ -12,6 +12,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// the rock sound) before the entity is destroyed. This locks the patch shape
 /// so a rename/removal fails in dotnet test, not in a live session.
 /// </summary>
+[Trait("Category", "Integration")]
 public class BuildingDestructionReplayPatchTests
 {
 	private static readonly Type Patch = GameAssemblyHost.Adapter.GetType(

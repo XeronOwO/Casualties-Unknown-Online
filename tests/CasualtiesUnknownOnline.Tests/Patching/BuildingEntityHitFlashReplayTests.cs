@@ -10,6 +10,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// (the replay helper + the relay signature that carries the flag) at test time
 /// instead of discovering a rename/signature drift in a live session.
 /// </summary>
+[Trait("Category", "Integration")]
 public class BuildingEntityHitFlashReplayTests
 {
 	private static readonly Type Sync = GameAssemblyHost.Adapter.GetType(

@@ -17,6 +17,7 @@ namespace CasualtiesUnknownOnline.Tests.Items;
 /// through the same send surface (SendWorldItemCorrection — the adapter's
 /// ItemUseSync host branch calls it).
 /// </summary>
+[Trait("Category", "Integration")]
 public class ItemActionSyncTests
 {
 	private static CharacterItemMsg Item(float condition = 1f, List<LiquidStackMsg>? liquids = null) => new()

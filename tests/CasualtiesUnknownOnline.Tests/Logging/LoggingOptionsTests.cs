@@ -18,6 +18,7 @@ namespace CasualtiesUnknownOnline.Tests.Logging;
 /// the sinks without rebuilding the container). Default Information means
 /// Debug/Trace stay silent; a hot change to Debug re-enables them.
 /// </summary>
+[Trait("Category", "Integration")]
 public class LoggingOptionsTests
 {
 	[Fact]

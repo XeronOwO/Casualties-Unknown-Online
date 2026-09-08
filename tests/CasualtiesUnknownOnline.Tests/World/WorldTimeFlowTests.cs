@@ -13,6 +13,7 @@ namespace CasualtiesUnknownOnline.Tests.World;
 /// FakeNetwork. The Game Adapter policy (movement/sleep) is pure-tested in
 /// WorldTimePolicyTests; this locks the plumbing it rides.
 /// </summary>
+[Trait("Category", "Integration")]
 public class WorldTimeFlowTests
 {
 	[Fact]

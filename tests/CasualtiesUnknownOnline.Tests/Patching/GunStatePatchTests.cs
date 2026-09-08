@@ -14,6 +14,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// compile-excluded from the test project, so this locks the reflective shape
 /// and the patch-contract coverage.
 /// </summary>
+[Trait("Category", "Integration")]
 public class GunStatePatchTests
 {
 	private static readonly Type Sync = GameAssemblyHost.Adapter.GetType(

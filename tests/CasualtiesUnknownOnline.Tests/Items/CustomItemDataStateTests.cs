@@ -16,6 +16,7 @@ namespace CasualtiesUnknownOnline.Tests.Items;
 /// cannot carry, but which gates a real use action and must survive item
 /// transfer/reconnect.
 /// </summary>
+[Trait("Category", "Integration")]
 public class CustomItemDataStateTests
 {
 	private static readonly Type StateType = GameAssemblyHost.Adapter.GetType(

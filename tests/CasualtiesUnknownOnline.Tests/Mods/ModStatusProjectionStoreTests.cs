@@ -12,6 +12,7 @@ namespace CasualtiesUnknownOnline.Tests.Mods;
 /// validated against body/limb scope, the store exposes typed snapshots to the
 /// GameAdapter, and every status write/removal raises the refresh event.
 /// </summary>
+[Trait("Category", "Integration")]
 public class ModStatusProjectionStoreTests
 {
 	private const ulong HostId = 1001;

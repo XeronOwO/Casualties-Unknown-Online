@@ -8,6 +8,7 @@ namespace CasualtiesUnknownOnline.Tests.World;
 /// Shard: crystal entities (a partition of the archive — no row is duplicated;
 /// see <see cref="EntityEventBehaviorData"/>). One row per archived kind in this shard.
 /// </summary>
+[Trait("Category", "Integration")]
 public class EntityEventDuplicateGuardCrystalTests
 {
 	[Theory]

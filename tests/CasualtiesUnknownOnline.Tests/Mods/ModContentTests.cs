@@ -14,6 +14,7 @@ namespace CasualtiesUnknownOnline.Tests.Mods;
 /// plugin-facing <see cref="IModContentControl"/> aggregates every mod's
 /// entries, and payloads are defensively copied on write and read.
 /// </summary>
+[Trait("Category", "Integration")]
 public class ModContentTests
 {
 	private const ulong HostId = 1001;

@@ -18,6 +18,7 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 /// unreliable — stale snapshots (reordered) and duplicates must be dropped,
 /// newer ones pass. Locked through the real handler over the fake network.
 /// </summary>
+[Trait("Category", "Integration")]
 public class StateStreamTests
 {
 	private const ulong HostId = 1001;

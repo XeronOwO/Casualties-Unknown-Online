@@ -11,6 +11,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// helper shapes, the remote driver fields and the landing postfix state so a
 /// game update cannot silently drop the visual.
 /// </summary>
+[Trait("Category", "Integration")]
 public class WallSlideLandingSyncTests
 {
 	private static readonly Type Driver = GameAssemblyHost.Adapter.GetType(

@@ -66,20 +66,23 @@ This ticket is multi-stage by design: implement one stage per session, each stag
 - [x] Re-measure with the three-run median method: paired interleaved A/B on the same host window puts Stage 2 at 36.3 s vs the Stage 1 tree at 40.1 s (≈9.5 % faster, every pair); no class is structurally above ~5 s (clean-window maximum ≈4.2 s; contention spikes on the loaded reference host inflate individual classes — see §7.4). A `maxParallelThreads` sweep was measured and handed to Stage 3 (§7.5).
 - [x] Verify: full suite green (2 595), build + `dotnet format` clean; before/after evidence in `docs/evidence/test-parallelization.md` §7.
 
-### Stage 3 — Fast feedback, anti-rot guard, final measurement
+### Stage 3 — Fast feedback, anti-rot guard, final measurement (complete)
 
-- Classify slow/integration tests with `[Trait("Category", ...)]` and document the inner-loop filters (`--filter "FullyQualifiedName~X"`, `--filter "Category!=Integration"`).
-- Add an anti-rot guard for the long pole (a gate that fails when a test class grows past the agreed limit, or a recorded decision not to).
-- Benchmark `maxParallelThreads` 1x vs 2x and keep the faster/stable setting.
-- Finish the doc pass: `docs/evidence/verification.md`, `docs/evidence/normative-gates.md` and the test conventions in `AGENTS.md` are already updated for Stage 1; keep them current.
-- Verify: full suite green, final measured wall clock recorded.
+- [x] Classified 219 full-stack/game-assembly/socket test classes with `[Trait("Category", "Integration")]` (1 306 cases tagged; 1 291 untagged) and documented the inner-loop filters (`--filter "Category!=Integration"`, `--filter "FullyQualifiedName~X"`); the fast subset measured 14.5 s wall for 1 291 cases.
+- [x] Added the runtime anti-rot gate `TestClassSizeGateTests.NoTestClass_ExceedsTheCaseLimit` (40 real xUnit cases/data rows, including `MemberData` expansion, inherited test methods and static test classes; current maximum 35) plus `CaseCounting_SeesMemberDataRowsAndFlagsTheLimit` for the counting/limit contract. Source parsing was rejected because it cannot see `MemberData` rows — the exact mechanism behind the original long pole.
+- [x] Benchmarked `maxParallelThreads` 1x vs 2x plus 14/12/10 in an interleaved same-window sweep (7 runs for 1x/10/14, 3 for 12/2x): 1x median 35.52 s (33.20–36.59), 2x 38.25 s, 10 36.47 s (43.16 s outlier), 12 36.33 s, 14 38.49 s; kept `1x` as the faster/more stable and portable setting.
+- [x] Finished the doc pass: `docs/evidence/verification.md`, `docs/evidence/normative-gates.md`, the test conventions in `AGENTS.md`, and `docs/evidence/test-parallelization.md` §9.
+- [x] Verified: main suite 2 597 + normative gates 20 passed; build and format clean; final three-run full wall clock 40.1 / 42.1 / 37.0 s (median 40.1 s), with post-hardening confirmation runs at 37.8 s and 40.7 s (window noise).
+
+The ticket stays in `in-progress/` per the staged-handoff instruction; Stage 3
+is code-complete and awaits the final unified acceptance pass.
 
 ## Acceptance
 
 - Every stage: `dotnet build CasualtiesUnknownOnline.slnx`, `dotnet test CasualtiesUnknownOnline.slnx` and `dotnet format` pass; test-case count and semantics unchanged except where a stage documents the delta.
 - No test writes a process-global static field outside the `GameAssembly` collection (gate-enforced), and the test composition writes no per-node log file.
 - The runner configuration is explicit and proven to be read.
-- Stage 2 lands measured wall-clock evidence; no single test class dominates the run.
+- Stage 2 and Stage 3 land measured wall-clock evidence; no single test class dominates the run.
 - The measurement method in `docs/evidence/test-parallelization.md` is reproducible (commands plus how per-test durations are extracted).
 
 ## Non-goals

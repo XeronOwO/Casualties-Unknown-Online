@@ -18,6 +18,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// random stream, and invalid authored world-spawn values must be refused before
 /// they can enter the world.
 /// </summary>
+[Trait("Category", "Integration")]
 public class ItemWorldGenProviderTests
 {
 	private static Type ProviderType => GameAssemblyHost.Adapter.GetType(

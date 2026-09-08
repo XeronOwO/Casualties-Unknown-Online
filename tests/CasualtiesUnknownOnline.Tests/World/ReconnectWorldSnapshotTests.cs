@@ -22,6 +22,7 @@ namespace CasualtiesUnknownOnline.Tests.World;
 /// (observed live: the spent spike not shown, the shuttle door closed again,
 /// the trashbag contents regressed).
 /// </summary>
+[Trait("Category", "Integration")]
 public class ReconnectWorldSnapshotTests
 {
 	private const ulong LobbyId = 9001;

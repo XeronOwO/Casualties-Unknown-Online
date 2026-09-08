@@ -11,6 +11,7 @@ namespace CasualtiesUnknownOnline.Tests.Replays;
 /// splitting the folder by domain keeps xUnit v2 from serializing every replay
 /// in one class collection.
 /// </summary>
+[Trait("Category", "Integration")]
 public class TradeReplayTests
 {
 	public static IEnumerable<object[]> Files => ReplayHarness.FilesOfDomain("trade");

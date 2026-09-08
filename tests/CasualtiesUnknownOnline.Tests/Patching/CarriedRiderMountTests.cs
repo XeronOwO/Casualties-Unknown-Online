@@ -13,6 +13,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// re-parents a local carrier's rider clone under a neutral-scale mount, so the
 /// mount scale math and the attach/detach surface must be correct and stable.
 /// </summary>
+[Trait("Category", "Integration")]
 public class CarriedRiderMountTests
 {
 	private static readonly Type Renderer = GameAssemblyHost.Adapter.GetType(

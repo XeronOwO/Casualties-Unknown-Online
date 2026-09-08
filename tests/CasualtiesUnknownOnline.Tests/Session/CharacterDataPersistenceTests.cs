@@ -18,6 +18,7 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 /// session-end reset models a same-process lobby switch, and a new-run clear
 /// must void both memory and disk.
 /// </summary>
+[Trait("Category", "Integration")]
 public class CharacterDataPersistenceTests
 {
 	private const ulong HostId = 1001;

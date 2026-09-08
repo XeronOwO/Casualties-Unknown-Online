@@ -14,6 +14,7 @@ namespace CasualtiesUnknownOnline.Tests.World;
 /// authoritative). The GameAdapter side (TalkPatch suppression + the clone
 /// replay) is the phase-B runtime verification.
 /// </summary>
+[Trait("Category", "Integration")]
 public class SpeechChannelTests
 {
 	[Fact]

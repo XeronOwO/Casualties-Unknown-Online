@@ -16,6 +16,7 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 /// Split from PlayerInteractionServiceTests so xUnit v2 (one collection per class,
 /// serial inside a class) does not serialize the whole player-interaction surface.
 /// </summary>
+[Trait("Category", "Integration")]
 public class HealTests
 {
 	[Fact]

@@ -16,6 +16,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// falls back to the bare id. The real <c>Item.GlobalItems</c> read is a thin
 /// projection over this method.
 /// </summary>
+[Trait("Category", "Integration")]
 public class VanillaItemResourceLocationSourceContractTests
 {
 	private const string TypeName = "CasualtiesUnknownOnline.GameAdapter.Content.VanillaItemResourceLocationSource";

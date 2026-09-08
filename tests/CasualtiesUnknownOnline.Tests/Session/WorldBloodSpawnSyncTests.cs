@@ -14,6 +14,7 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 /// other guests, and directly broadcast host-owned spawns to every guest.
 /// One decal = one message; the transient visual has no snapshot fallback.
 /// </summary>
+[Trait("Category", "Integration")]
 public class WorldBloodSpawnSyncTests
 {
 	private const ulong HostId = 1001;

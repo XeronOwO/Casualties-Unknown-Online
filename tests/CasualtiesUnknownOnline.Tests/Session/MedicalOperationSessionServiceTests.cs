@@ -22,6 +22,7 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 /// side share the same IPlayerInteractionControl surface through the real
 /// packet handlers.
 /// </summary>
+[Trait("Category", "Integration")]
 public sealed class MedicalOperationSessionServiceTests
 {
 	private const ulong HostId = 1001;

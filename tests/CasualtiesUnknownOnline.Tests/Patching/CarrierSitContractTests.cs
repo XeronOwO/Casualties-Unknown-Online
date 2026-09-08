@@ -11,6 +11,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// remote-clone carrier flag that the pose patches depend on. The pure decision
 /// logic itself is covered by <see cref="Session.CarriedBodyPoseTests"/>.
 /// </summary>
+[Trait("Category", "Integration")]
 public class CarrierSitContractTests
 {
 	private static readonly Type Bridge = GameAssemblyHost.Adapter.GetType(

@@ -7,6 +7,7 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 /// The ping/pong diagnostics loop: RequestPing → peer echoes the tick → the
 /// requester records the RTT. Full round-trip over the fake network.
 /// </summary>
+[Trait("Category", "Integration")]
 public class RttTests
 {
 	private const ulong HostId = 1001;

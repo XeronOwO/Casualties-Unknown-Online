@@ -14,6 +14,7 @@ namespace CasualtiesUnknownOnline.Tests.Mods;
 /// mirror. Local-only and host-authoritative scopes do not use this seam, and
 /// non-status payloads are not consumed.
 /// </summary>
+[Trait("Category", "Integration")]
 public class ModStatusWireTests
 {
 	private const ulong HostId = 1001;

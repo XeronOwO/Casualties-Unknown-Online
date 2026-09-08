@@ -12,6 +12,7 @@ using Xunit;
 
 namespace CasualtiesUnknownOnline.Tests.World;
 
+[Trait("Category", "Integration")]
 public class PlayerProjectionTests
 {
 	private const ulong HostId = 1001;

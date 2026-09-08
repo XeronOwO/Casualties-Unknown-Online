@@ -17,6 +17,7 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 /// amputation) all reuse the generic medical session envelope and host
 /// reservation sets.
 /// </summary>
+[Trait("Category", "Integration")]
 public sealed class MedicalOperationOtherActionsSessionTests
 {
 	private const ulong HostId = 1001;

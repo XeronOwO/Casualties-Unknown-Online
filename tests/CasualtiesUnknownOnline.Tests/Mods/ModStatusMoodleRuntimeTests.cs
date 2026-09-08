@@ -15,6 +15,7 @@ namespace CasualtiesUnknownOnline.Tests.Mods;
 /// and returns a static moodle id. The resolver table is per-mod, local-only,
 /// and does not require a static status content binding.
 /// </summary>
+[Trait("Category", "Integration")]
 public class ModStatusMoodleRuntimeTests
 {
 	private const ulong HostId = 1001;

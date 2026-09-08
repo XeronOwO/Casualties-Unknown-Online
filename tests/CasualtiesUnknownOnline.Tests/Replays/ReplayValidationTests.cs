@@ -10,6 +10,7 @@ namespace CasualtiesUnknownOnline.Tests.Replays;
 /// has no world and must fail loudly, so the guard asserts the folder holds no
 /// mixed file. The per-file domain classes carry the scenario regressions.
 /// </summary>
+[Trait("Category", "Integration")]
 public class ReplayValidationTests
 {
 	[Fact]

@@ -15,6 +15,7 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 /// through the real handler over the fake network (same pattern as
 /// <c>EnemySyncServiceTests</c>).
 /// </summary>
+[Trait("Category", "Integration")]
 public class TutorialClawStreamTests
 {
 	private const ulong HostId = 1001;

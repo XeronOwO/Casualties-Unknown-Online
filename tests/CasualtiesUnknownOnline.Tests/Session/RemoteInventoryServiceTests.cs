@@ -17,6 +17,7 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 /// snapshots already carry the carried/worn item list (including recursive
 /// container contents).
 /// </summary>
+[Trait("Category", "Integration")]
 public class RemoteInventoryServiceTests
 {
 	private const ulong HostId = 1001;

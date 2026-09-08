@@ -17,6 +17,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// GameAdapter, so this locks the stable static-mapping behavior reflectively.
 /// </summary>
 [Collection(GameAssemblyCollection.Name)]
+[Trait("Category", "Integration")]
 public class ItemAdvancedBehaviorProviderTests
 {
 	private static Type ProviderType => GameAssemblyHost.Adapter.GetType(

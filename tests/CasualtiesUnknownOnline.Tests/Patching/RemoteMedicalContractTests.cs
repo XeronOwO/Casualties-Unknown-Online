@@ -9,6 +9,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// the Runtime boundary exposes open/close methods, the GameAdapter implements
 /// them, and the adapter-side static view keeps the read-only focus state.
 /// </summary>
+[Trait("Category", "Integration")]
 public class RemoteMedicalContractTests
 {
 	[Fact]

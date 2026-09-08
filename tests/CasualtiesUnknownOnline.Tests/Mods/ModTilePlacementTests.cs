@@ -16,6 +16,7 @@ namespace CasualtiesUnknownOnline.Tests.Mods;
 /// existing BlockPlaced channel is responsible for replication, so this surface
 /// only tests the mod-side gate + delegation.
 /// </summary>
+[Trait("Category", "Integration")]
 public class ModTilePlacementTests
 {
 	private const ulong HostId = 1001;

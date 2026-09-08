@@ -21,6 +21,7 @@ namespace CasualtiesUnknownOnline.Tests.World;
 /// executor here is the real <see cref="BlockBreakArbitration"/> machine (the
 /// GameAdapter's BlockBreakSync is its thin shell); the relay is the handler's.
 /// </summary>
+[Trait("Category", "Integration")]
 public class BlockBreakSimulationTests
 {
 	private const ulong HostId = 1001;

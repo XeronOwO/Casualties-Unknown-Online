@@ -15,6 +15,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// mapping, the local tracker/patch shape, the wire fields and the clone
 /// driver state so a game update cannot silently drop the visual.
 /// </summary>
+[Trait("Category", "Integration")]
 public class NapAndDogShakeSyncTests
 {
 	private static readonly Type Presentation = GameAssemblyHost.Adapter.GetType(

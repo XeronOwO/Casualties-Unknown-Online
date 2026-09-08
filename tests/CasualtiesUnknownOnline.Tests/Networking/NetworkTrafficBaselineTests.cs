@@ -21,6 +21,7 @@ namespace CasualtiesUnknownOnline.Tests.Networking;
 /// live host/guest pair, and measures the checkpoint split/assemble/restore
 /// shape that the bandwidth-reduction tickets will need before optimizing.
 /// </summary>
+[Trait("Category", "Integration")]
 public class NetworkTrafficBaselineTests
 {
 	private const ulong HostId = 1001;

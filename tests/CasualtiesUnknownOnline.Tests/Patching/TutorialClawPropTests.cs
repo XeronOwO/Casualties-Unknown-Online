@@ -17,6 +17,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// id-less item) is already covered by the existing item simulation/race
 /// suites.
 /// </summary>
+[Trait("Category", "Integration")]
 public class TutorialClawPropTests
 {
 	private static readonly Type Marker = GameAssemblyHost.Adapter.GetType(

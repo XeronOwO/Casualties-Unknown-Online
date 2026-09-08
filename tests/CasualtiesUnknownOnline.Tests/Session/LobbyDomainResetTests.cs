@@ -13,6 +13,7 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 /// otherwise leak into the next session: world params/start gate/damage
 /// table, item tables/modifier projection, and saved characters.
 /// </summary>
+[Trait("Category", "Integration")]
 public class LobbyDomainResetTests
 {
 	private const ulong HostId = 1001;

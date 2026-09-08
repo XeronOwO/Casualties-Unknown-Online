@@ -19,6 +19,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// named BEFORE the game launches. MISSING references are a FAILURE, never a
 /// skip: a silently-skipped contract test is no guard at all.
 /// </summary>
+[Trait("Category", "Integration")]
 public class PatchContractTests
 {
 	private static readonly string BaseDir = AppDomain.CurrentDomain.BaseDirectory;

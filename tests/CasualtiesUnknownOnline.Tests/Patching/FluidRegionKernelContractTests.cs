@@ -10,6 +10,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// Unity grid. Loaded reflectively because the test project never
 /// compile-references GameAdapter.
 /// </summary>
+[Trait("Category", "Integration")]
 public class FluidRegionKernelContractTests
 {
 	[Fact]

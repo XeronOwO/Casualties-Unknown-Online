@@ -15,6 +15,7 @@ namespace CasualtiesUnknownOnline.Tests.Mods;
 /// tested by creating two process-like nodes over the same file, and the
 /// degrade-to-empty contract is tested with a corrupt file.
 /// </summary>
+[Trait("Category", "Integration")]
 public class ModStateTests
 {
 	private const ulong HostId = 1001;

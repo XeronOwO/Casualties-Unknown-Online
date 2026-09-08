@@ -14,6 +14,7 @@ namespace CasualtiesUnknownOnline.Tests.Items;
 /// instance ids, and accepting those reports was what emptied a real owner's
 /// bag from a viewer's side.
 /// </summary>
+[Trait("Category", "Integration")]
 public class ItemDestroyAuthorityTests
 {
 	private static CharacterItemMsg Item(string type = "test_item", float condition = 1f) => new()

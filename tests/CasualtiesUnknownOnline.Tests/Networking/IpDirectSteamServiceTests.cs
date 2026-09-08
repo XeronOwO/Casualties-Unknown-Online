@@ -12,6 +12,7 @@ namespace CasualtiesUnknownOnline.Tests.Networking;
 /// L0 tests for the IP-direct lobby identity adapter: host/guest role events,
 /// synthetic lobby membership and custom display-name lookup.
 /// </summary>
+[Trait("Category", "Integration")]
 public class IpDirectSteamServiceTests : IDisposable
 {
 	private readonly IpDirectTransport _hostTransport;

@@ -15,6 +15,7 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 /// broadcasts to every guest. One event = one message; there is no snapshot
 /// fallback to assert (the event has no persistent state).
 /// </summary>
+[Trait("Category", "Integration")]
 public class CharacterSoundSyncTests
 {
 	private const ulong HostId = 1001;

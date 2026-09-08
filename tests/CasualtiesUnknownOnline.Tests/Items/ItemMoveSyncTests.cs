@@ -12,6 +12,7 @@ namespace CasualtiesUnknownOnline.Tests.Items;
 /// the world items' authoritative positions to every handshaken member — the
 /// guests' kinematic copies follow. Empty list sends nothing.
 /// </summary>
+[Trait("Category", "Integration")]
 public class ItemMoveSyncTests
 {
 	[Fact]

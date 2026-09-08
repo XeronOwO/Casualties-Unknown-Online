@@ -10,6 +10,7 @@ using Xunit;
 
 namespace CasualtiesUnknownOnline.Tests.Networking;
 
+[Trait("Category", "Integration")]
 public class PacketTrafficMonitorTests
 {
 	private const ulong HostId = 1001;

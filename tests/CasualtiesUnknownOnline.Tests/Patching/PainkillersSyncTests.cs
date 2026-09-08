@@ -10,6 +10,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// so it cannot ride Mapster; this contract locks the helper shape that
 /// <c>CharacterDataSync</c> calls from the 1 Hz snapshot and host results.
 /// </summary>
+[Trait("Category", "Integration")]
 public sealed class PainkillersSyncTests
 {
 	private static readonly Type Sync = GameAssemblyHost.Adapter.GetType(

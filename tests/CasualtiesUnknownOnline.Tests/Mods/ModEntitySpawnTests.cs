@@ -16,6 +16,7 @@ namespace CasualtiesUnknownOnline.Tests.Mods;
 /// is responsible for replication, so this surface only tests the mod-side
 /// gate + delegation.
 /// </summary>
+[Trait("Category", "Integration")]
 public class ModEntitySpawnTests
 {
 	private const ulong HostId = 1001;

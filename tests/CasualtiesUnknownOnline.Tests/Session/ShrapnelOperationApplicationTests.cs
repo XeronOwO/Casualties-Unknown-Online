@@ -14,6 +14,7 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 /// Split from the former single class so xUnit v2 (serial inside a class)
 /// does not serialize this whole surface in one collection.
 /// </summary>
+[Trait("Category", "Integration")]
 public class ShrapnelOperationApplicationTests
 {
 	[Fact]

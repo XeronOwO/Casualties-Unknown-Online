@@ -14,6 +14,7 @@ namespace CasualtiesUnknownOnline.Tests.Mods;
 /// host-authoritative host-only visibility, scope validation by network mode,
 /// defensive copies, and policy caps.
 /// </summary>
+[Trait("Category", "Integration")]
 public class ModDataTests
 {
 	private const ulong HostId = 1001;

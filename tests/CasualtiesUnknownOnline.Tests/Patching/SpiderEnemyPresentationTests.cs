@@ -13,6 +13,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// (host-ordered bite applied locally). These tests lock the helper shapes the
 /// adapter exposes.
 /// </summary>
+[Trait("Category", "Integration")]
 public class SpiderEnemyPresentationTests
 {
 	private static readonly Type LegPresentation = GameAssemblyHost.Adapter.GetType(

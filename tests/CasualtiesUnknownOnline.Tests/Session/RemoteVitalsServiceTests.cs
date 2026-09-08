@@ -13,6 +13,7 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 /// a read-only per-SteamID view and clears on session end. No protocol change:
 /// the 1 Hz character snapshots already carry every field the UI needs.
 /// </summary>
+[Trait("Category", "Integration")]
 public class RemoteVitalsServiceTests
 {
 	private const ulong HostId = 1001;

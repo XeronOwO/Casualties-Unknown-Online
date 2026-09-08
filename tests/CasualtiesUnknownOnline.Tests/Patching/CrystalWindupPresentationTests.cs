@@ -10,6 +10,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// render copy must keep its surface stable. The adapter is loaded reflectively
 /// because it references Unity/game types.
 /// </summary>
+[Trait("Category", "Integration")]
 public class CrystalWindupPresentationTests
 {
 	private const string PresentationTypeName =

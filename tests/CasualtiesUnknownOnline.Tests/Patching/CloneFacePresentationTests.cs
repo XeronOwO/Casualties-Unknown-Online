@@ -12,6 +12,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// CloneBodyPosePresentation, RemoteMedicalDisplayProjection) have been
 /// absorbed into this single seam.
 /// </summary>
+[Trait("Category", "Integration")]
 public class CloneFacePresentationTests
 {
 	private static readonly Type Projection = GameAssemblyHost.Adapter.GetType(

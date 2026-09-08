@@ -12,6 +12,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// adapter because the projection type did not exist and the remote display
 /// still followed the 1 Hz character snapshot for mood/breathing/ECG.
 /// </summary>
+[Trait("Category", "Integration")]
 public class RemoteMedicalDisplayProjectionTests
 {
 	private static readonly Type Projection = GameAssemblyHost.Adapter.GetType(

@@ -14,6 +14,7 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 /// leaving a lobby ends the session and drops the role; entering another
 /// player's lobby rebinds as Guest and handshakes from scratch.
 /// </summary>
+[Trait("Category", "Integration")]
 public class LobbySwitchTests
 {
 	private const ulong OldHostId = 1001;

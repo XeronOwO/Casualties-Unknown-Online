@@ -13,6 +13,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// dedicated remote-take path, regardless of whether the remote view is still
 /// open.
 /// </summary>
+[Trait("Category", "Integration")]
 public class RemoteProxyDragPolicyTests
 {
 	private static readonly Type Policy = GameAssemblyHost.Adapter.GetType(

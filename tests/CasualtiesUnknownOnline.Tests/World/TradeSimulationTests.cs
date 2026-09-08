@@ -22,6 +22,7 @@ namespace CasualtiesUnknownOnline.Tests.World;
 /// the overwrite" side is the wire surface: the state message the guest
 /// receives IS the applied state.
 /// </summary>
+[Trait("Category", "Integration")]
 public class TradeSimulationTests
 {
 	private const ulong HostId = 1001;

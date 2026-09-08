@@ -15,6 +15,7 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 /// broadcasts to every guest. One collapse = one message; the 20 Hz entity
 /// stream remains the fallback for the continuous standing flag.
 /// </summary>
+[Trait("Category", "Integration")]
 public class CharacterRagdollSyncTests
 {
 	private const ulong HostId = 1001;

@@ -14,6 +14,7 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 /// (accept-first) and relays to the other members; a guest's report and the
 /// host's own latch both reach the peers.
 /// </summary>
+[Trait("Category", "Integration")]
 public class LimbStateSyncTests
 {
 	private const ulong HostId = 1001;

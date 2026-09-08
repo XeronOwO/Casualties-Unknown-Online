@@ -13,6 +13,7 @@ namespace CasualtiesUnknownOnline.Tests.World;
 /// break/air-write, reset lifecycle, empty-table no-send, the cap and the
 /// guest-side report no-op.
 /// </summary>
+[Trait("Category", "Integration")]
 public class BlockDamageRegistryTests
 {
 	[Fact]

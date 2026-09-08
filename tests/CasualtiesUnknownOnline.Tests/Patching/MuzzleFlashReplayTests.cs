@@ -13,6 +13,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// particle call is a runtime presentation action; the adapter-level unit face
 /// is the reflected helper signature.
 /// </summary>
+[Trait("Category", "Integration")]
 public class MuzzleFlashReplayTests
 {
 	private static readonly Type Replay = GameAssemblyHost.Adapter.GetType(

@@ -13,6 +13,7 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 /// xUnit v2 (serial inside a class) does not serialize all three direction
 /// families.
 /// </summary>
+[Trait("Category", "Integration")]
 public class GuestToHostDirectionTests(DirectionProbe probe) : IClassFixture<DirectionProbe>
 {
 	public static TheoryData<NetMsg> GuestToHostMessages => new()

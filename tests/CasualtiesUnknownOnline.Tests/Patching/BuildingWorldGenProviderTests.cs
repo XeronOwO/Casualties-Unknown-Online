@@ -18,6 +18,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// generation random stream, and invalid authored density/drop values must be
 /// refused before they can enter the world.
 /// </summary>
+[Trait("Category", "Integration")]
 public class BuildingWorldGenProviderTests
 {
 	private static Type ProviderType => GameAssemblyHost.Adapter.GetType(

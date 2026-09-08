@@ -12,6 +12,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// agreement, so the native auto-flip path can no longer turn the visual.
 /// The shared facing rule must keep the two in lockstep on every write.
 /// </summary>
+[Trait("Category", "Integration")]
 public class BodyFacingTests
 {
 	private static readonly Type Facing = GameAssemblyHost.Adapter.GetType(

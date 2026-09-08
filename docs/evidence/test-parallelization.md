@@ -293,18 +293,116 @@ metric — the same tree reports 169 s at 10 threads and 331 s at 20, so it must
 never be compared across different thread settings; (2) this host has 14
 physical / 20 logical processors and ran with 36–48 % background load, so
 `1x` (20 threads) oversubscribes it and a lower cap is slightly faster and much
-less contention-sensitive. The cap stays `1x` in Stage 2 because the setting is
-Stage 3's deliverable; Stage 3 should benchmark it (including whether a
-fractional multiplier such as `0.5x` is accepted by this runner) and pick the
-faster/stable value.
+less contention-sensitive. The cap stayed `1x` in Stage 2 because the setting
+was Stage 3's deliverable; Stage 3 benchmarked it (including fractional
+multipliers) and kept `1x` — see §9.3.
 
-## 8. Stage 3 plan
+## 8. Stage 3 plan (delivered)
+
+Stage 3 delivered all four items; §9 records the measurements and decisions.
 
 1. Classify slow/integration tests with `[Trait("Category", ...)]` and document
    the inner-loop filters.
 2. Add the anti-rot guard for the long pole (a gate that fails when a test class
-   grows past the agreed case/row limit) or record why not.
+   grows past the agreed case/row limit).
 3. Benchmark `maxParallelThreads` (the ticket's 1x vs 2x plus the intermediate
    values measured in 7.5) and keep the faster/stable setting; record the
    concurrency-inflation caveat from 7.5 in the measurement method.
 4. Final doc pass + final measured wall clock.
+
+## 9. Stage 3 measured effect
+
+### 9.1 Feedback tiers (`Integration` trait)
+
+`[Trait("Category", "Integration")]` marks every test class that constructs the
+production composition root, a full simulation world/replay harness, a shared
+full-stack fixture, the game-assembly reflection host, or real loopback sockets:
+`TestNode`, `CuoBootstrap`, `EntityEventSimWorld`, `ItemSimWorld`,
+`SimulationDriver`, `ReplayHarness`, `PlayerInteractionTestSession`,
+`CommandConsoleTestSession`, `ShrapnelSessionFixture`, `DirectionProbe`,
+`CompareItemTraceHarness`, `BlockBreakReplayWorld`, `TradeReplayWorld`,
+`SimTraderHost`, `GameAssemblyHost`, `IpDirectTransport` and
+`IpDirectSteamService`. The classification is source-visible and deliberately
+excludes classes that only use pure domain services; a comment-only mention does
+not tag a class (`ModDiscoveryTests` stays in the fast set). Temporary-file
+I/O with GUID-scoped paths and pure in-memory persistence tests also stay in the
+fast set; the tier targets full-stack composition, game-assembly reflection and
+real sockets. Result: **219 classes / 1 306 cases** tagged; **1 291 cases**
+untagged.
+
+Inner-loop commands:
+
+```bash
+# Fast loop: everything that does not build the full stack.
+dotnet test tests/CasualtiesUnknownOnline.Tests/CasualtiesUnknownOnline.Tests.csproj \
+  --filter "Category!=Integration"
+
+# One class or behaviour family.
+dotnet test tests/CasualtiesUnknownOnline.Tests/CasualtiesUnknownOnline.Tests.csproj \
+  --filter "FullyQualifiedName~EntityEventTriggerRelay"
+```
+
+The fast subset passed 1 291 cases in **14.5 s wall** on the reference host
+(single run, includes test-host startup and discovery). The full suite remains
+the default; the trait is metadata only and does not change test semantics.
+
+### 9.2 Anti-rot gate for the long pole
+
+`TestClassSizeGateTests.NoTestClass_ExceedsTheCaseLimit` enumerates every public
+test class, counts every `[Fact]` and every `[Theory]` data row through xUnit's
+own `DataAttribute.GetData`, includes inherited test methods and static test
+classes (both are run by xUnit v2), and fails when a class exceeds **40 cases**.
+The count includes `MemberData` expansion — the mechanism behind the original
+135-case class — which a syntax-tree gate cannot see. The gate's own contract
+(`CaseCounting_SeesMemberDataRowsAndFlagsTheLimit`) asserts the counting and
+limit sides: a 3-row `MemberData` theory counts as 3, a derived class counts its
+base facts/theory rows, a static test class counts, multiple data attributes sum,
+and a synthetic 41-case class is flagged while a 40-case class is not. Current
+maximum: **35 cases** (`PlayerDomainKernelTests`); a class has five cases of
+headroom and the sixth growth case fails.
+
+### 9.3 Thread cap
+
+Interleaved same-window sweep; `maxParallelThreads` `1x` vs `2x` plus the §7.5
+intermediate values. Seven runs for `1x`/`10`/`14`, three for `12`/`2x`:
+
+| `maxParallelThreads` | Runs | Min | Median | Max |
+|---:|---:|---:|---:|---:|
+| `1x` | 7 | 33.20 s | **35.52 s** | **36.59 s** |
+| `2x` | 3 | 34.76 s | 38.25 s | 39.71 s |
+| `10` | 7 | 33.99 s | 36.47 s | 43.16 s |
+| `12` | 3 | 36.22 s | 36.33 s | 37.97 s |
+| `14` | 7 | 33.28 s | 38.49 s | 39.95 s |
+
+Decision: keep **`1x`**. It has the best median and the tightest range among
+the settings measured seven times; `2x` is 2.7 s slower in median and
+oversubscribes the host; the fixed `10`/`12`/`14` caps are slower in median and
+are not portable to hosts with a different core count (`10` was the fastest
+single run in §7.5, but its 7-run median is 0.95 s slower than `1x` and includes
+a 43.2 s outlier; `12` has a narrower 3-run range, but its sample is smaller and
+its median is 0.8 s slower). The runner accepts fractional
+multipliers (`0.5x` = 10 threads, `1.5x` = 30, `2x` = 40); `0x` and a bare
+integer `40` fall back to the default cap. The §7.5 caveat still applies:
+summed test time inflates with concurrency and must never be compared across
+thread settings.
+
+### 9.4 Final verification
+
+Final tree: main suite **2 597 passed** (2 595 + 2 anti-rot gate facts),
+normative gates **20 passed**, `dotnet build` 0 warnings / 0 errors and
+`dotnet format` clean. Three consecutive full
+`dotnet test CasualtiesUnknownOnline.slnx` runs measured **40.1 / 42.1 / 37.0 s
+wall → median 40.1 s** before the final classification extension; after the
+extension (metadata-only `Integration` attributes plus the gate's inherited/
+static counting contract) confirmation full runs passed at **37.8 s** and
+**40.7 s** (window noise). The
+absolute number is not comparable to the 35.5 s median in §9.3 (different host
+window); it is the acceptance measurement for the final tree. No class exceeds
+35 cases; the clean-window class maximum from §7.4 is still ~4.2 s and the gate
+caps future growth at 40 cases.
+
+### 9.5 Test-count delta
+
+2 595 → **2 597**: +2 anti-rot gate facts (`NoTestClass_ExceedsTheCaseLimit` and
+`CaseCounting_SeesMemberDataRowsAndFlagsTheLimit`). No pre-existing case,
+assertion or data row changed; the `Integration` attributes are metadata only.

@@ -14,6 +14,7 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 /// authority) → guest handshake → host ack → guest ack-ack — the exact code
 /// path two processes take, with the lazy-session message swallow it retries.
 /// </summary>
+[Trait("Category", "Integration")]
 public class HandshakeTests
 {
 	private const ulong HostId = 1001;

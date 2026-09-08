@@ -13,6 +13,7 @@ namespace CasualtiesUnknownOnline.Tests.Mods;
 /// explicit shared application. It deliberately has no vanilla Body/Limb
 /// integration and no automatic sync.
 /// </summary>
+[Trait("Category", "Integration")]
 public class ModStatusRuntimeTests
 {
 	private const ulong HostId = 1001;

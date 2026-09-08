@@ -10,6 +10,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// render copy's <see cref="RemoteEnemyDriver"/> must keep its surface stable.
 /// The adapter is loaded reflectively because it references Unity/game types.
 /// </summary>
+[Trait("Category", "Integration")]
 public class EnemyStunPresentationTests
 {
 	private const string PresentationTypeName =

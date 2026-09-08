@@ -17,6 +17,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// same synthetic categories and the same frequency weights.
 /// </summary>
 [Collection(GameAssemblyCollection.Name)]
+[Trait("Category", "Integration")]
 public class ItemDropSourceProviderTests
 {
 	private static Type ProviderType => GameAssemblyHost.Adapter.GetType(

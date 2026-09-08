@@ -10,6 +10,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// destructive-trap/building-death drops from the full initial state carried
 /// by the event, independent of the kernel's authoritative item projection.
 /// </summary>
+[Trait("Category", "Integration")]
 public class EntityDropPresentationContractTests
 {
 	[Fact]

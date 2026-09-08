@@ -11,6 +11,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// interface, so a UI action can rely on the adapter to open the game's native
 /// radial inventory focused on a remote render clone.
 /// </summary>
+[Trait("Category", "Integration")]
 public class RemoteBackpackContractTests
 {
 	[Fact]

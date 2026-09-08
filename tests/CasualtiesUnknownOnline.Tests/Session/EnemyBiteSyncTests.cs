@@ -14,6 +14,7 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 /// presentation event on every peer except the source victim. No legacy direct
 /// result wire remains.
 /// </summary>
+[Trait("Category", "Integration")]
 public class EnemyBiteSyncTests
 {
 	private const ulong HostId = 1001;

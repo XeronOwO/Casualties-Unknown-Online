@@ -22,6 +22,7 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 /// unreliable-stream seq gate dropping stale/duplicate batches. Locked through
 /// the real handlers over the fake network.
 /// </summary>
+[Trait("Category", "Integration")]
 public class EnemySyncServiceTests
 {
 	private const ulong HostId = 1001;

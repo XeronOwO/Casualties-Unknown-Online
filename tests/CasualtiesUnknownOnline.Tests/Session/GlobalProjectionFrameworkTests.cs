@@ -23,6 +23,7 @@ namespace CasualtiesUnknownOnline.Tests.Session;
 /// <see cref="ProjectionHealthCoordinator.Snapshot"/>, and a failed projection
 /// must be contained and recovered by calling the real registered rebuild path.
 /// </summary>
+[Trait("Category", "Integration")]
 public class GlobalProjectionFrameworkTests
 {
 	private const ulong HostId = 1001;

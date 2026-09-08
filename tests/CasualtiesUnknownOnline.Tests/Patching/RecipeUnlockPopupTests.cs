@@ -12,6 +12,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// showed it natively). These tests lock the pure decision/text logic; the
 /// adapter is compile-excluded, so the surface is exercised reflectively.
 /// </summary>
+[Trait("Category", "Integration")]
 public class RecipeUnlockPopupTests
 {
 	private static readonly Type Apply = GameAssemblyHost.Adapter.GetType(

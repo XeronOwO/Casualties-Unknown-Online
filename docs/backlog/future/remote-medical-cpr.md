@@ -3,7 +3,7 @@
 - Status: Future
 - Priority: Low
 - Category: Remote medical / KrokMP enhancement
-- Parent: `docs/backlog/todo/remote-medical-native-minigame-parity.md`
+- Parent: `docs/backlog/review/remote-medical-native-minigame-parity.md`
 - Source: User decision (2026-09-06) — CPR can be placed in future.
 
 ## Context

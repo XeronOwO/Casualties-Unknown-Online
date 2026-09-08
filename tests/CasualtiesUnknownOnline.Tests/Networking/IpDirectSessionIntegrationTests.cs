@@ -102,8 +102,10 @@ public class IpDirectSessionIntegrationTests : IDisposable
 	private static ServiceProvider CreateProvider(string name)
 	{
 		// The rolling file sink is removed, so the directory is only a
-		// composition-root failure-log target, never a per-test artifact.
-		var logDirectory = Path.Combine(Path.GetTempPath(), "cuo-ipdirect-tests", name);
+		// composition-root failure-log target, never a per-test artifact. It stays
+		// unique per instance so two instances (or a future split of this class)
+		// can never race on a failure log.
+		var logDirectory = Path.Combine(Path.GetTempPath(), "cuo-ipdirect-tests", $"{name}-{Guid.NewGuid():N}");
 		return CuoBootstrap.BuildServiceProvider(
 			new ManualLogSource("test"),
 			logDirectory,

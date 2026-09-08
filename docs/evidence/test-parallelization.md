@@ -49,7 +49,8 @@ dotnet test tests/CasualtiesUnknownOnline.Tests/CasualtiesUnknownOnline.Tests.cs
 | Summed test time | ~326 s |
 | vstest duration | ~30 s |
 | Wall clock (`dotnet test`) | ~35 s |
-| Sum / wall speedup | ~11x |
+| Sum / vstest duration speedup | ~11x |
+| Sum / process wall speedup | ~10x |
 
 Work distribution by test namespace (one run, summed test time):
 
@@ -69,8 +70,8 @@ class, ~27 s serial), `PlayerInteractionServiceTests` (92 cases), and
 ## 4. Findings
 
 1. **The suite already ran in parallel.** The ~11x speedup over the summed test
-   time proves class-level parallel collections were active; no switch was
-   missing.
+   time (relative to the runner's own test-execution duration) proves class-level
+   parallel collections were active; no switch was missing.
 2. **The host is throughput-bound, not tail-bound.** Summed work / effective
    cores ≈ wall clock on this 14-core host, so the longest class (27 s) was not
    the binding constraint *here*. It becomes the binding constraint on a host
@@ -87,12 +88,18 @@ class, ~27 s serial), `PlayerInteractionServiceTests` (92 cases), and
 
 | Hazard | Evidence | Fix |
 |---|---|---|
-| Game-assembly static table replaced by three classes that xUnit may run concurrently | `Patching/ItemDropSourceProviderTests.cs:53,60` (`Item.GlobalItems`, `ItemLootPool.pool`), `Patching/ItemAdvancedBehaviorProviderTests.cs:53`, `Patching/GameAdapterItemInjectionContractTests.cs:42` | all three join the `GameAssembly` collection (`Patching/GameAssemblyCollection.cs`) |
-| Unity static state (`PlayerCamera.main`, `RemoteBackpackView._focusedBody`) written by a test | `Patching/RemoteBackpackViewCloseTests.cs:37,39,51` | same collection |
-| New static write added without isolation | — | normative gate `TestIsolationGateTests.StaticGameStateMutations_JoinTheGameAssemblyCollection` (scans the test project; any `SetValue(null, ...)` without the collection attribute fails `dotnet test`) |
+| Game-assembly static table replaced by three classes that xUnit may run concurrently | `Patching/ItemDropSourceProviderTests.cs:54,61` (`Item.GlobalItems`, `ItemLootPool.pool`), `Patching/ItemAdvancedBehaviorProviderTests.cs:54`, `Patching/GameAdapterItemInjectionContractTests.cs:43` | all three join the `GameAssembly` collection (`Patching/GameAssemblyCollection.cs`) |
+| Unity static state (`PlayerCamera.main`, `RemoteBackpackView._focusedBody`) written by a test | `Patching/RemoteBackpackViewCloseTests.cs:38,40,52` | same collection |
+| Reader outside the collection observing a half-applied static write | collection membership alone only serializes the writers | the `GameAssembly` collection declares `DisableParallelization = true`: it runs with no other collection in flight (total work a fraction of a second) |
+| New static write added without isolation | — | normative gate `TestIsolationGateTests.StaticGameStateMutations_JoinTheGameAssemblyCollection`: Roslyn-parses every test source, finds each test class with a static `SetValue(null, ...)` and requires the `[Collection]` attribute; the gate's own negative/positive contract is asserted by `StaticGameStateMutationDetection_FlagsUnisolatedTestClasses` |
 | Per-node log file shared by nodes with the same Steam id | `TestNode` used `cuo-tests/node-{steamId}`; `RollingFileLoggerProvider` opens with an exclusive write handle and rotates the previous `latest.log` | tests no longer create the file sink (`Fakes/TestLogging.cs`, wired in `TestNode.Create` and `IpDirectSessionIntegrationTests.CreateProvider`); the sink keeps direct coverage in `LoggingOptionsTests` |
-| Fixed IP-direct log directories | `Networking/IpDirectSessionIntegrationTests.cs` used `cuo-ipdirect-tests/{host,guest}` | same sink removal |
+| Fixed IP-direct log directories | `Networking/IpDirectSessionIntegrationTests.cs` used `cuo-ipdirect-tests/{host,guest}` | same sink removal plus a per-instance directory for the failure-log path |
 | Implicit runner configuration | no `xunit.runner.json` existed | explicit runner contract + output copy |
+
+Residual, review-enforced blind spots (no source gate can see them without
+semantic references to the game assemblies): a direct static assignment through
+the GameRef alias, applying a Harmony patch, and calling production code that
+mutates a process-global static.
 
 ## 6. Stage 1 measured effect
 
@@ -123,11 +130,20 @@ the suite grows. `EntityEventBehaviorTests` was replaced by
 `EntityEventResetTests`, all sharing `EntityEventBehaviorData`.
 
 Final Stage 1 verification on the delivered tree: three consecutive
-`dotnet test CasualtiesUnknownOnline.slnx` runs, all green — 19 normative-gate
-tests + 2593 main-suite tests, wall clock 34.6 / 34.6 / 35.2 s. The isolation
-gate was also red-checked by removing the `[Collection]` attribute from
-`RemoteBackpackViewCloseTests`: the gate failed with the exact file name and
-passed again after the attribute was restored.
+`dotnet test CasualtiesUnknownOnline.slnx` runs, all green — 20 normative-gate
+tests + 2593 main-suite tests, wall clock 38.1 / 40.5 / 41.1 s in that batch.
+Absolute wall clock drifts with host thermal/load state (the same tree measured
+34.6–35.2 s in an earlier batch), so only compare medians measured within one
+batch. The isolation gate was red-checked by removing the `[Collection]`
+attribute from `RemoteBackpackViewCloseTests`: the gate failed with the exact
+class/file name and passed again after the attribute was restored; the gate's
+detection logic now carries its own negative/positive unit test
+(`StaticGameStateMutationDetection_FlagsUnisolatedTestClasses`).
+
+The `DisableParallelization = true` guarantee was verified from the TRX timeline
+of a full run rather than assumed: the 10 `GameAssembly` tests occupy a single
+68 ms window with zero tests from any other collection overlapping it, so the
+reader-during-write race is closed and the serialization cost is negligible.
 
 ## 7. Stage 2 measurement plan
 

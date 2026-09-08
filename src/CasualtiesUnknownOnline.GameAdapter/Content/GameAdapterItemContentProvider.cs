@@ -27,6 +27,7 @@ public sealed class GameAdapterItemContentProvider(
 	private readonly Dictionary<string, GameObject> _templates = [];
 	private readonly HashSet<string> _templateFailures = [];
 	private readonly HashSet<string> _lootPoolIds = [];
+	private readonly HashSet<string> _injectedItemIds = [];
 	private readonly Dictionary<ModItemDropSource, HashSet<string>> _dropSourceSeeded = [];
 	private Dictionary<string, List<string>>? _lastLootPool;
 
@@ -119,7 +120,17 @@ public sealed class GameAdapterItemContentProvider(
 			if (!Item.GlobalItems.ContainsKey(pair.Key))
 			{
 				Item.GlobalItems.Add(pair.Key, BuildItemInfo(pair.Key, pair.Value));
+				_injectedItemIds.Add(pair.Key);
 				_log.LogInformation("[ItemContent] injected {Id} into Item.GlobalItems.", pair.Key);
+			}
+			else if (!_injectedItemIds.Contains(pair.Key))
+			{
+				// The id already belongs to the vanilla table: the mod copy is
+				// accepted as a definition but never injected, so the vanilla
+				// entry (and its cu:<id> resource id) stays authoritative.
+				_log.LogWarning(
+					"[ItemContent] {Id} already exists in the vanilla item table — the mod definition is not injected.",
+					pair.Key);
 			}
 
 			EnsureTemplate(pair.Key, pair.Value);
@@ -167,6 +178,16 @@ public sealed class GameAdapterItemContentProvider(
 		[.. _definitions
 			.Where(pair => pair.Value.WorldSpawnPerChunk is > 0f)
 			.OrderBy(pair => pair.Key, StringComparer.Ordinal)];
+
+	/// <summary>
+	/// The mod-owned item ids this provider actually injected into the vanilla
+	/// item table. The vanilla resource-id source excludes them so a custom item
+	/// is addressable only through its own namespace, never as <c>cu:&lt;id&gt;</c>.
+	/// A mod definition whose id already exists in the vanilla table is never
+	/// injected, so it is not listed here (the vanilla <c>cu:&lt;id&gt;</c> stays
+	/// authoritative).
+	/// </summary>
+	internal IReadOnlyCollection<string> InjectedItemIds => [.. _injectedItemIds];
 
 	/// <summary>
 	/// Add a bound custom item to the vanilla category loot pool so corpses,

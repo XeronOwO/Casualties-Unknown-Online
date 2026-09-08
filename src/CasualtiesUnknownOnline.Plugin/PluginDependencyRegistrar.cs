@@ -8,6 +8,7 @@ using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Diagnostics;
 using CasualtiesUnknownOnline.Runtime.OnlineUi;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
+using CasualtiesUnknownOnline.Runtime.Session.Content;
 using CasualtiesUnknownOnline.Runtime.Session.HostRules;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
@@ -227,6 +228,11 @@ internal static class PluginDependencyRegistrar
 		services.AddSingleton<GameAdapterItemContentProvider>();
 		services.AddSingleton<IContentBindingProvider>(p => p.GetRequiredService<GameAdapterItemContentProvider>());
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<GameAdapterItemContentProvider>());
+		// Vanilla content ids: the game's own item table becomes cu:<item id>
+		// with the game-localised display name, feeding the console's
+		// resource-location completion (the Runtime catalog aggregates it).
+		services.AddSingleton<VanillaItemResourceLocationSource>();
+		services.AddSingleton<IResourceLocationSource>(p => p.GetRequiredService<VanillaItemResourceLocationSource>());
 		// Recipe content binding: the same generic binder routes
 		// ModContentKind.Recipe definitions to this Game Adapter provider.
 		services.AddSingleton<GameAdapterRecipeContentProvider>();

@@ -1,4 +1,5 @@
 using System;
+using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.Commands;
@@ -49,7 +50,7 @@ internal sealed record CommandSelectorFilter(
 
 	private static bool IsTypeMatch(string type) =>
 		string.Equals(type, "player", StringComparison.OrdinalIgnoreCase)
-			|| string.Equals(type, "cuo:player", StringComparison.OrdinalIgnoreCase);
+			|| string.Equals(type, $"{ContentId.BuiltInNamespace}:player", StringComparison.OrdinalIgnoreCase);
 
 	private static float DistanceSquared(NetVector2 a, NetVector2 b)
 	{

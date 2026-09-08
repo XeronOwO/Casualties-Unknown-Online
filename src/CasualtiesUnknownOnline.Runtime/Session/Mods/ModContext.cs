@@ -114,7 +114,7 @@ internal sealed class ModContext(
 		[.. _ui.Windows.Select(w => new ModUiWindow(_manifest.Id, w.Id, w.Title, w.Draw))];
 
 	internal IReadOnlyList<ModContentRegistration> ContentRegistrations =>
-		[.. _content.Definitions.Select(d => new ModContentRegistration(_manifest.Id, d))];
+		[.. _content.Definitions.Select(d => new ModContentRegistration(_manifest.Id, d, _manifest.Namespace))];
 
 	// Events are only +=/-=-able from outside the declaring type — the
 	// lifecycle fires through these.

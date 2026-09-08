@@ -95,6 +95,54 @@ public class ModContentCatalogTests
 	}
 
 	[Fact]
+	public void Catalog_ResolvesCanonicalNamespaceId()
+	{
+		var catalog = CreateCatalog(
+			new ModContentRegistration("mod.a", new ModContentDefinition("sword", "item", [1], 1), "mymod"));
+
+		Assert.True(catalog.TryResolve("item", "mymod:sword", out var entry));
+		Assert.Equal("mod.a", entry!.ModId);
+		Assert.True(catalog.TryResolve("item", "MyMod:Sword", out _)); // canonical input is case-insensitive
+		Assert.True(catalog.TryResolve("item", "sword", out _)); // legacy bare id still resolves while unique
+		Assert.False(catalog.TryResolve("item", "other:sword", out _));
+	}
+
+	[Fact]
+	public void Catalog_NamespacedSameBareId_IsStillAGameKeyConflict()
+	{
+		var catalog = CreateCatalog(
+			new ModContentRegistration("mod.a", new ModContentDefinition("sword", "item", [1], 1), "moda"),
+			new ModContentRegistration("mod.b", new ModContentDefinition("sword", "item", [2], 1), "modb"));
+
+		// Both canonical addresses are distinct and resolve...
+		Assert.True(catalog.TryResolve("item", "moda:sword", out var first));
+		Assert.True(catalog.TryResolve("item", "modb:sword", out var second));
+		Assert.Equal("mod.a", first!.ModId);
+		Assert.Equal("mod.b", second!.ModId);
+
+		// ...but the bare id is the game-table key, so the collision is a
+		// conflict and bare-id resolution fails closed.
+		Assert.True(catalog.HasConflicts);
+		Assert.False(catalog.TryResolve("item", "sword", out _));
+		var conflict = Assert.Single(catalog.Conflicts);
+		Assert.Equal("sword", conflict.Id);
+		Assert.Equal(["mod.a", "mod.b"], conflict.OwnerModIds);
+	}
+
+	[Fact]
+	public void Catalog_ConflictIdentity_IsTheBareGameId()
+	{
+		var catalog = CreateCatalog(
+			new ModContentRegistration("mod.a", new ModContentDefinition("sword", "item", [1], 1), "mymod"),
+			new ModContentRegistration("mod.b", new ModContentDefinition("sword", "item", [2], 1), "mymod"));
+
+		var conflict = Assert.Single(catalog.Conflicts);
+
+		Assert.Equal("sword", conflict.Id);
+		Assert.Equal(["mod.a", "mod.b"], conflict.OwnerModIds);
+	}
+
+	[Fact]
 	public void Catalog_EmptyCatalog_HasNoConflicts()
 	{
 		var catalog = CreateCatalog();

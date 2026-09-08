@@ -74,7 +74,7 @@ internal static class CommandSelectorSuggestions
 	{
 		string[] values = key switch
 		{
-			"type" => ["player", "cuo:player"],
+			"type" => ["player", "cu:player"],
 			"sort" => ["nearest", "furthest", "random", "arbitrary"],
 			_ => [],
 		};

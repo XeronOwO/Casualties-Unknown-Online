@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Session.Chat;
+using CasualtiesUnknownOnline.Runtime.Session.Content;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.HostRules;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
@@ -39,6 +40,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 	private readonly ILogger<CommandConsoleService> _log;
 	private readonly List<ConsoleLine> _lines = [];
 	private readonly ConsoleCommandRegistry _commands;
+	private readonly IResourceLocationCatalog _resourceLocations;
 
 	public CommandConsoleService(
 		IChatControl chat,
@@ -49,7 +51,8 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		IHostRulesEditor hostRulesEditor,
 		ITimeSource time,
 		ILogger<CommandConsoleService> log,
-		ConsoleCommandRegistry commandRegistry)
+		ConsoleCommandRegistry commandRegistry,
+		IResourceLocationCatalog resourceLocations)
 	{
 		_chat = chat;
 		_session = session;
@@ -60,6 +63,7 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		_time = time;
 		_log = log;
 		_commands = commandRegistry;
+		_resourceLocations = resourceLocations;
 		_chat.MessageReceived += OnChatLine;
 		_session.SessionEnded += OnSessionEnded;
 		_commands.AddBuiltIns(this);
@@ -480,9 +484,19 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		CommandArgumentKind.SteamId => SuggestSteamIds(prefix),
 		CommandArgumentKind.Selector => CommandSelectorSuggestions.Suggest(prefix),
 		CommandArgumentKind.Json => [.. JsonSuggestions.Where(s => s.Text.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))],
-		CommandArgumentKind.ResourceLocation => ConsoleResourceLocationCatalog.Suggest(prefix),
+		CommandArgumentKind.ResourceLocation => SuggestResourceLocations(prefix),
 		_ => [],
 	};
+
+	/// <summary>
+	/// Resource/id completion from the content-id catalog: the user may type a
+	/// canonical id prefix, the bare content id, or the localized display name,
+	/// but every suggestion is the canonical <c>namespace:path</c> id (the
+	/// catalog owns matching/ranking; this method only projects it for the UI).
+	/// </summary>
+	private IReadOnlyList<CommandSuggestion> SuggestResourceLocations(string prefix) =>
+		[.. _resourceLocations.Suggest(prefix)
+			.Select(entry => new CommandSuggestion(entry.Id.ToString(), $"{entry.Kind} · {entry.DisplayName}"))];
 
 	private IReadOnlyList<CommandSuggestion> SuggestCommandNames(string prefix) =>
 		[.. _commands.All

@@ -82,6 +82,32 @@ public class ModContentTests
 	}
 
 	[Fact]
+	public void ContentIds_MustBeCanonicalPaths()
+	{
+		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		var content = ContentMod(host).Context!.Content;
+
+		Assert.False(content.TryRegister("Bad.Id", "item", [1]), "upper-case ids cannot be canonicalised silently");
+		Assert.False(content.TryRegister("ns:sword", "item", [1]), "the namespace separator belongs to the canonical id");
+		Assert.False(content.TryRegister("bad id", "item", [1]), "whitespace is not a valid path");
+		Assert.False(content.TryRegister(new string('a', ContentId.MaxPathLength + 1), "item", [1]), "over-length path refused");
+		Assert.True(content.TryRegister("canonical.id_9", "item", [1]));
+	}
+
+	[Fact]
+	public void ContentCatalog_ResolvesCanonicalIdAndExposesNamespace()
+	{
+		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId);
+		var catalog = host.Services.GetRequiredService<IModContentCatalog>();
+		var control = host.Services.GetRequiredService<IModContentControl>();
+
+		Assert.True(catalog.TryResolve("item", "testcontent:wooden.sword", out var entry));
+		Assert.Equal("test.content", entry!.ModId);
+		Assert.Equal("testcontent", entry.Namespace);
+		Assert.Equal("testcontent", control.Entries.Single(e => e.Definition.Id == "wooden.sword").Namespace);
+	}
+
+	[Fact]
 	public void ContentOwnerQuery_ReadsRealModStack()
 	{
 		var (host, _) = TestNode.CreatePair(HostId, GuestId, LobbyId);

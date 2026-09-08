@@ -8,7 +8,7 @@ is the entry point for that evidence chain.
 
 | Item | Value |
 |---|---|
-| Test suite | **1991 passed** (2026-09-01 item content binding; see `docs/evidence/selfchecks/mod-api/mod-item-content-binding-selfcheck.md`) |
+| Test suite | **2593 + 19 passed** (main suite + normative gates, Debug, 2026-09-08; parallel model, runtime measurements and the parallel-safety inventory are in [`test-parallelization.md`](test-parallelization.md)) |
 | Build | `dotnet build` 0 warnings / 0 errors |
 | Format | Tracked-source `dotnet format` is clean; `--verify-no-changes` currently reports the generated `obj/Debug/net48/MyPluginInfo.cs`, so the documented baseline is “tracked sources clean” |
 | Architecture | `SourceShapeGateTests.Architecture_OneTopLevelTypePerFileAndAggregateLimits` passes, including the former Phase E guard ports |

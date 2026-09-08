@@ -14,6 +14,7 @@ namespace CasualtiesUnknownOnline.Tests.Patching;
 /// the native radial inventory and then immediately closed it (either in the
 /// same CUO update or on the first inventory button render).
 /// </summary>
+[Collection(GameAssemblyCollection.Name)]
 public class RemoteBackpackViewCloseTests
 {
 	[Fact]

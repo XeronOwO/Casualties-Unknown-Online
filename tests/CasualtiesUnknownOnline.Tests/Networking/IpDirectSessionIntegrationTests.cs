@@ -7,6 +7,7 @@ using CasualtiesUnknownOnline.Runtime;
 using CasualtiesUnknownOnline.Runtime.Networking;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Steam;
+using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -100,10 +101,13 @@ public class IpDirectSessionIntegrationTests : IDisposable
 
 	private static ServiceProvider CreateProvider(string name)
 	{
+		// The rolling file sink is removed, so the directory is only a
+		// composition-root failure-log target, never a per-test artifact.
 		var logDirectory = Path.Combine(Path.GetTempPath(), "cuo-ipdirect-tests", name);
 		return CuoBootstrap.BuildServiceProvider(
 			new ManualLogSource("test"),
-			logDirectory);
+			logDirectory,
+			extraRegistrations: TestLogging.RemoveFileSink);
 	}
 
 	private static void InitializeServices(ServiceProvider services)

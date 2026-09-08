@@ -66,6 +66,7 @@ Decisions / history / future
 | Document | Layer |
 |---|---|
 | [`verification.md`](evidence/verification.md) | Evidence chain: gates, test baseline, replay/simulation, self-checks |
+| [`test-parallelization.md`](evidence/test-parallelization.md) | Test suite parallel model, measured runtime, parallel-safety inventory, re-measurement method |
 | [`selfchecks/`](evidence/selfchecks/) | Per-delivery fact sheets (historical audit records) |
 | [`delivery-checklist.md`](evidence/delivery-checklist.md) | Delivery quality gate checklist |
 | [`normative-gates.md`](evidence/normative-gates.md) | Normative rule → automation-gate inventory, including the Roslyn fully-qualified-name gate |

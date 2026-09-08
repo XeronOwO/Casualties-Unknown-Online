@@ -223,7 +223,10 @@ The first slice landed a modal Online UI console page:
   branches can layer on later).
 - Add `ConsoleResourceLocationCatalog` so `ResourceLocation` arguments complete
   namespaced candidates (`cuo:player`, `cuo:bandage`, ...); mods get this through
-  the existing Abstractions console command API.
+  the existing Abstractions console command API. *(Superseded by the canonical
+  content-id vocabulary: the static `cuo:` catalog was deleted and replaced by
+  `IResourceLocationCatalog` — see
+  `docs/evidence/selfchecks/tooling/content-id-selfcheck.md`.)*
 - Extend `CommandSelectorResolver` with bracketed filters: `type`, `name`,
   `distance` (including ranges), `limit`, `sort`; unknown/malformed selectors
   fail closed.

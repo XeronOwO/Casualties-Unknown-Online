@@ -69,13 +69,16 @@ public sealed class MyMod : ICuoMod   // ICuoService lifecycle + Bind
 ```
 
 - **`[CuoMod]`** is the single manifest source (id / displayName / version /
-  `NetworkMode` / `Permissions` / `Dependencies` / description). `NetworkMode`
+  `NetworkMode` / `Permissions` / `Dependencies` / description / `Namespace`).
+  `NetworkMode`
   defaults to `Unspecified` and is **rejected at discovery**. Other rejection
   causes: duplicated id, abstract/non-public type, missing public parameterless
   constructor, non-SemVer version, unknown permission bits or host/state
   permissions on `ClientOnly`/`Cosmetic`, and malformed/unsatisfiable
-  dependencies (missing target, self, duplicate, cycle). One rejected mod never
-  blocks the scan (per-mod fail-closed).
+  dependencies (missing target, self, duplicate, cycle). A declared `Namespace`
+  adds three more rejection causes: invalid grammar, the reserved built-in
+  namespace `cu`, or a namespace another loaded mod already declared.
+  One rejected mod never blocks the scan (per-mod fail-closed).
 - **Permissions** are never implicit: the default is `ModPermission.None`.
   The eight declared flags are `ReadGameState, WriteGameState, SpawnEntity,
   SendNetworkMessage, RegisterContent, RegisterCommand, ExecuteHostAction,
@@ -257,6 +260,21 @@ context.Content.TryUnregister("wooden.sword");
   framework never interprets, serializes, or migrates the payload, so the mod
   owns its own content schema/versioning; the stored version is carried
   verbatim on every definition read.
+- **Namespaced content ids**: every CUO content id is canonical
+  `namespace:path`. Declare the mod's namespace in the manifest
+  (`[CuoMod(..., Namespace = "mymod")]`); its content is then addressable as
+  `mymod:wooden.sword`, while built-in game content is `cu:<item id>` (for
+  example `cu:fentanyl`). The grammar is `[a-z][a-z0-9_]{0,31}` for the
+  namespace and `[a-z0-9][a-z0-9_.-]{0,94}` for the path; `ContentId` in
+  Abstractions parses/formats it and normalises input case. A mod without a
+  declared namespace keeps the legacy bare id (mod-scoped; cross-mod
+  duplicates are still reported as conflicts). The bare id is also the
+  game-table key that content providers materialise, so two mods in different
+  namespaces registering the same bare id for the same kind are still a
+  conflict — the canonical addresses resolve, but only one game entry can
+  exist. The console's `ResourceLocation` completion accepts a canonical id
+  prefix, the bare id, or the localized display name and always inserts the
+  canonical id.
 - **Permission**: registration requires `ModPermission.RegisterContent`.
   `CanRegister` reflects whether this mod copy declared the flag; every
   `TryRegister` call also enforces it. The permission policy already refuses
@@ -269,9 +287,12 @@ context.Content.TryUnregister("wooden.sword");
   `IModNetwork` / `IModCommands` instead.
 - **Rules**: empty id/kind, a null or over-cap payload, a non-positive
   schema version, or a duplicate id within the same mod is refused;
-  `TryUnregister` removes a definition. Safety rails: id ≤128 chars,
-  kind ≤64 chars, schema version must be positive, payload ≤64 KiB, ≤1024
-  definitions per mod. Errors are refused with a log, never silently truncated.
+  `TryUnregister` removes a definition. A content id must already be a
+  canonical lower-case path segment (`ContentId.IsValidPath`): upper-case,
+  whitespace, the `:` separator, and ids longer than 95 chars are refused.
+  Safety rails: kind ≤64 chars, schema version must be positive,
+  payload ≤64 KiB, ≤1024 definitions per mod. Errors are refused with a log,
+  never silently truncated.
 - **Framework read view**: `IModContentControl.Entries` exposes every mod's
   registered definitions to other CUO layers (plugin / future native-content
   consumers) as a read-only snapshot. The runtime content catalog

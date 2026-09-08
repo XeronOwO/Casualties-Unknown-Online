@@ -59,7 +59,7 @@ This ticket is multi-stage by design: implement one stage per session, each stag
 
 ### Stage 2 — Cut the remaining critical path and the summed work
 
-- Split the next critical-path classes, largest first, into separate classes with balanced loads: `PlayerInteractionServiceTests` (92 cases), `EntityEventSimulationTests`, `DirectionTests`, `Replays.ReplayTests`, then the next tier from a fresh measurement.
+- Split the next critical-path classes, largest first, into separate classes with balanced loads: `PlayerInteractionServiceTests` (92 cases), `EntityEventSimulationTests`, `DirectionTests` (77 cases), `Replays.ReplayTests`, then the next tier from a fresh measurement. If the new entity-event family classes are still the longest after re-measurement, partition their `MemberData` by kind subset into more classes — never duplicate rows.
 - Splitting is behavior-preserving: same assertions, same helpers, no shared mutable fixture. A shared stateless helper/base is allowed; `partial` files are not.
 - Now that the reference host is throughput-bound, attack summed work as well: profile the per-node setup cost (`TestNode.Create` builds the full production DI graph, ≈500 node constructions per full run) and reduce it without weakening isolation. Record a written reason for any cost that is deliberately kept.
 - Re-measure with the three-run median method after each batch; target a lower median wall clock and no single class above ~5 s.

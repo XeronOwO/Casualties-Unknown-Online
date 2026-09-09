@@ -10,10 +10,11 @@ Instructions for AI coding agents and contributors working in this repository.
 - The same rule may exist in both files. `AGENTS.md` states the objective/general principle;
   `AGENTS.local.md` carries the local detail, examples, and rationale. Where both state the
   same rule, this file is authoritative for the rule and the local file for execution.
-- Language: everything committed to this repository is English (it is public and read by
-  external contributors). Chinese is used only for content explicitly aimed at Chinese-only
-  users, or for I18N-specific material. Personal, uncommitted communication — including
-  agent chat replies to the repository owner — is Chinese.
+- Language: this repository is global — contributors and readers may have any native
+  language — so committed content is written in English, the shared working language. Another
+  language is appropriate only where the deliverable explicitly targets that language's
+  audience (localized resources, a community-specific project). Personal, uncommitted
+  communication follows the owner's own preference, recorded in `AGENTS.local.md`.
 - Requirement triage: personal/specific → `AGENTS.local.md`; shared/beneficial → this file or
   `docs/`; ambiguous → ask the user.
 - This repository is the long-term reference implementation for these standards. New projects

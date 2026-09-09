@@ -379,5 +379,5 @@ warning in the channel; the matrix header's evidence count was corrected to 790.
   the test host — it needs the live Unity world. Those branches rest on code
   review plus the unified dual-client acceptance pass; the pure match judgment
   and every Runtime table/cadence path are covered by tests.
-  `todo/adapter-shell-verification-harness.md` owns closing that verification
-  gap.
+  `future/adapter-shell-verification-harness.md` records the verification-gap
+  option, deferred by decision.

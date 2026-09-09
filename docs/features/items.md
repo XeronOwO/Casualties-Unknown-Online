@@ -345,7 +345,9 @@ domain"). Per-surface notes:
   state-selection helper (`RemoteItemPresentation.IsGrapplingHookFired`) now
   has an L0 test face, while the Unity sprite write remains display-only.
 - **World-item component state on keyframes**: RESOLVED (2026-08-21, no
-  protocol bump) — the 5 s periodic snapshot now re-aligns the top-level
+  protocol bump) — the periodic snapshot (5 s base; the adaptive governor may
+  stretch it up to 30 s under pressure — see `todo/sync-cadence-review.md`) now
+  re-aligns the top-level
   state of an existing world item (condition/favourited/liquid stacks/
   `[Saveable]` component states) whenever it diverges from the host table;
   it no longer stays at its last report/correction time. Position is still

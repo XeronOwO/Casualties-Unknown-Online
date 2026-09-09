@@ -21,7 +21,7 @@ features, and the project had no public release or save-compatibility burden:
 - several correct low-level pieces already existed:
   - `DropPendingState` extracts cross-hook timing into a pure state machine;
   - `CraftingSync` and `HeaterCookSync` realize "one operation = one fact batch";
-  - `ItemPendingPickupArbiter` makes registration-order races explicit;
+  - `PendingPickupQueue` makes registration-order races explicit;
   - replay and simulation harnesses cover real defect families;
   - service splits reduce single-file complexity.
 

@@ -31,6 +31,7 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 	private readonly Dictionary<int, WireCheckpoint> _checkpointChunks = [];
 	private readonly Dictionary<ulong, CommittedBatch> _pendingBatches = [];
 	private readonly KernelStateStreamService _stateStreams;
+	private readonly HashSet<ulong> _staleStreamEpochWarned = [];
 	private long _nextMessageId;
 
 	public event Action<IReadOnlyList<WireItemMoveEntry>>? ItemMovesReceived;
@@ -213,6 +214,7 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 		_checkpointChunks.Clear();
 		_pendingBatches.Clear();
 		_nextMessageId = 0;
+		_staleStreamEpochWarned.Clear();
 		_stateStreams.Reset();
 		_commandHandler.Reset();
 	}
@@ -272,6 +274,29 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 
 	private void HandleStateStream(ulong sender, StateStreamEnvelope envelope)
 	{
+		// Old-run streams must not pollute the new run. The stream sequence spaces
+		// reset per session, so a late frame from the previous run would otherwise
+		// look fresh; the header epoch is the authoritative filter (glossary:
+		// "all old-epoch commands, batches, and stream packets are rejected").
+		var currentEpoch = _authority.CurrentRunEpoch.Value;
+		if (envelope.Header.RunEpoch != currentEpoch)
+		{
+			// Warn once per sender: a 20 Hz stream from a mismatched epoch would
+			// otherwise flood the log for the rest of the connection.
+			if (_staleStreamEpochWarned.Add(sender))
+			{
+				_log.LogWarning("Dropped state stream with stale run epoch {Epoch} from {Sender} (current {Current}); further drops for this peer log at debug.",
+					envelope.Header.RunEpoch, sender, currentEpoch);
+			}
+			else
+			{
+				_log.LogDebug("Dropped state stream with stale run epoch {Epoch} from {Sender} (current {Current}).",
+					envelope.Header.RunEpoch, sender, currentEpoch);
+			}
+
+			return;
+		}
+
 		if (envelope.Stream.ItemMoves.Count > 0)
 		{
 			ItemMovesReceived?.Invoke(envelope.Stream.ItemMoves);

@@ -25,15 +25,16 @@ public sealed class ItemKernelAuthority(ILogger<ItemKernelAuthority> log)
 	private readonly ILogger<ItemKernelAuthority> _log = log;
 	private readonly HashSet<OperationId> _appliedOperations = [];
 	private GameStateKernel _kernel = new(new RunEpoch(1));
-	private RunEpoch _runEpoch = new(1);
+
+	/// <summary>The kernel store owns the run epoch; a restored checkpoint re-identifies the run.</summary>
+	private RunEpoch _runEpoch => _kernel.RunEpoch;
 	private ulong _nextOperation = 1;
 
 
 	/// <summary>Start a fresh authority epoch after a session/run reset.</summary>
 	public void ResetForSession()
 	{
-		_runEpoch = new RunEpoch(_runEpoch.Value + 1);
-		_kernel = new GameStateKernel(_runEpoch);
+		_kernel = new GameStateKernel(new RunEpoch(_kernel.RunEpoch.Value + 1));
 		_nextOperation = 1;
 		_appliedOperations.Clear();
 	}

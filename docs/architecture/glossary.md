@@ -49,7 +49,7 @@ Stable vocabulary used across the architecture evolution docs.
 ## Run and epoch
 
 - **Run**: one multiplayer run/world session.
-- **RunEpoch**: run identity/epoch; all old-epoch commands, batches, and stream packets are rejected.
+- **RunEpoch**: run identity/epoch; all old-epoch commands, batches, and kernel state-stream packets are rejected (direct `NetMsg` presentation streams carry no epoch).
 - **Checkpoint**: complete authoritative state snapshot at a revision.
 - **SaveHeader**: metadata about a save file, not gameplay state.
 

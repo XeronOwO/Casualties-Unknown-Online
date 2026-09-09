@@ -21,6 +21,9 @@ public sealed class GameStateKernel(RunEpoch runEpoch) : IGameStateKernel
 	private readonly GameStateStore _store = new(runEpoch);
 	private readonly IReadOnlyList<IDomainModule> _modules = [new ItemDomainModule(), new WorldDomainModule(), new WorldEntityDomainModule(), new PlayerDomainModule(), new EnemyDomainModule(), new FluidDomainModule()];
 
+	/// <summary>The authoritative run epoch. It follows the store, so a restored checkpoint re-identifies the run.</summary>
+	public RunEpoch RunEpoch => _store.RunEpoch;
+
 	public Decision Execute(GameCommand command, CommandContext context)
 	{
 		if (_store.Operations.TryGet(command.OperationId, out var original))

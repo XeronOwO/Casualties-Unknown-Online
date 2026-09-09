@@ -12,8 +12,11 @@ Reading path: [domains.md](domains.md) → [protocol.md](protocol.md) →
 The kernel protocol rides one existing transport frame (`NetMsg.KernelEnvelope`,
 id 122) with a `ProtocolFrame` payload. The frame is designed to carry exactly one
 envelope; the kind is explicit so receivers can reject unknown envelopes before
-decoding the body. (The current runtime does not validate that only one envelope
-slot is populated before selecting a header.)
+decoding the body. `ProtocolFrameValidator.TryValidate` rejects a frame that does
+not carry exactly one envelope, a header that disagrees with the envelope kind,
+and an unknown critical payload; `KernelProtocolService.HandleFrame` calls it on
+every received frame (`src/CasualtiesUnknownOnline.Protocol/Wire/ProtocolFrameValidator.cs:40-48`,
+`src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:186`).
 
 | Envelope | Direction | Meaning | Source |
 |---|---|---|---|
@@ -152,8 +155,8 @@ discriminator), and `src/CasualtiesUnknownOnline.Protocol/Wire/WirePayloadType.c
 | Gap too large | resend checkpoint |
 | Invariant failure | do not commit; output complete transaction diagnostics |
 | Wrong epoch | drop; old run must not pollute new run |
-| Unknown critical payload | drop the frame and log (`KernelProtocolService.IsSupportedFrame`); no automatic disconnect is implemented |
-| Projection exception | no generic dirty/rebuild loop is implemented today; the failure is not rolled back and must be handled by the caller |
+| Unknown critical payload | drop the frame and log (`ProtocolFrameValidator.TryValidate` at `KernelProtocolService.HandleFrame`); no automatic disconnect is implemented |
+| Projection exception | the domain is marked dirty and rebuilt from the kernel read model by the main-thread pump (`ProjectionHealthCoordinator`); the committed batch is not rolled back |
 
 ## Command rejection
 
@@ -171,7 +174,10 @@ for example, now uses `RejectionReason.BlockAlreadyBroken`.
 The save path is a projection of the authoritative checkpoint:
 
 - `KernelSaveFileStore` writes `SaveHeader` + `GameCheckpoint` atomically and
-  rejects unknown/corrupt files.
+  rejects unknown/corrupt files. The store is unit-tested but has **no production
+  caller today** (it is not registered in the composition root), so the
+  authoritative checkpoint is still memory-only; `todo/save-system-mid-run-and-layer-end.md`
+  owns wiring it.
 - `KernelSaveFile` is the on-disk shape.
 - `GameCheckpoint.RandomStreams` exists in the data model and round-trips through
   wire/save, but no production domain currently populates it

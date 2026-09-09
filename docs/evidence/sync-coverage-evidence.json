@@ -2,7 +2,7 @@
   "generatedBy": "docs/backlog/review/sync-event-and-periodic-fallback-coverage-audit.md",
   "auditDate": "2026-09-09",
   "note": "Collector evidence (cluster) + inline matrix-ref anchors (cluster=inline). Every matrix ref is a full path; SyncCoverageGateTests verifies every quote is a substring of the referenced line.",
-  "count": 790,
+  "count": 793,
   "entries": [
     {
       "cluster": "enemies-trade",
@@ -2023,7 +2023,7 @@
     {
       "cluster": "run-world",
       "row": "R1",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:417",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:415",
       "quote": "if (!_kernelAuthority.TryStartRun(_session.LocalSteamId, run, out _, out var rejection))"
     },
     {
@@ -2287,13 +2287,13 @@
     {
       "cluster": "run-world",
       "row": "R6",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:445",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:443",
       "quote": "_projectionHealth.Run(\"run\", batch.GlobalRevision, () =>"
     },
     {
       "cluster": "run-world",
       "row": "R6",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:473",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:471",
       "quote": "private void RebuildRunFromKernel()"
     },
     {
@@ -2612,13 +2612,13 @@
       "cluster": "world-blocks",
       "row": "W6",
       "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/TrapLayoutScanner.cs:48",
-      "quote": "_world.ReportTrapLayout(entity.Entry.Kind, entity.Entry.X, entity.Entry.Y, entity.Entry.PrefabName);"
+      "quote": "_world.ReportTrapLayout(entity.Entry.Kind, entity.Entry.X, entity.Entry.Y, entity.Entry.PrefabName, entity.Entry.CreationKey);"
     },
     {
       "cluster": "world-blocks",
       "row": "W6",
       "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/TrapLayoutRegistry.cs:43",
-      "quote": "_layout[key] = new TrapLayoutEntryMsg { Kind = kind, X = x, Y = y, PrefabName = prefabName };"
+      "quote": "_layout[key] = new TrapLayoutEntryMsg { Kind = kind, X = x, Y = y, PrefabName = prefabName, CreationKey = creationKey };"
     },
     {
       "cluster": "world-blocks",
@@ -4219,13 +4219,13 @@
     {
       "cluster": "inline",
       "row": "R1",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:402",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:400",
       "quote": "public void PublishWorldParams(WorldStartParams parameters)"
     },
     {
       "cluster": "inline",
       "row": "R1",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:408",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:406",
       "quote": "private void CommitRunBaseline(WorldStartParams parameters)"
     },
     {
@@ -4519,31 +4519,31 @@
     {
       "cluster": "inline",
       "row": "E3",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/RuntimeEntityChannel.cs:186",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/RuntimeEntityChannel.cs:175",
       "quote": "public void FireRuntimeEntitySnapshotReceived(ulong sender, RuntimeEntitySnapshotMsg snapshot)"
     },
     {
       "cluster": "inline",
       "row": "E3",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/RuntimeEntityChannel.cs:219",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/RuntimeEntityChannel.cs:208",
       "quote": "public void ReportRuntimeEntityDestroyed(RuntimeEntityKey key)"
     },
     {
       "cluster": "inline",
       "row": "E3",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/RuntimeEntityChannel.cs:271",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/RuntimeEntityChannel.cs:260",
       "quote": "_sender.Send(_session.HostSteamId, NetMsg.EntitySpawned, entry.Msg);"
     },
     {
       "cluster": "inline",
       "row": "E3",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/RuntimeEntityChannel.cs:297",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/RuntimeEntityChannel.cs:286",
       "quote": "public void ResetPendingEntityReports()"
     },
     {
       "cluster": "inline",
       "row": "E3",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/RuntimeEntityChannel.cs:313",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/RuntimeEntityChannel.cs:302",
       "quote": "_runtimeEntities.Reset();"
     },
     {
@@ -4573,8 +4573,26 @@
     {
       "cluster": "inline",
       "row": "E3",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/RuntimeEntityMatch.cs:51",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/RuntimeEntityMatch.cs:46",
       "quote": "internal static int FindIndex(IReadOnlyList<Candidate> candidates, RuntimeEntityKey key, float x, float y)"
+    },
+    {
+      "cluster": "inline",
+      "row": "E3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Protocol/Messages/EnemySpawnEntryMsg.cs:64",
+      "quote": "public RuntimeEntityKeyMsg? CreationKey { get; set; }"
+    },
+    {
+      "cluster": "inline",
+      "row": "E3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Protocol/Messages/TrapLayoutEntryMsg.cs:36",
+      "quote": "public RuntimeEntityKeyMsg? CreationKey { get; set; }"
+    },
+    {
+      "cluster": "inline",
+      "row": "E3",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Character/EnemySyncCoordinator.RuntimeSpawns.cs:90",
+      "quote": "var created = RuntimeEntityFactory.TryCreate(spawn.PrefabId, pos, _log,"
     },
     {
       "cluster": "inline",
@@ -4621,7 +4639,7 @@
     {
       "cluster": "inline",
       "row": "E3",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:373",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:371",
       "quote": "_channels.ResetRuntimeEntities();"
     },
     {
@@ -4663,7 +4681,7 @@
     {
       "cluster": "inline",
       "row": "E3",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/RuntimeEntityMatch.cs:55",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/RuntimeEntityMatch.cs:50",
       "quote": "if (candidates[i].CreationKey is { } candidateKey && candidateKey == key)"
     },
     {
@@ -4700,7 +4718,7 @@
     {
       "cluster": "inline",
       "row": "E3",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/RuntimeEntityChannel.cs:162",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/RuntimeEntityChannel.cs:151",
       "quote": "public void ReportEntitySpawnUnmaterialized(ulong sender, EntitySpawnedMsg msg)"
     },
     {
@@ -4736,7 +4754,7 @@
     {
       "cluster": "inline",
       "row": "E3",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Character/EnemySyncCoordinator.RuntimeSpawns.cs:78",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Character/EnemySyncCoordinator.RuntimeSpawns.cs:90",
       "quote": "var created = RuntimeEntityFactory.TryCreate(spawn.PrefabId, pos, _log,"
     },
     {

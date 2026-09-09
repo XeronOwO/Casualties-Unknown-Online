@@ -64,8 +64,6 @@ internal sealed class WorldChannelRelay(
 
 	public void SendEntitySpawned(EntitySpawnedMsg msg) => _runtimeEntityChannel.SendEntitySpawned(msg);
 
-	public void BroadcastEntitySpawned(ulong excludeSteamId, EntitySpawnedMsg msg) => _runtimeEntityChannel.BroadcastEntitySpawned(excludeSteamId, msg);
-
 	public void ReportEntitySpawnUnmaterialized(ulong sender, EntitySpawnedMsg msg) => _runtimeEntityChannel.ReportEntitySpawnUnmaterialized(sender, msg);
 
 	public void SendRuntimeEntitySnapshot(ulong targetSteamId) => _runtimeEntityChannel.SendRuntimeEntitySnapshot(targetSteamId);
@@ -83,7 +81,7 @@ internal sealed class WorldChannelRelay(
 
 	public void ReportBuildingEntityHealth(float x, float y, float health) => _eventChannel.ReportBuildingEntityHealth(x, y, health);
 
-	public void ReportTrapLayout(EntityEventKind kind, float x, float y, string prefabName) => _eventChannel.ReportTrapLayout(kind, x, y, prefabName);
+	public void ReportTrapLayout(EntityEventKind kind, float x, float y, string prefabName, RuntimeEntityKeyMsg? creationKey = null) => _eventChannel.ReportTrapLayout(kind, x, y, prefabName, creationKey);
 
 	public void SendTrapLayoutSnapshot(ulong targetSteamId) => _eventChannel.SendTrapLayoutSnapshot(targetSteamId);
 

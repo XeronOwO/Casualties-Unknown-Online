@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using CasualtiesUnknownOnline.GameAdapter.World;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
@@ -223,6 +224,12 @@ internal sealed partial class EnemySyncCoordinator
 			Stunned = EnemyStunPresentation.IsStunned(entity),
 			PrefabId = entity.id,
 			RuntimeSpawned = runtimeSpawn,
+			// The host's own copy carries the creation identity when this animal
+			// rode the entity-creation channel. Publishing it is what lets the
+			// late-joiner backfill copy carry the SAME identity as the live copy
+			// — a surviving live re-report then binds by key, never by the 1 m
+			// positional fallback (which absorbed unrelated copies).
+			CreationKey = RuntimeEntityCreation.TryRead(entity, out var creationKey) ? creationKey : null,
 			HasTint = hasTint,
 			TintColor = tint,
 			TintLightIntensity = lightIntensity,

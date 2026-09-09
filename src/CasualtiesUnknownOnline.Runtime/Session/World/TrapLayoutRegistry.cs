@@ -26,8 +26,8 @@ public sealed class TrapLayoutRegistry(ISessionControl session, PacketSender sen
 
 	private readonly Dictionary<(EntityEventKind Kind, int X, int Y), TrapLayoutEntryMsg> _layout = [];
 
-	/// <summary>Host only: record one generated entity (the adapter's scanner reports it on the generation-finished edge).</summary>
-	public void Report(EntityEventKind kind, float x, float y, string prefabName)
+	/// <summary>Host only: record one generated entity (the adapter's scanner reports it on the generation-finished edge). <paramref name="creationKey"/> rides along when the host's copy carries a runtime-creation marker.</summary>
+	public void Report(EntityEventKind kind, float x, float y, string prefabName, RuntimeEntityKeyMsg? creationKey = null)
 	{
 		if (_session.Role != SessionRole.Host)
 		{
@@ -40,7 +40,7 @@ public sealed class TrapLayoutRegistry(ISessionControl session, PacketSender sen
 			return;
 		}
 
-		_layout[key] = new TrapLayoutEntryMsg { Kind = kind, X = x, Y = y, PrefabName = prefabName };
+		_layout[key] = new TrapLayoutEntryMsg { Kind = kind, X = x, Y = y, PrefabName = prefabName, CreationKey = creationKey };
 	}
 
 	/// <summary>Host only: send the layout to one member (on its world entry).</summary>

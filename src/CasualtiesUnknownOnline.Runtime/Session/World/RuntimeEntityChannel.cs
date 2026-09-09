@@ -136,17 +136,6 @@ public sealed class RuntimeEntityChannel(ISessionControl session, PacketSender s
 		}
 	}
 
-	/// <summary>Host only: relay an accepted entity creation to the other members (source excluded — it already created locally).</summary>
-	public void BroadcastEntitySpawned(ulong excludeSteamId, EntitySpawnedMsg msg)
-	{
-		if (_session.Role != SessionRole.Host || !_session.SessionActive)
-		{
-			return;
-		}
-
-		_session.BroadcastExcept(excludeSteamId, NetMsg.EntitySpawned, msg);
-	}
-
 	/// <summary>
 	/// Host only: a guest reported a runtime creation this host could NOT
 	/// materialize locally (its mod set lacks the prefab/template). Accept-first:

@@ -3,6 +3,7 @@ using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
+using CasualtiesUnknownOnline.Runtime.Session.World;
 using Xunit;
 
 namespace CasualtiesUnknownOnline.Tests.Session;
@@ -155,6 +156,38 @@ public class EnemyStateRoundtripTests
 		Assert.Equal(0.75f, msg.TintColor.B);
 		Assert.Equal(1f, msg.TintColor.A);
 		Assert.Equal(0.8f, msg.LightIntensity);
+	}
+
+	[Fact]
+	public void EnemySpawnEntry_CarriesTheCreationKey_SoTheBackfillCopyKeepsTheIdentity()
+	{
+		// The late-joiner materialization must stamp the SAME creation identity
+		// the live EntitySpawned copy carries; otherwise a surviving live
+		// re-report cannot bind it and would create a second animal (the 1 m
+		// positional fallback is deleted).
+		var key = new RuntimeEntityKey("cavetick", -13, 466, 2001, 7);
+		var source = new EnemyEntity(new NetworkEntityId(7, 3, 1))
+		{
+			PrefabId = "cavetick",
+			RuntimeSpawned = true,
+			CreationKey = key,
+		};
+
+		var msg = source.ToEnemySpawnEntryMsg();
+
+		Assert.NotNull(msg.CreationKey);
+		Assert.Equal(key, RuntimeEntityKey.FromKeyMsg(msg.CreationKey));
+	}
+
+	[Fact]
+	public void EnemySpawnEntry_NoCreationKey_StaysNull()
+	{
+		// A runtime-spawn fact the host cannot attribute to a creation record
+		// (an animal that never rode the creation channel) carries no key —
+		// nothing can bind it, and the backfill copy stays markerless.
+		var source = new EnemyEntity(new NetworkEntityId(7, 3, 1)) { PrefabId = "cavetick", RuntimeSpawned = true };
+
+		Assert.Null(source.ToEnemySpawnEntryMsg().CreationKey);
 	}
 
 }

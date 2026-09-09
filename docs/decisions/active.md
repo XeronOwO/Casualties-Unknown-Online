@@ -38,7 +38,7 @@ not here:
 |---|---|---|
 | 128 | Four-envelope protocol, checkpoint+journal join, checkpoint-only save, kernel wire mapping. | `docs/architecture/protocol.md` |
 | 129 | High-frequency player/enemy streams ride `StateStreamEnvelope` over `KernelEnvelope`. | `docs/architecture/protocol.md` |
-| 137 | Pre-release protocol numbering was reset; `ProtocolVersion.Current` is bumped on behavioral wire changes (currently 17 after the runtime-entity creation token and the snapshot's animal acknowledgement key list). | `docs/architecture/protocol.md`, `docs/api/mod-api.md` |
+| 137 | Pre-release protocol numbering was reset; `ProtocolVersion.Current` is bumped on behavioral wire changes (currently 18 after the runtime-entity creation token, the snapshot's animal acknowledgement key list, and the enemy/trap-layout backfill creation keys). | `docs/architecture/protocol.md`, `docs/api/mod-api.md` |
 | 152 | Player durable skills are kernel-owned in `PlayerState`. | `docs/architecture/domains.md` |
 | 153 | Player kernel identity is ensured when entity sync starts. | `docs/architecture/domains.md` |
 | 154 | Cross-player take/heal/use/carry are `HostValidatedNoPrediction`; push is `PresentationOnly`. | `docs/architecture/domains.md` |

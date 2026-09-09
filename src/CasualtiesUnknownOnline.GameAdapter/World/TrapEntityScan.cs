@@ -87,6 +87,18 @@ internal static class TrapEntityScan
 							X = component.transform.position.x,
 							Y = component.transform.position.y,
 							PrefabName = PrefabNameOf(component),
+							// A runtime-created trap/mechanism carries the
+							// creation marker (EntitySpawnSync stamps every
+							// runtime creation); carrying its key lets the
+							// guest's materialized copy hold the SAME identity
+							// as the live copy, so the runtime-entity snapshot
+							// binds by key instead of proximity. The marker sits
+							// on the entity's GameObject while some trap scripts
+							// (GeyserScript) hang on a CHILD object, so the lookup
+							// walks up the transform chain.
+							CreationKey = RuntimeEntityCreation.TryReadOnEntityOf(component, out var creationKey)
+								? creationKey.ToKeyMsg()
+								: null,
 						},
 						Component = component,
 					});

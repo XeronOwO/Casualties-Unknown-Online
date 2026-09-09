@@ -415,6 +415,85 @@ public class NetPacketTests
 	}
 
 	[Fact]
+	public void EnemySpawnEntry_CreationKey_RoundTrips()
+	{
+		// The backfill identity must survive the wire byte-for-byte: the
+		// late-joiner stamps its materialized copy with it, and a surviving live
+		// re-report binds by that key (no positional fallback exists any more).
+		var msg = new EnemySnapshotMsg
+		{
+			RuntimeSpawns =
+			[
+				new EnemySpawnEntryMsg
+				{
+					Id = new NetworkEntityIdMsg { Epoch = 1, Counter = 2, Generation = 0 },
+					PrefabId = "cavetick",
+					CreationKey = new RuntimeEntityKeyMsg
+					{
+						Id = "cavetick",
+						CellX = -13,
+						CellY = 466,
+						CreatorSteamId = 2001,
+						CreationSequence = 7,
+					},
+				},
+			],
+		};
+
+		var decoded = NetPacket.DecodePayload<EnemySnapshotMsg>(NetPacket.Encode(NetMsg.EnemySnapshot, msg));
+
+		var entry = Assert.Single(decoded.RuntimeSpawns);
+		Assert.NotNull(entry.CreationKey);
+		Assert.Equal("cavetick", entry.CreationKey.Id);
+		Assert.Equal(-13, entry.CreationKey.CellX);
+		Assert.Equal(466, entry.CreationKey.CellY);
+		Assert.Equal(2001ul, entry.CreationKey.CreatorSteamId);
+		Assert.Equal(7u, entry.CreationKey.CreationSequence);
+	}
+
+	[Fact]
+	public void TrapLayoutEntry_CreationKey_RoundTrips()
+	{
+		// A runtime-created trap's layout entry carries the host-scanned creation
+		// identity so the guest's materialized copy holds it; a generation-time
+		// trap carries null.
+		var msg = new TrapLayoutSnapshotMsg
+		{
+			Entries =
+			[
+				new TrapLayoutEntryMsg
+				{
+					Kind = EntityEventKind.BearTrapClamped,
+					X = 3.5f,
+					Y = -9.25f,
+					PrefabName = "beartrap",
+					CreationKey = new RuntimeEntityKeyMsg
+					{
+						Id = "beartrap",
+						CellX = 3,
+						CellY = -10,
+						CreatorSteamId = 2002,
+						CreationSequence = 11,
+					},
+				},
+				new TrapLayoutEntryMsg { Kind = EntityEventKind.MinePressed, X = 1f, Y = 2f, PrefabName = "mine" },
+			],
+		};
+
+		var decoded = NetPacket.DecodePayload<TrapLayoutSnapshotMsg>(NetPacket.Encode(NetMsg.TrapLayoutSnapshot, msg));
+
+		Assert.Equal(2, decoded.Entries.Count);
+		var runtime = decoded.Entries[0];
+		Assert.NotNull(runtime.CreationKey);
+		Assert.Equal("beartrap", runtime.CreationKey.Id);
+		Assert.Equal(3, runtime.CreationKey.CellX);
+		Assert.Equal(-10, runtime.CreationKey.CellY);
+		Assert.Equal(2002ul, runtime.CreationKey.CreatorSteamId);
+		Assert.Equal(11u, runtime.CreationKey.CreationSequence);
+		Assert.Null(decoded.Entries[1].CreationKey);
+	}
+
+	[Fact]
 	public void CharacterHealth_FaceLatchPresentation_RoundTrips()
 	{
 		// The 1 Hz character snapshot carries the owner's body-level

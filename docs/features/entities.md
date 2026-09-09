@@ -120,7 +120,7 @@ trap's sound/sprite/light.
 | CactusScript | collide | repeatable | gore sound + self-damage health (silent BuildingEntityDamaged relay) | covered | CactusHit + BuildingEntityDamaged silent |
 | JumpPadScript | collide | repeatable | light blink + jumppad sound | covered | JumpPadLaunched |
 | StalactiteDropper | trigger/detect | yes | Drop() fall + DamagingCrate damage | covered | StalactiteDropped |
-| GeyserScript | trigger | repeatable | TryRumble() + liquid eruption (liquidType synced in Extra) | covered | GeyserActivated |
+| GeyserScript | trigger | repeatable | TryRumble() + liquid eruption (the liquid type rides `GeyserStateSnapshot`: world entry / member re-entry / 60 s re-send — not the event's `Extra`) | covered | GeyserActivated |
 | SoundCannon | detect | yes | spent + cancel charge (the blast's deafen/mute is the local player's UI — only the trigger side gets it) | covered | SoundCannonFired |
 | TurretScript | detect | repeatable | tracers + gunshot; self-destruct = explosion family | covered | TurretFired/TurretSelfDestructed |
 | CrystalElectric | collide | repeatable | zap + shake | covered | CrystalElectricShocked |
@@ -151,7 +151,7 @@ trap's sound/sprite/light.
 
 | entity | trigger | sync | path |
 |---|---|---|---|
-| TraderScript | field | covered | trade domain (#59/#93; TradeStateSync/TradeExecutor) + TraderSwing hostile swing — host-computed overwrites (TraderState, every interaction + world entry + 5 s fallback); the acting side runs the game method in full and reports TraderAction |
+| TraderScript | field | covered | trade domain (#59/#93; TradeStateSync/TradeExecutor) + TraderSwing hostile swing — host-computed overwrites (TraderState, every interaction + a 5 s base fallback that the adaptive governor may stretch to 30 s; the send is reliable, and there is no world-entry send); the acting side runs the game method in full and reports TraderAction |
 | Talker | field | covered | SpeechMsg (NetMsg 74) — entity key + text id; clone-side bubble replay |
 | LampScript | collide | covered | trade domain (#59/#93) — LightBroken's flat reputation -40 runs on both sides from the broadcasted base |
 

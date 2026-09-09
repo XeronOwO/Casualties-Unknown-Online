@@ -1,6 +1,6 @@
 # Sync completeness audit: event-level sync + periodic fallback
 
-- Status: Todo
+- Status: Review
 - Priority: High
 - Category: Network / sync coverage / audit
 - Source: User request (2026-09-07) — "扫描所有涉及同步的游戏特性，是否都做了事件级同步与定时兜底同步？例如我印象中世界中的方块没做定时兜底同步，做一下整个项目的系统性排查"
@@ -73,3 +73,57 @@ Fixing the gaps is outside this ticket's scope, but the audit itself must not ch
 
 - Sync architecture rewrite, rate/bandwidth tuning (adaptive-rate tickets), anti-cheat, prediction/interpolation.
 - Fixing every gap in this ticket; the deliverable is the evidence-backed matrix plus the gap tickets.
+
+## Delivery (2026-09-09)
+
+- **Matrix**: `docs/evidence/sync-coverage-matrix.md` — 64 feature rows covering A–D, every row
+  with event sync, periodic fallback, backfill/recovery, loss semantics and `path:line`
+  evidence; **736 evidence entries verified** against the working tree (505 collector entries
+  + 231 inline-reference anchors; file exists, line in range, quoted line text is a substring)
+  and stored in `docs/evidence/sync-coverage-evidence.json`; zero `Unverified` rows. Every
+  matrix reference is a full path (no bare `:N` continuation refs), and the gate verifies each
+  inline quote against its source line.
+- **Verdicts**: 45 `OK`, 10 `Event-only gap`, 0 `Fallback-only gap`, 9 `Transient-by-design`.
+- **The user's seed finding is confirmed**: world blocks host → guest converge (60 s absolute
+  table + world-entry backfill) but guest → host has no diff table and no periodic re-report,
+  so a swallowed guest mutation is invisible to the host table and the absolute snapshot
+  cannot heal it (row W1). Partial block damage shares the asymmetry (row W2).
+- **Gap tickets** (one ticket per gap, with W1+W2 and R3+R4 merged): `todo/guest-block-mutation-re-report.md`,
+  `todo/runtime-entity-spawn-backfill.md`, `todo/trap-layout-snapshot-recovery.md`,
+  `todo/enemy-snapshot-and-attack-recovery.md`,
+  `todo/guest-command-loss-reconciliation.md`, `todo/recipe-unlock-fallback.md`,
+  `todo/carried-inventory-registration-re-report.md`,
+  `todo/session-control-convergence.md`, `todo/checkpoint-run-epoch-validation.md`,
+  `todo/mod-command-request-timeout.md`, `todo/sync-cadence-review.md` (cadence findings
+  raised at the user's request).
+- **Guard**: `tests/CasualtiesUnknownOnline.NormativeGates.Tests/SyncCoverageGateTests.cs` —
+  every `NetMsg` / `WireCommandKind` / `WireEventKind` / `AdaptiveStreamId` member must be
+  indexed in the matrix, the index must point at a row that actually mentions the member, the
+  matrix must keep at least 64 rows with a vocabulary verdict and a `file:line` reference, and
+  every evidence entry must still match its quoted source line. Negative-contract self-tests
+  cover invalid verdict, missing evidence, truncation, unindexed member, stale member, unknown
+  row, unrelated row, quote mismatch, missing evidence file and enum-body parsing.
+- **Doc corrections**: `protocol.md` (envelope validation, `IsSupportedFrame`, unwired save
+  store), `glossary.md` (epoch claim now true), `current.md` (`PendingPickupQueue`),
+  `domains.md` (fluids invariant, dead `ResetFluidsCommand`), `features/entities.md` (geyser
+  liquid type, trader cadence/world-entry), `features/items.md` (adaptive keyframe),
+  `NetMsg.cs` (trader comment), the phase-E direct-`NetMsg` classification, and the
+  world-fingerprint review ticket.
+- **Bundled fix** (separate from the audit's no-behavior-change claim): stale-`RunEpoch`
+  state-stream frames were forwarded; they are now dropped at
+  `KernelProtocolService.HandleStateStream` with a warning, and `ItemKernelAuthority.Restore`
+  adopts the restored checkpoint's epoch so a foreign-epoch restore does not cause legitimate
+  streams to be dropped. Red → green:
+  `KernelProtocolServiceTests.Guest_DropsStateStreamWithStaleRunEpoch` and
+  `KernelProtocolServiceTests.Guest_AcceptsStateStreamAfterRestoringAForeignRunEpoch` both
+  failed before their fixes.
+- **Independent adversarial review**: a fresh-context reviewer found two blockers — 50 evidence
+  refs shifted by the bundled fix (re-anchored and re-verified; the evidence JSON + gate now
+  prevent recurrence) and the foreign-epoch stream false positive (fixed with the epoch
+  adoption + regression test). It also found three verdict inconsistencies (W2/W6/I5 → gap),
+  guard bypasses (index-to-unrelated-row, row-deletion floor, enum parsing blind spots,
+  unverified quotes), and one stale ticket note; all were fixed in this cycle and the review
+  was re-run.
+- **Stale historical evidence** (removed wire ids in dated self-checks) is listed in the matrix
+  appendix; those files are dated snapshots, not current claims, and were not rewritten.
+

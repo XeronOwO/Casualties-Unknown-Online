@@ -34,6 +34,7 @@ public class StateStreamTests
 				Header = new EnvelopeHeader
 				{
 					ProtocolVersion = ProtocolConstants.EnvelopeVersion,
+					RunEpoch = 1,
 					SenderId = HostId,
 					PayloadType = WirePayloadType.PlayerStateStream,
 				},

@@ -1,0 +1,4424 @@
+{
+  "generatedBy": "docs/backlog/review/sync-event-and-periodic-fallback-coverage-audit.md",
+  "auditDate": "2026-09-09",
+  "note": "Collector evidence (cluster) + inline matrix-ref anchors (cluster=inline). Every matrix ref is a full path; SyncCoverageGateTests verifies every quote is a substring of the referenced line.",
+  "count": 736,
+  "entries": [
+    {
+      "cluster": "enemies-trade",
+      "row": "N1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntryFanout.cs:43",
+      "quote": "_enemies.SendEnemySnapshot(steamId);"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/SceneStateHandler.cs:59",
+      "quote": "_worldEntryFanout.Send(reporter);"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EnemySyncService.cs:292",
+      "quote": "_sender.Send(steamId, NetMsg.EnemySnapshot, payload);"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EnemySyncService.cs:340",
+      "quote": "Replace(msg.Enemies, EnemySnapshotReceived);"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EnemySyncService.cs:149",
+      "quote": "_sender.Send(msg.VictimSteamId, NetMsg.EnemyAttack, msg, reliable: true);"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N1",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Character/EnemyCombatDirector.cs:328",
+      "quote": "_enemies.SendEnemyAttack(new EnemyAttackMsg"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N1",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Character/EnemyCombatReplay.cs:46",
+      "quote": "_log.LogWarning(\"[Enemy] attack {Kind} arrived for unknown enemy {Enemy} — the snapshot binding may not have arrived yet; command dropped.\","
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EnemySyncService.cs:270",
+      "quote": "_kernelProtocol.BroadcastStateStreamTo(targets, stream, WirePayloadType.EnemyStateStream, reliable: false);"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:91",
+      "quote": "SendToGuests(frame);"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:493",
+      "quote": "private void SendToGuests(ProtocolFrame frame, bool reliable = true)"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:114",
+      "quote": "_sender.Send(targetSteamId, NetMsg.KernelEnvelope, frame);"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:348",
+      "quote": "_log.LogWarning(\"Batch from {Sender} creates a revision gap: expected {Expected}, received {Received} — buffering and requesting range.\","
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:351",
+      "quote": "RequestRange(expected, batch.GlobalRevision - 1);"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:418",
+      "quote": "SendCheckpoint(sender);"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntryFanout.cs:41",
+      "quote": "_kernelProtocol.SendCheckpoint(steamId);"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EnemySyncService.cs:427",
+      "quote": "RemoveEnemy(ToRuntimeId(removed.EntityId));"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EnemySyncService.cs:232",
+      "quote": "_nextStateSendMs = nowMs + _adaptiveRates.GetSendIntervalMs("
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EnemySyncService.cs:270",
+      "quote": "_kernelProtocol.BroadcastStateStreamTo(targets, stream, WirePayloadType.EnemyStateStream, reliable: false);"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/AdaptiveSync/AdaptiveStreamCatalog.cs:34",
+      "quote": "[AdaptiveStreamId.EnemyStateBroadcast] = new("
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Configuration/StateStreamOptions.cs:17",
+      "quote": "public const int DefaultStateStreamHz = 20;"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EnemySyncService.cs:306",
+      "quote": "if (payloadType != WirePayloadType.EnemyStateStream || stream.EnemyStates.Count == 0)"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EnemySyncService.cs:316",
+      "quote": "if (stream.Seq <= _lastEnemyStateSeq)"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EnemySyncService.cs:302",
+      "quote": "Merge(stream.EnemyStates, stream.BaseGlobalRevision, EnemyStateReceived);"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EnemySyncService.cs:369",
+      "quote": "_enemies[entity.EntityId] = entity;"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N4",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/TradeStateSync.cs:113",
+      "quote": "_world.BroadcastTraderState(BuildStateMsg(trader, 0));"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N4",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/TraderStateHandler.cs:21",
+      "quote": "ctx.World.FireTraderStateReceived(msg);"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N4",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/TradeStateSync.cs:71",
+      "quote": "var snapshotIntervalMs = _adaptiveRates.GetSendIntervalMs("
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N4",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/TradeStateSync.cs:93",
+      "quote": "_world.SendTraderState(member.SteamId, BuildStateMsg(trader, 0));"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N4",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/AdaptiveSync/AdaptiveStreamCatalog.cs:117",
+      "quote": "BaseIntervalMs: 5000,"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N4",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/AdaptiveSync/AdaptiveStreamCatalog.cs:118",
+      "quote": "MaxIntervalMs: 30_000),"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N4",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/TradeChannel.cs:34",
+      "quote": "_sender.Send(targetSteamId, NetMsg.TraderState, msg);"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N4",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/TradeStateSync.cs:189",
+      "quote": "trader.reputation = msg.Reputation;"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N5",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/TradeStateSync.cs:138",
+      "quote": "_world.SendTraderAction(msg);"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N5",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/TradeStateSync.cs:169",
+      "quote": "_world.BroadcastTraderState(BuildStateMsg(trader, accepted ? (byte)0 : (byte)msg.Action));"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N5",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/TradeStateSync.cs:93",
+      "quote": "_world.SendTraderState(member.SteamId, BuildStateMsg(trader, 0));"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N5",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/TraderRecruitCoordinator.cs:246",
+      "quote": "_world.SendTraderRecruitResult(target, new TraderRecruitResultMsg"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N5",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/TraderRecruitCoordinator.cs:229",
+      "quote": "SaveCharacterData(target, revived);"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N5",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/TraderSwingSync.cs:55",
+      "quote": "_world.SendTraderSwing(new TraderSwingMsg"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N5",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/TraderSwingSync.cs:80",
+      "quote": "TraderSwingReplay.Play(trader, msg);"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N5",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Protocol/Messages/TraderSwingMsg.cs:13",
+      "quote": "/// acceptable presentation degradation."
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N6",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Chat/ChatService.cs:66",
+      "quote": "_world.SendChat(msg);"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N6",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/ChatChannel.cs:26",
+      "quote": "_sender.Send(_session.HostSteamId, NetMsg.Chat, msg);"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N6",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/ChatHandler.cs:40",
+      "quote": "ctx.World.BroadcastChat(msg.SenderSteamId, msg);"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N6",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/ChatChannel.cs:37",
+      "quote": "_session.BroadcastExcept(excludeSteamId, NetMsg.Chat, msg);"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N6",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Chat/ChatService.cs:108",
+      "quote": "_recent.Clear();"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N6",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntryFanout.cs:44",
+      "quote": "_world.SendWorldSnapshotComplete(steamId);"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N6",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs:168",
+      "quote": "Chat = 109, // bidirectional: guest → host report, host → guest relay"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N7",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/SpeechSync.cs:65",
+      "quote": "_world.SendSpeech(msg);"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N7",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/SpeechChannel.cs:28",
+      "quote": "_sender.Send(_session.HostSteamId, NetMsg.SpeechMsg, msg);"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N7",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/SpeechHandler.cs:25",
+      "quote": "ctx.Session.BroadcastExcept(sender, NetMsg.SpeechMsg, msg);"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N7",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/SpeechChannel.cs:46",
+      "quote": "_session.BroadcastExcept(excludeSteamId, NetMsg.SpeechMsg, msg);"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N7",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/SpeechSync.cs:52",
+      "quote": "_world.BroadcastSpeech(0, new SpeechMsg { SpeakerSteamId = 0, TraderPosition = new NetVector2Msg(pos.x, pos.y), Text = text });"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N7",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/SpeechSync.cs:138",
+      "quote": "fields.Field(\"currentString\").SetValue(text);"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N7",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs:65",
+      "quote": "SpeechMsg = 74, // bidirectional: guest → host report of a spoken bubble; host → guest broadcast relay (the source excluded for players — a trader's bubble is host-broadcast)"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N8",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Mods/ModChannel.cs:41",
+      "quote": "_sender.Send(_session.HostSteamId, NetMsg.ModMessage, new ModMessageMsg { ModId = modId, Payload = payload });"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N8",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Mods/ModChannel.cs:68",
+      "quote": "_session.Broadcast(NetMsg.ModMessage, msg);"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N8",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Mods/ModCommandService.cs:203",
+      "quote": "_sender.Send(target, NetMsg.ModCommandRequest, new ModCommandRequestMsg"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N8",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Mods/ModCommandService.cs:215",
+      "quote": "_sender.Send(target, NetMsg.ModCommandResult, new ModCommandResultMsg"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N8",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/ModMessageHandler.cs:21",
+      "quote": "ctx.Mods.FireModMessageReceived(sender, msg);"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N8",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Mods/ModLifecycle.cs:283",
+      "quote": "_log.LogWarning(\"[Mods] mod-message rate limit hit for {Sender} — frame dropped.\", sender);"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N8",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Mods/ModRateLimitPolicy.cs:7",
+      "quote": "/// dropped WITH a log, never queued (a reliable queue would only move the"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N8",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Mods/ModCommandService.cs:327",
+      "quote": "_pending.Add(guestRequestId, new PendingCommand(callback));"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N9",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/LocationPingService.cs:73",
+      "quote": "_world.SendLocationPing(new LocationPingMsg"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N9",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/LocationPingChannel.cs:41",
+      "quote": "_sender.Send(_session.HostSteamId, NetMsg.LocationPing, msg);"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N9",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/LocationPingHandler.cs:24",
+      "quote": "ctx.Session.BroadcastExcept(sender, NetMsg.LocationPing, msg);"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N9",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Protocol/Messages/LocationPingMsg.cs:10",
+      "quote": "/// no authority, no persistent world state, and no snapshot fallback."
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N9",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/LocationPingService.cs:20",
+      "quote": "public const long LifetimeMs = 5_000;"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N9",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/LocationPingHandler.cs:12",
+      "quote": "/// for the replay. Ping = transient UI presentation, no persistent state."
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N9",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/LocationPingService.cs:123",
+      "quote": "_active[msg.SenderSteamId] = new LocationPing("
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N10",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Tutorial/TutorialClawSync.cs:49",
+      "quote": "_tutorialClaw.PublishTutorialClawState(Capture(tutorial));"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N10",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Tutorial/TutorialClawService.cs:55",
+      "quote": "_latest = msg;"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N10",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Tutorial/TutorialClawService.cs:93",
+      "quote": "_nextSendMs = nowMs + _adaptiveRates.GetSendIntervalMs("
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N10",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Tutorial/TutorialClawService.cs:116",
+      "quote": "_sender.Send(member.SteamId, NetMsg.TutorialClawState, msg, reliable: false);"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N10",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Tutorial/TutorialClawService.cs:63",
+      "quote": "if (msg.Seq <= _lastSeq)"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N10",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/TutorialClawStateHandler.cs:19",
+      "quote": "ctx.TutorialClaw.ApplyTutorialClawState(msg);"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N10",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Tutorial/TutorialClawSync.cs:117",
+      "quote": "tutorial.handPos = new Vector2(msg.HandPosX, msg.HandPosY);"
+    },
+    {
+      "cluster": "enemies-trade",
+      "row": "N10",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs:147",
+      "quote": "TutorialClawState = 104, // host → guest (unreliable): the tutorial-claw presentation snapshot (20 Hz, seq-gated)"
+    },
+    {
+      "cluster": "fluids",
+      "row": "F1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs:57",
+      "quote": "FluidRegion = 70, // host → guest (unreliable stream): an absolute RLE snapshot of a grid region around the member — 10 Hz changed-box diff + 1 Hz full-viewport fallback"
+    },
+    {
+      "cluster": "fluids",
+      "row": "F1",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/FluidSimulationAuthority.cs:306",
+      "quote": "if (now >= _nextDiff && DiffBox(view, world) is { } box)"
+    },
+    {
+      "cluster": "fluids",
+      "row": "F1",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/FluidSimulationAuthority.cs:313",
+      "quote": "SyncRegion(id, view, 0, 0, ViewWidth, ViewHeight, fullViewport: true);"
+    },
+    {
+      "cluster": "fluids",
+      "row": "F1",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/FluidSimulationAuthority.cs:477",
+      "quote": "_world.SendFluidRegion(target, new FluidRegionMsg"
+    },
+    {
+      "cluster": "fluids",
+      "row": "F1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/EntityEventChannel.cs:231",
+      "quote": "_sender.Send(targetSteamId, NetMsg.FluidRegion, msg, reliable: false);"
+    },
+    {
+      "cluster": "fluids",
+      "row": "F1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/FluidRegionHandler.cs:14",
+      "quote": "[PacketHandler(NetMsg.FluidRegion, NetMessageDirection.HostToGuest)]"
+    },
+    {
+      "cluster": "fluids",
+      "row": "F1",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/FluidRegionApplication.cs:32",
+      "quote": "(x, y, value) => fluid.fluid[x, y] = value);"
+    },
+    {
+      "cluster": "fluids",
+      "row": "F1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/AdaptiveSync/AdaptiveStreamCatalog.cs:107",
+      "quote": "MaxIntervalMs: 10_000),"
+    },
+    {
+      "cluster": "fluids",
+      "row": "F2",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Patches/FluidDrinkPatch.cs:28",
+      "quote": "bridge.OnFluidDrinkReported(pos);"
+    },
+    {
+      "cluster": "fluids",
+      "row": "F2",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/FluidInteractionSync.cs:39",
+      "quote": "_world.SendFluidInteraction(new FluidInteractionMsg"
+    },
+    {
+      "cluster": "fluids",
+      "row": "F2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs:58",
+      "quote": "FluidInteraction = 71, // bidirectional: guest → host report of a consumed cell (drinking); host → guest broadcast relay (source excluded — the host executes on its own grid first)"
+    },
+    {
+      "cluster": "fluids",
+      "row": "F2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/EntityEventChannel.cs:258",
+      "quote": "_sender.Send(_session.HostSteamId, NetMsg.FluidInteraction, msg);"
+    },
+    {
+      "cluster": "fluids",
+      "row": "F2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/FluidInteractionHandler.cs:24",
+      "quote": "ctx.Session.BroadcastExcept(sender, NetMsg.FluidInteraction, msg);"
+    },
+    {
+      "cluster": "fluids",
+      "row": "F2",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/FluidInteractionSync.cs:71",
+      "quote": "fluid.fluid[x, y] = 0;"
+    },
+    {
+      "cluster": "fluids",
+      "row": "F2",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/FluidSimulationAuthority.cs:313",
+      "quote": "SyncRegion(id, view, 0, 0, ViewWidth, ViewHeight, fullViewport: true);"
+    },
+    {
+      "cluster": "fluids",
+      "row": "F2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PacketSender.cs:29",
+      "quote": "public void Send(ulong steamId, NetMsg msg, object? payload = null, bool reliable = true)"
+    },
+    {
+      "cluster": "fluids",
+      "row": "F3",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/FluidSimulationAuthority.cs:155",
+      "quote": "SendPresentation(new Vector2Int(i, j), new FluidPresentationMsg"
+    },
+    {
+      "cluster": "fluids",
+      "row": "F3",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/FluidSimulationAuthority.cs:216",
+      "quote": "SendPresentation(pos, new FluidPresentationMsg"
+    },
+    {
+      "cluster": "fluids",
+      "row": "F3",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/FluidSimulationAuthority.cs:245",
+      "quote": "_world.SendFluidPresentation(id, msg);"
+    },
+    {
+      "cluster": "fluids",
+      "row": "F3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/EntityEventChannel.cs:291",
+      "quote": "_sender.Send(targetSteamId, NetMsg.FluidPresentation, msg, reliable: true);"
+    },
+    {
+      "cluster": "fluids",
+      "row": "F3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs:123",
+      "quote": "FluidPresentation = 96, // host → guest (reliable): one water push / waterflow sound at a grid cell"
+    },
+    {
+      "cluster": "fluids",
+      "row": "F3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/FluidPresentationHandler.cs:12",
+      "quote": "[PacketHandler(NetMsg.FluidPresentation, NetMessageDirection.HostToGuest)]"
+    },
+    {
+      "cluster": "fluids",
+      "row": "F3",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/FluidPresentationApplication.cs:62",
+      "quote": "Object.Destroy(go, 0.75f);"
+    },
+    {
+      "cluster": "fluids",
+      "row": "F3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/EntityEventChannel.cs:282",
+      "quote": "/// the guest miss a local-body physics effect that the next streamed grid"
+    },
+    {
+      "cluster": "fluids",
+      "row": "F4",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/FluidRegionKernelSync.cs:22",
+      "quote": "private const float SummaryInterval = 5f;"
+    },
+    {
+      "cluster": "fluids",
+      "row": "F4",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/FluidRegionKernelSync.cs:44",
+      "quote": "_nextSummary = now + SummaryInterval;"
+    },
+    {
+      "cluster": "fluids",
+      "row": "F4",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/FluidRegionKernelSync.cs:108",
+      "quote": "_world.ReportFluidRegions(summaries);"
+    },
+    {
+      "cluster": "fluids",
+      "row": "F4",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/FluidKernelProjection.cs:71",
+      "quote": "if (_kernelAuthority.TryUpdateFluidRegion("
+    },
+    {
+      "cluster": "fluids",
+      "row": "F4",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemKernelAuthority.cs:230",
+      "quote": "public bool TryUpdateFluidRegion(ulong actor, FluidRegionState state, out CommittedBatch? batch, out Rejection? rejection)"
+    },
+    {
+      "cluster": "fluids",
+      "row": "F4",
+      "ref": "src/CasualtiesUnknownOnline.GameState/Domains/Fluids/FluidDomainModule.cs:20",
+      "quote": "UpdateFluidRegionCommand c => DomainDecision.Accept(new FluidRegionUpdatedEvent(c.State)),"
+    },
+    {
+      "cluster": "fluids",
+      "row": "F4",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:493",
+      "quote": "private void SendToGuests(ProtocolFrame frame, bool reliable = true)"
+    },
+    {
+      "cluster": "fluids",
+      "row": "F4",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemKernelAuthority.cs:241",
+      "quote": "public bool TryResetFluids(ulong actor, out CommittedBatch? batch, out Rejection? rejection)"
+    },
+    {
+      "cluster": "fluids",
+      "row": "F5",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntryFanout.cs:37",
+      "quote": "_world.SendBlockStateSnapshot(steamId);"
+    },
+    {
+      "cluster": "fluids",
+      "row": "F5",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntryFanout.cs:41",
+      "quote": "_kernelProtocol.SendCheckpoint(steamId);"
+    },
+    {
+      "cluster": "fluids",
+      "row": "F5",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntryFanout.cs:44",
+      "quote": "_world.SendWorldSnapshotComplete(steamId);"
+    },
+    {
+      "cluster": "fluids",
+      "row": "F5",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/WireCheckpointAssembler.cs:89",
+      "quote": "? [.. (checkpoint.Fluids?.Regions ?? []).Select(KernelDomainWireMapper.ToWireFluidRegionState)]"
+    },
+    {
+      "cluster": "fluids",
+      "row": "F5",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/FluidKernelReadProjection.cs:94",
+      "quote": "_regions = [.. checkpoint.Fluids?.Regions ?? []];"
+    },
+    {
+      "cluster": "fluids",
+      "row": "F5",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/FluidSimulationAuthority.cs:302",
+      "quote": "SyncRegion(id, view, 0, 0, ViewWidth, ViewHeight, fullViewport: true); // the diff baseline was for the old center — full viewport"
+    },
+    {
+      "cluster": "fluids",
+      "row": "F5",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/FluidSimulationAuthority.cs:360",
+      "quote": "continue; // not in the world yet — its viewport is the initial grid, healed by the 1 Hz full on entry"
+    },
+    {
+      "cluster": "fluids",
+      "row": "F5",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/HandshakeHandler.cs:145",
+      "quote": "_worldEntryFanout.Send(sender);"
+    },
+    {
+      "cluster": "items",
+      "row": "I1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs:223",
+      "quote": "KernelEnvelope = 122, // bidirectional: the four-envelope kernel protocol rides one message id"
+    },
+    {
+      "cluster": "items",
+      "row": "I1",
+      "ref": "src/CasualtiesUnknownOnline.Protocol/Wire/WirePayloadType.cs:12",
+      "quote": "ItemSpawnCommand = 1,"
+    },
+    {
+      "cluster": "items",
+      "row": "I1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemMessageFlowService.cs:58",
+      "quote": "_kernelProtocol.SendCommand(new WireCommand"
+    },
+    {
+      "cluster": "items",
+      "row": "I1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PacketSender.cs:29",
+      "quote": "public void Send(ulong steamId, NetMsg msg, object? payload = null, bool reliable = true)"
+    },
+    {
+      "cluster": "items",
+      "row": "I1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:493",
+      "quote": "private void SendToGuests(ProtocolFrame frame, bool reliable = true)"
+    },
+    {
+      "cluster": "items",
+      "row": "I1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:351",
+      "quote": "RequestRange(expected, batch.GlobalRevision - 1);"
+    },
+    {
+      "cluster": "items",
+      "row": "I1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemSnapshotService.cs:88",
+      "quote": "public void SendPeriodicItemSnapshot()"
+    },
+    {
+      "cluster": "items",
+      "row": "I1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntryFanout.cs:42",
+      "quote": "_items.SendItemSnapshot(steamId);"
+    },
+    {
+      "cluster": "items",
+      "row": "I1",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Items/ItemReconcile.cs:82",
+      "quote": "_app.KillRemoteItem(item);"
+    },
+    {
+      "cluster": "items",
+      "row": "I1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelWireMapper.cs:439",
+      "quote": "WireCommandKind.ItemTransfer => new TransferItemCommand("
+    },
+    {
+      "cluster": "items",
+      "row": "I2",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Items/ItemPositionAuthority.cs:46",
+      "quote": "_nextItemMoveMs = now + _adaptiveRates.GetSendIntervalMs("
+    },
+    {
+      "cluster": "items",
+      "row": "I2",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Items/ItemPositionAuthority.cs:122",
+      "quote": "_items.SendItemMove(entries);"
+    },
+    {
+      "cluster": "items",
+      "row": "I2",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Items/ItemPositionAuthority.cs:76",
+      "quote": "/// a lost tick is overwritten by the next), moving and settled alike, but a"
+    },
+    {
+      "cluster": "items",
+      "row": "I2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemService.cs:232",
+      "quote": "_kernelProtocol.SendStateStream([.. items]);"
+    },
+    {
+      "cluster": "items",
+      "row": "I2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelStateStreamService.cs:55",
+      "quote": "SendToGuests(frame, reliable: false);"
+    },
+    {
+      "cluster": "items",
+      "row": "I2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/AdaptiveSync/AdaptiveStreamCatalog.cs:76",
+      "quote": "BaseHz: 10),"
+    },
+    {
+      "cluster": "items",
+      "row": "I2",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Items/ItemPositionFollow.cs:137",
+      "quote": "private void OnRemoteItemMove(IReadOnlyList<WireItemMoveEntry> items)"
+    },
+    {
+      "cluster": "items",
+      "row": "I2",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Items/ItemPositionFollow.cs:114",
+      "quote": "rb.velocity = new Vector2(d.VelX, d.VelY);"
+    },
+    {
+      "cluster": "items",
+      "row": "I2",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Items/ItemReportCommitter.cs:53",
+      "quote": "_items.SendItemDropped(itemId, ItemStateCodec.CaptureItem(item, -1),"
+    },
+    {
+      "cluster": "items",
+      "row": "I3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemSnapshotService.cs:88",
+      "quote": "public void SendPeriodicItemSnapshot()"
+    },
+    {
+      "cluster": "items",
+      "row": "I3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemSnapshotService.cs:90",
+      "quote": "if (_session.Role != SessionRole.Host || _worldItems().Count == 0 || !_session.SessionActive)"
+    },
+    {
+      "cluster": "items",
+      "row": "I3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemSnapshotService.cs:98",
+      "quote": "reliable: false,"
+    },
+    {
+      "cluster": "items",
+      "row": "I3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemSnapshotService.cs:86",
+      "quote": "/// reconciles), and settled items get their drifted positions re-aligned."
+    },
+    {
+      "cluster": "items",
+      "row": "I3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/AdaptiveSync/AdaptiveStreamCatalog.cs:86",
+      "quote": "BaseIntervalMs: 5000,"
+    },
+    {
+      "cluster": "items",
+      "row": "I3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/AdaptiveSync/AdaptiveStreamCatalog.cs:87",
+      "quote": "MaxIntervalMs: 30_000),"
+    },
+    {
+      "cluster": "items",
+      "row": "I3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/AdaptiveSync/AdaptiveRatePolicy.cs:78",
+      "quote": "effective = Math.Min(effective, profile.MaxIntervalMs);"
+    },
+    {
+      "cluster": "items",
+      "row": "I3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemSnapshotStreamReceiver.cs:83",
+      "quote": "if (stream.BaseGlobalRevision < currentRevision)"
+    },
+    {
+      "cluster": "items",
+      "row": "I3",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Items/ItemReconcile.cs:124",
+      "quote": "item.condition = w.Item.Condition;"
+    },
+    {
+      "cluster": "items",
+      "row": "I4",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Patches/ContainerItemPatches.cs:38",
+      "quote": "PatchBridge.Impl?.OnItemLoadedIntoContainer(item, __state);"
+    },
+    {
+      "cluster": "items",
+      "row": "I4",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Items/ContainerItemSync.cs:184",
+      "quote": "_items.SendItemDropped(itemId, ItemStateCodec.CaptureItem(item, -1),"
+    },
+    {
+      "cluster": "items",
+      "row": "I4",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Items/ContainerItemSync.cs:187",
+      "quote": "containerId, item.transform.eulerAngles.z, parentPos, item.rb.angularVelocity);"
+    },
+    {
+      "cluster": "items",
+      "row": "I4",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Items/ContainerItemSync.cs:134",
+      "quote": "_items.SendItemContainerContent(rootId, capture);"
+    },
+    {
+      "cluster": "items",
+      "row": "I4",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemActionSync.cs:76",
+      "quote": "Kind = WireCommandKind.ItemContainerSync,"
+    },
+    {
+      "cluster": "items",
+      "row": "I4",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Items/ItemApplication.cs:116",
+      "quote": "_scene.BindToContainer(item, parentItemId, parentPos);"
+    },
+    {
+      "cluster": "items",
+      "row": "I4",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Items/ItemReconcile.cs:152",
+      "quote": "foreach (var w in items.Where(w => w.ParentItemId != 0))"
+    },
+    {
+      "cluster": "items",
+      "row": "I4",
+      "ref": "src/CasualtiesUnknownOnline.GameState/Domains/Items/ItemData.cs:10",
+      "quote": "/// and the typed component-state payload. Container contents are not embedded"
+    },
+    {
+      "cluster": "items",
+      "row": "I5",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Patches/BodyItemPatches.cs:76",
+      "quote": "private static void Prefix(Item item) => PatchBridge.Impl?.OnItemPickupStart(item);"
+    },
+    {
+      "cluster": "items",
+      "row": "I5",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Items/PickupSync.cs:55",
+      "quote": "_application.PickupOrigins[idComp.Id] = item.transform.position;"
+    },
+    {
+      "cluster": "items",
+      "row": "I5",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemMessageFlowService.cs:93",
+      "quote": "Kind = WireCommandKind.ItemPickup,"
+    },
+    {
+      "cluster": "items",
+      "row": "I5",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolCommandHandler.cs:98",
+      "quote": "if (_pendingPickups.TryEnqueue(sender, itemId, null, _time.NowMs))"
+    },
+    {
+      "cluster": "items",
+      "row": "I5",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/PendingPickupQueue.cs:17",
+      "quote": "internal const int DefaultHoldMs = 500;"
+    },
+    {
+      "cluster": "items",
+      "row": "I5",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolCommandHandler.cs:79",
+      "quote": "foreach (var pending in _pendingPickups.TakeExpired(nowMs))"
+    },
+    {
+      "cluster": "items",
+      "row": "I5",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Items/ItemApplication.cs:206",
+      "quote": "private void RollbackPickup(Item item, ulong itemId)"
+    },
+    {
+      "cluster": "items",
+      "row": "I5",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/DropPendingState.cs:69",
+      "quote": "if (_pending is not { } pending || currentFrame <= pending.Frame || !alive || !standalone)"
+    },
+    {
+      "cluster": "items",
+      "row": "I6",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs:78",
+      "quote": "CraftReport = 76, // bidirectional: guest → host report; host → guest broadcast relay (source excluded)"
+    },
+    {
+      "cluster": "items",
+      "row": "I6",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs:79",
+      "quote": "RecipeUnlock = 77, // bidirectional: guest → host report of a blueprint unlock; host → guest broadcast relay (source excluded)"
+    },
+    {
+      "cluster": "items",
+      "row": "I6",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Items/CraftingSync.cs:375",
+      "quote": "_craft.ReportCraft(new CraftReportMsg { Kind = kind, Entries = entries, Products = products });"
+    },
+    {
+      "cluster": "items",
+      "row": "I6",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Items/CraftingSync.cs:366",
+      "quote": "_craft.SendRecipeUnlock(blueprint.recipeIndex);"
+    },
+    {
+      "cluster": "items",
+      "row": "I6",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/CraftSyncService.cs:208",
+      "quote": "_sender.Send(_session.HostSteamId, NetMsg.RecipeUnlock, new RecipeUnlockMsg { RecipeIndex = recipeIndex });"
+    },
+    {
+      "cluster": "items",
+      "row": "I6",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/CraftSyncService.cs:214",
+      "quote": "RecipeUnlockReceived?.Invoke(recipeIndex); // every side applies its own static"
+    },
+    {
+      "cluster": "items",
+      "row": "I6",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Items/RecipeUnlockApply.cs:41",
+      "quote": "recipe.INT = 0;"
+    },
+    {
+      "cluster": "items",
+      "row": "I6",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntryFanout.cs:34",
+      "quote": "public void Send(ulong steamId)"
+    },
+    {
+      "cluster": "items",
+      "row": "I7",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Patches/UseItemPatches.cs:35",
+      "quote": "PatchBridge.Impl?.OnItemUsed(__state);"
+    },
+    {
+      "cluster": "items",
+      "row": "I7",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Patches/GunStatePatches.cs:20",
+      "quote": "PatchBridge.Impl?.OnGunStateChanged(__instance);"
+    },
+    {
+      "cluster": "items",
+      "row": "I7",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Items/ItemUseSync.cs:71",
+      "quote": "_items.SendItemUse(idComp.Id, ItemStateCodec.CaptureDigest(item));"
+    },
+    {
+      "cluster": "items",
+      "row": "I7",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemActionSync.cs:34",
+      "quote": "Kind = WireCommandKind.ItemUpdateState,"
+    },
+    {
+      "cluster": "items",
+      "row": "I7",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Items/ItemStateCodec.cs:254",
+      "quote": "var dataState = CustomItemDataState.CaptureLiquidCentrifugeCooldown(item.id, custom.data);"
+    },
+    {
+      "cluster": "items",
+      "row": "I7",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Items/ItemReconcile.cs:127",
+      "quote": "ItemStateCodec.RestoreComponentStates(item, w.Item.Components);"
+    },
+    {
+      "cluster": "items",
+      "row": "I7",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Character/CharacterDataCapture.cs:65",
+      "quote": "msg.Items.Add(ItemStateCodec.CaptureItem(item, slot));"
+    },
+    {
+      "cluster": "items",
+      "row": "I7",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Character/CharacterDataSync.cs:220",
+      "quote": "_nextCharacterReportMs = nowMs + (long)(CharacterReportInterval * 1000f);"
+    },
+    {
+      "cluster": "items",
+      "row": "I8",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Items/ItemIdAllocator.cs:33",
+      "quote": "_items.SendItemIdWatermark(_nextItemId - 1);"
+    },
+    {
+      "cluster": "items",
+      "row": "I8",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Items/ItemIdAllocator.cs:42",
+      "quote": "if (counter >= _nextItemId)"
+    },
+    {
+      "cluster": "items",
+      "row": "I8",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemIdCoordinator.cs:62",
+      "quote": "_sender.Send(_session.HostSteamId, NetMsg.ItemIdWatermark, new ItemIdWatermarkMsg { Counter = counter });"
+    },
+    {
+      "cluster": "items",
+      "row": "I8",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemIdCoordinator.cs:49",
+      "quote": "var watermark = _watermarks.TryGetValue(steamId, out var w) ? w : 0;"
+    },
+    {
+      "cluster": "items",
+      "row": "I8",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemIdCoordinator.cs:42",
+      "quote": "session.MemberAdded += OnMemberAdded;"
+    },
+    {
+      "cluster": "items",
+      "row": "I8",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Items/CarriedInventoryReporter.cs:133",
+      "quote": "_items.SendCarriedInventory(items);"
+    },
+    {
+      "cluster": "items",
+      "row": "I8",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Items/CarriedInventoryReporter.cs:51",
+      "quote": "if (_generating)"
+    },
+    {
+      "cluster": "items",
+      "row": "I8",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolCommandHandler.cs:168",
+      "quote": "_log.LogInformation(\"Accepted-first missing carried update for item {ItemId} from {Sender}: spawned carried fact.\","
+    },
+    {
+      "cluster": "items",
+      "row": "I9",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Items/ItemWorldSync.cs:211",
+      "quote": "var fresh = item.GetComponent<FreshItemDrop>() != null; // Unity object — =="
+    },
+    {
+      "cluster": "items",
+      "row": "I9",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemMessageFlowService.cs:67",
+      "quote": "FreshItemDrop = freshItemDrop,"
+    },
+    {
+      "cluster": "items",
+      "row": "I9",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Items/RemoteItemSceneOps.cs:403",
+      "quote": "if (w.FreshItemDrop)"
+    },
+    {
+      "cluster": "items",
+      "row": "I9",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Items/NonAuthoritativeItemImpactPolicy.cs:15",
+      "quote": "isSessionActive && !isHostMode && isStandaloneWorldItem;"
+    },
+    {
+      "cluster": "items",
+      "row": "I9",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Patches/ItemCollisionEnter2DPatch.cs:18",
+      "quote": "if (NonAuthoritativeItemImpactGuard.Suppress(__instance, \"Item.OnCollisionEnter2D\"))"
+    },
+    {
+      "cluster": "items",
+      "row": "I9",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Items/ItemDropProvenanceClassifier.cs:14",
+      "quote": "if (isBlockDrop)"
+    },
+    {
+      "cluster": "items",
+      "row": "I9",
+      "ref": "docs/backlog/review/guest-background-ghost-item-ground-sounds.md:71",
+      "quote": "- Not adding a host-authored item-impact sound stream; the host already does"
+    },
+    {
+      "cluster": "kernel-protocol",
+      "row": "K1",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Items/PickupSync.cs:141",
+      "quote": "_items.SendItemPickedUp(idComp.Id, ItemStateCodec.CaptureDigest(item, ItemStateCodec.SlotOf(item)));"
+    },
+    {
+      "cluster": "kernel-protocol",
+      "row": "K1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemMessageFlowService.cs:58",
+      "quote": "_kernelProtocol.SendCommand(new WireCommand"
+    },
+    {
+      "cluster": "kernel-protocol",
+      "row": "K1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:140",
+      "quote": "public void SendCommand(WireCommand command, WirePayloadType payloadType)"
+    },
+    {
+      "cluster": "kernel-protocol",
+      "row": "K1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:158",
+      "quote": "_sender.Send(_session.HostSteamId, NetMsg.KernelEnvelope, frame);"
+    },
+    {
+      "cluster": "kernel-protocol",
+      "row": "K1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:68",
+      "quote": "public void BroadcastCommittedBatch(CommittedBatch batch)"
+    },
+    {
+      "cluster": "kernel-protocol",
+      "row": "K1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:493",
+      "quote": "private void SendToGuests(ProtocolFrame frame, bool reliable = true)"
+    },
+    {
+      "cluster": "kernel-protocol",
+      "row": "K1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:365",
+      "quote": "var result = _authority.Apply(batch);"
+    },
+    {
+      "cluster": "kernel-protocol",
+      "row": "K1",
+      "ref": "src/CasualtiesUnknownOnline.Protocol/Wire/EnvelopeKind.cs:10",
+      "quote": "Command = 1,"
+    },
+    {
+      "cluster": "kernel-protocol",
+      "row": "K2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:23",
+      "quote": "private const int JournalCapacity = 2048;"
+    },
+    {
+      "cluster": "kernel-protocol",
+      "row": "K2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:75",
+      "quote": "_journal.Add(batch);"
+    },
+    {
+      "cluster": "kernel-protocol",
+      "row": "K2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:94",
+      "quote": "public void SendCheckpoint(ulong targetSteamId)"
+    },
+    {
+      "cluster": "kernel-protocol",
+      "row": "K2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:133",
+      "quote": "_sender.Send(targetSteamId, NetMsg.KernelEnvelope, frame);"
+    },
+    {
+      "cluster": "kernel-protocol",
+      "row": "K2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:351",
+      "quote": "RequestRange(expected, batch.GlobalRevision - 1);"
+    },
+    {
+      "cluster": "kernel-protocol",
+      "row": "K2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:418",
+      "quote": "SendCheckpoint(sender);"
+    },
+    {
+      "cluster": "kernel-protocol",
+      "row": "K2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntryFanout.cs:41",
+      "quote": "_kernelProtocol.SendCheckpoint(steamId);"
+    },
+    {
+      "cluster": "kernel-protocol",
+      "row": "K2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:474",
+      "quote": "var result = _authority.Restore(checkpoint);"
+    },
+    {
+      "cluster": "kernel-protocol",
+      "row": "K3",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:122",
+      "quote": "if (IsHostMode && _session.SessionActive && Time.unscaledTime - _lastSnapshotResend > 60f)"
+    },
+    {
+      "cluster": "kernel-protocol",
+      "row": "K3",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:127",
+      "quote": "if (member.InWorld)"
+    },
+    {
+      "cluster": "kernel-protocol",
+      "row": "K3",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:131",
+      "quote": "_kernelProtocol.SendCheckpoint(member.SteamId); // the kernel checkpoint also covers lazy-session recovery for WorldEntities and the other kernel domains"
+    },
+    {
+      "cluster": "kernel-protocol",
+      "row": "K3",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/GameAdapter.cs:232",
+      "quote": "_domains.WorldEventSync.Update();"
+    },
+    {
+      "cluster": "kernel-protocol",
+      "row": "K3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:94",
+      "quote": "public void SendCheckpoint(ulong targetSteamId)"
+    },
+    {
+      "cluster": "kernel-protocol",
+      "row": "K3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:101",
+      "quote": "var checkpoint = _authority.CreateCheckpoint();"
+    },
+    {
+      "cluster": "kernel-protocol",
+      "row": "K3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:474",
+      "quote": "var result = _authority.Restore(checkpoint);"
+    },
+    {
+      "cluster": "kernel-protocol",
+      "row": "K3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntryFanout.cs:41",
+      "quote": "_kernelProtocol.SendCheckpoint(steamId);"
+    },
+    {
+      "cluster": "kernel-protocol",
+      "row": "K4",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/SessionService.cs:481",
+      "quote": "_state.FireSessionEnded(); // the entity domain + the Game Adapter tear down on this"
+    },
+    {
+      "cluster": "kernel-protocol",
+      "row": "K4",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:59",
+      "quote": "_session.SessionEnded += ResetForSessionEnd;"
+    },
+    {
+      "cluster": "kernel-protocol",
+      "row": "K4",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:212",
+      "quote": "_authority.ResetForSession();"
+    },
+    {
+      "cluster": "kernel-protocol",
+      "row": "K4",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemKernelAuthority.cs:37",
+      "quote": "_kernel = new GameStateKernel(new RunEpoch(_kernel.RunEpoch.Value + 1));"
+    },
+    {
+      "cluster": "kernel-protocol",
+      "row": "K4",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:319",
+      "quote": "if (envelope.Header.RunEpoch != currentEpoch)"
+    },
+    {
+      "cluster": "kernel-protocol",
+      "row": "K4",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:338",
+      "quote": "if (batch.RunEpoch.Value != _authority.CreateCheckpoint().RunEpoch.Value)"
+    },
+    {
+      "cluster": "kernel-protocol",
+      "row": "K4",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:511",
+      "quote": "RunEpoch = batch?.RunEpoch.Value ?? _authority.CreateCheckpoint().RunEpoch.Value,"
+    },
+    {
+      "cluster": "kernel-protocol",
+      "row": "K4",
+      "ref": "src/CasualtiesUnknownOnline.GameState/Kernel/GameStateStore.cs:66",
+      "quote": "RunEpoch = checkpoint.RunEpoch;"
+    },
+    {
+      "cluster": "kernel-protocol",
+      "row": "K5",
+      "ref": "src/CasualtiesUnknownOnline.Protocol/Wire/EnvelopeKind.cs:13",
+      "quote": "StateStream = 4,"
+    },
+    {
+      "cluster": "kernel-protocol",
+      "row": "K5",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/PlayerStreamExchange.cs:56",
+      "quote": "kernelProtocol.BroadcastStateStreamTo("
+    },
+    {
+      "cluster": "kernel-protocol",
+      "row": "K5",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/PlayerStreamExchange.cs:60",
+      "quote": "reliable: false);"
+    },
+    {
+      "cluster": "kernel-protocol",
+      "row": "K5",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/PlayerStreamExchange.cs:90",
+      "quote": "if (stream.Seq <= LastStateSeq)"
+    },
+    {
+      "cluster": "kernel-protocol",
+      "row": "K5",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/PlayerStreamExchange.cs:108",
+      "quote": "entities.ApplyPlayerState(state, target);"
+    },
+    {
+      "cluster": "kernel-protocol",
+      "row": "K5",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EntitySyncService.cs:423",
+      "quote": "_nextStateSendMs = nowMs + _adaptiveRates.GetSendIntervalMs("
+    },
+    {
+      "cluster": "kernel-protocol",
+      "row": "K5",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EntitySyncService.cs:533",
+      "quote": "_playerStream.BroadcastPlayerState();"
+    },
+    {
+      "cluster": "kernel-protocol",
+      "row": "K5",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PacketSender.cs:26",
+      "quote": "/// semantics + snapshot sequence make drops harmless and avoid head-of-line"
+    },
+    {
+      "cluster": "players",
+      "row": "P1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EntitySyncService.cs:426",
+      "quote": "_playerStream.BroadcastPlayerState();"
+    },
+    {
+      "cluster": "players",
+      "row": "P1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EntitySyncService.cs:434",
+      "quote": "_playerStream.SendPlayerStateReport();"
+    },
+    {
+      "cluster": "players",
+      "row": "P1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/PlayerStreamExchange.cs:56",
+      "quote": "kernelProtocol.BroadcastStateStreamTo("
+    },
+    {
+      "cluster": "players",
+      "row": "P1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/PlayerStreamExchange.cs:60",
+      "quote": "reliable: false);"
+    },
+    {
+      "cluster": "players",
+      "row": "P1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EntitySyncService.cs:423",
+      "quote": "_nextStateSendMs = nowMs + _adaptiveRates.GetSendIntervalMs("
+    },
+    {
+      "cluster": "players",
+      "row": "P1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/PlayerStreamExchange.cs:90",
+      "quote": "if (stream.Seq <= LastStateSeq)"
+    },
+    {
+      "cluster": "players",
+      "row": "P1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EntitySyncService.cs:533",
+      "quote": "_playerStream.BroadcastPlayerState();"
+    },
+    {
+      "cluster": "players",
+      "row": "P1",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Character/SessionStatePump.cs:66",
+      "quote": "body.transform.position = position;"
+    },
+    {
+      "cluster": "players",
+      "row": "P2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/PlayerKernelStatusProjection.cs:52",
+      "quote": "_kernelAuthority.TryUpdatePlayerStatus("
+    },
+    {
+      "cluster": "players",
+      "row": "P2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemKernelAuthority.cs:183",
+      "quote": "TryExecute(new UpdatePlayerStatusCommand(NextOperation(), new ActorId(actor), _runEpoch, AuthorityKind.HostOnly, state), actor, \"update-player-status\", out batch, out rejection);"
+    },
+    {
+      "cluster": "players",
+      "row": "P2",
+      "ref": "src/CasualtiesUnknownOnline.Protocol/Wire/WirePayloadType.cs:50",
+      "quote": "PlayerStatusUpdatedEvent = 111,"
+    },
+    {
+      "cluster": "players",
+      "row": "P2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:493",
+      "quote": "private void SendToGuests(ProtocolFrame frame, bool reliable = true)"
+    },
+    {
+      "cluster": "players",
+      "row": "P2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EntitySyncService.cs:329",
+      "quote": "_playerStatus.Sync(target.SteamId, target.Alive, target.Conscious);"
+    },
+    {
+      "cluster": "players",
+      "row": "P2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:93",
+      "quote": "_playerLimbKernel.SyncFromCharacterData(steamId, msg);"
+    },
+    {
+      "cluster": "players",
+      "row": "P2",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:131",
+      "quote": "_kernelProtocol.SendCheckpoint(member.SteamId); // the kernel checkpoint also covers lazy-session recovery for WorldEntities and the other kernel domains"
+    },
+    {
+      "cluster": "players",
+      "row": "P2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/HandshakeHandler.cs:192",
+      "quote": "_kernelProtocol.SendCheckpoint(sender);"
+    },
+    {
+      "cluster": "players",
+      "row": "P3",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Character/CharacterDataSync.cs:220",
+      "quote": "_nextCharacterReportMs = nowMs + (long)(CharacterReportInterval * 1000f);"
+    },
+    {
+      "cluster": "players",
+      "row": "P3",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Character/CharacterDataSync.cs:221",
+      "quote": "ReportCharacterData(CharacterDataCapture.Capture(_mapper, localBody), throttled: true);"
+    },
+    {
+      "cluster": "players",
+      "row": "P3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:85",
+      "quote": "_sender.Send(_session.HostSteamId, NetMsg.CharacterData, msg);"
+    },
+    {
+      "cluster": "players",
+      "row": "P3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:91",
+      "quote": "_savedCharacters[steamId] = msg;"
+    },
+    {
+      "cluster": "players",
+      "row": "P3",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Character/CharacterDataSync.cs:230",
+      "quote": "ReportCharacterData(CharacterDataCapture.Capture(_mapper, localBody), throttled: false);"
+    },
+    {
+      "cluster": "players",
+      "row": "P3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/HandshakeHandler.cs:108",
+      "quote": "ctx.CharacterData.SendSavedCharacter(sender);"
+    },
+    {
+      "cluster": "players",
+      "row": "P3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:64",
+      "quote": "_persistence.TryLoad(out _savedCharacters);"
+    },
+    {
+      "cluster": "players",
+      "row": "P3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:191",
+      "quote": "MergeTransferredItems(steamId, data);"
+    },
+    {
+      "cluster": "players",
+      "row": "P4",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Patches/LimbStatePatches.cs:73",
+      "quote": "PatchBridge.Impl?.OnLimbStateEvent(limb);"
+    },
+    {
+      "cluster": "players",
+      "row": "P4",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:363",
+      "quote": "NetMsg.LimbStateEvent, msg, reliable: true);"
+    },
+    {
+      "cluster": "players",
+      "row": "P4",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:367",
+      "quote": "_sender.Send(_session.HostSteamId, NetMsg.LimbStateEvent, msg);"
+    },
+    {
+      "cluster": "players",
+      "row": "P4",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:332",
+      "quote": "EnemyTerminalStateApplier.ApplyLimbState(data, msg);"
+    },
+    {
+      "cluster": "players",
+      "row": "P4",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:343",
+      "quote": "/// already damaged locally). Reliable — a lost event self-heals on the next"
+    },
+    {
+      "cluster": "players",
+      "row": "P4",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/LimbStateEventHandler.cs:31",
+      "quote": "ctx.Session.BroadcastExcept(sender, NetMsg.LimbStateEvent, msg);"
+    },
+    {
+      "cluster": "players",
+      "row": "P4",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Character/CharacterDataSync.cs:88",
+      "quote": "_factTable.ApplyLimbStateEvent(msg.OwnerSteamId, msg);"
+    },
+    {
+      "cluster": "players",
+      "row": "P5",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:388",
+      "quote": "NetMsg.CharacterSound, msg, reliable: true);"
+    },
+    {
+      "cluster": "players",
+      "row": "P5",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:413",
+      "quote": "NetMsg.CharacterAttackAnim, msg, reliable: true);"
+    },
+    {
+      "cluster": "players",
+      "row": "P5",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:438",
+      "quote": "NetMsg.CharacterLandingVisual, msg, reliable: true);"
+    },
+    {
+      "cluster": "players",
+      "row": "P5",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:463",
+      "quote": "NetMsg.CharacterRagdoll, msg, reliable: true);"
+    },
+    {
+      "cluster": "players",
+      "row": "P5",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Patches/PlayerCameraHandleInputPatch.cs:61",
+      "quote": "PatchBridge.Impl?.OnCharacterRagdoll((Vector2)body.transform.position);"
+    },
+    {
+      "cluster": "players",
+      "row": "P5",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Character/SessionStatePump.cs:95",
+      "quote": "var effectiveStanding = entity.Standing;"
+    },
+    {
+      "cluster": "players",
+      "row": "P5",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/RagdollPoseGate.cs:20",
+      "quote": "public const long SuppressWindowMs = 500;"
+    },
+    {
+      "cluster": "players",
+      "row": "P5",
+      "ref": "docs/evidence/selfchecks/presentation/footstep-sound-selfcheck.md:51",
+      "quote": "character snapshot + 20 Hz state stream. A lost message is a missed one-shot"
+    },
+    {
+      "cluster": "players",
+      "row": "P6",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerCarryService.cs:325",
+      "quote": "if (!_kernelAuthority.TrySetPlayerCarry("
+    },
+    {
+      "cluster": "players",
+      "row": "P6",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerCarryService.cs:310",
+      "quote": "if (!_kernelAuthority.TryClearPlayerCarry("
+    },
+    {
+      "cluster": "players",
+      "row": "P6",
+      "ref": "src/CasualtiesUnknownOnline.Protocol/Wire/WirePayloadType.cs:57",
+      "quote": "PlayerCarrySetEvent = 118,"
+    },
+    {
+      "cluster": "players",
+      "row": "P6",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:91",
+      "quote": "SendToGuests(frame);"
+    },
+    {
+      "cluster": "players",
+      "row": "P6",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:493",
+      "quote": "private void SendToGuests(ProtocolFrame frame, bool reliable = true)"
+    },
+    {
+      "cluster": "players",
+      "row": "P6",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:131",
+      "quote": "_kernelProtocol.SendCheckpoint(member.SteamId); // the kernel checkpoint also covers lazy-session recovery for WorldEntities and the other kernel domains"
+    },
+    {
+      "cluster": "players",
+      "row": "P6",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerKernelCarryProjection.cs:71",
+      "quote": "_carry.RebuildFromCheckpoint(checkpoint.Players);"
+    },
+    {
+      "cluster": "players",
+      "row": "P6",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerKernelCarryProjection.cs:90",
+      "quote": "case PlayerCarrySetEvent set:"
+    },
+    {
+      "cluster": "players",
+      "row": "P7",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerInventoryTakeService.cs:64",
+      "quote": "_sender.Send(_session.HostSteamId, NetMsg.PlayerInventoryTakeRequest, msg);"
+    },
+    {
+      "cluster": "players",
+      "row": "P7",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerInventoryTakeService.cs:268",
+      "quote": "if (!_resultAuthority.TryRecordPlayerInventoryTransfer("
+    },
+    {
+      "cluster": "players",
+      "row": "P7",
+      "ref": "src/CasualtiesUnknownOnline.Protocol/Wire/WirePayloadType.cs:59",
+      "quote": "PlayerInventoryTransferEvent = 120,"
+    },
+    {
+      "cluster": "players",
+      "row": "P7",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerInteractionKernelProjection.cs:86",
+      "quote": "_interaction.FireTransferReceived(PlayerInteractionKernelCodec.ToTransferMessage(e));"
+    },
+    {
+      "cluster": "players",
+      "row": "P7",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/PlayerInteractionApply.cs:30",
+      "quote": "domains.Log.LogWarning(\"[PlayerInteraction] transfer received but the local body is not ready — skipped (1 Hz snapshot will not apply this authoritative fact; a retry is required).\");"
+    },
+    {
+      "cluster": "players",
+      "row": "P7",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/PlayerInteractionApply.cs:92",
+      "quote": "domains.CharacterDataSync.ReportInventoryChanged(body);"
+    },
+    {
+      "cluster": "players",
+      "row": "P7",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:191",
+      "quote": "MergeTransferredItems(steamId, data);"
+    },
+    {
+      "cluster": "players",
+      "row": "P7",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerInventoryTakeService.cs:180",
+      "quote": "_items.AdoptTransferredItem(to, itemId, transferred);"
+    },
+    {
+      "cluster": "players",
+      "row": "P8",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerHealService.cs:61",
+      "quote": "_sender.Send(_session.HostSteamId, NetMsg.PlayerHealRequest, msg);"
+    },
+    {
+      "cluster": "players",
+      "row": "P8",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerHealService.cs:239",
+      "quote": "if (!_resultAuthority.TryRecordPlayerHealResult("
+    },
+    {
+      "cluster": "players",
+      "row": "P8",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerItemUseService.cs:445",
+      "quote": "if (!_resultAuthority.TryRecordPlayerItemUseResult("
+    },
+    {
+      "cluster": "players",
+      "row": "P8",
+      "ref": "src/CasualtiesUnknownOnline.Protocol/Wire/WirePayloadType.cs:60",
+      "quote": "PlayerHealResultEvent = 121,"
+    },
+    {
+      "cluster": "players",
+      "row": "P8",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerInteractionKernelProjection.cs:99",
+      "quote": "_interaction.FireHealReceived(PlayerInteractionKernelCodec.ToHealMessage(e));"
+    },
+    {
+      "cluster": "players",
+      "row": "P8",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/PlayerInteractionApply.cs:209",
+      "quote": "domains.CharacterDataSync.ReportInventoryChanged(body);"
+    },
+    {
+      "cluster": "players",
+      "row": "P8",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerHealService.cs:157",
+      "quote": "_characters.SaveCharacterData(healer, newHealerData);"
+    },
+    {
+      "cluster": "players",
+      "row": "P8",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:191",
+      "quote": "MergeTransferredItems(steamId, data);"
+    },
+    {
+      "cluster": "players",
+      "row": "P9",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PacketSender.cs:29",
+      "quote": "public void Send(ulong steamId, NetMsg msg, object? payload = null, bool reliable = true)"
+    },
+    {
+      "cluster": "players",
+      "row": "P9",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerPushService.cs:88",
+      "quote": "_sender.Send(_session.HostSteamId, NetMsg.PlayerPushRequest, msg);"
+    },
+    {
+      "cluster": "players",
+      "row": "P9",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerPushService.cs:187",
+      "quote": "_sender.SendToAll(_session.Members"
+    },
+    {
+      "cluster": "players",
+      "row": "P9",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerCarryService.cs:91",
+      "quote": "_sender.Send(_session.HostSteamId, NetMsg.PlayerCarryStartRequest, msg);"
+    },
+    {
+      "cluster": "players",
+      "row": "P9",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/PlayerInteractionApply.cs:92",
+      "quote": "domains.CharacterDataSync.ReportInventoryChanged(body);"
+    },
+    {
+      "cluster": "players",
+      "row": "P9",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:391",
+      "quote": "private void RequestRange(ulong start, ulong end)"
+    },
+    {
+      "cluster": "players",
+      "row": "P9",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:131",
+      "quote": "_kernelProtocol.SendCheckpoint(member.SteamId); // the kernel checkpoint also covers lazy-session recovery for WorldEntities and the other kernel domains"
+    },
+    {
+      "cluster": "players",
+      "row": "P9",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/PlayerPushApply.cs:20",
+      "quote": "public void Apply(PlayerPushResultMsg msg)"
+    },
+    {
+      "cluster": "players",
+      "row": "P10",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerRemoteInventoryService.cs:65",
+      "quote": "_sender.Send(_session.HostSteamId, NetMsg.RemoteInventoryOperationRequest, msg);"
+    },
+    {
+      "cluster": "players",
+      "row": "P10",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerRemoteInventoryService.cs:208",
+      "quote": "_sender.Send(owner, NetMsg.RemoteInventoryApply, apply);"
+    },
+    {
+      "cluster": "players",
+      "row": "P10",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/RemoteBackpackOperationHandler.cs:23",
+      "quote": "domains.PlayerInteraction.SendRemoteInventoryOperation(new RemoteInventoryOperationRequestMsg"
+    },
+    {
+      "cluster": "players",
+      "row": "P10",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/RemoteInventoryOperationApply.cs:89",
+      "quote": "domains.CharacterDataSync.ReportInventoryChanged(body);"
+    },
+    {
+      "cluster": "players",
+      "row": "P10",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/RemoteInventoryOperationApply.cs:93",
+      "quote": "ReportAffectedState(source);"
+    },
+    {
+      "cluster": "players",
+      "row": "P10",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs:240",
+      "quote": "RemoteInventoryOperationRequest = 125, // guest → host: perform a remote-player inventory operation (drop / move-to-container / pour / combine / use / wear / battery / slot / favourite)"
+    },
+    {
+      "cluster": "players",
+      "row": "P10",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerRemoteInventoryService.cs:256",
+      "quote": "if (!TryExecuteItemCommand(BuildDropOrSpawnCommand(owner, original, ItemLocation.World(position.X, position.Y)), out var rejection))"
+    },
+    {
+      "cluster": "players",
+      "row": "P10",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:191",
+      "quote": "MergeTransferredItems(steamId, data);"
+    },
+    {
+      "cluster": "players",
+      "row": "P11",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs:250",
+      "quote": "MedicalOperationState = 130, // host → clients: non-terminal authoritative progress"
+    },
+    {
+      "cluster": "players",
+      "row": "P11",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/MedicalOperationSessionService.cs:414",
+      "quote": "_publisher.PublishState(state!);"
+    },
+    {
+      "cluster": "players",
+      "row": "P11",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/MedicalOperationSessionService.cs:568",
+      "quote": "_publisher.PublishEnd(end);"
+    },
+    {
+      "cluster": "players",
+      "row": "P11",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/MedicalOperationSessionPublisher.cs:60",
+      "quote": "_sender.SendToAll("
+    },
+    {
+      "cluster": "players",
+      "row": "P11",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/MedicalInjectionReportBuffer.cs:104",
+      "quote": "_sender.Send(_session.HostSteamId, NetMsg.MedicalOperationUpdate, msg, reliable: true);"
+    },
+    {
+      "cluster": "players",
+      "row": "P11",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/ShrapnelPositionReportBuffer.cs:133",
+      "quote": "_sender.Send(_session.HostSteamId, NetMsg.MedicalOperationUpdate, msg, reliable);"
+    },
+    {
+      "cluster": "players",
+      "row": "P11",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/AdaptiveSync/AdaptiveStreamCatalog.cs:58",
+      "quote": "BaseHz: 60),"
+    },
+    {
+      "cluster": "players",
+      "row": "P11",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/MedicalOperationApply.cs:142",
+      "quote": "domains.CharacterDataSync.ReportInventoryChanged(body);"
+    },
+    {
+      "cluster": "players",
+      "row": "P12",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/SessionService.cs:187",
+      "quote": "public void ReportLocalPlayerColor(PlayerColorValue? color)"
+    },
+    {
+      "cluster": "players",
+      "row": "P12",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/SessionService.cs:202",
+      "quote": "((ISessionControl)this).Broadcast(NetMsg.PlayerColorUpdate, msg);"
+    },
+    {
+      "cluster": "players",
+      "row": "P12",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/SessionService.cs:206",
+      "quote": "_sender.Send(HostSteamId, NetMsg.PlayerColorUpdate, msg);"
+    },
+    {
+      "cluster": "players",
+      "row": "P12",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/PlayerColorUpdateHandler.cs:34",
+      "quote": "session.BroadcastExcept(sender, NetMsg.PlayerColorUpdate, new PlayerColorUpdateMsg"
+    },
+    {
+      "cluster": "players",
+      "row": "P12",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/PlayerColorUpdateHandler.cs:44",
+      "quote": "if (session.Role == SessionRole.Guest && sender == session.HostSteamId && memberId == sender)"
+    },
+    {
+      "cluster": "players",
+      "row": "P12",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/HandshakeHandler.cs:103",
+      "quote": "member.SelectedColor = selectedColor;"
+    },
+    {
+      "cluster": "players",
+      "row": "P12",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/PlayerJoinHandler.cs:33",
+      "quote": "member.SelectedColor = msg.HasColor ? msg.Color.ToNetColorRgba() : (NetColorRgba?)null;"
+    },
+    {
+      "cluster": "players",
+      "row": "P12",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs:228",
+      "quote": "PlayerColorUpdate = 123, // bidirectional: guest → host report of a local color change; host → guest broadcast/relay"
+    },
+    {
+      "cluster": "players",
+      "row": "P13",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:586",
+      "quote": "? LimbPoseCapture.Capture(body)"
+    },
+    {
+      "cluster": "players",
+      "row": "P13",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Character/LimbPoseCapture.cs:18",
+      "quote": "internal static List<PlayerLimbPose>? Capture(Body body)"
+    },
+    {
+      "cluster": "players",
+      "row": "P13",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/PlayerStreamWireMapper.cs:35",
+      "quote": "LimbPoses = entity.LimbPoses?.ConvertAll(p => new WirePlayerLimbPose"
+    },
+    {
+      "cluster": "players",
+      "row": "P13",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/PlayerStreamWireMapper.cs:68",
+      "quote": "target.LimbPoses = wire.LimbPoses?.ConvertAll(p => new PlayerLimbPose"
+    },
+    {
+      "cluster": "players",
+      "row": "P13",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Character/SessionStatePump.cs:129",
+      "quote": "RagdollPoseApplication.Apply(body, entity.LimbPoses, driver);"
+    },
+    {
+      "cluster": "players",
+      "row": "P13",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Character/RagdollPoseApplication.cs:50",
+      "quote": "limb.transform.position = position;"
+    },
+    {
+      "cluster": "players",
+      "row": "P13",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Character/CharacterRagdollSync.cs:181",
+      "quote": "driver.RagdollCollapsePending = true;"
+    },
+    {
+      "cluster": "players",
+      "row": "P13",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/RagdollPoseGate.cs:41",
+      "quote": "return nowMs - collapseMs <= SuppressWindowMs;"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R1",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:170",
+      "quote": "_params.CaptureAtEntry(isTutorial); // the generation baseline — captured at the click moment, before any run randomness is consumed"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:481",
+      "quote": "if (!_kernelAuthority.TryStartRun(_session.LocalSteamId, run, out _, out var rejection))"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:91",
+      "quote": "SendToGuests(frame);"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:493",
+      "quote": "private void SendToGuests(ProtocolFrame frame, bool reliable = true)"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntryFanout.cs:41",
+      "quote": "_kernelProtocol.SendCheckpoint(steamId);"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R1",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:122",
+      "quote": "if (IsHostMode && _session.SessionActive && Time.unscaledTime - _lastSnapshotResend > 60f)"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:474",
+      "quote": "var result = _authority.Restore(checkpoint);"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:351",
+      "quote": "RequestRange(expected, batch.GlobalRevision - 1);"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R2",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldTimeSync.cs:254",
+      "quote": "_worldTime.Broadcast(_appliedSpeed);"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldTimeChannel.cs:43",
+      "quote": "_session.Broadcast(NetMsg.WorldTime, new WorldTimeMsg { Speed = speed });"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs:109",
+      "quote": "WorldTime = 91, // host → guest: the authoritative world-time speed (change / world entry / 5 s resend)"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R2",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldTimeSync.cs:47",
+      "quote": "private const float ResendIntervalSeconds = 5f;"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R2",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldTimeSync.cs:87",
+      "quote": "_worldTime.Broadcast(_appliedSpeed);"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R2",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldTimeSync.cs:208",
+      "quote": "_appliedSpeed = incoming;"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R2",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldTimeSync.cs:221",
+      "quote": "_worldTime.Broadcast(_appliedSpeed);"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R2",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldTimeSync.cs:121",
+      "quote": "_worldTime.SendRequest(ToWorldTimeSpeed(speed));"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs:19",
+      "quote": "WorldJoin = 20, // host → guest: start loading the world (sent at generation start; the run baseline rides KernelEnvelope/checkpoint)"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:198",
+      "quote": "_sender.Send(member.SteamId, NetMsg.WorldReady, msg);"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/SceneStateHandler.cs:59",
+      "quote": "_worldEntryFanout.Send(reporter);"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/HandshakeHandler.cs:145",
+      "quote": "_worldEntryFanout.Send(sender);"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R3",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:358",
+      "quote": "_session.ReportSceneState(inWorld ? SceneStateType.InWorld : SceneStateType.InMenu, sceneName, pos);"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EntitySyncService.cs:513",
+      "quote": "_sender.Send(presence.SteamId, NetMsg.PlayerJoin, joinMsg); // self-activation"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntryFanout.cs:44",
+      "quote": "_world.SendWorldSnapshotComplete(steamId);"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R3",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/StartGateCoordinator.cs:187",
+      "quote": "_log.LogWarning(\"WorldReady never arrived within {Timeout}s — back to the menu.\", WorldReadyTimeoutMs / 1000);"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R4",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/SessionPeerMaintenance.cs:34",
+      "quote": "private const float HandshakeRetryInterval = 1f;"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R4",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/SessionService.cs:281",
+      "quote": "if (!SessionActive)"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R4",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/HandshakeHandler.cs:173",
+      "quote": "_sender.Send(sender, NetMsg.HandshakeAck, new HandshakeAckMsg"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R4",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/HandshakeAckHandler.cs:56",
+      "quote": "_sender.Send(sender, NetMsg.HandshakeAckAck, new HandshakeAckAckMsg());"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R4",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/HandshakeAckAckHandler.cs:43",
+      "quote": "member.Handshaken = true;"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R4",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/SessionService.cs:31",
+      "quote": "private const float PingInterval = 5f;"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R4",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs:17",
+      "quote": "HandshakeAckAck = 58, // guest → host: handshake end-to-end confirmation (the ack arrived — the host only marks the member Handshaken on this)"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R4",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/HostKickService.cs:31",
+      "quote": "_sender.Send(steamId, NetMsg.Kicked, new KickedMsg { Reason = reason }, reliable: true);"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R5",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/AdaptiveSync/AdaptiveStreamCatalog.cs:15",
+      "quote": "private static readonly IReadOnlyDictionary<AdaptiveStreamId, AdaptiveStreamProfile> Profiles ="
+    },
+    {
+      "cluster": "run-world",
+      "row": "R5",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/AdaptiveSync/AdaptiveStreamCatalog.cs:87",
+      "quote": "MaxIntervalMs: 30_000),"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R5",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/AdaptiveSync/AdaptiveRatePolicy.cs:30",
+      "quote": "if (profile.DeliveryMode == AdaptiveStreamDeliveryMode.ReliableControl)"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R5",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/AdaptiveSync/AdaptiveRatePolicy.cs:44",
+      "quote": "return Clamp(effective, profile.MinHz, profile.MaxHz);"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R5",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/AdaptiveSync/AdaptiveRatePolicy.cs:78",
+      "quote": "effective = Math.Min(effective, profile.MaxIntervalMs);"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R5",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Items/ItemPositionAuthority.cs:52",
+      "quote": "if (now >= _nextItemSnapshotMs)"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R5",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/FluidSimulationAuthority.cs:311",
+      "quote": "if (now >= _nextFull)"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R5",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/MedicalInjectionReportBuffer.cs:104",
+      "quote": "_sender.Send(_session.HostSteamId, NetMsg.MedicalOperationUpdate, msg, reliable: true);"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R6",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/ProjectionHealth/ProjectionHealthCoordinator.cs:73",
+      "quote": "public void Run(string domain, ulong revision, Action projection)"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R6",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/ProjectionHealth/ProjectionHealthCoordinator.cs:105",
+      "quote": "public void Pump()"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R6",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/ProjectionHealth/ProjectionHealthCoordinator.cs:163",
+      "quote": "void ICuoService.Update() => Pump();"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R6",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/ProjectionHealth/ProjectionHealthCoordinator.cs:214",
+      "quote": "state.Dirty = false;"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R6",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:91",
+      "quote": "_projectionHealth.Register(new ProjectionDomain(\"run\", RebuildRunFromKernel, () => _kernelAuthority.CurrentGlobalRevision));"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R6",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:509",
+      "quote": "_projectionHealth.Run(\"run\", batch.GlobalRevision, () =>"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R6",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:537",
+      "quote": "private void RebuildRunFromKernel()"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R7",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:70",
+      "quote": "private bool _worldFingerprintLogged;"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R7",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:295",
+      "quote": "if (inWorld && !_worldFingerprintLogged)"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R7",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:297",
+      "quote": "_worldFingerprintLogged = true;"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R7",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:400",
+      "quote": "\"[WorldFingerprint] {W}x{H}: {B0:X16} {B1:X16} {B2:X16} {B3:X16} {B4:X16} {B5:X16} {B6:X16} {B7:X16} total {Total:X16}\","
+    },
+    {
+      "cluster": "run-world",
+      "row": "R7",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:501",
+      "quote": "_worldFingerprintLogged = false;"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R8",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/NetworkTraffic/NetworkTrafficMonitor.cs:34",
+      "quote": "internal void RecordSend(ulong steamId, NetMsg msg, int byteCount, bool success, WirePayloadType? payloadType = null) =>"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R8",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/NetworkTraffic/NetworkTrafficMonitor.cs:40",
+      "quote": "internal void RecordReceivePayload(ulong steamId, WirePayloadType payloadType, int byteCount) =>"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R8",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/NetworkTraffic/NetworkTrafficMonitor.cs:86",
+      "quote": "_log.LogInformation(\"[NetworkTraffic] {Window}\", NetworkTrafficWindowLog.Format(window));"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R8",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PacketSender.cs:48",
+      "quote": "_traffic.RecordSend(steamId, msg, frame.Length, success, ClassifyPayloadType(payload));"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R8",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/NetworkTraffic/PeerHealthTracker.cs:31",
+      "quote": "state.PingsLost++;"
+    },
+    {
+      "cluster": "run-world",
+      "row": "R8",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/NetworkTraffic/NetworkTrafficMonitor.cs:57",
+      "quote": "internal bool TryGetHealthSnapshot(ulong steamId, out PeerHealthTracker.PeerHealthSnapshot snapshot) =>"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W1",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Patches/WorldGenerationSetBlockPatch.cs:58",
+      "quote": "PatchBridge.Impl?.OnBlockSet(pos, block);"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W1",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:210",
+      "quote": "_world.BroadcastBlockPlaced(0, pos.x, pos.y, block);"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W1",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:214",
+      "quote": "_world.SendBlockPlacedReport(pos.x, pos.y, block);"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStateMessageService.cs:202",
+      "quote": "_sender.Send(_session.HostSteamId, NetMsg.BlockPlaced,"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W1",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:122",
+      "quote": "if (IsHostMode && _session.SessionActive && Time.unscaledTime - _lastSnapshotResend > 60f)"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W1",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:129",
+      "quote": "_world.SendBlockStateSnapshot(member.SteamId);"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W1",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:173",
+      "quote": "// world and applies the table). Guests do not track — they only apply."
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W1",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:465",
+      "quote": "WorldGeneration.world.SetBlock(pos, block.Block);"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W2",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Patches/WorldGenerationDamageBlockPatch.cs:56",
+      "quote": "PatchBridge.Impl?.OnBlockDamaged(pos, dmg, bonusMetal);"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W2",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/BlockBreakSync.cs:109",
+      "quote": "_world.SendBlockDamaged(new NetVector2(pos.x, pos.y), dmg, bonusMetal, null, null);"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W2",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/BlockBreakSync.cs:144",
+      "quote": "_world.SendBlockDamaged("
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W2",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/BlockBreakSync.cs:389",
+      "quote": "_world.ReportBlockDamage(cell.x, cell.y, blockDamage.damage);"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W2",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:130",
+      "quote": "_world.SendBlockDamageSnapshot(member.SteamId); // the partial block damage rides the same world-entry resend (idempotent absolute set)"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/BlockDamageRegistry.cs:74",
+      "quote": "_sender.Send(targetSteamId, NetMsg.BlockDamageSnapshot, new BlockDamageSnapshotMsg"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W2",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/BlockBreakSync.cs:368",
+      "quote": "blockDamage.damage = entry.Damage;"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntryFanout.cs:38",
+      "quote": "_world.SendBlockDamageSnapshot(steamId);"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W3",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Patches/WorldGenerationUpdatePatch.cs:64",
+      "quote": "PatchBridge.Impl?.OnEarthquakeStarted(__instance.earthquakeTime, __instance.earthquakeDelay);"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W3",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:294",
+      "quote": "_world.BroadcastEarthquakeStart(duration, nextDelay);"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStateMessageService.cs:224",
+      "quote": "_session.Broadcast(NetMsg.EarthquakeStart, new EarthquakeStartMsg { Duration = duration, NextDelay = nextDelay });"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W3",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Patches/WorldGenerationUpdatePatch.cs:46",
+      "quote": "__instance.earthquakeDelay = float.MaxValue;"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W3",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:314",
+      "quote": "WorldGeneration.world.earthquakeTime = duration;"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W3",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:315",
+      "quote": "WorldGeneration.world.earthquakeDelay = nextDelay;"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W3",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:210",
+      "quote": "_world.BroadcastBlockPlaced(0, pos.x, pos.y, block);"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W3",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:129",
+      "quote": "_world.SendBlockStateSnapshot(member.SteamId);"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W4",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:352",
+      "quote": "SendKeypadCodes(); // TryCaptureWorldBaseline runs once per generation — the first send happens here, the 60 s cycle re-sends"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W4",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/EntitySpawnSync.cs:141",
+      "quote": "? WorldEventSync.EnsureKeypadCode(openable) // the host creates it — its code is host authority from the start"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W4",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:135",
+      "quote": "SendKeypadCodes(); // re-send the full set (idempotent — set codes are left alone) — covers the lazy-session swallow window and keypads created after the first send (the airdrop/command case, #128 follow-up)"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W4",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStateMessageService.cs:123",
+      "quote": "_sender.Send(member.SteamId, NetMsg.KeypadCode, msg);"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W4",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:96",
+      "quote": "SendKeypadCodes();"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W4",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:440",
+      "quote": "if (string.IsNullOrEmpty(codeField.GetValue<string>()))"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W4",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:442",
+      "quote": "codeField.SetValue(match.Code);"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W4",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PacketSender.cs:29",
+      "quote": "public void Send(ulong steamId, NetMsg msg, object? payload = null, bool reliable = true)"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W5",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/GeyserStateSync.cs:83",
+      "quote": "SendFullSet();"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W5",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/GeyserStateSync.cs:86",
+      "quote": "if (Time.unscaledTime - _lastResend > 60f)"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W5",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/GeyserStateSync.cs:89",
+      "quote": "SendFullSet(); // re-enumerated every time — creations after the last send are included"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W5",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStateMessageService.cs:106",
+      "quote": "_sender.Send(member.SteamId, NetMsg.GeyserStateSnapshot, msg);"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W5",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/GeyserStateSync.cs:150",
+      "quote": "Traverse.Create(geyser).Field(\"liquidType\").SetValue(match.LiquidType); // byte — exact type (a SetValue(int) cast throws ArgumentException)"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W5",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/GeyserStateSync.cs:60",
+      "quote": "SendFullSet();"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W5",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/EntitySpawnSync.cs:252",
+      "quote": "if (msg.LiquidType != 0 && created.GetComponentInChildren<GeyserScript>() != null) // Unity object — =="
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W5",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/GeyserStateSync.cs:135",
+      "quote": "_log.LogInformation(\"[GeyserSnapshot] arrived during generation — deferred to the next cycle.\");"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W6",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/TrapLayoutScanner.cs:34",
+      "quote": "if (!generating && _generating && _session.Role == SessionRole.Host && !_scanned)"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W6",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/TrapLayoutScanner.cs:48",
+      "quote": "_world.ReportTrapLayout(entity.Entry.Kind, entity.Entry.X, entity.Entry.Y, entity.Entry.PrefabName);"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W6",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/TrapLayoutRegistry.cs:43",
+      "quote": "_layout[key] = new TrapLayoutEntryMsg { Kind = kind, X = x, Y = y, PrefabName = prefabName };"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W6",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntryFanout.cs:39",
+      "quote": "_world.SendTrapLayoutSnapshot(steamId);"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W6",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/TrapLayoutRegistry.cs:55",
+      "quote": "_sender.Send(targetSteamId, NetMsg.TrapLayoutSnapshot, msg);"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W6",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/TrapLayoutApplication.cs:65",
+      "quote": "var alignment = TrapLayoutAlign.Align(hostLayout, localEntries);"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W6",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/SceneStateHandler.cs:59",
+      "quote": "_worldEntryFanout.Send(reporter);"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W6",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/HandshakeHandler.cs:145",
+      "quote": "_worldEntryFanout.Send(sender);"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W7",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntryFanout.cs:37",
+      "quote": "_world.SendBlockStateSnapshot(steamId);"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W7",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntryFanout.cs:41",
+      "quote": "_kernelProtocol.SendCheckpoint(steamId);"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W7",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntryFanout.cs:44",
+      "quote": "_world.SendWorldSnapshotComplete(steamId);"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W7",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStateMessageService.cs:79",
+      "quote": "_sender.Send(targetSteamId, NetMsg.WorldSnapshotComplete, new WorldSnapshotCompleteMsg());"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W7",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/WorldSnapshotCompleteHandler.cs:15",
+      "quote": "ctx.World.FireWorldSnapshotCompleteReceived();"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W7",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStateMessageService.cs:70",
+      "quote": "public void FireWorldSnapshotCompleteReceived() => WorldSnapshotCompleteReceived?.Invoke();"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W7",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:122",
+      "quote": "if (IsHostMode && _session.SessionActive && Time.unscaledTime - _lastSnapshotResend > 60f)"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W7",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/HandshakeHandler.cs:145",
+      "quote": "_worldEntryFanout.Send(sender);"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "E1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs:36",
+      "quote": "BuildingEntityDamaged = 51, // guest → host: report (host applies + relays); host → guest: broadcast relay (source excluded)"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "E1",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Patches/BodyPatches.cs:117",
+      "quote": "PatchBridge.Impl?.OnBuildingEntityDamaged(entity, before - entity.health, playHitSound: true, playHitFlash: true);"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "E1",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Patches/OpenablePatches.cs:32",
+      "quote": "PatchBridge.Impl?.OnBuildingEntityOpened(build);"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "E1",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldBuildingEntitySync.cs:51",
+      "quote": "_world.SendBuildingEntityDamaged(new NetVector2(pos.x, pos.y), damage, playHitSound, playHitFlash);"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "E1",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:122",
+      "quote": "if (IsHostMode && _session.SessionActive && Time.unscaledTime - _lastSnapshotResend > 60f)"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "E1",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:131",
+      "quote": "_kernelProtocol.SendCheckpoint(member.SteamId); // the kernel checkpoint also covers lazy-session recovery for WorldEntities and the other kernel domains"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "E1",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldBuildingEntitySync.cs:225",
+      "quote": "entity.health = health;"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "E1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntryFanout.cs:41",
+      "quote": "_kernelProtocol.SendCheckpoint(steamId);"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "E2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs:48",
+      "quote": "EntityEvent = 66, // bidirectional: guest → host report of a triggered trap event; host → guest broadcast relay (source excluded — the host applies the event to its own world first)"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "E2",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Patches/TrapMineExplosionPatch.cs:35",
+      "quote": "PatchBridge.Impl?.OnTrapTriggered(EntityEventKind.MineExploded, __instance.transform.position, 0);"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "E2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/EntityEventChannel.cs:65",
+      "quote": "_sender.Send(_session.HostSteamId, NetMsg.EntityEvent, msg);"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "E2",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:122",
+      "quote": "if (IsHostMode && _session.SessionActive && Time.unscaledTime - _lastSnapshotResend > 60f)"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "E2",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:131",
+      "quote": "_kernelProtocol.SendCheckpoint(member.SteamId); // the kernel checkpoint also covers lazy-session recovery for WorldEntities and the other kernel domains"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "E2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntityKernelProjection.cs:86",
+      "quote": "if (EntityEventProfiles.IsOneShotConsumption((EntityEventKind)trapState.Kind)"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "E2",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/EntityEventSync.cs:169",
+      "quote": "_replay.Replay(msg.Kind, new Vector2(pos.X, pos.Y), msg.Extra, msg.ElapsedSeconds);"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "E2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntryFanout.cs:39",
+      "quote": "_world.SendTrapLayoutSnapshot(steamId);"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "E3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs:51",
+      "quote": "EntitySpawned = 68, // bidirectional: the creating side reports (keeps its local copy); the host creates its own and relays (source excluded) — items ride the item domain, entities ride this"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "E3",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Patches/BuildingEntityStartPatch.cs:15",
+      "quote": "private static void Postfix(BuildingEntity __instance) => PatchBridge.Impl?.OnEntityInstantiated(__instance);"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "E3",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/EntitySpawnSync.cs:349",
+      "quote": "_world.SendEntitySpawned(new EntitySpawnedMsg"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "E3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/EntityEventChannel.cs:206",
+      "quote": "_sender.Send(_session.HostSteamId, NetMsg.EntitySpawned, msg);"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "E3",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:122",
+      "quote": "if (IsHostMode && _session.SessionActive && Time.unscaledTime - _lastSnapshotResend > 60f)"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "E3",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:131",
+      "quote": "_kernelProtocol.SendCheckpoint(member.SteamId); // the kernel checkpoint also covers lazy-session recovery for WorldEntities and the other kernel domains"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "E3",
+      "ref": "src/CasualtiesUnknownOnline.GameState/Domains/WorldEntities/WorldEntityState.cs:11",
+      "quote": "public sealed record WorldEntityState("
+    },
+    {
+      "cluster": "world-entities",
+      "row": "E3",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/GeyserStateSync.cs:140",
+      "quote": "foreach (var geyser in Object.FindObjectsOfType<GeyserScript>())"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "E4",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs:152",
+      "quote": "DynamiteExplosion = 105, // bidirectional: guest → host report of a dynamite detonation; host → guest broadcast relay (source excluded)"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "E4",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Patches/DynamiteExplodePatch.cs:30",
+      "quote": "PatchBridge.Impl?.OnDynamiteExploded(itemId, __instance.transform.position);"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "E4",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/DynamiteExplosionSync.cs:66",
+      "quote": "_world.SendDynamiteExplosion(itemId, new NetVector2(position.x, position.y));"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "E4",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/DynamiteExplosionSync.cs:73",
+      "quote": "if (itemId != 0 && !_seen.Add(itemId))"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "E4",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/DynamiteExplosionSync.cs:84",
+      "quote": "WorldGeneration.CreateExplosion(ExplosionParams(pos));"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "E4",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/DynamiteExplosionSync.cs:95",
+      "quote": "_replay.ReplayExplosion(ExplosionParams(pos));"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "E4",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:122",
+      "quote": "if (IsHostMode && _session.SessionActive && Time.unscaledTime - _lastSnapshotResend > 60f)"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "E4",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:131",
+      "quote": "_kernelProtocol.SendCheckpoint(member.SteamId); // the kernel checkpoint also covers lazy-session recovery for WorldEntities and the other kernel domains"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "E5",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs:157",
+      "quote": "RadiationLineState = 106, // host → guest: the authoritative radiation-line state (Active + TimeGone)"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "E5",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/RadiationLineSync.cs:36",
+      "quote": "private const float BroadcastIntervalSeconds = 0.2f;"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "E5",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/RadiationLineSync.cs:94",
+      "quote": "|| (active && Time.unscaledTime - _lastBroadcastTime >= BroadcastIntervalSeconds);"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "E5",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/RadiationLineSync.cs:163",
+      "quote": "_world.BroadcastRadiationLineState(new RadiationLineStateMsg"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "E5",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStateMessageService.cs:248",
+      "quote": "_session.Broadcast(NetMsg.RadiationLineState, state);"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "E5",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/RadiationLineSync.cs:189",
+      "quote": "line.active = true;"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "E5",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntryFanout.cs:40",
+      "quote": "_world.SendRadiationLineState(steamId);"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "E5",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStateMessageService.cs:259",
+      "quote": "_sender.Send(targetSteamId, NetMsg.RadiationLineState, RadiationLineState);"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "E6",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs:218",
+      "quote": "WorldBloodSpawn = 121, // bidirectional: guest → host report of a local player's blood decal; host → guest broadcast relay (source excluded)"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "E6",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Patches/BleedParticleWorldBloodPatch.cs:126",
+      "quote": "PatchBridge.Impl?.OnWorldBloodSpawn(position, ground);"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "E6",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldBloodSync.cs:43",
+      "quote": "_world.SendWorldBloodSpawn(new WorldBloodSpawnMsg"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "E6",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/EntityEventChannel.cs:150",
+      "quote": "/// transient and has no snapshot fallback."
+    },
+    {
+      "cluster": "world-entities",
+      "row": "E6",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Protocol/Messages/WorldBloodSpawnMsg.cs:13",
+      "quote": "/// no periodic snapshot is used."
+    },
+    {
+      "cluster": "world-entities",
+      "row": "E6",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldBloodReplay.cs:53",
+      "quote": "Object.Destroy(decal, 120f);"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "E6",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/WorldBloodSpawnHandler.cs:24",
+      "quote": "ctx.Session.BroadcastExcept(sender, NetMsg.WorldBloodSpawn, msg);"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "E6",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldBloodSync.cs:59",
+      "quote": "WorldBloodReplay.Play(msg);"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "E7",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs:223",
+      "quote": "KernelEnvelope = 122, // bidirectional: the four-envelope kernel protocol rides one message id"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "E7",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/TrapStateRegistry.cs:159",
+      "quote": "_kernelAuthority.TryExecuteCommand(composite, _session.LocalSteamId, out _, out _);"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "E7",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:58",
+      "quote": "_authority.BatchCommitted += BroadcastCommittedBatch;"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "E7",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:497",
+      "quote": "_sender.Send(member.SteamId, NetMsg.KernelEnvelope, frame, reliable);"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "E7",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:122",
+      "quote": "if (IsHostMode && _session.SessionActive && Time.unscaledTime - _lastSnapshotResend > 60f)"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "E7",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:131",
+      "quote": "_kernelProtocol.SendCheckpoint(member.SteamId); // the kernel checkpoint also covers lazy-session recovery for WorldEntities and the other kernel domains"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "E7",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:474",
+      "quote": "var result = _authority.Restore(checkpoint);"
+    },
+    {
+      "cluster": "world-entities",
+      "row": "E7",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntryFanout.cs:41",
+      "quote": "_kernelProtocol.SendCheckpoint(steamId);"
+    },
+    {
+      "cluster": "inline",
+      "row": "K1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:332",
+      "quote": "_commandHandler.Handle(sender, envelope);"
+    },
+    {
+      "cluster": "inline",
+      "row": "K1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemKernelAuthority.cs:596",
+      "quote": "BatchCommitted?.Invoke(batch!);"
+    },
+    {
+      "cluster": "inline",
+      "row": "K1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:142",
+      "quote": "if (_session.Role != SessionRole.Guest || !_session.SessionActive || _session.HostSteamId == 0)"
+    },
+    {
+      "cluster": "inline",
+      "row": "K1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:345",
+      "quote": "var expected = _authority.CurrentGlobalRevision + 1;"
+    },
+    {
+      "cluster": "inline",
+      "row": "K1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemKernelAuthority.cs:88",
+      "quote": "if (_appliedOperations.Contains(batch.OperationId))"
+    },
+    {
+      "cluster": "inline",
+      "row": "K2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:398",
+      "quote": "SendCommand(new WireCommand"
+    },
+    {
+      "cluster": "inline",
+      "row": "K2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:406",
+      "quote": "private void HandleRangeRequest(ulong sender, WireCommand command)"
+    },
+    {
+      "cluster": "inline",
+      "row": "K2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:466",
+      "quote": "if (_checkpointChunks.Count != chunk.ChunkCount)"
+    },
+    {
+      "cluster": "inline",
+      "row": "K2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/WireCheckpointAssembler.cs:114",
+      "quote": "if (chunk.RunEpoch != first.RunEpoch || chunk.GlobalRevision != first.GlobalRevision)"
+    },
+    {
+      "cluster": "inline",
+      "row": "K2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:489",
+      "quote": "_checkpointChunks.Clear();"
+    },
+    {
+      "cluster": "inline",
+      "row": "K4",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:210",
+      "quote": "public void ResetForSessionEnd()"
+    },
+    {
+      "cluster": "inline",
+      "row": "K4",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:213",
+      "quote": "_journal.Clear();"
+    },
+    {
+      "cluster": "inline",
+      "row": "K4",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:218",
+      "quote": "_stateStreams.Reset();"
+    },
+    {
+      "cluster": "inline",
+      "row": "K4",
+      "ref": "src/CasualtiesUnknownOnline.GameState/GameStateKernel.cs:34",
+      "quote": "if (command.RunEpoch != _store.RunEpoch || context.RunEpoch != _store.RunEpoch)"
+    },
+    {
+      "cluster": "inline",
+      "row": "K4",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:283",
+      "quote": "{"
+    },
+    {
+      "cluster": "inline",
+      "row": "K4",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:462",
+      "quote": "private void HandleCheckpoint(CheckpointEnvelope envelope)"
+    },
+    {
+      "cluster": "inline",
+      "row": "K4",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelWireMapper.cs:309",
+      "quote": "batch.RunEpoch == 0 ? fallbackEpoch : new RunEpoch(batch.RunEpoch),"
+    },
+    {
+      "cluster": "inline",
+      "row": "K5",
+      "ref": "src/CasualtiesUnknownOnline.Protocol/Wire/StateStreamEnvelope.cs:9",
+      "quote": "public sealed class StateStreamEnvelope"
+    },
+    {
+      "cluster": "inline",
+      "row": "K5",
+      "ref": "src/CasualtiesUnknownOnline.Protocol/Wire/WirePayloadType.cs:77",
+      "quote": "PlayerStateStream = 304,"
+    },
+    {
+      "cluster": "inline",
+      "row": "K5",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/PlayerStreamExchange.cs:71",
+      "quote": "kernelProtocol.SendStateStreamTo(session.HostSteamId,"
+    },
+    {
+      "cluster": "inline",
+      "row": "K5",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EntitySyncService.cs:431",
+      "quote": "_nextReportSendMs = nowMs + _adaptiveRates.GetSendIntervalMs("
+    },
+    {
+      "cluster": "inline",
+      "row": "K5",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/AdaptiveSync/AdaptiveStreamCatalog.cs:12",
+      "quote": "private const int MinHz = 1;"
+    },
+    {
+      "cluster": "inline",
+      "row": "K5",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EntitySyncService.cs:486",
+      "quote": "_playerStream.ResetSession();"
+    },
+    {
+      "cluster": "inline",
+      "row": "K5",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PacketSender.cs:24",
+      "quote": "/// Send a message. Reliable by default — only the 20 Hz state stream"
+    },
+    {
+      "cluster": "inline",
+      "row": "W1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs:33",
+      "quote": "BlockPlaced = 42, // guest → host: report (host arbitrates); host → guest: broadcast relay (source excluded)"
+    },
+    {
+      "cluster": "inline",
+      "row": "W1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStateMessageService.cs:310",
+      "quote": "_sender.Send(targetSteamId, NetMsg.WorldBlockState, msg);"
+    },
+    {
+      "cluster": "inline",
+      "row": "W1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/AdaptiveSync/AdaptiveStreamId.cs:5",
+      "quote": "/// Reliable control paths are intentionally not enumerated here because they"
+    },
+    {
+      "cluster": "inline",
+      "row": "W1",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:273",
+      "quote": "var inWorld = PlayerCamera.main != null && WorldGeneration.world != null"
+    },
+    {
+      "cluster": "inline",
+      "row": "W1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStateMessageService.cs:271",
+      "quote": "if (_damagedBlocks.Count >= MaxDamagedBlocks && !_damagedBlocks.ContainsKey((x, y)))"
+    },
+    {
+      "cluster": "inline",
+      "row": "W2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs:31",
+      "quote": "BlockDamaged = 40, // guest → host: report (host arbitrates); host → guest: broadcast relay (source excluded)"
+    },
+    {
+      "cluster": "inline",
+      "row": "W2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/BlockDamageRegistry.cs:49",
+      "quote": "_damage[key] = damage;"
+    },
+    {
+      "cluster": "inline",
+      "row": "W2",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/BlockBreakSync.cs:340",
+      "quote": "if (block == 0)"
+    },
+    {
+      "cluster": "inline",
+      "row": "W2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/BlockDamageRegistry.cs:32",
+      "quote": "if (_session.Role != SessionRole.Host)"
+    },
+    {
+      "cluster": "inline",
+      "row": "W2",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/BlockBreakSync.cs:327",
+      "quote": "internal void OnBlockDamageSnapshot(IReadOnlyList<BlockDamageEntryMsg> entries)"
+    },
+    {
+      "cluster": "inline",
+      "row": "W2",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/BlockBreakSync.cs:346",
+      "quote": "if (entry.Damage <= 0f || entry.Damage >= blockHealth)"
+    },
+    {
+      "cluster": "inline",
+      "row": "W3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs:40",
+      "quote": "EarthquakeStart = 55, // host → guest: an earthquake began (Duration seconds) — guests show the effect and suppress their own independent quake (four independent quakes would strip the terrain)"
+    },
+    {
+      "cluster": "inline",
+      "row": "W4",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs:41",
+      "quote": "KeypadCode = 57, // host → guest: the keypad codes (airdrop crates etc.) — generated host-side at world entry (the game lazy-generates them per side on first use, Openable.cs:19, which would give every side its own code)"
+    },
+    {
+      "cluster": "inline",
+      "row": "W4",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:59",
+      "quote": "_world.EarthquakeStartReceived += OnEarthquakeStartReceived;"
+    },
+    {
+      "cluster": "inline",
+      "row": "W4",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:63",
+      "quote": "_session.RemoteSceneChanged += OnRemoteSceneChanged;"
+    },
+    {
+      "cluster": "inline",
+      "row": "W5",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs:54",
+      "quote": "GeyserStateSnapshot = 69, // host → guest: the geysers' liquid types — rolled per-side at generation from the PUBLIC random stream (GeyserScript.cs:12, outside the isolated generation stream), so the host's roll is the authority; world entry + 60 s re-send, idempotent"
+    },
+    {
+      "cluster": "inline",
+      "row": "W5",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/GeyserStateSync.cs:80",
+      "quote": "if (!_sentOnce)"
+    },
+    {
+      "cluster": "inline",
+      "row": "W6",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs:84",
+      "quote": "TrapLayoutSnapshot = 79, // host → guest: the layout entries (world entry, sent alongside the block-state / trap-state / opened-entities snapshots)"
+    },
+    {
+      "cluster": "inline",
+      "row": "W6",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/TrapLayoutApplication.cs:36",
+      "quote": "if (_pending is { } pending && !generating && _generating)"
+    },
+    {
+      "cluster": "inline",
+      "row": "W7",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs:174",
+      "quote": "WorldSnapshotComplete = 110, // host → guest: the world-entry snapshot group is complete"
+    },
+    {
+      "cluster": "inline",
+      "row": "E1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStateMessageService.cs:187",
+      "quote": "_session.Broadcast(NetMsg.BuildingEntityDamaged, msg);"
+    },
+    {
+      "cluster": "inline",
+      "row": "E1",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldBuildingEntitySync.cs:54",
+      "quote": "_world.ReportBuildingEntityHealth(pos.x, pos.y, entity.health); // host-only — the late-joiner snapshot's fact source"
+    },
+    {
+      "cluster": "inline",
+      "row": "E1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntityKernelProjection.cs:140",
+      "quote": "_projectionHealth.Run(\"world-entities\", checkpoint.GlobalRevision, () => Project(checkpoint));"
+    },
+    {
+      "cluster": "inline",
+      "row": "E1",
+      "ref": "src/CasualtiesUnknownOnline.GameState/Domains/WorldEntities/WorldEntityDomainModule.cs:57",
+      "quote": "if (current is not null && current.Health <= 0f && command.Health > 0f)"
+    },
+    {
+      "cluster": "inline",
+      "row": "E2",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/EntityEventSync.cs:70",
+      "quote": "_world.SendEntityEvent(new EntityEventMsg"
+    },
+    {
+      "cluster": "inline",
+      "row": "E2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntityKernelProjection.cs:107",
+      "quote": "TrapSnapshotProjected?.Invoke(projected);"
+    },
+    {
+      "cluster": "inline",
+      "row": "E2",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/EntityEventSync.cs:155",
+      "quote": "private void OnTrapStateProjected(IReadOnlyList<EntityEventMsg> consumed)"
+    },
+    {
+      "cluster": "inline",
+      "row": "E3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EnemySyncService.cs:285",
+      "quote": "RuntimeSpawns ="
+    },
+    {
+      "cluster": "inline",
+      "row": "E3",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:106",
+      "quote": "/// ~30 s after world entry — world-mutation broadcasts sent in that window"
+    },
+    {
+      "cluster": "inline",
+      "row": "E4",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/EntityEventChannel.cs:115",
+      "quote": "_sender.Send(_session.HostSteamId, NetMsg.DynamiteExplosion, msg);"
+    },
+    {
+      "cluster": "inline",
+      "row": "E4",
+      "ref": "docs/evidence/selfchecks/items/dynamite-explosion-selfcheck.md:26",
+      "quote": "| 10 | Accepted residual | The 5 s lit-fuse visual (child sprite + fuse audio) on remote clones remains local-only; it is short-lived presentation, not persistent state. The authoritative detonation (body damage + world consequences) is now synced |"
+    },
+    {
+      "cluster": "inline",
+      "row": "E5",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/RadiationLineSync.cs:93",
+      "quote": "|| active != _lastActive"
+    },
+    {
+      "cluster": "inline",
+      "row": "E5",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/RadiationLineSync.cs:87",
+      "quote": "_world.SetRadiationLineState(new RadiationLineStateMsg { Active = active, TimeGone = timeGone });"
+    },
+    {
+      "cluster": "inline",
+      "row": "E5",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/RadiationLineSync.cs:92",
+      "quote": "var due = !_hasPublished"
+    },
+    {
+      "cluster": "inline",
+      "row": "E6",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/EntityEventChannel.cs:152",
+      "quote": "public void SendWorldBloodSpawn(WorldBloodSpawnMsg msg)"
+    },
+    {
+      "cluster": "inline",
+      "row": "E6",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldBloodSync.cs:9",
+      "quote": "/// <summary>"
+    },
+    {
+      "cluster": "inline",
+      "row": "E6",
+      "ref": "docs/evidence/selfchecks/world/world-blood-spawn-sync-selfcheck.md:6",
+      "quote": "transient (120 s lifetime, no periodic snapshot), so a lost message is"
+    },
+    {
+      "cluster": "inline",
+      "row": "E7",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntityKernelProjection.cs:136",
+      "quote": "private void RebuildFromKernel() =>"
+    },
+    {
+      "cluster": "inline",
+      "row": "F1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/AdaptiveSync/AdaptiveStreamCatalog.cs:97",
+      "quote": "[AdaptiveStreamId.FluidRegionFullStream] = new("
+    },
+    {
+      "cluster": "inline",
+      "row": "F1",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/FluidSimulationAuthority.cs:280",
+      "quote": "var fullIntervalMs = _adaptiveRates.GetSendIntervalMs("
+    },
+    {
+      "cluster": "inline",
+      "row": "F1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/FluidRleCodec.cs:48",
+      "quote": "// The uncovered tail (the omitted trailing zero runs) = cleared cells."
+    },
+    {
+      "cluster": "inline",
+      "row": "F1",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/FluidRegionApplication.cs:29",
+      "quote": "FluidRleCodec.Decode("
+    },
+    {
+      "cluster": "inline",
+      "row": "F1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/AdaptiveSync/AdaptiveRatePolicy.cs:68",
+      "quote": "var effective = (long)Math.Round(baseIntervalMs / factor);"
+    },
+    {
+      "cluster": "inline",
+      "row": "F1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/AdaptiveSync/AdaptiveStreamCatalog.cs:88",
+      "quote": "[AdaptiveStreamId.FluidRegionDiffStream] = new("
+    },
+    {
+      "cluster": "inline",
+      "row": "F1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PacketSender.cs:103",
+      "quote": "private static WirePayloadType? ClassifyFluidRegion(FluidRegionMsg region) =>"
+    },
+    {
+      "cluster": "inline",
+      "row": "F1",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/FluidSimulationAuthority.cs:299",
+      "quote": "if (view.Center != anchor)"
+    },
+    {
+      "cluster": "inline",
+      "row": "F1",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/FluidSimulationAuthority.cs:330",
+      "quote": "_views.Clear();"
+    },
+    {
+      "cluster": "inline",
+      "row": "F1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/FluidRegionHandler.cs:23",
+      "quote": "msg.OriginX, msg.OriginY, msg.Width, msg.Height, msg.Cells.Length, msg.Seq, sender);"
+    },
+    {
+      "cluster": "inline",
+      "row": "F1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/EntityEventChannel.cs:223",
+      "quote": "/// <summary>Host only: stream an absolute RLE fluid-grid region to one member (the host simulates the world fluid alone; the guest applies it onto its local grid and the game's own renderer draws it). Unreliable: every region is an absolute overwrite, so a lost one is healed by the next (a reliable stream would queue the newest snapshot behind retransmissions — head-of-line blocking).</summary>"
+    },
+    {
+      "cluster": "inline",
+      "row": "F1",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/FluidSimulationAuthority.cs:449",
+      "quote": "view.Grid[i] = v;"
+    },
+    {
+      "cluster": "inline",
+      "row": "F2",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Patches/FluidDrinkPatch.cs:16",
+      "quote": "private static void Postfix(FluidManager __instance, Vector2Int pos, Body body)"
+    },
+    {
+      "cluster": "inline",
+      "row": "F2",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/FluidInteractionSync.cs:31",
+      "quote": "internal void OnDrinkReported(Vector2Int pos)"
+    },
+    {
+      "cluster": "inline",
+      "row": "F2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/EntityEventChannel.cs:254",
+      "quote": "_session.Broadcast(NetMsg.FluidInteraction, msg);"
+    },
+    {
+      "cluster": "inline",
+      "row": "F2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/FluidInteractionHandler.cs:19",
+      "quote": "protected override void Handle(ulong sender, FluidInteractionMsg msg, IWorldSessionHandlerContext ctx)"
+    },
+    {
+      "cluster": "inline",
+      "row": "F2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/SessionService.cs:132",
+      "quote": "void ISessionControl.Broadcast(NetMsg msg, object payload) =>"
+    },
+    {
+      "cluster": "inline",
+      "row": "F2",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/FluidInteractionSync.cs:15",
+      "quote": "/// it already applied locally). The bath-soiled water (LiquidAffect's"
+    },
+    {
+      "cluster": "inline",
+      "row": "F2",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/FluidInteractionSync.cs:66",
+      "quote": "if (fluid.fluid[x, y] == 0)"
+    },
+    {
+      "cluster": "inline",
+      "row": "F3",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/FluidSimulationAuthority.cs:201",
+      "quote": "private void SendWaterPushIfDue(FluidManager fluid, Vector2Int pos, Vector2 direction,"
+    },
+    {
+      "cluster": "inline",
+      "row": "F3",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/FluidSimulationAuthority.cs:148",
+      "quote": "if (_tileCooldown > 16)"
+    },
+    {
+      "cluster": "inline",
+      "row": "F3",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/FluidSimulationAuthority.cs:229",
+      "quote": "private void SendPresentation(Vector2Int pos, FluidPresentationMsg msg,"
+    },
+    {
+      "cluster": "inline",
+      "row": "F3",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/FluidPresentationApplication.cs:23",
+      "quote": "internal void Apply(FluidPresentationMsg msg)"
+    },
+    {
+      "cluster": "inline",
+      "row": "F3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/EntityEventChannel.cs:281",
+      "quote": "/// push / waterflow sound) to one member. Reliable: a lost push would make"
+    },
+    {
+      "cluster": "inline",
+      "row": "F3",
+      "ref": "docs/evidence/selfchecks/fluids/fluid-presentation-selfcheck.md:72",
+      "quote": "- Reliable delivery is used because a lost push would be a missed local-body"
+    },
+    {
+      "cluster": "inline",
+      "row": "F3",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/FluidPresentationApplication.cs:54",
+      "quote": "private static void SpawnWaterPusher(Vector2 pos, Vector2 direction)"
+    },
+    {
+      "cluster": "inline",
+      "row": "F3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PacketSender.cs:47",
+      "quote": "var success = _transport.SendTo(steamId, frame, reliable);"
+    },
+    {
+      "cluster": "inline",
+      "row": "F4",
+      "ref": "src/CasualtiesUnknownOnline.GameState/Domains/Fluids/FluidDomainModule.cs:21",
+      "quote": "ResetFluidsCommand => DomainDecision.Accept(new FluidsResetEvent()),"
+    },
+    {
+      "cluster": "inline",
+      "row": "F4",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/FluidKernelProjection.cs:63",
+      "quote": "private void Commit(FluidRegionSummary summary)"
+    },
+    {
+      "cluster": "inline",
+      "row": "F4",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/FluidKernelProjection.cs:56",
+      "quote": "foreach (var stale in table.Regions.Where(r =>"
+    },
+    {
+      "cluster": "inline",
+      "row": "F4",
+      "ref": "src/CasualtiesUnknownOnline.GameState/GameCheckpoint.cs:26",
+      "quote": "FluidStateTable? Fluids = null);"
+    },
+    {
+      "cluster": "inline",
+      "row": "F4",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/WireCheckpointAssembler.cs:88",
+      "quote": "Fluids = index == 0"
+    },
+    {
+      "cluster": "inline",
+      "row": "F4",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/FluidKernelReadProjection.cs:85",
+      "quote": "private void OnCheckpointRestored(GameCheckpoint checkpoint)"
+    },
+    {
+      "cluster": "inline",
+      "row": "F4",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/FluidKernelViewSync.cs:35",
+      "quote": "private void OnProjected(IReadOnlyList<FluidRegionState> regions)"
+    },
+    {
+      "cluster": "inline",
+      "row": "F4",
+      "ref": "docs/evidence/selfchecks/architecture/phase-d-fluids-shadow-selfcheck.md:71",
+      "quote": "simulation by design. The coarse kernel facts stay a diagnostic/future"
+    },
+    {
+      "cluster": "inline",
+      "row": "F5",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/SceneStateHandler.cs:42",
+      "quote": "if (member.InWorld)"
+    },
+    {
+      "cluster": "inline",
+      "row": "F5",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/HandshakeHandler.cs:143",
+      "quote": "if (member.InWorld)"
+    },
+    {
+      "cluster": "inline",
+      "row": "I2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/AdaptiveSync/AdaptiveStreamCatalog.cs:72",
+      "quote": "MinHz,"
+    },
+    {
+      "cluster": "inline",
+      "row": "I2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:326",
+      "quote": "if (envelope.Command.Kind == WireCommandKind.RangeRequest)"
+    },
+    {
+      "cluster": "inline",
+      "row": "I3",
+      "ref": "src/CasualtiesUnknownOnline.Protocol/Wire/WireItemData.cs:21",
+      "quote": "[ProtoMember(4)]"
+    },
+    {
+      "cluster": "inline",
+      "row": "I3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemService.cs:67",
+      "quote": "_projectionHealth.Register(new ProjectionDomain(\"items\", RebuildItemProjectionFromKernel, () => _kernelAuthority.CurrentGlobalRevision));"
+    },
+    {
+      "cluster": "inline",
+      "row": "I3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemSnapshotService.cs:85",
+      "quote": "/// channel — drops are harmless (the next tick overwrites; the receiver"
+    },
+    {
+      "cluster": "inline",
+      "row": "I4",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Items/RemoteItemSceneOps.cs:372",
+      "quote": "BindToContainer(existing, w.ParentItemId, w.ParentPosition);"
+    },
+    {
+      "cluster": "inline",
+      "row": "I4",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Items/ItemReconcile.cs:103",
+      "quote": "// dropped event was not self-healed. Contents are intentionally left"
+    },
+    {
+      "cluster": "inline",
+      "row": "I5",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Patches/BodyItemPatches.cs:114",
+      "quote": "PatchBridge.Impl?.OnItemDropped(item);"
+    },
+    {
+      "cluster": "inline",
+      "row": "I6",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/CraftSyncService.cs:133",
+      "quote": "_items.UpdateWorldItemState(id, entry.Item);"
+    },
+    {
+      "cluster": "inline",
+      "row": "I6",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/CraftSyncService.cs:158",
+      "quote": "_items.PublishCarriedSyncLocal(sender, product);"
+    },
+    {
+      "cluster": "inline",
+      "row": "I6",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/CraftSyncService.cs:126",
+      "quote": "case CraftVerdict.UnknownSkip:"
+    },
+    {
+      "cluster": "inline",
+      "row": "I7",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Items/GunStateSync.cs:62",
+      "quote": "_itemUseSync.OnItemUsed(item);"
+    },
+    {
+      "cluster": "inline",
+      "row": "I9",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Items/ItemApplication.cs:272",
+      "quote": "if (world.FreshItemDrop && item.GetComponent<FreshItemDrop>() == null) // Unity object — =="
+    },
+    {
+      "cluster": "inline",
+      "row": "P1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/PlayerStreamExchange.cs:49",
+      "quote": "foreach (var target in synced)"
+    },
+    {
+      "cluster": "inline",
+      "row": "P1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs:23",
+      "quote": "PlayerJoin = 32, // host → guest: self-activation + roster announcement"
+    },
+    {
+      "cluster": "inline",
+      "row": "P1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/AdaptiveSync/AdaptiveStreamCatalog.cs:18",
+      "quote": "[AdaptiveStreamId.PlayerStateBroadcast] = new("
+    },
+    {
+      "cluster": "inline",
+      "row": "P1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/AdaptiveSync/AdaptiveRatePolicy.cs:104",
+      "quote": "AdaptivePressureLevel.Critical => priority switch"
+    },
+    {
+      "cluster": "inline",
+      "row": "P1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EntitySyncService.cs:239",
+      "quote": "LastStateSeq = 0; // the host's snapshot sequence restarts with this join"
+    },
+    {
+      "cluster": "inline",
+      "row": "P1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EntitySyncService.cs:560",
+      "quote": "private PlayerEntity UpsertEntity(ulong steamId, NetworkEntityId entityId)"
+    },
+    {
+      "cluster": "inline",
+      "row": "P2",
+      "ref": "src/CasualtiesUnknownOnline.Protocol/Wire/WirePayloadType.cs:25",
+      "quote": "UpdatePlayerStatusCommand = 14,"
+    },
+    {
+      "cluster": "inline",
+      "row": "P2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:337",
+      "quote": "_playerLimbKernel.SyncFromLimbEvent(msg);"
+    },
+    {
+      "cluster": "inline",
+      "row": "P2",
+      "ref": "src/CasualtiesUnknownOnline.GameState/Domains/Players/PlayerDomainModule.cs:30",
+      "quote": "UpdatePlayerStatusCommand c => DomainDecision.Accept(new PlayerStatusUpdatedEvent(c.State)),"
+    },
+    {
+      "cluster": "inline",
+      "row": "P2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/PlayerKernelStatusProjection.cs:43",
+      "quote": "if (current is not null && current.Alive == alive && current.Conscious == conscious)"
+    },
+    {
+      "cluster": "inline",
+      "row": "P2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:401",
+      "quote": "RangeStart = start,"
+    },
+    {
+      "cluster": "inline",
+      "row": "P2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/PlayerKernelRestoreProjection.cs:26",
+      "quote": "public void Apply(ulong steamId, CharacterDataMsg data)"
+    },
+    {
+      "cluster": "inline",
+      "row": "P2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:196",
+      "quote": "_playerKernelRestore.Apply(steamId, data);"
+    },
+    {
+      "cluster": "inline",
+      "row": "P2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:468",
+      "quote": "return;"
+    },
+    {
+      "cluster": "inline",
+      "row": "P3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs:27",
+      "quote": "CharacterData = 37,"
+    },
+    {
+      "cluster": "inline",
+      "row": "P3",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Character/CharacterDataSync.cs:278",
+      "quote": "_characterData.ReportCharacterData(CharacterDataCapture.Capture(_mapper, prevBody));"
+    },
+    {
+      "cluster": "inline",
+      "row": "P3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:298",
+      "quote": "_session.Broadcast(NetMsg.HostCharacterData, msg);"
+    },
+    {
+      "cluster": "inline",
+      "row": "P3",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Character/CharacterDataSync.cs:48",
+      "quote": "private const float CharacterReportInterval = 1f; // guest → host character snapshot (1 Hz)"
+    },
+    {
+      "cluster": "inline",
+      "row": "P3",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Character/CharacterDataSync.cs:161",
+      "quote": "_factTable.ApplySnapshot(sender, data);"
+    },
+    {
+      "cluster": "inline",
+      "row": "P3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/SceneStateHandler.cs:55",
+      "quote": "ctx.CharacterData.SendSavedCharacter(reporter);"
+    },
+    {
+      "cluster": "inline",
+      "row": "P3",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/RespawnCoordinator.cs:136",
+      "quote": "_characterData.SendSavedCharacter(steamId);"
+    },
+    {
+      "cluster": "inline",
+      "row": "P3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:181",
+      "quote": "internal void SendSavedCharacter(ulong steamId)"
+    },
+    {
+      "cluster": "inline",
+      "row": "P3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:210",
+      "quote": "if (!_persistence.Save(_savedCharacters))"
+    },
+    {
+      "cluster": "inline",
+      "row": "P3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:143",
+      "quote": "public void ClearSavedCharacters()"
+    },
+    {
+      "cluster": "inline",
+      "row": "P4",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:347",
+      "quote": "public void SendLimbStateEvent(LimbStateEventMsg msg)"
+    },
+    {
+      "cluster": "inline",
+      "row": "P4",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs:113",
+      "quote": "LimbStateEvent = 93, // bidirectional: guest → host report of the owner's own limb latch; host → guest broadcast relay (source excluded) — carries the body's full post-event limb + health terminal state"
+    },
+    {
+      "cluster": "inline",
+      "row": "P4",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Patches/LimbStatePatches.cs:71",
+      "quote": "if (latchChanged && limb.GetComponentInParent<RemoteBodyDriver>() == null) // Unity object — =="
+    },
+    {
+      "cluster": "inline",
+      "row": "P5",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:377",
+      "quote": "public void SendCharacterSound(CharacterSoundMsg msg)"
+    },
+    {
+      "cluster": "inline",
+      "row": "P5",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs:118",
+      "quote": "CharacterSound = 94, // bidirectional: guest → host report of the owner's own action event; host → guest broadcast relay (source excluded)"
+    },
+    {
+      "cluster": "inline",
+      "row": "P5",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Patches/SoundPlayAudioClipPatch.cs:59",
+      "quote": "PatchBridge.Impl?.OnCharacterSound(kind, resource, pos, volume, follow != null, twoDimensional, 0f);"
+    },
+    {
+      "cluster": "inline",
+      "row": "P5",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Patches/BodyPatches.cs:237",
+      "quote": "PatchBridge.Impl?.OnCharacterLandingVisual(cloudSize, position, __instance.rb.velocity.x);"
+    },
+    {
+      "cluster": "inline",
+      "row": "P5",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/CharacterDataStore.cs:374",
+      "quote": "/// already heard the sound locally). Reliable — one sound = one message,"
+    },
+    {
+      "cluster": "inline",
+      "row": "P5",
+      "ref": "docs/evidence/selfchecks/players/character-ragdoll-toggle-sync-selfcheck.md:30",
+      "quote": "across calls; a lost message is acceptable (the 20 Hz stream fallback)."
+    },
+    {
+      "cluster": "inline",
+      "row": "P6",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs:135",
+      "quote": "PlayerCarryStartRequest = 99, // guest → host: start carrying an unconscious/dead in-world player"
+    },
+    {
+      "cluster": "inline",
+      "row": "P6",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemKernelAuthority.cs:188",
+      "quote": "public bool TrySetPlayerCarry(ulong actor, ulong carrierSteamId, ulong carriedSteamId, out CommittedBatch? batch, out Rejection? rejection) =>"
+    },
+    {
+      "cluster": "inline",
+      "row": "P6",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerCarryService.cs:278",
+      "quote": "internal void RebuildFromCheckpoint(PlayerStateTable? players)"
+    },
+    {
+      "cluster": "inline",
+      "row": "P6",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerCarryService.cs:373",
+      "quote": "private void ClearIfInvolved(ulong steamId)"
+    },
+    {
+      "cluster": "inline",
+      "row": "P7",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs:128",
+      "quote": "PlayerInventoryTakeRequest = 97, // guest → host: take one carried item from another in-world player"
+    },
+    {
+      "cluster": "inline",
+      "row": "P7",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerInteractionResultAuthority.cs:26",
+      "quote": "new RecordPlayerInventoryTransferCommand("
+    },
+    {
+      "cluster": "inline",
+      "row": "P7",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerInventoryTakeService.cs:168",
+      "quote": "_characters.SaveCharacterData(from, newSource);"
+    },
+    {
+      "cluster": "inline",
+      "row": "P7",
+      "ref": "src/CasualtiesUnknownOnline.GameState/Domains/Players/PlayerDomainModule.cs:67",
+      "quote": "PlayerInventoryTransferEvent or PlayerHealResultEvent or PlayerItemUseResultEvent => current,"
+    },
+    {
+      "cluster": "inline",
+      "row": "P8",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs:142",
+      "quote": "PlayerHealRequest = 102, // guest → host: use a carried medical item on another in-world player (ItemInstanceId 0 = host auto-select)"
+    },
+    {
+      "cluster": "inline",
+      "row": "P8",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerItemUseService.cs:65",
+      "quote": "_sender.Send(_session.HostSteamId, NetMsg.PlayerItemUseRequest, msg);"
+    },
+    {
+      "cluster": "inline",
+      "row": "P9",
+      "ref": "docs/decisions/archive.md:120",
+      "quote": "| 130 | Push is transient presentation, not a kernel fact (2026-08-29) | Cross-player push/shove is a presentation-only operation. - **No kernel command/event** — push creates/updates no durable relation, ownership, health, or item fact; therefore it does not enter the Phase C kernel protocol… |"
+    },
+    {
+      "cluster": "inline",
+      "row": "P9",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerPushService.cs:20",
+      "quote": "/// 20 Hz player state stream as the presentation fallback."
+    },
+    {
+      "cluster": "inline",
+      "row": "P9",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/PlayerPushApply.cs:25",
+      "quote": "domains.Log.LogWarning(\"[Push] result received but the local body is not ready — skipped.\");"
+    },
+    {
+      "cluster": "inline",
+      "row": "P10",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerRemoteInventoryService.cs:228",
+      "quote": "_take.HandleRemoteBackpackTake(requester, owner, original.InstanceId);"
+    },
+    {
+      "cluster": "inline",
+      "row": "P10",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/RemoteInventoryOperationApply.cs:32",
+      "quote": "_log.LogWarning(\"[RemoteApply] native {Kind} skipped: local body is not ready.\", msg.Kind);"
+    },
+    {
+      "cluster": "inline",
+      "row": "P11",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs:247",
+      "quote": "MedicalOperationStartRequest = 127, // guest → host: begin a medical operation"
+    },
+    {
+      "cluster": "inline",
+      "row": "P11",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/MedicalOperationSessionService.cs:142",
+      "quote": "_sender.Send(_session.HostSteamId, NetMsg.MedicalOperationStartRequest, msg);"
+    },
+    {
+      "cluster": "inline",
+      "row": "P11",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/MedicalOperationSessionService.cs:182",
+      "quote": "_sender.Send(_session.HostSteamId, NetMsg.MedicalOperationEndRequest, msg);"
+    },
+    {
+      "cluster": "inline",
+      "row": "P11",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/MedicalOperationSessionService.cs:197",
+      "quote": "_sender.Send(_session.HostSteamId, NetMsg.MedicalOperationCancel, msg);"
+    },
+    {
+      "cluster": "inline",
+      "row": "P11",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/ShrapnelOperationSessionService.cs:134",
+      "quote": "}, reliable: true);"
+    },
+    {
+      "cluster": "inline",
+      "row": "P11",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/MedicalOperationInjectionApplier.cs:79",
+      "quote": "state = new MedicalOperationStateMsg"
+    },
+    {
+      "cluster": "inline",
+      "row": "P11",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/AdaptiveSync/AdaptiveStreamCatalog.cs:50",
+      "quote": "[AdaptiveStreamId.MedicalInjectionReport] = new("
+    },
+    {
+      "cluster": "inline",
+      "row": "P11",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/MedicalOperationSessionService.cs:585",
+      "quote": "Terminate(session, MedicalOperationTerminalReason.Disconnected);"
+    },
+    {
+      "cluster": "inline",
+      "row": "P11",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/ShrapnelOperationSessionService.cs:406",
+      "quote": "internal void FlushBeforeTerminal(ulong operationId) =>"
+    },
+    {
+      "cluster": "inline",
+      "row": "P11",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/MedicalInjectionReportBuffer.cs:15",
+      "quote": "/// reports within the adaptive interval are accumulated into one reliable"
+    },
+    {
+      "cluster": "inline",
+      "row": "P12",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/PlayerColorUpdateHandler.cs:33",
+      "quote": "session.GetOrCreateMember(sender).SelectedColor = color;"
+    },
+    {
+      "cluster": "inline",
+      "row": "P12",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/HandshakeAckHandler.cs:35",
+      "quote": "member.SelectedColor = msg.HasColor ? msg.Color.ToNetColorRgba() : (NetColorRgba?)null;"
+    },
+    {
+      "cluster": "inline",
+      "row": "P12",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EntitySyncService.cs:541",
+      "quote": "var selectedColor = _session.TryGetMember(guestSteamId, out presence)"
+    },
+    {
+      "cluster": "inline",
+      "row": "P12",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/PlayerColorUpdateHandler.cs:36",
+      "quote": "SteamId = sender,"
+    },
+    {
+      "cluster": "inline",
+      "row": "N1",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Character/EnemyCombatReplay.cs:36",
+      "quote": "internal void OnEnemyAttackReceived(EnemyAttackMsg msg)"
+    },
+    {
+      "cluster": "inline",
+      "row": "N1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EnemySyncService.cs:263",
+      "quote": "var stream = new WireStateStream"
+    },
+    {
+      "cluster": "inline",
+      "row": "N1",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Character/EnemyCombatDirector.cs:339",
+      "quote": "BiteCooldownField.SetValue(spider, spider.biteCoolToSet);"
+    },
+    {
+      "cluster": "inline",
+      "row": "N1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EnemySyncService.cs:145",
+      "quote": "_log.LogWarning(\"[EnemyAttack] victim {Victim} is not an in-world member — command dropped.\", msg.VictimSteamId);"
+    },
+    {
+      "cluster": "inline",
+      "row": "N2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EnemyCombatKernelSubmitter.cs:40",
+      "quote": "_kernelProtocol.SendCommand("
+    },
+    {
+      "cluster": "inline",
+      "row": "N2",
+      "ref": "src/CasualtiesUnknownOnline.GameState/Domains/Entities/EnemyDomainModule.cs:26",
+      "quote": "RemoveEnemyCommand c => DomainDecision.Accept(new EnemyRemovedEvent(c.EntityId)),"
+    },
+    {
+      "cluster": "inline",
+      "row": "N2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:320",
+      "quote": "{"
+    },
+    {
+      "cluster": "inline",
+      "row": "N2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:323",
+      "quote": "return;"
+    },
+    {
+      "cluster": "inline",
+      "row": "N2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:393",
+      "quote": "if (_session.Role != SessionRole.Guest || !_session.SessionActive || _session.HostSteamId == 0)"
+    },
+    {
+      "cluster": "inline",
+      "row": "N3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EnemySyncService.cs:273",
+      "quote": "private void SendEnemySnapshot(ulong steamId)"
+    },
+    {
+      "cluster": "inline",
+      "row": "N3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EnemySyncService.cs:297",
+      "quote": "/// <summary>Update-only stream semantics: the 20 Hz batch refreshes the"
+    },
+    {
+      "cluster": "inline",
+      "row": "N3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EnemySyncService.cs:348",
+      "quote": "private void Merge(IEnumerable<WireEnemyStreamState> states, ulong baseGlobalRevision, Action? notify)"
+    },
+    {
+      "cluster": "inline",
+      "row": "N3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EnemySyncService.cs:353",
+      "quote": "if (_removedEnemies.Contains(id))"
+    },
+    {
+      "cluster": "inline",
+      "row": "N4",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/TradeChannel.cs:24",
+      "quote": "/// message, so the fallback stays reliable to preserve FIFO ordering between"
+    },
+    {
+      "cluster": "inline",
+      "row": "N4",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/TradeStateSync.cs:84",
+      "quote": "foreach (var member in _session.Members)"
+    },
+    {
+      "cluster": "inline",
+      "row": "N5",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/TraderRecruitCoordinator.cs:109",
+      "quote": "_world.SendTraderRecruitRequest(msg);"
+    },
+    {
+      "cluster": "inline",
+      "row": "N5",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/TradeChannel.cs:126",
+      "quote": "NetMsg.TraderSwing, msg, reliable: true);"
+    },
+    {
+      "cluster": "inline",
+      "row": "N7",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/SpeechChannel.cs:42",
+      "quote": "_session.Broadcast(NetMsg.SpeechMsg, msg);"
+    },
+    {
+      "cluster": "inline",
+      "row": "N8",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Mods/ModChannel.cs:52",
+      "quote": "_sender.Send(steamId, NetMsg.ModMessage, new ModMessageMsg { ModId = modId, Payload = payload });"
+    },
+    {
+      "cluster": "inline",
+      "row": "N8",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/ModCommandResultHandler.cs:19",
+      "quote": "ctx.Mods.FireModCommandResultReceived(sender, msg);"
+    },
+    {
+      "cluster": "inline",
+      "row": "N9",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/LocationPingChannel.cs:37",
+      "quote": "_session.Broadcast(NetMsg.LocationPing, msg);"
+    },
+    {
+      "cluster": "inline",
+      "row": "N10",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Tutorial/TutorialClawSync.cs:42",
+      "quote": "var tutorial = TutorialHandler.main;"
+    },
+    {
+      "cluster": "inline",
+      "row": "R1",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldParamsService.cs:49",
+      "quote": "internal void CaptureAtEntry(bool isTutorial)"
+    },
+    {
+      "cluster": "inline",
+      "row": "R1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:466",
+      "quote": "public void PublishWorldParams(WorldStartParams parameters)"
+    },
+    {
+      "cluster": "inline",
+      "row": "R1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:472",
+      "quote": "private void CommitRunBaseline(WorldStartParams parameters)"
+    },
+    {
+      "cluster": "inline",
+      "row": "R1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemKernelAuthority.cs:109",
+      "quote": "public bool TryStartRun(ulong actor, RunState run, out CommittedBatch? batch, out Rejection? rejection)"
+    },
+    {
+      "cluster": "inline",
+      "row": "R1",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:195",
+      "quote": "_params.OnGenerateBoundary();"
+    },
+    {
+      "cluster": "inline",
+      "row": "R1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemKernelAuthority.cs:120",
+      "quote": "public bool TryAdvanceLayer(ulong actor, RunState run, out CommittedBatch? batch, out Rejection? rejection)"
+    },
+    {
+      "cluster": "inline",
+      "row": "R1",
+      "ref": "src/CasualtiesUnknownOnline.Protocol/Wire/WirePayloadType.cs:44",
+      "quote": "RunStartedEvent = 105,"
+    },
+    {
+      "cluster": "inline",
+      "row": "R1",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelWireMapper.cs:341",
+      "quote": "WireEventKind.RunStarted => new RunStartedEvent("
+    },
+    {
+      "cluster": "inline",
+      "row": "R2",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldTimeSync.cs:245",
+      "quote": "var decision = WorldTimePolicy.Decide(_requestedSpeed, CapturePlayerStates());"
+    },
+    {
+      "cluster": "inline",
+      "row": "R2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs:108",
+      "quote": "WorldTimeRequest = 90, // guest → host: request Normal/Fast/SuperFast"
+    },
+    {
+      "cluster": "inline",
+      "row": "R3",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:174",
+      "quote": "_world.SendWorldJoin(isTutorial);"
+    },
+    {
+      "cluster": "inline",
+      "row": "R3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs:18",
+      "quote": "SceneState = 18,"
+    },
+    {
+      "cluster": "inline",
+      "row": "R3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/EntitySyncService.cs:528",
+      "quote": "_sender.Send(presence.SteamId, NetMsg.PlayerJoin,"
+    },
+    {
+      "cluster": "inline",
+      "row": "R3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:52",
+      "quote": "private const int StartGateTimeoutMs = 30_000;"
+    },
+    {
+      "cluster": "inline",
+      "row": "R3",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/PlayerStreamExchange.cs:103",
+      "quote": "log.LogWarning(\"Dropping player stream {Id} from {Sender}: no member with that entity id.\","
+    },
+    {
+      "cluster": "inline",
+      "row": "R4",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/SessionPeerMaintenance.cs:73",
+      "quote": "_sender.Send(_identity.HostSteamId, NetMsg.Handshake, CreateHandshakeMsg());"
+    },
+    {
+      "cluster": "inline",
+      "row": "R4",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/HostBanService.cs:57",
+      "quote": "_sender.Send(steamId, NetMsg.Banned, new BannedMsg { Reason = reason }, reliable: true);"
+    },
+    {
+      "cluster": "inline",
+      "row": "R4",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Protocol/NetMsg.cs:11",
+      "quote": "Ping = 1,"
+    },
+    {
+      "cluster": "inline",
+      "row": "R4",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Handlers/HandshakeAckHandler.cs:39",
+      "quote": "session.SessionActive = true;"
+    },
+    {
+      "cluster": "inline",
+      "row": "R4",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/SessionService.cs:400",
+      "quote": "_peerMaintenance.KickHandshake();"
+    },
+    {
+      "cluster": "inline",
+      "row": "R4",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/SessionPeerMaintenance.cs:78",
+      "quote": "internal void SendPeerWarmup()"
+    },
+    {
+      "cluster": "inline",
+      "row": "R4",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:114",
+      "quote": ".Where(m => m.Handshaken && !m.InWorld && m.SteamId != _session.LocalSteamId)"
+    },
+    {
+      "cluster": "inline",
+      "row": "R4",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:196",
+      "quote": "if (member.Handshaken)"
+    },
+    {
+      "cluster": "inline",
+      "row": "R5",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/AdaptiveSync/AdaptiveStreamRateService.cs:41",
+      "quote": "public int GetEffectiveHz(AdaptiveStreamId streamId, ulong peerId)"
+    },
+    {
+      "cluster": "inline",
+      "row": "R5",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/AdaptiveSync/AdaptiveStreamRateService.cs:158",
+      "quote": "public void Reset()"
+    },
+    {
+      "cluster": "inline",
+      "row": "R5",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/AdaptiveSync/AdaptiveStreamDeliveryMode.cs:17",
+      "quote": "/// <summary>"
+    },
+    {
+      "cluster": "inline",
+      "row": "R6",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntityKernelProjection.cs:43",
+      "quote": "_projectionHealth.Register(new ProjectionDomain(\"world-entities\", RebuildFromKernel, () => _kernelAuthority.CurrentGlobalRevision));"
+    },
+    {
+      "cluster": "inline",
+      "row": "R6",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/FluidKernelReadProjection.cs:38",
+      "quote": "_projectionHealth.Register(new ProjectionDomain(\"fluids\", RebuildFromKernel, () => _kernelAuthority.CurrentGlobalRevision));"
+    },
+    {
+      "cluster": "inline",
+      "row": "R6",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/PlayerKernelCarryProjection.cs:38",
+      "quote": "_projectionHealth.Register(new ProjectionDomain(\"players-carry\", RebuildFromKernel, () => _kernelAuthority.CurrentGlobalRevision));"
+    },
+    {
+      "cluster": "inline",
+      "row": "R6",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/CharacterData/RemoteCharacterPresentationStore.cs:47",
+      "quote": "_projectionHealth.Register(new ProjectionDomain("
+    },
+    {
+      "cluster": "inline",
+      "row": "R6",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Mods/ModStatusProjectionReadModel.cs:44",
+      "quote": "_projectionHealth.Register(new ProjectionDomain("
+    },
+    {
+      "cluster": "inline",
+      "row": "R6",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/ProjectionHealth/ProjectionHealthCoordinator.cs:194",
+      "quote": "if (state.ConsecutiveFailures >= DegradeThreshold)"
+    },
+    {
+      "cluster": "inline",
+      "row": "R7",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:399",
+      "quote": "_log.LogInformation("
+    },
+    {
+      "cluster": "inline",
+      "row": "R7",
+      "ref": "docs/history/audits/worldgen-determinism-audit.md:35",
+      "quote": "compare `[GenStream]` segment fingerprints and `[WorldFingerprint]` between"
+    },
+    {
+      "cluster": "inline",
+      "row": "R8",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/NetworkTraffic/NetworkTrafficMonitor.cs:18",
+      "quote": "/// probe loss). The traffic counters remain observability-only; the peer"
+    }
+  ]
+}

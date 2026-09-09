@@ -578,6 +578,117 @@ public class KernelProtocolServiceTests
 	}
 
 	[Fact]
+	public void Guest_DropsStateStreamWithStaleRunEpoch()
+	{
+		var (_, host, guest) = HandshakeTests.CreateHostAndGuest();
+		host.Steam.FireLobbyCreated(LobbyId);
+		host.Steam.LobbyMembers = [HostId, GuestId];
+		guest.Steam.FireLobbyEntered(LobbyId);
+
+		var guestKernel = guest.Services.GetRequiredService<IKernelProtocolControl>();
+		var received = new List<WireStateStream>();
+		guestKernel.ItemStateStreamReceived += (_, stream) => received.Add(stream);
+
+		var frame = SnapshotFrame(WirePayloadType.ItemSnapshotStream, seq: 1, baseRevision: 0, SnapshotItem(42));
+		frame.StateStream!.Header.RunEpoch = 0; // a frame from a previous run
+
+		guestKernel.HandleFrame(HostId, frame);
+
+		Assert.Empty(received);
+	}
+
+	[Fact]
+	public void Guest_AcceptsStateStreamAfterRestoringAForeignRunEpoch()
+	{
+		var (_, host, guest) = HandshakeTests.CreateHostAndGuest();
+		host.Steam.FireLobbyCreated(LobbyId);
+		host.Steam.LobbyMembers = [HostId, GuestId];
+		guest.Steam.FireLobbyEntered(LobbyId);
+
+		// The host ran a previous session, so its epoch is 2 while this guest
+		// process starts at 1. The guest adopts the restored checkpoint's epoch.
+		var guestAuthority = guest.Services.GetRequiredService<ItemKernelAuthority>();
+		var foreignCheckpoint = new GameStateKernel(new RunEpoch(2)).CreateCheckpoint();
+		Assert.True(guestAuthority.Restore(foreignCheckpoint).Success);
+
+		var guestKernel = guest.Services.GetRequiredService<IKernelProtocolControl>();
+		var received = new List<WireStateStream>();
+		guestKernel.ItemStateStreamReceived += (_, stream) => received.Add(stream);
+
+		var frame = SnapshotFrame(WirePayloadType.ItemSnapshotStream, seq: 1, baseRevision: 0, SnapshotItem(42));
+		frame.StateStream!.Header.RunEpoch = 2;
+
+		guestKernel.HandleFrame(HostId, frame);
+
+		Assert.Single(received);
+	}
+
+	[Fact]
+	public void Guest_AcceptsStateStreamAfterARealCheckpointRestore()
+	{
+		var (_, host, guest) = HandshakeTests.CreateHostAndGuest();
+		host.Steam.FireLobbyCreated(LobbyId);
+		host.Steam.LobbyMembers = [HostId, GuestId];
+		guest.Steam.FireLobbyEntered(LobbyId);
+
+		// The host is on its second run (epoch 2); this guest process starts at 1
+		// and restores through the real chunked checkpoint path.
+		host.Services.GetRequiredService<ItemKernelAuthority>().ResetForSession();
+		host.Services.GetRequiredService<IKernelProtocolControl>().SendCheckpoint(GuestId);
+
+		var guestKernel = guest.Services.GetRequiredService<IKernelProtocolControl>();
+		var received = new List<WireStateStream>();
+		guestKernel.ItemStateStreamReceived += (_, stream) => received.Add(stream);
+
+		var frame = SnapshotFrame(WirePayloadType.ItemSnapshotStream, seq: 1, baseRevision: 0, SnapshotItem(42));
+		frame.StateStream!.Header.RunEpoch = 2;
+
+		guestKernel.HandleFrame(HostId, frame);
+
+		Assert.Single(received);
+	}
+
+	[Fact]
+	public void Host_DropsGuestStateStreamWithStaleRunEpoch()
+	{
+		var (_, host, _) = HandshakeTests.CreateHostAndGuest();
+		host.Steam.FireLobbyCreated(LobbyId);
+		host.Steam.LobbyMembers = [HostId, GuestId];
+
+		var hostKernel = host.Services.GetRequiredService<IKernelProtocolControl>();
+		var received = new List<WireStateStream>();
+		hostKernel.EntityStateStreamReceived += (_, _, stream) => received.Add(stream);
+
+		hostKernel.HandleFrame(GuestId, new ProtocolFrame
+		{
+			Kind = EnvelopeKind.StateStream,
+			StateStream = new StateStreamEnvelope
+			{
+				Header = new EnvelopeHeader
+				{
+					ProtocolVersion = ProtocolConstants.EnvelopeVersion,
+					RunEpoch = 0, // a report from a previous run
+					SenderId = GuestId,
+					PayloadType = WirePayloadType.PlayerStateStream,
+				},
+				Stream = new WireStateStream
+				{
+					Seq = 1,
+					PlayerStates =
+					[
+						new WirePlayerStreamState
+						{
+							EntityId = new WireEntityId { Epoch = 1, Counter = (uint)GuestId, Generation = 0 },
+						},
+					],
+				},
+			},
+		});
+
+		Assert.Empty(received);
+	}
+
+	[Fact]
 	public void Host_DropsMalformedFrameWithMultipleEnvelopes()
 	{
 		var (_, host, _) = HandshakeTests.CreateHostAndGuest();

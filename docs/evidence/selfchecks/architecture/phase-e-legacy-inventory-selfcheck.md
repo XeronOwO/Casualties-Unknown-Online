@@ -68,15 +68,24 @@ The remaining direct `NetMsg` frames are active single-path protocol frames.
 None of them is a second authoritative store for a kernel-owned fact; they are
 session/control, request/command, presentation, or non-kernel-domain paths.
 
+> Current source of truth: `docs/evidence/sync-coverage-matrix.md` (2026-09-09)
+> carries one row per synced feature with its event sync, periodic fallback,
+> backfill/recovery and loss semantics, and a machine-checked wire vocabulary
+> index. The table below is the Phase E classification snapshot, kept for the
+> removal record; the matrix supersedes it for coverage questions.
+
 | Family | NetMsg values | Classification |
 |---|---|---|
 | Session / control | `Handshake`, `HandshakeAck`, `HandshakeAckAck`, `SceneState`, `WorldJoin`, `WorldReady`, `PlayerJoin`, `PlayerLeave`, `WorldSnapshotComplete`, `Ping`, `Pong`, `Kicked`, `Banned`, `WorldTimeRequest`, `WorldTime` | Session lifecycle and control; no kernel dual |
 | World mutation / presentation | `BlockDamaged`, `WorldBlockState`, `BlockPlaced`, `BlockDamageSnapshot`, `BuildingEntityDamaged`, `BuildingEntityOpened`, `EarthquakeStart`, `KeypadCode`, `GeyserStateSnapshot`, `EntityEvent`, `EntitySpawned`, `DynamiteExplosion`, `RadiationLineState`, `WorldBloodSpawn`, `TrapLayoutSnapshot`, `FluidRegion`, `FluidInteraction`, `FluidPresentation` | Active world mutation/presentation paths; not kernel-authoritative duplicates |
 | Character / presentation | `CharacterData`, `HostCharacterData`, `LimbStateEvent`, `CharacterSound`, `CharacterAttackAnim`, `CharacterLandingVisual`, `CharacterRagdoll`, `TutorialClawState` | Active character/continuous or one-shot presentation paths |
+| UI / transient presentation | `PlayerColorUpdate`, `LocationPing` | Cosmetic identity and one-shot location ping; no authority, no persistent state |
 | Enemy | `EnemySnapshot`, `EnemyAttack` | Active host snapshot and host-ordered local-apply command |
 | Trade / chat / speech | `TraderState`, `TraderAction`, `TraderRecruitRequest`, `TraderRecruitResult`, `TraderSwing`, `SpeechMsg`, `Chat` | Active non-kernel domain surfaces |
 | Mod API | `ModMessage`, `ModCommandRequest`, `ModCommandResult` | Active Phase 4 mod API |
-| Player interaction requests | `PlayerInventoryTakeRequest`, `RemoteInventoryOperationRequest`, `PlayerCarryStartRequest`, `PlayerCarryStopRequest`, `PlayerHealRequest`, `PlayerItemUseRequest`, `PlayerPushRequest`, `PlayerPushResult` | Request/result entry points; durable facts already ride `KernelEnvelope` |
+| Player interaction requests | `PlayerInventoryTakeRequest`, `RemoteInventoryOperationRequest`, `RemoteInventoryApply`, `PlayerCarryStartRequest`, `PlayerCarryStopRequest`, `PlayerHealRequest`, `PlayerItemUseRequest`, `PlayerPushRequest`, `PlayerPushResult` | Request/result entry points; durable facts already ride `KernelEnvelope` |
+| Medical operation sessions | `MedicalOperationStartRequest`, `MedicalOperationStartAck`, `MedicalOperationUpdate`, `MedicalOperationState`, `MedicalOperationEndRequest`, `MedicalOperationEndCommitted`, `MedicalOperationCancel` | Host-authoritative operation sessions; incremental updates are non-terminal, the terminal commit is the authority |
+| Crafting / progression | `CraftReport`, `RecipeUnlock` | Active crafting report/relay and blueprint unlock; the item facts ride the kernel path |
 | Item id / starting inventory | `ItemIdWatermark`, `CarriedInventory` | Active non-kernel id/initialization coordination |
 | Item reject (removed) | *(none)* | Migrated to `KernelEnvelope` `CommandRejected`; no dedicated legacy frame remains |
 | Kernel path | `KernelEnvelope` | The four-envelope kernel protocol transport |

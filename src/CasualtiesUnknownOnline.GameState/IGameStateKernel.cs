@@ -22,6 +22,9 @@ public interface IGameStateKernel
 
 	RestoreResult Restore(GameCheckpoint checkpoint);
 
+	/// <summary>The authoritative run epoch. It follows the store, so a restored checkpoint re-identifies the run.</summary>
+	RunEpoch RunEpoch { get; }
+
 	IReadOnlyDictionary<ulong, ItemState> QueryItems();
 
 	ItemState? FindItem(ulong instanceId);

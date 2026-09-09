@@ -58,7 +58,7 @@ public enum NetMsg : byte
 	FluidInteraction = 71, // bidirectional: guest → host report of a consumed cell (drinking); host → guest broadcast relay (source excluded — the host executes on its own grid first)
 
 	// Trade (host authority — the trader's state is host-computed, the acting side's local effects stay local)
-	TraderState = 72, // host → guest: a trader's full authoritative state + stock — on every interaction, on world entry, and every 5 s (unreliable fallback); a full overwrite
+	TraderState = 72, // host → guest: a trader's full authoritative state + stock — on every interaction and on a reliable 5 s base fallback (the adaptive governor may stretch it to 30 s); a full overwrite
 	TraderAction = 73, // guest → host: a locally-executed trader interaction (purchase/give/haggle/threaten/hug/move/meet) — the host executes the trader-side change and broadcasts the state
 
 	// Speech (the Talker domain — the bubble text is DATA: the speaking side applied localization + random + distortion, the receiver only displays)

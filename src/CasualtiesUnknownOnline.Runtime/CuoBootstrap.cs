@@ -255,6 +255,12 @@ public static class CuoBootstrap
 		// completion marker; it is injected into the handshake/scene handlers
 		// so HandlerContext no longer owns a concrete world-entry flow.
 		services.AddSingleton<WorldEntryFanout>();
+		// Guest block-report fallback: the time edge for the pending block-report
+		// table (a swallowed guest→host block report is re-reported until the
+		// host answers for the cell). WorldService stays reaction-only; this
+		// tiny pump is its clock, like PendingPickupPump for the item domain.
+		services.AddSingleton<BlockReportFallbackPump>();
+		services.AddSingleton<ICuoService>(p => p.GetRequiredService<BlockReportFallbackPump>());
 		// Text-chat domain: the bounded recent-message buffer + send path (no
 		// pump — it only reacts to the world channel's receive event and session end).
 		services.AddSingleton<ChatService>();

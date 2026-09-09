@@ -34,8 +34,23 @@ internal sealed class WorldStateMessageService(
 	/// </summary>
 	private readonly Dictionary<(int, int), ushort> _damagedBlocks = [];
 
-	/// <summary>Table cap — a fully-mined world would otherwise grow without bound.</summary>
-	private const int MaxDamagedBlocks = 65536;
+	/// <summary>Table cap — a fully-mined world would otherwise grow without bound. Internal so the pending-report table's own cap can be asserted against it.</summary>
+	internal const int MaxDamagedBlocks = 65536;
+
+	/// <summary>
+	/// Guest-side table of locally-applied block mutations whose report the host
+	/// has not answered yet (sync-coverage audit W1): the host→guest direction
+	/// heals a lost relay with the absolute table above, the guest→host report
+	/// had no recovery at all. Populated by <see cref="SendBlockPlacedReport"/>,
+	/// re-reported by <see cref="ResendPendingBlockReports"/> and dropped when the
+	/// host answers for the cell (its relay echo or its correction) or when a new
+	/// world/layer baseline is applied. The absolute snapshot and the world-entry
+	/// completion marker deliberately do NOT clear it — a reconnect-while-in-world
+	/// keeps the guest's local mutations, and re-reporting them is the recovery.
+	/// </summary>
+	private readonly PendingBlockReportTable _pendingBlockReports = new();
+
+	private bool _pendingReportOverflowLogged;
 
 	public WorldStartParams? WorldParams { get; set; }
 
@@ -130,7 +145,7 @@ internal sealed class WorldStateMessageService(
 	public event Action<ulong, int, int, ushort>? BlockPlacedReceived;
 
 	public void FireBlockPlacedReceived(ulong sender, int x, int y, ushort block) =>
-		BlockPlacedReceived?.Invoke(sender, x, y, block);
+		OnBlockPlacedReceived(sender, x, y, block);
 
 	public event Action<NetVector2, float, bool, bool>? BuildingEntityDamagedReceived;
 
@@ -198,7 +213,7 @@ internal sealed class WorldStateMessageService(
 		{
 			return;
 		}
-
+		RecordPendingBlockReport(x, y, block);
 		_sender.Send(_session.HostSteamId, NetMsg.BlockPlaced,
 			new BlockPlacedMsg { X = x, Y = y, Block = block });
 	}
@@ -404,10 +419,122 @@ internal sealed class WorldStateMessageService(
 		WorldParams = null;
 		RadiationLineState = null;
 		_damagedBlocks.Clear();
+		_pendingBlockReports.Clear();
+		_pendingReportOverflowLogged = false;
 		_blockDamageRegistry.Reset();
 		_eventChannel.ResetConsumptions();
 		_eventChannel.ResetOpenedEntities();
 		_eventChannel.ResetBuildingEntityHealth();
 		_eventChannel.ResetTrapLayouts();
+	}
+
+	// ---- Guest block-report recovery (audit gap W1) ----
+
+	/// <summary>How many unacknowledged guest block reports are waiting for the host's answer (the fallback pump's work check).</summary>
+	internal int PendingBlockReportCount => _pendingBlockReports.Count;
+
+	/// <summary>
+	/// Guest only: re-report every unacknowledged block mutation to the host.
+	/// Each entry is one <see cref="NetMsg.BlockPlaced"/> report, so the host's
+	/// existing first-writer-wins arbitration handles it unchanged (idempotent
+	/// — a cell the host already agrees with is answered, not re-applied).
+	/// Called by <see cref="BlockReportFallbackPump"/>; a no-op when nothing is
+	/// outstanding, when this side is not a guest, or when the session ended.
+	/// </summary>
+	public void ResendPendingBlockReports()
+	{
+		if (_session.Role != SessionRole.Guest || !_session.SessionActive || _pendingBlockReports.Count == 0)
+		{
+			return;
+		}
+
+		foreach (var entry in _pendingBlockReports.Entries)
+		{
+			_sender.Send(_session.HostSteamId, NetMsg.BlockPlaced,
+				new BlockPlacedMsg { X = entry.X, Y = entry.Y, Block = entry.Block });
+		}
+
+		_log.LogInformation("[BlockSync] re-reported {Count} unacknowledged block mutation(s) to the host.",
+			_pendingBlockReports.Count);
+	}
+
+	/// <summary>
+	/// Host only: answer a guest's block report with the host's authoritative
+	/// block at that cell. Sent when the report was refused (first-writer-wins:
+	/// the host's cell stands) — the reporter applies the correction and drops
+	/// its pending entry. An ACCEPTED report needs no correction: its relay now
+	/// includes the reporter (the echo is the acknowledgement).
+	/// </summary>
+	public void SendBlockPlacedCorrection(ulong targetSteamId, int x, int y, ushort block)
+	{
+		if (_session.Role != SessionRole.Host || !_session.SessionActive || targetSteamId == 0)
+		{
+			return;
+		}
+
+		_sender.Send(targetSteamId, NetMsg.BlockPlaced, new BlockPlacedMsg { X = x, Y = y, Block = block });
+		_log.LogDebug("[BlockSync] answered {Peer}'s report at ({X},{Y}) with the authoritative block {Block}.",
+			targetSteamId, x, y, block);
+	}
+
+	/// <summary>Guest: the host answered for this cell (relay or correction) — its value is authoritative, the pending report is done.</summary>
+	private void OnBlockPlacedReceived(ulong sender, int x, int y, ushort block)
+	{
+		if (_session.Role == SessionRole.Guest && _pendingBlockReports.Remove(x, y))
+		{
+			if (_pendingBlockReports.Count == 0)
+			{
+				_pendingReportOverflowLogged = false; // the overflow episode ended — a later fill must log again
+			}
+
+			_log.LogDebug("[BlockSync] host answered ({X},{Y}) — dropped the pending report ({Remaining} left).",
+				x, y, _pendingBlockReports.Count);
+		}
+
+		BlockPlacedReceived?.Invoke(sender, x, y, block);
+	}
+
+	/// <summary>
+	/// Record the cell as unacknowledged and send the live report. The record
+	/// happens BEFORE the send: a send that never lands is exactly what the
+	/// fallback exists for. A newer write at the same cell supersedes the
+	/// older report (the host only needs the current value).
+	/// </summary>
+	private void RecordPendingBlockReport(int x, int y, ushort block)
+	{
+		if (_pendingBlockReports.Report(x, y, block))
+		{
+			return;
+		}
+
+		if (_pendingReportOverflowLogged)
+		{
+			return;
+		}
+
+		_pendingReportOverflowLogged = true;
+		_log.LogWarning("[BlockSync] pending block-report table is full ({Cap} cells) — new cells are not re-reported until the host answers (cell ({X},{Y}) dropped).",
+			_pendingBlockReports.Cap, x, y);
+	}
+
+	/// <summary>
+	/// Guest: a new world/layer baseline was applied — every pending report
+	/// belongs to the previous world and must not be arbitrated into the new
+	/// one. Called from the guest's world-params apply boundary (the adapter's
+	/// WorldParamsService), symmetric to the host's ResetDamagedBlocks at the
+	/// generation boundary. The world-entry completion marker deliberately does
+	/// NOT clear the table: a reconnect-while-in-world keeps the guest's local
+	/// mutations, and re-reporting them is exactly the recovery.
+	/// </summary>
+	public void ResetPendingBlockReports()
+	{
+		if (_pendingBlockReports.Count > 0)
+		{
+			_log.LogInformation("[BlockSync] world baseline replaced — cleared {Count} pending block report(s) from the previous world.",
+				_pendingBlockReports.Count);
+			_pendingBlockReports.Clear();
+		}
+
+		_pendingReportOverflowLogged = false;
 	}
 }

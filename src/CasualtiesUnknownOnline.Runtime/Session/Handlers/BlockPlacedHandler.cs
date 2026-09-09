@@ -5,11 +5,13 @@ using Microsoft.Extensions.Logging;
 namespace CasualtiesUnknownOnline.Runtime.Session.Handlers;
 
 /// <summary>
-/// A block was placed: guest → host as a report (the host arbitrates — the
-/// target must be air — then applies and relays to the other guests, source
-/// excluded) and host → guest as a broadcast (the host's own placement). The
-/// broadcast happens after arbitration, so this handler only surfaces the
-/// event; the adapter validates and answers via BroadcastBlockPlaced.
+/// A block was placed / air-written: guest → host as a report (the host
+/// arbitrates — a placement must land on air, an air write on something — then
+/// applies and relays to every member, the reporter included; a refused report
+/// gets the host's current cell back) and host → guest as that answer. The
+/// answer happens after arbitration, so this handler only surfaces the event;
+/// the adapter validates and answers via BroadcastBlockPlaced /
+/// SendBlockPlacedCorrection.
 /// </summary>
 [PacketHandler(NetMsg.BlockPlaced, NetMessageDirection.Bidirectional)]
 public sealed class BlockPlacedHandler(ILogger<BlockPlacedHandler> log) : PacketHandlerBase<BlockPlacedMsg, IWorldHandlerContext>

@@ -251,7 +251,7 @@ internal sealed class BlockBreakSync(
 				}
 				else
 				{
-					_world.RemoveBlockDamage(cell.x, cell.y);
+					OnRemoteDamageBrokeBlock(sender, cell, hasDropPayload);
 				}
 
 				return;
@@ -391,6 +391,38 @@ internal sealed class BlockBreakSync(
 		else
 		{
 			_world.RemoveBlockDamage(cell.x, cell.y);
+		}
+	}
+
+	/// <summary>
+	/// The host's applied remote damage broke the block. The SetBlock(0) inside
+	/// <see cref="WorldGeneration.DamageBlock"/> ran under
+	/// <see cref="CallContext.Origin.RemoteApply"/>, so the local-report hook
+	/// stayed silent — without this the host's block-state difference table
+	/// omits the cell and the host's absolute snapshot can never heal the peers
+	/// that missed the breaker's own air-write report (sync-coverage audit W1).
+	/// Record the air transition and relay it exactly like an applied air-write
+	/// report; the relay INCLUDES the reporter — it already has the cell air
+	/// locally, so the same-value echo is a no-op that acknowledges its pending
+	/// air-write report. A break report whose air-write message was lost cannot
+	/// have its drops materialized here (the host's block was still standing when
+	/// the report arrived) — that item-domain loss is tracked separately.
+	/// </summary>
+	private void OnRemoteDamageBrokeBlock(ulong sender, Vector2Int cell, bool hadDropPayload)
+	{
+		_world.ReportBlockState(cell.x, cell.y, 0);
+		_world.BroadcastBlockPlaced(0, cell.x, cell.y, 0); // everyone, the reporter included — its echo acknowledges the pending air-write report (same-value SetBlock(0) is a no-op locally)
+		OnBlockAirWrite(cell);
+		_buildingEntities.MarkSupportLossRemote(cell);
+		if (hadDropPayload)
+		{
+			_log.LogWarning("[BlockBreak] {Sender}'s break report at ({X},{Y}) carried drops but the host's block was still standing — the block state converges, the drops are not materialized.",
+				sender, cell.x, cell.y);
+		}
+		else
+		{
+			_log.LogInformation("[BlockBreak] {Sender}'s remote damage broke the block at ({X},{Y}) without an air-write report — recorded the block-state difference and relayed it.",
+				sender, cell.x, cell.y);
 		}
 	}
 }

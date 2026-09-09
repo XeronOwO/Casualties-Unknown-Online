@@ -398,7 +398,7 @@ See `docs/evidence/delivery-checklist.md` for the executable gate.
   readability.
 - Pure documentation/backlog-only changes use `docs(scope): ...`, with `backlog` as the common
   scope.
-- The history from `2c3b6af9278637546331f301f45b9b24d3f10423` onward has been normalized to
+- The history from `f2bc63045b5e8c742c663a590c3c9584b162111c` onward has been normalized to
   this convention.
 - `[GATE]` The commit gate runs the build, test, and format commands above (documentation-only
   changes excepted) and the agent commits autonomously once they pass; GPG signing is enabled

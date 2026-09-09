@@ -60,11 +60,21 @@ public interface IWorldControl
 	/// </summary>
 	void SendBuildingEntityDamaged(NetVector2 pos, float damage, bool playHitSound = true, bool playHitFlash = false);
 
-	/// <summary>Guest: a block was placed locally — report it to the host (host arbitrates + relays).</summary>
+	/// <summary>Guest: a block was placed locally — record it as an unacknowledged pending report and send it (the host arbitrates + answers; a swallowed report is re-reported by the fallback).</summary>
 	void SendBlockPlacedReport(int x, int y, ushort block);
 
-	/// <summary>Host only: broadcast a placed block (source excluded — it already placed locally).</summary>
+	/// <summary>Host only: broadcast a placed block to every member except <paramref name="excludeSteamId"/> (0 = everyone — the arbitration relay includes the reporter, whose echo is its acknowledgement).</summary>
 	void BroadcastBlockPlaced(ulong excludeSteamId, int x, int y, ushort block);
+
+	/// <summary>
+	/// Host only: answer a guest's block report with the host's authoritative
+	/// block at that cell (first-writer-wins refused the report). The reporter
+	/// applies it and drops its pending re-report entry.
+	/// </summary>
+	void SendBlockPlacedCorrection(ulong targetSteamId, int x, int y, ushort block);
+
+	/// <summary>Guest: a new world/layer baseline was applied — drop every unacknowledged block report from the previous world (the counterpart of the host's <see cref="ResetDamagedBlocks"/> at its generation boundary).</summary>
+	void ResetPendingBlockReports();
 
 	void FireBlockPlacedReceived(ulong sender, int x, int y, ushort block);
 

@@ -29,6 +29,7 @@ public sealed class WorldService : IWorldControl, IDisposable
 	private readonly ILogger<WorldService> _log;
 	private readonly WorldChannelRelay _channels;
 	private readonly WorldStateMessageService _messages;
+	private readonly BlockReportFallback _blockReportFallback;
 	private readonly ItemKernelAuthority _kernelAuthority;
 	private readonly FluidKernelProjection _fluidKernel;
 	private readonly FluidKernelReadProjection _fluidKernelRead;
@@ -84,6 +85,7 @@ public sealed class WorldService : IWorldControl, IDisposable
 		_log = log;
 		_channels = new WorldChannelRelay(eventChannel, tradeChannel, speechChannel, chatChannel, locationPingChannel);
 		_messages = new WorldStateMessageService(session, sender, log, eventChannel, blockDamageRegistry);
+		_blockReportFallback = new BlockReportFallback(session, _messages);
 		_kernelAuthority = kernelAuthority;
 		_fluidKernel = fluidKernel;
 		_fluidKernelRead = fluidKernelRead;
@@ -211,6 +213,14 @@ public sealed class WorldService : IWorldControl, IDisposable
 		_log.LogInformation("Start gate pass — {Peer} enters directly (game already running).", steamId);
 	}
 
+	// ---- Guest block-report fallback (audit gap W1) ----
+
+	/// <summary>Test/observability seam (InternalsVisibleTo): how many unacknowledged guest block reports are outstanding.</summary>
+	internal int PendingBlockReportCount => _messages.PendingBlockReportCount;
+
+	/// <summary>The guest block-report fallback's time edge (driven by <see cref="BlockReportFallbackPump"/>; the cadence policy lives in <see cref="BlockReportFallback"/>).</summary>
+	internal void PumpBlockReportFallback(long nowMs) => _blockReportFallback.Pump(nowMs);
+
 	// ---- Session reset ----
 
 	private void ResetSessionState()
@@ -219,6 +229,7 @@ public sealed class WorldService : IWorldControl, IDisposable
 		_startGate = null;
 		_startGateArmedMs = 0;
 		_gateReleased = false;
+		_blockReportFallback.Reset();
 		WorldParams = null;
 		_messages.ResetSessionState();
 	}
@@ -418,6 +429,10 @@ public sealed class WorldService : IWorldControl, IDisposable
 	public void SendBlockPlacedReport(int x, int y, ushort block) => _messages.SendBlockPlacedReport(x, y, block);
 
 	public void BroadcastBlockPlaced(ulong excludeSteamId, int x, int y, ushort block) => _messages.BroadcastBlockPlaced(excludeSteamId, x, y, block);
+
+	public void SendBlockPlacedCorrection(ulong targetSteamId, int x, int y, ushort block) => _messages.SendBlockPlacedCorrection(targetSteamId, x, y, block);
+
+	public void ResetPendingBlockReports() => _messages.ResetPendingBlockReports();
 
 	public event Action<NetVector2, float, bool, bool>? BuildingEntityDamagedReceived { add => _messages.BuildingEntityDamagedReceived += value; remove => _messages.BuildingEntityDamagedReceived -= value; }
 

@@ -24,7 +24,8 @@ The runtime side is a **diagnostic, not a repair path**:
 
 Audit rows: `docs/evidence/sync-coverage-matrix.md` R7 (verdict
 `Transient-by-design`: diagnostic only) and W1 (the guest→host block gap that a
-fingerprint comparison would have surfaced faster).
+fingerprint comparison would have surfaced faster — closed 2026-09-09 by
+`review/guest-block-mutation-re-report.md`).
 
 ## Final-acceptance procedure
 

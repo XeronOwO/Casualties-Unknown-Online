@@ -220,7 +220,10 @@ internal sealed partial class WorldEventSync(
 	/// A mutation arrived: host arbitrates — a PLACEMENT (block != 0) must land
 	/// on air (the game's own placement condition, Item.cs), an AIR write
 	/// (earthquake/environment break, block == 0) must land on something — then
-	/// applies, records the difference and relays (source excluded); guest
+	/// applies, records the difference and relays to EVERY member (the reporter
+	/// included: its echo is the acknowledgement that clears its pending
+	/// report); a refused report gets the host's current cell as a targeted
+	/// correction, so the reporter converges instead of staying diverged. Guest
 	/// applies it directly. An APPLIED air write also records the sender's
 	/// break for the drops arbitration: when that sender's BlockDamaged report
 	/// (the drops carrier) arrives later, the record proves the break was the
@@ -228,7 +231,12 @@ internal sealed partial class WorldEventSync(
 	/// </summary>
 	private void OnRemoteBlockPlaced(ulong sender, int x, int y, ushort block)
 	{
-		if (WorldGeneration.world == null) // Unity object — ==
+		// A report cannot be arbitrated against a half-generated world: while
+		// (re)generating, every cell belongs to the previous layer. The guest's
+		// own generation boundary clears its pending table; dropping here closes
+		// the host-reset → guest-apply skew window (a fallback re-report fired
+		// in it must not land in the new layer).
+		if (WorldGeneration.world == null || HarmonyTraverse.IsGenerating()) // Unity object — ==
 		{
 			return;
 		}
@@ -240,15 +248,15 @@ internal sealed partial class WorldEventSync(
 			{
 				if ((block == 0) == (WorldGeneration.world.GetBlock(pos) == 0))
 				{
-					// Placement onto occupied / break of air — first-writer-wins,
-					// no relay (the two sides' independent earthquakes racing the
-					// same spot: one wins, both apply the winner via the relay).
+					// First-writer-wins: the host's cell stands. Answer the reporter with
+					// it — its pending report is acknowledged and it converges.
+					_world.SendBlockPlacedCorrection(sender, x, y, WorldGeneration.world.GetBlock(pos));
 					return;
 				}
 
 				WorldGeneration.world.SetBlock(pos, block);
 				_world.ReportBlockState(x, y, block); // the mutation is a world difference too
-				_world.BroadcastBlockPlaced(sender, x, y, block); // the reporter already applied locally
+				_world.BroadcastBlockPlaced(0, x, y, block); // everyone, the reporter included — the echo is its acknowledgement (same-value SetBlock is idempotent)
 				if (block == 0)
 				{
 					// A player break (its BlockDamaged report follows) — or a
@@ -260,13 +268,18 @@ internal sealed partial class WorldEventSync(
 			}
 			else
 			{
+				var changed = WorldGeneration.world.GetBlock(pos) != block;
 				WorldGeneration.world.SetBlock(pos, block);
-				if (block == 0)
+				if (changed && block == 0)
 				{
 					// A guest receiving the host's air-write relay may have its
 					// own stale BlockDamage at this cell (from local partial
 					// mining) — SetBlock(0) does not remove it, so clear the
-					// game-side crack sprite here too.
+					// game-side crack sprite here too. An UNCHANGED cell is the
+					// echo of this side's own accepted report (the host relays to
+					// the reporter): the local air transition already ran its
+					// cleanup, and re-marking it would suppress this side's own
+					// building-drop roll (RemoteEntityDeath).
 					_blockBreaks.OnBlockAirWrite(pos);
 					_buildingEntities.MarkSupportLossRemote(pos);
 				}
@@ -459,18 +472,29 @@ internal sealed partial class WorldEventSync(
 			return;
 		}
 
-		foreach (var block in blocks)
+		// The snapshot is a REMOTE application: mark the writes so the local
+		// report hook stays silent. Without this every snapshot cell was
+		// echoed back to the host as a guest mutation — the host's own state
+		// re-reported, and (since the host now answers every report) amplified
+		// into a correction per cell per snapshot.
+		using (CallContext.Enter(CallContext.Origin.RemoteApply))
 		{
-			var pos = new Vector2Int(block.X, block.Y);
-			WorldGeneration.world.SetBlock(pos, block.Block);
-			if (block.Block == 0)
+			foreach (var block in blocks)
 			{
-				// A block-state snapshot can turn a locally partially-mined
-				// cell into air via direct SetBlock(0); remove the game-side
-				// BlockDamage/sprite so the snapshot does not leave fragmented
-				// air behind.
-				_blockBreaks.OnBlockAirWrite(pos);
-				_buildingEntities.MarkSupportLossRemote(pos);
+				var pos = new Vector2Int(block.X, block.Y);
+				var changed = WorldGeneration.world.GetBlock(pos) != block.Block;
+				WorldGeneration.world.SetBlock(pos, block.Block);
+				if (changed && block.Block == 0)
+				{
+					// A block-state snapshot can turn a locally partially-mined
+					// cell into air via direct SetBlock(0); remove the game-side
+					// BlockDamage/sprite so the snapshot does not leave fragmented
+					// air behind. An UNCHANGED cell was already handled when it
+					// became air locally — re-marking it would suppress this
+					// side's own building-drop roll (RemoteEntityDeath).
+					_blockBreaks.OnBlockAirWrite(pos);
+					_buildingEntities.MarkSupportLossRemote(pos);
+				}
 			}
 		}
 

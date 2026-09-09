@@ -1,6 +1,6 @@
 # Test suite parallelization and runtime efficiency
 
-- Status: In progress
+- Status: Done
 - Priority: Medium
 - Category: Test infrastructure / build performance
 - Source: User request (2026-09-08) — the xUnit v2 suite is ~2500 test cases and a full run is measured in tens of seconds; because a normal work session runs the suite many times, the cumulative cost is material and the suite must stay fast as it grows. Question: can the current test architecture run in parallel, and what has to change to make it faster and stay safe?
@@ -74,8 +74,11 @@ This ticket is multi-stage by design: implement one stage per session, each stag
 - [x] Finished the doc pass: `docs/evidence/verification.md`, `docs/evidence/normative-gates.md`, the test conventions in `AGENTS.md`, and `docs/evidence/test-parallelization.md` §9.
 - [x] Verified: main suite 2 597 + normative gates 20 passed; build and format clean; final three-run full wall clock 40.1 / 42.1 / 37.0 s (median 40.1 s), with post-hardening confirmation runs at 37.8 s and 40.7 s (window noise).
 
-The ticket stays in `in-progress/` per the staged-handoff instruction; Stage 3
-is code-complete and awaits the final unified acceptance pass.
+Closed after the final unified acceptance pass (user-confirmed, 2026-09-09):
+main suite 2 597 + normative gates 20 passed, the `Integration` split is
+1 306 / 1 291, the runner keeps `maxParallelThreads: "1x"`, and build / test /
+format gates are all green. The ticket moved from `in-progress/` to `done/` in
+this closure commit.
 
 ## Acceptance
 

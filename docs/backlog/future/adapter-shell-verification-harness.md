@@ -1,10 +1,18 @@
 # Adapter-shell sync paths have no automated verification (game-in probe harness)
 
-- Status: Todo
+- Status: Future (deferred by user decision 2026-09-09)
 - Priority: Low
 - Category: Verification tooling
 - Source: accumulated from `review/runtime-entity-spawn-backfill.md` and earlier deliveries; `AGENTS.local.md` "验证能力边界"
 - Related: `review/runtime-entity-spawn-backfill.md`, `docs/evidence/test-parallelization.md`
+
+## Deferral note
+
+Deferred by decision: the current verification standard for adapter-shell paths is code
+review plus the user's unified dual-client acceptance pass, and that is accepted. This item
+is NOT a work item and is not included in handoff prompts; promote it to `todo/` only if
+adapter-shell regressions keep reaching the user's acceptance step (a clear need appearing
+is the promotion trigger).
 
 ## Problem (evidence)
 

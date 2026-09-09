@@ -54,7 +54,6 @@ todo/  →  in-progress/  →  review/  →  done/
 - [CasualtiesUnknownOnline.Pinyin: pinyin search for CUO](todo/pinyin-search-mod.md) — **Medium**: port standalone pinyin search into a CUO mod; crafting UI pinyin search plus command completion by id/name/pinyin; extra interface extraction needed for command-side pinyin support; pinyin search is a configurable toggle defaulting to on for Simplified Chinese players.
 - [Runtime entity creation can be absorbed by a markerless same-prefab copy](todo/runtime-entity-markerless-bind-absorption.md) — **Low-Medium**: found by the round-4 re-review of E3; the exact-key bind falls back to a MARKERLESS same-prefab copy inside 1 m (enemy-domain backfill or generated entity) and then stamps it, so a runtime creation landing next to an unrelated markerless copy exists only on the creator. Fix direction: give the enemy backfill copy the creation key (N1) and delete the positional pass.
 - [Dead runtime-entity relay API: `BroadcastEntitySpawned` has no caller](todo/runtime-entity-dead-api-cleanup.md) — **Low**: found by the round-4 re-review of E3; the source-excluding relay method and its forwarding chain have no call site (the live relay includes the source so its echo acknowledges the report). Delete it or wire it to the caller that genuinely needs source-exclusion.
-- [Adapter-shell sync paths have no automated verification](todo/adapter-shell-verification-harness.md) — **Low**: the entity-creation materialization/stamping/death key, the deferred geyser queue, the enemy runtime-spawn materializer and the mod template materializer need the live Unity world; today they are code-reviewed plus the unified dual-client pass only. Build the minimum game-in probe or dual-client harness that makes them machine-checked.
 
 ### In progress
 
@@ -136,6 +135,7 @@ todo/  →  in-progress/  →  review/  →  done/
 - [Command authorization gateway](future/command-authorization-gateway.md) — central actor/AuthorityKind enforcement in front of the kernel (Loomi review 2026-09-04).
 - [Runtime DI feature registration and lifecycle contract](future/runtime-di-feature-registration-lifecycle.md) — feature-scoped composition modules + verified reset/unbind/graph/update-order (Loomi review 2026-09-04).
 - [Kernel replication namespace relocation](future/kernel-replication-namespace-relocation.md) — move item-scoped kernel protocol/save services to a neutral namespace (Loomi review 2026-09-04).
+- [Adapter-shell sync paths have no automated verification](future/adapter-shell-verification-harness.md) — deferred by decision: the entity-creation materialization/stamping/death key, the deferred geyser queue, the enemy runtime-spawn materializer and the mod template materializer need the live Unity world, so today they are code-reviewed plus the unified dual-client pass only; revisit if adapter-shell regressions keep reaching the user's acceptance step.
 
 ### Resolved
 

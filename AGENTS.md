@@ -398,22 +398,18 @@ See `docs/evidence/delivery-checklist.md` for the executable gate.
   readability.
 - Pure documentation/backlog-only changes use `docs(scope): ...`, with `backlog` as the common
   scope.
-- The history from `f2bc63045b5e8c742c663a590c3c9584b162111c` onward has been normalized to
-  this convention.
 - `[GATE]` The commit gate runs the build, test, and format commands above (documentation-only
   changes excepted) and the agent commits autonomously once they pass; GPG signing is enabled
   globally, so commit directly without locating gpg or disabling signing.
 
 ## Development Phases
 
-Current: **Architecture evolution complete (Phases A–E).** Native game-content sync, the
-Phase 4 Mod API, and the typed-deterministic-kernel migration are complete. The typed kernel is
-the only supported architecture; see `docs/architecture/README.md` for the active architecture
-and `docs/backlog/README.md` for remaining/future work.
-
-MVP explicitly excludes: host migration, dedicated server, auto mod install, generic physics
-sync, client prediction, full anti-cheat. The generic Prediction Runtime is a separate future
-architecture item, not part of the completed evolution.
+- The typed deterministic kernel is the only supported architecture; see
+  `docs/architecture/README.md` for the active architecture and `docs/backlog/README.md` for
+  remaining/future work.
+- MVP explicitly excludes: host migration, dedicated server, auto mod install, generic physics
+  sync, client prediction, full anti-cheat. The generic Prediction Runtime is a separate future
+  architecture item.
 
 ## Known Pitfalls
 

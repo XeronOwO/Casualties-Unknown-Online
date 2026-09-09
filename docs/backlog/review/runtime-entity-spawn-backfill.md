@@ -363,16 +363,21 @@ warning in the channel; the matrix header's evidence count was corrected to 790.
   the bind then stamps that copy with the creation key. The pass is kept because
   without it a markerless trap-layout/enemy-backfill copy is duplicated instead
   — a missing entity is the lesser divergence, and the stamped key makes the
-  absorption self-consistent afterwards.
+  absorption self-consistent afterwards. Owned by
+  `todo/runtime-entity-markerless-bind-absorption.md`.
 - The enemy domain's own late-join copy (`EnemySyncCoordinator.CreateRuntimeSpawn`)
   carries no creation marker; it binds a live re-report only through the
   markerless 1 m positional pass, so a late joiner's animal that has already
   drifted can still be duplicated by a surviving live re-report. Unifying the
   animal live relay with the enemy backfill identity stays with
-  `todo/enemy-snapshot-and-attack-recovery.md`.
+  `todo/enemy-snapshot-and-attack-recovery.md` (N1).
+- The source-excluding `BroadcastEntitySpawned` relay is dead API (no caller):
+  `todo/runtime-entity-dead-api-cleanup.md`.
 - The adapter shell (the Unity create + `FindExisting` scan, the death-hook
   wiring, the geyser queue flush, the `WorldParamsService` apply call site, the
   `RuntimeEntityCreation` stamping, the mod-hook cleanup) is not exercisable in
   the test host — it needs the live Unity world. Those branches rest on code
   review plus the unified dual-client acceptance pass; the pure match judgment
   and every Runtime table/cadence path are covered by tests.
+  `todo/adapter-shell-verification-harness.md` owns closing that verification
+  gap.

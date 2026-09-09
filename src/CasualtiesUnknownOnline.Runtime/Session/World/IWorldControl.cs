@@ -260,6 +260,21 @@ public interface IWorldControl
 	/// <summary>An entity-creation report arrived — the receiver creates its own copy (host: then relays; guest: remote apply).</summary>
 	event Action<ulong, EntitySpawnedMsg>? EntitySpawnedReceived;
 
+	/// <summary>Host only: send the accepted runtime-entity creation table to one member (world entry, or the 60 s cycle) — the recovery source for a swallowed creation report or relay.</summary>
+	void SendRuntimeEntitySnapshot(ulong targetSteamId);
+
+	/// <summary>Guest: the host's absolute runtime-entity table arrived — apply every entry through the live creation path (create missing, dedupe existing) and acknowledge the matching pending reports.</summary>
+	void FireRuntimeEntitySnapshotReceived(ulong sender, IReadOnlyList<EntitySpawnedMsg> entries);
+
+	/// <summary>Either side: a runtime-created entity's local copy died — drop its accepted record (host) or its pending re-report (guest); a dead entity must never be resurrected by a later re-broadcast.</summary>
+	void ReportRuntimeEntityDestroyed(string id, float x, float y);
+
+	/// <summary>Guest: a new world/layer baseline was applied — drop every unacknowledged creation report from the previous world.</summary>
+	void ResetPendingEntityReports();
+
+	/// <summary>Host only: a new world layer is generating — the accepted runtime-entity creation table starts empty again.</summary>
+	void ResetRuntimeEntities();
+
 	/// <summary>Host only: record an opened lockable entity at a world position (a kernel WorldEntities fact).</summary>
 	void ReportOpenedEntity(float x, float y);
 

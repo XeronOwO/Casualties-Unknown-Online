@@ -129,6 +129,7 @@ internal sealed partial class WorldEventSync(
 					_world.SendBlockStateSnapshot(member.SteamId);
 					_world.SendBlockDamageSnapshot(member.SteamId); // the partial block damage rides the same world-entry resend (idempotent absolute set)
 					_kernelProtocol.SendCheckpoint(member.SteamId); // the kernel checkpoint also covers lazy-session recovery for WorldEntities and the other kernel domains
+					_world.SendRuntimeEntitySnapshot(member.SteamId); // the runtime-created entity table (E3): heals a swallowed creation relay within 60 s
 				}
 			}
 

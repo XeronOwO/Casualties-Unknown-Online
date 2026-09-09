@@ -7,19 +7,22 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 
 /// <summary>
 /// The IWorldControl channel-forwarding surface. It shuttles world entity
-/// events, trap consumptions, fluid, trader, speech and chat calls/events to
-/// their dedicated channel classes. The world-defining state and message-flow
-/// logic live in <see cref="WorldStateMessageService"/>; this class is only the
-/// thin channel relay.
+/// events, runtime entity creations, trap consumptions, fluid, trader, speech
+/// and chat calls/events to their dedicated channel classes. The
+/// world-defining state and message-flow logic live in
+/// <see cref="WorldStateMessageService"/>; this class is only the thin channel
+/// relay.
 /// </summary>
 internal sealed class WorldChannelRelay(
 	EntityEventChannel eventChannel,
+	RuntimeEntityChannel runtimeEntityChannel,
 	TradeChannel tradeChannel,
 	SpeechChannel speechChannel,
 	ChatChannel chatChannel,
 	LocationPingChannel locationPingChannel)
 {
 	private readonly EntityEventChannel _eventChannel = eventChannel;
+	private readonly RuntimeEntityChannel _runtimeEntityChannel = runtimeEntityChannel;
 	private readonly TradeChannel _tradeChannel = tradeChannel;
 	private readonly SpeechChannel _speechChannel = speechChannel;
 	private readonly ChatChannel _chatChannel = chatChannel;
@@ -55,13 +58,24 @@ internal sealed class WorldChannelRelay(
 
 	public void ReportTrapEvent(EntityEventKind kind, float x, float y, byte extra, float? buildingHealth = null, IReadOnlyList<BuildingEntityHealthEntryMsg>? additionalHealth = null, IReadOnlyList<TrapDropEntryMsg>? drops = null, ulong? dropActor = null) => _eventChannel.ReportTrapEvent(kind, x, y, extra, buildingHealth, additionalHealth, drops, dropActor);
 
-	public event Action<ulong, EntitySpawnedMsg>? EntitySpawnedReceived { add => _eventChannel.EntitySpawnedReceived += value; remove => _eventChannel.EntitySpawnedReceived -= value; }
+	public event Action<ulong, EntitySpawnedMsg>? EntitySpawnedReceived { add => _runtimeEntityChannel.EntitySpawnedReceived += value; remove => _runtimeEntityChannel.EntitySpawnedReceived -= value; }
 
-	public void FireEntitySpawnedReceived(ulong sender, EntitySpawnedMsg msg) => _eventChannel.FireEntitySpawnedReceived(sender, msg);
+	public void FireEntitySpawnedReceived(ulong sender, EntitySpawnedMsg msg) => _runtimeEntityChannel.FireEntitySpawnedReceived(sender, msg);
 
-	public void SendEntitySpawned(EntitySpawnedMsg msg) => _eventChannel.SendEntitySpawned(msg);
+	public void SendEntitySpawned(EntitySpawnedMsg msg) => _runtimeEntityChannel.SendEntitySpawned(msg);
 
-	public void BroadcastEntitySpawned(ulong excludeSteamId, EntitySpawnedMsg msg) => _eventChannel.BroadcastEntitySpawned(excludeSteamId, msg);
+	public void BroadcastEntitySpawned(ulong excludeSteamId, EntitySpawnedMsg msg) => _runtimeEntityChannel.BroadcastEntitySpawned(excludeSteamId, msg);
+
+	public void SendRuntimeEntitySnapshot(ulong targetSteamId) => _runtimeEntityChannel.SendRuntimeEntitySnapshot(targetSteamId);
+
+	public void FireRuntimeEntitySnapshotReceived(ulong sender, IReadOnlyList<EntitySpawnedMsg> entries) =>
+		_runtimeEntityChannel.FireRuntimeEntitySnapshotReceived(sender, entries);
+
+	public void ReportRuntimeEntityDestroyed(string id, float x, float y) => _runtimeEntityChannel.ReportRuntimeEntityDestroyed(id, x, y);
+
+	public void ResetPendingEntityReports() => _runtimeEntityChannel.ResetPendingEntityReports();
+
+	public void ResetRuntimeEntities() => _runtimeEntityChannel.ResetRuntimeEntities();
 
 	public void ReportOpenedEntity(float x, float y) => _eventChannel.ReportOpenedEntity(x, y);
 

@@ -41,6 +41,7 @@ public sealed class WorldEntryFanout(
 		_kernelProtocol.SendCheckpoint(steamId);
 		_items.SendItemSnapshot(steamId);
 		_enemies.SendEnemySnapshot(steamId);
+		_world.SendRuntimeEntitySnapshot(steamId);
 		_world.SendWorldSnapshotComplete(steamId);
 	}
 }

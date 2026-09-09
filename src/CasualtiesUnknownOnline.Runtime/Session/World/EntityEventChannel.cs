@@ -6,13 +6,15 @@ using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 namespace CasualtiesUnknownOnline.Runtime.Session.World;
 
 /// <summary>
-/// The world entity channel: the entity-event (trap/mechanism) and
-/// entity-creation (runtime spawn) message plumbing plus the one-shot trap
-/// consumption registry — extracted from WorldService (the 600-line gate) so
-/// the world domain stays one responsibility: WorldService owns the
-/// world-defining state, this owns the entity channels. Same star shape as
+/// The world entity channel: the entity-event (trap/mechanism) message plumbing
+/// plus the one-shot trap consumption registry — extracted from WorldService
+/// (the 600-line gate) so the world domain stays one responsibility:
+/// WorldService owns the world-defining state, this owns the entity-event
+/// channel and the trap/opened/health/layout registries. Same star shape as
 /// everything else: report up (guest → host), the host applies to its own
 /// world and relays (BroadcastExcept — the source already applied locally).
+/// The runtime entity-CREATION channel (report/relay plus its E3 recovery) is
+/// its own responsibility in <see cref="RuntimeEntityChannel"/>.
 /// </summary>
 public sealed class EntityEventChannel(ISessionControl session, PacketSender sender, TrapConsumptionRegistry trapConsumption, TrapStateRegistry trapState, OpenedEntityRegistry openedEntities, BuildingEntityHealthRegistry buildingEntityHealth, TrapLayoutRegistry trapLayout)
 {
@@ -175,47 +177,6 @@ public sealed class EntityEventChannel(ISessionControl session, PacketSender sen
 		}
 
 		_session.BroadcastExcept(excludeSteamId, NetMsg.WorldBloodSpawn, msg);
-	}
-
-	// ---- World entity creation (runtime, outside generation) ----
-
-	/// <summary>An entity-creation report arrived — the receiver creates its own copy (host: then relays; guest: remote apply).</summary>
-	public event Action<ulong, EntitySpawnedMsg>? EntitySpawnedReceived;
-
-	public void FireEntitySpawnedReceived(ulong sender, EntitySpawnedMsg msg) => EntitySpawnedReceived?.Invoke(sender, msg);
-
-	/// <summary>
-	/// Report a runtime world-entity creation (outside generation — the spawn
-	/// command): guest → host as a report (the host creates its own copy and
-	/// relays), host → broadcast to all synced members. Same shape as
-	/// SendEntityEvent: the creating side keeps its local copy.
-	/// </summary>
-	public void SendEntitySpawned(EntitySpawnedMsg msg)
-	{
-		if (!_session.SessionActive)
-		{
-			return;
-		}
-
-		if (_session.Role == SessionRole.Host)
-		{
-			_session.Broadcast(NetMsg.EntitySpawned, msg);
-		}
-		else
-		{
-			_sender.Send(_session.HostSteamId, NetMsg.EntitySpawned, msg);
-		}
-	}
-
-	/// <summary>Host only: relay an accepted entity creation to the other members (source excluded — it already created locally).</summary>
-	public void BroadcastEntitySpawned(ulong excludeSteamId, EntitySpawnedMsg msg)
-	{
-		if (_session.Role != SessionRole.Host || !_session.SessionActive)
-		{
-			return;
-		}
-
-		_session.BroadcastExcept(excludeSteamId, NetMsg.EntitySpawned, msg);
 	}
 
 	// ---- World fluid grid (host authority, #129) ----

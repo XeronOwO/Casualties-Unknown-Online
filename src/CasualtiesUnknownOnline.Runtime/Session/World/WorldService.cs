@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.GameState.Domains.Fluids;
 using CasualtiesUnknownOnline.GameState.Domains.World;
@@ -24,12 +23,10 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 public sealed class WorldService : IWorldControl, IDisposable
 {
 	private readonly ISessionControl _session;
-	private readonly PacketSender _sender;
-	private readonly ITimeSource _time;
 	private readonly ILogger<WorldService> _log;
 	private readonly WorldChannelRelay _channels;
 	private readonly WorldStateMessageService _messages;
-	private readonly BlockReportFallback _blockReportFallback;
+	private readonly PendingReportFallback _blockReportFallback;
 	private readonly ItemKernelAuthority _kernelAuthority;
 	private readonly FluidKernelProjection _fluidKernel;
 	private readonly FluidKernelReadProjection _fluidKernelRead;
@@ -40,17 +37,10 @@ public sealed class WorldService : IWorldControl, IDisposable
 	/// yet (click moment → world entry). A handshake during this window may
 	/// follow immediately.
 	/// </summary>
-	public bool HostRunPending { get; private set; }
+	public bool HostRunPending => _startGate.HostRunPending;
 
-	/// <summary>Host only: the armed start gate — SteamIds still loading, armed at world entry.</summary>
-	private HashSet<ulong>? _startGate;
-	private long _startGateArmedMs;
-
-	/// <summary>Host only: the gate was released (everyone started, or the 30 s fallback fired).</summary>
-	private bool _gateReleased;
-
-	/// <summary>Start-gate fallback: force the start if a guest is still loading after this long.</summary>
-	private const int StartGateTimeoutMs = 30_000;
+	/// <summary>Host only: the start-gate lifecycle (armed member set, 30 s fallback) — its own responsibility.</summary>
+	private readonly WorldStartGate _startGate;
 
 	public WorldStartParams? WorldParams
 	{
@@ -69,6 +59,7 @@ public sealed class WorldService : IWorldControl, IDisposable
 		ITimeSource time,
 		ILogger<WorldService> log,
 		EntityEventChannel eventChannel,
+		RuntimeEntityChannel runtimeEntityChannel,
 		TradeChannel tradeChannel,
 		SpeechChannel speechChannel,
 		ChatChannel chatChannel,
@@ -80,12 +71,11 @@ public sealed class WorldService : IWorldControl, IDisposable
 		ProjectionHealthCoordinator projectionHealth)
 	{
 		_session = session;
-		_sender = sender;
-		_time = time;
 		_log = log;
-		_channels = new WorldChannelRelay(eventChannel, tradeChannel, speechChannel, chatChannel, locationPingChannel);
+		_channels = new WorldChannelRelay(eventChannel, runtimeEntityChannel, tradeChannel, speechChannel, chatChannel, locationPingChannel);
 		_messages = new WorldStateMessageService(session, sender, log, eventChannel, blockDamageRegistry);
-		_blockReportFallback = new BlockReportFallback(session, _messages);
+		_blockReportFallback = new PendingReportFallback(session);
+		_startGate = new WorldStartGate(session, sender, time, log);
 		_kernelAuthority = kernelAuthority;
 		_fluidKernel = fluidKernel;
 		_fluidKernelRead = fluidKernelRead;
@@ -98,138 +88,39 @@ public sealed class WorldService : IWorldControl, IDisposable
 		session.SessionEnded += OnSessionEnded;
 	}
 
-	public void SetHostRunPending(bool pending) => HostRunPending = pending;
+	public void SetHostRunPending(bool pending) => _startGate.SetHostRunPending(pending);
 
 	public void FireWorldReadyReceived() => WorldReadyReceived?.Invoke();
 
-	// ---- Start gate lifecycle ----
+	// ---- Start gate lifecycle (WorldStartGate owns the state) ----
 
-	public bool StartStartGate()
-	{
-		if (_session.Role != SessionRole.Host || !_session.SessionActive)
-		{
-			return false;
-		}
+	public bool StartStartGate() => _startGate.Arm();
 
-		_gateReleased = false;
-		var waiting = _session.Members
-			.Where(m => m.Handshaken && !m.InWorld && m.SteamId != _session.LocalSteamId)
-			.Select(m => m.SteamId).ToHashSet();
-		if (waiting.Count == 0)
-		{
-			if (_session.Members.Any(m => m.SteamId != _session.LocalSteamId))
-			{
-				_log.LogInformation("No confirmed members waiting — releasing the start gate immediately.");
-			}
+	public void NotifyMemberInWorld(ulong steamId) => _startGate.NotifyMemberInWorld(steamId);
 
-			_startGate = null;
-			SendWorldReady();
-			return false;
-		}
+	public void MaybeForceStartGate() => _startGate.PumpTimeout();
 
-		_startGate = waiting;
-		_startGateArmedMs = _time.NowMs;
-		_log.LogInformation("Start gate armed — waiting for {Count} member(s) to finish loading.", waiting.Count);
-		return true;
-	}
+	public bool StartGateActive => _startGate.Active;
 
-	public void NotifyMemberInWorld(ulong steamId)
-	{
-		if (_session.Role != SessionRole.Host || !_session.SessionActive)
-		{
-			return;
-		}
-
-		if (_startGate is null)
-		{
-			if (_gateReleased)
-			{
-				SendWorldReadyTo(steamId);
-			}
-
-			return;
-		}
-
-		_startGate.Remove(steamId);
-		if (_startGate.Count == 0)
-		{
-			_startGate = null;
-			SendWorldReady();
-			_log.LogInformation("Start gate released — everyone is in the world.");
-		}
-	}
-
-	public void MaybeForceStartGate()
-	{
-		if (_startGate is not { Count: > 0 })
-		{
-			return;
-		}
-
-		if (_time.NowMs - _startGateArmedMs <= StartGateTimeoutMs)
-		{
-			return;
-		}
-
-		_log.LogWarning("Start gate forced after {Timeout} s — still waiting for {Count} member(s); they join when they finish loading.",
-			StartGateTimeoutMs / 1000, _startGate.Count);
-		_startGate = null;
-		_gateReleased = true;
-		SendWorldReady();
-	}
-
-	public bool StartGateActive => _startGate is not null;
-
-	public int StartGateRemainingMs => _startGate is null
-		? 0
-		: Math.Max(0, StartGateTimeoutMs - (int)(_time.NowMs - _startGateArmedMs));
-
-	private void SendWorldReady()
-	{
-		if (!_session.SessionActive)
-		{
-			return;
-		}
-
-		_gateReleased = true;
-		var msg = new WorldReadyMsg();
-		foreach (var member in _session.Members)
-		{
-			if (member.Handshaken)
-			{
-				_sender.Send(member.SteamId, NetMsg.WorldReady, msg);
-			}
-		}
-	}
-
-	private void SendWorldReadyTo(ulong steamId)
-	{
-		if (!_session.SessionActive)
-		{
-			return;
-		}
-
-		_sender.Send(steamId, NetMsg.WorldReady, new WorldReadyMsg());
-		_log.LogInformation("Start gate pass — {Peer} enters directly (game already running).", steamId);
-	}
+	public int StartGateRemainingMs => _startGate.RemainingMs;
 
 	// ---- Guest block-report fallback (audit gap W1) ----
 
 	/// <summary>Test/observability seam (InternalsVisibleTo): how many unacknowledged guest block reports are outstanding.</summary>
 	internal int PendingBlockReportCount => _messages.PendingBlockReportCount;
 
-	/// <summary>The guest block-report fallback's time edge (driven by <see cref="BlockReportFallbackPump"/>; the cadence policy lives in <see cref="BlockReportFallback"/>).</summary>
-	internal void PumpBlockReportFallback(long nowMs) => _blockReportFallback.Pump(nowMs);
+	/// <summary>The guest block-report fallback's time edge (driven by <see cref="WorldReportFallbackPump"/>; the cadence policy lives in <see cref="PendingReportFallback"/>).</summary>
+	internal void PumpBlockReportFallback(long nowMs) =>
+		_blockReportFallback.Pump(nowMs, _messages.PendingBlockReportCount, _messages.ResendPendingBlockReports);
 
 	// ---- Session reset ----
 
 	private void ResetSessionState()
 	{
-		HostRunPending = false;
-		_startGate = null;
-		_startGateArmedMs = 0;
-		_gateReleased = false;
+		_startGate.Reset();
 		_blockReportFallback.Reset();
+		_channels.ResetRuntimeEntities();
+		_channels.ResetPendingEntityReports();
 		WorldParams = null;
 		_messages.ResetSessionState();
 	}
@@ -283,6 +174,22 @@ public sealed class WorldService : IWorldControl, IDisposable
 	public void SendEntitySpawned(EntitySpawnedMsg msg) => _channels.SendEntitySpawned(msg);
 
 	public void BroadcastEntitySpawned(ulong excludeSteamId, EntitySpawnedMsg msg) => _channels.BroadcastEntitySpawned(excludeSteamId, msg);
+
+	/// <summary>Host only: send the accepted runtime-entity creation table to one member (world entry, or the 60 s cycle).</summary>
+	public void SendRuntimeEntitySnapshot(ulong targetSteamId) => _channels.SendRuntimeEntitySnapshot(targetSteamId);
+
+	/// <summary>Guest: the host's absolute runtime-entity table arrived — apply every entry (create missing, dedupe existing) and acknowledge the matching pending reports.</summary>
+	public void FireRuntimeEntitySnapshotReceived(ulong sender, IReadOnlyList<EntitySpawnedMsg> entries) =>
+		_channels.FireRuntimeEntitySnapshotReceived(sender, entries);
+
+	/// <summary>Either side: a runtime-created entity's local copy died — drop its accepted record (host) or its pending re-report (guest).</summary>
+	public void ReportRuntimeEntityDestroyed(string id, float x, float y) => _channels.ReportRuntimeEntityDestroyed(id, x, y);
+
+	/// <summary>Guest: a new world/layer baseline was applied — drop every unacknowledged creation report from the previous world.</summary>
+	public void ResetPendingEntityReports() => _channels.ResetPendingEntityReports();
+
+	/// <summary>Host only: a new world layer is generating — the accepted runtime-entity creation table starts empty again.</summary>
+	public void ResetRuntimeEntities() => _channels.ResetRuntimeEntities();
 
 	public void ReportOpenedEntity(float x, float y) => _channels.ReportOpenedEntity(x, y);
 
@@ -450,7 +357,19 @@ public sealed class WorldService : IWorldControl, IDisposable
 
 	public void RemoveBlockState(int x, int y) => _messages.RemoveBlockState(x, y);
 
-	public void ResetDamagedBlocks() => _messages.ResetDamagedBlocks();
+	public void ResetDamagedBlocks() => ResetWorldLayerTables();
+
+	/// <summary>
+	/// Host only: a new world layer is generating — every world-domain table
+	/// resets. The block/damage/trap tables live in <see cref="WorldStateMessageService"/>;
+	/// the runtime-created entity table is the sibling registration table of the
+	/// same generation boundary (its entities are gone with the old scene).
+	/// </summary>
+	private void ResetWorldLayerTables()
+	{
+		_messages.ResetDamagedBlocks();
+		_channels.ResetRuntimeEntities();
+	}
 
 	public void SendBlockStateSnapshot(ulong targetSteamId) => _messages.SendBlockStateSnapshot(targetSteamId);
 

@@ -148,6 +148,15 @@ internal interface IPatchBridge : IRemoteBackpackPatchBridge, IRemoteMedicalPatc
 	/// — a runtime creation: report it so the peers create the same entity at the same place.</summary>
 	void OnEntityInstantiated(BuildingEntity entity);
 
+	/// <summary>
+	/// A BuildingEntity's health reached the death threshold (the single death
+	/// funnel, BuildingEntity.Update's health &lt; 0.5 branch). Runtime-created
+	/// entities are identified by prefab id + creation position: their accepted
+	/// creation record (host) or unacknowledged creation report (guest) is
+	/// dropped here so the runtime-entity backfill never resurrects them.
+	/// </summary>
+	void OnBuildingEntityDestroyed(BuildingEntity entity);
+
 	/// <summary>The spawn landing sound is deferred while the start gate holds — play it when the gate releases.</summary>
 	void DeferLifePodSound();
 

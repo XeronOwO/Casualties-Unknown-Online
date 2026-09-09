@@ -32,6 +32,16 @@ internal static class BuildingEntityUpdatePatch
 {
 	private static bool Prefix(BuildingEntity __instance, out IDisposable? __state)
 	{
+		if (__instance.health < 0.5f)
+		{
+			// The single death funnel for every BuildingEntity: tell the world
+			// domain so a runtime-created entity's accepted creation record (host)
+			// or unacknowledged creation report (guest) is dropped — a dead
+			// entity must never be resurrected by the runtime-entity backfill.
+			// A generated entity's id is simply not in either table (no-op).
+			PatchBridge.Impl?.OnBuildingEntityDestroyed(__instance);
+		}
+
 		if (__instance.health < 0.5f && __instance.GetComponent<RemoteEntityDeath>() != null) // Unity object — ==
 		{
 			// The attacker rolls the drops and reports them; this side only

@@ -309,6 +309,80 @@ public class NetPacketTests
 	}
 
 	[Fact]
+	public void EntitySpawned_CreationToken_RoundTrips()
+	{
+		// The creation-instance token is the recovery identity: two identical
+		// prefabs created in one cell stay distinct, and a re-report or a
+		// snapshot must carry the SAME token end to end — a lost token would
+		// collapse them back into one creation.
+		var msg = new EntitySpawnedMsg
+		{
+			Id = "turret",
+			Position = new NetVector2Msg(5.2f, 7.2f),
+			CreatorSteamId = 76561198000000001ul,
+			CreationSequence = 42,
+		};
+
+		var decoded = NetPacket.DecodePayload<EntitySpawnedMsg>(NetPacket.Encode(NetMsg.EntitySpawned, msg));
+
+		Assert.Equal(76561198000000001ul, decoded.CreatorSteamId);
+		Assert.Equal(42u, decoded.CreationSequence);
+		Assert.True(decoded.HasCreationToken);
+	}
+
+	[Fact]
+	public void RuntimeEntitySnapshot_EntriesAndAnimalKeys_RoundTrip()
+	{
+		// The snapshot carries the materializable creations AND the animal keys
+		// the host accepted for acknowledgement only — a lost animal key would
+		// leave the creating guest re-reporting every 60 s, a key mistaken for
+		// an entry would materialize a second animal next to the enemy
+		// domain's copy.
+		var msg = new RuntimeEntitySnapshotMsg
+		{
+			Entries =
+			[
+				new EntitySpawnedMsg
+				{
+					Id = "keypad",
+					Position = new NetVector2Msg(1.5f, -2.5f),
+					KeypadCode = "4321",
+					CreatorSteamId = 2001,
+					CreationSequence = 7,
+				},
+			],
+			AcceptedAnimalKeys =
+			[
+				new RuntimeEntityKeyMsg
+				{
+					Id = "crystalenemy",
+					CellX = 4,
+					CellY = -5,
+					CreatorSteamId = 2001,
+					CreationSequence = 9,
+				},
+			],
+		};
+
+		var decoded = NetPacket.DecodePayload<RuntimeEntitySnapshotMsg>(NetPacket.Encode(NetMsg.RuntimeEntitySnapshot, msg));
+
+		var entry = Assert.Single(decoded.Entries);
+		Assert.Equal("keypad", entry.Id);
+		Assert.Equal(1.5f, entry.Position.X);
+		Assert.Equal(-2.5f, entry.Position.Y);
+		Assert.Equal("4321", entry.KeypadCode);
+		Assert.Equal(2001ul, entry.CreatorSteamId);
+		Assert.Equal(7u, entry.CreationSequence);
+
+		var animalKey = Assert.Single(decoded.AcceptedAnimalKeys);
+		Assert.Equal("crystalenemy", animalKey.Id);
+		Assert.Equal(4, animalKey.CellX);
+		Assert.Equal(-5, animalKey.CellY);
+		Assert.Equal(2001ul, animalKey.CreatorSteamId);
+		Assert.Equal(9u, animalKey.CreationSequence);
+	}
+
+	[Fact]
 	public void EnemySpawnEntry_CrystalEnemyTint_RoundTrips()
 	{
 		// The late-joiner backfill entry mirrors the live EntitySpawned tint; a

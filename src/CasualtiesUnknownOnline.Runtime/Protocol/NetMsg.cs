@@ -48,7 +48,7 @@ public enum NetMsg : byte
 	EntityEvent = 66, // bidirectional: guest → host report of a triggered trap event; host → guest broadcast relay (source excluded — the host applies the event to its own world first)
 
 	// World entity creation (runtime, outside generation — the spawn command)
-	EntitySpawned = 68, // bidirectional: the creating side reports (keeps its local copy); the host creates its own and relays (source excluded) — items ride the item domain, entities ride this
+	EntitySpawned = 68, // bidirectional: the creating side reports (keeps its local copy); the host creates its own and relays to every member, the source included (its echo acknowledges the report) — items ride the item domain, entities ride this
 
 	// World entity initial conditions (host authority)
 	GeyserStateSnapshot = 69, // host → guest: the geysers' liquid types — rolled per-side at generation from the PUBLIC random stream (GeyserScript.cs:12, outside the isolated generation stream), so the host's roll is the authority; world entry + 60 s re-send, idempotent

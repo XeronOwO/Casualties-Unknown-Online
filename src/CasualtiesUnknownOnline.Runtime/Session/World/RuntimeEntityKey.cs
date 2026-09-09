@@ -6,15 +6,35 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 /// <summary>
 /// The creation-record identity of a runtime-created world entity: prefab id +
 /// the block-sized cell of its CREATION position (the position the live report
-/// carries, not the entity's current position). The world-entity channel has no
-/// per-instance wire id, so this key is what the host's accepted-creation table
-/// and the guest's pending-report table both index by: a re-report or a
-/// re-broadcast for the same creation maps to the same key, while two instances
-/// of one prefab created close together stay distinct (the same reason the
-/// live channel's match radius is 1 m, not 3 m).
+/// carries, not the entity's current position) + the creation-instance token
+/// (creator SteamId + monotonic sequence).
+/// <para>
+/// The cell alone is NOT enough: two identical prefabs created 1.0-1.4 m apart
+/// share a cell, and a cell-keyed record made the second report overwrite the
+/// first copy instead of materializing it (round-3 finding). The token is
+/// stamped by the creating side and travels unchanged through the relay, the
+/// absolute snapshot and every fallback re-report, so it is what the host's
+/// accepted-creation table, the guest's pending-report table and the per-entity
+/// <c>RuntimeEntityCreation</c> marker all index by.
+/// </para>
 /// </summary>
-internal readonly record struct RuntimeEntityKey(string Id, int X, int Y)
+public readonly record struct RuntimeEntityKey(string Id, int X, int Y, ulong CreatorSteamId, uint CreationSequence)
 {
+	/// <summary>The key of a creation record (its own creation position and token).</summary>
 	internal static RuntimeEntityKey From(EntitySpawnedMsg msg) =>
-		new(msg.Id, (int)Math.Floor(msg.Position.X), (int)Math.Floor(msg.Position.Y));
+		new(msg.Id, (int)Math.Floor(msg.Position.X), (int)Math.Floor(msg.Position.Y), msg.CreatorSteamId, msg.CreationSequence);
+
+	/// <summary>The key carried by a snapshot's acknowledgement list.</summary>
+	internal static RuntimeEntityKey FromKeyMsg(RuntimeEntityKeyMsg msg) =>
+		new(msg.Id, msg.CellX, msg.CellY, msg.CreatorSteamId, msg.CreationSequence);
+
+	/// <summary>The wire form of this key (the snapshot's acknowledgement list).</summary>
+	internal RuntimeEntityKeyMsg ToKeyMsg() => new()
+	{
+		Id = Id,
+		CellX = X,
+		CellY = Y,
+		CreatorSteamId = CreatorSteamId,
+		CreationSequence = CreationSequence,
+	};
 }

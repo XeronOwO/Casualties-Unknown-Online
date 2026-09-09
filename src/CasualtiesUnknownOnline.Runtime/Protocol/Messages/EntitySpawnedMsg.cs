@@ -85,9 +85,33 @@ public sealed class EntitySpawnedMsg
 	/// a second copy at the creation position). The GUEST pending table still
 	/// records it, because a swallowed guest → host animal report has no other
 	/// in-session recovery; that entry is dropped by the host's relay echo, by
-	/// the absolute snapshot, or by the entity's death (reported with its
-	/// stamped creation key, so a moved animal cannot leave it behind).
+	/// the absolute snapshot's animal key list, or by the entity's death
+	/// (reported with its stamped creation key, so a moved animal cannot leave
+	/// it behind).
 	/// </summary>
 	[ProtoMember(9)]
 	public bool IsAnimal { get; set; }
+
+	/// <summary>
+	/// The creation-instance token, half 1: the SteamId of the side that created
+	/// the entity. The recovery key is prefab id + creation cell + this token,
+	/// because two identical prefabs created in the SAME cell (1.0-1.4 m apart)
+	/// are distinct creations — the cell alone cannot tell them apart, and a
+	/// second report used to bind to (and overwrite) the first copy. 0 = no
+	/// token (a hand-built message; the adapter always stamps one).
+	/// </summary>
+	[ProtoMember(10)]
+	public ulong CreatorSteamId { get; set; }
+
+	/// <summary>
+	/// The creation-instance token, half 2: a monotonic per-creator sequence,
+	/// stamped by the creating side at report time and carried unchanged through
+	/// the relay, the snapshot and every re-report. 0 = no token; a real token
+	/// starts at 1, so the protobuf zero-omission cannot bite.
+	/// </summary>
+	[ProtoMember(11)]
+	public uint CreationSequence { get; set; }
+
+	/// <summary>True when the message carries a creation-instance token (the creating side stamped it).</summary>
+	public bool HasCreationToken => CreationSequence != 0;
 }

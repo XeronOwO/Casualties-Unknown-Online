@@ -1,19 +1,22 @@
+using CasualtiesUnknownOnline.Runtime.Session.World;
 using UnityEngine;
 
 namespace CasualtiesUnknownOnline.GameAdapter.World;
 
 /// <summary>
 /// The creation identity stamped onto every runtime-created BuildingEntity (the
-/// entity-spawn channel's own record): prefab id + the floored CREATION cell —
-/// the position the live report carried, not the entity's current position.
+/// entity-spawn channel's own record): the full <see cref="RuntimeEntityKey"/>
+/// — prefab id + the floored CREATION cell + the creation-instance token.
 /// <para>
-/// The recovery tables key by that creation cell, but a BuildingEntity's
+/// The recovery tables key by that identity, but a BuildingEntity's
 /// Rigidbody2D becomes Dynamic while its chunk is visible
 /// (BuildingEntity.cs:54), so a runtime creation can fall or be pushed across
 /// cells before it dies. The death funnel therefore reads this marker and
 /// reports the CREATION key, not <c>transform.position</c> — otherwise the
 /// record would never be dropped, and the 60 s re-broadcast would resurrect the
-/// dead entity. Stamped by <see cref="EntitySpawnSync"/> on the local report
+/// dead entity. The token half is what keeps two identical prefabs created in
+/// one cell apart, so a re-report or a death can never be attributed to the
+/// sibling copy. Stamped by <see cref="EntitySpawnSync"/> on the local report
 /// path and on every remotely created copy.
 /// </para>
 /// </summary>
@@ -25,10 +28,14 @@ public sealed class RuntimeEntityCreation : MonoBehaviour
 
 	public int CellY { get; set; }
 
-	/// <summary>Add or refresh the marker on an entity (a repeat report refreshes the same creation's key).</summary>
-	internal static void Stamp(BuildingEntity entity, string id, float x, float y)
+	public ulong CreatorSteamId { get; set; }
+
+	public uint CreationSequence { get; set; }
+
+	/// <summary>Add or refresh the marker on an entity (a repeat record refreshes the same creation's key).</summary>
+	internal static void Stamp(BuildingEntity entity, RuntimeEntityKey key)
 	{
-		if (string.IsNullOrEmpty(id))
+		if (string.IsNullOrEmpty(key.Id))
 		{
 			return;
 		}
@@ -39,26 +46,24 @@ public sealed class RuntimeEntityCreation : MonoBehaviour
 			marker = entity.gameObject.AddComponent<RuntimeEntityCreation>();
 		}
 
-		marker.Id = id;
-		marker.CellX = (int)Mathf.Floor(x);
-		marker.CellY = (int)Mathf.Floor(y);
+		marker.Id = key.Id;
+		marker.CellX = key.X;
+		marker.CellY = key.Y;
+		marker.CreatorSteamId = key.CreatorSteamId;
+		marker.CreationSequence = key.CreationSequence;
 	}
 
-	/// <summary>Read the marker; false for a generated entity (it never entered the runtime-creation tables).</summary>
-	internal static bool TryRead(BuildingEntity entity, out string id, out int cellX, out int cellY)
+	/// <summary>Read the marker; false for an entity that never entered the runtime-creation tables.</summary>
+	internal static bool TryRead(BuildingEntity entity, out RuntimeEntityKey key)
 	{
 		var marker = entity.GetComponent<RuntimeEntityCreation>();
 		if (marker == null || string.IsNullOrEmpty(marker.Id)) // Unity object — ==
 		{
-			id = string.Empty;
-			cellX = 0;
-			cellY = 0;
+			key = default;
 			return false;
 		}
 
-		id = marker.Id;
-		cellX = marker.CellX;
-		cellY = marker.CellY;
+		key = new RuntimeEntityKey(marker.Id, marker.CellX, marker.CellY, marker.CreatorSteamId, marker.CreationSequence);
 		return true;
 	}
 }

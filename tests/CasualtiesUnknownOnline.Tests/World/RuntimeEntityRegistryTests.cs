@@ -19,12 +19,17 @@ namespace CasualtiesUnknownOnline.Tests.World;
 [Trait("Category", "Integration")]
 public class RuntimeEntityRegistryTests
 {
-	private static EntitySpawnedMsg Creation(string id, float x, float y, string keypadCode = "") => new()
+	private static EntitySpawnedMsg Creation(string id, float x, float y, string keypadCode = "", ulong creator = 0, uint sequence = 0) => new()
 	{
 		Id = id,
 		Position = new NetVector2Msg(x, y),
 		KeypadCode = keypadCode,
+		CreatorSteamId = creator,
+		CreationSequence = sequence,
 	};
+
+	private static RuntimeEntityKey Key(string id, int x, int y, ulong creator = 0, uint sequence = 0) =>
+		new(id, x, y, creator, sequence);
 
 	private static RuntimeEntityRegistry Registry(ItemSimWorld w, int? cap = null)
 	{
@@ -50,6 +55,20 @@ public class RuntimeEntityRegistryTests
 	}
 
 	[Fact]
+	public void Report_TwoCreationsOfTheSamePrefabInOneCell_AreTwoRecords()
+	{
+		using var w = ItemSimWorld.Create();
+		var registry = Registry(w);
+
+		// Same prefab, same floored cell (5, 7), 0.7 m apart: two distinct
+		// creations. Only the creation-instance token separates them.
+		Assert.True(registry.Report(Creation("turret", 5.2f, 7.2f, creator: 2001, sequence: 1)));
+		Assert.True(registry.Report(Creation("turret", 5.9f, 7.6f, creator: 2001, sequence: 2)));
+
+		Assert.Equal(2, registry.Count);
+	}
+
+	[Fact]
 	public void Report_AtCap_RefusesNewKeysButStillUpdatesExisting()
 	{
 		using var w = ItemSimWorld.Create();
@@ -72,10 +91,96 @@ public class RuntimeEntityRegistryTests
 		registry.Report(Creation("a", 1f, 1f));
 		registry.Report(Creation("b", 2f, 2f));
 
-		Assert.True(registry.Remove("a", 1f, 1f));
-		Assert.False(registry.Remove("a", 1f, 1f), "a second remove is a no-op");
+		Assert.True(registry.Remove(Key("a", 1, 1)));
+		Assert.False(registry.Remove(Key("a", 1, 1)), "a second remove is a no-op");
 		Assert.Equal(1, registry.Count);
 		Assert.Equal("b", Assert.Single(registry.Entries).Id);
+	}
+
+	[Fact]
+	public void Remove_TwoCreationsInOneCell_DropsOnlyTheRequestedToken()
+	{
+		using var w = ItemSimWorld.Create();
+		var registry = Registry(w);
+		registry.Report(Creation("turret", 5.2f, 7.2f, creator: 2001, sequence: 1));
+		registry.Report(Creation("turret", 5.9f, 7.6f, creator: 2001, sequence: 2));
+
+		Assert.True(registry.Remove(Key("turret", 5, 7, creator: 2001, sequence: 2)));
+
+		Assert.Equal(1, registry.Count);
+		Assert.Equal(1u, Assert.Single(registry.Entries).CreationSequence);
+	}
+
+	[Fact]
+	public void ReportAnimal_KeepsTheKeyOnlyAndNeverEntersTheMaterializableEntries()
+	{
+		using var w = ItemSimWorld.Create();
+		var registry = Registry(w);
+		var animal = Creation("crystalenemy", 4f, 5f, creator: 2001, sequence: 3);
+		animal.IsAnimal = true;
+
+		Assert.True(registry.ReportAnimal(animal));
+
+		Assert.Equal(0, registry.Count);
+		Assert.Empty(registry.Entries);
+		Assert.Equal(1, registry.AnimalCount);
+		Assert.Contains(Key("crystalenemy", 4, 5, creator: 2001, sequence: 3), registry.AnimalKeys);
+	}
+
+	[Fact]
+	public void Remove_DropsTheAcceptedAnimalKeyToo()
+	{
+		using var w = ItemSimWorld.Create();
+		var registry = Registry(w);
+		var animal = Creation("crystalenemy", 4f, 5f, creator: 2001, sequence: 3);
+		animal.IsAnimal = true;
+		registry.ReportAnimal(animal);
+
+		Assert.True(registry.Remove(Key("crystalenemy", 4, 5, creator: 2001, sequence: 3)));
+
+		Assert.Equal(0, registry.AnimalCount);
+		Assert.Empty(registry.AnimalKeys);
+	}
+
+	[Fact]
+	public void Remove_DropsTheKeyFromBothSets()
+	{
+		using var w = ItemSimWorld.Create();
+		var registry = Registry(w);
+		var key = Key("crystalenemy", 4, 5, creator: 2001, sequence: 3);
+
+		// A peer that flips IsAnimal between reports for one creation key lands
+		// the key in both sets; the death drop must clear both, or the stale
+		// animal acknowledgement rides every later snapshot.
+		registry.Report(Creation("crystalenemy", 4f, 5f, creator: 2001, sequence: 3));
+		var animal = Creation("crystalenemy", 4f, 5f, creator: 2001, sequence: 3);
+		animal.IsAnimal = true;
+		registry.ReportAnimal(animal);
+
+		Assert.True(registry.Remove(key));
+
+		Assert.Equal(0, registry.Count);
+		Assert.Equal(0, registry.AnimalCount);
+	}
+
+	[Fact]
+	public void ReportAnimal_AtCap_RefusesNewKeysBecauseTheBoundIsTotal()
+	{
+		using var w = ItemSimWorld.Create();
+		var registry = Registry(w, cap: 2);
+		var first = Creation("crystalenemy", 1f, 1f, creator: 2001, sequence: 1);
+		first.IsAnimal = true;
+		var second = Creation("crystalenemy", 2f, 2f, creator: 2001, sequence: 2);
+		second.IsAnimal = true;
+
+		// The cap bounds BOTH sets together (they ride one snapshot).
+		Assert.True(registry.ReportAnimal(first));
+		Assert.True(registry.Report(Creation("keypad", 3f, 3f)));
+		Assert.False(registry.ReportAnimal(second), "a NEW animal key is refused at the total cap");
+		Assert.True(registry.ReportAnimal(first), "an existing animal key always updates");
+
+		Assert.Equal(1, registry.AnimalCount);
+		Assert.Equal(1, registry.Count);
 	}
 
 	[Fact]
@@ -95,10 +200,15 @@ public class RuntimeEntityRegistryTests
 		var registry = Registry(w);
 		registry.Report(Creation("a", 1f, 1f));
 		registry.Report(Creation("b", 2f, 2f));
+		var animal = Creation("crystalenemy", 3f, 3f, creator: 2001, sequence: 1);
+		animal.IsAnimal = true;
+		registry.ReportAnimal(animal);
 
 		registry.Reset();
 
 		Assert.Equal(0, registry.Count);
+		Assert.Equal(0, registry.AnimalCount);
 		Assert.Empty(registry.Entries);
+		Assert.Empty(registry.AnimalKeys);
 	}
 }

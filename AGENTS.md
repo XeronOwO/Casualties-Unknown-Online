@@ -218,6 +218,16 @@ items or user-reported problems only.
    reclassify known gaps as future, and do not move to `review/` until the exact
    scenario and full acceptance matrix are verified.
 
+9. **Budget the working context; hand off at phase boundaries.** Batching is for
+   small, strongly related work only — never for several large tasks in one
+   sitting. After each task, or each phase of a multi-stage task, evaluate how
+   much context is already consumed (long documents read, large source files,
+   independent review rounds, full-suite runs). When it is close to full, stop
+   at the phase boundary: do not start the next large task, and instead emit a
+   handoff prompt for a fresh session that states what landed, what is verified,
+   and what comes next. An exhausted context produces shallow work, which is a
+   quality failure, not a time problem.
+
 ## Quality & Delivery (binding)
 
 - `[CRITICAL]` No self-assumption: every claim needs source evidence (`file:line`) or runtime

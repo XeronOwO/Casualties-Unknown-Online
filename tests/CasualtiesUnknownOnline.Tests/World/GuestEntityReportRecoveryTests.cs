@@ -31,11 +31,13 @@ namespace CasualtiesUnknownOnline.Tests.World;
 [Trait("Category", "Integration")]
 public class GuestEntityReportRecoveryTests
 {
-	private static EntitySpawnedMsg Creation(string id, float x, float y) => new()
+	private static EntitySpawnedMsg Creation(string id, float x, float y, ulong creator = 0, uint sequence = 0) => new()
 	{
 		Id = id,
 		Position = new NetVector2Msg(x, y),
 		Rotation = 0f,
+		CreatorSteamId = creator,
+		CreationSequence = sequence,
 	};
 
 	/// <summary>The host executor contract double: record the report and relay it to every member (the reporter included — its echo is the acknowledgement).</summary>
@@ -171,7 +173,7 @@ public class GuestEntityReportRecoveryTests
 		var registry = w.Host.Services.GetRequiredService<RuntimeEntityRegistry>();
 		Assert.Equal(1, registry.Count);
 
-		hostWorld.ReportRuntimeEntityDestroyed("keypad", 5f, 6f);
+		hostWorld.ReportRuntimeEntityDestroyed(new RuntimeEntityKey("keypad", 5, 6, 0, 0));
 
 		Assert.Equal(0, registry.Count);
 		Assert.Empty(registry.Entries);
@@ -191,12 +193,34 @@ public class GuestEntityReportRecoveryTests
 
 		// The guest's own copy died before the host answered — a dead entity
 		// must never be re-reported (and so never resurrected).
-		guestWorld.ReportRuntimeEntityDestroyed("keypad", 8f, 9f);
+		guestWorld.ReportRuntimeEntityDestroyed(new RuntimeEntityKey("keypad", 8, 9, 0, 0));
 		Assert.Equal(0, PendingCreations(w.G1));
 
 		w.Driver.Network.ClearFaults(w.G1.SteamId, w.Host.SteamId);
 		w.Driver.Tick(61_000);
 		Assert.Empty(reports);
+	}
+
+	[Fact]
+	public void TwoCreationsInOneCell_OneDies_OnlyItsOwnRecordIsDropped()
+	{
+		using var w = ItemSimWorld.Create();
+		var hostWorld = w.Host.Services.GetRequiredService<IWorldControl>();
+		var registry = w.Host.Services.GetRequiredService<RuntimeEntityRegistry>();
+		var survivor = new RuntimeEntityKey("turret", 5, 7, w.G1.SteamId, 1);
+		var dead = new RuntimeEntityKey("turret", 5, 7, w.G1.SteamId, 2);
+
+		hostWorld.SendEntitySpawned(Creation("turret", 5.2f, 7.2f, w.G1.SteamId, 1));
+		hostWorld.SendEntitySpawned(Creation("turret", 5.9f, 7.6f, w.G1.SteamId, 2));
+		Assert.Equal(2, registry.Count);
+
+		// The death hook reports the stamped CREATION key: the sibling's record
+		// must survive, or the 60 s re-broadcast would resurrect the dead one
+		// and stop healing the live one.
+		hostWorld.ReportRuntimeEntityDestroyed(dead);
+
+		Assert.Equal(1, registry.Count);
+		Assert.Equal(survivor, RuntimeEntityKey.From(Assert.Single(registry.Entries)));
 	}
 
 	[Fact]
@@ -305,5 +329,103 @@ public class GuestEntityReportRecoveryTests
 		Assert.Equal(2, reports.Count);
 		Assert.Equal(1, w.Host.Services.GetRequiredService<RuntimeEntityRegistry>().Count);
 		Assert.Equal(0, PendingCreations(w.G1));
+	}
+
+	[Fact]
+	public void TwoCreationsOfTheSamePrefabInOneCell_AreTwoAcceptedRecords()
+	{
+		using var w = ItemSimWorld.Create();
+		var reports = InstallHostExecutor(w);
+		var guestWorld = w.G1.Services.GetRequiredService<IWorldControl>();
+
+		// Two turrets 0.7 m apart: the SAME floored cell (5, 7) but two distinct
+		// creations. The creating side's monotonic token is the only thing that
+		// can tell them apart — a cell-keyed record would swallow the second
+		// one and the peer would never materialize it.
+		guestWorld.SendEntitySpawned(Creation("turret", 5.2f, 7.2f, w.G1.SteamId, 1));
+		guestWorld.SendEntitySpawned(Creation("turret", 5.9f, 7.6f, w.G1.SteamId, 2));
+		w.Driver.Tick(33);
+
+		Assert.Equal(2, reports.Count);
+		Assert.Equal(2, w.Host.Services.GetRequiredService<RuntimeEntityRegistry>().Count);
+		Assert.Equal(0, PendingCreations(w.G1)); // both echoes acknowledged their own report
+	}
+
+	[Fact]
+	public void AnimalCreation_IsAcknowledgedByTheHostSnapshot()
+	{
+		using var w = ItemSimWorld.Create();
+		var reports = InstallHostExecutor(w);
+		var guestWorld = w.G1.Services.GetRequiredService<IWorldControl>();
+
+		// An accepted animal never enters the host's materializable table (the
+		// enemy domain owns its late-join copy), so the entry list alone can
+		// never acknowledge the report. The host snapshot must still answer it,
+		// or a lost echo leaves the guest re-reporting until the animal dies.
+		var animal = Creation("crystalenemy", 4f, 5f, w.G1.SteamId, 3);
+		animal.IsAnimal = true;
+		w.Driver.Network.SetFaults(w.Host.SteamId, w.G1.SteamId, new LinkFaults { Down = true }); // the echo is swallowed
+		guestWorld.SendEntitySpawned(animal);
+		w.Driver.Tick(33);
+		Assert.Single(reports);
+		Assert.Equal(1, PendingCreations(w.G1));
+
+		var g1Creations = new List<EntitySpawnedMsg>();
+		guestWorld.EntitySpawnedReceived += (_, msg) => g1Creations.Add(msg);
+		w.Driver.Network.ClearFaults(w.Host.SteamId, w.G1.SteamId);
+		w.Host.Services.GetRequiredService<IWorldControl>().SendRuntimeEntitySnapshot(w.G1.SteamId);
+		w.Driver.Tick(33);
+
+		Assert.Equal(1, w.ReceivedCount(w.G1, NetMsg.RuntimeEntitySnapshot));
+		Assert.Equal(0, PendingCreations(w.G1));
+		Assert.Empty(g1Creations); // the acknowledgement never materializes a copy
+	}
+
+	[Fact]
+	public void UnmaterializableCreation_IsRelayedAndAcknowledgedWithoutBeingRecorded()
+	{
+		using var w = ItemSimWorld.Create();
+		var hostWorld = w.Host.Services.GetRequiredService<IWorldControl>();
+		var g2Creations = new List<EntitySpawnedMsg>();
+		w.G2.Services.GetRequiredService<IWorldControl>().EntitySpawnedReceived += (_, msg) => g2Creations.Add(msg);
+		var guestWorld = w.G1.Services.GetRequiredService<IWorldControl>();
+
+		// The adapter's contract double for the host-side failure branch: the
+		// host lacks the prefab and cannot materialize its own copy. Accept-first
+		// still requires the creation to reach a member that HAS the prefab, and
+		// the reporter's echo to acknowledge its report.
+		hostWorld.EntitySpawnedReceived += (sender, msg) => hostWorld.ReportEntitySpawnUnmaterialized(sender, msg);
+
+		guestWorld.SendEntitySpawned(Creation("modcrate", 6f, 6f, w.G1.SteamId, 4));
+		w.Driver.Tick(33);
+
+		var relayed = Assert.Single(g2Creations);
+		Assert.Equal("modcrate", relayed.Id);
+		Assert.Equal(0, PendingCreations(w.G1));
+
+		// NOT recorded: the host has no local copy whose death could drop the
+		// record, so a record would re-materialize the creation on a member that
+		// later destroyed its copy (the resurrection this mechanism prevents).
+		Assert.Equal(0, w.Host.Services.GetRequiredService<RuntimeEntityRegistry>().Count);
+		w.Host.Services.GetRequiredService<IWorldControl>().SendRuntimeEntitySnapshot(w.G2.SteamId);
+		w.Driver.Tick(33);
+		Assert.Single(g2Creations); // the snapshot carries no record for it
+	}
+
+	[Fact]
+	public void UnmaterializableReport_OnAGuest_IsNotRelayed()
+	{
+		using var w = ItemSimWorld.Create();
+		var hostCreations = new List<EntitySpawnedMsg>();
+		w.Host.Services.GetRequiredService<IWorldControl>().EntitySpawnedReceived += (_, msg) => hostCreations.Add(msg);
+		var guestWorld = w.G1.Services.GetRequiredService<IWorldControl>();
+
+		// Only the host relays a creation it could not materialize; a guest that
+		// hits the same branch must stay silent (the guard is what keeps a guest
+		// from broadcasting on the host's behalf).
+		guestWorld.ReportEntitySpawnUnmaterialized(w.Host.SteamId, Creation("modcrate", 6f, 6f, w.Host.SteamId, 5));
+		w.Driver.Tick(33);
+
+		Assert.Empty(hostCreations);
 	}
 }

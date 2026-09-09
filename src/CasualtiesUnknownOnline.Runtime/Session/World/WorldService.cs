@@ -171,6 +171,8 @@ public sealed class WorldService : IWorldControl, IDisposable
 
 	public void FireEntitySpawnedReceived(ulong sender, EntitySpawnedMsg msg) => _channels.FireEntitySpawnedReceived(sender, msg);
 
+	public void ReportEntitySpawnUnmaterialized(ulong sender, EntitySpawnedMsg msg) => _channels.ReportEntitySpawnUnmaterialized(sender, msg);
+
 	public void SendEntitySpawned(EntitySpawnedMsg msg) => _channels.SendEntitySpawned(msg);
 
 	public void BroadcastEntitySpawned(ulong excludeSteamId, EntitySpawnedMsg msg) => _channels.BroadcastEntitySpawned(excludeSteamId, msg);
@@ -178,12 +180,12 @@ public sealed class WorldService : IWorldControl, IDisposable
 	/// <summary>Host only: send the accepted runtime-entity creation table to one member (world entry, or the 60 s cycle).</summary>
 	public void SendRuntimeEntitySnapshot(ulong targetSteamId) => _channels.SendRuntimeEntitySnapshot(targetSteamId);
 
-	/// <summary>Guest: the host's absolute runtime-entity table arrived — apply every entry (create missing, dedupe existing) and acknowledge the matching pending reports.</summary>
-	public void FireRuntimeEntitySnapshotReceived(ulong sender, IReadOnlyList<EntitySpawnedMsg> entries) =>
-		_channels.FireRuntimeEntitySnapshotReceived(sender, entries);
+	/// <summary>Guest: the host's absolute runtime-entity table arrived — apply every entry (create missing, bind existing by creation key) and acknowledge the matching pending reports.</summary>
+	public void FireRuntimeEntitySnapshotReceived(ulong sender, RuntimeEntitySnapshotMsg snapshot) =>
+		_channels.FireRuntimeEntitySnapshotReceived(sender, snapshot);
 
 	/// <summary>Either side: a runtime-created entity's local copy died — drop its accepted record (host) or its pending re-report (guest).</summary>
-	public void ReportRuntimeEntityDestroyed(string id, float x, float y) => _channels.ReportRuntimeEntityDestroyed(id, x, y);
+	public void ReportRuntimeEntityDestroyed(RuntimeEntityKey key) => _channels.ReportRuntimeEntityDestroyed(key);
 
 	/// <summary>Guest: a new world/layer baseline was applied — drop every unacknowledged creation report from the previous world.</summary>
 	public void ResetPendingEntityReports() => _channels.ResetPendingEntityReports();

@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 
@@ -54,18 +53,16 @@ public sealed class PendingEntityReportTable
 			return false;
 		}
 
-		_entries[key] = new PendingEntityReport(msg, 0);
+		_entries[key] = new PendingEntityReport(key, msg, 0);
 		return true;
 	}
 
 	/// <summary>Drop the creation — the host has answered for it, or the local copy died. Returns whether an entry was removed.</summary>
-	public bool Remove(string id, float x, float y) =>
-		_entries.Remove(new RuntimeEntityKey(id, (int)Math.Floor(x), (int)Math.Floor(y)));
+	public bool Remove(RuntimeEntityKey key) => _entries.Remove(key);
 
 	/// <summary>Count one fallback re-send for the creation; returns the new attempt count (0 when the entry is already gone).</summary>
-	public int RecordAttempt(string id, float x, float y)
+	public int RecordAttempt(RuntimeEntityKey key)
 	{
-		var key = new RuntimeEntityKey(id, (int)Math.Floor(x), (int)Math.Floor(y));
 		if (!_entries.TryGetValue(key, out var entry))
 		{
 			return 0;

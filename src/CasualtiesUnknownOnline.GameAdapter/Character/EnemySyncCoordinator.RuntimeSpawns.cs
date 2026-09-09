@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using CasualtiesUnknownOnline.GameAdapter.World;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
@@ -67,33 +68,21 @@ internal sealed partial class EnemySyncCoordinator
 		}
 
 		var pos = new Vector2(spawn.Position.X, spawn.Position.Y);
-		// Utils.Create calls Object.Instantiate directly — a missing prefab THROWS
-		// there, it never returns null (observed 2026-08-15: one snapshot packet
-		// killed the rest of the Steam receive batch). Guard the load first.
-		if (Resources.Load(spawn.PrefabId) == null) // Unity object — ==
-		{
-			_log.LogWarning("[Enemy] cannot materialize runtime spawn {Id} (prefab {Prefab}) — Resources.Load returned nothing.",
-				id, spawn.PrefabId);
-			return;
-		}
-
-		var createdGo = Utils.Create(spawn.PrefabId, pos, 0f);
-		if (createdGo == null) // Unity object — == (unknown prefab — the sender's prefab set differs)
-		{
-			_log.LogWarning("[Enemy] cannot materialize runtime spawn {Id} (prefab {Prefab}) — Resources.Load returned nothing.",
-				id, spawn.PrefabId);
-			return;
-		}
-
-		var created = createdGo.GetComponent<BuildingEntity>();
+		// NO Resources.Load pre-check: a MOD-registered animal template lives in
+		// the content provider (UtilsCreateCustomPrefabPatch materializes it) and
+		// is NOT in Resources — the pre-check silently starved every mod animal
+		// on a late joiner, and animals are excluded from the host's
+		// materializable creation table, so nothing else could heal it (round-3
+		// finding). RuntimeEntityFactory contains Utils.Create's throw per entry
+		// and destroys a non-BuildingEntity orphan.
+		var created = RuntimeEntityFactory.TryCreate(spawn.PrefabId, pos, _log, "Enemy");
 		if (created == null) // Unity object — ==
 		{
-			_log.LogWarning("[Enemy] materialized {Prefab} for runtime spawn {Id} has no BuildingEntity.", spawn.PrefabId, id);
 			return;
 		}
 
 		created.transform.eulerAngles = new Vector3(0f, 0f, spawn.Rotation);
-		createdGo.AddComponent<SpawnReplayMarker>(); // its own Start must not re-report the materialization
+		created.gameObject.AddComponent<SpawnReplayMarker>(); // its own Start must not re-report the materialization
 		Bind(created, id, runtimeSpawn: false);
 		ApplySpawnTint(created, spawn); // a crystalenemy backfill must carry the trigger-side color — see ApplySpawnTint
 		Freeze(created);

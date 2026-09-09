@@ -23,6 +23,19 @@ namespace CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 [ProtoContract]
 public sealed class RuntimeEntitySnapshotMsg
 {
+	/// <summary>The accepted NON-ANIMAL creations to apply (create missing, bind existing by creation key).</summary>
 	[ProtoMember(1)]
 	public List<EntitySpawnedMsg> Entries { get; set; } = [];
+
+	/// <summary>
+	/// The accepted ANIMAL creations, as keys only — acknowledgement, never
+	/// materialization. The enemy domain owns the animal copy
+	/// (<c>EnemySnapshot.RuntimeSpawns</c> materializes at the animal's current
+	/// position), so an animal must not ride <see cref="Entries"/>; but the
+	/// creating guest still needs to learn that the host accepted its report,
+	/// otherwise a lost relay echo leaves it re-reporting every 60 s until the
+	/// animal dies.
+	/// </summary>
+	[ProtoMember(2)]
+	public List<RuntimeEntityKeyMsg> AcceptedAnimalKeys { get; set; } = [];
 }

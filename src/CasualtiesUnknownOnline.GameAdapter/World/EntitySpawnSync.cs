@@ -16,13 +16,14 @@ namespace CasualtiesUnknownOnline.GameAdapter.World;
 /// Runtime world-entity creation sync (the spawn command): a BuildingEntity
 /// starting OUTSIDE world generation is a runtime creation — the creating side
 /// keeps its local copy and reports (id + position + rotation + creation-time
-/// initial data); the host creates its own copy, generates the keypad code if
-/// the created entity is a keypad (its Random stream is the authority) and
-/// relays to every member (the source included — the relay is idempotent via
-/// AlreadyExists, and the source's keypad code may need the carried value);
-/// every receiving side creates the same entity at the same place and applies
-/// the carried data. World-generation entities are skipped: they are
-/// deterministic on both sides. Items do NOT ride this channel.
+/// initial data + the creation-instance token); the host creates its own copy,
+/// generates the keypad code if the created entity is a keypad (its Random
+/// stream is the authority) and relays to every member (the source included —
+/// the relay is idempotent via the creation key, and the source's keypad code
+/// may need the carried value); every receiving side creates the same entity at
+/// the same place and applies the carried data. World-generation entities are
+/// skipped: they are deterministic on both sides. Items do NOT ride this
+/// channel.
 ///
 /// Creation-time initial data (#128 — one message per operation, data is
 /// decided at creation): a created geyser's liquid type rolls at the entity's
@@ -43,11 +44,22 @@ internal sealed class EntitySpawnSync(IWorldControl world, ISessionControl sessi
 	private readonly ISessionControl _session = session;
 	private readonly ILogger<EntitySpawnSync> _log = log;
 
+	/// <summary>
+	/// The creating side's monotonic creation-instance counter (the token's
+	/// second half; 0 means "no token", so it never starts at 0). Seeded from a
+	/// random value: the token must be unique across PROCESS lifetimes, not just
+	/// within one — a creator that restarts re-issues sequence 1, and the host's
+	/// accepted table survives that reconnect (it only resets at a layer
+	/// boundary), so a fixed start could make a new creation collide with a
+	/// record the host still holds.
+	/// </summary>
+	private uint _creationSequence = ((uint)Guid.NewGuid().GetHashCode() | 1u);
+
 	/// <summary>Geyser creations awaiting their child Start (value tuples — no Unity references held).</summary>
-	private readonly List<(string Id, Vector2 Pos, float Rotation, int AtFrame, bool IsAnimal)> _reportQueue = [];
+	private readonly List<(RuntimeEntityKey Key, Vector2 Pos, float Rotation, int AtFrame, bool IsAnimal)> _reportQueue = [];
 
 	/// <summary>Received geyser creations awaiting their own copy's Start before the carried type is applied.</summary>
-	private readonly List<(Vector2 Pos, byte Type, int AtFrame)> _applyQueue = [];
+	private readonly List<(RuntimeEntityKey Key, Vector2 Pos, byte Type, int AtFrame)> _applyQueue = [];
 
 	internal void BindToSession() => _world.EntitySpawnedReceived += OnRemoteEntitySpawned;
 
@@ -73,17 +85,9 @@ internal sealed class EntitySpawnSync(IWorldControl world, ISessionControl sessi
 			return false;
 		}
 
-		var createdGo = Utils.Create(prefabId, new Vector2(x, y), 0f);
-		if (createdGo == null) // Unity object — ==
-		{
-			return false;
-		}
-
-		var created = createdGo.GetComponent<BuildingEntity>();
+		var created = RuntimeEntityFactory.TryCreate(prefabId, new Vector2(x, y), _log, "EntitySpawn.mod");
 		if (created == null) // Unity object — ==
 		{
-			_log.LogWarning("[EntitySpawn] mod-requested prefab {Id} has no BuildingEntity — the local copy is destroyed.", prefabId);
-			Object.Destroy(createdGo);
 			return false;
 		}
 
@@ -97,40 +101,34 @@ internal sealed class EntitySpawnSync(IWorldControl world, ISessionControl sessi
 	/// threshold (the single death funnel in BuildingEntity.Update). The world
 	/// domain drops the creation's accepted record (host) or unacknowledged
 	/// report (guest) so the runtime-entity backfill never re-materializes a
-	/// dead entity. Generated entities are not in either table — a no-op.
+	/// dead entity. Generated entities carry no marker — they never entered
+	/// either table, so this is a no-op for them.
 	/// </summary>
 	internal void OnRuntimeEntityDestroyed(BuildingEntity entity)
 	{
-		if (string.IsNullOrEmpty(entity.id))
-		{
-			return;
-		}
-
-		// The record key is the CREATION cell, and a BuildingEntity's
+		// The record key is the CREATION identity, and a BuildingEntity's
 		// Rigidbody2D becomes Dynamic while its chunk is visible
 		// (BuildingEntity.cs:54), so a runtime creation can drift before it
 		// dies. Report the stamped creation key, never transform.position —
 		// otherwise the record would never be dropped and the 60 s re-broadcast
-		// would resurrect the dead entity.
-		if (RuntimeEntityCreation.TryRead(entity, out var id, out var cellX, out var cellY))
+		// would resurrect the dead entity. The token half keeps the death of one
+		// of two same-cell siblings from dropping the other's record.
+		if (RuntimeEntityCreation.TryRead(entity, out var key))
 		{
-			_world.ReportRuntimeEntityDestroyed(id, cellX, cellY);
-			return;
+			_world.ReportRuntimeEntityDestroyed(key);
 		}
-
-		var pos = entity.transform.position;
-		_world.ReportRuntimeEntityDestroyed(entity.id, pos.x, pos.y);
 	}
 
 	/// <summary>
 	/// Patch-bridge entry: a world entity just started. Inside world generation
 	/// = deterministic (both sides generate the same entity — nothing to do); a
 	/// RemoteApply create = a replay of this very channel (nothing to do);
-	/// anything else in a session = a runtime creation — report it. A geyser's
-	/// report is deferred ONE frame: its liquid type rolls at the CHILD's Start
-	/// (GeyserScript.cs:12), which runs after this parent Start — the creation
-	/// message carries the initial data once it exists. A created keypad's code
-	/// is generated HOST-side now (the host's Random stream is the authority).
+	/// anything else in a session = a runtime creation — report it with a fresh
+	/// creation-instance token. A geyser's report is deferred ONE frame: its
+	/// liquid type rolls at the CHILD's Start (GeyserScript.cs:12), which runs
+	/// after this parent Start — the creation message carries the initial data
+	/// once it exists. A created keypad's code is generated HOST-side now (the
+	/// host's Random stream is the authority).
 	/// </summary>
 	internal void OnEntityInstantiated(BuildingEntity entity)
 	{
@@ -161,10 +159,17 @@ internal sealed class EntitySpawnSync(IWorldControl world, ISessionControl sessi
 		}
 
 		var pos = entity.transform.position;
-		RuntimeEntityCreation.Stamp(entity, entity.id, pos.x, pos.y); // the creation key the death hook reports later (the entity may drift)
+		var key = NextCreationKey(entity.id, pos.x, pos.y);
+		RuntimeEntityCreation.Stamp(entity, key); // the creation key the death hook reports later (the entity may drift)
 		if (entity.GetComponentInChildren<GeyserScript>() != null) // Unity object — ==
 		{
-			_reportQueue.Add((entity.id, pos, entity.transform.eulerAngles.z, Time.frameCount, entity.animal));
+			// The deferred report must carry THIS creation key and position: the
+			// geyser child's own transform can sit in another cell than the root
+			// the marker was stamped from, and re-deriving the record from it
+			// made the host's record key differ from the death key — the record
+			// then never dropped and the 60 s re-broadcast resurrected a
+			// destroyed geyser.
+			_reportQueue.Add((key, pos, entity.transform.eulerAngles.z, Time.frameCount, entity.animal));
 			return;
 		}
 
@@ -173,7 +178,7 @@ internal sealed class EntitySpawnSync(IWorldControl world, ISessionControl sessi
 			? WorldEventSync.EnsureKeypadCode(openable) // the host creates it — its code is host authority from the start
 			: "";
 		TryCaptureEnemyTint(entity, out var hasTint, out var tint, out var lightIntensity);
-		ReportSpawn(entity.id, pos, entity.transform.eulerAngles.z, 0, keypadCode, hasTint, tint, lightIntensity, entity.animal);
+		ReportSpawn(key, pos, entity.transform.eulerAngles.z, 0, keypadCode, hasTint, tint, lightIntensity, entity.animal);
 	}
 
 	/// <summary>
@@ -204,36 +209,25 @@ internal sealed class EntitySpawnSync(IWorldControl world, ISessionControl sessi
 		using (CallContext.Enter(CallContext.Origin.RemoteApply))
 		{
 			var pos = new Vector2(msg.Position.X, msg.Position.Y);
-			var created = FindExisting(msg.Id, pos, msg.Position.X, msg.Position.Y);
-			if (created == null)
+			var key = RuntimeEntityKey.From(msg);
+			var created = FindExisting(key, msg.Position.X, msg.Position.Y);
+			if (created == null) // Unity object — ==
 			{
 				// Utils.Create calls Object.Instantiate directly for a vanilla id
 				// and THROWS when the prefab is missing; a mod-registered
 				// template is materialized by UtilsCreateCustomPrefabPatch
-				// instead (Resources.Load returns nothing for it BY DESIGN).
-				// Contain the throw per entry so one unknown id cannot discard
-				// the rest of an absolute snapshot batch.
-				GameObject? createdGo;
-				try
-				{
-					createdGo = Utils.Create(msg.Id, pos, 0f);
-				}
-				catch (Exception ex)
-				{
-					_log.LogWarning(ex, "[EntitySpawn] cannot create {Id} at {Pos} (missing prefab or template).", msg.Id, pos);
-					return;
-				}
-
-				if (createdGo == null) // Unity object — == (an Instantiate wrapper may return null)
-				{
-					_log.LogWarning("[EntitySpawn] cannot create {Id} at {Pos}.", msg.Id, pos);
-					return;
-				}
-
-				created = createdGo.GetComponent<BuildingEntity>();
+				// instead (Resources.Load returns nothing for it BY DESIGN), so
+				// there must be NO Resources pre-check here.
+				created = RuntimeEntityFactory.TryCreate(msg.Id, pos, _log, "EntitySpawn");
 				if (created == null) // Unity object — ==
 				{
-					_log.LogWarning("[EntitySpawn] created {Id} at {Pos} has no BuildingEntity.", msg.Id, pos);
+					// ACCEPT-FIRST: the host could not materialize its own copy
+					// (its mod set lacks the prefab), but a member that HAS the
+					// prefab must still receive the creation, and the reporter's
+					// report must still be acknowledged. The channel records the
+					// acceptance and relays the ORIGINAL message — there is no
+					// local copy to enrich.
+					_world.ReportEntitySpawnUnmaterialized(sender, msg);
 					return;
 				}
 
@@ -241,7 +235,7 @@ internal sealed class EntitySpawnSync(IWorldControl world, ISessionControl sessi
 				created.gameObject.AddComponent<SpawnReplayMarker>(); // its Start must not re-report (scope check cannot see it — Start runs later)
 			}
 
-			RuntimeEntityCreation.Stamp(created, msg.Id, msg.Position.X, msg.Position.Y);
+			RuntimeEntityCreation.Stamp(created, key);
 
 			var relay = msg;
 			var openable = created.GetComponent<Openable>();
@@ -250,7 +244,9 @@ internal sealed class EntitySpawnSync(IWorldControl world, ISessionControl sessi
 			{
 				// The created keypad's code: the host generates it now (its
 				// Random stream decides — same authority as the generation-time
-				// keypad snapshot) and carries it in the relay.
+				// keypad snapshot) and carries it in the relay. The creation
+				// token rides along unchanged: it is the record's identity, not
+				// part of the payload.
 				relay = new EntitySpawnedMsg
 				{
 					Id = msg.Id,
@@ -262,6 +258,8 @@ internal sealed class EntitySpawnSync(IWorldControl world, ISessionControl sessi
 					EnemyTintColor = msg.EnemyTintColor,
 					EnemyLightIntensity = msg.EnemyLightIntensity,
 					IsAnimal = msg.IsAnimal,
+					CreatorSteamId = msg.CreatorSteamId,
+					CreationSequence = msg.CreationSequence,
 				};
 			}
 
@@ -271,8 +269,8 @@ internal sealed class EntitySpawnSync(IWorldControl world, ISessionControl sessi
 			if (_session.Role == SessionRole.Host && sender != _session.LocalSteamId)
 			{
 				// Relay the creation to every member — the source included (it
-				// keeps its local copy; the repeat is a no-op creation via
-				// FindExisting, and the source's keypad code — empty until this
+				// keeps its local copy; the repeat is a no-op creation via the
+				// creation key, and the source's keypad code — empty until this
 				// arrives — is exactly what the carried code fills). The relay
 				// carries the generated keypad code when the created entity is
 				// one; a guest-created geyser's type travels unmodified (the
@@ -280,14 +278,23 @@ internal sealed class EntitySpawnSync(IWorldControl world, ISessionControl sessi
 				_world.SendEntitySpawned(relay);
 			}
 
-			_log.LogInformation("[EntitySpawn] created {Id} at {Pos}.", msg.Id, pos);
+			_log.LogInformation("[EntitySpawn] created {Id} at {Pos} (creation {Creator}:{Sequence}).",
+				msg.Id, pos, key.CreatorSteamId, key.CreationSequence);
 		}
+	}
+
+	/// <summary>The creating side's next creation-instance token: this side's SteamId + a monotonic counter, so two creations are distinct even in the same cell and across peers.</summary>
+	private RuntimeEntityKey NextCreationKey(string id, float x, float y)
+	{
+		_creationSequence++;
+		return new RuntimeEntityKey(id, (int)Math.Floor(x), (int)Math.Floor(y), _session.LocalSteamId, _creationSequence);
 	}
 
 	/// <summary>Apply the creation-carried initial data: the keypad code NOW
 	/// (the lazy generation skips an already-set code, Openable.cs:19 — no
 	/// Start wait), the geyser's liquid type AFTER this copy's Start re-rolled
-	/// it (the pump runs after Start).</summary>
+	/// it (the pump runs after Start, and the copy is located by its creation
+	/// key — never by a 3 m first hit, which could write a sibling's type).</summary>
 	private void ApplyCreationData(BuildingEntity created, EntitySpawnedMsg msg, Vector2 pos)
 	{
 		if (msg.KeypadCode.Length > 0)
@@ -302,7 +309,7 @@ internal sealed class EntitySpawnSync(IWorldControl world, ISessionControl sessi
 
 		if (msg.LiquidType != 0 && created.GetComponentInChildren<GeyserScript>() != null) // Unity object — ==
 		{
-			_applyQueue.Add((pos, msg.LiquidType, Time.frameCount));
+			_applyQueue.Add((RuntimeEntityKey.From(msg), pos, msg.LiquidType, Time.frameCount));
 		}
 	}
 
@@ -331,7 +338,10 @@ internal sealed class EntitySpawnSync(IWorldControl world, ISessionControl sessi
 
 	/// <summary>The geyser reports run here — a frame after the parent Start, so
 	/// the child's Start (GeyserScript.cs:12) has rolled the type and the
-	/// creation message can carry it.</summary>
+	/// creation message can carry it. The record is located by the QUEUED
+	/// creation key and the report carries the QUEUED creation position: the
+	/// geyser child's transform may sit in another cell, and reporting it made
+	/// the host's record key differ from the death key.</summary>
 	private void FlushReports()
 	{
 		if (_reportQueue.Count == 0)
@@ -339,21 +349,20 @@ internal sealed class EntitySpawnSync(IWorldControl world, ISessionControl sessi
 			return;
 		}
 
-		foreach (var (id, pos, rotation, atFrame, isAnimal) in _reportQueue)
+		foreach (var (key, pos, rotation, atFrame, isAnimal) in _reportQueue)
 		{
 			if (Time.frameCount - atFrame < 1)
 			{
 				continue;
 			}
 
-			var geyser = TrapEffectApplier.FindTrap<GeyserScript>(pos);
+			var geyser = FindGeyserByCreationKey(key);
 			if (geyser == null) // Unity object — == (destroyed — the 60 s geyser-state cycle covers a lost report)
 			{
 				continue;
 			}
 
-			var p = geyser.transform.position;
-			ReportSpawn(id, new Vector2(p.x, p.y), rotation,
+			ReportSpawn(key, pos, rotation,
 				Traverse.Create(geyser).Field("liquidType").GetValue<byte>(), "", isAnimal: isAnimal); // byte — exact type (a GetValue<int> cast throws InvalidCastException)
 		}
 
@@ -361,7 +370,9 @@ internal sealed class EntitySpawnSync(IWorldControl world, ISessionControl sessi
 	}
 
 	/// <summary>Apply a received creation's carried liquid type — after this
-	/// side's own copy Start re-rolled it (the pump runs after Start).</summary>
+	/// side's own copy Start re-rolled it (the pump runs after Start). The copy
+	/// is located by its creation key, so a second geyser inside the 3 m
+	/// neighbourhood can never receive the value.</summary>
 	private void FlushApplies()
 	{
 		if (_applyQueue.Count == 0)
@@ -369,14 +380,14 @@ internal sealed class EntitySpawnSync(IWorldControl world, ISessionControl sessi
 			return;
 		}
 
-		foreach (var (pos, type, atFrame) in _applyQueue)
+		foreach (var (key, pos, type, atFrame) in _applyQueue)
 		{
 			if (Time.frameCount - atFrame < 1)
 			{
 				continue;
 			}
 
-			var geyser = TrapEffectApplier.FindTrap<GeyserScript>(pos);
+			var geyser = FindGeyserByCreationKey(key);
 			if (geyser == null) // Unity object — == (already gone — nothing to align)
 			{
 				continue;
@@ -389,18 +400,18 @@ internal sealed class EntitySpawnSync(IWorldControl world, ISessionControl sessi
 		_applyQueue.RemoveAll(q => Time.frameCount - q.AtFrame >= 1);
 	}
 
-	private void ReportSpawn(string id, Vector2 pos, float rotation, byte liquidType, string keypadCode,
+	private void ReportSpawn(RuntimeEntityKey key, Vector2 pos, float rotation, byte liquidType, string keypadCode,
 		bool hasEnemyTint = false, NetColorRgba enemyTint = default, float enemyLightIntensity = 0f, bool isAnimal = false)
 	{
-		_log.LogInformation("[EntitySpawn] reporting {Id} at ({X:F1},{Y:F1}){Liquid}{Code}{Tint}{Animal}.",
-			id, pos.x, pos.y,
+		_log.LogInformation("[EntitySpawn] reporting {Id} at ({X:F1},{Y:F1}) (creation {Creator}:{Sequence}){Liquid}{Code}{Tint}{Animal}.",
+			key.Id, pos.x, pos.y, key.CreatorSteamId, key.CreationSequence,
 			liquidType != 0 ? $" (liquid {liquidType})" : "",
 			keypadCode.Length > 0 ? " (keypad code carried)" : "",
 			hasEnemyTint ? " (crystal tint carried)" : "",
 			isAnimal ? " (animal — recovery owned by the enemy domain)" : "");
 		_world.SendEntitySpawned(new EntitySpawnedMsg
 		{
-			Id = id,
+			Id = key.Id,
 			Position = new NetVector2Msg(pos.x, pos.y),
 			Rotation = rotation,
 			LiquidType = liquidType,
@@ -409,41 +420,58 @@ internal sealed class EntitySpawnSync(IWorldControl world, ISessionControl sessi
 			EnemyTintColor = enemyTint.ToNetColorRgbaMsg(),
 			EnemyLightIntensity = enemyLightIntensity,
 			IsAnimal = isAnimal,
+			CreatorSteamId = key.CreatorSteamId,
+			CreationSequence = key.CreationSequence,
 		});
 	}
 
 	/// <summary>A local copy this creation record binds to: the entity carrying
-	/// the SAME creation marker (prefab id + creation cell) anywhere — the
-	/// record's identity, drift-proof — or a same-prefab non-tutorial entity
-	/// within the 1 m radius of the recorded position (the generated-world /
-	/// legacy fallback). The judgment is the pure <see cref="RuntimeEntityMatch"/>
-	/// (radius 1, not 3: a 3 m radius absorbed consecutive spawns of the same
-	/// entity — the observed bug, three spawned turrets ~1-2 m apart, only the
-	/// first reached the peer; a per-player tutorial prop is never a bind
-	/// target). This scan only supplies the candidates.</summary>
-	private static BuildingEntity? FindExisting(string id, Vector2 pos, float creationX, float creationY)
+	/// the SAME creation key (prefab id + creation cell + creation-instance
+	/// token) anywhere — the record's identity, drift-proof — or a MARKERLESS
+	/// same-prefab copy inside the 1 m radius (a trap-layout materialization, an
+	/// enemy-domain backfill copy or a generated entity: these never entered the
+	/// runtime-creation tables, and their own <c>Start</c> can report them as
+	/// creations). The judgment is the pure <see cref="RuntimeEntityMatch"/>;
+	/// this scan only supplies the candidates. A candidate that CARRIES a marker
+	/// is never a positional bind target — that is what swallowed a second
+	/// same-cell creation.</summary>
+	private static BuildingEntity? FindExisting(RuntimeEntityKey key, float x, float y)
 	{
 		var entities = Object.FindObjectsOfType<BuildingEntity>();
 		var candidates = new List<RuntimeEntityMatch.Candidate>(entities.Length);
-		var creationCellX = (int)Math.Floor(creationX);
-		var creationCellY = (int)Math.Floor(creationY);
 		foreach (var entity in entities)
 		{
 			var position = entity.transform.position;
-			var isSameCreation = RuntimeEntityCreation.TryRead(entity, out var markerId, out var cellX, out var cellY)
-				&& string.Equals(markerId, id, StringComparison.Ordinal)
-				&& cellX == creationCellX
-				&& cellY == creationCellY;
 			candidates.Add(new RuntimeEntityMatch.Candidate(
 				entity.id,
 				position.x,
 				position.y,
 				entity.GetComponent<TutorialClawProp>() != null, // Unity object — ==
-				isSameCreation));
+				RuntimeEntityCreation.TryRead(entity, out var marker) ? marker : null));
 		}
 
-		var index = RuntimeEntityMatch.FindIndex(candidates, id, pos.x, pos.y);
+		var index = RuntimeEntityMatch.FindIndex(candidates, key, x, y);
 		return index < 0 ? null : entities[index];
 	}
 
+	/// <summary>The copy carrying this EXACT creation key — no positional fallback: the deferred geyser report/apply must never bind a sibling.</summary>
+	private static BuildingEntity? FindByCreationKey(RuntimeEntityKey key)
+	{
+		foreach (var entity in Object.FindObjectsOfType<BuildingEntity>())
+		{
+			if (RuntimeEntityCreation.TryRead(entity, out var marker) && marker == key)
+			{
+				return entity;
+			}
+		}
+
+		return null;
+	}
+
+	/// <summary>The geyser child of the copy carrying this creation key — the deferred report/apply must never re-locate by proximity.</summary>
+	private static GeyserScript? FindGeyserByCreationKey(RuntimeEntityKey key)
+	{
+		var entity = FindByCreationKey(key);
+		return entity == null ? null : entity.GetComponentInChildren<GeyserScript>(); // Unity object — ==
+	}
 }

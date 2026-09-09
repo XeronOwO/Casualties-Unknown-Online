@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using Microsoft.Extensions.Logging;
@@ -13,8 +12,8 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 /// every member, the reporter included); the host creates its own copy, enriches
 /// the record (a created keypad's code is host authority) and relays.
 /// <para>
-/// The live message is one-shot, so this channel also owns the two tables that
-/// make a swallowed report or relay heal without a reconnect: the host's
+/// The live message is one-shot, so this channel also owns the tables that make
+/// a swallowed report or relay heal without a reconnect: the host's
 /// accepted-creation table (<see cref="RuntimeEntityRegistry"/>, sent absolutely
 /// on world entry and by the 60 s cycle) and the guest's unacknowledged-report
 /// table (<see cref="PendingEntityReportTable"/>, re-reported by
@@ -50,6 +49,8 @@ public sealed class RuntimeEntityChannel(ISessionControl session, PacketSender s
 
 	private bool _pendingEntityOverflowLogged;
 	private bool _acceptedCreationOverflowLogged;
+	private bool _acceptedAnimalOverflowLogged;
+	private bool _tokenlessCreationLogged;
 
 	/// <summary>An entity-creation record arrived — the receiver creates its own copy (host: then relays; guest: remote apply).</summary>
 	public event Action<ulong, EntitySpawnedMsg>? EntitySpawnedReceived;
@@ -63,7 +64,7 @@ public sealed class RuntimeEntityChannel(ISessionControl session, PacketSender s
 		// too) — its pending re-report is done. This is also the acknowledgement
 		// for a creation the host enriched (a generated keypad code): the
 		// carried payload is applied by the adapter's create path.
-		if (_session.Role == SessionRole.Guest && _pendingEntityReports.Remove(msg.Id, msg.Position.X, msg.Position.Y))
+		if (_session.Role == SessionRole.Guest && _pendingEntityReports.Remove(RuntimeEntityKey.From(msg)))
 		{
 			if (_pendingEntityReports.Count == 0)
 			{
@@ -83,15 +84,16 @@ public sealed class RuntimeEntityChannel(ISessionControl session, PacketSender s
 	/// relays), host → broadcast to all synced members. Same shape as
 	/// SendEntityEvent: the creating side keeps its local copy.
 	/// <para>
-	/// An ANIMAL creation enters only the GUEST pending table, never the host's
-	/// accepted-creation table. Its world-entry/60 s recovery is owned by the
-	/// enemy domain (<c>EnemySnapshot.RuntimeSpawns</c> materializes at the
-	/// animal's CURRENT position with a host-allocated id), so a host record
-	/// would make a late joiner materialize a second copy at the creation
-	/// position; the guest-side pending re-report is still needed because a
-	/// swallowed guest → host animal report has no other in-session recovery,
-	/// and it is safe: the host's answer (relay echo) and the entity's death
-	/// (reported by its stamped creation key) both drop the entry.
+	/// An ANIMAL creation enters only the GUEST pending table and the host's
+	/// animal ACK set, never the host's materializable creation table. Its
+	/// world-entry/60 s recovery is owned by the enemy domain
+	/// (<c>EnemySnapshot.RuntimeSpawns</c> materializes at the animal's CURRENT
+	/// position with a host-allocated id), so a materializable host record would
+	/// make a late joiner create a second copy at the creation position; the
+	/// guest-side pending re-report is still needed because a swallowed
+	/// guest → host animal report has no other in-session recovery, and it is
+	/// safe: the host's answer (relay echo or the snapshot's key list) and the
+	/// entity's death both drop the entry.
 	/// </para>
 	/// </summary>
 	public void SendEntitySpawned(EntitySpawnedMsg msg)
@@ -101,9 +103,24 @@ public sealed class RuntimeEntityChannel(ISessionControl session, PacketSender s
 			return;
 		}
 
+		// A tokenless report is a silent-collapse hazard: two creations of the
+		// same prefab inside one cell would share one record. The adapter stamps
+		// every local creation, so this is a hand-built message — surface it once
+		// instead of letting the records merge invisibly.
+		if (!msg.HasCreationToken && !_tokenlessCreationLogged)
+		{
+			_tokenlessCreationLogged = true;
+			_log.LogWarning("[EntitySpawn] creation {Id} at ({X:F1},{Y:F1}) carries no creation token — a second creation of the same prefab in the same cell would share this record.",
+				msg.Id, msg.Position.X, msg.Position.Y);
+		}
+
 		if (_session.Role == SessionRole.Host)
 		{
-			if (!msg.IsAnimal)
+			if (msg.IsAnimal)
+			{
+				RecordAcceptedAnimal(msg);
+			}
+			else
 			{
 				RecordAcceptedCreation(msg);
 			}
@@ -130,59 +147,102 @@ public sealed class RuntimeEntityChannel(ISessionControl session, PacketSender s
 		_session.BroadcastExcept(excludeSteamId, NetMsg.EntitySpawned, msg);
 	}
 
+	/// <summary>
+	/// Host only: a guest reported a runtime creation this host could NOT
+	/// materialize locally (its mod set lacks the prefab/template). Accept-first:
+	/// the creation is still relayed — a third-party guest that does have the
+	/// prefab must receive it, and the reporter's echo must still acknowledge
+	/// its pending report. It is deliberately NOT recorded in the accepted table:
+	/// the host has no local copy whose death could ever drop the record, so the
+	/// 60 s snapshot would re-materialize a creation a member later destroyed
+	/// (the exact resurrection this mechanism exists to prevent). The cost —
+	/// a late joiner with the prefab does not receive it — is recorded in the
+	/// ticket.
+	/// </summary>
+	public void ReportEntitySpawnUnmaterialized(ulong sender, EntitySpawnedMsg msg)
+	{
+		if (_session.Role != SessionRole.Host || !_session.SessionActive || sender == _session.LocalSteamId)
+		{
+			return;
+		}
+
+		_log.LogWarning("[EntitySpawn] host could not materialize {Id} at ({X:F1},{Y:F1}) — relaying it unchanged so a member that has the prefab receives it, but NOT recording it (no local copy could ever drop the record).",
+			msg.Id, msg.Position.X, msg.Position.Y);
+		_session.Broadcast(NetMsg.EntitySpawned, msg); // the reporter's echo is its acknowledgement
+	}
+
 	/// <summary>Host only: send the accepted-creation table to one member (world entry, or the 60 s cycle).</summary>
 	public void SendRuntimeEntitySnapshot(ulong targetSteamId) => _runtimeEntities.SendSnapshot(targetSteamId);
 
 	/// <summary>
 	/// Guest: the host's absolute runtime-entity table arrived (world entry or
-	/// the 60 s re-broadcast). Every entry is the host's answer for that
-	/// creation (drop the pending re-report) and then runs the LIVE creation
-	/// path — missing entities materialize, existing ones are deduped by the
-	/// adapter's same-id match, so the snapshot is additive and idempotent.
+	/// the 60 s re-broadcast). The animal key list is an acknowledgement ONLY —
+	/// it drops the matching pending re-reports and never materializes
+	/// anything. Every entry is the host's answer for that creation and then
+	/// runs the LIVE creation path — missing entities materialize, existing ones
+	/// are deduped by their creation key, so the snapshot is additive and
+	/// idempotent.
 	/// </summary>
-	public void FireRuntimeEntitySnapshotReceived(ulong sender, IReadOnlyList<EntitySpawnedMsg> entries)
+	public void FireRuntimeEntitySnapshotReceived(ulong sender, RuntimeEntitySnapshotMsg snapshot)
 	{
-		foreach (var entry in entries)
+		foreach (var animalKey in snapshot.AcceptedAnimalKeys)
+		{
+			var key = RuntimeEntityKey.FromKeyMsg(animalKey);
+			if (_session.Role == SessionRole.Guest && _pendingEntityReports.Remove(key))
+			{
+				_log.LogDebug("[EntitySpawn] host accepted animal creation {Id} at ({X},{Y}) — dropped the pending report ({Remaining} left).",
+					key.Id, key.X, key.Y, _pendingEntityReports.Count);
+			}
+		}
+
+		if (_session.Role == SessionRole.Guest && _pendingEntityReports.Count == 0)
+		{
+			_pendingEntityOverflowLogged = false;
+		}
+
+		foreach (var entry in snapshot.Entries)
 		{
 			FireEntitySpawnedReceived(sender, entry);
 		}
 
-		_log.LogInformation("[EntitySpawn] applied host runtime-entity snapshot ({Count} entries).", entries.Count);
+		_log.LogInformation("[EntitySpawn] applied host runtime-entity snapshot ({Count} entries, {Animals} animal acknowledgements).",
+			snapshot.Entries.Count, snapshot.AcceptedAnimalKeys.Count);
 	}
 
 	/// <summary>
-	/// Host only: the runtime-created entity at this creation position is gone
-	/// (the adapter's death hook) — drop the accepted record so no snapshot or
-	/// re-broadcast resurrects it. Guest: the same hook drops the pending
-	/// re-report — a dead entity must never be reported again.
+	/// Either side: the runtime-created entity with this CREATION key is gone
+	/// (the adapter's death hook) — the host drops the accepted record (or the
+	/// animal acknowledgement) so no snapshot or re-broadcast resurrects it;
+	/// the guest drops the pending re-report — a dead entity must never be
+	/// reported again.
 	/// </summary>
-	public void ReportRuntimeEntityDestroyed(string id, float x, float y)
+	public void ReportRuntimeEntityDestroyed(RuntimeEntityKey key)
 	{
-		if (string.IsNullOrEmpty(id))
+		if (string.IsNullOrEmpty(key.Id))
 		{
 			return;
 		}
 
 		if (_session.Role == SessionRole.Host)
 		{
-			if (_runtimeEntities.Remove(id, x, y))
+			if (_runtimeEntities.Remove(key))
 			{
-				_log.LogInformation("[EntitySpawn] {Id} at ({X:F1},{Y:F1}) died — dropped the accepted creation record.",
-					id, x, y);
+				_log.LogInformation("[EntitySpawn] {Id} at ({X},{Y}) died — dropped the accepted creation record.",
+					key.Id, key.X, key.Y);
 			}
 
 			return;
 		}
 
-		if (_pendingEntityReports.Remove(id, x, y))
+		if (_pendingEntityReports.Remove(key))
 		{
 			if (_pendingEntityReports.Count == 0)
 			{
 				_pendingEntityOverflowLogged = false;
 			}
 
-			_log.LogInformation("[EntitySpawn] {Id} at ({X:F1},{Y:F1}) died before the host answered — dropped the pending report.",
-				id, x, y);
+			_log.LogInformation("[EntitySpawn] {Id} at ({X},{Y}) died before the host answered — dropped the pending report.",
+				key.Id, key.X, key.Y);
 		}
 	}
 
@@ -190,14 +250,14 @@ public sealed class RuntimeEntityChannel(ISessionControl session, PacketSender s
 	/// Guest only: re-report every unacknowledged creation to the host. Each
 	/// entry is one <see cref="NetMsg.EntitySpawned"/> report, so the host's
 	/// existing accept-and-relay path handles it unchanged (idempotent — the
-	/// adapter dedupes the materialization). Called by
+	/// adapter binds the copy by its creation key). Called by
 	/// <see cref="WorldReportFallbackPump"/>; a no-op when nothing is
 	/// outstanding, when this side is not a guest, or when the session ended.
 	/// Entries are never dropped for age: an unreachable host keeps them until
 	/// the answer, the entity's death or a world/session boundary. A creation
 	/// the host cannot materialize (a prefab its mod set lacks) therefore keeps
-	/// retrying; the stall warning makes that pathology visible instead of
-	/// silent.
+	/// retrying; the host still accepts and relays it, and the stall warning
+	/// makes a genuinely unreachable report visible instead of silent.
 	/// </summary>
 	public void ResendPendingEntityReports()
 	{
@@ -209,7 +269,7 @@ public sealed class RuntimeEntityChannel(ISessionControl session, PacketSender s
 		foreach (var entry in _pendingEntityReports.Entries)
 		{
 			_sender.Send(_session.HostSteamId, NetMsg.EntitySpawned, entry.Msg);
-			var attempts = _pendingEntityReports.RecordAttempt(entry.Msg.Id, entry.Msg.Position.X, entry.Msg.Position.Y);
+			var attempts = _pendingEntityReports.RecordAttempt(entry.Key);
 			if (attempts == StallWarnAttempts)
 			{
 				_log.LogWarning("[EntitySpawn] {Id} at ({X:F1},{Y:F1}) is still unacknowledged after {Attempts} fallback re-reports — the host may lack the prefab or never received the report.",
@@ -252,9 +312,10 @@ public sealed class RuntimeEntityChannel(ISessionControl session, PacketSender s
 	{
 		_runtimeEntities.Reset();
 		_acceptedCreationOverflowLogged = false;
+		_acceptedAnimalOverflowLogged = false;
 	}
 
-	/// <summary>Host only: record an accepted creation (the host's own local creation or a relayed guest report) into the absolute table.</summary>
+	/// <summary>Host only: record an accepted non-animal creation (the host's own local creation or a relayed guest report) into the absolute table.</summary>
 	private void RecordAcceptedCreation(EntitySpawnedMsg msg)
 	{
 		if (_runtimeEntities.Report(msg))
@@ -269,6 +330,24 @@ public sealed class RuntimeEntityChannel(ISessionControl session, PacketSender s
 
 		_acceptedCreationOverflowLogged = true;
 		_log.LogWarning("[EntitySpawn] accepted-creation table is full ({Cap} creations) — new creations are not re-broadcast until a layer reset (creation {Id} at ({X:F1},{Y:F1}) dropped).",
+			_runtimeEntities.Cap, msg.Id, msg.Position.X, msg.Position.Y);
+	}
+
+	/// <summary>Host only: record an accepted animal creation by key — acknowledgement only, never materialized from the snapshot.</summary>
+	private void RecordAcceptedAnimal(EntitySpawnedMsg msg)
+	{
+		if (_runtimeEntities.ReportAnimal(msg))
+		{
+			return;
+		}
+
+		if (_acceptedAnimalOverflowLogged)
+		{
+			return;
+		}
+
+		_acceptedAnimalOverflowLogged = true;
+		_log.LogWarning("[EntitySpawn] accepted-animal key set is full ({Cap} creations) — new animal reports are not acknowledged until a layer reset (creation {Id} at ({X:F1},{Y:F1}) dropped).",
 			_runtimeEntities.Cap, msg.Id, msg.Position.X, msg.Position.Y);
 	}
 

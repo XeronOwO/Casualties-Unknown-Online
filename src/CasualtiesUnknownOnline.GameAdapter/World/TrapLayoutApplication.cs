@@ -93,6 +93,12 @@ internal sealed class TrapLayoutApplication(IWorldControl world, ILogger<TrapLay
 		}
 
 		var go = Object.Instantiate((GameObject)prefab, new Vector3(entry.X, entry.Y, 0f), Quaternion.identity);
+		// The copy's Start runs AFTER this method returned, so the enclosing
+		// RemoteApply scope is already gone by then — without this marker the
+		// materialization would report itself as a RUNTIME creation, and the host
+		// would materialize a second copy of a trap it already owns (the layout
+		// is host-authoritative: a replay must never re-report).
+		go.AddComponent<SpawnReplayMarker>();
 		_log.LogInformation("[TrapLayout] materialized {Kind} at ({X:F1},{Y:F1}) from '{Prefab}'.",
 			entry.Kind, entry.X, entry.Y, entry.PrefabName);
 	}

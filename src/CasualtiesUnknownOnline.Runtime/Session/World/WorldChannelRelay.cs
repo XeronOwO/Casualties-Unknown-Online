@@ -66,12 +66,14 @@ internal sealed class WorldChannelRelay(
 
 	public void BroadcastEntitySpawned(ulong excludeSteamId, EntitySpawnedMsg msg) => _runtimeEntityChannel.BroadcastEntitySpawned(excludeSteamId, msg);
 
+	public void ReportEntitySpawnUnmaterialized(ulong sender, EntitySpawnedMsg msg) => _runtimeEntityChannel.ReportEntitySpawnUnmaterialized(sender, msg);
+
 	public void SendRuntimeEntitySnapshot(ulong targetSteamId) => _runtimeEntityChannel.SendRuntimeEntitySnapshot(targetSteamId);
 
-	public void FireRuntimeEntitySnapshotReceived(ulong sender, IReadOnlyList<EntitySpawnedMsg> entries) =>
-		_runtimeEntityChannel.FireRuntimeEntitySnapshotReceived(sender, entries);
+	public void FireRuntimeEntitySnapshotReceived(ulong sender, RuntimeEntitySnapshotMsg snapshot) =>
+		_runtimeEntityChannel.FireRuntimeEntitySnapshotReceived(sender, snapshot);
 
-	public void ReportRuntimeEntityDestroyed(string id, float x, float y) => _runtimeEntityChannel.ReportRuntimeEntityDestroyed(id, x, y);
+	public void ReportRuntimeEntityDestroyed(RuntimeEntityKey key) => _runtimeEntityChannel.ReportRuntimeEntityDestroyed(key);
 
 	public void ResetPendingEntityReports() => _runtimeEntityChannel.ResetPendingEntityReports();
 

@@ -6,42 +6,53 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 /// <summary>
 /// The runtime entity-creation match judgment (PURE — no Unity): which local
 /// BuildingEntity a creation record binds to. Extracted from the adapter's
-/// <c>EntitySpawnSync.FindExisting</c> so the dedup contract is unit-testable
-/// without a game scene, exactly like <c>TrapLayoutAlign</c> and
+/// <c>EntitySpawnSync.FindExisting</c> so the identity contract is
+/// unit-testable without a game scene, exactly like <c>TrapLayoutAlign</c> and
 /// <c>EnemyRuntimeSpawnArbitration</c>.
 /// <para>
-/// The radius is <see cref="MatchRadius"/> = 1, not 3: a 3 m radius absorbed
-/// consecutive spawns of the same prefab (the observed bug — three spawned
-/// turrets ~1-2 m apart, only the first reached the peer). The match is the
-/// first candidate in enumeration order, which keeps the apply idempotent: a
-/// repeated creation record binds to the same copy instead of creating a
-/// second one. A per-player tutorial prop is never a bind target — binding a
-/// shared domain entity to it would let one player's creation absorb another
-/// player's private course object.
+/// Two passes, in this order:
+/// <list type="number">
+/// <item>The record's OWN copy: the candidate carrying the record's exact
+/// <see cref="RuntimeEntityKey"/> (prefab id + creation cell + creation-instance
+/// token), wherever it drifted (a BuildingEntity's Rigidbody2D becomes Dynamic
+/// while its chunk is visible, BuildingEntity.cs:54).</item>
+/// <item>A MARKERLESS copy strictly inside <see cref="MatchRadius"/> of the
+/// recorded position: an enemy-domain backfill copy
+/// (<c>EnemySyncCoordinator.CreateRuntimeSpawn</c> materializes from the host's
+/// enemy snapshot at the animal's CURRENT position) or a generated entity.
+/// These never entered the runtime-creation tables and can only be recognised by
+/// position. (A trap-layout materialization does NOT belong here any more:
+/// <c>TrapLayoutApplication.Materialize</c> stamps a <c>SpawnReplayMarker</c>,
+/// because its <c>Start</c> runs after the <c>RemoteApply</c> scope closed and
+/// would otherwise report a host-authoritative layout replay as a runtime
+/// creation.)</item>
+/// </list>
+/// The radius pass deliberately skips every candidate that CARRIES a marker: a
+/// sibling creation's copy holds a different key, and binding this record to it
+/// swallowed the second entity (round-3 finding 1 — two identical prefabs
+/// created inside one cell). The tutorial-prop exclusion keeps a shared-domain
+/// record from binding a per-player course object.
 /// </para>
 /// </summary>
 internal static class RuntimeEntityMatch
 {
-	/// <summary>The same-prefab match radius (metres) — see the class remarks.</summary>
+	/// <summary>The markerless-copy match radius (metres) — see the class remarks.</summary>
 	internal const float MatchRadius = 1f;
 
-	/// <summary>One local candidate the adapter scanned (the tutorial flag and the creation-key match are resolved by the adapter).</summary>
-	internal readonly record struct Candidate(string Id, float X, float Y, bool IsTutorialProp, bool IsSameCreation);
+	/// <summary>One local candidate the adapter scanned: the creation marker it carries, or null for an entity that never entered the runtime-creation tables.</summary>
+	internal readonly record struct Candidate(string Id, float X, float Y, bool IsTutorialProp, RuntimeEntityKey? CreationKey);
 
 	/// <summary>
-	/// The index of the local copy a creation record binds to: first a candidate
-	/// carrying the SAME creation marker (prefab id + creation cell) — that is
-	/// the record's identity even after the entity drifted across cells (a
-	/// BuildingEntity's Rigidbody2D becomes Dynamic while its chunk is visible,
-	/// BuildingEntity.cs:54) — then the first same-prefab, non-tutorial
-	/// candidate strictly inside <see cref="MatchRadius"/> of the recorded
-	/// position (the generated-world / legacy fallback). -1 when none binds.
+	/// The index of the local copy this creation record binds to: first the
+	/// candidate carrying the same creation key, then a markerless same-prefab,
+	/// non-tutorial candidate strictly inside <see cref="MatchRadius"/> of the
+	/// recorded position. -1 when none binds.
 	/// </summary>
-	internal static int FindIndex(IReadOnlyList<Candidate> candidates, string id, float x, float y)
+	internal static int FindIndex(IReadOnlyList<Candidate> candidates, RuntimeEntityKey key, float x, float y)
 	{
 		for (var i = 0; i < candidates.Count; i++)
 		{
-			if (candidates[i].IsSameCreation)
+			if (candidates[i].CreationKey is { } candidateKey && candidateKey == key)
 			{
 				return i;
 			}
@@ -51,7 +62,8 @@ internal static class RuntimeEntityMatch
 		for (var i = 0; i < candidates.Count; i++)
 		{
 			var candidate = candidates[i];
-			if (candidate.IsTutorialProp || !string.Equals(candidate.Id, id, StringComparison.Ordinal))
+			if (candidate.CreationKey is not null || candidate.IsTutorialProp
+				|| !string.Equals(candidate.Id, key.Id, StringComparison.Ordinal))
 			{
 				continue;
 			}

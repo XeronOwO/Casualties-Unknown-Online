@@ -78,9 +78,18 @@ dotnet format CasualtiesUnknownOnline.slnx        # mandatory before every commi
 - `[CRITICAL]` **Local compute, remote verify/sync**: each player simulates its own
   actions with single-player feel; the host never simulates a guest's per-frame behavior.
   Host authority is limited to global world-state ownership (seed, saves, rulings).
-- `[CRITICAL]` **Accept-first sync arbitration**: adopt and relay a guest's report first;
-  correct only on an obvious conflict; a correction never blocks the player. Strict
-  validation/anti-cheat are low priority until the feature set is stable.
+- `[CRITICAL]` **Accept-first sync arbitration — only for state the host can represent**:
+  adopt and relay a guest's report first; correct only on an obvious conflict; a correction
+  never blocks the player. Strict validation/anti-cheat are low priority until the feature
+  set is stable. **Precondition: the host can actually adopt the reported state.** The rule
+  exists to stop hard validation and player-blocking corrections, never to accept state the
+  host cannot own. A report the host cannot represent — its own content set lacks the
+  prefab/template, the id cannot be mapped, the domain object cannot be owned — is REJECTED,
+  not accepted: it is neither recorded nor relayed. An accepted-but-unowned record has no
+  owner whose death can ever retract it, so it leaks into every later snapshot and
+  resurrects state a peer has already destroyed. A rejection must be VISIBLE: answer the
+  reporter so its re-report fallback stops, and log/surface the concrete mismatch. Silent
+  drops and unowned accepts are both forbidden.
 - `[CRITICAL]` **Sync semantics, not Transforms**: synchronize game-semantic state, never
   raw Transform/GameObject state.
 - `[CRITICAL]` **No host migration in MVP**: host exit → session ends → guests return to lobby.

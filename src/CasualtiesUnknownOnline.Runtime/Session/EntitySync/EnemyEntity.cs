@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session.World;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 
@@ -33,6 +34,16 @@ public sealed class EnemyEntity(NetworkEntityId entityId)
 
 	/// <summary>True when this enemy was created at RUNTIME (outside generation) — the late-joiner snapshot carries it as an EnemySpawnEntryMsg so a fresh member can materialize the copy.</summary>
 	public bool RuntimeSpawned { get; set; }
+
+	/// <summary>
+	/// The runtime-creation identity of this animal (the <c>RuntimeEntityCreation</c>
+	/// marker on the host's own copy), when it rode the entity-creation channel.
+	/// The host publishes it with the runtime-spawn fact so the late-joiner
+	/// backfill copy carries the same identity as the live copy — a surviving
+	/// live re-report then binds by key instead of duplicating the animal.
+	/// Null when the host cannot attribute the spawn to a creation record.
+	/// </summary>
+	public RuntimeEntityKey? CreationKey { get; set; }
 
 	/// <summary>
 	/// True when this enemy carries a presentation tint (a runtime-created
@@ -94,5 +105,6 @@ public sealed class EnemyEntity(NetworkEntityId entityId)
 		HasTint = HasTint,
 		TintColor = TintColor.ToNetColorRgbaMsg(),
 		LightIntensity = TintLightIntensity,
+		CreationKey = CreationKey?.ToKeyMsg(),
 	};
 }

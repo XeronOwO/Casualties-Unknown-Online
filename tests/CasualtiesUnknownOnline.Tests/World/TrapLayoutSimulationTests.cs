@@ -37,6 +37,41 @@ public class TrapLayoutSimulationTests
 	}
 
 	[Fact]
+	public void WorldEntrySnapshot_CarriesTheCreationKey_OfARuntimeCreatedTrap()
+	{
+		// The host scans a runtime-created trap and the layout entry must carry
+		// its creation identity end-to-end; otherwise the guest's materialized
+		// copy stays markerless and the runtime-entity snapshot creates a SECOND
+		// copy at the creation position (the 1 m positional fallback is gone).
+		using var w = ItemSimWorld.Create();
+		var received = new List<IReadOnlyList<TrapLayoutEntryMsg>>();
+		w.G1.Services.GetRequiredService<IWorldControl>().TrapLayoutReceived += received.Add;
+		var creationKey = new RuntimeEntityKeyMsg
+		{
+			Id = "spikestabber",
+			CellX = -13,
+			CellY = 466,
+			CreatorSteamId = 2001,
+			CreationSequence = 4,
+		};
+
+		w.Host.Services.GetRequiredService<IWorldControl>().ReportTrapLayout(EntityEventKind.SpikeStabbed, -13f, 466.8f, "spikestabber", creationKey);
+		w.Host.Services.GetRequiredService<IWorldControl>().ReportTrapLayout(EntityEventKind.GeyserActivated, 30f, 40f, "geyser");
+		w.Host.Services.GetRequiredService<IWorldControl>().SendTrapLayoutSnapshot(w.G1.SteamId);
+		w.Driver.Tick(50);
+
+		Assert.True(received.Count == 1, $"the layout snapshot must arrive, got {received.Count}");
+		var keyed = received[0][0];
+		Assert.NotNull(keyed.CreationKey);
+		Assert.Equal("spikestabber", keyed.CreationKey.Id);
+		Assert.Equal(-13, keyed.CreationKey.CellX);
+		Assert.Equal(466, keyed.CreationKey.CellY);
+		Assert.Equal(2001ul, keyed.CreationKey.CreatorSteamId);
+		Assert.Equal(4u, keyed.CreationKey.CreationSequence);
+		Assert.Null(received[0][1].CreationKey); // a generated trap has no creation record
+	}
+
+	[Fact]
 	public void WorldEntrySnapshot_EmptyLayout_SendsNothing()
 	{
 		using var w = ItemSimWorld.Create();

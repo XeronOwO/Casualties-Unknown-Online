@@ -13,8 +13,8 @@ namespace CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 /// report or relay heals without a reconnect.
 /// <para>
 /// Apply is ADDITIVE and idempotent: each entry runs the live creation path
-/// (<c>EntitySpawnSync.FindExisting</c>'s ~1 m same-id dedup), so an entity the
-/// receiver already has is left alone and the wire is safe to repeat. It is
+/// (<c>EntitySpawnSync.FindExisting</c>'s exact-creation-key bind), so an entity
+/// the receiver already has is left alone and the wire is safe to repeat. It is
 /// deliberately not a destructive alignment (unlike the trap layout): a local
 /// creation whose report the host has not answered yet must never be destroyed
 /// by a snapshot that predates it.

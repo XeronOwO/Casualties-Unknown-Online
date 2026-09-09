@@ -917,13 +917,15 @@ commands and remains the two-process verification target).
 
 ## 7. Versioning and protocol discipline
 
-- `ProtocolVersion.Current` is `17`. The pre-release protocol-version sequence
+- `ProtocolVersion.Current` is `18`. The pre-release protocol-version sequence
   was deliberately reset before first release (tech-decisions #137); the
   post-reset wire has since extended the character-sound event family
-  (`CharacterSoundKind.ItemPlacement`) and then the runtime-entity creation
-  family (`EntitySpawnedMsg` creation token + `RuntimeEntitySnapshotMsg` animal
-  acknowledgement keys), so earlier numbers such as 10/29/34 in this document
-  are historical and must not be used as current wire versions.
+  (`CharacterSoundKind.ItemPlacement`), the runtime-entity creation family
+  (`EntitySpawnedMsg` creation token + `RuntimeEntitySnapshotMsg` animal
+  acknowledgement keys), and then the backfill identity family
+  (`EnemySpawnEntryMsg`/`TrapLayoutEntryMsg` creation keys), so earlier numbers
+  such as 10/29/34 in this document are historical and must not be used as
+  current wire versions.
 - Behavioral wire changes after the first release will bump
   `ProtocolVersion.Current`; local-only/read-only mod surfaces that add no wire
   change do not bump it.

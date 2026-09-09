@@ -71,3 +71,16 @@ stays intact.
 
 - Enemy AI / combat policy changes.
 - The runtime BuildingEntity half (`todo/runtime-entity-spawn-backfill.md`).
+
+## Progress (2026-09-09) — identity half landed, recovery still open
+
+`review/runtime-entity-markerless-bind-absorption.md` landed the prerequisite identity
+work: the host publishes the runtime-created animal's creation key on the snapshot
+(`EnemySpawnEntryMsg.CreationKey`, ProtoMember 8) and `EnemySyncCoordinator.CreateRuntimeSpawn`
+stamps it onto the materialized backfill copy, so a surviving live re-report binds that
+copy by identity instead of duplicating it (the markerless 1 m positional fallback is
+deleted). `ProtocolVersion.Current` 17 → 18.
+
+Still open in this ticket: a swallowed `EnemySnapshot` has no periodic re-send, an empty
+host table is still a no-op, and a dropped `EnemyAttack` is still never re-issued (matrix
+rows 1, 2, 7 and the cadence decision).

@@ -4,6 +4,7 @@ using CasualtiesUnknownOnline.GameAdapter.World;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
+using CasualtiesUnknownOnline.Runtime.Session.World;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
 
@@ -19,8 +20,11 @@ namespace CasualtiesUnknownOnline.GameAdapter.Character;
 internal sealed partial class EnemySyncCoordinator
 {
 	/// <summary>Bind every runtime-spawn fact to an existing same-prefab local
-	/// copy when one is within tolerance; materialize the rest (the fresh
-	/// late-joiner case). Matched copies are frozen before any further state.</summary>
+	/// copy: the creation key FIRST (distance-free — the fact and the copy carry
+	/// the same identity when the host attributed the spawn to a creation
+	/// record), then the remaining keyless facts by position/prefab within
+	/// tolerance; materialize the rest (the fresh late-joiner case). Matched
+	/// copies are frozen before any further state.</summary>
 	private void MaterializeRuntimeSpawns(IReadOnlyList<EnemySpawnEntryMsg> spawns)
 	{
 		if (spawns.Count == 0)
@@ -30,20 +34,28 @@ internal sealed partial class EnemySyncCoordinator
 
 		var animals = FindAnimals();
 		var candidates = new List<BuildingEntity>();
-		var candidateFacts = new List<(int CandidateIndex, string PrefabId, NetVector2 Position)>();
+		var candidateFacts = new List<(int CandidateIndex, string PrefabId, NetVector2 Position, RuntimeEntityKey? CreationKey)>();
 		foreach (var entity in animals)
 		{
 			if (_runtimeAnimalCopies.Contains(entity) && !_idByEntity.ContainsKey(entity))
 			{
-				candidateFacts.Add((candidates.Count, entity.id, new NetVector2(entity.transform.position.x, entity.transform.position.y)));
+				candidateFacts.Add((
+					candidates.Count,
+					entity.id,
+					new NetVector2(entity.transform.position.x, entity.transform.position.y),
+					RuntimeEntityCreation.TryRead(entity, out var key) ? key : null));
 				candidates.Add(entity);
 			}
 		}
 
 		var spawnFacts = spawns
-			.Select((spawn, index) => (SpawnIndex: index, spawn.PrefabId, Position: spawn.Position.ToNetVector2()))
+			.Select((spawn, index) => (
+				SpawnIndex: index,
+				spawn.PrefabId,
+				Position: spawn.Position.ToNetVector2(),
+				CreationKey: spawn.CreationKey is null ? (RuntimeEntityKey?)null : RuntimeEntityKey.FromKeyMsg(spawn.CreationKey)))
 			.ToList();
-		EnemyRuntimeSpawnArbitration.MatchRuntimeSpawns(spawnFacts, candidateFacts, out var pairs, out var unmatchedSpawnIndices);
+		EnemyRuntimeSpawnArbitration.MatchRuntimeSpawnsByIdentity(spawnFacts, candidateFacts, out var pairs, out var unmatchedSpawnIndices);
 
 		foreach (var (spawnIndex, candidateIndex) in pairs)
 		{
@@ -83,6 +95,18 @@ internal sealed partial class EnemySyncCoordinator
 
 		created.transform.eulerAngles = new Vector3(0f, 0f, spawn.Rotation);
 		created.gameObject.AddComponent<SpawnReplayMarker>(); // its own Start must not re-report the materialization
+		if (spawn.CreationKey is { } creationKey)
+		{
+			// The host's own copy of this animal rode the entity-creation
+			// channel and carries the creation identity; stamping it onto the
+			// backfill copy is what makes a surviving live re-report bind THIS
+			// copy by key instead of creating a second animal (the 1 m
+			// positional fallback is gone). A fact without a key stays
+			// markerless — nothing can bind it, which is correct: the record
+			// does not exist.
+			RuntimeEntityCreation.Stamp(created, RuntimeEntityKey.FromKeyMsg(creationKey));
+		}
+
 		Bind(created, id, runtimeSpawn: false);
 		ApplySpawnTint(created, spawn); // a crystalenemy backfill must carry the trigger-side color — see ApplySpawnTint
 		Freeze(created);

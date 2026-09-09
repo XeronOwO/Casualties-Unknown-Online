@@ -295,8 +295,8 @@ public sealed class EntityEventChannel(ISessionControl session, PacketSender sen
 
 	// ---- Trap layout (host authority — the generated trap entities' positions) ----
 
-	/// <summary>Host only: record one generated trap entity (the adapter's scanner reports it on the generation-finished edge).</summary>
-	public void ReportTrapLayout(EntityEventKind kind, float x, float y, string prefabName) => _trapLayout.Report(kind, x, y, prefabName);
+	/// <summary>Host only: record one generated trap entity (the adapter's scanner reports it on the generation-finished edge) with its runtime-creation identity when the host's copy carries one.</summary>
+	public void ReportTrapLayout(EntityEventKind kind, float x, float y, string prefabName, RuntimeEntityKeyMsg? creationKey = null) => _trapLayout.Report(kind, x, y, prefabName, creationKey);
 
 	/// <summary>Host only: send the layout to one member (on its world entry).</summary>
 	public void SendTrapLayoutSnapshot(ulong targetSteamId) => _trapLayout.SendSnapshot(targetSteamId);

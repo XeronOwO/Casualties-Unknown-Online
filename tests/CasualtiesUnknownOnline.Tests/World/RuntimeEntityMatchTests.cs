@@ -6,22 +6,22 @@ namespace CasualtiesUnknownOnline.Tests.World;
 
 /// <summary>
 /// The runtime entity-creation match judgment: which local BuildingEntity a
-/// creation record binds to. Two passes — the record's own copy by exact
-/// creation key, then a MARKERLESS same-prefab copy inside the 1 m radius
-/// (trap-layout materializations, enemy-domain backfill copies and generated
-/// entities never entered the runtime-creation tables). A candidate that
-/// carries a marker is never a positional bind target: that is what swallowed a
-/// second same-prefab creation inside one cell (round-3 finding 1).
+/// creation record binds to. ONE pass — the record's own copy by exact creation
+/// key, wherever it drifted. The markerless 1 m positional pass is deleted:
+/// every copy a record can bind carries the key (the creation stamp, the
+/// relay/snapshot stamp, the enemy-domain backfill key and the trap-layout
+/// key), and a markerless same-prefab copy is exactly the unrelated entity that
+/// used to absorb the record (round-4 finding).
 /// </summary>
 public class RuntimeEntityMatchTests
 {
 	private static RuntimeEntityKey Key(string id, int x, int y, ulong creator, uint sequence) => new(id, x, y, creator, sequence);
 
-	private static RuntimeEntityMatch.Candidate Marked(string id, float x, float y, RuntimeEntityKey key, bool tutorial = false) =>
-		new(id, x, y, tutorial, key);
+	private static RuntimeEntityMatch.Candidate Marked(string id, float x, float y, RuntimeEntityKey key) =>
+		new(id, x, y, key);
 
-	private static RuntimeEntityMatch.Candidate Markerless(string id, float x, float y, bool tutorial = false) =>
-		new(id, x, y, tutorial, null);
+	private static RuntimeEntityMatch.Candidate Markerless(string id, float x, float y) =>
+		new(id, x, y, null);
 
 	[Fact]
 	public void FindIndex_BindsTheCandidateCarryingTheSameCreationKey()
@@ -68,47 +68,78 @@ public class RuntimeEntityMatchTests
 	}
 
 	[Fact]
-	public void FindIndex_BindsAMarkerlessCopyInsideTheRadius()
+	public void FindIndex_MarkerlessBackfillCopyWithoutAKey_IsNotABindTarget()
 	{
-		// An enemy-domain backfill copy (EnemySyncCoordinator.CreateRuntimeSpawn)
-		// carries no creation marker: it was materialized from the host's enemy
-		// snapshot at the animal's CURRENT position. A live re-report of that
-		// animal must bind it instead of creating a second animal, so the
-		// positional pass stays for markerless copies. (Trap-layout
-		// materializations no longer report at all — they carry a
-		// SpawnReplayMarker.)
+		// SUPERSEDED by identity: the enemy-domain backfill copy
+		// (EnemySyncCoordinator.CreateRuntimeSpawn) now materializes WITH the
+		// creation key the host's EnemySnapshot.RuntimeSpawns carries, and the
+		// trap-layout materialization carries the key the host scanned from its
+		// own marked copy — so the positional pass is gone. A markerless copy is
+		// never this record's copy; see
+		// FindIndex_MarkerlessSamePrefabDecoyAtTheRecordedPosition_NeverAbsorbsTheRecord.
 		var key = Key("cavetick", -13, 466, 2001, 1);
 		var candidates = new List<RuntimeEntityMatch.Candidate> { Markerless("cavetick", -13f, 466.8f) };
 
-		Assert.Equal(0, RuntimeEntityMatch.FindIndex(candidates, key, -13f, 466f));
+		Assert.Equal(-1, RuntimeEntityMatch.FindIndex(candidates, key, -13f, 466f));
 	}
 
 	[Fact]
-	public void FindIndex_RejectsTheMarkerlessRadiusBoundary()
+	public void FindIndex_MarkerlessSamePrefabDecoyAtTheRecordedPosition_NeverAbsorbsTheRecord()
 	{
-		// Strictly inside: the boundary itself is not a match.
+		// The absorption regression (round-4 finding): a markerless same-prefab
+		// copy inside 1 m is NOT this record's copy. Every real copy carries the
+		// creation key now (the enemy backfill from EnemySnapshot.RuntimeSpawns
+		// and the trap-layout materialization both stamp it), so a markerless
+		// copy can only be an unrelated generated entity or an unrelated
+		// host-authoritative replay. Binding it stamped the WRONG entity with
+		// this key and left the actual creation missing on this side.
+		var key = Key("keypad", 0, 0, 2001, 1);
+		var candidates = new List<RuntimeEntityMatch.Candidate> { Markerless("keypad", 0f, 0f) };
+
+		Assert.Equal(-1, RuntimeEntityMatch.FindIndex(candidates, key, 0f, 0f));
+	}
+
+	[Fact]
+	public void FindIndex_MarkerlessDecoyBesideTheOwnCopy_BindsTheOwnCopy()
+	{
+		// The decoy must not shadow the real copy either: identity wins over
+		// proximity.
+		var key = Key("keypad", 0, 0, 2001, 1);
+		var candidates = new List<RuntimeEntityMatch.Candidate>
+		{
+			Markerless("keypad", 0f, 0f),
+			Marked("keypad", 12f, -3f, key),
+		};
+
+		Assert.Equal(1, RuntimeEntityMatch.FindIndex(candidates, key, 0f, 0f));
+	}
+
+	[Fact]
+	public void FindIndex_MarkerlessCopy_NeverBinds_WhateverItsPrefabOrPosition()
+	{
+		// A markerless copy is never this record's copy: not at the recorded
+		// position, not just inside the old 1 m radius, not a per-player
+		// tutorial prop, not even a different prefab. The old positional pass
+		// could bind any same-prefab markerless copy inside 1 m and absorbed the
+		// record into an unrelated entity.
+		var key = Key("keypad", 0, 0, 2001, 1);
+
+		Assert.Equal(-1, RuntimeEntityMatch.FindIndex([Markerless("keypad", 0f, 0f)], key, 0f, 0f));
+		Assert.Equal(-1, RuntimeEntityMatch.FindIndex([Markerless("keypad", 0.999f, 0f)], key, 0f, 0f));
+		Assert.Equal(-1, RuntimeEntityMatch.FindIndex([Markerless("keypad", 1f, 0f)], key, 0f, 0f));
+		Assert.Equal(-1, RuntimeEntityMatch.FindIndex([Markerless("keypad", 250f, -180f)], key, 0f, 0f));
+		Assert.Equal(-1, RuntimeEntityMatch.FindIndex([Markerless("landmine", 0.1f, 0f)], key, 0f, 0f));
+	}
+
+	[Fact]
+	public void FindIndex_BindsADistantMarkedCopy_NoRadiusApplies()
+	{
+		// Identity is distance-free: a copy that drifted far away is still this
+		// record's copy, and the deleted positional pass had a radius only
+		// because it had no identity to match on.
 		var key = Key("spikestabber", 0, 0, 2001, 1);
 
-		Assert.Equal(0, RuntimeEntityMatch.FindIndex([Markerless("spikestabber", 0.999f, 0f)], key, 0f, 0f));
-		Assert.Equal(-1, RuntimeEntityMatch.FindIndex([Markerless("spikestabber", 1f, 0f)], key, 0f, 0f));
-	}
-
-	[Fact]
-	public void FindIndex_NeverBindsAPerPlayerTutorialProp()
-	{
-		// The shared-domain record must not absorb another player's private
-		// course object, even at the same prefab and position.
-		var key = Key("keypad", 0, 0, 2001, 1);
-
-		Assert.Equal(-1, RuntimeEntityMatch.FindIndex([Markerless("keypad", 0f, 0f, tutorial: true)], key, 0f, 0f));
-	}
-
-	[Fact]
-	public void FindIndex_NeverBindsADifferentPrefab()
-	{
-		var key = Key("keypad", 0, 0, 2001, 1);
-
-		Assert.Equal(-1, RuntimeEntityMatch.FindIndex([Markerless("landmine", 0.1f, 0f)], key, 0f, 0f));
+		Assert.Equal(0, RuntimeEntityMatch.FindIndex([Marked("spikestabber", 250f, -180f, key)], key, 0f, 0f));
 	}
 
 	[Fact]

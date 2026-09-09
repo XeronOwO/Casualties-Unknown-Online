@@ -49,4 +49,17 @@ public sealed class EnemySpawnEntryMsg
 	/// <summary>The exact host-captured light intensity (CrystalEnemy.cs:215 — only meaningful when <see cref="HasTint"/> is true).</summary>
 	[ProtoMember(7)]
 	public float LightIntensity { get; set; }
+
+	/// <summary>
+	/// The runtime-creation identity this animal was created by (sync-coverage
+	/// audit E3's <see cref="RuntimeEntityKey"/>), when the host knows it. The
+	/// late-joiner materialization stamps it onto the backfill copy so the copy
+	/// carries the SAME identity as the live <c>EntitySpawned</c> copy: a
+	/// surviving live re-report then binds it by key instead of duplicating the
+	/// animal (the positional 1 m fallback is gone). Null for a runtime-spawn
+	/// fact the host cannot attribute (an animal that never rode the creation
+	/// channel — e.g. a host-mod spawn that bypassed it).
+	/// </summary>
+	[ProtoMember(8)]
+	public RuntimeEntityKeyMsg? CreationKey { get; set; }
 }

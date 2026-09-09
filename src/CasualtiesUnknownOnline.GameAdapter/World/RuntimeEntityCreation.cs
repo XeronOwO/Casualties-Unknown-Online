@@ -56,7 +56,7 @@ public sealed class RuntimeEntityCreation : MonoBehaviour
 	/// <summary>Read the marker; false for an entity that never entered the runtime-creation tables.</summary>
 	internal static bool TryRead(BuildingEntity entity, out RuntimeEntityKey key)
 	{
-		var marker = entity.GetComponent<RuntimeEntityCreation>();
+		var marker = entity == null ? null : entity.GetComponent<RuntimeEntityCreation>(); // Unity object — ==
 		if (marker == null || string.IsNullOrEmpty(marker.Id)) // Unity object — ==
 		{
 			key = default;
@@ -65,5 +65,35 @@ public sealed class RuntimeEntityCreation : MonoBehaviour
 
 		key = new RuntimeEntityKey(marker.Id, marker.CellX, marker.CellY, marker.CreatorSteamId, marker.CreationSequence);
 		return true;
+	}
+
+	/// <summary>
+	/// Read the creation marker belonging to the entity a component lives on —
+	/// walking up the transform chain. The marker is stamped on the entity's own
+	/// GameObject, while some trap scripts hang on a CHILD of it
+	/// (<c>GeyserScript.cs:13</c> reads <c>transform.parent</c>), so a
+	/// same-GameObject lookup would miss those. The walk returns the FIRST
+	/// ancestor carrying the marker: a component nested inside a markerless
+	/// child of a runtime-created entity still resolves to that entity, while a
+	/// component on an unrelated object resolves to nothing (its own chain has
+	/// no marker).
+	/// </summary>
+	internal static bool TryReadOnEntityOf(Component component, out RuntimeEntityKey key)
+	{
+		key = default;
+		if (component == null) // Unity object — ==
+		{
+			return false;
+		}
+
+		for (var transform = component.transform; transform != null; transform = transform.parent) // Unity object — ==
+		{
+			if (TryRead(transform.GetComponent<BuildingEntity>(), out key))
+			{
+				return true;
+			}
+		}
+
+		return false;
 	}
 }

@@ -9,6 +9,7 @@ using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
+using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -98,6 +99,7 @@ public class EnemySyncServiceTests
 	public void WorldEntry_RuntimeSpawnFacts_RideTheSnapshot()
 	{
 		using var w = ItemSimWorld.Create();
+		var creationKey = new RuntimeEntityKey("cavetick", 30, 40, 2001, 6);
 		var hostEnemies = w.Host.Services.GetRequiredService<EnemySyncService>();
 		hostEnemies.PublishEnemyStates(
 		[
@@ -110,6 +112,7 @@ public class EnemySyncServiceTests
 				Health = 15f,
 				PrefabId = "cavetick",
 				RuntimeSpawned = true,
+				CreationKey = creationKey,
 			},
 		]);
 
@@ -125,6 +128,10 @@ public class EnemySyncServiceTests
 		Assert.Equal("cavetick", spawn.PrefabId);
 		Assert.Equal(new NetVector2(30f, 40f), spawn.Position.ToNetVector2());
 		Assert.Equal(33f, spawn.Rotation);
+		// The creation identity must survive the whole service chain: the
+		// late-joiner backfill stamps it onto its materialized copy.
+		Assert.NotNull(spawn.CreationKey);
+		Assert.Equal(creationKey, RuntimeEntityKey.FromKeyMsg(spawn.CreationKey));
 	}
 
 

@@ -287,7 +287,7 @@ warning in the channel; the matrix header's evidence count was corrected to 790.
 |---|---|---|
 | Creation identity | `RuntimeEntityKey` = prefab id + creation cell + token (creator SteamId + random-seeded monotonic sequence) | `RuntimeEntityKey.cs:21`; `RuntimeEntityKeyTests` (4) |
 | Wire | `EntitySpawnedMsg` ProtoMember 10/11 + `HasCreationToken`; `RuntimeEntityKeyMsg` for the ack list; `ProtocolVersion.Current` 17 | `EntitySpawnedMsg.cs:104,113,116`; `NetPacketTests` (23) |
-| Match judgment | exact creation-key bind first, then MARKERLESS same-prefab inside 1 m; a marked candidate is never positional | `RuntimeEntityMatch.cs:49,53`; `RuntimeEntityMatchTests` (10) |
+| Match judgment | ONE pass: the exact creation key (the markerless 1 m positional fallback was deleted 2026-09-09 — identity covers every real copy) | `RuntimeEntityMatch.cs:46`; `RuntimeEntityMatchTests` (12) |
 | Marker / death key | the marker carries the full key; the death funnel reports it | `RuntimeEntityCreation.cs:36,57`; `EntitySpawnSync.cs:116,118` (adapter, code-reviewed) |
 | Host table | non-animal entries + animal key set, 4 096 keys TOTAL; key-based remove; snapshot carries both | `RuntimeEntityRegistry.cs:41,96,118,151`; `RuntimeEntityRegistryTests` (10) |
 | Guest pending table | key-based remove/attempt; the entry carries its key | `PendingEntityReportTable.cs:61,64`; `PendingEntityReportTableTests` (9) |
@@ -358,21 +358,24 @@ warning in the channel; the matrix header's evidence count was corrected to 790.
   creation — even one that has the prefab — does not receive it. The host cannot
   represent a creation it cannot materialize, and recording it would trade this
   late-join gap for a resurrection bug.
-- The markerless positional pass can also ABSORB a genuine runtime creation into
+- The markerless positional pass could also ABSORB a genuine runtime creation into
   an unrelated markerless same-prefab copy within 1 m (a generated entity), and
-  the bind then stamps that copy with the creation key. The pass is kept because
-  without it a markerless trap-layout/enemy-backfill copy is duplicated instead
-  — a missing entity is the lesser divergence, and the stamped key makes the
-  absorption self-consistent afterwards. Owned by
-  `todo/runtime-entity-markerless-bind-absorption.md`.
+  the bind then stamped that copy with the creation key. **RESOLVED 2026-09-09** by
+  `review/runtime-entity-markerless-bind-absorption.md`: the enemy backfill and the
+  trap-layout materialization now carry the creation key, and the positional pass is
+  deleted — a markerless copy is never a bind target.
 - The enemy domain's own late-join copy (`EnemySyncCoordinator.CreateRuntimeSpawn`)
-  carries no creation marker; it binds a live re-report only through the
-  markerless 1 m positional pass, so a late joiner's animal that has already
-  drifted can still be duplicated by a surviving live re-report. Unifying the
-  animal live relay with the enemy backfill identity stays with
-  `todo/enemy-snapshot-and-attack-recovery.md` (N1).
-- The source-excluding `BroadcastEntitySpawned` relay is dead API (no caller):
-  `todo/runtime-entity-dead-api-cleanup.md`.
+  carried no creation marker; it bound a live re-report only through the
+  markerless 1 m positional pass, so a late joiner's animal that had already
+  drifted could still be duplicated by a surviving live re-report. **RESOLVED
+  2026-09-09** by `review/runtime-entity-markerless-bind-absorption.md` (the N1
+  identity half): `EnemySpawnEntryMsg.CreationKey` rides the snapshot and the
+  backfill copy is stamped, so the bind is by identity and distance-free. N1's
+  remaining work (periodic snapshot resend, attack recovery) stays open in
+  `todo/enemy-snapshot-and-attack-recovery.md`.
+- The source-excluding `BroadcastEntitySpawned` relay was dead API (no caller).
+  **RESOLVED 2026-09-09** by `review/runtime-entity-dead-api-cleanup.md`: deleted
+  (`rg` → zero hits); the live source-included relay is unchanged.
 - The adapter shell (the Unity create + `FindExisting` scan, the death-hook
   wiring, the geyser queue flush, the `WorldParamsService` apply call site, the
   `RuntimeEntityCreation` stamping, the mod-hook cleanup) is not exercisable in

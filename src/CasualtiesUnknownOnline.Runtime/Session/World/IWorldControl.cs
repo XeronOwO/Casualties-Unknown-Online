@@ -252,9 +252,6 @@ public interface IWorldControl
 	/// </summary>
 	void SendEntitySpawned(EntitySpawnedMsg msg);
 
-	/// <summary>Host only: relay an accepted entity creation to the other members (source excluded — it already created locally).</summary>
-	void BroadcastEntitySpawned(ulong excludeSteamId, EntitySpawnedMsg msg);
-
 	void FireEntitySpawnedReceived(ulong sender, EntitySpawnedMsg msg);
 
 	/// <summary>An entity-creation report arrived — the receiver creates its own copy (host: then relays; guest: remote apply).</summary>
@@ -289,8 +286,14 @@ public interface IWorldControl
 	/// <summary>Host only: record a damaged building entity's current health at a world position (a kernel WorldEntities fact).</summary>
 	void ReportBuildingEntityHealth(float x, float y, float health);
 
-	/// <summary>Host only: record one generated trap entity (the adapter's scanner reports it on the generation-finished edge).</summary>
-	void ReportTrapLayout(EntityEventKind kind, float x, float y, string prefabName);
+	/// <summary>
+	/// Host only: record one generated trap entity (the adapter's scanner reports
+	/// it on the generation-finished edge). <paramref name="creationKey"/> is set
+	/// when the host's own copy carries a runtime-creation marker, so the guest's
+	/// materialized copy can hold the same identity and the runtime-entity
+	/// snapshot binds it by key instead of proximity.
+	/// </summary>
+	void ReportTrapLayout(EntityEventKind kind, float x, float y, string prefabName, RuntimeEntityKeyMsg? creationKey = null);
 
 	/// <summary>Host only: send the trap layout to one member (on its world entry).</summary>
 	void SendTrapLayoutSnapshot(ulong targetSteamId);

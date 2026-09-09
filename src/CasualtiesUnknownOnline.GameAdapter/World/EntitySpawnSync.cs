@@ -427,14 +427,13 @@ internal sealed class EntitySpawnSync(IWorldControl world, ISessionControl sessi
 
 	/// <summary>A local copy this creation record binds to: the entity carrying
 	/// the SAME creation key (prefab id + creation cell + creation-instance
-	/// token) anywhere — the record's identity, drift-proof — or a MARKERLESS
-	/// same-prefab copy inside the 1 m radius (a trap-layout materialization, an
-	/// enemy-domain backfill copy or a generated entity: these never entered the
-	/// runtime-creation tables, and their own <c>Start</c> can report them as
-	/// creations). The judgment is the pure <see cref="RuntimeEntityMatch"/>;
-	/// this scan only supplies the candidates. A candidate that CARRIES a marker
-	/// is never a positional bind target — that is what swallowed a second
-	/// same-cell creation.</summary>
+	/// token) anywhere — the record's identity, drift-proof. The judgment is the
+	/// pure <see cref="RuntimeEntityMatch"/>; this scan only supplies the
+	/// candidates. There is no positional fallback: every copy a record can bind
+	/// carries the key (creation stamp, relay/snapshot stamp, the enemy backfill
+	/// key and the trap-layout key), and the old 1 m markerless pass absorbed
+	/// unrelated copies (a generated entity or an unrelated replay) into the
+	/// record, leaving the real creation missing on this side.</summary>
 	private static BuildingEntity? FindExisting(RuntimeEntityKey key, float x, float y)
 	{
 		var entities = Object.FindObjectsOfType<BuildingEntity>();
@@ -446,7 +445,6 @@ internal sealed class EntitySpawnSync(IWorldControl world, ISessionControl sessi
 				entity.id,
 				position.x,
 				position.y,
-				entity.GetComponent<TutorialClawProp>() != null, // Unity object — ==
 				RuntimeEntityCreation.TryRead(entity, out var marker) ? marker : null));
 		}
 

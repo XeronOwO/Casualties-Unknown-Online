@@ -65,6 +65,19 @@ internal sealed class TrapLayoutApplication(IWorldControl world, ILogger<TrapLay
 		var alignment = TrapLayoutAlign.Align(hostLayout, localEntries);
 		_log.LogInformation("[TrapLayout] aligning: {Spawn} to materialize, {Destroy} to destroy.", alignment.ToSpawn.Count, alignment.ToDestroy.Count);
 
+		// One entity can produce SEVERAL layout entries (a turret is both the
+		// TurretFired and the TurretSelfDestructed position; a mine is both
+		// MinePressed and MineExploded), so the same prefab at the same position
+		// can appear more than once in ToSpawn. Materializing per entry would
+		// instantiate a duplicate copy — and, since the entries now carry the
+		// SAME creation key, two copies would share one identity. The pure
+		// judgment collapses them (the keyed entry wins).
+		var materialization = TrapLayoutMaterialization.Deduplicate(alignment.ToSpawn);
+		if (materialization.CollapsedCount > 0)
+		{
+			_log.LogInformation("[TrapLayout] collapsed {Count} duplicate layout entry(ies) describing the same entity.", materialization.CollapsedCount);
+		}
+
 		using (CallContext.Enter(CallContext.Origin.RemoteApply))
 		{
 			foreach (var index in alignment.ToDestroy)
@@ -75,7 +88,7 @@ internal sealed class TrapLayoutApplication(IWorldControl world, ILogger<TrapLay
 				Object.Destroy(entity.gameObject);
 			}
 
-			foreach (var entry in alignment.ToSpawn)
+			foreach (var entry in materialization.Entries)
 			{
 				Materialize(entry);
 			}
@@ -99,6 +112,25 @@ internal sealed class TrapLayoutApplication(IWorldControl world, ILogger<TrapLay
 		// would materialize a second copy of a trap it already owns (the layout
 		// is host-authoritative: a replay must never re-report).
 		go.AddComponent<SpawnReplayMarker>();
+		if (entry.CreationKey is { } creationKey)
+		{
+			// The host scanned this entry off its OWN copy, which carries the
+			// runtime-creation marker: stamping the same identity here makes the
+			// runtime-entity snapshot's record for this trap bind THIS copy by
+			// key (the positional 1 m fallback is gone), and the death hook
+			// reports the same key.
+			var entity = go.GetComponent<BuildingEntity>();
+			if (entity != null) // Unity object — ==
+			{
+				RuntimeEntityCreation.Stamp(entity, RuntimeEntityKey.FromKeyMsg(creationKey));
+			}
+			else
+			{
+				_log.LogWarning("[TrapLayout] materialized {Kind} at ({X:F1},{Y:F1}) from '{Prefab}' carries a creation key but has no BuildingEntity — the identity cannot be stamped.",
+					entry.Kind, entry.X, entry.Y, entry.PrefabName);
+			}
+		}
+
 		_log.LogInformation("[TrapLayout] materialized {Kind} at ({X:F1},{Y:F1}) from '{Prefab}'.",
 			entry.Kind, entry.X, entry.Y, entry.PrefabName);
 	}

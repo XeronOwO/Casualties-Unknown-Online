@@ -45,10 +45,11 @@ internal sealed class TrapLayoutScanner(ISessionControl session, IWorldControl w
 		var scanned = TrapEntityScan.Scan();
 		foreach (var entity in scanned)
 		{
-			_world.ReportTrapLayout(entity.Entry.Kind, entity.Entry.X, entity.Entry.Y, entity.Entry.PrefabName);
+			_world.ReportTrapLayout(entity.Entry.Kind, entity.Entry.X, entity.Entry.Y, entity.Entry.PrefabName, entity.Entry.CreationKey);
 		}
 
-		_log.LogInformation("[TrapLayout] host scanned {Count} trap entities ({Kinds} kinds).",
-			scanned.Count, scanned.Select(s => s.Entry.Kind).Distinct().Count());
+		var keyed = scanned.Count(s => s.Entry.CreationKey is not null);
+		_log.LogInformation("[TrapLayout] host scanned {Count} trap entities ({Kinds} kinds, {Keyed} runtime-created).",
+			scanned.Count, scanned.Select(s => s.Entry.Kind).Distinct().Count(), keyed);
 	}
 }

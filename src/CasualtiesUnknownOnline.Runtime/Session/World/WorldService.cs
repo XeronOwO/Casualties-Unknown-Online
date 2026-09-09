@@ -175,8 +175,6 @@ public sealed class WorldService : IWorldControl, IDisposable
 
 	public void SendEntitySpawned(EntitySpawnedMsg msg) => _channels.SendEntitySpawned(msg);
 
-	public void BroadcastEntitySpawned(ulong excludeSteamId, EntitySpawnedMsg msg) => _channels.BroadcastEntitySpawned(excludeSteamId, msg);
-
 	/// <summary>Host only: send the accepted runtime-entity creation table to one member (world entry, or the 60 s cycle).</summary>
 	public void SendRuntimeEntitySnapshot(ulong targetSteamId) => _channels.SendRuntimeEntitySnapshot(targetSteamId);
 
@@ -197,7 +195,7 @@ public sealed class WorldService : IWorldControl, IDisposable
 
 	public void ReportBuildingEntityHealth(float x, float y, float health) => _channels.ReportBuildingEntityHealth(x, y, health);
 
-	public void ReportTrapLayout(EntityEventKind kind, float x, float y, string prefabName) => _channels.ReportTrapLayout(kind, x, y, prefabName);
+	public void ReportTrapLayout(EntityEventKind kind, float x, float y, string prefabName, RuntimeEntityKeyMsg? creationKey = null) => _channels.ReportTrapLayout(kind, x, y, prefabName, creationKey);
 
 	public void SendTrapLayoutSnapshot(ulong targetSteamId) => _channels.SendTrapLayoutSnapshot(targetSteamId);
 

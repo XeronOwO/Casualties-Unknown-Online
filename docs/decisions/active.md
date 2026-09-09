@@ -48,6 +48,7 @@ not here:
 | 158 | Kernel reset centralized in `KernelProtocolService`; no-legacy/command-authority/kernel-shape guards are active. | `docs/architecture/guards.md` |
 | 159 | Manual world-time acceleration is cooperative: `Fast`/`SuperFast` never accelerate a shared session while any in-world player is awake; all-unconscious sleep remains the only shared-clock acceleration. | `docs/evidence/selfchecks/world/world-time-selfcheck.md` |
 | 160 | Sleep policy: normal and forced sleep remain allowed; shared-clock acceleration is host-authoritative and only applies when every in-world alive player is unconscious; no sleep-gating host rule or new wire field. | `docs/backlog/resolved/sleep-behavior-policy.md` |
+| 161 | Accept-first arbitration is limited to reports the host can REPRESENT: a runtime creation the host cannot materialize (its content set lacks the prefab/template) is rejected — never recorded, never relayed — and the rejection is answered to the reporter and logged/surfaced. An accepted-but-unowned record has no owner whose death can retract it, so it would leak into every later snapshot and resurrect state a peer already destroyed. | `AGENTS.md`, `docs/backlog/review/runtime-entity-spawn-backfill.md` |
 
 ## Reference rules
 

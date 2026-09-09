@@ -3,7 +3,7 @@
 Scope: how `CasualtiesUnknownOnline.Tests` (xUnit v2.9.3, net48) parallelizes, the
 measured baseline, the process-global hazards parallel execution exposes, and the
 reproducible way to re-measure. Ticket:
-`docs/backlog/in-progress/test-suite-parallelization.md`.
+`docs/backlog/done/test-suite-parallelization.md`.
 
 ## 1. The parallel model
 

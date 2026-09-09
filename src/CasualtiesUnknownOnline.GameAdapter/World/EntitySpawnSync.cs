@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
@@ -43,7 +44,7 @@ internal sealed class EntitySpawnSync(IWorldControl world, ISessionControl sessi
 	private readonly ILogger<EntitySpawnSync> _log = log;
 
 	/// <summary>Geyser creations awaiting their child Start (value tuples — no Unity references held).</summary>
-	private readonly List<(string Id, Vector2 Pos, float Rotation, int AtFrame)> _reportQueue = [];
+	private readonly List<(string Id, Vector2 Pos, float Rotation, int AtFrame, bool IsAnimal)> _reportQueue = [];
 
 	/// <summary>Received geyser creations awaiting their own copy's Start before the carried type is applied.</summary>
 	private readonly List<(Vector2 Pos, byte Type, int AtFrame)> _applyQueue = [];
@@ -92,6 +93,36 @@ internal sealed class EntitySpawnSync(IWorldControl world, ISessionControl sessi
 	}
 
 	/// <summary>
+	/// Patch-bridge entry: a BuildingEntity's health reached the death
+	/// threshold (the single death funnel in BuildingEntity.Update). The world
+	/// domain drops the creation's accepted record (host) or unacknowledged
+	/// report (guest) so the runtime-entity backfill never re-materializes a
+	/// dead entity. Generated entities are not in either table — a no-op.
+	/// </summary>
+	internal void OnRuntimeEntityDestroyed(BuildingEntity entity)
+	{
+		if (string.IsNullOrEmpty(entity.id))
+		{
+			return;
+		}
+
+		// The record key is the CREATION cell, and a BuildingEntity's
+		// Rigidbody2D becomes Dynamic while its chunk is visible
+		// (BuildingEntity.cs:54), so a runtime creation can drift before it
+		// dies. Report the stamped creation key, never transform.position —
+		// otherwise the record would never be dropped and the 60 s re-broadcast
+		// would resurrect the dead entity.
+		if (RuntimeEntityCreation.TryRead(entity, out var id, out var cellX, out var cellY))
+		{
+			_world.ReportRuntimeEntityDestroyed(id, cellX, cellY);
+			return;
+		}
+
+		var pos = entity.transform.position;
+		_world.ReportRuntimeEntityDestroyed(entity.id, pos.x, pos.y);
+	}
+
+	/// <summary>
 	/// Patch-bridge entry: a world entity just started. Inside world generation
 	/// = deterministic (both sides generate the same entity — nothing to do); a
 	/// RemoteApply create = a replay of this very channel (nothing to do);
@@ -130,9 +161,10 @@ internal sealed class EntitySpawnSync(IWorldControl world, ISessionControl sessi
 		}
 
 		var pos = entity.transform.position;
+		RuntimeEntityCreation.Stamp(entity, entity.id, pos.x, pos.y); // the creation key the death hook reports later (the entity may drift)
 		if (entity.GetComponentInChildren<GeyserScript>() != null) // Unity object — ==
 		{
-			_reportQueue.Add((entity.id, pos, entity.transform.eulerAngles.z, Time.frameCount));
+			_reportQueue.Add((entity.id, pos, entity.transform.eulerAngles.z, Time.frameCount, entity.animal));
 			return;
 		}
 
@@ -141,7 +173,7 @@ internal sealed class EntitySpawnSync(IWorldControl world, ISessionControl sessi
 			? WorldEventSync.EnsureKeypadCode(openable) // the host creates it — its code is host authority from the start
 			: "";
 		TryCaptureEnemyTint(entity, out var hasTint, out var tint, out var lightIntensity);
-		ReportSpawn(entity.id, pos, entity.transform.eulerAngles.z, 0, keypadCode, hasTint, tint, lightIntensity);
+		ReportSpawn(entity.id, pos, entity.transform.eulerAngles.z, 0, keypadCode, hasTint, tint, lightIntensity, entity.animal);
 	}
 
 	/// <summary>
@@ -172,11 +204,27 @@ internal sealed class EntitySpawnSync(IWorldControl world, ISessionControl sessi
 		using (CallContext.Enter(CallContext.Origin.RemoteApply))
 		{
 			var pos = new Vector2(msg.Position.X, msg.Position.Y);
-			var created = FindExisting(msg.Id, pos);
+			var created = FindExisting(msg.Id, pos, msg.Position.X, msg.Position.Y);
 			if (created == null)
 			{
-				var createdGo = Utils.Create(msg.Id, pos, 0f);
-				if (createdGo == null) // Unity object — == (unknown id — the sender's mod/prefab set differs)
+				// Utils.Create calls Object.Instantiate directly for a vanilla id
+				// and THROWS when the prefab is missing; a mod-registered
+				// template is materialized by UtilsCreateCustomPrefabPatch
+				// instead (Resources.Load returns nothing for it BY DESIGN).
+				// Contain the throw per entry so one unknown id cannot discard
+				// the rest of an absolute snapshot batch.
+				GameObject? createdGo;
+				try
+				{
+					createdGo = Utils.Create(msg.Id, pos, 0f);
+				}
+				catch (Exception ex)
+				{
+					_log.LogWarning(ex, "[EntitySpawn] cannot create {Id} at {Pos} (missing prefab or template).", msg.Id, pos);
+					return;
+				}
+
+				if (createdGo == null) // Unity object — == (an Instantiate wrapper may return null)
 				{
 					_log.LogWarning("[EntitySpawn] cannot create {Id} at {Pos}.", msg.Id, pos);
 					return;
@@ -192,6 +240,8 @@ internal sealed class EntitySpawnSync(IWorldControl world, ISessionControl sessi
 				created.transform.eulerAngles = new Vector3(0f, 0f, msg.Rotation);
 				created.gameObject.AddComponent<SpawnReplayMarker>(); // its Start must not re-report (scope check cannot see it — Start runs later)
 			}
+
+			RuntimeEntityCreation.Stamp(created, msg.Id, msg.Position.X, msg.Position.Y);
 
 			var relay = msg;
 			var openable = created.GetComponent<Openable>();
@@ -211,6 +261,7 @@ internal sealed class EntitySpawnSync(IWorldControl world, ISessionControl sessi
 					HasEnemyTint = msg.HasEnemyTint,
 					EnemyTintColor = msg.EnemyTintColor,
 					EnemyLightIntensity = msg.EnemyLightIntensity,
+					IsAnimal = msg.IsAnimal,
 				};
 			}
 
@@ -288,7 +339,7 @@ internal sealed class EntitySpawnSync(IWorldControl world, ISessionControl sessi
 			return;
 		}
 
-		foreach (var (id, pos, rotation, atFrame) in _reportQueue)
+		foreach (var (id, pos, rotation, atFrame, isAnimal) in _reportQueue)
 		{
 			if (Time.frameCount - atFrame < 1)
 			{
@@ -303,7 +354,7 @@ internal sealed class EntitySpawnSync(IWorldControl world, ISessionControl sessi
 
 			var p = geyser.transform.position;
 			ReportSpawn(id, new Vector2(p.x, p.y), rotation,
-				Traverse.Create(geyser).Field("liquidType").GetValue<byte>(), ""); // byte — exact type (a GetValue<int> cast throws InvalidCastException)
+				Traverse.Create(geyser).Field("liquidType").GetValue<byte>(), "", isAnimal: isAnimal); // byte — exact type (a GetValue<int> cast throws InvalidCastException)
 		}
 
 		_reportQueue.RemoveAll(q => Time.frameCount - q.AtFrame >= 1);
@@ -339,13 +390,14 @@ internal sealed class EntitySpawnSync(IWorldControl world, ISessionControl sessi
 	}
 
 	private void ReportSpawn(string id, Vector2 pos, float rotation, byte liquidType, string keypadCode,
-		bool hasEnemyTint = false, NetColorRgba enemyTint = default, float enemyLightIntensity = 0f)
+		bool hasEnemyTint = false, NetColorRgba enemyTint = default, float enemyLightIntensity = 0f, bool isAnimal = false)
 	{
-		_log.LogInformation("[EntitySpawn] reporting {Id} at ({X:F1},{Y:F1}){Liquid}{Code}{Tint}.",
+		_log.LogInformation("[EntitySpawn] reporting {Id} at ({X:F1},{Y:F1}){Liquid}{Code}{Tint}{Animal}.",
 			id, pos.x, pos.y,
 			liquidType != 0 ? $" (liquid {liquidType})" : "",
 			keypadCode.Length > 0 ? " (keypad code carried)" : "",
-			hasEnemyTint ? " (crystal tint carried)" : "");
+			hasEnemyTint ? " (crystal tint carried)" : "",
+			isAnimal ? " (animal — recovery owned by the enemy domain)" : "");
 		_world.SendEntitySpawned(new EntitySpawnedMsg
 		{
 			Id = id,
@@ -356,34 +408,42 @@ internal sealed class EntitySpawnSync(IWorldControl world, ISessionControl sessi
 			HasEnemyTint = hasEnemyTint,
 			EnemyTintColor = enemyTint.ToNetColorRgbaMsg(),
 			EnemyLightIntensity = enemyLightIntensity,
+			IsAnimal = isAnimal,
 		});
 	}
 
-	/// <summary>A same-id entity within the matching radius already exists (a
-	/// repeated report — the same position's float noise — or a naturally-
-	/// matching entity covers the position). The radius is 1, not 3: a 3 m
-	/// radius absorbed consecutive spawns of the same entity (the observed
-	/// bug — three spawned turrets ~1-2 m apart, only the first reached the
-	/// peer).</summary>
-	private static BuildingEntity? FindExisting(string id, Vector2 pos)
+	/// <summary>A local copy this creation record binds to: the entity carrying
+	/// the SAME creation marker (prefab id + creation cell) anywhere — the
+	/// record's identity, drift-proof — or a same-prefab non-tutorial entity
+	/// within the 1 m radius of the recorded position (the generated-world /
+	/// legacy fallback). The judgment is the pure <see cref="RuntimeEntityMatch"/>
+	/// (radius 1, not 3: a 3 m radius absorbed consecutive spawns of the same
+	/// entity — the observed bug, three spawned turrets ~1-2 m apart, only the
+	/// first reached the peer; a per-player tutorial prop is never a bind
+	/// target). This scan only supplies the candidates.</summary>
+	private static BuildingEntity? FindExisting(string id, Vector2 pos, float creationX, float creationY)
 	{
-		foreach (var entity in Object.FindObjectsOfType<BuildingEntity>())
+		var entities = Object.FindObjectsOfType<BuildingEntity>();
+		var candidates = new List<RuntimeEntityMatch.Candidate>(entities.Length);
+		var creationCellX = (int)Math.Floor(creationX);
+		var creationCellY = (int)Math.Floor(creationY);
+		foreach (var entity in entities)
 		{
-			// A per-player tutorial prop is never a bind target — binding a
-			// domain entity to it would let one player's shared entity absorb
-			// (or destroy) another player's private course object.
-			if (entity.GetComponent<TutorialClawProp>() != null) // Unity object — ==
-			{
-				continue;
-			}
-
-			if (entity.id == id && Vector2.Distance(entity.transform.position, pos) < 1f)
-			{
-				return entity;
-			}
+			var position = entity.transform.position;
+			var isSameCreation = RuntimeEntityCreation.TryRead(entity, out var markerId, out var cellX, out var cellY)
+				&& string.Equals(markerId, id, StringComparison.Ordinal)
+				&& cellX == creationCellX
+				&& cellY == creationCellY;
+			candidates.Add(new RuntimeEntityMatch.Candidate(
+				entity.id,
+				position.x,
+				position.y,
+				entity.GetComponent<TutorialClawProp>() != null, // Unity object — ==
+				isSameCreation));
 		}
 
-		return null;
+		var index = RuntimeEntityMatch.FindIndex(candidates, id, pos.x, pos.y);
+		return index < 0 ? null : entities[index];
 	}
 
 }

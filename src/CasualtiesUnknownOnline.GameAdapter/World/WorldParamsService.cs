@@ -163,6 +163,7 @@ internal sealed class WorldParamsService(
 	internal void Apply(WorldStartParams parameters)
 	{
 		_world.ResetPendingBlockReports();
+		_world.ResetPendingEntityReports();
 
 		Random.state = RandomStateSerializer.Deserialize(parameters.RandomState);
 		if (parameters.RunSettings is not null)

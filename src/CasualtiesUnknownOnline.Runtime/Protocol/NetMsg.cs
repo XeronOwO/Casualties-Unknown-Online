@@ -252,4 +252,9 @@ public enum NetMsg : byte
 	MedicalOperationEndCommitted = 132, // host → clients: the single terminal result
 	MedicalOperationCancel = 133, // operator → host: cancel an active session
 
+	// Runtime world-entity creation backfill (host authority — the host's
+	// accepted-creation table is the entity-registration truth; a runtime
+	// creation whose live report or relay was swallowed is healed absolutely)
+	RuntimeEntitySnapshot = 134, // host → guest: the absolute runtime-created entity table (world entry + the 60 s cycle)
+
 }

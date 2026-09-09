@@ -282,9 +282,11 @@ public class NetPacketTests
 	public void EntitySpawned_CrystalEnemyTint_RoundTrips()
 	{
 		// The live creation command carries the exact trigger-side post-SetColor
-		// color + light intensity (CrystalMimic.cs:32/46); a receiver must see
-		// the same values after the wire round-trip — a lost tint would make the
-		// fresh copy colorless (the recorded presentation gap).
+		// color + light intensity (CrystalMimic.cs:32/46) AND the recovery-
+		// ownership flag (the enemy domain owns animal recovery); a receiver
+		// must see the same values after the wire round-trip — a lost tint
+		// would make the fresh copy colorless, a lost flag would re-enter the
+		// world-entity recovery tables and resurrect a moved animal.
 		var msg = new EntitySpawnedMsg
 		{
 			Id = "crystalenemy",
@@ -292,6 +294,7 @@ public class NetPacketTests
 			HasEnemyTint = true,
 			EnemyTintColor = new NetColorRgbaMsg(0.25f, 0.5f, 0.75f, 1f),
 			EnemyLightIntensity = 0.8f,
+			IsAnimal = true,
 		};
 
 		var decoded = NetPacket.DecodePayload<EntitySpawnedMsg>(NetPacket.Encode(NetMsg.EntitySpawned, msg));
@@ -302,6 +305,7 @@ public class NetPacketTests
 		Assert.Equal(0.75f, decoded.EnemyTintColor.B);
 		Assert.Equal(1f, decoded.EnemyTintColor.A);
 		Assert.Equal(0.8f, decoded.EnemyLightIntensity);
+		Assert.True(decoded.IsAnimal);
 	}
 
 	[Fact]

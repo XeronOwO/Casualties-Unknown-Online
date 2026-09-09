@@ -74,4 +74,20 @@ public sealed class EntitySpawnedMsg
 	/// <summary>The exact post-SetColor light intensity (CrystalEnemy.cs:215 — Random.Range(0.5, 1), only meaningful when <see cref="HasEnemyTint"/> is true).</summary>
 	[ProtoMember(8)]
 	public float EnemyLightIntensity { get; set; }
+
+	/// <summary>
+	/// True when the created entity is an ANIMAL (BuildingEntity.animal). The
+	/// live creation message is unchanged, but the world-entity recovery treats
+	/// it specially: the HOST's accepted-creation table must not record it
+	/// (the enemy domain's <c>EnemySnapshot.RuntimeSpawns</c> owns the
+	/// late-join/backfill copy and materializes at the animal's CURRENT position
+	/// with a host-allocated id — a host record would make a late joiner create
+	/// a second copy at the creation position). The GUEST pending table still
+	/// records it, because a swallowed guest → host animal report has no other
+	/// in-session recovery; that entry is dropped by the host's relay echo, by
+	/// the absolute snapshot, or by the entity's death (reported with its
+	/// stamped creation key, so a moved animal cannot leave it behind).
+	/// </summary>
+	[ProtoMember(9)]
+	public bool IsAnimal { get; set; }
 }

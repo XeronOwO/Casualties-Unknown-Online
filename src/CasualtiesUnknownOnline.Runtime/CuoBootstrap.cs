@@ -239,9 +239,11 @@ public static class CuoBootstrap
 		services.AddSingleton<BuildingEntityHealthRegistry>(); // the damaged building-entity health table (the late-joiner snapshot's source)
 		services.AddSingleton<BlockDamageRegistry>(); // the partial block-damage table (the late-joiner snapshot's source)
 		services.AddSingleton<TrapLayoutRegistry>(); // the generated trap-entity layout (the host's entity-distribution authority)
+		services.AddSingleton<RuntimeEntityRegistry>(); // the host's accepted runtime-created entity table (the E3 backfill's source)
 		services.AddSingleton<WorldTimeChannel>(); // the world-time request/broadcast channel (host authority — the Game Adapter owns the policy)
 		services.AddSingleton<IWorldTimeControl>(p => p.GetRequiredService<WorldTimeChannel>());
-		services.AddSingleton<EntityEventChannel>(); // the entity event/creation channels + the consumption/opened/health registries
+		services.AddSingleton<EntityEventChannel>(); // the entity-event channel + the consumption/opened/health/layout registries
+		services.AddSingleton<RuntimeEntityChannel>(); // the runtime entity-creation channel + its E3 recovery tables
 		services.AddSingleton<TradeChannel>(); // the trader state/action channel (trade domain)
 		services.AddSingleton<SpeechChannel>(); // the speech-bubble channel (the Talker domain)
 		services.AddSingleton<ChatChannel>(); // the text-chat channel (co-op communication)
@@ -255,12 +257,13 @@ public static class CuoBootstrap
 		// completion marker; it is injected into the handshake/scene handlers
 		// so HandlerContext no longer owns a concrete world-entry flow.
 		services.AddSingleton<WorldEntryFanout>();
-		// Guest block-report fallback: the time edge for the pending block-report
-		// table (a swallowed guest→host block report is re-reported until the
-		// host answers for the cell). WorldService stays reaction-only; this
-		// tiny pump is its clock, like PendingPickupPump for the item domain.
-		services.AddSingleton<BlockReportFallbackPump>();
-		services.AddSingleton<ICuoService>(p => p.GetRequiredService<BlockReportFallbackPump>());
+		// Pending-report fallback pump: the single time edge for the guest's
+		// unacknowledged block mutations (W1) and runtime entity creations (E3),
+		// re-reported until the host answers. Both domains stay reaction-only;
+		// this tiny pump is their clock, like PendingPickupPump for the item
+		// domain.
+		services.AddSingleton<WorldReportFallbackPump>();
+		services.AddSingleton<ICuoService>(p => p.GetRequiredService<WorldReportFallbackPump>());
 		// Text-chat domain: the bounded recent-message buffer + send path (no
 		// pump — it only reacts to the world channel's receive event and session end).
 		services.AddSingleton<ChatService>();

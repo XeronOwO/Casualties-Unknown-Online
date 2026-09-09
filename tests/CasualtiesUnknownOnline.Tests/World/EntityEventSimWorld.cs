@@ -227,8 +227,10 @@ internal sealed class EntityEventSimWorld : IDisposable
 
 		// The production EntitySpawnSync shell: the host creates its copy and
 		// is the single relay owner (the handler only surfaces the message).
-		host.Services.GetRequiredService<IWorldControl>().EntitySpawnedReceived += (_, msg) =>
-			world.HostChannel.SendEntitySpawned(msg);
+		// The relay goes through the world control like the adapter does, so the
+		// host's accepted-creation table (E3 recovery) is populated too.
+		var hostWorld = host.Services.GetRequiredService<IWorldControl>();
+		hostWorld.EntitySpawnedReceived += (_, msg) => hostWorld.SendEntitySpawned(msg);
 
 		// The guests' replay shells (the production TrapVisualReplay's shape +
 		// the snapshot-consumption step): relays replay; the late-joiner

@@ -123,6 +123,9 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 		domains.EntitySpawnSync.OnEntityInstantiated(entity); // the spawn-channel report (runtime creations; creation-time data rides the same message, #128)
 	}
 
+	public void OnBuildingEntityDestroyed(BuildingEntity entity) =>
+		domains.EntitySpawnSync.OnRuntimeEntityDestroyed(entity); // drops the creation record/pending report (E3: a dead entity is never re-materialized)
+
 	public void DeferLifePodSound() => domains.LifePod.DeferSound();
 
 	public void DeferLifePodShake() => domains.LifePod.DeferShake();

@@ -78,21 +78,23 @@ Fixing the gaps is outside this ticket's scope, but the audit itself must not ch
 
 - **Matrix**: `docs/evidence/sync-coverage-matrix.md` — 64 feature rows covering A–D, every row
   with event sync, periodic fallback, backfill/recovery, loss semantics and `path:line`
-  evidence; **750 evidence entries verified** against the working tree (505 collector entries
-  + 245 inline-reference anchors — the W1 landing and its adversarial-review fixes added 14;
-  file exists, line in range, quoted line text is a substring)
+  evidence; **778 evidence entries verified** against the working tree (505 collector entries
+  + 273 inline-reference anchors — the W1 landing and its adversarial-review fixes added 14,
+  the E3 partial landing added 28; file exists, line in range, quoted line text is a substring)
   and stored in `docs/evidence/sync-coverage-evidence.json`; zero `Unverified` rows. Every
   matrix reference is a full path (no bare `:N` continuation refs), and the gate verifies each
   inline quote against its source line.
 - **Verdicts**: 46 `OK`, 9 `Event-only gap`, 0 `Fallback-only gap`, 9 `Transient-by-design`
-  (row W1 closed 2026-09-09 by `review/guest-block-mutation-re-report.md`).
+  (row W1 closed 2026-09-09 by `review/guest-block-mutation-re-report.md`; row E3 has a
+  PARTIAL landing — `todo/runtime-entity-spawn-backfill.md` — with four open MAJOR
+  round-3 findings, so the gap stays open).
 - **The user's seed finding is confirmed**: world blocks host → guest converge (60 s absolute
   table + world-entry backfill) but guest → host has no diff table and no periodic re-report,
   so a swallowed guest mutation is invisible to the host table and the absolute snapshot
   cannot heal it (row W1 — closed 2026-09-09 by `review/guest-block-mutation-re-report.md`).
   Partial block damage shares the asymmetry (row W2 — `todo/guest-partial-block-damage-re-report.md`).
 - **Gap tickets** (one ticket per gap, with W2 split from W1 and R3+R4 merged): `todo/guest-partial-block-damage-re-report.md`,
-  `todo/runtime-entity-spawn-backfill.md`, `todo/trap-layout-snapshot-recovery.md`,
+  `todo/trap-layout-snapshot-recovery.md`,
   `todo/enemy-snapshot-and-attack-recovery.md`,
   `todo/guest-command-loss-reconciliation.md`, `todo/recipe-unlock-fallback.md`,
   `todo/carried-inventory-registration-re-report.md`,

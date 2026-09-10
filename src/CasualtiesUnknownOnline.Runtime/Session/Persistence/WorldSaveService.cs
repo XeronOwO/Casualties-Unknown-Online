@@ -82,6 +82,8 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 
 	public bool HasRestorableWorld => ContinueWorldId is not null;
 
+	public string CurrentWorldId => _worldId;
+
 	/// <summary>
 	/// The world the Continue entry opens: the repository's last-opened pointer
 	/// when it still names a world on disk, the newest world otherwise. There is
@@ -97,14 +99,18 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 				return null;
 			}
 
+			// Only a world that actually carries a snapshot is continuable: a folder
+			// created by a run that never cut anything has nothing to restore, and
+			// offering it would both fail the entry and hide the world behind it.
 			var worlds = _repository.ListWorlds();
-			if (worlds.Count == 0)
+			var withSnapshot = worlds.Where(world => _repository.HasSnapshot(world.WorldId)).ToList();
+			if (withSnapshot.Count == 0)
 			{
 				return null;
 			}
 
 			var lastOpened = _repository.LastOpenedWorldId;
-			foreach (var world in worlds)
+			foreach (var world in withSnapshot)
 			{
 				if (string.Equals(world.WorldId, lastOpened, StringComparison.Ordinal))
 				{
@@ -112,7 +118,7 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 				}
 			}
 
-			return worlds[0].WorldId;
+			return withSnapshot[0].WorldId;
 		}
 	}
 
@@ -155,7 +161,11 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 		_worldId = created.WorldId;
 		_displayName = displayName;
 		_pendingCharacters = [];
-		_repository.SetLastOpenedWorld(_worldId);
+
+		// The picker pointer moves on the FIRST CUT, not here: an aborted start (the
+		// tutorial gate refuses after the click) must not hide the previous world
+		// behind a folder that holds no snapshot — which would also make Continue
+		// reachable for a world that cannot be opened.
 		_log.LogInformation("This run writes into world {WorldId} ({DisplayName}) under {Root}.", _worldId, displayName, _repository.Root);
 		return true;
 	}
@@ -305,6 +315,12 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 		_worldId = worldId;
 		_displayName = load.Content.Manifest.DisplayName;
 		_pendingCharacters = decode.UsableCharacters;
+
+		// The archive is authoritative for this world: the legacy reconnect table
+		// (CasualtiesUnknownOnline.character-data.bin) is dropped before the archive's
+		// characters are bound, so a player the package omits cannot be resurrected
+		// from stale data (decision 162: absent from the package = new character).
+		_characters.ClearSavedCharacters();
 		ApplyCharacters(decode.UsableCharacters);
 		_repository.SetLastOpenedWorld(worldId);
 
@@ -341,9 +357,19 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 			return;
 		}
 
+		var live = LiveKeySpace();
 		if (space == PlayerKeySpace.Unknown)
 		{
-			space = LiveKeySpace();
+			space = live;
+		}
+		else if (space != live)
+		{
+			// The two key spaces are separate (§2): a world written over IP-direct is
+			// never claimed over Steam, even when a Steam persona happens to spell the
+			// same name. Every key stays unclaimed — that player joins as a NEW
+			// character (decision 162), and the files stay for a later claim.
+			_log.LogInformation("The snapshot's key space {Stored} differs from the live transport {Live}; no stored character is claimed in this session.", space, live);
+			return;
 		}
 
 		var peers = PresentPeers();
@@ -441,7 +467,12 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 			// never a guessed one (§6.1).
 			ContentFingerprint = string.Empty,
 			RunEpoch = checkpoint.RunEpoch.Value.ToString(CultureInfo.InvariantCulture),
-			GlobalRevision = (long)checkpoint.GlobalRevision,
+			// The manifest stores the revision as a signed 64-bit number (§3.2); a
+			// counter that outgrew it would silently wrap, so the cut is refused
+			// instead (checked by the caller before anything is staged).
+			GlobalRevision = checkpoint.GlobalRevision <= long.MaxValue
+				? (long)checkpoint.GlobalRevision
+				: throw new NotSupportedException($"revision {checkpoint.GlobalRevision} does not fit the manifest's revision field"),
 			LayerIndex = run.LayerIndex,
 			BiomeDepth = run.BiomeDepth,
 			PlayerCount = playerCount,

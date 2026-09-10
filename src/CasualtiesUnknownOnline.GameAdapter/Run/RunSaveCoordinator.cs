@@ -40,10 +40,15 @@ internal sealed class RunSaveCoordinator(
 	/// </summary>
 	internal void BeginRun()
 	{
-		if (_session.Role != SessionRole.Guest)
+		if (_session.Role == SessionRole.Guest)
 		{
-			_saves.TryBeginRun();
+			return;
 		}
+
+		// A new run owns the next generation: a restore armed for a refused/aborted
+		// Continue attempt must never replay into it.
+		_parameters.CancelRestorePending();
+		_saves.TryBeginRun();
 	}
 
 	/// <summary>
@@ -67,7 +72,16 @@ internal sealed class RunSaveCoordinator(
 			return false;
 		}
 
-		_parameters.MarkRestorePending();
+		// The layer is generated from the RESTORED baseline: WorldGeneration.Start reads
+		// the run settings BEFORE GenerateWorld fires, so the baseline is applied here,
+		// at the click. A missing baseline is a hard refusal — generating from the live
+		// RNG stream is exactly the silent restart the restore contract forbids.
+		if (!_parameters.TryApplyRestoredNow())
+		{
+			_log.LogError("CUO continue refused ({WorldId}): the restore published no run baseline.", outcome.WorldId);
+			return false;
+		}
+
 		_world.SetHostRunPending(true);
 		_log.LogInformation("Continuing CUO world {WorldId}: {Summary}", outcome.WorldId, outcome.Summary);
 		return true;

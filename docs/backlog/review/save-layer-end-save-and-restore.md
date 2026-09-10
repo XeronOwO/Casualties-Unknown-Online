@@ -119,7 +119,57 @@ re-pointed domain round-trips, plus build/format/full-suite gates.
 NOT machine-verified: the in-game save/continue flow and any two-client behaviour. Layer-end
 save/restore is adapter-adjacent — the arm that runs it is the game's own Continue entry, the layer
 generation and the live body capture. Those rows need the user's dual-client acceptance pass; this
-ticket makes no claim that they were observed.
+ticket makes no claim that they were observed. Acceptance rows 5 and 6 are likewise NOT covered by a
+behavioural test: a Harmony patch against the game assembly cannot be invoked in this test host, so
+their evidence is the registration/patch wiring plus grep, and the real check is the user's run.
+
+## Independent adversarial review (fresh subagent) and its outcome
+
+A fresh-context reviewer audited the S2 diff against the frozen format contract and reported 5
+blockers, 5 major findings and 4 minor ones. **All five blockers and the actionable major findings
+are fixed with regression tests**; the rest are recorded below. Fixed:
+
+- **Composition root (was a dead mod):** `ITransportIdentity` was never registered, and the save
+  service is built by a FACTORY, which `ValidateOnBuild` does not walk — so the plugin's awake-time
+  catch swallowed the resolution failure and CUO never started. Registered, plus a new
+  `WorldSaveCompositionTests` (integration) that builds the production root with and without a saves
+  root and resolves `IWorldSaveControl`/`ITransportIdentity`.
+- **Per-entry salvage was bypassed:** the wire→kernel conversion used to run in `Finish()`, outside
+  the reader's per-entry catch, so one unmaterializable row aborted the whole continue. It now runs
+  per entry (`AddMapped`/`TryMaterialize`), and the rejected-row-adds-a-default-struct trap (a
+  skipped item becoming "item 0") is closed and covered by
+  `WorldSnapshotCodecTests.Decode_MalformedItemEntry_IsSkippedWhileTheOthersApply`.
+- **Cross-mode claim:** the stored key space is now compared with the LIVE transport's; a mismatch
+  leaves every stored key unclaimed (the reviewer's same-persona-name collision). The existing
+  cross-mode test now uses the SAME display name in both modes.
+- **Restore arming:** the restored baseline is applied at the continue click, before
+  `WorldGeneration.Start` derives `unchipped`/rarity/time-limit/decay fields from
+  `WorldGeneration.runSettings` (previously it was applied at the GenerateWorld prefix — too late);
+  a missing baseline is a hard refusal rather than a logged fallback; a new run cancels any armed
+  restore, so a refused Continue cannot replay into the next run.
+- **`save.sv` was still read by the menu:** the reachability fix ran as a Postfix, i.e. AFTER the
+  native body had already parsed the file for the Continue icon/label. A new
+  `SaveSystemHasSavePatch` answers "no native save" while CUO is bound, so the native read is gone
+  in practice as well as in intent.
+- Also fixed from the same review: a cut carrying `RandomStreams` is now REFUSED (was a warning —
+  the comment claimed a refusal that did not exist); the Continue target only considers worlds that
+  actually carry a snapshot and the picker pointer moves on the first cut (an aborted start no
+  longer hides the previous world or enables a broken entry); the archive's character set is
+  authoritative on restore (the legacy table is dropped first); a revision that does not fit the
+  manifest's signed field is refused; the character round-trip and the trap-terminal row now have
+  real assertions.
+
+Recorded, not fixed in this cycle:
+
+- The native run fields that no CUO domain owns (`lootRarityMultiplier`, `trapRarityMultiplier`,
+  `caloriesConsumed`, `lastHappiness`, `savedRecipeData`, `savedRunTime`, `WoundView.cInfo`) are not
+  part of the v1 snapshot (decision 166: kernel checkpoint + run baseline + character data + world
+  diff). A layer beyond the first therefore restores its rarity multipliers from their start values,
+  not their accumulated ones — see the new `todo/save-native-run-field-parity.md`.
+- `RunMenuReturnCoordinator.Flush` consumes its pending request before checking `inWorld` /
+  `SessionActive` / `PlayerCamera.main` (inherited behaviour, now the only writer sits behind it): a
+  failed check loses that save and the menu transition with no retry. Left alone deliberately — the
+  queue semantics change needs its own test, and it is not reachable from a unit host.
 
 ## Follow-ups recorded while landing (not implemented here)
 

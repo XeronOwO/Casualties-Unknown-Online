@@ -37,6 +37,15 @@ public sealed class WorldRepository(string root, ILogger<WorldRepository> log, S
 	public string LastOpenedWorldId => ReadIndex()?.LastOpenedWorldId ?? string.Empty;
 
 	/// <summary>
+	/// True = the world folder holds a committed snapshot. A world folder created
+	/// by a run that never cut anything (an aborted start) has nothing to open, so
+	/// a caller offering "continue" must not count it.
+	/// </summary>
+	public bool HasSnapshot(string worldId) =>
+		TryPathOfWorld(worldId) is { } directory
+		&& File.Exists(Path.Combine(directory, SaveArchiveFormat.LiveFolderName, SaveArchiveFormat.ManifestFileName));
+
+	/// <summary>
 	/// The folder a world id names. The id is the directory key, so it is validated
 	/// here: a caller-supplied id must never join onto the root as a path fragment
 	/// (a <c>..</c> id would otherwise escape the repository entirely).

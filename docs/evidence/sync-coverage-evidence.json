@@ -2,7 +2,7 @@
   "generatedBy": "docs/backlog/review/sync-event-and-periodic-fallback-coverage-audit.md",
   "auditDate": "2026-09-09",
   "note": "Collector evidence (cluster) + inline matrix-ref anchors (cluster=inline). Every matrix ref is a full path; SyncCoverageGateTests verifies every quote is a substring of the referenced line.",
-  "count": 799,
+  "count": 801,
   "entries": [
     {
       "cluster": "enemies-trade",
@@ -4477,7 +4477,7 @@
     {
       "cluster": "inline",
       "row": "W1",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldParamsService.cs:203",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldParamsService.cs:231",
       "quote": "_world.ResetPendingBlockReports();"
     },
     {
@@ -4609,7 +4609,7 @@
     {
       "cluster": "inline",
       "row": "E3",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldParamsService.cs:204",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldParamsService.cs:232",
       "quote": "_world.ResetPendingEntityReports();"
     },
     {
@@ -4797,6 +4797,18 @@
       "row": "`docs/architecture/protocol.md`",
       "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:186",
       "quote": "if (!ProtocolFrameValidator.TryValidate(frame, sender, out var validationError))"
+    },
+    {
+      "cluster": "inline",
+      "row": "E3",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldParamsService.cs:204",
+      "quote": "_guestParamsWaitLogged = false; // re-arm for the next world/layer"
+    },
+    {
+      "cluster": "inline",
+      "row": "W1",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldParamsService.cs:202",
+      "quote": "}"
     }
   ]
 }

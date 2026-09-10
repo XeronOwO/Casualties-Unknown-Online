@@ -27,6 +27,9 @@ internal sealed class WorldParamsService(
 	/// <summary>Host: params captured at the run-start entry — the first GenerateWorld must not re-capture.</summary>
 	private bool _entryParamsCaptured;
 
+	/// <summary>Host: a CUO world restore owns the next generation boundary — replay the RESTORED baseline, never capture a new one.</summary>
+	private bool _restorePending;
+
 	/// <summary>Guest: the params instance whose Random.state is currently restored (a new instance = a new world/layer = re-apply).</summary>
 	private WorldStartParams? _appliedWorldParams;
 
@@ -76,6 +79,13 @@ internal sealed class WorldParamsService(
 	/// </summary>
 	internal void OnGenerateBoundary()
 	{
+		if (_restorePending)
+		{
+			_restorePending = false;
+			ApplyRestoredBaseline();
+			return;
+		}
+
 		if (_entryParamsCaptured)
 		{
 			_entryParamsCaptured = false;
@@ -83,6 +93,33 @@ internal sealed class WorldParamsService(
 		}
 
 		CaptureAtBoundary();
+	}
+
+	/// <summary>
+	/// Host: the Continue entry restored a CUO world — the next generation boundary
+	/// must replay the SAVED baseline (the kernel restore projected it into
+	/// <see cref="IWorldControl.WorldParams"/>) instead of capturing the live RNG.
+	/// Capturing here would generate a layer other than the one the snapshot
+	/// stores, which is exactly the silent "regenerate the layer" the restore
+	/// contract forbids.
+	/// </summary>
+	internal void MarkRestorePending() => _restorePending = true;
+
+	private void ApplyRestoredBaseline()
+	{
+		var parameters = _world.WorldParams;
+		if (parameters is null)
+		{
+			_log.LogError("The restore published no world params; the layer cannot be reproduced from the snapshot — generation continues from the live RNG stream.");
+			return;
+		}
+
+		// The guest side's application path (proven by the two-side generation
+		// match): world-defining fields + run settings, then the RNG state, which
+		// the generation wrapper re-forces at the coroutine start.
+		Apply(parameters);
+		_log.LogInformation("Applied the RESTORED run baseline (depth {Depth}, override {Override}, traveled {Traveled}, {StateBytes} RNG bytes).",
+			parameters.BiomeDepth, parameters.BiomeOverride, parameters.TotalTraveled, parameters.RandomState.Length);
 	}
 
 	/// <summary>Host side: capture + publish the world params at the GenerateWorld boundary (layer switches, solo, load-run — the entry capture does not apply).</summary>
@@ -155,6 +192,7 @@ internal sealed class WorldParamsService(
 	internal void ResetForSessionEnd()
 	{
 		_entryParamsCaptured = false;
+		_restorePending = false;
 		_appliedWorldParams = null;
 		_guestParamsWaitLogged = false;
 	}

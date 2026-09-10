@@ -1,8 +1,8 @@
 using CasualtiesUnknownOnline.GameState;
+using CasualtiesUnknownOnline.Tests.Persistence;
 using CasualtiesUnknownOnline.GameState.Domains.WorldEntities;
 using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
-using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 using System;
 using System.IO;
@@ -259,9 +259,7 @@ public class WorldEntityDomainKernelTests
 			Assert.True(RecordOpened(kernel, 3, new EntityPosition(7, 8)).IsAccepted);
 			Assert.True(RecordTrapState(kernel, 4, new EntityPosition(9, 10), 11, TrapPhase.Cooldown, 5, 600).IsAccepted);
 
-			var store = new KernelSaveFileStore(path, NullLogger<KernelSaveFileStore>.Instance);
-			Assert.True(store.Save(kernel.CreateCheckpoint()));
-			Assert.True(store.TryLoad(out var loaded));
+			var loaded = WorldArchiveRoundTrip.ThroughArchive(kernel.CreateCheckpoint());
 
 			var state = loaded.WorldEntities;
 			Assert.NotNull(state);

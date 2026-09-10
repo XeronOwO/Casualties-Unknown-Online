@@ -14,7 +14,7 @@ namespace CasualtiesUnknownOnline.Runtime.Networking;
 /// the normal Steam lobby paths); IP-direct and Steam sessions are deliberately
 /// not interconnected.
 /// </summary>
-public sealed class CuoNetworkRouter : INetworkTransport, ISteamService, IDisposable
+public sealed class CuoNetworkRouter : INetworkTransport, ISteamService, ITransportIdentity, IDisposable
 {
 	private readonly SteamService _steamService;
 	private readonly SteamTransport _steamTransport;
@@ -39,6 +39,17 @@ public sealed class CuoNetworkRouter : INetworkTransport, ISteamService, IDispos
 	}
 
 	public bool IsIpDirectActive => _ipDirectActive;
+
+	// ---- ITransportIdentity (§2: which key space a save is written in) ----
+
+	/// <inheritdoc />
+	bool ITransportIdentity.IsIpDirect => _ipDirectActive;
+
+	/// <inheritdoc />
+	ulong ITransportIdentity.LocalPeerId => LocalSteamId;
+
+	/// <inheritdoc />
+	string ITransportIdentity.LocalDisplayName => GetPersonaName(LocalSteamId);
 
 	/// <summary>The IP-direct identity adapter (lobby events + local display name).</summary>
 	public IpDirectSteamService IpDirectSteam => _ipDirectSteam;

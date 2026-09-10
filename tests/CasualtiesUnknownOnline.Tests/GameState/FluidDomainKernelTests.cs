@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using CasualtiesUnknownOnline.GameState;
+using CasualtiesUnknownOnline.Tests.Persistence;
 using CasualtiesUnknownOnline.GameState.Domains.Fluids;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -78,9 +79,7 @@ public class FluidDomainKernelTests
 			var authority = new ItemKernelAuthority(NullLogger<ItemKernelAuthority>.Instance);
 			Assert.True(authority.TryUpdateFluidRegion(Host.Value, new FluidRegionState(1, 2, 7, 1, 50), out _, out _));
 
-			var store = new KernelSaveFileStore(path, NullLogger<KernelSaveFileStore>.Instance);
-			Assert.True(store.Save(authority.CreateCheckpoint()));
-			Assert.True(store.TryLoad(out var loaded));
+			var loaded = WorldArchiveRoundTrip.ThroughArchive(authority);
 
 			var region = Assert.Single(loaded.Fluids!.Regions);
 			Assert.Equal(1, region.ChunkX);

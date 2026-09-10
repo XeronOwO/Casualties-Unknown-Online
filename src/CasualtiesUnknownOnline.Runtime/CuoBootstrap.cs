@@ -5,6 +5,7 @@ using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Logging;
 using CasualtiesUnknownOnline.Runtime.Networking;
+using CasualtiesUnknownOnline.Runtime.Persistence;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Time;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
@@ -21,6 +22,7 @@ using CasualtiesUnknownOnline.Runtime.Localization;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
 using CasualtiesUnknownOnline.Runtime.Session.AdaptiveSync;
 using CasualtiesUnknownOnline.Runtime.Session.NetworkTraffic;
+using CasualtiesUnknownOnline.Runtime.Session.Persistence;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using CasualtiesUnknownOnline.Runtime.Session.Tutorial;
 using CasualtiesUnknownOnline.Runtime.Steam;
@@ -55,10 +57,14 @@ public static class CuoBootstrap
 	/// game, so the Runtime cannot reference it back).
 	/// <paramref name="characterDataFile"/> is the optional host character-data
 	/// disk file; null (the test composition default) keeps the store in-memory only.
+	/// <paramref name="savesRoot"/> is the optional world-archive root
+	/// (<c>&lt;CUO data root&gt;/cuo/saves</c> in production); null disables the save system.
+	/// <paramref name="gameBuild"/> is the running game version recorded as a save's provenance.
 	/// </summary>
 	public static ServiceProvider BuildServiceProvider(
 		ManualLogSource bepinExLogSource, string logDirectory, string? legacyLogPath = null,
 		string? characterDataFile = null, string? modStateFile = null, string? hostBanFile = null,
+		string? savesRoot = null, string? gameBuild = null,
 		Action<IServiceCollection>? extraRegistrations = null)
 	{
 		var services = new ServiceCollection();
@@ -402,6 +408,34 @@ public static class CuoBootstrap
 		// binder route definitions to per-kind providers.
 		services.AddSingleton<ModContentBinder>();
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<ModContentBinder>());
+
+		// ---- The CUO world archive (docs/architecture/save-archive-format.md) ----
+		// The repository is the ONLY writer of the save system; the native save.sv
+		// is never written and never read (decisions 164/165). A null root keeps
+		// the whole system disabled — the test composition root's default.
+		services.AddSingleton<SaveArchiveWriter>();
+		services.AddSingleton<SaveArchiveReader>();
+		services.AddSingleton<WorldSnapshotEncoder>();
+		if (savesRoot is not null)
+		{
+			services.AddSingleton(p => new WorldRepository(
+				savesRoot,
+				p.GetRequiredService<ILogger<WorldRepository>>(),
+				p.GetRequiredService<SaveArchiveWriter>(),
+				p.GetRequiredService<SaveArchiveReader>()));
+		}
+
+		services.AddSingleton(p => new WorldSaveService(
+			savesRoot is null ? null : p.GetRequiredService<WorldRepository>(),
+			p.GetRequiredService<ISessionControl>(),
+			p.GetRequiredService<ICharacterDataControl>(),
+			p.GetRequiredService<ItemKernelAuthority>(),
+			p.GetRequiredService<ITransportIdentity>(),
+			p.GetRequiredService<WorldSnapshotEncoder>(),
+			p.GetRequiredService<ILoggerFactory>(),
+			p.GetRequiredService<ILogger<WorldSaveService>>(),
+			gameBuild));
+		services.AddSingleton<IWorldSaveControl>(p => p.GetRequiredService<WorldSaveService>());
 
 		extraRegistrations?.Invoke(services);
 

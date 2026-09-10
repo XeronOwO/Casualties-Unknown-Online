@@ -75,57 +75,65 @@ public static class KernelDomainWireMapper
 	public static WireWorldEntityState ToWireWorldEntityState(WorldEntityState? state) =>
 		new()
 		{
-			Consumptions = [.. (state?.Consumptions ?? []).Select(c => new WireTrapConsumption
-			{
-				Position = ToWireEntityPosition(c.Position),
-				Kind = c.Kind,
-				Extra = c.Extra,
-				TriggeredAtMs = c.TriggeredAtMs,
-			})],
-			BuildingHealth = [.. (state?.BuildingHealth ?? []).Select(h => new WireBuildingEntityHealth
-			{
-				Position = ToWireEntityPosition(h.Position),
-				Health = h.Health,
-			})],
-			OpenedEntities = [.. (state?.OpenedEntities ?? []).Select(o => new WireOpenedEntity
-			{
-				Position = ToWireEntityPosition(o.Position),
-			})],
-			TrapStates = [.. (state?.TrapStates ?? []).Select(s => new WireTrapState
-			{
-				Position = ToWireEntityPosition(s.Position),
-				Kind = s.Kind,
-				Phase = (int)s.Phase,
-				Extra = s.Extra,
-				TransitionedAtMs = s.TransitionedAtMs,
-			})],
+			Consumptions = [.. (state?.Consumptions ?? []).Select(ToWireTrapConsumption)],
+			BuildingHealth = [.. (state?.BuildingHealth ?? []).Select(ToWireBuildingEntityHealth)],
+			OpenedEntities = [.. (state?.OpenedEntities ?? []).Select(ToWireOpenedEntity)],
+			TrapStates = [.. (state?.TrapStates ?? []).Select(ToWireTrapStateFact)],
 		};
 
-	public static WorldEntityState FromWireWorldEntityState(WireWorldEntityState? state)
-	{
-		if (state is null)
-		{
-			return WorldEntityState.Empty;
-		}
+	public static WorldEntityState FromWireWorldEntityState(WireWorldEntityState? state) =>
+		state is null
+			? WorldEntityState.Empty
+			: new WorldEntityState(
+				[.. state.Consumptions.Select(FromWireTrapConsumption)],
+				[.. state.BuildingHealth.Select(FromWireBuildingEntityHealth)],
+				[.. state.OpenedEntities.Select(FromWireOpenedEntity)],
+				[.. state.TrapStates.Select(FromWireTrapStateFact)]);
 
-		return new WorldEntityState(
-			[.. state.Consumptions.Select(c => new TrapConsumptionFact(
-				FromWireEntityPosition(c.Position),
-				c.Kind,
-				c.Extra,
-				c.TriggeredAtMs))],
-			[.. state.BuildingHealth.Select(h => new BuildingEntityHealthFact(
-				FromWireEntityPosition(h.Position),
-				h.Health))],
-			[.. state.OpenedEntities.Select(o => new OpenedEntityFact(
-				FromWireEntityPosition(o.Position)))],
-			[.. state.TrapStates.Select(s => new TrapStateFact(
-				FromWireEntityPosition(s.Position),
-				s.Kind,
-				(TrapPhase)s.Phase,
-				s.Extra,
-				s.TransitionedAtMs))]);
-	}
+	// The element mappings are public because the save layer writes the same four
+	// fact kinds as typed rows (§3.4) — one mapping shared with the wire path is
+	// what keeps a restored world identical to a late-joiner checkpoint.
+
+	public static WireTrapConsumption ToWireTrapConsumption(TrapConsumptionFact fact) =>
+		new()
+		{
+			Position = ToWireEntityPosition(fact.Position),
+			Kind = fact.Kind,
+			Extra = fact.Extra,
+			TriggeredAtMs = fact.TriggeredAtMs,
+		};
+
+	public static TrapConsumptionFact FromWireTrapConsumption(WireTrapConsumption fact) =>
+		new(FromWireEntityPosition(fact.Position), fact.Kind, fact.Extra, fact.TriggeredAtMs);
+
+	public static WireBuildingEntityHealth ToWireBuildingEntityHealth(BuildingEntityHealthFact fact) =>
+		new()
+		{
+			Position = ToWireEntityPosition(fact.Position),
+			Health = fact.Health,
+		};
+
+	public static BuildingEntityHealthFact FromWireBuildingEntityHealth(WireBuildingEntityHealth fact) =>
+		new(FromWireEntityPosition(fact.Position), fact.Health);
+
+	public static WireOpenedEntity ToWireOpenedEntity(OpenedEntityFact fact) =>
+		new() { Position = ToWireEntityPosition(fact.Position) };
+
+	public static OpenedEntityFact FromWireOpenedEntity(WireOpenedEntity fact) =>
+		new(FromWireEntityPosition(fact.Position));
+
+	public static WireTrapState ToWireTrapStateFact(TrapStateFact fact) =>
+		new()
+		{
+			Position = ToWireEntityPosition(fact.Position),
+			Kind = fact.Kind,
+			Phase = (int)fact.Phase,
+			Extra = fact.Extra,
+			TransitionedAtMs = fact.TransitionedAtMs,
+		};
+
+	public static TrapStateFact FromWireTrapStateFact(WireTrapState fact) =>
+		new(FromWireEntityPosition(fact.Position), fact.Kind, (TrapPhase)fact.Phase, fact.Extra, fact.TransitionedAtMs);
 
 	public static WirePlayerState ToWirePlayerState(PlayerState state) =>
 		new()

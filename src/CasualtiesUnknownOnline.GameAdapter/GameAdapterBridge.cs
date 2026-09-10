@@ -132,6 +132,10 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 
 	public bool OnGuestStartAttempt() => domains.GuestMenu.OnGuestStartAttempt();
 
+	public bool HasRestorableWorld() => domains.WorldSaves.HasRestorableWorld;
+
+	public bool OnHostContinueRequested() => domains.Run.OnHostContinueRequested();
+
 	public void OnWorldJoinRequested(bool isTutorial) => domains.Run.OnWorldJoinRequested(isTutorial);
 
 	public void OnSceneLoadBegin() => domains.ItemWorldSync.SuppressDestroys();

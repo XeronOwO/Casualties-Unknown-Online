@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using CasualtiesUnknownOnline.GameState;
+using CasualtiesUnknownOnline.Tests.Persistence;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.GameState.Domains.Players;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
@@ -157,9 +158,7 @@ public class PlayerDomainKernelTests
 				out _,
 				out _));
 
-			var store = new KernelSaveFileStore(path, NullLogger<KernelSaveFileStore>.Instance);
-			Assert.True(store.Save(authority.CreateCheckpoint()));
-			Assert.True(store.TryLoad(out var loaded));
+			var loaded = WorldArchiveRoundTrip.ThroughArchive(authority);
 
 			var player = Assert.Single(loaded.Players!.Players);
 			var limb = Assert.Single(player.LimbFacts);
@@ -268,9 +267,7 @@ public class PlayerDomainKernelTests
 				out _,
 				out _));
 
-			var store = new KernelSaveFileStore(path, NullLogger<KernelSaveFileStore>.Instance);
-			Assert.True(store.Save(authority.CreateCheckpoint()));
-			Assert.True(store.TryLoad(out var loaded));
+			var loaded = WorldArchiveRoundTrip.ThroughArchive(authority);
 
 			Assert.Equal(body, Assert.Single(loaded.Players!.Players).Body);
 		}
@@ -445,9 +442,7 @@ public class PlayerDomainKernelTests
 			var authority = new ItemKernelAuthority(NullLogger<ItemKernelAuthority>.Instance);
 			Assert.True(authority.TryUpdatePlayerStatus(Host.Value, new PlayerState(2001, true, true), out _, out _));
 
-			var store = new KernelSaveFileStore(path, NullLogger<KernelSaveFileStore>.Instance);
-			Assert.True(store.Save(authority.CreateCheckpoint()));
-			Assert.True(store.TryLoad(out var loaded));
+			var loaded = WorldArchiveRoundTrip.ThroughArchive(authority);
 
 			var player = Assert.Single(loaded.Players!.Players);
 			Assert.Equal(2001ul, player.SteamId);
@@ -503,9 +498,7 @@ public class PlayerDomainKernelTests
 			Assert.True(authority.TryUpdatePlayerStatus(Host.Value, new PlayerState(2002, true, true), out _, out _));
 			Assert.True(authority.TrySetPlayerCarry(Host.Value, 2001, 2002, out _, out _));
 
-			var store = new KernelSaveFileStore(path, NullLogger<KernelSaveFileStore>.Instance);
-			Assert.True(store.Save(authority.CreateCheckpoint()));
-			Assert.True(store.TryLoad(out var loaded));
+			var loaded = WorldArchiveRoundTrip.ThroughArchive(authority);
 
 			var carrier = loaded.Players!.Players.Single(p => p.SteamId == 2001);
 			Assert.Equal(2002ul, carrier.CarrierOfSteamId);
@@ -731,9 +724,7 @@ public class PlayerDomainKernelTests
 				out _,
 				out _));
 
-			var store = new KernelSaveFileStore(path, NullLogger<KernelSaveFileStore>.Instance);
-			Assert.True(store.Save(authority.CreateCheckpoint()));
-			Assert.True(store.TryLoad(out var loaded));
+			var loaded = WorldArchiveRoundTrip.ThroughArchive(authority);
 
 			Assert.Equal(skills, Assert.Single(loaded.Players!.Players).Skills);
 		}

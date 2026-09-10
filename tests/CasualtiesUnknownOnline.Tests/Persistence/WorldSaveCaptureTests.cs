@@ -34,12 +34,21 @@ public class WorldSaveCaptureTests
 		Assert.True(fixture.Service.TryBeginRun());
 
 		// The run's world is a NEW folder (the repository's own seed world predates
-		// it) and the picker pointer names it, so the Continue entry resolves here.
+		// it), but nothing is continuable yet: the folder holds no snapshot, and the
+		// picker pointer does not move until a cut exists — an aborted start must not
+		// hide the previous world behind an empty folder, nor offer a Continue entry
+		// that cannot open anything.
 		var worldId = fixture.WorldId;
 		Assert.True(SaveArchiveFormat.IsWorldId(worldId));
+		Assert.True(Directory.Exists(fixture.Repository.Repository.PathOfWorld(worldId)));
+		Assert.False(fixture.Service.HasRestorableWorld);
+		Assert.Null(fixture.Service.ContinueWorldId);
+
+		// The first committed cut makes it continuable.
+		Assert.True(fixture.Kernel.TryStartRun(HostId, Run(layerIndex: 0), out _, out _));
+		Assert.True(fixture.Kernel.TryAdvanceLayer(HostId, Run(layerIndex: 1), out _, out _));
 		Assert.True(fixture.Service.HasRestorableWorld);
 		Assert.Equal(worldId, fixture.Service.ContinueWorldId);
-		Assert.True(Directory.Exists(fixture.Repository.Repository.PathOfWorld(worldId)));
 	}
 
 	[Fact]

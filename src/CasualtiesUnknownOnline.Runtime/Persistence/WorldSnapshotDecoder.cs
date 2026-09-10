@@ -1,11 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using System.Text.Json;
 using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.GameState.Domains.Entities;
 using CasualtiesUnknownOnline.GameState.Domains.Fluids;
+using CasualtiesUnknownOnline.GameState.Domains.Items;
+using CasualtiesUnknownOnline.GameState.Domains.World;
 using CasualtiesUnknownOnline.GameState.Domains.Players;
 using CasualtiesUnknownOnline.GameState.Domains.WorldEntities;
 using CasualtiesUnknownOnline.Protocol.Wire;
@@ -30,15 +31,21 @@ public sealed class WorldSnapshotDecoder(SaveManifest manifest, ILogger<WorldSna
 {
 	private readonly SaveManifest _manifest = manifest;
 	private readonly ILogger<WorldSnapshotDecoder> _log = log;
-	private readonly List<WireItem> _items = [];
-	private readonly List<WirePlayerState> _players = [];
-	private readonly List<WireEnemyState> _enemies = [];
-	private readonly List<WireEntityId> _removedEnemies = [];
-	private readonly List<WireFluidRegionState> _fluids = [];
+
+	// The accumulated KERNEL facts, not the wire DTOs: the wire→kernel mapping is
+	// the step that can reject an entry (an unknown item location kind, a prefab
+	// the content set no longer has), so it runs per entry inside this class's
+	// catch — never in Finish(), where one bad row would take the whole domain
+	// down with it (§6).
+	private readonly List<ItemState> _items = [];
+	private readonly List<PlayerState> _players = [];
+	private readonly List<EnemyState> _enemies = [];
+	private readonly List<EntityId> _removedEnemies = [];
+	private readonly List<FluidRegionState> _fluids = [];
 	private readonly List<SavedCharacter> _characters = [];
 
 	private WorldEntityState _worldEntities = WorldEntityState.Empty;
-	private WireRunState? _run;
+	private RunState? _run;
 	private string _currentPath = string.Empty;
 	private int _entryIndex;
 
@@ -65,16 +72,16 @@ public sealed class WorldSnapshotDecoder(SaveManifest manifest, ILogger<WorldSna
 				DecodeRun(entry, session, id);
 				return;
 			case SaveArchiveFormat.PlayersFileName:
-				Add(_players, Decode<WirePlayerState>(entry, session, id));
+				AddMapped<WirePlayerState, PlayerState>(_players, entry, session, id, KernelDomainWireMapper.FromWirePlayerState);
 				return;
 			case SaveArchiveFormat.ItemsFileName:
-				Add(_items, Decode<WireItem>(entry, session, id));
+				AddMapped<WireItem, ItemState>(_items, entry, session, id, KernelWireMapper.FromWireItem);
 				return;
 			case SaveArchiveFormat.EnemiesFileName:
 				DecodeEnemyRow(entry, session, id);
 				return;
 			case SaveArchiveFormat.FluidsFileName:
-				Add(_fluids, Decode<WireFluidRegionState>(entry, session, id));
+				AddMapped<WireFluidRegionState, FluidRegionState>(_fluids, entry, session, id, KernelDomainWireMapper.FromWireFluidRegionState);
 				return;
 			case SaveArchiveFormat.WorldEntitiesFileName:
 				DecodeWorldEntityRow(entry, session, id);
@@ -117,17 +124,15 @@ public sealed class WorldSnapshotDecoder(SaveManifest manifest, ILogger<WorldSna
 		var checkpoint = new GameCheckpoint(
 			new RunEpoch(epoch),
 			(ulong)_manifest.GlobalRevision,
-			[.. _items.Select(KernelWireMapper.FromWireItem)],
+			_items,
 			null,
-			KernelDomainWireMapper.FromWireRun(_run),
+			_run,
 			_worldEntities,
-			_players.Count == 0 ? null : new PlayerStateTable([.. _players.Select(KernelDomainWireMapper.FromWirePlayerState)]),
+			_players.Count == 0 ? null : new PlayerStateTable(_players),
 			_enemies.Count == 0 && _removedEnemies.Count == 0
 				? null
-				: new EnemyStateTable(
-					[.. _enemies.Select(KernelDomainWireMapper.FromWireEnemyState)],
-					[.. KernelDomainWireMapper.FromWireRemovedEnemyIds(_removedEnemies)]),
-			_fluids.Count == 0 ? null : new FluidStateTable([.. _fluids.Select(KernelDomainWireMapper.FromWireFluidRegionState)]));
+				: new EnemyStateTable(_enemies, _removedEnemies),
+			_fluids.Count == 0 ? null : new FluidStateTable(_fluids));
 
 		_log.LogInformation("Decoded snapshot of world {WorldId}: epoch {Epoch}, revision {Revision}, {Items} item(s), {Players} player(s), {Enemies} enemy(ies), {Characters} character(s).",
 			_manifest.WorldId, epoch, (ulong)_manifest.GlobalRevision, _items.Count, _players.Count, _enemies.Count + _removedEnemies.Count, _characters.Count);
@@ -142,14 +147,16 @@ public sealed class WorldSnapshotDecoder(SaveManifest manifest, ILogger<WorldSna
 			return;
 		}
 
-		_run = Decode<WireRunState>(entry, session, id);
-		if (_run is not null && _run.RandomState.Length == 0)
+		var wire = Decode<WireRunState>(entry, session, id);
+		if (wire?.RandomState is not { Length: > 0 })
 		{
 			// Without the generation baseline the layer cannot be reproduced: that
 			// is a refusal, not a salvage (a fresh layer would be a silent restart).
 			session.Skip(id, "the run baseline carries no generation random state", _currentPath);
-			_run = null;
+			return;
 		}
+
+		_run = KernelDomainWireMapper.FromWireRun(wire);
 	}
 
 	private void DecodeCharacter(JsonElement entry, SalvageSession session, string playerKey, string id)
@@ -172,10 +179,10 @@ public sealed class WorldSnapshotDecoder(SaveManifest manifest, ILogger<WorldSna
 		switch (row.Kind)
 		{
 			case SaveEnemyRow.RemovedKind when row.Removed is not null:
-				_removedEnemies.Add(row.Removed);
+				AddMapped(_removedEnemies, entry, session, id, KernelDomainWireMapper.FromWireEntityId, row, row.Removed);
 				return;
 			case SaveEnemyRow.EnemyKind when row.Enemy is not null:
-				Add(_enemies, row.Enemy);
+				AddMapped(_enemies, entry, session, id, KernelDomainWireMapper.FromWireEnemyState, row, row.Enemy);
 				return;
 			default:
 				session.Skip(row.Describe(), $"an enemy row declares an unusable kind '{row.Kind}'", _currentPath);
@@ -227,6 +234,62 @@ public sealed class WorldSnapshotDecoder(SaveManifest manifest, ILogger<WorldSna
 		if (value is not null)
 		{
 			target.Add(value);
+		}
+	}
+
+	/// <summary>
+	/// One entry, wire shape → kernel fact, inside this class's per-entry catch, and
+	/// added to the domain ONLY when it materialized. The conversion is where an
+	/// entry can actually be rejected (a wire form the kernel cannot represent, an
+	/// unknown enum value), so it runs HERE — never in <see cref="Finish"/>, where
+	/// one bad row would take its whole domain down (§6). The out-parameter shape
+	/// matters: the kernel facts include structs, whose <c>default</c> is a
+	/// perfectly valid-looking value — a rejected row must not become item 0.
+	/// </summary>
+	private void AddMapped<TWire, TKernel>(
+		List<TKernel> target,
+		JsonElement entry,
+		SalvageSession session,
+		string id,
+		Func<TWire, TKernel> toKernel)
+		where TWire : class
+	{
+		var wire = Decode<TWire>(entry, session, id);
+		if (wire is not null && TryMaterialize(session, id, () => toKernel(wire), out var kernel))
+		{
+			target.Add(kernel);
+		}
+	}
+
+	/// <summary>The same for a typed row whose payload has already been read (the enemy table's two shapes).</summary>
+	private static void AddMapped<TWire, TKernel>(
+		List<TKernel> target,
+		JsonElement entry,
+		SalvageSession session,
+		string id,
+		Func<TWire, TKernel> toKernel,
+		SaveEnemyRow row,
+		TWire wire)
+		where TWire : class
+	{
+		if (TryMaterialize(session, row.Describe(), () => toKernel(wire), out var kernel))
+		{
+			target.Add(kernel);
+		}
+	}
+
+	private static bool TryMaterialize<TKernel>(SalvageSession session, string id, Func<TKernel> materialize, out TKernel kernel)
+	{
+		try
+		{
+			kernel = materialize();
+			return true;
+		}
+		catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or FormatException or OverflowException)
+		{
+			session.Skip(id, "the entry could not be materialized into kernel state", ex.Message);
+			kernel = default!;
+			return false;
 		}
 	}
 

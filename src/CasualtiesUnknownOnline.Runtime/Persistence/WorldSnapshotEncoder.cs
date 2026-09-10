@@ -89,11 +89,18 @@ public sealed class WorldSnapshotEncoder(ILogger<WorldSnapshotEncoder> log)
 	private void WarnAboutUnpersistedDomains(WorldSnapshotPayload payload)
 	{
 		var streams = payload.Checkpoint.RandomStreams;
-		if (streams is not null && streams.Count > 0)
+		if (streams is null || streams.Count == 0)
 		{
-			_log.LogWarning("The checkpoint carries {Count} random stream(s); S2's snapshot file set has no file for them yet — they are NOT part of this save (S3 owns the consistent cut).",
-				streams.Count);
+			return;
 		}
+
+		// S2's file set has no file for the RNG streams, and dropping them would make a
+		// restore regenerate a different world than the run that was cut — §6 forbids
+		// a silent drop, so the cut is REFUSED until S3 adds the file. Nothing produces
+		// streams today, so this is a guard, not a path in use.
+		throw new NotSupportedException(
+			$"the checkpoint carries {streams.Count} random stream(s), and S2's snapshot file set has no file for them; " +
+			"refusing the cut rather than writing a lossy snapshot (S3 owns the consistent cut)");
 	}
 
 	private static SavePayloadFile Json<T>(string path, T value) => new(path, SaveArchiveJson.Serialize(value));

@@ -122,6 +122,9 @@ public static class CuoBootstrap
 		services.AddSingleton<IpDirectSteamService>();
 		services.AddSingleton<CuoNetworkRouter>();
 		services.AddSingleton<INetworkTransport>(p => p.GetRequiredService<CuoNetworkRouter>());
+		// The save layer asks the ACTIVE transport who "we" are (§2); the router is the
+		// only object that knows which transport is live, so it is the implementation.
+		services.AddSingleton<ITransportIdentity>(p => p.GetRequiredService<CuoNetworkRouter>());
 		services.AddSingleton<ISteamService>(p => p.GetRequiredService<CuoNetworkRouter>());
 
 		// Session owns its state (identity/flags/presence, created internally);

@@ -34,6 +34,12 @@ public interface IWorldSaveControl
 	/// </summary>
 	bool TryCaptureMenuReturnCut(CharacterDataMsg? hostCharacter);
 
+	/// <summary>The world this run writes into ("" before a run started); the Runtime owns it, the adapter only reports it in logs.</summary>
+	string CurrentWorldId { get; }
+
+	/// <summary>The world the Continue entry would open (null when none is openable); the adapter logs it and the tests pin the rule.</summary>
+	string? ContinueWorldId { get; }
+
 	/// <summary>True = the repository holds at least one world the Continue entry can open.</summary>
 	bool HasRestorableWorld { get; }
 

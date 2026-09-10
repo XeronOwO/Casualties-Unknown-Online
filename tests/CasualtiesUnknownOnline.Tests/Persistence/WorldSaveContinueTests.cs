@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.GameState.Domains.Entities;
+using CasualtiesUnknownOnline.GameState.Domains.WorldEntities;
 using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.Runtime.Persistence;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
@@ -25,18 +26,21 @@ public class WorldSaveContinueTests
 	public void ContinueWorldId_UsesTheLastOpenedPointerThenTheNewest()
 	{
 		using var fixture = WorldSaveFixture.Create("continue-target");
-		var first = fixture.Repository.WorldId;
 
+		// A world with no snapshot is not a continue target at all.
+		Assert.Null(fixture.Service.ContinueWorldId);
+
+		// The first world that actually carries a snapshot becomes the target.
+		SaveLayerEnd(fixture, withCharacter: false);
+		var first = fixture.WorldId;
 		Assert.Equal(first, fixture.Service.ContinueWorldId);
+
+		// The pointer wins over the newest world; a pointer naming a folder that no
+		// longer holds a snapshot falls through to the newest one that does.
 		Assert.True(fixture.Repository.Repository.SetLastOpenedWorld(first));
 		Assert.Equal(first, fixture.Service.ContinueWorldId);
-
-		// A world whose folder is gone is dropped from the list, so a stale pointer
-		// falls through to the newest world instead of failing the entry.
-		var second = fixture.Repository.Repository.CreateWorld("Second");
-		Assert.True(second.Success);
-		Assert.True(fixture.Repository.Repository.SetLastOpenedWorld(second.WorldId));
-		Assert.Equal(second.WorldId, fixture.Service.ContinueWorldId);
+		Assert.True(fixture.Repository.Repository.CreateWorld("Second").Success);
+		Assert.Equal(first, fixture.Service.ContinueWorldId);
 	}
 
 	[Fact]
@@ -137,6 +141,24 @@ public class WorldSaveContinueTests
 	}
 
 	[Fact]
+	public void ConsumedTrap_StaysConsumedAfterRestore()
+	{
+		using var fixture = WorldSaveFixture.Create("continue-terminal-trap");
+		var position = new EntityPosition(3, 4);
+		Assert.True(fixture.Kernel.TryRecordTrapConsumed(HostId, position, 2, 0, 1234, out _, out _));
+		SaveLayerEnd(fixture, withCharacter: false);
+
+		using var restarted = fixture.Restart("continue-terminal-trap-restart");
+		Assert.True(restarted.Service.TryContinue(out var outcome), outcome.Summary);
+
+		// A trap that was consumed stays consumed: the fact survives the snapshot and
+		// re-recording it cannot produce a second consumption of the same trap.
+		Assert.Single(restarted.Kernel.QueryWorldEntities()!.Consumptions);
+		Assert.True(restarted.Kernel.TryRecordTrapConsumed(HostId, position, 2, 0, 1234, out _, out _));
+		Assert.Single(restarted.Kernel.QueryWorldEntities()!.Consumptions);
+	}
+
+	[Fact]
 	public void TryContinue_WithoutAReadableRunBaseline_IsRefused()
 	{
 		using var fixture = WorldSaveFixture.Create("continue-damaged-run");
@@ -192,8 +214,9 @@ public class WorldSaveContinueTests
 
 		// A world written over IP-direct is a different key space: over Steam the
 		// stored key is claimed by nobody, so the host joins as a NEW character
-		// (decision 162) — never silently by a name collision.
-		using var restarted = fixture.Restart("continue-ip-to-steam-restart");
+		// (decision 162) — even when the Steam persona spells exactly the same name,
+		// which is why the live transport space is compared, not just the prefix.
+		using var restarted = fixture.Restart("continue-ip-to-steam-restart", displayName: "Host Name");
 		Assert.True(restarted.Service.TryContinue(out _));
 
 		Assert.Null(restarted.Characters.GetHostCharacterData());

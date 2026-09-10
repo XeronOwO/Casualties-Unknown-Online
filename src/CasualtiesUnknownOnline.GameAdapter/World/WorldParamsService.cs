@@ -105,6 +105,34 @@ internal sealed class WorldParamsService(
 	/// </summary>
 	internal void MarkRestorePending() => _restorePending = true;
 
+	/// <summary>A new run owns the next generation: a restore armed for a previous attempt must never replay into it.</summary>
+	internal void CancelRestorePending() => _restorePending = false;
+
+	/// <summary>
+	/// Host: apply the restored baseline NOW. The Continue click happens before the
+	/// scene load, and <c>WorldGeneration.Start</c> derives fields from
+	/// <c>WorldGeneration.runSettings</c> (unchipped, the rarity multipliers, the time
+	/// limit, decay rate, temperature offset, liquid pushing, debug chunk sizes) BEFORE
+	/// GenerateWorld ever fires — applying at the boundary alone would let the new layer
+	/// start from the live menu settings instead of the saved ones. Returns false when
+	/// the restore published no baseline: that is a refusal, never a silent fallback.
+	/// </summary>
+	internal bool TryApplyRestoredNow()
+	{
+		var parameters = _world.WorldParams;
+		if (parameters is null)
+		{
+			_log.LogError("The restore published no world params — the layer cannot be reproduced from the snapshot.");
+			return false;
+		}
+
+		Apply(parameters);
+		_restorePending = true; // the boundary re-applies it, idempotently, after the scene swap
+		_log.LogInformation("Applied the RESTORED run baseline at the continue click ({StateBytes} RNG bytes, depth {Depth}).",
+			parameters.RandomState.Length, parameters.BiomeDepth);
+		return true;
+	}
+
 	private void ApplyRestoredBaseline()
 	{
 		var parameters = _world.WorldParams;

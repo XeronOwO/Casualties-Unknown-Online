@@ -28,6 +28,19 @@
    `ConfigFile` → `IOptionsMonitor`, per decision 25). Backup failure must never damage a world.
 5. **Failure degradation** — disk full, read-only directory, pruning failure, concurrent host
    instances: each has a defined, logged, non-crashing behaviour.
+6. **Retire the legacy character file** — `CasualtiesUnknownOnline.character-data.bin`
+   (`Session/CharacterData/CharacterDataFileStore` + `CharacterDataFile`) is the pre-archive
+   reconnect store: the host kept the last report per SteamID on disk so a reconnecting guest could
+   be restored inside the same run. The world archive now holds one
+   `characters/<playerKey>.json` per member PRESENT at the cut, per world — two persistent copies of
+   the same facts, which is exactly the second source of truth decisions 162/164 set out to remove.
+   The module is unreleased, so there is no migration burden: **delete the `.bin` store** (file,
+   protobuf DTO, its composition-root parameter, its `PluginDeps`/deploy references and its tests)
+   and let the in-memory table (`CharacterDataStore`) be fed from the archive instead — a
+   reconnecting guest is restored by the claim in Scope 1, not by a stale local cache. Until Scope 1
+   lands, S2's restore already drops the legacy table before binding the archive's characters, so a
+   package that omits a player cannot resurrect that player from stale data.
+   Decided by the user on 2026-09-10 ("模组尚未发布, 无需考虑破坏性更新风险").
 
 ## Acceptance
 
@@ -39,6 +52,7 @@
 | 4 | Interval autosave over several cycles | The expected number of backups, retention honoured, the newest never pruned |
 | 5 | Disk full / read-only save directory | Loud failure, previous snapshot intact, session continues |
 | 6 | Restore from a backup after a damaged live snapshot | Live snapshot preserved as evidence, backup promoted, action reported |
+| 7 | A guest disconnects and rejoins a restored world, with no `character-data.bin` on disk | The character comes from the world archive's `characters/<playerKey>.json`; nothing else is written for it |
 
 ## Verification limits
 

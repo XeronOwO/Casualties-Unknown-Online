@@ -39,7 +39,7 @@ internal sealed class WorldSaveFixture : IDisposable
 	internal FakeSessionControl Session { get; }
 
 	/// <summary>The world this fixture's service owns (the run `TryBeginRun` created).</summary>
-	internal string WorldId => Repository.Repository.LastOpenedWorldId;
+	internal string WorldId => Service.CurrentWorldId;
 
 	internal static WorldSaveFixture Create(string label, bool ipDirect = false, string displayName = "Host", ulong hostId = 1001UL, SaveTestRepository? repository = null)
 	{

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Text;
 using System.Text.Json;
 using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.GameState.Domains.Entities;
@@ -121,6 +122,12 @@ public class WorldSnapshotCodecTests
 
 		var (decoded, _) = CodecRoundTrip(authority.CreateCheckpoint(), ("steam-76561198000000001", Character(100, "bag")));
 
+		// The character is a payload file of its own, keyed by the transport-scoped
+		// player key: it must come back under the SAME key, with its items intact.
+		var character = Assert.Single(RoundTripCharacters(authority.CreateCheckpoint(), ("steam-76561198000000001", Character(100, "bag"))));
+		Assert.Equal("steam-76561198000000001", character.PlayerKey);
+		Assert.Equal(100UL, Assert.Single(character.Character.Items).InstanceId);
+		Assert.Equal(5, character.Character.SlotCount);
 		Assert.Equal(RunId, decoded.Run!.RunId);
 	}
 
@@ -153,13 +160,15 @@ public class WorldSnapshotCodecTests
 		// A snapshot whose run baseline cannot be read must be refused, never
 		// silently regenerated into a layer it does not name (§6).
 		var (decode, salvage) = Decode([
-			SaveTestData.Payload(SaveArchiveFormat.ItemsFileName, "[{\"identity\":{\"instanceId\":1,\"definitionId\":\"stone\"},\"revision\":1,\"location\":{\"kind\":0}}]"),
+			SaveTestData.Payload(SaveArchiveFormat.ItemsFileName, "[{\"identity\":{\"instanceId\":1,\"definitionId\":\"stone\"},\"revision\":1,\"location\":{\"kind\":1},\"data\":{}}]"),
 		]);
 
 		Assert.Null(decode.Checkpoint);
 		Assert.Contains("run baseline", decode.Refusal, StringComparison.Ordinal);
-		Assert.Empty(decode.UsableCharacters);
-		Assert.Empty(salvage.SkippedEntries);
+
+		// The decode pass itself was clean — the snapshot is refused because the RUN
+		// BASELINE is missing, not because a row was salvaged away.
+		Assert.True(salvage.IsClean, salvage.Report.Describe());
 	}
 
 	[Fact]
@@ -183,6 +192,49 @@ public class WorldSnapshotCodecTests
 
 		Assert.NotNull(decode.Checkpoint);
 		Assert.Contains("a-later-stages-domain.json", salvage.Report.Describe(), StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void Decode_MalformedItemEntry_IsSkippedWhileTheOthersApply()
+	{
+		// §6: an unmaterializable entry is skipped by itself. The item mapping runs
+		// PER ENTRY (the wire→kernel conversion is where a bad row is rejected), so
+		// the valid item of the same file still applies instead of the whole domain
+		// — or the whole continue — failing.
+		var authority = StartedAuthority();
+		Spawn(authority, 100, "bag", ItemLocation.World(1, 2));
+		var files = Encoder().Encode(Payload(authority));
+		var items = Assert.Single(files, file => file.Path == SaveArchiveFormat.ItemsFileName).Content;
+
+		// Rebuild the file from its own decoded first row plus one unrepresentable
+		// row (location kind 99 is not a kernel location): the valid row must still
+		// apply while the broken one is skipped.
+		using var document = JsonDocument.Parse(items);
+		var validRow = document.RootElement.EnumerateArray().Single().GetRawText();
+		var broken = "[" + validRow + ",\n  {\"identity\":{\"instanceId\":900,\"definitionId\":\"broken\"},\"revision\":1,\"location\":{\"kind\":99},\"data\":{}}\n]";
+		var patched = files.Where(file => file.Path != SaveArchiveFormat.ItemsFileName)
+			.Append(new SavePayloadFile(SaveArchiveFormat.ItemsFileName, Encoding.UTF8.GetBytes(broken))).ToList();
+
+		var (decode, salvage) = Decode(patched, RunId);
+
+		Assert.NotNull(decode.Checkpoint);
+		Assert.True(decode.Checkpoint!.Items.Count == 1, "items were: " + string.Join(", ", decode.Checkpoint.Items.Select(item => item.Identity.InstanceId)) + " | salvage: " + salvage.Report.Describe());
+		Assert.Equal(100UL, Assert.Single(decode.Checkpoint.Items).Identity.InstanceId);
+		Assert.False(salvage.IsClean, salvage.Report.Describe());
+		Assert.Contains(salvage.SkippedEntries, entry => entry.Id.Contains("broken", StringComparison.Ordinal));
+	}
+
+	[Fact]
+	public void Encode_WithUnpersistedRandomStreams_RefusesTheCut()
+	{
+		var authority = StartedAuthority();
+		var checkpoint = authority.CreateCheckpoint() with { RandomStreams = [new RandomStreamState("world", "seed", [1UL])] };
+
+		// S2 has no file for the RNG streams: writing the cut anyway would drop them
+		// and a restore would regenerate a different world, so the cut is refused
+		// instead of silently lossy (§6).
+		var error = Assert.Throws<NotSupportedException>(() => Encoder().Encode(new WorldSnapshotPayload(checkpoint, [], "Test World", "layer-advance", "layer-boundary")));
+		Assert.Contains("random stream", error.Message, StringComparison.Ordinal);
 	}
 
 	[Fact]
@@ -227,6 +279,20 @@ public class WorldSnapshotCodecTests
 
 	internal static CharacterDataMsg Character(ulong instanceId, string definitionId) =>
 		new() { Items = [new CharacterItemMsg { InstanceId = instanceId, ItemId = definitionId }], SlotCount = 5 };
+
+	/// <summary>Decodes the same payload and returns the characters the decoder produced (the file set is per player key).</summary>
+	internal static IReadOnlyList<SavedCharacter> RoundTripCharacters(GameCheckpoint checkpoint, params (string Key, CharacterDataMsg Character)[] characters)
+	{
+		var payload = new WorldSnapshotPayload(
+			checkpoint,
+			[.. characters.Select(entry => new SavedCharacter(entry.Key, entry.Character))],
+			"Test World",
+			"layer-advance",
+			"layer-boundary");
+		var (decode, _) = Decode(Encoder().Encode(payload), checkpoint.RunEpoch.Value);
+		Assert.NotNull(decode.Checkpoint);
+		return decode.UsableCharacters;
+	}
 
 	internal static (GameCheckpoint Decoded, SalvageResult Salvage) CodecRoundTrip(
 		GameCheckpoint checkpoint,

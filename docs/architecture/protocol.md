@@ -177,7 +177,7 @@ The save path is a projection of the authoritative checkpoint:
   rejects unknown/corrupt files. The store is unit-tested but has **no production
   caller today** (it is not registered in the composition root), so the
   authoritative checkpoint is still memory-only;
-  `docs/backlog/in-progress/save-format-and-world-repository.md` (S1) and
+  `docs/backlog/review/save-format-and-world-repository.md` (S1) and
   `docs/backlog/todo/save-layer-end-save-and-restore.md` (S2) own wiring it, and
   `docs/architecture/save-archive-format.md` is the CUO world-archive format contract that
   replaces this protobuf store as the production save path (decisions 162–166).

@@ -1,6 +1,6 @@
 # S1 — Save format + world repository + backup I/O
 
-- Status: In progress (started 2026-09-10)
+- Status: Review (implemented 2026-09-10)
 - Priority: High
 - Category: Persistence / save system
 - Source: Stage 1 of `docs/backlog/in-progress/save-system-mid-run-and-layer-end.md` (design frozen 2026-09-10)
@@ -85,3 +85,35 @@ The cases that must exist:
 The repository/format layer is fully machine-verifiable (real filesystem, real ZIP, simulated
 crashes). Game-side saving and the native continue entry are **not** part of S1 and cannot be
 claimed here; they belong to S2 and its dual-client pass.
+
+## Delivery record (2026-09-10)
+
+- **Code**: `src/CasualtiesUnknownOnline.Runtime/Persistence/` — format constants, DTOs, the JSON
+  dialect (camelCase, kebab-case cut kinds, `checksumPolicy`), `SaveArchiveWriter` (§5 transaction:
+  stage → verify by re-read → ZIP → verify the archive → atomic swap), `SaveArchiveReader` (manifest
+  gate, backup fallback, per-entry salvage, damage report), `WorldFolderRecovery` (crash leftovers,
+  abandoned archives), `WorldRepository` (world ids, `world.json`, rebuildable `index.json`,
+  renames, backup listing/retention), `PlayerKey`, `ChecksumPolicy`.
+- **Tests**: `tests/CasualtiesUnknownOnline.Tests/Persistence/` — 97 cases covering the 14-case
+  table plus the boundary batches the review named (path escapes, both crash windows, retention
+  0/1/N/negative, all-unreadable backups, duplicate manifest/ZIP paths, hostile entry names, the
+  no-leak/no-half-write contract, actor-key distinctness).
+- **Package**: `System.Text.Json` 8.0.5 on Runtime; `System.IO.Compression` referenced explicitly
+  (net48 keeps it out of the default reference set). The deployed set therefore gains
+  `System.Text.Json`, `System.Text.Encodings.Web` and `System.ValueTuple`, and upgrades
+  `Microsoft.Bcl.AsyncInterfaces` to 8.0.0.0.
+- **Gates**: `dotnet build` 0 warnings/0 errors; `dotnet test` 2778 + 32 gate cases green;
+  `dotnet format` clean.
+- **Deploy**: `tools/deploy.ps1` to the physical machine, all 32 deployed DLLs hash-identical to the
+  build output; the deployed `System.Text.Json` assembly also loads and serializes outside Unity.
+- **Independent adversarial review**: a fresh-context subagent reviewed the stage against the format
+  contract and found six defects the first implementation missed — cross-kind backup ordering
+  (retention/fallback picked the wrong archive), a manifest gate satisfied by DTO defaults, an
+  unvalidated `worldId` that could create folders and prune archives outside the repository root,
+  PascalCase/kebab-mismatched JSON keys, reader exceptions escaping on hostile archives, and
+  non-Latin display names collapsing onto one player key. All six are fixed and each carries a
+  permanent regression case; the reviewer's probes are folded into the suite
+  (`SaveArchiveContractFixesTests`, `WorldRepositoryContractFixesTests`, plus cases in the existing
+  path-safety, damage, salvage and player-key classes).
+- **Not verified here**: no gameplay wiring exists in S1, so no in-game save/restore behaviour is
+  claimed; the dual-client pass belongs to S2/S4.

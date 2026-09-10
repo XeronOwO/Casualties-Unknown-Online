@@ -41,6 +41,22 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <PackageReference Include="Microsoft.Extensions.Logging" />
     <PackageReference Include="BepInEx.Core" />
+    <!-- The world archive format is JSON (Persistence/) — see
+         docs/architecture/save-archive-format.md §3.4. -->
+    <PackageReference Include="System.Text.Json" />
+  </ItemGroup>
+
+  <!--
+    net48 keeps System.IO.Compression out of the default reference set, so the
+    ZIP archive of the save format must be referenced explicitly. Private=True
+    copies the framework's own copy beside the plugin, which is what the
+    deployed-plugin dependency set expects.
+  -->
+  <ItemGroup>
+    <Reference Include="System.IO.Compression">
+      <HintPath>$(FrameworkPathOverride)\System.IO.Compression.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
   </ItemGroup>
 
   <!--

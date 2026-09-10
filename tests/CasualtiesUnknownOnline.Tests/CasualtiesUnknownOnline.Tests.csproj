@@ -35,6 +35,12 @@
       <HintPath>..\..\references\Steamworks.NET.dll</HintPath>
       <Private>True</Private>
     </Reference>
+    <!-- net48 keeps System.IO.Compression out of the default reference set; the
+         save-format tests open real .cuoz archives. -->
+    <Reference Include="System.IO.Compression">
+      <HintPath>$(FrameworkPathOverride)\System.IO.Compression.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <!-- The reflection-host DLLs are Reference items so Visual Studio groups
          them under the project Dependencies node. Aliases=GameRef keeps their
          global types (e.g. Assembly-CSharp.RunSetting) out of the test compile

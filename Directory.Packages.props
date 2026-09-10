@@ -21,6 +21,12 @@
     <PackageVersion Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" />
     <PackageVersion Include="protobuf-net" Version="3.4.21" />
 
+    <!-- The world archive format's serializer (docs/architecture/save-archive-format.md
+         §3.4). 8.0.x is the last line shipping the net462 assembly. Its BCL
+         support DLLs (System.Text.Encodings.Web, System.Memory, …) flow
+         transitively; tools/deploy.ps1 copies them beside the plugin. -->
+    <PackageVersion Include="System.Text.Json" Version="8.0.5" />
+
     <!-- Test tooling -->
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.9.0" />

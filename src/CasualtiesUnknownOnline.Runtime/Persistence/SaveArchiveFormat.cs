@@ -33,6 +33,46 @@ public static class SaveArchiveFormat
 	/// <summary>Path of <c>characters/&lt;playerKey&gt;.json</c> inside a snapshot (§3.4).</summary>
 	public const string CharactersFolderName = "characters";
 
+	/// <summary>Character files are JSON like every other payload file.</summary>
+	public const string CharacterFileExtension = ".json";
+
+	/// <summary>Snapshot-relative path of one player's character file (§3.4). The key is transport-scoped (decision 162).</summary>
+	public static string CharacterFilePath(string playerKey) =>
+		CharactersFolderName + "/" + playerKey + CharacterFileExtension;
+
+	/// <summary>True = the snapshot-relative path is a <c>characters/&lt;playerKey&gt;.json</c> file.</summary>
+	public static bool IsCharacterPath(string? path) =>
+		!string.IsNullOrEmpty(path)
+		&& path!.StartsWith(CharactersFolderName + "/", StringComparison.Ordinal)
+		&& path.EndsWith(CharacterFileExtension, StringComparison.OrdinalIgnoreCase);
+
+	/// <summary>The player key a character file's path carries, or "" when the path is not one.</summary>
+	public static string PlayerKeyOfCharacterPath(string path)
+	{
+		if (!IsCharacterPath(path))
+		{
+			return string.Empty;
+		}
+
+		var name = path.Substring(CharactersFolderName.Length + 1);
+		return name.Substring(0, name.Length - CharacterFileExtension.Length);
+	}
+
+	// ---- Domain files (§3.4): one file per domain table, every file an entry array ----
+
+	public const string RunFileName = "run.json";
+	public const string PlayersFileName = "players.json";
+	public const string ItemsFileName = "items.json";
+	public const string WorldEntitiesFileName = "world-entities.json";
+	public const string EnemiesFileName = "enemies.json";
+	public const string FluidsFileName = "fluids.json";
+
+	/// <summary>S3's in-layer block diff; S2 writes the empty form.</summary>
+	public const string WorldBlocksFileName = "world-blocks.json";
+
+	/// <summary>S3's transient world facts; S2 writes the empty form.</summary>
+	public const string WorldTransientsFileName = "world-transients.json";
+
 	/// <summary>Reserved empty directory for a later stage (§3.4).</summary>
 	public const string ModStateFolderName = "mod-state";
 
@@ -130,5 +170,16 @@ public static class SaveArchiveFormat
 		WorldCutKind.MidRun => "mid-run",
 		WorldCutKind.Auto => "auto",
 		_ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown cut kind; the JSON spelling is part of the format."),
+	};
+
+	/// <summary>The manifest's <c>saveReason</c> spelling (§3.2) — the trigger a cut records as its provenance.</summary>
+	public static string CutReasonName(WorldCutReason reason) => reason switch
+	{
+		WorldCutReason.LayerAdvance => "layer-advance",
+		WorldCutReason.MenuReturn => "menu-return",
+		WorldCutReason.Command => "command",
+		WorldCutReason.AutoInterval => "auto-interval",
+		WorldCutReason.PreRestoreBackup => "pre-restore-backup",
+		_ => throw new ArgumentOutOfRangeException(nameof(reason), reason, "Unknown cut reason; the JSON spelling is part of the format."),
 	};
 }

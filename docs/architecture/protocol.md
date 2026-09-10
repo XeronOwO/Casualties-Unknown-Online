@@ -173,23 +173,30 @@ for example, now uses `RejectionReason.BlockAlreadyBroken`.
 
 The save path is a projection of the authoritative checkpoint:
 
-- `KernelSaveFileStore` writes `SaveHeader` + `GameCheckpoint` atomically and
-  rejects unknown/corrupt files. The store is unit-tested but has **no production
-  caller today** (it is not registered in the composition root), so the
-  authoritative checkpoint is still memory-only;
-  `docs/backlog/review/save-format-and-world-repository.md` (S1) and
-  `docs/backlog/todo/save-layer-end-save-and-restore.md` (S2) own wiring it, and
-  `docs/architecture/save-archive-format.md` is the CUO world-archive format contract that
-  replaces this protobuf store as the production save path (decisions 162–166).
-- `KernelSaveFile` is the on-disk shape.
+- The production save path is the **CUO world archive** of
+  `docs/architecture/save-archive-format.md` (decisions 162–166), implemented
+  under `src/CasualtiesUnknownOnline.Runtime/Persistence/`. S2 wires it: the
+  layer advance the kernel commits (`ItemKernelAuthority.BatchCommitted` carrying
+  a `RunAdvancedEvent`) and the host's deliberate menu return write one cut per
+  world, the host's Continue entry restores it, and CUO never reads or writes the
+  native `save.sv` (`SaveSystemTryLoadGamePatch` blocks the native load).
+- `WorldSnapshotEncoder`/`WorldSnapshotDecoder` map `GameCheckpoint` to and from
+  the archive's per-domain files; the domain payloads are the same wire DTOs a
+  late-joining guest receives, so a restored host holds what a join would have
+  given it.
 - `GameCheckpoint.RandomStreams` exists in the data model and round-trips through
-  wire/save, but no production domain currently populates it
-  (`GameStateStore.CreateCheckpoint` passes `null` for random streams today).
+  wire, but no production domain currently populates it
+  (`GameStateStore.CreateCheckpoint` passes `null` for random streams today), and
+  S2's snapshot file set has no file for them yet (S3's consistent cut owns that).
+- The retired protobuf single-file store (`KernelSaveFileStore`, `KernelSaveFile`,
+  `SaveHeader`) was deleted with S2: it had no production caller, and keeping it
+  would have left two competing disk shapes for one checkpoint.
 
 Sources:
 
-- `src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelSaveFileStore.cs`
-- `src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelSaveFile.cs`
+- `src/CasualtiesUnknownOnline.Runtime/Persistence/WorldSnapshotEncoder.cs`
+- `src/CasualtiesUnknownOnline.Runtime/Persistence/WorldSnapshotDecoder.cs`
+- `src/CasualtiesUnknownOnline.Runtime/Session/Persistence/WorldSaveService.cs`
 - `src/CasualtiesUnknownOnline.GameState/GameCheckpoint.cs`
 
 ## Non-kernel direct NetMsg families
@@ -210,6 +217,6 @@ classification).
 - Kernel protocol transport: `src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs`
 - Command execution/rejection: `src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolCommandHandler.cs`
 - Transport entry: `src/CasualtiesUnknownOnline.Runtime/Session/Handlers/KernelEnvelopeHandler.cs`
-- Save/checkpoint: `src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelSaveFileStore.cs`
+- Save/checkpoint: `src/CasualtiesUnknownOnline.Runtime/Session/Persistence/WorldSaveService.cs`
 - Guest→host player stream: `src/CasualtiesUnknownOnline.Runtime/Session/EntitySync/PlayerStreamExchange.cs`
 - Phase C self-check: `docs/evidence/selfchecks/architecture/phase-c-protocol-core-selfcheck.md` (historical)

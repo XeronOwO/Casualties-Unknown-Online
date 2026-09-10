@@ -9,6 +9,7 @@ using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
 using CasualtiesUnknownOnline.Runtime.Localization;
 using CasualtiesUnknownOnline.Runtime.Networking;
+using CasualtiesUnknownOnline.Runtime.Persistence;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.Commands;
@@ -94,6 +95,10 @@ public class Plugin : BaseUnityPlugin
 				// The host's ban list persists in the same config directory;
 				// it is written only by the host's HostBanService.
 				hostBanFile: Path.Combine(Paths.ConfigPath, "CasualtiesUnknownOnline.host-bans.bin"),
+				// The CUO world archive lives under the game's persistent-data root,
+				// never in the install folder and never in save.sv (decisions 164/165).
+				savesRoot: Path.Combine(Application.persistentDataPath, "cuo", SaveArchiveFormat.SavesFolderName),
+				gameBuild: Application.version,
 				extraRegistrations: services => PluginDependencyRegistrar.Apply(Config, services));
 
 			_log = _services.GetRequiredService<ILogger<Plugin>>();

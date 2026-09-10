@@ -194,6 +194,17 @@ internal interface IPatchBridge : IRemoteBackpackPatchBridge, IRemoteMedicalPatc
 
 	bool OnGuestStartAttempt();
 
+	/// <summary>True = the CUO world repository holds a world the Continue entry can open (the entry's interactable state follows this, not the native save).</summary>
+	bool HasRestorableWorld();
+
+	/// <summary>
+	/// The native Continue entry was used on the host (or in solo play): restore
+	/// the selected CUO world before the scene loads. False = do not run the
+	/// original — the native path would read <c>save.sv</c> and regenerate a layer
+	/// the snapshot never named (decision 165).
+	/// </summary>
+	bool OnHostContinueRequested();
+
 	/// <summary>
 	/// Host clicked start (StartRun/StartTutorial entry — BEFORE the transition
 	/// animation): tell the guests to start following immediately. isTutorial

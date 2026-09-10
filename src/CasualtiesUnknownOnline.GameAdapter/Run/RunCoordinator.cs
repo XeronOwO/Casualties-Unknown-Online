@@ -1,7 +1,9 @@
 using CasualtiesUnknownOnline.Runtime.Protocol;
+using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
+using CasualtiesUnknownOnline.Runtime.Session.Persistence;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.GameAdapter.Character;
@@ -33,6 +35,7 @@ internal sealed class RunCoordinator(
 	WorldParamsService worldParams,
 	ItemArbitration arbitration,
 	IPlayerInteractionControl playerInteraction,
+	IWorldSaveControl worldSaves,
 	ILogger<RunCoordinator> log)
 {
 	/// <summary>Guest run-follow phases — one enum replaces the scattered booleans (pending/started/ready/frozen).</summary>
@@ -54,6 +57,7 @@ internal sealed class RunCoordinator(
 	private readonly WorldParamsService _params = worldParams;
 	private readonly ItemArbitration _arbitration = arbitration;
 	private readonly IPlayerInteractionControl _playerInteraction = playerInteraction;
+	private readonly RunSaveCoordinator _save = new(session, world, worldSaves, worldParams, characterData, log);
 	private readonly ILogger<RunCoordinator> _log = log;
 
 	private RunPhase _phase = RunPhase.Idle;
@@ -74,7 +78,7 @@ internal sealed class RunCoordinator(
 	/// run inside Steam/UI callbacks, so the actual scene load is deferred to
 	/// the Update pump (loaded during OnGUI was the host-close exit path).
 	/// </summary>
-	private readonly RunMenuReturnCoordinator _menuReturn = new(session, log);
+	private readonly RunMenuReturnCoordinator _menuReturn = new(session, worldSaves, log);
 
 	/// <summary>The local body while in the world (Unity object — == null when scene-reload-destroyed).</summary>
 	internal Body? LocalBody => _localBody;
@@ -138,7 +142,7 @@ internal sealed class RunCoordinator(
 	internal void Update()
 	{
 		UpdateSceneState();
-		_menuReturn.Flush(_inWorld);
+		_menuReturn.Flush(_inWorld, CaptureLocalCharacter);
 		if (_phase == RunPhase.JoinPending)
 		{
 			TryStartWorldJoin();
@@ -165,6 +169,10 @@ internal sealed class RunCoordinator(
 	/// </summary>
 	internal void OnWorldJoinRequested(bool isTutorial)
 	{
+		// Host AND solo: this run gets its own world folder before any content
+		// exists (the save arm owns that call — see RunSaveCoordinator).
+		_save.BeginRun();
+
 		if (_session.Role == SessionRole.Host && _session.SessionActive)
 		{
 			_params.CaptureAtEntry(isTutorial); // the generation baseline — captured at the click moment, before any run randomness is consumed
@@ -174,6 +182,13 @@ internal sealed class RunCoordinator(
 			_world.SendWorldJoin(isTutorial);
 		}
 	}
+
+	/// <summary>The native Continue entry: the save arm restores the selected CUO world (and blocks the original when it cannot).</summary>
+	internal bool OnHostContinueRequested() => _save.OnContinueRequested();
+
+	/// <summary>The local body's character snapshot right now — the menu-return cut's payload.</summary>
+	private CharacterDataMsg? CaptureLocalCharacter() => _save.CaptureLocal(_localBody);
+
 
 	/// <summary>
 	/// Called at the WorldGeneration.GenerateWorld boundary — the true start of
@@ -295,7 +310,7 @@ internal sealed class RunCoordinator(
 		if (inWorld && !_worldFingerprintLogged)
 		{
 			_worldFingerprintLogged = true;
-			LogWorldFingerprint();
+			WorldFingerprintLog.Log(_log);
 		}
 
 		var prevBody = _localBody; // Unity object — ==
@@ -356,50 +371,6 @@ internal sealed class RunCoordinator(
 			? new NetVector2(_localBody.transform.position.x, _localBody.transform.position.y)
 			: (NetVector2?)null;
 		_session.ReportSceneState(inWorld ? SceneStateType.InWorld : SceneStateType.InMenu, sceneName, pos);
-	}
-
-	/// <summary>
-	/// One-shot world fingerprint: FNV-1a over the block table, per-128-row
-	/// blocks + a total — the peer logs' fingerprints show whether the two
-	/// generated worlds match and, when they diverge, roughly where.
-	/// </summary>
-	private void LogWorldFingerprint()
-	{
-		var blocks = HarmonyTraverse.ReadWorldBlocks(WorldGeneration.world);
-		if (blocks is null) // Unity object — ==
-		{
-			return;
-		}
-
-		const ulong fnvBasis = 14695981039346656037UL;
-		const ulong fnvPrime = 1099511628211UL;
-		var width = blocks.GetLength(0);
-		var height = blocks.GetLength(1);
-		var blockHashes = new ulong[8];
-		for (var i = 0; i < blockHashes.Length; i++)
-		{
-			blockHashes[i] = fnvBasis;
-		}
-
-		var rowsPerBlock = Math.Max(1, height / 8);
-		var total = fnvBasis;
-		for (var y = 0; y < height; y++)
-		{
-			var b = Math.Min(7, y / rowsPerBlock);
-			for (var x = 0; x < width; x++)
-			{
-				var v = blocks[x, y];
-				total ^= v;
-				total *= fnvPrime;
-				blockHashes[b] ^= v;
-				blockHashes[b] *= fnvPrime;
-			}
-		}
-
-		_log.LogInformation(
-			"[WorldFingerprint] {W}x{H}: {B0:X16} {B1:X16} {B2:X16} {B3:X16} {B4:X16} {B5:X16} {B6:X16} {B7:X16} total {Total:X16}",
-			width, height, blockHashes[0], blockHashes[1], blockHashes[2], blockHashes[3],
-			blockHashes[4], blockHashes[5], blockHashes[6], blockHashes[7], total);
 	}
 
 	/// <summary>Re-publish the local body stream after a carried-follow placement; the stream must carry the rider's final visual position.</summary>

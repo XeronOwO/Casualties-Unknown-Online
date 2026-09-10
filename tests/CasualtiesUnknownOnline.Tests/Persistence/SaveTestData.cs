@@ -33,14 +33,14 @@ internal static class SaveTestData
 	internal static SavePayloadFile CharacterPayload(string playerKey, string marker) =>
 		Payload(SaveArchiveFormat.CharactersFolderName + "/" + playerKey + ".json", "{\"schemaVersion\":1,\"marker\":\"" + marker + "\"}\n");
 
-	internal static SaveManifestMeta Meta(string displayName = "Test World") => new()
+	internal static SaveManifestMeta Meta(string displayName = "Test World", string runEpoch = "epoch-1") => new()
 	{
 		DisplayName = displayName,
 		GameBuild = "test-build-1",
 		CuoBuild = "cuo-test-1",
 		ProtocolVersion = 1,
 		ContentFingerprint = "fingerprint-1",
-		RunEpoch = "epoch-1",
+		RunEpoch = runEpoch,
 		GlobalRevision = 7,
 		LayerIndex = 2,
 		BiomeDepth = 2,

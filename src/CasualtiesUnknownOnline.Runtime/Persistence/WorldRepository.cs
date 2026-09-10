@@ -30,6 +30,13 @@ public sealed class WorldRepository(string root, ILogger<WorldRepository> log, S
 	public string Root => _root;
 
 	/// <summary>
+	/// The <c>lastOpenedWorldId</c> pointer of <c>index.json</c>, or "" when no
+	/// world has been opened yet or the index is unreadable. The caller still has
+	/// to check that the world exists — the index is a cache, not the truth (§3.1).
+	/// </summary>
+	public string LastOpenedWorldId => ReadIndex()?.LastOpenedWorldId ?? string.Empty;
+
+	/// <summary>
 	/// The folder a world id names. The id is the directory key, so it is validated
 	/// here: a caller-supplied id must never join onto the root as a path fragment
 	/// (a <c>..</c> id would otherwise escape the repository entirely).

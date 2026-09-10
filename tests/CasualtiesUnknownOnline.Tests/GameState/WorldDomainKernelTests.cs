@@ -1,4 +1,5 @@
 using CasualtiesUnknownOnline.GameState;
+using CasualtiesUnknownOnline.Tests.Persistence;
 using CasualtiesUnknownOnline.GameState.Domains.World;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -129,9 +130,7 @@ public class WorldDomainKernelTests
 			Assert.True(authority.TryStartRun(Host.Value, Run(), out _, out _));
 			var checkpoint = authority.CreateCheckpoint();
 
-			var store = new KernelSaveFileStore(path, NullLogger<KernelSaveFileStore>.Instance);
-			Assert.True(store.Save(checkpoint));
-			Assert.True(store.TryLoad(out var loaded));
+			var loaded = WorldArchiveRoundTrip.ThroughArchive(authority);
 
 			var run = loaded.Run;
 			Assert.NotNull(run);

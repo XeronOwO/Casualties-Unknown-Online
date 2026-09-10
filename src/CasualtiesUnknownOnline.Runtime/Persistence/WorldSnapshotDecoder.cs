@@ -1,0 +1,277 @@
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using System.Text.Json;
+using CasualtiesUnknownOnline.GameState;
+using CasualtiesUnknownOnline.GameState.Domains.Entities;
+using CasualtiesUnknownOnline.GameState.Domains.Fluids;
+using CasualtiesUnknownOnline.GameState.Domains.Players;
+using CasualtiesUnknownOnline.GameState.Domains.WorldEntities;
+using CasualtiesUnknownOnline.Protocol.Wire;
+using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session.Items;
+using Microsoft.Extensions.Logging;
+
+namespace CasualtiesUnknownOnline.Runtime.Persistence;
+
+/// <summary>
+/// The disk → in-memory half of §3.4, and the place §6's per-entry salvage
+/// actually happens: the reader hands this decoder ONE entry at a time, so an
+/// entry whose content no longer exists (a prefab or item definition a mod
+/// update removed, an unmappable id) is skipped by itself while the rest of its
+/// domain still applies. Decoding never throws out of this class.
+///
+/// A snapshot whose run baseline cannot be read is REFUSED as a whole: the layer
+/// it restores into would otherwise be guessed, and §6 forbids silently
+/// regenerating a layer.
+/// </summary>
+public sealed class WorldSnapshotDecoder(SaveManifest manifest, ILogger<WorldSnapshotDecoder> log)
+{
+	private readonly SaveManifest _manifest = manifest;
+	private readonly ILogger<WorldSnapshotDecoder> _log = log;
+	private readonly List<WireItem> _items = [];
+	private readonly List<WirePlayerState> _players = [];
+	private readonly List<WireEnemyState> _enemies = [];
+	private readonly List<WireEntityId> _removedEnemies = [];
+	private readonly List<WireFluidRegionState> _fluids = [];
+	private readonly List<SavedCharacter> _characters = [];
+
+	private WorldEntityState _worldEntities = WorldEntityState.Empty;
+	private WireRunState? _run;
+	private string _currentPath = string.Empty;
+	private int _entryIndex;
+
+	/// <summary>The decode callback for <see cref="SaveArchiveReader.ReadSalvage"/>; one call per entry of every payload file.</summary>
+	public void DecodeEntry(JsonElement entry, SalvageSession session)
+	{
+		var path = session.CurrentPath;
+		if (!string.Equals(path, _currentPath, StringComparison.Ordinal))
+		{
+			_currentPath = path;
+			_entryIndex = 0;
+		}
+
+		var id = IdOf(entry, _entryIndex++);
+		if (SaveArchiveFormat.IsCharacterPath(path))
+		{
+			DecodeCharacter(entry, session, SaveArchiveFormat.PlayerKeyOfCharacterPath(path), id);
+			return;
+		}
+
+		switch (path)
+		{
+			case SaveArchiveFormat.RunFileName:
+				DecodeRun(entry, session, id);
+				return;
+			case SaveArchiveFormat.PlayersFileName:
+				Add(_players, Decode<WirePlayerState>(entry, session, id));
+				return;
+			case SaveArchiveFormat.ItemsFileName:
+				Add(_items, Decode<WireItem>(entry, session, id));
+				return;
+			case SaveArchiveFormat.EnemiesFileName:
+				DecodeEnemyRow(entry, session, id);
+				return;
+			case SaveArchiveFormat.FluidsFileName:
+				Add(_fluids, Decode<WireFluidRegionState>(entry, session, id));
+				return;
+			case SaveArchiveFormat.WorldEntitiesFileName:
+				DecodeWorldEntityRow(entry, session, id);
+				return;
+			case SaveArchiveFormat.WorldBlocksFileName:
+			case SaveArchiveFormat.WorldTransientsFileName:
+				// S2 writes these empty and S3 owns their content; an entry arriving
+				// here is from a newer writer this build does not understand (§6.1).
+				session.Skip(id, "unknown entry in a domain this build does not decode", path);
+				return;
+			default:
+				session.Skip(id, "not a domain file of this format", path);
+				return;
+		}
+	}
+
+	/// <summary>The decode verdict after the reader finished walking the snapshot's files.</summary>
+	public WorldSnapshotDecode Finish()
+	{
+		if (_run is null)
+		{
+			return WorldSnapshotDecode.Refused("the snapshot has no readable run baseline (run.json)");
+		}
+
+		if (!TryReadEpoch(out var epoch))
+		{
+			return WorldSnapshotDecode.Refused($"the manifest's run epoch '{_manifest.RunEpoch}' is not a run epoch");
+		}
+
+		if (epoch != _run.RunId)
+		{
+			// Not a refusal: the kernel accepts a run whose id differs from the
+			// authority epoch, and the manifest's epoch is what a late-joining guest
+			// adopts from the wire checkpoint. It IS provenance drift worth naming —
+			// the two are equal for every cut this build writes.
+			_log.LogWarning("Snapshot of world {WorldId}: the manifest's run epoch {Epoch} differs from the run baseline's run id {RunId}.",
+				_manifest.WorldId, epoch, _run.RunId);
+		}
+
+		var checkpoint = new GameCheckpoint(
+			new RunEpoch(epoch),
+			(ulong)_manifest.GlobalRevision,
+			[.. _items.Select(KernelWireMapper.FromWireItem)],
+			null,
+			KernelDomainWireMapper.FromWireRun(_run),
+			_worldEntities,
+			_players.Count == 0 ? null : new PlayerStateTable([.. _players.Select(KernelDomainWireMapper.FromWirePlayerState)]),
+			_enemies.Count == 0 && _removedEnemies.Count == 0
+				? null
+				: new EnemyStateTable(
+					[.. _enemies.Select(KernelDomainWireMapper.FromWireEnemyState)],
+					[.. KernelDomainWireMapper.FromWireRemovedEnemyIds(_removedEnemies)]),
+			_fluids.Count == 0 ? null : new FluidStateTable([.. _fluids.Select(KernelDomainWireMapper.FromWireFluidRegionState)]));
+
+		_log.LogInformation("Decoded snapshot of world {WorldId}: epoch {Epoch}, revision {Revision}, {Items} item(s), {Players} player(s), {Enemies} enemy(ies), {Characters} character(s).",
+			_manifest.WorldId, epoch, (ulong)_manifest.GlobalRevision, _items.Count, _players.Count, _enemies.Count + _removedEnemies.Count, _characters.Count);
+		return new WorldSnapshotDecode(checkpoint, _characters, null);
+	}
+
+	private void DecodeRun(JsonElement entry, SalvageSession session, string id)
+	{
+		if (_run is not null)
+		{
+			session.Skip(id, "a snapshot carries exactly one run baseline", _currentPath);
+			return;
+		}
+
+		_run = Decode<WireRunState>(entry, session, id);
+		if (_run is not null && _run.RandomState.Length == 0)
+		{
+			// Without the generation baseline the layer cannot be reproduced: that
+			// is a refusal, not a salvage (a fresh layer would be a silent restart).
+			session.Skip(id, "the run baseline carries no generation random state", _currentPath);
+			_run = null;
+		}
+	}
+
+	private void DecodeCharacter(JsonElement entry, SalvageSession session, string playerKey, string id)
+	{
+		var character = Decode<CharacterDataMsg>(entry, session, $"{playerKey}/{id}");
+		if (character is not null)
+		{
+			_characters.Add(new SavedCharacter(playerKey, character));
+		}
+	}
+
+	private void DecodeEnemyRow(JsonElement entry, SalvageSession session, string id)
+	{
+		var row = Decode<SaveEnemyRow>(entry, session, id);
+		if (row is null)
+		{
+			return;
+		}
+
+		switch (row.Kind)
+		{
+			case SaveEnemyRow.RemovedKind when row.Removed is not null:
+				_removedEnemies.Add(row.Removed);
+				return;
+			case SaveEnemyRow.EnemyKind when row.Enemy is not null:
+				Add(_enemies, row.Enemy);
+				return;
+			default:
+				session.Skip(row.Describe(), $"an enemy row declares an unusable kind '{row.Kind}'", _currentPath);
+				return;
+		}
+	}
+
+	/// <summary>
+	/// One row of the world-entity table. The accumulator is replaced only after
+	/// the whole row decoded, so a row the mapping rejects leaves the table as it
+	/// was (§6: the remaining facts still apply).
+	/// </summary>
+	private void DecodeWorldEntityRow(JsonElement entry, SalvageSession session, string id)
+	{
+		var row = Decode<SaveWorldEntityRow>(entry, session, id);
+		if (row is null)
+		{
+			return;
+		}
+
+		try
+		{
+			// The switch computes the NEXT table; it is assigned only when the row
+			// materialized, so a rejected row leaves the facts already applied alone.
+			_worldEntities = row.Kind switch
+			{
+				SaveWorldEntityRow.TrapConsumptionKind when row.TrapConsumption is not null =>
+					_worldEntities.WithConsumption(KernelDomainWireMapper.FromWireTrapConsumption(row.TrapConsumption)),
+				SaveWorldEntityRow.BuildingHealthKind when row.BuildingHealth is not null =>
+					_worldEntities.WithBuildingHealth(KernelDomainWireMapper.FromWireBuildingEntityHealth(row.BuildingHealth)),
+				SaveWorldEntityRow.OpenedEntityKind when row.OpenedEntity is not null =>
+					_worldEntities.WithOpened(KernelDomainWireMapper.FromWireOpenedEntity(row.OpenedEntity)),
+				SaveWorldEntityRow.TrapStateKind when row.TrapState is not null =>
+					_worldEntities.WithTrapState(KernelDomainWireMapper.FromWireTrapStateFact(row.TrapState)),
+				_ => throw new InvalidOperationException($"the row declares kind '{row.Kind}' but carries no such fact"),
+			};
+		}
+		catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
+		{
+			session.Skip(row.Describe(), "the world-entity row could not be materialized", ex.Message);
+		}
+	}
+
+	private bool TryReadEpoch(out ulong epoch) =>
+		ulong.TryParse(_manifest.RunEpoch, NumberStyles.None, CultureInfo.InvariantCulture, out epoch) && epoch != 0;
+
+	private static void Add<T>(List<T> target, T? value)
+	{
+		if (value is not null)
+		{
+			target.Add(value);
+		}
+	}
+
+	/// <summary>Reads one entry; a failure is recorded as a per-entry skip and reported as null — never thrown.</summary>
+	private T? Decode<T>(JsonElement entry, SalvageSession session, string id) where T : class
+	{
+		try
+		{
+			return JsonSerializer.Deserialize<T>(entry.GetRawText(), SaveArchiveJson.Options);
+		}
+		catch (JsonException ex)
+		{
+			session.Skip(id, $"the entry is not a readable {typeof(T).Name}", ex.Message);
+			return null;
+		}
+	}
+
+	/// <summary>A name for the damage report: the entry's own content id first, its position in the file otherwise.</summary>
+	private static string IdOf(JsonElement entry, int index)
+	{
+		if (entry.ValueKind == JsonValueKind.Object)
+		{
+			if (entry.TryGetProperty("identity", out var identity)
+				&& identity.ValueKind == JsonValueKind.Object
+				&& identity.TryGetProperty("definitionId", out var definition)
+				&& definition.ValueKind == JsonValueKind.String
+				&& definition.GetString() is { Length: > 0 } definitionId)
+			{
+				return definitionId;
+			}
+
+			foreach (var name in new[] { "prefabId", "kind" })
+			{
+				if (entry.TryGetProperty(name, out var text) && text.ValueKind == JsonValueKind.String && text.GetString() is { Length: > 0 } value)
+				{
+					return value;
+				}
+			}
+
+			if (entry.TryGetProperty("steamId", out var steamId) && steamId.ValueKind == JsonValueKind.Number)
+			{
+				return $"player {steamId}";
+			}
+		}
+
+		return SalvageSession.IdOf(entry, index);
+	}
+}

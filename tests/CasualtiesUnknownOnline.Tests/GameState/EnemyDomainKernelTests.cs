@@ -1,5 +1,6 @@
 using System;
 using CasualtiesUnknownOnline.GameState;
+using CasualtiesUnknownOnline.Tests.Persistence;
 using CasualtiesUnknownOnline.GameState.Domains.Entities;
 using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
@@ -146,9 +147,7 @@ public class EnemyDomainKernelTests
 			var authority = new ItemKernelAuthority(NullLogger<ItemKernelAuthority>.Instance);
 			Assert.True(authority.TryUpsertEnemy(Host.Value, new EnemyState(EnemyId, "spider", 4f, false, false), out _, out _));
 
-			var store = new KernelSaveFileStore(path, NullLogger<KernelSaveFileStore>.Instance);
-			Assert.True(store.Save(authority.CreateCheckpoint()));
-			Assert.True(store.TryLoad(out var loaded));
+			var loaded = WorldArchiveRoundTrip.ThroughArchive(authority);
 
 			var enemy = Assert.Single(loaded.Enemies!.Enemies);
 			Assert.Equal(EnemyId, enemy.EntityId);
@@ -173,9 +172,7 @@ public class EnemyDomainKernelTests
 			Assert.True(authority.TryUpsertEnemy(Host.Value, new EnemyState(EnemyId, "spider", 4f, false, false), out _, out _));
 			Assert.True(authority.TryRemoveEnemy(Host.Value, EnemyId, out _, out _));
 
-			var store = new KernelSaveFileStore(path, NullLogger<KernelSaveFileStore>.Instance);
-			Assert.True(store.Save(authority.CreateCheckpoint()));
-			Assert.True(store.TryLoad(out var loaded));
+			var loaded = WorldArchiveRoundTrip.ThroughArchive(authority);
 
 			Assert.Empty(loaded.Enemies!.Enemies);
 			Assert.Equal(EnemyId, Assert.Single(loaded.Enemies.Removed));

@@ -254,6 +254,9 @@ internal sealed class CharacterDataSync(
 		}
 	}
 
+	/// <summary>Capture the LOCAL body's character snapshot right now — the save system's cut needs the state at the instant the host leaves the world, not the last 1 Hz report.</summary>
+	internal CharacterDataMsg CaptureLocal(Body body) => CharacterDataCapture.Capture(_mapper, body);
+
 	/// <summary>Host side: a NEW run started (the host clicked start) — the previous run's saved characters are void (see ICharacterDataControl.ClearSavedCharacters).</summary>
 	internal void ClearSavedCharacters() => _characterData.ClearSavedCharacters();
 

@@ -99,18 +99,37 @@ Player-facing metadata that must survive without reading the whole snapshot:
 
 `run.json`, `players.json`, `items.json`, `world-entities.json`, `enemies.json`,
 `fluids.json`, `world-blocks.json`, `world-transients.json` — one file per domain table. The DTOs
-are Runtime types mirroring the typed kernel checkpoint
-(`GameCheckpoint` → `KernelSaveFile` is the existing precedent) and are mapped in Runtime; the
-`CasualtiesUnknownOnline.GameState` project stays dependency-free and never learns the format.
+are Runtime types mirroring the typed kernel checkpoint (the wire DTOs a late-joining guest
+receives, so a restored host holds exactly what a join would have given it) and are mapped in
+Runtime; the `CasualtiesUnknownOnline.GameState` project stays dependency-free and never learns
+the format.
 
-`characters/<playerKey>.json` holds one player character per file, in the native `SaveInfo`
-shape plus CUO extensions, so the existing `CharacterDataFileStore` restore path stays usable.
+**Every payload file's root is a JSON array of entries**, and the decoder is handed ONE entry at a
+time: that is the seam §6's per-entry salvage runs on, so a single unmaterializable row — an item
+definition or prefab a mod update removed, an unmappable id — is skipped by itself. A file whose
+root is not an array is a whole-file defect, never guessed at. A single-record table
+(`run.json`, a character file) is therefore an array of one entry.
+
+**A table whose facts have more than one shape writes typed rows.** `world-entities.json` rows
+carry `kind` (`trap-consumption` | `building-health` | `opened-entity` | `trap-state`) and the row's
+own payload; `enemies.json` rows carry `kind` (`enemy` | `removed`), where `removed` is the
+terminal tombstone that stops a killed enemy from being resurrected. A single-shape table writes
+its row type directly. `world-blocks.json` and `world-transients.json` are written as empty arrays
+by a layer-end cut (no in-layer deviations); S3 fills them without a schema change.
+
+`characters/<playerKey>.json` holds one player character per file (an entry array of one), in the
+native `SaveInfo` shape plus CUO extensions, so the existing `CharacterDataFileStore` restore path
+stays usable. A save writes one file per member PRESENT at the cut; a stored key nobody claims at
+restore time means that player is absent from the session and joins as a new character with fresh
+starting supplies (decision 162) — the file stays in the archive for a later claim.
 
 `mod-state/` is reserved and empty until its own stage.
 
 JSON is written with `System.Text.Json` (Runtime-owned package), UTF-8 without BOM, indented,
-keys in a stable order, floats round-trip safe. Compression is ZIP (deflate); no extra runtime
-package is needed because `System.IO.Compression` ships with net48.
+keys in a stable order, floats round-trip safe. Enum-valued fields (an item location kind, a trap
+phase) are written as numbers; the format's own enumerations (cut kind, checksum policy) use their
+documented spellings. Compression is ZIP (deflate); no extra runtime package is needed because
+`System.IO.Compression` ships with net48.
 
 ## 4. Cut phases
 
@@ -119,6 +138,23 @@ capture seam runs on the host main-thread pump and reads one frozen revision; `c
 manifest records which phase the cut was taken in so a restore can prove what it holds. The
 phase list is finalized in S3 together with the transient policy; until then `layer-end` cuts are
 taken at the layer boundary, where no in-layer operation is in flight.
+
+S2's two phases:
+
+- `layer-boundary` — taken by the Runtime when the kernel COMMITS a layer advance (the host's
+  generation boundary). The cut therefore holds the run baseline of the layer being entered: the
+  layer index and the generation random state a restore must replay to regenerate the same layer.
+  Taking it before the commit would store the previous layer's baseline and regenerate a different
+  world.
+- `menu-return` — taken when the host deliberately leaves the world for the main menu, while every
+  world object is still alive. It is a `layer-end`-class cut (`kind: layer-end`, `saveReason:
+  menu-return`): the kernel is at a committed revision and S2 captures no world diff, so the layer
+  the runner re-enters is regenerated from the run baseline.
+
+The host's **Continue entry** (the native `PreRunScript.LoadRun`, decision 165) opens the world
+`index.json`'s `lastOpenedWorldId` names, and the newest world when that pointer is missing or
+names a folder that is gone. There is no picker yet; choosing among worlds is the management
+surface a later stage owns.
 
 ## 5. Write transactions
 

@@ -48,6 +48,7 @@ Decisions / history / future
 | [`architecture-evolution/domains.md`](architecture/domains.md) | Domain ownership: what is kernel state, what is a projection |
 | [`architecture-evolution/protocol.md`](architecture/protocol.md) | Four-envelope protocol, join, state stream, save, command rejection |
 | [`architecture-evolution/architecture-guards.md`](architecture/guards.md) | Active kernel-shape/authority/no-legacy guard list |
+| [`architecture-evolution/save-archive-format.md`](architecture/save-archive-format.md) | CUO world archive: package format, world repository layout, restore/repair and backup policy |
 | [`architecture-evolution/glossary.md`](architecture/glossary.md) | Stable vocabulary for kernel/domain/protocol terms |
 | [`architecture.md`](history/architecture-blueprint.md) | **Historical pre-kernel blueprint** — retained for context, not the current design |
 | [`game-internals.md`](features/game-internals.md) | Reverse-engineering findings: scenes, Body, world generation, clone chain |

@@ -295,7 +295,8 @@ Closed gaps stay listed with their landing ticket so the list remains the audit'
 Already-owned findings cross-referenced, not duplicated:
 
 - `KernelSaveFileStore` is unit-tested but has no production caller (the authoritative
-  checkpoint is memory-only today) — owned by `docs/backlog/todo/save-system-mid-run-and-layer-end.md`.
+  checkpoint is memory-only today) — owned by `docs/backlog/in-progress/save-format-and-world-repository.md`
+  (S1) and `docs/backlog/todo/save-layer-end-save-and-restore.md` (S2).
 - `ResetFluidsCommand` has no production caller — recorded in this matrix and corrected in
   `docs/architecture/domains.md`; not a sync gap (the stale chunks are cleared by zero-total
   upserts from `FluidKernelProjection`).

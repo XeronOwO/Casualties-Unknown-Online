@@ -1,6 +1,7 @@
 # Native run fields are not covered by the world archive
 
-- Status: Todo
+- Status: Todo (decision frozen with the user on 2026-09-10; implementation lands with S3.4 of
+  `todo/save-mid-run-consistent-cut.md`)
 - Priority: Medium-High
 - Category: Persistence / save system
 - Source: found by the S2 independent adversarial review (2026-09-10)
@@ -31,6 +32,30 @@ accumulated value itself and the fields with no setting input at all.
 Effect: acceptance row 1's "identical character/run state" holds for the kernel/character half and
 for the layer's generated content on the FIRST layer of a run, but a restore deeper into a run is
 not byte-identical to the interrupted run.
+
+## Decision (frozen with the user, 2026-09-10)
+
+| field | decided home | restore seam |
+|---|---|---|
+| `lootRarityMultiplier` | `run.json` (world-generation block) | written back where the native `SaveSystem.TryLoadGame` used to run — the arm that currently only skips it — before `WorldGeneration` derives anything from it (`WorldGeneration.cs:253-262`) |
+| `trapRarityMultiplier` | `run.json` (world-generation block) | same seam |
+| `savedRunTime` | `run.json` | same seam |
+| `savedRecipeData` | `run.json` (recipes table) | same seam; a future kernel recipe domain would take it over |
+| `lastHappiness` | `characters/<playerKey>.json` | the character-apply path (body-level) |
+| `caloriesConsumed` | `characters/<playerKey>.json` | the character-apply path (body-level) |
+| `WoundView.cInfo` | `characters/<playerKey>.json` | the character-apply path; kept for native parity — four ints — although no reader besides the save system itself was found |
+
+Evidence for the decision:
+
+- The native write/read pair is `SaveSystem.cs:151-180` (write) and `SaveSystem.cs:433-446` (read).
+- Restore timing decides the seam: `WorldParamsService.TryApplyRestoredNow` runs at the Continue
+  click, before `WorldGeneration.world` exists, so the multiplier/time fields cannot be written
+  there; the patch that skips `SaveSystem.TryLoadGame` runs after the world object exists and before
+  its values are consumed, which is the only correct point.
+- `savedRecipeData` consumers: `Recipe.cs:28`, `Recipe.cs:183-185`, `PlayerCamera.cs:432`; it is
+  reset by `MindwipeScript.cs:79`.
+- `WoundView.cInfo` is declared at `WoundView.cs:826` and written by `SetCharDetails` (`:54-65`);
+  the only other references are the save system's own write/read.
 
 ## Scope
 

@@ -81,7 +81,7 @@ public class GameFieldContractTests
 		("TraderScript", "didHug", Kind.Field, typeof(bool), "the hug latch (TradeExecutor, TradeStateSync)"),
 		("TraderScript", "build", Kind.Field, "BuildingEntity", "the health state (TradeExecutor.Read)"),
 		// The world-defining members (HarmonyTraverse — the FieldOfWorld dynamic-name set).
-		("Openable", "code", Kind.Field, typeof(string), "the keypad code — lazy-generated per side otherwise (WorldEventSync.EnsureKeypadCode, EntitySpawnSync)"),
+		("Openable", "code", Kind.Field, typeof(string), "the keypad code — lazy-generated per side otherwise (KeypadCodeTable.EnsureCode, EntitySpawnSync)"),
 		("WorldGeneration", "runSettings", Kind.Field, typeof(Dictionary<string, object>), "STATIC — the layer-switch source (HarmonyTraverse.ReadRunSettings)"),
 		("WorldGeneration", "generatingWorld", Kind.Field, typeof(bool), "the generation flag (HarmonyTraverse.IsGenerating)"),
 		("WorldGeneration", "worldBlocks", Kind.Field, typeof(ushort[,]), "the block table (HarmonyTraverse.ReadWorldBlocks)"),

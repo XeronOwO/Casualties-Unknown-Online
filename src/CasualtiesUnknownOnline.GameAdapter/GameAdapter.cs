@@ -5,6 +5,7 @@ using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.GameAdapter.Character;
 using CasualtiesUnknownOnline.GameAdapter.Content;
 using CasualtiesUnknownOnline.GameAdapter.Patches;
+using CasualtiesUnknownOnline.GameAdapter.World;
 using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Diagnostics;
 using CasualtiesUnknownOnline.Runtime.GameAdapter;
@@ -62,6 +63,8 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 		IEntitySyncControl entities,
 		ICharacterDataControl characterData,
 		IWorldControl world,
+		IWorldFactSource worldFacts,
+		NativeWorldFacts nativeWorldFacts,
 		IItemControl items,
 		ICraftControl craft,
 		ItemArbitration arbitration,
@@ -89,7 +92,7 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 		ModStatusProjectionReadModel modStatusProjectionReadModel)
 	{
 		_latency = latency;
-		_domains = new GameAdapterDomains(session, adaptiveRates, entities, characterData, world, items, craft, arbitration,
+		_domains = new GameAdapterDomains(session, adaptiveRates, entities, characterData, world, worldFacts, nativeWorldFacts, items, craft, arbitration,
 			enemies, worldTime, playerInteraction, tutorialClaw, worldSaves, respawnOptions, hostRules, worldEntityKernel, kernelProtocol, log, mapper, loggerFactory, itemContent, buildingContent, tileContent, liquidTileContent, structureContent, statusContent, moodleContent, modStatusStore, modStatusProjectionReadModel);
 		_bridge = new GameAdapterBridge(_domains);
 		_playerInteraction = new PlayerInteractionApply(_domains);

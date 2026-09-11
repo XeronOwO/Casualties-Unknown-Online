@@ -38,14 +38,19 @@ public sealed class BlockDamageRegistry(ISessionControl session, PacketSender se
 	/// refused for a guest), and a second gate here would be a silent no-op in the
 	/// no-lobby state the game reports as <c>SessionRole.None</c> — which is exactly
 	/// how a restore would lose its partial damage while reporting success.
+	///
+	/// Returns whether the table HOLDS this cell's damage after the call. The live
+	/// path ignores the verdict (it recorded what the game just did); the restore
+	/// path counts a false as a refused row, so a cut whose rows did not fit the
+	/// cap is named in the restore report instead of looking clean (§6).
 	/// </summary>
-	public void Report(int x, int y, float damage)
+	public bool Report(int x, int y, float damage)
 	{
 		var key = (x, y);
 		if (damage <= 0f)
 		{
 			_damage.Remove(key);
-			return;
+			return false; // nothing accumulated at this cell — a "damage row" that is no record at all
 		}
 
 		if (_damage.Count >= MaxEntries && !_damage.ContainsKey(key))
@@ -54,10 +59,11 @@ public sealed class BlockDamageRegistry(ISessionControl session, PacketSender se
 			// cell is NAMED so a snapshot that overflowed the table is visible in the
 			// log instead of looking like a clean restore.
 			_log.LogWarning("[BlockDamageRegistry] cap reached ({Cap} cells): damage at ({X},{Y}) is not tracked.", MaxEntries, x, y);
-			return;
+			return false;
 		}
 
 		_damage[key] = damage;
+		return true;
 	}
 
 	/// <summary>The block broke or was air-written away — its partial damage is gone with it (no role gate; see <see cref="Report"/>).</summary>

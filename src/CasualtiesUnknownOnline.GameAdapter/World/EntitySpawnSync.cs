@@ -175,7 +175,7 @@ internal sealed class EntitySpawnSync(IWorldControl world, ISessionControl sessi
 
 		var openable = entity.GetComponent<Openable>();
 		var keypadCode = openable is not null && openable.isKeypad && _session.Role == SessionRole.Host
-			? WorldEventSync.EnsureKeypadCode(openable) // the host creates it — its code is host authority from the start
+			? KeypadCodeTable.EnsureCode(openable) // the host creates it — its code is host authority from the start
 			: "";
 		TryCaptureEnemyTint(entity, out var hasTint, out var tint, out var lightIntensity);
 		ReportSpawn(key, pos, entity.transform.eulerAngles.z, 0, keypadCode, hasTint, tint, lightIntensity, entity.animal);
@@ -253,7 +253,7 @@ internal sealed class EntitySpawnSync(IWorldControl world, ISessionControl sessi
 					Position = msg.Position,
 					Rotation = msg.Rotation,
 					LiquidType = msg.LiquidType,
-					KeypadCode = WorldEventSync.EnsureKeypadCode(openable),
+					KeypadCode = KeypadCodeTable.EnsureCode(openable),
 					HasEnemyTint = msg.HasEnemyTint,
 					EnemyTintColor = msg.EnemyTintColor,
 					EnemyLightIntensity = msg.EnemyLightIntensity,

@@ -12,7 +12,9 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 /// block-difference table, the radiation-line snapshot source, world-start
 /// parameters and the message/event plumbing for world joins, block damage,
 /// building-entity damage/open, earthquakes, keypads/geysers and block-state
-/// backfill. The start-gate lifecycle stays in <see cref="WorldService"/>.
+/// backfill. The guest's pending-block-report RECOVERY STATE lives in
+/// <see cref="GuestBlockReportBookkeeping"/> (this type only sends and answers
+/// reports), and the start-gate lifecycle stays in <see cref="WorldService"/>.
 /// </summary>
 internal sealed class WorldStateMessageService(
 	ISessionControl session,
@@ -32,25 +34,25 @@ internal sealed class WorldStateMessageService(
 	/// for every block whose state deviates from the generated baseline. Mined,
 	/// destroyed, built and reverted blocks all land here.
 	/// </summary>
-	private readonly Dictionary<(int, int), ushort> _damagedBlocks = [];
+	private readonly Dictionary<(int, int), DamagedBlock> _damagedBlocks = [];
 
 	/// <summary>Table cap — a fully-mined world would otherwise grow without bound. Internal so the pending-report table's own cap can be asserted against it.</summary>
 	internal const int MaxDamagedBlocks = 65536;
 
 	/// <summary>
-	/// Guest-side table of locally-applied block mutations whose report the host
-	/// has not answered yet (sync-coverage audit W1): the host→guest direction
-	/// heals a lost relay with the absolute table above, the guest→host report
-	/// had no recovery at all. Populated by <see cref="SendBlockPlacedReport"/>,
+	/// Guest-side bookkeeping of locally-applied block mutations whose report the
+	/// host has not answered yet (sync-coverage audit W1): the host→guest direction
+	/// heals a lost relay with the absolute table above, the guest→host report had
+	/// no recovery at all. Populated by <see cref="SendBlockPlacedReport"/>,
 	/// re-reported by <see cref="ResendPendingBlockReports"/> and dropped when the
 	/// host answers for the cell (its relay echo or its correction) or when a new
 	/// world/layer baseline is applied. The absolute snapshot and the world-entry
 	/// completion marker deliberately do NOT clear it — a reconnect-while-in-world
 	/// keeps the guest's local mutations, and re-reporting them is the recovery.
+	/// The table and the overflow latch live in the collaborator, so this type
+	/// stays the wire surface.
 	/// </summary>
-	private readonly PendingBlockReportTable _pendingBlockReports = new();
-
-	private bool _pendingReportOverflowLogged;
+	private readonly GuestBlockReportBookkeeping _pendingBlockReports = new(log);
 
 	public WorldStartParams? WorldParams { get; set; }
 
@@ -213,7 +215,7 @@ internal sealed class WorldStateMessageService(
 		{
 			return;
 		}
-		RecordPendingBlockReport(x, y, block);
+		_pendingBlockReports.Report(x, y, block);
 		_sender.Send(_session.HostSteamId, NetMsg.BlockPlaced,
 			new BlockPlacedMsg { X = x, Y = y, Block = block });
 	}
@@ -288,7 +290,9 @@ internal sealed class WorldStateMessageService(
 			return;
 		}
 
-		_damagedBlocks[(x, y)] = block;
+		// A live write: whatever support loss this air transition causes is settled
+		// HERE (on the side that owns the world), so a receiver re-runs it.
+		_damagedBlocks[(x, y)] = new DamagedBlock(x, y, block, SupportLossSettled: false);
 	}
 
 	public void RemoveBlockState(int x, int y)
@@ -310,7 +314,13 @@ internal sealed class WorldStateMessageService(
 
 		var msg = new BlockStateMsg
 		{
-			Blocks = [.. _damagedBlocks.Select(kv => new BlockStateEntryMsg { X = kv.Key.Item1, Y = kv.Key.Item2, Block = kv.Value })],
+			Blocks = [.. _damagedBlocks.Values.Select(cell => new BlockStateEntryMsg
+			{
+				X = cell.X,
+				Y = cell.Y,
+				Block = cell.Block,
+				SupportLossSettled = cell.SupportLossSettled,
+			})],
 		};
 		_sender.Send(targetSteamId, NetMsg.WorldBlockState, msg);
 		_log.LogInformation("Sent block-state snapshot ({Count} blocks) to {Peer}.", _damagedBlocks.Count, targetSteamId);
@@ -409,8 +419,7 @@ internal sealed class WorldStateMessageService(
 		WorldParams = null;
 		RadiationLineState = null;
 		_damagedBlocks.Clear();
-		_pendingBlockReports.Clear();
-		_pendingReportOverflowLogged = false;
+		_pendingBlockReports.Reset();
 		_blockDamageRegistry.Reset();
 		_eventChannel.ResetConsumptions();
 		_eventChannel.ResetOpenedEntities();
@@ -470,41 +479,12 @@ internal sealed class WorldStateMessageService(
 	/// <summary>Guest: the host answered for this cell (relay or correction) — its value is authoritative, the pending report is done.</summary>
 	private void OnBlockPlacedReceived(ulong sender, int x, int y, ushort block)
 	{
-		if (_session.Role == SessionRole.Guest && _pendingBlockReports.Remove(x, y))
+		if (_session.Role == SessionRole.Guest)
 		{
-			if (_pendingBlockReports.Count == 0)
-			{
-				_pendingReportOverflowLogged = false; // the overflow episode ended — a later fill must log again
-			}
-
-			_log.LogDebug("[BlockSync] host answered ({X},{Y}) — dropped the pending report ({Remaining} left).",
-				x, y, _pendingBlockReports.Count);
+			_pendingBlockReports.Answer(x, y);
 		}
 
 		BlockPlacedReceived?.Invoke(sender, x, y, block);
-	}
-
-	/// <summary>
-	/// Record the cell as unacknowledged and send the live report. The record
-	/// happens BEFORE the send: a send that never lands is exactly what the
-	/// fallback exists for. A newer write at the same cell supersedes the
-	/// older report (the host only needs the current value).
-	/// </summary>
-	private void RecordPendingBlockReport(int x, int y, ushort block)
-	{
-		if (_pendingBlockReports.Report(x, y, block))
-		{
-			return;
-		}
-
-		if (_pendingReportOverflowLogged)
-		{
-			return;
-		}
-
-		_pendingReportOverflowLogged = true;
-		_log.LogWarning("[BlockSync] pending block-report table is full ({Cap} cells) — new cells are not re-reported until the host answers (cell ({X},{Y}) dropped).",
-			_pendingBlockReports.Cap, x, y);
 	}
 
 	/// <summary>
@@ -516,17 +496,7 @@ internal sealed class WorldStateMessageService(
 	/// NOT clear the table: a reconnect-while-in-world keeps the guest's local
 	/// mutations, and re-reporting them is exactly the recovery.
 	/// </summary>
-	public void ResetPendingBlockReports()
-	{
-		if (_pendingBlockReports.Count > 0)
-		{
-			_log.LogInformation("[BlockSync] world baseline replaced — cleared {Count} pending block report(s) from the previous world.",
-				_pendingBlockReports.Count);
-			_pendingBlockReports.Clear();
-		}
-
-		_pendingReportOverflowLogged = false;
-	}
+	public void ResetPendingBlockReports() => _pendingBlockReports.Reset();
 
 	// ---- World-fact capture and restore (the save system's world diff) ----
 	// The save side reads these tables as the WIRE shapes a late joiner receives
@@ -539,18 +509,30 @@ internal sealed class WorldStateMessageService(
 
 	/// <summary>The host's block difference table in the wire shape the late-joiner snapshot already sends.</summary>
 	internal IReadOnlyList<BlockStateEntryMsg> CaptureBlockStates() =>
-	[.. _damagedBlocks.Select(kv => new BlockStateEntryMsg { X = kv.Key.Item1, Y = kv.Key.Item2, Block = kv.Value })];
+	[.. _damagedBlocks.Values.Select(cell => new BlockStateEntryMsg
+	{
+		X = cell.X,
+		Y = cell.Y,
+		Block = cell.Block,
+		SupportLossSettled = cell.SupportLossSettled,
+	})];
 
-	/// <summary>Host: upsert one restored block state. The cell is the identity, so a repeated cell simply wins (a snapshot never carries the same cell twice).</summary>
-	internal void ApplyBlockState(BlockStateEntryMsg entry)
+	/// <summary>
+	/// Host: upsert one restored block state. The cell is the identity, so a
+	/// repeated cell simply wins (a snapshot never carries the same cell twice).
+	/// Returns false when the table's cap refused a cell it does not already
+	/// hold — the restore report counts it instead of reporting a clean restore.
+	/// </summary>
+	internal bool ApplyBlockState(BlockStateEntryMsg entry)
 	{
 		if (_damagedBlocks.Count >= MaxDamagedBlocks && !_damagedBlocks.ContainsKey((entry.X, entry.Y)))
 		{
 			_log.LogWarning("[SaveFacts] block-state ({X},{Y}) skipped: the {Cap}-cell table is full.", entry.X, entry.Y, MaxDamagedBlocks);
-			return;
+			return false;
 		}
 
-		_damagedBlocks[(entry.X, entry.Y)] = entry.Block;
+		_damagedBlocks[(entry.X, entry.Y)] = new DamagedBlock(entry.X, entry.Y, entry.Block, entry.SupportLossSettled);
+		return true;
 	}
 
 	/// <summary>

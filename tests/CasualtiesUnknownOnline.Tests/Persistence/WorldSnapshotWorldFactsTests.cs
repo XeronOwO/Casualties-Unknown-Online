@@ -414,8 +414,55 @@ public class WorldSnapshotWorldFactsTests
 			"the restore's reset erased the kernel-backed world-entity facts");
 	}
 
-	// ---- row descriptions (the repair report's identity for a skipped row) ----
+	[Fact]
+	public void WorldFactPort_Restore_MarksTheLiveReplayPendingUntilTheAdapterConsumesIt()
+	{
+		using var world = ItemSimWorld.Create();
+		var control = world.Host.Services.GetRequiredService<IWorldControl>();
+		var facts = world.Host.Services.GetRequiredService<IWorldFactSource>();
 
+		Assert.False(facts.HasPendingLiveReplay, "a fresh world has nothing to replay");
+
+		facts.ApplyFacts([new BlockStateEntryMsg { X = 3, Y = 4, Block = 0 }], [], radiationLine: null);
+		Assert.True(facts.HasPendingLiveReplay, "a restored cut owns the next generation's cache state");
+
+		// The adapter's world-entry replay clears the marker when the live world has
+		// the facts — and clearing it never touches the facts themselves (they are
+		// the table the peers are snapshotted from).
+		facts.ClearPendingLiveReplay();
+		Assert.False(facts.HasPendingLiveReplay);
+		Assert.Single(facts.CaptureBlockStates());
+
+		// A LAYER reset ends a pending replay as well: the facts it was waiting for
+		// went with the reset, so a later generation must not be handed them.
+		facts.ApplyFacts([], [new BlockDamageEntryMsg { X = 7, Y = 8, Damage = 0.5f }], radiationLine: null);
+		Assert.True(facts.HasPendingLiveReplay);
+		control.ResetDamagedBlocks();
+		Assert.False(facts.HasPendingLiveReplay);
+		Assert.Empty(facts.CaptureBlockDamages());
+	}
+
+	[Fact]
+	public void WorldFactPort_ReportsTheRowsTheBoundedDamageTableRefused()
+	{
+		// The partial-damage registry caps at 256 cells; a restore larger than that
+		// must SAY so — a restore that reports success while a row was dropped is
+		// exactly what §6 forbids.
+		using var world = ItemSimWorld.Create();
+		var facts = world.Host.Services.GetRequiredService<IWorldFactSource>();
+		var damages = Enumerable.Range(0, 257)
+			.Select(cell => new BlockDamageEntryMsg { X = cell, Y = 0, Damage = 1f })
+			.ToList();
+
+		var report = facts.ApplyFacts([], damages, radiationLine: null);
+
+		Assert.Equal(256, report.BlockDamagesApplied);
+		Assert.Equal(1, report.BlockDamagesRefused);
+		Assert.Contains("did not land in their tables", report.Describe()!, StringComparison.Ordinal);
+		Assert.Equal(256, facts.CaptureBlockDamages().Count);
+	}
+
+	// ---- row descriptions (the repair report's identity for a skipped row) ----
 	[Fact]
 	public void Describe_NamesTheCellOrTheEntityForEveryKind()
 	{
@@ -612,6 +659,145 @@ public class WorldSnapshotWorldFactsTests
 		// still applies — the two halves fail independently.
 		Assert.True(restarted.Service.TryContinue(out var outcome), outcome.Summary);
 		Assert.Equal((3, 4), (Assert.Single(restarted.WorldFacts.Blocks).X, restarted.WorldFacts.Blocks[0].Y));
+	}
+
+	// ---- the game's own damage table (the native half of world-blocks.json) ----
+
+	[Fact]
+	public void Codec_RoundTripsTheGamesOwnDamageRowWithItsOwnKind()
+	{
+		// The game's blockDamages list and CUO's registry are two tables of the same
+		// row shape, so the KIND is what keeps a restore from merging them: the row
+		// round-trips with its own kind, beside CUO's rows, unchanged.
+		var (decode, salvage) = RoundTrip(blocks:
+		[
+			SaveWorldBlockRow.OfBlockDamage(5, 6, 0.5f),
+			SaveWorldBlockRow.OfNativeBlockDamage(7, 8, 2f),
+		]);
+
+		Assert.NotNull(decode.Checkpoint);
+		Assert.True(salvage.IsClean, salvage.Report.Describe());
+		var native = Assert.Single(decode.UsableWorldBlocks, row => row.Kind == SaveWorldBlockRow.NativeBlockDamageKind).NativeBlockDamage!;
+		Assert.Equal((7, 8, 2f), (native.X, native.Y, native.Damage));
+		Assert.Null(Assert.Single(decode.UsableWorldBlocks, row => row.Kind == SaveWorldBlockRow.BlockDamageKind).NativeBlockDamage);
+	}
+
+	[Fact]
+	public void Decode_NativeDamageRowMissingItsPayload_IsSkippedWhileTheKnownRowsApply()
+	{
+		// `damage` is left out: its zero would deserialize into a real-looking
+		// "no damage at (0,0)" row, so the row is refused by name and the rest of
+		// the file still applies.
+		var (decode, salvage) =
+			RoundTrip(rawBlocks:
+			[
+				StateRow(3, 4, 0),
+				$"{{\n    \"kind\": \"{SaveWorldBlockRow.NativeBlockDamageKind}\",\n    \"nativeBlockDamage\": {{\n      \"x\": 1,\n      \"y\": 2\n    }}\n  }}",
+			]);
+
+		Assert.NotNull(decode.Checkpoint);
+		var restoredState = Assert.Single(decode.UsableWorldBlocks);
+		Assert.Equal((3, 4), (restoredState.BlockState!.X, restoredState.BlockState.Y));
+		Assert.Equal("native-block-damage at (1,2)", Assert.Single(salvage.SkippedEntries).Id);
+	}
+
+	[Fact]
+	public void CaptureMidRunFacts_CarriesTheGamesOwnDamageRowsWithoutTouchingCuoTable()
+	{
+		var native = new FakeNativeWorldFacts();
+		native.SeedBlockDamage(7, 8, 2f);
+		using var fixture = WorldSaveFixture.Create("facts-native-damage", nativeWorldFacts: native);
+		fixture.WorldFacts.SeedBlockDamage(5, 6, 0.5f); // CUO's own table
+
+		var facts = fixture.Service.CaptureMidRunFacts(WorldCutReason.MenuReturn, WorldCutKind.MidRun);
+
+		Assert.Equal(2, facts.Blocks.Count);
+		Assert.Equal(0.5f, Assert.Single(facts.Blocks, row => row.Kind == SaveWorldBlockRow.BlockDamageKind).BlockDamage!.Damage);
+		Assert.Equal(2f, Assert.Single(facts.Blocks, row => row.Kind == SaveWorldBlockRow.NativeBlockDamageKind).NativeBlockDamage!.Damage);
+	}
+
+	[Fact]
+	public void Restore_RoutesEachDamageRowBackToItsOwnTable()
+	{
+		using var fixture = WorldSaveFixture.Create("facts-damage-routing");
+		WriteMidRunSnapshot(
+			fixture,
+			blocks:
+			[
+				SaveWorldBlockRow.OfBlockDamage(5, 6, 0.5f),
+				SaveWorldBlockRow.OfNativeBlockDamage(7, 8, 2f),
+			]);
+
+		var native = new FakeNativeWorldFacts();
+		using var restarted = WorldSaveFixture.Create(
+			"facts-damage-routing-restart",
+			repository: fixture.Repository,
+			nativeWorldFacts: native);
+
+		Assert.True(restarted.Service.TryContinue(out var outcome), outcome.Summary);
+
+		// The two tables stay apart in both directions: the Runtime registry holds
+		// CUO's cell only, and the adapter is handed the game's own cell only.
+		Assert.Equal((5, 6, 0.5f), (Assert.Single(restarted.WorldFacts.Damages).X, restarted.WorldFacts.Damages[0].Y, restarted.WorldFacts.Damages[0].Damage));
+		Assert.Equal((7, 8, 2f), (Assert.Single(native.Damages).X, native.Damages[0].Y, native.Damages[0].Damage));
+		Assert.Contains("apply-block-damages", native.Calls);
+		Assert.DoesNotContain("not restored", outcome.Summary, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void Restore_NamesTheRowsTheBoundedTablesRefusedInTheOutcome()
+	{
+		// §6: reporting success while a row was dropped is forbidden. The two
+		// Runtime tables are bounded, so the restore's account carries them.
+		using var fixture = WorldSaveFixture.Create("facts-refused");
+		WriteMidRunSnapshot(
+			fixture,
+			blocks:
+			[
+				SaveWorldBlockRow.OfBlockState(3, 4, 0),
+				SaveWorldBlockRow.OfBlockDamage(5, 6, 0.5f),
+			]);
+
+		using var restarted = fixture.Restart("facts-refused-restart");
+		restarted.WorldFacts.RefusedBlockStates = 1;
+
+		Assert.True(restarted.Service.TryContinue(out var outcome), outcome.Summary);
+
+		Assert.Contains("did not land in their tables", outcome.Summary, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void Restore_LeavesTheLiveWorldReplayPending_AndANewRunDropsIt()
+	{
+		using var fixture = WorldSaveFixture.Create("facts-replay-pending");
+		WriteMidRunSnapshot(fixture, blocks: [SaveWorldBlockRow.OfBlockState(3, 4, 0)]);
+
+		using var restarted = fixture.Restart("facts-replay-pending-restart");
+
+		Assert.True(restarted.Service.TryContinue(out var outcome), outcome.Summary);
+
+		// The restored tables must survive the world-entry reset and be written
+		// into the freshly generated layer: the adapter's world-entry hook reads
+		// this marker to know that this generation is a RESTORE, not a new layer.
+		Assert.True(restarted.WorldFacts.HasPendingLiveReplay, "a restored cut owns the next generation");
+
+		Assert.True(restarted.Service.TryBeginRun());
+		Assert.False(restarted.WorldFacts.HasPendingLiveReplay, "a new run must never inherit a previous restore's replay");
+		Assert.Contains("clear-pending-replay", restarted.WorldFacts.Calls);
+	}
+
+	[Fact]
+	public void Restore_WithoutWorldFacts_LeavesNoLiveWorldReplayPending()
+	{
+		using var fixture = WorldSaveFixture.Create("facts-replay-empty");
+		WriteMidRunSnapshot(fixture);
+
+		using var restarted = fixture.Restart("facts-replay-empty-restart");
+		Assert.True(restarted.Service.TryContinue(out var outcome), outcome.Summary);
+
+		// A cut that carried no in-layer fact (the layer-end shape) leaves the normal
+		// layer lifecycle alone: the next generation resets and generates as usual.
+		Assert.False(restarted.WorldFacts.HasPendingLiveReplay);
 	}
 
 	// ---- helpers ----

@@ -1,0 +1,187 @@
+using System.Linq;
+using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session.World;
+using CasualtiesUnknownOnline.Tests.Fakes;
+using Xunit;
+
+namespace CasualtiesUnknownOnline.Tests.Persistence;
+
+/// <summary>
+/// The restored-world replay's contract: WHICH rows reach the live world, in
+/// which order, and what happens to a cut the world cannot take yet. The writes
+/// themselves belong to the Game Adapter (behind
+/// <see cref="IRestoredWorldFactSink"/>), so this suite runs without a game.
+///
+/// The handover is a READ-THEN-COMMIT: a generation that cannot take every value
+/// must keep BOTH halves pending, or a retry would write an empty cut over tables
+/// the world never received.
+/// </summary>
+public sealed class RestoredWorldFactReplayTests
+{
+	[Fact]
+	public void ApplyIfPending_WithNothingPending_LeavesTheLiveWorldAlone()
+	{
+		var (replay, _, _, sink) = Build();
+
+		replay.ApplyIfPending();
+
+		Assert.Empty(sink.Calls);
+	}
+
+	[Fact]
+	public void ApplyIfPending_WhenTheWorldIsNotReady_KeepsTheCutPending()
+	{
+		var (replay, facts, native, sink) = Build();
+		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], [], null);
+		sink.WorldReady = false;
+		Assert.True(replay.HasPending);
+
+		replay.ApplyIfPending();
+
+		// The entry seam runs once per generation: a half-generated world must not
+		// consume the values, or they would be dropped silently.
+		Assert.True(facts.HasPendingLiveReplay);
+		Assert.True(replay.HasPending);
+		Assert.DoesNotContain("read-pending", native.Calls);
+		Assert.Empty(sink.Calls);
+	}
+
+	[Fact]
+	public void ApplyIfPending_WritesTheCutInTheLoadBearingOrder()
+	{
+		var (replay, facts, native, sink) = Build();
+		facts.ApplyFacts(
+			[new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }],
+			[new BlockDamageEntryMsg { X = 3, Y = 4, Damage = 2f }],
+			new RadiationLineStateMsg { Active = true, TimeGone = 1f });
+		native.SeedKeypad(5f, 6f, "1234");
+		native.SeedGeyser(7f, 8f, 3);
+		native.SeedBlockDamage(9, 10, 4f);
+		native.ApplyKeypadCodes(native.Keypads);
+		native.ApplyGeysers(native.Geysers);
+		native.ApplyBlockDamages(native.Damages);
+
+		replay.ApplyIfPending();
+
+		Assert.Equal(
+			["write-block-states", "replace-game-damages", "apply-keypads", "apply-geysers", "apply-radiation"],
+			sink.Calls);
+		Assert.Equal(1, sink.WrittenBlockStates.Count);
+		Assert.Equal(1, sink.AppliedKeypads);
+		Assert.Equal(1, sink.AppliedGeysers);
+		Assert.False(facts.HasPendingLiveReplay);
+		Assert.False(replay.HasPending);
+		Assert.Contains("commit-pending", native.Calls);
+	}
+
+	/// <summary>
+	/// B1: CUO's wire table and the game's own list are TWO tables with different
+	/// bounds (CUO's registry caps at 256, the game's list at 128), so a cut can
+	/// legally carry more CUO rows than the game can hold. Writing CUO's rows into
+	/// the game's list would fill it and the game's OWN rows — the ones the saved
+	/// world actually had — would be refused. The live list must carry exactly the
+	/// restored rows of the game's own table.
+	/// </summary>
+	[Fact]
+	public void ApplyIfPending_WritesOnlyTheGamesOwnDamageRowsIntoTheGameList()
+	{
+		var (replay, facts, native, sink) = Build();
+		var cuoRows = Enumerable.Range(0, 129)
+			.Select(i => new BlockDamageEntryMsg { X = i, Y = 0, Damage = 1f })
+			.ToList();
+		facts.ApplyFacts([], cuoRows, null);
+		native.SeedBlockDamage(1000, 1000, 7f);
+		native.ApplyBlockDamages(native.Damages);
+
+		replay.ApplyIfPending();
+
+		var cell = Assert.Single(sink.GameDamageTable);
+		Assert.Equal(1000, cell.X);
+		Assert.Equal(1000, cell.Y);
+		Assert.Equal(7f, cell.Damage);
+	}
+
+	[Fact]
+	public void ApplyIfPending_WhenTheLiveWorldRefusesRows_KeepsBothHandoversAndRetries()
+	{
+		var facts = new FakeWorldFactSource();
+		var native = new FakeNativeWorldFacts();
+		var sink = new FakeRestoredWorldFactSink { Capacity = 0 };
+		var log = new RecordingLogger<RestoredWorldFactReplay>();
+		var replay = new RestoredWorldFactReplay(facts, native, sink, log);
+		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], [], null);
+		native.SeedBlockDamage(1, 1, 1f);
+		native.SeedBlockDamage(2, 2, 1f);
+		native.ApplyBlockDamages(native.Damages);
+
+		replay.ApplyIfPending();
+
+		// A restored crack the world did not take is lost state: it must reach the
+		// log at error level, and BOTH handovers stay armed — the Runtime marker and
+		// the adapter's pending rows — or the retry below would write an empty cut.
+		Assert.True(log.HasError("the restore stays PENDING"));
+		Assert.True(facts.HasPendingLiveReplay);
+		Assert.True(native.HasPendingRestore);
+		Assert.Contains("read-pending", native.Calls);
+		Assert.DoesNotContain("commit-pending", native.Calls);
+		Assert.Empty(sink.GameDamageTable);
+
+		// The retry: this time the live list takes everything.
+		sink.Capacity = 128;
+		replay.ApplyIfPending();
+
+		Assert.Equal(2, sink.GameDamageTable.Count);
+		Assert.False(facts.HasPendingLiveReplay);
+		Assert.False(native.HasPendingRestore);
+		Assert.Contains("commit-pending", native.Calls);
+	}
+
+	[Fact]
+	public void ApplyIfPending_WhenTheWorldVanishesBeforeTheWrite_KeepsTheRestorePending()
+	{
+		var facts = new FakeWorldFactSource();
+		var native = new FakeNativeWorldFacts();
+		var sink = new FakeRestoredWorldFactSink { RefuseBlockWrites = true };
+		var log = new RecordingLogger<RestoredWorldFactReplay>();
+		var replay = new RestoredWorldFactReplay(facts, native, sink, log);
+		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], [], null);
+
+		replay.ApplyIfPending();
+
+		// The readiness check passed and the world was gone by the time the rows
+		// landed: the sink refuses every row, and the restore must stay armed so the
+		// next generation retries instead of letting the layer reset wipe the tables.
+		Assert.True(facts.HasPendingLiveReplay);
+		Assert.True(log.HasError("the restore stays PENDING"));
+	}
+
+	[Fact]
+	public void ApplyIfPending_WhenAKeypadHasNoLiveOpenable_KeepsTheRestorePending()
+	{
+		var facts = new FakeWorldFactSource();
+		var native = new FakeNativeWorldFacts();
+		var sink = new FakeRestoredWorldFactSink { RefuseKeypads = 1 };
+		var log = new RecordingLogger<RestoredWorldFactReplay>();
+		var replay = new RestoredWorldFactReplay(facts, native, sink, log);
+		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], [], null);
+		native.SeedKeypad(5f, 6f, "1234");
+		native.ApplyKeypadCodes(native.Keypads);
+
+		replay.ApplyIfPending();
+
+		// "Zero Openables matched" can never mean "restored": the world-entry
+		// broadcast that follows would hand every peer a freshly rolled code.
+		Assert.True(log.HasError("the restore stays PENDING"));
+		Assert.True(facts.HasPendingLiveReplay);
+		Assert.True(native.HasPendingRestore);
+	}
+
+	private static (RestoredWorldFactReplay Replay, FakeWorldFactSource Facts, FakeNativeWorldFacts Native, FakeRestoredWorldFactSink Sink) Build()
+	{
+		var facts = new FakeWorldFactSource();
+		var native = new FakeNativeWorldFacts();
+		var sink = new FakeRestoredWorldFactSink();
+		var replay = new RestoredWorldFactReplay(facts, native, sink, new RecordingLogger<RestoredWorldFactReplay>());
+		return (replay, facts, native, sink);
+	}
+}

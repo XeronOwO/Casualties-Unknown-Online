@@ -6,9 +6,11 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 /// <summary>
 /// The world facts that only the Game Adapter can read back and re-apply: the
 /// DECIDED values a layer's generation produced but the Runtime cannot see —
-/// keypad codes and geyser liquid types. Both are captured with their entity's
-/// world position, which is the identity (both sides regenerate the same object
-/// at the same place).
+/// keypad codes and geyser liquid types — plus the game's OWN partial block
+/// damage, which lives in a second table next to CUO's. Keypads and geysers are
+/// captured with their entity's world position, which is the identity (both
+/// sides regenerate the same object at the same place); the damage table is
+/// keyed by its block cell.
 ///
 /// It is the native half of <see cref="IWorldFactSource"/> and is deliberately
 /// OPTIONAL: a build that registers no implementation captures and restores no
@@ -16,19 +18,22 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 /// fact at all, so nothing is lost silently). A caller that HAS one captures it
 /// into the cut and applies it after the Runtime facts.
 ///
-/// The capture/apply split follows the game's own lifetime: those tables exist
-/// only while a world object does, so a restore cannot put them back at the
-/// Continue click — the adapter applies them at the seam where the native save
-/// used to restore them, before generation consumes them (S3.4 of the save work).
-/// Until that seam exists, an implementation must keep the handed-over values and
-/// apply them there; it must NOT try to write them while the world object is
-/// absent, because there is nothing to write to.
+/// The capture/apply split follows the game's own lifetime: every table here
+/// exists only while a GENERATED world object does. A restore therefore cannot
+/// write them at the Continue click — the world is still generating, and the
+/// entities a keypad code or a geyser type belongs to do not exist yet. The
+/// adapter holds the handed-over values and applies them at the world-entry edge
+/// (the host's first frame after the generation completed, the same seam the
+/// world-entry broadcasts use), which is why the apply methods are
+/// "carry these until the world exists" rather than an immediate write. The
+/// adapter must NOT try to write while the world object is absent.
 ///
-/// The game's own <c>WorldGeneration.world.blockDamages</c> list is deliberately
-/// NOT part of this port yet: its rows would carry the same <c>block-damage</c>
-/// kind as CUO's accumulated table, so a restore could not tell them apart and
-/// would merge both into CUO's bounded registry. S3.2 owns that capture together
-/// with the discriminator and the native applier.
+/// The game's own <c>WorldGeneration.world.blockDamages</c> list is the third
+/// table and has its own kind in the file (<c>native-block-damage</c>): it has
+/// the same shape as CUO's accumulated damage, so without the discriminator a
+/// restore could not tell them apart and would merge both into CUO's bounded
+/// registry. The distinction is carried by the PAYLOAD the caller hands over,
+/// so an implementation never has to guess which table a row belongs to.
 /// </summary>
 public interface INativeWorldFacts
 {
@@ -38,9 +43,53 @@ public interface INativeWorldFacts
 	/// <summary>Every geyser's decided liquid type.</summary>
 	IReadOnlyList<GeyserStateEntryMsg> CaptureGeysers();
 
+	/// <summary>
+	/// Every entry of the game's OWN partial block-damage list
+	/// (<c>WorldGeneration.world.blockDamages</c>) — the live table the game
+	/// breaks blocks from, including damage CUO's report hooks never observed
+	/// (the unhooked direct <c>DamageBlock</c> callers).
+	/// </summary>
+	IReadOnlyList<BlockDamageEntryMsg> CaptureBlockDamages();
+
 	/// <summary>Host only: apply the restored keypad codes absolutely (replace, never merge).</summary>
 	void ApplyKeypadCodes(IReadOnlyList<KeypadEntryMsg> codes);
 
 	/// <summary>Host only: apply the restored geyser liquid types absolutely.</summary>
 	void ApplyGeysers(IReadOnlyList<GeyserStateEntryMsg> geysers);
+
+	/// <summary>
+	/// Host only: apply the restored entries of the game's own partial-damage
+	/// list absolutely (replace, never merge). This table is separate from CUO's
+	/// registry on purpose: the rows restore the live gameplay table, and a row
+	/// this table's own cap refuses is reported by the adapter, never merged
+	/// into the Runtime table.
+	/// </summary>
+	void ApplyBlockDamages(IReadOnlyList<BlockDamageEntryMsg> damages);
+
+	/// <summary>
+	/// Host only: restored native values are waiting for the world-entry seam —
+	/// the adapter holds them because the world they belong to does not exist yet.
+	/// False for every normal run.
+	/// </summary>
+	bool HasPendingRestore { get; }
+
+	/// <summary>
+	/// Host only: read the waiting restored values WITHOUT consuming them. A
+	/// generation that cannot take every value must keep them for the retry, so
+	/// the replay reads first and commits only after the live world has them all.
+	/// <see cref="NativeWorldFactRestore.Empty"/> when nothing is pending.
+	/// </summary>
+	NativeWorldFactRestore ReadPendingRestore();
+
+	/// <summary>Host only: the waiting restored values ARE in the live world — the handover is done, and a second generation must never be handed the same set.</summary>
+	void CommitPendingRestore();
+
+	/// <summary>
+	/// Host only: a run that will never reach the world-entry seam supersedes the
+	/// waiting values — a refused or abandoned Continue, or the end of the
+	/// session. Without this the NEXT run's first generation would be mistaken for
+	/// the generation the cut was restored for and would receive the old world's
+	/// keypad codes, geyser liquid types and block damage.
+	/// </summary>
+	void CancelPendingRestore();
 }

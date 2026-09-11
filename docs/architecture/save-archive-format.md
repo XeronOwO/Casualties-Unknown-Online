@@ -117,24 +117,27 @@ terminal tombstone that stops a killed enemy from being resurrected. A single-sh
 its row type directly.
 
 `world-blocks.json` is the in-layer block diff, and its rows carry `kind` (`block-state` |
-`block-damage`) with the row's wire payload: `blockState` is `{x, y, block}` — a block whose id
-differs from the generated baseline, mined, destroyed, built or reverted — and `blockDamage` is
-`{x, y, damage}` — the accumulated damage of a block that has NOT broken yet. The cell is the
-identity of both, so no offset or instance id is stored. `world-transients.json` carries the
-transient set the cut captured, keyed by `kind`: `keypad` carries `{position, code}` and `geyser`
-carries `{position, liquidType}` — both DECIDED values that must be carried and never re-rolled —
-and `radiation-line` carries `{active, timeGone}`. The payloads are the same wire DTOs the
-late-joiner snapshot already sends, so a restore hands the existing appliers their own shape
-instead of introducing a second validation path. A layer-end cut records no in-layer fact at all
-— the layer it names is regenerated from the run baseline — so both files are empty arrays for
-one, and the encoder writes that empty form regardless of what a caller gathered.
+`block-damage` | `native-block-damage`) with the row's wire payload: `blockState` is
+`{x, y, block}` — a block whose id differs from the generated baseline, mined, destroyed, built or
+reverted — `blockDamage` is `{x, y, damage}` — the accumulated damage of a block that has NOT
+broken yet — and `nativeBlockDamage` is the same shape for the GAME's own partial-damage list
+(below). The cell is the identity of every fact, so no offset or instance id is stored.
+`world-transients.json` carries the transient set the cut captured, keyed by `kind`: `keypad`
+carries `{position, code}` and `geyser` carries `{position, liquidType}` — both DECIDED values that
+must be carried and never re-rolled — and `radiation-line` carries `{active, timeGone}`. The
+payloads are the same wire DTOs the late-joiner snapshot already sends, so a restore hands the
+existing appliers their own shape instead of introducing a second validation path. A layer-end cut
+records no in-layer fact at all — the layer it names is regenerated from the run baseline — so both
+files are empty arrays for one, and the encoder writes that empty form regardless of what a caller
+gathered.
 
-The game's own `WorldGeneration.world.blockDamages` list is a second table of the same
-`block-damage` shape (the game breaks blocks from it; CUO's accumulation is the table a late
-joiner receives). It is NOT written yet: its rows would be indistinguishable from CUO's, so a
-restore could not route them back and would merge both into CUO's bounded registry. Stage S3.2
-owns that capture together with the discriminator and the native applier; until then a mid-run cut
-carries the Runtime-owned facts only, which the cut names.
+The game's own `WorldGeneration.world.blockDamages` list is a second table of the same damage
+shape (the game breaks blocks from it; CUO's accumulation is the table a late joiner receives). Its
+rows carry their OWN kind — `native-block-damage` — because the two tables are bounded and owned
+differently: CUO's registry is the host's wire table (cap 256), the game's list is the live
+gameplay table (cap 128) and can hold damage CUO's report hooks never observed (the unhooked direct
+`DamageBlock` callers). A restore routes every damage row back into the table its kind names; no row
+is ever merged into the other table.
 
 `characters/<playerKey>.json` holds one player character per file (an entry array of one), in the
 native `SaveInfo` shape plus CUO extensions, so the existing `CharacterDataFileStore` restore path
@@ -223,7 +226,37 @@ Decision 163: restore minimizes loss, and salvage is **per entry, not per domain
 - **Load twice = same world.** Restoring an already-restored snapshot is idempotent; validation
   applies the same dedup and exactly-once rules as the live restore path.
 
-### 6.1 Version and build gating
+### 6.1 Where a restored cut lands in the live world
+
+A restore does not hand the world back to the game that wrote it: the Continue click runs before
+the scene loads, so the kernel checkpoint and the Runtime-owned world-fact tables come back at the
+click, the game regenerates the saved layer from the restored run baseline, and the in-layer facts
+are then written onto that fresh copy. The seams are fixed and different on purpose:
+
+- **Runtime world facts** (the block diff, CUO's partial damage, the radiation line) are in the
+  Runtime tables at the click — a level-end cut carries none of them, so a layer-end restore leaves
+  the normal layer lifecycle alone. A cut that DID carry one marks a **pending live-world replay**;
+  the adapter's world-entry hook (the host's first frame after the generation completed, the same
+  seam the world-entry broadcasts use) reads and clears it.
+- **Native world facts** (keypad codes, geyser liquid types, the game's own `blockDamages` rows)
+  are held by the adapter from the handover until that same edge, because the entities and cells
+  they belong to exist only after the generation created them.
+- **Order inside the edge is load-bearing**: the generated baseline is captured first (it is the
+  reference the diff is measured against), then the restored facts are written, then the world-entry
+  keypad/geyser broadcasts go out — the peers must receive the restored values, not freshly rolled
+  ones. The **layer-boundary reset is skipped** for that generation: the restored tables ARE the
+  restored layer's facts, not a previous layer's leftovers.
+- **Native run fields** (`lootRarityMultiplier`, `savedRunTime`, recipe unlocks, …) keep their own
+  seam: the slot where the native `SaveSystem.TryLoadGame` used to run, because
+  `WorldGeneration.Start` derives from them before the first generation frame (S3.4).
+
+Verification boundary: the codec, the routing per row kind, the tables' caps and the replay
+lifecycle are machine-verified in the Runtime suites; the parts that read the live game tables
+(the keypad/geyser scans, the crack-sprite refresh) and the per-cell result of a replayed diff are
+verified in-game — an adapter-level reflection host can read the real game list but cannot run
+`GetBlock` (it calls a netstandard-2.1 API the test host lacks) or `Object.FindObjectsOfType`.
+
+### 6.2 Version and build gating
 
 - `protocolVersion` mismatch: the world is still opened in repair mode, with a loud warning that
   entities created by a newer protocol may not restore.

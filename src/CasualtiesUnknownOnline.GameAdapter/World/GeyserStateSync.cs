@@ -1,12 +1,9 @@
 using System.Collections.Generic;
-using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.World;
-using HarmonyLib;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
-using Object = UnityEngine.Object;
 
 namespace CasualtiesUnknownOnline.GameAdapter.World;
 
@@ -93,27 +90,11 @@ internal sealed class GeyserStateSync(IWorldControl world, ISessionControl sessi
 
 	private void SendFullSet()
 	{
-		var geysers = Enumerate();
+		var geysers = GeyserStateTable.Capture();
 		if (geysers.Count > 0)
 		{
 			_world.SendGeyserStateSnapshot(geysers);
 		}
-	}
-
-	private static List<GeyserStateEntryMsg> Enumerate()
-	{
-		var geysers = new List<GeyserStateEntryMsg>();
-		foreach (var geyser in Object.FindObjectsOfType<GeyserScript>())
-		{
-			var pos = geyser.transform.position;
-			geysers.Add(new GeyserStateEntryMsg
-			{
-				Position = new NetVector2Msg(pos.x, pos.y),
-				LiquidType = Traverse.Create(geyser).Field("liquidType").GetValue<byte>(), // byte — exact type (a GetValue<int> cast throws InvalidCastException)
-			});
-		}
-
-		return geysers;
 	}
 
 	/// <summary>Guest side: the host's authoritative liquid types arrived — write
@@ -136,21 +117,7 @@ internal sealed class GeyserStateSync(IWorldControl world, ISessionControl sessi
 			return;
 		}
 
-		var applied = 0;
-		foreach (var geyser in Object.FindObjectsOfType<GeyserScript>())
-		{
-			var pos = geyser.transform.position;
-			var match = geysers.FirstOrDefault(g =>
-				Vector2.Distance(new Vector2(g.Position.X, g.Position.Y), new Vector2(pos.x, pos.y)) < 3f);
-			if (match is null)
-			{
-				continue;
-			}
-
-			Traverse.Create(geyser).Field("liquidType").SetValue(match.LiquidType); // byte — exact type (a SetValue(int) cast throws ArgumentException)
-			applied++;
-		}
-
+		var applied = GeyserStateTable.Apply(geysers);
 		_log.LogInformation("[GeyserSnapshot] applied {Applied} host liquid type(s).", applied);
 	}
 }

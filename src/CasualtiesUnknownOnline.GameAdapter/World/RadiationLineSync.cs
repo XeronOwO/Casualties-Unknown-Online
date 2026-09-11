@@ -3,7 +3,6 @@ using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.World;
-using HarmonyLib;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
 
@@ -178,39 +177,17 @@ internal sealed class RadiationLineSync(
 			return;
 		}
 
-		var line = RadiationLine.line;
-		if (line == null) // Unity object — ==
+		// The decided state replaces the live one (the write itself lives in
+		// RadiationLineTable — the same implementation the restored-world replay
+		// uses, so both apply paths agree on the exact field types).
+		if (!RadiationLineTable.Apply(msg))
 		{
 			return;
 		}
 
-		if (msg.Active)
-		{
-			line.active = true;
-			WriteTimeGone(line, msg.TimeGone);
-			_log.LogDebug("[RadiationLine] guest applied host state active=true, timeGone={TimeGone:F2}.", msg.TimeGone);
-		}
-		else
-		{
-			if (WorldGeneration.world != null) // Unity object — ==
-			{
-				line.Deactivate();
-			}
-			else
-			{
-				line.active = false;
-				WriteTimeGone(line, 0f);
-			}
-
-			_log.LogDebug("[RadiationLine] guest applied host state active=false.");
-		}
+		_log.LogDebug("[RadiationLine] guest applied host state active={Active}, timeGone={TimeGone:F2}.", msg.Active, msg.TimeGone);
 	}
 
-	/// <summary>The line's descent is a private field (RadiationLine.cs) — read
-	/// through Traverse with the exact float type.</summary>
-	private static float ReadTimeGone(RadiationLine line) =>
-		Traverse.Create(line).Field("timeGone").GetValue<float>();
-
-	private static void WriteTimeGone(RadiationLine line, float value) =>
-		Traverse.Create(line).Field("timeGone").SetValue(value);
+	/// <summary>The line's descent is a private field (RadiationLine.cs) — read through Traverse with the exact float type.</summary>
+	private static float ReadTimeGone(RadiationLine line) => RadiationLineTable.ReadTimeGone(line);
 }

@@ -25,7 +25,7 @@ public sealed class BlockStateHandler(ILogger<BlockStateHandler> log) : PacketHa
 		}
 
 		var blocks = msg.Blocks
-			.Select(b => new DamagedBlock(b.X, b.Y, b.Block))
+			.Select(b => new DamagedBlock(b.X, b.Y, b.Block, b.SupportLossSettled))
 			.ToList();
 		ctx.World.FireBlockStateReceived(blocks);
 		_log.LogInformation("Received block-state snapshot ({Count} blocks) from the host.", blocks.Count);

@@ -149,6 +149,7 @@ public class WorldSaveCaptureTests
 			kernel,
 			new FakeTransportIdentity(),
 			new WorldSnapshotEncoder(NullLogger<WorldSnapshotEncoder>.Instance),
+			new FakeWorldFactSource(),
 			NullLoggerFactory.Instance,
 			NullLogger<WorldSaveService>.Instance);
 

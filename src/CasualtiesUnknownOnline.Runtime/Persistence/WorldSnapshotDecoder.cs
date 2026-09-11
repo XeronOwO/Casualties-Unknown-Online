@@ -43,6 +43,8 @@ public sealed class WorldSnapshotDecoder(SaveManifest manifest, ILogger<WorldSna
 	private readonly List<EntityId> _removedEnemies = [];
 	private readonly List<FluidRegionState> _fluids = [];
 	private readonly List<SavedCharacter> _characters = [];
+	private readonly List<SaveWorldBlockRow> _worldBlocks = [];
+	private readonly List<SaveWorldTransientRow> _worldTransients = [];
 
 	private WorldEntityState _worldEntities = WorldEntityState.Empty;
 	private RunState? _run;
@@ -87,10 +89,10 @@ public sealed class WorldSnapshotDecoder(SaveManifest manifest, ILogger<WorldSna
 				DecodeWorldEntityRow(entry, session, id);
 				return;
 			case SaveArchiveFormat.WorldBlocksFileName:
+				DecodeWorldBlockRow(entry, session, id);
+				return;
 			case SaveArchiveFormat.WorldTransientsFileName:
-				// S2 writes these empty and S3 owns their content; an entry arriving
-				// here is from a newer writer this build does not understand (§6.1).
-				session.Skip(id, "unknown entry in a domain this build does not decode", path);
+				DecodeWorldTransientRow(entry, session, id);
 				return;
 			default:
 				session.Skip(id, "not a domain file of this format", path);
@@ -109,6 +111,18 @@ public sealed class WorldSnapshotDecoder(SaveManifest manifest, ILogger<WorldSna
 		if (!TryReadEpoch(out var epoch))
 		{
 			return WorldSnapshotDecode.Refused($"the manifest's run epoch '{_manifest.RunEpoch}' is not a run epoch");
+		}
+
+		if (_manifest.Kind == WorldCutKind.LayerEnd && (_worldBlocks.Count > 0 || _worldTransients.Count > 0))
+		{
+			// The manifest names what the snapshot IS. A layer-end cut records no
+			// in-layer fact — the layer it names is regenerated from the run baseline
+			// (§3.4/§4) — so a layer-end snapshot that carries facts contradicts
+			// itself: applying them would graft one layer's mutations onto a
+			// regenerated layer, and dropping them quietly is what §6 forbids. The
+			// whole snapshot is refused instead.
+			return WorldSnapshotDecode.Refused(
+				$"the manifest names a layer-end cut, which records no in-layer fact, but the snapshot carries {_worldBlocks.Count} world-block row(s) and {_worldTransients.Count} transient row(s)");
 		}
 
 		if (epoch != _run.RunId)
@@ -134,9 +148,9 @@ public sealed class WorldSnapshotDecoder(SaveManifest manifest, ILogger<WorldSna
 				: new EnemyStateTable(_enemies, _removedEnemies),
 			_fluids.Count == 0 ? null : new FluidStateTable(_fluids));
 
-		_log.LogInformation("Decoded snapshot of world {WorldId}: epoch {Epoch}, revision {Revision}, {Items} item(s), {Players} player(s), {Enemies} enemy(ies), {Characters} character(s).",
-			_manifest.WorldId, epoch, (ulong)_manifest.GlobalRevision, _items.Count, _players.Count, _enemies.Count + _removedEnemies.Count, _characters.Count);
-		return new WorldSnapshotDecode(checkpoint, _characters, null);
+		_log.LogInformation("Decoded snapshot of world {WorldId}: epoch {Epoch}, revision {Revision}, {Items} item(s), {Players} player(s), {Enemies} enemy(ies), {Characters} character(s), {Blocks} world block(s), {Transients} transient(s).",
+			_manifest.WorldId, epoch, (ulong)_manifest.GlobalRevision, _items.Count, _players.Count, _enemies.Count + _removedEnemies.Count, _characters.Count, _worldBlocks.Count, _worldTransients.Count);
+		return new WorldSnapshotDecode(checkpoint, _characters, null, _worldBlocks, _worldTransients);
 	}
 
 	private void DecodeRun(JsonElement entry, SalvageSession session, string id)
@@ -226,6 +240,120 @@ public sealed class WorldSnapshotDecoder(SaveManifest manifest, ILogger<WorldSna
 		}
 	}
 
+	/// <summary>
+	/// One row of the block diff. Unlike the world-entity table there is no
+	/// wire→kernel conversion that could reject a readable row: the block cell and
+	/// the block id ARE the restored shape, so the row is kept when it carries the
+	/// payload of the kind it declares, and a row that does not is skipped by
+	/// itself — the rest of the file still applies (§6).
+	/// </summary>
+	private void DecodeWorldBlockRow(JsonElement entry, SalvageSession session, string id)
+	{
+		var row = Decode<SaveWorldBlockRow>(entry, session, id);
+		if (row is null)
+		{
+			return;
+		}
+
+		if (CarriesItsOwnPayload(entry, row))
+		{
+			_worldBlocks.Add(row);
+			return;
+		}
+
+		session.Skip(DescribeOr(row.Describe(), id), $"a world-block row declares an unusable kind '{row.Kind}'", _currentPath);
+	}
+
+	/// <summary>One row of the transient world facts, salvaged on its own exactly like a block row.</summary>
+	private void DecodeWorldTransientRow(JsonElement entry, SalvageSession session, string id)
+	{
+		var row = Decode<SaveWorldTransientRow>(entry, session, id);
+		if (row is null)
+		{
+			return;
+		}
+
+		if (CarriesItsOwnPayload(entry, row))
+		{
+			_worldTransients.Add(row);
+			return;
+		}
+
+		session.Skip(DescribeOr(row.Describe(), id), $"a world-transient row declares an unusable kind '{row.Kind}'", _currentPath);
+	}
+
+	/// <summary>
+	/// The row's own identity when it has one, the reader's entry id otherwise: a row
+	/// whose kind or cell is missing describes itself as <c>&lt;…&gt;</c>, and a
+	/// report entry with no id at all would not say WHICH row was dropped (§6).
+	/// </summary>
+	private static string DescribeOr(string described, string id) =>
+		described.StartsWith("<", StringComparison.Ordinal) && described.EndsWith(">", StringComparison.Ordinal) ? id : described;
+
+	/// <summary>
+	/// True = the row carries a COMPLETE payload for the kind it declares. A kind
+	/// this build does not know is NOT an error (a newer writer's row, §6.1), so it
+	/// answers false and is skipped. A known kind whose payload is missing, is not
+	/// an object, or omits a field is malformed: its fields would deserialize to
+	/// type defaults (block 0 at (0,0), a radiation line at 0/0) and those defaults
+	/// would be written onto the world as if they had been recorded — the field
+	/// NAMES are therefore read off the raw JSON, where absent and zero are
+	/// distinguishable.
+	/// </summary>
+	private static bool CarriesItsOwnPayload(JsonElement entry, SaveWorldBlockRow row) => row.Kind switch
+	{
+		SaveWorldBlockRow.BlockStateKind => HasAllProperties(entry, "blockState", "x", "y", "block"),
+		SaveWorldBlockRow.BlockDamageKind => HasAllProperties(entry, "blockDamage", "x", "y", "damage"),
+		_ => false,
+	};
+
+	private static bool CarriesItsOwnPayload(JsonElement entry, SaveWorldTransientRow row) => row.Kind switch
+	{
+		SaveWorldTransientRow.KeypadKind => HasPosition(entry, "keypad") && HasAllProperties(entry, "keypad", "code"),
+		SaveWorldTransientRow.GeyserKind => HasPosition(entry, "geyser") && HasAllProperties(entry, "geyser", "liquidType"),
+		SaveWorldTransientRow.RadiationLineKind => HasAllProperties(entry, "radiationLine", "active", "timeGone"),
+		_ => false,
+	};
+
+	/// <summary>
+	/// A transient fact is keyed by its entity's WORLD POSITION, so the position must
+	/// carry both coordinates: `"position": {}` or a half-written `{"y":9}` would
+	/// deserialize to a real-looking `(0,0)` / `(0,9)` and be handed to the applier
+	/// as if the fact belonged to that cell.
+	/// </summary>
+	private static bool HasPosition(JsonElement entry, string payloadName) =>
+		entry.TryGetProperty(payloadName, out var payload)
+		&& payload.ValueKind == JsonValueKind.Object
+		&& payload.TryGetProperty("position", out var position)
+		&& position.ValueKind == JsonValueKind.Object
+		&& position.TryGetProperty("x", out var x)
+		&& position.TryGetProperty("y", out var y)
+		&& x.ValueKind is not (JsonValueKind.Null or JsonValueKind.Undefined)
+		&& y.ValueKind is not (JsonValueKind.Null or JsonValueKind.Undefined);
+
+	private static bool HasAllProperties(JsonElement entry, string payloadName, params string[] propertyNames)
+	{
+		if (!entry.TryGetProperty(payloadName, out var payload) || payload.ValueKind != JsonValueKind.Object)
+		{
+			return false;
+		}
+
+		foreach (var name in propertyNames)
+		{
+			// Only the NAMES are checked, and a nested group counts as one property
+			// (`keypad.position` is present or the row is malformed). That is enough
+			// to reject the dangerous row — a payload missing its cell or its
+			// position would otherwise deserialize to a real-looking (0,0) — without
+			// inventing a field-by-field schema the format doc does not define.
+			if (!payload.TryGetProperty(name, out var value) || value.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
+			{
+				return false;
+			}
+		}
+
+		return true;
+	}
+
 	private bool TryReadEpoch(out ulong epoch) =>
 		ulong.TryParse(_manifest.RunEpoch, NumberStyles.None, CultureInfo.InvariantCulture, out epoch) && epoch != 0;
 
@@ -296,6 +424,15 @@ public sealed class WorldSnapshotDecoder(SaveManifest manifest, ILogger<WorldSna
 	/// <summary>Reads one entry; a failure is recorded as a per-entry skip and reported as null — never thrown.</summary>
 	private T? Decode<T>(JsonElement entry, SalvageSession session, string id) where T : class
 	{
+		if (entry.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
+		{
+			// A JSON null is not a row: it deserializes to null without throwing, so
+			// it would otherwise vanish from the account entirely (§6: every skipped
+			// entry is surfaced).
+			session.Skip(id, "the entry is JSON null, not a row of this domain", _currentPath);
+			return null;
+		}
+
 		try
 		{
 			return JsonSerializer.Deserialize<T>(entry.GetRawText(), SaveArchiveJson.Options);

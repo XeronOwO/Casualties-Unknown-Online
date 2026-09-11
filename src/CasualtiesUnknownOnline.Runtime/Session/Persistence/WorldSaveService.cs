@@ -11,6 +11,7 @@ using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
+using CasualtiesUnknownOnline.Runtime.Session.World;
 using Microsoft.Extensions.Logging;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.Persistence;
@@ -42,6 +43,9 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 	private readonly ItemKernelAuthority _kernel;
 	private readonly ITransportIdentity _transport;
 	private readonly WorldSnapshotEncoder _encoder;
+	private readonly WorldCharacterBinder _binder;
+	private readonly IWorldFactSource _worldFacts;
+	private readonly INativeWorldFacts? _nativeWorldFacts;
 	private readonly ILoggerFactory _loggerFactory;
 	private readonly ILogger<WorldSaveService> _log;
 	private readonly string _gameBuild;
@@ -59,10 +63,12 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 		ItemKernelAuthority kernel,
 		ITransportIdentity transport,
 		WorldSnapshotEncoder encoder,
+		IWorldFactSource worldFacts,
 		ILoggerFactory loggerFactory,
 		ILogger<WorldSaveService> log,
 		string? gameBuild = null,
-		Func<DateTime>? utcNow = null)
+		Func<DateTime>? utcNow = null,
+		INativeWorldFacts? nativeWorldFacts = null)
 	{
 		_repository = repository;
 		_session = session;
@@ -70,6 +76,9 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 		_kernel = kernel;
 		_transport = transport;
 		_encoder = encoder;
+		_binder = new WorldCharacterBinder(session, characters, transport, loggerFactory.CreateLogger<WorldCharacterBinder>());
+		_worldFacts = worldFacts;
+		_nativeWorldFacts = nativeWorldFacts;
 		_loggerFactory = loggerFactory;
 		_log = log;
 		_gameBuild = string.IsNullOrWhiteSpace(gameBuild) ? "unknown" : gameBuild!;
@@ -221,7 +230,9 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 			return false;
 		}
 
-		var characters = CollectCharacters(hostCharacter);
+		var characters = _binder.Collect(hostCharacter);
+		var cutKind = KindOf(reason);
+		var facts = CaptureWorldFacts(reason, cutKind);
 		var payload = new WorldSnapshotPayload(
 			checkpoint,
 			characters,
@@ -230,7 +241,10 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 			cutPhase,
 			_gameBuild,
 			CuoBuild,
-			ContentFingerprint: string.Empty);
+			ContentFingerprint: string.Empty,
+			facts.Blocks,
+			facts.Transients,
+			cutKind);
 
 		IReadOnlyList<SavePayloadFile> files;
 		try
@@ -246,7 +260,11 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 		var request = new SaveWorldRequest
 		{
 			WorldId = _worldId,
-			Kind = WorldCutKind.LayerEnd,
+			// The manifest's kind and the payload's kind are ONE decision: the
+			// manifest names what the snapshot holds, so deriving them separately
+			// would let a mid-run payload announce itself as a layer-end cut (and a
+			// restore would then apply in-layer facts to a layer it regenerates).
+			Kind = cutKind,
 			Payload = files,
 			Meta = MetaOf(checkpoint, characters.Count, reason, cutPhase),
 			SavedAtUtc = _utcNow(),
@@ -263,6 +281,86 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 			reason, _worldId, checkpoint.GlobalRevision, checkpoint.Run.LayerIndex, files.Count, result.BackupArchivePath);
 		return true;
 	}
+
+	/// <summary>
+	/// The world facts one cut carries. A layer-end cut carries none BY DESIGN:
+	/// the layer it names is regenerated from the run baseline, so its two files
+	/// stay empty (§4). S3.1 classifies every trigger as layer-end, so this is the
+	/// only shape a cut has today; S3.3 opens the mid-run trigger and the real
+	/// classifier together.
+	/// </summary>
+	internal WorldSaveFacts CaptureWorldFacts(WorldCutReason reason, WorldCutKind cutKind) =>
+		cutKind == WorldCutKind.LayerEnd ? WorldSaveFacts.None : CaptureMidRunFacts(reason, cutKind);
+
+	/// <summary>
+	/// The mid-run capture: the Runtime fact tables through
+	/// <see cref="IWorldFactSource"/> and, when the adapter registered one, the
+	/// native tables through <see cref="INativeWorldFacts"/>. Internal so the wiring
+	/// is machine-verified before S3.3 opens the trigger; the cut's own classify
+	/// seam is what makes it reachable then.
+	/// </summary>
+	internal WorldSaveFacts CaptureMidRunFacts(WorldCutReason reason, WorldCutKind cutKind)
+	{
+		var blocks = new List<SaveWorldBlockRow>();
+		foreach (var state in _worldFacts.CaptureBlockStates())
+		{
+			blocks.Add(SaveWorldBlockRow.OfBlockState(state.X, state.Y, state.Block));
+		}
+
+		foreach (var damage in _worldFacts.CaptureBlockDamages())
+		{
+			blocks.Add(SaveWorldBlockRow.OfBlockDamage(damage.X, damage.Y, damage.Damage));
+		}
+
+		// The game's own blockDamages list is NOT captured yet: its rows would carry
+		// the same `block-damage` kind as CUO's table above, so a restore could not
+		// tell them apart and would merge both into CUO's 256-entry registry. S3.2
+		// owns that capture together with the discriminator and the native applier;
+		// until then the cut is complete for the Runtime-owned facts, which is
+		// reported below rather than left silent.
+
+		var transients = new List<SaveWorldTransientRow>();
+
+		// The Runtime half of the transient set: the radiation line is host world
+		// state every peer is already aligned to over the wire.
+		if (_worldFacts.CaptureRadiationLine() is { } radiation)
+		{
+			transients.Add(SaveWorldTransientRow.OfRadiationLine(radiation));
+		}
+
+		if (_nativeWorldFacts is null)
+		{
+			// No reader at all: the decided native values (keypad codes, geyser
+			// liquid types) cannot be carried, and a restored world would re-roll
+			// them. Named, never silent.
+			_log.LogWarning(
+				"Cut {Reason} carries no native world fact: no INativeWorldFacts is registered, so keypad codes, geyser liquid types and the game's own block-damage list are not in this snapshot.",
+				reason);
+		}
+		else
+		{
+			// The native half of the transient set. These are DECIDED values (§4):
+			// carrying them is the whole point, because regenerating the layer would
+			// roll new ones and a code the player already read would stop opening the
+			// door.
+			foreach (var code in _nativeWorldFacts.CaptureKeypadCodes())
+			{
+				transients.Add(SaveWorldTransientRow.OfKeypad(code));
+			}
+
+			foreach (var geyser in _nativeWorldFacts.CaptureGeysers())
+			{
+				transients.Add(SaveWorldTransientRow.OfGeyser(geyser));
+			}
+		}
+
+		_log.LogInformation("Cut {Reason} ({Kind}) carries {Blocks} world-block row(s) and {Transients} transient row(s).",
+			reason, cutKind, blocks.Count, transients.Count);
+		return new WorldSaveFacts(blocks, transients);
+	}
+
+	/// <summary>The cut kind a trigger produces (§3.2). S3.1 keeps S2's classification: the layer advance is the one cut S2 ships, and a deliberate menu return is still layer-end class until S3.3's consistent cut lands.</summary>
+	private static WorldCutKind KindOf(WorldCutReason reason) => WorldCutKind.LayerEnd;
 
 	public bool TryContinue(out WorldContinueOutcome outcome)
 	{
@@ -310,6 +408,13 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 			return false;
 		}
 
+		// The world facts the kernel does not own come back BEFORE the run's own
+		// state is applied, and the interface's contract is absolute: the apply
+		// resets the tables first (see IWorldFactSource), so a fact left over from
+		// the previous session cannot survive a cut that never named it. A refused
+		// snapshot never gets here, so nothing of a refused cut is written.
+		var factDamage = ApplyWorldFacts(decode.UsableWorldBlocks, decode.UsableWorldTransients);
+
 		// The run continues in the same world: every later cut of this session
 		// writes back into it, and the picker's pointer follows the player.
 		_worldId = worldId;
@@ -321,16 +426,24 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 		// characters are bound, so a player the package omits cannot be resurrected
 		// from stale data (decision 162: absent from the package = new character).
 		_characters.ClearSavedCharacters();
-		ApplyCharacters(decode.UsableCharacters);
+		_binder.Apply(decode.UsableCharacters);
 		_repository.SetLastOpenedWorld(worldId);
 
 		// The summary is the account the caller logs (and S4's surface reads), so it
 		// is built from the WHOLE report — a backup fallback is repository-scope
 		// damage that a per-entry "clean" check would hide (§6: silent loss is
-		// forbidden).
-		var summary = salvage.Report.Entries.Count == 0
+		// forbidden). The world facts that could not be put back (no native applier,
+		// an applier that threw) are part of that account too: they are damage the
+		// player would otherwise only find in the log.
+		var damages = new List<string>(factDamage);
+		if (salvage.Report.Entries.Count > 0)
+		{
+			damages.Add(salvage.Report.Describe());
+		}
+
+		var summary = damages.Count == 0
 			? $"world {worldId} restored from {load.Content.SourcePath}"
-			: $"world {worldId} restored with damage: {salvage.Report.Describe()}";
+			: $"world {worldId} restored with damage: {string.Join("; ", damages)}";
 		_log.LogInformation("Continue restored world {WorldId} at revision {Revision} (layer {Layer}, {Players} stored character(s)): {Summary}",
 			worldId, decode.Checkpoint.GlobalRevision, decode.Checkpoint.Run?.LayerIndex ?? -1, decode.UsableCharacters.Count, summary);
 		outcome = new WorldContinueOutcome(true, worldId, summary, salvage);
@@ -338,120 +451,103 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 	}
 
 	/// <summary>
-	/// Binds the snapshot's characters back onto the peers that claim them (the
-	/// host's own through the host slot, everyone else through the saved-character
-	/// table the existing restore path reads). A key nobody claims is not an
-	/// error — decision 162: that player joins as a NEW player.
+	/// Puts one restored cut's world facts back. The Runtime half (the block diff
+	/// and the radiation line) is applied absolutely through
+	/// <see cref="IWorldFactSource"/>, which resets first — the cut is the whole
+	/// truth for those tables. The native half (keypad codes, geyser liquid types)
+	/// is handed to <see cref="INativeWorldFacts"/>. Everything that could NOT be
+	/// put back is RETURNED as damage for the restore report, because a keypad left
+	/// to re-roll is a value the player can see (§6: never a quiet default).
 	/// </summary>
-	private void ApplyCharacters(IReadOnlyList<SavedCharacter> characters)
+	private List<string> ApplyWorldFacts(
+		IReadOnlyList<SaveWorldBlockRow> blocks,
+		IReadOnlyList<SaveWorldTransientRow> transients)
 	{
-		if (characters.Count == 0)
-		{
-			return;
-		}
+		var damage = new List<string>();
+		var blockStates = new List<BlockStateEntryMsg>();
+		var blockDamages = new List<BlockDamageEntryMsg>();
+		var radiationLine = (RadiationLineStateMsg?)null;
+		var keypads = new List<KeypadEntryMsg>();
+		var geysers = new List<GeyserStateEntryMsg>();
 
-		var keys = characters.Select(character => character.PlayerKey).ToList();
-		if (!PlayerKeyResolution.TrySpaceOfSet(keys, out var space))
+		foreach (var row in blocks)
 		{
-			_log.LogError("The snapshot's character files mix transport key spaces ({Keys}); no character was applied.", string.Join(", ", keys));
-			return;
-		}
-
-		var live = LiveKeySpace();
-		if (space == PlayerKeySpace.Unknown)
-		{
-			space = live;
-		}
-		else if (space != live)
-		{
-			// The two key spaces are separate (§2): a world written over IP-direct is
-			// never claimed over Steam, even when a Steam persona happens to spell the
-			// same name. Every key stays unclaimed — that player joins as a NEW
-			// character (decision 162), and the files stay for a later claim.
-			_log.LogInformation("The snapshot's key space {Stored} differs from the live transport {Live}; no stored character is claimed in this session.", space, live);
-			return;
-		}
-
-		var peers = PresentPeers();
-		var localPeerId = LocalPeerId;
-		var applied = 0;
-		var unclaimed = 0;
-		foreach (var character in characters)
-		{
-			if (!PlayerKeyResolution.TryResolve(character.PlayerKey, space, peers, out var peerId))
+			switch (row.Kind)
 			{
-				unclaimed++;
-				_log.LogInformation("Character {PlayerKey} has no claimant in this session; decision 162: that player joins as a new character. The file stays in the archive for a later claim.", character.PlayerKey);
-				continue;
+				case SaveWorldBlockRow.BlockStateKind when row.BlockState is not null:
+					blockStates.Add(row.BlockState);
+					break;
+				case SaveWorldBlockRow.BlockDamageKind when row.BlockDamage is not null:
+					blockDamages.Add(row.BlockDamage);
+					break;
+				default:
+					damage.Add($"an unreadable {row.Describe()} row was not applied");
+					_log.LogWarning("Restored world-block row {Row} carries no applicable payload; it is not applied.", row.Describe());
+					break;
 			}
-
-			if (peerId == localPeerId)
-			{
-				_characters.SaveHostCharacterData(character.Character);
-			}
-			else
-			{
-				_characters.SaveCharacterData(peerId, character.Character);
-			}
-
-			applied++;
 		}
 
-		_log.LogInformation("Restored characters: {Applied} bound to present peers, {Unclaimed} left unclaimed (key space {Space}).", applied, unclaimed, space);
+		foreach (var row in transients)
+		{
+			switch (row.Kind)
+			{
+				case SaveWorldTransientRow.RadiationLineKind when row.RadiationLine is not null:
+					radiationLine = row.RadiationLine;
+					break;
+				case SaveWorldTransientRow.KeypadKind when row.Keypad is not null:
+					keypads.Add(row.Keypad);
+					break;
+				case SaveWorldTransientRow.GeyserKind when row.Geyser is not null:
+					geysers.Add(row.Geyser);
+					break;
+				default:
+					damage.Add($"an unreadable {row.Describe()} row was not applied");
+					_log.LogWarning("Restored world-transient row {Row} carries no applicable payload; it is not applied.", row.Describe());
+					break;
+			}
+		}
+
+		_worldFacts.ApplyFacts(blockStates, blockDamages, radiationLine);
+
+		if (keypads.Count + geysers.Count == 0)
+		{
+			return damage;
+		}
+
+		if (_nativeWorldFacts is null)
+		{
+			damage.Add($"{keypads.Count} keypad code(s) and {geysers.Count} geyser liquid type(s) were not restored (no native applier in this build)");
+			_log.LogError(
+				"Restored world WITHOUT {Keypads} keypad code(s) and {Geysers} geyser liquid type(s): this build has no INativeWorldFacts, so those decided values cannot be put back and the layer keeps freshly-generated ones.",
+				keypads.Count, geysers.Count);
+			return damage;
+		}
+
+		// The adapter owns these tables: the Continue click runs before the world
+		// object exists, so the restore hands the values over rather than writing
+		// them from here (S3.4 applies them where the native reader used to run).
+		try
+		{
+			_nativeWorldFacts.ApplyKeypadCodes(keypads);
+			_nativeWorldFacts.ApplyGeysers(geysers);
+			_log.LogInformation("Handed {Keypads} keypad code(s) and {Geysers} geyser liquid type(s) to the native world-fact applier.", keypads.Count, geysers.Count);
+		}
+		catch (Exception ex)
+		{
+			// The adapter is the only layer that can fail here (it touches the live
+			// game). A throw must not abort the restore after the kernel and the
+			// Runtime facts already applied: it is damage, and it is reported.
+			damage.Add($"{keypads.Count} keypad code(s) and {geysers.Count} geyser liquid type(s) could not be applied by the native world-fact applier");
+			_log.LogError(ex, "The native world-fact applier failed; the keypad/geyser facts are not restored and the layer keeps freshly-generated values.");
+		}
+
+		return damage;
 	}
 
-	private List<SavedCharacter> CollectCharacters(CharacterDataMsg? hostCharacter)
-	{
-		var peers = PresentPeers();
-		var space = LiveKeySpace();
-		var localPeerId = LocalPeerId;
-		var characters = new List<SavedCharacter>(peers.Count);
-		foreach (var peer in peers)
-		{
-			var data = peer.PeerId == localPeerId
-				? hostCharacter ?? _characters.GetHostCharacterData()
-				: _characters.GetSavedCharacter(peer.PeerId);
-			if (data is null)
-			{
-				_log.LogDebug("No character snapshot for peer {Peer} at this cut; it is not written (decisions 162/166: the save holds every member PRESENT at the cut).", peer.PeerId);
-				continue;
-			}
-
-			characters.Add(new SavedCharacter(peer.KeyIn(space), data));
-		}
-
-		return characters;
-	}
-
-	/// <summary>
-	/// Every peer whose character this cut can carry: the local player plus every
-	/// handshaken member. Membership — not the "in world" flag — is the predicate:
-	/// a layer boundary is a LOADING moment, where every peer's scene state reads
-	/// as "not in the world". Whoever has no character snapshot is skipped by
-	/// <see cref="CollectCharacters"/>, so a lobby-sitting member cannot add a file.
-	/// </summary>
-	private List<PlayerIdentity> PresentPeers()
-	{
-		var localPeerId = LocalPeerId;
-		var peers = new List<PlayerIdentity> { new(localPeerId, _transport.LocalDisplayName) };
-		foreach (var member in _session.Members)
-		{
-			if (!member.Handshaken || member.SteamId == localPeerId)
-			{
-				continue;
-			}
-
-			peers.Add(new PlayerIdentity(member.SteamId, member.DisplayName));
-		}
-
-		return peers;
-	}
-
-	/// <summary>The local peer's id — the session's when a session exists, the transport's otherwise (solo play has no session but still has an account).</summary>
-	private ulong LocalPeerId => _session.LocalSteamId != 0 ? _session.LocalSteamId : _transport.LocalPeerId;
-
-	/// <summary>The key space the LIVE transport writes in (§2).</summary>
-	private PlayerKeySpace LiveKeySpace() => _transport.IsIpDirect ? PlayerKeySpace.IpDirect : PlayerKeySpace.Steam;
+	// The characters a cut carries and the peer arbitration of a restore belong to
+	// the WorldCharacterBinder: identity is transport-scoped (decision 162) and
+	// orthogonal to the archive, so S3.1's structure review split it out of this
+	// class, which owns the cut itself.
 
 	private SaveManifestMeta MetaOf(GameCheckpoint checkpoint, int playerCount, WorldCutReason reason, string cutPhase)
 	{

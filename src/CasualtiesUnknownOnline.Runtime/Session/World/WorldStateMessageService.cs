@@ -301,16 +301,6 @@ internal sealed class WorldStateMessageService(
 		_damagedBlocks.Remove((x, y));
 	}
 
-	public void ResetDamagedBlocks()
-	{
-		_damagedBlocks.Clear();
-		_blockDamageRegistry.Reset();
-		_eventChannel.ResetConsumptions();
-		_eventChannel.ResetOpenedEntities();
-		_eventChannel.ResetBuildingEntityHealth();
-		_eventChannel.ResetTrapLayouts();
-	}
-
 	public void SendBlockStateSnapshot(ulong targetSteamId)
 	{
 		if (_session.Role != SessionRole.Host || _damagedBlocks.Count == 0)
@@ -536,5 +526,70 @@ internal sealed class WorldStateMessageService(
 		}
 
 		_pendingReportOverflowLogged = false;
+	}
+
+	// ---- World-fact capture and restore (the save system's world diff) ----
+	// The save side reads these tables as the WIRE shapes a late joiner receives
+	// (WorldFactLifecycle); the tables stay owned here, so the accessors below are
+	// the only surface the save layer gets — no read-only view of the live
+	// dictionary escapes this type.
+
+	/// <summary>This peer's session role — the save layer's authority predicate reads it (a guest never writes a world archive).</summary>
+	internal SessionRole Role => _session.Role;
+
+	/// <summary>The host's block difference table in the wire shape the late-joiner snapshot already sends.</summary>
+	internal IReadOnlyList<BlockStateEntryMsg> CaptureBlockStates() =>
+	[.. _damagedBlocks.Select(kv => new BlockStateEntryMsg { X = kv.Key.Item1, Y = kv.Key.Item2, Block = kv.Value })];
+
+	/// <summary>Host: upsert one restored block state. The cell is the identity, so a repeated cell simply wins (a snapshot never carries the same cell twice).</summary>
+	internal void ApplyBlockState(BlockStateEntryMsg entry)
+	{
+		if (_damagedBlocks.Count >= MaxDamagedBlocks && !_damagedBlocks.ContainsKey((entry.X, entry.Y)))
+		{
+			_log.LogWarning("[SaveFacts] block-state ({X},{Y}) skipped: the {Cap}-cell table is full.", entry.X, entry.Y, MaxDamagedBlocks);
+			return;
+		}
+
+		_damagedBlocks[(entry.X, entry.Y)] = entry.Block;
+	}
+
+	/// <summary>
+	/// A new world/layer is generating: every per-layer world-fact table starts
+	/// empty — the block diff, the partial damage, and the kernel-backed
+	/// world-entity tables the layer boundary always cleared. The radiation line is
+	/// deliberately kept: it is run state the boundary never touched.
+	/// </summary>
+	internal void ResetPerLayer() => ClearWorldFacts(includeRadiationLine: false, includeKernelWorldEntities: true);
+
+	/// <summary>
+	/// The save layer's restore reset: the snapshot is about to put back the whole
+	/// world-fact set, so the block diff, the partial damage AND the radiation line
+	/// start empty.
+	///
+	/// It deliberately does NOT clear the kernel-backed world-entity tables
+	/// (consumptions, opened entities, building health): those are written THROUGH
+	/// to the kernel by their registries, and the restore path runs
+	/// <c>_kernel.Restore</c> — clearing them here would erase the facts that
+	/// restore just applied. They are not part of the save layer's fact set; the
+	/// kernel checkpoint owns them.
+	/// </summary>
+	internal void ResetForRestore() => ClearWorldFacts(includeRadiationLine: true, includeKernelWorldEntities: false);
+
+	private void ClearWorldFacts(bool includeRadiationLine, bool includeKernelWorldEntities)
+	{
+		_damagedBlocks.Clear();
+		_blockDamageRegistry.Reset();
+		if (includeRadiationLine)
+		{
+			RadiationLineState = null;
+		}
+
+		if (includeKernelWorldEntities)
+		{
+			_eventChannel.ResetConsumptions();
+			_eventChannel.ResetOpenedEntities();
+			_eventChannel.ResetBuildingEntityHealth();
+			_eventChannel.ResetTrapLayouts();
+		}
 	}
 }

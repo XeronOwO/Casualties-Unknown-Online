@@ -2023,7 +2023,7 @@
     {
       "cluster": "run-world",
       "row": "R1",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:415",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:444",
       "quote": "if (!_kernelAuthority.TryStartRun(_session.LocalSteamId, run, out _, out var rejection))"
     },
     {
@@ -2281,19 +2281,19 @@
     {
       "cluster": "run-world",
       "row": "R6",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:83",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:89",
       "quote": "_projectionHealth.Register(new ProjectionDomain(\"run\", RebuildRunFromKernel, () => _kernelAuthority.CurrentGlobalRevision));"
     },
     {
       "cluster": "run-world",
       "row": "R6",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:443",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:472",
       "quote": "_projectionHealth.Run(\"run\", batch.GlobalRevision, () =>"
     },
     {
       "cluster": "run-world",
       "row": "R6",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:471",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:500",
       "quote": "private void RebuildRunFromKernel()"
     },
     {
@@ -2443,7 +2443,7 @@
     {
       "cluster": "world-blocks",
       "row": "W2",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/BlockDamageRegistry.cs:74",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/BlockDamageRegistry.cs:93",
       "quote": "_sender.Send(targetSteamId, NetMsg.BlockDamageSnapshot, new BlockDamageSnapshotMsg"
     },
     {
@@ -3187,7 +3187,7 @@
     {
       "cluster": "inline",
       "row": "W1",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStateMessageService.cs:325",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStateMessageService.cs:315",
       "quote": "_sender.Send(targetSteamId, NetMsg.WorldBlockState, msg);"
     },
     {
@@ -3217,7 +3217,7 @@
     {
       "cluster": "inline",
       "row": "W2",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/BlockDamageRegistry.cs:49",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/BlockDamageRegistry.cs:60",
       "quote": "_damage[key] = damage;"
     },
     {
@@ -3229,8 +3229,8 @@
     {
       "cluster": "inline",
       "row": "W2",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/BlockDamageRegistry.cs:32",
-      "quote": "if (_session.Role != SessionRole.Host)"
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/BlockDamageRegistry.cs:88",
+      "quote": "if (_session.Role != SessionRole.Host || _damage.Count == 0)"
     },
     {
       "cluster": "inline",
@@ -4219,13 +4219,13 @@
     {
       "cluster": "inline",
       "row": "R1",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:400",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:429",
       "quote": "public void PublishWorldParams(WorldStartParams parameters)"
     },
     {
       "cluster": "inline",
       "row": "R1",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:406",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:435",
       "quote": "private void CommitRunBaseline(WorldStartParams parameters)"
     },
     {
@@ -4447,13 +4447,13 @@
     {
       "cluster": "inline",
       "row": "W1",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:114",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:120",
       "quote": "_blockReportFallback.Pump(nowMs, _messages.PendingBlockReportCount, _messages.ResendPendingBlockReports);"
     },
     {
       "cluster": "inline",
       "row": "W1",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStateMessageService.cs:453",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStateMessageService.cs:443",
       "quote": "_sender.Send(_session.HostSteamId, NetMsg.BlockPlaced,"
     },
     {
@@ -4471,7 +4471,7 @@
     {
       "cluster": "inline",
       "row": "W1",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStateMessageService.cs:516",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStateMessageService.cs:506",
       "quote": "_log.LogWarning(\"[BlockSync] pending block-report table is full ({Cap} cells) — new cells are not re-reported until the host answers (cell ({X},{Y}) dropped).\","
     },
     {
@@ -4483,7 +4483,7 @@
     {
       "cluster": "inline",
       "row": "W1",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStateMessageService.cs:529",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStateMessageService.cs:519",
       "quote": "public void ResetPendingBlockReports()"
     },
     {
@@ -4639,7 +4639,7 @@
     {
       "cluster": "inline",
       "row": "E3",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:371",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:400",
       "quote": "_channels.ResetRuntimeEntities();"
     },
     {

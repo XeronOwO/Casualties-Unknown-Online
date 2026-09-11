@@ -49,11 +49,11 @@ public sealed class WorldSnapshotEncoder(ILogger<WorldSnapshotEncoder> log)
 			Json(SaveArchiveFormat.FluidsFileName, (checkpoint.Fluids?.Regions ?? []).Select(KernelDomainWireMapper.ToWireFluidRegionState).ToList()),
 
 			// A layer-end cut has no in-layer deviations: the blocks the player
-			// changed and the transient world facts (S3's domain) are regenerated
-			// from the run baseline. The files exist now so S3 fills them without
-			// a schema change (§3.4).
-			Json(SaveArchiveFormat.WorldBlocksFileName, new List<object>()),
-			Json(SaveArchiveFormat.WorldTransientsFileName, new List<object>()),
+			// changed and the transient world facts are DROPPED here, because the
+			// layer it names is regenerated from the run baseline (§3.4/§4). Every
+			// other kind writes the payload's facts as typed rows.
+			Json(SaveArchiveFormat.WorldBlocksFileName, RowsFor(payload, payload.WorldBlocks)),
+			Json(SaveArchiveFormat.WorldTransientsFileName, RowsFor(payload, payload.WorldTransients)),
 		};
 
 		foreach (var character in payload.Characters)
@@ -79,6 +79,30 @@ public sealed class WorldSnapshotEncoder(ILogger<WorldSnapshotEncoder> log)
 		.. table.Enemies.Select(SaveEnemyRow.OfEnemy),
 		.. table.Removed.Select(SaveEnemyRow.OfRemoved),
 	];
+
+	/// <summary>
+	/// The world facts one cut writes, or none. The kind owns the decision: a
+	/// layer-end cut records no in-layer fact at all, so a caller that gathered
+	/// the live tables for one (they do exist mid-layer, e.g. at a deliberate
+	/// menu return) would otherwise lose them silently — the mismatch is NAMED
+	/// here instead, and the cut still writes the empty arrays it must.
+	/// </summary>
+	private List<T> RowsFor<T>(WorldSnapshotPayload payload, IReadOnlyList<T>? facts)
+	{
+		if (payload.Kind != WorldCutKind.LayerEnd)
+		{
+			return facts is null ? [] : [.. facts];
+		}
+
+		if (facts is { Count: > 0 })
+		{
+			_log.LogWarning(
+				"A {Kind} cut carries {Count} world fact(s), and a layer-end cut writes none of them: the layer it names is regenerated from the run baseline. The facts are not written (§3.4).",
+				payload.Kind, facts.Count);
+		}
+
+		return [];
+	}
 
 	/// <summary>
 	/// Domains the kernel checkpoint carries but no S2 file does. Nothing

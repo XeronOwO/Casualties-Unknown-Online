@@ -9,8 +9,9 @@ namespace CasualtiesUnknownOnline.Tests.Persistence;
 
 /// <summary>
 /// One save service wired over a throwaway world repository with a real kernel,
-/// the fake character table and a scripted session — the two save suites (cut
-/// and continue) share it so neither hand-rolls its own composition.
+/// the fake character table, an in-memory world-fact source and a scripted
+/// session — the save suites (cut, continue and world facts) share it so none
+/// hand-rolls its own composition.
 /// </summary>
 internal sealed class WorldSaveFixture : IDisposable
 {
@@ -19,13 +20,15 @@ internal sealed class WorldSaveFixture : IDisposable
 		SaveTestRepository repository,
 		ItemKernelAuthority kernel,
 		FakeCharacterDataControl characters,
-		FakeSessionControl session)
+		FakeSessionControl session,
+		FakeWorldFactSource worldFacts)
 	{
 		Service = service;
 		Repository = repository;
 		Kernel = kernel;
 		Characters = characters;
 		Session = session;
+		WorldFacts = worldFacts;
 	}
 
 	internal WorldSaveService Service { get; }
@@ -38,16 +41,26 @@ internal sealed class WorldSaveFixture : IDisposable
 
 	internal FakeSessionControl Session { get; }
 
+	/// <summary>The world-fact tables this fixture's service reads and rewrites.</summary>
+	internal FakeWorldFactSource WorldFacts { get; }
+
 	/// <summary>The world this fixture's service owns (the run `TryBeginRun` created).</summary>
 	internal string WorldId => Service.CurrentWorldId;
 
-	internal static WorldSaveFixture Create(string label, bool ipDirect = false, string displayName = "Host", ulong hostId = 1001UL, SaveTestRepository? repository = null)
+	internal static WorldSaveFixture Create(
+		string label,
+		bool ipDirect = false,
+		string displayName = "Host",
+		ulong hostId = 1001UL,
+		SaveTestRepository? repository = null,
+		FakeNativeWorldFacts? nativeWorldFacts = null)
 	{
 		repository ??= SaveTestRepository.Create(label);
 		var kernel = new ItemKernelAuthority(NullLogger<ItemKernelAuthority>.Instance);
 		var characters = new FakeCharacterDataControl();
 		var session = new FakeSessionControl { LocalSteamId = hostId, HostSteamId = hostId };
 		var transport = new FakeTransportIdentity { LocalPeerId = hostId, LocalDisplayName = displayName, IsIpDirect = ipDirect };
+		var worldFacts = new FakeWorldFactSource();
 		var service = new WorldSaveService(
 			repository.Repository,
 			session,
@@ -55,11 +68,13 @@ internal sealed class WorldSaveFixture : IDisposable
 			kernel,
 			transport,
 			new WorldSnapshotEncoder(NullLogger<WorldSnapshotEncoder>.Instance),
+			worldFacts,
 			NullLoggerFactory.Instance,
 			NullLogger<WorldSaveService>.Instance,
-			gameBuild: "test");
+			gameBuild: "test",
+			nativeWorldFacts: nativeWorldFacts);
 
-		return new WorldSaveFixture(service, repository, kernel, characters, session);
+		return new WorldSaveFixture(service, repository, kernel, characters, session, worldFacts);
 	}
 
 	/// <summary>A second service over the SAME world repository with a fresh kernel — a host restart.</summary>

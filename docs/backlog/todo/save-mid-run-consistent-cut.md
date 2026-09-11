@@ -37,7 +37,10 @@ The consistent cut and the full mid-run payload. This is where the hard part of 
 2. **Payload completion** — `world-blocks.json` (host block difference table
    `WorldStateMessageService._damagedBlocks` + `BlockDamageRegistry` partial damage + the native
    `WorldGeneration.blockDamages` list) and `world-transients.json` (the explicitly chosen transient
-   set), on top of the S2 domain files.
+   set), on top of the S2 domain files. The native list needs its own discriminator (or its own kind)
+   when it lands: both tables are capped (CUO's registry at 256, the game's list at 128) and a
+   restore has to route each row back to the table it came from, never merge them into one.
+   S3.1 deliberately left it out for that reason; the Runtime half of both files landed there.
 3. **Transient policy — one explicit verdict per in-flight state, no silent loss.** Each row below
    gets `capture` / `resolve-before-save` / `drop-with-log`, proven by a test:
 
@@ -61,6 +64,19 @@ The consistent cut and the full mid-run payload. This is where the hard part of 
    reproduce the world.
 5. **Exactly-once restore** — same-id dedup, no re-materialization of generation-time content, container
    children with exactly one parent, terminal facts never resurrected, load-twice idempotence.
+6. **Restore-report completeness** (found by S3.1's review rounds) — the world-block tables are
+   BOUNDED (CUO's partial-damage registry at 256 cells, its block-diff table at 65536), and the
+   apply path can also drop a row whose payload is unreadable. Today those drops reach the log but
+   not `WorldContinueOutcome.Summary`, so a restore can report success while a row was dropped.
+   Make `IWorldFactSource.ApplyFacts` return what it applied/dropped (or expose the table counts)
+   and fold that into the restore report, so §6's "every dropped entry is surfaced" holds for the
+   world facts too.
+7. **Refusal recovery** (found by S3.1's review round 2) — a decode-level refusal (a snapshot whose
+   manifest kind contradicts its payload) is reported but has no fallback: the reader retries a
+   backup only while the manifest is read, and `loadSnapshot` has already returned by then. Give
+   the repository a "newest readable snapshot OF THIS WORLD" retry that runs after a decode
+   refusal, so a damaged live snapshot falls back to its own newest backup the way an unreadable
+   manifest already does (§6).
 
 ## Acceptance
 

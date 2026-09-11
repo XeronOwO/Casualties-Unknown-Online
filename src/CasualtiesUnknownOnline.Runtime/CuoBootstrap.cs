@@ -262,6 +262,10 @@ public static class CuoBootstrap
 		services.AddSingleton<WorldEntityKernelProjection>();
 		services.AddSingleton<WorldService>();
 		services.AddSingleton<IWorldControl>(p => p.GetRequiredService<WorldService>());
+		// The world-fact port the save system reads and rewrites (the block diff,
+		// the partial damage, the radiation line) is the facade's own lifecycle, so
+		// a cut sees exactly the tables the live world does.
+		services.AddSingleton<IWorldFactSource>(p => p.GetRequiredService<WorldService>());
 		// The world-entry backfill fan-out owns the ordered snapshot group +
 		// completion marker; it is injected into the handshake/scene handlers
 		// so HandlerContext no longer owns a concrete world-entry flow.
@@ -435,9 +439,17 @@ public static class CuoBootstrap
 			p.GetRequiredService<ItemKernelAuthority>(),
 			p.GetRequiredService<ITransportIdentity>(),
 			p.GetRequiredService<WorldSnapshotEncoder>(),
+			p.GetRequiredService<IWorldFactSource>(),
 			p.GetRequiredService<ILoggerFactory>(),
 			p.GetRequiredService<ILogger<WorldSaveService>>(),
-			gameBuild));
+			gameBuild,
+			utcNow: null,
+			// The Game Adapter registers the native world-fact reader through
+			// extraRegistrations (it is the only layer that knows the game's keypad,
+			// geyser and block-damage tables). It is optional by design: a build
+			// without one captures and restores only the Runtime-owned facts, and
+			// that gap is reported, never silent.
+			nativeWorldFacts: p.GetService<INativeWorldFacts>()));
 		services.AddSingleton<IWorldSaveControl>(p => p.GetRequiredService<WorldSaveService>());
 
 		extraRegistrations?.Invoke(services);

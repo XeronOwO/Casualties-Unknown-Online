@@ -313,11 +313,12 @@ public class WorldSnapshotCodecTests
 	/// <summary>Writes the files through the real writer and decodes them back through the real reader.</summary>
 	internal static (WorldSnapshotDecode Decode, SalvageResult Salvage) Decode(
 		IReadOnlyList<SavePayloadFile> files,
-		ulong runEpoch = RunId)
+		ulong runEpoch = RunId,
+		WorldCutKind kind = WorldCutKind.LayerEnd)
 	{
 		var test = SaveTestRepository.Create("codec");
 		var meta = SaveTestData.Meta(runEpoch: runEpoch.ToString(CultureInfo.InvariantCulture));
-		var write = test.Repository.WriteSnapshot(test.WorldId, SaveTestData.Request(test.WorldId, WorldCutKind.LayerEnd, test.Now, meta, [.. files]));
+		var write = test.Repository.WriteSnapshot(test.WorldId, SaveTestData.Request(test.WorldId, kind, test.Now, meta, [.. files]));
 		Assert.True(write.Success, $"{write.Reason}: {write.Detail}");
 
 		var options = new WorldLoadOptions { VerifyChecksums = true };
@@ -329,6 +330,7 @@ public class WorldSnapshotCodecTests
 		return (decoder.Finish(), salvage);
 	}
 
+	/// <summary>A run baseline entry the manifest's run epoch can agree with.</summary>
 	internal static string RunEntry() =>
 		"[{\"runId\":42,\"randomState\":\"AQID\",\"biomeOverride\":0,\"biomeDepth\":2,\"totalTraveled\":10,\"loadedRun\":false,\"layerIndex\":0}]";
 

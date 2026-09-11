@@ -20,12 +20,13 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 /// This facade keeps <see cref="IWorldControl"/> stable for packet handlers and
 /// the Game Adapter without turning one class into a mixed god-object.
 /// </summary>
-public sealed class WorldService : IWorldControl, IDisposable
+public sealed class WorldService : IWorldControl, IWorldFactSource, IDisposable
 {
 	private readonly ISessionControl _session;
 	private readonly ILogger<WorldService> _log;
 	private readonly WorldChannelRelay _channels;
 	private readonly WorldStateMessageService _messages;
+	private readonly WorldFactLifecycle _facts;
 	private readonly PendingReportFallback _blockReportFallback;
 	private readonly ItemKernelAuthority _kernelAuthority;
 	private readonly FluidKernelProjection _fluidKernel;
@@ -73,7 +74,12 @@ public sealed class WorldService : IWorldControl, IDisposable
 		_session = session;
 		_log = log;
 		_channels = new WorldChannelRelay(eventChannel, runtimeEntityChannel, tradeChannel, speechChannel, chatChannel, locationPingChannel);
+
+		// The message surface is this facade's own collaborator, not a DI singleton:
+		// the world-fact lifecycle (which the save layer resolves) is built over the
+		// SAME instance, so both see one set of tables.
 		_messages = new WorldStateMessageService(session, sender, log, eventChannel, blockDamageRegistry);
+		_facts = new WorldFactLifecycle(_messages, blockDamageRegistry, log);
 		_blockReportFallback = new PendingReportFallback(session);
 		_startGate = new WorldStartGate(session, sender, time, log);
 		_kernelAuthority = kernelAuthority;
@@ -126,6 +132,28 @@ public sealed class WorldService : IWorldControl, IDisposable
 	}
 
 	private void OnSessionEnded() => ResetSessionState();
+
+	/// <summary>
+	/// The world facts the kernel does not own, exposed for the save system's cut
+	/// and restore. The facade implements the port and delegates to the
+	/// world-fact lifecycle, which sequences capture and the reset-then-apply
+	/// restore over the tables the message surface and the block-damage registry
+	/// own — this type holds none of them itself.
+	/// </summary>
+	public IReadOnlyList<BlockStateEntryMsg> CaptureBlockStates() => _facts.CaptureBlockStates();
+
+	/// <inheritdoc cref="CaptureBlockStates"/>
+	public IReadOnlyList<BlockDamageEntryMsg> CaptureBlockDamages() => _facts.CaptureBlockDamages();
+
+	/// <inheritdoc cref="CaptureBlockStates"/>
+	public RadiationLineStateMsg? CaptureRadiationLine() => _facts.CaptureRadiationLine();
+
+	/// <inheritdoc cref="CaptureBlockStates"/>
+	public void ApplyFacts(
+		IReadOnlyList<BlockStateEntryMsg> blockStates,
+		IReadOnlyList<BlockDamageEntryMsg> blockDamages,
+		RadiationLineStateMsg? radiationLine) =>
+		_facts.ApplyFacts(blockStates, blockDamages, radiationLine);
 
 	public void Dispose()
 	{
@@ -361,13 +389,14 @@ public sealed class WorldService : IWorldControl, IDisposable
 
 	/// <summary>
 	/// Host only: a new world layer is generating — every world-domain table
-	/// resets. The block/damage/trap tables live in <see cref="WorldStateMessageService"/>;
-	/// the runtime-created entity table is the sibling registration table of the
-	/// same generation boundary (its entities are gone with the old scene).
+	/// resets. The block/damage/radiation tables live behind the world-fact
+	/// lifecycle (which the save layer also reads and rewrites); the
+	/// runtime-created entity table is the sibling registration table of the same
+	/// generation boundary (its entities are gone with the old scene).
 	/// </summary>
 	private void ResetWorldLayerTables()
 	{
-		_messages.ResetDamagedBlocks();
+		_facts.ResetWorldDomainTables();
 		_channels.ResetRuntimeEntities();
 	}
 

@@ -114,8 +114,27 @@ root is not an array is a whole-file defect, never guessed at. A single-record t
 carry `kind` (`trap-consumption` | `building-health` | `opened-entity` | `trap-state`) and the row's
 own payload; `enemies.json` rows carry `kind` (`enemy` | `removed`), where `removed` is the
 terminal tombstone that stops a killed enemy from being resurrected. A single-shape table writes
-its row type directly. `world-blocks.json` and `world-transients.json` are written as empty arrays
-by a layer-end cut (no in-layer deviations); S3 fills them without a schema change.
+its row type directly.
+
+`world-blocks.json` is the in-layer block diff, and its rows carry `kind` (`block-state` |
+`block-damage`) with the row's wire payload: `blockState` is `{x, y, block}` — a block whose id
+differs from the generated baseline, mined, destroyed, built or reverted — and `blockDamage` is
+`{x, y, damage}` — the accumulated damage of a block that has NOT broken yet. The cell is the
+identity of both, so no offset or instance id is stored. `world-transients.json` carries the
+transient set the cut captured, keyed by `kind`: `keypad` carries `{position, code}` and `geyser`
+carries `{position, liquidType}` — both DECIDED values that must be carried and never re-rolled —
+and `radiation-line` carries `{active, timeGone}`. The payloads are the same wire DTOs the
+late-joiner snapshot already sends, so a restore hands the existing appliers their own shape
+instead of introducing a second validation path. A layer-end cut records no in-layer fact at all
+— the layer it names is regenerated from the run baseline — so both files are empty arrays for
+one, and the encoder writes that empty form regardless of what a caller gathered.
+
+The game's own `WorldGeneration.world.blockDamages` list is a second table of the same
+`block-damage` shape (the game breaks blocks from it; CUO's accumulation is the table a late
+joiner receives). It is NOT written yet: its rows would be indistinguishable from CUO's, so a
+restore could not route them back and would merge both into CUO's bounded registry. Stage S3.2
+owns that capture together with the discriminator and the native applier; until then a mid-run cut
+carries the Runtime-owned facts only, which the cut names.
 
 `characters/<playerKey>.json` holds one player character per file (an entry array of one), in the
 native `SaveInfo` shape plus CUO extensions, so the existing `CharacterDataFileStore` restore path
@@ -182,6 +201,16 @@ Decision 163: restore minimizes loss, and salvage is **per entry, not per domain
 - The **manifest is the only hard gate**. If `manifest.json` cannot be read or parsed, the archive
   is *damaged*: it is never silently loaded. The loader falls back to the newest backup archive
   whose manifest reads, and reports the fallback loudly.
+- **The manifest's `kind` and the payload must agree.** A `layer-end` cut records no in-layer fact
+  (§3.4), so a snapshot whose manifest names one while `world-blocks.json` or
+  `world-transients.json` carries rows is self-contradictory: applying them would graft one
+  layer's mutations onto the layer the restore regenerates, and dropping them quietly is exactly
+  what this section forbids. Such a snapshot is REFUSED as a whole.
+- A refusal is not yet backed by a backup retry: the reader's fallback runs while the MANIFEST is
+  read, and a decode-level refusal happens afterwards. Until the recovery surface lands, such a
+  world stays unopenable and the reason is reported with the `worldId`. No build writes that shape
+  (a layer-end cut always writes the two empty arrays), so this guards a corrupted or foreign
+  snapshot, not a produced one.
 - If the manifest reads, the load proceeds in **repair mode**. Per domain file:
   - An unreadable domain file is skipped with a warning; the other domains still load.
   - A readable domain file is decoded **entry by entry**: an entry that cannot be materialized —

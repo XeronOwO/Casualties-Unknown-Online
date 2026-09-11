@@ -4,6 +4,7 @@ using BepInEx.Logging;
 using CasualtiesUnknownOnline.Runtime;
 using CasualtiesUnknownOnline.Runtime.Networking;
 using CasualtiesUnknownOnline.Runtime.Session.Persistence;
+using CasualtiesUnknownOnline.Runtime.Session.World;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -30,6 +31,11 @@ public class WorldSaveCompositionTests
 		Assert.True(control.IsEnabled);
 		Assert.False(control.HasRestorableWorld);
 		Assert.Null(control.ContinueWorldId);
+
+		// The world-fact port the save system reads and rewrites IS the world
+		// control's own lifecycle: a cut has to see exactly the tables the live
+		// world does, so a second instance would silently snapshot nothing.
+		Assert.Same(provider.GetRequiredService<IWorldControl>(), provider.GetRequiredService<IWorldFactSource>());
 
 		// The transport identity the save layer asks for is the router's: it is the
 		// only object that knows which transport is live (§2).

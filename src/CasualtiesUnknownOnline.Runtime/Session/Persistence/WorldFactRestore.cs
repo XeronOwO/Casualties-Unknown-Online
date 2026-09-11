@@ -8,10 +8,10 @@ using Microsoft.Extensions.Logging;
 namespace CasualtiesUnknownOnline.Runtime.Session.Persistence;
 
 /// <summary>
-/// Puts ONE RESTORED CUT's world facts back: the Runtime half (the block diff, the
-/// partial damage, the radiation line) through <see cref="IWorldFactSource"/>, the
-/// native half (keypad codes, geyser liquid types, the game's own partial-damage
-/// list) through <see cref="INativeWorldFacts"/>.
+/// Puts ONE RESTORED CUT's world facts back: the Runtime half (the block diff and
+/// the radiation line) through <see cref="IWorldFactSource"/>, the native half
+/// (keypad codes, geyser liquid types and the partial block damage, which has no
+/// Runtime table) through <see cref="INativeWorldFacts"/>.
 ///
 /// Split out of <see cref="WorldSaveService"/> — which owns WHICH world a run
 /// writes into and WHEN a cut is taken — because the restore's per-row routing is
@@ -26,14 +26,17 @@ internal sealed class WorldFactRestore(
 	ILogger<WorldFactRestore> log)
 {
 	/// <summary>
-	/// Puts one restored cut's world facts back. The Runtime half (the block diff,
-	/// the partial damage and the radiation line) is applied absolutely through
+	/// Puts one restored cut's world facts back. The Runtime half (the block diff
+	/// and the radiation line) is applied absolutely through
 	/// <see cref="IWorldFactSource"/>, which resets first — the cut is the whole
 	/// truth for those tables. The native half (keypad codes, geyser liquid types
-	/// and the game's own partial-damage list) is handed to
-	/// <see cref="INativeWorldFacts"/>. Everything that could NOT be put back is
-	/// RETURNED as damage for the restore report, because a keypad left to re-roll
-	/// is a value the player can see (§6: never a quiet default).
+	/// and the partial block damage) is handed to
+	/// <see cref="INativeWorldFacts"/>. Everything the RUNTIME half could NOT put
+	/// back is RETURNED as damage for the restore report, because a keypad left to
+	/// re-roll is a value the player can see (§6: never a quiet default). The native
+	/// half's own refusals land later, at the world-entry replay, and reach the log
+	/// today rather than the outcome — the restore-report gap tracked in
+	/// `todo/save-mid-run-consistent-cut.md` (scope 6).
 	/// </summary>
 	internal List<string> Apply(
 		IReadOnlyList<SaveWorldBlockRow> blocks,
@@ -41,7 +44,6 @@ internal sealed class WorldFactRestore(
 	{
 		var damage = new List<string>();
 		var blockStates = new List<BlockStateEntryMsg>();
-		var blockDamages = new List<BlockDamageEntryMsg>();
 		var nativeDamages = new List<BlockDamageEntryMsg>();
 		var radiationLine = (RadiationLineStateMsg?)null;
 		var keypads = new List<KeypadEntryMsg>();
@@ -64,9 +66,6 @@ internal sealed class WorldFactRestore(
 						Block = row.BlockState.Block,
 						SupportLossSettled = true,
 					});
-					break;
-				case SaveWorldBlockRow.BlockDamageKind when row.BlockDamage is not null:
-					blockDamages.Add(row.BlockDamage);
 					break;
 				case SaveWorldBlockRow.NativeBlockDamageKind when row.NativeBlockDamage is not null:
 					nativeDamages.Add(row.NativeBlockDamage);
@@ -98,7 +97,7 @@ internal sealed class WorldFactRestore(
 			}
 		}
 
-		var report = worldFacts.ApplyFacts(blockStates, blockDamages, radiationLine);
+		var report = worldFacts.ApplyFacts(blockStates, radiationLine);
 		if (report.Describe() is { } refused)
 		{
 			// The bounded tables refused rows: a restore that reported success

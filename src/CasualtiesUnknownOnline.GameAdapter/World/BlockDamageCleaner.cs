@@ -12,9 +12,9 @@ namespace CasualtiesUnknownOnline.GameAdapter.World;
 /// <c>BlockDamage</c> when it breaks a block, but direct <c>SetBlock(0)</c>
 /// paths — remote air writes, block-state snapshots, earthquake/environment
 /// breaks — do not, so the crack sprite would otherwise remain over an air
-/// cell ("fragmented air"). The Runtime <c>BlockDamageRegistry</c> is separate
-/// (snapshot bookkeeping) and is cleared by <c>BlockBreakSync.OnBlockAirWrite</c>;
-/// this class owns only the game-side visual/list cleanup.
+/// cell ("fragmented air"). The game's list is now the ONLY partial-damage table
+/// — the CUO registry that <c>BlockBreakSync.OnBlockAirWrite</c> used to clear
+/// alongside it was deleted — so this class owns the whole air-write cleanup.
 /// </summary>
 internal static class BlockDamageCleaner
 {

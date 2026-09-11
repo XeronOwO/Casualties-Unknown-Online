@@ -65,7 +65,7 @@ public sealed class WorldService : IWorldControl, IWorldFactSource, IDisposable
 		SpeechChannel speechChannel,
 		ChatChannel chatChannel,
 		LocationPingChannel locationPingChannel,
-		BlockDamageRegistry blockDamageRegistry,
+		INativeWorldFacts? nativeWorldFacts,
 		ItemKernelAuthority kernelAuthority,
 		FluidKernelProjection fluidKernel,
 		FluidKernelReadProjection fluidKernelRead,
@@ -78,8 +78,8 @@ public sealed class WorldService : IWorldControl, IWorldFactSource, IDisposable
 		// The message surface is this facade's own collaborator, not a DI singleton:
 		// the world-fact lifecycle (which the save layer resolves) is built over the
 		// SAME instance, so both see one set of tables.
-		_messages = new WorldStateMessageService(session, sender, log, eventChannel, blockDamageRegistry);
-		_facts = new WorldFactLifecycle(_messages, blockDamageRegistry, log);
+		_messages = new WorldStateMessageService(session, sender, log, eventChannel, nativeWorldFacts);
+		_facts = new WorldFactLifecycle(_messages, log);
 		_blockReportFallback = new PendingReportFallback(session);
 		_startGate = new WorldStartGate(session, sender, time, log);
 		_kernelAuthority = kernelAuthority;
@@ -141,13 +141,12 @@ public sealed class WorldService : IWorldControl, IWorldFactSource, IDisposable
 	/// The world facts the kernel does not own, exposed for the save system's cut
 	/// and restore. The facade implements the port and delegates to the
 	/// world-fact lifecycle, which sequences capture and the reset-then-apply
-	/// restore over the tables the message surface and the block-damage registry
-	/// own — this type holds none of them itself.
+	/// restore over the tables the message surface owns — this type holds none of
+	/// them itself. The GAME's own tables are deliberately NOT part of this port:
+	/// only the adapter can read them, and they travel through
+	/// <see cref="INativeWorldFacts"/>.
 	/// </summary>
 	public IReadOnlyList<BlockStateEntryMsg> CaptureBlockStates() => _facts.CaptureBlockStates();
-
-	/// <inheritdoc cref="CaptureBlockStates"/>
-	public IReadOnlyList<BlockDamageEntryMsg> CaptureBlockDamages() => _facts.CaptureBlockDamages();
 
 	/// <inheritdoc cref="CaptureBlockStates"/>
 	public RadiationLineStateMsg? CaptureRadiationLine() => _facts.CaptureRadiationLine();
@@ -155,9 +154,8 @@ public sealed class WorldService : IWorldControl, IWorldFactSource, IDisposable
 	/// <inheritdoc cref="CaptureBlockStates"/>
 	public WorldFactApplyReport ApplyFacts(
 		IReadOnlyList<BlockStateEntryMsg> blockStates,
-		IReadOnlyList<BlockDamageEntryMsg> blockDamages,
 		RadiationLineStateMsg? radiationLine) =>
-		_facts.ApplyFacts(blockStates, blockDamages, radiationLine);
+		_facts.ApplyFacts(blockStates, radiationLine);
 
 	/// <inheritdoc cref="CaptureBlockStates"/>
 	public bool HasPendingLiveReplay => _facts.HasPendingLiveReplay;
@@ -411,10 +409,6 @@ public sealed class WorldService : IWorldControl, IWorldFactSource, IDisposable
 	}
 
 	public void SendBlockStateSnapshot(ulong targetSteamId) => _messages.SendBlockStateSnapshot(targetSteamId);
-
-	public void ReportBlockDamage(int x, int y, float damage) => _messages.ReportBlockDamage(x, y, damage);
-
-	public void RemoveBlockDamage(int x, int y) => _messages.RemoveBlockDamage(x, y);
 
 	public void SendBlockDamageSnapshot(ulong targetSteamId) => _messages.SendBlockDamageSnapshot(targetSteamId);
 

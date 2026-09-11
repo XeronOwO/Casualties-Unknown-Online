@@ -21,13 +21,15 @@ internal sealed class WorldStateMessageService(
 	PacketSender sender,
 	ILogger<WorldService> log,
 	EntityEventChannel eventChannel,
-	BlockDamageRegistry blockDamageRegistry)
+	INativeWorldFacts? nativeWorldFacts)
 {
 	private readonly ISessionControl _session = session;
 	private readonly PacketSender _sender = sender;
 	private readonly ILogger<WorldService> _log = log;
 	private readonly EntityEventChannel _eventChannel = eventChannel;
-	private readonly BlockDamageRegistry _blockDamageRegistry = blockDamageRegistry;
+
+	/// <summary>The partial-damage snapshot's send half — the only world flow that reads the GAME's own tables.</summary>
+	private readonly BlockDamageSnapshotSender _blockDamageSnapshot = new(session, sender, nativeWorldFacts, log);
 
 	/// <summary>
 	/// Host-side block-difference table: block-space position → current block id,
@@ -65,11 +67,8 @@ internal sealed class WorldStateMessageService(
 	public void FireBlockDamageSnapshotReceived(IReadOnlyList<BlockDamageEntryMsg> entries) =>
 		BlockDamageSnapshotReceived?.Invoke(entries);
 
-	public void ReportBlockDamage(int x, int y, float damage) => _blockDamageRegistry.Report(x, y, damage);
-
-	public void RemoveBlockDamage(int x, int y) => _blockDamageRegistry.Remove(x, y);
-
-	public void SendBlockDamageSnapshot(ulong targetSteamId) => _blockDamageRegistry.SendSnapshot(targetSteamId);
+	/// <summary>Host only: send the partial damage the GAME's own list holds (see <see cref="BlockDamageSnapshotSender"/>).</summary>
+	public void SendBlockDamageSnapshot(ulong targetSteamId) => _blockDamageSnapshot.Send(targetSteamId);
 
 	// ---- World message flow ----
 
@@ -420,7 +419,6 @@ internal sealed class WorldStateMessageService(
 		RadiationLineState = null;
 		_damagedBlocks.Clear();
 		_pendingBlockReports.Reset();
-		_blockDamageRegistry.Reset();
 		_eventChannel.ResetConsumptions();
 		_eventChannel.ResetOpenedEntities();
 		_eventChannel.ResetBuildingEntityHealth();
@@ -536,17 +534,18 @@ internal sealed class WorldStateMessageService(
 	}
 
 	/// <summary>
-	/// A new world/layer is generating: every per-layer world-fact table starts
-	/// empty — the block diff, the partial damage, and the kernel-backed
-	/// world-entity tables the layer boundary always cleared. The radiation line is
-	/// deliberately kept: it is run state the boundary never touched.
+	/// A new world/layer is generating: every per-layer RUNTIME world-fact table
+	/// starts empty — the block diff, and the kernel-backed world-entity tables the
+	/// layer boundary always cleared. The partial block damage is not among them:
+	/// it has no Runtime table, and the game regenerates its own list with the
+	/// layer. The radiation line is deliberately kept: it is run state the boundary
+	/// never touched.
 	/// </summary>
 	internal void ResetPerLayer() => ClearWorldFacts(includeRadiationLine: false, includeKernelWorldEntities: true);
 
 	/// <summary>
 	/// The save layer's restore reset: the snapshot is about to put back the whole
-	/// world-fact set, so the block diff, the partial damage AND the radiation line
-	/// start empty.
+	/// Runtime world-fact set, so the block diff AND the radiation line start empty.
 	///
 	/// It deliberately does NOT clear the kernel-backed world-entity tables
 	/// (consumptions, opened entities, building health): those are written THROUGH
@@ -560,7 +559,6 @@ internal sealed class WorldStateMessageService(
 	private void ClearWorldFacts(bool includeRadiationLine, bool includeKernelWorldEntities)
 	{
 		_damagedBlocks.Clear();
-		_blockDamageRegistry.Reset();
 		if (includeRadiationLine)
 		{
 			RadiationLineState = null;

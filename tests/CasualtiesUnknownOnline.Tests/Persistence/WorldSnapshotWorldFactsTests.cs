@@ -71,7 +71,7 @@ public class WorldSnapshotWorldFactsTests
 			blocks:
 			[
 				SaveWorldBlockRow.OfBlockState(3, 4, 0),
-				SaveWorldBlockRow.OfBlockDamage(5, 6, 0.25f),
+				SaveWorldBlockRow.OfNativeBlockDamage(5, 6, 0.25f),
 			],
 			transients:
 			[
@@ -86,7 +86,7 @@ public class WorldSnapshotWorldFactsTests
 		Assert.Equal("block-state", blockRows[0].GetProperty("kind").GetString());
 		Assert.Equal(3, blockRows[0].GetProperty("blockState").GetProperty("x").GetInt32());
 		Assert.Equal(0, blockRows[0].GetProperty("blockState").GetProperty("block").GetInt32());
-		Assert.Equal("block-damage", blockRows[1].GetProperty("kind").GetString());
+		Assert.Equal("native-block-damage", blockRows[1].GetProperty("kind").GetString());
 
 		using var transients = JsonDocument.Parse(Content(files, SaveArchiveFormat.WorldTransientsFileName));
 		var transientRows = transients.RootElement.EnumerateArray().ToList();
@@ -102,7 +102,7 @@ public class WorldSnapshotWorldFactsTests
 		var blocks = new List<SaveWorldBlockRow>
 		{
 			SaveWorldBlockRow.OfBlockState(-3, 4, 65535),
-			SaveWorldBlockRow.OfBlockDamage(7, -8, 0.1f),
+			SaveWorldBlockRow.OfNativeBlockDamage(7, -8, 0.1f),
 		};
 
 		var (decode, salvage) = RoundTrip(blocks: blocks);
@@ -116,8 +116,8 @@ public class WorldSnapshotWorldFactsTests
 		Assert.Equal(4, state.BlockState.Y);
 		Assert.Equal(65535, state.BlockState.Block);
 
-		var damage = Assert.Single(rows, row => row.Kind == SaveWorldBlockRow.BlockDamageKind);
-		Assert.Equal(0.1f, damage.BlockDamage!.Damage);
+		var damage = Assert.Single(rows, row => row.Kind == SaveWorldBlockRow.NativeBlockDamageKind);
+		Assert.Equal(0.1f, damage.NativeBlockDamage!.Damage);
 	}
 
 	[Fact]
@@ -211,7 +211,7 @@ public class WorldSnapshotWorldFactsTests
 				RadiationRow(active: true, timeGone: 1f),
 			]);
 
-		Assert.Equal(SaveWorldBlockRow.BlockDamageKind, Assert.Single(decode.UsableWorldBlocks).Kind);
+		Assert.Equal(SaveWorldBlockRow.NativeBlockDamageKind, Assert.Single(decode.UsableWorldBlocks).Kind);
 		Assert.Equal(SaveWorldTransientRow.RadiationLineKind, Assert.Single(decode.UsableWorldTransients).Kind);
 		Assert.Contains(salvage.SkippedEntries, entry => entry.Id.Contains("block-state", StringComparison.Ordinal));
 		Assert.Contains(salvage.SkippedEntries, entry => entry.Id.Contains("keypad", StringComparison.Ordinal));
@@ -315,7 +315,6 @@ public class WorldSnapshotWorldFactsTests
 	{
 		using var fixture = WorldSaveFixture.Create("facts-layer-advance");
 		fixture.WorldFacts.SeedBlockState(3, 4, 0);
-		fixture.WorldFacts.SeedBlockDamage(5, 6, 0.25f);
 		fixture.WorldFacts.RadiationLine = Radiation(active: true, timeGone: 3f);
 		Assert.True(fixture.Service.TryBeginRun());
 		Assert.True(fixture.Kernel.TryStartRun(1001UL, WorldSaveCaptureTests.Run(layerIndex: 0), out _, out _));
@@ -355,13 +354,11 @@ public class WorldSnapshotWorldFactsTests
 
 		control.ReportBlockState(3, 4, 0);
 		control.ReportBlockState(5, 6, 12);
-		control.ReportBlockDamage(7, 8, 0.5f);
 		control.BroadcastRadiationLineState(Radiation(active: true, timeGone: 4f));
 
 		var captured = facts.CaptureBlockStates();
 		Assert.Equal(2, captured.Count);
 		Assert.Contains(captured, entry => entry is { X: 3, Y: 4, Block: 0 });
-		Assert.Equal(0.5f, Assert.Single(facts.CaptureBlockDamages()).Damage);
 		Assert.Equal(4f, facts.CaptureRadiationLine()!.TimeGone);
 
 		// A restored cut is applied ABSOLUTELY: cells the cut does not name are gone
@@ -369,12 +366,10 @@ public class WorldSnapshotWorldFactsTests
 		// as the cut recorded it.
 		facts.ApplyFacts(
 			[new BlockStateEntryMsg { X = 3, Y = 4, Block = 0 }],
-			[new BlockDamageEntryMsg { X = 7, Y = 8, Damage = 0.25f }],
 			Radiation(active: false, timeGone: 9f));
 
 		var restored = facts.CaptureBlockStates();
 		Assert.True(Assert.Single(restored) is { X: 3, Y: 4, Block: 0 }, "the cell the cut does not name survived the restore");
-		Assert.Equal(0.25f, Assert.Single(facts.CaptureBlockDamages()).Damage);
 		Assert.Equal(9f, facts.CaptureRadiationLine()!.TimeGone);
 
 		// A new LAYER still resets only the per-layer tables: the radiation line is
@@ -382,10 +377,9 @@ public class WorldSnapshotWorldFactsTests
 		// radiation row does clear it (the restore replaces the whole fact set).
 		control.ResetDamagedBlocks();
 		Assert.Empty(facts.CaptureBlockStates());
-		Assert.Empty(facts.CaptureBlockDamages());
 		Assert.NotNull(facts.CaptureRadiationLine());
 
-		facts.ApplyFacts([], [], radiationLine: null);
+		facts.ApplyFacts([], radiationLine: null);
 		Assert.Null(facts.CaptureRadiationLine());
 	}
 
@@ -406,7 +400,7 @@ public class WorldSnapshotWorldFactsTests
 
 		// A live table with content, so the restore's reset really has work to do.
 		control.ReportBlockState(3, 4, 0);
-		facts.ApplyFacts([new BlockStateEntryMsg { X = 9, Y = 9, Block = 1 }], [], radiationLine: null);
+		facts.ApplyFacts([new BlockStateEntryMsg { X = 9, Y = 9, Block = 1 }], radiationLine: null);
 
 		Assert.Equal((9, 9), (Assert.Single(facts.CaptureBlockStates()).X, facts.CaptureBlockStates()[0].Y));
 		Assert.True(
@@ -423,7 +417,7 @@ public class WorldSnapshotWorldFactsTests
 
 		Assert.False(facts.HasPendingLiveReplay, "a fresh world has nothing to replay");
 
-		facts.ApplyFacts([new BlockStateEntryMsg { X = 3, Y = 4, Block = 0 }], [], radiationLine: null);
+		facts.ApplyFacts([new BlockStateEntryMsg { X = 3, Y = 4, Block = 0 }], radiationLine: null);
 		Assert.True(facts.HasPendingLiveReplay, "a restored cut owns the next generation's cache state");
 
 		// The adapter's world-entry replay clears the marker when the live world has
@@ -435,31 +429,11 @@ public class WorldSnapshotWorldFactsTests
 
 		// A LAYER reset ends a pending replay as well: the facts it was waiting for
 		// went with the reset, so a later generation must not be handed them.
-		facts.ApplyFacts([], [new BlockDamageEntryMsg { X = 7, Y = 8, Damage = 0.5f }], radiationLine: null);
+		facts.ApplyFacts([new BlockStateEntryMsg { X = 7, Y = 8, Block = 0 }], radiationLine: null);
 		Assert.True(facts.HasPendingLiveReplay);
 		control.ResetDamagedBlocks();
 		Assert.False(facts.HasPendingLiveReplay);
-		Assert.Empty(facts.CaptureBlockDamages());
-	}
-
-	[Fact]
-	public void WorldFactPort_ReportsTheRowsTheBoundedDamageTableRefused()
-	{
-		// The partial-damage registry caps at 256 cells; a restore larger than that
-		// must SAY so — a restore that reports success while a row was dropped is
-		// exactly what §6 forbids.
-		using var world = ItemSimWorld.Create();
-		var facts = world.Host.Services.GetRequiredService<IWorldFactSource>();
-		var damages = Enumerable.Range(0, 257)
-			.Select(cell => new BlockDamageEntryMsg { X = cell, Y = 0, Damage = 1f })
-			.ToList();
-
-		var report = facts.ApplyFacts([], damages, radiationLine: null);
-
-		Assert.Equal(256, report.BlockDamagesApplied);
-		Assert.Equal(1, report.BlockDamagesRefused);
-		Assert.Contains("did not land in their tables", report.Describe()!, StringComparison.Ordinal);
-		Assert.Equal(256, facts.CaptureBlockDamages().Count);
+		Assert.Empty(facts.CaptureBlockStates());
 	}
 
 	// ---- row descriptions (the repair report's identity for a skipped row) ----
@@ -467,7 +441,7 @@ public class WorldSnapshotWorldFactsTests
 	public void Describe_NamesTheCellOrTheEntityForEveryKind()
 	{
 		Assert.Equal("block-state at (3,4)", SaveWorldBlockRow.OfBlockState(3, 4, 7).Describe());
-		Assert.Equal("block-damage at (5,6)", SaveWorldBlockRow.OfBlockDamage(5, 6, 0.5f).Describe());
+		Assert.Equal("native-block-damage at (5,6)", SaveWorldBlockRow.OfNativeBlockDamage(5, 6, 0.5f).Describe());
 		Assert.Equal("<block-mystery>", new SaveWorldBlockRow { Kind = "block-mystery" }.Describe());
 
 		Assert.Equal("keypad at (1,2)", SaveWorldTransientRow.OfKeypad(Keypad(1, 2, "0")).Describe());
@@ -483,7 +457,6 @@ public class WorldSnapshotWorldFactsTests
 	{
 		using var fixture = WorldSaveFixture.Create("facts-layer-end");
 		fixture.WorldFacts.SeedBlockState(1, 2, 0);
-		fixture.WorldFacts.SeedBlockDamage(3, 4, 0.5f);
 		fixture.WorldFacts.RadiationLine = new RadiationLineStateMsg { Active = true, TimeGone = 2f };
 
 		var facts = fixture.Service.CaptureWorldFacts(WorldCutReason.LayerAdvance, WorldCutKind.LayerEnd);
@@ -498,15 +471,15 @@ public class WorldSnapshotWorldFactsTests
 	{
 		using var fixture = WorldSaveFixture.Create("facts-mid-run");
 		fixture.WorldFacts.SeedBlockState(1, 2, 0);
-		fixture.WorldFacts.SeedBlockDamage(3, 4, 0.5f);
 		fixture.WorldFacts.RadiationLine = new RadiationLineStateMsg { Active = true, TimeGone = 2f };
 
 		var facts = fixture.Service.CaptureMidRunFacts(WorldCutReason.MenuReturn, WorldCutKind.MidRun);
 
-		Assert.Equal(2, facts.Blocks.Count);
-		var state = Assert.Single(facts.Blocks, row => row.Kind == SaveWorldBlockRow.BlockStateKind).BlockState!;
+		// The Runtime half carries the block diff and the radiation line. The partial
+		// block damage is NOT here at all: it has no Runtime table, so it rides the
+		// native half instead (CaptureMidRunFacts_CarriesTheGamesOwnDamageRows).
+		var state = Assert.Single(facts.Blocks).BlockState!;
 		Assert.Equal((1, 2), (state.X, state.Y));
-		Assert.Equal(0.5f, Assert.Single(facts.Blocks, row => row.Kind == SaveWorldBlockRow.BlockDamageKind).BlockDamage!.Damage);
 		Assert.Equal(2f, Assert.Single(facts.Transients).RadiationLine!.TimeGone);
 	}
 
@@ -593,13 +566,16 @@ public class WorldSnapshotWorldFactsTests
 			blocks:
 			[
 				SaveWorldBlockRow.OfBlockState(3, 4, 0),
-				SaveWorldBlockRow.OfBlockDamage(5, 6, 0.25f),
+				SaveWorldBlockRow.OfNativeBlockDamage(5, 6, 0.25f),
 			],
 			transients: [SaveWorldTransientRow.OfRadiationLine(Radiation(active: true, timeGone: 7f))]);
 
-		using var restarted = fixture.Restart("facts-restore-restart");
+		var native = new FakeNativeWorldFacts();
+		using var restarted = WorldSaveFixture.Create(
+			"facts-restore-restart",
+			repository: fixture.Repository,
+			nativeWorldFacts: native);
 		restarted.WorldFacts.SeedBlockState(99, 99, 7); // a fact the cut does not name
-		restarted.WorldFacts.SeedBlockDamage(98, 98, 1f);
 		restarted.WorldFacts.RadiationLine = Radiation(active: true, timeGone: 99f);
 
 		Assert.True(restarted.Service.TryContinue(out var outcome), outcome.Summary);
@@ -613,8 +589,10 @@ public class WorldSnapshotWorldFactsTests
 		var state = Assert.Single(restarted.WorldFacts.Blocks);
 		Assert.Equal((3, 4), (state.X, state.Y));
 		Assert.Equal(0, state.Block);
-		Assert.Equal(0.25f, Assert.Single(restarted.WorldFacts.Damages).Damage);
 		Assert.Equal(7f, restarted.WorldFacts.RadiationLine!.TimeGone);
+
+		// The cut's native row went to the game's own list, never to a Runtime table.
+		Assert.Equal(0.25f, Assert.Single(native.Damages).Damage);
 		Assert.True(snapshot);
 	}
 
@@ -664,14 +642,13 @@ public class WorldSnapshotWorldFactsTests
 	// ---- the game's own damage table (the native half of world-blocks.json) ----
 
 	[Fact]
-	public void Codec_RoundTripsTheGamesOwnDamageRowWithItsOwnKind()
+	public void Codec_RoundTripsTheGameDamageRow()
 	{
-		// The game's blockDamages list and CUO's registry are two tables of the same
-		// row shape, so the KIND is what keeps a restore from merging them: the row
-		// round-trips with its own kind, beside CUO's rows, unchanged.
+		// The game's blockDamages list is the ONLY partial-damage table there is, so
+		// its rows carry their own kind beside the block diff and round-trip unchanged.
 		var (decode, salvage) = RoundTrip(blocks:
 		[
-			SaveWorldBlockRow.OfBlockDamage(5, 6, 0.5f),
+			SaveWorldBlockRow.OfBlockState(5, 6, 0),
 			SaveWorldBlockRow.OfNativeBlockDamage(7, 8, 2f),
 		]);
 
@@ -679,7 +656,6 @@ public class WorldSnapshotWorldFactsTests
 		Assert.True(salvage.IsClean, salvage.Report.Describe());
 		var native = Assert.Single(decode.UsableWorldBlocks, row => row.Kind == SaveWorldBlockRow.NativeBlockDamageKind).NativeBlockDamage!;
 		Assert.Equal((7, 8, 2f), (native.X, native.Y, native.Damage));
-		Assert.Null(Assert.Single(decode.UsableWorldBlocks, row => row.Kind == SaveWorldBlockRow.BlockDamageKind).NativeBlockDamage);
 	}
 
 	[Fact]
@@ -702,31 +678,27 @@ public class WorldSnapshotWorldFactsTests
 	}
 
 	[Fact]
-	public void CaptureMidRunFacts_CarriesTheGamesOwnDamageRowsWithoutTouchingCuoTable()
+	public void CaptureMidRunFacts_CarriesTheGamesOwnDamageRows()
 	{
 		var native = new FakeNativeWorldFacts();
 		native.SeedBlockDamage(7, 8, 2f);
 		using var fixture = WorldSaveFixture.Create("facts-native-damage", nativeWorldFacts: native);
-		fixture.WorldFacts.SeedBlockDamage(5, 6, 0.5f); // CUO's own table
+		fixture.WorldFacts.SeedBlockState(5, 6, 0);
 
 		var facts = fixture.Service.CaptureMidRunFacts(WorldCutReason.MenuReturn, WorldCutKind.MidRun);
 
 		Assert.Equal(2, facts.Blocks.Count);
-		Assert.Equal(0.5f, Assert.Single(facts.Blocks, row => row.Kind == SaveWorldBlockRow.BlockDamageKind).BlockDamage!.Damage);
+		Assert.Equal((5, 6), (Assert.Single(facts.Blocks, row => row.Kind == SaveWorldBlockRow.BlockStateKind).BlockState!.X, 6));
 		Assert.Equal(2f, Assert.Single(facts.Blocks, row => row.Kind == SaveWorldBlockRow.NativeBlockDamageKind).NativeBlockDamage!.Damage);
 	}
 
 	[Fact]
-	public void Restore_RoutesEachDamageRowBackToItsOwnTable()
+	public void Restore_HandsTheGameDamageRowToTheNativeApplier()
 	{
 		using var fixture = WorldSaveFixture.Create("facts-damage-routing");
 		WriteMidRunSnapshot(
 			fixture,
-			blocks:
-			[
-				SaveWorldBlockRow.OfBlockDamage(5, 6, 0.5f),
-				SaveWorldBlockRow.OfNativeBlockDamage(7, 8, 2f),
-			]);
+			blocks: [SaveWorldBlockRow.OfNativeBlockDamage(7, 8, 2f)]);
 
 		var native = new FakeNativeWorldFacts();
 		using var restarted = WorldSaveFixture.Create(
@@ -736,26 +708,26 @@ public class WorldSnapshotWorldFactsTests
 
 		Assert.True(restarted.Service.TryContinue(out var outcome), outcome.Summary);
 
-		// The two tables stay apart in both directions: the Runtime registry holds
-		// CUO's cell only, and the adapter is handed the game's own cell only.
-		Assert.Equal((5, 6, 0.5f), (Assert.Single(restarted.WorldFacts.Damages).X, restarted.WorldFacts.Damages[0].Y, restarted.WorldFacts.Damages[0].Damage));
+		// The game's own cell goes to the adapter's table and nowhere else: the
+		// Runtime half of the restore has no damage table to receive it.
+		Assert.Empty(restarted.WorldFacts.Blocks);
 		Assert.Equal((7, 8, 2f), (Assert.Single(native.Damages).X, native.Damages[0].Y, native.Damages[0].Damage));
 		Assert.Contains("apply-block-damages", native.Calls);
 		Assert.DoesNotContain("not restored", outcome.Summary, StringComparison.Ordinal);
 	}
 
 	[Fact]
-	public void Restore_NamesTheRowsTheBoundedTablesRefusedInTheOutcome()
+	public void Restore_NamesTheRowsTheBoundedTableRefusedInTheOutcome()
 	{
-		// §6: reporting success while a row was dropped is forbidden. The two
-		// Runtime tables are bounded, so the restore's account carries them.
+		// §6: reporting success while a row was dropped is forbidden. The block diff
+		// is the one Runtime table left with a cap, so the restore's account carries it.
 		using var fixture = WorldSaveFixture.Create("facts-refused");
 		WriteMidRunSnapshot(
 			fixture,
 			blocks:
 			[
 				SaveWorldBlockRow.OfBlockState(3, 4, 0),
-				SaveWorldBlockRow.OfBlockDamage(5, 6, 0.5f),
+				SaveWorldBlockRow.OfNativeBlockDamage(5, 6, 0.5f),
 			]);
 
 		using var restarted = fixture.Restart("facts-refused-restart");
@@ -763,7 +735,7 @@ public class WorldSnapshotWorldFactsTests
 
 		Assert.True(restarted.Service.TryContinue(out var outcome), outcome.Summary);
 
-		Assert.Contains("did not land in their tables", outcome.Summary, StringComparison.Ordinal);
+		Assert.Contains("did not land in the table", outcome.Summary, StringComparison.Ordinal);
 	}
 
 	[Fact]
@@ -831,7 +803,7 @@ public class WorldSnapshotWorldFactsTests
 		$"{{\n    \"kind\": \"{SaveWorldBlockRow.BlockStateKind}\",\n    \"blockState\": {{\n      \"x\": {x},\n      \"y\": {y},\n      \"block\": {block}\n    }}\n  }}";
 
 	private static string DamageRow(int x, int y, float damage) =>
-		$"{{\n    \"kind\": \"{SaveWorldBlockRow.BlockDamageKind}\",\n    \"blockDamage\": {{\n      \"x\": {x},\n      \"y\": {y},\n      \"damage\": {damage.ToString(CultureInfo.InvariantCulture)}\n    }}\n  }}";
+		$"{{\n    \"kind\": \"{SaveWorldBlockRow.NativeBlockDamageKind}\",\n    \"nativeBlockDamage\": {{\n      \"x\": {x},\n      \"y\": {y},\n      \"damage\": {damage.ToString(CultureInfo.InvariantCulture)}\n    }}\n  }}";
 
 	private static string KeypadRow(float x, float y, string code) =>
 		$"{{\n    \"kind\": \"{SaveWorldTransientRow.KeypadKind}\",\n    \"keypad\": {{\n      \"position\": {{\n        \"x\": {x.ToString(CultureInfo.InvariantCulture)},\n        \"y\": {y.ToString(CultureInfo.InvariantCulture)}\n      }},\n      \"code\": \"{code}\"\n    }}\n  }}";

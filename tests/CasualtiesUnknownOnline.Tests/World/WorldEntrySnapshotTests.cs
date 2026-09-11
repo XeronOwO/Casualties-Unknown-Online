@@ -4,6 +4,7 @@ using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.Tests.Fakes;
+using CasualtiesUnknownOnline.Tests.Persistence;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -22,12 +23,13 @@ public class WorldEntrySnapshotTests
 	[Fact]
 	public void MemberEntersWorld_ReceivesTrapAndOpenedSnapshotsWithTheBlockState()
 	{
-		using var w = ItemSimWorld.Create();
+		var native = new FakeNativeWorldFacts();
+		native.SeedBlockDamage(12, 34, 80f);
+		using var w = ItemSimWorld.Create(services => services.AddSingleton<INativeWorldFacts>(native));
 		var hostWorld = w.Host.Services.GetRequiredService<IWorldControl>();
 		hostWorld.ReportTrapConsumed(EntityEventKind.MineExploded, 10f, 20f, extra: 0);
 		hostWorld.ReportOpenedEntity(30f, 40f);
 		hostWorld.ReportBuildingEntityHealth(50f, 60f, 25f);
-		hostWorld.ReportBlockDamage(12, 34, 80f);
 
 		var g1Traps = new List<IReadOnlyList<EntityEventMsg>>();
 		var g1Opened = new List<IReadOnlyList<NetVector2Msg>>();

@@ -6,6 +6,7 @@ using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.Tests.Fakes;
+using CasualtiesUnknownOnline.Tests.Persistence;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -50,7 +51,9 @@ public class ReconnectWorldSnapshotTests
 	[Fact]
 	public void GuestReconnects_WhileStillInWorld_ReceivesAllSevenWorldSnapshotsAgain()
 	{
-		using var w = ItemSimWorld.Create();
+		var native = new FakeNativeWorldFacts();
+		native.SeedBlockDamage(5, 6, 70f);
+		using var w = ItemSimWorld.Create(services => services.AddSingleton<INativeWorldFacts>(native));
 
 		// Populate every world-state table the snapshots carry.
 		var hostWorld = w.Host.Services.GetRequiredService<IWorldControl>();
@@ -58,7 +61,6 @@ public class ReconnectWorldSnapshotTests
 		hostWorld.ReportTrapConsumed(EntityEventKind.MineExploded, 10f, 20f, extra: 0);
 		hostWorld.ReportOpenedEntity(30f, 40f);
 		hostWorld.ReportBuildingEntityHealth(50f, 60f, 25f);
-		hostWorld.ReportBlockDamage(5, 6, 70f);
 		hostWorld.ReportBlockState(5, 6, 7);
 		w.Spawn(w.G1, 100, new CharacterItemMsg { ItemId = "ore", Condition = 1f });
 		var itemSnapshots = new List<IReadOnlyList<WorldItem>>();

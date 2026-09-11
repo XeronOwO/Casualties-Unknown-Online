@@ -1,5 +1,11 @@
 # Block HP Progressive Sync — Self-Check (2026-08-16)
 
+**Superseded mechanism (2026-09-11):** the CUO-side `BlockDamageRegistry` this sheet describes was
+DELETED — the partial-damage snapshot now reads the GAME's own list at send time
+(`docs/backlog/review/block-damage-table-capacity-alignment.md`). What this sheet verified about the
+wire behaviour (NetMsg 89, absolute per-cell apply, crack-sprite refresh) is unchanged; the
+registry rows below are historical.
+
 Delivery fact sheet for the block-HP (block damage crack/HP) sync closeout:
 `BlockDamageSnapshot` (NetMsg 89, ProtocolVersion 12) + the `metalMoreDamage`
 live-relay correction.

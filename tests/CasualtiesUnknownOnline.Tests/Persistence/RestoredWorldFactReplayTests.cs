@@ -1,4 +1,3 @@
-using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.Tests.Fakes;
@@ -32,7 +31,7 @@ public sealed class RestoredWorldFactReplayTests
 	public void ApplyIfPending_WhenTheWorldIsNotReady_KeepsTheCutPending()
 	{
 		var (replay, facts, native, sink) = Build();
-		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], [], null);
+		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], null);
 		sink.WorldReady = false;
 		Assert.True(replay.HasPending);
 
@@ -52,7 +51,6 @@ public sealed class RestoredWorldFactReplayTests
 		var (replay, facts, native, sink) = Build();
 		facts.ApplyFacts(
 			[new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }],
-			[new BlockDamageEntryMsg { X = 3, Y = 4, Damage = 2f }],
 			new RadiationLineStateMsg { Active = true, TimeGone = 1f });
 		native.SeedKeypad(5f, 6f, "1234");
 		native.SeedGeyser(7f, 8f, 3);
@@ -75,21 +73,16 @@ public sealed class RestoredWorldFactReplayTests
 	}
 
 	/// <summary>
-	/// B1: CUO's wire table and the game's own list are TWO tables with different
-	/// bounds (CUO's registry caps at 256, the game's list at 128), so a cut can
-	/// legally carry more CUO rows than the game can hold. Writing CUO's rows into
-	/// the game's list would fill it and the game's OWN rows — the ones the saved
-	/// world actually had — would be refused. The live list must carry exactly the
-	/// restored rows of the game's own table.
+	/// The game's own damage rows reach the game's own list, and nothing else does:
+	/// the Runtime half of the cut has no partial-damage rows to contribute (CUO
+	/// keeps no such table), so every row the live list receives came from the
+	/// game's table the cut captured.
 	/// </summary>
 	[Fact]
-	public void ApplyIfPending_WritesOnlyTheGamesOwnDamageRowsIntoTheGameList()
+	public void ApplyIfPending_WritesTheGameBlockDamageRowsIntoTheGameList()
 	{
 		var (replay, facts, native, sink) = Build();
-		var cuoRows = Enumerable.Range(0, 129)
-			.Select(i => new BlockDamageEntryMsg { X = i, Y = 0, Damage = 1f })
-			.ToList();
-		facts.ApplyFacts([], cuoRows, null);
+		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], null);
 		native.SeedBlockDamage(1000, 1000, 7f);
 		native.ApplyBlockDamages(native.Damages);
 
@@ -109,7 +102,7 @@ public sealed class RestoredWorldFactReplayTests
 		var sink = new FakeRestoredWorldFactSink { Capacity = 0 };
 		var log = new RecordingLogger<RestoredWorldFactReplay>();
 		var replay = new RestoredWorldFactReplay(facts, native, sink, log);
-		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], [], null);
+		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], null);
 		native.SeedBlockDamage(1, 1, 1f);
 		native.SeedBlockDamage(2, 2, 1f);
 		native.ApplyBlockDamages(native.Damages);
@@ -136,7 +129,7 @@ public sealed class RestoredWorldFactReplayTests
 		var sink = new FakeRestoredWorldFactSink { RefuseBlockWrites = true };
 		var log = new RecordingLogger<RestoredWorldFactReplay>();
 		var replay = new RestoredWorldFactReplay(facts, native, sink, log);
-		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], [], null);
+		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], null);
 
 		replay.ApplyIfPending();
 
@@ -155,7 +148,7 @@ public sealed class RestoredWorldFactReplayTests
 		var sink = new FakeRestoredWorldFactSink { RefuseKeypads = 1 };
 		var log = new RecordingLogger<RestoredWorldFactReplay>();
 		var replay = new RestoredWorldFactReplay(facts, native, sink, log);
-		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], [], null);
+		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], null);
 		native.SeedKeypad(5f, 6f, "1234");
 		native.ApplyKeypadCodes(native.Keypads);
 

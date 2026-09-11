@@ -408,7 +408,7 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 				frame - _deferralStartFrame.Value, string.Join(", ", waitingText));
 		}
 
-		dropped.AddRange(WorldCutTransients.Dropped(observation, waiting));
+		dropped.AddRange(WorldCutTransients.Dropped(observation, waiting, nativeReaderAvailable: _nativeWorldFacts is not null));
 		return true;
 	}
 

@@ -75,6 +75,27 @@ public class WorldTransientPolicyTests
 	}
 
 	[Fact]
+	public void Detection_DeclaresTheRowsNoObserverCanCount()
+	{
+		// A row marked Standing is named WITHOUT a count by every cut (the game owns
+		// the state). A row that claims Standing while an owner actually reports it —
+		// or the reverse — would make the report claim less, or more, than CUO knows.
+		var standing = WorldTransientPolicy.Rows
+			.Where(row => row.Detection == WorldTransientDetection.Standing)
+			.Select(row => row.Key)
+			.ToList();
+
+		Assert.Equal(
+			[
+				WorldTransientPolicy.CraftBatchKey,
+				WorldTransientPolicy.ItemPhysicsKey,
+				WorldTransientPolicy.WorldClockKey,
+				WorldTransientPolicy.EarthquakeTimersKey,
+			],
+			standing);
+	}
+
+	[Fact]
 	public void MustResolveBeforeSave_MatchesTheVerdict()
 	{
 		Assert.True(WorldTransientPolicy.MustResolveBeforeSave(WorldTransientPolicy.BlockBreakPendingKey));

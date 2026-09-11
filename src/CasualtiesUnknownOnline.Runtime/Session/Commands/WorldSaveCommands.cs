@@ -7,13 +7,18 @@ using Microsoft.Extensions.Logging;
 namespace CasualtiesUnknownOnline.Runtime.Session.Commands;
 
 /// <summary>
-/// The save command group: <c>/save</c> — the host's mid-run cut.
+/// The save command group: <c>/save</c> — the local save authority's mid-run cut.
 ///
 /// It only ARMS the cut. The command console runs inside the game's input
 /// handling, and a cut taken there could read a half-applied frame (a command
 /// batch mid-commit, a frame flush mid-send); the cut therefore happens at the
-/// host pump's frame-end seam, and the console answers with what that seam
-/// resolved to (<see cref="CommandConsoleService"/> renders the report).
+/// host pump's last step, and the console answers with what that seam resolved to
+/// (<see cref="CommandConsoleService"/> renders the report).
+///
+/// The command's permission is Anyone on purpose: solo play has no session role,
+/// so a HostOnly gate would leave the one player-facing trigger unreachable there.
+/// The save layer owns the authority rule (a guest never writes a world archive)
+/// and answers with the reason, which this command shows.
 /// </summary>
 internal sealed class WorldSaveCommands(
 	IWorldSaveControl saves,
@@ -22,7 +27,7 @@ internal sealed class WorldSaveCommands(
 	private readonly IWorldSaveControl _saves = saves;
 	private readonly ILogger _log = log;
 
-	[ConsoleCommand("save", "Host only: write a CUO world-archive cut at the next frame boundary.", CommandPermission.HostOnly, "/save")]
+	[ConsoleCommand("save", "Save the world now: a CUO world-archive cut at the next pump boundary.", CommandPermission.Anyone, "/save")]
 	internal string Save(IReadOnlyList<string> _)
 	{
 		if (!_saves.TryRequestCut(WorldCutReason.Command, out var refusal))
@@ -31,7 +36,7 @@ internal sealed class WorldSaveCommands(
 			return $"Cannot save: {refusal}.";
 		}
 
-		_log.LogInformation("[Command] /save armed a cut for the frame-end seam.");
-		return "Save queued: the host takes the cut at the end of this frame, and the result appears here.";
+		_log.LogInformation("[Command] /save armed a cut for the pump's last step.");
+		return "Save queued: the cut is taken at the next pump boundary (it waits for any in-flight operation that must resolve first), and the result appears here.";
 	}
 }

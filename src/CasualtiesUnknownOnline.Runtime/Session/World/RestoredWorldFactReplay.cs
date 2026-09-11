@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Persistence;
 using Microsoft.Extensions.Logging;
 
@@ -71,31 +73,60 @@ internal sealed class RestoredWorldFactReplay(
 		var nativePending = _nativeFacts?.HasPendingRestore ?? false;
 		if (!runtimePending && !nativePending)
 		{
+			// A restored cut that carried no live-world fact at all (a layer-end cut)
+			// has nothing to write. The world-entry seam is where the restore's audit
+			// learns that, instead of waiting for a write that will never come.
+			_audit?.LiveWriteFinished(complete: true, refused: [], summary: "the restored cut carried no live-world fact to write");
 			return;
 		}
 
 		// READ, do not take: only a replay whose every row landed commits.
 		var restore = _nativeFacts?.ReadPendingRestore() ?? NativeWorldFactRestore.Empty;
+		LiveWorldWriteOutcome blocks;
+		LiveWorldWriteOutcome damages;
+		LiveWorldWriteOutcome keypads;
+		LiveWorldWriteOutcome geysers;
+		RadiationLineStateMsg? radiation;
+		bool radiationApplied;
+		try
+		{
+			// 1. The block diff. The baseline capture already ran, so these writes are
+			// exactly the deviations from the layer the game just generated.
+			var blockStates = _facts.CaptureBlockStates();
+			blocks = _sink.WriteBlockStates(blockStates);
 
-		// 1. The block diff. The baseline capture already ran, so these writes are
-		// exactly the deviations from the layer the game just generated.
-		var blockStates = _facts.CaptureBlockStates();
-		var blocks = _sink.WriteBlockStates(blockStates);
+			// 2. The partial damage. The game's list is the ONLY partial-damage table
+			// there is (the CUO registry that used to sit beside it was deleted), so the
+			// cut's damage rows ARE its rows — no routing decision, and no second set
+			// whose cap could refuse them.
+			damages = _sink.ReplaceGameBlockDamages(restore.BlockDamages);
 
-		// 2. The partial damage. The game's list is the ONLY partial-damage table
-		// there is (the CUO registry that used to sit beside it was deleted), so the
-		// cut's damage rows ARE its rows — no routing decision, and no second set
-		// whose cap could refuse them.
-		var damages = _sink.ReplaceGameBlockDamages(restore.BlockDamages);
+			// 3. The decided native values the game would otherwise have re-rolled.
+			keypads = _sink.ApplyKeypadCodes(restore.Keypads);
+			geysers = _sink.ApplyGeysers(restore.Geysers);
 
-		// 3. The decided native values the game would otherwise have re-rolled.
-		var keypads = _sink.ApplyKeypadCodes(restore.Keypads);
-		var geysers = _sink.ApplyGeysers(restore.Geysers);
-
-		// 4. The radiation line: the regenerated line is inactive, and the next
-		// publish would silently overwrite a restored value with it.
-		var radiation = _facts.CaptureRadiationLine();
-		var radiationApplied = radiation is not null && _sink.ApplyRadiationLine(radiation);
+			// 4. The radiation line: the regenerated line is inactive, and the next
+			// publish would silently overwrite a restored value with it.
+			radiation = _facts.CaptureRadiationLine();
+			radiationApplied = radiation is not null && _sink.ApplyRadiationLine(radiation);
+		}
+		catch (Exception ex)
+		{
+			// An engine call threw: nothing about this replay can be trusted — not the
+			// rows written before the throw, not the ones after it. "The write threw" is
+			// the verdict the restore report carries AND the reason BOTH handovers are
+			// released here: keeping them would replay this layer's rows into the next
+			// generation, which is the one thing the replay's read-then-commit exists to
+			// prevent.
+			_audit?.LiveWriteFinished(
+				complete: false,
+				refused: [$"the live-world write threw ({ex.Message})"],
+				summary: $"the live-world write threw: {ex.Message}");
+			_nativeFacts?.CancelPendingRestore();
+			_facts.ClearPendingLiveReplay();
+			_log.LogError(ex, "[SaveFacts] the live-world write threw — the restored state is INCOMPLETE and both handovers are released.");
+			return;
+		}
 
 		var refused = blocks.Refused + damages.Refused + keypads.Refused + geysers.Refused;
 		var liveWorldComplete = refused == 0 && (radiation is null || radiationApplied);

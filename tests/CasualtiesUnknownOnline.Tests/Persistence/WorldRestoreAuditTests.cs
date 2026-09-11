@@ -25,7 +25,6 @@ public class WorldRestoreAuditTests
 		audit.BeginRestore("w-2");
 
 		Assert.True(audit.AwaitingLiveWrite);
-		Assert.Equal("w-2", audit.PendingWorldId);
 		Assert.Null(audit.Last);
 	}
 
@@ -78,7 +77,6 @@ public class WorldRestoreAuditTests
 
 		// A restore that never happened is not a restore that succeeded.
 		Assert.False(audit.AwaitingLiveWrite);
-		Assert.Equal(string.Empty, audit.PendingWorldId);
 		Assert.Null(audit.Last);
 		Assert.Equal(0, reports);
 	}

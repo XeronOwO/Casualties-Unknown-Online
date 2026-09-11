@@ -86,8 +86,8 @@ The manifest is the **only hard gate** in the whole format (see §6). It carries
 - Integrity: `files: [{ path, sha256, bytes }]` for every file in the snapshot, and
   `checksumPolicy` so the loader knows whether checksums are mandatory.
 - Provenance of the cut: `cutPhase` names the host main-thread pump seam the cut was taken at —
-  `layer-boundary` (the kernel committed a layer advance) or `frame-end` (the pump's quiescent
-  point; see §4) — and `saveReason` records what triggered it (`layer-advance`, `menu-return`,
+  `layer-boundary` (the kernel committed a layer advance) or `frame-end` (the CUO pump's last step;
+  see §4) — and `saveReason` records what triggered it (`layer-advance`, `menu-return`,
   `command`, `auto-interval`, `pre-restore-backup`). The two are independent on purpose: the phase
   says WHICH seam, the reason says WHO asked.
 
@@ -176,14 +176,19 @@ There are exactly two seams:
   before the commit would store the previous layer's baseline and regenerate a different world. A
   layer-end cut records no in-layer fact (§3.4), so no in-flight state can be lost by one and the
   transient policy below does not apply to it.
-- `frame-end` — the Game Adapter pump's LAST step: every domain has finished the frame's work (the
-  drop/break flushes included), so no command batch is mid-commit and no frame flush is mid-send.
-  Both remaining triggers ARM a cut and are taken here, never inside the callback that asked:
-  - the host's `/save` console command (a command runs inside the game's input handling, where a
-    cut could read a half-applied frame), and
+- `frame-end` — the CUO pump's LAST step (`GameAdapter.Update`, after every domain update and
+  after the frame's drop/break flushes): the one point where no CUO command batch is mid-commit and
+  no CUO frame flush is mid-send. What makes the cut a consistent one is not Unity's frame boundary —
+  the game's own scripts may run before or after this pump — but that the whole cut is ONE
+  synchronous read taken between those seams, so it can never straddle half of a batch or half of a
+  flush. Both remaining triggers ARM a cut and are taken here, never inside the callback that asked:
+  - the `/save` console command (a command runs inside the game's input handling, where a cut could
+    read a half-applied frame), and
   - the host's deliberate return to the main menu — a full mid-run cut, because every world object
     is still alive at that moment. The leave happens AFTER the cut; leaving first would destroy the
-    world the cut has to read.
+    world the cut has to read. If the cut cannot be written (no run baseline, an unreadable native
+    table, a failed transaction) the leave still happens, the previous snapshot stays intact, and the
+    reason is logged and shown — never a snapshot whose tables read as empty.
 
 **The cut waits for its in-flight state.** Some live operations span frames and only reach the
 kernel through the very flush they are waiting for: a local break holds its report one frame for the
@@ -197,9 +202,13 @@ stuck pending record) is NAMED in the cut report instead of starving the request
 Every other in-flight class has an explicit row in `WorldTransientPolicy`: `capture` (the world fact
 the cut carries as data — the decided keypad/geyser/radiation values), `resolve-before-save` (the
 three frame windows above), or `drop-with-log` (the state's world effect is already a kernel fact,
-or the restored world re-derives it). A class the cut does not carry is named in the report with its
-count and why (§6); an owner that reports an undeclared class REFUSES the cut, because a snapshot
-whose in-flight state is unaccounted for is exactly what §6 forbids.
+or the restored world re-derives it). Each row also declares whether CUO can COUNT it at the cut:
+an `Observed` row is named with its count, while a `Standing` row (the game's crafting coroutine,
+item velocity, the run clock, the earthquake timers) has no CUO counter, so every cut names the
+CLASS without claiming a count — saying nothing about a class that a restore cannot carry would be
+the silent loss this table exists to prevent. A class the cut does not carry is named in the report
+(§6); an owner that reports an undeclared class REFUSES the cut, because a snapshot whose in-flight
+state is unaccounted for is exactly what §6 forbids.
 
 The host's **Continue entry** (the native `PreRunScript.LoadRun`, decision 165) opens the world
 `index.json`'s `lastOpenedWorldId` names, and the newest world when that pointer is missing or
@@ -260,9 +269,11 @@ Decision 163: restore minimizes loss, and salvage is **per entry, not per domain
   game's own bounded (128-entry) table refused a row.
 - **A dropped in-flight class is reported at the CUT.** Deciding a class `drop-with-log` means the
   player is told what the cut left behind and why (§4): the cut's report names the count and the
-  class, and the command console renders it for the cuts the player asked for while the log keeps
-  every trigger. A cut whose in-flight state cannot be put back (a pending window that outlasted the
-  deferral deadline) names it in the same report.
+  class for every row a CUO owner counted, names the `Standing` classes it can never carry, and
+  names a pending window that outlasted the deferral deadline. The command console renders that
+  report for the cuts the player asked for, and the log keeps every trigger. A cut that cannot be
+  written at all (no run baseline, an unreadable native table, a failed transaction) is reported as
+  a refusal with its reason instead of silently writing nothing.
 - **Load twice = same world.** Restoring an already-restored snapshot is idempotent; validation
   applies the same dedup and exactly-once rules as the live restore path.
 

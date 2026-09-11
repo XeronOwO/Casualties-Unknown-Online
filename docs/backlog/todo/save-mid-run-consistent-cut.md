@@ -43,6 +43,37 @@ Frozen with the user before implementation started:
    stream. Keypad codes and geyser liquid types are captured as DECIDED values (world-transients),
    never re-rolled.
 
+## S3.3 independent adversarial pass (2026-09-11)
+
+An independent reviewer (fresh context, no stake in the change) audited the S3.3 commit against the
+six claims it makes. It could NOT falsify: the CUO-side seam quiescence (no Runtime service runs
+after the adapter pump, `ItemKernelAuthority` commits synchronously, every flush runs before the
+seam), the trigger/deferral state machine, the "unreadable native table is not an empty table" rule,
+the restore-audit chain, and the structure gates. It DID find three real defects, all fixed on top
+of the stage before this ticket moved on:
+
+1. **Four `drop-with-log` rows had no observer** (craft batches, item physics, the run clock, the
+   earthquake timers), so "everything the cut does not carry is named" was false for them. Fixed by
+   making observability part of the policy row (`WorldTransientDetection.Observed` / `Standing`): an
+   observed row is named with its count, a standing row is named as a class every mid-run cut leaves
+   behind, and a contract test pins which rows are standing. The rows were NOT given fake counters —
+   the count is only claimed where a CUO owner can actually see it.
+2. **`/save` was unreachable in solo play** (the console's `HostOnly` gate; solo has no session
+   role). Fixed: the command is open to anyone and the SAVE LAYER owns the authority rule (a guest
+   never writes a world archive), which is the same predicate the rest of the save system uses.
+   Remaining gap, recorded below as scope 9: solo play has no menu-return trigger (the teardown hook
+   is session-driven).
+3. **A throwing engine call during a restored cut's live-world write** produced no report and left
+   both handovers armed, so the next generation could receive the previous layer's rows. Fixed:
+   `RestoredWorldFactReplay` reports the loss to the audit and releases both handovers; the
+   "restore carried nothing to write" case now completes the audit instead of leaving it armed.
+
+Smaller findings, also handled in the same pass: the seam's wording no longer claims Unity's frame
+boundary (the guarantee is the single synchronous read); the menu return's "cut refused → leave
+anyway, previous snapshot intact" behaviour is documented; a composition with no native reader now
+names what it cannot carry in the cut report (not only the log); the `/save` answer no longer
+promises "this frame" when a deferral can wait.
+
 ## Scope
 
 The consistent cut and the full mid-run payload. This is where the hard part of the requirement lives.
@@ -82,19 +113,21 @@ The consistent cut and the full mid-run payload. This is where the hard part of 
    player must be able to tell (see the format doc §6 reporting rule).
 
    **Landed (S3.3)** as a real table, not a paragraph: `WorldTransientPolicy` declares one row per
-   class with its verdict, owner and reason (13 rows covering this table verbatim), and a contract
-   test pins the keys and the per-row verdicts. The verdicts are: `resolve-before-save` for the
-   three frame windows (block-break pending, trap drop hold, drop flush) — the cut is DEFERRED with
-   the request still armed, bounded by `WorldSaveService.MaxCutDeferralFrames` (eight frames), and a
-   state that outlasts the deadline is named in the report; `capture` for the decided native values
-   and the radiation line (they ride `world-transients.json`); `drop-with-log` for every other row
-   (the pickup queue, the three operation-session families, the game's craft coroutine, the deferred
-   creation reports, item physics, the run clock, the earthquake timers) — each named, with its
-   count, in the cut report the console renders for player-initiated cuts. An owner that reports an
-   undeclared class REFUSES the cut: an unaccounted in-flight state must not become a snapshot.
-   The Runtime half of the observation is `WorldCutTransientProbe` (a read-only query over the
-   services that own the state), the adapter half is `SaveCutSeam.LiveTransients()`, and the
-   verdicts are applied in one place (`WorldSaveService.TryCollectTransients`).
+   class with its verdict, owner, reason and OBSERVABILITY (13 rows covering this table verbatim),
+   and a contract test pins the keys, the per-row verdicts and which rows no observer can count. The
+   verdicts are: `resolve-before-save` for the three frame windows (block-break pending, trap drop
+   hold, drop flush) — the cut is DEFERRED with the request still armed, bounded by
+   `WorldSaveService.MaxCutDeferralFrames` (eight frames), and a state that outlasts the deadline is
+   named in the report; `capture` for the decided native values and the radiation line (they ride
+   `world-transients.json`); `drop-with-log` for every other row. A `drop-with-log` row that a CUO
+   owner counts (the pickup queue, the three operation-session families, the deferred creation
+   reports) is named WITH its count; the four rows the game owns (the craft coroutine, item physics,
+   the run clock, the earthquake timers) are marked `Standing` and named as classes every mid-run cut
+   leaves behind, because claiming a count CUO cannot see would be the silent loss this rule exists
+   to prevent. An owner that reports an undeclared class REFUSES the cut. The Runtime half of the
+   observation is `WorldCutTransientProbe` (a read-only query over the services that own the state),
+   the adapter half is `SaveCutSeam.LiveTransients()`, and the verdicts are applied in one place
+   (`WorldSaveService.TryCollectTransients` + the pure `WorldCutTransients`).
 4. **Determinism inputs** — populate `GameCheckpoint.RandomStreams` in production
    (`GameStateStore.CreateCheckpoint` passes `null` today) if any domain's restore decision depends on
    them, and decide the same for keypad codes and geyser rolls; the save must carry enough baseline to
@@ -159,6 +192,12 @@ The consistent cut and the full mid-run payload. This is where the hard part of 
    on the HOST still leaves opened/consumed/damaged-building facts in the kernel without writing them
    onto its own freshly generated world. The rule and its proof stay in S3.5, together with the
    drops of a building the saved world already killed.
+9. **Solo menu-exit trigger** (found by the S3.3 adversarial pass) — the deliberate menu return is
+   requested from session-teardown events and decided by `RunMenuReturnPolicy` for a HOST, so solo
+   play (no session, no role) gets no menu-return cut at all; `/save` is the only mid-run trigger
+   there. Owner: whichever stage owns the solo surface (S3.5 or the multiplayer-restore stage);
+   the fix is an in-world → menu transition edge in the run coordinator that requests the same seam
+   cut, not a second cut path.
 
 ## Acceptance
 

@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using CasualtiesUnknownOnline.Runtime.Session.Persistence;
 using Microsoft.Extensions.Logging;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.World;
@@ -35,12 +37,14 @@ internal sealed class RestoredWorldFactReplay(
 	IWorldFactSource facts,
 	INativeWorldFacts? nativeFacts,
 	IRestoredWorldFactSink sink,
-	ILogger<RestoredWorldFactReplay> log)
+	ILogger<RestoredWorldFactReplay> log,
+	WorldRestoreAudit? audit = null)
 {
 	private readonly IWorldFactSource _facts = facts;
 	private readonly INativeWorldFacts? _nativeFacts = nativeFacts;
 	private readonly IRestoredWorldFactSink _sink = sink;
 	private readonly ILogger<RestoredWorldFactReplay> _log = log;
+	private readonly WorldRestoreAudit? _audit = audit;
 
 	/// <summary>
 	/// Host: a restored cut is waiting for the world-entry seam — the Runtime's
@@ -95,6 +99,43 @@ internal sealed class RestoredWorldFactReplay(
 
 		var refused = blocks.Refused + damages.Refused + keypads.Refused + geysers.Refused;
 		var liveWorldComplete = refused == 0 && (radiation is null || radiationApplied);
+
+		// The LIVE-WRITE account, in the words the restore report uses. The Continue
+		// click returned long before this seam ran, so this is the only way the
+		// caller that started the restore learns the live world did not take a row
+		// (§6's "every dropped entry is surfaced" applies to the native half too).
+		var refusedDetail = new List<string>();
+		if (blocks.Refused > 0)
+		{
+			refusedDetail.Add($"{blocks.Refused} block-state row(s)");
+		}
+
+		if (damages.Refused > 0)
+		{
+			refusedDetail.Add($"{damages.Refused} partial-damage row(s)");
+		}
+
+		if (keypads.Refused > 0)
+		{
+			refusedDetail.Add($"{keypads.Refused} keypad code(s)");
+		}
+
+		if (geysers.Refused > 0)
+		{
+			refusedDetail.Add($"{geysers.Refused} geyser type(s)");
+		}
+
+		if (radiation is not null && !radiationApplied)
+		{
+			refusedDetail.Add("the radiation line");
+		}
+
+		_audit?.LiveWriteFinished(
+			liveWorldComplete,
+			refusedDetail,
+			liveWorldComplete
+				? $"the live world took every restored fact ({blocks.Applied} block-state, {damages.Applied} partial-damage, {keypads.Applied} keypad, {geysers.Applied} geyser row(s))"
+				: $"the live world did not take {string.Join(", ", refusedDetail)}");
 
 		if (liveWorldComplete)
 		{

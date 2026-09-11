@@ -1,4 +1,8 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session.Persistence;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.Tests.Fakes;
 using Xunit;
@@ -159,6 +163,55 @@ public sealed class RestoredWorldFactReplayTests
 		Assert.True(log.HasError("the restored state is INCOMPLETE"));
 		Assert.False(facts.HasPendingLiveReplay);
 		Assert.False(native.HasPendingRestore);
+	}
+
+	[Fact]
+	public void ApplyIfPending_ReportsTheLiveWriteToTheRestoreAudit()
+	{
+		// The Continue click returned long before this seam ran, so the audit is the
+		// only way the caller that started the restore learns what the live world
+		// took. Both outcomes are reported — a complete restore and a partial one —
+		// because "the click applied the kernel" is not the whole story.
+		var facts = new FakeWorldFactSource();
+		var native = new FakeNativeWorldFacts();
+		var sink = new FakeRestoredWorldFactSink { RefuseBlockWrites = true };
+		var audit = new WorldRestoreAudit();
+		var reports = new List<WorldRestoreLiveWriteReport>();
+		audit.Reported += reports.Add;
+		audit.BeginRestore("w-audit");
+		var replay = new RestoredWorldFactReplay(facts, native, sink, new RecordingLogger<RestoredWorldFactReplay>(), audit);
+		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], null);
+
+		replay.ApplyIfPending();
+
+		var report = Assert.Single(reports);
+		Assert.Equal("w-audit", report.WorldId);
+		Assert.False(report.Complete);
+		Assert.True(
+			report.Refused.Any(row => row.IndexOf("block-state", StringComparison.Ordinal) >= 0),
+			string.Join(", ", report.Refused));
+		Assert.False(audit.AwaitingLiveWrite);
+	}
+
+	[Fact]
+	public void ApplyIfPending_CompleteRestore_ReportsAFullLiveWorld()
+	{
+		var facts = new FakeWorldFactSource();
+		var native = new FakeNativeWorldFacts();
+		var sink = new FakeRestoredWorldFactSink();
+		var audit = new WorldRestoreAudit();
+		var reports = new List<WorldRestoreLiveWriteReport>();
+		audit.Reported += reports.Add;
+		audit.BeginRestore("w-complete");
+		var replay = new RestoredWorldFactReplay(facts, native, sink, new RecordingLogger<RestoredWorldFactReplay>(), audit);
+		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], null);
+
+		replay.ApplyIfPending();
+
+		var report = Assert.Single(reports);
+		Assert.True(report.Complete);
+		Assert.Empty(report.Refused);
+		Assert.Contains("took every restored fact", report.Summary, StringComparison.Ordinal);
 	}
 
 	private static (RestoredWorldFactReplay Replay, FakeWorldFactSource Facts, FakeNativeWorldFacts Native, FakeRestoredWorldFactSink Sink) Build()

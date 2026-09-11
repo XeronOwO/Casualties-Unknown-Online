@@ -36,6 +36,8 @@ internal sealed class RunCoordinator(
 	ItemArbitration arbitration,
 	IPlayerInteractionControl playerInteraction,
 	IWorldSaveControl worldSaves,
+	WorldRestoreAudit? restoreAudit,
+	RunMenuReturnCoordinator menuReturn,
 	ILogger<RunCoordinator> log)
 {
 	/// <summary>Guest run-follow phases — one enum replaces the scattered booleans (pending/started/ready/frozen).</summary>
@@ -57,7 +59,7 @@ internal sealed class RunCoordinator(
 	private readonly WorldParamsService _params = worldParams;
 	private readonly ItemArbitration _arbitration = arbitration;
 	private readonly IPlayerInteractionControl _playerInteraction = playerInteraction;
-	private readonly RunSaveCoordinator _save = new(session, world, worldSaves, worldParams, characterData, log);
+	private readonly RunSaveCoordinator _save = new(session, world, worldSaves, worldParams, characterData, restoreAudit, log);
 	private readonly ILogger<RunCoordinator> _log = log;
 
 	private RunPhase _phase = RunPhase.Idle;
@@ -75,16 +77,21 @@ internal sealed class RunCoordinator(
 
 	/// <summary>
 	/// Pending return-to-menu after a session teardown. Session-ended events
-	/// run inside Steam/UI callbacks, so the actual scene load is deferred to
-	/// the Update pump (loaded during OnGUI was the host-close exit path).
+	/// run inside Steam/UI callbacks, so the actual scene load is deferred to the
+	/// frame-end pump (<see cref="SaveCutSeam"/>) — loaded during OnGUI was the
+	/// host-close exit path. It is the same seam a cut is taken at, because the
+	/// host's deliberate return IS a cut.
 	/// </summary>
-	private readonly RunMenuReturnCoordinator _menuReturn = new(session, worldSaves, log);
+	private readonly RunMenuReturnCoordinator _menuReturn = menuReturn;
 
 	/// <summary>The local body while in the world (Unity object — == null when scene-reload-destroyed).</summary>
 	internal Body? LocalBody => _localBody;
 
 	/// <summary>A world exists or is generating — the lobby-switch guard's window (menu-only lobby switches).</summary>
 	internal bool IsInWorldOrGenerating => _inWorld || HarmonyTraverse.IsGenerating();
+
+	/// <summary>The world is up and not generating — the precondition the frame-end cut seam checks before it asks for a cut.</summary>
+	internal bool IsInWorld => _inWorld;
 
 	/// <summary>Guest: the world is generated and the gate holds (read by StartGateCoordinator).</summary>
 	internal bool GuestWaitingForReady => _phase == RunPhase.WaitingReady;
@@ -138,11 +145,10 @@ internal sealed class RunCoordinator(
 		_world.WorldReadyReceived -= OnRemoteWorldReady;
 	}
 
-	/// <summary>Pump: scene state, guest menu lock, the WorldJoin follow retry, body state publishing.</summary>
+	/// <summary>Pump: scene state, guest menu lock, the WorldJoin follow retry, body state publishing. The menu return and the cuts are taken by <see cref="SaveCutSeam"/> at the frame-end seam.</summary>
 	internal void Update()
 	{
 		UpdateSceneState();
-		_menuReturn.Flush(_inWorld, CaptureLocalCharacter);
 		if (_phase == RunPhase.JoinPending)
 		{
 			TryStartWorldJoin();
@@ -186,8 +192,8 @@ internal sealed class RunCoordinator(
 	/// <summary>The native Continue entry: the save arm restores the selected CUO world (and blocks the original when it cannot).</summary>
 	internal bool OnHostContinueRequested() => _save.OnContinueRequested();
 
-	/// <summary>The local body's character snapshot right now — the menu-return cut's payload.</summary>
-	private CharacterDataMsg? CaptureLocalCharacter() => _save.CaptureLocal(_localBody);
+	/// <summary>The local body's character snapshot right now — the cut payload's live half (the frame-end seam calls this at the instant of the cut).</summary>
+	internal CharacterDataMsg? CaptureLocalCharacter() => _save.CaptureLocal(_localBody);
 
 
 	/// <summary>

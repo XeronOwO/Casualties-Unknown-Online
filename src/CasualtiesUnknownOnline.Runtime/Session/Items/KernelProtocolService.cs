@@ -207,6 +207,9 @@ public sealed class KernelProtocolService : IKernelProtocolControl, IDisposable
 	public void SendCommandRejected(ulong targetSteamId, ulong itemId, RejectionReason reason) => _commandHandler.SendCommandRejected(targetSteamId, itemId, reason);
 	public void PumpPendingPickups(long nowMs) => _commandHandler.PumpPendingPickups(nowMs);
 
+	/// <summary>The cut policy's read-only probe: pickup claims that beat their item's spawn report and are still held (WorldTransientPolicy.PickupQueueKey).</summary>
+	public int PendingPickupCount => _commandHandler.PendingPickupCount;
+
 	public void ResetForSessionEnd()
 	{
 		_authority.ResetForSession();

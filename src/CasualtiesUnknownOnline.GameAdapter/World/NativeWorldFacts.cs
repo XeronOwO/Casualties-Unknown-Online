@@ -40,19 +40,32 @@ public sealed class NativeWorldFacts(ILogger<NativeWorldFacts> log) : INativeWor
 		_pendingKeypads is not null || _pendingGeysers is not null || _pendingBlockDamages is not null;
 
 	/// <inheritdoc />
-	public IReadOnlyList<KeypadEntryMsg> CaptureKeypadCodes() => KeypadCodeTable.Capture();
-
-	/// <inheritdoc />
-	public IReadOnlyList<GeyserStateEntryMsg> CaptureGeysers() => GeyserStateTable.Capture();
-
-	/// <inheritdoc />
-	public IReadOnlyList<BlockDamageEntryMsg> CaptureBlockDamages()
+	public NativeWorldFactCapture Capture()
 	{
 		var world = WorldGeneration.world;
-		if (world == null) // Unity object — == (a layer-end cut reaches no world at all; a mid-run cut always has one)
+		if (world == null) // Unity object — == (a layer-end cut never reads these; a mid-run cut always has one)
 		{
-			log.LogWarning("[SaveFacts] no live world to read the game's own block-damage table from — the cut carries no native damage row.");
-			return [];
+			// NOT an empty table: the game's own partial-damage list is the only
+			// table that holds it, so reading "no world" as "no damage" would store
+			// a clean world and lose every crack. The failure refuses the cut.
+			log.LogError("[SaveFacts] no live world to read the native world tables from — the cut must not store an empty damage list.");
+			return NativeWorldFactCapture.Unreadable("no live world is present, so the game's own block-damage table could not be read");
+		}
+
+		return new NativeWorldFactCapture(
+			KeypadCodeTable.Capture(),
+			GeyserStateTable.Capture(),
+			GameBlockDamageTable.Capture(world),
+			Failure: null);
+	}
+
+	/// <inheritdoc />
+	public IReadOnlyList<BlockDamageEntryMsg>? CaptureBlockDamages()
+	{
+		var world = WorldGeneration.world;
+		if (world == null) // Unity object — == (the caller sends nothing and says so)
+		{
+			return null;
 		}
 
 		return GameBlockDamageTable.Capture(world);

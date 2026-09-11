@@ -9,10 +9,14 @@
   already-settled support-loss verdict). A second independent pass then caught the retry path itself
   (a taken handover could not be retried): the replay now READS the native handover and commits it
   only after every row reached the live world, keeps both halves pending on any refusal, and a layer
-  boundary cancels a handover that belongs to the layer being replaced. S3.3 (the consistent cut and
-  the transient policy) is next,
-  then S3.4 (native run fields) and S3.5 (exactly-once plus documentation and re-anchoring). The
-  mid-run trigger is still closed, so the only cut a build produces today is S2's layer-end one.
+  boundary cancels a handover that belongs to the layer being replaced.
+  **S3.3 (the consistent cut and the transient policy) landed 2026-09-11**: the frame-end pump seam
+  with the armed-cut trigger (`/save` on the host console, the menu return upgraded to a full
+  mid-run cut at the same seam), the per-row transient policy table, the bounded
+  resolve-before-save deferral, the restore-report completeness work of scope 6, and the cut
+  writer's split out of `WorldSaveService`. S3.4 (native run fields) and S3.5 (exactly-once plus
+  documentation and re-anchoring) are next; the mid-run trigger is now OPEN, so a build produces
+  both the S2 layer-end cut and the frame-end mid-run cut.
 - Priority: High
 - Category: Persistence / save system
 - Source: Stage 3 of `docs/backlog/in-progress/save-system-mid-run-and-layer-end.md`; this is the user's hard requirement — "需要重点关注存档的中途性质，防止出现多生成、少生成内容的情况"
@@ -46,6 +50,11 @@ The consistent cut and the full mid-run payload. This is where the hard part of 
 1. **The cut seam** — one point on the host main-thread pump where the kernel revision, every domain
    table and the native world tables are read at one instant, with no command batch or frame flush
    interleaved. The manifest's `cutPhase` names the phase; the format doc §4 lists the phases.
+   **Landed (S3.3):** the seam is the Game Adapter pump's last step (`SaveCutSeam`), the manifest
+   phase is `frame-end`, and every trigger (the console's `/save`, the deliberate menu return) ARMS
+   a cut that the seam takes — a cut can no longer be taken from inside a console callback. The
+   layer-end cut keeps its own seam (the kernel's layer-advance commit, phase `layer-boundary`), and
+   `TryRequestCut` refuses to arm a layer-end cut at the frame-end seam.
 2. **Payload completion** — `world-blocks.json` (host block difference table
    `WorldStateMessageService._damagedBlocks` + the native `WorldGeneration.blockDamages` list) and
    `world-transients.json` (the explicitly chosen transient set), on top of the S2 domain files.
@@ -71,10 +80,32 @@ The consistent cut and the full mid-run payload. This is where the hard part of 
 
    Silent loss is forbidden; a dropped transient must be logged with what was dropped and why, and the
    player must be able to tell (see the format doc §6 reporting rule).
+
+   **Landed (S3.3)** as a real table, not a paragraph: `WorldTransientPolicy` declares one row per
+   class with its verdict, owner and reason (13 rows covering this table verbatim), and a contract
+   test pins the keys and the per-row verdicts. The verdicts are: `resolve-before-save` for the
+   three frame windows (block-break pending, trap drop hold, drop flush) — the cut is DEFERRED with
+   the request still armed, bounded by `WorldSaveService.MaxCutDeferralFrames` (eight frames), and a
+   state that outlasts the deadline is named in the report; `capture` for the decided native values
+   and the radiation line (they ride `world-transients.json`); `drop-with-log` for every other row
+   (the pickup queue, the three operation-session families, the game's craft coroutine, the deferred
+   creation reports, item physics, the run clock, the earthquake timers) — each named, with its
+   count, in the cut report the console renders for player-initiated cuts. An owner that reports an
+   undeclared class REFUSES the cut: an unaccounted in-flight state must not become a snapshot.
+   The Runtime half of the observation is `WorldCutTransientProbe` (a read-only query over the
+   services that own the state), the adapter half is `SaveCutSeam.LiveTransients()`, and the
+   verdicts are applied in one place (`WorldSaveService.TryCollectTransients`).
 4. **Determinism inputs** — populate `GameCheckpoint.RandomStreams` in production
    (`GameStateStore.CreateCheckpoint` passes `null` today) if any domain's restore decision depends on
    them, and decide the same for keypad codes and geyser rolls; the save must carry enough baseline to
    reproduce the world.
+
+   **Decision re-verified (S3.3):** no kernel domain consumes `RandomStreams` (the only producers of
+   a checkpoint are the kernel's own `CreateCheckpoint` callers, and no domain contributes a stream),
+   so the field stays without a producer and the encoder's refusal guard stays — a non-empty stream
+   set still REFUSES the cut rather than writing a snapshot with no file to restore it from. Keypad
+   codes and geyser liquid types are captured as DECIDED values (S3.2's `world-transients.json`
+   rows), never re-rolled, which is what makes them independent of any stream.
 5. **Exactly-once restore** — same-id dedup, no re-materialization of generation-time content, container
    children with exactly one parent, terminal facts never resurrected, load-twice idempotence.
 6. **Restore-report completeness** (found by S3.1's review rounds; WIDENED by the block-damage
@@ -89,6 +120,17 @@ The consistent cut and the full mid-run payload. This is where the hard part of 
    Make `IWorldFactSource.ApplyFacts` return what it applied/dropped (or expose the table counts)
    and fold that into the restore report, so §6's "every dropped entry is surfaced" holds for the
    world facts too.
+
+   **Landed (S3.3):** `IWorldFactSource.ApplyFacts` already returned a `WorldFactApplyReport` (its
+   refusals reach `WorldContinueOutcome.Summary`); the live-world half now reports too. The adapter's
+   world-entry replay sends its per-write applied/refused counts to `WorldRestoreAudit`
+   (`LiveWriteFinished`), which raises `Reported` and keeps `Last`; the Continue caller
+   (`RunSaveCoordinator`, the one that invoked `TryContinue`) subscribes and logs an incomplete
+   restore at error level, and the command console prints it for the player. A restore can therefore
+   no longer be reported as a success while the game's own 128-entry table refused a row. The
+   capture-side half of the same finding is closed as well: the native reader reports an unreadable
+   table set (`NativeWorldFactCapture.Failure`) instead of an empty one, and the cut is REFUSED, so a
+   "clean" snapshot can no longer be written from a missing world.
 7. **Refusal recovery** (found by S3.1's review round 2) — a decode-level refusal (a snapshot whose
    manifest kind contradicts its payload) is reported but has no fallback: the reader retries a
    backup only while the manifest is read, and `loadSnapshot` has already returned by then. Give
@@ -112,6 +154,11 @@ The consistent cut and the full mid-run payload. This is where the hard part of 
    in-game (the adapter's world reads need a running game), the row routing/caps/replay lifecycle are
    proven in the Runtime suites, and the guest-side "restored row never re-settles" branch itself is
    an engine-side branch that the dual-client pass has to confirm.
+
+   **Still open after S3.3** (the seam and the transient policy did not touch it): a mid-run restore
+   on the HOST still leaves opened/consumed/damaged-building facts in the kernel without writing them
+   onto its own freshly generated world. The rule and its proof stay in S3.5, together with the
+   drops of a building the saved world already killed.
 
 ## Acceptance
 

@@ -13,6 +13,16 @@ internal sealed class RunMenuReturnRequest
 
 	internal bool IsPending => _pending;
 
+	/// <summary>The requested mode without consuming it — the pump decides whether the world can be left yet (a deferred cut keeps the request pending).</summary>
+	internal RunMenuReturnMode Pending => _pending ? _mode : RunMenuReturnMode.None;
+
+	/// <summary>The request is done with: the world was left, or a new session made it stale.</summary>
+	internal void Clear()
+	{
+		_pending = false;
+		_mode = RunMenuReturnMode.None;
+	}
+
 	internal void Request(RunMenuReturnMode mode)
 	{
 		if (mode == RunMenuReturnMode.None)

@@ -82,6 +82,7 @@ internal sealed class GameAdapterDomains
 	internal readonly WorldEventSync WorldEventSync;
 	internal readonly LifePodPresentation LifePod;
 	internal readonly RunCoordinator Run;
+	internal readonly SaveCutSeam SaveCutSeam;
 	internal readonly WorldParamsService WorldParams;
 	internal readonly StartGateCoordinator Gate;
 	internal readonly GuestMenuGuard GuestMenu;
@@ -140,6 +141,7 @@ internal sealed class GameAdapterDomains
 		IPlayerInteractionControl playerInteraction,
 		ITutorialClawControl tutorialClaw,
 		IWorldSaveControl worldSaves,
+		WorldRestoreAudit restoreAudit,
 		IOptionsMonitor<RespawnOptions> respawnOptions,
 		IHostRules hostRules,
 		WorldEntityKernelProjection worldEntityKernel,
@@ -245,7 +247,7 @@ internal sealed class GameAdapterDomains
 		NativeWorldFacts = nativeWorldFacts;
 		var restoredWorldFactSink = new GameRestoredWorldFactSink(BlockBreakSync, loggerFactory.CreateLogger<GameRestoredWorldFactSink>());
 		RestoredWorldFactReplay = new RestoredWorldFactReplay(
-			worldFacts, nativeWorldFacts, restoredWorldFactSink, loggerFactory.CreateLogger<RestoredWorldFactReplay>());
+			worldFacts, nativeWorldFacts, restoredWorldFactSink, loggerFactory.CreateLogger<RestoredWorldFactReplay>(), restoreAudit);
 		WorldEventSync = new WorldEventSync(session, world, BlockBreakSync, RestoredWorldFactReplay, OperationTrace, worldEntityKernel, kernelProtocol, loggerFactory.CreateLogger<WorldEventSync>());
 		var trapVisualReplay = new TrapVisualReplay(loggerFactory.CreateLogger<TrapVisualReplay>());
 		EntityEventSync = new EntityEventSync(world, session,
@@ -283,7 +285,20 @@ internal sealed class GameAdapterDomains
 		RunSettingsRange = new RunSettingsRangeService(session, hostRules, loggerFactory.CreateLogger<RunSettingsRangeService>());
 		MenuInput = new OnlineMenuInputGuard(session, loggerFactory.CreateLogger<OnlineMenuInputGuard>());
 		WorldParams = new WorldParamsService(world, NativeWorldFacts, loggerFactory.CreateLogger<WorldParamsService>());
-		Run = new RunCoordinator(session, world, entities, CharacterDataSync, GuestMenu, WorldParams, arbitration, playerInteraction, worldSaves, loggerFactory.CreateLogger<RunCoordinator>());
+		var menuReturn = new RunMenuReturnCoordinator(loggerFactory.CreateLogger<RunMenuReturnCoordinator>());
+		Run = new RunCoordinator(session, world, entities, CharacterDataSync, GuestMenu, WorldParams, arbitration, playerInteraction, worldSaves, restoreAudit, menuReturn, loggerFactory.CreateLogger<RunCoordinator>());
+		// The frame-end cut seam is the LAST domain of the pump: it is where every
+		// cut trigger is taken (the armed /save request and the host's deliberate
+		// menu return), after every domain has finished this frame's work.
+		SaveCutSeam = new SaveCutSeam(
+			session,
+			worldSaves,
+			Run,
+			menuReturn,
+			blockBreakState,
+			TrapDrops,
+			itemDropState,
+			loggerFactory.CreateLogger<SaveCutSeam>());
 		Gate = new StartGateCoordinator(session, world, LifePod, Run, loggerFactory.CreateLogger<StartGateCoordinator>());
 		WorldTimeSync = new WorldTimeSync(session, entities, characterData, Run, Gate, worldTime, loggerFactory.CreateLogger<WorldTimeSync>());
 		DragUse = new CrossPlayerDragUse(this);

@@ -444,6 +444,11 @@ public static class CuoBootstrap
 		services.AddSingleton<SaveArchiveWriter>();
 		services.AddSingleton<SaveArchiveReader>();
 		services.AddSingleton<WorldSnapshotEncoder>();
+		// The consistent cut's two observation halves: the Runtime probe reads the
+		// CUO-owned in-flight state, the restore audit carries a restore's
+		// live-world write back to the caller that started it.
+		services.AddSingleton<WorldCutTransientProbe>();
+		services.AddSingleton<WorldRestoreAudit>();
 		if (savesRoot is not null)
 		{
 			services.AddSingleton(p => new WorldRepository(
@@ -470,7 +475,13 @@ public static class CuoBootstrap
 			// geyser and block-damage tables). It is optional by design: a build
 			// without one captures and restores only the Runtime-owned facts, and
 			// that gap is reported, never silent.
-			nativeWorldFacts: p.GetService<INativeWorldFacts>()));
+			nativeWorldFacts: p.GetService<INativeWorldFacts>(),
+			// The transient policy's Runtime half (the pickup queue, the operation
+			// sessions, the deferred creation reports): the game-side half is handed
+			// in by the adapter at the frame-end seam.
+			transients: p.GetRequiredService<WorldCutTransientProbe>(),
+			// Carries a restore's live-world half back to the caller that started it.
+			audit: p.GetRequiredService<WorldRestoreAudit>()));
 		services.AddSingleton<IWorldSaveControl>(p => p.GetRequiredService<WorldSaveService>());
 
 		extraRegistrations?.Invoke(services);

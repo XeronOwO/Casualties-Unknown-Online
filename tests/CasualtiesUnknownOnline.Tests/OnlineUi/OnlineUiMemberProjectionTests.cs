@@ -694,6 +694,8 @@ public sealed class OnlineUiMemberProjectionTests
 			public event Action<MedicalOperationStateMsg>? StateReceived;
 			public event Action<MedicalOperationEndCommittedMsg>? EndCommittedReceived;
 
+			public MedicalSessionCutCounts PendingCutSessions => new(0, 0, 0);
+
 			public void SendStartRequest(ulong targetSteamId, ulong itemInstanceId, int targetLimbIndex) { }
 			public void HandleStartRequest(ulong sender, MedicalOperationStartRequestMsg msg) { }
 			public void SendUpdate(ulong operationId, float deltaMl) { }

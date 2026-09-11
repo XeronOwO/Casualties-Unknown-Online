@@ -47,8 +47,9 @@ protobuf save migration.
   ONLY production write to `save.sv` in `src/` (grep `SaveSystem\.`), and its purpose — "the host
   deliberately leaves a live world, persist it before the menu transition" — is a trigger the player
   asks for explicitly. Deleting the hook would delete the trigger; keeping the native call would
-  leave two writers. The call now goes to `IWorldSaveControl.TryCaptureMenuReturnCut`, and a new
-  `SaveSystemTryLoadGamePatch` blocks the native reader, so **no production path writes or reads
+  leave two writers. The call now goes to `IWorldSaveControl` (`TryCaptureMenuReturnCut` in S2; since
+  S3.3 the trigger ARMS a mid-run cut that the frame-end pump seam takes — see decision 167), and a
+  new `SaveSystemTryLoadGamePatch` blocks the native reader, so **no production path writes or reads
   `save.sv` any more** (decision 165, enforced in both directions).
 - **`KernelSaveFileStore`: retired.** Evidence: it was never constructed outside tests (no
   registration in `CuoBootstrap.BuildServiceProvider`; the only `new KernelSaveFileStore(...)` sites

@@ -85,9 +85,11 @@ The manifest is the **only hard gate** in the whole format (see §6). It carries
   `runEpoch`, `globalRevision`, `layerIndex`, `biomeDepth`, `cutPhase`, `savedAtUtc`.
 - Integrity: `files: [{ path, sha256, bytes }]` for every file in the snapshot, and
   `checksumPolicy` so the loader knows whether checksums are mandatory.
-- Provenance of the cut: `cutPhase` names the host main-thread pump phase the cut was taken in
-  (see §4); `saveReason` records what triggered it (`layer-advance`, `menu-return`, `command`,
-  `auto-interval`, `pre-restore-backup`).
+- Provenance of the cut: `cutPhase` names the host main-thread pump seam the cut was taken at —
+  `layer-boundary` (the kernel committed a layer advance) or `frame-end` (the pump's quiescent
+  point; see §4) — and `saveReason` records what triggered it (`layer-advance`, `menu-return`,
+  `command`, `auto-interval`, `pre-restore-backup`). The two are independent on purpose: the phase
+  says WHICH seam, the reason says WHO asked.
 
 ### 3.3 `world.json`
 
@@ -137,10 +139,14 @@ read and write that list, and the bound it obeys is the game's own: 128 entries 
 oldest-first eviction (`WorldGeneration.cs:732-737`). The late-joiner snapshot is read from the same
 list at send time, so a member's set fits its own identically-bounded list by construction — the two
 bounded sets that used to disagree about which cells they held are gone, because there is only one
-set. A build that predates this writes a `block-damage` kind for the CUO registry that no longer
-exists: the reader treats it as an unknown kind and SKIPS it by name (§6), while the same archive's
-`native-block-damage` rows still restore. An older archive therefore degrades in a named way rather
-than being refused, which is why the manifest `schemaVersion` did not move.
+set. Reading the native tables is all-or-nothing and can FAIL: they exist only while a generated
+world object does, so a reader that met no world reports that instead of an empty list, and the cut
+is REFUSED rather than writing a snapshot whose damage table would read back as "no cracks"
+(`NativeWorldFactCapture`). A build that predates this writes a `block-damage` kind for the CUO
+registry that no longer exists: the reader treats it as an unknown kind and SKIPS it by name (§6),
+while the same archive's `native-block-damage` rows still restore. An older archive therefore
+degrades in a named way rather than being refused, which is why the manifest `schemaVersion` did not
+move.
 
 `characters/<playerKey>.json` holds one player character per file (an entry array of one), in the
 native `SaveInfo` shape plus CUO extensions, so the existing `CharacterDataFileStore` restore path
@@ -160,21 +166,40 @@ documented spellings. Compression is ZIP (deflate); no extra runtime package is 
 
 A save is a **consistent cut**: it must not interleave with a command batch or a frame flush. The
 capture seam runs on the host main-thread pump and reads one frozen revision; `cutPhase` in the
-manifest records which phase the cut was taken in so a restore can prove what it holds. The
-phase list is finalized in S3 together with the transient policy; until then `layer-end` cuts are
-taken at the layer boundary, where no in-layer operation is in flight.
+manifest records which seam the cut was taken in so a restore can prove what it holds.
 
-S2's two phases:
+There are exactly two seams:
 
-- `layer-boundary` — taken by the Runtime when the kernel COMMITS a layer advance (the host's
-  generation boundary). The cut therefore holds the run baseline of the layer being entered: the
-  layer index and the generation random state a restore must replay to regenerate the same layer.
-  Taking it before the commit would store the previous layer's baseline and regenerate a different
-  world.
-- `menu-return` — taken when the host deliberately leaves the world for the main menu, while every
-  world object is still alive. It is a `layer-end`-class cut (`kind: layer-end`, `saveReason:
-  menu-return`): the kernel is at a committed revision and S2 captures no world diff, so the layer
-  the runner re-enters is regenerated from the run baseline.
+- `layer-boundary` — taken when the kernel COMMITS a layer advance (the host's generation
+  boundary). The cut therefore holds the run baseline of the layer being entered: the layer index
+  and the generation random state a restore must replay to regenerate the same layer. Taking it
+  before the commit would store the previous layer's baseline and regenerate a different world. A
+  layer-end cut records no in-layer fact (§3.4), so no in-flight state can be lost by one and the
+  transient policy below does not apply to it.
+- `frame-end` — the Game Adapter pump's LAST step: every domain has finished the frame's work (the
+  drop/break flushes included), so no command batch is mid-commit and no frame flush is mid-send.
+  Both remaining triggers ARM a cut and are taken here, never inside the callback that asked:
+  - the host's `/save` console command (a command runs inside the game's input handling, where a
+    cut could read a half-applied frame), and
+  - the host's deliberate return to the main menu — a full mid-run cut, because every world object
+    is still alive at that moment. The leave happens AFTER the cut; leaving first would destroy the
+    world the cut has to read.
+
+**The cut waits for its in-flight state.** Some live operations span frames and only reach the
+kernel through the very flush they are waiting for: a local break holds its report one frame for the
+drops' `Item.Start`, a destructive trap holds its event two frames for the death branch's drops, a
+drop holds its report one frame for the throw velocity. Capturing those states is impossible — their
+items do not exist yet — and dropping them would lose items, so an armed `frame-end` cut is
+DEFERRED: the request stays armed and the seam retries, bounded by
+`WorldSaveService.MaxCutDeferralFrames` (eight pump frames). A state that outlasts the deadline (a
+stuck pending record) is NAMED in the cut report instead of starving the request.
+
+Every other in-flight class has an explicit row in `WorldTransientPolicy`: `capture` (the world fact
+the cut carries as data — the decided keypad/geyser/radiation values), `resolve-before-save` (the
+three frame windows above), or `drop-with-log` (the state's world effect is already a kernel fact,
+or the restored world re-derives it). A class the cut does not carry is named in the report with its
+count and why (§6); an owner that reports an undeclared class REFUSES the cut, because a snapshot
+whose in-flight state is unaccounted for is exactly what §6 forbids.
 
 The host's **Continue entry** (the native `PreRunScript.LoadRun`, decision 165) opens the world
 `index.json`'s `lastOpenedWorldId` names, and the newest world when that pointer is missing or
@@ -226,6 +251,18 @@ Decision 163: restore minimizes loss, and salvage is **per entry, not per domain
   player's current progress. It converges on the same world, minus the entries it names.
 - Every skipped entry, every fallback and every mismatch is surfaced in-game (not only in the log):
   the count per domain, the reason, and the affected content id. Silent loss is forbidden.
+- **A restore has two halves in time, and the second one reports too.** The Continue click applies
+  the kernel checkpoint and the Runtime fact tables; the values only a live world can take (the
+  block diff, the game's own partial-damage list, the decided keypad/geyser values, the radiation
+  line) are written at the world-entry seam afterwards. Both halves travel back to the caller that
+  started the restore through `WorldRestoreAudit`: the Runtime table's per-row apply counts AND the
+  live-world write's refused counts, so a restore can never be reported as a success while the
+  game's own bounded (128-entry) table refused a row.
+- **A dropped in-flight class is reported at the CUT.** Deciding a class `drop-with-log` means the
+  player is told what the cut left behind and why (§4): the cut's report names the count and the
+  class, and the command console renders it for the cuts the player asked for while the log keeps
+  every trigger. A cut whose in-flight state cannot be put back (a pending window that outlasted the
+  deferral deadline) names it in the same report.
 - **Load twice = same world.** Restoring an already-restored snapshot is idempotent; validation
   applies the same dedup and exactly-once rules as the live restore path.
 

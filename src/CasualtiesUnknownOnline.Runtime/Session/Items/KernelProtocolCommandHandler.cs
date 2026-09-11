@@ -92,6 +92,9 @@ internal sealed class KernelProtocolCommandHandler(
 
 	public void Reset() => _pendingPickups.Reset();
 
+	/// <summary>The cut policy's read-only probe (WorldTransientPolicy.PickupQueueKey): pickup claims still inside their hold window.</summary>
+	public int PendingPickupCount => _pendingPickups.Count;
+
 	private void EnqueuePickup(ulong sender, CommandEnvelope envelope)
 	{
 		var itemId = envelope.Command.Identity.InstanceId;

@@ -61,7 +61,7 @@
     {
       "cluster": "enemies-trade",
       "row": "N2",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:493",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:496",
       "quote": "private void SendToGuests(ProtocolFrame frame, bool reliable = true)"
     },
     {
@@ -73,19 +73,19 @@
     {
       "cluster": "enemies-trade",
       "row": "N2",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:348",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:351",
       "quote": "_log.LogWarning(\"Batch from {Sender} creates a revision gap: expected {Expected}, received {Received} — buffering and requesting range.\","
     },
     {
       "cluster": "enemies-trade",
       "row": "N2",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:351",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:354",
       "quote": "RequestRange(expected, batch.GlobalRevision - 1);"
     },
     {
       "cluster": "enemies-trade",
       "row": "N2",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:418",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:421",
       "quote": "SendCheckpoint(sender);"
     },
     {
@@ -649,7 +649,7 @@
     {
       "cluster": "fluids",
       "row": "F4",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:493",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:496",
       "quote": "private void SendToGuests(ProtocolFrame frame, bool reliable = true)"
     },
     {
@@ -733,13 +733,13 @@
     {
       "cluster": "items",
       "row": "I1",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:493",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:496",
       "quote": "private void SendToGuests(ProtocolFrame frame, bool reliable = true)"
     },
     {
       "cluster": "items",
       "row": "I1",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:351",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:354",
       "quote": "RequestRange(expected, batch.GlobalRevision - 1);"
     },
     {
@@ -943,7 +943,7 @@
     {
       "cluster": "items",
       "row": "I5",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolCommandHandler.cs:98",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolCommandHandler.cs:101",
       "quote": "if (_pendingPickups.TryEnqueue(sender, itemId, null, _time.NowMs))"
     },
     {
@@ -1111,7 +1111,7 @@
     {
       "cluster": "items",
       "row": "I8",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolCommandHandler.cs:168",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolCommandHandler.cs:171",
       "quote": "_log.LogInformation(\"Accepted-first missing carried update for item {ItemId} from {Sender}: spawned carried fact.\","
     },
     {
@@ -1189,13 +1189,13 @@
     {
       "cluster": "kernel-protocol",
       "row": "K1",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:493",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:496",
       "quote": "private void SendToGuests(ProtocolFrame frame, bool reliable = true)"
     },
     {
       "cluster": "kernel-protocol",
       "row": "K1",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:365",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:368",
       "quote": "var result = _authority.Apply(batch);"
     },
     {
@@ -1231,13 +1231,13 @@
     {
       "cluster": "kernel-protocol",
       "row": "K2",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:351",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:354",
       "quote": "RequestRange(expected, batch.GlobalRevision - 1);"
     },
     {
       "cluster": "kernel-protocol",
       "row": "K2",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:418",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:421",
       "quote": "SendCheckpoint(sender);"
     },
     {
@@ -1249,7 +1249,7 @@
     {
       "cluster": "kernel-protocol",
       "row": "K2",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:474",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:477",
       "quote": "var result = _authority.Restore(checkpoint);"
     },
     {
@@ -1273,7 +1273,7 @@
     {
       "cluster": "kernel-protocol",
       "row": "K3",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/GameAdapter.cs:237",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/GameAdapter.cs:238",
       "quote": "_domains.WorldEventSync.Update();"
     },
     {
@@ -1291,7 +1291,7 @@
     {
       "cluster": "kernel-protocol",
       "row": "K3",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:474",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:477",
       "quote": "var result = _authority.Restore(checkpoint);"
     },
     {
@@ -1315,7 +1315,7 @@
     {
       "cluster": "kernel-protocol",
       "row": "K4",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:212",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:215",
       "quote": "_authority.ResetForSession();"
     },
     {
@@ -1327,19 +1327,19 @@
     {
       "cluster": "kernel-protocol",
       "row": "K4",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:319",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:322",
       "quote": "if (envelope.Header.RunEpoch != currentEpoch)"
     },
     {
       "cluster": "kernel-protocol",
       "row": "K4",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:338",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:341",
       "quote": "if (batch.RunEpoch.Value != _authority.CreateCheckpoint().RunEpoch.Value)"
     },
     {
       "cluster": "kernel-protocol",
       "row": "K4",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:511",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:514",
       "quote": "RunEpoch = batch?.RunEpoch.Value ?? _authority.CreateCheckpoint().RunEpoch.Value,"
     },
     {
@@ -1465,7 +1465,7 @@
     {
       "cluster": "players",
       "row": "P2",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:493",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:496",
       "quote": "private void SendToGuests(ProtocolFrame frame, bool reliable = true)"
     },
     {
@@ -1657,7 +1657,7 @@
     {
       "cluster": "players",
       "row": "P6",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:493",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:496",
       "quote": "private void SendToGuests(ProtocolFrame frame, bool reliable = true)"
     },
     {
@@ -1807,7 +1807,7 @@
     {
       "cluster": "players",
       "row": "P9",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:391",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:394",
       "quote": "private void RequestRange(ulong start, ulong end)"
     },
     {
@@ -1879,13 +1879,13 @@
     {
       "cluster": "players",
       "row": "P11",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/MedicalOperationSessionService.cs:414",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/MedicalOperationSessionService.cs:415",
       "quote": "_publisher.PublishState(state!);"
     },
     {
       "cluster": "players",
       "row": "P11",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/MedicalOperationSessionService.cs:568",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/MedicalOperationSessionService.cs:569",
       "quote": "_publisher.PublishEnd(end);"
     },
     {
@@ -1969,7 +1969,7 @@
     {
       "cluster": "players",
       "row": "P13",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:557",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:563",
       "quote": "? LimbPoseCapture.Capture(body)"
     },
     {
@@ -2017,7 +2017,7 @@
     {
       "cluster": "run-world",
       "row": "R1",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:178",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:184",
       "quote": "_params.CaptureAtEntry(isTutorial); // the generation baseline — captured at the click moment, before any run randomness is consumed"
     },
     {
@@ -2035,7 +2035,7 @@
     {
       "cluster": "run-world",
       "row": "R1",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:493",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:496",
       "quote": "private void SendToGuests(ProtocolFrame frame, bool reliable = true)"
     },
     {
@@ -2053,13 +2053,13 @@
     {
       "cluster": "run-world",
       "row": "R1",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:474",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:477",
       "quote": "var result = _authority.Restore(checkpoint);"
     },
     {
       "cluster": "run-world",
       "row": "R1",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:351",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:354",
       "quote": "RequestRange(expected, batch.GlobalRevision - 1);"
     },
     {
@@ -2137,7 +2137,7 @@
     {
       "cluster": "run-world",
       "row": "R3",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:373",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:379",
       "quote": "_session.ReportSceneState(inWorld ? SceneStateType.InWorld : SceneStateType.InMenu, sceneName, pos);"
     },
     {
@@ -2299,19 +2299,19 @@
     {
       "cluster": "run-world",
       "row": "R7",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:74",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:76",
       "quote": "private bool _worldFingerprintLogged;"
     },
     {
       "cluster": "run-world",
       "row": "R7",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:310",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:316",
       "quote": "if (inWorld && !_worldFingerprintLogged)"
     },
     {
       "cluster": "run-world",
       "row": "R7",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:312",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:318",
       "quote": "_worldFingerprintLogged = true;"
     },
     {
@@ -2323,7 +2323,7 @@
     {
       "cluster": "run-world",
       "row": "R7",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:472",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:478",
       "quote": "_worldFingerprintLogged = false;"
     },
     {
@@ -2443,7 +2443,7 @@
     {
       "cluster": "world-blocks",
       "row": "W2",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/RestoredWorldFactReplay.cs:85",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/RestoredWorldFactReplay.cs:89",
       "quote": "var damages = _sink.ReplaceGameBlockDamages(restore.BlockDamages);"
     },
     {
@@ -2479,7 +2479,7 @@
     {
       "cluster": "world-blocks",
       "row": "W2",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/BlockDamageSnapshotSender.cs:57",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/BlockDamageSnapshotSender.cs:65",
       "quote": "_sender.Send(targetSteamId, NetMsg.BlockDamageSnapshot, new BlockDamageSnapshotMsg"
     },
     {
@@ -3043,7 +3043,7 @@
     {
       "cluster": "world-entities",
       "row": "E7",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:497",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:500",
       "quote": "_sender.Send(member.SteamId, NetMsg.KernelEnvelope, frame, reliable);"
     },
     {
@@ -3061,7 +3061,7 @@
     {
       "cluster": "world-entities",
       "row": "E7",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:474",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:477",
       "quote": "var result = _authority.Restore(checkpoint);"
     },
     {
@@ -3073,7 +3073,7 @@
     {
       "cluster": "inline",
       "row": "K1",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:332",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:335",
       "quote": "_commandHandler.Handle(sender, envelope);"
     },
     {
@@ -3091,7 +3091,7 @@
     {
       "cluster": "inline",
       "row": "K1",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:345",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:348",
       "quote": "var expected = _authority.CurrentGlobalRevision + 1;"
     },
     {
@@ -3103,19 +3103,19 @@
     {
       "cluster": "inline",
       "row": "K2",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:398",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:401",
       "quote": "SendCommand(new WireCommand"
     },
     {
       "cluster": "inline",
       "row": "K2",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:406",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:409",
       "quote": "private void HandleRangeRequest(ulong sender, WireCommand command)"
     },
     {
       "cluster": "inline",
       "row": "K2",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:466",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:469",
       "quote": "if (_checkpointChunks.Count != chunk.ChunkCount)"
     },
     {
@@ -3127,25 +3127,25 @@
     {
       "cluster": "inline",
       "row": "K2",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:489",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:492",
       "quote": "_checkpointChunks.Clear();"
     },
     {
       "cluster": "inline",
       "row": "K4",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:210",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:213",
       "quote": "public void ResetForSessionEnd()"
     },
     {
       "cluster": "inline",
       "row": "K4",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:213",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:216",
       "quote": "_journal.Clear();"
     },
     {
       "cluster": "inline",
       "row": "K4",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:218",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:221",
       "quote": "_stateStreams.Reset();"
     },
     {
@@ -3157,13 +3157,13 @@
     {
       "cluster": "inline",
       "row": "K4",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:283",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:286",
       "quote": "{"
     },
     {
       "cluster": "inline",
       "row": "K4",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:462",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:465",
       "quote": "private void HandleCheckpoint(CheckpointEnvelope envelope)"
     },
     {
@@ -3235,7 +3235,7 @@
     {
       "cluster": "inline",
       "row": "W1",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:288",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:294",
       "quote": "var inWorld = PlayerCamera.main != null && WorldGeneration.world != null"
     },
     {
@@ -3673,7 +3673,7 @@
     {
       "cluster": "inline",
       "row": "I2",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:326",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:329",
       "quote": "if (envelope.Command.Kind == WireCommandKind.RangeRequest)"
     },
     {
@@ -3805,7 +3805,7 @@
     {
       "cluster": "inline",
       "row": "P2",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:401",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:404",
       "quote": "RangeStart = start,"
     },
     {
@@ -3823,7 +3823,7 @@
     {
       "cluster": "inline",
       "row": "P2",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:468",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:471",
       "quote": "return;"
     },
     {
@@ -4039,25 +4039,25 @@
     {
       "cluster": "inline",
       "row": "P11",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/MedicalOperationSessionService.cs:142",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/MedicalOperationSessionService.cs:143",
       "quote": "_sender.Send(_session.HostSteamId, NetMsg.MedicalOperationStartRequest, msg);"
     },
     {
       "cluster": "inline",
       "row": "P11",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/MedicalOperationSessionService.cs:182",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/MedicalOperationSessionService.cs:183",
       "quote": "_sender.Send(_session.HostSteamId, NetMsg.MedicalOperationEndRequest, msg);"
     },
     {
       "cluster": "inline",
       "row": "P11",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/MedicalOperationSessionService.cs:197",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/MedicalOperationSessionService.cs:198",
       "quote": "_sender.Send(_session.HostSteamId, NetMsg.MedicalOperationCancel, msg);"
     },
     {
       "cluster": "inline",
       "row": "P11",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/ShrapnelOperationSessionService.cs:134",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/ShrapnelOperationSessionService.cs:135",
       "quote": "}, reliable: true);"
     },
     {
@@ -4075,13 +4075,13 @@
     {
       "cluster": "inline",
       "row": "P11",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/MedicalOperationSessionService.cs:585",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/MedicalOperationSessionService.cs:586",
       "quote": "Terminate(session, MedicalOperationTerminalReason.Disconnected);"
     },
     {
       "cluster": "inline",
       "row": "P11",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/ShrapnelOperationSessionService.cs:406",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/PlayerInteraction/ShrapnelOperationSessionService.cs:407",
       "quote": "internal void FlushBeforeTerminal(ulong operationId) =>"
     },
     {
@@ -4159,13 +4159,13 @@
     {
       "cluster": "inline",
       "row": "N2",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:323",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:326",
       "quote": "return;"
     },
     {
       "cluster": "inline",
       "row": "N2",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:393",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/KernelProtocolService.cs:396",
       "quote": "if (_session.Role != SessionRole.Guest || !_session.SessionActive || _session.HostSteamId == 0)"
     },
     {
@@ -4273,7 +4273,7 @@
     {
       "cluster": "inline",
       "row": "R1",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:210",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:216",
       "quote": "_params.OnGenerateBoundary();"
     },
     {
@@ -4309,7 +4309,7 @@
     {
       "cluster": "inline",
       "row": "R3",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:182",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:188",
       "quote": "_world.SendWorldJoin(isTutorial);"
     },
     {
@@ -4441,7 +4441,7 @@
     {
       "cluster": "inline",
       "row": "R7",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:270",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:276",
       "quote": "_log.LogInformation("
     },
     {
@@ -4801,7 +4801,7 @@
     {
       "cluster": "inline",
       "row": "W1",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:273",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:279",
       "quote": "// StartTutorial sets the tutorial flag and nulls runSettings itself"
     },
     {
@@ -4813,13 +4813,13 @@
     {
       "cluster": "inline",
       "row": "R3",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:358",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:364",
       "quote": "_log.LogInformation(\"Host entered the world — no one to wait for, starting immediately.\");"
     },
     {
       "cluster": "inline",
       "row": "R7",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:399",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Run/RunCoordinator.cs:405",
       "quote": "/// loading screen up over a running game). Also closes the start-gate alert"
     },
     {

@@ -2443,7 +2443,7 @@
     {
       "cluster": "world-blocks",
       "row": "W2",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/RestoredWorldFactReplay.cs:89",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/RestoredWorldFactReplay.cs:91",
       "quote": "var damages = _sink.ReplaceGameBlockDamages(restore.BlockDamages);"
     },
     {
@@ -2575,13 +2575,13 @@
     {
       "cluster": "world-blocks",
       "row": "W4",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/KeypadCodeTable.cs:104",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/KeypadCodeTable.cs:109",
       "quote": "if (!overwrite && !string.IsNullOrEmpty(codeField.GetValue<string>()))"
     },
     {
       "cluster": "world-blocks",
       "row": "W4",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/KeypadCodeTable.cs:111",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/KeypadCodeTable.cs:116",
       "quote": "codeField.SetValue(match.Code);"
     },
     {
@@ -2617,7 +2617,7 @@
     {
       "cluster": "world-blocks",
       "row": "W5",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/GeyserStateTable.cs:71",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/GeyserStateTable.cs:76",
       "quote": "typeField.SetValue(match.LiquidType);"
     },
     {

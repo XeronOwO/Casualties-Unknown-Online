@@ -62,6 +62,11 @@ internal static class GeyserStateTable
 				continue;
 			}
 
+			// MATCHED: the live geyser exists — counted here, not at the write, so an
+			// entry whose rolled liquid type already equals the restored one is still
+			// a row the restored replay can call applied (the game rolls only two
+			// types, so an equal value is common, not an anomaly).
+			applied++;
 			var typeField = Traverse.Create(geyser).Field("liquidType");
 			if (typeField.GetValue<byte>() == match.LiquidType) // byte — exact type (a SetValue(int) cast throws ArgumentException)
 			{
@@ -69,7 +74,6 @@ internal static class GeyserStateTable
 			}
 
 			typeField.SetValue(match.LiquidType);
-			applied++;
 		}
 
 		return applied;

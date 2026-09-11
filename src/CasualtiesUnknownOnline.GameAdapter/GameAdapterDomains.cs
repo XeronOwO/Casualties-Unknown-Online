@@ -76,6 +76,8 @@ internal sealed class GameAdapterDomains
 	internal readonly ItemPositionAuthority ItemPositionAuthority;
 	internal readonly ItemPositionFollow ItemPositionFollow;
 	internal readonly BlockBreakSync BlockBreakSync;
+	internal readonly NativeWorldFacts NativeWorldFacts;
+	internal readonly RestoredWorldFactReplay RestoredWorldFactReplay;
 	internal readonly TrapDropPendingState TrapDrops;
 	internal readonly WorldEventSync WorldEventSync;
 	internal readonly LifePodPresentation LifePod;
@@ -128,6 +130,8 @@ internal sealed class GameAdapterDomains
 		IEntitySyncControl entities,
 		ICharacterDataControl characterData,
 		IWorldControl world,
+		IWorldFactSource worldFacts,
+		NativeWorldFacts nativeWorldFacts,
 		IItemControl items,
 		ICraftControl craft,
 		ItemArbitration arbitration,
@@ -232,7 +236,17 @@ internal sealed class GameAdapterDomains
 		MineScriptPatches.ShouldShieldItems = () => Session.Role == SessionRole.Guest; // a locally simulated item must not trip a mine on the guest side (the trigger checks only !isKinematic)
 		var buildingEntities = new WorldBuildingEntitySync(session, world, OperationTrace, loggerFactory.CreateLogger<WorldEventSync>());
 		BlockBreakSync = new BlockBreakSync(session, world, items, blockBreakState, buildingEntities, OperationTrace, loggerFactory.CreateLogger<BlockBreakSync>());
-		WorldEventSync = new WorldEventSync(session, world, BlockBreakSync, OperationTrace, worldEntityKernel, kernelProtocol, loggerFactory.CreateLogger<WorldEventSync>());
+		// The restored-world replay is wired BEFORE the world-event domain: the
+		// world-entry seam it hangs off is WorldEventSync's baseline capture, and
+		// the values it writes come from the Runtime's world-fact tables plus the
+		// adapter's own INativeWorldFacts handover. The replay itself is the
+		// Runtime's (it owns the order, the accounting and the pending handover);
+		// this adapter only supplies the game-typed sink.
+		NativeWorldFacts = nativeWorldFacts;
+		var restoredWorldFactSink = new GameRestoredWorldFactSink(BlockBreakSync, loggerFactory.CreateLogger<GameRestoredWorldFactSink>());
+		RestoredWorldFactReplay = new RestoredWorldFactReplay(
+			worldFacts, nativeWorldFacts, restoredWorldFactSink, loggerFactory.CreateLogger<RestoredWorldFactReplay>());
+		WorldEventSync = new WorldEventSync(session, world, BlockBreakSync, RestoredWorldFactReplay, OperationTrace, worldEntityKernel, kernelProtocol, loggerFactory.CreateLogger<WorldEventSync>());
 		var trapVisualReplay = new TrapVisualReplay(loggerFactory.CreateLogger<TrapVisualReplay>());
 		EntityEventSync = new EntityEventSync(world, session,
 			new TrapEffectApplier(loggerFactory.CreateLogger<TrapEffectApplier>()),
@@ -268,7 +282,7 @@ internal sealed class GameAdapterDomains
 		GuestMenu = new GuestMenuGuard(session, loggerFactory.CreateLogger<GuestMenuGuard>());
 		RunSettingsRange = new RunSettingsRangeService(session, hostRules, loggerFactory.CreateLogger<RunSettingsRangeService>());
 		MenuInput = new OnlineMenuInputGuard(session, loggerFactory.CreateLogger<OnlineMenuInputGuard>());
-		WorldParams = new WorldParamsService(world, loggerFactory.CreateLogger<WorldParamsService>());
+		WorldParams = new WorldParamsService(world, NativeWorldFacts, loggerFactory.CreateLogger<WorldParamsService>());
 		Run = new RunCoordinator(session, world, entities, CharacterDataSync, GuestMenu, WorldParams, arbitration, playerInteraction, worldSaves, loggerFactory.CreateLogger<RunCoordinator>());
 		Gate = new StartGateCoordinator(session, world, LifePod, Run, loggerFactory.CreateLogger<StartGateCoordinator>());
 		WorldTimeSync = new WorldTimeSync(session, entities, characterData, Run, Gate, worldTime, loggerFactory.CreateLogger<WorldTimeSync>());

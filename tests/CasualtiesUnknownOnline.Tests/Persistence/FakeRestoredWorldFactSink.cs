@@ -1,0 +1,109 @@
+using System;
+using System.Collections.Generic;
+using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session.World;
+
+namespace CasualtiesUnknownOnline.Tests.Persistence;
+
+/// <summary>
+/// In-memory stand-in for the Game Adapter's live-world writes: it records the
+/// calls in order and models the game's own partial-damage list as the rows that
+/// survive the last replace, so a replay suite can assert what the live world
+/// would hold instead of only what it was handed.
+/// </summary>
+internal sealed class FakeRestoredWorldFactSink : IRestoredWorldFactSink
+{
+	/// <summary>The world's readiness the replay must respect (a mid-generation world is not ready).</summary>
+	internal bool WorldReady { get; set; } = true;
+
+	/// <summary>Simulate the world vanishing BETWEEN the readiness check and the write (the two are not atomic in production).</summary>
+	internal bool RefuseBlockWrites { get; set; }
+
+	/// <summary>Every call this sink received, in order.</summary>
+	internal List<string> Calls { get; } = [];
+
+	internal List<BlockStateEntryMsg> WrittenBlockStates { get; } = [];
+
+	/// <summary>The game's own damage list as it stands: emptied by every replace, appended by the write.</summary>
+	internal List<BlockDamageEntryMsg> GameDamageTable { get; } = [];
+
+	/// <summary>The game's own list cap (<c>WorldGeneration.cs:732-737</c> caps it at 128); a write past it is refused, exactly like the production table.</summary>
+	internal int Capacity { get; set; } = 128;
+
+	/// <summary>How many keypad codes the live world has no Openable for.</summary>
+	internal int RefuseKeypads { get; set; }
+
+	/// <summary>How many geyser entries the live world has no geyser for.</summary>
+	internal int RefuseGeysers { get; set; }
+
+	/// <summary>Whether the live world had a radiation line to write.</summary>
+	internal bool RadiationLinePresent { get; set; } = true;
+
+	internal int AppliedKeypads { get; private set; }
+
+	internal int AppliedGeysers { get; private set; }
+
+	public bool IsWorldReady => WorldReady;
+
+	public LiveWorldWriteOutcome WriteBlockStates(IReadOnlyList<BlockStateEntryMsg> states)
+	{
+		Calls.Add("write-block-states");
+		if (!WorldReady || RefuseBlockWrites)
+		{
+			// The readiness check and the write are not atomic in production either:
+			// a world that vanished refuses every row instead of reporting zero rows.
+			return new LiveWorldWriteOutcome(0, states.Count);
+		}
+
+		WrittenBlockStates.AddRange(states);
+		return LiveWorldWriteOutcome.All(states.Count);
+	}
+
+	public LiveWorldWriteOutcome ReplaceGameBlockDamages(IReadOnlyList<BlockDamageEntryMsg> rows)
+	{
+		Calls.Add("replace-game-damages");
+		GameDamageTable.Clear();
+		if (!WorldReady)
+		{
+			return new LiveWorldWriteOutcome(0, rows.Count);
+		}
+
+		var applied = 0;
+		var refused = 0;
+		foreach (var row in rows)
+		{
+			if (GameDamageTable.Count >= Capacity)
+			{
+				refused++;
+				continue;
+			}
+
+			GameDamageTable.Add(row);
+			applied++;
+		}
+
+		return new LiveWorldWriteOutcome(applied, refused);
+	}
+
+	public LiveWorldWriteOutcome ApplyKeypadCodes(IReadOnlyList<KeypadEntryMsg> codes)
+	{
+		Calls.Add("apply-keypads");
+		var refused = Math.Min(RefuseKeypads, codes.Count);
+		AppliedKeypads = codes.Count - refused;
+		return new LiveWorldWriteOutcome(AppliedKeypads, refused);
+	}
+
+	public LiveWorldWriteOutcome ApplyGeysers(IReadOnlyList<GeyserStateEntryMsg> geysers)
+	{
+		Calls.Add("apply-geysers");
+		var refused = Math.Min(RefuseGeysers, geysers.Count);
+		AppliedGeysers = geysers.Count - refused;
+		return new LiveWorldWriteOutcome(AppliedGeysers, refused);
+	}
+
+	public bool ApplyRadiationLine(RadiationLineStateMsg line)
+	{
+		Calls.Add("apply-radiation");
+		return RadiationLinePresent;
+	}
+}

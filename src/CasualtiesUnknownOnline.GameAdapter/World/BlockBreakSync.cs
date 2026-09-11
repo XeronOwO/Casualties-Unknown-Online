@@ -57,9 +57,6 @@ internal sealed class BlockBreakSync(
 	private const float RecentBrokenTtl = 3f;
 	private float _lastBrokenCleanup;
 
-	/// <summary>The game's own blockDamages cap — a snapshot must never push the guest's list past it (WorldGeneration.cs:732-737).</summary>
-	private const int GameBlockDamageCap = 128;
-
 	/// <summary>True while a remote world mutation is being applied — the local-report hooks must stay silent (call identity lives in CallContext, not bools).</summary>
 	private bool IsRemoteApply => CallContext.Current == CallContext.Origin.RemoteApply;
 
@@ -316,13 +313,18 @@ internal sealed class BlockBreakSync(
 
 	/// <summary>
 	/// The host's partial block-damage snapshot arrived (world entry / the
-	/// 60 s resend) — apply every entry as an ABSOLUTE set: find or create the
-	/// cell's BlockDamage, write the host's accumulated damage and refresh the
-	/// crack sprite. Idempotent by construction (writing the same damage again
-	/// is a no-op), and it never rides DamageBlock: an additive delta could go
-	/// negative when this side already mined further, and a damage ≥ health
-	/// must not break the block here (a break is the block-state snapshot's
-	/// semantic, not this backfill's).
+	/// 60 s resend) — apply every entry as an ABSOLUTE set per cell: find or
+	/// create the cell's <c>BlockDamage</c>, write the host's accumulated damage
+	/// and refresh the crack sprite. The row write and its validation live in
+	/// <see cref="GameBlockDamageTable"/> — the same table the save restore writes,
+	/// with the same rules — and it deliberately never rides <c>DamageBlock</c>:
+	/// an additive delta could go negative when this side already mined further,
+	/// and a damage ≥ health must not break the block here (a break is the
+	/// block-state snapshot's semantic, not this backfill's).
+	///
+	/// This is a MERGE, not a replace: cells the snapshot does not name keep this
+	/// side's own local damage. Only the save restore replaces the whole list —
+	/// there the restored cut is the whole truth for the table.
 	/// </summary>
 	internal void OnBlockDamageSnapshot(IReadOnlyList<BlockDamageEntryMsg> entries)
 	{
@@ -332,47 +334,16 @@ internal sealed class BlockBreakSync(
 			return;
 		}
 
-		var applied = 0;
-		foreach (var entry in entries)
+		var apply = GameBlockDamageTable.Apply(world, entries, "Block-damage snapshot", _log);
+		foreach (var damage in apply.Written)
 		{
-			var cell = new Vector2Int(entry.X, entry.Y);
-			var block = world.GetBlock(cell);
-			if (block == 0)
-			{
-				continue; // already broken — the block-state snapshot owns it
-			}
-
-			var blockHealth = world.GetBlockInfo(block).health;
-			if (entry.Damage <= 0f || entry.Damage >= blockHealth)
-			{
-				_log.LogWarning("Block-damage snapshot at ({X},{Y}): damage {Damage} outside a surviving block's range ({Health} hp) — skipped.",
-					cell.x, cell.y, entry.Damage, blockHealth);
-				continue;
-			}
-
-			var blockDamage = world.GetBlockDamage(cell);
-			if (blockDamage == null)
-			{
-				if (world.blockDamages.Count >= GameBlockDamageCap)
-				{
-					_log.LogWarning("Block-damage snapshot at ({X},{Y}): the game's {Cap}-entry blockDamages list is full — skipped.",
-						cell.x, cell.y, GameBlockDamageCap);
-					continue;
-				}
-
-				blockDamage = new BlockDamage { pos = cell, damage = entry.Damage };
-				world.blockDamages.Add(blockDamage);
-			}
-			else
-			{
-				blockDamage.damage = entry.Damage;
-			}
-
-			blockDamage.UpdateSprite();
-			applied++;
+			// Presentation of a damage the table already holds: a sprite that
+			// cannot be refreshed must not undo the applied row.
+			damage.UpdateSprite();
 		}
 
-		_log.LogInformation("Block-damage snapshot applied ({Applied}/{Count} cells).", applied, entries.Count);
+		_log.LogInformation("Block-damage snapshot applied ({Applied}/{Count} cells, {Refused} not applicable).",
+			apply.Applied, entries.Count, apply.Refused);
 	}
 
 	/// <summary>

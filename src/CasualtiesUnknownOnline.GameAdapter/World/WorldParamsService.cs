@@ -19,9 +19,11 @@ namespace CasualtiesUnknownOnline.GameAdapter.World;
 /// </summary>
 internal sealed class WorldParamsService(
 	IWorldControl world,
+	NativeWorldFacts nativeWorldFacts,
 	ILogger<WorldParamsService> log)
 {
 	private readonly IWorldControl _world = world;
+	private readonly NativeWorldFacts _nativeWorldFacts = nativeWorldFacts;
 	private readonly ILogger<WorldParamsService> _log = log;
 
 	/// <summary>Host: params captured at the run-start entry — the first GenerateWorld must not re-capture.</summary>
@@ -52,6 +54,11 @@ internal sealed class WorldParamsService(
 	internal void CaptureAtEntry(bool isTutorial)
 	{
 		_world.ResetDamagedBlocks(); // the new run's damage table starts empty again
+									 // The layer this handover belonged to is gone: a native restore still waiting
+									 // for a world-entry seam that will never come must NOT be replayed into the
+									 // world this new run generates (the restore path bypasses this method, so an
+									 // armed restore is never cancelled here by mistake).
+		_nativeWorldFacts.CancelPendingRestore();
 
 		var randomState = RandomStateSerializer.Serialize(Random.state);
 		var runSettings = isTutorial ? null : HarmonyTraverse.ReadPreRunRunSettings();
@@ -156,6 +163,10 @@ internal sealed class WorldParamsService(
 		// Host side: a new world (or layer) is generating — the damage table
 		// starts empty again; mutations during generation are the baseline.
 		_world.ResetDamagedBlocks();
+		// Same rule as the entry capture: this boundary replaces the layer the
+		// waiting native values belong to (the restore path bypasses this method, so
+		// an armed restore is never cancelled here by mistake).
+		_nativeWorldFacts.CancelPendingRestore();
 
 		var randomState = RandomStateSerializer.Serialize(Random.state);
 		var runSettings = HarmonyTraverse.ReadRunSettings();

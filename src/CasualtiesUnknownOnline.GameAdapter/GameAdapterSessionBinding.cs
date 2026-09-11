@@ -125,6 +125,11 @@ internal sealed class GameAdapterSessionBinding(
 		domains.CharacterDataSync.ResetSessionState();
 		domains.ItemWorldSync.ResetPending();
 		domains.BlockBreakSync.ResetPending();
+		// A restored cut the world never consumed dies with the session: without
+		// this the next run's first generation would be mistaken for the generation
+		// the cut was restored for and would receive the old world's keypad codes,
+		// geyser liquid types and partial block damage.
+		domains.NativeWorldFacts.CancelPendingRestore();
 		domains.TrapDrops.Reset();
 		domains.CraftingSync.ResetPending();
 		domains.TraderRecruit.Reset();

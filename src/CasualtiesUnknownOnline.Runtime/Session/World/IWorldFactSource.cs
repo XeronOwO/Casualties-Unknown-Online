@@ -34,8 +34,27 @@ public interface IWorldFactSource
 	RadiationLineStateMsg? CaptureRadiationLine();
 
 	/// <summary>Host only: apply a restored cut absolutely — the table is REPLACED, never merged.</summary>
-	void ApplyFacts(
+	WorldFactApplyReport ApplyFacts(
 		IReadOnlyList<BlockStateEntryMsg> blockStates,
 		IReadOnlyList<BlockDamageEntryMsg> blockDamages,
 		RadiationLineStateMsg? radiationLine);
+
+	/// <summary>
+	/// Host only: a restore put facts into these tables and the LIVE WORLD has
+	/// not consumed them yet. The adapter's world-entry hook reads this to keep
+	/// the restored facts instead of running the layer-boundary reset (which
+	/// exists for a NEWLY generated layer) and to write them into the freshly
+	/// generated world; it calls <see cref="ClearPendingLiveReplay"/> when the
+	/// world has them. False for every normal generation, and false for a
+	/// restored cut that carried no world fact at all (a layer-end cut).
+	/// </summary>
+	bool HasPendingLiveReplay { get; }
+
+	/// <summary>
+	/// The pending restore is done with: the live world has it (the adapter's
+	/// replay), or a new run superseded it (the save layer's next
+	/// <c>TryBeginRun</c>). Never called while a generation is still consuming
+	/// the values — the flag exists to survive exactly that window.
+	/// </summary>
+	void ClearPendingLiveReplay();
 }

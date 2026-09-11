@@ -304,6 +304,7 @@ public sealed class WorldSnapshotDecoder(SaveManifest manifest, ILogger<WorldSna
 	{
 		SaveWorldBlockRow.BlockStateKind => HasAllProperties(entry, "blockState", "x", "y", "block"),
 		SaveWorldBlockRow.BlockDamageKind => HasAllProperties(entry, "blockDamage", "x", "y", "damage"),
+		SaveWorldBlockRow.NativeBlockDamageKind => HasAllProperties(entry, "nativeBlockDamage", "x", "y", "damage"),
 		_ => false,
 	};
 

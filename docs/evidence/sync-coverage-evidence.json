@@ -2,7 +2,7 @@
   "generatedBy": "docs/backlog/review/sync-event-and-periodic-fallback-coverage-audit.md",
   "auditDate": "2026-09-09",
   "note": "Collector evidence (cluster) + inline matrix-ref anchors (cluster=inline). Every matrix ref is a full path; SyncCoverageGateTests verifies every quote is a substring of the referenced line.",
-  "count": 801,
+  "count": 807,
   "entries": [
     {
       "cluster": "enemies-trade",
@@ -1255,25 +1255,25 @@
     {
       "cluster": "kernel-protocol",
       "row": "K3",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:122",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:121",
       "quote": "if (IsHostMode && _session.SessionActive && Time.unscaledTime - _lastSnapshotResend > 60f)"
     },
     {
       "cluster": "kernel-protocol",
       "row": "K3",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:127",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:126",
       "quote": "if (member.InWorld)"
     },
     {
       "cluster": "kernel-protocol",
       "row": "K3",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:131",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:130",
       "quote": "_kernelProtocol.SendCheckpoint(member.SteamId); // the kernel checkpoint also covers lazy-session recovery for WorldEntities and the other kernel domains"
     },
     {
       "cluster": "kernel-protocol",
       "row": "K3",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/GameAdapter.cs:234",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/GameAdapter.cs:237",
       "quote": "_domains.WorldEventSync.Update();"
     },
     {
@@ -1483,7 +1483,7 @@
     {
       "cluster": "players",
       "row": "P2",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:131",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:130",
       "quote": "_kernelProtocol.SendCheckpoint(member.SteamId); // the kernel checkpoint also covers lazy-session recovery for WorldEntities and the other kernel domains"
     },
     {
@@ -1663,7 +1663,7 @@
     {
       "cluster": "players",
       "row": "P6",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:131",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:130",
       "quote": "_kernelProtocol.SendCheckpoint(member.SteamId); // the kernel checkpoint also covers lazy-session recovery for WorldEntities and the other kernel domains"
     },
     {
@@ -1813,7 +1813,7 @@
     {
       "cluster": "players",
       "row": "P9",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:131",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:130",
       "quote": "_kernelProtocol.SendCheckpoint(member.SteamId); // the kernel checkpoint also covers lazy-session recovery for WorldEntities and the other kernel domains"
     },
     {
@@ -2023,7 +2023,7 @@
     {
       "cluster": "run-world",
       "row": "R1",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:444",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:454",
       "quote": "if (!_kernelAuthority.TryStartRun(_session.LocalSteamId, run, out _, out var rejection))"
     },
     {
@@ -2047,7 +2047,7 @@
     {
       "cluster": "run-world",
       "row": "R1",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:122",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:121",
       "quote": "if (IsHostMode && _session.SessionActive && Time.unscaledTime - _lastSnapshotResend > 60f)"
     },
     {
@@ -2287,13 +2287,13 @@
     {
       "cluster": "run-world",
       "row": "R6",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:472",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:482",
       "quote": "_projectionHealth.Run(\"run\", batch.GlobalRevision, () =>"
     },
     {
       "cluster": "run-world",
       "row": "R6",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:500",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:510",
       "quote": "private void RebuildRunFromKernel()"
     },
     {
@@ -2371,44 +2371,44 @@
     {
       "cluster": "world-blocks",
       "row": "W1",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:211",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:210",
       "quote": "_world.BroadcastBlockPlaced(0, pos.x, pos.y, block);"
     },
     {
       "cluster": "world-blocks",
       "row": "W1",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:215",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:214",
       "quote": "_world.SendBlockPlacedReport(pos.x, pos.y, block);"
     },
     {
       "cluster": "world-blocks",
       "row": "W1",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStateMessageService.cs:217",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStateMessageService.cs:219",
       "quote": "_sender.Send(_session.HostSteamId, NetMsg.BlockPlaced,"
     },
     {
       "cluster": "world-blocks",
       "row": "W1",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:122",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:121",
       "quote": "if (IsHostMode && _session.SessionActive && Time.unscaledTime - _lastSnapshotResend > 60f)"
     },
     {
       "cluster": "world-blocks",
       "row": "W1",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:129",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:128",
       "quote": "_world.SendBlockStateSnapshot(member.SteamId);"
     },
     {
       "cluster": "world-blocks",
       "row": "W1",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:174",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:173",
       "quote": "// world and applies the table). Guests do not track — they only apply."
     },
     {
       "cluster": "world-blocks",
       "row": "W1",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:487",
-      "quote": "WorldGeneration.world.SetBlock(pos, block.Block);"
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldBlockStateTable.cs:47",
+      "quote": "world.SetBlock(pos, block.Block);"
     },
     {
       "cluster": "world-blocks",
@@ -2419,38 +2419,74 @@
     {
       "cluster": "world-blocks",
       "row": "W2",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/BlockBreakSync.cs:109",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/GameBlockDamageTable.cs:33",
+      "quote": "internal const int Cap = 128;"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W2",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/GameBlockDamageTable.cs:76",
+      "quote": "return alreadyTracked || trackedCount < Cap ? Verdict.Apply : Verdict.RefuseCap;"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W2",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/GameBlockDamageTable.cs:115",
+      "quote": "LogRefusal(log, origin, verdict, entry, cell, blockHealth);"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W2",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/GameBlockDamageTable.cs:152",
+      "quote": "partial damage at ({X},{Y}) is not applied"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W2",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/RestoredWorldFactReplay.cs:89",
+      "quote": "var damages = _sink.ReplaceGameBlockDamages(restore.BlockDamages);"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W2",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/GameRestoredWorldFactSink.cs:70",
+      "quote": "world.ClearBlockDamages(); // the cut is the whole truth for this list"
+    },
+    {
+      "cluster": "world-blocks",
+      "row": "W2",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/BlockBreakSync.cs:106",
       "quote": "_world.SendBlockDamaged(new NetVector2(pos.x, pos.y), dmg, bonusMetal, null, null);"
     },
     {
       "cluster": "world-blocks",
       "row": "W2",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/BlockBreakSync.cs:144",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/BlockBreakSync.cs:141",
       "quote": "_world.SendBlockDamaged("
     },
     {
       "cluster": "world-blocks",
       "row": "W2",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/BlockBreakSync.cs:389",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/BlockBreakSync.cs:360",
       "quote": "_world.ReportBlockDamage(cell.x, cell.y, blockDamage.damage);"
     },
     {
       "cluster": "world-blocks",
       "row": "W2",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:130",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:129",
       "quote": "_world.SendBlockDamageSnapshot(member.SteamId); // the partial block damage rides the same world-entry resend (idempotent absolute set)"
     },
     {
       "cluster": "world-blocks",
       "row": "W2",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/BlockDamageRegistry.cs:93",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/BlockDamageRegistry.cs:99",
       "quote": "_sender.Send(targetSteamId, NetMsg.BlockDamageSnapshot, new BlockDamageSnapshotMsg"
     },
     {
       "cluster": "world-blocks",
       "row": "W2",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/BlockBreakSync.cs:368",
-      "quote": "blockDamage.damage = entry.Damage;"
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/GameBlockDamageTable.cs:126",
+      "quote": "existing.damage = entry.Damage;"
     },
     {
       "cluster": "world-blocks",
@@ -2467,13 +2503,13 @@
     {
       "cluster": "world-blocks",
       "row": "W3",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:308",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:307",
       "quote": "_world.BroadcastEarthquakeStart(duration, nextDelay);"
     },
     {
       "cluster": "world-blocks",
       "row": "W3",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStateMessageService.cs:239",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStateMessageService.cs:241",
       "quote": "_session.Broadcast(NetMsg.EarthquakeStart, new EarthquakeStartMsg { Duration = duration, NextDelay = nextDelay });"
     },
     {
@@ -2485,67 +2521,67 @@
     {
       "cluster": "world-blocks",
       "row": "W3",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:328",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:327",
       "quote": "WorldGeneration.world.earthquakeTime = duration;"
     },
     {
       "cluster": "world-blocks",
       "row": "W3",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:329",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:328",
       "quote": "WorldGeneration.world.earthquakeDelay = nextDelay;"
     },
     {
       "cluster": "world-blocks",
       "row": "W3",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:211",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:210",
       "quote": "_world.BroadcastBlockPlaced(0, pos.x, pos.y, block);"
     },
     {
       "cluster": "world-blocks",
       "row": "W3",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:129",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:128",
       "quote": "_world.SendBlockStateSnapshot(member.SteamId);"
     },
     {
       "cluster": "world-blocks",
       "row": "W4",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:366",
-      "quote": "SendKeypadCodes(); // TryCaptureWorldBaseline runs once per generation — the first send happens here, the 60 s cycle re-sends"
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:394",
+      "quote": "SendKeypadCodes(); // the world-entry broadcast carries the restored codes — the replay above already wrote them"
     },
     {
       "cluster": "world-blocks",
       "row": "W4",
       "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/EntitySpawnSync.cs:178",
-      "quote": "? WorldEventSync.EnsureKeypadCode(openable) // the host creates it — its code is host authority from the start"
+      "quote": "? KeypadCodeTable.EnsureCode(openable) // the host creates it — its code is host authority from the start"
     },
     {
       "cluster": "world-blocks",
       "row": "W4",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:136",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:135",
       "quote": "SendKeypadCodes(); // re-send the full set (idempotent — set codes are left alone) — covers the lazy-session swallow window and keypads created after the first send (the airdrop/command case, #128 follow-up)"
     },
     {
       "cluster": "world-blocks",
       "row": "W4",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStateMessageService.cs:138",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStateMessageService.cs:140",
       "quote": "_sender.Send(member.SteamId, NetMsg.KeypadCode, msg);"
     },
     {
       "cluster": "world-blocks",
       "row": "W4",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:96",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:95",
       "quote": "SendKeypadCodes();"
     },
     {
       "cluster": "world-blocks",
       "row": "W4",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:454",
-      "quote": "if (string.IsNullOrEmpty(codeField.GetValue<string>()))"
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/KeypadCodeTable.cs:104",
+      "quote": "if (!overwrite && !string.IsNullOrEmpty(codeField.GetValue<string>()))"
     },
     {
       "cluster": "world-blocks",
       "row": "W4",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:456",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/KeypadCodeTable.cs:111",
       "quote": "codeField.SetValue(match.Code);"
     },
     {
@@ -2557,37 +2593,37 @@
     {
       "cluster": "world-blocks",
       "row": "W5",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/GeyserStateSync.cs:83",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/GeyserStateSync.cs:80",
       "quote": "SendFullSet();"
     },
     {
       "cluster": "world-blocks",
       "row": "W5",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/GeyserStateSync.cs:86",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/GeyserStateSync.cs:83",
       "quote": "if (Time.unscaledTime - _lastResend > 60f)"
     },
     {
       "cluster": "world-blocks",
       "row": "W5",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/GeyserStateSync.cs:89",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/GeyserStateSync.cs:86",
       "quote": "SendFullSet(); // re-enumerated every time — creations after the last send are included"
     },
     {
       "cluster": "world-blocks",
       "row": "W5",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStateMessageService.cs:121",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStateMessageService.cs:123",
       "quote": "_sender.Send(member.SteamId, NetMsg.GeyserStateSnapshot, msg);"
     },
     {
       "cluster": "world-blocks",
       "row": "W5",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/GeyserStateSync.cs:150",
-      "quote": "Traverse.Create(geyser).Field(\"liquidType\").SetValue(match.LiquidType); // byte — exact type (a SetValue(int) cast throws ArgumentException)"
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/GeyserStateTable.cs:71",
+      "quote": "typeField.SetValue(match.LiquidType);"
     },
     {
       "cluster": "world-blocks",
       "row": "W5",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/GeyserStateSync.cs:60",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/GeyserStateSync.cs:57",
       "quote": "SendFullSet();"
     },
     {
@@ -2599,7 +2635,7 @@
     {
       "cluster": "world-blocks",
       "row": "W5",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/GeyserStateSync.cs:135",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/GeyserStateSync.cs:116",
       "quote": "_log.LogInformation(\"[GeyserSnapshot] arrived during generation — deferred to the next cycle.\");"
     },
     {
@@ -2671,7 +2707,7 @@
     {
       "cluster": "world-blocks",
       "row": "W7",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStateMessageService.cs:94",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStateMessageService.cs:96",
       "quote": "_sender.Send(targetSteamId, NetMsg.WorldSnapshotComplete, new WorldSnapshotCompleteMsg());"
     },
     {
@@ -2683,13 +2719,13 @@
     {
       "cluster": "world-blocks",
       "row": "W7",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStateMessageService.cs:85",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStateMessageService.cs:87",
       "quote": "public void FireWorldSnapshotCompleteReceived() => WorldSnapshotCompleteReceived?.Invoke();"
     },
     {
       "cluster": "world-blocks",
       "row": "W7",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:122",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:121",
       "quote": "if (IsHostMode && _session.SessionActive && Time.unscaledTime - _lastSnapshotResend > 60f)"
     },
     {
@@ -2725,13 +2761,13 @@
     {
       "cluster": "world-entities",
       "row": "E1",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:122",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:121",
       "quote": "if (IsHostMode && _session.SessionActive && Time.unscaledTime - _lastSnapshotResend > 60f)"
     },
     {
       "cluster": "world-entities",
       "row": "E1",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:131",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:130",
       "quote": "_kernelProtocol.SendCheckpoint(member.SteamId); // the kernel checkpoint also covers lazy-session recovery for WorldEntities and the other kernel domains"
     },
     {
@@ -2767,13 +2803,13 @@
     {
       "cluster": "world-entities",
       "row": "E2",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:122",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:121",
       "quote": "if (IsHostMode && _session.SessionActive && Time.unscaledTime - _lastSnapshotResend > 60f)"
     },
     {
       "cluster": "world-entities",
       "row": "E2",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:131",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:130",
       "quote": "_kernelProtocol.SendCheckpoint(member.SteamId); // the kernel checkpoint also covers lazy-session recovery for WorldEntities and the other kernel domains"
     },
     {
@@ -2821,13 +2857,13 @@
     {
       "cluster": "world-entities",
       "row": "E3",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:122",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:121",
       "quote": "if (IsHostMode && _session.SessionActive && Time.unscaledTime - _lastSnapshotResend > 60f)"
     },
     {
       "cluster": "world-entities",
       "row": "E3",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:131",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:130",
       "quote": "_kernelProtocol.SendCheckpoint(member.SteamId); // the kernel checkpoint also covers lazy-session recovery for WorldEntities and the other kernel domains"
     },
     {
@@ -2839,7 +2875,7 @@
     {
       "cluster": "world-entities",
       "row": "E3",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/GeyserStateSync.cs:140",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/GeyserStateTable.cs:32",
       "quote": "foreach (var geyser in Object.FindObjectsOfType<GeyserScript>())"
     },
     {
@@ -2881,13 +2917,13 @@
     {
       "cluster": "world-entities",
       "row": "E4",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:122",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:121",
       "quote": "if (IsHostMode && _session.SessionActive && Time.unscaledTime - _lastSnapshotResend > 60f)"
     },
     {
       "cluster": "world-entities",
       "row": "E4",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:131",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:130",
       "quote": "_kernelProtocol.SendCheckpoint(member.SteamId); // the kernel checkpoint also covers lazy-session recovery for WorldEntities and the other kernel domains"
     },
     {
@@ -2899,31 +2935,31 @@
     {
       "cluster": "world-entities",
       "row": "E5",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/RadiationLineSync.cs:36",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/RadiationLineSync.cs:35",
       "quote": "private const float BroadcastIntervalSeconds = 0.2f;"
     },
     {
       "cluster": "world-entities",
       "row": "E5",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/RadiationLineSync.cs:94",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/RadiationLineSync.cs:93",
       "quote": "|| (active && Time.unscaledTime - _lastBroadcastTime >= BroadcastIntervalSeconds);"
     },
     {
       "cluster": "world-entities",
       "row": "E5",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/RadiationLineSync.cs:163",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/RadiationLineSync.cs:162",
       "quote": "_world.BroadcastRadiationLineState(new RadiationLineStateMsg"
     },
     {
       "cluster": "world-entities",
       "row": "E5",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStateMessageService.cs:263",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStateMessageService.cs:265",
       "quote": "_session.Broadcast(NetMsg.RadiationLineState, state);"
     },
     {
       "cluster": "world-entities",
       "row": "E5",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/RadiationLineSync.cs:189",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/RadiationLineTable.cs:46",
       "quote": "line.active = true;"
     },
     {
@@ -2935,7 +2971,7 @@
     {
       "cluster": "world-entities",
       "row": "E5",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStateMessageService.cs:274",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStateMessageService.cs:276",
       "quote": "_sender.Send(targetSteamId, NetMsg.RadiationLineState, RadiationLineState);"
     },
     {
@@ -3013,13 +3049,13 @@
     {
       "cluster": "world-entities",
       "row": "E7",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:122",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:121",
       "quote": "if (IsHostMode && _session.SessionActive && Time.unscaledTime - _lastSnapshotResend > 60f)"
     },
     {
       "cluster": "world-entities",
       "row": "E7",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:131",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:130",
       "quote": "_kernelProtocol.SendCheckpoint(member.SteamId); // the kernel checkpoint also covers lazy-session recovery for WorldEntities and the other kernel domains"
     },
     {
@@ -3187,7 +3223,7 @@
     {
       "cluster": "inline",
       "row": "W1",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStateMessageService.cs:315",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStateMessageService.cs:325",
       "quote": "_sender.Send(targetSteamId, NetMsg.WorldBlockState, msg);"
     },
     {
@@ -3205,7 +3241,7 @@
     {
       "cluster": "inline",
       "row": "W1",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStateMessageService.cs:286",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStateMessageService.cs:288",
       "quote": "if (_damagedBlocks.Count >= MaxDamagedBlocks && !_damagedBlocks.ContainsKey((x, y)))"
     },
     {
@@ -3217,32 +3253,32 @@
     {
       "cluster": "inline",
       "row": "W2",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/BlockDamageRegistry.cs:60",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/BlockDamageRegistry.cs:65",
       "quote": "_damage[key] = damage;"
     },
     {
       "cluster": "inline",
       "row": "W2",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/BlockBreakSync.cs:340",
-      "quote": "if (block == 0)"
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/GameBlockDamageTable.cs:66",
+      "quote": "if (currentBlock == 0)"
     },
     {
       "cluster": "inline",
       "row": "W2",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/BlockDamageRegistry.cs:88",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/BlockDamageRegistry.cs:94",
       "quote": "if (_session.Role != SessionRole.Host || _damage.Count == 0)"
     },
     {
       "cluster": "inline",
       "row": "W2",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/BlockBreakSync.cs:327",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/BlockBreakSync.cs:329",
       "quote": "internal void OnBlockDamageSnapshot(IReadOnlyList<BlockDamageEntryMsg> entries)"
     },
     {
       "cluster": "inline",
       "row": "W2",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/BlockBreakSync.cs:346",
-      "quote": "if (entry.Damage <= 0f || entry.Damage >= blockHealth)"
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/GameBlockDamageTable.cs:71",
+      "quote": "if (damage <= 0f || damage >= blockHealth)"
     },
     {
       "cluster": "inline",
@@ -3259,13 +3295,13 @@
     {
       "cluster": "inline",
       "row": "W4",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:59",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:58",
       "quote": "_world.EarthquakeStartReceived += OnEarthquakeStartReceived;"
     },
     {
       "cluster": "inline",
       "row": "W4",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:63",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:62",
       "quote": "_session.RemoteSceneChanged += OnRemoteSceneChanged;"
     },
     {
@@ -3277,7 +3313,7 @@
     {
       "cluster": "inline",
       "row": "W5",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/GeyserStateSync.cs:80",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/GeyserStateSync.cs:77",
       "quote": "if (!_sentOnce)"
     },
     {
@@ -3301,7 +3337,7 @@
     {
       "cluster": "inline",
       "row": "E1",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStateMessageService.cs:202",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStateMessageService.cs:204",
       "quote": "_session.Broadcast(NetMsg.BuildingEntityDamaged, msg);"
     },
     {
@@ -3349,7 +3385,7 @@
     {
       "cluster": "inline",
       "row": "E3",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:106",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:105",
       "quote": "/// ~30 s after world entry — world-mutation broadcasts sent in that window"
     },
     {
@@ -3367,19 +3403,19 @@
     {
       "cluster": "inline",
       "row": "E5",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/RadiationLineSync.cs:93",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/RadiationLineSync.cs:92",
       "quote": "|| active != _lastActive"
     },
     {
       "cluster": "inline",
       "row": "E5",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/RadiationLineSync.cs:87",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/RadiationLineSync.cs:86",
       "quote": "_world.SetRadiationLineState(new RadiationLineStateMsg { Active = active, TimeGone = timeGone });"
     },
     {
       "cluster": "inline",
       "row": "E5",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/RadiationLineSync.cs:92",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/RadiationLineSync.cs:91",
       "quote": "var due = !_hasPublished"
     },
     {
@@ -4213,19 +4249,19 @@
     {
       "cluster": "inline",
       "row": "R1",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldParamsService.cs:52",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldParamsService.cs:54",
       "quote": "internal void CaptureAtEntry(bool isTutorial)"
     },
     {
       "cluster": "inline",
       "row": "R1",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:429",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:439",
       "quote": "public void PublishWorldParams(WorldStartParams parameters)"
     },
     {
       "cluster": "inline",
       "row": "R1",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:435",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:445",
       "quote": "private void CommitRunBaseline(WorldStartParams parameters)"
     },
     {
@@ -4423,19 +4459,19 @@
     {
       "cluster": "inline",
       "row": "W1",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStateMessageService.cs:216",
-      "quote": "RecordPendingBlockReport(x, y, block);"
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStateMessageService.cs:218",
+      "quote": "_pendingBlockReports.Report(x, y, block);"
     },
     {
       "cluster": "inline",
       "row": "W1",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:254",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:253",
       "quote": "_world.SendBlockPlacedCorrection(sender, x, y, WorldGeneration.world.GetBlock(pos));"
     },
     {
       "cluster": "inline",
       "row": "W1",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:260",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:259",
       "quote": "_world.BroadcastBlockPlaced(0, x, y, block); // everyone, the reporter included — the echo is its acknowledgement (same-value SetBlock is idempotent)"
     },
     {
@@ -4453,13 +4489,13 @@
     {
       "cluster": "inline",
       "row": "W1",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStateMessageService.cs:443",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStateMessageService.cs:452",
       "quote": "_sender.Send(_session.HostSteamId, NetMsg.BlockPlaced,"
     },
     {
       "cluster": "inline",
       "row": "W1",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/BlockBreakSync.cs:254",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/BlockBreakSync.cs:251",
       "quote": "OnRemoteDamageBrokeBlock(sender, cell, hasDropPayload);"
     },
     {
@@ -4471,37 +4507,37 @@
     {
       "cluster": "inline",
       "row": "W1",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStateMessageService.cs:506",
-      "quote": "_log.LogWarning(\"[BlockSync] pending block-report table is full ({Cap} cells) — new cells are not re-reported until the host answers (cell ({X},{Y}) dropped).\","
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/GuestBlockReportBookkeeping.cs:49",
+      "quote": "pending block-report table is full ({Cap} cells) — new cells are not re-reported until the host answers"
     },
     {
       "cluster": "inline",
       "row": "W1",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldParamsService.cs:231",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldParamsService.cs:242",
       "quote": "_world.ResetPendingBlockReports();"
     },
     {
       "cluster": "inline",
       "row": "W1",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStateMessageService.cs:519",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldStateMessageService.cs:499",
       "quote": "public void ResetPendingBlockReports()"
     },
     {
       "cluster": "inline",
       "row": "W1",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:481",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldBlockStateTable.cs:41",
       "quote": "using (CallContext.Enter(CallContext.Origin.RemoteApply))"
     },
     {
       "cluster": "inline",
       "row": "W1",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:272",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:271",
       "quote": "var changed = WorldGeneration.world.GetBlock(pos) != block;"
     },
     {
       "cluster": "inline",
       "row": "W1",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/BlockBreakSync.cs:414",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/BlockBreakSync.cs:385",
       "quote": "_world.BroadcastBlockPlaced(0, cell.x, cell.y, 0); // everyone, the reporter included — its echo acknowledges the pending air-write report (same-value SetBlock(0) is a no-op locally)"
     },
     {
@@ -4603,13 +4639,13 @@
     {
       "cluster": "inline",
       "row": "E3",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:132",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:131",
       "quote": "_world.SendRuntimeEntitySnapshot(member.SteamId); // the runtime-created entity table (E3): heals a swallowed creation relay within 60 s"
     },
     {
       "cluster": "inline",
       "row": "E3",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldParamsService.cs:232",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldParamsService.cs:243",
       "quote": "_world.ResetPendingEntityReports();"
     },
     {
@@ -4639,7 +4675,7 @@
     {
       "cluster": "inline",
       "row": "E3",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:400",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:410",
       "quote": "_channels.ResetRuntimeEntities();"
     },
     {
@@ -4771,7 +4807,7 @@
     {
       "cluster": "inline",
       "row": "R1",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldParamsService.cs:49",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldParamsService.cs:51",
       "quote": "/// tutorial flag, identical on both sides), depth and traveled start at 0"
     },
     {
@@ -4801,13 +4837,13 @@
     {
       "cluster": "inline",
       "row": "E3",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldParamsService.cs:204",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldParamsService.cs:215",
       "quote": "_guestParamsWaitLogged = false; // re-arm for the next world/layer"
     },
     {
       "cluster": "inline",
       "row": "W1",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldParamsService.cs:202",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldParamsService.cs:210",
       "quote": "}"
     }
   ]

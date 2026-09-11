@@ -45,6 +45,7 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 	private readonly WorldSnapshotEncoder _encoder;
 	private readonly WorldCharacterBinder _binder;
 	private readonly IWorldFactSource _worldFacts;
+	private readonly WorldFactRestore _factRestore;
 	private readonly INativeWorldFacts? _nativeWorldFacts;
 	private readonly ILoggerFactory _loggerFactory;
 	private readonly ILogger<WorldSaveService> _log;
@@ -79,6 +80,7 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 		_binder = new WorldCharacterBinder(session, characters, transport, loggerFactory.CreateLogger<WorldCharacterBinder>());
 		_worldFacts = worldFacts;
 		_nativeWorldFacts = nativeWorldFacts;
+		_factRestore = new WorldFactRestore(worldFacts, nativeWorldFacts, loggerFactory.CreateLogger<WorldFactRestore>());
 		_loggerFactory = loggerFactory;
 		_log = log;
 		_gameBuild = string.IsNullOrWhiteSpace(gameBuild) ? "unknown" : gameBuild!;
@@ -170,6 +172,14 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 		_worldId = created.WorldId;
 		_displayName = displayName;
 		_pendingCharacters = [];
+
+		// A new run owns the next generation: a restore armed for a previous
+		// (refused or abandoned) attempt must never be written into this world.
+		// Both halves are cancelled: the Runtime tables and the adapter's native
+		// handover (keypad codes, geyser liquid types, the game's own damage rows),
+		// which would otherwise be replayed into this run's first generation.
+		_worldFacts.ClearPendingLiveReplay();
+		_nativeWorldFacts?.CancelPendingRestore();
 
 		// The picker pointer moves on the FIRST CUT, not here: an aborted start (the
 		// tutorial gate refuses after the click) must not hide the previous world
@@ -312,13 +322,6 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 			blocks.Add(SaveWorldBlockRow.OfBlockDamage(damage.X, damage.Y, damage.Damage));
 		}
 
-		// The game's own blockDamages list is NOT captured yet: its rows would carry
-		// the same `block-damage` kind as CUO's table above, so a restore could not
-		// tell them apart and would merge both into CUO's 256-entry registry. S3.2
-		// owns that capture together with the discriminator and the native applier;
-		// until then the cut is complete for the Runtime-owned facts, which is
-		// reported below rather than left silent.
-
 		var transients = new List<SaveWorldTransientRow>();
 
 		// The Runtime half of the transient set: the radiation line is host world
@@ -331,14 +334,25 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 		if (_nativeWorldFacts is null)
 		{
 			// No reader at all: the decided native values (keypad codes, geyser
-			// liquid types) cannot be carried, and a restored world would re-roll
-			// them. Named, never silent.
+			// liquid types) and the game's own partial-damage table cannot be
+			// carried, and a restored world would re-roll them. Named, never silent.
 			_log.LogWarning(
-				"Cut {Reason} carries no native world fact: no INativeWorldFacts is registered, so keypad codes, geyser liquid types and the game's own block-damage list are not in this snapshot.",
+				"Cut {Reason} carries no native world fact: no INativeWorldFacts is registered, so keypad codes, geyser liquid types and the game's own block-damage table are not in this snapshot.",
 				reason);
 		}
 		else
 		{
+			// The game's OWN partial-damage list is a second table of the same
+			// shape as CUO's accumulated damage, so its rows carry their own kind
+			// (`native-block-damage`): a restore routes them back into the game's
+			// list, never into CUO's bounded registry. It can hold damage CUO's
+			// report hooks never observed (the unhooked direct DamageBlock callers),
+			// which is exactly why dropping it would be a silent loss.
+			foreach (var damage in _nativeWorldFacts.CaptureBlockDamages())
+			{
+				blocks.Add(SaveWorldBlockRow.OfNativeBlockDamage(damage.X, damage.Y, damage.Damage));
+			}
+
 			// The native half of the transient set. These are DECIDED values (§4):
 			// carrying them is the whole point, because regenerating the layer would
 			// roll new ones and a code the player already read would stop opening the
@@ -413,7 +427,7 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 		// resets the tables first (see IWorldFactSource), so a fact left over from
 		// the previous session cannot survive a cut that never named it. A refused
 		// snapshot never gets here, so nothing of a refused cut is written.
-		var factDamage = ApplyWorldFacts(decode.UsableWorldBlocks, decode.UsableWorldTransients);
+		var factDamage = _factRestore.Apply(decode.UsableWorldBlocks, decode.UsableWorldTransients);
 
 		// The run continues in the same world: every later cut of this session
 		// writes back into it, and the picker's pointer follows the player.
@@ -448,100 +462,6 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 			worldId, decode.Checkpoint.GlobalRevision, decode.Checkpoint.Run?.LayerIndex ?? -1, decode.UsableCharacters.Count, summary);
 		outcome = new WorldContinueOutcome(true, worldId, summary, salvage);
 		return true;
-	}
-
-	/// <summary>
-	/// Puts one restored cut's world facts back. The Runtime half (the block diff
-	/// and the radiation line) is applied absolutely through
-	/// <see cref="IWorldFactSource"/>, which resets first — the cut is the whole
-	/// truth for those tables. The native half (keypad codes, geyser liquid types)
-	/// is handed to <see cref="INativeWorldFacts"/>. Everything that could NOT be
-	/// put back is RETURNED as damage for the restore report, because a keypad left
-	/// to re-roll is a value the player can see (§6: never a quiet default).
-	/// </summary>
-	private List<string> ApplyWorldFacts(
-		IReadOnlyList<SaveWorldBlockRow> blocks,
-		IReadOnlyList<SaveWorldTransientRow> transients)
-	{
-		var damage = new List<string>();
-		var blockStates = new List<BlockStateEntryMsg>();
-		var blockDamages = new List<BlockDamageEntryMsg>();
-		var radiationLine = (RadiationLineStateMsg?)null;
-		var keypads = new List<KeypadEntryMsg>();
-		var geysers = new List<GeyserStateEntryMsg>();
-
-		foreach (var row in blocks)
-		{
-			switch (row.Kind)
-			{
-				case SaveWorldBlockRow.BlockStateKind when row.BlockState is not null:
-					blockStates.Add(row.BlockState);
-					break;
-				case SaveWorldBlockRow.BlockDamageKind when row.BlockDamage is not null:
-					blockDamages.Add(row.BlockDamage);
-					break;
-				default:
-					damage.Add($"an unreadable {row.Describe()} row was not applied");
-					_log.LogWarning("Restored world-block row {Row} carries no applicable payload; it is not applied.", row.Describe());
-					break;
-			}
-		}
-
-		foreach (var row in transients)
-		{
-			switch (row.Kind)
-			{
-				case SaveWorldTransientRow.RadiationLineKind when row.RadiationLine is not null:
-					radiationLine = row.RadiationLine;
-					break;
-				case SaveWorldTransientRow.KeypadKind when row.Keypad is not null:
-					keypads.Add(row.Keypad);
-					break;
-				case SaveWorldTransientRow.GeyserKind when row.Geyser is not null:
-					geysers.Add(row.Geyser);
-					break;
-				default:
-					damage.Add($"an unreadable {row.Describe()} row was not applied");
-					_log.LogWarning("Restored world-transient row {Row} carries no applicable payload; it is not applied.", row.Describe());
-					break;
-			}
-		}
-
-		_worldFacts.ApplyFacts(blockStates, blockDamages, radiationLine);
-
-		if (keypads.Count + geysers.Count == 0)
-		{
-			return damage;
-		}
-
-		if (_nativeWorldFacts is null)
-		{
-			damage.Add($"{keypads.Count} keypad code(s) and {geysers.Count} geyser liquid type(s) were not restored (no native applier in this build)");
-			_log.LogError(
-				"Restored world WITHOUT {Keypads} keypad code(s) and {Geysers} geyser liquid type(s): this build has no INativeWorldFacts, so those decided values cannot be put back and the layer keeps freshly-generated ones.",
-				keypads.Count, geysers.Count);
-			return damage;
-		}
-
-		// The adapter owns these tables: the Continue click runs before the world
-		// object exists, so the restore hands the values over rather than writing
-		// them from here (S3.4 applies them where the native reader used to run).
-		try
-		{
-			_nativeWorldFacts.ApplyKeypadCodes(keypads);
-			_nativeWorldFacts.ApplyGeysers(geysers);
-			_log.LogInformation("Handed {Keypads} keypad code(s) and {Geysers} geyser liquid type(s) to the native world-fact applier.", keypads.Count, geysers.Count);
-		}
-		catch (Exception ex)
-		{
-			// The adapter is the only layer that can fail here (it touches the live
-			// game). A throw must not abort the restore after the kernel and the
-			// Runtime facts already applied: it is damage, and it is reported.
-			damage.Add($"{keypads.Count} keypad code(s) and {geysers.Count} geyser liquid type(s) could not be applied by the native world-fact applier");
-			_log.LogError(ex, "The native world-fact applier failed; the keypad/geyser facts are not restored and the layer keeps freshly-generated values.");
-		}
-
-		return damage;
 	}
 
 	// The characters a cut carries and the peer arbitration of a restore belong to

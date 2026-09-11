@@ -1,16 +1,13 @@
 using System.Collections.Generic;
 using System.Linq;
-using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.GameAdapter.Items;
 using CasualtiesUnknownOnline.GameAdapter.Patches;
-using HarmonyLib;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
-using Object = UnityEngine.Object;
 
 namespace CasualtiesUnknownOnline.GameAdapter.World;
 
@@ -28,6 +25,7 @@ internal sealed partial class WorldEventSync(
 	ISessionControl session,
 	IWorldControl world,
 	BlockBreakSync blockBreaks,
+	RestoredWorldFactReplay replay,
 	OperationTrace trace,
 	WorldEntityKernelProjection kernelProjection,
 	IKernelProtocolControl kernelProtocol,
@@ -36,6 +34,7 @@ internal sealed partial class WorldEventSync(
 	private readonly ISessionControl _session = session;
 	private readonly IWorldControl _world = world;
 	private readonly BlockBreakSync _blockBreaks = blockBreaks;
+	private readonly RestoredWorldFactReplay _replay = replay;
 	private readonly OperationTrace _trace = trace;
 	private readonly WorldEntityKernelProjection _kernelProjection = kernelProjection;
 	private readonly IKernelProtocolControl _kernelProtocol = kernelProtocol;
@@ -331,10 +330,17 @@ internal sealed partial class WorldEventSync(
 	}
 
 	/// <summary>
-	/// Host only: snapshot worldBlocks the moment generation completes (the
-	/// generated baseline the difference table diffs against). Any generation
-	/// start resets the flag; a completed generation re-captures — per
-	/// world/layer, matching the table reset at CaptureWorldParams.
+	/// The host's world-entry seam, once per generation: snapshot worldBlocks the
+	/// moment generation completes (the generated baseline the difference table
+	/// diffs against), write a RESTORED cut into the fresh world when the save
+	/// layer restored one, then broadcast the decided keypads. Any generation
+	/// start resets the flag; a completed generation re-captures — per world/layer,
+	/// matching the table reset at CaptureWorldParams.
+	///
+	/// The order inside this method is load-bearing: a restored cut must land
+	/// AFTER the baseline snapshot (the generated world is the diff's reference,
+	/// not the restored one) and BEFORE the keypad broadcast (the peers must be
+	/// told the restored codes, not freshly generated ones).
 	/// </summary>
 	private void TryCaptureWorldBaseline()
 	{
@@ -357,68 +363,57 @@ internal sealed partial class WorldEventSync(
 		}
 
 		_baseline = (ushort[,])blocks.Clone();
-		_world.ResetDamagedBlocks();
-		_log.LogInformation("Captured world baseline ({Width}x{Height}) — the damage table now diffs against it.",
-			_baseline.GetLength(0), _baseline.GetLength(1));
+		if (_replay.HasPending)
+		{
+			// A restored layer is NOT a new layer for the WORLD-FACT tables: the
+			// facts about to be written into this world are the ones the cut named,
+			// so the world-fact reset (which exists to start a NEW layer from empty
+			// tables) must not run — it would erase the restored block diff, the
+			// restored partial damage and the kernel-backed world-entity facts the
+			// checkpoint restore just put back.
+			//
+			// The runtime-created ENTITY table is the opposite: it is this
+			// generation's registration table (its entries are gone with the old
+			// scene), and a creation record left over from the previous layer would
+			// be materialized by a late-joining guest as a ghost entity.
+			_world.ResetRuntimeEntities();
+			_log.LogInformation("Captured world baseline ({Width}x{Height}) — a restored cut is pending; the restored world-fact tables are kept, the runtime-entity table is reset, and the restored facts are written into this world.",
+				_baseline.GetLength(0), _baseline.GetLength(1));
+		}
+		else
+		{
+			_world.ResetDamagedBlocks();
+			_log.LogInformation("Captured world baseline ({Width}x{Height}) — the damage table now diffs against it.",
+				_baseline.GetLength(0), _baseline.GetLength(1));
+		}
+
+		_replay.ApplyIfPending(); // writes the restored cut into the freshly generated world (a no-op when none is pending)
 
 		if (IsHostMode)
 		{
-			SendKeypadCodes(); // TryCaptureWorldBaseline runs once per generation — the first send happens here, the 60 s cycle re-sends
+			SendKeypadCodes(); // the world-entry broadcast carries the restored codes — the replay above already wrote them
 		}
 	}
 
 	/// <summary>
-	/// Host only: generate every keypad's code (the game lazy-generates on first
-	/// use per side, Openable.cs:19 — every side would get its own code) and
-	/// broadcast them position-keyed. Runs at world entry (after the generation
-	/// completed — the Openables exist by then) and re-runs on the 60 s cycle:
-	/// the re-send covers the lazy Steam P2P session's swallow window and
-	/// keypads created after the first send (the airdrop/command case, #128
-	/// follow-up — created keypads are broadcast immediately by
-	/// <see cref="OnEntityInstantiated"/>, this is the fallback). Idempotent:
-	/// the receiver leaves an already-set code alone.
+	/// Host only: broadcast every keypad's code (the game lazy-generates on first
+	/// use per side, <c>Openable.cs:19</c> — every side would get its own code).
+	/// The table read generates a missing code host-side, so the set is complete
+	/// by construction. Runs at world entry (after the generation completed — the
+	/// Openables exist by then, and after a restored cut wrote its codes) and
+	/// re-runs on the 60 s cycle: the re-send covers the lazy Steam P2P session's
+	/// swallow window and keypads created after the first send (the
+	/// airdrop/command case, #128 follow-up — created keypads are broadcast
+	/// immediately by <see cref="OnEntityInstantiated"/>, this is the fallback).
+	/// Idempotent: the receiver leaves an already-set code alone.
 	/// </summary>
 	private void SendKeypadCodes()
 	{
-		var codes = new List<KeypadEntryMsg>();
-		foreach (var openable in Object.FindObjectsOfType<Openable>())
-		{
-			if (!openable.isKeypad)
-			{
-				continue;
-			}
-
-			var pos = openable.transform.position;
-			codes.Add(new KeypadEntryMsg
-			{
-				Position = new NetVector2(pos.x, pos.y).ToNetVector2Msg(),
-				Code = EnsureKeypadCode(openable),
-			});
-		}
-
+		var codes = KeypadCodeTable.Capture();
 		if (codes.Count > 0)
 		{
 			_world.SendKeypadCodes(codes);
 		}
-	}
-
-	/// <summary>Read the Openable's code, generating it host-side if unset (the
-	/// host's Random stream decides — same authority as the game's lazy
-	/// generation). Internal: the runtime-creation channel (EntitySpawnSync)
-	/// generates a created keypad's code at relay time and carries it in the
-	/// EntitySpawnedMsg (#128 — one message per operation; the code is
-	/// creation-time data, the game lazy-generates it per side otherwise).</summary>
-	internal static string EnsureKeypadCode(Openable openable)
-	{
-		var codeField = Traverse.Create(openable).Field("code");
-		var existing = codeField.GetValue<string>();
-		if (string.IsNullOrEmpty(existing))
-		{
-			existing = KeypadMinigame.GenerateCode(); // host authority — its Random stream decides
-			codeField.SetValue(existing);
-		}
-
-		return existing;
 	}
 
 	/// <summary>
@@ -434,30 +429,7 @@ internal sealed partial class WorldEventSync(
 			return;
 		}
 
-		var applied = 0;
-		foreach (var openable in Object.FindObjectsOfType<Openable>())
-		{
-			if (!openable.isKeypad)
-			{
-				continue;
-			}
-
-			var pos = openable.transform.position;
-			var match = codes.FirstOrDefault(c =>
-				Vector2.Distance(new Vector2(c.Position.X, c.Position.Y), new Vector2(pos.x, pos.y)) < 3f);
-			if (match is null)
-			{
-				continue;
-			}
-
-			var codeField = Traverse.Create(openable).Field("code");
-			if (string.IsNullOrEmpty(codeField.GetValue<string>()))
-			{
-				codeField.SetValue(match.Code);
-				applied++;
-			}
-		}
-
+		var applied = KeypadCodeTable.ApplyWhereUnset(codes);
 		_log.LogInformation("[Keypad] applied {Applied} host keypad code(s).", applied);
 	}
 
@@ -465,6 +437,19 @@ internal sealed partial class WorldEventSync(
 	/// Guest side: the host's authoritative block-state snapshot — apply the
 	/// accumulated mutations to our freshly generated world (the snapshot only
 	/// arrives after our InWorld report, i.e. after generation finished).
+	///
+	/// The writes run under the REMOTE-APPLY scope (see
+	/// <see cref="WorldBlockStateTable"/>) so the local report hook stays silent;
+	/// without it every snapshot cell was echoed back to the host as a guest
+	/// mutation.
+	///
+	/// An air write settles the building support loss ONLY for a live row: the
+	/// host made that transition in ITS world, so the building that stood on the
+	/// block must die on this side too (and this side's drops are presentation the
+	/// host's item table reconciles). A RESTORED row already carried that
+	/// settlement — the host replayed it out of an archive — so re-running it here
+	/// would kill a building the authority still holds and re-roll drops that are
+	/// already checkpoint items.
 	/// </summary>
 	private void OnRemoteBlockState(IReadOnlyList<DamagedBlock> blocks)
 	{
@@ -473,32 +458,16 @@ internal sealed partial class WorldEventSync(
 			return;
 		}
 
-		// The snapshot is a REMOTE application: mark the writes so the local
-		// report hook stays silent. Without this every snapshot cell was
-		// echoed back to the host as a guest mutation — the host's own state
-		// re-reported, and (since the host now answers every report) amplified
-		// into a correction per cell per snapshot.
-		using (CallContext.Enter(CallContext.Origin.RemoteApply))
+		WorldBlockStateTable.Apply(blocks, (pos, supportLossSettled) =>
 		{
-			foreach (var block in blocks)
+			_blockBreaks.OnBlockAirWrite(pos);
+			if (!supportLossSettled)
 			{
-				var pos = new Vector2Int(block.X, block.Y);
-				var changed = WorldGeneration.world.GetBlock(pos) != block.Block;
-				WorldGeneration.world.SetBlock(pos, block.Block);
-				if (changed && block.Block == 0)
-				{
-					// A block-state snapshot can turn a locally partially-mined
-					// cell into air via direct SetBlock(0); remove the game-side
-					// BlockDamage/sprite so the snapshot does not leave fragmented
-					// air behind. An UNCHANGED cell was already handled when it
-					// became air locally — re-marking it would suppress this
-					// side's own building-drop roll (RemoteEntityDeath).
-					_blockBreaks.OnBlockAirWrite(pos);
-					_buildingEntities.MarkSupportLossRemote(pos);
-				}
+				_buildingEntities.MarkSupportLossRemote(pos);
 			}
-		}
+		});
 
-		_log.LogInformation("Applied host block-state snapshot ({Count} blocks).", blocks.Count);
+		_log.LogInformation("Applied host block-state snapshot ({Count} blocks, {Restored} restored cell(s) whose support loss was settled by the host).",
+			blocks.Count, blocks.Count(block => block.SupportLossSettled));
 	}
 }

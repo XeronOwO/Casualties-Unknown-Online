@@ -128,6 +128,10 @@ public sealed class WorldService : IWorldControl, IWorldFactSource, IDisposable
 		_channels.ResetRuntimeEntities();
 		_channels.ResetPendingEntityReports();
 		WorldParams = null;
+		// The session that owned a pending restore is gone: the live world will
+		// never consume it, and leaving the marker set would make the NEXT run's
+		// first generation look like the one the cut was restored for.
+		_facts.ClearPendingLiveReplay();
 		_messages.ResetSessionState();
 	}
 
@@ -149,11 +153,17 @@ public sealed class WorldService : IWorldControl, IWorldFactSource, IDisposable
 	public RadiationLineStateMsg? CaptureRadiationLine() => _facts.CaptureRadiationLine();
 
 	/// <inheritdoc cref="CaptureBlockStates"/>
-	public void ApplyFacts(
+	public WorldFactApplyReport ApplyFacts(
 		IReadOnlyList<BlockStateEntryMsg> blockStates,
 		IReadOnlyList<BlockDamageEntryMsg> blockDamages,
 		RadiationLineStateMsg? radiationLine) =>
 		_facts.ApplyFacts(blockStates, blockDamages, radiationLine);
+
+	/// <inheritdoc cref="CaptureBlockStates"/>
+	public bool HasPendingLiveReplay => _facts.HasPendingLiveReplay;
+
+	/// <inheritdoc cref="CaptureBlockStates"/>
+	public void ClearPendingLiveReplay() => _facts.ClearPendingLiveReplay();
 
 	public void Dispose()
 	{

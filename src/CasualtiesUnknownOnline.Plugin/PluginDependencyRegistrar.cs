@@ -4,6 +4,7 @@ using BepInEx.Configuration;
 using CasualtiesUnknownOnline.Abstractions;
 using CasualtiesUnknownOnline.GameAdapter;
 using CasualtiesUnknownOnline.GameAdapter.Content;
+using CasualtiesUnknownOnline.GameAdapter.World;
 using CasualtiesUnknownOnline.Runtime.Configuration;
 using CasualtiesUnknownOnline.Runtime.Diagnostics;
 using CasualtiesUnknownOnline.Runtime.OnlineUi;
@@ -12,6 +13,7 @@ using CasualtiesUnknownOnline.Runtime.Session.Content;
 using CasualtiesUnknownOnline.Runtime.Session.HostRules;
 using CasualtiesUnknownOnline.Runtime.Session.Mods;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
+using CasualtiesUnknownOnline.Runtime.Session.World;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
@@ -215,6 +217,14 @@ internal static class PluginDependencyRegistrar
 		services.AddSingleton<GameAdapterImpl>();
 		services.AddSingleton<IGameAdapter>(p => p.GetRequiredService<GameAdapterImpl>());
 		services.AddSingleton<ICuoService>(p => p.GetRequiredService<GameAdapterImpl>());
+		// The native world-fact reader/writer of the CUO world archive: the
+		// adapter is the only layer that can read the game's keypad codes, geyser
+		// liquid types and its own blockDamages list, so the save layer resolves
+		// this port from here (it is OPTIONAL by design — a build without one
+		// captures and restores only the Runtime-owned world facts and reports the
+		// gap instead of defaulting silently).
+		services.AddSingleton<NativeWorldFacts>();
+		services.AddSingleton<INativeWorldFacts>(p => p.GetRequiredService<NativeWorldFacts>());
 		services.Replace(ServiceDescriptor.Singleton<IModEntitySpawner>(p => p.GetRequiredService<GameAdapterImpl>()));
 		services.Replace(ServiceDescriptor.Singleton<IModItemSpawner>(p => p.GetRequiredService<GameAdapterImpl>()));
 		services.Replace(ServiceDescriptor.Singleton<IModTilePlacer>(p => p.GetRequiredService<GameAdapterImpl>()));

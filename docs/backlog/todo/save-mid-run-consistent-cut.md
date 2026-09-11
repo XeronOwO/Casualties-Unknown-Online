@@ -1,10 +1,22 @@
 # S3 — Mid-run consistent cut and world diff
 
-- Status: Todo (unblocked: S1 and S2 landed; approved for implementation by the user on 2026-09-10)
+- Status: Todo (unblocked: S1 and S2 landed; approved for implementation by the user on 2026-09-10).
+  Staging: S3.1 (payload skeleton) and S3.2 (world-diff capture and replay) landed; S3.2's
+  independent adversarial pass then produced 1 blocker + 3 majors + 4 minors + 3 nits, all fixed on
+  top of it (the replay was extracted into the Runtime so its order/caps are testable, the archive's
+  game-table rows are the only ones written back into the game's own list, the adapter's pending
+  handover has a real cancel path, the layer-boundary reset is split, and a restored row carries its
+  already-settled support-loss verdict). A second independent pass then caught the retry path itself
+  (a taken handover could not be retried): the replay now READS the native handover and commits it
+  only after every row reached the live world, keeps both halves pending on any refusal, and a layer
+  boundary cancels a handover that belongs to the layer being replaced. S3.3 (the consistent cut and
+  the transient policy) is next,
+  then S3.4 (native run fields) and S3.5 (exactly-once plus documentation and re-anchoring). The
+  mid-run trigger is still closed, so the only cut a build produces today is S2's layer-end one.
 - Priority: High
 - Category: Persistence / save system
 - Source: Stage 3 of `docs/backlog/in-progress/save-system-mid-run-and-layer-end.md`; this is the user's hard requirement — "需要重点关注存档的中途性质，防止出现多生成、少生成内容的情况"
-- Related: `docs/architecture/save-archive-format.md` §4/§6, `todo/save-layer-end-save-and-restore.md` (S2), `todo/save-multiplayer-restore-and-backups.md` (S4)
+- Related: `docs/architecture/save-archive-format.md` §4/§6 (S3.2 also recorded the restore apply seam in §6.1), `todo/save-layer-end-save-and-restore.md` (S2), `todo/save-multiplayer-restore-and-backups.md` (S4)
 
 ## Approved decisions (2026-09-10)
 
@@ -76,7 +88,24 @@ The consistent cut and the full mid-run payload. This is where the hard part of 
    backup only while the manifest is read, and `loadSnapshot` has already returned by then. Give
    the repository a "newest readable snapshot OF THIS WORLD" retry that runs after a decode
    refusal, so a damaged live snapshot falls back to its own newest backup the way an unreadable
-   manifest already does (§6).
+   manifest already does (§6). Owner: S4.
+8. **Host-side world-entity projection on a mid-run restore** (found while landing S3.2) — a
+   restored layer's per-layer game objects are regenerated from the run baseline, and
+   `WorldEntityKernelProjection` only raises its flat fact lists when the local role is GUEST. On
+   the HOST a mid-run restore therefore keeps opened/consumed/damaged-building facts in the kernel
+   and ships them to guests, but never writes them onto its own fresh world. S3.2's world-diff
+   replay deliberately does not compensate by re-triggering the side effects it cannot undo
+   (a replayed air write marks no building support loss, so the deaths the saved world already
+   resolved are not re-rolled as fresh drops). The one seam where the two sides disagreed — the same
+   restored row reaching a GUEST through the snapshot apply — is now explicit rather than implicit: a
+   row read back out of the archive carries `SupportLossSettled` (`BlockStateEntryMsg` field 4), and
+   the guest's snapshot apply re-settles support loss only for rows a LIVE write produced, so a guest
+   no longer kills a building the host still holds. Deciding the host-side project-or-suppress rule
+   and proving it — including what happens to the drops of a building the saved world already killed —
+   belongs to S3.3/S3.5. Verification limit for S3.2: the replayed per-cell block diff is proven
+   in-game (the adapter's world reads need a running game), the row routing/caps/replay lifecycle are
+   proven in the Runtime suites, and the guest-side "restored row never re-settles" branch itself is
+   an engine-side branch that the dual-client pass has to confirm.
 
 ## Acceptance
 
@@ -96,3 +125,4 @@ Item/entity/block facts are machine-verifiable through the kernel and the format
 tables (keypad codes, geyser rolls, earthquake timers, `WorldGeneration.blockDamages`) live behind the
 adapter; those rows are verified by adapter-level tests plus the user's dual-client pass, and this
 ticket must name which is which.
+

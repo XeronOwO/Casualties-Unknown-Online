@@ -23,11 +23,13 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 /// replay must run BEFORE the world-entry keypad broadcast so the peers receive
 /// the restored codes.
 ///
-/// The handover is a READ-THEN-COMMIT, never a take: a generation that cannot take
-/// every value (the world vanished between the readiness check and the write, a
-/// bounded table refused a row, a keypad's Openable is not there) keeps BOTH
-/// halves pending and reports an error, so the next generation retries instead of
-/// the restore being reported complete over tables the live world does not have.
+/// The handover is a READ-THEN-COMMIT, never a take: the replay writes first and
+/// commits only when the live world took every value. A generation that cannot
+/// take them (the world vanished between the readiness check and the write, a
+/// bounded table refused a row, a keypad's Openable is not there) reports the loss
+/// at error level and RELEASES both halves — the entry seam runs once per
+/// generation, and any later generation is a DIFFERENT layer, so an armed "retry"
+/// would only risk writing this layer's rows into the next one.
 /// </summary>
 internal sealed class RestoredWorldFactReplay(
 	IWorldFactSource facts,
@@ -113,15 +115,20 @@ internal sealed class RestoredWorldFactReplay(
 			keypads.Applied, restore.Keypads.Count, geysers.Applied, restore.Geysers.Count,
 			radiation is null ? "absent" : radiationApplied ? "applied" : "no live line",
 			refused,
-			liveWorldComplete ? "complete" : "STILL PENDING (the next generation retries it)");
+			liveWorldComplete ? "complete" : "INCOMPLETE (reported at error level, not retried)");
 
 		if (!liveWorldComplete)
 		{
 			// A restored fact the live world did not take is lost state, not a
-			// detail: the cut named it, the world does not have it, and BOTH handovers
-			// are deliberately left pending so the next generation tries again.
+			// detail — and there is no retry path to leave armed: the world-entry
+			// seam runs once per generation, and every later generation belongs to a
+			// different layer (whose boundary cancels a handover anyway). So the loss
+			// is named here and BOTH handovers are released; keeping them would only
+			// risk replaying this layer's rows into another one.
+			_nativeFacts?.CancelPendingRestore();
+			_facts.ClearPendingLiveReplay();
 			_log.LogError(
-				"[SaveFacts] the live world did NOT take every restored fact ({Blocks} block-state, {Damages} partial-damage, {Keypads} keypad and {Geysers} geyser row(s) refused, radiation {Radiation}) — the restore stays PENDING for the next generation.",
+				"[SaveFacts] the live world did NOT take every restored fact ({Blocks} block-state, {Damages} partial-damage, {Keypads} keypad and {Geysers} geyser row(s) refused, radiation {Radiation}) — the restored state is INCOMPLETE and those rows are NOT in the live world.",
 				blocks.Refused, damages.Refused, keypads.Refused, geysers.Refused,
 				radiation is null ? "absent" : radiationApplied ? "applied" : "no live line");
 		}

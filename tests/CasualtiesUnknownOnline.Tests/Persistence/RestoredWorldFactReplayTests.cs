@@ -102,7 +102,7 @@ public sealed class RestoredWorldFactReplayTests
 	}
 
 	[Fact]
-	public void ApplyIfPending_WhenTheLiveWorldRefusesRows_KeepsBothHandoversAndRetries()
+	public void ApplyIfPending_WhenTheLiveWorldRefusesRows_ReportsTheLossAndReleasesBothHandovers()
 	{
 		var facts = new FakeWorldFactSource();
 		var native = new FakeNativeWorldFacts();
@@ -119,25 +119,17 @@ public sealed class RestoredWorldFactReplayTests
 		// A restored crack the world did not take is lost state: it must reach the
 		// log at error level, and BOTH handovers stay armed — the Runtime marker and
 		// the adapter's pending rows — or the retry below would write an empty cut.
-		Assert.True(log.HasError("the restore stays PENDING"));
-		Assert.True(facts.HasPendingLiveReplay);
-		Assert.True(native.HasPendingRestore);
-		Assert.Contains("read-pending", native.Calls);
-		Assert.DoesNotContain("commit-pending", native.Calls);
-		Assert.Empty(sink.GameDamageTable);
-
-		// The retry: this time the live list takes everything.
-		sink.Capacity = 128;
-		replay.ApplyIfPending();
-
-		Assert.Equal(2, sink.GameDamageTable.Count);
+		Assert.True(log.HasError("the restored state is INCOMPLETE"));
 		Assert.False(facts.HasPendingLiveReplay);
 		Assert.False(native.HasPendingRestore);
-		Assert.Contains("commit-pending", native.Calls);
+		Assert.Contains("read-pending", native.Calls);
+		Assert.Contains("cancel-pending", native.Calls);
+		Assert.DoesNotContain("commit-pending", native.Calls);
+		Assert.Empty(sink.GameDamageTable);
 	}
 
 	[Fact]
-	public void ApplyIfPending_WhenTheWorldVanishesBeforeTheWrite_KeepsTheRestorePending()
+	public void ApplyIfPending_WhenTheWorldVanishesBeforeTheWrite_ReportsTheLoss()
 	{
 		var facts = new FakeWorldFactSource();
 		var native = new FakeNativeWorldFacts();
@@ -151,12 +143,12 @@ public sealed class RestoredWorldFactReplayTests
 		// The readiness check passed and the world was gone by the time the rows
 		// landed: the sink refuses every row, and the restore must stay armed so the
 		// next generation retries instead of letting the layer reset wipe the tables.
-		Assert.True(facts.HasPendingLiveReplay);
-		Assert.True(log.HasError("the restore stays PENDING"));
+		Assert.False(facts.HasPendingLiveReplay);
+		Assert.True(log.HasError("the restored state is INCOMPLETE"));
 	}
 
 	[Fact]
-	public void ApplyIfPending_WhenAKeypadHasNoLiveOpenable_KeepsTheRestorePending()
+	public void ApplyIfPending_WhenAKeypadHasNoLiveOpenable_ReportsTheLoss()
 	{
 		var facts = new FakeWorldFactSource();
 		var native = new FakeNativeWorldFacts();
@@ -171,9 +163,9 @@ public sealed class RestoredWorldFactReplayTests
 
 		// "Zero Openables matched" can never mean "restored": the world-entry
 		// broadcast that follows would hand every peer a freshly rolled code.
-		Assert.True(log.HasError("the restore stays PENDING"));
-		Assert.True(facts.HasPendingLiveReplay);
-		Assert.True(native.HasPendingRestore);
+		Assert.True(log.HasError("the restored state is INCOMPLETE"));
+		Assert.False(facts.HasPendingLiveReplay);
+		Assert.False(native.HasPendingRestore);
 	}
 
 	private static (RestoredWorldFactReplay Replay, FakeWorldFactSource Facts, FakeNativeWorldFacts Native, FakeRestoredWorldFactSink Sink) Build()

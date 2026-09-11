@@ -100,6 +100,11 @@ internal static class KeypadCodeTable
 				continue;
 			}
 
+			// MATCHED: the live Openable exists, and that is what the caller counts.
+			// Counting at the WRITE instead would call a restored code that happens
+			// to equal the rolled one "not applied" — the restored replay reads this
+			// as "the world has a home for this row".
+			applied++;
 			var codeField = Traverse.Create(openable).Field("code");
 			if (!overwrite && !string.IsNullOrEmpty(codeField.GetValue<string>()))
 			{
@@ -109,7 +114,6 @@ internal static class KeypadCodeTable
 			if (codeField.GetValue<string>() != match.Code)
 			{
 				codeField.SetValue(match.Code);
-				applied++;
 			}
 		}
 

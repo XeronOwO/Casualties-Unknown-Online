@@ -19,6 +19,14 @@ internal sealed class FakeRestoredWorldFactSink : IRestoredWorldFactSink
 	/// <summary>Simulate the world vanishing BETWEEN the readiness check and the write (the two are not atomic in production).</summary>
 	internal bool RefuseBlockWrites { get; set; }
 
+	/// <summary>
+	/// Simulate an ENGINE call throwing mid-write (a mod tile index the game cannot
+	/// resolve, a Traverse on a component type that changed): the replay must report
+	/// the loss and release both handovers instead of leaking the exception into the
+	/// pump and leaving the rows armed for the next generation.
+	/// </summary>
+	internal bool ThrowOnBlockWrite { get; set; }
+
 	/// <summary>Every call this sink received, in order.</summary>
 	internal List<string> Calls { get; } = [];
 
@@ -48,6 +56,11 @@ internal sealed class FakeRestoredWorldFactSink : IRestoredWorldFactSink
 	public LiveWorldWriteOutcome WriteBlockStates(IReadOnlyList<BlockStateEntryMsg> states)
 	{
 		Calls.Add("write-block-states");
+		if (ThrowOnBlockWrite)
+		{
+			throw new InvalidOperationException("the world refused to take a restored block row");
+		}
+
 		if (!WorldReady || RefuseBlockWrites)
 		{
 			// The readiness check and the write are not atomic in production either:

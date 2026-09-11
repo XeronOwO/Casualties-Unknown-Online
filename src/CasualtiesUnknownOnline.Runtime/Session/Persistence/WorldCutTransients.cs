@@ -47,13 +47,17 @@ internal static class WorldCutTransients
 			.Where(row => row.Pending > 0)];
 
 	/// <summary>
-	/// Everything this cut will NOT carry, named with its count and unit: the
-	/// policy's `drop-with-log` rows that are pending, plus any waiting row the
-	/// caller could not resolve before its deadline.
+	/// Everything this cut will NOT carry, named so the report can say it: the
+	/// policy's `drop-with-log` rows that a CUO owner counted, any waiting row the
+	/// caller could not resolve before its deadline, the classes the policy marks
+	/// <see cref="WorldTransientDetection.Standing"/> (no CUO counter exists, so no
+	/// count is claimed — the class itself is named), and the decided native values
+	/// when this build has no reader for them.
 	/// </summary>
 	internal static List<string> Dropped(
 		IReadOnlyList<WorldTransientCount> observation,
-		IReadOnlyList<WorldTransientCount> deadlineExceeded)
+		IReadOnlyList<WorldTransientCount> deadlineExceeded,
+		bool nativeReaderAvailable)
 	{
 		var dropped = new List<string>();
 		foreach (var row in WorldTransientPolicy.Rows.Where(row => row.Verdict == WorldTransientVerdict.DropWithLog))
@@ -68,6 +72,20 @@ internal static class WorldCutTransients
 		foreach (var row in deadlineExceeded)
 		{
 			dropped.Add(WorldTransientPolicy.Describe(row));
+		}
+
+		var standing = WorldTransientPolicy.Rows
+			.Where(row => row.Verdict == WorldTransientVerdict.DropWithLog && row.Detection == WorldTransientDetection.Standing)
+			.Select(row => row.Unit)
+			.ToList();
+		if (standing.Count > 0)
+		{
+			dropped.Add($"no mid-run cut carries {string.Join(", ", standing)} (the game owns the state and CUO has no counter for it)");
+		}
+
+		if (!nativeReaderAvailable)
+		{
+			dropped.Add("this build has no native world-fact reader, so the decided keypad/geyser values and the game's own partial damage are not carried");
 		}
 
 		return dropped;

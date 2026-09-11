@@ -214,6 +214,57 @@ public sealed class RestoredWorldFactReplayTests
 		Assert.Contains("took every restored fact", report.Summary, StringComparison.Ordinal);
 	}
 
+	[Fact]
+	public void ApplyIfPending_WhenTheWriteThrows_ReportsIncompleteAndReleasesBothHandovers()
+	{
+		// An engine call throwing mid-write is the one path the sink's own counts
+		// cannot describe: nothing after the throw ran, so the replay reports the
+		// loss and releases BOTH handovers — a left-armed handover would replay this
+		// layer's rows into the next generation.
+		var facts = new FakeWorldFactSource();
+		var native = new FakeNativeWorldFacts();
+		var sink = new FakeRestoredWorldFactSink { ThrowOnBlockWrite = true };
+		var audit = new WorldRestoreAudit();
+		var reports = new List<WorldRestoreLiveWriteReport>();
+		audit.Reported += reports.Add;
+		audit.BeginRestore("w-threw");
+		var replay = new RestoredWorldFactReplay(facts, native, sink, new RecordingLogger<RestoredWorldFactReplay>(), audit);
+		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], null);
+
+		replay.ApplyIfPending();
+
+		var report = Assert.Single(reports);
+		Assert.False(report.Complete);
+		Assert.Contains("threw", Assert.Single(report.Refused), StringComparison.Ordinal);
+		Assert.False(audit.AwaitingLiveWrite);
+		Assert.False(facts.HasPendingLiveReplay);
+		Assert.False(replay.HasPending);
+	}
+
+	[Fact]
+	public void ApplyIfPending_NothingToWrite_CompletesAnAwaitingAudit()
+	{
+		// A layer-end cut carries no live-world fact, so its restore reaches the
+		// world-entry seam with nothing to write. The audit must be told the restore
+		// is complete instead of staying armed for a write that will never come.
+		var facts = new FakeWorldFactSource();
+		var native = new FakeNativeWorldFacts();
+		var sink = new FakeRestoredWorldFactSink();
+		var audit = new WorldRestoreAudit();
+		var reports = new List<WorldRestoreLiveWriteReport>();
+		audit.Reported += reports.Add;
+		audit.BeginRestore("w-empty");
+		var replay = new RestoredWorldFactReplay(facts, native, sink, new RecordingLogger<RestoredWorldFactReplay>(), audit);
+
+		replay.ApplyIfPending();
+
+		var report = Assert.Single(reports);
+		Assert.True(report.Complete);
+		Assert.Equal("w-empty", report.WorldId);
+		Assert.False(audit.AwaitingLiveWrite);
+		Assert.Empty(sink.Calls);
+	}
+
 	private static (RestoredWorldFactReplay Replay, FakeWorldFactSource Facts, FakeNativeWorldFacts Native, FakeRestoredWorldFactSink Sink) Build()
 	{
 		var facts = new FakeWorldFactSource();

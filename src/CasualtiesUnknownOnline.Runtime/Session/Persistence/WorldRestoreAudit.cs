@@ -27,9 +27,6 @@ public sealed class WorldRestoreAudit
 	/// <summary>The last completed live-world write of a restore, or null before the first one.</summary>
 	public WorldRestoreLiveWriteReport? Last { get; private set; }
 
-	/// <summary>The world id the pending restore belongs to ("" when none is pending).</summary>
-	public string PendingWorldId => _awaiting ? _worldId : string.Empty;
-
 	/// <summary>True = a restore applied at the click is still waiting for its world-entry seam.</summary>
 	public bool AwaitingLiveWrite => _awaiting;
 

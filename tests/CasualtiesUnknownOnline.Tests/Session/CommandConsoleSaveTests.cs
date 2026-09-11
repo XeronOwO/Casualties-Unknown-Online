@@ -49,18 +49,20 @@ public class CommandConsoleSaveTests
 	}
 
 	[Fact]
-	public void Save_OnGuest_IsPermissionDenied()
+	public void Save_IsNotGatedByTheConsole_SoSoloReachesTheSaveLayer()
 	{
+		// The command is Anyone on purpose: solo play has no session role, so a
+		// host-only console gate would make the one player-facing save trigger
+		// unreachable there. The save layer owns the authority rule and answers a
+		// guest with its own refusal (covered by the save-layer suites).
 		var saves = new FakeWorldSaveControl { CanArm = true };
 		var (_, guest) = Session(saves);
 		var console = FileConsole(guest);
 
-		// The console refuses the command before its handler runs, so the input is
-		// not "accepted" — the line says why.
-		Assert.False(console.TryExecute("/save"));
+		Assert.True(console.TryExecute("/save"));
 
-		Assert.Empty(saves.RequestedReasons);
-		Assert.Contains(console.Lines, line => line.Text.Contains("host-only", StringComparison.Ordinal));
+		Assert.Equal([WorldCutReason.Command], saves.RequestedReasons);
+		Assert.DoesNotContain(console.Lines, line => line.Text.Contains("host-only", StringComparison.Ordinal));
 	}
 
 	[Fact]

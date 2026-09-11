@@ -89,6 +89,9 @@ internal sealed class RunSaveCoordinator(
 		// RNG stream is exactly the silent restart the restore contract forbids.
 		if (!_parameters.TryApplyRestoredNow())
 		{
+			// The restore will never reach its world-entry seam: the audit must not stay
+			// armed waiting for a live-world write that cannot happen.
+			_restoreAudit?.AbandonRestore();
 			_log.LogError("CUO continue refused ({WorldId}): the restore published no run baseline.", outcome.WorldId);
 			return false;
 		}

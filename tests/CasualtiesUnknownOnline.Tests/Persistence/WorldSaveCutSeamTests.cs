@@ -99,16 +99,17 @@ public class WorldSaveCutSeamTests
 	[Fact]
 	public void BreakWindow_Resolved_TakesTheCutOnTheNextFrame()
 	{
-		using var fixture = Started("seam-resolved");
+		using var fixture = Started("seam-resolved", native: new FakeNativeWorldFacts());
 		Assert.True(fixture.Service.TryRequestCut(WorldCutReason.Command, out _));
 		Assert.Equal(WorldCutResult.Deferred, fixture.Service.TryCaptureArmedCut(null, frame: 4, Live(WorldTransientPolicy.TrapDropHoldKey, 1))!.Result);
 
 		// The window closed (the flush registered the drops): the same frame's seam
-		// takes the cut, and the report says nothing was left behind.
+		// takes the cut, and the report names no COUNTED loss — only the classes no
+		// mid-run cut carries (the game-owned ones, which no counter can describe).
 		var report = Assert.IsType<WorldCutReport>(fixture.Service.TryCaptureArmedCut(null, frame: 5, Live(WorldTransientPolicy.TrapDropHoldKey, 0)));
 
 		Assert.True(report.Captured);
-		Assert.Empty(report.DroppedStates);
+		Assert.StartsWith("no mid-run cut carries", Assert.Single(report.DroppedStates), StringComparison.Ordinal);
 	}
 
 	[Fact]
@@ -157,8 +158,42 @@ public class WorldSaveCutSeamTests
 			null, frame: 0, Live(WorldTransientPolicy.PickupQueueKey, 2)));
 
 		Assert.True(report.Captured);
-		Assert.Equal("2 pickup claim(s) waiting for their spawn report", Assert.Single(report.DroppedStates));
+		Assert.Contains("2 pickup claim(s) waiting for their spawn report", report.DroppedStates);
 		Assert.Contains("NOT carried", report.Describe(), StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void StandingRows_AreNamedEvenThoughNoCounterCanSeeThem()
+	{
+		// The game-owned classes (the craft coroutine, item velocity, the run clock,
+		// the physics timers) have no CUO counter. Claiming "nothing was in flight"
+		// would be the silent loss the policy exists to prevent, so every cut names
+		// the classes it never carries.
+		using var fixture = Started("seam-standing", native: new FakeNativeWorldFacts());
+		Assert.True(fixture.Service.TryRequestCut(WorldCutReason.Command, out _));
+
+		var report = Assert.IsType<WorldCutReport>(fixture.Service.TryCaptureArmedCut(null, frame: 0));
+
+		var standing = Assert.Single(report.DroppedStates);
+		Assert.Contains("craft batch(es) in progress", standing, StringComparison.Ordinal);
+		Assert.Contains("item physics transient(s) (velocity/rotation)", standing, StringComparison.Ordinal);
+		Assert.Contains("world-clock state", standing, StringComparison.Ordinal);
+		Assert.Contains("earthquake timer(s)", standing, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void WithoutANativeReader_TheCutNamesWhatItCannotCarry()
+	{
+		// A composition with no INativeWorldFacts can still cut (the Runtime facts
+		// ride), but the decided native values and the game's own partial damage do
+		// not — that must reach the report, not only the log.
+		using var fixture = Started("seam-no-native");
+		Assert.True(fixture.Service.TryRequestCut(WorldCutReason.Command, out _));
+
+		var report = Assert.IsType<WorldCutReport>(fixture.Service.TryCaptureArmedCut(null, frame: 0));
+
+		Assert.True(report.Captured);
+		Assert.Contains(report.DroppedStates, row => row.IndexOf("no native world-fact reader", StringComparison.Ordinal) >= 0);
 	}
 
 	[Fact]
@@ -174,7 +209,7 @@ public class WorldSaveCutSeamTests
 		var report = Assert.IsType<WorldCutReport>(fixture.Service.TryCaptureArmedCut(
 			null, frame: 0, Live(WorldTransientPolicy.PickupQueueKey, 2)));
 
-		Assert.Equal("3 pickup claim(s) waiting for their spawn report", Assert.Single(report.DroppedStates));
+		Assert.Contains("3 pickup claim(s) waiting for their spawn report", report.DroppedStates);
 	}
 
 	[Fact]
@@ -254,7 +289,6 @@ public class WorldSaveCutSeamTests
 			null, frame: 0, Live(WorldTransientPolicy.PickupQueueKey, 1)));
 
 		Assert.True(report.Captured);
-		Assert.Equal(2, report.DroppedStates.Count);
 		Assert.Contains("1 medical operation(s) in progress", report.DroppedStates);
 		Assert.Contains("1 pickup claim(s) waiting for their spawn report", report.DroppedStates);
 	}

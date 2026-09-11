@@ -47,12 +47,13 @@ The consistent cut and the full mid-run payload. This is where the hard part of 
    table and the native world tables are read at one instant, with no command batch or frame flush
    interleaved. The manifest's `cutPhase` names the phase; the format doc §4 lists the phases.
 2. **Payload completion** — `world-blocks.json` (host block difference table
-   `WorldStateMessageService._damagedBlocks` + `BlockDamageRegistry` partial damage + the native
-   `WorldGeneration.blockDamages` list) and `world-transients.json` (the explicitly chosen transient
-   set), on top of the S2 domain files. The native list needs its own discriminator (or its own kind)
-   when it lands: both tables are capped (CUO's registry at 256, the game's list at 128) and a
-   restore has to route each row back to the table it came from, never merge them into one.
-   S3.1 deliberately left it out for that reason; the Runtime half of both files landed there.
+   `WorldStateMessageService._damagedBlocks` + the native `WorldGeneration.blockDamages` list) and
+   `world-transients.json` (the explicitly chosen transient set), on top of the S2 domain files.
+   The native list carries its own kind (`native-block-damage`) because only the adapter can read and
+   write it. The CUO side of that kind is GONE as of the block-damage capacity decision: CUO's
+   `BlockDamageRegistry` was deleted rather than aligned, so there is exactly one partial-damage
+   table and no routing decision to make — the Runtime half of both files landed in S3.1, and the
+   `block-damage` kind it wrote no longer exists.
 3. **Transient policy — one explicit verdict per in-flight state, no silent loss.** Each row below
    gets `capture` / `resolve-before-save` / `drop-with-log`, proven by a test:
 
@@ -76,10 +77,15 @@ The consistent cut and the full mid-run payload. This is where the hard part of 
    reproduce the world.
 5. **Exactly-once restore** — same-id dedup, no re-materialization of generation-time content, container
    children with exactly one parent, terminal facts never resurrected, load-twice idempotence.
-6. **Restore-report completeness** (found by S3.1's review rounds) — the world-block tables are
-   BOUNDED (CUO's partial-damage registry at 256 cells, its block-diff table at 65536), and the
-   apply path can also drop a row whose payload is unreadable. Today those drops reach the log but
-   not `WorldContinueOutcome.Summary`, so a restore can report success while a row was dropped.
+6. **Restore-report completeness** (found by S3.1's review rounds; WIDENED by the block-damage
+   capacity change) — the world-block tables are BOUNDED: the block-diff table at 65536 cells, whose
+   refusals DO reach `WorldContinueOutcome.Summary`, and the GAME's own partial-damage list at 128,
+   whose refusals today reach only `RestoredWorldFactReplay`'s error log and never the outcome — so a
+   restore can report success while a native damage row was dropped at the world-entry seam.
+   The apply path can also drop a row whose payload is unreadable.
+   Make the live-write outcome travel back to the caller of `TryContinue` (the sink already returns
+   per-write counts; nothing carries them out of the world-entry seam), so §6's "every dropped entry
+   is surfaced" holds for the native half too.
    Make `IWorldFactSource.ApplyFacts` return what it applied/dropped (or expose the table counts)
    and fold that into the restore report, so §6's "every dropped entry is surfaced" holds for the
    world facts too.

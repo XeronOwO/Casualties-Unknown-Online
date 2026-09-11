@@ -6,16 +6,19 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 
 /// <summary>
 /// The save/restore lifecycle of the Runtime-owned world facts: capture the
-/// block difference table, the partial block damage and the radiation line as
-/// the WIRE shapes a late joiner already receives, then put them back
-/// absolutely (<see cref="IWorldFactSource"/>).
+/// block difference table and the radiation line as the WIRE shapes a late
+/// joiner already receives, then put them back absolutely
+/// (<see cref="IWorldFactSource"/>).
 ///
-/// The tables themselves stay where they are owned — the block difference table
-/// and the radiation line in <see cref="WorldStateMessageService"/>, the partial
-/// damage in <see cref="BlockDamageRegistry"/> — so this type holds no state
-/// beyond the pending-replay marker: one capture builds one cut's payload, one
-/// apply is always reset-then-apply, never an incremental merge (the restored cut
-/// is the whole truth for these tables).
+/// The tables themselves stay where they are owned — both in
+/// <see cref="WorldStateMessageService"/> — so this type holds no state beyond
+/// the pending-replay marker: one capture builds one cut's payload, one apply is
+/// always reset-then-apply, never an incremental merge (the restored cut is the
+/// whole truth for these tables).
+///
+/// The GAME's own tables are NOT part of this lifecycle: their partial block
+/// damage has no Runtime table to sequence, and the adapter owns both halves
+/// through <see cref="INativeWorldFacts"/>.
 ///
 /// The marker exists because a restored cut is NOT a new layer: the host
 /// regenerates the saved layer and must then write the restored facts into it,
@@ -26,7 +29,6 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 /// </summary>
 internal sealed class WorldFactLifecycle(
 	WorldStateMessageService messages,
-	BlockDamageRegistry registry,
 	ILogger<WorldService> log) : IWorldFactSource
 {
 	/// <summary>
@@ -65,19 +67,6 @@ internal sealed class WorldFactLifecycle(
 	}
 
 	/// <inheritdoc />
-	public IReadOnlyList<BlockDamageEntryMsg> CaptureBlockDamages()
-	{
-		if (!Authoritative("capture block damages"))
-		{
-			return [];
-		}
-
-		var damages = registry.CaptureEntries();
-		log.LogDebug("[SaveFacts] captured {Count} partial block-damage row(s).", damages.Count);
-		return damages;
-	}
-
-	/// <inheritdoc />
 	public RadiationLineStateMsg? CaptureRadiationLine()
 	{
 		if (!Authoritative("capture the radiation line"))
@@ -107,18 +96,17 @@ internal sealed class WorldFactLifecycle(
 	{
 		_pendingLiveReplay = false;
 		messages.ResetPerLayer();
-		log.LogDebug("[SaveFacts] per-layer world-domain tables reset (blocks, partial damage, kernel world entities).");
+		log.LogDebug("[SaveFacts] per-layer Runtime world-domain tables reset (blocks, kernel world entities); the game's own damage list is regenerated with the layer.");
 	}
 
 	/// <inheritdoc />
 	public WorldFactApplyReport ApplyFacts(
 		IReadOnlyList<BlockStateEntryMsg> blockStates,
-		IReadOnlyList<BlockDamageEntryMsg> blockDamages,
 		RadiationLineStateMsg? radiationLine)
 	{
 		if (!Authoritative("apply restored world facts"))
 		{
-			return new WorldFactApplyReport(0, 0, 0, 0, false);
+			return new WorldFactApplyReport(0, 0, false);
 		}
 
 		// Reset first, and the RESTORE reset is the save layer's own: the restored
@@ -149,29 +137,6 @@ internal sealed class WorldFactLifecycle(
 				blockStatesApplied, blockStatesRefused);
 		}
 
-		var blockDamagesApplied = 0;
-		var blockDamagesRefused = 0;
-		if (blockDamages.Count > 0)
-		{
-			foreach (var entry in blockDamages)
-			{
-				// The same upsert the live report performs (latest wins, a
-				// non-positive value is not a record) — the table is already empty
-				// after the reset above, so this is an absolute set.
-				if (registry.Report(entry.X, entry.Y, entry.Damage))
-				{
-					blockDamagesApplied++;
-				}
-				else
-				{
-					blockDamagesRefused++;
-				}
-			}
-
-			log.LogInformation("[SaveFacts] applied {Count} restored partial block-damage row(s) ({Refused} refused).",
-				blockDamagesApplied, blockDamagesRefused);
-		}
-
 		if (radiationLine is not null)
 		{
 			messages.SetRadiationLineState(radiationLine);
@@ -184,14 +149,14 @@ internal sealed class WorldFactLifecycle(
 		// layer's facts, not a previous layer's leftovers) and the adapter must
 		// write them into the freshly generated world. A cut that carried nothing
 		// (a layer-end cut) leaves the normal layer lifecycle alone.
-		_pendingLiveReplay = blockStates.Count > 0 || blockDamages.Count > 0 || radiationLine is not null;
+		_pendingLiveReplay = blockStates.Count > 0 || radiationLine is not null;
 
 		log.LogInformation(
-			"[SaveFacts] restored world facts: {Blocks} block(s), {Damages} partial damage(s), radiation line {Radiation}, live-world replay {Replay}.",
-			blockStatesApplied, blockDamagesApplied, radiationLine is null ? "absent" : "applied",
+			"[SaveFacts] restored world facts: {Blocks} block(s), radiation line {Radiation}, live-world replay {Replay}.",
+			blockStatesApplied, radiationLine is null ? "absent" : "applied",
 			_pendingLiveReplay ? "pending" : "not needed");
 
-		return new WorldFactApplyReport(blockStatesApplied, blockStatesRefused, blockDamagesApplied, blockDamagesRefused, radiationLine is not null);
+		return new WorldFactApplyReport(blockStatesApplied, blockStatesRefused, radiationLine is not null);
 	}
 
 	/// <summary>

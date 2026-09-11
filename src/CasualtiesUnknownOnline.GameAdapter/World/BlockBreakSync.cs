@@ -101,18 +101,19 @@ internal sealed class BlockBreakSync(
 		var op = _trace.NextOperationId();
 		if (world.GetBlock(cell) != 0)
 		{
-			// Damage only (the block survived) — report it immediately and
-			// record the post-write absolute damage (the snapshot's fact).
+			// Damage only (the block survived) — report it immediately. The
+			// absolute damage a late joiner receives is read from the game's own
+			// list at snapshot time, so there is nothing to record here.
 			_world.SendBlockDamaged(new NetVector2(pos.x, pos.y), dmg, bonusMetal, null, null);
-			ReportBlockDamageFromGame(world, cell);
 			_trace.End(op, 0, "OnBlockDamaged", "Committed(1)", "Damage");
 			return;
 		}
 
 		// The block broke (SetBlock(0) ran inside the roll, WorldGeneration.cs:839)
-		// — its partial damage is gone, and the report holds one frame so the
-		// drops' Item.Start folds in (break + drops = ONE message, one verdict).
-		_world.RemoveBlockDamage(cell.x, cell.y);
+		// — its partial damage is gone with it: the game's own list drops the
+		// entry inside DamageBlock (WorldGeneration.cs:841). The report holds one
+		// frame so the drops' Item.Start folds in (break + drops = ONE message,
+		// one verdict).
 		_trace.Begin(op, 0, "OnBlockDamaged", "Break");
 		_breakState.EnterBreak(pos.x, pos.y, dmg, bonusMetal, op, Time.frameCount);
 	}
@@ -243,7 +244,6 @@ internal sealed class BlockBreakSync(
 				world.DamageBlock(cell, dmg, true, metalBonus, true);
 				if (world.GetBlock(cell) != 0)
 				{
-					ReportBlockDamageFromGame(world, cell);
 					_world.BroadcastBlockDamaged(sender, pos, dmg, metalBonus, null, null);
 				}
 				else
@@ -302,7 +302,6 @@ internal sealed class BlockBreakSync(
 	/// </summary>
 	internal void OnBlockAirWrite(Vector2Int cell)
 	{
-		_world.RemoveBlockDamage(cell.x, cell.y);
 		var world = WorldGeneration.world;
 		if (world != null && BlockDamageCleaner.ClearForAirWrite(world, cell))
 		{
@@ -344,25 +343,6 @@ internal sealed class BlockBreakSync(
 
 		_log.LogInformation("Block-damage snapshot applied ({Applied}/{Count} cells, {Refused} not applicable).",
 			apply.Applied, entries.Count, apply.Refused);
-	}
-
-	/// <summary>
-	/// Host record: read the game's own post-write BlockDamage state and store
-	/// it as the snapshot fact. A survived block always has an entry (the
-	/// game creates it before the cap-eviction branch, WorldGeneration.cs:
-	/// 720-737); if it is gone, the cell's partial damage is gone with it.
-	/// </summary>
-	private void ReportBlockDamageFromGame(WorldGeneration world, Vector2Int cell)
-	{
-		var blockDamage = world.GetBlockDamage(cell);
-		if (blockDamage != null && world.GetBlock(cell) != 0)
-		{
-			_world.ReportBlockDamage(cell.x, cell.y, blockDamage.damage);
-		}
-		else
-		{
-			_world.RemoveBlockDamage(cell.x, cell.y);
-		}
 	}
 
 	/// <summary>

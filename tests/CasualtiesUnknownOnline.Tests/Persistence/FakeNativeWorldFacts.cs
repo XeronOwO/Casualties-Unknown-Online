@@ -37,6 +37,9 @@ internal sealed class FakeNativeWorldFacts : INativeWorldFacts
 	internal void SeedBlockDamage(int x, int y, float damage) =>
 		_damages.Add(new BlockDamageEntryMsg { X = x, Y = y, Damage = damage });
 
+	/// <summary>Drop the game's own rows WITHOUT arming the restore handover — what the game's own 128-entry eviction or a break does.</summary>
+	internal void ClearBlockDamages() => _damages.Clear();
+
 	public IReadOnlyList<KeypadEntryMsg> CaptureKeypadCodes()
 	{
 		Calls.Add("capture-keypads");

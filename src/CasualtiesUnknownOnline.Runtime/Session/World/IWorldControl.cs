@@ -137,13 +137,15 @@ public interface IWorldControl
 	/// <summary>Host only: send the full damage table to one member (on its world entry).</summary>
 	void SendBlockStateSnapshot(ulong targetSteamId);
 
-	/// <summary>Host only: record the block's current accumulated damage at a block cell (the late-joiner snapshot's fact source).</summary>
-	void ReportBlockDamage(int x, int y, float damage);
-
-	/// <summary>Host only: the block broke or was air-written away — its partial damage is gone.</summary>
-	void RemoveBlockDamage(int x, int y);
-
-	/// <summary>Host only: send the partial block-damage records to one member (on its world entry).</summary>
+	/// <summary>
+	/// Host only: send the partial block-damage records to one member (on its
+	/// world entry / reconnect / the 60 s resend). The rows are read from the
+	/// GAME's own live list at send time — CUO keeps no second table — so what a
+	/// member receives is exactly what this host's gameplay holds, within the
+	/// game's own bound. The RECEIVER's list is its own, so a named cell can still
+	/// be refused there when that peer holds cells the host never saw; the apply
+	/// names the refusal by cell rather than dropping it silently.
+	/// </summary>
 	void SendBlockDamageSnapshot(ulong targetSteamId);
 
 	/// <summary>Guest: the host's partial block-damage snapshot arrived — apply each entry absolutely (world entry / 60 s resend).</summary>

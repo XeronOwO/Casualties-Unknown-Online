@@ -317,11 +317,6 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 			blocks.Add(SaveWorldBlockRow.OfBlockState(state.X, state.Y, state.Block));
 		}
 
-		foreach (var damage in _worldFacts.CaptureBlockDamages())
-		{
-			blocks.Add(SaveWorldBlockRow.OfBlockDamage(damage.X, damage.Y, damage.Damage));
-		}
-
 		var transients = new List<SaveWorldTransientRow>();
 
 		// The Runtime half of the transient set: the radiation line is host world
@@ -334,20 +329,21 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 		if (_nativeWorldFacts is null)
 		{
 			// No reader at all: the decided native values (keypad codes, geyser
-			// liquid types) and the game's own partial-damage table cannot be
-			// carried, and a restored world would re-roll them. Named, never silent.
+			// liquid types) and the partial block damage cannot be carried — a
+			// restored world re-rolls the first two and LOSES the third. Named,
+			// never silent.
 			_log.LogWarning(
 				"Cut {Reason} carries no native world fact: no INativeWorldFacts is registered, so keypad codes, geyser liquid types and the game's own block-damage table are not in this snapshot.",
 				reason);
 		}
 		else
 		{
-			// The game's OWN partial-damage list is a second table of the same
-			// shape as CUO's accumulated damage, so its rows carry their own kind
-			// (`native-block-damage`): a restore routes them back into the game's
-			// list, never into CUO's bounded registry. It can hold damage CUO's
-			// report hooks never observed (the unhooked direct DamageBlock callers),
-			// which is exactly why dropping it would be a silent loss.
+			// The partial block damage has no Runtime table — the CUO registry that
+			// used to hold a copy was deleted — so these are the ONLY damage rows the
+			// cut carries, under their own kind (`native-block-damage`). The game's
+			// list can hold damage CUO's report hooks never observed (the unhooked
+			// direct DamageBlock callers), which is exactly why dropping it would be
+			// a silent loss.
 			foreach (var damage in _nativeWorldFacts.CaptureBlockDamages())
 			{
 				blocks.Add(SaveWorldBlockRow.OfNativeBlockDamage(damage.X, damage.Y, damage.Damage));

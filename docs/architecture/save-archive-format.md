@@ -117,11 +117,10 @@ terminal tombstone that stops a killed enemy from being resurrected. A single-sh
 its row type directly.
 
 `world-blocks.json` is the in-layer block diff, and its rows carry `kind` (`block-state` |
-`block-damage` | `native-block-damage`) with the row's wire payload: `blockState` is
-`{x, y, block}` — a block whose id differs from the generated baseline, mined, destroyed, built or
-reverted — `blockDamage` is `{x, y, damage}` — the accumulated damage of a block that has NOT
-broken yet — and `nativeBlockDamage` is the same shape for the GAME's own partial-damage list
-(below). The cell is the identity of every fact, so no offset or instance id is stored.
+`native-block-damage`) with the row's wire payload: `blockState` is `{x, y, block}` — a block whose
+id differs from the generated baseline, mined, destroyed, built or reverted — and
+`nativeBlockDamage` is `{x, y, damage}` — the accumulated damage of a block that has NOT broken yet.
+The cell is the identity of every fact, so no offset or instance id is stored.
 `world-transients.json` carries the transient set the cut captured, keyed by `kind`: `keypad`
 carries `{position, code}` and `geyser` carries `{position, liquidType}` — both DECIDED values that
 must be carried and never re-rolled — and `radiation-line` carries `{active, timeGone}`. The
@@ -131,13 +130,17 @@ records no in-layer fact at all — the layer it names is regenerated from the r
 files are empty arrays for one, and the encoder writes that empty form regardless of what a caller
 gathered.
 
-The game's own `WorldGeneration.world.blockDamages` list is a second table of the same damage
-shape (the game breaks blocks from it; CUO's accumulation is the table a late joiner receives). Its
-rows carry their OWN kind — `native-block-damage` — because the two tables are bounded and owned
-differently: CUO's registry is the host's wire table (cap 256), the game's list is the live
-gameplay table (cap 128) and can hold damage CUO's report hooks never observed (the unhooked direct
-`DamageBlock` callers). A restore routes every damage row back into the table its kind names; no row
-is ever merged into the other table.
+The game's own `WorldGeneration.world.blockDamages` list is the ONLY partial-damage table there is:
+CUO keeps no registry beside it, and the partial block damage has no Runtime half in the fact port
+either. Its rows carry their own kind — `native-block-damage` — because only the Game Adapter can
+read and write that list, and the bound it obeys is the game's own: 128 entries with the game's own
+oldest-first eviction (`WorldGeneration.cs:732-737`). The late-joiner snapshot is read from the same
+list at send time, so a member's set fits its own identically-bounded list by construction — the two
+bounded sets that used to disagree about which cells they held are gone, because there is only one
+set. A build that predates this writes a `block-damage` kind for the CUO registry that no longer
+exists: the reader treats it as an unknown kind and SKIPS it by name (§6), while the same archive's
+`native-block-damage` rows still restore. An older archive therefore degrades in a named way rather
+than being refused, which is why the manifest `schemaVersion` did not move.
 
 `characters/<playerKey>.json` holds one player character per file (an entry array of one), in the
 native `SaveInfo` shape plus CUO extensions, so the existing `CharacterDataFileStore` restore path

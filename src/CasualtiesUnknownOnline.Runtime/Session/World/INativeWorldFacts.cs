@@ -6,10 +6,10 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 /// <summary>
 /// The world facts that only the Game Adapter can read back and re-apply: the
 /// DECIDED values a layer's generation produced but the Runtime cannot see —
-/// keypad codes and geyser liquid types — plus the game's OWN partial block
-/// damage, which lives in a second table next to CUO's. Keypads and geysers are
-/// captured with their entity's world position, which is the identity (both
-/// sides regenerate the same object at the same place); the damage table is
+/// keypad codes and geyser liquid types — plus the partial block damage, which
+/// has NO Runtime table at all and lives only in the GAME's own list. Keypads and
+/// geysers are captured with their entity's world position, which is the identity
+/// (both sides regenerate the same object at the same place); the damage table is
 /// keyed by its block cell.
 ///
 /// It is the native half of <see cref="IWorldFactSource"/> and is deliberately
@@ -28,12 +28,13 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 /// "carry these until the world exists" rather than an immediate write. The
 /// adapter must NOT try to write while the world object is absent.
 ///
-/// The game's own <c>WorldGeneration.world.blockDamages</c> list is the third
-/// table and has its own kind in the file (<c>native-block-damage</c>): it has
-/// the same shape as CUO's accumulated damage, so without the discriminator a
-/// restore could not tell them apart and would merge both into CUO's bounded
-/// registry. The distinction is carried by the PAYLOAD the caller hands over,
-/// so an implementation never has to guess which table a row belongs to.
+/// The partial block damage has its own kind in the file
+/// (<c>native-block-damage</c>) because only this port can read and write the
+/// list it lives in. CUO keeps no copy of it: a second bounded registry beside
+/// the game's own 128-entry list is exactly what let the two sets drift, so the
+/// registry was DELETED rather than taught the same eviction. The kind is carried
+/// by the PAYLOAD the caller hands over, so an implementation never has to guess
+/// where a row belongs.
 /// </summary>
 public interface INativeWorldFacts
 {
@@ -58,11 +59,11 @@ public interface INativeWorldFacts
 	void ApplyGeysers(IReadOnlyList<GeyserStateEntryMsg> geysers);
 
 	/// <summary>
-	/// Host only: apply the restored entries of the game's own partial-damage
-	/// list absolutely (replace, never merge). This table is separate from CUO's
-	/// registry on purpose: the rows restore the live gameplay table, and a row
-	/// this table's own cap refuses is reported by the adapter, never merged
-	/// into the Runtime table.
+	/// Host only: apply the restored entries of the game's partial-damage list
+	/// absolutely (replace, never merge). A row this list's own cap refuses is
+	/// named by the applier, but it reaches the LOG only — the restore-report gap
+	/// that keeps it out of <c>WorldContinueOutcome.Summary</c> is tracked in
+	/// `todo/save-mid-run-consistent-cut.md` (scope 6).
 	/// </summary>
 	void ApplyBlockDamages(IReadOnlyList<BlockDamageEntryMsg> damages);
 

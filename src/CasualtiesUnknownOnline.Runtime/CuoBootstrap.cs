@@ -246,7 +246,6 @@ public static class CuoBootstrap
 		services.AddSingleton<TrapStateRegistry>(); // the trap state-machine kernel projection
 		services.AddSingleton<OpenedEntityRegistry>(); // the opened lockable-entity table (the late-joiner snapshot's source)
 		services.AddSingleton<BuildingEntityHealthRegistry>(); // the damaged building-entity health table (the late-joiner snapshot's source)
-		services.AddSingleton<BlockDamageRegistry>(); // the partial block-damage table (the late-joiner snapshot's source)
 		services.AddSingleton<TrapLayoutRegistry>(); // the generated trap-entity layout (the host's entity-distribution authority)
 		services.AddSingleton<RuntimeEntityRegistry>(); // the host's accepted runtime-created entity table (the E3 backfill's source)
 		services.AddSingleton<WorldTimeChannel>(); // the world-time request/broadcast channel (host authority — the Game Adapter owns the policy)
@@ -260,11 +259,33 @@ public static class CuoBootstrap
 		services.AddSingleton<FluidKernelProjection>();
 		services.AddSingleton<FluidKernelReadProjection>();
 		services.AddSingleton<WorldEntityKernelProjection>();
-		services.AddSingleton<WorldService>();
+		// The facade takes the native world-fact reader through a FACTORY so its
+		// optionality survives DI: the adapter registers the reader through
+		// extraRegistrations, and a Runtime-only composition (the test host) must
+		// resolve to null rather than fail to construct the facade. The partial
+		// block damage has no Runtime table at all — the game's own list is the
+		// only one, and the snapshot reads it through that same port.
+		services.AddSingleton(p => new WorldService(
+			p.GetRequiredService<ISessionControl>(),
+			p.GetRequiredService<PacketSender>(),
+			p.GetRequiredService<ITimeSource>(),
+			p.GetRequiredService<ILogger<WorldService>>(),
+			p.GetRequiredService<EntityEventChannel>(),
+			p.GetRequiredService<RuntimeEntityChannel>(),
+			p.GetRequiredService<TradeChannel>(),
+			p.GetRequiredService<SpeechChannel>(),
+			p.GetRequiredService<ChatChannel>(),
+			p.GetRequiredService<LocationPingChannel>(),
+			p.GetService<INativeWorldFacts>(),
+			p.GetRequiredService<ItemKernelAuthority>(),
+			p.GetRequiredService<FluidKernelProjection>(),
+			p.GetRequiredService<FluidKernelReadProjection>(),
+			p.GetRequiredService<ProjectionHealthCoordinator>()));
 		services.AddSingleton<IWorldControl>(p => p.GetRequiredService<WorldService>());
-		// The world-fact port the save system reads and rewrites (the block diff,
-		// the partial damage, the radiation line) is the facade's own lifecycle, so
-		// a cut sees exactly the tables the live world does.
+		// The Runtime world-fact port the save system reads and rewrites (the block
+		// diff and the radiation line) is the facade's own lifecycle, so a cut sees
+		// exactly the tables the live world does. The partial block damage is NOT
+		// part of it: it lives in the game's own list, behind INativeWorldFacts.
 		services.AddSingleton<IWorldFactSource>(p => p.GetRequiredService<WorldService>());
 		// The world-entry backfill fan-out owns the ordered snapshot group +
 		// completion marker; it is injected into the handshake/scene handlers

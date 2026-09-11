@@ -6,13 +6,19 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 /// <summary>
 /// The world facts no kernel domain owns, read and rewritten as one unit so a
 /// cut can carry them and a restore can put them back (the save system's world
-/// diff). Three tables belong here, all of them already host-authoritative and
-/// already shipped to a late joiner over the wire:
+/// diff). Two tables belong here, both already host-authoritative and already
+/// shipped to a late joiner over the wire:
 ///
 /// - the block difference table (block-space cell → current block id) — mined,
 ///   destroyed, built and reverted blocks;
-/// - the partial block damage accumulated on blocks that have not broken;
 /// - the radiation line's active flag and descent.
+///
+/// The partial block damage is deliberately NOT here: CUO owns no such table. It
+/// lives in the GAME's own <c>WorldGeneration.world.blockDamages</c> list, which
+/// only the adapter can read and write, so it travels through
+/// <see cref="INativeWorldFacts"/> and the archive carries it under its own row
+/// kind. Keeping a second copy here is what let the two bounded tables disagree
+/// about which cells they held.
 ///
 /// The shapes are the Protocol WIRE DTOs on purpose: a restore hands the same
 /// DTOs to the same appliers the late-joiner snapshot uses, so there is one
@@ -27,16 +33,12 @@ public interface IWorldFactSource
 	/// <summary>The current block difference table (empty when nothing deviates from the generated baseline).</summary>
 	IReadOnlyList<BlockStateEntryMsg> CaptureBlockStates();
 
-	/// <summary>The current partial block damage (empty when no block carries accumulated damage).</summary>
-	IReadOnlyList<BlockDamageEntryMsg> CaptureBlockDamages();
-
 	/// <summary>The radiation line's host-authoritative state, or null when this world never had one.</summary>
 	RadiationLineStateMsg? CaptureRadiationLine();
 
 	/// <summary>Host only: apply a restored cut absolutely — the table is REPLACED, never merged.</summary>
 	WorldFactApplyReport ApplyFacts(
 		IReadOnlyList<BlockStateEntryMsg> blockStates,
-		IReadOnlyList<BlockDamageEntryMsg> blockDamages,
 		RadiationLineStateMsg? radiationLine);
 
 	/// <summary>

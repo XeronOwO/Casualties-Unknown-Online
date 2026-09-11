@@ -7,18 +7,21 @@ using ILogger = Microsoft.Extensions.Logging.ILogger;
 namespace CasualtiesUnknownOnline.GameAdapter.World;
 
 /// <summary>
-/// The game's OWN partial block damage table
+/// The game's partial block damage table
 /// (<c>WorldGeneration.world.blockDamages</c>): the live list the game breaks
-/// blocks from and draws the crack sprite for. It is a SECOND table next to
-/// CUO's <c>BlockDamageRegistry</c> — CUO's registry is the host's wire table
-/// (what a late joiner receives, cap 256), this one is the gameplay table
-/// (cap 128, <c>WorldGeneration.cs:732-737</c>) and it can hold damage CUO's
-/// report hooks never observed (the direct <c>DamageBlock(Vector2Int)</c>
-/// callers — footstep-crushing, the spider burrow — are not hooked).
+/// blocks from and draws the crack sprite for. It is the ONLY partial-damage
+/// table there is — CUO kept a second one (<c>BlockDamageRegistry</c>, cap 256,
+/// refusing new cells when full) until the two bounded sets were found to drift
+/// apart, and that registry was DELETED rather than taught this list's eviction.
+/// This list is capped by the game itself (128 entries,
+/// <c>WorldGeneration.cs:732-737</c>) and can hold damage CUO's report hooks never
+/// observed (the direct <c>DamageBlock(Vector2Int)</c> callers — footstep
+/// crushing, the spider burrow — are not hooked), which is why the late-joiner
+/// snapshot READS this list at send time instead of mirroring it.
 ///
-/// Both live paths go through this one implementation: the host's world-entry
-/// snapshot apply (<see cref="BlockBreakSync"/>) and the save restore
-/// (<see cref="NativeWorldFacts"/>). Rows are applied ABSOLUTE per cell
+/// Both live paths go through this one implementation: the late-joiner snapshot
+/// apply on the RECEIVING side (<see cref="BlockBreakSync"/>) and the save
+/// restore (<see cref="NativeWorldFacts"/>). Rows are applied ABSOLUTE per cell
 /// (latest write wins) and validated against the cell's current block, because a
 /// damage row for a cell that is air — or for a damage outside a surviving
 /// block's range — would otherwise create a crack over nothing.

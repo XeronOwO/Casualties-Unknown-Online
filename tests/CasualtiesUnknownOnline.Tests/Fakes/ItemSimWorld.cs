@@ -77,16 +77,16 @@ internal sealed class ItemSimWorld : IDisposable
 		G2.Dispose();
 	}
 
-	internal static ItemSimWorld Create()
+	internal static ItemSimWorld Create(Action<IServiceCollection>? extraRegistrations = null)
 	{
 		var clock = new FakeClock();
 		var network = new FakeNetwork(clock: clock);
 		var hostSteam = new FakeSteamService(HostId) { LobbyOwner = HostId, LobbyMembers = [HostId] };
 		var g1Steam = new FakeSteamService(G1Id) { LobbyOwner = HostId, LobbyMembers = [HostId, G1Id, G2Id] };
 		var g2Steam = new FakeSteamService(G2Id) { LobbyOwner = HostId, LobbyMembers = [HostId, G1Id, G2Id] };
-		var host = TestNode.Create(HostId, network, hostSteam, clock);
-		var g1 = TestNode.Create(G1Id, network, g1Steam, clock);
-		var g2 = TestNode.Create(G2Id, network, g2Steam, clock);
+		var host = TestNode.Create(HostId, network, hostSteam, clock, extraRegistrations: extraRegistrations);
+		var g1 = TestNode.Create(G1Id, network, g1Steam, clock, extraRegistrations: extraRegistrations);
+		var g2 = TestNode.Create(G2Id, network, g2Steam, clock, extraRegistrations: extraRegistrations);
 		host.Steam.FireLobbyCreated(LobbyId);
 		host.Steam.LobbyMembers = [HostId, G1Id, G2Id];
 		g1.Steam.FireLobbyEntered(LobbyId);

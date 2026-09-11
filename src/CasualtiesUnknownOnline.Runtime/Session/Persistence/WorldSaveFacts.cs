@@ -6,7 +6,8 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Persistence;
 /// <summary>
 /// One cut's world facts, in the file shapes <c>world-blocks.json</c> and
 /// <c>world-transients.json</c> carry (§3.4): the block difference table, the
-/// partial block damage, and the transient world facts the cut captured.
+/// partial block damage (which rides the native half of the seam, not this
+/// Runtime record), and the transient world facts the cut captured.
 ///
 /// Empty is a MEANING, not a missing value: a layer-end cut records no in-layer
 /// fact at all, because the layer it names is regenerated from the run baseline.

@@ -13,17 +13,20 @@ absolute fallback are host → guest only:
 
 - The live relay is `BlockDamaged` (bidirectional) but delta-based: a surviving
   block is reported immediately with the raw damage
-  (`src/CasualtiesUnknownOnline.GameAdapter/World/BlockBreakSync.cs:109`
+  (`src/CasualtiesUnknownOnline.GameAdapter/World/BlockBreakSync.cs:107`
   `_world.SendBlockDamaged(new NetVector2(pos.x, pos.y), dmg, bonusMetal, null, null);`).
-- The authoritative record is host-only:
-  `src/CasualtiesUnknownOnline.Runtime/Session/World/BlockDamageRegistry.cs:32`
+- The authoritative table is host-only AND is the GAME's own
+  `WorldGeneration.world.blockDamages` list, read at send time — the CUO registry
+  that used to hold a copy was deleted, see
+  `review/block-damage-table-capacity-alignment.md`:
+  `src/CasualtiesUnknownOnline.Runtime/Session/World/BlockDamageSnapshotSender.cs:36`
   (`if (_session.Role != SessionRole.Host)`), so a swallowed guest report never
-  enters the registry.
+  enters it.
 - The absolute fallback is `BlockDamageSnapshot` (89), `PacketHandler`
-  direction `HostToGuest` (`src/CasualtiesUnknownOnline.Runtime/Session/World/BlockDamageRegistry.cs:74`),
+  direction `HostToGuest` (`src/CasualtiesUnknownOnline.Runtime/Session/World/BlockDamageSnapshotSender.cs:53`),
   sent at world entry and on the 60 s cycle
-  (`src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:130`).
-- Consequence: the host's registry has no entry for that cell, so its snapshot
+  (`src/CasualtiesUnknownOnline.GameAdapter/World/WorldEventSync.cs:129`).
+- Consequence: the host's table has no entry for that cell, so its snapshot
   omits it and cannot correct either side; the host's block keeps its higher
   remaining HP and the guest's crack sprite is local-only. The divergence
   persists until the break, whose terminal block state is now healed by W1

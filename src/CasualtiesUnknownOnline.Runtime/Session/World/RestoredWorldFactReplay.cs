@@ -7,16 +7,16 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 /// take it. A restore does not hand the world back to the game that wrote it:
 /// the kernel restores the run baseline at the Continue click, the game
 /// regenerates that layer from it, and then every in-layer fact has to be written
-/// onto the fresh copy — the block diff, the partial damage, the decided keypad
-/// codes and geyser liquid types, and the radiation line.
+/// onto the fresh copy — the block diff, the partial block damage, the decided
+/// keypad codes and geyser liquid types, and the radiation line.
 ///
-/// The values arrive from two owners. The Runtime holds the block diff, CUO's
-/// partial damage and the radiation line in the tables a late joiner would have
-/// received, and reports a pending live-world replay
-/// (<see cref="IWorldFactSource.HasPendingLiveReplay"/>) because those tables must
-/// survive the world-entry reset. The adapter holds the native values (keypad
-/// codes, geyser liquid types and the game's OWN partial-damage list) because no
-/// Runtime table can express them.
+/// The values arrive from two owners. The Runtime holds the block diff and the
+/// radiation line in the tables a late joiner would have received, and reports a
+/// pending live-world replay (<see cref="IWorldFactSource.HasPendingLiveReplay"/>)
+/// because those tables must survive the world-entry reset. The adapter holds the
+/// native values (keypad codes, geyser liquid types and the GAME's own
+/// partial-damage list, which has no Runtime table at all) because no Runtime
+/// table can express them.
 ///
 /// The order is load-bearing: the block diff lands before the partial damage that
 /// survives only on top of it, the decided values land after both, and the whole
@@ -78,16 +78,10 @@ internal sealed class RestoredWorldFactReplay(
 		var blockStates = _facts.CaptureBlockStates();
 		var blocks = _sink.WriteBlockStates(blockStates);
 
-		// 2. The partial damage. The cut is the whole truth for the game's own
-		// list, so the write clears it first.
-		//
-		// ONLY the game's own rows land here. The cut also carries CUO's registry
-		// rows, but those belong to the Runtime table the late-joiner snapshot
-		// ships (IWorldFactSource.ApplyFacts put them back): the game's list is
-		// bounded at 128 and CUO's registry at 256, so a long run's registry legally
-		// holds more cells than the game can — writing them here would fill the list
-		// and refuse the game's OWN rows, which are exactly the rows the saved world
-		// had.
+		// 2. The partial damage. The game's list is the ONLY partial-damage table
+		// there is (the CUO registry that used to sit beside it was deleted), so the
+		// cut's damage rows ARE its rows — no routing decision, and no second set
+		// whose cap could refuse them.
 		var damages = _sink.ReplaceGameBlockDamages(restore.BlockDamages);
 
 		// 3. The decided native values the game would otherwise have re-rolled.

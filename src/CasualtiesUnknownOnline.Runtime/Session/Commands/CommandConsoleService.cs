@@ -8,6 +8,7 @@ using CasualtiesUnknownOnline.Runtime.Session.Chat;
 using CasualtiesUnknownOnline.Runtime.Session.Content;
 using CasualtiesUnknownOnline.Runtime.Session.EntitySync;
 using CasualtiesUnknownOnline.Runtime.Session.HostRules;
+using CasualtiesUnknownOnline.Runtime.Session.Persistence;
 using CasualtiesUnknownOnline.Runtime.Session.PlayerInteraction;
 using CasualtiesUnknownOnline.Runtime.Time;
 using Microsoft.Extensions.Logging;
@@ -35,12 +36,13 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 	private readonly IHostBanService _hostBans;
 	private readonly IPlayerInteractionControl _playerInteraction;
 	private readonly IEntitySyncControl _entities;
-	private readonly IHostRulesEditor _hostRulesEditor;
 	private readonly ITimeSource _time;
 	private readonly ILogger<CommandConsoleService> _log;
 	private readonly List<ConsoleLine> _lines = [];
 	private readonly ConsoleCommandRegistry _commands;
 	private readonly IResourceLocationCatalog _resourceLocations;
+	private readonly IWorldSaveControl _saves;
+	private readonly WorldRestoreAudit _restoreAudit;
 
 	public CommandConsoleService(
 		IChatControl chat,
@@ -52,21 +54,33 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 		ITimeSource time,
 		ILogger<CommandConsoleService> log,
 		ConsoleCommandRegistry commandRegistry,
-		IResourceLocationCatalog resourceLocations)
+		IResourceLocationCatalog resourceLocations,
+		IWorldSaveControl worldSaves,
+		WorldRestoreAudit restoreAudit)
 	{
 		_chat = chat;
 		_session = session;
 		_hostBans = hostBans;
 		_playerInteraction = playerInteraction;
 		_entities = entities;
-		_hostRulesEditor = hostRulesEditor;
 		_time = time;
 		_log = log;
 		_commands = commandRegistry;
 		_resourceLocations = resourceLocations;
+		_saves = worldSaves;
+		_restoreAudit = restoreAudit;
 		_chat.MessageReceived += OnChatLine;
 		_session.SessionEnded += OnSessionEnded;
+		// The console is the player's surface for the save system's two deferred
+		// answers: the cut the frame-end seam resolved (long after /save returned)
+		// and the live-world half of a restore. Both are subscribable state, so the
+		// console renders them where the player is already reading — no polling and
+		// no second output buffer.
+		_saves.CutReported += OnCutReported;
+		_restoreAudit.Reported += OnRestoreReported;
 		_commands.AddBuiltIns(this);
+		_commands.AddBuiltIns(new HostAdminCommands(hostBans, session, hostRulesEditor, log));
+		_commands.AddBuiltIns(new WorldSaveCommands(worldSaves, log));
 		AddLine("CUO command console ready. Type /help for available commands, or just type to chat.", ConsoleLineKind.Info);
 	}
 
@@ -187,7 +201,22 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 	{
 		_chat.MessageReceived -= OnChatLine;
 		_session.SessionEnded -= OnSessionEnded;
+		_saves.CutReported -= OnCutReported;
+		_restoreAudit.Reported -= OnRestoreReported;
 	}
+
+	/// <summary>The cut the frame-end seam resolved — only the cuts the player asked for (a layer advance or an interval autosave is logged, not printed).</summary>
+	private void OnCutReported(WorldCutReport report)
+	{
+		if (report.PlayerInitiated)
+		{
+			AddLine(report.Describe(), report.Captured ? ConsoleLineKind.Success : ConsoleLineKind.Error);
+		}
+	}
+
+	/// <summary>The live-world half of a restore: the world-entry seam wrote — or could not write — the restored facts.</summary>
+	private void OnRestoreReported(WorldRestoreLiveWriteReport report) =>
+		AddLine($"CUO restore of world {report.WorldId}: {report.Summary}", report.Complete ? ConsoleLineKind.Success : ConsoleLineKind.Error);
 
 	private bool ExecuteCommand(string commandLine)
 	{
@@ -328,112 +357,10 @@ public sealed class CommandConsoleService : ICommandControl, ICommandCompletionS
 	private string? GetDisplayName(ulong steamId) =>
 		_session.Members.FirstOrDefault(m => m.SteamId == steamId)?.DisplayName;
 
-	[ConsoleCommand("hostrules", "Host only: update host rules from a JSON object.", CommandPermission.HostOnly, "/hostrules <json>", CommandArgumentKind.Json)]
-	private string HostRules(IReadOnlyList<string> args)
-	{
-		if (args.Count < 2)
-		{
-			return "Usage: /hostrules <json>";
-		}
-
-		if (!HostRulesJsonApplier.TryApply(args[1], _hostRulesEditor, out var updated, out var error))
-		{
-			return error ?? "Could not apply host rules.";
-		}
-
-		_log.LogInformation("[Command] /hostrules updated {Count} host-rule setting(s).", updated);
-		return $"Updated {updated} host rule(s).";
-	}
-
-	[ConsoleCommand("kick", "Host only: kick a member by SteamId or display name.", CommandPermission.HostOnly, "/kick <steamId|displayName>", CommandArgumentKind.PlayerOrSteamId)]
-	private string Kick(IReadOnlyList<string> args)
-	{
-		if (args.Count < 2)
-		{
-			return "Usage: /kick <steamId|displayName>";
-		}
-
-		if (!TryResolveMember(args[1], out var steamId))
-		{
-			return $"Unknown member '{args[1]}'.";
-		}
-
-		if (!_session.KickMember(steamId, "kicked via console"))
-		{
-			return $"Could not kick {steamId} — not a removable guest, or already left.";
-		}
-
-		return $"Kicked member {steamId}.";
-	}
-
-	[ConsoleCommand("ban", "Host only: ban a member by SteamId or display name.", CommandPermission.HostOnly, "/ban <steamId|displayName>", CommandArgumentKind.PlayerOrSteamId)]
-	private string Ban(IReadOnlyList<string> args)
-	{
-		if (args.Count < 2)
-		{
-			return "Usage: /ban <steamId|displayName>";
-		}
-
-		if (!TryResolveMember(args[1], out var steamId))
-		{
-			return $"Unknown member '{args[1]}'.";
-		}
-
-		if (!_hostBans.Ban(steamId, "banned via console"))
-		{
-			return $"Could not ban {steamId} — not a removable guest, already banned, or not host.";
-		}
-
-		return $"Banned member {steamId}.";
-	}
-
-	[ConsoleCommand("unban", "Host only: unban a SteamId.", CommandPermission.HostOnly, "/unban <steamId>", CommandArgumentKind.SteamId)]
-	private string Unban(IReadOnlyList<string> args)
-	{
-		if (args.Count < 2)
-		{
-			return "Usage: /unban <steamId>";
-		}
-
-		if (!ulong.TryParse(args[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var steamId))
-		{
-			return $"SteamId '{args[1]}' is not a number.";
-		}
-
-		if (!_hostBans.Unban(steamId))
-		{
-			return $"Could not unban {steamId} — not in the ban list.";
-		}
-
-		return $"Unbanned {steamId}.";
-	}
-
-	private bool TryResolveMember(string text, out ulong steamId)
-	{
-		if (ulong.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out steamId))
-		{
-			return true;
-		}
-
-		if (text.StartsWith("0x", StringComparison.OrdinalIgnoreCase)
-			&& ulong.TryParse(text.Substring(2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out steamId))
-		{
-			return true;
-		}
-
-		foreach (var member in _session.Members)
-		{
-			if (!string.IsNullOrWhiteSpace(member.DisplayName)
-				&& string.Equals(member.DisplayName.Trim(), text, StringComparison.OrdinalIgnoreCase))
-			{
-				steamId = member.SteamId;
-				return true;
-			}
-		}
-
-		steamId = 0;
-		return false;
-	}
+	// The host-administration commands (/hostrules, /kick, /ban, /unban) live in
+	// HostAdminCommands, and the save commands (/save) in WorldSaveCommands: each
+	// group is registered as its own owner, so a new command family never grows
+	// this class past the architecture gate.
 
 	private void OnChatLine(ChatLine line) => AddLine(FormatChatLine(line), ConsoleLineKind.Info);
 

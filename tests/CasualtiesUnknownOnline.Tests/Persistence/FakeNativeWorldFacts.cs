@@ -40,22 +40,25 @@ internal sealed class FakeNativeWorldFacts : INativeWorldFacts
 	/// <summary>Drop the game's own rows WITHOUT arming the restore handover — what the game's own 128-entry eviction or a break does.</summary>
 	internal void ClearBlockDamages() => _damages.Clear();
 
-	public IReadOnlyList<KeypadEntryMsg> CaptureKeypadCodes()
+	/// <summary>
+	/// Set to make <see cref="Capture"/> report an unreadable table set — the
+	/// "no live world" shape, which must refuse a cut rather than come back as an
+	/// empty (clean) world.
+	/// </summary>
+	internal string? CaptureFailure { get; set; }
+
+	public NativeWorldFactCapture Capture()
 	{
-		Calls.Add("capture-keypads");
-		return [.. _keypads];
+		Calls.Add("capture-native");
+		return CaptureFailure is { } failure
+			? NativeWorldFactCapture.Unreadable(failure)
+			: new NativeWorldFactCapture([.. _keypads], [.. _geysers], [.. _damages], Failure: null);
 	}
 
-	public IReadOnlyList<GeyserStateEntryMsg> CaptureGeysers()
-	{
-		Calls.Add("capture-geysers");
-		return [.. _geysers];
-	}
-
-	public IReadOnlyList<BlockDamageEntryMsg> CaptureBlockDamages()
+	public IReadOnlyList<BlockDamageEntryMsg>? CaptureBlockDamages()
 	{
 		Calls.Add("capture-block-damages");
-		return [.. _damages];
+		return CaptureFailure is null ? [.. _damages] : null;
 	}
 
 	public void ApplyKeypadCodes(IReadOnlyList<KeypadEntryMsg> codes)

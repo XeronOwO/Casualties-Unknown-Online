@@ -44,6 +44,9 @@ internal sealed class WorldSaveFixture : IDisposable
 	/// <summary>The world-fact tables this fixture's service reads and rewrites.</summary>
 	internal FakeWorldFactSource WorldFacts { get; }
 
+	/// <summary>The cut writer the service drives — the suites pin its row shapes directly (the service itself owns the trigger, not the payload).</summary>
+	internal WorldCutWriter Writer => Service.Writer!;
+
 	/// <summary>The world this fixture's service owns (the run `TryBeginRun` created).</summary>
 	internal string WorldId => Service.CurrentWorldId;
 
@@ -53,7 +56,8 @@ internal sealed class WorldSaveFixture : IDisposable
 		string displayName = "Host",
 		ulong hostId = 1001UL,
 		SaveTestRepository? repository = null,
-		FakeNativeWorldFacts? nativeWorldFacts = null)
+		FakeNativeWorldFacts? nativeWorldFacts = null,
+		IWorldCutTransientProbe? transients = null)
 	{
 		repository ??= SaveTestRepository.Create(label);
 		var kernel = new ItemKernelAuthority(NullLogger<ItemKernelAuthority>.Instance);
@@ -72,7 +76,8 @@ internal sealed class WorldSaveFixture : IDisposable
 			NullLoggerFactory.Instance,
 			NullLogger<WorldSaveService>.Instance,
 			gameBuild: "test",
-			nativeWorldFacts: nativeWorldFacts);
+			nativeWorldFacts: nativeWorldFacts,
+			transients: transients);
 
 		return new WorldSaveFixture(service, repository, kernel, characters, session, worldFacts);
 	}

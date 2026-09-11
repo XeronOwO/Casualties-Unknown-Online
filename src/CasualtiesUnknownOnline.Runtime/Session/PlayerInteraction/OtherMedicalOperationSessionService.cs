@@ -48,6 +48,9 @@ internal sealed class OtherMedicalOperationSessionService(
 	private readonly Dictionary<ulong, OtherMedicalOperationSession> _sessions = [];
 	private bool _disposed;
 
+	/// <summary>The cut policy's read-only probe (WorldTransientPolicy.OtherMedicalSessionKey): open Stage-3 sessions.</summary>
+	internal int PendingCutSessions => _sessions.Count;
+
 	public event Action<MedicalOperationStartAckMsg>? StartAckReceived;
 	public event Action<MedicalOperationStateMsg>? StateReceived;
 	public event Action<MedicalOperationEndCommittedMsg>? EndCommittedReceived;

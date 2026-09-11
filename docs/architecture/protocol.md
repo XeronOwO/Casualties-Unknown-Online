@@ -174,20 +174,25 @@ for example, now uses `RejectionReason.BlockAlreadyBroken`.
 The save path is a projection of the authoritative checkpoint:
 
 - The production save path is the **CUO world archive** of
-  `docs/architecture/save-archive-format.md` (decisions 162–166), implemented
-  under `src/CasualtiesUnknownOnline.Runtime/Persistence/`. S2 wires it: the
-  layer advance the kernel commits (`ItemKernelAuthority.BatchCommitted` carrying
-  a `RunAdvancedEvent`) and the host's deliberate menu return write one cut per
-  world, the host's Continue entry restores it, and CUO never reads or writes the
-  native `save.sv` (`SaveSystemTryLoadGamePatch` blocks the native load).
+  `docs/architecture/save-archive-format.md` (decisions 162–168), implemented
+  under `src/CasualtiesUnknownOnline.Runtime/Persistence/`. The layer advance the
+  kernel commits (`ItemKernelAuthority.BatchCommitted` carrying a
+  `RunAdvancedEvent`) writes a layer-end cut; the host's `/save` command and its
+  deliberate menu return ARM a mid-run cut that the Game Adapter pump takes at its
+  frame-end seam (`SaveCutSeam`, decision 167), where the transient policy decides
+  whether the cut may be taken yet. The host's Continue entry restores the
+  selected world, and CUO never reads or writes the native `save.sv`
+  (`SaveSystemTryLoadGamePatch` blocks the native load).
 - `WorldSnapshotEncoder`/`WorldSnapshotDecoder` map `GameCheckpoint` to and from
   the archive's per-domain files; the domain payloads are the same wire DTOs a
   late-joining guest receives, so a restored host holds what a join would have
   given it.
 - `GameCheckpoint.RandomStreams` exists in the data model and round-trips through
-  wire, but no production domain currently populates it
-  (`GameStateStore.CreateCheckpoint` passes `null` for random streams today), and
-  S2's snapshot file set has no file for them yet (S3's consistent cut owns that).
+  wire, but no production domain populates it — the decision was re-verified with
+  S3.3 (no domain's restore decision consumes a stream, and keypad/geyser values
+  are carried as DECIDED values instead), so the encoder's refusal guard stays: a
+  non-empty stream set refuses the cut rather than writing a payload with no file
+  to restore it from (decision 168).
 - The retired protobuf single-file store (`KernelSaveFileStore`, `KernelSaveFile`,
   `SaveHeader`) was deleted with S2: it had no production caller, and keeping it
   would have left two competing disk shapes for one checkpoint.
@@ -197,6 +202,7 @@ Sources:
 - `src/CasualtiesUnknownOnline.Runtime/Persistence/WorldSnapshotEncoder.cs`
 - `src/CasualtiesUnknownOnline.Runtime/Persistence/WorldSnapshotDecoder.cs`
 - `src/CasualtiesUnknownOnline.Runtime/Session/Persistence/WorldSaveService.cs`
+- `src/CasualtiesUnknownOnline.Runtime/Session/Persistence/WorldTransientPolicy.cs`
 - `src/CasualtiesUnknownOnline.GameState/GameCheckpoint.cs`
 
 ## Non-kernel direct NetMsg families

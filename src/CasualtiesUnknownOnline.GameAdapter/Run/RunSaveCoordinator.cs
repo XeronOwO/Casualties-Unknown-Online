@@ -24,6 +24,7 @@ internal sealed class RunSaveCoordinator(
 	IWorldSaveControl saves,
 	WorldParamsService parameters,
 	Character.CharacterDataSync characterData,
+	WorldRestoreAudit? restoreAudit,
 	ILogger log)
 {
 	private readonly ISessionControl _session = session;
@@ -32,6 +33,16 @@ internal sealed class RunSaveCoordinator(
 	private readonly WorldParamsService _parameters = parameters;
 	private readonly Character.CharacterDataSync _characterData = characterData;
 	private readonly ILogger _log = log;
+
+	/// <summary>
+	/// The caller of <see cref="IWorldSaveControl.TryContinue"/> is also where the
+	/// restore's SECOND half reports: the Continue click applied the kernel and the
+	/// Runtime tables, and the live world's write happens at the world-entry seam
+	/// afterwards. Without this subscription a restore that the game's own bounded
+	/// tables partly refused would look like a clean success at the only place the
+	/// adapter ever sees its outcome.
+	/// </summary>
+	private readonly WorldRestoreAudit? _restoreAudit = restoreAudit;
 
 	/// <summary>
 	/// Host AND solo: every run gets its own world folder before any content
@@ -84,7 +95,31 @@ internal sealed class RunSaveCoordinator(
 
 		_world.SetHostRunPending(true);
 		_log.LogInformation("Continuing CUO world {WorldId}: {Summary}", outcome.WorldId, outcome.Summary);
+
+		// The live-world half of this restore reports at the world-entry seam, after
+		// this method returned. Subscribe here — the click is what started it — so
+		// the caller that saw "restored" also sees what the live world actually took.
+		if (_restoreAudit is not null)
+		{
+			_restoreAudit.Reported -= OnRestoreLiveWrite;
+			_restoreAudit.Reported += OnRestoreLiveWrite;
+		}
+
 		return true;
+	}
+
+	/// <summary>The restore's second half: the world-entry seam wrote the restored facts into the live world.</summary>
+	private void OnRestoreLiveWrite(WorldRestoreLiveWriteReport report)
+	{
+		if (report.Complete)
+		{
+			_log.LogInformation("CUO restore of world {WorldId} reached the live world: {Summary}", report.WorldId, report.Summary);
+			return;
+		}
+
+		_log.LogError(
+			"CUO restore of world {WorldId} is INCOMPLETE — the live world did not take every restored fact: {Summary}",
+			report.WorldId, report.Summary);
 	}
 
 	/// <summary>The local body's character snapshot right now — the cut needs the state at this instant, not the last 1 Hz report.</summary>

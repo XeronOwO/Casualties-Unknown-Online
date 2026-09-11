@@ -56,6 +56,7 @@ internal sealed class ShrapnelOperationSessionService(
 	private readonly ShrapnelStatePublisher _statePublisher = new(session, sender, new(access, items, kernelAuthority, session, log));
 	private readonly Dictionary<(ulong Target, int Limb), ShrapnelOperationSession> _sessions = [];
 	private bool _disposed;
+	internal int PendingCutSessions => _sessions.Count; // the cut policy's read-only probe (WorldTransientPolicy) — this file is at the architecture gate's line limit, so the probe is deliberately one line
 
 	public event Action<MedicalOperationStartAckMsg>? StartAckReceived;
 	public event Action<MedicalOperationStateMsg>? StateReceived;

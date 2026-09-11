@@ -16,10 +16,11 @@ using Xunit;
 namespace CasualtiesUnknownOnline.Tests.Persistence;
 
 /// <summary>
-/// The cut side of S2: the host's run owns a world, the layer advance the kernel
-/// commits writes one cut into it (the trigger is the kernel's own commit event,
-/// so a cut can never run from a half-applied batch), the deliberate menu return
-/// writes one too, and a guest never writes at all.
+/// The cut side of S2/S3: the host's run owns a world, the layer advance the
+/// kernel commits writes one cut into it (the trigger is the kernel's own commit
+/// event, so a cut can never run from a half-applied batch), the deliberate menu
+/// return writes one at the frame-end seam (armed first, taken by the pump), and
+/// a guest never writes at all.
 /// </summary>
 public class WorldSaveCaptureTests
 {
@@ -70,13 +71,21 @@ public class WorldSaveCaptureTests
 	}
 
 	[Fact]
-	public void MenuReturn_WritesTheHostCharacterUnderTheSteamKey()
+	public void MenuReturnCut_WritesTheHostCharacterUnderTheSteamKey()
 	{
 		using var fixture = WorldSaveFixture.Create("save-capture");
 		Assert.True(fixture.Service.TryBeginRun());
 		Assert.True(fixture.Kernel.TryStartRun(HostId, Run(layerIndex: 2), out _, out _));
 
-		Assert.True(fixture.Service.TryCaptureMenuReturnCut(Character(100, "bag")));
+		var report = MenuReturnCut(fixture, Character(100, "bag"));
+
+		// The menu return is a MID-RUN cut now: the world is fully alive at that
+		// moment, so its in-layer facts ride the snapshot and the phase names the
+		// seam that took it.
+		Assert.True(report.Captured);
+		Assert.Equal(WorldCutReason.MenuReturn, report.Reason);
+		Assert.Contains(WorldSaveService.FrameEndCutPhase, LiveManifest(fixture).GetProperty("cutPhase").GetString()!, StringComparison.Ordinal);
+		Assert.Equal("mid-run", LiveManifest(fixture).GetProperty("kind").GetString());
 
 		var live = fixture.Repository.Workspace.LiveDirectory(fixture.WorldId);
 		var characters = Path.Combine(live, SaveArchiveFormat.CharactersFolderName);
@@ -86,13 +95,29 @@ public class WorldSaveCaptureTests
 	}
 
 	[Fact]
-	public void MenuReturn_InIpDirectMode_WritesTheNameKey()
+	public void MenuReturnCut_MenuReturnPhaseIsRecordedOnTheManifest()
+	{
+		using var fixture = WorldSaveFixture.Create("save-capture-phase");
+		Assert.True(fixture.Service.TryBeginRun());
+		Assert.True(fixture.Kernel.TryStartRun(HostId, Run(layerIndex: 0), out _, out _));
+
+		MenuReturnCut(fixture, null);
+
+		var manifest = LiveManifest(fixture);
+		Assert.Equal("menu-return", manifest.GetProperty("saveReason").GetString());
+		Assert.Equal(
+			(long)fixture.Kernel.CreateCheckpoint().GlobalRevision,
+			manifest.GetProperty("globalRevision").GetInt64());
+	}
+
+	[Fact]
+	public void MenuReturnCut_InIpDirectMode_WritesTheNameKey()
 	{
 		using var fixture = WorldSaveFixture.Create("save-capture-ip", ipDirect: true, displayName: "Host Name");
 		Assert.True(fixture.Service.TryBeginRun());
 		Assert.True(fixture.Kernel.TryStartRun(HostId, Run(layerIndex: 0), out _, out _));
 
-		Assert.True(fixture.Service.TryCaptureMenuReturnCut(Character(100, "bag")));
+		MenuReturnCut(fixture, Character(100, "bag"));
 
 		var characters = Path.Combine(fixture.Repository.Workspace.LiveDirectory(fixture.WorldId), SaveArchiveFormat.CharactersFolderName);
 		Assert.Equal("name-host-name.json", Path.GetFileName(Assert.Single(Directory.GetFiles(characters))));
@@ -105,13 +130,15 @@ public class WorldSaveCaptureTests
 
 		// No run started yet: the world exists but holds no baseline to restore into.
 		Assert.True(fixture.Service.TryBeginRun());
-		Assert.False(fixture.Service.TryCaptureMenuReturnCut(Character(100, "bag")));
+		Assert.True(fixture.Service.TryRequestCut(WorldCutReason.Command, out _));
+		Assert.False(fixture.Service.TryCaptureArmedCut(Character(100, "bag"), frame: 0)!.Captured);
 		Assert.Empty(CutFilesOf(fixture));
 
 		Assert.True(fixture.Kernel.TryStartRun(HostId, Run(layerIndex: 0), out _, out _));
 		using var noWorld = WorldSaveFixture.Create("save-capture-noworld");
 		Assert.True(noWorld.Kernel.TryStartRun(HostId, Run(layerIndex: 0), out _, out _));
-		Assert.False(noWorld.Service.TryCaptureMenuReturnCut(null));
+		Assert.False(noWorld.Service.TryRequestCut(WorldCutReason.Command, out var refusal));
+		Assert.Contains("no CUO world", refusal!, StringComparison.Ordinal);
 	}
 
 	[Fact]
@@ -121,6 +148,8 @@ public class WorldSaveCaptureTests
 		fixture.Session.Role = SessionRole.Guest;
 
 		Assert.False(fixture.Service.TryBeginRun());
+		Assert.False(fixture.Service.TryRequestCut(WorldCutReason.Command, out var refusal));
+		Assert.Contains("guest", refusal!, StringComparison.Ordinal);
 		Assert.True(fixture.Kernel.TryStartRun(HostId, Run(layerIndex: 0), out _, out _));
 		Assert.True(fixture.Kernel.TryAdvanceLayer(HostId, Run(layerIndex: 1), out _, out _));
 
@@ -156,8 +185,11 @@ public class WorldSaveCaptureTests
 		Assert.False(service.IsEnabled);
 		Assert.False(service.HasRestorableWorld);
 		Assert.False(service.TryBeginRun());
+		Assert.False(service.TryRequestCut(WorldCutReason.Command, out var refusal));
+		Assert.Contains("no CUO world repository", refusal!, StringComparison.Ordinal);
+		Assert.False(service.HasArmedCut);
+		Assert.Null(service.TryCaptureArmedCut(null, frame: 0));
 		Assert.True(kernel.TryStartRun(HostId, Run(layerIndex: 0), out _, out _));
-		Assert.False(service.TryCaptureMenuReturnCut(null));
 		Assert.False(service.TryContinue(out var outcome));
 		Assert.False(outcome.Started);
 		Assert.Contains("no world repository", outcome.Summary, StringComparison.Ordinal);
@@ -182,6 +214,22 @@ public class WorldSaveCaptureTests
 	}
 
 	// ---- fixture ----
+
+	/// <summary>Take a cut the way the pump does: arm it, then take it at the frame-end seam.</summary>
+	internal static WorldCutReport MenuReturnCut(WorldSaveFixture fixture, CharacterDataMsg? character, int frame = 0)
+	{
+		Assert.True(fixture.Service.TryRequestCut(WorldCutReason.MenuReturn, out var refusal), refusal);
+		var report = fixture.Service.TryCaptureArmedCut(character, frame);
+		return Assert.IsType<WorldCutReport>(report);
+	}
+
+	/// <summary>The live snapshot's manifest as JSON.</summary>
+	internal static JsonElement LiveManifest(WorldSaveFixture fixture)
+	{
+		var path = Path.Combine(fixture.Repository.Workspace.LiveDirectory(fixture.WorldId), SaveArchiveFormat.ManifestFileName);
+		using var document = JsonDocument.Parse(File.ReadAllBytes(path));
+		return document.RootElement.Clone();
+	}
 
 	internal static RunState Run(int layerIndex) =>
 		new(RunId, [1, 2, 3, 4], 0, 2, 10, false, [new RunSetting("speed", RunSettingKind.Float, FloatValue: 1.5f)], layerIndex);

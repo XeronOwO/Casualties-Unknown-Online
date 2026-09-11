@@ -62,6 +62,15 @@ public interface IMedicalOperationControl
 	/// <summary>Any role: report the Stage 3 native minigame ended, with the final scalar (success/progress) where applicable.</summary>
 	void SendOtherEndRequest(ulong operationId, float total = 0f);
 
+	/// <summary>
+	/// The cut policy's read-only probe (WorldTransientPolicy's medical, shrapnel
+	/// and other-medical rows): how many operation sessions this side holds right
+	/// now. A mid-run cut does not carry an open session — the world effects the
+	/// session committed are kernel facts — so the count is what lets the cut NAME
+	/// the sessions it is leaving behind instead of losing them silently.
+	/// </summary>
+	MedicalSessionCutCounts PendingCutSessions { get; }
+
 	/// <summary>Raise a received start ack for the Game Adapter.</summary>
 	void FireStartAckReceived(MedicalOperationStartAckMsg msg);
 

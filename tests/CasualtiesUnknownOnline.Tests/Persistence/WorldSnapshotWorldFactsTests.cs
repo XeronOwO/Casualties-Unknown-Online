@@ -459,7 +459,7 @@ public class WorldSnapshotWorldFactsTests
 		fixture.WorldFacts.SeedBlockState(1, 2, 0);
 		fixture.WorldFacts.RadiationLine = new RadiationLineStateMsg { Active = true, TimeGone = 2f };
 
-		var facts = fixture.Service.CaptureWorldFacts(WorldCutReason.LayerAdvance, WorldCutKind.LayerEnd);
+		var facts = fixture.Writer.CaptureWorldFacts(WorldCutReason.LayerAdvance, WorldCutKind.LayerEnd);
 
 		Assert.Empty(facts.Blocks);
 		Assert.Empty(facts.Transients);
@@ -473,7 +473,7 @@ public class WorldSnapshotWorldFactsTests
 		fixture.WorldFacts.SeedBlockState(1, 2, 0);
 		fixture.WorldFacts.RadiationLine = new RadiationLineStateMsg { Active = true, TimeGone = 2f };
 
-		var facts = fixture.Service.CaptureMidRunFacts(WorldCutReason.MenuReturn, WorldCutKind.MidRun);
+		var facts = fixture.Writer.CaptureMidRunFacts(WorldCutReason.MenuReturn, WorldCutKind.MidRun);
 
 		// The Runtime half carries the block diff and the radiation line. The partial
 		// block damage is NOT here at all: it has no Runtime table, so it rides the
@@ -491,7 +491,7 @@ public class WorldSnapshotWorldFactsTests
 		using var fixture = WorldSaveFixture.Create("facts-no-native");
 		fixture.WorldFacts.SeedBlockState(1, 2, 0);
 
-		var facts = fixture.Service.CaptureMidRunFacts(WorldCutReason.Command, WorldCutKind.MidRun);
+		var facts = fixture.Writer.CaptureMidRunFacts(WorldCutReason.Command, WorldCutKind.MidRun);
 
 		Assert.Single(facts.Blocks);
 	}
@@ -507,7 +507,7 @@ public class WorldSnapshotWorldFactsTests
 		native.SeedGeyser(3, 4, 2);
 		using var fixture = WorldSaveFixture.Create("facts-native-capture", nativeWorldFacts: native);
 
-		var facts = fixture.Service.CaptureMidRunFacts(WorldCutReason.Command, WorldCutKind.MidRun);
+		var facts = fixture.Writer.CaptureMidRunFacts(WorldCutReason.Command, WorldCutKind.MidRun);
 
 		Assert.Equal("1234", Assert.Single(facts.Transients, row => row.Kind == SaveWorldTransientRow.KeypadKind).Keypad!.Code);
 		Assert.Equal(2, Assert.Single(facts.Transients, row => row.Kind == SaveWorldTransientRow.GeyserKind).Geyser!.LiquidType);
@@ -685,7 +685,7 @@ public class WorldSnapshotWorldFactsTests
 		using var fixture = WorldSaveFixture.Create("facts-native-damage", nativeWorldFacts: native);
 		fixture.WorldFacts.SeedBlockState(5, 6, 0);
 
-		var facts = fixture.Service.CaptureMidRunFacts(WorldCutReason.MenuReturn, WorldCutKind.MidRun);
+		var facts = fixture.Writer.CaptureMidRunFacts(WorldCutReason.MenuReturn, WorldCutKind.MidRun);
 
 		Assert.Equal(2, facts.Blocks.Count);
 		Assert.Equal((5, 6), (Assert.Single(facts.Blocks, row => row.Kind == SaveWorldBlockRow.BlockStateKind).BlockState!.X, 6));

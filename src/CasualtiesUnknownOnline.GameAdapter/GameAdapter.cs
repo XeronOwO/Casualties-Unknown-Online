@@ -89,11 +89,12 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 		GameAdapterStatusContentProvider statusContent,
 		GameAdapterMoodleContentProvider moodleContent,
 		ModStatusStore modStatusStore,
-		ModStatusProjectionReadModel modStatusProjectionReadModel)
+		ModStatusProjectionReadModel modStatusProjectionReadModel,
+		WorldRestoreAudit restoreAudit)
 	{
 		_latency = latency;
 		_domains = new GameAdapterDomains(session, adaptiveRates, entities, characterData, world, worldFacts, nativeWorldFacts, items, craft, arbitration,
-			enemies, worldTime, playerInteraction, tutorialClaw, worldSaves, respawnOptions, hostRules, worldEntityKernel, kernelProtocol, log, mapper, loggerFactory, itemContent, buildingContent, tileContent, liquidTileContent, structureContent, statusContent, moodleContent, modStatusStore, modStatusProjectionReadModel);
+			enemies, worldTime, playerInteraction, tutorialClaw, worldSaves, restoreAudit, respawnOptions, hostRules, worldEntityKernel, kernelProtocol, log, mapper, loggerFactory, itemContent, buildingContent, tileContent, liquidTileContent, structureContent, statusContent, moodleContent, modStatusStore, modStatusProjectionReadModel);
 		_bridge = new GameAdapterBridge(_domains);
 		_playerInteraction = new PlayerInteractionApply(_domains);
 		_remoteInventoryApply = new RemoteInventoryOperationApply(_domains);
@@ -274,6 +275,17 @@ public sealed class GameAdapter : IGameAdapter, ICuoService, IModEntitySpawner, 
 			_domains.EnemyCombat.Update(); // host: enemy combat decisions (target guidance rides the patch callbacks; bite arbitration here)
 		}
 		_domains.TutorialClawSync.Update(); // host: publish the tutorial-claw presentation state (Runtime throttles the 20 Hz fan-out)
+
+		// THE CUT SEAM — the last step of the frame pump. Every domain above has
+		// finished this frame's work (the drop/break flushes included), so the
+		// kernel is at a committed revision and no frame flush is in flight: the
+		// one point where the armed /save cut and the host's deliberate menu return
+		// are taken. Nothing else in the adapter may call the save control.
+		using (_latency.Measure("SaveSeam"))
+		{
+			_domains.SaveCutSeam.Update(_domains.Run.IsInWorld);
+		}
+
 		if (frameStopwatch != null)
 		{
 			_latency.RecordFrame(frameStopwatch.Elapsed.TotalMilliseconds);

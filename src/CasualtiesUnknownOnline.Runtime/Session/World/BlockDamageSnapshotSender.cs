@@ -49,6 +49,14 @@ internal sealed class BlockDamageSnapshotSender(
 		}
 
 		var entries = _nativeWorldFacts.CaptureBlockDamages();
+		if (entries is null)
+		{
+			// No live world to read the game's own list from: the snapshot carries no
+			// partial damage rather than an empty set that reads as "no cracks".
+			_log.LogWarning("[BlockDamageSnapshot] no live world to read the game's own block-damage list from — the snapshot carries no partial damage.");
+			return;
+		}
+
 		if (entries.Count == 0)
 		{
 			return;

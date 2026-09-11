@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using BepInEx.Logging;
 using CasualtiesUnknownOnline.Runtime;
 using CasualtiesUnknownOnline.Runtime.Networking;
@@ -40,6 +41,35 @@ public class WorldSaveCompositionTests
 		// The transport identity the save layer asks for is the router's: it is the
 		// only object that knows which transport is live (§2).
 		Assert.Same(provider.GetRequiredService<CuoNetworkRouter>(), provider.GetRequiredService<ITransportIdentity>());
+	}
+
+	[Fact]
+	public void ProductionRoot_WithASavesRoot_ResolvesTheCutProbeAndTheRestoreAudit()
+	{
+		var savesRoot = Path.Combine(Path.GetTempPath(), "cuo-compose-tests", Guid.NewGuid().ToString("N"), "cuo", "saves");
+		using var provider = Build(savesRoot);
+
+		// The transient policy's Runtime half is a QUERY over the services that own
+		// the state: nothing pending in a fresh root, and the keys are the policy's
+		// own vocabulary (a rename would break the cut's deferral silently).
+		var probe = provider.GetRequiredService<WorldCutTransientProbe>();
+		var rows = probe.Capture();
+		Assert.Equal(
+			[
+				WorldTransientPolicy.PickupQueueKey,
+				WorldTransientPolicy.MedicalSessionKey,
+				WorldTransientPolicy.ShrapnelSessionKey,
+				WorldTransientPolicy.OtherMedicalSessionKey,
+				WorldTransientPolicy.DeferredEntityReportKey,
+			],
+			rows.Select(row => row.Key));
+		Assert.All(rows, row => Assert.Equal(0, row.Pending));
+		Assert.All(rows, row => Assert.True(WorldTransientPolicy.IsKnown(row.Key), row.Key));
+
+		// The restore audit starts inert and reports nothing until a restore runs.
+		var audit = provider.GetRequiredService<WorldRestoreAudit>();
+		Assert.False(audit.AwaitingLiveWrite);
+		Assert.Null(audit.Last);
 	}
 
 	[Fact]

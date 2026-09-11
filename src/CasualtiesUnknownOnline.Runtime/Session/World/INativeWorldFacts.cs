@@ -38,19 +38,27 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 /// </summary>
 public interface INativeWorldFacts
 {
-	/// <summary>Every keypad code the host decided for this layer.</summary>
-	IReadOnlyList<KeypadEntryMsg> CaptureKeypadCodes();
-
-	/// <summary>Every geyser's decided liquid type.</summary>
-	IReadOnlyList<GeyserStateEntryMsg> CaptureGeysers();
+	/// <summary>
+	/// ONE read of every native table the cut carries: the decided keypad codes,
+	/// the geyser liquid types and the game's OWN partial block-damage list
+	/// (<c>WorldGeneration.world.blockDamages</c> — the live table the game breaks
+	/// blocks from, including damage CUO's report hooks never observed). All three
+	/// are read at one instant, and a table that cannot be read is reported
+	/// through <see cref="NativeWorldFactCapture.Failure"/> instead of coming back
+	/// as "empty" (which the save layer could not tell apart from a real one).
+	/// </summary>
+	NativeWorldFactCapture Capture();
 
 	/// <summary>
-	/// Every entry of the game's OWN partial block-damage list
-	/// (<c>WorldGeneration.world.blockDamages</c>) — the live table the game
-	/// breaks blocks from, including damage CUO's report hooks never observed
-	/// (the unhooked direct <c>DamageBlock</c> callers).
+	/// The game's own partial-damage list, and ONLY that — the late-joiner
+	/// snapshot's read (world entry / reconnect / the 60 s resend). It is
+	/// deliberately narrower than <see cref="Capture"/>: reading the keypad codes
+	/// GENERATES the ones the game has not rolled yet
+	/// (<c>KeypadMinigame.GenerateCode</c> consumes the host's random stream), so a
+	/// damage snapshot must not move that roll. Null = the list could not be read
+	/// (there is no live world); an empty list is a real empty table.
 	/// </summary>
-	IReadOnlyList<BlockDamageEntryMsg> CaptureBlockDamages();
+	IReadOnlyList<BlockDamageEntryMsg>? CaptureBlockDamages();
 
 	/// <summary>Host only: apply the restored keypad codes absolutely (replace, never merge).</summary>
 	void ApplyKeypadCodes(IReadOnlyList<KeypadEntryMsg> codes);
@@ -61,9 +69,9 @@ public interface INativeWorldFacts
 	/// <summary>
 	/// Host only: apply the restored entries of the game's partial-damage list
 	/// absolutely (replace, never merge). A row this list's own cap refuses is
-	/// named by the applier, but it reaches the LOG only — the restore-report gap
-	/// that keeps it out of <c>WorldContinueOutcome.Summary</c> is tracked in
-	/// `todo/save-mid-run-consistent-cut.md` (scope 6).
+	/// named by the LIVE-WORLD replay, which returns every write's applied/refused
+	/// counts — the account a restore's caller reads (the restore-report
+	/// completeness rule of the format doc §6).
 	/// </summary>
 	void ApplyBlockDamages(IReadOnlyList<BlockDamageEntryMsg> damages);
 

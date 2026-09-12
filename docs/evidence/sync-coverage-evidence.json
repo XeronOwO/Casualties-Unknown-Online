@@ -2443,7 +2443,7 @@
     {
       "cluster": "world-blocks",
       "row": "W2",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/RestoredWorldFactReplay.cs:131",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/RestoredWorldFactReplay.cs:143",
       "quote": "damages = _sink.ReplaceGameBlockDamages(restore.BlockDamages);"
     },
     {

@@ -14,7 +14,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 /// receive-side calls arbitrate against the authoritative table and relay; on
 /// the guest they surface the events for the adapter to apply.
 /// </summary>
-public interface IItemControl
+public interface IItemControl : IRestoredWorldItemSource
 {
 	// ===== Report side (the adapter's local compute reports here) =====
 
@@ -136,18 +136,9 @@ public interface IItemControl
 	void PublishGeneratedItems(IReadOnlyList<WorldItem> entries);
 
 	// ===== Restored world items (mid-run restore) =====
-
-	/// <summary>
-	/// Host/solo: a restore put the archive's world items into the kernel and the
-	/// layer is about to be regenerated. While this is true the generation must
-	/// RECONCILE its objects against the restored set (bind the regenerated object
-	/// to the restored id, materialize what generation did not create, drop the
-	/// generation's leftovers the cut never described) instead of publishing them
-	/// under fresh ids — publishing beside the restored set is what left two item
-	/// families at one physical spot and resurrected a ground copy next to the
-	/// restored one.
-	/// </summary>
-	bool RestoredWorldItemsPending { get; }
+	// The "a restored set is waiting" flag lives on IRestoredWorldItemSource — the
+	// world-entry gate reads the same member, so the gate and the reconcile can never
+	// disagree about whether the set is still owed. This section is the reconcile side.
 
 	/// <summary>Host/solo: the restored world items — the set the generation reconcile must land in the live world (empty when nothing is pending).</summary>
 	IReadOnlyList<WorldItem> ReadRestoredWorldItems();

@@ -390,6 +390,62 @@ to no rows — `WorldSaveService.AbandonRestore` also releases the item reconcil
 "releases every handover" contract is true for any caller, not just the one in the adapter), and the
 solo wording now says "any non-host state", which is the registries' actual predicate.
 
+## S3.5 increment follow-up — the ITEM arm of the entry gate (2026-09-12, later pass)
+
+Fixed the gap the S3.5 adversarial pass left recorded: the world-entry seam's `HasPending` gate did not
+consult the item arm, so a restore whose ONLY pending half was the generation reconcile would have
+taken the layer-boundary reset — and that reset drops every world-rooted row (the
+`ItemLocationChain.IsWorldRooted` subtree rule), which is exactly the set the reconcile exists to
+materialize. The loss would have been silent: the reconcile would then have nothing left to bind.
+
+The gate now reads all four halves. The item half rides a narrow port instead of the whole item surface
+(interface segregation, and it keeps the construction graph unchanged): `IRestoredWorldItemSource.
+RestoredWorldItemsPending`, implemented by `IItemControl`, so the gate and the reconcile read the SAME
+flag and cannot disagree. `RestoredWorldFactReplay` takes it as the fourth optional source beside
+`INativeWorldFacts` and `IRestoredWorldEntitySource`, and `GameAdapterDomains` passes the item control
+it already holds.
+
+- Red (on the pre-fix gate): `RestoredWorldFactReplayTests.HasPending_WithOnlyTheItemReconcileOwed_
+  KeepsTheGateTrue` FAILED with `Assert.True() Failure: Expected True, Actual False` — 19 passed, 1
+  failed of 20. The port was threaded in FIRST as a behavior-preserving step (the field read but not
+  yet consulted), so the red was a real assertion failure rather than a compile error.
+- Green: the same suite passes 20/20 after the gate change. `HasPending_WithEveryHalfLanded_IsFalse`
+  pins that the wider gate did not become always-true.
+- Family check: `HasPending` is the only place in the tree that combines the restore halves (grep on
+  `HasPendingLiveReplay` / `HasPendingRestore`). `RestoredWorldFactReplay.ApplyIfPending`'s three
+  locals are "what this replay WRITES" and deliberately do NOT gain the item arm;
+  `WorldRestoreApplier.LiveWorldHalves` already counted it, which is what made the mismatch a gate bug
+  rather than a counting bug.
+- NOT proven by the above: the seam's own branch (`WorldEventSync`'s keep-vs-reset choice) lives in the
+  Game Adapter and cannot be instantiated in the test host, so its decision is pinned through the gate
+  input plus static review — the same limit the rest of this increment's adapter bodies carry.
+
+An independent adversarial pass (fresh context, no stake in the change) could NOT falsify the fix. It
+confirmed the four-arm gate and its false-when-everything-landed case, the assembly path (the item
+control is a required constructor argument of the domain graph, and the same singleton serves the gate,
+the reconcile and the audit), the interface move (no other implementer, no reflection/structure contract
+reads that member), and the gap itself — the layer reset really does drop the world-rooted set the
+reconcile binds (`ItemLocationChain`: `World` true, a contained subtree resolving to `World` true,
+carried and terminal false; the reset's outcome reaches the restore report as a COMPLETE account, so the
+loss is silent at report level). No blocker and no major; its minors and nits are closed here:
+
+- The PRODUCTION shape (all four sources wired, only the item half owed) is now pinned by
+  `HasPending_WithEverySourceWiredAndOnlyTheItemReconcileOwed_KeepsTheGateTrue`, so a gate that dropped
+  the arm whenever another source was present would be caught instead of passing through the null
+  world-entity source the first case uses.
+- `WorldRestoreAudit`'s class comment claimed a restore owes "one for the world facts, plus one for the
+  item reconcile", omitting the world-entity arm the count has carried since scope 8. Corrected to name
+  all three contributions and the "follows the writers actually armed" rule.
+- Wording: the replay's class comment now says the WRITE takes three owners while the GATE reads a
+  fourth, and the port's cref points at its own member instead of at the interface that inherits it.
+- Recorded, NOT fixed here: `WorldSaveService.TryBeginRun` cancels the fact, world-entity and native
+  arms but not the item arm (its comment claims "every half"; `AbandonRestore` does cancel all four).
+  The adapter's `RunSaveCoordinator` cancels the item arm first on the only path that reaches
+  `TryBeginRun`, so no current caller is exposed — but the new gate makes a drifted item arm more
+  consequential (it would keep the seam skipping the layer reset across generations). Closing it needs
+  either an item control in the save fixture or a narrower dependency on the service, so it is its own
+  change rather than a rider on this one.
+
 Recorded but NOT fixed (pre-existing; none of them made worse by this increment):
 
 - **`WorldRestoreAudit` carries no restore IDENTITY**: a contribution that arrives after a NEW
@@ -398,11 +454,6 @@ Recorded but NOT fixed (pre-existing; none of them made worse by this increment)
   pending flag, and a completed or abandoned account ignores stragglers), so the window needs a
   writer that reports late ACROSS a `BeginRestore`; the fix is an epoch on the account (worldId +
   revision, or an id the contributors echo).
-- **The world-entry seam's `HasPending` gate does not consult the ITEM arm**: a restore whose only
-  pending half is the item reconcile (no world facts, no native run fields, no restored world-entity
-  rows) would run the layer-boundary reset and drop the restored world items instead of keeping them
-  for the reconcile. In production the native run-field row is pending for every host/solo restore,
-  which holds the gate true; a composition with no native reader is where it bites.
 - **An action that returns `false` for a reason other than "already in that state"** (e.g.
   `CrystalStateActions.ApplyCrystalMimic` on a crystal with no mimic effect) is counted as applied by
   `TrapVisualReplay.ReplayState`, so that divergence can be under-reported. Distinguishing the two
@@ -483,8 +534,9 @@ in-game rows open.
       1. `WorldRestoreAudit` carries no restore identity (an epoch on the account), so a very late
          writer could credit a newer restore's account; the window needs a writer that reports across
          a `BeginRestore`.
-      2. the world-entry seam's `HasPending` gate does not consult the ITEM arm, so a composition with
-         no native reader would run the layer-boundary reset and drop the restored world items.
+      2. the world-entry seam's `HasPending` gate does not consult the ITEM arm — **FIXED 2026-09-12**
+         (the narrow `IRestoredWorldItemSource` port, the red/green pair and the family check are in the
+         follow-up section above).
       3. a shared-action `false` that means "not applicable" is counted as applied by
          `TrapVisualReplay.ReplayState`, so that divergence can be under-reported.
       4. the sibling-domain reset family: host-only kernel resets, no layer boundary reset for the

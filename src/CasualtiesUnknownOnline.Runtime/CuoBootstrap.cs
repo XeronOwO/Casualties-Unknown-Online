@@ -278,6 +278,7 @@ public static class CuoBootstrap
 			p.GetRequiredService<LocationPingChannel>(),
 			p.GetService<INativeWorldFacts>(),
 			p.GetRequiredService<ItemKernelAuthority>(),
+			p.GetRequiredService<IWorldItemLayerReset>(),
 			p.GetRequiredService<FluidKernelProjection>(),
 			p.GetRequiredService<FluidKernelReadProjection>(),
 			p.GetRequiredService<ProjectionHealthCoordinator>()));
@@ -344,6 +345,9 @@ public static class CuoBootstrap
 		services.AddSingleton<IKernelProtocolControl>(p => p.GetRequiredService<KernelProtocolService>());
 		services.AddSingleton<ItemService>();
 		services.AddSingleton<IItemControl>(p => p.GetRequiredService<ItemService>());
+		// The item domain's layer-boundary reset, driven by the world domain's
+		// per-layer reset bus (WorldService.ResetWorldLayerTables).
+		services.AddSingleton<IWorldItemLayerReset>(p => p.GetRequiredService<ItemService>());
 		// Direct player-interaction visibility oracle. The base composition root
 		// permits every pair; the plugin replaces it with the Game Adapter's
 		// world-backed line-of-sight implementation in extraRegistrations.
@@ -481,7 +485,11 @@ public static class CuoBootstrap
 			// in by the adapter at the frame-end seam.
 			transients: p.GetRequiredService<WorldCutTransientProbe>(),
 			// Carries a restore's live-world half back to the caller that started it.
-			audit: p.GetRequiredService<WorldRestoreAudit>()));
+			audit: p.GetRequiredService<WorldRestoreAudit>(),
+			// The item domain's half of a restore: a mid-run cut's world items are
+			// reconciled against the regenerated layer, so the restore path has to
+			// arm/cancel that expectation.
+			items: p.GetRequiredService<IItemControl>()));
 		services.AddSingleton<IWorldSaveControl>(p => p.GetRequiredService<WorldSaveService>());
 
 		extraRegistrations?.Invoke(services);

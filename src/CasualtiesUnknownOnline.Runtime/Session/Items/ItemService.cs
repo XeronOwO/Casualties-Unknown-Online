@@ -6,6 +6,7 @@ using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session.Persistence;
 using CasualtiesUnknownOnline.Runtime.Session.ProjectionHealth;
 using CasualtiesUnknownOnline.Runtime.Time;
 using Microsoft.Extensions.Logging;
@@ -19,7 +20,7 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Items;
 /// class is deliberately a facade over real top-level responsibilities rather
 /// than a partial-logical god object.
 /// </summary>
-public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposable
+public sealed class ItemService : IItemControl, IItemActionWorldAccess, IWorldItemLayerReset, IDisposable
 {
 	private readonly ISessionControl _session;
 	private readonly ILogger<ItemService> _log;
@@ -38,8 +39,9 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 	private readonly IKernelProtocolControl _kernelProtocol;
 	private readonly ItemSnapshotStreamReceiver _snapshotStreamReceiver;
 	private readonly ProjectionHealthCoordinator _projectionHealth;
+	private readonly RestoredWorldItemSet _restoredWorldItems;
 
-	public ItemService(ISessionControl session, PacketSender sender, ItemArbitration arbitration, ITimeSource time, ILogger<ItemService> log, ItemKernelAuthority kernelAuthority, IKernelProtocolControl kernelProtocol, ProjectionHealthCoordinator projectionHealth)
+	public ItemService(ISessionControl session, PacketSender sender, ItemArbitration arbitration, ITimeSource time, ILogger<ItemService> log, ItemKernelAuthority kernelAuthority, IKernelProtocolControl kernelProtocol, ProjectionHealthCoordinator projectionHealth, WorldRestoreAudit? audit = null)
 	{
 		_session = session;
 		_log = log;
@@ -47,6 +49,7 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 		_kernelAuthority = kernelAuthority;
 		_kernelProtocol = kernelProtocol;
 		_projectionHealth = projectionHealth;
+		_restoredWorldItems = new RestoredWorldItemSet(kernelAuthority, audit, log);
 		_kernelProtocol.ItemMovesReceived += OnItemMovesReceived;
 		_kernelProtocol.ItemStateStreamReceived += OnItemStateStreamReceived;
 		_kernelProtocol.CommandRejected += OnCommandRejected;
@@ -63,7 +66,8 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 				ItemDropped?.Invoke(itemId, item, pos, vel, parentItemId, rotation, angularVelocity, parentPos),
 			itemId => ItemDestroyed?.Invoke(itemId),
 			(owner, item, _) => PublishCarriedSyncLocal(owner, item),
-			item => FireCorrectionLocal(item));
+			item => FireCorrectionLocal(item),
+			(sourceId, cooked) => ItemCookedReceived?.Invoke(sourceId, cooked));
 		_projectionHealth.Register(new ProjectionDomain("items", RebuildItemProjectionFromKernel, () => _kernelAuthority.CurrentGlobalRevision));
 		_carriedSync = new ItemCarriedSyncService();
 		_itemActionSync = new(session, this, _kernelProtocol);
@@ -293,10 +297,65 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 
 	public void SendPeriodicItemSnapshot() => _snapshots.SendPeriodicItemSnapshot();
 
-	public void ResetItems() => _projection.Clear();
+	/// <summary>
+	/// Host/solo: a new layer is generating — the world-item table starts empty. The
+	/// one exception is the generation a restore drives: there the restored item set
+	/// IS this layer's table, so clearing it would leave the host with an empty table
+	/// for the whole layer (the suppressed publish does not rebuild it, and an empty
+	/// table also skips the periodic keyframe).
+	/// </summary>
+	public void ResetItems()
+	{
+		if (RestoredWorldItemsPending)
+		{
+			_log.LogInformation("[Restore] generation reset skipped: the restored item set IS this layer's world table ({Count} item(s)).", _worldTable.Items.Count);
+			return;
+		}
+
+		_projection.Clear();
+	}
+
+	// ===== Restored world items (mid-run restore) =====
+	// The set, its pending expectation and the audit account live in
+	// RestoredWorldItemSet; this surface only exposes them to the adapter.
+
+	public bool RestoredWorldItemsPending => _restoredWorldItems.Pending;
+
+	public IReadOnlyList<WorldItem> ReadRestoredWorldItems() => _restoredWorldItems.Read();
+
+	public void CompleteRestoredWorldItems(int applied, IReadOnlyList<string> refused) =>
+		_restoredWorldItems.Complete(applied, refused);
+
+	public void CancelRestoredWorldItems(string reason) => _restoredWorldItems.Cancel(reason);
+
+	/// <summary>
+	/// Host/solo: a new layer is generating. The previous layer's world items are
+	/// gone with its scene, so the authoritative kernel drops every world-rooted
+	/// record here and the batch travels to the guests (their replay kernels reset
+	/// at the same boundary). Carried items cross the boundary and stay.
+	/// </summary>
+	void IWorldItemLayerReset.ResetForNewLayer()
+	{
+		if (_session.Role == SessionRole.Guest)
+		{
+			return; // the host owns the layer tables; the guest applies the committed reset batch
+		}
+
+		if (!_kernelAuthority.TryResetWorldItems(_session.LocalSteamId, out var batch, out var rejection))
+		{
+			_log.LogWarning("[LayerReset] the item reset for the new layer was rejected: {Reason} ({Message}).",
+				rejection!.Reason, rejection.Message);
+			return;
+		}
+
+		_kernelBatchProjection.ApplyWorldTableOnly(batch!);
+		_log.LogInformation("[LayerReset] dropped the previous layer's world-rooted items; {Remaining} item record(s) remain (carried items cross the boundary).",
+			_kernelAuthority.QueryItems().Count);
+	}
 
 	private void ResetSessionState()
 	{
+		CancelRestoredWorldItems("the session ended before the generation reconcile ran");
 		_projection.Clear();
 		_arbitration.ResetForSessionEnd();
 		_idCoordinator.ResetForSessionEnd();
@@ -324,6 +383,18 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 	{
 		if (_session.Role == SessionRole.Guest || entries.Count == 0)
 		{
+			return;
+		}
+
+		if (RestoredWorldItemsPending)
+		{
+			// A mid-run restore owns this layer's item set: the objects the game just
+			// regenerated are the SAME physical objects the cut described, so the
+			// generation reconciles them against the restored ids
+			// (GeneratedItemAuthority) instead of publishing them under fresh ones.
+			// Publishing here is what left two item families at one spot and put a
+			// duplicate beside the restored ground copy.
+			_log.LogInformation("[Restore] generation publish suppressed: the restored world-item set is pending reconcile ({Count} generated entries).", entries.Count);
 			return;
 		}
 
@@ -445,48 +516,19 @@ public sealed class ItemService : IItemControl, IItemActionWorldAccess, IDisposa
 		_projectionHealth.Run("items", batch.GlobalRevision, () =>
 		{
 			_kernelBatchProjection.Apply(batch);
-			FireCookedEventFromBatch(batch);
+			_kernelBatchProjection.FireCookedEventFromBatch(batch);
 		});
-	}
-
-	private void FireCookedEventFromBatch(CommittedBatch batch)
-	{
-		ulong? sourceId = null;
-		WorldItem? cooked = null;
-		foreach (var @event in batch.Events)
-		{
-			if (@event is ItemDestroyedEvent destroyed && destroyed.Kind == TerminalKind.ReplacedBy)
-			{
-				sourceId = destroyed.Identity.InstanceId;
-			}
-
-			if (@event is ItemSpawnedEvent spawned && spawned.Location.Kind == ItemLocationKind.World)
-			{
-				var current = _kernelAuthority.FindItem(spawned.Identity.InstanceId);
-				if (current is not null)
-				{
-					cooked = new WorldItem(
-						current.Value.Identity.InstanceId,
-						ItemKernelAuthority.ToCharacterItem(current.Value),
-						new NetVector2(spawned.Location.X, spawned.Location.Y),
-						NetVector2.Zero,
-						spawned.Location.ParentItemId,
-						0f,
-						false);
-				}
-			}
-		}
-
-		if (sourceId.HasValue && cooked.HasValue)
-		{
-			ItemCookedReceived?.Invoke(sourceId.Value, cooked.Value);
-		}
 	}
 
 	private void OnCheckpointRestored(GameCheckpoint checkpoint)
 	{
 		if (_session.Role != SessionRole.Guest)
 		{
+			// Host/solo: the archive's world items ARE this world's item set — the layer
+			// that follows is regenerated from the restored baseline, so the generation
+			// reconciles its objects against these ids (RestoredWorldItemSet). A
+			// layer-end cut never gets here: the restore applier cancels the expectation.
+			_projectionHealth.Run("items", checkpoint.GlobalRevision, () => _restoredWorldItems.ArmForRestoredCut(checkpoint, _kernelBatchProjection));
 			return;
 		}
 

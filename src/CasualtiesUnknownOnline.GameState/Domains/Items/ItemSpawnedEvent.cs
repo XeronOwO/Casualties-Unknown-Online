@@ -13,4 +13,4 @@ public sealed record ItemSpawnedEvent(
 	float VelocityY = 0f,
 	float Rotation = 0f,
 	bool FreshItemDrop = false,
-	float AngularVelocity = 0f) : ItemEvent(Identity);
+	float AngularVelocity = 0f) : ItemTargetedEvent(Identity);

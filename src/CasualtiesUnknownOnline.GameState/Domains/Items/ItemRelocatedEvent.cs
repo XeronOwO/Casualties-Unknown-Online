@@ -11,4 +11,4 @@ public sealed record ItemRelocatedEvent(
 	ulong NewRevision,
 	ItemLocation OldLocation,
 	ItemLocation NewLocation,
-	ItemData? NewData = null) : ItemEvent(Identity);
+	ItemData? NewData = null) : ItemTargetedEvent(Identity);

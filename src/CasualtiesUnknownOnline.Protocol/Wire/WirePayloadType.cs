@@ -63,6 +63,7 @@ public enum WirePayloadType
 	EnemyLungeResultEvent = 124,
 	EnemyEffectResultEvent = 125,
 	TrapStateChangedEvent = 126,
+	WorldItemsResetEvent = 127,
 
 	// Envelope families
 	CommittedBatch = 100,

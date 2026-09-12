@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.GameState.Domains.Entities;
 using CasualtiesUnknownOnline.GameState.Domains.Fluids;
@@ -175,6 +174,25 @@ public sealed class ItemKernelAuthority(ILogger<ItemKernelAuthority> log)
 			_runEpoch,
 			AuthorityKind.HostOnly);
 		return TryExecute(command, actor, "reset-world-entities", out batch, out rejection);
+	}
+
+	// ===== World items (layer boundary) =====
+
+	/// <summary>
+	/// Host only: a new layer is generating — every world-rooted item of the
+	/// previous layer is gone with its scene, so the authoritative kernel drops
+	/// them. Carried items (and their contents) cross the boundary untouched.
+	/// The committed batch travels to the guests, so their replay kernels reset
+	/// at the same boundary.
+	/// </summary>
+	public bool TryResetWorldItems(ulong actor, out CommittedBatch? batch, out Rejection? rejection)
+	{
+		var command = new ResetWorldItemsCommand(
+			NextOperation(),
+			new ActorId(actor),
+			_runEpoch,
+			AuthorityKind.HostOnly);
+		return TryExecute(command, actor, "reset-world-items", out batch, out rejection);
 	}
 
 	// ===== Players =====
@@ -419,103 +437,11 @@ public sealed class ItemKernelAuthority(ILogger<ItemKernelAuthority> log)
 	/// <summary>
 	/// Reconcile a container's authoritative child items against a recursive
 	/// wire/save-shaped container report. Each contained child is its own
-	/// kernel item; this method spawns missing children, updates known ones,
-	/// and destroys children that left the container.
+	/// kernel item; the walk and the writes it drives live in
+	/// <see cref="ItemContainerSyncWriter"/>.
 	/// </summary>
-	public void SyncContainerContents(ulong actor, ulong parentItemId, CharacterItemMsg parent, ActorId owner)
-	{
-		var desired = new HashSet<ulong>();
-		SyncChildren(actor, parentItemId, parent, owner, desired);
-
-		var stale = _kernel.QueryItems().Values
-			.Where(i => i.Location.Kind == ItemLocationKind.Contained
-				&& i.Location.ParentItemId == parentItemId
-				&& !desired.Contains(i.Identity.InstanceId))
-			.Select(i => i.Identity.InstanceId)
-			.ToList();
-		foreach (var staleId in stale)
-		{
-			TryDestroyExternal(actor, staleId, TerminalKind.ReplacedBy);
-		}
-	}
-
-	private void SyncChildren(ulong actor, ulong parentItemId, CharacterItemMsg parent, ActorId owner, HashSet<ulong> desired)
-	{
-		foreach (var child in parent.Contents)
-		{
-			if (child.InstanceId == 0)
-			{
-				continue;
-			}
-
-			desired.Add(child.InstanceId);
-			var current = _kernel.FindItem(child.InstanceId);
-			if (current is null)
-			{
-				var location = ItemLocation.Contained(owner, parentItemId);
-				TrySpawnExternal(actor, new ItemIdentity(child.InstanceId, child.ItemId), location, child);
-			}
-			else if (current.Value.Location.Kind == ItemLocationKind.Contained
-				&& current.Value.Location.ParentItemId == parentItemId)
-			{
-				TryUpdateStateExternal(actor, child.InstanceId, child);
-			}
-
-			SyncChildren(actor, child.InstanceId, child, owner, desired);
-		}
-	}
-
-	private void TrySpawnExternal(ulong actor, ItemIdentity identity, ItemLocation location, CharacterItemMsg item)
-	{
-		var command = new SpawnItemCommand(
-			NextOperation(),
-			new ActorId(actor),
-			_runEpoch,
-			AuthorityKind.OwnerPredictedHostValidated,
-			identity,
-			location,
-			0,
-			ToKernelData(item));
-		TryExecuteCommand(command, actor, out _, out _);
-	}
-
-	private void TryUpdateStateExternal(ulong actor, ulong itemId, CharacterItemMsg item)
-	{
-		var current = _kernel.FindItem(itemId);
-		if (current is null)
-		{
-			return;
-		}
-
-		var command = new UpdateItemStateCommand(
-			NextOperation(),
-			new ActorId(actor),
-			_runEpoch,
-			AuthorityKind.OwnerPredictedHostValidated,
-			itemId,
-			ToKernelData(item),
-			current.Value.Revision);
-		TryExecuteCommand(command, actor, out _, out _);
-	}
-
-	private void TryDestroyExternal(ulong actor, ulong itemId, TerminalKind kind)
-	{
-		var current = _kernel.FindItem(itemId);
-		if (current is null)
-		{
-			return;
-		}
-
-		var command = new DestroyItemCommand(
-			NextOperation(),
-			new ActorId(actor),
-			_runEpoch,
-			AuthorityKind.HostOnly,
-			itemId,
-			kind,
-			current.Value.Revision);
-		TryExecuteCommand(command, actor, out _, out _);
-	}
+	public void SyncContainerContents(ulong actor, ulong parentItemId, CharacterItemMsg parent, ActorId owner) =>
+		ItemContainerSyncWriter.Sync(this, actor, parentItemId, parent, owner);
 
 	// ===== Kernel convenience entry points (used by craft/tests) =====
 

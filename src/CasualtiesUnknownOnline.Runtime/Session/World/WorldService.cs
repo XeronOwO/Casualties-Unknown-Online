@@ -29,6 +29,7 @@ public sealed class WorldService : IWorldControl, IWorldFactSource, IDisposable
 	private readonly WorldFactLifecycle _facts;
 	private readonly PendingReportFallback _blockReportFallback;
 	private readonly ItemKernelAuthority _kernelAuthority;
+	private readonly IWorldItemLayerReset _itemLayerReset;
 	private readonly FluidKernelProjection _fluidKernel;
 	private readonly FluidKernelReadProjection _fluidKernelRead;
 	private readonly ProjectionHealthCoordinator _projectionHealth;
@@ -67,6 +68,7 @@ public sealed class WorldService : IWorldControl, IWorldFactSource, IDisposable
 		LocationPingChannel locationPingChannel,
 		INativeWorldFacts? nativeWorldFacts,
 		ItemKernelAuthority kernelAuthority,
+		IWorldItemLayerReset itemLayerReset,
 		FluidKernelProjection fluidKernel,
 		FluidKernelReadProjection fluidKernelRead,
 		ProjectionHealthCoordinator projectionHealth)
@@ -83,6 +85,7 @@ public sealed class WorldService : IWorldControl, IWorldFactSource, IDisposable
 		_blockReportFallback = new PendingReportFallback(session);
 		_startGate = new WorldStartGate(session, sender, time, log);
 		_kernelAuthority = kernelAuthority;
+		_itemLayerReset = itemLayerReset;
 		_fluidKernel = fluidKernel;
 		_fluidKernelRead = fluidKernelRead;
 		_projectionHealth = projectionHealth;
@@ -406,6 +409,7 @@ public sealed class WorldService : IWorldControl, IWorldFactSource, IDisposable
 	{
 		_facts.ResetWorldDomainTables();
 		_channels.ResetRuntimeEntities();
+		_itemLayerReset.ResetForNewLayer();
 	}
 
 	public void SendBlockStateSnapshot(ulong targetSteamId) => _messages.SendBlockStateSnapshot(targetSteamId);

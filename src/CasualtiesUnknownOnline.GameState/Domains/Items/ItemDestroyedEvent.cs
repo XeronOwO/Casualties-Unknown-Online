@@ -7,4 +7,4 @@ public sealed record ItemDestroyedEvent(
 	ItemIdentity Identity,
 	ulong Revision,
 	ItemLocation TerminalLocation,
-	TerminalKind Kind) : ItemEvent(Identity);
+	TerminalKind Kind) : ItemTargetedEvent(Identity);

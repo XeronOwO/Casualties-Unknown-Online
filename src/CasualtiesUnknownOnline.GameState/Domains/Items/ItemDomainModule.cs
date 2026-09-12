@@ -17,7 +17,7 @@ internal sealed class ItemDomainModule : IDomainModule
 	{
 		SpawnItemCommand or PickUpItemCommand or DropItemCommand or DestroyItemCommand
 			or UpdateItemStateCommand or TransferItemCommand or CookItemCommand
-			or SyncContainerItemsCommand => true,
+			or SyncContainerItemsCommand or ResetWorldItemsCommand => true,
 		_ => false,
 	};
 
@@ -34,6 +34,7 @@ internal sealed class ItemDomainModule : IDomainModule
 			TransferItemCommand transfer => DecideTransfer(transfer, state),
 			CookItemCommand cook => DecideCook(cook, state),
 			SyncContainerItemsCommand sync => DecideSyncContainer(sync, state),
+			ResetWorldItemsCommand => DomainDecision.Accept(new WorldItemsResetEvent()),
 			_ => DomainDecision.Reject(RejectionReason.UnknownCommand, $"unknown item command {command.GetType().Name}"),
 		};
 
@@ -58,6 +59,9 @@ internal sealed class ItemDomainModule : IDomainModule
 				{
 					Data = updated.NewData
 				});
+				break;
+			case WorldItemsResetEvent:
+				RemoveWorldRootedItems(state);
 				break;
 			default:
 				throw new InvalidOperationException($"unknown item event {@event.GetType().Name}");
@@ -85,8 +89,31 @@ internal sealed class ItemDomainModule : IDomainModule
 			}
 		}
 
-		AssertNoContainerCycles(state);
+		ItemLocationChain.AssertNoContainerCycles(state.Items.Values, state.FindItem);
 	}
+
+	/// <summary>
+	/// Drop every WORLD-ROOTED item — the layer boundary took the ground and
+	/// everything on it. Carried items (and their contents) stay: the player
+	/// carries them into the new layer. Terminal records stay too: a destroyed
+	/// item is never resurrected, and removing its tombstone would let a stale
+	/// spawn report re-create it.
+	/// </summary>
+	private static void RemoveWorldRootedItems(MutableKernelState state)
+	{
+		var worldRooted = state.Items.Values
+			.Where(item => ItemLocationChain.IsWorldRooted(item, instanceId => FindMutableItem(state, instanceId)))
+			.Select(item => item.Identity.InstanceId)
+			.ToList();
+
+		foreach (var instanceId in worldRooted)
+		{
+			state.RemoveItem(instanceId);
+		}
+	}
+
+	private static ItemState? FindMutableItem(MutableKernelState state, ulong instanceId) =>
+		state.TryGetItem(instanceId, out var item) ? item : null;
 
 	private static DomainDecision DecideSpawn(SpawnItemCommand command, KernelReadModel state)
 	{
@@ -385,8 +412,8 @@ internal sealed class ItemDomainModule : IDomainModule
 			.Where(i =>
 				i.Location.Kind == ItemLocationKind.Contained
 				&& !desired.Contains(i.Identity.InstanceId)
-				&& IsDescendantOf(i.Identity.InstanceId, parentId, state))
-			.Select(i => (Id: i.Identity.InstanceId, Depth: ContainedDepth(i.Identity.InstanceId, parentId, state)))
+				&& ItemLocationChain.IsDescendantOf(i.Identity.InstanceId, parentId, state.FindItem))
+			.Select(i => (Id: i.Identity.InstanceId, Depth: ItemLocationChain.ContainedDepth(i.Identity.InstanceId, parentId, state.FindItem)))
 			.OrderByDescending(x => x.Depth)
 			.ToList();
 
@@ -406,66 +433,6 @@ internal sealed class ItemDomainModule : IDomainModule
 		}
 
 		return DomainDecision.Accept([.. events]);
-	}
-
-	private static bool IsDescendantOf(ulong itemId, ulong ancestorId, KernelReadModel state)
-	{
-		var current = state.FindItem(itemId);
-		if (current is null || current.Value.Location.Kind != ItemLocationKind.Contained)
-		{
-			return false;
-		}
-
-		var visited = new HashSet<ulong>();
-		var cursor = current.Value.Location.ParentItemId;
-		while (cursor != 0 && visited.Add(cursor))
-		{
-			if (cursor == ancestorId)
-			{
-				return true;
-			}
-
-			var parent = state.FindItem(cursor);
-			if (parent is null || parent.Value.Location.Kind != ItemLocationKind.Contained)
-			{
-				return false;
-			}
-
-			cursor = parent.Value.Location.ParentItemId;
-		}
-
-		return false;
-	}
-
-	private static int ContainedDepth(ulong itemId, ulong ancestorId, KernelReadModel state)
-	{
-		var current = state.FindItem(itemId);
-		if (current is null || current.Value.Location.Kind != ItemLocationKind.Contained)
-		{
-			return -1;
-		}
-
-		var depth = 0;
-		var visited = new HashSet<ulong>();
-		var cursor = current.Value.Location.ParentItemId;
-		while (cursor != 0 && visited.Add(cursor))
-		{
-			depth++;
-			if (cursor == ancestorId)
-			{
-				return depth;
-			}
-
-			var parent = state.FindItem(cursor);
-			if (parent is null || parent.Value.Location.Kind != ItemLocationKind.Contained)
-			{
-				return -1;
-			}
-
-			cursor = parent.Value.Location.ParentItemId;
-		}
-
-		return -1;
 	}
 
 	private static DomainDecision DecideCook(CookItemCommand command, KernelReadModel state)
@@ -550,35 +517,6 @@ internal sealed class ItemDomainModule : IDomainModule
 		if (parent.Value.Identity.InstanceId == item.Identity.InstanceId)
 		{
 			throw new InvalidOperationException($"item {item.Identity.InstanceId} is its own parent");
-		}
-	}
-
-	private static void AssertNoContainerCycles(KernelReadModel state)
-	{
-		foreach (var item in state.Items.Values)
-		{
-			if (item.Location.Kind != ItemLocationKind.Contained)
-			{
-				continue;
-			}
-
-			var visited = new HashSet<ulong> { item.Identity.InstanceId };
-			var cursor = item.Location.ParentItemId;
-			while (cursor != 0)
-			{
-				if (!visited.Add(cursor))
-				{
-					throw new InvalidOperationException($"container cycle detected at item {item.Identity.InstanceId} / parent {cursor}");
-				}
-
-				var parent = state.FindItem(cursor);
-				if (parent is null || parent.Value.Location.Kind != ItemLocationKind.Contained)
-				{
-					break;
-				}
-
-				cursor = parent.Value.Location.ParentItemId;
-			}
 		}
 	}
 }

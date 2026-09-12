@@ -1,5 +1,6 @@
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
+using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Session.Persistence;
 using CasualtiesUnknownOnline.GameAdapter.World;
 using CasualtiesUnknownOnline.Runtime.Session.World;
@@ -24,6 +25,7 @@ internal sealed class RunSaveCoordinator(
 	IWorldSaveControl saves,
 	WorldParamsService parameters,
 	Character.CharacterDataSync characterData,
+	IItemControl items,
 	WorldRestoreAudit? restoreAudit,
 	ILogger log)
 {
@@ -32,6 +34,7 @@ internal sealed class RunSaveCoordinator(
 	private readonly IWorldSaveControl _saves = saves;
 	private readonly WorldParamsService _parameters = parameters;
 	private readonly Character.CharacterDataSync _characterData = characterData;
+	private readonly IItemControl _items = items;
 	private readonly ILogger _log = log;
 
 	/// <summary>
@@ -59,9 +62,12 @@ internal sealed class RunSaveCoordinator(
 		// A new run owns the next generation: a restore armed for a refused/aborted
 		// Continue attempt must never replay into it — the world baseline, the native
 		// values (the adapter cancels its own handover with the same call) and the
-		// local body's queued character alike.
+		// local body's queued character alike. The item domain's restore arm belongs to
+		// that set too: left armed, the new run's generation would reconcile its fresh
+		// objects against the old world's ids.
 		_parameters.CancelRestorePending();
 		_characterData.CancelAllLocalRestores();
+		_items.CancelRestoredWorldItems("a new run superseded the restore");
 		_saves.TryBeginRun();
 	}
 

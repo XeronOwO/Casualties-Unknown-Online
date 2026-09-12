@@ -287,4 +287,141 @@ public class WorldEntityProjectionTests
 		Assert.Equal(6.5f, Assert.Single(health!).Y);
 		Assert.Equal(7.5f, Assert.Single(health!).Health);
 	}
+
+	[Fact]
+	public void HostCheckpointRestore_ArmsTheWorldEntryWriteWithTheFactsTheGuestProjects()
+	{
+		// The SAME restored fact table has two landing moments. A guest applies the
+		// checkpoint to the world it already stands in, so the projection raises its
+		// lists now; the host restores BEFORE the scene load, so the only world alive is
+		// the layer being replaced and the facts wait for the world-entry seam. Both
+		// paths must produce the same rows — there is one mapping, not two.
+		var (_, host, guest) = HandshakeTests.CreateHostAndGuest();
+		host.Steam.FireLobbyCreated(LobbyId);
+		host.Steam.LobbyMembers = [HostId, 2001];
+		guest.Steam.FireLobbyEntered(LobbyId);
+
+		var hostWorld = host.Services.GetRequiredService<IWorldControl>();
+		hostWorld.ReportTrapConsumed(EntityEventKind.MineExploded, 1.2f, 2.8f, 5);
+		hostWorld.ReportOpenedEntity(3.1f, 4.2f);
+		hostWorld.ReportBuildingEntityHealth(5.1f, 6.2f, 7.5f);
+		var checkpoint = host.Services.GetRequiredService<ItemKernelAuthority>().CreateCheckpoint();
+
+		var guestProjection = guest.Services.GetRequiredService<WorldEntityKernelProjection>();
+		IReadOnlyList<EntityEventMsg>? guestTraps = null;
+		IReadOnlyList<NetVector2Msg>? guestOpened = null;
+		IReadOnlyList<BuildingEntityHealthEntryMsg>? guestHealth = null;
+		guestProjection.TrapSnapshotProjected += list => guestTraps = list;
+		guestProjection.OpenedEntitiesProjected += list => guestOpened = list;
+		guestProjection.BuildingHealthProjected += list => guestHealth = list;
+		Assert.True(guest.Services.GetRequiredService<ItemKernelAuthority>().Restore(checkpoint).Success);
+
+		var hostProjection = host.Services.GetRequiredService<WorldEntityKernelProjection>();
+		var raised = 0;
+		hostProjection.TrapSnapshotProjected += _ => raised++;
+		hostProjection.OpenedEntitiesProjected += _ => raised++;
+		hostProjection.BuildingHealthProjected += _ => raised++;
+		Assert.True(host.Services.GetRequiredService<ItemKernelAuthority>().Restore(checkpoint).Success);
+
+		Assert.Equal(0, raised);
+		var source = (IRestoredWorldEntitySource)hostProjection;
+		Assert.True(source.HasPendingRestore);
+		var pending = source.ReadPendingFacts();
+		Assert.Equal(3, pending.Count);
+		Assert.Equal(5, Assert.Single(pending.Traps).Extra);
+		Assert.Equal(Assert.Single(guestTraps!).Extra, Assert.Single(pending.Traps).Extra);
+		Assert.Equal(Assert.Single(guestOpened!).X, Assert.Single(pending.Opened).X);
+		Assert.Equal(Assert.Single(guestOpened!).Y, Assert.Single(pending.Opened).Y);
+		Assert.Equal(Assert.Single(guestHealth!).X, Assert.Single(pending.Health).X);
+		Assert.Equal(Assert.Single(guestHealth!).Health, Assert.Single(pending.Health).Health);
+	}
+
+	[Fact]
+	public void SoloCheckpointRestore_ArmsTheWorldEntryWriteToo()
+	{
+		// Solo play has no session role at all (SessionRole.None), and it restores the
+		// same way a host does: the gate is "guest projects now, everyone else waits",
+		// never "the host". The registry's live Report path is host-only, so the fact is
+		// seeded straight into the kernel, exactly as the run that produced it would.
+		var (_, solo, _) = HandshakeTests.CreateHostAndGuest();
+		var soloAuthority = solo.Services.GetRequiredService<ItemKernelAuthority>();
+		Assert.True(soloAuthority.TryExecuteCommand(
+			new RecordOpenedEntityCommand(
+				new OperationId(1),
+				new ActorId(HostId),
+				new RunEpoch(1),
+				AuthorityKind.HostOnly,
+				new EntityPosition(3, 4)),
+			HostId,
+			out _,
+			out _));
+		var checkpoint = soloAuthority.CreateCheckpoint();
+
+		var projection = solo.Services.GetRequiredService<WorldEntityKernelProjection>();
+		var raised = 0;
+		projection.OpenedEntitiesProjected += _ => raised++;
+		Assert.True(soloAuthority.Restore(checkpoint).Success);
+
+		Assert.Equal(0, raised);
+		var source = (IRestoredWorldEntitySource)projection;
+		Assert.True(source.HasPendingRestore);
+		Assert.Equal(3.5f, Assert.Single(source.ReadPendingFacts().Opened).X);
+	}
+
+	[Fact]
+	public void PendingWorldEntryWrite_EndsOnCommitOrCancel_AndNeverTwice()
+	{
+		var (_, host, _) = HandshakeTests.CreateHostAndGuest();
+		host.Steam.FireLobbyCreated(LobbyId);
+		var world = host.Services.GetRequiredService<IWorldControl>();
+		var authority = host.Services.GetRequiredService<ItemKernelAuthority>();
+		world.ReportOpenedEntity(3.1f, 4.2f);
+		var checkpoint = authority.CreateCheckpoint();
+
+		var projection = host.Services.GetRequiredService<WorldEntityKernelProjection>();
+		var source = (IRestoredWorldEntitySource)projection;
+
+		// Armed by a restore that has not reached the world-entry seam yet.
+		Assert.True(authority.Restore(checkpoint).Success);
+		Assert.True(source.HasPendingRestore);
+
+		// The live world took every row.
+		source.CommitPendingRestore();
+		Assert.False(source.HasPendingRestore);
+
+		// A layer-end restore's facts describe the layer being replaced: the arm is
+		// cancelled (and logged), and a second cancel is a no-op rather than a throw.
+		Assert.True(authority.Restore(checkpoint).Success);
+		Assert.True(source.HasPendingRestore);
+		source.CancelPendingRestore("the cut is a layer-end cut: its world-entity facts describe the layer being replaced");
+		Assert.False(source.HasPendingRestore);
+		source.CancelPendingRestore("nothing is armed");
+		Assert.False(source.HasPendingRestore);
+	}
+
+	[Fact]
+	public void SessionEnd_ReleasesThePendingWorldEntryWrite()
+	{
+		// A session end takes the layer the arm belongs to with it. Left armed, the next
+		// generation would skip its layer-boundary reset (the seam treats a pending
+		// restore as "keep the tables") and write a previous session's world-entity facts
+		// into a new world.
+		var (_, host, _) = HandshakeTests.CreateHostAndGuest();
+		host.Steam.FireLobbyCreated(LobbyId);
+		var world = host.Services.GetRequiredService<IWorldControl>();
+		var authority = host.Services.GetRequiredService<ItemKernelAuthority>();
+		// Resolved before the restore, like every production composition does: the
+		// projection subscribes to the kernel's CheckpointRestored in its constructor, so
+		// a first resolve AFTER a restore would never see that restore.
+		var projection = host.Services.GetRequiredService<WorldEntityKernelProjection>();
+		world.ReportOpenedEntity(3.1f, 4.2f);
+		Assert.True(authority.Restore(authority.CreateCheckpoint()).Success);
+
+		var source = (IRestoredWorldEntitySource)projection;
+		Assert.True(source.HasPendingRestore);
+
+		host.Session.EndSession();
+
+		Assert.False(source.HasPendingRestore);
+	}
 }

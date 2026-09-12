@@ -42,13 +42,17 @@ internal sealed class WorldRestoreApplier(
 	IItemControl? items,
 	WorldRestoreAudit? audit,
 	ILoggerFactory loggerFactory,
-	ILogger<WorldRestoreApplier> log)
+	ILogger<WorldRestoreApplier> log,
+	IRestoredWorldEntitySource? worldEntities = null)
 {
 	/// <summary>The world-fact half: which restored row goes back to which table, and what could not be put back.</summary>
 	private readonly WorldFactRestore _factRestore = new(worldFacts, nativeWorldFacts, loggerFactory.CreateLogger<WorldFactRestore>());
 
 	/// <summary>The item half: a mid-run cut's world items are reconciled against the regenerated layer (GeneratedItemAuthority); a layer-end cut's rows are dropped.</summary>
 	private readonly IItemControl? _items = items;
+
+	/// <summary>The world-entity half: the kernel's restored per-entity facts are written at the world-entry seam; a layer-end cut's rows are dropped here.</summary>
+	private readonly IRestoredWorldEntitySource? _worldEntities = worldEntities;
 
 	/// <summary>
 	/// What one applied archive produced. The identity fields are meaningful only
@@ -63,6 +67,23 @@ internal sealed class WorldRestoreApplier(
 	{
 		internal bool Started => Outcome.Started;
 	}
+
+	/// <summary>
+	/// How many live-world halves this restore owes, counted from the writers that
+	/// are ACTUALLY armed rather than from the cut kind. The audit raises a restore's
+	/// report only when the LAST one has arrived, so a count that names a half nobody
+	/// will report leaves the restore awaiting forever, and a count that is too low
+	/// raises the report before the last writer ran (then raises a second one when it
+	/// does).
+	///
+	/// The world-fact half always reports: the replay at the world-entry seam reports
+	/// it even when the cut carried no fact at all ("carried nothing to write"). A
+	/// writer that is absent from this composition (`IItemControl` /
+	/// `IRestoredWorldEntitySource` are optional by design) or whose arm a layer-end
+	/// cut just dropped is not owed, which is exactly what the two flags say.
+	/// </summary>
+	internal static int LiveWorldHalves(bool worldEntityHalfArmed, bool itemReconcileArmed) =>
+		1 + (worldEntityHalfArmed ? 1 : 0) + (itemReconcileArmed ? 1 : 0);
 
 	/// <summary>
 	/// Applies the archive the caller resolved. <paramref name="worldId"/> is null when
@@ -124,6 +145,14 @@ internal sealed class WorldRestoreApplier(
 			// expectation the checkpoint restore armed is dropped BEFORE the audit
 			// begins: a cancelled half is not a lost one.
 			_items?.CancelRestoredWorldItems("the cut is a layer-end cut: its world items belong to the layer being replaced");
+			// The same rule for the per-entity facts (consumed traps, opened lockables,
+			// damaged buildings): they describe the layer being replaced, and the layer
+			// the restore regenerates starts with every entity untouched. Writing them
+			// into it would damage or kill entities at coordinates that belong to another
+			// layer's layout, so the pending write is ended here — before the audit
+			// begins, exactly like the item half, because a dropped half this cut never
+			// owed is not a lost one.
+			_worldEntities?.CancelPendingRestore("the cut is a layer-end cut: its world-entity facts describe the layer being replaced");
 			DropReplacedLayerPositions(decode.UsableCharacters);
 		}
 
@@ -138,12 +167,13 @@ internal sealed class WorldRestoreApplier(
 		// The live-world half of this restore lands at the world-entry seam, after
 		// this call returned. The audit carries that half's outcome back to the
 		// caller: a restore is not "successful" until the live world took every row.
-		// A mid-run (or autosave) cut owes a SECOND half — the generation reconcile
-		// of the restored item set — while a layer-end cut owes only the world facts
-		// (its item rows were just dropped above).
+		// The count comes from the writers that are armed RIGHT NOW — the layer-end
+		// cancels above have already run — see LiveWorldHalves.
 		audit?.BeginRestore(
 			worldId,
-			load.Content.Manifest.Kind == WorldCutKind.LayerEnd ? 1 : 2);
+			LiveWorldHalves(
+				worldEntityHalfArmed: _worldEntities?.HasPendingRestore ?? false,
+				itemReconcileArmed: _items?.RestoredWorldItemsPending ?? false));
 
 		// The summary is the account the caller logs (and S4's surface reads), so it
 		// is built from the WHOLE report — a backup fallback is repository-scope

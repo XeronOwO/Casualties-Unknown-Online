@@ -257,10 +257,10 @@ internal sealed class GameAdapterDomains
 		// Runtime's (it owns the order, the accounting and the pending handover);
 		// this adapter only supplies the game-typed sink.
 		NativeWorldFacts = nativeWorldFacts;
-		var restoredWorldFactSink = new GameRestoredWorldFactSink(BlockBreakSync, loggerFactory.CreateLogger<GameRestoredWorldFactSink>());
-		RestoredWorldFactReplay = new RestoredWorldFactReplay(
-			worldFacts, nativeWorldFacts, restoredWorldFactSink, loggerFactory.CreateLogger<RestoredWorldFactReplay>(), restoreAudit);
-		WorldEventSync = new WorldEventSync(session, world, BlockBreakSync, RestoredWorldFactReplay, OperationTrace, worldEntityKernel, kernelProtocol, loggerFactory.CreateLogger<WorldEventSync>());
+		// The trap replay is built FIRST because both sides of the world-entity
+		// domain share it: the live relay (EntityEventSync) and the restored cut's
+		// world-entry write (GameRestoredWorldFactSink) must replay a trap fact the
+		// same way, or a restore would present facts the live path never would.
 		var trapVisualReplay = new TrapVisualReplay(loggerFactory.CreateLogger<TrapVisualReplay>());
 		EntityEventSync = new EntityEventSync(world, session,
 			new TrapEffectApplier(loggerFactory.CreateLogger<TrapEffectApplier>()),
@@ -269,6 +269,14 @@ internal sealed class GameAdapterDomains
 			TrapDrops,
 			ItemApplication,
 			loggerFactory.CreateLogger<EntityEventSync>());
+		var restoredWorldFactSink = new GameRestoredWorldFactSink(
+			BlockBreakSync,
+			buildingEntities,
+			EntityEventSync,
+			loggerFactory.CreateLogger<GameRestoredWorldFactSink>());
+		RestoredWorldFactReplay = new RestoredWorldFactReplay(
+			worldFacts, nativeWorldFacts, restoredWorldFactSink, loggerFactory.CreateLogger<RestoredWorldFactReplay>(), restoreAudit, worldEntityKernel);
+		WorldEventSync = new WorldEventSync(session, world, BlockBreakSync, RestoredWorldFactReplay, OperationTrace, worldEntityKernel, kernelProtocol, loggerFactory.CreateLogger<WorldEventSync>());
 		DynamiteExplosionSync = new DynamiteExplosionSync(world, session, trapVisualReplay,
 			loggerFactory.CreateLogger<DynamiteExplosionSync>());
 		EntitySpawnSync = new EntitySpawnSync(world, session, loggerFactory.CreateLogger<EntitySpawnSync>());

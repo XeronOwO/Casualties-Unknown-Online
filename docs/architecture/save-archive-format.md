@@ -142,7 +142,22 @@ payloads are the same wire DTOs the late-joiner snapshot already sends, so a res
 existing appliers their own shape instead of introducing a second validation path. A layer-end cut
 records no in-layer fact at all — the layer it names is regenerated from the run baseline — so both
 files are empty arrays for one, and the encoder writes that empty form regardless of what a caller
-gathered.
+gathered. The same rule covers `items.json` and `world-entities.json`: a WORLD-ROOTED item row (a
+ground item, and everything inside a container that lies on the ground) and every per-entity row (a
+consumed trap, a trap-state fact, an opened lockable, a building-health record) describes the layer
+being replaced, so the encoder drops them for a layer-end cut, names the count in the log instead of
+trimming a caller's rows silently, and keeps what does cross the boundary — for items, the carried
+records (and their contents) and the terminal tombstones, because those do describe the world the
+restore builds. The item rule uses the very predicate the layer-boundary reset uses
+(`ItemLocationChain.IsWorldRooted`), and the world-entity rule is the boundary reset's own set: the
+two can never disagree about what "in the layer" means, and a later guest join cannot be handed a
+kernel checkpoint whose per-entity facts describe a layer the world no longer is. A produced
+`layer-end` archive therefore holds only boundary-crossing item records and no in-layer fact at all,
+which is exactly what a restore of one can give back. The enemy and fluid tables are deliberately NOT
+part of that rule: no layer boundary resets them (their reset commands exist but nothing issues them
+per layer), so a layer-end cut carrying them is consistent with what the kernel itself keeps — the
+asymmetry is recorded in `docs/backlog/todo/save-mid-run-consistent-cut.md` as the sibling-domain
+reset gap.
 
 The game's own `WorldGeneration.world.blockDamages` list is the ONLY partial-damage table there is:
 CUO keeps no registry beside it, and the partial block damage has no Runtime half in the fact port
@@ -296,17 +311,18 @@ Decision 163: restore minimizes loss, and salvage is **per entry, not per domain
   player's current progress. It converges on the same world, minus the entries it names.
 - Every skipped entry, every fallback and every mismatch is surfaced in-game (not only in the log):
   the count per domain, the reason, and the affected content id. Silent loss is forbidden.
-- **A restore has two halves in time, and the second one reports too.** The Continue click applies
+- **A restore has halves in time, and the later ones report too.** The Continue click applies
   the kernel checkpoint and the Runtime fact tables; the values only a live world can take (the
   block diff, the game's own partial-damage list, the decided keypad/geyser values, the radiation
-  line, the run clock base and the recipe unlock table) are written at the world-entry seam
-  afterwards. Both halves travel back to the caller that started the restore through
-  `WorldRestoreAudit`: the Runtime table's per-row apply counts AND the live-world write's refused
-  counts, so a restore can never be reported as a success while the game's own bounded (128-entry)
-  table refused a row. A snapshot that carries no native run-field row is named in the same account
-  rather than silently continuing with a clock that restarts at zero and every recipe re-locked; a
-  recipe row whose index no longer exists in the live table is refused by name and leaves that
-  recipe's live state alone.
+  line, the restored per-entity facts, the run clock base and the recipe unlock table) are written at
+  the world-entry seam afterwards, and a mid-run cut's restored item set is reconciled a frame after
+  the generation-finished edge. Every half travels back to the caller that started the restore
+  through `WorldRestoreAudit`: the Runtime table's per-row apply counts AND each live-world write's
+  refused counts, so a restore can never be reported as a success while the game's own bounded
+  (128-entry) table refused a row. A snapshot that carries no native run-field row is named in the
+  same account rather than silently continuing with a clock that restarts at zero and every recipe
+  re-locked; a recipe row whose index no longer exists in the live table is refused by name and
+  leaves that recipe's live state alone.
 - **A dropped in-flight class is reported at the CUT.** Deciding a class `drop-with-log` means the
   player is told what the cut left behind and why (§4): the cut's report names the count and the
   class for every row a CUO owner counted, names the `Standing` classes it can never carry, and
@@ -348,12 +364,38 @@ are then written onto that fresh copy. The seams are fixed and different on purp
   edge: it binds a matching local object to the restored id, materializes what the generation
   did not create, destroys the standalone leftovers the cut never described, and verifies each
   write by looking the restored id up in the live scene (a refused entry is named, never
-  silently dropped). It is the restore's SECOND live-write contribution, so a mid-run restore's
-  report waits for both halves — the world facts and the item reconcile — before it is raised; a
-  layer-end cut owes only the world facts, because its item rows describe the layer being
-  replaced and the layer-boundary reset drops them. The generation a restore drives is also the
-  one generation whose layer-boundary table reset is skipped: the restored set IS that layer's
-  world table, and the suppressed publish would not rebuild it.
+  silently dropped). It is ONE of a mid-run restore's live-write contributions, and the report
+  waits for all of them before it is raised — the world facts and the restored world-entity facts
+  at the world-entry seam, then this item reconcile — because each is a separate writer with its own
+  handover and its own refusal account. The count is the writers that are ACTUALLY armed when the
+  click returns (`WorldRestoreApplier.LiveWorldHalves`: three with both halves armed, one when
+  neither is — a layer-end cut, whose world-entity rows and item rows both describe the layer being
+  replaced and are dropped before the audit begins), never the cut kind alone, so a composition
+  missing one writer cannot leave the restore awaiting a report that will never come; and a restore
+  reports exactly once, because the world-entry seam runs the replay again on every later generation
+  and a completed restore must not be re-reported. The generation a restore drives is
+  also the one generation whose layer-boundary table reset is skipped: the restored set IS that
+  layer's world table, and the suppressed publish would not rebuild it.
+- **Restored world-entity facts land at the same seam — for a cut that describes the layer being
+  restored.** The kernel's per-entity facts (consumed traps, the durable trap-state machine, opened
+  lockables, building health) have two landing moments, and ROLE decides which one: a guest restores
+  a checkpoint onto the world the host already generated, so `WorldEntityKernelProjection` raises its
+  flat fact lists immediately; the host/solo side restores at the Continue click, when the only world
+  alive is the layer being REPLACED, so the projection HOLDS the facts
+  (`IRestoredWorldEntitySource`) and `RestoredWorldFactReplay` writes them at this seam through the
+  same three appliers the guest path uses — the trap facts replayed position-keyed, the opened
+  lockables applied as `health = 0` plus a REMOTE death mark, and the building-health rows written
+  with that same remote-death marking, so a death the saved world already rolled does not roll its
+  drops a second time. Each applier counts what the live world took, so an entity the regenerated
+  layer does not have (divergence) reaches the restore report instead of the log alone. Without the
+  write, a host that restored a mid-run cut kept those facts in the kernel and shipped them to its
+  guests while its own fresh world showed every trap untouched. A `layer-end` cut's rows describe
+  the layer being replaced and are dropped before the audit begins, exactly like its world-item rows
+  — and the archive does not carry them either (§3.4). The arm is released wherever the layer it
+  belongs to can disappear: the replay's own refusal/throw paths, a new run
+  (`WorldSaveService.TryBeginRun`), a `layer-end` restore, and the session ending
+  (`WorldEntityKernelProjection`'s own subscription) — an arm that outlived its layer would make the
+  next generation skip its layer-boundary reset and write a previous layer's facts into a new world.
 - **Native run fields** keep their own seams, because two of them need different worlds than
   the other two. The two rarity multipliers (world-generation inputs) and the run clock base
   must be in place BEFORE `WorldGeneration.Start` derives the layer's time limit and trap budget,

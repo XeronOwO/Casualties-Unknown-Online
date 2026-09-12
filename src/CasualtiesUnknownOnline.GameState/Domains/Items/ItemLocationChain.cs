@@ -10,8 +10,15 @@ namespace CasualtiesUnknownOnline.GameState.Domains.Items;
 /// <see cref="ItemDomainModule"/> (the 600-line architecture gate) because the
 /// walk is one responsibility: it only follows parent links and never decides
 /// anything — the domain module keeps every decision.
+///
+/// It is public because the rule it exposes has a second caller OUTSIDE this
+/// project: the archive contract asks the same question when it decides which
+/// item rows a layer-end cut carries (a world-rooted item describes the layer
+/// being replaced). Two copies of this walk would eventually disagree about what
+/// "in the world" means, and the layer-boundary reset and the archive would then
+/// drop different subtrees.
 /// </summary>
-internal static class ItemLocationChain
+public static class ItemLocationChain
 {
 	/// <summary>
 	/// Whether the item's location chain is rooted in the WORLD — the item lies

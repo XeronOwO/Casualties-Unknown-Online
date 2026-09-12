@@ -24,85 +24,73 @@ internal sealed class TrapVisualReplay(ILogger<TrapVisualReplay> log)
 {
 	private readonly ILogger<TrapVisualReplay> _log = log;
 
-	internal void Replay(EntityEventKind kind, Vector2 position, byte extra, float elapsedSeconds = 0f)
+	/// <summary>
+	/// Replay one trap fact onto the local world.
+	///
+	/// Returns whether the row reached the live world, which is what the restore's
+	/// live-write account counts: a row that found no entity of its kind is a
+	/// REFUSED row (the regenerated layer diverged from the cut, and the fact is not
+	/// represented anywhere), while a row the guard dropped because the local copy
+	/// already carries that state counts as applied — the state IS in the world. The
+	/// destructive families follow the same rule: their entity is normally there and
+	/// the replay consumes it, and when it is NOT there the explosion is still
+	/// replayed as presentation but the consumption fact is missing from the world,
+	/// so the row is refused.
+	/// </summary>
+	internal bool Replay(EntityEventKind kind, Vector2 position, byte extra, float elapsedSeconds = 0f)
 	{
 		switch (kind)
 		{
 			case EntityEventKind.MinePressed:
-				ReplayState<MineScript>(position, kind, TrapStateActions.ApplyMinePressed);
-				break;
+				return ReplayState<MineScript>(position, kind, TrapStateActions.ApplyMinePressed);
 			case EntityEventKind.MineExploded:
-				ReplayMineExplosion(position);
-				break;
+				return ReplayMineExplosion(position);
 			case EntityEventKind.ShuttleDoorOpened:
-				ReplayShuttleDoor(position, elapsedSeconds);
-				break;
+				return ReplayShuttleDoor(position, elapsedSeconds);
 			case EntityEventKind.LifepodHeatChanged:
-				ReplayState<LifepodController>(position, kind, c => TrapStateActions.ApplyHeat(c, extra));
-				break;
+				return ReplayState<LifepodController>(position, kind, c => TrapStateActions.ApplyHeat(c, extra));
 			case EntityEventKind.LifepodShowerActivated:
-				ReplayState<LifepodController>(position, kind, TrapStateActions.ApplyShower);
-				break;
+				return ReplayState<LifepodController>(position, kind, TrapStateActions.ApplyShower);
 			case EntityEventKind.BioTerminalUnlocked:
-				ReplayState<BioTerminalScript>(position, kind, TrapStateActions.ApplyBioTerminal);
-				break;
+				return ReplayState<BioTerminalScript>(position, kind, TrapStateActions.ApplyBioTerminal);
 			case EntityEventKind.ScrapEaterProgress:
-				ReplayState<ScrapEaterScript>(position, kind, e => TrapStateActions.ApplyScrapEater(e, extra));
-				break;
+				return ReplayState<ScrapEaterScript>(position, kind, e => TrapStateActions.ApplyScrapEater(e, extra));
 			case EntityEventKind.MedStationHealed:
-				ReplayState<MedStationScript>(position, kind, TrapStateActions.ApplyMedStation);
-				break;
+				return ReplayState<MedStationScript>(position, kind, TrapStateActions.ApplyMedStation);
 			case EntityEventKind.BatteryInserted:
-				ReplayState<BatteryRecharger>(position, kind, TrapStateActions.ApplyBattery);
-				break;
+				return ReplayState<BatteryRecharger>(position, kind, TrapStateActions.ApplyBattery);
 			case EntityEventKind.SpikeStabbed:
-				ReplaySpike(position, elapsedSeconds);
-				break;
+				return ReplaySpike(position, elapsedSeconds);
 			case EntityEventKind.BearTrapClamped:
-				ReplayState<BearTrap>(position, kind, TrapStateActions.ApplyBearTrapClamped);
-				break;
+				return ReplayState<BearTrap>(position, kind, TrapStateActions.ApplyBearTrapClamped);
 			case EntityEventKind.BearTrapReleased:
-				ReplayState<BearTrap>(position, kind, TrapStateActions.ApplyBearTrapReleased);
-				break;
+				return ReplayState<BearTrap>(position, kind, TrapStateActions.ApplyBearTrapReleased);
 			case EntityEventKind.StalactiteDropped:
-				ReplayState<StalactiteDropper>(position, kind, TrapStateActions.ApplyStalactite);
-				break;
+				return ReplayState<StalactiteDropper>(position, kind, TrapStateActions.ApplyStalactite);
 			case EntityEventKind.GeyserActivated:
-				ReplayState<GeyserScript>(position, kind, TrapStateActions.ApplyGeyser);
-				break;
+				return ReplayState<GeyserScript>(position, kind, TrapStateActions.ApplyGeyser);
 			case EntityEventKind.SoundCannonFired:
-				ReplayState<SoundCannon>(position, kind, TrapStateActions.ApplySoundCannon);
-				break;
+				return ReplayState<SoundCannon>(position, kind, TrapStateActions.ApplySoundCannon);
 			case EntityEventKind.CaveTicksSpawned:
-				ReplayState<CaveTickSpawner>(position, kind, TrapStateActions.ApplyCaveTicks);
-				break;
+				return ReplayState<CaveTickSpawner>(position, kind, TrapStateActions.ApplyCaveTicks);
 			case EntityEventKind.CrystalFragileBroken:
-				ReplayState<CrystalBehaviour>(position, kind, CrystalStateActions.ApplyCrystalFragile);
-				break;
+				return ReplayState<CrystalBehaviour>(position, kind, CrystalStateActions.ApplyCrystalFragile);
 			case EntityEventKind.TurretSelfDestructed:
-				ReplayTurretSelfDestructed(position);
-				break;
+				return ReplayTurretSelfDestructed(position);
 			case EntityEventKind.BarbedFenceHit:
-				ReplayState<BarbedFence>(position, kind, TrapStateActions.ApplyBarbedFence);
-				break;
+				return ReplayState<BarbedFence>(position, kind, TrapStateActions.ApplyBarbedFence);
 			case EntityEventKind.CoilShocked:
-				ReplayState<CoilScript>(position, kind, TrapStateActions.ApplyCoil);
-				break;
+				return ReplayState<CoilScript>(position, kind, TrapStateActions.ApplyCoil);
 			case EntityEventKind.CactusHit:
-				ReplayState<CactusScript>(position, kind, TrapStateActions.ApplyCactus);
-				break;
+				return ReplayState<CactusScript>(position, kind, TrapStateActions.ApplyCactus);
 			case EntityEventKind.JumpPadLaunched:
-				ReplayState<JumpPadScript>(position, kind, TrapStateActions.ApplyJumpPad);
-				break;
+				return ReplayState<JumpPadScript>(position, kind, TrapStateActions.ApplyJumpPad);
 			case EntityEventKind.BananaPlantSlip:
-				ReplayState<BananaPlantSlip>(position, kind, TrapStateActions.ApplyBananaSlip);
-				break;
+				return ReplayState<BananaPlantSlip>(position, kind, TrapStateActions.ApplyBananaSlip);
 			case EntityEventKind.CrystalElectricShocked:
-				ReplayState<CrystalBehaviour>(position, kind, CrystalStateActions.ApplyCrystalElectric);
-				break;
+				return ReplayState<CrystalBehaviour>(position, kind, CrystalStateActions.ApplyCrystalElectric);
 			case EntityEventKind.TurretFired:
-				ReplayState<TurretScript>(position, kind, TrapStateActions.ApplyTurretFired);
-				break;
+				return ReplayState<TurretScript>(position, kind, TrapStateActions.ApplyTurretFired);
 			case EntityEventKind.CrystalUnstableTicked:
 				// The transient ticking start — replay the 5 s pre-explosion
 				// visual (sound + glow ramp + jitter) WITHOUT writing the
@@ -110,54 +98,50 @@ internal sealed class TrapVisualReplay(ILogger<TrapVisualReplay> log)
 				// count down and explode naturally — CrystalUnstableExploded
 				// owns the consumption). The CrystalTickingReplay component
 				// IS the duplicate guard.
-				ReplayState<CrystalBehaviour>(position, kind, CrystalStateActions.ApplyCrystalUnstableTicked);
-				break;
+				return ReplayState<CrystalBehaviour>(position, kind, CrystalStateActions.ApplyCrystalUnstableTicked);
 			case EntityEventKind.CrystalUnstableExploded:
-				ReplayCrystalUnstableExplosion(position);
-				break;
+				return ReplayCrystalUnstableExplosion(position);
 			case EntityEventKind.CrystalMetamorphicTriggered:
-				ReplayState<CrystalBehaviour>(position, kind, CrystalStateActions.ApplyCrystalMetamorphic);
-				break;
+				return ReplayState<CrystalBehaviour>(position, kind, CrystalStateActions.ApplyCrystalMetamorphic);
 			case EntityEventKind.CrystalMimicTriggered:
 				// Live relay: consume the latch + play the original 2D laugh.
 				// Late-joiner snapshot (ElapsedSeconds > 0): latch only — an old
 				// laugh must not fire over the joining player.
-				ReplayState<CrystalBehaviour>(position, kind, c => CrystalStateActions.ApplyCrystalMimic(c, playSound: elapsedSeconds <= 0f));
-				break;
+				return ReplayState<CrystalBehaviour>(position, kind, c => CrystalStateActions.ApplyCrystalMimic(c, playSound: elapsedSeconds <= 0f));
 			case EntityEventKind.CrystalShySwapped:
-				ReplayState<CrystalBehaviour>(position, kind, CrystalStateActions.ApplyCrystalShy);
-				break;
+				return ReplayState<CrystalBehaviour>(position, kind, CrystalStateActions.ApplyCrystalShy);
 			case EntityEventKind.CrystalEMPActivated:
-				ReplayState<CrystalBehaviour>(position, kind, CrystalStateActions.ApplyCrystalEMP);
-				break;
+				return ReplayState<CrystalBehaviour>(position, kind, CrystalStateActions.ApplyCrystalEMP);
 			case EntityEventKind.CrystalTeleportTriggered:
 				// The teleported body already rides the 20 Hz player stream;
 				// the replay is the same 2D observerlaugh + FlashBrief call the
 				// trigger side made (CrystalTeleport.cs:27-28).
-				ReplayState<CrystalBehaviour>(position, kind, CrystalStateActions.ApplyCrystalTeleport);
-				break;
+				return ReplayState<CrystalBehaviour>(position, kind, CrystalStateActions.ApplyCrystalTeleport);
 			case EntityEventKind.GrabberGrabbed:
 				// The grab's visuals are the player-side ragdoll/scream (each
 				// side's own body); the tendril animation is Update-driven
 				// everywhere — nothing to replay, the trace line is the record.
-				break;
+				// The fact needs no live-world entity, so it is applied.
+				return true;
 			default:
 				_log.LogWarning("[TrapEvent] no replay action for {Kind}.", kind);
-				break;
+				return false;
 		}
 	}
 
 	/// <summary>A state-family replay: run the shared action on the local entity
-	/// at the position (the transition itself; the entity animates). The action
-	/// reports whether it APPLIED — a false (the local copy already consumed the
-	/// one-shot: the two-trigger race) is DROPPED with a trace.</summary>
-	private void ReplayState<T>(Vector2 position, EntityEventKind kind, Func<T, bool> action) where T : Component
+	/// at the position (the transition itself; the entity animates). Returns
+	/// whether the entity this fact names exists: the action reports whether it
+	/// APPLIED — a false (the local copy already consumed the one-shot: the
+	/// two-trigger race) is DROPPED with a trace, but the state it names IS in the
+	/// world, so it is not a lost row.</summary>
+	private bool ReplayState<T>(Vector2 position, EntityEventKind kind, Func<T, bool> action) where T : Component
 	{
 		var entity = TrapEffectApplier.FindTrap<T>(position);
 		if (entity == null) // Unity object — ==
 		{
 			LogGoneWithNearest<T>(kind, position);
-			return;
+			return false;
 		}
 
 		if (action(entity))
@@ -168,6 +152,8 @@ internal sealed class TrapVisualReplay(ILogger<TrapVisualReplay> log)
 		{
 			_log.LogWarning("[TrapEvent] {Kind} at {Pos} already consumed locally — duplicate dropped.", kind, position);
 		}
+
+		return true;
 	}
 
 	/// <summary>
@@ -178,14 +164,15 @@ internal sealed class TrapVisualReplay(ILogger<TrapVisualReplay> log)
 	/// anchor — progress = elapsed puts the doors exactly where the host's are
 	/// (elapsed > 10 → the doors sit at the top and the script destroys itself
 	/// on the first Update, exactly like the host's already-gone door).
+	/// Returns whether the door exists (a duplicate it already carries the state).
 	/// </summary>
-	private void ReplayShuttleDoor(Vector2 position, float elapsedSeconds)
+	private bool ReplayShuttleDoor(Vector2 position, float elapsedSeconds)
 	{
 		var door = TrapEffectApplier.FindTrap<ShuttleStartOpen>(position);
 		if (door == null) // Unity object — ==
 		{
 			LogGoneWithNearest<ShuttleStartOpen>(EntityEventKind.ShuttleDoorOpened, position);
-			return;
+			return false;
 		}
 
 		// Live relay (elapsed == 0): the trigger side just opened the door, so
@@ -206,7 +193,7 @@ internal sealed class TrapVisualReplay(ILogger<TrapVisualReplay> log)
 				_log.LogWarning("[TrapEvent] ShuttleDoorOpened at {Pos} already consumed locally — duplicate dropped.", position);
 			}
 
-			return;
+			return true;
 		}
 
 		// Late-joiner snapshot: jump to the current elapsed point — no sounds
@@ -218,6 +205,7 @@ internal sealed class TrapVisualReplay(ILogger<TrapVisualReplay> log)
 		Traverse.Create(door).Field("didTalk").SetValue(state.DidTalk);
 
 		_log.LogInformation("[TrapEvent] replayed ShuttleDoorOpened at {Pos} at elapsed {Elapsed:F1} s.", position, elapsedSeconds);
+		return true;
 	}
 
 	/// <summary>
@@ -226,26 +214,29 @@ internal sealed class TrapVisualReplay(ILogger<TrapVisualReplay> log)
 	/// sound and the animation over the late joiner's head). The stab-hit
 	/// sprite (CheckStab's victim sprite) is NOT restored — the snapshot
 	/// carries no hit record; the spike still reads as spent.
+	/// Returns whether the spike exists (an already-stabbed copy already carries
+	/// the state).
 	/// </summary>
-	private void ReplaySpike(Vector2 position, float elapsedSeconds)
+	private bool ReplaySpike(Vector2 position, float elapsedSeconds)
 	{
 		var spike = TrapEffectApplier.FindTrap<SpikeStabberScript>(position);
 		if (spike == null) // Unity object — ==
 		{
 			LogGoneWithNearest<SpikeStabberScript>(EntityEventKind.SpikeStabbed, position);
-			return;
+			return false;
 		}
 
 		if (Traverse.Create(spike).Field("activated").GetValue<bool>())
 		{
 			_log.LogWarning("[TrapEvent] SpikeStabbed at {Pos} already consumed locally — duplicate dropped.", position);
-			return;
+			return true;
 		}
 
 		Traverse.Create(spike).Field("activated").SetValue(true);
 		spike.GetComponent<Animator>().Play("SpikeStab", -1, 1f); // the animation's END frame — the spent state
 		spike.GetComponent<BuildingEntity>().description = Locale.GetBuilding("spikestabberdscused");
 		_log.LogInformation("[TrapEvent] replayed SpikeStabbed at {Pos} at elapsed {Elapsed:F1} s.", position, elapsedSeconds);
+		return true;
 	}
 
 	/// <summary>
@@ -273,7 +264,15 @@ internal sealed class TrapVisualReplay(ILogger<TrapVisualReplay> log)
 		}
 	}
 
-	private void ReplayMineExplosion(Vector2 position)
+	/// <summary>
+	/// The mine's explosion. Returns whether the mine entity exists: a duplicate
+	/// (already exploded) IS applied — the world already carries the fact — while a
+	/// missing entity is a REFUSED row on the restore path, where the regenerated
+	/// layer is expected to hold the same mine at the same position. The visual still
+	/// plays in that case (it is the presentation of the fact), but the fact itself
+	/// is not in the world.
+	/// </summary>
+	private bool ReplayMineExplosion(Vector2 position)
 	{
 		var pos = position + Vector2.up; // the mine's explosion point (MineScript.cs:35-38)
 		var param = new ExplosionParams { position = pos };
@@ -286,7 +285,7 @@ internal sealed class TrapVisualReplay(ILogger<TrapVisualReplay> log)
 		if (mine != null && Traverse.Create(mine).Field("exploded").GetValue<bool>()) // Unity object — ==
 		{
 			_log.LogWarning("[TrapEvent] mine at {Pos} already exploded locally — duplicate dropped.", position);
-			return;
+			return true;
 		}
 
 		// The pure-visual five-piece + the real-body segment: the replaying
@@ -297,50 +296,56 @@ internal sealed class TrapVisualReplay(ILogger<TrapVisualReplay> log)
 		// Consume the entity: exploded = true FIRST (the game's OnDestroy then
 		// skips its chain explosion), killed as a REMOTE death (no drop roll —
 		// the trigger side rolled and reported them).
-		if (mine != null)
+		if (mine == null) // Unity object — ==
 		{
-			Traverse.Create(mine).Field("exploded").SetValue(true);
-			mine.build.health = 0f;
-			mine.gameObject.AddComponent<RemoteEntityDeath>();
-		}
-		else
-		{
-			_log.LogInformation("[TrapEvent] mine at {Pos} already gone — visual only.", position);
+			_log.LogWarning("[TrapEvent] mine at {Pos} is gone — the explosion is replayed as presentation only, and the consumed-mine fact is NOT in the world.", position);
+			return false;
 		}
 
+		Traverse.Create(mine).Field("exploded").SetValue(true);
+		mine.build.health = 0f;
+		mine.gameObject.AddComponent<RemoteEntityDeath>();
+
 		_log.LogInformation("[TrapEvent] replayed mine explosion at {Pos}.", position);
+		return true;
 	}
 
 	/// <summary>The turret self-destructed (on the host or another guest): replay
 	/// the explosion with the turret's own parameters — pure-visual five-piece +
 	/// real-body effect + remote-death consumption. The health &lt; 0.5 check is
-	/// the consumption mark (already dead = a duplicate, dropped).</summary>
-	private void ReplayTurretSelfDestructed(Vector2 position)
+	/// the consumption mark (already dead = a duplicate, dropped). Returns whether
+	/// the turret exists — see <see cref="ReplayMineExplosion"/> for the counting
+	/// rule.</summary>
+	private bool ReplayTurretSelfDestructed(Vector2 position)
 	{
 		var turret = TrapEffectApplier.FindTrap<TurretScript>(position);
 		var build = turret != null ? Traverse.Create(turret).Field("build").GetValue<BuildingEntity>() : null; // Unity object — ==
 		if (build != null && build.health < 0.5f) // Unity object — ==
 		{
 			_log.LogWarning("[TrapEvent] turret at {Pos} already dead — duplicate dropped.", position);
-			return;
+			return true;
 		}
 
 		var param = TrapEffectApplier.TurretExplosionParams(position);
 		ReplayExplosionVisual(param);
 		ExplosionBodyEffect.ApplyToLocalBodies(param);
 
-		if (turret != null) // Unity object — ==
+		if (turret == null) // Unity object — ==
 		{
-			build!.health = 0f;
-			turret.gameObject.AddComponent<RemoteEntityDeath>();
-			var collider = turret.GetComponent<Collider2D>();
-			if (collider != null) // Unity object — ==
-			{
-				collider.enabled = false;
-			}
+			_log.LogWarning("[TrapEvent] turret at {Pos} is gone — the explosion is replayed as presentation only, and the self-destruct fact is NOT in the world.", position);
+			return false;
+		}
+
+		build!.health = 0f;
+		turret.gameObject.AddComponent<RemoteEntityDeath>();
+		var collider = turret.GetComponent<Collider2D>();
+		if (collider != null) // Unity object — ==
+		{
+			collider.enabled = false;
 		}
 
 		_log.LogInformation("[TrapEvent] replayed turret self-destruct at {Pos}.", position);
+		return true;
 	}
 
 	/// <summary>The unstable crystal exploded (on the host or another guest):
@@ -348,14 +353,16 @@ internal sealed class TrapVisualReplay(ILogger<TrapVisualReplay> log)
 	/// five-piece + real-body effect + remote-death consumption. The health
 	/// &lt; 0.5 check is the consumption mark (already dead = a duplicate, dropped);
 	/// the 5 s pre-explosion ticking is a recorded gap (the trigger side's own
-	/// experience — same as the mine's 0.8 s press visual).</summary>
-	private void ReplayCrystalUnstableExplosion(Vector2 position)
+	/// experience — same as the mine's 0.8 s press visual). Returns whether the
+	/// crystal exists — see <see cref="ReplayMineExplosion"/> for the counting
+	/// rule.</summary>
+	private bool ReplayCrystalUnstableExplosion(Vector2 position)
 	{
 		var crystal = TrapEffectApplier.FindTrap<CrystalBehaviour>(position);
 		if (crystal != null && crystal.build.health < 0.5f) // Unity object — ==
 		{
 			_log.LogWarning("[TrapEvent] unstable crystal at {Pos} already dead — duplicate dropped.", position);
-			return;
+			return true;
 		}
 
 		var size = crystal != null ? crystal.crystalSize : 1f; // Unity object — ==
@@ -363,17 +370,17 @@ internal sealed class TrapVisualReplay(ILogger<TrapVisualReplay> log)
 		ReplayExplosionVisual(param);
 		ExplosionBodyEffect.ApplyToLocalBodies(param);
 
-		if (crystal != null) // Unity object — ==
+		if (crystal == null) // Unity object — ==
 		{
-			crystal.build.health = 0f;
-			crystal.gameObject.AddComponent<RemoteEntityDeath>();
-		}
-		else
-		{
-			_log.LogInformation("[TrapEvent] unstable crystal at {Pos} already gone — visual only.", position);
+			_log.LogWarning("[TrapEvent] unstable crystal at {Pos} is gone — the explosion is replayed as presentation only, and the consumption fact is NOT in the world.", position);
+			return false;
 		}
 
+		crystal.build.health = 0f;
+		crystal.gameObject.AddComponent<RemoteEntityDeath>();
+
 		_log.LogInformation("[TrapEvent] replayed unstable-crystal explosion at {Pos}.", position);
+		return true;
 	}
 
 	/// <summary>

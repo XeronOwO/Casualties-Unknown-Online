@@ -32,14 +32,22 @@ internal sealed class EntityEventSync(IWorldControl world, ISessionControl sessi
 	internal void BindToSession()
 	{
 		_world.EntityEventReceived += OnRemoteEntityEvent;
-		_kernelProjection.TrapSnapshotProjected += OnTrapStateProjected;
+		_kernelProjection.TrapSnapshotProjected += OnTrapSnapshotProjected;
 	}
 
 	internal void Unbind()
 	{
 		_world.EntityEventReceived -= OnRemoteEntityEvent;
-		_kernelProjection.TrapSnapshotProjected -= OnTrapStateProjected;
+		_kernelProjection.TrapSnapshotProjected -= OnTrapSnapshotProjected;
 	}
+
+	/// <summary>
+	/// The projection event is void while the applier returns what the live world
+	/// took (the HOST's restored cut counts those rows). This wrapper keeps the
+	/// guest's subscription identity stable across Bind/Unbind.
+	/// </summary>
+	private void OnTrapSnapshotProjected(IReadOnlyList<EntityEventMsg> consumed) =>
+		OnTrapStateProjected(consumed);
 
 	/// <summary>
 	/// Patch-bridge entry: a trap fired locally (the patch verified the trigger
@@ -152,23 +160,36 @@ internal sealed class EntityEventSync(IWorldControl world, ISessionControl sessi
 		}
 	}
 
-	private void OnTrapStateProjected(IReadOnlyList<EntityEventMsg> consumed)
+	/// <summary>
+	/// The restored trap facts arrived (the guest's checkpoint projection, or the
+	/// host's restored cut at the world-entry seam): consume every one-shot
+	/// consumption against the local deterministic world — the entity is found by
+	/// its position key (the regenerated world has the identical entities), its
+	/// state machine runs (the consumption markers make the replay idempotent — a
+	/// duplicate entry is dropped by the per-entity guard). RemoteApply: the replays
+	/// must never re-report (the trap patches check the origin).
+	///
+	/// Returns how many rows reached the live world: a row whose entity the
+	/// regenerated layer does not have is a REFUSED row, which the restore's
+	/// live-write account names.
+	/// </summary>
+	internal LiveWorldWriteOutcome OnTrapStateProjected(IReadOnlyList<EntityEventMsg> consumed)
 	{
-		// Late joiner: consume every one-shot consumption against the local
-		// deterministic world — the entity is found by its position key (the
-		// regenerated world has the identical entities), its state machine runs
-		// (the consumption markers make the replay idempotent — a duplicate
-		// entry is dropped by the per-entity guard). RemoteApply: the replays
-		// must never re-report (the trap patches check the origin).
 		_log.LogInformation("[TrapCheckpoint] projected {Count} consumed.", consumed.Count);
+		var applied = 0;
 		using (CallContext.Enter(CallContext.Origin.RemoteApply))
 		{
 			foreach (var msg in consumed)
 			{
 				var pos = msg.Position.ToNetVector2();
-				_replay.Replay(msg.Kind, new Vector2(pos.X, pos.Y), msg.Extra, msg.ElapsedSeconds);
+				if (_replay.Replay(msg.Kind, new Vector2(pos.X, pos.Y), msg.Extra, msg.ElapsedSeconds))
+				{
+					applied++;
+				}
 			}
 		}
+
+		return new LiveWorldWriteOutcome(applied, consumed.Count - applied);
 	}
 
 	/// <summary>

@@ -55,4 +55,16 @@ internal interface IRestoredWorldFactSink
 
 	/// <summary>Write the restored radiation line. False when the live world has no line object to write it onto.</summary>
 	bool ApplyRadiationLine(RadiationLineStateMsg line);
+
+	/// <summary>
+	/// Write the restored world-entity facts: the trap consumptions replayed onto
+	/// the regenerated entities, the opened lockable entities applied through the
+	/// same path the live relay uses (health = 0 plus a REMOTE death, so a death
+	/// the saved world already rolled is not rolled a second time), and the
+	/// building-entity health rows written with that same remote-death marking.
+	/// Returns the rows the live world took and the rows it has no entity for —
+	/// the regenerated layer is expected to hold the identical entities at the
+	/// identical positions, so a missing one is divergence, not a detail.
+	/// </summary>
+	LiveWorldWriteOutcome ApplyWorldEntities(RestoredWorldEntityFacts facts);
 }

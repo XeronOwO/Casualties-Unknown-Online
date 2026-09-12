@@ -34,6 +34,7 @@ public sealed class WorldRestoreAudit
 	private readonly List<WorldRestoreLiveWriteReport> _contributions = [];
 	private string _worldId = string.Empty;
 	private bool _awaiting;
+	private bool _closed;
 	private int _expected = 1;
 
 	/// <summary>The last COMPLETE account of a restore's live-world halves, or null before the first one.</summary>
@@ -53,16 +54,18 @@ public sealed class WorldRestoreAudit
 
 	/// <summary>
 	/// The Continue click applied the cut: from here on the live-world halves are
-	/// expected. <paramref name="expectedContributions"/> is how many of them this
-	/// cut will have — one for a layer-end cut (the world facts only), two for a
-	/// mid-run cut (the world facts and the item reconcile). Resets
-	/// <see cref="Last"/>, because a completed restore's report must never be read
-	/// as the new one's outcome.
+	/// expected. <paramref name="expectedContributions"/> is how many writers the
+	/// restore actually armed (see <c>WorldRestoreApplier.LiveWorldHalves</c>):
+	/// one is the world-fact half, which reports even when the cut carried no fact.
+	/// Resets <see cref="Last"/>, because a completed restore's report must never be
+	/// read as the new one's outcome, and reopens the account a previous report or
+	/// abandonment closed.
 	/// </summary>
 	public void BeginRestore(string worldId, int expectedContributions = 1)
 	{
 		_worldId = worldId;
 		_awaiting = true;
+		_closed = false;
 		_expected = Math.Max(1, expectedContributions);
 		_contributions.Clear();
 		Last = null;
@@ -72,9 +75,24 @@ public sealed class WorldRestoreAudit
 	/// One live-world half finished writing. The restore's report is raised only
 	/// when the LAST expected contribution arrives, and it merges every half's
 	/// account: complete only if all of them were.
+	///
+	/// A restore reports ONCE, and an abandoned attempt reports nothing: a
+	/// contribution that arrives after either is ignored, because the next
+	/// generation's world-entry seam runs the same replay call and reports a no-op
+	/// when nothing is pending — a completed restore must not turn that into a
+	/// second report for the world it already reported, and a dead attempt must not
+	/// invent one from a handover it left behind. The count a caller passes is the
+	/// contract that makes this safe: it names the writers that WILL report, so a
+	/// straggler is a producer bug, and inventing a report for it would hide the bug
+	/// rather than surface it.
 	/// </summary>
 	public void LiveWriteFinished(bool complete, IReadOnlyList<string> refused, string summary)
 	{
+		if (_closed)
+		{
+			return;
+		}
+
 		_contributions.Add(new WorldRestoreLiveWriteReport(_worldId, complete, refused, summary));
 		if (_contributions.Count < _expected)
 		{
@@ -84,6 +102,7 @@ public sealed class WorldRestoreAudit
 		var report = Merge(_contributions);
 		Last = report;
 		_awaiting = false;
+		_closed = true;
 		Reported?.Invoke(report);
 	}
 
@@ -108,11 +127,26 @@ public sealed class WorldRestoreAudit
 	/// The restore never reached its world-entry seam (the run was superseded, or
 	/// the session ended): the pending expectation is dropped without inventing a
 	/// report — a restore that never happened is not a restore that succeeded, and
-	/// the previous restore's account must not be read as this one's outcome.
+	/// the previous restore's account must not be read as this one's outcome. The
+	/// account is CLOSED (<see cref="_closed"/>) rather than merely un-awaited: a
+	/// handover this attempt left armed somewhere must not turn into a report for a
+	/// restore that was already abandoned, and the next restore reopens the account
+	/// through <see cref="BeginRestore"/>.
+	///
+	/// With NO restore in flight this is a no-op: nothing is being abandoned, and
+	/// closing an idle account would disable the documented path where a write with
+	/// no <see cref="BeginRestore"/> still reports itself (a test host, or a future
+	/// path that arms a handover without the click).
 	/// </summary>
 	public void AbandonRestore()
 	{
+		if (!_awaiting)
+		{
+			return;
+		}
+
 		_awaiting = false;
+		_closed = true;
 		_expected = 1;
 		_worldId = string.Empty;
 		_contributions.Clear();

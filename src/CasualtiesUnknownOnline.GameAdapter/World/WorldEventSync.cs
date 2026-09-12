@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
@@ -52,13 +53,13 @@ internal sealed partial class WorldEventSync(
 		_world.BlockDamagedReceived += _blockBreaks.OnRemoteBlockDamaged;
 		_world.BlockDamageSnapshotReceived += _blockBreaks.OnBlockDamageSnapshot;
 		_world.BuildingEntityDamagedReceived += _buildingEntities.OnRemoteBuildingEntityDamaged;
-		_world.BuildingEntityOpenedReceived += _buildingEntities.OnRemoteBuildingEntityOpened;
+		_world.BuildingEntityOpenedReceived += OnRemoteBuildingEntityOpenedRelay;
 		_world.BlockStateReceived += OnRemoteBlockState;
 		_world.BlockPlacedReceived += OnRemoteBlockPlaced;
 		_world.EarthquakeStartReceived += OnEarthquakeStartReceived;
 		_world.KeypadCodeReceived += OnKeypadCodeReceived;
-		_kernelProjection.OpenedEntitiesProjected += _buildingEntities.OnOpenedEntitiesProjected;
-		_kernelProjection.BuildingHealthProjected += _buildingEntities.OnBuildingHealthProjected;
+		_kernelProjection.OpenedEntitiesProjected += OnOpenedEntitiesProjected;
+		_kernelProjection.BuildingHealthProjected += OnBuildingHealthProjected;
 		_session.RemoteSceneChanged += OnRemoteSceneChanged;
 	}
 
@@ -67,15 +68,30 @@ internal sealed partial class WorldEventSync(
 		_world.BlockDamagedReceived -= _blockBreaks.OnRemoteBlockDamaged;
 		_world.BlockDamageSnapshotReceived -= _blockBreaks.OnBlockDamageSnapshot;
 		_world.BuildingEntityDamagedReceived -= _buildingEntities.OnRemoteBuildingEntityDamaged;
-		_world.BuildingEntityOpenedReceived -= _buildingEntities.OnRemoteBuildingEntityOpened;
+		_world.BuildingEntityOpenedReceived -= OnRemoteBuildingEntityOpenedRelay;
 		_world.BlockStateReceived -= OnRemoteBlockState;
 		_world.BlockPlacedReceived -= OnRemoteBlockPlaced;
 		_world.EarthquakeStartReceived -= OnEarthquakeStartReceived;
 		_world.KeypadCodeReceived -= OnKeypadCodeReceived;
-		_kernelProjection.OpenedEntitiesProjected -= _buildingEntities.OnOpenedEntitiesProjected;
-		_kernelProjection.BuildingHealthProjected -= _buildingEntities.OnBuildingHealthProjected;
+		_kernelProjection.OpenedEntitiesProjected -= OnOpenedEntitiesProjected;
+		_kernelProjection.BuildingHealthProjected -= OnBuildingHealthProjected;
 		_session.RemoteSceneChanged -= OnRemoteSceneChanged;
 	}
+
+	// The building-entity appliers return what the live world took, because the
+	// HOST's restored cut counts them (the restore's live-write account). The live
+	// relay and the guest's projection only care that they ran, so these thin
+	// wrappers keep the event signatures void — and stay the single subscription
+	// identity Bind/Unbind pair up.
+
+	private void OnRemoteBuildingEntityOpenedRelay(NetVector2 pos) =>
+		_buildingEntities.OnRemoteBuildingEntityOpened(pos);
+
+	private void OnOpenedEntitiesProjected(IReadOnlyList<NetVector2Msg> positions) =>
+		_buildingEntities.OnOpenedEntitiesProjected(positions);
+
+	private void OnBuildingHealthProjected(IReadOnlyList<BuildingEntityHealthEntryMsg> entries) =>
+		_buildingEntities.OnBuildingHealthProjected(entries);
 
 	/// <summary>Building-entity patch entry: report a local damage write (delegated to the building-entity sync).</summary>
 	internal void OnBuildingEntityDamaged(BuildingEntity entity, float damage, bool playHitSound = true, bool playHitFlash = false) =>

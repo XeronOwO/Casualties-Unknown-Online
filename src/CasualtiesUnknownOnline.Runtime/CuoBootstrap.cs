@@ -259,6 +259,11 @@ public static class CuoBootstrap
 		services.AddSingleton<FluidKernelProjection>();
 		services.AddSingleton<FluidKernelReadProjection>();
 		services.AddSingleton<WorldEntityKernelProjection>();
+		// The world-entity half of a restore, as the save layer sees it: a guest's
+		// checkpoint lands immediately (its live world IS the restored layer), while
+		// the host/solo side holds the restored per-entity facts until the
+		// world-entry seam of the layer the restore regenerates.
+		services.AddSingleton<IRestoredWorldEntitySource>(p => p.GetRequiredService<WorldEntityKernelProjection>());
 		// The facade takes the native world-fact reader through a FACTORY so its
 		// optionality survives DI: the adapter registers the reader through
 		// extraRegistrations, and a Runtime-only composition (the test host) must
@@ -489,7 +494,12 @@ public static class CuoBootstrap
 			// The item domain's half of a restore: a mid-run cut's world items are
 			// reconciled against the regenerated layer, so the restore path has to
 			// arm/cancel that expectation.
-			items: p.GetRequiredService<IItemControl>()));
+			items: p.GetRequiredService<IItemControl>(),
+			// The world-entity domain's half: the kernel's restored per-entity facts
+			// are written at the same world-entry seam (and dropped for a layer-end
+			// cut). The save layer only arms/cancels the expectation; the projection
+			// owns the facts and the replay owns the write.
+			worldEntities: p.GetRequiredService<IRestoredWorldEntitySource>()));
 		services.AddSingleton<IWorldSaveControl>(p => p.GetRequiredService<WorldSaveService>());
 
 		extraRegistrations?.Invoke(services);

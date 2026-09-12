@@ -1,9 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CasualtiesUnknownOnline.GameState;
 using CasualtiesUnknownOnline.GameState.Domains.Entities;
+using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.GameState.Domains.World;
 using CasualtiesUnknownOnline.GameState.Domains.WorldEntities;
+using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Session.World;
@@ -44,8 +47,8 @@ public sealed class WorldSnapshotEncoder(ILogger<WorldSnapshotEncoder> log)
 		{
 			Json(SaveArchiveFormat.RunFileName, RunRows(checkpoint.Run, payload.RunFields)),
 			Json(SaveArchiveFormat.PlayersFileName, (checkpoint.Players?.Players ?? []).Select(KernelDomainWireMapper.ToWirePlayerState).ToList()),
-			Json(SaveArchiveFormat.ItemsFileName, checkpoint.Items.Select(KernelWireMapper.ToWireItem).ToList()),
-			Json(SaveArchiveFormat.WorldEntitiesFileName, WorldEntityRows(checkpoint.WorldEntities ?? WorldEntityState.Empty)),
+			Json(SaveArchiveFormat.ItemsFileName, ItemRows(checkpoint, payload.Kind)),
+			Json(SaveArchiveFormat.WorldEntitiesFileName, WorldEntityRows(checkpoint.WorldEntities ?? WorldEntityState.Empty, payload.Kind)),
 			Json(SaveArchiveFormat.EnemiesFileName, EnemyRows(checkpoint.Enemies ?? EnemyStateTable.Empty)),
 			Json(SaveArchiveFormat.FluidsFileName, (checkpoint.Fluids?.Regions ?? []).Select(KernelDomainWireMapper.ToWireFluidRegionState).ToList()),
 
@@ -110,13 +113,102 @@ public sealed class WorldSnapshotEncoder(ILogger<WorldSnapshotEncoder> log)
 		return rows;
 	}
 
-	private static List<SaveWorldEntityRow> WorldEntityRows(WorldEntityState state) =>
-	[
-		.. state.Consumptions.Select(SaveWorldEntityRow.OfConsumption),
-		.. state.BuildingHealth.Select(SaveWorldEntityRow.OfBuildingHealth),
-		.. state.OpenedEntities.Select(SaveWorldEntityRow.OfOpenedEntity),
-		.. state.TrapStates.Select(SaveWorldEntityRow.OfTrapState),
-	];
+	/// <summary>
+	/// <c>items.json</c>'s rows. A layer-end cut records no in-layer fact, and a
+	/// WORLD-ROOTED item IS one: it lies in the layer being replaced — and so does
+	/// everything inside a container that lies there. Those records are dropped with
+	/// the very rule the layer-boundary reset uses
+	/// (<see cref="ItemLocationChain.IsWorldRooted"/>), so the archive and the kernel
+	/// can never disagree about what "in the world" means, and a container's
+	/// contents never outlive their container in the file. Carried records (the
+	/// player carries them across the boundary) and terminal tombstones stay.
+	///
+	/// The kernel's own copy is normally already gone by the time this cut is
+	/// written (the generation boundary resets the layer tables before the advance
+	/// that takes the cut), so a row that still arrives is NAMED rather than silently
+	/// trimmed. The rule is order-independent on purpose: a solo boundary's table
+	/// reset is a sibling-domain concern, and a snapshot must never describe a layer
+	/// a restore would have to drop.
+	/// </summary>
+	private List<WireItem> ItemRows(GameCheckpoint checkpoint, WorldCutKind kind)
+	{
+		if (kind != WorldCutKind.LayerEnd)
+		{
+			return [.. checkpoint.Items.Select(KernelWireMapper.ToWireItem)];
+		}
+
+		// The kernel's item table is keyed by instance id, so a parent lookup map is
+		// enough — and a duplicate id (only a broken caller can produce one) must not
+		// abort a cut from inside a LOOKUP helper, so the last row wins instead of
+		// ToDictionary's throw.
+		var byInstanceId = new Dictionary<ulong, ItemState>();
+		foreach (var item in checkpoint.Items)
+		{
+			byInstanceId[item.Identity.InstanceId] = item;
+		}
+		var rows = new List<WireItem>(checkpoint.Items.Count);
+		var dropped = 0;
+		foreach (var item in checkpoint.Items)
+		{
+			if (ItemLocationChain.IsWorldRooted(item, id => byInstanceId.TryGetValue(id, out var parent) ? parent : null))
+			{
+				dropped++;
+				continue;
+			}
+
+			rows.Add(KernelWireMapper.ToWireItem(item));
+		}
+
+		if (dropped > 0)
+		{
+			_log.LogWarning(
+				"A layer-end cut carries {Count} world-rooted item record(s), and a layer-end cut writes none of them: the layer it names is regenerated from the run baseline, so those items belong to the layer being replaced and a restore could not give them back. They are not written (§3.4).",
+				dropped);
+		}
+
+		return rows;
+	}
+
+	/// <summary>
+	/// <c>world-entities.json</c>'s rows: the per-entity facts of ONE layer (consumed
+	/// traps, the durable trap-state machine, opened lockables, building health), all
+	/// position-keyed.
+	///
+	/// A layer-end cut records none of them: the layer it names is regenerated from
+	/// the run baseline, so every one of these facts belongs to the layer being
+	/// replaced — the same rule as the two world-fact files, and the same rule the
+	/// layer-boundary reset applies to the kernel's copy. That reset is what makes
+	/// the cut's own kernel tables empty in a host session; in any non-host state
+	/// (including SOLO, where the game reports no role at all) the world-entity
+	/// registries keep them, because their reset runs for a host only — which is
+	/// exactly why the archive must not carry them: a layer-end restore puts the rows
+	/// it reads back into the kernel, and a later guest join would then be handed
+	/// facts about a layer the world no longer is. A caller's rows are NAMED, never
+	/// silently trimmed.
+	/// </summary>
+	private List<SaveWorldEntityRow> WorldEntityRows(WorldEntityState state, WorldCutKind kind)
+	{
+		if (kind != WorldCutKind.LayerEnd)
+		{
+			return
+			[
+				.. state.Consumptions.Select(SaveWorldEntityRow.OfConsumption),
+				.. state.BuildingHealth.Select(SaveWorldEntityRow.OfBuildingHealth),
+				.. state.OpenedEntities.Select(SaveWorldEntityRow.OfOpenedEntity),
+				.. state.TrapStates.Select(SaveWorldEntityRow.OfTrapState),
+			];
+		}
+
+		var inLayerFactCount = state.Consumptions.Count + state.TrapStates.Count + state.OpenedEntities.Count + state.BuildingHealth.Count;
+		if (inLayerFactCount > 0)
+		{
+			_log.LogWarning(
+				"A layer-end cut carries {Count} world-entity fact(s) (consumed traps, trap states, opened entities, building health), and a layer-end cut writes none of them: the layer it names is regenerated from the run baseline, so those facts belong to the layer being replaced. They are not written (§3.4).",
+				inLayerFactCount);
+		}
+
+		return [];
+	}
 
 	private static List<SaveEnemyRow> EnemyRows(EnemyStateTable table) =>
 	[

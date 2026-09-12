@@ -85,6 +85,8 @@ public class WorldSaveContinueTests
 	[Fact]
 	public void ContainerTree_AfterRestore_HasExactlyOneParentPerChild()
 	{
+		// A container tree is an IN-LAYER fact, so it rides a mid-run cut: the layer the
+		// cut names is the one its bodies stand in, and the restored rows belong to it.
 		using var fixture = WorldSaveFixture.Create("continue-container-tree");
 		var parent = new CharacterItemMsg
 		{
@@ -99,7 +101,7 @@ public class WorldSaveContinueTests
 		};
 		Assert.True(fixture.Kernel.TrySpawn(HostId, new ItemIdentity(100, "bag"), ItemLocation.World(1, 2), parent, out _, out _));
 		fixture.Kernel.SyncContainerContents(HostId, 100, parent, new ActorId(HostId));
-		SaveLayerEnd(fixture, withCharacter: false, seedItem: false);
+		SaveMidRun(fixture);
 
 		using var restarted = fixture.Restart("continue-container-tree-restart");
 		Assert.True(restarted.Service.TryContinue(out var outcome), outcome.Summary);
@@ -143,10 +145,13 @@ public class WorldSaveContinueTests
 	[Fact]
 	public void ConsumedTrap_StaysConsumedAfterRestore()
 	{
+		// A consumed trap is an IN-LAYER fact (a position-keyed entity fact), so it rides
+		// a mid-run cut: the layer the cut names is the one the trap stands in. A
+		// layer-end cut carries none of them — the layer it names is regenerated.
 		using var fixture = WorldSaveFixture.Create("continue-terminal-trap");
 		var position = new EntityPosition(3, 4);
 		Assert.True(fixture.Kernel.TryRecordTrapConsumed(HostId, position, 2, 0, 1234, out _, out _));
-		SaveLayerEnd(fixture, withCharacter: false);
+		SaveMidRun(fixture);
 
 		using var restarted = fixture.Restart("continue-terminal-trap-restart");
 		Assert.True(restarted.Service.TryContinue(out var outcome), outcome.Summary);
@@ -276,7 +281,13 @@ public class WorldSaveContinueTests
 
 	// ---- helpers ----
 
-	/// <summary>Cuts one layer-end snapshot of the fixture's kernel (with an optional host/guest character) and advances to layer 1.</summary>
+	/// <summary>
+	/// Cuts one layer-end snapshot of the fixture's kernel (with an optional host/guest
+	/// character) and advances to layer 1. The seeded item is a CARRIED one: a layer-end
+	/// cut names the layer being ENTERED, so a world-rooted record would describe the
+	/// layer being replaced and the archive does not carry it (§3.4) — the record that
+	/// crosses the boundary is the carried one.
+	/// </summary>
 	private static void SaveLayerEnd(WorldSaveFixture fixture, bool withCharacter, bool guestCharacter = false, bool seedItem = true)
 	{
 		Assert.True(fixture.Service.TryBeginRun());
@@ -286,11 +297,12 @@ public class WorldSaveContinueTests
 			Assert.True(fixture.Kernel.TrySpawn(
 				HostId,
 				new ItemIdentity(100, "bag"),
-				ItemLocation.World(1, 2),
+				ItemLocation.Carried(new ActorId(HostId)),
 				new CharacterItemMsg { InstanceId = 100, ItemId = "bag", Condition = 1f },
 				out _,
 				out _));
 		}
+
 		if (withCharacter)
 		{
 			fixture.Characters.SaveHostCharacterData(WorldSaveCaptureTests.Character(100, "bag"));
@@ -305,6 +317,20 @@ public class WorldSaveContinueTests
 
 		// The cut is written by the kernel's commit event; the world pointer makes
 		// the continue deterministic.
+		Assert.True(fixture.Repository.Repository.SetLastOpenedWorld(fixture.WorldId));
+	}
+
+	/// <summary>
+	/// Cuts one MID-RUN snapshot of the fixture's kernel and points the continue pointer
+	/// at it. This is the kind that carries IN-LAYER facts: the layer it names is the one
+	/// the bodies stand in, so its world items are restored into that same layer.
+	/// </summary>
+	private static void SaveMidRun(WorldSaveFixture fixture)
+	{
+		Assert.True(fixture.Service.TryBeginRun());
+		Assert.True(fixture.Kernel.TryStartRun(HostId, WorldSaveCaptureTests.Run(layerIndex: 2), out _, out _));
+		Assert.True(fixture.Service.TryRequestCut(WorldCutReason.MenuReturn, out var refusal), refusal);
+		Assert.NotNull(fixture.Service.TryCaptureArmedCut(null, frame: 0));
 		Assert.True(fixture.Repository.Repository.SetLastOpenedWorld(fixture.WorldId));
 	}
 }

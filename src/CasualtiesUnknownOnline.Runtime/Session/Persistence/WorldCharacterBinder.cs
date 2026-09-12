@@ -69,20 +69,21 @@ internal sealed class WorldCharacterBinder(
 	/// slot the live 1 Hz snapshot writes, so nothing downstream can tell "the
 	/// archive's character, not yet on the body" from "the host's current state".
 	/// Null = no stored key is ours (a new character) — or the whole set was
-	/// refused, which is logged here.
+	/// refused, which is logged here. The result also carries WHICH keys were bound,
+	/// because only those describe what this restore actually did.
 	/// </summary>
-	internal CharacterDataMsg? Apply(IReadOnlyList<SavedCharacter> stored)
+	internal WorldCharacterBindResult Apply(IReadOnlyList<SavedCharacter> stored)
 	{
 		if (stored.Count == 0)
 		{
-			return null;
+			return new WorldCharacterBindResult(null, []);
 		}
 
 		var keys = stored.Select(character => character.PlayerKey).ToList();
 		if (!PlayerKeyResolution.TrySpaceOfSet(keys, out var space))
 		{
 			log.LogError("The snapshot's character files mix transport key spaces ({Keys}); no character was applied.", string.Join(", ", keys));
-			return null;
+			return new WorldCharacterBindResult(null, []);
 		}
 
 		var live = LiveKeySpace();
@@ -97,7 +98,7 @@ internal sealed class WorldCharacterBinder(
 			// same name. Every key stays unclaimed — that player joins as a NEW
 			// character (decision 162), and the files stay for a later claim.
 			log.LogInformation("The snapshot's key space {Stored} differs from the live transport {Live}; no stored character is claimed in this session.", space, live);
-			return null;
+			return new WorldCharacterBindResult(null, []);
 		}
 
 		var peers = PresentPeers();
@@ -105,6 +106,7 @@ internal sealed class WorldCharacterBinder(
 		var applied = 0;
 		var unclaimed = 0;
 		CharacterDataMsg? local = null;
+		var boundKeys = new List<string>(stored.Count);
 		foreach (var character in stored)
 		{
 			if (!PlayerKeyResolution.TryResolve(character.PlayerKey, space, peers, out var peerId))
@@ -124,11 +126,12 @@ internal sealed class WorldCharacterBinder(
 				characters.SaveCharacterData(peerId, character.Character);
 			}
 
+			boundKeys.Add(character.PlayerKey);
 			applied++;
 		}
 
 		log.LogInformation("Restored characters: {Applied} bound to present peers, {Unclaimed} left unclaimed (key space {Space}).", applied, unclaimed, space);
-		return local;
+		return new WorldCharacterBindResult(local, boundKeys);
 	}
 
 	/// <summary>

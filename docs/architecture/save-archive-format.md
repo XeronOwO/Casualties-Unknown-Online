@@ -173,6 +173,20 @@ its bodies stood in, so its position is the one to restore. Restoring the LOCAL 
 the adapter's job and not the Runtime's — it is handed back with the continue outcome and queued on
 the same local restore path a next-level respawn uses (decision 170).
 
+The character file also carries the **native character fields** the game's own save kept for one
+character (`CharacterDataMsg.NativeFields`, decision 171): the body's happiness history
+(`Body.lastHappiness`), the per-run calorie counter (`PlayerCamera.caloriesConsumed`) and the wound
+window's `cInfo` (the height/age/id/version `WoundView.SetCharDetails` writes). They are read off the
+live scene at the same instant as the rest of the snapshot — the host's own at the cut, a guest's at
+its 1 Hz report — and the read is all-or-nothing: it spans three objects, so a read that met a body
+but no camera describes no coherent instant and captures nothing rather than zeros. A snapshot the
+restore cannot fully put back is NAMED, never silently defaulted: no sub-message at all, a happiness
+history that is not the game's own ten-value window (the game averages all ten slots and reads slot 9
+for its last-chance evaluation, so a prefix write is a broken history), or a details array that is not
+the four `SetCharDetails` takes. That floor exists because the game skips its own fresh
+character-details roll when a run is continued (`PlayerCamera.cs:726-729`) — the alternative is a
+continued character that quietly shows 0 cm / 0 y / #0 and a zeroed calorie counter.
+
 `mod-state/` is reserved and empty until its own stage.
 
 JSON is written with `System.Text.Json` (Runtime-owned package), UTF-8 without BOM, indented,
@@ -347,6 +361,17 @@ are then written onto that fresh copy. The seams are fixed and different on purp
   `WorldGeneration.WorldPlacePlayer` hands out the starting supplies only on the run's first layer
   (`WorldGeneration.cs:1891-1919`), and the live 1 Hz character snapshot writes the character-table
   slot within a second, so the archive's copy would be gone before anything read it.
+- **The character's native fields** (`lastHappiness`, `caloriesConsumed`, `WoundView.cInfo`) land on
+  the same local restore path, on its SECOND pass — after the body exists, after the wipe and after
+  the items, which is the point the native load wrote them (`SaveSystem.cs:438-441`, decision 171).
+  A value the native contract cannot hold is refused BY NAME rather than truncated or skipped: a
+  happiness history that is not the game's whole ten-value window (the body's array is the game's own
+  and its updater shifts that array in place), or a details array that is not the native four. A
+  refused field keeps the live value, and every refusal reaches the restore report: a character whose
+  snapshot carries none of the three is named as damage, and so is one whose fields are malformed —
+  the report is the account, not the log alone. Only characters actually BOUND to a present peer are
+  described: a stored file nobody claims restores nothing, and a damage line about it would describe
+  a degradation the player never gets.
 
 Verification boundary: the codec, the routing per row kind, the tables' caps and the replay
 lifecycle are machine-verified in the Runtime suites; the parts that read the live game tables

@@ -1,12 +1,15 @@
 # Native run fields are not covered by the world archive
 
 - Status: Todo — **S3.4a landed 2026-09-11** (the run-level fields: both rarity multipliers, the run
-  clock base and the recipe unlock table). S3.4b (the character-level fields: `lastHappiness`,
-  `caloriesConsumed`, `WoundView.cInfo`) is NOT implemented yet and stays open here.
+  clock base and the recipe unlock table), and **S3.4b landed 2026-09-11** as its own ticket
+  (`save-native-character-field-parity.md`): the character-level fields `lastHappiness`,
+  `caloriesConsumed` and `WoundView.cInfo` now ride `CharacterDataMsg.NativeFields` and are written
+  back on the local restore path, with the missing-field case named in the restore report. Nothing in
+  this ticket is open any more; the per-field decided homes below are kept as the frozen record.
 - Priority: Medium-High
 - Category: Persistence / save system
 - Source: found by the S2 independent adversarial review (2026-09-10)
-- Related: `docs/architecture/save-archive-format.md`, `review/save-layer-end-save-and-restore.md` (S2), `docs/decisions/active.md` 166, 169
+- Related: `docs/architecture/save-archive-format.md`, `review/save-layer-end-save-and-restore.md` (S2), `docs/decisions/active.md` 166, 169, 171
 
 ## Landed (S3.4a, 2026-09-11)
 

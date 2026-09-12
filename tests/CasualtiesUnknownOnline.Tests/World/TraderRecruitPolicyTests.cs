@@ -103,6 +103,30 @@ public class TraderRecruitPolicyTests
 	}
 
 	[Fact]
+	public void PrepareRevive_CarriesTheNativeCharacterFields()
+	{
+		// A death → revive cycle is not a new run: the happiness history, the calorie
+		// counter and the wound window's details have to survive it. This type
+		// builds a fresh message field by field, so a field it forgets is dropped
+		// silently — and a snapshot without them restores as the game's defaults
+		// (S3.4b names that gap).
+		var source = DeadSnapshot();
+		source.NativeFields = new CharacterNativeFieldsMsg
+		{
+			LastHappiness = [0.25f, 0.5f],
+			CaloriesConsumed = 4100,
+			CharacterInfo = [171, 24, 8123, 3],
+		};
+
+		var revived = TraderRecruitPolicy.PrepareRevive(source);
+
+		var fields = Assert.IsType<CharacterNativeFieldsMsg>(revived.NativeFields);
+		Assert.Equal([0.25f, 0.5f], fields.LastHappiness);
+		Assert.Equal(4100, fields.CaloriesConsumed);
+		Assert.Equal([171, 24, 8123, 3], fields.CharacterInfo);
+	}
+
+	[Fact]
 	public void FindEmptySlots_ReturnsUnoccupiedBackpackSlots()
 	{
 		var data = DeadSnapshot();

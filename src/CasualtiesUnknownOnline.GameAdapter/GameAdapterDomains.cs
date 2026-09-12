@@ -203,9 +203,17 @@ internal sealed class GameAdapterDomains
 		WorldGenRandomIsolation.Log = msg => Log.LogInformation(msg); // generation-stream segment fingerprints (peer log comparison)
 		LayerModifierApplyPatch.Log = msg => Log.LogInformation(msg); // layer-modifier decision trace (diagnostic)
 		FactTable = new CloneFactTable(loggerFactory.CreateLogger<CloneFactTable>());
+		// The restore's write half and the wearable write are constructed FIRST and
+		// injected: the coordinator owns when a restore runs, they own what it does.
+		var wearables = new WearableRestorer(loggerFactory.CreateLogger<WearableRestorer>());
+		var nativeCharacterSystem = CharacterNativeFields.LiveSystem.Instance; // the two game statics (PlayerCamera.main, WoundView.view), behind the port the capture/apply logic is tested through
+		var restoreApplier = new CharacterRestoreApplier(mapper, wearables, nativeCharacterSystem, loggerFactory.CreateLogger<CharacterRestoreApplier>());
 		CharacterDataSync = new CharacterDataSync(session, characterData, mapper,
 			new CloneInventoryRenderer(loggerFactory.CreateLogger<CloneInventoryRenderer>()),
 			FactTable,
+			restoreApplier,
+			wearables,
+			nativeCharacterSystem,
 			loggerFactory.CreateLogger<CharacterDataSync>());
 		Renderer = new RemotePlayerRenderer(session, entities, CharacterDataSync, new CloneLimbRenderer(loggerFactory.CreateLogger<CloneLimbRenderer>()), playerInteraction, loggerFactory.CreateLogger<RemotePlayerRenderer>());
 		RemoteBackpack = new RemoteBackpackCoordinator(session, Renderer, InteractionVisibility, loggerFactory.CreateLogger<RemoteBackpackCoordinator>());

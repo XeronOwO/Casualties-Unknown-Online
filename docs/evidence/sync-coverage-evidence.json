@@ -1057,13 +1057,13 @@
     {
       "cluster": "items",
       "row": "I7",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Character/CharacterDataCapture.cs:65",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Character/CharacterDataCapture.cs:89",
       "quote": "msg.Items.Add(ItemStateCodec.CaptureItem(item, slot));"
     },
     {
       "cluster": "items",
       "row": "I7",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Character/CharacterDataSync.cs:222",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Character/CharacterDataSync.cs:225",
       "quote": "_nextCharacterReportMs = nowMs + (long)(CharacterReportInterval * 1000f);"
     },
     {
@@ -1495,14 +1495,14 @@
     {
       "cluster": "players",
       "row": "P3",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Character/CharacterDataSync.cs:222",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Character/CharacterDataSync.cs:225",
       "quote": "_nextCharacterReportMs = nowMs + (long)(CharacterReportInterval * 1000f);"
     },
     {
       "cluster": "players",
       "row": "P3",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Character/CharacterDataSync.cs:223",
-      "quote": "ReportCharacterData(CharacterDataCapture.Capture(_mapper, localBody), throttled: true);"
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Character/CharacterDataSync.cs:225",
+      "quote": "_nextCharacterReportMs = nowMs + (long)(CharacterReportInterval * 1000f);"
     },
     {
       "cluster": "players",
@@ -1519,8 +1519,8 @@
     {
       "cluster": "players",
       "row": "P3",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Character/CharacterDataSync.cs:232",
-      "quote": "ReportCharacterData(CharacterDataCapture.Capture(_mapper, localBody), throttled: false);"
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Character/CharacterDataSync.cs:235",
+      "quote": "ReportCharacterData(CharacterDataCapture.Capture(_mapper, localBody, out var nativeFailure, _nativeSystem), throttled: false, nativeFailure);"
     },
     {
       "cluster": "players",
@@ -1579,7 +1579,7 @@
     {
       "cluster": "players",
       "row": "P4",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Character/CharacterDataSync.cs:87",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Character/CharacterDataSync.cs:90",
       "quote": "_factTable.ApplyLimbStateEvent(msg.OwnerSteamId, msg);"
     },
     {
@@ -3835,8 +3835,8 @@
     {
       "cluster": "inline",
       "row": "P3",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Character/CharacterDataSync.cs:291",
-      "quote": "_characterData.ReportCharacterData(CharacterDataCapture.Capture(_mapper, prevBody));"
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Character/CharacterDataSync.cs:323",
+      "quote": "_characterData.ReportCharacterData(CharacterDataCapture.Capture(_mapper, prevBody, out _, _nativeSystem));"
     },
     {
       "cluster": "inline",
@@ -3847,13 +3847,13 @@
     {
       "cluster": "inline",
       "row": "P3",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Character/CharacterDataSync.cs:47",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Character/CharacterDataSync.cs:50",
       "quote": "private const float CharacterReportInterval = 1f; // guest → host character snapshot (1 Hz)"
     },
     {
       "cluster": "inline",
       "row": "P3",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Character/CharacterDataSync.cs:160",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/Character/CharacterDataSync.cs:163",
       "quote": "_factTable.ApplySnapshot(sender, data);"
     },
     {

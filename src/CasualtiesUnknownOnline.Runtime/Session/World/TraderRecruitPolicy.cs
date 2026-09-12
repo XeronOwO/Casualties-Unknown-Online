@@ -211,6 +211,13 @@ internal static class TraderRecruitPolicy
 			OwnerSteamId = source.OwnerSteamId,
 			Position = source.Position,
 			SlotCount = source.SlotCount,
+			// The native character fields ride along like every other field this
+			// clone copies: a death → revive cycle is not a new run, so the
+			// happiness history, the calorie counter and the wound window's details
+			// have to survive it. Dropping them here would make the NEXT snapshot
+			// carry none — and a restore of it would silently continue with the
+			// game's defaults (S3.4b).
+			NativeFields = source.NativeFields,
 		};
 	}
 

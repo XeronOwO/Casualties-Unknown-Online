@@ -67,6 +67,12 @@ internal sealed class PlayerCharacterAccess(ISessionControl session, ICharacterD
 		OwnerSteamId = source.OwnerSteamId,
 		Position = source.Position,
 		SlotCount = source.SlotCount,
+		// The native character fields ride along like every other field this clone
+		// copies. Losing them here is not cosmetic: the interaction services SAVE the
+		// clone over the stored character snapshot (a heal, a transfer, a remote
+		// application all end in one), so a dropped field would silently degrade the
+		// next cut, the next reconnect restore and the next continue (S3.4b).
+		NativeFields = source.NativeFields,
 	};
 
 	public static CharacterItemMsg CloneItem(CharacterItemMsg item) => new()

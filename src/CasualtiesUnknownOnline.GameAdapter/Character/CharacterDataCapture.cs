@@ -12,9 +12,16 @@ namespace CasualtiesUnknownOnline.GameAdapter.Character;
 /// the architecture line gate; the capture uses only the mapper and the
 /// codec/component helpers, with no session or restore state.
 /// </summary>
+/// <param name="nativeSystem">
+/// The live-scene port the native character fields are read through
+/// (<see cref="CharacterNativeFields"/>). Null — the default for a caller that has
+/// no game scene — captures a snapshot without them, which is exactly the state
+/// the restore path NAMES rather than defaults.
+/// </param>
 internal static class CharacterDataCapture
 {
-	internal static CharacterDataMsg Capture(IMapper mapper, Body body)
+	/// <param name="nativeFailure">Why the native character fields are not on the snapshot, or null when they are — the caller logs it, because "no native fields" alone cannot tell a missing camera from an old sender.</param>
+	internal static CharacterDataMsg Capture(IMapper mapper, Body body, out string? nativeFailure, ICharacterNativeSystem? nativeSystem = null)
 	{
 		var health = mapper.Map<CharacterHealthMsg>(body);
 		RemoteCharacterDisplayProjection.Capture(body, health);
@@ -33,6 +40,23 @@ internal static class CharacterDataCapture
 			// pick a concrete empty slot before a transfer.
 			SlotCount = body.slots.Length,
 		};
+
+		// The native character fields the game's own save carried for this character
+		// (S3.4b): read at the same instant as everything else, and read from the
+		// LIVE scene rather than this body alone — they live on three objects, and a
+		// read that met no camera describes no coherent instant (see
+		// CharacterNativeFields.TryCapture). A null result is the NAMED gap the
+		// restore reports; capturing nothing is never silently "zero", and the reason
+		// is handed back so the caller's log names it.
+		nativeFailure = null;
+		if (nativeSystem is null)
+		{
+			nativeFailure = "no live-scene port was wired for this capture";
+		}
+		else
+		{
+			msg.NativeFields = CharacterNativeFields.TryCapture(nativeSystem, body, out nativeFailure);
+		}
 
 		// Limb has no Index field — Mapster maps the rest, the loop assigns it.
 		for (var i = 0; i < body.limbs.Length; i++)

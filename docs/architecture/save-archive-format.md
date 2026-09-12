@@ -338,7 +338,12 @@ are then written onto that fresh copy. The seams are fixed and different on purp
   once the scene has given it a body. Every stored key a present peer claims is bound into the
   character table its reconnect path sends from, but the key the LOCAL player claims comes back with
   the continue outcome and is queued on the local restore path — the same two-frame wipe a respawn
-  uses (decision 170). Without that, a continued host starts the layer with no character at all:
+  uses (decision 170). That queue records WHICH RUN queued the snapshot, because the cancel rule has
+  to tell the two apart: a restore this client's own run queued is dropped when this client instead
+  follows a start it did not restore (and a run this client starts on its own drops whatever waited),
+  while a restore a PEER handed over — the host sends a reconnecting player its character before the
+  `WorldJoin` that starts its follow — belongs to exactly the follow being started and is never
+  touched. Without the local apply, a continued host starts the layer with no character at all:
   `WorldGeneration.WorldPlacePlayer` hands out the starting supplies only on the run's first layer
   (`WorldGeneration.cs:1891-1919`), and the live 1 Hz character snapshot writes the character-table
   slot within a second, so the archive's copy would be gone before anything read it.

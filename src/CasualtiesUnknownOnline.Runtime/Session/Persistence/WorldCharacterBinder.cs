@@ -63,19 +63,26 @@ internal sealed class WorldCharacterBinder(
 	/// host's own through the host slot, everyone else through the saved-character
 	/// table the existing restore path reads). A key nobody claims is not an error
 	/// — decision 162: that player joins as a NEW player.
+	///
+	/// Returns the character bound to the LOCAL peer, which is the one the caller
+	/// has to apply to its own body: the store slot it was bound into is the same
+	/// slot the live 1 Hz snapshot writes, so nothing downstream can tell "the
+	/// archive's character, not yet on the body" from "the host's current state".
+	/// Null = no stored key is ours (a new character) — or the whole set was
+	/// refused, which is logged here.
 	/// </summary>
-	internal void Apply(IReadOnlyList<SavedCharacter> stored)
+	internal CharacterDataMsg? Apply(IReadOnlyList<SavedCharacter> stored)
 	{
 		if (stored.Count == 0)
 		{
-			return;
+			return null;
 		}
 
 		var keys = stored.Select(character => character.PlayerKey).ToList();
 		if (!PlayerKeyResolution.TrySpaceOfSet(keys, out var space))
 		{
 			log.LogError("The snapshot's character files mix transport key spaces ({Keys}); no character was applied.", string.Join(", ", keys));
-			return;
+			return null;
 		}
 
 		var live = LiveKeySpace();
@@ -90,13 +97,14 @@ internal sealed class WorldCharacterBinder(
 			// same name. Every key stays unclaimed — that player joins as a NEW
 			// character (decision 162), and the files stay for a later claim.
 			log.LogInformation("The snapshot's key space {Stored} differs from the live transport {Live}; no stored character is claimed in this session.", space, live);
-			return;
+			return null;
 		}
 
 		var peers = PresentPeers();
 		var localPeerId = LocalPeerId;
 		var applied = 0;
 		var unclaimed = 0;
+		CharacterDataMsg? local = null;
 		foreach (var character in stored)
 		{
 			if (!PlayerKeyResolution.TryResolve(character.PlayerKey, space, peers, out var peerId))
@@ -109,6 +117,7 @@ internal sealed class WorldCharacterBinder(
 			if (peerId == localPeerId)
 			{
 				characters.SaveHostCharacterData(character.Character);
+				local = character.Character;
 			}
 			else
 			{
@@ -119,6 +128,7 @@ internal sealed class WorldCharacterBinder(
 		}
 
 		log.LogInformation("Restored characters: {Applied} bound to present peers, {Unclaimed} left unclaimed (key space {Space}).", applied, unclaimed, space);
+		return local;
 	}
 
 	/// <summary>

@@ -57,8 +57,11 @@ internal sealed class RunSaveCoordinator(
 		}
 
 		// A new run owns the next generation: a restore armed for a refused/aborted
-		// Continue attempt must never replay into it.
+		// Continue attempt must never replay into it — the world baseline, the native
+		// values (the adapter cancels its own handover with the same call) and the
+		// local body's queued character alike.
 		_parameters.CancelRestorePending();
+		_characterData.CancelLocalRestore();
 		_saves.TryBeginRun();
 	}
 
@@ -79,6 +82,9 @@ internal sealed class RunSaveCoordinator(
 
 		if (!_saves.TryContinue(out var outcome))
 		{
+			// A previous attempt's local restore must not survive a refused one: this
+			// run will never reach a body.
+			_characterData.CancelLocalRestore();
 			_log.LogError("CUO continue refused ({WorldId}): {Summary}", outcome.WorldId, outcome.Summary);
 			return false;
 		}
@@ -92,11 +98,21 @@ internal sealed class RunSaveCoordinator(
 			// The restore will never reach its world-entry seam: the audit must not stay
 			// armed waiting for a live-world write that cannot happen.
 			_restoreAudit?.AbandonRestore();
+			_characterData.CancelLocalRestore();
 			_log.LogError("CUO continue refused ({WorldId}): the restore published no run baseline.", outcome.WorldId);
 			return false;
 		}
 
 		_world.SetHostRunPending(true);
+
+		// The host's own character comes back the same way a respawn's does: queued on
+		// the local two-frame restore path, applied when the freshly generated world
+		// puts a body under this client. Nothing else can do it — the character table
+		// slot it was bound into is the same one the live 1 Hz snapshot writes, so the
+		// fresh body would overwrite it before anything read it, and the world hands
+		// out no starting supplies when a run is being continued (WorldPlacePlayer).
+		QueueLocalCharacter(outcome.LocalCharacter);
+
 		_log.LogInformation("Continuing CUO world {WorldId}: {Summary}", outcome.WorldId, outcome.Summary);
 
 		// The live-world half of this restore reports at the world-entry seam, after
@@ -109,6 +125,22 @@ internal sealed class RunSaveCoordinator(
 		}
 
 		return true;
+	}
+
+	/// <summary>
+	/// Hand the archive's character for this player to the local restore path. A null
+	/// one is decision 162's "that player joins as a NEW character" (the archive had no
+	/// file this session's key space claims) — named, not silently skipped.
+	/// </summary>
+	private void QueueLocalCharacter(CharacterDataMsg? localCharacter)
+	{
+		if (localCharacter is null)
+		{
+			_log.LogInformation("CUO continue: the archive carries no character this player claims; the run starts it as a new character (decision 162).");
+			return;
+		}
+
+		_characterData.QueueLocalRestore(localCharacter);
 	}
 
 	/// <summary>The restore's second half: the world-entry seam wrote the restored facts into the live world.</summary>

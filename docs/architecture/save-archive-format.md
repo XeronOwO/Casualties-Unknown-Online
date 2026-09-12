@@ -164,7 +164,14 @@ move.
 native `SaveInfo` shape plus CUO extensions, so the existing `CharacterDataFileStore` restore path
 stays usable. A save writes one file per member PRESENT at the cut; a stored key nobody claims at
 restore time means that player is absent from the session and joins as a new character with fresh
-starting supplies (decision 162) — the file stays in the archive for a later claim.
+starting supplies (decision 162) — the file stays in the archive for a later claim. The character's
+`position` is a claim about the layer the cut NAMES, and the cut kind decides whether that claim is
+real: a `layer-end` cut names the layer being entered, which the restore REGENERATES, so a position
+captured while the body still stood in the layer being left is DROPPED at that restore (the native
+save carries no position at all and the game places the body itself); a mid-run cut names the layer
+its bodies stood in, so its position is the one to restore. Restoring the LOCAL player's own file is
+the adapter's job and not the Runtime's — it is handed back with the continue outcome and queued on
+the same local restore path a next-level respawn uses (decision 170).
 
 `mod-state/` is reserved and empty until its own stage.
 
@@ -327,6 +334,14 @@ are then written onto that fresh copy. The seams are fixed and different on purp
   recipe and would refuse those rows. A snapshot that carries no native run-field row is restored
   with the live clock and recipe state, and the restore report names the gap; a recipe row whose
   index the world's finished table does not have is refused by name in the same report.
+- **The local player's own character** is the one restored fact only the adapter can apply, and only
+  once the scene has given it a body. Every stored key a present peer claims is bound into the
+  character table its reconnect path sends from, but the key the LOCAL player claims comes back with
+  the continue outcome and is queued on the local restore path — the same two-frame wipe a respawn
+  uses (decision 170). Without that, a continued host starts the layer with no character at all:
+  `WorldGeneration.WorldPlacePlayer` hands out the starting supplies only on the run's first layer
+  (`WorldGeneration.cs:1891-1919`), and the live 1 Hz character snapshot writes the character-table
+  slot within a second, so the archive's copy would be gone before anything read it.
 
 Verification boundary: the codec, the routing per row kind, the tables' caps and the replay
 lifecycle are machine-verified in the Runtime suites; the parts that read the live game tables

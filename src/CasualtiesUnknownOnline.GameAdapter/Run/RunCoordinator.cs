@@ -273,6 +273,12 @@ internal sealed class RunCoordinator(
 
 		_phase = RunPhase.Starting;
 		_guestMenu.AuthorizeNextStart(); // the gate refuses unauthorised (manual) guest starts
+
+		// This client is starting a run it did NOT restore (the host's, not a CUO continue of
+		// its own): a local character restore queued by a refused or abandoned continue on this
+		// machine must never land on a body that belongs to someone else's run. Same rule as
+		// RunSaveCoordinator.BeginRun applies to a run started here.
+		_characterData.CancelLocalRestore();
 		_log.LogInformation("World join received — starting {Run} to follow.", _joinIsTutorial ? "the tutorial" : "a run");
 		if (_joinIsTutorial)
 		{

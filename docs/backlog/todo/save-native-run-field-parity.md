@@ -61,6 +61,15 @@ them yet (the native-run-field row names the run-level values only). Closing tha
 implementing the fields or naming them explicitly in the restore report — a silent default is what §6
 forbids.
 
+The apply seam these three fields need now EXISTS, on both roles: a continue hands the archive's
+character for the local player back with `WorldContinueOutcome.LocalCharacter` and the adapter queues
+it on `CharacterDataSync`'s local restore path (decision 170, landed 2026-09-11 as the S2 in-game gap
+fix — before S3.4b started, because without it the host half of S3.4b had no landfall at all). S3.4b
+therefore hooks that same path: the capture adds the three values to `CharacterDataMsg`, and the apply
+writes them onto the live `Body`/`PlayerCamera`/`WoundView` while the restored snapshot is being put
+on the body — no second apply path, and the "the snapshot carries none of them" case is named in the
+same account the restore already reports.
+
 ## Problem
 
 The frozen v1 scope (decision 166) is the kernel checkpoint + run baseline + character data + world

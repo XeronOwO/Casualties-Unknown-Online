@@ -58,17 +58,15 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 
 	private readonly WorldRepository? _repository;
 	private readonly ISessionControl _session;
-	private readonly ICharacterDataControl _characters;
 	private readonly ItemKernelAuthority _kernel;
 	private readonly ITransportIdentity _transport;
 	private readonly IWorldFactSource _worldFacts;
 	private readonly INativeWorldFacts? _nativeWorldFacts;
 	private readonly WorldCutWriter? _writer;
 	private readonly WorldCharacterBinder _binder;
-	private readonly WorldFactRestore _factRestore;
+	private readonly WorldRestoreApplier _restore;
 	private readonly IWorldCutTransientProbe? _transients;
 	private readonly WorldRestoreAudit? _audit;
-	private readonly ILoggerFactory _loggerFactory;
 	private readonly ILogger<WorldSaveService> _log;
 
 	private string _worldId = string.Empty;
@@ -96,7 +94,6 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 	{
 		_repository = repository;
 		_session = session;
-		_characters = characters;
 		_kernel = kernel;
 		_transport = transport;
 		_worldFacts = worldFacts;
@@ -104,7 +101,16 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 		_transients = transients;
 		_audit = audit;
 		_binder = new WorldCharacterBinder(session, characters, transport, loggerFactory.CreateLogger<WorldCharacterBinder>());
-		_factRestore = new WorldFactRestore(worldFacts, nativeWorldFacts, loggerFactory.CreateLogger<WorldFactRestore>());
+		_restore = new WorldRestoreApplier(
+			repository,
+			kernel,
+			characters,
+			worldFacts,
+			nativeWorldFacts,
+			_binder,
+			audit,
+			loggerFactory,
+			loggerFactory.CreateLogger<WorldRestoreApplier>());
 		_writer = repository is null
 			? null
 			: new WorldCutWriter(
@@ -116,7 +122,6 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 				loggerFactory.CreateLogger<WorldCutWriter>(),
 				gameBuild ?? string.Empty,
 				utcNow ?? (() => DateTime.UtcNow));
-		_loggerFactory = loggerFactory;
 		_log = log;
 
 		_kernel.BatchCommitted += OnBatchCommitted;
@@ -485,101 +490,24 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 
 	public bool TryContinue(out WorldContinueOutcome outcome)
 	{
-		if (_repository is null)
+		// The restore half is its own object: it opens the archive and reports what it
+		// produced. This class owns the CUT half, so the identity a restore produced is
+		// adopted HERE and nowhere else — every later cut of this session writes back
+		// into that world.
+		var restore = _restore.TryApply(ContinueWorldId);
+		if (restore.Started)
 		{
-			outcome = WorldContinueOutcome.Refused(string.Empty, "this composition root has no world repository", EmptySalvage);
-			return false;
+			_worldId = restore.WorldId;
+			_displayName = restore.DisplayName;
+			_pendingCharacters = restore.Characters;
 		}
 
-		var worldId = ContinueWorldId;
-		if (worldId is null)
-		{
-			outcome = WorldContinueOutcome.Refused(string.Empty, "no CUO world exists to continue", EmptySalvage);
-			return false;
-		}
-
-		// The restore is about to APPLY the payload, so it verifies the manifest's
-		// digests — a listing would not (WorldLoadOptions).
-		var options = new WorldLoadOptions { VerifyChecksums = true, RepairMode = true };
-		var load = _repository.LoadSnapshot(worldId, options);
-		if (load.Content is null)
-		{
-			_log.LogError("Continue refused for world {WorldId}: {Summary}", worldId, load.Summary);
-			outcome = WorldContinueOutcome.Refused(worldId, load.Summary, new SalvageResult(load.Report));
-			return false;
-		}
-
-		var decoder = new WorldSnapshotDecoder(load.Content.Manifest, _loggerFactory.CreateLogger<WorldSnapshotDecoder>());
-		var (_, salvage) = _repository.ReadSalvage(load, decoder.DecodeEntry, options);
-		var decode = decoder.Finish();
-		if (decode.Checkpoint is null)
-		{
-			var refusal = $"{decode.Refusal}; {salvage.Report.Describe()}";
-			_log.LogError("Continue refused for world {WorldId}: {Refusal}", worldId, refusal);
-			outcome = WorldContinueOutcome.Refused(worldId, refusal, salvage);
-			return false;
-		}
-
-		var restored = _kernel.Restore(decode.Checkpoint);
-		if (!restored.Success)
-		{
-			var refusal = $"the kernel rejected the checkpoint: {restored.Error}";
-			_log.LogError("Continue refused for world {WorldId}: {Refusal}", worldId, refusal);
-			outcome = WorldContinueOutcome.Refused(worldId, refusal, salvage);
-			return false;
-		}
-
-		// The world facts the kernel does not own come back BEFORE the run's own
-		// state is applied, and the interface's contract is absolute: the apply
-		// resets the tables first (see IWorldFactSource), so a fact left over from
-		// the previous session cannot survive a cut that never named it. A refused
-		// snapshot never gets here, so nothing of a refused cut is written.
-		var factDamage = _factRestore.Apply(decode.UsableWorldBlocks, decode.UsableWorldTransients, decode.UsableNativeRunFields);
-
-		// The run continues in the same world: every later cut of this session
-		// writes back into it, and the picker's pointer follows the player.
-		_worldId = worldId;
-		_displayName = load.Content.Manifest.DisplayName;
-		_pendingCharacters = decode.UsableCharacters;
-
-		// The archive is authoritative for this world: the legacy reconnect table
-		// (CasualtiesUnknownOnline.character-data.bin) is dropped before the archive's
-		// characters are bound, so a player the package omits cannot be resurrected
-		// from stale data (decision 162: absent from the package = new character).
-		_characters.ClearSavedCharacters();
-		_binder.Apply(decode.UsableCharacters);
-		_repository.SetLastOpenedWorld(worldId);
-
-		// The live-world half of this restore lands at the world-entry seam, after
-		// this method returned. The audit carries that half's outcome back to the
-		// caller: a restore is not "successful" until the live world took every row.
-		_audit?.BeginRestore(worldId);
-
-		// The summary is the account the caller logs (and S4's surface reads), so it
-		// is built from the WHOLE report — a backup fallback is repository-scope
-		// damage that a per-entry "clean" check would hide (§6: silent loss is
-		// forbidden). The world facts that could not be put back at the click (no
-		// native applier, an applier that threw) are part of that account too.
-		var damages = new List<string>(factDamage);
-		if (salvage.Report.Entries.Count > 0)
-		{
-			damages.Add(salvage.Report.Describe());
-		}
-
-		var summary = damages.Count == 0
-			? $"world {worldId} restored from {load.Content.SourcePath}"
-			: $"world {worldId} restored with damage: {string.Join("; ", damages)}";
-		_log.LogInformation("Continue restored world {WorldId} at revision {Revision} (layer {Layer}, {Players} stored character(s)): {Summary}",
-			worldId, decode.Checkpoint.GlobalRevision, decode.Checkpoint.Run?.LayerIndex ?? -1, decode.UsableCharacters.Count, summary);
-		outcome = new WorldContinueOutcome(true, worldId, summary, salvage);
-		return true;
+		outcome = restore.Outcome;
+		return restore.Started;
 	}
 
 	// The characters a cut carries and the peer arbitration of a restore belong to
 	// the WorldCharacterBinder: identity is transport-scoped (decision 162) and
 	// orthogonal to the archive, so S3.1's structure review split it out of this
 	// class, which owns the cut itself.
-
-	/// <summary>An empty salvage for a refusal that never opened a snapshot.</summary>
-	private static SalvageResult EmptySalvage => new(DamageReport.Empty);
 }

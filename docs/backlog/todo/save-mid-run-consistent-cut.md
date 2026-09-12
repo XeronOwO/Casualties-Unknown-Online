@@ -461,39 +461,43 @@ Two claims decide whether this stage is accepted, and neither is provable by the
    for that generation, but whether Unity's regeneration from that baseline produces the layer the
    player was standing in is a fact about the game, not about the archive.
 
-## Review migration conditions (S3 -> `review/`)
+## Conditions for moving to `review/` (self-check, not a gate on the user)
 
-Moving this stage out of `in-progress/` is a checklist, not a judgement call. Every box must be
-answered with evidence; an unchecked box means the stage stays where it is.
+`review/` is the waiting state for the single unified acceptance pass
+(`docs/backlog/README.md`: code-complete items move there immediately, per-ticket acceptance is
+explicitly not required, and only the final unified pass moves a ticket to `done/`). So the boxes
+below are the DEVELOPMENT half of "we owe nothing but the acceptance pass" — the in-game rows in the
+matrix above are NOT a precondition for the move, exactly as S2 landed its continue flow with its
+in-game rows open.
 
 - [ ] **Scope closure**: scopes 1-6 and 8 are landed and documented here; scope 7 is owned by S4
       (`todo/save-multiplayer-restore-and-backups.md`); scope 9 is owned by S3.6
       (`todo/save-solo-menu-exit-trigger.md`). No scope is silently dropped.
-- [ ] **The exactly-once claim is stated at the level it is proven**: this ticket claims the machine
-      evidence above and explicitly leaves the in-game half to the user's pass. It must not claim the
-      in-game half was observed.
-- [ ] **Each of the four recorded gaps is either fixed or explicitly accepted by the user**, with the
-      decision and its reasoning recorded in the ticket:
+- [ ] **The exactly-once claim is stated at the level it is proven**: the machine evidence above is
+      claimed, the in-game half is named as the user's pass and is not claimed as observed
+      (`AGENTS.md` line 327: no self-assumption — every claim needs source or runtime evidence).
+- [ ] **Each of the four recorded gaps is fixed in this stage, deleted from the stage's scope with a
+      reason, or explicitly deferred BY THE USER** and recorded here as deferred for the unified pass
+      — never silently reclassified as "future work" (`AGENTS.md` line 313: an unverified gap must not
+      be reclassified to justify the move):
       1. `WorldRestoreAudit` carries no restore identity (an epoch on the account), so a very late
-         writer could credit a newer restore's account; the window needs a writer that reports across a
-         `BeginRestore`.
+         writer could credit a newer restore's account; the window needs a writer that reports across
+         a `BeginRestore`.
       2. the world-entry seam's `HasPending` gate does not consult the ITEM arm, so a composition with
          no native reader would run the layer-boundary reset and drop the restored world items.
       3. a shared-action `false` that means "not applicable" is counted as applied by
          `TrapVisualReplay.ReplayState`, so that divergence can be under-reported.
       4. the sibling-domain reset family: host-only kernel resets, no layer boundary reset for the
          enemy/fluid/player tables, and those reset commands stay wire-reachable.
-- [ ] **The verification trail is on `master` for the commit being moved**: the named suites pass on
-      it, `dotnet format` is clean, and the full suite + normative gates are green.
-- [ ] **Deployment identity**: the plugin folder on the machine carries the same build as that commit
-      (plugin DLL hash equals the build output's, BepInEx-family DLLs excluded), so a user acceptance
-      run exercises that build rather than an older one.
+- [ ] **Development verification trail is on `master` for the commit being moved**: the named suites
+      pass on it, `dotnet format` is clean, and the full suite + normative gates are green.
+- [ ] **Deployment identity**: the plugin folder on the machine carries that commit's build (plugin
+      DLL hash equals the build output's, BepInEx-family DLLs excluded), so the later unified
+      acceptance run exercises it rather than an older build.
 - [ ] **The last increment's independent adversarial pass is recorded** in this ticket, with every
-      blocker/major either fixed or recorded with the user's acceptance.
-- [ ] **The ticket moves with its acceptance table**, and `docs/backlog/README.md`'s index line moves
-      with it in the same commit. `review/` is the waiting state for the single unified user
-      acceptance pass: moving the ticket does NOT resolve the in-game rows. S3.6 and S4 stay in
-      `todo/` — they are the remaining stages of the same requirement.
-- [ ] **A user-facing in-game acceptance script exists** for the dual-client pass: the exact in-game
-      steps (mid-run `/save`, then a menu return -> Continue, on a host with a guest connected), what
-      the player must look at per row, and what counts as a failure. Written for the user.
+      blocker/major either fixed or recorded as a residual.
+- [ ] **The ticket moves with its acceptance table and the README index line** in the same commit,
+      and the move does NOT claim the in-game rows: `review/` means they wait for the unified pass.
+      The user-facing acceptance procedure for that pass stays a user action, not a repo artifact —
+      the automated version of it is already deferred by decision
+      (`future/adapter-shell-verification-harness.md`).

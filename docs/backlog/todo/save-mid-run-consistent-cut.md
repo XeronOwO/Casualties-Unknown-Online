@@ -414,20 +414,86 @@ Recorded but NOT fixed (pre-existing; none of them made worse by this increment)
 
 ## Acceptance
 
-| # | Scenario | Expected |
+Read this table as TWO claims per row, because they are proven in different places:
+
+- `machine` — a test, a gate or a structural contract in the Runtime/format layer. The named suites
+  were re-run on `5b952bd` when this column was written: 288 cases across `Persistence`,
+  `CommandConsoleSaveTests` and `WorldEntityProjectionTests`, 0 failures.
+- `in-game` — a claim about what the Unity scene shows after the Continue click, which no test host can
+  instantiate (the appliers call `Physics2D.OverlapPoint`, `TrapEffectApplier.FindTrap<T>`,
+  `Object.Destroy`). These rows are the user's dual-client pass and are NOT claimed as observed here.
+
+| # | Scenario | Expected | Verification |
+|---|---|---|---|
+| 1 | Mid-run save with mined/placed/quaked blocks + partial damage | Reload reproduces the same block diff exactly (compare against the pinned post-restore dump) | **machine**: both row shapes (a cell diff and the game's own `native-block-damage` row) round-trip (`WorldSnapshotWorldFactsTests.Codec_RoundTripsBothBlockRowShapes`, `.Codec_RoundTripsTheGameDamageRow`); a mid-run cut writes one typed row per fact while a layer-end cut writes both world files empty (`.Encode_MidRunCut_WritesOneTypedRowPerFact`, `.Encode_LayerEndCut_WritesBothWorldFilesEmpty`); the restored tables are applied ABSOLUTELY, never merged onto leftovers (`WorldSnapshotWorldFactsTests.TryContinue_AppliesTheRestoredWorldFactsAbsolutely`); a restored air row arrives with `SupportLossSettled` so a receiver does not re-roll the drops the saved world already rolled (`WorldRestoreSupportLossTests.RestoredBlockStateRows_ArriveMarkedAsSupportLossSettled`); and every row the game's own bounded 128-entry table refuses is named in the outcome (`WorldSnapshotWorldFactsTests.Restore_NamesTheRowsTheBoundedTableRefusedInTheOutcome`). **in-game: user pass** — that the replayed per-cell diff yields the same block map in the regenerated layer, and that the cracked/damaged sprites match |
+| 2 | Mid-run save with world items on the ground, in containers, carried, worn | Same identities, locations, container trees; no duplicates, no loss | **machine**: identity/location/revision survive encode → decode for the whole item domain and the characters (`WorldSnapshotCodecTests.EncodeThenDecode_RoundTripsEveryDomainAndTheCharacters`); a container tree keeps exactly one parent per child after a restore (`WorldSaveContinueTests.ContainerTree_AfterRestore_HasExactlyOneParentPerChild`); a CARRIED record is the one that crosses a layer boundary (its `SaveLayerEnd` helper seeds a carried bag, and `TryContinue_Twice_KeepsTheSameFingerprintAndFacts` compares identity/location/revision per item); a terminal record is never resurrected (`WorldSaveContinueTests.RemovedEnemy_StaysTerminalAfterRestore`); a region the game regenerated at a restored item's spot binds to the restored id instead of being published beside it (`HostRestoreItemReconcileTests.ARegeneratedItemAtARestoredItemsSpot_DoesNotBecomeASecondWorldItem`, `RestoredWorldItemContractTests.ARestoredCut_ArmsTheReconcileAndPublishesTheRestoredSet`). **in-game: user pass** — the four restings as the player sees them (on the ground, inside a container, in hand, WORN — the kernel has no separate worn location, so the worn case is a scene-side claim), no duplicate beside a restored ground copy, and the corpse-loot bind in `CorpseScript.Start` |
+| 3 | Mid-run save with opened/damaged buildings, consumed traps, fluids, enemies | Same facts; no re-trigger; no resurrection | **machine**: a consumed trap stays consumed across a restore (`WorldSaveContinueTests.ConsumedTrap_StaysConsumedAfterRestore`); the kernel's per-entity table reaches the host's own world-entry write instead of being dropped with the replaced layer (`WorldEntityProjectionTests.HostCheckpointRestore_ArmsTheWorldEntryWriteWithTheFactsTheGuestProjects`, `.SoloCheckpointRestore_ArmsTheWorldEntryWriteToo`), through the same three appliers the guest path uses, whose refusals reach the restore account (`RestoredWorldFactReplayTests.ApplyIfPending_WorldEntityRowsTheLayerDoesNotHave_ReachTheRestoreAccount`); a restored death is applied as a REMOTE death, so the saved world's drops are not rolled twice (decision 172 + `WorldRestoreSupportLossTests`); opened entities, fluid regions and enemies round-trip (`WorldSnapshotCodecTests.EncodeThenDecode_RoundTripsEveryDomainAndTheCharacters`). **in-game: user pass** — that the regenerated world actually shows the consumed traps, opened lockables and damaged buildings, and that no corpse/building drop was re-rolled. The appliers' game-typed bodies are static-reviewed only |
+| 4 | Save during each in-flight state in the table above | The chosen policy applies and is logged; no silent loss, no duplication | **machine**: the policy is a real table with one verdict per class, pinned row by row (`WorldTransientPolicyTests.Rows_CoverEveryInFlightClassTheTicketNames`, `.Verdicts_PerRow_AreTheDecidedOnes`, `.Rows_AreUniqueAndEveryOneCarriesItsOwnerUnitAndReason`, `.Detection_DeclaresTheRowsNoObserverCanCount`); the seam defers the three frame windows with the request still armed (`WorldSaveCutSeamTests.BreakWindow_DefersTheCutAndKeepsItArmed`), takes the cut once the state resolves (`.BreakWindow_Resolved_TakesTheCutOnTheNextFrame`), names a window that outlasts `MaxCutDeferralFrames` instead of starving the request (`.BreakWindow_OutlastingTheDeadline_IsNamedInTheReport`), names counted drops (`.DroppedState_IsNamedWhileTheCutStillSucceeds`) and the game-owned `Standing` classes without claiming a count nobody has (`.StandingRows_AreNamedEvenThoughNoCounterCanSeeThem`), REFUSES an undeclared class (`.UndeclaredTransientClass_RefusesTheCutAndWritesNothing`) and refuses to write a clean-looking snapshot from an unreadable native table (`.UnreadableNativeTable_RefusesTheCutAndWritesNothing`); the runtime half of the observation is merged with the adapter half (`.RuntimeHalfOfTheObservation_IsMergedIntoTheCutReport`, `.Observation_MergesBothHalvesOfTheSameClass`), and the player-facing report is printed for a cut the player asked for (`CommandConsoleSaveTests.CutReport_IsPrintedForTheCutsThePlayerAskedFor`). **in-game: user pass** — that the deferral is invisible in play and the reported class list matches what the player saw |
+| 5 | Save → load → save → load | Byte-comparable domain tables (modulo timestamps/revisions); world fingerprint stable | **machine**: restoring the same snapshot twice converges on the same item identity/location/revision, the same revision counter and the same run id (`WorldSaveContinueTests.TryContinue_Twice_KeepsTheSameFingerprintAndFacts`); a salvaged snapshot opens identically twice and leaves the live files untouched (`SaveArchiveSalvageTests.SalvagedSnapshot_OpensTwiceIdentically_AndLeavesTheLiveFilesUntouched`); the folder recovery pass is idempotent (`WorldFolderRecoveryTests.RecoveryIsIdempotent_ASecondPassHasNothingLeftToDo`); a manifest that lists the same file twice is not applied twice (`SaveArchiveContractFixesTests.ManifestListingTheSameFileTwice_IsNotAppliedTwice`); a float condition survives the text format exactly (`WorldSnapshotCodecTests.Encode_FloatCondition_RoundTripsExactly`). **Not machine-proven**: byte-level reproducibility of the produced JSON/archive itself — no test asserts that two encodes of the same checkpoint are byte-identical. **in-game: user pass** — a real save → load → save → load cycle in one session leaves the world fingerprint stable |
+| 6 | Save taken mid-frame while a command batch is pending | The cut is consistent: no half-applied operation in the snapshot, revision matches the payload | **machine**: the manifest's `globalRevision` equals the checkpoint the payload was written from (`WorldSaveCaptureTests.MenuReturnCut_MenuReturnPhaseIsRecordedOnTheManifest`); the manifest records which seam took the cut (`WorldSaveCaptureTests.MenuReturnCut_WritesTheHostCharacterUnderTheSteamKey`, `WorldSaveCutSeamTests.ArmedCut_IsTakenAtTheSeamAndClearsTheRequest`); a layer-end-class cut cannot be armed at the frame-end seam (`WorldSaveCutSeamTests.LayerEndTrigger_CannotBeArmedAtTheSeam`); a request armed for a world a new run superseded is dropped (`.NewRun_DropsARequestArmedForThePreviousWorld`); a menu return supersedes a queued command cut with one snapshot and one reason (`.MenuReturn_SupersedesAQueuedCommandCut_OneSnapshotOneReason`). **Structural, not testable in this host**: "no half-applied batch" is the seam's POSITION — the CUO pump's last step, after every domain update and the frame's drop/break flushes (`docs/architecture/save-archive-format.md` §4, decision 167) — and the trigger only ARMS, so no cut runs inside the console callback. **in-game: user pass** — that nothing the player did appears half-applied after the restore |
+| 7 | Restore of a mid-run snapshot | Resumes the *same* layer with all mutations — never a regenerated-but-different layer | **machine**: the run baseline (layer index, random state, biome, settings, the two rarity multipliers) rides `run.json` and is restored AS the run, so the layer the restore regenerates is the one the snapshot names (`WorldSaveContinueTests.TryContinue_RestoresTheKernelCheckpoint` asserts the restored `LayerIndex`; `WorldSnapshotCodecTests.EncodeThenDecode_RoundTripsEveryDomainAndTheCharacters` pins run epoch + global revision; `.Decode_RunBaselineWithoutGenerationState_IsRefused` and `.Decode_WithoutARunFile_RefusesTheWholeSnapshot` refuse a snapshot without it); the native run fields come back at their own seams (`WorldRunFieldTests.Continue_HandsTheRestoredRunFieldsToTheNativeApplier`, `.MidRunCut_WhileTheWorldIsAlreadyOnTheNextLayer_KeepsTheBaselineMultipliers`); a mid-run restore's in-layer tables are NOT erased by the layer-boundary reset (`RestoredWorldItemContractTests.TheRestoreGeneration_KeepsTheRestoredWorldTable`, `RestoredWorldFactReplayTests.ApplyIfPending_WithOnlyTheWorldEntitiesPending_WritesAndCommitsThatHalf`); and repair mode never changes `layerIndex` (`docs/architecture/save-archive-format.md` §6). **in-game: user pass** — that the regenerated layer actually IS the saved one (same layout, same mutations), which is the whole of the user's requirement |
+
+### The seven rows, condensed
+
+| Row | Machine coverage | User dual-client pass |
 |---|---|---|
-| 1 | Mid-run save with mined/placed/quaked blocks + partial damage | Reload reproduces the same block diff exactly (compare against the pinned post-restore dump) |
-| 2 | Mid-run save with world items on the ground, in containers, carried, worn | Same identities, locations, container trees; no duplicates, no loss |
-| 3 | Mid-run save with opened/damaged buildings, consumed traps, fluids, enemies | Same facts; no re-trigger; no resurrection |
-| 4 | Save during each in-flight state in the table above | The chosen policy applies and is logged; no silent loss, no duplication |
-| 5 | Save → load → save → load | Byte-comparable domain tables (modulo timestamps/revisions); world fingerprint stable |
-| 6 | Save taken mid-frame while a command batch is pending | The cut is consistent: no half-applied operation in the snapshot, revision matches the payload |
-| 7 | Restore of a mid-run snapshot | Resumes the *same* layer with all mutations — never a regenerated-but-different layer |
+| 1 block diff + partial damage | row shapes round-trip, absolute apply, bounded-table refusals, support-loss verdict | the replayed block map and its sprites |
+| 2 items | identity/location round-trip, container tree, exactly-once dedup, reconcile contract | the four restings on screen, no duplicate, corpse loot |
+| 3 buildings/traps/fluids/enemies | kernel facts + host/solo world-entry write + refusal account + remote-death rule | the regenerated world's entities and their drops |
+| 4 in-flight policy | policy table, deferral + deadline, undeclared-class refusal, both report surfaces | deferral invisible, reported classes match |
+| 5 save/load/save/load | idempotent restore, identical reopen, idempotent recovery, no double apply | a real cycle's fingerprint stability |
+| 6 mid-batch cut | revision pin, seam recorded, seam rules asserted | nothing half-applied visible |
+| 7 same layer | baseline + layer index restored, that generation's reset skipped | the layer really is the saved one |
 
 ## Verification limits
 
 Item/entity/block facts are machine-verifiable through the kernel and the format layer. Native world
 tables (keypad codes, geyser rolls, earthquake timers, `WorldGeneration.blockDamages`) live behind the
 adapter; those rows are verified by adapter-level tests plus the user's dual-client pass, and this
-ticket must name which is which.
+ticket names which is which.
 
+Two claims decide whether this stage is accepted, and neither is provable by the machine:
+
+1. **Exactly-once as the player sees it.** The kernel's dedup, the container-tree single-parent rule,
+   the reconcile contract and the restore idempotence are pinned (rows 2 and 5 above), but "the
+   restored world shows exactly the saved set" is a statement about the live scene.
+2. **Same-layer regeneration.** The run baseline is restored and the layer-boundary reset is skipped
+   for that generation, but whether Unity's regeneration from that baseline produces the layer the
+   player was standing in is a fact about the game, not about the archive.
+
+## Review migration conditions (S3 -> `review/`)
+
+Moving this stage out of `in-progress/` is a checklist, not a judgement call. Every box must be
+answered with evidence; an unchecked box means the stage stays where it is.
+
+- [ ] **Scope closure**: scopes 1-6 and 8 are landed and documented here; scope 7 is owned by S4
+      (`todo/save-multiplayer-restore-and-backups.md`); scope 9 is owned by S3.6
+      (`todo/save-solo-menu-exit-trigger.md`). No scope is silently dropped.
+- [ ] **The exactly-once claim is stated at the level it is proven**: this ticket claims the machine
+      evidence above and explicitly leaves the in-game half to the user's pass. It must not claim the
+      in-game half was observed.
+- [ ] **Each of the four recorded gaps is either fixed or explicitly accepted by the user**, with the
+      decision and its reasoning recorded in the ticket:
+      1. `WorldRestoreAudit` carries no restore identity (an epoch on the account), so a very late
+         writer could credit a newer restore's account; the window needs a writer that reports across a
+         `BeginRestore`.
+      2. the world-entry seam's `HasPending` gate does not consult the ITEM arm, so a composition with
+         no native reader would run the layer-boundary reset and drop the restored world items.
+      3. a shared-action `false` that means "not applicable" is counted as applied by
+         `TrapVisualReplay.ReplayState`, so that divergence can be under-reported.
+      4. the sibling-domain reset family: host-only kernel resets, no layer boundary reset for the
+         enemy/fluid/player tables, and those reset commands stay wire-reachable.
+- [ ] **The verification trail is on `master` for the commit being moved**: the named suites pass on
+      it, `dotnet format` is clean, and the full suite + normative gates are green.
+- [ ] **Deployment identity**: the plugin folder on the machine carries the same build as that commit
+      (plugin DLL hash equals the build output's, BepInEx-family DLLs excluded), so a user acceptance
+      run exercises that build rather than an older one.
+- [ ] **The last increment's independent adversarial pass is recorded** in this ticket, with every
+      blocker/major either fixed or recorded with the user's acceptance.
+- [ ] **The ticket moves with its acceptance table**, and `docs/backlog/README.md`'s index line moves
+      with it in the same commit. `review/` is the waiting state for the single unified user
+      acceptance pass: moving the ticket does NOT resolve the in-game rows. S3.6 and S4 stay in
+      `todo/` — they are the remaining stages of the same requirement.
+- [ ] **A user-facing in-game acceptance script exists** for the dual-client pass: the exact in-game
+      steps (mid-run `/save`, then a menu return -> Continue, on a host with a guest connected), what
+      the player must look at per row, and what counts as a failure. Written for the user.

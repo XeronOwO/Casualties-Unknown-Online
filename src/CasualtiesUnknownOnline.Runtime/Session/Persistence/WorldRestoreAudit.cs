@@ -17,9 +17,12 @@ namespace CasualtiesUnknownOnline.Runtime.Session.Persistence;
 /// incomplete, and <see cref="Last"/> / <see cref="Reported"/> are how the caller
 /// and the player-facing surface hear about it (§6: no silent loss).
 ///
-/// A restore therefore OWES one contribution per live-world half it will have:
-/// one for the world facts, plus one for the item reconcile on a mid-run cut
-/// (<see cref="BeginRestore"/>'s <c>expectedContributions</c>). The report is
+/// A restore therefore OWES one contribution per live-world half it will have: one
+/// for the world facts and the adapter's native handover (this half reports them
+/// together), one for the restored world-entity facts when that arm is armed, and
+/// one for the item reconcile on a mid-run cut (<see cref="BeginRestore"/>'s
+/// <c>expectedContributions</c> — the count follows the writers ACTUALLY armed, so
+/// a layer-end cut owes one less). The report is
 /// raised once — when every contribution has arrived — so a consumer never reads
 /// a half-written restore as a completed one. A contribution that will never
 /// arrive is accounted for explicitly (<see cref="LiveWriteAbandoned"/>) rather

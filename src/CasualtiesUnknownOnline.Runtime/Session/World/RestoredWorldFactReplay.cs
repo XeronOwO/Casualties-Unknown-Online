@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
+using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Session.Persistence;
 using Microsoft.Extensions.Logging;
 
@@ -15,7 +16,10 @@ namespace CasualtiesUnknownOnline.Runtime.Session.World;
 /// keypad codes and geyser liquid types, the radiation line, and the per-entity
 /// world facts (consumed traps, opened lockables, building health).
 ///
-/// The values arrive from three owners. The Runtime holds the block diff and the
+/// The values this replay WRITES arrive from three owners — the gate below reads a
+/// fourth, the item half, which this replay never writes (the generation reconcile
+/// owns it) but must not let the layer-boundary reset erase. The Runtime holds the
+/// block diff and the
 /// radiation line in the tables a late joiner would have received, and reports a
 /// pending live-world replay (<see cref="IWorldFactSource.HasPendingLiveReplay"/>)
 /// because those tables must survive the world-entry reset. The adapter holds the
@@ -53,7 +57,8 @@ internal sealed class RestoredWorldFactReplay(
 	IRestoredWorldFactSink sink,
 	ILogger<RestoredWorldFactReplay> log,
 	WorldRestoreAudit? audit = null,
-	IRestoredWorldEntitySource? worldEntities = null)
+	IRestoredWorldEntitySource? worldEntities = null,
+	IRestoredWorldItemSource? restoredWorldItems = null)
 {
 	private readonly IWorldFactSource _facts = facts;
 	private readonly INativeWorldFacts? _nativeFacts = nativeFacts;
@@ -61,18 +66,25 @@ internal sealed class RestoredWorldFactReplay(
 	private readonly ILogger<RestoredWorldFactReplay> _log = log;
 	private readonly WorldRestoreAudit? _audit = audit;
 	private readonly IRestoredWorldEntitySource? _worldEntities = worldEntities;
+	private readonly IRestoredWorldItemSource? _restoredWorldItems = restoredWorldItems;
 
 	/// <summary>
 	/// Host: a restored cut is waiting for the world-entry seam — the Runtime's
 	/// world-fact tables hold it, the adapter's native handover does, the kernel's
-	/// restored world-entity facts do, or any combination of the three.
+	/// restored world-entity facts do, the item domain's restored world items do, or
+	/// any combination of the four.
+	///
 	/// The world-entry hook asks BEFORE it decides whether to run the
-	/// layer-boundary reset.
+	/// layer-boundary reset. The item half is the one that is easy to miss: it is
+	/// written by the generation reconcile rather than by this replay, and it can be
+	/// the ONLY half still owed — the reset drops every world-rooted row, which is
+	/// exactly the set the reconcile exists to materialize.
 	/// </summary>
 	internal bool HasPending =>
 		_facts.HasPendingLiveReplay
 		|| (_nativeFacts?.HasPendingRestore ?? false)
-		|| (_worldEntities?.HasPendingRestore ?? false);
+		|| (_worldEntities?.HasPendingRestore ?? false)
+		|| (_restoredWorldItems?.RestoredWorldItemsPending ?? false);
 
 	/// <summary>
 	/// Host: write the pending restored cut into the live world. A no-op when

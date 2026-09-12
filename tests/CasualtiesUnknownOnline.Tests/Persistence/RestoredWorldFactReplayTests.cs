@@ -34,6 +34,63 @@ public sealed class RestoredWorldFactReplayTests
 	}
 
 	[Fact]
+	public void HasPending_WithOnlyTheItemReconcileOwed_KeepsTheGateTrue()
+	{
+		// A restore whose block diff, native handover and world-entity facts have all
+		// landed can still owe the ITEM half: the generation has not reconciled its
+		// objects against the restored world items yet. The world-entry seam asks this
+		// gate BEFORE it decides whether to run the layer-boundary reset, and that
+		// reset drops every world-rooted row — taking it here would erase the very set
+		// the reconcile is about to materialize, and the loss would be silent.
+		var items = new FakeRestoredWorldItemSource { Armed = true };
+		var replay = new RestoredWorldFactReplay(
+			new FakeWorldFactSource(),
+			new FakeNativeWorldFacts(),
+			new FakeRestoredWorldFactSink(),
+			new RecordingLogger<RestoredWorldFactReplay>(),
+			audit: null,
+			worldEntities: null,
+			restoredWorldItems: items);
+
+		Assert.True(replay.HasPending);
+	}
+
+	[Fact]
+	public void HasPending_WithEverySourceWiredAndOnlyTheItemReconcileOwed_KeepsTheGateTrue()
+	{
+		// The production shape: all four sources are wired (the composition root passes
+		// the item control it already holds), and only the item half is still owed. A
+		// suite that armed this one through a null world-entity source would not notice
+		// a gate that dropped the arm whenever another source was present.
+		var items = new FakeRestoredWorldItemSource { Armed = true };
+		var replay = new RestoredWorldFactReplay(
+			new FakeWorldFactSource(),
+			new FakeNativeWorldFacts(),
+			new FakeRestoredWorldFactSink(),
+			new RecordingLogger<RestoredWorldFactReplay>(),
+			audit: new WorldRestoreAudit(),
+			worldEntities: new FakeRestoredWorldEntitySource(),
+			restoredWorldItems: items);
+
+		Assert.True(replay.HasPending);
+	}
+
+	[Fact]
+	public void HasPending_WithEveryHalfLanded_IsFalse()
+	{
+		var replay = new RestoredWorldFactReplay(
+			new FakeWorldFactSource(),
+			new FakeNativeWorldFacts(),
+			new FakeRestoredWorldFactSink(),
+			new RecordingLogger<RestoredWorldFactReplay>(),
+			audit: null,
+			worldEntities: null,
+			restoredWorldItems: new FakeRestoredWorldItemSource());
+
+		Assert.False(replay.HasPending);
+	}
+
+	[Fact]
 	public void ApplyIfPending_WhenTheWorldIsNotReady_KeepsTheCutPending()
 	{
 		var (replay, facts, native, sink) = Build();

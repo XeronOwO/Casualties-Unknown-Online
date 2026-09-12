@@ -460,7 +460,38 @@ Recorded but NOT fixed (pre-existing; none of them made worse by this increment)
   needs a tri-state verdict from the shared action library.
 - **Sibling-domain gaps** (recorded above): the world-entity registries reset their kernel tables for
   a host only, no layer boundary resets the enemy/fluid/player tables at all, and those reset
-  commands stay wire-reachable.
+  commands stay wire-reachable. Scoping notes for the fix are below (reading, no adversarial pass yet).
+
+### Gap 4 scoping notes (2026-09-12, reading only — NOT a fix, NOT adversarially verified)
+
+Reading the code before choosing a fix separates the recorded bullet into three parts:
+
+- **The player table must NOT be reset at a layer boundary.** `PlayerState` carries the durable
+  cross-layer terminal facts — alive/conscious, the carry relation, the limb latch set, body state and
+  skills (`GameState/Domains/Players/PlayerState.cs:5-19`) — and its readers are the limb/status/carry
+  projections. A boundary reset would erase a player's injuries and carry relation on every descent, so
+  the "enemy/fluid/**player**" grouping in the recorded bullet is a false positive for player.
+- **The enemy and fluid tables already converge on the host through their own projections.**
+  `EnemyKernelProjection.Sync` removes every kernel row the live scene no longer has
+  (`Runtime/Session/EntitySync/EnemyKernelProjection.cs:45-49`), and `FluidKernelProjection.Sync` writes
+  a zero fact for a chunk that left the host's non-empty set
+  (`Runtime/Session/World/FluidKernelProjection.cs:56-60`); a guest converges too, because its kernel is
+  replaced from the host's snapshot. What the missing reset leaves is therefore a WINDOW (the rest of the
+  generation) and a rule disagreement rather than a lasting ghost: F3 removes every in-layer fact from a
+  layer-end cut's `items.json` / `world-entities.json` but deliberately keeps the enemy/fluid rows
+  ("no layer boundary resets them") — which flips the moment the boundary itself resets them.
+- **The three reset commands have no product caller.** `TryResetEnemies` / `TryResetFluids` /
+  `TryResetPlayers` (`Runtime/Session/Items/ItemKernelAuthority.cs:236-267`) are reachable from the wire
+  (`KernelWireMapper` maps all three) and handled by their domain modules, but nothing under `src/` calls
+  them; only `TryResetWorldEntities` has callers (the three world-entity registries). `EnemyDomainModule.
+  Decide` accepts a reset unconditionally (`GameState/Domains/Entities/EnemyDomainModule.cs:27`), and
+  `AuthorityKind.HostOnly` is declared metadata only — the kernel's `CommandContext` carries no role, so
+  no authority check refuses such a command (the project's accept-first stance, not a new hole).
+
+The fix is therefore a design choice, not a mechanical one: wire `ResetEnemies` / `ResetFluids` into the
+layer boundary (and then decide whether a layer-end cut must drop those rows from the archive too, to
+keep F3's rule coherent), or delete the three dead commands and keep relying on the projections —
+`ResetPlayers` being redundant in either case while the player table stays cross-layer.
 
 
 ## Acceptance

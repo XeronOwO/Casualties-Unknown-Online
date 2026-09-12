@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.GameState;
+using CasualtiesUnknownOnline.Runtime.Session.World;
 
 namespace CasualtiesUnknownOnline.Runtime.Persistence;
 
@@ -26,4 +27,5 @@ public sealed record WorldSnapshotPayload(
 	string ContentFingerprint = "",
 	IReadOnlyList<SaveWorldBlockRow>? WorldBlocks = null,
 	IReadOnlyList<SaveWorldTransientRow>? WorldTransients = null,
-	WorldCutKind Kind = WorldCutKind.LayerEnd);
+	WorldCutKind Kind = WorldCutKind.LayerEnd,
+	NativeRunFields? RunFields = null);

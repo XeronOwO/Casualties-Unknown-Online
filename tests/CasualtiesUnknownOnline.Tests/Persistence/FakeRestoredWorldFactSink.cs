@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using CasualtiesUnknownOnline.Runtime.Persistence;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 
@@ -43,6 +44,12 @@ internal sealed class FakeRestoredWorldFactSink : IRestoredWorldFactSink
 
 	/// <summary>How many geyser entries the live world has no geyser for.</summary>
 	internal int RefuseGeysers { get; set; }
+
+	/// <summary>How many recipe unlock rows name a recipe this world's table does not have (a mod update removed it).</summary>
+	internal int RefuseRecipes { get; set; }
+
+	/// <summary>The recipe unlock state the live world ended up with — the rows this sink was handed and took.</summary>
+	internal List<SaveRecipeUnlockRow> AppliedRecipes { get; } = [];
 
 	/// <summary>Whether the live world had a radiation line to write.</summary>
 	internal bool RadiationLinePresent { get; set; } = true;
@@ -112,6 +119,18 @@ internal sealed class FakeRestoredWorldFactSink : IRestoredWorldFactSink
 		var refused = Math.Min(RefuseGeysers, geysers.Count);
 		AppliedGeysers = geysers.Count - refused;
 		return new LiveWorldWriteOutcome(AppliedGeysers, refused);
+	}
+
+	public LiveWorldWriteOutcome ApplyRecipeUnlocks(IReadOnlyList<SaveRecipeUnlockRow> recipes)
+	{
+		Calls.Add("apply-recipes");
+		var refused = Math.Min(RefuseRecipes, recipes.Count);
+		for (var i = 0; i < recipes.Count - refused; i++)
+		{
+			AppliedRecipes.Add(recipes[i]);
+		}
+
+		return new LiveWorldWriteOutcome(recipes.Count - refused, refused);
 	}
 
 	public bool ApplyRadiationLine(RadiationLineStateMsg line)

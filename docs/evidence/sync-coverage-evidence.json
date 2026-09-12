@@ -2443,13 +2443,13 @@
     {
       "cluster": "world-blocks",
       "row": "W2",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/RestoredWorldFactReplay.cs:102",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/RestoredWorldFactReplay.cs:103",
       "quote": "damages = _sink.ReplaceGameBlockDamages(restore.BlockDamages);"
     },
     {
       "cluster": "world-blocks",
       "row": "W2",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/GameRestoredWorldFactSink.cs:70",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/GameRestoredWorldFactSink.cs:71",
       "quote": "world.ClearBlockDamages(); // the cut is the whole truth for this list"
     },
     {
@@ -4513,7 +4513,7 @@
     {
       "cluster": "inline",
       "row": "W1",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldParamsService.cs:242",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldParamsService.cs:266",
       "quote": "_world.ResetPendingBlockReports();"
     },
     {
@@ -4645,7 +4645,7 @@
     {
       "cluster": "inline",
       "row": "E3",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldParamsService.cs:243",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldParamsService.cs:267",
       "quote": "_world.ResetPendingEntityReports();"
     },
     {
@@ -4837,7 +4837,7 @@
     {
       "cluster": "inline",
       "row": "E3",
-      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldParamsService.cs:215",
+      "ref": "src/CasualtiesUnknownOnline.GameAdapter/World/WorldParamsService.cs:239",
       "quote": "_guestParamsWaitLogged = false; // re-arm for the next world/layer"
     },
     {

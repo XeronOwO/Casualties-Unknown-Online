@@ -48,6 +48,7 @@ public sealed class WorldSnapshotDecoder(SaveManifest manifest, ILogger<WorldSna
 
 	private WorldEntityState _worldEntities = WorldEntityState.Empty;
 	private RunState? _run;
+	private SaveNativeRunFields? _nativeRunFields;
 	private string _currentPath = string.Empty;
 	private int _entryIndex;
 
@@ -148,29 +149,81 @@ public sealed class WorldSnapshotDecoder(SaveManifest manifest, ILogger<WorldSna
 				: new EnemyStateTable(_enemies, _removedEnemies),
 			_fluids.Count == 0 ? null : new FluidStateTable(_fluids));
 
-		_log.LogInformation("Decoded snapshot of world {WorldId}: epoch {Epoch}, revision {Revision}, {Items} item(s), {Players} player(s), {Enemies} enemy(ies), {Characters} character(s), {Blocks} world block(s), {Transients} transient(s).",
-			_manifest.WorldId, epoch, (ulong)_manifest.GlobalRevision, _items.Count, _players.Count, _enemies.Count + _removedEnemies.Count, _characters.Count, _worldBlocks.Count, _worldTransients.Count);
-		return new WorldSnapshotDecode(checkpoint, _characters, null, _worldBlocks, _worldTransients);
+		_log.LogInformation("Decoded snapshot of world {WorldId}: epoch {Epoch}, revision {Revision}, {Items} item(s), {Players} player(s), {Enemies} enemy(ies), {Characters} character(s), {Blocks} world block(s), {Transients} transient(s), native run fields {RunFields}.",
+			_manifest.WorldId, epoch, (ulong)_manifest.GlobalRevision, _items.Count, _players.Count, _enemies.Count + _removedEnemies.Count, _characters.Count, _worldBlocks.Count, _worldTransients.Count,
+			_nativeRunFields is null ? "absent" : $"present ({_nativeRunFields.Recipes.Count} recipe row(s), clock {_nativeRunFields.SavedRunTime:F1})");
+		return new WorldSnapshotDecode(checkpoint, _characters, null, _worldBlocks, _worldTransients, _nativeRunFields);
 	}
 
+	/// <summary>
+	/// One row of <c>run.json</c>. The kernel baseline is what makes the snapshot
+	/// usable at all — without it the layer cannot be reproduced, which is a
+	/// refusal rather than a salvage. The native row (the run clock base and the
+	/// recipe unlock table) is optional by construction: a snapshot written before
+	/// this row existed does not carry it, and the restore NAMES that instead of
+	/// letting the world continue with a clock that restarts at zero and every
+	/// recipe re-locked (§6). A malformed native row is skipped by itself, which
+	/// leaves exactly the same named gap.
+	/// </summary>
 	private void DecodeRun(JsonElement entry, SalvageSession session, string id)
 	{
-		if (_run is not null)
+		var row = Decode<SaveRunRow>(entry, session, id);
+		if (row is null || !CarriesItsOwnPayload(entry, row))
 		{
-			session.Skip(id, "a snapshot carries exactly one run baseline", _currentPath);
+			if (row is not null)
+			{
+				// A row with NO kind is not "an unknown kind" — it is an archive
+				// written before run.json carried typed rows, and saying so is what
+				// lets a reader tell a format change from corruption.
+				session.Skip(
+					row.Describe(),
+					string.IsNullOrEmpty(row.Kind)
+						? "this run row declares no kind; run.json carries typed rows (`run` and `native-run-fields`), so an archive written before that shape cannot be read"
+						: $"a run row of kind '{row.Kind}' does not carry that kind's payload",
+					_currentPath);
+			}
+
 			return;
 		}
 
-		var wire = Decode<WireRunState>(entry, session, id);
-		if (wire?.RandomState is not { Length: > 0 })
+		switch (row.Kind)
 		{
-			// Without the generation baseline the layer cannot be reproduced: that
-			// is a refusal, not a salvage (a fresh layer would be a silent restart).
-			session.Skip(id, "the run baseline carries no generation random state", _currentPath);
-			return;
-		}
+			case SaveRunRow.RunKind:
+				if (_run is not null)
+				{
+					session.Skip(id, "a snapshot carries exactly one run baseline", _currentPath);
+					return;
+				}
 
-		_run = KernelDomainWireMapper.FromWireRun(wire);
+				if (row.Run!.RandomState is not { Length: > 0 })
+				{
+					// Without the generation baseline the layer cannot be reproduced:
+					// that is a refusal, not a salvage (a fresh layer would be a
+					// silent restart).
+					session.Skip(id, "the run baseline carries no generation random state", _currentPath);
+					return;
+				}
+
+				_run = KernelDomainWireMapper.FromWireRun(row.Run);
+				return;
+			case SaveRunRow.NativeRunFieldsKind:
+				if (_nativeRunFields is not null)
+				{
+					session.Skip(id, "a snapshot carries exactly one native run-field row", _currentPath);
+					return;
+				}
+
+				_nativeRunFields = row.NativeRunFields;
+				return;
+			default:
+				session.Skip(
+					row.Describe(),
+					string.IsNullOrEmpty(row.Kind)
+						? "this run row declares no kind; run.json carries typed rows (`run` and `native-run-fields`) and an archive written before that shape cannot be read"
+						: $"a run row declares an unusable kind '{row.Kind}'",
+					_currentPath);
+				return;
+		}
 	}
 
 	private void DecodeCharacter(JsonElement entry, SalvageSession session, string playerKey, string id)
@@ -312,6 +365,21 @@ public sealed class WorldSnapshotDecoder(SaveManifest manifest, ILogger<WorldSna
 		SaveWorldTransientRow.KeypadKind => HasPosition(entry, "keypad") && HasAllProperties(entry, "keypad", "code"),
 		SaveWorldTransientRow.GeyserKind => HasPosition(entry, "geyser") && HasAllProperties(entry, "geyser", "liquidType"),
 		SaveWorldTransientRow.RadiationLineKind => HasAllProperties(entry, "radiationLine", "active", "timeGone"),
+		_ => false,
+	};
+
+	/// <summary>
+	/// Same rule for the two <c>run.json</c> rows. The native row's two fields are
+	/// both required: an omitted <c>recipes</c> would deserialize to an empty list,
+	/// which the applier would write absolutely — re-locking every recipe the
+	/// player had unlocked — and an omitted <c>savedRunTime</c> would restart the
+	/// run clock at zero. Neither default is distinguishable from a recorded value
+	/// after deserialization, so the names are read off the raw JSON.
+	/// </summary>
+	private static bool CarriesItsOwnPayload(JsonElement entry, SaveRunRow row) => row.Kind switch
+	{
+		SaveRunRow.RunKind => HasAllProperties(entry, "run", "randomState"),
+		SaveRunRow.NativeRunFieldsKind => HasAllProperties(entry, "nativeRunFields", "savedRunTime", "recipes"),
 		_ => false,
 	};
 

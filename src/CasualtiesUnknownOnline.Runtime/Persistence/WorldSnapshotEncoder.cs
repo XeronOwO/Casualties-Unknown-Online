@@ -2,10 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.GameState.Domains.Entities;
+using CasualtiesUnknownOnline.GameState.Domains.World;
 using CasualtiesUnknownOnline.GameState.Domains.WorldEntities;
-using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
+using CasualtiesUnknownOnline.Runtime.Session.World;
 using Microsoft.Extensions.Logging;
 
 namespace CasualtiesUnknownOnline.Runtime.Persistence;
@@ -39,9 +40,9 @@ public sealed class WorldSnapshotEncoder(ILogger<WorldSnapshotEncoder> log)
 
 		WarnAboutUnpersistedDomains(payload);
 
-		var files = new List<SavePayloadFile>(9 + payload.Characters.Count)
+		var files = new List<SavePayloadFile>(12 + payload.Characters.Count)
 		{
-			Json(SaveArchiveFormat.RunFileName, new List<WireRunState> { KernelDomainWireMapper.ToWireRun(checkpoint.Run) }),
+			Json(SaveArchiveFormat.RunFileName, RunRows(checkpoint.Run, payload.RunFields)),
 			Json(SaveArchiveFormat.PlayersFileName, (checkpoint.Players?.Players ?? []).Select(KernelDomainWireMapper.ToWirePlayerState).ToList()),
 			Json(SaveArchiveFormat.ItemsFileName, checkpoint.Items.Select(KernelWireMapper.ToWireItem).ToList()),
 			Json(SaveArchiveFormat.WorldEntitiesFileName, WorldEntityRows(checkpoint.WorldEntities ?? WorldEntityState.Empty)),
@@ -61,9 +62,52 @@ public sealed class WorldSnapshotEncoder(ILogger<WorldSnapshotEncoder> log)
 			files.Add(Json(SaveArchiveFormat.CharacterFilePath(character.PlayerKey), new List<CharacterDataMsg> { character.Character }));
 		}
 
-		_log.LogInformation("Encoded snapshot payload: {Files} file(s), epoch {Epoch}, revision {Revision}, layer {Layer}, {Items} item(s), {Players} player(s), {Characters} character(s).",
-			files.Count, checkpoint.RunEpoch.Value, checkpoint.GlobalRevision, checkpoint.Run.LayerIndex, checkpoint.Items.Count, checkpoint.Players?.Players.Count ?? 0, payload.Characters.Count);
+		_log.LogInformation("Encoded snapshot payload: {Files} file(s), epoch {Epoch}, revision {Revision}, layer {Layer}, {Items} item(s), {Players} player(s), {Characters} character(s), run fields {RunFields}.",
+			files.Count, checkpoint.RunEpoch.Value, checkpoint.GlobalRevision, checkpoint.Run.LayerIndex, checkpoint.Items.Count, checkpoint.Players?.Players.Count ?? 0, payload.Characters.Count,
+			payload.RunFields is null ? "absent" : $"present ({payload.RunFields.Value.Recipes.Count} recipe row(s))");
 		return files;
+	}
+
+	/// <summary>
+	/// <c>run.json</c>'s rows: the kernel baseline, and the native run fields when
+	/// the cut captured them.
+	///
+	/// The baseline's rarity multipliers are the ones the kernel captured at the
+	/// named layer's GENERATION BOUNDARY, and they are written as they are: that
+	/// capture reads the live world after the game applied the layer's accumulation
+	/// (`WorldGeneration.cs:1061-1062`) and its Start-time trap term (`:257`), so it
+	/// IS the value the layer was generated with — and, for a layer-end cut, the
+	/// value the layer it names will be generated with.
+	///
+	/// The cut instant's own read is used to WARN when the two disagree, never to
+	/// overwrite: the live world can already be one layer ahead of the baseline (the
+	/// game accumulates the next layer's multipliers while it clears the old one, and
+	/// a cut taken in that window would otherwise stamp the NEXT layer's values onto
+	/// the layer its row names — a restore would then rebuild the named layer with
+	/// the wrong loot/trap density).
+	/// </summary>
+	private List<SaveRunRow> RunRows(RunState run, NativeRunFields? runFields)
+	{
+		var wire = KernelDomainWireMapper.ToWireRun(run);
+		if (runFields is { } fields
+			&& (fields.LootRarityMultiplier != run.LootRarityMultiplier || fields.TrapRarityMultiplier != run.TrapRarityMultiplier))
+		{
+			_log.LogWarning(
+				"The live world's rarity multipliers (loot {LiveLoot:F3}, trap {LiveTrap:F3}) differ from the run baseline this cut records (loot {RunLoot:F3}, trap {RunTrap:F3}) at layer {Layer}. The baseline — the value that layer was generated with — is what the snapshot carries; a cut taken while the game is already accumulating the next layer is the usual reason.",
+				fields.LootRarityMultiplier, fields.TrapRarityMultiplier, run.LootRarityMultiplier, run.TrapRarityMultiplier, run.LayerIndex);
+		}
+
+		var rows = new List<SaveRunRow>(2) { SaveRunRow.OfRun(wire) };
+		if (runFields is { } captured)
+		{
+			rows.Add(SaveRunRow.OfNativeRunFields(new SaveNativeRunFields
+			{
+				SavedRunTime = captured.SavedRunTime,
+				Recipes = [.. captured.Recipes],
+			}));
+		}
+
+		return rows;
 	}
 
 	private static List<SaveWorldEntityRow> WorldEntityRows(WorldEntityState state) =>

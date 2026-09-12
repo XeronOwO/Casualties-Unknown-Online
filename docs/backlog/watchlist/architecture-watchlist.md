@@ -15,10 +15,13 @@ change lands in them.
   next change to either file needs the real split: the member/limb RESERVATION bookkeeping
   (`_reservedItems`, `_reservedTargetLimbs`) is shared by reference between the medical, shrapnel
   and other-medical services and belongs in its own object.
-- `src/CasualtiesUnknownOnline.Runtime/Session/Persistence/WorldSaveService.cs` — 579 lines after
-  S3.3 split the cut writer out. It is the trigger lifecycle (armed request, deferral window,
-  report) over the writer + restore halves; the next responsibility that lands there should take
-  the restore half (`TryContinue` + the salvage/summary assembly) into its own `WorldRestoreApplier`.
+- `src/CasualtiesUnknownOnline.Runtime/Session/Persistence/WorldSaveService.cs` — 580 lines after
+  S3.3 split the cut writer out and S3.4a passed one more argument through `TryContinue` into
+  `WorldFactRestore` (no new responsibility landed in the class itself). It is the trigger lifecycle
+  (armed request, deferral window, report) over the writer + restore halves; the next responsibility
+  that lands there MUST take the restore half (`TryContinue` + the salvage/summary assembly) into its
+  own `WorldRestoreApplier`, together with the "which world is this session writing into" state
+  (`_worldId` / `_displayName` / `_pendingCharacters`) that keeps both halves in one class today.
 
 ## Near the limit (watch)
 

@@ -194,8 +194,20 @@ internal interface IPatchBridge : IRemoteBackpackPatchBridge, IRemoteMedicalPatc
 
 	bool OnGuestStartAttempt();
 
-	/// <summary>True = the CUO world repository holds a world the Continue entry can open (the entry's interactable state follows this, not the native save).</summary>
+	/// <summary>
+	/// True = the CUO world repository holds a world the Continue entry can open (the entry's interactable state follows this, not the native save).
+	/// </summary>
 	bool HasRestorableWorld();
+
+	/// <summary>
+	/// The slot the native <c>SaveSystem.TryLoadGame</c> payload application used to
+	/// occupy (the caller is <c>WorldGeneration.Start</c>). Every restored run value
+	/// that is still waiting — the run clock base and the recipe unlock table —
+	/// is written here, before the very next statements derive the layer's time
+	/// limit and trap budget from them. Values that find no live world yet stay
+	/// pending for the world-entry seam; that is logged, not treated as written.
+	/// </summary>
+	void OnNativeSaveSlot();
 
 	/// <summary>
 	/// The native Continue entry was used on the host (or in solo play): restore

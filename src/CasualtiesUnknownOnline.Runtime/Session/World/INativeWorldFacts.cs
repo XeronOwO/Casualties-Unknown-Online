@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using CasualtiesUnknownOnline.Runtime.Persistence;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.World;
@@ -60,6 +61,66 @@ public interface INativeWorldFacts
 	/// </summary>
 	IReadOnlyList<BlockDamageEntryMsg>? CaptureBlockDamages();
 
+	/// <summary>
+	/// ONE read of the native values a cut carries that the kernel's run baseline
+	/// does not hold: the two rarity multipliers (which the encoder stamps into the
+	/// run baseline row, because that is where a side that GENERATES the layer
+	/// reads them) plus the run clock base and the recipe table's unlock state.
+	///
+	/// Separate from <see cref="Capture"/> because it is safe at every seam — it
+	/// rolls no random value — so the layer-end cut carries them too (a cut that
+	/// did not would let a continued world start its clock at zero and re-lock
+	/// every recipe). A reader that met no live world reports the failure instead
+	/// of returning defaults.
+	/// </summary>
+	NativeRunFields CaptureRunFields();
+
+	/// <summary>
+	/// Host only: a RESTORED cut's run clock base is waiting for the world. The
+	/// adapter writes it when a live world can take it (the world does not exist at
+	/// the Continue click, and <c>WorldGeneration.Start</c> derives the layer's time
+	/// limit from it before any later seam). The rarity multipliers are NOT handed
+	/// over here — they ride the restored run baseline, which the
+	/// generation-parameter path applies. The recipe unlock table is not handed over
+	/// here either: it needs the world's COMPLETE recipe table, so it goes through
+	/// <see cref="ApplyRecipeUnlocks"/> and lands at the world-entry seam.
+	/// </summary>
+	void ApplyCutRunFields(float savedRunTime);
+
+	/// <summary>
+	/// Host only: the restored recipe unlock table is waiting for the world-entry
+	/// seam. It is a world-entry value rather than a save-slot value because the game
+	/// rebuilds <c>Recipes.recipes</c> in <c>WorldGeneration.Awake</c> and CUO's
+	/// mod-content provider appends the custom recipes on a LATER Update frame
+	/// (<c>GameAdapterRecipeContentProvider</c>) — a row written before that would
+	/// name a recipe the table does not have yet.
+	/// </summary>
+	void ApplyRecipeUnlocks(IReadOnlyList<SaveRecipeUnlockRow> recipes);
+
+	/// <summary>
+	/// Both roles: apply the run baseline's generation-boundary rarity multipliers.
+	/// They belong to the baseline (a layer's loot/trap distribution is scaled by
+	/// them), so a side that generates with the game's fresh 1f builds a different
+	/// layer than the run's authority. Returns false when there is no live world
+	/// yet (the host's Continue click runs before the scene loads) — the values are
+	/// then held for <see cref="TryWritePendingRunFields"/>.
+	/// </summary>
+	bool ApplyRunGenerationMultipliers(float lootRarityMultiplier, float trapRarityMultiplier);
+
+	/// <summary>
+	/// Write every restored run value that is still waiting, into the live world.
+	/// Called from the slot the native <c>SaveSystem.TryLoadGame</c> used to run in,
+	/// before <c>WorldGeneration.Start</c> derives the layer's time limit from them.
+	/// That slot is also the ONLY one they need: the world object exists there
+	/// (<c>WorldGeneration.Awake</c> assigns it before <c>Start</c>), so a <c>false</c>
+	/// return means the caller met a composition that has no live world at all and
+	/// the values stay pending for the next run's Start — never written, never
+	/// silently dropped. The recipe unlock table is NOT waiting here: it needs the
+	/// world's complete recipe table and is read through
+	/// <see cref="ReadPendingRestore"/> at the world-entry seam instead.
+	/// </summary>
+	bool TryWritePendingRunFields();
+
 	/// <summary>Host only: apply the restored keypad codes absolutely (replace, never merge).</summary>
 	void ApplyKeypadCodes(IReadOnlyList<KeypadEntryMsg> codes);
 
@@ -98,7 +159,8 @@ public interface INativeWorldFacts
 	/// waiting values — a refused or abandoned Continue, or the end of the
 	/// session. Without this the NEXT run's first generation would be mistaken for
 	/// the generation the cut was restored for and would receive the old world's
-	/// keypad codes, geyser liquid types and block damage.
+	/// keypad codes, geyser liquid types, block damage, run clock and recipe
+	/// unlocks.
 	/// </summary>
 	void CancelPendingRestore();
 }

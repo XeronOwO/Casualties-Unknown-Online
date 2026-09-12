@@ -198,6 +198,21 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 			return false;
 		}
 
+		// A new run owns the next generation, whatever happens to the folder below:
+		// a request armed for a previous world must never cut this one, and a restore
+		// armed for a previous (refused or abandoned) attempt must never be written
+		// into this world. All three halves are cancelled here — BEFORE the folder is
+		// created, so a repository that is missing or fails to create the folder cannot
+		// leave the previous attempt's values armed for this run's first generation:
+		// the armed cut, the Runtime fact tables and the adapter's native handover
+		// (keypad codes, geyser liquid types, the game's own damage rows, the run
+		// clock base and the recipe unlock table).
+		_armedReason = null;
+		_deferralStartFrame = null;
+		_audit?.AbandonRestore();
+		_worldFacts.ClearPendingLiveReplay();
+		_nativeWorldFacts?.CancelPendingRestore();
+
 		if (_repository is null)
 		{
 			_log.LogWarning("This composition root has no world repository; the run will not be saved.");
@@ -216,18 +231,6 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 		_worldId = created.WorldId;
 		_displayName = displayName;
 		_pendingCharacters = [];
-
-		// A new run owns the next generation: a request armed for a previous world
-		// must never cut this one, and a restore armed for a previous (refused or
-		// abandoned) attempt must never be written into this world. All three halves
-		// are cancelled: the armed cut, the Runtime fact tables and the adapter's
-		// native handover (keypad codes, geyser liquid types, the game's own damage
-		// rows), which would otherwise replay into this run's first generation.
-		_armedReason = null;
-		_deferralStartFrame = null;
-		_audit?.AbandonRestore();
-		_worldFacts.ClearPendingLiveReplay();
-		_nativeWorldFacts?.CancelPendingRestore();
 
 		// The picker pointer moves on the FIRST CUT, not here: an aborted start (the
 		// tutorial gate refuses after the click) must not hide the previous world
@@ -531,7 +534,7 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 		// resets the tables first (see IWorldFactSource), so a fact left over from
 		// the previous session cannot survive a cut that never named it. A refused
 		// snapshot never gets here, so nothing of a refused cut is written.
-		var factDamage = _factRestore.Apply(decode.UsableWorldBlocks, decode.UsableWorldTransients);
+		var factDamage = _factRestore.Apply(decode.UsableWorldBlocks, decode.UsableWorldTransients, decode.UsableNativeRunFields);
 
 		// The run continues in the same world: every later cut of this session
 		// writes back into it, and the picker's pointer follows the player.

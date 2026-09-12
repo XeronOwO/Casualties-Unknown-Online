@@ -40,7 +40,8 @@ internal sealed class WorldFactRestore(
 	/// </summary>
 	internal List<string> Apply(
 		IReadOnlyList<SaveWorldBlockRow> blocks,
-		IReadOnlyList<SaveWorldTransientRow> transients)
+		IReadOnlyList<SaveWorldTransientRow> transients,
+		SaveNativeRunFields? nativeRunFields = null)
 	{
 		var damage = new List<string>();
 		var blockStates = new List<BlockStateEntryMsg>();
@@ -105,34 +106,71 @@ internal sealed class WorldFactRestore(
 			damage.Add(refused);
 		}
 
+		return ApplyNativeHalf(damage, keypads, geysers, nativeDamages, nativeRunFields);
+	}
+
+	/// <summary>
+	/// The native half: the layer facts (keypad codes, geyser liquid types and the
+	/// partial block damage) and the run values (the clock base and the recipe
+	/// unlock table). Everything that cannot be put back is RETURNED as damage for
+	/// the restore report, because a value left to re-derive is a value the player
+	/// can see (§6: never a quiet default).
+	/// </summary>
+	private List<string> ApplyNativeHalf(
+		List<string> damage,
+		List<KeypadEntryMsg> keypads,
+		List<GeyserStateEntryMsg> geysers,
+		List<BlockDamageEntryMsg> nativeDamages,
+		SaveNativeRunFields? nativeRunFields)
+	{
+		var runFields = TakeRunFields(nativeRunFields, damage);
 		var nativeCount = nativeDamages.Count;
-		if (keypads.Count + geysers.Count + nativeCount == 0)
+		if (keypads.Count + geysers.Count + nativeCount == 0 && runFields is null)
 		{
 			return damage;
 		}
 
 		if (nativeWorldFacts is null)
 		{
-			damage.Add($"{keypads.Count} keypad code(s), {geysers.Count} geyser liquid type(s) and {nativeCount} game block-damage row(s) were not restored (no native applier in this build)");
+			// Names what was actually LOST, not a zero count: a snapshot whose only
+			// native content is the run fields must not be reported as "0 keypad
+			// code(s) ... were not restored".
+			var runFieldText = runFields is null
+				? string.Empty
+				: $", the run clock base ({runFields.SavedRunTime:F1}s) and {runFields.Recipes.Count} recipe unlock row(s)";
+			damage.Add($"{keypads.Count} keypad code(s), {geysers.Count} geyser liquid type(s) and {nativeCount} game block-damage row(s){runFieldText} were not restored (no native applier in this build)");
 			log.LogError(
-				"Restored world WITHOUT {Keypads} keypad code(s), {Geysers} geyser liquid type(s) and {Damages} game block-damage row(s): this build has no INativeWorldFacts, so those native facts cannot be put back.",
-				keypads.Count, geysers.Count, nativeCount);
+				"Restored world WITHOUT {Keypads} keypad code(s), {Geysers} geyser liquid type(s), {Damages} game block-damage row(s){RunFields}: this build has no INativeWorldFacts, so those native facts cannot be put back.",
+				keypads.Count, geysers.Count, nativeCount, runFieldText);
 			return damage;
 		}
 
 		// The adapter owns these tables: the Continue click runs before the world
 		// object exists, so the restore hands the values over rather than writing
-		// them from here. The adapter writes them into the live world at its
-		// world-entry seam (§4), which is also where a row its own tables refuse is
+		// them from here. The adapter writes the layer facts into the live world at
+		// its world-entry seam and the run values at the slot the native save used
+		// to occupy (§4/§6.1), which is also where a row its own tables refuse is
 		// logged.
 		try
 		{
 			nativeWorldFacts.ApplyKeypadCodes(keypads);
 			nativeWorldFacts.ApplyGeysers(geysers);
 			nativeWorldFacts.ApplyBlockDamages(nativeDamages);
+			if (runFields is { } fieldsToApply)
+			{
+				// The clock base goes to the native save slot (WorldGeneration.Start
+				// derives the layer's time limit from it); the recipe unlock table goes
+				// to the WORLD-ENTRY seam, because only there is the world's recipe
+				// table complete — the game rebuilds it in Awake and CUO's mod-content
+				// provider appends the custom recipes on a later Update frame.
+				nativeWorldFacts.ApplyCutRunFields(fieldsToApply.SavedRunTime);
+				nativeWorldFacts.ApplyRecipeUnlocks(fieldsToApply.Recipes);
+			}
+
 			log.LogInformation(
-				"Handed {Keypads} keypad code(s), {Geysers} geyser liquid type(s) and {Damages} game block-damage row(s) to the native world-fact applier.",
-				keypads.Count, geysers.Count, nativeCount);
+				"Handed {Keypads} keypad code(s), {Geysers} geyser liquid type(s), {Damages} game block-damage row(s) and {RunFields} to the native applier.",
+				keypads.Count, geysers.Count, nativeCount,
+				runFields is null ? "no native run fields" : $"run fields (clock {runFields.SavedRunTime:F1}, {runFields.Recipes.Count} recipe row(s))");
 		}
 		catch (Exception ex)
 		{
@@ -144,6 +182,26 @@ internal sealed class WorldFactRestore(
 		}
 
 		return damage;
+	}
+
+	/// <summary>
+	/// The run fields a restore has to hand over — or null when the snapshot does
+	/// not carry them, which is a NAMED gap: the continued run keeps whatever clock
+	/// and recipe state the live session has, and the player is told that the
+	/// archive could not describe those fields. Never a quiet default in either
+	/// direction (§6).
+	/// </summary>
+	private SaveNativeRunFields? TakeRunFields(SaveNativeRunFields? nativeRunFields, List<string> damage)
+	{
+		if (nativeRunFields is not null)
+		{
+			return nativeRunFields;
+		}
+
+		const string missing = "the snapshot carries no native run fields (the run clock base and the recipe unlock table), so the continued run keeps the live values";
+		damage.Add(missing);
+		log.LogWarning("Restored world WITHOUT native run fields: {Missing}.", missing);
+		return null;
 	}
 
 }

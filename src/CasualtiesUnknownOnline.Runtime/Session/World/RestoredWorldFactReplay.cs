@@ -86,6 +86,7 @@ internal sealed class RestoredWorldFactReplay(
 		LiveWorldWriteOutcome damages;
 		LiveWorldWriteOutcome keypads;
 		LiveWorldWriteOutcome geysers;
+		LiveWorldWriteOutcome recipes;
 		RadiationLineStateMsg? radiation;
 		bool radiationApplied;
 		try
@@ -105,7 +106,13 @@ internal sealed class RestoredWorldFactReplay(
 			keypads = _sink.ApplyKeypadCodes(restore.Keypads);
 			geysers = _sink.ApplyGeysers(restore.Geysers);
 
-			// 4. The radiation line: the regenerated line is inactive, and the next
+			// 4. The recipe unlock table. It belongs to this seam, not to the native
+			// save slot: the game rebuilds Recipes.recipes in WorldGeneration.Awake and
+			// CUO's mod-content provider appends the custom recipes on a later Update
+			// frame, so an early write would see a table missing every custom recipe.
+			recipes = _sink.ApplyRecipeUnlocks(restore.Recipes);
+
+			// 5. The radiation line: the regenerated line is inactive, and the next
 			// publish would silently overwrite a restored value with it.
 			radiation = _facts.CaptureRadiationLine();
 			radiationApplied = radiation is not null && _sink.ApplyRadiationLine(radiation);
@@ -128,7 +135,7 @@ internal sealed class RestoredWorldFactReplay(
 			return;
 		}
 
-		var refused = blocks.Refused + damages.Refused + keypads.Refused + geysers.Refused;
+		var refused = blocks.Refused + damages.Refused + keypads.Refused + geysers.Refused + recipes.Refused;
 		var liveWorldComplete = refused == 0 && (radiation is null || radiationApplied);
 
 		// The LIVE-WRITE account, in the words the restore report uses. The Continue
@@ -156,6 +163,11 @@ internal sealed class RestoredWorldFactReplay(
 			refusedDetail.Add($"{geysers.Refused} geyser type(s)");
 		}
 
+		if (recipes.Refused > 0)
+		{
+			refusedDetail.Add($"{recipes.Refused} recipe unlock row(s)");
+		}
+
 		if (radiation is not null && !radiationApplied)
 		{
 			refusedDetail.Add("the radiation line");
@@ -165,7 +177,7 @@ internal sealed class RestoredWorldFactReplay(
 			liveWorldComplete,
 			refusedDetail,
 			liveWorldComplete
-				? $"the live world took every restored fact ({blocks.Applied} block-state, {damages.Applied} partial-damage, {keypads.Applied} keypad, {geysers.Applied} geyser row(s))"
+				? $"the live world took every restored fact ({blocks.Applied} block-state, {damages.Applied} partial-damage, {keypads.Applied} keypad, {geysers.Applied} geyser, {recipes.Applied} recipe unlock row(s))"
 				: $"the live world did not take {string.Join(", ", refusedDetail)}");
 
 		if (liveWorldComplete)
@@ -176,9 +188,10 @@ internal sealed class RestoredWorldFactReplay(
 		}
 
 		_log.LogInformation(
-			"[SaveFacts] restored the live world: {Blocks} block-state row(s) written, {Damages} partial-damage row(s) applied, {Keypads} keypad code(s) applied (the archive carried {KeypadTotal}), {Geysers} geyser type(s) applied (the archive carried {GeyserTotal}), radiation line {Radiation}, {Refused} row(s) not taken, restore {Restore}.",
+			"[SaveFacts] restored the live world: {Blocks} block-state row(s) written, {Damages} partial-damage row(s) applied, {Keypads} keypad code(s) applied (the archive carried {KeypadTotal}), {Geysers} geyser type(s) applied (the archive carried {GeyserTotal}), {Recipes} recipe unlock row(s) applied (the archive carried {RecipeTotal}), radiation line {Radiation}, {Refused} row(s) not taken, restore {Restore}.",
 			blocks.Applied, damages.Applied,
 			keypads.Applied, restore.Keypads.Count, geysers.Applied, restore.Geysers.Count,
+			recipes.Applied, restore.Recipes.Count,
 			radiation is null ? "absent" : radiationApplied ? "applied" : "no live line",
 			refused,
 			liveWorldComplete ? "complete" : "INCOMPLETE (reported at error level, not retried)");
@@ -194,8 +207,8 @@ internal sealed class RestoredWorldFactReplay(
 			_nativeFacts?.CancelPendingRestore();
 			_facts.ClearPendingLiveReplay();
 			_log.LogError(
-				"[SaveFacts] the live world did NOT take every restored fact ({Blocks} block-state, {Damages} partial-damage, {Keypads} keypad and {Geysers} geyser row(s) refused, radiation {Radiation}) — the restored state is INCOMPLETE and those rows are NOT in the live world.",
-				blocks.Refused, damages.Refused, keypads.Refused, geysers.Refused,
+				"[SaveFacts] the live world did NOT take every restored fact ({Blocks} block-state, {Damages} partial-damage, {Keypads} keypad, {Geysers} geyser and {Recipes} recipe unlock row(s) refused, radiation {Radiation}) — the restored state is INCOMPLETE and those rows are NOT in the live world.",
+				blocks.Refused, damages.Refused, keypads.Refused, geysers.Refused, recipes.Refused,
 				radiation is null ? "absent" : radiationApplied ? "applied" : "no live line");
 		}
 	}

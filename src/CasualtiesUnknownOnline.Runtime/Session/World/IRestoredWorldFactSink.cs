@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using CasualtiesUnknownOnline.Runtime.Persistence;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 
 namespace CasualtiesUnknownOnline.Runtime.Session.World;
@@ -40,6 +41,17 @@ internal interface IRestoredWorldFactSink
 
 	/// <summary>Write the restored geyser liquid types. Returns the entries applied and the entries the live world had no geyser for.</summary>
 	LiveWorldWriteOutcome ApplyGeysers(IReadOnlyList<GeyserStateEntryMsg> geysers);
+
+	/// <summary>
+	/// Write the restored recipe unlock table. It lands HERE rather than at the
+	/// native save slot because the game rebuilds <c>Recipes.recipes</c> in
+	/// <c>WorldGeneration.Awake</c> and CUO's mod-content provider appends the custom
+	/// recipes on a later Update frame: by the world-entry edge the table is the one
+	/// this world will use, so a saved row's index means the recipe it meant. Returns
+	/// the rows the live table took and the rows it has no recipe for (a mod update
+	/// removed it) — the restore report names those.
+	/// </summary>
+	LiveWorldWriteOutcome ApplyRecipeUnlocks(IReadOnlyList<SaveRecipeUnlockRow> recipes);
 
 	/// <summary>Write the restored radiation line. False when the live world has no line object to write it onto.</summary>
 	bool ApplyRadiationLine(RadiationLineStateMsg line);

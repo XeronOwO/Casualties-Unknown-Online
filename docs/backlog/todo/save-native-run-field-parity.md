@@ -1,11 +1,65 @@
 # Native run fields are not covered by the world archive
 
-- Status: Todo (decision frozen with the user on 2026-09-10; implementation lands with S3.4 of
-  `todo/save-mid-run-consistent-cut.md`)
+- Status: Todo — **S3.4a landed 2026-09-11** (the run-level fields: both rarity multipliers, the run
+  clock base and the recipe unlock table). S3.4b (the character-level fields: `lastHappiness`,
+  `caloriesConsumed`, `WoundView.cInfo`) is NOT implemented yet and stays open here.
 - Priority: Medium-High
 - Category: Persistence / save system
 - Source: found by the S2 independent adversarial review (2026-09-10)
-- Related: `docs/architecture/save-archive-format.md`, `review/save-layer-end-save-and-restore.md` (S2), `docs/decisions/active.md` 166
+- Related: `docs/architecture/save-archive-format.md`, `review/save-layer-end-save-and-restore.md` (S2), `docs/decisions/active.md` 166, 169
+
+## Landed (S3.4a, 2026-09-11)
+
+| field | where it lives now | restore seam |
+|---|---|---|
+| `lootRarityMultiplier` | `run.json`'s `run` row (`WireRunState.LootRarityMultiplier`), STAMPED with the cut instant's value | the kernel baseline, applied at the Continue click (`WorldParamsService.TryApplyRestoredNow`), written into the live world through the adapter's pending handover |
+| `trapRarityMultiplier` | same | same |
+| `savedRunTime` | `run.json`'s `native-run-fields` row | the adapter writes it at the native `SaveSystem.TryLoadGame` slot, before `WorldGeneration.cs:252-262` derives from it |
+| `savedRecipeData` | `run.json`'s `native-run-fields` row (one row per recipe, keyed by INDEX) | the WORLD-ENTRY seam (`RestoredWorldFactReplay`), not the save slot: the game rebuilds `Recipes.recipes` in `WorldGeneration.Awake` and CUO's mod-content provider appends the custom recipes on a later Update frame, so an early write would refuse every custom recipe. A row whose index the finished table lacks is refused by name into the restore account |
+
+The recipe table's seam was found by the S3.4a independent adversarial pass: the first implementation
+wrote it at the save slot together with the clock, which would have dropped every mod recipe's unlock
+(the table there still holds vanilla recipes only) and reported it in the log alone.
+
+Both multipliers also travel the WIRE (`WireRunState` → `WorldStartParams`), which closes the second
+half of the same defect: a guest joining a run at layer 3 generated with the game's fresh `1f` while
+the host used the run's accumulated value, so the two sides built different layers. The capture is the
+generation boundary (`WorldParamsService.CaptureAtBoundary`), the same instant the RNG baseline is
+taken. Evidence: `WorldRunFieldTests` (cut rows, layer-end cut, unreadable reader refuses the cut,
+restore handover, named absence), `WorldRunStateProjectionTests` (wire round trip + old-sender
+degradation), `WorldSnapshotCodecTests` (malformed native row skipped by itself, sound row round-trips).
+
+Reading is all-or-nothing for the same reason the damage table is: a reader that met no live world (or
+no recipe table) reports a failure and the cut REFUSES, because a snapshot whose clock reads back as 0
+and whose recipe table reads back as empty is worse than no snapshot — the player continues believing
+the world was recorded. Recipe rows are written back by INDEX, not by position, because
+`GameAdapterRecipeContentProvider` appends custom recipes to `Recipes.recipes`.
+
+## Recorded gaps from the S3.4a adversarial pass (not fixed here)
+
+| gap | why it matters | where it would land |
+|---|---|---|
+| The run clock base is archived but NOT sent | a guest joining a run mid-way has `SaveSystem.savedRunTime == 0`, so `WorldGeneration.TotalRunTime()` (the pause/tooltip/death-stat clock) shows only the time since it joined. Pre-existing, but the field is now formally a run-level value | the run baseline (it is not a generation input, so it does not belong in `WorldStartParams`' generation group) or a small absolute message at the world-entry fan-out |
+| `layerTimeSpent` / `maxTimePerLayer` are not carried | continuing into the SAME layer restarts the radiation-line timer and hands the player a fresh `timelimit`. The native save does not carry it either | `run.json`'s native row (the field is game state no CUO domain owns) — decide with S3.5 |
+| No value-range guard on the multipliers | a malformed or hostile wire value (NaN/Inf) reaches `WorldGeneration.lootRarityMultiplier` unchanged. Low priority (accept-first, no anti-cheat in MVP) but the kernel already asserts its other invariants | `WorldDomainModule.AssertInvariants` |
+| `WorldParamsService` injects the concrete adapter type | the new capture/apply branches cannot be covered by `FakeNativeWorldFacts`, so they are only reachable through the adapter's own tests | change the dependency to `INativeWorldFacts` (the port it already uses for everything else) |
+
+Accepted as-is: log lines format floats with the current culture (the codebase does this
+everywhere); `WorldGeneration.cs:257`'s Start-time trap term is reproduced exactly as the native path
+does it (the generation boundary reads the live world, so both sides agree).
+
+## Still open (S3.4b)
+
+| field | decided home | why it is not done |
+|---|---|---|
+| `lastHappiness` | `characters/<playerKey>.json` | needs a per-player capture (the host can read its own body at the cut; a guest's value can only come from that guest's own report) and an apply through the character-restore path; `CharacterDataMsg` has no field for it yet |
+| `caloriesConsumed` | same | same |
+| `WoundView.cInfo` | same | same; it is a WINDOW value (four ints) with no reader besides the save system |
+
+Until S3.4b lands a continued run keeps the LIVE values for these three fields, and no report names
+them yet (the native-run-field row names the run-level values only). Closing that gap means either
+implementing the fields or naming them explicitly in the restore report — a silent default is what §6
+forbids.
 
 ## Problem
 
@@ -34,6 +88,11 @@ for the layer's generated content on the FIRST layer of a run, but a restore dee
 not byte-identical to the interrupted run.
 
 ## Decision (frozen with the user, 2026-09-10)
+
+The table is the frozen INTENT. Where landing refined the mechanism it is recorded in *Landed
+(S3.4a)* above — in particular the two multipliers ride the kernel run baseline (so the wire and the
+restore use one source) instead of being written only from a private cut block, and the clock base
+and recipe table are one typed `run.json` row rather than a third blob.
 
 | field | decided home | restore seam |
 |---|---|---|

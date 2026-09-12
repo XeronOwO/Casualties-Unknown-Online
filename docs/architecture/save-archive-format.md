@@ -109,14 +109,26 @@ the format.
 **Every payload file's root is a JSON array of entries**, and the decoder is handed ONE entry at a
 time: that is the seam §6's per-entry salvage runs on, so a single unmaterializable row — an item
 definition or prefab a mod update removed, an unmappable id — is skipped by itself. A file whose
-root is not an array is a whole-file defect, never guessed at. A single-record table
-(`run.json`, a character file) is therefore an array of one entry.
+root is not an array is a whole-file defect, never guessed at. A single-record table (a character
+file) is therefore an array of one entry; `run.json` writes one row per shape it carries (below).
 
 **A table whose facts have more than one shape writes typed rows.** `world-entities.json` rows
 carry `kind` (`trap-consumption` | `building-health` | `opened-entity` | `trap-state`) and the row's
 own payload; `enemies.json` rows carry `kind` (`enemy` | `removed`), where `removed` is the
 terminal tombstone that stops a killed enemy from being resurrected. A single-shape table writes
 its row type directly.
+
+`run.json` carries two kinds: **`run`** (the kernel baseline) and **`native-run-fields`** (the run
+values no CUO domain owns — the run clock base and the recipe table's unlock state), and the native
+row is the shape §6's "a dropped field must be named" rule reads: a snapshot without it is restored
+with the live clock and recipe state, and the report says so. The kernel row's
+`lootRarityMultiplier` / `trapRarityMultiplier` are the world-generation inputs the game accumulates
+once per layer (`WorldGeneration.cs:1061-1062`, `:4174-4177`); a cut STAMPS the cut instant's values
+onto that row, because a mid-run cut is taken inside the layer the row describes, and the row is what
+a peer that later generates the layer is handed. They are part of the baseline, not decoration: a
+guest that generated with the game's fresh `1f` would build a different layer than the host's
+(S3.4). `run.json` is still ONE file whose root is one entry array — the two rows are typed rows of
+the same file, exactly like `world-blocks.json`'s `block-state` and `native-block-damage`.
 
 `world-blocks.json` is the in-layer block diff, and its rows carry `kind` (`block-state` |
 `native-block-damage`) with the row's wire payload: `blockState` is `{x, y, block}` — a block whose
@@ -174,8 +186,11 @@ There are exactly two seams:
   boundary). The cut therefore holds the run baseline of the layer being entered: the layer index
   and the generation random state a restore must replay to regenerate the same layer. Taking it
   before the commit would store the previous layer's baseline and regenerate a different world. A
-  layer-end cut records no in-layer fact (§3.4), so no in-flight state can be lost by one and the
-  transient policy below does not apply to it.
+  layer-end cut records no IN-LAYER fact (§3.4), so no in-flight state can be lost by one and the
+  transient policy below does not apply to it — but it DOES carry the native run fields, because the
+  run clock and the recipe unlocks outlive the layer. Its native reads are narrowly scoped for that
+  reason: it takes the run fields only and never touches the keypad table, whose capture ROLLS the
+  codes the game has not decided yet.
 - `frame-end` — the CUO pump's LAST step (`GameAdapter.Update`, after every domain update and
   after the frame's drop/break flushes): the one point where no CUO command batch is mid-commit and
   no CUO frame flush is mid-send. What makes the cut a consistent one is not Unity's frame boundary —
@@ -263,10 +278,14 @@ Decision 163: restore minimizes loss, and salvage is **per entry, not per domain
 - **A restore has two halves in time, and the second one reports too.** The Continue click applies
   the kernel checkpoint and the Runtime fact tables; the values only a live world can take (the
   block diff, the game's own partial-damage list, the decided keypad/geyser values, the radiation
-  line) are written at the world-entry seam afterwards. Both halves travel back to the caller that
-  started the restore through `WorldRestoreAudit`: the Runtime table's per-row apply counts AND the
-  live-world write's refused counts, so a restore can never be reported as a success while the
-  game's own bounded (128-entry) table refused a row.
+  line, the run clock base and the recipe unlock table) are written at the world-entry seam
+  afterwards. Both halves travel back to the caller that started the restore through
+  `WorldRestoreAudit`: the Runtime table's per-row apply counts AND the live-world write's refused
+  counts, so a restore can never be reported as a success while the game's own bounded (128-entry)
+  table refused a row. A snapshot that carries no native run-field row is named in the same account
+  rather than silently continuing with a clock that restarts at zero and every recipe re-locked; a
+  recipe row whose index no longer exists in the live table is refused by name and leaves that
+  recipe's live state alone.
 - **A dropped in-flight class is reported at the CUT.** Deciding a class `drop-with-log` means the
   player is told what the cut left behind and why (§4): the cut's report names the count and the
   class for every row a CUO owner counted, names the `Standing` classes it can never carry, and
@@ -297,9 +316,17 @@ are then written onto that fresh copy. The seams are fixed and different on purp
   keypad/geyser broadcasts go out — the peers must receive the restored values, not freshly rolled
   ones. The **layer-boundary reset is skipped** for that generation: the restored tables ARE the
   restored layer's facts, not a previous layer's leftovers.
-- **Native run fields** (`lootRarityMultiplier`, `savedRunTime`, recipe unlocks, …) keep their own
-  seam: the slot where the native `SaveSystem.TryLoadGame` used to run, because
-  `WorldGeneration.Start` derives from them before the first generation frame (S3.4).
+- **Native run fields** keep their own seams, because two of them need different worlds than
+  the other two. The two rarity multipliers (world-generation inputs) and the run clock base
+  must be in place BEFORE `WorldGeneration.Start` derives the layer's time limit and trap budget,
+  so the adapter writes them at the slot where the native `SaveSystem.TryLoadGame` used to run
+  (`WorldGeneration.cs:252-262`, S3.4). The recipe unlock table (`Recipes.recipes[].hasMadeBefore` /
+  `.INT`) lands at the world-entry seam with the other native layer facts instead: the game REBUILDS
+  the table in `WorldGeneration.Awake` and CUO's mod-content provider appends the custom recipes on a
+  later Update frame, so a write at the save slot would see a table still missing every custom
+  recipe and would refuse those rows. A snapshot that carries no native run-field row is restored
+  with the live clock and recipe state, and the restore report names the gap; a recipe row whose
+  index the world's finished table does not have is refused by name in the same report.
 
 Verification boundary: the codec, the routing per row kind, the tables' caps and the replay
 lifecycle are machine-verified in the Runtime suites; the parts that read the live game tables

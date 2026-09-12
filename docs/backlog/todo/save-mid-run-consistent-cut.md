@@ -14,9 +14,16 @@
   with the armed-cut trigger (`/save` on the host console, the menu return upgraded to a full
   mid-run cut at the same seam), the per-row transient policy table, the bounded
   resolve-before-save deferral, the restore-report completeness work of scope 6, and the cut
-  writer's split out of `WorldSaveService`. S3.4 (native run fields) and S3.5 (exactly-once plus
-  documentation and re-anchoring) are next; the mid-run trigger is now OPEN, so a build produces
-  both the S2 layer-end cut and the frame-end mid-run cut.
+  writer's split out of `WorldSaveService`. **S3.4a (the run-level native fields) landed
+  2026-09-11**: the two rarity multipliers now ride the kernel run baseline (and therefore the wire,
+  which is what a side that GENERATES the layer reads them from) and a cut stamps the cut instant's
+  value on them; the run clock base and the recipe unlock table are `run.json`'s new
+  `native-run-fields` row, written back by the adapter at the slot the native
+  `SaveSystem.TryLoadGame` used to occupy, and a reader that cannot read them refuses the cut.
+  S3.4b (the character-level native fields — `lastHappiness`, `caloriesConsumed`,
+  `WoundView.cInfo`) is still open, as are S3.5 (exactly-once plus documentation and re-anchoring)
+  and scopes 7-9; the mid-run trigger is OPEN, so a build produces both the S2 layer-end cut and the
+  frame-end mid-run cut.
 - Priority: High
 - Category: Persistence / save system
 - Source: Stage 3 of `docs/backlog/in-progress/save-system-mid-run-and-layer-end.md`; this is the user's hard requirement — "需要重点关注存档的中途性质，防止出现多生成、少生成内容的情况"
@@ -73,6 +80,57 @@ boundary (the guarantee is the single synchronous read); the menu return's "cut 
 anyway, previous snapshot intact" behaviour is documented; a composition with no native reader now
 names what it cannot carry in the cut report (not only the log); the `/save` answer no longer
 promises "this frame" when a deferral can wait.
+
+## S3.4a self-check (2026-09-11)
+
+| mechanism | change | evidence |
+|---|---|---|
+| `WorldGeneration.lootRarityMultiplier` / `.trapRarityMultiplier` (per-layer accumulation, `WorldGeneration.cs:1061-1062`) | captured at the generation boundary and carried in the run baseline (`RunState` → `WireRunState` → `WorldStartParams`); a cut STAMPS the cut instant's value on `run.json`'s `run` row | `WorldRunFieldTests.MidRunCut_WritesTheRunBaselineAndTheNativeRunFields`, `WorldRunStateProjectionTests.RunBaseline_CarriesTheRarityMultipliersThroughTheWireAndBack` |
+| the same values on a peer that GENERATES the layer | guest applies them with the rest of the world params (`WorldParamsService.Apply`) | `WorldRunStateProjectionTests.RunBaseline_CarriesTheRarityMultipliersThroughTheWireAndBack`; the in-game two-side generation match stays a dual-client check |
+| `SaveSystem.savedRunTime + world.realTimeElapsed` (`SaveSystem.cs:165`) | cut-instant read, `run.json`'s `native-run-fields` row, written back at the slot the native load occupied | `WorldRunFieldTests.Continue_HandsTheRestoredRunFieldsToTheNativeApplier`, `Decode_NativeRunFieldsRow_RoundTripsTheClockAndTheUnlocks` |
+| `Recipes.recipes[].hasMadeBefore` / `.INT` (`SaveSystem.cs:151-157`, `:442-447`) | same row, one entry per recipe, applied by INDEX at the WORLD-ENTRY seam (the game rebuilds the table in `WorldGeneration.Awake` and CUO appends the custom recipes on a later Update frame, so the save slot would see only the vanilla table) | `RestoredWorldFactReplayTests.ApplyIfPending_WritesTheCutInTheLoadBearingOrder`, `ApplyIfPending_RecipeRowsTheWorldCannotTake_ReachTheRestoreAccount` |
+| a native read that cannot see a world | REFUSES the cut instead of writing zeros/empties | `WorldRunFieldTests.UnreadableRunFields_RefuseTheCut` |
+| an archive written before the row existed | restores with the live clock/recipe state and NAMES the gap | `WorldRunFieldTests.Continue_WithoutTheNativeRow_NamesTheGapInsteadOfWritingDefaults`, `Continue_WithoutANativeApplier_NamesTheRunFieldsItCouldNotRestore`, `WorldSnapshotCodecTests.Decode_MalformedNativeRunFieldsRow_IsSkippedWhileTheBaselineApplies` |
+| a layer-end cut | carries the run fields, still writes the two empty in-layer files, and never reads the keypad table | `WorldRunFieldTests.LayerEndCut_CarriesTheRunFieldsAndStampsTheBaseline` |
+
+**Not proven by the above**: the in-game result (the layer's loot/trap distribution actually
+matching, the recipe list actually staying unlocked, the clock display continuing) — those are the
+user's dual-client pass. `WoundView.SetCharDetails`/`cInfo` and the two character-level fields are
+S3.4b and are NOT implemented; see `todo/save-native-run-field-parity.md`.
+
+## S3.4a independent adversarial pass (2026-09-11)
+
+An independent reviewer (fresh context, no stake in the change) audited the implementation against
+its eight claims by reading the code and the decompiled game. It could NOT falsify: the multiplier
+capture point and the guest's pre-generation application, the clock base's read/write pair against
+the native semantics, the layer-end cut's narrow native read (no keypad roll), the write-back slot
+(`Awake` assigns the world before `Start`), the pending/cancel lifecycle, the "no silent loss" rule
+end to end, and the salvage/format changes. It DID find real defects, all fixed before this stage
+moved on:
+
+1. **The recipe unlock table was written at the wrong seam** (blocker-class for the recipe half): the
+   game REBUILDS `Recipes.recipes` in `WorldGeneration.Awake` and CUO's mod-content provider appends
+   the custom recipes on a LATER Update frame, so the save slot saw only the vanilla table and would
+   have refused every custom recipe's row — silently, in the log alone. Fixed by moving the recipe
+   rows to the world-entry seam (`NativeWorldFactRestore.Recipes` + `IRestoredWorldFactSink.
+   ApplyRecipeUnlocks`), where the table is complete, and by letting their refusals reach the restore
+   account (`RestoredWorldFactReplay`). New evidence:
+   `RestoredWorldFactReplayTests.ApplyIfPending_RecipeRowsTheWorldCannotTake_ReachTheRestoreAccount`.
+2. **Stamping the cut instant's multipliers onto the baseline was wrong** for a cut taken while the
+   game has already accumulated the NEXT layer's values (the window between
+   `WorldGeneration.cs:1061-1062` and the kernel's layer advance spans `Clear()`): the snapshot would
+   have rebuilt the named layer with the next layer's loot/trap density. Fixed by keeping the
+   baseline's own generation-boundary capture (which IS the value the named layer was generated with)
+   and WARNING when the live world disagrees. New evidence:
+   `WorldRunFieldTests.MidRunCut_WhileTheWorldIsAlreadyOnTheNextLayer_KeepsTheBaselineMultipliers`.
+3. Smaller findings, fixed in the same pass: `TryBeginRun`'s cancel now runs before its early returns
+   (a failed folder creation could leave a previous restore armed), a half-pair of multipliers is no
+   longer completed with a guessed `1f`, the adapter write is guarded so a throw cannot abort world
+   generation, and a `run.json` row without a kind now says "this is the pre-typed-row archive"
+   instead of "an unusable kind ''". Recorded but NOT fixed (they are the same family, outside this
+   stage): the run clock is not on the wire, `layerTimeSpent`/`maxTimePerLayer` are not carried, no
+   value-range guard on wire multipliers, and `WorldParamsService` injects the concrete adapter type.
+   See `todo/save-native-run-field-parity.md` → "Recorded gaps".
 
 ## Scope
 

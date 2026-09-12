@@ -20,7 +20,8 @@ public sealed record WorldSnapshotDecode(
 	IReadOnlyList<SavedCharacter> Characters,
 	string? Refusal,
 	IReadOnlyList<SaveWorldBlockRow>? WorldBlocks = null,
-	IReadOnlyList<SaveWorldTransientRow>? WorldTransients = null)
+	IReadOnlyList<SaveWorldTransientRow>? WorldTransients = null,
+	SaveNativeRunFields? NativeRunFields = null)
 {
 	public bool CanRestore => Checkpoint is not null;
 
@@ -32,6 +33,14 @@ public sealed record WorldSnapshotDecode(
 
 	/// <summary>The transient world facts of a refused snapshot: empty, for the same reason.</summary>
 	public IReadOnlyList<SaveWorldTransientRow> UsableWorldTransients => Checkpoint is null ? [] : WorldTransients ?? [];
+
+	/// <summary>
+	/// The native run fields of a refused snapshot: null, for the same reason. Null
+	/// also means the snapshot CARRIES none (it predates the row), which the restore
+	/// reports by name instead of letting the world continue with a clock that
+	/// restarts at zero and every recipe re-locked.
+	/// </summary>
+	public SaveNativeRunFields? UsableNativeRunFields => Checkpoint is null ? null : NativeRunFields;
 
 	public static WorldSnapshotDecode Refused(string reason) => new(null, [], reason);
 }

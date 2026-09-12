@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using CasualtiesUnknownOnline.GameState.Domains.World;
+using CasualtiesUnknownOnline.Runtime.Persistence;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 
@@ -6,11 +8,12 @@ namespace CasualtiesUnknownOnline.Tests.Persistence;
 
 /// <summary>
 /// In-memory stand-in for the adapter's native world-fact tables (keypad codes,
-/// geyser liquid types and the game's own partial-damage list) — the optional
-/// half of the world-fact seam. It records its calls so a save suite can prove
-/// which half of the restore the Runtime owns and which half it hands over, and
-/// it carries the same pending lifecycle as the real handover: an apply arms a
-/// pending set that exactly one take (or one cancel) ends.
+/// geyser liquid types and the game's own partial-damage list) and its native run
+/// fields (the rarity multipliers, the run clock base and the recipe unlock
+/// table) — the optional half of the world-fact seam. It records its calls so a
+/// save suite can prove which half of the restore the Runtime owns and which half
+/// it hands over, and it carries the same pending lifecycle as the real handover:
+/// an apply arms a pending set that exactly one take (or one cancel) ends.
 /// </summary>
 internal sealed class FakeNativeWorldFacts : INativeWorldFacts
 {
@@ -18,6 +21,12 @@ internal sealed class FakeNativeWorldFacts : INativeWorldFacts
 	private readonly List<GeyserStateEntryMsg> _geysers = [];
 	private readonly List<BlockDamageEntryMsg> _damages = [];
 	private bool _pending;
+
+	private float _lootRarityMultiplier = RunRarityMultipliers.Neutral;
+	private float _trapRarityMultiplier = RunRarityMultipliers.Neutral;
+	private float _savedRunTime;
+	private readonly List<SaveRecipeUnlockRow> _recipes = [];
+	private bool _runFieldsPending;
 
 	internal List<string> Calls { get; } = [];
 
@@ -61,6 +70,66 @@ internal sealed class FakeNativeWorldFacts : INativeWorldFacts
 		return CaptureFailure is null ? [.. _damages] : null;
 	}
 
+	/// <summary>The native run fields as the "live world" holds them (seeded, or written back by a restore).</summary>
+	internal NativeRunFields RunFields => new(
+		_lootRarityMultiplier, _trapRarityMultiplier, _savedRunTime, [.. _recipes], CaptureRunFieldsFailure);
+
+	/// <summary>Set to make <see cref="CaptureRunFields"/> report an unreadable read — the "no live world" shape.</summary>
+	internal string? CaptureRunFieldsFailure { get; set; }
+
+	/// <summary>Seed the values a cut is supposed to read out of the live world.</summary>
+	internal void SeedRunFields(float lootRarity, float trapRarity, float savedRunTime, params SaveRecipeUnlockRow[] recipes)
+	{
+		_lootRarityMultiplier = lootRarity;
+		_trapRarityMultiplier = trapRarity;
+		_savedRunTime = savedRunTime;
+		_recipes.Clear();
+		_recipes.AddRange(recipes);
+	}
+
+	public NativeRunFields CaptureRunFields()
+	{
+		Calls.Add("capture-run-fields");
+		return CaptureRunFieldsFailure is { } failure
+			? NativeRunFields.Unreadable(failure)
+			: RunFields;
+	}
+
+	public void ApplyCutRunFields(float savedRunTime)
+	{
+		Calls.Add("apply-cut-run-fields");
+		_savedRunTime = savedRunTime;
+		_runFieldsPending = true;
+	}
+
+	public void ApplyRecipeUnlocks(IReadOnlyList<SaveRecipeUnlockRow> recipes)
+	{
+		Calls.Add("apply-recipe-unlocks");
+		// The recipes join the WORLD-ENTRY handover (like the keypads and geysers),
+		// not the run-field handover: they need the world's complete recipe table.
+		_recipes.Clear();
+		_recipes.AddRange(recipes);
+		_pending = true;
+	}
+
+	public bool ApplyRunGenerationMultipliers(float lootRarityMultiplier, float trapRarityMultiplier)
+	{
+		Calls.Add("apply-run-multipliers");
+		_lootRarityMultiplier = lootRarityMultiplier;
+		_trapRarityMultiplier = trapRarityMultiplier;
+		return true;
+	}
+
+	public bool TryWritePendingRunFields()
+	{
+		Calls.Add("write-pending-run-fields");
+		_runFieldsPending = false;
+		return true;
+	}
+
+	/// <summary>True = a restored run value is waiting for the live world (the production handover's own flag).</summary>
+	internal bool HasPendingRunFields => _runFieldsPending;
+
 	public void ApplyKeypadCodes(IReadOnlyList<KeypadEntryMsg> codes)
 	{
 		Calls.Add("apply-keypads");
@@ -96,7 +165,7 @@ internal sealed class FakeNativeWorldFacts : INativeWorldFacts
 	{
 		Calls.Add("read-pending");
 		return _pending
-			? new NativeWorldFactRestore([.. _keypads], [.. _geysers], [.. _damages])
+			? new NativeWorldFactRestore([.. _keypads], [.. _geysers], [.. _damages], [.. _recipes])
 			: NativeWorldFactRestore.Empty;
 	}
 
@@ -115,7 +184,7 @@ internal sealed class FakeNativeWorldFacts : INativeWorldFacts
 
 	public void CancelPendingRestore()
 	{
-		if (!_pending)
+		if (!_pending && !_runFieldsPending)
 		{
 			// Mirrors the production handover: a cancel with nothing pending is a
 			// no-op that records nothing (every run start calls it).
@@ -124,5 +193,6 @@ internal sealed class FakeNativeWorldFacts : INativeWorldFacts
 
 		Calls.Add("cancel-pending");
 		_pending = false;
+		_runFieldsPending = false;
 	}
 }

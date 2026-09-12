@@ -173,6 +173,27 @@ internal sealed class WorldParamsService(
 		var biomeOverride = (byte)HarmonyTraverse.ReadBiomeOverride();
 		var biomeDepth = (byte)HarmonyTraverse.ReadBiomeDepth();
 		var totalTraveled = HarmonyTraverse.ReadTotalTraveled();
+
+		// The rarity multipliers are world-defining inputs like the fields above:
+		// the layer's loot/trap distribution is scaled by them, and the game has
+		// already applied this layer's accumulation by the time this boundary runs
+		// (WorldGeneration.cs:1061-1062, before InstantiateWorld). A side that
+		// generated with the game's fresh 1f would build a different layer than this
+		// one, so they travel with the baseline. They are read from the LIVE world,
+		// never from the run settings, which only carry the per-layer increments.
+		var world = WorldGeneration.world;
+		float? lootRarity = null;
+		float? trapRarity = null;
+		if (world != null) // Unity object — ==
+		{
+			lootRarity = world.lootRarityMultiplier;
+			trapRarity = world.trapRarityMultiplier;
+		}
+		else
+		{
+			_log.LogWarning("World params captured with no live world: the rarity multipliers are not part of this baseline, and a peer generating from it would use the game's fresh values.");
+		}
+
 		_world.PublishWorldParams(new WorldStartParams
 		{
 			RandomState = randomState,
@@ -180,12 +201,15 @@ internal sealed class WorldParamsService(
 			BiomeOverride = biomeOverride,
 			BiomeDepth = biomeDepth,
 			TotalTraveled = totalTraveled,
+			LootRarityMultiplier = lootRarity,
+			TrapRarityMultiplier = trapRarity,
 			// LoadedRun: no backing game field (PreRunScript.LoadRun is the
 			// save-load flow — Phase 3 saves scope) — stays false on the wire.
 		});
 		_log.LogInformation("Captured world params ({StateBytes} bytes, {SettingCount} settings, "
-			+ "biome {Biome}/{Depth}, traveled {Traveled}).",
-			randomState.Length, runSettings?.Count ?? 0, biomeOverride, biomeDepth, totalTraveled);
+			+ "biome {Biome}/{Depth}, traveled {Traveled}, loot {Loot}, trap {Trap}).",
+			randomState.Length, runSettings?.Count ?? 0, biomeOverride, biomeDepth, totalTraveled,
+			lootRarity?.ToString("F3") ?? "<none>", trapRarity?.ToString("F3") ?? "<none>");
 	}
 
 	/// <summary>
@@ -252,7 +276,39 @@ internal sealed class WorldParamsService(
 		HarmonyTraverse.WriteBiomeDepth(parameters.BiomeDepth);
 		HarmonyTraverse.WriteTotalTraveled(parameters.TotalTraveled);
 
-		_log.LogInformation("Applied host world params ({StateBytes} bytes).", parameters.RandomState.Length);
+		// The generation boundary's rarity multipliers: the host captured them from
+		// the world it just generated with, and the guest must generate the SAME
+		// layer. An older sender that carries none leaves the game's own Start-time
+		// value in place, which is the behavior the sender itself had. A sender that
+		// carries only ONE of the two is not guessed at: the pair is captured together,
+		// so a half-pair is a producer bug and the other half keeps the game's value.
+		if (parameters.LootRarityMultiplier is not null && parameters.TrapRarityMultiplier is not null)
+		{
+			try
+			{
+				_nativeWorldFacts.ApplyRunGenerationMultipliers(parameters.LootRarityMultiplier.Value, parameters.TrapRarityMultiplier.Value);
+			}
+			catch (Exception ex)
+			{
+				// The adapter is the only layer that can throw here (it touches the live
+				// game), and this runs inside the generation coroutine: a throw must not
+				// abort world generation over a multiplier, so it is named and the game's
+				// own value stands.
+				_log.LogError(ex, "[WorldParams] the live world refused the run baseline's rarity multipliers (loot {Loot}, trap {Trap}); the layer keeps the game's own values.",
+					parameters.LootRarityMultiplier.Value, parameters.TrapRarityMultiplier.Value);
+			}
+		}
+		else if (parameters.LootRarityMultiplier is not null || parameters.TrapRarityMultiplier is not null)
+		{
+			_log.LogWarning(
+				"[WorldParams] the run baseline carries only one rarity multiplier (loot {Loot}, trap {Trap}); neither is applied, so the layer keeps the game's own values.",
+				parameters.LootRarityMultiplier?.ToString() ?? "<none>", parameters.TrapRarityMultiplier?.ToString() ?? "<none>");
+		}
+
+		_log.LogInformation("Applied host world params ({StateBytes} bytes, loot {Loot}, trap {Trap}).",
+			parameters.RandomState.Length,
+			parameters.LootRarityMultiplier?.ToString("F3") ?? "<none>",
+			parameters.TrapRarityMultiplier?.ToString("F3") ?? "<none>");
 	}
 
 	/// <summary>

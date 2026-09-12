@@ -96,4 +96,103 @@ public class WorldRestoreAuditTests
 		Assert.Single(reported);
 		Assert.Equal(string.Empty, Assert.Single(reported).WorldId);
 	}
+
+	[Fact]
+	public void ASecondExpectedHalf_HoldsTheReportUntilItArrives()
+	{
+		// A mid-run cut owes TWO live-world halves: the world facts at the
+		// world-entry seam and the item reconcile at the generation's publish. The
+		// first half is not the restore's outcome — reporting it would tell the
+		// player a restore succeeded while half of it has not been written yet.
+		var audit = new WorldRestoreAudit();
+		var reported = new List<WorldRestoreLiveWriteReport>();
+		audit.Reported += reported.Add;
+		audit.BeginRestore("w-7", expectedContributions: 2);
+
+		audit.LiveWriteFinished(complete: true, refused: [], summary: "the live world took every restored fact");
+
+		Assert.Empty(reported);
+		Assert.True(audit.AwaitingLiveWrite);
+		Assert.Equal(1, audit.Contributions);
+		Assert.Equal(2, audit.ExpectedContributions);
+
+		audit.LiveWriteFinished(complete: true, refused: [], summary: "the live world took the restored item set (3 entries)");
+
+		var report = Assert.Single(reported);
+		Assert.True(report.Complete);
+		Assert.Equal("w-7", report.WorldId);
+		Assert.Contains("item set", report.Summary, StringComparison.Ordinal);
+		Assert.False(audit.AwaitingLiveWrite);
+		Assert.Same(report, audit.Last);
+	}
+
+	[Fact]
+	public void ASecondHalfThatWasRefused_MakesTheWholeRestoreIncomplete()
+	{
+		var audit = new WorldRestoreAudit();
+		var reported = new List<WorldRestoreLiveWriteReport>();
+		audit.Reported += reported.Add;
+		audit.BeginRestore("w-8", expectedContributions: 2);
+
+		audit.LiveWriteFinished(complete: true, refused: [], summary: "the live world took every restored fact");
+		audit.LiveWriteFinished(complete: false, refused: ["2 restored item(s)"], summary: "the live world did not take 2 restored item(s)");
+
+		var report = Assert.Single(reported);
+		Assert.False(report.Complete);
+		Assert.Equal("2 restored item(s)", Assert.Single(report.Refused));
+		Assert.Contains("every restored fact", report.Summary, StringComparison.Ordinal);
+		Assert.Contains("did not take 2 restored item(s)", report.Summary, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void LiveWriteAbandoned_AccountsForTheMissingHalf()
+	{
+		// A half that will never arrive (a cancelled reconcile, the session ending)
+		// is accounted for, not waited on: the restore's account must not stay
+		// silently armoured forever.
+		var audit = new WorldRestoreAudit();
+		var reported = new List<WorldRestoreLiveWriteReport>();
+		audit.Reported += reported.Add;
+		audit.BeginRestore("w-10", expectedContributions: 2);
+		audit.LiveWriteFinished(complete: true, refused: [], summary: "the live world took every restored fact");
+
+		audit.LiveWriteAbandoned("the session ended before the generation reconcile ran");
+
+		var report = Assert.Single(reported);
+		Assert.False(report.Complete);
+		Assert.Contains("generation reconcile", Assert.Single(report.Refused), StringComparison.Ordinal);
+		Assert.False(audit.AwaitingLiveWrite);
+	}
+
+	[Fact]
+	public void LiveWriteAbandoned_WithoutARestoreInFlight_IsANoOp()
+	{
+		// A layer-end cut cancels the item expectation it never armed; that
+		// cancellation must not invent a restore report.
+		var audit = new WorldRestoreAudit();
+		var reports = 0;
+		audit.Reported += _ => reports++;
+
+		audit.LiveWriteAbandoned("a layer-end cut never reconciles its items");
+
+		Assert.Equal(0, reports);
+		Assert.Null(audit.Last);
+	}
+
+	[Fact]
+	public void AbandonRestore_ClearsThePreviousAccountToo()
+	{
+		// A completed restore's report must never be read as the next (abandoned)
+		// attempt's outcome: Last is part of the restore in flight.
+		var audit = new WorldRestoreAudit();
+		audit.BeginRestore("w-1");
+		audit.LiveWriteFinished(complete: true, refused: [], summary: "took everything");
+		Assert.NotNull(audit.Last);
+
+		audit.BeginRestore("w-2");
+		audit.AbandonRestore();
+
+		Assert.Null(audit.Last);
+		Assert.False(audit.AwaitingLiveWrite);
+	}
 }

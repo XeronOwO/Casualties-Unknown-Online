@@ -26,16 +26,24 @@ namespace CasualtiesUnknownOnline.GameAdapter.WorldGen;
 /// for solo/host alike: a solo-turned-lobby host already has the table
 /// populated and a late joiner receives the items via the ordinary snapshot
 /// (SendItemSnapshot) — no special "solo → lobby" backfill path exists.
+///
+/// A generation a RESTORE drives is the exception to the whole description: the
+/// archive's item set is already the truth for that layer, so nothing is
+/// assigned or published. The regenerated objects are reconciled against the
+/// restored ids instead (<see cref="ReconcileRestoredItems"/>), which is what
+/// keeps one physical object from becoming two item families.
 /// </summary>
 internal sealed class GeneratedItemAuthority(
 	ISessionControl session,
 	IItemControl items,
 	ItemIdAllocator ids,
+	GeneratedItemReconcile reconcile,
 	ILogger<GeneratedItemAuthority> log)
 {
 	private readonly ISessionControl _session = session;
 	private readonly IItemControl _items = items;
 	private readonly ItemIdAllocator _ids = ids;
+	private readonly GeneratedItemReconcile _reconcile = reconcile;
 	private readonly ILogger<GeneratedItemAuthority> _log = log;
 
 	private bool _generating; // last frame's IsGenerating — the falling edge is the generation-finished moment
@@ -83,6 +91,17 @@ internal sealed class GeneratedItemAuthority(
 			return; // guests never enumerate — the host's snapshot is authoritative
 		}
 
+		if (_items.RestoredWorldItemsPending)
+		{
+			// The restored layer is not published, but its layer modifier is still this
+			// world's definition: without this refresh the host would keep the previous
+			// index for the whole restored layer (the normal path below is the only other
+			// writer of it).
+			RefreshLayerModifier();
+			ReconcileRestoredItems();
+			return;
+		}
+
 		var entries = new List<WorldItem>();
 		var ground = 0;
 
@@ -117,19 +136,48 @@ internal sealed class GeneratedItemAuthority(
 			return; // the Clear edge (a layer switch clears before generating) — nothing to publish
 		}
 
-		// The layer modifier the host's world rolled at generation finish — the
-		// world definition, riding the snapshot (the modifier decision reads the
-		// random stream AFTER the darken-wait suspension, which the isolation
-		// does not restore, so every side rolls its own — the host's is
-		// authoritative). The decision's random start rides along so the guests
-		// replay the draws before Initialize (identical world effects).
-		var modifierIndex = LayerModifier.availableModifiers.FirstOrDefault(m => m.active)?.modifierIndex ?? -1;
-		_items.LayerModifierIndex = modifierIndex;
-		_items.LayerModifierRandomState = modifierIndex >= 0 ? LayerModifierApplyPatch.LastEntryState : null;
+		RefreshLayerModifier();
 
 		_items.PublishGeneratedItems(entries);
 		_log.LogInformation("[GenItems] host published {Ground} ground items (modifier {Modifier}).",
 			ground, _items.LayerModifierIndex);
+	}
+
+	/// <summary>
+	/// The layer modifier the host's world rolled at generation finish — the
+	/// world definition, riding the snapshot (the modifier decision reads the
+	/// random stream AFTER the darken-wait suspension, which the isolation
+	/// does not restore, so every side rolls its own — the host's is
+	/// authoritative). The decision's random start rides along so the guests
+	/// replay the draws before Initialize (identical world effects). The restore
+	/// reconcile refreshes it too: that generation is not published, but it is
+	/// still a layer the host's world defined.
+	/// </summary>
+	private void RefreshLayerModifier()
+	{
+		var modifierIndex = LayerModifier.availableModifiers.FirstOrDefault(m => m.active)?.modifierIndex ?? -1;
+		_items.LayerModifierIndex = modifierIndex;
+		_items.LayerModifierRandomState = modifierIndex >= 0 ? LayerModifierApplyPatch.LastEntryState : null;
+	}
+
+	/// <summary>
+	/// A mid-run restore owns this layer's item set: the objects the game just
+	/// regenerated are the SAME physical objects the cut described, so they are
+	/// reconciled against the restored ids — bind a matching object, materialize
+	/// what generation did not create, destroy the leftovers the cut never
+	/// described — instead of being published under fresh ids. It runs at the
+	/// publish moment (one frame after the generation-finished edge), NOT at the
+	/// baseline capture: corpse loot spawns in CorpseScript.Start a frame after the
+	/// edge, and reconciling earlier would leave those objects behind as duplicates.
+	/// </summary>
+	private void ReconcileRestoredItems()
+	{
+		var restored = _items.ReadRestoredWorldItems();
+		var outcome = _reconcile.Apply(restored);
+		_items.CompleteRestoredWorldItems(outcome.Applied, outcome.Refused);
+		_log.LogInformation(
+			"[GenItems] restored cut: {Applied} of {Entries} restored item(s) landed ({Bound} bound, {Materialized} materialized), {Destroyed} regenerated leftover(s) destroyed.",
+			outcome.Applied, outcome.Entries, outcome.Bound, outcome.Materialized, outcome.Destroyed);
 	}
 
 	/// <summary>Allocate the host's id (the host's counter — ids can never collide with a guest's) and capture the full state.</summary>

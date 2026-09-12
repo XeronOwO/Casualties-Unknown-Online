@@ -9,4 +9,4 @@ public sealed record ItemDataUpdatedEvent(
 	ulong OldRevision,
 	ulong NewRevision,
 	ItemData OldData,
-	ItemData NewData) : ItemEvent(Identity);
+	ItemData NewData) : ItemTargetedEvent(Identity);

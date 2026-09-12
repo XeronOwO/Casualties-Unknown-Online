@@ -22,7 +22,8 @@ internal sealed class KernelBatchItemProjection(
 	Action<ulong, CharacterItemMsg, NetVector2, NetVector2, ulong, float, float, NetVector2> onItemDropped,
 	Action<ulong> onItemDestroyed,
 	Action<ulong, CharacterItemMsg, bool>? onCarriedSync = null,
-	Action<CharacterItemMsg>? onCorrection = null)
+	Action<CharacterItemMsg>? onCorrection = null,
+	Action<ulong, WorldItem>? onItemCooked = null)
 {
 	private readonly ItemKernelAuthority _authority = authority;
 	private readonly WorldItemTable _worldTable = worldTable;
@@ -32,6 +33,7 @@ internal sealed class KernelBatchItemProjection(
 	private readonly Action<ulong> _onItemDestroyed = onItemDestroyed;
 	private readonly Action<ulong, CharacterItemMsg, bool>? _onCarriedSync = onCarriedSync;
 	private readonly Action<CharacterItemMsg>? _onCorrection = onCorrection;
+	private readonly Action<ulong, WorldItem>? _onItemCooked = onItemCooked;
 
 	public void Apply(CommittedBatch batch)
 	{
@@ -74,6 +76,9 @@ internal sealed class KernelBatchItemProjection(
 				case ItemDataUpdatedEvent updated when _worldTable.ContainsKey(updated.Identity.InstanceId):
 					SetWorldIfPresent(updated.Identity.InstanceId);
 					break;
+				case WorldItemsResetEvent:
+					_worldTable.Clear();
+					break;
 			}
 		}
 	}
@@ -103,6 +108,27 @@ internal sealed class KernelBatchItemProjection(
 			var world = ToWorldItem(item);
 			_worldTable.Set(world.ItemId, world);
 			_onItemSpawned(world);
+		}
+	}
+
+	/// <summary>
+	/// Host/solo restore: rebuild the world table from the restored set, WITHOUT
+	/// raising the adapter's spawn events. The live objects belong to the
+	/// generation reconcile, which binds the regenerated object to the restored id
+	/// (a materialization here would race the generation).
+	/// </summary>
+	public void RebuildWorldTableOnly(IEnumerable<ItemState> items)
+	{
+		_worldTable.Clear();
+		foreach (var item in items)
+		{
+			if (item.Location.Kind != ItemLocationKind.World)
+			{
+				continue;
+			}
+
+			var world = ToWorldItem(item);
+			_worldTable.Set(world.ItemId, world);
 		}
 	}
 
@@ -142,6 +168,48 @@ internal sealed class KernelBatchItemProjection(
 		}
 	}
 
+	/// <summary>
+	/// A heater conversion arrives as TWO kernel facts — the raw source reaches
+	/// Terminal with <see cref="TerminalKind.ReplacedBy"/> and the steak spawns in
+	/// the world — and the adapter has to apply them as ONE event (kill the raw
+	/// copy, materialize the cooked one). The pair is read out of the batch here
+	/// rather than at the message layer because this is the projection that already
+	/// owns batch-to-world conversion.
+	/// </summary>
+	public void FireCookedEventFromBatch(CommittedBatch batch)
+	{
+		ulong? sourceId = null;
+		WorldItem? cooked = null;
+		foreach (var @event in batch.Events)
+		{
+			if (@event is ItemDestroyedEvent destroyed && destroyed.Kind == TerminalKind.ReplacedBy)
+			{
+				sourceId = destroyed.Identity.InstanceId;
+			}
+
+			if (@event is ItemSpawnedEvent spawned && spawned.Location.Kind == ItemLocationKind.World)
+			{
+				var current = _authority.FindItem(spawned.Identity.InstanceId);
+				if (current is not null)
+				{
+					cooked = new WorldItem(
+						current.Value.Identity.InstanceId,
+						ItemKernelAuthority.ToCharacterItem(current.Value),
+						new NetVector2(spawned.Location.X, spawned.Location.Y),
+						NetVector2.Zero,
+						spawned.Location.ParentItemId,
+						0f,
+						false);
+				}
+			}
+		}
+
+		if (sourceId.HasValue && cooked.HasValue)
+		{
+			_onItemCooked?.Invoke(sourceId.Value, cooked.Value);
+		}
+	}
+
 	private void ApplyKernelEventToProjection(GameEvent @event)
 	{
 		switch (@event)
@@ -157,6 +225,9 @@ internal sealed class KernelBatchItemProjection(
 				break;
 			case ItemDataUpdatedEvent updated:
 				ApplyDataUpdatedToProjection(updated);
+				break;
+			case WorldItemsResetEvent:
+				_worldTable.Clear();
 				break;
 		}
 	}
@@ -350,7 +421,7 @@ internal sealed class KernelBatchItemProjection(
 		return list;
 	}
 
-	private static WorldItem ToWorldItem(ItemState state)
+	internal static WorldItem ToWorldItem(ItemState state)
 	{
 		var item = ItemKernelAuthority.ToCharacterItem(state);
 		var parentItemId = state.Location.Kind == ItemLocationKind.World ? state.Location.ParentItemId : 0;

@@ -129,11 +129,45 @@ public interface IItemControl
 	/// </summary>
 	void SendPeriodicItemSnapshot();
 
-	/// <summary>Host only: a new world layer is generating — the table starts empty again.</summary>
+	/// <summary>Host only: a new world layer is generating — the table starts empty again. The generation a restore drives is the one exception: its restored item set IS the layer's table, so an armed reconcile keeps it.</summary>
 	void ResetItems();
 
-	/// <summary>Host only: the generation finished — register the generation-time items (host-assigned ids, ground + starting supplies) into the table and broadcast them as one snapshot (the guests bind their local copies or materialize the host's version). The current layer modifier (LayerModifierIndex) rides along.</summary>
+	/// <summary>Host only: the generation finished — register the generation-time items (host-assigned ids, ground + starting supplies) into the table and broadcast them as one snapshot (the guests bind their local copies or materialize the host's version). The current layer modifier (LayerModifierIndex) rides along. Suppressed while a restore's item reconcile is pending (see below): the restored ids are the truth, not freshly assigned ones.</summary>
 	void PublishGeneratedItems(IReadOnlyList<WorldItem> entries);
+
+	// ===== Restored world items (mid-run restore) =====
+
+	/// <summary>
+	/// Host/solo: a restore put the archive's world items into the kernel and the
+	/// layer is about to be regenerated. While this is true the generation must
+	/// RECONCILE its objects against the restored set (bind the regenerated object
+	/// to the restored id, materialize what generation did not create, drop the
+	/// generation's leftovers the cut never described) instead of publishing them
+	/// under fresh ids — publishing beside the restored set is what left two item
+	/// families at one physical spot and resurrected a ground copy next to the
+	/// restored one.
+	/// </summary>
+	bool RestoredWorldItemsPending { get; }
+
+	/// <summary>Host/solo: the restored world items — the set the generation reconcile must land in the live world (empty when nothing is pending).</summary>
+	IReadOnlyList<WorldItem> ReadRestoredWorldItems();
+
+	/// <summary>
+	/// Host/solo: the generation finished reconciling its objects against the
+	/// restored set. <paramref name="applied"/> counts the entries that landed
+	/// (bound to the regenerated object or materialized);
+	/// <paramref name="refused"/> names the entries the live world did not take
+	/// (empty = complete). The account rides the restore report (§6: no silent loss).
+	/// </summary>
+	void CompleteRestoredWorldItems(int applied, IReadOnlyList<string> refused);
+
+	/// <summary>
+	/// Host/solo: the restored item set will never be reconciled — a layer-end cut
+	/// (its world rows are dropped by the layer reset, not restored), a new run, or
+	/// the session ending. Drops the expectation; an armed set reports the loss
+	/// rather than disappearing silently.
+	/// </summary>
+	void CancelRestoredWorldItems(string reason);
 
 	/// <summary>Host side: the world's current layer modifier (index into the game's LayerModifier.availableModifiers, -1 = none) — rides the world-item snapshots so a world entry outside a generation still receives it. A projection of world state: the adapter refreshes it when a generation finishes.</summary>
 	int LayerModifierIndex { get; set; }

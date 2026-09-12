@@ -235,8 +235,12 @@ internal sealed class GameAdapterDomains
 		GunStateSync = new GunStateSync(ItemUseSync, loggerFactory.CreateLogger<GunStateSync>());
 		ItemPositionAuthority = new ItemPositionAuthority(items, session, adaptiveRates);
 		ItemPositionFollow = new ItemPositionFollow(items, DropGuard, session, loggerFactory.CreateLogger<ItemPositionFollow>());
-		GenItemAuthority = new GeneratedItemAuthority(session, items, ItemIds, loggerFactory.CreateLogger<GeneratedItemAuthority>());
-		GenItemApplication = new GeneratedItemApplication(items, ItemApplication, loggerFactory.CreateLogger<GeneratedItemApplication>());
+		// One bind/materialize/drop algorithm, two authorities: the guest applies the
+		// host's generation snapshot with it, the host applies a restored cut's item set
+		// to the layer it just regenerated (GeneratedItemAuthority).
+		var itemReconcile = new GeneratedItemReconcile(ItemApplication, loggerFactory.CreateLogger<GeneratedItemReconcile>());
+		GenItemAuthority = new GeneratedItemAuthority(session, items, ItemIds, itemReconcile, loggerFactory.CreateLogger<GeneratedItemAuthority>());
+		GenItemApplication = new GeneratedItemApplication(items, itemReconcile, loggerFactory.CreateLogger<GeneratedItemApplication>());
 		TrapLayoutScanner = new TrapLayoutScanner(session, world, loggerFactory.CreateLogger<TrapLayoutScanner>());
 		TrapLayoutApplication = new TrapLayoutApplication(world, loggerFactory.CreateLogger<TrapLayoutApplication>());
 		LayerModifierSync = new LayerModifierSync(items, loggerFactory.CreateLogger<LayerModifierSync>());
@@ -294,7 +298,7 @@ internal sealed class GameAdapterDomains
 		MenuInput = new OnlineMenuInputGuard(session, loggerFactory.CreateLogger<OnlineMenuInputGuard>());
 		WorldParams = new WorldParamsService(world, NativeWorldFacts, loggerFactory.CreateLogger<WorldParamsService>());
 		var menuReturn = new RunMenuReturnCoordinator(loggerFactory.CreateLogger<RunMenuReturnCoordinator>());
-		Run = new RunCoordinator(session, world, entities, CharacterDataSync, GuestMenu, WorldParams, arbitration, playerInteraction, worldSaves, restoreAudit, menuReturn, loggerFactory.CreateLogger<RunCoordinator>());
+		Run = new RunCoordinator(session, world, entities, CharacterDataSync, GuestMenu, WorldParams, arbitration, playerInteraction, worldSaves, items, restoreAudit, menuReturn, loggerFactory.CreateLogger<RunCoordinator>());
 		// The frame-end cut seam is the LAST domain of the pump: it is where every
 		// cut trigger is taken (the armed /save request and the host's deliberate
 		// menu return), after every domain has finished this frame's work.

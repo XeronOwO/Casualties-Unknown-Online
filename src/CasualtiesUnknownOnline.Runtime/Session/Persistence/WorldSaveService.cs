@@ -90,7 +90,8 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 		Func<DateTime>? utcNow = null,
 		INativeWorldFacts? nativeWorldFacts = null,
 		IWorldCutTransientProbe? transients = null,
-		WorldRestoreAudit? audit = null)
+		WorldRestoreAudit? audit = null,
+		IItemControl? items = null)
 	{
 		_repository = repository;
 		_session = session;
@@ -108,6 +109,7 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 			worldFacts,
 			nativeWorldFacts,
 			_binder,
+			items,
 			audit,
 			loggerFactory,
 			loggerFactory.CreateLogger<WorldRestoreApplier>());

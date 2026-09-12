@@ -39,12 +39,16 @@ internal sealed class WorldRestoreApplier(
 	IWorldFactSource worldFacts,
 	INativeWorldFacts? nativeWorldFacts,
 	WorldCharacterBinder binder,
+	IItemControl? items,
 	WorldRestoreAudit? audit,
 	ILoggerFactory loggerFactory,
 	ILogger<WorldRestoreApplier> log)
 {
 	/// <summary>The world-fact half: which restored row goes back to which table, and what could not be put back.</summary>
 	private readonly WorldFactRestore _factRestore = new(worldFacts, nativeWorldFacts, loggerFactory.CreateLogger<WorldFactRestore>());
+
+	/// <summary>The item half: a mid-run cut's world items are reconciled against the regenerated layer (GeneratedItemAuthority); a layer-end cut's rows are dropped.</summary>
+	private readonly IItemControl? _items = items;
 
 	/// <summary>
 	/// What one applied archive produced. The identity fields are meaningful only
@@ -114,6 +118,12 @@ internal sealed class WorldRestoreApplier(
 
 		if (load.Content.Manifest.Kind == WorldCutKind.LayerEnd)
 		{
+			// A layer-end cut names the layer being ENTERED, so its world-item rows
+			// describe the layer being LEFT: they are not restored — the layer reset
+			// drops them with the old scene. Nothing will reconcile them, so the
+			// expectation the checkpoint restore armed is dropped BEFORE the audit
+			// begins: a cancelled half is not a lost one.
+			_items?.CancelRestoredWorldItems("the cut is a layer-end cut: its world items belong to the layer being replaced");
 			DropReplacedLayerPositions(decode.UsableCharacters);
 		}
 
@@ -128,7 +138,12 @@ internal sealed class WorldRestoreApplier(
 		// The live-world half of this restore lands at the world-entry seam, after
 		// this call returned. The audit carries that half's outcome back to the
 		// caller: a restore is not "successful" until the live world took every row.
-		audit?.BeginRestore(worldId);
+		// A mid-run (or autosave) cut owes a SECOND half — the generation reconcile
+		// of the restored item set — while a layer-end cut owes only the world facts
+		// (its item rows were just dropped above).
+		audit?.BeginRestore(
+			worldId,
+			load.Content.Manifest.Kind == WorldCutKind.LayerEnd ? 1 : 2);
 
 		// The summary is the account the caller logs (and S4's surface reads), so it
 		// is built from the WHOLE report — a backup fallback is repository-scope

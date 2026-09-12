@@ -148,6 +148,10 @@ public static class KernelWireMapper
 				OldData = ToWireData(updated.OldData),
 				NewData = ToWireData(updated.NewData),
 			},
+			WorldItemsResetEvent => new WireEvent
+			{
+				Kind = WireEventKind.WorldItemsReset,
+			},
 			RunStartedEvent started => new WireEvent
 			{
 				Kind = WireEventKind.RunStarted,
@@ -338,6 +342,7 @@ public static class KernelWireMapper
 				@event.NewRevision,
 				@event.OldData is null ? ItemData.Empty : FromWireData(@event.OldData),
 				@event.NewData is null ? ItemData.Empty : FromWireData(@event.NewData)),
+			WireEventKind.WorldItemsReset => new WorldItemsResetEvent(),
 			WireEventKind.RunStarted => new RunStartedEvent(
 				KernelDomainWireMapper.FromWireRun(@event.RunState ?? throw new InvalidOperationException("RunStarted event lacks run state"))),
 			WireEventKind.RunAdvanced => new RunAdvancedEvent(

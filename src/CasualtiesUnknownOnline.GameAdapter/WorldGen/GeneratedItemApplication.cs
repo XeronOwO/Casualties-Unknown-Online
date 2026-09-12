@@ -1,9 +1,6 @@
 using System.Collections.Generic;
-using System.Linq;
-using CasualtiesUnknownOnline.GameAdapter.Items;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using Microsoft.Extensions.Logging;
-using Object = UnityEngine.Object;
 
 namespace CasualtiesUnknownOnline.GameAdapter.WorldGen;
 
@@ -22,15 +19,17 @@ namespace CasualtiesUnknownOnline.GameAdapter.WorldGen;
 ///
 /// The snapshot is held back until the local generation finished: applying
 /// earlier would materialize the host's items on top of the local copies that
-/// are still being created (a duplicate per entry).
+/// are still being created (a duplicate per entry). The bind/materialize/drop
+/// algorithm itself is shared with the host's restore reconcile
+/// (<see cref="GeneratedItemReconcile"/>).
 /// </summary>
 internal sealed class GeneratedItemApplication(
 	IItemControl items,
-	ItemApplication itemApplication,
+	GeneratedItemReconcile reconcile,
 	ILogger<GeneratedItemApplication> log)
 {
 	private readonly IItemControl _items = items;
-	private readonly ItemApplication _itemApplication = itemApplication;
+	private readonly GeneratedItemReconcile _reconcile = reconcile;
 	private readonly ILogger<GeneratedItemApplication> _log = log;
 
 	/// <summary>The host's latest snapshot, held until the local generation finished. A layer switch's newer snapshot replaces an older one — the pending list is always the current layer's.</summary>
@@ -54,58 +53,8 @@ internal sealed class GeneratedItemApplication(
 
 		var pending = _pending;
 		_pending = null;
-		Apply(pending);
-	}
-
-	private void Apply(List<WorldItem> entries)
-	{
-		using (CallContext.Enter(CallContext.Origin.RemoteApply))
-		{
-			var ground = 0;
-			var bound = 0;
-			var materialized = 0;
-			foreach (var w in entries)
-			{
-				// Ground-only now: the starting supplies are no longer distributed
-				// with host-assigned ids — every side self-assigns its own (the id
-				// space is per-SteamId) and the guests report their carried
-				// inventory to the host (CarriedInventoryReporter).
-				ground++;
-				if (ItemApplication.FindExistingAt(w.Pos, w.Item.ItemId) != null) // Unity object — ==
-				{
-					bound++; // the local copy gets the host's id (SpawnWorldItem binds, never duplicates)
-				}
-				else
-				{
-					materialized++; // a divergent local copy — the host's version is materialized instead
-				}
-
-				_itemApplication.SpawnWorldItem(w);
-			}
-
-			// Reconciliation: destroy local ground items the host does not know —
-			// per-side random spawns (corpse-loot rolls on the real stream) that
-			// matched no entry. Bound copies carry the host's id and are
-			// untouched.
-			var destroyed = 0;
-			foreach (var item in Item.allItems.ToList()) // copy: destroying while iterating
-			{
-				if (item.GetComponent<ItemInstanceId>() != null) // Unity object — ==
-				{
-					continue;
-				}
-
-				if (!ItemWorldSync.IsStandaloneWorldItem(item))
-				{
-					continue;
-				}
-
-				Object.Destroy(item.gameObject);
-				destroyed++;
-			}
-
-			_log.LogInformation("[GenItems] applied {Count} entries: {Bound} bound, {Materialized} materialized ({Ground} ground) — destroyed {Destroyed} host-unknown locals.",
-				entries.Count, bound, materialized, ground, destroyed);
-		}
+		var outcome = _reconcile.Apply(pending);
+		_log.LogInformation("[GenItems] applied {Count} entries: {Bound} bound, {Materialized} materialized — destroyed {Destroyed} host-unknown locals.",
+			outcome.Entries, outcome.Bound, outcome.Materialized, outcome.Destroyed);
 	}
 }

@@ -33,4 +33,5 @@ public enum WireEventKind
 	EnemyLungeResult = 24,
 	EnemyEffectResult = 25,
 	TrapStateChanged = 26,
+	WorldItemsReset = 27,
 }

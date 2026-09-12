@@ -337,6 +337,23 @@ are then written onto that fresh copy. The seams are fixed and different on purp
   keypad/geyser broadcasts go out — the peers must receive the restored values, not freshly rolled
   ones. The **layer-boundary reset is skipped** for that generation: the restored tables ARE the
   restored layer's facts, not a previous layer's leftovers.
+- **Restored world items reconcile against the regenerated layer.** A mid-run (or autosave)
+  cut's world-item set is the truth for the layer the host regenerates: the kernel restore
+  puts it back and marks a pending item reconcile, which suppresses the normal generation
+  publish. Without that, the objects the game just generated would be published under fresh
+  ids beside the restored records — two item families at one physical spot, and a duplicate
+  next to the ground copy the player's restored inventory claims. The reconcile runs ONE FRAME
+  AFTER the generation-finished edge, at the same moment the normal publish would
+  (`GeneratedItemAuthority`), because corpse loot spawns in `CorpseScript.Start` after the
+  edge: it binds a matching local object to the restored id, materializes what the generation
+  did not create, destroys the standalone leftovers the cut never described, and verifies each
+  write by looking the restored id up in the live scene (a refused entry is named, never
+  silently dropped). It is the restore's SECOND live-write contribution, so a mid-run restore's
+  report waits for both halves — the world facts and the item reconcile — before it is raised; a
+  layer-end cut owes only the world facts, because its item rows describe the layer being
+  replaced and the layer-boundary reset drops them. The generation a restore drives is also the
+  one generation whose layer-boundary table reset is skipped: the restored set IS that layer's
+  world table, and the suppressed publish would not rebuild it.
 - **Native run fields** keep their own seams, because two of them need different worlds than
   the other two. The two rarity multipliers (world-generation inputs) and the run clock base
   must be in place BEFORE `WorldGeneration.Start` derives the layer's time limit and trap budget,

@@ -253,7 +253,10 @@ person). "It runs" is the floor, not the goal.
    autonomously is not permission to decide unilaterally, and "build it first, discuss later"
    is not design confirmation. Once the design and requirements are clear, follow the project
    specifications and this file without asking about routine implementation details; ask only
-   when a decision is architecture-affecting or not covered by the conventions.
+   when a decision is architecture-affecting or not covered by the conventions. **Which backlog
+   item to work on next, and in what order, is not such a decision**: take it from the ticket's
+   own priority, its dependencies and the handoff's suggested order, and proceed — asking the
+   user to pick between work items hands the agent's own judgement back to them.
 10. `[RULE]` **Future backlog items are not work items.** `future/` means "deferred by
     decision", not "pending implementation". Future items are not included in handoff prompts
     and are not proactively implemented unless the user explicitly promotes them to `todo/`

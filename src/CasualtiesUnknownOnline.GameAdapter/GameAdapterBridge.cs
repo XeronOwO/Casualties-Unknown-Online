@@ -134,6 +134,14 @@ internal sealed class GameAdapterBridge(GameAdapterDomains domains) : IPatchBrid
 
 	public bool HasRestorableWorld() => domains.WorldSaves.HasRestorableWorld;
 
+	public void OnNativeSaveSlot()
+	{
+		if (!domains.NativeWorldFacts.TryWritePendingRunFields())
+		{
+			domains.Log.LogInformation("[SaveFacts] the native save slot ran with no live world yet; the restored run fields stay pending for the world-entry seam.");
+		}
+	}
+
 	public bool OnHostContinueRequested() => domains.Run.OnHostContinueRequested();
 
 	public void OnWorldJoinRequested(bool isTutorial) => domains.Run.OnWorldJoinRequested(isTutorial);

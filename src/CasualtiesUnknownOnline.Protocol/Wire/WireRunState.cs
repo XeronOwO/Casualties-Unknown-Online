@@ -34,4 +34,16 @@ public sealed class WireRunState
 
 	[ProtoMember(8)]
 	public int LayerIndex { get; set; }
+
+	/// <summary>
+	/// The run's accumulated loot multiplier at the generation boundary. Null =
+	/// the sender predates the field (or has not generated a layer yet), which
+	/// means the game's own starting 1f — never a guessed non-neutral value.
+	/// </summary>
+	[ProtoMember(9)]
+	public float? LootRarityMultiplier { get; set; }
+
+	/// <summary>The same for the trap multiplier (see <see cref="LootRarityMultiplier"/>).</summary>
+	[ProtoMember(10)]
+	public float? TrapRarityMultiplier { get; set; }
 }

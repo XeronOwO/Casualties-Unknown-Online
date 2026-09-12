@@ -174,7 +174,7 @@ for example, now uses `RejectionReason.BlockAlreadyBroken`.
 The save path is a projection of the authoritative checkpoint:
 
 - The production save path is the **CUO world archive** of
-  `docs/architecture/save-archive-format.md` (decisions 162–168), implemented
+  `docs/architecture/save-archive-format.md` (decisions 162–169), implemented
   under `src/CasualtiesUnknownOnline.Runtime/Persistence/`. The layer advance the
   kernel commits (`ItemKernelAuthority.BatchCommitted` carrying a
   `RunAdvancedEvent`) writes a layer-end cut; the host's `/save` command and its
@@ -183,6 +183,15 @@ The save path is a projection of the authoritative checkpoint:
   whether the cut may be taken yet. The host's Continue entry restores the
   selected world, and CUO never reads or writes the native `save.sv`
   (`SaveSystemTryLoadGamePatch` blocks the native load).
+- The **run baseline carries the two rarity multipliers** (`WireRunState`,
+  decision 169). They are world-generation inputs — the game accumulates them once
+  per layer and scales every loot/trap distribution by them — so a guest that
+  generated with the game's fresh `1f` built a different layer than the host's, and
+  a restore had no way to hand the layer the value it was generated with. The
+  host's generation-boundary capture reads them from the live world
+  (`WorldParamsService.CaptureAtBoundary`); the guest applies them with the rest of
+  the world params. A sender that predates the field sends none, which means the
+  game's own starting value.
 - `WorldSnapshotEncoder`/`WorldSnapshotDecoder` map `GameCheckpoint` to and from
   the archive's per-domain files; the domain payloads are the same wire DTOs a
   late-joining guest receives, so a restored host holds what a join would have

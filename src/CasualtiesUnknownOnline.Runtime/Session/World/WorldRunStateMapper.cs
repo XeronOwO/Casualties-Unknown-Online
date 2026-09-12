@@ -31,7 +31,9 @@ public static class WorldRunStateMapper
 			parameters.TotalTraveled,
 			parameters.LoadedRun,
 			settings,
-			layerIndex);
+			layerIndex,
+			parameters.LootRarityMultiplier ?? RunRarityMultipliers.Neutral,
+			parameters.TrapRarityMultiplier ?? RunRarityMultipliers.Neutral);
 	}
 
 	public static WorldStartParams ToWorldStartParams(RunState run)
@@ -62,6 +64,8 @@ public static class WorldRunStateMapper
 			TotalTraveled = run.TotalTraveled,
 			LoadedRun = run.LoadedRun,
 			RunSettings = settings,
+			LootRarityMultiplier = run.LootRarityMultiplier,
+			TrapRarityMultiplier = run.TrapRarityMultiplier,
 		};
 	}
 

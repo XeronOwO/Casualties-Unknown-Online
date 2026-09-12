@@ -175,11 +175,65 @@ public class WorldSnapshotCodecTests
 	public void Decode_RunBaselineWithoutGenerationState_IsRefused()
 	{
 		var (decode, salvage) = Decode([
-			SaveTestData.Payload(SaveArchiveFormat.RunFileName, "[{\"runId\":42,\"randomState\":\"\"}]"),
+			SaveTestData.Payload(SaveArchiveFormat.RunFileName, "[{\"kind\":\"run\",\"run\":{\"runId\":42,\"randomState\":\"\"}}]"),
 		]);
 
 		Assert.Null(decode.Checkpoint);
 		Assert.Contains("random state", Assert.Single(salvage.SkippedEntries).Detail, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void Decode_RunRowWithoutATypedKind_SaysItIsTheOldFormatNotCorruption()
+	{
+		// The pre-S3.4 file was a bare WireRunState row. The reader must REFUSE it
+		// (there is no baseline to restore into) and must say WHY, so a reader can
+		// tell a format change from corruption.
+		var (decode, salvage) = Decode([
+			SaveTestData.Payload(SaveArchiveFormat.RunFileName, "[{\"runId\":42,\"randomState\":\"AQID\"}]"),
+		]);
+
+		Assert.Null(decode.Checkpoint);
+		Assert.Contains(
+			salvage.SkippedEntries,
+			entry => entry.Detail.Contains("declares no kind", StringComparison.Ordinal));
+	}
+
+	[Fact]
+	public void Decode_MalformedNativeRunFieldsRow_IsSkippedWhileTheBaselineApplies()
+	{
+		// §6: the row is salvaged by itself. An omitted `recipes` would deserialize
+		// to an empty list, and writing that absolutely would re-lock every recipe
+		// the player had unlocked — so the row is skipped by NAME, the baseline still
+		// restores, and the decode reports that the snapshot carries no run fields
+		// (which the restore then names to the player).
+		var (decode, salvage) = Decode([
+			SaveTestData.Payload(SaveArchiveFormat.RunFileName, RunFile(
+				RunBaselineRow(),
+				NativeRunFieldsRow("{\"savedRunTime\":12.5}"))),
+		]);
+
+		Assert.NotNull(decode.Checkpoint);
+		Assert.Null(decode.NativeRunFields);
+		Assert.Contains(
+			salvage.SkippedEntries,
+			entry => entry.Detail.Contains("native-run-fields", StringComparison.Ordinal));
+	}
+
+	[Fact]
+	public void Decode_NativeRunFieldsRow_RoundTripsTheClockAndTheUnlocks()
+	{
+		var (decode, _) = Decode([
+			SaveTestData.Payload(SaveArchiveFormat.RunFileName, RunFile(
+				RunBaselineRow(),
+				NativeRunFieldsRow("{\"savedRunTime\":42.5,\"recipes\":[{\"index\":3,\"madeBefore\":true,\"intValue\":7}]}"))),
+		]);
+
+		var fields = Assert.IsType<SaveNativeRunFields>(decode.NativeRunFields);
+		Assert.Equal(42.5f, fields.SavedRunTime);
+		var recipe = Assert.Single(fields.Recipes);
+		Assert.Equal(3, recipe.Index);
+		Assert.True(recipe.MadeBefore);
+		Assert.Equal(7, recipe.IntValue);
 	}
 
 	[Fact]
@@ -331,8 +385,17 @@ public class WorldSnapshotCodecTests
 	}
 
 	/// <summary>A run baseline entry the manifest's run epoch can agree with.</summary>
-	internal static string RunEntry() =>
-		"[{\"runId\":42,\"randomState\":\"AQID\",\"biomeOverride\":0,\"biomeDepth\":2,\"totalTraveled\":10,\"loadedRun\":false,\"layerIndex\":0}]";
+	internal static string RunEntry() => RunFile(RunBaselineRow());
+
+	/// <summary>The kernel baseline row on its own (a <c>run.json</c> file combines it with the other rows).</summary>
+	internal static string RunBaselineRow() =>
+		"{\"kind\":\"run\",\"run\":{\"runId\":42,\"randomState\":\"AQID\",\"biomeOverride\":0,\"biomeDepth\":2,\"totalTraveled\":10,\"loadedRun\":false,\"layerIndex\":0}}";
+
+	/// <summary>One <c>run.json</c> file from its rows: the file is one array, and a path may not appear twice.</summary>
+	internal static string RunFile(params string[] rows) => "[" + string.Join(",", rows) + "]";
+
+	/// <summary>The native run-field row (<c>nativeRunFields</c> payload verbatim, so a test can write a malformed one).</summary>
+	internal static string NativeRunFieldsRow(string payload) => "{\"kind\":\"native-run-fields\",\"nativeRunFields\":" + payload + "}";
 
 	private static JsonElement[] Entries(IReadOnlyList<SavePayloadFile> files, string path)
 	{

@@ -29,6 +29,8 @@ public static class KernelDomainWireMapper
 			LoadedRun = run.LoadedRun,
 			LayerIndex = run.LayerIndex,
 			RunSettings = [.. (run.RunSettings ?? []).Select(ToWireRunSetting)],
+			LootRarityMultiplier = run.LootRarityMultiplier,
+			TrapRarityMultiplier = run.TrapRarityMultiplier,
 		};
 
 	public static RunState FromWireRun(WireRunState run) =>
@@ -40,7 +42,11 @@ public static class KernelDomainWireMapper
 			run.TotalTraveled,
 			run.LoadedRun,
 			run.RunSettings.Count == 0 ? null : [.. run.RunSettings.Select(FromWireRunSetting)],
-			run.LayerIndex);
+			run.LayerIndex,
+			// A sender that predates the field means the game's own starting
+			// multiplier, which is exactly the value it generated with.
+			run.LootRarityMultiplier ?? RunRarityMultipliers.Neutral,
+			run.TrapRarityMultiplier ?? RunRarityMultipliers.Neutral);
 
 	private static WireRunSetting ToWireRunSetting(RunSetting setting) =>
 		new()

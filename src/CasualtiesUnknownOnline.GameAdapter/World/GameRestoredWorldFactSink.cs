@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CasualtiesUnknownOnline.Runtime.Persistence;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using Microsoft.Extensions.Logging;
@@ -85,6 +86,24 @@ internal sealed class GameRestoredWorldFactSink(
 	{
 		var applied = GeyserStateTable.Apply(geysers);
 		return new LiveWorldWriteOutcome(applied, geysers.Count - applied);
+	}
+
+	/// <inheritdoc />
+	public LiveWorldWriteOutcome ApplyRecipeUnlocks(IReadOnlyList<SaveRecipeUnlockRow> recipes)
+	{
+		// The table is COMPLETE here — the game rebuilt it in Awake and CUO's
+		// mod-content provider appended the custom recipes on a later Update frame —
+		// which is what makes an index from the archive mean the recipe it meant when
+		// the cut was written.
+		var result = RecipeUnlockTable.Apply(recipes);
+		if (result.RefusedIndexes.Count > 0)
+		{
+			_log.LogWarning(
+				"[SaveFacts] {Refused} restored recipe unlock row(s) name a recipe this world's table does not have ({Indices}); they are NOT written, so those recipes keep the live unlock state.",
+				result.RefusedIndexes.Count, string.Join(", ", result.RefusedIndexes));
+		}
+
+		return new LiveWorldWriteOutcome(result.Applied, result.RefusedIndexes.Count);
 	}
 
 	/// <inheritdoc />

@@ -18,11 +18,13 @@ public sealed class WorldRestoreSupportLossTests
 	public void RestoredBlockStateRows_ArriveMarkedAsSupportLossSettled()
 	{
 		var facts = new FakeWorldFactSource();
-		var restore = new WorldFactRestore(facts, nativeWorldFacts: null, new RecordingLogger<WorldFactRestore>());
+		var nativeFacts = new FakeNativeWorldFacts();
+		var restore = new WorldFactRestore(facts, nativeFacts, new RecordingLogger<WorldFactRestore>());
 
 		var damage = restore.Apply(
 			[SaveWorldBlockRow.OfBlockState(3, 4, 0)],
-			[]);
+			[],
+			new SaveNativeRunFields { SavedRunTime = 12.5f });
 
 		Assert.Empty(damage);
 		var cell = Assert.Single(facts.Blocks);

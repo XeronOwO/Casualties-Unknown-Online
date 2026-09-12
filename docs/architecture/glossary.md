@@ -66,4 +66,4 @@ Stable vocabulary used across the architecture evolution docs.
 - **Terminal**: consumed/destroyed/replacedBy; cannot be resurrected.
 - **Capability Registry**: per-item-type capability composition (Battery, Liquid, Durability, Gun, etc.),
   requiring all of Capture/Restore/Equivalent/Validate/Presentation.
-- **RunState**: run identity, seed, layer, run settings, and baseline fields (`RunId`, `RandomState`, `BiomeOverride`, `BiomeDepth`, `TotalTraveled`, `LoadedRun`, `RunSettings`, `LayerIndex`). World-generation result facts live in `WorldEntities`.
+- **RunState**: run identity, seed, layer, run settings, and baseline fields (`RunId`, `RandomState`, `BiomeOverride`, `BiomeDepth`, `TotalTraveled`, `LoadedRun`, `RunSettings`, `LayerIndex`, `LootRarityMultiplier`, `TrapRarityMultiplier`). World-generation result facts live in `WorldEntities`.

@@ -92,7 +92,8 @@ internal sealed class WorldCutWriter(
 				ContentFingerprint: string.Empty,
 				facts.Blocks,
 				facts.Transients,
-				request.Kind);
+				request.Kind,
+				facts.RunFields);
 			files = _encoder.Encode(payload);
 			meta = MetaOf(checkpoint, request.DisplayName, request.Characters.Count, request.Reason, request.CutPhase);
 		}
@@ -130,12 +131,58 @@ internal sealed class WorldCutWriter(
 	}
 
 	/// <summary>
-	/// The world facts one cut carries. A layer-end cut carries none BY DESIGN:
-	/// the layer it names is regenerated from the run baseline, so its two files
-	/// stay empty (§4).
+	/// The world facts one cut carries. A layer-end cut carries no IN-LAYER fact BY
+	/// DESIGN — the layer it names is regenerated from the run baseline, so its two
+	/// in-layer files stay empty (§4) — but it carries the native run fields like
+	/// every other cut, because the run clock and the recipe unlocks are properties
+	/// of the run, not of the layer.
 	/// </summary>
-	internal WorldSaveFacts CaptureWorldFacts(WorldCutReason reason, WorldCutKind cutKind) =>
-		cutKind == WorldCutKind.LayerEnd ? WorldSaveFacts.None : CaptureMidRunFacts(reason, cutKind);
+	internal WorldSaveFacts CaptureWorldFacts(WorldCutReason reason, WorldCutKind cutKind)
+	{
+		var facts = cutKind == WorldCutKind.LayerEnd ? WorldSaveFacts.None : CaptureMidRunFacts(reason, cutKind);
+		if (facts.Failure is not null)
+		{
+			return facts;
+		}
+
+		var (runFields, failure) = CaptureRunFields(reason);
+		return failure is not null ? WorldSaveFacts.Unreadable(failure) : facts with { RunFields = runFields };
+	}
+
+	/// <summary>
+	/// The native run values a cut records: the run clock base and the recipe
+	/// unlock table. Read at EVERY cut kind — see <see cref="CaptureWorldFacts"/> —
+	/// and read through its own port call so a layer-end cut never touches the
+	/// keypad table, whose capture ROLLS the codes the game has not decided yet.
+	///
+	/// A reader that cannot read them REFUSES the cut: a snapshot that reads back as
+	/// "clock zero, nothing unlocked" is worse than no snapshot, because the player
+	/// continues from it believing the world was recorded. A composition with no
+	/// native reader at all is a different case — nothing could have been read — and
+	/// is NAMED in the log and again by the restore that finds no row.
+	/// </summary>
+	private (NativeRunFields? Fields, string? Failure) CaptureRunFields(WorldCutReason reason)
+	{
+		if (_nativeWorldFacts is null)
+		{
+			// The rarity multipliers are still in this snapshot — they ride the kernel
+			// run baseline — so only the two values no CUO domain owns go missing, and
+			// the restore that finds no row names them.
+			_log.LogWarning(
+				"Cut {Reason} carries no native run fields: no INativeWorldFacts is registered, so the run clock base and the recipe unlock table are not in this snapshot (the rarity multipliers still ride the run baseline).",
+				reason);
+			return (null, null);
+		}
+
+		var capture = _nativeWorldFacts.CaptureRunFields();
+		if (capture.Failure is not null)
+		{
+			_log.LogError("No cut taken ({Reason}): {Failure}.", reason, capture.Failure);
+			return (null, capture.Failure);
+		}
+
+		return (capture, null);
+	}
 
 	/// <summary>
 	/// The mid-run capture: the Runtime fact tables through

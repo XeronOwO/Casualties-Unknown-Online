@@ -1,3 +1,5 @@
+using CasualtiesUnknownOnline.GameState.Domains.World;
+using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.Tests.Session;
@@ -88,5 +90,49 @@ public class WorldRunStateProjectionTests
 		Assert.NotNull(projected);
 		Assert.Equal([4, 5, 6], projected!.RandomState);
 		Assert.Equal(7, projected.TotalTraveled);
+	}
+
+	/// <summary>
+	/// The rarity multipliers are world-generation inputs, so they have to survive
+	/// every hop a guest receives the baseline through: the adapter's capture, the
+	/// kernel's run state, the wire checkpoint and back to the adapter's projection.
+	/// A guest that generated with the game's fresh 1f would build a different layer
+	/// than the host's.
+	/// </summary>
+	[Fact]
+	public void RunBaseline_CarriesTheRarityMultipliersThroughTheWireAndBack()
+	{
+		var run = WorldRunStateMapper.ToRunState(7, new WorldStartParams
+		{
+			RandomState = [1, 2, 3],
+			LootRarityMultiplier = 2.5f,
+			TrapRarityMultiplier = 3.5f,
+		}, layerIndex: 4);
+
+		var wire = KernelDomainWireMapper.ToWireRun(run);
+		Assert.Equal(2.5f, wire.LootRarityMultiplier);
+		Assert.Equal(3.5f, wire.TrapRarityMultiplier);
+
+		var roundTripped = KernelDomainWireMapper.FromWireRun(wire);
+		Assert.Equal(2.5f, roundTripped.LootRarityMultiplier);
+		Assert.Equal(3.5f, roundTripped.TrapRarityMultiplier);
+
+		var projected = WorldRunStateMapper.ToWorldStartParams(roundTripped);
+		Assert.Equal(2.5f, projected.LootRarityMultiplier);
+		Assert.Equal(3.5f, projected.TrapRarityMultiplier);
+	}
+
+	/// <summary>
+	/// A sender that predates the field carries none, which means the game's own
+	/// starting value — the value that sender generated with — and never a guessed
+	/// non-neutral one.
+	/// </summary>
+	[Fact]
+	public void RunBaseline_WithoutTheWireMultipliers_DegradesToTheGameDefault()
+	{
+		var restored = KernelDomainWireMapper.FromWireRun(new WireRunState { RunId = 9, RandomState = [5] });
+
+		Assert.Equal(RunRarityMultipliers.Neutral, restored.LootRarityMultiplier);
+		Assert.Equal(RunRarityMultipliers.Neutral, restored.TrapRarityMultiplier);
 	}
 }

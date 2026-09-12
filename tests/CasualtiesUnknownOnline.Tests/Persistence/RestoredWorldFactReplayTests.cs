@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CasualtiesUnknownOnline.Runtime.Persistence;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Persistence;
 using CasualtiesUnknownOnline.Runtime.Session.World;
@@ -62,15 +63,17 @@ public sealed class RestoredWorldFactReplayTests
 		native.ApplyKeypadCodes(native.Keypads);
 		native.ApplyGeysers(native.Geysers);
 		native.ApplyBlockDamages(native.Damages);
+		native.ApplyRecipeUnlocks([new SaveRecipeUnlockRow { Index = 2, MadeBefore = true, IntValue = 0 }]);
 
 		replay.ApplyIfPending();
 
 		Assert.Equal(
-			["write-block-states", "replace-game-damages", "apply-keypads", "apply-geysers", "apply-radiation"],
+			["write-block-states", "replace-game-damages", "apply-keypads", "apply-geysers", "apply-recipes", "apply-radiation"],
 			sink.Calls);
 		Assert.Equal(1, sink.WrittenBlockStates.Count);
 		Assert.Equal(1, sink.AppliedKeypads);
 		Assert.Equal(1, sink.AppliedGeysers);
+		Assert.Single(sink.AppliedRecipes);
 		Assert.False(facts.HasPendingLiveReplay);
 		Assert.False(replay.HasPending);
 		Assert.Contains("commit-pending", native.Calls);
@@ -162,6 +165,40 @@ public sealed class RestoredWorldFactReplayTests
 		// broadcast that follows would hand every peer a freshly rolled code.
 		Assert.True(log.HasError("the restored state is INCOMPLETE"));
 		Assert.False(facts.HasPendingLiveReplay);
+		Assert.False(native.HasPendingRestore);
+	}
+
+	[Fact]
+	public void ApplyIfPending_RecipeRowsTheWorldCannotTake_ReachTheRestoreAccount()
+	{
+		// The recipe unlock table is applied at THIS seam (the world's recipe table is
+		// only complete here — the game rebuilds it in Awake and CUO's mod-content
+		// provider appends the custom recipes on a later Update frame), so a row whose
+		// recipe is gone must reach the caller that started the restore, not only the
+		// log: a silently re-locked recipe is a value the player can see.
+		var facts = new FakeWorldFactSource();
+		var native = new FakeNativeWorldFacts();
+		var sink = new FakeRestoredWorldFactSink { RefuseRecipes = 1 };
+		var audit = new WorldRestoreAudit();
+		var reports = new List<WorldRestoreLiveWriteReport>();
+		audit.Reported += reports.Add;
+		audit.BeginRestore("w-recipes");
+		var replay = new RestoredWorldFactReplay(facts, native, sink, new RecordingLogger<RestoredWorldFactReplay>(), audit);
+		native.ApplyRecipeUnlocks(
+		[
+			new SaveRecipeUnlockRow { Index = 0, MadeBefore = true, IntValue = 0 },
+			new SaveRecipeUnlockRow { Index = 9, MadeBefore = true, IntValue = 0 },
+		]);
+
+		replay.ApplyIfPending();
+
+		var report = Assert.Single(reports);
+		Assert.False(report.Complete);
+		Assert.Contains("1 recipe unlock row(s)", string.Join(", ", report.Refused), StringComparison.Ordinal);
+		Assert.Single(sink.AppliedRecipes);
+
+		// The release rule is unchanged: a row the world did not take ends the
+		// handover instead of staying armed for the next generation.
 		Assert.False(native.HasPendingRestore);
 	}
 

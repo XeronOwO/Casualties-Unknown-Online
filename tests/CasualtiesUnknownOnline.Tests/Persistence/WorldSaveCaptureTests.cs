@@ -241,6 +241,13 @@ public class WorldSaveCaptureTests
 	{
 		var bytes = File.ReadAllBytes(Path.Combine(liveDirectory, SaveArchiveFormat.RunFileName));
 		using var document = JsonDocument.Parse(bytes);
-		return document.RootElement.EnumerateArray().Single().GetProperty("layerIndex").GetInt32();
+
+		// run.json carries typed rows: the kernel baseline and, when the cut could
+		// capture them, the native run fields. The layer index lives on the baseline.
+		return document.RootElement.EnumerateArray()
+			.Single(row => row.GetProperty("kind").GetString() == SaveRunRow.RunKind)
+			.GetProperty("run")
+			.GetProperty("layerIndex")
+			.GetInt32();
 	}
 }

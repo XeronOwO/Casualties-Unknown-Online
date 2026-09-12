@@ -67,6 +67,8 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 	private readonly WorldRestoreApplier _restore;
 	private readonly IWorldCutTransientProbe? _transients;
 	private readonly WorldRestoreAudit? _audit;
+	private readonly IRestoredWorldEntitySource? _worldEntities;
+	private readonly IItemControl? _items;
 	private readonly ILogger<WorldSaveService> _log;
 
 	private string _worldId = string.Empty;
@@ -91,7 +93,8 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 		INativeWorldFacts? nativeWorldFacts = null,
 		IWorldCutTransientProbe? transients = null,
 		WorldRestoreAudit? audit = null,
-		IItemControl? items = null)
+		IItemControl? items = null,
+		IRestoredWorldEntitySource? worldEntities = null)
 	{
 		_repository = repository;
 		_session = session;
@@ -101,6 +104,8 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 		_nativeWorldFacts = nativeWorldFacts;
 		_transients = transients;
 		_audit = audit;
+		_worldEntities = worldEntities;
+		_items = items;
 		_binder = new WorldCharacterBinder(session, characters, transport, loggerFactory.CreateLogger<WorldCharacterBinder>());
 		_restore = new WorldRestoreApplier(
 			repository,
@@ -112,7 +117,8 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 			items,
 			audit,
 			loggerFactory,
-			loggerFactory.CreateLogger<WorldRestoreApplier>());
+			loggerFactory.CreateLogger<WorldRestoreApplier>(),
+			worldEntities);
 		_writer = repository is null
 			? null
 			: new WorldCutWriter(
@@ -180,6 +186,25 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 	public IReadOnlyList<SavedCharacter> PendingCharacters => _pendingCharacters;
 
 	/// <summary>
+	/// The Continue attempt is dead: it applied a checkpoint but no world generation
+	/// will consume it (no run baseline to publish). Every handover the click armed is
+	/// released here — the account, the Runtime fact tables, the kernel's restored
+	/// per-entity facts and the adapter's native handover — because the next run's own
+	/// cancels are too late to protect the generation in between (an armed restore makes
+	/// the world-entry seam SKIP the layer-boundary reset, then writes a dead attempt's
+	/// facts into a world that is not the one it describes).
+	/// </summary>
+	public void AbandonRestore(string reason)
+	{
+		_log.LogWarning("The CUO continue attempt is abandoned: {Reason}. Every handover it armed is released and the live world keeps the state it already has.", reason);
+		_audit?.AbandonRestore();
+		_worldFacts.ClearPendingLiveReplay();
+		_worldEntities?.CancelPendingRestore(reason);
+		_nativeWorldFacts?.CancelPendingRestore();
+		_items?.CancelRestoredWorldItems(reason);
+	}
+
+	/// <summary>
 	/// The cut writer this service drives. Internal because the save suites pin the
 	/// writer's row shapes (which facts a cut kind carries) directly — the same
 	/// reason the capture methods used to be internal on this class.
@@ -208,16 +233,17 @@ public sealed class WorldSaveService : IWorldSaveControl, IDisposable
 		// A new run owns the next generation, whatever happens to the folder below:
 		// a request armed for a previous world must never cut this one, and a restore
 		// armed for a previous (refused or abandoned) attempt must never be written
-		// into this world. All three halves are cancelled here — BEFORE the folder is
+		// into this world. Every half is cancelled here — BEFORE the folder is
 		// created, so a repository that is missing or fails to create the folder cannot
 		// leave the previous attempt's values armed for this run's first generation:
-		// the armed cut, the Runtime fact tables and the adapter's native handover
-		// (keypad codes, geyser liquid types, the game's own damage rows, the run
-		// clock base and the recipe unlock table).
+		// the armed cut, the Runtime fact tables, the kernel's restored per-entity
+		// facts and the adapter's native handover (keypad codes, geyser liquid types,
+		// the game's own damage rows, the run clock base and the recipe unlock table).
 		_armedReason = null;
 		_deferralStartFrame = null;
 		_audit?.AbandonRestore();
 		_worldFacts.ClearPendingLiveReplay();
+		_worldEntities?.CancelPendingRestore("a new run superseded the restore");
 		_nativeWorldFacts?.CancelPendingRestore();
 
 		if (_repository is null)

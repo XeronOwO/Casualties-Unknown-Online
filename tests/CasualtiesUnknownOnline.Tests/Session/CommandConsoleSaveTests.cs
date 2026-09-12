@@ -157,6 +157,11 @@ public class CommandConsoleSaveTests
 
 		public IReadOnlyList<SavedCharacter> PendingCharacters => [];
 
+		/// <summary>Every abandon the console-adjacent code performed (a dead continue attempt).</summary>
+		internal List<string> Abandoned { get; } = [];
+
+		public void AbandonRestore(string reason) => Abandoned.Add(reason);
+
 		internal void Raise(WorldCutReport report) => CutReported?.Invoke(report);
 
 		public bool TryBeginRun() => true;

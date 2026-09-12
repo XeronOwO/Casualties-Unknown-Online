@@ -95,4 +95,15 @@ public interface IWorldSaveControl
 
 	/// <summary>The characters of the last continuation, by player key — the raw material of S4's guest claims.</summary>
 	IReadOnlyList<SavedCharacter> PendingCharacters { get; }
+
+	/// <summary>
+	/// The Continue attempt will never reach its world-entry seam (the restored run
+	/// baseline could not be published, so no generation runs): every handover that
+	/// click armed is released here — the restore's account, the Runtime world-fact
+	/// tables, the kernel's restored per-entity arm, the adapter's native handover and
+	/// the item reconcile — instead of waiting for the next run to cancel them. Nothing
+	/// is reported: a restore that never happened is not a restore that succeeded.
+	/// <paramref name="reason"/> names why, in the log and in each release.
+	/// </summary>
+	void AbandonRestore(string reason);
 }

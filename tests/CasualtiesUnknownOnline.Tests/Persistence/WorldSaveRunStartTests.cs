@@ -1,3 +1,5 @@
+using System;
+using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using Xunit;
 
 namespace CasualtiesUnknownOnline.Tests.Persistence;
@@ -36,5 +38,26 @@ public sealed class WorldSaveRunStartTests
 
 		// The cancel is a real transition, not a call every start logs.
 		Assert.DoesNotContain("cancel-pending", native.Calls);
+	}
+
+	[Fact]
+	public void AbandonRestore_ReleasesEveryHandoverTheClickArmed()
+	{
+		// A continue whose run baseline cannot be published never reaches the
+		// world-entry seam, so this is the last moment the hands can be released. Left
+		// armed, the next generation would be mistaken for the restored layer's: the
+		// seam skips its layer-boundary reset for a pending restore and writes the dead
+		// attempt's facts into it.
+		var entities = new FakeRestoredWorldEntitySource { Armed = true };
+		using var fixture = WorldSaveFixture.Create("save-abandon-restore", worldEntities: entities);
+		fixture.WorldFacts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], radiationLine: null);
+		Assert.True(fixture.WorldFacts.HasPendingLiveReplay);
+
+		fixture.Service.AbandonRestore("the restore published no run baseline, so no world generation will consume it");
+
+		Assert.False(fixture.WorldFacts.HasPendingLiveReplay);
+		Assert.False(entities.Armed);
+		Assert.Single(entities.Cancels);
+		Assert.Contains("no run baseline", Assert.Single(entities.Cancels), StringComparison.Ordinal);
 	}
 }

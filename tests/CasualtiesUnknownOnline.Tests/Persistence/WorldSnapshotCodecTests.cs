@@ -11,6 +11,7 @@ using CasualtiesUnknownOnline.GameState.Domains.Items;
 using CasualtiesUnknownOnline.GameState.Domains.Players;
 using CasualtiesUnknownOnline.GameState.Domains.World;
 using CasualtiesUnknownOnline.GameState.Domains.WorldEntities;
+using CasualtiesUnknownOnline.Protocol.Wire;
 using CasualtiesUnknownOnline.Runtime.Persistence;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
@@ -36,7 +37,7 @@ public class WorldSnapshotCodecTests
 	public void Encode_WritesOneEntryArrayPerDomainFileAndTheCharacters()
 	{
 		var authority = StartedAuthority();
-		Spawn(authority, 100, "bag", ItemLocation.World(1, 2));
+		Spawn(authority, 100, "bag", ItemLocation.Carried(Host));
 
 		var files = Encoder().Encode(Payload(authority, ("steam-76561198000000001", Character(100, "bag"))));
 
@@ -58,14 +59,19 @@ public class WorldSnapshotCodecTests
 			Assert.Equal(JsonValueKind.Array, document.RootElement.ValueKind);
 		}
 
-		// A layer-end cut has no in-layer deviations: both world-diff files exist
-		// empty so S3 can fill them without a schema change (§3.4).
+		// A layer-end cut carries no in-layer fact: both world-diff files exist
+		// empty so S3 can fill them without a schema change (§3.4), and its
+		// world-rooted item rows are not written either — the record seeded above is
+		// the carried one, which does cross the boundary.
 		Assert.Empty(Entries(files, SaveArchiveFormat.WorldBlocksFileName));
 		Assert.Empty(Entries(files, SaveArchiveFormat.WorldTransientsFileName));
 		Assert.Single(Entries(files, SaveArchiveFormat.RunFileName));
-		Assert.Single(Entries(files, SaveArchiveFormat.ItemsFileName));
 		Assert.Empty(Entries(files, SaveArchiveFormat.WorldEntitiesFileName));
 		Assert.Equal(9, files.Count);
+
+		var item = Assert.Single(Entries(files, SaveArchiveFormat.ItemsFileName));
+		Assert.Equal(100UL, item.GetProperty("identity").GetProperty("instanceId").GetUInt64());
+		Assert.Equal((int)WireItemLocationKind.Carried, item.GetProperty("location").GetProperty("kind").GetInt32());
 	}
 
 	[Fact]
@@ -90,7 +96,7 @@ public class WorldSnapshotCodecTests
 		authority.TryUpsertEnemy(Host.Value, new EnemyState(default, "spider", 4f, false, false), out _, out _);
 
 		var original = authority.CreateCheckpoint();
-		var (decoded, salvage) = CodecRoundTrip(original, ("steam-76561198000000001", Character(100, "bag")));
+		var (decoded, salvage) = MidRunCodecRoundTrip(original, ("steam-76561198000000001", Character(100, "bag")));
 
 		Assert.True(salvage.IsClean, salvage.Report.Describe());
 		Assert.Equal(original.RunEpoch.Value, decoded.RunEpoch.Value);
@@ -137,10 +143,11 @@ public class WorldSnapshotCodecTests
 		var authority = StartedAuthority();
 		Spawn(authority, 100, "bag", ItemLocation.World(0f, 0f), condition: 0.1f);
 
-		var (decoded, _) = CodecRoundTrip(authority.CreateCheckpoint());
+		var (decoded, _) = MidRunCodecRoundTrip(authority.CreateCheckpoint());
 
 		// System.Text.Json writes the shortest round-trippable form, so an exact
-		// comparison is the contract (§3.4), not an epsilon.
+		// comparison is the contract (§3.4), not an epsilon. A world item is an
+		// in-layer row, so the cut that carries it is a mid-run one.
 		Assert.Equal(0.1f, Assert.Single(decoded.Items).Data.Condition);
 	}
 
@@ -257,7 +264,7 @@ public class WorldSnapshotCodecTests
 		// — or the whole continue — failing.
 		var authority = StartedAuthority();
 		Spawn(authority, 100, "bag", ItemLocation.World(1, 2));
-		var files = Encoder().Encode(Payload(authority));
+		var files = Encoder().Encode(MidRunPayload(authority));
 		var items = Assert.Single(files, file => file.Path == SaveArchiveFormat.ItemsFileName).Content;
 
 		// Rebuild the file from its own decoded first row plus one unrepresentable
@@ -269,7 +276,7 @@ public class WorldSnapshotCodecTests
 		var patched = files.Where(file => file.Path != SaveArchiveFormat.ItemsFileName)
 			.Append(new SavePayloadFile(SaveArchiveFormat.ItemsFileName, Encoding.UTF8.GetBytes(broken))).ToList();
 
-		var (decode, salvage) = Decode(patched, RunId);
+		var (decode, salvage) = Decode(patched, RunId, WorldCutKind.MidRun);
 
 		Assert.NotNull(decode.Checkpoint);
 		Assert.True(decode.Checkpoint!.Items.Count == 1, "items were: " + string.Join(", ", decode.Checkpoint.Items.Select(item => item.Identity.InstanceId)) + " | salvage: " + salvage.Report.Describe());
@@ -319,8 +326,31 @@ public class WorldSnapshotCodecTests
 		return authority;
 	}
 
+	/// <summary>
+	/// The layer-end payload (the S2 continue shape) built from this authority's kernel.
+	/// A test that carries IN-LAYER rows — a world item, a container tree — asks for
+	/// <see cref="MidRunPayload"/> instead: a layer-end cut names the layer being
+	/// replaced, so neither its world-fact files nor its world-rooted item rows are
+	/// written for one (§3.4).
+	/// </summary>
 	internal static WorldSnapshotPayload Payload(ItemKernelAuthority authority, params (string Key, CharacterDataMsg Character)[] characters) =>
-		new(authority.CreateCheckpoint(), [.. characters.Select(entry => new SavedCharacter(entry.Key, entry.Character))], "Test World", "layer-advance", "layer-boundary");
+		CutPayload(authority.CreateCheckpoint(), WorldCutKind.LayerEnd, characters);
+
+	/// <summary>The MID-RUN payload: the kind whose in-layer rows ARE the archive's content.</summary>
+	internal static WorldSnapshotPayload MidRunPayload(ItemKernelAuthority authority, params (string Key, CharacterDataMsg Character)[] characters) =>
+		CutPayload(authority.CreateCheckpoint(), WorldCutKind.MidRun, characters);
+
+	private static WorldSnapshotPayload CutPayload(
+		GameCheckpoint checkpoint,
+		WorldCutKind kind,
+		(string Key, CharacterDataMsg Character)[] characters) =>
+		new(
+			checkpoint,
+			[.. characters.Select(entry => new SavedCharacter(entry.Key, entry.Character))],
+			"Test World",
+			kind == WorldCutKind.LayerEnd ? "layer-advance" : "command",
+			kind == WorldCutKind.LayerEnd ? "layer-boundary" : "frame-end",
+			Kind: kind);
 
 	internal static void Spawn(ItemKernelAuthority authority, ulong instanceId, string definitionId, ItemLocation location, float condition = 1f) =>
 		Assert.True(authority.TrySpawn(
@@ -337,29 +367,30 @@ public class WorldSnapshotCodecTests
 	/// <summary>Decodes the same payload and returns the characters the decoder produced (the file set is per player key).</summary>
 	internal static IReadOnlyList<SavedCharacter> RoundTripCharacters(GameCheckpoint checkpoint, params (string Key, CharacterDataMsg Character)[] characters)
 	{
-		var payload = new WorldSnapshotPayload(
-			checkpoint,
-			[.. characters.Select(entry => new SavedCharacter(entry.Key, entry.Character))],
-			"Test World",
-			"layer-advance",
-			"layer-boundary");
-		var (decode, _) = Decode(Encoder().Encode(payload), checkpoint.RunEpoch.Value);
+		var (decode, _) = Decode(
+			Encoder().Encode(CutPayload(checkpoint, WorldCutKind.LayerEnd, characters)),
+			checkpoint.RunEpoch.Value);
 		Assert.NotNull(decode.Checkpoint);
 		return decode.UsableCharacters;
 	}
 
 	internal static (GameCheckpoint Decoded, SalvageResult Salvage) CodecRoundTrip(
 		GameCheckpoint checkpoint,
-		params (string Key, CharacterDataMsg Character)[] characters)
+		params (string Key, CharacterDataMsg Character)[] characters) =>
+		RoundTrip(checkpoint, WorldCutKind.LayerEnd, characters);
+
+	/// <summary>The mid-run round trip: the shape that carries the world items and container trees.</summary>
+	internal static (GameCheckpoint Decoded, SalvageResult Salvage) MidRunCodecRoundTrip(
+		GameCheckpoint checkpoint,
+		params (string Key, CharacterDataMsg Character)[] characters) =>
+		RoundTrip(checkpoint, WorldCutKind.MidRun, characters);
+
+	private static (GameCheckpoint Decoded, SalvageResult Salvage) RoundTrip(
+		GameCheckpoint checkpoint,
+		WorldCutKind kind,
+		(string Key, CharacterDataMsg Character)[] characters)
 	{
-		var payload = new WorldSnapshotPayload(
-			checkpoint,
-			[.. characters.Select(entry => new SavedCharacter(entry.Key, entry.Character))],
-			"Test World",
-			"layer-advance",
-			"layer-boundary");
-		var files = Encoder().Encode(payload);
-		var (decode, salvage) = Decode(files, checkpoint.RunEpoch.Value);
+		var (decode, salvage) = Decode(Encoder().Encode(CutPayload(checkpoint, kind, characters)), checkpoint.RunEpoch.Value, kind);
 		Assert.NotNull(decode.Checkpoint);
 		return (decode.Checkpoint!, salvage);
 	}

@@ -101,9 +101,12 @@ internal sealed class RunSaveCoordinator(
 		// RNG stream is exactly the silent restart the restore contract forbids.
 		if (!_parameters.TryApplyRestoredNow())
 		{
-			// The restore will never reach its world-entry seam: the audit must not stay
-			// armed waiting for a live-world write that cannot happen.
-			_restoreAudit?.AbandonRestore();
+			// The restore will never reach its world-entry seam: the save layer releases
+			// every handover the click armed (the account, the Runtime fact tables, the
+			// kernel's restored per-entity facts, the native handover and the item
+			// reconcile) — leaving any of them armed would make the next generation skip
+			// its layer-boundary reset and write a dead attempt's facts into it.
+			_saves.AbandonRestore("the restore published no run baseline, so no world generation will consume it");
 			_characterData.CancelAllLocalRestores();
 			_log.LogError("CUO continue refused ({WorldId}): the restore published no run baseline.", outcome.WorldId);
 			return false;

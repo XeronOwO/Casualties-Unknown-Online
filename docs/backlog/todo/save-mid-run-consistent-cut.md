@@ -38,6 +38,20 @@
   independently (`review/save-layer-end-save-and-restore.md` → *In-game gap found while scoping
   S3.4b*, decision 170), which is also the seam S3.4b's three fields will write back through —
   `CharacterDataSync`'s local restore apply.
+  **S3.5 increment (2026-09-12) — scope 8 (the host side of a restored world-entity table) and F3
+  (a layer-end cut carries no world-rooted item row) landed.** The restored per-entity facts now
+  reach the host's own regenerated world: `WorldEntityKernelProjection` applies them immediately on a
+  GUEST and HOLDS them for the world-entry seam on the host/solo side (`IRestoredWorldEntitySource`),
+  `RestoredWorldFactReplay` writes them through the same three appliers the guest path uses (each
+  returning what the live world took, so an entity the regenerated layer does not have reaches the
+  restore report instead of the log alone), and a layer-end cut's rows are dropped before the audit
+  begins — the layer they describe is the one being replaced. A mid-run restore therefore owes THREE
+  live-world halves and a layer-end restore ONE (`WorldRestoreApplier.LiveWorldHalves`, pinned by
+  `WorldRestoreAuditTests`), and `items.json` obeys the same "no in-layer fact" rule as the two
+  world-fact files, with the layer-boundary reset's own subtree rule
+  (`ItemLocationChain.IsWorldRooted`); `world-entities.json` obeys the same rule, so a produced
+  layer-end archive holds no in-layer fact at all. Scope 7 and scope 9 are NOT part of this
+  increment; scope 9 moved to its own stage ticket (S3.6).
 - Priority: High
 - Category: Persistence / save system
 - Source: Stage 3 of `docs/backlog/in-progress/save-system-mid-run-and-layer-end.md`; this is the user's hard requirement — "需要重点关注存档的中途性质，防止出现多生成、少生成内容的情况"
@@ -236,6 +250,11 @@ The consistent cut and the full mid-run payload. This is where the hard part of 
    capture-side half of the same finding is closed as well: the native reader reports an unreadable
    table set (`NativeWorldFactCapture.Failure`) instead of an empty one, and the cut is REFUSED, so a
    "clean" snapshot can no longer be written from a missing world.
+   **Widened again (S3.5, 2026-09-12):** the restored world-entity write is its own contribution with
+   its own refused count — an entity the regenerated layer does not have (a consumed trap, an opened
+   lockable, a damaged building) now names itself in the restore account instead of stopping at a
+   warning in the log, which is what makes the count the audit waits for (three halves on a mid-run
+   restore) meaningful rather than decorative.
 7. **Refusal recovery** (found by S3.1's review round 2) — a decode-level refusal (a snapshot whose
    manifest kind contradicts its payload) is reported but has no fallback: the reader retries a
    backup only while the manifest is read, and `loadSnapshot` has already returned by then. Give
@@ -260,16 +279,138 @@ The consistent cut and the full mid-run payload. This is where the hard part of 
    proven in the Runtime suites, and the guest-side "restored row never re-settles" branch itself is
    an engine-side branch that the dual-client pass has to confirm.
 
-   **Still open after S3.3** (the seam and the transient policy did not touch it): a mid-run restore
-   on the HOST still leaves opened/consumed/damaged-building facts in the kernel without writing them
-   onto its own freshly generated world. The rule and its proof stay in S3.5, together with the
-   drops of a building the saved world already killed.
-9. **Solo menu-exit trigger** (found by the S3.3 adversarial pass) — the deliberate menu return is
-   requested from session-teardown events and decided by `RunMenuReturnPolicy` for a HOST, so solo
-   play (no session, no role) gets no menu-return cut at all; `/save` is the only mid-run trigger
-   there. Owner: whichever stage owns the solo surface (S3.5 or the multiplayer-restore stage);
-   the fix is an in-world → menu transition edge in the run coordinator that requests the same seam
-   cut, not a second cut path.
+   **Landed (S3.5, 2026-09-12).** The rule is ROLE-based, because the two roles restore at different
+   moments: a guest's checkpoint lands on a world the host already generated (its live world IS the
+   restored layer), so `WorldEntityKernelProjection` keeps raising the flat fact lists immediately,
+   while the host/solo side restores at the Continue click — the only world alive then is the layer
+   being REPLACED — so the projection HOLDS the facts (`IRestoredWorldEntitySource`) and
+   `RestoredWorldFactReplay` writes them at the world-entry seam, after the block diff that defines
+   the world they stand in and before the world-entry keypad broadcast. The write goes through the
+   same three appliers the guest path uses (`EntityEventSync.OnTrapStateProjected` →
+   `TrapVisualReplay.Replay`; `WorldBuildingEntitySync.OnOpenedEntitiesProjected` /
+   `OnBuildingHealthProjected`), and each now returns an applied/refused count, so a fact whose
+   entity the regenerated layer does not have reaches the restore report as its own half instead of a
+   warning in the log. A death applied here stays a REMOTE death (`MarkRemoteEntityDeath`), so the
+   drops the saved world already rolled are not rolled a second time — the question this scope left
+   open about a building the saved world already killed.
+   **The layer-end case is the opposite rule**: a layer-end cut names the layer being ENTERED, so its
+   world-entity rows describe the layer being replaced and are dropped before the audit begins
+   (mirroring its world-item rows) — and the ARCHIVE does not carry them either, for `world-entities.json`
+   as for `items.json`, so a guest joining before the regenerated layer's seam cannot be handed facts
+   about a layer the world no longer is. That is also why the seam's `HasPending` check matters: a
+   mid-run restore must keep the restored kernel tables through the generation (the layer-boundary
+   reset would erase the very facts the write is about), while a layer-end restore must not keep the
+   arm alive into the next layer.
+   **Not proven by the above**: the in-game result — that the host's fresh world actually shows the
+   consumed traps / opened lockables / damaged buildings the cut described, that a corpse's loot was
+   not re-rolled by the restored deaths, and that a guest receives exactly the restored set — needs
+   the user's dual-client pass. The appliers' game-typed bodies (Unity `Physics2D.OverlapPoint`, the
+   trap replay's game types) cannot be instantiated in the test host, so their counting contract is
+   pinned at the Runtime seam and by static review of the adapter; see the S3.5 increment self-check.
+9. **Solo menu-exit trigger** (found by the S3.3 adversarial pass) — **MOVED OUT of this ticket**: it
+   is its own stage, `todo/save-solo-menu-exit-trigger.md` (S3.6), because it is a trigger-edge gap on
+   the solo surface rather than part of the consistent cut's scope. The gap is unchanged there: the
+   deliberate menu return is requested from session-teardown events and decided by
+   `RunMenuReturnPolicy` for a HOST, so solo play (no session, no role) gets no menu-return cut; the
+   fix is an in-world → menu transition edge in the run coordinator that requests the same seam cut,
+   not a second cut path.
+
+## S3.5 increment self-check (2026-09-12)
+
+Scope 8 (host-side world-entity projection) and F3 (the layer-end in-layer-fact rule).
+
+| mechanism | change | evidence |
+|---|---|---|
+| a restored kernel world-entity table on the HOST/SOLO side | the projection no longer returns early: it holds the facts for the world-entry seam (`IRestoredWorldEntitySource`) instead of projecting them onto the layer being replaced | `WorldEntityProjectionTests.HostCheckpointRestore_ArmsTheWorldEntryWriteWithTheFactsTheGuestProjects`, `.SoloCheckpointRestore_ArmsTheWorldEntryWriteToo`, `.PendingWorldEntryWrite_EndsOnCommitOrCancel_AndNeverTwice` |
+| the same table on a GUEST | unchanged: the flat lists are raised immediately, from the SAME mapping function the host's pending read uses | `WorldEntityProjectionTests.GuestCheckpointRestore_ProjectsKernelWorldEntities` + the two rows above comparing both paths' rows |
+| the host's write at the seam | `RestoredWorldFactReplay` writes the entity facts through `IRestoredWorldFactSink.ApplyWorldEntities` (the three existing appliers), commits on zero refusals and cancels with the reason otherwise | `RestoredWorldFactReplayTests.ApplyIfPending_WithOnlyTheWorldEntitiesPending_WritesAndCommitsThatHalf`, `.ApplyIfPending_WorldEntityRowsTheLayerDoesNotHave_ReachTheRestoreAccount` |
+| the seam's `HasPending` gate | a pending world-entity write keeps the restored kernel tables through the generation (the layer-boundary reset must not run) | `RestoredWorldFactReplayTests.ApplyIfPending_WithOnlyTheWorldEntitiesPending_WritesAndCommitsThatHalf` (no runtime/native half pending, and the write still runs) |
+| the restore's live-write account | the count follows the writers that are ACTUALLY armed when the click returns (the world-fact half always reports; the world-entity and item halves report when armed), never the cut kind alone — a count naming a half nobody will report would leave the restore awaiting forever, and one that is too low would report before the last writer ran | `WorldRestoreAuditTests.LiveWorldHalves_CountTheWritersThatAreActuallyArmed`, `.AThirdExpectedHalf_HoldsTheReportUntilTheItemReconcileArrives`, `RestoredWorldFactReplayTests.ApplyIfPending_MidRunRestore_ReportsTwoHalvesAndWaitsForTheItemReconcile`, `.ApplyIfPending_WithAnUnarmedWorldEntitySource_ReportsOnlyTheHalvesTheRestoreOwes` |
+| a restore reports ONCE | a contribution that arrives after the report is ignored, and the world-entry seam's no-op report only fires while a restore is awaiting it — the seam runs the replay again on every later generation, so a completed restore must not be re-reported (the player would be told about a restore that is not happening) | `WorldRestoreAuditTests.LiveWriteFinished_AfterTheReportWasRaised_IsIgnored`, `RestoredWorldFactReplayTests.ApplyIfPending_OnTheGenerationAfterACompletedRestore_ReportsNothing`, `.ApplyIfPending_NothingToWrite_CompletesAnAwaitingAudit` |
+| a throw during the seam write | every owed half reports incomplete and every handover is released (including the entity half, whose write never ran) | `RestoredWorldFactReplayTests.ApplyIfPending_WhenTheWriteThrows_ReportsAndReleasesTheWorldEntityHalfToo` |
+| a new run superseding a restore | the kernel's restored per-entity facts are cancelled with the world-fact tables, before the new run's folder is created | `WorldSaveFixture` restore suites + `WorldSaveService.TryBeginRun` (the cancel sits beside `ClearPendingLiveReplay`/`CancelPendingRestore`); `RestoredWorldFactReplayTests` cover the release rule |
+| the session ending before the seam | the arm is released with its counts (a session end takes the layer the facts describe with it) | `WorldEntityProjectionTests.SessionEnd_ReleasesThePendingWorldEntryWrite` |
+| a layer-end cut's world-entity rows | dropped before the audit begins (the layer they describe is being replaced), mirroring the item rule | `WorldRestoreApplier.TryApply` + `WorldRestoreAuditTests.LiveWorldHalves_CountTheWritersThatAreActuallyArmed` |
+| `items.json` of a layer-end cut | world-rooted rows (a ground item and everything inside a ground container) are dropped by the encoder with the layer-boundary reset's own rule; carried records and tombstones stay; a caller's pre-reset rows are named in the log | `WorldSnapshotWorldFactsTests.LayerAdvanceCut_KeepsTheWorldRootedItemsOutOfTheArchive` (red before the fix: the world item id was in the written file), `WorldSnapshotCodecTests.Encode_WritesOneEntryArrayPerDomainFileAndTheCharacters` |
+| `world-entities.json` of a layer-end cut | the same rule: every per-entity row of the replaced layer is dropped by the encoder (named), so the kernel checkpoint a later guest join receives carries no fact about a layer the world no longer is | `WorldSnapshotWorldFactsTests.LayerAdvanceCut_KeepsTheWorldEntityFactsOutOfTheArchive`, `WorldSaveContinueTests.ConsumedTrap_StaysConsumedAfterRestore` (a mid-run cut, where the fact belongs to the restored layer) |
+| the appliers' outcome counts | `TrapVisualReplay.Replay` and the building-entity appliers report whether the row reached the live world: a duplicate the guard drops counts as present (the state IS there), and a missing entity is REFUSED — including the destructive families, whose explosion is replayed as presentation but whose consumption fact is then not in the world | Runtime-seam contract tests above; the game-typed bodies are static-reviewed only (see below) |
+
+**Not proven by the above**: the in-game result. The adapter's appliers run against Unity types that
+the test host cannot instantiate (`Physics2D.OverlapPoint`, `TrapEffectApplier.FindTrap<T>`,
+`MarkRemoteEntityDeath`), so what a real host's regenerated world shows after a mid-run restore — and
+whether a guest sees exactly the restored set — is the user's dual-client pass.
+
+## S3.5 increment independent adversarial pass (2026-09-12)
+
+An independent reviewer (fresh context, no stake in the change) audited the increment — scope 8 and
+F3 — against its claims by reading the diff, the Runtime seam and the adapter appliers, and by
+running the focused suites (89/89) and the normative gates (32/32). It could NOT falsify: the wire
+surface (no protocol member or message id changed), the structure/gate claims, the guest path's
+unchanged immediacy, the host/solo arming at the Runtime seam, and the item rule's behaviour
+(ground items and ground-container children dropped for a layer-end cut, carried records and
+tombstones kept, `ItemLocationChain` cycle-safe). It DID find real defects, all fixed on top of the
+increment:
+
+1. **BLOCKER — the destructive trap facts counted as applied with no live entity.** The three
+   explosion replays returned "applied" unconditionally, so a fact whose entity the regenerated layer
+   does not have (exactly the divergence the count exists to surface) was reported as restored.
+   Fixed: the three helpers return whether the entity exists (a duplicate that the guard drops still
+   counts as present — the state IS in the world), and a missing entity is a refused row.
+2. **BLOCKER — the audit could report twice.** `WorldRestoreAudit.LiveWriteFinished` accepted
+   contributions after the report was raised, and the world-entry seam's "carried nothing" report
+   fired on EVERY later generation, so a normal generation after a completed restore raised a second
+   report for a world that was no longer current. Fixed: the no-op report only fires while a restore
+   awaits it, and the audit ignores contributions once it has reported (`_reported`, reset by
+   `BeginRestore`/`AbandonRestore`).
+3. **MAJOR — a layer-end archive still carried world-entity rows into the kernel.** The item rule
+   (F3) had no counterpart for `world-entities.json`, so a pre-reset layer-end archive put the
+   replaced layer's per-entity facts into the kernel — and a guest joining before the regenerated
+   layer's seam would project them. Fixed: the encoder drops them for a layer-end cut with the same
+   named warning (the enemy/fluid tables deliberately stay: no layer boundary resets them, so
+   carrying them matches what the kernel itself keeps).
+4. **MAJOR — the new arm was not released on a session end.** Fixed: the projection subscribes to
+   `ISessionControl.SessionEnded` and cancels the arm with its counts (the new-run path already
+   cancelled it in `WorldSaveService.TryBeginRun`).
+5. **MAJOR (latent) — the expected-halves count could wait forever.** The count was derived from the
+   cut kind, but the two optional writers can be absent from a composition; fixed: it is derived from
+   the writers that are armed at the click (`WorldRestoreApplier.LiveWorldHalves`).
+6. **MINOR — the parent-lookup map could throw on a duplicate instance id.** Fixed: the map is built
+   with an indexer (the kernel's table is keyed by instance id, so a duplicate is a broken caller and
+   a cut must not die inside a lookup helper).
+7. **NIT — trailing whitespace** in this ticket; removed.
+
+A third focused pass (fresh context) audited exactly those four fixes — the audit's close-on-abandon
+state, the release-everything abandon entry point, the empty-projection gate and the corrected
+encoder/test wording — and could not falsify any of them (verdict: safe to commit). It raised two
+minors and two nits, all closed here: the abandoned and idle account states are now distinct (an
+abandon with nothing in flight is a no-op, so a write with no `BeginRestore` still reports itself,
+and an abandoned account accepts no straggler), the empty-projection gate asks the PROJECTION
+(`HasProjectableFact`) instead of the raw table — the trap-state filter can reduce a non-empty table
+to no rows — `WorldSaveService.AbandonRestore` also releases the item reconcile (so the interface's
+"releases every handover" contract is true for any caller, not just the one in the adapter), and the
+solo wording now says "any non-host state", which is the registries' actual predicate.
+
+Recorded but NOT fixed (pre-existing; none of them made worse by this increment):
+
+- **`WorldRestoreAudit` carries no restore IDENTITY**: a contribution that arrives after a NEW
+  restore has opened its account is counted toward the new one, so a very late writer could raise the
+  new restore's report one half early. Every writer is gated today (each reports once, behind its own
+  pending flag, and a completed or abandoned account ignores stragglers), so the window needs a
+  writer that reports late ACROSS a `BeginRestore`; the fix is an epoch on the account (worldId +
+  revision, or an id the contributors echo).
+- **The world-entry seam's `HasPending` gate does not consult the ITEM arm**: a restore whose only
+  pending half is the item reconcile (no world facts, no native run fields, no restored world-entity
+  rows) would run the layer-boundary reset and drop the restored world items instead of keeping them
+  for the reconcile. In production the native run-field row is pending for every host/solo restore,
+  which holds the gate true; a composition with no native reader is where it bites.
+- **An action that returns `false` for a reason other than "already in that state"** (e.g.
+  `CrystalStateActions.ApplyCrystalMimic` on a crystal with no mimic effect) is counted as applied by
+  `TrapVisualReplay.ReplayState`, so that divergence can be under-reported. Distinguishing the two
+  needs a tri-state verdict from the shared action library.
+- **Sibling-domain gaps** (recorded above): the world-entity registries reset their kernel tables for
+  a host only, no layer boundary resets the enemy/fluid/player tables at all, and those reset
+  commands stay wire-reachable.
+
 
 ## Acceptance
 

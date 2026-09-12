@@ -44,6 +44,11 @@ internal static class WorldArchiveRoundTrip
 	/// <c>GameStateKernel</c> hand their checkpoint in directly. A checkpoint with
 	/// no run baseline gets a synthetic one — the archive refuses a run-less
 	/// snapshot, and those tests are about their own domain facts, not the run.
+	///
+	/// The cut is a MID-RUN one because that is the kind whose archive carries
+	/// IN-LAYER facts: a layer-end cut names a layer the restore regenerates, so the
+	/// encoder deliberately writes none of them (§3.4), and a domain round-trip built
+	/// on one would assert the opposite of the format's contract.
 	/// </summary>
 	internal static GameCheckpoint ThroughArchive(GameCheckpoint checkpoint, string label = "domain-round-trip")
 	{
@@ -53,11 +58,11 @@ internal static class WorldArchiveRoundTrip
 
 		var test = SaveTestRepository.Create(label);
 		var files = new WorldSnapshotEncoder(NullLogger<WorldSnapshotEncoder>.Instance)
-			.Encode(new WorldSnapshotPayload(payloadCheckpoint, [], "round-trip", "layer-advance", "layer-boundary"));
+			.Encode(new WorldSnapshotPayload(payloadCheckpoint, [], "round-trip", "command", "frame-end", Kind: WorldCutKind.MidRun));
 
 		var write = test.Repository.WriteSnapshot(
 			test.WorldId,
-			SaveTestData.Request(test.WorldId, WorldCutKind.LayerEnd, test.Now, MetaOf(payloadCheckpoint), [.. files]));
+			SaveTestData.Request(test.WorldId, WorldCutKind.MidRun, test.Now, MetaOf(payloadCheckpoint), [.. files]));
 		Assert.True(write.Success, $"{write.Reason}: {write.Detail}");
 
 		// VerifyChecksums is what the restore path uses: the payload's bytes are
@@ -90,8 +95,8 @@ internal static class WorldArchiveRoundTrip
 			LayerIndex = run.LayerIndex,
 			BiomeDepth = run.BiomeDepth,
 			PlayerCount = 0,
-			CutPhase = "layer-boundary",
-			SaveReason = "layer-advance",
+			CutPhase = "frame-end",
+			SaveReason = "command",
 		};
 	}
 

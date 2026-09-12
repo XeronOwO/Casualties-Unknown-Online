@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Persistence;
+using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session.Persistence;
 using CasualtiesUnknownOnline.Runtime.Session.World;
@@ -301,6 +302,197 @@ public sealed class RestoredWorldFactReplayTests
 		Assert.False(audit.AwaitingLiveWrite);
 		Assert.Empty(sink.Calls);
 	}
+
+	[Fact]
+	public void ApplyIfPending_WithOnlyTheWorldEntitiesPending_WritesAndCommitsThatHalf()
+	{
+		// A host restore whose world-fact tables came back empty (nothing mined, no
+		// radiation line) still owes this write: the restored kernel DOES hold per-entity
+		// facts, and reading "the Runtime tables are empty" as "the cut carried nothing"
+		// would leave the host's regenerated world without them.
+		var facts = new FakeWorldFactSource();
+		var native = new FakeNativeWorldFacts();
+		var sink = new FakeRestoredWorldFactSink();
+		var entities = new FakeRestoredWorldEntitySource { Armed = true, Facts = EntityFacts() };
+		var replay = new RestoredWorldFactReplay(
+			facts, native, sink, new RecordingLogger<RestoredWorldFactReplay>(), worldEntities: entities);
+
+		Assert.True(replay.HasPending);
+		replay.ApplyIfPending();
+
+		var written = Assert.Single(sink.WrittenWorldEntities);
+		Assert.Equal(3, written.Count);
+		Assert.Equal(1, entities.Reads);
+		Assert.Equal(1, entities.Commits);
+		Assert.False(entities.Armed);
+		Assert.Empty(entities.Cancels);
+		Assert.False(replay.HasPending);
+	}
+
+	[Fact]
+	public void ApplyIfPending_WithAnUnarmedWorldEntitySource_ReportsOnlyTheHalvesTheRestoreOwes()
+	{
+		// A layer-end cut drops the entity half BEFORE the audit begins, so this seam
+		// must not report a contribution that restore does not owe: the audit raises
+		// its report when the count reaches the expectation, and a late extra
+		// contribution would raise a SECOND report for a restore already reported.
+		var facts = new FakeWorldFactSource();
+		var native = new FakeNativeWorldFacts();
+		var sink = new FakeRestoredWorldFactSink();
+		var entities = new FakeRestoredWorldEntitySource();
+		var audit = new WorldRestoreAudit();
+		var reports = new List<WorldRestoreLiveWriteReport>();
+		audit.Reported += reports.Add;
+		audit.BeginRestore("w-layer-end");
+		var replay = new RestoredWorldFactReplay(
+			facts, native, sink, new RecordingLogger<RestoredWorldFactReplay>(), audit, entities);
+		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], null);
+
+		replay.ApplyIfPending();
+
+		Assert.Single(reports);
+		Assert.DoesNotContain("apply-world-entities", sink.Calls);
+		Assert.Equal(0, entities.Reads);
+		Assert.Equal(1, audit.Contributions);
+	}
+
+	[Fact]
+	public void ApplyIfPending_WorldEntityRowsTheLayerDoesNotHave_ReachTheRestoreAccount()
+	{
+		// The regenerated layer is expected to hold the identical entity at the
+		// identical position, so a refused row is divergence — and it says nothing
+		// about the rows of the OTHER half, which really did land.
+		var facts = new FakeWorldFactSource();
+		var native = new FakeNativeWorldFacts();
+		var sink = new FakeRestoredWorldFactSink { RefuseWorldEntities = true };
+		var entities = new FakeRestoredWorldEntitySource { Armed = true, Facts = EntityFacts() };
+		var audit = new WorldRestoreAudit();
+		var reports = new List<WorldRestoreLiveWriteReport>();
+		audit.Reported += reports.Add;
+		audit.BeginRestore("w-entities", expectedContributions: 2);
+		var replay = new RestoredWorldFactReplay(
+			facts, native, sink, new RecordingLogger<RestoredWorldFactReplay>(), audit, entities);
+		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], null);
+
+		replay.ApplyIfPending();
+
+		var report = Assert.Single(reports);
+		Assert.False(report.Complete);
+		Assert.Contains("world-entity", string.Join("; ", report.Refused), StringComparison.Ordinal);
+		Assert.Single(entities.Cancels);
+		Assert.False(entities.Armed);
+		Assert.Equal(0, entities.Commits);
+
+		// The other half is not collateral damage: its rows reached the world, so its
+		// handover is finished and its account stays complete.
+		Assert.False(facts.HasPendingLiveReplay);
+		Assert.False(native.HasPendingRestore);
+	}
+
+	[Fact]
+	public void ApplyIfPending_MidRunRestore_ReportsTwoHalvesAndWaitsForTheItemReconcile()
+	{
+		// A mid-run cut owes THREE live-world halves at this seam's end: the world
+		// facts, the restored world-entity facts, and the item reconcile that runs one
+		// frame later. The report must not be raised from the first two — it would
+		// tell the player a restore succeeded while the item half has not run.
+		var facts = new FakeWorldFactSource();
+		var native = new FakeNativeWorldFacts();
+		var sink = new FakeRestoredWorldFactSink();
+		var entities = new FakeRestoredWorldEntitySource { Armed = true, Facts = EntityFacts() };
+		var audit = new WorldRestoreAudit();
+		var reports = new List<WorldRestoreLiveWriteReport>();
+		audit.Reported += reports.Add;
+		audit.BeginRestore("w-midrun", expectedContributions: 3);
+		var replay = new RestoredWorldFactReplay(
+			facts, native, sink, new RecordingLogger<RestoredWorldFactReplay>(), audit, entities);
+		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], null);
+
+		replay.ApplyIfPending();
+
+		Assert.Empty(reports);
+		Assert.Equal(2, audit.Contributions);
+		Assert.Equal(3, audit.ExpectedContributions);
+		Assert.True(audit.AwaitingLiveWrite);
+
+		audit.LiveWriteFinished(complete: true, refused: [], summary: "the generation reconciled the restored item set (3 entries)");
+
+		var report = Assert.Single(reports);
+		Assert.True(report.Complete);
+		Assert.Contains("world-entity", report.Summary, StringComparison.Ordinal);
+		Assert.Contains("item set", report.Summary, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void ApplyIfPending_WhenTheWriteThrows_ReportsAndReleasesTheWorldEntityHalfToo()
+	{
+		// The throw path cannot know how far it got, so every half this restore owed
+		// reports incomplete and every handover is released — including the entity
+		// half, whose write never ran.
+		var facts = new FakeWorldFactSource();
+		var native = new FakeNativeWorldFacts();
+		var sink = new FakeRestoredWorldFactSink { ThrowOnBlockWrite = true };
+		var entities = new FakeRestoredWorldEntitySource { Armed = true, Facts = EntityFacts() };
+		var audit = new WorldRestoreAudit();
+		var reports = new List<WorldRestoreLiveWriteReport>();
+		audit.Reported += reports.Add;
+		audit.BeginRestore("w-threw-entities", expectedContributions: 2);
+		var replay = new RestoredWorldFactReplay(
+			facts, native, sink, new RecordingLogger<RestoredWorldFactReplay>(), audit, entities);
+		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], null);
+
+		replay.ApplyIfPending();
+
+		var report = Assert.Single(reports);
+		Assert.False(report.Complete);
+		Assert.Contains("world-entity", string.Join("; ", report.Refused), StringComparison.Ordinal);
+		Assert.DoesNotContain("apply-world-entities", sink.Calls);
+		Assert.Single(entities.Cancels);
+		Assert.False(entities.Armed);
+		Assert.Equal(0, entities.Commits);
+		Assert.False(replay.HasPending);
+	}
+
+	[Fact]
+	public void ApplyIfPending_OnTheGenerationAfterACompletedRestore_ReportsNothing()
+	{
+		// The world-entry seam calls this once per generation. A normal generation
+		// after a completed restore finds nothing pending, and the restore's account is
+		// CLOSED: reporting again would tell the player about a restore that is not
+		// happening, for a world that is no longer the one being played.
+		var facts = new FakeWorldFactSource();
+		var native = new FakeNativeWorldFacts();
+		var sink = new FakeRestoredWorldFactSink();
+		var audit = new WorldRestoreAudit();
+		var reports = new List<WorldRestoreLiveWriteReport>();
+		audit.Reported += reports.Add;
+		audit.BeginRestore("w-generation");
+		var replay = new RestoredWorldFactReplay(facts, native, sink, new RecordingLogger<RestoredWorldFactReplay>(), audit);
+		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], null);
+
+		replay.ApplyIfPending(); // the restore's own seam
+		Assert.Single(reports);
+		Assert.False(audit.AwaitingLiveWrite);
+		var writes = sink.Calls.Count;
+
+		replay.ApplyIfPending(); // the next generation's seam, with nothing pending
+
+		Assert.Single(reports);
+		Assert.Equal(writes, sink.Calls.Count);
+		Assert.Equal(1, audit.Contributions);
+	}
+
+	private static RestoredWorldEntityFacts EntityFacts() => new(
+		[
+			new EntityEventMsg
+			{
+				Kind = EntityEventKind.BearTrapClamped,
+				Extra = 3,
+				Position = new NetVector2Msg(1.5f, 2.5f),
+			},
+		],
+		[new NetVector2Msg(3.5f, 4.5f)],
+		[new BuildingEntityHealthEntryMsg { X = 5.5f, Y = 6.5f, Health = 12f }]);
 
 	private static (RestoredWorldFactReplay Replay, FakeWorldFactSource Facts, FakeNativeWorldFacts Native, FakeRestoredWorldFactSink Sink) Build()
 	{

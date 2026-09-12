@@ -138,4 +138,26 @@ internal sealed class FakeRestoredWorldFactSink : IRestoredWorldFactSink
 		Calls.Add("apply-radiation");
 		return RadiationLinePresent;
 	}
+
+	/// <summary>Simulate a regenerated layer that does not hold the entities the cut recorded: every world-entity row is refused.</summary>
+	internal bool RefuseWorldEntities { get; set; }
+
+	/// <summary>The restored world-entity facts this sink was handed (one entry per write that carried any).</summary>
+	internal List<RestoredWorldEntityFacts> WrittenWorldEntities { get; } = [];
+
+	public LiveWorldWriteOutcome ApplyWorldEntities(RestoredWorldEntityFacts facts)
+	{
+		Calls.Add("apply-world-entities");
+		if (!WorldReady || RefuseWorldEntities)
+		{
+			return new LiveWorldWriteOutcome(0, facts.Count);
+		}
+
+		if (facts.Count > 0)
+		{
+			WrittenWorldEntities.Add(facts);
+		}
+
+		return LiveWorldWriteOutcome.All(facts.Count);
+	}
 }

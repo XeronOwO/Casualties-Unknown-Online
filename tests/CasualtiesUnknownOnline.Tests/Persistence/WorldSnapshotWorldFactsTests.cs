@@ -5,6 +5,9 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
+using CasualtiesUnknownOnline.GameState;
+using CasualtiesUnknownOnline.GameState.Domains.Items;
+using CasualtiesUnknownOnline.GameState.Domains.WorldEntities;
 using CasualtiesUnknownOnline.Runtime.Persistence;
 using CasualtiesUnknownOnline.Runtime.Protocol;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
@@ -338,6 +341,70 @@ public class WorldSnapshotWorldFactsTests
 	/// <summary>The live snapshot's file, whitespace and trailing newline stripped — the payload form itself.</summary>
 	private static string ReadLiveEntry(string liveDirectory, string fileName) =>
 		File.ReadAllText(Path.Combine(liveDirectory, fileName)).Trim();
+
+	/// <summary>The live snapshot's entry array, parsed (the written form, not the encoder's in-memory output).</summary>
+	private static IReadOnlyList<JsonElement> LiveEntries(WorldSaveFixture fixture, string fileName)
+	{
+		var path = Path.Combine(fixture.Repository.Workspace.LiveDirectory(fixture.WorldId), fileName);
+		using var document = JsonDocument.Parse(File.ReadAllBytes(path));
+		return [.. document.RootElement.EnumerateArray().Select(element => element.Clone())];
+	}
+
+	[Fact]
+	public void LayerAdvanceCut_KeepsTheWorldEntityFactsOutOfTheArchive()
+	{
+		// The same rule as the two world-fact files and the world-rooted item rows: a
+		// layer-end cut records no in-layer fact, and a per-entity fact (a consumed trap,
+		// an opened lockable) is exactly that. A HOST session's generation boundary resets
+		// those kernel tables before the advance that takes this cut, but a SOLO boundary
+		// does not (their registries reset for a host only) — so the contract cannot depend
+		// on the caller's order: a layer-end restore puts whatever it reads back into the
+		// kernel, and a row that still arrives would leak the replaced layer to a guest
+		// that joins before the regenerated layer's entry seam.
+		using var fixture = WorldSaveFixture.Create("world-entities-layer-advance");
+		Assert.True(fixture.Service.TryBeginRun());
+		Assert.True(fixture.Kernel.TryStartRun(1001UL, WorldSaveCaptureTests.Run(layerIndex: 0), out _, out _));
+		Assert.True(fixture.Kernel.TryRecordTrapConsumed(1001UL, new EntityPosition(3, 4), 2, 0, 1234, out _, out _));
+		Assert.True(fixture.Kernel.TryRecordOpenedEntity(1001UL, new EntityPosition(7, 8), out _, out _));
+
+		Assert.True(fixture.Kernel.TryAdvanceLayer(1001UL, WorldSaveCaptureTests.Run(layerIndex: 1), out _, out _));
+
+		Assert.Empty(LiveEntries(fixture, SaveArchiveFormat.WorldEntitiesFileName));
+	}
+
+	[Fact]
+	public void LayerAdvanceCut_KeepsTheWorldRootedItemsOutOfTheArchive()
+	{
+		// A layer-end cut records no in-layer fact (§3.4). A WORLD-ROOTED item IS one:
+		// it lies in the layer being replaced, and so does everything inside a container
+		// that lies there. The layer-boundary reset drops that whole subtree from the
+		// kernel (for every non-guest, solo included), so a host session's cut is written
+		// after the reset — and this suite hands the writer the pre-reset kernel anyway,
+		// because the archive's contract cannot depend on every caller's order. Carried
+		// items (and their contents) DO cross the boundary and must stay in the archive.
+		using var fixture = WorldSaveFixture.Create("items-layer-advance");
+		Assert.True(fixture.Service.TryBeginRun());
+		Assert.True(fixture.Kernel.TryStartRun(1001UL, WorldSaveCaptureTests.Run(layerIndex: 0), out _, out _));
+		Assert.True(fixture.Kernel.TrySpawn(
+			1001UL, new ItemIdentity(100, "shell"), ItemLocation.World(5f, 5f), new CharacterItemMsg { ItemId = "shell" }, out _, out _));
+		Assert.True(fixture.Kernel.TrySpawn(
+			1001UL, new ItemIdentity(101, "shell"), ItemLocation.Contained(new ActorId(1001UL), 100), new CharacterItemMsg { ItemId = "shell" }, out _, out _));
+		Assert.True(fixture.Kernel.TrySpawnCarried(
+			1001UL, 200, "backpack", new CharacterItemMsg { ItemId = "backpack" }, out _, out _));
+		Assert.True(fixture.Kernel.TrySpawn(
+			1001UL, new ItemIdentity(201, "shell"), ItemLocation.Contained(new ActorId(1001UL), 200), new CharacterItemMsg { ItemId = "shell" }, out _, out _));
+
+		// The kernel's own commit is the cut trigger — the same S2 seam as above.
+		Assert.True(fixture.Kernel.TryAdvanceLayer(1001UL, WorldSaveCaptureTests.Run(layerIndex: 1), out _, out _));
+
+		var ids = LiveEntries(fixture, SaveArchiveFormat.ItemsFileName)
+			.Select(row => row.GetProperty("identity").GetProperty("instanceId").GetUInt64())
+			.ToList();
+		Assert.DoesNotContain(100UL, ids); // the ground item belongs to the layer being replaced
+		Assert.DoesNotContain(101UL, ids); // and so does everything inside it
+		Assert.Contains(200UL, ids); // carried records cross the boundary
+		Assert.Contains(201UL, ids);
+	}
 
 	// ---- the production seam, over the real world composition ----
 

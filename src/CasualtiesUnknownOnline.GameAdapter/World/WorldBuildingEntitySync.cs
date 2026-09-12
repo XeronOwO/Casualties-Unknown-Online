@@ -161,23 +161,27 @@ internal sealed class WorldBuildingEntitySync(
 	/// at the reported position. Like the damage path, a death applied here is
 	/// REMOTE: the opener's side rolls and reports the drops, this side is
 	/// marked and BuildingEntityUpdatePatch only removes the entity.
+	///
+	/// Returns whether the live world had an entity there: a restored cut's rows
+	/// are counted (a missing entity is divergence the restore report names), and
+	/// the live relay ignores the value.
 	/// </summary>
-	internal void OnRemoteBuildingEntityOpened(NetVector2 pos)
+	internal bool OnRemoteBuildingEntityOpened(NetVector2 pos)
 	{
 		using (CallContext.Enter(CallContext.Origin.RemoteApply))
 		{
 			var hit = Physics2D.OverlapPoint(new Vector2(pos.X, pos.Y));
 			var entity = hit != null ? hit.GetComponent<BuildingEntity>() : null; // Unity object — ==
-			if (entity != null)
-			{
-				entity.health = 0f;
-				MarkRemoteEntityDeath(entity, replayAnimalDeath: true);
-				_world.ReportBuildingEntityHealth(pos.X, pos.Y, 0f); // host-only — the opened state is part of the late-joiner history
-			}
-			else
+			if (entity == null)
 			{
 				_log.LogWarning("Building entity open at {Pos} — no entity there (moved or already gone).", pos);
+				return false;
 			}
+
+			entity.health = 0f;
+			MarkRemoteEntityDeath(entity, replayAnimalDeath: true);
+			_world.ReportBuildingEntityHealth(pos.X, pos.Y, 0f); // host-only — the opened state is part of the late-joiner history
+			return true;
 		}
 	}
 
@@ -185,16 +189,22 @@ internal sealed class WorldBuildingEntitySync(
 	/// The restored checkpoint's opened-entities facts arrived — apply every
 	/// open through the SAME application as the live relay (health = 0 + the
 	/// remote-death mark). Idempotent by construction: an already-open entity's
-	/// health is 0 again.
+	/// health is 0 again. The count is what the restore's live-write account
+	/// names: an entity the regenerated layer does not have is a refused row.
 	/// </summary>
-	internal void OnOpenedEntitiesProjected(IReadOnlyList<NetVector2Msg> positions)
+	internal LiveWorldWriteOutcome OnOpenedEntitiesProjected(IReadOnlyList<NetVector2Msg> positions)
 	{
+		var applied = 0;
 		foreach (var pos in positions)
 		{
-			OnRemoteBuildingEntityOpened(new NetVector2(pos.X, pos.Y));
+			if (OnRemoteBuildingEntityOpened(new NetVector2(pos.X, pos.Y)))
+			{
+				applied++;
+			}
 		}
 
-		_log.LogInformation("Opened-entities checkpoint projection applied ({Count} positions).", positions.Count);
+		_log.LogInformation("Opened-entities checkpoint projection applied ({Applied}/{Total} positions).", applied, positions.Count);
+		return new LiveWorldWriteOutcome(applied, positions.Count - applied);
 	}
 
 	/// <summary>
@@ -202,36 +212,44 @@ internal sealed class WorldBuildingEntitySync(
 	/// every entry through the SAME semantic as the live relay: write the
 	/// host's current health, and mark a death applied here as remote so this
 	/// side never rolls a second set of drops. Idempotent by construction:
-	/// writing the same health again is a no-op.
+	/// writing the same health again is a no-op. The count is what the restore's
+	/// live-write account names: an entity the regenerated layer does not have is
+	/// a refused row.
 	/// </summary>
-	internal void OnBuildingHealthProjected(IReadOnlyList<BuildingEntityHealthEntryMsg> entries)
+	internal LiveWorldWriteOutcome OnBuildingHealthProjected(IReadOnlyList<BuildingEntityHealthEntryMsg> entries)
 	{
+		var applied = 0;
 		foreach (var entry in entries)
 		{
-			ApplyRemoteBuildingEntityHealth(entry.X, entry.Y, entry.Health);
+			if (ApplyRemoteBuildingEntityHealth(entry.X, entry.Y, entry.Health))
+			{
+				applied++;
+			}
 		}
 
-		_log.LogInformation("Building-entity health checkpoint projection applied ({Count} entities).", entries.Count);
+		_log.LogInformation("Building-entity health checkpoint projection applied ({Applied}/{Total} entities).", applied, entries.Count);
+		return new LiveWorldWriteOutcome(applied, entries.Count - applied);
 	}
 
-	private void ApplyRemoteBuildingEntityHealth(float x, float y, float health)
+	private bool ApplyRemoteBuildingEntityHealth(float x, float y, float health)
 	{
 		using (CallContext.Enter(CallContext.Origin.RemoteApply))
 		{
 			var hit = Physics2D.OverlapPoint(new Vector2(x, y));
 			var entity = hit != null ? hit.GetComponent<BuildingEntity>() : null; // Unity object — ==
-			if (entity != null)
-			{
-				entity.health = health;
-				if (entity.health < 0.5f)
-				{
-					MarkRemoteEntityDeath(entity, replayAnimalDeath: false);
-				}
-			}
-			else
+			if (entity == null)
 			{
 				_log.LogWarning("Building-entity health snapshot at ({X}, {Y}) — no entity there (moved or already gone).", x, y);
+				return false;
 			}
+
+			entity.health = health;
+			if (entity.health < 0.5f)
+			{
+				MarkRemoteEntityDeath(entity, replayAnimalDeath: false);
+			}
+
+			return true;
 		}
 	}
 

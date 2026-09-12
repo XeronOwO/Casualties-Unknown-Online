@@ -15,19 +15,27 @@ namespace CasualtiesUnknownOnline.GameAdapter.World;
 /// (<see cref="RestoredWorldFactReplay"/>) stay testable without a running game —
 /// every game-typed operation lives here and nowhere else.
 ///
-/// The two non-obvious writes:
+/// The non-obvious writes:
 /// - the block diff is written WITHOUT marking building support loss: the building
 ///   that stood on a mined block already died in the saved world, and its drops
 ///   are checkpoint items — re-triggering the death would roll them a second time;
 /// - the game's own damage list is CLEARED before the restored rows land, so a
 ///   crack the fresh world somehow already had cannot survive a cut that never
-///   named it.
+///   named it;
+/// - the world-entity rows go through the SAME appliers the guest's checkpoint
+///   projection uses (the trap replay, the opened-entity apply, the health apply),
+///   never a second implementation: a death applied there is a REMOTE death, so
+///   the drops the saved world already rolled are not rolled again.
 /// </summary>
 internal sealed class GameRestoredWorldFactSink(
 	BlockBreakSync blockBreaks,
+	WorldBuildingEntitySync buildingEntities,
+	EntityEventSync entityEvents,
 	ILogger<GameRestoredWorldFactSink> log) : IRestoredWorldFactSink
 {
 	private readonly BlockBreakSync _blockBreaks = blockBreaks;
+	private readonly WorldBuildingEntitySync _buildingEntities = buildingEntities;
+	private readonly EntityEventSync _entityEvents = entityEvents;
 	private readonly ILogger<GameRestoredWorldFactSink> _log = log;
 
 	/// <inheritdoc />
@@ -108,6 +116,28 @@ internal sealed class GameRestoredWorldFactSink(
 
 	/// <inheritdoc />
 	public bool ApplyRadiationLine(RadiationLineStateMsg line) => RadiationLineTable.Apply(line);
+
+	/// <inheritdoc />
+	public LiveWorldWriteOutcome ApplyWorldEntities(RestoredWorldEntityFacts facts)
+	{
+		if (WorldGeneration.world == null) // Unity object — == (the readiness check and this write are not atomic)
+		{
+			_log.LogError("[SaveFacts] no live world to write {Count} restored world-entity row(s) into.", facts.Count);
+			return new LiveWorldWriteOutcome(0, facts.Count);
+		}
+
+		// The SAME three appliers the guest's checkpoint projection calls, in the
+		// same order: the trap facts (position-keyed replay onto the regenerated
+		// entity), then the opened lockables, then the building health. Each returns
+		// what the live world took, so a fact the regenerated layer does not have
+		// reaches the restore report instead of the log alone.
+		var traps = _entityEvents.OnTrapStateProjected(facts.Traps);
+		var opened = _buildingEntities.OnOpenedEntitiesProjected(facts.Opened);
+		var health = _buildingEntities.OnBuildingHealthProjected(facts.Health);
+		return new LiveWorldWriteOutcome(
+			traps.Applied + opened.Applied + health.Applied,
+			traps.Refused + opened.Refused + health.Refused);
+	}
 
 	/// <summary>
 	/// The crack sprites of the rows this apply wrote. Presentation only: the row

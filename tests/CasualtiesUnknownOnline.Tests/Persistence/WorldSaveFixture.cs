@@ -2,6 +2,7 @@ using System;
 using CasualtiesUnknownOnline.Runtime.Persistence;
 using CasualtiesUnknownOnline.Runtime.Session.Items;
 using CasualtiesUnknownOnline.Runtime.Session.Persistence;
+using CasualtiesUnknownOnline.Runtime.Session.World;
 using CasualtiesUnknownOnline.Tests.Fakes;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -57,7 +58,8 @@ internal sealed class WorldSaveFixture : IDisposable
 		ulong hostId = 1001UL,
 		SaveTestRepository? repository = null,
 		FakeNativeWorldFacts? nativeWorldFacts = null,
-		IWorldCutTransientProbe? transients = null)
+		IWorldCutTransientProbe? transients = null,
+		IRestoredWorldEntitySource? worldEntities = null)
 	{
 		repository ??= SaveTestRepository.Create(label);
 		var kernel = new ItemKernelAuthority(NullLogger<ItemKernelAuthority>.Instance);
@@ -77,7 +79,8 @@ internal sealed class WorldSaveFixture : IDisposable
 			NullLogger<WorldSaveService>.Instance,
 			gameBuild: "test",
 			nativeWorldFacts: nativeWorldFacts,
-			transients: transients);
+			transients: transients,
+			worldEntities: worldEntities);
 
 		return new WorldSaveFixture(service, repository, kernel, characters, session, worldFacts);
 	}

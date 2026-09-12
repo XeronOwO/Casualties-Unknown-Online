@@ -38,6 +38,12 @@ change lands in them.
 
 ## Split since the last revision
 
+- `src/CasualtiesUnknownOnline.GameAdapter/Character/CharacterDataSync.cs` — the demanded APPLY split
+  happened (2026-09-11, with S3.4b): the restore's write half moved into `CharacterRestoreApplier`
+  (stats + wipe, items, the native character fields) and the worn-item write into `WearableRestorer`,
+  which both the restore and `PlayerInteractionApply` call. The coordinator now owns only WHEN a
+  restore runs — the queue, the position gate, the two-frame rhythm, the 1 Hz report and the capture.
+  596 → 508 lines.
 - `src/CasualtiesUnknownOnline.Runtime/Session/Persistence/WorldSaveService.cs` — the demanded split
   happened (2026-09-11): the restore half (`TryContinue` + the salvage/summary assembly + the local
   character's apply contract) moved into `WorldRestoreApplier`, and the service now only ADOPTS the

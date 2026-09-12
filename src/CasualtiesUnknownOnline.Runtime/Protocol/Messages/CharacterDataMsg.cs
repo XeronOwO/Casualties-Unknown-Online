@@ -62,4 +62,14 @@ public sealed class CharacterDataMsg
 	/// </summary>
 	[ProtoMember(8)]
 	public int SlotCount { get; set; }
+
+	/// <summary>
+	/// The native character fields the game's own save carried for this character
+	/// (<c>lastHappiness</c>, <c>caloriesConsumed</c>, <c>WoundView.cInfo</c>) —
+	/// null for an old sender or a capture that could not read them, which the
+	/// restore names rather than defaulting (§6). See
+	/// <see cref="CharacterNativeFieldsMsg"/>.
+	/// </summary>
+	[ProtoMember(9)]
+	public CharacterNativeFieldsMsg? NativeFields { get; set; }
 }

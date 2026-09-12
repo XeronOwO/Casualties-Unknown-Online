@@ -20,10 +20,20 @@
   value on them; the run clock base and the recipe unlock table are `run.json`'s new
   `native-run-fields` row, written back by the adapter at the slot the native
   `SaveSystem.TryLoadGame` used to occupy, and a reader that cannot read them refuses the cut.
-  S3.4b (the character-level native fields — `lastHappiness`, `caloriesConsumed`,
-  `WoundView.cInfo`) is still open, as are S3.5 (exactly-once plus documentation and re-anchoring)
-  and scopes 7-9; the mid-run trigger is OPEN, so a build produces both the S2 layer-end cut and the
-  frame-end mid-run cut. **2026-09-11 (before S3.4b started)**: the S2 continue path was found not to
+  **S3.4b (the character-level native fields — `lastHappiness`, `caloriesConsumed`,
+  `WoundView.cInfo`) landed 2026-09-11** on the local restore apply seam decision 170 had just put in
+  place: the three fields ride `CharacterDataMsg.NativeFields` (read off the live scene at the cut and
+  at each 1 Hz report, all-or-nothing), are written back by the restore path's second pass, and a
+  snapshot that carries none of them is named as damage in the restore report (decision 171); the same
+  cycle split the restore's write half out of `CharacterDataSync`
+  (`review/save-native-character-field-parity.md`). An independent adversarial pass on S3.4b then found
+  one blocker (the interaction services' `CloneCharacter` dropped the three fields from the snapshot it
+  saves over the stored character), two majors (a 1–9 element happiness row was prefix-written into the
+  ten-slot game window; the restore report both under-reported malformed fields and blamed characters
+  no peer claimed) and minor/nit items — all fixed in the same cycle. S3.5 (exactly-once plus
+  documentation and
+  re-anchoring) and scopes 7-9 stay open; the mid-run trigger is OPEN, so a build produces both the S2
+  layer-end cut and the frame-end mid-run cut. **2026-09-11 (before S3.4b started)**: the S2 continue path was found not to
   apply the host's own restored character to its own body at all; that gap is fixed first and
   independently (`review/save-layer-end-save-and-restore.md` → *In-game gap found while scoping
   S3.4b*, decision 170), which is also the seam S3.4b's three fields will write back through —

@@ -145,6 +145,35 @@ public class NetPacketTests
 	}
 
 	[Fact]
+	public void CharacterData_NativeFields_RoundTripAndDegradeForAnOldSender()
+	{
+		// S3.4b: the character's native fields (ProtoMember 9) ride the same
+		// snapshot the 1 Hz report and the reconnect hand-over use, so a guest's
+		// values reach the host's stored character and back. A sender that predates
+		// the field leaves a null sub-message, which the restore NAMES rather than
+		// reading as zeros.
+		var msg = new CharacterDataMsg
+		{
+			NativeFields = new CharacterNativeFieldsMsg
+			{
+				LastHappiness = [0.25f, 0.5f, 0.75f],
+				CaloriesConsumed = 4100,
+				CharacterInfo = [171, 24, 8123, 3],
+			},
+		};
+
+		var decoded = NetPacket.DecodePayload<CharacterDataMsg>(NetPacket.Encode(NetMsg.CharacterData, msg));
+
+		var fields = Assert.IsType<CharacterNativeFieldsMsg>(decoded.NativeFields);
+		Assert.Equal([0.25f, 0.5f, 0.75f], fields.LastHappiness);
+		Assert.Equal(4100, fields.CaloriesConsumed);
+		Assert.Equal([171, 24, 8123, 3], fields.CharacterInfo);
+
+		var without = NetPacket.DecodePayload<CharacterDataMsg>(NetPacket.Encode(NetMsg.CharacterData, new CharacterDataMsg()));
+		Assert.Null(without.NativeFields);
+	}
+
+	[Fact]
 	public void CraftReport_ZeroValueEnums_RoundTripTransparently()
 	{
 		// The craft wire discipline: Kind=Craft and Disposition=Destroyed are

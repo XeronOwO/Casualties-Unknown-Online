@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using CasualtiesUnknownOnline.Runtime.Persistence;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
@@ -121,7 +122,7 @@ internal sealed class WorldRestoreApplier(
 		// characters are bound, so a player the package omits cannot be resurrected
 		// from stale data (decision 162: absent from the package = new character).
 		characters.ClearSavedCharacters();
-		var localCharacter = binder.Apply(decode.UsableCharacters);
+		var bound = binder.Apply(decode.UsableCharacters);
 		repository.SetLastOpenedWorld(worldId);
 
 		// The live-world half of this restore lands at the world-entry seam, after
@@ -133,8 +134,22 @@ internal sealed class WorldRestoreApplier(
 		// is built from the WHOLE report — a backup fallback is repository-scope
 		// damage that a per-entry "clean" check would hide (§6: silent loss is
 		// forbidden). The world facts that could not be put back at the click (no
-		// native applier, an applier that threw) are part of that account too.
+		// native applier, an applier that threw) are part of that account too, and so
+		// is every restored character whose native character fields cannot be put
+		// back — the live body then keeps the game's defaults for them, which the
+		// player would otherwise never be told (§6.1). Only the characters that were
+		// actually BOUND are described: a file no present peer claims restores
+		// nothing, so naming its gaps would describe a degradation nobody gets.
 		var damages = new List<string>(factDamage);
+		var boundKeys = new HashSet<string>(bound.BoundPlayerKeys, StringComparer.Ordinal);
+		foreach (var character in decode.UsableCharacters)
+		{
+			if (boundKeys.Contains(character.PlayerKey))
+			{
+				damages.AddRange(CharacterNativeFieldPolicy.Missing(character.PlayerKey, character.Character));
+			}
+		}
+
 		if (salvage.Report.Entries.Count > 0)
 		{
 			damages.Add(salvage.Report.Describe());
@@ -146,7 +161,7 @@ internal sealed class WorldRestoreApplier(
 		log.LogInformation("Continue restored world {WorldId} at revision {Revision} (layer {Layer}, {Players} stored character(s)): {Summary}",
 			worldId, decode.Checkpoint.GlobalRevision, decode.Checkpoint.Run?.LayerIndex ?? -1, decode.UsableCharacters.Count, summary);
 		return new Result(
-			new WorldContinueOutcome(true, worldId, summary, salvage, localCharacter),
+			new WorldContinueOutcome(true, worldId, summary, salvage, bound.LocalCharacter),
 			worldId,
 			load.Content.Manifest.DisplayName,
 			decode.UsableCharacters);

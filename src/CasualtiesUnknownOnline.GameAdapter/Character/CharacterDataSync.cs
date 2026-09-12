@@ -1,15 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using CasualtiesUnknownOnline.Runtime.Protocol.Messages;
 using CasualtiesUnknownOnline.Runtime.Session;
 using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
 using MapsterMapper;
 using Microsoft.Extensions.Logging;
 using UnityEngine;
-using Object = UnityEngine.Object;
-
-using CasualtiesUnknownOnline.GameAdapter.Content;
-using CasualtiesUnknownOnline.GameAdapter.Items;
 
 namespace CasualtiesUnknownOnline.GameAdapter.Character;
 
@@ -26,6 +23,9 @@ internal sealed class CharacterDataSync(
 	IMapper mapper,
 	CloneInventoryRenderer inventoryRenderer,
 	CloneFactTable factTable,
+	CharacterRestoreApplier restoreApplier,
+	WearableRestorer wearables,
+	ICharacterNativeSystem nativeSystem,
 	ILogger<CharacterDataSync> log)
 {
 	private readonly ISessionControl _session = session;
@@ -33,6 +33,9 @@ internal sealed class CharacterDataSync(
 	private readonly IMapper _mapper = mapper;
 	private readonly CloneInventoryRenderer _inventoryRenderer = inventoryRenderer;
 	private readonly CloneFactTable _factTable = factTable;
+	private readonly CharacterRestoreApplier _restoreApplier = restoreApplier;
+	private readonly WearableRestorer _wearables = wearables;
+	private readonly ICharacterNativeSystem _nativeSystem = nativeSystem;
 	private readonly ILogger<CharacterDataSync> _log = log;
 
 	/// <summary>A clone's snapshot cache updated (SteamId) — the renderer re-renders that clone's carried items. Without this, the clone only rendered once at creation ("after the starting supplies, the peer never sees carried-item updates").</summary>
@@ -220,7 +223,7 @@ internal sealed class CharacterDataSync(
 		}
 
 		_nextCharacterReportMs = nowMs + (long)(CharacterReportInterval * 1000f);
-		ReportCharacterData(CharacterDataCapture.Capture(_mapper, localBody), throttled: true);
+		ReportCharacterData(CharacterDataCapture.Capture(_mapper, localBody, out var nativeFailure, _nativeSystem), throttled: true, nativeFailure);
 	}
 
 	/// <summary>An inventory-internal move finished (SwapSlots/SwitchHands) — re-report right away (the 1 Hz throttle alone reads as a 1-2 s delay on the peer's clone).</summary>
@@ -229,11 +232,11 @@ internal sealed class CharacterDataSync(
 		if (localBody != null && _session.SessionActive && !_restore.HasPending && !_restore.WipePending) // Unity object — ==
 		{
 			_log.LogInformation("[CloneRender] inventory changed — immediate re-report.");
-			ReportCharacterData(CharacterDataCapture.Capture(_mapper, localBody), throttled: false);
+			ReportCharacterData(CharacterDataCapture.Capture(_mapper, localBody, out var nativeFailure, _nativeSystem), throttled: false, nativeFailure);
 		}
 	}
 
-	private void ReportCharacterData(CharacterDataMsg data, bool throttled)
+	private void ReportCharacterData(CharacterDataMsg data, bool throttled, string? nativeFailure = null)
 	{
 		if (_session.Role == SessionRole.Host)
 		{
@@ -241,6 +244,7 @@ internal sealed class CharacterDataSync(
 			if (throttled)
 			{
 				_log.LogDebug("[CloneRender] host broadcasting char data ({Count} items).", data.Items.Count);
+				LogMissingNativeFields(nativeFailure);
 			}
 
 			_characterData.BroadcastHostCharacterData(data);
@@ -250,14 +254,42 @@ internal sealed class CharacterDataSync(
 			if (throttled)
 			{
 				_log.LogDebug("[CloneRender] guest reporting char data ({Count} items).", data.Items.Count);
+				LogMissingNativeFields(nativeFailure);
 			}
 
 			_characterData.ReportCharacterData(data);
 		}
 	}
 
+	/// <summary>
+	/// The snapshot this report just built carries no native character fields: say
+	/// WHY, because the reason decides what the player loses — a missing camera or
+	/// wound window is a live-scene problem, while a body without its happiness
+	/// window is a data problem. Only the throttled (1 Hz) reports log it, so a
+	/// scene that cannot be read does not flood the log from every inventory move.
+	/// </summary>
+	private void LogMissingNativeFields(string? nativeFailure)
+	{
+		if (nativeFailure is not null)
+		{
+			_log.LogWarning("Character snapshot without native character fields ({Missing}); the snapshot still reconnects the character, but a restore of it keeps the game's defaults for those fields.",
+				nativeFailure);
+		}
+	}
+
 	/// <summary>Capture the LOCAL body's character snapshot right now — the save system's cut needs the state at the instant the host leaves the world, not the last 1 Hz report.</summary>
-	internal CharacterDataMsg CaptureLocal(Body body) => CharacterDataCapture.Capture(_mapper, body);
+	internal CharacterDataMsg CaptureLocal(Body body)
+	{
+		var captured = CharacterDataCapture.Capture(_mapper, body, out var nativeFailure, _nativeSystem);
+		if (nativeFailure is not null)
+		{
+			// The cut's own snapshot: this is the one a later continue restores, so its
+			// native-field gap is worth a line at the instant it is taken.
+			_log.LogWarning("The cut's character snapshot carries no native character fields ({Missing}); a continue of it keeps the game's defaults for those fields.", nativeFailure);
+		}
+
+		return captured;
+	}
 
 	/// <summary>Host side: a NEW run started (the host clicked start) — the previous run's saved characters are void (see ICharacterDataControl.ClearSavedCharacters).</summary>
 	internal void ClearSavedCharacters() => _characterData.ClearSavedCharacters();
@@ -288,7 +320,7 @@ internal sealed class CharacterDataSync(
 		}
 		else if (!_restore.HasPending)
 		{
-			_characterData.ReportCharacterData(CharacterDataCapture.Capture(_mapper, prevBody));
+			_characterData.ReportCharacterData(CharacterDataCapture.Capture(_mapper, prevBody, out _, _nativeSystem));
 		}
 
 		// The body left the world — the next body's restore position applies
@@ -325,13 +357,44 @@ internal sealed class CharacterDataSync(
 			// the previous frame, so the slots are actually empty now and
 			// PickUpItem succeeds — it silently refuses a non-empty slot
 			// (Body.cs:1388), which stranded the restored items on the ground.
-			ApplyRestoredItems(body, pending);
+			_restoreApplier.ApplyItems(body, pending);
+
+			// The native character fields are the LAST step, and they have to be: a
+			// snapshot that carries none of them is reported here — by name — because
+			// the game skips its own fresh roll when a run is continued
+			// (PlayerCamera.cs:726-729), so those fields would otherwise stay at the
+			// defaults the fresh body was created with and the player would never be
+			// told (§6/§6.1).
+			ReportNativeFields(pending, _restoreApplier.ApplyNativeFields(body, pending));
+
 			_restore.Clear();
 			return;
 		}
 
-		ApplyRestoredStatsAndWipe(body, pending);
+		_restoreApplier.ApplyStatsAndWipe(body, pending);
 		_restore.MarkWipePending();
+	}
+
+	/// <summary>
+	/// The local account of a restore's native-field half: a snapshot without them
+	/// is named here (the archive half of the same absence is named by the Runtime's
+	/// restore summary — <c>CharacterNativeFieldPolicy.Missing</c>), and every value
+	/// the live game refused to take is named too. Information, not a warning: both
+	/// cases are expected for an old snapshot, and the loud half belongs to the
+	/// restore report (§6).
+	/// </summary>
+	private void ReportNativeFields(CharacterDataMsg pending, IReadOnlyList<NativeFieldWrite> writes)
+	{
+		if (pending.NativeFields is null)
+		{
+			_log.LogInformation(
+				"Character restore carries no native character fields (lastHappiness, caloriesConsumed, WoundView.cInfo): this body keeps the live defaults for them.");
+		}
+
+		foreach (var write in writes.Where(write => !write.Applied))
+		{
+			_log.LogWarning("Character restore did not write {Field}: {Refusal}.", write.Description, write.Refusal);
+		}
 	}
 
 	/// <summary>Pump entry used by the run coordinator: applies a pending host restore once the local body exists.</summary>
@@ -461,136 +524,11 @@ internal sealed class CharacterDataSync(
 		}
 	}
 
-	private void ApplyRestoredStatsAndWipe(Body body, CharacterDataMsg data)
-	{
-		_log.LogInformation("Applying character restore ({Items} items).", data.Items.Count);
-
-		// Wipe the fresh-run default state first: this new run already got its
-		// starting supplies (WorldGeneration.WorldPlacePlayer) and random vitals
-		// (Body.Start) — restoring on top would duplicate items and leave
-		// random hunger/thirst. Destroy is end-of-frame; the items are re-added
-		// on the next frame (TryApplyCharacterRestore's second pass), so the
-		// slots are actually empty when PickUpItem runs — it silently refuses
-		// a non-empty slot (Body.cs:1388) and the item would be stranded.
-		for (var slot = 0; slot < body.slots.Length; slot++)
-		{
-			var holder = body.slots[slot].transform;
-			for (var i = holder.childCount - 1; i >= 0; i--)
-			{
-				Object.Destroy(holder.GetChild(i).gameObject);
-			}
-		}
-
-		if (data.Skills is { } skills)
-		{
-			_mapper.Map(skills, body.skills);
-			body.skills.UpdateExpBoundaries(); // min/max derive from STR/RES/INT (Skills.cs:61)
-		}
-
-		if (data.Health is { } health)
-		{
-			// Target-driven: only writable Body members that exist in the source
-			// are touched — alive/conscious (derived properties, Body.cs:203/213)
-			// are read-only and skipped automatically.
-			_mapper.Map(health, body);
-			CharacterComponentSync.Apply(body, health);
-		}
-
-		foreach (var limbData in data.Limbs)
-		{
-			if (limbData.Index < 0 || limbData.Index >= body.limbs.Length)
-			{
-				continue;
-			}
-
-			_mapper.Map(limbData, body.limbs[limbData.Index]);
-			LimbComponentStateCodec.Apply(body.limbs[limbData.Index], limbData.Components);
-		}
-	}
-
-	private void ApplyRestoredItems(Body body, CharacterDataMsg data)
-	{
-		foreach (var itemData in data.Items)
-		{
-			if (itemData.SlotIndex < 0)
-			{
-				RestoreWearable(itemData, body);
-			}
-			else
-			{
-				ItemStateCodec.RestoreItem(itemData, body);
-			}
-		}
-
-		var handSlot = data.HandSlot - 1; // wire encoding: handSlot + 1
-		if (handSlot >= 0 && handSlot < body.slots.Length)
-		{
-			body.handSlot = handSlot;
-		}
-	}
-
 	/// <summary>
-	/// Restore a worn item onto its limb (mirrors WearWearable, Body.cs:1480:
-	/// parented to the limb, physics off, identity pose). The limb comes from
-	/// the captured negative SlotIndex — the restore path never had the item
-	/// in a backpack, so the game's slot-driven wear flow cannot run.
+	/// Restore one worn item onto the local body — the same write the restore's
+	/// second pass performs, exposed for a cross-player interaction that hands the
+	/// local player a wearable. The implementation lives in
+	/// <see cref="WearableRestorer"/>, which both callers share.
 	/// </summary>
-	internal void RestoreWearable(CharacterItemMsg itemData, Body body)
-	{
-		var limbIndex = -itemData.SlotIndex - 2;
-		if (limbIndex < 0 || limbIndex >= body.limbs.Length)
-		{
-			_log.LogWarning("Restore: worn {ItemId} has limb index {Limb} out of range — skipped.", itemData.ItemId, limbIndex);
-			return;
-		}
-
-		var prefab = ItemPrefabResolver.Load(itemData.ItemId);
-		if (prefab == null) // Unity object — ==
-		{
-			_log.LogWarning("Restore: {ItemId} has no prefab — skipped.", itemData.ItemId);
-			return;
-		}
-
-		var go = Object.Instantiate(prefab, body.transform.position, Quaternion.identity);
-		go.SetActive(true);
-		var item = go.GetComponent<Item>();
-		if (item == null) // Unity object — ==
-		{
-			Object.Destroy(go);
-			_log.LogWarning("Restore: {ItemId} has no Item component — skipped.", itemData.ItemId);
-			return;
-		}
-
-		if (itemData.InstanceId != 0)
-		{
-			// Identity restore — same rationale as ItemStateCodec.RestoreItem:
-			// the reconnect-merge ids keep the restored item the SAME instance
-			// the host knows (an id-less restore reads as a runtime spawn).
-			item.gameObject.AddComponent<ItemInstanceId>().Id = itemData.InstanceId;
-		}
-
-		item.condition = itemData.Condition;
-		item.favourited = itemData.Favourited;
-		ItemStateCodec.RestoreLiquids(item, itemData.Liquids);
-		ItemStateCodec.RestoreComponentStates(item, itemData.Components);
-		ItemStateCodec.RestoreContents(item, itemData.Contents);
-
-		var limb = body.limbs[limbIndex];
-		item.rb.simulated = false;
-		item.transform.SetParent(limb.transform);
-		item.transform.localScale = Vector3.one;
-		item.transform.localRotation = Quaternion.identity;
-		item.transform.localPosition = Vector3.zero;
-		var sr = item.GetComponent<SpriteRenderer>();
-		if (sr != null) // Unity object — ==
-		{
-			sr.sortingOrder = limb.GetComponent<SpriteRenderer>().sortingOrder + item.Stats.wearableVisualOffset;
-		}
-
-		// A restored worn item is already on its limb; a custom worn-sprite
-		// visual must be applied here because the restore path never runs the
-		// vanilla WearWearable flow (and therefore neither the wear patch).
-		item.GetComponent<CustomItemVisualState>()?.ApplyWornVisual();
-		item.GetComponent<CustomItemVisualState>()?.EnsureSecondarySprites(body);
-	}
+	internal void RestoreWearable(CharacterItemMsg itemData, Body body) => _wearables.RestoreWearable(itemData, body);
 }

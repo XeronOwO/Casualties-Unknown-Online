@@ -124,7 +124,7 @@ internal sealed class RespawnCoordinator(
 		if (isLocal)
 		{
 			_characterData.SaveHostCharacterData(respawn);
-			_characterDataSync.QueueRespawnRestore(respawn);
+			_characterDataSync.QueueLocalRestore(respawn);
 		}
 		else
 		{

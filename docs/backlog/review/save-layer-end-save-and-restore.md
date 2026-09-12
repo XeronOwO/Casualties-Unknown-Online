@@ -1,7 +1,9 @@
 # S2 — Layer-end save and restore
 
 - Status: Review (code + machine verification complete; the in-game rows below need the user's
-  dual-client pass — see *Verification*)
+  dual-client pass — see *Verification*. **Reopened and re-closed 2026-09-11**: a machine-level gap
+  in the host's own restore was found while scoping S3.4b and is fixed on top of this stage — see
+  *In-game gap found while scoping S3.4b* below)
 - Priority: High
 - Category: Persistence / save system
 - Source: Stage 2 of `docs/backlog/in-progress/save-system-mid-run-and-layer-end.md` (design frozen 2026-09-10)
@@ -102,7 +104,7 @@ typed-row rule for multi-shape tables, the character-file/claim semantics and S2
 
 | # | Scenario | Expected | Verification |
 |---|---|---|---|
-| 1 | Layer-end save → quit → continue | The next layer starts with the saved character and run state; identical character/run state; no duplicate or missing items | machine: capture writes the entered layer's baseline, the restore applies the checkpoint, the host character is bound back, and a container tree keeps exactly one parent per child. In-game: **user dual-client pass** |
+| 1 | Layer-end save → quit → continue | The next layer starts with the saved character and run state; identical character/run state; no duplicate or missing items | machine: capture writes the entered layer's baseline, the restore applies the checkpoint, the host character is bound back AND handed to the adapter to apply on its own body (`WorldContinueOutcome.LocalCharacter`, decision 170) with the replaced layer's position dropped, and a container tree keeps exactly one parent per child. In-game: **user dual-client pass** |
 | 2 | Save with 2 items in a container tree, restore | Same identities and exactly one parent per child; no re-materialization of generation-time items | machine: `WorldSaveContinueTests.ContainerTree_AfterRestore_HasExactlyOneParentPerChild` (ids 100/101/102, both children `Contained` in 100) |
 | 3 | Save after killing an enemy / consuming a trap, restore | Terminal facts stay terminal | machine: `WorldSaveContinueTests.RemovedEnemy_StaysTerminalAfterRestore` (the tombstone survives, a re-upsert is refused); trap-consumption/opened facts round-trip in `WorldSnapshotCodecTests` |
 | 4 | Restore twice | Idempotent; the world fingerprint from the pinned reference run is stable | machine: `WorldSaveContinueTests.TryContinue_Twice_KeepsTheSameFingerprintAndFacts` (item fingerprint + global revision equal across two restores) |
@@ -171,6 +173,58 @@ Recorded, not fixed in this cycle:
   `SessionActive` / `PlayerCamera.main` (inherited behaviour, now the only writer sits behind it): a
   failed check loses that save and the menu transition with no retry. Left alone deliberately — the
   queue semantics change needs its own test, and it is not reachable from a unit host.
+
+## In-game gap found while scoping S3.4b (2026-09-11) — reopened and fixed here
+
+S3.4b (the character-level native fields) needed to know where a restored character reaches a BODY.
+The answer was: nowhere, on the host. `TryContinue` bound every claimed stored key — the host's own
+through `SaveHostCharacterData` — and no path led from that slot to a body:
+
+- the only "apply MY character to MY body" path is `CharacterDataSync.TryApplyCharacterRestore`, which
+  runs only while `_pendingRestore` is set, and on the host side only
+  `RespawnCoordinator.ReviveDeadOnNextLevel` (`:113-127`) ever set it — a DEAD character being
+  auto-revived at a layer boundary;
+- `WorldGeneration.WorldPlacePlayer` hands out the starting supplies only while `totalTraveled <= 0`
+  (`WorldGeneration.cs:1891-1919`), so a continued run placed the host in the layer with an EMPTY
+  inventory;
+- and the slot the archive's copy was bound into is the one the live 1 Hz snapshot writes on a host
+  (`CharacterDataStore.BroadcastHostCharacterData`), so it did not even survive in memory.
+
+Proven by reading the produced code (no call site leads from the character table to a local body) and
+by the game's placement rule above. **Not** reproducible in this test host: the failed path needs the
+game's own scene and body, the same reason this stage's in-game rows were never machine-verified.
+Fixed in this order:
+
+1. **The archive's character for the LOCAL player travels to the adapter**
+   (`WorldContinueOutcome.LocalCharacter`, produced by `WorldCharacterBinder.Apply`), because the
+   Runtime cannot apply it — the body does not exist at the click. The character-table slot it is also
+   bound into cannot carry that meaning: peers' reconnects read that table, and on a host the live
+   1 Hz snapshot writes it.
+2. **The adapter queues it on the same local restore path a respawn uses**
+   (`CharacterDataSync.QueueLocalRestore`, renamed from `QueueRespawnRestore` — one path, not a second
+   host-only one), applied with the two-frame wipe as soon as the generated world has a body. The
+   queue is cancelled at every run start this client does NOT restore (`RunSaveCoordinator.BeginRun`,
+   the WorldJoin follow in `RunCoordinator.TryStartWorldJoin`) and at session end, so an abandoned
+   continue can never land on a later run's body.
+3. **A layer-end cut's character positions are dropped at that restore**
+   (`WorldRestoreApplier.DropReplacedLayerPositions`): that snapshot names the layer being ENTERED and
+   the restore regenerates it, so a position captured in the layer being left would teleport the body
+   into a layer that no longer exists. A mid-run cut names the layer its bodies stood in and keeps its
+   position. This rule is also the change's RED.
+4. **The restore half moved out of `WorldSaveService` into `WorldRestoreApplier`**, which the
+   architecture gate's 600-line limit and the watchlist already demanded for the next change landing
+   there (`WorldSaveService` is 513 lines after the split).
+
+**Red → green**:
+`WorldContinueLocalCharacterTests.LayerEndContinue_DoesNotHandTheReplacedLayersPositionToTheLocalCharacter`
+ran RED on the pre-fix code (`Assert.Null() Failure: Value is not null / Actual: NetVector2Msg { X = 40, Y = -12 }`)
+and is green after. The class's other three cases are new-behaviour coverage: a mid-run continue KEEPS
+its position, the outcome carries the local player's own character and not a peer's, and an unclaimed
+key hands back none (decision 162).
+
+**What this does NOT prove**: the in-game result — that the host's body really comes back with its
+items/skills, and that a layer-end continue leaves it at the layer's own spawn point. That stays the
+user's dual-client pass, together with the rest of this stage's in-game rows.
 
 ## Follow-ups recorded while landing (not implemented here)
 

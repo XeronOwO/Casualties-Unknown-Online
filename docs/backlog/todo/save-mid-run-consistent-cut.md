@@ -23,7 +23,11 @@
   S3.4b (the character-level native fields — `lastHappiness`, `caloriesConsumed`,
   `WoundView.cInfo`) is still open, as are S3.5 (exactly-once plus documentation and re-anchoring)
   and scopes 7-9; the mid-run trigger is OPEN, so a build produces both the S2 layer-end cut and the
-  frame-end mid-run cut.
+  frame-end mid-run cut. **2026-09-11 (before S3.4b started)**: the S2 continue path was found not to
+  apply the host's own restored character to its own body at all; that gap is fixed first and
+  independently (`review/save-layer-end-save-and-restore.md` → *In-game gap found while scoping
+  S3.4b*, decision 170), which is also the seam S3.4b's three fields will write back through —
+  `CharacterDataSync`'s local restore apply.
 - Priority: High
 - Category: Persistence / save system
 - Source: Stage 3 of `docs/backlog/in-progress/save-system-mid-run-and-layer-end.md`; this is the user's hard requirement — "需要重点关注存档的中途性质，防止出现多生成、少生成内容的情况"

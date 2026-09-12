@@ -81,9 +81,15 @@ public interface IWorldSaveControl
 
 	/// <summary>
 	/// Host: the Continue entry was used. Loads the world the repository resolves
-	/// as "the selected one", applies the kernel checkpoint and the host's own
-	/// character, and returns whether the run may start. A refusal is never a
+	/// as "the selected one", applies the kernel checkpoint and the stored
+	/// characters, and returns whether the run may start. A refusal is never a
 	/// silent fallback to the native regenerate path.
+	///
+	/// The restore's characters part in two: a stored key a PEER claims is bound
+	/// into the character table the reconnect path already sends from, and the key
+	/// the LOCAL player claims comes back in
+	/// <see cref="WorldContinueOutcome.LocalCharacter"/> — only the adapter can put
+	/// it on a body, and the body does not exist before the scene loads.
 	/// </summary>
 	bool TryContinue(out WorldContinueOutcome outcome);
 

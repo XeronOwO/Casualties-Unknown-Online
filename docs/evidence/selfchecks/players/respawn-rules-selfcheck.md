@@ -17,8 +17,8 @@ menu-side dead players are invited back with a targeted `WorldJoin`.
 | 3 | Host rules | n/a (no rule surface) | BepInEx `[Respawn]` config entries back `RespawnOptions`: `Permadeath`, `ReviveFromTrader`, `ReviveOnNextLevel`, `KeepInventory`, `KeepSkills` | `RespawnOptions.cs`, `Plugin.cs`, `CuoBootstrap.cs` |
 | 4 | Trader permission | trader recruit was always allowed by its own trade gates | `TraderRecruitCoordinator` now rejects requests when `Permadeath` or `ReviveFromTrader` is disabled | `TraderRecruitCoordinator.HandleHostRequest`, `RespawnPolicy.CanUseTraderRecruit` |
 | 5 | Auto-respawn shape | n/a | `RespawnPolicy.PrepareRespawn` builds a full post-respawn snapshot: physiological baseline from `TraderRecruitPolicy.PrepareRevive`, empty inventory when keep=false, zeroed skills when keep=false, and `Position=null` so the respawn lands at the current world's spawn point | `RespawnPolicy.PrepareRespawn` |
-| 6 | Guest delivery | n/a | the host saves the respawn snapshot and sends the existing full `CharacterData` restore to the target (same two-frame wipe/restore path as reconnect); the guest applies it even while already in the world | `RespawnCoordinator.TryRevive`, `CharacterDataSync.QueueRespawnRestore`, `CharacterDataStore.SendSavedCharacter` |
-| 7 | Host local delivery | n/a | the host queues the same full restore on its own body through `CharacterDataSync.QueueRespawnRestore` — no inventing a parallel host-only apply path | `RespawnCoordinator.TryRevive`, `CharacterDataSync.QueueRespawnRestore` |
+| 6 | Guest delivery | n/a | the host saves the respawn snapshot and sends the existing full `CharacterData` restore to the target (same two-frame wipe/restore path as reconnect); the guest applies it even while already in the world | `RespawnCoordinator.TryRevive`, `CharacterDataSync.QueueLocalRestore`, `CharacterDataStore.SendSavedCharacter` |
+| 7 | Host local delivery | n/a | the host queues the same full restore on its own body through `CharacterDataSync.QueueLocalRestore` — no inventing a parallel host-only apply path | `RespawnCoordinator.TryRevive`, `CharacterDataSync.QueueLocalRestore` |
 | 8 | Left-world revival | n/a | a dead handshaken member whose `InWorld == false` receives the saved respawn now and a targeted `WorldJoinTo` so it can re-enter the current world; `SceneStateHandler` re-sends the saved character on its InWorld edge | `RespawnCoordinator.TryRevive`, `WorldService.SendWorldJoinTo`, `SceneStateHandler` |
 | 9 | Save/level integration | n/a | the respawn snapshot is persisted into `CharacterDataStore` before any delivery, so a disconnect during the delivery still restores the revived state; a new run's `ClearSavedCharacters` keeps stale death saves from leaking into the next run | `RespawnCoordinator.TryRevive`, `CharacterDataStore.ClearSavedCharacters` |
 | 10 | Protocol | no new wire message | the next-level respawn reuses the existing `CharacterData` direction/restore path; `ProtocolVersion` stays 35 | `CharacterDataHandler`, `DirectionTests`, `NetMsg.cs` |
@@ -33,7 +33,7 @@ menu-side dead players are invited back with a targeted `WorldJoin`.
   A guest never decides its own respawn; the host sends either the full restore
   to the guest or the targeted `WorldJoin` if the guest had already left the
   world.
-- **Full restore for local body**: `CharacterDataSync.QueueRespawnRestore`
+- **Full restore for local body**: `CharacterDataSync.QueueLocalRestore`
   uses the existing two-frame wipe/restore machinery, so the host and guests
   behave identically and the keep flags are honored on every side.
 - **No protocol bump**: respawn rides `NetMsg.CharacterData` (already
@@ -74,7 +74,7 @@ menu-side dead players are invited back with a targeted `WorldJoin`.
 | Next-level decision | host generation-finished edge + rule gate | `RespawnCoordinator.Update`, `RespawnPolicy.CanAutoReviveOnNextLevel` |
 | Respawn state | full snapshot with keep flags and null position | `RespawnPolicy.PrepareRespawn` |
 | Guest apply | existing full `CharacterData` restore path | `CharacterDataSync` + `CharacterDataStore.SendSavedCharacter` |
-| Host apply | same local restore queue, no dedicated path | `CharacterDataSync.QueueRespawnRestore` |
+| Host apply | same local restore queue, no dedicated path | `CharacterDataSync.QueueLocalRestore` |
 | Left-world revive | targeted `WorldJoinTo` + saved restore | `WorldService.SendWorldJoinTo`, `SceneStateHandler` |
 | Persistence | saved before delivery, new-run clear | `CharacterDataStore` |
 | Protocol | no bump, no new NetMsg | `NetMsg.cs`, `ProtocolVersion.cs`, `DirectionTests` |

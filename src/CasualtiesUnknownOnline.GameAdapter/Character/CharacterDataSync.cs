@@ -335,24 +335,44 @@ internal sealed class CharacterDataSync(
 	}
 
 	/// <summary>
-	/// Queue a full respawn restore for the LOCAL body (host side of the
-	/// next-level auto-respawn). It uses the same two-frame wipe/restore path as
-	/// a guest reconnect restore, so the keep flags (inventory/skills) are
-	/// honored exactly. The caller prepares <paramref name="data"/> with
-	/// <c>Position = null</c> for a spawn-point respawn; this method deliberately
-	/// does not reset the position gate (that only resets when the body leaves
-	/// the world), so an in-world body is never teleported by this queue.
+	/// Queue a full restore for the LOCAL body: the next-level auto-respawn, or the
+	/// host's own character coming back from a CUO continue. Both use the same
+	/// two-frame wipe/restore path as a guest reconnect restore, so a role never gets
+	/// a different flavour of "my character came back". The caller prepares
+	/// <paramref name="data"/> with <c>Position = null</c> when the body must stay
+	/// where the world placed it; this method deliberately does not reset the position
+	/// gate (that only resets when the body leaves the world), so an in-world body is
+	/// never teleported by this queue.
+	///
+	/// Queue it BEFORE the local body exists: while a restore is queued, <see cref="Update"/>
+	/// suppresses the 1 Hz report, which is what keeps the fresh body's live snapshot
+	/// from overwriting the character being restored. Solo play has no session, so this
+	/// is deliberately not session-gated — the callers own that decision.
 	/// </summary>
-	internal void QueueRespawnRestore(CharacterDataMsg data)
+	internal void QueueLocalRestore(CharacterDataMsg data)
 	{
-		if (!_session.SessionActive)
+		_pendingRestore = data;
+		_restoreWipePending = false;
+		_log.LogInformation("Queued the local character restore ({Items} items, position {Position}).",
+			data.Items.Count, data.Position is { } pos ? $"({pos.X:F1},{pos.Y:F1})" : "<none>");
+	}
+
+	/// <summary>
+	/// The queued local restore belongs to a run that can never reach a body (a new run
+	/// started, the continue it came from was refused or abandoned): the next body must
+	/// not receive it. A restore whose FIRST pass already ran is left alone — that pass
+	/// destroyed the body's slots and only the second pass puts the restored items back,
+	/// so cancelling it would lose them.
+	/// </summary>
+	internal void CancelLocalRestore()
+	{
+		if (_pendingRestore is null || _restoreWipePending)
 		{
 			return;
 		}
 
-		_pendingRestore = data;
-		_restoreWipePending = false;
-		_log.LogInformation("Queued respawn restore on the local body ({Items} items).", data.Items.Count);
+		_pendingRestore = null;
+		_log.LogInformation("Cancelled the queued local character restore: the run that owned it never reached a body.");
 	}
 
 	/// <summary>

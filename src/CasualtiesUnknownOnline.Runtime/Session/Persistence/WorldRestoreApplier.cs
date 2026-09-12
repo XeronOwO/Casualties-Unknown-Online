@@ -1,0 +1,185 @@
+using System.Collections.Generic;
+using CasualtiesUnknownOnline.Runtime.Persistence;
+using CasualtiesUnknownOnline.Runtime.Session.CharacterData;
+using CasualtiesUnknownOnline.Runtime.Session.Items;
+using CasualtiesUnknownOnline.Runtime.Session.World;
+using Microsoft.Extensions.Logging;
+
+namespace CasualtiesUnknownOnline.Runtime.Session.Persistence;
+
+/// <summary>
+/// The restore half of the save system: opening ONE archive and producing the run it
+/// describes — the kernel checkpoint, the world facts, and the characters each side
+/// claims. It is split out of <see cref="WorldSaveService"/>, which owns the CUT half
+/// (the trigger lifecycle and the world this session writes into); the two meet in
+/// exactly one place, the identity a restore produced, which the service adopts as its
+/// write target.
+///
+/// It also owns the two decisions only a restore can make:
+///
+/// - **A layer-end cut's character positions are not applied.** That snapshot names
+///   the layer being ENTERED and the restore regenerates it, so a position captured
+///   while the body still stood in the layer being left does not describe the world
+///   the restore builds (the native save carries no position at all, and the game
+///   places the body itself — <c>WorldGeneration.WorldPlacePlayer</c>). A mid-run cut
+///   names the layer its bodies stood in, so there the position IS restored.
+/// - **Which character the LOCAL player got.** It is the only one this process can put
+///   on a body, and it comes back with the outcome because the body does not exist yet
+///   (the scene loads after the click). The character-table slot it is also bound into
+///   cannot carry that meaning: the same slot holds the live 1 Hz snapshot.
+///
+/// It never decides WHETHER a continue may happen — the caller resolves the target
+/// world (<see cref="WorldSaveService.ContinueWorldId"/>) and owns that rule.
+/// </summary>
+internal sealed class WorldRestoreApplier(
+	WorldRepository? repository,
+	ItemKernelAuthority kernel,
+	ICharacterDataControl characters,
+	IWorldFactSource worldFacts,
+	INativeWorldFacts? nativeWorldFacts,
+	WorldCharacterBinder binder,
+	WorldRestoreAudit? audit,
+	ILoggerFactory loggerFactory,
+	ILogger<WorldRestoreApplier> log)
+{
+	/// <summary>The world-fact half: which restored row goes back to which table, and what could not be put back.</summary>
+	private readonly WorldFactRestore _factRestore = new(worldFacts, nativeWorldFacts, loggerFactory.CreateLogger<WorldFactRestore>());
+
+	/// <summary>
+	/// What one applied archive produced. The identity fields are meaningful only
+	/// when <see cref="Started"/> is true: a refusal applied nothing and must not
+	/// move the session's write target.
+	/// </summary>
+	internal readonly record struct Result(
+		WorldContinueOutcome Outcome,
+		string WorldId,
+		string DisplayName,
+		IReadOnlyList<SavedCharacter> Characters)
+	{
+		internal bool Started => Outcome.Started;
+	}
+
+	/// <summary>
+	/// Applies the archive the caller resolved. <paramref name="worldId"/> is null when
+	/// no CUO world is openable at all, which is a refusal like any other (decision 165:
+	/// the native regenerate path is never the fallback).
+	/// </summary>
+	internal Result TryApply(string? worldId)
+	{
+		if (repository is null)
+		{
+			return Refuse(string.Empty, "this composition root has no world repository");
+		}
+
+		if (worldId is null)
+		{
+			return Refuse(string.Empty, "no CUO world exists to continue");
+		}
+
+		// The restore is about to APPLY the payload, so it verifies the manifest's
+		// digests — a listing would not (WorldLoadOptions).
+		var options = new WorldLoadOptions { VerifyChecksums = true, RepairMode = true };
+		var load = repository.LoadSnapshot(worldId, options);
+		if (load.Content is null)
+		{
+			log.LogError("Continue refused for world {WorldId}: {Summary}", worldId, load.Summary);
+			return Refuse(worldId, load.Summary, new SalvageResult(load.Report));
+		}
+
+		var decoder = new WorldSnapshotDecoder(load.Content.Manifest, loggerFactory.CreateLogger<WorldSnapshotDecoder>());
+		var (_, salvage) = repository.ReadSalvage(load, decoder.DecodeEntry, options);
+		var decode = decoder.Finish();
+		if (decode.Checkpoint is null)
+		{
+			var refusal = $"{decode.Refusal}; {salvage.Report.Describe()}";
+			log.LogError("Continue refused for world {WorldId}: {Refusal}", worldId, refusal);
+			return Refuse(worldId, refusal, salvage);
+		}
+
+		var restored = kernel.Restore(decode.Checkpoint);
+		if (!restored.Success)
+		{
+			var refusal = $"the kernel rejected the checkpoint: {restored.Error}";
+			log.LogError("Continue refused for world {WorldId}: {Refusal}", worldId, refusal);
+			return Refuse(worldId, refusal, salvage);
+		}
+
+		// The world facts the kernel does not own come back BEFORE the run's own
+		// state is applied, and the interface's contract is absolute: the apply
+		// resets the tables first (see IWorldFactSource), so a fact left over from
+		// the previous session cannot survive a cut that never named it. A refused
+		// snapshot never gets here, so nothing of a refused cut is written.
+		var factDamage = _factRestore.Apply(decode.UsableWorldBlocks, decode.UsableWorldTransients, decode.UsableNativeRunFields);
+
+		if (load.Content.Manifest.Kind == WorldCutKind.LayerEnd)
+		{
+			DropReplacedLayerPositions(decode.UsableCharacters);
+		}
+
+		// The archive is authoritative for this world: the legacy reconnect table
+		// (CasualtiesUnknownOnline.character-data.bin) is dropped before the archive's
+		// characters are bound, so a player the package omits cannot be resurrected
+		// from stale data (decision 162: absent from the package = new character).
+		characters.ClearSavedCharacters();
+		var localCharacter = binder.Apply(decode.UsableCharacters);
+		repository.SetLastOpenedWorld(worldId);
+
+		// The live-world half of this restore lands at the world-entry seam, after
+		// this call returned. The audit carries that half's outcome back to the
+		// caller: a restore is not "successful" until the live world took every row.
+		audit?.BeginRestore(worldId);
+
+		// The summary is the account the caller logs (and S4's surface reads), so it
+		// is built from the WHOLE report — a backup fallback is repository-scope
+		// damage that a per-entry "clean" check would hide (§6: silent loss is
+		// forbidden). The world facts that could not be put back at the click (no
+		// native applier, an applier that threw) are part of that account too.
+		var damages = new List<string>(factDamage);
+		if (salvage.Report.Entries.Count > 0)
+		{
+			damages.Add(salvage.Report.Describe());
+		}
+
+		var summary = damages.Count == 0
+			? $"world {worldId} restored from {load.Content.SourcePath}"
+			: $"world {worldId} restored with damage: {string.Join("; ", damages)}";
+		log.LogInformation("Continue restored world {WorldId} at revision {Revision} (layer {Layer}, {Players} stored character(s)): {Summary}",
+			worldId, decode.Checkpoint.GlobalRevision, decode.Checkpoint.Run?.LayerIndex ?? -1, decode.UsableCharacters.Count, summary);
+		return new Result(
+			new WorldContinueOutcome(true, worldId, summary, salvage, localCharacter),
+			worldId,
+			load.Content.Manifest.DisplayName,
+			decode.UsableCharacters);
+	}
+
+	/// <summary>
+	/// A layer-end cut names the layer being ENTERED, and this restore regenerates that
+	/// layer from the baseline: a position captured while its body was still standing in
+	/// the layer being LEFT does not describe the world being built, and applying it
+	/// would teleport the body into a layer that no longer exists. (The same rule
+	/// <c>RespawnPolicy.PrepareRespawn</c> applies to a next-level respawn.) The decoded
+	/// rows are this restore's own copy — the decoder produced them and nothing else
+	/// holds them yet — so the claim is cleared on the character the caller will bind,
+	/// not on a live snapshot.
+	/// </summary>
+	private void DropReplacedLayerPositions(IReadOnlyList<SavedCharacter> stored)
+	{
+		foreach (var character in stored)
+		{
+			if (character.Character.Position is { } stale)
+			{
+				character.Character.Position = null;
+				log.LogInformation(
+					"Character {PlayerKey} of the layer-end cut carries a position ({X:F1},{Y:F1}) from the layer being replaced; it is not restored (the layer the snapshot names is regenerated).",
+					character.PlayerKey, stale.X, stale.Y);
+			}
+		}
+	}
+
+	private Result Refuse(string worldId, string summary, SalvageResult? salvage = null) =>
+		new(
+			WorldContinueOutcome.Refused(worldId, summary, salvage ?? new SalvageResult(DamageReport.Empty)),
+			string.Empty,
+			string.Empty,
+			[]);
+}

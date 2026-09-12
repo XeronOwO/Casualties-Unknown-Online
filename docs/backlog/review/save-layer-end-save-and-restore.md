@@ -226,6 +226,71 @@ key hands back none (decision 162).
 items/skills, and that a layer-end continue leaves it at the layer's own spawn point. That stays the
 user's dual-client pass, together with the rest of this stage's in-game rows.
 
+### Independent adversarial pass on that fix (fresh context, 2026-09-11)
+
+The reviewer falsified one of the five claims and found a real regression in the first cut of the fix,
+plus two smaller defects. Both are fixed on top, with the queue state extracted into the Runtime so
+its semantics finally have a test host:
+
+1. **[major, F1] The run-start cancel swallowed a guest's legitimate reconnect restore.**
+   `RunCoordinator.TryStartWorldJoin` cancelled whatever was queued — but the host hands a
+   reconnecting player its character (`HandshakeHandler.cs:108`/`:134` →
+   `CharacterDataStore.SendSavedCharacter`) BEFORE the `WorldJoin` instruction that starts the follow
+   (`HandshakeHandler.cs:202-204`), on the same reliable ordered channel (Steam: single reliable
+   channel; IP-direct: TCP). So the guest's `_pendingRestore` was already set when the follow
+   cancelled it, losing the restore AND the position applied on the body's first frame before the
+   spawn is reported (`RunCoordinator.cs:335-343` — the live fix for the host-side clone teleport).
+   Two more deliveries had the same shape (a menu-side guest's respawn, `RespawnCoordinator.cs:131-139`).
+   Fixed by making the queue remember its ORIGIN: `LocalCharacterRestoreQueue.Queue(data, ownRun)` and
+   `CancelOwnRun()` — the restore this client's own run queued is cancelled, a peer's is not.
+2. **[minor, F2] The cancel refused to act while a wipe was in flight**, so a body that vanished
+   between the two apply passes could leave `_pendingRestore` armed with `_restoreWipePending = true`
+   across runs; the next run's body would then run ONLY the second pass, adding the restored items to
+   a body whose own slots were never wiped. Fixed twice over: an own-run cancel takes the wipe phase
+   with it (that run's body is gone), and the queue's owner drops a restore whose first pass ran the
+   moment that body leaves the world (`CharacterDataSync.NotifyBodyLeft`) — the phase belongs to the
+   BODY, not to the queue, so the second reviewer's peer-entry variant of the same hole is closed too.
+3. **[minor, F3] The file crossed the 600-line architecture gate** (606) while gaining the fix. Per
+   the watchlist's own instruction, the queue state left the class: `LocalCharacterRestoreQueue`
+   (Runtime, pure, no Unity types) now owns which snapshot waits, which run queued it and which apply
+   pass is next; `CharacterDataSync` is 572 lines again.
+
+A **second independent pass** then audited the fix itself (fresh context again) and found three more
+real defects, all fixed on top:
+
+4. **[major] The peer branch of the cancel left the wipe phase behind** (the F2 hole in its other
+   half: `CancelOwnRun` returned early for a peer entry, whose stale phase could then meet a later
+   body). Closed by the body-scoped phase rule above, plus a second cancel intent below.
+5. **[major] The origin flag alone could not express "a run this client starts on its own"**: a peer's
+   hand-over that this client never followed (the join dropped, or the session stayed alive while the
+   player started something else) survived every cancel. The queue now has TWO cancel intents —
+   `CancelAll` for a run this client starts itself (its start click, its own continue) and
+   `CancelOwnRun` for the follow — and the adapter names them after the caller's situation
+   (`CancelAllLocalRestores` / `CancelOwnRunRestore`), not after a bare bool.
+6. **[major] The tests only pinned the negative direction** (nothing asserted a positive phase, so an
+   implementation with `WipePending => false` would have passed all six). The class now pins the
+   positive states, both cancel intents, the peer-plus-wipe case and the origin of a replaced snapshot
+   (9 cases).
+
+One deliberate behaviour CHANGE from the pre-fix tree, recorded here because it was silent: a re-sent
+restore arriving between the two apply passes now RESTARTS the apply (full wipe + stats on the newest
+snapshot) instead of completing the second pass of the older one — the phase belongs to the snapshot
+being applied, not to the body. Same end state for the items, one frame later, and the newest
+snapshot wins consistently.
+
+**Red → green for F1**: with the pre-review cancel semantics temporarily restored (cancel anything
+queued), `LocalCharacterRestoreQueueTests.PeerQueue_SurvivesARunStartHere` fails at runtime
+(`Assert.False() Failure / Expected: False / Actual: True`) and passes with `CancelOwnRun`. The rest of
+the class pins the wipe-phase cancel, the empty cancel, the re-sent restore (the phase belongs to the
+SNAPSHOT, not the body) and the clear.
+
+The reviewer could NOT falsify: the pre-fix "no local apply path" claim (checked against the parent
+commit), the end-to-end link (binder → outcome → `RunSaveCoordinator` → queue → the pump), the
+layer-end position rule (including that the mutated object is the decoder's own copy and that nothing
+else consumes a character file's position), the refactor's behaviour equivalence (refusals, ordering,
+the write-target adoption) and the rename's completeness (`QueueRespawnRestore` survives only in this
+ticket's own text).
+
 ## Follow-ups recorded while landing (not implemented here)
 
 - `GameCheckpoint.RandomStreams` has no file in the snapshot set yet (nothing populates it today);

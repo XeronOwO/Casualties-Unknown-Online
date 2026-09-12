@@ -40,8 +40,11 @@ public class WorldContinueLocalCharacterTests
 		using var restarted = fixture.Restart("continue-position-layerend-restart");
 		Assert.True(restarted.Service.TryContinue(out var outcome), outcome.Summary);
 
-		var local = Assert.IsType<CharacterDataMsg>(restarted.Characters.GetHostCharacterData());
+		// The contract is what the CONTINUE hands the local player, not what the store happens to
+		// hold — the two are the same instance here, and both are pinned.
+		var local = Assert.IsType<CharacterDataMsg>(outcome.LocalCharacter);
 		Assert.Null(local.Position);
+		Assert.Same(local, restarted.Characters.GetHostCharacterData());
 	}
 
 	[Fact]
@@ -63,10 +66,11 @@ public class WorldContinueLocalCharacterTests
 		using var restarted = fixture.Restart("continue-position-midrun-restart");
 		Assert.True(restarted.Service.TryContinue(out var outcome), outcome.Summary);
 
-		var local = Assert.IsType<CharacterDataMsg>(restarted.Characters.GetHostCharacterData());
+		var local = Assert.IsType<CharacterDataMsg>(outcome.LocalCharacter);
 		Assert.NotNull(local.Position);
 		Assert.Equal(40f, local.Position.X);
 		Assert.Equal(-12f, local.Position.Y);
+		Assert.Same(local, restarted.Characters.GetHostCharacterData());
 	}
 
 	[Fact]

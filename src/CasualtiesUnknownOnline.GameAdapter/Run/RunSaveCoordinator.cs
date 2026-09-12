@@ -61,7 +61,7 @@ internal sealed class RunSaveCoordinator(
 		// values (the adapter cancels its own handover with the same call) and the
 		// local body's queued character alike.
 		_parameters.CancelRestorePending();
-		_characterData.CancelLocalRestore();
+		_characterData.CancelAllLocalRestores();
 		_saves.TryBeginRun();
 	}
 
@@ -84,7 +84,7 @@ internal sealed class RunSaveCoordinator(
 		{
 			// A previous attempt's local restore must not survive a refused one: this
 			// run will never reach a body.
-			_characterData.CancelLocalRestore();
+			_characterData.CancelAllLocalRestores();
 			_log.LogError("CUO continue refused ({WorldId}): {Summary}", outcome.WorldId, outcome.Summary);
 			return false;
 		}
@@ -98,7 +98,7 @@ internal sealed class RunSaveCoordinator(
 			// The restore will never reach its world-entry seam: the audit must not stay
 			// armed waiting for a live-world write that cannot happen.
 			_restoreAudit?.AbandonRestore();
-			_characterData.CancelLocalRestore();
+			_characterData.CancelAllLocalRestores();
 			_log.LogError("CUO continue refused ({WorldId}): the restore published no run baseline.", outcome.WorldId);
 			return false;
 		}

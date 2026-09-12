@@ -24,11 +24,14 @@ change lands in them.
   machine plus the body-state publish path. It grew by one line in the S2 in-game gap fix (the
   WorldJoin follow cancels a queued local character restore); a split is due before anything else
   lands in the phase machine or the publish path.
-- `src/CasualtiesUnknownOnline.GameAdapter/Character/CharacterDataSync.cs` (~579) — the character
-  domain's session-scoped coordinator (the 1 Hz report, the local clone fact table, the restore
-  queue). The S2 in-game gap fix moved its local restore queue to role-neutral
-  `QueueLocalRestore`/`CancelLocalRestore`; the next responsibility that lands here takes the
-  restore/apply half out, not another method in.
+- `src/CasualtiesUnknownOnline.GameAdapter/Character/CharacterDataSync.cs` (~572) — the character
+  domain's session-scoped coordinator (the 1 Hz report, the local clone fact table, and the wiring of
+  an arriving restore into the queue). The S2 in-game gap fix moved its local restore queue to the
+  role-neutral `QueueLocalRestore`/`CancelLocalRestore` pair and then sent the queue STATE itself to
+  the Runtime (`Runtime/Session/CharacterData/` `LocalCharacterRestoreQueue`, pure and unit-tested)
+  once the file crossed the gate at 606 lines. What is left to extract next is the APPLY half
+  (`TryApplyCharacterRestore` / `ApplyRestoredStatsAndWipe` / `ApplyRestoredItems` / `RestoreWearable`
+  ≈ 190 lines, with `PlayerInteractionApply` as the second caller of the last one).
 - `src/CasualtiesUnknownOnline.Runtime/Session/Commands/CommandConsoleService.cs` (~510) — command
   groups register as their own owners (`HostAdminCommands`, `WorldSaveCommands`); a new command
   family must not grow this class.

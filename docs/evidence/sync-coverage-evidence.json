@@ -637,7 +637,7 @@
     {
       "cluster": "fluids",
       "row": "F4",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemKernelAuthority.cs:248",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemKernelAuthority.cs:273",
       "quote": "public bool TryUpdateFluidRegion(ulong actor, FluidRegionState state, out CommittedBatch? batch, out Rejection? rejection)"
     },
     {
@@ -655,7 +655,7 @@
     {
       "cluster": "fluids",
       "row": "F4",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemKernelAuthority.cs:259",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemKernelAuthority.cs:284",
       "quote": "public bool TryResetFluids(ulong actor, out CommittedBatch? batch, out Rejection? rejection)"
     },
     {
@@ -1453,7 +1453,7 @@
     {
       "cluster": "players",
       "row": "P2",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemKernelAuthority.cs:201",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemKernelAuthority.cs:226",
       "quote": "TryExecute(new UpdatePlayerStatusCommand(NextOperation(), new ActorId(actor), _runEpoch, AuthorityKind.HostOnly, state), actor, \"update-player-status\", out batch, out rejection);"
     },
     {
@@ -2023,7 +2023,7 @@
     {
       "cluster": "run-world",
       "row": "R1",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:452",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:456",
       "quote": "if (!_kernelAuthority.TryStartRun(_session.LocalSteamId, run, out _, out var rejection))"
     },
     {
@@ -2287,13 +2287,13 @@
     {
       "cluster": "run-world",
       "row": "R6",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:480",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:484",
       "quote": "_projectionHealth.Run(\"run\", batch.GlobalRevision, () =>"
     },
     {
       "cluster": "run-world",
       "row": "R6",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:508",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:512",
       "quote": "private void RebuildRunFromKernel()"
     },
     {
@@ -2443,7 +2443,7 @@
     {
       "cluster": "world-blocks",
       "row": "W2",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/RestoredWorldFactReplay.cs:143",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/RestoredWorldFactReplay.cs:153",
       "quote": "damages = _sink.ReplaceGameBlockDamages(restore.BlockDamages);"
     },
     {
@@ -2815,7 +2815,7 @@
     {
       "cluster": "world-entities",
       "row": "E2",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntityKernelProjection.cs:161",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntityKernelProjection.cs:168",
       "quote": "private static bool IsProjectableTrapState(TrapStateFact trapState) =>"
     },
     {
@@ -3079,7 +3079,7 @@
     {
       "cluster": "inline",
       "row": "K1",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemKernelAuthority.cs:522",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemKernelAuthority.cs:547",
       "quote": "BatchCommitted?.Invoke(batch!);"
     },
     {
@@ -3097,7 +3097,7 @@
     {
       "cluster": "inline",
       "row": "K1",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemKernelAuthority.cs:87",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemKernelAuthority.cs:88",
       "quote": "if (_appliedOperations.Contains(batch.OperationId))"
     },
     {
@@ -3349,7 +3349,7 @@
     {
       "cluster": "inline",
       "row": "E1",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntityKernelProjection.cs:265",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntityKernelProjection.cs:272",
       "quote": "_projectionHealth.Run(\"world-entities\", checkpoint.GlobalRevision, () => Project(checkpoint));"
     },
     {
@@ -3367,7 +3367,7 @@
     {
       "cluster": "inline",
       "row": "E2",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntityKernelProjection.cs:172",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntityKernelProjection.cs:179",
       "quote": "TrapSnapshotProjected?.Invoke(facts.Traps);"
     },
     {
@@ -3439,7 +3439,7 @@
     {
       "cluster": "inline",
       "row": "E7",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntityKernelProjection.cs:254",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntityKernelProjection.cs:261",
       "quote": "private void RebuildFromKernel()"
     },
     {
@@ -3949,7 +3949,7 @@
     {
       "cluster": "inline",
       "row": "P6",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemKernelAuthority.cs:206",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemKernelAuthority.cs:231",
       "quote": "public bool TrySetPlayerCarry(ulong actor, ulong carrierSteamId, ulong carriedSteamId, out CommittedBatch? batch, out Rejection? rejection) =>"
     },
     {
@@ -4255,19 +4255,19 @@
     {
       "cluster": "inline",
       "row": "R1",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:437",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:441",
       "quote": "public void PublishWorldParams(WorldStartParams parameters)"
     },
     {
       "cluster": "inline",
       "row": "R1",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:443",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:447",
       "quote": "private void CommitRunBaseline(WorldStartParams parameters)"
     },
     {
       "cluster": "inline",
       "row": "R1",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemKernelAuthority.cs:108",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemKernelAuthority.cs:133",
       "quote": "public bool TryStartRun(ulong actor, RunState run, out CommittedBatch? batch, out Rejection? rejection)"
     },
     {
@@ -4279,7 +4279,7 @@
     {
       "cluster": "inline",
       "row": "R1",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemKernelAuthority.cs:119",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/Items/ItemKernelAuthority.cs:144",
       "quote": "public bool TryAdvanceLayer(ulong actor, RunState run, out CommittedBatch? batch, out Rejection? rejection)"
     },
     {
@@ -4405,7 +4405,7 @@
     {
       "cluster": "inline",
       "row": "R6",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntityKernelProjection.cs:59",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldEntityKernelProjection.cs:62",
       "quote": "_projectionHealth.Register(new ProjectionDomain(\"world-entities\", RebuildFromKernel, () => _kernelAuthority.CurrentGlobalRevision));"
     },
     {
@@ -4675,7 +4675,7 @@
     {
       "cluster": "inline",
       "row": "E3",
-      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:411",
+      "ref": "src/CasualtiesUnknownOnline.Runtime/Session/World/WorldService.cs:415",
       "quote": "_channels.ResetRuntimeEntities();"
     },
     {

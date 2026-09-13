@@ -21,6 +21,15 @@ public interface IRestoredWorldEntitySource
 	/// <summary>True while a restored cut's world-entity facts are waiting for the world-entry seam.</summary>
 	bool HasPendingRestore { get; }
 
+	/// <summary>
+	/// WHICH restore attempt armed these facts (the kernel restore sequence that
+	/// produced them); 0 while nothing is pending. It is what makes the seam's
+	/// contribution attributable: the restore account opened for this sequence is the
+	/// only one that may count it, so a write that reaches the seam after a LATER
+	/// restore opened its own account cannot raise that account's report early.
+	/// </summary>
+	ulong PendingRestoreSequence { get; }
+
 	/// <summary>The pending facts in the shape the live world's appliers take. Never called unless <see cref="HasPendingRestore"/>.</summary>
 	RestoredWorldEntityFacts ReadPendingFacts();
 

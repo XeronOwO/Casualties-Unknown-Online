@@ -22,6 +22,7 @@ public sealed class WorldRestoreSupportLossTests
 		var restore = new WorldFactRestore(facts, nativeFacts, new RecordingLogger<WorldFactRestore>());
 
 		var damage = restore.Apply(
+			restoreSequence: 1,
 			[SaveWorldBlockRow.OfBlockState(3, 4, 0)],
 			[],
 			new SaveNativeRunFields { SavedRunTime = 12.5f });

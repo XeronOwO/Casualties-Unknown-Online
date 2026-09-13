@@ -23,6 +23,14 @@ namespace CasualtiesUnknownOnline.Tests.Persistence;
 /// </summary>
 public sealed class RestoredWorldFactReplayTests
 {
+	/// <summary>
+	/// The ONE restore attempt these suites drive: the kernel restore sequence the fake
+	/// world-fact tables are applied with, the account is opened for, and the entity arm
+	/// is stamped with. It is the identity a contribution is attributed by, so a suite
+	/// that models a second restore passes its own value.
+	/// </summary>
+	private const ulong Attempt = 1;
+
 	[Fact]
 	public void ApplyIfPending_WithNothingPending_LeavesTheLiveWorldAlone()
 	{
@@ -94,7 +102,7 @@ public sealed class RestoredWorldFactReplayTests
 	public void ApplyIfPending_WhenTheWorldIsNotReady_KeepsTheCutPending()
 	{
 		var (replay, facts, native, sink) = Build();
-		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], null);
+		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], null, Attempt);
 		sink.WorldReady = false;
 		Assert.True(replay.HasPending);
 
@@ -114,7 +122,7 @@ public sealed class RestoredWorldFactReplayTests
 		var (replay, facts, native, sink) = Build();
 		facts.ApplyFacts(
 			[new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }],
-			new RadiationLineStateMsg { Active = true, TimeGone = 1f });
+			new RadiationLineStateMsg { Active = true, TimeGone = 1f }, Attempt);
 		native.SeedKeypad(5f, 6f, "1234");
 		native.SeedGeyser(7f, 8f, 3);
 		native.SeedBlockDamage(9, 10, 4f);
@@ -147,7 +155,7 @@ public sealed class RestoredWorldFactReplayTests
 	public void ApplyIfPending_WritesTheGameBlockDamageRowsIntoTheGameList()
 	{
 		var (replay, facts, native, sink) = Build();
-		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], null);
+		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], null, Attempt);
 		native.SeedBlockDamage(1000, 1000, 7f);
 		native.ApplyBlockDamages(native.Damages);
 
@@ -167,7 +175,7 @@ public sealed class RestoredWorldFactReplayTests
 		var sink = new FakeRestoredWorldFactSink { Capacity = 0 };
 		var log = new RecordingLogger<RestoredWorldFactReplay>();
 		var replay = new RestoredWorldFactReplay(facts, native, sink, log);
-		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], null);
+		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], null, Attempt);
 		native.SeedBlockDamage(1, 1, 1f);
 		native.SeedBlockDamage(2, 2, 1f);
 		native.ApplyBlockDamages(native.Damages);
@@ -194,7 +202,7 @@ public sealed class RestoredWorldFactReplayTests
 		var sink = new FakeRestoredWorldFactSink { RefuseBlockWrites = true };
 		var log = new RecordingLogger<RestoredWorldFactReplay>();
 		var replay = new RestoredWorldFactReplay(facts, native, sink, log);
-		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], null);
+		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], null, Attempt);
 
 		replay.ApplyIfPending();
 
@@ -213,7 +221,7 @@ public sealed class RestoredWorldFactReplayTests
 		var sink = new FakeRestoredWorldFactSink { RefuseKeypads = 1 };
 		var log = new RecordingLogger<RestoredWorldFactReplay>();
 		var replay = new RestoredWorldFactReplay(facts, native, sink, log);
-		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], null);
+		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], null, Attempt);
 		native.SeedKeypad(5f, 6f, "1234");
 		native.ApplyKeypadCodes(native.Keypads);
 
@@ -240,7 +248,8 @@ public sealed class RestoredWorldFactReplayTests
 		var audit = new WorldRestoreAudit();
 		var reports = new List<WorldRestoreLiveWriteReport>();
 		audit.Reported += reports.Add;
-		audit.BeginRestore("w-recipes");
+		facts.ApplyFacts([], null, Attempt); // the click applies the cut's fact set, then opens the account for that attempt
+		audit.BeginRestore("w-recipes", Attempt);
 		var replay = new RestoredWorldFactReplay(facts, native, sink, new RecordingLogger<RestoredWorldFactReplay>(), audit);
 		native.ApplyRecipeUnlocks(
 		[
@@ -273,9 +282,9 @@ public sealed class RestoredWorldFactReplayTests
 		var audit = new WorldRestoreAudit();
 		var reports = new List<WorldRestoreLiveWriteReport>();
 		audit.Reported += reports.Add;
-		audit.BeginRestore("w-audit");
+		audit.BeginRestore("w-audit", Attempt);
 		var replay = new RestoredWorldFactReplay(facts, native, sink, new RecordingLogger<RestoredWorldFactReplay>(), audit);
-		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], null);
+		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], null, Attempt);
 
 		replay.ApplyIfPending();
 
@@ -297,9 +306,9 @@ public sealed class RestoredWorldFactReplayTests
 		var audit = new WorldRestoreAudit();
 		var reports = new List<WorldRestoreLiveWriteReport>();
 		audit.Reported += reports.Add;
-		audit.BeginRestore("w-complete");
+		audit.BeginRestore("w-complete", Attempt);
 		var replay = new RestoredWorldFactReplay(facts, native, sink, new RecordingLogger<RestoredWorldFactReplay>(), audit);
-		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], null);
+		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], null, Attempt);
 
 		replay.ApplyIfPending();
 
@@ -322,9 +331,9 @@ public sealed class RestoredWorldFactReplayTests
 		var audit = new WorldRestoreAudit();
 		var reports = new List<WorldRestoreLiveWriteReport>();
 		audit.Reported += reports.Add;
-		audit.BeginRestore("w-threw");
+		audit.BeginRestore("w-threw", Attempt);
 		var replay = new RestoredWorldFactReplay(facts, native, sink, new RecordingLogger<RestoredWorldFactReplay>(), audit);
-		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], null);
+		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], null, Attempt);
 
 		replay.ApplyIfPending();
 
@@ -341,14 +350,18 @@ public sealed class RestoredWorldFactReplayTests
 	{
 		// A layer-end cut carries no live-world fact, so its restore reaches the
 		// world-entry seam with nothing to write. The audit must be told the restore
-		// is complete instead of staying armed for a write that will never come.
+		// is complete instead of staying armed for a write that will never come — and
+		// the report belongs to the attempt that applied the (empty) tables, which is
+		// the order production runs: the click applies the cut's fact set, THEN opens
+		// the account for it.
 		var facts = new FakeWorldFactSource();
 		var native = new FakeNativeWorldFacts();
 		var sink = new FakeRestoredWorldFactSink();
 		var audit = new WorldRestoreAudit();
 		var reports = new List<WorldRestoreLiveWriteReport>();
 		audit.Reported += reports.Add;
-		audit.BeginRestore("w-empty");
+		facts.ApplyFacts([], null, Attempt);
+		audit.BeginRestore("w-empty", Attempt);
 		var replay = new RestoredWorldFactReplay(facts, native, sink, new RecordingLogger<RestoredWorldFactReplay>(), audit);
 
 		replay.ApplyIfPending();
@@ -370,7 +383,7 @@ public sealed class RestoredWorldFactReplayTests
 		var facts = new FakeWorldFactSource();
 		var native = new FakeNativeWorldFacts();
 		var sink = new FakeRestoredWorldFactSink();
-		var entities = new FakeRestoredWorldEntitySource { Armed = true, Facts = EntityFacts() };
+		var entities = new FakeRestoredWorldEntitySource { Armed = true, Sequence = Attempt, Facts = EntityFacts() };
 		var replay = new RestoredWorldFactReplay(
 			facts, native, sink, new RecordingLogger<RestoredWorldFactReplay>(), worldEntities: entities);
 
@@ -400,10 +413,10 @@ public sealed class RestoredWorldFactReplayTests
 		var audit = new WorldRestoreAudit();
 		var reports = new List<WorldRestoreLiveWriteReport>();
 		audit.Reported += reports.Add;
-		audit.BeginRestore("w-layer-end");
+		audit.BeginRestore("w-layer-end", Attempt);
 		var replay = new RestoredWorldFactReplay(
 			facts, native, sink, new RecordingLogger<RestoredWorldFactReplay>(), audit, entities);
-		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], null);
+		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], null, Attempt);
 
 		replay.ApplyIfPending();
 
@@ -422,14 +435,14 @@ public sealed class RestoredWorldFactReplayTests
 		var facts = new FakeWorldFactSource();
 		var native = new FakeNativeWorldFacts();
 		var sink = new FakeRestoredWorldFactSink { RefuseWorldEntities = true };
-		var entities = new FakeRestoredWorldEntitySource { Armed = true, Facts = EntityFacts() };
+		var entities = new FakeRestoredWorldEntitySource { Armed = true, Sequence = Attempt, Facts = EntityFacts() };
 		var audit = new WorldRestoreAudit();
 		var reports = new List<WorldRestoreLiveWriteReport>();
 		audit.Reported += reports.Add;
-		audit.BeginRestore("w-entities", expectedContributions: 2);
+		audit.BeginRestore("w-entities", Attempt, expectedContributions: 2);
 		var replay = new RestoredWorldFactReplay(
 			facts, native, sink, new RecordingLogger<RestoredWorldFactReplay>(), audit, entities);
-		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], null);
+		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], null, Attempt);
 
 		replay.ApplyIfPending();
 
@@ -456,14 +469,14 @@ public sealed class RestoredWorldFactReplayTests
 		var facts = new FakeWorldFactSource();
 		var native = new FakeNativeWorldFacts();
 		var sink = new FakeRestoredWorldFactSink();
-		var entities = new FakeRestoredWorldEntitySource { Armed = true, Facts = EntityFacts() };
+		var entities = new FakeRestoredWorldEntitySource { Armed = true, Sequence = Attempt, Facts = EntityFacts() };
 		var audit = new WorldRestoreAudit();
 		var reports = new List<WorldRestoreLiveWriteReport>();
 		audit.Reported += reports.Add;
-		audit.BeginRestore("w-midrun", expectedContributions: 3);
+		audit.BeginRestore("w-midrun", Attempt, expectedContributions: 3);
 		var replay = new RestoredWorldFactReplay(
 			facts, native, sink, new RecordingLogger<RestoredWorldFactReplay>(), audit, entities);
-		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], null);
+		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], null, Attempt);
 
 		replay.ApplyIfPending();
 
@@ -472,7 +485,7 @@ public sealed class RestoredWorldFactReplayTests
 		Assert.Equal(3, audit.ExpectedContributions);
 		Assert.True(audit.AwaitingLiveWrite);
 
-		audit.LiveWriteFinished(complete: true, refused: [], summary: "the generation reconciled the restored item set (3 entries)");
+		audit.LiveWriteFinished(Attempt, complete: true, refused: [], summary: "the generation reconciled the restored item set (3 entries)");
 
 		var report = Assert.Single(reports);
 		Assert.True(report.Complete);
@@ -489,14 +502,14 @@ public sealed class RestoredWorldFactReplayTests
 		var facts = new FakeWorldFactSource();
 		var native = new FakeNativeWorldFacts();
 		var sink = new FakeRestoredWorldFactSink { ThrowOnBlockWrite = true };
-		var entities = new FakeRestoredWorldEntitySource { Armed = true, Facts = EntityFacts() };
+		var entities = new FakeRestoredWorldEntitySource { Armed = true, Sequence = Attempt, Facts = EntityFacts() };
 		var audit = new WorldRestoreAudit();
 		var reports = new List<WorldRestoreLiveWriteReport>();
 		audit.Reported += reports.Add;
-		audit.BeginRestore("w-threw-entities", expectedContributions: 2);
+		audit.BeginRestore("w-threw-entities", Attempt, expectedContributions: 2);
 		var replay = new RestoredWorldFactReplay(
 			facts, native, sink, new RecordingLogger<RestoredWorldFactReplay>(), audit, entities);
-		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], null);
+		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], null, Attempt);
 
 		replay.ApplyIfPending();
 
@@ -523,9 +536,9 @@ public sealed class RestoredWorldFactReplayTests
 		var audit = new WorldRestoreAudit();
 		var reports = new List<WorldRestoreLiveWriteReport>();
 		audit.Reported += reports.Add;
-		audit.BeginRestore("w-generation");
+		audit.BeginRestore("w-generation", Attempt);
 		var replay = new RestoredWorldFactReplay(facts, native, sink, new RecordingLogger<RestoredWorldFactReplay>(), audit);
-		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], null);
+		facts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], null, Attempt);
 
 		replay.ApplyIfPending(); // the restore's own seam
 		Assert.Single(reports);

@@ -36,10 +36,15 @@ public interface IWorldFactSource
 	/// <summary>The radiation line's host-authoritative state, or null when this world never had one.</summary>
 	RadiationLineStateMsg? CaptureRadiationLine();
 
-	/// <summary>Host only: apply a restored cut absolutely — the table is REPLACED, never merged.</summary>
+	/// <summary>
+	/// Host only: apply a restored cut absolutely — the table is REPLACED, never merged.
+	/// <paramref name="restoreSequence"/> is the attempt the facts belong to; it becomes
+	/// <see cref="AppliedRestoreSequence"/> and rides the world-entry contribution.
+	/// </summary>
 	WorldFactApplyReport ApplyFacts(
 		IReadOnlyList<BlockStateEntryMsg> blockStates,
-		RadiationLineStateMsg? radiationLine);
+		RadiationLineStateMsg? radiationLine,
+		ulong restoreSequence);
 
 	/// <summary>
 	/// Host only: a restore put facts into these tables and the LIVE WORLD has
@@ -51,6 +56,17 @@ public interface IWorldFactSource
 	/// restored cut that carried no world fact at all (a layer-end cut).
 	/// </summary>
 	bool HasPendingLiveReplay { get; }
+
+	/// <summary>
+	/// WHICH restore attempt put these facts here: the kernel restore sequence of the
+	/// last <see cref="ApplyFacts"/> (0 = none since the process started). The
+	/// world-entry contribution carries it — whether the cut armed a replay or carried
+	/// nothing at all, because "this cut carried no live-world fact" is a statement
+	/// about the attempt that applied the tables too. The restore account opened for
+	/// this sequence is the only one allowed to count the contribution, so a write
+	/// that reaches an account opened for a LATER restore cannot be credited to it.
+	/// </summary>
+	ulong AppliedRestoreSequence { get; }
 
 	/// <summary>
 	/// The pending restore is done with: the live world has it (the adapter's

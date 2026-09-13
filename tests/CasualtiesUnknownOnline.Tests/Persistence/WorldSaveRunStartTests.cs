@@ -50,7 +50,7 @@ public sealed class WorldSaveRunStartTests
 		// attempt's facts into it.
 		var entities = new FakeRestoredWorldEntitySource { Armed = true };
 		using var fixture = WorldSaveFixture.Create("save-abandon-restore", worldEntities: entities);
-		fixture.WorldFacts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], radiationLine: null);
+		fixture.WorldFacts.ApplyFacts([new BlockStateEntryMsg { X = 1, Y = 2, Block = 0 }], radiationLine: null, restoreSequence: 1);
 		Assert.True(fixture.WorldFacts.HasPendingLiveReplay);
 
 		fixture.Service.AbandonRestore("the restore published no run baseline, so no world generation will consume it");

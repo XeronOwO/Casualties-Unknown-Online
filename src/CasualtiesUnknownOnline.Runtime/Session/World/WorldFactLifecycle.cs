@@ -38,8 +38,19 @@ internal sealed class WorldFactLifecycle(
 	/// </summary>
 	private bool _pendingLiveReplay;
 
+	/// <summary>
+	/// Which restore attempt applied these tables (see
+	/// <see cref="AppliedRestoreSequence"/>). Stamped on EVERY apply, armed or not:
+	/// the "carried nothing" report the seam makes for a layer-end cut is a statement
+	/// about the same attempt.
+	/// </summary>
+	private ulong _appliedRestoreSequence;
+
 	/// <inheritdoc />
 	public bool HasPendingLiveReplay => _pendingLiveReplay;
+
+	/// <inheritdoc />
+	public ulong AppliedRestoreSequence => _appliedRestoreSequence;
 
 	/// <inheritdoc />
 	public void ClearPendingLiveReplay()
@@ -102,12 +113,17 @@ internal sealed class WorldFactLifecycle(
 	/// <inheritdoc />
 	public WorldFactApplyReport ApplyFacts(
 		IReadOnlyList<BlockStateEntryMsg> blockStates,
-		RadiationLineStateMsg? radiationLine)
+		RadiationLineStateMsg? radiationLine,
+		ulong restoreSequence)
 	{
 		if (!Authoritative("apply restored world facts"))
 		{
 			return new WorldFactApplyReport(0, 0, false);
 		}
+
+		// The identity of the attempt these tables now hold, stamped before anything
+		// else: the seam's contribution belongs to THIS restore, arming a replay or not.
+		_appliedRestoreSequence = restoreSequence;
 
 		// Reset first, and the RESTORE reset is the save layer's own: the restored
 		// cut names the whole world-fact set, so a fact left over from the previous

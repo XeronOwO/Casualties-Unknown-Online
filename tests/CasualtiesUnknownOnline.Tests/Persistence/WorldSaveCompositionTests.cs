@@ -7,6 +7,7 @@ using CasualtiesUnknownOnline.Runtime.Networking;
 using CasualtiesUnknownOnline.Runtime.Session.Persistence;
 using CasualtiesUnknownOnline.Runtime.Session.World;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Xunit;
 
 namespace CasualtiesUnknownOnline.Tests.Persistence;
@@ -70,6 +71,12 @@ public class WorldSaveCompositionTests
 		var audit = provider.GetRequiredService<WorldRestoreAudit>();
 		Assert.False(audit.AwaitingLiveWrite);
 		Assert.Null(audit.Last);
+
+		// ...and it reports through the composition's logger. The parameter is
+		// OPTIONAL (a test host may omit it), so a root that registered no
+		// ILogger<WorldRestoreAudit> would silently drop the warning that names a
+		// straggler from another restore attempt.
+		Assert.NotNull(provider.GetService<ILogger<WorldRestoreAudit>>());
 	}
 
 	[Fact]

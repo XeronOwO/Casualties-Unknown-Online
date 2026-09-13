@@ -33,11 +33,20 @@ internal sealed class RestoredWorldItemSet(
 	/// <summary>Host/solo: a restored cut's world items are the truth until the generation reconciles them.</summary>
 	internal bool Pending { get; private set; }
 
+	/// <summary>
+	/// Which restore attempt armed this set — the kernel restore sequence that produced
+	/// it. It rides every report the set makes, so a reconcile that finishes after a
+	/// LATER restore opened its own account is attributed to the attempt it belongs to
+	/// instead of being counted toward the new one.
+	/// </summary>
+	private ulong _restoreSequence;
+
 	/// <summary>Host/solo: a restore just put the archive's world items into the kernel.</summary>
 	internal void Arm()
 	{
 		Pending = true;
-		_log.LogInformation("[Restore] the restored world-item set is armed: the next generation reconciles its objects against it.");
+		_restoreSequence = _kernel.RestoreSequence;
+		_log.LogInformation("[Restore] the restored world-item set is armed: the next generation reconciles its objects against it (kernel restore {Sequence}).", _restoreSequence);
 	}
 
 	/// <summary>
@@ -71,6 +80,7 @@ internal sealed class RestoredWorldItemSet(
 		var complete = refused.Count == 0;
 		_log.LogInformation("[Restore] the generation reconciled the restored item set: {Applied} applied, {Refused} not taken.", applied, refused.Count);
 		_audit?.LiveWriteFinished(
+			_restoreSequence,
 			complete,
 			refused,
 			complete
@@ -92,6 +102,6 @@ internal sealed class RestoredWorldItemSet(
 
 		Pending = false;
 		_log.LogWarning("[Restore] the restored item set is dropped without a generation reconcile: {Reason}", reason);
-		_audit?.LiveWriteAbandoned(reason);
+		_audit?.LiveWriteAbandoned(_restoreSequence, reason);
 	}
 }

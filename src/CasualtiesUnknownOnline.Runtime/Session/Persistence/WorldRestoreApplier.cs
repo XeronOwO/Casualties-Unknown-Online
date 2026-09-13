@@ -122,6 +122,32 @@ internal sealed class WorldRestoreApplier(
 			return Refuse(worldId, refusal, salvage);
 		}
 
+		// A new restore SUPERSEDES the previous attempt: its account is closed (a restore
+		// that never reached its seam is not one that succeeded) and every handover it
+		// left armed is released — BEFORE the kernel restore below arms this attempt's
+		// own halves, so that NOTHING is armed while this attempt's arms are created.
+		//
+		// This is not tidiness. The world-entry seam and the generation reconcile act on
+		// PRESENCE (they write whatever is armed), and this method's expectation counts
+		// the writers that are armed, while a contribution is attributed by the STAMP its
+		// arm carries. An arm a dead attempt left behind has to go for both reasons: kept,
+		// its rows would be written into THIS layer, and the half would be counted as one
+		// this restore owes while its identity can never match the new account's — leaving
+		// that account awaiting a contribution the audit refuses, forever, which is the
+		// worst outcome this accounting has. It is also why an arm an attempt does not
+		// carry (a cut whose checkpoint projects no world-entity fact, a cut with no native
+		// values) must not silently keep its predecessor's.
+		//
+		// The Runtime world-fact marker goes with them even though ApplyFacts would replace
+		// it: that replacement needs the restore to APPLY, and the refusal paths below must
+		// not leave a dead attempt's "the live world still owes these facts" marker behind
+		// for the next generation to act on.
+		audit?.AbandonRestore();
+		worldFacts.ClearPendingLiveReplay();
+		_worldEntities?.CancelPendingRestore("a new restore superseded the previous attempt's world-entity facts");
+		nativeWorldFacts?.CancelPendingRestore();
+		_items?.CancelRestoredWorldItems("a new restore superseded the previous attempt's world items");
+
 		var restored = kernel.Restore(decode.Checkpoint);
 		if (!restored.Success)
 		{
@@ -130,12 +156,22 @@ internal sealed class WorldRestoreApplier(
 			return Refuse(worldId, refusal, salvage);
 		}
 
+		// The ATTEMPT's identity: the kernel restore just bumped it, and every arm this
+		// restore creates stamped itself with the same value — the world-fact tables
+		// and the adapter's native handover below, the restored world-item set and the
+		// world-entity facts inside that kernel restore. The account opened at the end
+		// of this method is opened for this sequence, so a contribution that reaches it
+		// from an EARLIER attempt (a reconcile of the previous generation, a write that
+		// outlived the restore it belonged to) is attributed to that attempt instead of
+		// standing in for a half this one still owes.
+		var restoreSequence = kernel.RestoreSequence;
+
 		// The world facts the kernel does not own come back BEFORE the run's own
 		// state is applied, and the interface's contract is absolute: the apply
 		// resets the tables first (see IWorldFactSource), so a fact left over from
 		// the previous session cannot survive a cut that never named it. A refused
 		// snapshot never gets here, so nothing of a refused cut is written.
-		var factDamage = _factRestore.Apply(decode.UsableWorldBlocks, decode.UsableWorldTransients, decode.UsableNativeRunFields);
+		var factDamage = _factRestore.Apply(restoreSequence, decode.UsableWorldBlocks, decode.UsableWorldTransients, decode.UsableNativeRunFields);
 
 		if (load.Content.Manifest.Kind == WorldCutKind.LayerEnd)
 		{
@@ -171,6 +207,7 @@ internal sealed class WorldRestoreApplier(
 		// cancels above have already run — see LiveWorldHalves.
 		audit?.BeginRestore(
 			worldId,
+			restoreSequence,
 			LiveWorldHalves(
 				worldEntityHalfArmed: _worldEntities?.HasPendingRestore ?? false,
 				itemReconcileArmed: _items?.RestoredWorldItemsPending ?? false));

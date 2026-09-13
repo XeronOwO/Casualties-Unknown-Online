@@ -22,7 +22,8 @@ internal sealed class WorldSaveFixture : IDisposable
 		ItemKernelAuthority kernel,
 		FakeCharacterDataControl characters,
 		FakeSessionControl session,
-		FakeWorldFactSource worldFacts)
+		FakeWorldFactSource worldFacts,
+		WorldRestoreAudit? audit)
 	{
 		Service = service;
 		Repository = repository;
@@ -30,6 +31,7 @@ internal sealed class WorldSaveFixture : IDisposable
 		Characters = characters;
 		Session = session;
 		WorldFacts = worldFacts;
+		Audit = audit;
 	}
 
 	internal WorldSaveService Service { get; }
@@ -45,6 +47,9 @@ internal sealed class WorldSaveFixture : IDisposable
 	/// <summary>The world-fact tables this fixture's service reads and rewrites.</summary>
 	internal FakeWorldFactSource WorldFacts { get; }
 
+	/// <summary>The restore account this fixture's service reports its live-world halves to, when the suite supplied one.</summary>
+	internal WorldRestoreAudit? Audit { get; }
+
 	/// <summary>The cut writer the service drives — the suites pin its row shapes directly (the service itself owns the trigger, not the payload).</summary>
 	internal WorldCutWriter Writer => Service.Writer!;
 
@@ -59,7 +64,8 @@ internal sealed class WorldSaveFixture : IDisposable
 		SaveTestRepository? repository = null,
 		FakeNativeWorldFacts? nativeWorldFacts = null,
 		IWorldCutTransientProbe? transients = null,
-		IRestoredWorldEntitySource? worldEntities = null)
+		IRestoredWorldEntitySource? worldEntities = null,
+		WorldRestoreAudit? audit = null)
 	{
 		repository ??= SaveTestRepository.Create(label);
 		var kernel = new ItemKernelAuthority(NullLogger<ItemKernelAuthority>.Instance);
@@ -80,9 +86,10 @@ internal sealed class WorldSaveFixture : IDisposable
 			gameBuild: "test",
 			nativeWorldFacts: nativeWorldFacts,
 			transients: transients,
-			worldEntities: worldEntities);
+			worldEntities: worldEntities,
+			audit: audit);
 
-		return new WorldSaveFixture(service, repository, kernel, characters, session, worldFacts);
+		return new WorldSaveFixture(service, repository, kernel, characters, session, worldFacts, audit);
 	}
 
 	/// <summary>A second service over the SAME world repository with a fresh kernel — a host restart.</summary>
